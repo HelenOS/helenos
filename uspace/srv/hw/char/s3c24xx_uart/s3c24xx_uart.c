@@ -161,12 +161,15 @@ static void s3c24xx_uart_irq_handler(ipc_callid_t iid, ipc_call_t *call)
 
 	while ((pio_read_32(&uart->io->ufstat) & S3C24XX_UFSTAT_RX_COUNT) != 0) {
 		uint32_t data = pio_read_32(&uart->io->urxh) & 0xff;
-		pio_read_32(&uart->io->uerstat);
+		uint32_t status = pio_read_32(&uart->io->uerstat);
 
 		if (uart->client_phone != -1) {
 			async_msg_1(uart->client_phone, CHAR_NOTIF_BYTE,
 			    data);
 		}
+
+		if (status & 0x0f)
+			printf(NAME ": Error status 0x%x\n", status);
 	}
 }
 
@@ -197,9 +200,8 @@ static int s3c24xx_uart_init(s3c24xx_uart_t *uart)
 
 	ipc_register_irq(inr, device_assign_devno(), 0, &uart_irq_code);
 
-	/* Disable FIFO */
-	pio_write_32(&uart->io->ufcon,
-	    pio_read_32(&uart->io->ufcon) & ~0x01);
+	/* Enable FIFO, Tx trigger level: empty, Rx trigger level: 1 byte. */
+	pio_write_32(&uart->io->ufcon, 0x01);
 
 	/* Set RX interrupt to pulse mode */
 	pio_write_32(&uart->io->ucon,
