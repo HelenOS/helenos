@@ -57,6 +57,11 @@
 #define S3C24XX_UTRSTAT_TX_EMPTY	0x4
 #define S3C24XX_UTRSTAT_RDATA		0x1
 
+/* Bits in UFSTAT register */
+#define S3C24XX_UFSTAT_TX_FULL		0x4000
+#define S3C24XX_UFSTAT_RX_FULL		0x0040
+#define S3C24XX_UFSTAT_RX_COUNT		0x002f
+
 static irq_cmd_t uart_irq_cmds[] = {
 	{
 		.cmd = CMD_ACCEPT
@@ -154,8 +159,9 @@ static void s3c24xx_uart_irq_handler(ipc_callid_t iid, ipc_call_t *call)
 {
 	(void) iid; (void) call;
 
-	if ((pio_read_32(&uart->io->utrstat) & S3C24XX_UTRSTAT_RDATA) != 0) {
+	while ((pio_read_32(&uart->io->ufstat) & S3C24XX_UFSTAT_RX_COUNT) != 0) {
 		uint32_t data = pio_read_32(&uart->io->urxh) & 0xff;
+		pio_read_32(&uart->io->uerstat);
 
 		if (uart->client_phone != -1) {
 			async_msg_1(uart->client_phone, CHAR_NOTIF_BYTE,
@@ -205,8 +211,8 @@ static int s3c24xx_uart_init(s3c24xx_uart_t *uart)
 /** Send a byte to the UART. */
 static void s3c24xx_uart_sendb(s3c24xx_uart_t *uart, uint8_t byte)
 {
-	/* Wait for transmitter to be empty. */
-	while ((pio_read_32(&uart->io->utrstat) & S3C24XX_UTRSTAT_TX_EMPTY) == 0)
+	/* Wait for space becoming available in Tx FIFO. */
+	while ((pio_read_32(&uart->io->ufstat) & S3C24XX_UFSTAT_TX_FULL) != 0)
 		;
 
 	pio_write_32(&uart->io->utxh, byte);

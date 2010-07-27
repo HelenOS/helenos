@@ -50,13 +50,17 @@
 #define S3C24XX_UTRSTAT_TX_EMPTY	0x4
 #define S3C24XX_UTRSTAT_RDATA		0x1
 
+#define S3C24XX_UFSTAT_TX_FULL		0x4000
+#define S3C24XX_UFSTAT_RX_FULL		0x0040
+#define S3C24XX_UFSTAT_RX_COUNT		0x002f
+
 static void s3c24xx_uart_sendb(outdev_t *dev, uint8_t byte)
 {
 	s3c24xx_uart_t *uart =
 	    (s3c24xx_uart_t *) dev->data;
 
-	/* Wait for transmitter to be empty. */
-	while ((pio_read_32(&uart->io->utrstat) & S3C24XX_UTRSTAT_TX_EMPTY) == 0)
+	/* Wait for space becoming available in Tx FIFO. */
+	while ((pio_read_32(&uart->io->ufstat) & S3C24XX_UFSTAT_TX_FULL) != 0)
 		;
 
 	pio_write_32(&uart->io->utxh, byte);
@@ -84,8 +88,9 @@ static void s3c24xx_uart_irq_handler(irq_t *irq)
 {
 	s3c24xx_uart_t *uart = irq->instance;
 
-	if ((pio_read_32(&uart->io->utrstat) & S3C24XX_UTRSTAT_RDATA) != 0) {
+	while ((pio_read_32(&uart->io->ufstat) & S3C24XX_UFSTAT_RX_COUNT) != 0) {
 		uint32_t data = pio_read_32(&uart->io->urxh);
+		pio_read_32(&uart->io->uerstat);
 		indev_push_character(uart->indev, data & 0xff);
 	}
 }
@@ -122,9 +127,8 @@ outdev_t *s3c24xx_uart_init(s3c24xx_uart_io_t *io, inr_t inr)
 	uart->irq.handler = s3c24xx_uart_irq_handler;
 	uart->irq.instance = uart;
 
-	/* Disable FIFO */
-	pio_write_32(&uart->io->ufcon,
-	    pio_read_32(&uart->io->ufcon) & ~0x01);
+	/* Enable FIFO, Tx trigger level: empty, Rx trigger level: 1 byte. */
+	pio_write_32(&uart->io->ufcon, 0x01);
 
 	/* Set RX interrupt to pulse mode */
 	pio_write_32(&uart->io->ucon,
