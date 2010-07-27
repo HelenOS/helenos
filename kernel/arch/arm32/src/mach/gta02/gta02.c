@@ -43,6 +43,7 @@
 #include <genarch/drivers/s3c24xx_irqc/s3c24xx_irqc.h>
 #include <genarch/drivers/s3c24xx_timer/s3c24xx_timer.h>
 #include <genarch/srln/srln.h>
+#include <sysinfo/sysinfo.h>
 #include <interrupt.h>
 #include <ddi/ddi.h>
 #include <ddi/device.h>
@@ -184,6 +185,16 @@ static void gta02_output_init(void)
 		/* Create output device. */
 		stdout_wire(gta02_scons_dev);
 	}
+
+	/*
+	 * This is the necessary evil until the userspace driver is entirely
+	 * self-sufficient.
+	 */
+	sysinfo_set_item_val("s3c24xx_uart", NULL, true);
+	sysinfo_set_item_val("s3c24xx_uart.inr", NULL, S3C24XX_INT_UART2);
+	sysinfo_set_item_val("s3c24xx_uart.address.physical", NULL,
+	    (uintptr_t) GTA02_SCONS_BASE);
+
 }
 
 static void gta02_input_init(void)

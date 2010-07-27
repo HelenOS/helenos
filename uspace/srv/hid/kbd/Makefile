@@ -59,8 +59,8 @@ endif
 ifeq ($(UARCH),arm32)
 	ifeq ($(MACHINE),gta02)
 		SOURCES += \
-			port/dummy.c \
-			ctl/pc.c
+			port/chardev.c \
+			ctl/stty.c
 	endif
 	ifeq ($(MACHINE),testarm)
 		SOURCES += \
