@@ -105,6 +105,9 @@ static void fat_node_initialize(fat_node_t *node)
 	node->dirty = false;
 	node->lastc_cached_valid = false;
 	node->lastc_cached_value = FAT_CLST_LAST1;
+	node->currc_cached_valid = false;
+	node->currc_cached_bn = 0;
+	node->currc_cached_value = FAT_CLST_LAST1;
 }
 
 static int fat_node_sync(fat_node_t *node)

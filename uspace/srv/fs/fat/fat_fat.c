@@ -141,6 +141,11 @@ int
 fat_block_get(block_t **block, struct fat_bs *bs, fat_node_t *nodep,
     aoff64_t bn, int flags)
 {
+	fat_cluster_t firstc = nodep->firstc;
+	fat_cluster_t currc;
+	aoff64_t relbn = bn;
+	int rc;
+
 	if (!nodep->size)
 		return ELIMIT;
 
@@ -157,9 +162,29 @@ fat_block_get(block_t **block, struct fat_bs *bs, fat_node_t *nodep,
 		    CLBN2PBN(bs, nodep->lastc_cached_value, bn), flags);
 	}
 
+	if (nodep->currc_cached_valid && bn >= nodep->currc_cached_bn) {
+		/*
+		 * We can start with the cluster cached by the previous call to
+		 * fat_block_get().
+		 */
+		firstc = nodep->currc_cached_value;
+		relbn -= (nodep->currc_cached_bn / SPC(bs)) * SPC(bs);
+	}
+
 fall_through:
-	return _fat_block_get(block, bs, nodep->idx->dev_handle, nodep->firstc,
-	    NULL, bn, flags);
+	rc = _fat_block_get(block, bs, nodep->idx->dev_handle, firstc,
+	    &currc, relbn, flags);
+	if (rc != EOK)
+		return rc;
+	
+	/*
+	 * Update the "current" cluster cache.
+	 */
+	nodep->currc_cached_valid = true;
+	nodep->currc_cached_bn = bn;
+	nodep->currc_cached_value = currc;
+
+	return rc;
 }
 
 /** Read block from file located on a FAT file system.
@@ -566,7 +591,13 @@ int fat_chop_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t lcl)
 	int rc;
 	dev_handle_t dev_handle = nodep->idx->dev_handle;
 
+	/*
+	 * Invalidate cached cluster numbers.
+	 */
 	nodep->lastc_cached_valid = false;
+	if (nodep->currc_cached_value != lcl)
+		nodep->currc_cached_valid = false;
+
 	if (lcl == FAT_CLST_RES0) {
 		/* The node will have zero size and no clusters allocated. */
 		rc = fat_free_clusters(bs, dev_handle, nodep->firstc);
@@ -596,6 +627,9 @@ int fat_chop_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t lcl)
 			return rc;
 	}
 
+	/*
+	 * Update and re-enable the last cluster cache.
+	 */
 	nodep->lastc_cached_valid = true;
 	nodep->lastc_cached_value = lcl;
 

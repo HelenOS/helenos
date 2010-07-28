@@ -212,10 +212,16 @@ typedef struct fat_node {
 	bool			dirty;
 
 	/*
-	 * Cache of the node's last cluster to avoid some unnecessary FAT walks.
+	 * Cache of the node's last and "current" cluster to avoid some
+	 * unnecessary FAT walks.
 	 */
-	bool			lastc_cached_valid;
-	fat_cluster_t		lastc_cached_value;
+	/* Node's last cluster in FAT. */
+	bool		lastc_cached_valid;
+	fat_cluster_t	lastc_cached_value;
+	/* Node's "current" cluster, i.e. where the last I/O took place. */
+	bool		currc_cached_valid;
+	aoff64_t	currc_cached_bn;
+	fat_cluster_t	currc_cached_value;
 } fat_node_t;
 
 extern fs_reg_t fat_reg;
