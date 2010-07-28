@@ -48,6 +48,19 @@
 
 #define min(a, b)		((a) < (b) ? (a) : (b))
 
+/*
+ * Convenience macros for accessing some frequently used boot sector members.
+ */
+#define BPS(bs)		uint16_t_le2host((bs)->bps)
+#define SPC(bs)		(bs)->spc
+#define RSCNT(bs)	uint16_t_le2host((bs)->rscnt)
+#define FATCNT(bs)	(bs)->fatcnt
+#define SF(bs)		uint16_t_le2host((bs)->sec_per_fat)
+#define RDE(bs)		uint16_t_le2host((bs)->root_ent_max)
+#define TS(bs)		(uint16_t_le2host((bs)->totsec16) != 0 ? \
+			uint16_t_le2host((bs)->totsec16) : \
+			uint32_t_le2host(bs->totsec32))
+
 #define BS_BLOCK		0
 #define BS_SIZE			512
 
@@ -197,6 +210,18 @@ typedef struct fat_node {
 	unsigned		lnkcnt;
 	unsigned		refcnt;
 	bool			dirty;
+
+	/*
+	 * Cache of the node's last and "current" cluster to avoid some
+	 * unnecessary FAT walks.
+	 */
+	/* Node's last cluster in FAT. */
+	bool		lastc_cached_valid;
+	fat_cluster_t	lastc_cached_value;
+	/* Node's "current" cluster, i.e. where the last I/O took place. */
+	bool		currc_cached_valid;
+	aoff64_t	currc_cached_bn;
+	fat_cluster_t	currc_cached_value;
 } fat_node_t;
 
 extern fs_reg_t fat_reg;
