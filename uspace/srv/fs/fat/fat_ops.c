@@ -1563,8 +1563,27 @@ void fat_stat(ipc_callid_t rid, ipc_call_t *request)
 
 void fat_sync(ipc_callid_t rid, ipc_call_t *request)
 {
-	/* Dummy implementation */
-	ipc_answer_0(rid, EOK);
+	dev_handle_t dev_handle = (dev_handle_t) IPC_GET_ARG1(*request);
+	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
+	
+	fs_node_t *fn;
+	int rc = fat_node_get(&fn, dev_handle, index);
+	if (rc != EOK) {
+		ipc_answer_0(rid, rc);
+		return;
+	}
+	if (!fn) {
+		ipc_answer_0(rid, ENOENT);
+		return;
+	}
+	
+	fat_node_t *nodep = FAT_NODE(fn);
+	
+	nodep->dirty = true;
+	rc = fat_node_sync(nodep);
+	
+	fat_node_put(fn);
+	ipc_answer_0(rid, rc);
 }
 
 /**
