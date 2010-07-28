@@ -47,7 +47,7 @@ ifeq ($(RDFMT),tmpfs)
 	$(MKTMPFS) $(DIST_PATH) $@
 endif
 ifeq ($(RDFMT),fat)
-	$(MKFAT) $(DIST_PATH) $@
+	$(MKFAT) 1048576 $(DIST_PATH) $@
 endif
 
 build_dist: clean_dist
