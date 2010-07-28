@@ -67,7 +67,7 @@ static void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
 		putchar(ch);
 		
 		if (log != NULL)
-			fprintf(log, "%lc", ch);
+			fputc(ch, log);
 	}
 	
 	if (log != NULL) {
