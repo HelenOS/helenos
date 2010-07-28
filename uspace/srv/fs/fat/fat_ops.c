@@ -120,7 +120,7 @@ static int fat_node_sync(fat_node_t *node)
 	
 	/* Read the block that contains the dentry of interest. */
 	rc = _fat_block_get(&b, bs, node->idx->dev_handle, node->idx->pfc,
-	    (node->idx->pdi * sizeof(fat_dentry_t)) / BPS(bs),
+	    NULL, (node->idx->pdi * sizeof(fat_dentry_t)) / BPS(bs),
 	    BLOCK_FLAGS_NONE);
 	if (rc != EOK)
 		return rc;
@@ -298,7 +298,7 @@ static int fat_node_get_core(fat_node_t **nodepp, fat_idx_t *idxp)
 	bs = block_bb_get(idxp->dev_handle);
 
 	/* Read the block that contains the dentry of interest. */
-	rc = _fat_block_get(&b, bs, idxp->dev_handle, idxp->pfc,
+	rc = _fat_block_get(&b, bs, idxp->dev_handle, idxp->pfc, NULL,
 	    (idxp->pdi * sizeof(fat_dentry_t)) / BPS(bs), BLOCK_FLAGS_NONE);
 	if (rc != EOK) {
 		(void) fat_node_put(FS_NODE(nodep));
@@ -798,7 +798,7 @@ int fat_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 	bs = block_bb_get(childp->idx->dev_handle);
 
 	rc = _fat_block_get(&b, bs, childp->idx->dev_handle, childp->idx->pfc,
-	    (childp->idx->pdi * sizeof(fat_dentry_t)) / BPS(bs),
+	    NULL, (childp->idx->pdi * sizeof(fat_dentry_t)) / BPS(bs),
 	    BLOCK_FLAGS_NONE);
 	if (rc != EOK) 
 		goto error;
@@ -1380,7 +1380,7 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 			ipc_answer_0(rid, rc);
 			return;
 		}
-		rc = _fat_block_get(&b, bs, dev_handle, lcl,
+		rc = _fat_block_get(&b, bs, dev_handle, lcl, NULL,
 		    (pos / BPS(bs)) % SPC(bs), flags);
 		if (rc != EOK) {
 			(void) fat_free_clusters(bs, dev_handle, mcl);

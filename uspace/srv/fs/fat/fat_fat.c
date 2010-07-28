@@ -159,7 +159,7 @@ fat_block_get(block_t **block, struct fat_bs *bs, fat_node_t *nodep,
 
 fall_through:
 	return _fat_block_get(block, bs, nodep->idx->dev_handle, nodep->firstc,
-	    bn, flags);
+	    NULL, bn, flags);
 }
 
 /** Read block from file located on a FAT file system.
@@ -167,8 +167,11 @@ fall_through:
  * @param block		Pointer to a block pointer for storing result.
  * @param bs		Buffer holding the boot sector of the file system.
  * @param dev_handle	Device handle of the file system.
- * @param firstc	First cluster used by the file. Can be zero if the file
+ * @param fcl		First cluster used by the file. Can be zero if the file
  *			is empty.
+ * @param clp		If not NULL, address where the cluster containing bn
+ *			will be stored.
+ *			stored 
  * @param bn		Block number.
  * @param flags		Flags passed to libblock.
  *
@@ -176,20 +179,20 @@ fall_through:
  */
 int
 _fat_block_get(block_t **block, fat_bs_t *bs, dev_handle_t dev_handle,
-    fat_cluster_t firstc, aoff64_t bn, int flags)
+    fat_cluster_t fcl, fat_cluster_t *clp, aoff64_t bn, int flags)
 {
 	uint16_t clusters;
 	unsigned max_clusters;
-	fat_cluster_t lastc;
+	fat_cluster_t c;
 	int rc;
 
 	/*
 	 * This function can only operate on non-zero length files.
 	 */
-	if (firstc == FAT_CLST_RES0)
+	if (fcl == FAT_CLST_RES0)
 		return ELIMIT;
 
-	if (firstc == FAT_CLST_ROOT) {
+	if (fcl == FAT_CLST_ROOT) {
 		/* root directory special case */
 		assert(bn < RDS(bs));
 		rc = block_get(block, dev_handle,
@@ -198,13 +201,15 @@ _fat_block_get(block_t **block, fat_bs_t *bs, dev_handle_t dev_handle,
 	}
 
 	max_clusters = bn / SPC(bs);
-	rc = fat_cluster_walk(bs, dev_handle, firstc, &lastc, &clusters,
-	    max_clusters);
+	rc = fat_cluster_walk(bs, dev_handle, fcl, &c, &clusters, max_clusters);
 	if (rc != EOK)
 		return rc;
 	assert(clusters == max_clusters);
 
-	rc = block_get(block, dev_handle, CLBN2PBN(bs, lastc, bn), flags);
+	rc = block_get(block, dev_handle, CLBN2PBN(bs, c, bn), flags);
+
+	if (clp)
+		*clp = c;
 
 	return rc;
 }
@@ -250,7 +255,7 @@ int fat_fill_gap(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl, aoff64_t po
 	/* zero out the initial part of the new cluster chain */
 	for (o = boundary; o < pos; o += BPS(bs)) {
 		rc = _fat_block_get(&b, bs, nodep->idx->dev_handle, mcl,
-		    (o - boundary) / BPS(bs), BLOCK_FLAGS_NOREAD);
+		    NULL, (o - boundary) / BPS(bs), BLOCK_FLAGS_NOREAD);
 		if (rc != EOK)
 			return rc;
 		memset(b->data, 0, min(BPS(bs), pos - o));
@@ -605,7 +610,7 @@ fat_zero_cluster(struct fat_bs *bs, dev_handle_t dev_handle, fat_cluster_t c)
 	int rc;
 
 	for (i = 0; i < SPC(bs); i++) {
-		rc = _fat_block_get(&b, bs, dev_handle, c, i,
+		rc = _fat_block_get(&b, bs, dev_handle, c, NULL, i,
 		    BLOCK_FLAGS_NOREAD);
 		if (rc != EOK)
 			return rc;
