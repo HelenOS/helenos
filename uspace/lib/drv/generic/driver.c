@@ -228,6 +228,9 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 	}
 	
 	ipc_answer_0(iid, ret);	
+	if (EOK != ret) {
+		return;
+	}
 
 	while (1) {
 		ipc_callid_t callid;
