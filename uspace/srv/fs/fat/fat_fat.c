@@ -423,13 +423,15 @@ fat_alloc_clusters(fat_bs_t *bs, dev_handle_t dev_handle, unsigned nclsts,
 			goto error;
 		for (c = 0; c < BPS(bs) / sizeof(fat_cluster_t); c++, cl++) {
 			/*
-			 * Check if the cluster is physically there. This check
-			 * becomes necessary when the file system is created
-			 * with fewer total sectors than how many is inferred
-			 * from the size of the file allocation table.
+			 * Check if the entire cluster is physically there.
+			 * This check becomes necessary when the file system is
+			 * created with fewer total sectors than how many is
+			 * inferred from the size of the file allocation table
+			 * or when the last cluster ends beyond the end of the
+			 * device.
 			 */
-			if ((cl >= 2) &&
-			    ((cl - 2) * SPC(bs) + SSA(bs) >= TS(bs))) {
+			if ((cl >= FAT_CLST_FIRST) &&
+			    CLBN2PBN(bs, cl, SPC(bs) - 1) >= TS(bs)) {
 				rc = block_put(blk);
 				if (rc != EOK)
 					goto error;
