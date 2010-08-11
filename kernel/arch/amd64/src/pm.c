@@ -170,7 +170,7 @@ void idt_init(void)
 		d = &idt[i];
 
 		d->unused = 0;
-		d->selector = gdtselector(KTEXT_DES);
+		d->selector = GDT_SELECTOR(KTEXT_DES);
 
 		d->present = 1;
 		d->type = AR_INTERRUPT;	/* masking interrupt */
@@ -290,7 +290,7 @@ void pm_init(void)
 	 * As of this moment, the current CPU has its own GDT pointing
 	 * to its own TSS. We just need to load the TR register.
 	 */
-	tr_load(gdtselector(TSS_DES));
+	tr_load(GDT_SELECTOR(TSS_DES));
 }
 
 /** @}

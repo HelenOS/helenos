@@ -152,7 +152,7 @@ void io_perm_bitmap_install(void)
 	 */
 	tss_descriptor_t *tss_desc = (tss_descriptor_t *) &gdt_p[TSS_DES];
 	tss_desc->type = AR_TSS;
-	tr_load(gdtselector(TSS_DES));
+	tr_load(GDT_SELECTOR(TSS_DES));
 	
 	/*
 	 * Update the generation count so that faults caused by

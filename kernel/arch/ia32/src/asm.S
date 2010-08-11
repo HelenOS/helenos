@@ -224,7 +224,7 @@ sysenter_handler:
 	/*
 	 * Switch to kernel selectors.
 	 */
-	movw $(gdtselector(KDATA_DES)), %ax
+	movw $(GDT_SELECTOR(KDATA_DES)), %ax
 	movw %ax, %ds
 	movw %ax, %es
 	
@@ -303,7 +303,7 @@ int_syscall:
 	/*
 	 * Switch to kernel selectors.
 	 */
-	movl $(gdtselector(KDATA_DES)), %eax
+	movl $(GDT_SELECTOR(KDATA_DES)), %eax
 	movl %eax, %ds
 	movl %eax, %es
 		
@@ -406,7 +406,7 @@ int_\i:
 	/*
 	 * Switch to kernel selectors.
 	 */
-	movl $(gdtselector(KDATA_DES)), %eax
+	movl $(GDT_SELECTOR(KDATA_DES)), %eax
 	movl %eax, %ds
 	movl %eax, %es
 	
@@ -415,7 +415,7 @@ int_\i:
 	 * Stop stack traces here if we came from userspace.
 	 */
 	xorl %eax, %eax
-	cmpl $(gdtselector(KTEXT_DES)), ISTATE_OFFSET_CS(%esp)
+	cmpl $(GDT_SELECTOR(KTEXT_DES)), ISTATE_OFFSET_CS(%esp)
 	cmovnzl %eax, %ebp
 
 	movl %ebp, ISTATE_OFFSET_EBP_FRAME(%esp)
