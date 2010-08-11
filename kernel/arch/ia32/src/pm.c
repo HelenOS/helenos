@@ -74,8 +74,8 @@ descriptor_t gdt[GDT_ITEMS] = {
 	{ 0xffff, 0, 0, AR_PRESENT | AR_DATA | AR_WRITABLE | DPL_USER, 0xf, 0, 0, 1, 1, 0 },
 	/* VESA Init descriptor */
 #ifdef CONFIG_FB
-	{ 0xffff, 0, VESA_INIT_SEGMENT>>12, AR_PRESENT | AR_CODE | DPL_KERNEL, 0xf, 0, 0, 0, 0, 0 }
-#endif	
+	{ 0xffff, 0, VESA_INIT_SEGMENT >> 12, AR_PRESENT | AR_CODE | DPL_KERNEL, 0xf, 0, 0, 0, 0, 0 }
+#endif
 };
 
 static idescriptor_t idt[IDT_ITEMS];
@@ -85,7 +85,10 @@ static tss_t tss;
 tss_t *tss_p = NULL;
 
 /* gdtr is changed by kmp before next CPU is initialized */
-ptr_16_32_t gdtr = { .limit = sizeof(gdt), .base = (uintptr_t) gdt };
+ptr_16_32_t gdtr = {
+	.limit = sizeof(gdt),
+	.base = (uintptr_t) gdt
+};
 
 void gdt_setbase(descriptor_t *d, uintptr_t base)
 {
