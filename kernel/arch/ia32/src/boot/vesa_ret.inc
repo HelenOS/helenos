@@ -6,11 +6,11 @@ vesa_init_protected:
 	movl $START_STACK, %esp
 	
 	/* Kernel data + stack */
-	movw $gdtselector(KDATA_DES), %cx
+	movw $GDT_SELECTOR(KDATA_DES), %cx
 	movw %cx, %es
 	movw %cx, %fs
 	movw %cx, %gs
 	movw %cx, %ds
 	movw %cx, %ss
 	
-	jmpl $gdtselector(KTEXT_DES), $vesa_meeting_point
+	jmpl $GDT_SELECTOR(KTEXT_DES), $vesa_meeting_point

@@ -84,7 +84,7 @@ multiboot_image_start:
 	lgdtl bootstrap_gdtr
 	
 	/* Kernel data + stack */
-	movw $gdtselector(KDATA_DES), %cx
+	movw $GDT_SELECTOR(KDATA_DES), %cx
 	movw %cx, %es
 	movw %cx, %ds
 	movw %cx, %ss
@@ -93,11 +93,11 @@ multiboot_image_start:
 	 * Simics seems to remove hidden part of GS on entering user mode
 	 * when _visible_ part of GS does not point to user-mode segment.
 	 */
-	movw $gdtselector(UDATA_DES), %cx
+	movw $GDT_SELECTOR(UDATA_DES), %cx
 	movw %cx, %fs
 	movw %cx, %gs
 	
-	jmpl $gdtselector(KTEXT32_DES), $multiboot_meeting_point
+	jmpl $GDT_SELECTOR(KTEXT32_DES), $multiboot_meeting_point
 	multiboot_meeting_point:
 	
 	/* Save GRUB arguments */
@@ -181,7 +181,7 @@ multiboot_image_start:
 	movl %eax, %cr0
 	
 	/* At this point we are in compatibility mode */
-	jmpl $gdtselector(KTEXT_DES), $start64
+	jmpl $GDT_SELECTOR(KTEXT_DES), $start64
 
 /** Print string to EGA display (in light red) and halt.
  *
@@ -644,9 +644,8 @@ ptl_0:
 
 .section K_DATA_START, "aw", @progbits
 
-.global bootstrap_gdtr
 bootstrap_gdtr:
-	.word gdtselector(GDT_ITEMS)
+	.word GDT_SELECTOR(GDT_ITEMS)
 	.long KA2PA(gdt)
 
 grub_eax:

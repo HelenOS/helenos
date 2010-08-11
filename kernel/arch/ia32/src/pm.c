@@ -85,7 +85,6 @@ static tss_t tss;
 tss_t *tss_p = NULL;
 
 /* gdtr is changed by kmp before next CPU is initialized */
-ptr_16_32_t bootstrap_gdtr = { .limit = sizeof(gdt), .base = KA2PA((uintptr_t) gdt) };
 ptr_16_32_t gdtr = { .limit = sizeof(gdt), .base = (uintptr_t) gdt };
 
 void gdt_setbase(descriptor_t *d, uintptr_t base)
@@ -127,7 +126,7 @@ void idt_init(void)
 		d = &idt[i];
 
 		d->unused = 0;
-		d->selector = gdtselector(KTEXT_DES);
+		d->selector = GDT_SELECTOR(KTEXT_DES);
 
 		if (i == VECTOR_SYSCALL) {
 			/*
@@ -282,7 +281,7 @@ void pm_init(void)
 	 * As of this moment, the current CPU has its own GDT pointing
 	 * to its own TSS. We just need to load the TR register.
 	 */
-	tr_load(gdtselector(TSS_DES));
+	tr_load(GDT_SELECTOR(TSS_DES));
 	
 	clean_IOPL_NT_flags();    /* Disable I/O on nonprivileged levels and clear NT flag. */
 	clean_AM_flag();          /* Disable alignment check */
