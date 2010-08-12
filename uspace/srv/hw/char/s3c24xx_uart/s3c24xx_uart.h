@@ -57,6 +57,24 @@ typedef struct {
 	uint32_t ubrdiv;
 } s3c24xx_uart_io_t;
 
+/* Bits in UTRSTAT register */
+#define S3C24XX_UTRSTAT_TX_EMPTY	0x4
+#define S3C24XX_UTRSTAT_RDATA		0x1
+
+/* Bits in UFSTAT register */
+#define S3C24XX_UFSTAT_TX_FULL		0x4000
+#define S3C24XX_UFSTAT_RX_FULL		0x0040
+#define S3C24XX_UFSTAT_RX_COUNT		0x002f
+
+/* Bits in UCON register */
+#define UCON_RX_INT_LEVEL		0x100
+
+/* Bits in UFCON register */
+#define UFCON_TX_FIFO_TLEVEL_EMPTY	0x00
+#define UFCON_RX_FIFO_TLEVEL_1B		0x00
+#define UFCON_FIFO_ENABLE		0x01
+
+
 /** S3C24xx UART instance */
 typedef struct {
 	/** Physical device address */

@@ -46,14 +46,6 @@
 #include <sysinfo/sysinfo.h>
 #include <str.h>
 
-/* Bits in UTRSTAT register */
-#define S3C24XX_UTRSTAT_TX_EMPTY	0x4
-#define S3C24XX_UTRSTAT_RDATA		0x1
-
-#define S3C24XX_UFSTAT_TX_FULL		0x4000
-#define S3C24XX_UFSTAT_RX_FULL		0x0040
-#define S3C24XX_UFSTAT_RX_COUNT		0x002f
-
 static void s3c24xx_uart_sendb(outdev_t *dev, uint8_t byte)
 {
 	s3c24xx_uart_t *uart =
@@ -128,11 +120,12 @@ outdev_t *s3c24xx_uart_init(s3c24xx_uart_io_t *io, inr_t inr)
 	uart->irq.instance = uart;
 
 	/* Enable FIFO, Tx trigger level: empty, Rx trigger level: 1 byte. */
-	pio_write_32(&uart->io->ufcon, 0x01);
+	pio_write_32(&uart->io->ufcon, UFCON_FIFO_ENABLE |
+	    UFCON_TX_FIFO_TLEVEL_EMPTY | UFCON_RX_FIFO_TLEVEL_1B);
 
 	/* Set RX interrupt to pulse mode */
 	pio_write_32(&uart->io->ucon,
-	    pio_read_32(&uart->io->ucon) & ~(1 << 8));
+	    pio_read_32(&uart->io->ucon) & ~UCON_RX_INT_LEVEL);
 
 	if (!fb_exported) {
 		/*
