@@ -220,6 +220,13 @@ static void gta02_input_init(void)
 			    S3C24XX_SUBINT_RXD2);
 		}
 	}
+
+	/* Enable interrupts from ADC */
+	s3c24xx_irqc_src_enable(&gta02_irqc, S3C24XX_INT_ADC);
+
+	/* Enable interrupts from ADC sub-sources */
+	s3c24xx_irqc_subsrc_enable(&gta02_irqc, S3C24XX_SUBINT_ADC_S);
+	s3c24xx_irqc_subsrc_enable(&gta02_irqc, S3C24XX_SUBINT_TC);
 }
 
 size_t gta02_get_irq_count(void)
