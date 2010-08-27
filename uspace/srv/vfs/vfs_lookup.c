@@ -167,7 +167,7 @@ int vfs_lookup_internal(char *path, int lflag, vfs_lookup_res_t *result,
 	
 	ipcarg_t rc;
 	async_wait_for(req, &rc);
-	vfs_release_phone(phone);
+	vfs_release_phone(root->fs_handle, phone);
 	
 	fibril_mutex_lock(&plb_mutex);
 	list_remove(&entry.plb_link);
@@ -214,7 +214,7 @@ int vfs_open_node_internal(vfs_lookup_res_t *result)
 	
 	ipcarg_t rc;
 	async_wait_for(req, &rc);
-	vfs_release_phone(phone);
+	vfs_release_phone(result->triplet.fs_handle, phone);
 	
 	if (rc == EOK) {
 		result->size =
