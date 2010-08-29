@@ -1346,8 +1346,8 @@ static void mouse_hide(void)
 static void mouse_move(unsigned int x, unsigned int y)
 {
 	mouse_hide();
-	pointer_x = x;
-	pointer_y = y;
+	pointer_x = x % screen.xres;
+	pointer_y = y % screen.yres;
 	mouse_show();
 }
 
