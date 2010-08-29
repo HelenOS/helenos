@@ -285,6 +285,9 @@ void gcons_mouse_move(ssize_t dx, ssize_t dy)
 {
 	ssize_t nx = (ssize_t) mouse_x + dx;
 	ssize_t ny = (ssize_t) mouse_y + dy;
+
+	if (!use_gcons)
+		return;
 	
 	mouse_x = (size_t) limit(nx, 0, xres);
 	mouse_y = (size_t) limit(ny, 0, yres);
