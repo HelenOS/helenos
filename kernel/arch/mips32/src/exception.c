@@ -82,7 +82,7 @@ void istate_decode(istate_t *istate)
 	printf("sp=%p\tra=%p\t\n", istate->sp, istate->ra);
 	printf("lo=%p\thi=%p\t\n", istate->lo, istate->hi);
 	printf("cp0_status=%p\tcp0_epc=%p\tk1=%p\n",
-	    istate->status, istate->epc, istate->k1);
+	    istate->status, istate->epc, istate->kt1);
 }
 
 static void unhandled_exception(unsigned int n, istate_t *istate)
@@ -96,7 +96,7 @@ static void reserved_instr_exception(unsigned int n, istate_t *istate)
 	if (*((uint32_t *) istate->epc) == 0x7c03e83b) {
 		ASSERT(THREAD);
 		istate->epc += 4;
-		istate->v1 = istate->k1;
+		istate->v1 = istate->kt1;
 	} else
 		unhandled_exception(n, istate);
 }

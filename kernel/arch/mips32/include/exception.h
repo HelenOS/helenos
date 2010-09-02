@@ -78,14 +78,14 @@ typedef struct istate {
 	uint32_t t5;
 	uint32_t t6;
 	uint32_t t7;
-	uint32_t s0
-	uint32_t s1
-	uint32_t s2
-	uint32_t s3
-	uint32_t s4
-	uint32_t s5
-	uint32_t s6
-	uint32_t s7
+	uint32_t s0;
+	uint32_t s1;
+	uint32_t s2;
+	uint32_t s3;
+	uint32_t s4;
+	uint32_t s5;
+	uint32_t s6;
+	uint32_t s7;
 	uint32_t t8;
 	uint32_t t9;
 	uint32_t kt0;

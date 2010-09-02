@@ -45,7 +45,7 @@
 .global userspace_asm
 
 /*
- * Which status bits should are thread-local:
+ * Which status bits are thread-local:
  * KSU(UM), EXL, ERL, IE
  */
 #define REG_SAVE_MASK 0x1f
@@ -96,32 +96,32 @@
  * %sp is NOT saved as part of these registers
  */
 .macro REGISTERS_STORE_AND_EXC_RESET r
-	sw $at, EOFFSET_AT(\r)
-	sw $v0, EOFFSET_V0(\r)
-	sw $v1, EOFFSET_V1(\r)
-	sw $a0, EOFFSET_A0(\r)
-	sw $a1, EOFFSET_A1(\r)
-	sw $a2, EOFFSET_A2(\r)
-	sw $a3, EOFFSET_A3(\r)
-	sw $t0, EOFFSET_T0(\r)
-	sw $t1, EOFFSET_T1(\r)
-	sw $t2, EOFFSET_T2(\r)
-	sw $t3, EOFFSET_T3(\r)
-	sw $t4, EOFFSET_T4(\r)
-	sw $t5, EOFFSET_T5(\r)
-	sw $t6, EOFFSET_T6(\r)
-	sw $t7, EOFFSET_T7(\r)
-	sw $t8, EOFFSET_T8(\r)
-	sw $t9, EOFFSET_T9(\r)
+	sw $at, ISTATE_OFFSET_AT(\r)
+	sw $v0, ISTATE_OFFSET_V0(\r)
+	sw $v1, ISTATE_OFFSET_V1(\r)
+	sw $a0, ISTATE_OFFSET_A0(\r)
+	sw $a1, ISTATE_OFFSET_A1(\r)
+	sw $a2, ISTATE_OFFSET_A2(\r)
+	sw $a3, ISTATE_OFFSET_A3(\r)
+	sw $t0, ISTATE_OFFSET_T0(\r)
+	sw $t1, ISTATE_OFFSET_T1(\r)
+	sw $t2, ISTATE_OFFSET_T2(\r)
+	sw $t3, ISTATE_OFFSET_T3(\r)
+	sw $t4, ISTATE_OFFSET_T4(\r)
+	sw $t5, ISTATE_OFFSET_T5(\r)
+	sw $t6, ISTATE_OFFSET_T6(\r)
+	sw $t7, ISTATE_OFFSET_T7(\r)
+	sw $t8, ISTATE_OFFSET_T8(\r)
+	sw $t9, ISTATE_OFFSET_T9(\r)
 	
 	mflo $at
-	sw $at, EOFFSET_LO(\r)
+	sw $at, ISTATE_OFFSET_LO(\r)
 	mfhi $at
-	sw $at, EOFFSET_HI(\r)
+	sw $at, ISTATE_OFFSET_HI(\r)
 	
-	sw $gp, EOFFSET_GP(\r)
-	sw $ra, EOFFSET_RA(\r)
-	sw $k1, EOFFSET_K1(\r)
+	sw $gp, ISTATE_OFFSET_GP(\r)
+	sw $ra, ISTATE_OFFSET_RA(\r)
+	sw $k1, ISTATE_OFFSET_KT1(\r)
 	
 	mfc0 $t0, $status
 	mfc0 $t1, $epc
@@ -133,8 +133,8 @@
 	li $t3, ~(REG_SAVE_MASK)
 	and $t0, $t0, $t3
 	
-	sw $t2, EOFFSET_STATUS(\r)
-	sw $t1, EOFFSET_EPC(\r)
+	sw $t2, ISTATE_OFFSET_STATUS(\r)
+	sw $t1, ISTATE_OFFSET_EPC(\r)
 	mtc0 $t0, $status
 .endm
 
@@ -144,7 +144,7 @@
 	 * is controlled by OS and not bound to task.
 	 */
 	mfc0 $t0, $status
-	lw $t1,EOFFSET_STATUS(\r)
+	lw $t1, ISTATE_OFFSET_STATUS(\r)
 	
 	/* mask UM, EXL, ERL, IE */
 	li $t2, ~REG_SAVE_MASK
@@ -154,37 +154,37 @@
 	or $t0, $t0, $t1
 	mtc0 $t0, $status
 	
-	lw $v0, EOFFSET_V0(\r)
-	lw $v1, EOFFSET_V1(\r)
-	lw $a0, EOFFSET_A0(\r)
-	lw $a1, EOFFSET_A1(\r)
-	lw $a2, EOFFSET_A2(\r)
-	lw $a3, EOFFSET_A3(\r)
-	lw $t0, EOFFSET_T0(\r)
-	lw $t1, EOFFSET_T1(\r)
-	lw $t2, EOFFSET_T2(\r)
-	lw $t3, EOFFSET_T3(\r)
-	lw $t4, EOFFSET_T4(\r)
-	lw $t5, EOFFSET_T5(\r)
-	lw $t6, EOFFSET_T6(\r)
-	lw $t7, EOFFSET_T7(\r)
-	lw $t8, EOFFSET_T8(\r)
-	lw $t9, EOFFSET_T9(\r)
+	lw $v0, ISTATE_OFFSET_V0(\r)
+	lw $v1, ISTATE_OFFSET_V1(\r)
+	lw $a0, ISTATE_OFFSET_A0(\r)
+	lw $a1, ISTATE_OFFSET_A1(\r)
+	lw $a2, ISTATE_OFFSET_A2(\r)
+	lw $a3, ISTATE_OFFSET_A3(\r)
+	lw $t0, ISTATE_OFFSET_T0(\r)
+	lw $t1, ISTATE_OFFSET_T1(\r)
+	lw $t2, ISTATE_OFFSET_T2(\r)
+	lw $t3, ISTATE_OFFSET_T3(\r)
+	lw $t4, ISTATE_OFFSET_T4(\r)
+	lw $t5, ISTATE_OFFSET_T5(\r)
+	lw $t6, ISTATE_OFFSET_T6(\r)
+	lw $t7, ISTATE_OFFSET_T7(\r)
+	lw $t8, ISTATE_OFFSET_T8(\r)
+	lw $t9, ISTATE_OFFSET_T9(\r)
 	
-	lw $gp, EOFFSET_GP(\r)
-	lw $ra, EOFFSET_RA(\r)
-	lw $k1, EOFFSET_K1(\r)
+	lw $gp, ISTATE_OFFSET_GP(\r)
+	lw $ra, ISTATE_OFFSET_RA(\r)
+	lw $k1, ISTATE_OFFSET_KT1(\r)
 	
-	lw $at, EOFFSET_LO(\r)
+	lw $at, ISTATE_OFFSET_LO(\r)
 	mtlo $at
-	lw $at, EOFFSET_HI(\r)
+	lw $at, ISTATE_OFFSET_HI(\r)
 	mthi $at
 	
-	lw $at, EOFFSET_EPC(\r)
+	lw $at, ISTATE_OFFSET_EPC(\r)
 	mtc0 $at, $epc
 	
-	lw $at, EOFFSET_AT(\r)
-	lw $sp, EOFFSET_SP(\r)
+	lw $at, ISTATE_OFFSET_AT(\r)
+	lw $sp, ISTATE_OFFSET_SP(\r)
 .endm
 
 /*
@@ -197,14 +197,14 @@
 	andi $k0, 0x10
 	
 	beq $k0, $0, 1f
-	add $k0, $sp, 0
+	move $k0, $sp
 	
 	/* move $k0 pointer to kernel stack */
 	lui $k0, %hi(supervisor_sp)
 	ori $k0, $k0, %lo(supervisor_sp)
 	
 	/* move $k0 (supervisor_sp) */
-	lw $k0, 0($k0)
+	lw $k0, ($k0)
 	
 	1:
 .endm
@@ -266,11 +266,6 @@ exception_handler:
 	/* the $sp is automatically restored to former value */
 	eret
 
-#define SS_SP      EOFFSET_SP
-#define SS_STATUS  EOFFSET_STATUS
-#define SS_EPC     EOFFSET_EPC
-#define SS_K1      EOFFSET_K1
-
 /** Syscall entry
  *
  * Registers:
@@ -290,30 +285,29 @@ syscall_shortcut:
 	/* we have a lot of space on the stack, with free use */
 	mfc0 $t3, $epc
 	mfc0 $t2, $status
-	sw $t3, SS_EPC($sp)  /* save EPC */
-	sw $k1, SS_K1($sp)   /* save $k1 not saved on context switch */
+	sw $t3, ISTATE_OFFSET_EPC($sp)  /* save EPC */
+	sw $k1, ISTATE_OFFSET_KT1($sp)  /* save $k1 not saved on context switch */
 	
 	and $t4, $t2, REG_SAVE_MASK  /* save only KSU, EXL, ERL, IE */
 	li $t5, ~(0x1f)
 	and $t2, $t2, $t5  /* clear KSU, EXL, ERL */
 	ori $t2, $t2, 0x1  /* set IE */
 	
-	sw $t4, SS_STATUS($sp)
+	sw $t4, ISTATE_OFFSET_STATUS($sp)
 	mtc0 $t2, $status
 	
 	/*
 	 * Call the higher level system call handler.
-	 * We are going to reuse part of the unused exception stack frame.
 	 *
 	 */
-	sw $t0, STACK_ARG4($sp)  /* save the 5th argument on the stack */
-	sw $t1, STACK_ARG5($sp)  /* save the 6th argument on the stack */
+	sw $t0, ISTATE_OFFSET_T0($sp)  /* save the 5th argument on the stack */
+	sw $t1, ISTATE_OFFSET_T1($sp)  /* save the 6th argument on the stack */
 	jal syscall_handler
-	sw $v0, STACK_ARG6($sp)  /* save the syscall number on the stack */
+	sw $v0, ISTATE_OFFSET_V0($sp)  /* save the syscall number on the stack */
 	
 	/* restore status */
 	mfc0 $t2, $status
-	lw $t3, SS_STATUS($sp)
+	lw $t3, ISTATE_OFFSET_STATUS($sp)
 	
 	/*
 	 * Change back to EXL = 1 (from last exception), otherwise
@@ -326,36 +320,36 @@ syscall_shortcut:
 	mtc0 $t2, $status
 	
 	/* restore epc + 4 */
-	lw $t2, SS_EPC($sp)
-	lw $k1, SS_K1($sp)
+	lw $t2, ISTATE_OFFSET_EPC($sp)
+	lw $k1, ISTATE_OFFSET_KT1($sp)
 	addi $t2, $t2, 4
 	mtc0 $t2, $epc
 	
-	lw $sp, SS_SP($sp)  /* restore $sp */
+	lw $sp, ISTATE_OFFSET_SP($sp)  /* restore $sp */
 	eret
 
 tlb_refill_handler:
 	KERNEL_STACK_TO_K0
-	sub $k0, REGISTER_SPACE
+	sub $k0, ISTATE_SOFT_SIZE
 	REGISTERS_STORE_AND_EXC_RESET $k0
-	sw $sp,EOFFSET_SP($k0)
-	add $sp, $k0, 0
+	sw $sp, ISTATE_OFFSET_SP($k0)
+	move $sp, $k0
 	
 	jal tlb_refill
-	add $a0, $sp, 0 
+	move $a0, $sp 
 	
 	REGISTERS_LOAD $sp
 	eret
 
 cache_error_handler:
 	KERNEL_STACK_TO_K0
-	sub $k0, REGISTER_SPACE
+	sub $k0, ISTATE_SOFT_SIZE 
 	REGISTERS_STORE_AND_EXC_RESET $k0
-	sw $sp,EOFFSET_SP($k0)
-	add $sp, $k0, 0
+	sw $sp, ISTATE_OFFSET_SP($k0)
+	move $sp, $k0
 	
 	jal cache_error
-	add $a0, $sp, 0
+	move $a0, $sp
 	
 	REGISTERS_LOAD $sp
 	eret
