@@ -113,6 +113,15 @@
 	sw $t7, ISTATE_OFFSET_T7(\r)
 	sw $t8, ISTATE_OFFSET_T8(\r)
 	sw $t9, ISTATE_OFFSET_T9(\r)
+	sw $s0, ISTATE_OFFSET_S0(\r)
+	sw $s1, ISTATE_OFFSET_S1(\r)
+	sw $s2, ISTATE_OFFSET_S2(\r)
+	sw $s3, ISTATE_OFFSET_S3(\r)
+	sw $s4, ISTATE_OFFSET_S4(\r)
+	sw $s5, ISTATE_OFFSET_S5(\r)
+	sw $s6, ISTATE_OFFSET_S6(\r)
+	sw $s7, ISTATE_OFFSET_S7(\r)
+	sw $s8, ISTATE_OFFSET_S8(\r)
 	
 	mflo $at
 	sw $at, ISTATE_OFFSET_LO(\r)
@@ -121,6 +130,7 @@
 	
 	sw $gp, ISTATE_OFFSET_GP(\r)
 	sw $ra, ISTATE_OFFSET_RA(\r)
+	sw $k0, ISTATE_OFFSET_KT0(\r)
 	sw $k1, ISTATE_OFFSET_KT1(\r)
 	
 	mfc0 $t0, $status
