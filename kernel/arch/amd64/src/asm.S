@@ -243,7 +243,7 @@ int_\i:
 	 * Stop stack traces here if we came from userspace.
 	 */
 	xorq %rdx, %rdx
-	cmpq $(gdtselector(KTEXT_DES)), ISTATE_OFFSET_CS(%rsp)
+	cmpq $(GDT_SELECTOR(KTEXT_DES)), ISTATE_OFFSET_CS(%rsp)
 	cmovnzq %rdx, %rbp
 
 	movq %rbp, ISTATE_OFFSET_RBP_FRAME(%rsp)

@@ -756,6 +756,16 @@ void clearerr(FILE *stream)
 	stream->error = false;
 }
 
+int fileno(FILE *stream)
+{
+	if (stream->klog) {
+		errno = EBADF;
+		return -1;
+	}
+	
+	return stream->fd;
+}
+
 int fphone(FILE *stream)
 {
 	if (stream->fd >= 0) {

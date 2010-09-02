@@ -120,7 +120,8 @@ NO_TRACE static void frame_initialize(frame_t *frame)
  * @return Zone number on success, -1 on error.
  *
  */
-NO_TRACE static size_t zones_insert_zone(pfn_t base, size_t count)
+NO_TRACE static size_t zones_insert_zone(pfn_t base, size_t count,
+    zone_flags_t flags)
 {
 	if (zones.count + 1 == ZONES_MAX) {
 		printf("Maximum zone count %u exceeded!\n", ZONES_MAX);
@@ -130,12 +131,25 @@ NO_TRACE static size_t zones_insert_zone(pfn_t base, size_t count)
 	size_t i;
 	for (i = 0; i < zones.count; i++) {
 		/* Check for overlap */
-		if (overlaps(base, count,
-		    zones.info[i].base, zones.info[i].count)) {
-			printf("Zone (%p, %p) overlaps with zone (%p, %p)!\n",
-			    PFN2ADDR(base), PFN2ADDR(base + count),
-			    PFN2ADDR(zones.info[i].base),
-			    PFN2ADDR(zones.info[i].base + zones.info[i].count));
+		if (overlaps(zones.info[i].base, zones.info[i].count,
+		    base, count)) {
+			
+			/*
+			 * If the overlaping zones are of the same type
+			 * and the new zone is completely within the previous
+			 * one, then quietly ignore the new zone.
+			 *
+			 */
+			
+			if ((zones.info[i].flags != flags) ||
+			    (!iswithin(zones.info[i].base, zones.info[i].count,
+			    base, count))) {
+				printf("Zone (%p, %p) overlaps with previous zone (%p, %p)!\n",
+				    PFN2ADDR(base), PFN2ADDR(count),
+				    PFN2ADDR(zones.info[i].base),
+				    PFN2ADDR(zones.info[i].count));
+			}
+			
 			return (size_t) -1;
 		}
 		if (base < zones.info[i].base)
@@ -146,8 +160,9 @@ NO_TRACE static size_t zones_insert_zone(pfn_t base, size_t count)
 	size_t j;
 	for (j = zones.count; j > i; j--) {
 		zones.info[j] = zones.info[j - 1];
-		zones.info[j].buddy_system->data =
-		    (void *) &zones.info[j - 1];
+		if (zones.info[j].buddy_system != NULL)
+			zones.info[j].buddy_system->data =
+			    (void *) &zones.info[j];
 	}
 	
 	zones.count++;
@@ -747,8 +762,9 @@ bool zone_merge(size_t z1, size_t z2)
 	size_t i;
 	for (i = z2 + 1; i < zones.count; i++) {
 		zones.info[i - 1] = zones.info[i];
-		zones.info[i - 1].buddy_system->data =
-		    (void *) &zones.info[i - 1];
+		if (zones.info[i - 1].buddy_system != NULL)
+			zones.info[i - 1].buddy_system->data =
+			    (void *) &zones.info[i - 1];
 	}
 	
 	zones.count--;
@@ -897,7 +913,7 @@ size_t zone_create(pfn_t start, size_t count, pfn_t confframe,
 				panic("Cannot find configuration data for zone.");
 		}
 		
-		size_t znum = zones_insert_zone(start, count);
+		size_t znum = zones_insert_zone(start, count, flags);
 		if (znum == (size_t) -1) {
 			irq_spinlock_unlock(&zones.lock, true);
 			return (size_t) -1;
@@ -920,7 +936,7 @@ size_t zone_create(pfn_t start, size_t count, pfn_t confframe,
 	}
 	
 	/* Non-available zone */
-	size_t znum = zones_insert_zone(start, count);
+	size_t znum = zones_insert_zone(start, count, flags);
 	if (znum == (size_t) -1) {
 		irq_spinlock_unlock(&zones.lock, true);
 		return (size_t) -1;

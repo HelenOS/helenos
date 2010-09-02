@@ -102,10 +102,14 @@ extern void icp_input_init(void);
 extern void icp_timer_irq_start(void);
 extern void icp_cpu_halt(void);
 extern void icp_irq_exception(unsigned int, istate_t *);
-extern uintptr_t icp_get_memory_size(void);
+extern void icp_get_memory_extents(uintptr_t *, uintptr_t *);
 extern void icp_frame_init(void);
+extern size_t icp_get_irq_count(void);
 
 extern struct arm_machine_ops icp_machine_ops;
+
+/** Size of IntegratorCP IRQ number range (starting from 0) */
+#define ICP_IRQ_COUNT 8
 
 #endif
 

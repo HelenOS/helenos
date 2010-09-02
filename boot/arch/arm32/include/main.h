@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2007 Michal Kebrt
+ * Copyright (c) 2010 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,13 +38,23 @@
 #define BOOT_arm32_MAIN_H
 
 /** Address where characters to be printed are expected. */
-#ifdef MACHINE_testarm
-	#define VIDEORAM_ADDRESS  0x10000000
-#endif
 
-#ifdef MACHINE_integratorcp
-	#define VIDEORAM_ADDRESS  0x16000000
-#endif
+/** GTA02 serial console UART register addresses.
+ *
+ * This is UART channel 2 of the S3C24xx CPU
+ */
+#define GTA02_SCONS_UTRSTAT	0x50008010
+#define GTA02_SCONS_UTXH	0x50008020
+
+/* Bits in UTXH register */
+#define S3C24XX_UTXH_TX_EMPTY	0x00000004
+
+
+/** GXemul testarm serial console output register */
+#define TESTARM_SCONS_ADDR 	0x10000000
+
+/** IntegratorCP serial console output register */
+#define ICP_SCONS_ADDR 		0x16000000
 
 extern void bootstrap(void);
 

@@ -64,8 +64,7 @@
 
 #endif /* CONFIG_FB */
 
-#define gdtselector(des)  ((des) << 3)
-#define idtselector(des)  ((des) << 4)
+#define GDT_SELECTOR(des)  ((des) << 3)
 
 #define PL_KERNEL  0
 #define PL_USER    3
@@ -167,7 +166,6 @@ extern descriptor_t gdt[];
 extern idescriptor_t idt[];
 
 extern ptr_16_64_t gdtr;
-extern ptr_16_32_t bootstrap_gdtr;
 extern ptr_16_32_t protected_ap_gdtr;
 
 extern void pm_init(void);

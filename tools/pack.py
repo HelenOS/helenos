@@ -190,7 +190,7 @@ def main():
 	template = link_in.read()
 	link_in.close()
 	
-	link_out = file(os.path.join(arch_path, LINK), "w")
+	link_out = file(os.path.join(arch_path, "%s.comp" % LINK), "w")
 	link_out.write(template.replace("[[COMPONENTS]]", "\n".join(link_ctx)))
 	link_out.close()
 

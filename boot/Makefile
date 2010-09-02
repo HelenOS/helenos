@@ -47,7 +47,7 @@ ifeq ($(RDFMT),tmpfs)
 	$(MKTMPFS) $(DIST_PATH) $@
 endif
 ifeq ($(RDFMT),fat)
-	$(MKFAT) $(DIST_PATH) $@
+	$(MKFAT) 1048576 $(DIST_PATH) $@
 endif
 
 build_dist: clean_dist
@@ -71,7 +71,7 @@ endif
 	find generic/src/ arch/*/src/ genarch/src/ -name '*.o' -follow -exec rm \{\} \;
 
 clean_dist:
-	rm -f $(INITRD).fs $(INITRD).img $(COMPS_H) $(COMPS_C) $(LINK) *.co
+	rm -f $(INITRD).fs $(INITRD).img $(COMPS_H) $(COMPS_C) $(LINK) $(LINK).comp *.co
 	rm -f $(USPACE_PATH)/dist/srv/*
 	rm -f $(USPACE_PATH)/dist/app/*
 	rm -f $(USPACE_PATH)/dist/cfg/net/*

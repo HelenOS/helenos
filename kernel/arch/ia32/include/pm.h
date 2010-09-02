@@ -57,7 +57,7 @@
 
 #endif /* CONFIG_FB */
 
-#define gdtselector(des)  ((des) << 3)
+#define GDT_SELECTOR(des)  ((des) << 3)
 
 #define PL_KERNEL  0
 #define PL_USER    3
@@ -152,7 +152,6 @@ typedef struct {
 } __attribute__ ((packed)) tss_t;
 
 extern ptr_16_32_t gdtr;
-extern ptr_16_32_t bootstrap_gdtr;
 extern ptr_16_32_t protected_ap_gdtr;
 extern tss_t *tss_p;
 

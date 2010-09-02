@@ -146,7 +146,7 @@ NO_TRACE void main_bsp(void)
 	/* Avoid placing stack on top of init */
 	size_t i;
 	for (i = 0; i < init.cnt; i++) {
-		if (PA_overlaps(config.stack_base, config.stack_size,
+		if (PA_OVERLAPS(config.stack_base, config.stack_size,
 		    init.tasks[i].addr, init.tasks[i].size))
 			config.stack_base = ALIGN_UP(init.tasks[i].addr +
 			    init.tasks[i].size, config.stack_size);
@@ -154,7 +154,7 @@ NO_TRACE void main_bsp(void)
 	
 	/* Avoid placing stack on top of boot allocations. */
 	if (ballocs.size) {
-		if (PA_overlaps(config.stack_base, config.stack_size,
+		if (PA_OVERLAPS(config.stack_base, config.stack_size,
 		    ballocs.base, ballocs.size))
 			config.stack_base = ALIGN_UP(ballocs.base +
 			    ballocs.size, PAGE_SIZE);
