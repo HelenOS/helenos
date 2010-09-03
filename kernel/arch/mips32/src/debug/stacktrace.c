@@ -179,7 +179,7 @@ scan(stack_trace_context_t *ctx, uintptr_t *prev_fp, uintptr_t *prev_ra)
 				if (offset < 0)
 					return false;
 				/* too big offsets are suspicious */
-				if (offset > 32 * 4)
+				if ((size_t) offset > sizeof(istate_t))
 					return false;
 
 				if (prev_ra)

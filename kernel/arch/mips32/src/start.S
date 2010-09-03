@@ -90,6 +90,17 @@
 #define ISTATE_SOFT_SIZE	144
 
 /*
+ * The fake ABI prologue is never executed and may not be part of the
+ * procedure's body. Instead, it should be immediately preceding the procedure's
+ * body. Its only purpose is to trick the stack trace walker into thinking that
+ * the exception is more or less just a normal function call.
+ */
+.macro FAKE_ABI_PROLOGUE
+	sub $sp, ISTATE_SOFT_SIZE
+	sw $ra, ISTATE_OFFSET_EPC($sp)
+.endm
+
+/*
  * Save registers to space defined by \r
  * We will change status: Disable ERL, EXL, UM, IE
  * These changes will be automatically reversed in REGISTER_LOAD
@@ -250,6 +261,7 @@ exception_entry:
 	j exception_handler
 	nop
 
+	FAKE_ABI_PROLOGUE
 exception_handler:
 	KERNEL_STACK_TO_K0
 	
@@ -292,7 +304,6 @@ exception_handler:
  *
  */
 syscall_shortcut:
-	/* we have a lot of space on the stack, with free use */
 	mfc0 $t3, $epc
 	mfc0 $t2, $status
 	sw $t3, ISTATE_OFFSET_EPC($sp)  /* save EPC */
@@ -338,6 +349,7 @@ syscall_shortcut:
 	lw $sp, ISTATE_OFFSET_SP($sp)  /* restore $sp */
 	eret
 
+	FAKE_ABI_PROLOGUE
 tlb_refill_handler:
 	KERNEL_STACK_TO_K0
 	sub $k0, ISTATE_SOFT_SIZE
@@ -351,6 +363,7 @@ tlb_refill_handler:
 	REGISTERS_LOAD $sp
 	eret
 
+	FAKE_ABI_PROLOGUE
 cache_error_handler:
 	KERNEL_STACK_TO_K0
 	sub $k0, ISTATE_SOFT_SIZE 
