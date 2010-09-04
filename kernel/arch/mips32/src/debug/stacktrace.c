@@ -95,6 +95,12 @@
 extern char ktext_start;
 extern char ktext_end;
 
+static bool bounds_check(uintptr_t pc)
+{
+	return (pc >= (uintptr_t) &ktext_start) &&
+	    (pc < (uintptr_t) &ktext_end);
+}
+
 static bool
 scan(stack_trace_context_t *ctx, uintptr_t *prev_fp, uintptr_t *prev_ra)
 {
@@ -105,6 +111,8 @@ scan(stack_trace_context_t *ctx, uintptr_t *prev_fp, uintptr_t *prev_ra)
 
 	do {
 		inst--;
+		if (!bounds_check((uintptr_t) inst))
+			return false;
 #if 0
 		/*
 		 * This is one of the situations in which the theory (ABI) does
@@ -206,8 +214,7 @@ scan(stack_trace_context_t *ctx, uintptr_t *prev_fp, uintptr_t *prev_ra)
 bool kernel_stack_trace_context_validate(stack_trace_context_t *ctx)
 {
 	return !((ctx->fp == 0) || ((ctx->fp % 8) != 0) ||
-	    (ctx->pc % 4 != 0) || (ctx->pc < (uintptr_t) &ktext_start) ||
-	    (ctx->pc >= (uintptr_t) &ktext_end));
+	    (ctx->pc % 4 != 0) || !bounds_check(ctx->pc));
 }
 
 bool kernel_frame_pointer_prev(stack_trace_context_t *ctx, uintptr_t *prev)
