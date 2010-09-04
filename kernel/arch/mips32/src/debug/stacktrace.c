@@ -32,6 +32,34 @@
 /** @file
  */
 
+/*
+ * This stack tracing code is based on the suggested algorithm described on page
+ * 3-27 and 3-28 of:
+ * 
+ * SYSTEM V
+ * APPLICATION BINARY INTERFACE
+ *
+ * MIPS RISC Processor
+ * Supplement
+ * 3rd Edition
+ *
+ * Unfortunately, GCC generates code which is not entirely compliant with this
+ * method. For example, it places the "jr ra" instruction quite arbitrarily in
+ * the middle of the function which makes the original algorithm unapplicable.
+ *
+ * We deal with this problem by simply not using those parts of the algorithm
+ * that rely on the "jr ra" instruction occurring in the last basic block of a
+ * function, which gives us still usable, but less reliable stack tracer. The
+ * unreliability stems from the fact that under some circumstances it can become
+ * confused and produce incorrect or incomplete stack trace. We apply extra
+ * sanity checks so that the algorithm is still safe and should not crash the
+ * system.
+ *
+ * Even though not perfect, our solution is pretty lightweight, especially when
+ * compared with a prospective alternative solution based on additional
+ * debugging information stored directly in the kernel image.
+ */
+
 #include <stacktrace.h>
 #include <syscall/copy.h>
 #include <typedefs.h>
