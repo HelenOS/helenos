@@ -70,6 +70,7 @@ DIRS = \
 	srv/hw/char/i8042 \
 	srv/hw/char/s3c24xx_uart \
 	srv/hw/netif/dp8390 \
+	srv/hw/bus/usb/hcd/virtual \
 	srv/net/cfg \
 	srv/net/netif/lo \
 	srv/net/il/arp \
@@ -79,6 +80,7 @@ DIRS = \
 	srv/net/tl/tcp \
 	srv/net/net \
 	srv/net/netstart \
+	app/usb \
 	app/netecho \
 	app/nettest1 \
 	app/nettest2 \
@@ -137,10 +139,12 @@ LIBS = \
 
 ifeq ($(UARCH),amd64)
 	LIBS += lib/pci
+	LIBS += lib/usb
 endif
 
 ifeq ($(UARCH),ia32)
 	LIBS += lib/pci
+	LIBS += lib/usb
 endif
 
 

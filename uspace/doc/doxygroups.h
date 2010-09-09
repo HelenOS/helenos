@@ -154,7 +154,7 @@
 	 * @ingroup srvcs
 	 * @endcond
 	 */
-	
+
 /**
  * @defgroup emul Emulation Libraries
  * @ingroup uspace
@@ -168,4 +168,15 @@
 	/**
 	 * @defgroup softint Softint
 	 * @ingroup emul
+	 */
+
+/**
+ * @defgroup usb USB
+ * @ingroup uspace
+ * @brief USB support for HelenOS.
+ */
+	/**
+	 * @defgroup libusb USB library
+	 * @ingroup usb
+	 * @brief Library for creating USB devices drivers.
 	 */
