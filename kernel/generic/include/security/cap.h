@@ -69,14 +69,9 @@
 #define CAP_IO_MANAGER		(1<<2)
 
 /**
- * CAP_PREEMPT_CONTROL allows its holder to disable/enable preemption.
- */
-#define CAP_PREEMPT_CONTROL	(1<<3)
-
-/**
  * CAP_IRQ_REG entitles its holder to register IRQ handlers.
  */
-#define CAP_IRQ_REG		(1<<4) 
+#define CAP_IRQ_REG		(1<<3) 
 
 typedef uint32_t cap_t;
 
