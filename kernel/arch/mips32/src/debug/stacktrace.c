@@ -32,6 +32,34 @@
 /** @file
  */
 
+/*
+ * This stack tracing code is based on the suggested algorithm described on page
+ * 3-27 and 3-28 of:
+ * 
+ * SYSTEM V
+ * APPLICATION BINARY INTERFACE
+ *
+ * MIPS RISC Processor
+ * Supplement
+ * 3rd Edition
+ *
+ * Unfortunately, GCC generates code which is not entirely compliant with this
+ * method. For example, it places the "jr ra" instruction quite arbitrarily in
+ * the middle of the function which makes the original algorithm unapplicable.
+ *
+ * We deal with this problem by simply not using those parts of the algorithm
+ * that rely on the "jr ra" instruction occurring in the last basic block of a
+ * function, which gives us still usable, but less reliable stack tracer. The
+ * unreliability stems from the fact that under some circumstances it can become
+ * confused and produce incorrect or incomplete stack trace. We apply extra
+ * sanity checks so that the algorithm is still safe and should not crash the
+ * system.
+ *
+ * Even though not perfect, our solution is pretty lightweight, especially when
+ * compared with a prospective alternative solution based on additional
+ * debugging information stored directly in the kernel image.
+ */
+
 #include <stacktrace.h>
 #include <syscall/copy.h>
 #include <typedefs.h>
@@ -95,6 +123,12 @@
 extern char ktext_start;
 extern char ktext_end;
 
+static bool bounds_check(uintptr_t pc)
+{
+	return (pc >= (uintptr_t) &ktext_start) &&
+	    (pc < (uintptr_t) &ktext_end);
+}
+
 static bool
 scan(stack_trace_context_t *ctx, uintptr_t *prev_fp, uintptr_t *prev_ra)
 {
@@ -105,6 +139,8 @@ scan(stack_trace_context_t *ctx, uintptr_t *prev_fp, uintptr_t *prev_ra)
 
 	do {
 		inst--;
+		if (!bounds_check((uintptr_t) inst))
+			return false;
 #if 0
 		/*
 		 * This is one of the situations in which the theory (ABI) does
@@ -179,7 +215,7 @@ scan(stack_trace_context_t *ctx, uintptr_t *prev_fp, uintptr_t *prev_ra)
 				if (offset < 0)
 					return false;
 				/* too big offsets are suspicious */
-				if (offset > 32 * 4)
+				if ((size_t) offset > sizeof(istate_t))
 					return false;
 
 				if (prev_ra)
@@ -206,8 +242,7 @@ scan(stack_trace_context_t *ctx, uintptr_t *prev_fp, uintptr_t *prev_ra)
 bool kernel_stack_trace_context_validate(stack_trace_context_t *ctx)
 {
 	return !((ctx->fp == 0) || ((ctx->fp % 8) != 0) ||
-	    (ctx->pc % 4 != 0) || (ctx->pc < (uintptr_t) &ktext_start) ||
-	    (ctx->pc >= (uintptr_t) &ktext_end));
+	    (ctx->pc % 4 != 0) || !bounds_check(ctx->pc));
 }
 
 bool kernel_frame_pointer_prev(stack_trace_context_t *ctx, uintptr_t *prev)

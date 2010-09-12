@@ -73,16 +73,24 @@ static const char *exctable[] = {
 
 void istate_decode(istate_t *istate)
 {
-	printf("at=%p\tv0=%p\tv1=%p\n", istate->at, istate->v0, istate->v1);
-	printf("a0=%p\ta1=%p\ta2=%p\n", istate->a0, istate->a1, istate->a2);
-	printf("a3=%p\tt0=%p\tt1=%p\n", istate->a3, istate->t0, istate->t1);
-	printf("t2=%p\tt3=%p\tt4=%p\n", istate->t2, istate->t3, istate->t4);
-	printf("t5=%p\tt6=%p\tt7=%p\n", istate->t5, istate->t6, istate->t7);
-	printf("t8=%p\tt9=%p\tgp=%p\n", istate->t8, istate->t9, istate->gp);
-	printf("sp=%p\tra=%p\t\n", istate->sp, istate->ra);
-	printf("lo=%p\thi=%p\t\n", istate->lo, istate->hi);
-	printf("cp0_status=%p\tcp0_epc=%p\tk1=%p\n",
-	    istate->status, istate->epc, istate->k1);
+	printf("epc=%p\tsta=%p\tlo =%p\thi =%p\n",
+	    istate->epc, istate->status, istate->lo, istate->hi);
+	printf("a0 =%p\ta1 =%p\ta2 =%p\ta3 =%p\n",
+	    istate->a0, istate->a1, istate->a2, istate->a3);
+	printf("t0 =%p\tt1 =%p\tt2 =%p\tt3 =%p\n",
+	    istate->t0, istate->t1, istate->t2, istate->t3);
+	printf("t4 =%p\tt5 =%p\tt6 =%p\tt7 =%p\n",
+	    istate->t4, istate->t5, istate->t6, istate->t7);
+	printf("t8 =%p\tt9 =%p\tv0 =%p\tv1 =%p\n",
+	    istate->t8, istate->t9, istate->v0, istate->v1);
+	printf("s0 =%p\ts1 =%p\ts2 =%p\ts3 =%p\n",
+	    istate->s0, istate->s1, istate->s2, istate->s3);
+	printf("s4 =%p\ts5 =%p\ts6 =%p\ts7 =%p\n",
+	    istate->s4, istate->s5, istate->s6, istate->s7);
+	printf("s8 =%p\tat =%p\tkt0=%p\tkt1=%p\n",
+	    istate->s8, istate->at, istate->kt0, istate->kt1);
+	printf("sp =%p\tra =%p\tgp =%p\n",
+	    istate->sp, istate->ra, istate->gp);
 }
 
 static void unhandled_exception(unsigned int n, istate_t *istate)
@@ -96,7 +104,7 @@ static void reserved_instr_exception(unsigned int n, istate_t *istate)
 	if (*((uint32_t *) istate->epc) == 0x7c03e83b) {
 		ASSERT(THREAD);
 		istate->epc += 4;
-		istate->v1 = istate->k1;
+		istate->v1 = istate->kt1;
 	} else
 		unhandled_exception(n, istate);
 }
