@@ -121,35 +121,41 @@ void * packet_get_data(const packet_t packet){
 	return (void *) packet + packet->data_start;
 }
 
-int packet_set_addr(packet_t packet, const uint8_t * src, const uint8_t * dest, size_t addr_len){
+int
+packet_set_addr(packet_t packet, const uint8_t * src, const uint8_t * dest,
+    size_t addr_len)
+{
 	size_t padding;
 	size_t allocated;
 
-	if(! packet_is_valid(packet)){
+	if (!packet_is_valid(packet))
 		return EINVAL;
-	}
+
 	allocated = PACKET_MAX_ADDRESS_LENGTH(packet);
-	if(allocated < addr_len){
+	if (allocated < addr_len)
 		return ENOMEM;
-	}
+
 	padding = allocated - addr_len;
 	packet->addr_len = addr_len;
-	if(src){
+
+	if (src) {
 		memcpy((void *) packet + packet->src_addr, src, addr_len);
-		if(padding){
-			bzero((void *) packet + packet->src_addr + addr_len, padding);
-		}
-	}else{
+		if (padding)
+			bzero((void *) packet + packet->src_addr + addr_len,
+			    padding);
+	} else {
 		bzero((void *) packet + packet->src_addr, allocated);
 	}
-	if(dest){
+
+	if (dest) {
 		memcpy((void *) packet + packet->dest_addr, dest, addr_len);
-		if(padding){
-			bzero((void *) packet + packet->dest_addr + addr_len, padding);
-		}
-	}else{
+		if (padding)
+			bzero((void *) packet + packet->dest_addr + addr_len,
+			    padding);
+	} else {
 		bzero((void *) packet + packet->dest_addr, allocated);
 	}
+
 	return EOK;
 }
 

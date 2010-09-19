@@ -80,6 +80,8 @@
 
 #endif
 
+#define ERROR_NONE(value)	!ERROR_OCCURRED((value))
+
 /** Error propagation
  *
  * Check if an error occurred and immediately exit the actual
