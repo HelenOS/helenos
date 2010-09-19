@@ -69,8 +69,8 @@ static int packet_return(int phone, packet_ref packet, packet_id_t packet_id, si
 	ipc_call_t answer;
 	aid_t message = async_send_1(phone, NET_PACKET_GET, packet_id, &answer);
 	*packet = (packet_t) as_get_mappable_page(size);
-	if (ERROR_OCCURRED(async_share_in_start_0_0(phone, *packet, size))
-	    || ERROR_OCCURRED(pm_add(*packet))) {
+	if (ERROR_OCCURRED(async_share_in_start_0_0(phone, *packet, size)) ||
+	    ERROR_OCCURRED(pm_add(*packet))) {
 		munmap(*packet, size);
 		async_wait_for(message, NULL);
 		return ERROR_CODE;

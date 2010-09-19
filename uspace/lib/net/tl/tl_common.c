@@ -156,35 +156,34 @@ int tl_update_ip_packet_dimension(packet_dimensions_ref packet_dimensions, devic
 	return EOK;
 }
 
-int tl_set_address_port(struct sockaddr * addr, int addrlen, uint16_t port){
+int tl_set_address_port(struct sockaddr * addr, int addrlen, uint16_t port)
+{
 	struct sockaddr_in * address_in;
 	struct sockaddr_in6 * address_in6;
 	size_t length;
 
-	if(addrlen < 0){
+	if (addrlen < 0)
 		return EINVAL;
-	}
+	
 	length = (size_t) addrlen;
-	if(length < sizeof(struct sockaddr)){
+	if (length < sizeof(struct sockaddr))
 		return EINVAL;
-	}
-	switch(addr->sa_family){
-		case AF_INET:
-			if(length != sizeof(struct sockaddr_in)){
+
+	switch (addr->sa_family) {
+	case AF_INET:
+		if (length != sizeof(struct sockaddr_in))
+			return EINVAL;
+		address_in = (struct sockaddr_in *) addr;
+		address_in->sin_port = htons(port);
+		return EOK;
+	case AF_INET6:
+		if (length != sizeof(struct sockaddr_in6))
 				return EINVAL;
-			}
-			address_in = (struct sockaddr_in *) addr;
-			address_in->sin_port = htons(port);
-			return EOK;
-		case AF_INET6:
-			if(length != sizeof(struct sockaddr_in6)){
-				return EINVAL;
-			}
-			address_in6 = (struct sockaddr_in6 *) addr;
-			address_in6->sin6_port = htons(port);
-			return EOK;
-		default:
-			return EAFNOSUPPORT;
+		address_in6 = (struct sockaddr_in6 *) addr;
+		address_in6->sin6_port = htons(port);
+		return EOK;
+	default:
+		return EAFNOSUPPORT;
 	}
 }
 
