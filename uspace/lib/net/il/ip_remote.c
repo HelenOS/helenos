@@ -126,7 +126,7 @@ int ip_get_route_req_remote(int ip_phone, ip_protocol_t protocol,
 	if ((!destination) || (addrlen == 0))
 		return EINVAL;
 	
-	if ((!device_id) || (header) || (headerlen))
+	if ((!device_id) || (!header) || (!headerlen))
 		return EBADMEM;
 	
 	*header = NULL;
