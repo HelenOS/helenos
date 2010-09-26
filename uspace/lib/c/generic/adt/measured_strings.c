@@ -160,8 +160,10 @@ measured_strings_receive(measured_string_ref *strings, char **data,
 		free(lengths);
 		return ERROR_CODE;
 	}
+
 	*data = malloc(lengths[count]);
 	if (!(*data)) {
+		free(lengths);
 		return ENOMEM;
 	}
 	(*data)[lengths[count] - 1] = '\0';
@@ -329,6 +331,7 @@ measured_strings_return(int phone, measured_string_ref *strings, char **data,
 
 	*data = malloc(lengths[count]);
 	if (!(*data)) {
+		free(lengths);
 		return ENOMEM;
 	}
 
