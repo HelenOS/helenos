@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup net
+/** @addtogroup libc
  *  @{
  */
 
@@ -34,8 +34,8 @@
  *  Character string to generic type map.
  */
 
-#ifndef __GENERIC_CHAR_MAP_H__
-#define __GENERIC_CHAR_MAP_H__
+#ifndef LIBC_GENERIC_CHAR_MAP_H_
+#define LIBC_GENERIC_CHAR_MAP_H_
 
 #include <unistd.h>
 #include <errno.h>

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup net
+/** @addtogroup libc
  *  @{
  */
 
@@ -34,8 +34,8 @@
  *  Integer to generic type map.
  */
 
-#ifndef __NET_INT_MAP_H__
-#define __NET_INT_MAP_H__
+#ifndef LIBC_INT_MAP_H_
+#define LIBC_INT_MAP_H_
 
 #include <errno.h>
 #include <malloc.h>

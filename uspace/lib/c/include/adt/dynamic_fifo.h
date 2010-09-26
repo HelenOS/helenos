@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup net
+/** @addtogroup libc
  *  @{
  */
 
@@ -35,8 +35,8 @@
  *  Possitive integer values only.
  */
 
-#ifndef __NET_DYNAMIC_FIFO_H__
-#define __NET_DYNAMIC_FIFO_H__
+#ifndef LIBC_DYNAMIC_FIFO_H_
+#define LIBC_DYNAMIC_FIFO_H_
 
 /** Type definition of the dynamic fifo queue.
  *  @see dyn_fifo

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc 
+/** @addtogroup libc
  *  @{
  */
 
@@ -34,8 +34,8 @@
  *  Character string to integer map.
  */
 
-#ifndef __CHAR_MAP_H__
-#define __CHAR_MAP_H__
+#ifndef LIBC_CHAR_MAP_H_
+#define LIBC_CHAR_MAP_H_
 
 #include <libarch/types.h>
 

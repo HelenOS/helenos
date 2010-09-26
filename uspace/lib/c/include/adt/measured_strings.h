@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc 
+/** @addtogroup libc
  *  @{
  */
 
@@ -36,8 +36,8 @@
  * between modules.
  */
 
-#ifndef __MEASURED_STRINGS_H__
-#define __MEASURED_STRINGS_H__
+#ifndef LIBC_MEASURED_STRINGS_H_
+#define LIBC_MEASURED_STRINGS_H_
 
 #include <sys/types.h>
 

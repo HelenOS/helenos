@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup net
+/** @addtogroup libc
  *  @{
  */
 
@@ -34,8 +34,8 @@
  *  Generic type field.
  */
 
-#ifndef __GENERIC_FIELD_H__
-#define __GENERIC_FIELD_H__
+#ifndef LIBC_GENERIC_FIELD_H_
+#define LIBC_GENERIC_FIELD_H_
 
 #include <errno.h>
 #include <malloc.h>
