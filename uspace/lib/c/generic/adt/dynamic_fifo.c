@@ -31,7 +31,7 @@
  */
 
 /** @file
- *  Dynamic first in first out positive integer queue implementation.
+ * Dynamic first in first out positive integer queue implementation.
  */
 
 #include <errno.h>
@@ -40,108 +40,163 @@
 
 #include <adt/dynamic_fifo.h>
 
-/** Internal magic value for a&nbsp;consistency check.
- */
+/** Internal magic value for a consistency check. */
 #define DYN_FIFO_MAGIC_VALUE	0x58627659
 
 /** Returns the next queue index.
- *  The queue field is circular.
- *  @param[in] fifo The dynamic queue.
- *  @param[in] index The actual index to be shifted.
+ *
+ * The queue field is circular.
+ *
+ * @param[in] fifo	The dynamic queue.
+ * @param[in] index	The actual index to be shifted.
  */
 #define NEXT_INDEX(fifo, index)	(((index) + 1) % ((fifo)->size + 1))
 
 /** Checks if the queue is valid.
- *  @param[in] fifo The dynamic queue.
- *  @returns TRUE if the queue is valid.
- *  @returns FALSE otherwise.
+ *
+ * @param[in] fifo	The dynamic queue.
+ * @returns		TRUE if the queue is valid.
+ * @returns		FALSE otherwise.
  */
-static int dyn_fifo_is_valid(dyn_fifo_ref fifo){
+static int dyn_fifo_is_valid(dyn_fifo_ref fifo)
+{
 	return fifo && (fifo->magic_value == DYN_FIFO_MAGIC_VALUE);
 }
 
-int dyn_fifo_initialize(dyn_fifo_ref fifo, int size){
-	if(! fifo){
+/** Initializes the dynamic queue.
+ *
+ * @param[in,out] fifo	The dynamic queue.
+ * @param[in] size	The initial queue size.
+ * @returns		EOK on success.
+ * @returns		EINVAL if the queue is not valid.
+ * @returns		EBADMEM if the fifo parameter is NULL.
+ * @returns		ENOMEM if there is not enough memory left.
+ */
+int dyn_fifo_initialize(dyn_fifo_ref fifo, int size)
+{
+	if (!fifo)
 		return EBADMEM;
-	}
-	if(size <= 0){
+
+	if (size <= 0)
 		return EINVAL;
-	}
+
 	fifo->items = (int *) malloc(sizeof(int) * size + 1);
-	if(! fifo->items){
+	if (!fifo->items)
 		return ENOMEM;
-	}
+
 	fifo->size = size;
 	fifo->head = 0;
 	fifo->tail = 0;
 	fifo->magic_value = DYN_FIFO_MAGIC_VALUE;
+
 	return EOK;
 }
 
-int dyn_fifo_push(dyn_fifo_ref fifo, int value, int max_size){
+/** Appends a new item to the queue end.
+ *
+ * @param[in,out] fifo	The dynamic queue.
+ * @param[in] value	The new item value. Should be positive.
+ * @param[in] max_size	The maximum queue size. The queue is not resized beyound
+ *			this limit. May be zero or negative to indicate no
+ *			limit.
+ * @returns		EOK on success.
+ * @returns		EINVAL if the queue is not valid.
+ * @returns		ENOMEM if there is not enough memory left.
+ */
+int dyn_fifo_push(dyn_fifo_ref fifo, int value, int max_size)
+{
 	int * new_items;
 
-	if(! dyn_fifo_is_valid(fifo)){
+	if (!dyn_fifo_is_valid(fifo))
 		return EINVAL;
-	}
-	if(NEXT_INDEX(fifo, fifo->tail) == fifo->head){
-		if((max_size > 0) && ((fifo->size * 2) > max_size)){
-			if(fifo->size >= max_size){
+
+	if (NEXT_INDEX(fifo, fifo->tail) == fifo->head) {
+		if ((max_size > 0) && ((fifo->size * 2) > max_size)) {
+			if(fifo->size >= max_size)
 				return ENOMEM;
-			}
-		}else{
+		} else {
 			max_size = fifo->size * 2;
 		}
+
 		new_items = realloc(fifo->items, sizeof(int) * max_size + 1);
-		if(! new_items){
+		if (!new_items)
 			return ENOMEM;
-		}
+
 		fifo->items = new_items;
-		if(fifo->tail < fifo->head){
-			if(fifo->tail < max_size - fifo->size){
-				memcpy(fifo->items + fifo->size + 1, fifo->items, fifo->tail * sizeof(int));
+		if (fifo->tail < fifo->head) {
+			if (fifo->tail < max_size - fifo->size) {
+				memcpy(fifo->items + fifo->size + 1,
+				    fifo->items, fifo->tail * sizeof(int));
 				fifo->tail += fifo->size + 1;
-			}else{
-				memcpy(fifo->items + fifo->size + 1, fifo->items, (max_size - fifo->size) * sizeof(int));
-				memcpy(fifo->items, fifo->items + max_size - fifo->size, fifo->tail - max_size + fifo->size);
+			} else {
+				memcpy(fifo->items + fifo->size + 1,
+				    fifo->items,
+				    (max_size - fifo->size) * sizeof(int));
+				memcpy(fifo->items,
+				    fifo->items + max_size - fifo->size,
+				    fifo->tail - max_size + fifo->size);
 				fifo->tail -= max_size - fifo->size;
 			}
 		}
 		fifo->size = max_size;
 	}
+
 	fifo->items[fifo->tail] = value;
 	fifo->tail = NEXT_INDEX(fifo, fifo->tail);
 	return EOK;
 }
 
-int dyn_fifo_pop(dyn_fifo_ref fifo){
+/** Returns and excludes the first item in the queue.
+ *
+ * @param[in,out] fifoi	The dynamic queue.
+ * @returns		Value of the first item in the queue.
+ * @returns		EINVAL if the queue is not valid.
+ * @returns		ENOENT if the queue is empty.
+ */
+int dyn_fifo_pop(dyn_fifo_ref fifo)
+{
 	int value;
 
-	if(! dyn_fifo_is_valid(fifo)){
+	if (!dyn_fifo_is_valid(fifo))
 		return EINVAL;
-	}
-	if(fifo->head == fifo->tail){
+
+	if (fifo->head == fifo->tail)
 		return ENOENT;
-	}
+
 	value = fifo->items[fifo->head];
 	fifo->head = NEXT_INDEX(fifo, fifo->head);
 	return value;
 }
 
-int dyn_fifo_value(dyn_fifo_ref fifo){
-	if(! dyn_fifo_is_valid(fifo)){
+/** Returns and keeps the first item in the queue.
+ *
+ * @param[in,out] fifo	The dynamic queue.
+ * @returnsi		Value of the first item in the queue.
+ * @returns		EINVAL if the queue is not valid.
+ * @returns		ENOENT if the queue is empty.
+ */
+int dyn_fifo_value(dyn_fifo_ref fifo)
+{
+	if (!dyn_fifo_is_valid(fifo))
 		return EINVAL;
-	}
-	if(fifo->head == fifo->tail){
+
+	if (fifo->head == fifo->tail)
 		return ENOENT;
-	}
+
 	return fifo->items[fifo->head];
 }
 
-int dyn_fifo_destroy(dyn_fifo_ref fifo){
-	if(! dyn_fifo_is_valid(fifo)){
+/** Clears and destroys the queue.
+ *
+ *  @param[in,out] fifo		The dynamic queue.
+ *  @returns			EOK on success.
+ *  @returns			EINVAL if the queue is not valid.
+ */
+int dyn_fifo_destroy(dyn_fifo_ref fifo)
+{
+	if (!dyn_fifo_is_valid(fifo))
 		return EINVAL;
-	}
+
 	free(fifo->items);
 	fifo->magic_value = 0;
 	return EOK;

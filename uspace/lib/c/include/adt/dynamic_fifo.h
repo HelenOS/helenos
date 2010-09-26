@@ -31,87 +31,45 @@
  */
 
 /** @file
- *  Dynamic first in first out positive integer queue.
- *  Possitive integer values only.
+ * Dynamic first in first out positive integer queue.
+ * Possitive integer values only.
  */
 
 #ifndef LIBC_DYNAMIC_FIFO_H_
 #define LIBC_DYNAMIC_FIFO_H_
 
 /** Type definition of the dynamic fifo queue.
- *  @see dyn_fifo
+ * @see dyn_fifo
  */
 typedef struct dyn_fifo	dyn_fifo_t;
 
 /** Type definition of the dynamic fifo queue pointer.
  *  @see dyn_fifo
  */
-typedef dyn_fifo_t *	dyn_fifo_ref;
+typedef dyn_fifo_t *dyn_fifo_ref;
 
 /** Dynamic first in first out positive integer queue.
- *  Possitive integer values only.
- *  The queue automatically resizes if needed.
+ * Possitive integer values only.
+ * The queue automatically resizes if needed.
  */
-struct dyn_fifo{
-	/** Stored item field.
-	 */
-	int *	items;
-	/** Actual field size.
-	 */
+struct dyn_fifo {
+	/** Stored item field. */
+	int *items;
+	/** Actual field size. */
 	int size;
-	/** First item in the queue index.
-	 */
+	/** First item in the queue index. */
 	int head;
-	/** Last item in the queue index.
-	 */
+	/** Last item in the queue index. */
 	int tail;
-	/** Consistency check magic value.
-	 */
+	/** Consistency check magic value. */
 	int magic_value;
 };
 
-/** Initializes the dynamic queue.
- *  @param[in,out] fifo The dynamic queue.
- *  @param[in] size The initial queue size.
- *  @returns EOK on success.
- *  @returns EINVAL if the queue is not valid.
- *  @returns EBADMEM if the fifo parameter is NULL.
- *  @returns ENOMEM if there is not enough memory left.
- */
-extern int dyn_fifo_initialize(dyn_fifo_ref fifo, int size);
-
-/** Appends a new item to the queue end.
- *  @param[in,out] fifo The dynamic queue.
- *  @param[in] value The new item value. Should be positive.
- *  @param[in] max_size The maximum queue size. The queue is not resized beyound this limit. May be zero or negative (<=0) to indicate no limit.
- *  @returns EOK on success.
- *  @returns EINVAL if the queue is not valid.
- *  @returns ENOMEM if there is not enough memory left.
- */
-extern int dyn_fifo_push(dyn_fifo_ref fifo, int value, int max_size);
-
-/** Returns and excludes the first item in the queue.
- *  @param[in,out] fifo The dynamic queue.
- *  @returns Value of the first item in the queue.
- *  @returns EINVAL if the queue is not valid.
- *  @returns ENOENT if the queue is empty.
- */
-extern int dyn_fifo_pop(dyn_fifo_ref fifo);
-
-/** Returns and keeps the first item in the queue.
- *  @param[in,out] fifo The dynamic queue.
- *  @returns Value of the first item in the queue.
- *  @returns EINVAL if the queue is not valid.
- *  @returns ENOENT if the queue is empty.
- */
-extern int dyn_fifo_value(dyn_fifo_ref fifo);
-
-/** Clears and destroys the queue.
- *  @param[in,out] fifo The dynamic queue.
- *  @returns EOK on success.
- *  @returns EINVAL if the queue is not valid.
- */
-extern int dyn_fifo_destroy(dyn_fifo_ref fifo);
+extern int dyn_fifo_initialize(dyn_fifo_ref, int);
+extern int dyn_fifo_destroy(dyn_fifo_ref);
+extern int dyn_fifo_push(dyn_fifo_ref, int, int);
+extern int dyn_fifo_pop(dyn_fifo_ref);
+extern int dyn_fifo_value(dyn_fifo_ref);
 
 #endif
 
