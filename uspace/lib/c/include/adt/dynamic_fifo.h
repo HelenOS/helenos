@@ -26,74 +26,50 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup net
- * @{
+/** @addtogroup libc
+ *  @{
  */
 
 /** @file
- * Common error processing codes and routines.
+ * Dynamic first in first out positive integer queue.
+ * Possitive integer values only.
  */
 
-#ifndef __NET_ERR_H__
-#define __NET_ERR_H__
+#ifndef LIBC_DYNAMIC_FIFO_H_
+#define LIBC_DYNAMIC_FIFO_H_
 
-#include <errno.h>
-
-#ifdef CONFIG_DEBUG
-	#include <stdio.h>
-	#include <str_error.h>
-#endif
-
-/** An actual stored error code.
- *
+/** Type definition of the dynamic fifo queue.
+ * @see dyn_fifo
  */
-#define ERROR_CODE  error_check_return_value
+typedef struct dyn_fifo	dyn_fifo_t;
 
-/** An error processing routines declaration.
- *
- * This has to be declared in the block where the error processing
- * is desired.
- *
+/** Type definition of the dynamic fifo queue pointer.
+ *  @see dyn_fifo
  */
-#define ERROR_DECLARE  int ERROR_CODE
+typedef dyn_fifo_t *dyn_fifo_ref;
 
-/** Store the value as an error code and checks if an error occurred.
- *
- * @param[in] value The value to be checked. May be a function call.
- * @return False if the value indicates success (EOK).
- * @return True otherwise.
- *
+/** Dynamic first in first out positive integer queue.
+ * Possitive integer values only.
+ * The queue automatically resizes if needed.
  */
-#ifdef CONFIG_DEBUG
+struct dyn_fifo {
+	/** Stored item field. */
+	int *items;
+	/** Actual field size. */
+	int size;
+	/** First item in the queue index. */
+	int head;
+	/** Last item in the queue index. */
+	int tail;
+	/** Consistency check magic value. */
+	int magic_value;
+};
 
-#define ERROR_OCCURRED(value) \
-	(((ERROR_CODE = (value)) != EOK) \
-	&& ({ \
-		fprintf(stderr, "libsocket error at %s:%d (%s)\n", \
-		__FILE__, __LINE__, str_error(ERROR_CODE)); \
-		1; \
-	}))
-
-#else
-
-#define ERROR_OCCURRED(value)  ((ERROR_CODE = (value)) != EOK)
-
-#endif
-
-#define ERROR_NONE(value)	!ERROR_OCCURRED((value))
-
-/** Error propagation
- *
- * Check if an error occurred and immediately exit the actual
- * function returning the error code.
- *
- * @param[in] value The value to be checked. May be a function call.
- *
- */
-
-#define ERROR_PROPAGATE(value) \
-	if (ERROR_OCCURRED(value)) \
-		return ERROR_CODE
+extern int dyn_fifo_initialize(dyn_fifo_ref, int);
+extern int dyn_fifo_destroy(dyn_fifo_ref);
+extern int dyn_fifo_push(dyn_fifo_ref, int, int);
+extern int dyn_fifo_pop(dyn_fifo_ref);
+extern int dyn_fifo_value(dyn_fifo_ref);
 
 #endif
 

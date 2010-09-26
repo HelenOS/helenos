@@ -88,6 +88,9 @@ GENERIC_SOURCES = \
 	generic/getopt.c \
 	generic/adt/list.o \
 	generic/adt/hash_table.o \
+	generic/adt/dynamic_fifo.c \
+	generic/adt/measured_strings.c \
+	generic/adt/char_map.c \
 	generic/time.c \
 	generic/err.c \
 	generic/stdlib.c \

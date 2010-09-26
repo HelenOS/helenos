@@ -26,82 +26,51 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup net
- * @{
+/** @addtogroup libc
+ *  @{
  */
 
 /** @file
- *
- * Start the networking subsystem.
- * Perform networking self-test if executed
- * with the -s argument.
- *
+ * Character string with measured length.
+ * The structure has been designed for serialization of character strings
+ * between modules.
  */
 
-#define NAME  "netstart"
+#ifndef LIBC_MEASURED_STRINGS_H_
+#define LIBC_MEASURED_STRINGS_H_
 
-#include <async.h>
-#include <stdio.h>
-#include <task.h>
-#include <str_error.h>
-#include <err.h>
-#include <ipc/ipc.h>
-#include <ipc/services.h>
+#include <sys/types.h>
 
-#include <net_modules.h>
-#include <net_net_messages.h>
-
-#include "self_test.h"
-
-/** Start a module.
- *
- * @param[in] desc The module description
- * @param[in] path The module absolute path.
- *
- * @returns true on succesful spanwning
- * @returns false on failure
- *
+/** Type definition of the character string with measured length.
+ *  @see measured_string
  */
-static bool spawn(const char *desc, const char *path)
-{
-	printf("%s: Spawning %s (%s)\n", NAME, desc, path);
-	
-	const char *argv[2];
-	
-	argv[0] = path;
-	argv[1] = NULL;
-	
-	int err;
-	if (task_spawn(path, argv, &err) == 0) {
-		fprintf(stderr, "%s: Error spawning %s (%s)\n", NAME, path,
-		    str_error(err));
-		return false;
-	}
-	
-	return true;
-}
+typedef struct measured_string measured_string_t;
 
-int main(int argc, char *argv[])
-{
-	ERROR_DECLARE;
-	
-	/* Run self-tests */
-	if ((argc > 1) && (str_cmp(argv[1], "-s") == 0))
-		ERROR_PROPAGATE(self_test());
-	
-	if (!spawn("networking service", "/srv/net"))
-		return EINVAL;
-	
-	printf("%s: Initializing networking\n", NAME);
-	
-	int net_phone = connect_to_service(SERVICE_NETWORKING);
-	if (ERROR_OCCURRED(ipc_call_sync_0_0(net_phone, NET_NET_STARTUP))) {
-		fprintf(stderr, "%s: Startup error %d\n", NAME, ERROR_CODE);
-		return ERROR_CODE;
-	}
-	
-	return EOK;
-}
+/** Type definition of the character string with measured length pointer.
+ *  @see measured_string
+ */
+typedef measured_string_t *measured_string_ref;
+
+/** Character string with measured length.
+ *
+ * This structure has been designed for serialization of character strings
+ * between modules.
+ */
+struct measured_string {
+	/** Character string data. */
+	char * value;
+	/** Character string length. */
+	size_t length;
+};
+
+extern measured_string_ref measured_string_create_bulk(const char *, size_t);
+extern measured_string_ref measured_string_copy(measured_string_ref);
+extern int measured_strings_receive(measured_string_ref *, char **, size_t);
+extern int measured_strings_reply(const measured_string_ref, size_t);
+extern int measured_strings_return(int, measured_string_ref *, char **, size_t);
+extern int measured_strings_send(int, const measured_string_ref, size_t);
+
+#endif
 
 /** @}
  */

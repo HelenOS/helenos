@@ -41,9 +41,6 @@ SOURCES = \
 	generic/icmp_api.c \
 	packet/packet.c \
 	packet/packet_client.c \
-	packet/packet_server.c \
-	adt/dynamic_fifo.c \
-	adt/measured_strings.c \
-	adt/char_map.c
+	packet/packet_server.c 
 
 include $(USPACE_PREFIX)/Makefile.common

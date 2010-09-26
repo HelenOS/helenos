@@ -37,6 +37,7 @@
 
 #include <async.h>
 #include <errno.h>
+#include <err.h>
 #include <fibril_synch.h>
 #include <stdio.h>
 #include <str.h>
@@ -44,7 +45,6 @@
 #include <ipc/services.h>
 #include <sys/types.h>
 
-#include <net_err.h>
 #include <net_messages.h>
 #include <net_modules.h>
 #include <arp_interface.h>
@@ -64,7 +64,6 @@
 #include <nil_interface.h>
 #include <tl_interface.h>
 #include <socket_codes.h>
-#include <socket_errno.h>
 #include <adt/measured_strings.h>
 #include <adt/module_map.h>
 #include <packet/packet_client.h>

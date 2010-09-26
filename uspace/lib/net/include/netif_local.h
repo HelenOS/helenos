@@ -43,9 +43,9 @@
 #include <fibril_synch.h>
 #include <ipc/ipc.h>
 #include <ipc/services.h>
+#include <err.h>
 
 #include <adt/measured_strings.h>
-#include <net_err.h>
 #include <net_device.h>
 #include <packet/packet.h>
 

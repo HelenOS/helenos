@@ -35,15 +35,15 @@
  *  This file has to be compiled with both the packet server and the client.
  */
 
-#include <errno.h>
 #include <malloc.h>
 #include <mem.h>
 #include <fibril_synch.h>
 #include <unistd.h>
+#include <errno.h>
+#include <err.h>
 
 #include <sys/mman.h>
 
-#include <net_err.h>
 #include <adt/generic_field.h>
 #include <packet/packet.h>
 #include <packet/packet_header.h>

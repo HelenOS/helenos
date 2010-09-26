@@ -38,13 +38,13 @@
 #include <assert.h>
 #include <async.h>
 #include <errno.h>
+#include <err.h>
 #include <fibril_synch.h>
 #include <unistd.h>
 
 #include <ipc/ipc.h>
 #include <sys/mman.h>
 
-#include <net_err.h>
 #include <net_messages.h>
 #include <packet/packet.h>
 #include <packet/packet_client.h>

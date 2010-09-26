@@ -44,7 +44,7 @@
 #include <in6.h>
 #include <inet.h>
 #include <socket_codes.h>
-#include <socket_errno.h>
+#include <errno.h>
 
 /** @name Socket application programming interface
  */

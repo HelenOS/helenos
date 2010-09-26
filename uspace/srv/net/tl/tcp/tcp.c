@@ -41,11 +41,12 @@
 #include <malloc.h>
 //TODO remove stdio
 #include <stdio.h>
+#include <errno.h>
+#include <err.h>
 
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 
-#include <net_err.h>
 #include <net_messages.h>
 #include <net_modules.h>
 #include <adt/dynamic_fifo.h>
@@ -62,7 +63,6 @@
 #include <icmp_interface.h>
 #include <net_interface.h>
 #include <socket_codes.h>
-#include <socket_errno.h>
 #include <tcp_codes.h>
 #include <socket_core.h>
 #include <socket_messages.h>

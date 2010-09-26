@@ -26,82 +26,61 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup net
- * @{
+/** @addtogroup libc
+ *  @{
  */
 
 /** @file
- *
- * Start the networking subsystem.
- * Perform networking self-test if executed
- * with the -s argument.
- *
+ *  Character string to integer map.
  */
 
-#define NAME  "netstart"
+#ifndef LIBC_CHAR_MAP_H_
+#define LIBC_CHAR_MAP_H_
 
-#include <async.h>
-#include <stdio.h>
-#include <task.h>
-#include <str_error.h>
-#include <err.h>
-#include <ipc/ipc.h>
-#include <ipc/services.h>
+#include <libarch/types.h>
 
-#include <net_modules.h>
-#include <net_net_messages.h>
+/** Invalid assigned value used also if an&nbsp;entry does not exist. */
+#define CHAR_MAP_NULL	(-1)
 
-#include "self_test.h"
-
-/** Start a module.
- *
- * @param[in] desc The module description
- * @param[in] path The module absolute path.
- *
- * @returns true on succesful spanwning
- * @returns false on failure
- *
+/** Type definition of the character string to integer map.
+ *  @see char_map
  */
-static bool spawn(const char *desc, const char *path)
-{
-	printf("%s: Spawning %s (%s)\n", NAME, desc, path);
-	
-	const char *argv[2];
-	
-	argv[0] = path;
-	argv[1] = NULL;
-	
-	int err;
-	if (task_spawn(path, argv, &err) == 0) {
-		fprintf(stderr, "%s: Error spawning %s (%s)\n", NAME, path,
-		    str_error(err));
-		return false;
-	}
-	
-	return true;
-}
+typedef struct char_map	char_map_t;
 
-int main(int argc, char *argv[])
-{
-	ERROR_DECLARE;
-	
-	/* Run self-tests */
-	if ((argc > 1) && (str_cmp(argv[1], "-s") == 0))
-		ERROR_PROPAGATE(self_test());
-	
-	if (!spawn("networking service", "/srv/net"))
-		return EINVAL;
-	
-	printf("%s: Initializing networking\n", NAME);
-	
-	int net_phone = connect_to_service(SERVICE_NETWORKING);
-	if (ERROR_OCCURRED(ipc_call_sync_0_0(net_phone, NET_NET_STARTUP))) {
-		fprintf(stderr, "%s: Startup error %d\n", NAME, ERROR_CODE);
-		return ERROR_CODE;
-	}
-	
-	return EOK;
-}
+/** Type definition of the character string to integer map pointer.
+ *  @see char_map
+ */
+typedef char_map_t *char_map_ref;
+
+/** Character string to integer map item.
+ *
+ * This structure recursivelly contains itself as a character by character tree.
+ * The actually mapped character string consists of all the parent characters
+ * and the actual one.
+ */
+struct char_map {
+	/** Actually mapped character. */
+	char c;
+	/** Stored integral value. */
+	int value;
+	/** Next character array size. */
+	int size;
+	/** First free position in the next character array. */
+	int next;
+	/** Next character array. */
+	char_map_ref *items;
+	/** Consistency check magic value. */
+	int magic;
+};
+
+extern int char_map_initialize(char_map_ref);
+extern void char_map_destroy(char_map_ref);
+extern int char_map_exclude(char_map_ref, const char *, size_t);
+extern int char_map_add(char_map_ref, const char *, size_t, const int);
+extern int char_map_find(const char_map_ref, const char *, size_t);
+extern int char_map_update(char_map_ref, const char *, size_t, const int);
+
+#endif
 
 /** @}
  */
