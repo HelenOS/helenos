@@ -41,6 +41,7 @@
 #include <stdio.h>
 #include <ipc/ipc.h>
 #include <ipc/services.h>
+#include <errno.h>
 
 #include <net_err.h>
 #include <net_messages.h>
@@ -59,7 +60,6 @@
 #include <icmp_interface.h>
 #include <net_interface.h>
 #include <socket_codes.h>
-#include <socket_errno.h>
 #include <socket_core.h>
 #include <socket_messages.h>
 #include <tl_common.h>

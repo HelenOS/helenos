@@ -37,6 +37,7 @@
 
 #include <async.h>
 #include <ipc/services.h>
+#include <errno.h>
 
 #include <net_err.h>
 #include <packet/packet.h>
@@ -50,7 +51,6 @@
 #include <ip_local.h>
 #include <ip_remote.h>
 #include <socket_codes.h>
-#include <socket_errno.h>
 #include <ip_interface.h>
 #include <tl_interface.h>
 #include <tl_common.h>

@@ -64,7 +64,6 @@
 #include <nil_interface.h>
 #include <tl_interface.h>
 #include <socket_codes.h>
-#include <socket_errno.h>
 #include <adt/measured_strings.h>
 #include <adt/module_map.h>
 #include <packet/packet_client.h>

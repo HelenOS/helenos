@@ -45,6 +45,7 @@
 #include <ipc/services.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#include <errno.h>
 
 #include <net_err.h>
 #include <net_messages.h>
@@ -65,7 +66,6 @@
 #include <ip_protocols.h>
 #include <net_interface.h>
 #include <socket_codes.h>
-#include <socket_errno.h>
 #include <tl_messages.h>
 #include <tl_interface.h>
 #include <tl_local.h>

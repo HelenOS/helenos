@@ -36,12 +36,12 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <errno.h>
 
 #include <net_err.h>
 #include <in.h>
 #include <inet.h>
 #include <socket_codes.h>
-#include <socket_errno.h>
 #include <adt/dynamic_fifo.h>
 #include <adt/int_map.h>
 #include <packet/packet.h>

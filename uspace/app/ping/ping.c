@@ -41,6 +41,7 @@
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <str_error.h>
+#include <errno.h>
 #include <arg_parse.h>
 
 #include <icmp_api.h>
@@ -48,7 +49,6 @@
 #include <in6.h>
 #include <inet.h>
 #include <ip_codes.h>
-#include <socket_errno.h>
 #include <socket_parse.h>
 
 #include "print_error.h"

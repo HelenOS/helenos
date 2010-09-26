@@ -35,9 +35,9 @@
  */
 
 #include <stdio.h>
+#include <errno.h>
 
 #include <icmp_codes.h>
-#include <socket_errno.h>
 
 #include "print_error.h"
 

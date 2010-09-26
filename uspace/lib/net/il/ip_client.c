@@ -39,7 +39,6 @@
 #include <sys/types.h>
 
 #include <ip_client.h>
-#include <socket_errno.h>
 #include <packet/packet.h>
 #include <packet/packet_client.h>
 #include <ip_header.h>
