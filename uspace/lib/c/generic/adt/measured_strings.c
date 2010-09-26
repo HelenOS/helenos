@@ -35,16 +35,14 @@
  *  @see measured_strings.h
  */
 
+#include <adt/measured_strings.h>
 #include <malloc.h>
 #include <mem.h>
 #include <unistd.h>
 #include <errno.h>
 #include <err.h>
+#include <async.h>
 
-#include <ipc/ipc.h>
-
-#include <net_modules.h>
-#include <adt/measured_strings.h>
 
 measured_string_ref measured_string_create_bulk(const char * string, size_t length){
 	measured_string_ref new;
