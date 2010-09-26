@@ -44,10 +44,10 @@
 #include <stdio.h>
 #include <task.h>
 #include <str_error.h>
+#include <err.h>
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 
-#include <net_err.h>
 #include <net_modules.h>
 #include <net_net_messages.h>
 

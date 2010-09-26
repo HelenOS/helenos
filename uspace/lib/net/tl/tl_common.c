@@ -38,8 +38,8 @@
 #include <async.h>
 #include <ipc/services.h>
 #include <errno.h>
+#include <err.h>
 
-#include <net_err.h>
 #include <packet/packet.h>
 #include <packet/packet_client.h>
 #include <packet_remote.h>

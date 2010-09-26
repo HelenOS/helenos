@@ -37,8 +37,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <err.h>
 
-#include <net_err.h>
 #include <in.h>
 #include <inet.h>
 #include <socket_codes.h>

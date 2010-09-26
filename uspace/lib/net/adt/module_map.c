@@ -37,10 +37,10 @@
 #include <malloc.h>
 #include <task.h>
 #include <unistd.h>
+#include <err.h>
 
 #include <ipc/services.h>
 
-#include <net_err.h>
 #include <net_modules.h>
 
 #include <adt/generic_char_map.h>

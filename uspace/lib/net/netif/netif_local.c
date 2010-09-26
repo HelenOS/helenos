@@ -41,8 +41,8 @@
 #include <stdio.h>
 #include <ipc/ipc.h>
 #include <ipc/services.h>
+#include <err.h>
 
-#include <net_err.h>
 #include <net_messages.h>
 #include <net_modules.h>
 #include <packet/packet.h>

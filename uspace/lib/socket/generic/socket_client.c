@@ -42,10 +42,10 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <err.h>
 
 #include <ipc/services.h>
 
-#include <net_err.h>
 #include <net_modules.h>
 #include <in.h>
 #include <socket.h>

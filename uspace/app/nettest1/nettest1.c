@@ -40,12 +40,12 @@
 #include <task.h>
 #include <time.h>
 #include <arg_parse.h>
+#include <err.h>
 
 #include <in.h>
 #include <in6.h>
 #include <inet.h>
 #include <socket.h>
-#include <net_err.h>
 #include <socket_parse.h>
 
 #include "nettest.h"

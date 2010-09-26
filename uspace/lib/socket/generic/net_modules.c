@@ -36,13 +36,13 @@
 
 #include <async.h>
 #include <malloc.h>
+#include <err.h>
 
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 
 #include <sys/time.h>
 
-#include <net_err.h>
 #include <net_modules.h>
 
 /** The time between connect requests in microseconds.

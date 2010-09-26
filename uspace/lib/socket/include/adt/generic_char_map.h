@@ -37,10 +37,9 @@
 #ifndef __GENERIC_CHAR_MAP_H__
 #define __GENERIC_CHAR_MAP_H__
 
-#include <errno.h>
 #include <unistd.h>
-
-#include <net_err.h>
+#include <errno.h>
+#include <err.h>
 
 #include <adt/char_map.h>
 #include <adt/generic_field.h>

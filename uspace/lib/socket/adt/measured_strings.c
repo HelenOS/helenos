@@ -35,14 +35,14 @@
  *  @see measured_strings.h
  */
 
-#include <errno.h>
 #include <malloc.h>
 #include <mem.h>
 #include <unistd.h>
+#include <errno.h>
+#include <err.h>
 
 #include <ipc/ipc.h>
 
-#include <net_err.h>
 #include <net_modules.h>
 #include <adt/measured_strings.h>
 
