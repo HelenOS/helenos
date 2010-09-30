@@ -1,4 +1,4 @@
-#! /bin/sh
+#! /bin/bash
 
 #
 # Copyright (c) 2009 Martin Decky
