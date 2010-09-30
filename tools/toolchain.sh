@@ -1,4 +1,4 @@
-#!/bin/bash
+#! /bin/sh
 
 #
 # Copyright (c) 2009 Martin Decky
@@ -32,6 +32,7 @@ check_error() {
 	if [ "$1" -ne "0" ]; then
 		echo
 		echo "Script failed: $2"
+		
 		exit 1
 	fi
 }
@@ -44,6 +45,7 @@ check_md5() {
 	if [ "${SUM}" != "${COMPUTED}" ] ; then
 		echo
 		echo "Checksum of ${FILE} does not match."
+		
 		exit 2
 	fi
 }
@@ -70,12 +72,61 @@ show_usage() {
 	exit 3
 }
 
+change_title() {
+	echo -en "\e]0;$1\a"
+}
+
+show_countdown() {
+	TM="$1"
+	
+	if [ "${TM}" -eq 0 ] ; then
+		echo
+		return 0
+	fi
+	
+	echo -n "${TM} "
+	change_title "${TM}"
+	sleep 1
+	
+	TM="`expr "${TM}" - 1`"
+	show_countdown "${TM}"
+}
+
+show_dependencies() {
+	echo "IMPORTANT NOTICE:"
+	echo
+	echo "For a successful compilation and use of the cross-compiler"
+	echo "toolchain you need at least the following dependencies."
+	echo
+	echo "Please make sure that the dependencies are present in your"
+	echo "system. Otherwise the compilation process might fail after"
+	echo "a few seconds or minutes."
+	echo
+	echo " - SED, AWK, Flex, Bison, gzip, bzip2, Bourne Shell"
+	echo " - gettext, zlib, Texinfo, libelf, libgomp"
+	echo " - GNU Multiple Precision Library (GMP)"
+	echo " - GNU Make"
+	echo " - GNU tar"
+	echo " - GNU Coreutils"
+	echo " - GNU Sharutils"
+	echo " - MPFR"
+	echo " - MPC"
+	echo " - Parma Polyhedra Library (PPL)"
+	echo " - ClooG-PPL"
+	echo " - native C compiler, assembler and linker"
+	echo " - native C library with headers"
+	echo
+	
+	show_countdown 10
+}
+
 download_check() {
 	SOURCE="$1"
 	FILE="$2"
 	CHECKSUM="$3"
 	
 	if [ ! -f "${FILE}" ]; then
+		change_title "Downloading ${FILE}"
 		wget -c "${SOURCE}${FILE}"
 		check_error $? "Error downloading ${FILE}."
 	fi
@@ -87,6 +138,7 @@ cleanup_dir() {
 	DIR="$1"
 	
 	if [ -d "${DIR}" ]; then
+		change_title "Removing ${DIR}"
 		echo " >>> Removing ${DIR}"
 		rm -fr "${DIR}"
 	fi
@@ -96,6 +148,7 @@ create_dir() {
 	DIR="$1"
 	DESC="$2"
 	
+	change_title "Creating ${DESC}"
 	echo ">>> Creating ${DESC}"
 	
 	mkdir -p "${DIR}"
@@ -107,7 +160,8 @@ unpack_tarball() {
 	FILE="$1"
 	DESC="$2"
 	
-	echo " >>> ${DESC}"
+	change_title "Unpacking ${DESC}"
+	echo " >>> Unpacking ${DESC}"
 	
 	tar -xjf "${FILE}"
 	check_error $? "Error unpacking ${DESC}."
@@ -141,7 +195,7 @@ build_target() {
 	TARGET="$2"
 	
 	BINUTILS_VERSION="2.20"
-	GCC_VERSION="4.5.0"
+	GCC_VERSION="4.5.1"
 	
 	BINUTILS="binutils-${BINUTILS_VERSION}.tar.bz2"
 	GCC_CORE="gcc-core-${GCC_VERSION}.tar.bz2"
@@ -164,9 +218,9 @@ build_target() {
 	
 	echo ">>> Downloading tarballs"
 	download_check "${BINUTILS_SOURCE}" "${BINUTILS}" "ee2d3e996e9a2d669808713360fa96f8"
-	download_check "${GCC_SOURCE}" "${GCC_CORE}" "58eda33c3184303628f91c42a7ab15b5"
-	download_check "${GCC_SOURCE}" "${GCC_OBJC}" "8d8c01b6631b020cc6c167860fde2398"
-	download_check "${GCC_SOURCE}" "${GCC_CPP}" "5ab93605af40def4844eda09ca769c2d"
+	download_check "${GCC_SOURCE}" "${GCC_CORE}" "dc8959e31b01a65ce10d269614815054"
+	download_check "${GCC_SOURCE}" "${GCC_OBJC}" "3c11b7037896e967eddf8178af2ddd98"
+	download_check "${GCC_SOURCE}" "${GCC_CPP}" "b294953ff0bb2f20c7acb2bf005d832a"
 	
 	echo ">>> Removing previous content"
 	cleanup_dir "${PREFIX}"
@@ -183,20 +237,28 @@ build_target() {
 	unpack_tarball "${GCC_OBJC}" "Objective C"
 	unpack_tarball "${GCC_CPP}" "C++"
 	
-	echo ">>> Compiling and installing binutils"
+	echo ">>> Processing binutils (${PLATFORM})"
 	cd "${BINUTILSDIR}"
 	check_error $? "Change directory failed."
 	patch_binutils "${PLATFORM}"
-	./configure "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-" "--disable-nls"
+	
+	change_title "binutils: configure (${PLATFORM})"
+	./configure "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-" --disable-nls
 	check_error $? "Error configuring binutils."
+	
+	change_title "binutils: make (${PLATFORM})"
 	make all install
 	check_error $? "Error compiling/installing binutils."
 	
-	echo ">>> Compiling and installing GCC"
+	echo ">>> Processing GCC (${PLATFORM})"
 	cd "${OBJDIR}"
 	check_error $? "Change directory failed."
+	
+	change_title "GCC: configure (${PLATFORM})"
 	"${GCCDIR}/configure" "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-" --with-gnu-as --with-gnu-ld --disable-nls --disable-threads --enable-languages=c,objc,c++,obj-c++ --disable-multilib --disable-libgcj --without-headers --disable-shared --enable-lto
 	check_error $? "Error configuring GCC."
+	
+	change_title "GCC: make (${PLATFORM})"
 	PATH="${PATH}:${PREFIX}/bin" make all-gcc install-gcc
 	check_error $? "Error compiling/installing GCC."
 	
@@ -215,6 +277,8 @@ build_target() {
 if [ "$#" -lt "1" ]; then
 	show_usage
 fi
+
+show_dependencies
 
 case "$1" in
 	"amd64")
