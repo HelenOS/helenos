@@ -32,30 +32,15 @@
 /** @file
  */
 
+#ifndef KERN_mips32_DORDER_H_
+#define KERN_mips32_DORDER_H_
+
 #include <typedefs.h>
-#include <smp/ipi.h>
-#include <arch/smp/dorder.h>
 
-#define MSIM_DORDER_ADDRESS  0xB0000004
-
-#ifdef CONFIG_SMP
-
-void ipi_broadcast_arch(int ipi)
-{
-	*((volatile uint32_t *) MSIM_DORDER_ADDRESS) = 0x7fffffff;
-}
+extern uint32_t dorder_cpuid(void);
+extern void dorder_ipi_ack(uint32_t);
 
 #endif
-
-uint32_t dorder_cpuid(void)
-{
-	return *((volatile uint32_t *) MSIM_DORDER_ADDRESS);
-}
-
-void dorder_ipi_ack(uint32_t mask)
-{
-	*((volatile uint32_t *) (MSIM_DORDER_ADDRESS + 4)) = mask;
-}
 
 /** @}
  */
