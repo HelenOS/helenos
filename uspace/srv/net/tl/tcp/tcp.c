@@ -46,6 +46,7 @@
 
 #include <ipc/ipc.h>
 #include <ipc/services.h>
+#include <ipc/socket.h>
 
 #include <net/socket_codes.h>
 #include <net/ip_protocols.h>
@@ -66,7 +67,6 @@
 #include <net_interface.h>
 #include <tcp_codes.h>
 #include <socket_core.h>
-#include <socket_messages.h>
 #include <tl_common.h>
 #include <tl_messages.h>
 #include <tl_local.h>

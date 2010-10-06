@@ -45,13 +45,13 @@
 #include <err.h>
 
 #include <ipc/services.h>
+#include <ipc/socket.h>
 
 #include <net_modules.h>
 #include <net/in.h>
 #include <socket.h>
 #include <adt/dynamic_fifo.h>
 #include <adt/int_map.h>
-#include <socket_messages.h>
 
 /** Initial received packet queue size.
  */
