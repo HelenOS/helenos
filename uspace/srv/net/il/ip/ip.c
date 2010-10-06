@@ -45,6 +45,8 @@
 #include <ipc/services.h>
 #include <sys/types.h>
 
+#include <net/socket_codes.h>
+
 #include <net_messages.h>
 #include <net_modules.h>
 #include <arp_interface.h>
@@ -63,7 +65,6 @@
 #include <net_interface.h>
 #include <nil_interface.h>
 #include <tl_interface.h>
-#include <socket_codes.h>
 #include <adt/measured_strings.h>
 #include <adt/module_map.h>
 #include <packet/packet_client.h>

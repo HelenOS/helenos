@@ -26,44 +26,56 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup icmp
+/** @addtogroup libc 
  *  @{
  */
 
 /** @file
- *  ICMP application interface implementation.
- *  @see icmp_api.h
+ *  Socket codes and definitions.
+ *  This is a part of the network application library.
  */
 
-#include <net/socket_codes.h>
-#include <async.h>
-
-#include <ipc/ipc.h>
-#include <ipc/services.h>
+#ifndef LIBC_SOCKET_CODES_H_
+#define LIBC_SOCKET_CODES_H_
 
 #include <sys/types.h>
 
-#include <net_modules.h>
-#include <icmp_api.h>
-#include <inet.h>
-#include <ip_codes.h>
-#include <icmp_messages.h>
+/** @name Address families definitions */
+/*@{*/
 
-int icmp_echo_msg(int icmp_phone, size_t size, mseconds_t timeout, ip_ttl_t ttl, ip_tos_t tos, int dont_fragment, const struct sockaddr * addr, socklen_t addrlen){
-	aid_t message_id;
-	ipcarg_t result;
+enum {
+	AF_UNKNOWN = 0,
+	AF_INET,	/* IPv4 address */
+	AF_INET6	/* IPv6 address */
+};
 
-	if(addrlen <= 0){
-		return EINVAL;
-	}
-	message_id = async_send_5(icmp_phone, NET_ICMP_ECHO, size, timeout, ttl, tos, (ipcarg_t) dont_fragment, NULL);
-	// send the address
-	async_data_write_start(icmp_phone, addr, (size_t) addrlen);
-	// timeout version may cause inconsistency - there is also an inner timer
-	// return async_wait_timeout(message_id, &result, timeout);
-	async_wait_for(message_id, &result);
-	return (int) result;
-}
+/*@}*/
+
+/** @name Protocol families definitions
+ *  Same as address families.
+ */
+/*@{*/
+
+#define PF_INET		AF_INET
+#define PF_INET6	AF_INET6
+
+/*@}*/
+
+/** Socket types.
+ */
+typedef enum sock_type {
+	/** Stream (connection oriented) socket. */
+	SOCK_STREAM = 1,
+	/** Datagram (connectionless oriented) socket. */
+	SOCK_DGRAM = 2,
+	/** Raw socket. */
+	SOCK_RAW = 3
+} sock_type_t;
+
+/** Type definition of the socket length. */
+typedef int32_t	socklen_t;
+
+#endif
 
 /** @}
  */

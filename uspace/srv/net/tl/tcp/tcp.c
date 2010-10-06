@@ -47,6 +47,8 @@
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 
+#include <net/socket_codes.h>
+
 #include <net_messages.h>
 #include <net_modules.h>
 #include <adt/dynamic_fifo.h>
@@ -62,7 +64,6 @@
 #include <icmp_client.h>
 #include <icmp_interface.h>
 #include <net_interface.h>
-#include <socket_codes.h>
 #include <tcp_codes.h>
 #include <socket_core.h>
 #include <socket_messages.h>

@@ -34,6 +34,7 @@
  *  Internet protocol address conversion functions implementation.
  */
 
+#include <net/socket_codes.h>
 #include <errno.h>
 #include <mem.h>
 #include <stdio.h>
@@ -42,7 +43,6 @@
 #include <in.h>
 #include <in6.h>
 #include <inet.h>
-#include <socket_codes.h>
 
 int inet_ntop(uint16_t family, const uint8_t * data, char * address, size_t length){
 	if((! data) || (! address)){

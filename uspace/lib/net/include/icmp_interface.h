@@ -33,6 +33,7 @@
 #ifndef __NET_ICMP_INTERFACE_H__
 #define __NET_ICMP_INTERFACE_H__
 
+#include <net/socket_codes.h>
 #include <sys/types.h>
 
 #include <net_device.h>
@@ -40,7 +41,6 @@
 #include <packet/packet.h>
 #include <inet.h>
 #include <ip_codes.h>
-#include <socket_codes.h>
 #include <icmp_codes.h>
 #include <icmp_common.h>
 

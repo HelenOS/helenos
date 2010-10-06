@@ -42,7 +42,7 @@
 #include <ipc/ipc.h>
 #include <ipc/net.h>
 
-#include <socket_codes.h>
+#include <net/socket_codes.h>
 
 /** Socket client messages.
  */
