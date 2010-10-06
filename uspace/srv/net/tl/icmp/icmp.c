@@ -49,6 +49,7 @@
 #include <err.h>
 
 #include <net/socket_codes.h>
+#include <net/ip_protocols.h>
 
 #include <net_messages.h>
 #include <net_modules.h>
@@ -65,7 +66,6 @@
 #include <inet.h>
 #include <ip_client.h>
 #include <ip_interface.h>
-#include <ip_protocols.h>
 #include <net_interface.h>
 #include <tl_messages.h>
 #include <tl_interface.h>

@@ -26,65 +26,28 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup net
+/** @addtogroup libc
  *  @{
  */
 
 /** @file
- *  INET6 family common definitions.
+ * Internet protocol numbers according to the on-line IANA - Assigned Protocol
+ * numbers:
+ *
+ * http://www.iana.org/assignments/protocol-numbers/protocol-numbers.xml
  */
 
-#ifndef __NET_IN6_H__
-#define __NET_IN6_H__
+#ifndef LIBC_IP_PROTOCOLS_H_
+#define LIBC_IP_PROTOCOLS_H_
 
-#include <sys/types.h>
+/** @name IP protocols definitions */
+/*@{*/
 
-#include <net/ip_protocols.h>
-#include <inet.h>
+#define IPPROTO_ICMP	1
+#define IPPROTO_TCP	6
+#define IPPROTO_UDP	17
 
-/** INET6 string address maximum length.
- */
-#define INET6_ADDRSTRLEN	(8 * 4 + 7 + 1)
-
-/** Type definition of the INET6 address.
- *  @see in6_addr
- */
-typedef struct in6_addr	in6_addr_t;
-
-/** Type definition of the INET6 socket address.
- *  @see sockaddr_in6
- */
-typedef struct sockaddr_in6	sockaddr_in6_t;
-
-/** INET6 address.
- */
-struct in6_addr{
-	/** 16 byte IPv6 address.
-	 */
-	unsigned char s6_addr[16];
-};
-
-/** INET6 socket address.
- *  @see sockaddr
- */
-struct sockaddr_in6{
-	/** Address family.
-	 *  Should be AF_INET6.
-	 */
-	uint16_t sin6_family;
-	/** Port number.
-	 */
-	uint16_t sin6_port;
-	/** IPv6 flow information.
-	 */
-	uint32_t sin6_flowinfo;
-	/** IPv6 address.
-	 */
-	struct in6_addr sin6_addr;
-	/** Scope identifier.
-	 */
-	uint32_t sin6_scope_id;
-};
+/*@}*/
 
 #endif
 

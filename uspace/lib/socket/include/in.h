@@ -39,7 +39,7 @@
 
 #include <sys/types.h>
 
-#include <ip_protocols.h>
+#include <net/ip_protocols.h>
 #include <inet.h>
 
 /** INET string address maximum length.
