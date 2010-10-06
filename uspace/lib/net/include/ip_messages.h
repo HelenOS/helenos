@@ -41,7 +41,7 @@
 #include <ipc/ipc.h>
 #include <ipc/net.h>
 
-#include <in.h>
+#include <net/in.h>
 #include <ip_codes.h>
 
 /** IP module messages.

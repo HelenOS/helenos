@@ -36,6 +36,7 @@
  */
 
 #include <net/socket_codes.h>
+#include <net/inet.h>
 #include <async.h>
 
 #include <ipc/ipc.h>
@@ -45,7 +46,6 @@
 
 #include <net_modules.h>
 #include <icmp_api.h>
-#include <inet.h>
 #include <ip_codes.h>
 #include <icmp_messages.h>
 

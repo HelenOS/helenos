@@ -39,7 +39,7 @@
 
 #include <sys/types.h>
 
-#include <in.h>
+#include <net/in.h>
 #include <net_device.h>
 #include <adt/generic_char_map.h>
 #include <adt/dynamic_fifo.h>

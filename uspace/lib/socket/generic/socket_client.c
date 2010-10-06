@@ -47,7 +47,7 @@
 #include <ipc/services.h>
 
 #include <net_modules.h>
-#include <in.h>
+#include <net/in.h>
 #include <socket.h>
 #include <adt/dynamic_fifo.h>
 #include <adt/int_map.h>

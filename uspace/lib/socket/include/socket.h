@@ -40,12 +40,11 @@
 #define __NET_SOCKET_H__
 
 #include <net/socket_codes.h>
-#include <byteorder.h>
-
-#include <in.h>
-#include <in6.h>
-#include <inet.h>
+#include <net/in.h>
+#include <net/in6.h>
+#include <net/inet.h>
 #include <errno.h>
+#include <byteorder.h>
 
 /** @name Socket application programming interface
  */

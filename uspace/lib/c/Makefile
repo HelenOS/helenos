@@ -98,6 +98,7 @@ GENERIC_SOURCES = \
 	generic/udebug.c \
 	generic/vfs/vfs.c \
 	generic/vfs/canonify.c \
+	generic/net/inet.c \
 	generic/stacktrace.c \
 	generic/arg_parse.c \
 	generic/sort.c \

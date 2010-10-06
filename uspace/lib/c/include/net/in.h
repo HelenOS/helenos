@@ -26,32 +26,53 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ip
- * @{
+/** @addtogroup libc
+ *  @{
  */
 
-#ifndef __NET_IP_REMOTE_H__
-#define __NET_IP_REMOTE_H__
+/** @file
+ *  INET family common definitions.
+ */
 
-#include <async.h>
-#include <ipc/services.h>
+#ifndef LIBC_IN_H_
+#define LIBC_IN_H_
 
-#include <ip_codes.h>
 #include <net/inet.h>
-#include <net/in.h>
-#include <socket.h>
+#include <net/ip_protocols.h>
+#include <sys/types.h>
 
-extern int ip_set_gateway_req_remote(int, device_id_t, in_addr_t);
-extern int ip_packet_size_req_remote(int, device_id_t, packet_dimension_ref);
-extern int ip_received_error_msg_remote(int, device_id_t, packet_t, services_t,
-    services_t);
-extern int ip_device_req_remote(int, device_id_t, services_t);
-extern int ip_add_route_req_remote(int, device_id_t, in_addr_t, in_addr_t,
-    in_addr_t);
-extern int ip_send_msg_remote(int, device_id_t, packet_t, services_t,
-    services_t);
-extern int ip_get_route_req_remote(int, ip_protocol_t, const struct sockaddr *,
-    socklen_t, device_id_t *, void **, size_t *);
+/** INET string address maximum length. */
+#define INET_ADDRSTRLEN		(4 * 3 + 3 + 1)
+
+/** Type definition of the INET address.
+ * @see in_addr
+ */
+typedef struct in_addr		in_addr_t;
+
+/** Type definition of the INET socket address.
+ * @see sockaddr_in
+ */
+typedef struct sockaddr_in	sockaddr_in_t;
+
+/** INET address. */
+struct in_addr {
+	/** 4 byte IP address. */
+	uint32_t s_addr;
+};
+
+/** INET socket address.
+ * @see sockaddr
+ */
+struct sockaddr_in {
+	/** Address family. Should be AF_INET. */
+	uint16_t sin_family;
+	/** Port number. */
+	uint16_t sin_port;
+	/** Internet address. */
+	struct in_addr sin_addr;
+	/** Padding to meet the sockaddr size. */
+	uint8_t sin_zero[8];
+};
 
 #endif
 

@@ -38,12 +38,12 @@
 #define __NET_ICMP_API_H__
 
 #include <net/socket_codes.h>
+#include <net/inet.h>
 #include <sys/types.h>
 
 #include <net_device.h>
 #include <adt/measured_strings.h>
 #include <packet/packet.h>
-#include <inet.h>
 #include <ip_codes.h>
 #include <icmp_codes.h>
 #include <icmp_common.h>

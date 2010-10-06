@@ -47,6 +47,9 @@
 #include <byteorder.h>
 
 #include <net/socket_codes.h>
+#include <net/in.h>
+#include <net/in6.h>
+#include <net/inet.h>
 
 #include <net_messages.h>
 #include <net_modules.h>
@@ -57,9 +60,6 @@
 #include <icmp_codes.h>
 #include <icmp_interface.h>
 #include <il_interface.h>
-#include <in.h>
-#include <in6.h>
-#include <inet.h>
 #include <ip_client.h>
 #include <ip_interface.h>
 #include <net_interface.h>

@@ -37,8 +37,8 @@
 #include <ipc/services.h>
 
 #include <ip_codes.h>
-#include <inet.h>
-#include <in.h>
+#include <net/inet.h>
+#include <net/in.h>
 #include <socket.h>
 
 extern int ip_received_error_msg_local(int, device_id_t, packet_t, services_t,

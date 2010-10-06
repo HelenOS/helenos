@@ -42,9 +42,9 @@
 #include <arg_parse.h>
 #include <err.h>
 
-#include <in.h>
-#include <in6.h>
-#include <inet.h>
+#include <net/in.h>
+#include <net/in6.h>
+#include <net/inet.h>
 #include <socket.h>
 #include <socket_parse.h>
 

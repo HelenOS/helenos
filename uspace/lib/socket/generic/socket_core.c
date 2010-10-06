@@ -35,14 +35,14 @@
  */
 
 #include <net/socket_codes.h>
+#include <net/in.h>
+#include <net/inet.h>
 
 #include <stdint.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <err.h>
 
-#include <in.h>
-#include <inet.h>
 #include <adt/dynamic_fifo.h>
 #include <adt/int_map.h>
 #include <packet/packet.h>
