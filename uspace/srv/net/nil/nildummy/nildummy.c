@@ -45,7 +45,7 @@
 #include <ipc/services.h>
 
 #include <net_messages.h>
-#include <net_modules.h>
+#include <net/modules.h>
 #include <net_device.h>
 #include <netif_interface.h>
 #include <nil_interface.h>

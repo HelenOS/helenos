@@ -44,7 +44,7 @@
 
 #include <sys/types.h>
 
-#include <net_modules.h>
+#include <net/modules.h>
 #include <icmp_api.h>
 #include <ip_codes.h>
 #include <icmp_messages.h>

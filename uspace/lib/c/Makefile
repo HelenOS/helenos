@@ -99,6 +99,7 @@ GENERIC_SOURCES = \
 	generic/vfs/vfs.c \
 	generic/vfs/canonify.c \
 	generic/net/inet.c \
+	generic/net/modules.c \
 	generic/stacktrace.c \
 	generic/arg_parse.c \
 	generic/sort.c \

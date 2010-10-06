@@ -44,7 +44,7 @@
 #include <err.h>
 
 #include <net_messages.h>
-#include <net_modules.h>
+#include <net/modules.h>
 #include <packet/packet.h>
 #include <packet/packet_client.h>
 #include <packet/packet_server.h>

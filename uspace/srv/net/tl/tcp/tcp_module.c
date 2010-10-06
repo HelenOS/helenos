@@ -44,8 +44,8 @@
 #include <ipc/services.h>
 
 #include <net/ip_protocols.h>
+#include <net/modules.h>
 
-#include <net_modules.h>
 #include <packet/packet.h>
 #include <net_interface.h>
 #include <ip_interface.h>

@@ -40,7 +40,7 @@
 #include <malloc.h>
 
 #include <net_messages.h>
-#include <net_modules.h>
+#include <net/modules.h>
 #include <net_device.h>
 #include <net_interface.h>
 #include <adt/measured_strings.h>

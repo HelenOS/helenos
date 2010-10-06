@@ -53,9 +53,9 @@
 #include <net/in.h>
 #include <net/in6.h>
 #include <net/inet.h>
+#include <net/modules.h>
 
 #include <net_messages.h>
-#include <net_modules.h>
 #include <adt/dynamic_fifo.h>
 #include <packet/packet_client.h>
 #include <packet_remote.h>

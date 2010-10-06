@@ -47,7 +47,7 @@
 #include <adt/int_map.h>
 #include <packet/packet.h>
 #include <packet/packet_client.h>
-#include <net_modules.h>
+#include <net/modules.h>
 #include <socket_core.h>
 
 /** Maximum number of random attempts to find a new socket identifier before switching to the sequence.

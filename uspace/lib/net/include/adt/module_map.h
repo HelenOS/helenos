@@ -41,7 +41,7 @@
 
 #include <ipc/services.h>
 
-#include <net_modules.h>
+#include <net/modules.h>
 
 #include <adt/generic_char_map.h>
 

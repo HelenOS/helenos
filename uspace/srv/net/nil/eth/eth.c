@@ -47,7 +47,7 @@
 #include <ipc/services.h>
 
 #include <net_messages.h>
-#include <net_modules.h>
+#include <net/modules.h>
 #include <net_checksum.h>
 #include <ethernet_lsap.h>
 #include <ethernet_protocols.h>

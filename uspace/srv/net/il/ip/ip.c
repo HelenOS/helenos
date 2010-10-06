@@ -50,9 +50,9 @@
 #include <net/in.h>
 #include <net/in6.h>
 #include <net/inet.h>
+#include <net/modules.h>
 
 #include <net_messages.h>
-#include <net_modules.h>
 #include <arp_interface.h>
 #include <net_checksum.h>
 #include <net_device.h>

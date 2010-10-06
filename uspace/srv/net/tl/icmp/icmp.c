@@ -54,7 +54,7 @@
 #include <net/inet.h>
 
 #include <net_messages.h>
-#include <net_modules.h>
+#include <net/modules.h>
 #include <packet/packet_client.h>
 #include <packet_remote.h>
 #include <net_checksum.h>
