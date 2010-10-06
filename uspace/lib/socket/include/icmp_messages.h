@@ -39,10 +39,10 @@
 #define __NET_ICMP_MESSAGES__
 
 #include <ipc/ipc.h>
+#include <ipc/net.h>
 #include <sys/types.h>
 
 #include <icmp_codes.h>
-#include <net_messages.h>
 
 /** ICMP module messages.
  */

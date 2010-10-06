@@ -40,6 +40,7 @@
 #define __NET_IL_MESSAGES_H__
 
 #include <ipc/ipc.h>
+#include <ipc/net.h>
 
 /** Internet layer modules messages.
  */

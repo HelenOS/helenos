@@ -40,8 +40,8 @@
 #define __NET_SOCKET_MESSAGES_H__
 
 #include <ipc/ipc.h>
+#include <ipc/net.h>
 
-#include <net_messages.h>
 #include <socket_codes.h>
 
 /** Socket client messages.

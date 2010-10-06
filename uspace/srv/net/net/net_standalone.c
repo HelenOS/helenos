@@ -37,8 +37,8 @@
 #include <str.h>
 
 #include <ipc/ipc.h>
+#include <ipc/net.h>
 
-#include <net_messages.h>
 #include <ip_interface.h>
 #include <adt/measured_strings.h>
 #include <adt/module_map.h>

@@ -39,6 +39,7 @@
 #define __NET_IP_MESSAGES_H__
 
 #include <ipc/ipc.h>
+#include <ipc/net.h>
 
 #include <in.h>
 #include <ip_codes.h>

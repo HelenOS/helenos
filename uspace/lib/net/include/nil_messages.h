@@ -38,8 +38,7 @@
 #define __NET_NIL_MESSAGES_H__
 
 #include <ipc/ipc.h>
-
-#include <net_messages.h>
+#include <ipc/net.h>
 
 /** Network interface layer module messages.
  */

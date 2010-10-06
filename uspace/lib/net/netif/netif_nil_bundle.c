@@ -37,8 +37,8 @@
 
 #include <async.h>
 #include <ipc/ipc.h>
+#include <ipc/net.h>
 
-#include <net_messages.h>
 #include <packet/packet.h>
 #include <netif_nil_bundle.h>
 #include <netif_local.h>

@@ -39,8 +39,7 @@
 #define __NET_NET_MESSAGES_H__
 
 #include <ipc/ipc.h>
-
-#include <net_messages.h>
+#include <ipc/net.h>
 
 /** Networking subsystem central module messages.
  */

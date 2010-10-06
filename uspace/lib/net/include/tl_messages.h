@@ -39,8 +39,7 @@
 #define __NET_TL_MESSAGES_H__
 
 #include <ipc/ipc.h>
-
-#include <net_messages.h>
+#include <ipc/net.h>
 
 /** Transport layer modules messages.
  */
