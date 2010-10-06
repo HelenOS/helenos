@@ -37,10 +37,11 @@
 #ifndef __NET_TL_COMMON_H__
 #define __NET_TL_COMMON_H__
 
+#include <net/socket_codes.h>
+
 #include <packet/packet.h>
 #include <net_device.h>
-#include <inet.h>
-#include <socket_codes.h>
+#include <net/inet.h>
 
 /** Device packet dimensions.
  *  Maps devices to the packet dimensions.

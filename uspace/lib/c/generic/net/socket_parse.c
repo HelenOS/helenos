@@ -34,11 +34,11 @@
  * Command-line argument parsing functions related to networking.
  */
 
-#include <socket_parse.h>
+#include <net/socket_parse.h>
+#include <net/socket.h>
 #include <arg_parse.h>
 #include <errno.h>
 #include <str.h>
-#include <socket.h>
 
 /** Translate the character string to the address family number.
  *

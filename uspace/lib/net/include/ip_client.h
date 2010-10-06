@@ -37,12 +37,12 @@
 #ifndef __NET_IP_CLIENT_H__
 #define __NET_IP_CLIENT_H__
 
+#include <net/socket_codes.h>
 #include <sys/types.h>
 
 #include <packet/packet.h>
 #include <ip_codes.h>
 #include <ip_interface.h>
-#include <socket_codes.h>
 
 /** Prepares the packet to be transfered via IP.
  *  The IP header is prefixed.

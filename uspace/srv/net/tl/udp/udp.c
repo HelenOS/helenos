@@ -41,27 +41,28 @@
 #include <stdio.h>
 #include <ipc/ipc.h>
 #include <ipc/services.h>
+#include <ipc/socket.h>
 #include <errno.h>
 #include <err.h>
 
+#include <net/socket_codes.h>
+#include <net/ip_protocols.h>
+#include <net/in.h>
+#include <net/in6.h>
+#include <net/inet.h>
+#include <net/modules.h>
+
 #include <net_messages.h>
-#include <net_modules.h>
 #include <adt/dynamic_fifo.h>
 #include <packet/packet_client.h>
 #include <packet_remote.h>
 #include <net_checksum.h>
-#include <in.h>
-#include <in6.h>
-#include <inet.h>
 #include <ip_client.h>
 #include <ip_interface.h>
-#include <ip_protocols.h>
 #include <icmp_client.h>
 #include <icmp_interface.h>
 #include <net_interface.h>
-#include <socket_codes.h>
 #include <socket_core.h>
-#include <socket_messages.h>
 #include <tl_common.h>
 #include <tl_local.h>
 #include <tl_interface.h>

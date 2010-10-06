@@ -38,8 +38,7 @@
 #define __NET_PACKET_MESSAGES__
 
 #include <ipc/ipc.h>
-
-#include <net_messages.h>
+#include <ipc/net.h>
 
 /** Packet server module messages.
  */

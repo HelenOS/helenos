@@ -35,6 +35,8 @@
  *  @see icmp_api.h
  */
 
+#include <net/socket_codes.h>
+#include <net/inet.h>
 #include <async.h>
 
 #include <ipc/ipc.h>
@@ -42,11 +44,9 @@
 
 #include <sys/types.h>
 
-#include <net_modules.h>
+#include <net/modules.h>
 #include <icmp_api.h>
-#include <inet.h>
 #include <ip_codes.h>
-#include <socket_codes.h>
 #include <icmp_messages.h>
 
 int icmp_echo_msg(int icmp_phone, size_t size, mseconds_t timeout, ip_ttl_t ttl, ip_tos_t tos, int dont_fragment, const struct sockaddr * addr, socklen_t addrlen){

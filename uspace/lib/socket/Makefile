@@ -32,11 +32,7 @@ EXTRA_CFLAGS = -Iinclude
 LIBRARY = libsocket
 
 SOURCES = \
-	generic/socket_client.c \
 	generic/socket_core.c \
-	generic/socket_parse.c \
-	generic/inet.c \
-	generic/net_modules.c \
 	generic/icmp_common.c \
 	generic/icmp_api.c \
 	packet/packet.c \

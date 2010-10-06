@@ -26,62 +26,53 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup net
+/** @addtogroup libc
  *  @{
  */
 
 /** @file
- *  INET family common definitions.
+ *  Socket codes and definitions.
+ *  This is a part of the network application library.
  */
 
-#ifndef __NET_IN_H__
-#define __NET_IN_H__
+#ifndef LIBC_SOCKET_CODES_H_
+#define LIBC_SOCKET_CODES_H_
 
 #include <sys/types.h>
 
-#include <ip_protocols.h>
-#include <inet.h>
+/** @name Address families definitions */
+/*@{*/
 
-/** INET string address maximum length.
- */
-#define INET_ADDRSTRLEN		(4 * 3 + 3 + 1)
-
-/** Type definition of the INET address.
- *  @see in_addr
- */
-typedef struct in_addr		in_addr_t;
-
-/** Type definition of the INET socket address.
- *  @see sockaddr_in
- */
-typedef struct sockaddr_in	sockaddr_in_t;
-
-/** INET address.
- */
-struct in_addr{
-	/** 4 byte IP address.
-	 */
-	uint32_t s_addr;
+enum {
+	AF_UNKNOWN = 0,
+	AF_INET,	/* IPv4 address */
+	AF_INET6	/* IPv6 address */
 };
 
-/** INET socket address.
- *  @see sockaddr
+/*@}*/
+
+/** @name Protocol families definitions
+ *  Same as address families.
  */
-struct sockaddr_in{
-	/** Address family.
-	 *  Should be AF_INET.
-	 */
-	uint16_t sin_family;
-	/** Port number.
-	 */
-	uint16_t sin_port;
-	/** Internet address.
-	 */
-	struct in_addr sin_addr;
-	/** Padding to meet the sockaddr size.
-	 */
-	uint8_t sin_zero[8];
-};
+/*@{*/
+
+#define PF_INET		AF_INET
+#define PF_INET6	AF_INET6
+
+/*@}*/
+
+/** Socket types. */
+typedef enum sock_type {
+	/** Stream (connection oriented) socket. */
+	SOCK_STREAM = 1,
+	/** Datagram (connectionless oriented) socket. */
+	SOCK_DGRAM = 2,
+	/** Raw socket. */
+	SOCK_RAW = 3
+} sock_type_t;
+
+/** Type definition of the socket length. */
+typedef int32_t socklen_t;
 
 #endif
 

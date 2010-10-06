@@ -26,63 +26,53 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup net_nil
- * @{
+/** @addtogroup libc
+ *  @{
  */
 
 /** @file
- * Network interface layer module messages.
+ *  INET family common definitions.
  */
 
-#ifndef __NET_NIL_MESSAGES_H__
-#define __NET_NIL_MESSAGES_H__
+#ifndef LIBC_IN_H_
+#define LIBC_IN_H_
 
-#include <ipc/ipc.h>
-#include <ipc/net.h>
+#include <net/inet.h>
+#include <net/ip_protocols.h>
+#include <sys/types.h>
 
-/** Network interface layer module messages.
+/** INET string address maximum length. */
+#define INET_ADDRSTRLEN		(4 * 3 + 3 + 1)
+
+/** Type definition of the INET address.
+ * @see in_addr
  */
-typedef enum {
-	/** New device or update MTU message.
-	 *  @see nil_device_req()
-	 */
-	NET_NIL_DEVICE = NET_NIL_FIRST,
-	/** New device state message.
-	 *  @see nil_device_state_msg()
-	 */
-	NET_NIL_DEVICE_STATE,
-	/** Received packet queue message.
-	 *  @see nil_received_msg()
-	 */
-	NET_NIL_RECEIVED,
-	/** Send packet queue message.
-	 *  @see nil_send_msg()
-	 */
-	NET_NIL_SEND,
-	/** Packet size message.
-	 *  @see nil_packet_size_req()
-	 */
-	NET_NIL_PACKET_SPACE,
-	/** Device local hardware address message.
-	 *  @see nil_get_addr()
-	 */
-	NET_NIL_ADDR,
-	/** Device broadcast hardware address message.
-	 *  @see nil_get_broadcast_addr()
-	 */
-	NET_NIL_BROADCAST_ADDR,
-} nil_messages;
+typedef struct in_addr		in_addr_t;
 
-/** @name Network interface layer specific message parameters definitions
+/** Type definition of the INET socket address.
+ * @see sockaddr_in
  */
-/*@{*/
+typedef struct sockaddr_in	sockaddr_in_t;
 
-/** Return the protocol service message parameter.
+/** INET address. */
+struct in_addr {
+	/** 4 byte IP address. */
+	uint32_t s_addr;
+};
+
+/** INET socket address.
+ * @see sockaddr
  */
-#define NIL_GET_PROTO(call) \
-	({services_t service = (services_t) IPC_GET_ARG2(*call); service;})
-
-/*@}*/
+struct sockaddr_in {
+	/** Address family. Should be AF_INET. */
+	uint16_t sin_family;
+	/** Port number. */
+	uint16_t sin_port;
+	/** Internet address. */
+	struct in_addr sin_addr;
+	/** Padding to meet the sockaddr size. */
+	uint8_t sin_zero[8];
+};
 
 #endif
 

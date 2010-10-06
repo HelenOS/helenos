@@ -44,26 +44,27 @@
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <sys/types.h>
+#include <byteorder.h>
+
+#include <net/socket_codes.h>
+#include <net/in.h>
+#include <net/in6.h>
+#include <net/inet.h>
+#include <net/modules.h>
 
 #include <net_messages.h>
-#include <net_modules.h>
 #include <arp_interface.h>
-#include <net_byteorder.h>
 #include <net_checksum.h>
 #include <net_device.h>
 #include <icmp_client.h>
 #include <icmp_codes.h>
 #include <icmp_interface.h>
 #include <il_interface.h>
-#include <in.h>
-#include <in6.h>
-#include <inet.h>
 #include <ip_client.h>
 #include <ip_interface.h>
 #include <net_interface.h>
 #include <nil_interface.h>
 #include <tl_interface.h>
-#include <socket_codes.h>
 #include <adt/measured_strings.h>
 #include <adt/module_map.h>
 #include <packet/packet_client.h>

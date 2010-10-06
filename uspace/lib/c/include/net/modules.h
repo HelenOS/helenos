@@ -26,82 +26,64 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup net
+/** @addtogroup libc
  * @{
  */
 
 /** @file
+ * Generic module functions.
  *
- * Start the networking subsystem.
- * Perform networking self-test if executed
- * with the -s argument.
- *
+ * @todo MAKE IT POSSIBLE TO REMOVE THIS FILE VIA EITHER REPLACING PART OF ITS
+ * FUNCTIONALITY OR VIA INTEGRATING ITS FUNCTIONALITY MORE TIGHTLY WITH THE REST
+ * OF THE SYSTEM.
  */
 
-#define NAME  "netstart"
+#ifndef LIBC_MODULES_H_
+#define LIBC_MODULES_H_
 
 #include <async.h>
-#include <stdio.h>
-#include <task.h>
-#include <str_error.h>
-#include <err.h>
+
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 
-#include <net/modules.h>
-#include <net_net_messages.h>
+#include <sys/time.h>
 
-#include "self_test.h"
-
-/** Start a module.
+/** Converts the data length between different types.
  *
- * @param[in] desc The module description
- * @param[in] path The module absolute path.
- *
- * @returns true on succesful spanwning
- * @returns false on failure
- *
+ * @param[in] type_from	The source type.
+ * @param[in] type_to	The destination type.
+ * @param[in] count	The number units of the source type size.
  */
-static bool spawn(const char *desc, const char *path)
-{
-	printf("%s: Spawning %s (%s)\n", NAME, desc, path);
-	
-	const char *argv[2];
-	
-	argv[0] = path;
-	argv[1] = NULL;
-	
-	int err;
-	if (task_spawn(path, argv, &err) == 0) {
-		fprintf(stderr, "%s: Error spawning %s (%s)\n", NAME, path,
-		    str_error(err));
-		return false;
-	}
-	
-	return true;
-}
+#define CONVERT_SIZE(type_from, type_to, count) \
+	((sizeof(type_from) / sizeof(type_to)) * (count))
 
-int main(int argc, char *argv[])
-{
-	ERROR_DECLARE;
-	
-	/* Run self-tests */
-	if ((argc > 1) && (str_cmp(argv[1], "-s") == 0))
-		ERROR_PROPAGATE(self_test());
-	
-	if (!spawn("networking service", "/srv/net"))
-		return EINVAL;
-	
-	printf("%s: Initializing networking\n", NAME);
-	
-	int net_phone = connect_to_service(SERVICE_NETWORKING);
-	if (ERROR_OCCURRED(ipc_call_sync_0_0(net_phone, NET_NET_STARTUP))) {
-		fprintf(stderr, "%s: Startup error %d\n", NAME, ERROR_CODE);
-		return ERROR_CODE;
-	}
-	
-	return EOK;
-}
+/** Registers the module service at the name server.
+ *
+ * @param[in] me	The module service.
+ * @param[out] phonehash The created phone hash.
+ */
+#define REGISTER_ME(me, phonehash) \
+	ipc_connect_to_me(PHONE_NS, (me), 0, 0, (phonehash))
+
+/** Connect to the needed module function type definition.
+ *
+ * @param[in] need	The needed module service.
+ * @returns		The phone of the needed service.
+ */
+typedef int connect_module_t(services_t need);
+
+extern void answer_call(ipc_callid_t, int, ipc_call_t *, int);
+extern int bind_service(services_t, ipcarg_t, ipcarg_t, ipcarg_t,
+    async_client_conn_t);
+extern int bind_service_timeout(services_t, ipcarg_t, ipcarg_t, ipcarg_t,
+    async_client_conn_t, suseconds_t);
+extern int connect_to_service(services_t);
+extern int connect_to_service_timeout(services_t, suseconds_t);
+extern int data_receive(void **, size_t *);
+extern int data_reply(void *, size_t);
+extern void refresh_answer(ipc_call_t *, int *);
+
+#endif
 
 /** @}
  */

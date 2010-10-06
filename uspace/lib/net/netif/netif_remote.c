@@ -36,13 +36,14 @@
 
 #include <ipc/services.h>
 
-#include <net_modules.h>
+#include <net/modules.h>
 #include <adt/measured_strings.h>
 #include <packet/packet.h>
 #include <packet/packet_client.h>
 #include <net_device.h>
 #include <netif_remote.h>
 #include <netif_messages.h>
+#include <net_messages.h>
 
 int netif_get_addr_req_remote(int netif_phone, device_id_t device_id,
     measured_string_ref *address, char **data)

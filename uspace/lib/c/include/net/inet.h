@@ -26,65 +26,40 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup net
+/** @addtogroup libc
  *  @{
  */
 
 /** @file
- *  INET6 family common definitions.
+ *  Internet common definitions.
  */
 
-#ifndef __NET_IN6_H__
-#define __NET_IN6_H__
+#ifndef LIBC_INET_H_
+#define LIBC_INET_H_
 
 #include <sys/types.h>
+#include <byteorder.h>
 
-#include <ip_protocols.h>
-#include <inet.h>
-
-/** INET6 string address maximum length.
+/** Type definition of the socket address.
+ * @see sockaddr
  */
-#define INET6_ADDRSTRLEN	(8 * 4 + 7 + 1)
+typedef struct sockaddr		sockaddr_t;
 
-/** Type definition of the INET6 address.
- *  @see in6_addr
+/** Type definition of the address information.
+ * @see addrinfo
  */
-typedef struct in6_addr	in6_addr_t;
+typedef struct addrinfo		addrinfo_t;
 
-/** Type definition of the INET6 socket address.
- *  @see sockaddr_in6
- */
-typedef struct sockaddr_in6	sockaddr_in6_t;
-
-/** INET6 address.
- */
-struct in6_addr{
-	/** 16 byte IPv6 address.
-	 */
-	unsigned char s6_addr[16];
+/** Socket address. */
+struct sockaddr {
+	/** Address family. @see socket.h */
+	uint16_t sa_family;
+	/** 14 byte protocol address. */
+	uint8_t sa_data[14];
 };
 
-/** INET6 socket address.
- *  @see sockaddr
- */
-struct sockaddr_in6{
-	/** Address family.
-	 *  Should be AF_INET6.
-	 */
-	uint16_t sin6_family;
-	/** Port number.
-	 */
-	uint16_t sin6_port;
-	/** IPv6 flow information.
-	 */
-	uint32_t sin6_flowinfo;
-	/** IPv6 address.
-	 */
-	struct in6_addr sin6_addr;
-	/** Scope identifier.
-	 */
-	uint32_t sin6_scope_id;
-};
+extern int inet_ntop(uint16_t, const uint8_t *, char *, size_t);
+extern int inet_pton(uint16_t, const char *, uint8_t *);
 
 #endif
 

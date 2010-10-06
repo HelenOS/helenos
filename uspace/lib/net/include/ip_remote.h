@@ -37,9 +37,8 @@
 #include <ipc/services.h>
 
 #include <ip_codes.h>
-#include <inet.h>
-#include <in.h>
-#include <socket.h>
+#include <net/inet.h>
+#include <net/in.h>
 
 extern int ip_set_gateway_req_remote(int, device_id_t, in_addr_t);
 extern int ip_packet_size_req_remote(int, device_id_t, packet_dimension_ref);

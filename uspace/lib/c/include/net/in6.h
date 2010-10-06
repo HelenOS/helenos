@@ -26,44 +26,55 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup net
+/** @addtogroup libc
  *  @{
  */
 
 /** @file
- *  Host - network byte order manipulation functions.
+ *  INET6 family common definitions.
  */
 
-#ifndef __NET_BYTEORDER_H__
-#define __NET_BYTEORDER_H__
+#ifndef LIBC_IN6_H_
+#define LIBC_IN6_H_
 
-#include <byteorder.h>
+#include <net/inet.h>
+#include <net/ip_protocols.h>
 #include <sys/types.h>
 
+/** INET6 string address maximum length. */
+#define INET6_ADDRSTRLEN	(8 * 4 + 7 + 1)
 
-/** Converts the given short number (16 bit) from the host byte order to the network byte order (big endian).
- *  @param[in] number The number in the host byte order to be converted.
- *  @returns The number in the network byte order.
+/** Type definition of the INET6 address.
+ * @see in6_addr
  */
-#define htons(number)		host2uint16_t_be(number)
+typedef struct in6_addr	in6_addr_t;
 
-/** Converts the given long number (32 bit) from the host byte order to the network byte order (big endian).
- *  @param[in] number The number in the host byte order to be converted.
- *  @returns The number in the network byte order.
+/** Type definition of the INET6 socket address.
+ * @see sockaddr_in6
  */
-#define htonl(number)		host2uint32_t_be(number)
+typedef struct sockaddr_in6	sockaddr_in6_t;
 
-/** Converts the given short number (16 bit) from the network byte order (big endian) to the host byte order.
- *  @param[in] number The number in the network byte order to be converted.
- *  @returns The number in the host byte order.
- */
-#define ntohs(number) 	uint16_t_be2host(number)
+/** INET6 address. */
+struct in6_addr {
+	/** 16 byte IPv6 address. */
+	unsigned char s6_addr[16];
+};
 
-/** Converts the given long number (32 bit) from the network byte order (big endian) to the host byte order.
- *  @param[in] number The number in the network byte order to be converted.
- *  @returns The number in the host byte order.
+/** INET6 socket address.
+ * @see sockaddr
  */
-#define ntohl(number)		uint32_t_be2host(number)
+struct sockaddr_in6 {
+	/** Address family. Should be AF_INET6. */
+	uint16_t sin6_family;
+	/** Port number. */
+	uint16_t sin6_port;
+	/** IPv6 flow information. */
+	uint32_t sin6_flowinfo;
+	/** IPv6 address. */
+	struct in6_addr sin6_addr;
+	/** Scope identifier. */
+	uint32_t sin6_scope_id;
+};
 
 #endif
 

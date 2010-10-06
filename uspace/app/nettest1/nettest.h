@@ -37,7 +37,7 @@
 #ifndef __NET_TEST__
 #define __NET_TEST__
 
-#include <socket.h>
+#include <net/socket.h>
 
 /** Prints a mark.
  *  If the index is a multiple of ten, a different mark is printed.

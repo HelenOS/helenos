@@ -43,10 +43,11 @@
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 
-#include <net_modules.h>
+#include <net/ip_protocols.h>
+#include <net/modules.h>
+
 #include <packet/packet.h>
 #include <net_interface.h>
-#include <ip_protocols.h>
 #include <ip_interface.h>
 #include <tl_local.h>
 

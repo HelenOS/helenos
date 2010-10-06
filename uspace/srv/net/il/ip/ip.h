@@ -42,7 +42,7 @@
 #include <ipc/services.h>
 
 #include <net_device.h>
-#include <inet.h>
+#include <net/inet.h>
 #include <ip_interface.h>
 #include <adt/int_map.h>
 #include <adt/generic_field.h>

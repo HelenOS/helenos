@@ -33,9 +33,9 @@
  */
 
 #include <assert.h>
+#include <byteorder.h>
 #include <errno.h>
 
-#include <net_byteorder.h>
 #include <netif_local.h>
 #include <packet/packet.h>
 #include <packet/packet_client.h>

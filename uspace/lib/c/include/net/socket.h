@@ -26,61 +26,43 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup net_nil
- * @{
+/** @addtogroup libc
+ *  @{
  */
 
 /** @file
- * Network interface layer module messages.
+ *  Socket application program interface (API).
+ *  This is a part of the network application library.
+ *  Based on the BSD socket interface.
  */
 
-#ifndef __NET_NIL_MESSAGES_H__
-#define __NET_NIL_MESSAGES_H__
+#ifndef LIBC_SOCKET_H_
+#define LIBC_SOCKET_H_
 
-#include <ipc/ipc.h>
-#include <ipc/net.h>
+#include <net/socket_codes.h>
+#include <net/in.h>
+#include <net/in6.h>
+#include <net/inet.h>
+#include <errno.h>
+#include <byteorder.h>
 
-/** Network interface layer module messages.
- */
-typedef enum {
-	/** New device or update MTU message.
-	 *  @see nil_device_req()
-	 */
-	NET_NIL_DEVICE = NET_NIL_FIRST,
-	/** New device state message.
-	 *  @see nil_device_state_msg()
-	 */
-	NET_NIL_DEVICE_STATE,
-	/** Received packet queue message.
-	 *  @see nil_received_msg()
-	 */
-	NET_NIL_RECEIVED,
-	/** Send packet queue message.
-	 *  @see nil_send_msg()
-	 */
-	NET_NIL_SEND,
-	/** Packet size message.
-	 *  @see nil_packet_size_req()
-	 */
-	NET_NIL_PACKET_SPACE,
-	/** Device local hardware address message.
-	 *  @see nil_get_addr()
-	 */
-	NET_NIL_ADDR,
-	/** Device broadcast hardware address message.
-	 *  @see nil_get_broadcast_addr()
-	 */
-	NET_NIL_BROADCAST_ADDR,
-} nil_messages;
-
-/** @name Network interface layer specific message parameters definitions
+/** @name Socket application programming interface
  */
 /*@{*/
 
-/** Return the protocol service message parameter.
- */
-#define NIL_GET_PROTO(call) \
-	({services_t service = (services_t) IPC_GET_ARG2(*call); service;})
+extern int socket(int, int, int);
+extern int bind(int, const struct sockaddr *, socklen_t);
+extern int listen(int, int);
+extern int accept(int, struct sockaddr *, socklen_t *);
+extern int connect(int, const struct sockaddr *, socklen_t);
+extern int closesocket(int);
+extern int send(int, void *, size_t, int);
+extern int sendto(int, const void *, size_t, int, const struct sockaddr *,
+    socklen_t);
+extern int recv(int, void *, size_t, int);
+extern int recvfrom(int, void *, size_t, int, struct sockaddr *, socklen_t *);
+extern int getsockopt(int, int, int, void *, size_t *);
+extern int setsockopt(int, int, int, const void *, size_t);
 
 /*@}*/
 

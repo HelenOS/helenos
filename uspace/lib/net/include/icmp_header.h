@@ -40,7 +40,7 @@
 
 #include <sys/types.h>
 
-#include <in.h>
+#include <net/in.h>
 #include <icmp_codes.h>
 
 /** ICMP header size in bytes.

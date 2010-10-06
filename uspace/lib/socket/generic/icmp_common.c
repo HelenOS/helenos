@@ -38,7 +38,7 @@
 #include <async.h>
 #include <ipc/services.h>
 
-#include <net_modules.h>
+#include <net/modules.h>
 #include <icmp_common.h>
 #include <icmp_messages.h>
 

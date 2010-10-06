@@ -33,15 +33,15 @@
 #ifndef __NET_IP_INTERFACE_H__
 #define __NET_IP_INTERFACE_H__
 
+#include <net/socket_codes.h>
 #include <async.h>
 #include <ipc/services.h>
 
 #include <net_device.h>
 #include <packet/packet.h>
 
-#include <in.h>
+#include <net/in.h>
 #include <ip_codes.h>
-#include <socket_codes.h>
 
 #ifdef CONFIG_IL_TL_BUNDLE
 

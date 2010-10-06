@@ -34,19 +34,20 @@
  *  Socket common core implementation.
  */
 
+#include <net/socket_codes.h>
+#include <net/in.h>
+#include <net/inet.h>
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <err.h>
 
-#include <in.h>
-#include <inet.h>
-#include <socket_codes.h>
 #include <adt/dynamic_fifo.h>
 #include <adt/int_map.h>
 #include <packet/packet.h>
 #include <packet/packet_client.h>
-#include <net_modules.h>
+#include <net/modules.h>
 #include <socket_core.h>
 
 /** Maximum number of random attempts to find a new socket identifier before switching to the sequence.

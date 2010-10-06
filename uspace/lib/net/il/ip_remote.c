@@ -42,9 +42,9 @@
 #include <ipc/services.h>
 
 #include <net_messages.h>
-#include <net_modules.h>
+#include <net/modules.h>
 #include <net_device.h>
-#include <inet.h>
+#include <net/inet.h>
 #include <ip_interface.h>
 #include <packet/packet_client.h>
 #include <il_messages.h>

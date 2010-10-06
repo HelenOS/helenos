@@ -26,61 +26,26 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup net_nil
- * @{
+/** @addtogroup libc
+ *  @{
  */
 
 /** @file
- * Network interface layer module messages.
+ * Internet protocol numbers according to the on-line IANA - Assigned Protocol
+ * numbers:
+ *
+ * http://www.iana.org/assignments/protocol-numbers/protocol-numbers.xml
  */
 
-#ifndef __NET_NIL_MESSAGES_H__
-#define __NET_NIL_MESSAGES_H__
+#ifndef LIBC_IP_PROTOCOLS_H_
+#define LIBC_IP_PROTOCOLS_H_
 
-#include <ipc/ipc.h>
-#include <ipc/net.h>
-
-/** Network interface layer module messages.
- */
-typedef enum {
-	/** New device or update MTU message.
-	 *  @see nil_device_req()
-	 */
-	NET_NIL_DEVICE = NET_NIL_FIRST,
-	/** New device state message.
-	 *  @see nil_device_state_msg()
-	 */
-	NET_NIL_DEVICE_STATE,
-	/** Received packet queue message.
-	 *  @see nil_received_msg()
-	 */
-	NET_NIL_RECEIVED,
-	/** Send packet queue message.
-	 *  @see nil_send_msg()
-	 */
-	NET_NIL_SEND,
-	/** Packet size message.
-	 *  @see nil_packet_size_req()
-	 */
-	NET_NIL_PACKET_SPACE,
-	/** Device local hardware address message.
-	 *  @see nil_get_addr()
-	 */
-	NET_NIL_ADDR,
-	/** Device broadcast hardware address message.
-	 *  @see nil_get_broadcast_addr()
-	 */
-	NET_NIL_BROADCAST_ADDR,
-} nil_messages;
-
-/** @name Network interface layer specific message parameters definitions
- */
+/** @name IP protocols definitions */
 /*@{*/
 
-/** Return the protocol service message parameter.
- */
-#define NIL_GET_PROTO(call) \
-	({services_t service = (services_t) IPC_GET_ARG2(*call); service;})
+#define IPPROTO_ICMP	1
+#define IPPROTO_TCP	6
+#define IPPROTO_UDP	17
 
 /*@}*/
 

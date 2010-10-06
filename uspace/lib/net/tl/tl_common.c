@@ -35,6 +35,10 @@
  *  @see tl_common.h
  */
 
+#include <net/socket_codes.h>
+#include <net/in.h>
+#include <net/in6.h>
+#include <net/inet.h>
 #include <async.h>
 #include <ipc/services.h>
 #include <errno.h>
@@ -45,12 +49,8 @@
 #include <packet_remote.h>
 #include <net_device.h>
 #include <icmp_interface.h>
-#include <in.h>
-#include <in6.h>
-#include <inet.h>
 #include <ip_local.h>
 #include <ip_remote.h>
-#include <socket_codes.h>
 #include <ip_interface.h>
 #include <tl_interface.h>
 #include <tl_common.h>

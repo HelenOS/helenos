@@ -45,14 +45,18 @@
 #include <ipc/services.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#include <byteorder.h>
 #include <errno.h>
 #include <err.h>
 
+#include <net/socket_codes.h>
+#include <net/ip_protocols.h>
+#include <net/inet.h>
+
 #include <net_messages.h>
-#include <net_modules.h>
+#include <net/modules.h>
 #include <packet/packet_client.h>
 #include <packet_remote.h>
-#include <net_byteorder.h>
 #include <net_checksum.h>
 #include <icmp_api.h>
 #include <icmp_client.h>
@@ -60,12 +64,9 @@
 #include <icmp_common.h>
 #include <icmp_interface.h>
 #include <il_interface.h>
-#include <inet.h>
 #include <ip_client.h>
 #include <ip_interface.h>
-#include <ip_protocols.h>
 #include <net_interface.h>
-#include <socket_codes.h>
 #include <tl_messages.h>
 #include <tl_interface.h>
 #include <tl_local.h>

@@ -42,7 +42,7 @@
 #include <sys/types.h>
 
 #include <net_messages.h>
-#include <net_modules.h>
+#include <net/modules.h>
 #include <icmp_interface.h>
 #include <packet/packet_client.h>
 #include <icmp_messages.h>
