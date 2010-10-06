@@ -37,7 +37,7 @@
 #include <stdio.h>
 #include <err.h>
 
-#include <socket.h>
+#include <net/socket.h>
 
 #include "nettest.h"
 #include "print_error.h"

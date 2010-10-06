@@ -45,8 +45,8 @@
 #include <net/in.h>
 #include <net/in6.h>
 #include <net/inet.h>
-#include <socket.h>
-#include <socket_parse.h>
+#include <net/socket.h>
+#include <net/socket_parse.h>
 
 #include "print_error.h"
 

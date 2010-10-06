@@ -26,31 +26,45 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ip
- * @{
+/** @addtogroup libc
+ *  @{
  */
 
-#ifndef __NET_IP_REMOTE_H__
-#define __NET_IP_REMOTE_H__
+/** @file
+ *  Socket application program interface (API).
+ *  This is a part of the network application library.
+ *  Based on the BSD socket interface.
+ */
 
-#include <async.h>
-#include <ipc/services.h>
+#ifndef LIBC_SOCKET_H_
+#define LIBC_SOCKET_H_
 
-#include <ip_codes.h>
-#include <net/inet.h>
+#include <net/socket_codes.h>
 #include <net/in.h>
+#include <net/in6.h>
+#include <net/inet.h>
+#include <errno.h>
+#include <byteorder.h>
 
-extern int ip_set_gateway_req_remote(int, device_id_t, in_addr_t);
-extern int ip_packet_size_req_remote(int, device_id_t, packet_dimension_ref);
-extern int ip_received_error_msg_remote(int, device_id_t, packet_t, services_t,
-    services_t);
-extern int ip_device_req_remote(int, device_id_t, services_t);
-extern int ip_add_route_req_remote(int, device_id_t, in_addr_t, in_addr_t,
-    in_addr_t);
-extern int ip_send_msg_remote(int, device_id_t, packet_t, services_t,
-    services_t);
-extern int ip_get_route_req_remote(int, ip_protocol_t, const struct sockaddr *,
-    socklen_t, device_id_t *, void **, size_t *);
+/** @name Socket application programming interface
+ */
+/*@{*/
+
+extern int socket(int, int, int);
+extern int bind(int, const struct sockaddr *, socklen_t);
+extern int listen(int, int);
+extern int accept(int, struct sockaddr *, socklen_t *);
+extern int connect(int, const struct sockaddr *, socklen_t);
+extern int closesocket(int);
+extern int send(int, void *, size_t, int);
+extern int sendto(int, const void *, size_t, int, const struct sockaddr *,
+    socklen_t);
+extern int recv(int, void *, size_t, int);
+extern int recvfrom(int, void *, size_t, int, struct sockaddr *, socklen_t *);
+extern int getsockopt(int, int, int, void *, size_t *);
+extern int setsockopt(int, int, int, const void *, size_t);
+
+/*@}*/
 
 #endif
 
