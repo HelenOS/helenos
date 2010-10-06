@@ -38,8 +38,7 @@
 #define __NET_INET_H__
 
 #include <sys/types.h>
-
-#include <net_byteorder.h>
+#include <byteorder.h>
 
 /** Type definition of the socket address.
  *  @see sockaddr

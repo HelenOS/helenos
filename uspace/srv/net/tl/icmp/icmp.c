@@ -45,6 +45,7 @@
 #include <ipc/services.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#include <byteorder.h>
 #include <errno.h>
 #include <err.h>
 
@@ -55,7 +56,6 @@
 #include <net_modules.h>
 #include <packet/packet_client.h>
 #include <packet_remote.h>
-#include <net_byteorder.h>
 #include <net_checksum.h>
 #include <icmp_api.h>
 #include <icmp_client.h>

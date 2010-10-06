@@ -44,13 +44,13 @@
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <sys/types.h>
+#include <byteorder.h>
 
 #include <net/socket_codes.h>
 
 #include <net_messages.h>
 #include <net_modules.h>
 #include <arp_interface.h>
-#include <net_byteorder.h>
 #include <net_checksum.h>
 #include <net_device.h>
 #include <icmp_client.h>

@@ -40,8 +40,8 @@
 #define __NET_SOCKET_H__
 
 #include <net/socket_codes.h>
+#include <byteorder.h>
 
-#include <net_byteorder.h>
 #include <in.h>
 #include <in6.h>
 #include <inet.h>
