@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc 
+/** @addtogroup libc
  *  @{
  */
 
@@ -61,8 +61,7 @@ enum {
 
 /*@}*/
 
-/** Socket types.
- */
+/** Socket types. */
 typedef enum sock_type {
 	/** Stream (connection oriented) socket. */
 	SOCK_STREAM = 1,
@@ -73,7 +72,7 @@ typedef enum sock_type {
 } sock_type_t;
 
 /** Type definition of the socket length. */
-typedef int32_t	socklen_t;
+typedef int32_t socklen_t;
 
 #endif
 
