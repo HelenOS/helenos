@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup packet
+/** @addtogroup libc
  *  @{
  */
 
@@ -34,60 +34,58 @@
  *  Packet server module messages.
  */
 
-#ifndef __NET_PACKET_MESSAGES__
-#define __NET_PACKET_MESSAGES__
+#ifndef LIBC_PACKET_MESSAGES_
+#define LIBC_PACKET_MESSAGES_
 
 #include <ipc/ipc.h>
 #include <ipc/net.h>
 
-/** Packet server module messages.
- */
+/** Packet server module messages. */
 typedef enum {
 	/** Create packet message with specified content length.
-	 *  @see packet_get_1()
+	 * @see packet_get_1()
 	 */
 	NET_PACKET_CREATE_1 = NET_PACKET_FIRST,
-	/** Create packet message with specified address length, prefix, content and suffix.
-	 *  @see packet_get_4()
+	
+	/**
+	 * Create packet message with specified address length, prefix, content
+	 * and suffix.
+	 * @see packet_get_4()
 	 */
 	NET_PACKET_CREATE_4,
+	
 	/** Get packet message.
-	 *  @see packet_return()
-	 */
+	 * @see packet_return() */
 	NET_PACKET_GET,
+	
 	/** Get packet size message.
-	 *  @see packet_translate()
+	 * @see packet_translate()
 	 */
 	NET_PACKET_GET_SIZE,
+	
 	/** Release packet message.
-	 *  @see pq_release()
+	 * @see pq_release()
 	 */
 	NET_PACKET_RELEASE
 } packet_messages;
 
-/** Returns the protocol service message parameter.
- */
-#define ARP_GET_PROTO(call)		(services_t) IPC_GET_ARG2(*call)
+/** Returns the protocol service message parameter. */
+#define ARP_GET_PROTO(call)	(services_t) IPC_GET_ARG2(*call)
 
-/** Returns the packet identifier message parameter.
- */
-#define IPC_GET_ID(call)			(packet_id_t) IPC_GET_ARG1(*call)
+/** Returns the packet identifier message parameter. */
+#define IPC_GET_ID(call)	(packet_id_t) IPC_GET_ARG1(*call)
 
-/** Returns the maximal content length message parameter.
- */
-#define IPC_GET_CONTENT(call)		(size_t) IPC_GET_ARG1(*call)
+/** Returns the maximal content length message parameter. */
+#define IPC_GET_CONTENT(call)	(size_t) IPC_GET_ARG1(*call)
 
-/** Returns the maximal address length message parameter.
- */
+/** Returns the maximal address length message parameter. */
 #define IPC_GET_ADDR_LEN(call)	(size_t) IPC_GET_ARG2(*call)
 
-/** Returns the maximal prefix length message parameter.
- */
-#define IPC_GET_PREFIX(call)		(size_t) IPC_GET_ARG3(*call)
+/** Returns the maximal prefix length message parameter. */
+#define IPC_GET_PREFIX(call)	(size_t) IPC_GET_ARG3(*call)
 
-/** Returns the maximal suffix length message parameter.
- */
-#define IPC_GET_SUFFIX(call)		(size_t) IPC_GET_ARG4(*call)
+/** Returns the maximal suffix length message parameter. */
+#define IPC_GET_SUFFIX(call)	(size_t) IPC_GET_ARG4(*call)
 
 #endif
 

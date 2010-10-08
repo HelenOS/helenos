@@ -39,13 +39,13 @@
 #include <errno.h>
 #include <err.h>
 #include <ipc/ipc.h>
+#include <ipc/packet.h>
 #include <sys/mman.h>
 
 #include <net_messages.h>
 #include <packet/packet.h>
 #include <packet/packet_client.h>
 #include <packet/packet_header.h>
-#include <packet/packet_messages.h>
 #include <packet_remote.h>
 
 /** Obtain the packet from the packet server as the shared memory block.
