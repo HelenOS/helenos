@@ -43,10 +43,11 @@
 #include <sys/mman.h>
 
 #include <net_messages.h>
-#include <packet/packet.h>
-#include <packet/packet_client.h>
-#include <packet/packet_header.h>
+#include <packet_client.h>
 #include <packet_remote.h>
+
+#include <packet/packet.h>
+#include <packet/packet_header.h>
 
 /** Obtain the packet from the packet server as the shared memory block.
  *

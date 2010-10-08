@@ -46,7 +46,7 @@
 #include <net_device.h>
 #include <net/inet.h>
 #include <ip_interface.h>
-#include <packet/packet_client.h>
+#include <packet_client.h>
 #include <il_messages.h>
 #include <ip_messages.h>
 #include <ip_remote.h>

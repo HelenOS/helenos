@@ -40,10 +40,11 @@
 
 #include <sys/mman.h>
 
+#include <packet_client.h>
+
 #include <net_messages.h>
 #include <packet/packet.h>
 #include <packet/packet_header.h>
-#include <packet/packet_client.h>
 
 int packet_copy_data(packet_t packet, const void * data, size_t length)
 {
@@ -180,7 +181,7 @@ packet_t packet_get_copy(int phone, packet_t packet)
 		return NULL;
 
 	// get a new packet
-	copy = packet_get_4_local(phone, PACKET_DATA_LENGTH(packet),
+	copy = packet_get_4_remote(phone, PACKET_DATA_LENGTH(packet),
 	    PACKET_MAX_ADDRESS_LENGTH(packet), packet->max_prefix,
 	    PACKET_MIN_SUFFIX(packet));
 	if (!copy)
@@ -198,7 +199,7 @@ packet_t packet_get_copy(int phone, packet_t packet)
 		copy->metric = packet->metric;
 		return copy;
 	} else {
-		pq_release_local(phone, copy->packet_id);
+		pq_release_remote(phone, copy->packet_id);
 		return NULL;
 	}
 }

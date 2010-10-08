@@ -52,7 +52,7 @@
 #else /* CONFIG_NETIF_NIL_BUNDLE */
 
 #include <netif_remote.h>
-#include <packet/packet_client.h>
+#include <packet_client.h>
 
 #define netif_module_message    netif_module_message_standalone
 #define netif_module_start      netif_module_start_standalone

@@ -26,46 +26,30 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup icmp
+/** @addtogroup packet
  *  @{
  */
 
 /** @file
- *  ICMP interface implementation for remote modules.
- *  @see icmp_interface.h
  */
 
-#include <async.h>
-#include <errno.h>
-#include <ipc/ipc.h>
-#include <ipc/services.h>
-#include <sys/types.h>
+#ifndef __NET_PACKET_LOCAL_H__
+#define __NET_PACKET_LOCAL_H__
 
-#include <net_messages.h>
-#include <net/modules.h>
-#include <icmp_interface.h>
-#include <packet_client.h>
-#include <icmp_messages.h>
+#include <packet/packet.h>
 
-int icmp_destination_unreachable_msg(int icmp_phone, icmp_code_t code, icmp_param_t mtu, packet_t packet){
-	async_msg_3(icmp_phone, NET_ICMP_DEST_UNREACH, (ipcarg_t) code, (ipcarg_t) packet_get_id(packet), (ipcarg_t) mtu);
-	return EOK;
-}
+/** @name Packet local interface
+ */
+/*@{*/
 
-int icmp_source_quench_msg(int icmp_phone, packet_t packet){
-	async_msg_2(icmp_phone, NET_ICMP_SOURCE_QUENCH, 0, (ipcarg_t) packet_get_id(packet));
-	return EOK;
-}
+extern int packet_translate_local(int, packet_ref, packet_id_t);
+extern packet_t packet_get_4_local(int, size_t, size_t, size_t, size_t);
+extern packet_t packet_get_1_local(int, size_t);
+extern void pq_release_local(int, packet_id_t);
 
-int icmp_time_exceeded_msg(int icmp_phone, icmp_code_t code, packet_t packet){
-	async_msg_2(icmp_phone, NET_ICMP_TIME_EXCEEDED, (ipcarg_t) code, (ipcarg_t) packet_get_id(packet));
-	return EOK;
-}
+/*@}*/
 
-int icmp_parameter_problem_msg(int icmp_phone, icmp_code_t code, icmp_param_t pointer, packet_t packet){
-	async_msg_3(icmp_phone, NET_ICMP_PARAMETERPROB, (ipcarg_t) code, (ipcarg_t) packet_get_id(packet), (ipcarg_t) pointer);
-	return EOK;
-}
+#endif
 
 /** @}
  */

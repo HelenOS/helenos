@@ -34,7 +34,9 @@ LIBRARY = libnet
 SOURCES = \
 	generic/net_remote.c \
 	generic/net_checksum.c \
+	generic/packet_client.c \
 	generic/packet_remote.c \
+	generic/socket_core.c \
 	adt/module_map.c \
 	netif/netif_local.c \
 	netif/netif_remote.c \

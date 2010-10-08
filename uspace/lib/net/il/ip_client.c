@@ -39,9 +39,10 @@
 #include <sys/types.h>
 
 #include <ip_client.h>
-#include <packet/packet.h>
-#include <packet/packet_client.h>
+#include <packet_client.h>
 #include <ip_header.h>
+
+#include <packet/packet.h>
 
 size_t ip_client_header_length(packet_t packet){
 	ip_header_ref header;

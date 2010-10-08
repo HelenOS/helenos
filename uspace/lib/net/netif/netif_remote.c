@@ -39,7 +39,7 @@
 #include <net/modules.h>
 #include <adt/measured_strings.h>
 #include <packet/packet.h>
-#include <packet/packet_client.h>
+#include <packet_client.h>
 #include <net_device.h>
 #include <netif_remote.h>
 #include <netif_messages.h>

@@ -48,7 +48,7 @@
 
 #include <net_messages.h>
 #include <packet/packet.h>
-#include <packet/packet_client.h>
+#include <packet/packet_local.h>
 #include <packet/packet_header.h>
 #include <packet/packet_server.h>
 
