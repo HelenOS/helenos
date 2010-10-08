@@ -44,8 +44,8 @@
 
 #include <icmp_codes.h>
 #include <icmp_client.h>
-#include <packet/packet.h>
-#include <packet/packet_client.h>
+#include <net/packet.h>
+#include <packet_client.h>
 #include <icmp_header.h>
 
 int icmp_client_process_packet(packet_t packet, icmp_type_t * type, icmp_code_t * code, icmp_param_t * pointer, icmp_param_t * mtu){

@@ -38,8 +38,7 @@
 #define __NET_TL_COMMON_H__
 
 #include <net/socket_codes.h>
-
-#include <packet/packet.h>
+#include <net/packet.h>
 #include <net_device.h>
 #include <net/inet.h>
 

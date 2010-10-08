@@ -39,7 +39,7 @@
 #include <ipc/ipc.h>
 #include <ipc/net.h>
 
-#include <packet/packet.h>
+#include <net/packet.h>
 #include <netif_nil_bundle.h>
 #include <netif_local.h>
 #include <nil_local.h>

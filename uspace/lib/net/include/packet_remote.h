@@ -33,7 +33,7 @@
 #ifndef __NET_PACKET_REMOTE_H__
 #define __NET_PACKET_REMOTE_H__
 
-#include <packet/packet.h>
+#include <net/packet.h>
 
 extern int packet_translate_remote(int, packet_ref, packet_id_t);
 extern packet_t packet_get_4_remote(int, size_t, size_t, size_t, size_t);

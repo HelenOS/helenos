@@ -43,7 +43,7 @@
 
 #include <net_device.h>
 #include <adt/measured_strings.h>
-#include <packet/packet.h>
+#include <net/packet.h>
 
 /** @name Networking specific message arguments definitions
  */

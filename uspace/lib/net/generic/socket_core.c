@@ -45,8 +45,9 @@
 
 #include <adt/dynamic_fifo.h>
 #include <adt/int_map.h>
-#include <packet/packet.h>
-#include <packet/packet_client.h>
+#include <net/packet.h>
+#include <packet_client.h>
+#include <packet_remote.h>
 #include <net/modules.h>
 #include <socket_core.h>
 
@@ -90,7 +91,7 @@ static void socket_destroy_core(int packet_phone, socket_core_ref socket, socket
 	}
 	// release all received packets
 	while((packet_id = dyn_fifo_pop(&socket->received)) >= 0){
-		pq_release_local(packet_phone, packet_id);
+		pq_release_remote(packet_phone, packet_id);
 	}
 	dyn_fifo_destroy(&socket->received);
 	dyn_fifo_destroy(&socket->accepted);

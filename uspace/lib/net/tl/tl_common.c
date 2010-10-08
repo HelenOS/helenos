@@ -44,8 +44,8 @@
 #include <errno.h>
 #include <err.h>
 
-#include <packet/packet.h>
-#include <packet/packet_client.h>
+#include <net/packet.h>
+#include <packet_client.h>
 #include <packet_remote.h>
 #include <net_device.h>
 #include <icmp_interface.h>

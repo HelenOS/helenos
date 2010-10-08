@@ -26,68 +26,74 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup packet
+/** @addtogroup libc 
  *  @{
  */
 
 /** @file
- *  Packet server module messages.
+ *  Packet map and queue.
  */
 
-#ifndef __NET_PACKET_MESSAGES__
-#define __NET_PACKET_MESSAGES__
+#ifndef LIBC_PACKET_H_
+#define LIBC_PACKET_H_
 
-#include <ipc/ipc.h>
-#include <ipc/net.h>
-
-/** Packet server module messages.
+/** Packet identifier type.
+ * Value zero is used as an invalid identifier.
  */
-typedef enum {
-	/** Create packet message with specified content length.
-	 *  @see packet_get_1()
-	 */
-	NET_PACKET_CREATE_1 = NET_PACKET_FIRST,
-	/** Create packet message with specified address length, prefix, content and suffix.
-	 *  @see packet_get_4()
-	 */
-	NET_PACKET_CREATE_4,
-	/** Get packet message.
-	 *  @see packet_return()
-	 */
-	NET_PACKET_GET,
-	/** Get packet size message.
-	 *  @see packet_translate()
-	 */
-	NET_PACKET_GET_SIZE,
-	/** Release packet message.
-	 *  @see pq_release()
-	 */
-	NET_PACKET_RELEASE
-} packet_messages;
+typedef int packet_id_t;
 
-/** Returns the protocol service message parameter.
+/** Type definition of the packet.
+ * @see packet
  */
-#define ARP_GET_PROTO(call)		(services_t) IPC_GET_ARG2(*call)
+typedef struct packet * packet_t;
 
-/** Returns the packet identifier message parameter.
+/** Type definition of the packet pointer.
+ * @see packet
  */
-#define IPC_GET_ID(call)			(packet_id_t) IPC_GET_ARG1(*call)
+typedef packet_t * packet_ref;
 
-/** Returns the maximal content length message parameter.
+/** Type definition of the packet dimension.
+ * @see packet_dimension
  */
-#define IPC_GET_CONTENT(call)		(size_t) IPC_GET_ARG1(*call)
+typedef struct packet_dimension	packet_dimension_t;
 
-/** Returns the maximal address length message parameter.
+/** Type definition of the packet dimension pointer.
+ * @see packet_dimension
  */
-#define IPC_GET_ADDR_LEN(call)	(size_t) IPC_GET_ARG2(*call)
+typedef packet_dimension_t * packet_dimension_ref;
 
-/** Returns the maximal prefix length message parameter.
- */
-#define IPC_GET_PREFIX(call)		(size_t) IPC_GET_ARG3(*call)
+/** Packet dimension. */
+struct packet_dimension {
+	/** Reserved packet prefix length. */
+	size_t prefix;
+	/** Maximal packet content length. */
+	size_t content;
+	/** Reserved packet suffix length. */
+	size_t suffix;
+	/** Maximal packet address length. */
+	size_t addr_len;
+};
 
-/** Returns the maximal suffix length message parameter.
+/** @name Packet management system interface
  */
-#define IPC_GET_SUFFIX(call)		(size_t) IPC_GET_ARG4(*call)
+/*@{*/
+
+extern packet_t pm_find(packet_id_t);
+extern int pm_add(packet_t);
+extern int pm_init(void);
+extern void pm_destroy(void);
+
+extern int pq_add(packet_t *, packet_t, size_t, size_t);
+extern packet_t pq_find(packet_t, size_t);
+extern int pq_insert_after(packet_t, packet_t);
+extern packet_t pq_detach(packet_t);
+extern int pq_set_order(packet_t, size_t, size_t);
+extern int pq_get_order(packet_t, size_t *, size_t *);
+extern void pq_destroy(packet_t, void (*)(packet_t));
+extern packet_t pq_next(packet_t);
+extern packet_t pq_previous(packet_t);
+
+/*@}*/
 
 #endif
 

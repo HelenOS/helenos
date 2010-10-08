@@ -26,55 +26,66 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup net_tl
+/** @addtogroup libc
  *  @{
  */
 
 /** @file
- * Transport layer module interface for the underlying internetwork layer.
+ *  Packet server module messages.
  */
 
-#ifndef __NET_TL_INTERFACE_H__
-#define __NET_TL_INTERFACE_H__
+#ifndef LIBC_PACKET_MESSAGES_
+#define LIBC_PACKET_MESSAGES_
 
-#include <async.h>
-#include <ipc/services.h>
+#include <ipc/ipc.h>
+#include <ipc/net.h>
 
-#include <net_messages.h>
-#include <net_device.h>
-#include <net/packet.h>
-#include <packet_client.h>
-#include <tl_messages.h>
+/** Packet server module messages. */
+typedef enum {
+	/** Create packet message with specified content length.
+	 * @see packet_get_1()
+	 */
+	NET_PACKET_CREATE_1 = NET_PACKET_FIRST,
+	
+	/**
+	 * Create packet message with specified address length, prefix, content
+	 * and suffix.
+	 * @see packet_get_4()
+	 */
+	NET_PACKET_CREATE_4,
+	
+	/** Get packet message.
+	 * @see packet_return() */
+	NET_PACKET_GET,
+	
+	/** Get packet size message.
+	 * @see packet_translate()
+	 */
+	NET_PACKET_GET_SIZE,
+	
+	/** Release packet message.
+	 * @see pq_release()
+	 */
+	NET_PACKET_RELEASE
+} packet_messages;
 
-/** @name Transport layer module interface
- * This interface is used by other modules.
- */
-/*@{*/
+/** Returns the protocol service message parameter. */
+#define ARP_GET_PROTO(call)	(services_t) IPC_GET_ARG2(*call)
 
-/** Notify the remote transport layer modules about the received packet/s.
- *
- * @param[in] tl_phone  The transport layer module phone used for remote calls.
- * @param[in] device_id The device identifier.
- * @param[in] packet    The received packet or the received packet queue.
- *                      The packet queue is used to carry a fragmented
- *                      datagram. The first packet contains the headers,
- *                      the others contain only data.
- * @param[in] target    The target transport layer module service to be
- *                      delivered to.
- * @param[in] error     The packet error reporting service. Prefixes the
- *                      received packet.
- *
- * @return EOK on success.
- *
- */
-inline static int tl_received_msg(int tl_phone, device_id_t device_id,
-    packet_t packet, services_t target, services_t error)
-{
-	return generic_received_msg_remote(tl_phone, NET_TL_RECEIVED, device_id,
-	    packet_get_id(packet), target, error);
-}
+/** Returns the packet identifier message parameter. */
+#define IPC_GET_ID(call)	(packet_id_t) IPC_GET_ARG1(*call)
 
-/*@}*/
+/** Returns the maximal content length message parameter. */
+#define IPC_GET_CONTENT(call)	(size_t) IPC_GET_ARG1(*call)
+
+/** Returns the maximal address length message parameter. */
+#define IPC_GET_ADDR_LEN(call)	(size_t) IPC_GET_ARG2(*call)
+
+/** Returns the maximal prefix length message parameter. */
+#define IPC_GET_PREFIX(call)	(size_t) IPC_GET_ARG3(*call)
+
+/** Returns the maximal suffix length message parameter. */
+#define IPC_GET_SUFFIX(call)	(size_t) IPC_GET_ARG4(*call)
 
 #endif
 

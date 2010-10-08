@@ -67,7 +67,7 @@
 #include <tl_interface.h>
 #include <adt/measured_strings.h>
 #include <adt/module_map.h>
-#include <packet/packet_client.h>
+#include <packet_client.h>
 #include <packet_remote.h>
 #include <nil_messages.h>
 #include <il_messages.h>

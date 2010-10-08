@@ -26,53 +26,26 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup net_tl
+/** @addtogroup packet
  *  @{
  */
 
 /** @file
- * Transport layer module interface for the underlying internetwork layer.
  */
 
-#ifndef __NET_TL_INTERFACE_H__
-#define __NET_TL_INTERFACE_H__
+#ifndef __NET_PACKET_LOCAL_H__
+#define __NET_PACKET_LOCAL_H__
 
-#include <async.h>
-#include <ipc/services.h>
-
-#include <net_messages.h>
-#include <net_device.h>
 #include <net/packet.h>
-#include <packet_client.h>
-#include <tl_messages.h>
 
-/** @name Transport layer module interface
- * This interface is used by other modules.
+/** @name Packet local interface
  */
 /*@{*/
 
-/** Notify the remote transport layer modules about the received packet/s.
- *
- * @param[in] tl_phone  The transport layer module phone used for remote calls.
- * @param[in] device_id The device identifier.
- * @param[in] packet    The received packet or the received packet queue.
- *                      The packet queue is used to carry a fragmented
- *                      datagram. The first packet contains the headers,
- *                      the others contain only data.
- * @param[in] target    The target transport layer module service to be
- *                      delivered to.
- * @param[in] error     The packet error reporting service. Prefixes the
- *                      received packet.
- *
- * @return EOK on success.
- *
- */
-inline static int tl_received_msg(int tl_phone, device_id_t device_id,
-    packet_t packet, services_t target, services_t error)
-{
-	return generic_received_msg_remote(tl_phone, NET_TL_RECEIVED, device_id,
-	    packet_get_id(packet), target, error);
-}
+extern int packet_translate_local(int, packet_ref, packet_id_t);
+extern packet_t packet_get_4_local(int, size_t, size_t, size_t, size_t);
+extern packet_t packet_get_1_local(int, size_t);
+extern void pq_release_local(int, packet_id_t);
 
 /*@}*/
 

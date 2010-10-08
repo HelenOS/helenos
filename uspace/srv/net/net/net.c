@@ -53,7 +53,7 @@
 #include <adt/generic_char_map.h>
 #include <adt/measured_strings.h>
 #include <adt/module_map.h>
-#include <packet/packet.h>
+#include <net/packet.h>
 #include <il_messages.h>
 #include <netif_remote.h>
 #include <net_device.h>

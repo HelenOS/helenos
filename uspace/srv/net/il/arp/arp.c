@@ -54,8 +54,8 @@
 #include <nil_interface.h>
 #include <protocol_map.h>
 #include <adt/measured_strings.h>
-#include <packet/packet.h>
-#include <packet/packet_client.h>
+#include <net/packet.h>
+#include <packet_client.h>
 #include <packet_remote.h>
 #include <il_messages.h>
 #include <il_interface.h>

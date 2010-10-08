@@ -41,16 +41,16 @@
 #include <err.h>
 #include <fibril_synch.h>
 #include <unistd.h>
-
-#include <ipc/ipc.h>
 #include <sys/mman.h>
 
-#include <net_messages.h>
-#include <packet/packet.h>
-#include <packet/packet_client.h>
-#include <packet/packet_header.h>
-#include <packet/packet_messages.h>
+#include <ipc/ipc.h>
+#include <ipc/packet.h>
+#include <net/packet.h>
+#include <net/packet_header.h>
 #include <packet/packet_server.h>
+
+#include <net_messages.h>
+#include <packet/packet_local.h>
 
 #define FREE_QUEUES_COUNT	7
 

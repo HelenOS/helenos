@@ -44,7 +44,7 @@
 
 #include <net/modules.h>
 #include <net_interface.h>
-#include <packet/packet.h>
+#include <net/packet.h>
 #include <nil_local.h>
 
 #include "nildummy.h"

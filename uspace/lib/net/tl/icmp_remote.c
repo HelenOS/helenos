@@ -44,7 +44,7 @@
 #include <net_messages.h>
 #include <net/modules.h>
 #include <icmp_interface.h>
-#include <packet/packet_client.h>
+#include <packet_client.h>
 #include <icmp_messages.h>
 
 int icmp_destination_unreachable_msg(int icmp_phone, icmp_code_t code, icmp_param_t mtu, packet_t packet){

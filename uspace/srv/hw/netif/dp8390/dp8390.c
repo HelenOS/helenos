@@ -37,8 +37,8 @@
 #include <errno.h>
 
 #include <netif_local.h>
-#include <packet/packet.h>
-#include <packet/packet_client.h>
+#include <net/packet.h>
+#include <packet_client.h>
 
 #include "dp8390_drv.h"
 #include "dp8390_port.h"

@@ -44,7 +44,7 @@
 #include <ipc/services.h>
 
 #include <net/modules.h>
-#include <packet/packet.h>
+#include <net/packet.h>
 #include <net_interface.h>
 #include <tl_local.h>
 

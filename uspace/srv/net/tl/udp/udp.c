@@ -54,7 +54,7 @@
 
 #include <net_messages.h>
 #include <adt/dynamic_fifo.h>
-#include <packet/packet_client.h>
+#include <packet_client.h>
 #include <packet_remote.h>
 #include <net_checksum.h>
 #include <ip_client.h>
