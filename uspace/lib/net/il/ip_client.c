@@ -42,7 +42,7 @@
 #include <packet_client.h>
 #include <ip_header.h>
 
-#include <packet/packet.h>
+#include <net/packet.h>
 
 size_t ip_client_header_length(packet_t packet){
 	ip_header_ref header;

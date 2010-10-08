@@ -40,7 +40,7 @@
 
 #include <net_messages.h>
 #include <adt/measured_strings.h>
-#include <packet/packet.h>
+#include <net/packet.h>
 #include <nil_messages.h>
 #include <net_device.h>
 

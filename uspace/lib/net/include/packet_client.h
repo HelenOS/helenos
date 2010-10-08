@@ -44,7 +44,7 @@
 #ifndef __NET_PACKET_CLIENT_H__
 #define __NET_PACKET_CLIENT_H__
 
-#include <packet/packet.h>
+#include <net/packet.h>
 
 /** @name Packet client interface
  */

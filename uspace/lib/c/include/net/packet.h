@@ -26,53 +26,72 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup net_tl
+/** @addtogroup libc 
  *  @{
  */
 
 /** @file
- * Transport layer module interface for the underlying internetwork layer.
+ *  Packet map and queue.
  */
 
-#ifndef __NET_TL_INTERFACE_H__
-#define __NET_TL_INTERFACE_H__
+#ifndef LIBC_PACKET_H_
+#define LIBC_PACKET_H_
 
-#include <async.h>
-#include <ipc/services.h>
+/** Packet identifier type.
+ * Value zero is used as an invalid identifier.
+ */
+typedef int packet_id_t;
 
-#include <net_messages.h>
-#include <net_device.h>
-#include <net/packet.h>
-#include <packet_client.h>
-#include <tl_messages.h>
+/** Type definition of the packet.
+ * @see packet
+ */
+typedef struct packet * packet_t;
 
-/** @name Transport layer module interface
- * This interface is used by other modules.
+/** Type definition of the packet pointer.
+ * @see packet
+ */
+typedef packet_t * packet_ref;
+
+/** Type definition of the packet dimension.
+ * @see packet_dimension
+ */
+typedef struct packet_dimension	packet_dimension_t;
+
+/** Type definition of the packet dimension pointer.
+ * @see packet_dimension
+ */
+typedef packet_dimension_t * packet_dimension_ref;
+
+/** Packet dimension. */
+struct packet_dimension {
+	/** Reserved packet prefix length. */
+	size_t prefix;
+	/** Maximal packet content length. */
+	size_t content;
+	/** Reserved packet suffix length. */
+	size_t suffix;
+	/** Maximal packet address length. */
+	size_t addr_len;
+};
+
+/** @name Packet management system interface
  */
 /*@{*/
 
-/** Notify the remote transport layer modules about the received packet/s.
- *
- * @param[in] tl_phone  The transport layer module phone used for remote calls.
- * @param[in] device_id The device identifier.
- * @param[in] packet    The received packet or the received packet queue.
- *                      The packet queue is used to carry a fragmented
- *                      datagram. The first packet contains the headers,
- *                      the others contain only data.
- * @param[in] target    The target transport layer module service to be
- *                      delivered to.
- * @param[in] error     The packet error reporting service. Prefixes the
- *                      received packet.
- *
- * @return EOK on success.
- *
- */
-inline static int tl_received_msg(int tl_phone, device_id_t device_id,
-    packet_t packet, services_t target, services_t error)
-{
-	return generic_received_msg_remote(tl_phone, NET_TL_RECEIVED, device_id,
-	    packet_get_id(packet), target, error);
-}
+extern packet_t pm_find(packet_id_t);
+extern int pm_add(packet_t);
+extern int pm_init(void);
+extern void pm_destroy(void);
+
+extern int pq_add(packet_t *, packet_t, size_t, size_t);
+extern packet_t pq_find(packet_t, size_t);
+extern int pq_insert_after(packet_t, packet_t);
+extern packet_t pq_detach(packet_t);
+extern int pq_set_order(packet_t, size_t, size_t);
+extern int pq_get_order(packet_t, size_t *, size_t *);
+extern void pq_destroy(packet_t, void (*)(packet_t));
+extern packet_t pq_next(packet_t);
+extern packet_t pq_previous(packet_t);
 
 /*@}*/
 

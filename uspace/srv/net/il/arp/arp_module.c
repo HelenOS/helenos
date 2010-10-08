@@ -46,7 +46,7 @@
 
 #include <net/modules.h>
 #include <net_interface.h>
-#include <packet/packet.h>
+#include <net/packet.h>
 #include <il_local.h>
 
 #include "arp.h"

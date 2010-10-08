@@ -44,7 +44,7 @@
 #include <adt/generic_char_map.h>
 #include <adt/dynamic_fifo.h>
 #include <adt/int_map.h>
-#include <packet/packet.h>
+#include <net/packet.h>
 
 /** Initial size of the received packet queue.
  */

@@ -36,7 +36,7 @@
 #ifndef __NET_PACKET_LOCAL_H__
 #define __NET_PACKET_LOCAL_H__
 
-#include <packet/packet.h>
+#include <net/packet.h>
 
 /** @name Packet local interface
  */

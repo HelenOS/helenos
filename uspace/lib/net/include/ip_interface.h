@@ -38,7 +38,7 @@
 #include <ipc/services.h>
 
 #include <net_device.h>
-#include <packet/packet.h>
+#include <net/packet.h>
 
 #include <net/in.h>
 #include <ip_codes.h>

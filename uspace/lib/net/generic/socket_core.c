@@ -45,7 +45,7 @@
 
 #include <adt/dynamic_fifo.h>
 #include <adt/int_map.h>
-#include <packet/packet.h>
+#include <net/packet.h>
 #include <packet_client.h>
 #include <packet_remote.h>
 #include <net/modules.h>

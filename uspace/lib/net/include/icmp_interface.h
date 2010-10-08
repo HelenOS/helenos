@@ -38,7 +38,7 @@
 
 #include <net_device.h>
 #include <adt/measured_strings.h>
-#include <packet/packet.h>
+#include <net/packet.h>
 #include <net/inet.h>
 #include <ip_codes.h>
 #include <icmp_codes.h>

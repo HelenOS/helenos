@@ -46,7 +46,7 @@
 #include <net/ip_protocols.h>
 #include <net/modules.h>
 
-#include <packet/packet.h>
+#include <net/packet.h>
 #include <net_interface.h>
 #include <ip_interface.h>
 #include <tl_local.h>

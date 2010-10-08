@@ -34,7 +34,6 @@ LIBRARY = libsocket
 SOURCES = \
 	generic/icmp_common.c \
 	generic/icmp_api.c \
-	packet/packet.c \
-	packet/packet_server.c 
+	packet/packet_server.c
 
 include $(USPACE_PREFIX)/Makefile.common

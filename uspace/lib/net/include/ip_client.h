@@ -40,7 +40,7 @@
 #include <net/socket_codes.h>
 #include <sys/types.h>
 
-#include <packet/packet.h>
+#include <net/packet.h>
 #include <ip_codes.h>
 #include <ip_interface.h>
 

@@ -43,8 +43,8 @@
 #include <packet_client.h>
 
 #include <net_messages.h>
-#include <packet/packet.h>
-#include <packet/packet_header.h>
+#include <net/packet.h>
+#include <net/packet_header.h>
 
 int packet_copy_data(packet_t packet, const void * data, size_t length)
 {
