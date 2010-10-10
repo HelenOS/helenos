@@ -30,38 +30,52 @@
  * @{
  */
 /** @file
- * @brief Standard USB device requests.
+ * @brief USB device related types.
  */
-#ifndef LIBUSB_DEVREQ_H_
-#define LIBUSB_DEVREQ_H_
+#ifndef LIBUSB_DEVICE_H_
+#define LIBUSB_DEVICE_H_
 
 #include <ipc/ipc.h>
 #include <async.h>
 
-/** Standard device request. */
-typedef enum {
-	USB_DEVREQ_GET_STATUS = 0,
-	USB_DEVREQ_CLEAR_FEATURE = 1,
-	USB_DEVREQ_SET_FEATURE = 3,
-	USB_DEVREQ_SET_ADDRESS = 5,
-	USB_DEVREQ_GET_DESCRIPTOR = 6,
-	USB_DEVREQ_SET_DESCRIPTOR = 7,
-	USB_DEVREQ_GET_CONFIGURATION = 8,
-	USB_DEVREQ_SET_CONFIGURATION = 9,
-	USB_DEVREQ_GET_INTERFACE = 10,
-	USB_DEVREQ_SET_INTERFACE = 11,
-	USB_DEVREQ_SYNCH_FRAME = 12,
-	USB_DEVREQ_LAST_STD
-} usb_stddevreq_t;
+/** Standard USB device descriptor.
+ */
+typedef struct {
+	/** Size of this descriptor in bytes. */
+	uint8_t length;
+	/** Device descriptor type. */
+	uint8_t descriptor_type;
+	/** USB specification release number.
+	 * The number shall be coded as binary-coded decimal (BCD).
+	 */
+	uint16_t usb_spec_version;
+	/** Device class. */
+	uint8_t device_class;
+	/** Device sub-class. */
+	uint8_t device_subclass;
+	/** Device protocol. */
+	uint8_t device_protocol;
+	/** Maximum packet size for endpoint zero.
+	 * Valid values are only 8, 16, 32, 64).
+	 */
+	uint8_t max_packet_size;
+	/** Vendor ID. */
+	uint16_t vendor_id;
+	/** Product ID. */
+	uint16_t product_id;
+	/** Device release number (in BCD). */
+	uint16_t device_version;
+	/** Manufacturer descriptor index. */
+	uint8_t manufacturer;
+	/** Product descriptor index. */
+	uint8_t product;
+	/** Device serial number desriptor index. */
+	uint8_t serial_number;
+	/** Number of possible configurations. */
+	uint8_t configuration_count;
+} __attribute__ ((packed)) usb_standard_device_descriptor_t;
 
-/** Descriptor type. */
-typedef enum {
-	USB_DESCTYPE_DEVICE = 1,
-	USB_DESCTYPE_CONFIGURATION = 2,
-	USB_DESCTYPE_STRING = 3,
-	USB_DESCTYPE_INTERFACE = 4,
-	USB_DESCTYPE_ENDPOINT = 5
-} usb_descriptor_type_t;
+
 
 #endif
 /**
