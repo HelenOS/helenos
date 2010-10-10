@@ -787,8 +787,6 @@ void eth_receiver(ipc_callid_t iid, ipc_call_t * icall){
 	}
 }
 
-#ifndef CONFIG_NETIF_NIL_BUNDLE
-
 /** Default thread for new connections.
  *
  * @param[in] iid The initial message identifier.
@@ -837,8 +835,6 @@ int main(int argc, char *argv[])
 	
 	return EOK;
 }
-
-#endif /* CONFIG_NETIF_NIL_BUNDLE */
 
 /** @}
  */
