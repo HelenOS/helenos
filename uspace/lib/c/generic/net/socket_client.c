@@ -176,14 +176,7 @@ static struct socket_client_globals {
 	.udp_phone = -1,
 //	.last_id = 0,
 	.sockets = NULL,
-	.lock = {
-		.readers = 0,
-		.writers = 0,
-		.waiters = {
-			.prev = &socket_globals.lock.waiters,	/* XXX */
-			.next = &socket_globals.lock.waiters	/* XXX */
-		}
-	}
+	.lock = FIBRIL_RWLOCK_INITIALIZER(socket_globals.lock)
 };
 
 INT_MAP_IMPLEMENT(sockets, socket_t);
