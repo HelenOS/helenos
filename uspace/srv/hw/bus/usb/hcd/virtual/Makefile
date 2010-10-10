@@ -32,6 +32,7 @@ EXTRA_CFLAGS = -I$(LIB_PREFIX)
 BINARY = vhcd
 
 SOURCES = \
+	devices.c \
 	hc.c \
 	hcd.c
 

@@ -128,7 +128,7 @@ int main(int argc, char * argv[])
 	for (i = 0; i < LOOPS; i++) {
 		usb_transaction_handle_t handle;
 
-		usb_target_t target = { 11 + i, 3 };
+		usb_target_t target = { i, 0 };
 		int rc = usb_hcd_send_data_to_function(hcd_phone,
 		    target, USB_TRANSFER_ISOCHRONOUS,
 		    data, data_len,

@@ -52,6 +52,7 @@ _link.ld
 ./uspace/app/top/top
 ./uspace/app/trace/trace
 ./uspace/app/usb/usb
+./uspace/app/virtusbkbd/vuk
 ./uspace/dist/app/bdsh
 ./uspace/dist/app/edit
 ./uspace/dist/app/getterm
@@ -71,6 +72,7 @@ _link.ld
 ./uspace/dist/app/top
 ./uspace/dist/app/trace
 ./uspace/dist/app/usb
+./uspace/dist/app/vuk
 ./uspace/dist/cfg/net/general
 ./uspace/dist/cfg/net/lo
 ./uspace/dist/cfg/net/ne2k

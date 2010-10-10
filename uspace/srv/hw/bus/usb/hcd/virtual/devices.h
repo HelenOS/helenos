@@ -28,29 +28,28 @@
 
 /** @addtogroup usb
  * @{
- */
+ */ 
 /** @file
- * @brief Virtual HC.
+ * @brief
  */
-#ifndef VHCD_HC_H_
-#define VHCD_HC_H_
+#ifndef VHCD_DEVICES_H_
+#define VHCD_DEVICES_H_
 
+#include <adt/list.h>
 #include <usb/hcd.h>
 
-typedef void (*hc_transaction_done_callback_t)(void *, size_t, usb_transaction_outcome_t, void *);
+typedef struct {
+	/** Assigned USB address. */
+	usb_address_t address;
+	/** Phone used when sending data to device. */
+	int phone;
+	/** Linked-list handle. */
+	link_t link;
+} virtdev_connection_t;
 
-void hc_manager(void);
-
-void hc_add_transaction_to_device(usb_transfer_type_t type, usb_target_t target,
-    void * buffer, size_t len,
-    hc_transaction_done_callback_t callback, void * arg);
-
-void hc_add_transaction_from_device(usb_transfer_type_t type, usb_target_t target,
-    void * buffer, size_t len,
-    hc_transaction_done_callback_t callback, void * arg);
-
-int hc_fillin_transaction_from_device(usb_transfer_type_t type, usb_target_t target,
-    void * buffer, size_t len);
+virtdev_connection_t *virtdev_find_by_address(usb_address_t);
+virtdev_connection_t *virtdev_add_device(usb_address_t, int);
+void virtdev_destroy_device(virtdev_connection_t *);
 
 #endif
 /**

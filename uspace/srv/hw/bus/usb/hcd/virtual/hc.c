@@ -39,9 +39,14 @@
 #include <async.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <errno.h>
+#include <str_error.h>
+
+#include <usb/virtdev.h>
 
 #include "vhcd.h"
 #include "hc.h"
+#include "devices.h"
 
 #define USLEEP_BASE (500 * 1000)
 
@@ -59,7 +64,8 @@
 		} \
 	} while (0)
 
-static link_t transaction_list;
+static link_t transaction_to_device_list;
+static link_t transaction_from_device_list;
 
 
 typedef struct {
@@ -96,10 +102,16 @@ static void process_transaction_with_outcome(transaction_t * transaction,
 	    TRANSACTION_PRINTF(*transaction),
 	    usb_str_transaction_outcome(outcome));
 	
+	dprintf("  callback %p (%p, %u, %d, %p)", transaction->callback,
+	    transaction->buffer, transaction->len, outcome,
+	    transaction->callback_arg);
+	
 	transaction->callback(transaction->buffer, transaction->len, outcome,
 	    transaction->callback_arg);
+	dprintf("callback processed");
 }
 
+#if 0
 static void process_transaction(transaction_t * transaction)
 {
 	static unsigned int seed = 4089;
@@ -112,10 +124,12 @@ static void process_transaction(transaction_t * transaction)
 	
 	process_transaction_with_outcome(transaction, outcome);
 }
+#endif
 
 void hc_manager(void)
 {
-	list_initialize(&transaction_list);
+	list_initialize(&transaction_to_device_list);
+	list_initialize(&transaction_from_device_list);
 	
 	static unsigned int seed = 4573;
 	
@@ -124,22 +138,50 @@ void hc_manager(void)
 	while (true) {
 		async_usleep(USLEEP_BASE + (pseudo_random(&seed) % USLEEP_VAR));
 		
-		if (list_empty(&transaction_list)) {
+		if (list_empty(&transaction_to_device_list)) {
 			continue;
 		}
 		
-		link_t * first_transaction_link = transaction_list.next;
-		transaction_t * first_transaction
+		link_t * first_transaction_link = transaction_to_device_list.next;
+		transaction_t * transaction
 		    = transaction_get_instance(first_transaction_link);
 		list_remove(first_transaction_link);
 		
-		process_transaction(first_transaction);
+		virtdev_connection_t *dev = virtdev_find_by_address(
+		    transaction->target.address);
+		if (dev != NULL) {
+			dprintf("sending data to device at %d.%d (phone %d)\n",
+			    dev->address, transaction->target.endpoint,
+			    dev->phone);
+			ipc_call_t answer_data;
+			ipcarg_t answer_rc;
+			aid_t req;
+			int rc;
+			
+			req = async_send_2(dev->phone,
+			    IPC_M_USB_VIRTDEV_DATA_TO_DEVICE,
+			    transaction->target.endpoint,
+			    transaction->type,
+			    &answer_data);
+			
+			rc = async_data_write_start(dev->phone,
+			    transaction->buffer, transaction->len);
+			if (rc != EOK) {
+				async_wait_for(req, NULL);
+			} else {
+				async_wait_for(req, &answer_rc);
+				rc = (int)answer_rc;
+			}
+		} else {
+			process_transaction_with_outcome(transaction,
+			    USB_OUTCOME_OK);
+		}
 		
-		free(first_transaction);
+		free(transaction);
 	}
 }
 
-static void hc_add_transaction(usb_transfer_type_t type, usb_target_t target,
+static transaction_t *transaction_create(usb_transfer_type_t type, usb_target_t target,
     usb_direction_t direction,
     void * buffer, size_t len,
     hc_transaction_done_callback_t callback, void * arg)
@@ -155,39 +197,79 @@ static void hc_add_transaction(usb_transfer_type_t type, usb_target_t target,
 	transaction->callback = callback;
 	transaction->callback_arg = arg;
 	
-	dprintf("adding transaction " TRANSACTION_FORMAT,
+	return transaction;
+}
+
+
+void hc_add_transaction_to_device(usb_transfer_type_t type, usb_target_t target,
+    void * buffer, size_t len,
+    hc_transaction_done_callback_t callback, void * arg)
+{
+	transaction_t *transaction = transaction_create(type, target,
+	    USB_DIRECTION_OUT, buffer, len, callback, arg);
+	list_append(&transaction->link, &transaction_to_device_list);
+}
+
+void hc_add_transaction_from_device(usb_transfer_type_t type, usb_target_t target,
+    void * buffer, size_t len,
+    hc_transaction_done_callback_t callback, void * arg)
+{
+	transaction_t *transaction = transaction_create(type, target,
+	    USB_DIRECTION_IN, buffer, len, callback, arg);
+	list_append(&transaction->link, &transaction_from_device_list);
+}
+
+int hc_fillin_transaction_from_device(usb_transfer_type_t type, usb_target_t target,
+    void * buffer, size_t len)
+{
+	dprintf("finding transaction to fill data in...");
+	/*
+	 * Find correct transaction envelope in the list.
+	 */
+	if (list_empty(&transaction_from_device_list)) {
+		return ENOENT;
+	}
+	
+	transaction_t *transaction = NULL;
+	link_t *pos = transaction_from_device_list.next;
+	
+	while (pos != &transaction_from_device_list) {
+		transaction_t *t = transaction_get_instance(pos);
+		if (usb_target_same(t->target, target)) {
+			transaction = t;
+			break;
+		}
+		pos = pos->next;
+	}
+	if (transaction == NULL) {
+		return ENOENT;
+	}
+	
+	/*
+	 * Remove the transaction from the list as it will be processed now.
+	 */
+	list_remove(&transaction->link);
+	
+	if (transaction->len < len) {
+		process_transaction_with_outcome(transaction, USB_OUTCOME_BABBLE);
+		return ENOMEM;
+	}
+	
+	/*
+	 * Copy the data and finish processing the transaction.
+	 */
+	transaction->len = len;
+	memcpy(transaction->buffer, buffer, len);
+	
+	process_transaction_with_outcome(transaction, USB_OUTCOME_OK);
+	
+	dprintf(" ...transaction " TRANSACTION_FORMAT " sent back",
 	    TRANSACTION_PRINTF(*transaction));
-
-	list_append(&transaction->link, &transaction_list);
-}
-
-void hc_add_out_transaction(usb_transfer_type_t type, usb_target_t target,
-    void * buffer, size_t len,
-    hc_transaction_done_callback_t callback, void * arg)
-{
-	hc_add_transaction(type, target, USB_DIRECTION_OUT,
-	    buffer, len, callback, arg);
-}
-
-void hc_add_in_transaction(usb_transfer_type_t type, usb_target_t target,
-    void * buffer, size_t len,
-    hc_transaction_done_callback_t callback, void * arg)
-{
-	static unsigned int seed = 216;
 	
-	size_t i;
-	char * data = (char *)buffer;
-	for (i = 0; i < len; i++, data++) {
-		*data = 'A' + (pseudo_random(&seed) % ('Z' - 'A'));
-	}
 	
-	unsigned int shortening = pseudo_random(&seed) % SHORTENING_VAR;
-	if (len > shortening) {
-		len -= shortening;
-	}
+	free(transaction);
 	
-	hc_add_transaction(type, target, USB_DIRECTION_IN,
-	    buffer, len, callback, arg);
+	return EOK;
 }
 
 /**

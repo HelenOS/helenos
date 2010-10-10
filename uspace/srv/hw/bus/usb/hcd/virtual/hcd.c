@@ -44,8 +44,10 @@
 #include <str_error.h>
 
 #include <usb/hcd.h>
+#include <usb/virtdev.h>
 #include "vhcd.h"
 #include "hc.h"
+#include "devices.h"
 
 static usb_transaction_handle_t g_handle_seed = 1;
 static usb_transaction_handle_t create_transaction_handle(int phone)
@@ -60,6 +62,7 @@ typedef struct {
 
 static void out_callback(void * buffer, size_t len, usb_transaction_outcome_t outcome, void * arg)
 {
+	dprintf("out_callback(buffer, %u, %d, %p)", len, outcome, arg);
 	(void)len;
 	transaction_details_t * trans = (transaction_details_t *)arg;
 	
@@ -71,6 +74,7 @@ static void out_callback(void * buffer, size_t len, usb_transaction_outcome_t ou
 
 static void in_callback(void * buffer, size_t len, usb_transaction_outcome_t outcome, void * arg)
 {
+	dprintf("in_callback(buffer, %u, %d, %p)", len, outcome, arg);
 	transaction_details_t * trans = (transaction_details_t *)arg;
 	
 	ipc_call_t answer_data;
@@ -139,7 +143,7 @@ static void handle_data_to_function(ipc_callid_t iid, ipc_call_t icall, int call
 	trans->handle = handle;
 	
 	dprintf("adding transaction to HC", NAME);
-	hc_add_out_transaction(transf_type, target,
+	hc_add_transaction_to_device(transf_type, target,
 	    buffer, len,
 	    out_callback, trans);
 	
@@ -175,7 +179,7 @@ static void handle_data_from_function(ipc_callid_t iid, ipc_call_t icall, int ca
 	trans->handle = handle;
 	
 	dprintf("adding transaction to HC", NAME);
-	hc_add_in_transaction(transf_type, target,
+	hc_add_transaction_from_device(transf_type, target,
 	    buffer, len,
 	    in_callback, trans);
 	
@@ -183,6 +187,78 @@ static void handle_data_from_function(ipc_callid_t iid, ipc_call_t icall, int ca
 	dprintf("transfer from function scheduled (handle %d)", handle);
 }
 
+static void handle_data_from_device(ipc_callid_t iid, ipc_call_t icall, virtdev_connection_t *dev)
+{
+	usb_endpoint_t endpoint = IPC_GET_ARG1(icall);
+	usb_target_t target = {
+		.address = dev->address,
+		.endpoint = endpoint
+	};
+	size_t len;
+	void * buffer;
+	int rc = async_data_write_accept(&buffer, false,
+	    1, USB_MAX_PAYLOAD_SIZE,
+	    0, &len);
+	
+	if (rc != EOK) {
+		ipc_answer_0(iid, rc);
+		return;
+	}
+	
+	rc = hc_fillin_transaction_from_device(USB_TRANSFER_INTERRUPT, target, buffer, len);
+	
+	ipc_answer_0(iid, rc);
+}
+
+static virtdev_connection_t *recognise_device(int id, int callback_phone)
+{
+	switch (id) {
+		case USB_VIRTDEV_KEYBOARD_ID:
+			return virtdev_add_device(
+			    USB_VIRTDEV_KEYBOARD_ADDRESS, callback_phone);
+		default:
+			return NULL;
+	}		
+}
+
+static void device_client_connection(int callback_phone, int device_id)
+{
+	virtdev_connection_t *dev = recognise_device(device_id, callback_phone);
+	if (!dev) {
+		if (callback_phone != -1) {
+			ipc_hangup(callback_phone);
+		}
+		return;
+	}
+	dprintf("device %d connected", device_id);
+	while (true) {
+		ipc_callid_t callid; 
+		ipc_call_t call; 
+		
+		callid = async_get_call(&call);
+		
+		switch (IPC_GET_METHOD(call)) {
+			case IPC_M_PHONE_HUNGUP:
+				if (callback_phone != -1) {
+					ipc_hangup(callback_phone);
+				}
+				ipc_answer_0(callid, EOK);
+				dprintf("hung-up on device %d", device_id);
+				virtdev_destroy_device(dev);
+				return;
+			case IPC_M_CONNECT_TO_ME:
+				ipc_answer_0(callid, ELIMIT);
+				break;
+			case IPC_M_USB_VIRTDEV_DATA_FROM_DEVICE:
+				dprintf("data from device %d", device_id);
+				handle_data_from_device(callid, call, dev);
+				break;
+			default:
+				ipc_answer_0(callid, EINVAL);
+				break;
+		}
+	}
+}
 
 static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
@@ -214,6 +290,14 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 				} else {
 					callback_phone = IPC_GET_ARG5(call);
 					ipc_answer_0(callid, EOK);
+				}
+				if (IPC_GET_ARG1(call) == 1) {
+					/* Virtual device was just connected
+					 * to us. This is handled elsewhere.
+					 */
+					device_client_connection(callback_phone,
+					    IPC_GET_ARG2(call));
+					return;
 				}
 				break;
 			

@@ -26,31 +26,32 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup usb
+/** @addtogroup libusb usb
  * @{
  */
 /** @file
- * @brief Virtual HC.
+ * @brief Virtual USB device.
  */
-#ifndef VHCD_HC_H_
-#define VHCD_HC_H_
+#ifndef LIBUSB_VIRTDEV_H_
+#define LIBUSB_VIRTDEV_H_
 
-#include <usb/hcd.h>
+#include <ipc/ipc.h>
+#include <async.h>
+#include "hcd.h"
 
-typedef void (*hc_transaction_done_callback_t)(void *, size_t, usb_transaction_outcome_t, void *);
+#define USB_VIRTDEV_KEYBOARD_ID 1
+#define USB_VIRTDEV_KEYBOARD_ADDRESS 1
 
-void hc_manager(void);
+typedef void (*usb_virtdev_on_data_from_host_t)(usb_endpoint_t, void *, size_t);
 
-void hc_add_transaction_to_device(usb_transfer_type_t type, usb_target_t target,
-    void * buffer, size_t len,
-    hc_transaction_done_callback_t callback, void * arg);
+int usb_virtdev_connect(const char *, int, usb_virtdev_on_data_from_host_t);
+int usb_virtdev_data_to_host(int, usb_endpoint_t,
+    void *, size_t);
 
-void hc_add_transaction_from_device(usb_transfer_type_t type, usb_target_t target,
-    void * buffer, size_t len,
-    hc_transaction_done_callback_t callback, void * arg);
-
-int hc_fillin_transaction_from_device(usb_transfer_type_t type, usb_target_t target,
-    void * buffer, size_t len);
+typedef enum {
+	IPC_M_USB_VIRTDEV_DATA_TO_DEVICE = IPC_FIRST_USER_METHOD,
+	IPC_M_USB_VIRTDEV_DATA_FROM_DEVICE
+} usb_virtdev_method_t;
 
 #endif
 /**

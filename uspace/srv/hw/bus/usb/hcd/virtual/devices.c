@@ -30,29 +30,59 @@
  * @{
  */
 /** @file
- * @brief Virtual HC.
+ * @brief
  */
-#ifndef VHCD_HC_H_
-#define VHCD_HC_H_
 
-#include <usb/hcd.h>
+#include <ipc/ipc.h>
+#include <adt/list.h>
+#include <bool.h>
+#include <async.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <errno.h>
+#include <str_error.h>
 
-typedef void (*hc_transaction_done_callback_t)(void *, size_t, usb_transaction_outcome_t, void *);
+#include <usb/virtdev.h>
 
-void hc_manager(void);
+#include "devices.h"
 
-void hc_add_transaction_to_device(usb_transfer_type_t type, usb_target_t target,
-    void * buffer, size_t len,
-    hc_transaction_done_callback_t callback, void * arg);
+#define list_foreach(pos, head) \
+	for (pos = (head)->next; pos != (head); \
+        	pos = pos->next)
 
-void hc_add_transaction_from_device(usb_transfer_type_t type, usb_target_t target,
-    void * buffer, size_t len,
-    hc_transaction_done_callback_t callback, void * arg);
+LIST_INITIALIZE(devices);
 
-int hc_fillin_transaction_from_device(usb_transfer_type_t type, usb_target_t target,
-    void * buffer, size_t len);
+virtdev_connection_t *virtdev_find_by_address(usb_address_t address)
+{
+	link_t *pos;
+	list_foreach(pos, &devices) {
+		virtdev_connection_t *dev
+		    = list_get_instance(pos, virtdev_connection_t, link);
+		if (dev->address == address) {
+			return dev;
+		}
+	}
+	
+	return NULL;
+}
 
-#endif
+virtdev_connection_t *virtdev_add_device(usb_address_t address, int phone)
+{
+	virtdev_connection_t *dev = (virtdev_connection_t *)
+	    malloc(sizeof(virtdev_connection_t));
+	dev->phone = phone;
+	dev->address = address;
+	list_append(&dev->link, &devices);
+	
+	return dev;
+}
+
+ void virtdev_destroy_device(virtdev_connection_t *dev)
+{
+	list_remove(&dev->link);
+	free(dev);
+}
+
 /**
  * @}
  */

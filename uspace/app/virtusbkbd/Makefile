@@ -27,10 +27,12 @@
 #
 
 USPACE_PREFIX = ../..
-LIBRARY = libusb
-
+# acronym for virtual usb keyboard
+# (it is really annoying to write long names)
+BINARY = vuk
+LIBS = $(LIBUSB_PREFIX)/libusb.a
+EXTRA_CFLAGS = -I$(LIB_PREFIX)
 SOURCES = \
-	hcd.c \
-	virtdev.c
+	virtusbkbd.c
 
 include $(USPACE_PREFIX)/Makefile.common

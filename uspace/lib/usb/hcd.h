@@ -75,6 +75,12 @@ typedef struct {
 	usb_endpoint_t endpoint;
 } usb_target_t;
 
+static inline int usb_target_same(usb_target_t a, usb_target_t b)
+{
+	return (a.address == b.address)
+	    && (a.endpoint == b.endpoint);
+}
+
 /** Opaque handle of active USB transaction.
  * This handle is when informing about transaction outcome (or status).
  */

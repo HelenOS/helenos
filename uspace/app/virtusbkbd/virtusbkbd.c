@@ -29,30 +29,82 @@
 /** @addtogroup usb
  * @{
  */
-/** @file
- * @brief Virtual HC.
+/**
+ * @file
+ * @brief Virtual USB keyboard.
  */
-#ifndef VHCD_HC_H_
-#define VHCD_HC_H_
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <vfs/vfs.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <str_error.h>
+#include <bool.h>
+#include <async.h>
 
 #include <usb/hcd.h>
+#include <usb/virtdev.h>
 
-typedef void (*hc_transaction_done_callback_t)(void *, size_t, usb_transaction_outcome_t, void *);
+#define LOOPS 5
+#define NAME "virt-usb-kbd"
 
-void hc_manager(void);
+#define DEV_HCD_NAME "hcd-virt"
 
-void hc_add_transaction_to_device(usb_transfer_type_t type, usb_target_t target,
-    void * buffer, size_t len,
-    hc_transaction_done_callback_t callback, void * arg);
+#define __QUOTEME(x) #x
+#define _QUOTEME(x) __QUOTEME(x)
 
-void hc_add_transaction_from_device(usb_transfer_type_t type, usb_target_t target,
-    void * buffer, size_t len,
-    hc_transaction_done_callback_t callback, void * arg);
+#define VERBOSE_EXEC(cmd, fmt, ...) \
+	(printf("%s: %s" fmt "\n", NAME, _QUOTEME(cmd), __VA_ARGS__), cmd(__VA_ARGS__))
 
-int hc_fillin_transaction_from_device(usb_transfer_type_t type, usb_target_t target,
-    void * buffer, size_t len);
+static void fibril_sleep(size_t sec)
+{
+	while (sec-- > 0) {
+		async_usleep(1000*1000);
+	}
+}
 
-#endif
-/**
- * @}
+static void on_data_from_host(usb_endpoint_t endpoint, void *buffer, size_t len)
+{
+	printf("%s: ignoring incomming data to endpoint %d\n", NAME, endpoint);
+}
+
+int main(int argc, char * argv[])
+{
+	int vhcd_phone = usb_virtdev_connect(DEV_HCD_NAME,
+	    USB_VIRTDEV_KEYBOARD_ID, on_data_from_host);
+	
+	if (vhcd_phone < 0) {
+		printf("%s: Unable to start comunication with VHCD at usb://%s (%s).\n",
+		    NAME, DEV_HCD_NAME, str_error(vhcd_phone));
+		return vhcd_phone;
+	}
+	
+	
+	
+	size_t i;
+	for (i = 0; i < LOOPS; i++) {
+		size_t size = 5;
+		char *data = (char *) "Hullo, World!";
+		
+		if (i > 0) {
+			fibril_sleep(2);
+		}
+		
+		printf("%s: Will send data to VHCD...\n", NAME);
+		int rc = usb_virtdev_data_to_host(vhcd_phone, 0, data, size);
+		printf("%s:   ...data sent (%s).\n", NAME, str_error(rc));
+	}
+	
+	fibril_sleep(1);
+	printf("%s: Terminating...\n", NAME);
+	
+	ipc_hangup(vhcd_phone);
+	
+	return 0;
+}
+
+
+/** @}
  */
