@@ -624,10 +624,6 @@ int ip_connect_module(services_t service){
 	return EOK;
 }
 
-int ip_bind_service(services_t service, int protocol, services_t me, async_client_conn_t receiver, tl_received_msg_t received_msg){
-	return ip_register(protocol, me, 0, received_msg);
-}
-
 int ip_register(int protocol, services_t service, int phone, tl_received_msg_t received_msg){
 	ip_proto_ref proto;
 	int index;

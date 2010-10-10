@@ -409,8 +409,6 @@ int nil_message_standalone(const char *name, ipc_callid_t callid, ipc_call_t *ca
 	return ENOTSUP;
 }
 
-#ifndef CONFIG_NETIF_NIL_BUNDLE
-
 /** Default thread for new connections.
  *
  * @param[in] iid   The initial message identifier.
@@ -459,8 +457,6 @@ int main(int argc, char *argv[])
 	
 	return EOK;
 }
-
-#endif /* CONFIG_NETIF_NIL_BUNDLE */
 
 /** @}
  */

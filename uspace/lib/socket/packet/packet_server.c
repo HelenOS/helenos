@@ -84,13 +84,7 @@ static struct{
 	 */
 	unsigned int count;
 } ps_globals = {
-	.lock = {
-		.counter = 1,
-		.waiters = {
-			.prev = &ps_globals.lock.waiters,
-			.next = &ps_globals.lock.waiters,
-		}
-	},
+	.lock = FIBRIL_MUTEX_INITIALIZER(ps_globals.lock),
 	.free = {NULL, NULL, NULL, NULL, NULL, NULL, NULL},
 	.sizes = {PAGE_SIZE, PAGE_SIZE * 2, PAGE_SIZE * 4, PAGE_SIZE * 8, PAGE_SIZE * 16, PAGE_SIZE * 32, PAGE_SIZE * 64},
 	.count = 0

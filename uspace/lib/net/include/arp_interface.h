@@ -103,12 +103,10 @@ extern int arp_clean_cache_req(int arp_phone);
 /** Connects to the ARP module.
  *  @param service The ARP module service. Ignored parameter.
  *  @returns The ARP module phone on success.
- *  @returns 0 if called by the bundle module.
  */
 extern int arp_connect_module(services_t service);
 
 /** Returns the ARP task identifier.
- *  @returns The current task identifier if called by the bundle module.
  *  @returns 0 if called by the remote module.
  */
 extern task_id_t arp_task_get_id(void);

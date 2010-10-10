@@ -67,23 +67,11 @@
 	    netif_service)
 
 
-#ifdef CONFIG_NETIF_NIL_BUNDLE
-
-#include <nil_local.h>
-#include <packet/packet_server.h>
-
-#define nil_device_state_msg  nil_device_state_msg_local
-#define nil_received_msg      nil_received_msg_local
-
-#else /* CONFIG_NETIF_NIL_BUNDLE */
-
 #include <nil_remote.h>
 #include <packet/packet_server.h>
 
 #define nil_device_state_msg  nil_device_state_msg_remote
 #define nil_received_msg      nil_received_msg_remote
-
-#endif /* CONFIG_NETIF_NIL_BUNDLE */
 
 #endif
 

@@ -33,7 +33,6 @@
 /** @file
  * Network interface module skeleton.
  * The skeleton has to be part of each network interface module.
- * The skeleton can be also part of the module bundled with the network interface layer.
  */
 
 #ifndef __NET_NETIF_LOCAL_H__

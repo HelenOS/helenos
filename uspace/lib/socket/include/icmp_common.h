@@ -49,7 +49,6 @@
  *  @param service The ICMP module service. Ignored parameter.
  *  @param[in] timeout The connection timeout in microseconds. No timeout if set to zero (0).
  *  @returns The ICMP module phone on success.
- *  @returns The ICMP socket identifier if called by the bundle module.
  *  @returns ETIMEOUT if the connection timeouted.
  */
 extern int icmp_connect_module(services_t service, suseconds_t timeout);

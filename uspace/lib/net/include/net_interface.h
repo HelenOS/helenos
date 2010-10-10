@@ -84,7 +84,6 @@ extern void net_free_settings(measured_string_ref settings, char * data);
 /** Connects to the networking module.
  *  @param service The networking module service. Ignored parameter.
  *  @returns The networking module phone on success.
- *  @returns 0 if called by the bundle module.
  */
 extern int net_connect_module(services_t service);
 

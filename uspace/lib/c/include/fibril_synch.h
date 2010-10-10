@@ -46,14 +46,17 @@ typedef struct {
 	link_t waiters;
 } fibril_mutex_t;
 
-#define FIBRIL_MUTEX_INITIALIZE(name) \
-	fibril_mutex_t name = {	\
+#define FIBRIL_MUTEX_INITIALIZER(name) \
+	{ \
 		.counter = 1, \
 		.waiters = { \
 			.prev = &name.waiters, \
 			.next = &name.waiters, \
 		} \
 	}
+	
+#define FIBRIL_MUTEX_INITIALIZE(name) \
+	fibril_mutex_t name = FIBRIL_MUTEX_INITIALIZER(name) 
 
 typedef struct {
 	unsigned writers;
@@ -61,8 +64,8 @@ typedef struct {
 	link_t waiters;
 } fibril_rwlock_t;
 
-#define FIBRIL_RWLOCK_INITIALIZE(name) \
-	fibril_rwlock_t name = { \
+#define FIBRIL_RWLOCK_INITIALIZER(name) \
+	{ \
 		.readers = 0, \
 		.writers = 0, \
 		.waiters = { \
@@ -71,17 +74,23 @@ typedef struct {
 		} \
 	}
 
+#define FIBRIL_RWLOCK_INITIALIZE(name) \
+	fibril_rwlock_t name = FIBRIL_RWLOCK_INITIALIZER(name)
+
 typedef struct {
 	link_t waiters;
 } fibril_condvar_t;
 
-#define FIBRIL_CONDVAR_INITIALIZE(name) \
-	fibril_condvar_t name = { \
+#define FIBRIL_CONDVAR_INITIALIZER(name) \
+	{ \
 		.waiters = { \
 			.next = &name.waiters, \
 			.prev = &name.waiters, \
 		} \
 	}
+
+#define FIBRIL_CONDVAR_INITIALIZE(name) \
+	fibril_condvar_t name = FIBRIL_CONDVAR_INITIALIZER(name)
 
 extern void fibril_mutex_initialize(fibril_mutex_t *);
 extern void fibril_mutex_lock(fibril_mutex_t *);

@@ -49,7 +49,6 @@
 #include <packet_remote.h>
 #include <net_device.h>
 #include <icmp_interface.h>
-#include <ip_local.h>
 #include <ip_remote.h>
 #include <ip_interface.h>
 #include <tl_interface.h>

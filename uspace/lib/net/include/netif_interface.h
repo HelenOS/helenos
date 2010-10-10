@@ -33,24 +33,6 @@
 #ifndef __NET_NETIF_INTERFACE_H__
 #define __NET_NETIF_INTERFACE_H__
 
-#ifdef CONFIG_NETIF_NIL_BUNDLE
-
-#include <netif_local.h>
-#include <netif_nil_bundle.h>
-#include <packet/packet_server.h>
-
-#define netif_module_message    netif_nil_module_message
-#define netif_module_start      netif_nil_module_start
-#define netif_get_addr_req      netif_get_addr_req_local
-#define netif_probe_req         netif_probe_req_local
-#define netif_send_msg          netif_send_msg_local
-#define netif_start_req         netif_start_req_local
-#define netif_stop_req          netif_stop_req_local
-#define netif_stats_req         netif_stats_req_local
-#define netif_bind_service      netif_bind_service_local
-
-#else /* CONFIG_NETIF_NIL_BUNDLE */
-
 #include <netif_remote.h>
 #include <packet_client.h>
 
@@ -63,8 +45,6 @@
 #define netif_stop_req          netif_stop_req_remote
 #define netif_stats_req         netif_stats_req_remote
 #define netif_bind_service      netif_bind_service_remote
-
-#endif /* CONFIG_NETIF_NIL_BUNDLE */
 
 #endif
 

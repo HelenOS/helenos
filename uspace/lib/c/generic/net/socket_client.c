@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc 
+/** @addtogroup libc
  *  @{
  */
 
@@ -176,14 +176,7 @@ static struct socket_client_globals {
 	.udp_phone = -1,
 //	.last_id = 0,
 	.sockets = NULL,
-	.lock = {
-		.readers = 0,
-		.writers = 0,
-		.waiters = {
-			.prev = &socket_globals.lock.waiters,	/* XXX */
-			.next = &socket_globals.lock.waiters	/* XXX */
-		}
-	}
+	.lock = FIBRIL_RWLOCK_INITIALIZER(socket_globals.lock)
 };
 
 INT_MAP_IMPLEMENT(sockets, socket_t);
@@ -515,16 +508,16 @@ int socket(int domain, int type, int protocol)
 
 /** Sends message to the socket parent module with specified data.
  *
- *  @param[in] socket_id Socket identifier.
- *  @param[in] message	The action message.
- *  @param[in] arg2	The second message parameter.
- *  @param[in] data	The data to be sent.
- *  @param[in] datalength The data length.
- *  @returns		EOK on success.
- *  @returns		ENOTSOCK if the socket is not found.
- *  @returns		EBADMEM if the data parameter is NULL.
- *  @returns		NO_DATA if the datalength parameter is zero (0).
- *  @returns		Other error codes as defined for the spcific message.
+ * @param[in] socket_id	Socket identifier.
+ * @param[in] message	The action message.
+ * @param[in] arg2	The second message parameter.
+ * @param[in] data	The data to be sent.
+ * @param[in] datalength The data length.
+ * @returns		EOK on success.
+ * @returns		ENOTSOCK if the socket is not found.
+ * @returns		EBADMEM if the data parameter is NULL.
+ * @returns		NO_DATA if the datalength parameter is zero (0).
+ * @returns		Other error codes as defined for the spcific message.
  */
 static int
 socket_send_data(int socket_id, ipcarg_t message, ipcarg_t arg2,
@@ -804,22 +797,22 @@ int closesocket(int socket_id)
 
 /** Sends data via the socket to the remote address.
  *
- *  Binds the socket to a free port if not already connected/bound.
+ * Binds the socket to a free port if not already connected/bound.
  *
- *  @param[in] message	The action message.
- *  @param[in] socket_id Socket identifier.
- *  @param[in] data	The data to be sent.
- *  @param[in] datalength The data length.
- *  @param[in] flags	Various send flags.
- *  @param[in] toaddr	The destination address. May be NULL for connected
+ * @param[in] message	The action message.
+ * @param[in] socket_id Socket identifier.
+ * @param[in] data	The data to be sent.
+ * @param[in] datalength The data length.
+ * @param[in] flags	Various send flags.
+ * @param[in] toaddr	The destination address. May be NULL for connected
  *			sockets.
- *  @param[in] addrlen	The address length. Used only if toaddr is not NULL.
- *  @returns		EOK on success.
- *  @returns		ENOTSOCK if the socket is not found.
- *  @returns		EBADMEM if the data or toaddr parameter is NULL.
- *  @returns		NO_DATA if the datalength or the addrlen parameter is
+ * @param[in] addrlen	The address length. Used only if toaddr is not NULL.
+ * @returns		EOK on success.
+ * @returns		ENOTSOCK if the socket is not found.
+ * @returns		EBADMEM if the data or toaddr parameter is NULL.
+ * @returns		NO_DATA if the datalength or the addrlen parameter is
  *			zero (0).
- *  @returns		Other error codes as defined for the NET_SOCKET_SENDTO
+ * @returns		Other error codes as defined for the NET_SOCKET_SENDTO
  *			message.
  */
 static int
@@ -965,20 +958,20 @@ sendto(int socket_id, const void *data, size_t datalength, int flags,
 
 /** Receives data via the socket.
  *
- *  @param[in] message	The action message.
- *  @param[in] socket_id Socket identifier.
- *  @param[out] data	The data buffer to be filled.
- *  @param[in] datalength The data length.
- *  @param[in] flags	Various receive flags.
- *  @param[out] fromaddr The source address. May be NULL for connected sockets.
- *  @param[in,out] addrlen The address length. The maximum address length is
+ * @param[in] message	The action message.
+ * @param[in] socket_id	Socket identifier.
+ * @param[out] data	The data buffer to be filled.
+ * @param[in] datalength The data length.
+ * @param[in] flags	Various receive flags.
+ * @param[out] fromaddr	The source address. May be NULL for connected sockets.
+ * @param[in,out] addrlen The address length. The maximum address length is
  *			read. The actual address length is set. Used only if
  *			fromaddr is not NULL.
- *  @returns		EOK on success.
- *  @returns		ENOTSOCK if the socket is not found.
- *  @returns		EBADMEM if the data parameter is NULL.
- *  @returns		NO_DATA if the datalength or addrlen parameter is zero.
- *  @returns		Other error codes as defined for the spcific message.
+ * @returns		EOK on success.
+ * @returns		ENOTSOCK if the socket is not found.
+ * @returns		EBADMEM if the data parameter is NULL.
+ * @returns		NO_DATA if the datalength or addrlen parameter is zero.
+ * @returns		Other error codes as defined for the spcific message.
  */
 static int
 recvfrom_core(ipcarg_t message, int socket_id, void *data, size_t datalength,

@@ -40,7 +40,6 @@ SOURCES = \
 	adt/module_map.c \
 	netif/netif_local.c \
 	netif/netif_remote.c \
-	netif/netif_nil_bundle.c \
 	nil/nil_remote.c \
 	il/ip_remote.c \
 	il/ip_client.c \

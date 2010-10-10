@@ -43,20 +43,6 @@
 #include <net/in.h>
 #include <ip_codes.h>
 
-#ifdef CONFIG_IL_TL_BUNDLE
-
-#include <ip_local.h>
-
-#define ip_received_error_msg  ip_received_error_msg_local
-#define ip_set_gateway_req     ip_set_gateway_req_local
-#define ip_packet_size_req     ip_packet_size_req_local
-#define ip_device_req          ip_device_req_local
-#define ip_add_route_req       ip_add_route_req_local
-#define ip_send_msg            ip_send_msg_local
-#define ip_get_route_req       ip_get_route_req_local
-
-#else
-
 #include <ip_remote.h>
 
 #define ip_received_error_msg  ip_received_error_msg_remote
@@ -66,8 +52,6 @@
 #define ip_add_route_req       ip_add_route_req_remote
 #define ip_send_msg            ip_send_msg_remote
 #define ip_get_route_req       ip_get_route_req_remote
-
-#endif
 
 /** @name IP module interface
  *  This interface is used by other modules.
@@ -99,7 +83,6 @@ extern int ip_bind_service(services_t service, int protocol, services_t me, asyn
 /** Connects to the IP module.
  *  @param service The IP module service. Ignored parameter.
  *  @returns The IP module phone on success.
- *  @returns 0 if called by the bundle module.
  */
 extern int ip_connect_module(services_t service);
 
