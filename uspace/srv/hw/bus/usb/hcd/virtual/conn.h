@@ -28,32 +28,19 @@
 
 /** @addtogroup usb
  * @{
- */ 
-/** @file
- * @brief Virtual device management.
  */
-#ifndef VHCD_DEVICES_H_
-#define VHCD_DEVICES_H_
+/** @file
+ * @brief Connection handling of incoming calls.
+ */
+#ifndef VHCD_CONN_H_
+#define VHCD_CONN_H_
 
-#include <adt/list.h>
 #include <usb/hcd.h>
+#include "vhcd.h"
+#include "devices.h"
 
-/** Connected virtual device. */
-typedef struct {
-	/** Assigned USB address. */
-	usb_address_t address;
-	/** Phone used when sending data to device. */
-	int phone;
-	/** Device id. */
-	int id;
-	/** Linked-list handle. */
-	link_t link;
-} virtdev_connection_t;
-
-virtdev_connection_t *virtdev_recognise(int, int);
-virtdev_connection_t *virtdev_find_by_address(usb_address_t);
-virtdev_connection_t *virtdev_add_device(usb_address_t, int);
-void virtdev_destroy_device(virtdev_connection_t *);
+void connection_handler_host(ipcarg_t, int);
+void connection_handler_device(ipcarg_t, virtdev_connection_t *);
 
 #endif
 /**

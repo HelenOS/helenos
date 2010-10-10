@@ -37,7 +37,15 @@
 
 #include <usb/hcd.h>
 
-typedef void (*hc_transaction_done_callback_t)(void *, size_t, usb_transaction_outcome_t, void *);
+/** Callback after transaction is sent to USB.
+ *
+ * @param buffer Transaction data buffer.
+ * @param size Transaction data size.
+ * @param outcome Transaction outcome.
+ * @param arg Custom argument.
+ */
+typedef void (*hc_transaction_done_callback_t)(void *buffer, size_t size,
+    usb_transaction_outcome_t outcome, void *arg);
 
 void hc_manager(void);
 

@@ -40,6 +40,9 @@
 
 #define DEVMAP_PATH NAMESPACE "/" NAME
 
+/** Debugging printf.
+ * @see printf
+ */
 static inline void dprintf(const char * format, ...)
 {
 	printf("%s:   ", NAME);

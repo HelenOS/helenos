@@ -30,7 +30,7 @@
  * @{
  */
 /** @file
- * @brief
+ * @brief Virtual device management (implementation).
  */
 
 #include <ipc/ipc.h>
@@ -52,6 +52,41 @@
 
 LIST_INITIALIZE(devices);
 
+/** Recognise device by id.
+ *
+ * @param id Device id.
+ * @param phone Callback phone.
+ */
+virtdev_connection_t *virtdev_recognise(int id, int phone)
+{
+	virtdev_connection_t * dev = NULL;
+	switch (id) {
+		case USB_VIRTDEV_KEYBOARD_ID:
+			dev = virtdev_add_device(
+			    USB_VIRTDEV_KEYBOARD_ADDRESS, phone);
+			break;
+		default:
+			break;
+	}
+	
+	/*
+	 * We do not want to mess-up the virtdev_add_device() as
+	 * the id is needed only before device probing/detection
+	 * is implemented.
+	 *
+	 * However, that does not mean that this will happen soon.
+	 */
+	if (dev) {
+		dev->id = id;
+	}
+	
+	return dev;
+}
+
+/** Find virtual device by its USB address.
+ *
+ * @retval NULL No virtual device at given address.
+ */
 virtdev_connection_t *virtdev_find_by_address(usb_address_t address)
 {
 	link_t *pos;
@@ -66,8 +101,24 @@ virtdev_connection_t *virtdev_find_by_address(usb_address_t address)
 	return NULL;
 }
 
+/** Create virtual device.
+ *
+ * @param address USB address.
+ * @param phone Callback phone.
+ * @return New device.
+ * @retval NULL Out of memory or address already occupied.
+ */
 virtdev_connection_t *virtdev_add_device(usb_address_t address, int phone)
 {
+	link_t *pos;
+	list_foreach(pos, &devices) {
+		virtdev_connection_t *dev
+		    = list_get_instance(pos, virtdev_connection_t, link);
+		if (dev->address == address) {
+			return NULL;
+		}
+	}
+	
 	virtdev_connection_t *dev = (virtdev_connection_t *)
 	    malloc(sizeof(virtdev_connection_t));
 	dev->phone = phone;
@@ -77,7 +128,9 @@ virtdev_connection_t *virtdev_add_device(usb_address_t address, int phone)
 	return dev;
 }
 
- void virtdev_destroy_device(virtdev_connection_t *dev)
+/** Destroy virtual device.
+ */
+void virtdev_destroy_device(virtdev_connection_t *dev)
 {
 	list_remove(&dev->link);
 	free(dev);
