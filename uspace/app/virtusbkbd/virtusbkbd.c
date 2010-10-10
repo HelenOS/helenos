@@ -45,6 +45,7 @@
 #include <async.h>
 
 #include <usb/hcd.h>
+#include <usb/device.h>
 #include <usbvirt/device.h>
 #include <usbvirt/hub.h>
 #include <usbvirt/ids.h>
@@ -68,6 +69,17 @@ static int on_incoming_data(struct usbvirt_device *dev,
 	return EOK;
 }
 
+static usb_standard_device_descriptor_t std_descriptor = {
+	.length = sizeof(usb_standard_device_descriptor_t),
+	.descriptor_type = 1,
+	.usb_spec_version = 0x110,
+	.device_class = 0x03,
+	.device_subclass = 0,
+	.device_protocol = 0,
+	.max_packet_size = 64,
+	.configuration_count = 1
+};
+
 /** Keyboard callbacks.
  * We abuse the fact that static variables are zero-filled.
  */
@@ -80,6 +92,7 @@ static usbvirt_device_ops_t keyboard_ops = {
  */
 static usbvirt_device_t keyboard_dev = {
 	.ops = &keyboard_ops,
+	.standard_descriptor = &std_descriptor,
 	.device_id_ = USBVIRT_DEV_KEYBOARD_ID
 };
 

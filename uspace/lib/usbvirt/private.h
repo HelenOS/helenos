@@ -40,6 +40,12 @@
 
 extern usbvirt_device_t *device;
 
+#define DEVICE_HAS_OP(dev, op) \
+	( \
+		(  ((dev)->ops) != NULL  ) \
+		&& \
+		(  ((dev)->ops->op) != NULL  ) \
+	)
 
 int usbvirt_data_to_host(struct usbvirt_device *dev,
     usb_endpoint_t endpoint, void *buffer, size_t size);
@@ -47,6 +53,10 @@ int usbvirt_data_to_host(struct usbvirt_device *dev,
 int handle_incoming_data(usb_endpoint_t endpoint, void *buffer, size_t size);
 
 int control_pipe(void *buffer, size_t size);
+
+int handle_std_request(usb_direction_t direction, int recipient,
+    uint16_t request, uint16_t value, uint16_t index, uint16_t length,
+    uint8_t *remaining_data);
 
 #endif
 /**

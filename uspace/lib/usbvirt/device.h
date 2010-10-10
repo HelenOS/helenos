@@ -36,13 +36,15 @@
 #define LIBUSBVIRT_DEVICE_H_
 
 #include <usb/hcd.h>
+#include <usb/device.h>
 #include <usb/devreq.h>
 
 struct usbvirt_device;
 
 typedef int (*usbvirt_on_devreq_t)(struct usbvirt_device *dev,
     usb_direction_t, int recipient,
-    usb_stddevreq_t, int value, int index, int length);
+    uint8_t request, uint16_t value, uint16_t index, uint16_t length,
+    uint8_t *remaining_data);
 
 typedef struct {
 	usbvirt_on_devreq_t on_devreq_std;
@@ -62,6 +64,19 @@ typedef struct usbvirt_device {
 	 */
 	int (*send_data)(struct usbvirt_device *dev,
 	    usb_endpoint_t endpoint, void *buffer, size_t size);
+	
+	
+	
+	/* Device attributes. */
+	
+	/** Standard device descriptor.
+	 * If this descriptor is set (i.e. not NULL), the framework
+	 * automatically handles call for its retrieval.
+	 */
+	usb_standard_device_descriptor_t *standard_descriptor;
+	
+	
+	/* Private attributes. */
 	
 	/** Phone to HC.
 	 * @warning Do not change, this is private variable.

@@ -35,6 +35,7 @@ EXTRA_CFLAGS = -I$(LIB_PREFIX)
 SOURCES = \
 	ctrlpipe.c \
 	incoming.c \
-	main.c
+	main.c \
+	stdreq.c
 
 include $(USPACE_PREFIX)/Makefile.common
