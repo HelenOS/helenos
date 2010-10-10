@@ -30,66 +30,22 @@
  * @{
  */
 /** @file
- * @brief Standard USB device requests.
+ * @brief USB HID device related types.
  */
-#ifndef LIBUSB_DEVREQ_H_
-#define LIBUSB_DEVREQ_H_
+#ifndef LIBUSB_HID_H_
+#define LIBUSB_HID_H_
 
-#include <ipc/ipc.h>
-#include <async.h>
-
-/** Standard device request. */
+/** USB/HID device requests. */
 typedef enum {
-	USB_DEVREQ_GET_STATUS = 0,
-	USB_DEVREQ_CLEAR_FEATURE = 1,
-	USB_DEVREQ_SET_FEATURE = 3,
-	USB_DEVREQ_SET_ADDRESS = 5,
-	USB_DEVREQ_GET_DESCRIPTOR = 6,
-	USB_DEVREQ_SET_DESCRIPTOR = 7,
-	USB_DEVREQ_GET_CONFIGURATION = 8,
-	USB_DEVREQ_SET_CONFIGURATION = 9,
-	USB_DEVREQ_GET_INTERFACE = 10,
-	USB_DEVREQ_SET_INTERFACE = 11,
-	USB_DEVREQ_SYNCH_FRAME = 12,
-	USB_DEVREQ_LAST_STD
-} usb_stddevreq_t;
+	USB_HIDREQ_GET_REPORT = 1,
+	USB_HIDREQ_GET_IDLE = 2,
+	USB_HIDREQ_GET_PROTOCOL = 3,
+	/* Values 4 to 8 are reserved. */
+	USB_HIDREQ_SET_REPORT = 9,
+	USB_HIDREQ_SET_IDLE = 10,
+	USB_HIDREQ_SET_PROTOCOL = 11
+} usb_hid_request_t;
 
-/** Descriptor type. */
-typedef enum {
-	USB_DESCTYPE_DEVICE = 1,
-	USB_DESCTYPE_CONFIGURATION = 2,
-	USB_DESCTYPE_STRING = 3,
-	USB_DESCTYPE_INTERFACE = 4,
-	USB_DESCTYPE_ENDPOINT = 5
-} usb_descriptor_type_t;
-
-/** Device request setup packet.
- * The setup packet describes the request.
- */
-typedef struct {
-	/** Request type.
-	 * The type combines transfer direction, request type and
-	 * intended recipient.
-	 */
-	uint8_t request_type;
-	/** Request identification. */
-	uint8_t request;
-	/** Main parameter to the request. */
-	union {
-		/* FIXME: add #ifdefs according to host endianess */
-		struct {
-			uint8_t value_low;
-			uint8_t value_high;
-		};
-		uint16_t value;
-	};
-	/** Auxilary parameter to the request.
-	 * Typically, it is offset to something.
-	 */
-	uint16_t index;
-	/** Length of extra data. */
-	uint16_t length;
-} __attribute__ ((packed)) usb_device_request_setup_packet_t;
 
 #endif
 /**
