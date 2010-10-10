@@ -99,7 +99,6 @@ extern int ip_bind_service(services_t service, int protocol, services_t me, asyn
 /** Connects to the IP module.
  *  @param service The IP module service. Ignored parameter.
  *  @returns The IP module phone on success.
- *  @returns 0 if called by the bundle module.
  */
 extern int ip_connect_module(services_t service);
 

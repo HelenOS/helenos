@@ -93,8 +93,7 @@ int net_initialize_build(async_client_conn_t client_connection){
  *
  * @return EOK on success.
  * @return ENOTSUP if the message is not known.
- * @return Other error codes as defined for each bundled module
- *         message function.
+ * @return Other error codes.
  *
  */
 int net_module_message(ipc_callid_t callid, ipc_call_t *call,
