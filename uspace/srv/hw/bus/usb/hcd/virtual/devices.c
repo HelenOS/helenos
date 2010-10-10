@@ -42,7 +42,7 @@
 #include <errno.h>
 #include <str_error.h>
 
-#include <usb/virtdev.h>
+#include <usbvirt/ids.h>
 
 #include "devices.h"
 
@@ -61,9 +61,9 @@ virtdev_connection_t *virtdev_recognise(int id, int phone)
 {
 	virtdev_connection_t * dev = NULL;
 	switch (id) {
-		case USB_VIRTDEV_KEYBOARD_ID:
+		case USBVIRT_DEV_KEYBOARD_ID:
 			dev = virtdev_add_device(
-			    USB_VIRTDEV_KEYBOARD_ADDRESS, phone);
+			    USBVIRT_DEV_KEYBOARD_ADDRESS, phone);
 			break;
 		default:
 			break;

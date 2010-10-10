@@ -26,22 +26,26 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusb usb
+/** @addtogroup libusbvirt usb
  * @{
  */
 /** @file
- * @brief Virtual USB device (implementation).
+ * @brief Main handler for virtual USB device.
  */
-#include "virtdev.h"
 #include <devmap.h>
 #include <fcntl.h>
 #include <vfs/vfs.h>
 #include <errno.h>
 #include <stdlib.h>
 
+#include "hub.h"
+#include "device.h"
+#include "private.h"
+
 #define NAMESPACE "usb"
 
-static usb_virtdev_on_data_from_host_t on_data_from_host = NULL;
+usbvirt_device_t *device = NULL;
+
 
 static void handle_data_to_device(ipc_callid_t iid, ipc_call_t icall)
 {
@@ -58,7 +62,7 @@ static void handle_data_to_device(ipc_callid_t iid, ipc_call_t icall)
 		return;
 	}
 	
-	on_data_from_host(endpoint, buffer, len);
+	handle_incoming_data(endpoint, buffer, len);
 	
 	free(buffer);
 	
@@ -79,7 +83,7 @@ static void callback_connection(ipc_callid_t iid, ipc_call_t *icall)
 				ipc_answer_0(callid, EOK);
 				return;
 			
-			case IPC_M_USB_VIRTDEV_DATA_TO_DEVICE:
+			case IPC_M_USBVIRT_DATA_TO_DEVICE:
 				handle_data_to_device(callid, call);
 				break;
 			
@@ -88,6 +92,43 @@ static void callback_connection(ipc_callid_t iid, ipc_call_t *icall)
 				break;
 		}
 	}
+}
+
+int usbvirt_data_to_host(struct usbvirt_device *dev,
+    usb_endpoint_t endpoint, void *buffer, size_t size)
+{
+	int phone = dev->vhcd_phone_;
+	
+	if (phone < 0) {
+		return EINVAL;
+	}
+	if ((buffer == NULL) || (size == 0)) {
+		return EINVAL;
+	}
+
+	ipc_call_t answer_data;
+	ipcarg_t answer_rc;
+	aid_t req;
+	int rc;
+	
+	req = async_send_1(phone,
+	    IPC_M_USBVIRT_DATA_FROM_DEVICE,
+	    endpoint,
+	    &answer_data);
+	
+	rc = async_data_write_start(phone, buffer, size);
+	if (rc != EOK) {
+		async_wait_for(req, NULL);
+		return rc;
+	}
+	
+	async_wait_for(req, &answer_rc);
+	rc = (int)answer_rc;
+	if (rc != EOK) {
+		return rc;
+	}
+	
+	return EOK;
 }
 
 /** Create necessary phones for comunication with virtual HCD.
@@ -106,10 +147,9 @@ static void callback_connection(ipc_callid_t iid, ipc_call_t *icall)
  *     (without <code>/dev/usb/</code>).
  * @param device_id Internal device identification (used by HCD).
  * @param callback Handler for callbacks from HCD.
- * @return Phone for comunicating with HCD or error code from errno.h.
+ * @return EOK on success or error code from errno.h.
  */
-int usb_virtdev_connect(const char *hcd_path, int device_id,
-    usb_virtdev_on_data_from_host_t callback)
+int usbvirt_connect(usbvirt_device_t *dev, const char *hcd_path)
 {
 	char dev_path[DEVMAP_NAME_MAXLEN + 1];
 	snprintf(dev_path, DEVMAP_NAME_MAXLEN,
@@ -127,51 +167,31 @@ int usb_virtdev_connect(const char *hcd_path, int device_id,
 	}
 	
 	ipcarg_t phonehash;
-	int rc = ipc_connect_to_me(hcd_phone, 1, device_id, 0, &phonehash);
+	int rc = ipc_connect_to_me(hcd_phone, 1, dev->device_id_, 0, &phonehash);
 	if (rc != EOK) {
 		return rc;
 	}
-	on_data_from_host = callback;
+	
+	dev->vhcd_phone_ = hcd_phone;
+	dev->send_data = usbvirt_data_to_host;
+	
+	device = dev;
+	
 	async_new_connection(phonehash, 0, NULL, callback_connection);
-	
-	return hcd_phone;
-}
-
-int usb_virtdev_data_to_host(int phone,
-    usb_endpoint_t endpoint,
-    void * buffer, size_t size)
-{
-	if (phone < 0) {
-		return EINVAL;
-	}
-	if ((buffer == NULL) || (size == 0)) {
-		return EINVAL;
-	}
-
-	ipc_call_t answer_data;
-	ipcarg_t answer_rc;
-	aid_t req;
-	int rc;
-	
-	req = async_send_1(phone,
-	    IPC_M_USB_VIRTDEV_DATA_FROM_DEVICE,
-	    endpoint,
-	    &answer_data);
-	
-	rc = async_data_write_start(phone, buffer, size);
-	if (rc != EOK) {
-		async_wait_for(req, NULL);
-		return rc;
-	}
-	
-	async_wait_for(req, &answer_rc);
-	rc = (int)answer_rc;
-	if (rc != EOK) {
-		return rc;
-	}
 	
 	return EOK;
 }
+
+
+int usbvirt_disconnect(void)
+{
+	ipc_hangup(device->vhcd_phone_);
+	
+	device = NULL;
+	
+	return EOK;
+}
+
 
 /**
  * @}

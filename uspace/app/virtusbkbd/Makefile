@@ -30,8 +30,10 @@ USPACE_PREFIX = ../..
 # acronym for virtual usb keyboard
 # (it is really annoying to write long names)
 BINARY = vuk
-LIBS = $(LIBUSB_PREFIX)/libusb.a
+
+LIBS = $(LIBUSB_PREFIX)/libusb.a $(LIBUSBVIRT_PREFIX)/libusbvirt.a
 EXTRA_CFLAGS = -I$(LIB_PREFIX)
+
 SOURCES = \
 	virtusbkbd.c
 

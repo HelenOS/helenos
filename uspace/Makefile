@@ -141,11 +141,13 @@ LIBS = \
 ifeq ($(UARCH),amd64)
 	LIBS += lib/pci
 	LIBS += lib/usb
+	LIBS += lib/usbvirt
 endif
 
 ifeq ($(UARCH),ia32)
 	LIBS += lib/pci
 	LIBS += lib/usb
+	LIBS += lib/usbvirt
 endif
 
 

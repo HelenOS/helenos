@@ -27,9 +27,14 @@
 #
 
 USPACE_PREFIX = ../..
-LIBRARY = libusb
+LIBRARY = libusbvirt
+
+LIBS = $(LIBUSB_PREFIX)/libusb.a
+EXTRA_CFLAGS = -I$(LIB_PREFIX)
 
 SOURCES = \
-	hcd.c
+	ctrlpipe.c \
+	incoming.c \
+	main.c
 
 include $(USPACE_PREFIX)/Makefile.common

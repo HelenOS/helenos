@@ -45,7 +45,9 @@
 #include <async.h>
 
 #include <usb/hcd.h>
-#include <usb/virtdev.h>
+#include <usbvirt/device.h>
+#include <usbvirt/hub.h>
+#include <usbvirt/ids.h>
 
 #define LOOPS 5
 #define NAME "virt-usb-kbd"
@@ -58,6 +60,30 @@
 #define VERBOSE_EXEC(cmd, fmt, ...) \
 	(printf("%s: %s" fmt "\n", NAME, _QUOTEME(cmd), __VA_ARGS__), cmd(__VA_ARGS__))
 
+static int on_incoming_data(struct usbvirt_device *dev,
+    usb_endpoint_t endpoint, void *buffer, size_t size)
+{
+	printf("%s: ignoring incomming data to endpoint %d\n", NAME, endpoint);
+	
+	return EOK;
+}
+
+/** Keyboard callbacks.
+ * We abuse the fact that static variables are zero-filled.
+ */
+static usbvirt_device_ops_t keyboard_ops = {
+	.on_data = on_incoming_data
+};
+
+/** Keyboard device.
+ * Rest of the items will be initialized later.
+ */
+static usbvirt_device_t keyboard_dev = {
+	.ops = &keyboard_ops,
+	.device_id_ = USBVIRT_DEV_KEYBOARD_ID
+};
+
+
 static void fibril_sleep(size_t sec)
 {
 	while (sec-- > 0) {
@@ -65,23 +91,15 @@ static void fibril_sleep(size_t sec)
 	}
 }
 
-static void on_data_from_host(usb_endpoint_t endpoint, void *buffer, size_t len)
-{
-	printf("%s: ignoring incomming data to endpoint %d\n", NAME, endpoint);
-}
 
 int main(int argc, char * argv[])
 {
-	int vhcd_phone = usb_virtdev_connect(DEV_HCD_NAME,
-	    USB_VIRTDEV_KEYBOARD_ID, on_data_from_host);
-	
-	if (vhcd_phone < 0) {
+	int rc = usbvirt_connect(&keyboard_dev, DEV_HCD_NAME);
+	if (rc != EOK) {
 		printf("%s: Unable to start comunication with VHCD at usb://%s (%s).\n",
-		    NAME, DEV_HCD_NAME, str_error(vhcd_phone));
-		return vhcd_phone;
+		    NAME, DEV_HCD_NAME, str_error(rc));
+		return rc;
 	}
-	
-	
 	
 	size_t i;
 	for (i = 0; i < LOOPS; i++) {
@@ -93,14 +111,14 @@ int main(int argc, char * argv[])
 		}
 		
 		printf("%s: Will send data to VHCD...\n", NAME);
-		int rc = usb_virtdev_data_to_host(vhcd_phone, 0, data, size);
+		int rc = keyboard_dev.send_data(&keyboard_dev, 0, data, size);
 		printf("%s:   ...data sent (%s).\n", NAME, str_error(rc));
 	}
 	
 	fibril_sleep(1);
 	printf("%s: Terminating...\n", NAME);
 	
-	ipc_hangup(vhcd_phone);
+	usbvirt_disconnect();
 	
 	return 0;
 }

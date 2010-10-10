@@ -26,34 +26,36 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusb usb
+/** @addtogroup libusbvirt usb
  * @{
  */
 /** @file
- * @brief Virtual USB device.
+ * @brief General handling of data transfer.
  */
-#ifndef LIBUSB_VIRTDEV_H_
-#define LIBUSB_VIRTDEV_H_
+#include <errno.h>
 
-#include <ipc/ipc.h>
-#include <async.h>
-#include "hcd.h"
+#include "device.h"
+#include "private.h"
 
-#define USB_VIRTDEV_KEYBOARD_ID 1
-#define USB_VIRTDEV_KEYBOARD_ADDRESS 1
+int handle_incoming_data(usb_endpoint_t endpoint, void *buffer, size_t size)
+{
+	/*
+	 * Endpoint zero is device control pipe.
+	 */
+	if (endpoint == 0) {
+		return control_pipe(buffer, size);
+	}
+	
+	/*
+	 * Any other endpoint will be handled by general handler.
+	 */
+	if (device->ops->on_data) {
+		return device->ops->on_data(device, endpoint, buffer, size);
+	} else {
+		return ENOTSUP;
+	}
+}
 
-typedef void (*usb_virtdev_on_data_from_host_t)(usb_endpoint_t, void *, size_t);
-
-int usb_virtdev_connect(const char *, int, usb_virtdev_on_data_from_host_t);
-int usb_virtdev_data_to_host(int, usb_endpoint_t,
-    void *, size_t);
-
-typedef enum {
-	IPC_M_USB_VIRTDEV_DATA_TO_DEVICE = IPC_FIRST_USER_METHOD,
-	IPC_M_USB_VIRTDEV_DATA_FROM_DEVICE
-} usb_virtdev_method_t;
-
-#endif
 /**
  * @}
  */

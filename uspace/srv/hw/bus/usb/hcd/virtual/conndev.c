@@ -35,7 +35,7 @@
 
 #include <assert.h>
 #include <errno.h>
-#include <usb/virtdev.h>
+#include <usbvirt/hub.h>
 
 #include "conn.h"
 #include "hc.h"
@@ -100,7 +100,7 @@ void connection_handler_device(ipcarg_t phone_hash, virtdev_connection_t *dev)
 				ipc_answer_0(callid, ELIMIT);
 				break;
 			
-			case IPC_M_USB_VIRTDEV_DATA_FROM_DEVICE:
+			case IPC_M_USBVIRT_DATA_FROM_DEVICE:
 				handle_data_from_device(callid, call, dev);
 				break;
 			

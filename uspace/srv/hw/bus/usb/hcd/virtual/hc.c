@@ -42,7 +42,7 @@
 #include <errno.h>
 #include <str_error.h>
 
-#include <usb/virtdev.h>
+#include <usbvirt/hub.h>
 
 #include "vhcd.h"
 #include "hc.h"
@@ -154,7 +154,7 @@ void hc_manager(void)
 			int rc;
 			
 			req = async_send_2(dev->phone,
-			    IPC_M_USB_VIRTDEV_DATA_TO_DEVICE,
+			    IPC_M_USBVIRT_DATA_TO_DEVICE,
 			    transaction->target.endpoint,
 			    transaction->type,
 			    &answer_data);
