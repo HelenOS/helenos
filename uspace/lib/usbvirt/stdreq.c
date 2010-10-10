@@ -80,20 +80,20 @@ static int handle_set_address(uint16_t new_address,
 	return EOK;
 }
 
-int handle_std_request(usb_direction_t direction, int recipient,
-    uint16_t request, uint16_t value, uint16_t index, uint16_t length,
-    uint8_t *remaining_data)
+int handle_std_request(usb_device_request_setup_packet_t *request, uint8_t *data)
 {
 	int rc;
 	
-	switch (request) {
+	switch (request->request) {
 		case USB_DEVREQ_GET_DESCRIPTOR:
-			rc = handle_get_descriptor(value >> 8, (uint8_t) value,
-			    index, length);
+			rc = handle_get_descriptor(
+			    request->value_low, request->value_high,
+			    request->index, request->length);
 			break;
 		
 		case USB_DEVREQ_SET_ADDRESS:
-			rc = handle_set_address(value, index, length);
+			rc = handle_set_address(request->value,
+			    request->index, request->length);
 			break;
 		
 		default:
@@ -107,10 +107,8 @@ int handle_std_request(usb_direction_t direction, int recipient,
 	 */
 	if (rc == EFORWARD) {
 		if (DEVICE_HAS_OP(device, on_devreq_std)) {
-			return device->ops->on_devreq_std(device, direction,
-			    recipient,
-			    request, value, index,
-			    length, remaining_data);
+			return device->ops->on_devreq_std(device,
+			    request, data);
 		}
 	}
 	

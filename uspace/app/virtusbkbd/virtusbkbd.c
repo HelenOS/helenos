@@ -46,6 +46,7 @@
 
 #include <usb/hcd.h>
 #include <usb/device.h>
+#include <usb/hid.h>
 #include <usbvirt/device.h>
 #include <usbvirt/hub.h>
 #include <usbvirt/ids.h>
@@ -69,6 +70,14 @@ static int on_incoming_data(struct usbvirt_device *dev,
 	return EOK;
 }
 
+static int on_class_request(struct usbvirt_device *dev,
+    usb_device_request_setup_packet_t *request, uint8_t *data)
+{
+	printf("%s: class request (%d)\n", NAME, (int) request->request);
+	
+	return EOK;
+}
+
 static usb_standard_device_descriptor_t std_descriptor = {
 	.length = sizeof(usb_standard_device_descriptor_t),
 	.descriptor_type = 1,
@@ -84,6 +93,7 @@ static usb_standard_device_descriptor_t std_descriptor = {
  * We abuse the fact that static variables are zero-filled.
  */
 static usbvirt_device_ops_t keyboard_ops = {
+	.on_devreq_class = on_class_request,
 	.on_data = on_incoming_data
 };
 

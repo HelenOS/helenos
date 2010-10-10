@@ -41,14 +41,13 @@
 
 struct usbvirt_device;
 
-typedef int (*usbvirt_on_devreq_t)(struct usbvirt_device *dev,
-    usb_direction_t, int recipient,
-    uint8_t request, uint16_t value, uint16_t index, uint16_t length,
-    uint8_t *remaining_data);
+typedef int (*usbvirt_on_device_request_t)(struct usbvirt_device *dev,
+	usb_device_request_setup_packet_t *request,
+	uint8_t *data);
 
 typedef struct {
-	usbvirt_on_devreq_t on_devreq_std;
-	usbvirt_on_devreq_t on_devreq_class;
+	usbvirt_on_device_request_t on_devreq_std;
+	usbvirt_on_device_request_t on_devreq_class;
 	int (*on_data)(struct usbvirt_device *dev,
 	    usb_endpoint_t endpoint, void *buffer, size_t size);
 } usbvirt_device_ops_t;

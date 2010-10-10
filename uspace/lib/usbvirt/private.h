@@ -54,9 +54,7 @@ int handle_incoming_data(usb_endpoint_t endpoint, void *buffer, size_t size);
 
 int control_pipe(void *buffer, size_t size);
 
-int handle_std_request(usb_direction_t direction, int recipient,
-    uint16_t request, uint16_t value, uint16_t index, uint16_t length,
-    uint8_t *remaining_data);
+int handle_std_request(usb_device_request_setup_packet_t *request, uint8_t *data);
 
 #endif
 /**
