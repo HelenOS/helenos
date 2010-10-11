@@ -259,7 +259,7 @@ int tcp_initialize(async_client_conn_t client_connection)
 	tcp_globals.icmp_phone = icmp_connect_module(SERVICE_ICMP,
 	    ICMP_CONNECT_TIMEOUT);
 	tcp_globals.ip_phone = ip_bind_service(SERVICE_IP, IPPROTO_TCP,
-	    SERVICE_TCP, client_connection, tcp_received_msg);
+	    SERVICE_TCP, client_connection);
 	if (tcp_globals.ip_phone < 0)
 		return tcp_globals.ip_phone;
 	

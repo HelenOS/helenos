@@ -484,7 +484,7 @@ int icmp_initialize(async_client_conn_t client_connection){
 	fibril_rwlock_write_lock(&icmp_globals.lock);
 	icmp_replies_initialize(&icmp_globals.replies);
 	icmp_echo_data_initialize(&icmp_globals.echo_data);
-	icmp_globals.ip_phone = ip_bind_service(SERVICE_IP, IPPROTO_ICMP, SERVICE_ICMP, client_connection, icmp_received_msg);
+	icmp_globals.ip_phone = ip_bind_service(SERVICE_IP, IPPROTO_ICMP, SERVICE_ICMP, client_connection);
 	if(icmp_globals.ip_phone < 0){
 		return icmp_globals.ip_phone;
 	}

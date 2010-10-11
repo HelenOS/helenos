@@ -71,7 +71,7 @@ int ip_add_route_req_remote(int ip_phone, device_id_t device_id,
 }
 
 int ip_bind_service(services_t service, int protocol, services_t me,
-    async_client_conn_t receiver, tl_received_msg_t tl_received_msg)
+    async_client_conn_t receiver)
 {
 	return (int) bind_service(service, (ipcarg_t) protocol, me, service,
 	    receiver);
