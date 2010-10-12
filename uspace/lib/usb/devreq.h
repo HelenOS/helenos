@@ -54,15 +54,6 @@ typedef enum {
 	USB_DEVREQ_LAST_STD
 } usb_stddevreq_t;
 
-/** Descriptor type. */
-typedef enum {
-	USB_DESCTYPE_DEVICE = 1,
-	USB_DESCTYPE_CONFIGURATION = 2,
-	USB_DESCTYPE_STRING = 3,
-	USB_DESCTYPE_INTERFACE = 4,
-	USB_DESCTYPE_ENDPOINT = 5
-} usb_descriptor_type_t;
-
 /** Device request setup packet.
  * The setup packet describes the request.
  */

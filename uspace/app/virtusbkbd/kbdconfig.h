@@ -35,7 +35,7 @@
 #ifndef VUK_KBDCONFIG_H_
 #define VUK_KBDCONFIG_H_
 
-#include <usb/device.h>
+#include <usb/descriptor.h>
 #include "report.h"
 #include "descriptor.h"
 

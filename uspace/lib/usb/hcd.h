@@ -43,10 +43,10 @@
 
 /** USB transfer type. */
 typedef enum {
-	USB_TRANSFER_ISOCHRONOUS,
-	USB_TRANSFER_INTERRUPT,
-	USB_TRANSFER_CONTROL,
-	USB_TRANSFER_BULK
+	USB_TRANSFER_CONTROL = 0,
+	USB_TRANSFER_ISOCHRONOUS = 1,
+	USB_TRANSFER_BULK = 2,
+	USB_TRANSFER_INTERRUPT = 3
 } usb_transfer_type_t;
 
 const char * usb_str_transfer_type(usb_transfer_type_t t);

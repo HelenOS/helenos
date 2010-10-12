@@ -36,7 +36,7 @@
 #define LIBUSBVIRT_DEVICE_H_
 
 #include <usb/hcd.h>
-#include <usb/device.h>
+#include <usb/descriptor.h>
 #include <usb/devreq.h>
 
 struct usbvirt_device;
