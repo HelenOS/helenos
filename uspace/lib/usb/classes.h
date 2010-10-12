@@ -32,8 +32,8 @@
 /** @file
  * @brief USB device classes and subclasses.
  */
-#ifndef LIBUSB_HID_H_
-#define LIBUSB_HID_H_
+#ifndef LIBUSB_CLASSES_H_
+#define LIBUSB_CLASSES_H_
 
 /** USB device class. */
 typedef enum {
