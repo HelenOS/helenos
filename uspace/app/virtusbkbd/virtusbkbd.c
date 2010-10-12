@@ -51,7 +51,7 @@
 #include <usbvirt/hub.h>
 #include <usbvirt/ids.h>
 
-#include "report.h"
+#include "kbdconfig.h"
 
 #define LOOPS 5
 #define NAME "virt-usb-kbd"
@@ -79,17 +79,6 @@ static int on_class_request(struct usbvirt_device *dev,
 	
 	return EOK;
 }
-
-static usb_standard_device_descriptor_t std_descriptor = {
-	.length = sizeof(usb_standard_device_descriptor_t),
-	.descriptor_type = 1,
-	.usb_spec_version = 0x110,
-	.device_class = 0x03,
-	.device_subclass = 0,
-	.device_protocol = 0,
-	.max_packet_size = 64,
-	.configuration_count = 1
-};
 
 /** Keyboard callbacks.
  * We abuse the fact that static variables are zero-filled.

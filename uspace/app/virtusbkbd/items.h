@@ -37,7 +37,7 @@
 
 #include <sys/types.h>
 
-typedef uint8_t hid_descriptor_t[];
+typedef uint8_t report_descriptor_data_t[];
 
 /* Item types. */
 #define ITEM_MAIN 0

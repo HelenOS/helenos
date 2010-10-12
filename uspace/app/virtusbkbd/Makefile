@@ -35,7 +35,7 @@ LIBS = $(LIBUSB_PREFIX)/libusb.a $(LIBUSBVIRT_PREFIX)/libusbvirt.a
 EXTRA_CFLAGS = -I$(LIB_PREFIX)
 
 SOURCES = \
-	report.c \
+	kbdconfig.c \
 	virtusbkbd.c
 
 include $(USPACE_PREFIX)/Makefile.common

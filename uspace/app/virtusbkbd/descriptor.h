@@ -29,58 +29,23 @@
 /** @addtogroup usb
  * @{
  */
+/** @file
+ * @brief USB keyboard descriptors.
+ */
+#ifndef VUK_DESCRIPTOR_H_
+#define VUK_DESCRIPTOR_H_
+
+typedef struct {
+	uint8_t length;
+	uint8_t type;
+	uint16_t hid_spec_release;
+	uint8_t country_code;
+	uint8_t descriptor_count;
+	uint8_t descriptor1_type;
+	uint16_t descriptor1_length;
+} __attribute__ ((packed)) hid_descriptor_t;
+
+#endif
 /**
- * @file
- * @brief HIDE Report Descriptor.
- */
-#include "report.h"
-#include <usb/hidut.h>
-
-/** USB keyboard report descriptor.
- * Copied from USB HID 1.11 (section E.6).
- */
-hid_descriptor_t report_descriptor = {
-	STD_USAGE_PAGE(USB_HIDUT_PAGE_GENERIC_DESKTOP),
-	USAGE1(USB_HIDUT_USAGE_GENERIC_DESKTOP_KEYBOARD),
-	START_COLLECTION(COLLECTION_APPLICATION),
-		STD_USAGE_PAGE(USB_HIDUT_PAGE_KEYBOARD),
-		USAGE_MINIMUM1(224),
-		USAGE_MAXIMUM1(231),
-		LOGICAL_MINIMUM1(0),
-		LOGICAL_MAXIMUM1(1),
-		REPORT_SIZE1(1),
-		REPORT_COUNT1(8),
-		/* Modifiers */
-		INPUT(IOF_DATA | IOF_VARIABLE | IOF_ABSOLUTE),
-		REPORT_COUNT1(1),
-		REPORT_SIZE1(8),
-		/* Reserved */
-		INPUT(IOF_CONSTANT),
-		REPORT_COUNT1(5),
-		REPORT_SIZE1(1),
-		STD_USAGE_PAGE(USB_HIDUT_PAGE_LED),
-		USAGE_MINIMUM1(1),
-		USAGE_MAXIMUM1(5),
-		/* LED states */
-		OUTPUT(IOF_DATA | IOF_VARIABLE | IOF_ABSOLUTE),
-		REPORT_COUNT1(1),
-		REPORT_SIZE1(3),
-		/* LED states padding */
-		OUTPUT(IOF_CONSTANT),
-		REPORT_COUNT1(6),
-		REPORT_SIZE1(8),
-		LOGICAL_MINIMUM1(0),
-		LOGICAL_MAXIMUM1(101),
-		STD_USAGE_PAGE(USB_HIDUT_PAGE_KEYBOARD),
-		USAGE_MINIMUM1(0),
-		USAGE_MAXIMUM1(101),
-		/* Key array */
-		INPUT(IOF_DATA | IOF_ARRAY),
-	END_COLLECTION()
-};
-
-size_t report_descriptor_size = sizeof(report_descriptor);
-
-
-/** @}
+ * @}
  */
