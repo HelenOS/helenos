@@ -51,6 +51,8 @@
 #include <usbvirt/hub.h>
 #include <usbvirt/ids.h>
 
+#include "report.h"
+
 #define LOOPS 5
 #define NAME "virt-usb-kbd"
 
@@ -117,6 +119,17 @@ static void fibril_sleep(size_t sec)
 
 int main(int argc, char * argv[])
 {
+	printf("Dump of report descriptor (%u bytes):\n", report_descriptor_size);
+	size_t i;
+	for (i = 0; i < report_descriptor_size; i++) {
+		printf("  0x%02X", report_descriptor[i]);
+		if (((i > 0) && (((i+1) % 10) == 0))
+		    || (i + 1 == report_descriptor_size)) {
+			printf("\n");
+		}
+	}
+	
+	
 	int rc = usbvirt_connect(&keyboard_dev, DEV_HCD_NAME);
 	if (rc != EOK) {
 		printf("%s: Unable to start comunication with VHCD at usb://%s (%s).\n",
@@ -124,7 +137,7 @@ int main(int argc, char * argv[])
 		return rc;
 	}
 	
-	size_t i;
+	
 	for (i = 0; i < LOOPS; i++) {
 		size_t size = 5;
 		char *data = (char *) "Hullo, World!";
