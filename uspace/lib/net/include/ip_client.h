@@ -41,7 +41,7 @@
 #include <sys/types.h>
 
 #include <net/packet.h>
-#include <ip_codes.h>
+#include <net/ip_codes.h>
 #include <ip_interface.h>
 
 /** Prepares the packet to be transfered via IP.

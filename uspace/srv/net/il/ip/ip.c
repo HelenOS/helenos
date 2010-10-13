@@ -57,7 +57,7 @@
 #include <net_checksum.h>
 #include <net_device.h>
 #include <icmp_client.h>
-#include <icmp_codes.h>
+#include <net/icmp_codes.h>
 #include <icmp_interface.h>
 #include <il_interface.h>
 #include <ip_client.h>
@@ -617,10 +617,6 @@ int ip_device_state_message(device_id_t device_id, device_state_t state){
 	netif->state = state;
 	printf("%s: Device %d changed state to %d\n", NAME, device_id, state);
 	fibril_rwlock_write_unlock(&ip_globals.netifs_lock);
-	return EOK;
-}
-
-int ip_connect_module(services_t service){
 	return EOK;
 }
 

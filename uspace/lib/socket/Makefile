@@ -32,8 +32,6 @@ EXTRA_CFLAGS = -Iinclude
 LIBRARY = libsocket
 
 SOURCES = \
-	generic/icmp_common.c \
-	generic/icmp_api.c \
 	packet/packet_server.c
 
 include $(USPACE_PREFIX)/Makefile.common

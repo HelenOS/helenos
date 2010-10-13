@@ -90,6 +90,19 @@ int netif_stats_req_remote(int netif_phone, device_id_t device_id,
 	return (int) result;
 }
 
+/** Create bidirectional connection with the network interface module and
+ * registers the message receiver.
+ *
+ * @param[in] service   The network interface module service.
+ * @param[in] device_id The device identifier.
+ * @param[in] me        The requesting module service.
+ * @param[in] receiver  The message receiver.
+ *
+ * @return The phone of the needed service.
+ * @return EOK on success.
+ * @return Other error codes as defined for the bind_service() function.
+ *
+ */
 int netif_bind_service_remote(services_t service, device_id_t device_id, services_t me,
     async_client_conn_t receiver)
 {

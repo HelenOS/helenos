@@ -26,31 +26,26 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup icmp
+/** @addtogroup libc
  *  @{
  */
 
 /** @file
- *  ICMP common interface implementation.
- *  @see icmp_common.h
+ * ICMP module common interface.
  */
 
-#include <async.h>
+#ifndef LIBC_ICMP_COMMON_H_
+#define LIBC_ICMP_COMMON_H_
+
 #include <ipc/services.h>
+#include <sys/time.h>
 
-#include <net/modules.h>
-#include <icmp_common.h>
-#include <icmp_messages.h>
+/** Default timeout for incoming connections in microseconds. */
+#define ICMP_CONNECT_TIMEOUT	(1 * 1000 * 1000)
 
-int icmp_connect_module(services_t service, suseconds_t timeout){
-	int phone;
+extern int icmp_connect_module(services_t, suseconds_t);
 
-	phone = connect_to_service_timeout(SERVICE_ICMP, timeout);
-	if(phone >= 0){
-		async_req_0_0(phone, NET_ICMP_INIT);
-	}
-	return phone;
-}
+#endif
 
 /** @}
  */

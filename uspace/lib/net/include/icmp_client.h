@@ -37,7 +37,7 @@
 #ifndef __NET_ICMP_CLIENT_H__
 #define __NET_ICMP_CLIENT_H__
 
-#include <icmp_codes.h>
+#include <net/icmp_codes.h>
 #include <net/packet.h>
 
 /** Processes the received packet prefixed with an ICMP header.

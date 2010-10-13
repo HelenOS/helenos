@@ -229,13 +229,6 @@ int arp_clear_device_req(int arp_phone, device_id_t device_id){
 	return EOK;
 }
 
-int arp_connect_module(services_t service){
-	if(service != SERVICE_ARP){
-		return EINVAL;
-	}
-	return EOK;
-}
-
 int arp_device_message(device_id_t device_id, services_t service, services_t protocol, measured_string_ref address){
 	ERROR_DECLARE;
 
@@ -602,26 +595,6 @@ measured_string_ref arp_translate_message(device_id_t device_id, services_t prot
 	}
 	nil_send_msg(device->phone, device_id, packet, SERVICE_ARP);
 	return NULL;
-}
-
-int arp_translate_req(int arp_phone, device_id_t device_id, services_t protocol, measured_string_ref address, measured_string_ref * translation, char ** data){
-	measured_string_ref tmp;
-
-	fibril_rwlock_read_lock(&arp_globals.lock);
-	tmp = arp_translate_message(device_id, protocol, address);
-	if(tmp){
-		*translation = measured_string_copy(tmp);
-		fibril_rwlock_read_unlock(&arp_globals.lock);
-		if(*translation){
-			*data = (** translation).value;
-			return EOK;
-		}else{
-			return ENOMEM;
-		}
-	}else{
-		fibril_rwlock_read_unlock(&arp_globals.lock);
-		return ENOENT;
-	}
 }
 
 /** Default thread for new connections.

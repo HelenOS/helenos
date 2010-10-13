@@ -42,7 +42,7 @@
 #include <ipc/net.h>
 
 #include <net/in.h>
-#include <ip_codes.h>
+#include <net/ip_codes.h>
 
 /** IP module messages.
  */

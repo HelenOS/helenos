@@ -41,7 +41,7 @@
 #include <net/packet.h>
 
 #include <net/in.h>
-#include <ip_codes.h>
+#include <net/ip_codes.h>
 
 #include <ip_remote.h>
 
@@ -73,12 +73,11 @@ typedef int	(*tl_received_msg_t)(device_id_t device_id, packet_t packet, service
  *  @param[in] protocol The transport layer protocol.
  *  @param[in] me The requesting module service.
  *  @param[in] receiver The message receiver. Used for remote connection.
- *  @param[in] tl_received_msg The message processing function. Used if bundled together.
  *  @returns The phone of the needed service.
  *  @returns EOK on success.
  *  @returns Other error codes as defined for the bind_service() function.
  */
-extern int ip_bind_service(services_t service, int protocol, services_t me, async_client_conn_t receiver, tl_received_msg_t tl_received_msg);
+extern int ip_bind_service(services_t service, int protocol, services_t me, async_client_conn_t receiver);
 
 /** Connects to the IP module.
  *  @param service The IP module service. Ignored parameter.

@@ -39,7 +39,7 @@
 
 #include <fibril_synch.h>
 
-#include <icmp_codes.h>
+#include <net/icmp_codes.h>
 #include <adt/int_map.h>
 #include <icmp_header.h>
 
@@ -66,7 +66,6 @@ typedef struct icmp_globals	icmp_globals_t;
 INT_MAP_DECLARE(icmp_replies, icmp_reply_t);
 
 /** Echo specific data map.
- *  The bundle module gets an identifier of the assigned echo specific data while connecting.
  *  The identifier is used in the future semi-remote calls instead of the ICMP phone.
  */
 INT_MAP_DECLARE(icmp_echo_data, icmp_echo_t);

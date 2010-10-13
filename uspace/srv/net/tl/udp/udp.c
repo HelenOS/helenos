@@ -240,7 +240,7 @@ int udp_initialize(async_client_conn_t client_connection)
 	udp_globals.icmp_phone = icmp_connect_module(SERVICE_ICMP,
 	    ICMP_CONNECT_TIMEOUT);
 	udp_globals.ip_phone = ip_bind_service(SERVICE_IP, IPPROTO_UDP,
-	    SERVICE_UDP, client_connection, udp_received_msg);
+	    SERVICE_UDP, client_connection);
 	if (udp_globals.ip_phone < 0)
 		return udp_globals.ip_phone;
 

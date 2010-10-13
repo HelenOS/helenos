@@ -26,56 +26,35 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup icmp
- *  @{
+/** @addtogroup libc
+ * @{
  */
 
 /** @file
- *  ICMP module application interface.
+ * ICMP module application interface.
  */
 
-#ifndef __NET_ICMP_API_H__
-#define __NET_ICMP_API_H__
+#ifndef LIBC_ICMP_API_H_
+#define LIBC_ICMP_API_H_
 
 #include <net/socket_codes.h>
 #include <net/inet.h>
 #include <sys/types.h>
+#include <sys/time.h>
 
-#include <net_device.h>
 #include <adt/measured_strings.h>
 #include <net/packet.h>
-#include <ip_codes.h>
-#include <icmp_codes.h>
-#include <icmp_common.h>
-
-/** Miliseconds type definition.
- */
-typedef size_t	mseconds_t;
+#include <net/ip_codes.h>
+#include <net/icmp_codes.h>
+#include <net/icmp_common.h>
 
 /** @name ICMP module application interface
- *  This interface is used by other application modules.
+ * This interface is used by other application modules.
  */
 /*@{*/
 
-/** Requests an echo message.
- *  Sends a packet with specified parameters to the target host and waits for the reply upto the given timeout.
- *  Blocks the caller until the reply or the timeout occurres.
- *  @param[in] icmp_phone The ICMP module phone used for (semi)remote calls.
- *  @param[in] size The message data length in bytes.
- *  @param[in] timeout The timeout in miliseconds.
- *  @param[in] ttl The time to live.
- *  @param[in] tos The type of service.
- *  @param[in] dont_fragment The value indicating whether the datagram must not be fragmented. Is used as a MTU discovery.
- *  @param[in] addr The target host address.
- *  @param[in] addrlen The torget host address length.
- *  @returns ICMP_ECHO on success.
- *  @returns ETIMEOUT if the reply has not arrived before the timeout.
- *  @returns ICMP type of the received error notification. 
- *  @returns EINVAL if the addrlen parameter is less or equal to zero (<=0).
- *  @returns ENOMEM if there is not enough memory left.
- *  @returns EPARTY if there was an internal error.
- */
-extern int icmp_echo_msg(int icmp_phone, size_t size, mseconds_t timeout, ip_ttl_t ttl, ip_tos_t tos, int dont_fragment, const struct sockaddr * addr, socklen_t addrlen);
+extern int icmp_echo_msg(int, size_t, mseconds_t, ip_ttl_t, ip_tos_t, int,
+    const struct sockaddr *, socklen_t);
 
 /*@}*/
 

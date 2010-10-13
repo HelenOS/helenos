@@ -37,7 +37,7 @@
 #include <stdio.h>
 #include <errno.h>
 
-#include <icmp_codes.h>
+#include <net/icmp_codes.h>
 
 #include "print_error.h"
 
