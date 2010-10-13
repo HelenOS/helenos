@@ -448,30 +448,6 @@ int icmp_send_packet(icmp_type_t type, icmp_code_t code, packet_t packet, icmp_h
 	return ip_send_msg(icmp_globals.ip_phone, -1, packet, SERVICE_ICMP, error);
 }
 
-int icmp_connect_module(services_t service, suseconds_t timeout){
-	icmp_echo_ref echo_data;
-	icmp_param_t id;
-	int index;
-
-	echo_data = (icmp_echo_ref) malloc(sizeof(*echo_data));
-	if(! echo_data){
-		return ENOMEM;
-	}
-	// assign a new identifier
-	fibril_rwlock_write_lock(&icmp_globals.lock);
-	index = icmp_bind_free_id(echo_data);
-	if(index < 0){
-		free(echo_data);
-		fibril_rwlock_write_unlock(&icmp_globals.lock);
-		return index;
-	}else{
-		id = echo_data->identifier;
-		fibril_rwlock_write_unlock(&icmp_globals.lock);
-		// return the echo data identifier as the ICMP phone
-		return id;
-	}
-}
-
 int icmp_initialize(async_client_conn_t client_connection){
 	ERROR_DECLARE;
 
