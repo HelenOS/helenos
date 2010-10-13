@@ -35,51 +35,13 @@
 #ifndef LIBUSB_HCD_H_
 #define LIBUSB_HCD_H_
 
+#include "usb.h"
+
 #include <ipc/ipc.h>
 #include <async.h>
 
 /** Maximum size of transaction payload. */
 #define USB_MAX_PAYLOAD_SIZE 1020
-
-/** USB transfer type. */
-typedef enum {
-	USB_TRANSFER_CONTROL = 0,
-	USB_TRANSFER_ISOCHRONOUS = 1,
-	USB_TRANSFER_BULK = 2,
-	USB_TRANSFER_INTERRUPT = 3
-} usb_transfer_type_t;
-
-const char * usb_str_transfer_type(usb_transfer_type_t t);
-
-/** USB data transfer direction. */
-typedef enum {
-	USB_DIRECTION_IN,
-	USB_DIRECTION_OUT
-} usb_direction_t;
-
-/** USB address type.
- * Negative values could be used to indicate error.
- */
-typedef int usb_address_t;
-
-/** USB endpoint number type.
- * Negative values could be used to indicate error.
- */
-typedef int usb_endpoint_t;
-
-/** USB complete address type. 
- * Pair address + endpoint is identification of transaction recipient.
- */
-typedef struct {
-	usb_address_t address;
-	usb_endpoint_t endpoint;
-} usb_target_t;
-
-static inline int usb_target_same(usb_target_t a, usb_target_t b)
-{
-	return (a.address == b.address)
-	    && (a.endpoint == b.endpoint);
-}
 
 /** Opaque handle of active USB transaction.
  * This handle is when informing about transaction outcome (or status).

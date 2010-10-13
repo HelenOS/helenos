@@ -30,30 +30,30 @@
  * @{
  */
 /** @file
- * @brief USB HID device related types.
+ * @brief Base USB types.
  */
-#ifndef LIBUSB_HID_H_
-#define LIBUSB_HID_H_
+#include "usb.h"
+#include <errno.h>
 
-/** USB/HID device requests. */
-typedef enum {
-	USB_HIDREQ_GET_REPORT = 1,
-	USB_HIDREQ_GET_IDLE = 2,
-	USB_HIDREQ_GET_PROTOCOL = 3,
-	/* Values 4 to 8 are reserved. */
-	USB_HIDREQ_SET_REPORT = 9,
-	USB_HIDREQ_SET_IDLE = 10,
-	USB_HIDREQ_SET_PROTOCOL = 11
-} usb_hid_request_t;
 
-/** USB/HID interface protocols. */
-typedef enum {
-	USB_HID_PROTOCOL_NONE = 0,
-	USB_HID_PROTOCOL_KEYBOARD = 1,
-	USB_HID_PROTOCOL_MOUSE = 2
-} usb_hid_protocol_t;
+/** String representation for USB transfer type. */
+const char * usb_str_transfer_type(usb_transfer_type_t t)
+{
+	switch (t) {
+		case USB_TRANSFER_ISOCHRONOUS:
+			return "isochronous";
+		case USB_TRANSFER_INTERRUPT:
+			return "interrupt";
+		case USB_TRANSFER_CONTROL:
+			return "control";
+		case USB_TRANSFER_BULK:
+			return "bulk";
+		default:
+			return "unknown";
+	}
+}
 
-#endif
+
 /**
  * @}
  */

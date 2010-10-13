@@ -30,6 +30,7 @@ USPACE_PREFIX = ../..
 LIBRARY = libusb
 
 SOURCES = \
-	hcd.c
+	hcd.c \
+	usb.c
 
 include $(USPACE_PREFIX)/Makefile.common

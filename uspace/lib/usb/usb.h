@@ -30,28 +30,52 @@
  * @{
  */
 /** @file
- * @brief USB HID device related types.
+ * @brief Base USB types.
  */
-#ifndef LIBUSB_HID_H_
-#define LIBUSB_HID_H_
+#ifndef LIBUSB_USB_H_
+#define LIBUSB_USB_H_
 
-/** USB/HID device requests. */
-typedef enum {
-	USB_HIDREQ_GET_REPORT = 1,
-	USB_HIDREQ_GET_IDLE = 2,
-	USB_HIDREQ_GET_PROTOCOL = 3,
-	/* Values 4 to 8 are reserved. */
-	USB_HIDREQ_SET_REPORT = 9,
-	USB_HIDREQ_SET_IDLE = 10,
-	USB_HIDREQ_SET_PROTOCOL = 11
-} usb_hid_request_t;
+#include <sys/types.h>
 
-/** USB/HID interface protocols. */
+/** USB transfer type. */
 typedef enum {
-	USB_HID_PROTOCOL_NONE = 0,
-	USB_HID_PROTOCOL_KEYBOARD = 1,
-	USB_HID_PROTOCOL_MOUSE = 2
-} usb_hid_protocol_t;
+	USB_TRANSFER_CONTROL = 0,
+	USB_TRANSFER_ISOCHRONOUS = 1,
+	USB_TRANSFER_BULK = 2,
+	USB_TRANSFER_INTERRUPT = 3
+} usb_transfer_type_t;
+
+const char * usb_str_transfer_type(usb_transfer_type_t t);
+
+/** USB data transfer direction. */
+typedef enum {
+	USB_DIRECTION_IN,
+	USB_DIRECTION_OUT
+} usb_direction_t;
+
+/** USB address type.
+ * Negative values could be used to indicate error.
+ */
+typedef int usb_address_t;
+
+/** USB endpoint number type.
+ * Negative values could be used to indicate error.
+ */
+typedef int usb_endpoint_t;
+
+/** USB complete address type. 
+ * Pair address + endpoint is identification of transaction recipient.
+ */
+typedef struct {
+	usb_address_t address;
+	usb_endpoint_t endpoint;
+} usb_target_t;
+
+static inline int usb_target_same(usb_target_t a, usb_target_t b)
+{
+	return (a.address == b.address)
+	    && (a.endpoint == b.endpoint);
+}
 
 #endif
 /**
