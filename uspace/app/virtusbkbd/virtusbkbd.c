@@ -167,7 +167,7 @@ static void on_keyboard_change(kb_status_t *status)
 static kb_event_t keyboard_events[] = {
 	/* Switch to VT6 (Alt+F6) */
 	M_DOWN(KB_MOD_LEFT_ALT),
-	K_PRESS(63),
+	K_PRESS(KB_KEY_F6),
 	M_UP(KB_MOD_LEFT_ALT),
 	/* Type the word 'Hello' */
 	M_DOWN(KB_MOD_LEFT_SHIFT),

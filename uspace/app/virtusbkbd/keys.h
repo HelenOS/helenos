@@ -44,32 +44,12 @@
 /** Key code type. */
 typedef uint8_t kb_key_code_t;
 
-#define KB_KEY_A 4
-#define KB_KEY_B 5
-#define KB_KEY_C 6
-#define KB_KEY_D 7
-#define KB_KEY_E 8
-#define KB_KEY_F 9
-#define KB_KEY_G 10
-#define KB_KEY_H 11
-#define KB_KEY_I 12
-#define KB_KEY_J 13
-#define KB_KEY_K 14
-#define KB_KEY_L 15
-#define KB_KEY_M 16
-#define KB_KEY_N 17
-#define KB_KEY_O 18
-#define KB_KEY_P 19
-#define KB_KEY_Q 20
-#define KB_KEY_R 21
-#define KB_KEY_S 22
-#define KB_KEY_T 23
-#define KB_KEY_U 24
-#define KB_KEY_V 25
-#define KB_KEY_W 26
-#define KB_KEY_X 27
-#define KB_KEY_Y 28
-#define KB_KEY_Z 29
+#define USB_HIDUT_KBD_KEY(name, usage_id, l, lc, l1, l2) \
+	KB_KEY_##name = usage_id,
+/** USB key code. */
+typedef enum {
+	#include <usb/hidutkbd.h>
+} key_code_t;
 
 /** Modifier type. */
 typedef uint8_t kb_modifier_t;
