@@ -620,10 +620,6 @@ int ip_device_state_message(device_id_t device_id, device_state_t state){
 	return EOK;
 }
 
-int ip_connect_module(services_t service){
-	return EOK;
-}
-
 int ip_register(int protocol, services_t service, int phone, tl_received_msg_t received_msg){
 	ip_proto_ref proto;
 	int index;
