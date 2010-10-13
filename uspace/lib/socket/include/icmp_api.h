@@ -40,6 +40,7 @@
 #include <net/socket_codes.h>
 #include <net/inet.h>
 #include <sys/types.h>
+#include <unistd.h>
 
 #include <net_device.h>
 #include <adt/measured_strings.h>
@@ -47,10 +48,6 @@
 #include <net/ip_codes.h>
 #include <icmp_codes.h>
 #include <icmp_common.h>
-
-/** Miliseconds type definition.
- */
-typedef size_t	mseconds_t;
 
 /** @name ICMP module application interface
  *  This interface is used by other application modules.

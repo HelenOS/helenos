@@ -57,6 +57,7 @@
 #endif
 
 typedef uint32_t useconds_t;
+typedef uint32_t mseconds_t;
 
 extern int dup2(int oldfd, int newfd);
 
