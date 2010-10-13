@@ -39,10 +39,17 @@
 #include "report.h"
 #include "descriptor.h"
 
-extern usb_standard_device_descriptor_t std_descriptor;
-extern size_t std_descriptor_size;
+extern usb_standard_device_descriptor_t std_device_descriptor;
+
+extern usb_standard_configuration_descriptor_t std_configuration_descriptor;
+
+extern usb_standard_interface_descriptor_t std_interface_descriptor;
+
+extern usb_standard_endpoint_descriptor_t endpoint_descriptor;
+
+
 extern hid_descriptor_t hid_descriptor;
-extern size_t hid_descriptor_size;
+
 extern report_descriptor_data_t report_descriptor;
 extern size_t report_descriptor_size;
 

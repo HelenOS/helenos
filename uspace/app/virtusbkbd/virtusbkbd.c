@@ -88,12 +88,41 @@ static usbvirt_device_ops_t keyboard_ops = {
 	.on_data = on_incoming_data
 };
 
+usbvirt_device_configuration_extras_t extra_descriptors[] = {
+	{
+		.data = (uint8_t *) &std_interface_descriptor,
+		.length = sizeof(std_interface_descriptor)
+	},
+	{
+		.data = (uint8_t *) &hid_descriptor,
+		.length = sizeof(hid_descriptor)
+	},
+	{
+		.data = (uint8_t *) &endpoint_descriptor,
+		.length = sizeof(endpoint_descriptor)
+	}
+};
+
+/** Keyboard configuration. */
+usbvirt_device_configuration_t configuration = {
+	.descriptor = &std_configuration_descriptor,
+	.extra = extra_descriptors,
+	.extra_count = sizeof(extra_descriptors)/sizeof(extra_descriptors[0])
+};
+
+/** Keyboard standard descriptors. */
+usbvirt_descriptors_t descriptors = {
+	.device = &std_device_descriptor,
+	.configuration = &configuration,
+	.configuration_count = 1,
+};
+
 /** Keyboard device.
  * Rest of the items will be initialized later.
  */
 static usbvirt_device_t keyboard_dev = {
 	.ops = &keyboard_ops,
-	.standard_descriptor = &std_descriptor,
+	.descriptors = &descriptors,
 	.device_id_ = USBVIRT_DEV_KEYBOARD_ID
 };
 

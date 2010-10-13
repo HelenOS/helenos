@@ -34,21 +34,35 @@
  * @brief Keyboard configuration.
  */
 #include "kbdconfig.h"
+#include <usb/hcd.h>
+#include <usb/hid.h>
 #include <usb/hidut.h>
 #include <usb/classes.h>
 
 /** Standard device descriptor. */
-usb_standard_device_descriptor_t std_descriptor = {
+usb_standard_device_descriptor_t std_device_descriptor = {
 	.length = sizeof(usb_standard_device_descriptor_t),
-	.descriptor_type = 1,
+	.descriptor_type = USB_DESCTYPE_DEVICE,
 	.usb_spec_version = 0x110,
-	.device_class = USB_CLASS_HID,
+	.device_class = USB_CLASS_USE_INTERFACE,
 	.device_subclass = 0,
 	.device_protocol = 0,
 	.max_packet_size = 64,
 	.configuration_count = 1
 };
-size_t std_descriptor_size = sizeof(std_descriptor);
+
+/** Standard interface descriptor. */
+usb_standard_interface_descriptor_t std_interface_descriptor = {
+	.length = sizeof(usb_standard_interface_descriptor_t),
+	.descriptor_type = USB_DESCTYPE_INTERFACE,
+	.interface_number = 0,
+	.alternate_setting = 0,
+	.endpoint_count = 1,
+	.interface_class = USB_CLASS_HID,
+	.interface_subclass = 0,
+	.interface_protocol = USB_HID_PROTOCOL_KEYBOARD,
+	.str_interface = 0
+};
 
 /** USB keyboard report descriptor.
  * Copied from USB HID 1.11 (section E.6).
@@ -104,7 +118,35 @@ hid_descriptor_t hid_descriptor = {
 	.descriptor1_type = 0x22, // Report descriptor
 	.descriptor1_length = sizeof(report_descriptor)
 };
-size_t hid_descriptor_size = sizeof(hid_descriptor);
+
+/** Endpoint descriptor. */
+usb_standard_endpoint_descriptor_t endpoint_descriptor = {
+	.length = sizeof(usb_standard_endpoint_descriptor_t),
+	.descriptor_type = USB_DESCTYPE_ENDPOINT,
+	.endpoint_address = 1 | 128,
+	.attributes = USB_TRANSFER_INTERRUPT,
+	.max_packet_size = 8,
+	.poll_interval = 10
+};
+
+/** Standard configuration descriptor. */
+usb_standard_configuration_descriptor_t std_configuration_descriptor = {
+	.length = sizeof(usb_standard_configuration_descriptor_t),
+	.descriptor_type = USB_DESCTYPE_CONFIGURATION,
+	.total_length = 
+		sizeof(usb_standard_configuration_descriptor_t)
+		+ sizeof(std_interface_descriptor)
+		+ sizeof(hid_descriptor)
+		+ sizeof(endpoint_descriptor)
+		,
+	.interface_count = 1,
+	.configuration_number = 1,
+	.str_configuration = 0,
+	.attributes = 128, /* denotes bus-powered device */
+	.max_power = 50
+};
+
+
 
 
 

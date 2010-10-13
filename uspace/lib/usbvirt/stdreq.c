@@ -33,9 +33,13 @@
  * @brief Preprocessing of standard device requests.
  */
 #include <errno.h>
+#include <stdlib.h>
+#include <mem.h>
 #include <usb/devreq.h>
 
 #include "private.h"
+
+
 
 /*
  * All sub handlers must return EFORWARD to inform the caller that
@@ -51,13 +55,51 @@ static int handle_get_descriptor(uint8_t type, uint8_t index, uint16_t language,
 	 * Standard device descriptor.
 	 */
 	if ((type == USB_DESCTYPE_DEVICE) && (index == 0)) {
-		if (device->standard_descriptor) {
+		if (device->descriptors && device->descriptors->device) {
 			return device->send_data(device, 0,
-			    device->standard_descriptor,
-			    device->standard_descriptor->length);
+			    device->descriptors->device,
+			    device->descriptors->device->length);
 		} else {
 			return EFORWARD;
 		}
+	}
+	
+	/*
+	 * Configuration descriptor together with interface, endpoint and
+	 * class-specific descriptors.
+	 */
+	if (type == USB_DESCTYPE_CONFIGURATION) {
+		if (!device->descriptors) {
+			return EFORWARD;
+		}
+		if (index >= device->descriptors->configuration_count) {
+			return EFORWARD;
+		}
+		/* Copy the data. */
+		usbvirt_device_configuration_t *config = &device->descriptors
+		    ->configuration[index];
+		uint8_t *all_data = malloc(config->descriptor->total_length);
+		if (all_data == NULL) {
+			return ENOMEM;
+		}
+		
+		uint8_t *ptr = all_data;
+		memcpy(ptr, config->descriptor, config->descriptor->length);
+		ptr += config->descriptor->length;
+		size_t i;
+		for (i = 0; i < config->extra_count; i++) {
+			usbvirt_device_configuration_extras_t *extra
+			    = &config->extra[i];
+			memcpy(ptr, extra->data, extra->length);
+			ptr += extra->length;
+		}
+		
+		int rc = device->send_data(device, 0, all_data,
+		    config->descriptor->total_length);
+		
+		free(all_data);
+		
+		return rc;
 	}
 	
 	return EFORWARD;

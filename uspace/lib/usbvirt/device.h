@@ -45,12 +45,51 @@ typedef int (*usbvirt_on_device_request_t)(struct usbvirt_device *dev,
 	usb_device_request_setup_packet_t *request,
 	uint8_t *data);
 
+/** Device operations. */
 typedef struct {
+	/** Callback for standard USB request.
+	 * Called only when the request could not be handled by this
+	 * framework.
+	 */
 	usbvirt_on_device_request_t on_devreq_std;
+	/** Callback for class-specific USB request. */
 	usbvirt_on_device_request_t on_devreq_class;
+	/** Callback for all other incoming data. */
 	int (*on_data)(struct usbvirt_device *dev,
 	    usb_endpoint_t endpoint, void *buffer, size_t size);
 } usbvirt_device_ops_t;
+
+/** Extra configuration data for GET_CONFIGURATION request. */
+typedef struct {
+	/** Actual data. */
+	uint8_t *data;
+	/** Data length. */
+	size_t length;
+} usbvirt_device_configuration_extras_t;
+
+/** Single device configuration. */
+typedef struct {
+	/** Standard configuration descriptor. */
+	usb_standard_configuration_descriptor_t *descriptor;
+	/** Array of extra data. */
+	usbvirt_device_configuration_extras_t *extra;
+	/** Length of @c extra array. */
+	size_t extra_count;
+} usbvirt_device_configuration_t;
+
+/** Standard USB descriptors. */
+typedef struct {
+	/** Standard device descriptor.
+	 * There is always only one such descriptor for the device.
+	 */
+	usb_standard_device_descriptor_t *device;
+	
+	/** Configurations. */
+	usbvirt_device_configuration_t *configuration;
+	/** Number of configurations. */
+	size_t configuration_count;
+} usbvirt_descriptors_t;
+
 
 typedef struct usbvirt_device {
 	/** Callback device operations. */
@@ -68,11 +107,8 @@ typedef struct usbvirt_device {
 	
 	/* Device attributes. */
 	
-	/** Standard device descriptor.
-	 * If this descriptor is set (i.e. not NULL), the framework
-	 * automatically handles call for its retrieval.
-	 */
-	usb_standard_device_descriptor_t *standard_descriptor;
+	/** Standard descriptors. */
+	usbvirt_descriptors_t *descriptors;
 	
 	
 	/* Private attributes. */
