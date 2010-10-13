@@ -40,7 +40,7 @@
 #include <adt/measured_strings.h>
 #include <net/packet.h>
 #include <net/inet.h>
-#include <ip_codes.h>
+#include <net/ip_codes.h>
 #include <icmp_codes.h>
 #include <icmp_common.h>
 

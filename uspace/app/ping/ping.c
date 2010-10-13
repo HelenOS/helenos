@@ -49,7 +49,7 @@
 #include <net/in6.h>
 #include <net/inet.h>
 #include <net/socket_parse.h>
-#include <ip_codes.h>
+#include <net/ip_codes.h>
 
 #include "print_error.h"
 
