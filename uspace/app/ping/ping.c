@@ -44,7 +44,7 @@
 #include <errno.h>
 #include <arg_parse.h>
 
-#include <icmp_api.h>
+#include <net/icmp_api.h>
 #include <net/in.h>
 #include <net/in6.h>
 #include <net/inet.h>

@@ -57,7 +57,7 @@
 #include <net_checksum.h>
 #include <net_device.h>
 #include <icmp_client.h>
-#include <icmp_codes.h>
+#include <net/icmp_codes.h>
 #include <icmp_interface.h>
 #include <il_interface.h>
 #include <ip_client.h>

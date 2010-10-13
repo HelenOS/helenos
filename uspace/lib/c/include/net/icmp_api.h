@@ -26,44 +26,39 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup icmp
- *  @{
+/** @addtogroup libc
+ * @{
  */
 
 /** @file
- *  ICMP application interface implementation.
- *  @see icmp_api.h
+ * ICMP module application interface.
  */
+
+#ifndef LIBC_ICMP_API_H_
+#define LIBC_ICMP_API_H_
 
 #include <net/socket_codes.h>
 #include <net/inet.h>
-#include <async.h>
-
-#include <ipc/ipc.h>
-#include <ipc/services.h>
-
 #include <sys/types.h>
+#include <sys/time.h>
 
-#include <net/modules.h>
-#include <icmp_api.h>
+#include <adt/measured_strings.h>
+#include <net/packet.h>
 #include <net/ip_codes.h>
-#include <icmp_messages.h>
+#include <net/icmp_codes.h>
+#include <net/icmp_common.h>
 
-int icmp_echo_msg(int icmp_phone, size_t size, mseconds_t timeout, ip_ttl_t ttl, ip_tos_t tos, int dont_fragment, const struct sockaddr * addr, socklen_t addrlen){
-	aid_t message_id;
-	ipcarg_t result;
+/** @name ICMP module application interface
+ * This interface is used by other application modules.
+ */
+/*@{*/
 
-	if(addrlen <= 0){
-		return EINVAL;
-	}
-	message_id = async_send_5(icmp_phone, NET_ICMP_ECHO, size, timeout, ttl, tos, (ipcarg_t) dont_fragment, NULL);
-	// send the address
-	async_data_write_start(icmp_phone, addr, (size_t) addrlen);
-	// timeout version may cause inconsistency - there is also an inner timer
-	// return async_wait_timeout(message_id, &result, timeout);
-	async_wait_for(message_id, &result);
-	return (int) result;
-}
+extern int icmp_echo_msg(int, size_t, mseconds_t, ip_ttl_t, ip_tos_t, int,
+    const struct sockaddr *, socklen_t);
+
+/*@}*/
+
+#endif
 
 /** @}
  */

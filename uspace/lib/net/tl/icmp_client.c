@@ -42,7 +42,7 @@
 #include <errno.h>
 #include <sys/types.h>
 
-#include <icmp_codes.h>
+#include <net/icmp_codes.h>
 #include <icmp_client.h>
 #include <net/packet.h>
 #include <packet_client.h>

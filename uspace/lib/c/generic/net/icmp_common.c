@@ -26,34 +26,42 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup icmp
+/** @addtogroup libc 
  *  @{
  */
 
 /** @file
- *  ICMP module common interface.
+ * ICMP common interface implementation.
+ * @see icmp_common.h
  */
 
-#ifndef __NET_ICMP_COMMON_H__
-#define __NET_ICMP_COMMON_H__
+#include <net/modules.h>
+#include <net/icmp_common.h>
 
 #include <ipc/services.h>
+#include <ipc/icmp.h>
 
 #include <sys/time.h>
-
-/** Default timeout for incoming connections in microseconds.
- */
-#define ICMP_CONNECT_TIMEOUT	(1 * 1000 * 1000)
+#include <async.h>
 
 /** Connects to the ICMP module.
- *  @param service The ICMP module service. Ignored parameter.
- *  @param[in] timeout The connection timeout in microseconds. No timeout if set to zero (0).
- *  @returns The ICMP module phone on success.
- *  @returns ETIMEOUT if the connection timeouted.
+ *
+ * @param service	The ICMP module service. Ignored parameter.
+ * @param[in] timeout	The connection timeout in microseconds. No timeout if
+ *			set to zero.
+ * @returns		The ICMP module phone on success.
+ * @returns		ETIMEOUT if the connection timeouted.
  */
-extern int icmp_connect_module(services_t service, suseconds_t timeout);
+int icmp_connect_module(services_t service, suseconds_t timeout)
+{
+	int phone;
 
-#endif
+	phone = connect_to_service_timeout(SERVICE_ICMP, timeout);
+	if (phone >= 0)
+		async_req_0_0(phone, NET_ICMP_INIT);
+
+	return phone;
+}
 
 /** @}
  */

@@ -43,6 +43,7 @@
 #include <str.h>
 #include <ipc/ipc.h>
 #include <ipc/services.h>
+#include <ipc/icmp.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <byteorder.h>
@@ -58,10 +59,10 @@
 #include <packet_client.h>
 #include <packet_remote.h>
 #include <net_checksum.h>
-#include <icmp_api.h>
+#include <net/icmp_api.h>
 #include <icmp_client.h>
-#include <icmp_codes.h>
-#include <icmp_common.h>
+#include <net/icmp_codes.h>
+#include <net/icmp_common.h>
 #include <icmp_interface.h>
 #include <il_interface.h>
 #include <ip_client.h>
@@ -70,7 +71,6 @@
 #include <tl_messages.h>
 #include <tl_interface.h>
 #include <tl_local.h>
-#include <icmp_messages.h>
 #include <icmp_header.h>
 
 #include "icmp.h"

@@ -39,7 +39,7 @@
 
 #include <fibril_synch.h>
 
-#include <icmp_codes.h>
+#include <net/icmp_codes.h>
 #include <adt/int_map.h>
 #include <icmp_header.h>
 
