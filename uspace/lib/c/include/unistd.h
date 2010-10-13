@@ -36,6 +36,7 @@
 #define LIBC_UNISTD_H_
 
 #include <sys/types.h>
+#include <time.h>
 #include <libarch/config.h>
 
 #ifndef NULL
@@ -55,9 +56,6 @@
 #ifndef SEEK_END
 	#define SEEK_END  2
 #endif
-
-typedef uint32_t useconds_t;
-typedef uint32_t mseconds_t;
 
 extern int dup2(int oldfd, int newfd);
 

@@ -40,7 +40,7 @@
 #include <net/socket_codes.h>
 #include <net/inet.h>
 #include <sys/types.h>
-#include <unistd.h>
+#include <sys/time.h>
 
 #include <net_device.h>
 #include <adt/measured_strings.h>
