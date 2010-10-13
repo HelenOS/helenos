@@ -52,6 +52,7 @@
 #include <usbvirt/ids.h>
 
 #include "kbdconfig.h"
+#include "keys.h"
 
 #define LOOPS 5
 #define NAME "virt-usb-kbd"
@@ -135,6 +136,53 @@ static void fibril_sleep(size_t sec)
 }
 
 
+/** Callback when keyboard status changed.
+ *
+ * @param status Current keyboard status.
+ */
+static void on_keyboard_change(kb_status_t *status)
+{
+	printf("%s: Current keyboard status: %08hhb", NAME, status->modifiers);
+	size_t i;
+	for (i = 0; i < KB_MAX_KEYS_AT_ONCE; i++) {
+		printf(" 0x%02X", (int)status->pressed_keys[i]);
+	}
+	printf("\n");
+	
+	uint8_t data[3 + KB_MAX_KEYS_AT_ONCE];
+	data[0] = status->modifiers;
+	data[1] = 0;
+	data[2] = 0;
+	for (i = 0; i < KB_MAX_KEYS_AT_ONCE; i++) {
+		data[3 + i] = status->pressed_keys[i];
+	}
+	
+	int rc = keyboard_dev.send_data(&keyboard_dev, 0, data, sizeof(data));
+	printf("%s:   Sent to VHCD (%s).\n", NAME, str_error(rc));
+	
+	fibril_sleep(1);
+}
+
+/** Simulated keyboard events. */
+static kb_event_t keyboard_events[] = {
+	/* Switch to VT6 (Alt+F6) */
+	M_DOWN(KB_MOD_LEFT_ALT),
+	K_PRESS(63),
+	M_UP(KB_MOD_LEFT_ALT),
+	/* Type the word 'Hello' */
+	M_DOWN(KB_MOD_LEFT_SHIFT),
+	K_PRESS(KB_KEY_H),
+	M_UP(KB_MOD_LEFT_SHIFT),
+	K_PRESS(KB_KEY_E),
+	K_PRESS(KB_KEY_L),
+	K_PRESS(KB_KEY_L),
+	K_PRESS(KB_KEY_O)
+};
+static size_t keyboard_events_count =
+    sizeof(keyboard_events)/sizeof(keyboard_events[0]);
+
+
+
 int main(int argc, char * argv[])
 {
 	printf("Dump of report descriptor (%u bytes):\n", report_descriptor_size);
@@ -155,21 +203,13 @@ int main(int argc, char * argv[])
 		return rc;
 	}
 	
+	kb_status_t status;
+	kb_init(&status);
 	
-	for (i = 0; i < LOOPS; i++) {
-		size_t size = 5;
-		char *data = (char *) "Hullo, World!";
-		
-		if (i > 0) {
-			fibril_sleep(2);
-		}
-		
-		printf("%s: Will send data to VHCD...\n", NAME);
-		int rc = keyboard_dev.send_data(&keyboard_dev, 0, data, size);
-		printf("%s:   ...data sent (%s).\n", NAME, str_error(rc));
-	}
+	printf("%s: Simulating keyboard events...\n", NAME);
+	kb_process_events(&status, keyboard_events, keyboard_events_count,
+	    on_keyboard_change);
 	
-	fibril_sleep(1);
 	printf("%s: Terminating...\n", NAME);
 	
 	usbvirt_disconnect();

@@ -34,6 +34,7 @@
  * @brief Keyboard configuration.
  */
 #include "kbdconfig.h"
+#include "keys.h"
 #include <usb/hcd.h>
 #include <usb/hid.h>
 #include <usb/hidut.h>
@@ -95,7 +96,7 @@ report_descriptor_data_t report_descriptor = {
 		REPORT_SIZE1(3),
 		/* LED states padding */
 		OUTPUT(IOF_CONSTANT),
-		REPORT_COUNT1(6),
+		REPORT_COUNT1(KB_MAX_KEYS_AT_ONCE),
 		REPORT_SIZE1(8),
 		LOGICAL_MINIMUM1(0),
 		LOGICAL_MAXIMUM1(101),

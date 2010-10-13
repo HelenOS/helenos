@@ -36,6 +36,7 @@ EXTRA_CFLAGS = -I$(LIB_PREFIX)
 
 SOURCES = \
 	kbdconfig.c \
+	keys.c \
 	virtusbkbd.c
 
 include $(USPACE_PREFIX)/Makefile.common
