@@ -40,6 +40,9 @@
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 
+#include <net/device.h>
+#include <net/packet.h>
+
 /** Returns a value indicating whether the value is in the interval.
  * @param[in] item	The value to be checked.
  * @param[in] first_inclusive The first value in the interval inclusive.
@@ -174,8 +177,7 @@
 /** The first packet management system message. */
 #define NET_PACKET_FIRST	(NET_SOCKET_LAST + 0)
 
-/** The last packet management system message.
- */
+/** The last packet management system message. */
 #define NET_PACKET_LAST		(NET_PACKET_FIRST + NET_PACKET_COUNT)
 
 /** The last networking message. */
@@ -185,7 +187,7 @@
 #define NET_COUNT		(NET_LAST - NET_FIRST)
 
 /** Returns a value indicating whether the IPC call is a generic networking
- *  message.
+ * message.
  * @param[in] call The IPC call to be checked.
  */
 #define IS_NET_MESSAGE(call) \
@@ -266,6 +268,146 @@
  */
 #define IS_NET_UDP_MESSAGE(call) \
 	IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_UDP_FIRST, NET_UDP_LAST)
+
+/*@}*/
+
+/** @name Networking specific message arguments definitions */
+/*@{*/
+
+/** Returns the device identifier message argument.
+ * @param[in] call The message call structure.
+ */
+#define IPC_GET_DEVICE(call) \
+	({ \
+		device_id_t device_id = (device_id_t) IPC_GET_ARG1(*call); \
+		device_id; \
+	})
+
+/** Returns the packet identifier message argument.
+ * @param[in] call The message call structure.
+ */
+#define IPC_GET_PACKET(call) \
+	({ \
+		packet_id_t packet_id = (packet_id_t) IPC_GET_ARG2(*call); \
+		packet_id; \
+	})
+
+/** Returns the count message argument.
+ * @param[in] call The message call structure.
+ */
+#define IPC_GET_COUNT(call) \
+	({ \
+		size_t size = (size_t) IPC_GET_ARG2(*call); \
+		size; \
+	})
+
+/** Returns the device state message argument.
+ * @param[in] call The message call structure.
+ */
+#define IPC_GET_STATE(call) \
+	({ \
+		device_state_t state = (device_state_t) IPC_GET_ARG2(*call); \
+		state; \
+	})
+
+/** Returns the maximum transmission unit message argument.
+ * @param[in] call The message call structure.
+ */
+#define IPC_GET_MTU(call) \
+	({ \
+		size_t size = (size_t) IPC_GET_ARG2(*call); \
+		size; \
+	})
+
+/** Returns the device driver service message argument.
+ * @param[in] call The message call structure.
+ */
+#define IPC_GET_SERVICE(call) \
+	({ \
+		services_t service = (services_t) IPC_GET_ARG3(*call); \
+		service; \
+	})
+
+/** Returns the target service message argument.
+ * @param[in] call The message call structure.
+ */
+#define IPC_GET_TARGET(call) \
+	({ \
+		services_t service = (services_t) IPC_GET_ARG3(*call); \
+		service; \
+	})
+
+/** Returns the sender service message argument.
+ * @param[in] call The message call structure.
+ */
+#define IPC_GET_SENDER(call) \
+	({ \
+		services_t service = (services_t) IPC_GET_ARG3(*call); \
+		service; \
+	})
+
+/** Returns the error service message argument.
+ * @param[in] call The message call structure.
+ */
+#define IPC_GET_ERROR(call) \
+	({ \
+		services_t service = (services_t) IPC_GET_ARG4(*call); \
+		service; \
+	})
+
+/** Returns the phone message argument.
+ * @param[in] call The message call structure.
+ */
+#define IPC_GET_PHONE(call) \
+	({ \
+		int phone = (int) IPC_GET_ARG5(*call); \
+		phone; \
+	})
+
+/** Sets the device identifier in the message answer.
+ * @param[out] answer The message answer structure.
+ */
+#define IPC_SET_DEVICE(answer, value) \
+	do { \
+		ipcarg_t argument = (ipcarg_t) (value); \
+		IPC_SET_ARG1(*answer, argument); \
+	} while (0)
+
+/** Sets the minimum address length in the message answer.
+ * @param[out] answer The message answer structure.
+ */
+#define IPC_SET_ADDR(answer, value) \
+	do { \
+		ipcarg_t argument = (ipcarg_t) (value); \
+		IPC_SET_ARG1(*answer, argument); \
+	} while (0)
+
+/** Sets the minimum prefix size in the message answer.
+ * @param[out] answer The message answer structure.
+ */
+#define IPC_SET_PREFIX(answer, value) \
+	do { \
+		ipcarg_t argument = (ipcarg_t) (value); \
+		IPC_SET_ARG2(*answer, argument); \
+	} while (0)
+
+/** Sets the maximum content size in the message answer.
+ * @param[out] answer The message answer structure.
+ */
+#define IPC_SET_CONTENT(answer, value) \
+	do { \
+		ipcarg_t argument = (ipcarg_t) (value); \
+		IPC_SET_ARG3(*answer, argument); \
+	} while (0)
+
+/** Sets the minimum suffix size in the message answer.
+ * @param[out] answer The message answer structure.
+ */
+#define IPC_SET_SUFFIX(answer, value) \
+	do { \
+		ipcarg_t argument = (ipcarg_t) (value); \
+		IPC_SET_ARG4(*answer, argument); \
+	} while (0)
 
 /*@}*/
 
