@@ -29,9 +29,9 @@
 
 USPACE_PREFIX = ../..
 EXTRA_CFLAGS = -Iinclude
-LIBRARY = libsocket
+LIBRARY = libpacket
 
 SOURCES = \
-	packet/packet_server.c
+	generic/packet_server.c
 
 include $(USPACE_PREFIX)/Makefile.common

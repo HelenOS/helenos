@@ -26,143 +26,112 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup netif
- *  @{
+/** @addtogroup libc
+ * @{
  */
 
 /** @file
- *  Device identifier, state and usage statistics.
+ * Device identifier, state and usage statistics.
  */
 
-#ifndef __NET_DEVICE_ID_TYPE_H__
-#define __NET_DEVICE_ID_TYPE_H__
+#ifndef LIBC_DEVICE_ID_TYPE_H_
+#define LIBC_DEVICE_ID_TYPE_H_
 
 #include <adt/int_map.h>
 
-/** Device identifier to generic type map declaration.
- */
-#define DEVICE_MAP_DECLARE		INT_MAP_DECLARE
+/** Device identifier to generic type map declaration. */
+#define DEVICE_MAP_DECLARE	INT_MAP_DECLARE
 
-/** Device identifier to generic type map implementation.
- */
+/** Device identifier to generic type map implementation. */
 #define DEVICE_MAP_IMPLEMENT	INT_MAP_IMPLEMENT
 
-/** Invalid device identifier.
- */
-#define DEVICE_INVALID_ID		(-1)
+/** Invalid device identifier. */
+#define DEVICE_INVALID_ID	(-1)
 
-/** Device identifier type.
- */
-typedef int	device_id_t;
+/** Device identifier type. */
+typedef int device_id_t;
 
-/** Device state type.
- */
-typedef enum device_state	device_state_t;
+/** Device state type. */
+typedef enum device_state device_state_t;
 
 /** Type definition of the device usage statistics.
- *  @see device_stats
+ * @see device_stats
  */
-typedef struct device_stats	device_stats_t;
+typedef struct device_stats device_stats_t;
 
 /** Type definition of the device usage statistics pointer.
- *  @see device_stats
+ * @see device_stats
  */
-typedef device_stats_t *	device_stats_ref;
+typedef device_stats_t *device_stats_ref;
 
-/** Device state.
- */
-enum	device_state{
-	/** Device not present or not initialized.
-	 */
+/** Device state. */
+enum device_state {
+	/** Device not present or not initialized. */
 	NETIF_NULL = 0,
-	/** Device present and stopped.
-	 */
+	/** Device present and stopped. */
 	NETIF_STOPPED,
-	/** Device present and active.
-	 */
+	/** Device present and active. */
 	NETIF_ACTIVE,
-	/** Device present but unable to transmit.
-	 */
+	/** Device present but unable to transmit. */
 	NETIF_CARRIER_LOST
 };
 
-/** Device usage statistics.
- */
-struct	device_stats{
-	/** Total packets received.
-	 */
+/** Device usage statistics. */
+struct device_stats {
+	/** Total packets received. */
 	unsigned long receive_packets;
-	/** Total packets transmitted.
-	 */
+	/** Total packets transmitted. */
 	unsigned long send_packets;
-	/** Total bytes received.
-	 */
+	/** Total bytes received. */
 	unsigned long receive_bytes;
-	/** Total bytes transmitted.
-	 */
+	/** Total bytes transmitted. */
 	unsigned long send_bytes;
-	/** Bad packets received counter.
-	 */
+	/** Bad packets received counter. */
 	unsigned long receive_errors;
-	/** Packet transmition problems counter.
-	 */
+	/** Packet transmition problems counter. */
 	unsigned long send_errors;
-	/** No space in buffers counter.
-	 */
+	/** No space in buffers counter. */
 	unsigned long receive_dropped;
-	/** No space available counter.
-	 */
+	/** No space available counter. */
 	unsigned long send_dropped;
-	/** Total multicast packets received.
-	 */
+	/** Total multicast packets received. */
 	unsigned long multicast;
-	/** The number of collisions due to congestion on the medium.
-	 */
+	/** The number of collisions due to congestion on the medium. */
 	unsigned long collisions;
 
-	/* detailed receive_errors: */
-	/** Received packet length error counter.
-	 */
+	/* detailed receive_errors */
+
+	/** Received packet length error counter. */
 	unsigned long receive_length_errors;
-	/** Receiver buffer overflow counter.
-	 */
+	/** Receiver buffer overflow counter. */
 	unsigned long receive_over_errors;
-	/** Received packet with crc error counter.
-	 */
+	/** Received packet with crc error counter. */
 	unsigned long receive_crc_errors;
-	/** Received frame alignment error counter.
-	 */
+	/** Received frame alignment error counter. */
 	unsigned long receive_frame_errors;
-	/** Receiver fifo overrun counter.
-	 */
+	/** Receiver fifo overrun counter. */
 	unsigned long receive_fifo_errors;
-	/** Receiver missed packet counter.
-	 */
+	/** Receiver missed packet counter. */
 	unsigned long receive_missed_errors;
 
 	/* detailed send_errors */
-	/** Transmitter aborted counter.
-	 */
+
+	/** Transmitter aborted counter. */
 	unsigned long send_aborted_errors;
-	/** Transmitter carrier errors counter.
-	 */
+	/** Transmitter carrier errors counter. */
 	unsigned long send_carrier_errors;
-	/** Transmitter fifo overrun counter.
-	 */
+	/** Transmitter fifo overrun counter. */
 	unsigned long send_fifo_errors;
-	/** Transmitter carrier errors counter.
-	 */
+	/** Transmitter carrier errors counter. */
 	unsigned long send_heartbeat_errors;
-	/** Transmitter window errors counter.
-	 */
+	/** Transmitter window errors counter. */
 	unsigned long send_window_errors;
 
 	/* for cslip etc */
-	/** Total compressed packets received.
-	 */
+	
+	/** Total compressed packets received. */
 	unsigned long receive_compressed;
-	/** Total compressed packet transmitted.
-	 */
+	/** Total compressed packet transmitted. */
 	unsigned long send_compressed;
 };
 
@@ -170,4 +139,3 @@ struct	device_stats{
 
 /** @}
  */
-

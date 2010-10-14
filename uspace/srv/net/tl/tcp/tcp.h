@@ -40,7 +40,7 @@
 #include <fibril_synch.h>
 
 #include <net/packet.h>
-#include <net_device.h>
+#include <net/device.h>
 #include <socket_core.h>
 #include <tl_common.h>
 

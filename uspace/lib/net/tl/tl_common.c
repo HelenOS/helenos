@@ -47,7 +47,7 @@
 #include <net/packet.h>
 #include <packet_client.h>
 #include <packet_remote.h>
-#include <net_device.h>
+#include <net/device.h>
 #include <icmp_interface.h>
 #include <ip_remote.h>
 #include <ip_interface.h>

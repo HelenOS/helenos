@@ -38,15 +38,15 @@
 #ifndef __NET_IL_INTERFACE_H__
 #define __NET_IL_INTERFACE_H__
 
-#include <async.h>
+#include <generic.h>
 
 #include <ipc/services.h>
 
-#include <net_messages.h>
-#include <net_device.h>
+#include <net/device.h>
 #include <net/packet.h>
-#include <packet_client.h>
 #include <il_messages.h>
+
+#include <packet_client.h>
 
 /** @name Internetwork layer module interface
  * This interface is used by other modules.

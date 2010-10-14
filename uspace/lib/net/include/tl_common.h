@@ -39,7 +39,7 @@
 
 #include <net/socket_codes.h>
 #include <net/packet.h>
-#include <net_device.h>
+#include <net/device.h>
 #include <net/inet.h>
 
 /** Device packet dimensions.

@@ -41,6 +41,7 @@
 #include <stdio.h>
 #include <ipc/ipc.h>
 #include <ipc/services.h>
+#include <ipc/net.h>
 #include <ipc/socket.h>
 #include <errno.h>
 #include <err.h>
@@ -52,7 +53,6 @@
 #include <net/inet.h>
 #include <net/modules.h>
 
-#include <net_messages.h>
 #include <adt/dynamic_fifo.h>
 #include <packet_client.h>
 #include <packet_remote.h>

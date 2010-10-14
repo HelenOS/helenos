@@ -41,7 +41,7 @@
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 
-#include <net_device.h>
+#include <net/device.h>
 #include <net/inet.h>
 #include <ip_interface.h>
 #include <adt/int_map.h>

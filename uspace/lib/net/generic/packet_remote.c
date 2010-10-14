@@ -42,7 +42,6 @@
 #include <ipc/packet.h>
 #include <sys/mman.h>
 
-#include <net_messages.h>
 #include <packet_client.h>
 #include <packet_remote.h>
 

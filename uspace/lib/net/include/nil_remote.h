@@ -33,9 +33,9 @@
 #ifndef __NET_NIL_REMOTE_H__
 #define __NET_NIL_REMOTE_H__
 
-#include <async.h>
-#include <fibril_synch.h>
-#include <ipc/ipc.h>
+#include <ipc/services.h>
+#include <net/device.h>
+#include <net/packet.h>
 
 extern int nil_device_state_msg_remote(int, device_id_t, int);
 extern int nil_received_msg_remote(int, device_id_t, packet_t, services_t);

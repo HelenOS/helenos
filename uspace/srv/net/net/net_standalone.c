@@ -42,7 +42,7 @@
 #include <ip_interface.h>
 #include <adt/measured_strings.h>
 #include <adt/module_map.h>
-#include <packet/packet_server.h>
+#include <packet_server.h>
 
 #include "net.h"
 

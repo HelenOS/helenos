@@ -35,17 +35,18 @@
  *  @see arp_interface.h
  */
 
+#include <arp_interface.h>
+#include <arp_messages.h>
+#include <generic.h>
+
 #include <async.h>
 #include <errno.h>
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 
-#include <net_messages.h>
 #include <net/modules.h>
-#include <net_device.h>
-#include <arp_interface.h>
+#include <net/device.h>
 #include <adt/measured_strings.h>
-#include <arp_messages.h>
 
 int arp_connect_module(services_t service){
 	if(service != SERVICE_ARP){

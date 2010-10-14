@@ -45,7 +45,7 @@
 #include <err.h>
 
 #include <adt/measured_strings.h>
-#include <net_device.h>
+#include <net/device.h>
 #include <net/packet.h>
 
 /** Network interface device specific data.

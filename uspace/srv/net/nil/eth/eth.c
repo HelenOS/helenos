@@ -44,15 +44,15 @@
 #include <err.h>
 
 #include <ipc/ipc.h>
+#include <ipc/net.h>
 #include <ipc/services.h>
 
-#include <net_messages.h>
 #include <net/modules.h>
 #include <net_checksum.h>
 #include <ethernet_lsap.h>
 #include <ethernet_protocols.h>
 #include <protocol_map.h>
-#include <net_device.h>
+#include <net/device.h>
 #include <netif_interface.h>
 #include <net_interface.h>
 #include <nil_interface.h>

@@ -43,6 +43,7 @@
 #include <str.h>
 #include <ipc/ipc.h>
 #include <ipc/services.h>
+#include <ipc/net.h>
 #include <sys/types.h>
 #include <byteorder.h>
 
@@ -51,13 +52,13 @@
 #include <net/in6.h>
 #include <net/inet.h>
 #include <net/modules.h>
+#include <net/device.h>
+#include <net/packet.h>
+#include <net/icmp_codes.h>
 
-#include <net_messages.h>
 #include <arp_interface.h>
 #include <net_checksum.h>
-#include <net_device.h>
 #include <icmp_client.h>
-#include <net/icmp_codes.h>
 #include <icmp_interface.h>
 #include <il_interface.h>
 #include <ip_client.h>

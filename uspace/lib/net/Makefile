@@ -28,10 +28,11 @@
 #
 
 USPACE_PREFIX = ../..
-EXTRA_CFLAGS = -Iinclude -I$(LIBSOCKET_PREFIX)/include
+EXTRA_CFLAGS = -Iinclude
 LIBRARY = libnet
 
 SOURCES = \
+	generic/generic.c \
 	generic/net_remote.c \
 	generic/net_checksum.c \
 	generic/packet_client.c \

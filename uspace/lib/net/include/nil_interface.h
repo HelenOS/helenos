@@ -38,11 +38,9 @@
 
 #include <ipc/ipc.h>
 
-#include <net_messages.h>
-#include <adt/measured_strings.h>
-#include <net/packet.h>
+#include <generic.h>
 #include <nil_messages.h>
-#include <net_device.h>
+#include <nil_remote.h>
 
 #define nil_bind_service(service, device_id, me, receiver) \
 	bind_service(service, device_id, me, 0, receiver)
@@ -65,10 +63,6 @@
 #define nil_device_req(nil_phone, device_id, mtu, netif_service) \
 	generic_device_req_remote(nil_phone, NET_NIL_DEVICE, device_id, mtu, \
 	    netif_service)
-
-
-#include <nil_remote.h>
-#include <packet/packet_server.h>
 
 #define nil_device_state_msg  nil_device_state_msg_remote
 #define nil_received_msg      nil_received_msg_remote

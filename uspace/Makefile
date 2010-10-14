@@ -133,7 +133,7 @@ LIBS = \
 	lib/clui \
 	lib/softint \
 	lib/softfloat \
-	lib/socket \
+	lib/packet \
 	lib/net
 
 ifeq ($(UARCH),amd64)

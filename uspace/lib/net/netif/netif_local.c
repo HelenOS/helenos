@@ -43,14 +43,13 @@
 #include <ipc/services.h>
 #include <err.h>
 
-#include <net_messages.h>
+#include <generic.h>
 #include <net/modules.h>
 #include <net/packet.h>
 #include <packet_client.h>
-#include <packet/packet_server.h>
 #include <packet_remote.h>
 #include <adt/measured_strings.h>
-#include <net_device.h>
+#include <net/device.h>
 #include <nil_interface.h>
 #include <netif_local.h>
 #include <netif_messages.h>

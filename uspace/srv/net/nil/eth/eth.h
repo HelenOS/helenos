@@ -40,7 +40,7 @@
 #include <fibril_synch.h>
 #include <ipc/services.h>
 
-#include <net_device.h>
+#include <net/device.h>
 #include <adt/measured_strings.h>
 
 /** Type definition of the Ethernet global data.

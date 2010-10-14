@@ -45,9 +45,9 @@
 #include <str.h>
 
 #include <ipc/ipc.h>
+#include <ipc/net.h>
 #include <ipc/services.h>
 
-#include <net_messages.h>
 #include <net/modules.h>
 #include <adt/char_map.h>
 #include <adt/generic_char_map.h>
@@ -56,7 +56,7 @@
 #include <net/packet.h>
 #include <il_messages.h>
 #include <netif_remote.h>
-#include <net_device.h>
+#include <net/device.h>
 #include <nil_interface.h>
 #include <net_interface.h>
 #include <ip_interface.h>

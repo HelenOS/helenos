@@ -40,10 +40,10 @@
 #include <adt/measured_strings.h>
 #include <net/packet.h>
 #include <packet_client.h>
-#include <net_device.h>
+#include <net/device.h>
 #include <netif_remote.h>
 #include <netif_messages.h>
-#include <net_messages.h>
+#include <generic.h>
 
 int netif_get_addr_req_remote(int netif_phone, device_id_t device_id,
     measured_string_ref *address, char **data)
