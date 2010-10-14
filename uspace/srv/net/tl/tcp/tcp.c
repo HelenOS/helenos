@@ -65,7 +65,6 @@
 #include <icmp_client.h>
 #include <icmp_interface.h>
 #include <net_interface.h>
-#include <tcp_codes.h>
 #include <socket_core.h>
 #include <tl_common.h>
 #include <tl_messages.h>
