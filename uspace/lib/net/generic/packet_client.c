@@ -42,7 +42,6 @@
 
 #include <packet_client.h>
 
-#include <net_messages.h>
 #include <net/packet.h>
 #include <net/packet_header.h>
 

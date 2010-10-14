@@ -33,12 +33,14 @@
 #ifndef __NET_IP_REMOTE_H__
 #define __NET_IP_REMOTE_H__
 
-#include <async.h>
 #include <ipc/services.h>
 
 #include <net/ip_codes.h>
 #include <net/inet.h>
 #include <net/in.h>
+#include <net/packet.h>
+#include <net/device.h>
+#include <net/socket.h>
 
 extern int ip_set_gateway_req_remote(int, device_id_t, in_addr_t);
 extern int ip_packet_size_req_remote(int, device_id_t, packet_dimension_ref);

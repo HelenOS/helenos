@@ -45,9 +45,9 @@
 #include <str.h>
 
 #include <ipc/ipc.h>
+#include <ipc/net.h>
 #include <ipc/services.h>
 
-#include <net_messages.h>
 #include <net/modules.h>
 #include <adt/char_map.h>
 #include <adt/generic_char_map.h>

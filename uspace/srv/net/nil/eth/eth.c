@@ -44,9 +44,9 @@
 #include <err.h>
 
 #include <ipc/ipc.h>
+#include <ipc/net.h>
 #include <ipc/services.h>
 
-#include <net_messages.h>
 #include <net/modules.h>
 #include <net_checksum.h>
 #include <ethernet_lsap.h>

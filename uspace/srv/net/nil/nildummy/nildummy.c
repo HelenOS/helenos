@@ -42,9 +42,9 @@
 #include <str.h>
 #include <err.h>
 #include <ipc/ipc.h>
+#include <ipc/net.h>
 #include <ipc/services.h>
 
-#include <net_messages.h>
 #include <net/modules.h>
 #include <net/device.h>
 #include <netif_interface.h>

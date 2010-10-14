@@ -46,6 +46,7 @@
 
 #include <ipc/ipc.h>
 #include <ipc/services.h>
+#include <ipc/net.h>
 #include <ipc/socket.h>
 
 #include <net/socket_codes.h>
@@ -55,7 +56,6 @@
 #include <net/inet.h>
 #include <net/modules.h>
 
-#include <net_messages.h>
 #include <adt/dynamic_fifo.h>
 #include <packet_client.h>
 #include <packet_remote.h>

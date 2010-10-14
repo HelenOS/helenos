@@ -39,7 +39,7 @@
 
 #include <malloc.h>
 
-#include <net_messages.h>
+#include <generic.h>
 #include <net/modules.h>
 #include <net/device.h>
 #include <net_interface.h>

@@ -44,10 +44,10 @@
 #include <task.h>
 #include <ipc/ipc.h>
 #include <ipc/services.h>
+#include <ipc/net.h>
 #include <byteorder.h>
 #include <err.h>
 
-#include <net_messages.h>
 #include <net/modules.h>
 #include <net/device.h>
 #include <arp_interface.h>

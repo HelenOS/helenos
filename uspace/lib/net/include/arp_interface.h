@@ -34,7 +34,12 @@
 #define __NET_ARP_INTERFACE_H__
 
 #include <adt/measured_strings.h>
+#include <task.h>
+
+#include <ipc/services.h>
+
 #include <net/device.h>
+#include <net/socket.h>
 
 /** @name ARP module interface
  *  This interface is used by other modules.

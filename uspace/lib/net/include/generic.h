@@ -26,26 +26,38 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup netif
+/** @addtogroup net
  * @{
  */
 
-#ifndef __NET_NETIF_REMOTE_H__
-#define __NET_NETIF_REMOTE_H__
+/** @file
+ * Generic communication interfaces for networking.
+ */
 
+#ifndef NET_GENERIC_H_
+#define NET_GENERIC_H_
+
+#include <async.h>
+#include <ipc/ipc.h>
 #include <ipc/services.h>
-#include <adt/measured_strings.h>
-#include <net/device.h>
 
-extern int netif_get_addr_req_remote(int, device_id_t, measured_string_ref *,
+#include <net/device.h>
+#include <adt/measured_strings.h>
+#include <net/packet.h>
+
+extern int generic_device_state_msg_remote(int, int, device_id_t, int,
+    services_t);
+extern int generic_device_req_remote(int, int, device_id_t, int, services_t);
+extern int generic_get_addr_req(int, int, device_id_t, measured_string_ref *,
     char **);
-extern int netif_probe_req_remote(int, device_id_t, int, int);
-extern int netif_send_msg_remote(int, device_id_t, packet_t, services_t);
-extern int netif_start_req_remote(int, device_id_t);
-extern int netif_stop_req_remote(int, device_id_t);
-extern int netif_stats_req_remote(int, device_id_t, device_stats_ref);
-extern int netif_bind_service_remote(services_t, device_id_t, services_t,
-    async_client_conn_t);
+extern int generic_packet_size_req_remote(int, int, device_id_t,
+    packet_dimension_ref);
+extern int generic_received_msg_remote(int, int, device_id_t, packet_id_t,
+    services_t, services_t);
+extern int generic_send_msg_remote(int, int, device_id_t, packet_id_t,
+    services_t, services_t);
+extern int generic_translate_req(int, int, device_id_t, services_t,
+    measured_string_ref, size_t, measured_string_ref *, char **);
 
 #endif
 

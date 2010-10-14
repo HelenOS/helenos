@@ -43,7 +43,7 @@
 #include <ipc/services.h>
 #include <err.h>
 
-#include <net_messages.h>
+#include <generic.h>
 #include <net/modules.h>
 #include <net/packet.h>
 #include <packet_client.h>

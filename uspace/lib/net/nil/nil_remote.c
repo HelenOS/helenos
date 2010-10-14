@@ -35,13 +35,13 @@
  * @see nil_interface.h
  */
 
-#include <net_messages.h>
-#include <net/device.h>
+#include <nil_remote.h>
 #include <nil_interface.h>
+#include <nil_messages.h>
+#include <generic.h>
+#include <net/device.h>
 #include <net/packet.h>
 #include <packet_client.h>
-#include <nil_messages.h>
-#include <nil_remote.h>
 
 /** Notify the network interface layer about the device state change.
  *

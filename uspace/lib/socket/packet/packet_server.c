@@ -45,11 +45,12 @@
 
 #include <ipc/ipc.h>
 #include <ipc/packet.h>
+#include <ipc/net.h>
+
 #include <net/packet.h>
 #include <net/packet_header.h>
-#include <packet/packet_server.h>
 
-#include <net_messages.h>
+#include <packet/packet_server.h>
 #include <packet/packet_local.h>
 
 #define FREE_QUEUES_COUNT	7

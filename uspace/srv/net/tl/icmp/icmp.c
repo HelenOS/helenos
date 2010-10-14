@@ -43,6 +43,7 @@
 #include <str.h>
 #include <ipc/ipc.h>
 #include <ipc/services.h>
+#include <ipc/net.h>
 #include <ipc/icmp.h>
 #include <sys/time.h>
 #include <sys/types.h>
@@ -54,7 +55,6 @@
 #include <net/ip_protocols.h>
 #include <net/inet.h>
 
-#include <net_messages.h>
 #include <net/modules.h>
 #include <packet_client.h>
 #include <packet_remote.h>
