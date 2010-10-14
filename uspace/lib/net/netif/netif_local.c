@@ -47,7 +47,6 @@
 #include <net/modules.h>
 #include <net/packet.h>
 #include <packet_client.h>
-#include <packet/packet_server.h>
 #include <packet_remote.h>
 #include <adt/measured_strings.h>
 #include <net/device.h>

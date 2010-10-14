@@ -50,8 +50,8 @@
 #include <net/packet.h>
 #include <net/packet_header.h>
 
-#include <packet/packet_server.h>
-#include <packet/packet_local.h>
+#include <packet_server.h>
+#include <packet_local.h>
 
 #define FREE_QUEUES_COUNT	7
 

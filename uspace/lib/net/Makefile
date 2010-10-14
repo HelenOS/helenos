@@ -28,7 +28,7 @@
 #
 
 USPACE_PREFIX = ../..
-EXTRA_CFLAGS = -Iinclude -I$(LIBSOCKET_PREFIX)/include
+EXTRA_CFLAGS = -Iinclude
 LIBRARY = libnet
 
 SOURCES = \
