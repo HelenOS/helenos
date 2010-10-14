@@ -42,7 +42,7 @@
 
 #include <net_messages.h>
 #include <net/modules.h>
-#include <net_device.h>
+#include <net/device.h>
 #include <arp_interface.h>
 #include <adt/measured_strings.h>
 #include <arp_messages.h>

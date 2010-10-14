@@ -41,7 +41,7 @@
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 
-#include <net_device.h>
+#include <net/device.h>
 #include <adt/measured_strings.h>
 #include <net/packet.h>
 

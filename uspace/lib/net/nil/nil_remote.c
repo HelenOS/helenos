@@ -36,7 +36,7 @@
  */
 
 #include <net_messages.h>
-#include <net_device.h>
+#include <net/device.h>
 #include <nil_interface.h>
 #include <net/packet.h>
 #include <packet_client.h>

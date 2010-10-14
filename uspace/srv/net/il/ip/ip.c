@@ -55,7 +55,7 @@
 #include <net_messages.h>
 #include <arp_interface.h>
 #include <net_checksum.h>
-#include <net_device.h>
+#include <net/device.h>
 #include <icmp_client.h>
 #include <net/icmp_codes.h>
 #include <icmp_interface.h>

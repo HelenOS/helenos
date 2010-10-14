@@ -42,7 +42,7 @@
 #include <adt/measured_strings.h>
 #include <net/packet.h>
 #include <nil_messages.h>
-#include <net_device.h>
+#include <net/device.h>
 
 #define nil_bind_service(service, device_id, me, receiver) \
 	bind_service(service, device_id, me, 0, receiver)

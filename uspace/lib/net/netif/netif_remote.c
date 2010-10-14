@@ -40,7 +40,7 @@
 #include <adt/measured_strings.h>
 #include <net/packet.h>
 #include <packet_client.h>
-#include <net_device.h>
+#include <net/device.h>
 #include <netif_remote.h>
 #include <netif_messages.h>
 #include <net_messages.h>

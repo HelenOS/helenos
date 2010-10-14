@@ -43,7 +43,7 @@
 
 #include <net_messages.h>
 #include <net/modules.h>
-#include <net_device.h>
+#include <net/device.h>
 #include <net/inet.h>
 #include <ip_interface.h>
 #include <packet_client.h>

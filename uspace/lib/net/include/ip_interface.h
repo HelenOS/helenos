@@ -37,7 +37,7 @@
 #include <async.h>
 #include <ipc/services.h>
 
-#include <net_device.h>
+#include <net/device.h>
 #include <net/packet.h>
 
 #include <net/in.h>

@@ -52,7 +52,7 @@
 #include <ethernet_lsap.h>
 #include <ethernet_protocols.h>
 #include <protocol_map.h>
-#include <net_device.h>
+#include <net/device.h>
 #include <netif_interface.h>
 #include <net_interface.h>
 #include <nil_interface.h>

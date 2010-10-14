@@ -50,7 +50,7 @@
 #include <packet/packet_server.h>
 #include <packet_remote.h>
 #include <adt/measured_strings.h>
-#include <net_device.h>
+#include <net/device.h>
 #include <nil_interface.h>
 #include <netif_local.h>
 #include <netif_messages.h>

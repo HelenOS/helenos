@@ -41,7 +41,7 @@
 
 #include <net_messages.h>
 #include <net/modules.h>
-#include <net_device.h>
+#include <net/device.h>
 #include <net_interface.h>
 #include <adt/measured_strings.h>
 #include <net_net_messages.h>

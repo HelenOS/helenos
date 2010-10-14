@@ -47,7 +47,7 @@
 #include <net/modules.h>
 #include <adt/measured_strings.h>
 #include <packet_client.h>
-#include <net_device.h>
+#include <net/device.h>
 #include <nil_interface.h>
 #include <nil_messages.h>
 #include <netif_interface.h>

@@ -34,7 +34,7 @@
 #define __NET_ARP_INTERFACE_H__
 
 #include <adt/measured_strings.h>
-#include <net_device.h>
+#include <net/device.h>
 
 /** @name ARP module interface
  *  This interface is used by other modules.

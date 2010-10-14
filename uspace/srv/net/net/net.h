@@ -40,7 +40,7 @@
 
 #include <ipc/ipc.h>
 
-#include <net_device.h>
+#include <net/device.h>
 #include <adt/char_map.h>
 #include <adt/generic_char_map.h>
 #include <adt/measured_strings.h>

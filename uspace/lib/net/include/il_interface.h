@@ -43,7 +43,7 @@
 #include <ipc/services.h>
 
 #include <net_messages.h>
-#include <net_device.h>
+#include <net/device.h>
 #include <net/packet.h>
 #include <packet_client.h>
 #include <il_messages.h>

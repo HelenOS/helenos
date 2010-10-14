@@ -56,7 +56,7 @@
 #include <net/packet.h>
 #include <il_messages.h>
 #include <netif_remote.h>
-#include <net_device.h>
+#include <net/device.h>
 #include <nil_interface.h>
 #include <net_interface.h>
 #include <ip_interface.h>

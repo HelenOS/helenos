@@ -35,7 +35,7 @@
 
 #include <ipc/services.h>
 
-#include <net_device.h>
+#include <net/device.h>
 #include <adt/measured_strings.h>
 
 /** @name Networking module interface

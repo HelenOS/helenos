@@ -49,7 +49,7 @@
 
 #include <net_messages.h>
 #include <net/modules.h>
-#include <net_device.h>
+#include <net/device.h>
 #include <arp_interface.h>
 #include <nil_interface.h>
 #include <protocol_map.h>
