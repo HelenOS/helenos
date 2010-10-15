@@ -44,6 +44,7 @@
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <ipc/net.h>
+#include <ipc/nil.h>
 #include <ipc/il.h>
 #include <ipc/ip.h>
 #include <sys/types.h>
@@ -72,7 +73,6 @@
 #include <adt/module_map.h>
 #include <packet_client.h>
 #include <packet_remote.h>
-#include <nil_messages.h>
 #include <il_local.h>
 #include <ip_local.h>
 
