@@ -26,34 +26,32 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup net
- *  @{
+/** @addtogroup libc
+ * @{
  */
 
 /** @file
- *  Networking subsystem central module messages.
- *  @see net_interface.h
+ * Networking subsystem central module messages.
+ * @see net_interface.h
  */
 
-#ifndef __NET_NET_MESSAGES_H__
-#define __NET_NET_MESSAGES_H__
+#ifndef LIBC_NET_NET_MESSAGES_H_
+#define LIBC_NET_NET_MESSAGES_H_
 
 #include <ipc/ipc.h>
 #include <ipc/net.h>
 
-/** Networking subsystem central module messages.
- */
-typedef enum{
+/** Networking subsystem central module messages. */
+typedef enum {
 	/** Returns the general configuration
-	 *  @see net_get_conf_req()
+	 * @see net_get_conf_req()
 	 */
 	NET_NET_GET_CONF = NET_FIRST,
 	/** Returns the device specific configuration
-	 *  @see net_get_device_conf_req()
+	 * @see net_get_device_conf_req()
 	 */
 	NET_NET_GET_DEVICE_CONF,
-	/** Starts the networking stack.
-	 */
+	/** Starts the networking stack. */
 	NET_NET_STARTUP,
 } net_messages;
 

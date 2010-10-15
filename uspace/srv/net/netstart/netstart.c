@@ -47,9 +47,9 @@
 #include <err.h>
 #include <ipc/ipc.h>
 #include <ipc/services.h>
+#include <ipc/net_net.h>
 
 #include <net/modules.h>
-#include <net_net_messages.h>
 
 #include "self_test.h"
 

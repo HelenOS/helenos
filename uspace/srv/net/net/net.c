@@ -47,6 +47,7 @@
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <ipc/net.h>
+#include <ipc/net_net.h>
 #include <ipc/il.h>
 
 #include <net/modules.h>
@@ -60,7 +61,6 @@
 #include <nil_interface.h>
 #include <net_interface.h>
 #include <ip_interface.h>
-#include <net_net_messages.h>
 
 #include "net.h"
 

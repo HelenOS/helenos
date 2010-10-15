@@ -36,6 +36,7 @@
  */
 
 #include <ipc/services.h>
+#include <ipc/net_net.h>
 
 #include <malloc.h>
 
@@ -44,7 +45,6 @@
 #include <net/device.h>
 #include <net_interface.h>
 #include <adt/measured_strings.h>
-#include <net_net_messages.h>
 
 int net_connect_module(services_t service)
 {
