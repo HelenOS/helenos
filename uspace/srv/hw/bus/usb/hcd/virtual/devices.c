@@ -43,6 +43,7 @@
 #include <str_error.h>
 
 #include <usbvirt/ids.h>
+#include <usbvirt/hub.h>
 
 #include "devices.h"
 
@@ -62,8 +63,7 @@ virtdev_connection_t *virtdev_recognise(int id, int phone)
 	virtdev_connection_t * dev = NULL;
 	switch (id) {
 		case USBVIRT_DEV_KEYBOARD_ID:
-			dev = virtdev_add_device(
-			    USBVIRT_DEV_KEYBOARD_ADDRESS, phone);
+			dev = virtdev_add_device(phone);
 			break;
 		default:
 			break;
@@ -83,24 +83,6 @@ virtdev_connection_t *virtdev_recognise(int id, int phone)
 	return dev;
 }
 
-/** Find virtual device by its USB address.
- *
- * @retval NULL No virtual device at given address.
- */
-virtdev_connection_t *virtdev_find_by_address(usb_address_t address)
-{
-	link_t *pos;
-	list_foreach(pos, &devices) {
-		virtdev_connection_t *dev
-		    = list_get_instance(pos, virtdev_connection_t, link);
-		if (dev->address == address) {
-			return dev;
-		}
-	}
-	
-	return NULL;
-}
-
 /** Create virtual device.
  *
  * @param address USB address.
@@ -108,21 +90,11 @@ virtdev_connection_t *virtdev_find_by_address(usb_address_t address)
  * @return New device.
  * @retval NULL Out of memory or address already occupied.
  */
-virtdev_connection_t *virtdev_add_device(usb_address_t address, int phone)
+virtdev_connection_t *virtdev_add_device(int phone)
 {
-	link_t *pos;
-	list_foreach(pos, &devices) {
-		virtdev_connection_t *dev
-		    = list_get_instance(pos, virtdev_connection_t, link);
-		if (dev->address == address) {
-			return NULL;
-		}
-	}
-	
 	virtdev_connection_t *dev = (virtdev_connection_t *)
 	    malloc(sizeof(virtdev_connection_t));
 	dev->phone = phone;
-	dev->address = address;
 	list_append(&dev->link, &devices);
 	
 	return dev;
@@ -134,6 +106,46 @@ void virtdev_destroy_device(virtdev_connection_t *dev)
 {
 	list_remove(&dev->link);
 	free(dev);
+}
+
+/** Send data to all connected devices.
+ *
+ * @param transaction Transaction to be sent over the bus.
+ */
+usb_transaction_outcome_t virtdev_send_to_all(transaction_t *transaction)
+{
+	link_t *pos;
+	list_foreach(pos, &devices) {
+		virtdev_connection_t *dev
+		    = list_get_instance(pos, virtdev_connection_t, link);
+		
+		ipc_call_t answer_data;
+		ipcarg_t answer_rc;
+		aid_t req;
+		int rc;
+		
+		req = async_send_3(dev->phone,
+		    IPC_M_USBVIRT_DATA_TO_DEVICE,
+		    transaction->target.address,
+		    transaction->target.endpoint,
+		    transaction->type,
+		    &answer_data);
+		
+		rc = async_data_write_start(dev->phone,
+		    transaction->buffer, transaction->len);
+		if (rc != EOK) {
+			async_wait_for(req, NULL);
+		} else {
+			async_wait_for(req, &answer_rc);
+			rc = (int)answer_rc;
+		}
+	}
+	
+	/*
+	 * TODO: maybe screw some transactions to get more
+	 * real-life image.
+	 */
+	return USB_OUTCOME_OK;
 }
 
 /**

@@ -49,7 +49,13 @@ usbvirt_device_t *device = NULL;
 
 static void handle_data_to_device(ipc_callid_t iid, ipc_call_t icall)
 {
-	usb_endpoint_t endpoint = IPC_GET_ARG1(icall);
+	usb_address_t address = IPC_GET_ARG1(icall);
+	usb_endpoint_t endpoint = IPC_GET_ARG2(icall);
+	
+	if (address != device->address) {
+		ipc_answer_0(iid, EADDRNOTAVAIL);
+		return;
+	}
 	
 	size_t len;
 	void * buffer;
@@ -94,6 +100,13 @@ static void callback_connection(ipc_callid_t iid, ipc_call_t *icall)
 	}
 }
 
+static void device_init(usbvirt_device_t *dev)
+{
+	dev->send_data = usbvirt_data_to_host;
+	dev->state = USBVIRT_STATE_DEFAULT;
+	dev->address = 0;
+}
+
 int usbvirt_data_to_host(struct usbvirt_device *dev,
     usb_endpoint_t endpoint, void *buffer, size_t size)
 {
@@ -111,8 +124,9 @@ int usbvirt_data_to_host(struct usbvirt_device *dev,
 	aid_t req;
 	int rc;
 	
-	req = async_send_1(phone,
+	req = async_send_2(phone,
 	    IPC_M_USBVIRT_DATA_FROM_DEVICE,
+	    dev->address,
 	    endpoint,
 	    &answer_data);
 	
@@ -173,7 +187,7 @@ int usbvirt_connect(usbvirt_device_t *dev, const char *hcd_path)
 	}
 	
 	dev->vhcd_phone_ = hcd_phone;
-	dev->send_data = usbvirt_data_to_host;
+	device_init(dev);
 	
 	device = dev;
 	

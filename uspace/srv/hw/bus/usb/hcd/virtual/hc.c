@@ -67,26 +67,6 @@
 static link_t transaction_to_device_list;
 static link_t transaction_from_device_list;
 
-/** Pending transaction details. */
-typedef struct {
-	/** Linked-list link. */
-	link_t link;
-	/** Device address. */
-	usb_target_t target;
-	/** Direction of the transaction. */
-	usb_direction_t direction;
-	/** Transfer type. */
-	usb_transfer_type_t type;
-	/** Transaction data buffer. */
-	void * buffer;
-	/** Transaction data length. */
-	size_t len;
-	/** Callback after transaction is done. */
-	hc_transaction_done_callback_t callback;
-	/** Argument to the callback. */
-	void * callback_arg;
-} transaction_t;
-
 #define TRANSACTION_FORMAT "T[%d:%d %s %s (%d)]"
 #define TRANSACTION_PRINTF(t) \
 	(t).target.address, (t).target.endpoint, \
@@ -135,45 +115,13 @@ void hc_manager(void)
 			continue;
 		}
 		
-		link_t * first_transaction_link = transaction_to_device_list.next;
-		transaction_t * transaction
+		link_t *first_transaction_link = transaction_to_device_list.next;
+		transaction_t *transaction
 		    = transaction_get_instance(first_transaction_link);
 		list_remove(first_transaction_link);
 		
-		virtdev_connection_t *dev = virtdev_find_by_address(
-		    transaction->target.address);
-		usb_transaction_outcome_t outcome = USB_OUTCOME_OK;
-		
-		if (dev != NULL) {
-			dprintf("sending data to device at %d.%d (phone %d)",
-			    dev->address, transaction->target.endpoint,
-			    dev->phone);
-			ipc_call_t answer_data;
-			ipcarg_t answer_rc;
-			aid_t req;
-			int rc;
-			
-			req = async_send_2(dev->phone,
-			    IPC_M_USBVIRT_DATA_TO_DEVICE,
-			    transaction->target.endpoint,
-			    transaction->type,
-			    &answer_data);
-			
-			rc = async_data_write_start(dev->phone,
-			    transaction->buffer, transaction->len);
-			if (rc != EOK) {
-				async_wait_for(req, NULL);
-			} else {
-				async_wait_for(req, &answer_rc);
-				rc = (int)answer_rc;
-			}
-			
-			if (rc != EOK) {
-				outcome = USB_OUTCOME_BABBLE;
-			}
-		} else {
-			outcome = USB_OUTCOME_CRCERROR;
-		}
+		usb_transaction_outcome_t outcome;
+		outcome = virtdev_send_to_all(transaction);
 		
 		process_transaction_with_outcome(transaction, outcome);
 		

@@ -105,7 +105,16 @@ typedef struct {
 	size_t configuration_count;
 } usbvirt_descriptors_t;
 
+/** Possible states of virtual USB device.
+ * Notice that these are not 1:1 mappings to those in USB specification.
+ */
+typedef enum {
+	USBVIRT_STATE_DEFAULT,
+	USBVIRT_STATE_ADDRESS,
+	USBVIRT_STATE_CONFIGURED
+} usbvirt_device_state_t;
 
+/** Virtual USB device. */
 typedef struct usbvirt_device {
 	/** Callback device operations. */
 	usbvirt_device_ops_t *ops;
@@ -125,6 +134,10 @@ typedef struct usbvirt_device {
 	/** Standard descriptors. */
 	usbvirt_descriptors_t *descriptors;
 	
+	/** Current device state. */
+	usbvirt_device_state_t state;
+	/** Device address. */
+	usb_address_t address;
 	
 	/* Private attributes. */
 	

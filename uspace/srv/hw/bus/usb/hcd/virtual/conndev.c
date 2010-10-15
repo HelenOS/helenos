@@ -45,10 +45,9 @@
 static void handle_data_from_device(ipc_callid_t iid, ipc_call_t icall,
     virtdev_connection_t *dev)
 {
-	usb_endpoint_t endpoint = IPC_GET_ARG1(icall);
 	usb_target_t target = {
-		.address = dev->address,
-		.endpoint = endpoint
+		.address = IPC_GET_ARG1(icall),
+		.endpoint = IPC_GET_ARG2(icall)
 	};
 	
 	dprintf("data from device %d [%d.%d]", dev->id,
@@ -79,8 +78,8 @@ void connection_handler_device(ipcarg_t phone_hash, virtdev_connection_t *dev)
 {
 	assert(dev != NULL);
 	
-	dprintf("phone%#x: virtual device %d connected [%d]",
-	    phone_hash, dev->id, dev->address);
+	dprintf("phone%#x: virtual device %d connected",
+	    phone_hash, dev->id);
 	
 	while (true) {
 		ipc_callid_t callid; 
@@ -92,8 +91,8 @@ void connection_handler_device(ipcarg_t phone_hash, virtdev_connection_t *dev)
 			case IPC_M_PHONE_HUNGUP:
 				ipc_hangup(dev->phone);
 				ipc_answer_0(callid, EOK);
-				dprintf("phone%#x: device %d [%d] hang-up",
-				    phone_hash, dev->id, dev->address);
+				dprintf("phone%#x: device %d hang-up",
+				    phone_hash, dev->id);
 				return;
 			
 			case IPC_M_CONNECT_TO_ME:

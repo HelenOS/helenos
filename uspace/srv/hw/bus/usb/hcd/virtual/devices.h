@@ -38,10 +38,10 @@
 #include <adt/list.h>
 #include <usb/hcd.h>
 
+#include "hc.h"
+
 /** Connected virtual device. */
 typedef struct {
-	/** Assigned USB address. */
-	usb_address_t address;
 	/** Phone used when sending data to device. */
 	int phone;
 	/** Device id. */
@@ -51,9 +51,9 @@ typedef struct {
 } virtdev_connection_t;
 
 virtdev_connection_t *virtdev_recognise(int, int);
-virtdev_connection_t *virtdev_find_by_address(usb_address_t);
-virtdev_connection_t *virtdev_add_device(usb_address_t, int);
+virtdev_connection_t *virtdev_add_device(int);
 void virtdev_destroy_device(virtdev_connection_t *);
+usb_transaction_outcome_t virtdev_send_to_all(transaction_t *);
 
 #endif
 /**

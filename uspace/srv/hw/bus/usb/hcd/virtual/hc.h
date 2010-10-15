@@ -47,6 +47,26 @@
 typedef void (*hc_transaction_done_callback_t)(void *buffer, size_t size,
     usb_transaction_outcome_t outcome, void *arg);
 
+/** Pending transaction details. */
+typedef struct {
+	/** Linked-list link. */
+	link_t link;
+	/** Device address. */
+	usb_target_t target;
+	/** Direction of the transaction. */
+	usb_direction_t direction;
+	/** Transfer type. */
+	usb_transfer_type_t type;
+	/** Transaction data buffer. */
+	void * buffer;
+	/** Transaction data length. */
+	size_t len;
+	/** Callback after transaction is done. */
+	hc_transaction_done_callback_t callback;
+	/** Argument to the callback. */
+	void * callback_arg;
+} transaction_t;
+
 void hc_manager(void);
 
 void hc_add_transaction_to_device(usb_transfer_type_t type, usb_target_t target,
