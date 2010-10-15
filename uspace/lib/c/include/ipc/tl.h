@@ -26,26 +26,25 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup net_tl
- *  @{
+/** @addtogroup libc
+ * @{
  */
 
 /** @file
- *  Transport layer modules messages.
- *  @see tl_interface.h
+ * Transport layer modules messages.
+ * @see tl_interface.h
  */
 
-#ifndef __NET_TL_MESSAGES_H__
-#define __NET_TL_MESSAGES_H__
+#ifndef LIBC_TL_MESSAGES_H_
+#define LIBC_TL_MESSAGES_H_
 
 #include <ipc/ipc.h>
 #include <ipc/net.h>
 
-/** Transport layer modules messages.
- */
-typedef enum{
+/** Transport layer modules messages. */
+typedef enum {
 	/** Packet received message.
-	 *  @see tl_received_msg()
+	 * @see tl_received_msg()
 	 */
 	NET_TL_RECEIVED = NET_TL_FIRST
 } tl_messages;

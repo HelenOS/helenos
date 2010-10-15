@@ -42,6 +42,7 @@
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <ipc/net.h>
+#include <ipc/tl.h>
 #include <ipc/socket.h>
 #include <errno.h>
 #include <err.h>
@@ -66,7 +67,6 @@
 #include <tl_common.h>
 #include <tl_local.h>
 #include <tl_interface.h>
-#include <tl_messages.h>
 
 #include "udp.h"
 #include "udp_header.h"
