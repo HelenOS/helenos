@@ -26,26 +26,37 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup packet
- *  @{
+/** @addtogroup libnet
+ * @{
  */
 
 /** @file
- *  Packet client implementation.
+ * Packet client implementation.
  */
 
 #include <errno.h>
 #include <mem.h>
 #include <unistd.h>
-
 #include <sys/mman.h>
 
 #include <packet_client.h>
+#include <packet_remote.h>
 
 #include <net/packet.h>
 #include <net/packet_header.h>
 
-int packet_copy_data(packet_t packet, const void * data, size_t length)
+/** Copies the specified data to the beginning of the actual packet content.
+ *
+ * Pushes the content end if needed.
+ *
+ * @param[in] packet	The packet to be filled.
+ * @param[in] data	The data to be copied.
+ * @param[in] length	The length of the copied data.
+ * @returns		EOK on success.
+ * @returns		EINVAL if the packet is not valid.
+ * @returns		ENOMEM if there is not enough memory left.
+ */
+int packet_copy_data(packet_t packet, const void *data, size_t length)
 {
 	if (!packet_is_valid(packet))
 		return EINVAL;
@@ -60,6 +71,15 @@ int packet_copy_data(packet_t packet, const void * data, size_t length)
 	return EOK;
 }
 
+/** Allocates the specified space right before the actual packet content and
+ * returns its pointer.
+ *
+ * @param[in] packet	The packet to be used.
+ * @param[in] length	The space length to be allocated at the beginning of the
+ *			packet content.
+ * @returns		The pointer to the allocated memory.
+ * @returns		NULL if there is not enough memory left.
+ */
 void *packet_prefix(packet_t packet, size_t length)
 {
 	if ((!packet_is_valid(packet)) ||
@@ -72,6 +92,15 @@ void *packet_prefix(packet_t packet, size_t length)
 	return (void *) packet + packet->data_start;
 }
 
+/** Allocates the specified space right after the actual packet content and
+ * returns its pointer.
+ *
+ * @param[in] packet	The packet to be used.
+ * @param[in] length	The space length to be allocated at the end of the
+ *			 packet content.
+ * @returns		The pointer to the allocated memory.
+ * @returns		NULL if there is not enough memory left.
+ */
 void *packet_suffix(packet_t packet, size_t length)
 {
 	if ((!packet_is_valid(packet)) ||
@@ -83,6 +112,17 @@ void *packet_suffix(packet_t packet, size_t length)
 	return (void *) packet + packet->data_end - length;
 }
 
+/** Trims the actual packet content by the specified prefix and suffix lengths.
+ *
+ * @param[in] packet	The packet to be trimmed.
+ * @param[in] prefix	The prefix length to be removed from the beginning of
+ *			the packet content.
+ * @param[in] suffix	The suffix length to be removed from the end of the
+ *			packet content.
+ * @returns		EOK on success.
+ * @returns		EINVAL if the packet is not valid.
+ * @returns		ENOMEM if there is not enough memory left.
+ */
 int packet_trim(packet_t packet, size_t prefix, size_t suffix)
 {
 	if (!packet_is_valid(packet))
@@ -96,12 +136,27 @@ int packet_trim(packet_t packet, size_t prefix, size_t suffix)
 	return EOK;
 }
 
+/** Returns the packet identifier.
+ *
+ * @param[in] packet	The packet.
+ * @returns		The packet identifier.
+ * @returns		Zero if the packet is not valid.
+ */
 packet_id_t packet_get_id(const packet_t packet)
 {
 	return packet_is_valid(packet) ? packet->packet_id : 0;
 }
 
-int packet_get_addr(const packet_t packet, uint8_t ** src, uint8_t ** dest)
+/** Returns the stored packet addresses and their length.
+ *
+ * @param[in] packet	The packet.
+ * @param[out] src	The source address. May be NULL if not desired.
+ * @param[out] dest	The destination address. May be NULL if not desired.
+ * @returns		The stored addresses length.
+ * @returns		Zero if the addresses are not present.
+ * @returns		EINVAL if the packet is not valid.
+ */
+int packet_get_addr(const packet_t packet, uint8_t **src, uint8_t **dest)
 {
 	if (!packet_is_valid(packet))
 		return EINVAL;
@@ -115,6 +170,12 @@ int packet_get_addr(const packet_t packet, uint8_t ** src, uint8_t ** dest)
 	return packet->addr_len;
 }
 
+/** Returns the packet content length.
+ *
+ * @param[in] packet	The packet.
+ * @returns		The packet content length in bytes.
+ * @returns		Zero if the packet is not valid.
+ */
 size_t packet_get_data_length(const packet_t packet)
 {
 	if (!packet_is_valid(packet))
@@ -123,6 +184,12 @@ size_t packet_get_data_length(const packet_t packet)
 	return PACKET_DATA_LENGTH(packet);
 }
 
+/** Returns the pointer to the beginning of the packet content.
+ *
+ * @param[in] packet	The packet.
+ * @returns		The pointer to the beginning of the packet content.
+ * @returns		NULL if the packet is not valid.
+ */
 void *packet_get_data(const packet_t packet)
 {
 	if (!packet_is_valid(packet))
@@ -131,8 +198,18 @@ void *packet_get_data(const packet_t packet)
 	return (void *) packet + packet->data_start;
 }
 
+/** Sets the packet addresses.
+ *
+ * @param[in] packet	The packet.
+ * @param[in] src	The new source address. May be NULL.
+ * @param[in] dest	The new destination address. May be NULL.
+ * @param[in] addr_len	The addresses length.
+ * @returns		EOK on success.
+ * @returns		EINVAL if the packet is not valid.
+ * @returns		ENOMEM if there is not enough memory left.
+ */
 int
-packet_set_addr(packet_t packet, const uint8_t * src, const uint8_t * dest,
+packet_set_addr(packet_t packet, const uint8_t *src, const uint8_t *dest,
     size_t addr_len)
 {
 	size_t padding;
@@ -169,6 +246,16 @@ packet_set_addr(packet_t packet, const uint8_t * src, const uint8_t * dest,
 	return EOK;
 }
 
+/** Returns the packet copy.
+ *
+ * Copies the addresses, data, order and metric values.
+ * Does not copy the queue placement.
+ *
+ * @param[in] phone	The packet server module phone.
+ * @param[in] packet	The original packet.
+ * @returns		The packet copy.
+ * @returns		NULL on error.
+ */
 packet_t packet_get_copy(int phone, packet_t packet)
 {
 	packet_t copy;
