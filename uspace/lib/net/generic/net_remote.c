@@ -26,13 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup net
- *  @{
+/** @addtogroup libnet
+ * @{
  */
 
 /** @file
- *  Networking interface implementation for remote modules.
- *  @see net_interface.h
+ * Networking interface implementation for remote modules.
+ * @see net_interface.h
  */
 
 #include <ipc/services.h>
@@ -51,7 +51,7 @@ int net_connect_module(services_t service)
 	return connect_to_service(SERVICE_NETWORKING);
 }
 
-void net_free_settings(measured_string_ref settings, char * data)
+void net_free_settings(measured_string_ref settings, char *data)
 {
 	if (settings)
 		free(settings);
@@ -61,8 +61,8 @@ void net_free_settings(measured_string_ref settings, char * data)
 }
 
 int
-net_get_conf_req(int net_phone, measured_string_ref * configuration,
-    size_t count, char ** data)
+net_get_conf_req(int net_phone, measured_string_ref *configuration,
+    size_t count, char **data)
 {
 	return generic_translate_req(net_phone, NET_NET_GET_DEVICE_CONF, 0, 0,
 	    *configuration, count, configuration, data);
@@ -70,7 +70,7 @@ net_get_conf_req(int net_phone, measured_string_ref * configuration,
 
 int
 net_get_device_conf_req(int net_phone, device_id_t device_id,
-    measured_string_ref * configuration, size_t count, char ** data)
+    measured_string_ref *configuration, size_t count, char **data)
 {
 	return generic_translate_req(net_phone, NET_NET_GET_DEVICE_CONF,
 	    device_id, 0, *configuration, count, configuration, data);
