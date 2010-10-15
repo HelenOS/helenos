@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup netif
+/** @addtogroup libc
  * @{
  */
 
@@ -34,56 +34,60 @@
  * Network interface common module messages.
  */
 
-#ifndef __NET_NETIF_MESSAGES_H__
-#define __NET_NETIF_MESSAGES_H__
+#ifndef LIBC_NETIF_MESSAGES_H_
+#define LIBC_NETIF_MESSAGES_H_
 
 #include <ipc/ipc.h>
 #include <ipc/net.h>
 
-/** Network interface common module messages.
- */
+/** Network interface common module messages. */
 typedef enum {
 	/** Probe device message.
-	 *  @see netif_probe_req()
+	 * @see netif_probe_req()
 	 */
 	NET_NETIF_PROBE = NET_NETIF_FIRST,
 	/** Send packet message.
-	 *  @see netif_send_msg()
+	 * @see netif_send_msg()
 	 */
 	NET_NETIF_SEND,
 	/** Start device message.
-	 *  @see netif_start_req()
+	 * @see netif_start_req()
 	 */
 	NET_NETIF_START,
 	/** Get device usage statistics message.
-	 *  @see netif_stats_req()
+	 * @see netif_stats_req()
 	 */
 	NET_NETIF_STATS,
 	/** Stop device message.
-	 *  @see netif_stop_req()
+	 * @see netif_stop_req()
 	 */
 	NET_NETIF_STOP,
 	/** Get device address message.
-	 *  @see netif_get_addr_req()
+	 * @see netif_get_addr_req()
 	 */
 	NET_NETIF_GET_ADDR,
 } netif_messages;
 
-/** @name Network interface specific message parameters definitions
- */
+/** @name Network interface specific message parameters definitions */
 /*@{*/
 
 /** Return the interrupt number message parameter.
  * @param[in] call The message call structure.
  */
 #define NETIF_GET_IRQ(call) \
-	({int irq = (int) IPC_GET_ARG2(*call); irq;})
+	({ \
+		int irq = (int) IPC_GET_ARG2(*call); \
+		irq; \
+	})
 
 /** Return the input/output address message parameter.
  * @param[in] call The message call structure.
  */
 #define NETIF_GET_IO(call) \
-	({int io = (int) IPC_GET_ARG3(*call); io;})
+	({ \
+		int io = (int) IPC_GET_ARG3(*call); \
+		io; \
+	})
 
 /*@}*/
 

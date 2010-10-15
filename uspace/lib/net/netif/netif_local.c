@@ -41,6 +41,7 @@
 #include <stdio.h>
 #include <ipc/ipc.h>
 #include <ipc/services.h>
+#include <ipc/netif.h>
 #include <err.h>
 
 #include <generic.h>
@@ -52,7 +53,6 @@
 #include <net/device.h>
 #include <nil_interface.h>
 #include <netif_local.h>
-#include <netif_messages.h>
 #include <netif_interface.h>
 
 DEVICE_MAP_IMPLEMENT(netif_device_map, netif_device_t);
