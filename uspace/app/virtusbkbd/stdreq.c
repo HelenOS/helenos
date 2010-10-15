@@ -26,59 +26,55 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusbvirt usb
+/** @addtogroup usb
  * @{
  */
-/** @file
- * @brief Device control pipe.
+/**
+ * @file
+ * @brief Keyboard configuration.
  */
 #include <errno.h>
+#include <usb/descriptor.h>
+#include "stdreq.h"
+#include "kbdconfig.h"
 
-#include "private.h"
+static int on_get_descriptor(struct usbvirt_device *dev,
+    usb_device_request_setup_packet_t *request, uint8_t *data);
 
-#define REQUEST_TYPE_STANDARD 0 
-#define REQUEST_TYPE_CLASS 1
+usbvirt_standard_device_request_ops_t standard_request_ops = {
+	.on_get_status = NULL,
+	.on_clear_feature = NULL,
+	.on_set_feature = NULL,
+	.on_set_address = NULL,
+	.on_get_descriptor = on_get_descriptor,
+	.on_set_descriptor = NULL,
+	.on_get_configuration = NULL,
+	.on_set_configuration = NULL,
+	.on_get_interface = NULL,
+	.on_set_interface = NULL,
+	.on_synch_frame = NULL
+};
 
-#define GET_MIDBITS_MASK(size, shift) \
-	(((1 << size) - 1) << shift)
-#define GET_MIDBITS(value, size, shift) \
-	((value & GET_MIDBITS_MASK(size, shift)) >> shift)
 
-static int request_get_type(uint8_t request_type)
+static int on_get_descriptor(struct usbvirt_device *dev,
+    usb_device_request_setup_packet_t *request, uint8_t *data)
 {
-	return GET_MIDBITS(request_type, 2, 5);
+	if (request->value_high == USB_DESCTYPE_HID_REPORT) {
+		/*
+		 * For simplicity, always return the same
+		 * report descriptor.
+		 */
+		int rc = dev->send_data(dev, 0,
+		    report_descriptor, report_descriptor_size);
+		
+		return rc;
+	}
+	
+	/* Let the framework handle all the rest. */
+	return EFORWARD;
 }
 
 
 
-int control_pipe(void *buffer, size_t size)
-{
-	if (size < sizeof(usb_device_request_setup_packet_t)) {
-		return ENOMEM;
-	}
-	
-	usb_device_request_setup_packet_t *request = (usb_device_request_setup_packet_t *) buffer;
-	uint8_t *remaining_data = ((uint8_t *) request) + sizeof(usb_device_request_setup_packet_t);
-	
-	int type = request_get_type(request->request_type);
-	
-	switch (type) {
-		case REQUEST_TYPE_STANDARD:
-			return handle_std_request(request, remaining_data);
-			break;
-		case REQUEST_TYPE_CLASS:
-			if (DEVICE_HAS_OP(device, on_class_device_request)) {
-				return device->ops->on_class_device_request(device,
-				    request, remaining_data);
-			}
-			break;
-		default:
-			break;
-	}
-	
-	return EOK;
-}
-
-/**
- * @}
+/** @}
  */

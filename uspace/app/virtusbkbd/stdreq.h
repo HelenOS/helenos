@@ -26,59 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusbvirt usb
+/** @addtogroup usb
  * @{
  */
 /** @file
- * @brief Device control pipe.
+ * @brief Standard device request handlers.
  */
-#include <errno.h>
+#ifndef VUK_STDREQ_H_
+#define VUK_STDREQ_H_
 
-#include "private.h"
+#include <usbvirt/device.h>
 
-#define REQUEST_TYPE_STANDARD 0 
-#define REQUEST_TYPE_CLASS 1
+extern usbvirt_standard_device_request_ops_t standard_request_ops;
 
-#define GET_MIDBITS_MASK(size, shift) \
-	(((1 << size) - 1) << shift)
-#define GET_MIDBITS(value, size, shift) \
-	((value & GET_MIDBITS_MASK(size, shift)) >> shift)
-
-static int request_get_type(uint8_t request_type)
-{
-	return GET_MIDBITS(request_type, 2, 5);
-}
-
-
-
-int control_pipe(void *buffer, size_t size)
-{
-	if (size < sizeof(usb_device_request_setup_packet_t)) {
-		return ENOMEM;
-	}
-	
-	usb_device_request_setup_packet_t *request = (usb_device_request_setup_packet_t *) buffer;
-	uint8_t *remaining_data = ((uint8_t *) request) + sizeof(usb_device_request_setup_packet_t);
-	
-	int type = request_get_type(request->request_type);
-	
-	switch (type) {
-		case REQUEST_TYPE_STANDARD:
-			return handle_std_request(request, remaining_data);
-			break;
-		case REQUEST_TYPE_CLASS:
-			if (DEVICE_HAS_OP(device, on_class_device_request)) {
-				return device->ops->on_class_device_request(device,
-				    request, remaining_data);
-			}
-			break;
-		default:
-			break;
-	}
-	
-	return EOK;
-}
-
+#endif
 /**
  * @}
  */

@@ -53,6 +53,7 @@
 
 #include "kbdconfig.h"
 #include "keys.h"
+#include "stdreq.h"
 
 #define LOOPS 5
 #define NAME "virt-usb-kbd"
@@ -75,7 +76,7 @@ static int on_incoming_data(struct usbvirt_device *dev,
 
 static int on_class_request(struct usbvirt_device *dev,
     usb_device_request_setup_packet_t *request, uint8_t *data)
-{
+{	
 	printf("%s: class request (%d)\n", NAME, (int) request->request);
 	
 	return EOK;
@@ -85,7 +86,8 @@ static int on_class_request(struct usbvirt_device *dev,
  * We abuse the fact that static variables are zero-filled.
  */
 static usbvirt_device_ops_t keyboard_ops = {
-	.on_devreq_class = on_class_request,
+	.standard_request_ops = &standard_request_ops,
+	.on_class_device_request = on_class_request,
 	.on_data = on_incoming_data
 };
 

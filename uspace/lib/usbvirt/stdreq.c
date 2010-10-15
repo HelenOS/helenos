@@ -122,39 +122,36 @@ static int handle_set_address(uint16_t new_address,
 	return EOK;
 }
 
+#define HANDLE_REQUEST(request, data, type, dev, user_callback, default_handler) \
+	do { \
+		if ((request)->request == (type)) { \
+			int _rc = EFORWARD; \
+			if (((dev)->ops) && ((dev)->ops->standard_request_ops) \
+			    && ((dev)->ops->standard_request_ops->user_callback)) { \
+				_rc = (dev)->ops->standard_request_ops->\
+				    user_callback(dev, request, data); \
+			} \
+			if (_rc == EFORWARD) { \
+				default_handler; \
+			} \
+			return _rc; \
+		} \
+	} while (false)
+
+
 int handle_std_request(usb_device_request_setup_packet_t *request, uint8_t *data)
 {
-	int rc;
+	HANDLE_REQUEST(request, data, USB_DEVREQ_GET_DESCRIPTOR,
+	    device, on_get_descriptor,
+	    handle_get_descriptor(request->value_low, request->value_high,
+	        request->index, request->length));
 	
-	switch (request->request) {
-		case USB_DEVREQ_GET_DESCRIPTOR:
-			rc = handle_get_descriptor(
-			    request->value_low, request->value_high,
-			    request->index, request->length);
-			break;
-		
-		case USB_DEVREQ_SET_ADDRESS:
-			rc = handle_set_address(request->value,
-			    request->index, request->length);
-			break;
-		
-		default:
-			rc = EFORWARD;
-			break;
-	}
+	HANDLE_REQUEST(request, data, USB_DEVREQ_SET_ADDRESS,
+	    device, on_set_address,
+	    handle_set_address(request->value,
+	        request->index, request->length));
 	
-	/*
-	 * We preprocessed all we could.
-	 * If it was not enough, pass the request to the actual driver.
-	 */
-	if (rc == EFORWARD) {
-		if (DEVICE_HAS_OP(device, on_devreq_std)) {
-			return device->ops->on_devreq_std(device,
-			    request, data);
-		}
-	}
-	
-	return EOK;
+	return ENOTSUP;
 }
 
 /**

@@ -45,15 +45,30 @@ typedef int (*usbvirt_on_device_request_t)(struct usbvirt_device *dev,
 	usb_device_request_setup_packet_t *request,
 	uint8_t *data);
 
+/** Callbacks for standard device requests.
+ * When these functions are NULL or return EFORWARD, this
+ * framework will try to satisfy the request by itself.
+ */
+typedef struct {
+	usbvirt_on_device_request_t on_get_status;
+	usbvirt_on_device_request_t on_clear_feature;
+	usbvirt_on_device_request_t on_set_feature;
+	usbvirt_on_device_request_t on_set_address;
+	usbvirt_on_device_request_t on_get_descriptor;
+	usbvirt_on_device_request_t on_set_descriptor;
+	usbvirt_on_device_request_t on_get_configuration;
+	usbvirt_on_device_request_t on_set_configuration;
+	usbvirt_on_device_request_t on_get_interface;
+	usbvirt_on_device_request_t on_set_interface;
+	usbvirt_on_device_request_t on_synch_frame;
+} usbvirt_standard_device_request_ops_t;
+
 /** Device operations. */
 typedef struct {
-	/** Callback for standard USB request.
-	 * Called only when the request could not be handled by this
-	 * framework.
-	 */
-	usbvirt_on_device_request_t on_devreq_std;
+	/** Callbacks for standard deivce requests. */
+	usbvirt_standard_device_request_ops_t *standard_request_ops;
 	/** Callback for class-specific USB request. */
-	usbvirt_on_device_request_t on_devreq_class;
+	usbvirt_on_device_request_t on_class_device_request;
 	/** Callback for all other incoming data. */
 	int (*on_data)(struct usbvirt_device *dev,
 	    usb_endpoint_t endpoint, void *buffer, size_t size);
