@@ -45,6 +45,7 @@
 #include <ipc/services.h>
 #include <ipc/net.h>
 #include <ipc/il.h>
+#include <ipc/ip.h>
 #include <sys/types.h>
 #include <byteorder.h>
 
@@ -77,7 +78,6 @@
 
 #include "ip.h"
 #include "ip_header.h"
-#include "ip_messages.h"
 #include "ip_module.h"
 
 /** IP module name.
