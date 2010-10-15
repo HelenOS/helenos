@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup net_il
+/** @addtogroup libc
  * @{
  */
 
@@ -36,57 +36,52 @@
  * @see ip_interface.h
  */
 
-#ifndef __NET_IL_MESSAGES_H__
-#define __NET_IL_MESSAGES_H__
+#ifndef LIBC_IL_MESSAGES_H_
+#define LIBC_IL_MESSAGES_H_
 
 #include <ipc/ipc.h>
 #include <ipc/net.h>
 
-/** Internet layer modules messages.
- */
+/** Internet layer modules messages. */
 typedef enum {
 	/** New device message.
-	 *  @see ip_device_req()
+	 * @see ip_device_req()
 	 */
 	NET_IL_DEVICE = NET_IL_FIRST,
 	/** Device state changed message.
-	 *  @see il_device_state_msg()
+	 * @see il_device_state_msg()
 	 */
 	NET_IL_DEVICE_STATE,
 	/** Device MTU changed message.
-	 *  @see il_mtu_changed_msg()
+	 * @see il_mtu_changed_msg()
 	 */
 	NET_IL_MTU_CHANGED,
 	/** Packet size message.
-	 *  @see il_packet_size_req()
+	 * @see il_packet_size_req()
 	 */
 	NET_IL_PACKET_SPACE,
 	/** Packet received message.
-	 *  @see il_received_msg()
+	 * @see il_received_msg()
 	 */
 	NET_IL_RECEIVED,
 	/** Packet send message.
-	 *  @see il_send_msg()
+	 * @see il_send_msg()
 	 */
 	NET_IL_SEND
 } il_messages;
 
-/** @name Internetwork layer specific message parameters definitions
- *
- */
+/** @name Internetwork layer specific message parameters definitions */
 /*@{*/
 
 /** Return the protocol number message parameter.
  * @param[in] call The message call structure.
- *
  */
-#define IL_GET_PROTO(call)  (int) IPC_GET_ARG1(*call)
+#define IL_GET_PROTO(call)	(int) IPC_GET_ARG1(*call)
 
 /** Return the registering service message parameter.
  * @param[in] call The message call structure.
- *
  */
-#define IL_GET_SERVICE(call)  (services_t) IPC_GET_ARG2(*call)
+#define IL_GET_SERVICE(call)	(services_t) IPC_GET_ARG2(*call)
 
 /*@}*/
 

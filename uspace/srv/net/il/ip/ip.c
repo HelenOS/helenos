@@ -44,6 +44,7 @@
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <ipc/net.h>
+#include <ipc/il.h>
 #include <sys/types.h>
 #include <byteorder.h>
 
@@ -71,7 +72,6 @@
 #include <packet_client.h>
 #include <packet_remote.h>
 #include <nil_messages.h>
-#include <il_messages.h>
 #include <il_local.h>
 #include <ip_local.h>
 
