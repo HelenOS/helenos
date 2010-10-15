@@ -45,6 +45,7 @@
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <ipc/net.h>
+#include <ipc/arp.h>
 #include <byteorder.h>
 #include <err.h>
 
@@ -60,7 +61,6 @@
 #include <il_messages.h>
 #include <il_interface.h>
 #include <il_local.h>
-#include <arp_messages.h>
 
 #include "arp.h"
 #include "arp_header.h"

@@ -36,13 +36,13 @@
  */
 
 #include <arp_interface.h>
-#include <arp_messages.h>
 #include <generic.h>
 
 #include <async.h>
 #include <errno.h>
 #include <ipc/ipc.h>
 #include <ipc/services.h>
+#include <ipc/arp.h>
 
 #include <net/modules.h>
 #include <net/device.h>

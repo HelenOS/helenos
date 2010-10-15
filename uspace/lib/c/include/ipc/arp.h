@@ -26,55 +26,56 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup arp
- *  @{
+/** @addtogroup libc
+ * @{
  */
 
 /** @file
- *  ARP module messages.
- *  @see arp_interface.h
+ * ARP module messages.
+ * @see arp_interface.h
  */
 
-#ifndef __NET_ARP_MESSAGES__
-#define __NET_ARP_MESSAGES__
+#ifndef LIBC_ARP_MESSAGES_
+#define LIBC_ARP_MESSAGES_
 
 #include <ipc/ipc.h>
 #include <ipc/net.h>
 
-/** ARP module messages.
- */
-typedef enum{
+/** ARP module messages. */
+typedef enum {
 	/** Clean cache message.
-	 *  @see arp_clean_cache()
+	 * @see arp_clean_cache()
 	 */
 	NET_ARP_CLEAN_CACHE = NET_ARP_FIRST,
 	/** Clear address cache message.
-	 *  @see arp_clear_address_msg()
+	 * @see arp_clear_address_msg()
 	 */
 	NET_ARP_CLEAR_ADDRESS,
 	/** Clear device cache message.
-	 *  @see arp_clear_device_req()
+	 * @see arp_clear_device_req()
 	 */
 	NET_ARP_CLEAR_DEVICE,
 	/** New device message.
-	 *  @see arp_device_req()
+	 * @see arp_device_req()
 	 */
 	NET_ARP_DEVICE,
 	/** Address translation message.
-	 *  @see arp_translate_req()
+	 * @see arp_translate_req()
 	 */
 	NET_ARP_TRANSLATE
 } arp_messages;
 
-/** @name ARP specific message parameters definitions
- */
+/** @name ARP specific message parameters definitions */
 /*@{*/
 
 /** Returns the protocol service message parameter.
- *  @param[in] call The message call structure.
+ * @param[in] call The message call structure.
  */
 #define ARP_GET_NETIF(call) \
-	({services_t service = (services_t) IPC_GET_ARG2(*call); service;})
+	({ \
+		services_t service = (services_t) IPC_GET_ARG2(*call); \
+		service; \
+	})
 
 /*@}*/
 
