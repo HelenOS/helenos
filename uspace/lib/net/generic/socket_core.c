@@ -563,14 +563,21 @@ int socket_reply_packets(packet_t packet, size_t *length)
 		}
 		
 		// write the fragment lengths
-		ERROR_PROPAGATE(data_reply(lengths,
-		    sizeof(int) * (fragments + 1)));
+		if (ERROR_OCCURRED(data_reply(lengths,
+		    sizeof(int) * (fragments + 1)))) {
+			free(lengths);
+			return ERROR_CODE;
+		}
 		next_packet = packet;
 		
 		// write the fragments
 		for (index = 0; index < fragments; ++index) {
-			ERROR_PROPAGATE(data_reply(packet_get_data(next_packet),
-			    lengths[index]));
+			ERROR_CODE = data_reply(packet_get_data(next_packet),
+			    lengths[index]);
+			if (ERROR_OCCURRED(ERROR_CODE)) {
+				free(lengths);
+				return ERROR_CODE;
+			}
 			next_packet = pq_next(next_packet);
 		}
 		
