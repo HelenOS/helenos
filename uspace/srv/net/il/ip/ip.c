@@ -74,11 +74,11 @@
 #include <packet_client.h>
 #include <packet_remote.h>
 #include <il_local.h>
-#include <ip_local.h>
 
 #include "ip.h"
 #include "ip_header.h"
 #include "ip_module.h"
+#include "ip_local.h"
 
 /** IP module name.
  */

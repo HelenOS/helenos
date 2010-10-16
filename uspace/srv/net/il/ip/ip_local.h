@@ -30,8 +30,8 @@
  * @{
  */
 
-#ifndef __NET_IP_LOCAL_H__
-#define __NET_IP_LOCAL_H__
+#ifndef NET_IP_LOCAL_H_
+#define NET_IP_LOCAL_H_
 
 #include <async.h>
 #include <ipc/services.h>
