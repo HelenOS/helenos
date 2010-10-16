@@ -43,7 +43,6 @@
 #include <sys/time.h>
 
 #include <adt/measured_strings.h>
-#include <net/packet.h>
 #include <net/ip_codes.h>
 #include <net/icmp_codes.h>
 #include <net/icmp_common.h>

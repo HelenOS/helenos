@@ -37,11 +37,12 @@
 
 #include <nil_remote.h>
 #include <nil_interface.h>
-#include <nil_messages.h>
 #include <generic.h>
 #include <net/device.h>
 #include <net/packet.h>
 #include <packet_client.h>
+
+#include <ipc/nil.h>
 
 /** Notify the network interface layer about the device state change.
  *

@@ -45,6 +45,8 @@
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <ipc/net.h>
+#include <ipc/arp.h>
+#include <ipc/il.h>
 #include <byteorder.h>
 #include <err.h>
 
@@ -57,10 +59,8 @@
 #include <net/packet.h>
 #include <packet_client.h>
 #include <packet_remote.h>
-#include <il_messages.h>
 #include <il_interface.h>
 #include <il_local.h>
-#include <arp_messages.h>
 
 #include "arp.h"
 #include "arp_header.h"
@@ -533,10 +533,6 @@ int arp_receive_message(device_id_t device_id, packet_t packet){
 		}
 	}
 	return EOK;
-}
-
-task_id_t arp_task_get_id(void){
-	return task_get_id();
 }
 
 measured_string_ref arp_translate_message(device_id_t device_id, services_t protocol, measured_string_ref target){

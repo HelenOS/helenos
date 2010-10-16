@@ -44,6 +44,7 @@
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <ipc/net.h>
+#include <ipc/tl.h>
 #include <ipc/icmp.h>
 #include <sys/time.h>
 #include <sys/types.h>
@@ -68,7 +69,6 @@
 #include <ip_client.h>
 #include <ip_interface.h>
 #include <net_interface.h>
-#include <tl_messages.h>
 #include <tl_interface.h>
 #include <tl_local.h>
 #include <icmp_header.h>

@@ -26,14 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup packet
+/** @addtogroup libnet
  * @{
  */
 
-#ifndef __NET_PACKET_REMOTE_H__
-#define __NET_PACKET_REMOTE_H__
+#ifndef LIBNET_PACKET_REMOTE_H_
+#define LIBNET_PACKET_REMOTE_H_
 
 #include <net/packet.h>
+#include <sys/types.h>
 
 extern int packet_translate_remote(int, packet_ref, packet_id_t);
 extern packet_t packet_get_4_remote(int, size_t, size_t, size_t, size_t);

@@ -68,7 +68,7 @@ int tl_module_start_standalone(async_client_conn_t client_connection){
 	ipcarg_t phonehash;
 
 	async_set_client_connection(client_connection);
-	udp_globals.net_phone = net_connect_module(SERVICE_NETWORKING);
+	udp_globals.net_phone = net_connect_module();
 	if(udp_globals.net_phone < 0){
 		return udp_globals.net_phone;
 	}

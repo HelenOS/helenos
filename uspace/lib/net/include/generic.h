@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup net
+/** @addtogroup libnet
  * @{
  */
 
@@ -34,8 +34,8 @@
  * Generic communication interfaces for networking.
  */
 
-#ifndef NET_GENERIC_H_
-#define NET_GENERIC_H_
+#ifndef LIBNET_GENERIC_H_
+#define LIBNET_GENERIC_H_
 
 #include <async.h>
 #include <ipc/ipc.h>

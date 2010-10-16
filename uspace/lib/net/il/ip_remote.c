@@ -41,12 +41,12 @@
 
 #include <ip_remote.h>
 #include <ip_interface.h>
-#include <ip_messages.h>
-#include <il_messages.h>
 #include <packet_client.h>
 #include <generic.h>
 
 #include <ipc/services.h>
+#include <ipc/il.h>
+#include <ipc/ip.h>
 
 #include <net/modules.h>
 #include <net/device.h>

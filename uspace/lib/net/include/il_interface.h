@@ -41,10 +41,10 @@
 #include <generic.h>
 
 #include <ipc/services.h>
+#include <ipc/il.h>
 
 #include <net/device.h>
 #include <net/packet.h>
-#include <il_messages.h>
 
 #include <packet_client.h>
 

@@ -44,6 +44,9 @@
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <ipc/net.h>
+#include <ipc/nil.h>
+#include <ipc/il.h>
+#include <ipc/ip.h>
 #include <sys/types.h>
 #include <byteorder.h>
 
@@ -70,15 +73,12 @@
 #include <adt/module_map.h>
 #include <packet_client.h>
 #include <packet_remote.h>
-#include <nil_messages.h>
-#include <il_messages.h>
 #include <il_local.h>
-#include <ip_local.h>
 
 #include "ip.h"
 #include "ip_header.h"
-#include "ip_messages.h"
 #include "ip_module.h"
+#include "ip_local.h"
 
 /** IP module name.
  */
@@ -422,7 +422,7 @@ int ip_initialize(async_client_conn_t client_connection){
 	ERROR_PROPAGATE(ip_protos_initialize(&ip_globals.protos));
 	ip_globals.client_connection = client_connection;
 	ERROR_PROPAGATE(modules_initialize(&ip_globals.modules));
-	ERROR_PROPAGATE(add_module(NULL, &ip_globals.modules, ARP_NAME, ARP_FILENAME, SERVICE_ARP, arp_task_get_id(), arp_connect_module));
+	ERROR_PROPAGATE(add_module(NULL, &ip_globals.modules, ARP_NAME, ARP_FILENAME, SERVICE_ARP, 0, arp_connect_module));
 	fibril_rwlock_write_unlock(&ip_globals.lock);
 	return EOK;
 }

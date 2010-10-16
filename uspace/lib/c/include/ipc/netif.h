@@ -26,61 +26,68 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup net_nil
+/** @addtogroup libc
  * @{
  */
 
 /** @file
- * Network interface layer module messages.
+ * Network interface common module messages.
  */
 
-#ifndef __NET_NIL_MESSAGES_H__
-#define __NET_NIL_MESSAGES_H__
+#ifndef LIBC_NETIF_MESSAGES_H_
+#define LIBC_NETIF_MESSAGES_H_
 
 #include <ipc/ipc.h>
 #include <ipc/net.h>
 
-/** Network interface layer module messages.
- */
+/** Network interface common module messages. */
 typedef enum {
-	/** New device or update MTU message.
-	 *  @see nil_device_req()
+	/** Probe device message.
+	 * @see netif_probe_req()
 	 */
-	NET_NIL_DEVICE = NET_NIL_FIRST,
-	/** New device state message.
-	 *  @see nil_device_state_msg()
+	NET_NETIF_PROBE = NET_NETIF_FIRST,
+	/** Send packet message.
+	 * @see netif_send_msg()
 	 */
-	NET_NIL_DEVICE_STATE,
-	/** Received packet queue message.
-	 *  @see nil_received_msg()
+	NET_NETIF_SEND,
+	/** Start device message.
+	 * @see netif_start_req()
 	 */
-	NET_NIL_RECEIVED,
-	/** Send packet queue message.
-	 *  @see nil_send_msg()
+	NET_NETIF_START,
+	/** Get device usage statistics message.
+	 * @see netif_stats_req()
 	 */
-	NET_NIL_SEND,
-	/** Packet size message.
-	 *  @see nil_packet_size_req()
+	NET_NETIF_STATS,
+	/** Stop device message.
+	 * @see netif_stop_req()
 	 */
-	NET_NIL_PACKET_SPACE,
-	/** Device local hardware address message.
-	 *  @see nil_get_addr()
+	NET_NETIF_STOP,
+	/** Get device address message.
+	 * @see netif_get_addr_req()
 	 */
-	NET_NIL_ADDR,
-	/** Device broadcast hardware address message.
-	 *  @see nil_get_broadcast_addr()
-	 */
-	NET_NIL_BROADCAST_ADDR,
-} nil_messages;
+	NET_NETIF_GET_ADDR,
+} netif_messages;
 
-/** @name Network interface layer specific message parameters definitions
- */
+/** @name Network interface specific message parameters definitions */
 /*@{*/
 
-/** Return the protocol service message parameter.
+/** Return the interrupt number message parameter.
+ * @param[in] call The message call structure.
  */
-#define NIL_GET_PROTO(call) \
-	({services_t service = (services_t) IPC_GET_ARG2(*call); service;})
+#define NETIF_GET_IRQ(call) \
+	({ \
+		int irq = (int) IPC_GET_ARG2(*call); \
+		irq; \
+	})
+
+/** Return the input/output address message parameter.
+ * @param[in] call The message call structure.
+ */
+#define NETIF_GET_IO(call) \
+	({ \
+		int io = (int) IPC_GET_ARG3(*call); \
+		io; \
+	})
 
 /*@}*/
 

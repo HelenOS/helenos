@@ -37,9 +37,9 @@
 #include <errno.h>
 
 #include <ipc/ipc.h>
+#include <ipc/nil.h>
 
 #include <generic.h>
-#include <nil_messages.h>
 #include <nil_remote.h>
 
 #define nil_bind_service(service, device_id, me, receiver) \

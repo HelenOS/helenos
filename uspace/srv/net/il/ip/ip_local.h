@@ -26,69 +26,33 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup net_il
+/** @addtogroup ip
  * @{
  */
 
-/** @file
- * Internetwork layer modules messages.
- * @see il_interface.h
- * @see ip_interface.h
- */
+#ifndef NET_IP_LOCAL_H_
+#define NET_IP_LOCAL_H_
 
-#ifndef __NET_IL_MESSAGES_H__
-#define __NET_IL_MESSAGES_H__
+#include <async.h>
+#include <ipc/services.h>
 
-#include <ipc/ipc.h>
-#include <ipc/net.h>
+#include <net/ip_codes.h>
+#include <net/inet.h>
+#include <net/in.h>
 
-/** Internet layer modules messages.
- */
-typedef enum {
-	/** New device message.
-	 *  @see ip_device_req()
-	 */
-	NET_IL_DEVICE = NET_IL_FIRST,
-	/** Device state changed message.
-	 *  @see il_device_state_msg()
-	 */
-	NET_IL_DEVICE_STATE,
-	/** Device MTU changed message.
-	 *  @see il_mtu_changed_msg()
-	 */
-	NET_IL_MTU_CHANGED,
-	/** Packet size message.
-	 *  @see il_packet_size_req()
-	 */
-	NET_IL_PACKET_SPACE,
-	/** Packet received message.
-	 *  @see il_received_msg()
-	 */
-	NET_IL_RECEIVED,
-	/** Packet send message.
-	 *  @see il_send_msg()
-	 */
-	NET_IL_SEND
-} il_messages;
-
-/** @name Internetwork layer specific message parameters definitions
- *
- */
-/*@{*/
-
-/** Return the protocol number message parameter.
- * @param[in] call The message call structure.
- *
- */
-#define IL_GET_PROTO(call)  (int) IPC_GET_ARG1(*call)
-
-/** Return the registering service message parameter.
- * @param[in] call The message call structure.
- *
- */
-#define IL_GET_SERVICE(call)  (services_t) IPC_GET_ARG2(*call)
-
-/*@}*/
+extern int ip_received_error_msg_local(int, device_id_t, packet_t, services_t,
+    services_t);
+extern int ip_set_gateway_req_local(int, device_id_t, in_addr_t);
+extern int ip_packet_size_req_local(int, device_id_t, packet_dimension_ref);
+extern int ip_received_error_msg_local(int, device_id_t, packet_t, services_t,
+    services_t);
+extern int ip_device_req_local(int, device_id_t, services_t);
+extern int ip_add_route_req_local(int, device_id_t, in_addr_t, in_addr_t,
+    in_addr_t);
+extern int ip_send_msg_local(int, device_id_t, packet_t, services_t,
+    services_t);
+extern int ip_get_route_req_local(int, ip_protocol_t, const struct sockaddr *,
+    socklen_t, device_id_t *, void **, size_t *);
 
 #endif
 
