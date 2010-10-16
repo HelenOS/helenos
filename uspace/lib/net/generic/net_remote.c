@@ -46,20 +46,48 @@
 #include <net_interface.h>
 #include <adt/measured_strings.h>
 
-int net_connect_module(services_t service)
+/** Connects to the networking module.
+ *
+ * @returns		The networking module phone on success.
+ */
+int net_connect_module(void)
 {
 	return connect_to_service(SERVICE_NETWORKING);
 }
 
+/** Frees the received settings.
+ *
+ * @param[in] settings	The received settings.
+ * @param[in] data	The received settings data.
+ * @see	net_get_device_conf_req()
+ * @see net_get_conf_req()
+ */
 void net_free_settings(measured_string_ref settings, char *data)
 {
 	if (settings)
 		free(settings);
-
 	if (data)
 		free(data);
 }
 
+/** Returns the global configuration.
+ *
+ * The configuration names are read and the appropriate settings are set
+ * instead. Call net_free_settings() function to release the returned
+ * configuration.
+ *
+ * @param[in] net_phone	The networking module phone.
+ * @param[in,out] configuration The requested configuration. The names are read
+ * and the appropriate settings are set instead.
+ *
+ * @param[in] count	The configuration entries count.
+ * @param[in,out] data	The configuration and settings data.
+ * @returns		EOK on success.
+ * @returns		EINVAL if the configuration is NULL.
+ * @returns		EINVAL if the count is zero.
+ * @returns		Other error codes as defined for the
+ *			generic_translate_req() function.
+ */
 int
 net_get_conf_req(int net_phone, measured_string_ref *configuration,
     size_t count, char **data)
@@ -68,6 +96,25 @@ net_get_conf_req(int net_phone, measured_string_ref *configuration,
 	    *configuration, count, configuration, data);
 }
 
+/** Returns the device specific configuration.
+ *
+ * Returns the global configuration if the device specific is not found.
+ * The configuration names are read and the appropriate settings are set
+ * instead. Call net_free_settings() function to release the returned
+ * configuration.
+ *
+ * @param[in] net_phone	The networking module phone.
+ * @param[in] device_id	The device identifier.
+ * @param[in,out] configuration The requested device configuration. The names
+ *			are read and the appropriate settings are set instead.
+ * @param[in] count	The configuration entries count.
+ * @param[in,out] data	The configuration and settings data.
+ * @returns		EOK on success.
+ * @returns		EINVAL if the configuration is NULL.
+ * @returns		EINVAL if the count is zero.
+ * @returns		Other error codes as defined for the
+ *			generic_translate_req() function.
+ */
 int
 net_get_device_conf_req(int net_phone, device_id_t device_id,
     measured_string_ref *configuration, size_t count, char **data)
