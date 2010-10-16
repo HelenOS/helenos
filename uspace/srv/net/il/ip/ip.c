@@ -422,7 +422,7 @@ int ip_initialize(async_client_conn_t client_connection){
 	ERROR_PROPAGATE(ip_protos_initialize(&ip_globals.protos));
 	ip_globals.client_connection = client_connection;
 	ERROR_PROPAGATE(modules_initialize(&ip_globals.modules));
-	ERROR_PROPAGATE(add_module(NULL, &ip_globals.modules, ARP_NAME, ARP_FILENAME, SERVICE_ARP, arp_task_get_id(), arp_connect_module));
+	ERROR_PROPAGATE(add_module(NULL, &ip_globals.modules, ARP_NAME, ARP_FILENAME, SERVICE_ARP, 0, arp_connect_module));
 	fibril_rwlock_write_unlock(&ip_globals.lock);
 	return EOK;
 }

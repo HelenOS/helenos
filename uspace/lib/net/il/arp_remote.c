@@ -145,15 +145,6 @@ int arp_device_req(int arp_phone, device_id_t device_id, services_t protocol,
 	return (int) result;
 }
 
-/** Returns the ARP task identifier.
- *
- * @returns		0 if called by the remote module.
- */
-task_id_t arp_task_get_id(void)
-{
-	return 0;
-}
-
 /** Translates the given protocol address to the network interface address.
  *
  * Broadcasts the ARP request if the mapping is not found.

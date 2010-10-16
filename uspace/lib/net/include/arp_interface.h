@@ -55,7 +55,6 @@ extern int arp_clear_address_req(int, device_id_t, services_t,
     measured_string_ref);
 extern int arp_clean_cache_req(int);
 extern int arp_connect_module(services_t);
-extern task_id_t arp_task_get_id(void);
 
 /*@}*/
 

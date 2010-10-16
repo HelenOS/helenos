@@ -535,10 +535,6 @@ int arp_receive_message(device_id_t device_id, packet_t packet){
 	return EOK;
 }
 
-task_id_t arp_task_get_id(void){
-	return task_get_id();
-}
-
 measured_string_ref arp_translate_message(device_id_t device_id, services_t protocol, measured_string_ref target){
 	arp_device_ref device;
 	arp_proto_ref proto;
