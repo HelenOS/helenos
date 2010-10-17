@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ip
+/** @addtogroup libnet
  * @{
  */
 
@@ -71,6 +71,18 @@ int ip_add_route_req_remote(int ip_phone, device_id_t device_id,
 	    (ipcarg_t) address.s_addr, (ipcarg_t) netmask.s_addr);
 }
 
+/** Creates bidirectional connection with the ip module service and registers
+ * the message receiver.
+ *
+ * @param[in] service	The IP module service.
+ * @param[in] protocol	The transport layer protocol.
+ * @param[in] me	The requesting module service.
+ * @param[in] receiver	The message receiver. Used for remote connection.
+ * @returns		The phone of the needed service.
+ * @returns		EOK on success.
+ * @returns		Other error codes as defined for the bind_service()
+ *			function.
+ */
 int ip_bind_service(services_t service, int protocol, services_t me,
     async_client_conn_t receiver)
 {
@@ -78,6 +90,11 @@ int ip_bind_service(services_t service, int protocol, services_t me,
 	    receiver);
 }
 
+/** Connects to the IP module.
+ *
+ * @param service	The IP module service. Ignored parameter.
+ * @returns		The IP module phone on success.
+ */
 int ip_connect_module(services_t service)
 {
 	return connect_to_service(SERVICE_IP);
@@ -109,7 +126,8 @@ int ip_device_req_remote(int ip_phone, device_id_t device_id,
 	    service);
 }
 
-/** Return the device identifier and the IP pseudo header based on the destination address.
+/** Return the device identifier and the IP pseudo header based on the
+ * destination address.
  *
  * @param[in]  ip_phone    The IP module phone used for (semi)remote calls.
  * @param[in]  protocol    The transport protocol.
@@ -136,12 +154,13 @@ int ip_get_route_req_remote(int ip_phone, ip_protocol_t protocol,
 	aid_t message_id = async_send_1(ip_phone, NET_IP_GET_ROUTE,
 	    (ipcarg_t) protocol, &answer);
 	
-	if ((async_data_write_start(ip_phone, destination, addrlen) == EOK)
-	    && (async_data_read_start(ip_phone, headerlen, sizeof(*headerlen)) == EOK)
-	    && (*headerlen > 0)) {
+	if ((async_data_write_start(ip_phone, destination, addrlen) == EOK) &&
+	    (async_data_read_start(ip_phone, headerlen,
+	    sizeof(*headerlen)) == EOK) && (*headerlen > 0)) {
 		*header = malloc(*headerlen);
 		if (*header) {
-			if (async_data_read_start(ip_phone, *header, *headerlen) != EOK)
+			if (async_data_read_start(ip_phone, *header,
+			    *headerlen) != EOK)
 				free(*header);
 		}
 	}
@@ -172,8 +191,8 @@ int ip_get_route_req_remote(int ip_phone, ip_protocol_t protocol,
 int ip_packet_size_req_remote(int ip_phone, device_id_t device_id,
     packet_dimension_ref packet_dimension)
 {
-	return generic_packet_size_req_remote(ip_phone, NET_IL_PACKET_SPACE, device_id,
-	    packet_dimension);
+	return generic_packet_size_req_remote(ip_phone, NET_IL_PACKET_SPACE,
+	    device_id, packet_dimension);
 }
 
 /** Notify the IP module about the received error notification packet.
