@@ -26,12 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup net_nil
- *  @{
+/** @addtogroup libnet
+ * @{
  */
 
-#ifndef __NET_NIL_INTERFACE_H__
-#define __NET_NIL_INTERFACE_H__
+#ifndef LIBNET_NIL_INTERFACE_H_
+#define LIBNET_NIL_INTERFACE_H_
 
 #include <async.h>
 #include <errno.h>
@@ -46,8 +46,8 @@
 	bind_service(service, device_id, me, 0, receiver)
 
 #define nil_packet_size_req(nil_phone, device_id, packet_dimension) \
-	generic_packet_size_req_remote(nil_phone, NET_NIL_PACKET_SPACE, device_id, \
-	    packet_dimension)
+	generic_packet_size_req_remote(nil_phone, NET_NIL_PACKET_SPACE, \
+	    device_id, packet_dimension)
 
 #define nil_get_addr_req(nil_phone, device_id, address, data) \
 	generic_get_addr_req(nil_phone, NET_NIL_ADDR, device_id, address, data)
