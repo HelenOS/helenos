@@ -41,6 +41,8 @@
 #include <sys/time.h>
 #include <errno.h>
 #include <assert.h>
+#include <stacktrace.h>
+#include <stdlib.h>
 
 static void optimize_execution_power(void)
 {
@@ -53,6 +55,42 @@ static void optimize_execution_power(void)
 	 */
 	if (atomic_get(&threads_in_ipc_wait) > 0)
 		ipc_poke();
+}
+
+static bool check_for_deadlock(fibril_owner_info_t *oi)
+{
+	while (oi && oi->owned_by) {
+		if (oi->owned_by == (fibril_t *) fibril_get_id())
+			return true;
+		oi = oi->owned_by->waits_for;
+	}
+
+	return false;
+}
+
+static void print_deadlock(fibril_owner_info_t *oi)
+{
+	fibril_t *f = (fibril_t *) fibril_get_id();
+
+	printf("Deadlock detected: ");
+
+	printf("Fibril %p waits for primitive %p.\n", f, oi);
+	stacktrace_print();
+
+	while (oi && oi->owned_by) {
+		printf(". ");
+		printf("Primitive %p is owned by fibril %p.\n",
+		    oi, oi->owned_by);
+		stacktrace_print_fp_pc(oi->owned_by->ctx.ebp,
+		    oi->owned_by->ctx.pc);
+		if (oi->owned_by == f)
+			break;
+		printf("Fibril %p waits for primitive %p.\n",
+		     oi->owned_by, oi->owned_by->waits_for);
+		oi = oi->owned_by->waits_for;
+	}
+
+	abort();
 }
 
 void fibril_mutex_initialize(fibril_mutex_t *fm)
@@ -76,6 +114,8 @@ void fibril_mutex_lock(fibril_mutex_t *fm)
 		link_initialize(&wdata.wu_event.link);
 		list_append(&wdata.wu_event.link, &fm->waiters);
 
+		if (check_for_deadlock(&fm->oi))
+			print_deadlock(&fm->oi);
 		f->waits_for = &fm->oi;
 
 		fibril_switch(FIBRIL_TO_MANAGER);
