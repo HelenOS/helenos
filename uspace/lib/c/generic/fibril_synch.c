@@ -64,6 +64,8 @@ void fibril_mutex_initialize(fibril_mutex_t *fm)
 
 void fibril_mutex_lock(fibril_mutex_t *fm)
 {
+	fibril_t *f = (fibril_t *) fibril_get_id();
+
 	futex_down(&async_futex);
 	if (fm->counter-- <= 0) {
 		awaiter_t wdata;
@@ -73,9 +75,12 @@ void fibril_mutex_lock(fibril_mutex_t *fm)
 		wdata.wu_event.inlist = true;
 		link_initialize(&wdata.wu_event.link);
 		list_append(&wdata.wu_event.link, &fm->waiters);
+
+		f->waits_for = &fm->oi;
+
 		fibril_switch(FIBRIL_TO_MANAGER);
 	} else {
-		fm->oi.owned_by = (fibril_t *) fibril_get_id();
+		fm->oi.owned_by = f;
 		futex_up(&async_futex);
 	}
 }
@@ -101,13 +106,18 @@ static void _fibril_mutex_unlock_unsafe(fibril_mutex_t *fm)
 	if (fm->counter++ < 0) {
 		link_t *tmp;
 		awaiter_t *wdp;
+		fibril_t *f;
 	
 		assert(!list_empty(&fm->waiters));
 		tmp = fm->waiters.next;
 		wdp = list_get_instance(tmp, awaiter_t, wu_event.link);
 		wdp->active = true;
 		wdp->wu_event.inlist = false;
-		fm->oi.owned_by = (fibril_t *) wdp->fid;
+
+		f = (fibril_t *) wdp->fid;
+		fm->oi.owned_by = f;
+		f->waits_for = NULL;
+
 		list_remove(&wdp->wu_event.link);
 		fibril_add_ready(wdp->fid);
 		optimize_execution_power();
