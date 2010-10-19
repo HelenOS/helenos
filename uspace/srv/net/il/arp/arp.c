@@ -44,23 +44,23 @@
 #include <task.h>
 #include <ipc/ipc.h>
 #include <ipc/services.h>
+#include <ipc/net.h>
+#include <ipc/arp.h>
+#include <ipc/il.h>
+#include <byteorder.h>
+#include <err.h>
 
-#include <net_err.h>
-#include <net_messages.h>
-#include <net_modules.h>
-#include <net_byteorder.h>
-#include <net_device.h>
+#include <net/modules.h>
+#include <net/device.h>
 #include <arp_interface.h>
 #include <nil_interface.h>
 #include <protocol_map.h>
 #include <adt/measured_strings.h>
-#include <packet/packet.h>
-#include <packet/packet_client.h>
+#include <net/packet.h>
+#include <packet_client.h>
 #include <packet_remote.h>
-#include <il_messages.h>
 #include <il_interface.h>
 #include <il_local.h>
-#include <arp_messages.h>
 
 #include "arp.h"
 #include "arp_header.h"
@@ -226,13 +226,6 @@ int arp_clear_device_req(int arp_phone, device_id_t device_id){
 	arp_clear_device(device);
 	printf("Device %d cleared\n", device_id);
 	fibril_rwlock_write_unlock(&arp_globals.lock);
-	return EOK;
-}
-
-int arp_connect_module(services_t service){
-	if(service != SERVICE_ARP){
-		return EINVAL;
-	}
 	return EOK;
 }
 
@@ -542,10 +535,6 @@ int arp_receive_message(device_id_t device_id, packet_t packet){
 	return EOK;
 }
 
-task_id_t arp_task_get_id(void){
-	return task_get_id();
-}
-
 measured_string_ref arp_translate_message(device_id_t device_id, services_t protocol, measured_string_ref target){
 	arp_device_ref device;
 	arp_proto_ref proto;
@@ -602,26 +591,6 @@ measured_string_ref arp_translate_message(device_id_t device_id, services_t prot
 	}
 	nil_send_msg(device->phone, device_id, packet, SERVICE_ARP);
 	return NULL;
-}
-
-int arp_translate_req(int arp_phone, device_id_t device_id, services_t protocol, measured_string_ref address, measured_string_ref * translation, char ** data){
-	measured_string_ref tmp;
-
-	fibril_rwlock_read_lock(&arp_globals.lock);
-	tmp = arp_translate_message(device_id, protocol, address);
-	if(tmp){
-		*translation = measured_string_copy(tmp);
-		fibril_rwlock_read_unlock(&arp_globals.lock);
-		if(*translation){
-			*data = (** translation).value;
-			return EOK;
-		}else{
-			return ENOMEM;
-		}
-	}else{
-		fibril_rwlock_read_unlock(&arp_globals.lock);
-		return ENOENT;
-	}
 }
 
 /** Default thread for new connections.

@@ -168,7 +168,7 @@ extern link_t plb_head;		/**< List of active PLB entries. */
 extern fibril_rwlock_t namespace_rwlock;
 
 extern int vfs_grab_phone(fs_handle_t);
-extern void vfs_release_phone(int);
+extern void vfs_release_phone(fs_handle_t, int);
 
 extern fs_handle_t fs_name_to_handle(char *, bool);
 

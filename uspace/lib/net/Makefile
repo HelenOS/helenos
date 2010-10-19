@@ -28,17 +28,19 @@
 #
 
 USPACE_PREFIX = ../..
-EXTRA_CFLAGS = -Iinclude -I$(LIBSOCKET_PREFIX)/include
+EXTRA_CFLAGS = -Iinclude
 LIBRARY = libnet
 
 SOURCES = \
+	generic/generic.c \
 	generic/net_remote.c \
 	generic/net_checksum.c \
+	generic/packet_client.c \
 	generic/packet_remote.c \
+	generic/socket_core.c \
 	adt/module_map.c \
 	netif/netif_local.c \
 	netif/netif_remote.c \
-	netif/netif_nil_bundle.c \
 	nil/nil_remote.c \
 	il/ip_remote.c \
 	il/ip_client.c \

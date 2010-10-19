@@ -65,9 +65,11 @@ DIRS = \
 	srv/fs/devfs \
 	srv/hid/adb_mouse \
 	srv/hid/char_mouse \
+	srv/hid/s3c24xx_ts \
 	srv/hid/fb \
 	srv/hid/kbd \
 	srv/hw/char/i8042 \
+	srv/hw/char/s3c24xx_uart \
 	srv/hw/netif/dp8390 \
 	srv/net/cfg \
 	srv/net/netif/lo \
@@ -131,7 +133,7 @@ LIBS = \
 	lib/clui \
 	lib/softint \
 	lib/softfloat \
-	lib/socket \
+	lib/packet \
 	lib/net
 
 ifeq ($(UARCH),amd64)

@@ -735,7 +735,10 @@ void tmpfs_stat(ipc_callid_t rid, ipc_call_t *request)
 
 void tmpfs_sync(ipc_callid_t rid, ipc_call_t *request)
 {
-	/* Dummy implementation */
+	/*
+	 * TMPFS keeps its data structures always consistent,
+	 * thus the sync operation is a no-op.
+	 */
 	ipc_answer_0(rid, EOK);
 }
 

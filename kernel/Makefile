@@ -121,6 +121,13 @@ ifeq ($(CONFIG_LTO),y)
 	GCC_CFLAGS += -flto
 endif
 
+ifeq ($(CONFIG_LINE_DEBUG),y)
+	GCC_CFLAGS += -g
+	ICC_CFLAGS += -g
+	SUNCC_CFLAGS += -g
+	CLANG_CFLAGS += -g
+endif
+
 #
 # Mind the mutual ordering with the inclusion of the arch Makefile.inc.
 # AFLAGS and LFLAGS must be initialized before the inclusion.
@@ -400,7 +407,11 @@ $(BIN): $(RAW)
 	$(OBJCOPY) -O $(BFD) $< $@
 
 $(DISASM): $(RAW)
+ifeq ($(CONFIG_LINE_DEBUG),y)
+	$(OBJDUMP) -d -S $< > $@
+else
 	$(OBJDUMP) -d $< > $@
+endif
 
 $(RAW): $(LINK) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(SYMTAB_OBJECTS)
 ifeq ($(CONFIG_LTO),y)

@@ -39,28 +39,28 @@
 #include <ctype.h>
 #include <ddi.h>
 #include <errno.h>
+#include <err.h>
 #include <malloc.h>
 #include <stdio.h>
 #include <str.h>
 
 #include <ipc/ipc.h>
 #include <ipc/services.h>
+#include <ipc/net.h>
+#include <ipc/net_net.h>
+#include <ipc/il.h>
 
-#include <net_err.h>
-#include <net_messages.h>
-#include <net_modules.h>
+#include <net/modules.h>
 #include <adt/char_map.h>
 #include <adt/generic_char_map.h>
 #include <adt/measured_strings.h>
 #include <adt/module_map.h>
-#include <packet/packet.h>
-#include <il_messages.h>
+#include <net/packet.h>
 #include <netif_remote.h>
-#include <net_device.h>
+#include <net/device.h>
 #include <nil_interface.h>
 #include <net_interface.h>
 #include <ip_interface.h>
-#include <net_net_messages.h>
 
 #include "net.h"
 

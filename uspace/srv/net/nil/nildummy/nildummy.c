@@ -40,18 +40,18 @@
 #include <mem.h>
 #include <stdio.h>
 #include <str.h>
+#include <err.h>
 #include <ipc/ipc.h>
+#include <ipc/net.h>
 #include <ipc/services.h>
 
-#include <net_err.h>
-#include <net_messages.h>
-#include <net_modules.h>
-#include <net_device.h>
+#include <net/modules.h>
+#include <net/device.h>
 #include <netif_interface.h>
 #include <nil_interface.h>
 #include <il_interface.h>
 #include <adt/measured_strings.h>
-#include <packet/packet.h>
+#include <net/packet.h>
 #include <packet_remote.h>
 #include <nil_local.h>
 
@@ -409,8 +409,6 @@ int nil_message_standalone(const char *name, ipc_callid_t callid, ipc_call_t *ca
 	return ENOTSUP;
 }
 
-#ifndef CONFIG_NETIF_NIL_BUNDLE
-
 /** Default thread for new connections.
  *
  * @param[in] iid   The initial message identifier.
@@ -459,8 +457,6 @@ int main(int argc, char *argv[])
 	
 	return EOK;
 }
-
-#endif /* CONFIG_NETIF_NIL_BUNDLE */
 
 /** @}
  */

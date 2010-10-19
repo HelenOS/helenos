@@ -35,7 +35,7 @@
 #ifndef __NET_NETIF_DP8390_H__
 #define __NET_NETIF_DP8390_H__
 
-#include <packet/packet.h>
+#include <net/packet.h>
 
 #include "dp8390_port.h"
 #include "local.h"

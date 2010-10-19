@@ -37,12 +37,10 @@
 #include <errno.h>
 
 #include <ipc/ipc.h>
+#include <ipc/nil.h>
 
-#include <net_messages.h>
-#include <adt/measured_strings.h>
-#include <packet/packet.h>
-#include <nil_messages.h>
-#include <net_device.h>
+#include <generic.h>
+#include <nil_remote.h>
 
 #define nil_bind_service(service, device_id, me, receiver) \
 	bind_service(service, device_id, me, 0, receiver)
@@ -66,24 +64,8 @@
 	generic_device_req_remote(nil_phone, NET_NIL_DEVICE, device_id, mtu, \
 	    netif_service)
 
-
-#ifdef CONFIG_NETIF_NIL_BUNDLE
-
-#include <nil_local.h>
-#include <packet/packet_server.h>
-
-#define nil_device_state_msg  nil_device_state_msg_local
-#define nil_received_msg      nil_received_msg_local
-
-#else /* CONFIG_NETIF_NIL_BUNDLE */
-
-#include <nil_remote.h>
-#include <packet/packet_server.h>
-
 #define nil_device_state_msg  nil_device_state_msg_remote
 #define nil_received_msg      nil_received_msg_remote
-
-#endif /* CONFIG_NETIF_NIL_BUNDLE */
 
 #endif
 

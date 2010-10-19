@@ -39,17 +39,18 @@
  *
  */
 
-#include <ipc/services.h>
-
-#include <net_messages.h>
-#include <net_modules.h>
-#include <net_device.h>
-#include <inet.h>
-#include <ip_interface.h>
-#include <packet/packet_client.h>
-#include <il_messages.h>
-#include <ip_messages.h>
 #include <ip_remote.h>
+#include <ip_interface.h>
+#include <packet_client.h>
+#include <generic.h>
+
+#include <ipc/services.h>
+#include <ipc/il.h>
+#include <ipc/ip.h>
+
+#include <net/modules.h>
+#include <net/device.h>
+#include <net/inet.h>
 
 /** Add a route to the device routing table.
  *
@@ -71,7 +72,7 @@ int ip_add_route_req_remote(int ip_phone, device_id_t device_id,
 }
 
 int ip_bind_service(services_t service, int protocol, services_t me,
-    async_client_conn_t receiver, tl_received_msg_t tl_received_msg)
+    async_client_conn_t receiver)
 {
 	return (int) bind_service(service, (ipcarg_t) protocol, me, service,
 	    receiver);
@@ -126,7 +127,7 @@ int ip_get_route_req_remote(int ip_phone, ip_protocol_t protocol,
 	if ((!destination) || (addrlen == 0))
 		return EINVAL;
 	
-	if ((!device_id) || (header) || (headerlen))
+	if ((!device_id) || (!header) || (!headerlen))
 		return EBADMEM;
 	
 	*header = NULL;

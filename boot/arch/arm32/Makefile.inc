@@ -40,7 +40,9 @@ BITS = 32
 ENDIANESS = LE
 PAGE_SIZE = 4096
 
-RD_SRVS_ESSENTIAL +=
+RD_SRVS_ESSENTIAL += \
+	$(USPACE_PATH)/srv/hid/s3c24xx_ts/s3c24ts \
+	$(USPACE_PATH)/srv/hw/char/s3c24xx_uart/s3c24ser
 
 RD_SRVS_NON_ESSENTIAL += \
 	$(USPACE_PATH)/srv/bd/gxe_bd/gxe_bd

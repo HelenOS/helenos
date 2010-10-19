@@ -37,14 +37,14 @@
 
 #include <async.h>
 #include <stdio.h>
+#include <err.h>
 
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 
-#include <net_err.h>
-#include <net_modules.h>
+#include <net/modules.h>
 #include <net_interface.h>
-#include <packet/packet.h>
+#include <net/packet.h>
 #include <nil_local.h>
 
 #include "nildummy.h"
@@ -70,7 +70,7 @@ int nil_module_start_standalone(async_client_conn_t client_connection)
 	ERROR_DECLARE;
 	
 	async_set_client_connection(client_connection);
-	int net_phone = net_connect_module(SERVICE_NETWORKING);
+	int net_phone = net_connect_module();
 	ERROR_PROPAGATE(pm_init());
 	
 	ipcarg_t phonehash;

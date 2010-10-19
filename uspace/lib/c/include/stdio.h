@@ -170,6 +170,7 @@ extern int fseek(FILE *, off64_t, int);
 extern void rewind(FILE *);
 extern off64_t ftell(FILE *);
 extern int feof(FILE *);
+extern int fileno(FILE *);
 
 extern int fflush(FILE *);
 extern int ferror(FILE *);

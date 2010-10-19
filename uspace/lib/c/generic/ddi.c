@@ -95,15 +95,6 @@ int iospace_enable(task_id_t id, void *ioaddr, unsigned long size)
 	return __SYSCALL1(SYS_IOSPACE_ENABLE, (sysarg_t) &arg);
 }
 
-/** Interrupt control
- *
- * @param enable	1 - enable interrupts, 0 - disable interrupts
- */
-int preemption_control(int enable)
-{
-	return __SYSCALL1(SYS_PREEMPT_CONTROL, (sysarg_t) enable);
-}
-
 /** Enable PIO for specified I/O range.
  *
  * @param pio_addr	I/O start address.

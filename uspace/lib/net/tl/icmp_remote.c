@@ -39,13 +39,12 @@
 #include <errno.h>
 #include <ipc/ipc.h>
 #include <ipc/services.h>
+#include <ipc/icmp.h>
 #include <sys/types.h>
 
-#include <net_messages.h>
-#include <net_modules.h>
+#include <net/modules.h>
 #include <icmp_interface.h>
-#include <packet/packet_client.h>
-#include <icmp_messages.h>
+#include <packet_client.h>
 
 int icmp_destination_unreachable_msg(int icmp_phone, icmp_code_t code, icmp_param_t mtu, packet_t packet){
 	async_msg_3(icmp_phone, NET_ICMP_DEST_UNREACH, (ipcarg_t) code, (ipcarg_t) packet_get_id(packet), (ipcarg_t) mtu);

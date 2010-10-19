@@ -37,47 +37,48 @@
 
 #include <async.h>
 #include <errno.h>
+#include <err.h>
 #include <fibril_synch.h>
 #include <stdio.h>
 #include <str.h>
 #include <ipc/ipc.h>
 #include <ipc/services.h>
+#include <ipc/net.h>
+#include <ipc/nil.h>
+#include <ipc/il.h>
+#include <ipc/ip.h>
 #include <sys/types.h>
+#include <byteorder.h>
 
-#include <net_err.h>
-#include <net_messages.h>
-#include <net_modules.h>
+#include <net/socket_codes.h>
+#include <net/in.h>
+#include <net/in6.h>
+#include <net/inet.h>
+#include <net/modules.h>
+#include <net/device.h>
+#include <net/packet.h>
+#include <net/icmp_codes.h>
+
 #include <arp_interface.h>
-#include <net_byteorder.h>
 #include <net_checksum.h>
-#include <net_device.h>
 #include <icmp_client.h>
-#include <icmp_codes.h>
 #include <icmp_interface.h>
 #include <il_interface.h>
-#include <in.h>
-#include <in6.h>
-#include <inet.h>
 #include <ip_client.h>
 #include <ip_interface.h>
 #include <net_interface.h>
 #include <nil_interface.h>
 #include <tl_interface.h>
-#include <socket_codes.h>
-#include <socket_errno.h>
 #include <adt/measured_strings.h>
 #include <adt/module_map.h>
-#include <packet/packet_client.h>
+#include <packet_client.h>
 #include <packet_remote.h>
-#include <nil_messages.h>
-#include <il_messages.h>
 #include <il_local.h>
-#include <ip_local.h>
 
 #include "ip.h"
 #include "ip_header.h"
-#include "ip_messages.h"
 #include "ip_module.h"
+#include "ip_local.h"
 
 /** IP module name.
  */
@@ -421,7 +422,7 @@ int ip_initialize(async_client_conn_t client_connection){
 	ERROR_PROPAGATE(ip_protos_initialize(&ip_globals.protos));
 	ip_globals.client_connection = client_connection;
 	ERROR_PROPAGATE(modules_initialize(&ip_globals.modules));
-	ERROR_PROPAGATE(add_module(NULL, &ip_globals.modules, ARP_NAME, ARP_FILENAME, SERVICE_ARP, arp_task_get_id(), arp_connect_module));
+	ERROR_PROPAGATE(add_module(NULL, &ip_globals.modules, ARP_NAME, ARP_FILENAME, SERVICE_ARP, 0, arp_connect_module));
 	fibril_rwlock_write_unlock(&ip_globals.lock);
 	return EOK;
 }
@@ -618,14 +619,6 @@ int ip_device_state_message(device_id_t device_id, device_state_t state){
 	printf("%s: Device %d changed state to %d\n", NAME, device_id, state);
 	fibril_rwlock_write_unlock(&ip_globals.netifs_lock);
 	return EOK;
-}
-
-int ip_connect_module(services_t service){
-	return EOK;
-}
-
-int ip_bind_service(services_t service, int protocol, services_t me, async_client_conn_t receiver, tl_received_msg_t received_msg){
-	return ip_register(protocol, me, 0, received_msg);
 }
 
 int ip_register(int protocol, services_t service, int phone, tl_received_msg_t received_msg){

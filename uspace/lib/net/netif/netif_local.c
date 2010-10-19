@@ -41,19 +41,18 @@
 #include <stdio.h>
 #include <ipc/ipc.h>
 #include <ipc/services.h>
+#include <ipc/netif.h>
+#include <err.h>
 
-#include <net_err.h>
-#include <net_messages.h>
-#include <net_modules.h>
-#include <packet/packet.h>
-#include <packet/packet_client.h>
-#include <packet/packet_server.h>
+#include <generic.h>
+#include <net/modules.h>
+#include <net/packet.h>
+#include <packet_client.h>
 #include <packet_remote.h>
 #include <adt/measured_strings.h>
-#include <net_device.h>
+#include <net/device.h>
 #include <nil_interface.h>
 #include <netif_local.h>
-#include <netif_messages.h>
 #include <netif_interface.h>
 
 DEVICE_MAP_IMPLEMENT(netif_device_map, netif_device_t);
@@ -227,24 +226,6 @@ int netif_get_addr_req_local(int netif_phone, device_id_t device_id,
 	*data = (**address).value;
 	
 	return ERROR_CODE;
-}
-
-/** Create bidirectional connection with the network interface module and registers the message receiver.
- *
- * @param[in] service   The network interface module service.
- * @param[in] device_id The device identifier.
- * @param[in] me        The requesting module service.
- * @param[in] receiver  The message receiver.
- *
- * @return The phone of the needed service.
- * @return EOK on success.
- * @return Other error codes as defined for the bind_service() function.
- *
- */
-int netif_bind_service_local(services_t service, device_id_t device_id,
-    services_t me, async_client_conn_t receiver)
-{
-	return EOK;
 }
 
 /** Find the device specific data.

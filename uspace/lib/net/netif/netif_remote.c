@@ -35,14 +35,15 @@
  */
 
 #include <ipc/services.h>
+#include <ipc/netif.h>
 
-#include <net_modules.h>
+#include <net/modules.h>
 #include <adt/measured_strings.h>
-#include <packet/packet.h>
-#include <packet/packet_client.h>
-#include <net_device.h>
+#include <net/packet.h>
+#include <packet_client.h>
+#include <net/device.h>
 #include <netif_remote.h>
-#include <netif_messages.h>
+#include <generic.h>
 
 int netif_get_addr_req_remote(int netif_phone, device_id_t device_id,
     measured_string_ref *address, char **data)
@@ -89,6 +90,19 @@ int netif_stats_req_remote(int netif_phone, device_id_t device_id,
 	return (int) result;
 }
 
+/** Create bidirectional connection with the network interface module and
+ * registers the message receiver.
+ *
+ * @param[in] service   The network interface module service.
+ * @param[in] device_id The device identifier.
+ * @param[in] me        The requesting module service.
+ * @param[in] receiver  The message receiver.
+ *
+ * @return The phone of the needed service.
+ * @return EOK on success.
+ * @return Other error codes as defined for the bind_service() function.
+ *
+ */
 int netif_bind_service_remote(services_t service, device_id_t device_id, services_t me,
     async_client_conn_t receiver)
 {

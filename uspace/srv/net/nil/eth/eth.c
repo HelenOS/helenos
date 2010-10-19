@@ -39,26 +39,26 @@
 #include <malloc.h>
 #include <mem.h>
 #include <stdio.h>
+#include <byteorder.h>
 #include <str.h>
+#include <err.h>
 
 #include <ipc/ipc.h>
+#include <ipc/net.h>
 #include <ipc/services.h>
 
-#include <net_err.h>
-#include <net_messages.h>
-#include <net_modules.h>
-#include <net_byteorder.h>
+#include <net/modules.h>
 #include <net_checksum.h>
 #include <ethernet_lsap.h>
 #include <ethernet_protocols.h>
 #include <protocol_map.h>
-#include <net_device.h>
+#include <net/device.h>
 #include <netif_interface.h>
 #include <net_interface.h>
 #include <nil_interface.h>
 #include <il_interface.h>
 #include <adt/measured_strings.h>
-#include <packet/packet_client.h>
+#include <packet_client.h>
 #include <packet_remote.h>
 #include <nil_local.h>
 
@@ -787,8 +787,6 @@ void eth_receiver(ipc_callid_t iid, ipc_call_t * icall){
 	}
 }
 
-#ifndef CONFIG_NETIF_NIL_BUNDLE
-
 /** Default thread for new connections.
  *
  * @param[in] iid The initial message identifier.
@@ -837,8 +835,6 @@ int main(int argc, char *argv[])
 	
 	return EOK;
 }
-
-#endif /* CONFIG_NETIF_NIL_BUNDLE */
 
 /** @}
  */

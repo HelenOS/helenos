@@ -33,9 +33,9 @@
 #ifndef __NET_NETIF_REMOTE_H__
 #define __NET_NETIF_REMOTE_H__
 
-#include <async.h>
-#include <fibril_synch.h>
-#include <ipc/ipc.h>
+#include <ipc/services.h>
+#include <adt/measured_strings.h>
+#include <net/device.h>
 
 extern int netif_get_addr_req_remote(int, device_id_t, measured_string_ref *,
     char **);

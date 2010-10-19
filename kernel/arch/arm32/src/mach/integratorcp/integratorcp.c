@@ -63,7 +63,8 @@ struct arm_machine_ops icp_machine_ops = {
 	icp_irq_exception,
 	icp_frame_init,
 	icp_output_init,
-	icp_input_init
+	icp_input_init,
+	icp_get_irq_count
 };
 
 static bool hw_map_init_called = false;
@@ -335,6 +336,10 @@ void icp_input_init(void)
 
 }
 
+size_t icp_get_irq_count(void)
+{
+	return ICP_IRQ_COUNT;
+}
 
 /** @}
  */

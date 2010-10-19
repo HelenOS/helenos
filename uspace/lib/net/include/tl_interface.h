@@ -39,12 +39,12 @@
 
 #include <async.h>
 #include <ipc/services.h>
+#include <ipc/tl.h>
 
-#include <net_messages.h>
-#include <net_device.h>
-#include <packet/packet.h>
-#include <packet/packet_client.h>
-#include <tl_messages.h>
+#include <generic.h>
+#include <net/device.h>
+#include <net/packet.h>
+#include <packet_client.h>
 
 /** @name Transport layer module interface
  * This interface is used by other modules.

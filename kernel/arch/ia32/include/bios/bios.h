@@ -37,8 +37,6 @@
 
 #include <typedefs.h>
 
-#define BIOS_EBDA_PTR  0x40e
-
 extern uintptr_t ebda;
 
 extern void bios_init(void);

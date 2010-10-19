@@ -63,7 +63,8 @@ struct arm_machine_ops gxemul_machine_ops = {
 	gxemul_irq_exception,
 	gxemul_frame_init,
 	gxemul_output_init,
-	gxemul_input_init
+	gxemul_input_init,
+	gxemul_get_irq_count
 };
 
 void gxemul_init(void)
@@ -123,6 +124,11 @@ void gxemul_input_init(void)
 	sysinfo_set_item_val("kbd.inr", NULL, GXEMUL_KBD_IRQ);
 	sysinfo_set_item_val("kbd.address.virtual", NULL, (unative_t) gxemul_kbd);
 #endif
+}
+
+size_t gxemul_get_irq_count(void)
+{
+	return GXEMUL_IRQ_COUNT;
 }
 
 /** Starts gxemul Real Time Clock device, which asserts regular interrupts.

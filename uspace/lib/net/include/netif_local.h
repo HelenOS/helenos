@@ -33,7 +33,6 @@
 /** @file
  * Network interface module skeleton.
  * The skeleton has to be part of each network interface module.
- * The skeleton can be also part of the module bundled with the network interface layer.
  */
 
 #ifndef __NET_NETIF_LOCAL_H__
@@ -43,11 +42,11 @@
 #include <fibril_synch.h>
 #include <ipc/ipc.h>
 #include <ipc/services.h>
+#include <err.h>
 
 #include <adt/measured_strings.h>
-#include <net_err.h>
-#include <net_device.h>
-#include <packet/packet.h>
+#include <net/device.h>
+#include <net/packet.h>
 
 /** Network interface device specific data.
  *

@@ -342,14 +342,20 @@ FAT_ENTRY = """little:
 
 def usage(prname):
 	"Print usage syntax"
-	print prname + " <PATH> <IMAGE>"
+	print prname + " <EXTRA_BYTES> <PATH> <IMAGE>"
 
 def main():
-	if (len(sys.argv) < 3):
+	if (len(sys.argv) < 4):
 		usage(sys.argv[0])
 		return
 	
-	path = os.path.abspath(sys.argv[1])
+	if (not sys.argv[1].isdigit()):
+		print "<EXTRA_BYTES> must be a number"
+		return
+	
+	extra_bytes = int(sys.argv[1])
+	
+	path = os.path.abspath(sys.argv[2])
 	if (not os.path.isdir(path)):
 		print "<PATH> must be a directory"
 		return
@@ -364,11 +370,11 @@ def main():
 	reserved_clusters = 2
 	
 	# Make sure the filesystem is large enought for FAT16
-	size = subtree_size(path, cluster_size, dirent_size) + reserved_clusters * cluster_size
+	size = subtree_size(path, cluster_size, dirent_size) + reserved_clusters * cluster_size + extra_bytes
 	while (size / cluster_size < fat16_clusters):
 		if (cluster_size > sector_size):
 			cluster_size /= 2
-			size = subtree_size(path, cluster_size, dirent_size) + reserved_clusters * cluster_size
+			size = subtree_size(path, cluster_size, dirent_size) + reserved_clusters * cluster_size + extra_bytes
 		else:
 			size = fat16_clusters * cluster_size + reserved_clusters * cluster_size
 	
@@ -380,7 +386,7 @@ def main():
 	root_start = cluster_size + fat_count * fat_size
 	data_start = root_start + root_size
 	
-	outf = file(sys.argv[2], "w")
+	outf = file(sys.argv[3], "w")
 	
 	boot_sector = xstruct.create(BOOT_SECTOR)
 	boot_sector.jmp = [0xEB, 0x3C, 0x90]

@@ -152,7 +152,7 @@ void io_perm_bitmap_install(void)
 	 * type must be changed to describe inactive TSS.
 	 */
 	gdt_p[TSS_DES].access = AR_PRESENT | AR_TSS | DPL_KERNEL;
-	tr_load(gdtselector(TSS_DES));
+	tr_load(GDT_SELECTOR(TSS_DES));
 	
 	/*
 	 * Update the generation count so that faults caused by

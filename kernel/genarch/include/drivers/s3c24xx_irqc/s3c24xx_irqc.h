@@ -52,7 +52,7 @@ typedef struct {
 	ioport32_t intoffset;	/**< Interrupt offset */
 	ioport32_t subsrcpnd;	/**< Sub source pending */
 	ioport32_t intsubmsk;	/** Interrupt sub mask */
-} s3c24xx_irqc_t;
+} s3c24xx_irqc_regs_t;
 
 /** S3C24xx Interrupt source numbers.
  *
@@ -118,6 +118,18 @@ enum s3c24xx_int_subsource {
 
 #define S3C24XX_INT_BIT(source) (1 << (source))
 #define S3C24XX_SUBINT_BIT(subsource) (1 << (subsource))
+
+typedef struct {
+	s3c24xx_irqc_regs_t *regs;
+} s3c24xx_irqc_t;
+
+extern void s3c24xx_irqc_init(s3c24xx_irqc_t *, s3c24xx_irqc_regs_t *);
+extern unsigned s3c24xx_irqc_inum_get(s3c24xx_irqc_t *);
+extern void s3c24xx_irqc_clear(s3c24xx_irqc_t *, unsigned);
+extern void s3c24xx_irqc_src_enable(s3c24xx_irqc_t *, unsigned);
+extern void s3c24xx_irqc_src_disable(s3c24xx_irqc_t *, unsigned);
+extern void s3c24xx_irqc_subsrc_enable(s3c24xx_irqc_t *, unsigned);
+extern void s3c24xx_irqc_subsrc_disable(s3c24xx_irqc_t *, unsigned);
 
 #endif
 

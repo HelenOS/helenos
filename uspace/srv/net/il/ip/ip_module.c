@@ -41,11 +41,11 @@
 #include <stdio.h>
 #include <ipc/ipc.h>
 #include <ipc/services.h>
+#include <err.h>
 
-#include <net_err.h>
-#include <net_modules.h>
+#include <net/modules.h>
 #include <net_interface.h>
-#include <packet/packet.h>
+#include <net/packet.h>
 #include <il_local.h>
 
 #include "ip.h"
@@ -78,7 +78,7 @@ int il_module_start_standalone(async_client_conn_t client_connection){
 	ERROR_DECLARE;
 	
 	async_set_client_connection(client_connection);
-	ip_globals.net_phone = net_connect_module(SERVICE_NETWORKING);
+	ip_globals.net_phone = net_connect_module();
 	ERROR_PROPAGATE(pm_init());
 	
 	ipcarg_t phonehash;

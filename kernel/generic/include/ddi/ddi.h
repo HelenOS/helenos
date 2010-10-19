@@ -53,7 +53,6 @@ extern void ddi_parea_register(parea_t *);
 
 extern unative_t sys_physmem_map(unative_t, unative_t, unative_t, unative_t);
 extern unative_t sys_iospace_enable(ddi_ioarg_t *);
-extern unative_t sys_preempt_control(int);
 
 /*
  * Interface to be implemented by all architectures.
