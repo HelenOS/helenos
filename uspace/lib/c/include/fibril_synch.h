@@ -42,10 +42,6 @@
 #include <sys/time.h>
 
 typedef struct {
-	fibril_t *owned_by;
-} fibril_owner_info_t;
-
-typedef struct {
 	fibril_owner_info_t oi;		/* Keep this the first thing. */
 	int counter;
 	link_t waiters;
