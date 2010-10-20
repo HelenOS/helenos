@@ -265,7 +265,9 @@ unative_t sys_iospace_enable(ddi_ioarg_t *uspace_io_arg)
  * @retutn Zero on success, error code otherwise.
  */
 unative_t sys_interrupt_enable(int irq, int enable)
-{	
+{
+/* FIXME: this needs to be generic code, or better not be in kernel at all. */
+#if 0
 	cap_t task_cap = cap_get(TASK);
 	if (!(task_cap & CAP_IRQ_REG))
 		return EPERM;
@@ -281,7 +283,8 @@ unative_t sys_interrupt_enable(int irq, int enable)
 		trap_virtual_disable_irqs(irq_mask);
 	}
 	
-	return 0;	
+#endif
+	return 0;
 }
 
 /** @}
