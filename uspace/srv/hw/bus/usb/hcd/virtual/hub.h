@@ -30,30 +30,26 @@
  * @{
  */
 /** @file
- * @brief Virtual USB host controller common definitions.
+ * @brief Virtual USB hub.
  */
-#ifndef VHCD_VHCD_H_
-#define VHCD_VHCD_H_
+#ifndef VHCD_HUB_H_
+#define VHCD_HUB_H_
 
-#include <stdio.h>
+#include <usbvirt/device.h>
 
-#define NAME "hcd-virt"
-#define NAMESPACE "usb"
+#include "devices.h"
 
-#define DEVMAP_PATH NAMESPACE "/" NAME
+#define HUB_PORT_COUNT 6
 
-/** Debugging printf.
- * @see printf
- */
-static inline void dprintf(const char * format, ...)
-{
-	printf("%s:   ", NAME);
-	va_list args;
-	va_start(args, format);
-	vprintf(format, args);
-	va_end(args);
-	printf("\n");
-}
+#define BITS2BYTES(bits) \
+    (bits ? ((((bits)-1)>>3)+1) : 0)
+
+extern usbvirt_device_t virthub_dev;
+
+void hub_init(void);
+size_t hub_add_device(virtdev_connection_t *);
+void hub_remove_device(virtdev_connection_t *);
+bool hub_can_device_signal(virtdev_connection_t *);
 
 #endif
 /**

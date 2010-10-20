@@ -47,6 +47,7 @@
 #include "vhcd.h"
 #include "hc.h"
 #include "devices.h"
+#include "hub.h"
 #include "conn.h"
 
 
@@ -133,6 +134,8 @@ int main(int argc, char * argv[])
 		    NAME, DEVMAP_PATH, str_error(rc));
 		return 1;
 	}
+	
+	hub_init();
 	
 	printf("%s: accepting connections.\n", NAME);
 	hc_manager();

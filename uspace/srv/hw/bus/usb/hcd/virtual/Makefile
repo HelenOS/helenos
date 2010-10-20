@@ -27,7 +27,7 @@
 #
 
 USPACE_PREFIX = ../../../../../..
-LIBS = $(LIBUSB_PREFIX)/libusb.a
+LIBS = $(LIBUSB_PREFIX)/libusb.a $(LIBUSBVIRT_PREFIX)/libusbvirt.a
 EXTRA_CFLAGS = -I$(LIB_PREFIX)
 BINARY = vhcd
 
@@ -36,6 +36,8 @@ SOURCES = \
 	connhost.c \
 	devices.c \
 	hc.c \
-	hcd.c
+	hcd.c \
+	hub.c \
+	hubops.c
 
 include $(USPACE_PREFIX)/Makefile.common

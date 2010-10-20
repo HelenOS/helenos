@@ -46,6 +46,7 @@
 #include <usbvirt/hub.h>
 
 #include "devices.h"
+#include "hub.h"
 
 #define list_foreach(pos, head) \
 	for (pos = (head)->next; pos != (head); \
@@ -60,14 +61,7 @@ LIST_INITIALIZE(devices);
  */
 virtdev_connection_t *virtdev_recognise(int id, int phone)
 {
-	virtdev_connection_t * dev = NULL;
-	switch (id) {
-		case USBVIRT_DEV_KEYBOARD_ID:
-			dev = virtdev_add_device(phone);
-			break;
-		default:
-			break;
-	}
+	virtdev_connection_t * dev = virtdev_add_device(phone);
 	
 	/*
 	 * We do not want to mess-up the virtdev_add_device() as
@@ -97,6 +91,8 @@ virtdev_connection_t *virtdev_add_device(int phone)
 	dev->phone = phone;
 	list_append(&dev->link, &devices);
 	
+	hub_add_device(dev);
+	
 	return dev;
 }
 
@@ -104,6 +100,7 @@ virtdev_connection_t *virtdev_add_device(int phone)
  */
 void virtdev_destroy_device(virtdev_connection_t *dev)
 {
+	hub_remove_device(dev);
 	list_remove(&dev->link);
 	free(dev);
 }
@@ -118,6 +115,10 @@ usb_transaction_outcome_t virtdev_send_to_all(transaction_t *transaction)
 	list_foreach(pos, &devices) {
 		virtdev_connection_t *dev
 		    = list_get_instance(pos, virtdev_connection_t, link);
+		
+		if (!hub_can_device_signal(dev)) {
+			continue;
+		}
 		
 		ipc_call_t answer_data;
 		ipcarg_t answer_rc;
@@ -139,6 +140,15 @@ usb_transaction_outcome_t virtdev_send_to_all(transaction_t *transaction)
 			async_wait_for(req, &answer_rc);
 			rc = (int)answer_rc;
 		}
+	}
+	
+	/*
+	 * Send the data to the virtual hub as well
+	 * (if the address matches).
+	 */
+	if (virthub_dev.address == transaction->target.address) {
+		virthub_dev.receive_data(&virthub_dev, transaction->target.endpoint,
+		    transaction->buffer, transaction->len);
 	}
 	
 	/*

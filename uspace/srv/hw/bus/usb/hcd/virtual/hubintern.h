@@ -30,30 +30,69 @@
  * @{
  */
 /** @file
- * @brief Virtual USB host controller common definitions.
+ * @brief
  */
-#ifndef VHCD_VHCD_H_
-#define VHCD_VHCD_H_
+#ifndef VHCD_HUBINTERN_H_
+#define VHCD_HUBINTERN_H_
 
-#include <stdio.h>
+#include "hub.h"
 
-#define NAME "hcd-virt"
-#define NAMESPACE "usb"
+#define HUB_STATUS_CHANGE_PIPE 1
+#define HUB_CONFIGURATION_ID 1
 
-#define DEVMAP_PATH NAMESPACE "/" NAME
-
-/** Debugging printf.
- * @see printf
+/** Hub descriptor.
  */
-static inline void dprintf(const char * format, ...)
-{
-	printf("%s:   ", NAME);
-	va_list args;
-	va_start(args, format);
-	vprintf(format, args);
-	va_end(args);
-	printf("\n");
-}
+typedef struct {
+	/** Size of this descriptor in bytes. */
+	uint8_t length;
+	/** Descriptor type (USB_DESCTYPE_HUB). */
+	uint8_t type;
+	/** Number of downstream ports. */
+	uint8_t port_count;
+	/** Hub characteristics. */
+	uint16_t characteristics;
+	/** Time from power-on to stabilized current.
+	 * Expressed in 2ms unit.
+	 */
+	uint8_t power_on_warm_up;
+	/** Maximum current (in mA). */
+	uint8_t max_current;
+	/** Whether device at given port is removable. */
+	uint8_t removable_device[BITS2BYTES(HUB_PORT_COUNT+1)];
+	/** Port power control.
+	 * This is USB1.0 compatibility field, all bits must be 1.
+	 */
+	uint8_t port_power[BITS2BYTES(HUB_PORT_COUNT+1)];
+} __attribute__ ((packed)) hub_descriptor_t;
+
+typedef enum {
+	HUB_PORT_STATE_NOT_CONFIGURED,
+	HUB_PORT_STATE_POWERED_OFF,
+	HUB_PORT_STATE_DISCONNECTED,
+	HUB_PORT_STATE_DISABLED,
+	HUB_PORT_STATE_RESETTING,
+	HUB_PORT_STATE_ENABLED,
+	HUB_PORT_STATE_SUSPENDED,
+	HUB_PORT_STATE_RESUMING,
+	/* HUB_PORT_STATE_, */
+} hub_port_state_t;
+
+typedef struct {
+	virtdev_connection_t *device;
+	hub_port_state_t state;
+} hub_port_t;
+
+typedef struct {
+	hub_port_t ports[HUB_PORT_COUNT];
+	/* FIXME - assuming HUB_PORT_COUNT < 8 */
+	uint8_t status_change_bitmap;
+} hub_device_t;
+
+extern hub_device_t hub_dev;
+
+extern hub_descriptor_t hub_descriptor;
+
+extern usbvirt_device_ops_t hub_ops;
 
 #endif
 /**
