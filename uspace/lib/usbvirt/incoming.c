@@ -37,7 +37,8 @@
 #include "device.h"
 #include "private.h"
 
-int handle_incoming_data(usb_endpoint_t endpoint, void *buffer, size_t size)
+int handle_incoming_data(struct usbvirt_device *dev,
+    usb_endpoint_t endpoint, void *buffer, size_t size)
 {
 	/*
 	 * Endpoint zero is device control pipe.

@@ -50,7 +50,8 @@ extern usbvirt_device_t *device;
 int usbvirt_data_to_host(struct usbvirt_device *dev,
     usb_endpoint_t endpoint, void *buffer, size_t size);
 
-int handle_incoming_data(usb_endpoint_t endpoint, void *buffer, size_t size);
+int handle_incoming_data(struct usbvirt_device *dev,
+    usb_endpoint_t endpoint, void *buffer, size_t size);
 
 int control_pipe(void *buffer, size_t size);
 

@@ -68,7 +68,7 @@ static void handle_data_to_device(ipc_callid_t iid, ipc_call_t icall)
 		return;
 	}
 	
-	handle_incoming_data(endpoint, buffer, len);
+	device->receive_data(device, endpoint, buffer, len);
 	
 	free(buffer);
 	
@@ -103,6 +103,7 @@ static void callback_connection(ipc_callid_t iid, ipc_call_t *icall)
 static void device_init(usbvirt_device_t *dev)
 {
 	dev->send_data = usbvirt_data_to_host;
+	dev->receive_data = handle_incoming_data;
 	dev->state = USBVIRT_STATE_DEFAULT;
 	dev->address = 0;
 }
@@ -159,8 +160,7 @@ int usbvirt_data_to_host(struct usbvirt_device *dev,
  *
  * @param hcd_path HCD identification under devfs
  *     (without <code>/dev/usb/</code>).
- * @param device_id Internal device identification (used by HCD).
- * @param callback Handler for callbacks from HCD.
+ * @param dev Device to connect.
  * @return EOK on success or error code from errno.h.
  */
 int usbvirt_connect(usbvirt_device_t *dev, const char *hcd_path)
@@ -196,7 +196,25 @@ int usbvirt_connect(usbvirt_device_t *dev, const char *hcd_path)
 	return EOK;
 }
 
+/** Prepares device as local.
+ * This is useful if you want to have a virtual device in the same task
+ * as HCD.
+ *
+ * @param dev Device to connect.
+ * @return Always EOK.
+ */
+int usbvirt_connect_local(usbvirt_device_t *dev)
+{
+	dev->vhcd_phone_ = -1;
+	device_init(dev);
+	
+	return EOK;
+}
 
+/** Disconnects device from HCD.
+ *
+ * @return Always EOK.
+ */
 int usbvirt_disconnect(void)
 {
 	ipc_hangup(device->vhcd_phone_);

@@ -45,6 +45,7 @@ typedef enum {
 
 int usbvirt_connect(usbvirt_device_t *, const char *);
 int usbvirt_disconnect(void);
+int usbvirt_connect_local(usbvirt_device_t *);
 
 #endif
 /**

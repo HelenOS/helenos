@@ -127,8 +127,6 @@ typedef struct usbvirt_device {
 	int (*send_data)(struct usbvirt_device *dev,
 	    usb_endpoint_t endpoint, void *buffer, size_t size);
 	
-	
-	
 	/* Device attributes. */
 	
 	/** Standard descriptors. */
@@ -151,6 +149,15 @@ typedef struct usbvirt_device {
 	 * recognition is implemented.
 	 */
 	int device_id_;
+	
+	/** Main routine called when data is received from HC.
+	 * @warning Do not change after initializing with
+	 * usbvirt_device_init().
+	 * This function is here merely to make the interface more OOP.
+	 */
+	int (*receive_data)(struct usbvirt_device *dev,
+	    usb_endpoint_t endpoint, void *buffer, size_t size);
+	
 } usbvirt_device_t;
 
 #endif
