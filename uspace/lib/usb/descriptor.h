@@ -48,6 +48,7 @@ typedef enum {
 	USB_DESCTYPE_HID = 0x21,
 	USB_DESCTYPE_HID_REPORT = 0x22,
 	USB_DESCTYPE_HID_PHYSICAL = 0x23,
+	USB_DESCTYPE_HUB = 0x29,
 	/* USB_DESCTYPE_ = */
 } usb_descriptor_type_t;
 
