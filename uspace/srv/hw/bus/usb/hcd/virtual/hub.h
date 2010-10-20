@@ -50,6 +50,7 @@ void hub_init(void);
 size_t hub_add_device(virtdev_connection_t *);
 void hub_remove_device(virtdev_connection_t *);
 bool hub_can_device_signal(virtdev_connection_t *);
+void hub_check_port_changes(void);
 
 #endif
 /**

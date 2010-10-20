@@ -77,15 +77,23 @@ typedef enum {
 	/* HUB_PORT_STATE_, */
 } hub_port_state_t;
 
+typedef enum {
+	HUB_STATUS_C_PORT_CONNECTION = (1 << 0),
+	HUB_STATUS_C_PORT_ENABLE = (1 << 1),
+	HUB_STATUS_C_PORT_SUSPEND = (1 << 2),
+	HUB_STATUS_C_PORT_OVER_CURRENT = (1 << 3),
+	HUB_STATUS_C_PORT_RESET = (1 << 4),
+	/* HUB_STATUS_C_ = (1 << ), */
+} hub_status_change_t;
+
 typedef struct {
 	virtdev_connection_t *device;
 	hub_port_state_t state;
+	uint16_t status_change;
 } hub_port_t;
 
 typedef struct {
 	hub_port_t ports[HUB_PORT_COUNT];
-	/* FIXME - assuming HUB_PORT_COUNT < 8 */
-	uint8_t status_change_bitmap;
 } hub_device_t;
 
 extern hub_device_t hub_dev;
@@ -93,6 +101,10 @@ extern hub_device_t hub_dev;
 extern hub_descriptor_t hub_descriptor;
 
 extern usbvirt_device_ops_t hub_ops;
+
+void clear_port_status_change(hub_port_t *, uint16_t);
+void set_port_status_change(hub_port_t *, uint16_t);
+
 
 #endif
 /**

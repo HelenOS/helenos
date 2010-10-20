@@ -42,6 +42,18 @@
 #include "hub.h"
 #include "hubintern.h"
 
+#define MAKE_BYTE(b0, b1, b2, b3, b4, b5, b6, b7) \
+	(( \
+		((b0) << 0) \
+		| ((b1) << 1) \
+		| ((b2) << 2) \
+		| ((b3) << 3) \
+		| ((b4) << 4) \
+		| ((b5) << 5) \
+		| ((b6) << 6) \
+		| ((b7) << 7) \
+	))
+
 static int on_get_descriptor(struct usbvirt_device *dev,
     usb_device_request_setup_packet_t *request, uint8_t *data);
 static int on_class_request(struct usbvirt_device *dev,
@@ -81,13 +93,90 @@ static int on_get_descriptor(struct usbvirt_device *dev,
 	return EFORWARD;
 }
 
+/** Change port status and updates status change status fields.
+ */
+static void set_port_state(hub_port_t *port, hub_port_state_t state)
+{
+	port->state = state;
+	if (state == HUB_PORT_STATE_POWERED_OFF) {
+		clear_port_status_change(port, HUB_STATUS_C_PORT_CONNECTION);
+		clear_port_status_change(port, HUB_STATUS_C_PORT_ENABLE);
+		clear_port_status_change(port, HUB_STATUS_C_PORT_RESET);
+	}
+	if (state == HUB_PORT_STATE_RESUMING) {
+		async_usleep(10*1000);
+		if (port->state == state) {
+			set_port_state(port, HUB_PORT_STATE_ENABLED);
+		}
+	}
+	if (state == HUB_PORT_STATE_RESETTING) {
+		async_usleep(10*1000);
+		if (port->state == state) {
+			set_port_status_change(port, HUB_STATUS_C_PORT_RESET);
+			set_port_state(port, HUB_PORT_STATE_ENABLED);
+		}
+	}
+}
+
+#define _GET_PORT(portvar, index) \
+	do { \
+		if (virthub_dev.state != USBVIRT_STATE_CONFIGURED) { \
+			return EINVAL; \
+		} \
+		if (((index) == 0) || ((index) > HUB_PORT_COUNT)) { \
+			return EINVAL; \
+		} \
+	} while (false); \
+	hub_port_t *portvar = &hub_dev.ports[index]
+
+
 static int clear_hub_feature(uint16_t feature)
 {
 	return ENOTSUP;
 }
 
 static int clear_port_feature(uint16_t feature, uint16_t portindex)
-{
+{	
+	_GET_PORT(port, portindex);
+	
+	switch (feature) {
+		case USB_HUB_FEATURE_PORT_ENABLE:
+			if ((port->state != HUB_PORT_STATE_NOT_CONFIGURED)
+			    && (port->state != HUB_PORT_STATE_POWERED_OFF)) {
+				set_port_state(port, HUB_PORT_STATE_DISABLED);
+			}
+			return EOK;
+		
+		case USB_HUB_FEATURE_PORT_SUSPEND:
+			if (port->state != HUB_PORT_STATE_SUSPENDED) {
+				return EOK;
+			}
+			set_port_state(port, HUB_PORT_STATE_RESUMING);
+			return EOK;
+			
+		case USB_HUB_FEATURE_PORT_POWER:
+			if (port->state != HUB_PORT_STATE_NOT_CONFIGURED) {
+				set_port_state(port, HUB_PORT_STATE_POWERED_OFF);
+			}
+			return EOK;
+		
+		case USB_HUB_FEATURE_C_PORT_CONNECTION:
+			clear_port_status_change(port, HUB_STATUS_C_PORT_CONNECTION);
+			return EOK;
+		
+		case USB_HUB_FEATURE_C_PORT_ENABLE:
+			clear_port_status_change(port, HUB_STATUS_C_PORT_ENABLE);
+			return EOK;
+		
+		case USB_HUB_FEATURE_C_PORT_SUSPEND:
+			clear_port_status_change(port, HUB_STATUS_C_PORT_SUSPEND);
+			return EOK;
+			
+		case USB_HUB_FEATURE_C_PORT_OVER_CURRENT:
+			clear_port_status_change(port, HUB_STATUS_C_PORT_OVER_CURRENT);
+			return EOK;
+	}
+	
 	return ENOTSUP;
 }
 
@@ -104,12 +193,43 @@ static int get_hub_descriptor(uint8_t descriptor_type,
 
 static int get_hub_status(void)
 {
-	return ENOTSUP;
+	uint32_t hub_status = 0;
+	
+	return virthub_dev.send_data(&virthub_dev, 0, &hub_status, 4);
 }
 
 static int get_port_status(uint16_t portindex)
 {
-	return ENOTSUP;
+	_GET_PORT(port, portindex);
+	
+	uint32_t status;
+	status = MAKE_BYTE(
+	    /* Current connect status. */
+	    port->device == NULL ? 0 : 1,
+	    /* Port enabled/disabled. */
+	    port->state == HUB_PORT_STATE_ENABLED ? 1 : 0,
+	    /* Suspend. */
+	    (port->state == HUB_PORT_STATE_SUSPENDED)
+	        || (port->state == HUB_PORT_STATE_RESUMING) ? 1 : 0,
+	    /* Over-current. */
+	    0,
+	    /* Reset. */
+	    port->state == HUB_PORT_STATE_RESETTING ? 1 : 0,
+	    /* Reserved. */
+	    0, 0, 0)
+	    
+	    | (MAKE_BYTE(
+	    /* Port power. */
+	    port->state == HUB_PORT_STATE_POWERED_OFF ? 0 : 1,
+	    /* Full-speed device. */
+	    0,
+	    /* Reserved. */
+	    0, 0, 0, 0, 0, 0
+	    )) << 8;
+	    
+	status |= (port->status_change << 16);
+	
+	return virthub_dev.send_data(&virthub_dev, 0, &status, 4);
 }
 
 
@@ -120,8 +240,33 @@ static int set_hub_feature(uint16_t feature)
 
 static int set_port_feature(uint16_t feature, uint16_t portindex)
 {
+	_GET_PORT(port, portindex);
+	
+	switch (feature) {
+		case USB_HUB_FEATURE_PORT_RESET:
+			if (port->state != HUB_PORT_STATE_POWERED_OFF) {
+				set_port_state(port, HUB_PORT_STATE_RESETTING);
+			}
+			return EOK;
+		
+		case USB_HUB_FEATURE_PORT_SUSPEND:
+			if (port->state == HUB_PORT_STATE_ENABLED) {
+				set_port_state(port, HUB_PORT_STATE_SUSPENDED);
+			}
+			return EOK;
+		
+		case USB_HUB_FEATURE_PORT_POWER:
+			if (port->state == HUB_PORT_STATE_POWERED_OFF) {
+				set_port_state(port, HUB_PORT_STATE_DISCONNECTED);
+			}
+			return EOK;
+	}
 	return ENOTSUP;
 }
+
+#undef _GET_PORT
+
+
 
 
 static int on_class_request(struct usbvirt_device *dev,
@@ -183,6 +328,17 @@ static int on_class_request(struct usbvirt_device *dev,
 
 
 	return EOK;
+}
+
+void clear_port_status_change(hub_port_t *port, uint16_t change)
+{
+	port->status_change &= (~change);
+	hub_check_port_changes();
+}
+
+void set_port_status_change(hub_port_t *port, uint16_t change)
+{
+	port->status_change |= change;
 }
 
 /**

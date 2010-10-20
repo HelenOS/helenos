@@ -139,17 +139,19 @@ usbvirt_device_t virthub_dev = {
 	.ops = &hub_ops,
 	.descriptors = &descriptors,
 };
-
+ 
 hub_device_t hub_dev;
 
 void hub_init(void)
 {
 	size_t i;
 	for (i = 0; i < HUB_PORT_COUNT; i++) {
-		hub_dev.ports[i].device = NULL;
-		hub_dev.ports[i].state = HUB_PORT_STATE_NOT_CONFIGURED;
+		hub_port_t *port = &hub_dev.ports[i];
+		
+		port->device = NULL;
+		port->state = HUB_PORT_STATE_NOT_CONFIGURED;
+		port->status_change = 0;
 	}
-	hub_dev.status_change_bitmap = 0;
 	
 	usbvirt_connect_local(&virthub_dev);
 	
@@ -160,14 +162,26 @@ size_t hub_add_device(virtdev_connection_t *device)
 {
 	size_t i;
 	for (i = 0; i < HUB_PORT_COUNT; i++) {
-		if (hub_dev.ports[i].device != NULL) {
+		hub_port_t *port = &hub_dev.ports[i];
+		
+		if (port->device != NULL) {
 			continue;
 		}
-		hub_dev.ports[i].device = device;
-		// TODO - notify the host about change
-		// bad, bad but it will work somehow at least
-		hub_dev.ports[i].state = HUB_PORT_STATE_ENABLED;
-		hub_dev.status_change_bitmap |= (1 << (i+1));
+		
+		port->device = device;
+		
+		/*
+		 * TODO:
+		 * If the hub was configured, we can normally
+		 * announce the plug-in.
+		 * Otherwise, we will wait until hub is configured
+		 * and announce changes in single burst.
+		 */
+		//if (port->state == HUB_PORT_STATE_DISCONNECTED) {
+			port->state = HUB_PORT_STATE_DISABLED;
+			set_port_status_change(port, HUB_STATUS_C_PORT_CONNECTION);
+		//}
+		
 		return i;
 	}
 	
@@ -179,13 +193,16 @@ void hub_remove_device(virtdev_connection_t *device)
 {
 	size_t i;
 	for (i = 0; i < HUB_PORT_COUNT; i++) {
-		if (hub_dev.ports[i].device != device) {
+		hub_port_t *port = &hub_dev.ports[i];
+		
+		if (port->device != device) {
 			continue;
 		}
-		hub_dev.ports[i].device = NULL;
-		hub_dev.ports[i].state = HUB_PORT_STATE_DISCONNECTED;
-		hub_dev.status_change_bitmap |= (1 << (i+1));
-		// TODO - notify the host of the removal
+		
+		port->device = NULL;
+		port->state = HUB_PORT_STATE_DISCONNECTED;
+		
+		set_port_status_change(port, HUB_STATUS_C_PORT_CONNECTION);
 	}
 }
 
@@ -201,6 +218,26 @@ bool hub_can_device_signal(virtdev_connection_t * device)
 	return false;
 }
 
+void hub_check_port_changes(void)
+{
+	/* FIXME - what if HUB_PORT_COUNT is greater than 8. */
+	uint8_t change_map = 0;
+	
+	size_t i;
+	for (i = 0; i < HUB_PORT_COUNT; i++) {
+		hub_port_t *port = &hub_dev.ports[i];
+		
+		if (port->status_change != 0) {
+			change_map |= (1 << (i + 1));
+		}
+	}
+	
+	/* FIXME - do not send when it has not changed since previous run. */
+	if (change_map != 0) {
+		virthub_dev.send_data(&virthub_dev, HUB_STATUS_CHANGE_PIPE,
+		    &change_map, 1);
+	}
+}
 
 /**
  * @}
