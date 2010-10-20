@@ -91,7 +91,7 @@ int main(int argc, char *argv[])
 		return 3;
 	}
 	
-	unsigned int old_baud, old_par, old_stop, old_word_size;
+	ipcarg_t old_baud, old_par, old_stop, old_word_size;
 	
 	res = ipc_call_sync_0_4(phone, SERIAL_GET_COM_PROPS, &old_baud, &old_par, &old_word_size, &old_stop);	
 	if (EOK != res) {
