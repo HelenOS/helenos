@@ -103,6 +103,8 @@ typedef struct {
 	usbvirt_device_configuration_t *configuration;
 	/** Number of configurations. */
 	size_t configuration_count;
+	/** Index of currently selected configuration. */
+	uint8_t current_configuration;
 } usbvirt_descriptors_t;
 
 /** Possible states of virtual USB device.

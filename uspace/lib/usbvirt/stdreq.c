@@ -131,6 +131,45 @@ static int handle_set_address(uint16_t new_address,
 	return EOK;
 }
 
+static int handle_set_configuration(uint16_t configuration_value,
+    uint16_t zero1, uint16_t zero2)
+{
+	if ((zero1 != 0) || (zero2 != 0)) {
+		return EINVAL;
+	}
+	
+	/*
+	 * Configuration value is 1 byte information.
+	 */
+	if (configuration_value > 255) {
+		return EINVAL;
+	}
+	
+	/*
+	 * Do nothing when in default state. According to specification,
+	 * this is not specified.
+	 */
+	if (device->state == USBVIRT_STATE_DEFAULT) {
+		return EOK;
+	}
+	
+	if (configuration_value == 0) {
+		device->state = USBVIRT_STATE_ADDRESS;
+	} else {
+		/*
+		* TODO: browse provided configurations and verify that
+		* user selected existing configuration.
+		*/
+		device->state = USBVIRT_STATE_CONFIGURED;
+		if (device->descriptors) {
+			device->descriptors->current_configuration
+			    = configuration_value;
+		}
+	}
+		
+	return EOK;
+}
+
 #define HANDLE_REQUEST(request, data, type, dev, user_callback, default_handler) \
 	do { \
 		if ((request)->request == (type)) { \
@@ -158,6 +197,11 @@ int handle_std_request(usb_device_request_setup_packet_t *request, uint8_t *data
 	HANDLE_REQUEST(request, data, USB_DEVREQ_SET_ADDRESS,
 	    device, on_set_address,
 	    handle_set_address(request->value,
+	        request->index, request->length));
+	
+	HANDLE_REQUEST(request, data, USB_DEVREQ_SET_CONFIGURATION,
+	    device, on_set_configuration,
+	    handle_set_configuration(request->value,
 	        request->index, request->length));
 	
 	return ENOTSUP;
