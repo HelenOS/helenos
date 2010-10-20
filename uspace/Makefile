@@ -42,7 +42,6 @@ DIRS = \
 	app/redir \
 	app/sbi \
 	app/stats \
-	app/shutters \
 	app/taskdump \
 	app/tasks \
 	app/tester \
