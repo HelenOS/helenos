@@ -53,11 +53,13 @@ extern void ddi_parea_register(parea_t *);
 
 extern unative_t sys_physmem_map(unative_t, unative_t, unative_t, unative_t);
 extern unative_t sys_iospace_enable(ddi_ioarg_t *);
+extern unative_t sys_interrupt_enable(int irq, int enable);
 
 /*
  * Interface to be implemented by all architectures.
  */
 extern int ddi_iospace_enable_arch(task_t *, uintptr_t, size_t);
+
 
 #endif
 

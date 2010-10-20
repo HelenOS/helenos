@@ -60,7 +60,15 @@ build_dist: clean_dist
 	for file in $(NET_CFG) ; do \
 		cp "$$file" "$(DIST_PATH)/cfg/net/" ; \
 	done
-
+	for drv in $(RD_DRVS) ; do \
+		mkdir -p "$(DIST_PATH)/$(DRVS_PATH)/$$drv" ; \
+		cp "$(USPACE_PATH)/$(DRVS_PATH)/$$drv/$$drv" "$(DIST_PATH)/$(DRVS_PATH)/$$drv/$$drv" ; \
+		cp "$(USPACE_PATH)/$(DRVS_PATH)/$$drv/$$drv.ma" "$(DIST_PATH)/$(DRVS_PATH)/$$drv/$$drv.ma" ; \
+	done
+	for file in $(RD_DRV_CFG) ; do \
+		cp "$(USPACE_PATH)/$(DRVS_PATH)/$$file" "$(DIST_PATH)/$(DRVS_PATH)/$$file" ; \
+	done
+	
 clean: clean_dist
 	$(MAKE) -f $(BUILD) clean PRECHECK=$(PRECHECK)
 ifneq ($(POSTBUILD),)

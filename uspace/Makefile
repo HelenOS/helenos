@@ -42,14 +42,18 @@ DIRS = \
 	app/redir \
 	app/sbi \
 	app/stats \
+	app/shutters \
 	app/taskdump \
 	app/tasks \
 	app/tester \
+	app/test_serial \
 	app/tetris \
 	app/trace \
 	app/top \
 	srv/clip \
 	srv/devmap \
+	srv/devman \
+	srv/drivers/root \
 	srv/loader \
 	srv/ns \
 	srv/taskmon \
@@ -110,7 +114,11 @@ ifeq ($(UARCH),amd64)
 endif
 
 ifeq ($(UARCH),ia32)
-	DIRS += srv/hw/bus/pci
+	DIRS += srv/drivers/rootia32
+	DIRS += srv/drivers/pciintel
+	DIRS += srv/drivers/isa
+	DIRS += srv/drivers/ns8250
+#	DIRS += srv/hw/bus/pci
 endif
 
 ifeq ($(UARCH),ppc32)
@@ -133,6 +141,7 @@ LIBS = \
 	lib/clui \
 	lib/softint \
 	lib/softfloat \
+	lib/drv \
 	lib/packet \
 	lib/net
 

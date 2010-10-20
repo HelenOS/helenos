@@ -36,6 +36,15 @@ RD_SRVS_NON_ESSENTIAL += \
 	$(USPACE_PATH)/srv/hw/bus/pci/pci \
 	$(USPACE_PATH)/srv/hid/char_mouse/char_ms
 
+RD_DRVS += \
+	rootia32 \
+	pciintel \
+	isa \
+	ns8250
+	
+RD_DRV_CFG += \
+	isa/isa.dev
+
 BOOT_OUTPUT = $(ROOT_PATH)/image.iso
 PREBUILD = $(INITRD).img
 BUILD = Makefile.grub
