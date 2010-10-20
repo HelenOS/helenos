@@ -308,7 +308,6 @@ int main(int argc, char *argv[])
 	getterm("term/vc4", "/app/bdsh");
 	getterm("term/vc5", "/app/bdsh");
 	getterm("term/vc6", "/app/klog");
-	getterm("term/vc7", "/srv/devman");
 	
 	return 0;
 }
