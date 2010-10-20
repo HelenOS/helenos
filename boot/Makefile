@@ -80,6 +80,6 @@ endif
 
 clean_dist:
 	rm -f $(INITRD).fs $(INITRD).img $(COMPS_H) $(COMPS_C) $(LINK) $(LINK).comp *.co
-	rm -f $(USPACE_PATH)/dist/srv/*
+	rm -rf $(USPACE_PATH)/dist/srv/*
 	rm -f $(USPACE_PATH)/dist/app/*
 	rm -f $(USPACE_PATH)/dist/cfg/net/*
