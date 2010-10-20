@@ -368,18 +368,20 @@ int fat_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 	unsigned i, j;
 	unsigned blocks;
 	fat_dentry_t *d;
+	dev_handle_t dev_handle;
 	block_t *b;
 	int rc;
 
 	fibril_mutex_lock(&parentp->idx->lock);
-	bs = block_bb_get(parentp->idx->dev_handle);
+	dev_handle = parentp->idx->dev_handle;
+	fibril_mutex_unlock(&parentp->idx->lock);
+
+	bs = block_bb_get(dev_handle);
 	blocks = parentp->size / BPS(bs);
 	for (i = 0; i < blocks; i++) {
 		rc = fat_block_get(&b, bs, parentp, i, BLOCK_FLAGS_NONE);
-		if (rc != EOK) {
-			fibril_mutex_unlock(&parentp->idx->lock);
+		if (rc != EOK)
 			return rc;
-		}
 		for (j = 0; j < DPS(bs); j++) { 
 			d = ((fat_dentry_t *)b->data) + j;
 			switch (fat_classify_dentry(d)) {
@@ -389,7 +391,6 @@ int fat_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 			case FAT_DENTRY_LAST:
 				/* miss */
 				rc = block_put(b);
-				fibril_mutex_unlock(&parentp->idx->lock);
 				*rfn = NULL;
 				return rc;
 			default:
@@ -400,16 +401,8 @@ int fat_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 			if (fat_dentry_namecmp(name, component) == 0) {
 				/* hit */
 				fat_node_t *nodep;
-				/*
-				 * Assume tree hierarchy for locking.  We
-				 * already have the parent and now we are going
-				 * to lock the child.  Never lock in the oposite
-				 * order.
-				 */
-				fat_idx_t *idx = fat_idx_get_by_pos(
-				    parentp->idx->dev_handle, parentp->firstc,
-				    i * DPS(bs) + j);
-				fibril_mutex_unlock(&parentp->idx->lock);
+				fat_idx_t *idx = fat_idx_get_by_pos(dev_handle,
+				    parentp->firstc, i * DPS(bs) + j);
 				if (!idx) {
 					/*
 					 * Can happen if memory is low or if we
@@ -432,13 +425,10 @@ int fat_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 			}
 		}
 		rc = block_put(b);
-		if (rc != EOK) {
-			fibril_mutex_unlock(&parentp->idx->lock);
+		if (rc != EOK)
 			return rc;
-		}
 	}
 
-	fibril_mutex_unlock(&parentp->idx->lock);
 	*rfn = NULL;
 	return EOK;
 }
