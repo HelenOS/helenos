@@ -110,7 +110,6 @@ ifneq ($(UARCH),abs32le)
 endif
 
 ifeq ($(UARCH),amd64)
-	DIRS += srv/hw/bus/pci
 endif
 
 ifeq ($(UARCH),ia32)
@@ -118,7 +117,6 @@ ifeq ($(UARCH),ia32)
 	DIRS += srv/drivers/pciintel
 	DIRS += srv/drivers/isa
 	DIRS += srv/drivers/ns8250
-#	DIRS += srv/hw/bus/pci
 endif
 
 ifeq ($(UARCH),ppc32)
@@ -144,15 +142,6 @@ LIBS = \
 	lib/drv \
 	lib/packet \
 	lib/net
-
-ifeq ($(UARCH),amd64)
-	LIBS += lib/pci
-endif
-
-ifeq ($(UARCH),ia32)
-	LIBS += lib/pci
-endif
-
 
 LIBC_BUILD = $(addsuffix .build,$(LIBC))
 LIBS_BUILD = $(addsuffix .build,$(LIBS))
