@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Lenka Trochtova 
+ * Copyright (c) 2010 Lenka Trochtova
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,13 +31,13 @@
  */
 /** @file
  */
+
 #ifndef LIBDRV_DEV_IFACE_H_
 #define LIBDRV_DEV_IFACE_H_
 
 #include "driver.h"
 
-
-// TODO declare device interface structures here
+/* TODO declare device interface structures here */
 
 #endif
 

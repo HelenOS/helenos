@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Lenka Trochtova 
+ * Copyright (c) 2010 Lenka Trochtova
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,14 +31,15 @@
  */
 /** @file
  */
+
 #ifndef LIBDRV_CHAR_H_
 #define LIBDRV_CHAR_H_
 
 #include "driver.h"
 
 typedef struct char_iface {
-	int (*read)(device_t *dev, char *buf, size_t count);
-	int (*write)(device_t *dev, char *buf, size_t count);	
+	int (*read)(device_t *, char *, size_t);
+	int (*write)(device_t *, char *, size_t);
 } char_iface_t;
 
 #endif

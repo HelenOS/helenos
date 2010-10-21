@@ -52,16 +52,16 @@
 
 #include "driver.h"
 
-// driver structure 
+/* driver structure */
 
 static driver_t *driver;
 
-// devices
+/* devices */
 
 LIST_INITIALIZE(devices);
 FIBRIL_MUTEX_INITIALIZE(devices_mutex);
 
-// interrupts 
+/* interrupts */
 
 static interrupt_context_list_t interrupt_contexts;
 
@@ -78,15 +78,18 @@ static irq_code_t default_pseudocode = {
 
 
 static void driver_irq_handler(ipc_callid_t iid, ipc_call_t *icall)
-{	
+{
 	int id = (int)IPC_GET_METHOD(*icall);
-	interrupt_context_t *ctx = find_interrupt_context_by_id(&interrupt_contexts, id);
-	if (NULL != ctx && NULL != ctx->handler) {
-		(*ctx->handler)(ctx->dev, iid, icall);		
-	}
+	interrupt_context_t *ctx;
+	
+	ctx = find_interrupt_context_by_id(&interrupt_contexts, id);
+	if (NULL != ctx && NULL != ctx->handler)
+		(*ctx->handler)(ctx->dev, iid, icall);
 }
 
-int register_interrupt_handler(device_t *dev, int irq, interrupt_handler_t *handler, irq_code_t *pseudocode)
+int
+register_interrupt_handler(device_t *dev, int irq, interrupt_handler_t *handler,
+    irq_code_t *pseudocode)
 {
 	interrupt_context_t *ctx = create_interrupt_context();
 	
@@ -96,25 +99,27 @@ int register_interrupt_handler(device_t *dev, int irq, interrupt_handler_t *hand
 	
 	add_interrupt_context(&interrupt_contexts, ctx);
 	
-	if (NULL == pseudocode) {
+	if (NULL == pseudocode)
 		pseudocode = &default_pseudocode;
-	}
 	
 	int res = ipc_register_irq(irq, dev->handle, ctx->id, pseudocode);
 	if (0 != res) {
 		remove_interrupt_context(&interrupt_contexts, ctx);
 		delete_interrupt_context(ctx);
 	}
-	return res;	
+
+	return res;
 }
 
 int unregister_interrupt_handler(device_t *dev, int irq)
 {
-	interrupt_context_t *ctx = find_interrupt_context(&interrupt_contexts, dev, irq);
+	interrupt_context_t *ctx = find_interrupt_context(&interrupt_contexts,
+	    dev, irq);
 	int res = ipc_unregister_irq(irq, dev->handle);
+
 	if (NULL != ctx) {
 		remove_interrupt_context(&interrupt_contexts, ctx);
-		delete_interrupt_context(ctx);		
+		delete_interrupt_context(ctx);
 	}
 	return res;
 }
@@ -137,7 +142,7 @@ static device_t * driver_get_device(link_t *devices, device_handle_t handle)
 {
 	device_t *dev = NULL;
 	
-	fibril_mutex_lock(&devices_mutex);	
+	fibril_mutex_lock(&devices_mutex);
 	link_t *link = devices->next;
 	while (link != devices) {
 		dev = list_get_instance(link, device_t, link);
@@ -161,17 +166,19 @@ static void driver_add_device(ipc_callid_t iid, ipc_call_t *icall)
 	device_t *dev = create_device();
 	dev->handle = dev_handle;
 	
-	async_data_write_accept((void **)&dev_name, true, 0, 0, 0, 0);
+	async_data_write_accept((void **) &dev_name, true, 0, 0, 0, 0);
 	dev->name = dev_name;
 	
-	add_to_devices_list(dev);		
+	add_to_devices_list(dev);
 	res = driver->driver_ops->add_device(dev);
 	if (0 == res) {
-		printf("%s: new device with handle = %x was added.\n", driver->name, dev_handle);
+		printf("%s: new device with handle = %x was added.\n",
+		    driver->name, dev_handle);
 	} else {
-		printf("%s: failed to add a new device with handle = %d.\n", driver->name, dev_handle);	
+		printf("%s: failed to add a new device with handle = %d.\n",
+		    driver->name, dev_handle);
 		remove_from_devices_list(dev);
-		delete_device(dev);	
+		delete_device(dev);
 	}
 	
 	ipc_answer_0(iid, res);
@@ -204,33 +211,39 @@ static void driver_connection_devman(ipc_callid_t iid, ipc_call_t *icall)
 /**
  * Generic client connection handler both for applications and drivers.
  *
- * @param drv true for driver client, false for other clients (applications, services etc.).
+ * @param drv		True for driver client, false for other clients
+ *			(applications, services etc.).
  */
 static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 {
-	// Answer the first IPC_M_CONNECT_ME_TO call and remember the handle of the device to which the client connected.
+	/*
+	 * Answer the first IPC_M_CONNECT_ME_TO call and remember the handle of
+	 * the device to which the client connected.
+	 */
 	device_handle_t handle = IPC_GET_ARG2(*icall);
 	device_t *dev = driver_get_device(&devices, handle);
 
 	if (dev == NULL) {
-		printf("%s: driver_connection_gen error - no device with handle %x was found.\n", driver->name, handle);
+		printf("%s: driver_connection_gen error - no device with handle"
+		    " %x was found.\n", driver->name, handle);
 		ipc_answer_0(iid, ENOENT);
 		return;
 	}
 	
 	
-	// TODO - if the client is not a driver, check whether it is allowed to use the device
+	/*
+	 * TODO - if the client is not a driver, check whether it is allowed to
+	 * use the device.
+	 */
 
 	int ret = EOK;
-	// open the device
-	if (NULL != dev->ops && NULL != dev->ops->open) {
+	/* open the device */
+	if (NULL != dev->ops && NULL != dev->ops->open)
 		ret = (*dev->ops->open)(dev);
-	}
 	
 	ipc_answer_0(iid, ret);	
-	if (EOK != ret) {
+	if (EOK != ret)
 		return;
-	}
 
 	while (1) {
 		ipc_callid_t callid;
@@ -241,57 +254,72 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 		
 		switch  (method) {
 		case IPC_M_PHONE_HUNGUP:		
-			// close the device
-			if (NULL != dev->ops && NULL != dev->ops->close) {
+			/* close the device */
+			if (NULL != dev->ops && NULL != dev->ops->close)
 				(*dev->ops->close)(dev);
-			}			
 			ipc_answer_0(callid, EOK);
 			return;
 		default:		
-			// convert ipc interface id to interface index
+			/* convert ipc interface id to interface index */
 			
 			iface_idx = DEV_IFACE_IDX(method);
 			
 			if (!is_valid_iface_idx(iface_idx)) {
-				remote_handler_t *default_handler;
-				if (NULL != (default_handler = device_get_default_handler(dev))) {
+				remote_handler_t *default_handler =
+				    device_get_default_handler(dev);
+				if (NULL != default_handler) {
 					(*default_handler)(dev, callid, &call);
 					break;
 				}
-				// this is not device's interface and the default handler is not provided
-				printf("%s: driver_connection_gen error - invalid interface id %d.", driver->name, iface_idx);
+				/*
+				 * This is not device's interface and the
+				 * default handler is not provided.
+				 */
+				printf("%s: driver_connection_gen error - "
+				    "invalid interface id %d.",
+				    driver->name, iface_idx);
 				ipc_answer_0(callid, ENOTSUP);
 				break;
 			}
 
-			// calling one of the device's interfaces
+			/* calling one of the device's interfaces */
 			
-			// get the device interface structure
+			/* get the device interface structure */
 			void *iface = device_get_iface(dev, iface_idx);
 			if (NULL == iface) {
-				printf("%s: driver_connection_gen error - ", driver->name);
-				printf("device with handle %d has no interface with id %d.\n", handle, iface_idx);
+				printf("%s: driver_connection_gen error - ",
+				    driver->name);
+				printf("device with handle %d has no interface "
+				    "with id %d.\n", handle, iface_idx);
 				ipc_answer_0(callid, ENOTSUP);
 				break;
 			}
 
-			// get the corresponding interface for remote request handling ("remote interface")
+			/*
+			 * Get the corresponding interface for remote request
+			 * handling ("remote interface").
+			 */
 			remote_iface_t* rem_iface = get_remote_iface(iface_idx);
 			assert(NULL != rem_iface);
 
-			// get the method of the remote interface
+			/* get the method of the remote interface */
 			ipcarg_t iface_method_idx = IPC_GET_ARG1(call);
-			remote_iface_func_ptr_t iface_method_ptr = get_remote_method(rem_iface, iface_method_idx);
+			remote_iface_func_ptr_t iface_method_ptr =
+			    get_remote_method(rem_iface, iface_method_idx);
 			if (NULL == iface_method_ptr) {
 				// the interface has not such method
-				printf("%s: driver_connection_gen error - invalid interface method.", driver->name);
+				printf("%s: driver_connection_gen error - "
+				    "invalid interface method.", driver->name);
 				ipc_answer_0(callid, ENOTSUP);
 				break;
 			}
 			
-			// call the remote interface's method, which will receive parameters from the remote client
-			// and it will pass it to the corresponding local interface method associated with the device 
-			// by its driver
+			/*
+			 * Call the remote interface's method, which will
+			 * receive parameters from the remote client and it will
+			 * pass it to the corresponding local interface method
+			 * associated with the device by its driver.
+			 */
 			(*iface_method_ptr)(dev, iface, callid, &call);
 			break;
 		}
@@ -309,23 +337,21 @@ static void driver_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 }
 
 
-/** Function for handling connections to device driver.
- *
- */
+/** Function for handling connections to device driver. */
 static void driver_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
 	/* Select interface */
 	switch ((ipcarg_t) (IPC_GET_ARG1(*icall))) {
 	case DRIVER_DEVMAN:
-		// handle PnP events from device manager
+		/* handle PnP events from device manager */
 		driver_connection_devman(iid, icall);
 		break;
 	case DRIVER_DRIVER:
-		// handle request from drivers of child devices
+		/* handle request from drivers of child devices */
 		driver_connection_driver(iid, icall);
 		break;
 	case DRIVER_CLIENT:
-		// handle requests from client applications
+		/* handle requests from client applications */
 		driver_connection_client(iid, icall);
 		break;
 
@@ -337,37 +363,42 @@ static void driver_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 int child_device_register(device_t *child, device_t *parent)
 {
-	// printf("%s: child_device_register\n", driver->name);
-
 	assert(NULL != child->name);
 
 	int res;
 	
 	add_to_devices_list(child);
-	if (EOK == (res = devman_child_device_register(child->name, &child->match_ids, parent->handle, &child->handle))) {
+	res = devman_child_device_register(child->name, &child->match_ids,
+	    parent->handle, &child->handle);
+	if (EOK == res)
 		return res;
-	}
 	remove_from_devices_list(child);	
 	return res;
 }
 
 int driver_main(driver_t *drv)
 {
-	// remember the driver structure - driver_ops will be called by generic handler for incoming connections
+	/*
+	 * Remember the driver structure - driver_ops will be called by generic
+	 * handler for incoming connections.
+	 */
 	driver = drv;
 
-	// initialize the list of interrupt contexts
+	/* Initialize the list of interrupt contexts. */
 	init_interrupt_context_list(&interrupt_contexts);
 	
-	// set generic interrupt handler
+	/* Set generic interrupt handler. */
 	async_set_interrupt_received(driver_irq_handler);
 	
-	// register driver by device manager with generic handler for incoming connections
+	/*
+	 * Register driver by device manager with generic handler for incoming
+	 * connections.
+	 */
 	devman_driver_register(driver->name, driver_connection);
 
 	async_manager();
 
-	// Never reached
+	/* Never reached. */
 	return 0;
 }
 

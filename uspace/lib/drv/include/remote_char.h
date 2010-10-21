@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Lenka Trochtova 
+ * Copyright (c) 2010 Lenka Trochtova
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,6 +31,7 @@
  */
 /** @file
  */
+
 #ifndef LIBDRV_REMOTE_CHAR_H_
 #define LIBDRV_REMOTE_CHAR_H_
 

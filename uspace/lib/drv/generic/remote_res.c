@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Lenka Trochtova 
+ * Copyright (c) 2010 Lenka Trochtova
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,42 +39,45 @@
 #include "driver.h"
 #include "resource.h"
 
- 
-static void remote_res_get_resources(device_t *dev, void *iface, ipc_callid_t callid, ipc_call_t *call);
-static void remote_res_enable_interrupt(device_t *dev, void *iface, ipc_callid_t callid, ipc_call_t *call);
+static void remote_res_get_resources(device_t *, void *, ipc_callid_t,
+    ipc_call_t *);
+static void remote_res_enable_interrupt(device_t *, void *, ipc_callid_t,
+    ipc_call_t *);
 
 static remote_iface_func_ptr_t remote_res_iface_ops [] = {
 	&remote_res_get_resources,
-	&remote_res_enable_interrupt	
-}; 
- 
+	&remote_res_enable_interrupt
+};
+
 remote_iface_t remote_res_iface = {
-	.method_count = sizeof(remote_res_iface_ops) / sizeof(remote_iface_func_ptr_t),
+	.method_count = sizeof(remote_res_iface_ops) /
+	    sizeof(remote_iface_func_ptr_t),
 	.methods = remote_res_iface_ops
 };
 
-static void remote_res_enable_interrupt(device_t *dev, void *iface, ipc_callid_t callid, ipc_call_t *call)
+static void remote_res_enable_interrupt(device_t *dev, void *iface,
+    ipc_callid_t callid, ipc_call_t *call)
 {
-	resource_iface_t *ires = (resource_iface_t *)iface;
+	resource_iface_t *ires = (resource_iface_t *) iface;
 	
-	if (NULL == ires->enable_interrupt) {
+	if (NULL == ires->enable_interrupt)
 		ipc_answer_0(callid, ENOTSUP);
-	} else if (ires->enable_interrupt(dev)) {
+	else if (ires->enable_interrupt(dev))
 		ipc_answer_0(callid, EOK);
-	} else {
+	else
 		ipc_answer_0(callid, EREFUSED);
-	}	
 }
 
-static void remote_res_get_resources(device_t *dev, void *iface, ipc_callid_t callid, ipc_call_t *call)
+static void remote_res_get_resources(device_t *dev, void *iface,
+    ipc_callid_t callid, ipc_call_t *call)
 {
-	resource_iface_t *ires = (resource_iface_t *)iface;	
+	resource_iface_t *ires = (resource_iface_t *) iface;
 	if (NULL == ires->get_resources) {
 		ipc_answer_0(callid, ENOTSUP);
 		return;
 	}
 	
-	hw_resource_list_t *hw_resources = ires->get_resources(dev);	
+	hw_resource_list_t *hw_resources = ires->get_resources(dev);
 	if (NULL == hw_resources){
 		ipc_answer_0(callid, ENOENT);
 		return;
@@ -84,13 +87,12 @@ static void remote_res_get_resources(device_t *dev, void *iface, ipc_callid_t ca
 
 	size_t len;
 	if (!async_data_read_receive(&callid, &len)) {
-		// protocol error - the recipient is not accepting data
+		/* protocol error - the recipient is not accepting data */
 		return;
 	}
 	async_data_read_finalize(callid, hw_resources->resources, len);
 }
- 
- 
- /**
+
+/**
  * @}
  */

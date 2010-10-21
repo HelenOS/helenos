@@ -34,11 +34,11 @@
 
 /** @file
  */
- 
+
 #include "dev_iface.h"
 #include "remote_res.h"
 #include "remote_char.h"
- 
+
 static iface_dipatch_table_t remote_ifaces = {
 	.ifaces = {
 		&remote_res_iface,
@@ -48,20 +48,19 @@ static iface_dipatch_table_t remote_ifaces = {
 
 remote_iface_t* get_remote_iface(int idx)
 {	
-	assert(is_valid_iface_idx(idx));	
-	return remote_ifaces.ifaces[idx];	
+	assert(is_valid_iface_idx(idx));
+	return remote_ifaces.ifaces[idx];
 }
 
-remote_iface_func_ptr_t get_remote_method(remote_iface_t *rem_iface, ipcarg_t iface_method_idx)
+remote_iface_func_ptr_t
+get_remote_method(remote_iface_t *rem_iface, ipcarg_t iface_method_idx)
 {
 	if (iface_method_idx >= rem_iface->method_count) {
 		return NULL;
 	}
 	return rem_iface->methods[iface_method_idx];
 }
- 
- 
- 
+
 /**
  * @}
  */

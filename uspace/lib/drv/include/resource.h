@@ -31,14 +31,15 @@
  */
 /** @file
  */
+
 #ifndef LIBDRV_RESOURCE_H_
 #define LIBDRV_RESOURCE_H_
 
 #include "driver.h"
 
 typedef struct resource_iface {
-	 hw_resource_list_t * (*get_resources)(device_t *dev);
-	 bool (*enable_interrupt)(device_t *dev);	
+	 hw_resource_list_t *(* get_resources)(device_t *);
+	 bool (*enable_interrupt)(device_t *);
 } resource_iface_t;
 
 
