@@ -29,7 +29,7 @@
 /** @addtogroup test_serial
  * @brief	test the serial port driver - read from the serial port
  * @{
- */ 
+ */
 /**
  * @file
  */
@@ -50,9 +50,10 @@
 #define NAME 		"test serial"
 
 
-static void print_usage()
+static void print_usage(void)
 {
-	printf("Usage: \n test_serial count \n where count is the number of characters to be read\n");	
+	printf("Usage: \n test_serial count \n where count is the number of "
+	    "characters to be read\n");
 }
 
 int main(int argc, char *argv[])
@@ -60,7 +61,7 @@ int main(int argc, char *argv[])
 	if (argc != 2) {
 		printf(NAME ": incorrect number of arguments.\n");
 		print_usage();
-		return 0;		
+		return 0;
 	}
 	
 	long int cnt = strtol(argv[1], NULL, 10);
@@ -69,21 +70,26 @@ int main(int argc, char *argv[])
 	res = devman_get_phone(DEVMAN_CLIENT, IPC_FLAG_BLOCKING);
 	device_handle_t handle;
 	
-	if (EOK != (res = devman_device_get_handle("/hw/pci0/00:01.0/com1", &handle, IPC_FLAG_BLOCKING))) {
-		printf(NAME ": could not get the device handle, errno = %d.\n", -res);
+	res = devman_device_get_handle("/hw/pci0/00:01.0/com1", &handle,
+	    IPC_FLAG_BLOCKING);
+	if (EOK != res) {
+		printf(NAME ": could not get the device handle, errno = %d.\n",
+		    -res);
 		return 1;
 	}
 	
-	printf(NAME ": trying to read %d characters from device with handle %d.\n", cnt, handle);	
+	printf(NAME ": trying to read %d characters from device with handle "
+	    "%d.\n", cnt, handle);
 	
-	int phone;
-	if (0 >= (phone = devman_device_connect(handle, IPC_FLAG_BLOCKING))) {
-		printf(NAME ": could not connect to the device, errno = %d.\n", -res);
-		devman_hangup_phone(DEVMAN_CLIENT);		
+	int phone = devman_device_connect(handle, IPC_FLAG_BLOCKING);
+	if (0 > phone) {
+		printf(NAME ": could not connect to the device, errno = %d.\n",
+		    -res);
+		devman_hangup_phone(DEVMAN_CLIENT);
 		return 2;
 	}
 	
-	char *buf = (char *)malloc(cnt+1);
+	char *buf = (char *) malloc(cnt + 1);
 	if (NULL == buf) {
 		printf(NAME ": failed to allocate the input buffer\n");
 		ipc_hangup(phone);
@@ -93,60 +99,68 @@ int main(int argc, char *argv[])
 	
 	ipcarg_t old_baud, old_par, old_stop, old_word_size;
 	
-	res = ipc_call_sync_0_4(phone, SERIAL_GET_COM_PROPS, &old_baud, &old_par, &old_word_size, &old_stop);	
+	res = ipc_call_sync_0_4(phone, SERIAL_GET_COM_PROPS, &old_baud,
+	    &old_par, &old_word_size, &old_stop);
 	if (EOK != res) {
-		printf(NAME ": failed to get old communication parameters, errno = %d.\n", -res);
+		printf(NAME ": failed to get old communication parameters, "
+		    "errno = %d.\n", -res);
 		devman_hangup_phone(DEVMAN_CLIENT);
 		ipc_hangup(phone);
 		free(buf);
 		return 4;
 	}
 	
-	res = ipc_call_sync_4_0(phone, SERIAL_SET_COM_PROPS, 1200, SERIAL_NO_PARITY, 8, 1);	
+	res = ipc_call_sync_4_0(phone, SERIAL_SET_COM_PROPS, 1200,
+	    SERIAL_NO_PARITY, 8, 1);
 	if (EOK != res) {
-		printf(NAME ": failed to set communication parameters, errno = %d.\n", -res);
+		printf(NAME ": failed to set communication parameters, errno = "
+		    "%d.\n", -res);
 		devman_hangup_phone(DEVMAN_CLIENT);
 		ipc_hangup(phone);
 		free(buf);
 		return 4;
 	}
-	
 	
 	int total = 0;
 	int read = 0;
-	while (total < cnt) {		
+	while (total < cnt) {
 		read = read_dev(phone, buf, cnt - total);
 		if (0 > read) {
-			printf(NAME ": failed read from device, errno = %d.\n", -read);
-			ipc_call_sync_4_0(phone, SERIAL_SET_COM_PROPS, old_baud, old_par, old_word_size, old_stop);	
+			printf(NAME ": failed read from device, errno = %d.\n",
+			    -read);
+			ipc_call_sync_4_0(phone, SERIAL_SET_COM_PROPS, old_baud,
+			    old_par, old_word_size, old_stop);
 			ipc_hangup(phone);
 			devman_hangup_phone(DEVMAN_CLIENT);
 			free(buf);
 			return 5;
-		}		
+		}
 		total += read;
-		if (read > 0) {			
+		if (read > 0) {
 			buf[read] = 0;
-			printf(buf);	
-			// write data back to the device to test the opposite direction of data transfer
+			printf(buf);
+			/*
+			 * Write data back to the device to test the opposite
+			 * direction of data transfer.
+			 */
 			write_dev(phone, buf, read);
-		} else {	
-			usleep(100000);			
+		} else {
+			usleep(100000);
 		}	
 	}
 	
 	const char *the_end = "\n---------\nTHE END\n---------\n";
 	write_dev(phone, (void *)the_end, str_size(the_end));
 	
-	// restore original communication settings
-	ipc_call_sync_4_0(phone, SERIAL_SET_COM_PROPS, old_baud, old_par, old_word_size, old_stop);	
+	/* restore original communication settings */
+	ipc_call_sync_4_0(phone, SERIAL_SET_COM_PROPS, old_baud, old_par,
+	    old_word_size, old_stop);
 	devman_hangup_phone(DEVMAN_CLIENT);
 	ipc_hangup(phone);
 	free(buf);
 	
 	return 0;
 }
-
 
 /** @}
  */
