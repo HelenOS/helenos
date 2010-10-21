@@ -56,7 +56,7 @@
 
 #include "devman.h"
 
-#define DRIVER_DEFAULT_STORE  "/srv/drivers"
+#define DRIVER_DEFAULT_STORE  "/drv"
 
 static driver_list_t drivers_list;
 static dev_tree_t device_tree;

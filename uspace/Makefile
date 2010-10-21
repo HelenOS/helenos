@@ -49,10 +49,13 @@ DIRS = \
 	app/tetris \
 	app/trace \
 	app/top \
+	app/netecho \
+	app/nettest1 \
+	app/nettest2 \
+	app/ping \
 	srv/clip \
 	srv/devmap \
 	srv/devman \
-	srv/drivers/root \
 	srv/loader \
 	srv/ns \
 	srv/taskmon \
@@ -83,10 +86,7 @@ DIRS = \
 	srv/net/tl/tcp \
 	srv/net/net \
 	srv/net/netstart \
-	app/netecho \
-	app/nettest1 \
-	app/nettest2 \
-	app/ping
+	drv/root
 
 ## Networking
 #
@@ -112,10 +112,10 @@ ifeq ($(UARCH),amd64)
 endif
 
 ifeq ($(UARCH),ia32)
-	DIRS += srv/drivers/rootia32
-	DIRS += srv/drivers/pciintel
-	DIRS += srv/drivers/isa
-	DIRS += srv/drivers/ns8250
+	DIRS += drv/rootia32
+	DIRS += drv/pciintel
+	DIRS += drv/isa
+	DIRS += drv/ns8250
 endif
 
 ifeq ($(UARCH),ppc32)

@@ -48,7 +48,7 @@ KERNEL_PATH = $(ROOT_PATH)/kernel
 USPACE_PATH = $(ROOT_PATH)/uspace
 DIST_PATH = $(USPACE_PATH)/dist
 TOOLS_PATH = $(ROOT_PATH)/tools
-DRVS_PATH = srv/drivers
+DRVS_PATH = drv
 
 SANDBOX = pack
 PACK = $(TOOLS_PATH)/pack.py

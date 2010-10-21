@@ -57,7 +57,7 @@
 #include <device/hw_res.h>
 
 #define NAME "isa"
-#define CHILD_DEV_CONF_PATH "/srv/drivers/isa/isa.dev"
+#define CHILD_DEV_CONF_PATH "/drv/isa/isa.dev"
 
 #define ISA_MAX_HW_RES 4
 

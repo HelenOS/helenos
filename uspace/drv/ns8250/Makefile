@@ -25,12 +25,12 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-USPACE_PREFIX = ../../..
+USPACE_PREFIX = ../..
 LIBS = $(LIBDRV_PREFIX)/libdrv.a
 EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include
-BINARY = rootia32
+BINARY = ns8250
 
 SOURCES = \
-	rootia32.c
+	ns8250.c
 
 include $(USPACE_PREFIX)/Makefile.common

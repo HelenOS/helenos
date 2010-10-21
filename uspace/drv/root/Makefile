@@ -25,12 +25,12 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-USPACE_PREFIX = ../../..
+USPACE_PREFIX = ../..
 LIBS = $(LIBDRV_PREFIX)/libdrv.a
 EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include
-BINARY = ns8250
+BINARY = root
 
 SOURCES = \
-	ns8250.c
+	root.c
 
 include $(USPACE_PREFIX)/Makefile.common
