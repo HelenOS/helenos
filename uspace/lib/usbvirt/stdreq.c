@@ -116,17 +116,7 @@ static int handle_set_address(uint16_t new_address,
 		return EINVAL;
 	}
 	
-	/*
-	 * TODO: handle when this request is invalid (e.g.
-	 * setting address when in configured state).
-	 */
-	if (new_address == 0) {
-		device->state = USBVIRT_STATE_DEFAULT;
-	} else {
-		device->state = USBVIRT_STATE_ADDRESS;
-	}
-	
-	device->address = new_address;
+	dev_new_address = new_address;
 	
 	return EOK;
 }

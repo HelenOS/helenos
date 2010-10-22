@@ -57,6 +57,8 @@ int control_pipe(void *buffer, size_t size);
 
 int handle_std_request(usb_device_request_setup_packet_t *request, uint8_t *data);
 
+extern usb_address_t dev_new_address;
+
 #endif
 /**
  * @}

@@ -43,6 +43,13 @@
 int usbvirt_connect(usbvirt_device_t *, const char *);
 int usbvirt_disconnect(void);
 
+typedef enum {
+	USBVIRT_TRANSACTION_SETUP,
+	USBVIRT_TRANSACTION_IN,
+	USBVIRT_TRANSACTION_OUT
+} usbvirt_transaction_type_t;
+
+
 #endif
 /**
  * @}

@@ -44,6 +44,8 @@
 #define GET_MIDBITS(value, size, shift) \
 	((value & GET_MIDBITS_MASK(size, shift)) >> shift)
 
+usb_address_t dev_new_address = -1;
+
 static int request_get_type(uint8_t request_type)
 {
 	return GET_MIDBITS(request_type, 2, 5);
@@ -62,13 +64,15 @@ int control_pipe(void *buffer, size_t size)
 	
 	int type = request_get_type(request->request_type);
 	
+	int rc = EOK;
+	
 	switch (type) {
 		case REQUEST_TYPE_STANDARD:
-			return handle_std_request(request, remaining_data);
+			rc = handle_std_request(request, remaining_data);
 			break;
 		case REQUEST_TYPE_CLASS:
 			if (DEVICE_HAS_OP(device, on_class_device_request)) {
-				return device->ops->on_class_device_request(device,
+				rc = device->ops->on_class_device_request(device,
 				    request, remaining_data);
 			}
 			break;
@@ -76,7 +80,24 @@ int control_pipe(void *buffer, size_t size)
 			break;
 	}
 	
-	return EOK;
+	device->send_data(device, 0, NULL, 0);
+	
+	if (dev_new_address != -1) {
+		/*
+		 * TODO: handle when this request is invalid (e.g.
+		 * setting address when in configured state).
+		 */
+		if (dev_new_address == 0) {
+			device->state = USBVIRT_STATE_DEFAULT;
+		} else {
+			device->state = USBVIRT_STATE_ADDRESS;
+		}
+		device->address = dev_new_address;
+		
+		dev_new_address = -1;
+	}
+	
+	return rc;
 }
 
 /**

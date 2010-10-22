@@ -121,7 +121,7 @@ int usbvirt_data_to_host(struct usbvirt_device *dev,
 	if (phone < 0) {
 		return EINVAL;
 	}
-	if ((buffer == NULL) || (size == 0)) {
+	if ((buffer == NULL) && (size != 0)) {
 		return EINVAL;
 	}
 
@@ -130,16 +130,19 @@ int usbvirt_data_to_host(struct usbvirt_device *dev,
 	aid_t req;
 	int rc;
 	
-	req = async_send_2(phone,
+	req = async_send_3(phone,
 	    IPC_M_USBVIRT_DATA_FROM_DEVICE,
 	    dev->address,
 	    endpoint,
+	    size,
 	    &answer_data);
 	
-	rc = async_data_write_start(phone, buffer, size);
-	if (rc != EOK) {
-		async_wait_for(req, NULL);
-		return rc;
+	if (size > 0) {
+		rc = async_data_write_start(phone, buffer, size);
+		if (rc != EOK) {
+			async_wait_for(req, NULL);
+			return rc;
+		}
 	}
 	
 	async_wait_for(req, &answer_rc);
