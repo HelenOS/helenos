@@ -210,6 +210,158 @@ int usb_hcd_prepare_data_reception(int hcd_phone,
 	return EOK;
 }
 
+
+static int send_buffer(int phone, ipcarg_t method, usb_target_t target,
+    void *buffer, size_t size, usb_transaction_handle_t * transaction_handle)
+{
+	if (phone < 0) {
+		return EINVAL;
+	}
+	
+	if ((buffer == NULL) && (size > 0)) {
+		return EINVAL;
+	}
+
+	ipc_call_t answer_data;
+	ipcarg_t answer_rc;
+	aid_t req;
+	int rc;
+	
+	req = async_send_3(phone,
+	    method,
+	    target.address, target.endpoint,
+	    size,
+	    &answer_data);
+	
+	if (size > 0) {
+		rc = async_data_write_start(phone, buffer, size);
+		if (rc != EOK) {
+			async_wait_for(req, NULL);
+			return rc;
+		}
+	}
+	
+	async_wait_for(req, &answer_rc);
+	rc = (int)answer_rc;
+	if (rc != EOK) {
+		return rc;
+	}
+	
+	if (transaction_handle != NULL) {
+		*transaction_handle = IPC_GET_ARG1(answer_data);
+	}
+	
+	return EOK;
+}
+
+
+static int prep_receive_data(int phone, ipcarg_t method, usb_target_t target,
+    size_t size, usb_transaction_handle_t * transaction_handle)
+{
+	if (phone < 0) {
+		return EINVAL;
+	}
+	
+	usb_transaction_handle_t handle;
+	
+	int rc = ipc_call_sync_3_1(phone,
+	    method,
+	    target.address, target.endpoint,
+	    size,
+	    &handle);
+	
+	if (rc != EOK) {
+		return rc;
+	}
+	
+	if (transaction_handle != NULL) {
+		*transaction_handle = handle;
+	}
+	
+	return EOK;
+}
+
+
+int usb_hcd_transfer_interrupt_out(int hcd_phone, usb_target_t target,
+    void *buffer, size_t size, usb_transaction_handle_t *handle)
+{
+	return send_buffer(hcd_phone, IPC_M_USB_HCD_INTERRUPT_OUT,
+	    target, buffer, size, handle);
+}
+
+int usb_hcd_transfer_interrupt_in(int hcd_phone, usb_target_t target,
+    size_t size, usb_transaction_handle_t *handle)
+{
+	return prep_receive_data(hcd_phone, IPC_M_USB_HCD_INTERRUPT_IN,
+	    target, size, handle);
+}
+
+int usb_hcd_transfer_control_write_setup(int hcd_phone, usb_target_t target,
+    void *buffer, size_t size, usb_transaction_handle_t *handle)
+{
+	return send_buffer(hcd_phone, IPC_M_USB_HCD_CONTROL_WRITE_SETUP,
+	    target, buffer, size, handle);
+}
+
+int usb_hcd_transfer_control_write_data(int hcd_phone, usb_target_t target,
+    void *buffer, size_t size, usb_transaction_handle_t *handle)
+{
+	return send_buffer(hcd_phone, IPC_M_USB_HCD_CONTROL_WRITE_DATA,
+	    target, buffer, size, handle);
+	
+}
+int usb_hcd_transfer_control_write_status(int hcd_phone, usb_target_t target,
+    usb_transaction_handle_t *handle)
+{
+	usb_transaction_handle_t h;
+	int rc = ipc_call_sync_2_1(hcd_phone,
+	    IPC_M_USB_HCD_CONTROL_WRITE_STATUS,
+	    target.address, target.endpoint,
+	    &h);
+	if (rc != EOK) {
+		return rc;
+	}
+	
+	if (handle != NULL) {
+		*handle = h;
+	}
+	
+	return rc;
+}
+
+int usb_hcd_transfer_control_read_setup(int hcd_phone, usb_target_t target,
+    void *buffer, size_t size, usb_transaction_handle_t *handle)
+{
+	return send_buffer(hcd_phone, IPC_M_USB_HCD_CONTROL_READ_SETUP,
+	    target, buffer, size, handle);
+}
+int usb_hcd_transfer_control_read_data(int hcd_phone, usb_target_t target,
+    size_t size, usb_transaction_handle_t *handle)
+{
+	return prep_receive_data(hcd_phone, IPC_M_USB_HCD_CONTROL_READ_DATA,
+	   target, size, handle);
+}
+int usb_hcd_transfer_control_read_status(int hcd_phone, usb_target_t target,
+    usb_transaction_handle_t *handle)
+{
+	usb_transaction_handle_t h;
+	int rc = ipc_call_sync_2_1(hcd_phone,
+	    IPC_M_USB_HCD_CONTROL_READ_STATUS,
+	    target.address, target.endpoint,
+	    &h);
+	if (rc != EOK) {
+		return rc;
+	}
+	
+	if (handle != NULL) {
+		*handle = h;
+	}
+	
+	return rc;
+}
+
+
+
 /**
  * @}
  */

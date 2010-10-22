@@ -55,6 +55,33 @@ typedef enum {
 	USB_OUTCOME_BABBLE
 } usb_transaction_outcome_t;
 
+/** USB packet identifier. */
+typedef enum {
+#define _MAKE_PID_NIBBLE(tag, type) \
+	((uint8_t)(((tag) << 2) | (type)))
+#define _MAKE_PID(tag, type) \
+	( \
+	    _MAKE_PID_NIBBLE(tag, type) \
+	    | ((~_MAKE_PID_NIBBLE(tag, type)) << 4) \
+	)
+	USB_PID_OUT = _MAKE_PID(0, 1),
+	USB_PID_IN = _MAKE_PID(2, 1),
+	USB_PID_SOF = _MAKE_PID(1, 1),
+	USB_PID_SETUP = _MAKE_PID(3, 1),
+	
+	USB_PID_DATA0 = _MAKE_PID(0 ,3),
+	USB_PID_DATA1 = _MAKE_PID(2 ,3),
+	
+	USB_PID_ACK = _MAKE_PID(0 ,2),
+	USB_PID_NAK = _MAKE_PID(2 ,2),
+	USB_PID_STALL = _MAKE_PID(3 ,2),
+	
+	USB_PID_PRE = _MAKE_PID(3 ,0),
+	/* USB_PID_ = _MAKE_PID( ,), */
+#undef _MAKE_PID
+#undef _MAKE_PID_NIBBLE
+} usb_packet_id;
+
 const char * usb_str_transaction_outcome(usb_transaction_outcome_t o);
 
 /** IPC methods for HCD. */
@@ -115,7 +142,20 @@ typedef enum {
 	 * Arguments of the answer:
 	 * - buffer size (in bytes):
 	 */
-	IPC_M_USB_HCD_TRANSACTION_SIZE
+	IPC_M_USB_HCD_TRANSACTION_SIZE,
+	
+	
+	IPC_M_USB_HCD_INTERRUPT_OUT,
+	IPC_M_USB_HCD_INTERRUPT_IN,
+	
+	IPC_M_USB_HCD_CONTROL_WRITE_SETUP,
+	IPC_M_USB_HCD_CONTROL_WRITE_DATA,
+	IPC_M_USB_HCD_CONTROL_WRITE_STATUS,
+	
+	IPC_M_USB_HCD_CONTROL_READ_SETUP,
+	IPC_M_USB_HCD_CONTROL_READ_DATA,
+	IPC_M_USB_HCD_CONTROL_READ_STATUS,
+	/* IPC_M_USB_HCD_ */
 } usb_hcd_method_t;
 
 /** IPC methods for callbacks from HCD. */
@@ -142,7 +182,21 @@ typedef enum {
 	
 	/** Notification about a serious trouble with HC.
 	 */
-	IPC_M_USB_HCD_CONTROLLER_FAILURE
+	IPC_M_USB_HCD_CONTROLLER_FAILURE,
+	
+	
+	IPC_M_USB_HCD_INTERRUPT_OUT_DONE,
+	IPC_M_USB_HCD_INTERRUPT_IN_DONE,
+	
+	IPC_M_USB_HCD_CONTROL_WRITE_SETUP_DONE,
+	IPC_M_USB_HCD_CONTROL_WRITE_DATA_DONE,
+	IPC_M_USB_HCD_CONTROL_WRITE_STATUS_DONE,
+	
+	IPC_M_USB_HCD_CONTROL_READ_SETUP_DONE,
+	IPC_M_USB_HCD_CONTROL_READ_DATA_DONE,
+	IPC_M_USB_HCD_CONTROL_READ_STATUS_DONE,
+	
+	/* IPC_M_USB_HCD_ */
 } usb_hcd_callback_method_t;
 
 
@@ -151,6 +205,26 @@ int usb_hcd_send_data_to_function(int, usb_target_t, usb_transfer_type_t,
     void *, size_t, usb_transaction_handle_t *);
 int usb_hcd_prepare_data_reception(int, usb_target_t, usb_transfer_type_t,
     size_t, usb_transaction_handle_t *);
+
+
+int usb_hcd_transfer_interrupt_out(int, usb_target_t,
+    void *, size_t, usb_transaction_handle_t *);
+int usb_hcd_transfer_interrupt_in(int, usb_target_t,
+    size_t, usb_transaction_handle_t *);
+
+int usb_hcd_transfer_control_write_setup(int, usb_target_t,
+    void *, size_t, usb_transaction_handle_t *);
+int usb_hcd_transfer_control_write_data(int, usb_target_t,
+    void *, size_t, usb_transaction_handle_t *);
+int usb_hcd_transfer_control_write_status(int, usb_target_t,
+    usb_transaction_handle_t *);
+
+int usb_hcd_transfer_control_read_setup(int, usb_target_t,
+    void *, size_t, usb_transaction_handle_t *);
+int usb_hcd_transfer_control_read_data(int, usb_target_t,
+    size_t, usb_transaction_handle_t *);
+int usb_hcd_transfer_control_read_status(int, usb_target_t,
+    usb_transaction_handle_t *);
 
 #endif
 /**
