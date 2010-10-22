@@ -51,26 +51,31 @@ static void handle_data_to_device(ipc_callid_t iid, ipc_call_t icall)
 {
 	usb_address_t address = IPC_GET_ARG1(icall);
 	usb_endpoint_t endpoint = IPC_GET_ARG2(icall);
+	size_t expected_len = IPC_GET_ARG5(icall);
 	
 	if (address != device->address) {
 		ipc_answer_0(iid, EADDRNOTAVAIL);
 		return;
 	}
 	
-	size_t len;
-	void * buffer;
-	int rc = async_data_write_accept(&buffer, false,
-	    1, USB_MAX_PAYLOAD_SIZE,
-	    0, &len);
-	
-	if (rc != EOK) {
-		ipc_answer_0(iid, rc);
-		return;
+	size_t len = 0;
+	void * buffer = NULL;
+	if (expected_len > 0) {
+		int rc = async_data_write_accept(&buffer, false,
+		    1, USB_MAX_PAYLOAD_SIZE,
+		    0, &len);
+		
+		if (rc != EOK) {
+			ipc_answer_0(iid, rc);
+			return;
+		}
 	}
 	
 	device->receive_data(device, endpoint, buffer, len);
 	
-	free(buffer);
+	if (buffer != NULL) {
+		free(buffer);
+	}
 	
 	ipc_answer_0(iid, EOK);
 }
@@ -207,6 +212,8 @@ int usbvirt_connect_local(usbvirt_device_t *dev)
 {
 	dev->vhcd_phone_ = -1;
 	device_init(dev);
+	
+	device = dev;
 	
 	return EOK;
 }
