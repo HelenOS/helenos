@@ -313,20 +313,8 @@ int usb_hcd_transfer_control_write_data(int hcd_phone, usb_target_t target,
 int usb_hcd_transfer_control_write_status(int hcd_phone, usb_target_t target,
     usb_transaction_handle_t *handle)
 {
-	usb_transaction_handle_t h;
-	int rc = ipc_call_sync_2_1(hcd_phone,
-	    IPC_M_USB_HCD_CONTROL_WRITE_STATUS,
-	    target.address, target.endpoint,
-	    &h);
-	if (rc != EOK) {
-		return rc;
-	}
-	
-	if (handle != NULL) {
-		*handle = h;
-	}
-	
-	return rc;
+	return prep_receive_data(hcd_phone, IPC_M_USB_HCD_CONTROL_WRITE_STATUS,
+	    target, 0, handle);
 }
 
 int usb_hcd_transfer_control_read_setup(int hcd_phone, usb_target_t target,
@@ -344,20 +332,8 @@ int usb_hcd_transfer_control_read_data(int hcd_phone, usb_target_t target,
 int usb_hcd_transfer_control_read_status(int hcd_phone, usb_target_t target,
     usb_transaction_handle_t *handle)
 {
-	usb_transaction_handle_t h;
-	int rc = ipc_call_sync_2_1(hcd_phone,
-	    IPC_M_USB_HCD_CONTROL_READ_STATUS,
-	    target.address, target.endpoint,
-	    &h);
-	if (rc != EOK) {
-		return rc;
-	}
-	
-	if (handle != NULL) {
-		*handle = h;
-	}
-	
-	return rc;
+	return send_buffer(hcd_phone, IPC_M_USB_HCD_CONTROL_READ_STATUS,
+	    target, NULL, 0, handle);
 }
 
 
