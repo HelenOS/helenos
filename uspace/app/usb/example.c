@@ -45,6 +45,7 @@
 #include <async.h>
 
 #include <usb/hcd.h>
+#include <usb/devreq.h>
 
 #define LOOPS 5
 #define MAX_SIZE_RECEIVE 64
@@ -86,6 +87,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 				    usb_str_transaction_outcome(IPC_GET_ARG2(call)));
 				ipc_answer_0(callid, EOK);
 				break;
+				
 			case IPC_M_USB_HCD_DATA_RECEIVED:
 				printf("%s: << Data received over USB (handle %d, outcome %s).\n",
 				    NAME, IPC_GET_ARG1(call),
@@ -94,19 +96,29 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 					ipc_answer_0(callid, EOK);
 					break;
 				}
-				rc = async_data_write_accept(&buffer, false,
-				    1, MAX_SIZE_RECEIVE,
-				    0, &len);
-				if (rc != EOK) {
-					ipc_answer_0(callid, rc);
-					break;
+				len = IPC_GET_ARG3(call);
+				if (len > 0) {
+					rc = async_data_write_accept(&buffer, false,
+					    1, MAX_SIZE_RECEIVE,
+					    0, &len);
+					if (rc != EOK) {
+						ipc_answer_0(callid, rc);
+						break;
+					}
+					free(buffer);
 				}
 				printf("%s: << Received %uB long buffer (handle %d).\n",
 				    NAME, len, IPC_GET_ARG1(call));
 				ipc_answer_0(callid, EOK);
 				break;
+				
+			case IPC_M_PHONE_HUNGUP:
+				printf("%s: hang-up.\n", NAME);
+				return;
+				
 			default:
-				ipc_answer_0(callid, EINVAL);
+				printf("%s: method %d called.\n", NAME, IPC_GET_METHOD(call));
+				ipc_answer_0(callid, EOK);
 				break;
 		}
 	}
@@ -121,45 +133,33 @@ int main(int argc, char * argv[])
 		return 1;
 	}
 	
-	char data[] = "Hullo, World!";
-	int data_len = sizeof(data)/sizeof(data[0]);
+	usb_target_t target = {0, 0};
+	usb_device_request_setup_packet_t setup_packet = {
+		.request_type = 0,
+		.request = USB_DEVREQ_SET_ADDRESS,
+		.index = 0,
+		.length = 0,
+	};
+	setup_packet.value = 5;
+	int rc;
 	
-	size_t i;
-	for (i = 0; i < LOOPS; i++) {
-		usb_transaction_handle_t handle;
-
-		usb_target_t target = { i, 0 };
-		int rc = usb_hcd_send_data_to_function(hcd_phone,
-		    target, USB_TRANSFER_ISOCHRONOUS,
-		    data, data_len,
-		    &handle);
-		if (rc != EOK) {
-			printf("%s: >> Failed to send data to function over HCD (%d: %s).\n",
-				NAME, rc, str_error(rc));
-			continue;
-		}
-
-		printf("%s: >> Transaction to function dispatched (handle %d).\n", NAME, handle);
-		
-		fibril_sleep(1);
-		
-		rc = usb_hcd_prepare_data_reception(hcd_phone,
-		    target, USB_TRANSFER_INTERRUPT,
-		    MAX_SIZE_RECEIVE,
-		    &handle);
-		if (rc != EOK) {
-			printf("%s: << Failed to start transaction for data receivement over HCD (%d: %s).\n",
-				NAME, rc, str_error(rc));
-			continue;
-		}
-		
-		printf("%s: << Transaction from function started (handle %d).\n", NAME, handle);
-		
-		fibril_sleep(2);
+	printf("%s: usb_hcd_transfer_control_write_setup(...)\n", NAME);
+	rc = usb_hcd_transfer_control_write_setup(hcd_phone, target,
+	    &setup_packet, sizeof(setup_packet), NULL);
+	if (rc != EOK) {
+		printf("%s: failed setting address (%d).\n", NAME, rc);
+		return rc;
 	}
 	
-	printf("%s: Waiting for transactions to be finished...\n", NAME);
-	fibril_sleep(10);
+	printf("%s: usb_hcd_transfer_control_write_status(...)\n", NAME);
+	rc = usb_hcd_transfer_control_write_status(hcd_phone, target, NULL);
+	if (rc != EOK) {
+		printf("%s: failed completing control transfer (%d).\n", NAME, rc);
+		return rc;
+	}
+	
+	printf("%s: sleeping for a while...\n", NAME);
+	fibril_sleep(5);
 	
 	printf("%s: exiting.\n", NAME);
 	

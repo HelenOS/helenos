@@ -47,6 +47,7 @@
 
 #include "devices.h"
 #include "hub.h"
+#include "vhcd.h"
 
 #define list_foreach(pos, head) \
 	for (pos = (head)->next; pos != (head); \
@@ -123,17 +124,20 @@ usb_transaction_outcome_t virtdev_send_to_all(transaction_t *transaction)
 		ipc_call_t answer_data;
 		ipcarg_t answer_rc;
 		aid_t req;
-		int rc;
+		int rc = EOK;
 		
-		req = async_send_3(dev->phone,
+		req = async_send_4(dev->phone,
 		    IPC_M_USBVIRT_DATA_TO_DEVICE,
 		    transaction->target.address,
 		    transaction->target.endpoint,
 		    transaction->type,
+		    transaction->len,
 		    &answer_data);
 		
-		rc = async_data_write_start(dev->phone,
-		    transaction->buffer, transaction->len);
+		if (transaction->len > 0) {
+			rc = async_data_write_start(dev->phone,
+			    transaction->buffer, transaction->len);
+		}
 		if (rc != EOK) {
 			async_wait_for(req, NULL);
 		} else {

@@ -50,6 +50,7 @@ static void handle_data_from_device(ipc_callid_t iid, ipc_call_t icall,
 		.address = IPC_GET_ARG1(icall),
 		.endpoint = IPC_GET_ARG2(icall)
 	};
+	size_t len = IPC_GET_ARG3(icall);
 	
 	if (!hub_can_device_signal(dev)) {
 		ipc_answer_0(iid, EREFUSED);
@@ -59,18 +60,21 @@ static void handle_data_from_device(ipc_callid_t iid, ipc_call_t icall,
 	dprintf("data from device %d [%d.%d]", dev->id,
 	    target.address, target.endpoint);
 	
-	size_t len;
-	void * buffer;
-	int rc = async_data_write_accept(&buffer, false,
-	    1, USB_MAX_PAYLOAD_SIZE,
-	    0, &len);
+	int rc;
 	
-	if (rc != EOK) {
-		ipc_answer_0(iid, rc);
-		return;
+	void * buffer = NULL;
+	if (len > 0) {
+		rc = async_data_write_accept(&buffer, false,
+		    1, USB_MAX_PAYLOAD_SIZE,
+		    0, &len);
+		
+		if (rc != EOK) {
+			ipc_answer_0(iid, rc);
+			return;
+		}
 	}
 	
-	rc = hc_fillin_transaction_from_device(USB_TRANSFER_INTERRUPT, target, buffer, len);
+	rc = hc_fillin_transaction_from_device(target, buffer, len);
 	
 	ipc_answer_0(iid, rc);
 }

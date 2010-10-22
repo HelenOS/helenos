@@ -36,6 +36,7 @@
 #define VHCD_HC_H_
 
 #include <usb/hcd.h>
+#include <usbvirt/ids.h>
 
 /** Callback after transaction is sent to USB.
  *
@@ -51,12 +52,12 @@ typedef void (*hc_transaction_done_callback_t)(void *buffer, size_t size,
 typedef struct {
 	/** Linked-list link. */
 	link_t link;
+	/** Transaction type. */
+	usbvirt_transaction_type_t type;
 	/** Device address. */
 	usb_target_t target;
 	/** Direction of the transaction. */
 	usb_direction_t direction;
-	/** Transfer type. */
-	usb_transfer_type_t type;
 	/** Transaction data buffer. */
 	void * buffer;
 	/** Transaction data length. */
@@ -69,15 +70,15 @@ typedef struct {
 
 void hc_manager(void);
 
-void hc_add_transaction_to_device(usb_transfer_type_t type, usb_target_t target,
+void hc_add_transaction_to_device(bool setup, usb_target_t target,
     void * buffer, size_t len,
     hc_transaction_done_callback_t callback, void * arg);
 
-void hc_add_transaction_from_device(usb_transfer_type_t type, usb_target_t target,
+void hc_add_transaction_from_device(usb_target_t target,
     void * buffer, size_t len,
     hc_transaction_done_callback_t callback, void * arg);
 
-int hc_fillin_transaction_from_device(usb_transfer_type_t type, usb_target_t target,
+int hc_fillin_transaction_from_device(usb_target_t target,
     void * buffer, size_t len);
 
 #endif

@@ -50,7 +50,7 @@
 
 #define USLEEP_BASE (500 * 1000)
 
-#define USLEEP_VAR 10000
+#define USLEEP_VAR 5000
 
 #define SHORTENING_VAR 15
 
@@ -67,11 +67,9 @@
 static link_t transaction_to_device_list;
 static link_t transaction_from_device_list;
 
-#define TRANSACTION_FORMAT "T[%d:%d %s %s (%d)]"
+#define TRANSACTION_FORMAT "T[%d:%d (%d)]"
 #define TRANSACTION_PRINTF(t) \
 	(t).target.address, (t).target.endpoint, \
-	usb_str_transfer_type((t).type), \
-	((t).direction == USB_DIRECTION_IN ? "in" : "out"), \
 	(int)(t).len
 
 #define transaction_get_instance(lnk) \
@@ -131,8 +129,8 @@ void hc_manager(void)
 
 /** Create new transaction
  */
-static transaction_t *transaction_create(usb_transfer_type_t type, usb_target_t target,
-    usb_direction_t direction,
+static transaction_t *transaction_create(usbvirt_transaction_type_t type,
+    usb_target_t target,
     void * buffer, size_t len,
     hc_transaction_done_callback_t callback, void * arg)
 {
@@ -141,7 +139,6 @@ static transaction_t *transaction_create(usb_transfer_type_t type, usb_target_t 
 	list_initialize(&transaction->link);
 	transaction->type = type;
 	transaction->target = target;
-	transaction->direction = direction;
 	transaction->buffer = buffer;
 	transaction->len = len;
 	transaction->callback = callback;
@@ -152,32 +149,34 @@ static transaction_t *transaction_create(usb_transfer_type_t type, usb_target_t 
 
 /** Add transaction directioned towards the device.
  */
-void hc_add_transaction_to_device(usb_transfer_type_t type, usb_target_t target,
+void hc_add_transaction_to_device(bool setup, usb_target_t target,
     void * buffer, size_t len,
     hc_transaction_done_callback_t callback, void * arg)
 {
-	transaction_t *transaction = transaction_create(type, target,
-	    USB_DIRECTION_OUT, buffer, len, callback, arg);
+	transaction_t *transaction = transaction_create(
+	    setup ? USBVIRT_TRANSACTION_SETUP : USBVIRT_TRANSACTION_OUT, target,
+	    buffer, len, callback, arg);
 	list_append(&transaction->link, &transaction_to_device_list);
 }
 
 /** Add transaction directioned from the device.
  */
-void hc_add_transaction_from_device(usb_transfer_type_t type, usb_target_t target,
+void hc_add_transaction_from_device(usb_target_t target,
     void * buffer, size_t len,
     hc_transaction_done_callback_t callback, void * arg)
 {
-	transaction_t *transaction = transaction_create(type, target,
-	    USB_DIRECTION_IN, buffer, len, callback, arg);
+	transaction_t *transaction = transaction_create(USBVIRT_TRANSACTION_IN,
+	    target, buffer, len, callback, arg);
 	list_append(&transaction->link, &transaction_from_device_list);
 }
 
 /** Fill data to existing transaction from device.
  */
-int hc_fillin_transaction_from_device(usb_transfer_type_t type, usb_target_t target,
+int hc_fillin_transaction_from_device(usb_target_t target,
     void * buffer, size_t len)
 {
-	dprintf("finding transaction to fill data in...");
+	dprintf("finding transaction to fill data in (%d:%d)...",
+	    target.address, target.endpoint);
 	int rc;
 	
 	/*

@@ -36,6 +36,7 @@
 #include <usbvirt/hub.h>
 #include <usbvirt/device.h>
 #include <errno.h>
+#include <stdlib.h>
 
 #include "vhcd.h"
 #include "hub.h"
@@ -142,6 +143,20 @@ usbvirt_device_t virthub_dev = {
  
 hub_device_t hub_dev;
 
+static int send_data(struct usbvirt_device *dev,
+	    usb_endpoint_t endpoint, void *buffer, size_t size)
+{
+	usb_target_t target = { dev->address, endpoint };
+	void *my_buffer = NULL;
+	if (size > 0) {
+		my_buffer = malloc(size);
+		memcpy(my_buffer, buffer, size);
+	}
+	hc_fillin_transaction_from_device(target, my_buffer, size);
+	
+	return EOK;
+}
+
 void hub_init(void)
 {
 	size_t i;
@@ -154,6 +169,7 @@ void hub_init(void)
 	}
 	
 	usbvirt_connect_local(&virthub_dev);
+	virthub_dev.send_data = send_data;
 	
 	printf("%s: virtual hub (%d ports) created.\n", NAME, HUB_PORT_COUNT);
 }

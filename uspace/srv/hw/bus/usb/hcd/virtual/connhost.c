@@ -83,10 +83,12 @@ static void in_callback(void * buffer, size_t len, usb_transaction_outcome_t out
 	    len,
 	    &answer_data);
 	
-	rc = async_data_write_start(trans->phone, buffer, len);
-	if (rc != EOK) {
-		async_wait_for(req, NULL);
-		goto leave;
+	if (len > 0) {
+		rc = async_data_write_start(trans->phone, buffer, len);
+		if (rc != EOK) {
+			async_wait_for(req, NULL);
+			goto leave;
+		}
 	}
 	
 	async_wait_for(req, &answer_rc);
@@ -97,22 +99,24 @@ static void in_callback(void * buffer, size_t len, usb_transaction_outcome_t out
 	
 leave:
 	free(trans);
-	free(buffer);
+	if (buffer != NULL) {
+		free(buffer);
+	}
 }
 
 /** Handle data from host to function.
  */
-static void handle_data_to_function(ipc_callid_t iid, ipc_call_t icall, int callback_phone)
+static void handle_data_to_function(ipc_callid_t iid, ipc_call_t icall,
+    bool setup_transaction, int callback_phone)
 {
-	usb_transfer_type_t transf_type = IPC_GET_ARG3(icall);
+	size_t expected_len = IPC_GET_ARG3(icall);
 	usb_target_t target = {
 		.address = IPC_GET_ARG1(icall),
 		.endpoint = IPC_GET_ARG2(icall)
 	};
 	
-	dprintf("pretending transfer to function (dev=%d:%d, type=%s)",
-	    target.address, target.endpoint,
-	    usb_str_transfer_type(transf_type));
+	dprintf("pretending transfer to function (dev=%d:%d)",
+	    target.address, target.endpoint);
 	
 	if (callback_phone == -1) {
 		ipc_answer_0(iid, ENOENT);
@@ -122,15 +126,17 @@ static void handle_data_to_function(ipc_callid_t iid, ipc_call_t icall, int call
 	usb_transaction_handle_t handle
 	    = create_transaction_handle(callback_phone);
 	
-	size_t len;
-	void * buffer;
-	int rc = async_data_write_accept(&buffer, false,
-	    1, USB_MAX_PAYLOAD_SIZE,
-	    0, &len);
-	
-	if (rc != EOK) {
-		ipc_answer_0(iid, rc);
-		return;
+	size_t len = 0;
+	void * buffer = NULL;
+	if (expected_len > 0) {
+		int rc = async_data_write_accept(&buffer, false,
+		    1, USB_MAX_PAYLOAD_SIZE,
+		    0, &len);
+		
+		if (rc != EOK) {
+			ipc_answer_0(iid, rc);
+			return;
+		}
 	}
 	
 	transaction_details_t * trans = malloc(sizeof(transaction_details_t));
@@ -138,7 +144,7 @@ static void handle_data_to_function(ipc_callid_t iid, ipc_call_t icall, int call
 	trans->handle = handle;
 	
 	dprintf("adding transaction to HC", NAME);
-	hc_add_transaction_to_device(transf_type, target,
+	hc_add_transaction_to_device(setup_transaction, target,
 	    buffer, len,
 	    out_callback, trans);
 	
@@ -150,16 +156,14 @@ static void handle_data_to_function(ipc_callid_t iid, ipc_call_t icall, int call
  */
 static void handle_data_from_function(ipc_callid_t iid, ipc_call_t icall, int callback_phone)
 {
-	usb_transfer_type_t transf_type = IPC_GET_ARG3(icall);
 	usb_target_t target = {
 		.address = IPC_GET_ARG1(icall),
 		.endpoint = IPC_GET_ARG2(icall)
 	};
-	size_t len = IPC_GET_ARG4(icall);
+	size_t len = IPC_GET_ARG3(icall);
 	
-	dprintf("pretending transfer from function (dev=%d:%d, type=%s)",
-	    target.address, target.endpoint,
-	    usb_str_transfer_type(transf_type));
+	dprintf("pretending transfer from function (dev=%d:%d)",
+	    target.address, target.endpoint);
 	
 	if (callback_phone == -1) {
 		ipc_answer_0(iid, ENOENT);
@@ -169,14 +173,17 @@ static void handle_data_from_function(ipc_callid_t iid, ipc_call_t icall, int ca
 	usb_transaction_handle_t handle
 	    = create_transaction_handle(callback_phone);
 	
-	void * buffer = malloc(len);
+	void * buffer = NULL;
+	if (len > 0) {
+		buffer = malloc(len);
+	}
 	
 	transaction_details_t * trans = malloc(sizeof(transaction_details_t));
 	trans->phone = callback_phone;
 	trans->handle = handle;
 	
 	dprintf("adding transaction to HC", NAME);
-	hc_add_transaction_from_device(transf_type, target,
+	hc_add_transaction_from_device(target,
 	    buffer, len,
 	    in_callback, trans);
 	
@@ -218,7 +225,8 @@ void connection_handler_host(ipcarg_t phone_hash, int host_phone)
 
 			
 			case IPC_M_USB_HCD_SEND_DATA:
-				handle_data_to_function(callid, call, host_phone);
+				handle_data_to_function(callid, call,
+				    false, host_phone);
 				break;
 			
 			case IPC_M_USB_HCD_RECEIVE_DATA:
@@ -228,6 +236,38 @@ void connection_handler_host(ipcarg_t phone_hash, int host_phone)
 			case IPC_M_USB_HCD_TRANSACTION_SIZE:
 				ipc_answer_1(callid, EOK, USB_MAX_PAYLOAD_SIZE);
 				break;
+			
+			
+			case IPC_M_USB_HCD_INTERRUPT_OUT:
+				handle_data_to_function(callid, call,
+				    false, host_phone);
+				break;
+				
+			case IPC_M_USB_HCD_INTERRUPT_IN:
+				handle_data_from_function(callid, call, host_phone);
+				break;
+			
+			case IPC_M_USB_HCD_CONTROL_WRITE_SETUP:
+				handle_data_to_function(callid, call,
+				    true, host_phone);
+				break;
+				
+			case IPC_M_USB_HCD_CONTROL_WRITE_DATA:
+				handle_data_to_function(callid, call,
+				    false, host_phone);
+				break;
+				
+			case IPC_M_USB_HCD_CONTROL_WRITE_STATUS:
+				handle_data_from_function(callid, call, host_phone);
+				break;
+			
+			case IPC_M_USB_HCD_CONTROL_READ_SETUP:
+				handle_data_to_function(callid, call,
+				    true, host_phone);
+				break;
+				
+			case IPC_M_USB_HCD_CONTROL_READ_DATA:
+			case IPC_M_USB_HCD_CONTROL_READ_STATUS:
 			
 			default:
 				ipc_answer_0(callid, EINVAL);
