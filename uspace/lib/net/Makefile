@@ -41,6 +41,7 @@ SOURCES = \
 	netif/netif_local.c \
 	netif/netif_remote.c \
 	nil/nil_remote.c \
+	il/il_interface.c \
 	il/ip_remote.c \
 	il/ip_client.c \
 	il/arp_remote.c \
