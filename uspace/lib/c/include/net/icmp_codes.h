@@ -41,6 +41,8 @@
 #ifndef LIBC_ICMP_CODES_H_
 #define LIBC_ICMP_CODES_H_
 
+#include <sys/types.h>
+
 /** ICMP type type definition. */
 typedef uint8_t icmp_type_t;
 

@@ -26,12 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ip
+/** @addtogroup libnet
  * @{
  */
 
-#ifndef __NET_IP_REMOTE_H__
-#define __NET_IP_REMOTE_H__
+#ifndef LIBNET_IP_REMOTE_H_
+#define LIBNET_IP_REMOTE_H_
 
 #include <ipc/services.h>
 

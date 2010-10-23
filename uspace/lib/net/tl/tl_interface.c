@@ -30,75 +30,38 @@
  * @{
  */
 
-/** @file
- * ICMP client interface implementation.
- * @see icmp_client.h
- */
-
-#include <icmp_client.h>
-#include <icmp_header.h>
+#include <tl_interface.h>
+#include <generic.h>
 #include <packet_client.h>
 
-#ifdef CONFIG_DEBUG
-#include <stdio.h>
-#endif
+#include <ipc/services.h>
+#include <ipc/tl.h>
 
-#include <errno.h>
-#include <sys/types.h>
-
-#include <net/icmp_codes.h>
+#include <net/device.h>
 #include <net/packet.h>
 
-/** Processes the received packet prefixed with an ICMP header.
+/** Notify the remote transport layer modules about the received packet/s.
  *
- * @param[in] packet	The received packet.
- * @param[out] type	The ICMP header type.
- * @param[out] code	The ICMP header code.
- * @param[out] pointer	The ICMP header pointer.
- * @param[out] mtu	The ICMP header MTU.
- * @returns		The ICMP header length.
- * @returns		Zero if the packet contains no data.
+ * @param[in] tl_phone  The transport layer module phone used for remote calls.
+ * @param[in] device_id The device identifier.
+ * @param[in] packet    The received packet or the received packet queue.
+ *                      The packet queue is used to carry a fragmented
+ *                      datagram. The first packet contains the headers,
+ *                      the others contain only data.
+ * @param[in] target    The target transport layer module service to be
+ *                      delivered to.
+ * @param[in] error     The packet error reporting service. Prefixes the
+ *                      received packet.
+ *
+ * @return EOK on success.
+ *
  */
 int
-icmp_client_process_packet(packet_t packet, icmp_type_t *type,
-    icmp_code_t *code, icmp_param_t *pointer, icmp_param_t *mtu)
+tl_received_msg(int tl_phone, device_id_t device_id, packet_t packet,
+    services_t target, services_t error)
 {
-	icmp_header_ref header;
-
-	header = (icmp_header_ref) packet_get_data(packet);
-	if (!header ||
-	    (packet_get_data_length(packet) < sizeof(icmp_header_t))) {
-		return 0;
-	}
-
-	if (type)
-		*type = header->type;
-	if (code)
-		*code = header->code;
-	if (pointer)
-		*pointer = header->un.param.pointer;
-	if (mtu)
-		*mtu = header->un.frag.mtu;
-
-	// remove debug dump
-#ifdef CONFIG_DEBUG
-	printf("ICMP error %d (%d) in packet %d\n", header->type, header->code,
-	    packet_get_id(packet));
-#endif
-	return sizeof(icmp_header_t);
-}
-
-/** Returns the ICMP header length.
- *
- * @param[in] packet	The packet.
- * @returns		The ICMP header length in bytes.
- */
-size_t icmp_client_header_length(packet_t packet)
-{
-	if (packet_get_data_length(packet) < sizeof(icmp_header_t))
-		return 0;
-
-	return sizeof(icmp_header_t);
+	return generic_received_msg_remote(tl_phone, NET_TL_RECEIVED, device_id,
+	    packet_get_id(packet), target, error);
 }
 
 /** @}

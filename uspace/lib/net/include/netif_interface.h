@@ -26,12 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup netif
+/** @addtogroup libnet
  * @{
  */
 
-#ifndef __NET_NETIF_INTERFACE_H__
-#define __NET_NETIF_INTERFACE_H__
+#ifndef LIBNET_NETIF_INTERFACE_H_
+#define LIBNET_NETIF_INTERFACE_H_
 
 #include <netif_remote.h>
 #include <packet_client.h>

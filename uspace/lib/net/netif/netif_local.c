@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup netif
+/** @addtogroup libnet 
  * @{
  */
 
@@ -57,22 +57,21 @@
 
 DEVICE_MAP_IMPLEMENT(netif_device_map, netif_device_t);
 
-/** Network interface global data.
- */
+/** Network interface global data. */
 netif_globals_t netif_globals;
 
 /** Probe the existence of the device.
  *
  * @param[in] netif_phone The network interface phone.
- * @param[in] device_id   The device identifier.
- * @param[in] irq         The device interrupt number.
- * @param[in] io          The device input/output address.
- *
- * @return EOK on success.
- * @return Other errro codes as defined for the netif_probe_message().
- *
+ * @param[in] device_id	The device identifier.
+ * @param[in] irq	The device interrupt number.
+ * @param[in] io	The device input/output address.
+ * @return		EOK on success.
+ * @return		Other error codes as defined for the
+ *			netif_probe_message().
  */
-int netif_probe_req_local(int netif_phone, device_id_t device_id, int irq, int io)
+int
+netif_probe_req_local(int netif_phone, device_id_t device_id, int irq, int io)
 {
 	fibril_rwlock_write_lock(&netif_globals.lock);
 	int result = netif_probe_message(device_id, irq, io);
@@ -84,13 +83,12 @@ int netif_probe_req_local(int netif_phone, device_id_t device_id, int irq, int i
 /** Send the packet queue.
  *
  * @param[in] netif_phone The network interface phone.
- * @param[in] device_id   The device identifier.
- * @param[in] packet      The packet queue.
- * @param[in] sender      The sending module service.
- *
- * @return EOK on success.
- * @return Other error codes as defined for the generic_send_msg() function.
- *
+ * @param[in] device_id	The device identifier.
+ * @param[in] packet	The packet queue.
+ * @param[in] sender	The sending module service.
+ * @return		EOK on success.
+ * @return		Other error codes as defined for the generic_send_msg()
+ *			function.
  */
 int netif_send_msg_local(int netif_phone, device_id_t device_id,
     packet_t packet, services_t sender)
@@ -105,12 +103,12 @@ int netif_send_msg_local(int netif_phone, device_id_t device_id,
 /** Start the device.
  *
  * @param[in] netif_phone The network interface phone.
- * @param[in] device_id   The device identifier.
- *
- * @return EOK on success.
- * @return Other error codes as defined for the find_device() function.
- * @return Other error codes as defined for the netif_start_message() function.
- *
+ * @param[in] device_id	The device identifier.
+ * @return		EOK on success.
+ * @return		Other error codes as defined for the find_device()
+ *			function.
+ * @return		Other error codes as defined for the
+ *			netif_start_message() function.
  */
 int netif_start_req_local(int netif_phone, device_id_t device_id)
 {
@@ -140,12 +138,12 @@ int netif_start_req_local(int netif_phone, device_id_t device_id)
 /** Stop the device.
  *
  * @param[in] netif_phone The network interface phone.
- * @param[in] device_id   The device identifier.
- *
- * @return EOK on success.
- * @return Other error codes as defined for the find_device() function.
- * @return Other error codes as defined for the netif_stop_message() function.
- *
+ * @param[in] device_id	The device identifier.
+ * @return		EOK on success.
+ * @return		Other error codes as defined for the find_device()
+ *			function.
+ * @return		Other error codes as defined for the
+ *			netif_stop_message() function.
  */
 int netif_stop_req_local(int netif_phone, device_id_t device_id)
 {
@@ -174,12 +172,10 @@ int netif_stop_req_local(int netif_phone, device_id_t device_id)
 
 /** Return the device usage statistics.
  *
- * @param[in]  netif_phone The network interface phone.
- * @param[in]  device_id   The device identifier.
- * @param[out] stats       The device usage statistics.
- *
+ * @param[in] netif_phone The network interface phone.
+ * @param[in] device_id	The device identifier.
+ * @param[out] stats	The device usage statistics.
  * @return EOK on success.
- *
  */
 int netif_stats_req_local(int netif_phone, device_id_t device_id,
     device_stats_ref stats)
@@ -193,24 +189,22 @@ int netif_stats_req_local(int netif_phone, device_id_t device_id,
 
 /** Return the device local hardware address.
  *
- * @param[in]  netif_phone The network interface phone.
- * @param[in]  device_id   The device identifier.
- * @param[out] address     The device local hardware address.
- * @param[out] data        The address data.
- *
- * @return EOK on success.
- * @return EBADMEM if the address parameter is NULL.
- * @return ENOENT if there no such device.
- * @return Other error codes as defined for the netif_get_addr_message()
- *         function.
- *
+ * @param[in] netif_phone The network interface phone.
+ * @param[in] device_id	The device identifier.
+ * @param[out] address	The device local hardware address.
+ * @param[out] data	The address data.
+ * @return		EOK on success.
+ * @return		EBADMEM if the address parameter is NULL.
+ * @return		ENOENT if there no such device.
+ * @return		Other error codes as defined for the
+ *			netif_get_addr_message() function.
  */
 int netif_get_addr_req_local(int netif_phone, device_id_t device_id,
     measured_string_ref *address, char **data)
 {
 	ERROR_DECLARE;
 	
-	if ((!address) || (!data))
+	if (!address || !data)
 		return EBADMEM;
 	
 	fibril_rwlock_read_lock(&netif_globals.lock);
@@ -230,13 +224,11 @@ int netif_get_addr_req_local(int netif_phone, device_id_t device_id,
 
 /** Find the device specific data.
  *
- * @param[in]  device_id The device identifier.
- * @param[out] device    The device specific data.
- *
- * @return EOK on success.
- * @return ENOENT if device is not found.
- * @return EPERM if the device is not initialized.
- *
+ * @param[in] device_id	The device identifier.
+ * @param[out] device	The device specific data.
+ * @return		EOK on success.
+ * @return		ENOENT if device is not found.
+ * @return		EPERM if the device is not initialized.
  */
 int find_device(device_id_t device_id, netif_device_t **device)
 {
@@ -255,8 +247,7 @@ int find_device(device_id_t device_id, netif_device_t **device)
 
 /** Clear the usage statistics.
  *
- * @param[in] stats The usage statistics.
- *
+ * @param[in] stats	The usage statistics.
  */
 void null_device_stats(device_stats_ref stats)
 {
@@ -265,13 +256,10 @@ void null_device_stats(device_stats_ref stats)
 
 /** Initialize the netif module.
  *
- *  @param[in] client_connection The client connection functio to be
- *                               registered.
- *
- *  @return EOK on success.
- *  @return Other error codes as defined for each specific module
- *          message function.
- *
+ * @param[in] client_connection The client connection functio to be registered.
+ * @return		EOK on success.
+ * @return		Other error codes as defined for each specific module
+ *			message function.
  */
 int netif_init_module(async_client_conn_t client_connection)
 {
@@ -297,8 +285,7 @@ int netif_init_module(async_client_conn_t client_connection)
  *
  * Prepared for future optimization.
  *
- * @param[in] packet_id The packet identifier.
- *
+ * @param[in] packet_id	The packet identifier.
  */
 void netif_pq_release(packet_id_t packet_id)
 {
@@ -307,10 +294,9 @@ void netif_pq_release(packet_id_t packet_id)
 
 /** Allocate new packet to handle the given content size.
  *
- * @param[in] content The minimum content size.
- *
- * @return The allocated packet.
- * @return NULL if there is an error.
+ * @param[in] content	The minimum content size.
+ * @return		The allocated packet.
+ * @return		NULL if there is an error.
  *
  */
 packet_t netif_packet_get_1(size_t content)
@@ -318,16 +304,15 @@ packet_t netif_packet_get_1(size_t content)
 	return packet_get_1_remote(netif_globals.net_phone, content);
 }
 
-/** Register the device notification receiver, the network interface layer module.
+/** Register the device notification receiver, the network interface layer
+ * module.
  *
- * @param[in] name      Module name.
- * @param[in] device_id The device identifier.
- * @param[in] phone     The network interface layer module phone.
- *
- * @return EOK on success.
- * @return ENOENT if there is no such device.
- * @return ELIMIT if there is another module registered.
- *
+ * @param[in] name	Module name.
+ * @param[in] device_id	The device identifier.
+ * @param[in] phone	The network interface layer module phone.
+ * @return		EOK on success.
+ * @return		ENOENT if there is no such device.
+ * @return		ELIMIT if there is another module registered.
  */
 static int register_message(const char *name, device_id_t device_id, int phone)
 {
@@ -346,16 +331,16 @@ static int register_message(const char *name, device_id_t device_id, int phone)
 
 /** Process the netif module messages.
  *
- * @param[in]  name         Module name.
- * @param[in]  callid       The message identifier.
- * @param[in]  call         The message parameters.
- * @param[out] answer       The message answer parameters.
- * @param[out] answer_count The last parameter for the actual answer
- *                          in the answer parameter.
- *
- * @return EOK on success.
- * @return ENOTSUP if the message is not known.
- * @return Other error codes as defined for each specific module message function.
+ * @param[in] name 	Module name.
+ * @param[in] callid	The message identifier.
+ * @param[in] call	The message parameters.
+ * @param[out] answer	The message answer parameters.
+ * @param[out] answer_count The last parameter for the actual answer in the
+ *			answer parameter.
+ * @return		EOK on success.
+ * @return		ENOTSUP if the message is not known.
+ * @return		Other error codes as defined for each specific module
+ *			message function.
  *
  * @see IS_NET_NETIF_MESSAGE()
  *
@@ -372,47 +357,60 @@ int netif_module_message_standalone(const char *name, ipc_callid_t callid,
 	
 	*answer_count = 0;
 	switch (IPC_GET_METHOD(*call)) {
-		case IPC_M_PHONE_HUNGUP:
-			return EOK;
-		case NET_NETIF_PROBE:
-			return netif_probe_req_local(0, IPC_GET_DEVICE(call),
-			    NETIF_GET_IRQ(call), NETIF_GET_IO(call));
-		case IPC_M_CONNECT_TO_ME:
-			fibril_rwlock_write_lock(&netif_globals.lock);
-			ERROR_CODE = register_message(name, IPC_GET_DEVICE(call),
-			    IPC_GET_PHONE(call));
-			fibril_rwlock_write_unlock(&netif_globals.lock);
-			return ERROR_CODE;
-		case NET_NETIF_SEND:
-			ERROR_PROPAGATE(packet_translate_remote(netif_globals.net_phone,
-			    &packet, IPC_GET_PACKET(call)));
-			return netif_send_msg_local(0, IPC_GET_DEVICE(call), packet,
-			    IPC_GET_SENDER(call));
-		case NET_NETIF_START:
-			return netif_start_req_local(0, IPC_GET_DEVICE(call));
-		case NET_NETIF_STATS:
-			fibril_rwlock_read_lock(&netif_globals.lock);
-			if (!ERROR_OCCURRED(async_data_read_receive(&callid, &length))) {
-				if (length < sizeof(device_stats_t))
-					ERROR_CODE = EOVERFLOW;
-				else {
-					if (!ERROR_OCCURRED(netif_get_device_stats(
-					    IPC_GET_DEVICE(call), &stats)))
-						ERROR_CODE = async_data_read_finalize(callid, &stats,
-						    sizeof(device_stats_t));
-				}
-			}
+	case IPC_M_PHONE_HUNGUP:
+		return EOK;
+	
+	case NET_NETIF_PROBE:
+		return netif_probe_req_local(0, IPC_GET_DEVICE(call),
+		    NETIF_GET_IRQ(call), NETIF_GET_IO(call));
+		    
+	case IPC_M_CONNECT_TO_ME:
+		fibril_rwlock_write_lock(&netif_globals.lock);
+		ERROR_CODE = register_message(name, IPC_GET_DEVICE(call),
+		    IPC_GET_PHONE(call));
+		fibril_rwlock_write_unlock(&netif_globals.lock);
+		return ERROR_CODE;
+		
+	case NET_NETIF_SEND:
+		ERROR_PROPAGATE(packet_translate_remote(netif_globals.net_phone,
+		    &packet, IPC_GET_PACKET(call)));
+		return netif_send_msg_local(0, IPC_GET_DEVICE(call), packet,
+		    IPC_GET_SENDER(call));
+		    
+	case NET_NETIF_START:
+		return netif_start_req_local(0, IPC_GET_DEVICE(call));
+		
+	case NET_NETIF_STATS:
+		fibril_rwlock_read_lock(&netif_globals.lock);
+
+		if (ERROR_OCCURRED(async_data_read_receive(&callid, &length))) {
 			fibril_rwlock_read_unlock(&netif_globals.lock);
 			return ERROR_CODE;
-		case NET_NETIF_STOP:
-			return netif_stop_req_local(0, IPC_GET_DEVICE(call));
-		case NET_NETIF_GET_ADDR:
-			fibril_rwlock_read_lock(&netif_globals.lock);
-			if (!ERROR_OCCURRED(netif_get_addr_message(IPC_GET_DEVICE(call),
-			    &address)))
-				ERROR_CODE = measured_strings_reply(&address, 1);
+		}
+		if (length < sizeof(device_stats_t)) {
 			fibril_rwlock_read_unlock(&netif_globals.lock);
-			return ERROR_CODE;
+			return EOVERFLOW;
+		}
+
+		if (ERROR_NONE(netif_get_device_stats(IPC_GET_DEVICE(call),
+		    &stats))) {
+			ERROR_CODE = async_data_read_finalize(callid, &stats,
+			    sizeof(device_stats_t));
+		}
+
+		fibril_rwlock_read_unlock(&netif_globals.lock);
+		return ERROR_CODE;
+
+	case NET_NETIF_STOP:
+		return netif_stop_req_local(0, IPC_GET_DEVICE(call));
+		
+	case NET_NETIF_GET_ADDR:
+		fibril_rwlock_read_lock(&netif_globals.lock);
+		if (ERROR_NONE(netif_get_addr_message(IPC_GET_DEVICE(call),
+		    &address)))
+			ERROR_CODE = measured_strings_reply(&address, 1);
+		fibril_rwlock_read_unlock(&netif_globals.lock);
+		return ERROR_CODE;
 	}
 	
 	return netif_specific_message(callid, call, answer, answer_count);
@@ -420,18 +418,15 @@ int netif_module_message_standalone(const char *name, ipc_callid_t callid,
 
 /** Start the network interface module.
  *
- * Initialize the client connection serving function, initialize
- * the module, registers the module service and start the async
- * manager, processing IPC messages in an infinite loop.
+ * Initialize the client connection serving function, initialize the module,
+ * registers the module service and start the async manager, processing IPC
+ * messages in an infinite loop.
  *
- * @param[in] client_connection The client connection processing
- *                              function. The module skeleton propagates
- *                              its own one.
- *
- * @return EOK on success.
- * @return Other error codes as defined for each specific module message
- *         function.
- *
+ * @param[in] client_connection The client connection processing function.
+ *			The module skeleton propagates its own one.
+ * @return		EOK on success.
+ * @return		Other error codes as defined for each specific module
+ *			message function.
  */
 int netif_module_start_standalone(async_client_conn_t client_connection)
 {

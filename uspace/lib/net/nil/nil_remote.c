@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup net_nil
+/** @addtogroup libnet
  * @{
  */
 
@@ -46,14 +46,12 @@
 
 /** Notify the network interface layer about the device state change.
  *
- * @param[in] nil_phone The network interface layer phone.
- * @param[in] device_id The device identifier.
- * @param[in] state     The new device state.
- *
- * @return EOK on success.
- * @return Other error codes as defined for each specific module device
- *         state function.
- *
+ * @param[in] nil_phone	The network interface layer phone.
+ * @param[in] device_id	The device identifier.
+ * @param[in] state	The new device state.
+ * @return		EOK on success.
+ * @return		Other error codes as defined for each specific module
+ *			device state function.
  */
 int nil_device_state_msg_remote(int nil_phone, device_id_t device_id, int state)
 {
@@ -66,21 +64,19 @@ int nil_device_state_msg_remote(int nil_phone, device_id_t device_id, int state)
  * Process and redistribute the received packet queue to the registered
  * upper layers.
  *
- * @param[in] nil_phone The network interface layer phone.
- * @param[in] device_id The source device identifier.
- * @param[in] packet    The received packet or the received packet queue.
- * @param     target    The target service. Ignored parameter.
- *
- * @return EOK on success.
- * @return Other error codes as defined for each specific module
- *         received function.
- *
+ * @param[in] nil_phone	The network interface layer phone.
+ * @param[in] device_id	The source device identifier.
+ * @param[in] packet	The received packet or the received packet queue.
+ * @param target	The target service. Ignored parameter.
+ * @return		EOK on success.
+ * @return		Other error codes as defined for each specific module
+ * 			received function.
  */
 int nil_received_msg_remote(int nil_phone, device_id_t device_id,
     packet_t packet, services_t target)
 {
-	return generic_received_msg_remote(nil_phone, NET_NIL_RECEIVED, device_id,
-	    packet_get_id(packet), target, 0);
+	return generic_received_msg_remote(nil_phone, NET_NIL_RECEIVED,
+	    device_id, packet_get_id(packet), target, 0);
 }
 
 /** @}

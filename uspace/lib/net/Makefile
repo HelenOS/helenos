@@ -37,16 +37,19 @@ SOURCES = \
 	generic/net_checksum.c \
 	generic/packet_client.c \
 	generic/packet_remote.c \
-	generic/socket_core.c \
+	generic/protocol_map.c \
 	adt/module_map.c \
 	netif/netif_local.c \
 	netif/netif_remote.c \
 	nil/nil_remote.c \
+	il/il_interface.c \
 	il/ip_remote.c \
 	il/ip_client.c \
 	il/arp_remote.c \
 	tl/icmp_remote.c \
 	tl/icmp_client.c \
+	tl/socket_core.c \
+	tl/tl_interface.c \
 	tl/tl_common.c
 
 include $(USPACE_PREFIX)/Makefile.common

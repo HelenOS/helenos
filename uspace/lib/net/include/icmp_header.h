@@ -26,102 +26,93 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup icmp
+/** @addtogroup libnet
  *  @{
  */
 
 /** @file
- *  ICMP header definition.
- *  Based on the RFC~792.
+ * ICMP header definition.
+ * Based on the RFC 792.
  */
 
-#ifndef __NET_ICMP_HEADER_H__
-#define __NET_ICMP_HEADER_H__
+#ifndef LIBNET_ICMP_HEADER_H_
+#define LIBNET_ICMP_HEADER_H_
 
 #include <sys/types.h>
 
 #include <net/in.h>
 #include <net/icmp_codes.h>
 
-/** ICMP header size in bytes.
- */
-#define ICMP_HEADER_SIZE			sizeof(icmp_header_t)
+/** ICMP header size in bytes. */
+#define ICMP_HEADER_SIZE	sizeof(icmp_header_t)
 
 /** Type definition of the echo specific data.
- *  @see icmp_echo
+ * @see icmp_echo
  */
-typedef struct icmp_echo	icmp_echo_t;
+typedef struct icmp_echo icmp_echo_t;
 
 /** Type definition of the echo specific data pointer.
- *  @see icmp_echo
+ * @see icmp_echo
  */
-typedef icmp_echo_t *		icmp_echo_ref;
+typedef icmp_echo_t *icmp_echo_ref;
 
-/** Echo specific data.
- */
-struct icmp_echo{
-	/** Message idintifier.
-	 */
+/** Echo specific data. */
+struct icmp_echo {
+	/** Message idintifier. */
 	icmp_param_t identifier;
-	/** Message sequence number.
-	 */
+	/** Message sequence number. */
 	icmp_param_t sequence_number;
 } __attribute__ ((packed));
 
 /** Type definition of the internet control message header.
- *  @see icmp_header
+ * @see icmp_header
  */
-typedef struct icmp_header	icmp_header_t;
+typedef struct icmp_header icmp_header_t;
 
 /** Type definition of the internet control message header pointer.
- *  @see icmp_header
+ * @see icmp_header
  */
-typedef icmp_header_t *		icmp_header_ref;
+typedef icmp_header_t *icmp_header_ref;
 
-/** Internet control message header.
- */
-struct icmp_header{
-	/** The type of the message.
-	 */
+/** Internet control message header. */
+struct icmp_header {
+	/** The type of the message. */
 	uint8_t type;
-	/** The error code for the datagram reported by the ICMP message.
-	 *  The interpretation is dependent on the message type.
+	
+	/**
+	 * The error code for the datagram reported by the ICMP message.
+	 * The interpretation is dependent on the message type.
 	 */
 	uint8_t code;
-	/** The checksum is the 16-bit ones's complement of the one's complement sum of the ICMP message starting with the ICMP Type.
-     *  For computing the checksum, the checksum field should be zero.
-	 *  If the checksum does not match the contents, the datagram is discarded.
+	
+	/**
+	 * The checksum is the 16-bit ones's complement of the one's complement
+	 * sum of the ICMP message starting with the ICMP Type. For computing
+	 * the checksum, the checksum field should be zero. If the checksum does
+	 * not match the contents, the datagram is discarded.
 	 */
 	uint16_t checksum;
-	/** Message specific data.
-	 */
-	union{
-		/** Echo specific data.
-		 */
+
+	/** Message specific data. */
+	union {
+		/** Echo specific data. */
 		icmp_echo_t  echo;
-		/** Proposed gateway value.
-		 */
+		/** Proposed gateway value. */
 		in_addr_t gateway;
-		/** Fragmentation needed specific data.
-		 */
-		struct{
-			/** Reserved field.
-			 *  Must be zero.
-			 */
+		
+		/** Fragmentation needed specific data. */
+		struct {
+			/** Reserved field. Must be zero. */
 			icmp_param_t reserved;
-			/** Proposed MTU.
-			 */
+			/** Proposed MTU. */
 			icmp_param_t mtu;
 		} frag;
-		/** Parameter problem specific data.
-		 */
-		struct{
-			/** Problem pointer.
-			 */
+		
+		/** Parameter problem specific data. */
+		struct {
+			/** Problem pointer. */
 			icmp_param_t pointer;
-			/** Reserved field.
-			 *  Must be zero.
-			 */
+			/** Reserved field. Must be zero. */
 			icmp_param_t reserved;
 		} param;
 	} un;

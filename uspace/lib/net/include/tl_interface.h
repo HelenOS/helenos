@@ -26,16 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup net_tl
- *  @{
+/** @addtogroup libnet
+ * @{
  */
 
 /** @file
  * Transport layer module interface for the underlying internetwork layer.
  */
 
-#ifndef __NET_TL_INTERFACE_H__
-#define __NET_TL_INTERFACE_H__
+#ifndef LIBNET_TL_INTERFACE_H_
+#define LIBNET_TL_INTERFACE_H_
 
 #include <async.h>
 #include <ipc/services.h>
@@ -51,28 +51,7 @@
  */
 /*@{*/
 
-/** Notify the remote transport layer modules about the received packet/s.
- *
- * @param[in] tl_phone  The transport layer module phone used for remote calls.
- * @param[in] device_id The device identifier.
- * @param[in] packet    The received packet or the received packet queue.
- *                      The packet queue is used to carry a fragmented
- *                      datagram. The first packet contains the headers,
- *                      the others contain only data.
- * @param[in] target    The target transport layer module service to be
- *                      delivered to.
- * @param[in] error     The packet error reporting service. Prefixes the
- *                      received packet.
- *
- * @return EOK on success.
- *
- */
-inline static int tl_received_msg(int tl_phone, device_id_t device_id,
-    packet_t packet, services_t target, services_t error)
-{
-	return generic_received_msg_remote(tl_phone, NET_TL_RECEIVED, device_id,
-	    packet_get_id(packet), target, error);
-}
+extern int tl_received_msg(int, device_id_t, packet_t, services_t, services_t);
 
 /*@}*/
 
