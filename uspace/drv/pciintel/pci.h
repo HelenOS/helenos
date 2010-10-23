@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Lenka Trochtova 
+ * Copyright (c) 2010 Lenka Trochtova
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,10 +31,9 @@
  */
 /** @file
  */
- 
-#ifndef PCI_H
-#define PCI_H
 
+#ifndef PCI_H_
+#define PCI_H_
 
 #include <stdlib.h>
 #include <driver.h>
@@ -53,84 +52,91 @@ typedef struct pci_dev_data {
 	hw_resource_list_t hw_resources;
 } pci_dev_data_t;
 
-void create_pci_match_ids(device_t *dev);
+extern void create_pci_match_ids(device_t *);
 
-uint8_t pci_conf_read_8(device_t *dev, int reg);
-uint16_t pci_conf_read_16(device_t *dev, int reg);
-uint32_t pci_conf_read_32(device_t *dev, int reg);
-void pci_conf_write_8(device_t *dev, int reg, uint8_t val);
-void pci_conf_write_16(device_t *dev, int reg, uint16_t val);
-void pci_conf_write_32(device_t *dev, int reg, uint32_t val);
+extern uint8_t pci_conf_read_8(device_t *, int);
+extern uint16_t pci_conf_read_16(device_t *, int);
+extern uint32_t pci_conf_read_32(device_t *, int);
+extern void pci_conf_write_8(device_t *, int, uint8_t);
+extern void pci_conf_write_16(device_t *, int, uint16_t);
+extern void pci_conf_write_32(device_t *, int, uint32_t);
 
-void pci_add_range(device_t *dev, uint64_t range_addr, size_t range_size, bool io);
-int pci_read_bar(device_t *dev, int addr);
-void pci_read_interrupt(device_t *dev);
-void pci_add_interrupt(device_t *dev, int irq);
+extern void pci_add_range(device_t *, uint64_t, size_t, bool);
+extern int pci_read_bar(device_t *, int);
+extern void pci_read_interrupt(device_t *);
+extern void pci_add_interrupt(device_t *, int);
 
-void pci_bus_scan(device_t *parent, int bus_num);
+extern void pci_bus_scan(device_t *, int);
 
-
-static inline pci_dev_data_t *create_pci_dev_data() 
+static inline pci_dev_data_t *create_pci_dev_data(void)
 {
-	pci_dev_data_t *res = (pci_dev_data_t *)malloc(sizeof(pci_dev_data_t));
-	if (NULL != res) {
+	pci_dev_data_t *res = (pci_dev_data_t *) malloc(sizeof(pci_dev_data_t));
+	
+	if (NULL != res)
 		memset(res, 0, sizeof(pci_dev_data_t));
-	}
-	return res;	
+	return res;
 }
 
-static inline void init_pci_dev_data(pci_dev_data_t *d, int bus, int dev, int fn) 
+static inline void
+init_pci_dev_data(pci_dev_data_t *d, int bus, int dev, int fn)
 {
 	d->bus = bus;
 	d->dev = dev;
-	d->fn = fn;	
+	d->fn = fn;
 }
 
-static inline void delete_pci_dev_data(pci_dev_data_t *d) 
+static inline void delete_pci_dev_data(pci_dev_data_t *d)
 {
 	if (NULL != d) {
 		clean_hw_resource_list(&d->hw_resources);
-		free(d);	
+		free(d);
 	}
 }
 
 static inline void create_pci_dev_name(device_t *dev)
 {
-	pci_dev_data_t *dev_data = (pci_dev_data_t *)dev->driver_data;
+	pci_dev_data_t *dev_data = (pci_dev_data_t *) dev->driver_data;
 	char *name = NULL;
-	asprintf(&name, "%02x:%02x.%01x", dev_data->bus, dev_data->dev, dev_data->fn);
+	
+	asprintf(&name, "%02x:%02x.%01x", dev_data->bus, dev_data->dev,
+	    dev_data->fn);
 	dev->name = name;
 }
 
 static inline bool pci_alloc_resource_list(device_t *dev)
 {
 	pci_dev_data_t *dev_data = (pci_dev_data_t *)dev->driver_data;
-	dev_data->hw_resources.resources = (hw_resource_t *)malloc(PCI_MAX_HW_RES * sizeof(hw_resource_t));
-	return dev_data->hw_resources.resources != NULL;	
+	
+	dev_data->hw_resources.resources =
+	    (hw_resource_t *) malloc(PCI_MAX_HW_RES * sizeof(hw_resource_t));
+	return dev_data->hw_resources.resources != NULL;
 }
 
 static inline void pci_clean_resource_list(device_t *dev)
 {
-	pci_dev_data_t *dev_data = (pci_dev_data_t *)dev->driver_data;
+	pci_dev_data_t *dev_data = (pci_dev_data_t *) dev->driver_data;
+	
 	if (NULL != dev_data->hw_resources.resources) {
 		free(dev_data->hw_resources.resources);
 		dev_data->hw_resources.resources = NULL;
 	}
 }
 
-/** Read the base address registers (BARs) of the device 
- *  and adds the addresses to its hw resource list.
- * 
+/** Read the base address registers (BARs) of the device and adds the addresses
+ * to its hw resource list.
+ *
  * @param dev the pci device.
  */
 static inline  void pci_read_bars(device_t *dev)
 {
-	// position of the BAR in the PCI configuration address space of the device
+	/*
+	 * Position of the BAR in the PCI configuration address space of the
+	 * device.
+	 */
 	int addr = PCI_BASE_ADDR_0;
 	
-	while (addr <= PCI_BASE_ADDR_5) {
-		addr = pci_read_bar(dev, addr);	
-	}	
+	while (addr <= PCI_BASE_ADDR_5)
+		addr = pci_read_bar(dev, addr);
 }
 
 static inline size_t pci_bar_mask_to_size(uint32_t mask)
@@ -138,9 +144,7 @@ static inline size_t pci_bar_mask_to_size(uint32_t mask)
 	return ((mask & 0xfffffff0) ^ 0xffffffff) + 1;
 }
 
-
 #endif
-
 
 /**
  * @}
