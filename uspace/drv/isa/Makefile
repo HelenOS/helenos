@@ -1,3 +1,4 @@
+#
 # Copyright (c) 2010 Lenka Trochtova
 # All rights reserved.
 #
