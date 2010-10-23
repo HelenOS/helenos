@@ -68,81 +68,16 @@ extern void pci_add_interrupt(device_t *, int);
 
 extern void pci_bus_scan(device_t *, int);
 
-static inline pci_dev_data_t *create_pci_dev_data(void)
-{
-	pci_dev_data_t *res = (pci_dev_data_t *) malloc(sizeof(pci_dev_data_t));
-	
-	if (NULL != res)
-		memset(res, 0, sizeof(pci_dev_data_t));
-	return res;
-}
+extern pci_dev_data_t *create_pci_dev_data(void);
+extern void init_pci_dev_data(pci_dev_data_t *, int, int, int);
+extern void delete_pci_dev_data(pci_dev_data_t *);
+extern void create_pci_dev_name(device_t *);
 
-static inline void
-init_pci_dev_data(pci_dev_data_t *d, int bus, int dev, int fn)
-{
-	d->bus = bus;
-	d->dev = dev;
-	d->fn = fn;
-}
+extern bool pci_alloc_resource_list(device_t *);
+extern void pci_clean_resource_list(device_t *);
 
-static inline void delete_pci_dev_data(pci_dev_data_t *d)
-{
-	if (NULL != d) {
-		clean_hw_resource_list(&d->hw_resources);
-		free(d);
-	}
-}
-
-static inline void create_pci_dev_name(device_t *dev)
-{
-	pci_dev_data_t *dev_data = (pci_dev_data_t *) dev->driver_data;
-	char *name = NULL;
-	
-	asprintf(&name, "%02x:%02x.%01x", dev_data->bus, dev_data->dev,
-	    dev_data->fn);
-	dev->name = name;
-}
-
-static inline bool pci_alloc_resource_list(device_t *dev)
-{
-	pci_dev_data_t *dev_data = (pci_dev_data_t *)dev->driver_data;
-	
-	dev_data->hw_resources.resources =
-	    (hw_resource_t *) malloc(PCI_MAX_HW_RES * sizeof(hw_resource_t));
-	return dev_data->hw_resources.resources != NULL;
-}
-
-static inline void pci_clean_resource_list(device_t *dev)
-{
-	pci_dev_data_t *dev_data = (pci_dev_data_t *) dev->driver_data;
-	
-	if (NULL != dev_data->hw_resources.resources) {
-		free(dev_data->hw_resources.resources);
-		dev_data->hw_resources.resources = NULL;
-	}
-}
-
-/** Read the base address registers (BARs) of the device and adds the addresses
- * to its hw resource list.
- *
- * @param dev the pci device.
- */
-static inline  void pci_read_bars(device_t *dev)
-{
-	/*
-	 * Position of the BAR in the PCI configuration address space of the
-	 * device.
-	 */
-	int addr = PCI_BASE_ADDR_0;
-	
-	while (addr <= PCI_BASE_ADDR_5)
-		addr = pci_read_bar(dev, addr);
-}
-
-static inline size_t pci_bar_mask_to_size(uint32_t mask)
-{
-	return ((mask & 0xfffffff0) ^ 0xffffffff) + 1;
-}
+extern void pci_read_bars(device_t *);
+extern size_t pci_bar_mask_to_size(uint32_t);
 
 #endif
 
