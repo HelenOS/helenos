@@ -40,50 +40,11 @@
 extern char *get_abs_path(const char *, const char *, const char *);
 extern char *get_path_elem_end(char *);
 
-static inline bool skip_spaces(char **buf)
-{
-	while (isspace(**buf))
-		(*buf)++;
-	return *buf != 0;
-}
-
-static inline size_t get_nonspace_len(const char *str)
-{
-	size_t len = 0;
-	
-	while(*str != '\0' && !isspace(*str)) {
-		len++;
-		str++;
-	}
-
-	return len;
-}
-
-static inline void free_not_null(const void *ptr)
-{
-	if (ptr != NULL)
-		free(ptr);
-}
-
-static inline char *clone_string(const char *s)
-{
-	size_t size = str_size(s) + 1;
-	char *str;
-	
-	str = (char *) malloc(size);
-	if (str != NULL)
-		str_cpy(str, size, s);
-	return str;
-}
-
-static inline void replace_char(char *str, char orig, char repl)
-{
-	while (*str) {
-		if (*str == orig)
-			*str = repl;
-		str++;
-	}
-}
+extern bool skip_spaces(char **);
+extern size_t get_nonspace_len(const char *);
+extern void free_not_null(const void *);
+extern char *clone_string(const char *);
+extern void replace_char(char *, char, char);
 
 #endif
 

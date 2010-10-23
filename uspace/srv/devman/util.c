@@ -65,5 +65,50 @@ char *get_path_elem_end(char *path)
 	return path;
 }
 
+bool skip_spaces(char **buf)
+{
+	while (isspace(**buf))
+		(*buf)++;
+	return *buf != 0;
+}
+
+size_t get_nonspace_len(const char *str)
+{
+	size_t len = 0;
+	
+	while(*str != '\0' && !isspace(*str)) {
+		len++;
+		str++;
+	}
+
+	return len;
+}
+
+void free_not_null(const void *ptr)
+{
+	if (ptr != NULL)
+		free(ptr);
+}
+
+char *clone_string(const char *s)
+{
+	size_t size = str_size(s) + 1;
+	char *str;
+	
+	str = (char *) malloc(size);
+	if (str != NULL)
+		str_cpy(str, size, s);
+	return str;
+}
+
+void replace_char(char *str, char orig, char repl)
+{
+	while (*str) {
+		if (*str == orig)
+			*str = repl;
+		str++;
+	}
+}
+
 /** @}
  */

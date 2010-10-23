@@ -76,6 +76,20 @@ static hash_table_operations_t devmap_devices_ops = {
 	.remove_callback = devices_remove_callback
 };
 
+/**
+ * Initialize the list of device driver's.
+ *
+ * @param drv_list the list of device driver's.
+ *
+ */
+void init_driver_list(driver_list_t *drv_list)
+{
+	assert(drv_list != NULL);
+	
+	list_initialize(&drv_list->drivers);
+	fibril_mutex_initialize(&drv_list->drivers_mutex);
+}
+
 /** Allocate and initialize a new driver structure.
  *
  * @return	Driver structure.
@@ -547,6 +561,47 @@ void initialize_running_driver(driver_t *driver, dev_tree_t *tree)
 	fibril_mutex_unlock(&driver->driver_mutex);
 }
 
+/** Initialize device driver structure.
+ *
+ * @param drv		The device driver structure.
+ */
+void init_driver(driver_t *drv)
+{
+	assert(drv != NULL);
+
+	memset(drv, 0, sizeof(driver_t));
+	list_initialize(&drv->match_ids.ids);
+	list_initialize(&drv->devices);
+	fibril_mutex_initialize(&drv->driver_mutex);
+}
+
+/** Device driver structure clean-up.
+ *
+ * @param drv		The device driver structure.
+ */
+void clean_driver(driver_t *drv)
+{
+	assert(drv != NULL);
+
+	free_not_null(drv->name);
+	free_not_null(drv->binary_path);
+
+	clean_match_ids(&drv->match_ids);
+
+	init_driver(drv);
+}
+
+/** Delete device driver structure.
+ *
+ * @param drv		The device driver structure.
+ */
+void delete_driver(driver_t *drv)
+{
+	assert(drv != NULL);
+	
+	clean_driver(drv);
+	free(drv);
+}
 
 /** Create devmap path and name for the device. */
 static void devmap_register_tree_device(node_t *node, dev_tree_t *tree)
@@ -683,6 +738,75 @@ bool init_device_tree(dev_tree_t *tree, driver_list_t *drivers_list)
 	/* Find suitable driver and start it. */
 	return assign_driver(tree->root_node, drivers_list, tree);
 }
+
+/* Device nodes */
+
+/** Create a new device node.
+ *
+ * @return		A device node structure.
+ */
+node_t *create_dev_node(void)
+{
+	node_t *res = malloc(sizeof(node_t));
+	
+	if (res != NULL) {
+		memset(res, 0, sizeof(node_t));
+		list_initialize(&res->children);
+		list_initialize(&res->match_ids.ids);
+		list_initialize(&res->classes);
+	}
+	
+	return res;
+}
+
+/** Delete a device node.
+ *
+ * @param node		The device node structure.
+ */
+void delete_dev_node(node_t *node)
+{
+	assert(list_empty(&node->children));
+	assert(node->parent == NULL);
+	assert(node->drv == NULL);
+	
+	clean_match_ids(&node->match_ids);
+	free_not_null(node->name);
+	free_not_null(node->pathname);
+	free(node);
+}
+
+/** Find the device node structure of the device witch has the specified handle.
+ *
+ * Device tree's rwlock should be held at least for reading.
+ *
+ * @param tree		The device tree where we look for the device node.
+ * @param handle	The handle of the device.
+ * @return		The device node.
+ */
+node_t *find_dev_node_no_lock(dev_tree_t *tree, device_handle_t handle)
+{
+	unsigned long key = handle;
+	link_t *link = hash_table_find(&tree->devman_devices, &key);
+	return hash_table_get_instance(link, node_t, devman_link);
+}
+
+/** Find the device node structure of the device witch has the specified handle.
+ *
+ * @param tree		The device tree where we look for the device node.
+ * @param handle	The handle of the device.
+ * @return		The device node.
+ */
+node_t *find_dev_node(dev_tree_t *tree, device_handle_t handle)
+{
+	node_t *node = NULL;
+	
+	fibril_rwlock_read_lock(&tree->rwlock);
+	node = find_dev_node_no_lock(tree, handle);
+	fibril_rwlock_read_unlock(&tree->rwlock);
+	
+	return node;
+}
+
 
 /** Create and set device's full path in device tree.
  *
@@ -825,6 +949,53 @@ node_t *find_node_child(node_t *parent, const char *name)
 	return NULL;
 }
 
+/* Device classes */
+
+/** Create device class.
+ *
+ * @return	Device class.
+ */
+dev_class_t *create_dev_class(void)
+{
+	dev_class_t *cl;
+	
+	cl = (dev_class_t *) malloc(sizeof(dev_class_t));
+	if (cl != NULL) {
+		memset(cl, 0, sizeof(dev_class_t));
+		list_initialize(&cl->devices);
+		fibril_mutex_initialize(&cl->mutex);
+	}
+	
+	return cl;
+}
+
+/** Create device class info.
+ *
+ * @return		Device class info.
+ */
+dev_class_info_t *create_dev_class_info(void)
+{
+	dev_class_info_t *info;
+	
+	info = (dev_class_info_t *) malloc(sizeof(dev_class_info_t));
+	if (info != NULL)
+		memset(info, 0, sizeof(dev_class_info_t));
+	
+	return info;
+}
+
+size_t get_new_class_dev_idx(dev_class_t *cl)
+{
+	size_t dev_idx;
+	
+	fibril_mutex_lock(&cl->mutex);
+	dev_idx = ++cl->curr_dev_idx;
+	fibril_mutex_unlock(&cl->mutex);
+	
+	return dev_idx;
+}
+
+
 /** Create unique device name within the class.
  *
  * @param cl		The class.
@@ -920,6 +1091,11 @@ dev_class_t *find_dev_class_no_lock(class_list_t *class_list,
 	return NULL;
 }
 
+void add_dev_class_no_lock(class_list_t *class_list, dev_class_t *cl)
+{
+	list_append(&cl->link, &class_list->classes);
+}
+
 void init_class_list(class_list_t *class_list)
 {
 	list_initialize(&class_list->classes);
@@ -929,7 +1105,7 @@ void init_class_list(class_list_t *class_list)
 }
 
 
-/* devmap devices */
+/* Devmap devices */
 
 node_t *find_devmap_tree_device(dev_tree_t *tree, dev_handle_t devmap_handle)
 {
@@ -964,6 +1140,23 @@ node_t *find_devmap_class_device(class_list_t *classes,
 	fibril_rwlock_read_unlock(&classes->rwlock);
 	
 	return dev;
+}
+
+void class_add_devmap_device(class_list_t *class_list, dev_class_info_t *cli)
+{
+	unsigned long key = (unsigned long) cli->devmap_handle;
+	
+	fibril_rwlock_write_lock(&class_list->rwlock);
+	hash_table_insert(&class_list->devmap_devices, &key, &cli->devmap_link);
+	fibril_rwlock_write_unlock(&class_list->rwlock);
+}
+
+void tree_add_devmap_device(dev_tree_t *tree, node_t *node)
+{
+	unsigned long key = (unsigned long) node->devmap_handle;
+	fibril_rwlock_write_lock(&tree->rwlock);
+	hash_table_insert(&tree->devmap_devices, &key, &node->devmap_link);
+	fibril_rwlock_write_unlock(&tree->rwlock);
 }
 
 /** @}
