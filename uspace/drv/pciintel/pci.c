@@ -448,7 +448,7 @@ static int pci_add_device(device_t *dev)
 	if (dev->parent_phone <= 0) {
 		printf(NAME ": pci_add_device failed to connect to the parent's driver.\n");
 		delete_pci_bus_data(bus_data);
-		return EPARTY;
+		return EPARTY;	/* FIXME: use another EC */
 	}
 	
 	hw_resource_list_t hw_resources;
@@ -457,7 +457,7 @@ static int pci_add_device(device_t *dev)
 		printf(NAME ": pci_add_device failed to get hw resources for the device.\n");
 		delete_pci_bus_data(bus_data);
 		ipc_hangup(dev->parent_phone);
-		return EPARTY;		
+		return EPARTY;	/* FIXME: use another EC */
 	}	
 	
 	printf(NAME ": conf_addr = %x.\n", hw_resources.resources[0].res.io_range.address);	
