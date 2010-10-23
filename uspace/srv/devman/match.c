@@ -54,7 +54,7 @@ int get_match_score(driver_t *drv, node_t *dev)
 	do {
 		match_id_t *tmp_ma_id;
 	
-		if (0 == str_cmp(drv_id->id, dev_id->id)) {
+		if (str_cmp(drv_id->id, dev_id->id) == 0) {
 		 	/*
 		 	 * We found a match.
 		 	 * Return the score of the match.
@@ -66,7 +66,7 @@ int get_match_score(driver_t *drv, node_t *dev)
 		 * Compute the next score we get, if we advance in the driver's
 		 * list of match ids.
 		 */
-		if (drv_head != drv_link->next) {
+		if (drv_link->next != drv_head) {
 			tmp_ma_id = list_get_instance(drv_link->next,
 			    match_id_t, link);
 			score_next_drv = dev_id->score * tmp_ma_id->score;
@@ -78,7 +78,7 @@ int get_match_score(driver_t *drv, node_t *dev)
 		 * Compute the next score we get, if we advance in the device's
 		 * list of match ids.
 		 */
-		if (dev_head != dev_link->next) {
+		if (dev_link->next != dev_head) {
 			tmp_ma_id = list_get_instance(dev_link->next,
 			    match_id_t, link);
 			score_next_dev = drv_id->score * tmp_ma_id->score;
@@ -98,7 +98,7 @@ int get_match_score(driver_t *drv, node_t *dev)
 			dev_id = list_get_instance(dev_link, match_id_t, link);
 		}
 		
-	} while (drv_head != drv_link->next && dev_head != dev_link->next);
+	} while (drv_link->next != drv_head && dev_link->next != dev_head);
 	
 	return 0;
 }

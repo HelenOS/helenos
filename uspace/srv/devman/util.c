@@ -60,7 +60,7 @@ char *get_abs_path(const char *base_path, const char *name, const char *ext)
 
 char *get_path_elem_end(char *path)
 {
-	while (0 != *path && '/' != *path)
+	while (*path != '\0' && *path != '/')
 		path++;
 	return path;
 }
