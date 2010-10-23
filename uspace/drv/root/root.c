@@ -53,33 +53,33 @@
 
 static int root_add_device(device_t *dev);
 
-/** The root device driver's standard operations.
- */
+/** The root device driver's standard operations. */
 static driver_ops_t root_ops = {
 	.add_device = &root_add_device
 };
 
-/** The root device driver structure. 
- */
+/** The root device driver structure. */
 static driver_t root_driver = {
 	.name = NAME,
 	.driver_ops = &root_ops
 };
 
 /** Create the device which represents the root of HW device tree.
- * 
- * @param parent parent of the newly created device.
+ *
+ * @param parent	Parent of the newly created device.
  * @return 0 on success, negative error number otherwise.
  */
-static int add_platform_child(device_t *parent) {
+static int add_platform_child(device_t *parent)
+{
 	printf(NAME ": adding new child for platform device.\n");
 	
 	int res = EOK;
 	device_t *platform = NULL;
-	match_id_t *match_id = NULL;	
+	match_id_t *match_id = NULL;
 	
-	// create new device
-	if (NULL == (platform = create_device())) {
+	/* Create new device. */
+	platform = create_device();
+	if (NULL == platform) {
 		res = ENOMEM;
 		goto failure;
 	}	
@@ -87,61 +87,61 @@ static int add_platform_child(device_t *parent) {
 	platform->name = "hw";
 	printf(NAME ": the new device's name is %s.\n", platform->name);
 	
-	// initialize match id list
-	if (NULL == (match_id = create_match_id())) {
+	/* Initialize match id list. */
+	match_id = create_match_id();
+	if (NULL == match_id) {
 		res = ENOMEM;
 		goto failure;
 	}
 	
-	// TODO - replace this with some better solution (sysinfo ?)
+	/* TODO - replace this with some better solution (sysinfo ?) */
 	match_id->id = STRING(UARCH);
 	match_id->score = 100;
-	add_match_id(&platform->match_ids, match_id);	
+	add_match_id(&platform->match_ids, match_id);
 	
-	// register child  device
+	/* Register child device. */
 	res = child_device_register(platform, parent);
-	if (EOK != res) {
+	if (EOK != res)
 		goto failure;
-	}
 	
 	return res;
 	
 failure:
-	if (NULL != match_id) {
+	if (NULL != match_id)
 		match_id->id = NULL;
-	}
 	
 	if (NULL != platform) {
 		platform->name = NULL;
-		delete_device(platform);		
+		delete_device(platform);
 	}
 	
-	return res;	
+	return res;
 }
 
 /** Get the root device.
- * @param dev the device which is root of the whole device tree (both of HW and pseudo devices).
+ *
+ * @param dev		The device which is root of the whole device tree (both
+ *			of HW and pseudo devices).
  */
-static int root_add_device(device_t *dev) 
+static int root_add_device(device_t *dev)
 {
 	printf(NAME ": root_add_device, device handle = %d\n", dev->handle);
 	
-	// register root device's children	
-	int res = add_platform_child(dev);	
-	if (EOK != res) {
+	/* Register root device's children. */
+	int res = add_platform_child(dev);
+	if (EOK != res)
 		printf(NAME ": failed to add child device for platform.\n");
-	}
 	
 	return res;
 }
 
 int main(int argc, char *argv[])
 {
-	printf(NAME ": HelenOS root device driver\n");	
+	printf(NAME ": HelenOS root device driver\n");
 	return driver_main(&root_driver);
 }
 
 /**
  * @}
  */
- 
+
