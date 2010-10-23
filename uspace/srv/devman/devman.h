@@ -221,7 +221,8 @@ typedef struct dev_class {
 	fibril_mutex_t mutex;
 } dev_class_t;
 
-/** Provides n-to-m mapping between device nodes and classes - each device may
+/**
+ * Provides n-to-m mapping between device nodes and classes - each device may
  * be register to the arbitrary number of classes and each class may contain
  * the arbitrary number of devices.
  */
@@ -289,7 +290,7 @@ extern char *read_id(const char **);
  */
 static inline void init_driver_list(driver_list_t *drv_list)
 {
-	assert(NULL != drv_list);
+	assert(drv_list != NULL);
 	
 	list_initialize(&drv_list->drivers);
 	fibril_mutex_initialize(&drv_list->drivers_mutex);
@@ -347,7 +348,7 @@ static inline void clean_driver(driver_t *drv)
  */
 static inline void delete_driver(driver_t *drv)
 {
-	assert(NULL != drv);
+	assert(drv != NULL);
 	
 	clean_driver(drv);
 	free(drv);
@@ -381,8 +382,8 @@ static inline node_t *create_dev_node(void)
 static inline void delete_dev_node(node_t *node)
 {
 	assert(list_empty(&node->children));
-	assert(NULL == node->parent);
-	assert(NULL == node->drv);
+	assert(node->parent == NULL);
+	assert(node->drv == NULL);
 	
 	clean_match_ids(&node->match_ids);
 	free_not_null(node->name);
@@ -398,8 +399,8 @@ static inline void delete_dev_node(node_t *node)
  * @param handle	The handle of the device.
  * @return		The device node.
  */
-static inline node_t *
-find_dev_node_no_lock(dev_tree_t *tree, device_handle_t handle)
+static inline node_t *find_dev_node_no_lock(dev_tree_t *tree,
+    device_handle_t handle)
 {
 	unsigned long key = handle;
 	link_t *link = hash_table_find(&tree->devman_devices, &key);
@@ -412,8 +413,7 @@ find_dev_node_no_lock(dev_tree_t *tree, device_handle_t handle)
  * @param handle	The handle of the device.
  * @return		The device node.
  */
-static inline node_t *
-find_dev_node(dev_tree_t *tree, device_handle_t handle)
+static inline node_t *find_dev_node(dev_tree_t *tree, device_handle_t handle)
 {
 	node_t *node = NULL;
 	
@@ -439,14 +439,14 @@ extern bool insert_dev_node(dev_tree_t *, node_t *, char *, node_t *);
 
 /** Create device class.
  *
- * @return		Device class.
+ * @return	Device class.
  */
 static inline dev_class_t *create_dev_class(void)
 {
 	dev_class_t *cl;
 	
 	cl = (dev_class_t *) malloc(sizeof(dev_class_t));
-	if (NULL != cl) {
+	if (cl != NULL) {
 		memset(cl, 0, sizeof(dev_class_t));
 		list_initialize(&cl->devices);
 		fibril_mutex_initialize(&cl->mutex);
@@ -464,7 +464,7 @@ static inline dev_class_info_t *create_dev_class_info(void)
 	dev_class_info_t *info;
 	
 	info = (dev_class_info_t *) malloc(sizeof(dev_class_info_t));
-	if (NULL != info)
+	if (info != NULL)
 		memset(info, 0, sizeof(dev_class_info_t));
 	
 	return info;
@@ -490,8 +490,8 @@ extern void init_class_list(class_list_t *);
 extern dev_class_t *get_dev_class(class_list_t *, char *);
 extern dev_class_t *find_dev_class_no_lock(class_list_t *, const char *);
 
-static inline void
-add_dev_class_no_lock(class_list_t *class_list, dev_class_t *cl)
+static inline void add_dev_class_no_lock(class_list_t *class_list,
+    dev_class_t *cl)
 {
 	list_append(&cl->link, &class_list->classes);
 }
@@ -502,8 +502,8 @@ add_dev_class_no_lock(class_list_t *class_list, dev_class_t *cl)
 extern node_t *find_devmap_tree_device(dev_tree_t *, dev_handle_t);
 extern node_t *find_devmap_class_device(class_list_t *, dev_handle_t);
 
-static inline void
-class_add_devmap_device(class_list_t *class_list, dev_class_info_t *cli)
+static inline void class_add_devmap_device(class_list_t *class_list,
+    dev_class_info_t *cli)
 {
 	unsigned long key = (unsigned long) cli->devmap_handle;
 	
