@@ -276,7 +276,7 @@ int pci_read_bar(device_t *dev, int addr)
 	/* IO space address */
 	bool io;
 	/* 64-bit wide address */
-	bool w64;
+	bool addrw64;
 	
 	/* Size of the io or memory range specified by the BAR */
 	size_t range_size;
@@ -288,14 +288,14 @@ int pci_read_bar(device_t *dev, int addr)
 	
 	io = (bool) (val & 1);
 	if (io) {
-		w64 = false;
+		addrw64 = false;
 	} else {
 		switch ((val >> 1) & 3) {
 		case 0:
-			w64 = false;
+			addrw64 = false;
 			break;
 		case 2:
-			w64 = true;
+			addrw64 = true;
 			break;
 		default:
 			/* reserved, go to the next BAR */
@@ -313,14 +313,14 @@ int pci_read_bar(device_t *dev, int addr)
 	
 	range_size = pci_bar_mask_to_size(mask);
 	
-	if (w64) {
+	if (addrw64) {
 		range_addr = ((uint64_t)pci_conf_read_32(dev, addr + 4) << 32) |
 		    (val & 0xfffffff0);
 	} else {
 		range_addr = (val & 0xfffffff0);
 	}
 	
-	if (0 != range_addr) {
+	if (range_addr != 0) {
 		printf(NAME ": device %s : ", dev->name);
 		printf("address = %x", range_addr);
 		printf(", size = %x\n", range_size);
@@ -328,7 +328,7 @@ int pci_read_bar(device_t *dev, int addr)
 	
 	pci_add_range(dev, range_addr, range_size, io);
 	
-	if (w64)
+	if (addrw64)
 		return addr + 8;
 	
 	return addr + 4;
@@ -523,18 +523,18 @@ pci_dev_data_t *create_pci_dev_data(void)
 	return res;
 }
 
-void init_pci_dev_data(pci_dev_data_t *d, int bus, int dev, int fn)
+void init_pci_dev_data(pci_dev_data_t *dev_data, int bus, int dev, int fn)
 {
-	d->bus = bus;
-	d->dev = dev;
-	d->fn = fn;
+	dev_data->bus = bus;
+	dev_data->dev = dev;
+	dev_data->fn = fn;
 }
 
-void delete_pci_dev_data(pci_dev_data_t *d)
+void delete_pci_dev_data(pci_dev_data_t *dev_data)
 {
-	if (d != NULL) {
-		clean_hw_resource_list(&d->hw_resources);
-		free(d);
+	if (dev_data != NULL) {
+		clean_hw_resource_list(&dev_data->hw_resources);
+		free(dev_data);
 	}
 }
 
