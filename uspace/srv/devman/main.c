@@ -62,11 +62,9 @@ static driver_list_t drivers_list;
 static dev_tree_t device_tree;
 static class_list_t class_list;
 
-/**
- * Register running driver.
- */
-static driver_t * devman_driver_register(void)
-{	
+/** Register running driver. */
+static driver_t *devman_driver_register(void)
+{
 	printf(NAME ": devman_driver_register \n");
 	
 	ipc_call_t icall;
@@ -80,15 +78,16 @@ static driver_t * devman_driver_register(void)
 	
 	char *drv_name = NULL;
 	
-	// Get driver name
-	int rc = async_data_write_accept((void **)&drv_name, true, 0, 0, 0, 0);
+	/* Get driver name. */
+	int rc = async_data_write_accept((void **) &drv_name, true, 0, 0, 0, 0);
 	if (rc != EOK) {
 		ipc_answer_0(iid, rc);
 		return NULL;
 	}
-	printf(NAME ": the %s driver is trying to register by the service.\n", drv_name);
+	printf(NAME ": the %s driver is trying to register by the service.\n",
+	    drv_name);
 	
-	// Find driver structure
+	/* Find driver structure. */
 	driver = find_driver(&drivers_list, drv_name);
 	
 	if (NULL == driver) {
@@ -102,37 +101,36 @@ static driver_t * devman_driver_register(void)
 	free(drv_name);
 	drv_name = NULL;
 	
-	// Create connection to the driver
-	printf(NAME ":  creating connection to the %s driver.\n", driver->name);	
+	/* Create connection to the driver. */
+	printf(NAME ":  creating connection to the %s driver.\n", driver->name);
 	ipc_call_t call;
-	ipc_callid_t callid = async_get_call(&call);		
+	ipc_callid_t callid = async_get_call(&call);
 	if (IPC_GET_METHOD(call) != IPC_M_CONNECT_TO_ME) {
 		ipc_answer_0(callid, ENOTSUP);
 		ipc_answer_0(iid, ENOTSUP);
 		return NULL;
 	}
 	
-	// remember driver's phone
+	/* Remember driver's phone. */
 	set_driver_phone(driver, IPC_GET_ARG5(call));
 	
-	printf(NAME ":  the %s driver was successfully registered as running.\n", driver->name);
+	printf(NAME ": the %s driver was successfully registered as running.\n",
+	    driver->name);
 	
-	ipc_answer_0(callid, EOK);	
-	
+	ipc_answer_0(callid, EOK);
 	ipc_answer_0(iid, EOK);
 	
 	return driver;
 }
 
-/**
- * Receive device match ID from the device's parent driver and add it to the list of devices match ids.
- * 
- * @param match_ids the list of the device's match ids.
- * 
- * @return 0 on success, negative error code otherwise. 
+/** Receive device match ID from the device's parent driver and add it to the
+ * list of devices match ids.
+ *
+ * @param match_ids	The list of the device's match ids.
+ * @return		Zero on success, negative error code otherwise.
  */
-static int devman_receive_match_id(match_id_list_t *match_ids) {
-	
+static int devman_receive_match_id(match_id_list_t *match_ids)
+{
 	match_id_t *match_id = create_match_id();
 	ipc_callid_t callid;
 	ipc_call_t call;
@@ -140,14 +138,16 @@ static int devman_receive_match_id(match_id_list_t *match_ids) {
 	
 	callid = async_get_call(&call);
 	if (DEVMAN_ADD_MATCH_ID != IPC_GET_METHOD(call)) {
-		printf(NAME ": ERROR: devman_receive_match_id - invalid protocol.\n");
+		printf(NAME ": ERROR: devman_receive_match_id - invalid "
+		    "protocol.\n");
 		ipc_answer_0(callid, EINVAL); 
 		delete_match_id(match_id);
 		return EINVAL;
 	}
 	
 	if (NULL == match_id) {
-		printf(NAME ": ERROR: devman_receive_match_id - failed to allocate match id.\n");
+		printf(NAME ": ERROR: devman_receive_match_id - failed to "
+		    "allocate match id.\n");
 		ipc_answer_0(callid, ENOMEM);
 		return ENOMEM;
 	}
@@ -157,49 +157,48 @@ static int devman_receive_match_id(match_id_list_t *match_ids) {
 	match_id->score = IPC_GET_ARG1(call);
 	
 	char *match_id_str;
-	rc = async_data_write_accept((void **)&match_id_str, true, 0, 0, 0, 0);
+	rc = async_data_write_accept((void **) &match_id_str, true, 0, 0, 0, 0);
 	match_id->id = match_id_str;
 	if (EOK != rc) {
 		delete_match_id(match_id);
-		printf(NAME ": devman_receive_match_id - failed to receive match id string.\n");
+		printf(NAME ": devman_receive_match_id - failed to receive "
+		    "match id string.\n");
 		return rc;
 	}
 	
 	list_append(&match_id->link, &match_ids->ids);
 	
-	printf(NAME ": received match id '%s', score = %d \n", match_id->id, match_id->score);
+	printf(NAME ": received match id '%s', score = %d \n",
+	    match_id->id, match_id->score);
 	return rc;
 }
 
-/**
- * Receive device match IDs from the device's parent driver 
- * and add them to the list of devices match ids.
- * 
- * @param match_count the number of device's match ids to be received.
- * @param match_ids the list of the device's match ids.
- * 
- * @return 0 on success, negative error code otherwise.
+/** Receive device match IDs from the device's parent driver and add them to the
+ * list of devices match ids.
+ *
+ * @param match_count	The number of device's match ids to be received.
+ * @param match_ids	The list of the device's match ids.
+ * @return		Zero on success, negative error code otherwise.
  */
-static int devman_receive_match_ids(ipcarg_t match_count, match_id_list_t *match_ids) 
-{	
+static int
+devman_receive_match_ids(ipcarg_t match_count, match_id_list_t *match_ids)
+{
 	int ret = EOK;
 	size_t i;
+	
 	for (i = 0; i < match_count; i++) {
-		if (EOK != (ret = devman_receive_match_id(match_ids))) {
+		if (EOK != (ret = devman_receive_match_id(match_ids)))
 			return ret;
-		}
 	}
 	return ret;
 }
 
-/** Handle child device registration. 
- * 
+/** Handle child device registration.
+ *
  * Child devices are registered by their parent's device driver.
  */
 static void devman_add_child(ipc_callid_t callid, ipc_call_t *call)
 {
-	//printf(NAME ": devman_add_child\n");
-	
 	device_handle_t parent_handle = IPC_GET_ARG1(*call);
 	ipcarg_t match_count = IPC_GET_ARG2(*call);
 	dev_tree_t *tree = &device_tree;
@@ -214,13 +213,12 @@ static void devman_add_child(ipc_callid_t callid, ipc_call_t *call)
 	}	
 	
 	char *dev_name = NULL;
-	int rc = async_data_write_accept((void **)&dev_name, true, 0, 0, 0, 0);	
+	int rc = async_data_write_accept((void **)&dev_name, true, 0, 0, 0, 0);
 	if (EOK != rc) {
 		fibril_rwlock_write_unlock(&tree->rwlock);
 		ipc_answer_0(callid, rc);
 		return;
 	}
-	//printf(NAME ": newly added child device's name is '%s'.\n", dev_name);
 	
 	node_t *node = create_dev_node();
 	if (!insert_dev_node(&device_tree, node, dev_name, parent)) {
@@ -235,38 +233,45 @@ static void devman_add_child(ipc_callid_t callid, ipc_call_t *call)
 	
 	devman_receive_match_ids(match_count, &node->match_ids);
 	
-	// return device handle to parent's driver
+	/* Return device handle to parent's driver. */
 	ipc_answer_1(callid, EOK, node->handle);
 	
-	// try to find suitable driver and assign it to the device
-	assign_driver(node, &drivers_list, &device_tree);	
+	/* Try to find suitable driver and assign it to the device. */
+	assign_driver(node, &drivers_list, &device_tree);
 }
 
 static void devmap_register_class_dev(dev_class_info_t *cli)
 {
-	// create devmap path and name for the device
+	/* Create devmap path and name for the device. */
 	char *devmap_pathname = NULL;
-	asprintf(&devmap_pathname, "%s/%s%c%s", DEVMAP_CLASS_NAMESPACE, cli->dev_class->name, DEVMAP_SEPARATOR, cli->dev_name);
-	if (NULL == devmap_pathname) {
+	asprintf(&devmap_pathname, "%s/%s%c%s", DEVMAP_CLASS_NAMESPACE,
+	    cli->dev_class->name, DEVMAP_SEPARATOR, cli->dev_name);
+	if (NULL == devmap_pathname)
 		return;
-	}
 	
-	// register the device by the device mapper and remember its devmap handle
-	devmap_device_register(devmap_pathname, &cli->devmap_handle);	
+	/*
+	 * Register the device by the device mapper and remember its devmap
+	 * handle.
+	 */
+	devmap_device_register(devmap_pathname, &cli->devmap_handle);
 	
-	// add device to the hash map of class devices registered by device mapper
+	/*
+	 * Add device to the hash map of class devices registered by device
+	 * mapper.
+	 */
 	class_add_devmap_device(&class_list, cli);
 	
-	free(devmap_pathname);	
+	free(devmap_pathname);
 }
 
 static void devman_add_device_to_class(ipc_callid_t callid, ipc_call_t *call)
 {
 	device_handle_t handle = IPC_GET_ARG1(*call);
 	
-	// Get class name
+	/* Get class name. */
 	char *class_name;
-	int rc = async_data_write_accept((void **)&class_name, true, 0, 0, 0, 0);
+	int rc = async_data_write_accept((void **) &class_name, true,
+	    0, 0, 0, 0);
 	if (rc != EOK) {
 		ipc_answer_0(callid, rc);
 		return;
@@ -279,56 +284,54 @@ static void devman_add_device_to_class(ipc_callid_t callid, ipc_call_t *call)
 	}
 	
 	dev_class_t *cl = get_dev_class(&class_list, class_name);
-		
 	dev_class_info_t *class_info = add_device_to_class(dev, cl, NULL);
 	
-	// register the device's class alias by devmapper
+	/* Register the device's class alias by devmapper. */
 	devmap_register_class_dev(class_info);
 	
-	printf(NAME ": device '%s' added to class '%s', class name '%s' was asigned to it\n", dev->pathname, class_name, class_info->dev_name);
+	printf(NAME ": device '%s' added to class '%s', class name '%s' was "
+	    "asigned to it\n", dev->pathname, class_name, class_info->dev_name);
 	
-	ipc_answer_0(callid, EOK);	
+	ipc_answer_0(callid, EOK);
 }
 
-/**
- * Initialize driver which has registered itself as running and ready.
- * 
- * The initialization is done in a separate fibril to avoid deadlocks 
- * (if the driver needed to be served by devman during the driver's initialization). 
+/** Initialize driver which has registered itself as running and ready.
+ *
+ * The initialization is done in a separate fibril to avoid deadlocks (if the
+ * driver needed to be served by devman during the driver's initialization).
  */
 static int init_running_drv(void *drv)
 {
-	driver_t *driver = (driver_t *)drv;
-	initialize_running_driver(driver, &device_tree);	
-	printf(NAME ": the %s driver was successfully initialized. \n", driver->name);
+	driver_t *driver = (driver_t *) drv;
+	
+	initialize_running_driver(driver, &device_tree);
+	printf(NAME ": the %s driver was successfully initialized. \n",
+	    driver->name);
 	return 0;
 }
 
-/** Function for handling connections from a driver to the device manager.
- */
+/** Function for handling connections from a driver to the device manager. */
 static void devman_connection_driver(ipc_callid_t iid, ipc_call_t *icall)
-{	
-	/* Accept the connection */
+{
+	/* Accept the connection. */
 	ipc_answer_0(iid, EOK);
 	
 	driver_t *driver = devman_driver_register();
 	if (NULL == driver)
 		return;
 	
-	// Initialize the driver as running (e.g. pass assigned devices to it) in a separate fibril;
-	// the separate fibril is used to enable the driver 
-	// to use devman service during the driver's initialization.
+	/*
+	 * Initialize the driver as running (e.g. pass assigned devices to it)
+	 * in a separate fibril; the separate fibril is used to enable the
+	 * driver to use devman service during the driver's initialization.
+	 */
 	fid_t fid = fibril_create(init_running_drv, driver);
 	if (fid == 0) {
-		printf(NAME ": Error creating fibril for the initialization of the newly registered running driver.\n");
+		printf(NAME ": Error creating fibril for the initialization of "
+		    "the newly registered running driver.\n");
 		return;
 	}
 	fibril_add_ready(fid);
-	
-	/*thread_id_t tid;
-	if (0 != thread_create(init_running_drv, driver, "init_running_drv", &tid)) {
-		printf(NAME ": failed to start the initialization of the newly registered running driver.\n");
-	}*/
 	
 	ipc_callid_t callid;
 	ipc_call_t call;
@@ -353,18 +356,19 @@ static void devman_connection_driver(ipc_callid_t iid, ipc_call_t *icall)
 	}
 }
 
-/** Find handle for the device instance identified by the device's path in the device tree.
- */
+/** Find handle for the device instance identified by the device's path in the
+ * device tree. */
 static void devman_device_get_handle(ipc_callid_t iid, ipc_call_t *icall)
 {
-	char *pathname;	
-	int rc = async_data_write_accept((void **)&pathname, true, 0, 0, 0, 0);
+	char *pathname;
+	
+	int rc = async_data_write_accept((void **) &pathname, true, 0, 0, 0, 0);
 	if (rc != EOK) {
 		ipc_answer_0(iid, rc);
 		return;
 	}
 	
-	node_t * dev = find_dev_node_by_path(&device_tree, pathname); 
+	node_t * dev = find_dev_node_by_path(&device_tree, pathname);
 	
 	free(pathname);
 
@@ -377,11 +381,10 @@ static void devman_device_get_handle(ipc_callid_t iid, ipc_call_t *icall)
 }
 
 
-/** Function for handling connections from a client to the device manager.
- */
+/** Function for handling connections from a client to the device manager. */
 static void devman_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 {
-	/* Accept connection */
+	/* Accept connection. */
 	ipc_answer_0(iid, EOK);
 	
 	bool cont = true;
@@ -403,14 +406,15 @@ static void devman_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 	}	
 }
 
-static void devman_forward(ipc_callid_t iid, ipc_call_t *icall, bool drv_to_parent) {	
-	
+static void
+devman_forward(ipc_callid_t iid, ipc_call_t *icall, bool drv_to_parent)
+{
 	device_handle_t handle = IPC_GET_ARG2(*icall);
-	// printf(NAME ": devman_forward - trying to forward connection to device with handle %x.\n", handle);
 	
 	node_t *dev = find_dev_node(&device_tree, handle);
 	if (NULL == dev) {
-		printf(NAME ": devman_forward error - no device with handle %x was found.\n", handle);
+		printf(NAME ": devman_forward error - no device with handle %x "
+		    "was found.\n", handle);
 		ipc_answer_0(iid, ENOENT);
 		return;
 	}
@@ -418,47 +422,47 @@ static void devman_forward(ipc_callid_t iid, ipc_call_t *icall, bool drv_to_pare
 	driver_t *driver = NULL;
 	
 	if (drv_to_parent) {
-		if (NULL != dev->parent) {
-			driver = dev->parent->drv;		
-		}
+		if (NULL != dev->parent)
+			driver = dev->parent->drv;
 	} else if (DEVICE_USABLE == dev->state) {
-		driver = dev->drv;		
+		driver = dev->drv;
 		assert(NULL != driver);
 	}
 	
-	if (NULL == driver) {	
-		printf(NAME ": devman_forward error - the device is not in usable state.\n", handle);
+	if (NULL == driver) {
+		printf(NAME ": devman_forward error - the device is not in "
+		    "usable state.\n", handle);
 		ipc_answer_0(iid, ENOENT);
-		return;	
+		return;
 	}
 	
-	int method;	
-	if (drv_to_parent) {
+	int method;
+	if (drv_to_parent)
 		method = DRIVER_DRIVER;
-	} else {
+	else
 		method = DRIVER_CLIENT;
-	}
 	
 	if (driver->phone <= 0) {
-		printf(NAME ": devman_forward: cound not forward to driver %s ", driver->name);
+		printf(NAME ": devman_forward: cound not forward to driver %s ",
+		    driver->name);
 		printf("the driver's phone is %x).\n", driver->phone);
 		ipc_answer_0(iid, EINVAL);
 		return;
 	}
-	printf(NAME ": devman_forward: forward connection to device %s to driver %s.\n", 
-		dev->pathname, driver->name);
-	ipc_forward_fast(iid, driver->phone, method, dev->handle, 0, IPC_FF_NONE);	
+	printf(NAME ": devman_forward: forward connection to device %s to "
+	    "driver %s.\n", dev->pathname, driver->name);
+	ipc_forward_fast(iid, driver->phone, method, dev->handle, 0, IPC_FF_NONE);
 }
 
-/** Function for handling connections from a client forwarded by the device mapper to the device manager.
- */
+/** Function for handling connections from a client forwarded by the device
+ * mapper to the device manager. */
 static void devman_connection_devmapper(ipc_callid_t iid, ipc_call_t *icall)
 {
 	dev_handle_t devmap_handle = IPC_GET_METHOD(*icall);
+	
 	node_t *dev = find_devmap_tree_device(&device_tree, devmap_handle);
-	if (NULL == dev) {
+	if (NULL == dev)
 		dev = find_devmap_class_device(&class_list, devmap_handle);
-	}
 	
 	if (NULL == dev || NULL == dev->drv) {
 		ipc_answer_0(iid, ENOENT);
@@ -470,30 +474,34 @@ static void devman_connection_devmapper(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 	
-	printf(NAME ": devman_connection_devmapper: forward connection to device %s to driver %s.\n", 
-		dev->pathname, dev->drv->name);
-	ipc_forward_fast(iid, dev->drv->phone, DRIVER_CLIENT, dev->handle, 0, IPC_FF_NONE);	
+	printf(NAME ": devman_connection_devmapper: forward connection to "
+	    "device %s to driver %s.\n", dev->pathname, dev->drv->name);
+	ipc_forward_fast(iid, dev->drv->phone, DRIVER_CLIENT, dev->handle, 0,
+	    IPC_FF_NONE);
 }
 
-/** Function for handling connections to device manager.
- *
- */
+/** Function for handling connections to device manager. */
 static void devman_connection(ipc_callid_t iid, ipc_call_t *icall)
-{	
-	// Silly hack to enable the device manager to register as a driver by the device mapper. 
-	// If the ipc method is not IPC_M_CONNECT_ME_TO, this is not the forwarded connection from naming service,
-	// so it must be a connection from the devmapper which thinks this is a devmapper-style driver. 
-	// So pretend this is a devmapper-style driver. 
-	// (This does not work for device with handle == IPC_M_CONNECT_ME_TO, 
-	// because devmapper passes device handle to the driver as an ipc method.)
-	if (IPC_M_CONNECT_ME_TO != IPC_GET_METHOD(*icall)) {
+{
+	/*
+	 * Silly hack to enable the device manager to register as a driver by
+	 * the device mapper. If the ipc method is not IPC_M_CONNECT_ME_TO, this
+	 * is not the forwarded connection from naming service, so it must be a
+	 * connection from the devmapper which thinks this is a devmapper-style
+	 * driver. So pretend this is a devmapper-style driver. (This does not
+	 * work for device with handle == IPC_M_CONNECT_ME_TO, because devmapper
+	 * passes device handle to the driver as an ipc method.)
+	 */
+	if (IPC_M_CONNECT_ME_TO != IPC_GET_METHOD(*icall))
 		devman_connection_devmapper(iid, icall);
-	}
 
-	// ipc method is IPC_M_CONNECT_ME_TO, so this is forwarded connection from naming service
-	// by which we registered as device manager, so be device manager
+	/*
+	 * ipc method is IPC_M_CONNECT_ME_TO, so this is forwarded connection
+	 * from naming service by which we registered as device manager, so be
+	 * device manager.
+	 */
 	
-	// Select interface 
+	/* Select interface. */
 	switch ((ipcarg_t) (IPC_GET_ARG1(*icall))) {
 	case DEVMAN_DRIVER:
 		devman_connection_driver(iid, icall);
@@ -502,45 +510,48 @@ static void devman_connection(ipc_callid_t iid, ipc_call_t *icall)
 		devman_connection_client(iid, icall);
 		break;
 	case DEVMAN_CONNECT_TO_DEVICE:
-		// Connect client to selected device
+		/* Connect client to selected device. */
 		devman_forward(iid, icall, false);
 		break;
 	case DEVMAN_CONNECT_TO_PARENTS_DEVICE:
-		// Connect client to selected device
+		/* Connect client to selected device. */
 		devman_forward(iid, icall, true);
-		break;		
+		break;
 	default:
 		/* No such interface */
 		ipc_answer_0(iid, ENOENT);
 	}
 }
 
-/** Initialize device manager internal structures.
- */
-static bool devman_init()
+/** Initialize device manager internal structures. */
+static bool devman_init(void)
 {
-	printf(NAME ": devman_init - looking for available drivers. \n");	
+	printf(NAME ": devman_init - looking for available drivers.\n");
 	
-	// initialize list of available drivers
+	/* Initialize list of available drivers. */
 	init_driver_list(&drivers_list);
-	if (0 == lookup_available_drivers(&drivers_list, DRIVER_DEFAULT_STORE)) {
+	if (0 == lookup_available_drivers(&drivers_list,
+	    DRIVER_DEFAULT_STORE)) {
 		printf(NAME " no drivers found.");
 		return false;
 	}
-	printf(NAME ": devman_init  - list of drivers has been initialized. \n");
+	printf(NAME ": devman_init  - list of drivers has been initialized.\n");
 
-	// create root device node 
+	/* Create root device node. */
 	if (!init_device_tree(&device_tree, &drivers_list)) {
 		printf(NAME " failed to initialize device tree.");
-		return false;		
+		return false;
 	}
 
 	init_class_list(&class_list);
 	
-	// !!! devman_connection ... as the device manager is not a real devmap driver 
-	// (it uses a completely different ipc protocol than an ordinary devmap driver)
-	// forwarding a connection from client to the devman by devmapper would not work
-	devmap_driver_register(NAME, devman_connection);	
+	/*
+	 * !!! devman_connection ... as the device manager is not a real devmap
+	 * driver (it uses a completely different ipc protocol than an ordinary
+	 * devmap driver) forwarding a connection from client to the devman by
+	 * devmapper would not work.
+	 */
+	devmap_driver_register(NAME, devman_connection);
 	
 	return true;
 }
@@ -554,10 +565,10 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 	
-	// Set a handler of incomming connections
+	/* Set a handler of incomming connections. */
 	async_set_client_connection(devman_connection);
 
-	// Register device manager at naming service
+	/* Register device manager at naming service. */
 	ipcarg_t phonead;
 	if (ipc_connect_to_me(PHONE_NS, SERVICE_DEVMAN, 0, 0, &phonead) != 0)
 		return -1;
@@ -565,7 +576,7 @@ int main(int argc, char *argv[])
 	printf(NAME ": Accepting connections\n");
 	async_manager();
 
-	// Never reached
+	/* Never reached. */
 	return 0;
 }
 

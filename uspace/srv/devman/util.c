@@ -31,40 +31,39 @@
  */
 
 #include <stdlib.h>
-#include <str.h> 
- 
-#include "util.h"
- 
+#include <str.h>
 
-char * get_abs_path(const char *base_path, const char *name, const char *ext) 
+#include "util.h"
+
+char *get_abs_path(const char *base_path, const char *name, const char *ext)
 {
 	char *res;
 	int base_len = str_size(base_path);
-	int size = base_len + 2*str_size(name) + str_size(ext) + 3;	
+	int size = base_len + 2 * str_size(name) + str_size(ext) + 3;
 	
 	res = malloc(size);
 	
 	if (res) {
 		str_cpy(res, size, base_path);
-		if(base_path[base_len - 1] != '/') { 
-			str_append(res, size, "/");			
-		}
+		if (base_path[base_len - 1] != '/')
+			str_append(res, size, "/");
 		str_append(res, size, name);
 		str_append(res, size, "/");
 		str_append(res, size, name);
-		if(ext[0] != '.') {
+		if (ext[0] != '.')
 			str_append(res, size, ".");
-		}
-		str_append(res, size, ext);		
+		str_append(res, size, ext);
 	}
 	
 	return res;
 }
 
-char * get_path_elem_end(char *path)
+char *get_path_elem_end(char *path)
 {
-	while (0 != *path && '/' != *path) {
+	while (0 != *path && '/' != *path)
 		path++;
-	}
 	return path;
 }
+
+/** @}
+ */

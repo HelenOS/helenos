@@ -29,7 +29,7 @@
 /** @addtogroup devman
  * @{
  */
- 
+
 #ifndef DEVMAN_UTIL_H_
 #define DEVMAN_UTIL_H_
 
@@ -37,21 +37,20 @@
 #include <str.h>
 #include <malloc.h>
 
+extern char *get_abs_path(const char *, const char *, const char *);
+extern char *get_path_elem_end(char *);
 
-char * get_abs_path(const char *base_path, const char *name, const char *ext);
-char * get_path_elem_end(char *path);
-
-static inline bool skip_spaces(char **buf) 
+static inline bool skip_spaces(char **buf)
 {
-	while (isspace(**buf)) {
-		(*buf)++;		
-	}
-	return *buf != 0;	
+	while (isspace(**buf))
+		(*buf)++;
+	return *buf != 0;
 }
 
-static inline size_t get_nonspace_len(const char *str) 
+static inline size_t get_nonspace_len(const char *str)
 {
 	size_t len = 0;
+	
 	while(*str != 0 && !isspace(*str)) {
 		len++;
 		str++;
@@ -61,29 +60,31 @@ static inline size_t get_nonspace_len(const char *str)
 
 static inline void free_not_null(const void *ptr)
 {
-	if (NULL != ptr) {
+	if (NULL != ptr)
 		free(ptr);
-	}
 }
 
-static inline char * clone_string(const char *s) 
+static inline char *clone_string(const char *s)
 {
 	size_t size = str_size(s) + 1;
-	char *str = (char *)malloc(size);
-	if (NULL != str) {
+	char *str;
+	
+	str = (char *) malloc(size);
+	if (NULL != str)
 		str_cpy(str, size, s);
-	}
 	return str;
 }
 
 static inline void replace_char(char *str, char orig, char repl)
 {
 	while (*str) {
-		if (orig == *str) {
+		if (orig == *str)
 			*str = repl;
-		}
 		str++;
 	}
 }
 
 #endif
+
+/** @}
+ */
