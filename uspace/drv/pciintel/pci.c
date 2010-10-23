@@ -64,7 +64,7 @@ static hw_resource_list_t *pciintel_get_child_resources(device_t *dev)
 {
 	pci_dev_data_t *dev_data = (pci_dev_data_t *) dev->driver_data;
 	
-	if (NULL == dev_data)
+	if (dev_data == NULL)
 		return NULL;
 	return &dev_data->hw_resources;
 }
@@ -108,10 +108,11 @@ static pci_bus_data_t *create_pci_bus_data(void)
 	pci_bus_data_t *bus_data;
 	
 	bus_data = (pci_bus_data_t *) malloc(sizeof(pci_bus_data_t));
-	if (NULL != bus_data) {
+	if (bus_data != NULL) {
 		memset(bus_data, 0, sizeof(pci_bus_data_t));
 		fibril_mutex_initialize(&bus_data->conf_mutex);
 	}
+
 	return bus_data;
 }
 
@@ -122,7 +123,7 @@ static void delete_pci_bus_data(pci_bus_data_t *bus_data)
 
 static void pci_conf_read(device_t *dev, int reg, uint8_t *buf, size_t len)
 {
-	assert(NULL != dev->parent);
+	assert(dev->parent != NULL);
 	
 	pci_dev_data_t *dev_data = (pci_dev_data_t *) dev->driver_data;
 	pci_bus_data_t *bus_data = (pci_bus_data_t *) dev->parent->driver_data;
@@ -152,7 +153,7 @@ static void pci_conf_read(device_t *dev, int reg, uint8_t *buf, size_t len)
 
 static void pci_conf_write(device_t *dev, int reg, uint8_t *buf, size_t len)
 {
-	assert(NULL != dev->parent);
+	assert(dev->parent != NULL);
 	
 	pci_dev_data_t *dev_data = (pci_dev_data_t *) dev->driver_data;
 	pci_bus_data_t *bus_data = (pci_bus_data_t *) dev->parent->driver_data;
@@ -223,13 +224,14 @@ void create_pci_match_ids(device_t *dev)
 	char *match_id_str;
 	
 	match_id = create_match_id();
-	if (NULL != match_id) {
+	if (match_id != NULL) {
 		asprintf(&match_id_str, "pci/ven=%04x&dev=%04x",
 		    dev_data->vendor_id, dev_data->device_id);
 		match_id->id = match_id_str;
 		match_id->score = 90;
 		add_match_id(&dev->match_ids, match_id);
-	}	
+	}
+
 	/* TODO add more ids (with subsys ids, using class id etc.) */
 }
 
@@ -241,7 +243,7 @@ pci_add_range(device_t *dev, uint64_t range_addr, size_t range_size, bool io)
 	hw_resource_t *hw_resources =  hw_res_list->resources;
 	size_t count = hw_res_list->count;
 	
-	assert(NULL != hw_resources);
+	assert(hw_resources != NULL);
 	assert(count < PCI_MAX_HW_RES);
 	
 	if (io) {
@@ -353,7 +355,7 @@ void pci_add_interrupt(device_t *dev, int irq)
 void pci_read_interrupt(device_t *dev)
 {
 	uint8_t irq = pci_conf_read_8(dev, PCI_BRIDGE_INT_LINE);
-	if (0xff != irq)
+	if (irq != 0xff)
 		pci_add_interrupt(dev, irq);
 }
 
@@ -414,7 +416,7 @@ void pci_bus_scan(device_t *parent, int bus_num)
 			
 			create_pci_match_ids(dev);
 			
-			if (EOK != child_device_register(dev, parent)) {
+			if (child_device_register(dev, parent) != EOK) {
 				pci_clean_resource_list(dev);
 				clean_match_ids(&dev->match_ids);
 				free((char *) dev->name);
@@ -423,12 +425,12 @@ void pci_bus_scan(device_t *parent, int bus_num)
 			}
 			
 			if (header_type == PCI_HEADER_TYPE_BRIDGE ||
-			    header_type == PCI_HEADER_TYPE_CARDBUS ) {
+			    header_type == PCI_HEADER_TYPE_CARDBUS) {
 				child_bus = pci_conf_read_8(dev,
 				    PCI_BRIDGE_SEC_BUS_NUM);
 				printf(NAME ": device is pci-to-pci bridge, "
 				    "secondary bus number = %d.\n", bus_num);
-				if(child_bus > bus_num)
+				if (child_bus > bus_num)
 					pci_bus_scan(parent, child_bus);
 			}
 			
@@ -452,7 +454,7 @@ static int pci_add_device(device_t *dev)
 	printf(NAME ": pci_add_device\n");
 	
 	pci_bus_data_t *bus_data = create_pci_bus_data();
-	if (NULL == bus_data) {
+	if (bus_data == NULL) {
 		printf(NAME ": pci_add_device allocation failed.\n");
 		return ENOMEM;
 	}
@@ -516,7 +518,7 @@ pci_dev_data_t *create_pci_dev_data(void)
 {
 	pci_dev_data_t *res = (pci_dev_data_t *) malloc(sizeof(pci_dev_data_t));
 	
-	if (NULL != res)
+	if (res != NULL)
 		memset(res, 0, sizeof(pci_dev_data_t));
 	return res;
 }
@@ -530,7 +532,7 @@ void init_pci_dev_data(pci_dev_data_t *d, int bus, int dev, int fn)
 
 void delete_pci_dev_data(pci_dev_data_t *d)
 {
-	if (NULL != d) {
+	if (d != NULL) {
 		clean_hw_resource_list(&d->hw_resources);
 		free(d);
 	}
@@ -559,7 +561,7 @@ void pci_clean_resource_list(device_t *dev)
 {
 	pci_dev_data_t *dev_data = (pci_dev_data_t *) dev->driver_data;
 	
-	if (NULL != dev_data->hw_resources.resources) {
+	if (dev_data->hw_resources.resources != NULL) {
 		free(dev_data->hw_resources.resources);
 		dev_data->hw_resources.resources = NULL;
 	}
