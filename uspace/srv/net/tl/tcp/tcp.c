@@ -2032,7 +2032,7 @@ tcp_prepare_timeout(int (*timeout_function)(void *tcp_timeout_t),
 	fibril = fibril_create(timeout_function, operation_timeout);
 	if (!fibril) {
 		free(operation_timeout);
-		return EPARTY;
+		return EPARTY;	/* FIXME: use another EC */
 	}
 //      fibril_mutex_lock(&socket_data->operation.mutex);
 	// start the timeouting fibril

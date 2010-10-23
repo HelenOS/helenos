@@ -95,6 +95,28 @@ int iospace_enable(task_id_t id, void *ioaddr, unsigned long size)
 	return __SYSCALL1(SYS_IOSPACE_ENABLE, (sysarg_t) &arg);
 }
 
+/** Enable an interrupt.
+ * 
+ * @param irq the interrupt.
+ * 
+ * @return Zero on success, negative error code otherwise. 
+ */
+int interrupt_enable(int irq) 
+{
+	return __SYSCALL2(SYS_INTERRUPT_ENABLE, (sysarg_t) irq, 1);
+}
+
+/** Disable an interrupt.
+ * 
+ * @param irq the interrupt.
+ * 
+ * @return Zero on success, negative error code otherwise. 
+ */
+int interrupt_disable(int irq) 
+{
+	return __SYSCALL2(SYS_INTERRUPT_ENABLE, (sysarg_t) irq, 0);
+}
+
 /** Enable PIO for specified I/O range.
  *
  * @param pio_addr	I/O start address.
