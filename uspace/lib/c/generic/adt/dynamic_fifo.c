@@ -27,18 +27,18 @@
  */
 
 /** @addtogroup libc
- *  @{
+ * @{
  */
 
 /** @file
  * Dynamic first in first out positive integer queue implementation.
  */
 
+#include <adt/dynamic_fifo.h>
+
 #include <errno.h>
 #include <malloc.h>
 #include <mem.h>
-
-#include <adt/dynamic_fifo.h>
 
 /** Internal magic value for a consistency check. */
 #define DYN_FIFO_MAGIC_VALUE	0x58627659
@@ -105,7 +105,7 @@ int dyn_fifo_initialize(dyn_fifo_ref fifo, int size)
  */
 int dyn_fifo_push(dyn_fifo_ref fifo, int value, int max_size)
 {
-	int * new_items;
+	int *new_items;
 
 	if (!dyn_fifo_is_valid(fifo))
 		return EINVAL;
@@ -148,7 +148,7 @@ int dyn_fifo_push(dyn_fifo_ref fifo, int value, int max_size)
 
 /** Returns and excludes the first item in the queue.
  *
- * @param[in,out] fifoi	The dynamic queue.
+ * @param[in,out] fifo	The dynamic queue.
  * @returns		Value of the first item in the queue.
  * @returns		EINVAL if the queue is not valid.
  * @returns		ENOENT if the queue is empty.
@@ -188,9 +188,9 @@ int dyn_fifo_value(dyn_fifo_ref fifo)
 
 /** Clears and destroys the queue.
  *
- *  @param[in,out] fifo		The dynamic queue.
- *  @returns			EOK on success.
- *  @returns			EINVAL if the queue is not valid.
+ * @param[in,out] fifo	The dynamic queue.
+ * @returns		EOK on success.
+ * @returns		EINVAL if the queue is not valid.
  */
 int dyn_fifo_destroy(dyn_fifo_ref fifo)
 {
