@@ -49,6 +49,7 @@ SOURCES = \
 	tl/icmp_remote.c \
 	tl/icmp_client.c \
 	tl/socket_core.c \
+	tl/tl_interface.c \
 	tl/tl_common.c
 
 include $(USPACE_PREFIX)/Makefile.common

@@ -26,12 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup tl_local
- *  @{
+/** @addtogroup libnet
+ * @{
  */
 
-#ifndef __TL_LOCAL_H__
-#define __TL_LOCAL_H__
+#ifndef LIBNET_TL_LOCAL_H_
+#define LIBNET_TL_LOCAL_H_
 
 #include <ipc/ipc.h>
 #include <async.h>
