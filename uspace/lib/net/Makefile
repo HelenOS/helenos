@@ -37,6 +37,7 @@ SOURCES = \
 	generic/net_checksum.c \
 	generic/packet_client.c \
 	generic/packet_remote.c \
+	generic/protocol_map.c \
 	adt/module_map.c \
 	netif/netif_local.c \
 	netif/netif_remote.c \
