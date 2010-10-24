@@ -171,7 +171,7 @@ packet_create(size_t length, size_t addr_len, size_t max_prefix,
 	if (packet == MAP_FAILED)
 		return NULL;
 
-	++ ps_globals.count;
+	ps_globals.count++;
 	packet->packet_id = ps_globals.count;
 	packet->length = length;
 	packet_init(packet, addr_len, max_prefix, max_content, max_suffix);
