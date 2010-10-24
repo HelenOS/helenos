@@ -53,11 +53,18 @@ int usbvirt_data_to_host(struct usbvirt_device *dev,
 int handle_incoming_data(struct usbvirt_device *dev,
     usb_endpoint_t endpoint, void *buffer, size_t size);
 
-int control_pipe(void *buffer, size_t size);
+int control_pipe(usbvirt_control_transfer_t *transfer);
 
 int handle_std_request(usb_device_request_setup_packet_t *request, uint8_t *data);
 
 extern usb_address_t dev_new_address;
+
+int transaction_setup(usbvirt_device_t *device, usb_endpoint_t endpoint,
+    void *buffer, size_t size);
+int transaction_out(usbvirt_device_t *device, usb_endpoint_t endpoint,
+    void *buffer, size_t size);
+int transaction_in(usbvirt_device_t *device, usb_endpoint_t endpoint,
+    void *buffer, size_t size, size_t *data_size);
 
 #endif
 /**

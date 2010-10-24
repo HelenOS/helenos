@@ -63,6 +63,11 @@ typedef int usb_address_t;
  */
 typedef int usb_endpoint_t;
 
+/** Maximum endpoint number in USB 1.1.
+ */
+#define USB11_ENDPOINT_MAX 16
+
+
 /** USB complete address type. 
  * Pair address + endpoint is identification of transaction recipient.
  */

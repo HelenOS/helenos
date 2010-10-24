@@ -40,6 +40,7 @@
 #include <usb/devreq.h>
 
 struct usbvirt_device;
+struct usbvirt_control_transfer;
 
 typedef int (*usbvirt_on_device_request_t)(struct usbvirt_device *dev,
 	usb_device_request_setup_packet_t *request,
@@ -69,8 +70,20 @@ typedef struct {
 	usbvirt_standard_device_request_ops_t *standard_request_ops;
 	/** Callback for class-specific USB request. */
 	usbvirt_on_device_request_t on_class_device_request;
+	
+	int (*on_control_transfer)(struct usbvirt_device *dev,
+	    usb_endpoint_t endpoint, struct usbvirt_control_transfer *transfer);
+	
 	/** Callback for all other incoming data. */
 	int (*on_data)(struct usbvirt_device *dev,
+	    usb_endpoint_t endpoint, void *buffer, size_t size);
+	
+	/** Callback for host request for data. */
+	int (*on_data_request)(struct usbvirt_device *dev,
+	    usb_endpoint_t endpoint, void *buffer, size_t size, size_t *actual_size);
+	
+	/** Decides direction of control transfer. */
+	usb_direction_t (*decide_control_transfer_direction)(
 	    usb_endpoint_t endpoint, void *buffer, size_t size);
 } usbvirt_device_ops_t;
 
@@ -116,17 +129,25 @@ typedef enum {
 	USBVIRT_STATE_CONFIGURED
 } usbvirt_device_state_t;
 
+/** Information about on-going control transfer.
+ */
+typedef struct usbvirt_control_transfer {
+	usb_direction_t direction;
+	void *request;
+	size_t request_size;
+	void *data;
+	size_t data_size;
+} usbvirt_control_transfer_t;
+
 /** Virtual USB device. */
 typedef struct usbvirt_device {
 	/** Callback device operations. */
 	usbvirt_device_ops_t *ops;
 	
-	/** Send data to HC.
-	 * @warning Do not change after initializing with
-	 * usbvirt_device_init().
-	 * This function is here merely to make the interface more OOP.
+	
+	/** Reply onto control transfer.
 	 */
-	int (*send_data)(struct usbvirt_device *dev,
+	int (*control_transfer_reply)(struct usbvirt_device *dev,
 	    usb_endpoint_t endpoint, void *buffer, size_t size);
 	
 	/* Device attributes. */
@@ -152,14 +173,14 @@ typedef struct usbvirt_device {
 	 */
 	int device_id_;
 	
-	/** Main routine called when data is received from HC.
-	 * @warning Do not change after initializing with
-	 * usbvirt_device_init().
-	 * This function is here merely to make the interface more OOP.
-	 */
-	int (*receive_data)(struct usbvirt_device *dev,
+	int (*transaction_out)(struct usbvirt_device *dev,
 	    usb_endpoint_t endpoint, void *buffer, size_t size);
+	int (*transaction_setup)(struct usbvirt_device *dev,
+	    usb_endpoint_t endpoint, void *buffer, size_t size);
+	int (*transaction_in)(struct usbvirt_device *dev,
+	    usb_endpoint_t endpoint, void *buffer, size_t size, size_t *data_size);
 	
+	usbvirt_control_transfer_t current_control_transfers[USB11_ENDPOINT_MAX];
 } usbvirt_device_t;
 
 #endif

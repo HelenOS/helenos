@@ -37,6 +37,7 @@
 #include <vfs/vfs.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <mem.h>
 
 #include "hub.h"
 #include "device.h"
@@ -46,39 +47,123 @@
 
 usbvirt_device_t *device = NULL;
 
-
-static void handle_data_to_device(ipc_callid_t iid, ipc_call_t icall)
+static void handle_setup_transaction(ipc_callid_t iid, ipc_call_t icall)
 {
 	usb_address_t address = IPC_GET_ARG1(icall);
 	usb_endpoint_t endpoint = IPC_GET_ARG2(icall);
-	size_t expected_len = IPC_GET_ARG5(icall);
+	size_t expected_len = IPC_GET_ARG3(icall);
 	
 	if (address != device->address) {
 		ipc_answer_0(iid, EADDRNOTAVAIL);
 		return;
 	}
 	
+	if ((endpoint < 0) || (endpoint >= USB11_ENDPOINT_MAX)) {
+		ipc_answer_0(iid, EINVAL);
+		return;
+	}
+	
+	if (expected_len == 0) {
+		ipc_answer_0(iid, EINVAL);
+		return;
+	}
+	
 	size_t len = 0;
 	void * buffer = NULL;
-	if (expected_len > 0) {
-		int rc = async_data_write_accept(&buffer, false,
-		    1, USB_MAX_PAYLOAD_SIZE,
-		    0, &len);
+	int rc = async_data_write_accept(&buffer, false,
+	    1, USB_MAX_PAYLOAD_SIZE, 0, &len);
 		
+	if (rc != EOK) {
+		ipc_answer_0(iid, rc);
+		return;
+	}
+	
+	rc = device->transaction_setup(device, endpoint, buffer, len);
+	
+	ipc_answer_0(iid, rc);
+}
+
+
+static void handle_out_transaction(ipc_callid_t iid, ipc_call_t icall)
+{
+	usb_address_t address = IPC_GET_ARG1(icall);
+	usb_endpoint_t endpoint = IPC_GET_ARG2(icall);
+	size_t expected_len = IPC_GET_ARG3(icall);
+	
+	if (address != device->address) {
+		ipc_answer_0(iid, EADDRNOTAVAIL);
+		return;
+	}
+	
+	if ((endpoint < 0) || (endpoint >= USB11_ENDPOINT_MAX)) {
+		ipc_answer_0(iid, EINVAL);
+		return;
+	}
+	
+	int rc = EOK;
+	
+	size_t len = 0;
+	void *buffer = NULL;
+	
+	if (expected_len > 0) {
+		rc = async_data_write_accept(&buffer, false,
+		    1, USB_MAX_PAYLOAD_SIZE, 0, &len);
+			
 		if (rc != EOK) {
 			ipc_answer_0(iid, rc);
 			return;
 		}
 	}
 	
-	device->receive_data(device, endpoint, buffer, len);
+	rc = device->transaction_out(device, endpoint, buffer, len);
 	
 	if (buffer != NULL) {
 		free(buffer);
 	}
 	
-	ipc_answer_0(iid, EOK);
+	ipc_answer_0(iid, rc);
 }
+
+
+
+static void handle_in_transaction(ipc_callid_t iid, ipc_call_t icall)
+{
+	usb_address_t address = IPC_GET_ARG1(icall);
+	usb_endpoint_t endpoint = IPC_GET_ARG2(icall);
+	size_t expected_len = IPC_GET_ARG3(icall);
+	
+	if (address != device->address) {
+		ipc_answer_0(iid, EADDRNOTAVAIL);
+		return;
+	}
+	
+	if ((endpoint < 0) || (endpoint >= USB11_ENDPOINT_MAX)) {
+		ipc_answer_0(iid, EINVAL);
+		return;
+	}
+	
+	int rc = EOK;
+	
+	void *buffer = expected_len > 0 ? malloc(expected_len) : NULL;
+	size_t len;
+	
+	rc = device->transaction_in(device, endpoint, buffer, expected_len, &len);
+	/*
+	 * If the request was processed, we will send data back.
+	 */
+	if (rc == EOK) {
+		size_t receive_len;
+		if (!async_data_read_receive(&iid, &receive_len)) {
+			ipc_answer_0(iid, EINVAL);
+			return;
+		}
+		async_data_read_finalize(iid, buffer, receive_len);
+	}
+	
+	ipc_answer_0(iid, rc);
+}
+
+
 
 static void callback_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
@@ -94,8 +179,16 @@ static void callback_connection(ipc_callid_t iid, ipc_call_t *icall)
 				ipc_answer_0(callid, EOK);
 				return;
 			
-			case IPC_M_USBVIRT_DATA_TO_DEVICE:
-				handle_data_to_device(callid, call);
+			case IPC_M_USBVIRT_TRANSACTION_SETUP:
+				handle_setup_transaction(callid, call);
+				break;
+			
+			case IPC_M_USBVIRT_TRANSACTION_OUT:
+				handle_out_transaction(callid, call);
+				break;
+				
+			case IPC_M_USBVIRT_TRANSACTION_IN:
+				handle_in_transaction(callid, call);
 				break;
 			
 			default:
@@ -105,53 +198,40 @@ static void callback_connection(ipc_callid_t iid, ipc_call_t *icall)
 	}
 }
 
-static void device_init(usbvirt_device_t *dev)
+static int control_transfer_reply(struct usbvirt_device *device,
+	    usb_endpoint_t endpoint, void *buffer, size_t size)
 {
-	dev->send_data = usbvirt_data_to_host;
-	dev->receive_data = handle_incoming_data;
-	dev->state = USBVIRT_STATE_DEFAULT;
-	dev->address = 0;
-}
-
-int usbvirt_data_to_host(struct usbvirt_device *dev,
-    usb_endpoint_t endpoint, void *buffer, size_t size)
-{
-	int phone = dev->vhcd_phone_;
-	
-	if (phone < 0) {
-		return EINVAL;
+	usbvirt_control_transfer_t *transfer = &device->current_control_transfers[endpoint];
+	if (transfer->data != NULL) {
+		free(transfer->data);
 	}
-	if ((buffer == NULL) && (size != 0)) {
-		return EINVAL;
-	}
-
-	ipc_call_t answer_data;
-	ipcarg_t answer_rc;
-	aid_t req;
-	int rc;
-	
-	req = async_send_3(phone,
-	    IPC_M_USBVIRT_DATA_FROM_DEVICE,
-	    dev->address,
-	    endpoint,
-	    size,
-	    &answer_data);
-	
-	if (size > 0) {
-		rc = async_data_write_start(phone, buffer, size);
-		if (rc != EOK) {
-			async_wait_for(req, NULL);
-			return rc;
-		}
-	}
-	
-	async_wait_for(req, &answer_rc);
-	rc = (int)answer_rc;
-	if (rc != EOK) {
-		return rc;
-	}
+	transfer->data = malloc(size);
+	memcpy(transfer->data, buffer, size);
+	transfer->data_size = size;
 	
 	return EOK;
+}
+
+static void device_init(usbvirt_device_t *dev)
+{
+	dev->transaction_out = transaction_out;
+	dev->transaction_setup = transaction_setup;
+	dev->transaction_in = transaction_in;
+	
+	dev->control_transfer_reply = control_transfer_reply;
+	
+	dev->state = USBVIRT_STATE_DEFAULT;
+	dev->address = 0;
+	
+	size_t i;
+	for (i = 0; i < USB11_ENDPOINT_MAX; i++) {
+		usbvirt_control_transfer_t *transfer = &dev->current_control_transfers[i];
+		transfer->direction = 0;
+		transfer->request = NULL;
+		transfer->request_size = 0;
+		transfer->data = NULL;
+		transfer->data_size = 0;
+	}
 }
 
 /** Create necessary phones for comunication with virtual HCD.

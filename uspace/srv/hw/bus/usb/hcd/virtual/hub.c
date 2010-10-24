@@ -143,20 +143,6 @@ usbvirt_device_t virthub_dev = {
  
 hub_device_t hub_dev;
 
-static int send_data(struct usbvirt_device *dev,
-	    usb_endpoint_t endpoint, void *buffer, size_t size)
-{
-	usb_target_t target = { dev->address, endpoint };
-	void *my_buffer = NULL;
-	if (size > 0) {
-		my_buffer = malloc(size);
-		memcpy(my_buffer, buffer, size);
-	}
-	hc_fillin_transaction_from_device(target, my_buffer, size);
-	
-	return EOK;
-}
-
 void hub_init(void)
 {
 	size_t i;
@@ -169,7 +155,7 @@ void hub_init(void)
 	}
 	
 	usbvirt_connect_local(&virthub_dev);
-	virthub_dev.send_data = send_data;
+	//virthub_dev.send_data = send_data;
 	
 	printf("%s: virtual hub (%d ports) created.\n", NAME, HUB_PORT_COUNT);
 }
@@ -234,26 +220,6 @@ bool hub_can_device_signal(virtdev_connection_t * device)
 	return false;
 }
 
-void hub_check_port_changes(void)
-{
-	/* FIXME - what if HUB_PORT_COUNT is greater than 8. */
-	uint8_t change_map = 0;
-	
-	size_t i;
-	for (i = 0; i < HUB_PORT_COUNT; i++) {
-		hub_port_t *port = &hub_dev.ports[i];
-		
-		if (port->status_change != 0) {
-			change_map |= (1 << (i + 1));
-		}
-	}
-	
-	/* FIXME - do not send when it has not changed since previous run. */
-	if (change_map != 0) {
-		virthub_dev.send_data(&virthub_dev, HUB_STATUS_CHANGE_PIPE,
-		    &change_map, 1);
-	}
-}
 
 /**
  * @}

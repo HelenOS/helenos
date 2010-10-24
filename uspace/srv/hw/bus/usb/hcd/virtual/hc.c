@@ -47,6 +47,7 @@
 #include "vhcd.h"
 #include "hc.h"
 #include "devices.h"
+#include "hub.h"
 
 #define USLEEP_BASE (500 * 1000)
 
@@ -64,13 +65,12 @@
 		} \
 	} while (0)
 
-static link_t transaction_to_device_list;
-static link_t transaction_from_device_list;
+static link_t transaction_list;
 
-#define TRANSACTION_FORMAT "T[%d:%d (%d)]"
+#define TRANSACTION_FORMAT "T[%d:%d (%d) %d]"
 #define TRANSACTION_PRINTF(t) \
 	(t).target.address, (t).target.endpoint, \
-	(int)(t).len
+	(int)(t).len, (int)(t).type
 
 #define transaction_get_instance(lnk) \
 	list_get_instance(lnk, transaction_t, link)
@@ -99,8 +99,7 @@ static void process_transaction_with_outcome(transaction_t * transaction,
  */
 void hc_manager(void)
 {
-	list_initialize(&transaction_to_device_list);
-	list_initialize(&transaction_from_device_list);
+	list_initialize(&transaction_list);
 	
 	static unsigned int seed = 4573;
 	
@@ -109,14 +108,19 @@ void hc_manager(void)
 	while (true) {
 		async_usleep(USLEEP_BASE + (pseudo_random(&seed) % USLEEP_VAR));
 		
-		if (list_empty(&transaction_to_device_list)) {
+		if (list_empty(&transaction_list)) {
 			continue;
 		}
 		
-		link_t *first_transaction_link = transaction_to_device_list.next;
+		dprintf("virtual hub has address %d:*.", virthub_dev.address);
+		
+		link_t *first_transaction_link = transaction_list.next;
 		transaction_t *transaction
 		    = transaction_get_instance(first_transaction_link);
 		list_remove(first_transaction_link);
+		
+		dprintf("processing transaction " TRANSACTION_FORMAT "",
+		    TRANSACTION_PRINTF(*transaction));
 		
 		usb_transaction_outcome_t outcome;
 		outcome = virtdev_send_to_all(transaction);
@@ -156,7 +160,7 @@ void hc_add_transaction_to_device(bool setup, usb_target_t target,
 	transaction_t *transaction = transaction_create(
 	    setup ? USBVIRT_TRANSACTION_SETUP : USBVIRT_TRANSACTION_OUT, target,
 	    buffer, len, callback, arg);
-	list_append(&transaction->link, &transaction_to_device_list);
+	list_append(&transaction->link, &transaction_list);
 }
 
 /** Add transaction directioned from the device.
@@ -167,72 +171,7 @@ void hc_add_transaction_from_device(usb_target_t target,
 {
 	transaction_t *transaction = transaction_create(USBVIRT_TRANSACTION_IN,
 	    target, buffer, len, callback, arg);
-	list_append(&transaction->link, &transaction_from_device_list);
-}
-
-/** Fill data to existing transaction from device.
- */
-int hc_fillin_transaction_from_device(usb_target_t target,
-    void * buffer, size_t len)
-{
-	dprintf("finding transaction to fill data in (%d:%d)...",
-	    target.address, target.endpoint);
-	int rc;
-	
-	/*
-	 * Find correct transaction envelope in the list.
-	 */
-	if (list_empty(&transaction_from_device_list)) {
-		rc = ENOENT;
-		goto leave;
-	}
-	
-	transaction_t *transaction = NULL;
-	link_t *pos = transaction_from_device_list.next;
-	
-	while (pos != &transaction_from_device_list) {
-		transaction_t *t = transaction_get_instance(pos);
-		if (usb_target_same(t->target, target)) {
-			transaction = t;
-			break;
-		}
-		pos = pos->next;
-	}
-	if (transaction == NULL) {
-		rc = ENOENT;
-		goto leave;
-	}
-	
-	/*
-	 * Remove the transaction from the list as it will be processed now.
-	 */
-	list_remove(&transaction->link);
-	
-	if (transaction->len < len) {
-		process_transaction_with_outcome(transaction, USB_OUTCOME_BABBLE);
-		rc = ENOMEM;
-		goto leave;
-	}
-	
-	/*
-	 * Copy the data and finish processing the transaction.
-	 */
-	transaction->len = len;
-	memcpy(transaction->buffer, buffer, len);
-	
-	process_transaction_with_outcome(transaction, USB_OUTCOME_OK);
-	
-	dprintf("  ...transaction " TRANSACTION_FORMAT " sent back",
-	    TRANSACTION_PRINTF(*transaction));
-	
-	
-	free(transaction);
-	rc = EOK;
-	
-leave:
-	dprintf("  ...fill-in transaction: %s", str_error(rc));
-	
-	return rc;
+	list_append(&transaction->link, &transaction_list);
 }
 
 /**

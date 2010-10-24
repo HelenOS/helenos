@@ -66,6 +66,8 @@
 #define VERBOSE_EXEC(cmd, fmt, ...) \
 	(printf("%s: %s" fmt "\n", NAME, _QUOTEME(cmd), __VA_ARGS__), cmd(__VA_ARGS__))
 
+kb_status_t status;
+
 static int on_incoming_data(struct usbvirt_device *dev,
     usb_endpoint_t endpoint, void *buffer, size_t size)
 {
@@ -82,13 +84,38 @@ static int on_class_request(struct usbvirt_device *dev,
 	return EOK;
 }
 
+static int on_request_for_data(struct usbvirt_device *dev,
+    usb_endpoint_t endpoint, void *buffer, size_t size, size_t *actual_size)
+{
+	if (size < 2 + KB_MAX_KEYS_AT_ONCE) {
+		return EINVAL;
+	}
+	
+	*actual_size = 2 + KB_MAX_KEYS_AT_ONCE;
+	
+	uint8_t data[2 + KB_MAX_KEYS_AT_ONCE];
+	data[0] = status.modifiers;
+	data[1] = 0;
+	
+	size_t i;
+	for (i = 0; i < KB_MAX_KEYS_AT_ONCE; i++) {
+		data[2 + i] = status.pressed_keys[i];
+	}
+	
+	memcpy(buffer, &data, *actual_size);
+	
+	return EOK;
+}
+
+
 /** Keyboard callbacks.
  * We abuse the fact that static variables are zero-filled.
  */
 static usbvirt_device_ops_t keyboard_ops = {
 	.standard_request_ops = &standard_request_ops,
 	.on_class_device_request = on_class_request,
-	.on_data = on_incoming_data
+	.on_data = on_incoming_data,
+	.on_data_request = on_request_for_data
 };
 
 usbvirt_device_configuration_extras_t extra_descriptors[] = {
@@ -151,17 +178,6 @@ static void on_keyboard_change(kb_status_t *status)
 	}
 	printf("\n");
 	
-	uint8_t data[3 + KB_MAX_KEYS_AT_ONCE];
-	data[0] = status->modifiers;
-	data[1] = 0;
-	data[2] = 0;
-	for (i = 0; i < KB_MAX_KEYS_AT_ONCE; i++) {
-		data[3 + i] = status->pressed_keys[i];
-	}
-	
-	int rc = keyboard_dev.send_data(&keyboard_dev, 0, data, sizeof(data));
-	printf("%s:   Sent to VHCD (%s).\n", NAME, str_error(rc));
-	
 	fibril_sleep(1);
 }
 
@@ -197,6 +213,8 @@ int main(int argc, char * argv[])
 		}
 	}
 	
+	kb_init(&status);
+	
 	
 	int rc = usbvirt_connect(&keyboard_dev, DEV_HCD_NAME);
 	if (rc != EOK) {
@@ -204,9 +222,6 @@ int main(int argc, char * argv[])
 		    NAME, DEV_HCD_NAME, str_error(rc));
 		return rc;
 	}
-	
-	kb_status_t status;
-	kb_init(&status);
 	
 	printf("%s: Simulating keyboard events...\n", NAME);
 	kb_process_events(&status, keyboard_events, keyboard_events_count,

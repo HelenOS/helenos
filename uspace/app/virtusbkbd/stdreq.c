@@ -64,7 +64,7 @@ static int on_get_descriptor(struct usbvirt_device *dev,
 		 * For simplicity, always return the same
 		 * report descriptor.
 		 */
-		int rc = dev->send_data(dev, 0,
+		int rc = dev->control_transfer_reply(dev, 0,
 		    report_descriptor, report_descriptor_size);
 		
 		return rc;

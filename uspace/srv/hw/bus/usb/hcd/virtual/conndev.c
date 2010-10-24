@@ -41,44 +41,6 @@
 #include "hc.h"
 #include "hub.h"
 
-/** Handle data from device to host.
- */
-static void handle_data_from_device(ipc_callid_t iid, ipc_call_t icall,
-    virtdev_connection_t *dev)
-{
-	usb_target_t target = {
-		.address = IPC_GET_ARG1(icall),
-		.endpoint = IPC_GET_ARG2(icall)
-	};
-	size_t len = IPC_GET_ARG3(icall);
-	
-	if (!hub_can_device_signal(dev)) {
-		ipc_answer_0(iid, EREFUSED);
-		return;
-	}
-	
-	dprintf("data from device %d [%d.%d]", dev->id,
-	    target.address, target.endpoint);
-	
-	int rc;
-	
-	void * buffer = NULL;
-	if (len > 0) {
-		rc = async_data_write_accept(&buffer, false,
-		    1, USB_MAX_PAYLOAD_SIZE,
-		    0, &len);
-		
-		if (rc != EOK) {
-			ipc_answer_0(iid, rc);
-			return;
-		}
-	}
-	
-	rc = hc_fillin_transaction_from_device(target, buffer, len);
-	
-	ipc_answer_0(iid, rc);
-}
-
 /** Connection handler for communcation with virtual device.
  *
  * @param phone_hash Incoming phone hash.
@@ -107,10 +69,6 @@ void connection_handler_device(ipcarg_t phone_hash, virtdev_connection_t *dev)
 			
 			case IPC_M_CONNECT_TO_ME:
 				ipc_answer_0(callid, ELIMIT);
-				break;
-			
-			case IPC_M_USBVIRT_DATA_FROM_DEVICE:
-				handle_data_from_device(callid, call, dev);
 				break;
 			
 			default:

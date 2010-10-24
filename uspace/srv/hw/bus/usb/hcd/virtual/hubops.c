@@ -58,6 +58,10 @@ static int on_get_descriptor(struct usbvirt_device *dev,
     usb_device_request_setup_packet_t *request, uint8_t *data);
 static int on_class_request(struct usbvirt_device *dev,
     usb_device_request_setup_packet_t *request, uint8_t *data);
+static int on_data_request(struct usbvirt_device *dev,
+    usb_endpoint_t endpoint,
+    void *buffer, size_t size, size_t *actual_size);
+
 
 static usbvirt_standard_device_request_ops_t standard_request_ops = {
 	.on_get_status = NULL,
@@ -77,14 +81,15 @@ static usbvirt_standard_device_request_ops_t standard_request_ops = {
 usbvirt_device_ops_t hub_ops = {
 	.standard_request_ops = &standard_request_ops,
 	.on_class_device_request = on_class_request,
-	.on_data = NULL
+	.on_data = NULL,
+	.on_data_request = on_data_request
 };
 
 static int on_get_descriptor(struct usbvirt_device *dev,
     usb_device_request_setup_packet_t *request, uint8_t *data)
 {
 	if (request->value_high == USB_DESCTYPE_HUB) {
-		int rc = dev->send_data(dev, 0,
+		int rc = dev->control_transfer_reply(dev, 0,
 		    &hub_descriptor, hub_descriptor.length);
 		
 		return rc;
@@ -195,7 +200,8 @@ static int get_hub_status(void)
 {
 	uint32_t hub_status = 0;
 	
-	return virthub_dev.send_data(&virthub_dev, 0, &hub_status, 4);
+	return virthub_dev.control_transfer_reply(&virthub_dev, 0,
+	    &hub_status, 4);
 }
 
 static int get_port_status(uint16_t portindex)
@@ -229,7 +235,7 @@ static int get_port_status(uint16_t portindex)
 	    
 	status |= (port->status_change << 16);
 	
-	return virthub_dev.send_data(&virthub_dev, 0, &status, 4);
+	return virthub_dev.control_transfer_reply(&virthub_dev, 0, &status, 4);
 }
 
 
@@ -333,13 +339,37 @@ static int on_class_request(struct usbvirt_device *dev,
 void clear_port_status_change(hub_port_t *port, uint16_t change)
 {
 	port->status_change &= (~change);
-	hub_check_port_changes();
 }
 
 void set_port_status_change(hub_port_t *port, uint16_t change)
 {
 	port->status_change |= change;
 }
+
+static int on_data_request(struct usbvirt_device *dev,
+    usb_endpoint_t endpoint,
+    void *buffer, size_t size, size_t *actual_size)
+{
+	uint8_t change_map = 0;
+	
+	size_t i;
+	for (i = 0; i < HUB_PORT_COUNT; i++) {
+		hub_port_t *port = &hub_dev.ports[i];
+		
+		if (port->status_change != 0) {
+			change_map |= (1 << (i + 1));
+		}
+	}
+	
+	uint8_t *b = (uint8_t *) buffer;
+	if (size > 0) {
+		*b = change_map;
+		*actual_size = 1;
+	}
+	
+	return EOK;
+}
+
 
 /**
  * @}

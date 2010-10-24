@@ -56,7 +56,7 @@ static int handle_get_descriptor(uint8_t type, uint8_t index, uint16_t language,
 	 */
 	if ((type == USB_DESCTYPE_DEVICE) && (index == 0)) {
 		if (device->descriptors && device->descriptors->device) {
-			return device->send_data(device, 0,
+			return device->control_transfer_reply(device, 0,
 			    device->descriptors->device,
 			    device->descriptors->device->length);
 		} else {
@@ -94,8 +94,8 @@ static int handle_get_descriptor(uint8_t type, uint8_t index, uint16_t language,
 			ptr += extra->length;
 		}
 		
-		int rc = device->send_data(device, 0, all_data,
-		    config->descriptor->total_length);
+		int rc = device->control_transfer_reply(device, 0,
+		    all_data, config->descriptor->total_length);
 		
 		free(all_data);
 		

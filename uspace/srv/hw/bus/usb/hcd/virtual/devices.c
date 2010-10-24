@@ -125,19 +125,37 @@ usb_transaction_outcome_t virtdev_send_to_all(transaction_t *transaction)
 		ipcarg_t answer_rc;
 		aid_t req;
 		int rc = EOK;
+		int method = IPC_M_USBVIRT_TRANSACTION_SETUP;
 		
-		req = async_send_4(dev->phone,
-		    IPC_M_USBVIRT_DATA_TO_DEVICE,
+		switch (transaction->type) {
+			case USBVIRT_TRANSACTION_SETUP:
+				method = IPC_M_USBVIRT_TRANSACTION_SETUP;
+				break;
+			case USBVIRT_TRANSACTION_IN:
+				method = IPC_M_USBVIRT_TRANSACTION_IN;
+				break;
+			case USBVIRT_TRANSACTION_OUT:
+				method = IPC_M_USBVIRT_TRANSACTION_OUT;
+				break;
+		}
+		
+		req = async_send_3(dev->phone,
+		    method,
 		    transaction->target.address,
 		    transaction->target.endpoint,
-		    transaction->type,
 		    transaction->len,
 		    &answer_data);
 		
 		if (transaction->len > 0) {
-			rc = async_data_write_start(dev->phone,
-			    transaction->buffer, transaction->len);
+			if (transaction->type == USBVIRT_TRANSACTION_IN) {
+				rc = async_data_read_start(dev->phone,
+				    transaction->buffer, transaction->len);
+			} else {
+				rc = async_data_write_start(dev->phone,
+				    transaction->buffer, transaction->len);
+			}
 		}
+		
 		if (rc != EOK) {
 			async_wait_for(req, NULL);
 		} else {
@@ -151,8 +169,30 @@ usb_transaction_outcome_t virtdev_send_to_all(transaction_t *transaction)
 	 * (if the address matches).
 	 */
 	if (virthub_dev.address == transaction->target.address) {
-		virthub_dev.receive_data(&virthub_dev, transaction->target.endpoint,
-		    transaction->buffer, transaction->len);
+		size_t tmp;
+		switch (transaction->type) {
+			case USBVIRT_TRANSACTION_SETUP:
+				virthub_dev.transaction_setup(&virthub_dev,
+				    transaction->target.endpoint,
+				    transaction->buffer, transaction->len);
+				break;
+				
+			case USBVIRT_TRANSACTION_IN:
+				virthub_dev.transaction_in(&virthub_dev,
+				    transaction->target.endpoint,
+				    transaction->buffer, transaction->len,
+				    &tmp);
+				if (tmp < transaction->len) {
+					transaction->len = tmp;
+				}
+				break;
+				
+			case USBVIRT_TRANSACTION_OUT:
+				virthub_dev.transaction_out(&virthub_dev,
+				    transaction->target.endpoint,
+				    transaction->buffer, transaction->len);
+				break;
+		}
 	}
 	
 	/*

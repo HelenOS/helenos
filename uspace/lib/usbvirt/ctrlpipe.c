@@ -52,15 +52,14 @@ static int request_get_type(uint8_t request_type)
 }
 
 
-
-int control_pipe(void *buffer, size_t size)
+int control_pipe(usbvirt_control_transfer_t *transfer)
 {
-	if (size < sizeof(usb_device_request_setup_packet_t)) {
+	if (transfer->request_size < sizeof(usb_device_request_setup_packet_t)) {
 		return ENOMEM;
 	}
 	
-	usb_device_request_setup_packet_t *request = (usb_device_request_setup_packet_t *) buffer;
-	uint8_t *remaining_data = ((uint8_t *) request) + sizeof(usb_device_request_setup_packet_t);
+	usb_device_request_setup_packet_t *request = (usb_device_request_setup_packet_t *) transfer->request;
+	uint8_t *remaining_data = transfer->data;
 	
 	int type = request_get_type(request->request_type);
 	
@@ -79,8 +78,6 @@ int control_pipe(void *buffer, size_t size)
 		default:
 			break;
 	}
-	
-	device->send_data(device, 0, NULL, 0);
 	
 	if (dev_new_address != -1) {
 		/*
