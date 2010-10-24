@@ -26,15 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup packet
- *  @{
+/** @addtogroup libpacket
+ * @{
  */
 
 /** @file
  */
 
-#ifndef __NET_PACKET_LOCAL_H__
-#define __NET_PACKET_LOCAL_H__
+#ifndef LIBPACKET_PACKET_LOCAL_H_
+#define LIBPACKET_PACKET_LOCAL_H_
 
 #include <net/packet.h>
 

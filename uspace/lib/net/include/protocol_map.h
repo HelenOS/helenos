@@ -44,11 +44,11 @@
 
 #include <ipc/services.h>
 
-eth_type_t protocol_map(services_t, services_t);
-services_t protocol_unmap(services_t, int);
-eth_type_t lsap_map(eth_lsap_t);
-eth_lsap_t lsap_unmap(eth_type_t);
-hw_type_t hardware_map(services_t);
+extern eth_type_t protocol_map(services_t, services_t);
+extern services_t protocol_unmap(services_t, int);
+extern eth_type_t lsap_map(eth_lsap_t);
+extern eth_lsap_t lsap_unmap(eth_type_t);
+extern hw_type_t hardware_map(services_t);
 
 #endif
 
