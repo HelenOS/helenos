@@ -320,8 +320,10 @@ static int packet_reply(const packet_t packet)
 	if (size != packet->length)
 		return ENOMEM;
 
-	if (!async_share_in_receive(&callid, &size))
+	if (!async_share_in_receive(&callid, &size)) {
+		ipc_answer_0(callid, EINVAL);
 		return EINVAL;
+	}
 	
 	return async_share_in_finalize(callid, packet,
 	    PROTO_READ | PROTO_WRITE);
