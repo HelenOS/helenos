@@ -317,12 +317,14 @@ static int packet_reply(const packet_t packet)
 	if (!packet_is_valid(packet))
 		return EINVAL;
 
-	if (size != packet->length)
-		return ENOMEM;
-
 	if (!async_share_in_receive(&callid, &size)) {
 		ipc_answer_0(callid, EINVAL);
 		return EINVAL;
+	}
+
+	if (size != packet->length) {
+		ipc_answer_0(callid, ENOMEM);
+		return ENOMEM;
 	}
 	
 	return async_share_in_finalize(callid, packet,
