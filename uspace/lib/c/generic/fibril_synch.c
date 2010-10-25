@@ -72,19 +72,18 @@ static void print_deadlock(fibril_owner_info_t *oi)
 {
 	fibril_t *f = (fibril_t *) fibril_get_id();
 
-	printf("Deadlock detected: ");
-
-	printf("Fibril %p waits for primitive %p.\n", f, oi);
+	printf("Deadlock detected.\n");
 	stacktrace_print();
 
+	printf("Fibril %p waits for primitive %p.\n", f, oi);
+
 	while (oi && oi->owned_by) {
-		printf(". ");
 		printf("Primitive %p is owned by fibril %p.\n",
 		    oi, oi->owned_by);
-		stacktrace_print_fp_pc(oi->owned_by->ctx.ebp,
-		    oi->owned_by->ctx.pc);
 		if (oi->owned_by == f)
 			break;
+		stacktrace_print_fp_pc(oi->owned_by->ctx.ebp,
+		    oi->owned_by->ctx.pc);
 		printf("Fibril %p waits for primitive %p.\n",
 		     oi->owned_by, oi->owned_by->waits_for);
 		oi = oi->owned_by->waits_for;
