@@ -88,9 +88,8 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 				connection_handler_host(phone_hash, callback);
 				return;
 			} else if (kind == 1) {
-				int device_id = IPC_GET_ARG2(call);
 				virtdev_connection_t *dev
-				    = virtdev_recognise(device_id, callback);
+				    = virtdev_add_device(callback);
 				if (!dev) {
 					ipc_answer_0(callid, EEXISTS);
 					ipc_hangup(callback);

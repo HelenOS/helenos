@@ -46,13 +46,17 @@
 
 usb_address_t dev_new_address = -1;
 
+/** Tell request type.
+ * By type is meant either standard, class, vendor or other.
+ */
 static int request_get_type(uint8_t request_type)
 {
 	return GET_MIDBITS(request_type, 2, 5);
 }
 
-
-int control_pipe(usbvirt_control_transfer_t *transfer)
+/** Handle communication over control pipe zero.
+ */
+int control_pipe(usbvirt_device_t *device, usbvirt_control_transfer_t *transfer)
 {
 	if (transfer->request_size < sizeof(usb_device_request_setup_packet_t)) {
 		return ENOMEM;
@@ -67,7 +71,7 @@ int control_pipe(usbvirt_control_transfer_t *transfer)
 	
 	switch (type) {
 		case REQUEST_TYPE_STANDARD:
-			rc = handle_std_request(request, remaining_data);
+			rc = handle_std_request(device, request, remaining_data);
 			break;
 		case REQUEST_TYPE_CLASS:
 			if (DEVICE_HAS_OP(device, on_class_device_request)) {
@@ -79,19 +83,19 @@ int control_pipe(usbvirt_control_transfer_t *transfer)
 			break;
 	}
 	
-	if (dev_new_address != -1) {
+	if (device->new_address != -1) {
 		/*
 		 * TODO: handle when this request is invalid (e.g.
 		 * setting address when in configured state).
 		 */
-		if (dev_new_address == 0) {
+		if (device->new_address == 0) {
 			device->state = USBVIRT_STATE_DEFAULT;
 		} else {
 			device->state = USBVIRT_STATE_ADDRESS;
 		}
-		device->address = dev_new_address;
+		device->address = device->new_address;
 		
-		dev_new_address = -1;
+		device->new_address = -1;
 	}
 	
 	return rc;

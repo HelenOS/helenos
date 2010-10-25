@@ -38,7 +38,6 @@
 #include "device.h"
 #include "hub.h"
 
-extern usbvirt_device_t *device;
 
 #define DEVICE_HAS_OP(dev, op) \
 	( \
@@ -53,11 +52,11 @@ int usbvirt_data_to_host(struct usbvirt_device *dev,
 int handle_incoming_data(struct usbvirt_device *dev,
     usb_endpoint_t endpoint, void *buffer, size_t size);
 
-int control_pipe(usbvirt_control_transfer_t *transfer);
+int control_pipe(usbvirt_device_t *device, usbvirt_control_transfer_t *transfer);
 
-int handle_std_request(usb_device_request_setup_packet_t *request, uint8_t *data);
+int handle_std_request(usbvirt_device_t *device, usb_device_request_setup_packet_t *request, uint8_t *data);
 
-extern usb_address_t dev_new_address;
+void device_callback_connection(usbvirt_device_t *device, ipc_callid_t iid, ipc_call_t *icall);
 
 int transaction_setup(usbvirt_device_t *device, usb_endpoint_t endpoint,
     void *buffer, size_t size);

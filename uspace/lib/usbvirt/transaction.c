@@ -37,11 +37,13 @@
 #include <stdio.h>
 #include <mem.h>
 
-#include "ids.h"
+#include "hub.h"
 #include "private.h"
 
-static usb_direction_t setup_transaction_direction(usb_endpoint_t, void *, size_t);
-static void process_control_transfer(usb_endpoint_t, usbvirt_control_transfer_t *);
+static usb_direction_t setup_transaction_direction(usbvirt_device_t *,
+    usb_endpoint_t, void *, size_t);
+static void process_control_transfer(usbvirt_device_t *,
+    usb_endpoint_t, usbvirt_control_transfer_t *);
 
 /** Convert virtual USB transaction type to string.
  */
@@ -59,6 +61,9 @@ const char *usbvirt_str_transaction_type(usbvirt_transaction_type_t type)
 	}
 }
 
+/** SETUP transaction handling.
+ * The setup transaction only prepares control transfer on given endpoint.
+ */
 int transaction_setup(usbvirt_device_t *device, usb_endpoint_t endpoint,
     void *buffer, size_t size)
 {
@@ -71,16 +76,23 @@ int transaction_setup(usbvirt_device_t *device, usb_endpoint_t endpoint,
 		free(transfer->data);
 	}
 	
-	transfer->direction = setup_transaction_direction(endpoint,
+	transfer->direction = setup_transaction_direction(device, endpoint,
 	    buffer, size);
 	transfer->request = buffer;
 	transfer->request_size = size;
 	transfer->data = NULL;
 	transfer->data_size = 0;
 	
+	if (transfer->direction == USB_DIRECTION_IN) {
+		process_control_transfer(device, endpoint, transfer);
+	}
+	
 	return EOK;
 }
 
+/** OUT transaction handling.
+ * The OUT transaction can trigger processing of a control transfer.
+ */
 int transaction_out(usbvirt_device_t *device, usb_endpoint_t endpoint,
     void *buffer, size_t size)
 {
@@ -132,6 +144,9 @@ int transaction_out(usbvirt_device_t *device, usb_endpoint_t endpoint,
 	}
 }
 
+/** IN transaction handling.
+ * The IN transaction can trigger processing of a control transfer.
+ */
 int transaction_in(usbvirt_device_t *device, usb_endpoint_t endpoint,
     void *buffer, size_t size, size_t *data_size)
 {
@@ -144,13 +159,27 @@ int transaction_in(usbvirt_device_t *device, usb_endpoint_t endpoint,
 			/*
 			 * This means end of input data.
 			 */
-			process_control_transfer(endpoint, transfer);
+			process_control_transfer(device, endpoint, transfer);
 		} else {
 			/*
 			 * For in transactions, this means sending next part
 			 * of the buffer.
 			 */
-			// TODO: implement
+			// FIXME: handle when the HC wants the data back
+			// in more chunks
+			size_t actual_size = 0;
+			if (transfer->data) {
+				actual_size = transfer->data_size;
+			}
+			if (actual_size > size) {
+				actual_size = size;
+			}
+			if (actual_size > 0) {
+				memcpy(buffer, transfer->data, actual_size);
+				if (data_size) {
+					*data_size = actual_size;
+				}
+			}
 		}
 		
 		return EOK;
@@ -169,8 +198,12 @@ int transaction_in(usbvirt_device_t *device, usb_endpoint_t endpoint,
 	return rc;
 }
 
-
-static usb_direction_t setup_transaction_direction(usb_endpoint_t endpoint,
+/** Determine direction of control transfer.
+ * First, try the user provided callback, otherwise guess, believing that
+ * it uses the same format as control pipe 0.
+ */
+static usb_direction_t setup_transaction_direction(usbvirt_device_t *device,
+    usb_endpoint_t endpoint,
     void *data, size_t size)
 {
 	int direction = -1;
@@ -201,7 +234,10 @@ static usb_direction_t setup_transaction_direction(usb_endpoint_t endpoint,
 	return (usb_direction_t) direction;
 }
 
-static void process_control_transfer(usb_endpoint_t endpoint,
+/** Process control transfer.
+ */
+static void process_control_transfer(usbvirt_device_t *device,
+    usb_endpoint_t endpoint,
     usbvirt_control_transfer_t *transfer)
 {
 	int rc = EFORWARD;
@@ -212,7 +248,7 @@ static void process_control_transfer(usb_endpoint_t endpoint,
 	
 	if (rc == EFORWARD) {
 		if (endpoint == 0) {
-			rc = control_pipe(transfer);
+			rc = control_pipe(device, transfer);
 		}
 	}
 }

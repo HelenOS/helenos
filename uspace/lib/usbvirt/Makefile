@@ -33,6 +33,7 @@ LIBS = $(LIBUSB_PREFIX)/libusb.a
 EXTRA_CFLAGS = -I$(LIB_PREFIX)
 
 SOURCES = \
+	callback.c \
 	ctrlpipe.c \
 	main.c \
 	stdreq.c \

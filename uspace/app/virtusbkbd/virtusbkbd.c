@@ -49,7 +49,6 @@
 #include <usb/hid.h>
 #include <usbvirt/device.h>
 #include <usbvirt/hub.h>
-#include <usbvirt/ids.h>
 
 #include "kbdconfig.h"
 #include "keys.h"
@@ -153,7 +152,7 @@ usbvirt_descriptors_t descriptors = {
 static usbvirt_device_t keyboard_dev = {
 	.ops = &keyboard_ops,
 	.descriptors = &descriptors,
-	.device_id_ = USBVIRT_DEV_KEYBOARD_ID
+	.name = "keyboard"
 };
 
 
@@ -229,7 +228,7 @@ int main(int argc, char * argv[])
 	
 	printf("%s: Terminating...\n", NAME);
 	
-	usbvirt_disconnect();
+	usbvirt_disconnect(&keyboard_dev);
 	
 	return 0;
 }

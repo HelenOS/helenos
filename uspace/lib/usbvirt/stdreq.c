@@ -48,7 +48,9 @@
  * else in this context).
  */
  
-static int handle_get_descriptor(uint8_t type, uint8_t index, uint16_t language,
+/** GET_DESCRIPTOR handler. */
+static int handle_get_descriptor(usbvirt_device_t *device,
+    uint8_t type, uint8_t index, uint16_t language,
     uint16_t length)
 {
 	/* 
@@ -105,7 +107,9 @@ static int handle_get_descriptor(uint8_t type, uint8_t index, uint16_t language,
 	return EFORWARD;
 }
 
-static int handle_set_address(uint16_t new_address,
+/** SET_ADDRESS handler. */
+static int handle_set_address(usbvirt_device_t *device,
+    uint16_t new_address,
     uint16_t zero1, uint16_t zero2)
 {
 	if ((zero1 != 0) || (zero2 != 0)) {
@@ -116,12 +120,14 @@ static int handle_set_address(uint16_t new_address,
 		return EINVAL;
 	}
 	
-	dev_new_address = new_address;
+	device->new_address = new_address;
 	
 	return EOK;
 }
 
-static int handle_set_configuration(uint16_t configuration_value,
+/** SET_CONFIGURATION handler. */
+static int handle_set_configuration(usbvirt_device_t *device,
+    uint16_t configuration_value,
     uint16_t zero1, uint16_t zero2)
 {
 	if ((zero1 != 0) || (zero2 != 0)) {
@@ -176,22 +182,23 @@ static int handle_set_configuration(uint16_t configuration_value,
 		} \
 	} while (false)
 
-
-int handle_std_request(usb_device_request_setup_packet_t *request, uint8_t *data)
+/** Handle standard device request. */
+int handle_std_request(usbvirt_device_t *device,
+    usb_device_request_setup_packet_t *request, uint8_t *data)
 {
 	HANDLE_REQUEST(request, data, USB_DEVREQ_GET_DESCRIPTOR,
 	    device, on_get_descriptor,
-	    handle_get_descriptor(request->value_low, request->value_high,
+	    handle_get_descriptor(device, request->value_low, request->value_high,
 	        request->index, request->length));
 	
 	HANDLE_REQUEST(request, data, USB_DEVREQ_SET_ADDRESS,
 	    device, on_set_address,
-	    handle_set_address(request->value,
+	    handle_set_address(device, request->value,
 	        request->index, request->length));
 	
 	HANDLE_REQUEST(request, data, USB_DEVREQ_SET_CONFIGURATION,
 	    device, on_set_configuration,
-	    handle_set_configuration(request->value,
+	    handle_set_configuration(device, request->value,
 	        request->index, request->length));
 	
 	return ENOTSUP;

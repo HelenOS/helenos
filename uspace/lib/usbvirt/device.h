@@ -39,10 +39,10 @@
 #include <usb/descriptor.h>
 #include <usb/devreq.h>
 
-struct usbvirt_device;
+typedef struct usbvirt_device usbvirt_device_t;
 struct usbvirt_control_transfer;
 
-typedef int (*usbvirt_on_device_request_t)(struct usbvirt_device *dev,
+typedef int (*usbvirt_on_device_request_t)(usbvirt_device_t *dev,
 	usb_device_request_setup_packet_t *request,
 	uint8_t *data);
 
@@ -71,15 +71,15 @@ typedef struct {
 	/** Callback for class-specific USB request. */
 	usbvirt_on_device_request_t on_class_device_request;
 	
-	int (*on_control_transfer)(struct usbvirt_device *dev,
+	int (*on_control_transfer)(usbvirt_device_t *dev,
 	    usb_endpoint_t endpoint, struct usbvirt_control_transfer *transfer);
 	
 	/** Callback for all other incoming data. */
-	int (*on_data)(struct usbvirt_device *dev,
+	int (*on_data)(usbvirt_device_t *dev,
 	    usb_endpoint_t endpoint, void *buffer, size_t size);
 	
 	/** Callback for host request for data. */
-	int (*on_data_request)(struct usbvirt_device *dev,
+	int (*on_data_request)(usbvirt_device_t *dev,
 	    usb_endpoint_t endpoint, void *buffer, size_t size, size_t *actual_size);
 	
 	/** Decides direction of control transfer. */
@@ -132,56 +132,60 @@ typedef enum {
 /** Information about on-going control transfer.
  */
 typedef struct usbvirt_control_transfer {
+	/** Transfer direction (read/write control transfer). */
 	usb_direction_t direction;
+	/** Request data. */
 	void *request;
+	/** Size of request data. */
 	size_t request_size;
+	/** Payload. */
 	void *data;
+	/** Size of payload. */
 	size_t data_size;
 } usbvirt_control_transfer_t;
 
 /** Virtual USB device. */
-typedef struct usbvirt_device {
+struct usbvirt_device {
 	/** Callback device operations. */
 	usbvirt_device_ops_t *ops;
 	
-	
 	/** Reply onto control transfer.
 	 */
-	int (*control_transfer_reply)(struct usbvirt_device *dev,
+	int (*control_transfer_reply)(usbvirt_device_t *dev,
 	    usb_endpoint_t endpoint, void *buffer, size_t size);
 	
-	/* Device attributes. */
+	/** Device name.
+	 * Used in debug prints and sent to virtual host controller.
+	 */
+	const char *name;
 	
 	/** Standard descriptors. */
 	usbvirt_descriptors_t *descriptors;
 	
 	/** Current device state. */
 	usbvirt_device_state_t state;
+	
 	/** Device address. */
 	usb_address_t address;
-	
-	/* Private attributes. */
-	
-	/** Phone to HC.
-	 * @warning Do not change, this is private variable.
+	/** New device address.
+	 * This field is used during SET_ADDRESS request.
+	 * On all other occasions, it holds invalid address (e.g. -1).
 	 */
-	int vhcd_phone_;
+	usb_address_t new_address;
 	
-	/** Device id.
-	 * This item will be removed when device enumeration and
-	 * recognition is implemented.
-	 */
-	int device_id_;
-	
-	int (*transaction_out)(struct usbvirt_device *dev,
+	/** Process OUT transaction. */
+	int (*transaction_out)(usbvirt_device_t *dev,
 	    usb_endpoint_t endpoint, void *buffer, size_t size);
-	int (*transaction_setup)(struct usbvirt_device *dev,
+	/** Process SETUP transaction. */
+	int (*transaction_setup)(usbvirt_device_t *dev,
 	    usb_endpoint_t endpoint, void *buffer, size_t size);
-	int (*transaction_in)(struct usbvirt_device *dev,
+	/** Process IN transaction. */
+	int (*transaction_in)(usbvirt_device_t *dev,
 	    usb_endpoint_t endpoint, void *buffer, size_t size, size_t *data_size);
 	
+	/** State information on control-transfer endpoints. */
 	usbvirt_control_transfer_t current_control_transfers[USB11_ENDPOINT_MAX];
-} usbvirt_device_t;
+};
 
 #endif
 /**

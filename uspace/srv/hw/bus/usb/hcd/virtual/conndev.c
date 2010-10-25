@@ -41,6 +41,38 @@
 #include "hc.h"
 #include "hub.h"
 
+#define DEVICE_NAME_MAXLENGTH 32
+
+static int get_device_name(int phone, char *buffer, size_t len)
+{
+	ipc_call_t answer_data;
+	ipcarg_t answer_rc;
+	aid_t req;
+	int rc;
+	
+	req = async_send_0(phone,
+	    IPC_M_USBVIRT_GET_NAME,
+	    &answer_data);
+	
+	rc = async_data_read_start(phone, buffer, len);
+	if (rc != EOK) {
+		async_wait_for(req, NULL);
+		return EINVAL;
+	}
+	
+	async_wait_for(req, &answer_rc);
+	rc = (int)answer_rc;
+	
+	if (IPC_GET_ARG1(answer_data) < len) {
+		len = IPC_GET_ARG1(answer_data);
+	} else {
+		len--;
+	}
+	buffer[len] = 0;
+	
+	return rc;
+}
+
 /** Connection handler for communcation with virtual device.
  *
  * This function also takes care of proper phone hung-up.
@@ -52,7 +84,12 @@ void connection_handler_device(ipcarg_t phone_hash, virtdev_connection_t *dev)
 {
 	assert(dev != NULL);
 	
-	dprintf(0, "virtual device connected through phone %#x", phone_hash);
+	char devname[DEVICE_NAME_MAXLENGTH + 1];
+	int rc = get_device_name(dev->phone, devname, DEVICE_NAME_MAXLENGTH);
+	
+	dprintf(0, "virtual device connected (phone: %#x, name: %s)",
+	    phone_hash, rc == EOK ? devname : "<unknown>");
+	
 	
 	while (true) {
 		ipc_callid_t callid; 

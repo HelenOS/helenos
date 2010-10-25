@@ -42,7 +42,6 @@
 #include <errno.h>
 #include <str_error.h>
 
-#include <usbvirt/ids.h>
 #include <usbvirt/hub.h>
 
 #include "devices.h"
@@ -54,29 +53,6 @@
         	pos = pos->next)
 
 LIST_INITIALIZE(devices);
-
-/** Recognise device by id.
- *
- * @param id Device id.
- * @param phone Callback phone.
- */
-virtdev_connection_t *virtdev_recognise(int id, int phone)
-{
-	virtdev_connection_t * dev = virtdev_add_device(phone);
-	
-	/*
-	 * We do not want to mess-up the virtdev_add_device() as
-	 * the id is needed only before device probing/detection
-	 * is implemented.
-	 *
-	 * However, that does not mean that this will happen soon.
-	 */
-	if (dev) {
-		dev->id = id;
-	}
-	
-	return dev;
-}
 
 /** Create virtual device.
  *

@@ -44,13 +44,10 @@
 typedef struct {
 	/** Phone used when sending data to device. */
 	int phone;
-	/** Device id. */
-	int id;
 	/** Linked-list handle. */
 	link_t link;
 } virtdev_connection_t;
 
-virtdev_connection_t *virtdev_recognise(int, int);
 virtdev_connection_t *virtdev_add_device(int);
 void virtdev_destroy_device(virtdev_connection_t *);
 usb_transaction_outcome_t virtdev_send_to_all(transaction_t *);

@@ -30,7 +30,7 @@
  * @{
  */
 /** @file
- * @brief Main handler for virtual USB device.
+ * @brief Device registration with virtual USB framework.
  */
 #include <devmap.h>
 #include <fcntl.h>
@@ -38,6 +38,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <mem.h>
+#include <assert.h>
 
 #include "hub.h"
 #include "device.h"
@@ -45,160 +46,61 @@
 
 #define NAMESPACE "usb"
 
-usbvirt_device_t *device = NULL;
+/** Virtual device wrapper. */
+typedef struct {
+	/** Actual device. */
+	usbvirt_device_t *device;
+	/** Phone to host controller. */
+	int vhcd_phone;
+	/** Device id. */
+	ipcarg_t id;
+	/** Linked-list member. */
+	link_t link;
+} virtual_device_t;
 
-static void handle_setup_transaction(ipc_callid_t iid, ipc_call_t icall)
+/*** List of known device. */
+static LIST_INITIALIZE(device_list);
+
+/** Find virtual device wrapper based on the contents. */
+static virtual_device_t *find_device(usbvirt_device_t *device)
 {
-	usb_address_t address = IPC_GET_ARG1(icall);
-	usb_endpoint_t endpoint = IPC_GET_ARG2(icall);
-	size_t expected_len = IPC_GET_ARG3(icall);
-	
-	if (address != device->address) {
-		ipc_answer_0(iid, EADDRNOTAVAIL);
-		return;
+	if (list_empty(&device_list)) {
+		return NULL;
 	}
 	
-	if ((endpoint < 0) || (endpoint >= USB11_ENDPOINT_MAX)) {
-		ipc_answer_0(iid, EINVAL);
-		return;
-	}
-	
-	if (expected_len == 0) {
-		ipc_answer_0(iid, EINVAL);
-		return;
-	}
-	
-	size_t len = 0;
-	void * buffer = NULL;
-	int rc = async_data_write_accept(&buffer, false,
-	    1, USB_MAX_PAYLOAD_SIZE, 0, &len);
-		
-	if (rc != EOK) {
-		ipc_answer_0(iid, rc);
-		return;
-	}
-	
-	rc = device->transaction_setup(device, endpoint, buffer, len);
-	
-	ipc_answer_0(iid, rc);
-}
-
-
-static void handle_out_transaction(ipc_callid_t iid, ipc_call_t icall)
-{
-	usb_address_t address = IPC_GET_ARG1(icall);
-	usb_endpoint_t endpoint = IPC_GET_ARG2(icall);
-	size_t expected_len = IPC_GET_ARG3(icall);
-	
-	if (address != device->address) {
-		ipc_answer_0(iid, EADDRNOTAVAIL);
-		return;
-	}
-	
-	if ((endpoint < 0) || (endpoint >= USB11_ENDPOINT_MAX)) {
-		ipc_answer_0(iid, EINVAL);
-		return;
-	}
-	
-	int rc = EOK;
-	
-	size_t len = 0;
-	void *buffer = NULL;
-	
-	if (expected_len > 0) {
-		rc = async_data_write_accept(&buffer, false,
-		    1, USB_MAX_PAYLOAD_SIZE, 0, &len);
-			
-		if (rc != EOK) {
-			ipc_answer_0(iid, rc);
-			return;
+	link_t *pos;
+	for (pos = device_list.next; pos != &device_list; pos = pos->next) {
+		virtual_device_t *dev
+		    = list_get_instance(pos, virtual_device_t, link);
+		if (dev->device == device) {
+			return dev;
 		}
 	}
 	
-	rc = device->transaction_out(device, endpoint, buffer, len);
-	
-	if (buffer != NULL) {
-		free(buffer);
-	}
-	
-	ipc_answer_0(iid, rc);
+	return NULL;
 }
 
-
-
-static void handle_in_transaction(ipc_callid_t iid, ipc_call_t icall)
+/** Find virtual device wrapper by its id. */
+static virtual_device_t *find_device_by_id(ipcarg_t id)
 {
-	usb_address_t address = IPC_GET_ARG1(icall);
-	usb_endpoint_t endpoint = IPC_GET_ARG2(icall);
-	size_t expected_len = IPC_GET_ARG3(icall);
-	
-	if (address != device->address) {
-		ipc_answer_0(iid, EADDRNOTAVAIL);
-		return;
+	if (list_empty(&device_list)) {
+		return NULL;
 	}
 	
-	if ((endpoint < 0) || (endpoint >= USB11_ENDPOINT_MAX)) {
-		ipc_answer_0(iid, EINVAL);
-		return;
-	}
-	
-	int rc = EOK;
-	
-	void *buffer = expected_len > 0 ? malloc(expected_len) : NULL;
-	size_t len;
-	
-	rc = device->transaction_in(device, endpoint, buffer, expected_len, &len);
-	/*
-	 * If the request was processed, we will send data back.
-	 */
-	if (rc == EOK) {
-		size_t receive_len;
-		if (!async_data_read_receive(&iid, &receive_len)) {
-			ipc_answer_0(iid, EINVAL);
-			return;
-		}
-		async_data_read_finalize(iid, buffer, receive_len);
-	}
-	
-	ipc_answer_0(iid, rc);
-}
-
-
-
-static void callback_connection(ipc_callid_t iid, ipc_call_t *icall)
-{
-	ipc_answer_0(iid, EOK);
-	
-	while (true) {
-		ipc_callid_t callid; 
-		ipc_call_t call; 
-		
-		callid = async_get_call(&call);
-		switch (IPC_GET_METHOD(call)) {
-			case IPC_M_PHONE_HUNGUP:
-				ipc_answer_0(callid, EOK);
-				return;
-			
-			case IPC_M_USBVIRT_TRANSACTION_SETUP:
-				handle_setup_transaction(callid, call);
-				break;
-			
-			case IPC_M_USBVIRT_TRANSACTION_OUT:
-				handle_out_transaction(callid, call);
-				break;
-				
-			case IPC_M_USBVIRT_TRANSACTION_IN:
-				handle_in_transaction(callid, call);
-				break;
-			
-			default:
-				ipc_answer_0(callid, EINVAL);
-				break;
+	link_t *pos;
+	for (pos = device_list.next; pos != &device_list; pos = pos->next) {
+		virtual_device_t *dev
+		    = list_get_instance(pos, virtual_device_t, link);
+		if (dev->id == id) {
+			return dev;
 		}
 	}
+	
+	return NULL;
 }
 
-static int control_transfer_reply(struct usbvirt_device *device,
+/** Reply to a control transfer. */
+static int control_transfer_reply(usbvirt_device_t *device,
 	    usb_endpoint_t endpoint, void *buffer, size_t size)
 {
 	usbvirt_control_transfer_t *transfer = &device->current_control_transfers[endpoint];
@@ -212,6 +114,7 @@ static int control_transfer_reply(struct usbvirt_device *device,
 	return EOK;
 }
 
+/** Initialize virtual device. */
 static void device_init(usbvirt_device_t *dev)
 {
 	dev->transaction_out = transaction_out;
@@ -222,6 +125,7 @@ static void device_init(usbvirt_device_t *dev)
 	
 	dev->state = USBVIRT_STATE_DEFAULT;
 	dev->address = 0;
+	dev->new_address = -1;
 	
 	size_t i;
 	for (i = 0; i < USB11_ENDPOINT_MAX; i++) {
@@ -232,6 +136,49 @@ static void device_init(usbvirt_device_t *dev)
 		transfer->data = NULL;
 		transfer->data_size = 0;
 	}
+}
+
+/** Add a virtual device.
+ * The returned device (if not NULL) shall be destroy via destroy_device().
+ */
+static virtual_device_t *add_device(usbvirt_device_t *dev)
+{
+	assert(find_device(dev) == NULL);
+	virtual_device_t *new_device
+	    = (virtual_device_t *) malloc(sizeof(virtual_device_t));
+	
+	new_device->device = dev;
+	link_initialize(&new_device->link);
+	
+	list_append(&new_device->link, &device_list);
+	
+	return new_device;
+}
+
+/** Destroy virtual device. */
+static void destroy_device(virtual_device_t *dev)
+{
+	if (dev->vhcd_phone > 0) {
+		ipc_hangup(dev->vhcd_phone);
+	}
+	
+	list_remove(&dev->link);
+	
+	free(dev);
+}
+
+/** Callback connection handler. */
+static void callback_connection(ipc_callid_t iid, ipc_call_t *icall)
+{
+	// FIXME - determine which device just called back
+	virtual_device_t *dev = find_device_by_id(0);
+	if (dev == NULL) {
+		ipc_answer_0(iid, EINVAL);
+		printf("Ooops\n");
+		return;
+	}
+	
+	device_callback_connection(dev->device, iid, icall);
 }
 
 /** Create necessary phones for comunication with virtual HCD.
@@ -253,6 +200,11 @@ static void device_init(usbvirt_device_t *dev)
  */
 int usbvirt_connect(usbvirt_device_t *dev, const char *hcd_path)
 {
+	virtual_device_t *virtual_device = find_device(dev);
+	if (virtual_device != NULL) {
+		return EEXISTS;
+	}
+	
 	char dev_path[DEVMAP_NAME_MAXLEN + 1];
 	snprintf(dev_path, DEVMAP_NAME_MAXLEN,
 	    "/dev/%s/%s", NAMESPACE, hcd_path);
@@ -269,15 +221,16 @@ int usbvirt_connect(usbvirt_device_t *dev, const char *hcd_path)
 	}
 	
 	ipcarg_t phonehash;
-	int rc = ipc_connect_to_me(hcd_phone, 1, dev->device_id_, 0, &phonehash);
+	int rc = ipc_connect_to_me(hcd_phone, 1, 0, 0, &phonehash);
 	if (rc != EOK) {
 		return rc;
 	}
 	
-	dev->vhcd_phone_ = hcd_phone;
 	device_init(dev);
 	
-	device = dev;
+	virtual_device = add_device(dev);
+	virtual_device->vhcd_phone = hcd_phone;
+	virtual_device->id = 0;
 	
 	async_new_connection(phonehash, 0, NULL, callback_connection);
 	
@@ -289,27 +242,41 @@ int usbvirt_connect(usbvirt_device_t *dev, const char *hcd_path)
  * as HCD.
  *
  * @param dev Device to connect.
- * @return Always EOK.
+ * @return Error code.
+ * @retval EOK Device connected.
+ * @retval EEXISTS This device is already connected.
  */
 int usbvirt_connect_local(usbvirt_device_t *dev)
 {
-	dev->vhcd_phone_ = -1;
+	virtual_device_t *virtual_device = find_device(dev);
+	if (virtual_device != NULL) {
+		return EEXISTS;
+	}
+	
 	device_init(dev);
 	
-	device = dev;
+	virtual_device = add_device(dev);
+	virtual_device->vhcd_phone = -1;
+	virtual_device->id = 0;
 	
 	return EOK;
 }
 
 /** Disconnects device from HCD.
  *
- * @return Always EOK.
+ * @param dev Device to be disconnected.
+ * @return Error code.
+ * @retval EOK Device connected.
+ * @retval ENOENT This device is not connected.
  */
-int usbvirt_disconnect(void)
+int usbvirt_disconnect(usbvirt_device_t *dev)
 {
-	ipc_hangup(device->vhcd_phone_);
+	virtual_device_t *virtual_device = find_device(dev);
+	if (virtual_device == NULL) {
+		return ENOENT;
+	}
 	
-	device = NULL;
+	destroy_device(virtual_device);
 	
 	return EOK;
 }
