@@ -30,29 +30,49 @@
  * @{
  */
 /** @file
- * @brief Virtual USB hub.
+ * @brief Debugging support.
  */
-#ifndef VHCD_HUB_H_
-#define VHCD_HUB_H_
+#include <stdio.h>
+#include <ipc/ipc.h>
 
-#include <usbvirt/device.h>
+#include "vhcd.h"
 
-#include "devices.h"
+/** Current debug level. */
+int debug_level = 0;
 
-#define HUB_PORT_COUNT 6
+/** Debugging printf.
+ * This function is intended for single-line messages as it
+ * automatically prints debugging prefix at the beginning of the
+ * line.
+ *
+ * @see printf
+ * @param level Debugging level.
+ */
+void dprintf(int level, const char *format, ...)
+{
+	if (level > debug_level) {
+		return;
+	}
+	
+	printf("%s(%d): ", NAME, level);
+	va_list args;
+	va_start(args, format);
+	vprintf(format, args);
+	va_end(args);
+	printf("\n");
+}
 
-#define BITS2BYTES(bits) \
-    (bits ? ((((bits)-1)>>3)+1) : 0)
+/** Debug print informing of invalid call.
+ */
+void dprintf_inval_call(int level, ipc_call_t call, ipcarg_t phone_hash)
+{
+	dprintf(level, "phone%#x: invalid call [%u (%u, %u, %u, %u, %u)]",
+	    phone_hash,
+	    IPC_GET_METHOD(call),
+	    IPC_GET_ARG1(call), IPC_GET_ARG2(call), IPC_GET_ARG3(call),
+	    IPC_GET_ARG4(call), IPC_GET_ARG5(call));
+}
 
-extern usbvirt_device_t virthub_dev;
-
-void hub_init(void);
-size_t hub_add_device(virtdev_connection_t *);
-void hub_remove_device(virtdev_connection_t *);
-bool hub_can_device_signal(virtdev_connection_t *);
-void hub_get_port_statuses(char *result, size_t len);
-
-#endif
 /**
  * @}
  */

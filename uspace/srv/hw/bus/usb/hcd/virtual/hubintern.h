@@ -37,7 +37,9 @@
 
 #include "hub.h"
 
+/** Endpoint number for status change pipe. */
 #define HUB_STATUS_CHANGE_PIPE 1
+/** Configuration value for hub configuration. */
 #define HUB_CONFIGURATION_ID 1
 
 /** Hub descriptor.
@@ -65,6 +67,10 @@ typedef struct {
 	uint8_t port_power[BITS2BYTES(HUB_PORT_COUNT+1)];
 } __attribute__ ((packed)) hub_descriptor_t;
 
+/** Hub port internal state.
+ * Some states (e.g. port over current) are not covered as they are not
+ * simulated at all.
+ */
 typedef enum {
 	HUB_PORT_STATE_NOT_CONFIGURED,
 	HUB_PORT_STATE_POWERED_OFF,
@@ -77,6 +83,31 @@ typedef enum {
 	/* HUB_PORT_STATE_, */
 } hub_port_state_t;
 
+/** Convert hub port state to a char. */
+static inline char hub_port_state_as_char(hub_port_state_t state) {
+	switch (state) {
+		case HUB_PORT_STATE_NOT_CONFIGURED:
+			return '-';
+		case HUB_PORT_STATE_POWERED_OFF:
+			return 'O';
+		case HUB_PORT_STATE_DISCONNECTED:
+			return 'X';
+		case HUB_PORT_STATE_DISABLED:
+			return 'D';
+		case HUB_PORT_STATE_RESETTING:
+			return 'R';
+		case HUB_PORT_STATE_ENABLED:
+			return 'E';
+		case HUB_PORT_STATE_SUSPENDED:
+			return 'S';
+		case HUB_PORT_STATE_RESUMING:
+			return 'F';
+		default:
+			return '?';
+	}
+}
+
+/** Hub status change mask bits. */
 typedef enum {
 	HUB_STATUS_C_PORT_CONNECTION = (1 << 0),
 	HUB_STATUS_C_PORT_ENABLE = (1 << 1),
@@ -86,12 +117,14 @@ typedef enum {
 	/* HUB_STATUS_C_ = (1 << ), */
 } hub_status_change_t;
 
+/** Hub port information. */
 typedef struct {
 	virtdev_connection_t *device;
 	hub_port_state_t state;
 	uint16_t status_change;
 } hub_port_t;
 
+/** Hub device type. */
 typedef struct {
 	hub_port_t ports[HUB_PORT_COUNT];
 } hub_device_t;

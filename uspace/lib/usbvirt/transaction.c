@@ -37,10 +37,27 @@
 #include <stdio.h>
 #include <mem.h>
 
+#include "ids.h"
 #include "private.h"
 
 static usb_direction_t setup_transaction_direction(usb_endpoint_t, void *, size_t);
 static void process_control_transfer(usb_endpoint_t, usbvirt_control_transfer_t *);
+
+/** Convert virtual USB transaction type to string.
+ */
+const char *usbvirt_str_transaction_type(usbvirt_transaction_type_t type)
+{
+	switch (type) {
+		case USBVIRT_TRANSACTION_SETUP:
+			return "setup";
+		case USBVIRT_TRANSACTION_IN:
+			return "in";
+		case USBVIRT_TRANSACTION_OUT:
+			return "out";
+		default:
+			return "unknown";
+	}
+}
 
 int transaction_setup(usbvirt_device_t *device, usb_endpoint_t endpoint,
     void *buffer, size_t size)

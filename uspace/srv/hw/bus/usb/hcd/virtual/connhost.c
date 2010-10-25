@@ -55,21 +55,23 @@ typedef struct {
  */
 static void out_callback(void * buffer, size_t len, usb_transaction_outcome_t outcome, void * arg)
 {
-	dprintf("out_callback(buffer, %u, %d, %p)", len, outcome, arg);
-	(void)len;
+	dprintf(2, "out_callback(buffer, %u, %d, %p)", len, outcome, arg);
+	
 	transaction_details_t * trans = (transaction_details_t *)arg;
 	
 	async_msg_2(trans->phone, IPC_M_USB_HCD_DATA_SENT, trans->handle, outcome);
 	
 	free(trans);
-	free(buffer);
+	if (buffer) {
+		free(buffer);
+	}
 }
 
 /** Callback for incoming transaction.
  */
 static void in_callback(void * buffer, size_t len, usb_transaction_outcome_t outcome, void * arg)
 {
-	dprintf("in_callback(buffer, %u, %d, %p)", len, outcome, arg);
+	dprintf(2, "in_callback(buffer, %u, %d, %p)", len, outcome, arg);
 	transaction_details_t * trans = (transaction_details_t *)arg;
 	
 	ipc_call_t answer_data;
@@ -115,7 +117,7 @@ static void handle_data_to_function(ipc_callid_t iid, ipc_call_t icall,
 		.endpoint = IPC_GET_ARG2(icall)
 	};
 	
-	dprintf("pretending transfer to function (dev=%d:%d)",
+	dprintf(1, "pretending transfer to function (dev=%d:%d)",
 	    target.address, target.endpoint);
 	
 	if (callback_phone == -1) {
@@ -143,13 +145,12 @@ static void handle_data_to_function(ipc_callid_t iid, ipc_call_t icall,
 	trans->phone = callback_phone;
 	trans->handle = handle;
 	
-	dprintf("adding transaction to HC", NAME);
 	hc_add_transaction_to_device(setup_transaction, target,
 	    buffer, len,
 	    out_callback, trans);
 	
 	ipc_answer_1(iid, EOK, handle);
-	dprintf("transfer to function scheduled (handle %d)", handle);
+	dprintf(2, "transfer to function scheduled (handle %d)", handle);
 }
 
 /** Handle data from function to host.
@@ -162,7 +163,7 @@ static void handle_data_from_function(ipc_callid_t iid, ipc_call_t icall, int ca
 	};
 	size_t len = IPC_GET_ARG3(icall);
 	
-	dprintf("pretending transfer from function (dev=%d:%d)",
+	dprintf(1, "pretending transfer from function (dev=%d:%d)",
 	    target.address, target.endpoint);
 	
 	if (callback_phone == -1) {
@@ -182,19 +183,20 @@ static void handle_data_from_function(ipc_callid_t iid, ipc_call_t icall, int ca
 	trans->phone = callback_phone;
 	trans->handle = handle;
 	
-	dprintf("adding transaction to HC", NAME);
 	hc_add_transaction_from_device(target,
 	    buffer, len,
 	    in_callback, trans);
 	
 	ipc_answer_1(iid, EOK, handle);
-	dprintf("transfer from function scheduled (handle %d)", handle);
+	dprintf(2, "transfer from function scheduled (handle %d)", handle);
 }
 
 
 
 /** Connection handler for communcation with host.
  * By host is typically meant top-level USB driver.
+ *
+ * This function also takes care of proper phone hung-up.
  *
  * @param phone_hash Incoming phone hash.
  * @param host_phone Callback phone to host.
@@ -203,7 +205,7 @@ void connection_handler_host(ipcarg_t phone_hash, int host_phone)
 {
 	assert(host_phone > 0);
 	
-	dprintf("phone%#x: host connected", phone_hash);
+	dprintf(0, "host connected through phone %#x", phone_hash);
 	
 	
 	while (true) {
@@ -216,21 +218,12 @@ void connection_handler_host(ipcarg_t phone_hash, int host_phone)
 			case IPC_M_PHONE_HUNGUP:
 				ipc_hangup(host_phone);
 				ipc_answer_0(callid, EOK);
-				dprintf("phone%#x: host hang-up", phone_hash);
+				dprintf(0, "phone%#x: host hung-up",
+				    phone_hash);
 				return;
 			
 			case IPC_M_CONNECT_TO_ME:
 				ipc_answer_0(callid, ELIMIT);
-				break;
-
-			
-			case IPC_M_USB_HCD_SEND_DATA:
-				handle_data_to_function(callid, call,
-				    false, host_phone);
-				break;
-			
-			case IPC_M_USB_HCD_RECEIVE_DATA:
-				handle_data_from_function(callid, call, host_phone);
 				break;
 			
 			case IPC_M_USB_HCD_TRANSACTION_SIZE:
@@ -270,6 +263,7 @@ void connection_handler_host(ipcarg_t phone_hash, int host_phone)
 			case IPC_M_USB_HCD_CONTROL_READ_STATUS:
 			
 			default:
+				dprintf_inval_call(2, call, phone_hash);
 				ipc_answer_0(callid, EINVAL);
 				break;
 		}

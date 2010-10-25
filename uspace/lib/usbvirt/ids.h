@@ -49,6 +49,7 @@ typedef enum {
 	USBVIRT_TRANSACTION_OUT
 } usbvirt_transaction_type_t;
 
+const char *usbvirt_str_transaction_type(usbvirt_transaction_type_t type);
 
 #endif
 /**

@@ -67,10 +67,11 @@
 
 static link_t transaction_list;
 
-#define TRANSACTION_FORMAT "T[%d:%d (%d) %d]"
+#define TRANSACTION_FORMAT "T[%d:%d %s (%d)]"
 #define TRANSACTION_PRINTF(t) \
 	(t).target.address, (t).target.endpoint, \
-	(int)(t).len, (int)(t).type
+	usbvirt_str_transaction_type((t).type), \
+	(int)(t).len
 
 #define transaction_get_instance(lnk) \
 	list_get_instance(lnk, transaction_t, link)
@@ -87,7 +88,7 @@ static inline unsigned int pseudo_random(unsigned int *seed)
 static void process_transaction_with_outcome(transaction_t * transaction,
     usb_transaction_outcome_t outcome)
 {
-	dprintf("processing transaction " TRANSACTION_FORMAT ", outcome: %s",
+	dprintf(3, "processing transaction " TRANSACTION_FORMAT ", outcome: %s",
 	    TRANSACTION_PRINTF(*transaction),
 	    usb_str_transaction_outcome(outcome));
 	
@@ -112,14 +113,17 @@ void hc_manager(void)
 			continue;
 		}
 		
-		dprintf("virtual hub has address %d:*.", virthub_dev.address);
+		char ports[HUB_PORT_COUNT + 2];
+		hub_get_port_statuses(ports, HUB_PORT_COUNT + 1);
+		dprintf(3, "virtual hub: addr=%d ports=%s",
+		    virthub_dev.address, ports);
 		
 		link_t *first_transaction_link = transaction_list.next;
 		transaction_t *transaction
 		    = transaction_get_instance(first_transaction_link);
 		list_remove(first_transaction_link);
 		
-		dprintf("processing transaction " TRANSACTION_FORMAT "",
+		dprintf(3, "processing transaction " TRANSACTION_FORMAT "",
 		    TRANSACTION_PRINTF(*transaction));
 		
 		usb_transaction_outcome_t outcome;
@@ -147,6 +151,9 @@ static transaction_t *transaction_create(usbvirt_transaction_type_t type,
 	transaction->len = len;
 	transaction->callback = callback;
 	transaction->callback_arg = arg;
+	
+	dprintf(1, "creating transaction " TRANSACTION_FORMAT,
+	    TRANSACTION_PRINTF(*transaction));
 	
 	return transaction;
 }

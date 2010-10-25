@@ -43,6 +43,8 @@
 
 /** Connection handler for communcation with virtual device.
  *
+ * This function also takes care of proper phone hung-up.
+ *
  * @param phone_hash Incoming phone hash.
  * @param dev Virtual device handle.
  */
@@ -50,8 +52,7 @@ void connection_handler_device(ipcarg_t phone_hash, virtdev_connection_t *dev)
 {
 	assert(dev != NULL);
 	
-	dprintf("phone%#x: virtual device %d connected",
-	    phone_hash, dev->id);
+	dprintf(0, "virtual device connected through phone %#x", phone_hash);
 	
 	while (true) {
 		ipc_callid_t callid; 
@@ -63,8 +64,8 @@ void connection_handler_device(ipcarg_t phone_hash, virtdev_connection_t *dev)
 			case IPC_M_PHONE_HUNGUP:
 				ipc_hangup(dev->phone);
 				ipc_answer_0(callid, EOK);
-				dprintf("phone%#x: device %d hang-up",
-				    phone_hash, dev->id);
+				dprintf(0, "phone%#x: device hung-up",
+				    phone_hash);
 				return;
 			
 			case IPC_M_CONNECT_TO_ME:
@@ -72,6 +73,7 @@ void connection_handler_device(ipcarg_t phone_hash, virtdev_connection_t *dev)
 				break;
 			
 			default:
+				dprintf_inval_call(2, call, phone_hash);
 				ipc_answer_0(callid, EINVAL);
 				break;
 		}

@@ -56,7 +56,6 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	ipcarg_t phone_hash = icall->in_phone_hash;
 	
 	ipc_answer_0(iid, EOK);
-	printf("%s: new client connected (phone %#x).\n", NAME, phone_hash);
 	
 	while (true) {
 		ipc_callid_t callid; 
@@ -111,13 +110,21 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		/*
 		 * No other methods could be served now.
 		 */
+		dprintf_inval_call(1, call, phone_hash);
 		ipc_answer_0(callid, ENOTSUP);
 	}
 }
 
 int main(int argc, char * argv[])
-{
-	printf("%s: Virtual USB host controller driver.\n", NAME);
+{	
+	printf("%s: virtual USB host controller driver.\n", NAME);
+	
+	int i;
+	for (i = 1; i < argc; i++) {
+		if (str_cmp(argv[i], "-d") == 0) {
+			debug_level++;
+		}
+	}
 	
 	int rc;
 	
@@ -137,7 +144,8 @@ int main(int argc, char * argv[])
 	
 	hub_init();
 	
-	printf("%s: accepting connections.\n", NAME);
+	printf("%s: accepting connections [devmap=%s, debug=%d].\n", NAME,
+	    DEVMAP_PATH, debug_level);
 	hc_manager();
 	
 	return 0;

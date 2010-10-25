@@ -34,6 +34,7 @@ BINARY = vhcd
 SOURCES = \
 	conndev.c \
 	connhost.c \
+	debug.c \
 	devices.c \
 	hc.c \
 	hcd.c \

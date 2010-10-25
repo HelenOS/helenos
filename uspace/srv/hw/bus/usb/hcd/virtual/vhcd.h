@@ -35,25 +35,14 @@
 #ifndef VHCD_VHCD_H_
 #define VHCD_VHCD_H_
 
-#include <stdio.h>
-
 #define NAME "hcd-virt"
 #define NAMESPACE "usb"
 
 #define DEVMAP_PATH NAMESPACE "/" NAME
 
-/** Debugging printf.
- * @see printf
- */
-static inline void dprintf(const char * format, ...)
-{
-	printf("%s:   ", NAME);
-	va_list args;
-	va_start(args, format);
-	vprintf(format, args);
-	va_end(args);
-	printf("\n");
-}
+extern int debug_level;
+void dprintf(int, const char *, ...);
+void dprintf_inval_call(int, ipc_call_t, ipcarg_t);
 
 #endif
 /**

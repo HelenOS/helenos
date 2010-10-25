@@ -42,7 +42,6 @@
 #include "hub.h"
 #include "hubintern.h"
 
-hub_port_t hub_ports[HUB_PORT_COUNT];
 
 /** Standard device descriptor. */
 usb_standard_device_descriptor_t std_device_descriptor = {
@@ -107,6 +106,7 @@ usb_standard_configuration_descriptor_t std_configuration_descriptor = {
 	.max_power = 50
 };
 
+/** All hub configuration descriptors. */
 static usbvirt_device_configuration_extras_t extra_descriptors[] = {
 	{
 		.data = (uint8_t *) &std_interface_descriptor,
@@ -136,13 +136,16 @@ usbvirt_descriptors_t descriptors = {
 	.configuration_count = 1,
 };
 
+/** Hub as a virtual device. */
 usbvirt_device_t virthub_dev = {
 	.ops = &hub_ops,
 	.descriptors = &descriptors,
 };
- 
+
+/** Hub device. */
 hub_device_t hub_dev;
 
+/** Initialize virtual hub. */
 void hub_init(void)
 {
 	size_t i;
@@ -155,11 +158,15 @@ void hub_init(void)
 	}
 	
 	usbvirt_connect_local(&virthub_dev);
-	//virthub_dev.send_data = send_data;
 	
-	printf("%s: virtual hub (%d ports) created.\n", NAME, HUB_PORT_COUNT);
+	dprintf(1, "virtual hub (%d ports) created", HUB_PORT_COUNT);
 }
 
+/** Connect device to the hub.
+ *
+ * @param device Device to be connected.
+ * @return Port where the device was connected to.
+ */
 size_t hub_add_device(virtdev_connection_t *device)
 {
 	size_t i;
@@ -190,7 +197,7 @@ size_t hub_add_device(virtdev_connection_t *device)
 	return (size_t)-1;
 }
 
-
+/** Disconnect device from the hub. */
 void hub_remove_device(virtdev_connection_t *device)
 {
 	size_t i;
@@ -208,6 +215,10 @@ void hub_remove_device(virtdev_connection_t *device)
 	}
 }
 
+/** Tell whether device port is open.
+ *
+ * @return Whether communication to and from the device can go through the hub.
+ */
 bool hub_can_device_signal(virtdev_connection_t * device)
 {
 	size_t i;
@@ -220,6 +231,23 @@ bool hub_can_device_signal(virtdev_connection_t * device)
 	return false;
 }
 
+/** Format hub port status.
+ *
+ * @param result Buffer where to store status string.
+ * @param len Number of characters that is possible to store in @p result
+ * 	(excluding trailing zero).
+ */
+void hub_get_port_statuses(char *result, size_t len)
+{
+	if (len > HUB_PORT_COUNT) {
+		len = HUB_PORT_COUNT;
+	}
+	size_t i;
+	for (i = 0; i < len; i++) {
+		result[i] = hub_port_state_as_char(hub_dev.ports[i].state);
+	}
+	result[len] = 0;
+}
 
 /**
  * @}

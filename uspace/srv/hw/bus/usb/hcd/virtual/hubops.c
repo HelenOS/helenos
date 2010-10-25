@@ -42,6 +42,8 @@
 #include "hub.h"
 #include "hubintern.h"
 
+/** Produce a byte from bit values.
+ */
 #define MAKE_BYTE(b0, b1, b2, b3, b4, b5, b6, b7) \
 	(( \
 		((b0) << 0) \
@@ -62,7 +64,7 @@ static int on_data_request(struct usbvirt_device *dev,
     usb_endpoint_t endpoint,
     void *buffer, size_t size, size_t *actual_size);
 
-
+/** Standard USB requests. */
 static usbvirt_standard_device_request_ops_t standard_request_ops = {
 	.on_get_status = NULL,
 	.on_clear_feature = NULL,
@@ -77,7 +79,7 @@ static usbvirt_standard_device_request_ops_t standard_request_ops = {
 	.on_synch_frame = NULL
 };
 
-
+/** Hub operations. */
 usbvirt_device_ops_t hub_ops = {
 	.standard_request_ops = &standard_request_ops,
 	.on_class_device_request = on_class_request,
@@ -85,6 +87,7 @@ usbvirt_device_ops_t hub_ops = {
 	.on_data_request = on_data_request
 };
 
+/** Callback for GET_DESCRIPTOR request. */
 static int on_get_descriptor(struct usbvirt_device *dev,
     usb_device_request_setup_packet_t *request, uint8_t *data)
 {
@@ -123,6 +126,7 @@ static void set_port_state(hub_port_t *port, hub_port_state_t state)
 	}
 }
 
+/** Get access to a port or return with EINVAL. */
 #define _GET_PORT(portvar, index) \
 	do { \
 		if (virthub_dev.state != USBVIRT_STATE_CONFIGURED) { \
@@ -273,12 +277,11 @@ static int set_port_feature(uint16_t feature, uint16_t portindex)
 #undef _GET_PORT
 
 
-
-
+/** Callback for class request. */
 static int on_class_request(struct usbvirt_device *dev,
     usb_device_request_setup_packet_t *request, uint8_t *data)
 {	
-	printf("%s: hub class request (%d)\n", NAME, (int) request->request);
+	dprintf(2, "hub class request (%d)\n", (int) request->request);
 	
 	uint8_t recipient = request->request_type & 31;
 	uint8_t direction = request->request_type >> 7;
@@ -286,7 +289,7 @@ static int on_class_request(struct usbvirt_device *dev,
 #define _VERIFY(cond) \
 	do { \
 		if (!(cond)) { \
-			printf("%s: WARN: invalid class request (%s not met).\n", \
+			dprintf(0, "WARN: invalid class request (%s not met).\n", \
 			    NAME, #cond); \
 			return EINVAL; \
 		} \
@@ -346,10 +349,15 @@ void set_port_status_change(hub_port_t *port, uint16_t change)
 	port->status_change |= change;
 }
 
+/** Callback for data request. */
 static int on_data_request(struct usbvirt_device *dev,
     usb_endpoint_t endpoint,
     void *buffer, size_t size, size_t *actual_size)
 {
+	if (endpoint != HUB_STATUS_CHANGE_PIPE) {
+		return EINVAL;
+	}
+	
 	uint8_t change_map = 0;
 	
 	size_t i;
