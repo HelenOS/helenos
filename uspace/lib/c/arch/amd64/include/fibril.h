@@ -55,19 +55,24 @@
  * during function call
  */
 typedef struct {
-    uint64_t sp;
-    uint64_t pc;
-    
-    uint64_t rbx;
-    uint64_t rbp;
+	uint64_t sp;
+	uint64_t pc;
 
-    uint64_t r12;
-    uint64_t r13;
-    uint64_t r14;
-    uint64_t r15;
+	uint64_t rbx;
+	uint64_t rbp;
 
-    uint64_t tls;
+	uint64_t r12;
+	uint64_t r13;
+	uint64_t r14;
+	uint64_t r15;
+
+	uint64_t tls;
 } context_t;
+
+static inline uintptr_t context_get_fp(context_t *ctx)
+{
+	return ctx->rbp;
+}
 
 #endif
 
