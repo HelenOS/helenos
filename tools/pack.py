@@ -112,7 +112,7 @@ def main():
 		print "%s -> %s" % (component, obj)
 		
 		comp_in = file(component, "rb")
-		comp_data = comp_in.read();
+		comp_data = comp_in.read()
 		comp_in.close()
 		
 		comp_deflate = deflate(comp_data)
