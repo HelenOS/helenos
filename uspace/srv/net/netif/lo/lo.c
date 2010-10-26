@@ -165,7 +165,7 @@ int netif_probe_message(device_id_t device_id, int irq, uintptr_t io)
 {
 	ERROR_DECLARE;
 
-	netif_device_t * device;
+	netif_device_t *device;
 
 	// create a new device
 	ERROR_PROPAGATE(create(device_id, &device));
@@ -244,7 +244,7 @@ static void netif_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		    &answer_count);
 		
 		/*
-		 * End if said to either by the message or the processing
+		 * End if told to either by the message or the processing
 		 * result.
 		 */
 		if ((IPC_GET_METHOD(call) == IPC_M_PHONE_HUNGUP) ||
@@ -261,9 +261,7 @@ int main(int argc, char *argv[])
 	ERROR_DECLARE;
 	
 	/* Start the module */
-	if (ERROR_OCCURRED(netif_module_start(netif_client_connection)))
-		return ERROR_CODE;
-	
+	ERROR_PROPAGATE(netif_module_start(netif_client_connection));
 	return EOK;
 }
 
