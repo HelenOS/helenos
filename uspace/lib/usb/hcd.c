@@ -39,12 +39,19 @@
 #include <vfs/vfs.h>
 #include <errno.h>
 
+/** Information about pending transaction on HC. */
 typedef struct {
+	/** Phone to host controller driver. */
 	int phone;
+	/** Data buffer. */
 	void *buffer;
+	/** Buffer size. */
 	size_t size;
+	/** Storage for actual number of bytes transferred. */
 	size_t *size_transferred;
+	/** Initial call replay data. */
 	ipc_call_t reply;
+	/** Initial call identifier. */
 	aid_t request;
 } transfer_info_t;
 
@@ -354,7 +361,19 @@ int usb_hcd_transfer_control_read_status(int hcd_phone, usb_target_t target,
  * async versions of the above functions
  * =================
  */
- 
+
+/** Send data to HCD.
+ *
+ * @param phone Opened phone to HCD.
+ * @param method Method used for calling.
+ * @param target Target device.
+ * @param buffer Data buffer (NULL to skip data transfer phase).
+ * @param size Buffer size (must be zero when @p buffer is NULL).
+ * @param handle Storage for transaction handle (cannot be NULL).
+ * @return Error status.
+ * @retval EINVAL Invalid parameter.
+ * @retval ENOMEM Not enough memory to complete the operation.
+ */
 static int async_send_buffer(int phone, int method,
     usb_target_t target,
     void *buffer, size_t size,
@@ -404,6 +423,21 @@ static int async_send_buffer(int phone, int method,
 	return EOK;
 }
 
+/** Prepare data retrieval.
+ *
+ * @param phone Opened phone to HCD.
+ * @param method Method used for calling.
+ * @param target Target device.
+ * @param buffer Buffer where to store retrieved data
+ * 	(NULL to skip data transfer phase).
+ * @param size Buffer size (must be zero when @p buffer is NULL).
+ * @param actual_size Storage where actual number of bytes transferred will
+ * 	be stored.
+ * @param handle Storage for transaction handle (cannot be NULL).
+ * @return Error status.
+ * @retval EINVAL Invalid parameter.
+ * @retval ENOMEM Not enough memory to complete the operation.
+ */
 static int async_recv_buffer(int phone, int method,
     usb_target_t target,
     void *buffer, size_t size, size_t *actual_size,
@@ -443,6 +477,16 @@ static int async_recv_buffer(int phone, int method,
 	return EOK;
 }
 
+/** Read buffer from HCD.
+ *
+ * @param phone Opened phone to HCD.
+ * @param hash Buffer hash (obtained after completing IN transaction).
+ * @param buffer Buffer where to store data data.
+ * @param size Buffer size.
+ * @param actual_size Storage where actual number of bytes transferred will
+ * 	be stored.
+ * @return Error status.
+ */
 static int read_buffer_in(int phone, ipcarg_t hash,
     void *buffer, size_t size, size_t *actual_size)
 {
@@ -474,7 +518,16 @@ static int read_buffer_in(int phone, ipcarg_t hash,
 	return EOK;
 }
 
-
+/** Blocks caller until given USB transaction is finished.
+ * After the transaction is finished, the user can access all output data
+ * given to initial call function.
+ *
+ * @param handle Transaction handle.
+ * @return Error status.
+ * @retval EOK No error.
+ * @retval EBADMEM Invalid handle.
+ * @retval ENOENT Data buffer associated with transaction does not exist.
+ */
 int usb_hcd_async_wait_for(usb_handle_t handle)
 {
 	if (handle == 0) {
@@ -527,6 +580,7 @@ leave:
 	return rc;
 }
 
+/** Send interrupt data to device. */
 int usb_hcd_async_transfer_interrupt_out(int hcd_phone,
     usb_target_t target,
     void *buffer, size_t size,
@@ -539,6 +593,7 @@ int usb_hcd_async_transfer_interrupt_out(int hcd_phone,
 	    handle);
 }
 
+/** Request interrupt data from device. */
 int usb_hcd_async_transfer_interrupt_in(int hcd_phone,
     usb_target_t target,
     void *buffer, size_t size, size_t *actual_size,
@@ -551,6 +606,7 @@ int usb_hcd_async_transfer_interrupt_in(int hcd_phone,
 	    handle);
 }
 
+/** Start WRITE control transfer. */
 int usb_hcd_async_transfer_control_write_setup(int hcd_phone,
     usb_target_t target,
     void *buffer, size_t size,
@@ -563,6 +619,7 @@ int usb_hcd_async_transfer_control_write_setup(int hcd_phone,
 	    handle);
 }
 
+/** Send data during WRITE control transfer. */
 int usb_hcd_async_transfer_control_write_data(int hcd_phone,
     usb_target_t target,
     void *buffer, size_t size,
@@ -575,6 +632,7 @@ int usb_hcd_async_transfer_control_write_data(int hcd_phone,
 	    handle);
 }
 
+/** Terminate WRITE control transfer. */
 int usb_hcd_async_transfer_control_write_status(int hcd_phone,
     usb_target_t target,
     usb_handle_t *handle)
@@ -586,6 +644,7 @@ int usb_hcd_async_transfer_control_write_status(int hcd_phone,
 	    handle);
 }
 
+/** Start READ control transfer. */
 int usb_hcd_async_transfer_control_read_setup(int hcd_phone,
     usb_target_t target,
     void *buffer, size_t size,
@@ -598,6 +657,7 @@ int usb_hcd_async_transfer_control_read_setup(int hcd_phone,
 	    handle);
 }
 
+/** Request data during READ control transfer. */
 int usb_hcd_async_transfer_control_read_data(int hcd_phone,
     usb_target_t target,
     void *buffer, size_t size, size_t *actual_size,
@@ -610,6 +670,7 @@ int usb_hcd_async_transfer_control_read_data(int hcd_phone,
 	    handle);
 }
 
+/** Terminate READ control transfer. */
 int usb_hcd_async_transfer_control_read_status(int hcd_phone,
     usb_target_t target,
     usb_handle_t *handle)

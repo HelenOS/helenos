@@ -84,7 +84,57 @@ typedef enum {
 
 const char * usb_str_transaction_outcome(usb_transaction_outcome_t o);
 
-/** IPC methods for HCD. */
+/** IPC methods for HCD.
+ *
+ * Notes for async methods:
+ *
+ * Methods for sending data to device (OUT transactions)
+ * - e.g. IPC_M_USB_HCD_INTERRUPT_OUT_ASYNC -
+ * always use the same semantics:
+ * - first, IPC call with given method is made
+ *   - argument #1 is target address
+ *   - argument #2 is target endpoint
+ *   - argument #3 is buffer size
+ * - this call is immediately followed by IPC data write (from caller)
+ * - the initial call (and the whole transaction) is answer after the
+ *   transaction is scheduled by the HC and acknowledged by the device
+ *   or immediatelly after error is detected
+ * - the answer carries only the error code
+ *
+ * Methods for retrieving data from device (IN transactions)
+ * - e.g. IPC_M_USB_HCD_INTERRUPT_IN_ASYNC -
+ * also use the same semantics:
+ * - first, IPC call with given method is made
+ *   - argument #1 is target address
+ *   - argument #2 is target endpoint
+ *   - argument #3 is buffer size
+ * - the call is not answered until the device returns some data (or until
+ *   error occurs)
+ * - if the call is answered with EOK, first argument of the answer is buffer
+ *   hash that could be used to retrieve the actual data
+ *
+ * Some special methods (NO-DATA transactions) do not send any data. These
+ * might behave as both OUT or IN transactions because communication parts
+ * where actual buffers are exchanged are ommitted.
+ *
+ * The mentioned data retrieval can be done any time after receiving EOK
+ * answer to IN method.
+ * This retrieval is done using the IPC_M_USB_HCD_GET_BUFFER_ASYNC where
+ * the first argument is buffer hash from call answer.
+ * This call must be immediatelly followed by data read-in and after the
+ * data are transferred, the initial call (IPC_M_USB_HCD_GET_BUFFER_ASYNC)
+ * is answered. Each buffer can be retrieved only once.
+ *
+ * For all these methods, wrap functions exists. Important rule: functions
+ * for IN transactions have (as parameters) buffers where retrieved data
+ * will be stored. These buffers must be already allocated and shall not be
+ * touch until the transaction is completed
+ * (e.g. not before calling usb_hcd_async_wait_for() with appropriate handle).
+ * OUT transactions buffers can be freed immediatelly after call is dispatched
+ * (i.e. after return from wrapping function).
+ * 
+ * Async methods for retrieving data from device:
+ */
 typedef enum {
 	/** Send data over USB to a function.
 	 * This method initializes large data transfer that must follow
@@ -156,18 +206,59 @@ typedef enum {
 	IPC_M_USB_HCD_CONTROL_READ_DATA,
 	IPC_M_USB_HCD_CONTROL_READ_STATUS,
 	
+	/* async methods */
+	
+	/** Asks for data buffer.
+	 * See explanation at usb_hcd_method_t.
+	 */
 	IPC_M_USB_HCD_GET_BUFFER_ASYNC,
 	
+	
+	
+	/** Send interrupt data to device.
+	 * See explanation at usb_hcd_method_t (OUT transaction).
+	 */
 	IPC_M_USB_HCD_INTERRUPT_OUT_ASYNC,
+	
+	/** Get interrupt data from device.
+	 * See explanation at usb_hcd_method_t (IN transaction).
+	 */
 	IPC_M_USB_HCD_INTERRUPT_IN_ASYNC,
 	
+	
+	/** Start WRITE control transfer.
+	 * See explanation at usb_hcd_method_t (OUT transaction).
+	 */
 	IPC_M_USB_HCD_CONTROL_WRITE_SETUP_ASYNC,
+	
+	/** Send control-transfer data to device.
+	 * See explanation at usb_hcd_method_t (OUT transaction).
+	 */
 	IPC_M_USB_HCD_CONTROL_WRITE_DATA_ASYNC,
+	
+	/** Terminate WRITE control transfer.
+	 * See explanation at usb_hcd_method_t (NO-DATA transaction).
+	 */
 	IPC_M_USB_HCD_CONTROL_WRITE_STATUS_ASYNC,
 	
+	
+	
+	/** Start READ control transfer.
+	 * See explanation at usb_hcd_method_t (OUT transaction).
+	 */
 	IPC_M_USB_HCD_CONTROL_READ_SETUP_ASYNC,
+	
+	/** Get control-transfer data from device.
+	 * See explanation at usb_hcd_method_t (IN transaction).
+	 */
 	IPC_M_USB_HCD_CONTROL_READ_DATA_ASYNC,
+	
+	/** Terminate READ control transfer.
+	 * See explanation at usb_hcd_method_t (NO-DATA transaction).
+	 */
 	IPC_M_USB_HCD_CONTROL_READ_STATUS_ASYNC,
+	
+	
 	/* IPC_M_USB_HCD_ */
 } usb_hcd_method_t;
 
