@@ -188,7 +188,7 @@ int handle_std_request(usbvirt_device_t *device,
 {
 	HANDLE_REQUEST(request, data, USB_DEVREQ_GET_DESCRIPTOR,
 	    device, on_get_descriptor,
-	    handle_get_descriptor(device, request->value_low, request->value_high,
+	    handle_get_descriptor(device, request->value_high, request->value_low,
 	        request->index, request->length));
 	
 	HANDLE_REQUEST(request, data, USB_DEVREQ_SET_ADDRESS,

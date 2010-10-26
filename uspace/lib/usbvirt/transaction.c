@@ -34,7 +34,6 @@
  */
 #include <errno.h>
 #include <stdlib.h>
-#include <stdio.h>
 #include <mem.h>
 
 #include "hub.h"
@@ -78,7 +77,8 @@ int transaction_setup(usbvirt_device_t *device, usb_endpoint_t endpoint,
 	
 	transfer->direction = setup_transaction_direction(device, endpoint,
 	    buffer, size);
-	transfer->request = buffer;
+	transfer->request = malloc(size);
+	memcpy(transfer->request, buffer, size);
 	transfer->request_size = size;
 	transfer->data = NULL;
 	transfer->data_size = 0;
