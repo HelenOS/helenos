@@ -36,6 +36,7 @@
 #define LIBUSB_USB_H_
 
 #include <sys/types.h>
+#include <ipc/ipc.h>
 
 /** USB transfer type. */
 typedef enum {
@@ -81,6 +82,11 @@ static inline int usb_target_same(usb_target_t a, usb_target_t b)
 	return (a.address == b.address)
 	    && (a.endpoint == b.endpoint);
 }
+
+/** General handle type.
+ * Used by various USB functions as opaque handle.
+ */
+typedef ipcarg_t usb_handle_t;
 
 #endif
 /**

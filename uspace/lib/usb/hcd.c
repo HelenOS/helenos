@@ -34,10 +34,19 @@
  */
 #include "hcd.h"
 #include <devmap.h>
+#include <stdlib.h>
 #include <fcntl.h>
 #include <vfs/vfs.h>
 #include <errno.h>
 
+typedef struct {
+	int phone;
+	void *buffer;
+	size_t size;
+	size_t *size_transferred;
+	ipc_call_t reply;
+	aid_t request;
+} transfer_info_t;
 
 #define NAMESPACE "usb"
 
@@ -337,6 +346,280 @@ int usb_hcd_transfer_control_read_status(int hcd_phone, usb_target_t target,
 }
 
 
+
+
+
+/*
+ * =================
+ * async versions of the above functions
+ * =================
+ */
+ 
+static int async_send_buffer(int phone, int method,
+    usb_target_t target,
+    void *buffer, size_t size,
+    usb_handle_t *handle)
+{
+	if (phone < 0) {
+		return EINVAL;
+	}
+	
+	if ((buffer == NULL) && (size > 0)) {
+		return EINVAL;
+	}
+	
+	if (handle == NULL) {
+		return EINVAL;
+	}
+
+	transfer_info_t *transfer
+	    = (transfer_info_t *) malloc(sizeof(transfer_info_t));
+	if (transfer == NULL) {
+		return ENOMEM;
+	}
+	
+	transfer->size_transferred = NULL;
+	transfer->buffer = NULL;
+	transfer->size = 0;
+	transfer->phone = phone;
+
+	int rc;
+	
+	transfer->request = async_send_3(phone,
+	    method,
+	    target.address, target.endpoint,
+	    size,
+	    &transfer->reply);
+	
+	if (size > 0) {
+		rc = async_data_write_start(phone, buffer, size);
+		if (rc != EOK) {
+			async_wait_for(transfer->request, NULL);
+			return rc;
+		}
+	}
+	
+	*handle = (usb_handle_t) transfer;
+	
+	return EOK;
+}
+
+static int async_recv_buffer(int phone, int method,
+    usb_target_t target,
+    void *buffer, size_t size, size_t *actual_size,
+    usb_handle_t *handle)
+{
+	if (phone < 0) {
+		return EINVAL;
+	}
+	
+	if ((buffer == NULL) && (size > 0)) {
+		return EINVAL;
+	}
+	
+	if (handle == NULL) {
+		return EINVAL;
+	}
+
+	transfer_info_t *transfer
+	    = (transfer_info_t *) malloc(sizeof(transfer_info_t));
+	if (transfer == NULL) {
+		return ENOMEM;
+	}
+	
+	transfer->size_transferred = actual_size;
+	transfer->buffer = buffer;
+	transfer->size = size;
+	transfer->phone = phone;
+	
+	transfer->request = async_send_3(phone,
+	    method,
+	    target.address, target.endpoint,
+	    size,
+	    &transfer->reply);
+	
+	*handle = (usb_handle_t) transfer;
+	
+	return EOK;
+}
+
+static int read_buffer_in(int phone, ipcarg_t hash,
+    void *buffer, size_t size, size_t *actual_size)
+{
+	ipc_call_t answer_data;
+	ipcarg_t answer_rc;
+	aid_t req;
+	int rc;
+	
+	req = async_send_1(phone,
+	    IPC_M_USB_HCD_GET_BUFFER_ASYNC,
+	    hash,
+	    &answer_data);
+	
+	rc = async_data_read_start(phone, buffer, size);
+	if (rc != EOK) {
+		async_wait_for(req, NULL);
+		return EINVAL;
+	}
+	
+	async_wait_for(req, &answer_rc);
+	rc = (int)answer_rc;
+	
+	if (rc != EOK) {
+		return rc;
+	}
+	
+	*actual_size = IPC_GET_ARG1(answer_data);
+	
+	return EOK;
+}
+
+
+int usb_hcd_async_wait_for(usb_handle_t handle)
+{
+	if (handle == 0) {
+		return EBADMEM;
+	}
+	
+	int rc = EOK;
+	
+	transfer_info_t *transfer = (transfer_info_t *) handle;
+	
+	ipcarg_t answer_rc;
+	async_wait_for(transfer->request, &answer_rc);
+	
+	if (answer_rc != EOK) {
+		rc = (int) answer_rc;
+		goto leave;
+	}
+	
+	/*
+	 * If the buffer is not NULL, we must accept some data.
+	 */
+	if ((transfer->buffer != NULL) && (transfer->size > 0)) {
+		/*
+		 * The buffer hash identifies the data on the server
+		 * side.
+		 * We will use it when actually reading-in the data.
+		 */
+		ipcarg_t buffer_hash = IPC_GET_ARG1(transfer->reply);
+		if (buffer_hash == 0) {
+			rc = ENOENT;
+			goto leave;
+		}
+		
+		size_t actual_size;
+		rc = read_buffer_in(transfer->phone, buffer_hash,
+		    transfer->buffer, transfer->size, &actual_size);
+		
+		if (rc != EOK) {
+			goto leave;
+		}
+		
+		if (transfer->size_transferred) {
+			*(transfer->size_transferred) = actual_size;
+		}
+	}
+	
+leave:
+	free(transfer);
+	
+	return rc;
+}
+
+int usb_hcd_async_transfer_interrupt_out(int hcd_phone,
+    usb_target_t target,
+    void *buffer, size_t size,
+    usb_handle_t *handle)
+{
+	return async_send_buffer(hcd_phone,
+	    IPC_M_USB_HCD_INTERRUPT_OUT_ASYNC,
+	    target,
+	    buffer, size,
+	    handle);
+}
+
+int usb_hcd_async_transfer_interrupt_in(int hcd_phone,
+    usb_target_t target,
+    void *buffer, size_t size, size_t *actual_size,
+    usb_handle_t *handle)
+{
+	return async_recv_buffer(hcd_phone,
+	    IPC_M_USB_HCD_INTERRUPT_IN_ASYNC,
+	    target,
+	    buffer, size, actual_size,
+	    handle);
+}
+
+int usb_hcd_async_transfer_control_write_setup(int hcd_phone,
+    usb_target_t target,
+    void *buffer, size_t size,
+    usb_handle_t *handle)
+{
+	return async_send_buffer(hcd_phone,
+	    IPC_M_USB_HCD_CONTROL_WRITE_SETUP_ASYNC,
+	    target,
+	    buffer, size,
+	    handle);
+}
+
+int usb_hcd_async_transfer_control_write_data(int hcd_phone,
+    usb_target_t target,
+    void *buffer, size_t size,
+    usb_handle_t *handle)
+{
+	return async_send_buffer(hcd_phone,
+	    IPC_M_USB_HCD_CONTROL_WRITE_DATA_ASYNC,
+	    target,
+	    buffer, size,
+	    handle);
+}
+
+int usb_hcd_async_transfer_control_write_status(int hcd_phone,
+    usb_target_t target,
+    usb_handle_t *handle)
+{
+	return async_recv_buffer(hcd_phone,
+	    IPC_M_USB_HCD_CONTROL_WRITE_STATUS_ASYNC,
+	    target,
+	    NULL, 0, NULL,
+	    handle);
+}
+
+int usb_hcd_async_transfer_control_read_setup(int hcd_phone,
+    usb_target_t target,
+    void *buffer, size_t size,
+    usb_handle_t *handle)
+{
+	return async_send_buffer(hcd_phone,
+	    IPC_M_USB_HCD_CONTROL_READ_SETUP_ASYNC,
+	    target,
+	    buffer, size,
+	    handle);
+}
+
+int usb_hcd_async_transfer_control_read_data(int hcd_phone,
+    usb_target_t target,
+    void *buffer, size_t size, size_t *actual_size,
+    usb_handle_t *handle)
+{
+	return async_recv_buffer(hcd_phone,
+	    IPC_M_USB_HCD_CONTROL_READ_DATA_ASYNC,
+	    target,
+	    buffer, size, actual_size,
+	    handle);
+}
+
+int usb_hcd_async_transfer_control_read_status(int hcd_phone,
+    usb_target_t target,
+    usb_handle_t *handle)
+{
+	return async_send_buffer(hcd_phone,
+	    IPC_M_USB_HCD_CONTROL_READ_STATUS_ASYNC,
+	    target,
+	    NULL, 0,
+	    handle);
+}
 
 /**
  * @}
