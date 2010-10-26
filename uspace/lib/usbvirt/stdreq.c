@@ -186,6 +186,9 @@ static int handle_set_configuration(usbvirt_device_t *device,
 int handle_std_request(usbvirt_device_t *device,
     usb_device_request_setup_packet_t *request, uint8_t *data)
 {
+	device->lib_debug(device, 3, USBVIRT_DEBUGTAG_CONTROL_PIPE_ZERO,
+	    "handling standard request %d", request->request);
+	
 	HANDLE_REQUEST(request, data, USB_DEVREQ_GET_DESCRIPTOR,
 	    device, on_get_descriptor,
 	    handle_get_descriptor(device, request->value_high, request->value_low,

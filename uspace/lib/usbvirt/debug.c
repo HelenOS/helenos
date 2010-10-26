@@ -30,62 +30,75 @@
  * @{
  */
 /** @file
- * @brief Virtual USB private header.
+ * @brief Debugging support.
  */
-#ifndef LIBUSBVIRT_PRIVATE_H_
-#define LIBUSBVIRT_PRIVATE_H_
+#include <stdio.h>
+#include <bool.h>
 
 #include "device.h"
-#include "hub.h"
+#include "private.h"
 
 
-#define DEVICE_HAS_OP(dev, op) \
-	( \
-		(  ((dev)->ops) != NULL  ) \
-		&& \
-		(  ((dev)->ops->op) != NULL  ) \
-	)
-
-int usbvirt_data_to_host(struct usbvirt_device *dev,
-    usb_endpoint_t endpoint, void *buffer, size_t size);
-
-int handle_incoming_data(struct usbvirt_device *dev,
-    usb_endpoint_t endpoint, void *buffer, size_t size);
-
-int control_pipe(usbvirt_device_t *device, usbvirt_control_transfer_t *transfer);
-
-int handle_std_request(usbvirt_device_t *device, usb_device_request_setup_packet_t *request, uint8_t *data);
-
-void device_callback_connection(usbvirt_device_t *device, ipc_callid_t iid, ipc_call_t *icall);
-
-int transaction_setup(usbvirt_device_t *device, usb_endpoint_t endpoint,
-    void *buffer, size_t size);
-int transaction_out(usbvirt_device_t *device, usb_endpoint_t endpoint,
-    void *buffer, size_t size);
-int transaction_in(usbvirt_device_t *device, usb_endpoint_t endpoint,
-    void *buffer, size_t size, size_t *data_size);
-
-
-void user_debug(usbvirt_device_t *device, int level, uint8_t tag,
-    const char *format, ...);
-void lib_debug(usbvirt_device_t *device, int level, uint8_t tag,
-    const char *format, ...);
-    
-static inline const char *str_device_state(usbvirt_device_state_t state)
+static void debug_print(int level, uint8_t tag,
+    int current_level, uint8_t enabled_tags,
+    const char *format, va_list args)
 {
-	switch (state) {
-		case USBVIRT_STATE_DEFAULT:
-			return "default";
-		case USBVIRT_STATE_ADDRESS:
-			return "address";
-		case USBVIRT_STATE_CONFIGURED:
-			return "configured";
-		default:
-			return "unknown";
+	if (level > current_level) {
+		return;
+	}
+	
+	if ((tag & enabled_tags) == 0) {
+		return;
+	}
+	
+	bool print_prefix = true;
+	
+	if ((format[0] == '%') && (format[1] == 'M')) {
+		format += 2;
+		print_prefix = false;
+	}
+	
+	if (print_prefix) {
+		printf("[vusb]: ", level);
+		while (--level > 0) {
+			printf(" ");
+		}
+	}
+	
+	vprintf(format, args);
+	
+	if (print_prefix) {
+		printf("\n");
 	}
 }
 
-#endif
+
+void user_debug(usbvirt_device_t *device, int level, uint8_t tag,
+    const char *format, ...)
+{
+	va_list args;
+	va_start(args, format);
+	
+	debug_print(level, tag,
+	    device->debug_level, device->debug_enabled_tags,
+	    format, args);
+	
+	va_end(args);
+}
+
+void lib_debug(usbvirt_device_t *device, int level, uint8_t tag,
+    const char *format, ...)
+{
+	va_list args;
+	va_start(args, format);
+	
+	debug_print(level, tag,
+	    device->lib_debug_level, device->lib_debug_enabled_tags,
+	    format, args);
+	
+	va_end(args);
+}
+
 /**
  * @}
  */

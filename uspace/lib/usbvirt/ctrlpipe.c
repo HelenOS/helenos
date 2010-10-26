@@ -44,7 +44,18 @@
 #define GET_MIDBITS(value, size, shift) \
 	((value & GET_MIDBITS_MASK(size, shift)) >> shift)
 
-usb_address_t dev_new_address = -1;
+
+static const char *str_request_type(int type)
+{
+	switch (type) {
+		case REQUEST_TYPE_STANDARD:
+			return "standard";
+		case REQUEST_TYPE_CLASS:
+			return "class";
+		default:
+			return "unknown";
+	}
+}
 
 /** Tell request type.
  * By type is meant either standard, class, vendor or other.
@@ -58,6 +69,9 @@ static int request_get_type(uint8_t request_type)
  */
 int control_pipe(usbvirt_device_t *device, usbvirt_control_transfer_t *transfer)
 {
+	device->lib_debug(device, 1, USBVIRT_DEBUGTAG_CONTROL_PIPE_ZERO,
+	    "op on control pipe zero (request_size=%u)", transfer->request_size);
+	
 	if (transfer->request_size < sizeof(usb_device_request_setup_packet_t)) {
 		return ENOMEM;
 	}
@@ -68,6 +82,9 @@ int control_pipe(usbvirt_device_t *device, usbvirt_control_transfer_t *transfer)
 	int type = request_get_type(request->request_type);
 	
 	int rc = EOK;
+	
+	device->lib_debug(device, 2, USBVIRT_DEBUGTAG_CONTROL_PIPE_ZERO,
+	    "request type: %s", str_request_type(type));
 	
 	switch (type) {
 		case REQUEST_TYPE_STANDARD:
@@ -96,6 +113,10 @@ int control_pipe(usbvirt_device_t *device, usbvirt_control_transfer_t *transfer)
 		device->address = device->new_address;
 		
 		device->new_address = -1;
+		
+		device->lib_debug(device, 2, USBVIRT_DEBUGTAG_CONTROL_PIPE_ZERO,
+		    "device address changed to %d (state %s)",
+		    device->address, str_device_state(device->state));
 	}
 	
 	return rc;

@@ -66,6 +66,9 @@ const char *usbvirt_str_transaction_type(usbvirt_transaction_type_t type)
 int transaction_setup(usbvirt_device_t *device, usb_endpoint_t endpoint,
     void *buffer, size_t size)
 {
+	device->lib_debug(device, 1, USBVIRT_DEBUGTAG_TRANSACTION,
+	    "setup transaction: endpoint=%d, size=%u", endpoint, size);
+	
 	usbvirt_control_transfer_t *transfer = &device->current_control_transfers[endpoint];
 	
 	if (transfer->request != NULL) {
@@ -96,6 +99,9 @@ int transaction_setup(usbvirt_device_t *device, usb_endpoint_t endpoint,
 int transaction_out(usbvirt_device_t *device, usb_endpoint_t endpoint,
     void *buffer, size_t size)
 {
+	device->lib_debug(device, 1, USBVIRT_DEBUGTAG_TRANSACTION,
+	    "out transaction: endpoint=%d, size=%u", endpoint, size);
+	
 	/*
 	 * First check whether it is a transaction over control pipe.
 	 */
@@ -150,6 +156,9 @@ int transaction_out(usbvirt_device_t *device, usb_endpoint_t endpoint,
 int transaction_in(usbvirt_device_t *device, usb_endpoint_t endpoint,
     void *buffer, size_t size, size_t *data_size)
 {
+	device->lib_debug(device, 1, USBVIRT_DEBUGTAG_TRANSACTION,
+	    "in transaction: endpoint=%d, size=%u", endpoint, size);
+	
 	/*
 	 * First check whether it is a transaction over control pipe.
 	 */

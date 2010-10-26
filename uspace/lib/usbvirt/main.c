@@ -123,6 +123,9 @@ static void device_init(usbvirt_device_t *dev)
 	
 	dev->control_transfer_reply = control_transfer_reply;
 	
+	dev->debug = user_debug;
+	dev->lib_debug = lib_debug;
+	
 	dev->state = USBVIRT_STATE_DEFAULT;
 	dev->address = 0;
 	dev->new_address = -1;

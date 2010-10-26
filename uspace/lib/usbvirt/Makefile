@@ -35,6 +35,7 @@ EXTRA_CFLAGS = -I$(LIB_PREFIX)
 SOURCES = \
 	callback.c \
 	ctrlpipe.c \
+	debug.c \
 	main.c \
 	stdreq.c \
 	transaction.c

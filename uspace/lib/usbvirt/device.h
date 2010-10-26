@@ -144,6 +144,13 @@ typedef struct usbvirt_control_transfer {
 	size_t data_size;
 } usbvirt_control_transfer_t;
 
+typedef enum {
+	USBVIRT_DEBUGTAG_BASE = 1,
+	USBVIRT_DEBUGTAG_TRANSACTION = 2,
+	USBVIRT_DEBUGTAG_CONTROL_PIPE_ZERO = 4,
+	USBVIRT_DEBUGTAG_ALL = 255
+} usbvirt_debug_tags_t;
+
 /** Virtual USB device. */
 struct usbvirt_device {
 	/** Callback device operations. */
@@ -185,6 +192,30 @@ struct usbvirt_device {
 	
 	/** State information on control-transfer endpoints. */
 	usbvirt_control_transfer_t current_control_transfers[USB11_ENDPOINT_MAX];
+	
+	/* User debugging. */
+	
+	/** Debug print. */
+	void (*debug)(usbvirt_device_t *dev, int level, uint8_t tag,
+	    const char *format, ...);
+	
+	/** Current debug level. */
+	int debug_level;
+	
+	/** Bitmap of currently enabled tags. */
+	uint8_t debug_enabled_tags;
+	
+	/* Library debugging. */
+	
+	/** Debug print. */
+	void (*lib_debug)(usbvirt_device_t *dev, int level, uint8_t tag,
+	    const char *format, ...);
+	
+	/** Current debug level. */
+	int lib_debug_level;
+	
+	/** Bitmap of currently enabled tags. */
+	uint8_t lib_debug_enabled_tags;
 };
 
 #endif

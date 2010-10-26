@@ -140,6 +140,8 @@ usbvirt_descriptors_t descriptors = {
 usbvirt_device_t virthub_dev = {
 	.ops = &hub_ops,
 	.descriptors = &descriptors,
+	.lib_debug_level = 4,
+	.lib_debug_enabled_tags = USBVIRT_DEBUGTAG_ALL
 };
 
 /** Hub device. */
