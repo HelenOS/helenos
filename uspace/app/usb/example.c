@@ -59,6 +59,21 @@
 #define VERBOSE_EXEC(cmd, fmt, ...) \
 	(printf("%s: %s" fmt "\n", NAME, _QUOTEME(cmd), __VA_ARGS__), cmd(__VA_ARGS__))
 
+#define EXEC2(cmd, fmt, ...) \
+	do { \
+		printf("%s: " fmt " = ", NAME, __VA_ARGS__); \
+		fflush(stdout); \
+		int _rc = cmd; \
+		if (_rc != EOK) { \
+			printf("E%d\n", _rc); \
+			printf("%s: ... aborting.\n", NAME); \
+			exit(_rc); \
+		} \
+		printf("EOK\n"); \
+	} while (false)
+#define EXEC(cmd, fmt, ...) \
+	EXEC2(cmd(__VA_ARGS__), _QUOTEME(cmd) fmt, __VA_ARGS__)
+
 static void fibril_sleep(size_t sec)
 {
 	while (sec-- > 0) {
@@ -69,7 +84,7 @@ static void fibril_sleep(size_t sec)
 static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
 	ipc_answer_0(iid, EOK);
-	printf("%s: client connection()\n", NAME);
+	//printf("%s: client connection()\n", NAME);
 	
 	while (true) {
 		ipc_callid_t callid; 
@@ -113,13 +128,25 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 				break;
 				
 			case IPC_M_PHONE_HUNGUP:
-				printf("%s: hang-up.\n", NAME);
+				//printf("%s: hang-up.\n", NAME);
 				return;
 				
 			default:
 				printf("%s: method %d called.\n", NAME, IPC_GET_METHOD(call));
 				ipc_answer_0(callid, EOK);
 				break;
+		}
+	}
+}
+
+static void data_dump(uint8_t *data, size_t len)
+{
+	size_t i;
+	for (i = 0; i < len; i++) {
+		printf("  0x%02X", data[i]);
+		if (((i > 0) && (((i+1) % 10) == 0))
+		    || (i + 1 == len)) {
+			printf("\n");
 		}
 	}
 }
@@ -133,7 +160,13 @@ int main(int argc, char * argv[])
 		return 1;
 	}
 	
+	printf("%s: example communication with HCD\n", NAME);
+	
 	usb_target_t target = {0, 0};
+	usb_handle_t handle;
+	
+	
+	
 	usb_device_request_setup_packet_t setup_packet = {
 		.request_type = 0,
 		.request = USB_DEVREQ_SET_ADDRESS,
@@ -141,6 +174,66 @@ int main(int argc, char * argv[])
 		.length = 0,
 	};
 	setup_packet.value = 5;
+	
+	printf("\n%s: === setting device address to %d ===\n", NAME,
+	    (int)setup_packet.value);
+	EXEC2(usb_hcd_async_transfer_control_write_setup(hcd_phone, target,
+	    &setup_packet, sizeof(setup_packet), &handle),
+	    "usb_hcd_async_transfer_control_write_setup(%d, {%d:%d}, &data, %u, &h)",
+	    hcd_phone, target.address, target.endpoint, sizeof(setup_packet));
+	    
+	EXEC(usb_hcd_async_wait_for, "(h=%x)", handle);
+	
+	EXEC2(usb_hcd_async_transfer_control_write_status(hcd_phone, target,
+	    &handle),
+	    "usb_hcd_async_transfer_control_write_status(%d, {%d:%d}, &h)",
+	    hcd_phone, target.address, target.endpoint);
+	
+	EXEC(usb_hcd_async_wait_for, "(h=%x)", handle);
+	
+	target.address = setup_packet.value;
+	
+	
+	printf("\n%s: === getting standard device descriptor ===\n", NAME);
+	usb_device_request_setup_packet_t get_descriptor = {
+		.request_type = 128,
+		.request = USB_DEVREQ_GET_DESCRIPTOR,
+		.index = 0,
+		.length = MAX_SIZE_RECEIVE,
+	};
+	get_descriptor.value_low = 0;
+	get_descriptor.value_high = 1;
+	
+	uint8_t descriptor[MAX_SIZE_RECEIVE];
+	size_t descriptor_length;
+	
+	EXEC2(usb_hcd_async_transfer_control_read_setup(hcd_phone, target,
+	    &get_descriptor, sizeof(get_descriptor), &handle),
+	    "usb_hcd_async_transfer_control_read_setup(%d, {%d:%d}, &data, %u, &h)",
+	    hcd_phone, target.address, target.endpoint, sizeof(get_descriptor));
+	
+	EXEC(usb_hcd_async_wait_for, "(h=%x)", handle);
+	
+	usb_handle_t data_handle;
+	EXEC2(usb_hcd_async_transfer_control_read_data(hcd_phone, target,
+	    descriptor, MAX_SIZE_RECEIVE, &descriptor_length, &data_handle),
+	    "usb_hcd_async_transfer_control_read_data(%d, {%d:%d}, &data, %u, &len, &h2)",
+	    hcd_phone, target.address, target.endpoint, MAX_SIZE_RECEIVE);
+	
+	EXEC2(usb_hcd_async_transfer_control_read_status(hcd_phone, target,
+	    &handle),
+	    "usb_hcd_async_transfer_control_read_status(%d, {%d:%d}, &h)",
+	    hcd_phone, target.address, target.endpoint);
+	
+	EXEC(usb_hcd_async_wait_for, "(h=%x)", handle);
+	EXEC(usb_hcd_async_wait_for, "(h2=%x)", data_handle);
+	
+	printf("%s: standard device descriptor dump (%dB):\n", NAME, descriptor_length);
+	data_dump(descriptor, descriptor_length);
+	
+	fibril_sleep(1);
+	
+#if 0
 	int rc;
 	
 	printf("%s: usb_hcd_transfer_control_write_setup(...)\n", NAME);
@@ -160,7 +253,8 @@ int main(int argc, char * argv[])
 	
 	printf("%s: sleeping for a while...\n", NAME);
 	fibril_sleep(5);
-	
+#endif
+
 	printf("%s: exiting.\n", NAME);
 	
 	ipc_hangup(hcd_phone);
