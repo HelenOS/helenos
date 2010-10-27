@@ -210,10 +210,14 @@ int nil_initialize(int net_phone)
 		ERROR_CODE = ENOMEM;
 		goto out;
 	}
-	if (ERROR_OCCURRED(eth_devices_initialize(&eth_globals.devices)))
+	if (ERROR_OCCURRED(eth_devices_initialize(&eth_globals.devices))) {
+		free(eth_globals.broadcast_addr);
 		goto out;
-	if (ERROR_OCCURRED(eth_protos_initialize(&eth_globals.protos)))
+	}
+	if (ERROR_OCCURRED(eth_protos_initialize(&eth_globals.protos))) {
+		free(eth_globals.broadcast_addr);
 		eth_devices_destroy(&eth_globals.devices);
+	}
 out:
 	fibril_rwlock_write_unlock(&eth_globals.protos_lock);
 	fibril_rwlock_write_unlock(&eth_globals.devices_lock);
