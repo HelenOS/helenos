@@ -35,6 +35,8 @@
  *  @see module.c
  */
 
+#include "eth.h"
+
 #include <async.h>
 #include <stdio.h>
 #include <err.h>
@@ -47,8 +49,6 @@
 #include <net/packet.h>
 #include <nil_local.h>
 
-#include "eth.h"
-
 int nil_module_start_standalone(async_client_conn_t client_connection)
 {
 	ERROR_DECLARE;
@@ -58,8 +58,8 @@ int nil_module_start_standalone(async_client_conn_t client_connection)
 	ERROR_PROPAGATE(pm_init());
 	
 	ipcarg_t phonehash;
-	if (ERROR_OCCURRED(nil_initialize(net_phone))
-	    || ERROR_OCCURRED(REGISTER_ME(SERVICE_ETHERNET, &phonehash))) {
+	if (ERROR_OCCURRED(nil_initialize(net_phone)) ||
+	    ERROR_OCCURRED(REGISTER_ME(SERVICE_ETHERNET, &phonehash))) {
 		pm_destroy();
 		return ERROR_CODE;
 	}
@@ -70,8 +70,9 @@ int nil_module_start_standalone(async_client_conn_t client_connection)
 	return EOK;
 }
 
-int nil_module_message_standalone(const char *name, ipc_callid_t callid, ipc_call_t *call,
-    ipc_call_t *answer, int *answer_count)
+int
+nil_module_message_standalone(const char *name, ipc_callid_t callid,
+    ipc_call_t *call, ipc_call_t *answer, int *answer_count)
 {
 	return nil_message_standalone(name, callid, call, answer, answer_count);
 }

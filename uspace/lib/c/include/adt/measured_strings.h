@@ -42,12 +42,12 @@
 #include <sys/types.h>
 
 /** Type definition of the character string with measured length.
- *  @see measured_string
+ * @see measured_string
  */
 typedef struct measured_string measured_string_t;
 
 /** Type definition of the character string with measured length pointer.
- *  @see measured_string
+ * @see measured_string
  */
 typedef measured_string_t *measured_string_ref;
 
@@ -58,7 +58,7 @@ typedef measured_string_t *measured_string_ref;
  */
 struct measured_string {
 	/** Character string data. */
-	char * value;
+	char *value;
 	/** Character string length. */
 	size_t length;
 };
