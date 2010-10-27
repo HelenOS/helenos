@@ -186,8 +186,13 @@ measured_strings_receive(measured_string_ref *strings, char **data,
 				free(lengths);
 				return EINVAL;
 			}
-			ERROR_PROPAGATE(async_data_write_finalize(callid, next,
-			    lengths[index]));
+			if (ERROR_OCCURRED(async_data_write_finalize(callid,
+			    next, lengths[index]))) {
+				free(*data);
+				free(*strings);
+				free(lengths);
+				return ERROR_CODE;
+			}
 			(*strings)[index].value = next;
 			next += lengths[index];
 			*next++ = '\0';
@@ -344,8 +349,13 @@ measured_strings_return(int phone, measured_string_ref *strings, char **data,
 	for (index = 0; index < count; index++) {
 		(*strings)[index].length = lengths[index];
 		if (lengths[index] > 0) {
-			ERROR_PROPAGATE(async_data_read_start(phone, next,
-			    lengths[index]));
+			if (ERROR_OCCURRED(async_data_read_start(phone, next,
+			    lengths[index]))) {
+			    	free(lengths);
+				free(data);
+				free(strings);
+				return ERROR_CODE;
+			}
 			(*strings)[index].value = next;
 			next += lengths[index];
 			*next++ = '\0';
