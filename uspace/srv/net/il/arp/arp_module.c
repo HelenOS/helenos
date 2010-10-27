@@ -31,10 +31,11 @@
  */
 
 /** @file
- *  ARP standalone module implementation.
- *  Contains skeleton module functions mapping.
- *  The functions are used by the module skeleton as module specific entry points.
- *  @see module.c
+ * ARP standalone module implementation.
+ * Contains skeleton module functions mapping.
+ * The functions are used by the module skeleton as module specific entry
+ * points.
+ * @see module.c
  */
 
 #include <async.h>
@@ -52,15 +53,18 @@
 #include "arp.h"
 #include "arp_module.h"
 
-/** ARP module global data.
- */
-extern arp_globals_t	arp_globals;
+/** ARP module global data. */
+extern arp_globals_t arp_globals;
 
-int il_module_message_standalone(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count){
+int
+il_module_message_standalone(ipc_callid_t callid, ipc_call_t *call,
+    ipc_call_t *answer, int *answer_count)
+{
 	return arp_message_standalone(callid, call, answer, answer_count);
 }
 
-int il_module_start_standalone(async_client_conn_t client_connection){
+int il_module_start_standalone(async_client_conn_t client_connection)
+{
 	ERROR_DECLARE;
 	
 	async_set_client_connection(client_connection);
@@ -68,8 +72,8 @@ int il_module_start_standalone(async_client_conn_t client_connection){
 	ERROR_PROPAGATE(pm_init());
 	
 	ipcarg_t phonehash;
-	if (ERROR_OCCURRED(arp_initialize(client_connection))
-	    || ERROR_OCCURRED(REGISTER_ME(SERVICE_ARP, &phonehash))) {
+	if (ERROR_OCCURRED(arp_initialize(client_connection)) ||
+	    ERROR_OCCURRED(REGISTER_ME(SERVICE_ARP, &phonehash))) {
 		pm_destroy();
 		return ERROR_CODE;
 	}
