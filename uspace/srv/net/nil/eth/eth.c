@@ -283,11 +283,11 @@ eth_device_message(device_id_t device_id, services_t service, size_t mtu)
 	int index;
 	measured_string_t names[2] = {
 		{
-			str_dup("ETH_MODE"),
+			(char *) "ETH_MODE",
 			8
 		},
 		{
-			str_dup("ETH_DUMMY"),
+			(char *) "ETH_DUMMY",
 			9
 		}
 	};
