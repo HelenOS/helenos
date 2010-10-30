@@ -27,15 +27,15 @@
  */
 
 /** @addtogroup arp
- *  @{
+ * @{
  */
 
 /** @file
- *  ARP module.
+ * ARP module.
  */
 
-#ifndef __NET_ARP_H__
-#define __NET_ARP_H__
+#ifndef NET_ARP_H_
+#define NET_ARP_H_
 
 #include <fibril_synch.h>
 
@@ -43,123 +43,113 @@
 #include <ipc/services.h>
 
 #include <net/device.h>
+#include <net/packet.h>
 #include <net_hardware.h>
 #include <adt/generic_char_map.h>
 #include <adt/int_map.h>
 #include <adt/measured_strings.h>
 
-
 /** Type definition of the ARP device specific data.
- *  @see arp_device
+ * @see arp_device
  */
-typedef struct arp_device	arp_device_t;
+typedef struct arp_device arp_device_t;
 
 /** Type definition of the ARP device specific data pointer.
- *  @see arp_device
+ * @see arp_device
  */
-typedef arp_device_t *		arp_device_ref;
+typedef arp_device_t *arp_device_ref;
 
 /** Type definition of the ARP global data.
- *  @see arp_globals
+ * @see arp_globals
  */
-typedef struct arp_globals	arp_globals_t;
+typedef struct arp_globals arp_globals_t;
 
 /** Type definition of the ARP protocol specific data.
- *  @see arp_proto
+ * @see arp_proto
  */
-typedef struct arp_proto	arp_proto_t;
+typedef struct arp_proto arp_proto_t;
 
 /** Type definition of the ARP protocol specific data pointer.
- *  @see arp_proto
+ * @see arp_proto
  */
-typedef arp_proto_t *		arp_proto_ref;
+typedef arp_proto_t *arp_proto_ref;
 
 /** ARP address map.
- *  Translates addresses.
- *  @see generic_char_map.h
+ *
+ * Translates addresses.
+ * @see generic_char_map.h
  */
-GENERIC_CHAR_MAP_DECLARE(arp_addr, measured_string_t)
+GENERIC_CHAR_MAP_DECLARE(arp_addr, measured_string_t);
 
 /** ARP address cache.
- *  Maps devices to the ARP device specific data.
- *  @see device.h
+ *
+ * Maps devices to the ARP device specific data.
+ * @see device.h
  */
-DEVICE_MAP_DECLARE(arp_cache, arp_device_t)
+DEVICE_MAP_DECLARE(arp_cache, arp_device_t);
 
 /** ARP protocol map.
- *  Maps protocol identifiers to the ARP protocol specific data.
- *  @see int_map.h
+ *
+ * Maps protocol identifiers to the ARP protocol specific data.
+ * @see int_map.h
  */
-INT_MAP_DECLARE(arp_protos, arp_proto_t)
+INT_MAP_DECLARE(arp_protos, arp_proto_t);
 
-/** ARP device specific data.
- */
-struct arp_device{
-	/** Actual device hardware address.
-	 */
+/** ARP device specific data. */
+struct arp_device {
+	/** Actual device hardware address. */
 	measured_string_ref addr;
-	/** Actual device hardware address data.
-	 */
-	char * addr_data;
-	/** Broadcast device hardware address.
-	 */
+	/** Actual device hardware address data. */
+	char *addr_data;
+	/** Broadcast device hardware address. */
 	measured_string_ref broadcast_addr;
-	/** Broadcast device hardware address data.
-	 */
-	char * broadcast_data;
-	/** Device identifier.
-	 */
+	/** Broadcast device hardware address data. */
+	char *broadcast_data;
+	/** Device identifier. */
 	device_id_t device_id;
-	/** Hardware type.
-	 */
+	/** Hardware type. */
 	hw_type_t hardware;
-	/** Packet dimension.
-	 */
+	/** Packet dimension. */
 	packet_dimension_t packet_dimension;
-	/** Device module phone.
-	 */
+	/** Device module phone. */
 	int phone;
-	/** Protocol map.
-	 *  Address map for each protocol.
+	
+	/**
+	 * Protocol map.
+	 * Address map for each protocol.
 	 */
 	arp_protos_t protos;
-	/** Device module service.
-	 */
+	
+	/** Device module service. */
 	services_t service;
 };
 
-/** ARP global data.
- */
-struct	arp_globals{
-	/** ARP address cache.
-	 */
+/** ARP global data. */
+struct arp_globals {
+	/** ARP address cache. */
 	arp_cache_t cache;
-	/** The client connection processing function.
-	 *  The module skeleton propagates its own one.
+	
+	/**
+	 * The client connection processing function.
+	 * The module skeleton propagates its own one.
 	 */
 	async_client_conn_t client_connection;
-	/** Networking module phone.
-	 */
+	
+	/** Networking module phone. */
 	int net_phone;
-	/** Safety lock.
-	 */
+	/** Safety lock. */
 	fibril_rwlock_t lock;
 };
 
-/** ARP protocol specific data.
- */
-struct arp_proto{
-	/** Actual device protocol address.
-	 */
+/** ARP protocol specific data. */
+struct arp_proto {
+	/** Actual device protocol address. */
 	measured_string_ref addr;
-	/** Actual device protocol address data.
-	 */
-	char * addr_data;
-	/** Address map.
-	 */
+	/** Actual device protocol address data. */
+	char *addr_data;
+	/** Address map. */
 	arp_addr_t addresses;
-	/** Protocol service.
-	 */
+	/** Protocol service. */
 	services_t service;
 };
 

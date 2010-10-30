@@ -27,38 +27,22 @@
  */
 
 /** @addtogroup ip
- *  @{
+ * @{
  */
 
 /** @file
- *  IP module functions.
- *  The functions are used as IP module entry points.
+ * IP module functions.
+ * The functions are used as IP module entry points.
  */
 
-#ifndef __NET_IP_MODULE_H__
-#define __NET_IP_MODULE_H__
+#ifndef NET_IP_MODULE_H_
+#define NET_IP_MODULE_H_
 
 #include <ipc/ipc.h>
 
-/** Initializes the IP module.
- *  @param[in] client_connection The client connection processing function. The module skeleton propagates its own one.
- *  @returns EOK on success.
- *  @returns ENOMEM if there is not enough memory left.
- */
-int ip_initialize(async_client_conn_t client_connection);
-
-/** Processes the IP message.
- *  @param[in] callid The message identifier.
- *  @param[in] call The message parameters.
- *  @param[out] answer The message answer parameters.
- *  @param[out] answer_count The last parameter for the actual answer in the answer parameter.
- *  @returns EOK on success.
- *  @returns ENOTSUP if the message is not known.
- *  @see ip_interface.h
- *  @see il_interface.h
- *  @see IS_NET_IP_MESSAGE()
- */
-int ip_message_standalone(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count);
+extern int ip_initialize(async_client_conn_t);
+extern int ip_message_standalone(ipc_callid_t, ipc_call_t *, ipc_call_t *,
+    int *);
 
 #endif
 
