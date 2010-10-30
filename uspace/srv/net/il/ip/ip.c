@@ -305,35 +305,35 @@ static int ip_netif_initialize(ip_netif_ref ip_netif)
 
 	measured_string_t names[] = {
 		{
-			str_dup("IPV"),
+			(char *) "IPV",
 			3
 		},
 		{
-			str_dup("IP_CONFIG"),
+			(char *) "IP_CONFIG",
 			9
 		},
 		{
-			str_dup("IP_ADDR"),
+			(char *) "IP_ADDR",
 			7
 		},
 		{
-			str_dup("IP_NETMASK"),
+			(char *) "IP_NETMASK",
 			10
 		},
 		{
-			str_dup("IP_GATEWAY"),
+			(char *) "IP_GATEWAY",
 			10
 		},
 		{
-			str_dup("IP_BROADCAST"),
+			(char *) "IP_BROADCAST",
 			12
 		},
 		{
-			str_dup("ARP"),
+			(char *) "ARP",
 			3
 		},
 		{
-			str_dup("IP_ROUTING"),
+			(char *) "IP_ROUTING",
 			10
 		}
 	};
