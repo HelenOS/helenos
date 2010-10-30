@@ -651,8 +651,10 @@ ip_prepare_packet(in_addr_t *source, in_addr_t dest, packet_t packet,
 		while (pq_next(next)) {
 			middle_header = (ip_header_ref) packet_prefix(next,
 			    IP_HEADER_LENGTH(last_header));
-			if (!middle_header)
+			if (!middle_header) {
+				free(last_header);
 				return ENOMEM;
+			}
 
 			memcpy(middle_header, last_header,
 			    IP_HEADER_LENGTH(last_header));
@@ -666,10 +668,13 @@ ip_prepare_packet(in_addr_t *source, in_addr_t dest, packet_t packet,
 			middle_header->header_checksum =
 			    IP_HEADER_CHECKSUM(middle_header);
 			if (destination) {
-				ERROR_PROPAGATE(packet_set_addr(next, NULL,
+				if (ERROR_OCCURRED(packet_set_addr(next, NULL,
 				    (uint8_t *) destination->value,
 				    CONVERT_SIZE(char, uint8_t,
-				    destination->length)));
+				    destination->length)))) {
+				    	free(last_header);
+					return ERROR_CODE;
+				}
 			}
 			length += packet_get_data_length(next);
 			next = pq_next(next);
@@ -677,8 +682,10 @@ ip_prepare_packet(in_addr_t *source, in_addr_t dest, packet_t packet,
 
 		middle_header = (ip_header_ref) packet_prefix(next,
 		    IP_HEADER_LENGTH(last_header));
-		if (!middle_header)
+		if (!middle_header) {
+			free(last_header);
 			return ENOMEM;
+		}
 
 		memcpy(middle_header, last_header,
 		    IP_HEADER_LENGTH(last_header));
@@ -691,9 +698,13 @@ ip_prepare_packet(in_addr_t *source, in_addr_t dest, packet_t packet,
 		middle_header->header_checksum =
 		    IP_HEADER_CHECKSUM(middle_header);
 		if (destination) {
-			ERROR_PROPAGATE(packet_set_addr(next, NULL,
+			if (ERROR_OCCURRED(packet_set_addr(next, NULL,
 			    (uint8_t *) destination->value,
-			    CONVERT_SIZE(char, uint8_t, destination->length)));
+			    CONVERT_SIZE(char, uint8_t,
+			    destination->length)))) {
+				free(last_header);
+				return ERROR_CODE;
+			    }
 		}
 		length += packet_get_data_length(next);
 		free(last_header);
