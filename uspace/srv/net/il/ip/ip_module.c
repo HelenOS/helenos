@@ -31,10 +31,12 @@
  */
 
 /** @file
- *  IP standalone module implementation.
- *  Contains skeleton module functions mapping.
- *  The functions are used by the module skeleton as module specific entry points.
- *  @see module.c
+ * IP standalone module implementation.
+ * Contains skeleton module functions mapping.
+ * The functions are used by the module skeleton as module specific entry
+ * points.
+ *
+ * @see module.c
  */
 
 #include <async.h>
@@ -51,15 +53,18 @@
 #include "ip.h"
 #include "ip_module.h"
 
-/** IP module global data.
- */
+/** IP module global data. */
 extern ip_globals_t ip_globals;
 
-int il_module_message_standalone(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count){
+int
+il_module_message_standalone(ipc_callid_t callid, ipc_call_t *call,
+    ipc_call_t *answer, int *answer_count)
+{
 	return ip_message_standalone(callid, call, answer, answer_count);
 }
 
-int il_module_start_standalone(async_client_conn_t client_connection){
+int il_module_start_standalone(async_client_conn_t client_connection)
+{
 	ERROR_DECLARE;
 	
 	async_set_client_connection(client_connection);
@@ -67,8 +72,8 @@ int il_module_start_standalone(async_client_conn_t client_connection){
 	ERROR_PROPAGATE(pm_init());
 	
 	ipcarg_t phonehash;
-	if (ERROR_OCCURRED(ip_initialize(client_connection))
-	    || ERROR_OCCURRED(REGISTER_ME(SERVICE_IP, &phonehash))) {
+	if (ERROR_OCCURRED(ip_initialize(client_connection)) ||
+	    ERROR_OCCURRED(REGISTER_ME(SERVICE_IP, &phonehash))) {
 		pm_destroy();
 		return ERROR_CODE;
 	}
