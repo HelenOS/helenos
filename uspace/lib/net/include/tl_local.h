@@ -36,8 +36,35 @@
 #include <ipc/ipc.h>
 #include <async.h>
 
+/** Starts the TL module.
+ *
+ * Initializes the client connection serving function, initializes the module,
+ * registers the module service and starts the async manager, processing IPC
+ * messages in an infinite loop.
+ *
+ * @param[in] client_connection The client connection processing function. The
+ *			module skeleton propagates its own one.
+ * @returns		EOK on successful module termination.
+ * @returns		Other error codes as defined for the module initialize
+ *			function.
+ * @returns		Other error codes as defined for the REGISTER_ME() macro
+ *			function.
+ */
 extern int tl_module_message_standalone(ipc_callid_t, ipc_call_t *,
     ipc_call_t *, int *);
+
+
+/** Processes the TL module message.
+ *
+ * @param[in] callid	The message identifier.
+ * @param[in] call	The message parameters.
+ * @param[out] answer	The message answer parameters.
+ * @param[out] answer_count The last parameter for the actual answer in the
+ *			answer parameter.
+ * @returns		EOK on success.
+ * @returns		Other error codes as defined for the module's message
+ *			standalone function.
+ */
 extern int tl_module_start_standalone(async_client_conn_t);
 
 #endif
