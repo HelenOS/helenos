@@ -416,11 +416,11 @@ int icmp_initialize(async_client_conn_t client_connection)
 
 	measured_string_t names[] = {
 		{
-			str_dup("ICMP_ERROR_REPORTING"),
+			(char *) "ICMP_ERROR_REPORTING",
 			20
 		},
 		{
-			str_dup("ICMP_ECHO_REPLYING"),
+			(char *) "ICMP_ECHO_REPLYING",
 			18
 		}
 	};
