@@ -36,8 +36,7 @@
 #define KERN_mips32_EXCEPTION_H_
 
 #include <typedefs.h>
-#include <arch/cp0.h>
-#include <trace.h>
+#include <arch/istate.h>
 
 #define EXC_Int    0
 #define EXC_Mod    1
@@ -57,74 +56,6 @@
 #define EXC_FPE    15
 #define EXC_WATCH  23
 #define EXC_VCED   31
-
-typedef struct istate {
-	/*
-	 * The first seven registers are arranged so that the istate structure
-	 * can be used both for exception handlers and for the syscall handler.
-	 */
-	uint32_t a0;	/* arg1 */
-	uint32_t a1;	/* arg2 */
-	uint32_t a2;	/* arg3 */
-	uint32_t a3;	/* arg4 */
-	uint32_t t0;	/* arg5 */
-	uint32_t t1;	/* arg6 */
-	uint32_t v0;	/* arg7 */
-	uint32_t v1;
-	uint32_t at;
-	uint32_t t2;
-	uint32_t t3;
-	uint32_t t4;
-	uint32_t t5;
-	uint32_t t6;
-	uint32_t t7;
-	uint32_t s0;
-	uint32_t s1;
-	uint32_t s2;
-	uint32_t s3;
-	uint32_t s4;
-	uint32_t s5;
-	uint32_t s6;
-	uint32_t s7;
-	uint32_t t8;
-	uint32_t t9;
-	uint32_t kt0;
-	uint32_t kt1;	/* We use it as thread-local pointer */
-	uint32_t gp;
-	uint32_t sp;
-	uint32_t s8;
-	uint32_t ra;
-	
-	uint32_t lo;
-	uint32_t hi;
-	
-	uint32_t status;	/* cp0_status */
-	uint32_t epc;		/* cp0_epc */
-
-	uint32_t alignment;	/* to make sizeof(istate_t) a multiple of 8 */
-} istate_t;
-
-NO_TRACE static inline void istate_set_retaddr(istate_t *istate,
-    uintptr_t retaddr)
-{
-	istate->epc = retaddr;
-}
-
-/** Return true if exception happened while in userspace */
-NO_TRACE static inline int istate_from_uspace(istate_t *istate)
-{
-	return istate->status & cp0_status_um_bit;
-}
-
-NO_TRACE static inline unative_t istate_get_pc(istate_t *istate)
-{
-	return istate->epc;
-}
-
-NO_TRACE static inline unative_t istate_get_fp(istate_t *istate)
-{
-	return istate->sp;
-}
 
 extern void exception(istate_t *istate);
 extern void tlb_refill_entry(void);

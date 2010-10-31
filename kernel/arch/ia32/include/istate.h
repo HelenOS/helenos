@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jiri Svoboda
+ * Copyright (c) 2001-2004 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,16 +26,74 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcmips32
+/** @addtogroup ia32interrupt
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_mips32__ISTATE_H_
-#define LIBC_mips32__ISTATE_H_
+#ifndef KERN_ia32_ISTATE_H_
+#define KERN_ia32_ISTATE_H_
 
-#include <arch/istate.h>
+#ifdef KERNEL
+#include <typedefs.h>
+#include <trace.h>
+#else
+#include <sys/types.h>
+#define NO_TRACE
+#endif
+
+typedef struct istate {
+	/*
+	 * The strange order of the GPRs is given by the requirement to use the
+	 * istate structure for both regular interrupts and exceptions as well
+	 * as for syscall handlers which use this order as an optimization.
+	 */
+	uint32_t edx;
+	uint32_t ecx;
+	uint32_t ebx;
+	uint32_t esi;
+	uint32_t edi;
+	uint32_t ebp;
+	uint32_t eax;
+	
+	uint32_t ebp_frame;  /* imitation of frame pointer linkage */
+	uint32_t eip_frame;  /* imitation of return address linkage */
+	
+	uint32_t gs;
+	uint32_t fs;
+	uint32_t es;
+	uint32_t ds;
+	
+	uint32_t error_word;  /* real or fake error word */
+	uint32_t eip;
+	uint32_t cs;
+	uint32_t eflags;
+	uint32_t esp;         /* only if istate_t is from uspace */
+	uint32_t ss;          /* only if istate_t is from uspace */
+} istate_t;
+
+/** Return true if exception happened while in userspace */
+NO_TRACE static inline int istate_from_uspace(istate_t *istate)
+{
+	return !(istate->eip & 0x80000000);
+}
+
+NO_TRACE static inline void istate_set_retaddr(istate_t *istate,
+    uintptr_t retaddr)
+{
+	istate->eip = retaddr;
+}
+
+NO_TRACE static inline uintptr_t istate_get_pc(istate_t *istate)
+{
+	return istate->eip;
+}
+
+NO_TRACE static inline uintptr_t istate_get_fp(istate_t *istate)
+{
+	return istate->ebp;
+}
 
 #endif
 

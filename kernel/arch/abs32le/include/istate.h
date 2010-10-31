@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jiri Svoboda
+ * Copyright (c) 2010 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,16 +26,69 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcmips32
+/** @addtogroup abs32leinterrupt
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_mips32__ISTATE_H_
-#define LIBC_mips32__ISTATE_H_
+#ifndef KERN_abs32le_ISTATE_H_
+#define KERN_abs32le_ISTATE_H_
 
-#include <arch/istate.h>
+#ifdef KERNEL
+#include <typedefs.h>
+#include <verify.h>
+#include <trace.h>
+#else
+#include <sys/types.h>
+#define NO_TRACE
+#define REQUIRES_EXTENT_MUTABLE(arg)
+#define WRITES(arg)
+#endif
+
+/*
+ * On real hardware this stores the registers which
+ * need to be preserved during interupts.
+ */
+typedef struct istate {
+	uintptr_t ip;
+	uintptr_t fp;
+	uint32_t stack[];
+} istate_t;
+
+NO_TRACE static inline int istate_from_uspace(istate_t *istate)
+    REQUIRES_EXTENT_MUTABLE(istate)
+{
+	/* On real hardware this checks whether the interrupted
+	   context originated from user space. */
+	
+	return !(istate->ip & 0x80000000);
+}
+
+NO_TRACE static inline void istate_set_retaddr(istate_t *istate,
+    uintptr_t retaddr)
+    WRITES(&istate->ip)
+{
+	/* On real hardware this sets the instruction pointer. */
+	
+	istate->ip = retaddr;
+}
+
+NO_TRACE static inline uintptr_t istate_get_pc(istate_t *istate)
+    REQUIRES_EXTENT_MUTABLE(istate)
+{
+	/* On real hardware this returns the instruction pointer. */
+	
+	return istate->ip;
+}
+
+NO_TRACE static inline uintptr_t istate_get_fp(istate_t *istate)
+    REQUIRES_EXTENT_MUTABLE(istate)
+{
+	/* On real hardware this returns the frame pointer. */
+	
+	return istate->fp;
+}
 
 #endif
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jiri Svoboda
+ * Copyright (c) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,16 +26,53 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcmips32
+/** @addtogroup sparc64interrupt sparc64
+ * @ingroup interrupt
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_mips32__ISTATE_H_
-#define LIBC_mips32__ISTATE_H_
+#ifndef KERN_sparc64_ISTATE_H_
+#define KERN_sparc64_ISTATE_H_
 
-#include <arch/istate.h>
+#include <arch/regdef.h>
+
+#ifdef KERNEL
+#include <typedefs.h>
+#include <trace.h>
+#else
+#include <sys/types.h>
+#define NO_TRACE
+#endif
+
+typedef struct istate {
+	uint64_t tnpc;
+	uint64_t tpc;
+	uint64_t tstate;
+} istate_t;
+
+NO_TRACE static inline void istate_set_retaddr(istate_t *istate,
+    uintptr_t retaddr)
+{
+	istate->tpc = retaddr;
+}
+
+NO_TRACE static inline int istate_from_uspace(istate_t *istate)
+{
+	return !(istate->tstate & TSTATE_PRIV_BIT);
+}
+
+NO_TRACE static inline uintptr_t istate_get_pc(istate_t *istate)
+{
+	return istate->tpc;
+}
+
+NO_TRACE static inline uintptr_t istate_get_fp(istate_t *istate)
+{
+	/* TODO */
+	return 0;
+}
 
 #endif
 

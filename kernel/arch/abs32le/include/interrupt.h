@@ -36,57 +36,12 @@
 #define KERN_abs32le_INTERRUPT_H_
 
 #include <typedefs.h>
-#include <verify.h>
-#include <trace.h>
+#include <arch/istate.h>
 
 #define IVT_ITEMS  0
 #define IVT_FIRST  0
 
 #define VECTOR_TLB_SHOOTDOWN_IPI  0
-
-/*
- * On real hardware this stores the registers which
- * need to be preserved during interupts.
- */
-typedef struct istate {
-	uintptr_t ip;
-	uintptr_t fp;
-	uint32_t stack[];
-} istate_t;
-
-NO_TRACE static inline int istate_from_uspace(istate_t *istate)
-    REQUIRES_EXTENT_MUTABLE(istate)
-{
-	/* On real hardware this checks whether the interrupted
-	   context originated from user space. */
-	
-	return !(istate->ip & 0x80000000);
-}
-
-NO_TRACE static inline void istate_set_retaddr(istate_t *istate,
-    uintptr_t retaddr)
-    WRITES(&istate->ip)
-{
-	/* On real hardware this sets the instruction pointer. */
-	
-	istate->ip = retaddr;
-}
-
-NO_TRACE static inline unative_t istate_get_pc(istate_t *istate)
-    REQUIRES_EXTENT_MUTABLE(istate)
-{
-	/* On real hardware this returns the instruction pointer. */
-	
-	return istate->ip;
-}
-
-NO_TRACE static inline unative_t istate_get_fp(istate_t *istate)
-    REQUIRES_EXTENT_MUTABLE(istate)
-{
-	/* On real hardware this returns the frame pointer. */
-	
-	return istate->fp;
-}
 
 #endif
 

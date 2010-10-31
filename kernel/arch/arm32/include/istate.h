@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2010 Jiri Svoboda
+ * Copyright (c) 2007 Michal Kebrt, Petr Stepan
+ *
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,16 +27,74 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcmips32
+/** @addtogroup arm32interrupt
  * @{
  */
-/** @file
+
+#ifndef KERN_arm32_ISTATE_H_
+#define KERN_arm32_ISTATE_H_
+
+#include <arch/regutils.h>
+
+#ifdef KERNEL
+#include <typedefs.h>
+#include <trace.h>
+#else
+#include <sys/types.h>
+#define NO_TRACE
+#endif
+
+/** Struct representing CPU state saved when an exception occurs. */
+typedef struct istate {
+	uint32_t spsr;
+	uint32_t sp;
+	uint32_t lr;
+	
+	uint32_t r0;
+	uint32_t r1;
+	uint32_t r2;
+	uint32_t r3;
+	uint32_t r4;
+	uint32_t r5;
+	uint32_t r6;
+	uint32_t r7;
+	uint32_t r8;
+	uint32_t r9;
+	uint32_t r10;
+	uint32_t fp;
+	uint32_t r12;
+	
+	uint32_t pc;
+} istate_t;
+
+/** Set Program Counter member of given istate structure.
+ *
+ * @param istate  istate structure
+ * @param retaddr new value of istate's PC member
+ *
  */
+NO_TRACE static inline void istate_set_retaddr(istate_t *istate,
+    uintptr_t retaddr)
+{
+	istate->pc = retaddr;
+}
 
-#ifndef LIBC_mips32__ISTATE_H_
-#define LIBC_mips32__ISTATE_H_
+/** Return true if exception happened while in userspace. */
+NO_TRACE static inline int istate_from_uspace(istate_t *istate)
+{
+	return (istate->spsr & STATUS_REG_MODE_MASK) == USER_MODE;
+}
 
-#include <arch/istate.h>
+/** Return Program Counter member of given istate structure. */
+NO_TRACE static inline uintptr_t istate_get_pc(istate_t *istate)
+{
+	return istate->pc;
+}
+
+NO_TRACE static inline uintptr_t istate_get_fp(istate_t *istate)
+{
+	return istate->fp;
+}
 
 #endif
 

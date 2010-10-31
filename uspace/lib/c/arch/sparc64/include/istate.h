@@ -35,27 +35,7 @@
 #ifndef LIBC_sparc64_ISTATE_H_
 #define LIBC_sparc64_ISTATE_H_
 
-#include <sys/types.h>
-
-/** Interrupt context.
- *
- * This is a copy of the kernel definition with which it must be kept in sync.
- */
-typedef struct istate {
-	/* TODO */
-} istate_t;
-
-static inline uintptr_t istate_get_pc(istate_t *istate)
-{
-	/* TODO */
-	return 0;
-}
-
-static inline uintptr_t istate_get_fp(istate_t *istate)
-{
-	/* TODO */
-	return 0;
-}
+#include <arch/istate.h>
 
 #endif
 

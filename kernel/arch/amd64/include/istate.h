@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jiri Svoboda
+ * Copyright (c) 2001-2004 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,16 +26,72 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcmips32
+/** @addtogroup amd64interrupt
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_mips32__ISTATE_H_
-#define LIBC_mips32__ISTATE_H_
+#ifndef KERN_amd64_ISTATE_H_
+#define KERN_amd64_ISTATE_H_
 
-#include <arch/istate.h>
+#ifdef KERNEL
+#include <typedefs.h>
+#include <trace.h>
+#else
+#include <sys/types.h>
+#define NO_TRACE
+#endif
+
+/** This is passed to interrupt handlers */
+typedef struct istate {
+	uint64_t rax;
+	uint64_t rbx;
+	uint64_t rcx;
+	uint64_t rdx;
+	uint64_t rsi;
+	uint64_t rdi;
+	uint64_t rbp;
+	uint64_t r8;
+	uint64_t r9;
+	uint64_t r10;
+	uint64_t r11;
+	uint64_t r12;
+	uint64_t r13;
+	uint64_t r14;
+	uint64_t r15;
+	uint64_t alignment;	/* align rbp_frame on multiple of 16 */
+	uint64_t rbp_frame;	/* imitation of frame pointer linkage */
+	uint64_t rip_frame;	/* imitation of return address linkage */
+	uint64_t error_word;	/* real or fake error word */
+	uint64_t rip;
+	uint64_t cs;
+	uint64_t rflags;
+	uint64_t rsp;		/* only if istate_t is from uspace */
+	uint64_t ss;		/* only if istate_t is from uspace */
+} istate_t;
+
+/** Return true if exception happened while in userspace */
+NO_TRACE static inline int istate_from_uspace(istate_t *istate)
+{
+	return !(istate->rip & 0x8000000000000000);
+}
+
+NO_TRACE static inline void istate_set_retaddr(istate_t *istate,
+    uintptr_t retaddr)
+{
+	istate->rip = retaddr;
+}
+
+NO_TRACE static inline uintptr_t istate_get_pc(istate_t *istate)
+{
+	return istate->rip;
+}
+
+NO_TRACE static inline uintptr_t istate_get_fp(istate_t *istate)
+{
+	return istate->rbp;
+}
 
 #endif
 
