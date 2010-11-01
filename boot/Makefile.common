@@ -106,8 +106,7 @@ RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/net/tl/tcp/tcp \
 	$(USPACE_PATH)/srv/net/net/net \
 	$(USPACE_PATH)/srv/net/netstart/netstart \
-	$(USPACE_PATH)/srv/devman/devman \
-	$(USPACE_PATH)/srv/drivers/root/root 
+	$(USPACE_PATH)/srv/devman/devman
 	
 RD_DRVS = \
 	root

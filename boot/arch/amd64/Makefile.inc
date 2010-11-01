@@ -33,7 +33,6 @@ RD_SRVS_ESSENTIAL += \
 
 RD_SRVS_NON_ESSENTIAL += \
 	$(USPACE_PATH)/srv/bd/ata_bd/ata_bd \
-	$(USPACE_PATH)/srv/hw/bus/pci/pci \
 	$(USPACE_PATH)/srv/hid/char_mouse/char_ms
 
 RD_DRVS += \
