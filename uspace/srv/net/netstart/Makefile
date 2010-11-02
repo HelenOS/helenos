@@ -34,7 +34,6 @@ EXTRA_CFLAGS = -I$(LIBNET_PREFIX)/include
 BINARY = netstart
 
 SOURCES = \
-	netstart.c \
-	self_test.c
+	netstart.c
 
 include $(USPACE_PREFIX)/Makefile.common
