@@ -36,8 +36,8 @@
 #define KERN_ia32_INTERRUPT_H_
 
 #include <typedefs.h>
+#include <arch/istate.h>
 #include <arch/pm.h>
-#include <trace.h>
 
 #define IVT_ITEMS  IDT_ITEMS
 #define IVT_FIRST  0
@@ -69,58 +69,6 @@
 #define VECTOR_SYSCALL            IVT_FREEBASE
 #define VECTOR_TLB_SHOOTDOWN_IPI  (IVT_FREEBASE + 1)
 #define VECTOR_DEBUG_IPI          (IVT_FREEBASE + 2)
-
-typedef struct istate {
-	/*
-	 * The strange order of the GPRs is given by the requirement to use the
-	 * istate structure for both regular interrupts and exceptions as well
-	 * as for syscall handlers which use this order as an optimization.
-	 */
-	uint32_t edx;
-	uint32_t ecx;
-	uint32_t ebx;
-	uint32_t esi;
-	uint32_t edi;
-	uint32_t ebp;
-	uint32_t eax;
-	
-	uint32_t ebp_frame;  /* imitation of frame pointer linkage */
-	uint32_t eip_frame;  /* imitation of return address linkage */
-	
-	uint32_t gs;
-	uint32_t fs;
-	uint32_t es;
-	uint32_t ds;
-	
-	uint32_t error_word;  /* real or fake error word */
-	uint32_t eip;
-	uint32_t cs;
-	uint32_t eflags;
-	uint32_t esp;         /* only if istate_t is from uspace */
-	uint32_t ss;          /* only if istate_t is from uspace */
-} istate_t;
-
-/** Return true if exception happened while in userspace */
-NO_TRACE static inline int istate_from_uspace(istate_t *istate)
-{
-	return !(istate->eip & 0x80000000);
-}
-
-NO_TRACE static inline void istate_set_retaddr(istate_t *istate,
-    uintptr_t retaddr)
-{
-	istate->eip = retaddr;
-}
-
-NO_TRACE static inline unative_t istate_get_pc(istate_t *istate)
-{
-	return istate->eip;
-}
-
-NO_TRACE static inline unative_t istate_get_fp(istate_t *istate)
-{
-	return istate->ebp;
-}
 
 extern void (* disable_irqs_function)(uint16_t);
 extern void (* enable_irqs_function)(uint16_t);

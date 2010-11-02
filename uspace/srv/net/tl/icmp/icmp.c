@@ -43,33 +43,34 @@
 #include <str.h>
 #include <ipc/ipc.h>
 #include <ipc/services.h>
+#include <ipc/net.h>
+#include <ipc/tl.h>
+#include <ipc/icmp.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#include <byteorder.h>
+#include <errno.h>
+#include <err.h>
 
-#include <net_err.h>
-#include <net_messages.h>
-#include <net_modules.h>
-#include <packet/packet_client.h>
+#include <net/socket_codes.h>
+#include <net/ip_protocols.h>
+#include <net/inet.h>
+
+#include <net/modules.h>
+#include <packet_client.h>
 #include <packet_remote.h>
-#include <net_byteorder.h>
 #include <net_checksum.h>
-#include <icmp_api.h>
+#include <net/icmp_api.h>
 #include <icmp_client.h>
-#include <icmp_codes.h>
-#include <icmp_common.h>
+#include <net/icmp_codes.h>
+#include <net/icmp_common.h>
 #include <icmp_interface.h>
 #include <il_interface.h>
-#include <inet.h>
 #include <ip_client.h>
 #include <ip_interface.h>
-#include <ip_protocols.h>
 #include <net_interface.h>
-#include <socket_codes.h>
-#include <socket_errno.h>
-#include <tl_messages.h>
 #include <tl_interface.h>
 #include <tl_local.h>
-#include <icmp_messages.h>
 #include <icmp_header.h>
 
 #include "icmp.h"
@@ -447,30 +448,6 @@ int icmp_send_packet(icmp_type_t type, icmp_code_t code, packet_t packet, icmp_h
 	return ip_send_msg(icmp_globals.ip_phone, -1, packet, SERVICE_ICMP, error);
 }
 
-int icmp_connect_module(services_t service, suseconds_t timeout){
-	icmp_echo_ref echo_data;
-	icmp_param_t id;
-	int index;
-
-	echo_data = (icmp_echo_ref) malloc(sizeof(*echo_data));
-	if(! echo_data){
-		return ENOMEM;
-	}
-	// assign a new identifier
-	fibril_rwlock_write_lock(&icmp_globals.lock);
-	index = icmp_bind_free_id(echo_data);
-	if(index < 0){
-		free(echo_data);
-		fibril_rwlock_write_unlock(&icmp_globals.lock);
-		return index;
-	}else{
-		id = echo_data->identifier;
-		fibril_rwlock_write_unlock(&icmp_globals.lock);
-		// return the echo data identifier as the ICMP phone
-		return id;
-	}
-}
-
 int icmp_initialize(async_client_conn_t client_connection){
 	ERROR_DECLARE;
 
@@ -483,7 +460,7 @@ int icmp_initialize(async_client_conn_t client_connection){
 	fibril_rwlock_write_lock(&icmp_globals.lock);
 	icmp_replies_initialize(&icmp_globals.replies);
 	icmp_echo_data_initialize(&icmp_globals.echo_data);
-	icmp_globals.ip_phone = ip_bind_service(SERVICE_IP, IPPROTO_ICMP, SERVICE_ICMP, client_connection, icmp_received_msg);
+	icmp_globals.ip_phone = ip_bind_service(SERVICE_IP, IPPROTO_ICMP, SERVICE_ICMP, client_connection);
 	if(icmp_globals.ip_phone < 0){
 		return icmp_globals.ip_phone;
 	}

@@ -72,7 +72,7 @@ const sc_desc_t syscall_desc[] = {
     [SYS_CAP_REVOKE] = { "cap_revoke",			2,	V_ERRNO },
     [SYS_PHYSMEM_MAP] = { "physmem_map",		4,	V_ERRNO },
     [SYS_IOSPACE_ENABLE] = { "iospace_enable",		1,	V_ERRNO },
-    [SYS_PREEMPT_CONTROL] = { "preempt_control",	1,	V_ERRNO },
+    [SYS_INTERRUPT_ENABLE] = { "interrupt_enable",	2,	V_ERRNO },
 
     [SYS_SYSINFO_GET_TAG] = { "sysinfo_get_tag",		2,	V_INTEGER },
     [SYS_SYSINFO_GET_VALUE] = { "sysinfo_get_value",		3,	V_ERRNO },

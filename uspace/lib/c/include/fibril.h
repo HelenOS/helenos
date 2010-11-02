@@ -47,6 +47,12 @@
 #define FIBRIL_SERIALIZED  1
 #define FIBRIL_WRITER      2
 
+struct fibril;
+
+typedef struct {
+	struct fibril *owned_by;
+} fibril_owner_info_t;
+
 typedef enum {
 	FIBRIL_PREEMPT,
 	FIBRIL_TO_MANAGER,
@@ -67,6 +73,8 @@ typedef struct fibril {
 	struct fibril *clean_after_me;
 	int retval;
 	int flags;
+
+	fibril_owner_info_t *waits_for;
 } fibril_t;
 
 /** Fibril-local variable specifier */

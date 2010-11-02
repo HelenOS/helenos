@@ -35,39 +35,31 @@
  *  @see module.c
  */
 
+#include "eth.h"
+
 #include <async.h>
 #include <stdio.h>
+#include <err.h>
 
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 
-#include <net_err.h>
-#include <net_modules.h>
+#include <net/modules.h>
 #include <net_interface.h>
-#include <packet/packet.h>
+#include <net/packet.h>
 #include <nil_local.h>
 
-#include "eth.h"
-
-/** Starts the Ethernet module.
- *  Initializes the client connection serving function, initializes the module, registers the module service and starts the async manager, processing IPC messages in an infinite loop.
- *  @param[in] client_connection The client connection processing function. The module skeleton propagates its own one.
- *  @returns EOK on success.
- *  @returns Other error codes as defined for the pm_init() function.
- *  @returns Other error codes as defined for the nil_initialize() function.
- *  @returns Other error codes as defined for the REGISTER_ME() macro function.
- */
 int nil_module_start_standalone(async_client_conn_t client_connection)
 {
 	ERROR_DECLARE;
 	
 	async_set_client_connection(client_connection);
-	int net_phone = net_connect_module(SERVICE_NETWORKING);
+	int net_phone = net_connect_module();
 	ERROR_PROPAGATE(pm_init());
 	
 	ipcarg_t phonehash;
-	if (ERROR_OCCURRED(nil_initialize(net_phone))
-	    || ERROR_OCCURRED(REGISTER_ME(SERVICE_ETHERNET, &phonehash))) {
+	if (ERROR_OCCURRED(nil_initialize(net_phone)) ||
+	    ERROR_OCCURRED(REGISTER_ME(SERVICE_ETHERNET, &phonehash))) {
 		pm_destroy();
 		return ERROR_CODE;
 	}
@@ -78,23 +70,9 @@ int nil_module_start_standalone(async_client_conn_t client_connection)
 	return EOK;
 }
 
-/** Pass the parameters to the module specific nil_message() function.
- *
- * @param[in]  name         Module name.
- * @param[in]  callid       The message identifier.
- * @param[in]  call         The message parameters.
- * @param[out] answer       The message answer parameters.
- * @param[out] answer_count The last parameter for the actual answer
- *                          in the answer parameter.
- *
- * @return EOK on success.
- * @return ENOTSUP if the message is not known.
- * @return Other error codes as defined for each
- *         specific module message function.
- *
- */
-int nil_module_message_standalone(const char *name, ipc_callid_t callid, ipc_call_t *call,
-    ipc_call_t *answer, int *answer_count)
+int
+nil_module_message_standalone(const char *name, ipc_callid_t callid,
+    ipc_call_t *call, ipc_call_t *answer, int *answer_count)
 {
 	return nil_message_standalone(name, callid, call, answer, answer_count);
 }

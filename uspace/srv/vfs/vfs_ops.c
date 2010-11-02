@@ -1354,12 +1354,14 @@ void vfs_dup(ipc_callid_t rid, ipc_call_t *request)
 		/* Close the originally opened file. */
 		int ret = vfs_close_internal(newfile);
 		if (ret != EOK) {
+			fibril_mutex_unlock(&oldfile->lock);
 			ipc_answer_0(rid, ret);
 			return;
 		}
 		
 		ret = vfs_fd_free(newfd);
 		if (ret != EOK) {
+			fibril_mutex_unlock(&oldfile->lock);
 			ipc_answer_0(rid, ret);
 			return;
 		}

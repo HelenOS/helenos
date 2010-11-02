@@ -26,36 +26,23 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup icmp
- *  @{
+/** @addtogroup libnet
+ * @{
  */
 
 /** @file
- *  ICMP client interface.
+ * ICMP client interface.
  */
 
-#ifndef __NET_ICMP_CLIENT_H__
-#define __NET_ICMP_CLIENT_H__
+#ifndef LIBNET_ICMP_CLIENT_H_
+#define LIBNET_ICMP_CLIENT_H_
 
-#include <icmp_codes.h>
-#include <packet/packet.h>
+#include <net/icmp_codes.h>
+#include <net/packet.h>
 
-/** Processes the received packet prefixed with an ICMP header.
- *  @param[in] packet The received packet.
- *  @param[out] type The ICMP header type.
- *  @param[out] code The ICMP header code.
- *  @param[out] pointer The ICMP header pointer.
- *  @param[out] mtu The ICMP header MTU.
- *  @returns The ICMP header length.
- *  @returns Zero (0) if the packet contains no data.
- */
-extern int icmp_client_process_packet(packet_t packet, icmp_type_t * type, icmp_code_t * code, icmp_param_t * pointer, icmp_param_t * mtu);
-
-/** Returns the ICMP header length.
- *  @param[in] packet The packet.
- *  @returns The ICMP header length in bytes.
- */
-extern size_t icmp_client_header_length(packet_t packet);
+extern int icmp_client_process_packet(packet_t, icmp_type_t *, icmp_code_t *,
+    icmp_param_t *, icmp_param_t *);
+extern size_t icmp_client_header_length(packet_t);
 
 #endif
 

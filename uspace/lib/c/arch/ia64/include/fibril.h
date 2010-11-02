@@ -129,6 +129,11 @@ typedef struct context {
 
 } context_t;
 
+static inline uintptr_t context_get_fp(context_t *ctx)
+{
+	return 0;	/* FIXME */
+}
+
 #endif
 
 /** @}

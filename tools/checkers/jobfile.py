@@ -53,7 +53,7 @@ def parse_arg(record):
 				current = ""
 				nil = True
 			else:
-				print "Unexpected '%s'" % record[i]
+				print("Unexpected '%s'" % record[i])
 				return False
 		
 		i += 1

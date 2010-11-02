@@ -27,51 +27,51 @@
  */
 
 /** @addtogroup ip
- *  @{
+ * @{
  */
 
 /** @file
- *  IP module.
+ * IP module.
  */
 
-#ifndef __NET_IP_H__
-#define __NET_IP_H__
+#ifndef NET_IP_H_
+#define NET_IP_H_
 
 #include <fibril_synch.h>
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 
-#include <net_device.h>
-#include <inet.h>
+#include <net/device.h>
+#include <net/inet.h>
 #include <ip_interface.h>
 #include <adt/int_map.h>
 #include <adt/generic_field.h>
 #include <adt/module_map.h>
 
 /** Type definition of the IP global data.
- *  @see ip_globals
+ * @see ip_globals
  */
-typedef struct ip_globals	ip_globals_t;
+typedef struct ip_globals ip_globals_t;
 
 /** Type definition of the IP network interface specific data.
- *  @see ip_netif
+ * @see ip_netif
  */
-typedef struct ip_netif	ip_netif_t;
+typedef struct ip_netif ip_netif_t;
 
 /** Type definition of the IP network interface specific data pointer.
- *  @see ip_netif
+ * @see ip_netif
  */
-typedef ip_netif_t *	ip_netif_ref;
+typedef ip_netif_t *ip_netif_ref;
 
 /** Type definition of the IP protocol specific data.
- *  @see ip_proto
+ * @see ip_proto
  */
-typedef struct ip_proto	ip_proto_t;
+typedef struct ip_proto ip_proto_t;
 
 /** Type definition of the IP protocol specific data pointer.
- *  @see ip_proto
+ * @see ip_proto
  */
-typedef ip_proto_t *	ip_proto_ref;
+typedef ip_proto_t *ip_proto_ref;
 
 /** Type definition of the IP route specific data.
  *  @see ip_route
@@ -81,130 +81,96 @@ typedef struct ip_route	ip_route_t;
 /** Type definition of the IP route specific data pointer.
  *  @see ip_route
  */
-typedef ip_route_t *	ip_route_ref;
+typedef ip_route_t *ip_route_ref;
 
 /** IP network interfaces.
- *  Maps devices to the IP network interface specific data.
- *  @see device.h
+ * Maps devices to the IP network interface specific data.
+ * @see device.h
  */
-DEVICE_MAP_DECLARE(ip_netifs, ip_netif_t)
+DEVICE_MAP_DECLARE(ip_netifs, ip_netif_t);
 
 /** IP registered protocols.
- *  Maps protocols to the IP protocol specific data.
- *  @see int_map.h
+ * Maps protocols to the IP protocol specific data.
+ * @see int_map.h
  */
-INT_MAP_DECLARE(ip_protos, ip_proto_t)
+INT_MAP_DECLARE(ip_protos, ip_proto_t);
 
 /** IP routing table.
- *  @see generic_field.h
+ * @see generic_field.h
  */
-GENERIC_FIELD_DECLARE(ip_routes, ip_route_t)
+GENERIC_FIELD_DECLARE(ip_routes, ip_route_t);
 
-/** IP network interface specific data.
- */
-struct	ip_netif{
-	/** ARP module.
-	 *  Assigned if using ARP.
-	 */
+/** IP network interface specific data. */
+struct ip_netif {
+	/** ARP module. Assigned if using ARP. */
 	module_ref arp;
-	/** Broadcast address.
-	 */
+	/** Broadcast address. */
 	in_addr_t broadcast;
-	/** Device identifier.
-	 */
+	/** Device identifier. */
 	device_id_t device_id;
-	/** Indicates whether using DHCP.
-	 */
+	/** Indicates whether using DHCP. */
 	int dhcp;
-	/** IP version.
-	 */
+	/** IP version. */
 	int ipv;
-	/** Packet dimension.
-	 */
+	/** Packet dimension. */
 	packet_dimension_t packet_dimension;
-	/** Netif module phone.
-	 */
+	/** Netif module phone. */
 	int phone;
-	/** Routing table.
-	 */
+	/** Routing table. */
 	ip_routes_t routes;
-	/** Indicates whether IP routing is enabled.
-	 */
+	/** Indicates whether IP routing is enabled. */
 	int routing;
-	/** Netif module service.
-	 */
+	/** Netif module service. */
 	services_t service;
-	/** Device state.
-	 */
+	/** Device state. */
 	device_state_t state;
 };
 
-/** IP protocol specific data.
- */
-struct ip_proto{
-	/** Protocol module phone.
-	 */
+/** IP protocol specific data. */
+struct ip_proto {
+	/** Protocol module phone. */
 	int phone;
-	/** Protocol number.
-	 */
+	/** Protocol number. */
 	int protocol;
-	/** Protocol packet receiving function.
-	 */
+	/** Protocol packet receiving function. */
 	tl_received_msg_t received_msg;
-	/** Protocol module service.
-	 */
+	/** Protocol module service. */
 	services_t service;
 };
 
-/** IP route specific data.
- */
-struct ip_route{
-	/** Target address.
-	 */
+/** IP route specific data. */
+struct ip_route {
+	/** Target address. */
 	in_addr_t address;
-	/** Gateway.
-	 */
+	/** Gateway. */
 	in_addr_t gateway;
-	/** Parent netif.
-	 */
+	/** Parent netif. */
 	ip_netif_ref netif;
-	/** Target network mask.
-	 */
+	/** Target network mask. */
 	in_addr_t netmask;
 };
 
-/** IP global data.
- */
-struct	ip_globals{
-	/** Default client connection function for support modules.
-	 */
+/** IP global data. */
+struct ip_globals {
+	/** Default client connection function for support modules. */
 	async_client_conn_t client_connection;
-	/** Default gateway.
-	 */
+	/** Default gateway. */
 	ip_route_t gateway;
-	/** Safety lock.
-	 */
+	/** Safety lock. */
 	fibril_rwlock_t lock;
-	/** Known support modules.
-	 */
+	/** Known support modules. */
 	modules_t modules;
-	/** Networking module phone.
-	 */
+	/** Networking module phone. */
 	int net_phone;
-	/** Registered network interfaces.
-	 */
+	/** Registered network interfaces. */
 	ip_netifs_t netifs;
-	/** Netifs safeyt lock.
-	 */
+	/** Netifs safeyt lock. */
 	fibril_rwlock_t netifs_lock;
-	/** Packet counter.
-	 */
+	/** Packet counter. */
 	uint16_t packet_counter;
-	/** Registered protocols.
-	 */
+	/** Registered protocols. */
 	ip_protos_t protos;
-	/** Protocols safety lock.
-	 */
+	/** Protocols safety lock. */
 	fibril_rwlock_t protos_lock;
 };
 

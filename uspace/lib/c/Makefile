@@ -56,6 +56,9 @@ GENERIC_SOURCES = \
 	generic/cap.c \
 	generic/clipboard.c \
 	generic/devmap.c \
+	generic/devman.c \
+	generic/device/hw_res.c \
+	generic/device/char.c \
 	generic/event.c \
 	generic/errno.c \
 	generic/mem.c \
@@ -88,6 +91,9 @@ GENERIC_SOURCES = \
 	generic/getopt.c \
 	generic/adt/list.o \
 	generic/adt/hash_table.o \
+	generic/adt/dynamic_fifo.c \
+	generic/adt/measured_strings.c \
+	generic/adt/char_map.c \
 	generic/time.c \
 	generic/err.c \
 	generic/stdlib.c \
@@ -95,6 +101,13 @@ GENERIC_SOURCES = \
 	generic/udebug.c \
 	generic/vfs/vfs.c \
 	generic/vfs/canonify.c \
+	generic/net/inet.c \
+	generic/net/icmp_common.c \
+	generic/net/icmp_api.c \
+	generic/net/modules.c \
+	generic/net/packet.c \
+	generic/net/socket_client.c \
+	generic/net/socket_parse.c \
 	generic/stacktrace.c \
 	generic/arg_parse.c \
 	generic/sort.c \

@@ -141,7 +141,11 @@
 
 #ifndef __ASM__
 
+#ifdef KERNEL
 #include <typedefs.h>
+#else
+#include <sys/types.h>
+#endif
 
 /** Processor Status Register. */
 typedef union {

@@ -66,6 +66,11 @@ typedef struct {
 	uint32_t tls;
 } context_t;
 
+static inline uintptr_t context_get_fp(context_t *ctx)
+{
+	return ctx->ebp;
+}
+
 #endif
 
 /** @}
