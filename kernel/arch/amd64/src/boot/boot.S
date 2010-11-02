@@ -515,12 +515,12 @@ early_puts:
 		movq %rsi, %rdx
 		movq $(PA2KA(0xb80a0)), %rsi
 		movq $(PA2KA(0xb8000)), %rdi
-		movq $480, %rcx
+		movl $480, %ecx
 		rep movsq
 		
 		/* Clear the 24th row */
-		xorq %rax, %rax
-		movq $20, %rcx
+		xorl %eax, %eax
+		movl $20, %ecx
 		rep stosq
 		
 		/* Go to row 24 */
