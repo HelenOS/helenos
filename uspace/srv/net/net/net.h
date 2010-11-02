@@ -35,8 +35,8 @@
  *
  */
 
-#ifndef __NET_NET_H__
-#define __NET_NET_H__
+#ifndef NET_NET_H_
+#define NET_NET_H_
 
 #include <ipc/ipc.h>
 

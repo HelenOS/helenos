@@ -27,27 +27,25 @@
  */
 
 /** @addtogroup net
- *  @{
+ * @{
  */
 
 /** @file
- *  Wrapper for the standalone networking module.
+ * Wrapper for the standalone networking module.
  */
 
-#include <str.h>
+#include "net.h"
 
+#include <str.h>
+#include <adt/measured_strings.h>
+#include <adt/module_map.h>
 #include <ipc/ipc.h>
 #include <ipc/net.h>
 
 #include <ip_interface.h>
-#include <adt/measured_strings.h>
-#include <adt/module_map.h>
 #include <packet_server.h>
 
-#include "net.h"
-
-/** Networking module global data.
- */
+/** Networking module global data. */
 extern net_globals_t net_globals;
 
 /** Initialize the networking module for the chosen subsystem build type.
@@ -59,7 +57,8 @@ extern net_globals_t net_globals;
  *  @return ENOMEM if there is not enough memory left.
  *
  */
-int net_initialize_build(async_client_conn_t client_connection){
+int net_initialize_build(async_client_conn_t client_connection)
+{
 	ERROR_DECLARE;
 	
 	task_id_t task_id = spawn("/srv/ip");
