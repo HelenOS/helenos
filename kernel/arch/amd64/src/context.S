@@ -44,8 +44,8 @@ context_save_arch:
 	# 1st argument passed in %edi
 	CONTEXT_SAVE_ARCH_CORE %rdi %rdx
 	
-	xorq %rax, %rax       # context_save returns 1
-	incq %rax
+	xorl %eax, %eax       # context_save returns 1
+	incl %eax
 	ret
 
 
@@ -59,5 +59,5 @@ context_restore_arch:
 	
 	movq %rdx, (%rsp)
 	
-	xorq %rax, %rax       # context_restore returns 0
+	xorl %eax, %eax       # context_restore returns 0
 	ret
