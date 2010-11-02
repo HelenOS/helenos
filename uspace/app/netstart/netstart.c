@@ -31,11 +31,7 @@
  */
 
 /** @file
- *
  * Start the networking subsystem.
- * Perform networking self-test if executed
- * with the -s argument.
- *
  */
 
 #define NAME  "netstart"
@@ -51,16 +47,12 @@
 
 #include <net/modules.h>
 
-#include "self_test.h"
-
 /** Start a module.
  *
- * @param[in] desc The module description
- * @param[in] path The module absolute path.
- *
- * @returns true on succesful spanwning
- * @returns false on failure
- *
+ * @param[in] desc	The module description
+ * @param[in] path	The module absolute path.
+ * @returns		True on succesful spanwning.
+ * @returns		False on failure
  */
 static bool spawn(const char *desc, const char *path)
 {
@@ -84,10 +76,6 @@ static bool spawn(const char *desc, const char *path)
 int main(int argc, char *argv[])
 {
 	ERROR_DECLARE;
-	
-	/* Run self-tests */
-	if ((argc > 1) && (str_cmp(argv[1], "-s") == 0))
-		ERROR_PROPAGATE(self_test());
 	
 	if (!spawn("networking service", "/srv/net"))
 		return EINVAL;

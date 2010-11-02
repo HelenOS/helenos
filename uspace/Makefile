@@ -49,6 +49,7 @@ DIRS = \
 	app/tetris \
 	app/trace \
 	app/top \
+	app/netstart \
 	app/netecho \
 	app/nettest1 \
 	app/nettest2 \
@@ -85,7 +86,6 @@ DIRS = \
 	srv/net/tl/udp \
 	srv/net/tl/tcp \
 	srv/net/net \
-	srv/net/netstart \
 	drv/root
 
 ## Networking

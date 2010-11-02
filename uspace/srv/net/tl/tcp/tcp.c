@@ -27,13 +27,17 @@
  */
 
 /** @addtogroup tcp
- *  @{
+ * @{
  */
 
 /** @file
- *  TCP module implementation.
- *  @see tcp.h
+ * TCP module implementation.
+ * @see tcp.h
  */
+
+#include "tcp.h"
+#include "tcp_header.h"
+#include "tcp_module.h"
 
 #include <assert.h>
 #include <async.h>
@@ -71,10 +75,6 @@
 #include <tl_local.h>
 #include <tl_interface.h>
 
-#include "tcp.h"
-#include "tcp_header.h"
-#include "tcp_module.h"
-
 /** TCP module name. */
 #define NAME	"TCP protocol"
 
@@ -109,12 +109,13 @@
 #define TCP_FAST_RETRANSMIT_COUNT	3
 
 /** Returns a value indicating whether the value is in the interval respecting
- *  the possible overflow.
+ * the possible overflow.
  *
- *  The high end and/or the value may overflow, be lower than the low value.
- *  @param[in] lower The last value before the interval.
- *  @param[in] value The value to be checked.
- *  @param[in] higher_equal The last value in the interval.
+ * The high end and/or the value may overflow, be lower than the low value.
+ *
+ * @param[in] lower	The last value before the interval.
+ * @param[in] value	The value to be checked.
+ * @param[in] higher_equal The last value in the interval.
  */
 #define IS_IN_INTERVAL_OVERFLOW(lower, value, higher_equal) \
 	((((lower) < (value)) && (((value) <= (higher_equal)) || \
@@ -164,88 +165,73 @@ struct tcp_timeout {
 	size_t key_length;
 };
 
-/** Releases the packet and returns the result.
- *  @param[in] packet The packet queue to be released.
- *  @param[in] result The result to be returned.
- *  @return The result parameter.
- */
-int tcp_release_and_return(packet_t packet, int result);
+static int tcp_release_and_return(packet_t, int);
+static void tcp_prepare_operation_header(socket_core_ref, tcp_socket_data_ref,
+    tcp_header_ref, int synchronize, int);
+static int tcp_prepare_timeout(int (*)(void *), socket_core_ref,
+    tcp_socket_data_ref, size_t, tcp_socket_state_t, suseconds_t, int);
+static void tcp_free_socket_data(socket_core_ref);
 
-void tcp_prepare_operation_header(socket_core_ref socket,
-    tcp_socket_data_ref socket_data, tcp_header_ref header, int synchronize,
-    int finalize);
-int tcp_prepare_timeout(int (*timeout_function)(void *tcp_timeout_t),
-    socket_core_ref socket, tcp_socket_data_ref socket_data,
-    size_t sequence_number, tcp_socket_state_t state, suseconds_t timeout,
-    int globals_read_only);
-void tcp_free_socket_data(socket_core_ref socket);
+static int tcp_timeout(void *);
 
-int tcp_timeout(void *data);
+static int tcp_release_after_timeout(void *);
 
-int tcp_release_after_timeout(void *data);
+static int tcp_process_packet(device_id_t, packet_t, services_t);
+static int tcp_connect_core(socket_core_ref, socket_cores_ref,
+    struct sockaddr *, socklen_t);
+static int tcp_queue_prepare_packet(socket_core_ref, tcp_socket_data_ref,
+    packet_t, size_t);
+static int tcp_queue_packet(socket_core_ref, tcp_socket_data_ref, packet_t,
+    size_t);
+static packet_t tcp_get_packets_to_send(socket_core_ref, tcp_socket_data_ref);
+static void tcp_send_packets(device_id_t, packet_t);
 
-int tcp_process_packet(device_id_t device_id, packet_t packet,
-    services_t error);
-int tcp_connect_core(socket_core_ref socket, socket_cores_ref local_sockets,
-    struct sockaddr *addr, socklen_t addrlen);
-int tcp_queue_prepare_packet(socket_core_ref socket,
-    tcp_socket_data_ref socket_data, packet_t packet, size_t data_length);
-int tcp_queue_packet(socket_core_ref socket, tcp_socket_data_ref socket_data,
-    packet_t packet, size_t data_length);
-packet_t tcp_get_packets_to_send(socket_core_ref socket,
-    tcp_socket_data_ref socket_data);
-void tcp_send_packets(device_id_t device_id, packet_t packet);
+static void tcp_process_acknowledgement(socket_core_ref, tcp_socket_data_ref,
+    tcp_header_ref);
+static packet_t tcp_send_prepare_packet(socket_core_ref, tcp_socket_data_ref,
+    packet_t, size_t, size_t);
+static packet_t tcp_prepare_copy(socket_core_ref, tcp_socket_data_ref, packet_t,
+    size_t, size_t);
+/* static */ void tcp_retransmit_packet(socket_core_ref, tcp_socket_data_ref,
+    size_t);
+static int tcp_create_notification_packet(packet_t *, socket_core_ref,
+    tcp_socket_data_ref, int, int);
+static void tcp_refresh_socket_data(tcp_socket_data_ref);
 
-void tcp_process_acknowledgement(socket_core_ref socket,
-    tcp_socket_data_ref socket_data, tcp_header_ref header);
-packet_t tcp_send_prepare_packet(socket_core_ref socket,
-    tcp_socket_data_ref socket_data, packet_t packet, size_t data_length,
-    size_t sequence_number);
-packet_t tcp_prepare_copy(socket_core_ref socket,
-    tcp_socket_data_ref socket_data, packet_t packet, size_t data_length,
-    size_t sequence_number);
-void tcp_retransmit_packet(socket_core_ref socket,
-    tcp_socket_data_ref socket_data, size_t sequence_number);
-int tcp_create_notification_packet(packet_t * packet, socket_core_ref socket,
-    tcp_socket_data_ref socket_data, int synchronize, int finalize);
-void tcp_refresh_socket_data(tcp_socket_data_ref socket_data);
+static void tcp_initialize_socket_data(tcp_socket_data_ref);
 
-void tcp_initialize_socket_data(tcp_socket_data_ref socket_data);
+static int tcp_process_listen(socket_core_ref, tcp_socket_data_ref,
+    tcp_header_ref, packet_t, struct sockaddr *, struct sockaddr *, size_t);
+static int tcp_process_syn_sent(socket_core_ref, tcp_socket_data_ref,
+    tcp_header_ref, packet_t);
+static int tcp_process_syn_received(socket_core_ref, tcp_socket_data_ref,
+    tcp_header_ref, packet_t);
+static int tcp_process_established(socket_core_ref, tcp_socket_data_ref,
+    tcp_header_ref, packet_t, int, size_t);
+static int tcp_queue_received_packet(socket_core_ref, tcp_socket_data_ref,
+    packet_t, int, size_t);
 
-int tcp_process_listen(socket_core_ref listening_socket,
-    tcp_socket_data_ref listening_socket_data, tcp_header_ref header,
-    packet_t packet, struct sockaddr *src, struct sockaddr *dest,
-    size_t addrlen);
-int tcp_process_syn_sent(socket_core_ref socket,
-    tcp_socket_data_ref socket_data, tcp_header_ref header, packet_t packet);
-int tcp_process_syn_received(socket_core_ref socket,
-    tcp_socket_data_ref socket_data, tcp_header_ref header, packet_t packet);
-int tcp_process_established(socket_core_ref socket,
-    tcp_socket_data_ref socket_data, tcp_header_ref header, packet_t packet,
-    int fragments, size_t total_length);
-int tcp_queue_received_packet(socket_core_ref socket,
-    tcp_socket_data_ref socket_data, packet_t packet, int fragments,
-    size_t total_length);
+static int tcp_received_msg(device_id_t, packet_t, services_t, services_t);
+static int tcp_process_client_messages(ipc_callid_t, ipc_call_t);
 
-int tcp_received_msg(device_id_t device_id, packet_t packet,
-    services_t receiver, services_t error);
-int tcp_process_client_messages(ipc_callid_t callid, ipc_call_t call);
-
-int tcp_listen_message(socket_cores_ref local_sockets, int socket_id,
-    int backlog);
-int tcp_connect_message(socket_cores_ref local_sockets, int socket_id,
-    struct sockaddr *addr, socklen_t addrlen);
-int tcp_recvfrom_message(socket_cores_ref local_sockets, int socket_id,
-    int flags, size_t * addrlen);
-int tcp_send_message(socket_cores_ref local_sockets, int socket_id,
-    int fragments, size_t * data_fragment_size, int flags);
-int tcp_accept_message(socket_cores_ref local_sockets, int socket_id,
-    int new_socket_id, size_t * data_fragment_size, size_t * addrlen);
-int tcp_close_message(socket_cores_ref local_sockets, int socket_id);
+static int tcp_listen_message(socket_cores_ref, int, int);
+static int tcp_connect_message(socket_cores_ref, int, struct sockaddr *,
+    socklen_t);
+static int tcp_recvfrom_message(socket_cores_ref, int, int, size_t *);
+static int tcp_send_message(socket_cores_ref, int, int, size_t *, int);
+static int tcp_accept_message(socket_cores_ref, int, int, size_t *, size_t *);
+static int tcp_close_message(socket_cores_ref, int);
 
 /** TCP global data. */
 tcp_globals_t tcp_globals;
 
+/** Initializes the TCP module.
+ *
+ * @param[in] client_connection The client connection processing function. The
+ *			module skeleton propagates its own one.
+ * @returns		EOK on success.
+ * @returns		ENOMEM if there is not enough memory left.
+ */
 int tcp_initialize(async_client_conn_t client_connection)
 {
 	ERROR_DECLARE;
@@ -313,25 +299,22 @@ int tcp_process_packet(device_id_t device_id, packet_t packet, services_t error)
 	struct sockaddr *dest;
 	size_t addrlen;
 
-	if (error) {
-		switch (error) {
-		case SERVICE_ICMP:
-			// process error
-			result = icmp_client_process_packet(packet, &type,
-			    &code, NULL, NULL);
-			if (result < 0)
-				return tcp_release_and_return(packet, result);
+	switch (error) {
+	case SERVICE_NONE:
+		break;
+	case SERVICE_ICMP:
+		// process error
+		result = icmp_client_process_packet(packet, &type, &code, NULL,
+		    NULL);
+		if (result < 0)
+			return tcp_release_and_return(packet, result);
 
-			length = (size_t) result;
-			if (ERROR_OCCURRED(packet_trim(packet, length, 0))) {
-				return tcp_release_and_return(packet,
-				    ERROR_CODE);
-			}
-			break;
-
-		default:
-			return tcp_release_and_return(packet, ENOTSUP);
-		}
+		length = (size_t) result;
+		if (ERROR_OCCURRED(packet_trim(packet, length, 0)))
+			return tcp_release_and_return(packet, ERROR_CODE);
+		break;
+	default:
+		return tcp_release_and_return(packet, ENOTSUP);
 	}
 
 	// TODO process received ipopts?
@@ -378,16 +361,16 @@ int tcp_process_packet(device_id_t device_id, packet_t packet, services_t error)
 		socket = socket_port_find(&tcp_globals.sockets,
 		    ntohs(header->destination_port), SOCKET_MAP_KEY_LISTENING,
 		    0);
-		if (!socket) {
-			if (tl_prepare_icmp_packet(tcp_globals.net_phone,
-			    tcp_globals.icmp_phone, packet, error) == EOK) {
-				icmp_destination_unreachable_msg(
-				    tcp_globals.icmp_phone, ICMP_PORT_UNREACH,
-				    0, packet);
-			}
-			return EADDRNOTAVAIL;
-		}
 	}
+	if (!socket) {
+		if (tl_prepare_icmp_packet(tcp_globals.net_phone,
+		    tcp_globals.icmp_phone, packet, error) == EOK) {
+			icmp_destination_unreachable_msg(tcp_globals.icmp_phone,
+			    ICMP_PORT_UNREACH, 0, packet);
+		}
+		return EADDRNOTAVAIL;
+	}
+
 	printf("socket id %d\n", socket->socket_id);
 	socket_data = (tcp_socket_data_ref) socket->specific_data;
 	assert(socket_data);
@@ -401,7 +384,7 @@ int tcp_process_packet(device_id_t device_id, packet_t packet, services_t error)
 	checksum = 0;
 	total_length = 0;
 	do {
-		++fragments;
+		fragments++;
 		length = packet_get_data_length(next_packet);
 		if (length <= 0)
 			return tcp_release_and_return(packet, NO_DATA);
@@ -420,10 +403,9 @@ int tcp_process_packet(device_id_t device_id, packet_t packet, services_t error)
 	fibril_rwlock_write_lock(socket_data->local_lock);
 
 	if (error)
-		goto error;
+		goto has_error_service;
 	
 	if (socket_data->state == TCP_SOCKET_LISTEN) {
-
 		if (socket_data->pseudo_header) {
 			free(socket_data->pseudo_header);
 			socket_data->pseudo_header = NULL;
@@ -463,7 +445,7 @@ int tcp_process_packet(device_id_t device_id, packet_t packet, services_t error)
 		return EINVAL;
 	}
 
-error:
+has_error_service:
 	fibril_rwlock_read_unlock(&tcp_globals.lock);
 
 	// TODO error reporting/handling
@@ -506,8 +488,7 @@ error:
 
 int
 tcp_process_established(socket_core_ref socket, tcp_socket_data_ref socket_data,
-    tcp_header_ref header, packet_t packet, int fragments,
-    size_t total_length)
+    tcp_header_ref header, packet_t packet, int fragments, size_t total_length)
 {
 	ERROR_DECLARE;
 
@@ -683,9 +664,9 @@ tcp_process_established(socket_core_ref socket, tcp_socket_data_ref socket_data,
 					packet = next_packet;
 					continue;
 					// at least partly following data?
-				} else if (IS_IN_INTERVAL_OVERFLOW(
-				    sequence_number, socket_data->next_incoming,
-				    new_sequence_number)) {
+				}
+				if (IS_IN_INTERVAL_OVERFLOW(sequence_number,
+				    socket_data->next_incoming, new_sequence_number)) {
 					if (socket_data->next_incoming <
 					    new_sequence_number) {
 						length = new_sequence_number -
@@ -960,7 +941,7 @@ tcp_process_listen(socket_core_ref listening_socket,
 	// find the destination socket
 	listening_socket = socket_port_find(&tcp_globals.sockets,
 	    listening_port, SOCKET_MAP_KEY_LISTENING, 0);
-	if ((!listening_socket) ||
+	if (!listening_socket ||
 	    (listening_socket->socket_id != listening_socket_id)) {
 		fibril_rwlock_write_unlock(&tcp_globals.lock);
 		// a shadow may remain until app hangs up
@@ -1190,7 +1171,7 @@ tcp_process_acknowledgement(socket_core_ref socket,
 	}
 	if (number == socket_data->expected) {
 		// increase the counter
-		++socket_data->expected_count;
+		socket_data->expected_count++;
 		if (socket_data->expected_count == TCP_FAST_RETRANSMIT_COUNT) {
 			socket_data->expected_count = 1;
 			// TODO retransmit lock
@@ -1199,8 +1180,22 @@ tcp_process_acknowledgement(socket_core_ref socket,
 	}
 }
 
-int tcp_message_standalone(ipc_callid_t callid, ipc_call_t * call,
-    ipc_call_t * answer, int *answer_count)
+/** Processes the TCP message.
+ *
+ * @param[in] callid	The message identifier.
+ * @param[in] call	The message parameters.
+ * @param[out] answer	The message answer parameters.
+ * @param[out] answer_count The last parameter for the actual answer in the
+ *			answer parameter.
+ * @returns		EOK on success.
+ * @returns		ENOTSUP if the message is not known.
+ *
+ * @see tcp_interface.h
+ * @see IS_NET_TCP_MESSAGE()
+ */
+int
+tcp_message_standalone(ipc_callid_t callid, ipc_call_t *call,
+    ipc_call_t *answer, int *answer_count)
 {
 	ERROR_DECLARE;
 
@@ -1520,7 +1515,7 @@ int tcp_timeout(void *data)
 	// find the pending operation socket
 	socket = socket_port_find(&tcp_globals.sockets, timeout->port,
 	    timeout->key, timeout->key_length);
-	if (!(socket && (socket->socket_id == timeout->socket_id)))
+	if (!socket || (socket->socket_id != timeout->socket_id))
 		goto out;
 	
 	socket_data = (tcp_socket_data_ref) socket->specific_data;
@@ -1531,7 +1526,7 @@ int tcp_timeout(void *data)
 	fibril_rwlock_write_lock(socket_data->local_lock);
 	if (timeout->sequence_number) {
 		// increase the timeout counter;
-		++socket_data->timeout_count;
+		socket_data->timeout_count++;
 		if (socket_data->timeout_count == TCP_MAX_TIMEOUTS) {
 			// TODO release as connection lost
 			//tcp_refresh_socket_data(socket_data);
@@ -1743,13 +1738,10 @@ tcp_connect_core(socket_core_ref socket, socket_cores_ref local_sockets,
 	if (ERROR_OCCURRED(tcp_queue_packet(socket, socket_data, packet, 1)) ||
 	    ERROR_OCCURRED(tcp_prepare_timeout(tcp_timeout, socket, socket_data,
 	    0, TCP_SOCKET_INITIAL, NET_DEFAULT_TCP_INITIAL_TIMEOUT, false))) {
-
 		socket_data->addr = NULL;
 		socket_data->addrlen = 0;
 		fibril_rwlock_write_lock(&tcp_globals.lock);
-
 	} else {
-
 		packet = tcp_get_packets_to_send(socket, socket_data);
 		if (packet) {
 			fibril_mutex_lock(&socket_data->operation.mutex);
@@ -1875,7 +1867,7 @@ tcp_get_packets_to_send(socket_core_ref socket, tcp_socket_data_ref socket_data)
 		previous = copy;
 		packet = pq_next(packet);
 		// overflow occurred ?
-		if ((!packet) &&
+		if (!packet &&
 		    (socket_data->last_outgoing > socket_data->next_outgoing)) {
 			printf("gpts overflow\n");
 			// continue from the beginning
@@ -2043,7 +2035,7 @@ tcp_prepare_timeout(int (*timeout_function)(void *tcp_timeout_t),
 
 int
 tcp_recvfrom_message(socket_cores_ref local_sockets, int socket_id, int flags,
-    size_t * addrlen)
+    size_t *addrlen)
 {
 	ERROR_DECLARE;
 
@@ -2098,7 +2090,7 @@ tcp_recvfrom_message(socket_cores_ref local_sockets, int socket_id, int flags,
 
 int
 tcp_send_message(socket_cores_ref local_sockets, int socket_id, int fragments,
-    size_t * data_fragment_size, int flags)
+    size_t *data_fragment_size, int flags)
 {
 	ERROR_DECLARE;
 
@@ -2137,7 +2129,7 @@ tcp_send_message(socket_cores_ref local_sockets, int socket_id, int fragments,
 	    ((packet_dimension->content < socket_data->data_fragment_size) ?
 	    packet_dimension->content : socket_data->data_fragment_size);
 
-	for (index = 0; index < fragments; ++index) {
+	for (index = 0; index < fragments; index++) {
 		// read the data fragment
 		result = tl_socket_read_packet_data(tcp_globals.net_phone,
 		    &packet, TCP_HEADER_SIZE, packet_dimension,
@@ -2234,7 +2226,7 @@ tcp_close_message(socket_cores_ref local_sockets, int socket_id)
 }
 
 int
-tcp_create_notification_packet(packet_t * packet, socket_core_ref socket,
+tcp_create_notification_packet(packet_t *packet, socket_core_ref socket,
     tcp_socket_data_ref socket_data, int synchronize, int finalize)
 {
 	ERROR_DECLARE;
@@ -2270,7 +2262,7 @@ tcp_create_notification_packet(packet_t * packet, socket_core_ref socket,
 
 int
 tcp_accept_message(socket_cores_ref local_sockets, int socket_id,
-    int new_socket_id, size_t * data_fragment_size, size_t * addrlen)
+    int new_socket_id, size_t *data_fragment_size, size_t *addrlen)
 {
 	ERROR_DECLARE;
 
@@ -2372,6 +2364,12 @@ tcp_free_socket_data(socket_core_ref socket)
 	socket_data->addrlen = 0;
 }
 
+/** Releases the packet and returns the result.
+ *
+ * @param[in] packet	The packet queue to be released.
+ * @param[in] result	The result to be returned.
+ * @return		The result parameter.
+ */
 int tcp_release_and_return(packet_t packet, int result)
 {
 	pq_release_remote(tcp_globals.net_phone, packet_get_id(packet));
@@ -2380,8 +2378,8 @@ int tcp_release_and_return(packet_t packet, int result)
 
 /** Default thread for new connections.
  *
- *  @param[in] iid The initial message identifier.
- *  @param[in] icall The initial message call structure.
+ * @param[in] iid	The initial message identifier.
+ * @param[in] icall	The initial message call structure.
  *
  */
 static void tl_client_connection(ipc_callid_t iid, ipc_call_t * icall)
@@ -2396,25 +2394,20 @@ static void tl_client_connection(ipc_callid_t iid, ipc_call_t * icall)
 		ipc_call_t answer;
 		int answer_count;
 
-		/*
-		   Clear the answer structure 
-		 */
+		/* Clear the answer structure */
 		refresh_answer(&answer, &answer_count);
 
-		/*
-		   Fetch the next message 
-		 */
+		/* Fetch the next message */
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
 
-		/*
-		   Process the message 
-		 */
+		/* Process the message */
 		int res = tl_module_message_standalone(callid, &call, &answer,
 		    &answer_count);
 
 		/*
-		   End if said to either by the message or the processing result 
+		 * End if told to either by the message or the processing
+		 * result.
 		 */
 		if ((IPC_GET_METHOD(call) == IPC_M_PHONE_HUNGUP) ||
 		    (res == EHANGUP))
@@ -2429,12 +2422,9 @@ static void tl_client_connection(ipc_callid_t iid, ipc_call_t * icall)
 
 /** Starts the module.
  *
- *  @param argc The count of the command line arguments. Ignored parameter.
- *  @param argv The command line parameters. Ignored parameter.
- *
- *  @returns EOK on success.
- *  @returns Other error codes as defined for each specific module start function.
- *
+ * @returns		EOK on success.
+ * @returns		Other error codes as defined for each specific module
+ *			start function.
  */
 int
 main(int argc, char *argv[])
