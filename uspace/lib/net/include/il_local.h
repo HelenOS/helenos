@@ -26,18 +26,44 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup il_local
- *  @{
+/** @addtogroup libnet 
+ * @{
  */
 
-#ifndef __IL_LOCAL_H__
-#define __IL_LOCAL_H__
+#ifndef LIBNET_IL_LOCAL_H_
+#define LIBNET_IL_LOCAL_H_
 
 #include <ipc/ipc.h>
 #include <async.h>
 
+/** Processes the Internet layer module message.
+ *
+ * @param[in]		callid The message identifier.
+ * @param[in]		call The message parameters.
+ * @param[out]		answer The message answer parameters.
+ * @param[out]		answer_count The last parameter for the actual answer in
+ *			the answer parameter.
+ * @returns		EOK on success.
+ * @returns		Other error codes as defined for the arp_message()
+ *			function.
+ */
 extern int il_module_message_standalone(ipc_callid_t callid, ipc_call_t *call,
     ipc_call_t *answer, int *answer_count);
+
+/** Starts the Internet layer module.
+ *
+ * Initializes the client connection servicing function, initializes the module,
+ * registers the module service and starts the async manager, processing IPC
+ * messages in an infinite loop.
+ *
+ * @param[in] client_connection The client connection processing function. The
+ *			module skeleton propagates its own one.
+ * @returns		EOK on successful module termination.
+ * @returns		Other error codes as defined for the arp_initialize()
+ *			function.
+ * @returns		Other error codes as defined for the REGISTER_ME() macro
+ *			function.
+ */
 extern int il_module_start_standalone(async_client_conn_t client_connection);
 
 #endif

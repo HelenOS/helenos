@@ -132,7 +132,7 @@ void vfs_node_delref(vfs_node_t *node)
 		rc = async_req_2_0(phone, VFS_OUT_DESTROY,
 		    (ipcarg_t)node->dev_handle, (ipcarg_t)node->index);
 		assert(rc == EOK);
-		vfs_release_phone(phone);
+		vfs_release_phone(node->fs_handle, phone);
 	}
 	if (free_vfs_node)
 		free(node);

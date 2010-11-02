@@ -35,6 +35,8 @@
 #include <arch/bios/bios.h>
 #include <typedefs.h>
 
+#define BIOS_EBDA_PTR  0x40e
+
 uintptr_t ebda = 0;
 
 void bios_init(void)

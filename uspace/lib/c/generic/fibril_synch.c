@@ -41,6 +41,8 @@
 #include <sys/time.h>
 #include <errno.h>
 #include <assert.h>
+#include <stacktrace.h>
+#include <stdlib.h>
 
 static void optimize_execution_power(void)
 {
@@ -55,14 +57,52 @@ static void optimize_execution_power(void)
 		ipc_poke();
 }
 
+static bool check_for_deadlock(fibril_owner_info_t *oi)
+{
+	while (oi && oi->owned_by) {
+		if (oi->owned_by == (fibril_t *) fibril_get_id())
+			return true;
+		oi = oi->owned_by->waits_for;
+	}
+
+	return false;
+}
+
+static void print_deadlock(fibril_owner_info_t *oi)
+{
+	fibril_t *f = (fibril_t *) fibril_get_id();
+
+	printf("Deadlock detected.\n");
+	stacktrace_print();
+
+	printf("Fibril %p waits for primitive %p.\n", f, oi);
+
+	while (oi && oi->owned_by) {
+		printf("Primitive %p is owned by fibril %p.\n",
+		    oi, oi->owned_by);
+		if (oi->owned_by == f)
+			break;
+		stacktrace_print_fp_pc(context_get_fp(&oi->owned_by->ctx),
+		    oi->owned_by->ctx.pc);
+		printf("Fibril %p waits for primitive %p.\n",
+		     oi->owned_by, oi->owned_by->waits_for);
+		oi = oi->owned_by->waits_for;
+	}
+
+	abort();
+}
+
 void fibril_mutex_initialize(fibril_mutex_t *fm)
 {
+	fm->oi.owned_by = NULL;
 	fm->counter = 1;
 	list_initialize(&fm->waiters);
 }
 
 void fibril_mutex_lock(fibril_mutex_t *fm)
 {
+	fibril_t *f = (fibril_t *) fibril_get_id();
+
 	futex_down(&async_futex);
 	if (fm->counter-- <= 0) {
 		awaiter_t wdata;
@@ -72,8 +112,14 @@ void fibril_mutex_lock(fibril_mutex_t *fm)
 		wdata.wu_event.inlist = true;
 		link_initialize(&wdata.wu_event.link);
 		list_append(&wdata.wu_event.link, &fm->waiters);
+
+		if (check_for_deadlock(&fm->oi))
+			print_deadlock(&fm->oi);
+		f->waits_for = &fm->oi;
+
 		fibril_switch(FIBRIL_TO_MANAGER);
 	} else {
+		fm->oi.owned_by = f;
 		futex_up(&async_futex);
 	}
 }
@@ -85,6 +131,7 @@ bool fibril_mutex_trylock(fibril_mutex_t *fm)
 	futex_down(&async_futex);
 	if (fm->counter > 0) {
 		fm->counter--;
+		fm->oi.owned_by = (fibril_t *) fibril_get_id();
 		locked = true;
 	}
 	futex_up(&async_futex);
@@ -98,15 +145,23 @@ static void _fibril_mutex_unlock_unsafe(fibril_mutex_t *fm)
 	if (fm->counter++ < 0) {
 		link_t *tmp;
 		awaiter_t *wdp;
+		fibril_t *f;
 	
 		assert(!list_empty(&fm->waiters));
 		tmp = fm->waiters.next;
 		wdp = list_get_instance(tmp, awaiter_t, wu_event.link);
 		wdp->active = true;
 		wdp->wu_event.inlist = false;
+
+		f = (fibril_t *) wdp->fid;
+		fm->oi.owned_by = f;
+		f->waits_for = NULL;
+
 		list_remove(&wdp->wu_event.link);
 		fibril_add_ready(wdp->fid);
 		optimize_execution_power();
+	} else {
+		fm->oi.owned_by = NULL;
 	}
 }
 
@@ -119,6 +174,7 @@ void fibril_mutex_unlock(fibril_mutex_t *fm)
 
 void fibril_rwlock_initialize(fibril_rwlock_t *frw)
 {
+	frw->oi.owned_by = NULL;
 	frw->writers = 0;
 	frw->readers = 0;
 	list_initialize(&frw->waiters);

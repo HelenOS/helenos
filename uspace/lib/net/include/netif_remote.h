@@ -26,16 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup netif
+/** @addtogroup libnet
  * @{
  */
 
-#ifndef __NET_NETIF_REMOTE_H__
-#define __NET_NETIF_REMOTE_H__
+#ifndef LIBNET_NETIF_REMOTE_H_
+#define LIBNET_NETIF_REMOTE_H_
 
 #include <async.h>
-#include <fibril_synch.h>
-#include <ipc/ipc.h>
+#include <ipc/services.h>
+#include <adt/measured_strings.h>
+
+#include <net/device.h>
+#include <net/packet.h>
 
 extern int netif_get_addr_req_remote(int, device_id_t, measured_string_ref *,
     char **);

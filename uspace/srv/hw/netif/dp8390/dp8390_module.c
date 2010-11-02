@@ -38,16 +38,15 @@
 #include <async.h>
 #include <ddi.h>
 #include <errno.h>
+#include <err.h>
 #include <malloc.h>
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 
-#include <net_err.h>
-#include <net_messages.h>
-#include <net_modules.h>
-#include <packet/packet_client.h>
+#include <net/modules.h>
+#include <packet_client.h>
 #include <adt/measured_strings.h>
-#include <net_device.h>
+#include <net/device.h>
 #include <nil_interface.h>
 #include <netif_interface.h>
 #include <netif_local.h>

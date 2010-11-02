@@ -257,26 +257,33 @@ unative_t sys_iospace_enable(ddi_ioarg_t *uspace_io_arg)
 	    (uintptr_t) arg.ioaddr, (size_t) arg.size);
 }
 
-/** Disable or enable preemption.
- *
- * @param enable If non-zero, the preemption counter will be decremented,
- *               leading to potential enabling of preemption. Otherwise
- *               the preemption counter will be incremented, preventing
- *               preemption from occurring.
- *
- * @return Zero on success or EPERM if callers capabilities are not sufficient.
- *
+/** Disable or enable specified interrupts.
+ * 
+ * @param irq the interrupt to be enabled/disabled.
+ * @param enable if true enable the interrupt, disable otherwise.
+ * 
+ * @retutn Zero on success, error code otherwise.
  */
-unative_t sys_preempt_control(int enable)
+unative_t sys_interrupt_enable(int irq, int enable)
 {
-	if (!(cap_get(TASK) & CAP_PREEMPT_CONTROL))
+/* FIXME: this needs to be generic code, or better not be in kernel at all. */
+#if 0
+	cap_t task_cap = cap_get(TASK);
+	if (!(task_cap & CAP_IRQ_REG))
 		return EPERM;
+		
+	if (irq < 0 || irq > 16) {
+		return EINVAL;
+	}
 	
-	if (enable)
-		preemption_enable();
-	else
-		preemption_disable();
+	uint16_t irq_mask = (uint16_t)(1 << irq);
+	if (enable) {
+		trap_virtual_enable_irqs(irq_mask);
+	} else {
+		trap_virtual_disable_irqs(irq_mask);
+	}
 	
+#endif
 	return 0;
 }
 

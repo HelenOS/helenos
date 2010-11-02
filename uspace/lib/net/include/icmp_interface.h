@@ -26,77 +26,34 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup icmp
+/** @addtogroup libnet 
  *  @{
  */
 
-#ifndef __NET_ICMP_INTERFACE_H__
-#define __NET_ICMP_INTERFACE_H__
+#ifndef LIBNET_ICMP_INTERFACE_H_
+#define LIBNET_ICMP_INTERFACE_H_
 
+#include <net/socket_codes.h>
 #include <sys/types.h>
 
-#include <net_device.h>
+#include <net/device.h>
 #include <adt/measured_strings.h>
-#include <packet/packet.h>
-#include <inet.h>
-#include <ip_codes.h>
-#include <socket_codes.h>
-#include <icmp_codes.h>
-#include <icmp_common.h>
+#include <net/packet.h>
+#include <net/inet.h>
+#include <net/ip_codes.h>
+#include <net/icmp_codes.h>
+#include <net/icmp_common.h>
 
 /** @name ICMP module interface
- *  This interface is used by other modules.
+ * This interface is used by other modules.
  */
 /*@{*/
 
-/** Sends the Destination Unreachable error notification packet.
- *  Beginning of the packet is sent as the notification packet data.
- *  The source and the destination addresses should be set in the original packet.
- *  @param[in] icmp_phone The ICMP module phone used for (semi)remote calls.
- *  @param[in] code The error specific code.
- *  @param[in] mtu The error MTU value.
- *  @param[in] packet The original packet.
- *  @returns EOK on success.
- *  @returns EPERM if the ICMP error notifications are disabled.
- *  @returns ENOMEM if there is not enough memory left.
- */
-extern int icmp_destination_unreachable_msg(int icmp_phone, icmp_code_t code, icmp_param_t mtu, packet_t packet);
-
-/** Sends the Source Quench error notification packet.
- *  Beginning of the packet is sent as the notification packet data.
- *  The source and the destination addresses should be set in the original packet.
- *  @param[in] icmp_phone The ICMP module phone used for (semi)remote calls.
- *  @param[in] packet The original packet.
- *  @returns EOK on success.
- *  @returns EPERM if the ICMP error notifications are disabled.
- *  @returns ENOMEM if there is not enough memory left.
- */
-extern int icmp_source_quench_msg(int icmp_phone, packet_t packet);
-
-/** Sends the Time Exceeded error notification packet.
- *  Beginning of the packet is sent as the notification packet data.
- *  The source and the destination addresses should be set in the original packet.
- *  @param[in] icmp_phone The ICMP module phone used for (semi)remote calls.
- *  @param[in] code The error specific code.
- *  @param[in] packet The original packet.
- *  @returns EOK on success.
- *  @returns EPERM if the ICMP error notifications are disabled.
- *  @returns ENOMEM if there is not enough memory left.
- */
-extern int icmp_time_exceeded_msg(int icmp_phone, icmp_code_t code, packet_t packet);
-
-/** Sends the Parameter Problem error notification packet.
- *  Beginning of the packet is sent as the notification packet data.
- *  The source and the destination addresses should be set in the original packet.
- *  @param[in] icmp_phone The ICMP module phone used for (semi)remote calls.
- *  @param[in] code The error specific code.
- *  @param[in] pointer The problematic parameter offset.
- *  @param[in] packet The original packet.
- *  @returns EOK on success.
- *  @returns EPERM if the ICMP error notifications are disabled.
- *  @returns ENOMEM if there is not enough memory left.
- */
-extern int icmp_parameter_problem_msg(int icmp_phone, icmp_code_t code, icmp_param_t pointer, packet_t packet);
+extern int icmp_destination_unreachable_msg(int, icmp_code_t, icmp_param_t,
+    packet_t);
+extern int icmp_source_quench_msg(int, packet_t);
+extern int icmp_time_exceeded_msg(int, icmp_code_t, packet_t);
+extern int icmp_parameter_problem_msg(int, icmp_code_t, icmp_param_t, packet_t);
 
 /*@}*/
 

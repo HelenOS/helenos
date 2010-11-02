@@ -26,27 +26,27 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup packet
- *  @{
+/** @addtogroup libnet
+ * @{
  */
 
 /** @file
- *  Packet client interface implementation for remote modules.
- *  @see packet_client.h
+ * Packet client interface implementation for remote modules.
+ * @see packet_client.h
  */
 
 #include <async.h>
 #include <errno.h>
+#include <err.h>
 #include <ipc/ipc.h>
+#include <ipc/packet.h>
 #include <sys/mman.h>
 
-#include <net_err.h>
-#include <net_messages.h>
-#include <packet/packet.h>
-#include <packet/packet_client.h>
-#include <packet/packet_header.h>
-#include <packet/packet_messages.h>
+#include <packet_client.h>
 #include <packet_remote.h>
+
+#include <net/packet.h>
+#include <net/packet_header.h>
 
 /** Obtain the packet from the packet server as the shared memory block.
  *
@@ -63,14 +63,17 @@
  * @return Other error codes as defined for the async_share_in_start() function.
  *
  */
-static int packet_return(int phone, packet_ref packet, packet_id_t packet_id, size_t size){
+static int
+packet_return(int phone, packet_ref packet, packet_id_t packet_id, size_t size)
+{
 	ERROR_DECLARE;
 	
 	ipc_call_t answer;
 	aid_t message = async_send_1(phone, NET_PACKET_GET, packet_id, &answer);
+
 	*packet = (packet_t) as_get_mappable_page(size);
-	if (ERROR_OCCURRED(async_share_in_start_0_0(phone, *packet, size))
-	    || ERROR_OCCURRED(pm_add(*packet))) {
+	if (ERROR_OCCURRED(async_share_in_start_0_0(phone, *packet, size)) ||
+	    ERROR_OCCURRED(pm_add(*packet))) {
 		munmap(*packet, size);
 		async_wait_for(message, NULL);
 		return ERROR_CODE;
@@ -82,6 +85,21 @@ static int packet_return(int phone, packet_ref packet, packet_id_t packet_id, si
 	return result;
 }
 
+/** Translates the packet identifier to the packet reference.
+ *
+ * Tries to find mapping first.
+ * Contacts the packet server to share the packet if the mapping is not present.
+ *
+ * @param[in] phone	The packet server module phone.
+ * @param[out] packet	The packet reference.
+ * @param[in] packet_id	The packet identifier.
+ * @returns		EOK on success.
+ * @returns		EINVAL if the packet parameter is NULL.
+ * @returns		Other error codes as defined for the NET_PACKET_GET_SIZE
+ *			message.
+ * @returns		Other error codes as defined for the packet_return()
+ *			function.
+ */
 int packet_translate_remote(int phone, packet_ref packet, packet_id_t packet_id)
 {
 	ERROR_DECLARE;
@@ -90,21 +108,35 @@ int packet_translate_remote(int phone, packet_ref packet, packet_id_t packet_id)
 		return EINVAL;
 	
 	*packet = pm_find(packet_id);
-	if (!(*packet)) {
+	if (!*packet) {
 		ipcarg_t size;
 		
-		ERROR_PROPAGATE(async_req_1_1(phone, NET_PACKET_GET_SIZE, packet_id, &size));
+		ERROR_PROPAGATE(async_req_1_1(phone, NET_PACKET_GET_SIZE,
+		    packet_id, &size));
 		ERROR_PROPAGATE(packet_return(phone, packet, packet_id, size));
 	}
-	if ((** packet).next) {
+	if ((*packet)->next) {
 		packet_t next;
 		
-		return packet_translate_remote(phone, &next, (** packet).next);
+		return packet_translate_remote(phone, &next, (*packet)->next);
 	}
 	
 	return EOK;
 }
 
+/** Obtains the packet of the given dimensions.
+ *
+ * Contacts the packet server to return the appropriate packet.
+ *
+ * @param[in] phone	The packet server module phone.
+ * @param[in] addr_len	The source and destination addresses maximal length in
+ *			bytes.
+ * @param[in] max_prefix The maximal prefix length in bytes.
+ * @param[in] max_content The maximal content length in bytes.
+ * @param[in] max_suffix The maximal suffix length in bytes.
+ * @returns		The packet reference.
+ * @returns		NULL on error.
+ */
 packet_t packet_get_4_remote(int phone, size_t max_content, size_t addr_len,
     size_t max_prefix, size_t max_suffix)
 {
@@ -113,20 +145,30 @@ packet_t packet_get_4_remote(int phone, size_t max_content, size_t addr_len,
 	ipcarg_t packet_id;
 	ipcarg_t size;
 	
-	if (ERROR_OCCURRED(async_req_4_2(phone, NET_PACKET_CREATE_4, max_content,
-	    addr_len, max_prefix, max_suffix, &packet_id, &size)))
+	if (ERROR_OCCURRED(async_req_4_2(phone, NET_PACKET_CREATE_4,
+	    max_content, addr_len, max_prefix, max_suffix, &packet_id, &size)))
 		return NULL;
 	
 	
 	packet_t packet = pm_find(packet_id);
 	if (!packet) {
-		if (ERROR_OCCURRED(packet_return(phone, &packet, packet_id, size)))
+		if (ERROR_OCCURRED(packet_return(phone, &packet, packet_id,
+		    size)))
 			return NULL;
 	}
 	
 	return packet;
 }
 
+/** Obtains the packet of the given content size.
+ *
+ * Contacts the packet server to return the appropriate packet.
+ *
+ * @param[in] phone	The packet server module phone.
+ * @param[in] content	The maximal content length in bytes.
+ * @returns		The packet reference.
+ * @returns		NULL on error.
+ */
 packet_t packet_get_1_remote(int phone, size_t content)
 {
 	ERROR_DECLARE;
@@ -140,13 +182,24 @@ packet_t packet_get_1_remote(int phone, size_t content)
 	
 	packet_t packet = pm_find(packet_id);
 	if (!packet) {
-		if (ERROR_OCCURRED(packet_return(phone, &packet, packet_id, size)))
+		if (ERROR_OCCURRED(packet_return(phone, &packet, packet_id,
+		    size)))
 			return NULL;
 	}
 	
 	return packet;
 }
 
+/** Releases the packet queue.
+ *
+ * All packets in the queue are marked as free for use.
+ * The packet queue may be one packet only.
+ * The module should not use the packets after this point until they are
+ * received or obtained again.
+ *
+ * @param[in] phone	The packet server module phone.
+ * @param[in] packet_id	The packet identifier.
+ */
 void pq_release_remote(int phone, packet_id_t packet_id)
 {
 	async_msg_1(phone, NET_PACKET_RELEASE, packet_id);

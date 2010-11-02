@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia32mm	
+/** @addtogroup ia32mm
  * @{
  */
 /** @file
@@ -105,7 +105,7 @@
 	get_pt_flags((pte_t *) (ptl3), (size_t) (i))
 
 /* Set PTE flags accessors for each level. */
-#define SET_PTL1_FLAGS_ARCH(ptl0, i, x)	\
+#define SET_PTL1_FLAGS_ARCH(ptl0, i, x) \
 	set_pt_flags((pte_t *) (ptl0), (size_t) (i), (x))
 #define SET_PTL2_FLAGS_ARCH(ptl1, i, x)
 #define SET_PTL3_FLAGS_ARCH(ptl2, i, x)

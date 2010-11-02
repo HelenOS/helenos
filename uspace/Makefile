@@ -45,12 +45,19 @@ DIRS = \
 	app/taskdump \
 	app/tasks \
 	app/tester \
+	app/test_serial \
 	app/tetris \
 	app/trace \
 	app/top \
+	app/usb \
 	app/virtusbkbd \
+	app/netecho \
+	app/nettest1 \
+	app/nettest2 \
+	app/ping \
 	srv/clip \
 	srv/devmap \
+	srv/devman \
 	srv/loader \
 	srv/ns \
 	srv/taskmon \
@@ -66,6 +73,7 @@ DIRS = \
 	srv/fs/devfs \
 	srv/hid/adb_mouse \
 	srv/hid/char_mouse \
+	srv/hid/s3c24xx_ts \
 	srv/hid/fb \
 	srv/hid/kbd \
 	srv/hw/char/i8042 \
@@ -81,11 +89,7 @@ DIRS = \
 	srv/net/tl/tcp \
 	srv/net/net \
 	srv/net/netstart \
-	app/usb \
-	app/netecho \
-	app/nettest1 \
-	app/nettest2 \
-	app/ping
+	drv/root
 
 ## Networking
 #
@@ -108,11 +112,13 @@ ifneq ($(UARCH),abs32le)
 endif
 
 ifeq ($(UARCH),amd64)
-	DIRS += srv/hw/bus/pci
 endif
 
 ifeq ($(UARCH),ia32)
-	DIRS += srv/hw/bus/pci
+	DIRS += drv/rootia32
+	DIRS += drv/pciintel
+	DIRS += drv/isa
+	DIRS += drv/ns8250
 endif
 
 ifeq ($(UARCH),ppc32)
@@ -135,21 +141,19 @@ LIBS = \
 	lib/clui \
 	lib/softint \
 	lib/softfloat \
-	lib/socket \
+	lib/drv \
+	lib/packet \
 	lib/net
 
 ifeq ($(UARCH),amd64)
-	LIBS += lib/pci
 	LIBS += lib/usb
 	LIBS += lib/usbvirt
 endif
 
 ifeq ($(UARCH),ia32)
-	LIBS += lib/pci
 	LIBS += lib/usb
 	LIBS += lib/usbvirt
 endif
-
 
 LIBC_BUILD = $(addsuffix .build,$(LIBC))
 LIBS_BUILD = $(addsuffix .build,$(LIBS))

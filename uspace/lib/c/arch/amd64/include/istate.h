@@ -35,39 +35,7 @@
 #ifndef LIBC_amd64_ISTATE_H_
 #define LIBC_amd64_ISTATE_H_
 
-#include <sys/types.h>
-
-/** Interrupt context.
- *
- * This is a copy of the kernel definition with which it must be kept in sync.
- */
-typedef struct istate {
-	uint64_t rax;
-	uint64_t rcx;
-	uint64_t rdx;
-	uint64_t rsi;
-	uint64_t rdi;
-	uint64_t r8;
-	uint64_t r9;
-	uint64_t r10;
-	uint64_t r11;
-	uint64_t rbp;
-	uint64_t error_word;
-	uint64_t rip;
-	uint64_t cs;
-	uint64_t rflags;
-	uint64_t stack[]; /* Additional data on stack */
-} istate_t;
-
-static inline uintptr_t istate_get_pc(istate_t *istate)
-{
-	return istate->rip;
-}
-
-static inline uintptr_t istate_get_fp(istate_t *istate)
-{
-	return istate->rbp;
-}
+#include <arch/istate.h>
 
 #endif
 

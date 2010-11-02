@@ -29,7 +29,7 @@
 
 .code32
 vesa_init:
-	jmp $gdtselector(VESA_INIT_DES), $vesa_init_real - vesa_init
+	jmp $GDT_SELECTOR(VESA_INIT_DES), $vesa_init_real - vesa_init
 
 .code16
 vesa_init_real:
@@ -334,7 +334,7 @@ vesa_init_real2:
 			
 		vesa_leave_real2:
 		
-			ljmpl $gdtselector(KTEXT32_DES), $(vesa_init_protected - vesa_init + VESA_INIT_SEGMENT << 4)
+			ljmpl $GDT_SELECTOR(KTEXT32_DES), $(vesa_init_protected - vesa_init + VESA_INIT_SEGMENT << 4)
 	
 	no_mode:
 		

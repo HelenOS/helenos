@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup netif
+/** @addtogroup libnet 
  * @{
  */
 
@@ -34,16 +34,30 @@
  * Network interface module interface implementation for remote modules.
  */
 
-#include <ipc/services.h>
-
-#include <net_modules.h>
-#include <adt/measured_strings.h>
-#include <packet/packet.h>
-#include <packet/packet_client.h>
-#include <net_device.h>
 #include <netif_remote.h>
-#include <netif_messages.h>
+#include <packet_client.h>
+#include <generic.h>
 
+#include <ipc/services.h>
+#include <ipc/netif.h>
+
+#include <net/modules.h>
+#include <adt/measured_strings.h>
+#include <net/packet.h>
+#include <net/device.h>
+
+/** Return the device local hardware address.
+ *
+ * @param[in] netif_phone The network interface phone.
+ * @param[in] device_id	The device identifier.
+ * @param[out] address	The device local hardware address.
+ * @param[out] data	The address data.
+ * @return		EOK on success.
+ * @return		EBADMEM if the address parameter is NULL.
+ * @return		ENOENT if there no such device.
+ * @return		Other error codes as defined for the
+ *			netif_get_addr_message() function.
+ */
 int netif_get_addr_req_remote(int netif_phone, device_id_t device_id,
     measured_string_ref *address, char **data)
 {
@@ -51,28 +65,77 @@ int netif_get_addr_req_remote(int netif_phone, device_id_t device_id,
 	    address, data);
 }
 
-int netif_probe_req_remote(int netif_phone, device_id_t device_id, int irq, int io)
+/** Probe the existence of the device.
+ *
+ * @param[in] netif_phone The network interface phone.
+ * @param[in] device_id	The device identifier.
+ * @param[in] irq	The device interrupt number.
+ * @param[in] io	The device input/output address.
+ * @return		EOK on success.
+ * @return		Other error codes as defined for the
+ *			netif_probe_message().
+ */
+int
+netif_probe_req_remote(int netif_phone, device_id_t device_id, int irq, int io)
 {
 	return async_req_3_0(netif_phone, NET_NETIF_PROBE, device_id, irq, io);
 }
 
-int netif_send_msg_remote(int netif_phone, device_id_t device_id, packet_t packet,
+/** Send the packet queue.
+ *
+ * @param[in] netif_phone The network interface phone.
+ * @param[in] device_id	The device identifier.
+ * @param[in] packet	The packet queue.
+ * @param[in] sender	The sending module service.
+ * @return		EOK on success.
+ * @return		Other error codes as defined for the generic_send_msg()
+ *			function.
+ */
+int
+netif_send_msg_remote(int netif_phone, device_id_t device_id, packet_t packet,
     services_t sender)
 {
 	return generic_send_msg_remote(netif_phone, NET_NETIF_SEND, device_id,
 	    packet_get_id(packet), sender, 0);
 }
 
+/** Start the device.
+ *
+ * @param[in] netif_phone The network interface phone.
+ * @param[in] device_id	The device identifier.
+ * @return		EOK on success.
+ * @return		Other error codes as defined for the find_device()
+ *			function.
+ * @return		Other error codes as defined for the
+ *			netif_start_message() function.
+ */
 int netif_start_req_remote(int netif_phone, device_id_t device_id)
 {
 	return async_req_1_0(netif_phone, NET_NETIF_START, device_id);
 }
 
+/** Stop the device.
+ *
+ * @param[in] netif_phone The network interface phone.
+ * @param[in] device_id	The device identifier.
+ * @return		EOK on success.
+ * @return		Other error codes as defined for the find_device()
+ *			function.
+ * @return		Other error codes as defined for the
+ *			netif_stop_message() function.
+ */
 int netif_stop_req_remote(int netif_phone, device_id_t device_id)
 {
 	return async_req_1_0(netif_phone, NET_NETIF_STOP, device_id);
 }
 
+/** Return the device usage statistics.
+ *
+ * @param[in] netif_phone The network interface phone.
+ * @param[in] device_id	The device identifier.
+ * @param[out] stats	The device usage statistics.
+ * @return EOK on success.
+ */
 int netif_stats_req_remote(int netif_phone, device_id_t device_id,
     device_stats_ref stats)
 {
@@ -89,8 +152,22 @@ int netif_stats_req_remote(int netif_phone, device_id_t device_id,
 	return (int) result;
 }
 
-int netif_bind_service_remote(services_t service, device_id_t device_id, services_t me,
-    async_client_conn_t receiver)
+/** Create bidirectional connection with the network interface module and
+ * registers the message receiver.
+ *
+ * @param[in] service   The network interface module service.
+ * @param[in] device_id The device identifier.
+ * @param[in] me        The requesting module service.
+ * @param[in] receiver  The message receiver.
+ *
+ * @return		The phone of the needed service.
+ * @return		EOK on success.
+ * @return		Other error codes as defined for the bind_service()
+ *			function.
+ */
+int
+netif_bind_service_remote(services_t service, device_id_t device_id,
+    services_t me, async_client_conn_t receiver)
 {
 	return bind_service(service, device_id, me, 0, receiver);
 }

@@ -423,13 +423,15 @@ fat_alloc_clusters(fat_bs_t *bs, dev_handle_t dev_handle, unsigned nclsts,
 			goto error;
 		for (c = 0; c < BPS(bs) / sizeof(fat_cluster_t); c++, cl++) {
 			/*
-			 * Check if the cluster is physically there. This check
-			 * becomes necessary when the file system is created
-			 * with fewer total sectors than how many is inferred
-			 * from the size of the file allocation table.
+			 * Check if the entire cluster is physically there.
+			 * This check becomes necessary when the file system is
+			 * created with fewer total sectors than how many is
+			 * inferred from the size of the file allocation table
+			 * or when the last cluster ends beyond the end of the
+			 * device.
 			 */
-			if ((cl >= 2) &&
-			    ((cl - 2) * SPC(bs) + SSA(bs) >= TS(bs))) {
+			if ((cl >= FAT_CLST_FIRST) &&
+			    CLBN2PBN(bs, cl, SPC(bs) - 1) >= TS(bs)) {
 				rc = block_put(blk);
 				if (rc != EOK)
 					goto error;
@@ -542,32 +544,30 @@ fat_append_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl,
 {
 	dev_handle_t dev_handle = nodep->idx->dev_handle;
 	fat_cluster_t lastc;
-	uint16_t numc;
 	uint8_t fatno;
 	int rc;
 
-	if (nodep->lastc_cached_valid) {
-		lastc = nodep->lastc_cached_value;
-		nodep->lastc_cached_valid = false;
+	if (nodep->firstc == FAT_CLST_RES0) {
+		/* No clusters allocated to the node yet. */
+		nodep->firstc = mcl;
+		nodep->dirty = true;	/* need to sync node */
 	} else {
-		rc = fat_cluster_walk(bs, dev_handle, nodep->firstc, &lastc,
-		    &numc, (uint16_t) -1);
-		if (rc != EOK)
-			return rc;
-
-		if (numc == 0) {
-			/* No clusters allocated to the node yet. */
-			nodep->firstc = mcl;
-			nodep->dirty = true;	/* need to sync node */
-			return EOK;
+		if (nodep->lastc_cached_valid) {
+			lastc = nodep->lastc_cached_value;
+			nodep->lastc_cached_valid = false;
+		} else {
+			rc = fat_cluster_walk(bs, dev_handle, nodep->firstc,
+			    &lastc, NULL, (uint16_t) -1);
+			if (rc != EOK)
+				return rc;
 		}
-	}
 
-	for (fatno = FAT1; fatno < bs->fatcnt; fatno++) {
-		rc = fat_set_cluster(bs, nodep->idx->dev_handle, fatno, lastc,
-		    mcl);
-		if (rc != EOK)
-			return rc;
+		for (fatno = FAT1; fatno < bs->fatcnt; fatno++) {
+			rc = fat_set_cluster(bs, nodep->idx->dev_handle, fatno,
+			    lastc, mcl);
+			if (rc != EOK)
+				return rc;
+		}
 	}
 
 	nodep->lastc_cached_valid = true;

@@ -35,7 +35,11 @@
 #ifndef KERN_mips32_CP0_H_
 #define KERN_mips32_CP0_H_
 
+#ifdef KERNEL
 #include <typedefs.h>
+#else
+#include <sys/types.h>
+#endif
 
 #define cp0_status_ie_enabled_bit     (1 << 0)
 #define cp0_status_exl_exception_bit  (1 << 1)

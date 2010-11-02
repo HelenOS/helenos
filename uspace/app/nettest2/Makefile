@@ -28,8 +28,8 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = $(LIBSOCKET_PREFIX)/libsocket.a
-EXTRA_CFLAGS = -I$(LIBSOCKET_PREFIX)/include
+LIBS = 
+EXTRA_CFLAGS = 
 BINARY = nettest2
 
 SOURCES = \

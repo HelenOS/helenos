@@ -74,7 +74,7 @@ PROBE_TAIL = """}
 def read_config(fname, config):
 	"Read HelenOS build configuration"
 	
-	inf = file(fname, 'r')
+	inf = open(fname, 'r')
 	
 	for line in inf:
 		res = re.match(r'^(?:#!# )?([^#]\w*)\s*=\s*(.*?)\s*$', line)
@@ -190,7 +190,7 @@ def probe_compiler(common, sizes):
 	
 	check_common(common, "CC")
 	
-	outf = file(PROBE_SOURCE, 'w')
+	outf = open(PROBE_SOURCE, 'w')
 	outf.write(PROBE_HEAD)
 	
 	for typedef in sizes:
@@ -211,7 +211,7 @@ def probe_compiler(common, sizes):
 	
 	if (not os.path.isfile(PROBE_OUTPUT)):
 		sys.stderr.write("failed\n")
-		print output[1]
+		print(output[1])
 		print_error(["Error executing \"%s\"." % " ".join(args),
 		             "The compiler did not produce the output file \"%s\"." % PROBE_OUTPUT,
 		             "",
@@ -220,7 +220,7 @@ def probe_compiler(common, sizes):
 	
 	sys.stderr.write("ok\n")
 	
-	inf = file(PROBE_OUTPUT, 'r')
+	inf = open(PROBE_OUTPUT, 'r')
 	lines = inf.readlines()
 	inf.close()
 	
@@ -342,7 +342,7 @@ def detect_uints(probe, bytes):
 def create_makefile(mkname, common):
 	"Create makefile output"
 	
-	outmk = file(mkname, 'w')
+	outmk = open(mkname, 'w')
 	
 	outmk.write('#########################################\n')
 	outmk.write('## AUTO-GENERATED FILE, DO NOT EDIT!!! ##\n')
@@ -356,7 +356,7 @@ def create_makefile(mkname, common):
 def create_header(hdname, maps):
 	"Create header output"
 	
-	outhd = file(hdname, 'w')
+	outhd = open(hdname, 'w')
 	
 	outhd.write('/***************************************\n')
 	outhd.write(' * AUTO-GENERATED FILE, DO NOT EDIT!!! *\n')
