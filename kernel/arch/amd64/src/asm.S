@@ -385,6 +385,18 @@ syscall_entry:
 	movq ISTATE_OFFSET_R11(%rsp), %r11
 	movq ISTATE_OFFSET_RSP(%rsp), %rsp
 
+	/*
+	 * Clear the rest of the scratch registers to prevent information leak.
+	 * The 32-bit XOR on the low GPRs actually clears the entire 64-bit
+	 * register and the instruction is shorter.
+	 */
+	xorl %edx, %edx
+	xorl %esi, %esi
+	xorl %edi, %edi
+	xorq %r8, %r8
+	xorq %r9, %r9
+	xorq %r10, %r10
+
 	sysretq
 
 /** Print Unicode character to EGA display.
