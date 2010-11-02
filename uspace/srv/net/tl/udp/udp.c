@@ -106,11 +106,11 @@ int udp_initialize(async_client_conn_t client_connection)
 
 	measured_string_t names[] = {
 		{
-			str_dup("UDP_CHECKSUM_COMPUTING"),
+			(char *) "UDP_CHECKSUM_COMPUTING",
 			22
 		},
 		{
-			str_dup("UDP_AUTOBINDING"),
+			(char *) "UDP_AUTOBINDING",
 			15
 		}
 	};
@@ -141,9 +141,10 @@ int udp_initialize(async_client_conn_t client_connection)
 	udp_globals.packet_dimension.content -= sizeof(udp_header_t);
 	udp_globals.last_used_port = UDP_FREE_PORTS_START - 1;
 
-	// get configuration
 	udp_globals.checksum_computing = NET_DEFAULT_UDP_CHECKSUM_COMPUTING;
 	udp_globals.autobinding = NET_DEFAULT_UDP_AUTOBINDING;
+
+	// get configuration
 	configuration = &names[0];
 	ERROR_PROPAGATE(net_get_conf_req(udp_globals.net_phone, &configuration,
 	    count, &data));
