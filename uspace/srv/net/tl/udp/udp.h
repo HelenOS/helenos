@@ -27,57 +27,46 @@
  */
 
 /** @addtogroup udp
- *  @{
+ * @{
  */
 
 /** @file
- *  UDP module.
+ * UDP module.
  */
 
-#ifndef __NET_UDP_H__
-#define __NET_UDP_H__
+#ifndef NET_UDP_H_
+#define NET_UDP_H_
 
 #include <fibril_synch.h>
 #include <socket_core.h>
 #include <tl_common.h>
 
 /** Type definition of the UDP global data.
- *  @see udp_globals
+ * @see udp_globals
  */
-typedef struct udp_globals	udp_globals_t;
+typedef struct udp_globals udp_globals_t;
 
-/** UDP global data.
- */
-struct	udp_globals{
-	/** Networking module phone.
-	 */
+/** UDP global data. */
+struct udp_globals {
+	/** Networking module phone. */
 	int net_phone;
-	/** IP module phone.
-	 */
+	/** IP module phone. */
 	int ip_phone;
-	/** ICMP module phone.
-	 */
+	/** ICMP module phone. */
 	int icmp_phone;
-	/** Packet dimension.
-	 */
+	/** Packet dimension. */
 	packet_dimension_t packet_dimension;
-	/** Indicates whether UDP checksum computing is enabled.
-	 */
+	/** Indicates whether UDP checksum computing is enabled. */
 	int checksum_computing;
-	/** Indicates whether UDP autobnding on send is enabled.
-	 */
+	/** Indicates whether UDP autobnding on send is enabled. */
 	int autobinding;
-	/** Last used free port.
-	 */
+	/** Last used free port. */
 	int last_used_port;
-	/** Active sockets.
-	 */
+	/** Active sockets. */
 	socket_ports_t sockets;
-	/** Device packet dimensions.
-	 */
+	/** Device packet dimensions. */
 	packet_dimensions_t dimensions;
-	/** Safety lock.
-	 */
+	/** Safety lock. */
 	fibril_rwlock_t lock;
 };
 
@@ -85,4 +74,3 @@ struct	udp_globals{
 
 /** @}
  */
-
