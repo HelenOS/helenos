@@ -42,7 +42,7 @@ COMPONENTS = '_components'
 
 def usage(prname):
 	"Print usage syntax"
-	print "%s <OBJCOPY> <FORMAT> <ARCH> <ARCH_PATH> [COMPONENTS ...]" % prname
+	print("%s <OBJCOPY> <FORMAT> <ARCH> <ARCH_PATH> [COMPONENTS ...]" % prname)
 
 def deflate(data):
 	"Compress using deflate algorithm (without any headers)"
@@ -109,9 +109,9 @@ def main():
 		obj = "%s.co" % plainname
 		symbol = "_binary_%s" % basename.replace(".", "_")
 		
-		print "%s -> %s" % (component, obj)
+		print("%s -> %s" % (component, obj))
 		
-		comp_in = file(component, "rb")
+		comp_in = open(component, "rb")
 		comp_data = comp_in.read()
 		comp_in.close()
 		
@@ -120,7 +120,7 @@ def main():
 		owd = sandbox_enter()
 		
 		try:
-			comp_out = file(basename, "wb")
+			comp_out = open(basename, "wb")
 			comp_out.write(comp_deflate)
 			comp_out.close()
 			
@@ -150,7 +150,7 @@ def main():
 		
 		cnt += 1
 	
-	header = file(os.path.join(arch_path, "include", "%s.h" % COMPONENTS), "w")
+	header = open(os.path.join(arch_path, "include", "%s.h" % COMPONENTS), "w")
 	
 	header.write('/***************************************\n')
 	header.write(' * AUTO-GENERATED FILE, DO NOT EDIT!!! *\n')
@@ -172,7 +172,7 @@ def main():
 	
 	header.close()
 	
-	data = file(os.path.join(arch_path, "src", "%s.c" % COMPONENTS), "w")
+	data = open(os.path.join(arch_path, "src", "%s.c" % COMPONENTS), "w")
 	
 	data.write('/***************************************\n')
 	data.write(' * AUTO-GENERATED FILE, DO NOT EDIT!!! *\n')
@@ -186,11 +186,11 @@ def main():
 	
 	data.close()
 	
-	link_in = file(os.path.join(arch_path, "%s.in" % LINK), "r")
+	link_in = open(os.path.join(arch_path, "%s.in" % LINK), "r")
 	template = link_in.read()
 	link_in.close()
 	
-	link_out = file(os.path.join(arch_path, "%s.comp" % LINK), "w")
+	link_out = open(os.path.join(arch_path, "%s.comp" % LINK), "w")
 	link_out.write(template.replace("[[COMPONENTS]]", "\n".join(link_ctx)))
 	link_out.close()
 

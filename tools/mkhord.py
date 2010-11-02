@@ -51,7 +51,7 @@ def align_up(size, alignment):
 
 def usage(prname):
 	"Print usage syntax"
-	print prname + " <ALIGNMENT> <FS_IMAGE> <HORD_IMAGE>" 
+	print(prname + " <ALIGNMENT> <FS_IMAGE> <HORD_IMAGE>")
 
 def main():
 	if (len(sys.argv) < 4):
@@ -59,21 +59,21 @@ def main():
 		return
 	
 	if (not sys.argv[1].isdigit()):
-		print "<ALIGNMENT> must be a number"
+		print("<ALIGNMENT> must be a number")
 		return
 	
 	align = int(sys.argv[1], 0)
 	if (align <= 0):
-		print "<ALIGNMENT> must be positive"
+		print("<ALIGNMENT> must be positive")
 		return
 	
 	fs_image = os.path.abspath(sys.argv[2])
 	if (not os.path.isfile(fs_image)):
-		print "<FS_IMAGE> must be a file"
+		print("<FS_IMAGE> must be a file")
 		return
 	
-	inf = file(fs_image, "rb")
-	outf = file(sys.argv[3], "wb")
+	inf = open(fs_image, "rb")
+	outf = open(sys.argv[3], "wb")
 	
 	header = xstruct.create(HEADER)
 	
