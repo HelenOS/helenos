@@ -36,9 +36,11 @@
 #define VHCD_VHCD_H_
 
 #define NAME "hcd-virt"
+#define NAME_DEV "hcd-virt-dev"
 #define NAMESPACE "usb"
 
-#define DEVMAP_PATH NAMESPACE "/" NAME
+#define DEVMAP_PATH_HC NAMESPACE "/" NAME
+#define DEVMAP_PATH_DEV NAMESPACE "/" NAME_DEV
 
 extern int debug_level;
 void dprintf(int, const char *, ...);

@@ -81,64 +81,6 @@ static void fibril_sleep(size_t sec)
 	}
 }
 
-static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
-{
-	ipc_answer_0(iid, EOK);
-	//printf("%s: client connection()\n", NAME);
-	
-	while (true) {
-		ipc_callid_t callid; 
-		ipc_call_t call; 
-		int rc;
-		void * buffer;
-		size_t len;
-		
-		callid = async_get_call(&call);
-		
-		switch (IPC_GET_METHOD(call)) {
-			case IPC_M_USB_HCD_DATA_SENT:
-				printf("%s: >> Data sent over USB (handle %d, outcome %s).\n",
-				    NAME, IPC_GET_ARG1(call),
-				    usb_str_transaction_outcome(IPC_GET_ARG2(call)));
-				ipc_answer_0(callid, EOK);
-				break;
-				
-			case IPC_M_USB_HCD_DATA_RECEIVED:
-				printf("%s: << Data received over USB (handle %d, outcome %s).\n",
-				    NAME, IPC_GET_ARG1(call),
-				    usb_str_transaction_outcome(IPC_GET_ARG2(call)));
-				if (IPC_GET_ARG2(call) != USB_OUTCOME_OK) {
-					ipc_answer_0(callid, EOK);
-					break;
-				}
-				len = IPC_GET_ARG3(call);
-				if (len > 0) {
-					rc = async_data_write_accept(&buffer, false,
-					    1, MAX_SIZE_RECEIVE,
-					    0, &len);
-					if (rc != EOK) {
-						ipc_answer_0(callid, rc);
-						break;
-					}
-					free(buffer);
-				}
-				printf("%s: << Received %uB long buffer (handle %d).\n",
-				    NAME, len, IPC_GET_ARG1(call));
-				ipc_answer_0(callid, EOK);
-				break;
-				
-			case IPC_M_PHONE_HUNGUP:
-				//printf("%s: hang-up.\n", NAME);
-				return;
-				
-			default:
-				printf("%s: method %d called.\n", NAME, IPC_GET_METHOD(call));
-				ipc_answer_0(callid, EOK);
-				break;
-		}
-	}
-}
-
 static void data_dump(uint8_t *data, size_t len)
 {
 	size_t i;
@@ -153,7 +95,7 @@ static void data_dump(uint8_t *data, size_t len)
 
 int main(int argc, char * argv[])
 {
-	int hcd_phone = usb_hcd_create_phones(DEV_HCD_NAME, client_connection);
+	int hcd_phone = usb_hcd_connect(DEV_HCD_NAME);
 	if (hcd_phone < 0) {
 		printf("%s: Unable to start comunication with HCD at usb://%s (%d: %s).\n",
 		    NAME, DEV_HCD_NAME, hcd_phone, str_error(hcd_phone));
@@ -232,28 +174,6 @@ int main(int argc, char * argv[])
 	data_dump(descriptor, descriptor_length);
 	
 	fibril_sleep(1);
-	
-#if 0
-	int rc;
-	
-	printf("%s: usb_hcd_transfer_control_write_setup(...)\n", NAME);
-	rc = usb_hcd_transfer_control_write_setup(hcd_phone, target,
-	    &setup_packet, sizeof(setup_packet), NULL);
-	if (rc != EOK) {
-		printf("%s: failed setting address (%d).\n", NAME, rc);
-		return rc;
-	}
-	
-	printf("%s: usb_hcd_transfer_control_write_status(...)\n", NAME);
-	rc = usb_hcd_transfer_control_write_status(hcd_phone, target, NULL);
-	if (rc != EOK) {
-		printf("%s: failed completing control transfer (%d).\n", NAME, rc);
-		return rc;
-	}
-	
-	printf("%s: sleeping for a while...\n", NAME);
-	fibril_sleep(5);
-#endif
 
 	printf("%s: exiting.\n", NAME);
 	

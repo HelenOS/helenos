@@ -57,7 +57,7 @@
 #define LOOPS 5
 #define NAME "virt-usb-kbd"
 
-#define DEV_HCD_NAME "hcd-virt"
+#define DEV_HCD_NAME "hcd-virt-dev"
 
 #define __QUOTEME(x) #x
 #define _QUOTEME(x) __QUOTEME(x)

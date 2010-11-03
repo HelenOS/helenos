@@ -39,7 +39,7 @@
 #include "vhcd.h"
 #include "devices.h"
 
-void connection_handler_host(ipcarg_t, int);
+void connection_handler_host(ipcarg_t);
 void connection_handler_device(ipcarg_t, virtdev_connection_t *);
 
 #endif

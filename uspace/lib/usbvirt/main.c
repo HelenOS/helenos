@@ -224,7 +224,7 @@ int usbvirt_connect(usbvirt_device_t *dev, const char *hcd_path)
 	}
 	
 	ipcarg_t phonehash;
-	int rc = ipc_connect_to_me(hcd_phone, 1, 0, 0, &phonehash);
+	int rc = ipc_connect_to_me(hcd_phone, 0, 0, 0, &phonehash);
 	if (rc != EOK) {
 		return rc;
 	}

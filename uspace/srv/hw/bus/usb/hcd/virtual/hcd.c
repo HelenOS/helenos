@@ -51,43 +51,47 @@
 #include "conn.h"
 
 
+static dev_handle_t handle_virtual_device;
+static dev_handle_t handle_host_driver;
+
 static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
 	ipcarg_t phone_hash = icall->in_phone_hash;
+	dev_handle_t handle = (dev_handle_t)IPC_GET_ARG1(*icall);
 	
-	ipc_answer_0(iid, EOK);
-	
-	while (true) {
-		ipc_callid_t callid; 
-		ipc_call_t call; 
-		
-		callid = async_get_call(&call);
-		
+	if (handle == handle_host_driver) {
 		/*
-		 * We can do nothing until we have the callback phone.
-		 * Thus, we will wait for the callback and start processing
-		 * after that.
+		 * We can connect host controller driver immediately.
 		 */
-		int method = (int) IPC_GET_METHOD(call);
-		
-		if (method == IPC_M_PHONE_HUNGUP) {
-			ipc_answer_0(callid, EOK);
-			return;
-		}
-		
-		if (method == IPC_M_CONNECT_TO_ME) {
-			int kind = IPC_GET_ARG1(call);
-			int callback = IPC_GET_ARG5(call);
-			
+		ipc_answer_0(iid, EOK);
+		connection_handler_host(phone_hash);
+	} else if (handle == handle_virtual_device) {
+		ipc_answer_0(iid, EOK);
+
+		while (true) {
 			/*
-			 * Determine whether host connected to us
-			 * or a device.
+			 * We need to wait for callback request to allow
+			 * connection of virtual device.
 			 */
-			if (kind == 0) {
+			ipc_callid_t callid;
+			ipc_call_t call;
+
+			callid = async_get_call(&call);
+
+			/*
+			 * We can do nothing until we have the callback phone.
+			 * Thus, we will wait for the callback and start processing
+			 * after that.
+			 */
+			int method = (int) IPC_GET_METHOD(call);
+
+			if (method == IPC_M_PHONE_HUNGUP) {
 				ipc_answer_0(callid, EOK);
-				connection_handler_host(phone_hash, callback);
 				return;
-			} else if (kind == 1) {
+			}
+
+			if (method == IPC_M_CONNECT_TO_ME) {
+				int callback = IPC_GET_ARG5(call);
 				virtdev_connection_t *dev
 				    = virtdev_add_device(callback);
 				if (!dev) {
@@ -99,18 +103,21 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 				connection_handler_device(phone_hash, dev);
 				virtdev_destroy_device(dev);
 				return;
-			} else {
-				ipc_answer_0(callid, EINVAL);
-				ipc_hangup(callback);
-				return;
 			}
+
+			/*
+			 * No other methods could be served now.
+			 */
+			dprintf_inval_call(1, call, phone_hash);
+			ipc_answer_0(callid, ENOTSUP);
 		}
-		
+	} else {
 		/*
-		 * No other methods could be served now.
+		 * Hmmm, someone else just tried to connect to us.
+		 * Kick him out ;-).
 		 */
-		dprintf_inval_call(1, call, phone_hash);
-		ipc_answer_0(callid, ENOTSUP);
+		ipc_answer_0(iid, ENOTSUP);
+		return;
 	}
 }
 
@@ -134,17 +141,26 @@ int main(int argc, char * argv[])
 		return 1;
 	}
 
-	rc = devmap_device_register(DEVMAP_PATH, NULL);
+	rc = devmap_device_register(DEVMAP_PATH_HC, &handle_host_driver);
 	if (rc != EOK) {
 		printf("%s: unable to register device %s (%s).\n",
-		    NAME, DEVMAP_PATH, str_error(rc));
+		    NAME, DEVMAP_PATH_HC, str_error(rc));
 		return 1;
 	}
 	
+	rc = devmap_device_register(DEVMAP_PATH_DEV, &handle_virtual_device);
+	if (rc != EOK) {
+		printf("%s: unable to register device %s (%s).\n",
+		    NAME, DEVMAP_PATH_DEV, str_error(rc));
+		return 1;
+	}
+
 	hub_init();
 	
-	printf("%s: accepting connections [devmap=%s, debug=%d].\n", NAME,
-	    DEVMAP_PATH, debug_level);
+	printf("%s: accepting connections [debug=%d]\n", NAME, debug_level);
+	printf("%s:  -> host controller at %s\n", NAME, DEVMAP_PATH_HC);
+	printf("%s:  -> virtual hub at %s\n", NAME, DEVMAP_PATH_DEV);
+
 	hc_manager();
 	
 	return 0;

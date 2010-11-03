@@ -132,55 +132,9 @@ const char * usb_str_transaction_outcome(usb_transaction_outcome_t o);
  * (e.g. not before calling usb_hcd_async_wait_for() with appropriate handle).
  * OUT transactions buffers can be freed immediatelly after call is dispatched
  * (i.e. after return from wrapping function).
- * 
- * Async methods for retrieving data from device:
+ *
  */
 typedef enum {
-	/** Send data over USB to a function.
-	 * This method initializes large data transfer that must follow
-	 * immediatelly.
-	 * The recipient of this method must issue immediately data reception
-	 * and answer this call after data buffer was transfered.
-	 * 
-	 * Arguments of the call:
-	 * - USB address of the function
-	 * - endpoint of the function
-	 * - transfer type
-	 * - flags (not used)
-	 * 
-	 * Answer:
-	 * - EOK - ready to accept the data buffer
-	 * - ELIMIT - too many transactions for current connection
-	 * - ENOENT - callback connection does not exist
-	 * - EINVAL - other kind of error
-	 * 
-	 * Arguments of the answer:
-	 * - opaque transaction handle (used in callbacks)
-	 */
-	IPC_M_USB_HCD_SEND_DATA = IPC_FIRST_USER_METHOD,
-	
-	/** Initiate data receive from a function.
-	 * This method announces the HCD that some data will come.
-	 * When this data arrives, the HCD will call back with
-	 * IPC_M_USB_HCD_DATA_RECEIVED.
-	 * 
-	 * Arguments of the call:
-	 * - USB address of the function
-	 * - endpoint of the function
-	 * - transfer type
-	 * - buffer size
-	 * - flags (not used)
-	 *
-	 * Answer:
-	 * - EOK - HCD accepted the request
-	 * - ELIMIT - too many transactions for current connection
-	 * - ENOENT - callback connection does not exist
-	 *
-	 * Arguments of the answer:
-	 * - opaque transaction handle (used in callbacks)
-	 */
-	IPC_M_USB_HCD_RECEIVE_DATA,
-	
 	/** Tell maximum size of the transaction buffer (payload).
 	 * 
 	 * Arguments of the call:
@@ -192,21 +146,7 @@ typedef enum {
 	 * Arguments of the answer:
 	 * - buffer size (in bytes):
 	 */
-	IPC_M_USB_HCD_TRANSACTION_SIZE,
-	
-	
-	IPC_M_USB_HCD_INTERRUPT_OUT,
-	IPC_M_USB_HCD_INTERRUPT_IN,
-	
-	IPC_M_USB_HCD_CONTROL_WRITE_SETUP,
-	IPC_M_USB_HCD_CONTROL_WRITE_DATA,
-	IPC_M_USB_HCD_CONTROL_WRITE_STATUS,
-	
-	IPC_M_USB_HCD_CONTROL_READ_SETUP,
-	IPC_M_USB_HCD_CONTROL_READ_DATA,
-	IPC_M_USB_HCD_CONTROL_READ_STATUS,
-	
-	/* async methods */
+	IPC_M_USB_HCD_TRANSACTION_SIZE = IPC_FIRST_USER_METHOD,
 	
 	/** Asks for data buffer.
 	 * See explanation at usb_hcd_method_t.
@@ -292,31 +232,7 @@ typedef enum {
 } usb_hcd_callback_method_t;
 
 
-int usb_hcd_create_phones(const char *, async_client_conn_t);
-int usb_hcd_send_data_to_function(int, usb_target_t, usb_transfer_type_t,
-    void *, size_t, usb_transaction_handle_t *);
-int usb_hcd_prepare_data_reception(int, usb_target_t, usb_transfer_type_t,
-    size_t, usb_transaction_handle_t *);
-
-
-int usb_hcd_transfer_interrupt_out(int, usb_target_t,
-    void *, size_t, usb_transaction_handle_t *);
-int usb_hcd_transfer_interrupt_in(int, usb_target_t,
-    size_t, usb_transaction_handle_t *);
-
-int usb_hcd_transfer_control_write_setup(int, usb_target_t,
-    void *, size_t, usb_transaction_handle_t *);
-int usb_hcd_transfer_control_write_data(int, usb_target_t,
-    void *, size_t, usb_transaction_handle_t *);
-int usb_hcd_transfer_control_write_status(int, usb_target_t,
-    usb_transaction_handle_t *);
-
-int usb_hcd_transfer_control_read_setup(int, usb_target_t,
-    void *, size_t, usb_transaction_handle_t *);
-int usb_hcd_transfer_control_read_data(int, usb_target_t,
-    size_t, usb_transaction_handle_t *);
-int usb_hcd_transfer_control_read_status(int, usb_target_t,
-    usb_transaction_handle_t *);
+int usb_hcd_connect(const char *);
 
 int usb_hcd_async_transfer_interrupt_out(int, usb_target_t,
     void *, size_t, usb_handle_t *);
