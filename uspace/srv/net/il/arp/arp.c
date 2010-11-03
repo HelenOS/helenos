@@ -54,7 +54,7 @@
 #include <ipc/arp.h>
 #include <ipc/il.h>
 #include <byteorder.h>
-#include <err.h>
+#include <errno.h>
 
 #include <net/modules.h>
 #include <net/device.h>
@@ -178,18 +178,22 @@ static int
 arp_proto_create(arp_proto_ref *proto, services_t service,
     measured_string_ref address)
 {
-	ERROR_DECLARE;
+	int rc;
 
 	*proto = (arp_proto_ref) malloc(sizeof(arp_proto_t));
 	if (!*proto)
 		return ENOMEM;
+	
 	(*proto)->service = service;
 	(*proto)->addr = address;
 	(*proto)->addr_data = address->value;
-	if (ERROR_OCCURRED(arp_addr_initialize(&(*proto)->addresses))) {
+	
+	rc = arp_addr_initialize(&(*proto)->addresses);
+	if (rc != EOK) {
 		free(*proto);
-		return ERROR_CODE;
+		return rc;
 	}
+	
 	return EOK;
 }
 
@@ -213,12 +217,11 @@ static int
 arp_device_message(device_id_t device_id, services_t service,
     services_t protocol, measured_string_ref address)
 {
-	ERROR_DECLARE;
-
 	arp_device_ref device;
 	arp_proto_ref proto;
-	int index;
 	hw_type_t hardware;
+	int index;
+	int rc;
 
 	fibril_rwlock_write_lock(&arp_globals.lock);
 	// an existing device?
@@ -236,10 +239,10 @@ arp_device_message(device_id_t device_id, services_t service,
 			proto->addr = address;
 			proto->addr_data = address->value;
 		} else {
-			if (ERROR_OCCURRED(arp_proto_create(&proto, protocol,
-			    address))) {
+			rc = arp_proto_create(&proto, protocol, address);
+			if (rc != EOK) {
 				fibril_rwlock_write_unlock(&arp_globals.lock);
-				return ERROR_CODE;
+				return rc;
 			}
 			index = arp_protos_add(&device->protos, proto->service,
 			    proto);
@@ -264,12 +267,17 @@ arp_device_message(device_id_t device_id, services_t service,
 		}
 		device->hardware = hardware;
 		device->device_id = device_id;
-		if (ERROR_OCCURRED(arp_protos_initialize(&device->protos)) ||
-		    ERROR_OCCURRED(arp_proto_create(&proto, protocol,
-		    address))) {
+		rc = arp_protos_initialize(&device->protos);
+		if (rc != EOK) {
 			fibril_rwlock_write_unlock(&arp_globals.lock);
 			free(device);
-			return ERROR_CODE;
+			return rc;
+		}
+		rc = arp_proto_create(&proto, protocol, address);
+		if (rc != EOK) {
+			fibril_rwlock_write_unlock(&arp_globals.lock);
+			free(device);
+			return rc;
 		}
 		index = arp_protos_add(&device->protos, proto->service, proto);
 		if (index < 0) {
@@ -292,37 +300,40 @@ arp_device_message(device_id_t device_id, services_t service,
 		}
 		
 		// get packet dimensions
-		if (ERROR_OCCURRED(nil_packet_size_req(device->phone, device_id,
-		    &device->packet_dimension))) {
+		rc = nil_packet_size_req(device->phone, device_id,
+		    &device->packet_dimension);
+		if (rc != EOK) {
 			fibril_rwlock_write_unlock(&arp_globals.lock);
 			arp_protos_destroy(&device->protos);
 			free(device);
-			return ERROR_CODE;
+			return rc;
 		}
 		
 		// get hardware address
-		if (ERROR_OCCURRED(nil_get_addr_req(device->phone, device_id,
-		    &device->addr, &device->addr_data))) {
+		rc = nil_get_addr_req(device->phone, device_id, &device->addr,
+		    &device->addr_data);
+		if (rc != EOK) {
 			fibril_rwlock_write_unlock(&arp_globals.lock);
 			arp_protos_destroy(&device->protos);
 			free(device);
-			return ERROR_CODE;
+			return rc;
 		}
 		
 		// get broadcast address
-		if (ERROR_OCCURRED(nil_get_broadcast_addr_req(device->phone,
-		    device_id, &device->broadcast_addr,
-		    &device->broadcast_data))) {
+		rc = nil_get_broadcast_addr_req(device->phone, device_id,
+		    &device->broadcast_addr, &device->broadcast_data);
+		if (rc != EOK) {
 			fibril_rwlock_write_unlock(&arp_globals.lock);
 			free(device->addr);
 			free(device->addr_data);
 			arp_protos_destroy(&device->protos);
 			free(device);
-			return ERROR_CODE;
+			return rc;
 		}
 		
-		if (ERROR_OCCURRED(arp_cache_add(&arp_globals.cache,
-		    device->device_id, device))) {
+		rc = arp_cache_add(&arp_globals.cache, device->device_id,
+		    device);
+		if (rc != EOK) {
 			fibril_rwlock_write_unlock(&arp_globals.lock);
 			free(device->addr);
 			free(device->addr_data);
@@ -330,7 +341,7 @@ arp_device_message(device_id_t device_id, services_t service,
 			free(device->broadcast_data);
 			arp_protos_destroy(&device->protos);
 			free(device);
-			return ERROR_CODE;
+			return rc;
 		}
 		printf("%s: Device registered (id: %d, type: 0x%x, service: %d,"
 		    " proto: %d)\n", NAME, device->device_id, device->hardware,
@@ -350,14 +361,15 @@ arp_device_message(device_id_t device_id, services_t service,
  */
 int arp_initialize(async_client_conn_t client_connection)
 {
-	ERROR_DECLARE;
+	int rc;
 
 	fibril_rwlock_initialize(&arp_globals.lock);
 	fibril_rwlock_write_lock(&arp_globals.lock);
 	arp_globals.client_connection = client_connection;
-	ERROR_PROPAGATE(arp_cache_initialize(&arp_globals.cache));
+	rc = arp_cache_initialize(&arp_globals.cache);
 	fibril_rwlock_write_unlock(&arp_globals.lock);
-	return EOK;
+	
+	return rc;
 }
 
 /** Updates the device content length according to the new MTU value.
@@ -405,8 +417,6 @@ static int arp_mtu_changed_message(device_id_t device_id, size_t mtu)
  */
 static int arp_receive_message(device_id_t device_id, packet_t packet)
 {
-	ERROR_DECLARE;
-
 	size_t length;
 	arp_header_ref header;
 	arp_device_ref device;
@@ -416,6 +426,7 @@ static int arp_receive_message(device_id_t device_id, packet_t packet)
 	uint8_t *src_proto;
 	uint8_t *des_hw;
 	uint8_t *des_proto;
+	int rc;
 
 	length = packet_get_data_length(packet);
 	if (length <= sizeof(arp_header_t))
@@ -466,9 +477,11 @@ static int arp_receive_message(device_id_t device_id, packet_t packet)
 			if (!hw_source)
 				return ENOMEM;
 
-			ERROR_PROPAGATE(arp_addr_add(&proto->addresses,
-			    (char *) src_proto, CONVERT_SIZE(uint8_t, char,
-			    header->protocol_length), hw_source));
+			rc = arp_addr_add(&proto->addresses, (char *) src_proto,
+			    CONVERT_SIZE(uint8_t, char,
+			    header->protocol_length), hw_source);
+			if (rc != EOK)
+				return rc;
 		}
 		if (ntohs(header->operation) == ARPOP_REQUEST) {
 			header->operation = htons(ARPOP_REPLY);
@@ -479,8 +492,12 @@ static int arp_receive_message(device_id_t device_id, packet_t packet)
 			    device->packet_dimension.addr_len);
 			memcpy(des_hw, hw_source->value,
 			    header->hardware_length);
-			ERROR_PROPAGATE(packet_set_addr(packet, src_hw, des_hw,
-			    header->hardware_length));
+			
+			rc = packet_set_addr(packet, src_hw, des_hw,
+			    header->hardware_length);
+			if (rc != EOK)
+				return rc;
+			
 			nil_send_msg(device->phone, device_id, packet,
 			    SERVICE_ARP);
 			return 1;
@@ -595,13 +612,12 @@ int
 arp_message_standalone(ipc_callid_t callid, ipc_call_t *call,
     ipc_call_t *answer, int *answer_count)
 {
-	ERROR_DECLARE;
-	
 	measured_string_ref address;
 	measured_string_ref translation;
 	char *data;
 	packet_t packet;
 	packet_t next;
+	int rc;
 	
 	*answer_count = 0;
 	switch (IPC_GET_METHOD(*call)) {
@@ -609,16 +625,23 @@ arp_message_standalone(ipc_callid_t callid, ipc_call_t *call,
 		return EOK;
 	
 	case NET_ARP_DEVICE:
-		ERROR_PROPAGATE(measured_strings_receive(&address, &data, 1));
-		if (ERROR_OCCURRED(arp_device_message(IPC_GET_DEVICE(call),
-		    IPC_GET_SERVICE(call), ARP_GET_NETIF(call), address))) {
+		rc = measured_strings_receive(&address, &data, 1);
+		if (rc != EOK)
+			return rc;
+		
+		rc = arp_device_message(IPC_GET_DEVICE(call),
+		    IPC_GET_SERVICE(call), ARP_GET_NETIF(call), address);
+		if (rc != EOK) {
 			free(address);
 			free(data);
 		}
-		return ERROR_CODE;
+		return rc;
 	
 	case NET_ARP_TRANSLATE:
-		ERROR_PROPAGATE(measured_strings_receive(&address, &data, 1));
+		rc = measured_strings_receive(&address, &data, 1);
+		if (rc != EOK)
+			return rc;
+		
 		fibril_rwlock_read_lock(&arp_globals.lock);
 		translation = arp_translate_message(IPC_GET_DEVICE(call),
 		    IPC_GET_SERVICE(call), address);
@@ -628,15 +651,18 @@ arp_message_standalone(ipc_callid_t callid, ipc_call_t *call,
 			fibril_rwlock_read_unlock(&arp_globals.lock);
 			return ENOENT;
 		}
-		ERROR_CODE = measured_strings_reply(translation, 1);
+		rc = measured_strings_reply(translation, 1);
 		fibril_rwlock_read_unlock(&arp_globals.lock);
-		return ERROR_CODE;
+		return rc;
 
 	case NET_ARP_CLEAR_DEVICE:
 		return arp_clear_device_req(0, IPC_GET_DEVICE(call));
 
 	case NET_ARP_CLEAR_ADDRESS:
-		ERROR_PROPAGATE(measured_strings_receive(&address, &data, 1));
+		rc = measured_strings_receive(&address, &data, 1);
+		if (rc != EOK)
+			return rc;
+		
 		arp_clear_address_req(0, IPC_GET_DEVICE(call),
 		    IPC_GET_SERVICE(call), address);
 		free(address);
@@ -651,23 +677,24 @@ arp_message_standalone(ipc_callid_t callid, ipc_call_t *call,
 		return EOK;
 	
 	case NET_IL_RECEIVED:
-		if (ERROR_NONE(packet_translate_remote(arp_globals.net_phone,
-		    &packet, IPC_GET_PACKET(call)))) {
-			fibril_rwlock_read_lock(&arp_globals.lock);
-			do {
-				next = pq_detach(packet);
-				ERROR_CODE =
-				    arp_receive_message(IPC_GET_DEVICE(call),
-				    packet);
-				if (ERROR_CODE != 1) {
-					pq_release_remote(arp_globals.net_phone,
-					    packet_get_id(packet));
-				}
-				packet = next;
-			} while (packet);
-			fibril_rwlock_read_unlock(&arp_globals.lock);
-		}
-		return ERROR_CODE;
+		rc = packet_translate_remote(arp_globals.net_phone, &packet,
+		    IPC_GET_PACKET(call));
+		if (rc != EOK)
+			return rc;
+		
+		fibril_rwlock_read_lock(&arp_globals.lock);
+		do {
+			next = pq_detach(packet);
+			rc = arp_receive_message(IPC_GET_DEVICE(call), packet);
+			if (rc != 1) {
+				pq_release_remote(arp_globals.net_phone,
+				    packet_get_id(packet));
+			}
+			packet = next;
+		} while (packet);
+		fibril_rwlock_read_unlock(&arp_globals.lock);
+		
+		return EOK;
 	
 	case NET_IL_MTU_CHANGED:
 		return arp_mtu_changed_message(IPC_GET_DEVICE(call),
@@ -726,11 +753,11 @@ static void il_client_connection(ipc_callid_t iid, ipc_call_t *icall)
  */
 int main(int argc, char *argv[])
 {
-	ERROR_DECLARE;
+	int rc;
 	
 	/* Start the module */
-	ERROR_PROPAGATE(il_module_start_standalone(il_client_connection));
-	return EOK;
+	rc = il_module_start_standalone(il_client_connection);
+	return rc;
 }
 
 /** @}

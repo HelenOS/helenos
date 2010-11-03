@@ -40,7 +40,7 @@
 
 #include <async.h>
 #include <stdio.h>
-#include <err.h>
+#include <errno.h>
 
 #include <ipc/ipc.h>
 #include <ipc/services.h>
@@ -65,17 +65,26 @@ il_module_message_standalone(ipc_callid_t callid, ipc_call_t *call,
 
 int il_module_start_standalone(async_client_conn_t client_connection)
 {
-	ERROR_DECLARE;
+	ipcarg_t phonehash;
+	int rc;
 	
 	async_set_client_connection(client_connection);
 	arp_globals.net_phone = net_connect_module();
-	ERROR_PROPAGATE(pm_init());
 	
-	ipcarg_t phonehash;
-	if (ERROR_OCCURRED(arp_initialize(client_connection)) ||
-	    ERROR_OCCURRED(REGISTER_ME(SERVICE_ARP, &phonehash))) {
+	rc = pm_init();
+	if (rc != EOK)
+		return rc;
+	
+	rc = arp_initialize(client_connection);
+	if (rc != EOK) {
 		pm_destroy();
-		return ERROR_CODE;
+		return rc;
+	}
+	
+	rc = REGISTER_ME(SERVICE_ARP, &phonehash);
+	if (rc != EOK) {
+		pm_destroy();
+		return rc;
 	}
 	
 	async_manager();
