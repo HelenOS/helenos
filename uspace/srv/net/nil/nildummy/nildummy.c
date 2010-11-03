@@ -40,7 +40,6 @@
 #include <mem.h>
 #include <stdio.h>
 #include <str.h>
-#include <err.h>
 #include <ipc/ipc.h>
 #include <ipc/net.h>
 #include <ipc/services.h>
@@ -81,7 +80,7 @@ int nil_device_state_msg_local(int nil_phone, device_id_t device_id, int state)
 
 int nil_initialize(int net_phone)
 {
-	ERROR_DECLARE;
+	int rc;
 	
 	fibril_rwlock_initialize(&nildummy_globals.devices_lock);
 	fibril_rwlock_initialize(&nildummy_globals.protos_lock);
@@ -90,12 +89,12 @@ int nil_initialize(int net_phone)
 	
 	nildummy_globals.net_phone = net_phone;
 	nildummy_globals.proto.phone = 0;
-	ERROR_CODE = nildummy_devices_initialize(&nildummy_globals.devices);
+	rc = nildummy_devices_initialize(&nildummy_globals.devices);
 	
 	fibril_rwlock_write_unlock(&nildummy_globals.protos_lock);
 	fibril_rwlock_write_unlock(&nildummy_globals.devices_lock);
 	
-	return ERROR_CODE;
+	return rc;
 }
 
 /** Process IPC messages from the registered device driver modules in an
@@ -106,26 +105,25 @@ int nil_initialize(int net_phone)
  */
 static void nildummy_receiver(ipc_callid_t iid, ipc_call_t *icall)
 {
-	ERROR_DECLARE;
-
 	packet_t packet;
+	int rc;
 
 	while (true) {
 		switch (IPC_GET_METHOD(*icall)) {
 		case NET_NIL_DEVICE_STATE:
-			ERROR_CODE = nil_device_state_msg_local(0,
+			rc = nil_device_state_msg_local(0,
 			    IPC_GET_DEVICE(icall), IPC_GET_STATE(icall));
-			ipc_answer_0(iid, (ipcarg_t) ERROR_CODE);
+			ipc_answer_0(iid, (ipcarg_t) rc);
 			break;
 		
 		case NET_NIL_RECEIVED:
-			if (ERROR_NONE(packet_translate_remote(
-			    nildummy_globals.net_phone, &packet,
-			    IPC_GET_PACKET(icall)))) {
-				ERROR_CODE = nil_received_msg_local(0,
+			rc = packet_translate_remote(nildummy_globals.net_phone,
+			    &packet, IPC_GET_PACKET(icall));
+			if (rc == EOK) {
+				rc = nil_received_msg_local(0,
 				    IPC_GET_DEVICE(icall), packet, 0);
 			}
-			ipc_answer_0(iid, (ipcarg_t) ERROR_CODE);
+			ipc_answer_0(iid, (ipcarg_t) rc);
 			break;
 		
 		default:
@@ -154,10 +152,9 @@ static void nildummy_receiver(ipc_callid_t iid, ipc_call_t *icall)
 static int
 nildummy_device_message(device_id_t device_id, services_t service, size_t mtu)
 {
-	ERROR_DECLARE;
-
 	nildummy_device_ref device;
 	int index;
+	int rc;
 
 	fibril_rwlock_write_lock(&nildummy_globals.devices_lock);
 
@@ -215,11 +212,12 @@ nildummy_device_message(device_id_t device_id, services_t service, size_t mtu)
 	}
 	
 	// get hardware address
-	if (ERROR_OCCURRED(netif_get_addr_req(device->phone, device->device_id,
-	    &device->addr, &device->addr_data))) {
+	rc = netif_get_addr_req(device->phone, device->device_id, &device->addr,
+	    &device->addr_data);
+	if (rc != EOK) {
 		fibril_rwlock_write_unlock(&nildummy_globals.devices_lock);
 		free(device);
-		return ERROR_CODE;
+		return rc;
 	}
 	
 	// add to the cache
@@ -379,14 +377,13 @@ int
 nil_message_standalone(const char *name, ipc_callid_t callid, ipc_call_t *call,
     ipc_call_t *answer, int *answer_count)
 {
-	ERROR_DECLARE;
-	
 	measured_string_ref address;
 	packet_t packet;
 	size_t addrlen;
 	size_t prefix;
 	size_t suffix;
 	size_t content;
+	int rc;
 	
 	*answer_count = 0;
 	switch (IPC_GET_METHOD(*call)) {
@@ -398,15 +395,18 @@ nil_message_standalone(const char *name, ipc_callid_t callid, ipc_call_t *call,
 		    IPC_GET_SERVICE(call), IPC_GET_MTU(call));
 	
 	case NET_NIL_SEND:
-		ERROR_PROPAGATE(packet_translate_remote(
-		    nildummy_globals.net_phone, &packet, IPC_GET_PACKET(call)));
+		rc = packet_translate_remote(nildummy_globals.net_phone,
+		    &packet, IPC_GET_PACKET(call));
+		if (rc != EOK)
+			return rc;
 		return nildummy_send_message(IPC_GET_DEVICE(call), packet,
 		    IPC_GET_SERVICE(call));
 	
 	case NET_NIL_PACKET_SPACE:
-		ERROR_PROPAGATE(nildummy_packet_space_message(
-		    IPC_GET_DEVICE(call), &addrlen, &prefix, &content,
-		    &suffix));
+		rc = nildummy_packet_space_message(IPC_GET_DEVICE(call),
+		    &addrlen, &prefix, &content, &suffix);
+		if (rc != EOK)
+			return rc;
 		IPC_SET_ADDR(answer, addrlen);
 		IPC_SET_PREFIX(answer, prefix);
 		IPC_SET_CONTENT(answer, content);
@@ -415,13 +415,15 @@ nil_message_standalone(const char *name, ipc_callid_t callid, ipc_call_t *call,
 		return EOK;
 	
 	case NET_NIL_ADDR:
-		ERROR_PROPAGATE(nildummy_addr_message(IPC_GET_DEVICE(call),
-		    &address));
+		rc = nildummy_addr_message(IPC_GET_DEVICE(call), &address);
+		if (rc != EOK)
+			return rc;
 		return measured_strings_reply(address, 1);
 	
 	case NET_NIL_BROADCAST_ADDR:
-		ERROR_PROPAGATE(nildummy_addr_message(IPC_GET_DEVICE(call),
-		    &address));
+		rc = nildummy_addr_message(IPC_GET_DEVICE(call), &address);
+		if (rc != EOK)
+			return rc;
 		return measured_strings_reply(address, 1);
 	
 	case IPC_M_CONNECT_TO_ME:
@@ -475,11 +477,11 @@ static void nil_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 int main(int argc, char *argv[])
 {
-	ERROR_DECLARE;
+	int rc;
 	
 	/* Start the module */
-	ERROR_PROPAGATE(nil_module_start_standalone(nil_client_connection));
-	return EOK;
+	rc = nil_module_start_standalone(nil_client_connection);
+	return rc;
 }
 
 /** @}
