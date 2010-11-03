@@ -39,7 +39,7 @@
 
 #include <async.h>
 #include <stdio.h>
-#include <err.h>
+#include <errno.h>
 
 #include <ipc/ipc.h>
 #include <ipc/services.h>
@@ -51,17 +51,26 @@
 
 int nil_module_start_standalone(async_client_conn_t client_connection)
 {
-	ERROR_DECLARE;
+	ipcarg_t phonehash;
+	int rc;
 	
 	async_set_client_connection(client_connection);
 	int net_phone = net_connect_module();
-	ERROR_PROPAGATE(pm_init());
+
+	rc = pm_init();
+	if (rc != EOK)
+		return rc;
 	
-	ipcarg_t phonehash;
-	if (ERROR_OCCURRED(nil_initialize(net_phone)) ||
-	    ERROR_OCCURRED(REGISTER_ME(SERVICE_ETHERNET, &phonehash))) {
+	rc = nil_initialize(net_phone);
+	if (rc != EOK) {
 		pm_destroy();
-		return ERROR_CODE;
+		return rc;
+	}
+
+	rc = REGISTER_ME(SERVICE_ETHERNET, &phonehash);
+	if (rc != EOK) {
+		pm_destroy();
+		return rc;
 	}
 	
 	async_manager();
