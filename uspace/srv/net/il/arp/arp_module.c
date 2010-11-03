@@ -76,21 +76,18 @@ int il_module_start_standalone(async_client_conn_t client_connection)
 		return rc;
 	
 	rc = arp_initialize(client_connection);
-	if (rc != EOK) {
-		pm_destroy();
-		return rc;
-	}
+	if (rc != EOK)
+		goto out;
 	
 	rc = REGISTER_ME(SERVICE_ARP, &phonehash);
-	if (rc != EOK) {
-		pm_destroy();
-		return rc;
-	}
+	if (rc != EOK)
+		goto out;
 	
 	async_manager();
-	
+
+out:
 	pm_destroy();
-	return EOK;
+	return rc;
 }
 
 /** @}

@@ -62,21 +62,18 @@ int nil_module_start_standalone(async_client_conn_t client_connection)
 		return rc;
 	
 	rc = nil_initialize(net_phone);
-	if (rc != EOK) {
-		pm_destroy();
-		return rc;
-	}
+	if (rc != EOK)
+		goto out;
 
 	rc = REGISTER_ME(SERVICE_ETHERNET, &phonehash);
-	if (rc != EOK) {
-		pm_destroy();
-		return rc;
-	}
+	if (rc != EOK)
+		goto out;
 	
 	async_manager();
-	
+
+out:
 	pm_destroy();
-	return EOK;
+	return rc;
 }
 
 int
