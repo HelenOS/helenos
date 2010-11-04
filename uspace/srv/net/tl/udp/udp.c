@@ -480,31 +480,13 @@ udp_sendto_message(socket_cores_ref local_sockets, int socket_id,
 
 	if ((socket->port <= 0) && udp_globals.autobinding) {
 		// bind the socket to a random free port if not bound
-//		do {
-			// try to find a free port
-//			fibril_rwlock_read_unlock(&udp_globals.lock);
-//			fibril_rwlock_write_lock(&udp_globals.lock);
-			// might be changed in the meantime
-//			if (socket->port <= 0) {
-				rc = socket_bind_free_port(&udp_globals.sockets,
-				    socket, UDP_FREE_PORTS_START,
-				    UDP_FREE_PORTS_END,
-				    udp_globals.last_used_port);
-				if (rc != EOK) {
-//					fibril_rwlock_write_unlock(
-//					    &udp_globals.lock);
-//					fibril_rwlock_read_lock(
-//					    &udp_globals.lock);
-					return rc;
-				}
-				// set the next port as the search starting port
-				// number
-				udp_globals.last_used_port = socket->port;
-//			}
-//			fibril_rwlock_write_unlock(&udp_globals.lock);
-//			fibril_rwlock_read_lock(&udp_globals.lock);
-			// might be changed in the meantime
-//		} while (socket->port <= 0);
+		rc = socket_bind_free_port(&udp_globals.sockets, socket,
+		    UDP_FREE_PORTS_START, UDP_FREE_PORTS_END,
+		    udp_globals.last_used_port);
+		if (rc != EOK)
+			return rc;
+		// set the next port as the search starting port number
+		udp_globals.last_used_port = socket->port;
 	}
 
 	if (udp_globals.checksum_computing) {
