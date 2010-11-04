@@ -369,7 +369,7 @@ def main():
 	fat_count = 2
 	reserved_clusters = 2
 	
-	# Make sure the filesystem is large enought for FAT16
+	# Make sure the filesystem is large enough for FAT16
 	size = subtree_size(path, cluster_size, dirent_size) + reserved_clusters * cluster_size + extra_bytes
 	while (size // cluster_size < fat16_clusters):
 		if (cluster_size > sector_size):
