@@ -493,7 +493,7 @@ udp_sendto_message(socket_cores_ref local_sockets, int socket_id,
 		rc = ip_get_route_req(udp_globals.ip_phone, IPPROTO_UDP, addr,
 		    addrlen, &device_id, &ip_header, &headerlen);
 		if (rc != EOK)
-			return udp_release_and_return(packet, rc);
+			return rc;
 		// get the device packet dimension
 //		rc = tl_get_ip_packet_dimension(udp_globals.ip_phone,
 //		    &udp_globals.dimensions, device_id, &packet_dimension);
