@@ -625,7 +625,7 @@ udp_recvfrom_message(socket_cores_ref local_sockets, int socket_id, int flags,
 		return ENOTSOCK;
 
 	// get the next received packet
-	packet_id = dyn_fifo_value(&socket->received);
+	packet_id = dyn_fifo_pop(&socket->received);
 	if (packet_id < 0)
 		return NO_DATA;
 	
@@ -649,19 +649,17 @@ udp_recvfrom_message(socket_cores_ref local_sockets, int socket_id, int flags,
 	// send the source address
 	rc = data_reply(addr, *addrlen);
 	if (rc != EOK)
-		return rc;
+		return udp_release_and_return(packet, rc);
 
 	// trim the header
 	rc = packet_trim(packet, UDP_HEADER_SIZE, 0);
 	if (rc != EOK)
-		return rc;
+		return udp_release_and_return(packet, rc);
 
 	// reply the packets
 	rc = socket_reply_packets(packet, &length);
 	if (rc != EOK)
-		return rc;
-
-	dyn_fifo_pop(&socket->received);
+		return udp_release_and_return(packet, rc);
 
 	// release the packet and return the total length
 	return udp_release_and_return(packet, (int) length);
