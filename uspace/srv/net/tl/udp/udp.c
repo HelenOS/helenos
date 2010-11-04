@@ -577,8 +577,10 @@ udp_sendto_message(socket_cores_ref local_sockets, int socket_id,
 	if (rc != EOK)
 		return udp_release_and_return(packet, rc);
 
-	// send the packet
+	/* Release the UDP global lock on success. */
 	fibril_rwlock_write_unlock(&udp_globals.lock);
+
+	// send the packet
 	ip_send_msg(udp_globals.ip_phone, device_id, packet, SERVICE_UDP, 0);
 
 	return EOK;
