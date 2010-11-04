@@ -635,19 +635,15 @@ udp_recvfrom_message(socket_cores_ref local_sockets, int socket_id, int flags,
 
 	// get udp header
 	data = packet_get_data(packet);
-	if (!data) {
-		pq_release_remote(udp_globals.net_phone, packet_id);
-		return NO_DATA;
-	}
+	if (!data)
+		return udp_release_and_return(packet, NO_DATA);
 	header = (udp_header_ref) data;
 
 	// set the source address port
 	result = packet_get_addr(packet, (uint8_t **) &addr, NULL);
 	rc = tl_set_address_port(addr, result, ntohs(header->source_port));
-	if (rc != EOK) {
-		pq_release_remote(udp_globals.net_phone, packet_id);
-		return rc;
-	}
+	if (rc != EOK)
+		return udp_release_and_return(packet, rc);
 	*addrlen = (size_t) result;
 
 	// send the source address
@@ -665,12 +661,10 @@ udp_recvfrom_message(socket_cores_ref local_sockets, int socket_id, int flags,
 	if (rc != EOK)
 		return rc;
 
-	// release the packet
 	dyn_fifo_pop(&socket->received);
-	pq_release_remote(udp_globals.net_phone, packet_get_id(packet));
 
-	// return the total length
-	return (int) length;
+	// release the packet and return the total length
+	return udp_release_and_return(packet, (int) length);
 }
 
 /** Processes the socket client messages.
