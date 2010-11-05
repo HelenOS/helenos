@@ -57,17 +57,6 @@ static void optimize_execution_power(void)
 		ipc_poke();
 }
 
-static bool check_for_deadlock(fibril_owner_info_t *oi)
-{
-	while (oi && oi->owned_by) {
-		if (oi->owned_by == (fibril_t *) fibril_get_id())
-			return true;
-		oi = oi->owned_by->waits_for;
-	}
-
-	return false;
-}
-
 static void print_deadlock(fibril_owner_info_t *oi)
 {
 	fibril_t *f = (fibril_t *) fibril_get_id();
@@ -88,9 +77,20 @@ static void print_deadlock(fibril_owner_info_t *oi)
 		     oi->owned_by, oi->owned_by->waits_for);
 		oi = oi->owned_by->waits_for;
 	}
-
-	abort();
 }
+
+
+static void check_for_deadlock(fibril_owner_info_t *oi)
+{
+	while (oi && oi->owned_by) {
+		if (oi->owned_by == (fibril_t *) fibril_get_id()) {
+			print_deadlock(oi);
+			abort();
+		}
+		oi = oi->owned_by->waits_for;
+	}
+}
+
 
 void fibril_mutex_initialize(fibril_mutex_t *fm)
 {
@@ -112,11 +112,8 @@ void fibril_mutex_lock(fibril_mutex_t *fm)
 		wdata.wu_event.inlist = true;
 		link_initialize(&wdata.wu_event.link);
 		list_append(&wdata.wu_event.link, &fm->waiters);
-
-		if (check_for_deadlock(&fm->oi))
-			print_deadlock(&fm->oi);
+		check_for_deadlock(&fm->oi);
 		f->waits_for = &fm->oi;
-
 		fibril_switch(FIBRIL_TO_MANAGER);
 	} else {
 		fm->oi.owned_by = f;
@@ -193,11 +190,8 @@ void fibril_rwlock_read_lock(fibril_rwlock_t *frw)
 		link_initialize(&wdata.wu_event.link);
 		f->flags &= ~FIBRIL_WRITER;
 		list_append(&wdata.wu_event.link, &frw->waiters);
-		
-		if (check_for_deadlock(&frw->oi))
-			print_deadlock(&frw->oi);
+		check_for_deadlock(&frw->oi);
 		f->waits_for = &frw->oi;
-		
 		fibril_switch(FIBRIL_TO_MANAGER);
 	} else {
 		frw->readers++;
@@ -219,11 +213,8 @@ void fibril_rwlock_write_lock(fibril_rwlock_t *frw)
 		link_initialize(&wdata.wu_event.link);
 		f->flags |= FIBRIL_WRITER;
 		list_append(&wdata.wu_event.link, &frw->waiters);
-		
-		if (check_for_deadlock(&frw->oi))
-			print_deadlock(&frw->oi);
+		check_for_deadlock(&frw->oi);
 		f->waits_for = &frw->oi;
-		
 		fibril_switch(FIBRIL_TO_MANAGER);
 	} else {
 		frw->oi.owned_by = f;
