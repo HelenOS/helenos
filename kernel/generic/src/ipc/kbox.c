@@ -106,9 +106,9 @@ static void kbox_proc_phone_hungup(call_t *call, bool *last)
 	if (call->sender == TASK->udebug.debugger) {
 		/* Terminate debugging session (if any). */
 		LOG("Terminate debugging session.");
-		irq_spinlock_lock(&TASK->lock, true);
+		mutex_lock(&TASK->udebug.lock);
 		udebug_task_cleanup(TASK);
-		irq_spinlock_unlock(&TASK->lock, true);
+		mutex_unlock(&TASK->udebug.lock);
 	} else {
 		LOG("Was not debugger.");
 	}

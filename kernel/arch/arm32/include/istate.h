@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2006 Martin Decky
+ * Copyright (c) 2007 Michal Kebrt, Petr Stepan
+ *
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,60 +27,73 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcppc32	
+/** @addtogroup arm32interrupt
  * @{
  */
-/** @file
- */
 
-#ifndef LIBC_ppc32_FIBRIL_H_
-#define LIBC_ppc32_FIBRIL_H_
+#ifndef KERN_arm32_ISTATE_H_
+#define KERN_arm32_ISTATE_H_
 
+#include <arch/regutils.h>
+
+#ifdef KERNEL
+#include <typedefs.h>
+#include <trace.h>
+#else
 #include <sys/types.h>
+#define NO_TRACE
+#endif
 
-/* We define our own context_set, because we need to set
- * the TLS pointer to the tcb+0x7000
- *
- * See tls_set in thread.h
- */
-#define context_set(c, _pc, stack, size, ptls) 			\
-	(c)->pc = (sysarg_t) (_pc);				\
-	(c)->sp = ((sysarg_t) (stack)) + (size) - SP_DELTA; 	\
-	(c)->tls = ((sysarg_t) (ptls)) + 0x7000 + sizeof(tcb_t);
-
-#define SP_DELTA	16
-
-typedef struct {
+/** Struct representing CPU state saved when an exception occurs. */
+typedef struct istate {
+	uint32_t spsr;
 	uint32_t sp;
+	uint32_t lr;
+	
+	uint32_t r0;
+	uint32_t r1;
+	uint32_t r2;
+	uint32_t r3;
+	uint32_t r4;
+	uint32_t r5;
+	uint32_t r6;
+	uint32_t r7;
+	uint32_t r8;
+	uint32_t r9;
+	uint32_t r10;
+	uint32_t fp;
+	uint32_t r12;
+	
 	uint32_t pc;
-	
-	uint32_t tls;
-	uint32_t r13;
-	uint32_t r14;
-	uint32_t r15;
-	uint32_t r16;
-	uint32_t r17;
-	uint32_t r18;
-	uint32_t r19;
-	uint32_t r20;
-	uint32_t r21;
-	uint32_t r22;
-	uint32_t r23;
-	uint32_t r24;
-	uint32_t r25;
-	uint32_t r26;
-	uint32_t r27;
-	uint32_t r28;
-	uint32_t r29;
-	uint32_t r30;
-	uint32_t r31;
-	
-	uint32_t cr;
-} __attribute__ ((packed)) context_t;
+} istate_t;
 
-static inline uintptr_t context_get_fp(context_t *ctx)
+/** Set Program Counter member of given istate structure.
+ *
+ * @param istate  istate structure
+ * @param retaddr new value of istate's PC member
+ *
+ */
+NO_TRACE static inline void istate_set_retaddr(istate_t *istate,
+    uintptr_t retaddr)
 {
-	return ctx->sp;
+	istate->pc = retaddr;
+}
+
+/** Return true if exception happened while in userspace. */
+NO_TRACE static inline int istate_from_uspace(istate_t *istate)
+{
+	return (istate->spsr & STATUS_REG_MODE_MASK) == USER_MODE;
+}
+
+/** Return Program Counter member of given istate structure. */
+NO_TRACE static inline uintptr_t istate_get_pc(istate_t *istate)
+{
+	return istate->pc;
+}
+
+NO_TRACE static inline uintptr_t istate_get_fp(istate_t *istate)
+{
+	return istate->fp;
 }
 
 #endif

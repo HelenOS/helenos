@@ -48,7 +48,7 @@ specification = ""
 
 def usage(prname):
 	"Print usage syntax"
-	print prname + " <ROOT> [VCC_PATH]"
+	print(prname + " <ROOT> [VCC_PATH]")
 
 def cygpath(upath):
 	"Convert Unix (Cygwin) path to Windows path"
@@ -71,7 +71,7 @@ def preprocess(srcfname, tmpfname, base, options):
 	
 	preproc = subprocess.Popen(args, stdout = subprocess.PIPE).communicate()[0]
 	
-	tmpf = file(tmpfname, "w")
+	tmpf = open(tmpfname, "w")
 	tmpf.write(specification)
 	
 	for line in preproc.splitlines():
@@ -107,11 +107,11 @@ def vcc(vcc_path, root, job):
 	inname = os.path.join(root, job)
 	
 	if (not os.path.isfile(inname)):
-		print "Unable to open %s" % inname
-		print "Did you run \"make precheck\" on the source tree?"
+		print("Unable to open %s" % inname)
+		print("Did you run \"make precheck\" on the source tree?")
 		return False
 	
-	inf = file(inname, "r")
+	inf = open(inname, "r")
 	records = inf.read().splitlines()
 	inf.close()
 	
@@ -121,7 +121,7 @@ def vcc(vcc_path, root, job):
 			return False
 		
 		if (len(arg) < 6):
-			print "Not enought jobfile record arguments"
+			print("Not enough jobfile record arguments")
 			return False
 		
 		srcfname = arg[0]
@@ -133,7 +133,7 @@ def vcc(vcc_path, root, job):
 		
 		srcfqname = os.path.join(base, srcfname)
 		if (not os.path.isfile(srcfqname)):
-			print "Source %s not found" % srcfqname
+			print("Source %s not found" % srcfqname)
 			return False
 		
 		tmpfname = "%s.preproc" % srcfname
@@ -152,7 +152,7 @@ def vcc(vcc_path, root, job):
 			return False
 		
 		# Run Vcc
-		print " -- %s --" % srcfname		
+		print(" -- %s --" % srcfname)
 		retval = subprocess.Popen([vcc_path, '/pointersize:32', '/newsyntax', cygpath(tmpfqname)]).wait()
 		
 		if (retval != 0):
@@ -181,20 +181,20 @@ def main():
 		vcc_path = "/cygdrive/c/Program Files (x86)/Microsoft Research/Vcc/Binaries/vcc"
 	
 	if (not os.path.isfile(vcc_path)):
-		print "%s is not a binary." % vcc_path
-		print "Please supply the full Cygwin path to Vcc as the second argument."
+		print("%s is not a binary." % vcc_path)
+		print("Please supply the full Cygwin path to Vcc as the second argument.")
 		return
 	
 	config = os.path.join(rootdir, "HelenOS.config")
 	
 	if (not os.path.isfile(config)):
-		print "%s not found." % config
-		print "Please specify the path to HelenOS build tree root as the first argument."
+		print("%s not found." % config)
+		print("Please specify the path to HelenOS build tree root as the first argument.")
 		return
 	
 	specpath = os.path.join(rootdir, "tools/checkers/vcc.h")
 	if (not os.path.isfile(specpath)):
-		print "%s not found." % config
+		print("%s not found." % config)
 		return
 	
 	specfile = file(specpath, "r")
@@ -204,11 +204,11 @@ def main():
 	for job in jobs:
 		if (not vcc(vcc_path, rootdir, job)):
 			print
-			print "Failed job: %s" % job
+			print("Failed job: %s" % job)
 			return
 	
 	print
-	print "All jobs passed"
+	print("All jobs passed")
 
 if __name__ == '__main__':
 	main()

@@ -85,18 +85,18 @@ def generate(kmapf, obmapf, out):
 	
 	obdump = read_obdump(obmapf)
 	
-	def sorter(x,y):
-		return cmp(x[0],y[0])
+	def key_sorter(x):
+		return x[0]
 	
 	for line in kmapf:
 		line = line.strip()
 		res = startfile.match(line)
 		
-		if ((res) and (obdump[res.group(1)].has_key(res.group(3)))):
+		if ((res) and (res.group(3) in obdump[res.group(1)])):
 			offset = int(res.group(2), 16)
 			fname = res.group(3)
 			symbols = obdump[res.group(1)][fname]
-			symbols.sort(sorter)
+			symbols.sort(key = key_sorter)
 			for addr, symbol in symbols:
 				value = fname + ':' + symbol
 				data = struct.pack(symtabfmt, addr + offset, value[:MAXSTRING])
@@ -106,12 +106,12 @@ def generate(kmapf, obmapf, out):
 
 def main():
 	if (len(sys.argv) != 4):
-		print "Usage: %s <kernel.map> <nm dump> <output.bin>" % sys.argv[0]
+		print("Usage: %s <kernel.map> <nm dump> <output.bin>" % sys.argv[0])
 		return 1
 	
 	kmapf = open(sys.argv[1], 'r')
 	obmapf = open(sys.argv[2], 'r')
-	out = open(sys.argv[3], 'w')
+	out = open(sys.argv[3], 'wb')
 	
 	generate(kmapf, obmapf, out)
 	

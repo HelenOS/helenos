@@ -76,6 +76,11 @@ typedef struct {
 	uint64_t tp;		/* %g7 */
 } context_t;
 
+static inline uintptr_t context_get_fp(context_t *ctx)
+{
+	return ctx->sp + STACK_BIAS;
+}
+
 #endif
 
 /** @}

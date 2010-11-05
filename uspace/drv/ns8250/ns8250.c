@@ -122,7 +122,7 @@ static ns8250_dev_data_t *create_ns8250_dev_data(void)
  */
 static void delete_ns8250_dev_data(ns8250_dev_data_t *data)
 {
-	if (NULL != data)
+	if (data != NULL)
 		free(data);
 }
 
@@ -250,7 +250,7 @@ static driver_t ns8250_driver = {
  */
 static void ns8250_dev_cleanup(device_t *dev)
 {
-	if (NULL != dev->driver_data) {
+	if (dev->driver_data != NULL) {
 		delete_ns8250_dev_data((ns8250_dev_data_t*) dev->driver_data);
 		dev->driver_data = NULL;
 	}
@@ -331,7 +331,7 @@ static int ns8250_dev_initialize(device_t *dev)
 	
 	/* Allocate driver data for the device. */
 	ns8250_dev_data_t *data = create_ns8250_dev_data();
-	if (NULL == data)
+	if (data == NULL)
 		return ENOMEM;
 	dev->driver_data = data;
 	
@@ -435,7 +435,7 @@ static int ns8250_interrupt_enable(device_t *dev)
 	
 	/* Enable interrupt globally. */
 	res = interrupt_enable(data->irq);
-	if (EOK != res)
+	if (res != EOK)
 		return res;
 	
 	/* Enable interrupt on the serial port. */
@@ -479,7 +479,7 @@ static int ns8250_port_set_baud_rate(ioport8_t *port, unsigned int baud_rate)
 	uint16_t divisor;
 	uint8_t div_low, div_high;
 	
-	if (50 > baud_rate || 0 != MAX_BAUD_RATE % baud_rate) {
+	if (baud_rate < 50 || MAX_BAUD_RATE % baud_rate != 0) {
 		printf(NAME ": error - somebody tried to set invalid baud rate "
 		    "%d\n", baud_rate);
 		return EINVAL;
@@ -533,8 +533,7 @@ static unsigned int ns8250_port_get_baud_rate(ioport8_t *port)
  * @param word_length	The length of one data unit in bits.
  * @param stop_bits	The number of stop bits used (one or two).
  */
-static void
-ns8250_port_get_com_props(ioport8_t *port, unsigned int *parity,
+static void ns8250_port_get_com_props(ioport8_t *port, unsigned int *parity,
     unsigned int *word_length, unsigned int *stop_bits)
 {
 	uint8_t val;
@@ -571,8 +570,7 @@ ns8250_port_get_com_props(ioport8_t *port, unsigned int *parity,
  * @return		Zero on success, EINVAL if some of the specified values
  *			is invalid.
  */
-static int
-ns8250_port_set_com_props(ioport8_t *port, unsigned int parity,
+static int ns8250_port_set_com_props(ioport8_t *port, unsigned int parity,
     unsigned int word_length, unsigned int stop_bits)
 {
 	uint8_t val;
@@ -690,8 +688,8 @@ static void ns8250_read_from_device(device_t *dev)
  *
  * @param dev		The serial port device.
  */
-static inline void
-ns8250_interrupt_handler(device_t *dev, ipc_callid_t iid, ipc_call_t *icall)
+static inline void ns8250_interrupt_handler(device_t *dev, ipc_callid_t iid,
+    ipc_call_t *icall)
 {
 	ns8250_read_from_device(dev);
 }
@@ -725,13 +723,13 @@ static inline int ns8250_unregister_interrupt_handler(device_t *dev)
  *
  * @param dev		The serial port device.
  */
-static int ns8250_add_device(device_t *dev) 
+static int ns8250_add_device(device_t *dev)
 {
 	printf(NAME ": ns8250_add_device %s (handle = %d)\n",
 	    dev->name, dev->handle);
 	
 	int res = ns8250_dev_initialize(dev);
-	if (EOK != res)
+	if (res != EOK)
 		return res;
 	
 	if (!ns8250_pio_enable(dev)) {
@@ -749,7 +747,7 @@ static int ns8250_add_device(device_t *dev)
 	ns8250_initialize_port(dev);
 	
 	/* Register interrupt handler. */
-	if (EOK != ns8250_register_interrupt_handler(dev)) {
+	if (ns8250_register_interrupt_handler(dev) != EOK) {
 		printf(NAME ": failed to register interrupt handler.\n");
 		ns8250_dev_cleanup(dev);
 		return res;
@@ -757,7 +755,7 @@ static int ns8250_add_device(device_t *dev)
 	
 	/* Enable interrupt. */
 	res = ns8250_interrupt_enable(dev);
-	if (EOK != res) {
+	if (res != EOK) {
 		printf(NAME ": failed to enable the interrupt. Error code = "
 		    "%d.\n", res);
 		ns8250_dev_cleanup(dev);
@@ -858,9 +856,8 @@ ns8250_get_props(device_t *dev, unsigned int *baud_rate, unsigned int *parity,
  * @param word_length	The size of one data unit in bits.
  * @param stop_bits	The number of stop bits to be used.
  */
-static int
-ns8250_set_props(device_t *dev, unsigned int baud_rate, unsigned int parity,
-    unsigned int word_length, unsigned int stop_bits)
+static int ns8250_set_props(device_t *dev, unsigned int baud_rate,
+    unsigned int parity, unsigned int word_length, unsigned int stop_bits)
 {
 	printf(NAME ": ns8250_set_props: baud rate %d, parity 0x%x, word "
 	    "length %d, stop bits %d\n", baud_rate, parity, word_length,
@@ -873,7 +870,7 @@ ns8250_set_props(device_t *dev, unsigned int baud_rate, unsigned int parity,
 	fibril_mutex_lock(&data->mutex);
 	ns8250_port_interrupts_disable(port);
 	ret = ns8250_port_set_baud_rate(port, baud_rate);
-	if (EOK == ret)
+	if (ret == EOK)
 		ret = ns8250_port_set_com_props(port, parity, word_length, stop_bits);
 	ns8250_port_interrupts_enable(port);
 	fibril_mutex_unlock(&data->mutex);
@@ -886,8 +883,8 @@ ns8250_set_props(device_t *dev, unsigned int baud_rate, unsigned int parity,
  *
  * Configure the parameters of the serial communication.
  */
-static void
-ns8250_default_handler(device_t *dev, ipc_callid_t callid, ipc_call_t *call)
+static void ns8250_default_handler(device_t *dev, ipc_callid_t callid,
+    ipc_call_t *call)
 {
 	ipcarg_t method = IPC_GET_METHOD(*call);
 	int ret;

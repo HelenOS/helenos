@@ -64,7 +64,7 @@ static hw_resource_list_t *pciintel_get_child_resources(device_t *dev)
 {
 	pci_dev_data_t *dev_data = (pci_dev_data_t *) dev->driver_data;
 	
-	if (NULL == dev_data)
+	if (dev_data == NULL)
 		return NULL;
 	return &dev_data->hw_resources;
 }
@@ -108,10 +108,11 @@ static pci_bus_data_t *create_pci_bus_data(void)
 	pci_bus_data_t *bus_data;
 	
 	bus_data = (pci_bus_data_t *) malloc(sizeof(pci_bus_data_t));
-	if (NULL != bus_data) {
+	if (bus_data != NULL) {
 		memset(bus_data, 0, sizeof(pci_bus_data_t));
 		fibril_mutex_initialize(&bus_data->conf_mutex);
 	}
+
 	return bus_data;
 }
 
@@ -122,7 +123,7 @@ static void delete_pci_bus_data(pci_bus_data_t *bus_data)
 
 static void pci_conf_read(device_t *dev, int reg, uint8_t *buf, size_t len)
 {
-	assert(NULL != dev->parent);
+	assert(dev->parent != NULL);
 	
 	pci_dev_data_t *dev_data = (pci_dev_data_t *) dev->driver_data;
 	pci_bus_data_t *bus_data = (pci_bus_data_t *) dev->parent->driver_data;
@@ -152,7 +153,7 @@ static void pci_conf_read(device_t *dev, int reg, uint8_t *buf, size_t len)
 
 static void pci_conf_write(device_t *dev, int reg, uint8_t *buf, size_t len)
 {
-	assert(NULL != dev->parent);
+	assert(dev->parent != NULL);
 	
 	pci_dev_data_t *dev_data = (pci_dev_data_t *) dev->driver_data;
 	pci_bus_data_t *bus_data = (pci_bus_data_t *) dev->parent->driver_data;
@@ -223,13 +224,14 @@ void create_pci_match_ids(device_t *dev)
 	char *match_id_str;
 	
 	match_id = create_match_id();
-	if (NULL != match_id) {
+	if (match_id != NULL) {
 		asprintf(&match_id_str, "pci/ven=%04x&dev=%04x",
 		    dev_data->vendor_id, dev_data->device_id);
 		match_id->id = match_id_str;
 		match_id->score = 90;
 		add_match_id(&dev->match_ids, match_id);
-	}	
+	}
+
 	/* TODO add more ids (with subsys ids, using class id etc.) */
 }
 
@@ -241,7 +243,7 @@ pci_add_range(device_t *dev, uint64_t range_addr, size_t range_size, bool io)
 	hw_resource_t *hw_resources =  hw_res_list->resources;
 	size_t count = hw_res_list->count;
 	
-	assert(NULL != hw_resources);
+	assert(hw_resources != NULL);
 	assert(count < PCI_MAX_HW_RES);
 	
 	if (io) {
@@ -274,7 +276,7 @@ int pci_read_bar(device_t *dev, int addr)
 	/* IO space address */
 	bool io;
 	/* 64-bit wide address */
-	bool w64;
+	bool addrw64;
 	
 	/* Size of the io or memory range specified by the BAR */
 	size_t range_size;
@@ -286,14 +288,14 @@ int pci_read_bar(device_t *dev, int addr)
 	
 	io = (bool) (val & 1);
 	if (io) {
-		w64 = false;
+		addrw64 = false;
 	} else {
 		switch ((val >> 1) & 3) {
 		case 0:
-			w64 = false;
+			addrw64 = false;
 			break;
 		case 2:
-			w64 = true;
+			addrw64 = true;
 			break;
 		default:
 			/* reserved, go to the next BAR */
@@ -311,14 +313,14 @@ int pci_read_bar(device_t *dev, int addr)
 	
 	range_size = pci_bar_mask_to_size(mask);
 	
-	if (w64) {
+	if (addrw64) {
 		range_addr = ((uint64_t)pci_conf_read_32(dev, addr + 4) << 32) |
 		    (val & 0xfffffff0);
 	} else {
 		range_addr = (val & 0xfffffff0);
 	}
 	
-	if (0 != range_addr) {
+	if (range_addr != 0) {
 		printf(NAME ": device %s : ", dev->name);
 		printf("address = %x", range_addr);
 		printf(", size = %x\n", range_size);
@@ -326,7 +328,7 @@ int pci_read_bar(device_t *dev, int addr)
 	
 	pci_add_range(dev, range_addr, range_size, io);
 	
-	if (w64)
+	if (addrw64)
 		return addr + 8;
 	
 	return addr + 4;
@@ -353,7 +355,7 @@ void pci_add_interrupt(device_t *dev, int irq)
 void pci_read_interrupt(device_t *dev)
 {
 	uint8_t irq = pci_conf_read_8(dev, PCI_BRIDGE_INT_LINE);
-	if (0xff != irq)
+	if (irq != 0xff)
 		pci_add_interrupt(dev, irq);
 }
 
@@ -414,7 +416,7 @@ void pci_bus_scan(device_t *parent, int bus_num)
 			
 			create_pci_match_ids(dev);
 			
-			if (EOK != child_device_register(dev, parent)) {
+			if (child_device_register(dev, parent) != EOK) {
 				pci_clean_resource_list(dev);
 				clean_match_ids(&dev->match_ids);
 				free((char *) dev->name);
@@ -423,12 +425,12 @@ void pci_bus_scan(device_t *parent, int bus_num)
 			}
 			
 			if (header_type == PCI_HEADER_TYPE_BRIDGE ||
-			    header_type == PCI_HEADER_TYPE_CARDBUS ) {
+			    header_type == PCI_HEADER_TYPE_CARDBUS) {
 				child_bus = pci_conf_read_8(dev,
 				    PCI_BRIDGE_SEC_BUS_NUM);
 				printf(NAME ": device is pci-to-pci bridge, "
 				    "secondary bus number = %d.\n", bus_num);
-				if(child_bus > bus_num)
+				if (child_bus > bus_num)
 					pci_bus_scan(parent, child_bus);
 			}
 			
@@ -452,7 +454,7 @@ static int pci_add_device(device_t *dev)
 	printf(NAME ": pci_add_device\n");
 	
 	pci_bus_data_t *bus_data = create_pci_bus_data();
-	if (NULL == bus_data) {
+	if (bus_data == NULL) {
 		printf(NAME ": pci_add_device allocation failed.\n");
 		return ENOMEM;
 	}
@@ -510,6 +512,81 @@ static int pci_add_device(device_t *dev)
 static void pciintel_init(void)
 {
 	pci_child_ops.interfaces[HW_RES_DEV_IFACE] = &pciintel_child_res_iface;
+}
+
+pci_dev_data_t *create_pci_dev_data(void)
+{
+	pci_dev_data_t *res = (pci_dev_data_t *) malloc(sizeof(pci_dev_data_t));
+	
+	if (res != NULL)
+		memset(res, 0, sizeof(pci_dev_data_t));
+	return res;
+}
+
+void init_pci_dev_data(pci_dev_data_t *dev_data, int bus, int dev, int fn)
+{
+	dev_data->bus = bus;
+	dev_data->dev = dev;
+	dev_data->fn = fn;
+}
+
+void delete_pci_dev_data(pci_dev_data_t *dev_data)
+{
+	if (dev_data != NULL) {
+		clean_hw_resource_list(&dev_data->hw_resources);
+		free(dev_data);
+	}
+}
+
+void create_pci_dev_name(device_t *dev)
+{
+	pci_dev_data_t *dev_data = (pci_dev_data_t *) dev->driver_data;
+	char *name = NULL;
+	
+	asprintf(&name, "%02x:%02x.%01x", dev_data->bus, dev_data->dev,
+	    dev_data->fn);
+	dev->name = name;
+}
+
+bool pci_alloc_resource_list(device_t *dev)
+{
+	pci_dev_data_t *dev_data = (pci_dev_data_t *)dev->driver_data;
+	
+	dev_data->hw_resources.resources =
+	    (hw_resource_t *) malloc(PCI_MAX_HW_RES * sizeof(hw_resource_t));
+	return dev_data->hw_resources.resources != NULL;
+}
+
+void pci_clean_resource_list(device_t *dev)
+{
+	pci_dev_data_t *dev_data = (pci_dev_data_t *) dev->driver_data;
+	
+	if (dev_data->hw_resources.resources != NULL) {
+		free(dev_data->hw_resources.resources);
+		dev_data->hw_resources.resources = NULL;
+	}
+}
+
+/** Read the base address registers (BARs) of the device and adds the addresses
+ * to its hw resource list.
+ *
+ * @param dev the pci device.
+ */
+void pci_read_bars(device_t *dev)
+{
+	/*
+	 * Position of the BAR in the PCI configuration address space of the
+	 * device.
+	 */
+	int addr = PCI_BASE_ADDR_0;
+	
+	while (addr <= PCI_BASE_ADDR_5)
+		addr = pci_read_bar(dev, addr);
+}
+
+size_t pci_bar_mask_to_size(uint32_t mask)
+{
+	return ((mask & 0xfffffff0) ^ 0xffffffff) + 1;
 }
 
 int main(int argc, char *argv[])

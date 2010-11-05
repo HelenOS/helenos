@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Martin Decky
+ * Copyright (c) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,60 +26,52 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcppc32	
+/** @addtogroup sparc64interrupt sparc64
+ * @ingroup interrupt
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_ppc32_FIBRIL_H_
-#define LIBC_ppc32_FIBRIL_H_
+#ifndef KERN_sparc64_ISTATE_H_
+#define KERN_sparc64_ISTATE_H_
 
+#include <arch/regdef.h>
+
+#ifdef KERNEL
+#include <typedefs.h>
+#include <trace.h>
+#else
 #include <sys/types.h>
+#define NO_TRACE
+#endif
 
-/* We define our own context_set, because we need to set
- * the TLS pointer to the tcb+0x7000
- *
- * See tls_set in thread.h
- */
-#define context_set(c, _pc, stack, size, ptls) 			\
-	(c)->pc = (sysarg_t) (_pc);				\
-	(c)->sp = ((sysarg_t) (stack)) + (size) - SP_DELTA; 	\
-	(c)->tls = ((sysarg_t) (ptls)) + 0x7000 + sizeof(tcb_t);
+typedef struct istate {
+	uint64_t tnpc;
+	uint64_t tpc;
+	uint64_t tstate;
+} istate_t;
 
-#define SP_DELTA	16
-
-typedef struct {
-	uint32_t sp;
-	uint32_t pc;
-	
-	uint32_t tls;
-	uint32_t r13;
-	uint32_t r14;
-	uint32_t r15;
-	uint32_t r16;
-	uint32_t r17;
-	uint32_t r18;
-	uint32_t r19;
-	uint32_t r20;
-	uint32_t r21;
-	uint32_t r22;
-	uint32_t r23;
-	uint32_t r24;
-	uint32_t r25;
-	uint32_t r26;
-	uint32_t r27;
-	uint32_t r28;
-	uint32_t r29;
-	uint32_t r30;
-	uint32_t r31;
-	
-	uint32_t cr;
-} __attribute__ ((packed)) context_t;
-
-static inline uintptr_t context_get_fp(context_t *ctx)
+NO_TRACE static inline void istate_set_retaddr(istate_t *istate,
+    uintptr_t retaddr)
 {
-	return ctx->sp;
+	istate->tpc = retaddr;
+}
+
+NO_TRACE static inline int istate_from_uspace(istate_t *istate)
+{
+	return !(istate->tstate & TSTATE_PRIV_BIT);
+}
+
+NO_TRACE static inline uintptr_t istate_get_pc(istate_t *istate)
+{
+	return istate->tpc;
+}
+
+NO_TRACE static inline uintptr_t istate_get_fp(istate_t *istate)
+{
+	/* TODO */
+	return 0;
 }
 
 #endif

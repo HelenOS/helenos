@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2003-2004 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,38 +26,45 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcmips32	
+/** @addtogroup mips32interrupt
  * @{
  */
 /** @file
- * @ingroup libcmips32eb	
  */
 
-#ifndef LIBC_mips32_FIBRIL_H_
-#define LIBC_mips32_FIBRIL_H_
+#ifndef KERN_mips32_ISTATE_H_
+#define KERN_mips32_ISTATE_H_
 
+#include <arch/cp0.h>
+
+#ifdef KERNEL
+#include <typedefs.h>
+#include <trace.h>
+#else
 #include <sys/types.h>
+#define NO_TRACE
+#endif
 
-/* We define our own context_set, because we need to set
- * the TLS pointer to the tcb+0x7000
- *
- * See tls_set in thread.h
- */
-#define context_set(c, _pc, stack, size, ptls) 			\
-	(c)->pc = (sysarg_t) (_pc);				\
-	(c)->sp = ((sysarg_t) (stack)) + (size) - SP_DELTA; 	\
-        (c)->tls = ((sysarg_t)(ptls)) + 0x7000 + sizeof(tcb_t);
-
-
-/* +16 is just for sure that the called function
- * have space to store it's arguments
- */
-#define SP_DELTA	(8+16)
-
-typedef struct  {
-	uint32_t sp;
-	uint32_t pc;
-	
+typedef struct istate {
+	/*
+	 * The first seven registers are arranged so that the istate structure
+	 * can be used both for exception handlers and for the syscall handler.
+	 */
+	uint32_t a0;	/* arg1 */
+	uint32_t a1;	/* arg2 */
+	uint32_t a2;	/* arg3 */
+	uint32_t a3;	/* arg4 */
+	uint32_t t0;	/* arg5 */
+	uint32_t t1;	/* arg6 */
+	uint32_t v0;	/* arg7 */
+	uint32_t v1;
+	uint32_t at;
+	uint32_t t2;
+	uint32_t t3;
+	uint32_t t4;
+	uint32_t t5;
+	uint32_t t6;
+	uint32_t t7;
 	uint32_t s0;
 	uint32_t s1;
 	uint32_t s2;
@@ -66,27 +73,44 @@ typedef struct  {
 	uint32_t s5;
 	uint32_t s6;
 	uint32_t s7;
-	uint32_t s8;
+	uint32_t t8;
+	uint32_t t9;
+	uint32_t kt0;
+	uint32_t kt1;	/* We use it as thread-local pointer */
 	uint32_t gp;
-	uint32_t tls; /* Thread local storage(=k1) */
-
-	uint32_t f20;
-	uint32_t f21;
-	uint32_t f22;
-	uint32_t f23;
-	uint32_t f24;
-	uint32_t f25;
-	uint32_t f26;
-	uint32_t f27;
-	uint32_t f28;
-	uint32_t f29;
-	uint32_t f30;
+	uint32_t sp;
+	uint32_t s8;
+	uint32_t ra;
 	
-} context_t;
+	uint32_t lo;
+	uint32_t hi;
+	
+	uint32_t status;	/* cp0_status */
+	uint32_t epc;		/* cp0_epc */
 
-static inline uintptr_t context_get_fp(context_t *ctx)
+	uint32_t alignment;	/* to make sizeof(istate_t) a multiple of 8 */
+} istate_t;
+
+NO_TRACE static inline void istate_set_retaddr(istate_t *istate,
+    uintptr_t retaddr)
 {
-	return ctx->sp;
+	istate->epc = retaddr;
+}
+
+/** Return true if exception happened while in userspace */
+NO_TRACE static inline int istate_from_uspace(istate_t *istate)
+{
+	return istate->status & cp0_status_um_bit;
+}
+
+NO_TRACE static inline uintptr_t istate_get_pc(istate_t *istate)
+{
+	return istate->epc;
+}
+
+NO_TRACE static inline uintptr_t istate_get_fp(istate_t *istate)
+{
+	return istate->sp;
 }
 
 #endif

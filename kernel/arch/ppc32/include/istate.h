@@ -26,34 +26,31 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcppc32	
+/** @addtogroup ppc32
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_ppc32_FIBRIL_H_
-#define LIBC_ppc32_FIBRIL_H_
+#ifndef KERN_ppc32_EXCEPTION_H_
+#define KERN_ppc32_EXCEPTION_H_
 
-#include <sys/types.h>
+#include <typedefs.h>
+#include <arch/cpu.h>
+#include <trace.h>
 
-/* We define our own context_set, because we need to set
- * the TLS pointer to the tcb+0x7000
- *
- * See tls_set in thread.h
- */
-#define context_set(c, _pc, stack, size, ptls) 			\
-	(c)->pc = (sysarg_t) (_pc);				\
-	(c)->sp = ((sysarg_t) (stack)) + (size) - SP_DELTA; 	\
-	(c)->tls = ((sysarg_t) (ptls)) + 0x7000 + sizeof(tcb_t);
-
-#define SP_DELTA	16
-
-typedef struct {
-	uint32_t sp;
-	uint32_t pc;
-	
-	uint32_t tls;
+typedef struct istate {
+	uint32_t r0;
+	uint32_t r2;
+	uint32_t r3;
+	uint32_t r4;
+	uint32_t r5;
+	uint32_t r6;
+	uint32_t r7;
+	uint32_t r8;
+	uint32_t r9;
+	uint32_t r10;
+	uint32_t r11;
 	uint32_t r13;
 	uint32_t r14;
 	uint32_t r15;
@@ -73,13 +70,41 @@ typedef struct {
 	uint32_t r29;
 	uint32_t r30;
 	uint32_t r31;
-	
 	uint32_t cr;
-} __attribute__ ((packed)) context_t;
+	uint32_t pc;
+	uint32_t srr1;
+	uint32_t lr;
+	uint32_t ctr;
+	uint32_t xer;
+	uint32_t dar;
+	uint32_t r12;
+	uint32_t sp;
+} istate_t;
 
-static inline uintptr_t context_get_fp(context_t *ctx)
+NO_TRACE static inline void istate_set_retaddr(istate_t *istate,
+    uintptr_t retaddr)
 {
-	return ctx->sp;
+	istate->pc = retaddr;
+}
+
+/** Return true if exception happened while in userspace
+ *
+ * The contexts of MSR register was stored in SRR1.
+ *
+ */
+NO_TRACE static inline int istate_from_uspace(istate_t *istate)
+{
+	return (istate->srr1 & MSR_PR) != 0;
+}
+
+NO_TRACE static inline uintptr_t istate_get_pc(istate_t *istate)
+{
+	return istate->pc;
+}
+
+NO_TRACE static inline uintptr_t istate_get_fp(istate_t *istate)
+{
+	return istate->sp;
 }
 
 #endif

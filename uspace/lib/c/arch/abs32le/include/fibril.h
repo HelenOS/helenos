@@ -43,6 +43,7 @@
 	do { \
 		(ctx)->pc = (uintptr_t) (_pc); \
 		(ctx)->sp = ((uintptr_t) (stack)) + (size) - SP_DELTA; \
+		(ctx)->fp = 0; \
 		(ctx)->tls = ((uintptr_t) (ptls)) + sizeof(tcb_t); \
 	} while (0)
 
@@ -52,9 +53,16 @@
  */
 typedef struct {
 	uintptr_t sp;
+	uintptr_t fp;
 	uintptr_t pc;
 	uintptr_t tls;
 } context_t;
+
+static inline uintptr_t context_get_fp(context_t *ctx)
+{
+	/* On real hardware, this function returns the frame pointer. */
+	return ctx->fp;
+}
 
 #endif
 
