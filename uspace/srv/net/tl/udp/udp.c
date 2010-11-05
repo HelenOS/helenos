@@ -625,41 +625,65 @@ udp_recvfrom_message(socket_cores_ref local_sockets, int socket_id, int flags,
 		return ENOTSOCK;
 
 	// get the next received packet
-	packet_id = dyn_fifo_pop(&socket->received);
+	packet_id = dyn_fifo_value(&socket->received);
 	if (packet_id < 0)
 		return NO_DATA;
 	
 	rc = packet_translate_remote(udp_globals.net_phone, &packet, packet_id);
-	if (rc != EOK)
+	if (rc != EOK) {
+		(void) dyn_fifo_pop(&socket->received);
 		return rc;
+	}
 
 	// get udp header
 	data = packet_get_data(packet);
-	if (!data)
+	if (!data) {
+		(void) dyn_fifo_pop(&socket->received);
 		return udp_release_and_return(packet, NO_DATA);
+	}
 	header = (udp_header_ref) data;
 
 	// set the source address port
 	result = packet_get_addr(packet, (uint8_t **) &addr, NULL);
 	rc = tl_set_address_port(addr, result, ntohs(header->source_port));
-	if (rc != EOK)
+	if (rc != EOK) {
+		(void) dyn_fifo_pop(&socket->received);
 		return udp_release_and_return(packet, rc);
+	}
 	*addrlen = (size_t) result;
 
 	// send the source address
 	rc = data_reply(addr, *addrlen);
-	if (rc != EOK)
+	switch (rc) {
+	case EOK:
+		break;
+	case EOVERFLOW:
+		return rc;
+	default:
+		(void) dyn_fifo_pop(&socket->received);
 		return udp_release_and_return(packet, rc);
+	}
 
 	// trim the header
 	rc = packet_trim(packet, UDP_HEADER_SIZE, 0);
-	if (rc != EOK)
+	if (rc != EOK) {
+		(void) dyn_fifo_pop(&socket->received);
 		return udp_release_and_return(packet, rc);
+	}
 
 	// reply the packets
 	rc = socket_reply_packets(packet, &length);
-	if (rc != EOK)
+	switch (rc) {
+	case EOK:
+		break;
+	case EOVERFLOW:
+		return rc;
+	default:
+		(void) dyn_fifo_pop(&socket->received);
 		return udp_release_and_return(packet, rc);
+	}
+
+	(void) dyn_fifo_pop(&socket->received);
 
 	// release the packet and return the total length
 	return udp_release_and_return(packet, (int) length);
