@@ -40,6 +40,7 @@
 #include <stdio.h>
 #include <task.h>
 #include <str_error.h>
+#include <errno.h>
 #include "version.h"
 
 #define APP_NAME  "getterm"
@@ -73,17 +74,15 @@ static void reopen(FILE **stream, int fd, const char *path, int flags, const cha
 
 static task_id_t spawn(const char *fname)
 {
-	const char *args[2];
+	task_id_t id;
+	int rc;
 	
-	args[0] = fname;
-	args[1] = NULL;
-	
-	int err;
-	task_id_t id = task_spawn(fname, args, &err);
-	
-	if (id == 0)
+	rc = task_spawnl(&id, fname, fname, NULL);
+	if (rc != EOK) {
 		printf("%s: Error spawning %s (%s)\n", APP_NAME, fname,
-		    str_error(err));
+		    str_error(rc));
+		return 0;
+	}
 	
 	return id;
 }

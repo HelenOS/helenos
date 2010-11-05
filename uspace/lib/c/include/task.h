@@ -47,6 +47,9 @@ typedef enum {
 extern task_id_t task_get_id(void);
 extern int task_set_name(const char *);
 extern task_id_t task_spawn(const char *, const char *const[], int *);
+extern int task_spawnv(task_id_t *, const char *path, const char *const []);
+extern int task_spawnl(task_id_t *, const char *path, ...);
+
 extern int task_wait(task_id_t id, task_exit_t *, int *);
 extern int task_retval(int);
 

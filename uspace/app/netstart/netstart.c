@@ -56,17 +56,13 @@
  */
 static bool spawn(const char *desc, const char *path)
 {
+	int rc;
+
 	printf("%s: Spawning %s (%s)\n", NAME, desc, path);
-	
-	const char *argv[2];
-	
-	argv[0] = path;
-	argv[1] = NULL;
-	
-	int err;
-	if (task_spawn(path, argv, &err) == 0) {
+	rc = task_spawnl(NULL, path, path, NULL);
+	if (rc != EOK) {
 		fprintf(stderr, "%s: Error spawning %s (%s)\n", NAME, path,
-		    str_error(err));
+		    str_error(rc));
 		return false;
 	}
 	
