@@ -43,7 +43,6 @@
 #include <task.h>
 #include <time.h>
 #include <arg_parse.h>
-#include <err.h>
 
 #include <net/in.h>
 #include <net/in6.h>
@@ -56,6 +55,15 @@
 
 /** Packet data pattern. */
 #define NETTEST1_TEXT	"Networking test 1 - sockets"
+
+int family = PF_INET;
+sock_type_t type = SOCK_DGRAM;
+char *data;
+size_t size = 27;
+int verbose = 0;
+
+struct sockaddr *address;
+socklen_t addrlen;
 
 static void nettest1_print_help(void)
 {
@@ -107,33 +115,88 @@ static void nettest1_refresh_data(char *data, size_t size)
 	data[size] = '\0';
 }
 
+static int nettest1_test(int *socket_ids, int nsockets, int nmessages)
+{
+	int rc;
+
+	if (verbose)
+		printf("%d sockets, %d messages\n", nsockets, nmessages);
+
+	rc = sockets_create(verbose, socket_ids, nsockets, family, type);
+	if (rc != EOK)
+		return rc;
+
+	if (type == SOCK_STREAM) {
+		rc = sockets_connect(verbose, socket_ids, nsockets, address, addrlen);
+		if (rc != EOK)
+			return rc;
+	}
+
+	rc = sockets_sendto_recvfrom(verbose, socket_ids, nsockets, address, &addrlen, data, size, nmessages);
+	if (rc != EOK)
+		return rc;
+
+	rc = sockets_close(verbose, socket_ids, nsockets);
+	if (rc != EOK)
+		return rc;
+
+	if (verbose)
+		printf("\tOK\n");
+
+	/****/
+
+	rc = sockets_create(verbose, socket_ids, nsockets, family, type);
+	if (rc != EOK)
+		return rc;
+
+	if (type == SOCK_STREAM) {
+		rc = sockets_connect(verbose, socket_ids, nsockets, address, addrlen);
+		if (rc != EOK)
+			return rc;
+	}
+
+	rc = sockets_sendto(verbose, socket_ids, nsockets, address, addrlen, data, size, nmessages);
+	if (rc != EOK)
+		return rc;
+
+	rc = sockets_recvfrom(verbose, socket_ids, nsockets, address, &addrlen, data, size, nmessages);
+	if (rc != EOK)
+		return rc;
+
+	rc = sockets_close(verbose, socket_ids, nsockets);
+	if (rc != EOK)
+		return rc;
+
+	if (verbose)
+		printf("\tOK\n");
+
+	return EOK;
+}
 
 int main(int argc, char *argv[])
 {
-	ERROR_DECLARE;
-
-	size_t size = 27;
-	int verbose = 0;
-	sock_type_t type = SOCK_DGRAM;
 	int sockets = 10;
 	int messages = 10;
-	int family = PF_INET;
 	uint16_t port = 7;
 
-	socklen_t max_length = sizeof(struct sockaddr_in6);
-	uint8_t address_data[max_length];
-	struct sockaddr *address = (struct sockaddr *) address_data;
-	struct sockaddr_in *address_in = (struct sockaddr_in *) address;
-	struct sockaddr_in6 *address_in6 = (struct sockaddr_in6 *) address;
-	socklen_t addrlen;
+	socklen_t max_length;
+	uint8_t *address_data[sizeof(struct sockaddr_in6)];
+	struct sockaddr_in *address_in;
+	struct sockaddr_in6 *address_in6;
 	uint8_t *address_start;
 
 	int *socket_ids;
-	char *data;
 	int value;
 	int index;
 	struct timeval time_before;
 	struct timeval time_after;
+
+	int rc;
+
+	max_length = sizeof(address_data);
+	address = (struct sockaddr *) address_data;
+	address_in = (struct sockaddr_in *) address;
+	address_in6 = (struct sockaddr_in6 *) address;
 
 	// parse the command line arguments
 	// stop before the last argument if it does not start with the minus sign ('-')
@@ -143,28 +206,39 @@ int main(int argc, char *argv[])
 			switch (argv[index][1]) {
 			// short options with only one letter
 			case 'f':
-				ERROR_PROPAGATE(arg_parse_name_int(argc, argv, &index, &family, 0, socket_parse_protocol_family));
+				rc = arg_parse_name_int(argc, argv, &index, &family, 0, socket_parse_protocol_family);
+				if (rc != EOK)
+					return rc;
 				break;
 			case 'h':
 				nettest1_print_help();
 				return EOK;
-				break;
 			case 'm':
-				ERROR_PROPAGATE(arg_parse_int(argc, argv, &index, &messages, 0));
+				rc = arg_parse_int(argc, argv, &index, &messages, 0);
+				if (rc != EOK)
+					return rc;
 				break;
 			case 'n':
-				ERROR_PROPAGATE(arg_parse_int(argc, argv, &index, &sockets, 0));
+				rc = arg_parse_int(argc, argv, &index, &sockets, 0);
+				if (rc != EOK)
+					return rc;
 				break;
 			case 'p':
-				ERROR_PROPAGATE(arg_parse_int(argc, argv, &index, &value, 0));
+				rc = arg_parse_int(argc, argv, &index, &value, 0);
+				if (rc != EOK)
+					return rc;
 				port = (uint16_t) value;
 				break;
 			case 's':
-				ERROR_PROPAGATE(arg_parse_int(argc, argv, &index, &value, 0));
+				rc = arg_parse_int(argc, argv, &index, &value, 0);
+				if (rc != EOK)
+					return rc;
 				size = (value >= 0) ? (size_t) value : 0;
 				break;
 			case 't':
-				ERROR_PROPAGATE(arg_parse_name_int(argc, argv, &index, &value, 0, socket_parse_socket_type));
+				rc = arg_parse_name_int(argc, argv, &index, &value, 0, socket_parse_socket_type);
+				if (rc != EOK)
+					return rc;
 				type = (sock_type_t) value;
 				break;
 			case 'v':
@@ -173,19 +247,29 @@ int main(int argc, char *argv[])
 			// long options with the double minus sign ('-')
 			case '-':
 				if (str_lcmp(argv[index] + 2, "family=", 7) == 0) {
-					ERROR_PROPAGATE(arg_parse_name_int(argc, argv, &index, &family, 9, socket_parse_protocol_family));
+					rc = arg_parse_name_int(argc, argv, &index, &family, 9, socket_parse_protocol_family);
+					if (rc != EOK)
+						return rc;
 				} else if (str_lcmp(argv[index] + 2, "help", 5) == 0) {
 					nettest1_print_help();
 					return EOK;
 				} else if (str_lcmp(argv[index] + 2, "messages=", 6) == 0) {
-					ERROR_PROPAGATE(arg_parse_int(argc, argv, &index, &messages, 8));
+					rc = arg_parse_int(argc, argv, &index, &messages, 8);
+					if (rc != EOK)
+						return rc;
 				} else if (str_lcmp(argv[index] + 2, "sockets=", 6) == 0) {
-					ERROR_PROPAGATE(arg_parse_int(argc, argv, &index, &sockets, 8));
+					rc = arg_parse_int(argc, argv, &index, &sockets, 8);
+					if (rc != EOK)
+						return rc;
 				} else if (str_lcmp(argv[index] + 2, "port=", 5) == 0) {
-					ERROR_PROPAGATE(arg_parse_int(argc, argv, &index, &value, 7));
+					rc = arg_parse_int(argc, argv, &index, &value, 7);
+					if (rc != EOK)
+						return rc;
 					port = (uint16_t) value;
 				} else if (str_lcmp(argv[index] + 2, "type=", 5) == 0) {
-					ERROR_PROPAGATE(arg_parse_name_int(argc, argv, &index, &value, 7, socket_parse_socket_type));
+					rc = arg_parse_name_int(argc, argv, &index, &value, 7, socket_parse_socket_type);
+					if (rc != EOK)
+						return rc;
 					type = (sock_type_t) value;
 				} else if (str_lcmp(argv[index] + 2, "verbose", 8) == 0) {
 					verbose = 1;
@@ -232,9 +316,10 @@ int main(int argc, char *argv[])
 	}
 
 	// parse the last argument which should contain the address
-	if (ERROR_OCCURRED(inet_pton(family, argv[argc - 1], address_start))) {
-		fprintf(stderr, "Address parse error %d\n", ERROR_CODE);
-		return ERROR_CODE;
+	rc = inet_pton(family, argv[argc - 1], address_start);
+	if (rc != EOK) {
+		fprintf(stderr, "Address parse error %d\n", rc);
+		return rc;
 	}
 
 	// check the buffer size
@@ -270,106 +355,22 @@ int main(int argc, char *argv[])
 	if (verbose)
 		printf("Starting tests\n");
 
-	if (verbose)
-		printf("1 socket, 1 message\n");
-
-	if (ERROR_OCCURRED(gettimeofday(&time_before, NULL))) {
-		fprintf(stderr, "Get time of day error %d\n", ERROR_CODE);
-		return ERROR_CODE;
+	rc = gettimeofday(&time_before, NULL);
+	if (rc != EOK) {
+		fprintf(stderr, "Get time of day error %d\n", rc);
+		return rc;
 	}
 
-	ERROR_PROPAGATE(sockets_create(verbose, socket_ids, 1, family, type));
-	ERROR_PROPAGATE(sockets_close(verbose, socket_ids, 1));
-	if (verbose)
-		printf("\tOK\n");
+	nettest1_test(socket_ids,       1,        1);
+	nettest1_test(socket_ids,       1, messages);
+	nettest1_test(socket_ids, sockets,        1);
+	nettest1_test(socket_ids, sockets, messages);
 
-	ERROR_PROPAGATE(sockets_create(verbose, socket_ids, 1, family, type));
-	if (type == SOCK_STREAM)
-		ERROR_PROPAGATE(sockets_connect(verbose, socket_ids, 1, address, addrlen));
-	ERROR_PROPAGATE(sockets_sendto_recvfrom(verbose, socket_ids, 1, address, &addrlen, data, size, 1));
-	ERROR_PROPAGATE(sockets_close(verbose, socket_ids, 1));
-	if (verbose)
-		printf("\tOK\n");
-
-	ERROR_PROPAGATE(sockets_create(verbose, socket_ids, 1, family, type));
-	if (type == SOCK_STREAM)
-		ERROR_PROPAGATE(sockets_connect(verbose, socket_ids, 1, address, addrlen));
-	ERROR_PROPAGATE(sockets_sendto(verbose, socket_ids, 1, address, addrlen, data, size, 1));
-	ERROR_PROPAGATE(sockets_recvfrom(verbose, socket_ids, 1, address, &addrlen, data, size, 1));
-	ERROR_PROPAGATE(sockets_close(verbose, socket_ids, 1));
-	if (verbose)
-		printf("\tOK\n");
-
-	if (verbose)
-		printf("1 socket, %d messages\n", messages);
-
-	ERROR_PROPAGATE(sockets_create(verbose, socket_ids, 1, family, type));
-	if (type == SOCK_STREAM)
-		ERROR_PROPAGATE(sockets_connect(verbose, socket_ids, 1, address, addrlen));
-	ERROR_PROPAGATE(sockets_sendto_recvfrom(verbose, socket_ids, 1, address, &addrlen, data, size, messages));
-	ERROR_PROPAGATE(sockets_close(verbose, socket_ids, 1));
-	if (verbose)
-		printf("\tOK\n");
-
-	ERROR_PROPAGATE(sockets_create(verbose, socket_ids, 1, family, type));
-	if (type == SOCK_STREAM)
-		ERROR_PROPAGATE(sockets_connect(verbose, socket_ids, 1, address, addrlen));
-	ERROR_PROPAGATE(sockets_sendto(verbose, socket_ids, 1, address, addrlen, data, size, messages));
-	ERROR_PROPAGATE(sockets_recvfrom(verbose, socket_ids, 1, address, &addrlen, data, size, messages));
-	ERROR_PROPAGATE(sockets_close(verbose, socket_ids, 1));
-	if (verbose)
-		printf("\tOK\n");
-
-	if (verbose)
-		printf("%d sockets, 1 message\n", sockets);
-
-	ERROR_PROPAGATE(sockets_create(verbose, socket_ids, sockets, family, type));
-	ERROR_PROPAGATE(sockets_close(verbose, socket_ids, sockets));
-	if (verbose)
-		printf("\tOK\n");
-
-	ERROR_PROPAGATE(sockets_create(verbose, socket_ids, sockets, family, type));
-	if (type == SOCK_STREAM)
-		ERROR_PROPAGATE(sockets_connect(verbose, socket_ids, sockets, address, addrlen));
-	ERROR_PROPAGATE(sockets_sendto_recvfrom(verbose, socket_ids, sockets, address, &addrlen, data, size, 1));
-	ERROR_PROPAGATE(sockets_close(verbose, socket_ids, sockets));
-	if (verbose)
-		printf("\tOK\n");
-
-	ERROR_PROPAGATE(sockets_create(verbose, socket_ids, sockets, family, type));
-	if (type == SOCK_STREAM)
-		ERROR_PROPAGATE(sockets_connect(verbose, socket_ids, sockets, address, addrlen));
-	ERROR_PROPAGATE(sockets_sendto(verbose, socket_ids, sockets, address, addrlen, data, size, 1));
-	ERROR_PROPAGATE(sockets_recvfrom(verbose, socket_ids, sockets, address, &addrlen, data, size, 1));
-	ERROR_PROPAGATE(sockets_close(verbose, socket_ids, sockets));
-	if (verbose)
-		printf("\tOK\n");
-
-	if (verbose)
-		printf("%d sockets, %d messages\n", sockets, messages);
-
-	ERROR_PROPAGATE(sockets_create(verbose, socket_ids, sockets, family, type));
-	if (type == SOCK_STREAM)
-		ERROR_PROPAGATE(sockets_connect(verbose, socket_ids, sockets, address, addrlen));
-	ERROR_PROPAGATE(sockets_sendto_recvfrom(verbose, socket_ids, sockets, address, &addrlen, data, size, messages));
-	ERROR_PROPAGATE(sockets_close(verbose, socket_ids, sockets));
-	if (verbose)
-		printf("\tOK\n");
-
-	ERROR_PROPAGATE(sockets_create(verbose, socket_ids, sockets, family, type));
-	if (type == SOCK_STREAM)
-		ERROR_PROPAGATE(sockets_connect(verbose, socket_ids, sockets, address, addrlen));
-	ERROR_PROPAGATE(sockets_sendto(verbose, socket_ids, sockets, address, addrlen, data, size, messages));
-	ERROR_PROPAGATE(sockets_recvfrom(verbose, socket_ids, sockets, address, &addrlen, data, size, messages));
-	ERROR_PROPAGATE(sockets_close(verbose, socket_ids, sockets));
-
-	if (ERROR_OCCURRED(gettimeofday(&time_after, NULL))) {
-		fprintf(stderr, "Get time of day error %d\n", ERROR_CODE);
-		return ERROR_CODE;
+	rc = gettimeofday(&time_after, NULL);
+	if (rc != EOK) {
+		fprintf(stderr, "Get time of day error %d\n", rc);
+		return rc;
 	}
-
-	if (verbose)
-		printf("\tOK\n");
 
 	printf("Tested in %d microseconds\n", tv_sub(&time_after, &time_before));
 
