@@ -43,7 +43,6 @@
 #include <task.h>
 #include <time.h>
 #include <arg_parse.h>
-#include <err.h>
 
 #include <net/in.h>
 #include <net/in6.h>
@@ -110,8 +109,6 @@ static void nettest2_refresh_data(char *data, size_t size)
 
 int main(int argc, char *argv[])
 {
-	ERROR_DECLARE;
-
 	size_t size = 28;
 	int verbose = 0;
 	sock_type_t type = SOCK_DGRAM;
@@ -135,6 +132,8 @@ int main(int argc, char *argv[])
 	struct timeval time_before;
 	struct timeval time_after;
 
+	int rc;
+
 	// parse the command line arguments
 	// stop before the last argument if it does not start with the minus sign ('-')
 	for (index = 1; (index < argc - 1) || ((index == argc - 1) && (argv[index][0] == '-')); ++ index) {
@@ -143,28 +142,40 @@ int main(int argc, char *argv[])
 			switch(argv[index][1]){
 			// short options with only one letter
 			case 'f':
-				ERROR_PROPAGATE(arg_parse_name_int(argc, argv, &index, &family, 0, socket_parse_protocol_family));
+				rc = arg_parse_name_int(argc, argv, &index, &family, 0, socket_parse_protocol_family);
+				if (rc != EOK)
+					return rc;
 				break;
 			case 'h':
 				nettest2_print_help();
 				return EOK;
 				break;
 			case 'm':
-				ERROR_PROPAGATE(arg_parse_int(argc, argv, &index, &messages, 0));
+				rc = arg_parse_int(argc, argv, &index, &messages, 0);
+				if (rc != EOK)
+					return rc;
 				break;
 			case 'n':
-				ERROR_PROPAGATE(arg_parse_int(argc, argv, &index, &sockets, 0));
+				rc = arg_parse_int(argc, argv, &index, &sockets, 0);
+				if (rc != EOK)
+					return rc;
 				break;
 			case 'p':
-				ERROR_PROPAGATE(arg_parse_int(argc, argv, &index, &value, 0));
+				rc = arg_parse_int(argc, argv, &index, &value, 0);
+				if (rc != EOK)
+					return rc;
 				port = (uint16_t) value;
 				break;
 			case 's':
-				ERROR_PROPAGATE(arg_parse_int(argc, argv, &index, &value, 0));
+				rc = arg_parse_int(argc, argv, &index, &value, 0);
+				if (rc != EOK)
+					return rc;
 				size = (value >= 0) ? (size_t) value : 0;
 				break;
 			case 't':
-				ERROR_PROPAGATE(arg_parse_name_int(argc, argv, &index, &value, 0, socket_parse_socket_type));
+				rc = arg_parse_name_int(argc, argv, &index, &value, 0, socket_parse_socket_type);
+				if (rc != EOK)
+					return rc;
 				type = (sock_type_t) value;
 				break;
 			case 'v':
@@ -173,19 +184,29 @@ int main(int argc, char *argv[])
 			// long options with the double minus sign ('-')
 			case '-':
 				if (str_lcmp(argv[index] + 2, "family=", 7) == 0) {
-					ERROR_PROPAGATE(arg_parse_name_int(argc, argv, &index, &family, 9, socket_parse_protocol_family));
+					rc = arg_parse_name_int(argc, argv, &index, &family, 9, socket_parse_protocol_family);
+					if (rc != EOK)
+						return rc;
 				} else if (str_lcmp(argv[index] + 2, "help", 5) == 0) {
 					nettest2_print_help();
 					return EOK;
 				} else if (str_lcmp(argv[index] + 2, "messages=", 6) == 0) {
-					ERROR_PROPAGATE(arg_parse_int(argc, argv, &index, &messages, 8));
+					rc = arg_parse_int(argc, argv, &index, &messages, 8);
+					if (rc != EOK)
+						return rc;
 				} else if (str_lcmp(argv[index] + 2, "sockets=", 6) == 0) {
-					ERROR_PROPAGATE(arg_parse_int(argc, argv, &index, &sockets, 8));
+					rc = arg_parse_int(argc, argv, &index, &sockets, 8);
+					if (rc != EOK)
+						return rc;
 				} else if (str_lcmp(argv[index] + 2, "port=", 5) == 0) {
-					ERROR_PROPAGATE(arg_parse_int(argc, argv, &index, &value, 7));
+					rc = arg_parse_int(argc, argv, &index, &value, 7);
+					if (rc != EOK)
+						return rc;
 					port = (uint16_t) value;
 				} else if (str_lcmp(argv[index] + 2, "type=", 5) == 0) {
-					ERROR_PROPAGATE(arg_parse_name_int(argc, argv, &index, &value, 7, socket_parse_socket_type));
+					rc = arg_parse_name_int(argc, argv, &index, &value, 7, socket_parse_socket_type);
+					if (rc != EOK)
+						return rc;
 					type = (sock_type_t) value;
 				} else if (str_lcmp(argv[index] + 2, "verbose", 8) == 0) {
 					verbose = 1;
@@ -232,9 +253,10 @@ int main(int argc, char *argv[])
 	}
 
 	// parse the last argument which should contain the address
-	if (ERROR_OCCURRED(inet_pton(family, argv[argc - 1], address_start))) {
-		fprintf(stderr, "Address parse error %d\n", ERROR_CODE);
-		return ERROR_CODE;
+	rc = inet_pton(family, argv[argc - 1], address_start);
+	if (rc != EOK) {
+		fprintf(stderr, "Address parse error %d\n", rc);
+		return rc;
 	}
 
 	// check the buffer size
@@ -270,24 +292,33 @@ int main(int argc, char *argv[])
 	if (verbose)
 		printf("Starting tests\n");
 
-	ERROR_PROPAGATE(sockets_create(verbose, socket_ids, sockets, family, type));
+	rc = sockets_create(verbose, socket_ids, sockets, family, type);
+	if (rc != EOK)
+		return rc;
 
-	if (type == SOCK_STREAM)
-		ERROR_PROPAGATE(sockets_connect(verbose, socket_ids, sockets, address, addrlen));
+	if (type == SOCK_STREAM) {
+		rc = sockets_connect(verbose, socket_ids, sockets, address, addrlen);
+		if (rc != EOK)
+			return rc;
+	}
 
 	if (verbose)
 		printf("\n");
 
-	if (ERROR_OCCURRED(gettimeofday(&time_before, NULL))) {
-		fprintf(stderr, "Get time of day error %d\n", ERROR_CODE);
-		return ERROR_CODE;
+	rc = gettimeofday(&time_before, NULL);
+	if (rc != EOK) {
+		fprintf(stderr, "Get time of day error %d\n", rc);
+		return rc;
 	}
 
-	ERROR_PROPAGATE(sockets_sendto_recvfrom(verbose, socket_ids, sockets, address, &addrlen, data, size, messages));
+	rc = sockets_sendto_recvfrom(verbose, socket_ids, sockets, address, &addrlen, data, size, messages);
+	if (rc != EOK)
+		return rc;
 
-	if (ERROR_OCCURRED(gettimeofday(&time_after, NULL))) {
-		fprintf(stderr, "Get time of day error %d\n", ERROR_CODE);
-		return ERROR_CODE;
+	rc = gettimeofday(&time_after, NULL);
+	if (rc != EOK) {
+		fprintf(stderr, "Get time of day error %d\n", rc);
+		return rc;
 	}
 
 	if (verbose)
@@ -295,17 +326,24 @@ int main(int argc, char *argv[])
 
 	printf("sendto + recvfrom tested in %d microseconds\n", tv_sub(&time_after, &time_before));
 
-	if (ERROR_OCCURRED(gettimeofday(&time_before, NULL))) {
-		fprintf(stderr, "Get time of day error %d\n", ERROR_CODE);
-		return ERROR_CODE;
+	rc = gettimeofday(&time_before, NULL);
+	if (rc != EOK) {
+		fprintf(stderr, "Get time of day error %d\n", rc);
+		return rc;
 	}
 
-	ERROR_PROPAGATE(sockets_sendto(verbose, socket_ids, sockets, address, addrlen, data, size, messages));
-	ERROR_PROPAGATE(sockets_recvfrom(verbose, socket_ids, sockets, address, &addrlen, data, size, messages));
+	rc = sockets_sendto(verbose, socket_ids, sockets, address, addrlen, data, size, messages);
+	if (rc != EOK)
+		return rc;
 
-	if (ERROR_OCCURRED(gettimeofday(&time_after, NULL))) {
-		fprintf(stderr, "Get time of day error %d\n", ERROR_CODE);
-		return ERROR_CODE;
+	rc = sockets_recvfrom(verbose, socket_ids, sockets, address, &addrlen, data, size, messages);
+	if (rc != EOK)
+		return rc;
+
+	rc = gettimeofday(&time_after, NULL);
+	if (rc != EOK) {
+		fprintf(stderr, "Get time of day error %d\n", rc);
+		return rc;
 	}
 
 	if (verbose)
@@ -313,7 +351,9 @@ int main(int argc, char *argv[])
 
 	printf("sendto, recvfrom tested in %d microseconds\n", tv_sub(&time_after, &time_before));
 
-	ERROR_PROPAGATE(sockets_close(verbose, socket_ids, sockets));
+	rc = sockets_close(verbose, socket_ids, sockets);
+	if (rc != EOK)
+		return rc;
 
 	if (verbose)
 		printf("\nExiting\n");
