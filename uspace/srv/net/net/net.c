@@ -41,7 +41,6 @@
 #include <ctype.h>
 #include <ddi.h>
 #include <errno.h>
-#include <err.h>
 #include <malloc.h>
 #include <stdio.h>
 #include <str.h>
@@ -91,7 +90,7 @@ DEVICE_MAP_IMPLEMENT(netifs, netif_t);
 int add_configuration(measured_strings_ref configuration, const char *name,
     const char *value)
 {
-	ERROR_DECLARE;
+	int rc;
 	
 	measured_string_ref setting =
 	    measured_string_create_bulk(value, 0);
@@ -99,9 +98,10 @@ int add_configuration(measured_strings_ref configuration, const char *name,
 		return ENOMEM;
 	
 	/* Add the configuration setting */
-	if (ERROR_OCCURRED(measured_strings_add(configuration, name, 0, setting))) {
+	rc = measured_strings_add(configuration, name, 0, setting);
+	if (rc != EOK) {
 		free(setting);
-		return ERROR_CODE;
+		return rc;
 	}
 	
 	return EOK;
@@ -109,8 +109,7 @@ int add_configuration(measured_strings_ref configuration, const char *name,
 
 /** Generate new system-unique device identifier.
  *
- * @returns The system-unique devic identifier.
- *
+ * @returns		The system-unique devic identifier.
  */
 static device_id_t generate_new_device_id(void)
 {
@@ -119,7 +118,7 @@ static device_id_t generate_new_device_id(void)
 
 static int parse_line(measured_strings_ref configuration, char *line)
 {
-	ERROR_DECLARE;
+	int rc;
 	
 	/* From the beginning */
 	char *name = line;
@@ -169,9 +168,10 @@ static int parse_line(measured_strings_ref configuration, char *line)
 		return ENOMEM;
 	
 	/* Add the configuration setting */
-	if (ERROR_OCCURRED(measured_strings_add(configuration, name, 0, setting))) {
+	rc = measured_strings_add(configuration, name, 0, setting);
+	if (rc != EOK) {
 		free(setting);
-		return ERROR_CODE;
+		return rc;
 	}
 	
 	return EOK;
@@ -180,8 +180,6 @@ static int parse_line(measured_strings_ref configuration, char *line)
 static int read_configuration_file(const char *directory, const char *filename,
     measured_strings_ref configuration)
 {
-	ERROR_DECLARE;
-	
 	printf("%s: Reading configuration file %s/%s\n", NAME, directory, filename);
 	
 	/* Construct the full filename */
@@ -205,23 +203,23 @@ static int read_configuration_file(const char *directory, const char *filename,
 		if ((read > 0) && (read != '\n') && (read != '\r')) {
 			if (index >= BUFFER_SIZE) {
 				line[BUFFER_SIZE - 1] = '\0';
-				fprintf(stderr, "%s: Configuration line %u too long: %s\n",
-				    NAME, line_number, line);
+				fprintf(stderr, "%s: Configuration line %u too "
+				    "long: %s\n", NAME, line_number, line);
 				
 				/* No space left in the line buffer */
 				return EOVERFLOW;
-			} else {
-				/* Append the character */
-				line[index] = (char) read;
-				index++;
 			}
+			/* Append the character */
+			line[index] = (char) read;
+			index++;
 		} else {
 			/* On error or new line */
 			line[index] = '\0';
 			line_number++;
-			if (ERROR_OCCURRED(parse_line(configuration, line)))
-				fprintf(stderr, "%s: Configuration error on line %u: %s\n",
-				    NAME, line_number, line);
+			if (parse_line(configuration, line) != EOK) {
+				fprintf(stderr, "%s: Configuration error on "
+				    "line %u: %s\n", NAME, line_number, line);
+			}
 			
 			index = 0;
 		}
@@ -269,7 +267,7 @@ static int read_configuration(void)
  */
 static int net_initialize(async_client_conn_t client_connection)
 {
-	ERROR_DECLARE;
+	int rc;
 	
 	netifs_initialize(&net_globals.netifs);
 	char_map_initialize(&net_globals.netif_names);
@@ -277,18 +275,26 @@ static int net_initialize(async_client_conn_t client_connection)
 	measured_strings_initialize(&net_globals.configuration);
 	
 	// TODO: dynamic configuration
-	ERROR_PROPAGATE(read_configuration());
+	rc = read_configuration();
+	if (rc != EOK)
+		return rc;
 	
-	ERROR_PROPAGATE(add_module(NULL, &net_globals.modules,
-	    LO_NAME, LO_FILENAME, SERVICE_LO, 0, connect_to_service));
-	ERROR_PROPAGATE(add_module(NULL, &net_globals.modules,
-	    DP8390_NAME, DP8390_FILENAME, SERVICE_DP8390, 0, connect_to_service));
-	ERROR_PROPAGATE(add_module(NULL, &net_globals.modules,
-	    ETHERNET_NAME, ETHERNET_FILENAME, SERVICE_ETHERNET, 0,
-	    connect_to_service));
-	ERROR_PROPAGATE(add_module(NULL, &net_globals.modules,
-	    NILDUMMY_NAME, NILDUMMY_FILENAME, SERVICE_NILDUMMY, 0,
-	    connect_to_service));
+	rc = add_module(NULL, &net_globals.modules, LO_NAME, LO_FILENAME,
+	    SERVICE_LO, 0, connect_to_service);
+	if (rc != EOK)
+		return rc;
+	rc = add_module(NULL, &net_globals.modules, DP8390_NAME,
+	    DP8390_FILENAME, SERVICE_DP8390, 0, connect_to_service);
+	if (rc != EOK)
+		return rc;
+	rc = add_module(NULL, &net_globals.modules, ETHERNET_NAME,
+	    ETHERNET_FILENAME, SERVICE_ETHERNET, 0, connect_to_service);
+	if (rc != EOK)
+		return rc;
+	rc = add_module(NULL, &net_globals.modules, NILDUMMY_NAME,
+	    NILDUMMY_FILENAME, SERVICE_NILDUMMY, 0, connect_to_service);
+	if (rc != EOK)
+		return rc;
 	
 	/* Build specific initialization */
 	return net_initialize_build(client_connection);
@@ -313,23 +319,28 @@ static int net_initialize(async_client_conn_t client_connection)
  */
 static int net_module_start(async_client_conn_t client_connection)
 {
-	ERROR_DECLARE;
+	ipcarg_t phonehash;
+	int rc;
 	
 	async_set_client_connection(client_connection);
-	ERROR_PROPAGATE(pm_init());
+	rc = pm_init();
+	if (rc != EOK)
+		return rc;
 	
-	ipcarg_t phonehash;
 	
-	if (ERROR_OCCURRED(net_initialize(client_connection)) ||
-	    ERROR_OCCURRED(REGISTER_ME(SERVICE_NETWORKING, &phonehash))) {
-		pm_destroy();
-		return ERROR_CODE;
-	}
+	rc = net_initialize(client_connection);
+	if (rc != EOK)
+		goto out;
+	
+	rc = REGISTER_ME(SERVICE_NETWORKING, &phonehash);
+	if (rc != EOK)
+		goto out;
 	
 	async_manager();
-	
+
+out:
 	pm_destroy();
-	return EOK;
+	return rc;
 }
 
 /** Return the configured values.
@@ -414,7 +425,7 @@ void net_free_settings(measured_string_ref settings, char *data)
  */
 static int start_device(netif_t *netif)
 {
-	ERROR_DECLARE;
+	int rc;
 	
 	/* Mandatory netif */
 	measured_string_ref setting =
@@ -455,7 +466,9 @@ static int start_device(netif_t *netif)
 	setting = measured_strings_find(&netif->configuration, CONF_IO, 0);
 	int io = setting ? strtol(setting->value, NULL, 16) : 0;
 	
-	ERROR_PROPAGATE(netif_probe_req_remote(netif->driver->phone, netif->id, irq, io));
+	rc = netif_probe_req_remote(netif->driver->phone, netif->id, irq, io);
+	if (rc != EOK)
+		return rc;
 	
 	/* Network interface layer startup */
 	services_t internet_service;
@@ -467,8 +480,10 @@ static int start_device(netif_t *netif)
 		
 		int mtu = setting ? strtol(setting->value, NULL, 10) : 0;
 		
-		ERROR_PROPAGATE(nil_device_req(netif->nil->phone, netif->id, mtu,
-		    netif->driver->service));
+		rc = nil_device_req(netif->nil->phone, netif->id, mtu,
+		    netif->driver->service);
+		if (rc != EOK)
+			return rc;
 		
 		internet_service = netif->nil->service;
 	} else
@@ -477,15 +492,16 @@ static int start_device(netif_t *netif)
 	/* Inter-network layer startup */
 	switch (netif->il->service) {
 	case SERVICE_IP:
-		ERROR_PROPAGATE(ip_device_req(netif->il->phone, netif->id,
-		    internet_service));
+		rc = ip_device_req(netif->il->phone, netif->id,
+		    internet_service);
+		if (rc != EOK)
+			return rc;
 		break;
 	default:
 		return ENOENT;
 	}
 	
-	ERROR_PROPAGATE(netif_start_req_remote(netif->driver->phone, netif->id));
-	return EOK;
+	return netif_start_req_remote(netif->driver->phone, netif->id);
 }
 
 /** Read the configuration and start all network interfaces.
@@ -503,13 +519,12 @@ static int start_device(netif_t *netif)
  */
 static int startup(void)
 {
-	ERROR_DECLARE;
-	
 	const char *conf_files[] = {
 		"lo",
 		"ne2k"
 	};
 	size_t count = sizeof(conf_files) / sizeof(char *);
+	int rc;
 	
 	size_t i;
 	for (i = 0; i < count; i++) {
@@ -521,13 +536,16 @@ static int startup(void)
 		if (!netif->id)
 			return EXDEV;
 		
-		ERROR_PROPAGATE(measured_strings_initialize(&netif->configuration));
+		rc = measured_strings_initialize(&netif->configuration);
+		if (rc != EOK)
+			return rc;
 		
 		/* Read configuration files */
-		if (ERROR_OCCURRED(read_netif_configuration(conf_files[i], netif))) {
+		rc = read_netif_configuration(conf_files[i], netif);
+		if (rc != EOK) {
 			measured_strings_destroy(&netif->configuration);
 			free(netif);
-			return ERROR_CODE;
+			return rc;
 		}
 		
 		/* Mandatory name */
@@ -553,11 +571,19 @@ static int startup(void)
 		 * Add to the netif names map and start network interfaces
 		 * and needed modules.
 		 */
-		if ((ERROR_OCCURRED(char_map_add(&net_globals.netif_names,
-		    netif->name, 0, index))) || (ERROR_OCCURRED(start_device(netif)))) {
+		rc = char_map_add(&net_globals.netif_names, netif->name, 0,
+		    index);
+		if (rc != EOK) {
 			measured_strings_destroy(&netif->configuration);
 			netifs_exclude_index(&net_globals.netifs, index);
-			return ERROR_CODE;
+			return rc;
+		}
+		
+		rc = start_device(netif);
+		if (rc != EOK) {
+			measured_strings_destroy(&netif->configuration);
+			netifs_exclude_index(&net_globals.netifs, index);
+			return rc;
 		}
 		
 		/* Increment modules' usage */
@@ -593,41 +619,45 @@ static int startup(void)
 int net_message(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *answer,
     int *answer_count)
 {
-	ERROR_DECLARE;
-	
 	measured_string_ref strings;
 	char *data;
+	int rc;
 	
 	*answer_count = 0;
 	switch (IPC_GET_METHOD(*call)) {
 	case IPC_M_PHONE_HUNGUP:
 		return EOK;
 	case NET_NET_GET_DEVICE_CONF:
-		ERROR_PROPAGATE(measured_strings_receive(&strings, &data,
-		    IPC_GET_COUNT(call)));
+		rc = measured_strings_receive(&strings, &data,
+		    IPC_GET_COUNT(call));
+		if (rc != EOK)
+			return rc;
 		net_get_device_conf_req(0, IPC_GET_DEVICE(call), &strings,
 		    IPC_GET_COUNT(call), NULL);
 		
 		/* Strings should not contain received data anymore */
 		free(data);
 		
-		ERROR_CODE = measured_strings_reply(strings, IPC_GET_COUNT(call));
+		rc = measured_strings_reply(strings, IPC_GET_COUNT(call));
 		free(strings);
-		return ERROR_CODE;
+		return rc;
 	case NET_NET_GET_CONF:
-		ERROR_PROPAGATE(measured_strings_receive(&strings, &data,
-		    IPC_GET_COUNT(call)));
+		rc = measured_strings_receive(&strings, &data,
+		    IPC_GET_COUNT(call));
+		if (rc != EOK)
+			return rc;
 		net_get_conf_req(0, &strings, IPC_GET_COUNT(call), NULL);
 		
 		/* Strings should not contain received data anymore */
 		free(data);
 		
-		ERROR_CODE = measured_strings_reply(strings, IPC_GET_COUNT(call));
+		rc = measured_strings_reply(strings, IPC_GET_COUNT(call));
 		free(strings);
-		return ERROR_CODE;
+		return rc;
 	case NET_NET_STARTUP:
 		return startup();
 	}
+	
 	return ENOTSUP;
 }
 
@@ -669,11 +699,12 @@ static void net_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 int main(int argc, char *argv[])
 {
-	ERROR_DECLARE;
+	int rc;
 	
-	if (ERROR_OCCURRED(net_module_start(net_client_connection))) {
-		fprintf(stderr, "%s: net_module_start error %i\n", NAME, ERROR_CODE);
-		return ERROR_CODE;
+	rc = net_module_start(net_client_connection);
+	if (rc != EOK) {
+		fprintf(stderr, "%s: net_module_start error %i\n", NAME, rc);
+		return rc;
 	}
 	
 	return EOK;
