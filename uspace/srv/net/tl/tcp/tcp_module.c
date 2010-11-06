@@ -43,7 +43,7 @@
 
 #include <async.h>
 #include <stdio.h>
-#include <err.h>
+#include <errno.h>
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 
@@ -60,23 +60,29 @@ extern tcp_globals_t tcp_globals;
 
 int tl_module_start_standalone(async_client_conn_t client_connection)
 {
-	ERROR_DECLARE;
-	
+	ipcarg_t phonehash;
+	int rc;
+
 	async_set_client_connection(client_connection);
 	tcp_globals.net_phone = net_connect_module();
-	ERROR_PROPAGATE(pm_init());
-	
-	ipcarg_t phonehash;
-	if (ERROR_OCCURRED(tcp_initialize(client_connection)) ||
-	    ERROR_OCCURRED(REGISTER_ME(SERVICE_TCP, &phonehash))) {
-		pm_destroy();
-		return ERROR_CODE;
-	}
+
+	rc = pm_init();
+	if (rc != EOK)
+		return rc;
+
+	rc = tcp_initialize(client_connection);
+	if (rc != EOK)
+		goto out;
+
+	rc = REGISTER_ME(SERVICE_TCP, &phonehash);
+	if (rc != EOK)
+		goto out;
 	
 	async_manager();
 	
+out:
 	pm_destroy();
-	return EOK;
+	return rc;
 }
 
 int

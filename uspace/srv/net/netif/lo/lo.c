@@ -36,7 +36,6 @@
 
 #include <async.h>
 #include <errno.h>
-#include <err.h>
 #include <stdio.h>
 #include <str.h>
 
@@ -82,13 +81,14 @@ int netif_get_addr_message(device_id_t device_id, measured_string_ref address)
 
 int netif_get_device_stats(device_id_t device_id, device_stats_ref stats)
 {
-	ERROR_DECLARE;
-
 	netif_device_t *device;
+	int rc;
 
 	if (!stats)
 		return EBADMEM;
-	ERROR_PROPAGATE(find_device(device_id, &device));
+	rc = find_device(device_id, &device);
+	if (rc != EOK)
+		return rc;
 	memcpy(stats, (device_stats_ref) device->specific,
 	    sizeof(device_stats_t));
 	return EOK;
@@ -163,12 +163,13 @@ int netif_initialize(void)
 
 int netif_probe_message(device_id_t device_id, int irq, uintptr_t io)
 {
-	ERROR_DECLARE;
-
 	netif_device_t *device;
+	int rc;
 
 	// create a new device
-	ERROR_PROPAGATE(create(device_id, &device));
+	rc = create(device_id, &device);
+	if (rc != EOK)
+		return rc;
 	// print the settings
 	printf("%s: Device created (id: %d)\n", NAME, device->device_id);
 	return EOK;
@@ -176,14 +177,15 @@ int netif_probe_message(device_id_t device_id, int irq, uintptr_t io)
 
 int netif_send_message(device_id_t device_id, packet_t packet, services_t sender)
 {
-	ERROR_DECLARE;
-
 	netif_device_t *device;
 	size_t length;
 	packet_t next;
 	int phone;
+	int rc;
 
-	ERROR_PROPAGATE(find_device(device_id, &device));
+	rc = find_device(device_id, &device);
+	if (rc != EOK)
+		return EOK;
 	if (device->state != NETIF_ACTIVE) {
 		netif_pq_release(packet_get_id(packet));
 		return EFORWARD;
@@ -258,11 +260,11 @@ static void netif_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 int main(int argc, char *argv[])
 {
-	ERROR_DECLARE;
+	int rc;
 	
 	/* Start the module */
-	ERROR_PROPAGATE(netif_module_start(netif_client_connection));
-	return EOK;
+	rc = netif_module_start(netif_client_connection);
+	return rc;
 }
 
 /** @}

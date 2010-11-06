@@ -211,7 +211,8 @@ packet_get_local(size_t addr_len, size_t max_prefix, size_t max_content,
 	unsigned int index;
 	
 	for (index = 0; index < FREE_QUEUES_COUNT; index++) {
-		if (length > ps_globals.sizes[index])
+		if ((length > ps_globals.sizes[index]) &&
+		    (index < FREE_QUEUES_COUNT - 1))
 			continue;
 		
 		packet = ps_globals.free[index];

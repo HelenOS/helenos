@@ -53,7 +53,6 @@
 #include <sys/types.h>
 #include <byteorder.h>
 #include <errno.h>
-#include <err.h>
 
 #include <net/socket_codes.h>
 #include <net/ip_protocols.h>
@@ -160,7 +159,7 @@ icmp_send_packet(icmp_type_t type, icmp_code_t code, packet_t packet,
     icmp_header_ref header, services_t error, ip_ttl_t ttl, ip_tos_t tos,
     int dont_fragment)
 {
-	ERROR_DECLARE;
+	int rc;
 
 	// do not send an error if disabled
 	if (error && !icmp_globals.error_reporting)
@@ -171,10 +170,11 @@ icmp_send_packet(icmp_type_t type, icmp_code_t code, packet_t packet,
 	header->checksum = 0;
 	header->checksum = ICMP_CHECKSUM(header,
 	    packet_get_data_length(packet));
-	if (ERROR_OCCURRED(ip_client_prepare_packet(packet, IPPROTO_ICMP, ttl,
-	    tos, dont_fragment, 0))) {
-		return icmp_release_and_return(packet, ERROR_CODE);
-	}
+	
+	rc = ip_client_prepare_packet(packet, IPPROTO_ICMP, ttl, tos,
+	    dont_fragment, 0);
+	if (rc != EOK)
+		return icmp_release_and_return(packet, rc);
 
 	return ip_send_msg(icmp_globals.ip_phone, -1, packet, SERVICE_ICMP,
 	    error);
@@ -248,24 +248,24 @@ icmp_echo(icmp_param_t id, icmp_param_t sequence, size_t size,
     mseconds_t timeout, ip_ttl_t ttl, ip_tos_t tos, int dont_fragment,
     const struct sockaddr * addr, socklen_t addrlen)
 {
-	ERROR_DECLARE;
-
 	icmp_header_ref header;
 	packet_t packet;
 	size_t length;
 	uint8_t *data;
 	icmp_reply_ref reply;
 	int reply_key;
-	int result;
 	int index;
+	int rc;
 
 	if (addrlen <= 0)
 		return EINVAL;
 
 	length = (size_t) addrlen;
 	// TODO do not ask all the time
-	ERROR_PROPAGATE(ip_packet_size_req(icmp_globals.ip_phone, -1,
-	    &icmp_globals.packet_dimension));
+	rc = ip_packet_size_req(icmp_globals.ip_phone, -1,
+	    &icmp_globals.packet_dimension);
+	if (rc != EOK)
+		return rc;
 
 	packet = packet_get_4_remote(icmp_globals.net_phone, size,
 	    icmp_globals.packet_dimension.addr_len,
@@ -276,10 +276,9 @@ icmp_echo(icmp_param_t id, icmp_param_t sequence, size_t size,
 
 	// prepare the requesting packet
 	// set the destination address
-	if (ERROR_OCCURRED(packet_set_addr(packet, NULL, (const uint8_t *) addr,
-	    length))) {
-		return icmp_release_and_return(packet, ERROR_CODE);
-	}
+	rc = packet_set_addr(packet, NULL, (const uint8_t *) addr, length);
+	if (rc != EOK)
+		return icmp_release_and_return(packet, rc);
 
 	// allocate space in the packet
 	data = (uint8_t *) packet_suffix(packet, size);
@@ -328,13 +327,10 @@ icmp_echo(icmp_param_t id, icmp_param_t sequence, size_t size,
 
 	// wait for the reply
 	// timeout in microseconds
-	if (ERROR_OCCURRED(fibril_condvar_wait_timeout(&reply->condvar,
-	    &reply->mutex, timeout * 1000))) {
-		result = ERROR_CODE;
-	} else {
-		// read the result
-		result = reply->result;
-	}
+	rc = fibril_condvar_wait_timeout(&reply->condvar, &reply->mutex,
+	    timeout * 1000);
+	if (rc == EOK)
+		rc = reply->result;
 
 	// drop the reply mutex before locking the globals again
 	fibril_mutex_unlock(&reply->mutex);
@@ -343,7 +339,7 @@ icmp_echo(icmp_param_t id, icmp_param_t sequence, size_t size,
 	// destroy the reply structure
 	icmp_replies_exclude_index(&icmp_globals.replies, index);
 
-	return result;
+	return rc;
 }
 
 static int
@@ -412,8 +408,6 @@ icmp_parameter_problem_msg_local(int icmp_phone, icmp_code_t code,
  */
 int icmp_initialize(async_client_conn_t client_connection)
 {
-	ERROR_DECLARE;
-
 	measured_string_t names[] = {
 		{
 			(char *) "ICMP_ERROR_REPORTING",
@@ -427,18 +421,27 @@ int icmp_initialize(async_client_conn_t client_connection)
 	measured_string_ref configuration;
 	size_t count = sizeof(names) / sizeof(measured_string_t);
 	char *data;
+	int rc;
 
 	fibril_rwlock_initialize(&icmp_globals.lock);
 	fibril_rwlock_write_lock(&icmp_globals.lock);
 	icmp_replies_initialize(&icmp_globals.replies);
 	icmp_echo_data_initialize(&icmp_globals.echo_data);
+	
 	icmp_globals.ip_phone = ip_bind_service(SERVICE_IP, IPPROTO_ICMP,
 	    SERVICE_ICMP, client_connection);
-	if (icmp_globals.ip_phone < 0)
+	if (icmp_globals.ip_phone < 0) {
+		fibril_rwlock_write_unlock(&icmp_globals.lock);
 		return icmp_globals.ip_phone;
+	}
+	
+	rc = ip_packet_size_req(icmp_globals.ip_phone, -1,
+	    &icmp_globals.packet_dimension);
+	if (rc != EOK) {
+		fibril_rwlock_write_unlock(&icmp_globals.lock);
+		return rc;
+	}
 
-	ERROR_PROPAGATE(ip_packet_size_req(icmp_globals.ip_phone, -1,
-	    &icmp_globals.packet_dimension));
 	icmp_globals.packet_dimension.prefix += ICMP_HEADER_SIZE;
 	icmp_globals.packet_dimension.content -= ICMP_HEADER_SIZE;
 
@@ -447,8 +450,13 @@ int icmp_initialize(async_client_conn_t client_connection)
 
 	// get configuration
 	configuration = &names[0];
-	ERROR_PROPAGATE(net_get_conf_req(icmp_globals.net_phone, &configuration,
-	    count, &data));
+	rc = net_get_conf_req(icmp_globals.net_phone, &configuration, count,
+	    &data);
+	if (rc != EOK) {
+		fibril_rwlock_write_unlock(&icmp_globals.lock);
+		return rc;
+	}
+	
 	if (configuration) {
 		if (configuration[0].value) {
 			icmp_globals.error_reporting =
@@ -518,8 +526,6 @@ icmp_process_echo_reply(packet_t packet, icmp_header_ref header,
  */
 static int icmp_process_packet(packet_t packet, services_t error)
 {
-	ERROR_DECLARE;
-
 	size_t length;
 	uint8_t *src;
 	int addrlen;
@@ -528,6 +534,7 @@ static int icmp_process_packet(packet_t packet, services_t error)
 	icmp_header_ref header;
 	icmp_type_t type;
 	icmp_code_t code;
+	int rc;
 
 	switch (error) {
 	case SERVICE_NONE:
@@ -540,7 +547,9 @@ static int icmp_process_packet(packet_t packet, services_t error)
 			return result;
 		length = (size_t) result;
 		// remove the error header
-		ERROR_PROPAGATE(packet_trim(packet, length, 0));
+		rc = packet_trim(packet, length, 0);
+		if (rc != EOK)
+			return rc;
 		break;
 	default:
 		return ENOTSUP;
@@ -548,7 +557,9 @@ static int icmp_process_packet(packet_t packet, services_t error)
 
 	// get rid of the ip header
 	length = ip_client_header_length(packet);
-	ERROR_PROPAGATE(packet_trim(packet, length, 0));
+	rc = packet_trim(packet, length, 0);
+	if (rc != EOK)
+		return rc;
 
 	length = packet_get_data_length(packet);
 	if (length <= 0)
@@ -581,7 +592,7 @@ static int icmp_process_packet(packet_t packet, services_t error)
 
 	switch (header->type) {
 	case ICMP_ECHOREPLY:
-		if (error) 
+		if (error)
 			icmp_process_echo_reply(packet, header, type, code);
 		else
 			icmp_process_echo_reply(packet, header, ICMP_ECHO, 0);
@@ -653,10 +664,11 @@ static int
 icmp_received_msg_local(device_id_t device_id, packet_t packet,
     services_t receiver, services_t error)
 {
-	ERROR_DECLARE;
+	int rc;
 
-	if (ERROR_OCCURRED(icmp_process_packet(packet, error)))
-		return icmp_release_and_return(packet, ERROR_CODE);
+	rc = icmp_process_packet(packet, error);
+	if (rc != EOK)
+		return icmp_release_and_return(packet, rc);
 
 	return EOK;
 }
@@ -681,39 +693,37 @@ icmp_received_msg_local(device_id_t device_id, packet_t packet,
  */
 static int icmp_process_message(ipc_call_t *call)
 {
-	ERROR_DECLARE;
-
 	packet_t packet;
+	int rc;
 
 	switch (IPC_GET_METHOD(*call)) {
 	case NET_ICMP_DEST_UNREACH:
-		if (ERROR_NONE(packet_translate_remote(icmp_globals.net_phone,
-		    &packet, IPC_GET_PACKET(call)))) {
-			ERROR_CODE = icmp_destination_unreachable_msg_local(0,
-			    ICMP_GET_CODE(call), ICMP_GET_MTU(call), packet);
-		}
-		return ERROR_CODE;
+		rc = packet_translate_remote(icmp_globals.net_phone, &packet,
+		    IPC_GET_PACKET(call));
+		if (rc != EOK)
+			return rc;
+		return icmp_destination_unreachable_msg_local(0,
+		    ICMP_GET_CODE(call), ICMP_GET_MTU(call), packet);
 	case NET_ICMP_SOURCE_QUENCH:
-		if (ERROR_NONE(packet_translate_remote(icmp_globals.net_phone,
-		    &packet, IPC_GET_PACKET(call)))) {
-			ERROR_CODE = icmp_source_quench_msg_local(0, packet);
-		}
-		return ERROR_CODE;
+		rc = packet_translate_remote(icmp_globals.net_phone, &packet,
+		    IPC_GET_PACKET(call));
+		if (rc != EOK)
+			return rc;
+		return icmp_source_quench_msg_local(0, packet);
 	case NET_ICMP_TIME_EXCEEDED:
-		if (ERROR_NONE(packet_translate_remote(icmp_globals.net_phone,
-		    &packet, IPC_GET_PACKET(call)))) {
-			ERROR_CODE = icmp_time_exceeded_msg_local(0,
-			    ICMP_GET_CODE(call), packet);
-		}
-		return ERROR_CODE;
+		rc = packet_translate_remote(icmp_globals.net_phone, &packet,
+		    IPC_GET_PACKET(call));
+		if (rc != EOK)
+			return rc;
+		return icmp_time_exceeded_msg_local(0, ICMP_GET_CODE(call),
+		    packet);
 	case NET_ICMP_PARAMETERPROB:
-		if (ERROR_NONE(packet_translate_remote(icmp_globals.net_phone,
-		    &packet, IPC_GET_PACKET(call)))) {
-			ERROR_CODE = icmp_parameter_problem_msg_local(0,
-			    ICMP_GET_CODE(call), ICMP_GET_POINTER(call),
-			    packet);
-		}
-		return ERROR_CODE;
+		rc = packet_translate_remote(icmp_globals.net_phone, &packet,
+		    IPC_GET_PACKET(call));
+		if (rc != EOK)
+			return rc;
+		return icmp_parameter_problem_msg_local(0, ICMP_GET_CODE(call),
+		    ICMP_GET_POINTER(call), packet);
 	default:
 		return ENOTSUP;
 	}
@@ -756,7 +766,7 @@ static int icmp_bind_free_id(icmp_echo_ref echo_data)
 			// found, break immediately
 			break;
 		}
-	} while(icmp_echo_data_find(&icmp_globals.echo_data, index) != NULL);
+	} while (icmp_echo_data_find(&icmp_globals.echo_data, index) != NULL);
 
 	echo_data->identifier = index;
 	echo_data->sequence_number = 0;
@@ -778,8 +788,6 @@ static int icmp_bind_free_id(icmp_echo_ref echo_data)
  */
 static int icmp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 {
-	ERROR_DECLARE;
-
 	bool keep_on_going = true;
 	ipc_call_t answer;
 	int answer_count;
@@ -787,13 +795,12 @@ static int icmp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 	struct sockaddr *addr;
 	ipc_callid_t data_callid;
 	icmp_echo_ref echo_data;
-	int res;
+	int rc = EOK;
 
 	/*
 	 * Accept the connection
 	 *  - Answer the first NET_ICMP_INIT call.
 	 */
-	res = EOK;
 	answer_count = 0;
 
 	echo_data = (icmp_echo_ref) malloc(sizeof(*echo_data));
@@ -802,16 +809,16 @@ static int icmp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 
 	// assign a new identifier
 	fibril_rwlock_write_lock(&icmp_globals.lock);
-	res = icmp_bind_free_id(echo_data);
+	rc = icmp_bind_free_id(echo_data);
 	fibril_rwlock_write_unlock(&icmp_globals.lock);
-	if (res < 0) {
+	if (rc < 0) {
 		free(echo_data);
-		return res;
+		return rc;
 	}
 
 	while (keep_on_going) {
 		// answer the call
-		answer_call(callid, res, &answer, answer_count);
+		answer_call(callid, rc, &answer, answer_count);
 
 		// refresh data
 		refresh_answer(&answer, &answer_count);
@@ -823,30 +830,30 @@ static int icmp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 		switch (IPC_GET_METHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			keep_on_going = false;
-			res = EHANGUP;
+			rc = EHANGUP;
 			break;
 		
 		case NET_ICMP_ECHO:
 			if (!async_data_write_receive(&data_callid, &length)) {
-				res = EINVAL;
+				rc = EINVAL;
 				break;
 			}
 			
 			addr = malloc(length);
 			if (!addr) {
-				res = ENOMEM;
+				rc = ENOMEM;
 				break;
 			}
 			
-			if (ERROR_OCCURRED(async_data_write_finalize(
-			    data_callid, addr, length))) {
+			rc = async_data_write_finalize(data_callid, addr,
+			    length);
+			if (rc != EOK) {
 				free(addr);
-				res = ERROR_CODE;
 				break;
 			}
 
 			fibril_rwlock_write_lock(&icmp_globals.lock);
-			res = icmp_echo(echo_data->identifier,
+			rc = icmp_echo(echo_data->identifier,
 			    echo_data->sequence_number, ICMP_GET_SIZE(call),
 			    ICMP_GET_TIMEOUT(call), ICMP_GET_TTL(call),
 			    ICMP_GET_TOS(call), ICMP_GET_DONT_FRAGMENT(call),
@@ -863,7 +870,7 @@ static int icmp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 			break;
 
 		default:
-			res = icmp_process_message(&call);
+			rc = icmp_process_message(&call);
 		}
 
 	}
@@ -873,7 +880,7 @@ static int icmp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 	icmp_echo_data_exclude(&icmp_globals.echo_data, echo_data->identifier);
 	fibril_rwlock_write_unlock(&icmp_globals.lock);
 
-	return res;
+	return rc;
 }
 
 /** Processes the ICMP message.
@@ -893,20 +900,18 @@ int
 icmp_message_standalone(ipc_callid_t callid, ipc_call_t *call,
     ipc_call_t *answer, int *answer_count)
 {
-	ERROR_DECLARE;
-
 	packet_t packet;
+	int rc;
 
 	*answer_count = 0;
 	switch (IPC_GET_METHOD(*call)) {
 	case NET_TL_RECEIVED:
-		if (ERROR_NONE(packet_translate_remote(icmp_globals.net_phone,
-		    &packet, IPC_GET_PACKET(call)))) {
-			ERROR_CODE =
-			    icmp_received_msg_local(IPC_GET_DEVICE(call),
-			    packet, SERVICE_ICMP, IPC_GET_ERROR(call));
-		}
-		return ERROR_CODE;
+		rc = packet_translate_remote(icmp_globals.net_phone, &packet,
+		    IPC_GET_PACKET(call));
+		if (rc != EOK)
+			return rc;
+		return icmp_received_msg_local(IPC_GET_DEVICE(call), packet,
+		    SERVICE_ICMP, IPC_GET_ERROR(call));
 	
 	case NET_ICMP_INIT:
 		return icmp_process_client_messages(callid, * call);
@@ -969,11 +974,11 @@ static void tl_client_connection(ipc_callid_t iid, ipc_call_t *icall)
  */
 int main(int argc, char *argv[])
 {
-	ERROR_DECLARE;
+	int rc;
 	
 	/* Start the module */
-	ERROR_PROPAGATE(tl_module_start_standalone(tl_client_connection));
-	return EOK;
+	rc = tl_module_start_standalone(tl_client_connection);
+	return rc;
 }
 
 /** @}

@@ -42,7 +42,7 @@
 
 #include <async.h>
 #include <stdio.h>
-#include <err.h>
+#include <errno.h>
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 
@@ -57,26 +57,31 @@ extern icmp_globals_t icmp_globals;
 
 int tl_module_start_standalone(async_client_conn_t client_connection)
 {
-	ERROR_DECLARE;
-
 	ipcarg_t phonehash;
+	int rc;
 
 	async_set_client_connection(client_connection);
 	icmp_globals.net_phone = net_connect_module();
 	if (icmp_globals.net_phone < 0)
 		return icmp_globals.net_phone;
 
-	ERROR_PROPAGATE(pm_init());
-	if (ERROR_OCCURRED(icmp_initialize(client_connection)) ||
-	    ERROR_OCCURRED(REGISTER_ME(SERVICE_ICMP, &phonehash))) {
-		pm_destroy();
-		return ERROR_CODE;
-	}
+	rc = pm_init();
+	if (rc != EOK)
+		return rc;
+	
+	rc = icmp_initialize(client_connection);
+	if (rc != EOK)
+		goto out;
+
+	rc = REGISTER_ME(SERVICE_ICMP, &phonehash);
+	if (rc != EOK)
+		goto out;
 
 	async_manager();
 
+out:
 	pm_destroy();
-	return EOK;
+	return rc;
 }
 
 int
@@ -88,4 +93,3 @@ tl_module_message_standalone(ipc_callid_t callid, ipc_call_t *call,
 
 /** @}
  */
-
