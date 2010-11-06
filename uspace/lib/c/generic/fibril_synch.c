@@ -179,9 +179,10 @@ void fibril_rwlock_initialize(fibril_rwlock_t *frw)
 
 void fibril_rwlock_read_lock(fibril_rwlock_t *frw)
 {
+	fibril_t *f = (fibril_t *) fibril_get_id();
+	
 	futex_down(&async_futex);
 	if (frw->writers) {
-		fibril_t *f = (fibril_t *) fibril_get_id();
 		awaiter_t wdata;
 
 		wdata.fid = (fid_t) f;
@@ -194,7 +195,9 @@ void fibril_rwlock_read_lock(fibril_rwlock_t *frw)
 		f->waits_for = &frw->oi;
 		fibril_switch(FIBRIL_TO_MANAGER);
 	} else {
-		frw->readers++;
+		/* Consider the first reader the owner. */
+		if (frw->readers++ == 0)
+			frw->oi.owned_by = f;
 		futex_up(&async_futex);
 	}
 }
@@ -228,8 +231,23 @@ static void _fibril_rwlock_common_unlock(fibril_rwlock_t *frw)
 	futex_down(&async_futex);
 	assert(frw->readers || (frw->writers == 1));
 	if (frw->readers) {
-		if (--frw->readers)
+		if (--frw->readers) {
+			if (frw->oi.owned_by == (fibril_t *) fibril_get_id()) {
+				/*
+				 * If this reader firbril was considered the
+				 * owner of this rwlock, clear the ownership
+				 * information even if there are still more
+				 * readers.
+				 *
+				 * This is the limitation of the detection
+				 * mechanism rooted in the fact that tracking
+				 * all readers would require dynamically
+				 * allocated memory for keeping linkage info.
+				 */
+				frw->oi.owned_by = NULL;
+			}
 			goto out;
+		}
 	} else {
 		frw->writers--;
 	}
@@ -264,7 +282,10 @@ static void _fibril_rwlock_common_unlock(fibril_rwlock_t *frw)
 			wdp->wu_event.inlist = false;
 			list_remove(&wdp->wu_event.link);
 			fibril_add_ready(wdp->fid);
-			frw->readers++;
+			if (frw->readers++ == 0) {
+				/* Consider the first reader the owner. */
+				frw->oi.owned_by = f;
+			}
 			optimize_execution_power();
 		}
 	}
