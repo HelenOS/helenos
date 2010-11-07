@@ -40,7 +40,6 @@
 #include <fibril_synch.h>
 #include <unistd.h>
 #include <errno.h>
-#include <err.h>
 
 #include <sys/mman.h>
 
@@ -90,13 +89,15 @@ GENERIC_FIELD_IMPLEMENT(gpm, packet_map_t);
  */
 int pm_init(void)
 {
-	ERROR_DECLARE;
+	int rc;
 
 	fibril_rwlock_initialize(&pm_globals.lock);
+	
 	fibril_rwlock_write_lock(&pm_globals.lock);
-	ERROR_PROPAGATE(gpm_initialize(&pm_globals.packet_map));
+	rc = gpm_initialize(&pm_globals.packet_map);
 	fibril_rwlock_write_unlock(&pm_globals.lock);
-	return EOK;
+	
+	return rc;
 }
 
 /** Finds the packet mapping.
@@ -138,9 +139,8 @@ packet_t pm_find(packet_id_t packet_id)
  */
 int pm_add(packet_t packet)
 {
-	ERROR_DECLARE;
-
 	packet_map_ref map;
+	int rc;
 
 	if (!packet_is_valid(packet))
 		return EINVAL;
@@ -159,11 +159,11 @@ int pm_add(packet_t packet)
 				return ENOMEM;
 			}
 			bzero(map, sizeof(packet_map_t));
-			if ((ERROR_CODE =
-			    gpm_add(&pm_globals.packet_map, map)) < 0) {
+			rc = gpm_add(&pm_globals.packet_map, map);
+			if (rc < 0) {
 				fibril_rwlock_write_unlock(&pm_globals.lock);
 				free(map);
-				return ERROR_CODE;
+				return rc;
 			}
 		} while (PACKET_MAP_PAGE(packet->packet_id) >=
 		    gpm_count(&pm_globals.packet_map));

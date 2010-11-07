@@ -42,7 +42,6 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <err.h>
 
 #include <ipc/services.h>
 #include <ipc/socket.h>
@@ -211,11 +210,10 @@ static sockets_ref socket_get_sockets(void)
  */
 static void socket_connection(ipc_callid_t iid, ipc_call_t * icall)
 {
-	ERROR_DECLARE;
-
 	ipc_callid_t callid;
 	ipc_call_t call;
 	socket_ref socket;
+	int rc;
 
 loop:
 	callid = async_get_call(&call);
@@ -230,7 +228,7 @@ loop:
 		socket = sockets_find(socket_get_sockets(),
 		    SOCKET_GET_SOCKET_ID(call));
 		if (!socket) {
-			ERROR_CODE = ENOTSOCK;
+			rc = ENOTSOCK;
 			fibril_rwlock_read_unlock(&socket_globals.lock);
 			break;
 		}
@@ -239,9 +237,10 @@ loop:
 		case NET_SOCKET_RECEIVED:
 			fibril_mutex_lock(&socket->receive_lock);
 			// push the number of received packet fragments
-			if (!ERROR_OCCURRED(dyn_fifo_push(&socket->received,
+			rc = dyn_fifo_push(&socket->received,
 			    SOCKET_GET_DATA_FRAGMENTS(call),
-			    SOCKET_MAX_RECEIVED_SIZE))) {
+			    SOCKET_MAX_RECEIVED_SIZE);
+			if (rc == EOK) {
 				// signal the received packet
 				fibril_condvar_signal(&socket->receive_signal);
 			}
@@ -251,8 +250,9 @@ loop:
 		case NET_SOCKET_ACCEPTED:
 			// push the new socket identifier
 			fibril_mutex_lock(&socket->accept_lock);
-			if (!ERROR_OCCURRED(dyn_fifo_push(&socket->accepted,
-			    1, SOCKET_MAX_ACCEPTED_SIZE))) {
+			rc = dyn_fifo_push(&socket->accepted, 1,
+			    SOCKET_MAX_ACCEPTED_SIZE);
+			if (rc != EOK) {
 				// signal the accepted socket
 				fibril_condvar_signal(&socket->accept_signal);
 			}
@@ -260,7 +260,7 @@ loop:
 			break;
 
 		default:
-			ERROR_CODE = ENOTSUP;
+			rc = ENOTSUP;
 		}
 
 		if ((SOCKET_GET_DATA_FRAGMENT_SIZE(call) > 0) &&
@@ -279,10 +279,10 @@ loop:
 		break;
 
 	default:
-		ERROR_CODE = ENOTSUP;
+		rc = ENOTSUP;
 	}
 
-	ipc_answer_0(callid, (ipcarg_t) ERROR_CODE);
+	ipc_answer_0(callid, (ipcarg_t) rc);
 	goto loop;
 }
 
@@ -404,14 +404,13 @@ socket_initialize(socket_ref socket, int socket_id, int phone,
  */
 int socket(int domain, int type, int protocol)
 {
-	ERROR_DECLARE;
-
 	socket_ref socket;
 	int phone;
 	int socket_id;
 	services_t service;
 	ipcarg_t fragment_size;
 	ipcarg_t header_size;
+	int rc;
 
 	// find the appropriate service
 	switch (domain) {
@@ -478,11 +477,12 @@ int socket(int domain, int type, int protocol)
 		return socket_id;
 	}
 
-	if (ERROR_OCCURRED((int) async_req_3_3(phone, NET_SOCKET, socket_id, 0,
-	    service, NULL, &fragment_size, &header_size))) {
+	rc = (int) async_req_3_3(phone, NET_SOCKET, socket_id, 0, service, NULL,
+	    &fragment_size, &header_size);
+	if (rc != EOK) {
 		fibril_rwlock_write_unlock(&socket_globals.lock);
 		free(socket);
-		return ERROR_CODE;
+		return rc;
 	}
 
 	socket->data_fragment_size = (size_t) fragment_size;
@@ -491,16 +491,16 @@ int socket(int domain, int type, int protocol)
 	// finish the new socket initialization
 	socket_initialize(socket, socket_id, phone, service);
 	// store the new socket
-	ERROR_CODE = sockets_add(socket_get_sockets(), socket_id, socket);
+	rc = sockets_add(socket_get_sockets(), socket_id, socket);
 
 	fibril_rwlock_write_unlock(&socket_globals.lock);
-	if (ERROR_CODE < 0) {
+	if (rc < 0) {
 		dyn_fifo_destroy(&socket->received);
 		dyn_fifo_destroy(&socket->accepted);
 		free(socket);
 		async_msg_3(phone, NET_SOCKET_CLOSE, (ipcarg_t) socket_id, 0,
 		    service);
-		return ERROR_CODE;
+		return rc;
 	}
 
 	return socket_id;
@@ -769,9 +769,8 @@ static void socket_destroy(socket_ref socket)
  */
 int closesocket(int socket_id)
 {
-	ERROR_DECLARE;
-
 	socket_ref socket;
+	int rc;
 
 	fibril_rwlock_write_lock(&socket_globals.lock);
 
@@ -786,8 +785,12 @@ int closesocket(int socket_id)
 	}
 
 	// request close
-	ERROR_PROPAGATE((int) async_req_3_0(socket->phone, NET_SOCKET_CLOSE,
-	    (ipcarg_t) socket->socket_id, 0, socket->service));
+	rc = (int) async_req_3_0(socket->phone, NET_SOCKET_CLOSE,
+	    (ipcarg_t) socket->socket_id, 0, socket->service);
+	if (rc != EOK) {
+		fibril_rwlock_write_unlock(&socket_globals.lock);
+		return rc;
+	}
 	// free the socket structure
 	socket_destroy(socket);
 
