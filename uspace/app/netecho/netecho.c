@@ -40,7 +40,6 @@
 #include <str.h>
 #include <task.h>
 #include <arg_parse.h>
-#include <err.h>
 
 #include <net/in.h>
 #include <net/in6.h>
@@ -90,8 +89,6 @@ static void echo_print_help(void)
 
 int main(int argc, char *argv[])
 {
-	ERROR_DECLARE;
-
 	size_t size = 1024;
 	int verbose = 0;
 	char *reply = NULL;
@@ -116,37 +113,52 @@ int main(int argc, char *argv[])
 	int index;
 	size_t reply_length;
 	int value;
+	int rc;
 
 	// parse the command line arguments
 	for (index = 1; index < argc; ++ index) {
 		if (argv[index][0] == '-') {
 			switch (argv[index][1]) {
 			case 'b':
-				ERROR_PROPAGATE(arg_parse_int(argc, argv, &index, &backlog, 0));
+				rc = arg_parse_int(argc, argv, &index, &backlog, 0);
+				if (rc != EOK)
+					return rc;
 				break;
 			case 'c':
-				ERROR_PROPAGATE(arg_parse_int(argc, argv, &index, &count, 0));
+				rc = arg_parse_int(argc, argv, &index, &count, 0);
+				if (rc != EOK)
+					return rc;
 				break;
 			case 'f':
-				ERROR_PROPAGATE(arg_parse_name_int(argc, argv, &index, &family, 0, socket_parse_protocol_family));
+				rc = arg_parse_name_int(argc, argv, &index, &family, 0, socket_parse_protocol_family);
+				if (rc != EOK)
+					return rc;
 				break;
 			case 'h':
 				echo_print_help();
 				return EOK;
 				break;
 			case 'p':
-				ERROR_PROPAGATE(arg_parse_int(argc, argv, &index, &value, 0));
+				rc = arg_parse_int(argc, argv, &index, &value, 0);
+				if (rc != EOK)
+					return rc;
 				port = (uint16_t) value;
 				break;
 			case 'r':
-				ERROR_PROPAGATE(arg_parse_string(argc, argv, &index, &reply, 0));
+				rc = arg_parse_string(argc, argv, &index, &reply, 0);
+				if (rc != EOK)
+					return rc;
 				break;
 			case 's':
-				ERROR_PROPAGATE(arg_parse_int(argc, argv, &index, &value, 0));
+				rc = arg_parse_int(argc, argv, &index, &value, 0);
+				if (rc != EOK)
+					return rc;
 				size = (value >= 0) ? (size_t) value : 0;
 				break;
 			case 't':
-				ERROR_PROPAGATE(arg_parse_name_int(argc, argv, &index, &value, 0, socket_parse_socket_type));
+				rc = arg_parse_name_int(argc, argv, &index, &value, 0, socket_parse_socket_type);
+				if (rc != EOK)
+					return rc;
 				type = (sock_type_t) value;
 				break;
 			case 'v':
@@ -155,24 +167,36 @@ int main(int argc, char *argv[])
 			// long options with the double minus sign ('-')
 			case '-':
 				if (str_lcmp(argv[index] + 2, "backlog=", 6) == 0) {
-					ERROR_PROPAGATE(arg_parse_int(argc, argv, &index, &backlog, 8));
+					rc = arg_parse_int(argc, argv, &index, &backlog, 8);
+					if (rc != EOK)
+						return rc;
 				} else if (str_lcmp(argv[index] + 2, "count=", 6) == 0) {
-					ERROR_PROPAGATE(arg_parse_int(argc, argv, &index, &count, 8));
+					rc = arg_parse_int(argc, argv, &index, &count, 8);
 				} else if (str_lcmp(argv[index] + 2, "family=", 7) == 0) {
-						ERROR_PROPAGATE(arg_parse_name_int(argc, argv, &index, &family, 9, socket_parse_protocol_family));
+					rc = arg_parse_name_int(argc, argv, &index, &family, 9, socket_parse_protocol_family);
+					if (rc != EOK)
+						return rc;
 				} else if (str_lcmp(argv[index] + 2, "help", 5) == 0) {
 					echo_print_help();
 					return EOK;
 				} else if (str_lcmp(argv[index] + 2, "port=", 5) == 0) {
-					ERROR_PROPAGATE(arg_parse_int(argc, argv, &index, &value, 7));
+					rc = arg_parse_int(argc, argv, &index, &value, 7);
+					if (rc != EOK)
+						return rc;
 					port = (uint16_t) value;
 				} else if (str_lcmp(argv[index] + 2, "reply=", 6) == 0) {
-					ERROR_PROPAGATE(arg_parse_string(argc, argv, &index, &reply, 8));
+					rc = arg_parse_string(argc, argv, &index, &reply, 8);
+					if (rc != EOK)
+						return rc;
 				} else if (str_lcmp(argv[index] + 2, "size=", 5) == 0) {
-					ERROR_PROPAGATE(arg_parse_int(argc, argv, &index, &value, 7));
+					rc = arg_parse_int(argc, argv, &index, &value, 7);
+					if (rc != EOK)
+						return rc;
 					size = (value >= 0) ? (size_t) value : 0;
 				} else if (str_lcmp(argv[index] + 2, "type=", 5) == 0) {
-					ERROR_PROPAGATE(arg_parse_name_int(argc, argv, &index, &value, 7, socket_parse_socket_type));
+					rc = arg_parse_name_int(argc, argv, &index, &value, 7, socket_parse_socket_type);
+					if (rc != EOK)
+						return rc;
 					type = (sock_type_t) value;
 				} else if (str_lcmp(argv[index] + 2, "verbose", 8) == 0) {
 					verbose = 1;
@@ -239,16 +263,18 @@ int main(int argc, char *argv[])
 			backlog = 3;
 		}
 		// set the backlog
-		if (ERROR_OCCURRED(listen(listening_id, backlog))) {
-			socket_print_error(stderr, ERROR_CODE, "Socket listen: ", "\n");
-			return ERROR_CODE;
+		rc = listen(listening_id, backlog);
+		if (rc != EOK) {
+			socket_print_error(stderr, rc, "Socket listen: ", "\n");
+			return rc;
 		}
 	}
 
 	// bind the listenning socket
-	if (ERROR_OCCURRED(bind(listening_id, address, addrlen))) {
-		socket_print_error(stderr, ERROR_CODE, "Socket bind: ", "\n");
-		return ERROR_CODE;
+	rc = bind(listening_id, address, addrlen);
+	if (rc != EOK) {
+		socket_print_error(stderr, rc, "Socket bind: ", "\n");
+		return rc;
 	}
 
 	if (verbose)
@@ -300,8 +326,9 @@ int main(int argc, char *argv[])
 					}
 					// parse the source address
 					if (address_start) {
-						if (ERROR_OCCURRED(inet_ntop(address->sa_family, address_start, address_string, sizeof(address_string)))) {
-							fprintf(stderr, "Received address error %d\n", ERROR_CODE);
+						rc = inet_ntop(address->sa_family, address_start, address_string, sizeof(address_string));
+						if (rc != EOK) {
+							fprintf(stderr, "Received address error %d\n", rc);
 						} else {
 							data[length] = '\0';
 							printf("Socket %d received %d bytes from %s:%d\n%s\n", socket_id, length, address_string, port, data);
@@ -310,14 +337,16 @@ int main(int argc, char *argv[])
 				}
 
 				// answer the request either with the static reply or the original data
-				if (ERROR_OCCURRED(sendto(socket_id, reply ? reply : data, reply ? reply_length : length, 0, address, addrlen)))
-					socket_print_error(stderr, ERROR_CODE, "Socket send: ", "\n");
+				rc = sendto(socket_id, reply ? reply : data, reply ? reply_length : length, 0, address, addrlen);
+				if (rc != EOK)
+					socket_print_error(stderr, rc, "Socket send: ", "\n");
 			}
 
 			// close the accepted stream socket
 			if (type == SOCK_STREAM) {
-				if (ERROR_OCCURRED(closesocket(socket_id)))
-					socket_print_error(stderr, ERROR_CODE, "Close socket: ", "\n");
+				rc = closesocket(socket_id);
+				if (rc != EOK)
+					socket_print_error(stderr, rc, "Close socket: ", "\n");
 			}
 
 		}
@@ -334,9 +363,10 @@ int main(int argc, char *argv[])
 		printf("Closing the socket\n");
 
 	// close the listenning socket
-	if (ERROR_OCCURRED(closesocket(listening_id))) {
-		socket_print_error(stderr, ERROR_CODE, "Close socket: ", "\n");
-		return ERROR_CODE;
+	rc = closesocket(listening_id);
+	if (rc != EOK) {
+		socket_print_error(stderr, rc, "Close socket: ", "\n");
+		return rc;
 	}
 
 	if (verbose)

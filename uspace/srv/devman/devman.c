@@ -36,6 +36,7 @@
 #include <ipc/driver.h>
 #include <ipc/devman.h>
 #include <devmap.h>
+#include <str_error.h>
 
 #include "devman.h"
 
@@ -445,17 +446,14 @@ void attach_driver(node_t *node, driver_t *drv)
  */
 bool start_driver(driver_t *drv)
 {
+	int rc;
+
 	printf(NAME ": start_driver '%s'\n", drv->name);
 	
-	const char *argv[2];
-	
-	argv[0] = drv->name;
-	argv[1] = NULL;
-	
-	int err;
-	if (task_spawn(drv->binary_path, argv, &err) == 0) {
-		printf(NAME ": error spawning %s, errno = %d\n",
-		    drv->name, err);
+	rc = task_spawnl(NULL, drv->binary_path, drv->binary_path, NULL);
+	if (rc != EOK) {
+		printf(NAME ": error spawning %s (%s)\n",
+		    drv->name, str_error(rc));
 		return false;
 	}
 	
