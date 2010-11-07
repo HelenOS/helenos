@@ -53,7 +53,6 @@
 #include <async.h>
 #include <ipc/services.h>
 #include <errno.h>
-#include <err.h>
 
 DEVICE_MAP_IMPLEMENT(packet_dimensions, packet_dimension_t);
 
@@ -123,7 +122,7 @@ tl_get_ip_packet_dimension(int ip_phone,
     packet_dimensions_ref packet_dimensions, device_id_t device_id,
     packet_dimension_ref *packet_dimension)
 {
-	ERROR_DECLARE;
+	int rc;
 	
 	if (!packet_dimension)
 		return EBADMEM;
@@ -136,17 +135,17 @@ tl_get_ip_packet_dimension(int ip_phone,
 		if(!*packet_dimension)
 			return ENOMEM;
 		
-		if (ERROR_OCCURRED(ip_packet_size_req(ip_phone, device_id,
-		    *packet_dimension))) {
+		rc = ip_packet_size_req(ip_phone, device_id, *packet_dimension);
+		if (rc != EOK) {
 			free(*packet_dimension);
-			return ERROR_CODE;
+			return rc;
 		}
 		
-		ERROR_CODE = packet_dimensions_add(packet_dimensions, device_id,
+		rc = packet_dimensions_add(packet_dimensions, device_id,
 		    *packet_dimension);
-		if (ERROR_CODE < 0) {
+		if (rc < 0) {
 			free(*packet_dimension);
-			return ERROR_CODE;
+			return rc;
 		}
 	}
 	
@@ -291,11 +290,10 @@ tl_socket_read_packet_data(int packet_phone, packet_ref packet, size_t prefix,
     const packet_dimension_ref dimension, const struct sockaddr *addr,
     socklen_t addrlen)
 {
-	ERROR_DECLARE;
-
 	ipc_callid_t callid;
 	size_t length;
-	void * data;
+	void *data;
+	int rc;
 
 	if (!dimension)
 		return EINVAL;
@@ -318,12 +316,17 @@ tl_socket_read_packet_data(int packet_phone, packet_ref packet, size_t prefix,
 	}
 
 	// read the data into the packet
-	if (ERROR_OCCURRED(async_data_write_finalize(callid, data, length)) ||
-	    // set the packet destination address
-	    ERROR_OCCURRED(packet_set_addr(*packet, NULL, (uint8_t *) addr,
-	    addrlen))) {
+	rc = async_data_write_finalize(callid, data, length);
+	if (rc != EOK) {
 		pq_release_remote(packet_phone, packet_get_id(*packet));
-		return ERROR_CODE;
+		return rc;
+	}
+	
+	// set the packet destination address
+	rc = packet_set_addr(*packet, NULL, (uint8_t *) addr, addrlen);
+	if (rc != EOK) {
+		pq_release_remote(packet_phone, packet_get_id(*packet));
+		return rc;
 	}
 
 	return (int) length;
