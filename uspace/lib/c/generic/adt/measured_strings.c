@@ -40,7 +40,6 @@
 #include <mem.h>
 #include <unistd.h>
 #include <errno.h>
-#include <err.h>
 #include <async.h>
 
 /** Creates a new measured string bundled with a copy of the given string
@@ -134,13 +133,12 @@ int
 measured_strings_receive(measured_string_ref *strings, char **data,
     size_t count)
 {
-	ERROR_DECLARE;
-
 	size_t *lengths;
 	size_t index;
 	size_t length;
 	char *next;
 	ipc_callid_t callid;
+	int rc;
 
 	if ((!strings) || (!data) || (count <= 0))
 		return EINVAL;
@@ -154,10 +152,10 @@ measured_strings_receive(measured_string_ref *strings, char **data,
 		free(lengths);
 		return EINVAL;
 	}
-	if (ERROR_OCCURRED(async_data_write_finalize(callid, lengths,
-	    length))) {
+	rc = async_data_write_finalize(callid, lengths, length);
+	if (rc != EOK) {
 		free(lengths);
-		return ERROR_CODE;
+		return rc;
 	}
 
 	*data = malloc(lengths[count]);
@@ -186,12 +184,13 @@ measured_strings_receive(measured_string_ref *strings, char **data,
 				free(lengths);
 				return EINVAL;
 			}
-			if (ERROR_OCCURRED(async_data_write_finalize(callid,
-			    next, lengths[index]))) {
+			rc = async_data_write_finalize(callid, next,
+			    lengths[index]);
+			if (rc != EOK) {
 				free(*data);
 				free(*strings);
 				free(lengths);
-				return ERROR_CODE;
+				return rc;
 			}
 			(*strings)[index].value = next;
 			next += lengths[index];
@@ -250,12 +249,11 @@ static size_t *prepare_lengths(const measured_string_ref strings, size_t count)
  */
 int measured_strings_reply(const measured_string_ref strings, size_t count)
 {
-	ERROR_DECLARE;
-
 	size_t *lengths;
 	size_t index;
 	size_t length;
 	ipc_callid_t callid;
+	int rc;
 
 	if ((!strings) || (count <= 0))
 		return EINVAL;
@@ -269,9 +267,10 @@ int measured_strings_reply(const measured_string_ref strings, size_t count)
 		free(lengths);
 		return EINVAL;
 	}
-	if (ERROR_OCCURRED(async_data_read_finalize(callid, lengths, length))) {
+	rc = async_data_read_finalize(callid, lengths, length);
+	if (rc != EOK) {
 		free(lengths);
-		return ERROR_CODE;
+		return rc;
 	}
 	free(lengths);
 
@@ -281,8 +280,10 @@ int measured_strings_reply(const measured_string_ref strings, size_t count)
 			    (length != strings[index].length)) {
 				return EINVAL;
 			}
-			ERROR_PROPAGATE(async_data_read_finalize(callid,
-			    strings[index].value, strings[index].length));
+			rc = async_data_read_finalize(callid,
+			    strings[index].value, strings[index].length);
+			if (rc != EOK)
+				return rc;
 		}
 	}
 
@@ -312,11 +313,10 @@ int
 measured_strings_return(int phone, measured_string_ref *strings, char **data,
     size_t count)
 {
-	ERROR_DECLARE;
-
 	size_t *lengths;
 	size_t index;
 	char *next;
+	int rc;
 
 	if ((phone < 0) || (!strings) || (!data) || (count <= 0))
 		return EINVAL;
@@ -325,10 +325,11 @@ measured_strings_return(int phone, measured_string_ref *strings, char **data,
 	if (!lengths)
 		return ENOMEM;
 
-	if (ERROR_OCCURRED(async_data_read_start(phone, lengths,
-	    sizeof(size_t) * (count + 1)))) {
+	rc = async_data_read_start(phone, lengths,
+	    sizeof(size_t) * (count + 1));
+	if (rc != EOK) {
 		free(lengths);
-		return ERROR_CODE;
+		return rc;
 	}
 
 	*data = malloc(lengths[count]);
@@ -349,12 +350,12 @@ measured_strings_return(int phone, measured_string_ref *strings, char **data,
 	for (index = 0; index < count; index++) {
 		(*strings)[index].length = lengths[index];
 		if (lengths[index] > 0) {
-			if (ERROR_OCCURRED(async_data_read_start(phone, next,
-			    lengths[index]))) {
+			rc = async_data_read_start(phone, next, lengths[index]);
+			if (rc != EOK) {
 			    	free(lengths);
 				free(data);
 				free(strings);
-				return ERROR_CODE;
+				return rc;
 			}
 			(*strings)[index].value = next;
 			next += lengths[index];
@@ -386,10 +387,9 @@ int
 measured_strings_send(int phone, const measured_string_ref strings,
     size_t count)
 {
-	ERROR_DECLARE;
-
 	size_t *lengths;
 	size_t index;
+	int rc;
 
 	if ((phone < 0) || (!strings) || (count <= 0))
 		return EINVAL;
@@ -398,18 +398,21 @@ measured_strings_send(int phone, const measured_string_ref strings,
 	if (!lengths)
 		return ENOMEM;
 
-	if (ERROR_OCCURRED(async_data_write_start(phone, lengths,
-	    sizeof(size_t) * (count + 1)))) {
+	rc = async_data_write_start(phone, lengths,
+	    sizeof(size_t) * (count + 1));
+	if (rc != EOK) {
 		free(lengths);
-		return ERROR_CODE;
+		return rc;
 	}
 
 	free(lengths);
 
 	for (index = 0; index < count; index++) {
 		if (strings[index].length > 0) {
-			ERROR_PROPAGATE(async_data_write_start(phone,
-			    strings[index].value, strings[index].length));
+			rc = async_data_write_start(phone, strings[index].value,
+			    strings[index].length);
+			if (rc != EOK)
+				return rc;
 		}
 	}
 
