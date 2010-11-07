@@ -23,10 +23,12 @@ _link.ld
 ./kernel/kernel.raw
 ./kernel/generic/src/debug/real_map.bin
 
+./kernel/arch/ia32/include/common.h
 ./kernel/arch/amd64/include/common.h
 ./kernel/generic/include/arch
 ./kernel/generic/include/genarch
 ./uspace/lib/c/arch/amd64/include/common.h
+./uspace/lib/c/arch/ia32/include/common.h
 ./uspace/lib/c/include/arch
 ./uspace/lib/c/include/kernel
 ./uspace/lib/c/include/libarch
@@ -117,6 +119,10 @@ _link.ld
 ./uspace/dist/srv/udp
 ./uspace/dist/srv/vhcd
 ./uspace/drv/root/root
+./uspace/drv/isa/isa
+./uspace/drv/ns8250/ns8250
+./uspace/drv/pciintel/pciintel
+./uspace/drv/rootia32/rootia32
 ./uspace/srv/bd/ata_bd/ata_bd
 ./uspace/srv/bd/file_bd/file_bd
 ./uspace/srv/bd/gxe_bd/gxe_bd
