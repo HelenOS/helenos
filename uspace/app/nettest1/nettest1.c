@@ -56,63 +56,169 @@
 /** Packet data pattern. */
 #define NETTEST1_TEXT	"Networking test 1 - sockets"
 
-int family = PF_INET;
-sock_type_t type = SOCK_DGRAM;
-char *data;
-size_t size = 27;
-int verbose = 0;
+static int family = PF_INET;
+static sock_type_t type = SOCK_DGRAM;
+static char *data;
+static size_t size = 27;
+static int verbose = 0;
 
-struct sockaddr *address;
-socklen_t addrlen;
+static struct sockaddr *address;
+static socklen_t addrlen;
+
+static int sockets;
+static int messages;
+static uint16_t port;
 
 static void nettest1_print_help(void)
 {
 	printf(
-		"Network Networking test 1 aplication - sockets\n" \
-		"Usage: echo [options] numeric_address\n" \
-		"Where options are:\n" \
-		"-f protocol_family | --family=protocol_family\n" \
-		"\tThe listenning socket protocol family. Only the PF_INET and PF_INET6 are supported.\n"
-		"\n" \
-		"-h | --help\n" \
-		"\tShow this application help.\n"
-		"\n" \
-		"-m count | --messages=count\n" \
-		"\tThe number of messages to send and receive per socket. The default is 10.\n" \
-		"\n" \
-		"-n sockets | --sockets=count\n" \
-		"\tThe number of sockets to use. The default is 10.\n" \
-		"\n" \
-		"-p port_number | --port=port_number\n" \
-		"\tThe port number the application should send messages to. The default is 7.\n" \
-		"\n" \
-		"-s packet_size | --size=packet_size\n" \
-		"\tThe packet data size the application sends. The default is 28 bytes.\n" \
-		"\n" \
-		"-v | --verbose\n" \
-		"\tShow all output messages.\n"
-	);
+	    "Network Networking test 1 aplication - sockets\n"
+	    "Usage: echo [options] numeric_address\n"
+	    "Where options are:\n"
+	    "-f protocol_family | --family=protocol_family\n"
+	    "\tThe listenning socket protocol family. Only the PF_INET and "
+	    "PF_INET6 are supported.\n"
+	    "\n"
+	    "-h | --help\n"
+	    "\tShow this application help.\n"
+	    "\n"
+	    "-m count | --messages=count\n"
+	    "\tThe number of messages to send and receive per socket. The "
+	    "default is 10.\n"
+	    "\n"
+	    "-n sockets | --sockets=count\n"
+	    "\tThe number of sockets to use. The default is 10.\n"
+	    "\n"
+	    "-p port_number | --port=port_number\n"
+	    "\tThe port number the application should send messages to. The "
+	    "default is 7.\n"
+	    "\n"
+	    "-s packet_size | --size=packet_size\n"
+	    "\tThe packet data size the application sends. The default is "
+	    "28 bytes.\n"
+	    "\n"
+	    "-v | --verbose\n"
+	    "\tShow all output messages.\n");
 }
 
-/** Refreshes the data.
+/** Parse one command-line option.
  *
- * Fills the data block with the NETTEST1_TEXT pattern.
- *
- * @param[out] data The data block.
- * @param[in] size The data block size in bytes.
+ * @param argc		Number of all command-line arguments.
+ * @param argv		All command-line arguments.
+ * @param index		Current argument index (in, out).
  */
-static void nettest1_refresh_data(char *data, size_t size)
+static int nettest1_parse_opt(int argc, char *argv[], int *index)
+{
+	int value;
+	int rc;
+
+	switch (argv[*index][1]) {
+	/*
+	 * Short options with only one letter
+	 */
+	case 'f':
+		rc = arg_parse_name_int(argc, argv, index, &family, 0, socket_parse_protocol_family);
+		if (rc != EOK)
+			return rc;
+		break;
+	case 'h':
+		nettest1_print_help();
+		return EOK;
+	case 'm':
+		rc = arg_parse_int(argc, argv, index, &messages, 0);
+		if (rc != EOK)
+			return rc;
+		break;
+	case 'n':
+		rc = arg_parse_int(argc, argv, index, &sockets, 0);
+		if (rc != EOK)
+			return rc;
+		break;
+	case 'p':
+		rc = arg_parse_int(argc, argv, index, &value, 0);
+		if (rc != EOK)
+			return rc;
+		port = (uint16_t) value;
+		break;
+	case 's':
+		rc = arg_parse_int(argc, argv, index, &value, 0);
+		if (rc != EOK)
+			return rc;
+		size = (value >= 0) ? (size_t) value : 0;
+		break;
+	case 't':
+		rc = arg_parse_name_int(argc, argv, index, &value, 0, socket_parse_socket_type);
+		if (rc != EOK)
+			return rc;
+		type = (sock_type_t) value;
+		break;
+	case 'v':
+		verbose = 1;
+		break;
+	/*
+	 * Long options with double dash ('-')
+	 */
+	case '-':
+		if (str_lcmp(argv[*index] + 2, "family=", 7) == 0) {
+			rc = arg_parse_name_int(argc, argv, index, &family, 9,
+			    socket_parse_protocol_family);
+			if (rc != EOK)
+				return rc;
+		} else if (str_lcmp(argv[*index] + 2, "help", 5) == 0) {
+			nettest1_print_help();
+			return EOK;
+		} else if (str_lcmp(argv[*index] + 2, "messages=", 6) == 0) {
+			rc = arg_parse_int(argc, argv, index, &messages, 8);
+			if (rc != EOK)
+				return rc;
+		} else if (str_lcmp(argv[*index] + 2, "sockets=", 6) == 0) {
+			rc = arg_parse_int(argc, argv, index, &sockets, 8);
+			if (rc != EOK)
+				return rc;
+		} else if (str_lcmp(argv[*index] + 2, "port=", 5) == 0) {
+			rc = arg_parse_int(argc, argv, index, &value, 7);
+			if (rc != EOK)
+				return rc;
+			port = (uint16_t) value;
+		} else if (str_lcmp(argv[*index] + 2, "type=", 5) == 0) {
+			rc = arg_parse_name_int(argc, argv, index, &value, 7,
+			    socket_parse_socket_type);
+			if (rc != EOK)
+				return rc;
+			type = (sock_type_t) value;
+		} else if (str_lcmp(argv[*index] + 2, "verbose", 8) == 0) {
+			verbose = 1;
+		} else {
+			nettest1_print_help();
+			return EINVAL;
+		}
+		break;
+	default:
+		nettest1_print_help();
+		return EINVAL;
+	}
+
+	return EOK;
+}
+
+/** Fill buffer with the NETTEST1_TEXT pattern.
+ *
+ * @param buffer	Data buffer.
+ * @param size		Buffer size in bytes.
+ */
+static void nettest1_fill_buffer(char *buffer, size_t size)
 {
 	size_t length;
 
-	// fill the data
 	length = 0;
 	while (size > length + sizeof(NETTEST1_TEXT) - 1) {
-		memcpy(data + length, NETTEST1_TEXT, sizeof(NETTEST1_TEXT) - 1);
+		memcpy(buffer + length, NETTEST1_TEXT,
+		    sizeof(NETTEST1_TEXT) - 1);
 		length += sizeof(NETTEST1_TEXT) - 1;
 	}
-	memcpy(data + length, NETTEST1_TEXT, size - length);
-	data[size] = '\0';
+
+	memcpy(buffer + length, NETTEST1_TEXT, size - length);
+	buffer[size] = '\0';
 }
 
 static int nettest1_test(int *socket_ids, int nsockets, int nmessages)
@@ -127,12 +233,14 @@ static int nettest1_test(int *socket_ids, int nsockets, int nmessages)
 		return rc;
 
 	if (type == SOCK_STREAM) {
-		rc = sockets_connect(verbose, socket_ids, nsockets, address, addrlen);
+		rc = sockets_connect(verbose, socket_ids, nsockets, address,
+		    addrlen);
 		if (rc != EOK)
 			return rc;
 	}
 
-	rc = sockets_sendto_recvfrom(verbose, socket_ids, nsockets, address, &addrlen, data, size, nmessages);
+	rc = sockets_sendto_recvfrom(verbose, socket_ids, nsockets, address,
+	    &addrlen, data, size, nmessages);
 	if (rc != EOK)
 		return rc;
 
@@ -150,16 +258,19 @@ static int nettest1_test(int *socket_ids, int nsockets, int nmessages)
 		return rc;
 
 	if (type == SOCK_STREAM) {
-		rc = sockets_connect(verbose, socket_ids, nsockets, address, addrlen);
+		rc = sockets_connect(verbose, socket_ids, nsockets, address,
+		    addrlen);
 		if (rc != EOK)
 			return rc;
 	}
 
-	rc = sockets_sendto(verbose, socket_ids, nsockets, address, addrlen, data, size, nmessages);
+	rc = sockets_sendto(verbose, socket_ids, nsockets, address, addrlen,
+	    data, size, nmessages);
 	if (rc != EOK)
 		return rc;
 
-	rc = sockets_recvfrom(verbose, socket_ids, nsockets, address, &addrlen, data, size, nmessages);
+	rc = sockets_recvfrom(verbose, socket_ids, nsockets, address, &addrlen,
+	    data, size, nmessages);
 	if (rc != EOK)
 		return rc;
 
@@ -175,9 +286,6 @@ static int nettest1_test(int *socket_ids, int nsockets, int nmessages)
 
 int main(int argc, char *argv[])
 {
-	int sockets = 10;
-	int messages = 10;
-	uint16_t port = 7;
 
 	socklen_t max_length;
 	uint8_t *address_data[sizeof(struct sockaddr_in6)];
@@ -186,7 +294,6 @@ int main(int argc, char *argv[])
 	uint8_t *address_start;
 
 	int *socket_ids;
-	int value;
 	int index;
 	struct timeval time_before;
 	struct timeval time_after;
@@ -198,105 +305,36 @@ int main(int argc, char *argv[])
 	address_in = (struct sockaddr_in *) address;
 	address_in6 = (struct sockaddr_in6 *) address;
 
-	// parse the command line arguments
-	// stop before the last argument if it does not start with the minus sign ('-')
+	sockets = 10;
+	messages = 10;
+	port = 7;
+
+	/*
+	 * Parse the command line arguments. Stop before the last argument
+	 * if it does not start with dash ('-')
+	 */
 	for (index = 1; (index < argc - 1) || ((index == argc - 1) && (argv[index][0] == '-')); index++) {
-		// options should start with the minus sign ('-')
+		/* Options should start with dash ('-') */
 		if (argv[index][0] == '-') {
-			switch (argv[index][1]) {
-			// short options with only one letter
-			case 'f':
-				rc = arg_parse_name_int(argc, argv, &index, &family, 0, socket_parse_protocol_family);
-				if (rc != EOK)
-					return rc;
-				break;
-			case 'h':
-				nettest1_print_help();
-				return EOK;
-			case 'm':
-				rc = arg_parse_int(argc, argv, &index, &messages, 0);
-				if (rc != EOK)
-					return rc;
-				break;
-			case 'n':
-				rc = arg_parse_int(argc, argv, &index, &sockets, 0);
-				if (rc != EOK)
-					return rc;
-				break;
-			case 'p':
-				rc = arg_parse_int(argc, argv, &index, &value, 0);
-				if (rc != EOK)
-					return rc;
-				port = (uint16_t) value;
-				break;
-			case 's':
-				rc = arg_parse_int(argc, argv, &index, &value, 0);
-				if (rc != EOK)
-					return rc;
-				size = (value >= 0) ? (size_t) value : 0;
-				break;
-			case 't':
-				rc = arg_parse_name_int(argc, argv, &index, &value, 0, socket_parse_socket_type);
-				if (rc != EOK)
-					return rc;
-				type = (sock_type_t) value;
-				break;
-			case 'v':
-				verbose = 1;
-				break;
-			// long options with the double minus sign ('-')
-			case '-':
-				if (str_lcmp(argv[index] + 2, "family=", 7) == 0) {
-					rc = arg_parse_name_int(argc, argv, &index, &family, 9, socket_parse_protocol_family);
-					if (rc != EOK)
-						return rc;
-				} else if (str_lcmp(argv[index] + 2, "help", 5) == 0) {
-					nettest1_print_help();
-					return EOK;
-				} else if (str_lcmp(argv[index] + 2, "messages=", 6) == 0) {
-					rc = arg_parse_int(argc, argv, &index, &messages, 8);
-					if (rc != EOK)
-						return rc;
-				} else if (str_lcmp(argv[index] + 2, "sockets=", 6) == 0) {
-					rc = arg_parse_int(argc, argv, &index, &sockets, 8);
-					if (rc != EOK)
-						return rc;
-				} else if (str_lcmp(argv[index] + 2, "port=", 5) == 0) {
-					rc = arg_parse_int(argc, argv, &index, &value, 7);
-					if (rc != EOK)
-						return rc;
-					port = (uint16_t) value;
-				} else if (str_lcmp(argv[index] + 2, "type=", 5) == 0) {
-					rc = arg_parse_name_int(argc, argv, &index, &value, 7, socket_parse_socket_type);
-					if (rc != EOK)
-						return rc;
-					type = (sock_type_t) value;
-				} else if (str_lcmp(argv[index] + 2, "verbose", 8) == 0) {
-					verbose = 1;
-				} else {
-					nettest1_print_help();
-					return EINVAL;
-				}
-				break;
-			default:
-				nettest1_print_help();
-				return EINVAL;
-			}
+			rc = nettest1_parse_opt(argc, argv, &index);
+			if (rc != EOK)
+				return rc;
 		} else {
 			nettest1_print_help();
 			return EINVAL;
 		}
 	}
 
-	// if not before the last argument containing the address
+	/* If not before the last argument containing the address */
 	if (index >= argc) {
 		printf("Command line error: missing address\n");
 		nettest1_print_help();
 		return EINVAL;
 	}
 
-	// prepare the address buffer
+	/* Prepare the address buffer */
 	bzero(address_data, max_length);
+
 	switch (family) {
 	case PF_INET:
 		address_in->sin_family = AF_INET;
@@ -315,36 +353,42 @@ int main(int argc, char *argv[])
 		return EAFNOSUPPORT;
 	}
 
-	// parse the last argument which should contain the address
+	/* Parse the last argument which should contain the address */
 	rc = inet_pton(family, argv[argc - 1], address_start);
 	if (rc != EOK) {
 		fprintf(stderr, "Address parse error %d\n", rc);
 		return rc;
 	}
 
-	// check the buffer size
+	/* Check data buffer size */
 	if (size <= 0) {
-		fprintf(stderr, "Data buffer size too small (%d). Using 1024 bytes instead.\n", size);
+		fprintf(stderr, "Data buffer size too small (%d). Using 1024 "
+		    "bytes instead.\n", size);
 		size = 1024;
 	}
 
-	// prepare the buffer
-	// size plus the terminating null (\0)
+	/*
+	 * Prepare data buffer. Allocate size bytes plus one for the
+	 * trailing null character.
+	 */
 	data = (char *) malloc(size + 1);
 	if (!data) {
 		fprintf(stderr, "Failed to allocate data buffer.\n");
 		return ENOMEM;
 	}
-	nettest1_refresh_data(data, size);
+	nettest1_fill_buffer(data, size);
 
-	// check the socket count
+	/* Check socket count */
 	if (sockets <= 0) {
-		fprintf(stderr, "Socket count too small (%d). Using 2 instead.\n", sockets);
+		fprintf(stderr, "Socket count too small (%d). Using "
+		    "2 instead.\n", sockets);
 		sockets = 2;
 	}
 
-	// prepare the socket buffer
-	// count plus the terminating null (\0)
+	/*
+	 * Prepare socket buffer. Allocate count fields plus the terminating
+	 * null (\0).
+	 */
 	socket_ids = (int *) malloc(sizeof(int) * (sockets + 1));
 	if (!socket_ids) {
 		fprintf(stderr, "Failed to allocate receive buffer.\n");
@@ -372,7 +416,8 @@ int main(int argc, char *argv[])
 		return rc;
 	}
 
-	printf("Tested in %d microseconds\n", tv_sub(&time_after, &time_before));
+	printf("Tested in %d microseconds\n", tv_sub(&time_after,
+	    &time_before));
 
 	if (verbose)
 		printf("Exiting\n");

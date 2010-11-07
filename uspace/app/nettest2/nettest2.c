@@ -97,7 +97,7 @@ static void nettest2_print_help(void)
 	    "\tShow all output messages.\n");
 }
 
-/** Fill buffer with the NETTEST1_TEXT pattern.
+/** Fill buffer with the NETTEST2_TEXT pattern.
  *
  * @param buffer	Data buffer.
  * @param size		Buffer size in bytes.
@@ -127,8 +127,6 @@ static int nettest2_parse_opt(int argc, char *argv[], int *index)
 {
 	int value;
 	int rc;
-
-	rc = EOK;
 
 	switch (argv[*index][1]) {
 	/*
