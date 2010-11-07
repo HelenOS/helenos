@@ -37,7 +37,7 @@
 #include <malloc.h>
 #include <task.h>
 #include <unistd.h>
-#include <err.h>
+#include <errno.h>
 
 #include <ipc/services.h>
 
@@ -66,9 +66,8 @@ add_module(module_ref *module, modules_ref modules, const char *name,
     const char *filename, services_t service, task_id_t task_id,
     connect_module_t connect_module)
 {
-	ERROR_DECLARE;
-
 	module_ref tmp_module;
+	int rc;
 
 	tmp_module = (module_ref) malloc(sizeof(module_t));
 	if (!tmp_module)
@@ -82,10 +81,10 @@ add_module(module_ref *module, modules_ref modules, const char *name,
 	tmp_module->service = service;
 	tmp_module->connect_module = connect_module;
 
-	if (ERROR_OCCURRED(modules_add(modules, tmp_module->name, 0,
-	    tmp_module))) {
+	rc = modules_add(modules, tmp_module->name, 0, tmp_module);
+	if (rc != EOK) {
 		free(tmp_module);
-		return ERROR_CODE;
+		return rc;
 	}
 	if (module)
 		*module = tmp_module;

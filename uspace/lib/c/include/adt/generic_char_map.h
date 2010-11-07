@@ -39,7 +39,6 @@
 
 #include <unistd.h>
 #include <errno.h>
-#include <err.h>
 
 #include <adt/char_map.h>
 #include <adt/generic_field.h>
@@ -84,17 +83,17 @@
 	int name##_add(name##_ref map, const char *name, const size_t length, \
 	     type *value) \
 	{ \
-		ERROR_DECLARE; \
+		int rc; \
 		int index; \
 		if (!name##_is_valid(map)) \
 			return EINVAL; \
 		index = name##_items_add(&map->values, value); \
 		if (index < 0) \
 			return index; \
-		if (ERROR_OCCURRED(char_map_add(&map->names, name, length, \
-		    index))) { \
+		rc = char_map_add(&map->names, name, length, index); \
+		if (rc != EOK) { \
 			name##_items_exclude_index(&map->values, index); \
-			return ERROR_CODE; \
+			return rc; \
 		} \
 		return EOK; \
 	} \
@@ -140,13 +139,16 @@
 	\
 	int name##_initialize(name##_ref map) \
 	{ \
-		ERROR_DECLARE; \
+		int rc; \
 		if (!map) \
 			return EINVAL; \
-		ERROR_PROPAGATE(char_map_initialize(&map->names)); \
-		if (ERROR_OCCURRED(name##_items_initialize(&map->values))) { \
+		rc = char_map_initialize(&map->names); \
+		if (rc != EOK) \
+			return rc; \
+		rc = name##_items_initialize(&map->values); \
+		if (rc != EOK) { \
 			char_map_destroy(&map->names); \
-			return ERROR_CODE; \
+			return rc; \
 		} \
 		map->magic = GENERIC_CHAR_MAP_MAGIC_VALUE; \
 		return EOK; \
