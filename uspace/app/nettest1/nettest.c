@@ -35,8 +35,6 @@
  */
 
 #include <stdio.h>
-#include <err.h>
-
 #include <net/socket.h>
 
 #include "nettest.h"
@@ -86,9 +84,8 @@ int sockets_create(int verbose, int *socket_ids, int sockets, int family, sock_t
  */
 int sockets_close(int verbose, int *socket_ids, int sockets)
 {
-	ERROR_DECLARE;
-
 	int index;
+	int rc;
 
 	if (verbose)
 		printf("\tClose\t");
@@ -96,10 +93,11 @@ int sockets_close(int verbose, int *socket_ids, int sockets)
 	fflush(stdout);
 	
 	for (index = 0; index < sockets; index++) {
-		if (ERROR_OCCURRED(closesocket(socket_ids[index]))) {
+		rc = closesocket(socket_ids[index]);
+		if (rc != EOK) {
 			printf("Socket %d (%d) error:\n", index, socket_ids[index]);
-			socket_print_error(stderr, ERROR_CODE, "Socket close: ", "\n");
-			return ERROR_CODE;
+			socket_print_error(stderr, rc, "Socket close: ", "\n");
+			return rc;
 		}
 		if (verbose)
 			print_mark(index);
@@ -120,9 +118,8 @@ int sockets_close(int verbose, int *socket_ids, int sockets)
  */
 int sockets_connect(int verbose, int *socket_ids, int sockets, struct sockaddr *address, socklen_t addrlen)
 {
-	ERROR_DECLARE;
-
 	int index;
+	int rc;
 
 	if (verbose)
 		printf("\tConnect\t");
@@ -130,9 +127,10 @@ int sockets_connect(int verbose, int *socket_ids, int sockets, struct sockaddr *
 	fflush(stdout);
 	
 	for (index = 0; index < sockets; index++) {
-		if (ERROR_OCCURRED(connect(socket_ids[index], address, addrlen))) {
-			socket_print_error(stderr, ERROR_CODE, "Socket connect: ", "\n");
-			return ERROR_CODE;
+		rc = connect(socket_ids[index], address, addrlen);
+		if (rc != EOK) {
+			socket_print_error(stderr, rc, "Socket connect: ", "\n");
+			return rc;
 		}
 		if (verbose)
 			print_mark(index);
@@ -156,10 +154,9 @@ int sockets_connect(int verbose, int *socket_ids, int sockets, struct sockaddr *
  */
 int sockets_sendto(int verbose, int *socket_ids, int sockets, struct sockaddr *address, socklen_t addrlen, char *data, int size, int messages)
 {
-	ERROR_DECLARE;
-
 	int index;
 	int message;
+	int rc;
 
 	if (verbose)
 		printf("\tSendto\t");
@@ -168,10 +165,11 @@ int sockets_sendto(int verbose, int *socket_ids, int sockets, struct sockaddr *a
 	
 	for (index = 0; index < sockets; index++) {
 		for (message = 0; message < messages; message++) {
-			if (ERROR_OCCURRED(sendto(socket_ids[index], data, size, 0, address, addrlen))) {
+			rc = sendto(socket_ids[index], data, size, 0, address, addrlen);
+			if (rc != EOK) {
 				printf("Socket %d (%d), message %d error:\n", index, socket_ids[index], message);
-				socket_print_error(stderr, ERROR_CODE, "Socket send: ", "\n");
-				return ERROR_CODE;
+				socket_print_error(stderr, rc, "Socket send: ", "\n");
+				return rc;
 			}
 		}
 		if (verbose)
@@ -238,11 +236,10 @@ int sockets_recvfrom(int verbose, int *socket_ids, int sockets, struct sockaddr 
  */
 int sockets_sendto_recvfrom(int verbose, int *socket_ids, int sockets, struct sockaddr *address, socklen_t *addrlen, char *data, int size, int messages)
 {
-	ERROR_DECLARE;
-
 	int value;
 	int index;
 	int message;
+	int rc;
 
 	if (verbose)
 		printf("\tSendto and recvfrom\t");
@@ -251,10 +248,11 @@ int sockets_sendto_recvfrom(int verbose, int *socket_ids, int sockets, struct so
 	
 	for (index = 0; index < sockets; index++) {
 		for (message = 0; message < messages; message++) {
-			if (ERROR_OCCURRED(sendto(socket_ids[index], data, size, 0, address, *addrlen))) {
+			rc = sendto(socket_ids[index], data, size, 0, address, *addrlen);
+			if (rc != EOK) {
 				printf("Socket %d (%d), message %d error:\n", index, socket_ids[index], message);
-				socket_print_error(stderr, ERROR_CODE, "Socket send: ", "\n");
-				return ERROR_CODE;
+				socket_print_error(stderr, rc, "Socket send: ", "\n");
+				return rc;
 			}
 			value = recvfrom(socket_ids[index], data, size, 0, address, addrlen);
 			if (value < 0) {
