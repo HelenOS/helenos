@@ -40,6 +40,7 @@
 #include <str.h>
 #include <fcntl.h>
 #include <str_error.h>
+#include <errno.h>
 
 #include "config.h"
 #include "util.h"
@@ -115,26 +116,28 @@ unsigned int try_exec(char *cmd, char **argv)
 	task_id_t tid;
 	task_exit_t texit;
 	char *tmp;
-	int retval;
+	int rc, retval;
 
 	tmp = str_dup(find_command(cmd));
 	free(found);
 
-	tid = task_spawn(tmp, (const char **) argv, &retval);
+	rc = task_spawnv(&tid, tmp, (const char **) argv);
 	free(tmp);
 
-	if (tid == 0) {
+	if (rc != 0) {
 		cli_error(CL_EEXEC, "%s: Cannot spawn `%s' (%s)", progname, cmd,
-		    str_error(retval));
+		    str_error(rc));
 		return 1;
 	}
 	
-	task_wait(tid, &texit, &retval);
-	if (texit != TASK_EXIT_NORMAL) {
+	rc = task_wait(tid, &texit, &retval);
+	if (rc != EOK) {
+		printf("%s: Failed waiting for command (%s)\n", str_error(rc));
+	} else if (texit != TASK_EXIT_NORMAL) {
 		printf("%s: Command failed (unexpectedly terminated)\n", progname);
 	} else if (retval != 0) {
-		printf("%s: Command failed (%s)\n",
-		    progname, str_error(retval));
+		printf("%s: Command failed (exit code %d)\n",
+		    progname, retval);
 	}
 
 	return 0;

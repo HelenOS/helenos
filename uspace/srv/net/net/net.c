@@ -35,6 +35,8 @@
  *
  */
 
+#include "net.h"
+
 #include <async.h>
 #include <ctype.h>
 #include <ddi.h>
@@ -51,32 +53,26 @@
 #include <ipc/il.h>
 
 #include <net/modules.h>
+#include <net/packet.h>
+#include <net/device.h>
+
 #include <adt/char_map.h>
 #include <adt/generic_char_map.h>
 #include <adt/measured_strings.h>
 #include <adt/module_map.h>
-#include <net/packet.h>
+
 #include <netif_remote.h>
-#include <net/device.h>
 #include <nil_interface.h>
 #include <net_interface.h>
 #include <ip_interface.h>
 
-#include "net.h"
-
-/** Networking module name.
- *
- */
+/** Networking module name. */
 #define NAME  "net"
 
-/** File read buffer size.
- *
- */
+/** File read buffer size. */
 #define BUFFER_SIZE  256
 
-/** Networking module global data.
- *
- */
+/** Networking module global data. */
 net_globals_t net_globals;
 
 GENERIC_CHAR_MAP_IMPLEMENT(measured_strings, measured_string_t);
@@ -99,7 +95,6 @@ int add_configuration(measured_strings_ref configuration, const char *name,
 	
 	measured_string_ref setting =
 	    measured_string_create_bulk(value, 0);
-	
 	if (!setting)
 		return ENOMEM;
 	
@@ -205,7 +200,7 @@ static int read_configuration_file(const char *directory, const char *filename,
 	 */
 	unsigned int line_number = 0;
 	size_t index = 0;
-	while ((!ferror(cfg)) && (!feof(cfg))) {
+	while (!ferror(cfg) && !feof(cfg)) {
 		int read = fgetc(cfg);
 		if ((read > 0) && (read != '\n') && (read != '\r')) {
 			if (index >= BUFFER_SIZE) {
@@ -325,8 +320,8 @@ static int net_module_start(async_client_conn_t client_connection)
 	
 	ipcarg_t phonehash;
 	
-	if (ERROR_OCCURRED(net_initialize(client_connection))
-	    || ERROR_OCCURRED(REGISTER_ME(SERVICE_NETWORKING, &phonehash))){
+	if (ERROR_OCCURRED(net_initialize(client_connection)) ||
+	    ERROR_OCCURRED(REGISTER_ME(SERVICE_NETWORKING, &phonehash))) {
 		pm_destroy();
 		return ERROR_CODE;
 	}
@@ -378,7 +373,7 @@ static int net_get_conf(measured_strings_ref netif_conf,
 int net_get_conf_req(int net_phone, measured_string_ref *configuration,
     size_t count, char **data)
 {
-	if (!(configuration && (count > 0)))
+	if (!configuration || (count <= 0))
 		return EINVAL;
 	
 	return net_get_conf(NULL, *configuration, count, data);
@@ -481,12 +476,12 @@ static int start_device(netif_t *netif)
 	
 	/* Inter-network layer startup */
 	switch (netif->il->service) {
-		case SERVICE_IP:
-			ERROR_PROPAGATE(ip_device_req(netif->il->phone, netif->id,
-			    internet_service));
-			break;
-		default:
-			return ENOENT;
+	case SERVICE_IP:
+		ERROR_PROPAGATE(ip_device_req(netif->il->phone, netif->id,
+		    internet_service));
+		break;
+	default:
+		return ENOENT;
 	}
 	
 	ERROR_PROPAGATE(netif_start_req_remote(netif->driver->phone, netif->id));
@@ -510,7 +505,10 @@ static int startup(void)
 {
 	ERROR_DECLARE;
 	
-	const char *conf_files[] = {"lo", "ne2k"};
+	const char *conf_files[] = {
+		"lo",
+		"ne2k"
+	};
 	size_t count = sizeof(conf_files) / sizeof(char *);
 	
 	size_t i;
@@ -602,33 +600,33 @@ int net_message(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *answer,
 	
 	*answer_count = 0;
 	switch (IPC_GET_METHOD(*call)) {
-		case IPC_M_PHONE_HUNGUP:
-			return EOK;
-		case NET_NET_GET_DEVICE_CONF:
-			ERROR_PROPAGATE(measured_strings_receive(&strings, &data,
-			    IPC_GET_COUNT(call)));
-			net_get_device_conf_req(0, IPC_GET_DEVICE(call), &strings,
-			    IPC_GET_COUNT(call), NULL);
-			
-			/* Strings should not contain received data anymore */
-			free(data);
-			
-			ERROR_CODE = measured_strings_reply(strings, IPC_GET_COUNT(call));
-			free(strings);
-			return ERROR_CODE;
-		case NET_NET_GET_CONF:
-			ERROR_PROPAGATE(measured_strings_receive(&strings, &data,
-			    IPC_GET_COUNT(call)));
-			net_get_conf_req(0, &strings, IPC_GET_COUNT(call), NULL);
-			
-			/* Strings should not contain received data anymore */
-			free(data);
-			
-			ERROR_CODE = measured_strings_reply(strings, IPC_GET_COUNT(call));
-			free(strings);
-			return ERROR_CODE;
-		case NET_NET_STARTUP:
-			return startup();
+	case IPC_M_PHONE_HUNGUP:
+		return EOK;
+	case NET_NET_GET_DEVICE_CONF:
+		ERROR_PROPAGATE(measured_strings_receive(&strings, &data,
+		    IPC_GET_COUNT(call)));
+		net_get_device_conf_req(0, IPC_GET_DEVICE(call), &strings,
+		    IPC_GET_COUNT(call), NULL);
+		
+		/* Strings should not contain received data anymore */
+		free(data);
+		
+		ERROR_CODE = measured_strings_reply(strings, IPC_GET_COUNT(call));
+		free(strings);
+		return ERROR_CODE;
+	case NET_NET_GET_CONF:
+		ERROR_PROPAGATE(measured_strings_receive(&strings, &data,
+		    IPC_GET_COUNT(call)));
+		net_get_conf_req(0, &strings, IPC_GET_COUNT(call), NULL);
+		
+		/* Strings should not contain received data anymore */
+		free(data);
+		
+		ERROR_CODE = measured_strings_reply(strings, IPC_GET_COUNT(call));
+		free(strings);
+		return ERROR_CODE;
+	case NET_NET_STARTUP:
+		return startup();
 	}
 	return ENOTSUP;
 }
@@ -660,7 +658,7 @@ static void net_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		/* Process the message */
 		int res = net_module_message(callid, &call, &answer, &answer_count);
 		
-		/* End if said to either by the message or the processing result */
+		/* End if told to either by the message or the processing result */
 		if ((IPC_GET_METHOD(call) == IPC_M_PHONE_HUNGUP) || (res == EHANGUP))
 			return;
 		

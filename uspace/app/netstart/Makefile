@@ -27,14 +27,13 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-USPACE_PREFIX = ../../..
+USPACE_PREFIX = ../..
 LIBS = $(LIBNET_PREFIX)/libnet.a
 EXTRA_CFLAGS = -I$(LIBNET_PREFIX)/include
 
 BINARY = netstart
 
 SOURCES = \
-	netstart.c \
-	self_test.c
+	netstart.c
 
 include $(USPACE_PREFIX)/Makefile.common

@@ -27,12 +27,12 @@
  */
 
 /** @addtogroup netecho
- *  @{
+ * @{
  */
 
 /** @file
- *  Network echo application.
- *  Answers received packets.
+ * Network echo application.
+ * Answers received packets.
  */
 
 #include <malloc.h>
@@ -40,7 +40,6 @@
 #include <str.h>
 #include <task.h>
 #include <arg_parse.h>
-#include <err.h>
 
 #include <net/in.h>
 #include <net/in6.h>
@@ -50,23 +49,11 @@
 
 #include "print_error.h"
 
-/** Network echo module name.
- */
+/** Network echo module name. */
 #define NAME	"Network Echo"
 
-/** Prints the application help.
- */
-void echo_print_help(void);
-
-/** Module entry point.
- *  Reads command line parameters and starts listenning.
- *  @param[in] argc The number of command line parameters.
- *  @param[in] argv The command line parameters.
- *  @returns EOK on success.
- */
-int main(int argc, char * argv[]);
-
-void echo_print_help(void){
+static void echo_print_help(void)
+{
 	printf(
 		"Network Echo aplication\n" \
 		"Usage: echo [options]\n" \
@@ -100,116 +87,142 @@ void echo_print_help(void){
 	);
 }
 
-int main(int argc, char * argv[]){
-	ERROR_DECLARE;
+int main(int argc, char *argv[])
+{
+	size_t size = 1024;
+	int verbose = 0;
+	char *reply = NULL;
+	sock_type_t type = SOCK_DGRAM;
+	int count = -1;
+	int family = PF_INET;
+	uint16_t port = 7;
+	int backlog = 3;
 
-	size_t size			= 1024;
-	int verbose			= 0;
-	char * reply		= NULL;
-	sock_type_t type	= SOCK_DGRAM;
-	int count			= -1;
-	int family			= PF_INET;
-	uint16_t port		= 7;
-	int backlog			= 3;
-
-	socklen_t max_length				= sizeof(struct sockaddr_in6);
+	socklen_t max_length = sizeof(struct sockaddr_in6);
 	uint8_t address_data[max_length];
-	struct sockaddr * address			= (struct sockaddr *) address_data;
-	struct sockaddr_in * address_in		= (struct sockaddr_in *) address;
-	struct sockaddr_in6 * address_in6	= (struct sockaddr_in6 *) address;
+	struct sockaddr *address = (struct sockaddr *) address_data;
+	struct sockaddr_in *address_in = (struct sockaddr_in *) address;
+	struct sockaddr_in6 *address_in6 = (struct sockaddr_in6 *) address;
 	socklen_t addrlen;
 	char address_string[INET6_ADDRSTRLEN];
-	uint8_t * address_start;
+	uint8_t *address_start;
 	int socket_id;
 	int listening_id;
-	char * data;
+	char *data;
 	size_t length;
 	int index;
 	size_t reply_length;
 	int value;
+	int rc;
 
 	// parse the command line arguments
-	for(index = 1; index < argc; ++ index){
-		if(argv[index][0] == '-'){
-			switch(argv[index][1]){
-				case 'b':
-					ERROR_PROPAGATE(arg_parse_int(argc, argv, &index, &backlog, 0));
-					break;
-				case 'c':
-					ERROR_PROPAGATE(arg_parse_int(argc, argv, &index, &count, 0));
-					break;
-				case 'f':
-					ERROR_PROPAGATE(arg_parse_name_int(argc, argv, &index, &family, 0, socket_parse_protocol_family));
-					break;
-				case 'h':
+	for (index = 1; index < argc; ++ index) {
+		if (argv[index][0] == '-') {
+			switch (argv[index][1]) {
+			case 'b':
+				rc = arg_parse_int(argc, argv, &index, &backlog, 0);
+				if (rc != EOK)
+					return rc;
+				break;
+			case 'c':
+				rc = arg_parse_int(argc, argv, &index, &count, 0);
+				if (rc != EOK)
+					return rc;
+				break;
+			case 'f':
+				rc = arg_parse_name_int(argc, argv, &index, &family, 0, socket_parse_protocol_family);
+				if (rc != EOK)
+					return rc;
+				break;
+			case 'h':
+				echo_print_help();
+				return EOK;
+				break;
+			case 'p':
+				rc = arg_parse_int(argc, argv, &index, &value, 0);
+				if (rc != EOK)
+					return rc;
+				port = (uint16_t) value;
+				break;
+			case 'r':
+				rc = arg_parse_string(argc, argv, &index, &reply, 0);
+				if (rc != EOK)
+					return rc;
+				break;
+			case 's':
+				rc = arg_parse_int(argc, argv, &index, &value, 0);
+				if (rc != EOK)
+					return rc;
+				size = (value >= 0) ? (size_t) value : 0;
+				break;
+			case 't':
+				rc = arg_parse_name_int(argc, argv, &index, &value, 0, socket_parse_socket_type);
+				if (rc != EOK)
+					return rc;
+				type = (sock_type_t) value;
+				break;
+			case 'v':
+				verbose = 1;
+				break;
+			// long options with the double minus sign ('-')
+			case '-':
+				if (str_lcmp(argv[index] + 2, "backlog=", 6) == 0) {
+					rc = arg_parse_int(argc, argv, &index, &backlog, 8);
+					if (rc != EOK)
+						return rc;
+				} else if (str_lcmp(argv[index] + 2, "count=", 6) == 0) {
+					rc = arg_parse_int(argc, argv, &index, &count, 8);
+				} else if (str_lcmp(argv[index] + 2, "family=", 7) == 0) {
+					rc = arg_parse_name_int(argc, argv, &index, &family, 9, socket_parse_protocol_family);
+					if (rc != EOK)
+						return rc;
+				} else if (str_lcmp(argv[index] + 2, "help", 5) == 0) {
 					echo_print_help();
 					return EOK;
-					break;
-				case 'p':
-					ERROR_PROPAGATE(arg_parse_int(argc, argv, &index, &value, 0));
+				} else if (str_lcmp(argv[index] + 2, "port=", 5) == 0) {
+					rc = arg_parse_int(argc, argv, &index, &value, 7);
+					if (rc != EOK)
+						return rc;
 					port = (uint16_t) value;
-					break;
-				case 'r':
-					ERROR_PROPAGATE(arg_parse_string(argc, argv, &index, &reply, 0));
-					break;
-				case 's':
-					ERROR_PROPAGATE(arg_parse_int(argc, argv, &index, &value, 0));
+				} else if (str_lcmp(argv[index] + 2, "reply=", 6) == 0) {
+					rc = arg_parse_string(argc, argv, &index, &reply, 8);
+					if (rc != EOK)
+						return rc;
+				} else if (str_lcmp(argv[index] + 2, "size=", 5) == 0) {
+					rc = arg_parse_int(argc, argv, &index, &value, 7);
+					if (rc != EOK)
+						return rc;
 					size = (value >= 0) ? (size_t) value : 0;
-					break;
-				case 't':
-					ERROR_PROPAGATE(arg_parse_name_int(argc, argv, &index, &value, 0, socket_parse_socket_type));
+				} else if (str_lcmp(argv[index] + 2, "type=", 5) == 0) {
+					rc = arg_parse_name_int(argc, argv, &index, &value, 7, socket_parse_socket_type);
+					if (rc != EOK)
+						return rc;
 					type = (sock_type_t) value;
-					break;
-				case 'v':
+				} else if (str_lcmp(argv[index] + 2, "verbose", 8) == 0) {
 					verbose = 1;
-					break;
-				// long options with the double minus sign ('-')
-				case '-':
-					if(str_lcmp(argv[index] + 2, "backlog=", 6) == 0){
-						ERROR_PROPAGATE(arg_parse_int(argc, argv, &index, &backlog, 8));
-					}else if(str_lcmp(argv[index] + 2, "count=", 6) == 0){
-						ERROR_PROPAGATE(arg_parse_int(argc, argv, &index, &count, 8));
-					}else if(str_lcmp(argv[index] + 2, "family=", 7) == 0){
-						ERROR_PROPAGATE(arg_parse_name_int(argc, argv, &index, &family, 9, socket_parse_protocol_family));
-					}else if(str_lcmp(argv[index] + 2, "help", 5) == 0){
-						echo_print_help();
-						return EOK;
-					}else if(str_lcmp(argv[index] + 2, "port=", 5) == 0){
-						ERROR_PROPAGATE(arg_parse_int(argc, argv, &index, &value, 7));
-						port = (uint16_t) value;
-					}else if(str_lcmp(argv[index] + 2, "reply=", 6) == 0){
-						ERROR_PROPAGATE(arg_parse_string(argc, argv, &index, &reply, 8));
-					}else if(str_lcmp(argv[index] + 2, "size=", 5) == 0){
-						ERROR_PROPAGATE(arg_parse_int(argc, argv, &index, &value, 7));
-						size = (value >= 0) ? (size_t) value : 0;
-					}else if(str_lcmp(argv[index] + 2, "type=", 5) == 0){
-						ERROR_PROPAGATE(arg_parse_name_int(argc, argv, &index, &value, 7, socket_parse_socket_type));
-						type = (sock_type_t) value;
-					}else if(str_lcmp(argv[index] + 2, "verbose", 8) == 0){
-						verbose = 1;
-					}else{
-						echo_print_help();
-						return EINVAL;
-					}
-					break;
-				default:
+				} else {
 					echo_print_help();
 					return EINVAL;
+				}
+				break;
+			default:
+				echo_print_help();
+				return EINVAL;
 			}
-		}else{
+		} else {
 			echo_print_help();
 			return EINVAL;
 		}
 	}
 
 	// check the buffer size
-	if(size <= 0){
+	if (size <= 0) {
 		fprintf(stderr, "Receive size too small (%d). Using 1024 bytes instead.\n", size);
 		size = 1024;
 	}
 	// size plus the terminating null (\0)
 	data = (char *) malloc(size + 1);
-	if(! data){
+	if (!data) {
 		fprintf(stderr, "Failed to allocate receive buffer.\n");
 		return ENOMEM;
 	}
@@ -219,103 +232,104 @@ int main(int argc, char * argv[]){
 
 	// prepare the address buffer
 	bzero(address_data, max_length);
-	switch(family){
-		case PF_INET:
-			address_in->sin_family = AF_INET;
-			address_in->sin_port = htons(port);
-			addrlen = sizeof(struct sockaddr_in);
-			break;
-		case PF_INET6:
-			address_in6->sin6_family = AF_INET6;
-			address_in6->sin6_port = htons(port);
-			addrlen = sizeof(struct sockaddr_in6);
-			break;
-		default:
-			fprintf(stderr, "Protocol family is not supported\n");
-			return EAFNOSUPPORT;
+	switch (family) {
+	case PF_INET:
+		address_in->sin_family = AF_INET;
+		address_in->sin_port = htons(port);
+		addrlen = sizeof(struct sockaddr_in);
+		break;
+	case PF_INET6:
+		address_in6->sin6_family = AF_INET6;
+		address_in6->sin6_port = htons(port);
+		addrlen = sizeof(struct sockaddr_in6);
+		break;
+	default:
+		fprintf(stderr, "Protocol family is not supported\n");
+		return EAFNOSUPPORT;
 	}
 
 	// get a listening socket
 	listening_id = socket(family, type, 0);
-	if(listening_id < 0){
+	if (listening_id < 0) {
 		socket_print_error(stderr, listening_id, "Socket create: ", "\n");
 		return listening_id;
 	}
 
 	// if the stream socket is used
-	if(type == SOCK_STREAM){
+	if (type == SOCK_STREAM) {
 		// check the backlog
-		if(backlog <= 0){
+		if (backlog <= 0) {
 			fprintf(stderr, "Accepted sockets queue size too small (%d). Using 3 instead.\n", size);
 			backlog = 3;
 		}
 		// set the backlog
-		if(ERROR_OCCURRED(listen(listening_id, backlog))){
-			socket_print_error(stderr, ERROR_CODE, "Socket listen: ", "\n");
-			return ERROR_CODE;
+		rc = listen(listening_id, backlog);
+		if (rc != EOK) {
+			socket_print_error(stderr, rc, "Socket listen: ", "\n");
+			return rc;
 		}
 	}
 
 	// bind the listenning socket
-	if(ERROR_OCCURRED(bind(listening_id, address, addrlen))){
-		socket_print_error(stderr, ERROR_CODE, "Socket bind: ", "\n");
-		return ERROR_CODE;
+	rc = bind(listening_id, address, addrlen);
+	if (rc != EOK) {
+		socket_print_error(stderr, rc, "Socket bind: ", "\n");
+		return rc;
 	}
 
-	if(verbose){
+	if (verbose)
 		printf("Socket %d listenning at %d\n", listening_id, port);
-	}
 
 	socket_id = listening_id;
 
 	// do count times
 	// or indefinitely if set to a negative value
-	while(count){
+	while (count) {
 
 		addrlen = max_length;
-		if(type == SOCK_STREAM){
+		if (type == SOCK_STREAM) {
 			// acceept a socket if the stream socket is used
 			socket_id = accept(listening_id, address, &addrlen);
-			if(socket_id <= 0){
+			if (socket_id <= 0) {
 				socket_print_error(stderr, socket_id, "Socket accept: ", "\n");
-			}else{
-				if(verbose){
+			} else {
+				if (verbose)
 					printf("Socket %d accepted\n", socket_id);
-				}
 			}
 		}
 
 		// if the datagram socket is used or the stream socked was accepted
-		if(socket_id > 0){
+		if (socket_id > 0) {
 
 			// receive an echo request
 			value = recvfrom(socket_id, data, size, 0, address, &addrlen);
-			if(value < 0){
+			if (value < 0) {
 				socket_print_error(stderr, value, "Socket receive: ", "\n");
-			}else{
+			} else {
 				length = (size_t) value;
-				if(verbose){
+				if (verbose) {
 					// print the header
 
 					// get the source port and prepare the address buffer
 					address_start = NULL;
-					switch(address->sa_family){
-						case AF_INET:
-							port = ntohs(address_in->sin_port);
-							address_start = (uint8_t *) &address_in->sin_addr.s_addr;
-							break;
-						case AF_INET6:
-							port = ntohs(address_in6->sin6_port);
-							address_start = (uint8_t *) &address_in6->sin6_addr.s6_addr;
-							break;
-						default:
-							fprintf(stderr, "Address family %d (0x%X) is not supported.\n", address->sa_family);
+					switch (address->sa_family) {
+					case AF_INET:
+						port = ntohs(address_in->sin_port);
+						address_start = (uint8_t *) &address_in->sin_addr.s_addr;
+						break;
+					case AF_INET6:
+						port = ntohs(address_in6->sin6_port);
+						address_start = (uint8_t *) &address_in6->sin6_addr.s6_addr;
+						break;
+					default:
+						fprintf(stderr, "Address family %d (0x%X) is not supported.\n", address->sa_family);
 					}
 					// parse the source address
-					if(address_start){
-						if(ERROR_OCCURRED(inet_ntop(address->sa_family, address_start, address_string, sizeof(address_string)))){
-							fprintf(stderr, "Received address error %d\n", ERROR_CODE);
-						}else{
+					if (address_start) {
+						rc = inet_ntop(address->sa_family, address_start, address_string, sizeof(address_string));
+						if (rc != EOK) {
+							fprintf(stderr, "Received address error %d\n", rc);
+						} else {
 							data[length] = '\0';
 							printf("Socket %d received %d bytes from %s:%d\n%s\n", socket_id, length, address_string, port, data);
 						}
@@ -323,43 +337,40 @@ int main(int argc, char * argv[]){
 				}
 
 				// answer the request either with the static reply or the original data
-				if(ERROR_OCCURRED(sendto(socket_id, reply ? reply : data, reply ? reply_length : length, 0, address, addrlen))){
-					socket_print_error(stderr, ERROR_CODE, "Socket send: ", "\n");
-				}
-
+				rc = sendto(socket_id, reply ? reply : data, reply ? reply_length : length, 0, address, addrlen);
+				if (rc != EOK)
+					socket_print_error(stderr, rc, "Socket send: ", "\n");
 			}
 
 			// close the accepted stream socket
-			if(type == SOCK_STREAM){
-				if(ERROR_OCCURRED(closesocket(socket_id))){
-					socket_print_error(stderr, ERROR_CODE, "Close socket: ", "\n");
-				}
+			if (type == SOCK_STREAM) {
+				rc = closesocket(socket_id);
+				if (rc != EOK)
+					socket_print_error(stderr, rc, "Close socket: ", "\n");
 			}
 
 		}
 
 		// decrease the count if positive
-		if(count > 0){
-			-- count;
-			if(verbose){
+		if (count > 0) {
+			count--;
+			if (verbose)
 				printf("Waiting for next %d packet(s)\n", count);
-			}
 		}
 	}
 
-	if(verbose){
+	if (verbose)
 		printf("Closing the socket\n");
-	}
 
 	// close the listenning socket
-	if(ERROR_OCCURRED(closesocket(listening_id))){
-		socket_print_error(stderr, ERROR_CODE, "Close socket: ", "\n");
-		return ERROR_CODE;
+	rc = closesocket(listening_id);
+	if (rc != EOK) {
+		socket_print_error(stderr, rc, "Close socket: ", "\n");
+		return rc;
 	}
 
-	if(verbose){
+	if (verbose)
 		printf("Exiting\n");
-	}
 
 	return EOK;
 }

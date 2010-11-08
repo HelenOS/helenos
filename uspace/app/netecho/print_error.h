@@ -27,52 +27,35 @@
  */
 
 /** @addtogroup net_app
- *  @{
+ * @{
  */
 
 /** @file
- *  Generic application error printing functions.
+ * Generic application error printing functions.
  */
 
-#ifndef __NET_APP_PRINT__
-#define __NET_APP_PRINT__
+#ifndef NET_APP_PRINT_
+#define NET_APP_PRINT_
+
+#include <stdio.h>
 
 /** Returns whether the error code may be an ICMP error code.
- *  @param[in] error_code The error code.
- *  @returns A value indicating whether the error code may be an ICMP error code.
+ *
+ * @param[in] error_code The error code.
+ * @returns A value indicating whether the error code may be an ICMP error code.
  */
-#define IS_ICMP_ERROR(error_code)		((error_code) > 0)
+#define IS_ICMP_ERROR(error_code)	((error_code) > 0)
 
 /** Returns whether the error code may be socket error code.
- *  @param[in] error_code The error code.
- *  @returns A value indicating whether the error code may be a socket error code.
+ *
+ * @param[in] error_code The error code.
+ * @returns A value indicating whether the error code may be a socket error code.
  */
 #define IS_SOCKET_ERROR(error_code)	((error_code) < 0)
 
-/** Prints the specific ICMP error description.
- *  @param[in] output The description output stream. May be NULL.
- *  @param[in] error_code The ICMP error code.
- *  @param[in] prefix The error description prefix. May be NULL.
- *  @param[in] suffix The error description suffix. May be NULL.
- */
-extern void icmp_print_error(FILE * output, int error_code, const char * prefix, const char * suffix);
-
-/** Prints the error description.
- *  Supports ICMP and socket error codes.
- *  @param[in] output The description output stream. May be NULL.
- *  @param[in] error_code The error code.
- *  @param[in] prefix The error description prefix. May be NULL.
- *  @param[in] suffix The error description suffix. May be NULL.
- */
-extern void print_error(FILE * output, int error_code, const char * prefix, const char * suffix);
-
-/** Prints the specific socket error description.
- *  @param[in] output The description output stream. May be NULL.
- *  @param[in] error_code The socket error code.
- *  @param[in] prefix The error description prefix. May be NULL.
- *  @param[in] suffix The error description suffix. May be NULL.
- */
-extern void socket_print_error(FILE * output, int error_code, const char * prefix, const char * suffix);
+extern void icmp_print_error(FILE *, int, const char *, const char *);
+extern void print_error(FILE *, int, const char *, const char *);
+extern void socket_print_error(FILE *, int, const char *, const char *);
 
 #endif
 

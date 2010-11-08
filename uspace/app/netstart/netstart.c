@@ -31,11 +31,7 @@
  */
 
 /** @file
- *
  * Start the networking subsystem.
- * Perform networking self-test if executed
- * with the -s argument.
- *
  */
 
 #define NAME  "netstart"
@@ -44,37 +40,28 @@
 #include <stdio.h>
 #include <task.h>
 #include <str_error.h>
-#include <err.h>
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <ipc/net_net.h>
 
 #include <net/modules.h>
 
-#include "self_test.h"
-
 /** Start a module.
  *
- * @param[in] desc The module description
- * @param[in] path The module absolute path.
- *
- * @returns true on succesful spanwning
- * @returns false on failure
- *
+ * @param[in] desc	The module description
+ * @param[in] path	The module absolute path.
+ * @returns		True on succesful spanwning.
+ * @returns		False on failure
  */
 static bool spawn(const char *desc, const char *path)
 {
+	int rc;
+
 	printf("%s: Spawning %s (%s)\n", NAME, desc, path);
-	
-	const char *argv[2];
-	
-	argv[0] = path;
-	argv[1] = NULL;
-	
-	int err;
-	if (task_spawn(path, argv, &err) == 0) {
+	rc = task_spawnl(NULL, path, path, NULL);
+	if (rc != EOK) {
 		fprintf(stderr, "%s: Error spawning %s (%s)\n", NAME, path,
-		    str_error(err));
+		    str_error(rc));
 		return false;
 	}
 	
@@ -83,11 +70,7 @@ static bool spawn(const char *desc, const char *path)
 
 int main(int argc, char *argv[])
 {
-	ERROR_DECLARE;
-	
-	/* Run self-tests */
-	if ((argc > 1) && (str_cmp(argv[1], "-s") == 0))
-		ERROR_PROPAGATE(self_test());
+	int rc;
 	
 	if (!spawn("networking service", "/srv/net"))
 		return EINVAL;
@@ -95,9 +78,10 @@ int main(int argc, char *argv[])
 	printf("%s: Initializing networking\n", NAME);
 	
 	int net_phone = connect_to_service(SERVICE_NETWORKING);
-	if (ERROR_OCCURRED(ipc_call_sync_0_0(net_phone, NET_NET_STARTUP))) {
-		fprintf(stderr, "%s: Startup error %d\n", NAME, ERROR_CODE);
-		return ERROR_CODE;
+	rc = ipc_call_sync_0_0(net_phone, NET_NET_STARTUP);
+	if (rc != EOK) {
+		fprintf(stderr, "%s: Startup error %d\n", NAME, rc);
+		return rc;
 	}
 	
 	return EOK;

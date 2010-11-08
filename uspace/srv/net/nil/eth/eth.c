@@ -41,7 +41,7 @@
 #include <stdio.h>
 #include <byteorder.h>
 #include <str.h>
-#include <err.h>
+#include <errno.h>
 
 #include <ipc/ipc.h>
 #include <ipc/net.h>
@@ -195,7 +195,7 @@ int nil_device_state_msg_local(int nil_phone, device_id_t device_id, int state)
 
 int nil_initialize(int net_phone)
 {
-	ERROR_DECLARE;
+	int rc;
 
 	fibril_rwlock_initialize(&eth_globals.devices_lock);
 	fibril_rwlock_initialize(&eth_globals.protos_lock);
@@ -207,14 +207,16 @@ int nil_initialize(int net_phone)
 	    measured_string_create_bulk("\xFF\xFF\xFF\xFF\xFF\xFF",
 	    CONVERT_SIZE(uint8_t, char, ETH_ADDR));
 	if (!eth_globals.broadcast_addr) {
-		ERROR_CODE = ENOMEM;
+		rc = ENOMEM;
 		goto out;
 	}
-	if (ERROR_OCCURRED(eth_devices_initialize(&eth_globals.devices))) {
+	rc = eth_devices_initialize(&eth_globals.devices);
+	if (rc != EOK) {
 		free(eth_globals.broadcast_addr);
 		goto out;
 	}
-	if (ERROR_OCCURRED(eth_protos_initialize(&eth_globals.protos))) {
+	rc = eth_protos_initialize(&eth_globals.protos);
+	if (rc != EOK) {
 		free(eth_globals.broadcast_addr);
 		eth_devices_destroy(&eth_globals.devices);
 	}
@@ -222,7 +224,7 @@ out:
 	fibril_rwlock_write_unlock(&eth_globals.protos_lock);
 	fibril_rwlock_write_unlock(&eth_globals.devices_lock);
 	
-	return ERROR_CODE;
+	return rc;
 }
 
 /** Processes IPC messages from the registered device driver modules in an
@@ -233,9 +235,8 @@ out:
  */
 static void eth_receiver(ipc_callid_t iid, ipc_call_t *icall)
 {
-	ERROR_DECLARE;
-
 	packet_t packet;
+	int rc;
 
 	while (true) {
 		switch (IPC_GET_METHOD(*icall)) {
@@ -245,13 +246,13 @@ static void eth_receiver(ipc_callid_t iid, ipc_call_t *icall)
 			ipc_answer_0(iid, EOK);
 			break;
 		case NET_NIL_RECEIVED:
-			if (ERROR_NONE(packet_translate_remote(
-			    eth_globals.net_phone, &packet,
-			    IPC_GET_PACKET(icall)))) {
-				ERROR_CODE = nil_received_msg_local(0,
+			rc = packet_translate_remote(eth_globals.net_phone,
+			    &packet, IPC_GET_PACKET(icall));
+			if (rc == EOK) {
+				rc = nil_received_msg_local(0,
 				    IPC_GET_DEVICE(icall), packet, 0);
 			}
-			ipc_answer_0(iid, (ipcarg_t) ERROR_CODE);
+			ipc_answer_0(iid, (ipcarg_t) rc);
 			break;
 		default:
 			ipc_answer_0(iid, (ipcarg_t) ENOTSUP);
@@ -281,8 +282,6 @@ static void eth_receiver(ipc_callid_t iid, ipc_call_t *icall)
 static int
 eth_device_message(device_id_t device_id, services_t service, size_t mtu)
 {
-	ERROR_DECLARE;
-
 	eth_device_ref device;
 	int index;
 	measured_string_t names[2] = {
@@ -299,6 +298,7 @@ eth_device_message(device_id_t device_id, services_t service, size_t mtu)
 	size_t count = sizeof(names) / sizeof(measured_string_t);
 	char *data;
 	eth_proto_ref proto;
+	int rc;
 
 	fibril_rwlock_write_lock(&eth_globals.devices_lock);
 	// an existing device?
@@ -350,11 +350,12 @@ eth_device_message(device_id_t device_id, services_t service, size_t mtu)
 		device->mtu = ETH_MAX_TAGGED_CONTENT(device->flags);
 
 	configuration = &names[0];
-	if (ERROR_OCCURRED(net_get_device_conf_req(eth_globals.net_phone,
-	    device->device_id, &configuration, count, &data))) {
+	rc = net_get_device_conf_req(eth_globals.net_phone, device->device_id,
+	    &configuration, count, &data);
+	if (rc != EOK) {
 		fibril_rwlock_write_unlock(&eth_globals.devices_lock);
 		free(device);
-		return ERROR_CODE;
+		return rc;
 	}
 	if (configuration) {
 		if (!str_lcmp(configuration[0].value, "DIX",
@@ -386,11 +387,12 @@ eth_device_message(device_id_t device_id, services_t service, size_t mtu)
 	}
 	
 	// get hardware address
-	if (ERROR_OCCURRED(netif_get_addr_req(device->phone, device->device_id,
-	    &device->addr, &device->addr_data))) {
+	rc = netif_get_addr_req(device->phone, device->device_id, &device->addr,
+	    &device->addr_data);
+	if (rc != EOK) {
 		fibril_rwlock_write_unlock(&eth_globals.devices_lock);
 		free(device);
-		return ERROR_CODE;
+		return rc;
 	}
 	
 	// add to the cache
@@ -428,15 +430,14 @@ eth_device_message(device_id_t device_id, services_t service, size_t mtu)
  */
 static eth_proto_ref eth_process_packet(int flags, packet_t packet)
 {
-	ERROR_DECLARE;
-
 	eth_header_snap_ref header;
 	size_t length;
 	eth_type_t type;
 	size_t prefix;
 	size_t suffix;
 	eth_fcs_ref fcs;
-	uint8_t * data;
+	uint8_t *data;
+	int rc;
 
 	length = packet_get_data_length(packet);
 	
@@ -487,16 +488,19 @@ static eth_proto_ref eth_process_packet(int flags, packet_t packet)
 	}
 	
 	if (IS_DUMMY(flags)) {
-		if ((~compute_crc32(~0U, data, length * 8)) != ntohl(*fcs))
+		if (~compute_crc32(~0U, data, length * 8) != ntohl(*fcs))
 			return NULL;
 		suffix += sizeof(eth_fcs_t);
 	}
 	
-	if (ERROR_OCCURRED(packet_set_addr(packet,
-	    header->header.source_address, header->header.destination_address,
-	    ETH_ADDR)) || ERROR_OCCURRED(packet_trim(packet, prefix, suffix))) {
+	rc = packet_set_addr(packet, header->header.source_address,
+	    header->header.destination_address, ETH_ADDR);
+	if (rc != EOK)
 		return NULL;
-	}
+
+	rc = packet_trim(packet, prefix, suffix);
+	if (rc != EOK)
+		return NULL;
 	
 	return eth_protos_find(&eth_globals.protos, type);
 }
@@ -780,12 +784,11 @@ eth_prepare_packet(int flags, packet_t packet, uint8_t *src_addr, int ethertype,
 static int
 eth_send_message(device_id_t device_id, packet_t packet, services_t sender)
 {
-	ERROR_DECLARE;
-
 	eth_device_ref device;
 	packet_t next;
 	packet_t tmp;
 	int ethertype;
+	int rc;
 
 	ethertype = htons(protocol_map(SERVICE_ETHERNET, sender));
 	if (!ethertype) {
@@ -803,8 +806,9 @@ eth_send_message(device_id_t device_id, packet_t packet, services_t sender)
 	// process packet queue
 	next = packet;
 	do {
-		if (ERROR_OCCURRED(eth_prepare_packet(device->flags, next,
-		    (uint8_t *) device->addr->value, ethertype, device->mtu))) {
+		rc = eth_prepare_packet(device->flags, next,
+		    (uint8_t *) device->addr->value, ethertype, device->mtu);
+		if (rc != EOK) {
 			// release invalid packet
 			tmp = pq_detach(next);
 			if (next == packet)
@@ -831,14 +835,13 @@ int
 nil_message_standalone(const char *name, ipc_callid_t callid, ipc_call_t *call,
     ipc_call_t *answer, int *answer_count)
 {
-	ERROR_DECLARE;
-	
 	measured_string_ref address;
 	packet_t packet;
 	size_t addrlen;
 	size_t prefix;
 	size_t suffix;
 	size_t content;
+	int rc;
 	
 	*answer_count = 0;
 	switch (IPC_GET_METHOD(*call)) {
@@ -849,13 +852,17 @@ nil_message_standalone(const char *name, ipc_callid_t callid, ipc_call_t *call,
 		return eth_device_message(IPC_GET_DEVICE(call),
 		    IPC_GET_SERVICE(call), IPC_GET_MTU(call));
 	case NET_NIL_SEND:
-		ERROR_PROPAGATE(packet_translate_remote(eth_globals.net_phone,
-		    &packet, IPC_GET_PACKET(call)));
+		rc = packet_translate_remote(eth_globals.net_phone, &packet,
+		    IPC_GET_PACKET(call));
+		if (rc != EOK)
+			return rc;
 		return eth_send_message(IPC_GET_DEVICE(call), packet,
 		    IPC_GET_SERVICE(call));
 	case NET_NIL_PACKET_SPACE:
-		ERROR_PROPAGATE(eth_packet_space_message(IPC_GET_DEVICE(call),
-		    &addrlen, &prefix, &content, &suffix));
+		rc = eth_packet_space_message(IPC_GET_DEVICE(call), &addrlen,
+		    &prefix, &content, &suffix);
+		if (rc != EOK)
+			return rc;
 		IPC_SET_ADDR(answer, addrlen);
 		IPC_SET_PREFIX(answer, prefix);
 		IPC_SET_CONTENT(answer, content);
@@ -863,12 +870,16 @@ nil_message_standalone(const char *name, ipc_callid_t callid, ipc_call_t *call,
 		*answer_count = 4;
 		return EOK;
 	case NET_NIL_ADDR:
-		ERROR_PROPAGATE(eth_addr_message(IPC_GET_DEVICE(call),
-		    ETH_LOCAL_ADDR, &address));
+		rc = eth_addr_message(IPC_GET_DEVICE(call), ETH_LOCAL_ADDR,
+		    &address);
+		if (rc != EOK)
+			return rc;
 		return measured_strings_reply(address, 1);
 	case NET_NIL_BROADCAST_ADDR:
-		ERROR_PROPAGATE(eth_addr_message(IPC_GET_DEVICE(call),
-		    ETH_BROADCAST_ADDR, &address));
+		rc = eth_addr_message(IPC_GET_DEVICE(call), ETH_BROADCAST_ADDR,
+		    &address);
+		if (rc != EOK)
+			return EOK;
 		return measured_strings_reply(address, 1);
 	case IPC_M_CONNECT_TO_ME:
 		return eth_register_message(NIL_GET_PROTO(call),
@@ -922,11 +933,11 @@ static void nil_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 int main(int argc, char *argv[])
 {
-	ERROR_DECLARE;
+	int rc;
 	
 	/* Start the module */
-	ERROR_PROPAGATE(nil_module_start_standalone(nil_client_connection));
-	return EOK;
+	rc = nil_module_start_standalone(nil_client_connection);
+	return rc;
 }
 
 /** @}

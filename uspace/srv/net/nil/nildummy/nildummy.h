@@ -61,7 +61,7 @@ typedef nildummy_device_t *nildummy_device_ref;
 /** Type definition of the dummy nil protocol specific data.
  * @see nildummy_proto
  */
-typedef struct nildummy_proto	nildummy_proto_t;
+typedef struct nildummy_proto nildummy_proto_t;
 
 /** Type definition of the dummy nil protocol specific data pointer.
  * @see nildummy_proto
@@ -99,7 +99,7 @@ struct nildummy_proto {
 };
 
 /** Dummy nil global data. */
-struct	nildummy_globals {
+struct nildummy_globals {
 	/** Networking module phone. */
 	int net_phone;
 	/** Safety lock for devices. */

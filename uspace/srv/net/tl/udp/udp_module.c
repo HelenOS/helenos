@@ -27,73 +27,68 @@
  */
 
 /** @addtogroup udp
- *  @{
+ * @{
  */
 
 /** @file
- *  UDP standalone module implementation.
- *  Contains skeleton module functions mapping.
- *  The functions are used by the module skeleton as module specific entry points.
- *  @see module.c
+ * UDP standalone module implementation.
+ * Contains skeleton module functions mapping.
+ * The functions are used by the module skeleton as module specific entry
+ * points.
+ * @see module.c
  */
+
+#include "udp.h"
+#include "udp_module.h"
 
 #include <async.h>
 #include <stdio.h>
-#include <err.h>
+#include <errno.h>
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 
 #include <net/modules.h>
 #include <net/packet.h>
+
 #include <net_interface.h>
 #include <tl_local.h>
 
-#include "udp.h"
-#include "udp_module.h"
+/** UDP module global data. */
+extern udp_globals_t udp_globals;
 
-/** UDP module global data.
- */
-extern udp_globals_t	udp_globals;
-
-/** Starts the UDP module.
- *  Initializes the client connection serving function, initializes the module, registers the module service and starts the async manager, processing IPC messages in an infinite loop.
- *  @param[in] client_connection The client connection processing function. The module skeleton propagates its own one.
- *  @returns EOK on successful module termination.
- *  @returns Other error codes as defined for the udp_initialize() function.
- *  @returns Other error codes as defined for the REGISTER_ME() macro function.
- */
-int tl_module_start_standalone(async_client_conn_t client_connection){
-	ERROR_DECLARE;
-
+int tl_module_start_standalone(async_client_conn_t client_connection)
+{
 	ipcarg_t phonehash;
+	int rc;
 
 	async_set_client_connection(client_connection);
 	udp_globals.net_phone = net_connect_module();
-	if(udp_globals.net_phone < 0){
+	if (udp_globals.net_phone < 0)
 		return udp_globals.net_phone;
-	}
-	ERROR_PROPAGATE(pm_init());
-	if(ERROR_OCCURRED(udp_initialize(client_connection))
-		|| ERROR_OCCURRED(REGISTER_ME(SERVICE_UDP, &phonehash))){
-		pm_destroy();
-		return ERROR_CODE;
-	}
+	
+	rc = pm_init();
+	if (rc != EOK)
+		return EOK;
+		
+	rc = udp_initialize(client_connection);
+	if (rc != EOK)
+		goto out;
+	
+	rc = REGISTER_ME(SERVICE_UDP, &phonehash);
+	if (rc != EOK)
+		goto out;
 
 	async_manager();
 
+out:
 	pm_destroy();
-	return EOK;
+	return rc;
 }
 
-/** Processes the UDP message.
- *  @param[in] callid The message identifier.
- *  @param[in] call The message parameters.
- *  @param[out] answer The message answer parameters.
- *  @param[out] answer_count The last parameter for the actual answer in the answer parameter.
- *  @returns EOK on success.
- *  @returns Other error codes as defined for the udp_message() function.
- */
-int tl_module_message_standalone(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count){
+int
+tl_module_message_standalone(ipc_callid_t callid, ipc_call_t *call,
+    ipc_call_t *answer, int *answer_count)
+{
 	return udp_message_standalone(callid, call, answer, answer_count);
 }
 

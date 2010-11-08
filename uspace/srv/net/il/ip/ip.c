@@ -40,7 +40,6 @@
 
 #include <async.h>
 #include <errno.h>
-#include <err.h>
 #include <fibril_synch.h>
 #include <stdio.h>
 #include <str.h>
@@ -253,7 +252,7 @@ ip_prepare_icmp_and_get_phone(services_t error, packet_t packet,
  */
 int ip_initialize(async_client_conn_t client_connection)
 {
-	ERROR_DECLARE;
+	int rc;
 
 	fibril_rwlock_initialize(&ip_globals.lock);
 	fibril_rwlock_write_lock(&ip_globals.lock);
@@ -264,15 +263,24 @@ int ip_initialize(async_client_conn_t client_connection)
 	ip_globals.gateway.netmask.s_addr = 0;
 	ip_globals.gateway.gateway.s_addr = 0;
 	ip_globals.gateway.netif = NULL;
-	ERROR_PROPAGATE(ip_netifs_initialize(&ip_globals.netifs));
-	ERROR_PROPAGATE(ip_protos_initialize(&ip_globals.protos));
 	ip_globals.client_connection = client_connection;
-	ERROR_PROPAGATE(modules_initialize(&ip_globals.modules));
-	ERROR_PROPAGATE(add_module(NULL, &ip_globals.modules, ARP_NAME,
-	    ARP_FILENAME, SERVICE_ARP, 0, arp_connect_module));
+	
+	rc = ip_netifs_initialize(&ip_globals.netifs);
+	if (rc != EOK)
+		goto out;
+	rc = ip_protos_initialize(&ip_globals.protos);
+	if (rc != EOK)
+		goto out;
+	rc = modules_initialize(&ip_globals.modules);
+	if (rc != EOK)
+		goto out;
+	rc = add_module(NULL, &ip_globals.modules, ARP_NAME, ARP_FILENAME,
+	    SERVICE_ARP, 0, arp_connect_module);
+
+out:
 	fibril_rwlock_write_unlock(&ip_globals.lock);
 
-	return EOK;
+	return rc;
 }
 
 /** Initializes a new network interface specific data.
@@ -301,8 +309,6 @@ int ip_initialize(async_client_conn_t client_connection)
  */
 static int ip_netif_initialize(ip_netif_ref ip_netif)
 {
-	ERROR_DECLARE;
-
 	measured_string_t names[] = {
 		{
 			(char *) "IPV",
@@ -341,9 +347,10 @@ static int ip_netif_initialize(ip_netif_ref ip_netif)
 	size_t count = sizeof(names) / sizeof(measured_string_t);
 	char *data;
 	measured_string_t address;
-	int index;
 	ip_route_ref route;
 	in_addr_t gateway;
+	int index;
+	int rc;
 
 	ip_netif->arp = NULL;
 	route = NULL;
@@ -353,8 +360,11 @@ static int ip_netif_initialize(ip_netif_ref ip_netif)
 	configuration = &names[0];
 
 	// get configuration
-	ERROR_PROPAGATE(net_get_device_conf_req(ip_globals.net_phone,
-	    ip_netif->device_id, &configuration, count, &data));
+	rc = net_get_device_conf_req(ip_globals.net_phone, ip_netif->device_id,
+	    &configuration, count, &data);
+	if (rc != EOK)
+		return rc;
+	
 	if (configuration) {
 		if (configuration[0].value)
 			ip_netif->ipv = strtol(configuration[0].value, NULL, 0);
@@ -382,12 +392,11 @@ static int ip_netif_initialize(ip_netif_ref ip_netif)
 				free(route);
 				return index;
 			}
-			if (ERROR_OCCURRED(inet_pton(AF_INET,
-			    configuration[2].value,
-			    (uint8_t *) &route->address.s_addr)) ||
-			    ERROR_OCCURRED(inet_pton(AF_INET,
-			    configuration[3].value,
-			    (uint8_t *) &route->netmask.s_addr)) ||
+			
+			if ((inet_pton(AF_INET, configuration[2].value,
+			    (uint8_t *) &route->address.s_addr) != EOK) ||
+			    (inet_pton(AF_INET, configuration[3].value,
+			    (uint8_t *) &route->netmask.s_addr) != EOK) ||
 			    (inet_pton(AF_INET, configuration[4].value,
 			    (uint8_t *) &gateway.s_addr) == EINVAL) ||
 			    (inet_pton(AF_INET, configuration[5].value,
@@ -433,17 +442,23 @@ static int ip_netif_initialize(ip_netif_ref ip_netif)
 		if (route) {
 			address.value = (char *) &route->address.s_addr;
 			address.length = CONVERT_SIZE(in_addr_t, char, 1);
-			ERROR_PROPAGATE(arp_device_req(ip_netif->arp->phone,
+			
+			rc = arp_device_req(ip_netif->arp->phone,
 			    ip_netif->device_id, SERVICE_IP, ip_netif->service,
-			    &address));
+			    &address);
+			if (rc != EOK)
+				return rc;
 		} else {
 			ip_netif->arp = 0;
 		}
 	}
 
 	// get packet dimensions
-	ERROR_PROPAGATE(nil_packet_size_req(ip_netif->phone,
-	    ip_netif->device_id, &ip_netif->packet_dimension));
+	rc = nil_packet_size_req(ip_netif->phone, ip_netif->device_id,
+	    &ip_netif->packet_dimension);
+	if (rc != EOK)
+		return rc;
+	
 	if (ip_netif->packet_dimension.content < IP_MIN_CONTENT) {
 		printf("Maximum transmission unit %d bytes is too small, at "
 		    "least %d bytes are needed\n",
@@ -609,13 +624,12 @@ static int
 ip_prepare_packet(in_addr_t *source, in_addr_t dest, packet_t packet,
     measured_string_ref destination)
 {
-	ERROR_DECLARE;
-
 	size_t length;
 	ip_header_ref header;
 	ip_header_ref last_header;
 	ip_header_ref middle_header;
 	packet_t next;
+	int rc;
 
 	length = packet_get_data_length(packet);
 	if ((length < sizeof(ip_header_t)) || (length > IP_MAX_CONTENT))
@@ -623,12 +637,14 @@ ip_prepare_packet(in_addr_t *source, in_addr_t dest, packet_t packet,
 
 	header = (ip_header_ref) packet_get_data(packet);
 	if (destination) {
-		ERROR_PROPAGATE(packet_set_addr(packet, NULL,
-		    (uint8_t *) destination->value,
-		    CONVERT_SIZE(char, uint8_t, destination->length)));
+		rc = packet_set_addr(packet, NULL, (uint8_t *) destination->value,
+		    CONVERT_SIZE(char, uint8_t, destination->length));
 	} else {
-		ERROR_PROPAGATE(packet_set_addr(packet, NULL, NULL, 0));
+		rc = packet_set_addr(packet, NULL, NULL, 0);
 	}
+	if (rc != EOK)
+		return rc;
+	
 	header->version = IPV4;
 	header->fragment_offset_high = 0;
 	header->fragment_offset_low = 0;
@@ -668,12 +684,13 @@ ip_prepare_packet(in_addr_t *source, in_addr_t dest, packet_t packet,
 			middle_header->header_checksum =
 			    IP_HEADER_CHECKSUM(middle_header);
 			if (destination) {
-				if (ERROR_OCCURRED(packet_set_addr(next, NULL,
+				rc = packet_set_addr(next, NULL,
 				    (uint8_t *) destination->value,
 				    CONVERT_SIZE(char, uint8_t,
-				    destination->length)))) {
+				    destination->length));
+				if (rc != EOK) {
 				    	free(last_header);
-					return ERROR_CODE;
+					return rc;
 				}
 			}
 			length += packet_get_data_length(next);
@@ -698,13 +715,13 @@ ip_prepare_packet(in_addr_t *source, in_addr_t dest, packet_t packet,
 		middle_header->header_checksum =
 		    IP_HEADER_CHECKSUM(middle_header);
 		if (destination) {
-			if (ERROR_OCCURRED(packet_set_addr(next, NULL,
+			rc = packet_set_addr(next, NULL,
 			    (uint8_t *) destination->value,
-			    CONVERT_SIZE(char, uint8_t,
-			    destination->length)))) {
+			    CONVERT_SIZE(char, uint8_t, destination->length));
+			if (rc != EOK) {
 				free(last_header);
-				return ERROR_CODE;
-			    }
+				return rc;
+			}
 		}
 		length += packet_get_data_length(next);
 		free(last_header);
@@ -740,10 +757,9 @@ ip_fragment_packet_data(packet_t packet, packet_t new_packet,
     ip_header_ref header, ip_header_ref new_header, size_t length,
     const struct sockaddr *src, const struct sockaddr *dest, socklen_t addrlen)
 {
-	ERROR_DECLARE;
-
 	void *data;
 	size_t offset;
+	int rc;
 
 	data = packet_suffix(new_packet, length);
 	if (!data)
@@ -751,7 +767,11 @@ ip_fragment_packet_data(packet_t packet, packet_t new_packet,
 
 	memcpy(data, ((void *) header) + IP_TOTAL_LENGTH(header) - length,
 	    length);
-	ERROR_PROPAGATE(packet_trim(packet, 0, length));
+	
+	rc = packet_trim(packet, 0, length);
+	if (rc != EOK)
+		return rc;
+	
 	header->total_length = htons(IP_TOTAL_LENGTH(header) - length);
 	new_header->total_length = htons(IP_HEADER_LENGTH(new_header) + length);
 	offset = IP_FRAGMENT_OFFSET(header) + IP_HEADER_DATA_LENGTH(header);
@@ -760,8 +780,11 @@ ip_fragment_packet_data(packet_t packet, packet_t new_packet,
 	new_header->fragment_offset_low =
 	    IP_COMPUTE_FRAGMENT_OFFSET_LOW(offset);
 	new_header->header_checksum = IP_HEADER_CHECKSUM(new_header);
-	ERROR_PROPAGATE(packet_set_addr(new_packet, (const uint8_t *) src,
-	    (const uint8_t *) dest, addrlen));
+	
+	rc = packet_set_addr(new_packet, (const uint8_t *) src,
+	    (const uint8_t *) dest, addrlen);
+	if (rc != EOK)
+		return rc;
 
 	return pq_insert_after(packet, new_packet);
 }
@@ -795,8 +818,6 @@ static int
 ip_fragment_packet(packet_t packet, size_t length, size_t prefix, size_t suffix,
     socklen_t addr_len)
 {
-	ERROR_DECLARE;
-
 	packet_t new_packet;
 	ip_header_ref header;
 	ip_header_ref middle_header;
@@ -805,6 +826,7 @@ ip_fragment_packet(packet_t packet, size_t length, size_t prefix, size_t suffix,
 	struct sockaddr *dest;
 	socklen_t addrlen;
 	int result;
+	int rc;
 
 	result = packet_get_addr(packet, (uint8_t **) &src, (uint8_t **) &dest);
 	if (result <= 0)
@@ -838,22 +860,22 @@ ip_fragment_packet(packet_t packet, size_t length, size_t prefix, size_t suffix,
 	ip_create_last_header(last_header, header);
 
 	// trim the unused space
-	if (ERROR_OCCURRED(packet_trim(new_packet, 0,
-	    IP_HEADER_LENGTH(header) - IP_HEADER_LENGTH(last_header)))) {
-		return ip_release_and_return(packet, ERROR_CODE);
-	}
+	rc = packet_trim(new_packet, 0,
+	    IP_HEADER_LENGTH(header) - IP_HEADER_LENGTH(last_header));
+	if (rc != EOK)
+		return ip_release_and_return(packet, rc);
 
 	// biggest multiple of 8 lower than content
 	// TODO even fragmentation?
 	length = length & ~0x7;
-	if (ERROR_OCCURRED(ip_fragment_packet_data(packet, new_packet, header,
-	    last_header,
+	
+	rc = ip_fragment_packet_data(packet, new_packet, header, last_header,
 	    ((IP_HEADER_DATA_LENGTH(header) -
 	    ((length - IP_HEADER_LENGTH(header)) & ~0x7)) %
-	    ((length - IP_HEADER_LENGTH(last_header)) & ~0x7)), src, dest,
-	    addrlen))) {
-		return ip_release_and_return(packet, ERROR_CODE);
-	}
+	    ((length - IP_HEADER_LENGTH(last_header)) & ~0x7)),
+	    src, dest, addrlen);
+	if (rc != EOK)
+		return ip_release_and_return(packet, rc);
 
 	// mark the first as fragmented
 	header->flags |= IPFLAG_MORE_FRAGMENTS;
@@ -871,12 +893,12 @@ ip_fragment_packet(packet_t packet, size_t length, size_t prefix, size_t suffix,
 		if (!middle_header)
 			return ip_release_and_return(packet, ENOMEM);
 
-		if (ERROR_OCCURRED(ip_fragment_packet_data(packet, new_packet,
-		    header, middle_header,
-		    (length - IP_HEADER_LENGTH(middle_header)) & ~0x7, src,
-		    dest, addrlen))) {
-			return ip_release_and_return(packet, ERROR_CODE);
-		}
+		rc = ip_fragment_packet_data(packet, new_packet, header,
+		    middle_header,
+		    (length - IP_HEADER_LENGTH(middle_header)) & ~0x7,
+		    src, dest, addrlen);
+		if (rc != EOK)
+			return ip_release_and_return(packet, rc);
 	}
 
 	// finish the first fragment
@@ -973,12 +995,11 @@ static int
 ip_send_route(packet_t packet, ip_netif_ref netif, ip_route_ref route,
     in_addr_t *src, in_addr_t dest, services_t error)
 {
-	ERROR_DECLARE;
-
 	measured_string_t destination;
 	measured_string_ref translation;
 	char *data;
 	int phone;
+	int rc;
 
 	// get destination hardware address
 	if (netif->arp && (route->address.s_addr != dest.s_addr)) {
@@ -986,12 +1007,12 @@ ip_send_route(packet_t packet, ip_netif_ref netif, ip_route_ref route,
 		    (char *) &route->gateway.s_addr : (char *) &dest.s_addr;
 		destination.length = CONVERT_SIZE(dest.s_addr, char, 1);
 
-		if (ERROR_OCCURRED(arp_translate_req(netif->arp->phone,
-		    netif->device_id, SERVICE_IP, &destination, &translation,
-		    &data))) {
+		rc = arp_translate_req(netif->arp->phone, netif->device_id,
+		    SERVICE_IP, &destination, &translation, &data);
+		if (rc != EOK) {
 			pq_release_remote(ip_globals.net_phone,
 			    packet_get_id(packet));
-			return ERROR_CODE;
+			return rc;
 		}
 
 		if (!translation || !translation->value) {
@@ -1013,7 +1034,8 @@ ip_send_route(packet_t packet, ip_netif_ref netif, ip_route_ref route,
 		translation = NULL;
 	}
 
-	if (ERROR_OCCURRED(ip_prepare_packet(src, dest, packet, translation))) {
+	rc = ip_prepare_packet(src, dest, packet, translation);
+	if (rc != EOK) {
 		pq_release_remote(ip_globals.net_phone, packet_get_id(packet));
 	} else {
 		packet = ip_split_packet(packet, netif->packet_dimension.prefix,
@@ -1031,7 +1053,7 @@ ip_send_route(packet_t packet, ip_netif_ref netif, ip_route_ref route,
 		free(data);
 	}
 
-	return ERROR_CODE;
+	return rc;
 }
 
 /** Searches the network interfaces if there is a suitable route.
@@ -1157,19 +1179,19 @@ ip_register(int protocol, services_t service, int phone,
 static int
 ip_device_req_local(int il_phone, device_id_t device_id, services_t netif)
 {
-	ERROR_DECLARE;
-
 	ip_netif_ref ip_netif;
 	ip_route_ref route;
 	int index;
+	int rc;
 
 	ip_netif = (ip_netif_ref) malloc(sizeof(ip_netif_t));
 	if (!ip_netif)
 		return ENOMEM;
 
-	if (ERROR_OCCURRED(ip_routes_initialize(&ip_netif->routes))) {
+	rc = ip_routes_initialize(&ip_netif->routes);
+	if (rc != EOK) {
 		free(ip_netif);
-		return ERROR_CODE;
+		return rc;
 	}
 
 	ip_netif->device_id = device_id;
@@ -1177,11 +1199,13 @@ ip_device_req_local(int il_phone, device_id_t device_id, services_t netif)
 	ip_netif->state = NETIF_STOPPED;
 
 	fibril_rwlock_write_lock(&ip_globals.netifs_lock);
-	if (ERROR_OCCURRED(ip_netif_initialize(ip_netif))) {
+
+	rc = ip_netif_initialize(ip_netif);
+	if (rc != EOK) {
 		fibril_rwlock_write_unlock(&ip_globals.netifs_lock);
 		ip_routes_destroy(&ip_netif->routes);
 		free(ip_netif);
-		return ERROR_CODE;
+		return rc;
 	}
 	if (ip_netif->arp)
 		ip_netif->arp->usage++;
@@ -1225,8 +1249,6 @@ static int
 ip_send_msg_local(int il_phone, device_id_t device_id, packet_t packet,
     services_t sender, services_t error)
 {
-	ERROR_DECLARE;
-
 	int addrlen;
 	ip_netif_ref netif;
 	ip_route_ref route;
@@ -1235,6 +1257,7 @@ ip_send_msg_local(int il_phone, device_id_t device_id, packet_t packet,
 	in_addr_t *dest;
 	in_addr_t *src;
 	int phone;
+	int rc;
 
 	// addresses in the host byte order
 	// should be the next hop address or the target destination address
@@ -1322,10 +1345,10 @@ ip_send_msg_local(int il_phone, device_id_t device_id, packet_t packet,
 		return ip_release_and_return(packet, ENOENT);
 	}
 
-	ERROR_CODE = ip_send_route(packet, netif, route, src, *dest, error);
+	rc = ip_send_route(packet, netif, route, src, *dest, error);
 	fibril_rwlock_read_unlock(&ip_globals.netifs_lock);
 
-	return ERROR_CODE;
+	return rc;
 }
 
 /** Returns the device packet dimensions for sending.
@@ -1430,8 +1453,6 @@ static int
 ip_deliver_local(device_id_t device_id, packet_t packet, ip_header_ref header,
     services_t error)
 {
-	ERROR_DECLARE;
-
 	ip_proto_ref proto;
 	int phone;
 	services_t service;
@@ -1441,6 +1462,7 @@ ip_deliver_local(device_id_t device_id, packet_t packet, ip_header_ref header,
 	struct sockaddr_in src_in;
 	struct sockaddr_in dest_in;
 	socklen_t addrlen;
+	int rc;
 
 	if ((header->flags & IPFLAG_MORE_FRAGMENTS) ||
 	    IP_FRAGMENT_OFFSET(header)) {
@@ -1466,17 +1488,18 @@ ip_deliver_local(device_id_t device_id, packet_t packet, ip_header_ref header,
 		return ip_release_and_return(packet, EAFNOSUPPORT);
 	}
 
-	if (ERROR_OCCURRED(packet_set_addr(packet, (uint8_t *) src,
-	    (uint8_t *) dest, addrlen))) {
-		return ip_release_and_return(packet, ERROR_CODE);
-	}
+	rc = packet_set_addr(packet, (uint8_t *) src, (uint8_t *) dest,
+	    addrlen);
+	if (rc != EOK)
+		return ip_release_and_return(packet, rc);
 
 	// trim padding if present
 	if (!error &&
 	    (IP_TOTAL_LENGTH(header) < packet_get_data_length(packet))) {
-		if (ERROR_OCCURRED(packet_trim(packet, 0,
-		    packet_get_data_length(packet) - IP_TOTAL_LENGTH(header))))
-			return ip_release_and_return(packet, ERROR_CODE);
+		rc = packet_trim(packet, 0,
+		    packet_get_data_length(packet) - IP_TOTAL_LENGTH(header));
+		if (rc != EOK)
+			return ip_release_and_return(packet, rc);
 	}
 
 	fibril_rwlock_read_lock(&ip_globals.protos_lock);
@@ -1497,14 +1520,14 @@ ip_deliver_local(device_id_t device_id, packet_t packet, ip_header_ref header,
 		service = proto->service;
 		received_msg = proto->received_msg;
 		fibril_rwlock_read_unlock(&ip_globals.protos_lock);
-		ERROR_CODE = received_msg(device_id, packet, service, error);
+		rc = received_msg(device_id, packet, service, error);
 	} else {
-		ERROR_CODE = tl_received_msg(proto->phone, device_id, packet,
+		rc = tl_received_msg(proto->phone, device_id, packet,
 		    proto->service, error);
 		fibril_rwlock_read_unlock(&ip_globals.protos_lock);
 	}
 
-	return ERROR_CODE;
+	return rc;
 }
 
 /** Processes the received packet.
@@ -1531,8 +1554,6 @@ ip_deliver_local(device_id_t device_id, packet_t packet, ip_header_ref header,
 static int
 ip_process_packet(device_id_t device_id, packet_t packet)
 {
-	ERROR_DECLARE;
-
 	ip_header_ref header;
 	in_addr_t dest;
 	ip_route_ref route;
@@ -1540,6 +1561,7 @@ ip_process_packet(device_id_t device_id, packet_t packet)
 	struct sockaddr *addr;
 	struct sockaddr_in addr_in;
 	socklen_t addrlen;
+	int rc;
 
 	header = (ip_header_ref) packet_get_data(packet);
 	if (!header)
@@ -1584,8 +1606,9 @@ ip_process_packet(device_id_t device_id, packet_t packet)
 		return ip_release_and_return(packet, EAFNOSUPPORT);
 	}
 
-	ERROR_PROPAGATE(packet_set_addr(packet, NULL, (uint8_t *) &addr,
-	    addrlen));
+	rc = packet_set_addr(packet, NULL, (uint8_t *) &addr, addrlen);
+	if (rc != EOK)
+		return rc;
 
 	route = ip_find_route(dest);
 	if (!route) {
@@ -1866,8 +1889,6 @@ int
 ip_message_standalone(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *answer,
     int *answer_count)
 {
-	ERROR_DECLARE;
-	
 	packet_t packet;
 	struct sockaddr *addr;
 	size_t addrlen;
@@ -1877,6 +1898,7 @@ ip_message_standalone(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *answer,
 	void *header;
 	size_t headerlen;
 	device_id_t device_id;
+	int rc;
 	
 	*answer_count = 0;
 	switch (IPC_GET_METHOD(*call)) {
@@ -1892,8 +1914,10 @@ ip_message_standalone(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *answer,
 		    IPC_GET_SERVICE(call));
 	
 	case NET_IL_SEND:
-		ERROR_PROPAGATE(packet_translate_remote(ip_globals.net_phone,
-		    &packet, IPC_GET_PACKET(call)));
+		rc = packet_translate_remote(ip_globals.net_phone, &packet,
+		    IPC_GET_PACKET(call));
+		if (rc != EOK)
+			return rc;
 		return ip_send_msg_local(0, IPC_GET_DEVICE(call), packet, 0,
 		    IPC_GET_ERROR(call));
 	
@@ -1902,13 +1926,17 @@ ip_message_standalone(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *answer,
 		    IPC_GET_STATE(call));
 	
 	case NET_IL_RECEIVED:
-		ERROR_PROPAGATE(packet_translate_remote(ip_globals.net_phone,
-		    &packet, IPC_GET_PACKET(call)));
+		rc = packet_translate_remote(ip_globals.net_phone, &packet,
+		    IPC_GET_PACKET(call));
+		if (rc != EOK)
+			return rc;
 		return ip_receive_message(IPC_GET_DEVICE(call), packet);
 	
 	case NET_IP_RECEIVED_ERROR:
-		ERROR_PROPAGATE(packet_translate_remote(ip_globals.net_phone,
-		    &packet, IPC_GET_PACKET(call)));
+		rc = packet_translate_remote(ip_globals.net_phone, &packet,
+		    IPC_GET_PACKET(call));
+		if (rc != EOK)
+			return rc;
 		return ip_received_error_msg_local(0, IPC_GET_DEVICE(call),
 		    packet, IPC_GET_TARGET(call), IPC_GET_ERROR(call));
 	
@@ -1922,24 +1950,33 @@ ip_message_standalone(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *answer,
 		    IP_GET_GATEWAY(call));
 
 	case NET_IP_GET_ROUTE:
-		ERROR_PROPAGATE(data_receive((void **) &addr, &addrlen));
-		ERROR_PROPAGATE(ip_get_route_req_local(0, IP_GET_PROTOCOL(call),
-		    addr, (socklen_t) addrlen, &device_id, &header,
-		    &headerlen));
+		rc = data_receive((void **) &addr, &addrlen);
+		if (rc != EOK)
+			return rc;
+		
+		rc = ip_get_route_req_local(0, IP_GET_PROTOCOL(call), addr,
+		    (socklen_t) addrlen, &device_id, &header, &headerlen);
+		if (rc != EOK)
+			return rc;
+		
 		IPC_SET_DEVICE(answer, device_id);
 		IP_SET_HEADERLEN(answer, headerlen);
 		
 		*answer_count = 2;
-			
-		if (ERROR_NONE(data_reply(&headerlen, sizeof(headerlen))))
-			ERROR_CODE = data_reply(header, headerlen);
+		
+		rc = data_reply(&headerlen, sizeof(headerlen));
+		if (rc == EOK)
+			rc = data_reply(header, headerlen);
 			
 		free(header);
-		return ERROR_CODE;
+		return rc;
 	
 	case NET_IL_PACKET_SPACE:
-		ERROR_PROPAGATE(ip_packet_size_message(IPC_GET_DEVICE(call),
-		    &addrlen, &prefix, &content, &suffix));
+		rc = ip_packet_size_message(IPC_GET_DEVICE(call), &addrlen,
+		    &prefix, &content, &suffix);
+		if (rc != EOK)
+			return rc;
+		
 		IPC_SET_ADDR(answer, addrlen);
 		IPC_SET_PREFIX(answer, prefix);
 		IPC_SET_CONTENT(answer, content);
@@ -2004,11 +2041,11 @@ static void il_client_connection(ipc_callid_t iid, ipc_call_t *icall)
  */
 int main(int argc, char *argv[])
 {
-	ERROR_DECLARE;
+	int rc;
 	
 	/* Start the module */
-	ERROR_PROPAGATE(il_module_start_standalone(il_client_connection));
-	return EOK;
+	rc = il_module_start_standalone(il_client_connection);
+	return rc;
 }
 
 /** @}

@@ -49,11 +49,9 @@
 
 static void fault_event(ipc_callid_t callid, ipc_call_t *call)
 {
-	const char *argv[6];
 	const char *fname;
-	char *dump_fname;
 	char *s_taskid;
-	const char **s;
+	int rc;
 
 	task_id_t taskid;
 	uintptr_t thread;
@@ -66,41 +64,29 @@ static void fault_event(ipc_callid_t callid, ipc_call_t *call)
 		return;
 	}
 
+	printf(NAME ": Task %" PRIuTASKID " fault in thread %p.\n", taskid, thread);
+
+	fname = "/app/taskdump";
+
+#ifdef CONFIG_WRITE_CORE_FILES
+	char *dump_fname;
+
 	if (asprintf(&dump_fname, "/data/core%" PRIuTASKID, taskid) < 0) {
 		printf("Memory allocation failed.\n");
 		return;
 	}
 
-	printf(NAME ": Task %" PRIuTASKID " fault in thread %p.\n", taskid, thread);
-
-#ifdef CONFIG_WRITE_CORE_FILES
-	argv[0] = "/app/taskdump";
-	argv[1] = "-c";
-	argv[2] = dump_fname;
-	argv[3] = "-t";
-	argv[4] = s_taskid;
-	argv[5] = NULL;
+	printf(NAME ": Executing %s -c %s -t %s\n", dump_fname, s_taskid);
+	rc = task_spawnl(NULL, fname, fname, "-c", dump_fname, "-t", s_taskid,
+	    NULL);
 #else
-	argv[0] = "/app/taskdump";
-	argv[1] = "-t";
-	argv[2] = s_taskid;
-	argv[3] = NULL;
+	printf(NAME ": Executing %s -t %s\n", s_taskid);
+	rc = task_spawnl(NULL, fname, fname, "-t", s_taskid, NULL);
 #endif
-	fname = argv[0];
-
-	printf(NAME ": Executing");
-	
-	s = argv;
-	while (*s != NULL) {
-		printf(" %s", *s);
-		++s;
-	}
-	putchar('\n');
-	
-	int err;
-	if (!task_spawn(fname, argv, &err))
+	if (rc != EOK) {
 		printf("%s: Error spawning %s (%s).\n", NAME, fname,
-		    str_error(err));
+		    str_error(rc));
+	}
 }
 
 int main(int argc, char *argv[])

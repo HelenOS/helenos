@@ -106,7 +106,6 @@ RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/net/tl/udp/udp \
 	$(USPACE_PATH)/srv/net/tl/tcp/tcp \
 	$(USPACE_PATH)/srv/net/net/net \
-	$(USPACE_PATH)/srv/net/netstart/netstart \
 	$(USPACE_PATH)/srv/devman/devman
 	
 RD_DRVS = \
@@ -135,6 +134,7 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/test_serial/test_serial \
 	$(USPACE_PATH)/app/tetris/tetris \
 	$(USPACE_PATH)/app/trace/trace \
+	$(USPACE_PATH)/app/netstart/netstart \
 	$(USPACE_PATH)/app/nettest1/nettest1 \
 	$(USPACE_PATH)/app/nettest2/nettest2 \
 	$(USPACE_PATH)/app/netecho/netecho \
