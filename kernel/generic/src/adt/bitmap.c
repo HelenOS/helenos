@@ -68,7 +68,7 @@ void bitmap_initialize(bitmap_t *bitmap, uint8_t *map, size_t bits)
  */
 void bitmap_set_range(bitmap_t *bitmap, size_t start, size_t bits)
 {
-	size_t i = 0;
+	size_t i;
 	size_t aligned_start;
 	size_t lub;	/* leading unaligned bits */
 	size_t amb;	/* aligned middle bits */
@@ -80,12 +80,6 @@ void bitmap_set_range(bitmap_t *bitmap, size_t start, size_t bits)
 	lub = min(aligned_start - start, bits);
 	amb = bits > lub ? bits - lub : 0;
 	tab = amb % 8;
-	
-	if (start + bits < aligned_start) {
-		/* Set bits in the middle of byte. */
-		bitmap->map[start / 8] |= ((1 << lub) - 1) << (start & 7);
-		return;
-	}
 	
 	if (lub) {
 		/* Make sure to set any leading unaligned bits. */
@@ -110,7 +104,7 @@ void bitmap_set_range(bitmap_t *bitmap, size_t start, size_t bits)
  */
 void bitmap_clear_range(bitmap_t *bitmap, size_t start, size_t bits)
 {
-	size_t i = 0;
+	size_t i;
 	size_t aligned_start;
 	size_t lub;	/* leading unaligned bits */
 	size_t amb;	/* aligned middle bits */
@@ -122,12 +116,6 @@ void bitmap_clear_range(bitmap_t *bitmap, size_t start, size_t bits)
 	lub = min(aligned_start - start, bits);
 	amb = bits > lub ? bits - lub : 0;
 	tab = amb % 8;
-
-	if (start + bits < aligned_start) {
-		/* Set bits in the middle of byte */
-		bitmap->map[start / 8] &= ~(((1 << lub) - 1) << (start & 7));
-		return;
-	}
 
 	if (lub) {
 		/* Make sure to clear any leading unaligned bits. */
