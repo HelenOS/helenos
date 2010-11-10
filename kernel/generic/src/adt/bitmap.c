@@ -81,6 +81,9 @@ void bitmap_set_range(bitmap_t *bitmap, size_t start, size_t bits)
 	amb = bits > lub ? bits - lub : 0;
 	tab = amb % 8;
 	
+	if (!bits)
+		return;
+
 	if (start + bits < aligned_start) {
 		/* Set bits in the middle of byte. */
 		bitmap->map[start / 8] |= ((1 << lub) - 1) << (start & 7);
@@ -122,6 +125,9 @@ void bitmap_clear_range(bitmap_t *bitmap, size_t start, size_t bits)
 	lub = min(aligned_start - start, bits);
 	amb = bits > lub ? bits - lub : 0;
 	tab = amb % 8;
+
+	if (!bits)
+		return;
 
 	if (start + bits < aligned_start) {
 		/* Set bits in the middle of byte */
