@@ -61,8 +61,9 @@ show_usage() {
 	echo " arm32      ARM"
 	echo " ia32       IA-32 (x86, i386)"
 	echo " ia64       IA-64 (Itanium)"
-	echo " mips32     MIPS little-endian"
-	echo " mips32eb   MIPS big-endian"
+	echo " mips32     MIPS little-endian 32b"
+	echo " mips32eb   MIPS big-endian 32b"
+	echo " mips64     MIPS little-endian 64b"
 	echo " ppc32      32-bit PowerPC"
 	echo " ppc64      64-bit PowerPC"
 	echo " sparc64    SPARC V9"
@@ -302,6 +303,9 @@ case "$1" in
 	"mips32eb")
 		build_target "mips32eb" "mips-linux-gnu"
 		;;
+	"mips64")
+		build_target "mips64" "mips64el-linux-gnu"
+		;;
 	"ppc32")
 		build_target "ppc32" "ppc-linux-gnu"
 		;;
@@ -319,6 +323,7 @@ case "$1" in
 		build_target "ia64" "ia64-pc-linux-gnu"
 		build_target "mips32" "mipsel-linux-gnu"
 		build_target "mips32eb" "mips-linux-gnu"
+		build_target "mips64" "mips64el-linux-gnu"
 		build_target "ppc32" "ppc-linux-gnu"
 		build_target "ppc64" "ppc64-linux-gnu"
 		build_target "sparc64" "sparc64-linux-gnu"

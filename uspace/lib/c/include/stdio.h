@@ -45,7 +45,7 @@
 /** Default size for stream I/O buffers */
 #define BUFSIZ  4096
 
-#define DEBUG(fmt, ...)se\
+#define DEBUG(fmt, ...) \
 	{ \
 		char _buf[256]; \
 		int _n = snprintf(_buf, sizeof(_buf), fmt, ##__VA_ARGS__); \

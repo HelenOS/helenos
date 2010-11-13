@@ -28,8 +28,8 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = $(LIBNET_PREFIX)/libnet.a
-EXTRA_CFLAGS = -I$(LIBNET_PREFIX)/include
+LIBS = 
+EXTRA_CFLAGS = 
 
 BINARY = netstart
 

@@ -40,7 +40,7 @@
 
 #include <async.h>
 #include <malloc.h>
-#include <err.h>
+#include <errno.h>
 #include <sys/time.h>
 
 #include <ipc/ipc.h>
@@ -136,17 +136,18 @@ int bind_service(services_t need, ipcarg_t arg1, ipcarg_t arg2, ipcarg_t arg3,
 int bind_service_timeout(services_t need, ipcarg_t arg1, ipcarg_t arg2,
     ipcarg_t arg3, async_client_conn_t client_receiver, suseconds_t timeout)
 {
-	ERROR_DECLARE;
+	int rc;
 	
 	/* Connect to the needed service */
 	int phone = connect_to_service_timeout(need, timeout);
 	if (phone >= 0) {
 		/* Request the bidirectional connection */
 		ipcarg_t phonehash;
-		if (ERROR_OCCURRED(ipc_connect_to_me(phone, arg1, arg2, arg3,
-		    &phonehash))) {
+		
+		rc = ipc_connect_to_me(phone, arg1, arg2, arg3, &phonehash);
+		if (rc != EOK) {
 			ipc_hangup(phone);
-			return ERROR_CODE;
+			return rc;
 		}
 		async_new_connection(phonehash, 0, NULL, client_receiver);
 	}
@@ -211,9 +212,8 @@ int connect_to_service_timeout(services_t need, suseconds_t timeout)
  */
 int data_receive(void **data, size_t *length)
 {
-	ERROR_DECLARE;
-
 	ipc_callid_t callid;
+	int rc;
 
 	if (!data || !length)
 		return EBADMEM;
@@ -228,9 +228,10 @@ int data_receive(void **data, size_t *length)
 		return ENOMEM;
 
 	// fetch the data
-	if (ERROR_OCCURRED(async_data_write_finalize(callid, *data, *length))) {
+	rc = async_data_write_finalize(callid, *data, *length);
+	if (rc != EOK) {
 		free(data);
-		return ERROR_CODE;
+		return rc;
 	}
 
 	return EOK;

@@ -36,66 +36,14 @@
 #define LIBC_ERR_H_
 
 #include <stdio.h>
-#include <errno.h>
-
-#ifdef CONFIG_DEBUG
-#include <str_error.h>
-#endif
 
 #define errx(status, fmt, ...) { \
 	printf((fmt), ##__VA_ARGS__); \
 	_exit(status); \
 }
 
-
-/** An actual stored error code.  */
-#define ERROR_CODE  error_check_return_value
-
-/** An error processing routines declaration.
- *
- * This has to be declared in the block where the error processing
- * is desired.
- */
-#define ERROR_DECLARE  int ERROR_CODE
-
-/** Store the value as an error code and checks if an error occurred.
- *
- * @param[in] value	The value to be checked. May be a function call.
- * @return		False if the value indicates success (EOK).
- * @return		True otherwise.
- */
-#ifdef CONFIG_DEBUG
-
-#define ERROR_OCCURRED(value) \
-	(((ERROR_CODE = (value)) != EOK) && \
-	({ \
-		fprintf(stderr, "libsocket error at %s:%d (%s)\n", \
-		__FILE__, __LINE__, str_error(ERROR_CODE)); \
-		1; \
-	}))
-
-#else
-
-#define ERROR_OCCURRED(value)	((ERROR_CODE = (value)) != EOK)
-
-#endif
-
-#define ERROR_NONE(value)	!ERROR_OCCURRED((value))
-
-/** Error propagation
- *
- * Check if an error occurred and immediately exit the actual
- * function returning the error code.
- *
- * @param[in] value	The value to be checked. May be a function call.
- *
- */
-
-#define ERROR_PROPAGATE(value) \
-	if (ERROR_OCCURRED(value)) \
-		return ERROR_CODE
-
 #endif
 
 /** @}
  */
+
