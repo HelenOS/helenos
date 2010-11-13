@@ -45,6 +45,7 @@ _link.ld
 ./uspace/app/init/init
 ./uspace/app/klog/klog
 ./uspace/app/mkfat/mkfat
+./uspace/app/netstart/netstart
 ./uspace/app/netecho/netecho
 ./uspace/app/nettest1/nettest1
 ./uspace/app/nettest2/nettest2
@@ -67,6 +68,7 @@ _link.ld
 ./uspace/dist/app/klog
 ./uspace/dist/app/mkfat
 ./uspace/dist/app/netecho
+./uspace/dist/app/netstart
 ./uspace/dist/app/nettest1
 ./uspace/dist/app/nettest2
 ./uspace/dist/app/ping
