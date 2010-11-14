@@ -47,7 +47,7 @@
 
 static void usage(void)
 {
-	printf("Usage: %s <terminal> <path>\n", APP_NAME);
+	printf("Usage: %s <terminal> <command> [<arguments...>]\n", APP_NAME);
 }
 
 static void reopen(FILE **stream, int fd, const char *path, int flags, const char *mode)
@@ -72,23 +72,14 @@ static void reopen(FILE **stream, int fd, const char *path, int flags, const cha
 	*stream = fdopen(fd, mode);
 }
 
-static task_id_t spawn(const char *fname)
-{
-	task_id_t id;
-	int rc;
-	
-	rc = task_spawnl(&id, fname, fname, NULL);
-	if (rc != EOK) {
-		printf("%s: Error spawning %s (%s)\n", APP_NAME, fname,
-		    str_error(rc));
-		return 0;
-	}
-	
-	return id;
-}
-
 int main(int argc, char *argv[])
 {
+	int rc;
+	task_exit_t texit;
+	int retval;
+	task_id_t id;
+	char *fname;
+
 	if (argc < 3) {
 		usage();
 		return -1;
@@ -114,17 +105,23 @@ int main(int argc, char *argv[])
 		return -4;
 	
 	version_print(argv[1]);
-	task_id_t id = spawn(argv[2]);
+	fname = argv[2];
 	
-	if (id != 0) {
-		task_exit_t texit;
-		int retval;
-		task_wait(id, &texit, &retval);
-		
-		return 0;
+	rc = task_spawnv(&id, fname, (const char * const *) &argv[2]);
+	if (rc != EOK) {
+		printf("%s: Error spawning %s (%s)\n", APP_NAME, fname,
+		    str_error(rc));
+		return -5;
 	}
-	
-	return -5;
+
+	rc = task_wait(id, &texit, &retval);
+	if (rc != EOK) {
+		printf("%s: Error waiting for %s (%s)\n", APP_NAME, fname,
+		    str_error(rc));
+		return -6;
+	}
+
+	return 0;
 }
 
 /** @}
