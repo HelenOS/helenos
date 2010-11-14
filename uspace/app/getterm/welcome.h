@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Martin Decky
+ * Copyright (c) 2010 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,35 +33,12 @@
  * @file
  */
 
-#include <unistd.h>
-#include <stdio.h>
-#include <macros.h>
-#include "getterm.h"
-#include "version.h"
+#ifndef WELCOME_H__
+#define WELCOME_H__
 
-static const char *release = STRING(RELEASE);
-static const char *name = STRING(NAME);
-static const char *arch = STRING(UARCH);
+extern void welcome_msg_print(void);
 
-#ifdef REVISION
-	static const char *revision = ", revision " STRING(REVISION);
-#else
-	static const char *revision = "";
 #endif
-
-#ifdef TIMESTAMP
-	static const char *timestamp = "\nBuilt on " STRING(TIMESTAMP);
-#else
-	static const char *timestamp = "";
-#endif
-
-/** Print version information. */
-void version_print(const char *term)
-{
-	printf("HelenOS release %s (%s)%s%s\n", release, name, revision, timestamp);
-	printf("Running on %s (%s)\n", arch, term);
-	printf("Copyright (c) 2001-2010 HelenOS project\n\n");
-}
 
 /** @}
  */
