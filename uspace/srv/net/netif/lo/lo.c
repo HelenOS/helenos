@@ -63,8 +63,7 @@
 /** Network interface global data. */
 netif_globals_t	netif_globals;
 
-int
-netif_specific_message(ipc_callid_t callid, ipc_call_t *call,
+int netif_specific_message(ipc_callid_t callid, ipc_call_t *call,
     ipc_call_t *answer, int *answer_count)
 {
 	return ENOTSUP;
@@ -74,8 +73,10 @@ int netif_get_addr_message(device_id_t device_id, measured_string_ref address)
 {
 	if (!address)
 		return EBADMEM;
+
 	address->value = str_dup(DEFAULT_ADDR);
 	address->length = DEFAULT_ADDR_LEN;
+
 	return EOK;
 }
 
@@ -86,11 +87,14 @@ int netif_get_device_stats(device_id_t device_id, device_stats_ref stats)
 
 	if (!stats)
 		return EBADMEM;
+
 	rc = find_device(device_id, &device);
 	if (rc != EOK)
 		return rc;
+
 	memcpy(stats, (device_stats_ref) device->specific,
 	    sizeof(device_stats_t));
+
 	return EOK;
 }
 
@@ -133,17 +137,20 @@ static int create(device_id_t device_id, netif_device_t **device)
 	*device = (netif_device_t *) malloc(sizeof(netif_device_t));
 	if (!*device)
 		return ENOMEM;
+
 	(*device)->specific = (device_stats_t *) malloc(sizeof(device_stats_t));
 	if (!(*device)->specific) {
 		free(*device);
 		return ENOMEM;
 	}
+
 	null_device_stats((device_stats_ref) (*device)->specific);
 	(*device)->device_id = device_id;
 	(*device)->nil_phone = -1;
 	(*device)->state = NETIF_STOPPED;
 	index = netif_device_map_add(&netif_globals.device_map,
 	    (*device)->device_id, *device);
+
 	if (index < 0) {
 		free(*device);
 		free((*device)->specific);
@@ -166,12 +173,14 @@ int netif_probe_message(device_id_t device_id, int irq, uintptr_t io)
 	netif_device_t *device;
 	int rc;
 
-	// create a new device
+	/* Create a new device */
 	rc = create(device_id, &device);
 	if (rc != EOK)
 		return rc;
-	// print the settings
+
+	/* Print the settings */
 	printf("%s: Device created (id: %d)\n", NAME, device->device_id);
+
 	return EOK;
 }
 
@@ -186,10 +195,12 @@ int netif_send_message(device_id_t device_id, packet_t packet, services_t sender
 	rc = find_device(device_id, &device);
 	if (rc != EOK)
 		return EOK;
+
 	if (device->state != NETIF_ACTIVE) {
 		netif_pq_release(packet_get_id(packet));
 		return EFORWARD;
 	}
+
 	next = packet;
 	do {
 		((device_stats_ref) device->specific)->send_packets++;
@@ -199,6 +210,7 @@ int netif_send_message(device_id_t device_id, packet_t packet, services_t sender
 		((device_stats_ref) device->specific)->receive_bytes += length;
 		next = pq_next(next);
 	} while(next);
+
 	phone = device->nil_phone;
 	fibril_rwlock_write_unlock(&netif_globals.lock);
 	nil_received_msg(phone, device_id, packet, sender);

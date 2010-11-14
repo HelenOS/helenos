@@ -85,8 +85,7 @@ out:
 	return rc;
 }
 
-int
-tl_module_message_standalone(ipc_callid_t callid, ipc_call_t *call,
+int tl_module_message_standalone(ipc_callid_t callid, ipc_call_t *call,
     ipc_call_t *answer, int *answer_count)
 {
 	return udp_message_standalone(callid, call, answer, answer_count);

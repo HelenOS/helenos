@@ -124,9 +124,8 @@ static int arp_clean_cache_req(int arp_phone)
 	return EOK;
 }
 
-static int
-arp_clear_address_req(int arp_phone, device_id_t device_id, services_t protocol,
-    measured_string_ref address)
+static int arp_clear_address_req(int arp_phone, device_id_t device_id,
+    services_t protocol, measured_string_ref address)
 {
 	arp_device_ref device;
 	arp_proto_ref proto;
@@ -174,8 +173,7 @@ static int arp_clear_device_req(int arp_phone, device_id_t device_id)
  * @returns		EOK on success.
  * @returns		ENOMEM if there is not enough memory left.
  */
-static int
-arp_proto_create(arp_proto_ref *proto, services_t service,
+static int arp_proto_create(arp_proto_ref *proto, services_t service,
     measured_string_ref address)
 {
 	int rc;
@@ -213,8 +211,7 @@ arp_proto_create(arp_proto_ref *proto, services_t service,
  * @returns		Other error codes as defined for the
  *			measured_strings_return() function.
  */
-static int
-arp_device_message(device_id_t device_id, services_t service,
+static int arp_device_message(device_id_t device_id, services_t service,
     services_t protocol, measured_string_ref address)
 {
 	arp_device_ref device;
@@ -224,8 +221,10 @@ arp_device_message(device_id_t device_id, services_t service,
 	int rc;
 
 	fibril_rwlock_write_lock(&arp_globals.lock);
-	// an existing device?
+
+	/* An existing device? */
 	device = arp_cache_find(&arp_globals.cache, device_id);
+
 	if (device) {
 		if (device->service != service) {
 			printf("Device %d already exists\n", device->device_id);
@@ -259,7 +258,7 @@ arp_device_message(device_id_t device_id, services_t service,
 		if (!hardware)
 			return ENOENT;
 		
-		// create a new device
+		/* Create a new device */
 		device = (arp_device_ref) malloc(sizeof(arp_device_t));
 		if (!device) {
 			fibril_rwlock_write_unlock(&arp_globals.lock);
@@ -288,7 +287,7 @@ arp_device_message(device_id_t device_id, services_t service,
 		}
 		device->service = service;
 		
-		// bind the new one
+		/* Bind the new one */
 		device->phone = nil_bind_service(device->service,
 		    (ipcarg_t) device->device_id, SERVICE_ARP,
 		    arp_globals.client_connection);
@@ -299,7 +298,7 @@ arp_device_message(device_id_t device_id, services_t service,
 			return EREFUSED;
 		}
 		
-		// get packet dimensions
+		/* Get packet dimensions */
 		rc = nil_packet_size_req(device->phone, device_id,
 		    &device->packet_dimension);
 		if (rc != EOK) {
@@ -309,7 +308,7 @@ arp_device_message(device_id_t device_id, services_t service,
 			return rc;
 		}
 		
-		// get hardware address
+		/* Get hardware address */
 		rc = nil_get_addr_req(device->phone, device_id, &device->addr,
 		    &device->addr_data);
 		if (rc != EOK) {
@@ -319,7 +318,7 @@ arp_device_message(device_id_t device_id, services_t service,
 			return rc;
 		}
 		
-		// get broadcast address
+		/* Get broadcast address */
 		rc = nil_get_broadcast_addr_req(device->phone, device_id,
 		    &device->broadcast_addr, &device->broadcast_data);
 		if (rc != EOK) {
@@ -454,7 +453,7 @@ static int arp_receive_message(device_id_t device_id, packet_t packet)
 	des_proto = des_hw + header->hardware_length;
 	hw_source = arp_addr_find(&proto->addresses, (char *) src_proto,
 	    CONVERT_SIZE(uint8_t, char, header->protocol_length));
-	// exists?
+	/* Exists? */
 	if (hw_source) {
 		if (hw_source->length != CONVERT_SIZE(uint8_t, char,
 		    header->hardware_length)) {
@@ -462,14 +461,14 @@ static int arp_receive_message(device_id_t device_id, packet_t packet)
 		}
 		memcpy(hw_source->value, src_hw, hw_source->length);
 	}
-	// is my protocol address?
+	/* Is my protocol address? */
 	if (proto->addr->length != CONVERT_SIZE(uint8_t, char,
 	    header->protocol_length)) {
 		return EINVAL;
 	}
 	if (!str_lcmp(proto->addr->value, (char *) des_proto,
 	    proto->addr->length)) {
-		// not already upadted?
+		/* Not already updated? */
 		if (!hw_source) {
 			hw_source = measured_string_create_bulk((char *) src_hw,
 			    CONVERT_SIZE(uint8_t, char,
@@ -549,7 +548,7 @@ arp_translate_message(device_id_t device_id, services_t protocol,
 	if (addr)
 		return addr;
 
-	// ARP packet content size = header + (address + translation) * 2
+	/* ARP packet content size = header + (address + translation) * 2 */
 	length = 8 + 2 * (CONVERT_SIZE(char, uint8_t, proto->addr->length) +
 	    CONVERT_SIZE(char, uint8_t, device->addr->length));
 	if (length > device->packet_dimension.content)
@@ -673,7 +672,7 @@ arp_message_standalone(ipc_callid_t callid, ipc_call_t *call,
 		return arp_clean_cache_req(0);
 	
 	case NET_IL_DEVICE_STATE:
-		// do nothing - keep the cache
+		/* Do nothing - keep the cache */
 		return EOK;
 	
 	case NET_IL_RECEIVED:
