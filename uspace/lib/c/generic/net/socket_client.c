@@ -252,7 +252,7 @@ loop:
 			fibril_mutex_lock(&socket->accept_lock);
 			rc = dyn_fifo_push(&socket->accepted, 1,
 			    SOCKET_MAX_ACCEPTED_SIZE);
-			if (rc != EOK) {
+			if (rc == EOK) {
 				// signal the accepted socket
 				fibril_condvar_signal(&socket->accept_signal);
 			}
