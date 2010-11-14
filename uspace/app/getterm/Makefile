@@ -33,6 +33,7 @@ BINARY = getterm
 
 SOURCES = \
 	getterm.c \
-	version.c
+	version.c \
+	welcome.c
 
 include $(USPACE_PREFIX)/Makefile.common

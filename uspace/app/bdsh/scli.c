@@ -88,9 +88,6 @@ int main(int argc, char *argv[])
 	if (cli_init(&usr))
 		exit(EXIT_FAILURE);
 
-	printf("Welcome to %s - %s\nType `help' at any time for usage information.\n",
-		progname, PACKAGE_STRING);
-
 	while (!cli_quit) {
 		get_input(&usr);
 		if (NULL != usr.line) {

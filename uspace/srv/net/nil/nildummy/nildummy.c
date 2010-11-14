@@ -149,8 +149,8 @@ static void nildummy_receiver(ipc_callid_t iid, ipc_call_t *icall)
  * @returns		Other error codes as defined for the
  *			netif_get_addr_req() function.
  */
-static int
-nildummy_device_message(device_id_t device_id, services_t service, size_t mtu)
+static int nildummy_device_message(device_id_t device_id, services_t service,
+    size_t mtu)
 {
 	nildummy_device_ref device;
 	int index;
@@ -158,7 +158,7 @@ nildummy_device_message(device_id_t device_id, services_t service, size_t mtu)
 
 	fibril_rwlock_write_lock(&nildummy_globals.devices_lock);
 
-	// an existing device?
+	/* An existing device? */
 	device = nildummy_devices_find(&nildummy_globals.devices, device_id);
 	if (device) {
 		if (device->service != service) {
@@ -168,7 +168,7 @@ nildummy_device_message(device_id_t device_id, services_t service, size_t mtu)
 			return EEXIST;
 		}
 		
-		// update mtu
+		/* Update MTU */
 		if (mtu > 0)
 			device->mtu = mtu;
 		else
@@ -178,7 +178,7 @@ nildummy_device_message(device_id_t device_id, services_t service, size_t mtu)
 		    device->device_id, device->mtu);
 		fibril_rwlock_write_unlock(&nildummy_globals.devices_lock);
 		
-		// notify the upper layer module
+		/* Notify the upper layer module */
 		fibril_rwlock_read_lock(&nildummy_globals.protos_lock);
 		if (nildummy_globals.proto.phone) {
 			il_mtu_changed_msg(nildummy_globals.proto.phone,
@@ -190,7 +190,7 @@ nildummy_device_message(device_id_t device_id, services_t service, size_t mtu)
 		return EOK;
 	}
 	
-	// create a new device
+	/* Create a new device */
 	device = (nildummy_device_ref) malloc(sizeof(nildummy_device_t));
 	if (!device)
 		return ENOMEM;
@@ -202,7 +202,7 @@ nildummy_device_message(device_id_t device_id, services_t service, size_t mtu)
 	else
 		device->mtu = NET_DEFAULT_MTU;
 
-	// bind the device driver
+	/* Bind the device driver */
 	device->phone = netif_bind_service(device->service, device->device_id,
 	    SERVICE_ETHERNET, nildummy_receiver);
 	if (device->phone < 0) {
@@ -211,7 +211,7 @@ nildummy_device_message(device_id_t device_id, services_t service, size_t mtu)
 		return device->phone;
 	}
 	
-	// get hardware address
+	/* Get hardware address */
 	rc = netif_get_addr_req(device->phone, device->device_id, &device->addr,
 	    &device->addr_data);
 	if (rc != EOK) {
@@ -220,7 +220,7 @@ nildummy_device_message(device_id_t device_id, services_t service, size_t mtu)
 		return rc;
 	}
 	
-	// add to the cache
+	/* Add to the cache */
 	index = nildummy_devices_add(&nildummy_globals.devices,
 	    device->device_id, device);
 	if (index < 0) {
@@ -246,8 +246,8 @@ nildummy_device_message(device_id_t device_id, services_t service, size_t mtu)
  * @return		ENOENT if there no such device.
  *
  */
-static int
-nildummy_addr_message(device_id_t device_id, measured_string_ref *address)
+static int nildummy_addr_message(device_id_t device_id,
+    measured_string_ref *address)
 {
 	nildummy_device_ref device;
 
@@ -278,8 +278,7 @@ nildummy_addr_message(device_id_t device_id, measured_string_ref *address)
  * @return		ENOENT if there is no such device.
  *
  */
-static int
-nildummy_packet_space_message(device_id_t device_id, size_t *addr_len,
+static int nildummy_packet_space_message(device_id_t device_id, size_t *addr_len,
     size_t *prefix, size_t *content, size_t *suffix)
 {
 	nildummy_device_ref device;
@@ -293,6 +292,7 @@ nildummy_packet_space_message(device_id_t device_id, size_t *addr_len,
 		fibril_rwlock_read_unlock(&nildummy_globals.devices_lock);
 		return ENOENT;
 	}
+
 	*content = device->mtu;
 	fibril_rwlock_read_unlock(&nildummy_globals.devices_lock);
 	
@@ -302,9 +302,8 @@ nildummy_packet_space_message(device_id_t device_id, size_t *addr_len,
 	return EOK;
 }
 
-int
-nil_received_msg_local(int nil_phone, device_id_t device_id, packet_t packet,
-    services_t target)
+int nil_received_msg_local(int nil_phone, device_id_t device_id,
+    packet_t packet, services_t target)
 {
 	packet_t next;
 
@@ -354,8 +353,8 @@ static int nildummy_register_message(services_t service, int phone)
  * @return		ENOENT if there no such device.
  * @return		EINVAL if the service parameter is not known.
  */
-static int
-nildummy_send_message(device_id_t device_id, packet_t packet, services_t sender)
+static int nildummy_send_message(device_id_t device_id, packet_t packet,
+    services_t sender)
 {
 	nildummy_device_ref device;
 
@@ -365,7 +364,8 @@ nildummy_send_message(device_id_t device_id, packet_t packet, services_t sender)
 		fibril_rwlock_read_unlock(&nildummy_globals.devices_lock);
 		return ENOENT;
 	}
-	// send packet queue
+
+	/* Send packet queue */
 	if (packet)
 		netif_send_msg(device->phone, device_id, packet,
 		    SERVICE_NILDUMMY);
@@ -373,9 +373,8 @@ nildummy_send_message(device_id_t device_id, packet_t packet, services_t sender)
 	return EOK;
 }
 
-int
-nil_message_standalone(const char *name, ipc_callid_t callid, ipc_call_t *call,
-    ipc_call_t *answer, int *answer_count)
+int nil_message_standalone(const char *name, ipc_callid_t callid,
+    ipc_call_t *call, ipc_call_t *answer, int *answer_count)
 {
 	measured_string_ref address;
 	packet_t packet;

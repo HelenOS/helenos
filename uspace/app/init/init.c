@@ -199,7 +199,7 @@ static void console(const char *dev)
 	}
 }
 
-static void getterm(const char *dev, const char *app)
+static void getterm(const char *dev, const char *app, bool wmsg)
 {
 	char term[DEVMAP_NAME_MAXLEN];
 	int rc;
@@ -217,10 +217,20 @@ static void getterm(const char *dev, const char *app)
 		return;
 	}
 	
-	rc = task_spawnl(NULL, APP_GETTERM, APP_GETTERM, term, app, NULL);
-	if (rc != EOK) {
-		printf("%s: Error spawning %s %s %s (%s)\n", NAME,
-		    APP_GETTERM, term, app, str_error(rc));
+	if (wmsg) {
+		rc = task_spawnl(NULL, APP_GETTERM, APP_GETTERM, "-w", term,
+		    app, NULL);
+		if (rc != EOK) {
+			printf("%s: Error spawning %s -w %s %s (%s)\n", NAME,
+			    APP_GETTERM, term, app, str_error(rc));
+		}
+	} else {
+		rc = task_spawnl(NULL, APP_GETTERM, APP_GETTERM, term, app,
+		    NULL);
+		if (rc != EOK) {
+			printf("%s: Error spawning %s %s %s (%s)\n", NAME,
+			    APP_GETTERM, term, app, str_error(rc));
+		}
 	}
 }
 
@@ -294,13 +304,13 @@ int main(int argc, char *argv[])
 	(void) mount_data;
 #endif
 	
-	getterm("term/vc0", "/app/bdsh");
-	getterm("term/vc1", "/app/bdsh");
-	getterm("term/vc2", "/app/bdsh");
-	getterm("term/vc3", "/app/bdsh");
-	getterm("term/vc4", "/app/bdsh");
-	getterm("term/vc5", "/app/bdsh");
-	getterm("term/vc6", "/app/klog");
+	getterm("term/vc0", "/app/bdsh", true);
+	getterm("term/vc1", "/app/bdsh", false);
+	getterm("term/vc2", "/app/bdsh", false);
+	getterm("term/vc3", "/app/bdsh", false);
+	getterm("term/vc4", "/app/bdsh", false);
+	getterm("term/vc5", "/app/bdsh", false);
+	getterm("term/vc6", "/app/klog", false);
 	
 	return 0;
 }

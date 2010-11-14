@@ -274,7 +274,7 @@ static int net_initialize(async_client_conn_t client_connection)
 	modules_initialize(&net_globals.modules);
 	measured_strings_initialize(&net_globals.configuration);
 	
-	// TODO: dynamic configuration
+	/* TODO: dynamic configuration */
 	rc = read_configuration();
 	if (rc != EOK)
 		return rc;
@@ -346,7 +346,7 @@ out:
 /** Return the configured values.
  *
  * The network interface configuration is searched first.
- &
+ *
  * @param[in]  netif_conf    The network interface configuration setting.
  * @param[out] configuration The found configured values.
  * @param[in]  count         The desired settings count.
