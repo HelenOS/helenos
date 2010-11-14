@@ -56,8 +56,7 @@
 /** ARP module global data. */
 extern arp_globals_t arp_globals;
 
-int
-il_module_message_standalone(ipc_callid_t callid, ipc_call_t *call,
+int il_module_message_standalone(ipc_callid_t callid, ipc_call_t *call,
     ipc_call_t *answer, int *answer_count)
 {
 	return arp_message_standalone(callid, call, answer, answer_count);
