@@ -42,12 +42,13 @@
 #include <str_error.h>
 #include <errno.h>
 #include "version.h"
+#include "welcome.h"
 
 #define APP_NAME  "getterm"
 
 static void usage(void)
 {
-	printf("Usage: %s <terminal> <command> [<arguments...>]\n", APP_NAME);
+	printf("Usage: %s <terminal> [-w] <command> [<arguments...>]\n", APP_NAME);
 }
 
 static void reopen(FILE **stream, int fd, const char *path, int flags, const char *mode)
@@ -78,16 +79,35 @@ int main(int argc, char *argv[])
 	task_exit_t texit;
 	int retval;
 	task_id_t id;
-	char *fname;
+	char *fname, *term;
+	char **cmd_args;
+	bool print_wmsg;
 
-	if (argc < 3) {
+	++argv; --argc;
+	if (argc < 1) {
 		usage();
 		return -1;
 	}
+
+	if (str_cmp(*argv, "-w") == 0) {
+		print_wmsg = true;
+		++argv; --argc;
+	} else {
+		print_wmsg = false;
+	}
+
+	if (argc < 2) {
+		usage();
+		return -1;
+	}
+
+	term = *argv++;
+	fname = *argv;
+	cmd_args = argv;
 	
-	reopen(&stdin, 0, argv[1], O_RDONLY, "r");
-	reopen(&stdout, 1, argv[1], O_WRONLY, "w");
-	reopen(&stderr, 2, argv[1], O_WRONLY, "w");
+	reopen(&stdin, 0, term, O_RDONLY, "r");
+	reopen(&stdout, 1, term, O_WRONLY, "w");
+	reopen(&stderr, 2, term, O_WRONLY, "w");
 	
 	/*
 	 * FIXME: fdopen() should actually detect that we are opening a console
@@ -104,10 +124,11 @@ int main(int argc, char *argv[])
 	if (stderr == NULL)
 		return -4;
 	
-	version_print(argv[1]);
-	fname = argv[2];
-	
-	rc = task_spawnv(&id, fname, (const char * const *) &argv[2]);
+	version_print(term);
+	if (print_wmsg)
+		welcome_msg_print();
+
+	rc = task_spawnv(&id, fname, (const char * const *) cmd_args);
 	if (rc != EOK) {
 		printf("%s: Error spawning %s (%s)\n", APP_NAME, fname,
 		    str_error(rc));
