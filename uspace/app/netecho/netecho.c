@@ -172,6 +172,8 @@ int main(int argc, char *argv[])
 						return rc;
 				} else if (str_lcmp(argv[index] + 2, "count=", 6) == 0) {
 					rc = arg_parse_int(argc, argv, &index, &count, 8);
+					if (rc != EOK)
+						return rc;
 				} else if (str_lcmp(argv[index] + 2, "family=", 7) == 0) {
 					rc = arg_parse_name_int(argc, argv, &index, &family, 9, socket_parse_protocol_family);
 					if (rc != EOK)
