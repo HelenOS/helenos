@@ -83,7 +83,8 @@ int main(int argc, char *argv[])
 	char **cmd_args;
 	bool print_wmsg;
 
-	++argv; --argc;
+	argv++;
+	argc--;
 	if (argc < 1) {
 		usage();
 		return -1;
@@ -91,7 +92,8 @@ int main(int argc, char *argv[])
 
 	if (str_cmp(*argv, "-w") == 0) {
 		print_wmsg = true;
-		++argv; --argc;
+		argv++;
+		argc--;
 	} else {
 		print_wmsg = false;
 	}
