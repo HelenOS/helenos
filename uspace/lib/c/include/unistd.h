@@ -40,7 +40,7 @@
 #include <libarch/config.h>
 
 #ifndef NULL
-	#define NULL  0
+	#define NULL  0UL
 #endif
 
 #define getpagesize()  (PAGE_SIZE)
