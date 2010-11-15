@@ -119,6 +119,8 @@ ifeq ($(UARCH),ia32)
 	DIRS += drv/pciintel
 	DIRS += drv/isa
 	DIRS += drv/ns8250
+	DIRS += drv/uhci
+	DIRS += drv/usbkbd
 endif
 
 ifeq ($(UARCH),ppc32)

@@ -57,22 +57,6 @@ typedef struct {
 
 #define NAMESPACE "usb"
 
-/** String representation for USB transfer type. */
-const char * usb_str_transfer_type(usb_transfer_type_t t)
-{
-	switch (t) {
-		case USB_TRANSFER_ISOCHRONOUS:
-			return "isochronous";
-		case USB_TRANSFER_INTERRUPT:
-			return "interrupt";
-		case USB_TRANSFER_CONTROL:
-			return "control";
-		case USB_TRANSFER_BULK:
-			return "bulk";
-		default:
-			return "unknown";
-	}
-}
 
 /** String representation of USB transaction outcome. */
 const char * usb_str_transaction_outcome(usb_transaction_outcome_t o)

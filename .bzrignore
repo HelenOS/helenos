@@ -92,6 +92,8 @@ _link.ld
 ./uspace/dist/drv/pciintel/
 ./uspace/dist/drv/root/
 ./uspace/dist/drv/rootia32/
+./uspace/dist/drv/uhci/
+./uspace/dist/drv/usbkbd/
 ./uspace/dist/srv/arp
 ./uspace/dist/srv/ata_bd
 ./uspace/dist/srv/char_ms
@@ -125,6 +127,8 @@ _link.ld
 ./uspace/drv/ns8250/ns8250
 ./uspace/drv/pciintel/pciintel
 ./uspace/drv/rootia32/rootia32
+./uspace/drv/uhci/uhci
+./uspace/drv/usbkbd/usbkbd
 ./uspace/srv/bd/ata_bd/ata_bd
 ./uspace/srv/bd/file_bd/file_bd
 ./uspace/srv/bd/gxe_bd/gxe_bd
