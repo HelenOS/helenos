@@ -152,7 +152,7 @@ static void nildummy_receiver(ipc_callid_t iid, ipc_call_t *icall)
 static int nildummy_device_message(device_id_t device_id, services_t service,
     size_t mtu)
 {
-	nildummy_device_ref device;
+	nildummy_device_t *device;
 	int index;
 	int rc;
 
@@ -191,7 +191,7 @@ static int nildummy_device_message(device_id_t device_id, services_t service,
 	}
 	
 	/* Create a new device */
-	device = (nildummy_device_ref) malloc(sizeof(nildummy_device_t));
+	device = (nildummy_device_t *) malloc(sizeof(nildummy_device_t));
 	if (!device)
 		return ENOMEM;
 	
@@ -249,7 +249,7 @@ static int nildummy_device_message(device_id_t device_id, services_t service,
 static int nildummy_addr_message(device_id_t device_id,
     measured_string_ref *address)
 {
-	nildummy_device_ref device;
+	nildummy_device_t *device;
 
 	if (!address)
 		return EBADMEM;
@@ -281,7 +281,7 @@ static int nildummy_addr_message(device_id_t device_id,
 static int nildummy_packet_space_message(device_id_t device_id, size_t *addr_len,
     size_t *prefix, size_t *content, size_t *suffix)
 {
-	nildummy_device_ref device;
+	nildummy_device_t *device;
 
 	if (!addr_len || !prefix || !content || !suffix)
 		return EBADMEM;
@@ -356,7 +356,7 @@ static int nildummy_register_message(services_t service, int phone)
 static int nildummy_send_message(device_id_t device_id, packet_t packet,
     services_t sender)
 {
-	nildummy_device_ref device;
+	nildummy_device_t *device;
 
 	fibril_rwlock_read_lock(&nildummy_globals.devices_lock);
 	device = nildummy_devices_find(&nildummy_globals.devices, device_id);

@@ -54,20 +54,10 @@ typedef struct tcp_globals tcp_globals_t;
  */
 typedef struct tcp_socket_data tcp_socket_data_t;
 
-/** Type definition of the TCP socket specific data pointer.
- * @see tcp_socket_data
- */
-typedef tcp_socket_data_t *tcp_socket_data_ref;
-
 /** Type definition of the TCP operation data.
  * @see tcp_operation
  */
 typedef struct tcp_operation tcp_operation_t;
-
-/** Type definition of the TCP operation data pointer.
- * @see tcp_operation
- */
-typedef tcp_operation_t *tcp_operation_ref;
 
 /** TCP socket state type definition.
  * @see tcp_socket_state

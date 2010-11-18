@@ -53,20 +53,10 @@ typedef struct nildummy_globals nildummy_globals_t;
  */
 typedef struct nildummy_device nildummy_device_t;
 
-/** Type definition of the dummy nil device specific data pointer.
- * @see nildummy_device
- */
-typedef nildummy_device_t *nildummy_device_ref;
-
 /** Type definition of the dummy nil protocol specific data.
  * @see nildummy_proto
  */
 typedef struct nildummy_proto nildummy_proto_t;
-
-/** Type definition of the dummy nil protocol specific data pointer.
- * @see nildummy_proto
- */
-typedef nildummy_proto_t *nildummy_proto_ref;
 
 /** Dummy nil device map.
  * Maps devices to the dummy nil device specific data.

@@ -54,11 +54,6 @@
  */
 typedef struct arp_device arp_device_t;
 
-/** Type definition of the ARP device specific data pointer.
- * @see arp_device
- */
-typedef arp_device_t *arp_device_ref;
-
 /** Type definition of the ARP global data.
  * @see arp_globals
  */
@@ -68,11 +63,6 @@ typedef struct arp_globals arp_globals_t;
  * @see arp_proto
  */
 typedef struct arp_proto arp_proto_t;
-
-/** Type definition of the ARP protocol specific data pointer.
- * @see arp_proto
- */
-typedef arp_proto_t *arp_proto_ref;
 
 /** ARP address map.
  *

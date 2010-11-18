@@ -250,7 +250,7 @@ static int icmp_echo(icmp_param_t id, icmp_param_t sequence, size_t size,
 	packet_t packet;
 	size_t length;
 	uint8_t *data;
-	icmp_reply_ref reply;
+	icmp_reply_t *reply;
 	int reply_key;
 	int index;
 	int rc;
@@ -482,7 +482,7 @@ static void  icmp_process_echo_reply(packet_t packet, icmp_header_ref header,
     icmp_type_t type, icmp_code_t code)
 {
 	int reply_key;
-	icmp_reply_ref reply;
+	icmp_reply_t *reply;
 
 	/* Compute the reply key */
 	reply_key = ICMP_GET_REPLY_KEY(header->un.echo.identifier,

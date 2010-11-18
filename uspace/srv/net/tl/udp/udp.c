@@ -222,7 +222,7 @@ static int udp_process_packet(device_id_t device_id, packet_t packet,
 	size_t length;
 	size_t offset;
 	int result;
-	udp_header_ref header;
+	udp_header_t *header;
 	socket_core_ref socket;
 	packet_t next_packet;
 	size_t total_length;
@@ -276,7 +276,7 @@ static int udp_process_packet(device_id_t device_id, packet_t packet,
 		return udp_release_and_return(packet, rc);
 
 	/* Get UDP header */
-	header = (udp_header_ref) packet_get_data(packet);
+	header = (udp_header_t *) packet_get_data(packet);
 	if (!header)
 		return udp_release_and_return(packet, NO_DATA);
 
@@ -459,7 +459,7 @@ static int udp_sendto_message(socket_cores_ref local_sockets, int socket_id,
 	socket_core_ref socket;
 	packet_t packet;
 	packet_t next_packet;
-	udp_header_ref header;
+	udp_header_t *header;
 	int index;
 	size_t total_length;
 	int result;
@@ -614,7 +614,7 @@ static int udp_recvfrom_message(socket_cores_ref local_sockets, int socket_id,
 	socket_core_ref socket;
 	int packet_id;
 	packet_t packet;
-	udp_header_ref header;
+	udp_header_t *header;
 	struct sockaddr *addr;
 	size_t length;
 	uint8_t *data;
@@ -643,7 +643,7 @@ static int udp_recvfrom_message(socket_cores_ref local_sockets, int socket_id,
 		(void) dyn_fifo_pop(&socket->received);
 		return udp_release_and_return(packet, NO_DATA);
 	}
-	header = (udp_header_ref) data;
+	header = (udp_header_t *) data;
 
 	/* Set the source address port */
 	result = packet_get_addr(packet, (uint8_t **) &addr, NULL);

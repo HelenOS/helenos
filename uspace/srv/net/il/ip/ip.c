@@ -143,7 +143,7 @@ static int ip_release_and_return(packet_t packet, int result)
  */
 static int ip_get_icmp_phone(void)
 {
-	ip_proto_ref proto;
+	ip_proto_t *proto;
 	int phone;
 
 	fibril_rwlock_read_lock(&ip_globals.protos_lock);
@@ -307,7 +307,7 @@ out:
  * @returns		Other error codes as defined for the
  *			nil_packet_size_req() function.
  */
-static int ip_netif_initialize(ip_netif_ref ip_netif)
+static int ip_netif_initialize(ip_netif_t *ip_netif)
 {
 	measured_string_t names[] = {
 		{
@@ -347,7 +347,7 @@ static int ip_netif_initialize(ip_netif_ref ip_netif)
 	size_t count = sizeof(names) / sizeof(measured_string_t);
 	char *data;
 	measured_string_t address;
-	ip_route_ref route;
+	ip_route_t *route;
 	in_addr_t gateway;
 	int index;
 	int rc;
@@ -377,7 +377,7 @@ static int ip_netif_initialize(ip_netif_ref ip_netif)
 			net_free_settings(configuration, data);
 			return ENOTSUP;
 		} else if (ip_netif->ipv == IPV4) {
-			route = (ip_route_ref) malloc(sizeof(ip_route_t));
+			route = (ip_route_t *) malloc(sizeof(ip_route_t));
 			if (!route) {
 				net_free_settings(configuration, data);
 				return ENOMEM;
@@ -490,7 +490,7 @@ static int ip_netif_initialize(ip_netif_ref ip_netif)
  */
 static int ip_mtu_changed_message(device_id_t device_id, size_t mtu)
 {
-	ip_netif_ref netif;
+	ip_netif_t *netif;
 
 	fibril_rwlock_write_lock(&ip_globals.netifs_lock);
 	netif = ip_netifs_find(&ip_globals.netifs, device_id);
@@ -515,7 +515,7 @@ static int ip_mtu_changed_message(device_id_t device_id, size_t mtu)
  */
 static int ip_device_state_message(device_id_t device_id, device_state_t state)
 {
-	ip_netif_ref netif;
+	ip_netif_t *netif;
 
 	fibril_rwlock_write_lock(&ip_globals.netifs_lock);
 	// find the device
@@ -992,7 +992,7 @@ ip_split_packet(packet_t packet, size_t prefix, size_t content, size_t suffix,
  *			function.
  */
 static int
-ip_send_route(packet_t packet, ip_netif_ref netif, ip_route_ref route,
+ip_send_route(packet_t packet, ip_netif_t *netif, ip_route_t *route,
     in_addr_t *src, in_addr_t dest, services_t error)
 {
 	measured_string_t destination;
@@ -1064,11 +1064,11 @@ ip_send_route(packet_t packet, ip_netif_ref netif, ip_route_ref route,
  * @returns		The found route.
  * @returns		NULL if no route was found.
  */
-static ip_route_ref
-ip_netif_find_route(ip_netif_ref netif, in_addr_t destination)
+static ip_route_t
+*ip_netif_find_route(ip_netif_t *netif, in_addr_t destination)
 {
 	int index;
-	ip_route_ref route;
+	ip_route_t *route;
 
 	if (!netif)
 		return NULL;
@@ -1092,10 +1092,10 @@ ip_netif_find_route(ip_netif_ref netif, in_addr_t destination)
  * @returns		The found route.
  * @returns		NULL if no route was found.
  */
-static ip_route_ref ip_find_route(in_addr_t destination) {
+static ip_route_t *ip_find_route(in_addr_t destination) {
 	int index;
-	ip_route_ref route;
-	ip_netif_ref netif;
+	ip_route_t *route;
+	ip_netif_t *netif;
 
 	// start with the last netif - the newest one
 	index = ip_netifs_count(&ip_globals.netifs) - 1;
@@ -1118,9 +1118,9 @@ static ip_route_ref ip_find_route(in_addr_t destination) {
  * @returns		The IP address.
  * @returns		NULL if no IP address was found.
  */
-static in_addr_t *ip_netif_address(ip_netif_ref netif)
+static in_addr_t *ip_netif_address(ip_netif_t *netif)
 {
-	ip_route_ref route;
+	ip_route_t *route;
 
 	route = ip_routes_get_index(&netif->routes, 0);
 	return route ? &route->address : NULL;
@@ -1146,13 +1146,13 @@ static int
 ip_register(int protocol, services_t service, int phone,
     tl_received_msg_t received_msg)
 {
-	ip_proto_ref proto;
+	ip_proto_t *proto;
 	int index;
 
 	if (!protocol || !service || ((phone < 0) && !received_msg))
 		return EINVAL;
 
-	proto = (ip_proto_ref) malloc(sizeof(ip_protos_t));
+	proto = (ip_proto_t *) malloc(sizeof(ip_protos_t));
 	if (!proto)
 		return ENOMEM;
 
@@ -1179,12 +1179,12 @@ ip_register(int protocol, services_t service, int phone,
 static int
 ip_device_req_local(int il_phone, device_id_t device_id, services_t netif)
 {
-	ip_netif_ref ip_netif;
-	ip_route_ref route;
+	ip_netif_t *ip_netif;
+	ip_route_t *route;
 	int index;
 	int rc;
 
-	ip_netif = (ip_netif_ref) malloc(sizeof(ip_netif_t));
+	ip_netif = (ip_netif_t *) malloc(sizeof(ip_netif_t));
 	if (!ip_netif)
 		return ENOMEM;
 
@@ -1250,8 +1250,8 @@ ip_send_msg_local(int il_phone, device_id_t device_id, packet_t packet,
     services_t sender, services_t error)
 {
 	int addrlen;
-	ip_netif_ref netif;
-	ip_route_ref route;
+	ip_netif_t *netif;
+	ip_route_t *route;
 	struct sockaddr *addr;
 	struct sockaddr_in *address_in;
 	in_addr_t *dest;
@@ -1366,7 +1366,7 @@ static int
 ip_packet_size_message(device_id_t device_id, size_t *addr_len, size_t *prefix,
     size_t *content, size_t *suffix)
 {
-	ip_netif_ref netif;
+	ip_netif_t *netif;
 	int index;
 
 	if (!addr_len || !prefix || !content || !suffix)
@@ -1453,7 +1453,7 @@ static int
 ip_deliver_local(device_id_t device_id, packet_t packet, ip_header_ref header,
     services_t error)
 {
-	ip_proto_ref proto;
+	ip_proto_t *proto;
 	int phone;
 	services_t service;
 	tl_received_msg_t received_msg;
@@ -1556,7 +1556,7 @@ ip_process_packet(device_id_t device_id, packet_t packet)
 {
 	ip_header_ref header;
 	in_addr_t dest;
-	ip_route_ref route;
+	ip_route_t *route;
 	int phone;
 	struct sockaddr *addr;
 	struct sockaddr_in addr_in;
@@ -1646,8 +1646,8 @@ static int
 ip_add_route_req_local(int ip_phone, device_id_t device_id, in_addr_t address,
     in_addr_t netmask, in_addr_t gateway)
 {
-	ip_route_ref route;
-	ip_netif_ref netif;
+	ip_route_t *route;
+	ip_netif_t *netif;
 	int index;
 
 	fibril_rwlock_write_lock(&ip_globals.netifs_lock);
@@ -1658,7 +1658,7 @@ ip_add_route_req_local(int ip_phone, device_id_t device_id, in_addr_t address,
 		return ENOENT;
 	}
 
-	route = (ip_route_ref) malloc(sizeof(ip_route_t));
+	route = (ip_route_t *) malloc(sizeof(ip_route_t));
 	if (!route) {
 		fibril_rwlock_write_unlock(&ip_globals.netifs_lock);
 		return ENOMEM;
@@ -1680,7 +1680,7 @@ ip_add_route_req_local(int ip_phone, device_id_t device_id, in_addr_t address,
 static int
 ip_set_gateway_req_local(int ip_phone, device_id_t device_id, in_addr_t gateway)
 {
-	ip_netif_ref netif;
+	ip_netif_t *netif;
 
 	fibril_rwlock_write_lock(&ip_globals.netifs_lock);
 
@@ -1720,9 +1720,9 @@ ip_received_error_msg_local(int ip_phone, device_id_t device_id,
 	int offset;
 	icmp_type_t type;
 	icmp_code_t code;
-	ip_netif_ref netif;
+	ip_netif_t *netif;
 	measured_string_t address;
-	ip_route_ref route;
+	ip_route_t *route;
 	ip_header_ref header;
 
 	switch (error) {
@@ -1781,7 +1781,7 @@ ip_get_route_req_local(int ip_phone, ip_protocol_t protocol,
 	struct sockaddr_in *address_in;
 	in_addr_t *dest;
 	in_addr_t *src;
-	ip_route_ref route;
+	ip_route_t *route;
 	ipv4_pseudo_header_ref header_in;
 
 	if (!destination || (addrlen <= 0))

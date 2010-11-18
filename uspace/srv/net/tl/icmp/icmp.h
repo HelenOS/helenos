@@ -49,11 +49,6 @@
  */
 typedef struct icmp_reply icmp_reply_t;
 
-/** Type definition of the ICMP reply data pointer.
- * @see icmp_reply
- */
-typedef icmp_reply_t *icmp_reply_ref;
-
 /** Type definition of the ICMP global data.
  * @see icmp_globals
  */
