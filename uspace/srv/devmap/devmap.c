@@ -74,7 +74,7 @@ typedef struct {
 	/** Pointer to the previous and next device in the list of all namespaces */
 	link_t namespaces;
 	/** Unique namespace identifier */
-	dev_handle_t handle;
+	devmap_handle_t handle;
 	/** Namespace name */
 	char *name;
 	/** Reference count */
@@ -91,7 +91,7 @@ typedef struct {
 	    owned by one driver */
 	link_t driver_devices;
 	/** Unique device identifier */
-	dev_handle_t handle;
+	devmap_handle_t handle;
 	/** Device namespace */
 	devmap_namespace_t *namespace;
 	/** Device name */
@@ -117,10 +117,10 @@ static FIBRIL_MUTEX_INITIALIZE(drivers_list_mutex);
 static FIBRIL_MUTEX_INITIALIZE(create_handle_mutex);
 static FIBRIL_MUTEX_INITIALIZE(null_devices_mutex);
 
-static dev_handle_t last_handle = 0;
+static devmap_handle_t last_handle = 0;
 static devmap_device_t *null_devices[NULL_DEVICES];
 
-static dev_handle_t devmap_create_handle(void)
+static devmap_handle_t devmap_create_handle(void)
 {
 	/* TODO: allow reusing old handles after their unregistration
 	 * and implement some version of LRU algorithm, avoid overflow
@@ -232,7 +232,7 @@ static devmap_namespace_t *devmap_namespace_find_name(const char *name)
  * @todo: use hash table
  *
  */
-static devmap_namespace_t *devmap_namespace_find_handle(dev_handle_t handle)
+static devmap_namespace_t *devmap_namespace_find_handle(devmap_handle_t handle)
 {
 	link_t *item;
 	for (item = namespaces_list.next; item != &namespaces_list; item = item->next) {
@@ -274,7 +274,7 @@ static devmap_device_t *devmap_device_find_name(const char *ns_name,
  * @todo: use hash table
  *
  */
-static devmap_device_t *devmap_device_find_handle(dev_handle_t handle)
+static devmap_device_t *devmap_device_find_handle(devmap_handle_t handle)
 {
 	link_t *item;
 	for (item = devices_list.next; item != &devices_list; item = item->next) {
@@ -607,7 +607,7 @@ static void devmap_forward(ipc_callid_t callid, ipc_call_t *call)
 	/*
 	 * Get handle from request
 	 */
-	dev_handle_t handle = IPC_GET_ARG2(*call);
+	devmap_handle_t handle = IPC_GET_ARG2(*call);
 	devmap_device_t *dev = devmap_device_find_handle(handle);
 	
 	if ((dev == NULL) || (dev->driver == NULL) || (dev->driver->phone == 0)) {

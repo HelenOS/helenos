@@ -68,7 +68,7 @@ int main(int argc, char *argv[])
 	
 	int res;
 	res = devman_get_phone(DEVMAN_CLIENT, IPC_FLAG_BLOCKING);
-	device_handle_t handle;
+	devman_handle_t handle;
 	
 	res = devman_device_get_handle("/hw/pci0/00:01.0/com1", &handle,
 	    IPC_FLAG_BLOCKING);

@@ -133,8 +133,8 @@ int main(int argc, char **argv)
 	char dev_path[DEVMAP_NAME_MAXLEN + 1];
 	snprintf(dev_path, DEVMAP_NAME_MAXLEN, "%s/%s", NAMESPACE, NAME);
 
-	dev_handle_t dev_handle;
-	if (devmap_device_register(dev_path, &dev_handle) != EOK) {
+	devmap_handle_t devmap_handle;
+	if (devmap_device_register(dev_path, &devmap_handle) != EOK) {
 		printf(NAME ": Unable to register device %s\n", dev_path);
 		return -1;
 	}

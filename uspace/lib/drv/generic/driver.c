@@ -138,7 +138,7 @@ static void remove_from_devices_list(device_t *dev)
 	fibril_mutex_unlock(&devices_mutex);
 }
 
-static device_t * driver_get_device(link_t *devices, device_handle_t handle)
+static device_t * driver_get_device(link_t *devices, devman_handle_t handle)
 {
 	device_t *dev = NULL;
 	
@@ -162,7 +162,7 @@ static void driver_add_device(ipc_callid_t iid, ipc_call_t *icall)
 	char *dev_name = NULL;
 	int res = EOK;
 	
-	device_handle_t dev_handle =  IPC_GET_ARG1(*icall);
+	devman_handle_t dev_handle =  IPC_GET_ARG1(*icall);
 	device_t *dev = create_device();
 	dev->handle = dev_handle;
 	
@@ -220,7 +220,7 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 	 * Answer the first IPC_M_CONNECT_ME_TO call and remember the handle of
 	 * the device to which the client connected.
 	 */
-	device_handle_t handle = IPC_GET_ARG2(*icall);
+	devman_handle_t handle = IPC_GET_ARG2(*icall);
 	device_t *dev = driver_get_device(&devices, handle);
 
 	if (dev == NULL) {

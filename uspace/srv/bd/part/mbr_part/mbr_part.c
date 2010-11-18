@@ -100,7 +100,7 @@ typedef struct part {
 	/** Number of blocks */
 	aoff64_t length;
 	/** Device representing the partition (outbound device) */
-	dev_handle_t dev;
+	devmap_handle_t dev;
 	/** Points to next partition structure. */
 	struct part *next;
 } part_t;
@@ -141,7 +141,7 @@ typedef struct {
 static size_t block_size;
 
 /** Partitioned device (inbound device) */
-static dev_handle_t indev_handle;
+static devmap_handle_t indev_handle;
 
 /** List of partitions. This structure is an empty head. */
 static part_t plist_head;
@@ -180,7 +180,7 @@ static int mbr_init(const char *dev_name)
 	int rc;
 	int i;
 	char *name;
-	dev_handle_t dev;
+	devmap_handle_t dev;
 	uint64_t size_mb;
 	part_t *part;
 
@@ -393,7 +393,7 @@ static void mbr_connection(ipc_callid_t iid, ipc_call_t *icall)
 	ipc_callid_t callid;
 	ipc_call_t call;
 	ipcarg_t method;
-	dev_handle_t dh;
+	devmap_handle_t dh;
 	int flags;
 	int retval;
 	uint64_t ba;
