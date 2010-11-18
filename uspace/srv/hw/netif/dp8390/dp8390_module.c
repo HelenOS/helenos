@@ -156,7 +156,8 @@ int netif_specific_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * 
 	return ENOTSUP;
 }
 
-int netif_get_device_stats(device_id_t device_id, device_stats_ref stats){
+int netif_get_device_stats(device_id_t device_id, device_stats_t *stats)
+{
 	netif_device_t * device;
 	eth_stat_t * de_stat;
 	int rc;

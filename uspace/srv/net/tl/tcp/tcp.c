@@ -126,11 +126,6 @@
  */
 typedef struct tcp_timeout tcp_timeout_t;
 
-/** Type definition of the TCP timeout pointer.
- *  @see tcp_timeout
- */
-typedef tcp_timeout_t *tcp_timeout_ref;
-
 /** TCP reply timeout data.
  *  Used as a timeouting fibril argument.
  *  @see tcp_timeout()
@@ -808,7 +803,7 @@ int tcp_queue_received_packet(socket_core_ref socket,
     tcp_socket_data_t *socket_data, packet_t packet, int fragments,
     size_t total_length)
 {
-	packet_dimension_ref packet_dimension;
+	packet_dimension_t *packet_dimension;
 	int rc;
 
 	assert(socket);
@@ -1305,7 +1300,7 @@ int tcp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 	int answer_count;
 	tcp_socket_data_t *socket_data;
 	socket_core_ref socket;
-	packet_dimension_ref packet_dimension;
+	packet_dimension_t *packet_dimension;
 
 	/*
 	 * Accept the connection
@@ -1539,7 +1534,7 @@ int tcp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 
 int tcp_timeout(void *data)
 {
-	tcp_timeout_ref timeout = data;
+	tcp_timeout_t *timeout = data;
 	int keep_write_lock = false;
 	socket_core_ref socket;
 	tcp_socket_data_t *socket_data;
@@ -1616,7 +1611,7 @@ out:
 
 int tcp_release_after_timeout(void *data)
 {
-	tcp_timeout_ref timeout = data;
+	tcp_timeout_t *timeout = data;
 	socket_core_ref socket;
 	tcp_socket_data_t *socket_data;
 	fibril_rwlock_t *local_lock;
@@ -2053,7 +2048,7 @@ int tcp_prepare_timeout(int (*timeout_function)(void *tcp_timeout_t),
     size_t sequence_number, tcp_socket_state_t state, suseconds_t timeout,
     int globals_read_only)
 {
-	tcp_timeout_ref operation_timeout;
+	tcp_timeout_t *operation_timeout;
 	fid_t fibril;
 
 	assert(socket);
@@ -2158,7 +2153,7 @@ int tcp_send_message(socket_cores_ref local_sockets, int socket_id,
 {
 	socket_core_ref socket;
 	tcp_socket_data_t *socket_data;
-	packet_dimension_ref packet_dimension;
+	packet_dimension_t *packet_dimension;
 	packet_t packet;
 	size_t total_length;
 	tcp_header_t *header;
@@ -2300,7 +2295,7 @@ tcp_close_message(socket_cores_ref local_sockets, int socket_id)
 int tcp_create_notification_packet(packet_t *packet, socket_core_ref socket,
     tcp_socket_data_t *socket_data, int synchronize, int finalize)
 {
-	packet_dimension_ref packet_dimension;
+	packet_dimension_t *packet_dimension;
 	tcp_header_t *header;
 	int rc;
 
@@ -2337,7 +2332,7 @@ int tcp_accept_message(socket_cores_ref local_sockets, int socket_id,
 	socket_core_ref accepted;
 	socket_core_ref socket;
 	tcp_socket_data_t *socket_data;
-	packet_dimension_ref packet_dimension;
+	packet_dimension_t *packet_dimension;
 	int rc;
 
 	assert(local_sockets);

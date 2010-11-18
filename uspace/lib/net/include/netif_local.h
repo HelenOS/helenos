@@ -192,7 +192,7 @@ extern int netif_specific_message(ipc_callid_t callid, ipc_call_t *call,
  *			message implementation.
  */
 extern int netif_get_device_stats(device_id_t device_id,
-    device_stats_ref stats);
+    device_stats_t *stats);
 
 extern int netif_get_addr_req_local(int, device_id_t, measured_string_ref *,
     char **);
@@ -200,12 +200,12 @@ extern int netif_probe_req_local(int, device_id_t, int, int);
 extern int netif_send_msg_local(int, device_id_t, packet_t, services_t);
 extern int netif_start_req_local(int, device_id_t);
 extern int netif_stop_req_local(int, device_id_t);
-extern int netif_stats_req_local(int, device_id_t, device_stats_ref);
+extern int netif_stats_req_local(int, device_id_t, device_stats_t *);
 extern int netif_bind_service_local(services_t, device_id_t, services_t,
     async_client_conn_t);
 
 extern int find_device(device_id_t, netif_device_t **);
-extern void null_device_stats(device_stats_ref);
+extern void null_device_stats(device_stats_t *);
 extern void netif_pq_release(packet_id_t);
 extern packet_t netif_packet_get_1(size_t);
 extern int netif_init_module(async_client_conn_t);

@@ -137,7 +137,7 @@ int netif_stop_req_remote(int netif_phone, device_id_t device_id)
  * @return EOK on success.
  */
 int netif_stats_req_remote(int netif_phone, device_id_t device_id,
-    device_stats_ref stats)
+    device_stats_t *stats)
 {
 	if (!stats)
 		return EBADMEM;

@@ -43,7 +43,7 @@
 #include <net/socket.h>
 
 extern int ip_set_gateway_req_remote(int, device_id_t, in_addr_t);
-extern int ip_packet_size_req_remote(int, device_id_t, packet_dimension_ref);
+extern int ip_packet_size_req_remote(int, device_id_t, packet_dimension_t *);
 extern int ip_received_error_msg_remote(int, device_id_t, packet_t, services_t,
     services_t);
 extern int ip_device_req_remote(int, device_id_t, services_t);

@@ -137,7 +137,7 @@ generic_get_addr_req(int phone, int message, device_id_t device_id,
  */
 int
 generic_packet_size_req_remote(int phone, int message, device_id_t device_id,
-    packet_dimension_ref packet_dimension)
+    packet_dimension_t *packet_dimension)
 {
 	if (!packet_dimension)
 		return EBADMEM;

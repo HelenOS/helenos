@@ -42,7 +42,7 @@
  */
 /*@{*/
 
-extern int packet_translate_local(int, packet_ref, packet_id_t);
+extern int packet_translate_local(int, packet_t *, packet_id_t);
 extern packet_t packet_get_4_local(int, size_t, size_t, size_t, size_t);
 extern packet_t packet_get_1_local(int, size_t);
 extern void pq_release_local(int, packet_id_t);

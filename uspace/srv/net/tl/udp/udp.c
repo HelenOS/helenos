@@ -234,7 +234,7 @@ static int udp_process_packet(device_id_t device_id, packet_t packet,
 	void *ip_header;
 	struct sockaddr *src;
 	struct sockaddr *dest;
-	packet_dimension_ref packet_dimension;
+	packet_dimension_t *packet_dimension;
 	int rc;
 
 	switch (error) {
@@ -468,7 +468,7 @@ static int udp_sendto_message(socket_cores_ref local_sockets, int socket_id,
 	void *ip_header;
 	size_t headerlen;
 	device_id_t device_id;
-	packet_dimension_ref packet_dimension;
+	packet_dimension_t *packet_dimension;
 	int rc;
 	
 	rc = tl_get_address_port(addr, addrlen, &dest_port);
@@ -713,7 +713,7 @@ static int udp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 	size_t size;
 	ipc_call_t answer;
 	int answer_count;
-	packet_dimension_ref packet_dimension;
+	packet_dimension_t *packet_dimension;
 
 	/*
 	 * Accept the connection

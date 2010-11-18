@@ -63,7 +63,7 @@
  *
  */
 static int
-packet_return(int phone, packet_ref packet, packet_id_t packet_id, size_t size)
+packet_return(int phone, packet_t *packet, packet_id_t packet_id, size_t size)
 {
 	ipc_call_t answer;
 	aid_t message;
@@ -106,7 +106,7 @@ packet_return(int phone, packet_ref packet, packet_id_t packet_id, size_t size)
  * @returns		Other error codes as defined for the packet_return()
  *			function.
  */
-int packet_translate_remote(int phone, packet_ref packet, packet_id_t packet_id)
+int packet_translate_remote(int phone, packet_t *packet, packet_id_t packet_id)
 {
 	int rc;
 	
