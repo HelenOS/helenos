@@ -463,7 +463,7 @@ static void devman_forward(ipc_callid_t iid, ipc_call_t *icall,
  * mapper to the device manager. */
 static void devman_connection_devmapper(ipc_callid_t iid, ipc_call_t *icall)
 {
-	dev_handle_t devmap_handle = IPC_GET_METHOD(*icall);
+	devmap_handle_t devmap_handle = IPC_GET_METHOD(*icall);
 	node_t *dev;
 
 	dev = find_devmap_tree_device(&device_tree, devmap_handle);

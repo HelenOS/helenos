@@ -156,7 +156,7 @@ struct node {
 	/** The list of device classes to which this device belongs. */
 	link_t classes;
 	/** Devmap handle if the device is registered by devmapper. */
-	dev_handle_t devmap_handle;
+	devmap_handle_t devmap_handle;
 	
 	/**
 	 * Used by the hash table of devices indexed by devman device handles.
@@ -247,7 +247,7 @@ typedef struct dev_class_info {
 	/** The name of the device within the class. */
 	char *dev_name;
 	/** The handle of the device by device mapper in the class namespace. */
-	dev_handle_t devmap_handle;
+	devmap_handle_t devmap_handle;
 	
 	/**
 	 * Link in the hash table of devices registered by the devmapper using
@@ -336,8 +336,8 @@ extern void add_dev_class_no_lock(class_list_t *, dev_class_t *);
 
 /* Devmap devices */
 
-extern node_t *find_devmap_tree_device(dev_tree_t *, dev_handle_t);
-extern node_t *find_devmap_class_device(class_list_t *, dev_handle_t);
+extern node_t *find_devmap_tree_device(dev_tree_t *, devmap_handle_t);
+extern node_t *find_devmap_class_device(class_list_t *, devmap_handle_t);
 
 extern void class_add_devmap_device(class_list_t *, dev_class_info_t *);
 extern void tree_add_devmap_device(dev_tree_t *, node_t *);

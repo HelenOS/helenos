@@ -142,7 +142,7 @@ static adb_dev_t adb_dev[ADB_MAX_ADDR];
 
 int main(int argc, char *argv[])
 {
-	dev_handle_t dev_handle;
+	devmap_handle_t devmap_handle;
 	int rc;
 	int i;
 
@@ -150,7 +150,7 @@ int main(int argc, char *argv[])
 
 	for (i = 0; i < ADB_MAX_ADDR; ++i) {
 		adb_dev[i].client_phone = -1;
-		adb_dev[i].dev_handle = 0;
+		adb_dev[i].devmap_handle = 0;
 	}
 
 	rc = devmap_driver_register(NAME, cuda_connection);
@@ -159,24 +159,24 @@ int main(int argc, char *argv[])
 		return rc;
 	}
 
-	rc = devmap_device_register("adb/kbd", &dev_handle);
+	rc = devmap_device_register("adb/kbd", &devmap_handle);
 	if (rc != EOK) {
 		devmap_hangup_phone(DEVMAP_DRIVER);
 		printf(NAME ": Unable to register device %s.\n", "adb/kdb");
 		return rc;
 	}
 
-	adb_dev[2].dev_handle = dev_handle;
-	adb_dev[8].dev_handle = dev_handle;
+	adb_dev[2].devmap_handle = devmap_handle;
+	adb_dev[8].devmap_handle = devmap_handle;
 
-	rc = devmap_device_register("adb/mouse", &dev_handle);
+	rc = devmap_device_register("adb/mouse", &devmap_handle);
 	if (rc != EOK) {
 		devmap_hangup_phone(DEVMAP_DRIVER);
 		printf(NAME ": Unable to register device %s.\n", "adb/mouse");
 		return rc;
 	}
 
-	adb_dev[9].dev_handle = dev_handle;
+	adb_dev[9].devmap_handle = devmap_handle;
 
 	if (cuda_init() < 0) {
 		printf("cuda_init() failed\n");
@@ -195,7 +195,7 @@ static void cuda_connection(ipc_callid_t iid, ipc_call_t *icall)
 	ipc_callid_t callid;
 	ipc_call_t call;
 	ipcarg_t method;
-	dev_handle_t dh;
+	devmap_handle_t dh;
 	int retval;
 	int dev_addr, i;
 
@@ -205,7 +205,7 @@ static void cuda_connection(ipc_callid_t iid, ipc_call_t *icall)
 	/* Determine which disk device is the client connecting to. */
 	dev_addr = -1;
 	for (i = 0; i < ADB_MAX_ADDR; i++) {
-		if (adb_dev[i].dev_handle == dh)
+		if (adb_dev[i].devmap_handle == dh)
 			dev_addr = i;
 	}
 
@@ -236,7 +236,7 @@ static void cuda_connection(ipc_callid_t iid, ipc_call_t *icall)
 			 * regardless of which address the device is on.
 			 */
 			for (i = 0; i < ADB_MAX_ADDR; ++i) {
-				if (adb_dev[i].dev_handle == dh) {
+				if (adb_dev[i].devmap_handle == dh) {
 					adb_dev[i].client_phone = IPC_GET_ARG5(call);
 				}
 			}

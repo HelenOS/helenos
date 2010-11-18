@@ -61,7 +61,7 @@ typedef struct tmpfs_dentry {
 typedef struct tmpfs_node {
 	fs_node_t *bp;		/**< Back pointer to the FS node. */
 	fs_index_t index;	/**< TMPFS node index. */
-	dev_handle_t dev_handle;/**< Device handle. */
+	devmap_handle_t devmap_handle;/**< Device handle. */
 	link_t nh_link;		/**< Nodes hash table link. */
 	tmpfs_dentry_type_t type;
 	unsigned lnkcnt;	/**< Link count. */
@@ -90,7 +90,7 @@ extern void tmpfs_destroy(ipc_callid_t, ipc_call_t *);
 extern void tmpfs_open_node(ipc_callid_t, ipc_call_t *);
 extern void tmpfs_sync(ipc_callid_t, ipc_call_t *);
 
-extern bool tmpfs_restore(dev_handle_t);
+extern bool tmpfs_restore(devmap_handle_t);
 
 #endif
 

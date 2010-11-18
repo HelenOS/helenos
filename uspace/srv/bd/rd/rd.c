@@ -237,8 +237,8 @@ static bool rd_init(void)
 		return false;
 	}
 	
-	dev_handle_t dev_handle;
-	if (devmap_device_register("bd/initrd", &dev_handle) != EOK) {
+	devmap_handle_t devmap_handle;
+	if (devmap_device_register("bd/initrd", &devmap_handle) != EOK) {
 		devmap_hangup_phone(DEVMAP_DRIVER);
 		printf("%s: Unable to register device\n", NAME);
 		return false;

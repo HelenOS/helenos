@@ -131,7 +131,7 @@ int devmap_driver_register(const char *name, async_client_conn_t conn)
  * @param handle    Output: Handle to the created instance of device.
  *
  */
-int devmap_device_register(const char *fqdn, dev_handle_t *handle)
+int devmap_device_register(const char *fqdn, devmap_handle_t *handle)
 {
 	int phone = devmap_get_phone(DEVMAP_DRIVER, IPC_FLAG_BLOCKING);
 	
@@ -162,12 +162,12 @@ int devmap_device_register(const char *fqdn, dev_handle_t *handle)
 	}
 	
 	if (handle != NULL)
-		*handle = (dev_handle_t) IPC_GET_ARG1(answer);
+		*handle = (devmap_handle_t) IPC_GET_ARG1(answer);
 	
 	return retval;
 }
 
-int devmap_device_get_handle(const char *fqdn, dev_handle_t *handle, unsigned int flags)
+int devmap_device_get_handle(const char *fqdn, devmap_handle_t *handle, unsigned int flags)
 {
 	int phone = devmap_get_phone(DEVMAP_CLIENT, flags);
 	
@@ -193,17 +193,17 @@ int devmap_device_get_handle(const char *fqdn, dev_handle_t *handle, unsigned in
 	
 	if (retval != EOK) {
 		if (handle != NULL)
-			*handle = (dev_handle_t) -1;
+			*handle = (devmap_handle_t) -1;
 		return retval;
 	}
 	
 	if (handle != NULL)
-		*handle = (dev_handle_t) IPC_GET_ARG1(answer);
+		*handle = (devmap_handle_t) IPC_GET_ARG1(answer);
 	
 	return retval;
 }
 
-int devmap_namespace_get_handle(const char *name, dev_handle_t *handle, unsigned int flags)
+int devmap_namespace_get_handle(const char *name, devmap_handle_t *handle, unsigned int flags)
 {
 	int phone = devmap_get_phone(DEVMAP_CLIENT, flags);
 	
@@ -229,17 +229,17 @@ int devmap_namespace_get_handle(const char *name, dev_handle_t *handle, unsigned
 	
 	if (retval != EOK) {
 		if (handle != NULL)
-			*handle = (dev_handle_t) -1;
+			*handle = (devmap_handle_t) -1;
 		return retval;
 	}
 	
 	if (handle != NULL)
-		*handle = (dev_handle_t) IPC_GET_ARG1(answer);
+		*handle = (devmap_handle_t) IPC_GET_ARG1(answer);
 	
 	return retval;
 }
 
-devmap_handle_type_t devmap_handle_probe(dev_handle_t handle)
+devmap_handle_type_t devmap_handle_probe(devmap_handle_t handle)
 {
 	int phone = devmap_get_phone(DEVMAP_CLIENT, IPC_FLAG_BLOCKING);
 	
@@ -254,7 +254,7 @@ devmap_handle_type_t devmap_handle_probe(dev_handle_t handle)
 	return (devmap_handle_type_t) type;
 }
 
-int devmap_device_connect(dev_handle_t handle, unsigned int flags)
+int devmap_device_connect(devmap_handle_t handle, unsigned int flags)
 {
 	int phone;
 	
@@ -304,7 +304,7 @@ static size_t devmap_count_namespaces_internal(int phone)
 	return count;
 }
 
-static size_t devmap_count_devices_internal(int phone, dev_handle_t ns_handle)
+static size_t devmap_count_devices_internal(int phone, devmap_handle_t ns_handle)
 {
 	ipcarg_t count;
 	int retval = async_req_1_1(phone, DEVMAP_GET_DEVICE_COUNT, ns_handle, &count);
@@ -324,7 +324,7 @@ size_t devmap_count_namespaces(void)
 	return devmap_count_namespaces_internal(phone);
 }
 
-size_t devmap_count_devices(dev_handle_t ns_handle)
+size_t devmap_count_devices(devmap_handle_t ns_handle)
 {
 	int phone = devmap_get_phone(DEVMAP_CLIENT, IPC_FLAG_BLOCKING);
 	
@@ -386,7 +386,7 @@ size_t devmap_get_namespaces(dev_desc_t **data)
 	}
 }
 
-size_t devmap_get_devices(dev_handle_t ns_handle, dev_desc_t **data)
+size_t devmap_get_devices(devmap_handle_t ns_handle, dev_desc_t **data)
 {
 	int phone = devmap_get_phone(DEVMAP_CLIENT, IPC_FLAG_BLOCKING);
 	

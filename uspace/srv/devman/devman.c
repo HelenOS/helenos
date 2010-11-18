@@ -58,7 +58,7 @@ static int devmap_devices_compare(unsigned long key[], hash_count_t keys,
     link_t *item)
 {
 	node_t *dev = hash_table_get_instance(item, node_t, devmap_link);
-	return (dev->devmap_handle == (dev_handle_t) key[0]);
+	return (dev->devmap_handle == (devmap_handle_t) key[0]);
 }
 
 static void devices_remove_callback(link_t *item)
@@ -1105,7 +1105,7 @@ void init_class_list(class_list_t *class_list)
 
 /* Devmap devices */
 
-node_t *find_devmap_tree_device(dev_tree_t *tree, dev_handle_t devmap_handle)
+node_t *find_devmap_tree_device(dev_tree_t *tree, devmap_handle_t devmap_handle)
 {
 	node_t *dev = NULL;
 	link_t *link;
@@ -1121,7 +1121,7 @@ node_t *find_devmap_tree_device(dev_tree_t *tree, dev_handle_t devmap_handle)
 }
 
 node_t *find_devmap_class_device(class_list_t *classes,
-    dev_handle_t devmap_handle)
+    devmap_handle_t devmap_handle)
 {
 	node_t *dev = NULL;
 	dev_class_info_t *cli;
