@@ -63,9 +63,9 @@ int
 icmp_client_process_packet(packet_t packet, icmp_type_t *type,
     icmp_code_t *code, icmp_param_t *pointer, icmp_param_t *mtu)
 {
-	icmp_header_ref header;
+	icmp_header_t *header;
 
-	header = (icmp_header_ref) packet_get_data(packet);
+	header = (icmp_header_t *) packet_get_data(packet);
 	if (!header ||
 	    (packet_get_data_length(packet) < sizeof(icmp_header_t))) {
 		return 0;

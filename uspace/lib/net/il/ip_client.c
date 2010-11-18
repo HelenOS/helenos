@@ -52,9 +52,9 @@
  */
 size_t ip_client_header_length(packet_t packet)
 {
-	ip_header_ref header;
+	ip_header_t *header;
 
-	header = (ip_header_ref) packet_get_data(packet);
+	header = (ip_header_t *) packet_get_data(packet);
 	if (!header || (packet_get_data_length(packet) < sizeof(ip_header_t)))
 		return 0;
 
@@ -90,7 +90,7 @@ ip_client_get_pseudo_header(ip_protocol_t protocol, struct sockaddr *src,
     socklen_t srclen, struct sockaddr *dest, socklen_t destlen,
     size_t data_length, void **header, size_t *headerlen)
 {
-	ipv4_pseudo_header_ref header_in;
+	ipv4_pseudo_header_t *header_in;
 	struct sockaddr_in *address_in;
 
 	if (!header || !headerlen)
@@ -108,7 +108,7 @@ ip_client_get_pseudo_header(ip_protocol_t protocol, struct sockaddr *src,
 			return EINVAL;
 		
 		*headerlen = sizeof(*header_in);
-		header_in = (ipv4_pseudo_header_ref) malloc(*headerlen);
+		header_in = (ipv4_pseudo_header_t *) malloc(*headerlen);
 		if (!header_in)
 			return ENOMEM;
 
@@ -154,7 +154,7 @@ int
 ip_client_prepare_packet(packet_t packet, ip_protocol_t protocol, ip_ttl_t ttl,
     ip_tos_t tos, int dont_fragment, size_t ipopt_length)
 {
-	ip_header_ref header;
+	ip_header_t *header;
 	uint8_t *data;
 	size_t padding;
 
@@ -176,7 +176,7 @@ ip_client_prepare_packet(packet_t packet, ip_protocol_t protocol, ip_ttl_t ttl,
 		data[sizeof(ip_header_t) + padding] = IPOPT_NOOP;
 
 	// set the header
-	header = (ip_header_ref) data;
+	header = (ip_header_t *) data;
 	header->header_length = IP_COMPUTE_HEADER_LENGTH(sizeof(ip_header_t) +
 	    ipopt_length);
 	header->ttl = (ttl ? ttl : IPDEFTTL);
@@ -210,9 +210,9 @@ int
 ip_client_process_packet(packet_t packet, ip_protocol_t *protocol,
     ip_ttl_t *ttl, ip_tos_t *tos, int *dont_fragment, size_t *ipopt_length)
 {
-	ip_header_ref header;
+	ip_header_t *header;
 
-	header = (ip_header_ref) packet_get_data(packet);
+	header = (ip_header_t *) packet_get_data(packet);
 	if (!header || (packet_get_data_length(packet) < sizeof(ip_header_t)))
 		return ENOMEM;
 
@@ -246,13 +246,13 @@ int
 ip_client_set_pseudo_header_data_length(void *header, size_t headerlen,
     size_t data_length)
 {
-	ipv4_pseudo_header_ref header_in;
+	ipv4_pseudo_header_t *header_in;
 
 	if (!header)
 		return EBADMEM;
 
 	if (headerlen == sizeof(ipv4_pseudo_header_t)) {
-		header_in = (ipv4_pseudo_header_ref) header;
+		header_in = (ipv4_pseudo_header_t *) header;
 		header_in->data_length = htons(data_length);
 		return EOK;
 	// TODO IPv6

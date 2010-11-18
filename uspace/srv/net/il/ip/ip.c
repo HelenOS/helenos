@@ -169,7 +169,7 @@ static int ip_get_icmp_phone(void)
  *			notifications. The ICMP protocol itself.
  * @returns		Other error codes as defined for the packet_set_addr().
  */
-static int ip_prepare_icmp(packet_t packet, ip_header_ref header)
+static int ip_prepare_icmp(packet_t packet, ip_header_t *header)
 {
 	packet_t next;
 	struct sockaddr *dest;
@@ -186,7 +186,7 @@ static int ip_prepare_icmp(packet_t packet, ip_header_ref header)
 			return ENOMEM;
 
 		// get header
-		header = (ip_header_ref) packet_get_data(packet);
+		header = (ip_header_t *) packet_get_data(packet);
 		if (!header)
 			return EINVAL;
 
@@ -233,7 +233,7 @@ static int ip_prepare_icmp(packet_t packet, ip_header_ref header)
  */
 static int
 ip_prepare_icmp_and_get_phone(services_t error, packet_t packet,
-    ip_header_ref header)
+    ip_header_t *header)
 {
 	int phone;
 
@@ -541,12 +541,12 @@ static int ip_device_state_message(device_id_t device_id, device_state_t state)
  * @returns		The prefixed middle header.
  * @returns		NULL on error.
  */
-static ip_header_ref
-ip_create_middle_header(packet_t packet, ip_header_ref last)
+static ip_header_t *
+ip_create_middle_header(packet_t packet, ip_header_t *last)
 {
-	ip_header_ref middle;
+	ip_header_t *middle;
 
-	middle = (ip_header_ref) packet_suffix(packet, IP_HEADER_LENGTH(last));
+	middle = (ip_header_t *) packet_suffix(packet, IP_HEADER_LENGTH(last));
 	if (!middle)
 		return NULL;
 	memcpy(middle, last, IP_HEADER_LENGTH(last));
@@ -561,9 +561,9 @@ ip_create_middle_header(packet_t packet, ip_header_ref last)
  * @param[out] last	The created header.
  * @param[in] first	The original header to be copied.
  */
-static void ip_create_last_header(ip_header_ref last, ip_header_ref first)
+static void ip_create_last_header(ip_header_t *last, ip_header_t *first)
 {
-	ip_option_ref option;
+	ip_option_t *option;
 	size_t next;
 	size_t length;
 
@@ -574,7 +574,7 @@ static void ip_create_last_header(ip_header_ref last, ip_header_ref first)
 
 	// process all ip options
 	while (next < first->header_length) {
-		option = (ip_option_ref) (((uint8_t *) first) + next);
+		option = (ip_option_t *) (((uint8_t *) first) + next);
 		// skip end or noop
 		if ((option->type == IPOPT_END) ||
 		    (option->type == IPOPT_NOOP)) {
@@ -625,9 +625,9 @@ ip_prepare_packet(in_addr_t *source, in_addr_t dest, packet_t packet,
     measured_string_ref destination)
 {
 	size_t length;
-	ip_header_ref header;
-	ip_header_ref last_header;
-	ip_header_ref middle_header;
+	ip_header_t *header;
+	ip_header_t *last_header;
+	ip_header_t *middle_header;
 	packet_t next;
 	int rc;
 
@@ -635,7 +635,7 @@ ip_prepare_packet(in_addr_t *source, in_addr_t dest, packet_t packet,
 	if ((length < sizeof(ip_header_t)) || (length > IP_MAX_CONTENT))
 		return EINVAL;
 
-	header = (ip_header_ref) packet_get_data(packet);
+	header = (ip_header_t *) packet_get_data(packet);
 	if (destination) {
 		rc = packet_set_addr(packet, NULL, (uint8_t *) destination->value,
 		    CONVERT_SIZE(char, uint8_t, destination->length));
@@ -659,13 +659,13 @@ ip_prepare_packet(in_addr_t *source, in_addr_t dest, packet_t packet,
 	fibril_rwlock_write_unlock(&ip_globals.lock);
 
 	if (pq_next(packet)) {
-		last_header = (ip_header_ref) malloc(IP_HEADER_LENGTH(header));
+		last_header = (ip_header_t *) malloc(IP_HEADER_LENGTH(header));
 		if (!last_header)
 			return ENOMEM;
 		ip_create_last_header(last_header, header);
 		next = pq_next(packet);
 		while (pq_next(next)) {
-			middle_header = (ip_header_ref) packet_prefix(next,
+			middle_header = (ip_header_t *) packet_prefix(next,
 			    IP_HEADER_LENGTH(last_header));
 			if (!middle_header) {
 				free(last_header);
@@ -697,7 +697,7 @@ ip_prepare_packet(in_addr_t *source, in_addr_t dest, packet_t packet,
 			next = pq_next(next);
 		}
 
-		middle_header = (ip_header_ref) packet_prefix(next,
+		middle_header = (ip_header_t *) packet_prefix(next,
 		    IP_HEADER_LENGTH(last_header));
 		if (!middle_header) {
 			free(last_header);
@@ -754,7 +754,7 @@ ip_prepare_packet(in_addr_t *source, in_addr_t dest, packet_t packet,
  */
 static int
 ip_fragment_packet_data(packet_t packet, packet_t new_packet,
-    ip_header_ref header, ip_header_ref new_header, size_t length,
+    ip_header_t *header, ip_header_t *new_header, size_t length,
     const struct sockaddr *src, const struct sockaddr *dest, socklen_t addrlen)
 {
 	void *data;
@@ -819,9 +819,9 @@ ip_fragment_packet(packet_t packet, size_t length, size_t prefix, size_t suffix,
     socklen_t addr_len)
 {
 	packet_t new_packet;
-	ip_header_ref header;
-	ip_header_ref middle_header;
-	ip_header_ref last_header;
+	ip_header_t *header;
+	ip_header_t *middle_header;
+	ip_header_t *last_header;
 	struct sockaddr *src;
 	struct sockaddr *dest;
 	socklen_t addrlen;
@@ -837,7 +837,7 @@ ip_fragment_packet(packet_t packet, size_t length, size_t prefix, size_t suffix,
 		return ENOMEM;
 
 	// get header
-	header = (ip_header_ref) packet_get_data(packet);
+	header = (ip_header_t *) packet_get_data(packet);
 	if (!header)
 		return EINVAL;
 
@@ -852,7 +852,7 @@ ip_fragment_packet(packet_t packet, size_t length, size_t prefix, size_t suffix,
 		return ENOMEM;
 
 	// allocate as much as originally
-	last_header = (ip_header_ref) packet_suffix(new_packet,
+	last_header = (ip_header_t *) packet_suffix(new_packet,
 	    IP_HEADER_LENGTH(header));
 	if (!last_header)
 		return ip_release_and_return(packet, ENOMEM);
@@ -1064,8 +1064,8 @@ ip_send_route(packet_t packet, ip_netif_t *netif, ip_route_t *route,
  * @returns		The found route.
  * @returns		NULL if no route was found.
  */
-static ip_route_t
-*ip_netif_find_route(ip_netif_t *netif, in_addr_t destination)
+static ip_route_t *
+ip_netif_find_route(ip_netif_t *netif, in_addr_t destination)
 {
 	int index;
 	ip_route_t *route;
@@ -1419,7 +1419,7 @@ ip_packet_size_message(device_id_t device_id, size_t *addr_len, size_t *prefix,
  * @param[in] header	The packet IP header to be read.
  * @returns		The packet destination address.
  */
-static in_addr_t ip_get_destination(ip_header_ref header)
+static in_addr_t ip_get_destination(ip_header_t *header)
 {
 	in_addr_t destination;
 
@@ -1450,7 +1450,7 @@ static in_addr_t ip_get_destination(ip_header_ref header)
  *			tl_received_msg() function.
  */
 static int
-ip_deliver_local(device_id_t device_id, packet_t packet, ip_header_ref header,
+ip_deliver_local(device_id_t device_id, packet_t packet, ip_header_t *header,
     services_t error)
 {
 	ip_proto_t *proto;
@@ -1554,7 +1554,7 @@ ip_deliver_local(device_id_t device_id, packet_t packet, ip_header_ref header,
 static int
 ip_process_packet(device_id_t device_id, packet_t packet)
 {
-	ip_header_ref header;
+	ip_header_t *header;
 	in_addr_t dest;
 	ip_route_t *route;
 	int phone;
@@ -1563,7 +1563,7 @@ ip_process_packet(device_id_t device_id, packet_t packet)
 	socklen_t addrlen;
 	int rc;
 
-	header = (ip_header_ref) packet_get_data(packet);
+	header = (ip_header_t *) packet_get_data(packet);
 	if (!header)
 		return ip_release_and_return(packet, ENOMEM);
 
@@ -1723,7 +1723,7 @@ ip_received_error_msg_local(int ip_phone, device_id_t device_id,
 	ip_netif_t *netif;
 	measured_string_t address;
 	ip_route_t *route;
-	ip_header_ref header;
+	ip_header_t *header;
 
 	switch (error) {
 	case SERVICE_ICMP:
@@ -1733,7 +1733,7 @@ ip_received_error_msg_local(int ip_phone, device_id_t device_id,
 			return ip_release_and_return(packet, ENOMEM);
 
 		data = packet_get_data(packet);
-		header = (ip_header_ref)(data + offset);
+		header = (ip_header_t *)(data + offset);
 
 		// destination host unreachable?
 		if ((type != ICMP_DEST_UNREACH) ||
@@ -1782,7 +1782,7 @@ ip_get_route_req_local(int ip_phone, ip_protocol_t protocol,
 	in_addr_t *dest;
 	in_addr_t *src;
 	ip_route_t *route;
-	ipv4_pseudo_header_ref header_in;
+	ipv4_pseudo_header_t *header_in;
 
 	if (!destination || (addrlen <= 0))
 		return EINVAL;
@@ -1828,7 +1828,7 @@ ip_get_route_req_local(int ip_phone, ip_protocol_t protocol,
 	fibril_rwlock_read_unlock(&ip_globals.lock);
 
 	*headerlen = sizeof(*header_in);
-	header_in = (ipv4_pseudo_header_ref) malloc(*headerlen);
+	header_in = (ipv4_pseudo_header_t *) malloc(*headerlen);
 	if (!header_in)
 		return ENOMEM;
 

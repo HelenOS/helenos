@@ -51,11 +51,6 @@
  */
 typedef struct icmp_echo icmp_echo_t;
 
-/** Type definition of the echo specific data pointer.
- * @see icmp_echo
- */
-typedef icmp_echo_t *icmp_echo_ref;
-
 /** Echo specific data. */
 struct icmp_echo {
 	/** Message idintifier. */
@@ -68,11 +63,6 @@ struct icmp_echo {
  * @see icmp_header
  */
 typedef struct icmp_header icmp_header_t;
-
-/** Type definition of the internet control message header pointer.
- * @see icmp_header
- */
-typedef icmp_header_t *icmp_header_ref;
 
 /** Internet control message header. */
 struct icmp_header {

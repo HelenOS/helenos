@@ -126,30 +126,15 @@
  */
 typedef struct ip_header ip_header_t;
 
-/** Type definition of the internet header pointer.
- * @see ip_header
- */
-typedef ip_header_t *ip_header_ref;
-
 /** Type definition of the internet option header.
  * @see ip_header
  */
 typedef struct ip_option ip_option_t;
 
-/** Type definition of the internet option header pointer.
- * @see ip_header
- */
-typedef ip_option_t *ip_option_ref;
-
 /** Type definition of the internet version 4 pseudo header.
  * @see ipv4_pseudo_header
  */
 typedef struct ipv4_pseudo_header ipv4_pseudo_header_t;
-
-/** Type definition of the internet version 4 pseudo header pointer.
- * @see ipv4_pseudo_header
- */
-typedef ipv4_pseudo_header_t *ipv4_pseudo_header_ref;
 
 /** Internet header.
  *

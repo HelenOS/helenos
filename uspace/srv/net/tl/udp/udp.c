@@ -223,7 +223,7 @@ static int udp_process_packet(device_id_t device_id, packet_t packet,
 	size_t offset;
 	int result;
 	udp_header_t *header;
-	socket_core_ref socket;
+	socket_core_t *socket;
 	packet_t next_packet;
 	size_t total_length;
 	uint32_t checksum;
@@ -456,7 +456,7 @@ static int udp_sendto_message(socket_cores_ref local_sockets, int socket_id,
     const struct sockaddr *addr, socklen_t addrlen, int fragments,
     size_t *data_fragment_size, int flags)
 {
-	socket_core_ref socket;
+	socket_core_t *socket;
 	packet_t packet;
 	packet_t next_packet;
 	udp_header_t *header;
@@ -611,7 +611,7 @@ static int udp_sendto_message(socket_cores_ref local_sockets, int socket_id,
 static int udp_recvfrom_message(socket_cores_ref local_sockets, int socket_id,
     int flags, size_t *addrlen)
 {
-	socket_core_ref socket;
+	socket_core_t *socket;
 	int packet_id;
 	packet_t packet;
 	udp_header_t *header;

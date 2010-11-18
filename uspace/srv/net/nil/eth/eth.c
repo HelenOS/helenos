@@ -155,11 +155,6 @@
  */
 typedef enum eth_addr_type eth_addr_type_t;
 
-/** Type definition of the ethernet address type pointer.
- * @see eth_addr_type
- */
-typedef eth_addr_type_t *eth_addr_type_ref;
-
 /** Ethernet address type. */
 enum eth_addr_type {
 	/** Local address. */

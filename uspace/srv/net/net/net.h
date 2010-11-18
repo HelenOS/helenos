@@ -102,12 +102,12 @@ typedef struct {
 	measured_strings_t configuration;  /**< Configuration. */
 	
 	/** Serving network interface driver module index. */
-	module_ref driver;
+	module_t *driver;
 	
-	device_id_t id;  /**< System-unique network interface identifier. */
-	module_ref il;   /**< Serving internet layer module index. */
-	char *name;      /**< System-unique network interface name. */
-	module_ref nil;  /**< Serving link layer module index. */
+	device_id_t id;	/**< System-unique network interface identifier. */
+	module_t *il;	/**< Serving internet layer module index. */
+	char *name;	/**< System-unique network interface name. */
+	module_t *nil;	/**< Serving link layer module index. */
 } netif_t;
 
 /** Present network interfaces.

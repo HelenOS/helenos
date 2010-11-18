@@ -88,7 +88,7 @@ GENERIC_FIELD_DECLARE(ip_routes, ip_route_t);
 /** IP network interface specific data. */
 struct ip_netif {
 	/** ARP module. Assigned if using ARP. */
-	module_ref arp;
+	module_t *arp;
 	/** Broadcast address. */
 	in_addr_t broadcast;
 	/** Device identifier. */
