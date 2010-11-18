@@ -286,11 +286,8 @@ static int nettest1_test(int *socket_ids, int nsockets, int nmessages)
 
 int main(int argc, char *argv[])
 {
-
-	socklen_t max_length;
-	uint8_t *address_data[sizeof(struct sockaddr_in6)];
-	struct sockaddr_in *address_in;
-	struct sockaddr_in6 *address_in6;
+	struct sockaddr_in address_in;
+	struct sockaddr_in6 address_in6;
 	uint8_t *address_start;
 
 	int *socket_ids;
@@ -299,11 +296,6 @@ int main(int argc, char *argv[])
 	struct timeval time_after;
 
 	int rc;
-
-	max_length = sizeof(address_data);
-	address = (struct sockaddr *) address_data;
-	address_in = (struct sockaddr_in *) address;
-	address_in6 = (struct sockaddr_in6 *) address;
 
 	sockets = 10;
 	messages = 10;
@@ -333,20 +325,21 @@ int main(int argc, char *argv[])
 	}
 
 	/* Prepare the address buffer */
-	bzero(address_data, max_length);
 
 	switch (family) {
 	case PF_INET:
-		address_in->sin_family = AF_INET;
-		address_in->sin_port = htons(port);
-		address_start = (uint8_t *) &address_in->sin_addr.s_addr;
-		addrlen = sizeof(struct sockaddr_in);
+		address_in.sin_family = AF_INET;
+		address_in.sin_port = htons(port);
+		address = (struct sockaddr *) &address_in;
+		addrlen = sizeof(address_in);
+		address_start = (uint8_t *) &address_in.sin_addr.s_addr;
 		break;
 	case PF_INET6:
-		address_in6->sin6_family = AF_INET6;
-		address_in6->sin6_port = htons(port);
-		address_start = (uint8_t *) &address_in6->sin6_addr.s6_addr;
-		addrlen = sizeof(struct sockaddr_in6);
+		address_in6.sin6_family = AF_INET6;
+		address_in6.sin6_port = htons(port);
+		address = (struct sockaddr *) &address_in6;
+		addrlen = sizeof(address_in6);
+		address_start = (uint8_t *) &address_in6.sin6_addr.s6_addr;
 		break;
 	default:
 		fprintf(stderr, "Address family is not supported\n");

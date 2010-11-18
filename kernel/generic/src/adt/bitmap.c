@@ -31,7 +31,7 @@
  */
 /**
  * @file
- * @brief	Implementation of bitmap ADT.
+ * @brief Implementation of bitmap ADT.
  *
  * This file implements bitmap ADT and provides functions for
  * setting and clearing ranges of bits.
@@ -50,9 +50,9 @@
  *
  * No portion of the bitmap is set or cleared by this function.
  *
- * @param bitmap Bitmap structure.
- * @param map Address of the memory used to hold the map.
- * @param bits Number of bits stored in bitmap.
+ * @param bitmap	Bitmap structure.
+ * @param map		Address of the memory used to hold the map.
+ * @param bits		Number of bits stored in bitmap.
  */
 void bitmap_initialize(bitmap_t *bitmap, uint8_t *map, size_t bits)
 {
@@ -62,17 +62,17 @@ void bitmap_initialize(bitmap_t *bitmap, uint8_t *map, size_t bits)
 
 /** Set range of bits.
  *
- * @param bitmap Bitmap structure.
- * @param start Starting bit.
- * @param bits Number of bits to set.
+ * @param bitmap	Bitmap structure.
+ * @param start		Starting bit.
+ * @param bits		Number of bits to set.
  */
 void bitmap_set_range(bitmap_t *bitmap, size_t start, size_t bits)
 {
 	size_t i = 0;
 	size_t aligned_start;
-	size_t lub;		/* leading unaligned bits */
-	size_t amb;		/* aligned middle bits */
-	size_t tab;		/* trailing aligned bits */
+	size_t lub;	/* leading unaligned bits */
+	size_t amb;	/* aligned middle bits */
+	size_t tab;	/* trailing aligned bits */
 	
 	ASSERT(start + bits <= bitmap->bits);
 	
@@ -81,30 +81,25 @@ void bitmap_set_range(bitmap_t *bitmap, size_t start, size_t bits)
 	amb = bits > lub ? bits - lub : 0;
 	tab = amb % 8;
 	
-	if ( start + bits < aligned_start ) {
-	    /*
-	    * Set bits in the middle of byte
-	    */
-	    bitmap->map[start / 8] |= ((1 << lub)-1) << (start&7);
-	    return;
+	if (!bits)
+		return;
+
+	if (start + bits < aligned_start) {
+		/* Set bits in the middle of byte. */
+		bitmap->map[start / 8] |= ((1 << lub) - 1) << (start & 7);
+		return;
 	}
 	
 	if (lub) {
-		/*
-		 * Make sure to set any leading unaligned bits.
-		 */
+		/* Make sure to set any leading unaligned bits. */
 		bitmap->map[start / 8] |= ~((1 << (8 - lub)) - 1);
 	}
 	for (i = 0; i < amb / 8; i++) {
-		/*
-		 * The middle bits can be set byte by byte.
-		 */
+		/* The middle bits can be set byte by byte. */
 		bitmap->map[aligned_start / 8 + i] = ALL_ONES;
 	}
 	if (tab) {
-		/*
-		 * Make sure to set any trailing aligned bits.
-		 */
+		/* Make sure to set any trailing aligned bits. */
 		bitmap->map[aligned_start / 8 + i] |= (1 << tab) - 1;
 	}
 	
@@ -112,17 +107,17 @@ void bitmap_set_range(bitmap_t *bitmap, size_t start, size_t bits)
 
 /** Clear range of bits.
  *
- * @param bitmap Bitmap structure.
- * @param start Starting bit.
- * @param bits Number of bits to clear.
+ * @param bitmap	Bitmap structure.
+ * @param start		Starting bit.
+ * @param bits		Number of bits to clear.
  */
 void bitmap_clear_range(bitmap_t *bitmap, size_t start, size_t bits)
 {
 	size_t i = 0;
 	size_t aligned_start;
-	size_t lub;		/* leading unaligned bits */
-	size_t amb;		/* aligned middle bits */
-	size_t tab;		/* trailing aligned bits */
+	size_t lub;	/* leading unaligned bits */
+	size_t amb;	/* aligned middle bits */
+	size_t tab;	/* trailing aligned bits */
 	
 	ASSERT(start + bits <= bitmap->bits);
 	
@@ -131,32 +126,25 @@ void bitmap_clear_range(bitmap_t *bitmap, size_t start, size_t bits)
 	amb = bits > lub ? bits - lub : 0;
 	tab = amb % 8;
 
-	if ( start + bits < aligned_start )
-	{
-	    /*
-	    * Set bits in the middle of byte
-	    */
-	    bitmap->map[start / 8] &= ~(((1 << lub)-1) << (start&7));
-	    return;
+	if (!bits)
+		return;
+
+	if (start + bits < aligned_start) {
+		/* Set bits in the middle of byte */
+		bitmap->map[start / 8] &= ~(((1 << lub) - 1) << (start & 7));
+		return;
 	}
 
-
 	if (lub) {
-		/*
-		 * Make sure to clear any leading unaligned bits.
-		 */
+		/* Make sure to clear any leading unaligned bits. */
 		bitmap->map[start / 8] &= (1 << (8 - lub)) - 1;
 	}
 	for (i = 0; i < amb / 8; i++) {
-		/*
-		 * The middle bits can be cleared byte by byte.
-		 */
+		/* The middle bits can be cleared byte by byte. */
 		bitmap->map[aligned_start / 8 + i] = ALL_ZEROES;
 	}
 	if (tab) {
-		/*
-		 * Make sure to clear any trailing aligned bits.
-		 */
+		/* Make sure to clear any trailing aligned bits. */
 		bitmap->map[aligned_start / 8 + i] &= ~((1 << tab) - 1);
 	}
 
@@ -164,9 +152,9 @@ void bitmap_clear_range(bitmap_t *bitmap, size_t start, size_t bits)
 
 /** Copy portion of one bitmap into another bitmap.
  *
- * @param dst Destination bitmap.
- * @param src Source bitmap.
- * @param bits Number of bits to copy.
+ * @param dst		Destination bitmap.
+ * @param src		Source bitmap.
+ * @param bits		Number of bits to copy.
  */
 void bitmap_copy(bitmap_t *dst, bitmap_t *src, size_t bits)
 {

@@ -154,14 +154,13 @@ static int icmp_release_and_return(packet_t packet, int result)
  * @returns		EOK on success.
  * @returns		EPERM if the error message is not allowed.
  */
-static int
-icmp_send_packet(icmp_type_t type, icmp_code_t code, packet_t packet,
+static int icmp_send_packet(icmp_type_t type, icmp_code_t code, packet_t packet,
     icmp_header_ref header, services_t error, ip_ttl_t ttl, ip_tos_t tos,
     int dont_fragment)
 {
 	int rc;
 
-	// do not send an error if disabled
+	/* Do not send an error if disabled */
 	if (error && !icmp_globals.error_reporting)
 		return icmp_release_and_return(packet, EPERM);
 
@@ -203,7 +202,7 @@ static icmp_header_ref icmp_prepare_packet(packet_t packet)
 	if (header_length <= 0)
 		return NULL;
 
-	// truncate if longer than 64 bits (without the IP header)
+	/* Truncate if longer than 64 bits (without the IP header) */
 	if ((total_length > header_length + ICMP_KEEP_LENGTH) &&
 	    (packet_trim(packet, 0,
 	    total_length - header_length - ICMP_KEEP_LENGTH) != EOK)) {
@@ -243,8 +242,7 @@ static icmp_header_ref icmp_prepare_packet(packet_t packet)
  * @returns		ENOMEM if there is not enough memory left.
  * @returns		EPARTY if there was an internal error.
  */
-static int
-icmp_echo(icmp_param_t id, icmp_param_t sequence, size_t size,
+static int icmp_echo(icmp_param_t id, icmp_param_t sequence, size_t size,
     mseconds_t timeout, ip_ttl_t ttl, ip_tos_t tos, int dont_fragment,
     const struct sockaddr * addr, socklen_t addrlen)
 {
@@ -261,7 +259,7 @@ icmp_echo(icmp_param_t id, icmp_param_t sequence, size_t size,
 		return EINVAL;
 
 	length = (size_t) addrlen;
-	// TODO do not ask all the time
+	/* TODO do not ask all the time */
 	rc = ip_packet_size_req(icmp_globals.ip_phone, -1,
 	    &icmp_globals.packet_dimension);
 	if (rc != EOK)
@@ -274,18 +272,17 @@ icmp_echo(icmp_param_t id, icmp_param_t sequence, size_t size,
 	if (!packet)
 		return ENOMEM;
 
-	// prepare the requesting packet
-	// set the destination address
+	/* Prepare the requesting packet, set the destination address. */
 	rc = packet_set_addr(packet, NULL, (const uint8_t *) addr, length);
 	if (rc != EOK)
 		return icmp_release_and_return(packet, rc);
 
-	// allocate space in the packet
+	/* Allocate space in the packet */
 	data = (uint8_t *) packet_suffix(packet, size);
 	if (!data)
 		return icmp_release_and_return(packet, ENOMEM);
 
-	// fill the data
+	/* Fill the data */
 	length = 0;
 	while (size > length + sizeof(ICMP_ECHO_TEXT)) {
 		memcpy(data + length, ICMP_ECHO_TEXT, sizeof(ICMP_ECHO_TEXT));
@@ -293,7 +290,7 @@ icmp_echo(icmp_param_t id, icmp_param_t sequence, size_t size,
 	}
 	memcpy(data + length, ICMP_ECHO_TEXT, size - length);
 
-	// prefix the header
+	/* Prefix the header */
 	header = PACKET_PREFIX(packet, icmp_header_t);
 	if (!header)
 		return icmp_release_and_return(packet, ENOMEM);
@@ -302,7 +299,7 @@ icmp_echo(icmp_param_t id, icmp_param_t sequence, size_t size,
 	header->un.echo.identifier = id;
 	header->un.echo.sequence_number = sequence;
 
-	// prepare the reply structure
+	/* Prepare the reply structure */
 	reply = malloc(sizeof(*reply));
 	if (!reply)
 		return icmp_release_and_return(packet, ENOMEM);
@@ -318,33 +315,31 @@ icmp_echo(icmp_param_t id, icmp_param_t sequence, size_t size,
 		return icmp_release_and_return(packet, index);
 	}
 
-	// unlock the globals so that we can wait for the reply
+	/* Unlock the globals so that we can wait for the reply */
 	fibril_rwlock_write_unlock(&icmp_globals.lock);
 
-	// send the request
+	/* Send the request */
 	icmp_send_packet(ICMP_ECHO, 0, packet, header, 0, ttl, tos,
 	    dont_fragment);
 
-	// wait for the reply
-	// timeout in microseconds
+	/* Wait for the reply. Timeout in microseconds. */
 	rc = fibril_condvar_wait_timeout(&reply->condvar, &reply->mutex,
 	    timeout * 1000);
 	if (rc == EOK)
 		rc = reply->result;
 
-	// drop the reply mutex before locking the globals again
+	/* Drop the reply mutex before locking the globals again */
 	fibril_mutex_unlock(&reply->mutex);
 	fibril_rwlock_write_lock(&icmp_globals.lock);
 
-	// destroy the reply structure
+	/* Destroy the reply structure */
 	icmp_replies_exclude_index(&icmp_globals.replies, index);
 
 	return rc;
 }
 
-static int
-icmp_destination_unreachable_msg_local(int icmp_phone, icmp_code_t code,
-    icmp_param_t mtu, packet_t packet)
+static int icmp_destination_unreachable_msg_local(int icmp_phone,
+    icmp_code_t code, icmp_param_t mtu, packet_t packet)
 {
 	icmp_header_ref header;
 
@@ -371,8 +366,8 @@ static int icmp_source_quench_msg_local(int icmp_phone, packet_t packet)
 	    SERVICE_ICMP, 0, 0, 0);
 }
 
-static int
-icmp_time_exceeded_msg_local(int icmp_phone, icmp_code_t code, packet_t packet)
+static int icmp_time_exceeded_msg_local(int icmp_phone, icmp_code_t code,
+    packet_t packet)
 {
 	icmp_header_ref header;
 
@@ -384,8 +379,7 @@ icmp_time_exceeded_msg_local(int icmp_phone, icmp_code_t code, packet_t packet)
 	    SERVICE_ICMP, 0, 0, 0);
 }
 
-static int
-icmp_parameter_problem_msg_local(int icmp_phone, icmp_code_t code,
+static int icmp_parameter_problem_msg_local(int icmp_phone, icmp_code_t code,
     icmp_param_t pointer, packet_t packet)
 {
 	icmp_header_ref header;
@@ -448,7 +442,7 @@ int icmp_initialize(async_client_conn_t client_connection)
 	icmp_globals.error_reporting = NET_DEFAULT_ICMP_ERROR_REPORTING;
 	icmp_globals.echo_replying = NET_DEFAULT_ICMP_ECHO_REPLYING;
 
-	// get configuration
+	/* Get configuration */
 	configuration = &names[0];
 	rc = net_get_conf_req(icmp_globals.net_phone, &configuration, count,
 	    &data);
@@ -484,20 +478,19 @@ int icmp_initialize(async_client_conn_t client_connection)
  * @param[in] type	The received reply message type.
  * @param[in] code	The received reply message code.
  */
-static void 
-icmp_process_echo_reply(packet_t packet, icmp_header_ref header,
+static void  icmp_process_echo_reply(packet_t packet, icmp_header_ref header,
     icmp_type_t type, icmp_code_t code)
 {
 	int reply_key;
 	icmp_reply_ref reply;
 
-	// compute the reply key
+	/* Compute the reply key */
 	reply_key = ICMP_GET_REPLY_KEY(header->un.echo.identifier,
 	    header->un.echo.sequence_number);
 	pq_release_remote(icmp_globals.net_phone, packet_get_id(packet));
 
+	/* Find the pending reply */
 	fibril_rwlock_write_lock(&icmp_globals.lock);
-	// find the pending reply
 	reply = icmp_replies_find(&icmp_globals.replies, reply_key);
 	if (reply) {
 		reply->result = type;
@@ -540,13 +533,13 @@ static int icmp_process_packet(packet_t packet, services_t error)
 	case SERVICE_NONE:
 		break;
 	case SERVICE_ICMP:
-		// process error
+		/* Process error */
 		result = icmp_client_process_packet(packet, &type, &code, NULL,
 		    NULL);
 		if (result < 0)
 			return result;
 		length = (size_t) result;
-		// remove the error header
+		/* Remove the error header */
 		rc = packet_trim(packet, length, 0);
 		if (rc != EOK)
 			return rc;
@@ -555,7 +548,7 @@ static int icmp_process_packet(packet_t packet, services_t error)
 		return ENOTSUP;
 	}
 
-	// get rid of the ip header
+	/* Get rid of the IP header */
 	length = ip_client_header_length(packet);
 	rc = packet_trim(packet, length, 0);
 	if (rc != EOK)
@@ -572,13 +565,15 @@ static int icmp_process_packet(packet_t packet, services_t error)
 	if (!data)
 		return EINVAL;
 
-	// get icmp header
+	/* Get ICMP header */
 	header = (icmp_header_ref) data;
 
 	if (header->checksum) {
 		while (ICMP_CHECKSUM(header, length) != IP_CHECKSUM_ZERO) {
-			// set the original message type on error notification
-			// type swap observed in Qemu
+			/*
+			 * Set the original message type on error notification.
+			 * Type swap observed in Qemu.
+			 */
 			if (error) {
 				switch (header->type) {
 				case ICMP_ECHOREPLY:
@@ -605,16 +600,18 @@ static int icmp_process_packet(packet_t packet, services_t error)
 			return EOK;
 		}
 		
-		// do not send a reply if disabled
+		/* Do not send a reply if disabled */
 		if (icmp_globals.echo_replying) {
 			addrlen = packet_get_addr(packet, &src, NULL);
 
-			// set both addresses to the source one (avoids the
-			// source address deletion before setting the
-			// destination one)
+			/*
+			 * Set both addresses to the source one (avoids the
+			 * source address deletion before setting the
+			 * destination one).
+			 */
 			if ((addrlen > 0) && (packet_set_addr(packet, src, src,
 			    (size_t) addrlen) == EOK)) {
-				// send the reply
+				/* Send the reply */
 				icmp_send_packet(ICMP_ECHOREPLY, 0, packet,
 				    header, 0, 0, 0, 0);
 				return EOK;
@@ -660,8 +657,7 @@ static int icmp_process_packet(packet_t packet, services_t error)
  * @returns		Other error codes as defined for the
  *			icmp_process_packet() function.
  */
-static int
-icmp_received_msg_local(device_id_t device_id, packet_t packet,
+static int icmp_received_msg_local(device_id_t device_id, packet_t packet,
     services_t receiver, services_t error)
 {
 	int rc;
@@ -745,25 +741,25 @@ static int icmp_bind_free_id(icmp_echo_ref echo_data)
 	if (!echo_data)
 		return EBADMEM;
 
-	// from the last used one
+	/* From the last used one */
 	index = icmp_globals.last_used_id;
 	do {
 		index++;
-		// til the range end
+		/* til the range end */
 		if (index >= ICMP_FREE_IDS_END) {
-			// start from the range beginning
+			/* start from the range beginning */
 			index = ICMP_FREE_IDS_START - 1;
 			do {
 				index++;
-				// til the last used one
+				/* til the last used one */
 				if (index >= icmp_globals.last_used_id) {
-					// none found
+					/* none found */
 					return ENOTCONN;
 				}
 			} while(icmp_echo_data_find(&icmp_globals.echo_data,
 			    index) != NULL);
 
-			// found, break immediately
+			/* Found, break immediately */
 			break;
 		}
 	} while (icmp_echo_data_find(&icmp_globals.echo_data, index) != NULL);
@@ -807,7 +803,7 @@ static int icmp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 	if (!echo_data)
 		return ENOMEM;
 
-	// assign a new identifier
+	/* Assign a new identifier */
 	fibril_rwlock_write_lock(&icmp_globals.lock);
 	rc = icmp_bind_free_id(echo_data);
 	fibril_rwlock_write_unlock(&icmp_globals.lock);
@@ -817,16 +813,16 @@ static int icmp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 	}
 
 	while (keep_on_going) {
-		// answer the call
+		/* Answer the call */
 		answer_call(callid, rc, &answer, answer_count);
 
-		// refresh data
+		/* Refresh data */
 		refresh_answer(&answer, &answer_count);
 
-		// get the next call
+		/* Get the next call */
 		callid = async_get_call(&call);
 
-		// process the call
+		/* Process the call */
 		switch (IPC_GET_METHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			keep_on_going = false;
@@ -875,7 +871,7 @@ static int icmp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 
 	}
 
-	// release the identifier
+	/* Release the identifier */
 	fibril_rwlock_write_lock(&icmp_globals.lock);
 	icmp_echo_data_exclude(&icmp_globals.echo_data, echo_data->identifier);
 	fibril_rwlock_write_unlock(&icmp_globals.lock);
@@ -896,8 +892,7 @@ static int icmp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
  * @see icmp_interface.h
  * @see IS_NET_ICMP_MESSAGE()
  */
-int
-icmp_message_standalone(ipc_callid_t callid, ipc_call_t *call,
+int icmp_message_standalone(ipc_callid_t callid, ipc_call_t *call,
     ipc_call_t *answer, int *answer_count)
 {
 	packet_t packet;

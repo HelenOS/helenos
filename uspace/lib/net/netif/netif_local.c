@@ -42,7 +42,7 @@
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <ipc/netif.h>
-#include <err.h>
+#include <errno.h>
 
 #include <generic.h>
 #include <net/modules.h>
@@ -112,14 +112,15 @@ int netif_send_msg_local(int netif_phone, device_id_t device_id,
  */
 int netif_start_req_local(int netif_phone, device_id_t device_id)
 {
-	ERROR_DECLARE;
+	int rc;
 	
 	fibril_rwlock_write_lock(&netif_globals.lock);
 	
 	netif_device_t *device;
-	if (ERROR_OCCURRED(find_device(device_id, &device))) {
+	rc = find_device(device_id, &device);
+	if (rc != EOK) {
 		fibril_rwlock_write_unlock(&netif_globals.lock);
-		return ERROR_CODE;
+		return rc;
 	}
 	
 	int result = netif_start_message(device);
@@ -147,14 +148,15 @@ int netif_start_req_local(int netif_phone, device_id_t device_id)
  */
 int netif_stop_req_local(int netif_phone, device_id_t device_id)
 {
-	ERROR_DECLARE;
+	int rc;
 	
 	fibril_rwlock_write_lock(&netif_globals.lock);
 	
 	netif_device_t *device;
-	if (ERROR_OCCURRED(find_device(device_id, &device))) {
+	rc = find_device(device_id, &device);
+	if (rc != EOK) {
 		fibril_rwlock_write_unlock(&netif_globals.lock);
-		return ERROR_CODE;
+		return rc;
 	}
 	
 	int result = netif_stop_message(device);
@@ -202,7 +204,7 @@ int netif_stats_req_local(int netif_phone, device_id_t device_id,
 int netif_get_addr_req_local(int netif_phone, device_id_t device_id,
     measured_string_ref *address, char **data)
 {
-	ERROR_DECLARE;
+	int rc;
 	
 	if (!address || !data)
 		return EBADMEM;
@@ -210,16 +212,17 @@ int netif_get_addr_req_local(int netif_phone, device_id_t device_id,
 	fibril_rwlock_read_lock(&netif_globals.lock);
 	
 	measured_string_t translation;
-	if (!ERROR_OCCURRED(netif_get_addr_message(device_id, &translation))) {
+	rc = netif_get_addr_message(device_id, &translation);
+	if (rc == EOK) {
 		*address = measured_string_copy(&translation);
-		ERROR_CODE = (*address) ? EOK : ENOMEM;
+		rc = (*address) ? EOK : ENOMEM;
 	}
 	
 	fibril_rwlock_read_unlock(&netif_globals.lock);
 	
 	*data = (**address).value;
 	
-	return ERROR_CODE;
+	return rc;
 }
 
 /** Find the device specific data.
@@ -263,19 +266,23 @@ void null_device_stats(device_stats_ref stats)
  */
 int netif_init_module(async_client_conn_t client_connection)
 {
-	ERROR_DECLARE;
+	int rc;
 	
 	async_set_client_connection(client_connection);
 	
 	netif_globals.net_phone = connect_to_service(SERVICE_NETWORKING);
 	netif_device_map_initialize(&netif_globals.device_map);
 	
-	ERROR_PROPAGATE(pm_init());
+	rc = pm_init();
+	if (rc != EOK)
+		return rc;
 	
 	fibril_rwlock_initialize(&netif_globals.lock);
-	if (ERROR_OCCURRED(netif_initialize())) {
+	
+	rc = netif_initialize();
+	if (rc != EOK) {
 		pm_destroy();
-		return ERROR_CODE;
+		return rc;
 	}
 	
 	return EOK;
@@ -316,11 +323,14 @@ packet_t netif_packet_get_1(size_t content)
  */
 static int register_message(const char *name, device_id_t device_id, int phone)
 {
-	ERROR_DECLARE;
-	
 	netif_device_t *device;
-	ERROR_PROPAGATE(find_device(device_id, &device));
-	if(device->nil_phone > 0)
+	int rc;
+	
+	rc = find_device(device_id, &device);
+	if (rc != EOK)
+		return rc;
+	
+	if (device->nil_phone > 0)
 		return ELIMIT;
 	
 	device->nil_phone = phone;
@@ -348,12 +358,11 @@ static int register_message(const char *name, device_id_t device_id, int phone)
 int netif_module_message_standalone(const char *name, ipc_callid_t callid,
     ipc_call_t *call, ipc_call_t *answer, int *answer_count)
 {
-	ERROR_DECLARE;
-	
 	size_t length;
 	device_stats_t stats;
 	packet_t packet;
 	measured_string_t address;
+	int rc;
 	
 	*answer_count = 0;
 	switch (IPC_GET_METHOD(*call)) {
@@ -366,51 +375,54 @@ int netif_module_message_standalone(const char *name, ipc_callid_t callid,
 		    
 	case IPC_M_CONNECT_TO_ME:
 		fibril_rwlock_write_lock(&netif_globals.lock);
-		ERROR_CODE = register_message(name, IPC_GET_DEVICE(call),
+		rc = register_message(name, IPC_GET_DEVICE(call),
 		    IPC_GET_PHONE(call));
 		fibril_rwlock_write_unlock(&netif_globals.lock);
-		return ERROR_CODE;
+		return rc;
 		
 	case NET_NETIF_SEND:
-		ERROR_PROPAGATE(packet_translate_remote(netif_globals.net_phone,
-		    &packet, IPC_GET_PACKET(call)));
+		rc = packet_translate_remote(netif_globals.net_phone, &packet,
+		    IPC_GET_PACKET(call));
+		if (rc != EOK)
+			return rc;
 		return netif_send_msg_local(0, IPC_GET_DEVICE(call), packet,
 		    IPC_GET_SENDER(call));
-		    
+		
 	case NET_NETIF_START:
 		return netif_start_req_local(0, IPC_GET_DEVICE(call));
 		
 	case NET_NETIF_STATS:
 		fibril_rwlock_read_lock(&netif_globals.lock);
 
-		if (ERROR_OCCURRED(async_data_read_receive(&callid, &length))) {
+		rc = async_data_read_receive(&callid, &length);
+		if (rc != EOK) {
 			fibril_rwlock_read_unlock(&netif_globals.lock);
-			return ERROR_CODE;
+			return rc;
 		}
 		if (length < sizeof(device_stats_t)) {
 			fibril_rwlock_read_unlock(&netif_globals.lock);
 			return EOVERFLOW;
 		}
 
-		if (ERROR_NONE(netif_get_device_stats(IPC_GET_DEVICE(call),
-		    &stats))) {
-			ERROR_CODE = async_data_read_finalize(callid, &stats,
+		rc = netif_get_device_stats(IPC_GET_DEVICE(call), &stats);
+		if (rc == EOK) {
+			rc = async_data_read_finalize(callid, &stats,
 			    sizeof(device_stats_t));
 		}
 
 		fibril_rwlock_read_unlock(&netif_globals.lock);
-		return ERROR_CODE;
+		return rc;
 
 	case NET_NETIF_STOP:
 		return netif_stop_req_local(0, IPC_GET_DEVICE(call));
 		
 	case NET_NETIF_GET_ADDR:
 		fibril_rwlock_read_lock(&netif_globals.lock);
-		if (ERROR_NONE(netif_get_addr_message(IPC_GET_DEVICE(call),
-		    &address)))
-			ERROR_CODE = measured_strings_reply(&address, 1);
+		rc = netif_get_addr_message(IPC_GET_DEVICE(call), &address);
+		if (rc == EOK)
+			rc = measured_strings_reply(&address, 1);
 		fibril_rwlock_read_unlock(&netif_globals.lock);
-		return ERROR_CODE;
+		return rc;
 	}
 	
 	return netif_specific_message(callid, call, answer, answer_count);
@@ -430,9 +442,11 @@ int netif_module_message_standalone(const char *name, ipc_callid_t callid,
  */
 int netif_module_start_standalone(async_client_conn_t client_connection)
 {
-	ERROR_DECLARE;
+	int rc;
 	
-	ERROR_PROPAGATE(netif_init_module(client_connection));
+	rc = netif_init_module(client_connection);
+	if (rc != EOK)
+		return rc;
 	
 	async_manager();
 	

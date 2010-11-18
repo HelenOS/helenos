@@ -140,7 +140,7 @@ static int devman_send_match_ids(int phone, match_id_list_t *match_ids)
 }
 
 int devman_child_device_register(
-	const char *name, match_id_list_t *match_ids, device_handle_t parent_handle, device_handle_t *handle)
+	const char *name, match_id_list_t *match_ids, devman_handle_t parent_handle, devman_handle_t *handle)
 {		
 	int phone = devman_get_phone(DEVMAN_DRIVER, IPC_FLAG_BLOCKING);
 	
@@ -179,7 +179,7 @@ int devman_child_device_register(
 	return retval;
 }
 
-int devman_add_device_to_class(device_handle_t dev_handle, const char *class_name)
+int devman_add_device_to_class(devman_handle_t devman_handle, const char *class_name)
 {
 	int phone = devman_get_phone(DEVMAN_DRIVER, IPC_FLAG_BLOCKING);
 	
@@ -188,7 +188,7 @@ int devman_add_device_to_class(device_handle_t dev_handle, const char *class_nam
 	
 	async_serialize_start();
 	ipc_call_t answer;
-	aid_t req = async_send_1(phone, DEVMAN_ADD_DEVICE_TO_CLASS, dev_handle, &answer);
+	aid_t req = async_send_1(phone, DEVMAN_ADD_DEVICE_TO_CLASS, devman_handle, &answer);
 	
 	ipcarg_t retval = async_data_write_start(phone, class_name, str_size(class_name));
 	if (retval != EOK) {
@@ -223,7 +223,7 @@ void devman_hangup_phone(devman_interface_t iface)
 	}
 }
 
-int devman_device_connect(device_handle_t handle, unsigned int flags)
+int devman_device_connect(devman_handle_t handle, unsigned int flags)
 {
 	int phone;
 	
@@ -238,7 +238,7 @@ int devman_device_connect(device_handle_t handle, unsigned int flags)
 	return phone;
 }
 
-int devman_parent_device_connect(device_handle_t handle, unsigned int flags)
+int devman_parent_device_connect(devman_handle_t handle, unsigned int flags)
 {
 	int phone;
 	
@@ -253,7 +253,7 @@ int devman_parent_device_connect(device_handle_t handle, unsigned int flags)
 	return phone;
 }
 
-int devman_device_get_handle(const char *pathname, device_handle_t *handle, unsigned int flags)
+int devman_device_get_handle(const char *pathname, devman_handle_t *handle, unsigned int flags)
 {
 	int phone = devman_get_phone(DEVMAN_CLIENT, flags);
 	
@@ -279,12 +279,12 @@ int devman_device_get_handle(const char *pathname, device_handle_t *handle, unsi
 	
 	if (retval != EOK) {
 		if (handle != NULL)
-			*handle = (device_handle_t) -1;
+			*handle = (devman_handle_t) -1;
 		return retval;
 	}
 	
 	if (handle != NULL)
-		*handle = (device_handle_t) IPC_GET_ARG1(answer);
+		*handle = (devman_handle_t) IPC_GET_ARG1(answer);
 	
 	return retval;
 }

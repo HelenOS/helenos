@@ -41,6 +41,7 @@
 #include <adt/module_map.h>
 #include <ipc/ipc.h>
 #include <ipc/net.h>
+#include <errno.h>
 
 #include <ip_interface.h>
 #include <packet_server.h>
@@ -59,14 +60,16 @@ extern net_globals_t net_globals;
  */
 int net_initialize_build(async_client_conn_t client_connection)
 {
-	ERROR_DECLARE;
+	int rc;
 	
 	task_id_t task_id = spawn("/srv/ip");
 	if (!task_id)
 		return EINVAL;
 	
-	ERROR_PROPAGATE(add_module(NULL, &net_globals.modules, IP_NAME,
-	    IP_FILENAME, SERVICE_IP, task_id, ip_connect_module));
+	rc = add_module(NULL, &net_globals.modules, IP_NAME,
+	    IP_FILENAME, SERVICE_IP, task_id, ip_connect_module);
+	if (rc != EOK)
+		return rc;
 	
 	if (!spawn("/srv/icmp"))
 		return EINVAL;

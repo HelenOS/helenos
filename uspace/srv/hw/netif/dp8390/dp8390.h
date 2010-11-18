@@ -42,7 +42,7 @@
 
 /** Input/output size.
  */
-#define DP8390_IO_SIZE	0x01f
+#define DP8390_IO_SIZE	0x020
 
 /*
 dp8390.h

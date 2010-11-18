@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Ondrej Palkovsky
+ * Copyright (c) 2010 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,42 +26,17 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup amd64mm
+/** @addtogroup getterm
  * @{
  */
-/** @file
+/**
+ * @file
  */
 
-#ifndef KERN_amd64_AS_H_
-#define KERN_amd64_AS_H_
+#ifndef WELCOME_H__
+#define WELCOME_H__
 
-#define ADDRESS_SPACE_HOLE_START	0x0000800000000000ULL
-#define ADDRESS_SPACE_HOLE_END		0xffff7fffffffffffULL
-
-#define KERNEL_ADDRESS_SPACE_SHADOWED_ARCH  0
-
-#define KERNEL_ADDRESS_SPACE_START_ARCH	0xffff800000000000ULL
-#define KERNEL_ADDRESS_SPACE_END_ARCH	0xffffffffffffffffULL
-
-#define USER_ADDRESS_SPACE_START_ARCH	0x0000000000000000ULL
-#define USER_ADDRESS_SPACE_END_ARCH	0x00007fffffffffffULL
-
-#define USTACK_ADDRESS_ARCH  (USER_ADDRESS_SPACE_END_ARCH - (PAGE_SIZE - 1))
-
-#define as_constructor_arch(as, flags)  (as != as)
-#define as_destructor_arch(as)          (as != as)
-#define as_create_arch(as, flags)       (as != as)
-
-#define as_install_arch(as)
-#define as_deinstall_arch(as)
-#define as_invalidate_translation_cache(as, page, cnt)
-
-typedef struct {
-} as_arch_t;
-
-#include <genarch/mm/as_pt.h>
-
-extern void as_arch_init(void);
+extern void welcome_msg_print(void);
 
 #endif
 

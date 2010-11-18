@@ -47,7 +47,6 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <err.h>
 
 #include <adt/dynamic_fifo.h>
 #include <adt/int_map.h>
@@ -163,9 +162,8 @@ static int
 socket_port_add_core(socket_port_ref socket_port, socket_core_ref socket,
     const char *key, size_t key_length)
 {
-	ERROR_DECLARE;
-
 	socket_core_ref *socket_ref;
+	int rc;
 
 	// create a wrapper
 	socket_ref = malloc(sizeof(*socket_ref));
@@ -174,10 +172,11 @@ socket_port_add_core(socket_port_ref socket_port, socket_core_ref socket,
 
 	*socket_ref = socket;
 	// add the wrapper
-	if (ERROR_OCCURRED(socket_port_map_add(&socket_port->map, key,
-	    key_length, socket_ref))) {
+	rc = socket_port_map_add(&socket_port->map, key, key_length,
+	    socket_ref);
+	if (rc != EOK) {
 		free(socket_ref);
-		return ERROR_CODE;
+		return rc;
 	}
 	
 	++socket_port->count;
@@ -203,9 +202,8 @@ static int
 socket_bind_insert(socket_ports_ref global_sockets, socket_core_ref socket,
     int port)
 {
-	ERROR_DECLARE;
-
 	socket_port_ref socket_port;
+	int rc;
 
 	// create a wrapper
 	socket_port = malloc(sizeof(*socket_port));
@@ -213,24 +211,28 @@ socket_bind_insert(socket_ports_ref global_sockets, socket_core_ref socket,
 		return ENOMEM;
 
 	socket_port->count = 0;
-	if (ERROR_OCCURRED(socket_port_map_initialize(&socket_port->map)) ||
-	    ERROR_OCCURRED(socket_port_add_core(socket_port, socket,
-	    SOCKET_MAP_KEY_LISTENING, 0))) {
-		socket_port_map_destroy(&socket_port->map);
-		free(socket_port);
-		return ERROR_CODE;
-	}
+	rc = socket_port_map_initialize(&socket_port->map);
+	if (rc != EOK)
+		goto fail;
+	
+	rc = socket_port_add_core(socket_port, socket, SOCKET_MAP_KEY_LISTENING,
+	    0);
+	if (rc != EOK)
+		goto fail;
 	
 	// register the incomming port
-	ERROR_CODE = socket_ports_add(global_sockets, port, socket_port);
-	if (ERROR_CODE < 0) {
-		socket_port_map_destroy(&socket_port->map);
-		free(socket_port);
-		return ERROR_CODE;
-	}
+	rc = socket_ports_add(global_sockets, port, socket_port);
+	if (rc < 0)
+		goto fail;
 	
 	socket->port = port;
 	return EOK;
+
+fail:
+	socket_port_map_destroy(&socket_port->map);
+	free(socket_port);
+	return rc;
+	
 }
 
 /** Binds the socket to the port.
@@ -415,11 +417,9 @@ int
 socket_create(socket_cores_ref local_sockets, int app_phone,
     void *specific_data, int *socket_id)
 {
-	ERROR_DECLARE;
-
 	socket_core_ref socket;
-	int res;
 	int positive;
+	int rc;
 
 	if (!socket_id)
 		return EINVAL;
@@ -446,24 +446,25 @@ socket_create(socket_cores_ref local_sockets, int app_phone,
 	socket->key = NULL;
 	socket->key_length = 0;
 	socket->specific_data = specific_data;
-	if (ERROR_OCCURRED(dyn_fifo_initialize(&socket->received,
-	    SOCKET_INITIAL_RECEIVED_SIZE))) {
+	rc = dyn_fifo_initialize(&socket->received, SOCKET_INITIAL_RECEIVED_SIZE);
+	if (rc != EOK) {
 		free(socket);
-		return ERROR_CODE;
+		return rc;
 	}
-	if (ERROR_OCCURRED(dyn_fifo_initialize(&socket->accepted,
-	    SOCKET_INITIAL_ACCEPTED_SIZE))) {
+	
+	rc = dyn_fifo_initialize(&socket->accepted, SOCKET_INITIAL_ACCEPTED_SIZE);
+	if (rc != EOK) {
 		dyn_fifo_destroy(&socket->received);
 		free(socket);
-		return ERROR_CODE;
+		return rc;
 	}
 	socket->socket_id = *socket_id;
-	res = socket_cores_add(local_sockets, socket->socket_id, socket);
-	if (res < 0) {
+	rc = socket_cores_add(local_sockets, socket->socket_id, socket);
+	if (rc < 0) {
 		dyn_fifo_destroy(&socket->received);
 		dyn_fifo_destroy(&socket->accepted);
 		free(socket);
-		return res;
+		return rc;
 	}
 	
 	return EOK;
@@ -522,12 +523,11 @@ socket_destroy(int packet_phone, int socket_id, socket_cores_ref local_sockets,
  */
 int socket_reply_packets(packet_t packet, size_t *length)
 {
-	ERROR_DECLARE;
-
 	packet_t next_packet;
 	size_t fragments;
 	size_t *lengths;
 	size_t index;
+	int rc;
 
 	if (!length)
 		return EBADMEM;
@@ -535,8 +535,10 @@ int socket_reply_packets(packet_t packet, size_t *length)
 	next_packet = pq_next(packet);
 	if (!next_packet) {
 		// write all if only one fragment
-		ERROR_PROPAGATE(data_reply(packet_get_data(packet),
-		    packet_get_data_length(packet)));
+		rc = data_reply(packet_get_data(packet),
+		    packet_get_data_length(packet));
+		if (rc != EOK)
+			return rc;
 		// store the total length
 		*length = packet_get_data_length(packet);
 	} else {
@@ -563,20 +565,20 @@ int socket_reply_packets(packet_t packet, size_t *length)
 		}
 		
 		// write the fragment lengths
-		if (ERROR_OCCURRED(data_reply(lengths,
-		    sizeof(int) * (fragments + 1)))) {
+		rc = data_reply(lengths, sizeof(int) * (fragments + 1));
+		if (rc != EOK) {
 			free(lengths);
-			return ERROR_CODE;
+			return rc;
 		}
 		next_packet = packet;
 		
 		// write the fragments
 		for (index = 0; index < fragments; ++index) {
-			ERROR_CODE = data_reply(packet_get_data(next_packet),
+			rc = data_reply(packet_get_data(next_packet),
 			    lengths[index]);
-			if (ERROR_OCCURRED(ERROR_CODE)) {
+			if (rc != EOK) {
 				free(lengths);
-				return ERROR_CODE;
+				return rc;
 			}
 			next_packet = pq_next(next_packet);
 		}
@@ -679,9 +681,8 @@ int
 socket_port_add(socket_ports_ref global_sockets, int port,
     socket_core_ref socket, const char *key, size_t key_length)
 {
-	ERROR_DECLARE;
-
 	socket_port_ref socket_port;
+	int rc;
 
 	// find ports
 	socket_port = socket_ports_find(global_sockets, port);
@@ -689,8 +690,9 @@ socket_port_add(socket_ports_ref global_sockets, int port,
 		return ENOENT;
 	
 	// add the socket
-	ERROR_PROPAGATE(socket_port_add_core(socket_port, socket, key,
-	    key_length));
+	rc = socket_port_add_core(socket_port, socket, key, key_length);
+	if (rc != EOK)
+		return rc;
 	
 	socket->port = port;
 	return EOK;

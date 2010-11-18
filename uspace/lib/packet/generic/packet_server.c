@@ -41,7 +41,6 @@
 #include <assert.h>
 #include <async.h>
 #include <errno.h>
-#include <err.h>
 #include <fibril_synch.h>
 #include <unistd.h>
 #include <sys/mman.h>
@@ -161,9 +160,8 @@ static packet_t
 packet_create(size_t length, size_t addr_len, size_t max_prefix,
     size_t max_content, size_t max_suffix)
 {
-	ERROR_DECLARE;
-
 	packet_t packet;
+	int rc;
 
 	// already locked
 	packet = (packet_t) mmap(NULL, length, PROTO_READ | PROTO_WRITE,
@@ -176,7 +174,8 @@ packet_create(size_t length, size_t addr_len, size_t max_prefix,
 	packet->length = length;
 	packet_init(packet, addr_len, max_prefix, max_content, max_suffix);
 	packet->magic_value = PACKET_MAGIC_VALUE;
-	if (ERROR_OCCURRED(pm_add(packet))) {
+	rc = pm_add(packet);
+	if (rc != EOK) {
 		munmap(packet, packet->length);
 		return NULL;
 	}

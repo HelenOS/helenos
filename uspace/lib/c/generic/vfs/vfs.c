@@ -135,8 +135,8 @@ int mount(const char *fs_name, const char *mp, const char *fqdn,
 		fqdn = null;
 	}
 	
-	dev_handle_t dev_handle;
-	int res = devmap_device_get_handle(fqdn, &dev_handle, flags);
+	devmap_handle_t devmap_handle;
+	int res = devmap_device_get_handle(fqdn, &devmap_handle, flags);
 	if (res != EOK) {
 		if (null_id != -1)
 			devmap_null_destroy(null_id);
@@ -158,7 +158,7 @@ int mount(const char *fs_name, const char *mp, const char *fqdn,
 	vfs_connect();
 	
 	ipcarg_t rc_orig;
-	aid_t req = async_send_2(vfs_phone, VFS_IN_MOUNT, dev_handle, flags, NULL);
+	aid_t req = async_send_2(vfs_phone, VFS_IN_MOUNT, devmap_handle, flags, NULL);
 	ipcarg_t rc = async_data_write_start(vfs_phone, (void *) mpa, mpa_size);
 	if (rc != EOK) {
 		async_wait_for(req, &rc_orig);
@@ -327,7 +327,7 @@ int open_node(fdi_node_t *node, int oflag)
 	
 	ipc_call_t answer;
 	aid_t req = async_send_4(vfs_phone, VFS_IN_OPEN_NODE, node->fs_handle,
-	    node->dev_handle, node->index, oflag, &answer);
+	    node->devmap_handle, node->index, oflag, &answer);
 	
 	ipcarg_t rc;
 	async_wait_for(req, &rc);
@@ -796,7 +796,7 @@ int fd_node(int fildes, fdi_node_t *node)
 	
 	if (rc == EOK) {
 		node->fs_handle = stat.fs_handle;
-		node->dev_handle = stat.dev_handle;
+		node->devmap_handle = stat.devmap_handle;
 		node->index = stat.index;
 	}
 	

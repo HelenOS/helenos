@@ -201,7 +201,7 @@ static int devman_receive_match_ids(ipcarg_t match_count,
  */
 static void devman_add_child(ipc_callid_t callid, ipc_call_t *call)
 {
-	device_handle_t parent_handle = IPC_GET_ARG1(*call);
+	devman_handle_t parent_handle = IPC_GET_ARG1(*call);
 	ipcarg_t match_count = IPC_GET_ARG2(*call);
 	dev_tree_t *tree = &device_tree;
 	
@@ -270,7 +270,7 @@ static void devmap_register_class_dev(dev_class_info_t *cli)
 
 static void devman_add_device_to_class(ipc_callid_t callid, ipc_call_t *call)
 {
-	device_handle_t handle = IPC_GET_ARG1(*call);
+	devman_handle_t handle = IPC_GET_ARG1(*call);
 	
 	/* Get class name. */
 	char *class_name;
@@ -413,7 +413,7 @@ static void devman_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 static void devman_forward(ipc_callid_t iid, ipc_call_t *icall,
     bool drv_to_parent)
 {
-	device_handle_t handle = IPC_GET_ARG2(*icall);
+	devman_handle_t handle = IPC_GET_ARG2(*icall);
 	
 	node_t *dev = find_dev_node(&device_tree, handle);
 	if (dev == NULL) {
@@ -463,7 +463,7 @@ static void devman_forward(ipc_callid_t iid, ipc_call_t *icall,
  * mapper to the device manager. */
 static void devman_connection_devmapper(ipc_callid_t iid, ipc_call_t *icall)
 {
-	dev_handle_t devmap_handle = IPC_GET_METHOD(*icall);
+	devmap_handle_t devmap_handle = IPC_GET_METHOD(*icall);
 	node_t *dev;
 
 	dev = find_devmap_tree_device(&device_tree, devmap_handle);

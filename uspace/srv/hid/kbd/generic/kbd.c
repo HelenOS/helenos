@@ -249,8 +249,8 @@ int main(int argc, char **argv)
 	char kbd[DEVMAP_NAME_MAXLEN + 1];
 	snprintf(kbd, DEVMAP_NAME_MAXLEN, "%s/%s", NAMESPACE, NAME);
 	
-	dev_handle_t dev_handle;
-	if (devmap_device_register(kbd, &dev_handle) != EOK) {
+	devmap_handle_t devmap_handle;
+	if (devmap_device_register(kbd, &devmap_handle) != EOK) {
 		printf("%s: Unable to register device %s\n", NAME, kbd);
 		return -1;
 	}

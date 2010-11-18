@@ -59,7 +59,7 @@ static const size_t block_size = 512;
 static aoff64_t num_blocks;
 static FILE *img;
 
-static dev_handle_t dev_handle;
+static devmap_handle_t devmap_handle;
 static fibril_mutex_t dev_lock;
 
 static int file_bd_init(const char *fname);
@@ -81,7 +81,7 @@ int main(int argc, char **argv)
 	if (file_bd_init(argv[1]) != EOK)
 		return -1;
 
-	rc = devmap_device_register(argv[2], &dev_handle);
+	rc = devmap_device_register(argv[2], &devmap_handle);
 	if (rc != EOK) {
 		devmap_hangup_phone(DEVMAP_DRIVER);
 		printf(NAME ": Unable to register device %s.\n",
