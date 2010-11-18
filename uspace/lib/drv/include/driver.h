@@ -117,7 +117,7 @@ struct device {
 	 * Globally unique device identifier (assigned to the device by the
 	 * device manager).
 	 */
-	device_handle_t handle;
+	devman_handle_t handle;
 	
 	/**
 	 * The phone to the parent device driver (if it is different from this

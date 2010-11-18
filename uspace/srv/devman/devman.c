@@ -51,7 +51,7 @@ static int devman_devices_compare(unsigned long key[], hash_count_t keys,
     link_t *item)
 {
 	node_t *dev = hash_table_get_instance(item, node_t, devman_link);
-	return (dev->handle == (device_handle_t) key[0]);
+	return (dev->handle == (devman_handle_t) key[0]);
 }
 
 static int devmap_devices_compare(unsigned long key[], hash_count_t keys,
@@ -781,7 +781,7 @@ void delete_dev_node(node_t *node)
  * @param handle	The handle of the device.
  * @return		The device node.
  */
-node_t *find_dev_node_no_lock(dev_tree_t *tree, device_handle_t handle)
+node_t *find_dev_node_no_lock(dev_tree_t *tree, devman_handle_t handle)
 {
 	unsigned long key = handle;
 	link_t *link = hash_table_find(&tree->devman_devices, &key);
@@ -794,7 +794,7 @@ node_t *find_dev_node_no_lock(dev_tree_t *tree, device_handle_t handle)
  * @param handle	The handle of the device.
  * @return		The device node.
  */
-node_t *find_dev_node(dev_tree_t *tree, device_handle_t handle)
+node_t *find_dev_node(dev_tree_t *tree, devman_handle_t handle)
 {
 	node_t *node = NULL;
 	

@@ -120,7 +120,7 @@ typedef enum {
 /** Representation of a node in the device tree. */
 struct node {
 	/** The global unique identifier of the device. */
-	device_handle_t handle;
+	devman_handle_t handle;
 	/** The name of the device specified by its parent. */
 	char *name;
 	
@@ -178,7 +178,7 @@ typedef struct dev_tree {
 	 * The next available handle - handles are assigned in a sequential
 	 * manner.
 	 */
-	device_handle_t current_handle;
+	devman_handle_t current_handle;
 	
 	/** Synchronize access to the device tree. */
 	fibril_rwlock_t rwlock;
@@ -308,8 +308,8 @@ extern void delete_driver(driver_t *);
 extern node_t *create_dev_node(void);
 extern void delete_dev_node(node_t *node);
 extern node_t *find_dev_node_no_lock(dev_tree_t *tree,
-    device_handle_t handle);
-extern node_t *find_dev_node(dev_tree_t *tree, device_handle_t handle);
+    devman_handle_t handle);
+extern node_t *find_dev_node(dev_tree_t *tree, devman_handle_t handle);
 extern node_t *find_dev_node_by_path(dev_tree_t *, char *);
 extern node_t *find_node_child(node_t *, const char *);
 

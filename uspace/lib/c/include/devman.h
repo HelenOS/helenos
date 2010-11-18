@@ -45,14 +45,14 @@ int devman_get_phone(devman_interface_t, unsigned int);
 void devman_hangup_phone(devman_interface_t iface);
 
 int devman_driver_register(const char *, async_client_conn_t);
-int devman_child_device_register(const char *, match_id_list_t *, device_handle_t, device_handle_t *);
+int devman_child_device_register(const char *, match_id_list_t *, devman_handle_t, devman_handle_t *);
 
-int devman_device_connect(device_handle_t handle, unsigned int flags);
-int devman_parent_device_connect(device_handle_t handle, unsigned int flags);
+int devman_device_connect(devman_handle_t handle, unsigned int flags);
+int devman_parent_device_connect(devman_handle_t handle, unsigned int flags);
 
-int devman_device_get_handle(const char *pathname, device_handle_t *handle, unsigned int flags);
+int devman_device_get_handle(const char *pathname, devman_handle_t *handle, unsigned int flags);
 
-int devman_add_device_to_class(device_handle_t dev_handle, const char *class_name);
+int devman_add_device_to_class(devman_handle_t devman_handle, const char *class_name);
 
 #endif
 
