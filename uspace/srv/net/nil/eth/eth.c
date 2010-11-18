@@ -203,6 +203,7 @@ int nil_initialize(int net_phone)
 	fibril_rwlock_write_lock(&eth_globals.devices_lock);
 	fibril_rwlock_write_lock(&eth_globals.protos_lock);
 	eth_globals.net_phone = net_phone;
+
 	eth_globals.broadcast_addr =
 	    measured_string_create_bulk("\xFF\xFF\xFF\xFF\xFF\xFF",
 	    CONVERT_SIZE(uint8_t, char, ETH_ADDR));
@@ -210,11 +211,13 @@ int nil_initialize(int net_phone)
 		rc = ENOMEM;
 		goto out;
 	}
+
 	rc = eth_devices_initialize(&eth_globals.devices);
 	if (rc != EOK) {
 		free(eth_globals.broadcast_addr);
 		goto out;
 	}
+
 	rc = eth_protos_initialize(&eth_globals.protos);
 	if (rc != EOK) {
 		free(eth_globals.broadcast_addr);
@@ -279,8 +282,8 @@ static void eth_receiver(ipc_callid_t iid, ipc_call_t *icall)
  * @returns		Other error codes as defined for the
  *			netif_get_addr_req() function.
  */
-static int
-eth_device_message(device_id_t device_id, services_t service, size_t mtu)
+static int eth_device_message(device_id_t device_id, services_t service,
+    size_t mtu)
 {
 	eth_device_ref device;
 	int index;
@@ -301,7 +304,7 @@ eth_device_message(device_id_t device_id, services_t service, size_t mtu)
 	int rc;
 
 	fibril_rwlock_write_lock(&eth_globals.devices_lock);
-	// an existing device?
+	/* An existing device? */
 	device = eth_devices_find(&eth_globals.devices, device_id);
 	if (device) {
 		if (device->service != service) {
@@ -310,7 +313,7 @@ eth_device_message(device_id_t device_id, services_t service, size_t mtu)
 			return EEXIST;
 		}
 		
-		// update mtu
+		/* Update mtu */
 		if ((mtu > 0) && (mtu <= ETH_MAX_TAGGED_CONTENT(device->flags)))
 			device->mtu = mtu;
 		else
@@ -320,7 +323,7 @@ eth_device_message(device_id_t device_id, services_t service, size_t mtu)
 		    device->device_id, device->mtu);
 		fibril_rwlock_write_unlock(&eth_globals.devices_lock);
 		
-		// notify all upper layer modules
+		/* Notify all upper layer modules */
 		fibril_rwlock_read_lock(&eth_globals.protos_lock);
 		for (index = 0; index < eth_protos_count(&eth_globals.protos);
 		    index++) {
@@ -332,11 +335,12 @@ eth_device_message(device_id_t device_id, services_t service, size_t mtu)
 				    proto->service);
 			}
 		}
+
 		fibril_rwlock_read_unlock(&eth_globals.protos_lock);
 		return EOK;
 	}
 	
-	// create a new device
+	/* Create a new device */
 	device = (eth_device_ref) malloc(sizeof(eth_device_t));
 	if (!device)
 		return ENOMEM;
@@ -357,6 +361,7 @@ eth_device_message(device_id_t device_id, services_t service, size_t mtu)
 		free(device);
 		return rc;
 	}
+
 	if (configuration) {
 		if (!str_lcmp(configuration[0].value, "DIX",
 		    configuration[0].length)) {
@@ -377,7 +382,7 @@ eth_device_message(device_id_t device_id, services_t service, size_t mtu)
 		device->flags |= ETH_8023_2_SNAP;
 	}
 	
-	// bind the device driver
+	/* Bind the device driver */
 	device->phone = netif_bind_service(device->service, device->device_id,
 	    SERVICE_ETHERNET, eth_receiver);
 	if (device->phone < 0) {
@@ -386,7 +391,7 @@ eth_device_message(device_id_t device_id, services_t service, size_t mtu)
 		return device->phone;
 	}
 	
-	// get hardware address
+	/* Get hardware address */
 	rc = netif_get_addr_req(device->phone, device->device_id, &device->addr,
 	    &device->addr_data);
 	if (rc != EOK) {
@@ -395,7 +400,7 @@ eth_device_message(device_id_t device_id, services_t service, size_t mtu)
 		return rc;
 	}
 	
-	// add to the cache
+	/* Add to the cache */
 	index = eth_devices_add(&eth_globals.devices, device->device_id,
 	    device);
 	if (index < 0) {
@@ -452,38 +457,40 @@ static eth_proto_ref eth_process_packet(int flags, packet_t packet)
 	type = ntohs(header->header.ethertype);
 	
 	if (type >= ETH_MIN_PROTO) {
-		// DIX Ethernet
+		/* DIX Ethernet */
 		prefix = sizeof(eth_header_t);
 		suffix = 0;
 		fcs = (eth_fcs_ref) data + length - sizeof(eth_fcs_t);
 		length -= sizeof(eth_fcs_t);
 	} else if(type <= ETH_MAX_CONTENT) {
-		// translate "LSAP" values
+		/* Translate "LSAP" values */
 		if ((header->lsap.dsap == ETH_LSAP_GLSAP) &&
 		    (header->lsap.ssap == ETH_LSAP_GLSAP)) {
-			// raw packet
-			// discard
+			/* Raw packet -- discard */
 			return NULL;
 		} else if((header->lsap.dsap == ETH_LSAP_SNAP) &&
 		    (header->lsap.ssap == ETH_LSAP_SNAP)) {
-			// IEEE 802.3 + 802.2 + LSAP + SNAP
-			// organization code not supported
+			/*
+			 * IEEE 802.3 + 802.2 + LSAP + SNAP
+			 * organization code not supported
+			 */
 			type = ntohs(header->snap.ethertype);
 			prefix = sizeof(eth_header_t) +
 			    sizeof(eth_header_lsap_t) +
 			    sizeof(eth_header_snap_t);
 		} else {
-			// IEEE 802.3 + 802.2 LSAP
+			/* IEEE 802.3 + 802.2 LSAP */
 			type = lsap_map(header->lsap.dsap);
 			prefix = sizeof(eth_header_t) +
 			    sizeof(eth_header_lsap_t);
 		}
+
 		suffix = (type < ETH_MIN_CONTENT) ? ETH_MIN_CONTENT - type : 0U;
 		fcs = (eth_fcs_ref) data + prefix + type + suffix;
 		suffix += length - prefix - type;
 		length = prefix + type + suffix;
 	} else {
-		// invalid length/type, should not occurr
+		/* Invalid length/type, should not occur */
 		return NULL;
 	}
 	
@@ -505,9 +512,8 @@ static eth_proto_ref eth_process_packet(int flags, packet_t packet)
 	return eth_protos_find(&eth_globals.protos, type);
 }
 
-int
-nil_received_msg_local(int nil_phone, device_id_t device_id, packet_t packet,
-    services_t target)
+int nil_received_msg_local(int nil_phone, device_id_t device_id,
+    packet_t packet, services_t target)
 {
 	eth_proto_ref proto;
 	packet_t next;
@@ -520,6 +526,7 @@ nil_received_msg_local(int nil_phone, device_id_t device_id, packet_t packet,
 		fibril_rwlock_read_unlock(&eth_globals.devices_lock);
 		return ENOENT;
 	}
+
 	flags = device->flags;
 	fibril_rwlock_read_unlock(&eth_globals.devices_lock);
 	
@@ -537,8 +544,8 @@ nil_received_msg_local(int nil_phone, device_id_t device_id, packet_t packet,
 		}
 		packet = next;
 	} while(packet);
+
 	fibril_rwlock_read_unlock(&eth_globals.protos_lock);
-	
 	return EOK;
 }
 
@@ -553,8 +560,7 @@ nil_received_msg_local(int nil_phone, device_id_t device_id, packet_t packet,
  * @returns		EBADMEM if either one of the parameters is NULL.
  * @returns		ENOENT if there is no such device.
  */
-static int
-eth_packet_space_message(device_id_t device_id, size_t *addr_len,
+static int eth_packet_space_message(device_id_t device_id, size_t *addr_len,
     size_t *prefix, size_t *content, size_t *suffix)
 {
 	eth_device_ref device;
@@ -568,12 +574,14 @@ eth_packet_space_message(device_id_t device_id, size_t *addr_len,
 		fibril_rwlock_read_unlock(&eth_globals.devices_lock);
 		return ENOENT;
 	}
+
 	*content = device->mtu;
 	fibril_rwlock_read_unlock(&eth_globals.devices_lock);
 	
 	*addr_len = ETH_ADDR;
 	*prefix = ETH_PREFIX;
 	*suffix = ETH_MIN_CONTENT + ETH_SUFFIX;
+
 	return EOK;
 }
 
@@ -586,8 +594,7 @@ eth_packet_space_message(device_id_t device_id, size_t *addr_len,
  * @returns		EBADMEM if the address parameter is NULL.
  * @returns		ENOENT if there no such device.
  */
-static int
-eth_addr_message(device_id_t device_id, eth_addr_type_t type,
+static int eth_addr_message(device_id_t device_id, eth_addr_type_t type,
     measured_string_ref *address)
 {
 	eth_device_ref device;
@@ -643,9 +650,11 @@ static int eth_register_message(services_t service, int phone)
 			fibril_rwlock_write_unlock(&eth_globals.protos_lock);
 			return ENOMEM;
 		}
+
 		proto->service = service;
 		proto->protocol = protocol;
 		proto->phone = phone;
+
 		index = eth_protos_add(&eth_globals.protos, protocol, proto);
 		if (index < 0) {
 			fibril_rwlock_write_unlock(&eth_globals.protos_lock);
@@ -704,6 +713,7 @@ eth_prepare_packet(int flags, packet_t packet, uint8_t *src_addr, int ethertype,
 		    ETH_MIN_TAGGED_CONTENT(flags) - length);
 		if (!padding)
 			return ENOMEM;
+
 		bzero(padding, ETH_MIN_TAGGED_CONTENT(flags) - length);
 	}
 	
@@ -781,8 +791,8 @@ eth_prepare_packet(int flags, packet_t packet, uint8_t *src_addr, int ethertype,
  * @returns		ENOENT if there no such device.
  * @returns		EINVAL if the service parameter is not known.
  */
-static int
-eth_send_message(device_id_t device_id, packet_t packet, services_t sender)
+static int eth_send_message(device_id_t device_id, packet_t packet,
+    services_t sender)
 {
 	eth_device_ref device;
 	packet_t next;
@@ -803,13 +813,13 @@ eth_send_message(device_id_t device_id, packet_t packet, services_t sender)
 		return ENOENT;
 	}
 	
-	// process packet queue
+	/* Process packet queue */
 	next = packet;
 	do {
 		rc = eth_prepare_packet(device->flags, next,
 		    (uint8_t *) device->addr->value, ethertype, device->mtu);
 		if (rc != EOK) {
-			// release invalid packet
+			/* Release invalid packet */
 			tmp = pq_detach(next);
 			if (next == packet)
 				packet = tmp;
@@ -821,19 +831,18 @@ eth_send_message(device_id_t device_id, packet_t packet, services_t sender)
 		}
 	} while(next);
 	
-	// send packet queue
+	/* Send packet queue */
 	if (packet) {
 		netif_send_msg(device->phone, device_id, packet,
 		    SERVICE_ETHERNET);
 	}
+
 	fibril_rwlock_read_unlock(&eth_globals.devices_lock);
-	
 	return EOK;
 }
 
-int
-nil_message_standalone(const char *name, ipc_callid_t callid, ipc_call_t *call,
-    ipc_call_t *answer, int *answer_count)
+int nil_message_standalone(const char *name, ipc_callid_t callid,
+    ipc_call_t *call, ipc_call_t *answer, int *answer_count)
 {
 	measured_string_ref address;
 	packet_t packet;
@@ -893,7 +902,6 @@ nil_message_standalone(const char *name, ipc_callid_t callid, ipc_call_t *call,
  *
  * @param[in] iid	The initial message identifier.
  * @param[in] icall	The initial message call structure.
- *
  */
 static void nil_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 {

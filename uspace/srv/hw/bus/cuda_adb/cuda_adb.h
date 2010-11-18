@@ -103,7 +103,7 @@ enum cuda_xfer_state {
 };
 
 typedef struct {
-	dev_handle_t dev_handle;
+	devmap_handle_t devmap_handle;
 	int client_phone;
 } adb_dev_t;
 

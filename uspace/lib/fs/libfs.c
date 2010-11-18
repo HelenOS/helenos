@@ -149,10 +149,10 @@ void fs_node_initialize(fs_node_t *fn)
 void libfs_mount(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
     ipc_call_t *request)
 {
-	dev_handle_t mp_dev_handle = (dev_handle_t) IPC_GET_ARG1(*request);
+	devmap_handle_t mp_devmap_handle = (devmap_handle_t) IPC_GET_ARG1(*request);
 	fs_index_t mp_fs_index = (fs_index_t) IPC_GET_ARG2(*request);
 	fs_handle_t mr_fs_handle = (fs_handle_t) IPC_GET_ARG3(*request);
-	dev_handle_t mr_dev_handle = (dev_handle_t) IPC_GET_ARG4(*request);
+	devmap_handle_t mr_devmap_handle = (devmap_handle_t) IPC_GET_ARG4(*request);
 	int res;
 	ipcarg_t rc;
 	
@@ -173,7 +173,7 @@ void libfs_mount(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	ipc_answer_0(callid, EOK);
 	
 	fs_node_t *fn;
-	res = ops->node_get(&fn, mp_dev_handle, mp_fs_index);
+	res = ops->node_get(&fn, mp_devmap_handle, mp_fs_index);
 	if ((res != EOK) || (!fn)) {
 		ipc_hangup(mountee_phone);
 		async_data_write_void(combine_rc(res, ENOENT));
@@ -200,12 +200,12 @@ void libfs_mount(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	
 	ipc_call_t answer;
 	rc = async_data_write_forward_1_1(mountee_phone, VFS_OUT_MOUNTED,
-	    mr_dev_handle, &answer);
+	    mr_devmap_handle, &answer);
 	
 	if (rc == EOK) {
 		fn->mp_data.mp_active = true;
 		fn->mp_data.fs_handle = mr_fs_handle;
-		fn->mp_data.dev_handle = mr_dev_handle;
+		fn->mp_data.devmap_handle = mr_devmap_handle;
 		fn->mp_data.phone = mountee_phone;
 	}
 	
@@ -218,12 +218,12 @@ void libfs_mount(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 
 void libfs_unmount(libfs_ops_t *ops, ipc_callid_t rid, ipc_call_t *request)
 {
-	dev_handle_t mp_dev_handle = (dev_handle_t) IPC_GET_ARG1(*request);
+	devmap_handle_t mp_devmap_handle = (devmap_handle_t) IPC_GET_ARG1(*request);
 	fs_index_t mp_fs_index = (fs_index_t) IPC_GET_ARG2(*request);
 	fs_node_t *fn;
 	int res;
 
-	res = ops->node_get(&fn, mp_dev_handle, mp_fs_index);
+	res = ops->node_get(&fn, mp_devmap_handle, mp_fs_index);
 	if ((res != EOK) || (!fn)) {
 		ipc_answer_0(rid, combine_rc(res, ENOENT));
 		return;
@@ -242,7 +242,7 @@ void libfs_unmount(libfs_ops_t *ops, ipc_callid_t rid, ipc_call_t *request)
 	 * Tell the mounted file system to unmount.
 	 */
 	res = async_req_1_0(fn->mp_data.phone, VFS_OUT_UNMOUNTED,
-	    fn->mp_data.dev_handle);
+	    fn->mp_data.devmap_handle);
 
 	/*
 	 * If everything went well, perform the clean-up on our side.
@@ -251,7 +251,7 @@ void libfs_unmount(libfs_ops_t *ops, ipc_callid_t rid, ipc_call_t *request)
 		ipc_hangup(fn->mp_data.phone);
 		fn->mp_data.mp_active = false;
 		fn->mp_data.fs_handle = 0;
-		fn->mp_data.dev_handle = 0;
+		fn->mp_data.devmap_handle = 0;
 		fn->mp_data.phone = 0;
 		/* Drop the reference created in libfs_mount(). */
 		(void) ops->node_put(fn);
@@ -280,7 +280,7 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	unsigned int first = IPC_GET_ARG1(*request);
 	unsigned int last = IPC_GET_ARG2(*request);
 	unsigned int next = first;
-	dev_handle_t dev_handle = IPC_GET_ARG3(*request);
+	devmap_handle_t devmap_handle = IPC_GET_ARG3(*request);
 	int lflag = IPC_GET_ARG4(*request);
 	fs_index_t index = IPC_GET_ARG5(*request);
 	char component[NAME_MAX + 1];
@@ -294,12 +294,12 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	fs_node_t *cur = NULL;
 	fs_node_t *tmp = NULL;
 	
-	rc = ops->root_get(&cur, dev_handle);
+	rc = ops->root_get(&cur, devmap_handle);
 	on_error(rc, goto out_with_answer);
 	
 	if (cur->mp_data.mp_active) {
 		ipc_forward_slow(rid, cur->mp_data.phone, VFS_OUT_LOOKUP,
-		    next, last, cur->mp_data.dev_handle, lflag, index,
+		    next, last, cur->mp_data.devmap_handle, lflag, index,
 		    IPC_FF_ROUTE_FROM_ME);
 		(void) ops->node_put(cur);
 		return;
@@ -357,7 +357,7 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 				next--;
 			
 			ipc_forward_slow(rid, tmp->mp_data.phone,
-			    VFS_OUT_LOOKUP, next, last, tmp->mp_data.dev_handle,
+			    VFS_OUT_LOOKUP, next, last, tmp->mp_data.devmap_handle,
 			    lflag, index, IPC_FF_ROUTE_FROM_ME);
 			(void) ops->node_put(cur);
 			(void) ops->node_put(tmp);
@@ -384,10 +384,10 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 				
 				fs_node_t *fn;
 				if (lflag & L_CREATE)
-					rc = ops->create(&fn, dev_handle,
+					rc = ops->create(&fn, devmap_handle,
 					    lflag);
 				else
-					rc = ops->node_get(&fn, dev_handle,
+					rc = ops->node_get(&fn, devmap_handle,
 					    index);
 				on_error(rc, goto out_with_answer);
 				
@@ -400,7 +400,7 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 					} else {
 						aoff64_t size = ops->size_get(fn);
 						ipc_answer_5(rid, fs_handle,
-						    dev_handle,
+						    devmap_handle,
 						    ops->index_get(fn),
 						    LOWER32(size),
 						    UPPER32(size),
@@ -468,9 +468,9 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 			
 			fs_node_t *fn;
 			if (lflag & L_CREATE)
-				rc = ops->create(&fn, dev_handle, lflag);
+				rc = ops->create(&fn, devmap_handle, lflag);
 			else
-				rc = ops->node_get(&fn, dev_handle, index);
+				rc = ops->node_get(&fn, devmap_handle, index);
 			on_error(rc, goto out_with_answer);
 			
 			if (fn) {
@@ -482,7 +482,7 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 				} else {
 					aoff64_t size = ops->size_get(fn);
 					ipc_answer_5(rid, fs_handle,
-					    dev_handle,
+					    devmap_handle,
 					    ops->index_get(fn),
 					    LOWER32(size),
 					    UPPER32(size),
@@ -508,7 +508,7 @@ skip_miss:
 		
 		if (rc == EOK) {
 			aoff64_t size = ops->size_get(cur);
-			ipc_answer_5(rid, fs_handle, dev_handle,
+			ipc_answer_5(rid, fs_handle, devmap_handle,
 			    ops->index_get(cur), LOWER32(size), UPPER32(size),
 			    old_lnkcnt);
 		} else
@@ -546,7 +546,7 @@ out_with_answer:
 		
 		if (rc == EOK) {
 			aoff64_t size = ops->size_get(cur);
-			ipc_answer_5(rid, fs_handle, dev_handle,
+			ipc_answer_5(rid, fs_handle, devmap_handle,
 			    ops->index_get(cur), LOWER32(size), UPPER32(size),
 			    ops->lnkcnt_get(cur));
 		} else
@@ -570,11 +570,11 @@ out:
 void libfs_stat(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
     ipc_call_t *request)
 {
-	dev_handle_t dev_handle = (dev_handle_t) IPC_GET_ARG1(*request);
+	devmap_handle_t devmap_handle = (devmap_handle_t) IPC_GET_ARG1(*request);
 	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
 	
 	fs_node_t *fn;
-	int rc = ops->node_get(&fn, dev_handle, index);
+	int rc = ops->node_get(&fn, devmap_handle, index);
 	on_error(rc, answer_and_return(rid, rc));
 	
 	ipc_callid_t callid;
@@ -591,7 +591,7 @@ void libfs_stat(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	memset(&stat, 0, sizeof(struct stat));
 	
 	stat.fs_handle = fs_handle;
-	stat.dev_handle = dev_handle;
+	stat.devmap_handle = devmap_handle;
 	stat.index = index;
 	stat.lnkcnt = ops->lnkcnt_get(fn);
 	stat.is_file = ops->is_file(fn);
@@ -616,11 +616,11 @@ void libfs_stat(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 void libfs_open_node(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
     ipc_call_t *request)
 {
-	dev_handle_t dev_handle = IPC_GET_ARG1(*request);
+	devmap_handle_t devmap_handle = IPC_GET_ARG1(*request);
 	fs_index_t index = IPC_GET_ARG2(*request);
 	
 	fs_node_t *fn;
-	int rc = ops->node_get(&fn, dev_handle, index);
+	int rc = ops->node_get(&fn, devmap_handle, index);
 	on_error(rc, answer_and_return(rid, rc));
 	
 	if (fn == NULL) {

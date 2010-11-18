@@ -91,7 +91,7 @@ int main(int argc, char *argv[])
 	if (s3c24xx_uart_init(uart) != EOK)
 		return -1;
 
-	rc = devmap_device_register(NAMESPACE "/" NAME, &uart->dev_handle);
+	rc = devmap_device_register(NAMESPACE "/" NAME, &uart->devmap_handle);
 	if (rc != EOK) {
 		devmap_hangup_phone(DEVMAP_DRIVER);
 		printf(NAME ": Unable to register device %s.\n");

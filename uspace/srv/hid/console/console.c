@@ -81,7 +81,7 @@ struct {
 typedef struct {
 	size_t index;             /**< Console index */
 	size_t refcount;          /**< Connection reference count */
-	dev_handle_t dev_handle;  /**< Device handle */
+	devmap_handle_t devmap_handle;  /**< Device handle */
 	keybuffer_t keybuffer;    /**< Buffer for incoming keys. */
 	screenbuffer_t scr;       /**< Screenbuffer for saving screen
 	                               contents and related settings. */
@@ -570,7 +570,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		if (i == KERNEL_CONSOLE)
 			continue;
 		
-		if (consoles[i].dev_handle == (dev_handle_t) IPC_GET_ARG1(*icall)) {
+		if (consoles[i].devmap_handle == (devmap_handle_t) IPC_GET_ARG1(*icall)) {
 			cons = &consoles[i];
 			break;
 		}
@@ -814,7 +814,7 @@ skip_mouse:
 			char vc[DEVMAP_NAME_MAXLEN + 1];
 			snprintf(vc, DEVMAP_NAME_MAXLEN, "%s/vc%u", NAMESPACE, i);
 			
-			if (devmap_device_register(vc, &consoles[i].dev_handle) != EOK) {
+			if (devmap_device_register(vc, &consoles[i].devmap_handle) != EOK) {
 				devmap_hangup_phone(DEVMAP_DRIVER);
 				printf(NAME ": Unable to register device %s\n", vc);
 				return false;

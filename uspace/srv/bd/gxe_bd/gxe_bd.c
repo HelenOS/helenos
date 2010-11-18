@@ -92,7 +92,7 @@ static size_t comm_size;
 static uintptr_t dev_physical = 0x13000000;
 static gxe_bd_t *dev;
 
-static dev_handle_t dev_handle[MAX_DISKS];
+static devmap_handle_t devmap_handle[MAX_DISKS];
 
 static fibril_mutex_t dev_lock[MAX_DISKS];
 
@@ -142,7 +142,7 @@ static int gxe_bd_init(void)
 
 	for (i = 0; i < MAX_DISKS; i++) {
 		snprintf(name, 16, "%s/disk%d", NAMESPACE, i);
-		rc = devmap_device_register(name, &dev_handle[i]);
+		rc = devmap_device_register(name, &devmap_handle[i]);
 		if (rc != EOK) {
 			devmap_hangup_phone(DEVMAP_DRIVER);
 			printf(NAME ": Unable to register device %s.\n", name);
@@ -160,7 +160,7 @@ static void gxe_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 	ipc_callid_t callid;
 	ipc_call_t call;
 	ipcarg_t method;
-	dev_handle_t dh;
+	devmap_handle_t dh;
 	int flags;
 	int retval;
 	uint64_t ba;
@@ -173,7 +173,7 @@ static void gxe_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 	/* Determine which disk device is the client connecting to. */
 	disk_id = -1;
 	for (i = 0; i < MAX_DISKS; i++)
-		if (dev_handle[i] == dh)
+		if (devmap_handle[i] == dh)
 			disk_id = i;
 
 	if (disk_id < 0) {

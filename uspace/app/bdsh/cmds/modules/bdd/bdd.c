@@ -67,7 +67,7 @@ int cmd_bdd(char **argv)
 {
 	unsigned int argc;
 	unsigned int i, j;
-	dev_handle_t handle;
+	devmap_handle_t handle;
 	uint8_t *blk;
 	size_t size, bytes, rows;
 	size_t block_size;

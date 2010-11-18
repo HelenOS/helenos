@@ -51,13 +51,13 @@
 #include "conn.h"
 
 
-static dev_handle_t handle_virtual_device;
-static dev_handle_t handle_host_driver;
+static devmap_handle_t handle_virtual_device;
+static devmap_handle_t handle_host_driver;
 
 static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
 	ipcarg_t phone_hash = icall->in_phone_hash;
-	dev_handle_t handle = (dev_handle_t)IPC_GET_ARG1(*icall);
+	devmap_handle_t handle = (devmap_handle_t)IPC_GET_ARG1(*icall);
 	
 	if (handle == handle_host_driver) {
 		/*
