@@ -157,7 +157,7 @@ extern int netif_stop_message(netif_device_t *device);
  *			message implementation.
  */
 extern int netif_get_addr_message(device_id_t device_id,
-    measured_string_ref address);
+    measured_string_t *address);
 
 /** Process the netif driver specific message.
  *
@@ -194,7 +194,7 @@ extern int netif_specific_message(ipc_callid_t callid, ipc_call_t *call,
 extern int netif_get_device_stats(device_id_t device_id,
     device_stats_t *stats);
 
-extern int netif_get_addr_req_local(int, device_id_t, measured_string_ref *,
+extern int netif_get_addr_req_local(int, device_id_t, measured_string_t **,
     char **);
 extern int netif_probe_req_local(int, device_id_t, int, int);
 extern int netif_send_msg_local(int, device_id_t, packet_t, services_t);

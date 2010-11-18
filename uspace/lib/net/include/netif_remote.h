@@ -40,7 +40,7 @@
 #include <net/device.h>
 #include <net/packet.h>
 
-extern int netif_get_addr_req_remote(int, device_id_t, measured_string_ref *,
+extern int netif_get_addr_req_remote(int, device_id_t, measured_string_t **,
     char **);
 extern int netif_probe_req_remote(int, device_id_t, int, int);
 extern int netif_send_msg_remote(int, device_id_t, packet_t, services_t);

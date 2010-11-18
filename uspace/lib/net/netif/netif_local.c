@@ -202,7 +202,7 @@ int netif_stats_req_local(int netif_phone, device_id_t device_id,
  *			netif_get_addr_message() function.
  */
 int netif_get_addr_req_local(int netif_phone, device_id_t device_id,
-    measured_string_ref *address, char **data)
+    measured_string_t **address, char **data)
 {
 	int rc;
 	

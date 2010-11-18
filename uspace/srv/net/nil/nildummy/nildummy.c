@@ -247,7 +247,7 @@ static int nildummy_device_message(device_id_t device_id, services_t service,
  *
  */
 static int nildummy_addr_message(device_id_t device_id,
-    measured_string_ref *address)
+    measured_string_t **address)
 {
 	nildummy_device_t *device;
 
@@ -376,7 +376,7 @@ static int nildummy_send_message(device_id_t device_id, packet_t packet,
 int nil_message_standalone(const char *name, ipc_callid_t callid,
     ipc_call_t *call, ipc_call_t *answer, int *answer_count)
 {
-	measured_string_ref address;
+	measured_string_t *address;
 	packet_t packet;
 	size_t addrlen;
 	size_t prefix;

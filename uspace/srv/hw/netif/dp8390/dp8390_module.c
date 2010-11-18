@@ -185,7 +185,7 @@ int netif_get_device_stats(device_id_t device_id, device_stats_t *stats)
 	return EOK;
 }
 
-int netif_get_addr_message(device_id_t device_id, measured_string_ref address){
+int netif_get_addr_message(device_id_t device_id, measured_string_t *address){
 	netif_device_t * device;
 	int rc;
 

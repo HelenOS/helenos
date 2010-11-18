@@ -58,7 +58,7 @@
  * @returns		TRUE if the queue is valid.
  * @returns		FALSE otherwise.
  */
-static int dyn_fifo_is_valid(dyn_fifo_ref fifo)
+static int dyn_fifo_is_valid(dyn_fifo_t *fifo)
 {
 	return fifo && (fifo->magic_value == DYN_FIFO_MAGIC_VALUE);
 }
@@ -72,7 +72,7 @@ static int dyn_fifo_is_valid(dyn_fifo_ref fifo)
  * @returns		EBADMEM if the fifo parameter is NULL.
  * @returns		ENOMEM if there is not enough memory left.
  */
-int dyn_fifo_initialize(dyn_fifo_ref fifo, int size)
+int dyn_fifo_initialize(dyn_fifo_t *fifo, int size)
 {
 	if (!fifo)
 		return EBADMEM;
@@ -103,7 +103,7 @@ int dyn_fifo_initialize(dyn_fifo_ref fifo, int size)
  * @returns		EINVAL if the queue is not valid.
  * @returns		ENOMEM if there is not enough memory left.
  */
-int dyn_fifo_push(dyn_fifo_ref fifo, int value, int max_size)
+int dyn_fifo_push(dyn_fifo_t *fifo, int value, int max_size)
 {
 	int *new_items;
 
@@ -153,7 +153,7 @@ int dyn_fifo_push(dyn_fifo_ref fifo, int value, int max_size)
  * @returns		EINVAL if the queue is not valid.
  * @returns		ENOENT if the queue is empty.
  */
-int dyn_fifo_pop(dyn_fifo_ref fifo)
+int dyn_fifo_pop(dyn_fifo_t *fifo)
 {
 	int value;
 
@@ -175,7 +175,7 @@ int dyn_fifo_pop(dyn_fifo_ref fifo)
  * @returns		EINVAL if the queue is not valid.
  * @returns		ENOENT if the queue is empty.
  */
-int dyn_fifo_value(dyn_fifo_ref fifo)
+int dyn_fifo_value(dyn_fifo_t *fifo)
 {
 	if (!dyn_fifo_is_valid(fifo))
 		return EINVAL;
@@ -192,7 +192,7 @@ int dyn_fifo_value(dyn_fifo_ref fifo)
  * @returns		EOK on success.
  * @returns		EINVAL if the queue is not valid.
  */
-int dyn_fifo_destroy(dyn_fifo_ref fifo)
+int dyn_fifo_destroy(dyn_fifo_t *fifo)
 {
 	if (!dyn_fifo_is_valid(fifo))
 		return EINVAL;

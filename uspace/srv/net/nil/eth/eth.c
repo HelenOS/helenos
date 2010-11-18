@@ -292,7 +292,7 @@ static int eth_device_message(device_id_t device_id, services_t service,
 			9
 		}
 	};
-	measured_string_ref configuration;
+	measured_string_t *configuration;
 	size_t count = sizeof(names) / sizeof(measured_string_t);
 	char *data;
 	eth_proto_t *proto;
@@ -590,7 +590,7 @@ static int eth_packet_space_message(device_id_t device_id, size_t *addr_len,
  * @returns		ENOENT if there no such device.
  */
 static int eth_addr_message(device_id_t device_id, eth_addr_type_t type,
-    measured_string_ref *address)
+    measured_string_t **address)
 {
 	eth_device_t *device;
 
@@ -839,7 +839,7 @@ static int eth_send_message(device_id_t device_id, packet_t packet,
 int nil_message_standalone(const char *name, ipc_callid_t callid,
     ipc_call_t *call, ipc_call_t *answer, int *answer_count)
 {
-	measured_string_ref address;
+	measured_string_t *address;
 	packet_t packet;
 	size_t addrlen;
 	size_t prefix;

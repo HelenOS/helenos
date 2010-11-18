@@ -75,7 +75,7 @@ struct nildummy_device {
 	/** Maximal transmission unit. */
 	size_t mtu;
 	/** Actual device hardware address. */
-	measured_string_ref addr;
+	measured_string_t *addr;
 	/** Actual device hardware address data. */
 	char *addr_data;
 };

@@ -89,7 +89,7 @@ struct eth_device {
 	int flags;
 	
 	/** Actual device hardware address. */
-	measured_string_ref addr;
+	measured_string_t *addr;
 	/** Actual device hardware address data. */
 	char *addr_data;
 };
@@ -122,7 +122,7 @@ struct eth_globals {
 	eth_protos_t protos;
 	
 	/** Broadcast device hardware address. */
-	measured_string_ref broadcast_addr;
+	measured_string_t *broadcast_addr;
 };
 
 #endif

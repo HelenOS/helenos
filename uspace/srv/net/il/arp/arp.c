@@ -125,7 +125,7 @@ static int arp_clean_cache_req(int arp_phone)
 }
 
 static int arp_clear_address_req(int arp_phone, device_id_t device_id,
-    services_t protocol, measured_string_ref address)
+    services_t protocol, measured_string_t *address)
 {
 	arp_device_t *device;
 	arp_proto_t *proto;
@@ -174,7 +174,7 @@ static int arp_clear_device_req(int arp_phone, device_id_t device_id)
  * @returns		ENOMEM if there is not enough memory left.
  */
 static int arp_proto_create(arp_proto_t **proto, services_t service,
-    measured_string_ref address)
+    measured_string_t *address)
 {
 	int rc;
 
@@ -212,7 +212,7 @@ static int arp_proto_create(arp_proto_t **proto, services_t service,
  *			measured_strings_return() function.
  */
 static int arp_device_message(device_id_t device_id, services_t service,
-    services_t protocol, measured_string_ref address)
+    services_t protocol, measured_string_t *address)
 {
 	arp_device_t *device;
 	arp_proto_t *proto;
@@ -420,7 +420,7 @@ static int arp_receive_message(device_id_t device_id, packet_t packet)
 	arp_header_t *header;
 	arp_device_t *device;
 	arp_proto_t *proto;
-	measured_string_ref hw_source;
+	measured_string_t *hw_source;
 	uint8_t *src_hw;
 	uint8_t *src_proto;
 	uint8_t *des_hw;
@@ -522,13 +522,13 @@ static int arp_receive_message(device_id_t device_id, packet_t packet)
  *			request.
  * @returns		NULL if the hardware address is not found in the cache.
  */
-static measured_string_ref
+static measured_string_t *
 arp_translate_message(device_id_t device_id, services_t protocol,
-    measured_string_ref target)
+    measured_string_t *target)
 {
 	arp_device_t *device;
 	arp_proto_t *proto;
-	measured_string_ref addr;
+	measured_string_t *addr;
 	size_t length;
 	packet_t packet;
 	arp_header_t *header;
@@ -611,8 +611,8 @@ int
 arp_message_standalone(ipc_callid_t callid, ipc_call_t *call,
     ipc_call_t *answer, int *answer_count)
 {
-	measured_string_ref address;
-	measured_string_ref translation;
+	measured_string_t *address;
+	measured_string_t *translation;
 	char *data;
 	packet_t packet;
 	packet_t next;

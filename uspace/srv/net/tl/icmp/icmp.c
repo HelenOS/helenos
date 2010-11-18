@@ -412,7 +412,7 @@ int icmp_initialize(async_client_conn_t client_connection)
 			18
 		}
 	};
-	measured_string_ref configuration;
+	measured_string_t *configuration;
 	size_t count = sizeof(names) / sizeof(measured_string_t);
 	char *data;
 	int rc;

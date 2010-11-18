@@ -69,7 +69,7 @@ int netif_specific_message(ipc_callid_t callid, ipc_call_t *call,
 	return ENOTSUP;
 }
 
-int netif_get_addr_message(device_id_t device_id, measured_string_ref address)
+int netif_get_addr_message(device_id_t device_id, measured_string_t *address)
 {
 	if (!address)
 		return EBADMEM;

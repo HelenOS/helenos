@@ -343,7 +343,7 @@ static int ip_netif_initialize(ip_netif_t *ip_netif)
 			10
 		}
 	};
-	measured_string_ref configuration;
+	measured_string_t *configuration;
 	size_t count = sizeof(names) / sizeof(measured_string_t);
 	char *data;
 	measured_string_t address;
@@ -622,7 +622,7 @@ static void ip_create_last_header(ip_header_t *last, ip_header_t *first)
  */
 static int
 ip_prepare_packet(in_addr_t *source, in_addr_t dest, packet_t packet,
-    measured_string_ref destination)
+    measured_string_t *destination)
 {
 	size_t length;
 	ip_header_t *header;
@@ -996,7 +996,7 @@ ip_send_route(packet_t packet, ip_netif_t *netif, ip_route_t *route,
     in_addr_t *src, in_addr_t dest, services_t error)
 {
 	measured_string_t destination;
-	measured_string_ref translation;
+	measured_string_t *translation;
 	char *data;
 	int phone;
 	int rc;

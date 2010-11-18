@@ -99,7 +99,7 @@ generic_device_req_remote(int phone, int message, device_id_t device_id,
  */
 int
 generic_get_addr_req(int phone, int message, device_id_t device_id,
-    measured_string_ref *address, char ** data)
+    measured_string_t **address, char ** data)
 {
 	aid_t message_id;
 	ipcarg_t result;
@@ -232,8 +232,8 @@ generic_send_msg_remote(int phone, int message, device_id_t device_id,
  */
 int
 generic_translate_req(int phone, int message, device_id_t device_id,
-    services_t service, measured_string_ref configuration, size_t count,
-    measured_string_ref *translation, char **data)
+    services_t service, measured_string_t *configuration, size_t count,
+    measured_string_t **translation, char **data)
 {
 	aid_t message_id;
 	ipcarg_t result;
