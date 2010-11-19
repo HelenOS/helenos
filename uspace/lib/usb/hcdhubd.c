@@ -33,6 +33,7 @@
  * @brief HC driver and hub driver (implementation).
  */
 #include "hcdhubd.h"
+#include <usb_iface.h>
 #include <driver.h>
 #include <bool.h>
 #include <errno.h>
@@ -42,6 +43,15 @@ static LIST_INITIALIZE(hc_list);
 
 /** Our HC driver. */
 static usb_hc_driver_t *hc_driver = NULL;
+
+static usb_iface_t usb_interface = {
+	.interrupt_out = NULL,
+	.interrupt_in = NULL
+};
+
+static device_ops_t usb_device_ops = {
+	.interfaces[USB_DEV_IFACE] = &usb_interface
+};
 
 /** Callback when new device is detected and must be handled by this driver.
  *
@@ -62,6 +72,7 @@ static int add_device(device_t *dev)
 		 */
 		usb_hc_device_t *hc_dev = malloc(sizeof(usb_hc_device_t));
 		list_initialize(&hc_dev->link);
+		hc_dev->transfer_ops = NULL;
 
 		hc_dev->generic = dev;
 		int rc = hc_driver->add_hc(hc_dev);
@@ -70,7 +81,17 @@ static int add_device(device_t *dev)
 			return rc;
 		}
 
-		add_device_to_class(dev, "usbhc");
+		/*
+		 * Finish initialization of dev and hc_dev structures.
+		 */
+		hc_dev->generic->driver_data = hc_dev;
+		dev->ops = &usb_device_ops;
+
+		/*
+		 * FIXME: The following line causes devman to hang.
+		 * Will investigate later why.
+		 */
+		// add_device_to_class(dev, "usbhc");
 
 		list_append(&hc_dev->link, &hc_list);
 
@@ -127,11 +148,11 @@ static void check_hub_changes(void)
 			 * Send the request.
 			 * FIXME: check returned value for possible errors
 			 */
-			usb_hcd_local_transfer_interrupt_in(hc, target,
+			usb_hc_async_interrupt_in(hc, target,
 			    change_bitmap, byte_length, &actual_size,
 			    &handle);
 
-			usb_hcd_local_wait_for(handle);
+			usb_hc_async_wait_for(handle);
 
 			/*
 			 * TODO: handle the changes.
@@ -186,12 +207,25 @@ int usb_hcd_main(usb_hc_driver_t *hc)
  */
 int usb_hcd_add_root_hub(usb_hc_device_t *dev)
 {
+	int rc;
+
+	/*
+	 * For testing/debugging purposes only.
+	 * Try to send some data to default USB address.
+	 */
+	usb_target_t target = {0, 0};
+	usb_handle_t handle = 0;
+	char *data = (char *) "Hello, World!";
+
+
+	(void)usb_hc_async_interrupt_out(dev, target, data, str_length(data), &handle);
+	(void)usb_hc_async_wait_for(handle);
+
 	/*
 	 * Announce presence of child device.
 	 */
 	device_t *hub = NULL;
 	match_id_t *match_id = NULL;
-	int rc;
 
 	hub = create_device();
 	if (hub == NULL) {
@@ -214,7 +248,7 @@ int usb_hcd_add_root_hub(usb_hc_device_t *dev)
 	}
 
 	match_id->id = id;
-	match_id->score = 10;
+	match_id->score = 30;
 
 	add_match_id(&hub->match_ids, match_id);
 
@@ -223,6 +257,7 @@ int usb_hcd_add_root_hub(usb_hc_device_t *dev)
 		goto failure;
 	}
 
+	printf("%s: registered root hub\n", dev->generic->name);
 	return EOK;
 
 failure:
@@ -235,11 +270,53 @@ failure:
 	return rc;
 }
 
+/** Issue interrupt OUT transfer to HC driven by current task.
+ *
+ * @param hc Host controller to handle the transfer.
+ * @param target Target device address.
+ * @param buffer Data buffer.
+ * @param size Buffer size.
+ * @param handle Transfer handle.
+ * @return Error code.
+ */
+int usb_hc_async_interrupt_out(usb_hc_device_t *hc, usb_target_t target,
+    void *buffer, size_t size,
+    usb_handle_t *handle)
+{
+	if ((hc->transfer_ops == NULL)
+	    || (hc->transfer_ops->transfer_out == NULL)) {
+		return ENOTSUP;
+	}
+
+	/*
+	 * For debugging purposes only.
+	 * We need to find appropriate device in list of managed device
+	 * and pass it to the transfer callback function.
+	 */
+	usb_hcd_attached_device_info_t dev = {
+		.address = target.address,
+		.endpoint_count = 0,
+		.endpoints = NULL,
+	};
+	usb_hc_endpoint_info_t endpoint = {
+		.endpoint = target.endpoint,
+		.transfer_type = USB_TRANSFER_INTERRUPT,
+		.direction = USB_DIRECTION_OUT,
+		.data_toggle = 0
+	};
+
+	hc->transfer_ops->transfer_out(hc, &dev, &endpoint, buffer, size, NULL, NULL);
+
+	*handle = NULL;
+
+	return EOK;
+}
+
 
 /** Issue interrupt IN transfer to HC driven by current task.
  *
  * @warning The @p buffer and @p actual_size parameters shall not be
- * touched until this transfer is waited for by usb_hcd_local_wait_for().
+ * touched until this transfer is waited for by usb_hc_async_wait_for().
  *
  * @param hc Host controller to handle the transfer.
  * @param target Target device address.
@@ -249,8 +326,8 @@ failure:
  * @param handle Transfer handle.
  * @return Error code.
  */
-int usb_hcd_local_transfer_interrupt_in(usb_hc_device_t *hc,
-    usb_target_t target, void *buffer, size_t size, size_t *actual_size,
+int usb_hc_async_interrupt_in(usb_hc_device_t *hc, usb_target_t target,
+    void *buffer, size_t size, size_t *actual_size,
     usb_handle_t *handle)
 {
 	/*
@@ -265,7 +342,7 @@ int usb_hcd_local_transfer_interrupt_in(usb_hc_device_t *hc,
  * @param handle Transfer handle.
  * @return Error code.
  */
-int usb_hcd_local_wait_for(usb_handle_t handle)
+int usb_hc_async_wait_for(usb_handle_t handle)
 {
 	return ENOTSUP;
 }

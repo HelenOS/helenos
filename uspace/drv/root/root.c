@@ -71,6 +71,7 @@ static driver_t root_driver = {
  */
 static int add_platform_child(device_t *parent)
 {
+	return EOK;
 	printf(NAME ": adding new child for platform device.\n");
 	
 	int res = EOK;

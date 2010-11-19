@@ -65,8 +65,13 @@ static int vhc_add_device(usb_hc_device_t *dev)
 	vhc_count++;
 
 	dev->transfer_ops = &vhc_transfer_ops;
-	/* Fail because of bug in libusb that caused devman to hang. */
-	return ENOTSUP;
+
+	/*
+	 * Announce that we have some root hub present.
+	 */
+	usb_hcd_add_root_hub(dev);
+
+	return EOK;
 }
 
 static usb_hc_driver_t vhc_driver = {
@@ -76,12 +81,6 @@ static usb_hc_driver_t vhc_driver = {
 
 int main(int argc, char * argv[])
 {	
-	/*
-	 * For debugging purpose to enable viewing the output
-	 * within devman tty.
-	 */
-	sleep(5);
-
 	printf("%s: virtual USB host controller driver.\n", NAME);
 
 	return usb_hcd_main(&vhc_driver);

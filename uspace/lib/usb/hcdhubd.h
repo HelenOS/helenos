@@ -79,15 +79,11 @@ typedef struct usb_hc_device usb_hc_device_t;
 
 /** Callback for OUT transfers. */
 typedef void (*usb_hcd_transfer_callback_out_t)
-    (usb_hc_device_t *, usb_hcd_attached_device_info_t *,
-    usb_hc_endpoint_info_t *,
-    usb_transaction_outcome_t, void *);
+    (usb_hc_device_t *, usb_transaction_outcome_t, void *);
 
 /** Callback for IN transfers. */
 typedef void (*usb_hcd_transfer_callback_in_t)
-    (usb_hc_device_t *, usb_hcd_attached_device_info_t *,
-    usb_hc_endpoint_info_t *,
-    size_t, usb_transaction_outcome_t, void *);
+    (usb_hc_device_t *, size_t, usb_transaction_outcome_t, void *);
 
 
 /** Transfer functions provided by each USB host controller driver. */
@@ -157,19 +153,13 @@ int usb_hcd_add_root_hub(usb_hc_device_t *dev);
  * This will probably include only hub drivers.
  */
 
-int usb_hcd_local_set_endpoint_properties(usb_hc_device_t *, usb_target_t,
-    usb_transfer_type_t, usb_direction_t);
 
-/* First variant - repeat transfer type. */
-int usb_hcd_local_transfer_interrupt_in(usb_hc_device_t *, usb_target_t,
+int usb_hc_async_interrupt_out(usb_hc_device_t *, usb_target_t,
+    void *, size_t, usb_handle_t *);
+int usb_hc_async_interrupt_in(usb_hc_device_t *, usb_target_t,
     void *, size_t, size_t *, usb_handle_t *);
 
-/* Second variant - determine transfer type from endpoint properties. */
-int usb_hcd_local_transfer_in(usb_hc_device_t *, usb_target_t,
-    void *, size_t, size_t *, usb_handle_t *);
-
-
-int usb_hcd_local_wait_for(usb_handle_t);
+int usb_hc_async_wait_for(usb_handle_t);
 
 
 #endif
