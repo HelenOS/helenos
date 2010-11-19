@@ -102,8 +102,8 @@ int netif_get_device_stats(device_id_t device_id, device_stats_t *stats)
  *
  * @param[in] device	The device structure.
  * @param[in] state	The new device state.
- * @returns		The new state if changed.
- * @returns		EOK otherwise.
+ * @return		The new state if changed.
+ * @return		EOK otherwise.
  */
 static int change_state_message(netif_device_t *device, device_state_t state)
 {
@@ -123,9 +123,9 @@ static int change_state_message(netif_device_t *device, device_state_t state)
  *
  * @param[in] device_id	The new devce identifier.
  * @param[out] device	The device structure.
- * @returns		EOK on success.
- * @returns		EXDEV if one loopback network interface already exists.
- * @returns		ENOMEM if there is not enough memory left.
+ * @return		EOK on success.
+ * @return		EXDEV if one loopback network interface already exists.
+ * @return		ENOMEM if there is not enough memory left.
  */
 static int create(device_id_t device_id, netif_device_t **device)
 {

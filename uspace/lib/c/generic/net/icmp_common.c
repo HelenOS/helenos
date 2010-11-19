@@ -49,8 +49,8 @@
  * @param service	The ICMP module service. Ignored parameter.
  * @param[in] timeout	The connection timeout in microseconds. No timeout if
  *			set to zero.
- * @returns		The ICMP module phone on success.
- * @returns		ETIMEOUT if the connection timeouted.
+ * @return		The ICMP module phone on success.
+ * @return		ETIMEOUT if the connection timeouted.
  */
 int icmp_connect_module(services_t service, suseconds_t timeout)
 {

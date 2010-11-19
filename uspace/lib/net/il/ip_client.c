@@ -47,8 +47,8 @@
 /** Returns the IP header length.
  *
  * @param[in] packet	The packet.
- * @returns		The IP header length in bytes.
- * @returns		Zero if there is no IP header.
+ * @return		The IP header length in bytes.
+ * @return		Zero if there is no IP header.
  */
 size_t ip_client_header_length(packet_t packet)
 {
@@ -71,19 +71,19 @@ size_t ip_client_header_length(packet_t packet)
  * @param[in] data_length The data length to be set.
  * @param[out] header	The constructed IPv4 pseudo header.
  * @param[out] headerlen The length of the IP pseudo header in bytes.
- * @returns		EOK on success.
- * @returns		EBADMEM if the header and/or the headerlen parameter is
+ * @return		EOK on success.
+ * @return		EBADMEM if the header and/or the headerlen parameter is
  *			NULL.
- * @returns		EINVAL if the source address and/or the destination
+ * @return		EINVAL if the source address and/or the destination
  *			address parameter is NULL.
- * @returns		EINVAL if the source address length is less than struct
+ * @return		EINVAL if the source address length is less than struct
  *			sockaddr length.
- * @returns		EINVAL if the source address length differs from the
+ * @return		EINVAL if the source address length differs from the
  *			destination address length.
- * @returns		EINVAL if the source address family differs from the
+ * @return		EINVAL if the source address family differs from the
  *			destination family.
- * @returns		EAFNOSUPPORT if the address family is not supported.
- * @returns		ENOMEM if there is not enough memory left.
+ * @return		EAFNOSUPPORT if the address family is not supported.
+ * @return		ENOMEM if there is not enough memory left.
  */
 int
 ip_client_get_pseudo_header(ip_protocol_t protocol, struct sockaddr *src,
@@ -147,8 +147,8 @@ ip_client_get_pseudo_header(ip_protocol_t protocol, struct sockaddr *src,
  * @param[in] dont_fragment The value indicating whether fragmentation is
  *			disabled.
  * @param[in] ipopt_length The prefixed IP options length in bytes.
- * @returns		EOK on success.
- * @returns		ENOMEM if there is not enough memory left in the packet.
+ * @return		EOK on success.
+ * @return		ENOMEM if there is not enough memory left in the packet.
  */
 int
 ip_client_prepare_packet(packet_t packet, ip_protocol_t protocol, ip_ttl_t ttl,
@@ -202,8 +202,8 @@ ip_client_prepare_packet(packet_t packet, ip_protocol_t protocol, ip_ttl_t ttl,
  *			disabled. May be NULL if not desired.
  * @param[out] ipopt_length The IP options length in bytes. May be NULL if not
  *			desired.
- * @returns		The prefixed IP header length in bytes on success.
- * @returns		ENOMEM if the packet is too short to contain the IP
+ * @return		The prefixed IP header length in bytes on success.
+ * @return		ENOMEM if the packet is too short to contain the IP
  *			header.
  */
 int
@@ -237,9 +237,9 @@ ip_client_process_packet(packet_t packet, ip_protocol_t *protocol,
  * @param[in,out] header The IPv4 pseudo header to be updated.
  * @param[in] headerlen	The length of the IP pseudo header in bytes.
  * @param[in] data_length The data length to be set.
- * @returns		EOK on success.
- * @returns		EBADMEM if the header parameter is NULL.
- * @returns		EINVAL if the headerlen parameter is not IPv4 pseudo
+ * @return		EOK on success.
+ * @return		EBADMEM if the header parameter is NULL.
+ * @return		EINVAL if the headerlen parameter is not IPv4 pseudo
  *			header length.
  */
 int

@@ -55,8 +55,8 @@
 /** Checks if the queue is valid.
  *
  * @param[in] fifo	The dynamic queue.
- * @returns		TRUE if the queue is valid.
- * @returns		FALSE otherwise.
+ * @return		TRUE if the queue is valid.
+ * @return		FALSE otherwise.
  */
 static int dyn_fifo_is_valid(dyn_fifo_t *fifo)
 {
@@ -67,10 +67,10 @@ static int dyn_fifo_is_valid(dyn_fifo_t *fifo)
  *
  * @param[in,out] fifo	The dynamic queue.
  * @param[in] size	The initial queue size.
- * @returns		EOK on success.
- * @returns		EINVAL if the queue is not valid.
- * @returns		EBADMEM if the fifo parameter is NULL.
- * @returns		ENOMEM if there is not enough memory left.
+ * @return		EOK on success.
+ * @return		EINVAL if the queue is not valid.
+ * @return		EBADMEM if the fifo parameter is NULL.
+ * @return		ENOMEM if there is not enough memory left.
  */
 int dyn_fifo_initialize(dyn_fifo_t *fifo, int size)
 {
@@ -99,9 +99,9 @@ int dyn_fifo_initialize(dyn_fifo_t *fifo, int size)
  * @param[in] max_size	The maximum queue size. The queue is not resized beyound
  *			this limit. May be zero or negative to indicate no
  *			limit.
- * @returns		EOK on success.
- * @returns		EINVAL if the queue is not valid.
- * @returns		ENOMEM if there is not enough memory left.
+ * @return		EOK on success.
+ * @return		EINVAL if the queue is not valid.
+ * @return		ENOMEM if there is not enough memory left.
  */
 int dyn_fifo_push(dyn_fifo_t *fifo, int value, int max_size)
 {
@@ -149,9 +149,9 @@ int dyn_fifo_push(dyn_fifo_t *fifo, int value, int max_size)
 /** Returns and excludes the first item in the queue.
  *
  * @param[in,out] fifo	The dynamic queue.
- * @returns		Value of the first item in the queue.
- * @returns		EINVAL if the queue is not valid.
- * @returns		ENOENT if the queue is empty.
+ * @return		Value of the first item in the queue.
+ * @return		EINVAL if the queue is not valid.
+ * @return		ENOENT if the queue is empty.
  */
 int dyn_fifo_pop(dyn_fifo_t *fifo)
 {
@@ -171,9 +171,9 @@ int dyn_fifo_pop(dyn_fifo_t *fifo)
 /** Returns and keeps the first item in the queue.
  *
  * @param[in,out] fifo	The dynamic queue.
- * @returnsi		Value of the first item in the queue.
- * @returns		EINVAL if the queue is not valid.
- * @returns		ENOENT if the queue is empty.
+ * @return		Value of the first item in the queue.
+ * @return		EINVAL if the queue is not valid.
+ * @return		ENOENT if the queue is empty.
  */
 int dyn_fifo_value(dyn_fifo_t *fifo)
 {
@@ -189,8 +189,8 @@ int dyn_fifo_value(dyn_fifo_t *fifo)
 /** Clears and destroys the queue.
  *
  * @param[in,out] fifo	The dynamic queue.
- * @returns		EOK on success.
- * @returns		EINVAL if the queue is not valid.
+ * @return		EOK on success.
+ * @return		EINVAL if the queue is not valid.
  */
 int dyn_fifo_destroy(dyn_fifo_t *fifo)
 {

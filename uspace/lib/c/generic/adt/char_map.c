@@ -59,9 +59,9 @@
  *			the terminating zero ('\0') character is found.
  * @param[in] value	The integral value to be stored for the key character
  *			string.
- * @returns		EOK on success.
- * @returns		ENOMEM if there is not enough memory left.
- * @returns		EEXIST if the key character string is already used.
+ * @return		EOK on success.
+ * @return		ENOMEM if there is not enough memory left.
+ * @return		EEXIST if the key character string is already used.
  */
 static int
 char_map_add_item(char_map_t *map, const char *identifier, size_t length,
@@ -106,8 +106,8 @@ char_map_add_item(char_map_t *map, const char *identifier, size_t length,
 /** Checks if the map is valid.
  *
  * @param[in] map	The character string to integer map.
- * @returns		TRUE if the map is valid.
- * @returns		FALSE otherwise.
+ * @return		TRUE if the map is valid.
+ * @return		FALSE otherwise.
  */
 static int char_map_is_valid(const char_map_t *map)
 {
@@ -126,15 +126,15 @@ static int char_map_is_valid(const char_map_t *map)
  *			the terminating zero ('\\0') character is found.
  * @param[in] value	The integral value to be stored for the key character
  *			string.
- * @returns		EOK on success.
- * @returns		EINVAL if the map is not valid.
- * @returns		EINVAL if the identifier parameter is NULL.
- * @returns		EINVAL if the length parameter zero (0) and the
+ * @return		EOK on success.
+ * @return		EINVAL if the map is not valid.
+ * @return		EINVAL if the identifier parameter is NULL.
+ * @return		EINVAL if the length parameter zero (0) and the
  *			identifier parameter is an empty character string (the
  *			first character is the terminating zero ('\0')
  *			character.
- * @returns		EEXIST if the key character string is already used.
- * @returns		Other error codes as defined for the
+ * @return		EEXIST if the key character string is already used.
+ * @return		Other error codes as defined for the
  *			char_map_add_item() function.
  */
 int
@@ -195,9 +195,9 @@ void char_map_destroy(char_map_t *map)
  * @param[in] length	The key character string length. The parameter may be
  *			zero (0) which means that the string is processed until
  *			the terminating zero ('\0') character is found.
- * @returns		The node holding the integral value assigned to the key
+ * @return		The node holding the integral value assigned to the key
  *			character string.
- * @returns		NULL if the key is not assigned a node.
+ * @return		NULL if the key is not assigned a node.
  */
 static char_map_t *
 char_map_find_node(const char_map_t *map, const char *identifier,
@@ -238,8 +238,8 @@ char_map_find_node(const char_map_t *map, const char *identifier,
  * @param[in] length	The key character string length. The parameter may be
  *			zero (0) which means that the string is processed until
  *			the terminating zero ('\0') character is found.
- * @returns		The integral value assigned to the key character string.
- * @returns		CHAR_MAP_NULL if the key is not assigned a value.
+ * @return		The integral value assigned to the key character string.
+ * @return		CHAR_MAP_NULL if the key is not assigned a value.
  */
 int char_map_exclude(char_map_t *map, const char *identifier, size_t length)
 {
@@ -266,8 +266,8 @@ int char_map_exclude(char_map_t *map, const char *identifier, size_t length)
  *  @param[in] length	The key character string length. The parameter may be
  *			zero (0) which means that the string is processed until
  *			the terminating zero ('\0') character is found.
- *  @returns		The integral value assigned to the key character string.
- *  @returns		CHAR_MAP_NULL if the key is not assigned a value.
+ *  @return		The integral value assigned to the key character string.
+ *  @return		CHAR_MAP_NULL if the key is not assigned a value.
  */
 int char_map_find(const char_map_t *map, const char *identifier, size_t length)
 {
@@ -280,9 +280,9 @@ int char_map_find(const char_map_t *map, const char *identifier, size_t length)
 /** Initializes the map.
  *
  *  @param[in,out] map	The character string to integer map.
- *  @returns		EOK on success.
- *  @returns		EINVAL if the map parameter is NULL.
- *  @returns		ENOMEM if there is not enough memory left.
+ *  @return		EOK on success.
+ *  @return		EINVAL if the map parameter is NULL.
+ *  @return		ENOMEM if there is not enough memory left.
  */
 int char_map_initialize(char_map_t *map)
 {
@@ -318,14 +318,14 @@ int char_map_initialize(char_map_t *map)
  *			the terminating zero ('\0') character is found.
  *  @param[in] value	The integral value to be stored for the key character
  *			string.
- *  @returns		EOK on success.
- *  @returns		EINVAL if the map is not valid.
- *  @returns		EINVAL if the identifier parameter is NULL.
- *  @returns		EINVAL if the length parameter zero (0) and the
+ *  @return		EOK on success.
+ *  @return		EINVAL if the map is not valid.
+ *  @return		EINVAL if the identifier parameter is NULL.
+ *  @return		EINVAL if the length parameter zero (0) and the
  *			identifier parameter is an empty character string (the
  *			first character is the terminating zero ('\0) character.
- *  @returns		EEXIST if the key character string is already used.
- *  @returns		Other error codes as defined for the char_map_add_item()
+ *  @return		EEXIST if the key character string is already used.
+ *  @return		Other error codes as defined for the char_map_add_item()
  *			function.
  */
 int

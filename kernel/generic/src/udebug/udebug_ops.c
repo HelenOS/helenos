@@ -427,7 +427,7 @@ int udebug_thread_read(void **buffer, size_t buf_size, size_t *stored,
  * @param data      Place to store pointer to newly allocated block.
  * @param data_size Place to store size of the data.
  *
- * @returns EOK.
+ * @return EOK.
  *
  */
 int udebug_name_read(char **data, size_t *data_size)

@@ -63,10 +63,10 @@ DEVICE_MAP_IMPLEMENT(packet_dimensions, packet_dimension_t);
  * @param[in,out] addr	The address to be updated.
  * @param[in] addrlen	The address length.
  * @param[out] port	The set port.
- * @returns		EOK on success.
- * @returns		EINVAL if the address length does not match the address
+ * @return		EOK on success.
+ * @return		EINVAL if the address length does not match the address
  *			family.
- * @returns		EAFNOSUPPORT if the address family is not supported.
+ * @return		EAFNOSUPPORT if the address family is not supported.
  */
 int
 tl_get_address_port(const struct sockaddr *addr, int addrlen, uint16_t *port)
@@ -157,7 +157,7 @@ tl_get_ip_packet_dimension(int ip_phone,
  * @param[in,out] packet_dimensions The packet dimensions cache.
  * @param[in] device_id	The device identifier.
  * @param[in] content	The new maximum content size.
- * @returns		EOK on success.
+ * @return		EOK on success.
  * @return		ENOENT if the packet dimension is not cached.
  */
 int
@@ -195,10 +195,10 @@ tl_update_ip_packet_dimension(packet_dimensions_t *packet_dimensions,
  * @param[in,out] addr	The address to be updated.
  * @param[in] addrlen	The address length.
  * @param[in] port	The port to be set.
- * @returns		EOK on success.
- * @returns		EINVAL if the address length does not match the address
+ * @return		EOK on success.
+ * @return		EINVAL if the address length does not match the address
  *			family.
- * @returns		EAFNOSUPPORT if the address family is not supported.
+ * @return		EAFNOSUPPORT if the address family is not supported.
  */
 int tl_set_address_port(struct sockaddr * addr, int addrlen, uint16_t port)
 {
@@ -243,8 +243,8 @@ int tl_set_address_port(struct sockaddr * addr, int addrlen, uint16_t port)
  * @param[in] packet	The packet to be send.
  * @param[in] error	The packet error reporting service. Prefixes the
  *			received packet.
- * @returns		EOK on success.
- * @returns		ENOENT if no packet may be sent.
+ * @return		EOK on success.
+ * @return		ENOENT if no packet may be sent.
  */
 int
 tl_prepare_icmp_packet(int packet_phone, int icmp_phone, packet_t packet,
@@ -279,10 +279,10 @@ tl_prepare_icmp_packet(int packet_phone, int icmp_phone, packet_t packet,
  * @param[in] dimension	The packet dimension.
  * @param[in] addr	The destination address.
  * @param[in] addrlen	The address length.
- * @returns		Number of bytes received.
- * @returns		EINVAL if the client does not send data.
- * @returns		ENOMEM if there is not enough memory left.
- * @returns		Other error codes as defined for the
+ * @return		Number of bytes received.
+ * @return		EINVAL if the client does not send data.
+ * @return		ENOMEM if there is not enough memory left.
+ * @return		Other error codes as defined for the
  *			async_data_read_finalize() function.
  */
 int

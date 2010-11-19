@@ -223,8 +223,8 @@ tcp_globals_t tcp_globals;
  *
  * @param[in] client_connection The client connection processing function. The
  *			module skeleton propagates its own one.
- * @returns		EOK on success.
- * @returns		ENOMEM if there is not enough memory left.
+ * @return		EOK on success.
+ * @return		ENOMEM if there is not enough memory left.
  */
 int tcp_initialize(async_client_conn_t client_connection)
 {
@@ -1221,8 +1221,8 @@ void tcp_process_acknowledgement(socket_core_t *socket,
  * @param[out] answer	The message answer parameters.
  * @param[out] answer_count The last parameter for the actual answer in the
  *			answer parameter.
- * @returns		EOK on success.
- * @returns		ENOTSUP if the message is not known.
+ * @return		EOK on success.
+ * @return		ENOTSUP if the message is not known.
  *
  * @see tcp_interface.h
  * @see IS_NET_TCP_MESSAGE()
@@ -2493,8 +2493,8 @@ static void tl_client_connection(ipc_callid_t iid, ipc_call_t * icall)
 
 /** Starts the module.
  *
- * @returns		EOK on success.
- * @returns		Other error codes as defined for each specific module
+ * @return		EOK on success.
+ * @return		Other error codes as defined for each specific module
  *			start function.
  */
 int

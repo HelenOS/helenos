@@ -52,9 +52,9 @@
  * @param[in] packet	The packet to be filled.
  * @param[in] data	The data to be copied.
  * @param[in] length	The length of the copied data.
- * @returns		EOK on success.
- * @returns		EINVAL if the packet is not valid.
- * @returns		ENOMEM if there is not enough memory left.
+ * @return		EOK on success.
+ * @return		EINVAL if the packet is not valid.
+ * @return		ENOMEM if there is not enough memory left.
  */
 int packet_copy_data(packet_t packet, const void *data, size_t length)
 {
@@ -77,8 +77,8 @@ int packet_copy_data(packet_t packet, const void *data, size_t length)
  * @param[in] packet	The packet to be used.
  * @param[in] length	The space length to be allocated at the beginning of the
  *			packet content.
- * @returns		The pointer to the allocated memory.
- * @returns		NULL if there is not enough memory left.
+ * @return		The pointer to the allocated memory.
+ * @return		NULL if there is not enough memory left.
  */
 void *packet_prefix(packet_t packet, size_t length)
 {
@@ -98,8 +98,8 @@ void *packet_prefix(packet_t packet, size_t length)
  * @param[in] packet	The packet to be used.
  * @param[in] length	The space length to be allocated at the end of the
  *			 packet content.
- * @returns		The pointer to the allocated memory.
- * @returns		NULL if there is not enough memory left.
+ * @return		The pointer to the allocated memory.
+ * @return		NULL if there is not enough memory left.
  */
 void *packet_suffix(packet_t packet, size_t length)
 {
@@ -119,9 +119,9 @@ void *packet_suffix(packet_t packet, size_t length)
  *			the packet content.
  * @param[in] suffix	The suffix length to be removed from the end of the
  *			packet content.
- * @returns		EOK on success.
- * @returns		EINVAL if the packet is not valid.
- * @returns		ENOMEM if there is not enough memory left.
+ * @return		EOK on success.
+ * @return		EINVAL if the packet is not valid.
+ * @return		ENOMEM if there is not enough memory left.
  */
 int packet_trim(packet_t packet, size_t prefix, size_t suffix)
 {
@@ -139,8 +139,8 @@ int packet_trim(packet_t packet, size_t prefix, size_t suffix)
 /** Returns the packet identifier.
  *
  * @param[in] packet	The packet.
- * @returns		The packet identifier.
- * @returns		Zero if the packet is not valid.
+ * @return		The packet identifier.
+ * @return		Zero if the packet is not valid.
  */
 packet_id_t packet_get_id(const packet_t packet)
 {
@@ -152,9 +152,9 @@ packet_id_t packet_get_id(const packet_t packet)
  * @param[in] packet	The packet.
  * @param[out] src	The source address. May be NULL if not desired.
  * @param[out] dest	The destination address. May be NULL if not desired.
- * @returns		The stored addresses length.
- * @returns		Zero if the addresses are not present.
- * @returns		EINVAL if the packet is not valid.
+ * @return		The stored addresses length.
+ * @return		Zero if the addresses are not present.
+ * @return		EINVAL if the packet is not valid.
  */
 int packet_get_addr(const packet_t packet, uint8_t **src, uint8_t **dest)
 {
@@ -173,8 +173,8 @@ int packet_get_addr(const packet_t packet, uint8_t **src, uint8_t **dest)
 /** Returns the packet content length.
  *
  * @param[in] packet	The packet.
- * @returns		The packet content length in bytes.
- * @returns		Zero if the packet is not valid.
+ * @return		The packet content length in bytes.
+ * @return		Zero if the packet is not valid.
  */
 size_t packet_get_data_length(const packet_t packet)
 {
@@ -187,8 +187,8 @@ size_t packet_get_data_length(const packet_t packet)
 /** Returns the pointer to the beginning of the packet content.
  *
  * @param[in] packet	The packet.
- * @returns		The pointer to the beginning of the packet content.
- * @returns		NULL if the packet is not valid.
+ * @return		The pointer to the beginning of the packet content.
+ * @return		NULL if the packet is not valid.
  */
 void *packet_get_data(const packet_t packet)
 {
@@ -204,9 +204,9 @@ void *packet_get_data(const packet_t packet)
  * @param[in] src	The new source address. May be NULL.
  * @param[in] dest	The new destination address. May be NULL.
  * @param[in] addr_len	The addresses length.
- * @returns		EOK on success.
- * @returns		EINVAL if the packet is not valid.
- * @returns		ENOMEM if there is not enough memory left.
+ * @return		EOK on success.
+ * @return		EINVAL if the packet is not valid.
+ * @return		ENOMEM if there is not enough memory left.
  */
 int
 packet_set_addr(packet_t packet, const uint8_t *src, const uint8_t *dest,
@@ -253,8 +253,8 @@ packet_set_addr(packet_t packet, const uint8_t *src, const uint8_t *dest,
  *
  * @param[in] phone	The packet server module phone.
  * @param[in] packet	The original packet.
- * @returns		The packet copy.
- * @returns		NULL on error.
+ * @return		The packet copy.
+ * @return		NULL on error.
  */
 packet_t packet_get_copy(int phone, packet_t packet)
 {

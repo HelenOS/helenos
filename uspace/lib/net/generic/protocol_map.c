@@ -41,9 +41,9 @@
  *
  * @param[in] nil	Network interface layer service.
  * @param[in] il	Internetwork layer service.
- * @returns		Network interface layer type of the internetworking
+ * @return		Network interface layer type of the internetworking
  *			layer service.
- * @returns		Zero if mapping is not found.
+ * @return		Zero if mapping is not found.
  */
 eth_type_t protocol_map(services_t nil, services_t il)
 {
@@ -67,9 +67,9 @@ eth_type_t protocol_map(services_t nil, services_t il)
  *
  * @param[in] nil	Network interface layer service.
  * @param[in] protocol	Network interface layer type.
- * @returns		Internetwork layer service of the network interface
+ * @return		Internetwork layer service of the network interface
  *			layer type.
- * @returns		Zero if mapping is not found.
+ * @return		Zero if mapping is not found.
  */
 services_t protocol_unmap(services_t nil, int protocol)
 {
@@ -93,9 +93,9 @@ services_t protocol_unmap(services_t nil, int protocol)
  * identifier.
  *
  * @param[in] lsap	Link service access point identifier.
- * @returns		Ethernet protocol identifier of the link service access
+ * @return		Ethernet protocol identifier of the link service access
  *			point identifier.
- * @returns		ETH_LSAP_NULL if mapping is not found.
+ * @return		ETH_LSAP_NULL if mapping is not found.
  */
 eth_type_t lsap_map(eth_lsap_t lsap)
 {
@@ -113,8 +113,8 @@ eth_type_t lsap_map(eth_lsap_t lsap)
  * identifier.
  *
  * @param[in] ethertype	Ethernet protocol identifier.
- * @returns		Link service access point identifier.
- * @returns		Zero if mapping is not found.
+ * @return		Link service access point identifier.
+ * @return		Zero if mapping is not found.
  */
 eth_lsap_t lsap_unmap(eth_type_t ethertype)
 {
@@ -131,8 +131,8 @@ eth_lsap_t lsap_unmap(eth_type_t ethertype)
 /** Maps the network interface layer services to the hardware types.
  *
  * @param[in] nil	The network interface service.
- * @returns		The hardware type of the network interface service.
- * @returns		Zero if mapping is not found.
+ * @return		The hardware type of the network interface service.
+ * @return		Zero if mapping is not found.
  */
 hw_type_t hardware_map(services_t nil)
 {

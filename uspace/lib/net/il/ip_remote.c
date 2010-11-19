@@ -77,9 +77,9 @@ int ip_add_route_req_remote(int ip_phone, device_id_t device_id,
  * @param[in] protocol	The transport layer protocol.
  * @param[in] me	The requesting module service.
  * @param[in] receiver	The message receiver. Used for remote connection.
- * @returns		The phone of the needed service.
- * @returns		EOK on success.
- * @returns		Other error codes as defined for the bind_service()
+ * @return		The phone of the needed service.
+ * @return		EOK on success.
+ * @return		Other error codes as defined for the bind_service()
  *			function.
  */
 int ip_bind_service(services_t service, int protocol, services_t me,
@@ -92,7 +92,7 @@ int ip_bind_service(services_t service, int protocol, services_t me,
 /** Connects to the IP module.
  *
  * @param service	The IP module service. Ignored parameter.
- * @returns		The IP module phone on success.
+ * @return		The IP module phone on success.
  */
 int ip_connect_module(services_t service)
 {

@@ -51,7 +51,7 @@
 /** Connects to the ARP module.
  *
  * @param service	The ARP module service. Ignored parameter.
- * @returns		The ARP module phone on success.
+ * @return		The ARP module phone on success.
  */
 int arp_connect_module(services_t service)
 {
@@ -64,7 +64,7 @@ int arp_connect_module(services_t service)
 /** Cleans the cache.
  *
  * @param[in] arp_phone	The ARP module phone used for (semi)remote calls.
- * @returns		EOK on success.
+ * @return		EOK on success.
  */
 int arp_clean_cache_req(int arp_phone)
 {
@@ -77,8 +77,8 @@ int arp_clean_cache_req(int arp_phone)
  * @param[in] device_id	The device identifier.
  * @param[in] protocol	The requesting protocol service.
  * @param[in] address	The protocol address to be cleared.
- * @returns		EOK on success.
- * @returns		ENOENT if the mapping is not found.
+ * @return		EOK on success.
+ * @return		ENOENT if the mapping is not found.
  */
 int
 arp_clear_address_req(int arp_phone, device_id_t device_id, services_t protocol,
@@ -99,8 +99,8 @@ arp_clear_address_req(int arp_phone, device_id_t device_id, services_t protocol,
  *
  * @param[in] arp_phone	The ARP module phone used for (semi)remote calls.
  * @param[in] device_id	The device identifier.
- * @returns		EOK on success.
- * @returns		ENOENT if the device is not found.
+ * @return		EOK on success.
+ * @return		ENOENT if the device is not found.
  */
 int arp_clear_device_req(int arp_phone, device_id_t device_id)
 {
@@ -118,17 +118,17 @@ int arp_clear_device_req(int arp_phone, device_id_t device_id)
  * @param[in] protocol	The requesting protocol service.
  * @param[in] netif	The underlying device network interface layer service.
  * @param[in] address	The local requesting protocol address of the device.
- * @returns		EOK on success.
- * @returns		EEXIST if the device is already used.
- * @returns		ENOMEM if there is not enough memory left.
- * @returns		ENOENT if the network interface service is not known.
- * @returns		EREFUSED if the network interface service is not
+ * @return		EOK on success.
+ * @return		EEXIST if the device is already used.
+ * @return		ENOMEM if there is not enough memory left.
+ * @return		ENOENT if the network interface service is not known.
+ * @return		EREFUSED if the network interface service is not
  *			responding.
- * @returns		Other error codes as defined for the
+ * @return		Other error codes as defined for the
  *			nil_packet_get_size() function.
- * @returns		Other error codes as defined for the nil_get_addr()
+ * @return		Other error codes as defined for the nil_get_addr()
  *			function.
- * @returns		Other error codes as defined for the
+ * @return		Other error codes as defined for the
  *			nil_get_broadcast_addr() function.
  */
 int arp_device_req(int arp_phone, device_id_t device_id, services_t protocol,
@@ -156,11 +156,11 @@ int arp_device_req(int arp_phone, device_id_t device_id, services_t protocol,
  * @param[in] address	The local requesting protocol address.
  * @param[out] translation The translation of the local protocol address.
  * @param[out] data	The allocated raw translation data container.
- * @returns		EOK on success.
- * @returns		EINVAL if the address parameter is NULL.
- * @returns		EBADMEM if the translation or the data parameters are
+ * @return		EOK on success.
+ * @return		EINVAL if the address parameter is NULL.
+ * @return		EBADMEM if the translation or the data parameters are
  *			NULL.
- * @returns		ENOENT if the mapping is not found.
+ * @return		ENOENT if the mapping is not found.
  */
 int
 arp_translate_req(int arp_phone, device_id_t device_id, services_t protocol,

@@ -67,7 +67,7 @@
  * @param[in] receiver	The receiving module service.
  * @param[in] error	The packet error reporting service. Prefixes the
  *			received packet.
- * @returns		EOK on success.
+ * @return		EOK on success.
  */
 typedef int (*tl_received_msg_t)(device_id_t device_id, packet_t packet,
     services_t receiver, services_t error);

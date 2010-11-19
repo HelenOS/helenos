@@ -48,7 +48,7 @@
 
 /** Connects to the networking module.
  *
- * @returns		The networking module phone on success.
+ * @return		The networking module phone on success.
  */
 int net_connect_module(void)
 {
@@ -82,10 +82,10 @@ void net_free_settings(measured_string_t *settings, char *data)
  *
  * @param[in] count	The configuration entries count.
  * @param[in,out] data	The configuration and settings data.
- * @returns		EOK on success.
- * @returns		EINVAL if the configuration is NULL.
- * @returns		EINVAL if the count is zero.
- * @returns		Other error codes as defined for the
+ * @return		EOK on success.
+ * @return		EINVAL if the configuration is NULL.
+ * @return		EINVAL if the count is zero.
+ * @return		Other error codes as defined for the
  *			generic_translate_req() function.
  */
 int
@@ -109,10 +109,10 @@ net_get_conf_req(int net_phone, measured_string_t **configuration,
  *			are read and the appropriate settings are set instead.
  * @param[in] count	The configuration entries count.
  * @param[in,out] data	The configuration and settings data.
- * @returns		EOK on success.
- * @returns		EINVAL if the configuration is NULL.
- * @returns		EINVAL if the count is zero.
- * @returns		Other error codes as defined for the
+ * @return		EOK on success.
+ * @return		EINVAL if the configuration is NULL.
+ * @return		EINVAL if the count is zero.
+ * @return		Other error codes as defined for the
  *			generic_translate_req() function.
  */
 int

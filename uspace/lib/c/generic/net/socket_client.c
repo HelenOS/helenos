@@ -177,7 +177,7 @@ INT_MAP_IMPLEMENT(sockets, socket_t);
 
 /** Returns the active sockets.
  *
- *  @returns		The active sockets.
+ *  @return		The active sockets.
  */
 static sockets_t *socket_get_sockets(void)
 {
@@ -285,8 +285,8 @@ loop:
  *
  * Connects to the TCP module if necessary.
  *
- * @returns		The TCP module phone.
- * @returns		Other error codes as defined for the
+ * @return		The TCP module phone.
+ * @return		Other error codes as defined for the
  *			bind_service_timeout() function.
  */
 static int socket_get_tcp_phone(void)
@@ -304,8 +304,8 @@ static int socket_get_tcp_phone(void)
  *
  * Connects to the UDP module if necessary.
  *
- * @returns		The UDP module phone.
- * @returns		Other error codes as defined for the
+ * @return		The UDP module phone.
+ * @return		Other error codes as defined for the
  *			bind_service_timeout() function.
  */
 static int socket_get_udp_phone(void)
@@ -321,8 +321,8 @@ static int socket_get_udp_phone(void)
 
 /** Tries to find a new free socket identifier.
  *
- * @returns		The new socket identifier.
- * @returns		ELIMIT if there is no socket identifier available.
+ * @return		The new socket identifier.
+ * @return		ELIMIT if there is no socket identifier available.
  */
 static int socket_generate_new_id(void)
 {
@@ -386,15 +386,15 @@ socket_initialize(socket_t *socket, int socket_id, int phone,
  * @param[in] domain	The socket protocol family.
  * @param[in] type	Socket type.
  * @param[in] protocol	Socket protocol.
- * @returns		The socket identifier on success.
- * @returns		EPFNOTSUPPORT if the protocol family is not supported.
- * @returns		ESOCKNOTSUPPORT if the socket type is not supported.
- * @returns		EPROTONOSUPPORT if the protocol is not supported.
- * @returns		ENOMEM if there is not enough memory left.
- * @returns		ELIMIT if there was not a free socket identifier found
+ * @return		The socket identifier on success.
+ * @return		EPFNOTSUPPORT if the protocol family is not supported.
+ * @return		ESOCKNOTSUPPORT if the socket type is not supported.
+ * @return		EPROTONOSUPPORT if the protocol is not supported.
+ * @return		ENOMEM if there is not enough memory left.
+ * @return		ELIMIT if there was not a free socket identifier found
  *			this time.
- * @returns		Other error codes as defined for the NET_SOCKET message.
- * @returns		Other error codes as defined for the
+ * @return		Other error codes as defined for the NET_SOCKET message.
+ * @return		Other error codes as defined for the
  *			bind_service_timeout() function.
  */
 int socket(int domain, int type, int protocol)
@@ -508,11 +508,11 @@ int socket(int domain, int type, int protocol)
  * @param[in] arg2	The second message parameter.
  * @param[in] data	The data to be sent.
  * @param[in] datalength The data length.
- * @returns		EOK on success.
- * @returns		ENOTSOCK if the socket is not found.
- * @returns		EBADMEM if the data parameter is NULL.
- * @returns		NO_DATA if the datalength parameter is zero (0).
- * @returns		Other error codes as defined for the spcific message.
+ * @return		EOK on success.
+ * @return		ENOTSOCK if the socket is not found.
+ * @return		EBADMEM if the data parameter is NULL.
+ * @return		NO_DATA if the datalength parameter is zero (0).
+ * @return		Other error codes as defined for the spcific message.
  */
 static int
 socket_send_data(int socket_id, ipcarg_t message, ipcarg_t arg2,
@@ -553,11 +553,11 @@ socket_send_data(int socket_id, ipcarg_t message, ipcarg_t arg2,
  * @param[in] socket_id	Socket identifier.
  * @param[in] my_addr	The port address.
  * @param[in] addrlen	The address length.
- * @returns		EOK on success.
- * @returns		ENOTSOCK if the socket is not found.
- * @returns		EBADMEM if the my_addr parameter is NULL.
- * @returns		NO_DATA if the addlen parameter is zero.
- * @returns		Other error codes as defined for the NET_SOCKET_BIND
+ * @return		EOK on success.
+ * @return		ENOTSOCK if the socket is not found.
+ * @return		EBADMEM if the my_addr parameter is NULL.
+ * @return		NO_DATA if the addlen parameter is zero.
+ * @return		Other error codes as defined for the NET_SOCKET_BIND
  *			message.
  */
 int bind(int socket_id, const struct sockaddr * my_addr, socklen_t addrlen)
@@ -574,10 +574,10 @@ int bind(int socket_id, const struct sockaddr * my_addr, socklen_t addrlen)
  *
  * @param[in] socket_id	Socket identifier.
  * @param[in] backlog	The maximum number of waiting sockets to be accepted.
- * @returns		EOK on success.
- * @returns		EINVAL if the backlog parameter is not positive (<=0).
- * @returns		ENOTSOCK if the socket is not found.
- * @returns		Other error codes as defined for the NET_SOCKET_LISTEN
+ * @return		EOK on success.
+ * @return		EINVAL if the backlog parameter is not positive (<=0).
+ * @return		ENOTSOCK if the socket is not found.
+ * @return		Other error codes as defined for the NET_SOCKET_LISTEN
  *			message.
  */
 int listen(int socket_id, int backlog)
@@ -612,11 +612,11 @@ int listen(int socket_id, int backlog)
  * @param[in] socket_id	Socket identifier.
  * @param[out] cliaddr	The remote client address.
  * @param[in] addrlen	The address length.
- * @returns		EOK on success.
- * @returns		EBADMEM if the cliaddr or addrlen parameter is NULL.
- * @returns		EINVAL if the backlog parameter is not positive (<=0).
- * @returns		ENOTSOCK if the socket is not found.
- * @returns		Other error codes as defined for the NET_SOCKET_ACCEPT
+ * @return		EOK on success.
+ * @return		EBADMEM if the cliaddr or addrlen parameter is NULL.
+ * @return		EINVAL if the backlog parameter is not positive (<=0).
+ * @return		ENOTSOCK if the socket is not found.
+ * @return		Other error codes as defined for the NET_SOCKET_ACCEPT
  *			message.
  */
 int accept(int socket_id, struct sockaddr * cliaddr, socklen_t * addrlen)
@@ -715,11 +715,11 @@ int accept(int socket_id, struct sockaddr * cliaddr, socklen_t * addrlen)
  * @param[in] socket_id	Socket identifier.
  * @param[in] serv_addr	The remote server address.
  * @param[in] addrlen	The address length.
- * @returns		EOK on success.
- * @returns		EBADMEM if the serv_addr parameter is NULL.
- * @returns		NO_DATA if the addlen parameter is zero.
- * @returns		ENOTSOCK if the socket is not found.
- * @returns		Other error codes as defined for the NET_SOCKET_CONNECT
+ * @return		EOK on success.
+ * @return		EBADMEM if the serv_addr parameter is NULL.
+ * @return		NO_DATA if the addlen parameter is zero.
+ * @return		ENOTSOCK if the socket is not found.
+ * @return		Other error codes as defined for the NET_SOCKET_CONNECT
  *			message.
  */
 int connect(int socket_id, const struct sockaddr *serv_addr, socklen_t addrlen)
@@ -755,11 +755,11 @@ static void socket_destroy(socket_t *socket)
 /** Closes the socket.
  *
  * @param[in] socket_id	Socket identifier.
- * @returns		EOK on success.
- * @returns		ENOTSOCK if the socket is not found.
- * @returns		EINPROGRESS if there is another blocking function in
+ * @return		EOK on success.
+ * @return		ENOTSOCK if the socket is not found.
+ * @return		EINPROGRESS if there is another blocking function in
  *			progress.
- * @returns		Other error codes as defined for the NET_SOCKET_CLOSE
+ * @return		Other error codes as defined for the NET_SOCKET_CLOSE
  *			message.
  */
 int closesocket(int socket_id)
@@ -805,12 +805,12 @@ int closesocket(int socket_id)
  * @param[in] toaddr	The destination address. May be NULL for connected
  *			sockets.
  * @param[in] addrlen	The address length. Used only if toaddr is not NULL.
- * @returns		EOK on success.
- * @returns		ENOTSOCK if the socket is not found.
- * @returns		EBADMEM if the data or toaddr parameter is NULL.
- * @returns		NO_DATA if the datalength or the addrlen parameter is
+ * @return		EOK on success.
+ * @return		ENOTSOCK if the socket is not found.
+ * @return		EBADMEM if the data or toaddr parameter is NULL.
+ * @return		NO_DATA if the datalength or the addrlen parameter is
  *			zero (0).
- * @returns		Other error codes as defined for the NET_SOCKET_SENDTO
+ * @return		Other error codes as defined for the NET_SOCKET_SENDTO
  *			message.
  */
 static int
@@ -907,11 +907,11 @@ sendto_core(ipcarg_t message, int socket_id, const void *data,
  * @param[in] data	The data to be sent.
  * @param[in] datalength The data length.
  * @param[in] flags	Various send flags.
- * @returns		EOK on success.
- * @returns		ENOTSOCK if the socket is not found.
- * @returns		EBADMEM if the data parameter is NULL.
- * @returns		NO_DATA if the datalength parameter is zero.
- * @returns		Other error codes as defined for the NET_SOCKET_SEND
+ * @return		EOK on success.
+ * @return		ENOTSOCK if the socket is not found.
+ * @return		EBADMEM if the data parameter is NULL.
+ * @return		NO_DATA if the datalength parameter is zero.
+ * @return		Other error codes as defined for the NET_SOCKET_SEND
  *			message.
  */
 int send(int socket_id, void *data, size_t datalength, int flags)
@@ -931,12 +931,12 @@ int send(int socket_id, void *data, size_t datalength, int flags)
  * @param[in] flags	Various send flags.
  * @param[in] toaddr	The destination address.
  * @param[in] addrlen	The address length.
- * @returns		EOK on success.
- * @returns		ENOTSOCK if the socket is not found.
- * @returns		EBADMEM if the data or toaddr parameter is NULL.
- * @returns		NO_DATA if the datalength or the addrlen parameter is
+ * @return		EOK on success.
+ * @return		ENOTSOCK if the socket is not found.
+ * @return		EBADMEM if the data or toaddr parameter is NULL.
+ * @return		NO_DATA if the datalength or the addrlen parameter is
  *			zero.
- * @returns		Other error codes as defined for the NET_SOCKET_SENDTO
+ * @return		Other error codes as defined for the NET_SOCKET_SENDTO
  *			message.
  */
 int
@@ -965,11 +965,11 @@ sendto(int socket_id, const void *data, size_t datalength, int flags,
  * @param[in,out] addrlen The address length. The maximum address length is
  *			read. The actual address length is set. Used only if
  *			fromaddr is not NULL.
- * @returns		EOK on success.
- * @returns		ENOTSOCK if the socket is not found.
- * @returns		EBADMEM if the data parameter is NULL.
- * @returns		NO_DATA if the datalength or addrlen parameter is zero.
- * @returns		Other error codes as defined for the spcific message.
+ * @return		EOK on success.
+ * @return		ENOTSOCK if the socket is not found.
+ * @return		EBADMEM if the data parameter is NULL.
+ * @return		NO_DATA if the datalength or addrlen parameter is zero.
+ * @return		Other error codes as defined for the spcific message.
  */
 static int
 recvfrom_core(ipcarg_t message, int socket_id, void *data, size_t datalength,
@@ -1094,11 +1094,11 @@ recvfrom_core(ipcarg_t message, int socket_id, void *data, size_t datalength,
  * @param[out] data	The data buffer to be filled.
  * @param[in] datalength The data length.
  * @param[in] flags	Various receive flags.
- * @returns		EOK on success.
- * @returns		ENOTSOCK if the socket is not found.
- * @returns		EBADMEM if the data parameter is NULL.
- * @returns		NO_DATA if the datalength parameter is zero.
- * @returns		Other error codes as defined for the NET_SOCKET_RECV
+ * @return		EOK on success.
+ * @return		ENOTSOCK if the socket is not found.
+ * @return		EBADMEM if the data parameter is NULL.
+ * @return		NO_DATA if the datalength parameter is zero.
+ * @return		Other error codes as defined for the NET_SOCKET_RECV
  *			message.
  */
 int recv(int socket_id, void *data, size_t datalength, int flags)
@@ -1117,11 +1117,11 @@ int recv(int socket_id, void *data, size_t datalength, int flags)
  * @param[out] fromaddr	The source address.
  * @param[in,out] addrlen The address length. The maximum address length is
  *			read. The actual address length is set.
- * @returns		EOK on success.
- * @returns		ENOTSOCK if the socket is not found.
- * @returns		EBADMEM if the data or fromaddr parameter is NULL.
- * @returns		NO_DATA if the datalength or addrlen parameter is zero.
- * @returns		Other error codes as defined for the NET_SOCKET_RECVFROM
+ * @return		EOK on success.
+ * @return		ENOTSOCK if the socket is not found.
+ * @return		EBADMEM if the data or fromaddr parameter is NULL.
+ * @return		NO_DATA if the datalength or addrlen parameter is zero.
+ * @return		Other error codes as defined for the NET_SOCKET_RECVFROM
  *			message.
  */
 int
@@ -1147,11 +1147,11 @@ recvfrom(int socket_id, void *data, size_t datalength, int flags,
  * @param[out] value	The value buffer to be filled.
  * @param[in,out] optlen The value buffer length. The maximum length is read.
  *			The actual length is set.
- * @returns		EOK on success.
- * @returns		ENOTSOCK if the socket is not found.
- * @returns		EBADMEM if the value or optlen parameter is NULL.
- * @returns		NO_DATA if the optlen parameter is zero.
- * @returns		Other error codes as defined for the
+ * @return		EOK on success.
+ * @return		ENOTSOCK if the socket is not found.
+ * @return		EBADMEM if the value or optlen parameter is NULL.
+ * @return		NO_DATA if the optlen parameter is zero.
+ * @return		Other error codes as defined for the
  *			NET_SOCKET_GETSOCKOPT message.
  */
 int
@@ -1200,11 +1200,11 @@ getsockopt(int socket_id, int level, int optname, void *value, size_t *optlen)
  * @param[in] optname	The socket option to be set.
  * @param[in] value	The value to be set.
  * @param[in] optlen	The value length.
- * @returns		EOK on success.
- * @returns		ENOTSOCK if the socket is not found.
- * @returns		EBADMEM if the value parameter is NULL.
- * @returns		NO_DATA if the optlen parameter is zero.
- * @returns		Other error codes as defined for the
+ * @return		EOK on success.
+ * @return		ENOTSOCK if the socket is not found.
+ * @return		EBADMEM if the value parameter is NULL.
+ * @return		NO_DATA if the optlen parameter is zero.
+ * @return		Other error codes as defined for the
  *			NET_SOCKET_SETSOCKOPT message.
  */
 int

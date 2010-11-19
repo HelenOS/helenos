@@ -47,7 +47,7 @@
 /** Compacts the computed checksum to the 16 bit number adding the carries.
  *
  * @param[in] sum	Computed checksum.
- * @returns		Compacted computed checksum to the 16 bits.
+ * @return		Compacted computed checksum to the 16 bits.
  */
 uint16_t compact_checksum(uint32_t sum)
 {
@@ -65,7 +65,7 @@ uint16_t compact_checksum(uint32_t sum)
  * @param[in] seed	Initial value. Often used as 0 or ~0.
  * @param[in] data	Pointer to the beginning of data to process.
  * @param[in] length	Length of the data in bytes.
- * @returns		The computed checksum of the length bytes of the data.
+ * @return		The computed checksum of the length bytes of the data.
  */
 uint32_t compute_checksum(uint32_t seed, uint8_t *data, size_t length)
 {
@@ -87,7 +87,7 @@ uint32_t compute_checksum(uint32_t seed, uint8_t *data, size_t length)
  * @param[in] seed	Initial value. Often used as 0 or ~0.
  * @param[in] data	Pointer to the beginning of data to process.
  * @param[in] length	Length of the data in bits.
- * @returns		The computed CRC32 of the length bits of the data.
+ * @return		The computed CRC32 of the length bits of the data.
  */
 uint32_t compute_crc32_be(uint32_t seed, uint8_t * data, size_t length)
 {
@@ -141,7 +141,7 @@ uint32_t compute_crc32_be(uint32_t seed, uint8_t * data, size_t length)
  * @param[in] seed	Initial value. Often used as 0 or ~0.
  * @param[in] data	Pointer to the beginning of data to process.
  * @param[in] length	Length of the data in bits.
- * @returns		The computed CRC32 of the length bits of the data.
+ * @return		The computed CRC32 of the length bits of the data.
  */
 uint32_t compute_crc32_le(uint32_t seed, uint8_t * data, size_t length)
 {
@@ -192,8 +192,8 @@ uint32_t compute_crc32_le(uint32_t seed, uint8_t * data, size_t length)
 /** Returns or flips the checksum if zero.
  *
  * @param[in] checksum	The computed checksum.
- * @returns		The internet protocol header checksum.
- * @returns		0xFFFF if the computed checksum is zero.
+ * @return		The internet protocol header checksum.
+ * @return		0xFFFF if the computed checksum is zero.
  */
 uint16_t flip_checksum(uint16_t checksum)
 {
@@ -210,8 +210,8 @@ uint16_t flip_checksum(uint16_t checksum)
  *
  * @param[in] data	The header data.
  * @param[in] length	The header length in bytes.
- * @returns		The internet protocol header checksum.
- * @returns		0xFFFF if the computed checksum is zero.
+ * @return		The internet protocol header checksum.
+ * @return		0xFFFF if the computed checksum is zero.
  */
 uint16_t ip_checksum(uint8_t *data, size_t length)
 {

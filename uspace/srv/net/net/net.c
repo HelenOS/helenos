@@ -77,14 +77,16 @@ net_globals_t net_globals;
 GENERIC_CHAR_MAP_IMPLEMENT(measured_strings, measured_string_t);
 DEVICE_MAP_IMPLEMENT(netifs, netif_t);
 
+static int startup(void);
+
 /** Add the configured setting to the configuration map.
  *
  * @param[in] configuration The configuration map.
  * @param[in] name          The setting name.
  * @param[in] value         The setting value.
  *
- * @returns EOK on success.
- * @returns ENOMEM if there is not enough memory left.
+ * @return EOK on success.
+ * @return ENOMEM if there is not enough memory left.
  *
  */
 int add_configuration(measured_strings_t *configuration, const char *name,
@@ -109,7 +111,7 @@ int add_configuration(measured_strings_t *configuration, const char *name,
 
 /** Generate new system-unique device identifier.
  *
- * @returns		The system-unique devic identifier.
+ * @return		The system-unique devic identifier.
  */
 static device_id_t generate_new_device_id(void)
 {
@@ -234,8 +236,8 @@ static int read_configuration_file(const char *directory, const char *filename,
  * @param[in]     name  The network interface name.
  * @param[in,out] netif The network interface structure.
  *
- * @returns EOK on success.
- * @returns Other error codes as defined for the add_configuration() function.
+ * @return EOK on success.
+ * @return Other error codes as defined for the add_configuration() function.
  *
  */
 static int read_netif_configuration(const char *name, netif_t *netif)
@@ -245,8 +247,8 @@ static int read_netif_configuration(const char *name, netif_t *netif)
 
 /** Read the networking subsystem global configuration.
  *
- * @returns EOK on success.
- * @returns Other error codes as defined for the add_configuration() function.
+ * @return EOK on success.
+ * @return Other error codes as defined for the add_configuration() function.
  *
  */
 static int read_configuration(void)
@@ -261,8 +263,8 @@ static int read_configuration(void)
  *                              function. The module skeleton propagates
  *                              its own one.
  *
- * @returns EOK on success.
- * @returns ENOMEM if there is not enough memory left.
+ * @return EOK on success.
+ * @return ENOMEM if there is not enough memory left.
  *
  */
 static int net_initialize(async_client_conn_t client_connection)
@@ -312,9 +314,9 @@ static int net_initialize(async_client_conn_t client_connection)
  *                              module skeleton propagates
  *                              its own one.
  *
- * @returns EOK on successful module termination.
- * @returns Other error codes as defined for the net_initialize() function.
- * @returns Other error codes as defined for the REGISTER_ME() macro function.
+ * @return EOK on successful module termination.
+ * @return Other error codes as defined for the net_initialize() function.
+ * @return Other error codes as defined for the REGISTER_ME() macro function.
  *
  */
 static int net_module_start(async_client_conn_t client_connection)
@@ -336,6 +338,11 @@ static int net_module_start(async_client_conn_t client_connection)
 	if (rc != EOK)
 		goto out;
 	
+	rc = startup();
+	if (rc != EOK)
+		goto out;
+	
+	task_retval(0);
 	async_manager();
 
 out:
@@ -352,7 +359,7 @@ out:
  * @param[in]  count         The desired settings count.
  * @param[out] data          The found configuration settings data.
  *
- * @returns EOK.
+ * @return EOK.
  *
  */
 static int net_get_conf(measured_strings_t *netif_conf,
@@ -414,13 +421,13 @@ void net_free_settings(measured_string_t *settings, char *data)
  *
  * @param[in] netif The network interface specific data.
  *
- * @returns EOK on success.
- * @returns EINVAL if there are some settings missing.
- * @returns ENOENT if the internet protocol module is not known.
- * @returns Other error codes as defined for the netif_probe_req() function.
- * @returns Other error codes as defined for the nil_device_req() function.
- * @returns Other error codes as defined for the needed internet layer
- *          registering function.
+ * @return EOK on success.
+ * @return EINVAL if there are some settings missing.
+ * @return ENOENT if the internet protocol module is not known.
+ * @return Other error codes as defined for the netif_probe_req() function.
+ * @return Other error codes as defined for the nil_device_req() function.
+ * @return Other error codes as defined for the needed internet layer
+ *         registering function.
  *
  */
 static int start_device(netif_t *netif)
@@ -506,15 +513,15 @@ static int start_device(netif_t *netif)
 
 /** Read the configuration and start all network interfaces.
  *
- * @returns EOK on success.
- * @returns EXDEV if there is no available system-unique device identifier.
- * @returns EINVAL if any of the network interface names are not configured.
- * @returns ENOMEM if there is not enough memory left.
- * @returns Other error codes as defined for the read_configuration()
- *          function.
- * @returns Other error codes as defined for the read_netif_configuration()
- *          function.
- * @returns Other error codes as defined for the start_device() function.
+ * @return EOK on success.
+ * @return EXDEV if there is no available system-unique device identifier.
+ * @return EINVAL if any of the network interface names are not configured.
+ * @return ENOMEM if there is not enough memory left.
+ * @return Other error codes as defined for the read_configuration()
+ *         function.
+ * @return Other error codes as defined for the read_netif_configuration()
+ *         function.
+ * @return Other error codes as defined for the start_device() function.
  *
  */
 static int startup(void)
@@ -609,8 +616,8 @@ static int startup(void)
  * @param[out] answer_count The last parameter for the actual answer
  *                          in the answer parameter.
  *
- * @returns EOK on success.
- * @returns ENOTSUP if the message is not known.
+ * @return EOK on success.
+ * @return ENOTSUP if the message is not known.
  *
  * @see net_interface.h
  * @see IS_NET_NET_MESSAGE()
