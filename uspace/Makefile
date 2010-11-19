@@ -49,7 +49,6 @@ DIRS = \
 	app/tetris \
 	app/trace \
 	app/top \
-	app/netstart \
 	app/netecho \
 	app/nettest1 \
 	app/nettest2 \

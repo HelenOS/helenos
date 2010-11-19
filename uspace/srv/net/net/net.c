@@ -77,6 +77,8 @@ net_globals_t net_globals;
 GENERIC_CHAR_MAP_IMPLEMENT(measured_strings, measured_string_t);
 DEVICE_MAP_IMPLEMENT(netifs, netif_t);
 
+static int startup(void);
+
 /** Add the configured setting to the configuration map.
  *
  * @param[in] configuration The configuration map.
@@ -336,6 +338,11 @@ static int net_module_start(async_client_conn_t client_connection)
 	if (rc != EOK)
 		goto out;
 	
+	rc = startup();
+	if (rc != EOK)
+		goto out;
+	
+	task_retval(0);
 	async_manager();
 
 out:
