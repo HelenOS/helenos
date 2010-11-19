@@ -94,6 +94,7 @@ _link.ld
 ./uspace/dist/drv/rootia32/
 ./uspace/dist/drv/uhci/
 ./uspace/dist/drv/usbkbd/
+./uspace/dist/drv/vhc/
 ./uspace/dist/srv/arp
 ./uspace/dist/srv/ata_bd
 ./uspace/dist/srv/char_ms
@@ -129,6 +130,7 @@ _link.ld
 ./uspace/drv/rootia32/rootia32
 ./uspace/drv/uhci/uhci
 ./uspace/drv/usbkbd/usbkbd
+./uspace/drv/vhc/vhc
 ./uspace/srv/bd/ata_bd/ata_bd
 ./uspace/srv/bd/file_bd/file_bd
 ./uspace/srv/bd/gxe_bd/gxe_bd
@@ -148,7 +150,6 @@ _link.ld
 ./uspace/srv/hid/kbd/kbd
 ./uspace/srv/hid/s3c24xx_ts/s3c24ts
 ./uspace/srv/hw/bus/pci/pci
-./uspace/srv/hw/bus/usb/hcd/virtual/vhcd
 ./uspace/srv/hw/char/i8042/i8042
 ./uspace/srv/hw/char/s3c24xx_uart/s3c24ser
 ./uspace/srv/hw/netif/dp8390/dp8390

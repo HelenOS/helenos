@@ -52,7 +52,7 @@
 	for (pos = (head)->next; pos != (head); \
         	pos = pos->next)
 
-LIST_INITIALIZE(devices);
+static LIST_INITIALIZE(devices);
 
 /** Create virtual device.
  *

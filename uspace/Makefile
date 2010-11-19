@@ -80,7 +80,6 @@ DIRS = \
 	srv/hw/char/i8042 \
 	srv/hw/char/s3c24xx_uart \
 	srv/hw/netif/dp8390 \
-	srv/hw/bus/usb/hcd/virtual \
 	srv/net/cfg \
 	srv/net/netif/lo \
 	srv/net/il/arp \
@@ -89,7 +88,8 @@ DIRS = \
 	srv/net/tl/udp \
 	srv/net/tl/tcp \
 	srv/net/net \
-	drv/root
+	drv/root \
+	drv/vhc
 
 ## Networking
 #

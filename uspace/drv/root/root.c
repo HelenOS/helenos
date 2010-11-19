@@ -118,6 +118,60 @@ failure:
 	return res;
 }
 
+/** Create virtual USB host controller device.
+ * Note that the virtual HC is actually device and driver in one
+ * task.
+ *
+ * @param parent Parent device.
+ * @return Error code.
+ */
+static int add_virtual_usb_host_controller(device_t *parent)
+{
+	printf(NAME ": adding virtual host contoller.\n");
+
+	int rc;
+	device_t *vhc = NULL;
+	match_id_t *match_id = NULL;
+
+	vhc = create_device();
+	if (vhc == NULL) {
+		rc = ENOMEM;
+		goto failure;
+	}
+
+	vhc->name = "vhc";
+	printf(NAME ": the new device's name is %s.\n", vhc->name);
+
+	/* Initialize match id list. */
+	match_id = create_match_id();
+	if (match_id == NULL) {
+		rc = ENOMEM;
+		goto failure;
+	}
+
+	match_id->id = "usb&hc=vhc";
+	match_id->score = 100;
+	add_match_id(&vhc->match_ids, match_id);
+
+	/* Register child device. */
+	rc = child_device_register(vhc, parent);
+	if (rc != EOK)
+		goto failure;
+
+	return EOK;
+
+failure:
+	if (match_id != NULL)
+		match_id->id = NULL;
+
+	if (vhc != NULL) {
+		vhc->name = NULL;
+		delete_device(vhc);
+	}
+
+	return rc;
+}
+
 /** Get the root device.
  *
  * @param dev		The device which is root of the whole device tree (both
@@ -132,6 +186,12 @@ static int root_add_device(device_t *dev)
 	if (EOK != res)
 		printf(NAME ": failed to add child device for platform.\n");
 	
+	/* Register virtual USB host controller. */
+	int rc = add_virtual_usb_host_controller(dev);
+	if (EOK != rc) {
+		printf(NAME ": failed to add child device - virtual USB HC.\n");
+	}
+
 	return res;
 }
 

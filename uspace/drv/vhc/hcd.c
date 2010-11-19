@@ -28,25 +28,66 @@
 
 /** @addtogroup usb
  * @{
- */
+ */ 
 /** @file
- * @brief Virtual USB host controller common definitions.
+ * @brief Virtual host controller driver.
  */
-#ifndef VHCD_VHCD_H_
-#define VHCD_VHCD_H_
 
-#define NAME "hcd-virt"
-#define NAME_DEV "hcd-virt-dev"
-#define NAMESPACE "usb"
+#include <devmap.h>
+#include <ipc/ipc.h>
+#include <async.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <sysinfo.h>
+#include <stdio.h>
+#include <errno.h>
+#include <str_error.h>
+#include <driver.h>
 
-#define DEVMAP_PATH_HC NAMESPACE "/" NAME
-#define DEVMAP_PATH_DEV NAMESPACE "/" NAME_DEV
+#include <usb/hcd.h>
+#include "vhcd.h"
+#include "hc.h"
+#include "devices.h"
+#include "hub.h"
+#include "conn.h"
 
-extern int debug_level;
-void dprintf(int, const char *, ...);
-void dprintf_inval_call(int, ipc_call_t, ipcarg_t);
+static int vhc_count = 0;
+static int vhc_add_device(usb_hc_device_t *dev)
+{
+	printf("%s: new device registered.\n", NAME);
+	/*
+	 * Currently, we know how to simulate only single HC.
+	 */
+	if (vhc_count > 0) {
+		return ELIMIT;
+	}
 
-#endif
+	vhc_count++;
+
+	dev->transfer_ops = &vhc_transfer_ops;
+	/* Fail because of bug in libusb that caused devman to hang. */
+	return ENOTSUP;
+}
+
+static usb_hc_driver_t vhc_driver = {
+	.name = NAME,
+	.add_hc = &vhc_add_device
+};
+
+int main(int argc, char * argv[])
+{	
+	/*
+	 * For debugging purpose to enable viewing the output
+	 * within devman tty.
+	 */
+	sleep(5);
+
+	printf("%s: virtual USB host controller driver.\n", NAME);
+
+	return usb_hcd_main(&vhc_driver);
+}
+
+
 /**
  * @}
  */

@@ -26,10 +26,15 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-USPACE_PREFIX = ../../../../../..
-LIBS = $(LIBUSB_PREFIX)/libusb.a $(LIBUSBVIRT_PREFIX)/libusbvirt.a
-EXTRA_CFLAGS = -I$(LIB_PREFIX)
-BINARY = vhcd
+USPACE_PREFIX = ../..
+LIBS = \
+	$(LIBUSB_PREFIX)/libusb.a \
+	$(LIBUSBVIRT_PREFIX)/libusbvirt.a \
+	$(LIBDRV_PREFIX)/libdrv.a
+EXTRA_CFLAGS += \
+	-I$(LIB_PREFIX) \
+	-I$(LIBDRV_PREFIX)/include
+BINARY = vhc
 
 SOURCES = \
 	conndev.c \

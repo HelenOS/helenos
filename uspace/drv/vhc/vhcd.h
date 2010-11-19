@@ -30,17 +30,21 @@
  * @{
  */
 /** @file
- * @brief Connection handling of incoming calls.
+ * @brief Virtual USB host controller common definitions.
  */
-#ifndef VHCD_CONN_H_
-#define VHCD_CONN_H_
+#ifndef VHCD_VHCD_H_
+#define VHCD_VHCD_H_
 
-#include <usb/hcd.h>
-#include "vhcd.h"
-#include "devices.h"
+#define NAME "vhc"
+#define NAME_DEV "hcd-virt-dev"
+#define NAMESPACE "usb"
 
-void connection_handler_host(ipcarg_t);
-void connection_handler_device(ipcarg_t, virtdev_connection_t *);
+#define DEVMAP_PATH_HC NAMESPACE "/" NAME
+#define DEVMAP_PATH_DEV NAMESPACE "/" NAME_DEV
+
+extern int debug_level;
+void dprintf(int, const char *, ...);
+void dprintf_inval_call(int, ipc_call_t, ipcarg_t);
 
 #endif
 /**

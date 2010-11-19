@@ -263,6 +263,49 @@ void connection_handler_host(ipcarg_t phone_hash)
 	}
 }
 
+static int enqueue_transfer_out(usb_hc_device_t *hc,
+    usb_hcd_attached_device_info_t *dev, usb_hc_endpoint_info_t *endpoint,
+    void *buffer, size_t size,
+    usb_hcd_transfer_callback_out_t callback, void *arg)
+{
+	printf(NAME ": transfer OUT [%d.%d (%s); %u]\n",
+	    dev->address, endpoint->endpoint,
+	    usb_str_transfer_type(endpoint->transfer_type),
+	    size);
+	return ENOTSUP;
+}
+
+static int enqueue_transfer_setup(usb_hc_device_t *hc,
+    usb_hcd_attached_device_info_t *dev, usb_hc_endpoint_info_t *endpoint,
+    void *buffer, size_t size,
+    usb_hcd_transfer_callback_out_t callback, void *arg)
+{
+	printf(NAME ": transfer SETUP [%d.%d (%s); %u]\n",
+	    dev->address, endpoint->endpoint,
+	    usb_str_transfer_type(endpoint->transfer_type),
+	    size);
+	return ENOTSUP;
+}
+
+static int enqueue_transfer_in(usb_hc_device_t *hc,
+    usb_hcd_attached_device_info_t *dev, usb_hc_endpoint_info_t *endpoint,
+    void *buffer, size_t size,
+    usb_hcd_transfer_callback_in_t callback, void *arg)
+{
+	printf(NAME ": transfer IN [%d.%d (%s); %u]\n",
+	    dev->address, endpoint->endpoint,
+	    usb_str_transfer_type(endpoint->transfer_type),
+	    size);
+	return ENOTSUP;
+}
+
+
+usb_hcd_transfer_ops_t vhc_transfer_ops = {
+	.transfer_out = enqueue_transfer_out,
+	.transfer_in = enqueue_transfer_in,
+	.transfer_setup = enqueue_transfer_setup
+};
+
 /**
  * @}
  */
