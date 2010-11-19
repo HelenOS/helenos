@@ -111,7 +111,7 @@ int udp_initialize(async_client_conn_t client_connection)
 			15
 		}
 	};
-	measured_string_ref configuration;
+	measured_string_t *configuration;
 	size_t count = sizeof(names) / sizeof(measured_string_t);
 	char *data;
 	int rc;
@@ -222,8 +222,8 @@ static int udp_process_packet(device_id_t device_id, packet_t packet,
 	size_t length;
 	size_t offset;
 	int result;
-	udp_header_ref header;
-	socket_core_ref socket;
+	udp_header_t *header;
+	socket_core_t *socket;
 	packet_t next_packet;
 	size_t total_length;
 	uint32_t checksum;
@@ -234,7 +234,7 @@ static int udp_process_packet(device_id_t device_id, packet_t packet,
 	void *ip_header;
 	struct sockaddr *src;
 	struct sockaddr *dest;
-	packet_dimension_ref packet_dimension;
+	packet_dimension_t *packet_dimension;
 	int rc;
 
 	switch (error) {
@@ -276,7 +276,7 @@ static int udp_process_packet(device_id_t device_id, packet_t packet,
 		return udp_release_and_return(packet, rc);
 
 	/* Get UDP header */
-	header = (udp_header_ref) packet_get_data(packet);
+	header = (udp_header_t *) packet_get_data(packet);
 	if (!header)
 		return udp_release_and_return(packet, NO_DATA);
 
@@ -452,14 +452,14 @@ static int udp_received_msg(device_id_t device_id, packet_t packet,
  * @returns		Other error codes as defined for the ip_send_msg()
  *			function.
  */
-static int udp_sendto_message(socket_cores_ref local_sockets, int socket_id,
+static int udp_sendto_message(socket_cores_t *local_sockets, int socket_id,
     const struct sockaddr *addr, socklen_t addrlen, int fragments,
     size_t *data_fragment_size, int flags)
 {
-	socket_core_ref socket;
+	socket_core_t *socket;
 	packet_t packet;
 	packet_t next_packet;
-	udp_header_ref header;
+	udp_header_t *header;
 	int index;
 	size_t total_length;
 	int result;
@@ -468,7 +468,7 @@ static int udp_sendto_message(socket_cores_ref local_sockets, int socket_id,
 	void *ip_header;
 	size_t headerlen;
 	device_id_t device_id;
-	packet_dimension_ref packet_dimension;
+	packet_dimension_t *packet_dimension;
 	int rc;
 	
 	rc = tl_get_address_port(addr, addrlen, &dest_port);
@@ -608,13 +608,13 @@ static int udp_sendto_message(socket_cores_ref local_sockets, int socket_id,
  * @returns		Other error codes as defined for the data_reply()
  *			function.
  */
-static int udp_recvfrom_message(socket_cores_ref local_sockets, int socket_id,
+static int udp_recvfrom_message(socket_cores_t *local_sockets, int socket_id,
     int flags, size_t *addrlen)
 {
-	socket_core_ref socket;
+	socket_core_t *socket;
 	int packet_id;
 	packet_t packet;
-	udp_header_ref header;
+	udp_header_t *header;
 	struct sockaddr *addr;
 	size_t length;
 	uint8_t *data;
@@ -643,7 +643,7 @@ static int udp_recvfrom_message(socket_cores_ref local_sockets, int socket_id,
 		(void) dyn_fifo_pop(&socket->received);
 		return udp_release_and_return(packet, NO_DATA);
 	}
-	header = (udp_header_ref) data;
+	header = (udp_header_t *) data;
 
 	/* Set the source address port */
 	result = packet_get_addr(packet, (uint8_t **) &addr, NULL);
@@ -713,7 +713,7 @@ static int udp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 	size_t size;
 	ipc_call_t answer;
 	int answer_count;
-	packet_dimension_ref packet_dimension;
+	packet_dimension_t *packet_dimension;
 
 	/*
 	 * Accept the connection

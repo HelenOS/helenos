@@ -185,7 +185,7 @@ int ip_get_route_req_remote(int ip_phone, ip_protocol_t protocol,
  *			generic_packet_size_req_remote() function.
  */
 int ip_packet_size_req_remote(int ip_phone, device_id_t device_id,
-    packet_dimension_ref packet_dimension)
+    packet_dimension_t *packet_dimension)
 {
 	return generic_packet_size_req_remote(ip_phone, NET_IL_PACKET_SPACE,
 	    device_id, packet_dimension);

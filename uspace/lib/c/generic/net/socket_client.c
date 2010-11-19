@@ -78,11 +78,6 @@
  */
 typedef struct socket socket_t;
 
-/** Type definition of the socket specific data pointer.
- * @see socket
- */
-typedef socket_t *socket_ref;
-
 /** Socket specific data.
  *
  * Each socket lock locks only its structure part and any number of them may be
@@ -161,7 +156,7 @@ static struct socket_client_globals {
 //	int last_id;
 
 	/** Active sockets. */
-	sockets_ref sockets;
+	sockets_t *sockets;
 
 	/** Safety lock.
 	 * Write lock is used only for adding or removing sockets.
@@ -184,11 +179,11 @@ INT_MAP_IMPLEMENT(sockets, socket_t);
  *
  *  @returns		The active sockets.
  */
-static sockets_ref socket_get_sockets(void)
+static sockets_t *socket_get_sockets(void)
 {
 	if (!socket_globals.sockets) {
 		socket_globals.sockets =
-		    (sockets_ref) malloc(sizeof(sockets_t));
+		    (sockets_t *) malloc(sizeof(sockets_t));
 		if (!socket_globals.sockets)
 			return NULL;
 
@@ -212,7 +207,7 @@ static void socket_connection(ipc_callid_t iid, ipc_call_t * icall)
 {
 	ipc_callid_t callid;
 	ipc_call_t call;
-	socket_ref socket;
+	socket_t *socket;
 	int rc;
 
 loop:
@@ -331,7 +326,7 @@ static int socket_get_udp_phone(void)
  */
 static int socket_generate_new_id(void)
 {
-	sockets_ref sockets;
+	sockets_t *sockets;
 	int socket_id = 0;
 	int count;
 
@@ -371,7 +366,7 @@ static int socket_generate_new_id(void)
  * @param[in] service	The parent module service.
  */
 static void
-socket_initialize(socket_ref socket, int socket_id, int phone,
+socket_initialize(socket_t *socket, int socket_id, int phone,
     services_t service)
 {
 	socket->socket_id = socket_id;
@@ -404,7 +399,7 @@ socket_initialize(socket_ref socket, int socket_id, int phone,
  */
 int socket(int domain, int type, int protocol)
 {
-	socket_ref socket;
+	socket_t *socket;
 	int phone;
 	int socket_id;
 	services_t service;
@@ -462,7 +457,7 @@ int socket(int domain, int type, int protocol)
 		return phone;
 
 	// create a new socket structure
-	socket = (socket_ref) malloc(sizeof(socket_t));
+	socket = (socket_t *) malloc(sizeof(socket_t));
 	if (!socket)
 		return ENOMEM;
 
@@ -523,7 +518,7 @@ static int
 socket_send_data(int socket_id, ipcarg_t message, ipcarg_t arg2,
     const void *data, size_t datalength)
 {
-	socket_ref socket;
+	socket_t *socket;
 	aid_t message_id;
 	ipcarg_t result;
 
@@ -587,7 +582,7 @@ int bind(int socket_id, const struct sockaddr * my_addr, socklen_t addrlen)
  */
 int listen(int socket_id, int backlog)
 {
-	socket_ref socket;
+	socket_t *socket;
 	int result;
 
 	if (backlog <= 0)
@@ -626,8 +621,8 @@ int listen(int socket_id, int backlog)
  */
 int accept(int socket_id, struct sockaddr * cliaddr, socklen_t * addrlen)
 {
-	socket_ref socket;
-	socket_ref new_socket;
+	socket_t *socket;
+	socket_t *new_socket;
 	aid_t message_id;
 	ipcarg_t ipc_result;
 	int result;
@@ -660,7 +655,7 @@ int accept(int socket_id, struct sockaddr * cliaddr, socklen_t * addrlen)
 	-- socket->blocked;
 
 	// create a new scoket
-	new_socket = (socket_ref) malloc(sizeof(socket_t));
+	new_socket = (socket_t *) malloc(sizeof(socket_t));
 	if (!new_socket) {
 		fibril_mutex_unlock(&socket->accept_lock);
 		fibril_rwlock_write_unlock(&socket_globals.lock);
@@ -744,7 +739,7 @@ int connect(int socket_id, const struct sockaddr *serv_addr, socklen_t addrlen)
  *
  * @param[in] socket	The socket to be destroyed.
  */
-static void socket_destroy(socket_ref socket)
+static void socket_destroy(socket_t *socket)
 {
 	int accepted_id;
 
@@ -769,7 +764,7 @@ static void socket_destroy(socket_ref socket)
  */
 int closesocket(int socket_id)
 {
-	socket_ref socket;
+	socket_t *socket;
 	int rc;
 
 	fibril_rwlock_write_lock(&socket_globals.lock);
@@ -823,7 +818,7 @@ sendto_core(ipcarg_t message, int socket_id, const void *data,
     size_t datalength, int flags, const struct sockaddr *toaddr,
     socklen_t addrlen)
 {
-	socket_ref socket;
+	socket_t *socket;
 	aid_t message_id;
 	ipcarg_t result;
 	size_t fragments;
@@ -980,7 +975,7 @@ static int
 recvfrom_core(ipcarg_t message, int socket_id, void *data, size_t datalength,
     int flags, struct sockaddr *fromaddr, socklen_t *addrlen)
 {
-	socket_ref socket;
+	socket_t *socket;
 	aid_t message_id;
 	ipcarg_t ipc_result;
 	int result;
@@ -1162,7 +1157,7 @@ recvfrom(int socket_id, void *data, size_t datalength, int flags,
 int
 getsockopt(int socket_id, int level, int optname, void *value, size_t *optlen)
 {
-	socket_ref socket;
+	socket_t *socket;
 	aid_t message_id;
 	ipcarg_t result;
 

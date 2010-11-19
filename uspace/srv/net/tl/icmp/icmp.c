@@ -155,7 +155,7 @@ static int icmp_release_and_return(packet_t packet, int result)
  * @returns		EPERM if the error message is not allowed.
  */
 static int icmp_send_packet(icmp_type_t type, icmp_code_t code, packet_t packet,
-    icmp_header_ref header, services_t error, ip_ttl_t ttl, ip_tos_t tos,
+    icmp_header_t *header, services_t error, ip_ttl_t ttl, ip_tos_t tos,
     int dont_fragment)
 {
 	int rc;
@@ -188,9 +188,9 @@ static int icmp_send_packet(icmp_type_t type, icmp_code_t code, packet_t packet,
  * @returns The prefixed ICMP header.
  * @returns NULL on errors.
  */
-static icmp_header_ref icmp_prepare_packet(packet_t packet)
+static icmp_header_t *icmp_prepare_packet(packet_t packet)
 {
-	icmp_header_ref header;
+	icmp_header_t *header;
 	size_t header_length;
 	size_t total_length;
 
@@ -246,11 +246,11 @@ static int icmp_echo(icmp_param_t id, icmp_param_t sequence, size_t size,
     mseconds_t timeout, ip_ttl_t ttl, ip_tos_t tos, int dont_fragment,
     const struct sockaddr * addr, socklen_t addrlen)
 {
-	icmp_header_ref header;
+	icmp_header_t *header;
 	packet_t packet;
 	size_t length;
 	uint8_t *data;
-	icmp_reply_ref reply;
+	icmp_reply_t *reply;
 	int reply_key;
 	int index;
 	int rc;
@@ -341,7 +341,7 @@ static int icmp_echo(icmp_param_t id, icmp_param_t sequence, size_t size,
 static int icmp_destination_unreachable_msg_local(int icmp_phone,
     icmp_code_t code, icmp_param_t mtu, packet_t packet)
 {
-	icmp_header_ref header;
+	icmp_header_t *header;
 
 	header = icmp_prepare_packet(packet);
 	if (!header)
@@ -356,7 +356,7 @@ static int icmp_destination_unreachable_msg_local(int icmp_phone,
 
 static int icmp_source_quench_msg_local(int icmp_phone, packet_t packet)
 {
-	icmp_header_ref header;
+	icmp_header_t *header;
 
 	header = icmp_prepare_packet(packet);
 	if (!header)
@@ -369,7 +369,7 @@ static int icmp_source_quench_msg_local(int icmp_phone, packet_t packet)
 static int icmp_time_exceeded_msg_local(int icmp_phone, icmp_code_t code,
     packet_t packet)
 {
-	icmp_header_ref header;
+	icmp_header_t *header;
 
 	header = icmp_prepare_packet(packet);
 	if (!header)
@@ -382,7 +382,7 @@ static int icmp_time_exceeded_msg_local(int icmp_phone, icmp_code_t code,
 static int icmp_parameter_problem_msg_local(int icmp_phone, icmp_code_t code,
     icmp_param_t pointer, packet_t packet)
 {
-	icmp_header_ref header;
+	icmp_header_t *header;
 
 	header = icmp_prepare_packet(packet);
 	if (!header)
@@ -412,7 +412,7 @@ int icmp_initialize(async_client_conn_t client_connection)
 			18
 		}
 	};
-	measured_string_ref configuration;
+	measured_string_t *configuration;
 	size_t count = sizeof(names) / sizeof(measured_string_t);
 	char *data;
 	int rc;
@@ -478,11 +478,11 @@ int icmp_initialize(async_client_conn_t client_connection)
  * @param[in] type	The received reply message type.
  * @param[in] code	The received reply message code.
  */
-static void  icmp_process_echo_reply(packet_t packet, icmp_header_ref header,
+static void  icmp_process_echo_reply(packet_t packet, icmp_header_t *header,
     icmp_type_t type, icmp_code_t code)
 {
 	int reply_key;
-	icmp_reply_ref reply;
+	icmp_reply_t *reply;
 
 	/* Compute the reply key */
 	reply_key = ICMP_GET_REPLY_KEY(header->un.echo.identifier,
@@ -524,7 +524,7 @@ static int icmp_process_packet(packet_t packet, services_t error)
 	int addrlen;
 	int result;
 	void *data;
-	icmp_header_ref header;
+	icmp_header_t *header;
 	icmp_type_t type;
 	icmp_code_t code;
 	int rc;
@@ -566,7 +566,7 @@ static int icmp_process_packet(packet_t packet, services_t error)
 		return EINVAL;
 
 	/* Get ICMP header */
-	header = (icmp_header_ref) data;
+	header = (icmp_header_t *) data;
 
 	if (header->checksum) {
 		while (ICMP_CHECKSUM(header, length) != IP_CHECKSUM_ZERO) {
@@ -734,7 +734,7 @@ static int icmp_process_message(ipc_call_t *call)
  * @returns		EBADMEM if the echo_data parameter is NULL.
  * @returns		ENOTCONN if no free identifier have been found.
  */
-static int icmp_bind_free_id(icmp_echo_ref echo_data)
+static int icmp_bind_free_id(icmp_echo_t *echo_data)
 {
 	icmp_param_t index;
 
@@ -790,7 +790,7 @@ static int icmp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 	size_t length;
 	struct sockaddr *addr;
 	ipc_callid_t data_callid;
-	icmp_echo_ref echo_data;
+	icmp_echo_t *echo_data;
 	int rc = EOK;
 
 	/*
@@ -799,7 +799,7 @@ static int icmp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 	 */
 	answer_count = 0;
 
-	echo_data = (icmp_echo_ref) malloc(sizeof(*echo_data));
+	echo_data = (icmp_echo_t *) malloc(sizeof(*echo_data));
 	if (!echo_data)
 		return ENOMEM;
 

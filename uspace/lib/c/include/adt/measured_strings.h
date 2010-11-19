@@ -46,11 +46,6 @@
  */
 typedef struct measured_string measured_string_t;
 
-/** Type definition of the character string with measured length pointer.
- * @see measured_string
- */
-typedef measured_string_t *measured_string_ref;
-
 /** Character string with measured length.
  *
  * This structure has been designed for serialization of character strings
@@ -63,12 +58,12 @@ struct measured_string {
 	size_t length;
 };
 
-extern measured_string_ref measured_string_create_bulk(const char *, size_t);
-extern measured_string_ref measured_string_copy(measured_string_ref);
-extern int measured_strings_receive(measured_string_ref *, char **, size_t);
-extern int measured_strings_reply(const measured_string_ref, size_t);
-extern int measured_strings_return(int, measured_string_ref *, char **, size_t);
-extern int measured_strings_send(int, const measured_string_ref, size_t);
+extern measured_string_t *measured_string_create_bulk(const char *, size_t);
+extern measured_string_t *measured_string_copy(measured_string_t *);
+extern int measured_strings_receive(measured_string_t **, char **, size_t);
+extern int measured_strings_reply(const measured_string_t *, size_t);
+extern int measured_strings_return(int, measured_string_t **, char **, size_t);
+extern int measured_strings_send(int, const measured_string_t *, size_t);
 
 #endif
 

@@ -64,14 +64,14 @@
  * @returns		EEXIST if the key character string is already used.
  */
 static int
-char_map_add_item(char_map_ref map, const char *identifier, size_t length,
+char_map_add_item(char_map_t *map, const char *identifier, size_t length,
     const int value)
 {
 	if (map->next == (map->size - 1)) {
-		char_map_ref *tmp;
+		char_map_t **tmp;
 
-		tmp = (char_map_ref *) realloc(map->items,
-		    sizeof(char_map_ref) * 2 * map->size);
+		tmp = (char_map_t **) realloc(map->items,
+		    sizeof(char_map_t *) * 2 * map->size);
 		if (!tmp)
 			return ENOMEM;
 
@@ -79,7 +79,7 @@ char_map_add_item(char_map_ref map, const char *identifier, size_t length,
 		map->items = tmp;
 	}
 
-	map->items[map->next] = (char_map_ref) malloc(sizeof(char_map_t));
+	map->items[map->next] = (char_map_t *) malloc(sizeof(char_map_t));
 	if (!map->items[map->next])
 		return ENOMEM;
 
@@ -109,7 +109,7 @@ char_map_add_item(char_map_ref map, const char *identifier, size_t length,
  * @returns		TRUE if the map is valid.
  * @returns		FALSE otherwise.
  */
-static int char_map_is_valid(const char_map_ref map)
+static int char_map_is_valid(const char_map_t *map)
 {
 	return map && (map->magic == CHAR_MAP_MAGIC_VALUE);
 }
@@ -138,7 +138,7 @@ static int char_map_is_valid(const char_map_ref map)
  *			char_map_add_item() function.
  */
 int
-char_map_add(char_map_ref map, const char *identifier, size_t length,
+char_map_add(char_map_t *map, const char *identifier, size_t length,
     const int value)
 {
 	if (char_map_is_valid(map) && (identifier) &&
@@ -171,7 +171,7 @@ char_map_add(char_map_ref map, const char *identifier, size_t length,
  *
  * @param[in,out] map	The character string to integer map.
  */
-void char_map_destroy(char_map_ref map)
+void char_map_destroy(char_map_t *map)
 {
 	if (char_map_is_valid(map)) {
 		int index;
@@ -199,8 +199,8 @@ void char_map_destroy(char_map_ref map)
  *			character string.
  * @returns		NULL if the key is not assigned a node.
  */
-static char_map_ref
-char_map_find_node(const char_map_ref map, const char *identifier,
+static char_map_t *
+char_map_find_node(const char_map_t *map, const char *identifier,
     size_t length)
 {
 	if (!char_map_is_valid(map))
@@ -223,7 +223,7 @@ char_map_find_node(const char_map_ref map, const char *identifier,
 		return NULL;
 	}
 
-	return map;
+	return (char_map_t *) map;
 }
 
 /** Excludes the value assigned to the key from the map.
@@ -241,9 +241,9 @@ char_map_find_node(const char_map_ref map, const char *identifier,
  * @returns		The integral value assigned to the key character string.
  * @returns		CHAR_MAP_NULL if the key is not assigned a value.
  */
-int char_map_exclude(char_map_ref map, const char *identifier, size_t length)
+int char_map_exclude(char_map_t *map, const char *identifier, size_t length)
 {
-	char_map_ref node;
+	char_map_t *node;
 
 	node = char_map_find_node(map, identifier, length);
 	if (node) {
@@ -269,9 +269,9 @@ int char_map_exclude(char_map_ref map, const char *identifier, size_t length)
  *  @returns		The integral value assigned to the key character string.
  *  @returns		CHAR_MAP_NULL if the key is not assigned a value.
  */
-int char_map_find(const char_map_ref map, const char *identifier, size_t length)
+int char_map_find(const char_map_t *map, const char *identifier, size_t length)
 {
-	char_map_ref node;
+	char_map_t *node;
 
 	node = char_map_find_node(map, identifier, length);
 	return node ? node->value : CHAR_MAP_NULL;
@@ -284,7 +284,7 @@ int char_map_find(const char_map_ref map, const char *identifier, size_t length)
  *  @returns		EINVAL if the map parameter is NULL.
  *  @returns		ENOMEM if there is not enough memory left.
  */
-int char_map_initialize(char_map_ref map)
+int char_map_initialize(char_map_t *map)
 {
 	if (!map)
 		return EINVAL;
@@ -294,7 +294,7 @@ int char_map_initialize(char_map_ref map)
 	map->size = 2;
 	map->next = 0;
 
-	map->items = malloc(sizeof(char_map_ref) * map->size);
+	map->items = malloc(sizeof(char_map_t *) * map->size);
 	if (!map->items) {
 		map->magic = 0;
 		return ENOMEM;
@@ -329,10 +329,10 @@ int char_map_initialize(char_map_ref map)
  *			function.
  */
 int
-char_map_update(char_map_ref map, const char *identifier, const size_t length,
+char_map_update(char_map_t *map, const char *identifier, const size_t length,
     const int value)
 {
-	char_map_ref node;
+	char_map_t *node;
 
 	node = char_map_find_node(map, identifier, length);
 	if (node) {

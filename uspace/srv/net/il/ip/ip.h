@@ -58,30 +58,15 @@ typedef struct ip_globals ip_globals_t;
  */
 typedef struct ip_netif ip_netif_t;
 
-/** Type definition of the IP network interface specific data pointer.
- * @see ip_netif
- */
-typedef ip_netif_t *ip_netif_ref;
-
 /** Type definition of the IP protocol specific data.
  * @see ip_proto
  */
 typedef struct ip_proto ip_proto_t;
 
-/** Type definition of the IP protocol specific data pointer.
- * @see ip_proto
- */
-typedef ip_proto_t *ip_proto_ref;
-
 /** Type definition of the IP route specific data.
  *  @see ip_route
  */
 typedef struct ip_route	ip_route_t;
-
-/** Type definition of the IP route specific data pointer.
- *  @see ip_route
- */
-typedef ip_route_t *ip_route_ref;
 
 /** IP network interfaces.
  * Maps devices to the IP network interface specific data.
@@ -103,7 +88,7 @@ GENERIC_FIELD_DECLARE(ip_routes, ip_route_t);
 /** IP network interface specific data. */
 struct ip_netif {
 	/** ARP module. Assigned if using ARP. */
-	module_ref arp;
+	module_t *arp;
 	/** Broadcast address. */
 	in_addr_t broadcast;
 	/** Device identifier. */
@@ -145,7 +130,7 @@ struct ip_route {
 	/** Gateway. */
 	in_addr_t gateway;
 	/** Parent netif. */
-	ip_netif_ref netif;
+	ip_netif_t *netif;
 	/** Target network mask. */
 	in_addr_t netmask;
 };

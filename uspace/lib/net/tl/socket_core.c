@@ -67,7 +67,7 @@ struct socket_port {
 
 INT_MAP_IMPLEMENT(socket_cores, socket_core_t);
 
-GENERIC_CHAR_MAP_IMPLEMENT(socket_port_map, socket_core_ref);
+GENERIC_CHAR_MAP_IMPLEMENT(socket_port_map, socket_core_t *);
 
 INT_MAP_IMPLEMENT(socket_ports, socket_port_t);
 
@@ -84,9 +84,9 @@ INT_MAP_IMPLEMENT(socket_ports, socket_port_t);
  * @param[in] socket_release The client release callback function.
  */
 static void
-socket_destroy_core(int packet_phone, socket_core_ref socket,
-    socket_cores_ref local_sockets, socket_ports_ref global_sockets,
-    void (* socket_release)(socket_core_ref socket))
+socket_destroy_core(int packet_phone, socket_core_t *socket,
+    socket_cores_t *local_sockets, socket_ports_t *global_sockets,
+    void (* socket_release)(socket_core_t *socket))
 {
 	int packet_id;
 
@@ -120,9 +120,9 @@ socket_destroy_core(int packet_phone, socket_core_ref socket,
  * @param[in] socket_release The client release callback function.
  */
 void
-socket_cores_release(int packet_phone, socket_cores_ref local_sockets,
-    socket_ports_ref global_sockets,
-    void (* socket_release)(socket_core_ref socket))
+socket_cores_release(int packet_phone, socket_cores_t *local_sockets,
+    socket_ports_t *global_sockets,
+    void (* socket_release)(socket_core_t *socket))
 {
 	int index;
 
@@ -159,10 +159,10 @@ socket_cores_release(int packet_phone, socket_cores_ref local_sockets,
  * @returns		ENOMEM if there is not enough memory left.
  */
 static int
-socket_port_add_core(socket_port_ref socket_port, socket_core_ref socket,
+socket_port_add_core(socket_port_t *socket_port, socket_core_t *socket,
     const char *key, size_t key_length)
 {
-	socket_core_ref *socket_ref;
+	socket_core_t **socket_ref;
 	int rc;
 
 	// create a wrapper
@@ -199,10 +199,10 @@ socket_port_add_core(socket_port_ref socket_port, socket_core_ref socket,
  *			 socket_ports_add() function.
  */
 static int
-socket_bind_insert(socket_ports_ref global_sockets, socket_core_ref socket,
+socket_bind_insert(socket_ports_t *global_sockets, socket_core_t *socket,
     int port)
 {
-	socket_port_ref socket_port;
+	socket_port_t *socket_port;
 	int rc;
 
 	// create a wrapper
@@ -257,12 +257,12 @@ fail:
  *			socket_bind_insert() function.
  */
 int
-socket_bind(socket_cores_ref local_sockets, socket_ports_ref global_sockets,
+socket_bind(socket_cores_t *local_sockets, socket_ports_t *global_sockets,
     int socket_id, void *addr, size_t addrlen, int free_ports_start,
     int free_ports_end, int last_used_port)
 {
-	socket_core_ref socket;
-	socket_port_ref socket_port;
+	socket_core_t *socket;
+	socket_port_t *socket_port;
 	struct sockaddr *address;
 	struct sockaddr_in *address_in;
 
@@ -327,7 +327,7 @@ socket_bind(socket_cores_ref local_sockets, socket_ports_ref global_sockets,
  *			socket_bind_insert() function.
  */
 int
-socket_bind_free_port(socket_ports_ref global_sockets, socket_core_ref socket,
+socket_bind_free_port(socket_ports_t *global_sockets, socket_core_t *socket,
     int free_ports_start, int free_ports_end, int last_used_port)
 {
 	int index;
@@ -369,7 +369,7 @@ socket_bind_free_port(socket_ports_ref global_sockets, socket_core_ref socket,
  * @returns		The new socket identifier.
  * @returns		ELIMIT if there is no socket identifier available.
  */
-static int socket_generate_new_id(socket_cores_ref local_sockets, int positive)
+static int socket_generate_new_id(socket_cores_t *local_sockets, int positive)
 {
 	int socket_id;
 	int count;
@@ -414,10 +414,10 @@ static int socket_generate_new_id(socket_cores_ref local_sockets, int positive)
  * @returns		ENOMEM if there is not enough memory left.
  */
 int
-socket_create(socket_cores_ref local_sockets, int app_phone,
+socket_create(socket_cores_t *local_sockets, int app_phone,
     void *specific_data, int *socket_id)
 {
-	socket_core_ref socket;
+	socket_core_t *socket;
 	int positive;
 	int rc;
 
@@ -436,7 +436,7 @@ socket_create(socket_cores_ref local_sockets, int app_phone,
 		return EEXIST;
 	}
 	
-	socket = (socket_core_ref) malloc(sizeof(*socket));
+	socket = (socket_core_t *) malloc(sizeof(*socket));
 	if (!socket)
 		return ENOMEM;
 	
@@ -485,11 +485,11 @@ socket_create(socket_cores_ref local_sockets, int app_phone,
  * @returns		ENOTSOCK if the socket is not found.
  */
 int
-socket_destroy(int packet_phone, int socket_id, socket_cores_ref local_sockets,
-    socket_ports_ref global_sockets,
-    void (*socket_release)(socket_core_ref socket))
+socket_destroy(int packet_phone, int socket_id, socket_cores_t *local_sockets,
+    socket_ports_t *global_sockets,
+    void (*socket_release)(socket_core_t *socket))
 {
-	socket_core_ref socket;
+	socket_core_t *socket;
 	int accepted_id;
 
 	// find the socket
@@ -600,12 +600,12 @@ int socket_reply_packets(packet_t packet, size_t *length)
  * @returns		The found socket.
  * @returns		NULL if no socket was found.
  */
-socket_core_ref
-socket_port_find(socket_ports_ref global_sockets, int port, const char *key,
+socket_core_t *
+socket_port_find(socket_ports_t *global_sockets, int port, const char *key,
     size_t key_length)
 {
-	socket_port_ref socket_port;
-	socket_core_ref *socket_ref;
+	socket_port_t *socket_port;
+	socket_core_t **socket_ref;
 
 	socket_port = socket_ports_find(global_sockets, port);
 	if (socket_port && (socket_port->count > 0)) {
@@ -627,10 +627,10 @@ socket_port_find(socket_ports_ref global_sockets, int port, const char *key,
  * @param[in] socket	The socket to be unbound.
  */
 void
-socket_port_release(socket_ports_ref global_sockets, socket_core_ref socket)
+socket_port_release(socket_ports_t *global_sockets, socket_core_t *socket)
 {
-	socket_port_ref socket_port;
-	socket_core_ref *socket_ref;
+	socket_port_t *socket_port;
+	socket_core_t **socket_ref;
 
 	if (!socket->port)
 		return;
@@ -678,10 +678,10 @@ socket_port_release(socket_ports_ref global_sockets, socket_core_ref socket)
  *			socket_port_add_core() function.
  */
 int
-socket_port_add(socket_ports_ref global_sockets, int port,
-    socket_core_ref socket, const char *key, size_t key_length)
+socket_port_add(socket_ports_t *global_sockets, int port,
+    socket_core_t *socket, const char *key, size_t key_length)
 {
-	socket_port_ref socket_port;
+	socket_port_t *socket_port;
 	int rc;
 
 	// find ports

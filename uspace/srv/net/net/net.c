@@ -87,12 +87,12 @@ DEVICE_MAP_IMPLEMENT(netifs, netif_t);
  * @returns ENOMEM if there is not enough memory left.
  *
  */
-int add_configuration(measured_strings_ref configuration, const char *name,
+int add_configuration(measured_strings_t *configuration, const char *name,
     const char *value)
 {
 	int rc;
 	
-	measured_string_ref setting =
+	measured_string_t *setting =
 	    measured_string_create_bulk(value, 0);
 	if (!setting)
 		return ENOMEM;
@@ -116,7 +116,7 @@ static device_id_t generate_new_device_id(void)
 	return device_assign_devno();
 }
 
-static int parse_line(measured_strings_ref configuration, char *line)
+static int parse_line(measured_strings_t *configuration, char *line)
 {
 	int rc;
 	
@@ -162,7 +162,7 @@ static int parse_line(measured_strings_ref configuration, char *line)
 		value++;
 	
 	/* Create a bulk measured string till the end */
-	measured_string_ref setting =
+	measured_string_t *setting =
 	    measured_string_create_bulk(value, 0);
 	if (!setting)
 		return ENOMEM;
@@ -178,7 +178,7 @@ static int parse_line(measured_strings_ref configuration, char *line)
 }
 
 static int read_configuration_file(const char *directory, const char *filename,
-    measured_strings_ref configuration)
+    measured_strings_t *configuration)
 {
 	printf("%s: Reading configuration file %s/%s\n", NAME, directory, filename);
 	
@@ -355,15 +355,15 @@ out:
  * @returns EOK.
  *
  */
-static int net_get_conf(measured_strings_ref netif_conf,
-    measured_string_ref configuration, size_t count, char **data)
+static int net_get_conf(measured_strings_t *netif_conf,
+    measured_string_t *configuration, size_t count, char **data)
 {
 	if (data)
 		*data = NULL;
 	
 	size_t index;
 	for (index = 0; index < count; index++) {
-		measured_string_ref setting =
+		measured_string_t *setting =
 		    measured_strings_find(netif_conf, configuration[index].value, 0);
 		if (!setting)
 			setting = measured_strings_find(&net_globals.configuration,
@@ -381,7 +381,7 @@ static int net_get_conf(measured_strings_ref netif_conf,
 	return EOK;
 }
 
-int net_get_conf_req(int net_phone, measured_string_ref *configuration,
+int net_get_conf_req(int net_phone, measured_string_t **configuration,
     size_t count, char **data)
 {
 	if (!configuration || (count <= 0))
@@ -391,7 +391,7 @@ int net_get_conf_req(int net_phone, measured_string_ref *configuration,
 }
 
 int net_get_device_conf_req(int net_phone, device_id_t device_id,
-    measured_string_ref *configuration, size_t count, char **data)
+    measured_string_t **configuration, size_t count, char **data)
 {
 	if ((!configuration) || (count == 0))
 		return EINVAL;
@@ -403,7 +403,7 @@ int net_get_device_conf_req(int net_phone, device_id_t device_id,
 		return net_get_conf(NULL, *configuration, count, data);
 }
 
-void net_free_settings(measured_string_ref settings, char *data)
+void net_free_settings(measured_string_t *settings, char *data)
 {
 }
 
@@ -428,7 +428,7 @@ static int start_device(netif_t *netif)
 	int rc;
 	
 	/* Mandatory netif */
-	measured_string_ref setting =
+	measured_string_t *setting =
 	    measured_strings_find(&netif->configuration, CONF_NETIF, 0);
 	
 	netif->driver = get_running_module(&net_globals.modules, setting->value);
@@ -549,7 +549,7 @@ static int startup(void)
 		}
 		
 		/* Mandatory name */
-		measured_string_ref setting =
+		measured_string_t *setting =
 		    measured_strings_find(&netif->configuration, CONF_NAME, 0);
 		if (!setting) {
 			fprintf(stderr, "%s: Network interface name is missing\n", NAME);
@@ -619,7 +619,7 @@ static int startup(void)
 int net_message(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *answer,
     int *answer_count)
 {
-	measured_string_ref strings;
+	measured_string_t *strings;
 	char *data;
 	int rc;
 	

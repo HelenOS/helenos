@@ -63,9 +63,6 @@
 /** Type definition of the packet map page. */
 typedef packet_t packet_map_t[PACKET_MAP_SIZE];
 
-/** Type definition of the packet map page pointer. */
-typedef packet_map_t * packet_map_ref;
-
 /** Packet map.
  * Maps packet identifiers to the packet references.
  * @see generic_field.h
@@ -108,7 +105,7 @@ int pm_init(void)
  */
 packet_t pm_find(packet_id_t packet_id)
 {
-	packet_map_ref map;
+	packet_map_t *map;
 	packet_t packet;
 
 	if (!packet_id)
@@ -139,7 +136,7 @@ packet_t pm_find(packet_id_t packet_id)
  */
 int pm_add(packet_t packet)
 {
-	packet_map_ref map;
+	packet_map_t *map;
 	int rc;
 
 	if (!packet_is_valid(packet))
@@ -153,7 +150,7 @@ int pm_add(packet_t packet)
 		    PACKET_MAP_PAGE(packet->packet_id));
 	} else {
 		do {
-			map = (packet_map_ref) malloc(sizeof(packet_map_t));
+			map = (packet_map_t *) malloc(sizeof(packet_map_t));
 			if (!map) {
 				fibril_rwlock_write_unlock(&pm_globals.lock);
 				return ENOMEM;
@@ -179,7 +176,7 @@ void pm_destroy(void)
 {
 	int count;
 	int index;
-	packet_map_ref map;
+	packet_map_t *map;
 	packet_t packet;
 
 	fibril_rwlock_write_lock(&pm_globals.lock);

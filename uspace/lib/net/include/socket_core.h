@@ -65,20 +65,10 @@
  */
 typedef struct socket_core socket_core_t;
 
-/** Type definition of the socket core pointer.
- * @see socket_core
- */
-typedef socket_core_t *socket_core_ref;
-
 /** Type definition of the socket port.
  * @see socket_port
  */
 typedef struct socket_port socket_port_t;
-
-/** Type definition of the socket port pointer.
- * @see socket_port
- */
-typedef socket_port_t *socket_port_ref;
 
 /** Socket core. */
 struct socket_core {
@@ -110,27 +100,27 @@ INT_MAP_DECLARE(socket_cores, socket_core_t);
  * The listening socket has the SOCKET_MAP_KEY_LISTENING key identifier whereas
  * the other use the remote addresses.
  */
-GENERIC_CHAR_MAP_DECLARE(socket_port_map, socket_core_ref);
+GENERIC_CHAR_MAP_DECLARE(socket_port_map, socket_core_t *);
 
 /** Ports map.
  * The key is the port number.
  */
 INT_MAP_DECLARE(socket_ports, socket_port_t);
 
-extern void socket_cores_release(int, socket_cores_ref, socket_ports_ref,
-    void (*)(socket_core_ref));
-extern int socket_bind(socket_cores_ref, socket_ports_ref, int, void *, size_t,
+extern void socket_cores_release(int, socket_cores_t *, socket_ports_t *,
+    void (*)(socket_core_t *));
+extern int socket_bind(socket_cores_t *, socket_ports_t *, int, void *, size_t,
     int, int, int);
-extern int socket_bind_free_port(socket_ports_ref, socket_core_ref, int, int,
+extern int socket_bind_free_port(socket_ports_t *, socket_core_t *, int, int,
     int);
-extern int socket_create(socket_cores_ref, int, void *, int *);
-extern int socket_destroy(int, int, socket_cores_ref, socket_ports_ref,
-    void (*)(socket_core_ref));
+extern int socket_create(socket_cores_t *, int, void *, int *);
+extern int socket_destroy(int, int, socket_cores_t *, socket_ports_t *,
+    void (*)(socket_core_t *));
 extern int socket_reply_packets(packet_t, size_t *);
-extern socket_core_ref socket_port_find(socket_ports_ref, int, const char *,
+extern socket_core_t *socket_port_find(socket_ports_t *, int, const char *,
     size_t);
-extern void socket_port_release(socket_ports_ref, socket_core_ref);
-extern int socket_port_add(socket_ports_ref, int, socket_core_ref,
+extern void socket_port_release(socket_ports_t *, socket_core_t *);
+extern int socket_port_add(socket_ports_t *, int, socket_core_t *,
     const char *, size_t);
 
 #endif

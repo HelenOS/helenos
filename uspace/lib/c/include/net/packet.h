@@ -47,20 +47,10 @@ typedef int packet_id_t;
  */
 typedef struct packet * packet_t;
 
-/** Type definition of the packet pointer.
- * @see packet
- */
-typedef packet_t * packet_ref;
-
 /** Type definition of the packet dimension.
  * @see packet_dimension
  */
 typedef struct packet_dimension	packet_dimension_t;
-
-/** Type definition of the packet dimension pointer.
- * @see packet_dimension
- */
-typedef packet_dimension_t * packet_dimension_ref;
 
 /** Packet dimension. */
 struct packet_dimension {

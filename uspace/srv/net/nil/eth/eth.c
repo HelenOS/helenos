@@ -155,11 +155,6 @@
  */
 typedef enum eth_addr_type eth_addr_type_t;
 
-/** Type definition of the ethernet address type pointer.
- * @see eth_addr_type
- */
-typedef eth_addr_type_t *eth_addr_type_ref;
-
 /** Ethernet address type. */
 enum eth_addr_type {
 	/** Local address. */
@@ -177,7 +172,7 @@ INT_MAP_IMPLEMENT(eth_protos, eth_proto_t);
 int nil_device_state_msg_local(int nil_phone, device_id_t device_id, int state)
 {
 	int index;
-	eth_proto_ref proto;
+	eth_proto_t *proto;
 
 	fibril_rwlock_read_lock(&eth_globals.protos_lock);
 	for (index = eth_protos_count(&eth_globals.protos) - 1; index >= 0;
@@ -285,7 +280,7 @@ static void eth_receiver(ipc_callid_t iid, ipc_call_t *icall)
 static int eth_device_message(device_id_t device_id, services_t service,
     size_t mtu)
 {
-	eth_device_ref device;
+	eth_device_t *device;
 	int index;
 	measured_string_t names[2] = {
 		{
@@ -297,10 +292,10 @@ static int eth_device_message(device_id_t device_id, services_t service,
 			9
 		}
 	};
-	measured_string_ref configuration;
+	measured_string_t *configuration;
 	size_t count = sizeof(names) / sizeof(measured_string_t);
 	char *data;
-	eth_proto_ref proto;
+	eth_proto_t *proto;
 	int rc;
 
 	fibril_rwlock_write_lock(&eth_globals.devices_lock);
@@ -341,7 +336,7 @@ static int eth_device_message(device_id_t device_id, services_t service,
 	}
 	
 	/* Create a new device */
-	device = (eth_device_ref) malloc(sizeof(eth_device_t));
+	device = (eth_device_t *) malloc(sizeof(eth_device_t));
 	if (!device)
 		return ENOMEM;
 
@@ -433,14 +428,14 @@ static int eth_device_message(device_id_t device_id, services_t service,
  * @returns		NULL if the dummy device FCS checksum is invalid.
  * @returns		NULL if the packet address length is not big enough.
  */
-static eth_proto_ref eth_process_packet(int flags, packet_t packet)
+static eth_proto_t *eth_process_packet(int flags, packet_t packet)
 {
-	eth_header_snap_ref header;
+	eth_header_snap_t *header;
 	size_t length;
 	eth_type_t type;
 	size_t prefix;
 	size_t suffix;
-	eth_fcs_ref fcs;
+	eth_fcs_t *fcs;
 	uint8_t *data;
 	int rc;
 
@@ -453,14 +448,14 @@ static eth_proto_ref eth_process_packet(int flags, packet_t packet)
 		return NULL;
 	
 	data = packet_get_data(packet);
-	header = (eth_header_snap_ref) data;
+	header = (eth_header_snap_t *) data;
 	type = ntohs(header->header.ethertype);
 	
 	if (type >= ETH_MIN_PROTO) {
 		/* DIX Ethernet */
 		prefix = sizeof(eth_header_t);
 		suffix = 0;
-		fcs = (eth_fcs_ref) data + length - sizeof(eth_fcs_t);
+		fcs = (eth_fcs_t *) data + length - sizeof(eth_fcs_t);
 		length -= sizeof(eth_fcs_t);
 	} else if(type <= ETH_MAX_CONTENT) {
 		/* Translate "LSAP" values */
@@ -486,7 +481,7 @@ static eth_proto_ref eth_process_packet(int flags, packet_t packet)
 		}
 
 		suffix = (type < ETH_MIN_CONTENT) ? ETH_MIN_CONTENT - type : 0U;
-		fcs = (eth_fcs_ref) data + prefix + type + suffix;
+		fcs = (eth_fcs_t *) data + prefix + type + suffix;
 		suffix += length - prefix - type;
 		length = prefix + type + suffix;
 	} else {
@@ -515,9 +510,9 @@ static eth_proto_ref eth_process_packet(int flags, packet_t packet)
 int nil_received_msg_local(int nil_phone, device_id_t device_id,
     packet_t packet, services_t target)
 {
-	eth_proto_ref proto;
+	eth_proto_t *proto;
 	packet_t next;
-	eth_device_ref device;
+	eth_device_t *device;
 	int flags;
 
 	fibril_rwlock_read_lock(&eth_globals.devices_lock);
@@ -563,7 +558,7 @@ int nil_received_msg_local(int nil_phone, device_id_t device_id,
 static int eth_packet_space_message(device_id_t device_id, size_t *addr_len,
     size_t *prefix, size_t *content, size_t *suffix)
 {
-	eth_device_ref device;
+	eth_device_t *device;
 
 	if (!addr_len || !prefix || !content || !suffix)
 		return EBADMEM;
@@ -595,9 +590,9 @@ static int eth_packet_space_message(device_id_t device_id, size_t *addr_len,
  * @returns		ENOENT if there no such device.
  */
 static int eth_addr_message(device_id_t device_id, eth_addr_type_t type,
-    measured_string_ref *address)
+    measured_string_t **address)
 {
-	eth_device_ref device;
+	eth_device_t *device;
 
 	if (!address)
 		return EBADMEM;
@@ -630,7 +625,7 @@ static int eth_addr_message(device_id_t device_id, eth_addr_type_t type,
  */
 static int eth_register_message(services_t service, int phone)
 {
-	eth_proto_ref proto;
+	eth_proto_t *proto;
 	int protocol;
 	int index;
 
@@ -645,7 +640,7 @@ static int eth_register_message(services_t service, int phone)
 		fibril_rwlock_write_unlock(&eth_globals.protos_lock);
 		return EOK;
 	} else {
-		proto = (eth_proto_ref) malloc(sizeof(eth_proto_t));
+		proto = (eth_proto_t *) malloc(sizeof(eth_proto_t));
 		if (!proto) {
 			fibril_rwlock_write_unlock(&eth_globals.protos_lock);
 			return ENOMEM;
@@ -687,16 +682,16 @@ static int
 eth_prepare_packet(int flags, packet_t packet, uint8_t *src_addr, int ethertype,
     size_t mtu)
 {
-	eth_header_snap_ref header;
-	eth_header_lsap_ref header_lsap;
-	eth_header_ref header_dix;
-	eth_fcs_ref fcs;
+	eth_header_snap_t *header;
+	eth_header_lsap_t *header_lsap;
+	eth_header_t *header_dix;
+	eth_fcs_t *fcs;
 	uint8_t *src;
 	uint8_t *dest;
 	size_t length;
 	int i;
 	void *padding;
-	eth_preamble_ref preamble;
+	eth_preamble_t *preamble;
 
 	i = packet_get_addr(packet, &src, &dest);
 	if (i < 0)
@@ -794,7 +789,7 @@ eth_prepare_packet(int flags, packet_t packet, uint8_t *src_addr, int ethertype,
 static int eth_send_message(device_id_t device_id, packet_t packet,
     services_t sender)
 {
-	eth_device_ref device;
+	eth_device_t *device;
 	packet_t next;
 	packet_t tmp;
 	int ethertype;
@@ -844,7 +839,7 @@ static int eth_send_message(device_id_t device_id, packet_t packet,
 int nil_message_standalone(const char *name, ipc_callid_t callid,
     ipc_call_t *call, ipc_call_t *answer, int *answer_count)
 {
-	measured_string_ref address;
+	measured_string_t *address;
 	packet_t packet;
 	size_t addrlen;
 	size_t prefix;

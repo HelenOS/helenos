@@ -62,14 +62,14 @@ GENERIC_CHAR_MAP_IMPLEMENT(modules, module_t)
  * @returns		ENOMEM if there is not enough memory left.
  */
 int
-add_module(module_ref *module, modules_ref modules, const char *name,
+add_module(module_t **module, modules_t *modules, const char *name,
     const char *filename, services_t service, task_id_t task_id,
     connect_module_t connect_module)
 {
-	module_ref tmp_module;
+	module_t *tmp_module;
 	int rc;
 
-	tmp_module = (module_ref) malloc(sizeof(module_t));
+	tmp_module = (module_t *) malloc(sizeof(module_t));
 	if (!tmp_module)
 		return ENOMEM;
 
@@ -103,9 +103,9 @@ add_module(module_ref *module, modules_ref modules, const char *name,
  *			connected.
  * @returns		NULL if there is no such module.
  */
-module_ref get_running_module(modules_ref modules, char *name)
+module_t *get_running_module(modules_t *modules, char *name)
 {
-	module_ref module;
+	module_t *module;
 
 	module = modules_find(modules, name, 0);
 	if (!module)

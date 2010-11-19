@@ -156,7 +156,8 @@ int netif_specific_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * 
 	return ENOTSUP;
 }
 
-int netif_get_device_stats(device_id_t device_id, device_stats_ref stats){
+int netif_get_device_stats(device_id_t device_id, device_stats_t *stats)
+{
 	netif_device_t * device;
 	eth_stat_t * de_stat;
 	int rc;
@@ -184,7 +185,7 @@ int netif_get_device_stats(device_id_t device_id, device_stats_ref stats){
 	return EOK;
 }
 
-int netif_get_addr_message(device_id_t device_id, measured_string_ref address){
+int netif_get_addr_message(device_id_t device_id, measured_string_t *address){
 	netif_device_t * device;
 	int rc;
 

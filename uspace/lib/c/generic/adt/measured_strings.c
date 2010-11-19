@@ -57,16 +57,16 @@
  * @returns		The new bundled character string with measured length.
  * @returns		NULL if there is not enough memory left.
  */
-measured_string_ref
+measured_string_t *
 measured_string_create_bulk(const char *string, size_t length)
 {
-	measured_string_ref new;
+	measured_string_t *new;
 
 	if (length == 0) {
 		while (string[length])
 			length++;
 	}
-	new = (measured_string_ref) malloc(sizeof(measured_string_t) +
+	new = (measured_string_t *) malloc(sizeof(measured_string_t) +
 	    (sizeof(char) * (length + 1)));
 	if (!new)
 		return NULL;
@@ -87,14 +87,14 @@ measured_string_create_bulk(const char *string, size_t length)
  * @returns		NULL if the source parameter is NULL.
  * @returns		NULL if there is not enough memory left.
  */
-measured_string_ref measured_string_copy(measured_string_ref source)
+measured_string_t *measured_string_copy(measured_string_t *source)
 {
-	measured_string_ref new;
+	measured_string_t *new;
 
 	if (!source)
 		return NULL;
 
-	new = (measured_string_ref) malloc(sizeof(measured_string_t));
+	new = (measured_string_t *) malloc(sizeof(measured_string_t));
 	if (new) {
 		new->value = (char *) malloc(source->length + 1);
 		if (new->value) {
@@ -130,7 +130,7 @@ measured_string_ref measured_string_copy(measured_string_ref source)
  *			async_data_write_finalize() function.
  */
 int
-measured_strings_receive(measured_string_ref *strings, char **data,
+measured_strings_receive(measured_string_t **strings, char **data,
     size_t count)
 {
 	size_t *lengths;
@@ -165,7 +165,7 @@ measured_strings_receive(measured_string_ref *strings, char **data,
 	}
 	(*data)[lengths[count] - 1] = '\0';
 
-	*strings = (measured_string_ref) malloc(sizeof(measured_string_t) *
+	*strings = (measured_string_t *) malloc(sizeof(measured_string_t) *
 	    count);
 	if (!*strings) {
 		free(lengths);
@@ -211,7 +211,7 @@ measured_strings_receive(measured_string_ref *strings, char **data,
  * @returns		The computed sizes array.
  * @returns		NULL if there is not enough memory left.
  */
-static size_t *prepare_lengths(const measured_string_ref strings, size_t count)
+static size_t *prepare_lengths(const measured_string_t *strings, size_t count)
 {
 	size_t *lengths;
 	size_t index;
@@ -247,7 +247,7 @@ static size_t *prepare_lengths(const measured_string_ref strings, size_t count)
  * @returns		Other error codes as defined for the
  *			async_data_read_finalize() function.
  */
-int measured_strings_reply(const measured_string_ref strings, size_t count)
+int measured_strings_reply(const measured_string_t *strings, size_t count)
 {
 	size_t *lengths;
 	size_t index;
@@ -310,7 +310,7 @@ int measured_strings_reply(const measured_string_ref strings, size_t count)
  *			async_data_read_start() function.
  */
 int
-measured_strings_return(int phone, measured_string_ref *strings, char **data,
+measured_strings_return(int phone, measured_string_t **strings, char **data,
     size_t count)
 {
 	size_t *lengths;
@@ -338,7 +338,7 @@ measured_strings_return(int phone, measured_string_ref *strings, char **data,
 		return ENOMEM;
 	}
 
-	*strings = (measured_string_ref) malloc(sizeof(measured_string_t) *
+	*strings = (measured_string_t *) malloc(sizeof(measured_string_t) *
 	    count);
 	if (!*strings) {
 		free(lengths);
@@ -384,7 +384,7 @@ measured_strings_return(int phone, measured_string_ref *strings, char **data,
  *			async_data_write_start() function.
  */
 int
-measured_strings_send(int phone, const measured_string_ref strings,
+measured_strings_send(int phone, const measured_string_t *strings,
     size_t count)
 {
 	size_t *lengths;

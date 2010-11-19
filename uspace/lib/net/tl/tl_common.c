@@ -119,8 +119,8 @@ tl_get_address_port(const struct sockaddr *addr, int addrlen, uint16_t *port)
  */
 int
 tl_get_ip_packet_dimension(int ip_phone,
-    packet_dimensions_ref packet_dimensions, device_id_t device_id,
-    packet_dimension_ref *packet_dimension)
+    packet_dimensions_t *packet_dimensions, device_id_t device_id,
+    packet_dimension_t **packet_dimension)
 {
 	int rc;
 	
@@ -161,10 +161,10 @@ tl_get_ip_packet_dimension(int ip_phone,
  * @return		ENOENT if the packet dimension is not cached.
  */
 int
-tl_update_ip_packet_dimension(packet_dimensions_ref packet_dimensions,
+tl_update_ip_packet_dimension(packet_dimensions_t *packet_dimensions,
     device_id_t device_id, size_t content)
 {
-	packet_dimension_ref packet_dimension;
+	packet_dimension_t *packet_dimension;
 
 	packet_dimension = packet_dimensions_find(packet_dimensions, device_id);
 	if (!packet_dimension)
@@ -286,8 +286,8 @@ tl_prepare_icmp_packet(int packet_phone, int icmp_phone, packet_t packet,
  *			async_data_read_finalize() function.
  */
 int
-tl_socket_read_packet_data(int packet_phone, packet_ref packet, size_t prefix,
-    const packet_dimension_ref dimension, const struct sockaddr *addr,
+tl_socket_read_packet_data(int packet_phone, packet_t *packet, size_t prefix,
+    const packet_dimension_t *dimension, const struct sockaddr *addr,
     socklen_t addrlen)
 {
 	ipc_callid_t callid;

@@ -102,7 +102,7 @@ static struct {
 	.count = 0
 };
 
-int packet_translate_local(int phone, packet_ref packet, packet_id_t packet_id)
+int packet_translate_local(int phone, packet_t *packet, packet_id_t packet_id)
 {
 	if (!packet)
 		return EINVAL;
