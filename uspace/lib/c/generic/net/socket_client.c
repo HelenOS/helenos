@@ -156,7 +156,7 @@ static struct socket_client_globals {
 //	int last_id;
 
 	/** Active sockets. */
-	sockets_ref sockets;
+	sockets_t *sockets;
 
 	/** Safety lock.
 	 * Write lock is used only for adding or removing sockets.
@@ -179,11 +179,11 @@ INT_MAP_IMPLEMENT(sockets, socket_t);
  *
  *  @returns		The active sockets.
  */
-static sockets_ref socket_get_sockets(void)
+static sockets_t *socket_get_sockets(void)
 {
 	if (!socket_globals.sockets) {
 		socket_globals.sockets =
-		    (sockets_ref) malloc(sizeof(sockets_t));
+		    (sockets_t *) malloc(sizeof(sockets_t));
 		if (!socket_globals.sockets)
 			return NULL;
 
@@ -326,7 +326,7 @@ static int socket_get_udp_phone(void)
  */
 static int socket_generate_new_id(void)
 {
-	sockets_ref sockets;
+	sockets_t *sockets;
 	int socket_id = 0;
 	int count;
 

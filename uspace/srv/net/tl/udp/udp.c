@@ -452,7 +452,7 @@ static int udp_received_msg(device_id_t device_id, packet_t packet,
  * @returns		Other error codes as defined for the ip_send_msg()
  *			function.
  */
-static int udp_sendto_message(socket_cores_ref local_sockets, int socket_id,
+static int udp_sendto_message(socket_cores_t *local_sockets, int socket_id,
     const struct sockaddr *addr, socklen_t addrlen, int fragments,
     size_t *data_fragment_size, int flags)
 {
@@ -608,7 +608,7 @@ static int udp_sendto_message(socket_cores_ref local_sockets, int socket_id,
  * @returns		Other error codes as defined for the data_reply()
  *			function.
  */
-static int udp_recvfrom_message(socket_cores_ref local_sockets, int socket_id,
+static int udp_recvfrom_message(socket_cores_t *local_sockets, int socket_id,
     int flags, size_t *addrlen)
 {
 	socket_core_t *socket;

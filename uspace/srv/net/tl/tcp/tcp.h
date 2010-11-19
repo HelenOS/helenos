@@ -261,7 +261,7 @@ struct tcp_socket_data {
 	/** Remote host port. */
 	uint16_t dest_port;
 	/** Parent local sockets. */
-	socket_cores_ref local_sockets;
+	socket_cores_t *local_sockets;
 	
 	/** Local sockets safety lock.
 	 *

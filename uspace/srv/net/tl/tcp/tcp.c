@@ -138,7 +138,7 @@ struct tcp_timeout {
 	int port;
 
 	/** Local sockets. */
-	socket_cores_ref local_sockets;
+	socket_cores_t *local_sockets;
 
 	/** Socket identifier. */
 	int socket_id;
@@ -171,7 +171,7 @@ static int tcp_timeout(void *);
 static int tcp_release_after_timeout(void *);
 
 static int tcp_process_packet(device_id_t, packet_t, services_t);
-static int tcp_connect_core(socket_core_t *, socket_cores_ref,
+static int tcp_connect_core(socket_core_t *, socket_cores_t *,
     struct sockaddr *, socklen_t);
 static int tcp_queue_prepare_packet(socket_core_t *, tcp_socket_data_t *,
     packet_t, size_t);
@@ -208,13 +208,13 @@ static int tcp_queue_received_packet(socket_core_t *, tcp_socket_data_t *,
 static int tcp_received_msg(device_id_t, packet_t, services_t, services_t);
 static int tcp_process_client_messages(ipc_callid_t, ipc_call_t);
 
-static int tcp_listen_message(socket_cores_ref, int, int);
-static int tcp_connect_message(socket_cores_ref, int, struct sockaddr *,
+static int tcp_listen_message(socket_cores_t *, int, int);
+static int tcp_connect_message(socket_cores_t *, int, struct sockaddr *,
     socklen_t);
-static int tcp_recvfrom_message(socket_cores_ref, int, int, size_t *);
-static int tcp_send_message(socket_cores_ref, int, int, size_t *, int);
-static int tcp_accept_message(socket_cores_ref, int, int, size_t *, size_t *);
-static int tcp_close_message(socket_cores_ref, int);
+static int tcp_recvfrom_message(socket_cores_t *, int, int, size_t *);
+static int tcp_send_message(socket_cores_t *, int, int, size_t *, int);
+static int tcp_accept_message(socket_cores_t *, int, int, size_t *, size_t *);
+static int tcp_close_message(socket_cores_t *, int);
 
 /** TCP global data. */
 tcp_globals_t tcp_globals;
@@ -1677,7 +1677,7 @@ void tcp_retransmit_packet(socket_core_t *socket, tcp_socket_data_t *
 	}
 }
 
-int tcp_listen_message(socket_cores_ref local_sockets, int socket_id,
+int tcp_listen_message(socket_cores_t *local_sockets, int socket_id,
     int backlog)
 {
 	socket_core_t *socket;
@@ -1703,7 +1703,7 @@ int tcp_listen_message(socket_cores_ref local_sockets, int socket_id,
 	return EOK;
 }
 
-int tcp_connect_message(socket_cores_ref local_sockets, int socket_id,
+int tcp_connect_message(socket_cores_t *local_sockets, int socket_id,
     struct sockaddr *addr, socklen_t addrlen)
 {
 	socket_core_t *socket;
@@ -1731,7 +1731,7 @@ int tcp_connect_message(socket_cores_ref local_sockets, int socket_id,
 	return rc;
 }
 
-int tcp_connect_core(socket_core_t *socket, socket_cores_ref local_sockets,
+int tcp_connect_core(socket_core_t *socket, socket_cores_t *local_sockets,
     struct sockaddr *addr, socklen_t addrlen)
 {
 	tcp_socket_data_t *socket_data;
@@ -2090,7 +2090,7 @@ int tcp_prepare_timeout(int (*timeout_function)(void *tcp_timeout_t),
 	return EOK;
 }
 
-int tcp_recvfrom_message(socket_cores_ref local_sockets, int socket_id,
+int tcp_recvfrom_message(socket_cores_t *local_sockets, int socket_id,
     int flags, size_t *addrlen)
 {
 	socket_core_t *socket;
@@ -2148,7 +2148,7 @@ int tcp_recvfrom_message(socket_cores_ref local_sockets, int socket_id,
 	return (int) length;
 }
 
-int tcp_send_message(socket_cores_ref local_sockets, int socket_id,
+int tcp_send_message(socket_cores_t *local_sockets, int socket_id,
     int fragments, size_t *data_fragment_size, int flags)
 {
 	socket_core_t *socket;
@@ -2224,7 +2224,7 @@ int tcp_send_message(socket_cores_ref local_sockets, int socket_id,
 }
 
 int
-tcp_close_message(socket_cores_ref local_sockets, int socket_id)
+tcp_close_message(socket_cores_t *local_sockets, int socket_id)
 {
 	socket_core_t *socket;
 	tcp_socket_data_t *socket_data;
@@ -2326,7 +2326,7 @@ int tcp_create_notification_packet(packet_t *packet, socket_core_t *socket,
 	return EOK;
 }
 
-int tcp_accept_message(socket_cores_ref local_sockets, int socket_id,
+int tcp_accept_message(socket_cores_t *local_sockets, int socket_id,
     int new_socket_id, size_t *data_fragment_size, size_t *addrlen)
 {
 	socket_core_t *accepted;

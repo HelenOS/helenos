@@ -87,7 +87,7 @@ DEVICE_MAP_IMPLEMENT(netifs, netif_t);
  * @returns ENOMEM if there is not enough memory left.
  *
  */
-int add_configuration(measured_strings_ref configuration, const char *name,
+int add_configuration(measured_strings_t *configuration, const char *name,
     const char *value)
 {
 	int rc;
@@ -116,7 +116,7 @@ static device_id_t generate_new_device_id(void)
 	return device_assign_devno();
 }
 
-static int parse_line(measured_strings_ref configuration, char *line)
+static int parse_line(measured_strings_t *configuration, char *line)
 {
 	int rc;
 	
@@ -178,7 +178,7 @@ static int parse_line(measured_strings_ref configuration, char *line)
 }
 
 static int read_configuration_file(const char *directory, const char *filename,
-    measured_strings_ref configuration)
+    measured_strings_t *configuration)
 {
 	printf("%s: Reading configuration file %s/%s\n", NAME, directory, filename);
 	
@@ -355,7 +355,7 @@ out:
  * @returns EOK.
  *
  */
-static int net_get_conf(measured_strings_ref netif_conf,
+static int net_get_conf(measured_strings_t *netif_conf,
     measured_string_t *configuration, size_t count, char **data)
 {
 	if (data)

@@ -132,7 +132,7 @@ typedef struct {
 	netifs_t netifs;
 } net_globals_t;
 
-extern int add_configuration(measured_strings_ref, const char *, const char *);
+extern int add_configuration(measured_strings_t *, const char *, const char *);
 extern int net_module_message(ipc_callid_t, ipc_call_t *, ipc_call_t *, int *);
 extern int net_initialize_build(async_client_conn_t);
 extern int net_message(ipc_callid_t, ipc_call_t *, ipc_call_t *, int *);

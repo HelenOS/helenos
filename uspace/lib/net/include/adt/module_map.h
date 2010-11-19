@@ -71,9 +71,9 @@ struct module_struct {
 	connect_module_t *connect_module;
 };
 
-extern int add_module(module_t **, modules_ref, const char *, const char *,
+extern int add_module(module_t **, modules_t *, const char *, const char *,
     services_t, task_id_t, connect_module_t *);
-extern module_t *get_running_module(modules_ref, char *);
+extern module_t *get_running_module(modules_t *, char *);
 extern task_id_t spawn(const char *);
 
 #endif
