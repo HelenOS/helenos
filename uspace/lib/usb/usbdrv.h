@@ -40,21 +40,12 @@
 
 int usb_drv_hc_connect(device_t *, unsigned int);
 
-/** Set endpoint properties (direction, type). */
-int usb_drv_set_endpoint_properties(device_t *, usb_endpoint_t,
-    usb_transfer_type_t, usb_direction_t);
-
-/* First variant - repeat transfer type. */
-int usb_drv_interrupt_out(device_t *, usb_endpoint_t,
+int usb_drv_async_interrupt_out(int, usb_endpoint_t,
     void *, size_t, usb_handle_t *);
+int usb_drv_async_interrupt_in(int, usb_endpoint_t,
+    void *, size_t, size_t *, usb_handle_t *);
 
-/* Second variant - let the HC determine transfer type by endpoint number. */
-int usb_drv_transfer_out(device_t *, usb_endpoint_t,
-    void *, size_t, usb_handle_t *);
-
-
-/** Wait for usb_drv_transfer_* to complete. */
-int usb_drv_wait_for(usb_handle_t);
+int usb_drv_async_wait_for(usb_handle_t);
 
 #endif
 /**

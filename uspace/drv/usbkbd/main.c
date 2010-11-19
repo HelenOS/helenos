@@ -29,6 +29,41 @@
 #include <driver.h>
 #include <errno.h>
 
+#define BUFFER_SIZE 32
+
+/* Call this periodically to check keyboard status changes. */
+static void poll_keyboard(device_t *dev)
+{
+	int rc;
+	usb_handle_t handle;
+	char buffer[BUFFER_SIZE];
+	size_t actual_size;
+	usb_endpoint_t poll_endpoint = 1;
+
+	rc = usb_drv_async_interrupt_in(dev->parent_phone, poll_endpoint,
+	    buffer, BUFFER_SIZE, &actual_size, &handle);
+	if (rc != EOK) {
+		return;
+	}
+
+	rc = usb_drv_async_wait_for(handle);
+	if (rc != EOK) {
+		return;
+	}
+
+	/*
+	 * If the keyboard answered with NAK, it returned no data.
+	 * This implies that no change happened since last query.
+	 */
+	if (actual_size == 0) {
+		return;
+	}
+
+	/*
+	 * Process pressed keys.
+	 */
+}
+
 static int add_kbd_device(device_t *dev)
 {
 	/* For now, fail immediately. */
@@ -37,14 +72,21 @@ static int add_kbd_device(device_t *dev)
 	/*
 	 * When everything is okay, connect to "our" HC.
 	 */
-	int rc = usb_drv_hc_connect(dev, 0);
-	if (rc != EOK) {
+	int phone = usb_drv_hc_connect(dev, 0);
+	if (phone < 0) {
 		/*
 		 * Connecting to HC failed, roll-back and announce
 		 * failure.
 		 */
-		return rc;
+		return phone;
 	}
+
+	dev->parent_phone = phone;
+
+	/*
+	 * Just for fun ;-).
+	 */
+	poll_keyboard(dev);
 
 	/*
 	 * Hurrah, device is initialized.

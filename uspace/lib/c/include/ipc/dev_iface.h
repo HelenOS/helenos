@@ -37,6 +37,7 @@
 typedef enum {	
 	HW_RES_DEV_IFACE = 0,	
 	CHAR_DEV_IFACE,
+	USB_DEV_IFACE,
 	// TODO add more interfaces
 	DEV_IFACE_MAX
 } dev_inferface_idx_t;

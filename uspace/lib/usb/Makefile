@@ -29,7 +29,7 @@
 USPACE_PREFIX = ../..
 LIBRARY = libusb
 LIBS = $(LIBDRV_PREFIX)/libdrv.a
-EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include
+EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include -I$(LIB_PREFIX)
 
 SOURCES = \
 	hcd.c \

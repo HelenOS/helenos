@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2010 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,41 +26,57 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
- * @defgroup libdrv generic device driver support.
- * @brief HelenOS generic device driver support.
+/** @addtogroup libdrv
  * @{
  */
-
 /** @file
  */
 
-#include "dev_iface.h"
-#include "remote_res.h"
-#include "remote_char.h"
-#include "remote_usb.h"
+#include <ipc/ipc.h>
+#include <async.h>
+#include <errno.h>
 
-static iface_dipatch_table_t remote_ifaces = {
-	.ifaces = {
-		&remote_res_iface,
-		&remote_char_iface,
-		&remote_usb_iface
-	}
+#include "usb_iface.h"
+#include "driver.h"
+
+static void remote_usb_get_buffer(device_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usb_interrupt_out(device_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usb_interrupt_in(device_t *, void *, ipc_callid_t, ipc_call_t *);
+//static void remote_usb(device_t *, void *, ipc_callid_t, ipc_call_t *);
+
+/** Remote USB interface operations. */
+static remote_iface_func_ptr_t remote_usb_iface_ops [] = {
+	&remote_usb_get_buffer,
+	&remote_usb_interrupt_out,
+	&remote_usb_interrupt_in
 };
 
-remote_iface_t* get_remote_iface(int idx)
-{	
-	assert(is_valid_iface_idx(idx));
-	return remote_ifaces.ifaces[idx];
+/** Remote USB interface structure.
+ */
+remote_iface_t remote_usb_iface = {
+	.method_count = sizeof(remote_usb_iface_ops) /
+	    sizeof(remote_usb_iface_ops[0]),
+	.methods = remote_usb_iface_ops
+};
+
+
+
+void remote_usb_get_buffer(device_t *device, void *iface,
+    ipc_callid_t callid, ipc_call_t *call)
+{
+	ipc_answer_0(callid, ENOTSUP);
 }
 
-remote_iface_func_ptr_t
-get_remote_method(remote_iface_t *rem_iface, ipcarg_t iface_method_idx)
+void remote_usb_interrupt_out(device_t *device, void *iface,
+	    ipc_callid_t callid, ipc_call_t *call)
 {
-	if (iface_method_idx >= rem_iface->method_count) {
-		return NULL;
-	}
-	return rem_iface->methods[iface_method_idx];
+	ipc_answer_0(callid, ENOTSUP);
+}
+
+void remote_usb_interrupt_in(device_t *device, void *iface,
+	    ipc_callid_t callid, ipc_call_t *call)
+{
+	ipc_answer_0(callid, ENOTSUP);
 }
 
 /**

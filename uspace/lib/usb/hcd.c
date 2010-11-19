@@ -58,21 +58,6 @@ typedef struct {
 #define NAMESPACE "usb"
 
 
-/** String representation of USB transaction outcome. */
-const char * usb_str_transaction_outcome(usb_transaction_outcome_t o)
-{
-	switch (o) {
-		case USB_OUTCOME_OK:
-			return "ok";
-		case USB_OUTCOME_CRCERROR:
-			return "CRC error";
-		case USB_OUTCOME_BABBLE:
-			return "babble";
-		default:
-			return "unknown";
-	}
-}
-
 /** Create necessary phones for communicating with HCD.
  * This function wraps following calls:
  * -# open <code>/dev/usb/<i>hcd_path</i></code> for reading
