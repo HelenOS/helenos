@@ -91,15 +91,15 @@ generic_device_req_remote(int phone, int message, device_id_t device_id,
  * @param[in] device_id	The device identifier.
  * @param[out] address	The desired address.
  * @param[out] data	The address data container.
- * @returns		EOK on success.
- * @returns		EBADMEM if the address parameter and/or the data
+ * @return		EOK on success.
+ * @return		EBADMEM if the address parameter and/or the data
  *			parameter is NULL.
- * @returns		Other error codes as defined for the specific service
+ * @return		Other error codes as defined for the specific service
  *			message.
  */
 int
 generic_get_addr_req(int phone, int message, device_id_t device_id,
-    measured_string_ref *address, char ** data)
+    measured_string_t **address, char ** data)
 {
 	aid_t message_id;
 	ipcarg_t result;
@@ -137,7 +137,7 @@ generic_get_addr_req(int phone, int message, device_id_t device_id,
  */
 int
 generic_packet_size_req_remote(int phone, int message, device_id_t device_id,
-    packet_dimension_ref packet_dimension)
+    packet_dimension_t *packet_dimension)
 {
 	if (!packet_dimension)
 		return EBADMEM;
@@ -222,18 +222,18 @@ generic_send_msg_remote(int phone, int message, device_id_t device_id,
  * @param[in] count	The number of configuration keys.
  * @param[out] translation The translated values.
  * @param[out] data	The translation data container.
- * @returns		EOK on success.
- * @returns		EINVAL if the configuration parameter is NULL.
- * @returns		EINVAL if the count parameter is zero.
- * @returns		EBADMEM if the translation or the data parameters are
+ * @return		EOK on success.
+ * @return		EINVAL if the configuration parameter is NULL.
+ * @return		EINVAL if the count parameter is zero.
+ * @return		EBADMEM if the translation or the data parameters are
  *			NULL.
- * @returns		Other error codes as defined for the specific service
+ * @return		Other error codes as defined for the specific service
  *			message.
  */
 int
 generic_translate_req(int phone, int message, device_id_t device_id,
-    services_t service, measured_string_ref configuration, size_t count,
-    measured_string_ref *translation, char **data)
+    services_t service, measured_string_t *configuration, size_t count,
+    measured_string_t **translation, char **data)
 {
 	aid_t message_id;
 	ipcarg_t result;

@@ -96,8 +96,8 @@ udp_globals_t udp_globals;
  *
  * @param[in] client_connection The client connection processing function. The
  *			module skeleton propagates its own one.
- * @returns		EOK on success.
- * @returns		ENOMEM if there is not enough memory left.
+ * @return		EOK on success.
+ * @return		ENOMEM if there is not enough memory left.
  */
 int udp_initialize(async_client_conn_t client_connection)
 {
@@ -111,7 +111,7 @@ int udp_initialize(async_client_conn_t client_connection)
 			15
 		}
 	};
-	measured_string_ref configuration;
+	measured_string_t *configuration;
 	size_t count = sizeof(names) / sizeof(measured_string_t);
 	char *data;
 	int rc;
@@ -204,16 +204,16 @@ static int udp_release_and_return(packet_t packet, int result)
  * @param[in,out] packet The received packet queue.
  * @param[in] error	The packet error reporting service. Prefixes the
  *			received packet.
- * @returns		EOK on success.
- * @returns		EINVAL if the packet is not valid.
- * @returns		EINVAL if the stored packet address is not the
+ * @return		EOK on success.
+ * @return		EINVAL if the packet is not valid.
+ * @return		EINVAL if the stored packet address is not the
  *			an_addr_t.
- * @returns		EINVAL if the packet does not contain any data.
- * @returns 		NO_DATA if the packet content is shorter than the user
+ * @return		EINVAL if the packet does not contain any data.
+ * @return 		NO_DATA if the packet content is shorter than the user
  *			datagram header.
- * @returns		ENOMEM if there is not enough memory left.
- * @returns		EADDRNOTAVAIL if the destination socket does not exist.
- * @returns		Other error codes as defined for the
+ * @return		ENOMEM if there is not enough memory left.
+ * @return		EADDRNOTAVAIL if the destination socket does not exist.
+ * @return		Other error codes as defined for the
  *			ip_client_process_packet() function.
  */
 static int udp_process_packet(device_id_t device_id, packet_t packet,
@@ -222,8 +222,8 @@ static int udp_process_packet(device_id_t device_id, packet_t packet,
 	size_t length;
 	size_t offset;
 	int result;
-	udp_header_ref header;
-	socket_core_ref socket;
+	udp_header_t *header;
+	socket_core_t *socket;
 	packet_t next_packet;
 	size_t total_length;
 	uint32_t checksum;
@@ -234,7 +234,7 @@ static int udp_process_packet(device_id_t device_id, packet_t packet,
 	void *ip_header;
 	struct sockaddr *src;
 	struct sockaddr *dest;
-	packet_dimension_ref packet_dimension;
+	packet_dimension_t *packet_dimension;
 	int rc;
 
 	switch (error) {
@@ -276,7 +276,7 @@ static int udp_process_packet(device_id_t device_id, packet_t packet,
 		return udp_release_and_return(packet, rc);
 
 	/* Get UDP header */
-	header = (udp_header_ref) packet_get_data(packet);
+	header = (udp_header_t *) packet_get_data(packet);
 	if (!header)
 		return udp_release_and_return(packet, NO_DATA);
 
@@ -408,8 +408,8 @@ static int udp_process_packet(device_id_t device_id, packet_t packet,
  * @param receiver	The target service. Ignored parameter.
  * @param[in] error	The packet error reporting service. Prefixes the
  *			received packet.
- * @returns		EOK on success.
- * @returns		Other error codes as defined for the
+ * @return		EOK on success.
+ * @return		Other error codes as defined for the
  *			udp_process_packet() function.
  */
 static int udp_received_msg(device_id_t device_id, packet_t packet,
@@ -438,28 +438,28 @@ static int udp_received_msg(device_id_t device_id, packet_t packet,
  * @param[in] fragments	The number of data fragments.
  * @param[out] data_fragment_size The data fragment size in bytes.
  * @param[in] flags	Various send flags.
- * @returns		EOK on success.
- * @returns		EAFNOTSUPPORT if the address family is not supported.
- * @returns		ENOTSOCK if the socket is not found.
- * @returns		EINVAL if the address is invalid.
- * @returns		ENOTCONN if the sending socket is not and cannot be
+ * @return		EOK on success.
+ * @return		EAFNOTSUPPORT if the address family is not supported.
+ * @return		ENOTSOCK if the socket is not found.
+ * @return		EINVAL if the address is invalid.
+ * @return		ENOTCONN if the sending socket is not and cannot be
  *			bound.
- * @returns		ENOMEM if there is not enough memory left.
- * @returns		Other error codes as defined for the
+ * @return		ENOMEM if there is not enough memory left.
+ * @return		Other error codes as defined for the
  *			socket_read_packet_data() function.
- * @returns		Other error codes as defined for the
+ * @return		Other error codes as defined for the
  *			ip_client_prepare_packet() function.
- * @returns		Other error codes as defined for the ip_send_msg()
+ * @return		Other error codes as defined for the ip_send_msg()
  *			function.
  */
-static int udp_sendto_message(socket_cores_ref local_sockets, int socket_id,
+static int udp_sendto_message(socket_cores_t *local_sockets, int socket_id,
     const struct sockaddr *addr, socklen_t addrlen, int fragments,
     size_t *data_fragment_size, int flags)
 {
-	socket_core_ref socket;
+	socket_core_t *socket;
 	packet_t packet;
 	packet_t next_packet;
-	udp_header_ref header;
+	udp_header_t *header;
 	int index;
 	size_t total_length;
 	int result;
@@ -468,7 +468,7 @@ static int udp_sendto_message(socket_cores_ref local_sockets, int socket_id,
 	void *ip_header;
 	size_t headerlen;
 	device_id_t device_id;
-	packet_dimension_ref packet_dimension;
+	packet_dimension_t *packet_dimension;
 	int rc;
 	
 	rc = tl_get_address_port(addr, addrlen, &dest_port);
@@ -598,23 +598,23 @@ static int udp_sendto_message(socket_cores_ref local_sockets, int socket_id,
  * @param[in] socket_id	Socket identifier.
  * @param[in] flags	Various receive flags.
  * @param[out] addrlen	The source address length.
- * @returns		The number of bytes received.
- * @returns		ENOTSOCK if the socket is not found.
- * @returns		NO_DATA if there are no received packets or data.
- * @returns		ENOMEM if there is not enough memory left.
- * @returns		EINVAL if the received address is not an IP address.
- * @returns		Other error codes as defined for the packet_translate()
+ * @return		The number of bytes received.
+ * @return		ENOTSOCK if the socket is not found.
+ * @return		NO_DATA if there are no received packets or data.
+ * @return		ENOMEM if there is not enough memory left.
+ * @return		EINVAL if the received address is not an IP address.
+ * @return		Other error codes as defined for the packet_translate()
  *			function.
- * @returns		Other error codes as defined for the data_reply()
+ * @return		Other error codes as defined for the data_reply()
  *			function.
  */
-static int udp_recvfrom_message(socket_cores_ref local_sockets, int socket_id,
+static int udp_recvfrom_message(socket_cores_t *local_sockets, int socket_id,
     int flags, size_t *addrlen)
 {
-	socket_core_ref socket;
+	socket_core_t *socket;
 	int packet_id;
 	packet_t packet;
-	udp_header_ref header;
+	udp_header_t *header;
 	struct sockaddr *addr;
 	size_t length;
 	uint8_t *data;
@@ -643,7 +643,7 @@ static int udp_recvfrom_message(socket_cores_ref local_sockets, int socket_id,
 		(void) dyn_fifo_pop(&socket->received);
 		return udp_release_and_return(packet, NO_DATA);
 	}
-	header = (udp_header_ref) data;
+	header = (udp_header_t *) data;
 
 	/* Set the source address port */
 	result = packet_get_addr(packet, (uint8_t **) &addr, NULL);
@@ -697,7 +697,7 @@ static int udp_recvfrom_message(socket_cores_ref local_sockets, int socket_id,
  *
  * @param[in] callid 	The message identifier.
  * @param[in] call	The message parameters.
- * @returns		EOK on success.
+ * @return		EOK on success.
  *
  * @see	socket.h
  */
@@ -713,7 +713,7 @@ static int udp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 	size_t size;
 	ipc_call_t answer;
 	int answer_count;
-	packet_dimension_ref packet_dimension;
+	packet_dimension_t *packet_dimension;
 
 	/*
 	 * Accept the connection
@@ -851,8 +851,8 @@ static int udp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
  * @param[out] answer	The message answer parameters.
  * @param[out] answer_count The last parameter for the actual answer in the
  *			answer parameter.
- * @returns		EOK on success.
- * @returns		ENOTSUP if the message is not known.
+ * @return		EOK on success.
+ * @return		ENOTSUP if the message is not known.
  *
  * @see udp_interface.h
  * @see IS_NET_UDP_MESSAGE()
@@ -923,8 +923,8 @@ static void tl_client_connection(ipc_callid_t iid, ipc_call_t * icall)
 
 /** Starts the module.
  *
- * @returns		EOK on success.
- * @returns		Other error codes as defined for each specific module
+ * @return		EOK on success.
+ * @return		Other error codes as defined for each specific module
  *			start function.
  */
 int main(int argc, char *argv[])

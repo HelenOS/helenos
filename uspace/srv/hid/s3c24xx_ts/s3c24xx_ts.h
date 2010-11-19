@@ -124,7 +124,7 @@ typedef struct {
 	int client_phone;
 
 	/** Device handle */
-	dev_handle_t dev_handle;
+	devmap_handle_t devmap_handle;
 
 	/** Device/driver state */
 	ts_state_t state;

@@ -123,9 +123,9 @@ struct packet {
 
 /** Returns whether the packet is valid.
  * @param[in] packet	The packet to be checked.
- * @returns		True if the packet is not NULL and the magic value is
+ * @return		True if the packet is not NULL and the magic value is
  *			correct.
- * @returns		False otherwise.
+ * @return		False otherwise.
  */
 static inline int packet_is_valid(const packet_t packet)
 {

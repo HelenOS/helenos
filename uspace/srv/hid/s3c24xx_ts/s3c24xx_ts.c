@@ -98,7 +98,7 @@ int main(int argc, char *argv[])
 	if (s3c24xx_ts_init(ts) != EOK)
 		return -1;
 
-	rc = devmap_device_register(NAMESPACE "/mouse", &ts->dev_handle);
+	rc = devmap_device_register(NAMESPACE "/mouse", &ts->devmap_handle);
 	if (rc != EOK) {
 		devmap_hangup_phone(DEVMAP_DRIVER);
 		printf(NAME ": Unable to register device %s.\n",

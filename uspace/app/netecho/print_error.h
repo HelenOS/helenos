@@ -42,14 +42,14 @@
 /** Returns whether the error code may be an ICMP error code.
  *
  * @param[in] error_code The error code.
- * @returns A value indicating whether the error code may be an ICMP error code.
+ * @return A value indicating whether the error code may be an ICMP error code.
  */
 #define IS_ICMP_ERROR(error_code)	((error_code) > 0)
 
 /** Returns whether the error code may be socket error code.
  *
  * @param[in] error_code The error code.
- * @returns A value indicating whether the error code may be a socket error code.
+ * @return A value indicating whether the error code may be a socket error code.
  */
 #define IS_SOCKET_ERROR(error_code)	((error_code) < 0)
 

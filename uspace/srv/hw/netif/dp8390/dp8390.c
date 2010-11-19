@@ -61,8 +61,8 @@
 /** Queues the outgoing packet.
  *  @param[in] dep The network interface structure.
  *  @param[in] packet The outgoing packet.
- *  @returns EOK on success.
- *  @returns EINVAL 
+ *  @return EOK on success.
+ *  @return EINVAL 
  */
 int queue_packet(dpeth_t * dep, packet_t packet);
 

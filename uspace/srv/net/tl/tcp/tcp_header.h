@@ -58,28 +58,13 @@
  */
 typedef struct tcp_header tcp_header_t;
 
-/** Type definition of the transmission datagram header pointer.
- * @see tcp_header
- */
-typedef tcp_header_t *tcp_header_ref;
-
 /** Type definition of the transmission datagram header option.
  * @see tcp_option
  */
 typedef struct tcp_option tcp_option_t;
 
-/** Type definition of the transmission datagram header option pointer.
- * @see tcp_option
- */
-typedef tcp_option_t *tcp_option_ref;
-
 /** Type definition of the Maximum segment size TCP option. */
 typedef struct tcp_max_segment_size_option tcp_max_segment_size_option_t;
-
-/** Type definition of the Maximum segment size TCP option pointer.
- * @see tcp_max_segment_size_option
- */
-typedef tcp_max_segment_size_option_t *tcp_max_segment_size_option_ref;
 
 /** Transmission datagram header. */
 struct tcp_header {

@@ -47,12 +47,12 @@
 /*@{*/
 
 extern int arp_device_req(int, device_id_t, services_t, services_t,
-    measured_string_ref);
-extern int arp_translate_req(int, device_id_t, services_t, measured_string_ref,
-    measured_string_ref *, char **);
+    measured_string_t *);
+extern int arp_translate_req(int, device_id_t, services_t, measured_string_t *,
+    measured_string_t **, char **);
 extern int arp_clear_device_req(int, device_id_t);
 extern int arp_clear_address_req(int, device_id_t, services_t,
-    measured_string_ref);
+    measured_string_t *);
 extern int arp_clean_cache_req(int);
 extern int arp_connect_module(services_t);
 

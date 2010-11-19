@@ -69,7 +69,7 @@ int netif_specific_message(ipc_callid_t callid, ipc_call_t *call,
 	return ENOTSUP;
 }
 
-int netif_get_addr_message(device_id_t device_id, measured_string_ref address)
+int netif_get_addr_message(device_id_t device_id, measured_string_t *address)
 {
 	if (!address)
 		return EBADMEM;
@@ -80,7 +80,7 @@ int netif_get_addr_message(device_id_t device_id, measured_string_ref address)
 	return EOK;
 }
 
-int netif_get_device_stats(device_id_t device_id, device_stats_ref stats)
+int netif_get_device_stats(device_id_t device_id, device_stats_t *stats)
 {
 	netif_device_t *device;
 	int rc;
@@ -92,7 +92,7 @@ int netif_get_device_stats(device_id_t device_id, device_stats_ref stats)
 	if (rc != EOK)
 		return rc;
 
-	memcpy(stats, (device_stats_ref) device->specific,
+	memcpy(stats, (device_stats_t *) device->specific,
 	    sizeof(device_stats_t));
 
 	return EOK;
@@ -102,8 +102,8 @@ int netif_get_device_stats(device_id_t device_id, device_stats_ref stats)
  *
  * @param[in] device	The device structure.
  * @param[in] state	The new device state.
- * @returns		The new state if changed.
- * @returns		EOK otherwise.
+ * @return		The new state if changed.
+ * @return		EOK otherwise.
  */
 static int change_state_message(netif_device_t *device, device_state_t state)
 {
@@ -123,9 +123,9 @@ static int change_state_message(netif_device_t *device, device_state_t state)
  *
  * @param[in] device_id	The new devce identifier.
  * @param[out] device	The device structure.
- * @returns		EOK on success.
- * @returns		EXDEV if one loopback network interface already exists.
- * @returns		ENOMEM if there is not enough memory left.
+ * @return		EOK on success.
+ * @return		EXDEV if one loopback network interface already exists.
+ * @return		ENOMEM if there is not enough memory left.
  */
 static int create(device_id_t device_id, netif_device_t **device)
 {
@@ -144,7 +144,7 @@ static int create(device_id_t device_id, netif_device_t **device)
 		return ENOMEM;
 	}
 
-	null_device_stats((device_stats_ref) (*device)->specific);
+	null_device_stats((device_stats_t *) (*device)->specific);
 	(*device)->device_id = device_id;
 	(*device)->nil_phone = -1;
 	(*device)->state = NETIF_STOPPED;
@@ -203,11 +203,11 @@ int netif_send_message(device_id_t device_id, packet_t packet, services_t sender
 
 	next = packet;
 	do {
-		((device_stats_ref) device->specific)->send_packets++;
-		((device_stats_ref) device->specific)->receive_packets++;
+		((device_stats_t *) device->specific)->send_packets++;
+		((device_stats_t *) device->specific)->receive_packets++;
 		length = packet_get_data_length(next);
-		((device_stats_ref) device->specific)->send_bytes += length;
-		((device_stats_ref) device->specific)->receive_bytes += length;
+		((device_stats_t *) device->specific)->send_bytes += length;
+		((device_stats_t *) device->specific)->receive_bytes += length;
 		next = pq_next(next);
 	} while(next);
 

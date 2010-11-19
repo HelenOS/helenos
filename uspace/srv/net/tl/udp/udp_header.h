@@ -48,11 +48,6 @@
  */
 typedef struct udp_header udp_header_t;
 
-/** Type definition of the user datagram header pointer.
- * @see udp_header
- */
-typedef udp_header_t *udp_header_ref;
-
 /** User datagram header. */
 struct udp_header {
 	uint16_t source_port;

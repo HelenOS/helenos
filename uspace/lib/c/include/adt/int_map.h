@@ -55,9 +55,7 @@
  */
 #define INT_MAP_DECLARE(name, type) \
 	typedef	struct name name##_t; \
-	typedef	name##_t *name##_ref; \
 	typedef	struct name##_item name##_item_t; \
-	typedef	name##_item_t *name##_item_ref; \
 	\
 	struct	name##_item { \
 		int key; \
@@ -68,23 +66,23 @@
 	struct	name { \
 		int size; \
 		int next; \
-		name##_item_ref items; \
+		name##_item_t *items; \
 		int magic; \
 	}; \
 	\
-	int name##_add(name##_ref, int, type *); \
-	void name##_clear(name##_ref); \
-	int name##_count(name##_ref); \
-	void name##_destroy(name##_ref); \
-	void name##_exclude(name##_ref, int); \
-	void name##_exclude_index(name##_ref, int); \
-	type *name##_find(name##_ref, int); \
-	int name##_update(name##_ref, int, int); \
-	type *name##_get_index(name##_ref, int); \
-	int name##_initialize(name##_ref); \
-	int name##_is_valid(name##_ref); \
-	void name##_item_destroy(name##_item_ref); \
-	int name##_item_is_valid(name##_item_ref);
+	int name##_add(name##_t *, int, type *); \
+	void name##_clear(name##_t *); \
+	int name##_count(name##_t *); \
+	void name##_destroy(name##_t *); \
+	void name##_exclude(name##_t *, int); \
+	void name##_exclude_index(name##_t *, int); \
+	type *name##_find(name##_t *, int); \
+	int name##_update(name##_t *, int, int); \
+	type *name##_get_index(name##_t *, int); \
+	int name##_initialize(name##_t *); \
+	int name##_is_valid(name##_t *); \
+	void name##_item_destroy(name##_item_t *); \
+	int name##_item_is_valid(name##_item_t *);
 
 /** Integer to generic type map implementation.
  *
@@ -94,12 +92,12 @@
  * @param[in] type	Inner object type.
  */
 #define INT_MAP_IMPLEMENT(name, type) \
-	int name##_add(name##_ref map, int key, type *value) \
+	int name##_add(name##_t *map, int key, type *value) \
 	{ \
 		if (name##_is_valid(map)) { \
 			if (map->next == (map->size - 1)) { \
-				name##_item_ref tmp; \
-				tmp = (name##_item_ref) realloc(map->items, \
+				name##_item_t *tmp; \
+				tmp = (name##_item_t *) realloc(map->items, \
 				    sizeof(name##_item_t) * 2 * map->size); \
 				if (!tmp) \
 					return ENOMEM; \
@@ -116,7 +114,7 @@
 		return EINVAL; \
 	} \
 	\
-	void name##_clear(name##_ref map) \
+	void name##_clear(name##_t *map) \
 	{ \
 		if (name##_is_valid(map)) { \
 			int index; \
@@ -131,12 +129,12 @@
 		} \
 	} \
 	\
-	int name##_count(name##_ref map) \
+	int name##_count(name##_t *map) \
 	{ \
 		return name##_is_valid(map) ? map->next : -1; \
 	} \
 	\
-	void name##_destroy(name##_ref map) \
+	void name##_destroy(name##_t *map) \
 	{ \
 		if (name##_is_valid(map)) { \
 			int index; \
@@ -151,7 +149,7 @@
 		} \
 	} \
 	\
-	void name##_exclude(name##_ref map, int key) \
+	void name##_exclude(name##_t *map, int key) \
 	{ \
 		if (name##_is_valid(map)) { \
 			int index; \
@@ -165,7 +163,7 @@
 		} \
 	} \
 	\
-	void name##_exclude_index(name##_ref map, int index) \
+	void name##_exclude_index(name##_t *map, int index) \
 	{ \
 		if (name##_is_valid(map) && (index >= 0) && \
 		    (index < map->next) && \
@@ -174,7 +172,7 @@
 		} \
 	} \
 	\
-	type *name##_find(name##_ref map, int key) \
+	type *name##_find(name##_t *map, int key) \
 	{ \
 		if (name##_is_valid(map)) { \
 			int index; \
@@ -188,7 +186,7 @@
 		return NULL; \
 	} \
 	\
-	int name##_update(name##_ref map, int key, int new_key) \
+	int name##_update(name##_t *map, int key, int new_key) \
 	{ \
 		if (name##_is_valid(map)) { \
 			int index; \
@@ -207,7 +205,7 @@
 		return ENOENT; \
 	} \
 	\
-	type *name##_get_index(name##_ref map, int index) \
+	type *name##_get_index(name##_t *map, int index) \
 	{ \
 		if (name##_is_valid(map) && (index >= 0) && \
 		    (index < map->next) && \
@@ -217,13 +215,13 @@
 		return NULL; \
 	} \
 	\
-	int name##_initialize(name##_ref map) \
+	int name##_initialize(name##_t *map) \
 	{ \
 		if (!map) \
 			return EINVAL; \
 		map->size = 2; \
 		map->next = 0; \
-		map->items = (name##_item_ref) malloc(sizeof(name##_item_t) * \
+		map->items = (name##_item_t *) malloc(sizeof(name##_item_t) * \
 		    map->size); \
 		if (!map->items) \
 			return ENOMEM; \
@@ -232,12 +230,12 @@
 		return EOK; \
 	} \
 	\
-	int name##_is_valid(name##_ref map) \
+	int name##_is_valid(name##_t *map) \
 	{ \
 		return map && (map->magic == INT_MAP_MAGIC_VALUE); \
 	} \
 	\
-	void name##_item_destroy(name##_item_ref item) \
+	void name##_item_destroy(name##_item_t *item) \
 	{ \
 		if (name##_item_is_valid(item)) { \
 			item->magic = 0; \
@@ -248,7 +246,7 @@
 		} \
 	} \
 	\
-	int name##_item_is_valid(name##_item_ref item) \
+	int name##_item_is_valid(name##_item_t *item) \
 	{ \
 		return item && (item->magic == INT_MAP_ITEM_MAGIC_VALUE); \
 	}

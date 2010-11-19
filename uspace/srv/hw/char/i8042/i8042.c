@@ -144,7 +144,7 @@ int main(int argc, char *argv[])
 		i8042_port[i].client_phone = -1;
 
 		snprintf(name, 16, "%s/ps2%c", NAMESPACE, dchar[i]);
-		rc = devmap_device_register(name, &i8042_port[i].dev_handle);
+		rc = devmap_device_register(name, &i8042_port[i].devmap_handle);
 		if (rc != EOK) {
 			devmap_hangup_phone(DEVMAP_DRIVER);
 			printf(NAME ": Unable to register device %s.\n", name);
@@ -217,7 +217,7 @@ static void i8042_connection(ipc_callid_t iid, ipc_call_t *icall)
 	ipc_callid_t callid;
 	ipc_call_t call;
 	ipcarg_t method;
-	dev_handle_t dh;
+	devmap_handle_t dh;
 	int retval;
 	int dev_id, i;
 
@@ -229,7 +229,7 @@ static void i8042_connection(ipc_callid_t iid, ipc_call_t *icall)
 	/* Determine which disk device is the client connecting to. */
 	dev_id = -1;
 	for (i = 0; i < MAX_DEVS; i++) {
-		if (i8042_port[i].dev_handle == dh)
+		if (i8042_port[i].devmap_handle == dh)
 			dev_id = i;
 	}
 

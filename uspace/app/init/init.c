@@ -184,7 +184,7 @@ static void console(const char *dev)
 	printf("%s: Spawning %s %s\n", NAME, SRV_CONSOLE, hid_in);
 	
 	/* Wait for the input device to be ready */
-	dev_handle_t handle;
+	devmap_handle_t handle;
 	rc = devmap_device_get_handle(dev, &handle, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
 		printf("%s: Error waiting on %s (%s)\n", NAME, hid_in,
@@ -209,7 +209,7 @@ static void getterm(const char *dev, const char *app, bool wmsg)
 	printf("%s: Spawning %s %s %s\n", NAME, APP_GETTERM, term, app);
 	
 	/* Wait for the terminal device to be ready */
-	dev_handle_t handle;
+	devmap_handle_t handle;
 	rc = devmap_device_get_handle(dev, &handle, IPC_FLAG_BLOCKING);
 	if (rc != EOK) {
 		printf("%s: Error waiting on %s (%s)\n", NAME, term,

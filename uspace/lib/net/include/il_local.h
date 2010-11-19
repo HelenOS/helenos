@@ -43,8 +43,8 @@
  * @param[out]		answer The message answer parameters.
  * @param[out]		answer_count The last parameter for the actual answer in
  *			the answer parameter.
- * @returns		EOK on success.
- * @returns		Other error codes as defined for the arp_message()
+ * @return		EOK on success.
+ * @return		Other error codes as defined for the arp_message()
  *			function.
  */
 extern int il_module_message_standalone(ipc_callid_t callid, ipc_call_t *call,
@@ -58,10 +58,10 @@ extern int il_module_message_standalone(ipc_callid_t callid, ipc_call_t *call,
  *
  * @param[in] client_connection The client connection processing function. The
  *			module skeleton propagates its own one.
- * @returns		EOK on successful module termination.
- * @returns		Other error codes as defined for the arp_initialize()
+ * @return		EOK on successful module termination.
+ * @return		Other error codes as defined for the arp_initialize()
  *			function.
- * @returns		Other error codes as defined for the REGISTER_ME() macro
+ * @return		Other error codes as defined for the REGISTER_ME() macro
  *			function.
  */
 extern int il_module_start_standalone(async_client_conn_t client_connection);

@@ -54,11 +54,6 @@
  */
 typedef struct arp_device arp_device_t;
 
-/** Type definition of the ARP device specific data pointer.
- * @see arp_device
- */
-typedef arp_device_t *arp_device_ref;
-
 /** Type definition of the ARP global data.
  * @see arp_globals
  */
@@ -68,11 +63,6 @@ typedef struct arp_globals arp_globals_t;
  * @see arp_proto
  */
 typedef struct arp_proto arp_proto_t;
-
-/** Type definition of the ARP protocol specific data pointer.
- * @see arp_proto
- */
-typedef arp_proto_t *arp_proto_ref;
 
 /** ARP address map.
  *
@@ -98,11 +88,11 @@ INT_MAP_DECLARE(arp_protos, arp_proto_t);
 /** ARP device specific data. */
 struct arp_device {
 	/** Actual device hardware address. */
-	measured_string_ref addr;
+	measured_string_t * addr;
 	/** Actual device hardware address data. */
 	char *addr_data;
 	/** Broadcast device hardware address. */
-	measured_string_ref broadcast_addr;
+	measured_string_t * broadcast_addr;
 	/** Broadcast device hardware address data. */
 	char *broadcast_data;
 	/** Device identifier. */
@@ -144,7 +134,7 @@ struct arp_globals {
 /** ARP protocol specific data. */
 struct arp_proto {
 	/** Actual device protocol address. */
-	measured_string_ref addr;
+	measured_string_t *addr;
 	/** Actual device protocol address data. */
 	char *addr_data;
 	/** Address map. */

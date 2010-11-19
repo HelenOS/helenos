@@ -59,11 +59,6 @@ typedef enum device_state device_state_t;
  */
 typedef struct device_stats device_stats_t;
 
-/** Type definition of the device usage statistics pointer.
- * @see device_stats
- */
-typedef device_stats_t *device_stats_ref;
-
 /** Device state. */
 enum device_state {
 	/** Device not present or not initialized. */

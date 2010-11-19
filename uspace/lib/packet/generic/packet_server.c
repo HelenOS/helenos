@@ -102,7 +102,7 @@ static struct {
 	.count = 0
 };
 
-int packet_translate_local(int phone, packet_ref packet, packet_id_t packet_id)
+int packet_translate_local(int phone, packet_t *packet, packet_id_t packet_id)
 {
 	if (!packet)
 		return EINVAL;
@@ -153,8 +153,8 @@ packet_init(packet_t packet, size_t addr_len, size_t max_prefix,
  * @param[in] max_prefix The maximal prefix length in bytes.
  * @param[in] max_content The maximal content length in bytes.
  * @param[in] max_suffix The maximal suffix length in bytes.
- * @returns		The packet of dimensions at least as given.
- * @returns		NULL if there is not enough memory left.
+ * @return		The packet of dimensions at least as given.
+ * @return		NULL if there is not enough memory left.
  */
 static packet_t
 packet_create(size_t length, size_t addr_len, size_t max_prefix,
@@ -277,8 +277,8 @@ static void packet_release(packet_t packet)
 /** Releases the packet queue.
  *
  * @param[in] packet_id	The first packet identifier.
- * @returns		EOK on success.
- * @returns		ENOENT if there is no such packet.
+ * @return		EOK on success.
+ * @return		ENOENT if there is no such packet.
  */
 static int packet_release_wrapper(packet_id_t packet_id)
 {
@@ -302,11 +302,11 @@ void pq_release_local(int phone, packet_id_t packet_id)
 
 /** Shares the packet memory block.
  * @param[in] packet	The packet to be shared.
- * @returns		EOK on success.
- * @returns		EINVAL if the packet is not valid.
- * @returns		EINVAL if the calling module does not accept the memory.
- * @returns		ENOMEM if the desired and actual sizes differ.
- * @returns		Other error codes as defined for the
+ * @return		EOK on success.
+ * @return		EINVAL if the packet is not valid.
+ * @return		EINVAL if the calling module does not accept the memory.
+ * @return		ENOMEM if the desired and actual sizes differ.
+ * @return		Other error codes as defined for the
  *			async_share_in_finalize() function.
  */
 static int packet_reply(const packet_t packet)
@@ -338,12 +338,12 @@ static int packet_reply(const packet_t packet)
  * @param[out] answer	The message answer parameters.
  * @param[out] answer_count The last parameter for the actual answer in the
  *			answer parameter.
- * @returns		EOK on success.
- * @returns		ENOMEM if there is not enough memory left.
- * @returns		ENOENT if there is no such packet as in the packet
+ * @return		EOK on success.
+ * @return		ENOMEM if there is not enough memory left.
+ * @return		ENOENT if there is no such packet as in the packet
  *			message parameter.
- * @returns		ENOTSUP if the message is not known.
- * @returns		Other error codes as defined for the
+ * @return		ENOTSUP if the message is not known.
+ * @return		Other error codes as defined for the
  *			packet_release_wrapper() function.
  */
 int
