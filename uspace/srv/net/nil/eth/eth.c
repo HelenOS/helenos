@@ -267,14 +267,14 @@ static void eth_receiver(ipc_callid_t iid, ipc_call_t *icall)
  * @param[in] device_id	The new device identifier.
  * @param[in] service	The device driver service.
  * @param[in] mtu	The device maximum transmission unit.
- * @returns		EOK on success.
- * @returns		EEXIST if the device with the different service exists.
- * @returns		ENOMEM if there is not enough memory left.
- * @returns		Other error codes as defined for the
+ * @return		EOK on success.
+ * @return		EEXIST if the device with the different service exists.
+ * @return		ENOMEM if there is not enough memory left.
+ * @return		Other error codes as defined for the
  *			net_get_device_conf_req() function.
- * @returns		Other error codes as defined for the
+ * @return		Other error codes as defined for the
  *			netif_bind_service() function.
- * @returns		Other error codes as defined for the
+ * @return		Other error codes as defined for the
  *			netif_get_addr_req() function.
  */
 static int eth_device_message(device_id_t device_id, services_t service,
@@ -421,12 +421,12 @@ static int eth_device_message(device_id_t device_id, services_t service,
  *
  * @param[in] flags	The device flags.
  * @param[in] packet	The packet.
- * @returns		The target registered module.
- * @returns		NULL if the packet is not long enough.
- * @returns		NULL if the packet is too long.
- * @returns		NULL if the raw ethernet protocol is used.
- * @returns		NULL if the dummy device FCS checksum is invalid.
- * @returns		NULL if the packet address length is not big enough.
+ * @return		The target registered module.
+ * @return		NULL if the packet is not long enough.
+ * @return		NULL if the packet is too long.
+ * @return		NULL if the raw ethernet protocol is used.
+ * @return		NULL if the dummy device FCS checksum is invalid.
+ * @return		NULL if the packet address length is not big enough.
  */
 static eth_proto_t *eth_process_packet(int flags, packet_t packet)
 {
@@ -551,9 +551,9 @@ int nil_received_msg_local(int nil_phone, device_id_t device_id,
  * @param[out] prefix	The minimum reserved prefix size.
  * @param[out] content	The maximum content size.
  * @param[out] suffix	The minimum reserved suffix size.
- * @returns		EOK on success.
- * @returns		EBADMEM if either one of the parameters is NULL.
- * @returns		ENOENT if there is no such device.
+ * @return		EOK on success.
+ * @return		EBADMEM if either one of the parameters is NULL.
+ * @return		ENOENT if there is no such device.
  */
 static int eth_packet_space_message(device_id_t device_id, size_t *addr_len,
     size_t *prefix, size_t *content, size_t *suffix)
@@ -585,9 +585,9 @@ static int eth_packet_space_message(device_id_t device_id, size_t *addr_len,
  * @param[in] device_id	The device identifier.
  * @param[in] type	Type of the desired address.
  * @param[out] address	The device hardware address.
- * @returns		EOK on success.
- * @returns		EBADMEM if the address parameter is NULL.
- * @returns		ENOENT if there no such device.
+ * @return		EOK on success.
+ * @return		EBADMEM if the address parameter is NULL.
+ * @return		ENOENT if there no such device.
  */
 static int eth_addr_message(device_id_t device_id, eth_addr_type_t type,
     measured_string_t **address)
@@ -619,9 +619,9 @@ static int eth_addr_message(device_id_t device_id, eth_addr_type_t type,
  *
  * @param[in] service	The module service.
  * @param[in] phone	The service phone.
- * @returns		EOK on success.
- * @returns		ENOENT if the service is not known.
- * @returns		ENOMEM if there is not enough memory left.
+ * @return		EOK on success.
+ * @return		ENOENT if the service is not known.
+ * @return		ENOMEM if there is not enough memory left.
  */
 static int eth_register_message(services_t service, int phone)
 {
@@ -672,11 +672,11 @@ static int eth_register_message(services_t service, int phone)
  * @param[in] src_addr	The source hardware address.
  * @param[in] ethertype	The ethernet protocol type.
  * @param[in] mtu	The device maximum transmission unit.
- * @returns		EOK on success.
- * @returns		EINVAL if the packet addresses length is not long
+ * @return		EOK on success.
+ * @return		EINVAL if the packet addresses length is not long
  *			enough.
- * @returns		EINVAL if the packet is bigger than the device MTU.
- * @returns		ENOMEM if there is not enough memory in the packet.
+ * @return		EINVAL if the packet is bigger than the device MTU.
+ * @return		ENOMEM if there is not enough memory in the packet.
  */
 static int
 eth_prepare_packet(int flags, packet_t packet, uint8_t *src_addr, int ethertype,
@@ -782,9 +782,9 @@ eth_prepare_packet(int flags, packet_t packet, uint8_t *src_addr, int ethertype,
  * @param[in] device_id	The device identifier.
  * @param[in] packet	The packet queue.
  * @param[in] sender	The sending module service.
- * @returns		EOK on success.
- * @returns		ENOENT if there no such device.
- * @returns		EINVAL if the service parameter is not known.
+ * @return		EOK on success.
+ * @return		ENOENT if there no such device.
+ * @return		EINVAL if the service parameter is not known.
  */
 static int eth_send_message(device_id_t device_id, packet_t packet,
     services_t sender)

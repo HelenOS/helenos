@@ -138,8 +138,8 @@ static int ip_release_and_return(packet_t packet, int result)
  *
  * Searches the registered protocols.
  *
- * @returns		The found ICMP phone.
- * @returns		ENOENT if the ICMP is not registered.
+ * @return		The found ICMP phone.
+ * @return		ENOENT if the ICMP is not registered.
  */
 static int ip_get_icmp_phone(void)
 {
@@ -159,15 +159,15 @@ static int ip_get_icmp_phone(void)
  *
  * @param[in] packet	The packet or the packet queue to be reported as faulty.
  * @param[in] header	The first packet IP header. May be NULL.
- * @returns		EOK on success.
- * @returns		EINVAL if there are no data in the packet.
- * @returns		EINVAL if the packet is a fragment.
- * @returns		ENOMEM if the packet is too short to contain the IP
+ * @return		EOK on success.
+ * @return		EINVAL if there are no data in the packet.
+ * @return		EINVAL if the packet is a fragment.
+ * @return		ENOMEM if the packet is too short to contain the IP
  *			header.
- * @returns		EAFNOSUPPORT if the address family is not supported.
- * @returns		EPERM if the protocol is not allowed to send ICMP
+ * @return		EAFNOSUPPORT if the address family is not supported.
+ * @return		EPERM if the protocol is not allowed to send ICMP
  *			notifications. The ICMP protocol itself.
- * @returns		Other error codes as defined for the packet_set_addr().
+ * @return		Other error codes as defined for the packet_set_addr().
  */
 static int ip_prepare_icmp(packet_t packet, ip_header_t *header)
 {
@@ -226,10 +226,10 @@ static int ip_prepare_icmp(packet_t packet, ip_header_t *header)
  * @param[in] error	The packet error service.
  * @param[in] packet	The packet or the packet queue to be reported as faulty.
  * @param[in] header	The first packet IP header. May be NULL.
- * @returns		The found ICMP phone.
- * @returns		EINVAL if the error parameter is set.
- * @returns		EINVAL if the ICMP phone is not found.
- * @returns		EINVAL if the ip_prepare_icmp() fails.
+ * @return		The found ICMP phone.
+ * @return		EINVAL if the error parameter is set.
+ * @return		EINVAL if the ICMP phone is not found.
+ * @return		EINVAL if the ip_prepare_icmp() fails.
  */
 static int
 ip_prepare_icmp_and_get_phone(services_t error, packet_t packet,
@@ -247,8 +247,8 @@ ip_prepare_icmp_and_get_phone(services_t error, packet_t packet,
  *
  * @param[in] client_connection The client connection processing function. The
  *			module skeleton propagates its own one.
- * @returns		EOK on success.
- * @returns		ENOMEM if there is not enough memory left.
+ * @return		EOK on success.
+ * @return		ENOMEM if there is not enough memory left.
  */
 int ip_initialize(async_client_conn_t client_connection)
 {
@@ -292,19 +292,19 @@ out:
  * The device identifier and the nil service has to be set.
  *
  * @param[in,out] ip_netif Network interface specific data.
- * @returns		EOK on success.
- * @returns		ENOTSUP if DHCP is configured.
- * @returns		ENOTSUP if IPv6 is configured.
- * @returns		EINVAL if any of the addresses is invalid.
- * @returns		EINVAL if the used ARP module is not known.
- * @returns		ENOMEM if there is not enough memory left.
- * @returns		Other error codes as defined for the
+ * @return		EOK on success.
+ * @return		ENOTSUP if DHCP is configured.
+ * @return		ENOTSUP if IPv6 is configured.
+ * @return		EINVAL if any of the addresses is invalid.
+ * @return		EINVAL if the used ARP module is not known.
+ * @return		ENOMEM if there is not enough memory left.
+ * @return		Other error codes as defined for the
  *			net_get_device_conf_req() function.
- * @returns		Other error codes as defined for the bind_service()
+ * @return		Other error codes as defined for the bind_service()
  *			function.
- * @returns		Other error codes as defined for the specific
+ * @return		Other error codes as defined for the specific
  *			arp_device_req() function.
- * @returns		Other error codes as defined for the
+ * @return		Other error codes as defined for the
  *			nil_packet_size_req() function.
  */
 static int ip_netif_initialize(ip_netif_t *ip_netif)
@@ -485,8 +485,8 @@ static int ip_netif_initialize(ip_netif_t *ip_netif)
  *
  * @param[in] device_id	The device identifier.
  * @param[in] mtu	The new mtu value.
- * @returns		EOK on success.
- * @returns		ENOENT if device is not found.
+ * @return		EOK on success.
+ * @return		ENOENT if device is not found.
  */
 static int ip_mtu_changed_message(device_id_t device_id, size_t mtu)
 {
@@ -510,8 +510,8 @@ static int ip_mtu_changed_message(device_id_t device_id, size_t mtu)
  *
  * @param[in] device_id	The device identifier.
  * @param[in] state	The new state value.
- * @returns		EOK on success.
- * @returns		ENOENT if device is not found.
+ * @return		EOK on success.
+ * @return		ENOENT if device is not found.
  */
 static int ip_device_state_message(device_id_t device_id, device_state_t state)
 {
@@ -538,8 +538,8 @@ static int ip_device_state_message(device_id_t device_id, device_state_t state)
  *
  * @param[in] packet	The packet to be prefixed.
  * @param[in] last	The last header to be copied.
- * @returns		The prefixed middle header.
- * @returns		NULL on error.
+ * @return		The prefixed middle header.
+ * @return		NULL on error.
  */
 static ip_header_t *
 ip_create_middle_header(packet_t packet, ip_header_t *last)
@@ -612,12 +612,12 @@ static void ip_create_last_header(ip_header_t *last, ip_header_t *first)
  * @param[in] dest	The destination address.
  * @param[in,out] packet The packet to be sent.
  * @param[in] destination The destination hardware address.
- * @returns		EOK on success.
- * @returns		EINVAL if the packet is too small to contain the IP
+ * @return		EOK on success.
+ * @return		EINVAL if the packet is too small to contain the IP
  *			header.
- * @returns		EINVAL if the packet is too long than the IP allows.
- * @returns		ENOMEM if there is not enough memory left.
- * @returns		Other error codes as defined for the packet_set_addr()
+ * @return		EINVAL if the packet is too long than the IP allows.
+ * @return		ENOMEM if there is not enough memory left.
+ * @return		Other error codes as defined for the packet_set_addr()
  *			function.
  */
 static int
@@ -745,11 +745,11 @@ ip_prepare_packet(in_addr_t *source, in_addr_t dest, packet_t packet,
  * @param[in] src	The source address.
  * @param[in] dest	The destiantion address.
  * @param[in] addrlen	The address length.
- * @returns		EOK on success.
- * @returns		ENOMEM if the target packet is too small.
- * @returns		Other error codes as defined for the packet_set_addr()
+ * @return		EOK on success.
+ * @return		ENOMEM if the target packet is too small.
+ * @return		Other error codes as defined for the packet_set_addr()
  *			function.
- * @returns		Other error codes as defined for the pq_insert_after()
+ * @return		Other error codes as defined for the pq_insert_after()
  *			function.
  */
 static int
@@ -798,20 +798,20 @@ ip_fragment_packet_data(packet_t packet, packet_t new_packet,
  * @param[in] prefix	The minimum prefix size.
  * @param[in] suffix	The minimum suffix size.
  * @param[in] addr_len	The minimum address length.
- * @returns		EOK on success.
- * @returns		EINVAL if the packet_get_addr() function fails.
- * @returns		EINVAL if the packet does not contain the IP header.
- * @returns		EPERM if the packet needs to be fragmented and the
+ * @return		EOK on success.
+ * @return		EINVAL if the packet_get_addr() function fails.
+ * @return		EINVAL if the packet does not contain the IP header.
+ * @return		EPERM if the packet needs to be fragmented and the
  *			fragmentation is not allowed.
- * @returns		ENOMEM if there is not enough memory left.
- * @returns		ENOMEM if there is no packet available.
- * @returns		ENOMEM if the packet is too small to contain the IP
+ * @return		ENOMEM if there is not enough memory left.
+ * @return		ENOMEM if there is no packet available.
+ * @return		ENOMEM if the packet is too small to contain the IP
  *			header.
- * @returns		Other error codes as defined for the packet_trim()
+ * @return		Other error codes as defined for the packet_trim()
  *			function.
- * @returns		Other error codes as defined for the
+ * @return		Other error codes as defined for the
  *			ip_create_middle_header() function.
- * @returns		Other error codes as defined for the
+ * @return		Other error codes as defined for the
  *			ip_fragment_packet_data() function.
  */
 static int
@@ -918,8 +918,8 @@ ip_fragment_packet(packet_t packet, size_t length, size_t prefix, size_t suffix,
  * @param[in] suffix	The minimum suffix size.
  * @param[in] addr_len	The minimum address length.
  * @param[in] error	The error module service.
- * @returns		The packet or the packet queue of the allowed length.
- * @returns		NULL if there are no packets left.
+ * @return		The packet or the packet queue of the allowed length.
+ * @return		NULL if there are no packets left.
  */
 static packet_t
 ip_split_packet(packet_t packet, size_t prefix, size_t content, size_t suffix,
@@ -985,10 +985,10 @@ ip_split_packet(packet_t packet, size_t prefix, size_t content, size_t suffix,
  * @param[in] src	The source address.
  * @param[in] dest	The destination address.
  * @param[in] error	The error module service.
- * @returns		EOK on success.
- * @returns		Other error codes as defined for the arp_translate_req()
+ * @return		EOK on success.
+ * @return		Other error codes as defined for the arp_translate_req()
  *			function.
- * @returns		Other error codes as defined for the ip_prepare_packet()
+ * @return		Other error codes as defined for the ip_prepare_packet()
  *			function.
  */
 static int
@@ -1061,8 +1061,8 @@ ip_send_route(packet_t packet, ip_netif_t *netif, ip_route_t *route,
  * @param[in] netif	The network interface to be searched for routes. May be
  *			NULL.
  * @param[in] destination The destination address.
- * @returns		The found route.
- * @returns		NULL if no route was found.
+ * @return		The found route.
+ * @return		NULL if no route was found.
  */
 static ip_route_t *
 ip_netif_find_route(ip_netif_t *netif, in_addr_t destination)
@@ -1089,8 +1089,8 @@ ip_netif_find_route(ip_netif_t *netif, in_addr_t destination)
 /** Searches all network interfaces if there is a suitable route.
  *
  * @param[in] destination The destination address.
- * @returns		The found route.
- * @returns		NULL if no route was found.
+ * @return		The found route.
+ * @return		NULL if no route was found.
  */
 static ip_route_t *ip_find_route(in_addr_t destination) {
 	int index;
@@ -1115,8 +1115,8 @@ static ip_route_t *ip_find_route(in_addr_t destination) {
 /** Returns the network interface's IP address.
  *
  * @param[in] netif	The network interface.
- * @returns		The IP address.
- * @returns		NULL if no IP address was found.
+ * @return		The IP address.
+ * @return		NULL if no IP address was found.
  */
 static in_addr_t *ip_netif_address(ip_netif_t *netif)
 {
@@ -1135,12 +1135,12 @@ static in_addr_t *ip_netif_address(ip_netif_t *netif)
  * @param[in] service	The transport layer module service.
  * @param[in] phone	The transport layer module phone.
  * @param[in] received_msg The receiving function.
- * @returns		EOK on success.
- * @returns		EINVAL if the protocol parameter and/or the service
+ * @return		EOK on success.
+ * @return		EINVAL if the protocol parameter and/or the service
  *			parameter is zero.
- * @returns		EINVAL if the phone parameter is not a positive number
+ * @return		EINVAL if the phone parameter is not a positive number
  *			and the tl_receive_msg is NULL.
- * @returns		ENOMEM if there is not enough memory left.
+ * @return		ENOMEM if there is not enough memory left.
  */
 static int
 ip_register(int protocol, services_t service, int phone,
@@ -1360,7 +1360,7 @@ ip_send_msg_local(int il_phone, device_id_t device_id, packet_t packet,
  * @param[out] prefix	The minimum reserved prefix size.
  * @param[out] content	The maximum content size.
  * @param[out] suffix	The minimum reserved suffix size.
- * @returns		EOK on success.
+ * @return		EOK on success.
  */
 static int
 ip_packet_size_message(device_id_t device_id, size_t *addr_len, size_t *prefix,
@@ -1417,7 +1417,7 @@ ip_packet_size_message(device_id_t device_id, size_t *addr_len, size_t *prefix,
 /** Returns the packet destination address from the IP header.
  *
  * @param[in] header	The packet IP header to be read.
- * @returns		The packet destination address.
+ * @return		The packet destination address.
  */
 static in_addr_t ip_get_destination(ip_header_t *header)
 {
@@ -1438,15 +1438,15 @@ static in_addr_t ip_get_destination(ip_header_t *header)
  * @param[in] packet	The packet to be delivered.
  * @param[in] header	The first packet IP header. May be NULL.
  * @param[in] error	The packet error service.
- * @returns		EOK on success.
- * @returns		ENOTSUP if the packet is a fragment.
- * @returns		EAFNOSUPPORT if the address family is not supported.
- * @returns		ENOENT if the target protocol is not found.
- * @returns		Other error codes as defined for the packet_set_addr()
+ * @return		EOK on success.
+ * @return		ENOTSUP if the packet is a fragment.
+ * @return		EAFNOSUPPORT if the address family is not supported.
+ * @return		ENOENT if the target protocol is not found.
+ * @return		Other error codes as defined for the packet_set_addr()
  *			function.
- * @returns		Other error codes as defined for the packet_trim()
+ * @return		Other error codes as defined for the packet_trim()
  *			function.
- * @returns		Other error codes as defined for the protocol specific
+ * @return		Other error codes as defined for the protocol specific
  *			tl_received_msg() function.
  */
 static int
@@ -1543,12 +1543,12 @@ ip_deliver_local(device_id_t device_id, packet_t packet, ip_header_t *header,
  *
  * @param[in] device_id	The source device identifier.
  * @param[in] packet	The received packet to be processed.
- * @returns		EOK on success.
- * @returns		EINVAL if the TTL is less than two.
- * @returns		EINVAL if the checksum is invalid.
- * @returns		EAFNOSUPPORT if the address family is not supported.
- * @returns		ENOENT if no route was found.
- * @returns		ENOENT if the packet is for another host and the routing
+ * @return		EOK on success.
+ * @return		EINVAL if the TTL is less than two.
+ * @return		EINVAL if the checksum is invalid.
+ * @return		EAFNOSUPPORT if the address family is not supported.
+ * @return		ENOENT if no route was found.
+ * @return		ENOENT if the packet is for another host and the routing
  *			is disabled.
  */
 static int
@@ -1848,15 +1848,15 @@ ip_get_route_req_local(int ip_phone, ip_protocol_t protocol,
  *
  * @param[in] device_id	The source device identifier.
  * @param[in,out] packet The received packet.
- * @returns		EOK on success and the packet is no longer needed.
- * @returns		EINVAL if the packet is too small to carry the IP
+ * @return		EOK on success and the packet is no longer needed.
+ * @return		EINVAL if the packet is too small to carry the IP
  *			packet.
- * @returns		EINVAL if the received address lengths differs from the
+ * @return		EINVAL if the received address lengths differs from the
  *			registered values.
- * @returns		ENOENT if the device is not found in the cache.
- * @returns		ENOENT if the protocol for the device is not found in
+ * @return		ENOENT if the device is not found in the cache.
+ * @return		ENOENT if the protocol for the device is not found in
  *			the cache.
- * @returns		ENOMEM if there is not enough memory left.
+ * @return		ENOMEM if there is not enough memory left.
  */
 static int ip_receive_message(device_id_t device_id, packet_t packet)
 {
@@ -1878,8 +1878,8 @@ static int ip_receive_message(device_id_t device_id, packet_t packet)
  * @param[out] answer	The message answer parameters.
  * @param[out] answer_count The last parameter for the actual answer in the
  *			answer parameter.
- * @returns		EOK on success.
- * @returns		ENOTSUP if the message is not known.
+ * @return		EOK on success.
+ * @return		ENOTSUP if the message is not known.
  *
  * @see ip_interface.h
  * @see il_interface.h
@@ -2036,8 +2036,8 @@ static void il_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 /** Starts the module.
  *
- * @returns EOK on success.
- * @returns Other error codes as defined for each specific module start function.
+ * @return EOK on success.
+ * @return Other error codes as defined for each specific module start function.
  */
 int main(int argc, char *argv[])
 {

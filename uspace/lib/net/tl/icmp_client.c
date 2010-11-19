@@ -56,8 +56,8 @@
  * @param[out] code	The ICMP header code.
  * @param[out] pointer	The ICMP header pointer.
  * @param[out] mtu	The ICMP header MTU.
- * @returns		The ICMP header length.
- * @returns		Zero if the packet contains no data.
+ * @return		The ICMP header length.
+ * @return		Zero if the packet contains no data.
  */
 int
 icmp_client_process_packet(packet_t packet, icmp_type_t *type,
@@ -91,7 +91,7 @@ icmp_client_process_packet(packet_t packet, icmp_type_t *type,
 /** Returns the ICMP header length.
  *
  * @param[in] packet	The packet.
- * @returns		The ICMP header length in bytes.
+ * @return		The ICMP header length in bytes.
  */
 size_t icmp_client_header_length(packet_t packet)
 {

@@ -56,9 +56,9 @@
  * @param[in] code	The error specific code.
  * @param[in] mtu	The error MTU value.
  * @param[in] packet	The original packet.
- * @returns		EOK on success.
- * @returns		EPERM if the ICMP error notifications are disabled.
- * @returns		ENOMEM if there is not enough memory left.
+ * @return		EOK on success.
+ * @return		EPERM if the ICMP error notifications are disabled.
+ * @return		ENOMEM if there is not enough memory left.
  */
 int
 icmp_destination_unreachable_msg(int icmp_phone, icmp_code_t code,
@@ -77,9 +77,9 @@ icmp_destination_unreachable_msg(int icmp_phone, icmp_code_t code,
  *
  * @param[in] icmp_phone The ICMP module phone used for (semi)remote calls.
  * @param[in] packet	The original packet.
- * @returns		EOK on success.
- * @returns		EPERM if the ICMP error notifications are disabled.
- * @returns		ENOMEM if there is not enough memory left.
+ * @return		EOK on success.
+ * @return		EPERM if the ICMP error notifications are disabled.
+ * @return		ENOMEM if there is not enough memory left.
  */
 int icmp_source_quench_msg(int icmp_phone, packet_t packet)
 {
@@ -97,9 +97,9 @@ int icmp_source_quench_msg(int icmp_phone, packet_t packet)
  * @param[in] icmp_phone The ICMP module phone used for (semi)remote calls.
  * @param[in] code	The error specific code.
  * @param[in] packet	The original packet.
- * @returns		EOK on success.
- * @returns		EPERM if the ICMP error notifications are disabled.
- * @returns		ENOMEM if there is not enough memory left.
+ * @return		EOK on success.
+ * @return		EPERM if the ICMP error notifications are disabled.
+ * @return		ENOMEM if there is not enough memory left.
  */
 int icmp_time_exceeded_msg(int icmp_phone, icmp_code_t code, packet_t packet)
 {
@@ -118,9 +118,9 @@ int icmp_time_exceeded_msg(int icmp_phone, icmp_code_t code, packet_t packet)
  * @param[in] code	The error specific code.
  * @param[in] pointer	The problematic parameter offset.
  * @param[in] packet	The original packet.
- * @returns		EOK on success.
- * @returns		EPERM if the ICMP error notifications are disabled.
- * @returns		ENOMEM if there is not enough memory left.
+ * @return		EOK on success.
+ * @return		EPERM if the ICMP error notifications are disabled.
+ * @return		ENOMEM if there is not enough memory left.
  */
 int icmp_parameter_problem_msg(int icmp_phone, icmp_code_t code,
     icmp_param_t pointer, packet_t packet)

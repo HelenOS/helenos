@@ -155,8 +155,8 @@ socket_cores_release(int packet_phone, socket_cores_t *local_sockets,
  * @param[in] socket	The socket to be added.
  * @param[in] key	The socket key identifier.
  * @param[in] key_length The socket key length.
- * @returns		EOK on success.
- * @returns		ENOMEM if there is not enough memory left.
+ * @return		EOK on success.
+ * @return		ENOMEM if there is not enough memory left.
  */
 static int
 socket_port_add_core(socket_port_t *socket_port, socket_core_t *socket,
@@ -193,9 +193,9 @@ socket_port_add_core(socket_port_t *socket_port, socket_core_t *socket,
  * @param[in] global_sockets The global sockets to be updated.
  * @param[in] socket	The socket to be added.
  * @param[in] port	The port number to be bound to.
- * @returns		EOK on success.
- * @returns		ENOMEM if there is not enough memory left.
- * @returns		Other error codes as defined for the
+ * @return		EOK on success.
+ * @return		ENOMEM if there is not enough memory left.
+ * @return		Other error codes as defined for the
  *			 socket_ports_add() function.
  */
 static int
@@ -247,13 +247,13 @@ fail:
  * @param[in] free_ports_start The minimum free port.
  * @param[in] free_ports_end The maximum free port.
  * @param[in] last_used_port The last used free port.
- * @returns		EOK on success.
- * @returns		ENOTSOCK if the socket was not found.
- * @returns		EAFNOSUPPORT if the address family is not supported.
- * @returns		EADDRINUSE if the port is already in use.
- * @returns		Other error codes as defined for the
+ * @return		EOK on success.
+ * @return		ENOTSOCK if the socket was not found.
+ * @return		EAFNOSUPPORT if the address family is not supported.
+ * @return		EADDRINUSE if the port is already in use.
+ * @return		Other error codes as defined for the
  *			socket_bind_free_port() function.
- * @returns		Other error codes as defined for the
+ * @return		Other error codes as defined for the
  *			socket_bind_insert() function.
  */
 int
@@ -321,9 +321,9 @@ socket_bind(socket_cores_t *local_sockets, socket_ports_t *global_sockets,
  * @param[in] free_ports_start The minimum free port.
  * @param[in] free_ports_end The maximum free port.
  * @param[in] last_used_port The last used free port.
- * @returns		EOK on success.
- * @returns		ENOTCONN if no free port was found.
- * @returns		Other error codes as defined for the
+ * @return		EOK on success.
+ * @return		ENOTCONN if no free port was found.
+ * @return		Other error codes as defined for the
  *			socket_bind_insert() function.
  */
 int
@@ -366,8 +366,8 @@ socket_bind_free_port(socket_ports_t *global_sockets, socket_core_t *socket,
  * @param[in] positive	A value indicating whether a positive identifier is
  *			requested. A negative identifier is requested if set to
  *			false.
- * @returns		The new socket identifier.
- * @returns		ELIMIT if there is no socket identifier available.
+ * @return		The new socket identifier.
+ * @return		ELIMIT if there is no socket identifier available.
  */
 static int socket_generate_new_id(socket_cores_t *local_sockets, int positive)
 {
@@ -409,9 +409,9 @@ static int socket_generate_new_id(socket_cores_t *local_sockets, int positive)
  * @param[in,out] socket_id The new socket identifier. A new identifier is
  *			chosen if set to zero or negative. A negative identifier
  *			is chosen if set to negative.
- * @returns		EOK on success.
- * @returns		EINVAL if the socket_id parameter is NULL.
- * @returns		ENOMEM if there is not enough memory left.
+ * @return		EOK on success.
+ * @return		EINVAL if the socket_id parameter is NULL.
+ * @return		ENOMEM if there is not enough memory left.
  */
 int
 socket_create(socket_cores_t *local_sockets, int app_phone,
@@ -481,8 +481,8 @@ socket_create(socket_cores_t *local_sockets, int app_phone,
  * @param[in,out] local_sockets The local sockets to be updated.
  * @param[in,out] global_sockets The global sockets to be updated.
  * @param[in] socket_release The client release callback function.
- * @returns		EOK on success.
- * @returns		ENOTSOCK if the socket is not found.
+ * @return		EOK on success.
+ * @return		ENOTSOCK if the socket is not found.
  */
 int
 socket_destroy(int packet_phone, int socket_id, socket_cores_t *local_sockets,
@@ -515,10 +515,10 @@ socket_destroy(int packet_phone, int socket_id, socket_cores_t *local_sockets,
  *
  * @param[in] packet	The packet to be transfered.
  * @param[out] length	The total data length.
- * @returns		EOK on success.
- * @returns		EBADMEM if the length parameter is NULL.
- * @returns		ENOMEM if there is not enough memory left.
- * @returns		Other error codes as defined for the data_reply()
+ * @return		EOK on success.
+ * @return		EBADMEM if the length parameter is NULL.
+ * @return		ENOMEM if there is not enough memory left.
+ * @return		Other error codes as defined for the data_reply()
  *			function.
  */
 int socket_reply_packets(packet_t packet, size_t *length)
@@ -597,8 +597,8 @@ int socket_reply_packets(packet_t packet, size_t *length)
  * @param[in] port	The port number.
  * @param[in] key	The socket key identifier.
  * @param[in] key_length The socket key length.
- * @returns		The found socket.
- * @returns		NULL if no socket was found.
+ * @return		The found socket.
+ * @return		NULL if no socket was found.
  */
 socket_core_t *
 socket_port_find(socket_ports_t *global_sockets, int port, const char *key,
@@ -672,9 +672,9 @@ socket_port_release(socket_ports_t *global_sockets, socket_core_t *socket)
  * @param[in] socket	The socket to be added.
  * @param[in] key	The socket key identifier.
  * @param[in] key_length The socket key length.
- * @returns		EOK on success.
- * @returns		ENOENT if the port is not already used.
- * @returns		Other error codes as defined for the
+ * @return		EOK on success.
+ * @return		ENOENT if the port is not already used.
+ * @return		Other error codes as defined for the
  *			socket_port_add_core() function.
  */
 int

@@ -48,8 +48,8 @@
  * @param[in] sockets The number of sockets to create. Should be at most the size of the field.
  * @param[in] family The socket address family.
  * @param[in] type The socket type.
- * @returns EOK on success.
- * @returns Other error codes as defined for the socket() function.
+ * @return EOK on success.
+ * @return Other error codes as defined for the socket() function.
  */
 int sockets_create(int verbose, int *socket_ids, int sockets, int family, sock_type_t type)
 {
@@ -79,8 +79,8 @@ int sockets_create(int verbose, int *socket_ids, int sockets, int family, sock_t
  * @param[in] verbose A value indicating whether to print out verbose information.
  * @param[in] socket_ids A field of stored socket identifiers.
  * @param[in] sockets The number of sockets in the field. Should be at most the size of the field.
- * @returns EOK on success.
- * @returns Other error codes as defined for the closesocket() function.
+ * @return EOK on success.
+ * @return Other error codes as defined for the closesocket() function.
  */
 int sockets_close(int verbose, int *socket_ids, int sockets)
 {
@@ -113,8 +113,8 @@ int sockets_close(int verbose, int *socket_ids, int sockets)
  * @param[in] sockets The number of sockets in the field. Should be at most the size of the field.
  * @param[in] address The destination host address to connect to.
  * @param[in] addrlen The length of the destination address in bytes.
- * @returns EOK on success.
- * @returns Other error codes as defined for the connect() function.
+ * @return EOK on success.
+ * @return Other error codes as defined for the connect() function.
  */
 int sockets_connect(int verbose, int *socket_ids, int sockets, struct sockaddr *address, socklen_t addrlen)
 {
@@ -149,8 +149,8 @@ int sockets_connect(int verbose, int *socket_ids, int sockets, struct sockaddr *
  * @param[in] data The data to be sent.
  * @param[in] size The data size in bytes.
  * @param[in] messages The number of datagrams per socket to be sent.
- * @returns EOK on success.
- * @returns Other error codes as defined for the sendto() function.
+ * @return EOK on success.
+ * @return Other error codes as defined for the sendto() function.
  */
 int sockets_sendto(int verbose, int *socket_ids, int sockets, struct sockaddr *address, socklen_t addrlen, char *data, int size, int messages)
 {
@@ -189,8 +189,8 @@ int sockets_sendto(int verbose, int *socket_ids, int sockets, struct sockaddr *a
  * @param[out] data The received data.
  * @param[in] size The maximum data size in bytes.
  * @param[in] messages The number of datagrams per socket to be received.
- * @returns EOK on success.
- * @returns Other error codes as defined for the recvfrom() function.
+ * @return EOK on success.
+ * @return Other error codes as defined for the recvfrom() function.
  */
 int sockets_recvfrom(int verbose, int *socket_ids, int sockets, struct sockaddr *address, socklen_t *addrlen, char *data, int size, int messages)
 {
@@ -231,8 +231,8 @@ int sockets_recvfrom(int verbose, int *socket_ids, int sockets, struct sockaddr 
  * @param[in,out] data The data to be sent. The received data are set instead.
  * @param[in] size The data size in bytes.
  * @param[in] messages The number of datagrams per socket to be received.
- * @returns EOK on success.
- * @returns Other error codes as defined for the recvfrom() function.
+ * @return EOK on success.
+ * @return Other error codes as defined for the recvfrom() function.
  */
 int sockets_sendto_recvfrom(int verbose, int *socket_ids, int sockets, struct sockaddr *address, socklen_t *addrlen, char *data, int size, int messages)
 {

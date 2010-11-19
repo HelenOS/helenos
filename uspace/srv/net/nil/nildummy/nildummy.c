@@ -141,12 +141,12 @@ static void nildummy_receiver(ipc_callid_t iid, ipc_call_t *icall)
  * @param[in] device_id	The new device identifier.
  * @param[in] service	The device driver service.
  * @param[in] mtu	The device maximum transmission unit.
- * @returns		EOK on success.
- * @returns		EEXIST if the device with the different service exists.
- * @returns		ENOMEM if there is not enough memory left.
- * @returns		Other error codes as defined for the
+ * @return		EOK on success.
+ * @return		EEXIST if the device with the different service exists.
+ * @return		ENOMEM if there is not enough memory left.
+ * @return		Other error codes as defined for the
  *			netif_bind_service() function.
- * @returns		Other error codes as defined for the
+ * @return		Other error codes as defined for the
  *			netif_get_addr_req() function.
  */
 static int nildummy_device_message(device_id_t device_id, services_t service,
