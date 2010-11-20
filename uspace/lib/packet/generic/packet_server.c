@@ -35,7 +35,6 @@
  */
 
 #include <packet_server.h>
-#include <packet_local.h>
 
 #include <align.h>
 #include <assert.h>
@@ -101,15 +100,6 @@ static struct {
 	},
 	.count = 0
 };
-
-int packet_translate_local(int phone, packet_t **packet, packet_id_t packet_id)
-{
-	if (!packet)
-		return EINVAL;
-	
-	*packet = pm_find(packet_id);
-	return (*packet) ? EOK : ENOENT;
-}
 
 /** Clears and initializes the packet according to the given dimensions.
  *
@@ -240,18 +230,6 @@ packet_get_local(size_t addr_len, size_t max_prefix, size_t max_content,
 	return packet;
 }
 
-packet_t *packet_get_4_local(int phone, size_t max_content, size_t addr_len,
-    size_t max_prefix, size_t max_suffix)
-{
-	return packet_get_local(addr_len, max_prefix, max_content, max_suffix);
-}
-
-packet_t *packet_get_1_local(int phone, size_t content)
-{
-	return packet_get_local(DEFAULT_ADDR_LEN, DEFAULT_PREFIX, content,
-	    DEFAULT_SUFFIX);
-}
-
 /** Release the packet and returns it to the appropriate free packet queue.
  *
  * Should be used only when the global data are locked.
@@ -293,11 +271,6 @@ static int packet_release_wrapper(packet_id_t packet_id)
 	fibril_mutex_unlock(&ps_globals.lock);
 
 	return EOK;
-}
-
-void pq_release_local(int phone, packet_id_t packet_id)
-{
-	(void) packet_release_wrapper(packet_id);
 }
 
 /** Shares the packet memory block.
