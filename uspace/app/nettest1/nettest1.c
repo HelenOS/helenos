@@ -387,7 +387,7 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Failed to allocate receive buffer.\n");
 		return ENOMEM;
 	}
-	socket_ids[sockets] = NULL;
+	socket_ids[sockets] = 0;
 
 	if (verbose)
 		printf("Starting tests\n");

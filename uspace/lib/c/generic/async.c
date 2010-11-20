@@ -535,7 +535,7 @@ fid_t async_new_connection(ipcarg_t in_phone_hash, ipc_callid_t callid,
 	if (!conn) {
 		if (callid)
 			ipc_answer_0(callid, ENOMEM);
-		return NULL;
+		return (uintptr_t) NULL;
 	}
 	
 	conn->in_phone_hash = in_phone_hash;
@@ -555,7 +555,7 @@ fid_t async_new_connection(ipcarg_t in_phone_hash, ipc_callid_t callid,
 		free(conn);
 		if (callid)
 			ipc_answer_0(callid, ENOMEM);
-		return NULL;
+		return (uintptr_t) NULL;
 	}
 	
 	/* Add connection to the connection hash table */

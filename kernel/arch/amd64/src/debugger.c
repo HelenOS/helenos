@@ -259,7 +259,7 @@ void breakpoint_del(int slot)
 		return;
 	}
 	
-	cur->address = NULL;
+	cur->address = (uintptr_t) NULL;
 	
 	setup_dr(slot);
 	
@@ -312,7 +312,7 @@ void debugger_init()
 {
 	unsigned int i;
 	for (i = 0; i < BKPOINTS_MAX; i++)
-		breakpoints[i].address = NULL;
+		breakpoints[i].address = (uintptr_t) NULL;
 	
 #ifdef CONFIG_KCONSOLE
 	cmd_initialize(&bkpts_info);

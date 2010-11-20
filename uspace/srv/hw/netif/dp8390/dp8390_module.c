@@ -126,7 +126,7 @@ static void irq_handler(ipc_callid_t iid, ipc_call_t * call)
 		dep->received_queue = NULL;
 		dep->received_count = 0;
 		fibril_rwlock_write_unlock(&netif_globals.lock);
-		nil_received_msg(phone, device_id, received, NULL);
+		nil_received_msg(phone, device_id, received, SERVICE_NONE);
 	}else{
 		fibril_rwlock_write_unlock(&netif_globals.lock);
 	}

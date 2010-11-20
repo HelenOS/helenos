@@ -431,7 +431,7 @@ int do_pwrite(dpeth_t * dep, packet_t packet, int from_int)
 	dep->de_write_iovec.iod_iovec[0].iov_addr = (vir_bytes) packet_get_data(packet);
 	dep->de_write_iovec.iod_iovec[0].iov_size = size;
 	dep->de_write_iovec.iod_iovec_s = 1;
-	dep->de_write_iovec.iod_iovec_addr = NULL;
+	dep->de_write_iovec.iod_iovec_addr = (uintptr_t) NULL;
 
 	if (size < ETH_MIN_PACK_SIZE || size > ETH_MAX_PACK_SIZE_TAGGED)
 	{
@@ -1014,7 +1014,7 @@ int page, length;
 	dep->de_read_iovec.iod_iovec[0].iov_addr = (vir_bytes) packet_suffix(packet, length);
 	dep->de_read_iovec.iod_iovec[0].iov_size = length;
 	dep->de_read_iovec.iod_iovec_s = 1;
-	dep->de_read_iovec.iod_iovec_addr = NULL;
+	dep->de_read_iovec.iod_iovec_addr = (uintptr_t) NULL;
 
 	last = page + (length - 1) / DP_PAGESIZE;
 	if (last >= dep->de_stoppage)
