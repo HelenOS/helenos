@@ -60,7 +60,7 @@
  * @return		Zero if the packet contains no data.
  */
 int
-icmp_client_process_packet(packet_t packet, icmp_type_t *type,
+icmp_client_process_packet(packet_t *packet, icmp_type_t *type,
     icmp_code_t *code, icmp_param_t *pointer, icmp_param_t *mtu)
 {
 	icmp_header_t *header;
@@ -93,7 +93,7 @@ icmp_client_process_packet(packet_t packet, icmp_type_t *type,
  * @param[in] packet	The packet.
  * @return		The ICMP header length in bytes.
  */
-size_t icmp_client_header_length(packet_t packet)
+size_t icmp_client_header_length(packet_t *packet)
 {
 	if (packet_get_data_length(packet) < sizeof(icmp_header_t))
 		return 0;

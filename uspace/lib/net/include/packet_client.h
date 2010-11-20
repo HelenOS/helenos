@@ -98,16 +98,16 @@
 #define PACKET_TRIM(packet, prefix, suffix) \
 	packet_trim((packet), sizeof(prefix), sizeof(suffix))
 
-extern void *packet_prefix(packet_t, size_t);
-extern void *packet_suffix(packet_t, size_t);
-extern int packet_trim(packet_t, size_t, size_t);
-extern int packet_copy_data(packet_t, const void *, size_t);
-extern packet_id_t packet_get_id(const packet_t);
-extern size_t packet_get_data_length(const packet_t);
-extern void *packet_get_data(const packet_t);
-extern int packet_get_addr(const packet_t, uint8_t **, uint8_t **);
-extern int packet_set_addr(packet_t, const uint8_t *, const uint8_t *, size_t);
-extern packet_t packet_get_copy(int phone, packet_t packet);
+extern void *packet_prefix(packet_t *, size_t);
+extern void *packet_suffix(packet_t *, size_t);
+extern int packet_trim(packet_t *, size_t, size_t);
+extern int packet_copy_data(packet_t *, const void *, size_t);
+extern packet_id_t packet_get_id(const packet_t *);
+extern size_t packet_get_data_length(const packet_t *);
+extern void *packet_get_data(const packet_t *);
+extern int packet_get_addr(const packet_t *, uint8_t **, uint8_t **);
+extern int packet_set_addr(packet_t *, const uint8_t *, const uint8_t *, size_t);
+extern packet_t *packet_get_copy(int, packet_t *);
 
 /*@}*/
 

@@ -414,7 +414,7 @@ static int arp_mtu_changed_message(device_id_t device_id, size_t mtu)
  *			the cache.
  * @return		ENOMEM if there is not enough memory left.
  */
-static int arp_receive_message(device_id_t device_id, packet_t packet)
+static int arp_receive_message(device_id_t device_id, packet_t *packet)
 {
 	size_t length;
 	arp_header_t *header;
@@ -530,7 +530,7 @@ arp_translate_message(device_id_t device_id, services_t protocol,
 	arp_proto_t *proto;
 	measured_string_t *addr;
 	size_t length;
-	packet_t packet;
+	packet_t *packet;
 	arp_header_t *header;
 
 	if (!target)
@@ -614,8 +614,8 @@ arp_message_standalone(ipc_callid_t callid, ipc_call_t *call,
 	measured_string_t *address;
 	measured_string_t *translation;
 	char *data;
-	packet_t packet;
-	packet_t next;
+	packet_t *packet;
+	packet_t *next;
 	int rc;
 	
 	*answer_count = 0;

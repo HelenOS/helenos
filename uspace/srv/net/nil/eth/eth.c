@@ -233,7 +233,7 @@ out:
  */
 static void eth_receiver(ipc_callid_t iid, ipc_call_t *icall)
 {
-	packet_t packet;
+	packet_t *packet;
 	int rc;
 
 	while (true) {
@@ -428,7 +428,7 @@ static int eth_device_message(device_id_t device_id, services_t service,
  * @return		NULL if the dummy device FCS checksum is invalid.
  * @return		NULL if the packet address length is not big enough.
  */
-static eth_proto_t *eth_process_packet(int flags, packet_t packet)
+static eth_proto_t *eth_process_packet(int flags, packet_t *packet)
 {
 	eth_header_snap_t *header;
 	size_t length;
@@ -508,10 +508,10 @@ static eth_proto_t *eth_process_packet(int flags, packet_t packet)
 }
 
 int nil_received_msg_local(int nil_phone, device_id_t device_id,
-    packet_t packet, services_t target)
+    packet_t *packet, services_t target)
 {
 	eth_proto_t *proto;
-	packet_t next;
+	packet_t *next;
 	eth_device_t *device;
 	int flags;
 
@@ -679,7 +679,7 @@ static int eth_register_message(services_t service, int phone)
  * @return		ENOMEM if there is not enough memory in the packet.
  */
 static int
-eth_prepare_packet(int flags, packet_t packet, uint8_t *src_addr, int ethertype,
+eth_prepare_packet(int flags, packet_t *packet, uint8_t *src_addr, int ethertype,
     size_t mtu)
 {
 	eth_header_snap_t *header;
@@ -786,12 +786,12 @@ eth_prepare_packet(int flags, packet_t packet, uint8_t *src_addr, int ethertype,
  * @return		ENOENT if there no such device.
  * @return		EINVAL if the service parameter is not known.
  */
-static int eth_send_message(device_id_t device_id, packet_t packet,
+static int eth_send_message(device_id_t device_id, packet_t *packet,
     services_t sender)
 {
 	eth_device_t *device;
-	packet_t next;
-	packet_t tmp;
+	packet_t *next;
+	packet_t *tmp;
 	int ethertype;
 	int rc;
 
@@ -840,7 +840,7 @@ int nil_message_standalone(const char *name, ipc_callid_t callid,
     ipc_call_t *call, ipc_call_t *answer, int *answer_count)
 {
 	measured_string_t *address;
-	packet_t packet;
+	packet_t *packet;
 	size_t addrlen;
 	size_t prefix;
 	size_t suffix;

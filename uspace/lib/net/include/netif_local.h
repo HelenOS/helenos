@@ -110,7 +110,7 @@ extern int netif_probe_message(device_id_t device_id, int irq, uintptr_t io);
  * @return		Other error codes as defined for the specific module
  *			message implementation.
  */
-extern int netif_send_message(device_id_t device_id, packet_t packet,
+extern int netif_send_message(device_id_t device_id, packet_t *packet,
     services_t sender);
 
 /** Start the device.
@@ -197,7 +197,7 @@ extern int netif_get_device_stats(device_id_t device_id,
 extern int netif_get_addr_req_local(int, device_id_t, measured_string_t **,
     char **);
 extern int netif_probe_req_local(int, device_id_t, int, int);
-extern int netif_send_msg_local(int, device_id_t, packet_t, services_t);
+extern int netif_send_msg_local(int, device_id_t, packet_t *, services_t);
 extern int netif_start_req_local(int, device_id_t);
 extern int netif_stop_req_local(int, device_id_t);
 extern int netif_stats_req_local(int, device_id_t, device_stats_t *);
@@ -207,7 +207,7 @@ extern int netif_bind_service_local(services_t, device_id_t, services_t,
 extern int find_device(device_id_t, netif_device_t **);
 extern void null_device_stats(device_stats_t *);
 extern void netif_pq_release(packet_id_t);
-extern packet_t netif_packet_get_1(size_t);
+extern packet_t *netif_packet_get_1(size_t);
 extern int netif_init_module(async_client_conn_t);
 
 extern int netif_module_message_standalone(const char *, ipc_callid_t,

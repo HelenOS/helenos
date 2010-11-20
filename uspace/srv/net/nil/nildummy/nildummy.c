@@ -105,7 +105,7 @@ int nil_initialize(int net_phone)
  */
 static void nildummy_receiver(ipc_callid_t iid, ipc_call_t *icall)
 {
-	packet_t packet;
+	packet_t *packet;
 	int rc;
 
 	while (true) {
@@ -303,9 +303,9 @@ static int nildummy_packet_space_message(device_id_t device_id, size_t *addr_len
 }
 
 int nil_received_msg_local(int nil_phone, device_id_t device_id,
-    packet_t packet, services_t target)
+    packet_t *packet, services_t target)
 {
-	packet_t next;
+	packet_t *next;
 
 	fibril_rwlock_read_lock(&nildummy_globals.protos_lock);
 	if (nildummy_globals.proto.phone) {
@@ -353,7 +353,7 @@ static int nildummy_register_message(services_t service, int phone)
  * @return		ENOENT if there no such device.
  * @return		EINVAL if the service parameter is not known.
  */
-static int nildummy_send_message(device_id_t device_id, packet_t packet,
+static int nildummy_send_message(device_id_t device_id, packet_t *packet,
     services_t sender)
 {
 	nildummy_device_t *device;
@@ -377,7 +377,7 @@ int nil_message_standalone(const char *name, ipc_callid_t callid,
     ipc_call_t *call, ipc_call_t *answer, int *answer_count)
 {
 	measured_string_t *address;
-	packet_t packet;
+	packet_t *packet;
 	size_t addrlen;
 	size_t prefix;
 	size_t suffix;

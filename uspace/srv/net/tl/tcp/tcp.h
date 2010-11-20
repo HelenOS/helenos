@@ -238,7 +238,7 @@ struct tcp_socket_data {
 	 * Packets are sorted by their starting byte.
 	 * Packets metric is set as their data length.
 	 */
-	packet_t incoming;
+	packet_t *incoming;
 	
 	/** Outgoing packet queue.
 	 *
@@ -248,7 +248,7 @@ struct tcp_socket_data {
 	 * Packets are sorted by their starting byte.
 	 * Packets metric is set as their data length.
 	 */
-	packet_t outgoing;
+	packet_t *outgoing;
 	
 	/** IP pseudo header. */
 	void *pseudo_header;

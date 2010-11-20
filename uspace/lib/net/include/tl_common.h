@@ -56,8 +56,8 @@ extern int tl_get_address_port(const struct sockaddr *, int, uint16_t *);
 extern int tl_update_ip_packet_dimension(packet_dimensions_t *, device_id_t,
     size_t);
 extern int tl_set_address_port(struct sockaddr *, int, uint16_t);
-extern int tl_prepare_icmp_packet(int, int, packet_t, services_t);
-extern int tl_socket_read_packet_data(int, packet_t *, size_t,
+extern int tl_prepare_icmp_packet(int, int, packet_t *, services_t);
+extern int tl_socket_read_packet_data(int, packet_t **, size_t,
     const packet_dimension_t *, const struct sockaddr *, socklen_t);
 
 #endif

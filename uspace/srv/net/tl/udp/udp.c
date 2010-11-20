@@ -189,7 +189,7 @@ int udp_initialize(async_client_conn_t client_connection)
  * @param[in] result	The result to be returned.
  * @return		The result parameter.
  */
-static int udp_release_and_return(packet_t packet, int result)
+static int udp_release_and_return(packet_t *packet, int result)
 {
 	pq_release_remote(udp_globals.net_phone, packet_get_id(packet));
 	return result;
@@ -216,7 +216,7 @@ static int udp_release_and_return(packet_t packet, int result)
  * @return		Other error codes as defined for the
  *			ip_client_process_packet() function.
  */
-static int udp_process_packet(device_id_t device_id, packet_t packet,
+static int udp_process_packet(device_id_t device_id, packet_t *packet,
     services_t error)
 {
 	size_t length;
@@ -224,11 +224,11 @@ static int udp_process_packet(device_id_t device_id, packet_t packet,
 	int result;
 	udp_header_t *header;
 	socket_core_t *socket;
-	packet_t next_packet;
+	packet_t *next_packet;
 	size_t total_length;
 	uint32_t checksum;
 	int fragments;
-	packet_t tmp_packet;
+	packet_t *tmp_packet;
 	icmp_type_t type;
 	icmp_code_t code;
 	void *ip_header;
@@ -412,7 +412,7 @@ static int udp_process_packet(device_id_t device_id, packet_t packet,
  * @return		Other error codes as defined for the
  *			udp_process_packet() function.
  */
-static int udp_received_msg(device_id_t device_id, packet_t packet,
+static int udp_received_msg(device_id_t device_id, packet_t *packet,
     services_t receiver, services_t error)
 {
 	int result;
@@ -457,8 +457,8 @@ static int udp_sendto_message(socket_cores_t *local_sockets, int socket_id,
     size_t *data_fragment_size, int flags)
 {
 	socket_core_t *socket;
-	packet_t packet;
-	packet_t next_packet;
+	packet_t *packet;
+	packet_t *next_packet;
 	udp_header_t *header;
 	int index;
 	size_t total_length;
@@ -613,7 +613,7 @@ static int udp_recvfrom_message(socket_cores_t *local_sockets, int socket_id,
 {
 	socket_core_t *socket;
 	int packet_id;
-	packet_t packet;
+	packet_t *packet;
 	udp_header_t *header;
 	struct sockaddr *addr;
 	size_t length;
@@ -860,7 +860,7 @@ static int udp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 int udp_message_standalone(ipc_callid_t callid, ipc_call_t *call,
     ipc_call_t *answer, int *answer_count)
 {
-	packet_t packet;
+	packet_t *packet;
 	int rc;
 
 	*answer_count = 0;

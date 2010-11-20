@@ -51,7 +51,7 @@
  */
 /*@{*/
 
-extern int tl_received_msg(int, device_id_t, packet_t, services_t, services_t);
+extern int tl_received_msg(int, device_id_t, packet_t *, services_t, services_t);
 
 /*@}*/
 

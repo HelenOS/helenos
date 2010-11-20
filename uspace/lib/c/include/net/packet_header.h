@@ -127,7 +127,7 @@ struct packet {
  *			correct.
  * @return		False otherwise.
  */
-static inline int packet_is_valid(const packet_t packet)
+static inline int packet_is_valid(const packet_t *packet)
 {
 	return packet && (packet->magic_value == PACKET_MAGIC_VALUE);
 }

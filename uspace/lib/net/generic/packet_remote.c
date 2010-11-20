@@ -63,7 +63,7 @@
  *
  */
 static int
-packet_return(int phone, packet_t *packet, packet_id_t packet_id, size_t size)
+packet_return(int phone, packet_t **packet, packet_id_t packet_id, size_t size)
 {
 	ipc_call_t answer;
 	aid_t message;
@@ -71,7 +71,7 @@ packet_return(int phone, packet_t *packet, packet_id_t packet_id, size_t size)
 	
 	message = async_send_1(phone, NET_PACKET_GET, packet_id, &answer);
 
-	*packet = (packet_t) as_get_mappable_page(size);
+	*packet = (packet_t *) as_get_mappable_page(size);
 	rc = async_share_in_start_0_0(phone, *packet, size);
 	if (rc != EOK) {
 		munmap(*packet, size);
@@ -106,7 +106,7 @@ packet_return(int phone, packet_t *packet, packet_id_t packet_id, size_t size)
  * @return		Other error codes as defined for the packet_return()
  *			function.
  */
-int packet_translate_remote(int phone, packet_t *packet, packet_id_t packet_id)
+int packet_translate_remote(int phone, packet_t **packet, packet_id_t packet_id)
 {
 	int rc;
 	
@@ -126,7 +126,7 @@ int packet_translate_remote(int phone, packet_t *packet, packet_id_t packet_id)
 			return rc;
 	}
 	if ((*packet)->next) {
-		packet_t next;
+		packet_t *next;
 		
 		return packet_translate_remote(phone, &next, (*packet)->next);
 	}
@@ -147,7 +147,7 @@ int packet_translate_remote(int phone, packet_t *packet, packet_id_t packet_id)
  * @return		The packet reference.
  * @return		NULL on error.
  */
-packet_t packet_get_4_remote(int phone, size_t max_content, size_t addr_len,
+packet_t *packet_get_4_remote(int phone, size_t max_content, size_t addr_len,
     size_t max_prefix, size_t max_suffix)
 {
 	ipcarg_t packet_id;
@@ -160,7 +160,7 @@ packet_t packet_get_4_remote(int phone, size_t max_content, size_t addr_len,
 		return NULL;
 	
 	
-	packet_t packet = pm_find(packet_id);
+	packet_t *packet = pm_find(packet_id);
 	if (!packet) {
 		rc = packet_return(phone, &packet, packet_id, size);
 		if (rc != EOK)
@@ -179,7 +179,7 @@ packet_t packet_get_4_remote(int phone, size_t max_content, size_t addr_len,
  * @return		The packet reference.
  * @return		NULL on error.
  */
-packet_t packet_get_1_remote(int phone, size_t content)
+packet_t *packet_get_1_remote(int phone, size_t content)
 {
 	ipcarg_t packet_id;
 	ipcarg_t size;
@@ -190,7 +190,7 @@ packet_t packet_get_1_remote(int phone, size_t content)
 	if (rc != EOK)
 		return NULL;
 	
-	packet_t packet = pm_find(packet_id);
+	packet_t *packet = pm_find(packet_id);
 	if (!packet) {
 		rc = packet_return(phone, &packet, packet_id, size);
 		if (rc != EOK)
