@@ -29,12 +29,11 @@
 USPACE_PREFIX = ../..
 LIBRARY = libusb
 LIBS = $(LIBDRV_PREFIX)/libdrv.a
-EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include -I$(LIB_PREFIX)
+EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include -Iinclude
 
 SOURCES = \
-	hcd.c \
-	hcdhubd.c \
-	usb.c \
-	usbdrv.c
+	src/hcdhubd.c \
+	src/usb.c \
+	src/usbdrv.c
 
 include $(USPACE_PREFIX)/Makefile.common

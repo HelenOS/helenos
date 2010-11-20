@@ -44,9 +44,9 @@
 #include <bool.h>
 #include <async.h>
 
-#include <usb/hcd.h>
+#include <usb/usb.h>
 #include <usb/descriptor.h>
-#include <usb/hid.h>
+#include <usb/classes/hid.h>
 #include <usbvirt/device.h>
 #include <usbvirt/hub.h>
 

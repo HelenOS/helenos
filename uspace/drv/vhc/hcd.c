@@ -44,7 +44,7 @@
 #include <str_error.h>
 #include <driver.h>
 
-#include <usb/hcd.h>
+#include <usb/usb.h>
 #include "vhcd.h"
 #include "hc.h"
 #include "devices.h"

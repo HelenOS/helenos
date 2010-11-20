@@ -44,6 +44,7 @@
 #include "private.h"
 
 #define NAMESPACE "usb"
+#define USB_MAX_PAYLOAD_SIZE 1020
 
 /** Wrapper for SETUP transaction over telephone. */
 static void handle_setup_transaction(usbvirt_device_t *device,

@@ -35,10 +35,10 @@
  */
 #include "kbdconfig.h"
 #include "keys.h"
-#include <usb/hcd.h>
-#include <usb/hid.h>
-#include <usb/hidut.h>
-#include <usb/classes.h>
+#include <usb/usb.h>
+#include <usb/classes/hid.h>
+#include <usb/classes/hidut.h>
+#include <usb/classes/classes.h>
 
 /** Standard device descriptor. */
 usb_standard_device_descriptor_t std_device_descriptor = {

@@ -32,7 +32,7 @@
 /** @file
  * @brief HC driver and hub driver (implementation).
  */
-#include "hcdhubd.h"
+#include <usb/hcdhubd.h>
 #include <usb_iface.h>
 #include <driver.h>
 #include <bool.h>

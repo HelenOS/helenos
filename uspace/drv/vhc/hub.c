@@ -32,7 +32,7 @@
 /** @file
  * @brief Virtual USB hub.
  */
-#include <usb/classes.h>
+#include <usb/classes/classes.h>
 #include <usbvirt/hub.h>
 #include <usbvirt/device.h>
 #include <errno.h>

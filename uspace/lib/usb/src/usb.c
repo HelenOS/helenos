@@ -32,7 +32,7 @@
 /** @file
  * @brief Base USB types.
  */
-#include "usb.h"
+#include <usb/usb.h>
 #include <errno.h>
 
 

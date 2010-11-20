@@ -30,7 +30,7 @@ USPACE_PREFIX = ../..
 LIBRARY = libusbvirt
 
 LIBS = $(LIBUSB_PREFIX)/libusb.a
-EXTRA_CFLAGS = -I$(LIB_PREFIX)
+EXTRA_CFLAGS = -I$(LIBUSB_PREFIX)/include
 
 SOURCES = \
 	callback.c \

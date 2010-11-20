@@ -35,7 +35,7 @@
 #ifndef VHCD_HC_H_
 #define VHCD_HC_H_
 
-#include <usb/hcd.h>
+#include <usb/usb.h>
 #include <usbvirt/hub.h>
 
 /** Callback after transaction is sent to USB.

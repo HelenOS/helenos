@@ -74,7 +74,7 @@ typedef struct {
 		};
 		uint16_t value;
 	};
-	/** Auxilary parameter to the request.
+	/** Auxiliary parameter to the request.
 	 * Typically, it is offset to something.
 	 */
 	uint16_t index;

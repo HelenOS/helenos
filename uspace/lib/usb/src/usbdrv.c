@@ -32,7 +32,7 @@
 /** @file
  * @brief USB driver (implementation).
  */
-#include "usbdrv.h"
+#include <usb/usbdrv.h>
 #include <usb_iface.h>
 #include <errno.h>
 

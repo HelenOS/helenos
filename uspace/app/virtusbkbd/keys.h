@@ -48,7 +48,7 @@ typedef uint8_t kb_key_code_t;
 	KB_KEY_##name = usage_id,
 /** USB key code. */
 typedef enum {
-	#include <usb/hidutkbd.h>
+	#include <usb/classes/hidutkbd.h>
 } key_code_t;
 
 /** Modifier type. */

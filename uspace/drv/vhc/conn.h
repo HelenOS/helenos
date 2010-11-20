@@ -35,7 +35,7 @@
 #ifndef VHCD_CONN_H_
 #define VHCD_CONN_H_
 
-#include <usb/hcd.h>
+#include <usb/usb.h>
 #include <usb/hcdhubd.h>
 #include "vhcd.h"
 #include "devices.h"

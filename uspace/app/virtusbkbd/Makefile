@@ -32,7 +32,7 @@ USPACE_PREFIX = ../..
 BINARY = vuk
 
 LIBS = $(LIBUSB_PREFIX)/libusb.a $(LIBUSBVIRT_PREFIX)/libusbvirt.a
-EXTRA_CFLAGS = -I$(LIB_PREFIX)
+EXTRA_CFLAGS = -I$(LIBUSB_PREFIX)/include -I$(LIB_PREFIX)
 
 SOURCES = \
 	kbdconfig.c \

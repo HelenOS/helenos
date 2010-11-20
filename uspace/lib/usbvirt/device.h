@@ -35,7 +35,7 @@
 #ifndef LIBUSBVIRT_DEVICE_H_
 #define LIBUSBVIRT_DEVICE_H_
 
-#include <usb/hcd.h>
+#include <usb/usb.h>
 #include <usb/descriptor.h>
 #include <usb/devreq.h>
 

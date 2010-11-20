@@ -36,7 +36,7 @@
 #define VHCD_DEVICES_H_
 
 #include <adt/list.h>
-#include <usb/hcd.h>
+#include <usb/usb.h>
 
 #include "hc.h"
 

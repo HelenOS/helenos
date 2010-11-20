@@ -37,8 +37,7 @@
 
 #include <adt/list.h>
 #include <driver.h>
-#include "usb.h"
-#include "hcd.h"
+#include <usb/usb.h>
 
 /** Endpoint properties. */
 typedef struct {

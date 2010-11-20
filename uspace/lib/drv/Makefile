@@ -28,7 +28,7 @@
 #
 
 USPACE_PREFIX = ../..
-EXTRA_CFLAGS = -Iinclude -I$(LIB_PREFIX)
+EXTRA_CFLAGS = -Iinclude -I$(LIBUSB_PREFIX)/include
 LIBRARY = libdrv
 
 SOURCES = \
