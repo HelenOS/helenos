@@ -66,11 +66,22 @@ int usb_drv_hc_connect(device_t *dev, unsigned int flags)
 	return ENOTSUP;
 }
 
+/** Tell USB address assigned to given device.
+ *
+ * @param phone Phone to my HC.
+ * @param dev Device in question.
+ * @return USB address or error code.
+ */
+usb_address_t usb_drv_get_my_address(int phone, device_t *dev)
+{
+	return ENOTSUP;
+}
+
 /** Send data to HCD.
  *
  * @param phone Phone to HC.
  * @param method Method used for calling.
- * @param endpoint Device endpoint.
+ * @param target Targeted device.
  * @param buffer Data buffer (NULL to skip data transfer phase).
  * @param size Buffer size (must be zero when @p buffer is NULL).
  * @param handle Storage for transaction handle (cannot be NULL).
@@ -79,7 +90,7 @@ int usb_drv_hc_connect(device_t *dev, unsigned int flags)
  * @retval ENOMEM Not enough memory to complete the operation.
  */
 static int async_send_buffer(int phone, int method,
-    usb_endpoint_t endpoint,
+    usb_target_t target,
     void *buffer, size_t size,
     usb_handle_t *handle)
 {
@@ -108,10 +119,10 @@ static int async_send_buffer(int phone, int method,
 
 	int rc;
 
-	transfer->request = async_send_3(phone,
+	transfer->request = async_send_4(phone,
 	    DEV_IFACE_ID(USB_DEV_IFACE),
 	    method,
-	    endpoint,
+	    target.address, target.endpoint,
 	    size,
 	    &transfer->reply);
 
@@ -132,7 +143,7 @@ static int async_send_buffer(int phone, int method,
  *
  * @param phone Opened phone to HCD.
  * @param method Method used for calling.
- * @param endpoint Device endpoint.
+ * @param target Targeted device.
  * @param buffer Buffer where to store retrieved data
  * 	(NULL to skip data transfer phase).
  * @param size Buffer size (must be zero when @p buffer is NULL).
@@ -144,7 +155,7 @@ static int async_send_buffer(int phone, int method,
  * @retval ENOMEM Not enough memory to complete the operation.
  */
 static int async_recv_buffer(int phone, int method,
-    usb_endpoint_t endpoint,
+    usb_target_t target,
     void *buffer, size_t size, size_t *actual_size,
     usb_handle_t *handle)
 {
@@ -171,10 +182,10 @@ static int async_recv_buffer(int phone, int method,
 	transfer->size = size;
 	transfer->phone = phone;
 
-	transfer->request = async_send_3(phone,
+	transfer->request = async_send_4(phone,
 	    DEV_IFACE_ID(USB_DEV_IFACE),
 	    method,
-	    endpoint,
+	    target.address, target.endpoint,
 	    size,
 	    &transfer->reply);
 
@@ -288,25 +299,25 @@ leave:
 }
 
 /** Send interrupt data to device. */
-int usb_drv_async_interrupt_out(int phone, usb_endpoint_t endpoint,
+int usb_drv_async_interrupt_out(int phone, usb_target_t target,
     void *buffer, size_t size,
     usb_handle_t *handle)
 {
 	return async_send_buffer(phone,
 	    IPC_M_USB_INTERRUPT_OUT,
-	    endpoint,
+	    target,
 	    buffer, size,
 	    handle);
 }
 
 /** Request interrupt data from device. */
-int usb_drv_async_interrupt_in(int phone, usb_endpoint_t endpoint,
+int usb_drv_async_interrupt_in(int phone, usb_target_t target,
     void *buffer, size_t size, size_t *actual_size,
     usb_handle_t *handle)
 {
 	return async_recv_buffer(phone,
 	    IPC_M_USB_INTERRUPT_IN,
-	    endpoint,
+	    target,
 	    buffer, size, actual_size,
 	    handle);
 }

@@ -40,7 +40,18 @@ static void poll_keyboard(device_t *dev)
 	size_t actual_size;
 	usb_endpoint_t poll_endpoint = 1;
 
-	rc = usb_drv_async_interrupt_in(dev->parent_phone, poll_endpoint,
+	usb_address_t my_address = usb_drv_get_my_address(dev->parent_phone,
+	    dev);
+	if (my_address < 0) {
+		return;
+	}
+
+	usb_target_t poll_target = {
+		.address = my_address,
+		.endpoint = poll_endpoint
+	};
+
+	rc = usb_drv_async_interrupt_in(dev->parent_phone, poll_target,
 	    buffer, BUFFER_SIZE, &actual_size, &handle);
 	if (rc != EOK) {
 		return;
