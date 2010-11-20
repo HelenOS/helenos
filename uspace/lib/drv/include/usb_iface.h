@@ -92,51 +92,53 @@
  */
 typedef enum {
 	/** Asks for data buffer.
-	 * See explanation at usb_method_t.
+	 * See explanation at usb_iface_funcs_t.
+	 * This function does not have counter part in functional interface
+	 * as it is handled by the remote part itself.
 	 */
 	IPC_M_USB_GET_BUFFER,
 
 
 	/** Send interrupt data to device.
-	 * See explanation at usb_method_t (OUT transaction).
+	 * See explanation at usb_iface_funcs_t (OUT transaction).
 	 */
 	IPC_M_USB_INTERRUPT_OUT,
 
 	/** Get interrupt data from device.
-	 * See explanation at usb_method_t (IN transaction).
+	 * See explanation at usb_iface_funcs_t (IN transaction).
 	 */
 	IPC_M_USB_INTERRUPT_IN,
 
 
 	/** Start WRITE control transfer.
-	 * See explanation at usb_method_t (OUT transaction).
+	 * See explanation at usb_iface_funcs_t (OUT transaction).
 	 */
 	IPC_M_USB_CONTROL_WRITE_SETUP,
 
 	/** Send control-transfer data to device.
-	 * See explanation at usb_method_t (OUT transaction).
+	 * See explanation at usb_iface_funcs_t (OUT transaction).
 	 */
 	IPC_M_USB_CONTROL_WRITE_DATA,
 
 	/** Terminate WRITE control transfer.
-	 * See explanation at usb_method_t (NO-DATA transaction).
+	 * See explanation at usb_iface_funcs_t (NO-DATA transaction).
 	 */
 	IPC_M_USB_CONTROL_WRITE_STATUS,
 
 
 
 	/** Start READ control transfer.
-	 * See explanation at usb_method_t (OUT transaction).
+	 * See explanation at usb_iface_funcs_t (OUT transaction).
 	 */
 	IPC_M_USB_CONTROL_READ_SETUP,
 
 	/** Get control-transfer data from device.
-	 * See explanation at usb_method_t (IN transaction).
+	 * See explanation at usb_iface_funcs_t (IN transaction).
 	 */
 	IPC_M_USB_CONTROL_READ_DATA,
 
 	/** Terminate READ control transfer.
-	 * See explanation at usb_method_t (NO-DATA transaction).
+	 * See explanation at usb_iface_funcs_t (NO-DATA transaction).
 	 */
 	IPC_M_USB_CONTROL_READ_STATUS,
 
@@ -154,10 +156,10 @@ typedef void (*usb_iface_transfer_in_callback_t)(device_t *,
 
 /** USB devices communication interface. */
 typedef struct {
-	int (*interrupt_out)(device_t *, usb_endpoint_t,
+	int (*interrupt_out)(device_t *, usb_target_t,
 	    void *, size_t,
 	    usb_iface_transfer_out_callback_t, void *);
-	int (*interrupt_in)(device_t *, usb_endpoint_t,
+	int (*interrupt_in)(device_t *, usb_target_t,
 	    void *, size_t,
 	    usb_iface_transfer_in_callback_t, void *);
 } usb_iface_t;
