@@ -50,10 +50,10 @@
  *  @param[in] data	The address data.
  *  @param[out] address	The character buffer to be filled.
  *  @param[in] length	The buffer length.
- *  @returns		EOK on success.
- *  @returns		EINVAL if the data or address parameter is NULL.
- *  @returns		ENOMEM if the character buffer is not long enough.
- *  @returns		ENOTSUP if the address family is not supported.
+ *  @return		EOK on success.
+ *  @return		EINVAL if the data or address parameter is NULL.
+ *  @return		ENOMEM if the character buffer is not long enough.
+ *  @return		ENOTSUP if the address family is not supported.
  */
 int
 inet_ntop(uint16_t family, const uint8_t *data, char *address, size_t length)
@@ -100,10 +100,10 @@ inet_ntop(uint16_t family, const uint8_t *data, char *address, size_t length)
  *  @param[in] family	The address family.
  *  @param[in] address	The character buffer to be parsed.
  *  @param[out] data	The address data to be filled.
- *  @returns		EOK on success.
- *  @returns		EINVAL if the data parameter is NULL.
- *  @returns		ENOENT if the address parameter is NULL.
- *  @returns		ENOTSUP if the address family is not supported.
+ *  @return		EOK on success.
+ *  @return		EINVAL if the data parameter is NULL.
+ *  @return		ENOENT if the address parameter is NULL.
+ *  @return		ENOTSUP if the address family is not supported.
  */
 int inet_pton(uint16_t family, const char *address, uint8_t *data)
 {

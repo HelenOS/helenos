@@ -61,10 +61,7 @@
 #define PACKET_MAP_INDEX(packet_id)	(((packet_id) - 1) % PACKET_MAP_SIZE)
 
 /** Type definition of the packet map page. */
-typedef packet_t packet_map_t[PACKET_MAP_SIZE];
-
-/** Type definition of the packet map page pointer. */
-typedef packet_map_t * packet_map_ref;
+typedef packet_t *packet_map_t[PACKET_MAP_SIZE];
 
 /** Packet map.
  * Maps packet identifiers to the packet references.
@@ -84,8 +81,8 @@ GENERIC_FIELD_IMPLEMENT(gpm, packet_map_t);
 
 /** Initializes the packet map.
  *
- * @returns		EOK on success.
- * @returns		ENOMEM if there is not enough memory left.
+ * @return		EOK on success.
+ * @return		ENOMEM if there is not enough memory left.
  */
 int pm_init(void)
 {
@@ -103,13 +100,13 @@ int pm_init(void)
 /** Finds the packet mapping.
  *
  * @param[in] packet_id	The packet identifier to be found.
- * @returns		The found packet reference.
- * @returns		NULL if the mapping does not exist.
+ * @return		The found packet reference.
+ * @return		NULL if the mapping does not exist.
  */
-packet_t pm_find(packet_id_t packet_id)
+packet_t *pm_find(packet_id_t packet_id)
 {
-	packet_map_ref map;
-	packet_t packet;
+	packet_map_t *map;
+	packet_t *packet;
 
 	if (!packet_id)
 		return NULL;
@@ -132,14 +129,14 @@ packet_t pm_find(packet_id_t packet_id)
 /** Adds the packet mapping.
  *
  * @param[in] packet	The packet to be remembered.
- * @returns		EOK on success.
- * @returns		EINVAL if the packet is not valid.
- * @returns		EINVAL if the packet map is not initialized.
- * @returns		ENOMEM if there is not enough memory left.
+ * @return		EOK on success.
+ * @return		EINVAL if the packet is not valid.
+ * @return		EINVAL if the packet map is not initialized.
+ * @return		ENOMEM if there is not enough memory left.
  */
-int pm_add(packet_t packet)
+int pm_add(packet_t *packet)
 {
-	packet_map_ref map;
+	packet_map_t *map;
 	int rc;
 
 	if (!packet_is_valid(packet))
@@ -153,7 +150,7 @@ int pm_add(packet_t packet)
 		    PACKET_MAP_PAGE(packet->packet_id));
 	} else {
 		do {
-			map = (packet_map_ref) malloc(sizeof(packet_map_t));
+			map = (packet_map_t *) malloc(sizeof(packet_map_t));
 			if (!map) {
 				fibril_rwlock_write_unlock(&pm_globals.lock);
 				return ENOMEM;
@@ -179,8 +176,8 @@ void pm_destroy(void)
 {
 	int count;
 	int index;
-	packet_map_ref map;
-	packet_t packet;
+	packet_map_t *map;
+	packet_t *packet;
 
 	fibril_rwlock_write_lock(&pm_globals.lock);
 	count = gpm_count(&pm_globals.packet_map);
@@ -207,13 +204,13 @@ void pm_destroy(void)
  * @param[in] packet	The packet to be added.
  * @param[in] order	The packet order value.
  * @param[in] metric	The metric value of the packet.
- * @returns		EOK on success.
- * @returns		EINVAL if the first parameter is NULL.
- * @returns		EINVAL if the packet is not valid.
+ * @return		EOK on success.
+ * @return		EINVAL if the first parameter is NULL.
+ * @return		EINVAL if the packet is not valid.
  */
-int pq_add(packet_t * first, packet_t packet, size_t order, size_t metric)
+int pq_add(packet_t **first, packet_t *packet, size_t order, size_t metric)
 {
-	packet_t item;
+	packet_t *item;
 
 	if (!first || !packet_is_valid(packet))
 		return EINVAL;
@@ -251,13 +248,13 @@ int pq_add(packet_t * first, packet_t packet, size_t order, size_t metric)
  *
  * @param[in] first	The first packet of the queue.
  * @param[in] order	The packet order value.
- * @returns		The packet with the given order.
- * @returns		NULL if the first packet is not valid.
- * @returns		NULL if the packet is not found.
+ * @return		The packet with the given order.
+ * @return		NULL if the first packet is not valid.
+ * @return		NULL if the packet is not found.
  */
-packet_t pq_find(packet_t packet, size_t order)
+packet_t *pq_find(packet_t *packet, size_t order)
 {
-	packet_t item;
+	packet_t *item;
 
 	if (!packet_is_valid(packet))
 		return NULL;
@@ -277,12 +274,12 @@ packet_t pq_find(packet_t packet, size_t order)
  *
  * @param[in] packet	The packet in the queue.
  * @param[in] new_packet The new packet to be inserted.
- * @returns		EOK on success.
- * @returns		EINVAL if etiher of the packets is invalid.
+ * @return		EOK on success.
+ * @return		EINVAL if etiher of the packets is invalid.
  */
-int pq_insert_after(packet_t packet, packet_t new_packet)
+int pq_insert_after(packet_t *packet, packet_t *new_packet)
 {
-	packet_t item;
+	packet_t *item;
 
 	if (!packet_is_valid(packet) || !packet_is_valid(new_packet))
 		return EINVAL;
@@ -300,15 +297,15 @@ int pq_insert_after(packet_t packet, packet_t new_packet)
 /** Detach the packet from the queue.
  *
  * @param[in] packet	The packet to be detached.
- * @returns		The next packet in the queue. If the packet is the first
+ * @return		The next packet in the queue. If the packet is the first
  *			one of the queue, this becomes the new first one.
- * @returns		NULL if there is no packet left.
- * @returns		NULL if the packet is not valid.
+ * @return		NULL if there is no packet left.
+ * @return		NULL if the packet is not valid.
  */
-packet_t pq_detach(packet_t packet)
+packet_t *pq_detach(packet_t *packet)
 {
-	packet_t next;
-	packet_t previous;
+	packet_t *next;
+	packet_t *previous;
 
 	if (!packet_is_valid(packet))
 		return NULL;
@@ -330,10 +327,10 @@ packet_t pq_detach(packet_t packet)
  * @param[in] packeti	The packet to be set.
  * @param[in] order	The packet order value.
  * @param[in] metric	The metric value of the packet.
- * @returns		EOK on success.
- * @returns		EINVAL if the packet is invalid.
+ * @return		EOK on success.
+ * @return		EINVAL if the packet is invalid.
  */
-int pq_set_order(packet_t packet, size_t order, size_t metric)
+int pq_set_order(packet_t *packet, size_t order, size_t metric)
 {
 	if (!packet_is_valid(packet))
 		return EINVAL;
@@ -348,10 +345,10 @@ int pq_set_order(packet_t packet, size_t order, size_t metric)
  * @param[in] packet	The packet to be set.
  * @param[out] order	The packet order value.
  * @param[out] metric	The metric value of the packet.
- * @returns		EOK on success.
- * @returns		EINVAL if the packet is invalid.
+ * @return		EOK on success.
+ * @return		EINVAL if the packet is invalid.
  */
-int pq_get_order(packet_t packet, size_t *order, size_t *metric)
+int pq_get_order(packet_t *packet, size_t *order, size_t *metric)
 {
 	if (!packet_is_valid(packet))
 		return EINVAL;
@@ -374,10 +371,10 @@ int pq_get_order(packet_t packet, size_t *order, size_t *metric)
  * @param[in] packet_release The releasing function called for each of the
  *			packets after its detachment.
  */
-void pq_destroy(packet_t first, void (*packet_release)(packet_t packet))
+void pq_destroy(packet_t *first, void (*packet_release)(packet_t *packet))
 {
-	packet_t actual;
-	packet_t next;
+	packet_t *actual;
+	packet_t *next;
 
 	actual = first;
 	while (packet_is_valid(actual)) {
@@ -393,11 +390,11 @@ void pq_destroy(packet_t first, void (*packet_release)(packet_t packet))
 /** Returns the next packet in the queue.
  *
  * @param[in] packet	The packet queue member.
- * @returns		The next packet in the queue.
- * @returns		NULL if there is no next packet.
- * @returns		NULL if the packet is not valid.
+ * @return		The next packet in the queue.
+ * @return		NULL if there is no next packet.
+ * @return		NULL if the packet is not valid.
  */
-packet_t pq_next(packet_t packet)
+packet_t *pq_next(packet_t *packet)
 {
 	if (!packet_is_valid(packet))
 		return NULL;
@@ -408,11 +405,11 @@ packet_t pq_next(packet_t packet)
 /** Returns the previous packet in the queue.
  *
  * @param[in] packet	The packet queue member.
- * @returns		The previous packet in the queue.
- * @returns		NULL if there is no previous packet.
- * @returns		NULL if the packet is not valid.
+ * @return		The previous packet in the queue.
+ * @return		NULL if there is no previous packet.
+ * @return		NULL if the packet is not valid.
  */
-packet_t pq_previous(packet_t packet)
+packet_t *pq_previous(packet_t *packet)
 {
 	if (!packet_is_valid(packet))
 		return NULL;

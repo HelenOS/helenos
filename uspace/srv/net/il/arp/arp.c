@@ -82,10 +82,10 @@ GENERIC_CHAR_MAP_IMPLEMENT(arp_addr, measured_string_t);
  *
  * @param[in] device	The device specific data.
  */
-static void arp_clear_device(arp_device_ref device)
+static void arp_clear_device(arp_device_t *device)
 {
 	int count;
-	arp_proto_ref proto;
+	arp_proto_t *proto;
 
 	for (count = arp_protos_count(&device->protos) - 1; count >= 0;
 	    count--) {
@@ -104,7 +104,7 @@ static void arp_clear_device(arp_device_ref device)
 static int arp_clean_cache_req(int arp_phone)
 {
 	int count;
-	arp_device_ref device;
+	arp_device_t *device;
 
 	fibril_rwlock_write_lock(&arp_globals.lock);
 	for (count = arp_cache_count(&arp_globals.cache) - 1; count >= 0;
@@ -125,10 +125,10 @@ static int arp_clean_cache_req(int arp_phone)
 }
 
 static int arp_clear_address_req(int arp_phone, device_id_t device_id,
-    services_t protocol, measured_string_ref address)
+    services_t protocol, measured_string_t *address)
 {
-	arp_device_ref device;
-	arp_proto_ref proto;
+	arp_device_t *device;
+	arp_proto_t *proto;
 
 	fibril_rwlock_write_lock(&arp_globals.lock);
 	device = arp_cache_find(&arp_globals.cache, device_id);
@@ -149,7 +149,7 @@ static int arp_clear_address_req(int arp_phone, device_id_t device_id,
 
 static int arp_clear_device_req(int arp_phone, device_id_t device_id)
 {
-	arp_device_ref device;
+	arp_device_t *device;
 
 	fibril_rwlock_write_lock(&arp_globals.lock);
 	device = arp_cache_find(&arp_globals.cache, device_id);
@@ -170,15 +170,15 @@ static int arp_clear_device_req(int arp_phone, device_id_t device_id)
  * @param[out] proto	The allocated protocol specific data.
  * @param[in] service	The protocol module service.
  * @param[in] address	The actual protocol device address.
- * @returns		EOK on success.
- * @returns		ENOMEM if there is not enough memory left.
+ * @return		EOK on success.
+ * @return		ENOMEM if there is not enough memory left.
  */
-static int arp_proto_create(arp_proto_ref *proto, services_t service,
-    measured_string_ref address)
+static int arp_proto_create(arp_proto_t **proto, services_t service,
+    measured_string_t *address)
 {
 	int rc;
 
-	*proto = (arp_proto_ref) malloc(sizeof(arp_proto_t));
+	*proto = (arp_proto_t *) malloc(sizeof(arp_proto_t));
 	if (!*proto)
 		return ENOMEM;
 	
@@ -204,18 +204,18 @@ static int arp_proto_create(arp_proto_ref *proto, services_t service,
  * @param[in] service	The device driver service.
  * @param[in] protocol	The protocol service.
  * @param[in] address	The actual device protocol address.
- * @returns		EOK on success.
- * @returns		EEXIST if another device with the same device identifier
+ * @return		EOK on success.
+ * @return		EEXIST if another device with the same device identifier
  *			and different driver service exists.
- * @returns		ENOMEM if there is not enough memory left.
- * @returns		Other error codes as defined for the
+ * @return		ENOMEM if there is not enough memory left.
+ * @return		Other error codes as defined for the
  *			measured_strings_return() function.
  */
 static int arp_device_message(device_id_t device_id, services_t service,
-    services_t protocol, measured_string_ref address)
+    services_t protocol, measured_string_t *address)
 {
-	arp_device_ref device;
-	arp_proto_ref proto;
+	arp_device_t *device;
+	arp_proto_t *proto;
 	hw_type_t hardware;
 	int index;
 	int rc;
@@ -259,7 +259,7 @@ static int arp_device_message(device_id_t device_id, services_t service,
 			return ENOENT;
 		
 		/* Create a new device */
-		device = (arp_device_ref) malloc(sizeof(arp_device_t));
+		device = (arp_device_t *) malloc(sizeof(arp_device_t));
 		if (!device) {
 			fibril_rwlock_write_unlock(&arp_globals.lock);
 			return ENOMEM;
@@ -355,8 +355,8 @@ static int arp_device_message(device_id_t device_id, services_t service,
  *
  *  @param[in] client_connection The client connection processing function.
  *			The module skeleton propagates its own one.
- *  @returns		EOK on success.
- *  @returns		ENOMEM if there is not enough memory left.
+ *  @return		EOK on success.
+ *  @return		ENOMEM if there is not enough memory left.
  */
 int arp_initialize(async_client_conn_t client_connection)
 {
@@ -375,12 +375,12 @@ int arp_initialize(async_client_conn_t client_connection)
  *
  * @param[in] device_id	The device identifier.
  * @param[in] mtu	The new mtu value.
- * @returns		ENOENT if device is not found.
- * @returns		EOK on success.
+ * @return		ENOENT if device is not found.
+ * @return		EOK on success.
  */
 static int arp_mtu_changed_message(device_id_t device_id, size_t mtu)
 {
-	arp_device_ref device;
+	arp_device_t *device;
 
 	fibril_rwlock_write_lock(&arp_globals.lock);
 	device = arp_cache_find(&arp_globals.cache, device_id);
@@ -403,24 +403,24 @@ static int arp_mtu_changed_message(device_id_t device_id, size_t mtu)
  *
  * @param[in] device_id	The source device identifier.
  * @param[in,out] packet The received packet.
- * @returns		EOK on success and the packet is no longer needed.
- * @returns		One on success and the packet has been reused.
- * @returns		EINVAL if the packet is too small to carry an ARP
+ * @return		EOK on success and the packet is no longer needed.
+ * @return		One on success and the packet has been reused.
+ * @return		EINVAL if the packet is too small to carry an ARP
  *			packet.
- * @returns		EINVAL if the received address lengths differs from
+ * @return		EINVAL if the received address lengths differs from
  *			the registered values.
- * @returns		ENOENT if the device is not found in the cache.
- * @returns		ENOENT if the protocol for the device is not found in
+ * @return		ENOENT if the device is not found in the cache.
+ * @return		ENOENT if the protocol for the device is not found in
  *			the cache.
- * @returns		ENOMEM if there is not enough memory left.
+ * @return		ENOMEM if there is not enough memory left.
  */
-static int arp_receive_message(device_id_t device_id, packet_t packet)
+static int arp_receive_message(device_id_t device_id, packet_t *packet)
 {
 	size_t length;
-	arp_header_ref header;
-	arp_device_ref device;
-	arp_proto_ref proto;
-	measured_string_ref hw_source;
+	arp_header_t *header;
+	arp_device_t *device;
+	arp_proto_t *proto;
+	measured_string_t *hw_source;
 	uint8_t *src_hw;
 	uint8_t *src_proto;
 	uint8_t *des_hw;
@@ -435,7 +435,7 @@ static int arp_receive_message(device_id_t device_id, packet_t packet)
 	if (!device)
 		return ENOENT;
 
-	header = (arp_header_ref) packet_get_data(packet);
+	header = (arp_header_t *) packet_get_data(packet);
 	if ((ntohs(header->hardware) != device->hardware) ||
 	    (length < sizeof(arp_header_t) + header->hardware_length * 2U +
 	    header->protocol_length * 2U)) {
@@ -515,23 +515,23 @@ static int arp_receive_message(device_id_t device_id, packet_t packet)
  * @param[in] device_id	The device identifier.
  * @param[in] protocol	The protocol service.
  * @param[in] target	The target protocol address.
- * @returns		The hardware address of the target.
- * @returns		NULL if the target parameter is NULL.
- * @returns		NULL if the device is not found.
- * @returns		NULL if the device packet is too small to send a
+ * @return		The hardware address of the target.
+ * @return		NULL if the target parameter is NULL.
+ * @return		NULL if the device is not found.
+ * @return		NULL if the device packet is too small to send a
  *			request.
- * @returns		NULL if the hardware address is not found in the cache.
+ * @return		NULL if the hardware address is not found in the cache.
  */
-static measured_string_ref
+static measured_string_t *
 arp_translate_message(device_id_t device_id, services_t protocol,
-    measured_string_ref target)
+    measured_string_t *target)
 {
-	arp_device_ref device;
-	arp_proto_ref proto;
-	measured_string_ref addr;
+	arp_device_t *device;
+	arp_proto_t *proto;
+	measured_string_t *addr;
 	size_t length;
-	packet_t packet;
-	arp_header_ref header;
+	packet_t *packet;
+	arp_header_t *header;
 
 	if (!target)
 		return NULL;
@@ -560,7 +560,7 @@ arp_translate_message(device_id_t device_id, services_t protocol,
 	if (!packet)
 		return NULL;
 
-	header = (arp_header_ref) packet_suffix(packet, length);
+	header = (arp_header_t *) packet_suffix(packet, length);
 	if (!header) {
 		pq_release_remote(arp_globals.net_phone, packet_get_id(packet));
 		return NULL;
@@ -601,8 +601,8 @@ arp_translate_message(device_id_t device_id, services_t protocol,
  * @param[out] answer	The message answer parameters.
  * @param[out] answer_count The last parameter for the actual answer in the
  *			answer parameter.
- * @returns		EOK on success.
- * @returns		ENOTSUP if the message is not known.
+ * @return		EOK on success.
+ * @return		ENOTSUP if the message is not known.
  *
  * @see arp_interface.h
  * @see IS_NET_ARP_MESSAGE()
@@ -611,11 +611,11 @@ int
 arp_message_standalone(ipc_callid_t callid, ipc_call_t *call,
     ipc_call_t *answer, int *answer_count)
 {
-	measured_string_ref address;
-	measured_string_ref translation;
+	measured_string_t *address;
+	measured_string_t *translation;
 	char *data;
-	packet_t packet;
-	packet_t next;
+	packet_t *packet;
+	packet_t *next;
 	int rc;
 	
 	*answer_count = 0;
@@ -746,8 +746,8 @@ static void il_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 /** Starts the module.
  *
- * @returns		EOK on success.
- * @returns		Other error codes as defined for each specific module
+ * @return		EOK on success.
+ * @return		Other error codes as defined for each specific module
  *			start function.
  */
 int main(int argc, char *argv[])

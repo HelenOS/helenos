@@ -68,7 +68,7 @@
 /** Connect to the needed module function type definition.
  *
  * @param[in] need	The needed module service.
- * @returns		The phone of the needed service.
+ * @return		The phone of the needed service.
  */
 typedef int connect_module_t(services_t need);
 

@@ -45,11 +45,6 @@
  */
 typedef struct arp_header arp_header_t;
 
-/** Type definition of an ARP protocol header pointer.
- * @see arp_header
- */
-typedef arp_header_t *arp_header_ref;
-
 /** ARP protocol header. */
 struct arp_header {
 	/**

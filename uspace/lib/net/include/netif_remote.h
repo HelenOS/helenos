@@ -40,13 +40,13 @@
 #include <net/device.h>
 #include <net/packet.h>
 
-extern int netif_get_addr_req_remote(int, device_id_t, measured_string_ref *,
+extern int netif_get_addr_req_remote(int, device_id_t, measured_string_t **,
     char **);
 extern int netif_probe_req_remote(int, device_id_t, int, int);
-extern int netif_send_msg_remote(int, device_id_t, packet_t, services_t);
+extern int netif_send_msg_remote(int, device_id_t, packet_t *, services_t);
 extern int netif_start_req_remote(int, device_id_t);
 extern int netif_stop_req_remote(int, device_id_t);
-extern int netif_stats_req_remote(int, device_id_t, device_stats_ref);
+extern int netif_stats_req_remote(int, device_id_t, device_stats_t *);
 extern int netif_bind_service_remote(services_t, device_id_t, services_t,
     async_client_conn_t);
 

@@ -877,7 +877,7 @@ size_t zone_create(pfn_t start, size_t count, pfn_t confframe,
 		 * nobody tries to do that. If some platform requires, remove
 		 * the assert
 		 */
-		ASSERT(confframe != NULL);
+		ASSERT(confframe != ADDR2PFN((uintptr_t ) NULL));
 		
 		/* If confframe is supposed to be inside our zone, then make sure
 		 * it does not span kernel & init
@@ -1103,7 +1103,7 @@ void frame_free(uintptr_t frame)
 	 * First, find host frame zone for addr.
 	 */
 	pfn_t pfn = ADDR2PFN(frame);
-	size_t znum = find_zone(pfn, 1, NULL);
+	size_t znum = find_zone(pfn, 1, 0);
 	
 	ASSERT(znum != (size_t) -1);
 	
@@ -1140,7 +1140,7 @@ NO_TRACE void frame_reference_add(pfn_t pfn)
 	/*
 	 * First, find host frame zone for addr.
 	 */
-	size_t znum = find_zone(pfn, 1, NULL);
+	size_t znum = find_zone(pfn, 1, 0);
 	
 	ASSERT(znum != (size_t) -1);
 	

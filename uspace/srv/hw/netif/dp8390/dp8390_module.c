@@ -102,7 +102,7 @@ static void irq_handler(ipc_callid_t iid, ipc_call_t * call)
 {
 	netif_device_t * device;
 	dpeth_t * dep;
-	packet_t received;
+	packet_t *received;
 	device_id_t device_id;
 	int phone;
 
@@ -126,7 +126,7 @@ static void irq_handler(ipc_callid_t iid, ipc_call_t * call)
 		dep->received_queue = NULL;
 		dep->received_count = 0;
 		fibril_rwlock_write_unlock(&netif_globals.lock);
-		nil_received_msg(phone, device_id, received, NULL);
+		nil_received_msg(phone, device_id, received, SERVICE_NONE);
 	}else{
 		fibril_rwlock_write_unlock(&netif_globals.lock);
 	}
@@ -156,7 +156,8 @@ int netif_specific_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * 
 	return ENOTSUP;
 }
 
-int netif_get_device_stats(device_id_t device_id, device_stats_ref stats){
+int netif_get_device_stats(device_id_t device_id, device_stats_t *stats)
+{
 	netif_device_t * device;
 	eth_stat_t * de_stat;
 	int rc;
@@ -184,7 +185,7 @@ int netif_get_device_stats(device_id_t device_id, device_stats_ref stats){
 	return EOK;
 }
 
-int netif_get_addr_message(device_id_t device_id, measured_string_ref address){
+int netif_get_addr_message(device_id_t device_id, measured_string_t *address){
 	netif_device_t * device;
 	int rc;
 
@@ -245,10 +246,10 @@ int netif_probe_message(device_id_t device_id, int irq, uintptr_t io){
 	return EOK;
 }
 
-int netif_send_message(device_id_t device_id, packet_t packet, services_t sender){
+int netif_send_message(device_id_t device_id, packet_t *packet, services_t sender){
 	netif_device_t * device;
 	dpeth_t * dep;
-	packet_t next;
+	packet_t *next;
 	int rc;
 
 	rc = find_device(device_id, &device);

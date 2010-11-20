@@ -57,62 +57,30 @@
  */
 typedef struct eth_header_snap eth_header_snap_t;
 
-/** Type definition of the Ethernet header IEEE 802.3 + 802.2 + SNAP extensions
- * pointer.
- *
- * @see eth_header_snap
- */
-typedef eth_header_snap_t *eth_header_snap_ref;
-
 /** Type definition of the Ethernet header IEEE 802.3 + 802.2 + SNAP extensions.
  * @see eth_header_lsap
  */
 typedef struct eth_header_lsap eth_header_lsap_t;
-
-/** Type definition of the Ethernet header IEEE 802.3 + 802.2 extension pointer.
- * @see eth_header_lsap
- */
-typedef eth_header_lsap_t *eth_header_lsap_ref;
 
 /** Type definition of the Ethernet header LSAP extension.
  * @see eth_ieee_lsap
  */
 typedef struct eth_ieee_lsap eth_ieee_lsap_t;
 
-/** Type definition of the Ethernet header LSAP extension pointer.
- * @see eth_ieee_lsap
- */
-typedef eth_ieee_lsap_t *eth_ieee_lsap_ref;
-
 /** Type definition of the Ethernet header SNAP extension.
  * @see eth_snap
  */
 typedef struct eth_snap eth_snap_t;
-
-/** Type definition of the Ethernet header SNAP extension pointer.
- * @see eth_snap
- */
-typedef eth_snap_t *eth_snap_ref;
 
 /** Type definition of the Ethernet header preamble.
  * @see preamble
  */
 typedef struct eth_preamble eth_preamble_t;
 
-/** Type definition of the Ethernet header preamble pointer.
- * @see eth_preamble
- */
-typedef eth_preamble_t *eth_preamble_ref;
-
 /** Type definition of the Ethernet header.
  * @see eth_header
  */
 typedef struct eth_header eth_header_t;
-
-/** Type definition of the Ethernet header pointer.
- * @see eth_header
- */
-typedef eth_header_t *eth_header_ref;
 
 /** Ethernet header Link Service Access Point extension. */
 struct eth_ieee_lsap {
@@ -217,9 +185,6 @@ struct eth_header_snap {
 
 /** Ethernet Frame Check Sequence. */
 typedef uint32_t eth_fcs_t;
-
-/** Ethernet Frame Check Sequence pointer. */
-typedef eth_fcs_t *eth_fcs_ref;
 
 #endif
 

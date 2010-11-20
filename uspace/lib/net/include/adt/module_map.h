@@ -47,11 +47,6 @@
  */
 typedef struct module_struct module_t;
 
-/** Type definition of the module structure pointer.
- * @see module_struct
- */
-typedef module_t *module_ref;
-
 /** Module map.
  * Sorted by module names.
  * @see generic_char_map.h
@@ -76,9 +71,9 @@ struct module_struct {
 	connect_module_t *connect_module;
 };
 
-extern int add_module(module_ref *, modules_ref, const char *, const char *,
+extern int add_module(module_t **, modules_t *, const char *, const char *,
     services_t, task_id_t, connect_module_t *);
-extern module_ref get_running_module(modules_ref, char *);
+extern module_t *get_running_module(modules_t *, char *);
 extern task_id_t spawn(const char *);
 
 #endif

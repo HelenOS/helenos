@@ -304,7 +304,7 @@ int usb_hc_async_interrupt_out(usb_hc_device_t *hc, usb_target_t target,
 
 	hc->transfer_ops->transfer_out(hc, &dev, &endpoint, buffer, size, NULL, NULL);
 
-	*handle = NULL;
+	*handle = (usb_handle_t)NULL;
 
 	return EOK;
 }

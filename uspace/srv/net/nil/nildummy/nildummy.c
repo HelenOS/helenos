@@ -105,7 +105,7 @@ int nil_initialize(int net_phone)
  */
 static void nildummy_receiver(ipc_callid_t iid, ipc_call_t *icall)
 {
-	packet_t packet;
+	packet_t *packet;
 	int rc;
 
 	while (true) {
@@ -141,18 +141,18 @@ static void nildummy_receiver(ipc_callid_t iid, ipc_call_t *icall)
  * @param[in] device_id	The new device identifier.
  * @param[in] service	The device driver service.
  * @param[in] mtu	The device maximum transmission unit.
- * @returns		EOK on success.
- * @returns		EEXIST if the device with the different service exists.
- * @returns		ENOMEM if there is not enough memory left.
- * @returns		Other error codes as defined for the
+ * @return		EOK on success.
+ * @return		EEXIST if the device with the different service exists.
+ * @return		ENOMEM if there is not enough memory left.
+ * @return		Other error codes as defined for the
  *			netif_bind_service() function.
- * @returns		Other error codes as defined for the
+ * @return		Other error codes as defined for the
  *			netif_get_addr_req() function.
  */
 static int nildummy_device_message(device_id_t device_id, services_t service,
     size_t mtu)
 {
-	nildummy_device_ref device;
+	nildummy_device_t *device;
 	int index;
 	int rc;
 
@@ -191,7 +191,7 @@ static int nildummy_device_message(device_id_t device_id, services_t service,
 	}
 	
 	/* Create a new device */
-	device = (nildummy_device_ref) malloc(sizeof(nildummy_device_t));
+	device = (nildummy_device_t *) malloc(sizeof(nildummy_device_t));
 	if (!device)
 		return ENOMEM;
 	
@@ -247,9 +247,9 @@ static int nildummy_device_message(device_id_t device_id, services_t service,
  *
  */
 static int nildummy_addr_message(device_id_t device_id,
-    measured_string_ref *address)
+    measured_string_t **address)
 {
-	nildummy_device_ref device;
+	nildummy_device_t *device;
 
 	if (!address)
 		return EBADMEM;
@@ -281,7 +281,7 @@ static int nildummy_addr_message(device_id_t device_id,
 static int nildummy_packet_space_message(device_id_t device_id, size_t *addr_len,
     size_t *prefix, size_t *content, size_t *suffix)
 {
-	nildummy_device_ref device;
+	nildummy_device_t *device;
 
 	if (!addr_len || !prefix || !content || !suffix)
 		return EBADMEM;
@@ -303,9 +303,9 @@ static int nildummy_packet_space_message(device_id_t device_id, size_t *addr_len
 }
 
 int nil_received_msg_local(int nil_phone, device_id_t device_id,
-    packet_t packet, services_t target)
+    packet_t *packet, services_t target)
 {
-	packet_t next;
+	packet_t *next;
 
 	fibril_rwlock_read_lock(&nildummy_globals.protos_lock);
 	if (nildummy_globals.proto.phone) {
@@ -353,10 +353,10 @@ static int nildummy_register_message(services_t service, int phone)
  * @return		ENOENT if there no such device.
  * @return		EINVAL if the service parameter is not known.
  */
-static int nildummy_send_message(device_id_t device_id, packet_t packet,
+static int nildummy_send_message(device_id_t device_id, packet_t *packet,
     services_t sender)
 {
-	nildummy_device_ref device;
+	nildummy_device_t *device;
 
 	fibril_rwlock_read_lock(&nildummy_globals.devices_lock);
 	device = nildummy_devices_find(&nildummy_globals.devices, device_id);
@@ -376,8 +376,8 @@ static int nildummy_send_message(device_id_t device_id, packet_t packet,
 int nil_message_standalone(const char *name, ipc_callid_t callid,
     ipc_call_t *call, ipc_call_t *answer, int *answer_count)
 {
-	measured_string_ref address;
-	packet_t packet;
+	measured_string_t *address;
+	packet_t *packet;
 	size_t addrlen;
 	size_t prefix;
 	size_t suffix;

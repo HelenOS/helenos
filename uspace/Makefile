@@ -50,7 +50,6 @@ DIRS = \
 	app/trace \
 	app/top \
 	app/virtusbkbd \
-	app/netstart \
 	app/netecho \
 	app/nettest1 \
 	app/nettest2 \

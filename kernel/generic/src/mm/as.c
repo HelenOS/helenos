@@ -311,7 +311,7 @@ NO_TRACE static bool check_area_conflicts(as_t *as, uintptr_t va, size_t size,
 	 * We don't want any area to have conflicts with NULL page.
 	 *
 	 */
-	if (overlaps(va, size, NULL, PAGE_SIZE))
+	if (overlaps(va, size, (uintptr_t) NULL, PAGE_SIZE))
 		return false;
 	
 	/*

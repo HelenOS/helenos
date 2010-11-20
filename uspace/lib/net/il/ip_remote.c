@@ -77,9 +77,9 @@ int ip_add_route_req_remote(int ip_phone, device_id_t device_id,
  * @param[in] protocol	The transport layer protocol.
  * @param[in] me	The requesting module service.
  * @param[in] receiver	The message receiver. Used for remote connection.
- * @returns		The phone of the needed service.
- * @returns		EOK on success.
- * @returns		Other error codes as defined for the bind_service()
+ * @return		The phone of the needed service.
+ * @return		EOK on success.
+ * @return		Other error codes as defined for the bind_service()
  *			function.
  */
 int ip_bind_service(services_t service, int protocol, services_t me,
@@ -92,7 +92,7 @@ int ip_bind_service(services_t service, int protocol, services_t me,
 /** Connects to the IP module.
  *
  * @param service	The IP module service. Ignored parameter.
- * @returns		The IP module phone on success.
+ * @return		The IP module phone on success.
  */
 int ip_connect_module(services_t service)
 {
@@ -185,7 +185,7 @@ int ip_get_route_req_remote(int ip_phone, ip_protocol_t protocol,
  *			generic_packet_size_req_remote() function.
  */
 int ip_packet_size_req_remote(int ip_phone, device_id_t device_id,
-    packet_dimension_ref packet_dimension)
+    packet_dimension_t *packet_dimension)
 {
 	return generic_packet_size_req_remote(ip_phone, NET_IL_PACKET_SPACE,
 	    device_id, packet_dimension);
@@ -203,7 +203,7 @@ int ip_packet_size_req_remote(int ip_phone, device_id_t device_id,
  * @return		EOK on success.
  */
 int ip_received_error_msg_remote(int ip_phone, device_id_t device_id,
-    packet_t packet, services_t target, services_t error)
+    packet_t *packet, services_t target, services_t error)
 {
 	return generic_received_msg_remote(ip_phone, NET_IP_RECEIVED_ERROR,
 	    device_id, packet_get_id(packet), target, error);
@@ -224,7 +224,7 @@ int ip_received_error_msg_remote(int ip_phone, device_id_t device_id,
  * @return		Other error codes as defined for the generic_send_msg()
  *			function.
  */
-int ip_send_msg_remote(int ip_phone, device_id_t device_id, packet_t packet,
+int ip_send_msg_remote(int ip_phone, device_id_t device_id, packet_t *packet,
     services_t sender, services_t error)
 {
 	return generic_send_msg_remote(ip_phone, NET_IL_SEND, device_id,

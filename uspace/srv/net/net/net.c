@@ -77,22 +77,24 @@ net_globals_t net_globals;
 GENERIC_CHAR_MAP_IMPLEMENT(measured_strings, measured_string_t);
 DEVICE_MAP_IMPLEMENT(netifs, netif_t);
 
+static int startup(void);
+
 /** Add the configured setting to the configuration map.
  *
  * @param[in] configuration The configuration map.
  * @param[in] name          The setting name.
  * @param[in] value         The setting value.
  *
- * @returns EOK on success.
- * @returns ENOMEM if there is not enough memory left.
+ * @return EOK on success.
+ * @return ENOMEM if there is not enough memory left.
  *
  */
-int add_configuration(measured_strings_ref configuration, const char *name,
+int add_configuration(measured_strings_t *configuration, const char *name,
     const char *value)
 {
 	int rc;
 	
-	measured_string_ref setting =
+	measured_string_t *setting =
 	    measured_string_create_bulk(value, 0);
 	if (!setting)
 		return ENOMEM;
@@ -109,14 +111,14 @@ int add_configuration(measured_strings_ref configuration, const char *name,
 
 /** Generate new system-unique device identifier.
  *
- * @returns		The system-unique devic identifier.
+ * @return		The system-unique devic identifier.
  */
 static device_id_t generate_new_device_id(void)
 {
 	return device_assign_devno();
 }
 
-static int parse_line(measured_strings_ref configuration, char *line)
+static int parse_line(measured_strings_t *configuration, char *line)
 {
 	int rc;
 	
@@ -162,7 +164,7 @@ static int parse_line(measured_strings_ref configuration, char *line)
 		value++;
 	
 	/* Create a bulk measured string till the end */
-	measured_string_ref setting =
+	measured_string_t *setting =
 	    measured_string_create_bulk(value, 0);
 	if (!setting)
 		return ENOMEM;
@@ -178,7 +180,7 @@ static int parse_line(measured_strings_ref configuration, char *line)
 }
 
 static int read_configuration_file(const char *directory, const char *filename,
-    measured_strings_ref configuration)
+    measured_strings_t *configuration)
 {
 	printf("%s: Reading configuration file %s/%s\n", NAME, directory, filename);
 	
@@ -234,8 +236,8 @@ static int read_configuration_file(const char *directory, const char *filename,
  * @param[in]     name  The network interface name.
  * @param[in,out] netif The network interface structure.
  *
- * @returns EOK on success.
- * @returns Other error codes as defined for the add_configuration() function.
+ * @return EOK on success.
+ * @return Other error codes as defined for the add_configuration() function.
  *
  */
 static int read_netif_configuration(const char *name, netif_t *netif)
@@ -245,8 +247,8 @@ static int read_netif_configuration(const char *name, netif_t *netif)
 
 /** Read the networking subsystem global configuration.
  *
- * @returns EOK on success.
- * @returns Other error codes as defined for the add_configuration() function.
+ * @return EOK on success.
+ * @return Other error codes as defined for the add_configuration() function.
  *
  */
 static int read_configuration(void)
@@ -261,8 +263,8 @@ static int read_configuration(void)
  *                              function. The module skeleton propagates
  *                              its own one.
  *
- * @returns EOK on success.
- * @returns ENOMEM if there is not enough memory left.
+ * @return EOK on success.
+ * @return ENOMEM if there is not enough memory left.
  *
  */
 static int net_initialize(async_client_conn_t client_connection)
@@ -312,9 +314,9 @@ static int net_initialize(async_client_conn_t client_connection)
  *                              module skeleton propagates
  *                              its own one.
  *
- * @returns EOK on successful module termination.
- * @returns Other error codes as defined for the net_initialize() function.
- * @returns Other error codes as defined for the REGISTER_ME() macro function.
+ * @return EOK on successful module termination.
+ * @return Other error codes as defined for the net_initialize() function.
+ * @return Other error codes as defined for the REGISTER_ME() macro function.
  *
  */
 static int net_module_start(async_client_conn_t client_connection)
@@ -336,6 +338,11 @@ static int net_module_start(async_client_conn_t client_connection)
 	if (rc != EOK)
 		goto out;
 	
+	rc = startup();
+	if (rc != EOK)
+		goto out;
+	
+	task_retval(0);
 	async_manager();
 
 out:
@@ -352,18 +359,18 @@ out:
  * @param[in]  count         The desired settings count.
  * @param[out] data          The found configuration settings data.
  *
- * @returns EOK.
+ * @return EOK.
  *
  */
-static int net_get_conf(measured_strings_ref netif_conf,
-    measured_string_ref configuration, size_t count, char **data)
+static int net_get_conf(measured_strings_t *netif_conf,
+    measured_string_t *configuration, size_t count, char **data)
 {
 	if (data)
 		*data = NULL;
 	
 	size_t index;
 	for (index = 0; index < count; index++) {
-		measured_string_ref setting =
+		measured_string_t *setting =
 		    measured_strings_find(netif_conf, configuration[index].value, 0);
 		if (!setting)
 			setting = measured_strings_find(&net_globals.configuration,
@@ -381,7 +388,7 @@ static int net_get_conf(measured_strings_ref netif_conf,
 	return EOK;
 }
 
-int net_get_conf_req(int net_phone, measured_string_ref *configuration,
+int net_get_conf_req(int net_phone, measured_string_t **configuration,
     size_t count, char **data)
 {
 	if (!configuration || (count <= 0))
@@ -391,7 +398,7 @@ int net_get_conf_req(int net_phone, measured_string_ref *configuration,
 }
 
 int net_get_device_conf_req(int net_phone, device_id_t device_id,
-    measured_string_ref *configuration, size_t count, char **data)
+    measured_string_t **configuration, size_t count, char **data)
 {
 	if ((!configuration) || (count == 0))
 		return EINVAL;
@@ -403,7 +410,7 @@ int net_get_device_conf_req(int net_phone, device_id_t device_id,
 		return net_get_conf(NULL, *configuration, count, data);
 }
 
-void net_free_settings(measured_string_ref settings, char *data)
+void net_free_settings(measured_string_t *settings, char *data)
 {
 }
 
@@ -414,13 +421,13 @@ void net_free_settings(measured_string_ref settings, char *data)
  *
  * @param[in] netif The network interface specific data.
  *
- * @returns EOK on success.
- * @returns EINVAL if there are some settings missing.
- * @returns ENOENT if the internet protocol module is not known.
- * @returns Other error codes as defined for the netif_probe_req() function.
- * @returns Other error codes as defined for the nil_device_req() function.
- * @returns Other error codes as defined for the needed internet layer
- *          registering function.
+ * @return EOK on success.
+ * @return EINVAL if there are some settings missing.
+ * @return ENOENT if the internet protocol module is not known.
+ * @return Other error codes as defined for the netif_probe_req() function.
+ * @return Other error codes as defined for the nil_device_req() function.
+ * @return Other error codes as defined for the needed internet layer
+ *         registering function.
  *
  */
 static int start_device(netif_t *netif)
@@ -428,7 +435,7 @@ static int start_device(netif_t *netif)
 	int rc;
 	
 	/* Mandatory netif */
-	measured_string_ref setting =
+	measured_string_t *setting =
 	    measured_strings_find(&netif->configuration, CONF_NETIF, 0);
 	
 	netif->driver = get_running_module(&net_globals.modules, setting->value);
@@ -506,15 +513,15 @@ static int start_device(netif_t *netif)
 
 /** Read the configuration and start all network interfaces.
  *
- * @returns EOK on success.
- * @returns EXDEV if there is no available system-unique device identifier.
- * @returns EINVAL if any of the network interface names are not configured.
- * @returns ENOMEM if there is not enough memory left.
- * @returns Other error codes as defined for the read_configuration()
- *          function.
- * @returns Other error codes as defined for the read_netif_configuration()
- *          function.
- * @returns Other error codes as defined for the start_device() function.
+ * @return EOK on success.
+ * @return EXDEV if there is no available system-unique device identifier.
+ * @return EINVAL if any of the network interface names are not configured.
+ * @return ENOMEM if there is not enough memory left.
+ * @return Other error codes as defined for the read_configuration()
+ *         function.
+ * @return Other error codes as defined for the read_netif_configuration()
+ *         function.
+ * @return Other error codes as defined for the start_device() function.
  *
  */
 static int startup(void)
@@ -549,7 +556,7 @@ static int startup(void)
 		}
 		
 		/* Mandatory name */
-		measured_string_ref setting =
+		measured_string_t *setting =
 		    measured_strings_find(&netif->configuration, CONF_NAME, 0);
 		if (!setting) {
 			fprintf(stderr, "%s: Network interface name is missing\n", NAME);
@@ -609,8 +616,8 @@ static int startup(void)
  * @param[out] answer_count The last parameter for the actual answer
  *                          in the answer parameter.
  *
- * @returns EOK on success.
- * @returns ENOTSUP if the message is not known.
+ * @return EOK on success.
+ * @return ENOTSUP if the message is not known.
  *
  * @see net_interface.h
  * @see IS_NET_NET_MESSAGE()
@@ -619,7 +626,7 @@ static int startup(void)
 int net_message(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *answer,
     int *answer_count)
 {
-	measured_string_ref strings;
+	measured_string_t *strings;
 	char *data;
 	int rc;
 	

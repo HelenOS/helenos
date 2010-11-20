@@ -54,19 +54,19 @@
  *			length is computed. The given length is used and
  *			appended with the terminating zero ('\0') character
  *			otherwise.
- * @returns		The new bundled character string with measured length.
- * @returns		NULL if there is not enough memory left.
+ * @return		The new bundled character string with measured length.
+ * @return		NULL if there is not enough memory left.
  */
-measured_string_ref
+measured_string_t *
 measured_string_create_bulk(const char *string, size_t length)
 {
-	measured_string_ref new;
+	measured_string_t *new;
 
 	if (length == 0) {
 		while (string[length])
 			length++;
 	}
-	new = (measured_string_ref) malloc(sizeof(measured_string_t) +
+	new = (measured_string_t *) malloc(sizeof(measured_string_t) +
 	    (sizeof(char) * (length + 1)));
 	if (!new)
 		return NULL;
@@ -83,18 +83,18 @@ measured_string_create_bulk(const char *string, size_t length)
 /** Copies the given measured string with separated header and data parts.
  *
  * @param[in] source	The source measured string to be copied.
- * @returns		The copy of the given measured string.
- * @returns		NULL if the source parameter is NULL.
- * @returns		NULL if there is not enough memory left.
+ * @return		The copy of the given measured string.
+ * @return		NULL if the source parameter is NULL.
+ * @return		NULL if there is not enough memory left.
  */
-measured_string_ref measured_string_copy(measured_string_ref source)
+measured_string_t *measured_string_copy(measured_string_t *source)
 {
-	measured_string_ref new;
+	measured_string_t *new;
 
 	if (!source)
 		return NULL;
 
-	new = (measured_string_ref) malloc(sizeof(measured_string_t));
+	new = (measured_string_t *) malloc(sizeof(measured_string_t));
 	if (new) {
 		new->value = (char *) malloc(source->length + 1);
 		if (new->value) {
@@ -119,18 +119,18 @@ measured_string_ref measured_string_copy(measured_string_ref source)
  *  @param[out] data	The measured strings data. This memory block stores the
  *			actual character strings.
  *  @param[in] count	The size of the measured strings array.
- *  @returns		EOK on success.
- *  @returns		EINVAL if the strings or data parameter is NULL.
- *  @returns		EINVAL if the count parameter is zero (0).
- *  @returns		EINVAL if the sent array differs in size.
- *  @returns		EINVAL if there is inconsistency in sent measured
+ *  @return		EOK on success.
+ *  @return		EINVAL if the strings or data parameter is NULL.
+ *  @return		EINVAL if the count parameter is zero (0).
+ *  @return		EINVAL if the sent array differs in size.
+ *  @return		EINVAL if there is inconsistency in sent measured
  *			strings' lengths (should not occur).
- *  @returns		ENOMEM if there is not enough memory left.
- *  @returns		Other error codes as defined for the
+ *  @return		ENOMEM if there is not enough memory left.
+ *  @return		Other error codes as defined for the
  *			async_data_write_finalize() function.
  */
 int
-measured_strings_receive(measured_string_ref *strings, char **data,
+measured_strings_receive(measured_string_t **strings, char **data,
     size_t count)
 {
 	size_t *lengths;
@@ -165,7 +165,7 @@ measured_strings_receive(measured_string_ref *strings, char **data,
 	}
 	(*data)[lengths[count] - 1] = '\0';
 
-	*strings = (measured_string_ref) malloc(sizeof(measured_string_t) *
+	*strings = (measured_string_t *) malloc(sizeof(measured_string_t) *
 	    count);
 	if (!*strings) {
 		free(lengths);
@@ -208,10 +208,10 @@ measured_strings_receive(measured_string_ref *strings, char **data,
  *
  * @param[in] strings	The measured strings array to be processed.
  * @param[in] count	The measured strings array size.
- * @returns		The computed sizes array.
- * @returns		NULL if there is not enough memory left.
+ * @return		The computed sizes array.
+ * @return		NULL if there is not enough memory left.
  */
-static size_t *prepare_lengths(const measured_string_ref strings, size_t count)
+static size_t *prepare_lengths(const measured_string_t *strings, size_t count)
 {
 	size_t *lengths;
 	size_t index;
@@ -237,17 +237,17 @@ static size_t *prepare_lengths(const measured_string_ref strings, size_t count)
  *
  * @param[in] strings	The measured strings array to be transferred.
  * @param[in] count	The measured strings array size.
- * @returns		EOK on success.
- * @returns		EINVAL if the strings parameter is NULL.
- * @returns		EINVAL if the count parameter is zero (0).
- * @returns		EINVAL if the calling module does not accept the given
+ * @return		EOK on success.
+ * @return		EINVAL if the strings parameter is NULL.
+ * @return		EINVAL if the count parameter is zero (0).
+ * @return		EINVAL if the calling module does not accept the given
  *			array size.
- * @returns		EINVAL if there is inconsistency in sent measured
+ * @return		EINVAL if there is inconsistency in sent measured
  *			strings' lengths (should not occur).
- * @returns		Other error codes as defined for the
+ * @return		Other error codes as defined for the
  *			async_data_read_finalize() function.
  */
-int measured_strings_reply(const measured_string_ref strings, size_t count)
+int measured_strings_reply(const measured_string_t *strings, size_t count)
 {
 	size_t *lengths;
 	size_t index;
@@ -301,16 +301,16 @@ int measured_strings_reply(const measured_string_ref strings, size_t count)
  * @param[out] data	The measured strings data. This memory block stores the
  *			actual character strings.
  * @param[in] count	The size of the measured strings array.
- * @returns		EOK on success.
- * @returns		EINVAL if the strings or data parameter is NULL.
- * @returns		EINVAL if the phone or count parameter is not positive.
- * @returns		EINVAL if the sent array differs in size.
- * @returns		ENOMEM if there is not enough memory left.
- * @returns		Other error codes as defined for the
+ * @return		EOK on success.
+ * @return		EINVAL if the strings or data parameter is NULL.
+ * @return		EINVAL if the phone or count parameter is not positive.
+ * @return		EINVAL if the sent array differs in size.
+ * @return		ENOMEM if there is not enough memory left.
+ * @return		Other error codes as defined for the
  *			async_data_read_start() function.
  */
 int
-measured_strings_return(int phone, measured_string_ref *strings, char **data,
+measured_strings_return(int phone, measured_string_t **strings, char **data,
     size_t count)
 {
 	size_t *lengths;
@@ -338,7 +338,7 @@ measured_strings_return(int phone, measured_string_ref *strings, char **data,
 		return ENOMEM;
 	}
 
-	*strings = (measured_string_ref) malloc(sizeof(measured_string_t) *
+	*strings = (measured_string_t *) malloc(sizeof(measured_string_t) *
 	    count);
 	if (!*strings) {
 		free(lengths);
@@ -377,14 +377,14 @@ measured_strings_return(int phone, measured_string_ref *strings, char **data,
  * @param[in] phone	The other module phone.
  * @param[in] strings	The measured strings array to be transferred.
  * @param[in] count	The measured strings array size.
- * @returns		EOK on success.
- * @returns		EINVAL if the strings parameter is NULL.
- * @returns		EINVAL if the phone or count parameter is not positive.
- * @returns		Other error codes as defined for the
+ * @return		EOK on success.
+ * @return		EINVAL if the strings parameter is NULL.
+ * @return		EINVAL if the phone or count parameter is not positive.
+ * @return		Other error codes as defined for the
  *			async_data_write_start() function.
  */
 int
-measured_strings_send(int phone, const measured_string_ref strings,
+measured_strings_send(int phone, const measured_string_t *strings,
     size_t count)
 {
 	size_t *lengths;

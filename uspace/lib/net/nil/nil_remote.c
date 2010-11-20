@@ -73,7 +73,7 @@ int nil_device_state_msg_remote(int nil_phone, device_id_t device_id, int state)
  * 			received function.
  */
 int nil_received_msg_remote(int nil_phone, device_id_t device_id,
-    packet_t packet, services_t target)
+    packet_t *packet, services_t target)
 {
 	return generic_received_msg_remote(nil_phone, NET_NIL_RECEIVED,
 	    device_id, packet_get_id(packet), target, 0);

@@ -59,7 +59,7 @@
  *			netif_get_addr_message() function.
  */
 int netif_get_addr_req_remote(int netif_phone, device_id_t device_id,
-    measured_string_ref *address, char **data)
+    measured_string_t **address, char **data)
 {
 	return generic_get_addr_req(netif_phone, NET_NETIF_GET_ADDR, device_id,
 	    address, data);
@@ -92,7 +92,7 @@ netif_probe_req_remote(int netif_phone, device_id_t device_id, int irq, int io)
  *			function.
  */
 int
-netif_send_msg_remote(int netif_phone, device_id_t device_id, packet_t packet,
+netif_send_msg_remote(int netif_phone, device_id_t device_id, packet_t *packet,
     services_t sender)
 {
 	return generic_send_msg_remote(netif_phone, NET_NETIF_SEND, device_id,
@@ -137,7 +137,7 @@ int netif_stop_req_remote(int netif_phone, device_id_t device_id)
  * @return EOK on success.
  */
 int netif_stats_req_remote(int netif_phone, device_id_t device_id,
-    device_stats_ref stats)
+    device_stats_t *stats)
 {
 	if (!stats)
 		return EBADMEM;

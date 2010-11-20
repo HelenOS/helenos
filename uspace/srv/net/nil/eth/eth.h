@@ -53,20 +53,10 @@ typedef struct eth_globals eth_globals_t;
  */
 typedef struct eth_device eth_device_t;
 
-/** Type definition of the Ethernet device specific data pointer.
- * @see eth_device
- */
-typedef eth_device_t *eth_device_ref;
-
 /** Type definition of the Ethernet protocol specific data.
  * @see eth_proto
  */
 typedef struct eth_proto eth_proto_t;
-
-/** Type definition of the Ethernet protocol specific data pointer.
- * @see eth_proto
- */
-typedef eth_proto_t *eth_proto_ref;
 
 /** Ethernet device map.
  * Maps devices to the Ethernet device specific data.
@@ -99,7 +89,7 @@ struct eth_device {
 	int flags;
 	
 	/** Actual device hardware address. */
-	measured_string_ref addr;
+	measured_string_t *addr;
 	/** Actual device hardware address data. */
 	char *addr_data;
 };
@@ -132,7 +122,7 @@ struct eth_globals {
 	eth_protos_t protos;
 	
 	/** Broadcast device hardware address. */
-	measured_string_ref broadcast_addr;
+	measured_string_t *broadcast_addr;
 };
 
 #endif
