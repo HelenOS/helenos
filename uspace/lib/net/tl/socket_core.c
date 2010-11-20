@@ -521,9 +521,9 @@ socket_destroy(int packet_phone, int socket_id, socket_cores_t *local_sockets,
  * @return		Other error codes as defined for the data_reply()
  *			function.
  */
-int socket_reply_packets(packet_t packet, size_t *length)
+int socket_reply_packets(packet_t *packet, size_t *length)
 {
-	packet_t next_packet;
+	packet_t *next_packet;
 	size_t fragments;
 	size_t *lengths;
 	size_t index;

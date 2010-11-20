@@ -128,7 +128,7 @@ GENERIC_FIELD_IMPLEMENT(ip_routes, ip_route_t);
  * @param[in] result	The result to be returned.
  * @return		The result parameter.
  */
-static int ip_release_and_return(packet_t packet, int result)
+static int ip_release_and_return(packet_t *packet, int result)
 {
 	pq_release_remote(ip_globals.net_phone, packet_get_id(packet));
 	return result;
@@ -169,9 +169,9 @@ static int ip_get_icmp_phone(void)
  *			notifications. The ICMP protocol itself.
  * @return		Other error codes as defined for the packet_set_addr().
  */
-static int ip_prepare_icmp(packet_t packet, ip_header_t *header)
+static int ip_prepare_icmp(packet_t *packet, ip_header_t *header)
 {
-	packet_t next;
+	packet_t *next;
 	struct sockaddr *dest;
 	struct sockaddr_in dest_in;
 	socklen_t addrlen;
@@ -232,7 +232,7 @@ static int ip_prepare_icmp(packet_t packet, ip_header_t *header)
  * @return		EINVAL if the ip_prepare_icmp() fails.
  */
 static int
-ip_prepare_icmp_and_get_phone(services_t error, packet_t packet,
+ip_prepare_icmp_and_get_phone(services_t error, packet_t *packet,
     ip_header_t *header)
 {
 	int phone;
@@ -542,7 +542,7 @@ static int ip_device_state_message(device_id_t device_id, device_state_t state)
  * @return		NULL on error.
  */
 static ip_header_t *
-ip_create_middle_header(packet_t packet, ip_header_t *last)
+ip_create_middle_header(packet_t *packet, ip_header_t *last)
 {
 	ip_header_t *middle;
 
@@ -621,14 +621,14 @@ static void ip_create_last_header(ip_header_t *last, ip_header_t *first)
  *			function.
  */
 static int
-ip_prepare_packet(in_addr_t *source, in_addr_t dest, packet_t packet,
+ip_prepare_packet(in_addr_t *source, in_addr_t dest, packet_t *packet,
     measured_string_t *destination)
 {
 	size_t length;
 	ip_header_t *header;
 	ip_header_t *last_header;
 	ip_header_t *middle_header;
-	packet_t next;
+	packet_t *next;
 	int rc;
 
 	length = packet_get_data_length(packet);
@@ -753,7 +753,7 @@ ip_prepare_packet(in_addr_t *source, in_addr_t dest, packet_t packet,
  *			function.
  */
 static int
-ip_fragment_packet_data(packet_t packet, packet_t new_packet,
+ip_fragment_packet_data(packet_t *packet, packet_t *new_packet,
     ip_header_t *header, ip_header_t *new_header, size_t length,
     const struct sockaddr *src, const struct sockaddr *dest, socklen_t addrlen)
 {
@@ -815,10 +815,10 @@ ip_fragment_packet_data(packet_t packet, packet_t new_packet,
  *			ip_fragment_packet_data() function.
  */
 static int
-ip_fragment_packet(packet_t packet, size_t length, size_t prefix, size_t suffix,
+ip_fragment_packet(packet_t *packet, size_t length, size_t prefix, size_t suffix,
     socklen_t addr_len)
 {
-	packet_t new_packet;
+	packet_t *new_packet;
 	ip_header_t *header;
 	ip_header_t *middle_header;
 	ip_header_t *last_header;
@@ -921,13 +921,13 @@ ip_fragment_packet(packet_t packet, size_t length, size_t prefix, size_t suffix,
  * @return		The packet or the packet queue of the allowed length.
  * @return		NULL if there are no packets left.
  */
-static packet_t
-ip_split_packet(packet_t packet, size_t prefix, size_t content, size_t suffix,
+static packet_t *
+ip_split_packet(packet_t *packet, size_t prefix, size_t content, size_t suffix,
     socklen_t addr_len, services_t error)
 {
 	size_t length;
-	packet_t next;
-	packet_t new_packet;
+	packet_t *next;
+	packet_t *new_packet;
 	int result;
 	int phone;
 
@@ -992,7 +992,7 @@ ip_split_packet(packet_t packet, size_t prefix, size_t content, size_t suffix,
  *			function.
  */
 static int
-ip_send_route(packet_t packet, ip_netif_t *netif, ip_route_t *route,
+ip_send_route(packet_t *packet, ip_netif_t *netif, ip_route_t *route,
     in_addr_t *src, in_addr_t dest, services_t error)
 {
 	measured_string_t destination;
@@ -1246,7 +1246,7 @@ ip_device_req_local(int il_phone, device_id_t device_id, services_t netif)
 }
 
 static int
-ip_send_msg_local(int il_phone, device_id_t device_id, packet_t packet,
+ip_send_msg_local(int il_phone, device_id_t device_id, packet_t *packet,
     services_t sender, services_t error)
 {
 	int addrlen;
@@ -1450,7 +1450,7 @@ static in_addr_t ip_get_destination(ip_header_t *header)
  *			tl_received_msg() function.
  */
 static int
-ip_deliver_local(device_id_t device_id, packet_t packet, ip_header_t *header,
+ip_deliver_local(device_id_t device_id, packet_t *packet, ip_header_t *header,
     services_t error)
 {
 	ip_proto_t *proto;
@@ -1552,7 +1552,7 @@ ip_deliver_local(device_id_t device_id, packet_t packet, ip_header_t *header,
  *			is disabled.
  */
 static int
-ip_process_packet(device_id_t device_id, packet_t packet)
+ip_process_packet(device_id_t device_id, packet_t *packet)
 {
 	ip_header_t *header;
 	in_addr_t dest;
@@ -1714,7 +1714,7 @@ ip_set_gateway_req_local(int ip_phone, device_id_t device_id, in_addr_t gateway)
  */
 static int
 ip_received_error_msg_local(int ip_phone, device_id_t device_id,
-    packet_t packet, services_t target, services_t error)
+    packet_t *packet, services_t target, services_t error)
 {
 	uint8_t *data;
 	int offset;
@@ -1858,9 +1858,9 @@ ip_get_route_req_local(int ip_phone, ip_protocol_t protocol,
  *			the cache.
  * @return		ENOMEM if there is not enough memory left.
  */
-static int ip_receive_message(device_id_t device_id, packet_t packet)
+static int ip_receive_message(device_id_t device_id, packet_t *packet)
 {
-	packet_t next;
+	packet_t *next;
 
 	do {
 		next = pq_detach(packet);
@@ -1889,7 +1889,7 @@ int
 ip_message_standalone(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *answer,
     int *answer_count)
 {
-	packet_t packet;
+	packet_t *packet;
 	struct sockaddr *addr;
 	size_t addrlen;
 	size_t prefix;

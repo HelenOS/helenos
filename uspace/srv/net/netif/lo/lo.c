@@ -184,11 +184,11 @@ int netif_probe_message(device_id_t device_id, int irq, uintptr_t io)
 	return EOK;
 }
 
-int netif_send_message(device_id_t device_id, packet_t packet, services_t sender)
+int netif_send_message(device_id_t device_id, packet_t *packet, services_t sender)
 {
 	netif_device_t *device;
 	size_t length;
-	packet_t next;
+	packet_t *next;
 	int phone;
 	int rc;
 

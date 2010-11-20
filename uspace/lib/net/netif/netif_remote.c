@@ -92,7 +92,7 @@ netif_probe_req_remote(int netif_phone, device_id_t device_id, int irq, int io)
  *			function.
  */
 int
-netif_send_msg_remote(int netif_phone, device_id_t device_id, packet_t packet,
+netif_send_msg_remote(int netif_phone, device_id_t device_id, packet_t *packet,
     services_t sender)
 {
 	return generic_send_msg_remote(netif_phone, NET_NETIF_SEND, device_id,

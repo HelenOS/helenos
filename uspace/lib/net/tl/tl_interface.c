@@ -57,7 +57,7 @@
  *
  */
 int
-tl_received_msg(int tl_phone, device_id_t device_id, packet_t packet,
+tl_received_msg(int tl_phone, device_id_t device_id, packet_t *packet,
     services_t target, services_t error)
 {
 	return generic_received_msg_remote(tl_phone, NET_TL_RECEIVED, device_id,

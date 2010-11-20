@@ -76,7 +76,7 @@ int il_device_state_msg(int il_phone, device_id_t device_id,
  * @return EOK on success.
  *
  */
-int il_received_msg(int il_phone, device_id_t device_id, packet_t packet,
+int il_received_msg(int il_phone, device_id_t device_id, packet_t *packet,
     services_t target)
 {
 	return generic_received_msg_remote(il_phone, NET_IL_RECEIVED, device_id,

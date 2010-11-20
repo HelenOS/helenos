@@ -50,7 +50,7 @@
 /*@{*/
 
 extern int il_device_state_msg(int, device_id_t, device_state_t, services_t);
-extern int il_received_msg(int, device_id_t, packet_t, services_t);
+extern int il_received_msg(int, device_id_t, packet_t *, services_t);
 extern int il_mtu_changed_msg(int, device_id_t, size_t, services_t);
 
 /*@}*/

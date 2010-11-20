@@ -91,7 +91,7 @@ netif_probe_req_local(int netif_phone, device_id_t device_id, int irq, int io)
  *			function.
  */
 int netif_send_msg_local(int netif_phone, device_id_t device_id,
-    packet_t packet, services_t sender)
+    packet_t *packet, services_t sender)
 {
 	fibril_rwlock_write_lock(&netif_globals.lock);
 	int result = netif_send_message(device_id, packet, sender);
@@ -306,7 +306,7 @@ void netif_pq_release(packet_id_t packet_id)
  * @return		NULL if there is an error.
  *
  */
-packet_t netif_packet_get_1(size_t content)
+packet_t *netif_packet_get_1(size_t content)
 {
 	return packet_get_1_remote(netif_globals.net_phone, content);
 }
@@ -360,7 +360,7 @@ int netif_module_message_standalone(const char *name, ipc_callid_t callid,
 {
 	size_t length;
 	device_stats_t stats;
-	packet_t packet;
+	packet_t *packet;
 	measured_string_t address;
 	int rc;
 	

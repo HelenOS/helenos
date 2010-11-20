@@ -64,7 +64,7 @@
  *  @return EOK on success.
  *  @return EINVAL 
  */
-int queue_packet(dpeth_t * dep, packet_t packet);
+int queue_packet(dpeth_t * dep, packet_t *packet);
 
 /** Reads a memory block byte by byte.
  *  @param[in] port The source address.
@@ -335,8 +335,8 @@ void do_stop(dpeth_t * dep){
 	}
 }
 
-int queue_packet(dpeth_t * dep, packet_t packet){
-	packet_t tmp;
+int queue_packet(dpeth_t * dep, packet_t *packet){
+	packet_t *tmp;
 
 	if(dep->packet_count >= MAX_PACKETS){
 		netif_pq_release(packet_get_id(packet));
@@ -360,7 +360,7 @@ int queue_packet(dpeth_t * dep, packet_t packet){
 /*===========================================================================*
  *			based on	do_vwrite				     *
  *===========================================================================*/
-int do_pwrite(dpeth_t * dep, packet_t packet, int from_int)
+int do_pwrite(dpeth_t * dep, packet_t *packet, int from_int)
 {
 //	int port, count, size;
 	int size;
@@ -909,7 +909,7 @@ dpeth_t *dep;
 static void dp_send(dep)
 dpeth_t *dep;
 {
-	packet_t packet;
+	packet_t *packet;
 
 //	if (!(dep->de_flags &DEF_SEND_AVAIL))
 //		return;
@@ -1002,7 +1002,7 @@ dpeth_t *dep;
 int page, length;
 {
 	int last, count;
-	packet_t packet;
+	packet_t *packet;
 
 //	if (!(dep->de_flags &DEF_READING))
 //		return EGENERIC;

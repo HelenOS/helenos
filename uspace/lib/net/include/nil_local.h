@@ -76,7 +76,7 @@ extern int nil_device_state_msg_local(int, device_id_t, int);
  * @return		Other error codes as defined for each specific module
  * 			received function.
  */
-extern int nil_received_msg_local(int, device_id_t, packet_t, services_t);
+extern int nil_received_msg_local(int, device_id_t, packet_t *, services_t);
 
 /** Message processing function.
  *

@@ -203,7 +203,7 @@ int ip_packet_size_req_remote(int ip_phone, device_id_t device_id,
  * @return		EOK on success.
  */
 int ip_received_error_msg_remote(int ip_phone, device_id_t device_id,
-    packet_t packet, services_t target, services_t error)
+    packet_t *packet, services_t target, services_t error)
 {
 	return generic_received_msg_remote(ip_phone, NET_IP_RECEIVED_ERROR,
 	    device_id, packet_get_id(packet), target, error);
@@ -224,7 +224,7 @@ int ip_received_error_msg_remote(int ip_phone, device_id_t device_id,
  * @return		Other error codes as defined for the generic_send_msg()
  *			function.
  */
-int ip_send_msg_remote(int ip_phone, device_id_t device_id, packet_t packet,
+int ip_send_msg_remote(int ip_phone, device_id_t device_id, packet_t *packet,
     services_t sender, services_t error)
 {
 	return generic_send_msg_remote(ip_phone, NET_IL_SEND, device_id,

@@ -102,7 +102,7 @@ static void irq_handler(ipc_callid_t iid, ipc_call_t * call)
 {
 	netif_device_t * device;
 	dpeth_t * dep;
-	packet_t received;
+	packet_t *received;
 	device_id_t device_id;
 	int phone;
 
@@ -246,10 +246,10 @@ int netif_probe_message(device_id_t device_id, int irq, uintptr_t io){
 	return EOK;
 }
 
-int netif_send_message(device_id_t device_id, packet_t packet, services_t sender){
+int netif_send_message(device_id_t device_id, packet_t *packet, services_t sender){
 	netif_device_t * device;
 	dpeth_t * dep;
-	packet_t next;
+	packet_t *next;
 	int rc;
 
 	rc = find_device(device_id, &device);

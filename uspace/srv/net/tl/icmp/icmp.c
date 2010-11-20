@@ -129,7 +129,7 @@ INT_MAP_IMPLEMENT(icmp_echo_data, icmp_echo_t);
  * @param[in] result	The result to be returned.
  * @return		The result parameter.
  */
-static int icmp_release_and_return(packet_t packet, int result)
+static int icmp_release_and_return(packet_t *packet, int result)
 {
 	pq_release_remote(icmp_globals.net_phone, packet_get_id(packet));
 	return result;
@@ -154,7 +154,7 @@ static int icmp_release_and_return(packet_t packet, int result)
  * @return		EOK on success.
  * @return		EPERM if the error message is not allowed.
  */
-static int icmp_send_packet(icmp_type_t type, icmp_code_t code, packet_t packet,
+static int icmp_send_packet(icmp_type_t type, icmp_code_t code, packet_t *packet,
     icmp_header_t *header, services_t error, ip_ttl_t ttl, ip_tos_t tos,
     int dont_fragment)
 {
@@ -188,7 +188,7 @@ static int icmp_send_packet(icmp_type_t type, icmp_code_t code, packet_t packet,
  * @return The prefixed ICMP header.
  * @return NULL on errors.
  */
-static icmp_header_t *icmp_prepare_packet(packet_t packet)
+static icmp_header_t *icmp_prepare_packet(packet_t *packet)
 {
 	icmp_header_t *header;
 	size_t header_length;
@@ -247,7 +247,7 @@ static int icmp_echo(icmp_param_t id, icmp_param_t sequence, size_t size,
     const struct sockaddr * addr, socklen_t addrlen)
 {
 	icmp_header_t *header;
-	packet_t packet;
+	packet_t *packet;
 	size_t length;
 	uint8_t *data;
 	icmp_reply_t *reply;
@@ -339,7 +339,7 @@ static int icmp_echo(icmp_param_t id, icmp_param_t sequence, size_t size,
 }
 
 static int icmp_destination_unreachable_msg_local(int icmp_phone,
-    icmp_code_t code, icmp_param_t mtu, packet_t packet)
+    icmp_code_t code, icmp_param_t mtu, packet_t *packet)
 {
 	icmp_header_t *header;
 
@@ -354,7 +354,7 @@ static int icmp_destination_unreachable_msg_local(int icmp_phone,
 	    SERVICE_ICMP, 0, 0, 0);
 }
 
-static int icmp_source_quench_msg_local(int icmp_phone, packet_t packet)
+static int icmp_source_quench_msg_local(int icmp_phone, packet_t *packet)
 {
 	icmp_header_t *header;
 
@@ -367,7 +367,7 @@ static int icmp_source_quench_msg_local(int icmp_phone, packet_t packet)
 }
 
 static int icmp_time_exceeded_msg_local(int icmp_phone, icmp_code_t code,
-    packet_t packet)
+    packet_t *packet)
 {
 	icmp_header_t *header;
 
@@ -380,7 +380,7 @@ static int icmp_time_exceeded_msg_local(int icmp_phone, icmp_code_t code,
 }
 
 static int icmp_parameter_problem_msg_local(int icmp_phone, icmp_code_t code,
-    icmp_param_t pointer, packet_t packet)
+    icmp_param_t pointer, packet_t *packet)
 {
 	icmp_header_t *header;
 
@@ -478,7 +478,7 @@ int icmp_initialize(async_client_conn_t client_connection)
  * @param[in] type	The received reply message type.
  * @param[in] code	The received reply message code.
  */
-static void  icmp_process_echo_reply(packet_t packet, icmp_header_t *header,
+static void  icmp_process_echo_reply(packet_t *packet, icmp_header_t *header,
     icmp_type_t type, icmp_code_t code)
 {
 	int reply_key;
@@ -517,7 +517,7 @@ static void  icmp_process_echo_reply(packet_t packet, icmp_header_t *header,
  * @return		Other error codes as defined for the
  *			ip_client_process_packet() function.
  */
-static int icmp_process_packet(packet_t packet, services_t error)
+static int icmp_process_packet(packet_t *packet, services_t error)
 {
 	size_t length;
 	uint8_t *src;
@@ -657,7 +657,7 @@ static int icmp_process_packet(packet_t packet, services_t error)
  * @return		Other error codes as defined for the
  *			icmp_process_packet() function.
  */
-static int icmp_received_msg_local(device_id_t device_id, packet_t packet,
+static int icmp_received_msg_local(device_id_t device_id, packet_t *packet,
     services_t receiver, services_t error)
 {
 	int rc;
@@ -689,7 +689,7 @@ static int icmp_received_msg_local(device_id_t device_id, packet_t packet,
  */
 static int icmp_process_message(ipc_call_t *call)
 {
-	packet_t packet;
+	packet_t *packet;
 	int rc;
 
 	switch (IPC_GET_METHOD(*call)) {
@@ -895,7 +895,7 @@ static int icmp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 int icmp_message_standalone(ipc_callid_t callid, ipc_call_t *call,
     ipc_call_t *answer, int *answer_count)
 {
-	packet_t packet;
+	packet_t *packet;
 	int rc;
 
 	*answer_count = 0;

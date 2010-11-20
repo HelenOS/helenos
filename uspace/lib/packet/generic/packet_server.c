@@ -35,7 +35,6 @@
  */
 
 #include <packet_server.h>
-#include <packet_local.h>
 
 #include <align.h>
 #include <assert.h>
@@ -68,7 +67,7 @@ static struct {
 	/** Safety lock. */
 	fibril_mutex_t lock;
 	/** Free packet queues. */
-	packet_t free[FREE_QUEUES_COUNT];
+	packet_t *free[FREE_QUEUES_COUNT];
 	
 	/**
 	 * Packet length upper bounds of the free packet queues. The maximal
@@ -102,15 +101,6 @@ static struct {
 	.count = 0
 };
 
-int packet_translate_local(int phone, packet_t *packet, packet_id_t packet_id)
-{
-	if (!packet)
-		return EINVAL;
-	
-	*packet = pm_find(packet_id);
-	return (*packet) ? EOK : ENOENT;
-}
-
 /** Clears and initializes the packet according to the given dimensions.
  *
  * @param[in] packet	The packet to be initialized.
@@ -121,12 +111,12 @@ int packet_translate_local(int phone, packet_t *packet, packet_id_t packet_id)
  * @param[in] max_suffix The maximal suffix length in bytes.
  */
 static void
-packet_init(packet_t packet, size_t addr_len, size_t max_prefix,
+packet_init(packet_t *packet, size_t addr_len, size_t max_prefix,
     size_t max_content, size_t max_suffix)
 {
 	// clear the packet content
-	bzero(((void *) packet) + sizeof(struct packet),
-	    packet->length - sizeof(struct packet));
+	bzero(((void *) packet) + sizeof(packet_t),
+	    packet->length - sizeof(packet_t));
 	
 	// clear the packet header
 	packet->order = 0;
@@ -134,7 +124,7 @@ packet_init(packet_t packet, size_t addr_len, size_t max_prefix,
 	packet->previous = 0;
 	packet->next = 0;
 	packet->addr_len = 0;
-	packet->src_addr = sizeof(struct packet);
+	packet->src_addr = sizeof(packet_t);
 	packet->dest_addr = packet->src_addr + addr_len;
 	packet->max_prefix = max_prefix;
 	packet->max_content = max_content;
@@ -156,15 +146,15 @@ packet_init(packet_t packet, size_t addr_len, size_t max_prefix,
  * @return		The packet of dimensions at least as given.
  * @return		NULL if there is not enough memory left.
  */
-static packet_t
+static packet_t *
 packet_create(size_t length, size_t addr_len, size_t max_prefix,
     size_t max_content, size_t max_suffix)
 {
-	packet_t packet;
+	packet_t *packet;
 	int rc;
 
 	// already locked
-	packet = (packet_t) mmap(NULL, length, PROTO_READ | PROTO_WRITE,
+	packet = (packet_t *) mmap(NULL, length, PROTO_READ | PROTO_WRITE,
 	    MAP_SHARED | MAP_ANONYMOUS, 0, 0);
 	if (packet == MAP_FAILED)
 		return NULL;
@@ -197,16 +187,16 @@ packet_create(size_t length, size_t addr_len, size_t max_prefix,
  * @return		The packet of dimensions at least as given.
  * @return		NULL if there is not enough memory left.
  */
-static packet_t
+static packet_t *
 packet_get_local(size_t addr_len, size_t max_prefix, size_t max_content,
     size_t max_suffix)
 {
-	size_t length = ALIGN_UP(sizeof(struct packet) + 2 * addr_len +
+	size_t length = ALIGN_UP(sizeof(packet_t) + 2 * addr_len +
 	    max_prefix + max_content + max_suffix, PAGE_SIZE);
 	
 	fibril_mutex_lock(&ps_globals.lock);
 	
-	packet_t packet;
+	packet_t *packet;
 	unsigned int index;
 	
 	for (index = 0; index < FREE_QUEUES_COUNT; index++) {
@@ -240,18 +230,6 @@ packet_get_local(size_t addr_len, size_t max_prefix, size_t max_content,
 	return packet;
 }
 
-packet_t packet_get_4_local(int phone, size_t max_content, size_t addr_len,
-    size_t max_prefix, size_t max_suffix)
-{
-	return packet_get_local(addr_len, max_prefix, max_content, max_suffix);
-}
-
-packet_t packet_get_1_local(int phone, size_t content)
-{
-	return packet_get_local(DEFAULT_ADDR_LEN, DEFAULT_PREFIX, content,
-	    DEFAULT_SUFFIX);
-}
-
 /** Release the packet and returns it to the appropriate free packet queue.
  *
  * Should be used only when the global data are locked.
@@ -259,7 +237,7 @@ packet_t packet_get_1_local(int phone, size_t content)
  * @param[in] packet	The packet to be released.
  *
  */
-static void packet_release(packet_t packet)
+static void packet_release(packet_t *packet)
 {
 	int index;
 	int result;
@@ -282,7 +260,7 @@ static void packet_release(packet_t packet)
  */
 static int packet_release_wrapper(packet_id_t packet_id)
 {
-	packet_t packet;
+	packet_t *packet;
 
 	packet = pm_find(packet_id);
 	if (!packet_is_valid(packet))
@@ -295,11 +273,6 @@ static int packet_release_wrapper(packet_id_t packet_id)
 	return EOK;
 }
 
-void pq_release_local(int phone, packet_id_t packet_id)
-{
-	(void) packet_release_wrapper(packet_id);
-}
-
 /** Shares the packet memory block.
  * @param[in] packet	The packet to be shared.
  * @return		EOK on success.
@@ -309,7 +282,7 @@ void pq_release_local(int phone, packet_id_t packet_id)
  * @return		Other error codes as defined for the
  *			async_share_in_finalize() function.
  */
-static int packet_reply(const packet_t packet)
+static int packet_reply(packet_t *packet)
 {
 	ipc_callid_t callid;
 	size_t size;
@@ -350,7 +323,7 @@ int
 packet_server_message(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *answer,
     int *answer_count)
 {
-	packet_t packet;
+	packet_t *packet;
 
 	*answer_count = 0;
 	switch (IPC_GET_METHOD(*call)) {

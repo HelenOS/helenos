@@ -69,7 +69,7 @@
  *			received packet.
  * @return		EOK on success.
  */
-typedef int (*tl_received_msg_t)(device_id_t device_id, packet_t packet,
+typedef int (*tl_received_msg_t)(device_id_t device_id, packet_t *packet,
     services_t receiver, services_t error);
 
 extern int ip_bind_service(services_t, int, services_t, async_client_conn_t);

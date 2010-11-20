@@ -56,7 +56,7 @@
  * @return		EINVAL if the packet is not valid.
  * @return		ENOMEM if there is not enough memory left.
  */
-int packet_copy_data(packet_t packet, const void *data, size_t length)
+int packet_copy_data(packet_t *packet, const void *data, size_t length)
 {
 	if (!packet_is_valid(packet))
 		return EINVAL;
@@ -80,10 +80,10 @@ int packet_copy_data(packet_t packet, const void *data, size_t length)
  * @return		The pointer to the allocated memory.
  * @return		NULL if there is not enough memory left.
  */
-void *packet_prefix(packet_t packet, size_t length)
+void *packet_prefix(packet_t *packet, size_t length)
 {
 	if ((!packet_is_valid(packet)) ||
-	    (packet->data_start - sizeof(struct packet) -
+	    (packet->data_start - sizeof(packet_t) -
 	    2 * (packet->dest_addr - packet->src_addr) < length)) {
 		return NULL;
 	}
@@ -101,7 +101,7 @@ void *packet_prefix(packet_t packet, size_t length)
  * @return		The pointer to the allocated memory.
  * @return		NULL if there is not enough memory left.
  */
-void *packet_suffix(packet_t packet, size_t length)
+void *packet_suffix(packet_t *packet, size_t length)
 {
 	if ((!packet_is_valid(packet)) ||
 	    (packet->data_end + length >= packet->length)) {
@@ -123,7 +123,7 @@ void *packet_suffix(packet_t packet, size_t length)
  * @return		EINVAL if the packet is not valid.
  * @return		ENOMEM if there is not enough memory left.
  */
-int packet_trim(packet_t packet, size_t prefix, size_t suffix)
+int packet_trim(packet_t *packet, size_t prefix, size_t suffix)
 {
 	if (!packet_is_valid(packet))
 		return EINVAL;
@@ -142,7 +142,7 @@ int packet_trim(packet_t packet, size_t prefix, size_t suffix)
  * @return		The packet identifier.
  * @return		Zero if the packet is not valid.
  */
-packet_id_t packet_get_id(const packet_t packet)
+packet_id_t packet_get_id(const packet_t *packet)
 {
 	return packet_is_valid(packet) ? packet->packet_id : 0;
 }
@@ -156,7 +156,7 @@ packet_id_t packet_get_id(const packet_t packet)
  * @return		Zero if the addresses are not present.
  * @return		EINVAL if the packet is not valid.
  */
-int packet_get_addr(const packet_t packet, uint8_t **src, uint8_t **dest)
+int packet_get_addr(const packet_t *packet, uint8_t **src, uint8_t **dest)
 {
 	if (!packet_is_valid(packet))
 		return EINVAL;
@@ -176,7 +176,7 @@ int packet_get_addr(const packet_t packet, uint8_t **src, uint8_t **dest)
  * @return		The packet content length in bytes.
  * @return		Zero if the packet is not valid.
  */
-size_t packet_get_data_length(const packet_t packet)
+size_t packet_get_data_length(const packet_t *packet)
 {
 	if (!packet_is_valid(packet))
 		return 0;
@@ -190,7 +190,7 @@ size_t packet_get_data_length(const packet_t packet)
  * @return		The pointer to the beginning of the packet content.
  * @return		NULL if the packet is not valid.
  */
-void *packet_get_data(const packet_t packet)
+void *packet_get_data(const packet_t *packet)
 {
 	if (!packet_is_valid(packet))
 		return NULL;
@@ -209,7 +209,7 @@ void *packet_get_data(const packet_t packet)
  * @return		ENOMEM if there is not enough memory left.
  */
 int
-packet_set_addr(packet_t packet, const uint8_t *src, const uint8_t *dest,
+packet_set_addr(packet_t *packet, const uint8_t *src, const uint8_t *dest,
     size_t addr_len)
 {
 	size_t padding;
@@ -256,9 +256,9 @@ packet_set_addr(packet_t packet, const uint8_t *src, const uint8_t *dest,
  * @return		The packet copy.
  * @return		NULL on error.
  */
-packet_t packet_get_copy(int phone, packet_t packet)
+packet_t *packet_get_copy(int phone, packet_t *packet)
 {
-	packet_t copy;
+	packet_t *copy;
 	uint8_t * src = NULL;
 	uint8_t * dest = NULL;
 	size_t addrlen;
