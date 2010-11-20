@@ -51,10 +51,10 @@
 #include "hub.h"
 #include "conn.h"
 
+
 static int vhc_count = 0;
 static int vhc_add_device(usb_hc_device_t *dev)
 {
-	printf("%s: new device registered.\n", NAME);
 	/*
 	 * Currently, we know how to simulate only single HC.
 	 */
@@ -65,11 +65,14 @@ static int vhc_add_device(usb_hc_device_t *dev)
 	vhc_count++;
 
 	dev->transfer_ops = &vhc_transfer_ops;
+	dev->generic->ops->default_handler = default_connection_handler;
 
 	/*
 	 * Announce that we have some root hub present.
 	 */
 	usb_hcd_add_root_hub(dev);
+
+	printf("%s: virtual USB host controller ready.\n", NAME);
 
 	return EOK;
 }
@@ -82,6 +85,8 @@ static usb_hc_driver_t vhc_driver = {
 int main(int argc, char * argv[])
 {	
 	printf("%s: virtual USB host controller driver.\n", NAME);
+
+	debug_level = 5;
 
 	return usb_hcd_main(&vhc_driver);
 }

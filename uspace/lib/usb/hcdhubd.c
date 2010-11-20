@@ -75,17 +75,14 @@ static int add_device(device_t *dev)
 		hc_dev->transfer_ops = NULL;
 
 		hc_dev->generic = dev;
+		dev->ops = &usb_device_ops;
+		hc_dev->generic->driver_data = hc_dev;
+
 		int rc = hc_driver->add_hc(hc_dev);
 		if (rc != EOK) {
 			free(hc_dev);
 			return rc;
 		}
-
-		/*
-		 * Finish initialization of dev and hc_dev structures.
-		 */
-		hc_dev->generic->driver_data = hc_dev;
-		dev->ops = &usb_device_ops;
 
 		/*
 		 * FIXME: The following line causes devman to hang.

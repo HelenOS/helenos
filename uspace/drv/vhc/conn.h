@@ -41,8 +41,11 @@
 #include "devices.h"
 
 void connection_handler_host(ipcarg_t);
-void connection_handler_device(ipcarg_t, virtdev_connection_t *);
+
 usb_hcd_transfer_ops_t vhc_transfer_ops;
+
+void default_connection_handler(device_t *, ipc_callid_t, ipc_call_t *);
+
 
 #endif
 /**

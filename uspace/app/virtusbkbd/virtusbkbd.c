@@ -57,7 +57,6 @@
 #define LOOPS 5
 #define NAME "virt-usb-kbd"
 
-#define DEV_HCD_NAME "hcd-virt-dev"
 
 #define __QUOTEME(x) #x
 #define _QUOTEME(x) __QUOTEME(x)
@@ -215,10 +214,10 @@ int main(int argc, char * argv[])
 	kb_init(&status);
 	
 	
-	int rc = usbvirt_connect(&keyboard_dev, DEV_HCD_NAME);
+	int rc = usbvirt_connect(&keyboard_dev);
 	if (rc != EOK) {
-		printf("%s: Unable to start comunication with VHCD at usb://%s (%s).\n",
-		    NAME, DEV_HCD_NAME, str_error(rc));
+		printf("%s: Unable to start communication with VHCD (%s).\n",
+		    NAME, str_error(rc));
 		return rc;
 	}
 	

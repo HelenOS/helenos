@@ -49,6 +49,7 @@ typedef struct {
 } virtdev_connection_t;
 
 virtdev_connection_t *virtdev_add_device(int);
+virtdev_connection_t *virtdev_get_mine(void);
 void virtdev_destroy_device(virtdev_connection_t *);
 usb_transaction_outcome_t virtdev_send_to_all(transaction_t *);
 

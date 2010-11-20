@@ -73,49 +73,42 @@ static int get_device_name(int phone, char *buffer, size_t len)
 	return rc;
 }
 
-/** Connection handler for communcation with virtual device.
+/** Default handler for IPC methods not handled by DDF.
  *
- * This function also takes care of proper phone hung-up.
- *
- * @param phone_hash Incoming phone hash.
- * @param dev Virtual device handle.
+ * @param dev Device handling the call.
+ * @param icallid Call id.
+ * @param icall Call data.
  */
-void connection_handler_device(ipcarg_t phone_hash, virtdev_connection_t *dev)
+void default_connection_handler(device_t *dev,
+    ipc_callid_t icallid, ipc_call_t *icall)
 {
-	assert(dev != NULL);
-	
-	char devname[DEVICE_NAME_MAXLENGTH + 1];
-	int rc = get_device_name(dev->phone, devname, DEVICE_NAME_MAXLENGTH);
-	
-	dprintf(0, "virtual device connected (phone: %#x, name: %s)",
-	    phone_hash, rc == EOK ? devname : "<unknown>");
-	
-	
-	while (true) {
-		ipc_callid_t callid; 
-		ipc_call_t call; 
-		
-		callid = async_get_call(&call);
-		
-		switch (IPC_GET_METHOD(call)) {
-			case IPC_M_PHONE_HUNGUP:
-				ipc_hangup(dev->phone);
-				ipc_answer_0(callid, EOK);
-				dprintf(0, "phone%#x: device hung-up",
-				    phone_hash);
-				return;
-			
-			case IPC_M_CONNECT_TO_ME:
-				ipc_answer_0(callid, ELIMIT);
-				break;
-			
-			default:
-				dprintf_inval_call(2, call, phone_hash);
-				ipc_answer_0(callid, EINVAL);
-				break;
+	ipcarg_t method = IPC_GET_METHOD(*icall);
+
+	if (method == IPC_M_CONNECT_TO_ME) {
+		int callback = IPC_GET_ARG5(*icall);
+		virtdev_connection_t *dev
+		    = virtdev_add_device(callback);
+		if (!dev) {
+			ipc_answer_0(icallid, EEXISTS);
+			ipc_hangup(callback);
+			return;
 		}
+		ipc_answer_0(icallid, EOK);
+
+		char devname[DEVICE_NAME_MAXLENGTH + 1];
+		int rc = get_device_name(callback, devname, DEVICE_NAME_MAXLENGTH);
+
+		dprintf(0, "virtual device connected (name: %s)",
+		    rc == EOK ? devname : "<unknown>");
+
+		/* FIXME: destroy the device when the client disconnects. */
+
+		return;
 	}
+
+	ipc_answer_0(icallid, EINVAL);
 }
+
 
 /**
  * @}

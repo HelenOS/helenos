@@ -58,7 +58,7 @@ typedef enum {
 	IPC_M_USBVIRT_TRANSACTION_IN,
 } usbvirt_device_method_t;
 
-int usbvirt_connect(usbvirt_device_t *, const char *);
+int usbvirt_connect(usbvirt_device_t *);
 int usbvirt_connect_local(usbvirt_device_t *);
 int usbvirt_disconnect(usbvirt_device_t *dev);
 

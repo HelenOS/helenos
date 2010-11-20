@@ -32,9 +32,7 @@
 /** @file
  * @brief Device registration with virtual USB framework.
  */
-#include <devmap.h>
-#include <fcntl.h>
-#include <vfs/vfs.h>
+#include <devman.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <mem.h>
@@ -180,13 +178,13 @@ static void callback_connection(ipc_callid_t iid, ipc_call_t *icall)
 		printf("Ooops\n");
 		return;
 	}
-	
+
 	device_callback_connection(dev->device, iid, icall);
 }
 
 /** Create necessary phones for comunication with virtual HCD.
  * This function wraps following calls:
- * -# open <code>/dev/usb/<i>hcd_path</i></code> for reading
+ * -# open <code>/dev/devices/\\vhc for reading
  * -# access phone of file opened in previous step
  * -# create callback through just opened phone
  * -# create handler for calling on data from host to function
@@ -201,31 +199,34 @@ static void callback_connection(ipc_callid_t iid, ipc_call_t *icall)
  * @param dev Device to connect.
  * @return EOK on success or error code from errno.h.
  */
-int usbvirt_connect(usbvirt_device_t *dev, const char *hcd_path)
+int usbvirt_connect(usbvirt_device_t *dev)
 {
 	virtual_device_t *virtual_device = find_device(dev);
 	if (virtual_device != NULL) {
 		return EEXISTS;
 	}
 	
-	char dev_path[DEVMAP_NAME_MAXLEN + 1];
-	snprintf(dev_path, DEVMAP_NAME_MAXLEN,
-	    "/dev/%s/%s", NAMESPACE, hcd_path);
-	
-	int fd = open(dev_path, O_RDONLY);
-	if (fd < 0) {
-		return fd;
+	const char *vhc_path = "/vhc";
+	int rc;
+	devman_handle_t handle;
+
+	rc = devman_device_get_handle(vhc_path, &handle, 0);
+	if (rc != EOK) {
+		printf("devman_device_get_handle() failed\n");
+		return rc;
 	}
 	
-	int hcd_phone = fd_phone(fd);
+	int hcd_phone = devman_device_connect(handle, 0);
 	
 	if (hcd_phone < 0) {
+		printf("devman_device_connect() failed\n");
 		return hcd_phone;
 	}
 	
 	ipcarg_t phonehash;
-	int rc = ipc_connect_to_me(hcd_phone, 0, 0, 0, &phonehash);
+	rc = ipc_connect_to_me(hcd_phone, 0, 0, 0, &phonehash);
 	if (rc != EOK) {
+		printf("ipc_connect_to_me() failed\n");
 		return rc;
 	}
 	
