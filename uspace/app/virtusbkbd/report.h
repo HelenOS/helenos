@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2010 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,32 +26,60 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef LIBC_IPC_DEV_IFACE_H_
-#define LIBC_IPC_DEV_IFACE_H_
+/** @addtogroup usb
+ * @{
+ */
+/** @file
+ * @brief HID Report Descriptor.
+ */
+#ifndef VUK_REPORT_H_
+#define VUK_REPORT_H_
 
-#include <ipc/ipc.h>
-#include <malloc.h>
-#include <unistd.h>
-#include <libarch/types.h>
+#include "items.h"
 
-typedef enum {	
-	HW_RES_DEV_IFACE = 0,	
-	CHAR_DEV_IFACE,
+/** Use standard Usage Page. */
+#define STD_USAGE_PAGE(page) \
+	ITEM_CREATE1(ITEM_GLOBAL, TAG_USAGE_PAGE, page)
 
-	/** Interface provided by USB host controller. */
-	USBHC_DEV_IFACE,
+/** Usage with one byte usage ID. */
+#define USAGE1(usage_id) \
+	ITEM_CREATE1(ITEM_LOCAL, TAG_USAGE, usage_id)
 
-	// TODO add more interfaces
-	DEV_IFACE_MAX
-} dev_inferface_idx_t;
+/** Start a collection. */
+#define START_COLLECTION(collection) \
+	ITEM_CREATE1(ITEM_MAIN, TAG_COLLECTION, collection)
 
-#define DEV_IFACE_ID(idx)	((idx) + IPC_FIRST_USER_METHOD)
-#define DEV_IFACE_IDX(id)	((id) - IPC_FIRST_USER_METHOD)
+/** End a collection. */
+#define END_COLLECTION() \
+	ITEM_CREATE0(ITEM_MAIN, TAG_END_COLLECTION)
 
-#define DEV_IFACE_COUNT			DEV_IFACE_MAX
-#define DEV_FIRST_CUSTOM_METHOD_IDX	DEV_IFACE_MAX
-#define DEV_FIRST_CUSTOM_METHOD \
-	DEV_IFACE_ID(DEV_FIRST_CUSTOM_METHOD_IDX)
+
+#define USAGE_MINIMUM1(value) \
+	ITEM_CREATE1(ITEM_LOCAL, TAG_USAGE_MINIMUM, value)
+	
+#define USAGE_MAXIMUM1(value) \
+	ITEM_CREATE1(ITEM_LOCAL, TAG_USAGE_MAXIMUM, value)
+	
+#define LOGICAL_MINIMUM1(value) \
+	ITEM_CREATE1(ITEM_GLOBAL, TAG_LOGICAL_MINIMUM, value)
+
+#define LOGICAL_MAXIMUM1(value) \
+	ITEM_CREATE1(ITEM_GLOBAL, TAG_LOGICAL_MAXIMUM, value)
+
+#define REPORT_SIZE1(size) \
+	ITEM_CREATE1(ITEM_GLOBAL, TAG_REPORT_SIZE, size)
+
+#define REPORT_COUNT1(count) \
+	ITEM_CREATE1(ITEM_GLOBAL, TAG_REPORT_COUNT, count)
+	
+#define INPUT(modifiers) \
+	ITEM_CREATE1(ITEM_MAIN, TAG_INPUT, modifiers)
+
+#define OUTPUT(modifiers) \
+	ITEM_CREATE1(ITEM_MAIN, TAG_OUTPUT, modifiers)
 
 
 #endif
+/**
+ * @}
+ */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2010 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,32 +26,43 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef LIBC_IPC_DEV_IFACE_H_
-#define LIBC_IPC_DEV_IFACE_H_
+/** @addtogroup libusb usb
+ * @{
+ */
+/** @file
+ * @brief USB HID Usage Tables.
+ */
+#ifndef LIBUSB_HIDUT_H_
+#define LIBUSB_HIDUT_H_
 
-#include <ipc/ipc.h>
-#include <malloc.h>
-#include <unistd.h>
-#include <libarch/types.h>
+/** USB/HID Usage Pages. */
+typedef enum {
+	USB_HIDUT_PAGE_GENERIC_DESKTOP = 1,
+	USB_HIDUT_PAGE_SIMULATION = 2,
+	USB_HIDUT_PAGE_VR = 3,
+	USB_HIDUT_PAGE_SPORT = 4,
+	USB_HIDUT_PAGE_GAME = 5,
+	USB_HIDUT_PAGE_GENERIC_DEVICE = 6,
+	USB_HIDUT_PAGE_KEYBOARD = 7,
+	USB_HIDUT_PAGE_LED = 8,
+	USB_HIDUT_PAGE_BUTTON = 9
+	/* USB_HIDUT_PAGE_ = , */
+} usb_hidut_usage_page_t;
 
-typedef enum {	
-	HW_RES_DEV_IFACE = 0,	
-	CHAR_DEV_IFACE,
-
-	/** Interface provided by USB host controller. */
-	USBHC_DEV_IFACE,
-
-	// TODO add more interfaces
-	DEV_IFACE_MAX
-} dev_inferface_idx_t;
-
-#define DEV_IFACE_ID(idx)	((idx) + IPC_FIRST_USER_METHOD)
-#define DEV_IFACE_IDX(id)	((id) - IPC_FIRST_USER_METHOD)
-
-#define DEV_IFACE_COUNT			DEV_IFACE_MAX
-#define DEV_FIRST_CUSTOM_METHOD_IDX	DEV_IFACE_MAX
-#define DEV_FIRST_CUSTOM_METHOD \
-	DEV_IFACE_ID(DEV_FIRST_CUSTOM_METHOD_IDX)
+/** Usages for Generic Desktop Page. */
+typedef enum {
+	USB_HIDUT_USAGE_GENERIC_DESKTOP_POINTER = 1,
+	USB_HIDUT_USAGE_GENERIC_DESKTOP_MOUSE = 2,
+	USB_HIDUT_USAGE_GENERIC_DESKTOP_JOYSTICK = 4,
+	USB_HIDUT_USAGE_GENERIC_DESKTOP_GAMEPAD = 5,
+	USB_HIDUT_USAGE_GENERIC_DESKTOP_KEYBOARD = 6,
+	USB_HIDUT_USAGE_GENERIC_DESKTOP_KEYPAD = 7
+	/* USB_HIDUT_USAGE_GENERIC_DESKTOP_ = , */
+	
+} usb_hidut_usage_generic_desktop_t;
 
 
 #endif
+/**
+ * @}
+ */

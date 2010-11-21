@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2010 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,32 +26,53 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef LIBC_IPC_DEV_IFACE_H_
-#define LIBC_IPC_DEV_IFACE_H_
-
+/** @addtogroup usb
+ * @{
+ */
+/** @file
+ * @brief Debugging support.
+ */
+#include <stdio.h>
 #include <ipc/ipc.h>
-#include <malloc.h>
-#include <unistd.h>
-#include <libarch/types.h>
 
-typedef enum {	
-	HW_RES_DEV_IFACE = 0,	
-	CHAR_DEV_IFACE,
+#include "vhcd.h"
 
-	/** Interface provided by USB host controller. */
-	USBHC_DEV_IFACE,
+/** Current debug level. */
+int debug_level = 0;
 
-	// TODO add more interfaces
-	DEV_IFACE_MAX
-} dev_inferface_idx_t;
+/** Debugging printf.
+ * This function is intended for single-line messages as it
+ * automatically prints debugging prefix at the beginning of the
+ * line.
+ *
+ * @see printf
+ * @param level Debugging level.
+ */
+void dprintf(int level, const char *format, ...)
+{
+	if (level > debug_level) {
+		return;
+	}
+	
+	printf("%s(%d): ", NAME, level);
+	va_list args;
+	va_start(args, format);
+	vprintf(format, args);
+	va_end(args);
+	printf("\n");
+}
 
-#define DEV_IFACE_ID(idx)	((idx) + IPC_FIRST_USER_METHOD)
-#define DEV_IFACE_IDX(id)	((id) - IPC_FIRST_USER_METHOD)
+/** Debug print informing of invalid call.
+ */
+void dprintf_inval_call(int level, ipc_call_t call, ipcarg_t phone_hash)
+{
+	dprintf(level, "phone%#x: invalid call [%u (%u, %u, %u, %u, %u)]",
+	    phone_hash,
+	    IPC_GET_METHOD(call),
+	    IPC_GET_ARG1(call), IPC_GET_ARG2(call), IPC_GET_ARG3(call),
+	    IPC_GET_ARG4(call), IPC_GET_ARG5(call));
+}
 
-#define DEV_IFACE_COUNT			DEV_IFACE_MAX
-#define DEV_FIRST_CUSTOM_METHOD_IDX	DEV_IFACE_MAX
-#define DEV_FIRST_CUSTOM_METHOD \
-	DEV_IFACE_ID(DEV_FIRST_CUSTOM_METHOD_IDX)
-
-
-#endif
+/**
+ * @}
+ */

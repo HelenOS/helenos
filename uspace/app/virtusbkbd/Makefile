@@ -1,6 +1,5 @@
 #
-# Copyright (c) 2005 Martin Decky
-# Copyright (c) 2007 Jakub Jermar
+# Copyright (c) 2010 Vojtech Horky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,14 +27,17 @@
 #
 
 USPACE_PREFIX = ../..
-EXTRA_CFLAGS = -Iinclude -I$(LIBUSB_PREFIX)/include
-LIBRARY = libdrv
+# acronym for virtual usb keyboard
+# (it is really annoying to write long names)
+BINARY = vuk
+
+LIBS = $(LIBUSB_PREFIX)/libusb.a $(LIBUSBVIRT_PREFIX)/libusbvirt.a
+EXTRA_CFLAGS = -I$(LIBUSB_PREFIX)/include -I$(LIB_PREFIX)
 
 SOURCES = \
-	generic/driver.c \
-	generic/dev_iface.c \
-	generic/remote_res.c \
-	generic/remote_usbhc.c \
-	generic/remote_char.c
+	kbdconfig.c \
+	keys.c \
+	stdreq.c \
+	virtusbkbd.c
 
 include $(USPACE_PREFIX)/Makefile.common

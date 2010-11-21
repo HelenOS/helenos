@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2010 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,32 +26,30 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef LIBC_IPC_DEV_IFACE_H_
-#define LIBC_IPC_DEV_IFACE_H_
+/** @addtogroup libusb usb
+ * @{
+ */
+/** @file
+ * @brief USB driver.
+ */
+#ifndef LIBUSB_USBDRV_H_
+#define LIBUSB_USBDRV_H_
 
-#include <ipc/ipc.h>
-#include <malloc.h>
-#include <unistd.h>
-#include <libarch/types.h>
+#include "usb.h"
+#include <driver.h>
 
-typedef enum {	
-	HW_RES_DEV_IFACE = 0,	
-	CHAR_DEV_IFACE,
+int usb_drv_hc_connect(device_t *, unsigned int);
 
-	/** Interface provided by USB host controller. */
-	USBHC_DEV_IFACE,
+usb_address_t usb_drv_get_my_address(int, device_t *);
 
-	// TODO add more interfaces
-	DEV_IFACE_MAX
-} dev_inferface_idx_t;
+int usb_drv_async_interrupt_out(int, usb_target_t,
+    void *, size_t, usb_handle_t *);
+int usb_drv_async_interrupt_in(int, usb_target_t,
+    void *, size_t, size_t *, usb_handle_t *);
 
-#define DEV_IFACE_ID(idx)	((idx) + IPC_FIRST_USER_METHOD)
-#define DEV_IFACE_IDX(id)	((id) - IPC_FIRST_USER_METHOD)
-
-#define DEV_IFACE_COUNT			DEV_IFACE_MAX
-#define DEV_FIRST_CUSTOM_METHOD_IDX	DEV_IFACE_MAX
-#define DEV_FIRST_CUSTOM_METHOD \
-	DEV_IFACE_ID(DEV_FIRST_CUSTOM_METHOD_IDX)
-
+int usb_drv_async_wait_for(usb_handle_t);
 
 #endif
+/**
+ * @}
+ */

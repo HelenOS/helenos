@@ -49,6 +49,7 @@ DIRS = \
 	app/tetris \
 	app/trace \
 	app/top \
+	app/virtusbkbd \
 	app/netecho \
 	app/nettest1 \
 	app/nettest2 \
@@ -85,7 +86,8 @@ DIRS = \
 	srv/net/tl/udp \
 	srv/net/tl/tcp \
 	srv/net/net \
-	drv/root
+	drv/root \
+	drv/vhc
 
 ## Networking
 #
@@ -115,6 +117,8 @@ ifeq ($(UARCH),ia32)
 	DIRS += drv/pciintel
 	DIRS += drv/isa
 	DIRS += drv/ns8250
+	DIRS += drv/uhci
+	DIRS += drv/usbkbd
 endif
 
 ifeq ($(UARCH),ppc32)
@@ -140,6 +144,16 @@ LIBS = \
 	lib/drv \
 	lib/packet \
 	lib/net
+
+ifeq ($(UARCH),amd64)
+	LIBS += lib/usb
+	LIBS += lib/usbvirt
+endif
+
+ifeq ($(UARCH),ia32)
+	LIBS += lib/usb
+	LIBS += lib/usbvirt
+endif
 
 LIBC_BUILD = $(addsuffix .build,$(LIBC))
 LIBS_BUILD = $(addsuffix .build,$(LIBS))

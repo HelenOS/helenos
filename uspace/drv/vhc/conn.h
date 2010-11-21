@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2010 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,32 +26,28 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef LIBC_IPC_DEV_IFACE_H_
-#define LIBC_IPC_DEV_IFACE_H_
+/** @addtogroup usb
+ * @{
+ */
+/** @file
+ * @brief Connection handling of incoming calls.
+ */
+#ifndef VHCD_CONN_H_
+#define VHCD_CONN_H_
 
-#include <ipc/ipc.h>
-#include <malloc.h>
-#include <unistd.h>
-#include <libarch/types.h>
+#include <usb/usb.h>
+#include <usb/hcdhubd.h>
+#include "vhcd.h"
+#include "devices.h"
 
-typedef enum {	
-	HW_RES_DEV_IFACE = 0,	
-	CHAR_DEV_IFACE,
+void connection_handler_host(ipcarg_t);
 
-	/** Interface provided by USB host controller. */
-	USBHC_DEV_IFACE,
+usb_hcd_transfer_ops_t vhc_transfer_ops;
 
-	// TODO add more interfaces
-	DEV_IFACE_MAX
-} dev_inferface_idx_t;
-
-#define DEV_IFACE_ID(idx)	((idx) + IPC_FIRST_USER_METHOD)
-#define DEV_IFACE_IDX(id)	((id) - IPC_FIRST_USER_METHOD)
-
-#define DEV_IFACE_COUNT			DEV_IFACE_MAX
-#define DEV_FIRST_CUSTOM_METHOD_IDX	DEV_IFACE_MAX
-#define DEV_FIRST_CUSTOM_METHOD \
-	DEV_IFACE_ID(DEV_FIRST_CUSTOM_METHOD_IDX)
+void default_connection_handler(device_t *, ipc_callid_t, ipc_call_t *);
 
 
 #endif
+/**
+ * @}
+ */

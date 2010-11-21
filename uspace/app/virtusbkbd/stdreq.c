@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2010 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,32 +26,55 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef LIBC_IPC_DEV_IFACE_H_
-#define LIBC_IPC_DEV_IFACE_H_
+/** @addtogroup usb
+ * @{
+ */
+/**
+ * @file
+ * @brief Keyboard configuration.
+ */
+#include <errno.h>
+#include <usb/descriptor.h>
+#include "stdreq.h"
+#include "kbdconfig.h"
 
-#include <ipc/ipc.h>
-#include <malloc.h>
-#include <unistd.h>
-#include <libarch/types.h>
+static int on_get_descriptor(struct usbvirt_device *dev,
+    usb_device_request_setup_packet_t *request, uint8_t *data);
 
-typedef enum {	
-	HW_RES_DEV_IFACE = 0,	
-	CHAR_DEV_IFACE,
-
-	/** Interface provided by USB host controller. */
-	USBHC_DEV_IFACE,
-
-	// TODO add more interfaces
-	DEV_IFACE_MAX
-} dev_inferface_idx_t;
-
-#define DEV_IFACE_ID(idx)	((idx) + IPC_FIRST_USER_METHOD)
-#define DEV_IFACE_IDX(id)	((id) - IPC_FIRST_USER_METHOD)
-
-#define DEV_IFACE_COUNT			DEV_IFACE_MAX
-#define DEV_FIRST_CUSTOM_METHOD_IDX	DEV_IFACE_MAX
-#define DEV_FIRST_CUSTOM_METHOD \
-	DEV_IFACE_ID(DEV_FIRST_CUSTOM_METHOD_IDX)
+usbvirt_standard_device_request_ops_t standard_request_ops = {
+	.on_get_status = NULL,
+	.on_clear_feature = NULL,
+	.on_set_feature = NULL,
+	.on_set_address = NULL,
+	.on_get_descriptor = on_get_descriptor,
+	.on_set_descriptor = NULL,
+	.on_get_configuration = NULL,
+	.on_set_configuration = NULL,
+	.on_get_interface = NULL,
+	.on_set_interface = NULL,
+	.on_synch_frame = NULL
+};
 
 
-#endif
+static int on_get_descriptor(struct usbvirt_device *dev,
+    usb_device_request_setup_packet_t *request, uint8_t *data)
+{
+	if (request->value_high == USB_DESCTYPE_HID_REPORT) {
+		/*
+		 * For simplicity, always return the same
+		 * report descriptor.
+		 */
+		int rc = dev->control_transfer_reply(dev, 0,
+		    report_descriptor, report_descriptor_size);
+		
+		return rc;
+	}
+	
+	/* Let the framework handle all the rest. */
+	return EFORWARD;
+}
+
+
+
+/** @}
+ */

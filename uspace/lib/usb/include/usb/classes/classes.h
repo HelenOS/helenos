@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2010 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,32 +26,41 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef LIBC_IPC_DEV_IFACE_H_
-#define LIBC_IPC_DEV_IFACE_H_
+/** @addtogroup libusb usb
+ * @{
+ */
+/** @file
+ * @brief USB device classes and subclasses.
+ */
+#ifndef LIBUSB_CLASSES_H_
+#define LIBUSB_CLASSES_H_
 
-#include <ipc/ipc.h>
-#include <malloc.h>
-#include <unistd.h>
-#include <libarch/types.h>
-
-typedef enum {	
-	HW_RES_DEV_IFACE = 0,	
-	CHAR_DEV_IFACE,
-
-	/** Interface provided by USB host controller. */
-	USBHC_DEV_IFACE,
-
-	// TODO add more interfaces
-	DEV_IFACE_MAX
-} dev_inferface_idx_t;
-
-#define DEV_IFACE_ID(idx)	((idx) + IPC_FIRST_USER_METHOD)
-#define DEV_IFACE_IDX(id)	((id) - IPC_FIRST_USER_METHOD)
-
-#define DEV_IFACE_COUNT			DEV_IFACE_MAX
-#define DEV_FIRST_CUSTOM_METHOD_IDX	DEV_IFACE_MAX
-#define DEV_FIRST_CUSTOM_METHOD \
-	DEV_IFACE_ID(DEV_FIRST_CUSTOM_METHOD_IDX)
+/** USB device class. */
+typedef enum {
+	USB_CLASS_USE_INTERFACE = 0x00,
+	USB_CLASS_AUDIO = 0x01,
+	USB_CLASS_COMMUNICATIONS_CDC_CONTROL = 0x02,
+	USB_CLASS_HID = 0x03,
+	USB_CLASS_PHYSICAL = 0x05,
+	USB_CLASS_IMAGE = 0x06,
+	USB_CLASS_PRINTER = 0x07,
+	USB_CLASS_MASS_STORAGE = 0x08,
+	USB_CLASS_HUB = 0x09,
+	USB_CLASS_CDC_DATA = 0x0A,
+	USB_CLASS_SMART_CARD = 0x0B,
+	USB_CLASS_CONTENT_SECURITY = 0x0D,
+	USB_CLASS_VIDEO = 0x0E,
+	USB_CLASS_PERSONAL_HEALTHCARE = 0x0F,
+	USB_CLASS_DIAGNOSTIC = 0xDC,
+	USB_CLASS_WIRELESS_CONTROLLER = 0xE0,
+	USB_CLASS_MISCELLANEOUS = 0xEF,
+	USB_CLASS_APPLICATION_SPECIFIC = 0xFE,
+	USB_CLASS_VENDOR_SPECIFIC = 0xFF,
+	/* USB_CLASS_ = 0x, */
+} usb_class_t;
 
 
 #endif
+/**
+ * @}
+ */

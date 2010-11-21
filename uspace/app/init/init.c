@@ -311,6 +311,7 @@ int main(int argc, char *argv[])
 	getterm("term/vc4", "/app/bdsh", false);
 	getterm("term/vc5", "/app/bdsh", false);
 	getterm("term/vc6", "/app/klog", false);
+	getterm("term/vc7", "/srv/devman", false);
 	
 	return 0;
 }

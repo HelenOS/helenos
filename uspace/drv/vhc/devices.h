@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2010 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,32 +26,34 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef LIBC_IPC_DEV_IFACE_H_
-#define LIBC_IPC_DEV_IFACE_H_
+/** @addtogroup usb
+ * @{
+ */ 
+/** @file
+ * @brief Virtual device management.
+ */
+#ifndef VHCD_DEVICES_H_
+#define VHCD_DEVICES_H_
 
-#include <ipc/ipc.h>
-#include <malloc.h>
-#include <unistd.h>
-#include <libarch/types.h>
+#include <adt/list.h>
+#include <usb/usb.h>
 
-typedef enum {	
-	HW_RES_DEV_IFACE = 0,	
-	CHAR_DEV_IFACE,
+#include "hc.h"
 
-	/** Interface provided by USB host controller. */
-	USBHC_DEV_IFACE,
+/** Connected virtual device. */
+typedef struct {
+	/** Phone used when sending data to device. */
+	int phone;
+	/** Linked-list handle. */
+	link_t link;
+} virtdev_connection_t;
 
-	// TODO add more interfaces
-	DEV_IFACE_MAX
-} dev_inferface_idx_t;
-
-#define DEV_IFACE_ID(idx)	((idx) + IPC_FIRST_USER_METHOD)
-#define DEV_IFACE_IDX(id)	((id) - IPC_FIRST_USER_METHOD)
-
-#define DEV_IFACE_COUNT			DEV_IFACE_MAX
-#define DEV_FIRST_CUSTOM_METHOD_IDX	DEV_IFACE_MAX
-#define DEV_FIRST_CUSTOM_METHOD \
-	DEV_IFACE_ID(DEV_FIRST_CUSTOM_METHOD_IDX)
-
+virtdev_connection_t *virtdev_add_device(int);
+virtdev_connection_t *virtdev_get_mine(void);
+void virtdev_destroy_device(virtdev_connection_t *);
+usb_transaction_outcome_t virtdev_send_to_all(transaction_t *);
 
 #endif
+/**
+ * @}
+ */

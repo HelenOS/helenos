@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2010 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,32 +26,72 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef LIBC_IPC_DEV_IFACE_H_
-#define LIBC_IPC_DEV_IFACE_H_
+/** @addtogroup usb
+ * @{
+ */ 
+/** @file
+ * @brief Virtual host controller driver.
+ */
 
+#include <devmap.h>
 #include <ipc/ipc.h>
-#include <malloc.h>
+#include <async.h>
 #include <unistd.h>
-#include <libarch/types.h>
+#include <stdlib.h>
+#include <sysinfo.h>
+#include <stdio.h>
+#include <errno.h>
+#include <str_error.h>
+#include <driver.h>
 
-typedef enum {	
-	HW_RES_DEV_IFACE = 0,	
-	CHAR_DEV_IFACE,
-
-	/** Interface provided by USB host controller. */
-	USBHC_DEV_IFACE,
-
-	// TODO add more interfaces
-	DEV_IFACE_MAX
-} dev_inferface_idx_t;
-
-#define DEV_IFACE_ID(idx)	((idx) + IPC_FIRST_USER_METHOD)
-#define DEV_IFACE_IDX(id)	((id) - IPC_FIRST_USER_METHOD)
-
-#define DEV_IFACE_COUNT			DEV_IFACE_MAX
-#define DEV_FIRST_CUSTOM_METHOD_IDX	DEV_IFACE_MAX
-#define DEV_FIRST_CUSTOM_METHOD \
-	DEV_IFACE_ID(DEV_FIRST_CUSTOM_METHOD_IDX)
+#include <usb/usb.h>
+#include "vhcd.h"
+#include "hc.h"
+#include "devices.h"
+#include "hub.h"
+#include "conn.h"
 
 
-#endif
+static int vhc_count = 0;
+static int vhc_add_device(usb_hc_device_t *dev)
+{
+	/*
+	 * Currently, we know how to simulate only single HC.
+	 */
+	if (vhc_count > 0) {
+		return ELIMIT;
+	}
+
+	vhc_count++;
+
+	dev->transfer_ops = &vhc_transfer_ops;
+	dev->generic->ops->default_handler = default_connection_handler;
+
+	/*
+	 * Announce that we have some root hub present.
+	 */
+	usb_hcd_add_root_hub(dev);
+
+	printf("%s: virtual USB host controller ready.\n", NAME);
+
+	return EOK;
+}
+
+static usb_hc_driver_t vhc_driver = {
+	.name = NAME,
+	.add_hc = &vhc_add_device
+};
+
+int main(int argc, char * argv[])
+{	
+	printf("%s: virtual USB host controller driver.\n", NAME);
+
+	debug_level = 5;
+
+	return usb_hcd_main(&vhc_driver);
+}
+
+
+/**
+ * @}
+ */

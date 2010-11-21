@@ -1,6 +1,5 @@
 #
-# Copyright (c) 2005 Martin Decky
-# Copyright (c) 2007 Jakub Jermar
+# Copyright (c) 2010 Vojtech Horky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,14 +27,11 @@
 #
 
 USPACE_PREFIX = ../..
-EXTRA_CFLAGS = -Iinclude -I$(LIBUSB_PREFIX)/include
-LIBRARY = libdrv
+LIBS = $(LIBDRV_PREFIX)/libdrv.a $(LIBUSB_PREFIX)/libusb.a
+EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include -I$(LIBUSB_PREFIX)/include
+BINARY = uhci
 
 SOURCES = \
-	generic/driver.c \
-	generic/dev_iface.c \
-	generic/remote_res.c \
-	generic/remote_usbhc.c \
-	generic/remote_char.c
+	main.c
 
 include $(USPACE_PREFIX)/Makefile.common

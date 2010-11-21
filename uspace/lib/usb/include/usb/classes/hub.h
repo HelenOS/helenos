@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2010 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,32 +26,49 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef LIBC_IPC_DEV_IFACE_H_
-#define LIBC_IPC_DEV_IFACE_H_
+/** @addtogroup libusb usb
+ * @{
+ */
+/** @file
+ * @brief USB hub related structures.
+ */
+#ifndef LIBUSB_HUB_H_
+#define LIBUSB_HUB_H_
 
-#include <ipc/ipc.h>
-#include <malloc.h>
-#include <unistd.h>
-#include <libarch/types.h>
+/** Hub class request. */
+typedef enum {
+	USB_HUB_REQUEST_GET_STATUS = 0,
+	USB_HUB_REQUEST_CLEAR_FEATURE = 1,
+	USB_HUB_REQUEST_GET_STATE = 2,
+	USB_HUB_REQUEST_SET_FEATURE = 3,
+	USB_HUB_REQUEST_GET_DESCRIPTOR = 6,
+	USB_HUB_REQUEST_SET_DESCRIPTOR = 7,
+	/* USB_HUB_REQUEST_ = , */
+} usb_hub_class_request_t;
 
-typedef enum {	
-	HW_RES_DEV_IFACE = 0,	
-	CHAR_DEV_IFACE,
-
-	/** Interface provided by USB host controller. */
-	USBHC_DEV_IFACE,
-
-	// TODO add more interfaces
-	DEV_IFACE_MAX
-} dev_inferface_idx_t;
-
-#define DEV_IFACE_ID(idx)	((idx) + IPC_FIRST_USER_METHOD)
-#define DEV_IFACE_IDX(id)	((id) - IPC_FIRST_USER_METHOD)
-
-#define DEV_IFACE_COUNT			DEV_IFACE_MAX
-#define DEV_FIRST_CUSTOM_METHOD_IDX	DEV_IFACE_MAX
-#define DEV_FIRST_CUSTOM_METHOD \
-	DEV_IFACE_ID(DEV_FIRST_CUSTOM_METHOD_IDX)
-
+/** Hub class feature selector.
+ * @warning The constants are not unique (feature selectors are used
+ * for hub and port).
+ */
+typedef enum {
+	USB_HUB_FEATURE_C_HUB_LOCAL_POWER = 0,
+	USB_HUB_FEATURE_C_HUB_OVER_CURRENT = 1,
+	USB_HUB_FEATURE_PORT_CONNECTION = 0,
+	USB_HUB_FEATURE_PORT_ENABLE = 1,
+	USB_HUB_FEATURE_PORT_SUSPEND = 2,
+	USB_HUB_FEATURE_PORT_OVER_CURRENT = 3,
+	USB_HUB_FEATURE_PORT_RESET = 4,
+	USB_HUB_FEATURE_PORT_POWER = 8,
+	USB_HUB_FEATURE_PORT_LOW_SPEED = 9,
+	USB_HUB_FEATURE_C_PORT_CONNECTION = 16,
+	USB_HUB_FEATURE_C_PORT_ENABLE = 17,
+	USB_HUB_FEATURE_C_PORT_SUSPEND = 18,
+	USB_HUB_FEATURE_C_PORT_OVER_CURRENT = 19,
+	USB_HUB_FEATURE_C_PORT_RESET = 20,
+	/* USB_HUB_FEATURE_ = , */
+} usb_hub_class_feature_t;
 
 #endif
+/**
+ * @}
+ */

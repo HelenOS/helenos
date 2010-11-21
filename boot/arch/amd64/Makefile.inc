@@ -39,7 +39,9 @@ RD_DRVS += \
 	rootia32 \
 	pciintel \
 	isa \
-	ns8250
+	ns8250 \
+	uhci \
+	usbkbd
 	
 RD_DRV_CFG += \
 	isa/isa.dev

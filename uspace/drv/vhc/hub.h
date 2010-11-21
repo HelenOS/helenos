@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2010 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,32 +26,33 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef LIBC_IPC_DEV_IFACE_H_
-#define LIBC_IPC_DEV_IFACE_H_
+/** @addtogroup usb
+ * @{
+ */
+/** @file
+ * @brief Virtual USB hub.
+ */
+#ifndef VHCD_HUB_H_
+#define VHCD_HUB_H_
 
-#include <ipc/ipc.h>
-#include <malloc.h>
-#include <unistd.h>
-#include <libarch/types.h>
+#include <usbvirt/device.h>
 
-typedef enum {	
-	HW_RES_DEV_IFACE = 0,	
-	CHAR_DEV_IFACE,
+#include "devices.h"
 
-	/** Interface provided by USB host controller. */
-	USBHC_DEV_IFACE,
+#define HUB_PORT_COUNT 6
 
-	// TODO add more interfaces
-	DEV_IFACE_MAX
-} dev_inferface_idx_t;
+#define BITS2BYTES(bits) \
+    (bits ? ((((bits)-1)>>3)+1) : 0)
 
-#define DEV_IFACE_ID(idx)	((idx) + IPC_FIRST_USER_METHOD)
-#define DEV_IFACE_IDX(id)	((id) - IPC_FIRST_USER_METHOD)
+extern usbvirt_device_t virthub_dev;
 
-#define DEV_IFACE_COUNT			DEV_IFACE_MAX
-#define DEV_FIRST_CUSTOM_METHOD_IDX	DEV_IFACE_MAX
-#define DEV_FIRST_CUSTOM_METHOD \
-	DEV_IFACE_ID(DEV_FIRST_CUSTOM_METHOD_IDX)
-
+void hub_init(void);
+size_t hub_add_device(virtdev_connection_t *);
+void hub_remove_device(virtdev_connection_t *);
+bool hub_can_device_signal(virtdev_connection_t *);
+void hub_get_port_statuses(char *result, size_t len);
 
 #endif
+/**
+ * @}
+ */
