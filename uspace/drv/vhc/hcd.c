@@ -68,8 +68,9 @@ static int vhc_add_device(usb_hc_device_t *dev)
 	dev->generic->ops->default_handler = default_connection_handler;
 
 	/*
-	 * Announce that we have some root hub present.
+	 * Initialize our hub and announce its presence.
 	 */
+	hub_init();
 	usb_hcd_add_root_hub(dev);
 
 	printf("%s: virtual USB host controller ready.\n", NAME);
@@ -82,11 +83,35 @@ static usb_hc_driver_t vhc_driver = {
 	.add_hc = &vhc_add_device
 };
 
+/** Fibril wrapper for HC transaction manager.
+ *
+ * @param arg Not used.
+ * @return Nothing, return argument is unreachable.
+ */
+static int hc_manager_fibril(void *arg)
+{
+	hc_manager();
+	return EOK;
+}
+
 int main(int argc, char * argv[])
 {	
 	printf("%s: virtual USB host controller driver.\n", NAME);
 
-	debug_level = 5;
+	debug_level = 10;
+
+	fid_t fid = fibril_create(hc_manager_fibril, NULL);
+	if (fid == 0) {
+		printf("%s: failed to start HC manager fibril\n", NAME);
+		return ENOMEM;
+	}
+	fibril_add_ready(fid);
+
+	/*
+	 * Temporary workaround. Wait a little bit to be the last driver
+	 * in devman output.
+	 */
+	sleep(4);
 
 	return usb_hcd_main(&vhc_driver);
 }

@@ -76,8 +76,10 @@ static int uhci_add_hc(usb_hc_device_t *device)
 
 	/*
 	 * We need to announce the presence of our root hub.
+	 * Commented out until the problem which causes the whole task to
+	 * block is solved.
 	 */
-	usb_hcd_add_root_hub(device);
+	//usb_hcd_add_root_hub(device);
 
 	return EOK;
 }
