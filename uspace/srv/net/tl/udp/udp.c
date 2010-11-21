@@ -710,7 +710,7 @@ static int udp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 	struct sockaddr *addr;
 	int socket_id;
 	size_t addrlen;
-	size_t size;
+	size_t size = 0;
 	ipc_call_t answer;
 	int answer_count;
 	packet_dimension_t *packet_dimension;
