@@ -38,6 +38,8 @@
 #include <bool.h>
 #include <errno.h>
 
+#define USB_HUB_DEVICE_NAME "usbhub"
+
 /** List of handled host controllers. */
 static LIST_INITIALIZE(hc_list);
 
@@ -64,7 +66,8 @@ static int add_device(device_t *dev)
 	 * FIXME: use some magic to determine whether hub or another HC
 	 * was connected.
 	 */
-	bool is_hc = true;
+	bool is_hc = str_cmp(dev->name, USB_HUB_DEVICE_NAME) != 0;
+	printf("%s: add_device(name=\"%s\")\n", hc_driver->name, dev->name);
 
 	if (is_hc) {
 		/*
@@ -94,6 +97,7 @@ static int add_device(device_t *dev)
 
 		return EOK;
 	} else {
+		printf("%s: hub added, hurrah!\n", hc_driver->name);
 		/*
 		 * We are some (probably deeply nested) hub.
 		 * Thus, assign our own operations and explore already
@@ -229,7 +233,7 @@ int usb_hcd_add_root_hub(usb_hc_device_t *dev)
 		rc = ENOMEM;
 		goto failure;
 	}
-	hub->name = "usbhub";
+	hub->name = USB_HUB_DEVICE_NAME;
 
 	match_id = create_match_id();
 	if (match_id == NULL) {
