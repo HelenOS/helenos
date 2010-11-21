@@ -42,63 +42,28 @@ int get_match_score(driver_t *drv, node_t *dev)
 	if (list_empty(drv_head) || list_empty(dev_head))
 		return 0;
 	
+	/*
+	 * Find first matching pair.
+	 */
 	link_t *drv_link = drv->match_ids.ids.next;
-	link_t *dev_link = dev->match_ids.ids.next;
-	
-	match_id_t *drv_id = list_get_instance(drv_link, match_id_t, link);
-	match_id_t *dev_id = list_get_instance(dev_link, match_id_t, link);
-	
-	int score_next_drv = 0;
-	int score_next_dev = 0;
-	
-	do {
-		match_id_t *tmp_ma_id;
-	
-		if (str_cmp(drv_id->id, dev_id->id) == 0) {
-		 	/*
-		 	 * We found a match.
-		 	 * Return the score of the match.
-		 	 */
-			return drv_id->score * dev_id->score;
-		}
-		
-		/*
-		 * Compute the next score we get, if we advance in the driver's
-		 * list of match ids.
-		 */
-		if (drv_link->next != drv_head) {
-			tmp_ma_id = list_get_instance(drv_link->next,
-			    match_id_t, link);
-			score_next_drv = dev_id->score * tmp_ma_id->score;
-		} else {
-			score_next_drv = 0;
-		}
-		
-		/*
-		 * Compute the next score we get, if we advance in the device's
-		 * list of match ids.
-		 */
-		if (dev_link->next != dev_head) {
-			tmp_ma_id = list_get_instance(dev_link->next,
-			    match_id_t, link);
-			score_next_dev = drv_id->score * tmp_ma_id->score;
-		} else {
-			score_next_dev = 0;
-		}
-		
-		/*
-		 * Advance in one of the two lists, so we get the next highest
-		 * score.
-		 */
-		if (score_next_drv > score_next_dev) {
-			drv_link = drv_link->next;
-			drv_id = list_get_instance(drv_link, match_id_t, link);
-		} else {
+	while (drv_link != drv_head) {
+		link_t *dev_link = dev->match_ids.ids.next;
+		while (dev_link != dev_head) {
+			match_id_t *drv_id = list_get_instance(drv_link, match_id_t, link);
+			match_id_t *dev_id = list_get_instance(dev_link, match_id_t, link);
+
+			if (str_cmp(drv_id->id, dev_id->id) == 0) {
+				/*
+				 * We found a match.
+				 * Return the score of the match.
+				 */
+				return drv_id->score * dev_id->score;
+			}
+
 			dev_link = dev_link->next;
-			dev_id = list_get_instance(dev_link, match_id_t, link);
 		}
-		
-	} while (drv_link->next != drv_head && dev_link->next != dev_head);
+		drv_link = drv_link->next;
+	}
 	
 	return 0;
 }

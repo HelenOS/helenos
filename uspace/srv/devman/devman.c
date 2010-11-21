@@ -116,6 +116,14 @@ void add_driver(driver_list_t *drivers_list, driver_t *drv)
 
 	printf(NAME": the '%s' driver was added to the list of available "
 	    "drivers.\n", drv->name);
+
+	printf(NAME ": match ids:");
+	link_t *cur;
+	for (cur = drv->match_ids.ids.next; cur != &drv->match_ids.ids; cur = cur->next) {
+		match_id_t *match_id = list_get_instance(cur, match_id_t, link);
+		printf(" %d:%s", match_id->score, match_id->id);
+	}
+	printf("\n");
 }
 
 /** Read match id at the specified position of a string and set the position in
