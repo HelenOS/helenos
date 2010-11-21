@@ -158,6 +158,20 @@ int usb_hc_async_interrupt_out(usb_hc_device_t *, usb_target_t,
 int usb_hc_async_interrupt_in(usb_hc_device_t *, usb_target_t,
     void *, size_t, size_t *, usb_handle_t *);
 
+int usb_hc_async_control_write_setup(usb_hc_device_t *, usb_target_t,
+    void *, size_t, usb_handle_t *);
+int usb_hc_async_control_write_data(usb_hc_device_t *, usb_target_t,
+    void *, size_t, usb_handle_t *);
+int usb_hc_async_control_write_status(usb_hc_device_t *, usb_target_t,
+    usb_handle_t *);
+
+int usb_hc_async_control_read_setup(usb_hc_device_t *, usb_target_t,
+    void *, size_t, usb_handle_t *);
+int usb_hc_async_control_read_data(usb_hc_device_t *, usb_target_t,
+    void *, size_t, size_t *, usb_handle_t *);
+int usb_hc_async_control_read_status(usb_hc_device_t *, usb_target_t,
+    usb_handle_t *);
+
 int usb_hc_async_wait_for(usb_handle_t);
 
 

@@ -181,6 +181,104 @@ static void callback_in(usb_hc_device_t *hc,
 	transfer_mark_complete(transfer);
 }
 
+static int async_transfer_out(usb_hc_device_t *hc,
+    usb_target_t target, usb_transfer_type_t transfer_type,
+    void *data, size_t size,
+    usb_handle_t *handle)
+{
+	if ((hc->transfer_ops == NULL)
+	    || (hc->transfer_ops->transfer_out == NULL)) {
+		return ENOTSUP;
+	}
+
+	/* This creation of the device on the fly is just a workaround. */
+
+	transfer_info_t *transfer = transfer_info_create(
+	    create_attached_device_info(target.address),
+	    create_endpoint_info(target.endpoint,
+		USB_DIRECTION_OUT, transfer_type));
+
+	int rc = hc->transfer_ops->transfer_out(hc,
+	    transfer->device, transfer->endpoint,
+	    data, size,
+	    callback_out, transfer);
+
+	if (rc != EOK) {
+		transfer_info_destroy(transfer);
+		return rc;
+	}
+
+	*handle = (usb_handle_t)transfer;
+
+	return EOK;
+}
+
+static int async_transfer_setup(usb_hc_device_t *hc,
+    usb_target_t target, usb_transfer_type_t transfer_type,
+    void *data, size_t size,
+    usb_handle_t *handle)
+{
+	if ((hc->transfer_ops == NULL)
+	    || (hc->transfer_ops->transfer_setup == NULL)) {
+		return ENOTSUP;
+	}
+
+	/* This creation of the device on the fly is just a workaround. */
+
+	transfer_info_t *transfer = transfer_info_create(
+	    create_attached_device_info(target.address),
+	    create_endpoint_info(target.endpoint,
+		USB_DIRECTION_OUT, transfer_type));
+
+	int rc = hc->transfer_ops->transfer_setup(hc,
+	    transfer->device, transfer->endpoint,
+	    data, size,
+	    callback_out, transfer);
+
+	if (rc != EOK) {
+		transfer_info_destroy(transfer);
+		return rc;
+	}
+
+	*handle = (usb_handle_t)transfer;
+
+	return EOK;
+}
+
+static int async_transfer_in(usb_hc_device_t *hc, usb_target_t target,
+    usb_transfer_type_t transfer_type,
+    void *buffer, size_t size, size_t *actual_size,
+    usb_handle_t *handle)
+{
+	if ((hc->transfer_ops == NULL)
+	    || (hc->transfer_ops->transfer_in == NULL)) {
+		return ENOTSUP;
+	}
+
+	/* This creation of the device on the fly is just a workaround. */
+
+	transfer_info_t *transfer = transfer_info_create(
+	    create_attached_device_info(target.address),
+	    create_endpoint_info(target.endpoint,
+		USB_DIRECTION_IN, transfer_type));
+	transfer->size_transferred = actual_size;
+
+	int rc = hc->transfer_ops->transfer_in(hc,
+	    transfer->device, transfer->endpoint,
+	    buffer, size,
+	    callback_in, transfer);
+
+	if (rc != EOK) {
+		transfer_info_destroy(transfer);
+		return rc;
+	}
+
+	*handle = (usb_handle_t)transfer;
+
+	return EOK;
+}
+
+
 /** Issue interrupt OUT transfer to HC driven by current task.
  *
  * @param hc Host controller to handle the transfer.
@@ -194,31 +292,8 @@ int usb_hc_async_interrupt_out(usb_hc_device_t *hc, usb_target_t target,
     void *buffer, size_t size,
     usb_handle_t *handle)
 {
-	if ((hc->transfer_ops == NULL)
-	    || (hc->transfer_ops->transfer_out == NULL)) {
-		return ENOTSUP;
-	}
-
-	/* This creation of the device on the fly is just a workaround. */
-
-	transfer_info_t *transfer = transfer_info_create(
-	    create_attached_device_info(target.address),
-	    create_endpoint_info(target.endpoint,
-	        USB_DIRECTION_OUT, USB_TRANSFER_INTERRUPT));
-
-	int rc = hc->transfer_ops->transfer_out(hc,
-	    transfer->device, transfer->endpoint,
-	    buffer, size,
-	    callback_out, transfer);
-
-	if (rc != EOK) {
-		transfer_info_destroy(transfer);
-		return rc;
-	}
-
-	*handle = (usb_handle_t)transfer;
-
-	return EOK;
+	return async_transfer_out(hc, target,
+	    USB_TRANSFER_INTERRUPT, buffer, size, handle);
 }
 
 
@@ -239,32 +314,51 @@ int usb_hc_async_interrupt_in(usb_hc_device_t *hc, usb_target_t target,
     void *buffer, size_t size, size_t *actual_size,
     usb_handle_t *handle)
 {
-	if ((hc->transfer_ops == NULL)
-	    || (hc->transfer_ops->transfer_in == NULL)) {
-		return ENOTSUP;
-	}
+	return async_transfer_in(hc, target,
+	    USB_TRANSFER_INTERRUPT, buffer, size, actual_size, handle);
+}
 
-	/* This creation of the device on the fly is just a workaround. */
+int usb_hc_async_control_write_setup(usb_hc_device_t *hc, usb_target_t target,
+    void *data, size_t size, usb_handle_t *handle)
+{
+	return async_transfer_setup(hc, target,
+	    USB_TRANSFER_CONTROL, data, size, handle);
+}
 
-	transfer_info_t *transfer = transfer_info_create(
-	    create_attached_device_info(target.address),
-	    create_endpoint_info(target.endpoint,
-		USB_DIRECTION_IN, USB_TRANSFER_INTERRUPT));
-	transfer->size_transferred = actual_size;
+int usb_hc_async_control_write_data(usb_hc_device_t *hc, usb_target_t target,
+    void *data, size_t size, usb_handle_t *handle)
+{
+	return async_transfer_out(hc, target,
+	    USB_TRANSFER_CONTROL, data, size, handle);
+}
 
-	int rc = hc->transfer_ops->transfer_in(hc,
-	    transfer->device, transfer->endpoint,
-	    buffer, size,
-	    callback_in, transfer);
+int usb_hc_async_control_write_status(usb_hc_device_t *hc, usb_target_t target,
+    usb_handle_t *handle)
+{
+	return async_transfer_in(hc, target,
+	    USB_TRANSFER_CONTROL, NULL, 0, NULL, handle);
+}
 
-	if (rc != EOK) {
-		transfer_info_destroy(transfer);
-		return rc;
-	}
+int usb_hc_async_control_read_setup(usb_hc_device_t *hc, usb_target_t target,
+    void *data, size_t size, usb_handle_t *handle)
+{
+	return async_transfer_setup(hc, target,
+	    USB_TRANSFER_CONTROL, data, size, handle);
+}
 
-	*handle = (usb_handle_t)transfer;
+int usb_hc_async_control_read_data(usb_hc_device_t *hc, usb_target_t target,
+    void *buffer, size_t size, size_t *actual_size,
+    usb_handle_t *handle)
+{
+	return async_transfer_in(hc, target,
+	    USB_TRANSFER_CONTROL, buffer, size, actual_size, handle);
+}
 
-	return EOK;
+int usb_hc_async_control_read_status(usb_hc_device_t *hc, usb_target_t target,
+    usb_handle_t *handle)
+{
+	return async_transfer_out(hc, target,
+	    USB_TRANSFER_CONTROL, NULL, 0, handle);
 }
 
 /** Wait for transfer to complete.
