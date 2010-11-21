@@ -97,7 +97,6 @@ static int add_device(device_t *dev)
 
 		return EOK;
 	} else {
-		printf("%s: hub added, hurrah!\n", hc_driver->name);
 		/*
 		 * We are some (probably deeply nested) hub.
 		 * Thus, assign our own operations and explore already
@@ -269,83 +268,6 @@ failure:
 	delete_match_id(match_id);
 
 	return rc;
-}
-
-/** Issue interrupt OUT transfer to HC driven by current task.
- *
- * @param hc Host controller to handle the transfer.
- * @param target Target device address.
- * @param buffer Data buffer.
- * @param size Buffer size.
- * @param handle Transfer handle.
- * @return Error code.
- */
-int usb_hc_async_interrupt_out(usb_hc_device_t *hc, usb_target_t target,
-    void *buffer, size_t size,
-    usb_handle_t *handle)
-{
-	if ((hc->transfer_ops == NULL)
-	    || (hc->transfer_ops->transfer_out == NULL)) {
-		return ENOTSUP;
-	}
-
-	/*
-	 * For debugging purposes only.
-	 * We need to find appropriate device in list of managed device
-	 * and pass it to the transfer callback function.
-	 */
-	usb_hcd_attached_device_info_t dev = {
-		.address = target.address,
-		.endpoint_count = 0,
-		.endpoints = NULL,
-	};
-	usb_hc_endpoint_info_t endpoint = {
-		.endpoint = target.endpoint,
-		.transfer_type = USB_TRANSFER_INTERRUPT,
-		.direction = USB_DIRECTION_OUT,
-		.data_toggle = 0
-	};
-
-	hc->transfer_ops->transfer_out(hc, &dev, &endpoint, buffer, size, NULL, NULL);
-
-	*handle = (usb_handle_t)NULL;
-
-	return EOK;
-}
-
-
-/** Issue interrupt IN transfer to HC driven by current task.
- *
- * @warning The @p buffer and @p actual_size parameters shall not be
- * touched until this transfer is waited for by usb_hc_async_wait_for().
- *
- * @param hc Host controller to handle the transfer.
- * @param target Target device address.
- * @param buffer Data buffer.
- * @param size Buffer size.
- * @param actual_size Size of actually transferred data.
- * @param handle Transfer handle.
- * @return Error code.
- */
-int usb_hc_async_interrupt_in(usb_hc_device_t *hc, usb_target_t target,
-    void *buffer, size_t size, size_t *actual_size,
-    usb_handle_t *handle)
-{
-	/*
-	 * TODO: verify that given endpoint is of interrupt type and
-	 * call hc->transfer_ops->transfer_in()
-	 */
-	return ENOTSUP;
-}
-
-/** Wait for transfer to complete.
- *
- * @param handle Transfer handle.
- * @return Error code.
- */
-int usb_hc_async_wait_for(usb_handle_t handle)
-{
-	return ENOTSUP;
 }
 
 /**
