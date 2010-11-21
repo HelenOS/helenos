@@ -107,6 +107,12 @@ int main(int argc, char * argv[])
 	}
 	fibril_add_ready(fid);
 
+	/*
+	 * Temporary workaround. Wait a little bit to be the last driver
+	 * in devman output.
+	 */
+	sleep(4);
+
 	return usb_hcd_main(&vhc_driver);
 }
 
