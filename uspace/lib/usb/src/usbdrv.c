@@ -33,7 +33,7 @@
  * @brief USB driver (implementation).
  */
 #include <usb/usbdrv.h>
-#include <usb_iface.h>
+#include <usbhc_iface.h>
 #include <errno.h>
 
 /** Information about pending transaction on HC. */
@@ -120,7 +120,7 @@ static int async_send_buffer(int phone, int method,
 	int rc;
 
 	transfer->request = async_send_4(phone,
-	    DEV_IFACE_ID(USB_DEV_IFACE),
+	    DEV_IFACE_ID(USBHC_DEV_IFACE),
 	    method,
 	    target.address, target.endpoint,
 	    size,
@@ -183,7 +183,7 @@ static int async_recv_buffer(int phone, int method,
 	transfer->phone = phone;
 
 	transfer->request = async_send_4(phone,
-	    DEV_IFACE_ID(USB_DEV_IFACE),
+	    DEV_IFACE_ID(USBHC_DEV_IFACE),
 	    method,
 	    target.address, target.endpoint,
 	    size,
@@ -213,8 +213,8 @@ static int read_buffer_in(int phone, ipcarg_t hash,
 	int rc;
 
 	req = async_send_2(phone,
-	    DEV_IFACE_ID(USB_DEV_IFACE),
-	    IPC_M_USB_GET_BUFFER,
+	    DEV_IFACE_ID(USBHC_DEV_IFACE),
+	    IPC_M_USBHC_GET_BUFFER,
 	    hash,
 	    &answer_data);
 
@@ -304,7 +304,7 @@ int usb_drv_async_interrupt_out(int phone, usb_target_t target,
     usb_handle_t *handle)
 {
 	return async_send_buffer(phone,
-	    IPC_M_USB_INTERRUPT_OUT,
+	    IPC_M_USBHC_INTERRUPT_OUT,
 	    target,
 	    buffer, size,
 	    handle);
@@ -316,7 +316,7 @@ int usb_drv_async_interrupt_in(int phone, usb_target_t target,
     usb_handle_t *handle)
 {
 	return async_recv_buffer(phone,
-	    IPC_M_USB_INTERRUPT_IN,
+	    IPC_M_USBHC_INTERRUPT_IN,
 	    target,
 	    buffer, size, actual_size,
 	    handle);

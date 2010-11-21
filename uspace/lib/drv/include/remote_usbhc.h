@@ -32,10 +32,10 @@
 /** @file
  */
 
-#ifndef LIBDRV_REMOTE_USB_H_
-#define LIBDRV_REMOTE_USB_H_
+#ifndef LIBDRV_REMOTE_USBHC_H_
+#define LIBDRV_REMOTE_USBHC_H_
 
-remote_iface_t remote_usb_iface;
+remote_iface_t remote_usbhc_iface;
 
 #endif
 

@@ -33,7 +33,7 @@
  * @brief HC driver and hub driver (implementation).
  */
 #include <usb/hcdhubd.h>
-#include <usb_iface.h>
+#include <usbhc_iface.h>
 #include <driver.h>
 #include <bool.h>
 #include <errno.h>
@@ -44,13 +44,13 @@ static LIST_INITIALIZE(hc_list);
 /** Our HC driver. */
 static usb_hc_driver_t *hc_driver = NULL;
 
-static usb_iface_t usb_interface = {
+static usbhc_iface_t usb_interface = {
 	.interrupt_out = NULL,
 	.interrupt_in = NULL
 };
 
 static device_ops_t usb_device_ops = {
-	.interfaces[USB_DEV_IFACE] = &usb_interface
+	.interfaces[USBHC_DEV_IFACE] = &usb_interface
 };
 
 /** Callback when new device is detected and must be handled by this driver.

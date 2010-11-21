@@ -36,29 +36,29 @@
 #include <async.h>
 #include <errno.h>
 
-#include "usb_iface.h"
+#include "usbhc_iface.h"
 #include "driver.h"
 
 #define USB_MAX_PAYLOAD_SIZE 1020
 
-static void remote_usb_get_buffer(device_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_usb_interrupt_out(device_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_usb_interrupt_in(device_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usbhc_get_buffer(device_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usbhc_interrupt_out(device_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usbhc_interrupt_in(device_t *, void *, ipc_callid_t, ipc_call_t *);
 //static void remote_usb(device_t *, void *, ipc_callid_t, ipc_call_t *);
 
 /** Remote USB interface operations. */
-static remote_iface_func_ptr_t remote_usb_iface_ops [] = {
-	&remote_usb_get_buffer,
-	&remote_usb_interrupt_out,
-	&remote_usb_interrupt_in
+static remote_iface_func_ptr_t remote_usbhc_iface_ops [] = {
+	&remote_usbhc_get_buffer,
+	&remote_usbhc_interrupt_out,
+	&remote_usbhc_interrupt_in
 };
 
 /** Remote USB interface structure.
  */
-remote_iface_t remote_usb_iface = {
-	.method_count = sizeof(remote_usb_iface_ops) /
-	    sizeof(remote_usb_iface_ops[0]),
-	.methods = remote_usb_iface_ops
+remote_iface_t remote_usbhc_iface = {
+	.method_count = sizeof(remote_usbhc_iface_ops) /
+	    sizeof(remote_usbhc_iface_ops[0]),
+	.methods = remote_usbhc_iface_ops
 };
 
 typedef struct {
@@ -68,7 +68,7 @@ typedef struct {
 } async_transaction_t;
 
 
-void remote_usb_get_buffer(device_t *device, void *iface,
+void remote_usbhc_get_buffer(device_t *device, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
 	ipcarg_t buffer_hash = IPC_GET_ARG1(*call);
@@ -124,10 +124,10 @@ static void callback_in(device_t *device,
 	trans->size = actual_size;
 }
 
-void remote_usb_interrupt_out(device_t *device, void *iface,
+void remote_usbhc_interrupt_out(device_t *device, void *iface,
 	    ipc_callid_t callid, ipc_call_t *call)
 {
-	usb_iface_t *usb_iface = (usb_iface_t *) iface;
+	usbhc_iface_t *usb_iface = (usbhc_iface_t *) iface;
 
 	size_t expected_len = IPC_GET_ARG3(*call);
 	usb_target_t target = {
@@ -167,10 +167,10 @@ void remote_usb_interrupt_out(device_t *device, void *iface,
 	}
 }
 
-void remote_usb_interrupt_in(device_t *device, void *iface,
+void remote_usbhc_interrupt_in(device_t *device, void *iface,
 	    ipc_callid_t callid, ipc_call_t *call)
 {
-	usb_iface_t *usb_iface = (usb_iface_t *) iface;
+	usbhc_iface_t *usb_iface = (usbhc_iface_t *) iface;
 
 	size_t len = IPC_GET_ARG3(*call);
 	usb_target_t target = {

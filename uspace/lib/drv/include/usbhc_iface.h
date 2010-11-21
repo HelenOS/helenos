@@ -33,8 +33,8 @@
  * @brief USB interface definition.
  */
 
-#ifndef LIBDRV_USB_IFACE_H_
-#define LIBDRV_USB_IFACE_H_
+#ifndef LIBDRV_USBHC_IFACE_H_
+#define LIBDRV_USBHC_IFACE_H_
 
 #include "driver.h"
 #include <usb/usb.h>
@@ -45,7 +45,7 @@
  * Notes for async methods:
  *
  * Methods for sending data to device (OUT transactions)
- * - e.g. IPC_M_USB_INTERRUPT_OUT -
+ * - e.g. IPC_M_USBHC_INTERRUPT_OUT -
  * always use the same semantics:
  * - first, IPC call with given method is made
  *   - argument #1 is target address
@@ -58,7 +58,7 @@
  * - the answer carries only the error code
  *
  * Methods for retrieving data from device (IN transactions)
- * - e.g. IPC_M_USB_INTERRUPT_IN -
+ * - e.g. IPC_M_USBHC_INTERRUPT_IN -
  * also use the same semantics:
  * - first, IPC call with given method is made
  *   - argument #1 is target address
@@ -75,10 +75,10 @@
  *
  * The mentioned data retrieval can be done any time after receiving EOK
  * answer to IN method.
- * This retrieval is done using the IPC_M_USB_GET_BUFFER where
+ * This retrieval is done using the IPC_M_USBHC_GET_BUFFER where
  * the first argument is buffer hash from call answer.
  * This call must be immediately followed by data read-in and after the
- * data are transferred, the initial call (IPC_M_USB_GET_BUFFER)
+ * data are transferred, the initial call (IPC_M_USBHC_GET_BUFFER)
  * is answered. Each buffer can be retrieved only once.
  *
  * For all these methods, wrap functions exists. Important rule: functions
@@ -96,73 +96,73 @@ typedef enum {
 	 * This function does not have counter part in functional interface
 	 * as it is handled by the remote part itself.
 	 */
-	IPC_M_USB_GET_BUFFER,
+	IPC_M_USBHC_GET_BUFFER,
 
 
 	/** Send interrupt data to device.
 	 * See explanation at usb_iface_funcs_t (OUT transaction).
 	 */
-	IPC_M_USB_INTERRUPT_OUT,
+	IPC_M_USBHC_INTERRUPT_OUT,
 
 	/** Get interrupt data from device.
 	 * See explanation at usb_iface_funcs_t (IN transaction).
 	 */
-	IPC_M_USB_INTERRUPT_IN,
+	IPC_M_USBHC_INTERRUPT_IN,
 
 
 	/** Start WRITE control transfer.
 	 * See explanation at usb_iface_funcs_t (OUT transaction).
 	 */
-	IPC_M_USB_CONTROL_WRITE_SETUP,
+	IPC_M_USBHC_CONTROL_WRITE_SETUP,
 
 	/** Send control-transfer data to device.
 	 * See explanation at usb_iface_funcs_t (OUT transaction).
 	 */
-	IPC_M_USB_CONTROL_WRITE_DATA,
+	IPC_M_USBHC_CONTROL_WRITE_DATA,
 
 	/** Terminate WRITE control transfer.
 	 * See explanation at usb_iface_funcs_t (NO-DATA transaction).
 	 */
-	IPC_M_USB_CONTROL_WRITE_STATUS,
+	IPC_M_USBHC_CONTROL_WRITE_STATUS,
 
 
 
 	/** Start READ control transfer.
 	 * See explanation at usb_iface_funcs_t (OUT transaction).
 	 */
-	IPC_M_USB_CONTROL_READ_SETUP,
+	IPC_M_USBHC_CONTROL_READ_SETUP,
 
 	/** Get control-transfer data from device.
 	 * See explanation at usb_iface_funcs_t (IN transaction).
 	 */
-	IPC_M_USB_CONTROL_READ_DATA,
+	IPC_M_USBHC_CONTROL_READ_DATA,
 
 	/** Terminate READ control transfer.
 	 * See explanation at usb_iface_funcs_t (NO-DATA transaction).
 	 */
-	IPC_M_USB_CONTROL_READ_STATUS,
+	IPC_M_USBHC_CONTROL_READ_STATUS,
 
 
 	/* IPC_M_USB_ */
-} usb_iface_funcs_t;
+} usbhc_iface_funcs_t;
 
 /** Callback for outgoing transfer. */
-typedef void (*usb_iface_transfer_out_callback_t)(device_t *,
+typedef void (*usbhc_iface_transfer_out_callback_t)(device_t *,
     usb_transaction_outcome_t, void *);
 
 /** Callback for incoming transfer. */
-typedef void (*usb_iface_transfer_in_callback_t)(device_t *,
+typedef void (*usbhc_iface_transfer_in_callback_t)(device_t *,
     usb_transaction_outcome_t, size_t, void *);
 
 /** USB devices communication interface. */
 typedef struct {
 	int (*interrupt_out)(device_t *, usb_target_t,
 	    void *, size_t,
-	    usb_iface_transfer_out_callback_t, void *);
+	    usbhc_iface_transfer_out_callback_t, void *);
 	int (*interrupt_in)(device_t *, usb_target_t,
 	    void *, size_t,
-	    usb_iface_transfer_in_callback_t, void *);
-} usb_iface_t;
+	    usbhc_iface_transfer_in_callback_t, void *);
+} usbhc_iface_t;
 
 
 #endif
