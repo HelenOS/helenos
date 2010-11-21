@@ -130,7 +130,7 @@ void hc_manager(void)
 		outcome = virtdev_send_to_all(transaction);
 		
 		process_transaction_with_outcome(transaction, outcome);
-		
+
 		free(transaction);
 	}
 }

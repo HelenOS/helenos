@@ -78,8 +78,6 @@ void hc_add_transaction_from_device(usb_target_t target,
     void * buffer, size_t len,
     hc_transaction_done_callback_t callback, void * arg);
 
-int hc_fillin_transaction_from_device(usb_target_t target,
-    void * buffer, size_t len);
 
 #endif
 /**

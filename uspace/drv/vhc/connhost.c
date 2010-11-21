@@ -40,6 +40,52 @@
 #include "conn.h"
 #include "hc.h"
 
+typedef struct {
+	usb_direction_t direction;
+	usb_hcd_transfer_callback_out_t out_callback;
+	usb_hcd_transfer_callback_in_t in_callback;
+	usb_hc_device_t *hc;
+	void *arg;
+} transfer_info_t;
+
+static void universal_callback(void *buffer, size_t size,
+    usb_transaction_outcome_t outcome, void *arg)
+{
+	transfer_info_t *transfer = (transfer_info_t *) arg;
+
+	switch (transfer->direction) {
+		case USB_DIRECTION_IN:
+			transfer->in_callback(transfer->hc,
+			    size, outcome,
+			    transfer->arg);
+			break;
+		case USB_DIRECTION_OUT:
+			transfer->out_callback(transfer->hc,
+			    outcome,
+			    transfer->arg);
+			break;
+		default:
+			assert(false && "unreachable");
+			break;
+	}
+
+	free(transfer);
+}
+
+static transfer_info_t *create_transfer_info(usb_hc_device_t *hc,
+    usb_direction_t direction, void *arg)
+{
+	transfer_info_t *transfer = malloc(sizeof(transfer_info_t));
+
+	transfer->direction = direction;
+	transfer->in_callback = NULL;
+	transfer->out_callback = NULL;
+	transfer->arg = arg;
+	transfer->hc = hc;
+
+	return transfer;
+}
+
 static int enqueue_transfer_out(usb_hc_device_t *hc,
     usb_hcd_attached_device_info_t *dev, usb_hc_endpoint_info_t *endpoint,
     void *buffer, size_t size,
@@ -49,7 +95,20 @@ static int enqueue_transfer_out(usb_hc_device_t *hc,
 	    dev->address, endpoint->endpoint,
 	    usb_str_transfer_type(endpoint->transfer_type),
 	    size);
-	return ENOTSUP;
+
+	transfer_info_t *transfer
+	    = create_transfer_info(hc, USB_DIRECTION_OUT, arg);
+	transfer->out_callback = callback;
+
+	usb_target_t target = {
+		.address = dev->address,
+		.endpoint = endpoint->endpoint
+	};
+
+	hc_add_transaction_to_device(false, target, buffer, size,
+	    universal_callback, transfer);
+
+	return EOK;
 }
 
 static int enqueue_transfer_setup(usb_hc_device_t *hc,
@@ -61,7 +120,20 @@ static int enqueue_transfer_setup(usb_hc_device_t *hc,
 	    dev->address, endpoint->endpoint,
 	    usb_str_transfer_type(endpoint->transfer_type),
 	    size);
-	return ENOTSUP;
+
+	transfer_info_t *transfer
+	    = create_transfer_info(hc, USB_DIRECTION_OUT, arg);
+	transfer->out_callback = callback;
+
+	usb_target_t target = {
+		.address = dev->address,
+		.endpoint = endpoint->endpoint
+	};
+
+	hc_add_transaction_to_device(true, target, buffer, size,
+	    universal_callback, transfer);
+
+	return EOK;
 }
 
 static int enqueue_transfer_in(usb_hc_device_t *hc,
@@ -73,7 +145,20 @@ static int enqueue_transfer_in(usb_hc_device_t *hc,
 	    dev->address, endpoint->endpoint,
 	    usb_str_transfer_type(endpoint->transfer_type),
 	    size);
-	return ENOTSUP;
+
+	transfer_info_t *transfer
+	    = create_transfer_info(hc, USB_DIRECTION_IN, arg);
+	transfer->in_callback = callback;
+
+	usb_target_t target = {
+		.address = dev->address,
+		.endpoint = endpoint->endpoint
+	};
+
+	hc_add_transaction_from_device(target, buffer, size,
+	    universal_callback, transfer);
+
+	return EOK;
 }
 
 
