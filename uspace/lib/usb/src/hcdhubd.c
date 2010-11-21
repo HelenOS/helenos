@@ -33,6 +33,7 @@
  * @brief HC driver and hub driver (implementation).
  */
 #include <usb/hcdhubd.h>
+#include <usb/devreq.h>
 #include <usbhc_iface.h>
 #include <driver.h>
 #include <bool.h>
@@ -54,6 +55,8 @@ static usbhc_iface_t usb_interface = {
 static device_ops_t usb_device_ops = {
 	.interfaces[USBHC_DEV_IFACE] = &usb_interface
 };
+
+static void set_hub_address(usb_hc_device_t *hc, usb_address_t address);
 
 /** Callback when new device is detected and must be handled by this driver.
  *
@@ -97,13 +100,65 @@ static int add_device(device_t *dev)
 
 		return EOK;
 	} else {
+		usb_hc_device_t *hc = list_get_instance(hc_list.next, usb_hc_device_t, link);
+		set_hub_address(hc, 5);
+
 		/*
 		 * We are some (probably deeply nested) hub.
 		 * Thus, assign our own operations and explore already
 		 * connected devices.
 		 */
+
 		return ENOTSUP;
 	}
+}
+
+/** Sample usage of usb_hc_async functions.
+ * This function sets hub address using standard SET_ADDRESS request.
+ *
+ * @warning This function shall be removed once you are familiar with
+ * the usb_hc_ API.
+ *
+ * @param hc Host controller the hub belongs to.
+ * @param address New hub address.
+ */
+static void set_hub_address(usb_hc_device_t *hc, usb_address_t address)
+{
+	printf("%s: setting hub address to %d\n", hc->generic->name, address);
+	usb_target_t target = {0, 0};
+	usb_handle_t handle;
+	int rc;
+
+	usb_device_request_setup_packet_t setup_packet = {
+		.request_type = 0,
+		.request = USB_DEVREQ_SET_ADDRESS,
+		.index = 0,
+		.length = 0,
+	};
+	setup_packet.value = address;
+
+	rc = usb_hc_async_control_write_setup(hc, target,
+	    &setup_packet, sizeof(setup_packet), &handle);
+	if (rc != EOK) {
+		return;
+	}
+
+	rc = usb_hc_async_wait_for(handle);
+	if (rc != EOK) {
+		return;
+	}
+
+	rc = usb_hc_async_control_write_status(hc, target, &handle);
+	if (rc != EOK) {
+		return;
+	}
+
+	rc = usb_hc_async_wait_for(handle);
+	if (rc != EOK) {
+		return;
+	}
+
+	printf("%s: hub address changed\n", hc->generic->name);
 }
 
 /** Check changes on all known hubs.
@@ -208,18 +263,6 @@ int usb_hcd_main(usb_hc_driver_t *hc)
 int usb_hcd_add_root_hub(usb_hc_device_t *dev)
 {
 	int rc;
-
-	/*
-	 * For testing/debugging purposes only.
-	 * Try to send some data to default USB address.
-	 */
-	usb_target_t target = {0, 0};
-	usb_handle_t handle = 0;
-	char *data = (char *) "Hello, World!";
-
-
-	(void)usb_hc_async_interrupt_out(dev, target, data, str_length(data), &handle);
-	(void)usb_hc_async_wait_for(handle);
 
 	/*
 	 * Announce presence of child device.
