@@ -26,18 +26,45 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup tl_local
- *  @{
+/** @addtogroup libnet
+ * @{
  */
 
-#ifndef __TL_LOCAL_H__
-#define __TL_LOCAL_H__
+#ifndef LIBNET_TL_LOCAL_H_
+#define LIBNET_TL_LOCAL_H_
 
 #include <ipc/ipc.h>
 #include <async.h>
 
+/** Starts the TL module.
+ *
+ * Initializes the client connection serving function, initializes the module,
+ * registers the module service and starts the async manager, processing IPC
+ * messages in an infinite loop.
+ *
+ * @param[in] client_connection The client connection processing function. The
+ *			module skeleton propagates its own one.
+ * @return		EOK on successful module termination.
+ * @return		Other error codes as defined for the module initialize
+ *			function.
+ * @return		Other error codes as defined for the REGISTER_ME() macro
+ *			function.
+ */
 extern int tl_module_message_standalone(ipc_callid_t, ipc_call_t *,
     ipc_call_t *, int *);
+
+
+/** Processes the TL module message.
+ *
+ * @param[in] callid	The message identifier.
+ * @param[in] call	The message parameters.
+ * @param[out] answer	The message answer parameters.
+ * @param[out] answer_count The last parameter for the actual answer in the
+ *			answer parameter.
+ * @return		EOK on success.
+ * @return		Other error codes as defined for the module's message
+ *			standalone function.
+ */
 extern int tl_module_start_standalone(async_client_conn_t);
 
 #endif

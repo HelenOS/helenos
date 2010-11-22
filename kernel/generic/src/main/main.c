@@ -96,7 +96,7 @@ init_t init = {
 
 /** Boot allocations. */
 ballocs_t ballocs = {
-	.base = NULL,
+	.base = (uintptr_t) NULL,
 	.size = 0
 };
 

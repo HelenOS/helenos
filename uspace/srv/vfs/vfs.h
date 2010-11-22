@@ -61,13 +61,13 @@ typedef struct {
  */
 #define VFS_PAIR \
 	fs_handle_t fs_handle; \
-	dev_handle_t dev_handle;
+	devmap_handle_t devmap_handle;
 
 /**
  * VFS_TRIPLET uniquely identifies a file system node (e.g. directory, file) but
  * doesn't contain any state. For a stateful structure, see vfs_node_t.
  *
- * @note	fs_handle, dev_handle and index are meant to be returned in one
+ * @note	fs_handle, devmap_handle and index are meant to be returned in one
  *		IPC reply.
  */
 #define VFS_TRIPLET \
@@ -168,7 +168,7 @@ extern link_t plb_head;		/**< List of active PLB entries. */
 extern fibril_rwlock_t namespace_rwlock;
 
 extern int vfs_grab_phone(fs_handle_t);
-extern void vfs_release_phone(int);
+extern void vfs_release_phone(fs_handle_t, int);
 
 extern fs_handle_t fs_name_to_handle(char *, bool);
 
@@ -181,7 +181,7 @@ extern bool vfs_nodes_init(void);
 extern vfs_node_t *vfs_node_get(vfs_lookup_res_t *);
 extern void vfs_node_put(vfs_node_t *);
 extern void vfs_node_forget(vfs_node_t *);
-extern unsigned vfs_nodes_refcount_sum_get(fs_handle_t, dev_handle_t);
+extern unsigned vfs_nodes_refcount_sum_get(fs_handle_t, devmap_handle_t);
 
 
 #define MAX_OPEN_FILES	128

@@ -35,14 +35,14 @@
 #ifndef __NET_NETIF_DP8390_H__
 #define __NET_NETIF_DP8390_H__
 
-#include <packet/packet.h>
+#include <net/packet.h>
 
 #include "dp8390_port.h"
 #include "local.h"
 
 /** Input/output size.
  */
-#define DP8390_IO_SIZE	0x01f
+#define DP8390_IO_SIZE	0x020
 
 /*
 dp8390.h
@@ -312,14 +312,14 @@ typedef struct dpeth
 {
 	/** Outgoing packets queue.
 	 */
-	packet_t packet_queue;
+	packet_t *packet_queue;
 	/** Outgoing packets count.
 	 */
 	int packet_count;
 
 	/** Received packets queue.
 	 */
-	packet_t received_queue;
+	packet_t *received_queue;
 	/** Received packets count.
 	 */
 	int received_count;

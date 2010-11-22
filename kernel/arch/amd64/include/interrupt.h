@@ -36,8 +36,8 @@
 #define KERN_amd64_INTERRUPT_H_
 
 #include <typedefs.h>
+#include <arch/istate.h>
 #include <arch/pm.h>
-#include <trace.h>
 
 #define IVT_ITEMS  IDT_ITEMS
 #define IVT_FIRST  0
@@ -69,56 +69,6 @@
 #define VECTOR_SYSCALL            IVT_FREEBASE
 #define VECTOR_TLB_SHOOTDOWN_IPI  (IVT_FREEBASE + 1)
 #define VECTOR_DEBUG_IPI          (IVT_FREEBASE + 2)
-
-/** This is passed to interrupt handlers */
-typedef struct istate {
-	uint64_t rax;
-	uint64_t rbx;
-	uint64_t rcx;
-	uint64_t rdx;
-	uint64_t rsi;
-	uint64_t rdi;
-	uint64_t rbp;
-	uint64_t r8;
-	uint64_t r9;
-	uint64_t r10;
-	uint64_t r11;
-	uint64_t r12;
-	uint64_t r13;
-	uint64_t r14;
-	uint64_t r15;
-	uint64_t alignment;	/* align rbp_frame on multiple of 16 */
-	uint64_t rbp_frame;	/* imitation of frame pointer linkage */
-	uint64_t rip_frame;	/* imitation of return address linkage */
-	uint64_t error_word;	/* real or fake error word */
-	uint64_t rip;
-	uint64_t cs;
-	uint64_t rflags;
-	uint64_t rsp;		/* only if istate_t is from uspace */
-	uint64_t ss;		/* only if istate_t is from uspace */
-} istate_t;
-
-/** Return true if exception happened while in userspace */
-NO_TRACE static inline int istate_from_uspace(istate_t *istate)
-{
-	return !(istate->rip & 0x8000000000000000);
-}
-
-NO_TRACE static inline void istate_set_retaddr(istate_t *istate,
-    uintptr_t retaddr)
-{
-	istate->rip = retaddr;
-}
-
-NO_TRACE static inline unative_t istate_get_pc(istate_t *istate)
-{
-	return istate->rip;
-}
-
-NO_TRACE static inline unative_t istate_get_fp(istate_t *istate)
-{
-	return istate->rbp;
-}
 
 extern void (* disable_irqs_function)(uint16_t);
 extern void (* enable_irqs_function)(uint16_t);

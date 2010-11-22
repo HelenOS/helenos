@@ -31,119 +31,98 @@
  */
 
 /** @file
- *  Ethernet module.
+ * Ethernet module.
  */
 
-#ifndef __NET_ETH_H__
-#define __NET_ETH_H__
+#ifndef NET_ETH_H_
+#define NET_ETH_H_
 
 #include <fibril_synch.h>
 #include <ipc/services.h>
 
-#include <net_device.h>
+#include <net/device.h>
 #include <adt/measured_strings.h>
 
 /** Type definition of the Ethernet global data.
- *  @see eth_globals
+ * @see eth_globals
  */
-typedef struct eth_globals	eth_globals_t;
+typedef struct eth_globals eth_globals_t;
 
 /** Type definition of the Ethernet device specific data.
- *  @see eth_device
+ * @see eth_device
  */
-typedef struct eth_device	eth_device_t;
-
-/** Type definition of the Ethernet device specific data pointer.
- *  @see eth_device
- */
-typedef eth_device_t *		eth_device_ref;
+typedef struct eth_device eth_device_t;
 
 /** Type definition of the Ethernet protocol specific data.
- *  @see eth_proto
+ * @see eth_proto
  */
-typedef struct eth_proto	eth_proto_t;
-
-/** Type definition of the Ethernet protocol specific data pointer.
- *  @see eth_proto
- */
-typedef eth_proto_t *		eth_proto_ref;
+typedef struct eth_proto eth_proto_t;
 
 /** Ethernet device map.
- *  Maps devices to the Ethernet device specific data.
- *  @see device.h
+ * Maps devices to the Ethernet device specific data.
+ * @see device.h
  */
-DEVICE_MAP_DECLARE(eth_devices, eth_device_t)
+DEVICE_MAP_DECLARE(eth_devices, eth_device_t);
 
 /** Ethernet protocol map.
- *  Maps protocol identifiers to the Ethernet protocol specific data.
- *  @see int_map.h
+ * Maps protocol identifiers to the Ethernet protocol specific data.
+ * @see int_map.h
  */
-INT_MAP_DECLARE(eth_protos, eth_proto_t)
+INT_MAP_DECLARE(eth_protos, eth_proto_t);
 
-/** Ethernet device specific data.
- */
-struct	eth_device{
-	/** Device identifier.
-	 */
+/** Ethernet device specific data. */
+struct eth_device {
+	/** Device identifier. */
 	device_id_t device_id;
-	/** Device driver service.
-	 */
+	/** Device driver service. */
 	services_t service;
-	/** Driver phone.
-	 */
+	/** Driver phone. */
 	int phone;
-	/** Maximal transmission unit.
-	 */
+	/** Maximal transmission unit. */
 	size_t mtu;
-	/** Various device flags.
-	 *  @see ETH_DUMMY
-	 *  @see ETH_MODE_MASK
+	
+	/**
+	 * Various device flags.
+	 * @see ETH_DUMMY
+	 * @see ETH_MODE_MASK
 	 */
 	int flags;
-	/** Actual device hardware address.
-	 */
-	measured_string_ref addr;
-	/** Actual device hardware address data.
-	 */
-	char * addr_data;
+	
+	/** Actual device hardware address. */
+	measured_string_t *addr;
+	/** Actual device hardware address data. */
+	char *addr_data;
 };
 
-/** Ethernet protocol specific data.
- */
-struct eth_proto{
-	/** Protocol service.
-	 */
+/** Ethernet protocol specific data. */
+struct eth_proto {
+	/** Protocol service. */
 	services_t service;
-	/** Protocol identifier.
-	 */
+	/** Protocol identifier. */
 	int protocol;
-	/** Protocol module phone.
-	 */
+	/** Protocol module phone. */
 	int phone;
 };
 
-/** Ethernet global data.
- */
-struct	eth_globals{
-	/** Networking module phone.
-	 */
+/** Ethernet global data. */
+struct eth_globals {
+	/** Networking module phone. */
 	int net_phone;
-	/** Safety lock for devices.
-	 */
+	/** Safety lock for devices. */
 	fibril_rwlock_t devices_lock;
-	/** All known Ethernet devices.
-	 */
+	/** All known Ethernet devices. */
 	eth_devices_t devices;
-	/** Safety lock for protocols.
-	 */
+	/** Safety lock for protocols. */
 	fibril_rwlock_t protos_lock;
-	/** Protocol map.
-	 *  Service phone map for each protocol.
+	
+	/**
+	 * Protocol map.
+	 * Service phone map for each protocol.
 	 */
 	eth_protos_t protos;
-	/** Broadcast device hardware address.
-	 */
-	measured_string_ref broadcast_addr;
+	
+	/** Broadcast device hardware address. */
+	measured_string_t *broadcast_addr;
 };
 
 #endif

@@ -35,6 +35,8 @@
 #ifndef LIBC_ERR_H_
 #define LIBC_ERR_H_
 
+#include <stdio.h>
+
 #define errx(status, fmt, ...) { \
 	printf((fmt), ##__VA_ARGS__); \
 	_exit(status); \
@@ -44,3 +46,4 @@
 
 /** @}
  */
+

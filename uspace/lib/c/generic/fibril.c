@@ -274,6 +274,8 @@ fid_t fibril_create(int (*func)(void *), void *arg)
 	
 	fibril->func = func;
 	fibril->arg = arg;
+
+	fibril->waits_for = NULL;
 	
 	context_save(&fibril->ctx);
 	context_set(&fibril->ctx, FADDR(fibril_main), fibril->stack,

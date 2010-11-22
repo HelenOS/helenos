@@ -53,12 +53,12 @@
 
 typedef struct {
 	devmap_handle_type_t type;
-	dev_handle_t handle;
+	devmap_handle_t handle;
 } devfs_node_t;
 
 /** Opened devices structure */
 typedef struct {
-	dev_handle_t handle;
+	devmap_handle_t handle;
 	int phone;
 	size_t refcount;
 	link_t link;
@@ -83,7 +83,7 @@ static hash_index_t devices_hash(unsigned long key[])
 static int devices_compare(unsigned long key[], hash_count_t keys, link_t *item)
 {
 	device_t *dev = hash_table_get_instance(item, device_t, link);
-	return (dev->handle == (dev_handle_t) key[DEVICES_KEY_HANDLE]);
+	return (dev->handle == (devmap_handle_t) key[DEVICES_KEY_HANDLE]);
 }
 
 static void devices_remove_callback(link_t *item)
@@ -98,7 +98,7 @@ static hash_table_operations_t devices_ops = {
 };
 
 static int devfs_node_get_internal(fs_node_t **rfn, devmap_handle_type_t type,
-    dev_handle_t handle)
+    devmap_handle_t handle)
 {
 	devfs_node_t *node = (devfs_node_t *) malloc(sizeof(devfs_node_t));
 	if (node == NULL) {
@@ -121,7 +121,7 @@ static int devfs_node_get_internal(fs_node_t **rfn, devmap_handle_type_t type,
 	return EOK;
 }
 
-static int devfs_root_get(fs_node_t **rfn, dev_handle_t dev_handle)
+static int devfs_root_get(fs_node_t **rfn, devmap_handle_t devmap_handle)
 {
 	return devfs_node_get_internal(rfn, DEV_HANDLE_NONE, 0);
 }
@@ -153,7 +153,7 @@ static int devfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 		}
 		
 		/* Search root namespace */
-		dev_handle_t namespace;
+		devmap_handle_t namespace;
 		if (devmap_namespace_get_handle("", &namespace, 0) == EOK) {
 			count = devmap_get_devices(namespace, &devs);
 			
@@ -199,7 +199,7 @@ static int devfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 	return EOK;
 }
 
-static int devfs_node_get(fs_node_t **rfn, dev_handle_t dev_handle, fs_index_t index)
+static int devfs_node_get(fs_node_t **rfn, devmap_handle_t devmap_handle, fs_index_t index)
 {
 	return devfs_node_get_internal(rfn, devmap_handle_probe(index), index);
 }
@@ -268,7 +268,7 @@ static int devfs_node_put(fs_node_t *fn)
 	return EOK;
 }
 
-static int devfs_create_node(fs_node_t **rfn, dev_handle_t dev_handle, int lflag)
+static int devfs_create_node(fs_node_t **rfn, devmap_handle_t devmap_handle, int lflag)
 {
 	assert((lflag & L_FILE) ^ (lflag & L_DIRECTORY));
 	
@@ -303,7 +303,7 @@ static int devfs_has_children(bool *has_children, fs_node_t *fn)
 		}
 		
 		/* Root namespace */
-		dev_handle_t namespace;
+		devmap_handle_t namespace;
 		if (devmap_namespace_get_handle("", &namespace, 0) == EOK) {
 			count = devmap_count_devices(namespace);
 			if (count > 0) {
@@ -371,7 +371,7 @@ static bool devfs_is_file(fs_node_t *fn)
 	return (node->type == DEV_HANDLE_DEVICE);
 }
 
-static dev_handle_t devfs_device_get(fs_node_t *fn)
+static devmap_handle_t devfs_device_get(fs_node_t *fn)
 {
 	devfs_node_t *node = (devfs_node_t *) fn->data;
 	
@@ -500,7 +500,7 @@ void devfs_read(ipc_callid_t rid, ipc_call_t *request)
 		pos -= count;
 		
 		/* Search root namespace */
-		dev_handle_t namespace;
+		devmap_handle_t namespace;
 		if (devmap_namespace_get_handle("", &namespace, 0) == EOK) {
 			count = devmap_get_devices(namespace, &desc);
 			

@@ -26,68 +26,148 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup arp
- *  @{
+/** @addtogroup libnet
+ * @{
  */
 
 /** @file
- *  ARP interface implementation for remote modules.
- *  @see arp_interface.h
+ * ARP interface implementation for remote modules.
+ * @see arp_interface.h
  */
+
+#include <arp_interface.h>
+#include <generic.h>
 
 #include <async.h>
 #include <errno.h>
 #include <ipc/ipc.h>
 #include <ipc/services.h>
+#include <ipc/arp.h>
 
-#include <net_messages.h>
-#include <net_modules.h>
-#include <net_device.h>
-#include <arp_interface.h>
+#include <net/modules.h>
+#include <net/device.h>
 #include <adt/measured_strings.h>
-#include <arp_messages.h>
 
-int arp_connect_module(services_t service){
-	if(service != SERVICE_ARP){
+/** Connects to the ARP module.
+ *
+ * @param service	The ARP module service. Ignored parameter.
+ * @return		The ARP module phone on success.
+ */
+int arp_connect_module(services_t service)
+{
+	if (service != SERVICE_ARP)
 		return EINVAL;
-	}
+
 	return connect_to_service(SERVICE_ARP);
 }
 
-int arp_clean_cache_req(int arp_phone){
+/** Cleans the cache.
+ *
+ * @param[in] arp_phone	The ARP module phone used for (semi)remote calls.
+ * @return		EOK on success.
+ */
+int arp_clean_cache_req(int arp_phone)
+{
 	return (int) async_req_0_0(arp_phone, NET_ARP_CLEAN_CACHE);
 }
 
-int arp_clear_address_req(int arp_phone, device_id_t device_id, services_t protocol, measured_string_ref address){
+/** Clears the given protocol address from the cache.
+ *
+ * @param[in] arp_phone	The ARP module phone used for (semi)remote calls.
+ * @param[in] device_id	The device identifier.
+ * @param[in] protocol	The requesting protocol service.
+ * @param[in] address	The protocol address to be cleared.
+ * @return		EOK on success.
+ * @return		ENOENT if the mapping is not found.
+ */
+int
+arp_clear_address_req(int arp_phone, device_id_t device_id, services_t protocol,
+    measured_string_t *address)
+{
 	aid_t message_id;
 	ipcarg_t result;
 
-	message_id = async_send_2(arp_phone, NET_ARP_CLEAR_ADDRESS, (ipcarg_t) device_id, protocol, NULL);
+	message_id = async_send_2(arp_phone, NET_ARP_CLEAR_ADDRESS,
+	    (ipcarg_t) device_id, protocol, NULL);
 	measured_strings_send(arp_phone, address, 1);
 	async_wait_for(message_id, &result);
+
 	return (int) result;
 }
 
-int arp_clear_device_req(int arp_phone, device_id_t device_id){
-	return (int) async_req_1_0(arp_phone, NET_ARP_CLEAR_DEVICE, (ipcarg_t) device_id);
+/** Clears the device cache.
+ *
+ * @param[in] arp_phone	The ARP module phone used for (semi)remote calls.
+ * @param[in] device_id	The device identifier.
+ * @return		EOK on success.
+ * @return		ENOENT if the device is not found.
+ */
+int arp_clear_device_req(int arp_phone, device_id_t device_id)
+{
+	return (int) async_req_1_0(arp_phone, NET_ARP_CLEAR_DEVICE,
+	    (ipcarg_t) device_id);
 }
 
-int arp_device_req(int arp_phone, device_id_t device_id, services_t protocol, services_t netif, measured_string_ref address){
+/** Registers the new device and the requesting protocol service.
+ *
+ * Connects to the network interface layer service.
+ * Determines the device broadcast address, its address lengths and packet size.
+ *
+ * @param[in] arp_phone	The ARP module phone used for (semi)remote calls.
+ * @param[in] device_id	The new device identifier.
+ * @param[in] protocol	The requesting protocol service.
+ * @param[in] netif	The underlying device network interface layer service.
+ * @param[in] address	The local requesting protocol address of the device.
+ * @return		EOK on success.
+ * @return		EEXIST if the device is already used.
+ * @return		ENOMEM if there is not enough memory left.
+ * @return		ENOENT if the network interface service is not known.
+ * @return		EREFUSED if the network interface service is not
+ *			responding.
+ * @return		Other error codes as defined for the
+ *			nil_packet_get_size() function.
+ * @return		Other error codes as defined for the nil_get_addr()
+ *			function.
+ * @return		Other error codes as defined for the
+ *			nil_get_broadcast_addr() function.
+ */
+int arp_device_req(int arp_phone, device_id_t device_id, services_t protocol,
+    services_t netif, measured_string_t *address)
+{
 	aid_t message_id;
 	ipcarg_t result;
 
-	message_id = async_send_3(arp_phone, NET_ARP_DEVICE, (ipcarg_t) device_id, protocol, netif, NULL);
+	message_id = async_send_3(arp_phone, NET_ARP_DEVICE,
+	    (ipcarg_t) device_id, protocol, netif, NULL);
 	measured_strings_send(arp_phone, address, 1);
 	async_wait_for(message_id, &result);
+
 	return (int) result;
 }
 
-task_id_t arp_task_get_id(void){
-	return 0;
-}
-
-int arp_translate_req(int arp_phone, device_id_t device_id, services_t protocol, measured_string_ref address, measured_string_ref * translation, char ** data){
-	return generic_translate_req(arp_phone, NET_ARP_TRANSLATE, device_id, protocol, address, 1, translation, data);
+/** Translates the given protocol address to the network interface address.
+ *
+ * Broadcasts the ARP request if the mapping is not found.
+ * Allocates and returns the needed memory block as the data parameter.
+ *
+ * @param[in] arp_phone	The ARP module phone used for (semi)remote calls.
+ * @param[in] device_id	The device identifier.
+ * @param[in] protocol	The requesting protocol service.
+ * @param[in] address	The local requesting protocol address.
+ * @param[out] translation The translation of the local protocol address.
+ * @param[out] data	The allocated raw translation data container.
+ * @return		EOK on success.
+ * @return		EINVAL if the address parameter is NULL.
+ * @return		EBADMEM if the translation or the data parameters are
+ *			NULL.
+ * @return		ENOENT if the mapping is not found.
+ */
+int
+arp_translate_req(int arp_phone, device_id_t device_id, services_t protocol,
+    measured_string_t *address, measured_string_t **translation, char **data)
+{
+	return generic_translate_req(arp_phone, NET_ARP_TRANSLATE, device_id,
+	    protocol, address, 1, translation, data);
 }
 
 /** @}

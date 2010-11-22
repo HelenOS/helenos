@@ -1,0 +1,5 @@
+The netif drivers in this directory are subject to removal / replacement by
+prospective new drivers that meet our criteria for portability, follow our
+coding style and integrate with our device driver framework.
+
+DO NOT ADD ANY NEW DRIVERS HERE OR BASE NEW DRIVERS ON THOSE FOUND HERE.

@@ -64,8 +64,7 @@
 
 #endif /* CONFIG_FB */
 
-#define gdtselector(des)  ((des) << 3)
-#define idtselector(des)  ((des) << 4)
+#define GDT_SELECTOR(des)  ((des) << 3)
 
 #define PL_KERNEL  0
 #define PL_USER    3
@@ -83,7 +82,7 @@
 #define DPL_USER    (PL_USER << 5)
 
 #define TSS_BASIC_SIZE  104
-#define TSS_IOMAP_SIZE  (16 * 1024 + 1)  /* 16K for bitmap + 1 terminating byte for convenience */
+#define TSS_IOMAP_SIZE  (8 * 1024 + 1)  /* 8K for bitmap + 1 terminating byte for convenience */
 
 #define IO_PORTS  (64 * 1024)
 
@@ -167,7 +166,6 @@ extern descriptor_t gdt[];
 extern idescriptor_t idt[];
 
 extern ptr_16_64_t gdtr;
-extern ptr_16_32_t bootstrap_gdtr;
 extern ptr_16_32_t protected_ap_gdtr;
 
 extern void pm_init(void);

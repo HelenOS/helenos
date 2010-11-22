@@ -26,96 +26,55 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup net
- *  @{
+/** @addtogroup libnet
+ * @{
  */
 
 /** @file
- *  Character string to module map.
+ * Character string to module map.
  */
 
-#ifndef __NET_MODULES_MAP_H__
-#define __NET_MODULES_MAP_H__
+#ifndef LIBNET_MODULES_MAP_H_
+#define LIBNET_MODULES_MAP_H_
 
 #include <task.h>
-
 #include <ipc/services.h>
-
-#include <net_modules.h>
-
+#include <net/modules.h>
 #include <adt/generic_char_map.h>
 
 /** Type definition of the module structure.
- *  @see module_struct
+ * @see module_struct
  */
-typedef struct module_struct	module_t;
-
-/** Type definition of the module structure pointer.
- *  @see module_struct
- */
-typedef module_t *				module_ref;
+typedef struct module_struct module_t;
 
 /** Module map.
- *  Sorted by module names.
- *  @see generic_char_map.h
+ * Sorted by module names.
+ * @see generic_char_map.h
  */
 GENERIC_CHAR_MAP_DECLARE(modules, module_t)
 
-/** Module structure.
- */
-struct	module_struct{
-	/** Module task identifier if running.
-	 */
+/** Module structure. */
+struct module_struct {
+	/** Module task identifier if running. */
 	task_id_t task_id;
-	/** Module service identifier.
-	 */
+	/** Module service identifier. */
 	services_t service;
-	/** Module phone if running and connected.
-	 */
+	/** Module phone if running and connected. */
 	int phone;
-	/** Usage counter.
-	 */
+	/** Usage counter. */
 	int usage;
-	/** Module name.
-	 */
-	const char * name;
-	/** Module full path filename.
-	 */
-	const char * filename;
-	/** Connecting function.
-	 */
-	connect_module_t * connect_module;
+	/** Module name. */
+	const char *name;
+	/** Module full path filename. */
+	const char *filename;
+	/** Connecting function. */
+	connect_module_t *connect_module;
 };
 
-/** Adds module to the module map.
- *  @param[out] module The module structure added.
- *  @param[in] modules The module map.
- *  @param[in] name The module name.
- *  @param[in] filename The full path filename.
- *  @param[in] service The module service.
- *  @param[in] task_id The module current task identifier. Zero (0) means not running.
- *  @param[in] connect_module The module connecting function.
- *  @returns EOK on success.
- *  @returns ENOMEM if there is not enough memory left.
- */
-int add_module(module_ref * module, modules_ref modules, const char * name, const char * filename, services_t service, task_id_t task_id, connect_module_t * connect_module);
-
-/** Searches and returns the specified module.
- *  If the module is not running, the module filaname is spawned.
- *  If the module is not connected, the connect_function is called.
- *  @param[in] modules The module map.
- *  @param[in] name The module name.
- *  @returns The running module found. It does not have to be connected.
- *  @returns NULL if there is no such module.
- */
-module_ref get_running_module(modules_ref modules, char * name);
-
-/** Starts the given module.
- *  @param[in] fname The module full or relative path filename.
- *  @returns The new module task identifier on success.
- *  @returns 0 if there is no such module.
- */
-task_id_t spawn(const char * fname);
+extern int add_module(module_t **, modules_t *, const char *, const char *,
+    services_t, task_id_t, connect_module_t *);
+extern module_t *get_running_module(modules_t *, char *);
+extern task_id_t spawn(const char *);
 
 #endif
 

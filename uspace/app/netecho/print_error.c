@@ -27,124 +27,152 @@
  */
 
 /** @addtogroup net_app
- *  @{
+ * @{
  */
 
 /** @file
- *  Generic application error printing functions implementation.
+ * Generic application error printing functions implementation.
  */
-
-#include <stdio.h>
-
-#include <icmp_codes.h>
-#include <socket_errno.h>
 
 #include "print_error.h"
 
-void icmp_print_error(FILE * output, int error_code, const char * prefix, const char * suffix){
-	if(output){
-		if(prefix){
-			fprintf(output, "%s", prefix);
-		}
-		switch(error_code){
-			case ICMP_DEST_UNREACH:
-				fprintf(output, "ICMP Destination Unreachable (%d) error", error_code);
-				break;
-			case ICMP_SOURCE_QUENCH:
-				fprintf(output, "ICMP Source Quench (%d) error", error_code);
-				break;
-			case ICMP_REDIRECT:
-				fprintf(output, "ICMP Redirect (%d) error", error_code);
-				break;
-			case ICMP_ALTERNATE_ADDR:
-				fprintf(output, "ICMP Alternate Host Address (%d) error", error_code);
-				break;
-			case ICMP_ROUTER_ADV:
-				fprintf(output, "ICMP Router Advertisement (%d) error", error_code);
-				break;
-			case ICMP_ROUTER_SOL:
-				fprintf(output, "ICMP Router Solicitation (%d) error", error_code);
-				break;
-			case ICMP_TIME_EXCEEDED:
-				fprintf(output, "ICMP Time Exceeded (%d) error", error_code);
-				break;
-			case ICMP_PARAMETERPROB:
-				fprintf(output, "ICMP Paramenter Problem (%d) error", error_code);
-				break;
-			case ICMP_CONVERSION_ERROR:
-				fprintf(output, "ICMP Datagram Conversion Error (%d) error", error_code);
-				break;
-			case ICMP_REDIRECT_MOBILE:
-				fprintf(output, "ICMP Mobile Host Redirect (%d) error", error_code);
-				break;
-			case ICMP_SKIP:
-				fprintf(output, "ICMP SKIP (%d) error", error_code);
-				break;
-			case ICMP_PHOTURIS:
-				fprintf(output, "ICMP Photuris (%d) error", error_code);
-				break;
-			default:
-				fprintf(output, "Other (%d) error", error_code);
-		}
-		if(suffix){
-			fprintf(output, "%s", suffix);
-		}
+#include <stdio.h>
+#include <errno.h>
+
+#include <net/icmp_codes.h>
+
+/** Prints the specific ICMP error description.
+ *
+ * @param[in] output The description output stream. May be NULL.
+ * @param[in] error_code The ICMP error code.
+ * @param[in] prefix The error description prefix. May be NULL.
+ * @param[in] suffix The error description suffix. May be NULL.
+ */
+void icmp_print_error(FILE *output, int error_code, const char *prefix, const char *suffix)
+{
+	if (!output)
+		return;
+	
+	if (prefix)
+		fprintf(output, "%s", prefix);
+		
+	switch (error_code) {
+	case ICMP_DEST_UNREACH:
+		fprintf(output, "ICMP Destination Unreachable (%d) error", error_code);
+		break;
+	case ICMP_SOURCE_QUENCH:
+		fprintf(output, "ICMP Source Quench (%d) error", error_code);
+		break;
+	case ICMP_REDIRECT:
+		fprintf(output, "ICMP Redirect (%d) error", error_code);
+		break;
+	case ICMP_ALTERNATE_ADDR:
+		fprintf(output, "ICMP Alternate Host Address (%d) error", error_code);
+		break;
+	case ICMP_ROUTER_ADV:
+		fprintf(output, "ICMP Router Advertisement (%d) error", error_code);
+		break;
+	case ICMP_ROUTER_SOL:
+		fprintf(output, "ICMP Router Solicitation (%d) error", error_code);
+		break;
+	case ICMP_TIME_EXCEEDED:
+		fprintf(output, "ICMP Time Exceeded (%d) error", error_code);
+		break;
+	case ICMP_PARAMETERPROB:
+		fprintf(output, "ICMP Paramenter Problem (%d) error", error_code);
+		break;
+	case ICMP_CONVERSION_ERROR:
+		fprintf(output, "ICMP Datagram Conversion Error (%d) error", error_code);
+		break;
+	case ICMP_REDIRECT_MOBILE:
+		fprintf(output, "ICMP Mobile Host Redirect (%d) error", error_code);
+		break;
+	case ICMP_SKIP:
+		fprintf(output, "ICMP SKIP (%d) error", error_code);
+		break;
+	case ICMP_PHOTURIS:
+		fprintf(output, "ICMP Photuris (%d) error", error_code);
+		break;
+	default:
+		fprintf(output, "Other (%d) error", error_code);
 	}
+
+	if (suffix)
+		fprintf(output, "%s", suffix);
 }
 
-void print_error(FILE * output, int error_code, const char * prefix, const char * suffix){
-	if(IS_ICMP_ERROR(error_code)){
+/** Prints the error description.
+ *
+ * Supports ICMP and socket error codes.
+ *
+ * @param[in] output The description output stream. May be NULL.
+ * @param[in] error_code The error code.
+ * @param[in] prefix The error description prefix. May be NULL.
+ * @param[in] suffix The error description suffix. May be NULL.
+ */
+void print_error(FILE *output, int error_code, const char *prefix, const char *suffix)
+{
+	if (IS_ICMP_ERROR(error_code))
 		icmp_print_error(output, error_code, prefix, suffix);
-	}else if(IS_SOCKET_ERROR(error_code)){
+	else if(IS_SOCKET_ERROR(error_code))
 		socket_print_error(output, error_code, prefix, suffix);
-	}
 }
 
-void socket_print_error(FILE * output, int error_code, const char * prefix, const char * suffix){
-	if(output){
-		if(prefix){
-			fprintf(output, "%s", prefix);
-		}
-		switch(error_code){
-			case ENOTSOCK:
-				fprintf(output, "Not a socket (%d) error", error_code);
-				break;
-			case EPROTONOSUPPORT:
-				fprintf(output, "Protocol not supported (%d) error", error_code);
-				break;
-			case ESOCKTNOSUPPORT:
-				fprintf(output, "Socket type not supported (%d) error", error_code);
-				break;
-			case EPFNOSUPPORT:
-				fprintf(output, "Protocol family not supported (%d) error", error_code);
-				break;
-			case EAFNOSUPPORT:
-				fprintf(output, "Address family not supported (%d) error", error_code);
-				break;
-			case EADDRINUSE:
-				fprintf(output, "Address already in use (%d) error", error_code);
-				break;
-			case ENOTCONN:
-				fprintf(output, "Socket not connected (%d) error", error_code);
-				break;
-			case NO_DATA:
-				fprintf(output, "No data (%d) error", error_code);
-				break;
-			case EINPROGRESS:
-				fprintf(output, "Another operation in progress (%d) error", error_code);
-				break;
-			case EDESTADDRREQ:
-				fprintf(output, "Destination address required (%d) error", error_code);
-			case TRY_AGAIN:
-				fprintf(output, "Try again (%d) error", error_code);
-			default:
-				fprintf(output, "Other (%d) error", error_code);
-		}
-		if(suffix){
-			fprintf(output, "%s", suffix);
-		}
+/** Prints the specific socket error description.
+ *
+ * @param[in] output The description output stream. May be NULL.
+ * @param[in] error_code The socket error code.
+ * @param[in] prefix The error description prefix. May be NULL.
+ * @param[in] suffix The error description suffix. May be NULL.
+ */
+void socket_print_error(FILE *output, int error_code, const char *prefix, const char *suffix)
+{
+	if (!output)
+		return;
+
+	if (prefix)
+		fprintf(output, "%s", prefix);
+
+	switch (error_code) {
+	case ENOTSOCK:
+		fprintf(output, "Not a socket (%d) error", error_code);
+		break;
+	case EPROTONOSUPPORT:
+		fprintf(output, "Protocol not supported (%d) error", error_code);
+		break;
+	case ESOCKTNOSUPPORT:
+		fprintf(output, "Socket type not supported (%d) error", error_code);
+		break;
+	case EPFNOSUPPORT:
+		fprintf(output, "Protocol family not supported (%d) error", error_code);
+		break;
+	case EAFNOSUPPORT:
+		fprintf(output, "Address family not supported (%d) error", error_code);
+		break;
+	case EADDRINUSE:
+		fprintf(output, "Address already in use (%d) error", error_code);
+		break;
+	case ENOTCONN:
+		fprintf(output, "Socket not connected (%d) error", error_code);
+		break;
+	case NO_DATA:
+		fprintf(output, "No data (%d) error", error_code);
+		break;
+	case EINPROGRESS:
+		fprintf(output, "Another operation in progress (%d) error", error_code);
+		break;
+	case EDESTADDRREQ:
+		fprintf(output, "Destination address required (%d) error", error_code);
+	case TRY_AGAIN:
+		fprintf(output, "Try again (%d) error", error_code);
+	default:
+		fprintf(output, "Other (%d) error", error_code);
 	}
+
+	if (suffix)
+		fprintf(output, "%s", suffix);
 }
 
 /** @}
  */
+

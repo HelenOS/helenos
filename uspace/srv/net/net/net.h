@@ -35,17 +35,17 @@
  *
  */
 
-#ifndef __NET_NET_H__
-#define __NET_NET_H__
+#ifndef NET_NET_H_
+#define NET_NET_H_
 
 #include <ipc/ipc.h>
 
-#include <net_device.h>
+#include <net/device.h>
 #include <adt/char_map.h>
 #include <adt/generic_char_map.h>
 #include <adt/measured_strings.h>
 #include <adt/module_map.h>
-#include <packet/packet.h>
+#include <net/packet.h>
 
 /** @name Modules definitions
  * @{
@@ -102,12 +102,12 @@ typedef struct {
 	measured_strings_t configuration;  /**< Configuration. */
 	
 	/** Serving network interface driver module index. */
-	module_ref driver;
+	module_t *driver;
 	
-	device_id_t id;  /**< System-unique network interface identifier. */
-	module_ref il;   /**< Serving internet layer module index. */
-	char *name;      /**< System-unique network interface name. */
-	module_ref nil;  /**< Serving link layer module index. */
+	device_id_t id;	/**< System-unique network interface identifier. */
+	module_t *il;	/**< Serving internet layer module index. */
+	char *name;	/**< System-unique network interface name. */
+	module_t *nil;	/**< Serving link layer module index. */
 } netif_t;
 
 /** Present network interfaces.
@@ -132,7 +132,7 @@ typedef struct {
 	netifs_t netifs;
 } net_globals_t;
 
-extern int add_configuration(measured_strings_ref, const char *, const char *);
+extern int add_configuration(measured_strings_t *, const char *, const char *);
 extern int net_module_message(ipc_callid_t, ipc_call_t *, ipc_call_t *, int *);
 extern int net_initialize_build(async_client_conn_t);
 extern int net_message(ipc_callid_t, ipc_call_t *, ipc_call_t *, int *);

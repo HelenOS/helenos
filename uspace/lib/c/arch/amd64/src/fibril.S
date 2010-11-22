@@ -48,8 +48,8 @@ context_save:
 	movq %fs:0, %rax
 	movq %rax, OFFSET_TLS(%rdi)
 		
-	xorq %rax,%rax		# context_save returns 1
-	incq %rax
+	xorl %eax, %eax		# context_save returns 1
+	incl %eax
 	ret
 
 
@@ -66,8 +66,8 @@ context_restore:
 
 	# Set thread local storage
 	movq OFFSET_TLS(%rdi), %rdi   # Set arg1 to TLS addr
-	movq $1, %rax		# SYS_TLS_SET
+	movl $1, %eax		# SYS_TLS_SET
 	syscall
 
-	xorq %rax,%rax		# context_restore returns 0
+	xorl %eax, %eax		# context_restore returns 0
 	ret

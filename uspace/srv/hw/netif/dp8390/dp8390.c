@@ -33,12 +33,12 @@
  */
 
 #include <assert.h>
+#include <byteorder.h>
 #include <errno.h>
 
-#include <net_byteorder.h>
 #include <netif_local.h>
-#include <packet/packet.h>
-#include <packet/packet_client.h>
+#include <net/packet.h>
+#include <packet_client.h>
 
 #include "dp8390_drv.h"
 #include "dp8390_port.h"
@@ -61,10 +61,10 @@
 /** Queues the outgoing packet.
  *  @param[in] dep The network interface structure.
  *  @param[in] packet The outgoing packet.
- *  @returns EOK on success.
- *  @returns EINVAL 
+ *  @return EOK on success.
+ *  @return EINVAL 
  */
-int queue_packet(dpeth_t * dep, packet_t packet);
+int queue_packet(dpeth_t * dep, packet_t *packet);
 
 /** Reads a memory block byte by byte.
  *  @param[in] port The source address.
@@ -335,8 +335,8 @@ void do_stop(dpeth_t * dep){
 	}
 }
 
-int queue_packet(dpeth_t * dep, packet_t packet){
-	packet_t tmp;
+int queue_packet(dpeth_t * dep, packet_t *packet){
+	packet_t *tmp;
 
 	if(dep->packet_count >= MAX_PACKETS){
 		netif_pq_release(packet_get_id(packet));
@@ -360,7 +360,7 @@ int queue_packet(dpeth_t * dep, packet_t packet){
 /*===========================================================================*
  *			based on	do_vwrite				     *
  *===========================================================================*/
-int do_pwrite(dpeth_t * dep, packet_t packet, int from_int)
+int do_pwrite(dpeth_t * dep, packet_t *packet, int from_int)
 {
 //	int port, count, size;
 	int size;
@@ -431,7 +431,7 @@ int do_pwrite(dpeth_t * dep, packet_t packet, int from_int)
 	dep->de_write_iovec.iod_iovec[0].iov_addr = (vir_bytes) packet_get_data(packet);
 	dep->de_write_iovec.iod_iovec[0].iov_size = size;
 	dep->de_write_iovec.iod_iovec_s = 1;
-	dep->de_write_iovec.iod_iovec_addr = NULL;
+	dep->de_write_iovec.iod_iovec_addr = (uintptr_t) NULL;
 
 	if (size < ETH_MIN_PACK_SIZE || size > ETH_MAX_PACK_SIZE_TAGGED)
 	{
@@ -909,7 +909,7 @@ dpeth_t *dep;
 static void dp_send(dep)
 dpeth_t *dep;
 {
-	packet_t packet;
+	packet_t *packet;
 
 //	if (!(dep->de_flags &DEF_SEND_AVAIL))
 //		return;
@@ -1002,7 +1002,7 @@ dpeth_t *dep;
 int page, length;
 {
 	int last, count;
-	packet_t packet;
+	packet_t *packet;
 
 //	if (!(dep->de_flags &DEF_READING))
 //		return EGENERIC;
@@ -1014,7 +1014,7 @@ int page, length;
 	dep->de_read_iovec.iod_iovec[0].iov_addr = (vir_bytes) packet_suffix(packet, length);
 	dep->de_read_iovec.iod_iovec[0].iov_size = length;
 	dep->de_read_iovec.iod_iovec_s = 1;
-	dep->de_read_iovec.iod_iovec_addr = NULL;
+	dep->de_read_iovec.iod_iovec_addr = (uintptr_t) NULL;
 
 	last = page + (length - 1) / DP_PAGESIZE;
 	if (last >= dep->de_stoppage)

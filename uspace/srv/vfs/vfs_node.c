@@ -112,7 +112,7 @@ void vfs_node_delref(vfs_node_t *node)
 		 */
 		unsigned long key[] = {
 			[KEY_FS_HANDLE] = node->fs_handle,
-			[KEY_DEV_HANDLE] = node->dev_handle,
+			[KEY_DEV_HANDLE] = node->devmap_handle,
 			[KEY_INDEX] = node->index
 		};
 		hash_table_remove(&nodes, key, 3);
@@ -130,9 +130,9 @@ void vfs_node_delref(vfs_node_t *node)
 		int phone = vfs_grab_phone(node->fs_handle);
 		ipcarg_t rc;
 		rc = async_req_2_0(phone, VFS_OUT_DESTROY,
-		    (ipcarg_t)node->dev_handle, (ipcarg_t)node->index);
+		    (ipcarg_t)node->devmap_handle, (ipcarg_t)node->index);
 		assert(rc == EOK);
-		vfs_release_phone(phone);
+		vfs_release_phone(node->fs_handle, phone);
 	}
 	if (free_vfs_node)
 		free(node);
@@ -150,7 +150,7 @@ void vfs_node_forget(vfs_node_t *node)
 	fibril_mutex_lock(&nodes_mutex);
 	unsigned long key[] = {
 		[KEY_FS_HANDLE] = node->fs_handle,
-		[KEY_DEV_HANDLE] = node->dev_handle,
+		[KEY_DEV_HANDLE] = node->devmap_handle,
 		[KEY_INDEX] = node->index
 	};
 	hash_table_remove(&nodes, key, 3);
@@ -174,7 +174,7 @@ vfs_node_t *vfs_node_get(vfs_lookup_res_t *result)
 {
 	unsigned long key[] = {
 		[KEY_FS_HANDLE] = result->triplet.fs_handle,
-		[KEY_DEV_HANDLE] = result->triplet.dev_handle,
+		[KEY_DEV_HANDLE] = result->triplet.devmap_handle,
 		[KEY_INDEX] = result->triplet.index
 	};
 	link_t *tmp;
@@ -190,7 +190,7 @@ vfs_node_t *vfs_node_get(vfs_lookup_res_t *result)
 		}
 		memset(node, 0, sizeof(vfs_node_t));
 		node->fs_handle = result->triplet.fs_handle;
-		node->dev_handle = result->triplet.dev_handle;
+		node->devmap_handle = result->triplet.devmap_handle;
 		node->index = result->triplet.index;
 		node->size = result->size;
 		node->lnkcnt = result->lnkcnt;
@@ -242,7 +242,7 @@ int nodes_compare(unsigned long key[], hash_count_t keys, link_t *item)
 {
 	vfs_node_t *node = hash_table_get_instance(item, vfs_node_t, nh_link);
 	return (node->fs_handle == (fs_handle_t) key[KEY_FS_HANDLE]) &&
-	    (node->dev_handle == key[KEY_DEV_HANDLE]) &&
+	    (node->devmap_handle == key[KEY_DEV_HANDLE]) &&
 	    (node->index == key[KEY_INDEX]);
 }
 
@@ -254,7 +254,7 @@ struct refcnt_data {
 	/** Sum of all reference counts for this file system instance. */
 	unsigned refcnt;
 	fs_handle_t fs_handle;
-	dev_handle_t dev_handle;
+	devmap_handle_t devmap_handle;
 };
 
 static void refcnt_visitor(link_t *item, void *arg)
@@ -263,17 +263,17 @@ static void refcnt_visitor(link_t *item, void *arg)
 	struct refcnt_data *rd = (void *) arg;
 
 	if ((node->fs_handle == rd->fs_handle) &&
-	    (node->dev_handle == rd->dev_handle))
+	    (node->devmap_handle == rd->devmap_handle))
 		rd->refcnt += node->refcnt;
 }
 
 unsigned
-vfs_nodes_refcount_sum_get(fs_handle_t fs_handle, dev_handle_t dev_handle)
+vfs_nodes_refcount_sum_get(fs_handle_t fs_handle, devmap_handle_t devmap_handle)
 {
 	struct refcnt_data rd = {
 		.refcnt = 0,
 		.fs_handle = fs_handle,
-		.dev_handle = dev_handle
+		.devmap_handle = devmap_handle
 	};
 
 	fibril_mutex_lock(&nodes_mutex);

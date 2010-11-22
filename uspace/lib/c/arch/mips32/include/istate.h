@@ -35,52 +35,7 @@
 #ifndef LIBC_mips32__ISTATE_H_
 #define LIBC_mips32__ISTATE_H_
 
-#include <sys/types.h>
-
-/** Interrupt context.
- *
- * This is a copy of the kernel definition with which it must be kept in sync.
- */
-typedef struct istate {
-	uint32_t at;
-	uint32_t v0;
-	uint32_t v1;
-	uint32_t a0;
-	uint32_t a1;
-	uint32_t a2;
-	uint32_t a3;
-	uint32_t t0;
-	uint32_t t1;
-	uint32_t t2;
-	uint32_t t3;
-	uint32_t t4;
-	uint32_t t5;
-	uint32_t t6;
-	uint32_t t7;
-	uint32_t t8;
-	uint32_t t9;
-	uint32_t gp;
-	uint32_t sp;
-	uint32_t ra;
-
-	uint32_t lo;
-	uint32_t hi;
-
-	uint32_t status; /* cp0_status */
-	uint32_t epc; /* cp0_epc */
-	uint32_t k1; /* We use it as thread-local pointer */
-} istate_t;
-
-static inline uintptr_t istate_get_pc(istate_t *istate)
-{
-	return istate->epc;
-}
-
-static inline uintptr_t istate_get_fp(istate_t *istate)
-{
-	/* TODO */
-	return 0;
-}
+#include <arch/istate.h>
 
 #endif
 

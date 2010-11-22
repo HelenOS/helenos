@@ -60,15 +60,15 @@ unmapped_ap_boot:
 	movl %cr0, %eax
 	orl $1, %eax
 	movl %eax, %cr0     # switch to protected mode
-	jmpl $gdtselector(KTEXT32_DES), $jump_to_kernel - BOOT_OFFSET + AP_BOOT_OFFSET
+	jmpl $GDT_SELECTOR(KTEXT32_DES), $jump_to_kernel - BOOT_OFFSET + AP_BOOT_OFFSET
 
 jump_to_kernel:
 .code32
-	movw $gdtselector(KDATA_DES), %ax
+	movw $GDT_SELECTOR(KDATA_DES), %ax
 	movw %ax, %ds
 	movw %ax, %es
 	movw %ax, %ss
-	movw $gdtselector(UDATA_DES), %ax
+	movw $GDT_SELECTOR(UDATA_DES), %ax
 	movw %ax, %gs
 	
 	# Enable 64-bit page transaltion entries (CR4.PAE = 1).
@@ -93,7 +93,7 @@ jump_to_kernel:
 	movl %eax, %cr0
 	
 	# At this point we are in compatibility mode
-	jmpl $gdtselector(KTEXT_DES), $start64 - BOOT_OFFSET + AP_BOOT_OFFSET
+	jmpl $GDT_SELECTOR(KTEXT_DES), $start64 - BOOT_OFFSET + AP_BOOT_OFFSET
 
 .code64
 start64:

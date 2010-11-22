@@ -36,10 +36,11 @@
 #define LIBC_UNISTD_H_
 
 #include <sys/types.h>
+#include <time.h>
 #include <libarch/config.h>
 
 #ifndef NULL
-	#define NULL  0
+	#define NULL	((void *) 0)
 #endif
 
 #define getpagesize()  (PAGE_SIZE)
@@ -55,8 +56,6 @@
 #ifndef SEEK_END
 	#define SEEK_END  2
 #endif
-
-typedef uint32_t useconds_t;
 
 extern int dup2(int oldfd, int newfd);
 

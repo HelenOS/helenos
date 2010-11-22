@@ -47,7 +47,7 @@ PRECONF = 'defaults'
 def read_defaults(fname, defaults):
 	"Read saved values from last configuration run"
 	
-	inf = file(fname, 'r')
+	inf = open(fname, 'r')
 	
 	for line in inf:
 		res = re.match(r'^(?:#!# )?([^#]\w*)\s*=\s*(.*?)\s*$', line)
@@ -102,7 +102,7 @@ def check_inside(text, defaults, ctype):
 		oper = res.group(2)
 		condval = res.group(3)
 		
-		if (not defaults.has_key(condname)):
+		if (not condname in defaults):
 			varval = ''
 		else:
 			varval = defaults[condname]
@@ -130,7 +130,7 @@ def check_inside(text, defaults, ctype):
 def parse_config(fname, ask_names):
 	"Parse configuration file"
 	
-	inf = file(fname, 'r')
+	inf = open(fname, 'r')
 	
 	name = ''
 	choices = []
@@ -218,7 +218,7 @@ def check_choices(defaults, ask_names):
 		if ((cond) and (not check_condition(cond, defaults, ask_names))):
 			continue
 		
-		if (not defaults.has_key(varname)):
+		if (not varname in defaults):
 			return False
 	
 	return True
@@ -231,7 +231,7 @@ def create_output(mkname, mcname, defaults, ask_names):
 	sys.stderr.write("Fetching current revision identifier ... ")
 	
 	try:
-		version = subprocess.Popen(['bzr', 'version-info', '--custom', '--template={clean}:{revno}:{revision_id}'], stdout = subprocess.PIPE).communicate()[0].split(':')
+		version = subprocess.Popen(['bzr', 'version-info', '--custom', '--template={clean}:{revno}:{revision_id}'], stdout = subprocess.PIPE).communicate()[0].decode().split(':')
 		sys.stderr.write("ok\n")
 	except:
 		version = [1, "unknown", "unknown"]
@@ -245,8 +245,8 @@ def create_output(mkname, mcname, defaults, ask_names):
 	else:
 		revision = None
 	
-	outmk = file(mkname, 'w')
-	outmc = file(mcname, 'w')
+	outmk = open(mkname, 'w')
+	outmc = open(mcname, 'w')
 	
 	outmk.write('#########################################\n')
 	outmk.write('## AUTO-GENERATED FILE, DO NOT EDIT!!! ##\n')
@@ -262,7 +262,7 @@ def create_output(mkname, mcname, defaults, ask_names):
 		if ((cond) and (not check_condition(cond, defaults, ask_names))):
 			continue
 		
-		if (not defaults.has_key(varname)):
+		if (not varname in defaults):
 			default = ''
 		else:
 			default = defaults[varname]
@@ -367,7 +367,7 @@ def main():
 			
 			# Cancel out all defaults which have to be deduced
 			for varname, vartype, name, choices, cond in ask_names:
-				if ((vartype == 'y') and (defaults.has_key(varname)) and (defaults[varname] == '*')):
+				if ((vartype == 'y') and (varname in defaults) and (defaults[varname] == '*')):
 					defaults[varname] = None
 			
 			options = []
@@ -384,7 +384,7 @@ def main():
 				if (varname == selname):
 					position = cnt
 				
-				if (not defaults.has_key(varname)):
+				if (not varname in defaults):
 					default = None
 				else:
 					default = defaults[varname]
@@ -427,7 +427,7 @@ def main():
 				
 				cnt += 1
 			
-			if (position >= options):
+			if (position != None) and (position >= len(options)):
 				position = None
 			
 			(button, value) = xtui.choice_window(screen, 'HelenOS configuration', 'Choose configuration option', options, position)
@@ -448,12 +448,12 @@ def main():
 				continue
 			
 			position = None
-			if (not opt2row.has_key(value)):
+			if (not value in opt2row):
 				raise RuntimeError("Error selecting value: %s" % value)
 			
 			(selname, seltype, name, choices) = opt2row[value]
 			
-			if (not defaults.has_key(selname)):
+			if (not selname in defaults):
 					default = None
 			else:
 				default = defaults[selname]

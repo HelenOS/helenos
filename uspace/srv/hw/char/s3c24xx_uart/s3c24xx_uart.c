@@ -53,15 +53,6 @@
 #define NAME "s3c24ser"
 #define NAMESPACE "char"
 
-/* Bits in UTRSTAT register */
-#define S3C24XX_UTRSTAT_TX_EMPTY	0x4
-#define S3C24XX_UTRSTAT_RDATA		0x1
-
-/* Bits in UFSTAT register */
-#define S3C24XX_UFSTAT_TX_FULL		0x4000
-#define S3C24XX_UFSTAT_RX_FULL		0x0040
-#define S3C24XX_UFSTAT_RX_COUNT		0x002f
-
 static irq_cmd_t uart_irq_cmds[] = {
 	{
 		.cmd = CMD_ACCEPT
@@ -100,7 +91,7 @@ int main(int argc, char *argv[])
 	if (s3c24xx_uart_init(uart) != EOK)
 		return -1;
 
-	rc = devmap_device_register(NAMESPACE "/" NAME, &uart->dev_handle);
+	rc = devmap_device_register(NAMESPACE "/" NAME, &uart->devmap_handle);
 	if (rc != EOK) {
 		devmap_hangup_phone(DEVMAP_DRIVER);
 		printf(NAME ": Unable to register device %s.\n");
@@ -168,7 +159,7 @@ static void s3c24xx_uart_irq_handler(ipc_callid_t iid, ipc_call_t *call)
 			    data);
 		}
 
-		if (status & 0x0f)
+		if (status != 0)
 			printf(NAME ": Error status 0x%x\n", status);
 	}
 }
@@ -201,11 +192,12 @@ static int s3c24xx_uart_init(s3c24xx_uart_t *uart)
 	ipc_register_irq(inr, device_assign_devno(), 0, &uart_irq_code);
 
 	/* Enable FIFO, Tx trigger level: empty, Rx trigger level: 1 byte. */
-	pio_write_32(&uart->io->ufcon, 0x01);
+	pio_write_32(&uart->io->ufcon, UFCON_FIFO_ENABLE |
+	    UFCON_TX_FIFO_TLEVEL_EMPTY | UFCON_RX_FIFO_TLEVEL_1B);
 
 	/* Set RX interrupt to pulse mode */
 	pio_write_32(&uart->io->ucon,
-	    pio_read_32(&uart->io->ucon) & ~(1 << 8));
+	    pio_read_32(&uart->io->ucon) & ~UCON_RX_INT_LEVEL);
 
 	return EOK;
 }

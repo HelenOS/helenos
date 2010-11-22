@@ -246,7 +246,7 @@ int cmd_del_breakpoint(cmd_arg_t *argv)
 	((uint32_t *) cur->address)[1] = cur->nextinstruction;
 	smc_coherence(((uint32_t *) cur->address)[1]);
 	
-	cur->address = NULL;
+	cur->address = (uintptr_t) NULL;
 	
 	irq_spinlock_unlock(&bkpoint_lock, true);
 	return 1;
@@ -288,7 +288,7 @@ void debugger_init()
 	unsigned int i;
 	
 	for (i = 0; i < BKPOINTS_MAX; i++)
-		breakpoints[i].address = NULL;
+		breakpoints[i].address = (uintptr_t) NULL;
 	
 #ifdef CONFIG_KCONSOLE
 	cmd_initialize(&bkpts_info);
@@ -416,7 +416,7 @@ void debugger_bpoint(istate_t *istate)
 	    && ((cur->flags & BKPOINT_INPROG))) {
 		/* Remove one-shot breakpoint */
 		if ((cur->flags & BKPOINT_ONESHOT))
-			cur->address = NULL;
+			cur->address = (uintptr_t) NULL;
 		
 		/* Remove in-progress flag */
 		cur->flags &= ~BKPOINT_INPROG;
