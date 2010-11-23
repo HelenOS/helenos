@@ -515,16 +515,14 @@ static int arp_receive_message(device_id_t device_id, packet_t *packet)
  * @param[in] device_id	The device identifier.
  * @param[in] protocol	The protocol service.
  * @param[in] target	The target protocol address.
- * @return		The hardware address of the target.
- * @return		NULL if the target parameter is NULL.
- * @return		NULL if the device is not found.
- * @return		NULL if the device packet is too small to send a
- *			request.
- * @return		NULL if the hardware address is not found in the cache.
+ * @param[out] translation Where the hardware address of the target is stored.
+ * @return		EOK on success.
+ * @return		EAGAIN if the caller should try again.
+ * @return		Other error codes in case of error.
  */
-static measured_string_t *
+static int
 arp_translate_message(device_id_t device_id, services_t protocol,
-    measured_string_t *target)
+    measured_string_t *target, measured_string_t **translation)
 {
 	arp_device_t *device;
 	arp_proto_t *proto;
@@ -532,38 +530,41 @@ arp_translate_message(device_id_t device_id, services_t protocol,
 	size_t length;
 	packet_t *packet;
 	arp_header_t *header;
+	int rc;
 
-	if (!target)
-		return NULL;
+	if (!target || !translation)
+		return EBADMEM;
 
 	device = arp_cache_find(&arp_globals.cache, device_id);
 	if (!device)
-		return NULL;
+		return ENOENT;
 
 	proto = arp_protos_find(&device->protos, protocol);
 	if (!proto || (proto->addr->length != target->length))
-		return NULL;
+		return ENOENT;
 
 	addr = arp_addr_find(&proto->addresses, target->value, target->length);
-	if (addr)
-		return addr;
+	if (addr) {
+		*translation = addr;
+		return EOK;
+	}
 
 	/* ARP packet content size = header + (address + translation) * 2 */
 	length = 8 + 2 * (CONVERT_SIZE(char, uint8_t, proto->addr->length) +
 	    CONVERT_SIZE(char, uint8_t, device->addr->length));
 	if (length > device->packet_dimension.content)
-		return NULL;
+		return ELIMIT;
 
 	packet = packet_get_4_remote(arp_globals.net_phone,
 	    device->packet_dimension.addr_len, device->packet_dimension.prefix,
 	    length, device->packet_dimension.suffix);
 	if (!packet)
-		return NULL;
+		return ENOMEM;
 
 	header = (arp_header_t *) packet_suffix(packet, length);
 	if (!header) {
 		pq_release_remote(arp_globals.net_phone, packet_get_id(packet));
-		return NULL;
+		return ENOMEM;
 	}
 
 	header->hardware = htons(device->hardware);
@@ -582,15 +583,16 @@ arp_translate_message(device_id_t device_id, services_t protocol,
 	length += device->addr->length;
 	memcpy(((uint8_t *) header) + length, target->value, target->length);
 
-	if (packet_set_addr(packet, (uint8_t *) device->addr->value,
+	rc = packet_set_addr(packet, (uint8_t *) device->addr->value,
 	    (uint8_t *) device->broadcast_addr->value,
-	    CONVERT_SIZE(char, uint8_t, device->addr->length)) != EOK) {
+	    CONVERT_SIZE(char, uint8_t, device->addr->length));
+	if (rc != EOK) {
 		pq_release_remote(arp_globals.net_phone, packet_get_id(packet));
-		return NULL;
+		return rc;
 	}
 
 	nil_send_msg(device->phone, device_id, packet, SERVICE_ARP);
-	return NULL;
+	return EAGAIN;
 }
 
 
@@ -642,10 +644,14 @@ arp_message_standalone(ipc_callid_t callid, ipc_call_t *call,
 			return rc;
 		
 		fibril_rwlock_read_lock(&arp_globals.lock);
-		translation = arp_translate_message(IPC_GET_DEVICE(call),
-		    IPC_GET_SERVICE(call), address);
+		rc = arp_translate_message(IPC_GET_DEVICE(call),
+		    IPC_GET_SERVICE(call), address, &translation);
 		free(address);
 		free(data);
+		if (rc != EOK) {
+			fibril_rwlock_read_unlock(&arp_globals.lock);
+			return rc;
+		}
 		if (!translation) {
 			fibril_rwlock_read_unlock(&arp_globals.lock);
 			return ENOENT;

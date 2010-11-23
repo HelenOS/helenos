@@ -115,6 +115,9 @@
 /** The IP localhost address. */
 #define IPV4_LOCALHOST_ADDRESS	htonl((127 << 24) + 1)
 
+/** How many times can arp_translate_req respond EAGAIN before IP gives up */
+#define ARP_EAGAIN_MAX_COUNT 10
+
 /** IP global data. */
 ip_globals_t ip_globals;
 
@@ -1007,8 +1010,14 @@ ip_send_route(packet_t *packet, ip_netif_t *netif, ip_route_t *route,
 		    (char *) &route->gateway.s_addr : (char *) &dest.s_addr;
 		destination.length = CONVERT_SIZE(dest.s_addr, char, 1);
 
-		rc = arp_translate_req(netif->arp->phone, netif->device_id,
-		    SERVICE_IP, &destination, &translation, &data);
+		/** Try calling translate several times, then give up */
+		int count = 0;
+		do {
+			rc = arp_translate_req(netif->arp->phone,
+			    netif->device_id, SERVICE_IP, &destination,
+			    &translation, &data);
+			count++;
+		} while (rc == EAGAIN && count <= ARP_EAGAIN_MAX_COUNT);
 		if (rc != EOK) {
 			pq_release_remote(ip_globals.net_phone,
 			    packet_get_id(packet));
