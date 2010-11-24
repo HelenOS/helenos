@@ -404,8 +404,7 @@ static void devman_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 			devman_device_get_handle(callid, &call);
 			break;
 		default:
-			if (!(callid & IPC_CALLID_NOTIFICATION))
-				ipc_answer_0(callid, ENOENT);
+			ipc_answer_0(callid, ENOENT);
 		}
 	}
 }

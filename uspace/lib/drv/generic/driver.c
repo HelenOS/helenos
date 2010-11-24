@@ -202,8 +202,7 @@ static void driver_connection_devman(ipc_callid_t iid, ipc_call_t *icall)
 			driver_add_device(callid, &call);
 			break;
 		default:
-			if (!(callid & IPC_CALLID_NOTIFICATION))
-				ipc_answer_0(callid, ENOENT);
+			ipc_answer_0(callid, ENOENT);
 		}
 	}
 }
