@@ -40,35 +40,11 @@
 #ifndef LIBC_arm32_INTTYPES_H_
 #define LIBC_arm32_INTTYPES_H_
 
-#define PRId8 "d"
-#define PRId16 "d"
-#define PRId32 "d"
-#define PRId64 "lld"
-#define PRIdPTR "d"
-
-#define PRIo8 "o"
-#define PRIo16 "o"
-#define PRIo32 "o"
-#define PRIo64 "llo"
-#define PRIoPTR "o"
-
-#define PRIu8 "u"
-#define PRIu16 "u"
-#define PRIu32 "u"
-#define PRIu64 "llu"
-#define PRIuPTR "u"
-
-#define PRIx8 "x"
-#define PRIx16 "x"
-#define PRIx32 "x"
-#define PRIx64 "llx"
-#define PRIxPTR "x"
-
-#define PRIX8 "X"
-#define PRIX16 "X"
-#define PRIX32 "X"
-#define PRIX64 "llX"
-#define PRIXPTR "X"
+#define PRIdPTR  PRId32
+#define PRIoPTR  PRIo32
+#define PRIuPTR  PRIu32
+#define PRIxPTR  PRIx32
+#define PRIXPTR  PRIX32
 
 #endif
 

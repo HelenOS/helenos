@@ -40,11 +40,11 @@
 #define BKPOINTS_MAX  4
 
 /* Flags that are passed to breakpoint_add function */
-#define BKPOINT_INSTR       0x1
-#define BKPOINT_WRITE       0x2
-#define BKPOINT_READ_WRITE  0x4
+#define BKPOINT_INSTR       0x1U
+#define BKPOINT_WRITE       0x2U
+#define BKPOINT_READ_WRITE  0x4U
 
-#define BKPOINT_CHECK_ZERO  0x8
+#define BKPOINT_CHECK_ZERO  0x8U
 
 
 extern void debugger_init(void);

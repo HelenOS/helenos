@@ -48,21 +48,21 @@ PROBE_SOURCE = 'probe.c'
 PROBE_OUTPUT = 'probe.s'
 
 PACKAGE_BINUTILS = "usually part of binutils"
-PACKAGE_GCC = "preferably version 4.4.3 or newer"
+PACKAGE_GCC = "preferably version 4.5.1 or newer"
 PACKAGE_CROSS = "use tools/toolchain.sh to build the cross-compiler toolchain"
 
 COMPILER_FAIL = "The compiler is probably not capable to compile HelenOS."
 
-PROBE_HEAD = """#define AUTOTOOL_DECLARE(category, subcategory, tag, name, value) \\
+PROBE_HEAD = """#define AUTOTOOL_DECLARE(category, subcategory, tag, name, strc, conc, value) \\
 	asm volatile ( \\
-		"AUTOTOOL_DECLARE\\t" category "\\t" subcategory "\\t" tag "\\t" name "\\t%[val]\\n" \\
+		"AUTOTOOL_DECLARE\\t" category "\\t" subcategory "\\t" tag "\\t" name "\\t" strc "\\t" conc "\\t%[val]\\n" \\
 		: \\
 		: [val] "n" (value) \\
 	)
 
-#define DECLARE_INTSIZE(tag, type) \\
-	AUTOTOOL_DECLARE("intsize", "unsigned", tag, #type, sizeof(unsigned type)); \\
-	AUTOTOOL_DECLARE("intsize", "signed", tag, #type, sizeof(signed type))
+#define DECLARE_INTSIZE(tag, type, strc, conc) \\
+	AUTOTOOL_DECLARE("intsize", "unsigned", tag, #type, strc, conc, sizeof(unsigned type)); \\
+	AUTOTOOL_DECLARE("intsize", "signed", tag, #type, strc, conc, sizeof(signed type));
 
 int main(int argc, char *argv[])
 {
@@ -194,7 +194,7 @@ def probe_compiler(common, sizes):
 	outf.write(PROBE_HEAD)
 	
 	for typedef in sizes:
-		outf.write("\tDECLARE_INTSIZE(\"%s\", %s);\n" % (typedef['tag'], typedef['type']))
+		outf.write("\tDECLARE_INTSIZE(\"%s\", %s, %s, %s);\n" % (typedef['tag'], typedef['type'], typedef['strc'], typedef['conc']))
 	
 	outf.write(PROBE_TAIL)
 	outf.close()
@@ -230,19 +230,27 @@ def probe_compiler(common, sizes):
 	unsigned_tags = {}
 	signed_tags = {}
 	
+	unsigned_strcs = {}
+	signed_strcs = {}
+	
+	unsigned_concs = {}
+	signed_concs = {}
+	
 	for j in range(len(lines)):
 		tokens = lines[j].strip().split("\t")
 		
 		if (len(tokens) > 0):
 			if (tokens[0] == "AUTOTOOL_DECLARE"):
-				if (len(tokens) < 5):
+				if (len(tokens) < 7):
 					print_error(["Malformed declaration in \"%s\" on line %s." % (PROBE_OUTPUT, j), COMPILER_FAIL])
 				
 				category = tokens[1]
 				subcategory = tokens[2]
 				tag = tokens[3]
 				name = tokens[4]
-				value = tokens[5]
+				strc = tokens[5]
+				conc = tokens[6]
+				value = tokens[7]
 				
 				if (category == "intsize"):
 					base = 10
@@ -262,13 +270,21 @@ def probe_compiler(common, sizes):
 					if (subcategory == "unsigned"):
 						unsigned_sizes[name] = value_int
 						unsigned_tags[tag] = value_int
+						if (strc != ""):
+							unsigned_strcs[strc] = value_int
+						if (conc != ""):
+							unsigned_concs[conc] = value_int
 					elif (subcategory == "signed"):
 						signed_sizes[name] = value_int
 						signed_tags[tag] = value_int
+						if (strc != ""):
+							signed_strcs[strc] = value_int
+						if (conc != ""):
+							signed_concs[conc] = value_int
 					else:
 						print_error(["Unexpected keyword \"%s\" in \"%s\" on line %s." % (subcategory, PROBE_OUTPUT, j), COMPILER_FAIL])
 	
-	return {'unsigned_sizes' : unsigned_sizes, 'signed_sizes' : signed_sizes, 'unsigned_tags': unsigned_tags, 'signed_tags': signed_tags}
+	return {'unsigned_sizes': unsigned_sizes, 'signed_sizes': signed_sizes, 'unsigned_tags': unsigned_tags, 'signed_tags': signed_tags, 'unsigned_strcs': unsigned_strcs, 'signed_strcs': signed_strcs, 'unsigned_concs': unsigned_concs, 'signed_concs': signed_concs}
 
 def detect_uints(probe, bytes):
 	"Detect correct types for fixed-size integer types"
@@ -278,33 +294,77 @@ def detect_uints(probe, bytes):
 	
 	for b in bytes:
 		fnd = False
-		newtype = "uint%s_t" % (b * 8)
-		
 		for name, value in probe['unsigned_sizes'].items():
 			if (value == b):
-				oldtype = "unsigned %s" % name
-				typedefs.append({'oldtype' : oldtype, 'newtype' : newtype})
+				typedefs.append({'oldtype': "unsigned %s" % name, 'newtype': "uint%u_t" % (b * 8)})
 				fnd = True
 				break
 		
 		if (not fnd):
-			print_error(['Unable to find appropriate integer type for %s' % newtype,
+			print_error(['Unable to find appropriate unsigned integer type for %u bytes' % b,
 			             COMPILER_FAIL])
 		
 		
 		fnd = False
-		newtype = "int%s_t" % (b * 8)
-		
 		for name, value in probe['signed_sizes'].items():
 			if (value == b):
-				oldtype = "signed %s" % name
-				typedefs.append({'oldtype' : oldtype, 'newtype' : newtype})
+				typedefs.append({'oldtype': "signed %s" % name, 'newtype': "int%u_t" % (b * 8)})
 				fnd = True
 				break
 		
 		if (not fnd):
-			print_error(['Unable to find appropriate integer type for %s' % newtype,
+			print_error(['Unable to find appropriate signed integer type for %u bytes' % b,
 			             COMPILER_FAIL])
+		
+		
+		fnd = False
+		for name, value in probe['unsigned_strcs'].items():
+			if (value == b):
+				macros.append({'oldmacro': "\"%so\"" % name, 'newmacro': "PRIo%u" % (b * 8)})
+				macros.append({'oldmacro': "\"%su\"" % name, 'newmacro': "PRIu%u" % (b * 8)})
+				macros.append({'oldmacro': "\"%sx\"" % name, 'newmacro': "PRIx%u" % (b * 8)})
+				macros.append({'oldmacro': "\"%sX\"" % name, 'newmacro': "PRIX%u" % (b * 8)})
+				fnd = True
+				break
+		
+		if (not fnd):
+			macros.append({'oldmacro': "\"o\"", 'newmacro': "PRIo%u" % (b * 8)})
+			macros.append({'oldmacro': "\"u\"", 'newmacro': "PRIu%u" % (b * 8)})
+			macros.append({'oldmacro': "\"x\"", 'newmacro': "PRIx%u" % (b * 8)})
+			macros.append({'oldmacro': "\"X\"", 'newmacro': "PRIX%u" % (b * 8)})
+		
+		
+		fnd = False
+		for name, value in probe['signed_strcs'].items():
+			if (value == b):
+				macros.append({'oldmacro': "\"%sd\"" % name, 'newmacro': "PRId%u" % (b * 8)})
+				fnd = True
+				break
+		
+		if (not fnd):
+			macros.append({'oldmacro': "\"d\"", 'newmacro': "PRId%u" % (b * 8)})
+		
+		
+		fnd = False
+		for name, value in probe['unsigned_concs'].items():
+			if (value == b):
+				macros.append({'oldmacro': "c ## U%s" % name, 'newmacro': "UINT%u_C(c)" % (b * 8)})
+				fnd = True
+				break
+		
+		if (not fnd):
+			macros.append({'oldmacro': "c ## U", 'newmacro': "UINT%u_C(c)" % (b * 8)})
+		
+		
+		fnd = False
+		for name, value in probe['signed_concs'].items():
+			if (value == b):
+				macros.append({'oldmacro': "c ## %s" % name, 'newmacro': "INT%u_C(c)" % (b * 8)})
+				fnd = True
+				break
+		
+		if (not fnd):
+			macros.append({'oldmacro': "c", 'newmacro': "INT%u_C(c)" % (b * 8)})
 	
 	for tag in ['CHAR', 'SHORT', 'INT', 'LONG', 'LLONG']:
 		fnd = False;
@@ -507,11 +567,11 @@ def main():
 		
 		probe = probe_compiler(common,
 			[
-				{'type': 'char', 'tag': 'CHAR'},
-				{'type': 'short int', 'tag': 'SHORT'},
-				{'type': 'int', 'tag': 'INT'},
-				{'type': 'long int', 'tag': 'LONG'},
-				{'type': 'long long int', 'tag': 'LLONG'}
+				{'type': 'char', 'tag': 'CHAR', 'strc': '"hh"', 'conc': '""'},
+				{'type': 'short int', 'tag': 'SHORT', 'strc': '"h"', 'conc': '""'},
+				{'type': 'int', 'tag': 'INT', 'strc': '""', 'conc': '""'},
+				{'type': 'long int', 'tag': 'LONG', 'strc': '"l"', 'conc': '"L"'},
+				{'type': 'long long int', 'tag': 'LLONG', 'strc': '"ll"', 'conc': '"LL"'}
 			]
 		)
 		

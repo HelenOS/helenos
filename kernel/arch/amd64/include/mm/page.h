@@ -54,8 +54,8 @@
 
 #ifndef __ASM__
 
-#define KA2PA(x)  (((uintptr_t) (x)) - 0xffff800000000000)
-#define PA2KA(x)  (((uintptr_t) (x)) + 0xffff800000000000)
+#define KA2PA(x)  (((uintptr_t) (x)) - UINT64_C(0xffff800000000000))
+#define PA2KA(x)  (((uintptr_t) (x)) + UINT64_C(0xffff800000000000))
 
 #else /* __ASM__ */
 
@@ -77,10 +77,10 @@
 #define PTL3_SIZE_ARCH  ONE_FRAME
 
 /* Macros calculating indices into page tables in each level. */
-#define PTL0_INDEX_ARCH(vaddr)  (((vaddr) >> 39) & 0x1ff)
-#define PTL1_INDEX_ARCH(vaddr)  (((vaddr) >> 30) & 0x1ff)
-#define PTL2_INDEX_ARCH(vaddr)  (((vaddr) >> 21) & 0x1ff)
-#define PTL3_INDEX_ARCH(vaddr)  (((vaddr) >> 12) & 0x1ff)
+#define PTL0_INDEX_ARCH(vaddr)  (((vaddr) >> 39) & 0x1ffU)
+#define PTL1_INDEX_ARCH(vaddr)  (((vaddr) >> 30) & 0x1ffU)
+#define PTL2_INDEX_ARCH(vaddr)  (((vaddr) >> 21) & 0x1ffU)
+#define PTL3_INDEX_ARCH(vaddr)  (((vaddr) >> 12) & 0x1ffU)
 
 /* Get PTE address accessors for each level. */
 #define GET_PTL1_ADDRESS_ARCH(ptl0, i) \
@@ -204,7 +204,7 @@ NO_TRACE static inline void set_pt_addr(pte_t *pt, size_t i, uintptr_t a)
 {
 	pte_t *p = &pt[i];
 	
-	p->addr_12_31 = (a >> 12) & 0xfffff;
+	p->addr_12_31 = (a >> 12) & UINT32_C(0xfffff);
 	p->addr_32_51 = a >> 32;
 }
 
