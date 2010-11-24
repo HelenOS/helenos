@@ -38,8 +38,6 @@
 #include <mem.h>
 #include <assert.h>
 
-#include "hub.h"
-#include "device.h"
 #include "private.h"
 
 #define NAMESPACE "usb"
@@ -182,9 +180,9 @@ static void callback_connection(ipc_callid_t iid, ipc_call_t *icall)
 	device_callback_connection(dev->device, iid, icall);
 }
 
-/** Create necessary phones for comunication with virtual HCD.
+/** Create necessary phones for communication with virtual HCD.
  * This function wraps following calls:
- * -# open <code>/dev/devices/\\vhc for reading
+ * -# open <code>/dev/devices/\\vhc</code> for reading
  * -# access phone of file opened in previous step
  * -# create callback through just opened phone
  * -# create handler for calling on data from host to function
@@ -192,10 +190,8 @@ static void callback_connection(ipc_callid_t iid, ipc_call_t *icall)
  *
  * @warning This function is wrapper for several actions and therefore
  * it is not possible - in case of error - to determine at which point
- * error occured.
+ * error occurred.
  *
- * @param hcd_path HCD identification under devfs
- *     (without <code>/dev/usb/</code>).
  * @param dev Device to connect.
  * @return EOK on success or error code from errno.h.
  */

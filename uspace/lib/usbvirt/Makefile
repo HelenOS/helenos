@@ -30,14 +30,14 @@ USPACE_PREFIX = ../..
 LIBRARY = libusbvirt
 
 LIBS = $(LIBUSB_PREFIX)/libusb.a
-EXTRA_CFLAGS = -I$(LIBUSB_PREFIX)/include
+EXTRA_CFLAGS = -I$(LIBUSB_PREFIX)/include -Iinclude
 
 SOURCES = \
-	callback.c \
-	ctrlpipe.c \
-	debug.c \
-	main.c \
-	stdreq.c \
-	transaction.c
+	src/callback.c \
+	src/ctrlpipe.c \
+	src/debug.c \
+	src/main.c \
+	src/stdreq.c \
+	src/transaction.c
 
 include $(USPACE_PREFIX)/Makefile.common

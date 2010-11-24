@@ -32,7 +32,7 @@ LIBS = \
 	$(LIBUSBVIRT_PREFIX)/libusbvirt.a \
 	$(LIBDRV_PREFIX)/libdrv.a
 EXTRA_CFLAGS += \
-	-I$(LIB_PREFIX) \
+	-I$(LIBUSBVIRT_PREFIX)/include \
 	-I$(LIBUSB_PREFIX)/include \
 	-I$(LIBDRV_PREFIX)/include
 BINARY = vhc

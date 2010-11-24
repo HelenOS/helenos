@@ -39,8 +39,6 @@
 #include <stdlib.h>
 #include <mem.h>
 
-#include "hub.h"
-#include "device.h"
 #include "private.h"
 
 #define NAMESPACE "usb"

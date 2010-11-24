@@ -35,8 +35,8 @@
 #ifndef LIBUSBVIRT_PRIVATE_H_
 #define LIBUSBVIRT_PRIVATE_H_
 
-#include "device.h"
-#include "hub.h"
+#include <usbvirt/device.h>
+#include <usbvirt/hub.h>
 
 
 #define DEVICE_HAS_OP(dev, op) \
