@@ -38,6 +38,7 @@
 #include <driver.h>
 #include <bool.h>
 #include <errno.h>
+#include <usb/classes/hub.h>
 
 #define USB_HUB_DEVICE_NAME "usbhub"
 
@@ -56,12 +57,80 @@ static device_ops_t usb_device_ops = {
 	.interfaces[USBHC_DEV_IFACE] = &usb_interface
 };
 
+size_t USB_HUB_MAX_DESCRIPTOR_SIZE = 71;
+
+uint8_t USB_HUB_DESCRIPTOR_TYPE = 0x29;
+
+//*********************************************
+//
+//  various utils
+//
+//*********************************************
+
+
+void * usb_serialize_hub_descriptor(usb_hub_descriptor_t * descriptor){
+	//base size
+	size_t size = 7;
+	//variable size according to port count
+	size_t var_size = descriptor->ports_count / 8 + ((descriptor->ports_count % 8>0)?1:0);
+	size += 2 * var_size;
+	uint8_t * result = (uint8_t*) malloc(size);
+	//size
+	result[0]=size;
+	//descriptor type
+	result[1]=USB_HUB_DESCRIPTOR_TYPE;
+	result[2]=descriptor->ports_count;
+	/// @fixme handling of endianness??
+	result[3]=descriptor->hub_characteristics / 256;
+	result[4]=descriptor->hub_characteristics % 256;
+	result[5]=descriptor->pwr_on_2_good_time;
+	result[6]=descriptor->current_requirement;
+
+        size_t i;
+	for(i=0;i<var_size;++i){
+		result[7+i]=descriptor->devices_removable[i];
+	}
+	for(i=0;i<var_size;++i){
+		result[7+var_size+i]=255;
+	}
+	return result;
+}
+
+usb_hub_descriptor_t * usb_deserialize_hub_desriptor(void * serialized_descriptor){
+        uint8_t * sdescriptor = (uint8_t*)serialized_descriptor;
+	if(sdescriptor[1]!=USB_HUB_DESCRIPTOR_TYPE) return NULL;
+	usb_hub_descriptor_t * result = (usb_hub_descriptor_t*) malloc(sizeof(usb_hub_descriptor_t));
+	//uint8_t size = sdescriptor[0];
+	result->ports_count = sdescriptor[2];
+	/// @fixme handling of endianness??
+	result->hub_characteristics = sdescriptor[4] + 256 * sdescriptor[3];
+	result->pwr_on_2_good_time=sdescriptor[5];
+	result->current_requirement=sdescriptor[6];
+	size_t var_size = result->ports_count / 8 + ((result->ports_count % 8>0)?1:0);
+	result->devices_removable = (uint8_t*)malloc(var_size);
+
+        size_t i;
+	for(i=0;i<var_size;++i){
+		result->devices_removable[i] = sdescriptor[7+i];
+	}
+	return result;
+}
+
+
+//*********************************************
+//
+//  hub driver code
+//
+//*********************************************
+
+
+
 static void set_hub_address(usb_hc_device_t *hc, usb_address_t address);
 
 /** Callback when new device is detected and must be handled by this driver.
  *
  * @param dev New device.
- * @return Error code.
+ * @return Error code.hub added, hurrah!\n"
  */
 static int add_device(device_t *dev)
 {
@@ -108,6 +177,14 @@ static int add_device(device_t *dev)
 		 * Thus, assign our own operations and explore already
 		 * connected devices.
 		 */
+                //insert hub into list
+                //find owner hcd
+                device_t * my_hcd = dev;
+                while(my_hcd->parent)
+                    my_hcd = my_hcd->parent;
+                //dev->
+                printf("%s: owner hcd found: %s\n",hc_driver->name, my_hcd->name);
+
 
 		return ENOTSUP;
 	}
