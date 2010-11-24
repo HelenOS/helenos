@@ -9,6 +9,7 @@ common.h
 common.h.prev
 config.h
 image.iso
+cscope.out
 boot/distroot/
 boot/initrd.fs
 boot/initrd.img
@@ -118,6 +119,7 @@ uspace/srv/devmap/devmap
 uspace/srv/fs/devfs/devfs
 uspace/srv/fs/fat/fat
 uspace/srv/fs/tmpfs/tmpfs
+uspace/srv/fs/pipefs/pipefs
 uspace/srv/hid/adb_mouse/adb_ms
 uspace/srv/hid/char_mouse/char_ms
 uspace/srv/hid/console/console
