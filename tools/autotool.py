@@ -270,17 +270,13 @@ def probe_compiler(common, sizes):
 					if (subcategory == "unsigned"):
 						unsigned_sizes[name] = value_int
 						unsigned_tags[tag] = value_int
-						if (strc != ""):
-							unsigned_strcs[strc] = value_int
-						if (conc != ""):
-							unsigned_concs[conc] = value_int
+						unsigned_strcs[strc] = value_int
+						unsigned_concs[conc] = value_int
 					elif (subcategory == "signed"):
 						signed_sizes[name] = value_int
 						signed_tags[tag] = value_int
-						if (strc != ""):
-							signed_strcs[strc] = value_int
-						if (conc != ""):
-							signed_concs[conc] = value_int
+						signed_strcs[strc] = value_int
+						signed_concs[conc] = value_int
 					else:
 						print_error(["Unexpected keyword \"%s\" in \"%s\" on line %s." % (subcategory, PROBE_OUTPUT, j), COMPILER_FAIL])
 	
@@ -328,10 +324,8 @@ def detect_uints(probe, bytes):
 				break
 		
 		if (not fnd):
-			macros.append({'oldmacro': "\"o\"", 'newmacro': "PRIo%u" % (b * 8)})
-			macros.append({'oldmacro': "\"u\"", 'newmacro': "PRIu%u" % (b * 8)})
-			macros.append({'oldmacro': "\"x\"", 'newmacro': "PRIx%u" % (b * 8)})
-			macros.append({'oldmacro': "\"X\"", 'newmacro': "PRIX%u" % (b * 8)})
+			print_error(['Unable to find appropriate unsigned printf formatter for %u bytes' % b,
+			             COMPILER_FAIL])
 		
 		
 		fnd = False
@@ -342,29 +336,38 @@ def detect_uints(probe, bytes):
 				break
 		
 		if (not fnd):
-			macros.append({'oldmacro': "\"d\"", 'newmacro': "PRId%u" % (b * 8)})
+			print_error(['Unable to find appropriate signed printf formatter for %u bytes' % b,
+			             COMPILER_FAIL])
 		
 		
 		fnd = False
 		for name, value in probe['unsigned_concs'].items():
 			if (value == b):
-				macros.append({'oldmacro': "c ## U%s" % name, 'newmacro': "UINT%u_C(c)" % (b * 8)})
+				if ((name.startswith('@')) or (name == "")):
+					macros.append({'oldmacro': "c ## U", 'newmacro': "UINT%u_C(c)" % (b * 8)})
+				else:
+					macros.append({'oldmacro': "c ## U%s" % name, 'newmacro': "UINT%u_C(c)" % (b * 8)})
 				fnd = True
 				break
 		
 		if (not fnd):
-			macros.append({'oldmacro': "c ## U", 'newmacro': "UINT%u_C(c)" % (b * 8)})
+			print_error(['Unable to find appropriate unsigned literal macro for %u bytes' % b,
+			             COMPILER_FAIL])
 		
 		
 		fnd = False
 		for name, value in probe['signed_concs'].items():
 			if (value == b):
-				macros.append({'oldmacro': "c ## %s" % name, 'newmacro': "INT%u_C(c)" % (b * 8)})
+				if ((name.startswith('@')) or (name == "")):
+					macros.append({'oldmacro': "c", 'newmacro': "INT%u_C(c)" % (b * 8)})
+				else:
+					macros.append({'oldmacro': "c ## %s" % name, 'newmacro': "INT%u_C(c)" % (b * 8)})
 				fnd = True
 				break
 		
 		if (not fnd):
-			macros.append({'oldmacro': "c", 'newmacro': "INT%u_C(c)" % (b * 8)})
+			print_error(['Unable to find appropriate unsigned literal macro for %u bytes' % b,
+			             COMPILER_FAIL])
 	
 	for tag in ['CHAR', 'SHORT', 'INT', 'LONG', 'LLONG']:
 		fnd = False;
@@ -567,8 +570,8 @@ def main():
 		
 		probe = probe_compiler(common,
 			[
-				{'type': 'char', 'tag': 'CHAR', 'strc': '"hh"', 'conc': '""'},
-				{'type': 'short int', 'tag': 'SHORT', 'strc': '"h"', 'conc': '""'},
+				{'type': 'char', 'tag': 'CHAR', 'strc': '"hh"', 'conc': '"@@"'},
+				{'type': 'short int', 'tag': 'SHORT', 'strc': '"h"', 'conc': '"@"'},
 				{'type': 'int', 'tag': 'INT', 'strc': '""', 'conc': '""'},
 				{'type': 'long int', 'tag': 'LONG', 'strc': '"l"', 'conc': '"L"'},
 				{'type': 'long long int', 'tag': 'LLONG', 'strc': '"ll"', 'conc': '"LL"'}
