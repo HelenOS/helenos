@@ -69,7 +69,7 @@ uint8_t vesa_blue_pos;
 
 bool vesa_init(void)
 {
-	if ((vesa_width == 0xffff) || (vesa_height == 0xffff))
+	if ((vesa_width == 0xffffU) || (vesa_height == 0xffffU))
 		return false;
 	
 	visual_t visual;
