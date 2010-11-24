@@ -189,9 +189,15 @@ static void nodes_remove_callback(link_t *item)
 		free(dentryp);
 	}
 
-	if (nodep->data) {
+	while (!list_empty(&nodep->data_head)) {
 		assert(nodep->type == PIPEFS_FILE);
-		free(nodep->data);
+		
+		pipefs_data_block_t *data_block = list_get_instance(nodep->data_head.next,
+		    pipefs_data_block_t, link);
+		
+		list_remove(&data_block->link);
+		free(data_block->data);
+		free(data_block);
 	}
 	free(nodep->bp);
 	free(nodep);
@@ -211,8 +217,9 @@ static void pipefs_node_initialize(pipefs_node_t *nodep)
 	nodep->devmap_handle = 0;
 	nodep->type = PIPEFS_NONE;
 	nodep->lnkcnt = 0;
+	nodep->start = 0;
 	nodep->size = 0;
-	nodep->data = NULL;
+	list_initialize(&nodep->data_head);
 	link_initialize(&nodep->nh_link);
 	list_initialize(&nodep->cs_head);
 }
@@ -535,9 +542,73 @@ void pipefs_read(ipc_callid_t rid, ipc_call_t *request)
 
 	size_t bytes;
 	if (nodep->type == PIPEFS_FILE) {
-		bytes = min(nodep->size - pos, size);
-		(void) async_data_read_finalize(callid, nodep->data + pos,
-		    bytes);
+		/*
+		 * Check if we still have the requested data.
+		 * This may happen if the client seeked backwards
+		 */
+		if (pos < nodep->start) {
+			ipc_answer_0(callid, ENOTSUP);
+			ipc_answer_0(rid, ENOTSUP);
+			return;
+		}
+		
+		/*
+		 * Free all data blocks that end before pos.
+		 * This is in case the client seeked forward 
+		 */
+		while (!list_empty(&nodep->data_head)) {
+			pipefs_data_block_t *data_block =
+			    list_get_instance(nodep->data_head.next,
+			        pipefs_data_block_t, link);
+		
+			aoff64_t block_end = nodep->start + data_block->size;
+			
+			if (block_end > pos) {
+				break;
+			}
+			
+			list_remove(&data_block->link);
+			free(data_block->data);
+			free(data_block);
+			nodep->start = block_end;
+		}
+		
+		if (!list_empty(&nodep->data_head)) {
+			/* We have data block, so let's return its portion after pos */
+			pipefs_data_block_t *data_block =
+			    list_get_instance(nodep->data_head.next,
+			        pipefs_data_block_t, link);
+			
+			assert(nodep->start <= pos);
+			
+			aoff64_t block_end = nodep->start + data_block->size;
+			size_t block_offset = pos - nodep->start;
+			
+			assert(block_end > pos);
+			
+			bytes = min(block_end - pos, size);
+			(void) async_data_read_finalize(callid,
+			    data_block->data + block_offset,
+			    bytes);
+			
+			if (nodep->start + block_offset + bytes == block_end) {
+				/* Free the data block - it was fully read */
+				list_remove(&data_block->link);
+				free(data_block->data);
+				free(data_block);
+				nodep->start = block_end;
+			}
+		}
+		else {
+			/*
+			 * there is no data
+			 * TODO implement waiting for the data
+			 * and remove this else clause
+			 */
+			ipc_answer_0(callid, ENOTSUP);
+			ipc_answer_1(rid, ENOTSUP, 0);
+			return;
+		}
 	} else {
 		pipefs_dentry_t *dentryp;
 		link_t *lnk;
@@ -609,82 +680,61 @@ void pipefs_write(ipc_callid_t rid, ipc_call_t *request)
 	}
 
 	/*
-	 * Check whether the file needs to grow.
+	 * Check whether we are writing to the end
 	 */
-	if (pos + size <= nodep->size) {
-		/* The file size is not changing. */
-		(void) async_data_write_finalize(callid, nodep->data + pos, size);
-		ipc_answer_2(rid, EOK, size, nodep->size);
+	if (pos != nodep->size) {
+		ipc_answer_0(callid, ENOTSUP);
+		ipc_answer_2(rid, EOK, 0, nodep->size);
 		return;
 	}
-	size_t delta = (pos + size) - nodep->size;
+	
 	/*
-	 * At this point, we are deliberately extremely straightforward and
-	 * simply realloc the contents of the file on every write that grows the
-	 * file. In the end, the situation might not be as bad as it may look:
-	 * our heap allocator can save us and just grow the block whenever
-	 * possible.
+	 * Allocate a buffer for the new data.
+	 * Currently we accept any size, create a data block from this
+	 * and append it to the end of a file
 	 */
-	void *newdata = realloc(nodep->data, nodep->size + delta);
+	void *newdata = malloc(size);
 	if (!newdata) {
 		ipc_answer_0(callid, ENOMEM);
 		ipc_answer_2(rid, EOK, 0, nodep->size);
 		return;
 	}
-	/* Clear any newly allocated memory in order to emulate gaps. */
-	memset(newdata + nodep->size, 0, delta);
-	nodep->size += delta;
-	nodep->data = newdata;
-	(void) async_data_write_finalize(callid, nodep->data + pos, size);
+	
+	pipefs_data_block_t *newblock = malloc(sizeof(pipefs_data_block_t));
+	
+	if (!newblock) {
+		free(newdata);
+		ipc_answer_0(callid, ENOMEM);
+		ipc_answer_2(rid, EOK, 0, nodep->size);
+		return;
+	}
+	
+	int rc = async_data_write_finalize(callid, newdata, size);
+	
+	if (rc != EOK) {
+		free(newblock);
+		free(newdata);
+		ipc_answer_0(callid, rc);
+		ipc_answer_2(rid, EOK, 0, nodep->size);
+		return;
+	}
+	
+	link_initialize(&newblock->link);
+	newblock->size = size;
+	newblock->data = newdata;
+	list_append(&newblock->link, &nodep->data_head);
+	
+	nodep->size += size;
+	
 	ipc_answer_2(rid, EOK, size, nodep->size);
 }
 
 void pipefs_truncate(ipc_callid_t rid, ipc_call_t *request)
 {
-	devmap_handle_t devmap_handle = (devmap_handle_t) IPC_GET_ARG1(*request);
-	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
-	aoff64_t size =
-	    (aoff64_t) MERGE_LOUP32(IPC_GET_ARG3(*request), IPC_GET_ARG4(*request));
-	
 	/*
-	 * Lookup the respective PIPEFS node.
+	 * PIPEFS does not support resizing of files
 	 */
-	unsigned long key[] = {
-		[NODES_KEY_DEV] = devmap_handle,
-		[NODES_KEY_INDEX] = index
-	};
-	link_t *hlp = hash_table_find(&nodes, key);
-	if (!hlp) {
-		ipc_answer_0(rid, ENOENT);
-		return;
-	}
-	pipefs_node_t *nodep = hash_table_get_instance(hlp, pipefs_node_t,
-	    nh_link);
-	
-	if (size == nodep->size) {
-		ipc_answer_0(rid, EOK);
-		return;
-	}
-	
-	if (size > SIZE_MAX) {
-		ipc_answer_0(rid, ENOMEM);
-		return;
-	}
-	
-	void *newdata = realloc(nodep->data, size);
-	if (!newdata) {
-		ipc_answer_0(rid, ENOMEM);
-		return;
-	}
-	
-	if (size > nodep->size) {
-		size_t delta = size - nodep->size;
-		memset(newdata + nodep->size, 0, delta);
-	}
-	
-	nodep->size = size;
-	nodep->data = newdata;
-	ipc_answer_0(rid, EOK);
+	ipc_answer_0(rid, ENOTSUP);
 }
 
 void pipefs_close(ipc_callid_t rid, ipc_call_t *request)

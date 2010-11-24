@@ -65,10 +65,19 @@ typedef struct pipefs_node {
 	link_t nh_link;		/**< Nodes hash table link. */
 	pipefs_dentry_type_t type;
 	unsigned lnkcnt;	/**< Link count. */
+	/* Following is for nodes of type PIPEFS_FILE */
+	aoff64_t start;		/**< File offset where first data block resides */
 	size_t size;		/**< File size if type is PIPEFS_FILE. */
-	void *data;		/**< File content's if type is PIPEFS_FILE. */
-	link_t cs_head;		/**< Head of child's siblings list. */
+	link_t data_head;	/**< Head of data blocks list for PIPEFS_FILE. */
+	/* This is for directory */
+	link_t cs_head;		/**< Head of child's siblings list. */	
 } pipefs_node_t;
+
+typedef struct pipefs_data_block {
+	link_t link;		/**< Linkage for the list of data blocks */
+	size_t size;		/**< Size of this block */
+	void *data;			/**< Data for this block */
+} pipefs_data_block_t;
 
 extern fs_reg_t pipefs_reg;
 
