@@ -171,8 +171,7 @@ static void clip_connection(ipc_callid_t iid, ipc_call_t *icall)
 			clip_content(callid, &call);
 			break;
 		default:
-			if (!(callid & IPC_CALLID_NOTIFICATION))
-				ipc_answer_0(callid, ENOENT);
+			ipc_answer_0(callid, ENOENT);
 		}
 	}
 }

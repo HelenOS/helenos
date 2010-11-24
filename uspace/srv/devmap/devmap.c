@@ -1051,8 +1051,7 @@ static void devmap_connection_driver(ipc_callid_t iid, ipc_call_t *icall)
 			devmap_namespace_get_handle(callid, &call);
 			break;
 		default:
-			if (!(callid & IPC_CALLID_NOTIFICATION))
-				ipc_answer_0(callid, ENOENT);
+			ipc_answer_0(callid, ENOENT);
 		}
 	}
 	
@@ -1110,8 +1109,7 @@ static void devmap_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 			devmap_get_devices(callid, &call);
 			break;
 		default:
-			if (!(callid & IPC_CALLID_NOTIFICATION))
-				ipc_answer_0(callid, ENOENT);
+			ipc_answer_0(callid, ENOENT);
 		}
 	}
 }
