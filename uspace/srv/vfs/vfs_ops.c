@@ -836,13 +836,13 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 	ipcarg_t rc;
 	ipc_call_t answer;
 	if (read) {
-		if (file->append)
-			file->pos = file->node->size;
-		
 		rc = async_data_read_forward_3_1(fs_phone, VFS_OUT_READ,
 		    file->node->devmap_handle, file->node->index, file->pos,
 		    &answer);
 	} else {
+		if (file->append)
+			file->pos = file->node->size;
+		
 		rc = async_data_write_forward_3_1(fs_phone, VFS_OUT_WRITE,
 		    file->node->devmap_handle, file->node->index, file->pos,
 		    &answer);
