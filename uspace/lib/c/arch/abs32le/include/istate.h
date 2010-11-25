@@ -35,28 +35,7 @@
 #ifndef LIBC_abs32le__ISTATE_H_
 #define LIBC_abs32le__ISTATE_H_
 
-#include <sys/types.h>
-
-/** Interrupt context.
- *
- * On real hardware this stores the registers which
- * need to be preserved during interupts.
- */
-typedef struct istate {
-	uintptr_t ip;
-	uintptr_t fp;
-	uint32_t stack[];
-} istate_t;
-
-static inline uintptr_t istate_get_pc(istate_t *istate)
-{
-	return istate->ip;
-}
-
-static inline uintptr_t istate_get_fp(istate_t *istate)
-{
-	return istate->fp;
-}
+#include <arch/istate.h>
 
 #endif
 

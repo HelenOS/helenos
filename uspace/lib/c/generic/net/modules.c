@@ -40,7 +40,7 @@
 
 #include <async.h>
 #include <malloc.h>
-#include <err.h>
+#include <errno.h>
 #include <sys/time.h>
 
 #include <ipc/ipc.h>
@@ -136,17 +136,18 @@ int bind_service(services_t need, ipcarg_t arg1, ipcarg_t arg2, ipcarg_t arg3,
 int bind_service_timeout(services_t need, ipcarg_t arg1, ipcarg_t arg2,
     ipcarg_t arg3, async_client_conn_t client_receiver, suseconds_t timeout)
 {
-	ERROR_DECLARE;
+	int rc;
 	
 	/* Connect to the needed service */
 	int phone = connect_to_service_timeout(need, timeout);
 	if (phone >= 0) {
 		/* Request the bidirectional connection */
 		ipcarg_t phonehash;
-		if (ERROR_OCCURRED(ipc_connect_to_me(phone, arg1, arg2, arg3,
-		    &phonehash))) {
+		
+		rc = ipc_connect_to_me(phone, arg1, arg2, arg3, &phonehash);
+		if (rc != EOK) {
 			ipc_hangup(phone);
-			return ERROR_CODE;
+			return rc;
 		}
 		async_new_connection(phonehash, 0, NULL, client_receiver);
 	}
@@ -157,7 +158,7 @@ int bind_service_timeout(services_t need, ipcarg_t arg1, ipcarg_t arg2,
 /** Connects to the needed module.
  *
  * @param[in] need	The needed module service.
- * @returns		The phone of the needed service.
+ * @return		The phone of the needed service.
  */
 int connect_to_service(services_t need)
 {
@@ -169,8 +170,8 @@ int connect_to_service(services_t need)
  *  @param[in] need	The needed module service.
  *  @param[in] timeout	The connection timeout in microseconds. No timeout if
  *			set to zero (0).
- *  @returns		The phone of the needed service.
- *  @returns		ETIMEOUT if the connection timeouted.
+ *  @return		The phone of the needed service.
+ *  @return		ETIMEOUT if the connection timeouted.
  */
 int connect_to_service_timeout(services_t need, suseconds_t timeout)
 {
@@ -202,18 +203,17 @@ int connect_to_service_timeout(services_t need, suseconds_t timeout)
  *
  * @param[out] data	The data buffer to be filled.
  * @param[out] length	The buffer length.
- * @returns		EOK on success.
- * @returns		EBADMEM if the data or the length parameter is NULL.
- * @returns		EINVAL if the client does not send data.
- * @returns		ENOMEM if there is not enough memory left.
- * @returns		Other error codes as defined for the
+ * @return		EOK on success.
+ * @return		EBADMEM if the data or the length parameter is NULL.
+ * @return		EINVAL if the client does not send data.
+ * @return		ENOMEM if there is not enough memory left.
+ * @return		Other error codes as defined for the
  *			async_data_write_finalize() function.
  */
 int data_receive(void **data, size_t *length)
 {
-	ERROR_DECLARE;
-
 	ipc_callid_t callid;
+	int rc;
 
 	if (!data || !length)
 		return EBADMEM;
@@ -228,9 +228,10 @@ int data_receive(void **data, size_t *length)
 		return ENOMEM;
 
 	// fetch the data
-	if (ERROR_OCCURRED(async_data_write_finalize(callid, *data, *length))) {
+	rc = async_data_write_finalize(callid, *data, *length);
+	if (rc != EOK) {
 		free(data);
-		return ERROR_CODE;
+		return rc;
 	}
 
 	return EOK;
@@ -240,11 +241,11 @@ int data_receive(void **data, size_t *length)
  *
  * @param[in] data	The data buffer to be sent.
  * @param[in] data_length The buffer length.
- * @returns		EOK on success.
- * @returns		EINVAL if the client does not expect the data.
- * @returns		EOVERFLOW if the client does not expect all the data.
+ * @return		EOK on success.
+ * @return		EINVAL if the client does not expect the data.
+ * @return		EOVERFLOW if the client does not expect all the data.
  *			Only partial data are transfered.
- * @returns		Other error codes as defined for the
+ * @return		Other error codes as defined for the
  *			async_data_read_finalize() function.
  */
 int data_reply(void *data, size_t data_length)

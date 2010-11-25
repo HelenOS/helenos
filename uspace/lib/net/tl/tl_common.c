@@ -26,36 +26,48 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup net_tl
- *  @{
+/** @addtogroup libnet 
+ * @{
  */
 
 /** @file
- *  Transport layer common functions implementation.
- *  @see tl_common.h
+ * Transport layer common functions implementation.
+ * @see tl_common.h
  */
+
+#include <tl_common.h>
+#include <packet_client.h>
+#include <packet_remote.h>
+#include <icmp_interface.h>
+#include <ip_remote.h>
+#include <ip_interface.h>
+#include <tl_interface.h>
 
 #include <net/socket_codes.h>
 #include <net/in.h>
 #include <net/in6.h>
 #include <net/inet.h>
+#include <net/device.h>
+#include <net/packet.h>
+
 #include <async.h>
 #include <ipc/services.h>
 #include <errno.h>
-#include <err.h>
-
-#include <net/packet.h>
-#include <packet_client.h>
-#include <packet_remote.h>
-#include <net/device.h>
-#include <icmp_interface.h>
-#include <ip_remote.h>
-#include <ip_interface.h>
-#include <tl_interface.h>
-#include <tl_common.h>
 
 DEVICE_MAP_IMPLEMENT(packet_dimensions, packet_dimension_t);
 
+/** Gets the address port.
+ *
+ * Supports AF_INET and AF_INET6 address families.
+ *
+ * @param[in,out] addr	The address to be updated.
+ * @param[in] addrlen	The address length.
+ * @param[out] port	The set port.
+ * @return		EOK on success.
+ * @return		EINVAL if the address length does not match the address
+ *			family.
+ * @return		EAFNOSUPPORT if the address family is not supported.
+ */
 int
 tl_get_address_port(const struct sockaddr *addr, int addrlen, uint16_t *port)
 {
@@ -73,13 +85,15 @@ tl_get_address_port(const struct sockaddr *addr, int addrlen, uint16_t *port)
 		address_in = (struct sockaddr_in *) addr;
 		*port = ntohs(address_in->sin_port);
 		break;
+	
 	case AF_INET6:
 		if (addrlen != sizeof(struct sockaddr_in6))
-				return EINVAL;
+			return EINVAL;
 
 		address_in6 = (struct sockaddr_in6 *) addr;
 		*port = ntohs(address_in6->sin6_port);
 		break;
+	
 	default:
 		return EAFNOSUPPORT;
 	}
@@ -92,23 +106,23 @@ tl_get_address_port(const struct sockaddr *addr, int addrlen, uint16_t *port)
  * Try to search a cache and query the IP module if not found.
  * The reply is cached then.
  *
- * @param[in]  ip_phone          The IP moduel phone for (semi)remote calls.
- * @param[in]  packet_dimensions The packet dimensions cache.
- * @param[in]  device_id         The device identifier.
- * @param[out] packet_dimension  The IP packet dimensions.
- *
- * @return EOK on success.
- * @return EBADMEM if the packet_dimension parameter is NULL.
- * @return ENOMEM if there is not enough memory left.
- * @return EINVAL if the packet_dimensions cache is not valid.
- * @return Other codes as defined for the ip_packet_size_req() function.
- *
+ * @param[in] ip_phone	The IP moduel phone for (semi)remote calls.
+ * @param[in] packet_dimensions The packet dimensions cache.
+ * @param[in] device_id	The device identifier.
+ * @param[out] packet_dimension The IP packet dimensions.
+ * @return		EOK on success.
+ * @return		EBADMEM if the packet_dimension parameter is NULL.
+ * @return		ENOMEM if there is not enough memory left.
+ * @return		EINVAL if the packet_dimensions cache is not valid.
+ * @return		Other codes as defined for the ip_packet_size_req()
+ *			function.
  */
-int tl_get_ip_packet_dimension(int ip_phone,
-    packet_dimensions_ref packet_dimensions, device_id_t device_id,
-    packet_dimension_ref *packet_dimension)
+int
+tl_get_ip_packet_dimension(int ip_phone,
+    packet_dimensions_t *packet_dimensions, device_id_t device_id,
+    packet_dimension_t **packet_dimension)
 {
-	ERROR_DECLARE;
+	int rc;
 	
 	if (!packet_dimension)
 		return EBADMEM;
@@ -121,32 +135,41 @@ int tl_get_ip_packet_dimension(int ip_phone,
 		if(!*packet_dimension)
 			return ENOMEM;
 		
-		if (ERROR_OCCURRED(ip_packet_size_req(ip_phone, device_id,
-		    *packet_dimension))) {
+		rc = ip_packet_size_req(ip_phone, device_id, *packet_dimension);
+		if (rc != EOK) {
 			free(*packet_dimension);
-			return ERROR_CODE;
+			return rc;
 		}
 		
-		ERROR_CODE = packet_dimensions_add(packet_dimensions, device_id,
+		rc = packet_dimensions_add(packet_dimensions, device_id,
 		    *packet_dimension);
-		if (ERROR_CODE < 0) {
+		if (rc < 0) {
 			free(*packet_dimension);
-			return ERROR_CODE;
+			return rc;
 		}
 	}
 	
 	return EOK;
 }
 
+/** Updates IP device packet dimensions cache.
+ *
+ * @param[in,out] packet_dimensions The packet dimensions cache.
+ * @param[in] device_id	The device identifier.
+ * @param[in] content	The new maximum content size.
+ * @return		EOK on success.
+ * @return		ENOENT if the packet dimension is not cached.
+ */
 int
-tl_update_ip_packet_dimension(packet_dimensions_ref packet_dimensions,
+tl_update_ip_packet_dimension(packet_dimensions_t *packet_dimensions,
     device_id_t device_id, size_t content)
 {
-	packet_dimension_ref packet_dimension;
+	packet_dimension_t *packet_dimension;
 
 	packet_dimension = packet_dimensions_find(packet_dimensions, device_id);
 	if (!packet_dimension)
 		return ENOENT;
+
 	packet_dimension->content = content;
 
 	if (device_id != DEVICE_INVALID_ID) {
@@ -159,13 +182,24 @@ tl_update_ip_packet_dimension(packet_dimensions_ref packet_dimensions,
 			else
 				packet_dimensions_exclude(packet_dimensions,
 				    DEVICE_INVALID_ID);
-
 		}
 	}
 
 	return EOK;
 }
 
+/** Sets the address port.
+ *
+ * Supports AF_INET and AF_INET6 address families.
+ *
+ * @param[in,out] addr	The address to be updated.
+ * @param[in] addrlen	The address length.
+ * @param[in] port	The port to be set.
+ * @return		EOK on success.
+ * @return		EINVAL if the address length does not match the address
+ *			family.
+ * @return		EAFNOSUPPORT if the address family is not supported.
+ */
 int tl_set_address_port(struct sockaddr * addr, int addrlen, uint16_t port)
 {
 	struct sockaddr_in *address_in;
@@ -186,22 +220,37 @@ int tl_set_address_port(struct sockaddr * addr, int addrlen, uint16_t port)
 		address_in = (struct sockaddr_in *) addr;
 		address_in->sin_port = htons(port);
 		return EOK;
+	
 	case AF_INET6:
 		if (length != sizeof(struct sockaddr_in6))
 				return EINVAL;
 		address_in6 = (struct sockaddr_in6 *) addr;
 		address_in6->sin6_port = htons(port);
 		return EOK;
+	
 	default:
 		return EAFNOSUPPORT;
 	}
 }
 
+/** Prepares the packet for ICMP error notification.
+ *
+ * Keeps the first packet and releases all the others.
+ * Releases all the packets on error.
+ *
+ * @param[in] packet_phone The packet server module phone.
+ * @param[in] icmp_phone The ICMP module phone.
+ * @param[in] packet	The packet to be send.
+ * @param[in] error	The packet error reporting service. Prefixes the
+ *			received packet.
+ * @return		EOK on success.
+ * @return		ENOENT if no packet may be sent.
+ */
 int
-tl_prepare_icmp_packet(int packet_phone, int icmp_phone, packet_t packet,
+tl_prepare_icmp_packet(int packet_phone, int icmp_phone, packet_t *packet,
     services_t error)
 {
-	packet_t next;
+	packet_t *next;
 	uint8_t *src;
 	int length;
 
@@ -222,16 +271,29 @@ tl_prepare_icmp_packet(int packet_phone, int icmp_phone, packet_t packet,
 	return ENOENT;
 }
 
+/** Receives data from the socket into a packet.
+ *
+ * @param[in] packet_phone The packet server module phone.
+ * @param[out] packet	The new created packet.
+ * @param[in] prefix	Reserved packet data prefix length.
+ * @param[in] dimension	The packet dimension.
+ * @param[in] addr	The destination address.
+ * @param[in] addrlen	The address length.
+ * @return		Number of bytes received.
+ * @return		EINVAL if the client does not send data.
+ * @return		ENOMEM if there is not enough memory left.
+ * @return		Other error codes as defined for the
+ *			async_data_read_finalize() function.
+ */
 int
-tl_socket_read_packet_data(int packet_phone, packet_ref packet, size_t prefix,
-    const packet_dimension_ref dimension, const struct sockaddr *addr,
+tl_socket_read_packet_data(int packet_phone, packet_t **packet, size_t prefix,
+    const packet_dimension_t *dimension, const struct sockaddr *addr,
     socklen_t addrlen)
 {
-	ERROR_DECLARE;
-
 	ipc_callid_t callid;
 	size_t length;
-	void * data;
+	void *data;
+	int rc;
 
 	if (!dimension)
 		return EINVAL;
@@ -254,12 +316,17 @@ tl_socket_read_packet_data(int packet_phone, packet_ref packet, size_t prefix,
 	}
 
 	// read the data into the packet
-	if (ERROR_OCCURRED(async_data_write_finalize(callid, data, length)) ||
-	    // set the packet destination address
-	    ERROR_OCCURRED(packet_set_addr(*packet, NULL, (uint8_t *) addr,
-	    addrlen))) {
+	rc = async_data_write_finalize(callid, data, length);
+	if (rc != EOK) {
 		pq_release_remote(packet_phone, packet_get_id(*packet));
-		return ERROR_CODE;
+		return rc;
+	}
+	
+	// set the packet destination address
+	rc = packet_set_addr(*packet, NULL, (uint8_t *) addr, addrlen);
+	if (rc != EOK) {
+		pq_release_remote(packet_phone, packet_get_id(*packet));
+		return rc;
 	}
 
 	return (int) length;

@@ -42,12 +42,16 @@
 #include <sys/time.h>
 
 typedef struct {
+	fibril_owner_info_t oi;		/* Keep this the first thing. */
 	int counter;
 	link_t waiters;
 } fibril_mutex_t;
 
 #define FIBRIL_MUTEX_INITIALIZER(name) \
 	{ \
+		.oi = { \
+			.owned_by = NULL \
+		}, \
 		.counter = 1, \
 		.waiters = { \
 			.prev = &name.waiters, \
@@ -59,6 +63,7 @@ typedef struct {
 	fibril_mutex_t name = FIBRIL_MUTEX_INITIALIZER(name) 
 
 typedef struct {
+	fibril_owner_info_t oi;	/* Keep this the first thing. */
 	unsigned writers;
 	unsigned readers;
 	link_t waiters;
@@ -66,6 +71,9 @@ typedef struct {
 
 #define FIBRIL_RWLOCK_INITIALIZER(name) \
 	{ \
+		.oi = { \
+			.owned_by = NULL \
+		}, \
 		.readers = 0, \
 		.writers = 0, \
 		.waiters = { \

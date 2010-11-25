@@ -286,7 +286,7 @@ typedef struct {
 	char model[STR_BOUNDS(40) + 1];
 
 	fibril_mutex_t lock;
-	dev_handle_t dev_handle;
+	devmap_handle_t devmap_handle;
 } disk_t;
 
 #endif

@@ -41,7 +41,7 @@ jobs = [
 
 def usage(prname):
 	"Print usage syntax"
-	print prname + " <ROOT>"
+	print(prname + " <ROOT>")
 
 def clang(root, job):
 	"Run Clang on a jobfile"
@@ -49,11 +49,11 @@ def clang(root, job):
 	inname = os.path.join(root, job)
 	
 	if (not os.path.isfile(inname)):
-		print "Unable to open %s" % inname
-		print "Did you run \"make precheck\" on the source tree?"
+		print("Unable to open %s" % inname)
+		print("Did you run \"make precheck\" on the source tree?")
 		return False
 	
-	inf = file(inname, "r")
+	inf = open(inname, "r")
 	records = inf.read().splitlines()
 	inf.close()
 	
@@ -63,7 +63,7 @@ def clang(root, job):
 			return False
 		
 		if (len(arg) < 6):
-			print "Not enought jobfile record arguments"
+			print("Not enough jobfile record arguments")
 			return False
 		
 		srcfname = arg[0]
@@ -75,7 +75,7 @@ def clang(root, job):
 		
 		srcfqname = os.path.join(base, srcfname)
 		if (not os.path.isfile(srcfqname)):
-			print "Source %s not found" % srcfqname
+			print("Source %s not found" % srcfqname)
 			return False
 		
 		# Only C files are interesting for us
@@ -107,18 +107,18 @@ def main():
 	config = os.path.join(rootdir, "HelenOS.config")
 	
 	if (not os.path.isfile(config)):
-		print "%s not found." % config
-		print "Please specify the path to HelenOS build tree root as the first argument."
+		print("%s not found." % config)
+		print("Please specify the path to HelenOS build tree root as the first argument.")
 		return
 	
 	for job in jobs:
 		if (not clang(rootdir, job)):
 			print
-			print "Failed job: %s" % job
+			print("Failed job: %s" % job)
 			return
 	
 	print
-	print "All jobs passed"
+	print("All jobs passed")
 
 if __name__ == '__main__':
 	main()

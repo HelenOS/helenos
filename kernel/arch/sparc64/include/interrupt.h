@@ -37,8 +37,7 @@
 #define KERN_sparc64_INTERRUPT_H_
 
 #include <typedefs.h>
-#include <arch/regdef.h>
-#include <trace.h>
+#include <arch/istate.h>
 
 #define IVT_ITEMS  15
 #define IVT_FIRST  1
@@ -49,35 +48,6 @@
 enum {
 	IPI_TLB_SHOOTDOWN = VECTOR_TLB_SHOOTDOWN_IPI
 };
-
-typedef struct istate {
-	uint64_t tnpc;
-	uint64_t tpc;
-	uint64_t tstate;
-} istate_t;
-
-NO_TRACE static inline void istate_set_retaddr(istate_t *istate,
-    uintptr_t retaddr)
-{
-	istate->tpc = retaddr;
-}
-
-NO_TRACE static inline int istate_from_uspace(istate_t *istate)
-{
-	return !(istate->tstate & TSTATE_PRIV_BIT);
-}
-
-NO_TRACE static inline unative_t istate_get_pc(istate_t *istate)
-{
-	return istate->tpc;
-}
-
-NO_TRACE static inline unative_t istate_get_fp(istate_t *istate)
-{
-	/* TODO */
-	
-	return 0;
-}
 
 #endif
 

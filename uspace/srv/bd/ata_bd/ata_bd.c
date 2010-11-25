@@ -138,7 +138,7 @@ int main(int argc, char **argv)
 			continue;
 		
 		snprintf(name, 16, "%s/disk%d", NAMESPACE, i);
-		rc = devmap_device_register(name, &disk[i].dev_handle);
+		rc = devmap_device_register(name, &disk[i].devmap_handle);
 		if (rc != EOK) {
 			devmap_hangup_phone(DEVMAP_DRIVER);
 			printf(NAME ": Unable to register device %s.\n", name);
@@ -228,7 +228,7 @@ static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 	ipc_callid_t callid;
 	ipc_call_t call;
 	ipcarg_t method;
-	dev_handle_t dh;
+	devmap_handle_t dh;
 	int flags;
 	int retval;
 	uint64_t ba;
@@ -241,7 +241,7 @@ static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 	/* Determine which disk device is the client connecting to. */
 	disk_id = -1;
 	for (i = 0; i < MAX_DISKS; i++)
-		if (disk[i].dev_handle == dh)
+		if (disk[i].devmap_handle == dh)
 			disk_id = i;
 
 	if (disk_id < 0 || disk[disk_id].present == false) {

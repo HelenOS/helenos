@@ -46,7 +46,7 @@ typedef struct {
 	bool mp_active;
 	int phone;
 	fs_handle_t fs_handle;
-	dev_handle_t dev_handle;
+	devmap_handle_t devmap_handle;
 } mp_data_t;
 
 typedef struct {
@@ -60,12 +60,12 @@ typedef struct {
 	 * code. If some additional return value is to be returned, the first
 	 * argument holds the output argument.
 	 */
-	int (* root_get)(fs_node_t **, dev_handle_t);
+	int (* root_get)(fs_node_t **, devmap_handle_t);
 	int (* match)(fs_node_t **, fs_node_t *, const char *);
-	int (* node_get)(fs_node_t **, dev_handle_t, fs_index_t);
+	int (* node_get)(fs_node_t **, devmap_handle_t, fs_index_t);
 	int (* node_open)(fs_node_t *);
 	int (* node_put)(fs_node_t *);
-	int (* create)(fs_node_t **, dev_handle_t, int);
+	int (* create)(fs_node_t **, devmap_handle_t, int);
 	int (* destroy)(fs_node_t *);
 	int (* link)(fs_node_t *, fs_node_t *, const char *);
 	int (* unlink)(fs_node_t *, fs_node_t *, const char *);
@@ -80,7 +80,7 @@ typedef struct {
 	char (* plb_get_char)(unsigned pos);
 	bool (* is_directory)(fs_node_t *);
 	bool (* is_file)(fs_node_t *);
-	dev_handle_t (* device_get)(fs_node_t *);
+	devmap_handle_t (* device_get)(fs_node_t *);
 } libfs_ops_t;
 
 typedef struct {

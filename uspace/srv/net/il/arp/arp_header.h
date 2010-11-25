@@ -31,43 +31,38 @@
  */
 
 /** @file
- *  ARP protocol header.
- *  Based on the RFC~826.
+ * ARP protocol header.
+ * Based on the RFC 826.
  */
 
-#ifndef __NET_ARP_HEADER_H__
-#define __NET_ARP_HEADER_H__
+#ifndef NET_ARP_HEADER_H_
+#define NET_ARP_HEADER_H_
 
 #include <sys/types.h>
 
 /** Type definition of an ARP protocol header.
- *  @see arp_header
+ * @see arp_header
  */
-typedef struct arp_header	arp_header_t;
+typedef struct arp_header arp_header_t;
 
-/** Type definition of an ARP protocol header pointer.
- *  @see arp_header
- */
-typedef arp_header_t *		arp_header_ref;
-
-/** ARP protocol header.
- */
-struct arp_header{
-	/** Hardware type identifier.
-	 *  @see hardware.h
+/** ARP protocol header. */
+struct arp_header {
+	/**
+	 * Hardware type identifier.
+	 * @see hardware.h
 	 */
 	uint16_t hardware;
-	/** Protocol identifier.
-	 */
+	
+	/** Protocol identifier. */
 	uint16_t protocol;
-	/** Hardware address length in bytes.
-	 */
+	/** Hardware address length in bytes. */
 	uint8_t hardware_length;
-	/** Protocol address length in bytes.
-	 */
+	/** Protocol address length in bytes. */
 	uint8_t protocol_length;
-	/** ARP packet type.
-	 *  @see arp_oc.h
+	
+	/**
+	 * ARP packet type.
+	 * @see arp_oc.h
 	 */
 	uint16_t operation;
 } __attribute__ ((packed));

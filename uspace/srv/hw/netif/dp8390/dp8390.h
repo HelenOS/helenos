@@ -42,7 +42,7 @@
 
 /** Input/output size.
  */
-#define DP8390_IO_SIZE	0x01f
+#define DP8390_IO_SIZE	0x020
 
 /*
 dp8390.h
@@ -312,14 +312,14 @@ typedef struct dpeth
 {
 	/** Outgoing packets queue.
 	 */
-	packet_t packet_queue;
+	packet_t *packet_queue;
 	/** Outgoing packets count.
 	 */
 	int packet_count;
 
 	/** Received packets queue.
 	 */
-	packet_t received_queue;
+	packet_t *received_queue;
 	/** Received packets count.
 	 */
 	int received_count;

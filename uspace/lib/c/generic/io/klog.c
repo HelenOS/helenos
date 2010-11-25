@@ -51,7 +51,7 @@ size_t klog_write(const void *buf, size_t size)
 
 void klog_update(void)
 {
-	(void) __SYSCALL3(SYS_KLOG, 1, NULL, 0);
+	(void) __SYSCALL3(SYS_KLOG, 1, (uintptr_t) NULL, 0);
 }
 
 /** @}

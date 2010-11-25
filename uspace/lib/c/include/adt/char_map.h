@@ -47,11 +47,6 @@
  */
 typedef struct char_map	char_map_t;
 
-/** Type definition of the character string to integer map pointer.
- *  @see char_map
- */
-typedef char_map_t *char_map_ref;
-
 /** Character string to integer map item.
  *
  * This structure recursivelly contains itself as a character by character tree.
@@ -68,17 +63,17 @@ struct char_map {
 	/** First free position in the next character array. */
 	int next;
 	/** Next character array. */
-	char_map_ref *items;
+	char_map_t **items;
 	/** Consistency check magic value. */
 	int magic;
 };
 
-extern int char_map_initialize(char_map_ref);
-extern void char_map_destroy(char_map_ref);
-extern int char_map_exclude(char_map_ref, const char *, size_t);
-extern int char_map_add(char_map_ref, const char *, size_t, const int);
-extern int char_map_find(const char_map_ref, const char *, size_t);
-extern int char_map_update(char_map_ref, const char *, size_t, const int);
+extern int char_map_initialize(char_map_t *);
+extern void char_map_destroy(char_map_t *);
+extern int char_map_exclude(char_map_t *, const char *, size_t);
+extern int char_map_add(char_map_t *, const char *, size_t, const int);
+extern int char_map_find(const char_map_t *, const char *, size_t);
+extern int char_map_update(char_map_t *, const char *, size_t, const int);
 
 #endif
 

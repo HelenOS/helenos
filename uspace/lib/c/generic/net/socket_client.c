@@ -42,7 +42,6 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <err.h>
 
 #include <ipc/services.h>
 #include <ipc/socket.h>
@@ -78,11 +77,6 @@
  * @see socket
  */
 typedef struct socket socket_t;
-
-/** Type definition of the socket specific data pointer.
- * @see socket
- */
-typedef socket_t *socket_ref;
 
 /** Socket specific data.
  *
@@ -162,7 +156,7 @@ static struct socket_client_globals {
 //	int last_id;
 
 	/** Active sockets. */
-	sockets_ref sockets;
+	sockets_t *sockets;
 
 	/** Safety lock.
 	 * Write lock is used only for adding or removing sockets.
@@ -183,13 +177,13 @@ INT_MAP_IMPLEMENT(sockets, socket_t);
 
 /** Returns the active sockets.
  *
- *  @returns		The active sockets.
+ *  @return		The active sockets.
  */
-static sockets_ref socket_get_sockets(void)
+static sockets_t *socket_get_sockets(void)
 {
 	if (!socket_globals.sockets) {
 		socket_globals.sockets =
-		    (sockets_ref) malloc(sizeof(sockets_t));
+		    (sockets_t *) malloc(sizeof(sockets_t));
 		if (!socket_globals.sockets)
 			return NULL;
 
@@ -211,11 +205,10 @@ static sockets_ref socket_get_sockets(void)
  */
 static void socket_connection(ipc_callid_t iid, ipc_call_t * icall)
 {
-	ERROR_DECLARE;
-
 	ipc_callid_t callid;
 	ipc_call_t call;
-	socket_ref socket;
+	socket_t *socket;
+	int rc;
 
 loop:
 	callid = async_get_call(&call);
@@ -230,7 +223,7 @@ loop:
 		socket = sockets_find(socket_get_sockets(),
 		    SOCKET_GET_SOCKET_ID(call));
 		if (!socket) {
-			ERROR_CODE = ENOTSOCK;
+			rc = ENOTSOCK;
 			fibril_rwlock_read_unlock(&socket_globals.lock);
 			break;
 		}
@@ -239,9 +232,10 @@ loop:
 		case NET_SOCKET_RECEIVED:
 			fibril_mutex_lock(&socket->receive_lock);
 			// push the number of received packet fragments
-			if (!ERROR_OCCURRED(dyn_fifo_push(&socket->received,
+			rc = dyn_fifo_push(&socket->received,
 			    SOCKET_GET_DATA_FRAGMENTS(call),
-			    SOCKET_MAX_RECEIVED_SIZE))) {
+			    SOCKET_MAX_RECEIVED_SIZE);
+			if (rc == EOK) {
 				// signal the received packet
 				fibril_condvar_signal(&socket->receive_signal);
 			}
@@ -251,8 +245,9 @@ loop:
 		case NET_SOCKET_ACCEPTED:
 			// push the new socket identifier
 			fibril_mutex_lock(&socket->accept_lock);
-			if (!ERROR_OCCURRED(dyn_fifo_push(&socket->accepted,
-			    1, SOCKET_MAX_ACCEPTED_SIZE))) {
+			rc = dyn_fifo_push(&socket->accepted, 1,
+			    SOCKET_MAX_ACCEPTED_SIZE);
+			if (rc == EOK) {
 				// signal the accepted socket
 				fibril_condvar_signal(&socket->accept_signal);
 			}
@@ -260,7 +255,7 @@ loop:
 			break;
 
 		default:
-			ERROR_CODE = ENOTSUP;
+			rc = ENOTSUP;
 		}
 
 		if ((SOCKET_GET_DATA_FRAGMENT_SIZE(call) > 0) &&
@@ -279,10 +274,10 @@ loop:
 		break;
 
 	default:
-		ERROR_CODE = ENOTSUP;
+		rc = ENOTSUP;
 	}
 
-	ipc_answer_0(callid, (ipcarg_t) ERROR_CODE);
+	ipc_answer_0(callid, (ipcarg_t) rc);
 	goto loop;
 }
 
@@ -290,8 +285,8 @@ loop:
  *
  * Connects to the TCP module if necessary.
  *
- * @returns		The TCP module phone.
- * @returns		Other error codes as defined for the
+ * @return		The TCP module phone.
+ * @return		Other error codes as defined for the
  *			bind_service_timeout() function.
  */
 static int socket_get_tcp_phone(void)
@@ -309,8 +304,8 @@ static int socket_get_tcp_phone(void)
  *
  * Connects to the UDP module if necessary.
  *
- * @returns		The UDP module phone.
- * @returns		Other error codes as defined for the
+ * @return		The UDP module phone.
+ * @return		Other error codes as defined for the
  *			bind_service_timeout() function.
  */
 static int socket_get_udp_phone(void)
@@ -326,12 +321,12 @@ static int socket_get_udp_phone(void)
 
 /** Tries to find a new free socket identifier.
  *
- * @returns		The new socket identifier.
- * @returns		ELIMIT if there is no socket identifier available.
+ * @return		The new socket identifier.
+ * @return		ELIMIT if there is no socket identifier available.
  */
 static int socket_generate_new_id(void)
 {
-	sockets_ref sockets;
+	sockets_t *sockets;
 	int socket_id = 0;
 	int count;
 
@@ -371,7 +366,7 @@ static int socket_generate_new_id(void)
  * @param[in] service	The parent module service.
  */
 static void
-socket_initialize(socket_ref socket, int socket_id, int phone,
+socket_initialize(socket_t *socket, int socket_id, int phone,
     services_t service)
 {
 	socket->socket_id = socket_id;
@@ -391,27 +386,26 @@ socket_initialize(socket_ref socket, int socket_id, int phone,
  * @param[in] domain	The socket protocol family.
  * @param[in] type	Socket type.
  * @param[in] protocol	Socket protocol.
- * @returns		The socket identifier on success.
- * @returns		EPFNOTSUPPORT if the protocol family is not supported.
- * @returns		ESOCKNOTSUPPORT if the socket type is not supported.
- * @returns		EPROTONOSUPPORT if the protocol is not supported.
- * @returns		ENOMEM if there is not enough memory left.
- * @returns		ELIMIT if there was not a free socket identifier found
+ * @return		The socket identifier on success.
+ * @return		EPFNOTSUPPORT if the protocol family is not supported.
+ * @return		ESOCKNOTSUPPORT if the socket type is not supported.
+ * @return		EPROTONOSUPPORT if the protocol is not supported.
+ * @return		ENOMEM if there is not enough memory left.
+ * @return		ELIMIT if there was not a free socket identifier found
  *			this time.
- * @returns		Other error codes as defined for the NET_SOCKET message.
- * @returns		Other error codes as defined for the
+ * @return		Other error codes as defined for the NET_SOCKET message.
+ * @return		Other error codes as defined for the
  *			bind_service_timeout() function.
  */
 int socket(int domain, int type, int protocol)
 {
-	ERROR_DECLARE;
-
-	socket_ref socket;
+	socket_t *socket;
 	int phone;
 	int socket_id;
 	services_t service;
 	ipcarg_t fragment_size;
 	ipcarg_t header_size;
+	int rc;
 
 	// find the appropriate service
 	switch (domain) {
@@ -463,7 +457,7 @@ int socket(int domain, int type, int protocol)
 		return phone;
 
 	// create a new socket structure
-	socket = (socket_ref) malloc(sizeof(socket_t));
+	socket = (socket_t *) malloc(sizeof(socket_t));
 	if (!socket)
 		return ENOMEM;
 
@@ -478,11 +472,12 @@ int socket(int domain, int type, int protocol)
 		return socket_id;
 	}
 
-	if (ERROR_OCCURRED((int) async_req_3_3(phone, NET_SOCKET, socket_id, 0,
-	    service, NULL, &fragment_size, &header_size))) {
+	rc = (int) async_req_3_3(phone, NET_SOCKET, socket_id, 0, service, NULL,
+	    &fragment_size, &header_size);
+	if (rc != EOK) {
 		fibril_rwlock_write_unlock(&socket_globals.lock);
 		free(socket);
-		return ERROR_CODE;
+		return rc;
 	}
 
 	socket->data_fragment_size = (size_t) fragment_size;
@@ -491,16 +486,16 @@ int socket(int domain, int type, int protocol)
 	// finish the new socket initialization
 	socket_initialize(socket, socket_id, phone, service);
 	// store the new socket
-	ERROR_CODE = sockets_add(socket_get_sockets(), socket_id, socket);
+	rc = sockets_add(socket_get_sockets(), socket_id, socket);
 
 	fibril_rwlock_write_unlock(&socket_globals.lock);
-	if (ERROR_CODE < 0) {
+	if (rc < 0) {
 		dyn_fifo_destroy(&socket->received);
 		dyn_fifo_destroy(&socket->accepted);
 		free(socket);
 		async_msg_3(phone, NET_SOCKET_CLOSE, (ipcarg_t) socket_id, 0,
 		    service);
-		return ERROR_CODE;
+		return rc;
 	}
 
 	return socket_id;
@@ -513,17 +508,17 @@ int socket(int domain, int type, int protocol)
  * @param[in] arg2	The second message parameter.
  * @param[in] data	The data to be sent.
  * @param[in] datalength The data length.
- * @returns		EOK on success.
- * @returns		ENOTSOCK if the socket is not found.
- * @returns		EBADMEM if the data parameter is NULL.
- * @returns		NO_DATA if the datalength parameter is zero (0).
- * @returns		Other error codes as defined for the spcific message.
+ * @return		EOK on success.
+ * @return		ENOTSOCK if the socket is not found.
+ * @return		EBADMEM if the data parameter is NULL.
+ * @return		NO_DATA if the datalength parameter is zero (0).
+ * @return		Other error codes as defined for the spcific message.
  */
 static int
 socket_send_data(int socket_id, ipcarg_t message, ipcarg_t arg2,
     const void *data, size_t datalength)
 {
-	socket_ref socket;
+	socket_t *socket;
 	aid_t message_id;
 	ipcarg_t result;
 
@@ -558,11 +553,11 @@ socket_send_data(int socket_id, ipcarg_t message, ipcarg_t arg2,
  * @param[in] socket_id	Socket identifier.
  * @param[in] my_addr	The port address.
  * @param[in] addrlen	The address length.
- * @returns		EOK on success.
- * @returns		ENOTSOCK if the socket is not found.
- * @returns		EBADMEM if the my_addr parameter is NULL.
- * @returns		NO_DATA if the addlen parameter is zero.
- * @returns		Other error codes as defined for the NET_SOCKET_BIND
+ * @return		EOK on success.
+ * @return		ENOTSOCK if the socket is not found.
+ * @return		EBADMEM if the my_addr parameter is NULL.
+ * @return		NO_DATA if the addlen parameter is zero.
+ * @return		Other error codes as defined for the NET_SOCKET_BIND
  *			message.
  */
 int bind(int socket_id, const struct sockaddr * my_addr, socklen_t addrlen)
@@ -579,15 +574,15 @@ int bind(int socket_id, const struct sockaddr * my_addr, socklen_t addrlen)
  *
  * @param[in] socket_id	Socket identifier.
  * @param[in] backlog	The maximum number of waiting sockets to be accepted.
- * @returns		EOK on success.
- * @returns		EINVAL if the backlog parameter is not positive (<=0).
- * @returns		ENOTSOCK if the socket is not found.
- * @returns		Other error codes as defined for the NET_SOCKET_LISTEN
+ * @return		EOK on success.
+ * @return		EINVAL if the backlog parameter is not positive (<=0).
+ * @return		ENOTSOCK if the socket is not found.
+ * @return		Other error codes as defined for the NET_SOCKET_LISTEN
  *			message.
  */
 int listen(int socket_id, int backlog)
 {
-	socket_ref socket;
+	socket_t *socket;
 	int result;
 
 	if (backlog <= 0)
@@ -617,17 +612,17 @@ int listen(int socket_id, int backlog)
  * @param[in] socket_id	Socket identifier.
  * @param[out] cliaddr	The remote client address.
  * @param[in] addrlen	The address length.
- * @returns		EOK on success.
- * @returns		EBADMEM if the cliaddr or addrlen parameter is NULL.
- * @returns		EINVAL if the backlog parameter is not positive (<=0).
- * @returns		ENOTSOCK if the socket is not found.
- * @returns		Other error codes as defined for the NET_SOCKET_ACCEPT
+ * @return		EOK on success.
+ * @return		EBADMEM if the cliaddr or addrlen parameter is NULL.
+ * @return		EINVAL if the backlog parameter is not positive (<=0).
+ * @return		ENOTSOCK if the socket is not found.
+ * @return		Other error codes as defined for the NET_SOCKET_ACCEPT
  *			message.
  */
 int accept(int socket_id, struct sockaddr * cliaddr, socklen_t * addrlen)
 {
-	socket_ref socket;
-	socket_ref new_socket;
+	socket_t *socket;
+	socket_t *new_socket;
 	aid_t message_id;
 	ipcarg_t ipc_result;
 	int result;
@@ -660,7 +655,7 @@ int accept(int socket_id, struct sockaddr * cliaddr, socklen_t * addrlen)
 	-- socket->blocked;
 
 	// create a new scoket
-	new_socket = (socket_ref) malloc(sizeof(socket_t));
+	new_socket = (socket_t *) malloc(sizeof(socket_t));
 	if (!new_socket) {
 		fibril_mutex_unlock(&socket->accept_lock);
 		fibril_rwlock_write_unlock(&socket_globals.lock);
@@ -720,11 +715,11 @@ int accept(int socket_id, struct sockaddr * cliaddr, socklen_t * addrlen)
  * @param[in] socket_id	Socket identifier.
  * @param[in] serv_addr	The remote server address.
  * @param[in] addrlen	The address length.
- * @returns		EOK on success.
- * @returns		EBADMEM if the serv_addr parameter is NULL.
- * @returns		NO_DATA if the addlen parameter is zero.
- * @returns		ENOTSOCK if the socket is not found.
- * @returns		Other error codes as defined for the NET_SOCKET_CONNECT
+ * @return		EOK on success.
+ * @return		EBADMEM if the serv_addr parameter is NULL.
+ * @return		NO_DATA if the addlen parameter is zero.
+ * @return		ENOTSOCK if the socket is not found.
+ * @return		Other error codes as defined for the NET_SOCKET_CONNECT
  *			message.
  */
 int connect(int socket_id, const struct sockaddr *serv_addr, socklen_t addrlen)
@@ -744,7 +739,7 @@ int connect(int socket_id, const struct sockaddr *serv_addr, socklen_t addrlen)
  *
  * @param[in] socket	The socket to be destroyed.
  */
-static void socket_destroy(socket_ref socket)
+static void socket_destroy(socket_t *socket)
 {
 	int accepted_id;
 
@@ -760,18 +755,17 @@ static void socket_destroy(socket_ref socket)
 /** Closes the socket.
  *
  * @param[in] socket_id	Socket identifier.
- * @returns		EOK on success.
- * @returns		ENOTSOCK if the socket is not found.
- * @returns		EINPROGRESS if there is another blocking function in
+ * @return		EOK on success.
+ * @return		ENOTSOCK if the socket is not found.
+ * @return		EINPROGRESS if there is another blocking function in
  *			progress.
- * @returns		Other error codes as defined for the NET_SOCKET_CLOSE
+ * @return		Other error codes as defined for the NET_SOCKET_CLOSE
  *			message.
  */
 int closesocket(int socket_id)
 {
-	ERROR_DECLARE;
-
-	socket_ref socket;
+	socket_t *socket;
+	int rc;
 
 	fibril_rwlock_write_lock(&socket_globals.lock);
 
@@ -786,8 +780,12 @@ int closesocket(int socket_id)
 	}
 
 	// request close
-	ERROR_PROPAGATE((int) async_req_3_0(socket->phone, NET_SOCKET_CLOSE,
-	    (ipcarg_t) socket->socket_id, 0, socket->service));
+	rc = (int) async_req_3_0(socket->phone, NET_SOCKET_CLOSE,
+	    (ipcarg_t) socket->socket_id, 0, socket->service);
+	if (rc != EOK) {
+		fibril_rwlock_write_unlock(&socket_globals.lock);
+		return rc;
+	}
 	// free the socket structure
 	socket_destroy(socket);
 
@@ -807,12 +805,12 @@ int closesocket(int socket_id)
  * @param[in] toaddr	The destination address. May be NULL for connected
  *			sockets.
  * @param[in] addrlen	The address length. Used only if toaddr is not NULL.
- * @returns		EOK on success.
- * @returns		ENOTSOCK if the socket is not found.
- * @returns		EBADMEM if the data or toaddr parameter is NULL.
- * @returns		NO_DATA if the datalength or the addrlen parameter is
+ * @return		EOK on success.
+ * @return		ENOTSOCK if the socket is not found.
+ * @return		EBADMEM if the data or toaddr parameter is NULL.
+ * @return		NO_DATA if the datalength or the addrlen parameter is
  *			zero (0).
- * @returns		Other error codes as defined for the NET_SOCKET_SENDTO
+ * @return		Other error codes as defined for the NET_SOCKET_SENDTO
  *			message.
  */
 static int
@@ -820,7 +818,7 @@ sendto_core(ipcarg_t message, int socket_id, const void *data,
     size_t datalength, int flags, const struct sockaddr *toaddr,
     socklen_t addrlen)
 {
-	socket_ref socket;
+	socket_t *socket;
 	aid_t message_id;
 	ipcarg_t result;
 	size_t fragments;
@@ -909,11 +907,11 @@ sendto_core(ipcarg_t message, int socket_id, const void *data,
  * @param[in] data	The data to be sent.
  * @param[in] datalength The data length.
  * @param[in] flags	Various send flags.
- * @returns		EOK on success.
- * @returns		ENOTSOCK if the socket is not found.
- * @returns		EBADMEM if the data parameter is NULL.
- * @returns		NO_DATA if the datalength parameter is zero.
- * @returns		Other error codes as defined for the NET_SOCKET_SEND
+ * @return		EOK on success.
+ * @return		ENOTSOCK if the socket is not found.
+ * @return		EBADMEM if the data parameter is NULL.
+ * @return		NO_DATA if the datalength parameter is zero.
+ * @return		Other error codes as defined for the NET_SOCKET_SEND
  *			message.
  */
 int send(int socket_id, void *data, size_t datalength, int flags)
@@ -933,12 +931,12 @@ int send(int socket_id, void *data, size_t datalength, int flags)
  * @param[in] flags	Various send flags.
  * @param[in] toaddr	The destination address.
  * @param[in] addrlen	The address length.
- * @returns		EOK on success.
- * @returns		ENOTSOCK if the socket is not found.
- * @returns		EBADMEM if the data or toaddr parameter is NULL.
- * @returns		NO_DATA if the datalength or the addrlen parameter is
+ * @return		EOK on success.
+ * @return		ENOTSOCK if the socket is not found.
+ * @return		EBADMEM if the data or toaddr parameter is NULL.
+ * @return		NO_DATA if the datalength or the addrlen parameter is
  *			zero.
- * @returns		Other error codes as defined for the NET_SOCKET_SENDTO
+ * @return		Other error codes as defined for the NET_SOCKET_SENDTO
  *			message.
  */
 int
@@ -967,17 +965,17 @@ sendto(int socket_id, const void *data, size_t datalength, int flags,
  * @param[in,out] addrlen The address length. The maximum address length is
  *			read. The actual address length is set. Used only if
  *			fromaddr is not NULL.
- * @returns		EOK on success.
- * @returns		ENOTSOCK if the socket is not found.
- * @returns		EBADMEM if the data parameter is NULL.
- * @returns		NO_DATA if the datalength or addrlen parameter is zero.
- * @returns		Other error codes as defined for the spcific message.
+ * @return		EOK on success.
+ * @return		ENOTSOCK if the socket is not found.
+ * @return		EBADMEM if the data parameter is NULL.
+ * @return		NO_DATA if the datalength or addrlen parameter is zero.
+ * @return		Other error codes as defined for the spcific message.
  */
 static int
 recvfrom_core(ipcarg_t message, int socket_id, void *data, size_t datalength,
     int flags, struct sockaddr *fromaddr, socklen_t *addrlen)
 {
-	socket_ref socket;
+	socket_t *socket;
 	aid_t message_id;
 	ipcarg_t ipc_result;
 	int result;
@@ -1096,11 +1094,11 @@ recvfrom_core(ipcarg_t message, int socket_id, void *data, size_t datalength,
  * @param[out] data	The data buffer to be filled.
  * @param[in] datalength The data length.
  * @param[in] flags	Various receive flags.
- * @returns		EOK on success.
- * @returns		ENOTSOCK if the socket is not found.
- * @returns		EBADMEM if the data parameter is NULL.
- * @returns		NO_DATA if the datalength parameter is zero.
- * @returns		Other error codes as defined for the NET_SOCKET_RECV
+ * @return		EOK on success.
+ * @return		ENOTSOCK if the socket is not found.
+ * @return		EBADMEM if the data parameter is NULL.
+ * @return		NO_DATA if the datalength parameter is zero.
+ * @return		Other error codes as defined for the NET_SOCKET_RECV
  *			message.
  */
 int recv(int socket_id, void *data, size_t datalength, int flags)
@@ -1119,11 +1117,11 @@ int recv(int socket_id, void *data, size_t datalength, int flags)
  * @param[out] fromaddr	The source address.
  * @param[in,out] addrlen The address length. The maximum address length is
  *			read. The actual address length is set.
- * @returns		EOK on success.
- * @returns		ENOTSOCK if the socket is not found.
- * @returns		EBADMEM if the data or fromaddr parameter is NULL.
- * @returns		NO_DATA if the datalength or addrlen parameter is zero.
- * @returns		Other error codes as defined for the NET_SOCKET_RECVFROM
+ * @return		EOK on success.
+ * @return		ENOTSOCK if the socket is not found.
+ * @return		EBADMEM if the data or fromaddr parameter is NULL.
+ * @return		NO_DATA if the datalength or addrlen parameter is zero.
+ * @return		Other error codes as defined for the NET_SOCKET_RECVFROM
  *			message.
  */
 int
@@ -1149,17 +1147,17 @@ recvfrom(int socket_id, void *data, size_t datalength, int flags,
  * @param[out] value	The value buffer to be filled.
  * @param[in,out] optlen The value buffer length. The maximum length is read.
  *			The actual length is set.
- * @returns		EOK on success.
- * @returns		ENOTSOCK if the socket is not found.
- * @returns		EBADMEM if the value or optlen parameter is NULL.
- * @returns		NO_DATA if the optlen parameter is zero.
- * @returns		Other error codes as defined for the
+ * @return		EOK on success.
+ * @return		ENOTSOCK if the socket is not found.
+ * @return		EBADMEM if the value or optlen parameter is NULL.
+ * @return		NO_DATA if the optlen parameter is zero.
+ * @return		Other error codes as defined for the
  *			NET_SOCKET_GETSOCKOPT message.
  */
 int
 getsockopt(int socket_id, int level, int optname, void *value, size_t *optlen)
 {
-	socket_ref socket;
+	socket_t *socket;
 	aid_t message_id;
 	ipcarg_t result;
 
@@ -1202,11 +1200,11 @@ getsockopt(int socket_id, int level, int optname, void *value, size_t *optlen)
  * @param[in] optname	The socket option to be set.
  * @param[in] value	The value to be set.
  * @param[in] optlen	The value length.
- * @returns		EOK on success.
- * @returns		ENOTSOCK if the socket is not found.
- * @returns		EBADMEM if the value parameter is NULL.
- * @returns		NO_DATA if the optlen parameter is zero.
- * @returns		Other error codes as defined for the
+ * @return		EOK on success.
+ * @return		ENOTSOCK if the socket is not found.
+ * @return		EBADMEM if the value parameter is NULL.
+ * @return		NO_DATA if the optlen parameter is zero.
+ * @return		Other error codes as defined for the
  *			NET_SOCKET_SETSOCKOPT message.
  */
 int

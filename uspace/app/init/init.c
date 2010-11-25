@@ -123,26 +123,22 @@ static bool mount_devfs(void)
 
 static void spawn(const char *fname)
 {
-	const char *argv[2];
+	int rc;
 	struct stat s;
 	
 	if (stat(fname, &s) == ENOENT)
 		return;
 	
 	printf("%s: Spawning %s\n", NAME, fname);
-	
-	argv[0] = fname;
-	argv[1] = NULL;
-	
-	int err;
-	if (!task_spawn(fname, argv, &err))
+	rc = task_spawnl(NULL, fname, fname, NULL);
+	if (rc != EOK) {
 		printf("%s: Error spawning %s (%s)\n", NAME, fname,
-		    str_error(err));
+		    str_error(rc));
+	}
 }
 
 static void srv_start(const char *fname)
 {
-	const char *argv[2];
 	task_id_t id;
 	task_exit_t texit;
 	int rc, retval;
@@ -152,33 +148,34 @@ static void srv_start(const char *fname)
 		return;
 	
 	printf("%s: Starting %s\n", NAME, fname);
-	
-	argv[0] = fname;
-	argv[1] = NULL;
-	
-	id = task_spawn(fname, argv, &retval);
+	rc = task_spawnl(&id, fname, fname, NULL);
 	if (!id) {
 		printf("%s: Error spawning %s (%s)\n", NAME, fname,
-		    str_error(retval));
+		    str_error(rc));
 		return;
 	}
 	
 	rc = task_wait(id, &texit, &retval);
 	if (rc != EOK) {
 		printf("%s: Error waiting for %s (%s(\n", NAME, fname,
-		    str_error(retval));
+		    str_error(rc));
 		return;
 	}
 	
-	if ((texit != TASK_EXIT_NORMAL) || (retval != 0)) {
-		printf("%s: Server %s failed to start (%s)\n", NAME,
-			fname, str_error(retval));
+	if (texit != TASK_EXIT_NORMAL) {
+		printf("%s: Server %s failed to start (unexpectedly "
+		    "terminated)\n", NAME, fname);
+		return;
+	}
+
+	if (retval != 0) {
+		printf("%s: Server %s failed to start (exit code %d)\n", NAME,
+			fname, retval);
 	}
 }
 
 static void console(const char *dev)
 {
-	const char *argv[3];
 	char hid_in[DEVMAP_NAME_MAXLEN];
 	int rc;
 	
@@ -187,25 +184,23 @@ static void console(const char *dev)
 	printf("%s: Spawning %s %s\n", NAME, SRV_CONSOLE, hid_in);
 	
 	/* Wait for the input device to be ready */
-	dev_handle_t handle;
+	devmap_handle_t handle;
 	rc = devmap_device_get_handle(dev, &handle, IPC_FLAG_BLOCKING);
-	
-	if (rc == EOK) {
-		argv[0] = SRV_CONSOLE;
-		argv[1] = hid_in;
-		argv[2] = NULL;
-		
-		if (!task_spawn(SRV_CONSOLE, argv, &rc))
-			printf("%s: Error spawning %s %s (%s)\n", NAME, SRV_CONSOLE,
-			    hid_in, str_error(rc));
-	} else
+	if (rc != EOK) {
 		printf("%s: Error waiting on %s (%s)\n", NAME, hid_in,
 		    str_error(rc));
+		return;
+	}
+	
+	rc = task_spawnl(NULL, SRV_CONSOLE, SRV_CONSOLE, hid_in, NULL);
+	if (rc != EOK) {
+		printf("%s: Error spawning %s %s (%s)\n", NAME, SRV_CONSOLE,
+		    hid_in, str_error(rc));
+	}
 }
 
-static void getterm(const char *dev, const char *app)
+static void getterm(const char *dev, const char *app, bool wmsg)
 {
-	const char *argv[4];
 	char term[DEVMAP_NAME_MAXLEN];
 	int rc;
 	
@@ -214,21 +209,29 @@ static void getterm(const char *dev, const char *app)
 	printf("%s: Spawning %s %s %s\n", NAME, APP_GETTERM, term, app);
 	
 	/* Wait for the terminal device to be ready */
-	dev_handle_t handle;
+	devmap_handle_t handle;
 	rc = devmap_device_get_handle(dev, &handle, IPC_FLAG_BLOCKING);
-	
-	if (rc == EOK) {
-		argv[0] = APP_GETTERM;
-		argv[1] = term;
-		argv[2] = app;
-		argv[3] = NULL;
-		
-		if (!task_spawn(APP_GETTERM, argv, &rc))
-			printf("%s: Error spawning %s %s %s (%s)\n", NAME, APP_GETTERM,
-			    term, app, str_error(rc));
-	} else
+	if (rc != EOK) {
 		printf("%s: Error waiting on %s (%s)\n", NAME, term,
 		    str_error(rc));
+		return;
+	}
+	
+	if (wmsg) {
+		rc = task_spawnl(NULL, APP_GETTERM, APP_GETTERM, "-w", term,
+		    app, NULL);
+		if (rc != EOK) {
+			printf("%s: Error spawning %s -w %s %s (%s)\n", NAME,
+			    APP_GETTERM, term, app, str_error(rc));
+		}
+	} else {
+		rc = task_spawnl(NULL, APP_GETTERM, APP_GETTERM, term, app,
+		    NULL);
+		if (rc != EOK) {
+			printf("%s: Error spawning %s %s %s (%s)\n", NAME,
+			    APP_GETTERM, term, app, str_error(rc));
+		}
+	}
 }
 
 static bool mount_scratch(void)
@@ -301,13 +304,13 @@ int main(int argc, char *argv[])
 	(void) mount_data;
 #endif
 	
-	getterm("term/vc0", "/app/bdsh");
-	getterm("term/vc1", "/app/bdsh");
-	getterm("term/vc2", "/app/bdsh");
-	getterm("term/vc3", "/app/bdsh");
-	getterm("term/vc4", "/app/bdsh");
-	getterm("term/vc5", "/app/bdsh");
-	getterm("term/vc6", "/app/klog");
+	getterm("term/vc0", "/app/bdsh", true);
+	getterm("term/vc1", "/app/bdsh", false);
+	getterm("term/vc2", "/app/bdsh", false);
+	getterm("term/vc3", "/app/bdsh", false);
+	getterm("term/vc4", "/app/bdsh", false);
+	getterm("term/vc5", "/app/bdsh", false);
+	getterm("term/vc6", "/app/klog", false);
 	
 	return 0;
 }

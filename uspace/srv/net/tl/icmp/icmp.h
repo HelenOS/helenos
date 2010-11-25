@@ -27,92 +27,78 @@
  */
 
 /** @addtogroup icmp
- *  @{
+ * @{
  */
 
 /** @file
- *  ICMP module.
+ * ICMP module.
  */
 
-#ifndef __NET_ICMP_H__
-#define __NET_ICMP_H__
+#ifndef NET_ICMP_H_
+#define NET_ICMP_H_
 
 #include <fibril_synch.h>
 
 #include <net/icmp_codes.h>
+#include <net/packet.h>
 #include <adt/int_map.h>
 #include <icmp_header.h>
 
 /** Type definition of the ICMP reply data.
- *  @see icmp_reply
+ * @see icmp_reply
  */
-typedef struct icmp_reply	icmp_reply_t;
-
-/** Type definition of the ICMP reply data pointer.
- *  @see icmp_reply
- */
-typedef icmp_reply_t *	icmp_reply_ref;
+typedef struct icmp_reply icmp_reply_t;
 
 /** Type definition of the ICMP global data.
- *  @see icmp_globals
+ * @see icmp_globals
  */
-typedef struct icmp_globals	icmp_globals_t;
+typedef struct icmp_globals icmp_globals_t;
 
 /** Pending replies map.
- *  Maps message identifiers to the pending replies.
- *  Sending fibril waits for its associated reply event.
- *  Receiving fibril sets the associated reply with the return value and signals the event.
+ *
+ * Maps message identifiers to the pending replies.
+ * Sending fibril waits for its associated reply event.
+ * Receiving fibril sets the associated reply with the return value and signals
+ * the event.
  */
 INT_MAP_DECLARE(icmp_replies, icmp_reply_t);
 
 /** Echo specific data map.
- *  The identifier is used in the future semi-remote calls instead of the ICMP phone.
+ *
+ * The identifier is used in the future semi-remote calls instead of the ICMP
+ * phone.
  */
 INT_MAP_DECLARE(icmp_echo_data, icmp_echo_t);
 
-/** ICMP reply data.
- */
-struct icmp_reply{
-	/** Reply result.
-	 */
+/** ICMP reply data. */
+struct icmp_reply {
+	/** Reply result. */
 	int result;
-	/** Safety lock.
-	 */
+	/** Safety lock. */
 	fibril_mutex_t mutex;
-	/** Received or timeouted reply signaling.
-	 */
+	/** Received or timeouted reply signaling. */
 	fibril_condvar_t condvar;
 };
 
-/** ICMP global data.
- */
-struct	icmp_globals{
-	/** IP module phone.
-	 */
+/** ICMP global data. */
+struct icmp_globals {
+	/** IP module phone. */
 	int ip_phone;
-	/** Packet dimension.
-	 */
+	/** Packet dimension. */
 	packet_dimension_t packet_dimension;
-	/** Networking module phone.
-	 */
+	/** Networking module phone. */
 	int net_phone;
-	/** Indicates whether ICMP error reporting is enabled.
-	 */
+	/** Indicates whether ICMP error reporting is enabled. */
 	int error_reporting;
-	/** Indicates whether ICMP echo replying (ping) is enabled.
-	 */
+	/** Indicates whether ICMP echo replying (ping) is enabled. */
 	int echo_replying;
-	/** The last used identifier number.
-	 */
+	/** The last used identifier number. */
 	icmp_param_t last_used_id;
-	/** The budled modules assigned echo specific data.
-	 */
+	/** The budled modules assigned echo specific data. */
 	icmp_echo_data_t echo_data;
-	/** Echo timeout locks.
-	 */
+	/** Echo timeout locks. */
 	icmp_replies_t replies;
-	/** Safety lock.
-	 */
+	/** Safety lock. */
 	fibril_rwlock_t lock;
 };
 
@@ -120,4 +106,3 @@ struct	icmp_globals{
 
 /** @}
  */
-

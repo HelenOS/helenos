@@ -26,36 +26,28 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup packet
- *  @{
+/** @addtogroup libpacket
+ * @{
  */
 
 /** @file
- *  Packet server.
- *  The hosting module has to be compiled with both the packet.c and the packet_server.c source files.
- *  To function correctly, initialization of the packet map by the pm_init() function has to happen at the first place.
- *  Then the packet messages have to be processed by the packet_server_message() function.
- *  The packet map should be released by the pm_destroy() function during the module termination.
- *  @see IS_NET_PACKET_MESSAGE()
+ * Packet server.
+ * The hosting module has to be compiled with both the packet.c and the
+ * packet_server.c source files. To function correctly, initialization of the
+ * packet map by the pm_init() function has to happen at the first place. Then
+ * the packet messages have to be processed by the packet_server_message()
+ * function. The packet map should be released by the pm_destroy() function
+ * during the module termination.
+ * @see IS_NET_PACKET_MESSAGE()
  */
 
-#ifndef __NET_PACKET_SERVER_H__
-#define __NET_PACKET_SERVER_H__
+#ifndef LIBPACKET_PACKET_SERVER_H_
+#define LIBPACKET_PACKET_SERVER_H_
 
 #include <ipc/ipc.h>
 
-/** Processes the packet server message.
- *  @param[in] callid The message identifier.
- *  @param[in] call The message parameters.
- *  @param[out] answer The message answer parameters.
- *  @param[out] answer_count The last parameter for the actual answer in the answer parameter.
- *  @returns EOK on success.
- *  @returns ENOMEM if there is not enough memory left.
- *  @returns ENOENT if there is no such packet as in the packet message parameter..
- *  @returns ENOTSUP if the message is not known.
- *  @returns Other error codes as defined for the packet_release_wrapper() function.
- */
-extern int packet_server_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * answer, int * answer_count);
+extern int packet_server_message(ipc_callid_t, ipc_call_t *, ipc_call_t *,
+    int *);
 
 #endif
 

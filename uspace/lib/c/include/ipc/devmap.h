@@ -39,7 +39,7 @@
 
 #define DEVMAP_NAME_MAXLEN  255
 
-typedef ipcarg_t dev_handle_t;
+typedef ipcarg_t devmap_handle_t;
 
 typedef enum {
 	DEV_HANDLE_NONE,
@@ -80,7 +80,7 @@ typedef enum {
 } devmap_interface_t;
 
 typedef struct {
-	dev_handle_t handle;
+	devmap_handle_t handle;
 	char name[DEVMAP_NAME_MAXLEN + 1];
 } dev_desc_t;
 

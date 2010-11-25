@@ -26,12 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ip
+/** @addtogroup libnet
  * @{
  */
 
-#ifndef __NET_IP_REMOTE_H__
-#define __NET_IP_REMOTE_H__
+#ifndef LIBNET_IP_REMOTE_H_
+#define LIBNET_IP_REMOTE_H_
 
 #include <ipc/services.h>
 
@@ -43,13 +43,13 @@
 #include <net/socket.h>
 
 extern int ip_set_gateway_req_remote(int, device_id_t, in_addr_t);
-extern int ip_packet_size_req_remote(int, device_id_t, packet_dimension_ref);
-extern int ip_received_error_msg_remote(int, device_id_t, packet_t, services_t,
+extern int ip_packet_size_req_remote(int, device_id_t, packet_dimension_t *);
+extern int ip_received_error_msg_remote(int, device_id_t, packet_t *, services_t,
     services_t);
 extern int ip_device_req_remote(int, device_id_t, services_t);
 extern int ip_add_route_req_remote(int, device_id_t, in_addr_t, in_addr_t,
     in_addr_t);
-extern int ip_send_msg_remote(int, device_id_t, packet_t, services_t,
+extern int ip_send_msg_remote(int, device_id_t, packet_t *, services_t,
     services_t);
 extern int ip_get_route_req_remote(int, ip_protocol_t, const struct sockaddr *,
     socklen_t, device_id_t *, void **, size_t *);

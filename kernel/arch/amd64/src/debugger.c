@@ -125,7 +125,7 @@ static void setup_dr(int curidx)
 	
 	/* Disable breakpoint in DR7 */
 	unative_t dr7 = read_dr7();
-	dr7 &= ~(0x2 << (curidx * 2));
+	dr7 &= ~(0x02U << (curidx * 2));
 	
 	/* Setup DR register */
 	if (cur->address) {
@@ -146,26 +146,26 @@ static void setup_dr(int curidx)
 		}
 		
 		/* Set type to requested breakpoint & length*/
-		dr7 &= ~(0x3 << (16 + 4 * curidx));
-		dr7 &= ~(0x3 << (18 + 4 * curidx));
+		dr7 &= ~(0x03U << (16 + 4 * curidx));
+		dr7 &= ~(0x03U << (18 + 4 * curidx));
 		
 		if (!(flags & BKPOINT_INSTR)) {
 #ifdef __32_BITS__
-			dr7 |= ((unative_t) 0x3) << (18 + 4 * curidx);
+			dr7 |= ((unative_t) 0x03U) << (18 + 4 * curidx);
 #endif
 			
 #ifdef __64_BITS__
-			dr7 |= ((unative_t) 0x2) << (18 + 4 * curidx);
+			dr7 |= ((unative_t) 0x02U) << (18 + 4 * curidx);
 #endif
 			
 			if ((flags & BKPOINT_WRITE))
-				dr7 |= ((unative_t) 0x1) << (16 + 4 * curidx);
+				dr7 |= ((unative_t) 0x01U) << (16 + 4 * curidx);
 			else if ((flags & BKPOINT_READ_WRITE))
-				dr7 |= ((unative_t) 0x3) << (16 + 4 * curidx);
+				dr7 |= ((unative_t) 0x03U) << (16 + 4 * curidx);
 		}
 		
 		/* Enable global breakpoint */
-		dr7 |= 0x2 << (curidx * 2);
+		dr7 |= 0x02U << (curidx * 2);
 		
 		write_dr7(dr7);
 	}
@@ -259,7 +259,7 @@ void breakpoint_del(int slot)
 		return;
 	}
 	
-	cur->address = NULL;
+	cur->address = (uintptr_t) NULL;
 	
 	setup_dr(slot);
 	
@@ -312,7 +312,7 @@ void debugger_init()
 {
 	unsigned int i;
 	for (i = 0; i < BKPOINTS_MAX; i++)
-		breakpoints[i].address = NULL;
+		breakpoints[i].address = (uintptr_t) NULL;
 	
 #ifdef CONFIG_KCONSOLE
 	cmd_initialize(&bkpts_info);

@@ -52,7 +52,6 @@
  */
 #define GENERIC_FIELD_DECLARE(name, type) \
 	typedef	struct name name##_t; \
-	typedef	name##_t *name##_ref; \
 	\
 	struct	name { \
 		int size; \
@@ -61,14 +60,14 @@
 		int magic; \
 	}; \
 	\
-	int name##_add(name##_ref, type *); \
-	int name##_count(name##_ref); \
-	void name##_destroy(name##_ref); \
-	void name##_exclude_index(name##_ref, int); \
-	type **name##_get_field(name##_ref); \
-	type *name##_get_index(name##_ref, int); \
-	int name##_initialize(name##_ref); \
-	int name##_is_valid(name##_ref);
+	int name##_add(name##_t *, type *); \
+	int name##_count(name##_t *); \
+	void name##_destroy(name##_t *); \
+	void name##_exclude_index(name##_t *, int); \
+	type **name##_get_field(name##_t *); \
+	type *name##_get_index(name##_t *, int); \
+	int name##_initialize(name##_t *); \
+	int name##_is_valid(name##_t *);
 
 /** Generic type field implementation.
  *
@@ -78,7 +77,7 @@
  * @param[in] type	Inner object type.
  */
 #define GENERIC_FIELD_IMPLEMENT(name, type) \
-	int name##_add(name##_ref field, type *value) \
+	int name##_add(name##_t *field, type *value) \
 	{ \
 		if (name##_is_valid(field)) { \
 			if (field->next == (field->size - 1)) { \
@@ -98,12 +97,12 @@
 		return EINVAL; \
 	} \
 	\
-	int name##_count(name##_ref field) \
+	int name##_count(name##_t *field) \
 	{ \
 		return name##_is_valid(field) ? field->next : -1; \
 	} \
 	\
-	void name##_destroy(name##_ref field) \
+	void name##_destroy(name##_t *field) \
 	{ \
 		if (name##_is_valid(field)) { \
 			int index; \
@@ -116,7 +115,7 @@
 		} \
 	} \
 	 \
-	void name##_exclude_index(name##_ref field, int index) \
+	void name##_exclude_index(name##_t *field, int index) \
 	{ \
 		if (name##_is_valid(field) && (index >= 0) && \
 		    (index < field->next) && (field->items[index])) { \
@@ -125,7 +124,7 @@
 		} \
 	} \
 	 \
-	type *name##_get_index(name##_ref field, int index) \
+	type *name##_get_index(name##_t *field, int index) \
 	{ \
 		if (name##_is_valid(field) && (index >= 0) && \
 		    (index < field->next) && (field->items[index])) \
@@ -133,12 +132,12 @@
 		return NULL; \
 	} \
 	\
-	type **name##_get_field(name##_ref field) \
+	type **name##_get_field(name##_t *field) \
 	{ \
 		return name##_is_valid(field) ? field->items : NULL; \
 	} \
 	\
-	int name##_initialize(name##_ref field) \
+	int name##_initialize(name##_t *field) \
 	{ \
 		if (!field) \
 			return EINVAL; \
@@ -152,7 +151,7 @@
 		return EOK; \
 	} \
 	\
-	int name##_is_valid(name##_ref field) \
+	int name##_is_valid(name##_t *field) \
 	{ \
 		return field && (field->magic == GENERIC_FIELD_MAGIC_VALUE); \
 	}

@@ -102,7 +102,7 @@ static void irq_handler(ipc_callid_t iid, ipc_call_t * call)
 {
 	netif_device_t * device;
 	dpeth_t * dep;
-	packet_t received;
+	packet_t *received;
 	device_id_t device_id;
 	int phone;
 
@@ -126,7 +126,7 @@ static void irq_handler(ipc_callid_t iid, ipc_call_t * call)
 		dep->received_queue = NULL;
 		dep->received_count = 0;
 		fibril_rwlock_write_unlock(&netif_globals.lock);
-		nil_received_msg(phone, device_id, received, NULL);
+		nil_received_msg(phone, device_id, received, SERVICE_NONE);
 	}else{
 		fibril_rwlock_write_unlock(&netif_globals.lock);
 	}
@@ -156,16 +156,18 @@ int netif_specific_message(ipc_callid_t callid, ipc_call_t * call, ipc_call_t * 
 	return ENOTSUP;
 }
 
-int netif_get_device_stats(device_id_t device_id, device_stats_ref stats){
-	ERROR_DECLARE;
-
+int netif_get_device_stats(device_id_t device_id, device_stats_t *stats)
+{
 	netif_device_t * device;
 	eth_stat_t * de_stat;
+	int rc;
 
 	if(! stats){
 		return EBADMEM;
 	}
-	ERROR_PROPAGATE(find_device(device_id, &device));
+	rc = find_device(device_id, &device);
+	if (rc != EOK)
+		return rc;
 	de_stat = &((dpeth_t *) device->specific)->de_stat;
 	null_device_stats(stats);
 	stats->receive_errors = de_stat->ets_recvErr;
@@ -183,15 +185,16 @@ int netif_get_device_stats(device_id_t device_id, device_stats_ref stats){
 	return EOK;
 }
 
-int netif_get_addr_message(device_id_t device_id, measured_string_ref address){
-	ERROR_DECLARE;
-
+int netif_get_addr_message(device_id_t device_id, measured_string_t *address){
 	netif_device_t * device;
+	int rc;
 
 	if(! address){
 		return EBADMEM;
 	}
-	ERROR_PROPAGATE(find_device(device_id, &device));
+	rc = find_device(device_id, &device);
+	if (rc != EOK)
+		return rc;
 	address->value = (char *) (&((dpeth_t *) device->specific)->de_address);
 	address->length = CONVERT_SIZE(ether_addr_t, char, 1);
 	return EOK;
@@ -200,10 +203,9 @@ int netif_get_addr_message(device_id_t device_id, measured_string_ref address){
 
 
 int netif_probe_message(device_id_t device_id, int irq, uintptr_t io){
-	ERROR_DECLARE;
-
 	netif_device_t * device;
 	dpeth_t * dep;
+	int rc;
 
 	device = (netif_device_t *) malloc(sizeof(netif_device_t));
 	if(! device){
@@ -223,28 +225,36 @@ int netif_probe_message(device_id_t device_id, int irq, uintptr_t io){
 	dep->de_irq = irq;
 	dep->de_mode = DEM_DISABLED;
 	//TODO address?
-	if(ERROR_OCCURRED(pio_enable((void *) io, DP8390_IO_SIZE, (void **) &dep->de_base_port))
-		|| ERROR_OCCURRED(do_probe(dep))){
+	rc = pio_enable((void *) io, DP8390_IO_SIZE, (void **) &dep->de_base_port);
+	if (rc != EOK) {
 		free(dep);
 		free(device);
-		return ERROR_CODE;
+		return rc;
+	}	
+	rc = do_probe(dep);
+	if (rc != EOK) {
+		free(dep);
+		free(device);
+		return rc;
 	}
-	if(ERROR_OCCURRED(netif_device_map_add(&netif_globals.device_map, device->device_id, device))){
+	rc = netif_device_map_add(&netif_globals.device_map, device->device_id, device);
+	if (rc != EOK){
 		free(dep);
 		free(device);
-		return ERROR_CODE;
+		return rc;
 	}
 	return EOK;
 }
 
-int netif_send_message(device_id_t device_id, packet_t packet, services_t sender){
-	ERROR_DECLARE;
-
+int netif_send_message(device_id_t device_id, packet_t *packet, services_t sender){
 	netif_device_t * device;
 	dpeth_t * dep;
-	packet_t next;
+	packet_t *next;
+	int rc;
 
-	ERROR_PROPAGATE(find_device(device_id, &device));
+	rc = find_device(device_id, &device);
+	if (rc != EOK)
+		return rc;
 	if(device->state != NETIF_ACTIVE){
 		netif_pq_release(packet_get_id(packet));
 		return EFORWARD;
@@ -262,18 +272,20 @@ int netif_send_message(device_id_t device_id, packet_t packet, services_t sender
 }
 
 int netif_start_message(netif_device_t * device){
-	ERROR_DECLARE;
-
 	dpeth_t * dep;
+	int rc;
 
 	if(device->state != NETIF_ACTIVE){
 		dep = (dpeth_t *) device->specific;
 		dp8390_cmds[0].addr = (void *) (uintptr_t) (dep->de_dp8390_port + DP_ISR);
 		dp8390_cmds[2].addr = dp8390_cmds[0].addr;
-		ERROR_PROPAGATE(ipc_register_irq(dep->de_irq, device->device_id, device->device_id, &dp8390_code));
-		if(ERROR_OCCURRED(do_init(dep, DL_BROAD_REQ))){
+		rc = ipc_register_irq(dep->de_irq, device->device_id, device->device_id, &dp8390_code);
+		if (rc != EOK)
+			return rc;
+		rc = do_init(dep, DL_BROAD_REQ);
+		if (rc != EOK) {
 			ipc_unregister_irq(dep->de_irq, device->device_id);
-			return ERROR_CODE;
+			return rc;
 		}
 		return change_state(device, NETIF_ACTIVE);
 	}
@@ -349,13 +361,11 @@ static void netif_client_connection(ipc_callid_t iid, ipc_call_t * icall)
  */
 int main(int argc, char *argv[])
 {
-	ERROR_DECLARE;
+	int rc;
 	
 	/* Start the module */
-	if (ERROR_OCCURRED(netif_module_start(netif_client_connection)))
-		return ERROR_CODE;
-	
-	return EOK;
+	rc = netif_module_start(netif_client_connection);
+	return rc;
 }
 
 /** @}

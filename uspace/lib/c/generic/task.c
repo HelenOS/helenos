@@ -38,6 +38,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <loader/loader.h>
+#include <stdarg.h>
 #include <str.h>
 #include <ipc/ns.h>
 #include <macros.h>
@@ -67,29 +68,27 @@ int task_set_name(const char *name)
 /** Create a new task by running an executable from the filesystem.
  *
  * This is really just a convenience wrapper over the more complicated
- * loader API.
+ * loader API. Arguments are passed as a null-terminated array of strings.
  *
- * @param path Pathname of the binary to execute.
- * @param argv Command-line arguments.
- * @param err  If not NULL, the error value is stored here.
+ * @param id 	If not NULL, the ID of the task is stored here on success.
+ * @param path	Pathname of the binary to execute.
+ * @param argv	Command-line arguments.
  *
- * @return ID of the newly created task or zero on error.
- *
+ * @return	Zero on success or negative error code.
  */
-task_id_t task_spawn(const char *path, const char *const args[], int *err)
+int task_spawnv(task_id_t *id, const char *path, const char *const args[])
 {
+	loader_t *ldr;
+	task_id_t task_id;
+	int rc;
+
 	/* Connect to a program loader. */
-	loader_t *ldr = loader_connect();
-	if (ldr == NULL) {
-		if (err != NULL)
-			*err = EREFUSED;
-		
-		return 0;
-	}
+	ldr = loader_connect();
+	if (ldr == NULL)
+		return EREFUSED;
 	
 	/* Get task ID. */
-	task_id_t task_id;
-	int rc = loader_get_task_id(ldr, &task_id);
+	rc = loader_get_task_id(ldr, &task_id);
 	if (rc != EOK)
 		goto error;
 	
@@ -148,20 +147,65 @@ task_id_t task_spawn(const char *path, const char *const args[], int *err)
 	/* Success */
 	free(ldr);
 	
-	if (err != NULL)
-		*err = EOK;
+	if (id != NULL)
+		*id = task_id;
 	
-	return task_id;
+	return EOK;
 	
 error:
 	/* Error exit */
 	loader_abort(ldr);
 	free(ldr);
-	
-	if (err != NULL)
-		*err = rc;
-	
-	return 0;
+	return rc;
+}
+
+/** Create a new task by running an executable from the filesystem.
+ *
+ * This is really just a convenience wrapper over the more complicated
+ * loader API. Arguments are passed as a null-terminated list of arguments.
+ *
+ * @param id 	If not NULL, the ID of the task is stored here on success.
+ * @param path	Pathname of the binary to execute.
+ * @param ...	Command-line arguments.
+ *
+ * @return	Zero on success or negative error code.
+ */
+int task_spawnl(task_id_t *task_id, const char *path, ...)
+{
+	va_list ap;
+	int rc, cnt;
+	const char *arg;
+	const char **arglist;
+
+	/* Count the number of arguments. */
+	cnt = 0;
+	va_start(ap, path);
+	do {
+		arg = va_arg(ap, const char *);
+		cnt++;
+	} while (arg != NULL);
+	va_end(ap);
+
+	/* Allocate argument list. */
+	arglist = malloc(cnt * sizeof(const char *));
+	if (arglist == NULL)
+		return ENOMEM;
+
+	/* Fill in arguments. */
+	cnt = 0;
+	va_start(ap, path);
+	do {
+		arg = va_arg(ap, const char *);
+		arglist[cnt++] = arg;
+	} while (arg != NULL);
+	va_end(ap);
+
+	/* Spawn task. */
+	rc = task_spawnv(task_id, path, arglist);
+
+	/* Free argument list. */
+	free(arglist);
+	return rc;
 }
 
 int task_wait(task_id_t id, task_exit_t *texit, int *retval)

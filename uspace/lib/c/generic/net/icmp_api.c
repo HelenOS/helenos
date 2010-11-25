@@ -65,14 +65,14 @@
  *			be fragmented. Is used as a MTU discovery.
  * @param[in] addr	The target host address.
  * @param[in] addrlen	The torget host address length.
- * @returns		ICMP_ECHO on success.
- * @returns		ETIMEOUT if the reply has not arrived before the
+ * @return		ICMP_ECHO on success.
+ * @return		ETIMEOUT if the reply has not arrived before the
  *			timeout.
- * @returns		ICMP type of the received error notification.
- * @returns		EINVAL if the addrlen parameter is less or equal to
+ * @return		ICMP type of the received error notification.
+ * @return		EINVAL if the addrlen parameter is less or equal to
  *			zero.
- * @returns		ENOMEM if there is not enough memory left.
- * @returns		EPARTY if there was an internal error.
+ * @return		ENOMEM if there is not enough memory left.
+ * @return		EPARTY if there was an internal error.
  */
 int
 icmp_echo_msg(int icmp_phone, size_t size, mseconds_t timeout, ip_ttl_t ttl,

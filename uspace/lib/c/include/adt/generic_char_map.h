@@ -39,7 +39,6 @@
 
 #include <unistd.h>
 #include <errno.h>
-#include <err.h>
 
 #include <adt/char_map.h>
 #include <adt/generic_field.h>
@@ -55,7 +54,6 @@
 	GENERIC_FIELD_DECLARE(name##_items, type) \
 	\
 	typedef	struct name name##_t; \
-	typedef	name##_t *name##_ref; \
 	\
 	struct	name { \
 		char_map_t names; \
@@ -63,13 +61,13 @@
 		int magic; \
 	}; \
 	\
-	int name##_add(name##_ref, const char *, const size_t, type *); \
-	int name##_count(name##_ref); \
-	void name##_destroy(name##_ref); \
-	void name##_exclude(name##_ref, const char *, const size_t); \
-	type *name##_find(name##_ref, const char *, const size_t); \
-	int name##_initialize(name##_ref); \
-	int name##_is_valid(name##_ref);
+	int name##_add(name##_t *, const char *, const size_t, type *); \
+	int name##_count(name##_t *); \
+	void name##_destroy(name##_t *); \
+	void name##_exclude(name##_t *, const char *, const size_t); \
+	type *name##_find(name##_t *, const char *, const size_t); \
+	int name##_initialize(name##_t *); \
+	int name##_is_valid(name##_t *);
 
 /** Character string to generic type map implementation.
  *
@@ -81,31 +79,31 @@
 #define GENERIC_CHAR_MAP_IMPLEMENT(name, type) \
 	GENERIC_FIELD_IMPLEMENT(name##_items, type) \
 	\
-	int name##_add(name##_ref map, const char *name, const size_t length, \
+	int name##_add(name##_t *map, const char *name, const size_t length, \
 	     type *value) \
 	{ \
-		ERROR_DECLARE; \
+		int rc; \
 		int index; \
 		if (!name##_is_valid(map)) \
 			return EINVAL; \
 		index = name##_items_add(&map->values, value); \
 		if (index < 0) \
 			return index; \
-		if (ERROR_OCCURRED(char_map_add(&map->names, name, length, \
-		    index))) { \
+		rc = char_map_add(&map->names, name, length, index); \
+		if (rc != EOK) { \
 			name##_items_exclude_index(&map->values, index); \
-			return ERROR_CODE; \
+			return rc; \
 		} \
 		return EOK; \
 	} \
 	\
-	int name##_count(name##_ref map) \
+	int name##_count(name##_t *map) \
 	{ \
 		return name##_is_valid(map) ? \
 		    name##_items_count(&map->values) : -1; \
 	} \
 	\
-	void name##_destroy(name##_ref map) \
+	void name##_destroy(name##_t *map) \
 	{ \
 		if (name##_is_valid(map)) { \
 			char_map_destroy(&map->names); \
@@ -113,7 +111,7 @@
 		} \
 	} \
 	\
-	void name##_exclude(name##_ref map, const char *name, \
+	void name##_exclude(name##_t *map, const char *name, \
 	    const size_t length) \
 	{ \
 		if (name##_is_valid(map)) { \
@@ -125,7 +123,7 @@
 		} \
 	} \
 	\
-	type *name##_find(name##_ref map, const char *name, \
+	type *name##_find(name##_t *map, const char *name, \
 	    const size_t length) \
 	{ \
 		if (name##_is_valid(map)) { \
@@ -138,21 +136,24 @@
 		return NULL; \
 	} \
 	\
-	int name##_initialize(name##_ref map) \
+	int name##_initialize(name##_t *map) \
 	{ \
-		ERROR_DECLARE; \
+		int rc; \
 		if (!map) \
 			return EINVAL; \
-		ERROR_PROPAGATE(char_map_initialize(&map->names)); \
-		if (ERROR_OCCURRED(name##_items_initialize(&map->values))) { \
+		rc = char_map_initialize(&map->names); \
+		if (rc != EOK) \
+			return rc; \
+		rc = name##_items_initialize(&map->values); \
+		if (rc != EOK) { \
 			char_map_destroy(&map->names); \
-			return ERROR_CODE; \
+			return rc; \
 		} \
 		map->magic = GENERIC_CHAR_MAP_MAGIC_VALUE; \
 		return EOK; \
 	} \
 	\
-	int name##_is_valid(name##_ref map) \
+	int name##_is_valid(name##_t *map) \
 	{ \
 		return map && (map->magic == GENERIC_CHAR_MAP_MAGIC_VALUE); \
 	}

@@ -94,7 +94,7 @@ memcpy_to_uspace:
 
 memcpy_from_uspace_failover_address:
 memcpy_to_uspace_failover_address:
-	xorq %rax, %rax         /* return 0, failure */
+	xorl %eax, %eax         /* return 0, failure */
 	ret
 
 /** Determine CPUID support
@@ -142,14 +142,14 @@ cpuid:
 	ret
 
 set_efer_flag:
-	movq $0xc0000080, %rcx
+	movl $0xc0000080, %ecx
 	rdmsr
 	btsl %edi, %eax
 	wrmsr
 	ret
 
 read_efer_flag:
-	movq $0xc0000080, %rcx
+	movl $0xc0000080, %ecx
 	rdmsr
 	ret
 
@@ -242,7 +242,7 @@ int_\i:
 	 * Imitate a regular stack frame linkage.
 	 * Stop stack traces here if we came from userspace.
 	 */
-	xorq %rdx, %rdx
+	xorl %edx, %edx
 	cmpq $(GDT_SELECTOR(KTEXT_DES)), ISTATE_OFFSET_CS(%rsp)
 	cmovnzq %rdx, %rbp
 
@@ -385,6 +385,18 @@ syscall_entry:
 	movq ISTATE_OFFSET_R11(%rsp), %r11
 	movq ISTATE_OFFSET_RSP(%rsp), %rsp
 
+	/*
+	 * Clear the rest of the scratch registers to prevent information leak.
+	 * The 32-bit XOR on the low GPRs actually clears the entire 64-bit
+	 * register and the instruction is shorter.
+	 */
+	xorl %edx, %edx
+	xorl %esi, %esi
+	xorl %edi, %edi
+	xorq %r8, %r8
+	xorq %r9, %r9
+	xorq %r10, %r10
+
 	sysretq
 
 /** Print Unicode character to EGA display.
@@ -412,7 +424,7 @@ early_putchar:
 	
 	movq %rdi, %rsi
 	movq $(PA2KA(0xb8000)), %rdi  /* base of EGA text mode memory */
-	xorq %rax, %rax
+	xorl %eax, %eax
 	
 	/* Read bits 8 - 15 of the cursor address */
 	movw $0x3d4, %dx
@@ -492,12 +504,12 @@ early_putchar:
 		/* Scroll the screen (24 rows) */
 		movq $(PA2KA(0xb80a0)), %rsi
 		movq $(PA2KA(0xb8000)), %rdi
-		movq $480, %rcx
+		movl $480, %ecx
 		rep movsq
 		
 		/* Clear the 24th row */
-		xorq %rax, %rax
-		movq $20, %rcx
+		xorl %eax, %eax
+		movl $20, %ecx
 		rep stosq
 		
 		/* Go to row 24 */

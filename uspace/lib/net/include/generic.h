@@ -48,16 +48,16 @@
 extern int generic_device_state_msg_remote(int, int, device_id_t, int,
     services_t);
 extern int generic_device_req_remote(int, int, device_id_t, int, services_t);
-extern int generic_get_addr_req(int, int, device_id_t, measured_string_ref *,
+extern int generic_get_addr_req(int, int, device_id_t, measured_string_t **,
     char **);
 extern int generic_packet_size_req_remote(int, int, device_id_t,
-    packet_dimension_ref);
+    packet_dimension_t *);
 extern int generic_received_msg_remote(int, int, device_id_t, packet_id_t,
     services_t, services_t);
 extern int generic_send_msg_remote(int, int, device_id_t, packet_id_t,
     services_t, services_t);
 extern int generic_translate_req(int, int, device_id_t, services_t,
-    measured_string_ref, size_t, measured_string_ref *, char **);
+    measured_string_t *, size_t, measured_string_t **, char **);
 
 #endif
 
