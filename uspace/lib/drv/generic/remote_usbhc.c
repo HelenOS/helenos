@@ -41,6 +41,7 @@
 
 #define USB_MAX_PAYLOAD_SIZE 1020
 
+static void remote_usbhc_get_address(device_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbhc_get_buffer(device_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbhc_interrupt_out(device_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbhc_interrupt_in(device_t *, void *, ipc_callid_t, ipc_call_t *);
@@ -48,9 +49,10 @@ static void remote_usbhc_interrupt_in(device_t *, void *, ipc_callid_t, ipc_call
 
 /** Remote USB interface operations. */
 static remote_iface_func_ptr_t remote_usbhc_iface_ops [] = {
-	&remote_usbhc_get_buffer,
-	&remote_usbhc_interrupt_out,
-	&remote_usbhc_interrupt_in
+	remote_usbhc_get_address,
+	remote_usbhc_get_buffer,
+	remote_usbhc_interrupt_out,
+	remote_usbhc_interrupt_in
 };
 
 /** Remote USB interface structure.
@@ -67,6 +69,26 @@ typedef struct {
 	size_t size;
 } async_transaction_t;
 
+void remote_usbhc_get_address(device_t *device, void *iface,
+    ipc_callid_t callid, ipc_call_t *call)
+{
+	usbhc_iface_t *usb_iface = (usbhc_iface_t *) iface;
+
+	if (!usb_iface->tell_address) {
+		ipc_answer_0(callid, ENOTSUP);
+		return;
+	}
+
+	devman_handle_t handle = IPC_GET_ARG1(*call);
+
+	usb_address_t address;
+	int rc = usb_iface->tell_address(device, handle, &address);
+	if (rc != EOK) {
+		ipc_answer_0(callid, rc);
+	} else {
+		ipc_answer_1(callid, EOK, address);
+	}
+}
 
 void remote_usbhc_get_buffer(device_t *device, void *iface,
     ipc_callid_t callid, ipc_call_t *call)

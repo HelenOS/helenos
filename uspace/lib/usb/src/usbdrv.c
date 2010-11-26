@@ -74,7 +74,15 @@ int usb_drv_hc_connect(device_t *dev, unsigned int flags)
  */
 usb_address_t usb_drv_get_my_address(int phone, device_t *dev)
 {
-	return ENOTSUP;
+	ipcarg_t address;
+	int rc = async_req_1_1(phone, IPC_M_USBHC_GET_ADDRESS,
+	    dev->handle, &address);
+
+	if (rc != EOK) {
+		return rc;
+	}
+
+	return (usb_address_t) address;
 }
 
 /** Send data to HCD.
