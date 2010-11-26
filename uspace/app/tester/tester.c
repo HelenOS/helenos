@@ -63,6 +63,7 @@ test_t tests[] = {
 #include "ipc/connect.def"
 #include "loop/loop1.def"
 #include "mm/malloc1.def"
+#include "hw/serial/serial1.def"
 	{NULL, NULL, NULL, false}
 };
 

@@ -49,6 +49,7 @@ SOURCES = \
 	ipc/register.c \
 	ipc/connect.c \
 	loop/loop1.c \
-	mm/malloc1.c
+	mm/malloc1.c \
+	hw/serial/serial1.c
 
 include $(USPACE_PREFIX)/Makefile.common
