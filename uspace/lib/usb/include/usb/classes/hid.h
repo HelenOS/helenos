@@ -35,6 +35,9 @@
 #ifndef LIBUSB_HID_H_
 #define LIBUSB_HID_H_
 
+#include <usb/usb.h>
+#include <driver.h>
+
 /** USB/HID device requests. */
 typedef enum {
 	USB_HIDREQ_GET_REPORT = 1,
@@ -52,6 +55,17 @@ typedef enum {
 	USB_HID_PROTOCOL_KEYBOARD = 1,
 	USB_HID_PROTOCOL_MOUSE = 2
 } usb_hid_protocol_t;
+
+/**
+ * @brief USB/HID keyboard device type.
+ *
+ * Quite dummy right now.
+ */
+typedef struct {
+	device_t *device;
+	usb_address_t address;
+	usb_endpoint_t default_ep;
+} usb_hid_dev_kbd_t;
 
 #endif
 /**
