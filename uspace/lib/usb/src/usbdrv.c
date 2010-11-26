@@ -63,7 +63,21 @@ int usb_drv_hc_connect(device_t *dev, unsigned int flags)
 	/*
 	 * Call parent hub to obtain device handle of respective HC.
 	 */
-	return ENOTSUP;
+
+	/*
+	 * FIXME: currently we connect always to virtual host controller.
+	 */
+	int rc;
+	devman_handle_t handle;
+
+	rc = devman_device_get_handle("/vhc", &handle, 0);
+	if (rc != EOK) {
+		return rc;
+	}
+	
+	int phone = devman_device_connect(handle, 0);
+
+	return phone;
 }
 
 /** Tell USB address assigned to given device.
