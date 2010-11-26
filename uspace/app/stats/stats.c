@@ -55,12 +55,14 @@ int main(int argc, char *argv[])
 	}
 	
 	uint64_t sec = time.tv_sec;
-	printf("%02" PRIu64 ":%02" PRIu64 ":%02" PRIu64, (sec % DAY) / HOUR,
-	    (sec % HOUR) / MINUTE, sec % MINUTE);
+	printf("%02" PRIu64 ":%02" PRIu64 ":%02" PRIu64,
+	    (sec % DAY) / HOUR, (sec % HOUR) / MINUTE, sec % MINUTE);
 	
 	sysarg_t uptime = stats_get_uptime();
-	printf(", up %u days, %u hours, %u minutes, %u seconds", uptime / DAY,
-	    (uptime % DAY) / HOUR, (uptime % HOUR) / MINUTE, uptime % MINUTE);
+	printf(", up %" PRIun " days, %" PRIun " hours, "
+	    "%" PRIun " minutes, %" PRIun " seconds",
+	    uptime / DAY, (uptime % DAY) / HOUR,
+	    (uptime % HOUR) / MINUTE, uptime % MINUTE);
 	
 	size_t count;
 	load_t *load = stats_get_load(&count);

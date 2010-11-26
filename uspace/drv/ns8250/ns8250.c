@@ -275,7 +275,7 @@ static bool ns8250_pio_enable(device_t *dev)
 	/* Gain control over port's registers. */
 	if (pio_enable((void *) data->io_addr, REG_COUNT,
 	    (void **) &data->port)) {
-		printf(NAME ": error - cannot gain the port %lx for device "
+		printf(NAME ": error - cannot gain the port %#" PRIx32 " for device "
 		    "%s.\n", data->io_addr, dev->name);
 		return false;
 	}

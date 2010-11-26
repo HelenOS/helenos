@@ -190,7 +190,7 @@ int cmd_add_breakpoint(cmd_arg_t *argv)
 		return 0;
 	}
 	
-	printf("Adding breakpoint on address %p\n", argv->intval);
+	printf("Adding breakpoint on address %p\n", (void *) argv->intval);
 	
 	cur->address = (uintptr_t) argv->intval;
 	cur->instruction = ((unative_t *) cur->address)[0];
@@ -266,8 +266,8 @@ int cmd_print_breakpoints(cmd_arg_t *argv)
 			const char *symbol = symtab_fmt_name_lookup(
 			    breakpoints[i].address);
 			
-			printf("%-4u %7" PRIs " %p %-8s %-9s %-10s %s\n", i,
-			    breakpoints[i].counter, breakpoints[i].address,
+			printf("%-4u %7zu %p %-8s %-9s %-10s %s\n", i,
+			    breakpoints[i].counter, (void *) breakpoints[i].address,
 			    ((breakpoints[i].flags & BKPOINT_INPROG) ? "true" :
 			    "false"), ((breakpoints[i].flags & BKPOINT_ONESHOT)
 			    ? "true" : "false"), ((breakpoints[i].flags &
@@ -365,7 +365,8 @@ void debugger_bpoint(istate_t *istate)
 			printf("Warning: breakpoint recursion\n");
 		
 		if (!(cur->flags & BKPOINT_FUNCCALL)) {
-			printf("***Breakpoint %u: %p in %s.\n", i, fireaddr,
+			printf("***Breakpoint %u: %p in %s.\n", i,
+			    (void *) fireaddr,
 			    symtab_fmt_name_lookup(fireaddr));
 		}
 		
@@ -380,7 +381,8 @@ void debugger_bpoint(istate_t *istate)
 		} 
 		cur->flags |= BKPOINT_INPROG;
 	} else {
-		printf("***Breakpoint %d: %p in %s.\n", i, fireaddr,
+		printf("***Breakpoint %d: %p in %s.\n", i,
+		    (void *) fireaddr,
 		    symtab_fmt_name_lookup(fireaddr));
 		
 		/* Move on to next instruction */
