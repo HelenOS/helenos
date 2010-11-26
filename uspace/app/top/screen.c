@@ -149,13 +149,17 @@ static void print_string(const char *str)
 	ipcarg_t r;
 	screen_get_pos(&c, &r);
 	
-	if (c < cols)
-		printf("%.*s", cols - c - 1, str);
+	if (c < cols) {
+		int pos = cols - c - 1;
+		printf("%.*s", pos, str);
+	}
 }
 
 static inline void print_global_head(data_t *data)
 {
-	printf("top - %02lu:%02lu:%02lu up %u days, %02u:%02u:%02u, load average:",
+	printf("top - %02lu:%02lu:%02lu up "
+	    "%" PRIun " days, %02" PRIun ":%02" PRIun ":%02" PRIun ", "
+	    "load average:",
 	    data->hours, data->minutes, data->seconds,
 	    data->udays, data->uhours, data->uminutes, data->useconds);
 	
@@ -170,7 +174,7 @@ static inline void print_global_head(data_t *data)
 
 static inline void print_task_summary(data_t *data)
 {
-	printf("tasks: %u total", data->tasks_count);
+	printf("tasks: %zu total", data->tasks_count);
 	screen_newline();
 }
 
@@ -210,8 +214,8 @@ static inline void print_thread_summary(data_t *data)
 		}
 	}
 	
-	printf("threads: %u total, %u running, %u ready, %u sleeping, %u lingering, "
-	    "%u other, %u invalid",
+	printf("threads: %zu total, %zu running, %zu ready, "
+	    "%zu sleeping, %zu lingering, %zu other, %zu invalid",
 	    total, running, ready, sleeping, lingering, other, invalid);
 	screen_newline();
 }
@@ -294,7 +298,7 @@ static inline void print_tasks(data_t *data)
 		char virtmem_suffix;
 		order_suffix(task->virtmem, &virtmem, &virtmem_suffix);
 		
-		printf("%-8" PRIu64 " %9u %8" PRIu64 "%c ", task->task_id,
+		printf("%-8" PRIu64 " %9zu %8" PRIu64 "%c ", task->task_id,
 		    task->threads, virtmem, virtmem_suffix);
 		print_percent(perc->virtmem, 2);
 		puts(" ");
