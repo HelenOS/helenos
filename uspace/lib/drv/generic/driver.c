@@ -164,6 +164,8 @@ static void driver_add_device(ipc_callid_t iid, ipc_call_t *icall)
 	int res = EOK;
 	
 	devman_handle_t dev_handle =  IPC_GET_ARG1(*icall);
+    	devman_handle_t parent_dev_handle = IPC_GET_ARG2(*icall);
+    
 	device_t *dev = create_device();
 	dev->handle = dev_handle;
 	
@@ -171,6 +173,8 @@ static void driver_add_device(ipc_callid_t iid, ipc_call_t *icall)
 	dev->name = dev_name;
 	
 	add_to_devices_list(dev);
+	dev->parent = driver_get_device(&devices, parent_dev_handle);
+	
 	res = driver->driver_ops->add_device(dev);
 	if (0 == res) {
 		printf("%s: new device with handle=%" PRIun " was added.\n",
