@@ -110,7 +110,8 @@ static int on_request_for_data(struct usbvirt_device *dev,
  * We abuse the fact that static variables are zero-filled.
  */
 static usbvirt_device_ops_t keyboard_ops = {
-	.standard_request_ops = &standard_request_ops,
+	.on_standard_request[USB_DEVREQ_GET_DESCRIPTOR]
+	    = stdreq_on_get_descriptor,
 	.on_class_device_request = on_class_request,
 	.on_data = on_incoming_data,
 	.on_data_request = on_request_for_data

@@ -37,6 +37,7 @@
 
 #include <usbvirt/device.h>
 #include <usbvirt/hub.h>
+#include <assert.h>
 
 
 #define DEVICE_HAS_OP(dev, op) \

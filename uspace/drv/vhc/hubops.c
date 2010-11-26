@@ -64,24 +64,9 @@ static int on_data_request(struct usbvirt_device *dev,
     usb_endpoint_t endpoint,
     void *buffer, size_t size, size_t *actual_size);
 
-/** Standard USB requests. */
-static usbvirt_standard_device_request_ops_t standard_request_ops = {
-	.on_get_status = NULL,
-	.on_clear_feature = NULL,
-	.on_set_feature = NULL,
-	.on_set_address = NULL,
-	.on_get_descriptor = on_get_descriptor,
-	.on_set_descriptor = NULL,
-	.on_get_configuration = NULL,
-	.on_set_configuration = NULL,
-	.on_get_interface = NULL,
-	.on_set_interface = NULL,
-	.on_synch_frame = NULL
-};
-
 /** Hub operations. */
 usbvirt_device_ops_t hub_ops = {
-	.standard_request_ops = &standard_request_ops,
+	.on_standard_request[USB_DEVREQ_GET_DESCRIPTOR] = on_get_descriptor,
 	.on_class_device_request = on_class_request,
 	.on_data = NULL,
 	.on_data_request = on_data_request
