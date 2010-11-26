@@ -1515,8 +1515,8 @@ dpeth_t *dep;
 //		return;
 	if (!wdeth_probe(dep) && !ne_probe(dep) && !el2_probe(dep))
 	{
-		printf("%s: No ethernet card found at 0x%x\n", 
-			dep->de_name, dep->de_base_port);
+		printf("%s: No ethernet card found at %#lx\n",
+		    dep->de_name, dep->de_base_port);
 		dep->de_mode= DEM_DISABLED;
 		return;
 	}

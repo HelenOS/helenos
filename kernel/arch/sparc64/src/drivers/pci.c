@@ -210,7 +210,8 @@ pci_t *pci_init(ofw_tree_node_t *node)
 		/*
 		 * Unsupported model.
 		 */
-		printf("Unsupported PCI controller model (%s).\n", prop->value);
+		printf("Unsupported PCI controller model (%s).\n",
+		    (char *) prop->value);
 	}
 
 	return NULL;

@@ -191,7 +191,7 @@ void symtab_print_search(const char *name)
 	while (symtab_search_one(name, &pos)) {
 		uintptr_t addr = uint64_t_le2host(symbol_table[pos].address_le);
 		char *realname = symbol_table[pos].symbol_name;
-		printf("%p: %s\n", addr, realname);
+		printf("%p: %s\n", (void *) addr, realname);
 		pos++;
 	}
 	

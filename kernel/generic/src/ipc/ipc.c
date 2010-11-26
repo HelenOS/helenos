@@ -701,12 +701,12 @@ void ipc_print_task(task_id_t taskid)
 	size_t i;
 	for (i = 0; i < IPC_MAX_PHONES; i++) {
 		if (SYNCH_FAILED(mutex_trylock(&task->phones[i].lock))) {
-			printf("%d: mutex busy\n", i);
+			printf("%zu: mutex busy\n", i);
 			continue;
 		}
 		
 		if (task->phones[i].state != IPC_PHONE_FREE) {
-			printf("%" PRIs ": ", i);
+			printf("%zu: ", i);
 			
 			switch (task->phones[i].state) {
 			case IPC_PHONE_CONNECTING:

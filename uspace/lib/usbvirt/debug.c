@@ -59,7 +59,7 @@ static void debug_print(int level, uint8_t tag,
 	}
 	
 	if (print_prefix) {
-		printf("[vusb]: ", level);
+		printf("[vusb]: ");
 		while (--level > 0) {
 			printf(" ");
 		}

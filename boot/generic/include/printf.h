@@ -35,10 +35,22 @@
 #include <typedefs.h>
 #include <stdarg.h>
 
+#ifndef NVERIFY_PRINTF
+
+#define PRINTF_ATTRIBUTE(start, end) \
+	__attribute__((format(gnu_printf, start, end)))
+
+#else /* NVERIFY_PRINTF */
+
+#define PRINTF_ATTRIBUTE(start, end)
+
+#endif /* NVERIFY_PRINTF */
+
 #define EOF  (-1)
 
 extern int puts(const char *);
-extern int printf(const char *, ...);
+extern int printf(const char *, ...)
+    PRINTF_ATTRIBUTE(1, 2);
 extern int vprintf(const char *, va_list);
 
 #endif

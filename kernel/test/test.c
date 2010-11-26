@@ -56,6 +56,7 @@ test_t tests[] = {
 #include <print/print2.def>
 #include <print/print3.def>
 #include <print/print4.def>
+#include <print/print5.def>
 #include <thread/thread1.def>
 	{
 		.name = NULL,

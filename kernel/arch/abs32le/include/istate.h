@@ -36,15 +36,20 @@
 #define KERN_abs32le_ISTATE_H_
 
 #ifdef KERNEL
+
 #include <typedefs.h>
 #include <verify.h>
 #include <trace.h>
-#else
+
+#else /* KERNEL */
+
 #include <sys/types.h>
+
 #define NO_TRACE
 #define REQUIRES_EXTENT_MUTABLE(arg)
 #define WRITES(arg)
-#endif
+
+#endif /* KERNEL */
 
 /*
  * On real hardware this stores the registers which
@@ -62,7 +67,7 @@ NO_TRACE static inline int istate_from_uspace(istate_t *istate)
 	/* On real hardware this checks whether the interrupted
 	   context originated from user space. */
 	
-	return !(istate->ip & 0x80000000);
+	return !(istate->ip & UINT32_C(0x80000000));
 }
 
 NO_TRACE static inline void istate_set_retaddr(istate_t *istate,
