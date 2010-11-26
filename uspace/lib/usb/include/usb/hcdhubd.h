@@ -174,5 +174,6 @@ int usb_hc_async_control_read_status(usb_hc_device_t *, usb_target_t,
 
 int usb_hc_async_wait_for(usb_handle_t);
 
+int usb_hc_add_child_device(device_t *, const char *, const char *);
 
 #endif

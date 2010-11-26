@@ -262,55 +262,103 @@ int usb_hcd_main(usb_hc_driver_t *hc)
  */
 int usb_hcd_add_root_hub(usb_hc_device_t *dev)
 {
+	char *id;
+	int rc = asprintf(&id, "usb&hc=%s&hub", dev->generic->name);
+	if (rc <= 0) {
+		return rc;
+	}
+
+	rc = usb_hc_add_child_device(dev->generic, USB_HUB_DEVICE_NAME, id);
+	if (rc != EOK) {
+		free(id);
+	}
+
+	return rc;
+}
+
+/** Info about child device. */
+struct child_device_info {
+	device_t *parent;
+	const char *name;
+	const char *match_id;
+};
+
+/** Adds a child device fibril worker. */
+static int fibril_add_child_device(void *arg)
+{
+	struct child_device_info *child_info
+	    = (struct child_device_info *) arg;
 	int rc;
 
-	/*
-	 * Announce presence of child device.
-	 */
-	device_t *hub = NULL;
+	device_t *child = create_device();
 	match_id_t *match_id = NULL;
 
-	hub = create_device();
-	if (hub == NULL) {
+	if (child == NULL) {
 		rc = ENOMEM;
 		goto failure;
 	}
-	hub->name = USB_HUB_DEVICE_NAME;
+	child->name = child_info->name;
 
 	match_id = create_match_id();
 	if (match_id == NULL) {
 		rc = ENOMEM;
 		goto failure;
 	}
+	match_id->id = child_info->match_id;
+	match_id->score = 10;
+	printf("adding child device with match \"%s\"\n", match_id->id);
+	add_match_id(&child->match_ids, match_id);
 
-	char *id;
-	rc = asprintf(&id, "usb&hc=%s&hub", dev->generic->name);
-	if (rc <= 0) {
-		rc = ENOMEM;
-		goto failure;
-	}
-
-	match_id->id = id;
-	match_id->score = 30;
-
-	add_match_id(&hub->match_ids, match_id);
-
-	rc = child_device_register(hub, dev->generic);
+	rc = child_device_register(child, child_info->parent);
 	if (rc != EOK) {
 		goto failure;
 	}
 
-	printf("%s: registered root hub\n", dev->generic->name);
-	return EOK;
+	goto leave;
 
 failure:
-	if (hub != NULL) {
-		hub->name = NULL;
-		delete_device(hub);
+	if (child != NULL) {
+		child->name = NULL;
+		delete_device(child);
 	}
-	delete_match_id(match_id);
 
+	if (match_id != NULL) {
+		match_id->id = NULL;
+		delete_match_id(match_id);
+	}
+
+leave:
+	free(arg);
 	return rc;
+}
+
+/** Adds a child.
+ * Due to deadlock in devman when parent registers child that oughts to be
+ * driven by the same task, the child adding is done in separate fibril.
+ * Not optimal, but it works.
+ *
+ * @param parent Parent device.
+ * @param name Device name.
+ * @param match_id Match id.
+ * @return Error code.
+ */
+int usb_hc_add_child_device(device_t *parent, const char *name,
+    const char *match_id)
+{
+	struct child_device_info *child_info
+	    = malloc(sizeof(struct child_device_info));
+
+	child_info->parent = parent;
+	child_info->name = name;
+	child_info->match_id = match_id;
+
+	fid_t fibril = fibril_create(fibril_add_child_device, child_info);
+	if (!fibril) {
+		return ENOMEM;
+	}
+	fibril_add_ready(fibril);
+
+	return EOK;
 }
 
 /**
