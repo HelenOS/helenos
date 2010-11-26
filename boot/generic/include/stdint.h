@@ -32,29 +32,29 @@
 #ifndef BOOT_STDINT_H_
 #define BOOT_STDINT_H_
 
-#define INT8_MIN  (0x80)
-#define INT8_MAX  (0x7F)
+#define INT8_MIN  INT8_C(0x80)
+#define INT8_MAX  INT8_C(0x7F)
 
-#define UINT8_MIN  (0u)
-#define UINT8_MAX  (0xFFu)
+#define UINT8_MIN  UINT8_C(0)
+#define UINT8_MAX  UINT8_C(0xFF)
 
-#define INT16_MIN  (0x8000)
-#define INT16_MAX  (0x7FFF)
+#define INT16_MIN  INT16_C(0x8000)
+#define INT16_MAX  INT16_C(0x7FFF)
 
-#define UINT16_MIN  (0u)
-#define UINT16_MAX  (0xFFFFu)
+#define UINT16_MIN  UINT16_C(0)
+#define UINT16_MAX  UINT16_C(0xFFFF)
 
-#define INT32_MIN  (0x80000000l)
-#define INT32_MAX  (0x7FFFFFFFl)
+#define INT32_MIN  INT32_C(0x80000000)
+#define INT32_MAX  INT32_C(0x7FFFFFFF)
 
-#define UINT32_MIN  (0ul)
-#define UINT32_MAX  (0xFFFFFFFFul)
+#define UINT32_MIN  UINT32_C(0)
+#define UINT32_MAX  UINT32_C(0xFFFFFFFF)
 
-#define INT64_MIN  (0x8000000000000000ll)
-#define INT64_MAX  (0x7FFFFFFFFFFFFFFFll)
+#define INT64_MIN  INT64_C(0x8000000000000000)
+#define INT64_MAX  INT64_C(0x7FFFFFFFFFFFFFFF)
 
-#define UINT64_MIN  (0ull)
-#define UINT64_MAX  (0xFFFFFFFFFFFFFFFFull)
+#define UINT64_MIN  UINT64_C(0)
+#define UINT64_MAX  UINT64_C(0xFFFFFFFFFFFFFFFF)
 
 #endif
 

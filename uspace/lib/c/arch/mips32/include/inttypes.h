@@ -29,22 +29,14 @@
 /** @addtogroup libcmips32
  * @{
  */
-/** @file Macros for format specifiers.
- *
- * Macros for formatting stdint types as specified in section
- * 7.8.1 Macros for format specifiers of the C99 draft specification
- * (ISO/IEC 9899:201x). Only some macros from the specification are
- * implemented.
- */
 
 #ifndef LIBC_mips32_INTTYPES_H_
 #define LIBC_mips32_INTTYPES_H_
 
-#define PRIdPTR  PRId32
-#define PRIoPTR  PRIo32
-#define PRIuPTR  PRIu32
-#define PRIxPTR  PRIx32
-#define PRIXPTR  PRIX32
+#define PRIdn  PRId32  /**< Format for sysarg_t, ipcarg_t, etc. */
+#define PRIun  PRIu32  /**< Format for sysarg_t, ipcarg_t, etc. */
+#define PRIxn  PRIx32  /**< Format for hexadecimal sysarg_t, ipcarg_t, etc. */
+#define PRIua  PRIu32  /**< Format for atomic_count_t. */
 
 #endif
 

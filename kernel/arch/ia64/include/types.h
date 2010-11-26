@@ -51,11 +51,13 @@ typedef struct {
 	unative_t gp;
 } __attribute__((may_alias)) fncptr_t;
 
-#define PRIp   PRIx64  /**< Format for uintptr_t. */
-#define PRIs   PRIu64  /**< Format for size_t. */
+#define INTN_C(c)   INT64_C(c)
+#define UINTN_C(c)  UINT64_C(c)
+
 #define PRIdn  PRId64  /**< Format for native_t. */
 #define PRIun  PRIu64  /**< Format for unative_t. */
 #define PRIxn  PRIx64  /**< Format for hexadecimal unative_t. */
+#define PRIua  PRIu64  /**< Format for atomic_count_t. */
 
 #endif
 
