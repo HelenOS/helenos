@@ -65,7 +65,7 @@ typedef enum {
  *
  */
 typedef struct {
-	size_t id;               /**< CPU ID as stored by kernel */
+	unsigned int id;         /**< CPU ID as stored by kernel */
 	bool active;             /**< CPU is activate */
 	uint16_t frequency_mhz;  /**< Frequency in MHz */
 	uint64_t idle_cycles;    /**< Number of idle cycles */
