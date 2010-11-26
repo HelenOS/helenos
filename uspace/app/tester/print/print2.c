@@ -32,9 +32,9 @@
 
 const char *test_print2(void)
 {
-	TPRINTF("Testing printf(\"%%c %%3.2c %%-3.2c %%2.3c %%-2.3c\", 'a', 'b', 'c', 'd', 'e'):\n");
-	TPRINTF("Expected output: [a] [  b] [c  ] [ d] [e ]\n");
-	TPRINTF("Real output:     [%c] [%3.2c] [%-3.2c] [%2.3c] [%-2.3c]\n\n", 'a', 'b', 'c', 'd', 'e');
+	TPRINTF("Testing printf(\"%%c\", 'a'):\n");
+	TPRINTF("Expected output: [a]\n");
+	TPRINTF("Real output:     [%c]\n\n", 'a');
 	
 	TPRINTF("Testing printf(\"%%d %%3.2d %%-3.2d %%2.3d %%-2.3d\", 1, 2, 3, 4, 5):\n");
 	TPRINTF("Expected output: [1] [ 02] [03 ] [004] [005]\n");

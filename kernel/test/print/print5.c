@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2005 Josef Cejka
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,41 +26,30 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic
- * @{
+/*
+ * This test tests several features of the HelenOS
+ * printf() implementation which go beyond the POSIX
+ * specification and GNU printf() behaviour.
+ *
+ * Therefore we disable printf() argument checking by
+ * the GCC compiler in this source file to avoid false
+ * positives.
+ *
  */
-/** @file
- */
+#define NVERIFY_PRINTF
 
-#ifndef KERN_PRINT_H_
-#define KERN_PRINT_H_
+#include <print.h>
+#include <test.h>
 
-#include <typedefs.h>
-#include <stdarg.h>
-
-#ifndef NVERIFY_PRINTF
-
-#define PRINTF_ATTRIBUTE(start, end) \
-	__attribute__((format(gnu_printf, start, end)))
-
-#else /* NVERIFY_PRINTF */
-
-#define PRINTF_ATTRIBUTE(start, end)
-
-#endif /* NVERIFY_PRINTF */
-
-#define EOF  (-1)
-
-extern int puts(const char *s);
-extern int printf(const char *fmt, ...)
-    PRINTF_ATTRIBUTE(1, 2);
-extern int snprintf(char *str, size_t size, const char *fmt, ...)
-    PRINTF_ATTRIBUTE(3, 4);
-
-extern int vprintf(const char *fmt, va_list ap);
-extern int vsnprintf(char *str, size_t size, const char *fmt, va_list ap);
-
-#endif
-
-/** @}
- */
+const char *test_print5(void)
+{
+	TPRINTF("Testing printf(\"%%s\", NULL):\n");
+	TPRINTF("Expected output: \"(NULL)\"\n");
+	TPRINTF("Real output:     \"%s\"\n\n", (char *) NULL);
+	
+	TPRINTF("Testing printf(\"%%c %%3.2c %%-3.2c %%2.3c %%-2.3c\", 'a', 'b', 'c', 'd', 'e'):\n");
+	TPRINTF("Expected output: [a] [  b] [c  ] [ d] [e ]\n");
+	TPRINTF("Real output:     [%c] [%3.2c] [%-3.2c] [%2.3c] [%-2.3c]\n\n", 'a', 'b', 'c', 'd', 'e');
+	
+	return NULL;
+}
