@@ -37,6 +37,7 @@ SOURCES = \
 	print/print2.c \
 	print/print3.c \
 	print/print4.c \
+	print/print5.c \
 	console/console1.c \
 	stdio/stdio1.c \
 	stdio/stdio2.c \
