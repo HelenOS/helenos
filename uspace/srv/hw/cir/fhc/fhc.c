@@ -128,7 +128,7 @@ static bool fhc_init(void)
 		return false;
 	}
 	
-	printf(NAME ": FHC UART registers at %p, %d bytes\n", fhc_uart_phys,
+	printf(NAME ": FHC UART registers at %p, %zu bytes\n", fhc_uart_phys,
 	    fhc_uart_size);
 	
 	async_set_client_connection(fhc_connection);

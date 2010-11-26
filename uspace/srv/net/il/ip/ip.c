@@ -460,7 +460,7 @@ static int ip_netif_initialize(ip_netif_t *ip_netif)
 		return rc;
 	
 	if (ip_netif->packet_dimension.content < IP_MIN_CONTENT) {
-		printf("Maximum transmission unit %d bytes is too small, at "
+		printf("Maximum transmission unit %zu bytes is too small, at "
 		    "least %d bytes are needed\n",
 		    ip_netif->packet_dimension.content, IP_MIN_CONTENT);
 		ip_netif->packet_dimension.content = IP_MIN_CONTENT;
@@ -501,7 +501,7 @@ static int ip_mtu_changed_message(device_id_t device_id, size_t mtu)
 	netif->packet_dimension.content = mtu;
 	fibril_rwlock_write_unlock(&ip_globals.netifs_lock);
 
-	printf("%s: Device %d changed MTU to %d\n", NAME, device_id, mtu);
+	printf("%s: Device %d changed MTU to %zu\n", NAME, device_id, mtu);
 
 	return EOK;
 }

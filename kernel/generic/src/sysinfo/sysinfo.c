@@ -493,7 +493,7 @@ NO_TRACE static void sysinfo_dump_internal(sysinfo_item_t *root, unsigned int de
 			    cur->val.val, cur->val.val);
 			break;
 		case SYSINFO_VAL_DATA:
-			printf("+ %s (%" PRIs" bytes)\n", cur->name,
+			printf("+ %s (%zu bytes)\n", cur->name,
 			    cur->val.data.size);
 			break;
 		case SYSINFO_VAL_FUNCTION_VAL:
@@ -504,7 +504,7 @@ NO_TRACE static void sysinfo_dump_internal(sysinfo_item_t *root, unsigned int de
 		case SYSINFO_VAL_FUNCTION_DATA:
 			/* N.B.: No data was actually returned (only a dry run) */
 			(void) cur->val.fn_data(cur, &size, true);
-			printf("+ %s (%" PRIs" bytes) [generated]\n", cur->name,
+			printf("+ %s (%zu bytes) [generated]\n", cur->name,
 			    size);
 			break;
 		default:

@@ -49,7 +49,7 @@ void stacktrace_print_fp_pc(uintptr_t fp, uintptr_t pc)
 	st.read_uintptr = stacktrace_read_uintptr;
 
 	while (stacktrace_fp_valid(&st, fp)) {
-		printf("%p: %p()\n", fp, pc);
+		printf("%p: %p()\n", (void *) fp, (void *) pc);
 		(void) stacktrace_ra_get(&st, fp, &pc);
 		(void) stacktrace_fp_prev(&st, fp, &nfp);
 		fp = nfp;

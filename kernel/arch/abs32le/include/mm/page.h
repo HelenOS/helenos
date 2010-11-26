@@ -43,8 +43,8 @@
 
 #ifdef KERNEL
 
-#define KA2PA(x)  (((uintptr_t) (x)) - 0x80000000)
-#define PA2KA(x)  (((uintptr_t) (x)) + 0x80000000)
+#define KA2PA(x)  (((uintptr_t) (x)) - UINT32_C(0x80000000))
+#define PA2KA(x)  (((uintptr_t) (x)) + UINT32_C(0x80000000))
 
 /*
  * This is an example of 2-level page tables (PTL1 and PTL2 are left out)
@@ -64,10 +64,10 @@
 #define PTL3_SIZE_ARCH  ONE_FRAME
 
 /* Macros calculating indices for each level. */
-#define PTL0_INDEX_ARCH(vaddr)  (((vaddr) >> 22) & 0x3ff)
+#define PTL0_INDEX_ARCH(vaddr)  (((vaddr) >> 22) & 0x3ffU)
 #define PTL1_INDEX_ARCH(vaddr)  0
 #define PTL2_INDEX_ARCH(vaddr)  0
-#define PTL3_INDEX_ARCH(vaddr)  (((vaddr) >> 12) & 0x3ff)
+#define PTL3_INDEX_ARCH(vaddr)  (((vaddr) >> 12) & 0x3ffU)
 
 /* Get PTE address accessors for each level. */
 #define GET_PTL1_ADDRESS_ARCH(ptl0, i) \

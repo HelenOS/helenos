@@ -38,18 +38,22 @@
 #include <arch/mm/frame.h>
 #include <trace.h>
 
-#define PAGE_WIDTH	FRAME_WIDTH
-#define PAGE_SIZE	FRAME_SIZE
+#define PAGE_WIDTH  FRAME_WIDTH
+#define PAGE_SIZE   FRAME_SIZE
 
 #ifdef KERNEL
 
 #ifndef __ASM__
-#	define KA2PA(x)	(((uintptr_t) (x)) - 0x80000000)
-#	define PA2KA(x)	(((uintptr_t) (x)) + 0x80000000)
-#else
-#	define KA2PA(x)	((x) - 0x80000000)
-#	define PA2KA(x)	((x) + 0x80000000)
-#endif
+
+#define KA2PA(x)  (((uintptr_t) (x)) - UINT32_C(0x80000000))
+#define PA2KA(x)  (((uintptr_t) (x)) + UINT32_C(0x80000000))
+
+#else /* __ASM__ */
+
+#define KA2PA(x)  ((x) - 0x80000000)
+#define PA2KA(x)  ((x) + 0x80000000)
+
+#endif /* __ASM__ */
 
 /*
  * Implementation of generic 4-level page table interface.
@@ -57,22 +61,22 @@
  */
 
 /* Number of entries in each level. */
-#define PTL0_ENTRIES_ARCH	1024
-#define PTL1_ENTRIES_ARCH	0
-#define PTL2_ENTRIES_ARCH	0
-#define PTL3_ENTRIES_ARCH	1024
+#define PTL0_ENTRIES_ARCH  1024
+#define PTL1_ENTRIES_ARCH  0
+#define PTL2_ENTRIES_ARCH  0
+#define PTL3_ENTRIES_ARCH  1024
 
 /* Page table sizes for each level. */
-#define PTL0_SIZE_ARCH		ONE_FRAME
-#define PTL1_SIZE_ARCH		0
-#define PTL2_SIZE_ARCH		0
-#define PTL3_SIZE_ARCH		ONE_FRAME
+#define PTL0_SIZE_ARCH  ONE_FRAME
+#define PTL1_SIZE_ARCH  0
+#define PTL2_SIZE_ARCH  0
+#define PTL3_SIZE_ARCH  ONE_FRAME
 
 /* Macros calculating indices for each level. */
-#define PTL0_INDEX_ARCH(vaddr)	(((vaddr) >> 22) & 0x3ff)
-#define PTL1_INDEX_ARCH(vaddr)	0
-#define PTL2_INDEX_ARCH(vaddr)	0
-#define PTL3_INDEX_ARCH(vaddr)	(((vaddr) >> 12) & 0x3ff)
+#define PTL0_INDEX_ARCH(vaddr)  (((vaddr) >> 22) & 0x3ffU)
+#define PTL1_INDEX_ARCH(vaddr)  0
+#define PTL2_INDEX_ARCH(vaddr)  0
+#define PTL3_INDEX_ARCH(vaddr)  (((vaddr) >> 12) & 0x3ffU)
 
 /* Get PTE address accessors for each level. */
 #define GET_PTL1_ADDRESS_ARCH(ptl0, i) \
@@ -121,7 +125,7 @@
 	((p)->frame_address << FRAME_WIDTH)
 #define PTE_WRITABLE_ARCH(p) \
 	((p)->writeable != 0)
-#define PTE_EXECUTABLE_ARCH(p)			1
+#define PTE_EXECUTABLE_ARCH(p)  1
 
 #ifndef __ASM__
 
@@ -143,7 +147,7 @@
 #define PFERR_CODE_US		(1 << 2)
 
 /** When bit on this position is 1, a reserved bit was set in page directory. */ 
-#define PFERR_CODE_RSVD		(1 << 3)	
+#define PFERR_CODE_RSVD		(1 << 3)
 
 /** Page Table Entry. */
 typedef struct {

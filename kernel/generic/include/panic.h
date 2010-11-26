@@ -36,6 +36,7 @@
 #define KERN_PANIC_H_
 
 #include <typedefs.h>
+#include <print.h>
 
 #define panic(fmt, ...) \
 	panic_common(PANIC_OTHER, NULL, 0, 0, fmt, ##__VA_ARGS__)
@@ -61,7 +62,8 @@ struct istate;
 extern bool silent;
 
 extern void panic_common(panic_category_t, struct istate *, int,
-    uintptr_t, const char *, ...) __attribute__ ((noreturn));
+    uintptr_t, const char *, ...) __attribute__ ((noreturn))
+    PRINTF_ATTRIBUTE(5, 6);
 
 #endif
 

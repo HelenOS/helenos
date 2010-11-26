@@ -67,6 +67,7 @@ extern const char *test_print1(void);
 extern const char *test_print2(void);
 extern const char *test_print3(void);
 extern const char *test_print4(void);
+extern const char *test_print5(void);
 extern const char *test_console1(void);
 extern const char *test_stdio1(void);
 extern const char *test_stdio2(void);
@@ -79,6 +80,7 @@ extern const char *test_register(void);
 extern const char *test_connect(void);
 extern const char *test_loop1(void);
 extern const char *test_malloc1(void);
+extern const char *test_serial1(void);
 
 extern test_t tests[];
 

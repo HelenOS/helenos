@@ -38,10 +38,10 @@
 #include <typedefs.h>
 #include <arch/interrupt.h>
 
-#define PIC_PIC0PORT1  ((ioport8_t *) 0x20)
-#define PIC_PIC0PORT2  ((ioport8_t *) 0x21)
-#define PIC_PIC1PORT1  ((ioport8_t *) 0xa0)
-#define PIC_PIC1PORT2  ((ioport8_t *) 0xa1)
+#define PIC_PIC0PORT1  ((ioport8_t *) 0x20U)
+#define PIC_PIC0PORT2  ((ioport8_t *) 0x21U)
+#define PIC_PIC1PORT1  ((ioport8_t *) 0xa0U)
+#define PIC_PIC1PORT2  ((ioport8_t *) 0xa1U)
 
 #define PIC_NEEDICW4  (1 << 0)
 #define PIC_ICW1      (1 << 4)

@@ -43,7 +43,7 @@ const char *test_print4(void)
 		
 		TPRINTF("  ");
 		for (index = 0; index < 32; index++)
-			TPRINTF("%lc", (wchar_t) ((group << 5) + index));
+			TPRINTF("%lc", (wint_t) ((group << 5) + index));
 		
 		TPRINTF("\n");
 	}
@@ -55,7 +55,7 @@ const char *test_print4(void)
 		
 		uint8_t index;
 		for (index = 0; index < 32; index++)
-			TPRINTF("%lc", (wchar_t) ((group << 5) + index));
+			TPRINTF("%lc", (wint_t) ((group << 5) + index));
 		
 		TPRINTF("\n");
 	}

@@ -322,7 +322,7 @@ int pci_read_bar(device_t *dev, int addr)
 	
 	if (range_addr != 0) {
 		printf(NAME ": device %s : ", dev->name);
-		printf("address = %x", range_addr);
+		printf("address = %" PRIx64, range_addr);
 		printf(", size = %x\n", range_size);
 	}
 	
@@ -478,7 +478,7 @@ static int pci_add_device(device_t *dev)
 		return EPARTY;	/* FIXME: use another EC */
 	}	
 	
-	printf(NAME ": conf_addr = %x.\n",
+	printf(NAME ": conf_addr = %" PRIx64 ".\n",
 	    hw_resources.resources[0].res.io_range.address);
 	
 	assert(hw_resources.count > 0);

@@ -175,7 +175,7 @@ NO_TRACE void fault_if_from_uspace(istate_t *istate, const char *fmt, ...)
 	
 	printf("Task %s (%" PRIu64 ") killed due to an exception at "
 	    "program counter %p.\n", TASK->name, TASK->taskid,
-	    istate_get_pc(istate));
+	    (void *) istate_get_pc(istate));
 	
 	stack_trace_istate(istate);
 	

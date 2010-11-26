@@ -26,6 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <inttypes.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <async.h>
@@ -40,7 +41,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
 	unsigned int i;
 	
-	TPRINTF("Connected phone %#x accepting\n", icall->in_phone_hash);
+	TPRINTF("Connected phone %" PRIun " accepting\n", icall->in_phone_hash);
 	ipc_answer_0(iid, EOK);
 	for (i = 0; i < MAX_CONNECTIONS; i++) {
 		if (!connections[i]) {
@@ -56,16 +57,16 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		
 		switch (IPC_GET_METHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
-			TPRINTF("Phone %#x hung up\n", icall->in_phone_hash);
+			TPRINTF("Phone %" PRIun " hung up\n", icall->in_phone_hash);
 			retval = 0;
 			break;
 		case IPC_TEST_METHOD:
-			TPRINTF("Received well known message from %#x: %#x\n",
+			TPRINTF("Received well known message from %" PRIun ": %" PRIun "\n",
 			    icall->in_phone_hash, callid);
 			ipc_answer_0(callid, EOK);
 			break;
 		default:
-			TPRINTF("Received unknown message from %#x: %#x\n",
+			TPRINTF("Received unknown message from %" PRIun ": %" PRIun "\n",
 			    icall->in_phone_hash, callid);
 			ipc_answer_0(callid, ENOENT);
 			break;

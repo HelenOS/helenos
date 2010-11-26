@@ -156,7 +156,7 @@ static void redraw_state(size_t index)
 	    && (state != CONS_DISCONNECTED_SEL)) {
 		
 		char data[5];
-		snprintf(data, 5, "%u", index + 1);
+		snprintf(data, 5, "%zu", index + 1);
 		
 		size_t i;
 		for (i = 0; data[i] != 0; i++)

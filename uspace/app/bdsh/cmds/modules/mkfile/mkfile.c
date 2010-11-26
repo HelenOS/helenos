@@ -167,7 +167,7 @@ int cmd_mkfile(char **argv)
 		to_write = min(file_size - total_written, BUFFER_SIZE);
 		rc = write(fd, buffer, to_write);
 		if (rc <= 0) {
-			printf("%s: Error writing file (%d).\n", cmdname, rc);
+			printf("%s: Error writing file (%zd).\n", cmdname, rc);
 			close(fd);
 			return CMD_FAILURE;
 		}
@@ -176,7 +176,7 @@ int cmd_mkfile(char **argv)
 
 	rc = close(fd);
 	if (rc != 0) {
-		printf("%s: Error writing file (%d).\n", cmdname, rc);
+		printf("%s: Error writing file (%zd).\n", cmdname, rc);
 		return CMD_FAILURE;
 	}
 

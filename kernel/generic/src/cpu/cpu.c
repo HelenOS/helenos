@@ -106,7 +106,7 @@ void cpu_init(void) {
 /** List all processors. */
 void cpu_list(void)
 {
-	size_t i;
+	unsigned int i;
 	
 	for (i = 0; i < config.cpu_count; i++) {
 		if (cpus[i].active)

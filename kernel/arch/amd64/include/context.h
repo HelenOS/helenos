@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup amd64	
+/** @addtogroup amd64
  * @{
  */
 /** @file
@@ -43,7 +43,7 @@
  * 16-byte boundary. If it is not, the va_arg calling will
  * panic sooner or later
  */
-#define SP_DELTA     16
+#define SP_DELTA  16
 
 #define context_set(c, _pc, stack, size) \
 	do { \

@@ -87,7 +87,8 @@ const char *test_semaphore1(void)
 		consumers = i * CONSUMERS;
 		producers = (4 - i) * PRODUCERS;
 		
-		TPRINTF("Creating %d consumers and %d producers...", consumers, producers);
+		TPRINTF("Creating %" PRIua " consumers and %" PRIua " producers...",
+		    consumers, producers);
 		
 		for (j = 0; j < (CONSUMERS + PRODUCERS) / 2; j++) {
 			for (k = 0; k < i; k++) {
@@ -112,7 +113,8 @@ const char *test_semaphore1(void)
 		waitq_wakeup(&can_start, WAKEUP_ALL);
 		
 		while ((items_consumed.count != consumers) || (items_produced.count != producers)) {
-			TPRINTF("%d consumers remaining, %d producers remaining\n", consumers - items_consumed.count, producers - items_produced.count);
+			TPRINTF("%" PRIua " consumers remaining, %" PRIua " producers remaining\n",
+			    consumers - items_consumed.count, producers - items_produced.count);
 			thread_sleep(1);
 		}
 	}
