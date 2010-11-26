@@ -36,6 +36,7 @@
 #define LIBUSB_HUB_H_
 
 #include <sys/types.h>
+#include <usb/hcdhubd.h>
 
 
 /** Hub class feature selector.
@@ -147,31 +148,7 @@ typedef struct hub_descriptor_type{
     //uint8_t * port_pwr_ctrl_mask;
 } usb_hub_descriptor_t;
 
-/**
- *	Maximum size of usb hub descriptor in bytes
- */
-extern size_t USB_HUB_MAX_DESCRIPTOR_SIZE;
 
-/**
- *	hub descriptor type
- */
-extern uint8_t USB_HUB_DESCRIPTOR_TYPE;
-
-/**
- * @brief create uint8_t array with serialized descriptor
- *
- * @param descriptor
- */
-void * usb_serialize_hub_descriptor(usb_hub_descriptor_t * descriptor);
-
-/**
- * @brief create deserialized desriptor structure out of serialized descriptor
- *
- * The serialized descriptor must be proper usb hub descriptor, otherwise an eerror might occur.
- *
- * @param sdescriptor serialized descriptor
- */
-usb_hub_descriptor_t * usb_deserialize_hub_desriptor(void * sdescriptor);
 
 /**	@brief usb hub specific request types.
  *
@@ -213,6 +190,35 @@ typedef enum {
     /** */
     USB_HUB_REQUEST_SET_DESCRIPTOR = 7
 } usb_hub_request_t;
+
+/**
+ *	Maximum size of usb hub descriptor in bytes
+ */
+extern size_t USB_HUB_MAX_DESCRIPTOR_SIZE;
+
+/**
+ * @brief create uint8_t array with serialized descriptor
+ *
+ * @param descriptor
+ */
+void * usb_serialize_hub_descriptor(usb_hub_descriptor_t * descriptor);
+
+/**
+ * @brief create deserialized desriptor structure out of serialized descriptor
+ *
+ * The serialized descriptor must be proper usb hub descriptor, otherwise an eerror might occur.
+ *
+ * @param sdescriptor serialized descriptor
+ */
+usb_hub_descriptor_t * usb_deserialize_hub_desriptor(void * sdescriptor);
+
+/**
+ * @brief create hub structure instance
+ * 
+ * @param device
+ * @return
+ */
+usb_hcd_hub_info_t * usb_create_hub_info(device_t * device);
 
 
 
