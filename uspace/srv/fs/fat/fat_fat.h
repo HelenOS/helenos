@@ -60,33 +60,31 @@ typedef uint16_t fat_cluster_t;
 
 #define fat_clusters_get(numc, bs, dh, fc) \
     fat_cluster_walk((bs), (dh), (fc), NULL, (numc), (uint16_t) -1)
-extern int fat_cluster_walk(struct fat_bs *, dev_handle_t, fat_cluster_t,
+extern int fat_cluster_walk(struct fat_bs *, devmap_handle_t, fat_cluster_t,
     fat_cluster_t *, uint16_t *, uint16_t);
 
-#define fat_block_get(b, bs, np, bn, flags) \
-    _fat_block_get((b), (bs), (np)->idx->dev_handle, (np)->firstc, (bn), \
-    (flags))
+extern int fat_block_get(block_t **, struct fat_bs *, struct fat_node *,
+    aoff64_t, int);
+extern int _fat_block_get(block_t **, struct fat_bs *, devmap_handle_t,
+    fat_cluster_t, fat_cluster_t *, aoff64_t, int);
 
-extern int _fat_block_get(block_t **, struct fat_bs *, dev_handle_t,
-    fat_cluster_t, bn_t, int);
-  
 extern int fat_append_clusters(struct fat_bs *, struct fat_node *,
-    fat_cluster_t);
+    fat_cluster_t, fat_cluster_t);
 extern int fat_chop_clusters(struct fat_bs *, struct fat_node *,
     fat_cluster_t);
-extern int fat_alloc_clusters(struct fat_bs *, dev_handle_t, unsigned,
+extern int fat_alloc_clusters(struct fat_bs *, devmap_handle_t, unsigned,
     fat_cluster_t *, fat_cluster_t *);
-extern int fat_free_clusters(struct fat_bs *, dev_handle_t, fat_cluster_t);
-extern int fat_alloc_shadow_clusters(struct fat_bs *, dev_handle_t,
+extern int fat_free_clusters(struct fat_bs *, devmap_handle_t, fat_cluster_t);
+extern int fat_alloc_shadow_clusters(struct fat_bs *, devmap_handle_t,
     fat_cluster_t *, unsigned);
-extern int fat_get_cluster(struct fat_bs *, dev_handle_t, unsigned,
+extern int fat_get_cluster(struct fat_bs *, devmap_handle_t, unsigned,
     fat_cluster_t, fat_cluster_t *);
-extern int fat_set_cluster(struct fat_bs *, dev_handle_t, unsigned,
+extern int fat_set_cluster(struct fat_bs *, devmap_handle_t, unsigned,
     fat_cluster_t, fat_cluster_t);
 extern int fat_fill_gap(struct fat_bs *, struct fat_node *, fat_cluster_t,
-    off_t);
-extern int fat_zero_cluster(struct fat_bs *, dev_handle_t, fat_cluster_t);
-extern int fat_sanity_check(struct fat_bs *, dev_handle_t);
+    aoff64_t);
+extern int fat_zero_cluster(struct fat_bs *, devmap_handle_t, fat_cluster_t);
+extern int fat_sanity_check(struct fat_bs *, devmap_handle_t);
 
 #endif
 

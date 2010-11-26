@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ppc32mm	
+/** @addtogroup ppc32mm
  * @{
  */
 /** @file
@@ -35,9 +35,9 @@
 #ifndef KERN_ppc32_ASID_H_
 #define KERN_ppc32_ASID_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 
-#define ASID_MAX_ARCH		4096
+#define ASID_MAX_ARCH  4096
 
 typedef uint32_t asid_t;
 

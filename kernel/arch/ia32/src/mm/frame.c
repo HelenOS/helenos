@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia32mm	
+/** @addtogroup ia32mm
  * @{
  */
 /** @file
@@ -43,8 +43,10 @@
 #include <debug.h>
 #include <align.h>
 #include <macros.h>
-
 #include <print.h>
+
+#define PHYSMEM_LIMIT32  UINT64_C(0x07c000000)
+#define PHYSMEM_LIMIT64  UINT64_C(0x200000000)
 
 size_t hardcoded_unmapped_ktext_size = 0;
 size_t hardcoded_unmapped_kdata_size = 0;
@@ -54,28 +56,67 @@ uintptr_t last_frame = 0;
 static void init_e820_memory(pfn_t minconf)
 {
 	unsigned int i;
+	
 	for (i = 0; i < e820counter; i++) {
 		uint64_t base = e820table[i].base_address;
 		uint64_t size = e820table[i].size;
 		
 #ifdef __32_BITS__
+		/*
+		 * XXX FIXME:
+		 *
+		 * Ignore zones which start above PHYSMEM_LIMIT32
+		 * or clip zones which go beyond PHYSMEM_LIMIT32.
+		 *
+		 * The PHYSMEM_LIMIT32 (2 GB - 64 MB) is a rather
+		 * arbitrary constant which allows to have at
+		 * least 64 MB in the kernel address space to
+		 * map hardware resources.
+		 *
+		 * The kernel uses fixed 1:1 identity mapping
+		 * of the physical memory with 2:2 GB split.
+		 * This is a severe limitation of the current
+		 * kernel memory management.
+		 *
+		 */
 		
-		/* Ignore physical memory above 4 GB */
-		if ((base >> 32) != 0)
+		if (base > PHYSMEM_LIMIT32)
 			continue;
 		
-		/* Clip regions above 4 GB */
-		if (((base + size) >> 32) != 0)
-			size = 0xffffffff - base;
-		
+		if (base + size > PHYSMEM_LIMIT32)
+			size = PHYSMEM_LIMIT32 - base;
 #endif
-		pfn_t pfn;
-		size_t count;
+		
+#ifdef __64_BITS__
+		/*
+		 * XXX FIXME:
+		 *
+		 * Ignore zones which start above PHYSMEM_LIMIT64
+		 * or clip zones which go beyond PHYSMEM_LIMIT64.
+		 *
+		 * The PHYSMEM_LIMIT64 (8 GB) is the size of the
+		 * fixed 1:1 identically mapped physical memory
+		 * accessible during the bootstrap process.
+		 * This is a severe limitation of the current
+		 * kernel memory management.
+		 *
+		 */
+		
+		if (base > PHYSMEM_LIMIT64)
+			continue;
+		
+		if (base + size > PHYSMEM_LIMIT64)
+			size = PHYSMEM_LIMIT64 - base;
+#endif
 		
 		if (e820table[i].type == MEMMAP_MEMORY_AVAILABLE) {
-			/* To be safe, make available zone possibly smaller */
-			pfn = ADDR2PFN(ALIGN_UP(base, FRAME_SIZE));
-			count = SIZE2FRAMES(ALIGN_DOWN(size, FRAME_SIZE));
+			/* To be safe, make the available zone possibly smaller */
+			uint64_t new_base = ALIGN_UP(base, FRAME_SIZE);
+			uint64_t new_size = ALIGN_DOWN(size - (new_base - base),
+			    FRAME_SIZE);
+			
+			pfn_t pfn = ADDR2PFN(new_base);
+			size_t count = SIZE2FRAMES(new_size);
 			
 			pfn_t conf;
 			if ((minconf < pfn) || (minconf >= pfn + count))
@@ -86,29 +127,30 @@ static void init_e820_memory(pfn_t minconf)
 			zone_create(pfn, count, conf, ZONE_AVAILABLE);
 			
 			// XXX this has to be removed
-			if (last_frame < ALIGN_UP(base + size, FRAME_SIZE))
-				last_frame = ALIGN_UP(base + size, FRAME_SIZE);
-		}
-		
-		if (e820table[i].type == MEMMAP_MEMORY_RESERVED) {
-			/* To be safe, make reserved zone possibly larger */
-			pfn = ADDR2PFN(ALIGN_DOWN(base, FRAME_SIZE));
-			count = SIZE2FRAMES(ALIGN_UP(size, FRAME_SIZE));
+			if (last_frame < ALIGN_UP(new_base + new_size, FRAME_SIZE))
+				last_frame = ALIGN_UP(new_base + new_size, FRAME_SIZE);
+		} else if ((e820table[i].type == MEMMAP_MEMORY_ACPI) ||
+		    (e820table[i].type == MEMMAP_MEMORY_NVS)) {
+			/* To be safe, make the firmware zone possibly larger */
+			uint64_t new_base = ALIGN_DOWN(base, FRAME_SIZE);
+			uint64_t new_size = ALIGN_UP(size + (base - new_base),
+			    FRAME_SIZE);
 			
-			zone_create(pfn, count, 0, ZONE_RESERVED);
-		}
-		
-		if (e820table[i].type == MEMMAP_MEMORY_ACPI) {
-			/* To be safe, make firmware zone possibly larger */
-			pfn = ADDR2PFN(ALIGN_DOWN(base, (uintptr_t) FRAME_SIZE));
-			count = SIZE2FRAMES(ALIGN_UP(size, (uintptr_t) FRAME_SIZE));
+			zone_create(ADDR2PFN(new_base), SIZE2FRAMES(new_size), 0,
+			    ZONE_FIRMWARE);
+		} else {
+			/* To be safe, make the reserved zone possibly larger */
+			uint64_t new_base = ALIGN_DOWN(base, FRAME_SIZE);
+			uint64_t new_size = ALIGN_UP(size + (base - new_base),
+			    FRAME_SIZE);
 			
-			zone_create(pfn, count, 0, ZONE_FIRMWARE);
+			zone_create(ADDR2PFN(new_base), SIZE2FRAMES(new_size), 0,
+			    ZONE_RESERVED);
 		}
 	}
 }
 
-static char *e820names[] = {
+static const char *e820names[] = {
 	"invalid",
 	"available",
 	"reserved",
@@ -117,23 +159,21 @@ static char *e820names[] = {
 	"unusable"
 };
 
-
 void physmem_print(void)
 {
 	unsigned int i;
-	char *name;
+	printf("[base            ] [size            ] [name   ]\n");
 	
-	printf("Base               Size               Name\n");
-	printf("------------------ ------------------ ---------\n");
-		
 	for (i = 0; i < e820counter; i++) {
+		const char *name;
+		
 		if (e820table[i].type <= MEMMAP_MEMORY_UNUSABLE)
 			name = e820names[e820table[i].type];
 		else
 			name = "invalid";
 		
-		printf("%#18llx %#18llx %s\n", e820table[i].base_address,
-			e820table[i].size, name);
+		printf("%#018" PRIx64 " %#018" PRIx64" %s\n", e820table[i].base_address,
+		    e820table[i].size, name);
 	}
 }
 
@@ -147,9 +187,10 @@ void frame_arch_init(void)
 		
 #ifdef CONFIG_SMP
 		minconf = max(minconf,
-			ADDR2PFN(AP_BOOT_OFFSET + hardcoded_unmapped_ktext_size +
-			hardcoded_unmapped_kdata_size));
+		    ADDR2PFN(AP_BOOT_OFFSET + hardcoded_unmapped_ktext_size +
+		    hardcoded_unmapped_kdata_size));
 #endif
+		
 		init_e820_memory(minconf);
 		
 		/* Reserve frame 0 (BIOS data) */
@@ -157,9 +198,9 @@ void frame_arch_init(void)
 		
 #ifdef CONFIG_SMP
 		/* Reserve AP real mode bootstrap memory */
-		frame_mark_unavailable(AP_BOOT_OFFSET >> FRAME_WIDTH, 
-			(hardcoded_unmapped_ktext_size +
-			hardcoded_unmapped_kdata_size) >> FRAME_WIDTH);
+		frame_mark_unavailable(AP_BOOT_OFFSET >> FRAME_WIDTH,
+		    (hardcoded_unmapped_ktext_size +
+		    hardcoded_unmapped_kdata_size) >> FRAME_WIDTH);
 #endif
 	}
 }

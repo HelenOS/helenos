@@ -39,20 +39,20 @@
 #include "getterm.h"
 #include "version.h"
 
-static char *release = STRING(RELEASE);
-static char *name = STRING(NAME);
-static char *arch = STRING(UARCH);
+static const char *release = STRING(RELEASE);
+static const char *name = STRING(NAME);
+static const char *arch = STRING(UARCH);
 
 #ifdef REVISION
-	static char *revision = ", revision " STRING(REVISION);
+	static const char *revision = ", revision " STRING(REVISION);
 #else
-	static char *revision = "";
+	static const char *revision = "";
 #endif
 
 #ifdef TIMESTAMP
-	static char *timestamp = "\nBuilt on " STRING(TIMESTAMP);
+	static const char *timestamp = "\nBuilt on " STRING(TIMESTAMP);
 #else
-	static char *timestamp = "";
+	static const char *timestamp = "";
 #endif
 
 /** Print version information. */
@@ -60,7 +60,7 @@ void version_print(const char *term)
 {
 	printf("HelenOS release %s (%s)%s%s\n", release, name, revision, timestamp);
 	printf("Running on %s (%s)\n", arch, term);
-	printf("Copyright (c) 2001-2009 HelenOS project\n\n");
+	printf("Copyright (c) 2001-2010 HelenOS project\n\n");
 }
 
 /** @}

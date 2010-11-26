@@ -40,7 +40,7 @@
 #include <mm/slab.h>
 #include <console/console.h>
 #include <sysinfo/sysinfo.h>
-#include <string.h>
+#include <str.h>
 
 typedef struct {
 	ioport8_t *base;

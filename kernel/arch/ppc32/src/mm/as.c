@@ -54,28 +54,15 @@ void as_arch_init(void)
  */
 void as_install_arch(as_t *as)
 {
-	asid_t asid;
 	uint32_t sr;
-
-	asid = as->asid;
 	
 	/* Lower 2 GB, user and supervisor access */
-	for (sr = 0; sr < 8; sr++) {
-		asm volatile (
-			"mtsrin %0, %1\n"
-			:
-			: "r" ((0x6000 << 16) + (asid << 4) + sr), "r" (sr << 28)
-		);
-	}
+	for (sr = 0; sr < 8; sr++)
+		sr_set(0x6000, as->asid, sr);
 	
 	/* Upper 2 GB, only supervisor access */
-	for (sr = 8; sr < 16; sr++) {
-		asm volatile (
-			"mtsrin %0, %1\n"
-			:
-			: "r" ((0x4000 << 16) + (asid << 4) + sr), "r" (sr << 28)
-		);
-	}
+	for (sr = 8; sr < 16; sr++)
+		sr_set(0x4000, as->asid, sr);
 }
 
 /** @}

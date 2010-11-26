@@ -33,7 +33,7 @@
  */
 
 #include <arch/console.h>
-#include <arch/types.h>
+#include <typedefs.h>
 
 #include <arch/drivers/scr.h>
 #include <arch/drivers/kbd.h>
@@ -48,7 +48,7 @@
 #include <genarch/ofw/ofw_tree.h>
 #include <arch.h>
 #include <panic.h>
-#include <string.h>
+#include <str.h>
 #include <print.h>
 
 #define KEYBOARD_POLL_PAUSE	50000	/* 50ms */
@@ -69,7 +69,7 @@ static void standard_console_init(ofw_tree_node_t *aliases)
 		panic("Cannot find screen alias.");
 	ofw_tree_node_t *screen = ofw_tree_lookup(prop_scr->value);
 	if (!screen)
-		panic("Cannot find %s.", prop_scr->value);
+		panic("Cannot find %s.", (char *) prop_scr->value);
 	
 	scr_init(screen);
 #endif
@@ -82,7 +82,7 @@ static void standard_console_init(ofw_tree_node_t *aliases)
 		panic("Cannot find keyboard alias.");
 	ofw_tree_node_t *keyboard = ofw_tree_lookup(prop_kbd->value);
 	if (!keyboard)
-		panic("Cannot find %s.", prop_kbd->value);
+		panic("Cannot find %s.", (char *) prop_kbd->value);
 	
 	kbd_init(keyboard);
 #endif

@@ -107,7 +107,7 @@
 #include <arch/interrupt.h>
 #include <arch/barrier.h>
 #include <arch/mm/asid.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <debug.h>
 
 struct vhpt_tag_info {
@@ -207,7 +207,7 @@ typedef union pta_register {
  *
  * @return Address of the head of VHPT collision chain.
  */
-static inline uint64_t thash(uint64_t va)
+NO_TRACE static inline uint64_t thash(uint64_t va)
 {
 	uint64_t ret;
 	
@@ -229,7 +229,7 @@ static inline uint64_t thash(uint64_t va)
  *
  * @return The unique tag for VPN and RID in the collision chain returned by thash().
  */
-static inline uint64_t ttag(uint64_t va)
+NO_TRACE static inline uint64_t ttag(uint64_t va)
 {
 	uint64_t ret;
 	
@@ -248,7 +248,7 @@ static inline uint64_t ttag(uint64_t va)
  *
  * @return Current contents of rr[i].
  */
-static inline uint64_t rr_read(size_t i)
+NO_TRACE static inline uint64_t rr_read(size_t i)
 {
 	uint64_t ret;
 	
@@ -268,7 +268,7 @@ static inline uint64_t rr_read(size_t i)
  * @param i Region register index.
  * @param v Value to be written to rr[i].
  */
-static inline void rr_write(size_t i, uint64_t v)
+NO_TRACE static inline void rr_write(size_t i, uint64_t v)
 {
 	ASSERT(i < REGION_REGISTERS);
 	
@@ -283,7 +283,7 @@ static inline void rr_write(size_t i, uint64_t v)
  *
  * @return Current value stored in PTA.
  */
-static inline uint64_t pta_read(void)
+NO_TRACE static inline uint64_t pta_read(void)
 {
 	uint64_t ret;
 	
@@ -299,7 +299,7 @@ static inline uint64_t pta_read(void)
  *
  * @param v New value to be stored in PTA.
  */
-static inline void pta_write(uint64_t v)
+NO_TRACE static inline void pta_write(uint64_t v)
 {
 	asm volatile (
 		"mov cr.pta = %[value]\n"

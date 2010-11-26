@@ -37,7 +37,7 @@
 #define DURATION_SECS      10
 #define COUNT_GRANULARITY  100
 
-char *test_ping_pong(void)
+const char *test_ping_pong(void)
 {
 	TPRINTF("Pinging ns server for %d seconds...", DURATION_SECS);
 	
@@ -71,7 +71,7 @@ char *test_ping_pong(void)
 		count += COUNT_GRANULARITY;
 	}
 	
-	TPRINTF("OK\nCompleted %llu round trips in %u seconds, %llu rt/s.\n",
+	TPRINTF("OK\nCompleted %" PRIu64 " round trips in %u seconds, %" PRIu64 " rt/s.\n",
 	    count, DURATION_SECS, count / DURATION_SECS);
 	
 	return NULL;

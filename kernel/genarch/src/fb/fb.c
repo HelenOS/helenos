@@ -48,9 +48,9 @@
 #include <config.h>
 #include <bitops.h>
 #include <print.h>
-#include <string.h>
+#include <str.h>
 #include <ddi/ddi.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <byteorder.h>
 
 #define BG_COLOR     0x000080
@@ -553,7 +553,7 @@ outdev_t *fb_init(fb_properties_t *props)
 	outdev_initialize("fbdev", fbdev, &fbdev_ops);
 	fbdev->data = instance;
 	
-	spinlock_initialize(&instance->lock, "*fb_lock");
+	spinlock_initialize(&instance->lock, "*fb.instance.lock");
 	instance->rgb_conv = rgb_conv;
 	instance->pixelbytes = pixelbytes;
 	instance->xres = props->x;

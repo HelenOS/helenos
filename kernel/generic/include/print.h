@@ -35,14 +35,27 @@
 #ifndef KERN_PRINT_H_
 #define KERN_PRINT_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <stdarg.h>
 
-#define EOF (-1)
+#ifndef NVERIFY_PRINTF
+
+#define PRINTF_ATTRIBUTE(start, end) \
+	__attribute__((format(gnu_printf, start, end)))
+
+#else /* NVERIFY_PRINTF */
+
+#define PRINTF_ATTRIBUTE(start, end)
+
+#endif /* NVERIFY_PRINTF */
+
+#define EOF  (-1)
 
 extern int puts(const char *s);
-extern int printf(const char *fmt, ...);
-extern int snprintf(char *str, size_t size, const char *fmt, ...);
+extern int printf(const char *fmt, ...)
+    PRINTF_ATTRIBUTE(1, 2);
+extern int snprintf(char *str, size_t size, const char *fmt, ...)
+    PRINTF_ATTRIBUTE(3, 4);
 
 extern int vprintf(const char *fmt, va_list ap);
 extern int vsnprintf(char *str, size_t size, const char *fmt, va_list ap);

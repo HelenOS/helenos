@@ -35,7 +35,7 @@
 #include <userspace.h>
 #include <arch/cpu.h>
 #include <arch/pm.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch.h>
 #include <proc/uarg.h>
 #include <mm/as.h>
@@ -64,10 +64,10 @@ void userspace(uspace_arg_t *kernel_uarg)
 		/* %rdi is defined to hold pcb_ptr - set it to 0 */
 		"xorq %%rdi, %%rdi\n"
 		"iretq\n"
-		:: [udata_des] "i" (gdtselector(UDATA_DES) | PL_USER),
+		:: [udata_des] "i" (GDT_SELECTOR(UDATA_DES) | PL_USER),
 		   [stack_size] "r" (kernel_uarg->uspace_stack + THREAD_STACK_SIZE),
 		   [ipl] "r" (ipl),
-		   [utext_des] "i" (gdtselector(UTEXT_DES) | PL_USER),
+		   [utext_des] "i" (GDT_SELECTOR(UTEXT_DES) | PL_USER),
 		   [entry] "r" (kernel_uarg->uspace_entry),
 		   [uarg] "r" (kernel_uarg->uspace_uarg)
 		: "rax"

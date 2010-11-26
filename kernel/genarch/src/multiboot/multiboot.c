@@ -33,10 +33,9 @@
  */
 
 #include <genarch/multiboot/multiboot.h>
-#include <arch/types.h>
 #include <typedefs.h>
 #include <config.h>
-#include <string.h>
+#include <str.h>
 #include <macros.h>
 
 /** Extract command name from the multiboot module command line.

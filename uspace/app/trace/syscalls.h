@@ -38,7 +38,7 @@
 #include "trace.h"
 
 typedef struct {
-	char *name;
+	const char *name;
 	int n_args;
 	val_type_t rv_type;
 } sc_desc_t;

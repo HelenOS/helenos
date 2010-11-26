@@ -31,10 +31,10 @@
 #include <errno.h>
 #include "../tester.h"
 
-char *test_stdio2(void)
+const char *test_stdio2(void)
 {
 	FILE *file;
-	char *file_name = "/test";
+	const char *file_name = "/test";
 	
 	TPRINTF("Open file \"%s\" for writing...", file_name);
 	errno = 0;

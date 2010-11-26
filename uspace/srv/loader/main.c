@@ -57,7 +57,7 @@
 #include <loader/pcb.h>
 #include <errno.h>
 #include <async.h>
-#include <string.h>
+#include <str.h>
 #include <as.h>
 
 #include <elf.h>
@@ -240,7 +240,7 @@ static void ldr_set_files(ipc_callid_t rid, ipc_call_t *request)
 		/*
 		 * Allocate new filv
 		 */
-		fdi_node_t **_filv = (fdi_node_t *) malloc((count + 1) * sizeof(fdi_node_t *));
+		fdi_node_t **_filv = (fdi_node_t **) calloc(count + 1, sizeof(fdi_node_t *));
 		if (_filv == NULL) {
 			free(buf);
 			ipc_answer_0(rid, ENOMEM);
@@ -410,8 +410,7 @@ static void ldr_connection(ipc_callid_t iid, ipc_call_t *icall)
 			retval = ENOENT;
 			break;
 		}
-		if ((callid & IPC_CALLID_NOTIFICATION) == 0 &&
-		    IPC_GET_METHOD(call) != IPC_M_PHONE_HUNGUP) {
+		if (IPC_GET_METHOD(call) != IPC_M_PHONE_HUNGUP) {
 			DPRINTF("Responding EINVAL to method %d.\n",
 			    IPC_GET_METHOD(call));
 			ipc_answer_0(callid, EINVAL);

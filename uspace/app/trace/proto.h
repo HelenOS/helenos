@@ -42,7 +42,7 @@
 #define OPER_MAX_ARGS (IPC_CALL_LEN - 1)
 
 typedef struct {
-	char *name;
+	const char *name;
 
 	int argc;
 	val_type_t arg_type[OPER_MAX_ARGS];
@@ -55,7 +55,7 @@ typedef struct {
 
 typedef struct {
 	/** Protocol name */
-	char *name;
+	const char *name;
 
 	/** Maps method number to operation */
 	hash_table_t method_oper;
@@ -69,12 +69,12 @@ void proto_cleanup(void);
 
 void proto_register(int srv, proto_t *proto);
 proto_t *proto_get_by_srv(int srv);
-proto_t *proto_new(char *name);
+proto_t *proto_new(const char *name);
 void proto_delete(proto_t *proto);
 void proto_add_oper(proto_t *proto, int method, oper_t *oper);
 oper_t *proto_get_oper(proto_t *proto, int method);
 
-oper_t *oper_new(char *name, int argc, val_type_t *arg_types,
+oper_t *oper_new(const char *name, int argc, val_type_t *arg_types,
     val_type_t rv_type, int respc, val_type_t *resp_types);
 
 

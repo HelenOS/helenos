@@ -225,7 +225,7 @@ static void multitest(int size)
 	TPRINTF("Stress test complete.\n");
 }
 
-char *test_slab2(void)
+const char *test_slab2(void)
 {
 	TPRINTF("Running reclaim single-thread test .. pass 1\n");
 	totalmemtest();

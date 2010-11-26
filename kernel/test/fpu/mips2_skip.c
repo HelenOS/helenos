@@ -28,7 +28,7 @@
 
 #include <test.h>
 
-char *test_mips2(void)
+const char *test_mips2(void)
 {
 	return NULL;
 }

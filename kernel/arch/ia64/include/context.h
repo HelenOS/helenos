@@ -35,7 +35,7 @@
 #ifndef KERN_ia64_CONTEXT_H_
 #define KERN_ia64_CONTEXT_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/register.h>
 #include <align.h>
 #include <arch/stack.h>

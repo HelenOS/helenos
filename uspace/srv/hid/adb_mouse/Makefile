@@ -27,13 +27,11 @@
 #
 
 USPACE_PREFIX = ../../..
-LIBS = $(LIBC_PREFIX)/libc.a
 EXTRA_CFLAGS = -Iinclude
-
-OUTPUT = adb_ms
+BINARY = adb_ms
 
 SOURCES = \
 	adb_mouse.c \
 	adb_dev.c
 
-include ../../Makefile.common
+include $(USPACE_PREFIX)/Makefile.common

@@ -50,19 +50,14 @@ test_t tests[] = {
 #include <mm/mapping1.def>
 #include <mm/slab1.def>
 #include <mm/slab2.def>
-#include <synch/rwlock1.def>
-#include <synch/rwlock2.def>
-#include <synch/rwlock3.def>
-#include <synch/rwlock4.def>
-#include <synch/rwlock5.def>
 #include <synch/semaphore1.def>
 #include <synch/semaphore2.def>
 #include <print/print1.def>
 #include <print/print2.def>
 #include <print/print3.def>
 #include <print/print4.def>
+#include <print/print5.def>
 #include <thread/thread1.def>
-#include <sysinfo/sysinfo1.def>
 	{
 		.name = NULL,
 		.desc = NULL,

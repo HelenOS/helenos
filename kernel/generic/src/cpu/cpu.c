@@ -32,21 +32,23 @@
 
 /**
  * @file
- * @brief	CPU subsystem initialization and listing.
+ * @brief CPU subsystem initialization and listing.
  */
- 
+
 #include <cpu.h>
 #include <arch.h>
 #include <arch/cpu.h>
 #include <mm/slab.h>
 #include <mm/page.h>
 #include <mm/frame.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <config.h>
 #include <panic.h>
 #include <memstr.h>
 #include <adt/list.h>
 #include <print.h>
+#include <sysinfo/sysinfo.h>
+#include <arch/cycle.h>
 
 cpu_t *cpus;
 
@@ -56,28 +58,29 @@ cpu_t *cpus;
  *
  */
 void cpu_init(void) {
-	unsigned int i, j;
-	
 #ifdef CONFIG_SMP
 	if (config.cpu_active == 1) {
 #endif /* CONFIG_SMP */
+		
 		cpus = (cpu_t *) malloc(sizeof(cpu_t) * config.cpu_count,
-					FRAME_ATOMIC);
+		    FRAME_ATOMIC);
 		if (!cpus)
 			panic("Cannot allocate CPU structures.");
-
-		/* initialize everything */
+		
+		/* Initialize everything */
 		memsetb(cpus, sizeof(cpu_t) * config.cpu_count, 0);
-
+		
+		size_t i;
 		for (i = 0; i < config.cpu_count; i++) {
-			cpus[i].stack = (uint8_t *) frame_alloc(STACK_FRAMES, FRAME_KA | FRAME_ATOMIC);
-			
+			cpus[i].stack = (uint8_t *) frame_alloc(STACK_FRAMES,
+			    FRAME_KA | FRAME_ATOMIC);
 			cpus[i].id = i;
 			
-			spinlock_initialize(&cpus[i].lock, "cpu_t.lock");
-
+			irq_spinlock_initialize(&cpus[i].lock, "cpus[].lock");
+			
+			unsigned int j;
 			for (j = 0; j < RQ_COUNT; j++) {
-				spinlock_initialize(&cpus[i].rq[j].lock, "rq_t.lock");
+				irq_spinlock_initialize(&cpus[i].rq[j].lock, "cpus[].rq[].lock");
 				list_initialize(&cpus[i].rq[j].rq_head);
 			}
 		}
@@ -85,11 +88,16 @@ void cpu_init(void) {
 #ifdef CONFIG_SMP
 	}
 #endif /* CONFIG_SMP */
-
+	
 	CPU = &cpus[config.cpu_active - 1];
 	
-	CPU->active = 1;
-	CPU->tlb_active = 1;
+	CPU->active = true;
+	CPU->tlb_active = true;
+	
+	CPU->idle = false;
+	CPU->last_cycle = get_cycle();
+	CPU->idle_cycles = 0;
+	CPU->busy_cycles = 0;
 	
 	cpu_identify();
 	cpu_arch_init();
@@ -99,7 +107,7 @@ void cpu_init(void) {
 void cpu_list(void)
 {
 	unsigned int i;
-
+	
 	for (i = 0; i < config.cpu_count; i++) {
 		if (cpus[i].active)
 			cpu_print_report(&cpus[i]);
@@ -110,4 +118,3 @@ void cpu_list(void)
 
 /** @}
  */
-

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia32	
+/** @addtogroup ia32
  * @{
  */
 /** @file
@@ -36,9 +36,10 @@
 #define KERN_ia32_CONTEXT_H_
 
 #ifdef KERNEL
-#include <arch/types.h>
 
-#define STACK_ITEM_SIZE	4
+#include <typedefs.h>
+
+#define STACK_ITEM_SIZE  4
 
 /*
  * Both context_save() and context_restore() eat two doublewords from the stack.
@@ -46,7 +47,7 @@
  *
  * One item is put onto stack to support get_stack_base().
  */
-#define SP_DELTA	(8 + STACK_ITEM_SIZE)
+#define SP_DELTA  (8 + STACK_ITEM_SIZE)
 
 #define context_set(c, _pc, stack, size) \
 	do { \

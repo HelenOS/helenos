@@ -41,7 +41,7 @@
  */
  
 #include <main/uinit.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <proc/thread.h>
 #include <userspace.h>
 #include <mm/slab.h>

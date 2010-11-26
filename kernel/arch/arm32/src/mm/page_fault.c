@@ -140,7 +140,8 @@ static pf_access_t get_memory_access_type(uint32_t instr_addr,
 	/* undefined instructions */
 	if (instr.condition == 0xf) {
 		panic("page_fault - instruction does not access memory "
-		    "(instr_code: %x, badvaddr:%x).", instr, badvaddr);
+		    "(instr_code: %#0" PRIx32 ", badvaddr:%p).",
+		    instr_union.pc, (void *) badvaddr);
 		return PF_ACCESS_EXEC;
 	}
 
@@ -159,17 +160,19 @@ static pf_access_t get_memory_access_type(uint32_t instr_addr,
 	}
 
 	panic("page_fault - instruction doesn't access memory "
-	    "(instr_code: %x, badvaddr:%x).", instr, badvaddr);
+	    "(instr_code: %#0" PRIx32 ", badvaddr:%p).",
+	    instr_union.pc, (void *) badvaddr);
 
 	return PF_ACCESS_EXEC;
 }
 
 /** Handles "data abort" exception (load or store at invalid address).
  *
- * @param exc_no	Exception number.
- * @param istate	CPU state when exception occured.
+ * @param exc_no Exception number.
+ * @param istate CPU state when exception occured.
+ *
  */
-void data_abort(int exc_no, istate_t *istate)
+void data_abort(unsigned int exc_no, istate_t *istate)
 {
 	fault_status_t fsr __attribute__ ((unused)) =
 	    read_fault_status_register();
@@ -181,29 +184,24 @@ void data_abort(int exc_no, istate_t *istate)
 
 	if (ret == AS_PF_FAULT) {
 		fault_if_from_uspace(istate, "Page fault: %#x.", badvaddr);
-		print_istate(istate);
-		printf("page fault - pc: %x, va: %x, status: %x(%x), "
-		    "access:%d\n", istate->pc, badvaddr, fsr.status, fsr,
-		    access);
-		
-		panic("Page fault.");
+		panic_memtrap(istate, access, badvaddr, NULL);
 	}
 }
 
 /** Handles "prefetch abort" exception (instruction couldn't be executed).
  *
- * @param exc_no	Exception number.
- * @param istate	CPU state when exception occured.
+ * @param exc_no Exception number.
+ * @param istate CPU state when exception occured.
+ *
  */
-void prefetch_abort(int exc_no, istate_t *istate)
+void prefetch_abort(unsigned int exc_no, istate_t *istate)
 {
 	int ret = as_page_fault(istate->pc, PF_ACCESS_EXEC, istate);
 
 	if (ret == AS_PF_FAULT) {
-		printf("prefetch_abort\n");
-		print_istate(istate);
-		panic("page fault - prefetch_abort at address: %x.",
-		    istate->pc);
+		fault_if_from_uspace(istate,
+		    "Page fault - prefetch_abort: %#x.", istate->pc);
+		panic_memtrap(istate, PF_ACCESS_EXEC, istate->pc, NULL);
 	}
 }
 

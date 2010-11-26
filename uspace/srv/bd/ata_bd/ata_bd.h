@@ -37,7 +37,7 @@
 
 #include <sys/types.h>
 #include <fibril_synch.h>
-#include <string.h>
+#include <str.h>
 
 enum {
 	CTL_READ_START  = 0,
@@ -286,7 +286,7 @@ typedef struct {
 	char model[STR_BOUNDS(40) + 1];
 
 	fibril_mutex_t lock;
-	dev_handle_t dev_handle;
+	devmap_handle_t devmap_handle;
 } disk_t;
 
 #endif

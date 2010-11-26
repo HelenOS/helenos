@@ -35,14 +35,14 @@
 #ifndef KERN_ia32_THREAD_H_
 #define KERN_ia32_THREAD_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 typedef struct {
 	unative_t tls;
 } thread_arch_t;
 
-#define thr_constructor_arch(t)
-#define thr_destructor_arch(t)
+#define thr_constructor_arch(thr)
+#define thr_destructor_arch(thr)
 
 #endif
 

@@ -55,7 +55,7 @@
 #include <async.h>
 #include <as.h>
 #include <fibril_synch.h>
-#include <string.h>
+#include <str.h>
 #include <devmap.h>
 #include <sys/types.h>
 #include <inttypes.h>
@@ -112,7 +112,8 @@ int main(int argc, char **argv)
 
 	printf(NAME ": ATA disk driver\n");
 
-	printf("I/O address %p/%p\n", ctl_physical, cmd_physical);
+	printf("I/O address %p/%p\n", (void *) ctl_physical,
+	    (void *) cmd_physical);
 
 	if (ata_bd_init() != EOK)
 		return -1;
@@ -138,7 +139,7 @@ int main(int argc, char **argv)
 			continue;
 		
 		snprintf(name, 16, "%s/disk%d", NAMESPACE, i);
-		rc = devmap_device_register(name, &disk[i].dev_handle);
+		rc = devmap_device_register(name, &disk[i].devmap_handle);
 		if (rc != EOK) {
 			devmap_hangup_phone(DEVMAP_DRIVER);
 			printf(NAME ": Unable to register device %s.\n", name);
@@ -180,7 +181,7 @@ static void disk_print_summary(disk_t *d)
 		break;
 	}
 
-	printf(" %" PRIu64 " blocks", d->blocks, d->blocks / (2 * 1024));
+	printf(" %" PRIu64 " blocks", d->blocks);
 
 	mbytes = d->blocks / (2 * 1024);
 	if (mbytes > 0)
@@ -228,7 +229,7 @@ static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 	ipc_callid_t callid;
 	ipc_call_t call;
 	ipcarg_t method;
-	dev_handle_t dh;
+	devmap_handle_t dh;
 	int flags;
 	int retval;
 	uint64_t ba;
@@ -241,7 +242,7 @@ static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 	/* Determine which disk device is the client connecting to. */
 	disk_id = -1;
 	for (i = 0; i < MAX_DISKS; i++)
-		if (disk[i].dev_handle == dh)
+		if (disk[i].devmap_handle == dh)
 			disk_id = i;
 
 	if (disk_id < 0 || disk[disk_id].present == false) {
@@ -499,7 +500,9 @@ static int ata_bd_read_block(int disk_id, uint64_t ba, size_t blk_cnt,
 	block_coord_t bc;
 
 	d = &disk[disk_id];
-	bc.h = 0;	/* Silence warning. */
+	
+	/* Silence warning. */
+	memset(&bc, 0, sizeof(bc));
 
 	/* Compute block coordinates. */
 	if (coord_calc(d, ba, &bc) != EOK)
@@ -573,7 +576,9 @@ static int ata_bd_write_block(int disk_id, uint64_t ba, size_t cnt,
 	block_coord_t bc;
 
 	d = &disk[disk_id];
-	bc.h = 0;	/* Silence warning. */
+	
+	/* Silence warning. */
+	memset(&bc, 0, sizeof(bc));
 
 	/* Compute block coordinates. */
 	if (coord_calc(d, ba, &bc) != EOK)

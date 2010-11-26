@@ -28,7 +28,7 @@
 
 #include <test.h>
 
-char *test_purge1(void)
+const char *test_purge1(void)
 {
 	return NULL;
 }

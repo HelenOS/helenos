@@ -37,7 +37,7 @@
 
 #include <interrupt.h>
 
-extern void interrupt_register(int n, const char *name, iroutine f);
+extern void interrupt_register(unsigned int, const char *, iroutine_t);
 
 #endif
 

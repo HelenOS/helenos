@@ -35,86 +35,48 @@
 #ifndef KERN_ia32_INTERRUPT_H_
 #define KERN_ia32_INTERRUPT_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
+#include <arch/istate.h>
 #include <arch/pm.h>
 
-#define IVT_ITEMS	IDT_ITEMS
-#define IVT_FIRST	0
+#define IVT_ITEMS  IDT_ITEMS
+#define IVT_FIRST  0
 
-#define EXC_COUNT	32
-#define IRQ_COUNT	16
+#define EXC_COUNT  32
+#define IRQ_COUNT  16
 
-#define IVT_EXCBASE	0
-#define IVT_IRQBASE	(IVT_EXCBASE + EXC_COUNT)
-#define IVT_FREEBASE	(IVT_IRQBASE + IRQ_COUNT)
+#define IVT_EXCBASE   0
+#define IVT_IRQBASE   (IVT_EXCBASE + EXC_COUNT)
+#define IVT_FREEBASE  (IVT_IRQBASE + IRQ_COUNT)
 
-#define IRQ_CLK		0
-#define IRQ_KBD		1
-#define IRQ_PIC1	2
-#define IRQ_PIC_SPUR	7
-#define IRQ_MOUSE	12
+#define IRQ_CLK       0
+#define IRQ_KBD       1
+#define IRQ_PIC1      2
+#define IRQ_PIC_SPUR  7
+#define IRQ_MOUSE     12
+#define IRQ_DP8390    9
 
-/* this one must have four least significant bits set to ones */
-#define VECTOR_APIC_SPUR	(IVT_ITEMS - 1)
+/* This one must have four least significant bits set to ones */
+#define VECTOR_APIC_SPUR  (IVT_ITEMS - 1)
 
 #if (((VECTOR_APIC_SPUR + 1) % 16) || VECTOR_APIC_SPUR >= IVT_ITEMS)
 #error Wrong definition of VECTOR_APIC_SPUR
 #endif
 
-#define VECTOR_DEBUG			1
-#define VECTOR_CLK			(IVT_IRQBASE + IRQ_CLK)
-#define VECTOR_PIC_SPUR			(IVT_IRQBASE + IRQ_PIC_SPUR)
-#define VECTOR_SYSCALL			IVT_FREEBASE
-#define VECTOR_TLB_SHOOTDOWN_IPI	(IVT_FREEBASE + 1)
-#define VECTOR_DEBUG_IPI		(IVT_FREEBASE + 2)
+#define VECTOR_DEBUG              1
+#define VECTOR_CLK                (IVT_IRQBASE + IRQ_CLK)
+#define VECTOR_PIC_SPUR           (IVT_IRQBASE + IRQ_PIC_SPUR)
+#define VECTOR_SYSCALL            IVT_FREEBASE
+#define VECTOR_TLB_SHOOTDOWN_IPI  (IVT_FREEBASE + 1)
+#define VECTOR_DEBUG_IPI          (IVT_FREEBASE + 2)
 
-typedef struct istate {
-	uint32_t eax;
-	uint32_t ecx;
-	uint32_t edx;
-	uint32_t ebp;
-
-	uint32_t gs;
-	uint32_t fs;
-	uint32_t es;
-	uint32_t ds;
-
-	uint32_t error_word;
-	uint32_t eip;
-	uint32_t cs;
-	uint32_t eflags;
-	uint32_t stack[];
-} istate_t;
-
-/** Return true if exception happened while in userspace */
-static inline int istate_from_uspace(istate_t *istate)
-{
-	return !(istate->eip & 0x80000000);
-}
-
-static inline void istate_set_retaddr(istate_t *istate, uintptr_t retaddr)
-{
-	istate->eip = retaddr;
-}
-
-static inline unative_t istate_get_pc(istate_t *istate)
-{
-	return istate->eip;
-}
-
-static inline unative_t istate_get_fp(istate_t *istate)
-{
-	return istate->ebp;
-}
-
-extern void (* disable_irqs_function)(uint16_t irqmask);
-extern void (* enable_irqs_function)(uint16_t irqmask);
+extern void (* disable_irqs_function)(uint16_t);
+extern void (* enable_irqs_function)(uint16_t);
 extern void (* eoi_function)(void);
 
-extern void decode_istate(istate_t *istate);
 extern void interrupt_init(void);
-extern void trap_virtual_enable_irqs(uint16_t irqmask);
-extern void trap_virtual_disable_irqs(uint16_t irqmask);
+extern void trap_virtual_enable_irqs(uint16_t);
+extern void trap_virtual_disable_irqs(uint16_t);
 
 #endif
 

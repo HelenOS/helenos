@@ -37,7 +37,7 @@
 #include <arch/pm.h>
 
 #include <arch.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <print.h>
 #include <fpu_context.h>
 
@@ -48,13 +48,13 @@
  * Identification of CPUs.
  * Contains only non-MP-Specification specific SMP code.
  */
-#define AMD_CPUID_EBX  0x68747541
-#define AMD_CPUID_ECX  0x444d4163
-#define AMD_CPUID_EDX  0x69746e65
+#define AMD_CPUID_EBX  UINT32_C(0x68747541)
+#define AMD_CPUID_ECX  UINT32_C(0x444d4163)
+#define AMD_CPUID_EDX  UINT32_C(0x69746e65)
 
-#define INTEL_CPUID_EBX  0x756e6547
-#define INTEL_CPUID_ECX  0x6c65746e
-#define INTEL_CPUID_EDX  0x49656e69
+#define INTEL_CPUID_EBX  UINT32_C(0x756e6547)
+#define INTEL_CPUID_ECX  UINT32_C(0x6c65746e)
+#define INTEL_CPUID_EDX  UINT32_C(0x49656e69)
 
 
 enum vendor {
@@ -63,7 +63,7 @@ enum vendor {
 	VendorIntel
 };
 
-static char *vendor_str[] = {
+static const char *vendor_str[] = {
 	"Unknown Vendor",
 	"AMD",
 	"Intel"
@@ -139,21 +139,21 @@ void cpu_identify(void)
 		 */
 		if ((info.cpuid_ebx == AMD_CPUID_EBX)
 		    && (info.cpuid_ecx == AMD_CPUID_ECX)
-			&& (info.cpuid_edx == AMD_CPUID_EDX))
+		    && (info.cpuid_edx == AMD_CPUID_EDX))
 			CPU->arch.vendor = VendorAMD;
 		
 		/*
 		 * Check for Intel processor.
-		 */		
+		 */
 		if ((info.cpuid_ebx == INTEL_CPUID_EBX)
 		    && (info.cpuid_ecx == INTEL_CPUID_ECX)
-			&& (info.cpuid_edx == INTEL_CPUID_EDX))
+		    && (info.cpuid_edx == INTEL_CPUID_EDX))
 			CPU->arch.vendor = VendorIntel;
 		
 		cpuid(INTEL_CPUID_STANDARD, &info);
-		CPU->arch.family = (info.cpuid_eax >> 8) & 0x0f;
-		CPU->arch.model = (info.cpuid_eax >> 4) & 0x0f;
-		CPU->arch.stepping = (info.cpuid_eax >> 0) & 0x0f;						
+		CPU->arch.family = (info.cpuid_eax >> 8) & 0x0fU;
+		CPU->arch.model = (info.cpuid_eax >> 4) & 0x0fU;
+		CPU->arch.stepping = (info.cpuid_eax >> 0) & 0x0fU;
 	}
 }
 

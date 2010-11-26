@@ -30,7 +30,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <str.h>
 
 #include "config.h"
 #include "entry.h"
@@ -41,12 +41,13 @@
 #include "errors.h"
 #include "util.h"
 
-static char *cmdname = "help";
+static const char *cmdname = "help";
 extern const char *progname;
 
-#define HELP_IS_MODULE   1
-#define HELP_IS_BUILTIN  0
-#define HELP_IS_RUBBISH  -1
+#define HELP_IS_COMMANDS	2
+#define HELP_IS_MODULE		1
+#define HELP_IS_BUILTIN		0
+#define HELP_IS_RUBBISH 	-1
 
 volatile int mod_switch = -1;
 
@@ -54,6 +55,9 @@ volatile int mod_switch = -1;
 static int is_mod_or_builtin(char *cmd)
 {
 	int rc = HELP_IS_RUBBISH;
+
+	if (str_cmp(cmd, "commands") == 0)
+		return HELP_IS_COMMANDS;
 
 	rc = is_builtin(cmd);
 	if (rc > -1) {
@@ -89,46 +93,13 @@ void help_cmd_help(unsigned int level)
 	return;
 }
 
-int cmd_help(char *argv[])
+static void help_commands(void)
 {
-	module_t *mod;
 	builtin_t *cmd;
-	unsigned int i = 0;
-	int rc = 0;
-	int argc;
-	int level = HELP_SHORT;
+	module_t *mod;
+	unsigned int i;
 
-	argc = cli_count_args(argv);
-
-	if (argc > 3) {
-		printf("\nToo many arguments to `%s', try:\n", cmdname);
-		help_cmd_help(HELP_SHORT);
-		return CMD_FAILURE;
-	}
-
-	if (argc == 3) {
-		if (!str_cmp("extended", argv[2]))
-			level = HELP_LONG;
-		else
-			level = HELP_SHORT;
-	}
-
-	if (argc > 1) {
-		rc = is_mod_or_builtin(argv[1]);
-		switch (rc) {
-		case HELP_IS_RUBBISH:
-			printf("Invalid command %s\n", argv[1]);
-			return CMD_FAILURE;
-		case HELP_IS_MODULE:
-			help_module(mod_switch, level);
-			return CMD_SUCCESS;
-		case HELP_IS_BUILTIN:
-			help_builtin(mod_switch, level);
-			return CMD_SUCCESS;
-		}
-	}
-
-	printf("\n  Available commands are:\n");
+	printf("\n  Bdsh built-in commands:\n");
 	printf("  ------------------------------------------------------------\n");
 
 	/* First, show a list of built in commands that are available in this mode */
@@ -153,6 +124,75 @@ int cmd_help(char *argv[])
 
 	printf("\n  Try %s %s for more information on how `%s' works.\n\n",
 		cmdname, cmdname, cmdname);
+}
+
+/** Display survival tips. ('help' without arguments) */
+static void help_survival(void)
+{
+	printf("Don't panic!\n\n");
+
+	printf("This is Bdsh, the Brain dead shell, currently "
+	    "the primary user interface to HelenOS. Bdsh allows you to enter "
+	    "commands and supports history (Up, Down arrow keys), "
+	    "line editing (Left Arrow, Right Arrow, Home, End, Backspace), "
+	    "selection (Shift + movement keys), copy and paste (Ctrl-C, "
+	    "Ctrl-V), similar to common desktop environments.\n\n");
+
+	printf("The most basic filesystem commands are Bdsh builtins. Type "
+	    "'help commands' [Enter] to see the list of Bdsh builtin commands. "
+	    "Other commands are external executables located in the /app and "
+	    "/srv directories. Type 'ls /app' [Enter] and 'ls /srv' [Enter] "
+	    "to see their list. You can execute an external command simply "
+	    "by entering its name (e.g. type 'tetris' [Enter]).\n\n");
+
+	printf("HelenOS has virtual consoles (VCs). You can switch between "
+	    "these using the F1-F11 keys.\n\n");
+
+	printf("This is but a small glimpse of what you can do with HelenOS. "
+	    "To learn more please point your browser to the HelenOS User's "
+	    "Guide: http://trac.helenos.org/trac.fcgi/wiki/UsersGuide\n\n");
+}
+
+int cmd_help(char *argv[])
+{
+	int rc = 0;
+	int argc;
+	int level = HELP_SHORT;
+
+	argc = cli_count_args(argv);
+
+	if (argc > 3) {
+		printf("\nToo many arguments to `%s', try:\n", cmdname);
+		help_cmd_help(HELP_SHORT);
+		return CMD_FAILURE;
+	}
+
+	if (argc == 3) {
+		if (!str_cmp("extended", argv[2]))
+			level = HELP_LONG;
+		else
+			level = HELP_SHORT;
+	}
+
+	if (argc > 1) {
+		rc = is_mod_or_builtin(argv[1]);
+		switch (rc) {
+		case HELP_IS_RUBBISH:
+			printf("Invalid topic %s\n", argv[1]);
+			return CMD_FAILURE;
+		case HELP_IS_COMMANDS:
+			help_commands();
+			return CMD_SUCCESS;
+		case HELP_IS_MODULE:
+			help_module(mod_switch, level);
+			return CMD_SUCCESS;
+		case HELP_IS_BUILTIN:
+			help_builtin(mod_switch, level);
+			return CMD_SUCCESS;
+		}
+	}
+
+	help_survival();
 
 	return CMD_SUCCESS;
 }

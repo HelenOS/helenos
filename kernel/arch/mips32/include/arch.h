@@ -35,24 +35,23 @@
 #ifndef KERN_mips32_ARCH_H_
 #define KERN_mips32_ARCH_H_
 
-#define TASKMAP_MAX_RECORDS  32
-#define CPUMAP_MAX_RECORDS   32
-
-#define BOOTINFO_TASK_NAME_BUFLEN 32
-
 #include <typedefs.h>
+
+#define TASKMAP_MAX_RECORDS        32
+#define CPUMAP_MAX_RECORDS         32
+#define BOOTINFO_TASK_NAME_BUFLEN  32
 
 extern size_t cpu_count;
 
 typedef struct {
-	uintptr_t addr;
-	uint32_t size;
+	void *addr;
+	size_t size;
 	char name[BOOTINFO_TASK_NAME_BUFLEN];
 } utask_t;
 
 typedef struct {
 	uint32_t cpumap;
-	uint32_t cnt;
+	size_t cnt;
 	utask_t tasks[TASKMAP_MAX_RECORDS];
 } bootinfo_t;
 

@@ -28,9 +28,7 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = $(LIBC_PREFIX)/libc.a
-
-OUTPUT = tester
+BINARY = tester
 
 SOURCES = \
 	tester.c \
@@ -39,6 +37,7 @@ SOURCES = \
 	print/print2.c \
 	print/print3.c \
 	print/print4.c \
+	print/print5.c \
 	console/console1.c \
 	stdio/stdio1.c \
 	stdio/stdio2.c \
@@ -50,6 +49,7 @@ SOURCES = \
 	ipc/register.c \
 	ipc/connect.c \
 	loop/loop1.c \
-	mm/malloc1.c
+	mm/malloc1.c \
+	hw/serial/serial1.c
 
-include ../Makefile.common
+include $(USPACE_PREFIX)/Makefile.common

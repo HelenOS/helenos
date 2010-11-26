@@ -36,14 +36,16 @@
 #define KERN_ia32_CPU_H_
 
 #define EFLAGS_IF       (1 << 9)
+#define EFLAGS_DF       (1 << 10)
+#define EFLAGS_NT       (1 << 14)
 #define EFLAGS_RF       (1 << 16)
 
 #define CR4_OSFXSR_MASK (1<<9)
 
 /* Support for SYSENTER and SYSEXIT */
-#define IA32_MSR_SYSENTER_CS	0x174
-#define IA32_MSR_SYSENTER_ESP	0x175
-#define IA32_MSR_SYSENTER_EIP	0x176
+#define IA32_MSR_SYSENTER_CS   0x174U
+#define IA32_MSR_SYSENTER_ESP  0x175U
+#define IA32_MSR_SYSENTER_EIP  0x176U
 
 #ifndef __ASM__
 

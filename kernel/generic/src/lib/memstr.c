@@ -42,7 +42,7 @@
  */
 
 #include <memstr.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <align.h>
 
 /** Copy block of memory.

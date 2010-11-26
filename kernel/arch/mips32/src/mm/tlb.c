@@ -320,45 +320,33 @@ fail:
 
 void tlb_refill_fail(istate_t *istate)
 {
-	char *symbol, *sym2;
-
-	symbol = symtab_fmt_name_lookup(istate->epc);
-	sym2 = symtab_fmt_name_lookup(istate->ra);
+	uintptr_t va = cp0_badvaddr_read();
 	
 	fault_if_from_uspace(istate, "TLB Refill Exception on %p.",
-	    cp0_badvaddr_read());
-	panic("%x: TLB Refill Exception at %x (%s<-%s).", cp0_badvaddr_read(),
-	    istate->epc, symbol, sym2);
+	    (void *) va);
+	panic_memtrap(istate, PF_ACCESS_UNKNOWN, va, "TLB Refill Exception.");
 }
 
 
 void tlb_invalid_fail(istate_t *istate)
 {
-	char *symbol;
-
-	symbol = symtab_fmt_name_lookup(istate->epc);
-
+	uintptr_t va = cp0_badvaddr_read();
+	
 	fault_if_from_uspace(istate, "TLB Invalid Exception on %p.",
-	    cp0_badvaddr_read());
-	panic("%x: TLB Invalid Exception at %x (%s).", cp0_badvaddr_read(),
-	    istate->epc, symbol);
+	    (void *) va);
+	panic_memtrap(istate, PF_ACCESS_UNKNOWN, va, "TLB Invalid Exception.");
 }
 
 void tlb_modified_fail(istate_t *istate)
 {
-	char *symbol;
-
-	symbol = symtab_fmt_name_lookup(istate->epc);
-
+	uintptr_t va = cp0_badvaddr_read();
+	
 	fault_if_from_uspace(istate, "TLB Modified Exception on %p.",
-	    cp0_badvaddr_read());
-	panic("%x: TLB Modified Exception at %x (%s).", cp0_badvaddr_read(),
-	    istate->epc, symbol);
+	    (void *) va);
+	panic_memtrap(istate, PF_ACCESS_WRITE, va, "TLB Modified Exception.");
 }
 
 /** Try to find PTE for faulting address.
- *
- * The AS->lock must be held on entry to this function.
  *
  * @param badvaddr	Faulting virtual address.
  * @param access	Access mode that caused the fault.
@@ -374,6 +362,8 @@ find_mapping_and_check(uintptr_t badvaddr, int access, istate_t *istate,
 {
 	entry_hi_t hi;
 	pte_t *pte;
+
+	ASSERT(mutex_locked(&AS->lock));
 
 	hi.value = cp0_entry_hi_read();
 
@@ -460,8 +450,7 @@ void tlb_print(void)
 
 	hi_save.value = cp0_entry_hi_read();
 	
-	printf("#  ASID VPN2   MASK G V D C PFN\n");
-	printf("-- ---- ------ ---- - - - - ------\n");
+	printf("[nr] [asid] [vpn2] [mask] [gvdc] [pfn ]\n");
 	
 	for (i = 0; i < TLB_ENTRY_COUNT; i++) {
 		cp0_index_write(i);
@@ -472,10 +461,10 @@ void tlb_print(void)
 		lo0.value = cp0_entry_lo0_read();
 		lo1.value = cp0_entry_lo1_read();
 		
-		printf("%-2u %-4u %#6x %#4x %1u %1u %1u %1u %#6x\n",
+		printf("%-4u %-6u %#6x %#6x  %1u%1u%1u%1u  %#6x\n",
 		    i, hi.asid, hi.vpn2, mask.mask,
 		    lo0.g, lo0.v, lo0.d, lo0.c, lo0.pfn);
-		printf("                    %1u %1u %1u %1u %#6x\n",
+		printf("                           %1u%1u%1u%1u  %#6x\n",
 		    lo1.g, lo1.v, lo1.d, lo1.c, lo1.pfn);
 	}
 	

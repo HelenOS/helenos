@@ -36,7 +36,7 @@
 #define KERN_DDI_H_
 
 #include <ddi/ddi_arg.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <proc/task.h>
 #include <adt/list.h>
 
@@ -49,17 +49,17 @@ typedef struct {
 } parea_t;
 
 extern void ddi_init(void);
-extern void ddi_parea_register(parea_t *parea);
+extern void ddi_parea_register(parea_t *);
 
-extern unative_t sys_physmem_map(unative_t phys_base, unative_t virt_base,
-	unative_t pages, unative_t flags);
-extern unative_t sys_iospace_enable(ddi_ioarg_t *uspace_io_arg);
-extern unative_t sys_preempt_control(int enable);
+extern unative_t sys_physmem_map(unative_t, unative_t, unative_t, unative_t);
+extern unative_t sys_iospace_enable(ddi_ioarg_t *);
+extern unative_t sys_interrupt_enable(int irq, int enable);
 
 /*
  * Interface to be implemented by all architectures.
  */
-extern int ddi_iospace_enable_arch(task_t *task, uintptr_t ioaddr, size_t size);
+extern int ddi_iospace_enable_arch(task_t *, uintptr_t, size_t);
+
 
 #endif
 

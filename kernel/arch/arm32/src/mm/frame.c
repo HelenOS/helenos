@@ -35,15 +35,9 @@
 
 #include <mm/frame.h>
 #include <arch/mm/frame.h>
+#include <arch/machine_func.h>
 #include <config.h>
-
-#ifdef MACHINE_testarm
-	#include <arch/mach/testarm/testarm.h>
-#endif
-
-#ifdef MACHINE_integratorcp
-	#include <arch/mach/integratorcp/integratorcp.h>
-#endif
+#include <align.h>
 
 /** Address of the last frame in the memory. */
 uintptr_t last_frame = 0;
@@ -51,10 +45,17 @@ uintptr_t last_frame = 0;
 /** Creates memory zones. */
 void frame_arch_init(void)
 {
-	last_frame = machine_get_memory_size();
+	uintptr_t mem_start, mem_size;
+	uintptr_t first_frame;
+	uintptr_t num_frames;
+
+	machine_get_memory_extents(&mem_start, &mem_size);
+	first_frame = ALIGN_UP(mem_start, FRAME_SIZE);
+	last_frame = ALIGN_DOWN(mem_start + mem_size, FRAME_SIZE);
+	num_frames = (last_frame - first_frame) >> FRAME_WIDTH;
 	
 	/* All memory as one zone */
-	zone_create(0, ADDR2PFN(last_frame),
+	zone_create(first_frame >> FRAME_WIDTH, num_frames,
 	    BOOT_PAGE_TABLE_START_FRAME + BOOT_PAGE_TABLE_SIZE_IN_FRAMES, 0);
 	
 	/* blacklist boot page table */

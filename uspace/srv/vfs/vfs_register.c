@@ -38,14 +38,15 @@
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <async.h>
+#include <async_rel.h>
 #include <fibril.h>
+#include <fibril_synch.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <str.h>
 #include <ctype.h>
 #include <bool.h>
-#include <fibril_synch.h>
 #include <adt/list.h>
 #include <as.h>
 #include <assert.h>
@@ -251,6 +252,8 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
  */
 int vfs_grab_phone(fs_handle_t handle)
 {
+	link_t *cur;
+	fs_info_t *fs;
 	int phone;
 
 	/*
@@ -261,14 +264,12 @@ int vfs_grab_phone(fs_handle_t handle)
 	 * that they do not have to be reestablished over and over again.
 	 */
 	fibril_mutex_lock(&fs_head_lock);
-	link_t *cur;
-	fs_info_t *fs;
 	for (cur = fs_head.next; cur != &fs_head; cur = cur->next) {
 		fs = list_get_instance(cur, fs_info_t, fs_link);
 		if (fs->fs_handle == handle) {
 			fibril_mutex_unlock(&fs_head_lock);
 			fibril_mutex_lock(&fs->phone_lock);
-			phone = ipc_connect_me_to(fs->phone, 0, 0, 0);
+			phone = async_relation_create(fs->phone);
 			fibril_mutex_unlock(&fs->phone_lock);
 
 			assert(phone > 0);
@@ -283,10 +284,25 @@ int vfs_grab_phone(fs_handle_t handle)
  *
  * @param phone		Phone to FS task.
  */
-void vfs_release_phone(int phone)
+void vfs_release_phone(fs_handle_t handle, int phone)
 {
-	/* TODO: implement connection caching */
-	ipc_hangup(phone);
+	link_t *cur;
+	fs_info_t *fs;
+
+	fibril_mutex_lock(&fs_head_lock);
+	for (cur = fs_head.next; cur != &fs_head; cur = cur->next) {
+		fs = list_get_instance(cur, fs_info_t, fs_link);
+		if (fs->fs_handle == handle) {
+			fibril_mutex_unlock(&fs_head_lock);
+			fibril_mutex_lock(&fs->phone_lock);
+			async_relation_destroy(fs->phone, phone);
+			fibril_mutex_unlock(&fs->phone_lock);
+			return;
+		}
+	}
+	/* should not really get here */
+	abort();
+	fibril_mutex_unlock(&fs_head_lock);
 }
 
 /** Convert file system name to its handle.

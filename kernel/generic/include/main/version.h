@@ -41,4 +41,3 @@ extern void version_print(void);
 
 /** @}
  */
-

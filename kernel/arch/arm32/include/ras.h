@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jakub Jermar 
+ * Copyright (c) 2009 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,15 +37,15 @@
 #define KERN_arm32_RAS_H_
 
 #include <arch/exception.h>
-#include <arch/types.h>
+#include <typedefs.h>
 
-#define RAS_START	0
-#define RAS_END		1
+#define RAS_START  0
+#define RAS_END    1
 
 extern uintptr_t *ras_page;
 
 extern void ras_init(void);
-extern void ras_check(int, istate_t *);
+extern void ras_check(unsigned int, istate_t *);
 
 #endif
 

@@ -38,18 +38,19 @@
 #include <sysinfo/sysinfo.h>
 #include <synch/waitq.h>
 #include <synch/spinlock.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <ddi/irq.h>
 #include <ddi/ddi.h>
 #include <ipc/event.h>
 #include <ipc/irq.h>
 #include <arch.h>
+#include <panic.h>
 #include <print.h>
 #include <putchar.h>
 #include <atomic.h>
 #include <syscall/copy.h>
 #include <errno.h>
-#include <string.h>
+#include <str.h>
 
 #define KLOG_PAGES    4
 #define KLOG_LENGTH   (KLOG_PAGES * PAGE_SIZE / sizeof(wchar_t))
@@ -60,12 +61,16 @@ static wchar_t klog[KLOG_LENGTH] __attribute__ ((aligned (PAGE_SIZE)));
 
 /** Kernel log initialized */
 static bool klog_inited = false;
+
 /** First kernel log characters */
 static size_t klog_start = 0;
+
 /** Number of valid kernel log characters */
 static size_t klog_len = 0;
+
 /** Number of stored (not printed) kernel log characters */
 static size_t klog_stored = 0;
+
 /** Number of stored kernel log characters for uspace */
 static size_t klog_uspace = 0;
 
@@ -82,8 +87,8 @@ static indev_operations_t stdin_ops = {
 	.poll = NULL
 };
 
-static void stdout_write(outdev_t *dev, wchar_t ch, bool silent);
-static void stdout_redraw(outdev_t *dev);
+static void stdout_write(outdev_t *, wchar_t, bool);
+static void stdout_redraw(outdev_t *);
 
 static outdev_operations_t stdout_ops = {
 	.write = stdout_write,
@@ -172,9 +177,12 @@ void grab_console(void)
 	if ((stdout) && (stdout->op->redraw))
 		stdout->op->redraw(stdout);
 	
-	/* Force the console to print the prompt */
-	if ((stdin) && (prev))
+	if ((stdin) && (prev)) {
+		/*
+		 * Force the console to print the prompt.
+		 */
 		indev_push_character(stdin, '\n');
+	}
 }
 
 void release_console(void)
@@ -285,7 +293,19 @@ void putchar(const wchar_t ch)
 	if ((stdout) && (stdout->op->write))
 		stdout->op->write(stdout, ch, silent);
 	else {
-		/* The character is just in the kernel log */
+		/*
+		 * No standard output routine defined yet.
+		 * The character is still stored in the kernel log
+		 * for possible future output.
+		 *
+		 * The early_putchar() function is used to output
+		 * the character for low-level debugging purposes.
+		 * Note that the early_putc() function might be
+		 * a no-op on certain hardware configurations.
+		 *
+		 */
+		early_putchar(ch);
+		
 		if (klog_stored < klog_len)
 			klog_stored++;
 	}

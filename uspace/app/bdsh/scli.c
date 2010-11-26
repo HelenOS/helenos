@@ -30,7 +30,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <str.h>
 #include <unistd.h>
 #include "config.h"
 #include "scli.h"
@@ -64,7 +64,8 @@ static int cli_init(cliuser_t *usr)
 	usr->prompt = (char *) NULL;
 	usr->lasterr = 0;
 
-	input_init();
+	if (input_init() != 0)
+		return 1;
 
 	return (int) cli_set_prompt(usr);
 }
@@ -87,9 +88,6 @@ int main(int argc, char *argv[])
 	if (cli_init(&usr))
 		exit(EXIT_FAILURE);
 
-	printf("Welcome to %s - %s\nType `help' at any time for usage information.\n",
-		progname, PACKAGE_STRING);
-
 	while (!cli_quit) {
 		get_input(&usr);
 		if (NULL != usr.line) {
@@ -98,9 +96,9 @@ int main(int argc, char *argv[])
 			usr.lasterr = ret;
 		}
 	}
-	goto finit;
 
-finit:
+	printf("Leaving %s.\n", progname);
+
 	cli_finit(&usr);
 	return ret;
 }

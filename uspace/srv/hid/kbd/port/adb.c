@@ -52,7 +52,7 @@ static int dev_phone;
 
 int kbd_port_init(void)
 {
-	char *input = "/dev/adb/kbd";
+	const char *input = "/dev/adb/kbd";
 	int input_fd;
 
 	printf(NAME ": open %s\n", input);

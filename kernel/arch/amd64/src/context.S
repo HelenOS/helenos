@@ -40,12 +40,12 @@
 #
 context_save_arch:
 	movq (%rsp), %rdx     # the caller's return %eip
-
-	# In %edi is passed 1st argument
-	CONTEXT_SAVE_ARCH_CORE %rdi %rdx 
 	
-	xorq %rax,%rax		# context_save returns 1
-	incq %rax
+	# 1st argument passed in %edi
+	CONTEXT_SAVE_ARCH_CORE %rdi %rdx
+	
+	xorl %eax, %eax       # context_save returns 1
+	incl %eax
 	ret
 
 
@@ -54,11 +54,10 @@ context_save_arch:
 # Restore CPU context from context_t variable
 # pointed by the 1st argument. Returns 0 in EAX.
 #
-context_restore_arch:	
-
+context_restore_arch:
 	CONTEXT_RESTORE_ARCH_CORE %rdi %rdx
-
-	movq %rdx,(%rsp)
-
-	xorq %rax,%rax		# context_restore returns 0
+	
+	movq %rdx, (%rsp)
+	
+	xorl %eax, %eax       # context_restore returns 0
 	ret

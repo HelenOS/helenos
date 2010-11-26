@@ -49,7 +49,7 @@
  */
 
 #include <stdlib.h>
-#include <string.h>
+#include <str.h>
 #include <errno.h>
 #include <adt/list.h>
 #include <align.h>

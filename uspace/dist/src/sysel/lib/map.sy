@@ -1,0 +1,131 @@
+--
+-- Copyright (c) 2010 Jiri Svoboda
+-- All rights reserved.
+--
+-- Redistribution and use in source and binary forms, with or without
+-- modification, are permitted provided that the following conditions
+-- are met:
+--
+-- o Redistributions of source code must retain the above copyright
+--   notice, this list of conditions and the following disclaimer.
+-- o Redistributions in binary form must reproduce the above copyright
+--   notice, this list of conditions and the following disclaimer in the
+--   documentation and/or other materials provided with the distribution.
+-- o The name of the author may not be used to endorse or promote products
+--   derived from this software without specific prior written permission.
+--
+-- THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+-- IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+-- OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+-- IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+-- INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+-- NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+-- DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+-- THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+-- (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+-- THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+--
+
+-- Trivial map.
+class Map/tkey/tvalue is
+	var data : List/(MapPair/tkey/tvalue);
+
+	-- New empty map.
+	new() is
+		data = new List/(MapPair/tkey/tvalue)();
+	end
+
+	fun Set(key : tkey; value : tvalue) is
+		if KeyPresent(key) then
+			Remove(key);
+		end
+
+		var p : MapPair/tkey/tvalue;
+		p = new MapPair/tkey/tvalue();
+
+		p.Key = key;
+		p.Value = value;
+		data.Append(p);
+	end
+
+	-- Return internal list node associated with key @a key.
+	fun lookup_node(key : tkey) : ListNode/(MapPair/tkey/tvalue) is
+		var node : ListNode/(MapPair/tkey/tvalue);
+
+		node = data.First;
+		while node != nil do
+			if node.Data.Key == key then
+				return node;
+			end
+
+			node = node.Next;
+		end
+
+		return nil;
+	end
+
+	fun KeyPresent(key : tkey) : bool is
+		return lookup_node(key) != nil;
+	end
+
+	fun Get(key : tkey) : tvalue is
+		var node : ListNode/(MapPair/tkey/tvalue);
+
+		node = lookup_node(key);
+		return node.Data.Value;
+	end
+
+	fun Remove(key : tkey) is
+		var node : ListNode/(MapPair/tkey/tvalue);
+
+		node = lookup_node(key);
+		node.Remove();
+	end
+
+	prop self[key : tkey] : tvalue is
+		get is
+			return Get(key);
+		end
+		set value is
+			Set(key, value);
+		end
+	end
+
+	fun GetEnumerator() : IEnumerator/tkey is
+		return new MapEnumerator/tkey/tvalue(data.get_first());
+	end
+end
+
+class MapPair/tkey/tvalue is
+	var Key : tkey;
+	var Value : tvalue;
+end
+
+class MapEnumerator/tkey/tvalue : IEnumerator/tkey is
+	var first : ListNode/(MapPair/tkey/tvalue);
+	var current : ListNode/(MapPair/tkey/tvalue);
+	var started : bool;
+
+	new(first_node : ListNode/(MapPair/tkey/tvalue)) is
+		first = first_node;
+		current = nil;
+		started = false;
+	end
+
+	fun MoveNext() : bool is
+		if started then
+			current = current.Next;
+		else
+			current = first;
+			started = true;
+		end
+
+		return current != nil;
+	end
+
+	prop Data : tkey is
+		get is
+			return current.Data.Key;
+		end
+	end
+end

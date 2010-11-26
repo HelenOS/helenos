@@ -35,7 +35,7 @@
 
 #include <ddi/ddi.h>
 #include <proc/task.h>
-#include <arch/types.h>
+#include <typedefs.h>
 
 /** Enable I/O space range for task.
  *

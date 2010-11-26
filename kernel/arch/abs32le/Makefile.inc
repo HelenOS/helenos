@@ -26,8 +26,21 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Toolchain configuration
-#
+BFD = binary
+
+ifeq ($(COMPILER),gcc_cross)
+	ifeq ($(CROSS_TARGET),arm32)
+		ATSIGN = %
+	endif
+	
+	ifeq ($(CROSS_TARGET),mips32)
+		GCC_CFLAGS += -mno-abicalls
+	endif
+endif
+
+ifeq ($(COMPILER),clang)
+	CLANG_ARCH = i386
+endif
 
 BITS = 32
 ENDIANESS = LE
@@ -42,6 +55,7 @@ ARCH_SOURCES = \
 	arch/$(KARCH)/src/cpu/cpu.c \
 	arch/$(KARCH)/src/ddi/ddi.c \
 	arch/$(KARCH)/src/smp/smp.c \
+	arch/$(KARCH)/src/smp/ipi.c \
 	arch/$(KARCH)/src/mm/as.c \
 	arch/$(KARCH)/src/mm/frame.c \
 	arch/$(KARCH)/src/mm/page.c \

@@ -33,7 +33,7 @@
  */
 
 #include <proc/task.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <adt/bitmap.h>
 #include <mm/slab.h>
 

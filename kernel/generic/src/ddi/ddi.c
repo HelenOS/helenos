@@ -45,23 +45,27 @@
 #include <security/cap.h>
 #include <mm/frame.h>
 #include <mm/as.h>
-#include <synch/spinlock.h>
+#include <synch/mutex.h>
 #include <syscall/copy.h>
 #include <adt/btree.h>
 #include <arch.h>
 #include <align.h>
 #include <errno.h>
+#include <trace.h>
 
 /** This lock protects the parea_btree. */
-SPINLOCK_INITIALIZE(parea_lock);
+static mutex_t parea_lock;
 
 /** B+tree with enabled physical memory areas. */
 static btree_t parea_btree;
 
-/** Initialize DDI. */
+/** Initialize DDI.
+ *
+ */
 void ddi_init(void)
 {
 	btree_create(&parea_btree);
+	mutex_initialize(&parea_lock, MUTEX_PASSIVE);
 }
 
 /** Enable piece of physical memory for mapping by physmem_map().
@@ -71,16 +75,14 @@ void ddi_init(void)
  */
 void ddi_parea_register(parea_t *parea)
 {
-	ipl_t ipl = interrupts_disable();
-	spinlock_lock(&parea_lock);
+	mutex_lock(&parea_lock);
 	
 	/*
 	 * We don't check for overlaps here as the kernel is pretty sane.
 	 */
 	btree_insert(&parea_btree, (btree_key_t) parea->pbase, parea, NULL);
 	
-	spinlock_unlock(&parea_lock);
-	interrupts_restore(ipl);
+	mutex_unlock(&parea_lock);
 }
 
 /** Map piece of physical memory into virtual address space of current task.
@@ -97,7 +99,8 @@ void ddi_parea_register(parea_t *parea)
  *         creating address space area.
  *
  */
-static int ddi_physmem_map(uintptr_t pf, uintptr_t vp, size_t pages, int flags)
+NO_TRACE static int ddi_physmem_map(uintptr_t pf, uintptr_t vp, size_t pages,
+    unsigned int flags)
 {
 	ASSERT(TASK);
 	ASSERT((pf % FRAME_SIZE) == 0);
@@ -114,69 +117,63 @@ static int ddi_physmem_map(uintptr_t pf, uintptr_t vp, size_t pages, int flags)
 	backend_data.base = pf;
 	backend_data.frames = pages;
 	
-	ipl_t ipl = interrupts_disable();
-	
 	/* Find the zone of the physical memory */
-	spinlock_lock(&zones.lock);
+	irq_spinlock_lock(&zones.lock, true);
 	size_t znum = find_zone(ADDR2PFN(pf), pages, 0);
 	
 	if (znum == (size_t) -1) {
 		/* Frames not found in any zones
 		 * -> assume it is hardware device and allow mapping
 		 */
-		spinlock_unlock(&zones.lock);
+		irq_spinlock_unlock(&zones.lock, true);
 		goto map;
 	}
 	
 	if (zones.info[znum].flags & ZONE_FIRMWARE) {
 		/* Frames are part of firmware */
-		spinlock_unlock(&zones.lock);
+		irq_spinlock_unlock(&zones.lock, true);
 		goto map;
 	}
 	
 	if (zone_flags_available(zones.info[znum].flags)) {
-		/* Frames are part of physical memory, check if the memory
+		/*
+		 * Frames are part of physical memory, check if the memory
 		 * region is enabled for mapping.
 		 */
-		spinlock_unlock(&zones.lock);
+		irq_spinlock_unlock(&zones.lock, true);
 		
-		spinlock_lock(&parea_lock);
+		mutex_lock(&parea_lock);
 		btree_node_t *nodep;
 		parea_t *parea = (parea_t *) btree_search(&parea_btree,
 		    (btree_key_t) pf, &nodep);
 		
-		if ((!parea) || (parea->frames < pages))
+		if ((!parea) || (parea->frames < pages)) {
+			mutex_unlock(&parea_lock);
 			goto err;
+		}
 		
-		spinlock_unlock(&parea_lock);
+		mutex_unlock(&parea_lock);
 		goto map;
 	}
 	
+	irq_spinlock_unlock(&zones.lock, true);
+	
 err:
-	spinlock_unlock(&zones.lock);
-	interrupts_restore(ipl);
 	return ENOENT;
 	
 map:
-	spinlock_lock(&TASK->lock);
-	
 	if (!as_area_create(TASK->as, flags, pages * PAGE_SIZE, vp,
 	    AS_AREA_ATTR_NONE, &phys_backend, &backend_data)) {
 		/*
 		 * The address space area could not have been created.
 		 * We report it using ENOMEM.
 		 */
-		spinlock_unlock(&TASK->lock);
-		interrupts_restore(ipl);
 		return ENOMEM;
 	}
 	
 	/*
 	 * Mapping is created on-demand during page fault.
 	 */
-	
-	spinlock_unlock(&TASK->lock);
-	interrupts_restore(ipl);
 	return 0;
 }
 
@@ -190,7 +187,8 @@ map:
  *           syscall, ENOENT if there is no task matching the specified ID.
  *
  */
-static int ddi_iospace_enable(task_id_t id, uintptr_t ioaddr, size_t size)
+NO_TRACE static int ddi_iospace_enable(task_id_t id, uintptr_t ioaddr,
+    size_t size)
 {
 	/*
 	 * Make sure the caller is authorised to make this syscall.
@@ -199,8 +197,7 @@ static int ddi_iospace_enable(task_id_t id, uintptr_t ioaddr, size_t size)
 	if (!(caps & CAP_IO_MANAGER))
 		return EPERM;
 	
-	ipl_t ipl = interrupts_disable();
-	spinlock_lock(&tasks_lock);
+	irq_spinlock_lock(&tasks_lock, true);
 	
 	task_t *task = task_find_by_id(id);
 	
@@ -210,19 +207,16 @@ static int ddi_iospace_enable(task_id_t id, uintptr_t ioaddr, size_t size)
 		 * or the task belongs to a different security
 		 * context.
 		 */
-		spinlock_unlock(&tasks_lock);
-		interrupts_restore(ipl);
+		irq_spinlock_unlock(&tasks_lock, true);
 		return ENOENT;
 	}
 	
 	/* Lock the task and release the lock protecting tasks_btree. */
-	spinlock_lock(&task->lock);
-	spinlock_unlock(&tasks_lock);
+	irq_spinlock_exchange(&tasks_lock, &task->lock);
 	
 	int rc = ddi_iospace_enable_arch(task, ioaddr, size);
 	
-	spinlock_unlock(&task->lock);
-	interrupts_restore(ipl);
+	irq_spinlock_unlock(&task->lock, true);
 	
 	return rc;
 }
@@ -263,26 +257,33 @@ unative_t sys_iospace_enable(ddi_ioarg_t *uspace_io_arg)
 	    (uintptr_t) arg.ioaddr, (size_t) arg.size);
 }
 
-/** Disable or enable preemption.
- *
- * @param enable If non-zero, the preemption counter will be decremented,
- *               leading to potential enabling of preemption. Otherwise
- *               the preemption counter will be incremented, preventing
- *               preemption from occurring.
- *
- * @return Zero on success or EPERM if callers capabilities are not sufficient.
- *
+/** Disable or enable specified interrupts.
+ * 
+ * @param irq the interrupt to be enabled/disabled.
+ * @param enable if true enable the interrupt, disable otherwise.
+ * 
+ * @retutn Zero on success, error code otherwise.
  */
-unative_t sys_preempt_control(int enable)
+unative_t sys_interrupt_enable(int irq, int enable)
 {
-	if (!(cap_get(TASK) & CAP_PREEMPT_CONTROL))
+/* FIXME: this needs to be generic code, or better not be in kernel at all. */
+#if 0
+	cap_t task_cap = cap_get(TASK);
+	if (!(task_cap & CAP_IRQ_REG))
 		return EPERM;
+		
+	if (irq < 0 || irq > 16) {
+		return EINVAL;
+	}
 	
-	if (enable)
-		preemption_enable();
-	else
-		preemption_disable();
+	uint16_t irq_mask = (uint16_t)(1 << irq);
+	if (enable) {
+		trap_virtual_enable_irqs(irq_mask);
+	} else {
+		trap_virtual_disable_irqs(irq_mask);
+	}
 	
+#endif
 	return 0;
 }
 

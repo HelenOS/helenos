@@ -32,7 +32,7 @@
 #include <mm/frame.h>
 #include <mm/slab.h>
 #include <arch/mm/page.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <atomic.h>
 #include <debug.h>
 #include <proc/thread.h>
@@ -84,7 +84,8 @@ static void falloc(void *arg)
 			for (i = 0; i < allocated; i++) {
 				for (k = 0; k <= (((size_t) FRAME_SIZE << order) - 1); k++) {
 					if (((uint8_t *) frames[i])[k] != val) {
-						TPRINTF("Thread #%" PRIu64 " (cpu%u): Unexpected data (%c) in block %p offset %#" PRIs "\n", THREAD->tid, CPU->id, ((char *) frames[i])[k], frames[i], k);
+						TPRINTF("Thread #%" PRIu64 " (cpu%u): Unexpected data (%c) in block %p offset %zu\n",
+						    THREAD->tid, CPU->id, ((char *) frames[i])[k], frames[i], k);
 						atomic_inc(&thread_fail);
 						goto cleanup;
 					}
@@ -103,7 +104,7 @@ cleanup:
 	atomic_dec(&thread_count);
 }
 
-char *test_falloc2(void)
+const char *test_falloc2(void)
 {
 	unsigned int i;
 	
@@ -120,7 +121,7 @@ char *test_falloc2(void)
 	}
 	
 	while (atomic_get(&thread_count) > 0) {
-		TPRINTF("Threads left: %ld\n", atomic_get(&thread_count));
+		TPRINTF("Threads left: %" PRIua "\n", atomic_get(&thread_count));
 		thread_sleep(1);
 	}
 	

@@ -37,7 +37,7 @@
 #include <macros.h>
 #include <getopt.h>
 #include <stdarg.h>
-#include <string.h>
+#include <str.h>
 #include <ctype.h>
 
 #include "config.h"
@@ -50,7 +50,7 @@
 /** Number of bytes to write at a time */
 #define BUFFER_SIZE 16384
 
-static char *cmdname = "mkfile";
+static const char *cmdname = "mkfile";
 
 static struct option const long_options[] = {
 	{"size", required_argument, 0, 's'},
@@ -167,7 +167,7 @@ int cmd_mkfile(char **argv)
 		to_write = min(file_size - total_written, BUFFER_SIZE);
 		rc = write(fd, buffer, to_write);
 		if (rc <= 0) {
-			printf("%s: Error writing file (%d).\n", cmdname, rc);
+			printf("%s: Error writing file (%zd).\n", cmdname, rc);
 			close(fd);
 			return CMD_FAILURE;
 		}
@@ -176,7 +176,7 @@ int cmd_mkfile(char **argv)
 
 	rc = close(fd);
 	if (rc != 0) {
-		printf("%s: Error writing file (%d).\n", cmdname, rc);
+		printf("%s: Error writing file (%zd).\n", cmdname, rc);
 		return CMD_FAILURE;
 	}
 

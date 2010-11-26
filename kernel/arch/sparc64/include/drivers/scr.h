@@ -35,7 +35,7 @@
 #ifndef KERN_sparc64_SCR_H_
 #define KERN_sparc64_SCR_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <genarch/ofw/ofw_tree.h>
 
 typedef enum {
@@ -43,7 +43,8 @@ typedef enum {
 	SCR_ATYFB,
 	SCR_FFB,
 	SCR_CGSIX,
-	SCR_XVR
+	SCR_XVR,
+	SCR_QEMU_VGA
 } scr_type_t;
 
 extern scr_type_t scr_type;

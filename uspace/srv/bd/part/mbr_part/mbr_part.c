@@ -96,11 +96,11 @@ typedef struct part {
 	/** Primary partition entry is in use */
 	bool present;
 	/** Address of first block */
-	bn_t start_addr;
+	aoff64_t start_addr;
 	/** Number of blocks */
-	bn_t length;
+	aoff64_t length;
 	/** Device representing the partition (outbound device) */
-	dev_handle_t dev;
+	devmap_handle_t dev;
 	/** Points to next partition structure. */
 	struct part *next;
 } part_t;
@@ -141,7 +141,7 @@ typedef struct {
 static size_t block_size;
 
 /** Partitioned device (inbound device) */
-static dev_handle_t indev_handle;
+static devmap_handle_t indev_handle;
 
 /** List of partitions. This structure is an empty head. */
 static part_t plist_head;
@@ -180,7 +180,7 @@ static int mbr_init(const char *dev_name)
 	int rc;
 	int i;
 	char *name;
-	dev_handle_t dev;
+	devmap_handle_t dev;
 	uint64_t size_mb;
 	part_t *part;
 
@@ -205,7 +205,7 @@ static int mbr_init(const char *dev_name)
 	}
 
 	if (block_size < 512 || (block_size % 512) != 0) {
-		printf(NAME ": invalid block size %d.\n");
+		printf(NAME ": invalid block size %zu.\n", block_size);
 		return ENOTSUP;
 	}
 
@@ -248,7 +248,7 @@ static int mbr_init(const char *dev_name)
 
 		size_mb = (part->length * block_size + 1024 * 1024 - 1)
 		    / (1024 * 1024);
-		printf(NAME ": Registered device %s: %" PRIuBN " blocks "
+		printf(NAME ": Registered device %s: %" PRIuOFF64 " blocks "
 		    "%" PRIu64 " MB.\n", name, part->length, size_mb);
 
 		part->dev = dev;
@@ -393,7 +393,7 @@ static void mbr_connection(ipc_callid_t iid, ipc_call_t *icall)
 	ipc_callid_t callid;
 	ipc_call_t call;
 	ipcarg_t method;
-	dev_handle_t dh;
+	devmap_handle_t dh;
 	int flags;
 	int retval;
 	uint64_t ba;

@@ -43,16 +43,15 @@
 #include <event.h>
 #include <macros.h>
 #include <errno.h>
+#include <str_error.h>
 
 #define NAME  "taskmon"
 
 static void fault_event(ipc_callid_t callid, ipc_call_t *call)
 {
-	char *argv[6];
-	char *fname;
-	char *dump_fname;
+	const char *fname;
 	char *s_taskid;
-	char **s;
+	int rc;
 
 	task_id_t taskid;
 	uintptr_t thread;
@@ -60,43 +59,35 @@ static void fault_event(ipc_callid_t callid, ipc_call_t *call)
 	taskid = MERGE_LOUP32(IPC_GET_ARG1(*call), IPC_GET_ARG2(*call));
 	thread = IPC_GET_ARG3(*call);
 
-	if (asprintf(&s_taskid, "%" PRIuTASKID, taskid) < 0) {
+	if (asprintf(&s_taskid, "%" PRIu64, taskid) < 0) {
 		printf("Memory allocation failed.\n");
 		return;
 	}
 
-	if (asprintf(&dump_fname, "/data/core%" PRIuTASKID, taskid) < 0) {
-		printf("Memory allocation failed.\n");
-		return;
-	}
+	printf(NAME ": Task %" PRIu64 " fault in thread %p.\n", taskid,
+	    (void *) thread);
 
-	printf(NAME ": Task %" PRIuTASKID " fault in thread %p.\n", taskid, thread);
+	fname = "/app/taskdump";
 
 #ifdef CONFIG_WRITE_CORE_FILES
-	argv[0] = "/app/taskdump";
-	argv[1] = "-c";
-	argv[2] = dump_fname;
-	argv[3] = "-t";
-	argv[4] = s_taskid;
-	argv[5] = NULL;
-#else
-	argv[0] = "/app/taskdump";
-	argv[1] = "-t";
-	argv[2] = s_taskid;
-	argv[3] = NULL;
-#endif
-	fname = argv[0];
+	char *dump_fname;
 
-	printf(NAME ": Executing");
-        s = argv;
-	while (*s != NULL) {
-		printf(" %s", *s);
-		++s;
+	if (asprintf(&dump_fname, "/data/core%" PRIu64, taskid) < 0) {
+		printf("Memory allocation failed.\n");
+		return;
 	}
-	putchar('\n');
 
-	if (!task_spawn(fname, argv))
-		printf(NAME ": Error spawning taskdump.\n", fname);
+	printf(NAME ": Executing %s -c %s -t %s\n", fname, dump_fname, s_taskid);
+	rc = task_spawnl(NULL, fname, fname, "-c", dump_fname, "-t", s_taskid,
+	    NULL);
+#else
+	printf(NAME ": Executing %s -t %s\n", fname, s_taskid);
+	rc = task_spawnl(NULL, fname, fname, "-t", s_taskid, NULL);
+#endif
+	if (rc != EOK) {
+		printf("%s: Error spawning %s (%s).\n", NAME, fname,
+		    str_error(rc));
+	}
 }
 
 int main(int argc, char *argv[])

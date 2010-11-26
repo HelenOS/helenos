@@ -3,7 +3,7 @@
 
 /* Simple array to translate error codes to meaningful strings */
 
-static char *cl_errors[] = {
+static const char *cl_errors[] = {
 	"Success",
 	"Failure",
 	"Busy",
@@ -17,7 +17,7 @@ static char *cl_errors[] = {
 	NULL
 };
 
-static char *err2str(int);
+static const char *err2str(int);
 
 #endif
 

@@ -35,58 +35,119 @@
 #ifndef KERN_SYSINFO_H_
 #define KERN_SYSINFO_H_
 
-#include <arch/types.h>
-#include <string.h>
+#include <typedefs.h>
+#include <str.h>
 
+/** Framebuffer info exported flags */
 extern bool fb_exported;
 
-typedef union sysinfo_item_val {
-	unative_t val;
-	void *fn; 
+/** Item value type
+ *
+ */
+typedef enum {
+	SYSINFO_VAL_UNDEFINED = 0,     /**< Undefined value */
+	SYSINFO_VAL_VAL = 1,           /**< Constant numeric value */
+	SYSINFO_VAL_DATA = 2,          /**< Constant binary data */
+	SYSINFO_VAL_FUNCTION_VAL = 3,  /**< Generated numeric value */
+	SYSINFO_VAL_FUNCTION_DATA = 4  /**< Generated binary data */
+} sysinfo_item_val_type_t;
+
+/** Subtree type
+ *
+ */
+typedef enum {
+	SYSINFO_SUBTREE_NONE = 0,     /**< No subtree (leaf item) */
+	SYSINFO_SUBTREE_TABLE = 1,    /**< Fixed subtree */
+	SYSINFO_SUBTREE_FUNCTION = 2  /**< Generated subtree */
+} sysinfo_subtree_type_t;
+
+struct sysinfo_item;
+
+/** Gerated numeric value function */
+typedef unative_t (*sysinfo_fn_val_t)(struct sysinfo_item *);
+
+/** Generated binary data function */
+typedef void *(*sysinfo_fn_data_t)(struct sysinfo_item *, size_t *, bool);
+
+/** Sysinfo item binary data
+ *
+ */
+typedef struct {
+	void *data;   /**< Data */
+	size_t size;  /**< Size (bytes) */
+} sysinfo_data_t;
+
+/** Sysinfo item value (union)
+ *
+ */
+typedef union {
+	unative_t val;              /**< Constant numberic value */
+	sysinfo_fn_val_t fn_val;    /**< Generated numeric value function */
+	sysinfo_fn_data_t fn_data;  /**< Generated binary data function */
+	sysinfo_data_t data;        /**< Constant binary data */
 } sysinfo_item_val_t;
 
+/** Sysinfo return holder
+ *
+ * This structure is generated from the constant
+ * items or by the generating functions. Note that
+ * the validity of the data is limited by the scope
+ * of single sysinfo invocation guarded by sysinfo_lock.
+ *
+ */
+typedef struct {
+	sysinfo_item_val_type_t tag;  /**< Return value type */
+	union {
+		unative_t val;            /**< Numberic value */
+		sysinfo_data_t data;      /**< Binary data */
+	};
+} sysinfo_return_t;
+
+/** Generated subtree function */
+typedef sysinfo_return_t (*sysinfo_fn_subtree_t)(const char *, bool);
+
+/** Sysinfo subtree (union)
+ *
+ */
+typedef union {
+	struct sysinfo_item *table;     /**< Fixed subtree (list of subitems) */
+	sysinfo_fn_subtree_t get_data;  /**< Generated subtree function */
+} sysinfo_subtree_t;
+
+/** Sysinfo item
+ *
+ */
 typedef struct sysinfo_item {
-	char *name;
-	union {
-		unative_t val;
-		void *fn; 
-	} val;
-
-	union {
-		struct sysinfo_item *table;
-		void *fn;
-	} subinfo;
-
-	struct sysinfo_item *next;
-	int val_type;
-	int subinfo_type;
+	char *name;                           /**< Item name */
+	
+	sysinfo_item_val_type_t val_type;     /**< Item value type */
+	sysinfo_item_val_t val;               /**< Item value */
+	
+	sysinfo_subtree_type_t subtree_type;  /**< Subtree type */
+	sysinfo_subtree_t subtree;            /**< Subtree */
+	
+	struct sysinfo_item *next;            /**< Sibling item */
 } sysinfo_item_t;
 
-#define SYSINFO_VAL_VAL        0
-#define SYSINFO_VAL_FUNCTION   1
-#define SYSINFO_VAL_UNDEFINED  U_SPECIAL
+extern void sysinfo_set_item_val(const char *, sysinfo_item_t **, unative_t);
+extern void sysinfo_set_item_data(const char *, sysinfo_item_t **, void *,
+    size_t);
+extern void sysinfo_set_item_fn_val(const char *, sysinfo_item_t **,
+    sysinfo_fn_val_t);
+extern void sysinfo_set_item_fn_data(const char *, sysinfo_item_t **,
+    sysinfo_fn_data_t);
+extern void sysinfo_set_item_undefined(const char *, sysinfo_item_t **);
 
-#define SYSINFO_SUBINFO_NONE      0
-#define SYSINFO_SUBINFO_TABLE     1
-#define SYSINFO_SUBINFO_FUNCTION  2
+extern void sysinfo_set_subtree_fn(const char *, sysinfo_item_t **,
+    sysinfo_fn_subtree_t);
 
-typedef unative_t (*sysinfo_val_fn_t)(sysinfo_item_t *root);
-typedef unative_t (*sysinfo_subinfo_fn_t)(const char *subname);
+extern void sysinfo_init(void);
+extern void sysinfo_dump(sysinfo_item_t *);
 
-typedef struct sysinfo_rettype {
-	unative_t val;
-	unative_t valid;
-} sysinfo_rettype_t;
-
-void sysinfo_set_item_val(const char *name, sysinfo_item_t **root, unative_t val);
-void sysinfo_dump(sysinfo_item_t **root, int depth);
-void sysinfo_set_item_function(const char *name, sysinfo_item_t **root, sysinfo_val_fn_t fn);
-void sysinfo_set_item_undefined(const char *name, sysinfo_item_t **root);
-
-sysinfo_rettype_t sysinfo_get_val(const char *name, sysinfo_item_t **root);
-
-unative_t sys_sysinfo_valid(unative_t ptr, unative_t len);
-unative_t sys_sysinfo_value(unative_t ptr, unative_t len);
+extern unative_t sys_sysinfo_get_tag(void *, size_t);
+extern unative_t sys_sysinfo_get_value(void *, size_t, void *);
+extern unative_t sys_sysinfo_get_data_size(void *, size_t, void *);
+extern unative_t sys_sysinfo_get_data(void *, size_t, void *, size_t);
 
 #endif
 

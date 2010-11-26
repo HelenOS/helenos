@@ -28,12 +28,11 @@
 #
 
 USPACE_PREFIX = ../../../..
-LIBS = $(LIBBLOCK_PREFIX)/libblock.a $(LIBC_PREFIX)/libc.a
+LIBS = $(LIBBLOCK_PREFIX)/libblock.a
 EXTRA_CFLAGS = -I$(LIBBLOCK_PREFIX)
-
-OUTPUT = mbr_part
+BINARY = mbr_part
 
 SOURCES = \
 	mbr_part.c
 
-include ../../../Makefile.common
+include $(USPACE_PREFIX)/Makefile.common

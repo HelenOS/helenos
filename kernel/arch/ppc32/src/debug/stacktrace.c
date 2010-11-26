@@ -34,37 +34,45 @@
 
 #include <stacktrace.h>
 #include <syscall/copy.h>
-#include <arch/types.h>
 #include <typedefs.h>
 
-bool kernel_frame_pointer_validate(uintptr_t fp)
+#define FRAME_OFFSET_FP_PREV  0
+#define FRAME_OFFSET_RA       1
+
+bool kernel_stack_trace_context_validate(stack_trace_context_t *ctx)
 {
-	return false;
+	return ctx->fp != 0;
 }
 
-bool kernel_frame_pointer_prev(uintptr_t fp, uintptr_t *prev)
+bool kernel_frame_pointer_prev(stack_trace_context_t *ctx, uintptr_t *prev)
 {
-	return false;
+	uint32_t *stack = (void *) ctx->fp;
+	*prev = stack[FRAME_OFFSET_FP_PREV];
+	return true;
 }
 
-bool kernel_return_address_get(uintptr_t fp, uintptr_t *ra)
+bool kernel_return_address_get(stack_trace_context_t *ctx, uintptr_t *ra)
 {
-	return false;
+	uint32_t *stack = (void *) ctx->fp;
+	*ra = stack[FRAME_OFFSET_RA];
+	return true;
 }
 
-bool uspace_frame_pointer_validate(uintptr_t fp)
+bool uspace_stack_trace_context_validate(stack_trace_context_t *ctx)
 {
-	return false;
+	return ctx->fp != 0;
 }
 
-bool uspace_frame_pointer_prev(uintptr_t fp, uintptr_t *prev)
+bool uspace_frame_pointer_prev(stack_trace_context_t *ctx, uintptr_t *prev)
 {
-	return false;
+	return !copy_from_uspace((void *) prev,
+	    (uint32_t *) ctx->fp + FRAME_OFFSET_FP_PREV, sizeof(*prev));
 }
 
-bool uspace_return_address_get(uintptr_t fp, uintptr_t *ra)
+bool uspace_return_address_get(stack_trace_context_t *ctx, uintptr_t *ra)
 {
-	return false;
+	return !copy_from_uspace((void *) ra,
+	    (uint32_t *) ctx->fp + FRAME_OFFSET_RA, sizeof(*ra));
 }
 
 /** @}

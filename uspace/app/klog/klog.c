@@ -42,13 +42,17 @@
 #include <sysinfo.h>
 #include <event.h>
 #include <errno.h>
+#include <str_error.h>
 #include <io/klog.h>
 
-#define NAME  "klog"
+#define NAME       "klog"
+#define LOG_FNAME  "/log/klog"
 
 /* Pointer to klog area */
 static wchar_t *klog;
 static size_t klog_length;
+
+static FILE *log;
 
 static void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
 {
@@ -57,33 +61,59 @@ static void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
 	size_t klog_stored = (size_t) IPC_GET_ARG3(*call);
 	size_t i;
 	
-	for (i = klog_len - klog_stored; i < klog_len; i++)
-		putchar(klog[(klog_start + i) % klog_length]);
+	for (i = klog_len - klog_stored; i < klog_len; i++) {
+		wchar_t ch = klog[(klog_start + i) % klog_length];
+		
+		putchar(ch);
+		
+		if (log != NULL)
+			fputc(ch, log);
+	}
+	
+	if (log != NULL) {
+		fflush(log);
+		fsync(fileno(log));
+	}
 }
 
 int main(int argc, char *argv[])
 {
-	size_t klog_pages = sysinfo_value("klog.pages");
+	size_t klog_pages;
+	if (sysinfo_get_value("klog.pages", &klog_pages) != EOK) {
+		printf("%s: Error getting klog address\n", NAME);
+		return -1;
+	}
+	
 	size_t klog_size = klog_pages * PAGE_SIZE;
 	klog_length = klog_size / sizeof(wchar_t);
 	
 	klog = (wchar_t *) as_get_mappable_page(klog_size);
 	if (klog == NULL) {
-		printf(NAME ": Error allocating memory area\n");
+		printf("%s: Error allocating memory area\n", NAME);
 		return -1;
 	}
 	
 	int res = async_share_in_start_1_0(PHONE_NS, (void *) klog,
 	    klog_size, SERVICE_MEM_KLOG);
 	if (res != EOK) {
-		printf(NAME ": Error initializing memory area\n");
+		printf("%s: Error initializing memory area\n", NAME);
 		return -1;
 	}
 	
 	if (event_subscribe(EVENT_KLOG, 0) != EOK) {
-		printf(NAME ": Error registering klog notifications\n");
+		printf("%s: Error registering klog notifications\n", NAME);
 		return -1;
 	}
+	
+	/*
+	 * Mode "a" would be definitively much better here, but it is
+	 * not well supported by the FAT driver.
+	 *
+	 */
+	log = fopen(LOG_FNAME, "w");
+	if (log == NULL)
+		printf("%s: Unable to create log file %s (%s)\n", NAME, LOG_FNAME,
+		    str_error(errno));
 	
 	async_set_interrupt_received(interrupt_received);
 	klog_update();

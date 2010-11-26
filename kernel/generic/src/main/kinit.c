@@ -65,7 +65,8 @@
 #include <lib/rd.h>
 #include <ipc/ipc.h>
 #include <debug.h>
-#include <string.h>
+#include <str.h>
+#include <sysinfo/stats.h>
 
 #ifdef CONFIG_SMP
 #include <smp/smp.h>
@@ -93,10 +94,7 @@ static char alive[ALIVE_CHARS] = "-\\|/";
  */
 void kinit(void *arg)
 {
-
-#if defined(CONFIG_SMP) || defined(CONFIG_KCONSOLE)
 	thread_t *thread;
-#endif
 	
 	/*
 	 * Detach kinit as nobody will call thread_join_timeout() on it.
@@ -108,6 +106,7 @@ void kinit(void *arg)
 #ifdef CONFIG_SMP
 	if (config.cpu_count > 1) {
 		waitq_initialize(&ap_completion_wq);
+		
 		/*
 		 * Create the kmp thread and wait for its completion.
 		 * cpu1 through cpuN-1 will come up consecutively and
@@ -116,31 +115,30 @@ void kinit(void *arg)
 		 */
 		thread = thread_create(kmp, NULL, TASK, THREAD_FLAG_WIRED, "kmp", true);
 		if (thread != NULL) {
-			spinlock_lock(&thread->lock);
+			irq_spinlock_lock(&thread->lock, false);
 			thread->cpu = &cpus[0];
-			spinlock_unlock(&thread->lock);
+			irq_spinlock_unlock(&thread->lock, false);
 			thread_ready(thread);
 		} else
 			panic("Unable to create kmp thread.");
+		
 		thread_join(thread);
 		thread_detach(thread);
-	}
-	
-	if (config.cpu_count > 1) {
-		size_t i;
 		
 		/*
 		 * For each CPU, create its load balancing thread.
 		 */
+		unsigned int i;
+		
 		for (i = 0; i < config.cpu_count; i++) {
 			thread = thread_create(kcpulb, NULL, TASK, THREAD_FLAG_WIRED, "kcpulb", true);
 			if (thread != NULL) {
-				spinlock_lock(&thread->lock);
+				irq_spinlock_lock(&thread->lock, false);
 				thread->cpu = &cpus[i];
-				spinlock_unlock(&thread->lock);
+				irq_spinlock_unlock(&thread->lock, false);
 				thread_ready(thread);
 			} else
-				printf("Unable to create kcpulb thread for cpu" PRIs "\n", i);
+				printf("Unable to create kcpulb thread for cpu%u\n", i);
 		}
 	}
 #endif /* CONFIG_SMP */
@@ -149,6 +147,13 @@ void kinit(void *arg)
 	 * At this point SMP, if present, is configured.
 	 */
 	arch_post_smp_init();
+	
+	/* Start thread computing system load */
+	thread = thread_create(kload, NULL, TASK, 0, "kload", false);
+	if (thread != NULL)
+		thread_ready(thread);
+	else
+		printf("Unable to create kload thread\n");
 	
 #ifdef CONFIG_KCONSOLE
 	if (stdin) {
@@ -173,7 +178,8 @@ void kinit(void *arg)
 	
 	for (i = 0; i < init.cnt; i++) {
 		if (init.tasks[i].addr % FRAME_SIZE) {
-			printf("init[%" PRIs "].addr is not frame aligned\n", i);
+			printf("init[%zu].addr is not frame aligned\n", i);
+			programs[i].task = NULL;
 			continue;
 		}
 		
@@ -183,9 +189,8 @@ void kinit(void *arg)
 		 */
 		
 		char namebuf[TASK_NAME_BUFLEN];
-		char *name;
 		
-		name = init.tasks[i].name;
+		const char *name = init.tasks[i].name;
 		if (name[0] == 0)
 			name = "<unknown>";
 		
@@ -193,7 +198,7 @@ void kinit(void *arg)
 		str_cpy(namebuf, TASK_NAME_BUFLEN, INIT_PREFIX);
 		str_cpy(namebuf + INIT_PREFIX_LEN,
 		    TASK_NAME_BUFLEN - INIT_PREFIX_LEN, name);
-
+		
 		int rc = program_create_from_image((void *) init.tasks[i].addr,
 		    namebuf, &programs[i]);
 		
@@ -202,7 +207,7 @@ void kinit(void *arg)
 			 * Set capabilities to init userspace tasks.
 			 */
 			cap_set(programs[i].task, CAP_CAP | CAP_MEM_MANAGER |
-			    CAP_IO_MANAGER | CAP_PREEMPT_CONTROL | CAP_IRQ_REG);
+			    CAP_IO_MANAGER | CAP_IRQ_REG);
 			
 			if (!ipc_phone_0)
 				ipc_phone_0 = &programs[i].task->answerbox;
@@ -213,7 +218,7 @@ void kinit(void *arg)
 			int rd = init_rd((rd_header_t *) init.tasks[i].addr, init.tasks[i].size);
 			
 			if (rd != RE_OK)
-				printf("Init binary %" PRIs " not used (error %d)\n", i, rd);
+				printf("Init binary %zu not used (error %d)\n", i, rd);
 		}
 	}
 	

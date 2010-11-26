@@ -55,15 +55,16 @@
 static parea_t fb_parea;
 static icp_hw_map_t icp_hw_map;
 static irq_t icp_timer_irq;
-struct arm_machine_ops machine_ops = {
+struct arm_machine_ops icp_machine_ops = {
 	icp_init,
 	icp_timer_irq_start,
 	icp_cpu_halt,
-	icp_get_memory_size,
+	icp_get_memory_extents,
 	icp_irq_exception,
 	icp_frame_init,
 	icp_output_init,
-	icp_input_init
+	icp_input_init,
+	icp_get_irq_count
 };
 
 static bool hw_map_init_called = false;
@@ -213,18 +214,21 @@ void icp_timer_irq_start(void)
 	icp_timer_start(ICP_TIMER_FREQ);
 }
 
-/** Returns the size of emulated memory.
+/** Get extents of available memory.
  *
- * @return Size in bytes.
+ * @param start		Place to store memory start address.
+ * @param size		Place to store memory size.
  */
-size_t icp_get_memory_size(void) 
+void icp_get_memory_extents(uintptr_t *start, uintptr_t *size)
 {
+	*start = 0;
+
 	if (hw_map_init_called) {
-		return (sdram[((*(uint32_t *)icp_hw_map.sdramcr & ICP_SDRAM_MASK) >> 2)]);
+		*size = (sdram[((*(uint32_t *)icp_hw_map.sdramcr &
+		    ICP_SDRAM_MASK) >> 2)]);
 	} else {
-		return SDRAM_SIZE;
+		*size = SDRAM_SIZE;
 	}
-	
 }
 
 /** Stops icp. */
@@ -241,10 +245,10 @@ void icp_cpu_halt(void)
  * @param exc_no Interrupt exception number.
  * @param istate Saved processor state.
  */
-void icp_irq_exception(int exc_no, istate_t *istate)
+void icp_irq_exception(unsigned int exc_no, istate_t *istate)
 {
 	uint32_t sources = icp_irqc_get_sources();
-	int i;
+	unsigned int i;
 	
 	for (i = 0; i < ICP_IRQC_MAX_IRQ; i++) {
 		if (sources & (1 << i)) {
@@ -332,6 +336,10 @@ void icp_input_init(void)
 
 }
 
+size_t icp_get_irq_count(void)
+{
+	return ICP_IRQ_COUNT;
+}
 
 /** @}
  */

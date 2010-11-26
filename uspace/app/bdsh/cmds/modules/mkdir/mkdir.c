@@ -37,7 +37,7 @@
 #include <sys/stat.h>
 #include <getopt.h>
 #include <stdarg.h>
-#include <string.h>
+#include <str.h>
 
 #include "config.h"
 #include "errors.h"
@@ -48,7 +48,7 @@
 
 #define MKDIR_VERSION "0.0.1"
 
-static char *cmdname = "mkdir";
+static const char *cmdname = "mkdir";
 
 static struct option const long_options[] = {
 	{"parents", no_argument, 0, 'p'},

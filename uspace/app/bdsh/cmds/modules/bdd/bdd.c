@@ -28,7 +28,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <str.h>
+#include <sys/typefmt.h>
 #include "config.h"
 #include "util.h"
 #include "errors.h"
@@ -67,12 +68,12 @@ int cmd_bdd(char **argv)
 {
 	unsigned int argc;
 	unsigned int i, j;
-	dev_handle_t handle;
+	devmap_handle_t handle;
 	uint8_t *blk;
 	size_t size, bytes, rows;
 	size_t block_size;
 	int rc;
-	bn_t ba;
+	aoff64_t ba;
 	uint8_t b;
 
 	/* Count the arguments */
@@ -121,7 +122,7 @@ int cmd_bdd(char **argv)
 	while (size > 0) {
 		rc = block_read_direct(handle, ba, 1, blk);
 		if (rc != EOK) {
-			printf("%s: Error reading block %llu\n", cmdname, ba);
+			printf("%s: Error reading block %" PRIuOFF64 "\n", cmdname, ba);
 			free(blk);
 			block_fini(handle);
 			return CMD_FAILURE;

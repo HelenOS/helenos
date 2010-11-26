@@ -36,7 +36,7 @@
 #define KERN_CUDA_H_
 
 #include <ddi/irq.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <console/chardev.h>
 #include <synch/spinlock.h>
 

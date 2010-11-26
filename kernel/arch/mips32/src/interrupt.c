@@ -34,9 +34,10 @@
 
 #include <interrupt.h>
 #include <arch/interrupt.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch.h>
 #include <arch/cp0.h>
+#include <arch/smp/dorder.h>
 #include <time/clock.h>
 #include <ipc/sysipc.h>
 #include <ddi/device.h>
@@ -47,6 +48,13 @@
 
 function virtual_timer_fnc = NULL;
 static irq_t timer_irq;
+static irq_t dorder_irq;
+
+// TODO: This is SMP unsafe!!!
+
+uint32_t count_hi = 0;
+static unsigned long nextcount;
+static unsigned long lastcount;
 
 /** Disable interrupts.
  *
@@ -88,12 +96,19 @@ ipl_t interrupts_read(void)
 	return cp0_status_read();
 }
 
-/* TODO: This is SMP unsafe!!! */
-uint32_t count_hi = 0;
-static unsigned long nextcount;
-static unsigned long lastcount;
+/** Check interrupts state.
+ *
+ * @return True if interrupts are disabled.
+ *
+ */
+bool interrupts_disabled(void)
+{
+	return !(cp0_status_read() & cp0_status_ie_enabled_bit);
+}
 
-/** Start hardware clock */
+/** Start hardware clock
+ *
+ */
 static void timer_start(void)
 {
 	lastcount = cp0_count_read();
@@ -108,18 +123,18 @@ static irq_ownership_t timer_claim(irq_t *irq)
 
 static void timer_irq_handler(irq_t *irq)
 {
-	unsigned long drift;
-	
 	if (cp0_count_read() < lastcount)
 		/* Count overflow detected */
 		count_hi++;
+	
 	lastcount = cp0_count_read();
 	
-	drift = cp0_count_read() - nextcount;
+	unsigned long drift = cp0_count_read() - nextcount;
 	while (drift > cp0_compare_value) {
 		drift -= cp0_compare_value;
 		CPU->missed_clock_ticks++;
 	}
+	
 	nextcount = cp0_count_read() + cp0_compare_value - drift;
 	cp0_compare_write(nextcount);
 	
@@ -127,12 +142,22 @@ static void timer_irq_handler(irq_t *irq)
 	 * We are holding a lock which prevents preemption.
 	 * Release the lock, call clock() and reacquire the lock again.
 	 */
-	spinlock_unlock(&irq->lock);
+	irq_spinlock_unlock(&irq->lock, false);
 	clock();
-	spinlock_lock(&irq->lock);
+	irq_spinlock_lock(&irq->lock, false);
 	
 	if (virtual_timer_fnc != NULL)
 		virtual_timer_fnc();
+}
+
+static irq_ownership_t dorder_claim(irq_t *irq)
+{
+	return IRQ_ACCEPT;
+}
+
+static void dorder_irq_handler(irq_t *irq)
+{
+	dorder_ipi_ack(1 << dorder_cpuid());
 }
 
 /* Initialize basic tables for exception dispatching */
@@ -149,6 +174,15 @@ void interrupt_init(void)
 	
 	timer_start();
 	cp0_unmask_int(TIMER_IRQ);
+	
+	irq_initialize(&dorder_irq);
+	dorder_irq.devno = device_assign_devno();
+	dorder_irq.inr = DORDER_IRQ;
+	dorder_irq.claim = dorder_claim;
+	dorder_irq.handler = dorder_irq_handler;
+	irq_register(&dorder_irq);
+	
+	cp0_unmask_int(DORDER_IRQ);
 }
 
 /** @}

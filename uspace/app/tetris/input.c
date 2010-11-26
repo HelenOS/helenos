@@ -51,7 +51,7 @@
 
 #include <errno.h>
 #include <unistd.h>
-#include <string.h>
+#include <str.h>
 
 #include "input.h"
 #include "tetris.h"

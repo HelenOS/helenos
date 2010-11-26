@@ -28,7 +28,7 @@
 
 #include <test.h>
 
-char *test_fpu1(void)
+const char *test_fpu1(void)
 {
 	return NULL;
 }

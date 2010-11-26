@@ -35,7 +35,7 @@
 #ifndef KERN_SEMAPHORE_H_
 #define KERN_SEMAPHORE_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <synch/waitq.h>
 #include <synch/synch.h>
 
@@ -45,14 +45,17 @@ typedef struct {
 
 #define semaphore_down(s) \
 	_semaphore_down_timeout((s), SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE)
+
 #define semaphore_trydown(s) \
 	_semaphore_down_timeout((s), SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NON_BLOCKING)
+
 #define semaphore_down_timeout(s, usec) \
 	_semaphore_down_timeout((s), (usec), SYNCH_FLAGS_NONE)
 
-extern void semaphore_initialize(semaphore_t *s, int val);
-extern int _semaphore_down_timeout(semaphore_t *s, uint32_t usec, int flags);
-extern void semaphore_up(semaphore_t *s);
+extern void semaphore_initialize(semaphore_t *, int);
+extern int _semaphore_down_timeout(semaphore_t *, uint32_t, unsigned int);
+extern void semaphore_up(semaphore_t *);
+extern int semaphore_count_get(semaphore_t *);
 
 #endif
 

@@ -48,7 +48,7 @@
 
 #define POLL_INTERVAL		10000
 
-static void *ski_thread_impl(void *arg);
+static void ski_thread_impl(void *arg);
 static int32_t ski_getchar(void);
 
 static volatile bool polling_disabled = false;
@@ -83,7 +83,7 @@ void kbd_port_write(uint8_t data)
 }
 
 /** Thread to poll Ski for keypresses. */
-static void *ski_thread_impl(void *arg)
+static void ski_thread_impl(void *arg)
 {
 	int32_t c;
 	(void) arg;

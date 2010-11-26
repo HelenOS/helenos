@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup mips32mm	
+/** @addtogroup mips32mm
  * @{
  */
 /** @file
@@ -35,7 +35,7 @@
 #ifndef KERN_mips32_AS_H_
 #define KERN_mips32_AS_H_
 
-#define KERNEL_ADDRESS_SPACE_SHADOWED_ARCH	0
+#define KERNEL_ADDRESS_SPACE_SHADOWED_ARCH  0
 
 #define KERNEL_ADDRESS_SPACE_START_ARCH		(unsigned long) 0x80000000
 #define KERNEL_ADDRESS_SPACE_END_ARCH		(unsigned long) 0x9fffffff

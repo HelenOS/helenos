@@ -32,7 +32,7 @@
 # This plugin employs the pre_change_branch_tip hook to protect the main
 # branch (a.k.a. linear history) of bzr repositories from unwanted change,
 # effectively making the main branch append-only.
-# 
+#
 # Specifically we verify that the new main branch contains the old tip.
 # This prevents a branch from inadvertently aquiring the tip of another branch.
 #
@@ -45,28 +45,27 @@ import bzrlib.branch
 from bzrlib.errors import TipChangeRejected
 
 def pre_change_branch_tip(params):
-    repo = params.branch.repository
-
-    # Check if the old repository was empty.
-    if params.old_revid == 'null:':
-	return
-
-    # First permitted case is appending changesets to main branch.Look for
-    # old tip in new main branch.
-    for revision_id in repo.iter_reverse_revision_history(params.new_revid):
-	if revision_id == params.old_revid:
-	    return	# Found old tip
-
-    # Another permitted case is backing out changesets. Look for new tip
-    # in old branch.
-    for revision_id in repo.iter_reverse_revision_history(params.old_revid):
-	if revision_id == params.new_revid:
-	    return	# Found new tip
-
-    # Trying to do something else. Reject the change.
-    raise TipChangeRejected('Bad tip. Read http://trac.helenos.org/trac.fcgi/' +
-	'wiki/BazaarWorkflow')
+	repo = params.branch.repository
+	
+	# Check if the old repository was empty.
+	if params.old_revid == 'null:':
+		return
+	
+	# First permitted case is appending changesets to main branch.Look for
+	# old tip in new main branch.
+	for revision_id in repo.iter_reverse_revision_history(params.new_revid):
+		if revision_id == params.old_revid:
+			return	# Found old tip
+	
+	# Another permitted case is backing out changesets. Look for new tip
+	# in old branch.
+	for revision_id in repo.iter_reverse_revision_history(params.old_revid):
+		if revision_id == params.new_revid:
+			return	# Found new tip
+	
+	# Trying to do something else. Reject the change.
+	raise TipChangeRejected('Bad tip. Read http://trac.helenos.org/wiki/BazaarWorkflow')
 
 # Install hook.
 bzrlib.branch.Branch.hooks.install_named_hook('pre_change_branch_tip',
-    pre_change_branch_tip, 'MB-Protect tip check')
+	pre_change_branch_tip, 'MB-Protect tip check')

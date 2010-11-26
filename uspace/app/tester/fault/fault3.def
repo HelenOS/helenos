@@ -2,5 +2,5 @@
 	"fault3",
 	"Abort",
 	&test_fault3,
-	true
+	false
 },

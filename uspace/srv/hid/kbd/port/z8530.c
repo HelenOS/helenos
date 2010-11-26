@@ -29,9 +29,9 @@
 /** @addtogroup kbd_port
  * @ingroup  kbd
  * @{
- */ 
+ */
 /** @file
- * @brief	Z8530 keyboard port driver.
+ * @brief Z8530 keyboard port driver.
  */
 
 #include <ipc/ipc.h>
@@ -43,16 +43,17 @@
 #include <sun.h>
 #include <sys/types.h>
 #include <ddi.h>
+#include <errno.h>
 
-#define CHAN_A_STATUS	4
-#define CHAN_A_DATA	6
+#define CHAN_A_STATUS  4
+#define CHAN_A_DATA    6
 
-#define RR0_RCA	1
+#define RR0_RCA  1
 
 static irq_cmd_t z8530_cmds[] = {
 	{
 		.cmd = CMD_PIO_READ_8,
-		.addr = (void *) 0,	/* will be patched in run-time */
+		.addr = (void *) 0,     /* Will be patched in run-time */
 		.dstarg = 1
 	},
 	{
@@ -68,7 +69,7 @@ static irq_cmd_t z8530_cmds[] = {
 	},
 	{
 		.cmd = CMD_PIO_READ_8,
-		.addr = (void *) 0,	/* will be patched in run-time */
+		.addr = (void *) 0,     /* Will be patched in run-time */
 		.dstarg = 2
 	},
 	{
@@ -85,22 +86,21 @@ static void z8530_irq_handler(ipc_callid_t iid, ipc_call_t *call);
 
 int z8530_port_init(void)
 {
+	sysarg_t kaddr;
+	if (sysinfo_get_value("kbd.address.kernel", &kaddr) != EOK)
+		return -1;
+	
+	sysarg_t inr;
+	if (sysinfo_get_value("kbd.inr", &inr) != EOK)
+		return -1;
+	
+	z8530_cmds[0].addr = (void *) kaddr + CHAN_A_STATUS;
+	z8530_cmds[3].addr = (void *) kaddr + CHAN_A_DATA;
+	
 	async_set_interrupt_received(z8530_irq_handler);
-	z8530_cmds[0].addr = (void *) sysinfo_value("kbd.address.kernel") +
-	    CHAN_A_STATUS;
-	z8530_cmds[3].addr = (void *) sysinfo_value("kbd.address.kernel") +
-	    CHAN_A_DATA;
-	ipc_register_irq(sysinfo_value("kbd.inr"), device_assign_devno(),
-	    sysinfo_value("kbd.inr"), &z8530_kbd);
+	ipc_register_irq(inr, device_assign_devno(), inr, &z8530_kbd);
+	
 	return 0;
-}
-
-void z8530_port_yield(void)
-{
-}
-
-void z8530_port_reclaim(void)
-{
 }
 
 static void z8530_irq_handler(ipc_callid_t iid, ipc_call_t *call)

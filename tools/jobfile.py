@@ -26,6 +26,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
+
 """
 Add a source/object file pair to a checker jobfile
 """
@@ -36,7 +37,7 @@ import fcntl
 
 def usage(prname):
 	"Print usage syntax"
-	print prname + " <JOBFILE> <SOURCE> <TARGET> <TOOL> <CATEGORY> [OPTIONS ...]"
+	print(prname + " <JOBFILE> <SOURCE> <TARGET> <TOOL> <CATEGORY> [OPTIONS ...]")
 
 def main():
 	if (len(sys.argv) < 6):
@@ -51,7 +52,7 @@ def main():
 	cwd = os.getcwd()
 	options = " ".join(sys.argv[6:])
 	
-	jobfile = file(jobfname, "a")
+	jobfile = open(jobfname, "a")
 	fcntl.lockf(jobfile, fcntl.LOCK_EX)
 	jobfile.write("{%s},{%s},{%s},{%s},{%s},{%s}\n" % (srcfname, tgtfname, toolname, category, cwd, options))
 	fcntl.lockf(jobfile, fcntl.LOCK_UN)

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia32	
+/** @addtogroup ia32
  * @{
  */
 /** @file
@@ -35,18 +35,24 @@
 #ifndef KERN_ia32_SMP_H_
 #define KERN_ia32_SMP_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 /** SMP config opertaions interface. */
 struct smp_config_operations {
-	size_t (* cpu_count)(void);		/**< Return number of detected processors. */
-	bool (* cpu_enabled)(size_t i);	/**< Check whether the processor of index i is enabled. */
-	bool (*cpu_bootstrap)(size_t i);	/**< Check whether the processor of index i is BSP. */
-	uint8_t (*cpu_apic_id)(size_t i);		/**< Return APIC ID of the processor of index i. */
-	int (*irq_to_pin)(unsigned int irq);		/**< Return mapping between irq and APIC pin. */
+	/** Check whether a processor is enabled. */
+	bool (* cpu_enabled)(size_t);
+	
+	/** Check whether a processor is BSP. */
+	bool (*cpu_bootstrap)(size_t);
+	
+	/** Return APIC ID of a processor. */
+	uint8_t (*cpu_apic_id)(size_t);
+	
+	/** Return mapping between IRQ and APIC pin. */
+	int (*irq_to_pin)(unsigned int);
 };
 
-extern int smp_irq_to_pin(unsigned int irq);
+extern int smp_irq_to_pin(unsigned int);
 
 #endif
 

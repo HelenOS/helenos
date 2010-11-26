@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia32	
+/** @addtogroup ia32
  * @{
  */
 /**
@@ -38,13 +38,13 @@
 
 #include <arch/drivers/i8259.h>
 #include <cpu.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/asm.h>
 #include <arch.h>
 #include <print.h>
 #include <interrupt.h>
 
-static void pic_spurious(int n, istate_t *istate);
+static void pic_spurious(unsigned int n, istate_t *istate);
 
 void i8259_init(void)
 {
@@ -75,7 +75,8 @@ void i8259_init(void)
 	/*
 	 * Register interrupt handler for the PIC spurious interrupt.
 	 */
-	exc_register(VECTOR_PIC_SPUR, "pic_spurious", (iroutine) pic_spurious);	
+	exc_register(VECTOR_PIC_SPUR, "pic_spurious", false,
+	    (iroutine_t) pic_spurious);
 
 	/*
 	 * Set the enable/disable IRQs handlers.
@@ -119,11 +120,11 @@ void pic_disable_irqs(uint16_t irqmask)
 
 void pic_eoi(void)
 {
-	pio_write_8((ioport8_t *)0x20, 0x20);
-	pio_write_8((ioport8_t *)0xa0, 0x20);
+	pio_write_8((ioport8_t *) 0x20, 0x20);
+	pio_write_8((ioport8_t *) 0xa0, 0x20);
 }
 
-void pic_spurious(int n __attribute__((unused)), istate_t *istate __attribute__((unused)))
+void pic_spurious(unsigned int n __attribute__((unused)), istate_t *istate __attribute__((unused)))
 {
 #ifdef CONFIG_DEBUG
 	printf("cpu%u: PIC spurious interrupt\n", CPU->id);

@@ -54,53 +54,57 @@ unmapped_ap_boot:
 	cli
 	xorw %ax, %ax
 	movw %ax, %ds
-
-	lgdtl ap_gdtr		# initialize Global Descriptor Table register
+	
+	lgdtl ap_gdtr       # initialize Global Descriptor Table register
 	
 	movl %cr0, %eax
 	orl $1, %eax
-	movl %eax, %cr0		# switch to protected mode
-	jmpl $gdtselector(KTEXT32_DES), $jump_to_kernel - BOOT_OFFSET + AP_BOOT_OFFSET
-	
+	movl %eax, %cr0     # switch to protected mode
+	jmpl $GDT_SELECTOR(KTEXT32_DES), $jump_to_kernel - BOOT_OFFSET + AP_BOOT_OFFSET
+
 jump_to_kernel:
 .code32
-	movw $gdtselector(KDATA_DES), %ax
+	movw $GDT_SELECTOR(KDATA_DES), %ax
 	movw %ax, %ds
 	movw %ax, %es
 	movw %ax, %ss
-	movw $gdtselector(UDATA_DES), %ax
+	movw $GDT_SELECTOR(UDATA_DES), %ax
 	movw %ax, %gs
 	
-	# Enable 64-bit page transaltion entries - CR4.PAE = 1.
+	# Enable 64-bit page transaltion entries (CR4.PAE = 1).
 	# Paging is not enabled until after long mode is enabled
 	
 	movl %cr4, %eax
 	btsl $5, %eax
 	movl %eax, %cr4
-
+	
 	leal ptl_0, %eax
 	movl %eax, %cr3
 	
 	# Enable long mode
-	movl $EFER_MSR_NUM, %ecx	# EFER MSR number
-	rdmsr				# Read EFER
-	btsl $AMD_LME_FLAG, %eax	# Set LME=1
-	wrmsr				# Write EFER
+	movl $EFER_MSR_NUM, %ecx  # EFER MSR number
+	rdmsr                     # Read EFER
+	btsl $AMD_LME_FLAG, %eax  # Set LME=1
+	wrmsr                     # Write EFER
 	
-	# Enable paging to activate long mode (set CR0.PG=1)
+	# Enable paging to activate long mode (set CR0.PG = 1)
 	movl %cr0, %eax
 	btsl $31, %eax
 	movl %eax, %cr0
 	
 	# At this point we are in compatibility mode
-	jmpl $gdtselector(KTEXT_DES), $start64 - BOOT_OFFSET + AP_BOOT_OFFSET
+	jmpl $GDT_SELECTOR(KTEXT_DES), $start64 - BOOT_OFFSET + AP_BOOT_OFFSET
 
 .code64
 start64:
-	movq (ctx), %rsp
+	movabsq $ctx, %rsp
+	movq (%rsp), %rsp
+	
 	pushq $0
 	movq %rsp, %rbp
-	call main_ap - AP_BOOT_OFFSET + BOOT_OFFSET   # never returns
+	
+	movabsq $main_ap, %rax
+	callq *%rax   # never returns
 
 #endif /* CONFIG_SMP */
 

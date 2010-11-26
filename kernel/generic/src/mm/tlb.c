@@ -32,7 +32,7 @@
 
 /**
  * @file
- * @brief	Generic TLB shootdown algorithm.
+ * @brief Generic TLB shootdown algorithm.
  *
  * The algorithm implemented here is based on the CMU TLB shootdown
  * algorithm and is further simplified (e.g. all CPUs receive all TLB
@@ -52,13 +52,6 @@
 #include <debug.h>
 #include <cpu.h>
 
-/**
- * This lock is used for synchronisation between sender and
- * recipients of TLB shootdown message. It must be acquired
- * before CPU structure lock.
- */
-SPINLOCK_INITIALIZE(tlblock);
-
 void tlb_init(void)
 {
 	tlb_arch_init();
@@ -66,34 +59,42 @@ void tlb_init(void)
 
 #ifdef CONFIG_SMP
 
+/**
+ * This lock is used for synchronisation between sender and
+ * recipients of TLB shootdown message. It must be acquired
+ * before CPU structure lock.
+ *
+ */
+IRQ_SPINLOCK_STATIC_INITIALIZE(tlblock);
+
 /** Send TLB shootdown message.
  *
  * This function attempts to deliver TLB shootdown message
  * to all other processors.
  *
- * This function must be called with interrupts disabled.
- *
- * @param type Type describing scope of shootdown.
- * @param asid Address space, if required by type.
- * @param page Virtual page address, if required by type.
+ * @param type  Type describing scope of shootdown.
+ * @param asid  Address space, if required by type.
+ * @param page  Virtual page address, if required by type.
  * @param count Number of pages, if required by type.
+ *
+ * @return The interrupt priority level as it existed prior to this call.
+ *
  */
-void tlb_shootdown_start(tlb_invalidate_type_t type, asid_t asid,
+ipl_t tlb_shootdown_start(tlb_invalidate_type_t type, asid_t asid,
     uintptr_t page, size_t count)
 {
-	unsigned int i;
-
-	CPU->tlb_active = 0;
-	spinlock_lock(&tlblock);
+	ipl_t ipl = interrupts_disable();
+	CPU->tlb_active = false;
+	irq_spinlock_lock(&tlblock, false);
 	
+	size_t i;
 	for (i = 0; i < config.cpu_count; i++) {
-		cpu_t *cpu;
-		
 		if (i == CPU->id)
 			continue;
-
-		cpu = &cpus[i];
-		spinlock_lock(&cpu->lock);
+		
+		cpu_t *cpu = &cpus[i];
+		
+		irq_spinlock_lock(&cpu->lock, false);
 		if (cpu->tlb_messages_count == TLB_MESSAGE_QUEUE_LEN) {
 			/*
 			 * The message queue is full.
@@ -114,22 +115,30 @@ void tlb_shootdown_start(tlb_invalidate_type_t type, asid_t asid,
 			cpu->tlb_messages[idx].page = page;
 			cpu->tlb_messages[idx].count = count;
 		}
-		spinlock_unlock(&cpu->lock);
+		irq_spinlock_unlock(&cpu->lock, false);
 	}
 	
 	tlb_shootdown_ipi_send();
-
-busy_wait:	
-	for (i = 0; i < config.cpu_count; i++)
+	
+busy_wait:
+	for (i = 0; i < config.cpu_count; i++) {
 		if (cpus[i].tlb_active)
 			goto busy_wait;
+	}
+	
+	return ipl;
 }
 
-/** Finish TLB shootdown sequence. */
-void tlb_shootdown_finalize(void)
+/** Finish TLB shootdown sequence.
+ *
+ * @param ipl Previous interrupt priority level.
+ *
+ */
+void tlb_shootdown_finalize(ipl_t ipl)
 {
-	spinlock_unlock(&tlblock);
-	CPU->tlb_active = 1;
+	irq_spinlock_unlock(&tlblock, false);
+	CPU->tlb_active = true;
+	interrupts_restore(ipl);
 }
 
 void tlb_shootdown_ipi_send(void)
@@ -137,30 +146,27 @@ void tlb_shootdown_ipi_send(void)
 	ipi_broadcast(VECTOR_TLB_SHOOTDOWN_IPI);
 }
 
-/** Receive TLB shootdown message. */
+/** Receive TLB shootdown message.
+ *
+ */
 void tlb_shootdown_ipi_recv(void)
 {
-	tlb_invalidate_type_t type;
-	asid_t asid;
-	uintptr_t page;
-	size_t count;
-	unsigned int i;
-	
 	ASSERT(CPU);
 	
-	CPU->tlb_active = 0;
-	spinlock_lock(&tlblock);
-	spinlock_unlock(&tlblock);
+	CPU->tlb_active = false;
+	irq_spinlock_lock(&tlblock, false);
+	irq_spinlock_unlock(&tlblock, false);
 	
-	spinlock_lock(&CPU->lock);
+	irq_spinlock_lock(&CPU->lock, false);
 	ASSERT(CPU->tlb_messages_count <= TLB_MESSAGE_QUEUE_LEN);
-
+	
+	size_t i;
 	for (i = 0; i < CPU->tlb_messages_count; CPU->tlb_messages_count--) {
-		type = CPU->tlb_messages[i].type;
-		asid = CPU->tlb_messages[i].asid;
-		page = CPU->tlb_messages[i].page;
-		count = CPU->tlb_messages[i].count;
-
+		tlb_invalidate_type_t type = CPU->tlb_messages[i].type;
+		asid_t asid = CPU->tlb_messages[i].asid;
+		uintptr_t page = CPU->tlb_messages[i].page;
+		size_t count = CPU->tlb_messages[i].count;
+		
 		switch (type) {
 		case TLB_INVL_ALL:
 			tlb_invalidate_all();
@@ -169,19 +175,20 @@ void tlb_shootdown_ipi_recv(void)
 			tlb_invalidate_asid(asid);
 			break;
 		case TLB_INVL_PAGES:
-		    	ASSERT(count);
+			ASSERT(count);
 			tlb_invalidate_pages(asid, page, count);
 			break;
 		default:
 			panic("Unknown type (%d).", type);
 			break;
 		}
+		
 		if (type == TLB_INVL_ALL)
 			break;
 	}
 	
-	spinlock_unlock(&CPU->lock);
-	CPU->tlb_active = 1;
+	irq_spinlock_unlock(&CPU->lock, false);
+	CPU->tlb_active = true;
 }
 
 #endif /* CONFIG_SMP */

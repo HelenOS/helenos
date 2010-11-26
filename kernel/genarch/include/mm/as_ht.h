@@ -37,7 +37,7 @@
 
 #include <mm/mm.h>
 #include <adt/list.h>
-#include <arch/types.h>
+#include <typedefs.h>
 
 typedef struct {
 } as_genarch_t;

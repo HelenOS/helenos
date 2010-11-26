@@ -57,16 +57,17 @@ void syscall_setup_cpu(void)
 	 * +0(KDATA_DES), +8(UDATA_DES), +16(UTEXT_DES)
 	 */
 	write_msr(AMD_MSR_STAR,
-	    ((uint64_t)(gdtselector(KDATA_DES) | PL_USER) << 48) |
-	    ((uint64_t)(gdtselector(KTEXT_DES) | PL_KERNEL) << 32));
+	    ((uint64_t) (GDT_SELECTOR(KDATA_DES) | PL_USER) << 48) |
+	    ((uint64_t) (GDT_SELECTOR(KTEXT_DES) | PL_KERNEL) << 32));
 	write_msr(AMD_MSR_LSTAR, (uint64_t)syscall_entry);
 	/* Mask RFLAGS on syscall 
 	 * - disable interrupts, until we exchange the stack register
 	 *   (mask the IF bit)
 	 * - clear DF so that the string instructions operate in
 	 *   the right direction
+	 * - clear NT to prevent a #GP should the flag proliferate to an IRET
 	 */
-	write_msr(AMD_MSR_SFMASK, RFLAGS_IF | RFLAGS_DF);
+	write_msr(AMD_MSR_SFMASK, RFLAGS_IF | RFLAGS_DF | RFLAGS_NT);
 }
 
 /** @}

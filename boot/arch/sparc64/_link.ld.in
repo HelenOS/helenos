@@ -1,0 +1,27 @@
+ENTRY(start)
+
+SECTIONS {
+	. = 0x4000;
+	.boot : {
+		*(BOOTSTRAP);
+		*(.text);
+		
+		*(.data);       /* initialized data */
+		*(.rodata);
+		*(.rodata.*);
+		*(.sdata);
+		*(.reginfo);
+		*(.sbss);
+		*(.bss);        /* uninitialized static variables */
+		*(COMMON);      /* global variables */
+[[COMPONENTS]]
+	}
+	
+	/DISCARD/ : {
+		*(.gnu.*);
+		*(.mdebug*);
+		*(.pdr);
+		*(.comment);
+		*(.note.*);
+	}
+}

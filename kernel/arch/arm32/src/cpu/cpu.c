@@ -42,7 +42,7 @@
 #define IMP_DATA_START_OFFSET 0x40
 
 /** Implementators (vendor) names */
-static char *imp_data[] = {
+static const char *imp_data[] = {
 	"?",					/* IMP_DATA_START_OFFSET */
 	"ARM Ltd",				/* 0x41 */
 	"",					/* 0x42 */
@@ -59,7 +59,7 @@ static char *imp_data[] = {
 static unsigned int imp_data_length = sizeof(imp_data) / sizeof(char *);
 
 /** Architecture names */
-static char *arch_data[] = {
+static const char *arch_data[] = {
 	"?",       /* 0x0 */
 	"4",       /* 0x1 */
 	"4T",      /* 0x2 */
@@ -107,8 +107,8 @@ void cpu_identify(void)
 /** Prints CPU identification. */
 void cpu_print_report(cpu_t *m)
 {
-	char * vendor = imp_data[0];
-	char * architecture = arch_data[0];
+	const char *vendor = imp_data[0];
+	const char *architecture = arch_data[0];
 	cpu_arch_t * cpu_arch = &m->arch;
 
 	if ((cpu_arch->imp_num) > 0 &&

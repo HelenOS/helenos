@@ -58,18 +58,22 @@
 unative_t syscall_handler(unative_t a1, unative_t a2, unative_t a3,
     unative_t a4, unative_t a5, unative_t a6, unative_t id)
 {
-	unative_t rc;
-
+	/* Do userpace accounting */
+	irq_spinlock_lock(&THREAD->lock, true);
+	thread_update_accounting(true);
+	irq_spinlock_unlock(&THREAD->lock, true);
+	
 #ifdef CONFIG_UDEBUG
 	/*
 	 * Early check for undebugged tasks. We do not lock anything as this
 	 * test need not be precise in either direction.
+	 *
 	 */
-	if (THREAD->udebug.active) {
+	if (THREAD->udebug.active)
 		udebug_syscall_event(a1, a2, a3, a4, a5, a6, id, 0, false);
-	}
 #endif
 	
+	unative_t rc;
 	if (id < SYSCALL_END) {
 		rc = syscall_table[id](a1, a2, a3, a4, a5, a6);
 	} else {
@@ -84,7 +88,7 @@ unative_t syscall_handler(unative_t a1, unative_t a2, unative_t a3,
 #ifdef CONFIG_UDEBUG
 	if (THREAD->udebug.active) {
 		udebug_syscall_event(a1, a2, a3, a4, a5, a6, id, rc, true);
-	
+		
 		/*
 		 * Stopping point needed for tasks that only invoke
 		 * non-blocking system calls. Not needed if the task
@@ -94,6 +98,11 @@ unative_t syscall_handler(unative_t a1, unative_t a2, unative_t a3,
 		udebug_stoppable_end();
 	}
 #endif
+	
+	/* Do kernel accounting */
+	irq_spinlock_lock(&THREAD->lock, true);
+	thread_update_accounting(false);
+	irq_spinlock_unlock(&THREAD->lock, true);
 	
 	return rc;
 }
@@ -137,7 +146,7 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	(syshandler_t) sys_ipc_hangup,
 	(syshandler_t) sys_ipc_register_irq,
 	(syshandler_t) sys_ipc_unregister_irq,
-
+	
 	/* Event notification syscalls. */
 	(syshandler_t) sys_event_subscribe,
 	
@@ -149,11 +158,13 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	(syshandler_t) sys_device_assign_devno,
 	(syshandler_t) sys_physmem_map,
 	(syshandler_t) sys_iospace_enable,
-	(syshandler_t) sys_preempt_control,
+	(syshandler_t) sys_interrupt_enable,
 	
 	/* Sysinfo syscalls */
-	(syshandler_t) sys_sysinfo_valid,
-	(syshandler_t) sys_sysinfo_value,
+	(syshandler_t) sys_sysinfo_get_tag,
+	(syshandler_t) sys_sysinfo_get_value,
+	(syshandler_t) sys_sysinfo_get_data_size,
+	(syshandler_t) sys_sysinfo_get_data,
 	
 	/* Debug calls */
 	(syshandler_t) sys_debug_enable_console,

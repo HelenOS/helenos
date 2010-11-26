@@ -39,7 +39,7 @@
 #include <console/console.h>
 #include <proc/thread.h>
 #include <arch.h>
-#include <string.h>
+#include <str.h>
 
 static indev_operations_t srln_raw_ops = {
 	.poll = NULL

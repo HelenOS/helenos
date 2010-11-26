@@ -11,7 +11,7 @@
  * For instance, 'exit' could behave differently than 'quit', prior to
  * the entry point being reached. */
 
-char *mod_aliases[] = {
+const char *mod_aliases[] = {
 	"ren", "mv",
 	"umount", "unmount",
 	NULL, NULL

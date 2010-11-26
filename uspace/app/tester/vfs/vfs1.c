@@ -29,7 +29,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <str.h>
 #include <vfs/vfs.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -53,7 +53,7 @@
 
 static char text[] = "Lorem ipsum dolor sit amet, consectetur adipisicing elit";
 
-static char *read_root(void)
+static const char *read_root(void)
 {
 	TPRINTF("Opening the root directory...");
 	
@@ -72,7 +72,7 @@ static char *read_root(void)
 	return NULL;
 }
 
-char *test_vfs1(void)
+const char *test_vfs1(void)
 {
 	if (mkdir(MOUNT_POINT, 0) != 0)
 		return "mkdir() failed";
@@ -104,7 +104,7 @@ char *test_vfs1(void)
 	ssize_t cnt = write(fd0, text, size);
 	if (cnt < 0)
 		return "write() failed";
-	TPRINTF("Written %d bytes\n", cnt);
+	TPRINTF("Written %zd bytes\n", cnt);
 	
 	if (lseek(fd0, 0, SEEK_SET) != 0)
 		return "lseek() failed";
@@ -115,12 +115,18 @@ char *test_vfs1(void)
 		if (cnt < 0)
 			return "read() failed";
 		
-		TPRINTF("Read %d bytes: \".*s\"\n", cnt, cnt, buf);
+		int _cnt = (int) cnt;
+		if (_cnt != cnt) {
+			/* Count overflow, just to be sure. */
+			TPRINTF("Read %zd bytes\n", cnt);
+		} else {
+			TPRINTF("Read %zd bytes: \"%.*s\"\n", cnt, _cnt, buf);
+		}
 	}
 	
 	close(fd0);
 	
-	char *rv = read_root();
+	const char *rv = read_root();
 	if (rv != NULL)
 		return rv;
 	

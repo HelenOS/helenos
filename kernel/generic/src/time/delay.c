@@ -36,7 +36,7 @@
  */
  
 #include <time/delay.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <cpu.h>
 #include <arch/asm.h>
 #include <arch.h>

@@ -98,7 +98,7 @@ cuda_instance_t *cuda_init(cuda_t *dev, inr_t inr, cir_t cir, void *cir_arg)
 		instance->bidx = 0;
 		instance->snd_bytes = 0;
 
-		spinlock_initialize(&instance->dev_lock, "cuda_dev");
+		spinlock_initialize(&instance->dev_lock, "cuda.instance.dev_lock");
 
 		/* Disable all interrupts from CUDA. */
 		pio_write_8(&dev->ier, IER_CLR | ALL_INT);

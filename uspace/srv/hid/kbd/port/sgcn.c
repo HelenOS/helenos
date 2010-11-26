@@ -29,9 +29,9 @@
 /** @addtogroup kbd_port
  * @ingroup  kbd
  * @{
- */ 
+ */
 /** @file
- * @brief	SGCN (Serengeti Console) keyboard port driver.
+ * @brief SGCN (Serengeti Console) keyboard port driver.
  */
 
 #include <as.h>
@@ -43,12 +43,13 @@
 #include <stdio.h>
 #include <thread.h>
 #include <bool.h>
+#include <errno.h>
 
-#define POLL_INTERVAL		10000
+#define POLL_INTERVAL  10000
 
 /**
  * SGCN buffer header. It is placed at the very beginning of the SGCN
- * buffer. 
+ * buffer.
  */
 typedef struct {
 	/** hard-wired to "CON" */
@@ -91,7 +92,7 @@ static uintptr_t sram_virt_addr;
 static uintptr_t sram_buffer_offset;
 
 /* polling thread */
-static void *sgcn_thread_impl(void *arg);
+static void sgcn_thread_impl(void *arg);
 
 static volatile bool polling_disabled = false;
 
@@ -101,24 +102,30 @@ static volatile bool polling_disabled = false;
  */
 int kbd_port_init(void)
 {
-	sram_virt_addr = (uintptr_t) as_get_mappable_page(sysinfo_value("sram.area.size"));
-	if (physmem_map((void *) sysinfo_value("sram.address.physical"),
-	    (void *) sram_virt_addr, sysinfo_value("sram.area.size") / PAGE_SIZE,
-	    AS_AREA_READ | AS_AREA_WRITE) != 0) {
+	sysarg_t sram_paddr;
+	if (sysinfo_get_value("sram.address.physical", &sram_paddr) != EOK)
+		return -1;
+	
+	sysarg_t sram_size;
+	if (sysinfo_get_value("sram.area.size", &sram_size) != EOK)
+		return -1;
+	
+	if (sysinfo_get_value("sram.buffer.offset", &sram_buffer_offset) != EOK)
+		sram_buffer_offset = 0;
+	
+	sram_virt_addr = (uintptr_t) as_get_mappable_page(sram_size);
+	
+	if (physmem_map((void *) sram_paddr, (void *) sram_virt_addr,
+	    sram_size / PAGE_SIZE, AS_AREA_READ | AS_AREA_WRITE) != 0) {
 		printf("SGCN: uspace driver could not map physical memory.");
 		return -1;
 	}
 	
-	sram_buffer_offset = sysinfo_value("sram.buffer.offset");
-
 	thread_id_t tid;
-	int rc;
-
-	rc = thread_create(sgcn_thread_impl, NULL, "kbd_poll", &tid);
-	if (rc != 0) {
+	int rc = thread_create(sgcn_thread_impl, NULL, "kbd_poll", &tid);
+	if (rc != 0)
 		return rc;
-	}
-
+	
 	return 0;
 }
 
@@ -166,7 +173,7 @@ static void sgcn_key_pressed(void)
 /**
  * Thread to poll SGCN for keypresses.
  */
-static void *sgcn_thread_impl(void *arg)
+static void sgcn_thread_impl(void *arg)
 {
 	(void) arg;
 

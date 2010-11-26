@@ -27,14 +27,31 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-include Makefile.common
+USPACE_PREFIX = ../../..
+BINARY = console
 
-.PHONY: all clean
+GENERIC_SOURCES = \
+	console.c \
+	keybuffer.c \
+	gcons.c
 
-all: $(LIBC_PREFIX)/../../../Makefile.config $(LIBC_PREFIX)/../../../config.h $(LIBC_PREFIX)/../../../config.defs $(LIBS)
-	-[ -f $(DEPEND) ] && mv -f $(DEPEND) $(DEPEND_PREV)
-	$(MAKE) -f Makefile.build PRECHECK=$(PRECHECK)
+IMAGES = \
+	gfx/helenos.ppm \
+	gfx/nameic.ppm \
+	gfx/cons_selected.ppm \
+	gfx/cons_idle.ppm \
+	gfx/cons_has_data.ppm \
+	gfx/cons_kernel.ppm \
+	gfx/anim_1.ppm \
+	gfx/anim_2.ppm \
+	gfx/anim_3.ppm \
+	gfx/anim_4.ppm
 
-clean:
-	rm -f $(DEPEND) $(DEPEND_PREV) $(JOB) $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm
-	find . -name '*.o' -follow -exec rm \{\} \;
+SOURCES = \
+	$(GENERIC_SOURCES) \
+	$(IMAGES)
+
+include $(USPACE_PREFIX)/Makefile.common
+
+%.o: %.ppm
+	$(OBJCOPY) -I binary -O $(BFD_NAME) -B $(BFD_ARCH) $< $@

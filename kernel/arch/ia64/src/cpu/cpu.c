@@ -51,7 +51,7 @@ void cpu_identify(void)
 
 void cpu_print_report(cpu_t *m)
 {
-	char *family_str;
+	const char *family_str;
 	char vendor[2 * sizeof(uint64_t) + 1];
 	
 	memcpy(vendor, &CPU->arch.cpuid0, 8);

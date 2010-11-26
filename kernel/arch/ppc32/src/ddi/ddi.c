@@ -34,7 +34,7 @@
 
 #include <ddi/ddi.h>
 #include <proc/task.h>
-#include <arch/types.h>
+#include <typedefs.h>
 
 /** Enable I/O space range for task.
  *
@@ -45,6 +45,7 @@
  * @param size Size of the enabled I/O range.
  *
  * @return 0 on success or an error code from errno.h.
+ *
  */
 int ddi_iospace_enable_arch(task_t *task, uintptr_t ioaddr, size_t size)
 {

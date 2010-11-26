@@ -35,27 +35,29 @@
 #ifndef KERN_SYMTAB_H_
 #define KERN_SYMTAB_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 
-#define MAX_SYMBOL_NAME 64
+#define MAX_SYMBOL_NAME  64
 
 struct symtab_entry {
 	uint64_t address_le;
 	char symbol_name[MAX_SYMBOL_NAME];
 };
 
-extern int symtab_name_lookup(uintptr_t, char **, uintptr_t *);
-extern char *symtab_fmt_name_lookup(uintptr_t);
+extern int symtab_name_lookup(uintptr_t, const char **, uintptr_t *);
+extern const char *symtab_fmt_name_lookup(uintptr_t);
 extern int symtab_addr_lookup(const char *, uintptr_t *);
 extern void symtab_print_search(const char *);
 extern int symtab_compl(char *, size_t);
 
 #ifdef CONFIG_SYMTAB
 
-/* Symtable linked together by build process */
+/** Symtable linked together by build process
+ *
+ */
 extern struct symtab_entry symbol_table[];
 
-#endif
+#endif /* CONFIG_SYMTAB */
 
 #endif
 

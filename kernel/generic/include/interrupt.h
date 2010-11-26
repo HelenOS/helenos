@@ -36,21 +36,36 @@
 #define KERN_INTERRUPT_H_
 
 #include <arch/interrupt.h>
-#include <arch/types.h>
+#include <print.h>
+#include <typedefs.h>
 #include <proc/task.h>
 #include <proc/thread.h>
 #include <arch.h>
 #include <ddi/irq.h>
 #include <stacktrace.h>
 
-typedef void (* iroutine)(int n, istate_t *istate);
+typedef void (* iroutine_t)(unsigned int, istate_t *);
 
-extern void fault_if_from_uspace(istate_t *istate, char *fmt, ...);
-extern iroutine exc_register(int n, const char *name, iroutine f);
-extern void exc_dispatch(int n, istate_t *t);
-void exc_init(void);
+typedef struct {
+	const char *name;
+	bool hot;
+	iroutine_t handler;
+	uint64_t cycles;
+	uint64_t count;
+} exc_table_t;
 
-extern void irq_initialize_arch(irq_t *irq);
+IRQ_SPINLOCK_EXTERN(exctbl_lock);
+extern exc_table_t exc_table[];
+
+extern void fault_if_from_uspace(istate_t *, const char *, ...)
+    PRINTF_ATTRIBUTE(2, 3);
+extern iroutine_t exc_register(unsigned int, const char *, bool, iroutine_t);
+extern void exc_dispatch(unsigned int, istate_t *);
+extern void exc_init(void);
+
+extern void irq_initialize_arch(irq_t *);
+
+extern void istate_decode(istate_t *);
 
 #endif
 

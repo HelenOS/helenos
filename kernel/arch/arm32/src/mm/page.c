@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup arm32mm	
+/** @addtogroup arm32mm
  * @{
  */
 /** @file
@@ -40,7 +40,6 @@
 #include <config.h>
 #include <arch/exception.h>
 #include <typedefs.h>
-#include <arch/types.h>
 #include <interrupt.h>
 #include <arch/mm/frame.h>
 
@@ -53,10 +52,12 @@ void page_arch_init(void)
 {
 	int flags = PAGE_CACHEABLE;
 	page_mapping_operations = &pt_mapping_operations;
+
+	page_table_lock(AS_KERNEL, true);
 	
 	uintptr_t cur;
 	/* Kernel identity mapping */
-	for (cur = 0; cur < last_frame; cur += FRAME_SIZE)
+	for (cur = PHYSMEM_START_ADDR; cur < last_frame; cur += FRAME_SIZE)
 		page_mapping_insert(AS_KERNEL, PA2KA(cur), cur, flags);
 	
 	/* Create mapping for exception table at high offset */
@@ -66,6 +67,10 @@ void page_arch_init(void)
 #else
 #error "Only high exception vector supported now"
 #endif
+	cur = ALIGN_DOWN(0x50008010, FRAME_SIZE);
+	page_mapping_insert(AS_KERNEL, PA2KA(cur), cur, flags);
+
+	page_table_unlock(AS_KERNEL, true);
 	
 	as_switch(NULL, AS_KERNEL);
 	
@@ -87,16 +92,19 @@ uintptr_t hw_map(uintptr_t physaddr, size_t size)
 	if (last_frame + ALIGN_UP(size, PAGE_SIZE) >
 	    KA2PA(KERNEL_ADDRESS_SPACE_END_ARCH)) {
 		panic("Unable to map physical memory %p (%d bytes).",
-		    physaddr, size);
+		    (void *) physaddr, size);
 	}
 	
 	uintptr_t virtaddr = PA2KA(last_frame);
 	pfn_t i;
+
+	page_table_lock(AS_KERNEL, true);
 	for (i = 0; i < ADDR2PFN(ALIGN_UP(size, PAGE_SIZE)); i++) {
 		page_mapping_insert(AS_KERNEL, virtaddr + PFN2ADDR(i),
 		    physaddr + PFN2ADDR(i),
 		    PAGE_NOT_CACHEABLE | PAGE_READ | PAGE_WRITE | PAGE_KERNEL);
 	}
+	page_table_unlock(AS_KERNEL, true);
 	
 	last_frame = ALIGN_UP(last_frame + size, FRAME_SIZE);
 	return virtaddr;

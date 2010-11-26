@@ -29,7 +29,7 @@
 #include <arch/asm/regname.h>
 #include <arch/context_offset.h>
 
-.text   
+.text
 
 .global fpu_context_save
 .global fpu_context_restore
@@ -86,7 +86,7 @@ fpu_context_save:
 //	stfd fr0, OFFSET_FPSCR(r3)
 	
 	blr
-	
+
 fpu_context_restore:
 //	FPU_CONTEXT_LOAD r3
 //	

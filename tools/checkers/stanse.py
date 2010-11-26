@@ -42,7 +42,7 @@ jobs = [
 
 def usage(prname):
 	"Print usage syntax"
-	print prname + " <ROOT>"
+	print(prname + " <ROOT>")
 
 def stanse(root, job):
 	"Run Stanse on a jobfile"
@@ -53,11 +53,11 @@ def stanse(root, job):
 	outname = os.path.join(root, "_%s" % os.path.basename(job))
 	
 	if (not os.path.isfile(inname)):
-		print "Unable to open %s" % inname
-		print "Did you run \"make precheck\" on the source tree?"
+		print("Unable to open %s" % inname)
+		print("Did you run \"make precheck\" on the source tree?")
 		return False
 	
-	inf = file(inname, "r")
+	inf = open(inname, "r")
 	records = inf.read().splitlines()
 	inf.close()
 	
@@ -68,26 +68,28 @@ def stanse(root, job):
 			return False
 		
 		if (len(arg) < 6):
-			print "Not enought jobfile record arguments"
+			print("Not enough jobfile record arguments")
 			return False
 		
 		srcfname = arg[0]
 		tgtfname = arg[1]
+		tool = arg[2]
+		category = arg[3]
 		base = arg[4]
 		options = arg[5]
 		
 		srcfqname = os.path.join(base, srcfname)
 		if (not os.path.isfile(srcfqname)):
-			print "Source %s not found" % srcfqname
+			print("Source %s not found" % srcfqname)
 			return False
 		
 		# Only C files are interesting for us
-		if (arg[2] != "cc"):
+		if (tool != "cc"):
 			continue
 		
 		output.append([srcfname, tgtfname, base, options])
 	
-	outf = file(outname, "w")
+	outf = open(outname, "w")
 	for record in output:
 		outf.write("{%s},{%s},{%s},{%s}\n" % (record[0], record[1], record[2], record[3]))
 	outf.close()
@@ -118,18 +120,18 @@ def main():
 	config = os.path.join(rootdir, "HelenOS.config")
 	
 	if (not os.path.isfile(config)):
-		print "%s not found." % config
-		print "Please specify the path to HelenOS build tree root as the first argument."
+		print("%s not found." % config)
+		print("Please specify the path to HelenOS build tree root as the first argument.")
 		return
 	
 	for job in jobs:
 		if (not stanse(rootdir, job)):
 			print
-			print "Failed job: %s" % job
+			print("Failed job: %s" % job)
 			return
 	
 	print
-	print "All jobs passed"
+	print("All jobs passed")
 
 if __name__ == '__main__':
 	main()

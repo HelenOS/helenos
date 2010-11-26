@@ -35,7 +35,7 @@
 #ifndef KERN_ia64_FADDR_H_
 #define KERN_ia64_FADDR_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 /**
  *

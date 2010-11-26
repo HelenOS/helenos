@@ -27,14 +27,12 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = $(LIBC_PREFIX)/libc.a
 EXTRA_CFLAGS = -Iinclude
-
-OUTPUT = taskdump
+BINARY = taskdump
 
 SOURCES = \
 	elf_core.c \
 	taskdump.c \
 	symtab.c
 
-include ../Makefile.common
+include $(USPACE_PREFIX)/Makefile.common

@@ -48,6 +48,19 @@
 
 #define min(a, b)		((a) < (b) ? (a) : (b))
 
+/*
+ * Convenience macros for accessing some frequently used boot sector members.
+ */
+#define BPS(bs)		uint16_t_le2host((bs)->bps)
+#define SPC(bs)		(bs)->spc
+#define RSCNT(bs)	uint16_t_le2host((bs)->rscnt)
+#define FATCNT(bs)	(bs)->fatcnt
+#define SF(bs)		uint16_t_le2host((bs)->sec_per_fat)
+#define RDE(bs)		uint16_t_le2host((bs)->root_ent_max)
+#define TS(bs)		(uint16_t_le2host((bs)->totsec16) != 0 ? \
+			uint16_t_le2host((bs)->totsec16) : \
+			uint32_t_le2host(bs->totsec32))
+
 #define BS_BLOCK		0
 #define BS_SIZE			512
 
@@ -88,7 +101,7 @@ typedef struct fat_bs {
 			/** Boot sector signature. */
 			uint16_t	signature;
 		} __attribute__ ((packed));
-		struct fat32 {
+		struct {
 			/* FAT32 only */
 			/** Sectors per FAT. */
 			uint32_t	sectors_per_fat;
@@ -118,8 +131,8 @@ typedef struct fat_bs {
 			uint8_t		boot_code[420];
 			/** Signature. */
 			uint16_t	signature;
-		} __attribute__ ((packed));
-	}; 
+		} fat32 __attribute__ ((packed));
+	};
 } __attribute__ ((packed)) fat_bs_t;
 
 typedef enum {
@@ -162,7 +175,7 @@ typedef struct {
 	link_t		uih_link;
 
 	fibril_mutex_t	lock;
-	dev_handle_t	dev_handle;
+	devmap_handle_t	devmap_handle;
 	fs_index_t	index;
 	/**
 	 * Parent node's first cluster.
@@ -193,10 +206,22 @@ typedef struct fat_node {
 	fat_cluster_t		firstc;
 	/** FAT in-core node free list link. */
 	link_t			ffn_link;
-	size_t			size;
+	aoff64_t		size;
 	unsigned		lnkcnt;
 	unsigned		refcnt;
 	bool			dirty;
+
+	/*
+	 * Cache of the node's last and "current" cluster to avoid some
+	 * unnecessary FAT walks.
+	 */
+	/* Node's last cluster in FAT. */
+	bool		lastc_cached_valid;
+	fat_cluster_t	lastc_cached_value;
+	/* Node's "current" cluster, i.e. where the last I/O took place. */
+	bool		currc_cached_valid;
+	aoff64_t	currc_cached_bn;
+	fat_cluster_t	currc_cached_value;
 } fat_node_t;
 
 extern fs_reg_t fat_reg;
@@ -216,17 +241,17 @@ extern void fat_open_node(ipc_callid_t, ipc_call_t *);
 extern void fat_stat(ipc_callid_t, ipc_call_t *);
 extern void fat_sync(ipc_callid_t, ipc_call_t *);
 
-extern int fat_idx_get_new(fat_idx_t **, dev_handle_t);
-extern fat_idx_t *fat_idx_get_by_pos(dev_handle_t, fat_cluster_t, unsigned);
-extern fat_idx_t *fat_idx_get_by_index(dev_handle_t, fs_index_t);
+extern int fat_idx_get_new(fat_idx_t **, devmap_handle_t);
+extern fat_idx_t *fat_idx_get_by_pos(devmap_handle_t, fat_cluster_t, unsigned);
+extern fat_idx_t *fat_idx_get_by_index(devmap_handle_t, fs_index_t);
 extern void fat_idx_destroy(fat_idx_t *);
 extern void fat_idx_hashin(fat_idx_t *);
 extern void fat_idx_hashout(fat_idx_t *);
 
 extern int fat_idx_init(void);
 extern void fat_idx_fini(void);
-extern int fat_idx_init_by_dev_handle(dev_handle_t);
-extern void fat_idx_fini_by_dev_handle(dev_handle_t);
+extern int fat_idx_init_by_devmap_handle(devmap_handle_t);
+extern void fat_idx_fini_by_devmap_handle(devmap_handle_t);
 
 #endif
 

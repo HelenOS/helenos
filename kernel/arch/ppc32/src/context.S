@@ -28,7 +28,7 @@
 
 #include <arch/context_offset.h>
 
-.text   
+.text
 
 .global context_save_arch
 .global context_restore_arch
@@ -45,7 +45,7 @@ context_save_arch:
 	# context_save returns 1
 	li r3, 1
 	blr
-	
+
 context_restore_arch:
 	CONTEXT_RESTORE_ARCH_CORE r3
 	

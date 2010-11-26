@@ -39,7 +39,6 @@
 #include <proc/task.h>
 #include <time/timeout.h>
 #include <cpu.h>
-#include <synch/rwlock.h>
 #include <synch/spinlock.h>
 #include <adt/avl.h>
 #include <mm/slab.h>
@@ -47,11 +46,12 @@
 #include <mm/tlb.h>
 #include <proc/uarg.h>
 #include <udebug/udebug.h>
+#include <sysinfo/abi.h>
 
-#define THREAD_STACK_SIZE	STACK_SIZE
-#define THREAD_NAME_BUFLEN	20
+#define THREAD_STACK_SIZE   STACK_SIZE
+#define THREAD_NAME_BUFLEN  20
 
-extern char *thread_states[];
+extern const char *thread_states[];
 
 /* Thread flags */
 
@@ -59,39 +59,25 @@ extern char *thread_states[];
  *
  * When using this flag, the caller must set cpu in the thread_t
  * structure manually before calling thread_ready (even on uniprocessor).
- */ 
-#define THREAD_FLAG_WIRED	(1 << 0)
-/** Thread was migrated to another CPU and has not run yet. */
-#define THREAD_FLAG_STOLEN	(1 << 1)
-/** Thread executes in userspace. */
-#define THREAD_FLAG_USPACE	(1 << 2)
-/** Thread will be attached by the caller. */
-#define THREAD_FLAG_NOATTACH	(1 << 3)
+ *
+ */
+#define THREAD_FLAG_WIRED  (1 << 0)
 
-/** Thread states. */
-typedef enum {
-	/** It is an error, if thread is found in this state. */
-	Invalid,
-	/** State of a thread that is currently executing on some CPU. */
-	Running,
-	/** Thread in this state is waiting for an event. */
-	Sleeping,
-	/** State of threads in a run queue. */
-	Ready,
-	/** Threads are in this state before they are first readied. */
-	Entering,
-	/** After a thread calls thread_exit(), it is put into Exiting state. */
-	Exiting,
-	/** Threads that were not detached but exited are Lingering. */
-	Lingering
-} state_t;
+/** Thread was migrated to another CPU and has not run yet. */
+#define THREAD_FLAG_STOLEN  (1 << 1)
+
+/** Thread executes in userspace. */
+#define THREAD_FLAG_USPACE  (1 << 2)
+
+/** Thread will be attached by the caller. */
+#define THREAD_FLAG_NOATTACH  (1 << 3)
 
 /** Thread structure. There is one per thread. */
 typedef struct thread {
-	link_t rq_link;		/**< Run queue link. */
-	link_t wq_link;		/**< Wait queue link. */
-	link_t th_link;		/**< Links to threads within containing task. */
-
+	link_t rq_link;  /**< Run queue link. */
+	link_t wq_link;  /**< Wait queue link. */
+	link_t th_link;  /**< Links to threads within containing task. */
+	
 	/** Threads linkage to the threads_tree. */
 	avltree_node_t threads_tree_node;
 	
@@ -99,15 +85,15 @@ typedef struct thread {
 	 *
 	 * Protects the whole thread structure except list links above.
 	 */
-	SPINLOCK_DECLARE(lock);
-
+	IRQ_SPINLOCK_DECLARE(lock);
+	
 	char name[THREAD_NAME_BUFLEN];
-
+	
 	/** Function implementing the thread. */
 	void (* thread_code)(void *);
 	/** Argument passed to thread_code() function. */
 	void *thread_arg;
-
+	
 	/**
 	 * From here, the stored context is restored when the thread is
 	 * scheduled.
@@ -123,7 +109,7 @@ typedef struct thread {
 	 * interrupted.
 	 */
 	context_t sleep_interruption_context;
-
+	
 	/** If true, the thread can be interrupted from sleep. */
 	bool sleep_interruptible;
 	/** Wait queue in which this thread sleeps. */
@@ -131,8 +117,8 @@ typedef struct thread {
 	/** Timeout used for timeoutable sleeping.  */
 	timeout_t sleep_timeout;
 	/** Flag signalling sleep timeout in progress. */
-	volatile int timeout_pending;
-
+	volatile bool timeout_pending;
+	
 	/**
 	 * True if this thread is executing copy_from_uspace().
 	 * False otherwise.
@@ -148,7 +134,7 @@ typedef struct thread {
 	 * If true, the thread will not go to sleep at all and will call
 	 * thread_exit() before returning to userspace.
 	 */
-	bool interrupted;			
+	bool interrupted;
 	
 	/** If true, thread_join_timeout() cannot be used on this thread. */
 	bool detached;
@@ -156,44 +142,38 @@ typedef struct thread {
 	waitq_t join_wq;
 	/** Link used in the joiner_head list. */
 	link_t joiner_link;
-
+	
 	fpu_context_t *saved_fpu_context;
 	int fpu_context_exists;
-
+	
 	/*
 	 * Defined only if thread doesn't run.
 	 * It means that fpu context is in CPU that last time executes this
 	 * thread. This disables migration.
 	 */
 	int fpu_context_engaged;
-
-	rwlock_type_t rwlock_holder_type;
-
-	/** Callback fired in scheduler before the thread is put asleep. */
-	void (* call_me)(void *);
-	/** Argument passed to call_me(). */
-	void *call_me_with;
-
+	
 	/** Thread's state. */
 	state_t state;
 	/** Thread's flags. */
-	int flags;
+	unsigned int flags;
 	
 	/** Thread's CPU. */
 	cpu_t *cpu;
 	/** Containing task. */
 	task_t *task;
-
+	
 	/** Ticks before preemption. */
 	uint64_t ticks;
 	
 	/** Thread accounting. */
-	uint64_t cycles;
+	uint64_t ucycles;
+	uint64_t kcycles;
 	/** Last sampled cycle. */
 	uint64_t last_cycle;
-	/** Thread doesn't affect accumulated accounting. */	
+	/** Thread doesn't affect accumulated accounting. */
 	bool uncounted;
-
+	
 	/** Thread's priority. Implemented as index to CPU->rq */
 	int priority;
 	/** Thread ID. */
@@ -201,15 +181,14 @@ typedef struct thread {
 	
 	/** Architecture-specific data. */
 	thread_arch_t arch;
-
+	
 	/** Thread's kernel stack. */
 	uint8_t *kstack;
-
+	
 #ifdef CONFIG_UDEBUG
 	/** Debugging stuff */
 	udebug_thread_t udebug;
-#endif
-
+#endif /* CONFIG_UDEBUG */
 } thread_t;
 
 /** Thread list lock.
@@ -218,14 +197,14 @@ typedef struct thread {
  * Must be acquired before T.lock for each T of type thread_t.
  *
  */
-SPINLOCK_EXTERN(threads_lock);
+IRQ_SPINLOCK_EXTERN(threads_lock);
 
 /** AVL tree containing all threads. */
 extern avltree_t threads_tree;
 
 extern void thread_init(void);
-extern thread_t *thread_create(void (*)(void *), void *, task_t *, int, char *,
-    bool);
+extern thread_t *thread_create(void (*)(void *), void *, task_t *,
+    unsigned int, const char *, bool);
 extern void thread_attach(thread_t *, task_t *);
 extern void thread_ready(thread_t *);
 extern void thread_exit(void) __attribute__((noreturn));
@@ -233,9 +212,11 @@ extern void thread_exit(void) __attribute__((noreturn));
 #ifndef thread_create_arch
 extern void thread_create_arch(thread_t *);
 #endif
+
 #ifndef thr_constructor_arch
 extern void thr_constructor_arch(thread_t *);
 #endif
+
 #ifndef thr_destructor_arch
 extern void thr_destructor_arch(thread_t *);
 #endif
@@ -245,13 +226,14 @@ extern void thread_usleep(uint32_t);
 
 #define thread_join(t) \
 	thread_join_timeout((t), SYNCH_NO_TIMEOUT, SYNCH_FLAGS_NONE)
-extern int thread_join_timeout(thread_t *, uint32_t, int);
+
+extern int thread_join_timeout(thread_t *, uint32_t, unsigned int);
 extern void thread_detach(thread_t *);
 
-extern void thread_register_call_me(void (*)(void *), void *);
-extern void thread_print_list(void);
-extern void thread_destroy(thread_t *);
-extern void thread_update_accounting(void);
+extern void thread_print_list(bool);
+extern void thread_destroy(thread_t *, bool);
+extern thread_t *thread_find_by_id(thread_id_t);
+extern void thread_update_accounting(bool);
 extern bool thread_exists(thread_t *);
 
 /** Fpu context slab cache. */

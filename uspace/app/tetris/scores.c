@@ -51,7 +51,7 @@
 
 #include <errno.h>
 #include <stdio.h>
-#include <string.h>
+#include <str.h>
 #include <io/console.h>
 #include <io/keycode.h>
 #include <vfs/vfs.h>

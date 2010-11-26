@@ -27,9 +27,11 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
+
 """
 HelenOS configuration system
 """
+
 import sys
 import os
 import re
@@ -40,13 +42,12 @@ import xtui
 INPUT = sys.argv[1]
 MAKEFILE = 'Makefile.config'
 MACROS = 'config.h'
-DEFS = 'config.defs'
 PRECONF = 'defaults'
 
 def read_defaults(fname, defaults):
 	"Read saved values from last configuration run"
 	
-	inf = file(fname, 'r')
+	inf = open(fname, 'r')
 	
 	for line in inf:
 		res = re.match(r'^(?:#!# )?([^#]\w*)\s*=\s*(.*?)\s*$', line)
@@ -101,7 +102,7 @@ def check_inside(text, defaults, ctype):
 		oper = res.group(2)
 		condval = res.group(3)
 		
-		if (not defaults.has_key(condname)):
+		if (not condname in defaults):
 			varval = ''
 		else:
 			varval = defaults[condname]
@@ -129,7 +130,7 @@ def check_inside(text, defaults, ctype):
 def parse_config(fname, ask_names):
 	"Parse configuration file"
 	
-	inf = file(fname, 'r')
+	inf = open(fname, 'r')
 	
 	name = ''
 	choices = []
@@ -217,19 +218,24 @@ def check_choices(defaults, ask_names):
 		if ((cond) and (not check_condition(cond, defaults, ask_names))):
 			continue
 		
-		if (not defaults.has_key(varname)):
+		if (not varname in defaults):
 			return False
 	
 	return True
 
-def create_output(mkname, mcname, dfname, defaults, ask_names):
+def create_output(mkname, mcname, defaults, ask_names):
 	"Create output configuration"
 	
 	timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
 	
 	sys.stderr.write("Fetching current revision identifier ... ")
-	version = subprocess.Popen(['bzr', 'version-info', '--custom', '--template={clean}:{revno}:{revision_id}'], stdout = subprocess.PIPE).communicate()[0].split(':')
-	sys.stderr.write("OK\n")
+	
+	try:
+		version = subprocess.Popen(['bzr', 'version-info', '--custom', '--template={clean}:{revno}:{revision_id}'], stdout = subprocess.PIPE).communicate()[0].decode().split(':')
+		sys.stderr.write("ok\n")
+	except:
+		version = [1, "unknown", "unknown"]
+		sys.stderr.write("failed\n")
 	
 	if (len(version) == 3):
 		revision = version[1]
@@ -239,9 +245,8 @@ def create_output(mkname, mcname, dfname, defaults, ask_names):
 	else:
 		revision = None
 	
-	outmk = file(mkname, 'w')
-	outmc = file(mcname, 'w')
-	outdf = file(dfname, 'w')
+	outmk = open(mkname, 'w')
+	outmc = open(mcname, 'w')
 	
 	outmk.write('#########################################\n')
 	outmk.write('## AUTO-GENERATED FILE, DO NOT EDIT!!! ##\n')
@@ -251,16 +256,13 @@ def create_output(mkname, mcname, dfname, defaults, ask_names):
 	outmc.write(' * AUTO-GENERATED FILE, DO NOT EDIT!!! *\n')
 	outmc.write(' ***************************************/\n\n')
 	
-	outdf.write('#########################################\n')
-	outdf.write('## AUTO-GENERATED FILE, DO NOT EDIT!!! ##\n')
-	outdf.write('#########################################\n\n')
-	outdf.write('CONFIG_DEFS =')
+	defs = 'CONFIG_DEFS ='
 	
 	for varname, vartype, name, choices, cond in ask_names:
 		if ((cond) and (not check_condition(cond, defaults, ask_names))):
 			continue
 		
-		if (not defaults.has_key(varname)):
+		if (not varname in defaults):
 			default = ''
 		else:
 			default = defaults[varname]
@@ -272,23 +274,24 @@ def create_output(mkname, mcname, dfname, defaults, ask_names):
 		if ((vartype == "y") or (vartype == "n") or (vartype == "y/n") or (vartype == "n/y")):
 			if (default == "y"):
 				outmc.write('/* %s */\n#define %s\n\n' % (name, varname))
-				outdf.write(' -D%s' % varname)
+				defs += ' -D%s' % varname
 		else:
 			outmc.write('/* %s */\n#define %s %s\n#define %s_%s\n\n' % (name, varname, default, varname, default))
-			outdf.write(' -D%s=%s -D%s_%s' % (varname, default, varname, default))
+			defs += ' -D%s=%s -D%s_%s' % (varname, default, varname, default)
 	
 	if (revision is not None):
 		outmk.write('REVISION = %s\n' % revision)
 		outmc.write('#define REVISION %s\n' % revision)
-		outdf.write(' "-DREVISION=%s"' % revision)
+		defs += ' "-DREVISION=%s"' % revision
 	
 	outmk.write('TIMESTAMP = %s\n' % timestamp)
 	outmc.write('#define TIMESTAMP %s\n' % timestamp)
-	outdf.write(' "-DTIMESTAMP=%s"\n' % timestamp)
+	defs += ' "-DTIMESTAMP=%s"\n' % timestamp
+	
+	outmk.write(defs)
 	
 	outmk.close()
 	outmc.close()
-	outdf.close()
 
 def sorted_dir(root):
 	list = os.listdir(root)
@@ -347,7 +350,7 @@ def main():
 	# Default mode: only check defaults and regenerate configuration
 	if ((len(sys.argv) >= 3) and (sys.argv[2] == 'default')):
 		if (check_choices(defaults, ask_names)):
-			create_output(MAKEFILE, MACROS, DEFS, defaults, ask_names)
+			create_output(MAKEFILE, MACROS, defaults, ask_names)
 			return 0
 	
 	# Check mode: only check defaults
@@ -364,7 +367,7 @@ def main():
 			
 			# Cancel out all defaults which have to be deduced
 			for varname, vartype, name, choices, cond in ask_names:
-				if ((vartype == 'y') and (defaults.has_key(varname)) and (defaults[varname] == '*')):
+				if ((vartype == 'y') and (varname in defaults) and (defaults[varname] == '*')):
 					defaults[varname] = None
 			
 			options = []
@@ -381,7 +384,7 @@ def main():
 				if (varname == selname):
 					position = cnt
 				
-				if (not defaults.has_key(varname)):
+				if (not varname in defaults):
 					default = None
 				else:
 					default = defaults[varname]
@@ -424,7 +427,7 @@ def main():
 				
 				cnt += 1
 			
-			if (position >= options):
+			if (position != None) and (position >= len(options)):
 				position = None
 			
 			(button, value) = xtui.choice_window(screen, 'HelenOS configuration', 'Choose configuration option', options, position)
@@ -445,12 +448,12 @@ def main():
 				continue
 			
 			position = None
-			if (not opt2row.has_key(value)):
+			if (not value in opt2row):
 				raise RuntimeError("Error selecting value: %s" % value)
 			
 			(selname, seltype, name, choices) = opt2row[value]
 			
-			if (not defaults.has_key(selname)):
+			if (not selname in defaults):
 					default = None
 			else:
 				default = defaults[selname]
@@ -465,7 +468,7 @@ def main():
 	finally:
 		xtui.screen_done(screen)
 	
-	create_output(MAKEFILE, MACROS, DEFS, defaults, ask_names)
+	create_output(MAKEFILE, MACROS, defaults, ask_names)
 	return 0
 
 if __name__ == '__main__':

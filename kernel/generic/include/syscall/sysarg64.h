@@ -32,7 +32,7 @@
 
 /**
  * @file
- * @brief	Wrapper for explicit 64-bit arguments passed to syscalls.
+ * @brief Wrapper for explicit 64-bit arguments passed to syscalls.
  */
 
 #ifndef KERN_SYSARG64_H_

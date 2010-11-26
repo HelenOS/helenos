@@ -28,11 +28,9 @@
 #
 
 USPACE_PREFIX = ../../..
-LIBS = $(LIBC_PREFIX)/libc.a
-
-OUTPUT = gxe_bd
+BINARY = gxe_bd
 
 SOURCES = \
 	gxe_bd.c
 
-include ../../Makefile.common
+include $(USPACE_PREFIX)/Makefile.common
