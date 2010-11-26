@@ -242,7 +242,7 @@ void ofw_claim_virt(const void *virt, const size_t len)
 {
 	void *addr = ofw_claim_virt_internal(virt, len, 0);
 	if (addr != virt) {
-		printf("Error: Unable to claim virtual memory %p (size %u), halting.\n",
+		printf("Error: Unable to claim virtual memory %p (size %zu), halting.\n",
 		    virt, len);
 		halt();
 	}
@@ -253,7 +253,7 @@ void *ofw_claim_virt_any(const size_t len, const size_t alignment)
 	void *addr = ofw_claim_virt_internal(NULL, len, alignment);
 	
 	if (addr == NULL) {
-		printf("Error: Unable to claim %u bytes in virtual memory, halting.\n",
+		printf("Error: Unable to claim %zu bytes in virtual memory, halting.\n",
 		    len);
 		halt();
 	}
@@ -304,7 +304,7 @@ void ofw_claim_phys(const void *phys, const size_t len)
 {
 	void *addr = ofw_claim_phys_internal(phys, len, 0);
 	if (addr != phys) {
-		printf("Error: Unable to claim physical memory %p (size %u), halting.\n",
+		printf("Error: Unable to claim physical memory %p (size %zu), halting.\n",
 		    phys, len);
 		halt();
 	}
@@ -314,7 +314,7 @@ void *ofw_claim_phys_any(const size_t len, const size_t alignment)
 {
 	void *addr = ofw_claim_phys_internal(NULL, len, alignment);
 	if (addr == NULL) {
-		printf("Error: Unable to claim %u bytes in physical memory, halting.\n",
+		printf("Error: Unable to claim %zu bytes in physical memory, halting.\n",
 		    len);
 		halt();
 	}
@@ -342,7 +342,7 @@ void ofw_map(const void *phys, const void *virt, const size_t size,
 	    ALIGN_UP(size, PAGE_SIZE), virt, phys_hi, phys_lo);
 	
 	if (ret != 0) {
-		printf("Error: Unable to map %p to %p (size %u), halting.\n",
+		printf("Error: Unable to map %p to %p (size %zu), halting.\n",
 		    virt, phys, size);
 		halt();
 	}

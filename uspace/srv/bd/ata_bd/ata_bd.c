@@ -112,7 +112,8 @@ int main(int argc, char **argv)
 
 	printf(NAME ": ATA disk driver\n");
 
-	printf("I/O address %p/%p\n", ctl_physical, cmd_physical);
+	printf("I/O address %p/%p\n", (void *) ctl_physical,
+	    (void *) cmd_physical);
 
 	if (ata_bd_init() != EOK)
 		return -1;
@@ -180,7 +181,7 @@ static void disk_print_summary(disk_t *d)
 		break;
 	}
 
-	printf(" %" PRIu64 " blocks", d->blocks, d->blocks / (2 * 1024));
+	printf(" %" PRIu64 " blocks", d->blocks);
 
 	mbytes = d->blocks / (2 * 1024);
 	if (mbytes > 0)

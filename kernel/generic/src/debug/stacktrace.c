@@ -40,8 +40,7 @@
 
 #define STACK_FRAMES_MAX	20
 
-void
-stack_trace_ctx(stack_trace_ops_t *ops, stack_trace_context_t *ctx)
+void stack_trace_ctx(stack_trace_ops_t *ops, stack_trace_context_t *ctx)
 {
 	int cnt = 0;
 	const char *symbol;
@@ -53,19 +52,20 @@ stack_trace_ctx(stack_trace_ops_t *ops, stack_trace_context_t *ctx)
 	    ops->stack_trace_context_validate(ctx)) {
 		if (ops->symbol_resolve &&
 		    ops->symbol_resolve(ctx->pc, &symbol, &offset)) {
-		    	if (offset)
-				printf("%p: %s+%" PRIp "()\n",
-				    ctx->fp, symbol, offset);
+			if (offset)
+				printf("%p: %s()+%p\n", (void *) ctx->fp,
+				    symbol, (void *) offset);
 			else
-				printf("%p: %s()\n",
-				    ctx->fp, symbol);
-		} else {
-			printf("%p: %p()\n", ctx->fp, ctx->pc);
-		}
+				printf("%p: %s()\n", (void *) ctx->fp, symbol);
+		} else
+			printf("%p: %p()\n", (void *) ctx->fp, (void *) ctx->pc);
+		
 		if (!ops->return_address_get(ctx, &pc))
 			break;
+		
 		if (!ops->frame_pointer_prev(ctx, &fp))
 			break;
+		
 		ctx->fp = fp;
 		ctx->pc = pc;
 	}

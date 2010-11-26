@@ -219,7 +219,7 @@ int main(int argc, char *argv[])
 
 	// check the buffer size
 	if (size <= 0) {
-		fprintf(stderr, "Receive size too small (%d). Using 1024 bytes instead.\n", size);
+		fprintf(stderr, "Receive size too small (%zu). Using 1024 bytes instead.\n", size);
 		size = 1024;
 	}
 	// size plus the terminating null (\0)
@@ -261,7 +261,7 @@ int main(int argc, char *argv[])
 	if (type == SOCK_STREAM) {
 		// check the backlog
 		if (backlog <= 0) {
-			fprintf(stderr, "Accepted sockets queue size too small (%d). Using 3 instead.\n", size);
+			fprintf(stderr, "Accepted sockets queue size too small (%zu). Using 3 instead.\n", size);
 			backlog = 3;
 		}
 		// set the backlog
@@ -324,7 +324,8 @@ int main(int argc, char *argv[])
 						address_start = (uint8_t *) &address_in6->sin6_addr.s6_addr;
 						break;
 					default:
-						fprintf(stderr, "Address family %d (0x%X) is not supported.\n", address->sa_family);
+						fprintf(stderr, "Address family %u (%#x) is not supported.\n",
+						    address->sa_family, address->sa_family);
 					}
 					// parse the source address
 					if (address_start) {
@@ -333,7 +334,8 @@ int main(int argc, char *argv[])
 							fprintf(stderr, "Received address error %d\n", rc);
 						} else {
 							data[length] = '\0';
-							printf("Socket %d received %d bytes from %s:%d\n%s\n", socket_id, length, address_string, port, data);
+							printf("Socket %d received %zu bytes from %s:%d\n%s\n",
+							    socket_id, length, address_string, port, data);
 						}
 					}
 				}

@@ -31,9 +31,9 @@
 
 const char *test_print2(void)
 {
-	TPRINTF("Testing printf(\"%%c %%3.2c %%-3.2c %%2.3c %%-2.3c\", 'a', 'b', 'c', 'd', 'e'):\n");
-	TPRINTF("Expected output: [a] [  b] [c  ] [ d] [e ]\n");
-	TPRINTF("Real output:     [%c] [%3.2c] [%-3.2c] [%2.3c] [%-2.3c]\n\n", 'a', 'b', 'c', 'd', 'e');
+	TPRINTF("Testing printf(\"%%c\", 'a'):\n");
+	TPRINTF("Expected output: [a]\n");
+	TPRINTF("Real output:     [%c]\n\n", 'a');
 	
 	TPRINTF("Testing printf(\"%%d %%3.2d %%-3.2d %%2.3d %%-2.3d\", 1, 2, 3, 4, 5):\n");
 	TPRINTF("Expected output: [1] [ 02] [03 ] [004] [005]\n");
@@ -47,11 +47,11 @@ const char *test_print2(void)
 	TPRINTF("Expected output: [0x11] [0x012] [0x013] [0x00014] [0x00015]\n");
 	TPRINTF("Real output:     [%#x] [%#5.3x] [%#-5.3x] [%#3.5x] [%#-3.5x]\n\n", 17, 18, 19, 20, 21);
 	
-	unative_t nat = 0x12345678u;
+	unative_t nat = UINTN_C(0x12345678);
 	
-	TPRINTF("Testing printf(\"%%#" PRIx64 " %%#" PRIx32 " %%#" PRIx16 " %%#" PRIx8 " %%#" PRIxn " %%#" PRIx64 " %%s\", 0x1234567887654321ll, 0x12345678, 0x1234, 0x12, nat, 0x1234567887654321ull, \"Lovely string\"):\n");
+	TPRINTF("Testing printf(\"%%#" PRIx64 " %%#" PRIx32 " %%#" PRIx16 " %%#" PRIx8 " %%#" PRIxn " %%#" PRIx64 " %%s\", (uint64_t) UINT64_C(0x1234567887654321), (uint32_t) UINT32_C(0x12345678), (uint16_t) UINT16_C(0x1234), (uint8_t) UINT8_C(0x12), nat, (uint64_t) UINT64_C(0x1234567887654321), \"Lovely string\"):\n");
 	TPRINTF("Expected output: [0x1234567887654321] [0x12345678] [0x1234] [0x12] [0x12345678] [0x1234567887654321] \"Lovely string\"\n");
-	TPRINTF("Real output:     [%#" PRIx64 "] [%#" PRIx32 "] [%#" PRIx16 "] [%#" PRIx8 "] [%#" PRIxn "] [%#" PRIx64 "] \"%s\"\n\n", 0x1234567887654321ll, 0x12345678, 0x1234, 0x12, nat, 0x1234567887654321ull, "Lovely string");
+	TPRINTF("Real output:     [%#" PRIx64 "] [%#" PRIx32 "] [%#" PRIx16 "] [%#" PRIx8 "] [%#" PRIxn "] [%#" PRIx64 "] \"%s\"\n\n", (uint64_t) UINT64_C(0x1234567887654321), (uint32_t) UINT32_C(0x12345678), (uint16_t) UINT16_C(0x1234), (uint8_t) UINT8_C(0x12), nat, (uint64_t) UINT64_C(0x1234567887654321), "Lovely string");
 	
 	return NULL;
 }

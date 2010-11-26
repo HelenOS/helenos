@@ -33,11 +33,10 @@
 #ifndef LIBC_abs32le_INTTYPES_H_
 #define LIBC_abs32le_INTTYPES_H_
 
-#define PRIdPTR  PRId32
-#define PRIoPTR  PRIo32
-#define PRIuPTR  PRIu32
-#define PRIxPTR  PRIx32
-#define PRIXPTR  PRIX32
+#define PRIdn  PRId32  /**< Format for sysarg_t, ipcarg_t, etc. */
+#define PRIun  PRIu32  /**< Format for sysarg_t, ipcarg_t, etc. */
+#define PRIxn  PRIx32  /**< Format for hexadecimal sysarg_t, ipcarg_t, etc. */
+#define PRIua  PRIu32  /**< Format for atomic_count_t. */
 
 #endif
 

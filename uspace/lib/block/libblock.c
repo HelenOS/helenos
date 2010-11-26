@@ -815,8 +815,8 @@ static int read_blocks(devcon_t *devcon, aoff64_t ba, size_t cnt)
 	rc = async_req_3_0(devcon->dev_phone, BD_READ_BLOCKS, LOWER32(ba),
 	    UPPER32(ba), cnt);
 	if (rc != EOK) {
-		printf("Error %d reading %d blocks starting at block %" PRIuOFF64
-		    " from device handle %d\n", rc, cnt, ba,
+		printf("Error %d reading %zu blocks starting at block %" PRIuOFF64
+		    " from device handle %" PRIun "\n", rc, cnt, ba,
 		    devcon->devmap_handle);
 #ifndef NDEBUG
 		stacktrace_print();
@@ -842,8 +842,8 @@ static int write_blocks(devcon_t *devcon, aoff64_t ba, size_t cnt)
 	rc = async_req_3_0(devcon->dev_phone, BD_WRITE_BLOCKS, LOWER32(ba),
 	    UPPER32(ba), cnt);
 	if (rc != EOK) {
-		printf("Error %d writing %d blocks starting at block %" PRIuOFF64
-		    " to device handle %d\n", rc, cnt, ba, devcon->devmap_handle);
+		printf("Error %d writing %zu blocks starting at block %" PRIuOFF64
+		    " to device handle %" PRIun "\n", rc, cnt, ba, devcon->devmap_handle);
 #ifndef NDEBUG
 		stacktrace_print();
 #endif

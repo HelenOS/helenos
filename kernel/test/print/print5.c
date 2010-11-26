@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2005 Josef Cejka
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,38 +26,30 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia32
- * @{
+/*
+ * This test tests several features of the HelenOS
+ * printf() implementation which go beyond the POSIX
+ * specification and GNU printf() behaviour.
+ *
+ * Therefore we disable printf() argument checking by
+ * the GCC compiler in this source file to avoid false
+ * positives.
+ *
  */
-/** @file
- */
+#define NVERIFY_PRINTF
 
-#ifndef KERN_ia32_TYPES_H_
-#define KERN_ia32_TYPES_H_
+#include <print.h>
+#include <test.h>
 
-typedef uint32_t size_t;
-
-typedef uint32_t uintptr_t;
-typedef uint32_t pfn_t;
-
-typedef uint32_t ipl_t;
-
-typedef uint32_t unative_t;
-typedef int32_t native_t;
-typedef uint32_t atomic_count_t;
-
-typedef struct {
-} fncptr_t;
-
-#define INTN_C(c)   INT32_C(c)
-#define UINTN_C(c)  UINT32_C(c)
-
-#define PRIdn  PRId32  /**< Format for native_t. */
-#define PRIun  PRIu32  /**< Format for unative_t. */
-#define PRIxn  PRIx32  /**< Format for hexadecimal unative_t. */
-#define PRIua  PRIu32  /**< Format for atomic_count_t. */
-
-#endif
-
-/** @}
- */
+const char *test_print5(void)
+{
+	TPRINTF("Testing printf(\"%%s\", NULL):\n");
+	TPRINTF("Expected output: \"(NULL)\"\n");
+	TPRINTF("Real output:     \"%s\"\n\n", (char *) NULL);
+	
+	TPRINTF("Testing printf(\"%%c %%3.2c %%-3.2c %%2.3c %%-2.3c\", 'a', 'b', 'c', 'd', 'e'):\n");
+	TPRINTF("Expected output: [a] [  b] [c  ] [ d] [e ]\n");
+	TPRINTF("Real output:     [%c] [%3.2c] [%-3.2c] [%2.3c] [%-2.3c]\n\n", 'a', 'b', 'c', 'd', 'e');
+	
+	return NULL;
+}

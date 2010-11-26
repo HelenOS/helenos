@@ -229,16 +229,16 @@ static void handle_exception(int slot, istate_t *istate)
 			if (*((unative_t *) breakpoints[slot].address) != 0)
 				return;
 			
-			printf("*** Found ZERO on address %" PRIp " (slot %d) ***\n",
-			    breakpoints[slot].address, slot);
+			printf("*** Found ZERO on address %p (slot %d) ***\n",
+			    (void *) breakpoints[slot].address, slot);
 		} else {
-			printf("Data watchpoint - new data: %" PRIp "\n",
+			printf("Data watchpoint - new data: %#" PRIxn "\n",
 			    *((unative_t *) breakpoints[slot].address));
 		}
 	}
 	
-	printf("Reached breakpoint %d:%" PRIp " (%s)\n", slot, getip(istate),
-	    symtab_fmt_name_lookup(getip(istate)));
+	printf("Reached breakpoint %d:%p (%s)\n", slot,
+	    (void *) getip(istate), symtab_fmt_name_lookup(getip(istate)));
 	
 #ifdef CONFIG_KCONSOLE
 	atomic_set(&haltstate, 1);
@@ -362,14 +362,14 @@ int cmd_print_breakpoints(cmd_arg_t *argv __attribute__((unused)))
 			    breakpoints[i].address);
 			
 #ifdef __32_BITS__
-			printf("%-4u %7" PRIs " %p %s\n", i,
-			    breakpoints[i].counter, breakpoints[i].address,
+			printf("%-4u %7zu %p %s\n", i,
+			    breakpoints[i].counter, (void *) breakpoints[i].address,
 			    symbol);
 #endif
 			
 #ifdef __64_BITS__
-			printf("%-4u %7" PRIs " %p %s\n", i,
-			    breakpoints[i].counter, breakpoints[i].address,
+			printf("%-4u %7zu %p %s\n", i,
+			    breakpoints[i].counter, (void *) breakpoints[i].address,
 			    symbol);
 #endif
 		}
@@ -404,9 +404,10 @@ static int cmd_add_breakpoint(cmd_arg_t *argv)
 	else
 		flags = BKPOINT_WRITE;
 	
-	printf("Adding breakpoint on address: %p\n", argv->intval);
+	printf("Adding breakpoint on address: %p\n",
+	    (void *) argv->intval);
 	
-	int id = breakpoint_add((void *)argv->intval, flags, -1);
+	int id = breakpoint_add((void *) argv->intval, flags, -1);
 	if (id < 0)
 		printf("Add breakpoint failed.\n");
 	else

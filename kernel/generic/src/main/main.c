@@ -182,8 +182,8 @@ void main_bsp_separated_stack(void)
 	
 	version_print();
 	
-	LOG("\nconfig.base=%p config.kernel_size=%" PRIs
-	    "\nconfig.stack_base=%p config.stack_size=%" PRIs,
+	LOG("\nconfig.base=%p config.kernel_size=%zu"
+	    "\nconfig.stack_base=%p config.stack_size=%zu",
 	    config.base, config.kernel_size, config.stack_base,
 	    config.stack_size);
 	
@@ -224,7 +224,7 @@ void main_bsp_separated_stack(void)
 	/* Slab must be initialized after we know the number of processors. */
 	slab_enable_cpucache();
 	
-	printf("Detected %" PRIs " CPU(s), %" PRIu64" MiB free memory\n",
+	printf("Detected %u CPU(s), %" PRIu64 " MiB free memory\n",
 	    config.cpu_count, SIZE2MB(zones_total_size()));
 	
 	cpu_init();
@@ -240,9 +240,8 @@ void main_bsp_separated_stack(void)
 	if (init.cnt > 0) {
 		size_t i;
 		for (i = 0; i < init.cnt; i++)
-			LOG("init[%" PRIs "].addr=%p, init[%" PRIs
-			    "].size=%" PRIs, i, init.tasks[i].addr, i,
-			    init.tasks[i].size);
+			LOG("init[%zu].addr=%p, init[%zu].size=%zu",
+			    i, init.tasks[i].addr, i, init.tasks[i].size);
 	} else
 		printf("No init binaries found.\n");
 	

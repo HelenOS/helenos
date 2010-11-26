@@ -34,6 +34,7 @@
  * @file
  */
 
+#include <inttypes.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -78,8 +79,8 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 	
-	printf(NAME ": trying to read %d characters from device with handle "
-	    "%d.\n", cnt, handle);
+	printf(NAME ": trying to read %ld characters from device with handle "
+	    "%" PRIun ".\n", cnt, handle);
 	
 	int phone = devman_device_connect(handle, IPC_FLAG_BLOCKING);
 	if (0 > phone) {
