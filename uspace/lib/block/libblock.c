@@ -260,7 +260,7 @@ static hash_index_t cache_hash(unsigned long *key)
 static int cache_compare(unsigned long *key, hash_count_t keys, link_t *item)
 {
 	block_t *b = hash_table_get_instance(item, block_t, hash_link);
-	return b->boff == *key;
+	return b->lba == *key;
 }
 
 static void cache_remove_callback(link_t *item)
@@ -338,7 +338,7 @@ int block_cache_fini(devmap_handle_t devmap_handle)
 				return rc;
 		}
 
-		unsigned long key = b->boff;
+		unsigned long key = b->lba;
 		hash_table_remove(&cache->block_hash, &key, 1);
 		
 		free(b->data);
@@ -379,20 +379,20 @@ static void block_initialize(block_t *b)
  * @param block			Pointer to where the function will store the
  * 				block pointer on success.
  * @param devmap_handle		Device handle of the block device.
- * @param boff			Block offset.
+ * @param ba			Block address (logical).
  * @param flags			If BLOCK_FLAGS_NOREAD is specified, block_get()
  * 				will not read the contents of the block from the
  *				device.
  *
  * @return			EOK on success or a negative error code.
  */
-int block_get(block_t **block, devmap_handle_t devmap_handle, aoff64_t boff, int flags)
+int block_get(block_t **block, devmap_handle_t devmap_handle, aoff64_t ba, int flags)
 {
 	devcon_t *devcon;
 	cache_t *cache;
 	block_t *b;
 	link_t *l;
-	unsigned long key = boff;
+	unsigned long key = ba;
 	int rc;
 	
 	devcon = devcon_search(devmap_handle);
@@ -500,15 +500,15 @@ recycle:
 			 * table.
 			 */
 			list_remove(&b->free_link);
-			temp_key = b->boff;
+			temp_key = b->lba;
 			hash_table_remove(&cache->block_hash, &temp_key, 1);
 		}
 
 		block_initialize(b);
 		b->devmap_handle = devmap_handle;
 		b->size = cache->lblock_size;
-		b->boff = boff;
-		b->pba = ba_ltop(devcon, b->boff);
+		b->lba = ba;
+		b->pba = ba_ltop(devcon, b->lba);
 		hash_table_insert(&cache->block_hash, &key, &b->hash_link);
 
 		/*
@@ -620,7 +620,7 @@ retry:
 			/*
 			 * Take the block out of the cache and free it.
 			 */
-			unsigned long key = block->boff;
+			unsigned long key = block->lba;
 			hash_table_remove(&cache->block_hash, &key, 1);
 			free(block);
 			free(block->data);
@@ -718,7 +718,7 @@ int block_seqread(devmap_handle_t devmap_handle, size_t *bufpos, size_t *buflen,
 /** Read blocks directly from device (bypass cache).
  *
  * @param devmap_handle	Device handle of the block device.
- * @param ba		Address of first block.
+ * @param ba		Address of first block (physical).
  * @param cnt		Number of blocks.
  * @param src		Buffer for storing the data.
  *
@@ -746,7 +746,7 @@ int block_read_direct(devmap_handle_t devmap_handle, aoff64_t ba, size_t cnt, vo
 /** Write blocks directly to device (bypass cache).
  *
  * @param devmap_handle	Device handle of the block device.
- * @param ba		Address of first block.
+ * @param ba		Address of first block (physical).
  * @param cnt		Number of blocks.
  * @param src		The data to be written.
  *

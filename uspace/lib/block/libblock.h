@@ -73,7 +73,7 @@ typedef struct block {
 	/** Handle of the device where the block resides. */
 	devmap_handle_t devmap_handle;
 	/** Logical block address */
-	aoff64_t boff;
+	aoff64_t lba;
 	/** Physical block address */
 	aoff64_t pba;
 	/** Size of the block. */
