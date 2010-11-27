@@ -670,38 +670,26 @@ int fat_sanity_check(fat_bs_t *bs, devmap_handle_t devmap_handle)
 	unsigned fat_no;
 	int rc;
 
-	printf("fat_sanity_check() begin\n");
-
 	/* Check number of FATs. */
 	if (bs->fatcnt == 0)
 		return ENOTSUP;
 
 	/* Check total number of sectors. */
 
-	printf("fat_sanity_check() totsec\n");
-
 	if (bs->totsec16 == 0 && bs->totsec32 == 0)
 		return ENOTSUP;
-
-	printf("fat_sanity_check() totsec16 vs 32\n");
 
 	if (bs->totsec16 != 0 && bs->totsec32 != 0 &&
 	    bs->totsec16 != bs->totsec32) 
 		return ENOTSUP;
 
-	printf("fat_sanity_check() media descriptor\n");
-
 	/* Check media descriptor. Must be between 0xf0 and 0xff. */
 	if ((bs->mdesc & 0xf0) != 0xf0)
 		return ENOTSUP;
 
-	printf("fat_sanity_check() sec_pre_fat\n");
-
 	/* Check number of sectors per FAT. */
 	if (bs->sec_per_fat == 0)
 		return ENOTSUP;
-
-	printf("fat_sanity_check() root dir size\n");
 
 	/*
 	 * Check that the root directory entries take up whole blocks.
@@ -716,25 +704,18 @@ int fat_sanity_check(fat_bs_t *bs, devmap_handle_t devmap_handle)
 
 	/* Check signature of each FAT. */
 
-	printf("fat_sanity_check() FAT signatures\n");
-
 	for (fat_no = 0; fat_no < bs->fatcnt; fat_no++) {
-		printf("fat_sanity_check() read cluster 0\n");
 		rc = fat_get_cluster(bs, devmap_handle, fat_no, 0, &e0);
 		if (rc != EOK)
 			return EIO;
 
-		printf("fat_sanity_check() read cluster 1\n");
 		rc = fat_get_cluster(bs, devmap_handle, fat_no, 1, &e1);
 		if (rc != EOK)
 			return EIO;
 
-		printf("fat_sanity_check() check FAT mdesc\n");
 		/* Check that first byte of FAT contains the media descriptor. */
 		if ((e0 & 0xff) != bs->mdesc)
 			return ENOTSUP;
-
-		printf("fat_sanity_check() e0/e1\n");
 
 		/*
 		 * Check that remaining bits of the first two entries are
@@ -743,7 +724,6 @@ int fat_sanity_check(fat_bs_t *bs, devmap_handle_t devmap_handle)
 		if ((e0 >> 8) != 0xff || e1 != 0xffff)
 			return ENOTSUP;
 	}
-	printf("fat_sanity_check() succeeded\n");
 
 	return EOK;
 }
