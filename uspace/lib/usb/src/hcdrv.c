@@ -49,13 +49,8 @@ LIST_INITIALIZE(hc_list);
 /** Our HC driver. */
 usb_hc_driver_t *hc_driver = NULL;
 
-static usbhc_iface_t usb_interface = {
-	.interrupt_out = NULL,
-	.interrupt_in = NULL
-};
-
 static device_ops_t usb_device_ops = {
-	.interfaces[USBHC_DEV_IFACE] = &usb_interface
+	.interfaces[USBHC_DEV_IFACE] = &usbhc_interface
 };
 
 int usb_add_hc_device(device_t *dev)

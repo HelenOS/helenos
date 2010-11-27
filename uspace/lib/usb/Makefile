@@ -36,6 +36,7 @@ SOURCES = \
 	src/hcdrv.c \
 	src/hubdrv.c \
 	src/localdrv.c \
+	src/remotedrv.c \
 	src/usb.c \
 	src/usbdrv.c
 

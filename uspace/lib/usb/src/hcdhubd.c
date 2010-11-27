@@ -204,6 +204,17 @@ int usb_hc_add_child_device(device_t *parent, const char *name,
 	return EOK;
 }
 
+/** Tell USB address of given device.
+ *
+ * @param handle Devman handle of the device.
+ * @return USB device address or error code.
+ */
+usb_address_t usb_get_address_by_handle(devman_handle_t handle)
+{
+	/* TODO: search list of attached devices. */
+	return ENOENT;
+}
+
 /**
  * @}
  */
