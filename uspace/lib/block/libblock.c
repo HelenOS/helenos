@@ -65,6 +65,7 @@ static LIST_INITIALIZE(dcl_head);
 typedef struct {
 	fibril_mutex_t lock;
 	size_t lblock_size;		/**< Logical block size. */
+	unsigned blocks_cluster;	/**< Physical blocks per block_t */
 	unsigned block_count;		/**< Total number of blocks. */
 	unsigned blocks_cached;		/**< Number of cached blocks. */
 	hash_table_t block_hash;
@@ -89,6 +90,7 @@ static int read_blocks(devcon_t *devcon, aoff64_t ba, size_t cnt);
 static int write_blocks(devcon_t *devcon, aoff64_t ba, size_t cnt);
 static int get_block_size(int dev_phone, size_t *bsize);
 static int get_num_blocks(int dev_phone, aoff64_t *nblocks);
+static aoff64_t ba_ltop(devcon_t *devcon, aoff64_t lba);
 
 static devcon_t *devcon_search(devmap_handle_t devmap_handle)
 {
@@ -291,8 +293,11 @@ int block_cache_init(devmap_handle_t devmap_handle, size_t size, unsigned blocks
 	cache->blocks_cached = 0;
 	cache->mode = mode;
 
-	/* No block size translation a.t.m. */
-	assert(cache->lblock_size == devcon->pblock_size);
+	/* Allow 1:1 or small-to-large block size translation */
+	if (cache->lblock_size % devcon->pblock_size != 0)
+		return ENOTSUP;
+
+	cache->blocks_cluster = cache->lblock_size / devcon->pblock_size;
 
 	if (!hash_table_create(&cache->block_hash, CACHE_BUCKETS, 1,
 	    &cache_ops)) {
@@ -328,7 +333,7 @@ int block_cache_fini(devmap_handle_t devmap_handle)
 		list_remove(&b->free_link);
 		if (b->dirty) {
 			memcpy(devcon->comm_area, b->data, b->size);
-			rc = write_blocks(devcon, b->boff, 1);
+			rc = write_blocks(devcon, b->pba, cache->blocks_cluster);
 			if (rc != EOK)
 				return rc;
 		}
@@ -464,7 +469,8 @@ recycle:
 				fibril_mutex_unlock(&cache->lock);
 				fibril_mutex_lock(&devcon->comm_area_lock);
 				memcpy(devcon->comm_area, b->data, b->size);
-				rc = write_blocks(devcon, b->boff, 1);
+				rc = write_blocks(devcon, b->pba,
+				    cache->blocks_cluster);
 				fibril_mutex_unlock(&devcon->comm_area_lock);
 				if (rc != EOK) {
 					/*
@@ -502,6 +508,7 @@ recycle:
 		b->devmap_handle = devmap_handle;
 		b->size = cache->lblock_size;
 		b->boff = boff;
+		b->pba = ba_ltop(devcon, b->boff);
 		hash_table_insert(&cache->block_hash, &key, &b->hash_link);
 
 		/*
@@ -518,7 +525,7 @@ recycle:
 			 * the new contents from the device.
 			 */
 			fibril_mutex_lock(&devcon->comm_area_lock);
-			rc = read_blocks(devcon, b->boff, 1);
+			rc = read_blocks(devcon, b->pba, cache->blocks_cluster);
 			memcpy(b->data, devcon->comm_area, cache->lblock_size);
 			fibril_mutex_unlock(&devcon->comm_area_lock);
 			if (rc != EOK) 
@@ -579,7 +586,7 @@ retry:
 	    (blocks_cached > CACHE_HI_WATERMARK || mode != CACHE_MODE_WB)) {
 		fibril_mutex_lock(&devcon->comm_area_lock);
 		memcpy(devcon->comm_area, block->data, block->size);
-		rc = write_blocks(devcon, block->boff, 1);
+		rc = write_blocks(devcon, block->pba, cache->blocks_cluster);
 		fibril_mutex_unlock(&devcon->comm_area_lock);
 		block->dirty = false;
 	}
@@ -876,6 +883,13 @@ static int get_num_blocks(int dev_phone, aoff64_t *nblocks)
 	}
 
 	return rc;
+}
+
+/** Convert logical block address to physical block address. */
+static aoff64_t ba_ltop(devcon_t *devcon, aoff64_t lba)
+{
+	assert(devcon->cache != NULL);
+	return lba * devcon->cache->blocks_cluster;
 }
 
 /** @}
