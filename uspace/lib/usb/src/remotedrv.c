@@ -41,16 +41,41 @@
 #include "hcdhubd_private.h"
 
 static int remote_get_address(device_t *, devman_handle_t, usb_address_t *);
+
 static int remote_interrupt_out(device_t *, usb_target_t, void *, size_t,
     usbhc_iface_transfer_out_callback_t, void *);
 static int remote_interrupt_in(device_t *, usb_target_t, void *, size_t,
     usbhc_iface_transfer_in_callback_t, void *);
 
+static int remote_control_write_setup(device_t *, usb_target_t,
+    void *, size_t,
+    usbhc_iface_transfer_out_callback_t, void *);
+static int remote_control_write_data(device_t *, usb_target_t,
+    void *, size_t,
+    usbhc_iface_transfer_out_callback_t, void *);
+static int remote_control_write_status(device_t *, usb_target_t,
+    usbhc_iface_transfer_in_callback_t, void *);
+
+static int remote_control_read_setup(device_t *, usb_target_t,
+    void *, size_t,
+    usbhc_iface_transfer_out_callback_t, void *);
+static int remote_control_read_data(device_t *, usb_target_t,
+    void *, size_t,
+    usbhc_iface_transfer_in_callback_t, void *);
+static int remote_control_read_status(device_t *, usb_target_t,
+    usbhc_iface_transfer_out_callback_t, void *);
+
 /** Implementation of USB HC interface. */
 usbhc_iface_t usbhc_interface = {
 	.tell_address = remote_get_address,
 	.interrupt_out = remote_interrupt_out,
-	.interrupt_in = remote_interrupt_in
+	.interrupt_in = remote_interrupt_in,
+	.control_write_setup = remote_control_write_setup,
+	.control_write_data = remote_control_write_data,
+	.control_write_status = remote_control_write_status,
+	.control_read_setup = remote_control_read_setup,
+	.control_read_data = remote_control_read_data,
+	.control_read_status = remote_control_read_status
 };
 
 /** Get USB address for remote USBHC interface.
@@ -223,6 +248,48 @@ static int remote_out_transfer(device_t *dev, usb_target_t target,
 	return EOK;
 }
 
+/** Start a SETUP transfer.
+ *
+ * @param dev Device that shall process the transfer.
+ * @param target Target device for the data.
+ * @param transfer_type Transfer type.
+ * @param data Data buffer.
+ * @param size Size of data buffer.
+ * @param callback Callback after transfer is complete.
+ * @param arg Custom argument to the callback.
+ * @return Error code.
+ */
+static int remote_setup_transfer(device_t *dev, usb_target_t target,
+    usb_transfer_type_t transfer_type, void *data, size_t size,
+    usbhc_iface_transfer_out_callback_t callback, void *arg)
+{
+	usb_hc_device_t *hc = (usb_hc_device_t *) dev->driver_data;
+
+	if ((hc->transfer_ops == NULL)
+	    || (hc->transfer_ops->transfer_setup == NULL)) {
+		return ENOTSUP;
+	}
+
+	transfer_info_t *transfer = transfer_info_create(
+	    create_attached_device_info(target.address),
+	    create_endpoint_info(target.endpoint,
+		USB_DIRECTION_OUT, transfer_type),
+	    arg);
+	transfer->out_callback = callback;
+
+	int rc = hc->transfer_ops->transfer_setup(hc,
+	    transfer->device, transfer->endpoint,
+	    data, size,
+	    remote_out_callback, transfer);
+
+	if (rc != EOK) {
+		transfer_info_destroy(transfer);
+		return rc;
+	}
+
+	return EOK;
+}
+
 /** Callback for IN transfers.
  * This callback is called by implementation of HC operations.
  *
@@ -318,6 +385,52 @@ int remote_interrupt_in(device_t *dev, usb_target_t target,
 	    buffer, size, callback, arg);
 }
 
+
+int remote_control_write_setup(device_t *device, usb_target_t target,
+    void *buffer, size_t size,
+    usbhc_iface_transfer_out_callback_t callback, void *arg)
+{
+	return remote_setup_transfer(device, target, USB_TRANSFER_CONTROL,
+	    buffer, size, callback, arg);
+}
+
+int remote_control_write_data(device_t *device, usb_target_t target,
+    void *buffer, size_t size,
+    usbhc_iface_transfer_out_callback_t callback, void *arg)
+{
+	return remote_out_transfer(device, target, USB_TRANSFER_CONTROL,
+	    buffer, size, callback, arg);
+}
+
+int remote_control_write_status(device_t *device, usb_target_t target,
+    usbhc_iface_transfer_in_callback_t callback, void *arg)
+{
+	return remote_in_transfer(device, target, USB_TRANSFER_CONTROL,
+	    NULL, 0, callback, arg);
+}
+
+int remote_control_read_setup(device_t *device, usb_target_t target,
+    void *buffer, size_t size,
+    usbhc_iface_transfer_out_callback_t callback, void *arg)
+{
+	return remote_setup_transfer(device, target, USB_TRANSFER_CONTROL,
+	    buffer, size, callback, arg);
+}
+
+int remote_control_read_data(device_t *dev, usb_target_t target,
+    void *buffer, size_t size,
+    usbhc_iface_transfer_in_callback_t callback, void *arg)
+{
+	return remote_in_transfer(dev, target, USB_TRANSFER_CONTROL,
+	    buffer, size, callback, arg);
+}
+
+int remote_control_read_status(device_t *device, usb_target_t target,
+    usbhc_iface_transfer_out_callback_t callback, void *arg)
+{
+	return remote_out_transfer(device, target, USB_TRANSFER_CONTROL,
+	    NULL, 0, callback, arg);
+}
 
 /**
  * @}
