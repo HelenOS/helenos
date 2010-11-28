@@ -168,12 +168,31 @@ typedef void (*usbhc_iface_transfer_in_callback_t)(device_t *,
 /** USB devices communication interface. */
 typedef struct {
 	int (*tell_address)(device_t *, devman_handle_t, usb_address_t *);
+
 	int (*interrupt_out)(device_t *, usb_target_t,
 	    void *, size_t,
 	    usbhc_iface_transfer_out_callback_t, void *);
 	int (*interrupt_in)(device_t *, usb_target_t,
 	    void *, size_t,
 	    usbhc_iface_transfer_in_callback_t, void *);
+
+	int (*control_write_setup)(device_t *, usb_target_t,
+	    void *, size_t,
+	    usbhc_iface_transfer_out_callback_t, void *);
+	int (*control_write_data)(device_t *, usb_target_t,
+	    void *, size_t,
+	    usbhc_iface_transfer_out_callback_t, void *);
+	int (*control_write_status)(device_t *, usb_target_t,
+	    usbhc_iface_transfer_in_callback_t, void *);
+
+	int (*control_read_setup)(device_t *, usb_target_t,
+	    void *, size_t,
+	    usbhc_iface_transfer_out_callback_t, void *);
+	int (*control_read_data)(device_t *, usb_target_t,
+	    void *, size_t,
+	    usbhc_iface_transfer_in_callback_t, void *);
+	int (*control_read_status)(device_t *, usb_target_t,
+	    usbhc_iface_transfer_out_callback_t, void *);
 } usbhc_iface_t;
 
 
