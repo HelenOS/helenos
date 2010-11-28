@@ -39,6 +39,7 @@
 #include <driver.h>
 #include <bool.h>
 #include <errno.h>
+#include <str_error.h>
 #include <usb/classes/hub.h>
 
 #include "hcdhubd_private.h"
@@ -111,7 +112,7 @@ int usb_hcd_add_root_hub(usb_hc_device_t *dev)
 		return rc;
 	}
 
-	rc = usb_hc_add_child_device(dev->generic, USB_HUB_DEVICE_NAME, id);
+	rc = usb_hc_add_child_device(dev->generic, USB_HUB_DEVICE_NAME, id, true);
 	if (rc != EOK) {
 		free(id);
 	}
@@ -149,10 +150,14 @@ static int fibril_add_child_device(void *arg)
 	}
 	match_id->id = child_info->match_id;
 	match_id->score = 10;
-	printf("adding child device with match \"%s\"\n", match_id->id);
 	add_match_id(&child->match_ids, match_id);
 
+	printf("%s: adding child device `%s' with match \"%s\"\n",
+	    hc_driver->name, child->name, match_id->id);
 	rc = child_device_register(child, child_info->parent);
+	printf("%s: child device `%s' registration: %s\n",
+	    hc_driver->name, child->name, str_error(rc));
+
 	if (rc != EOK) {
 		goto failure;
 	}
@@ -172,22 +177,28 @@ failure:
 
 leave:
 	free(arg);
-	return rc;
+	return EOK;
 }
 
 /** Adds a child.
  * Due to deadlock in devman when parent registers child that oughts to be
  * driven by the same task, the child adding is done in separate fibril.
  * Not optimal, but it works.
+ * Update: not under all circumstances the new fibril is successful either.
+ * Thus the last parameter to let the caller choose.
  *
  * @param parent Parent device.
  * @param name Device name.
  * @param match_id Match id.
+ * @param create_fibril Whether to run the addition in new fibril.
  * @return Error code.
  */
 int usb_hc_add_child_device(device_t *parent, const char *name,
-    const char *match_id)
+    const char *match_id, bool create_fibril)
 {
+	printf("%s: about to add child device `%s' (%s)\n", hc_driver->name,
+	    name, match_id);
+
 	struct child_device_info *child_info
 	    = malloc(sizeof(struct child_device_info));
 
@@ -195,11 +206,15 @@ int usb_hc_add_child_device(device_t *parent, const char *name,
 	child_info->name = name;
 	child_info->match_id = match_id;
 
-	fid_t fibril = fibril_create(fibril_add_child_device, child_info);
-	if (!fibril) {
-		return ENOMEM;
+	if (create_fibril) {
+		fid_t fibril = fibril_create(fibril_add_child_device, child_info);
+		if (!fibril) {
+			return ENOMEM;
+		}
+		fibril_add_ready(fibril);
+	} else {
+		fibril_add_child_device(child_info);
 	}
-	fibril_add_ready(fibril);
 
 	return EOK;
 }
