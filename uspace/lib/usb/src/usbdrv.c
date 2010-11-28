@@ -344,6 +344,76 @@ int usb_drv_async_interrupt_in(int phone, usb_target_t target,
 	    handle);
 }
 
+/** Start control write transfer. */
+int usb_drv_async_control_write_setup(int phone, usb_target_t target,
+    void *buffer, size_t size,
+    usb_handle_t *handle)
+{
+	return async_send_buffer(phone,
+	    IPC_M_USBHC_CONTROL_WRITE_SETUP,
+	    target,
+	    buffer, size,
+	    handle);
+}
+
+/** Send data during control write transfer. */
+int usb_drv_async_control_write_data(int phone, usb_target_t target,
+    void *buffer, size_t size,
+    usb_handle_t *handle)
+{
+	return async_send_buffer(phone,
+	    IPC_M_USBHC_CONTROL_WRITE_DATA,
+	    target,
+	    buffer, size,
+	    handle);
+}
+
+/** Finalize control write transfer. */
+int usb_drv_async_control_write_status(int phone, usb_target_t target,
+    usb_handle_t *handle)
+{
+	return async_recv_buffer(phone,
+	    IPC_M_USBHC_CONTROL_WRITE_STATUS,
+	    target,
+	    NULL, 0, NULL,
+	    handle);
+}
+
+/** Start control read transfer. */
+int usb_drv_async_control_read_setup(int phone, usb_target_t target,
+    void *buffer, size_t size,
+    usb_handle_t *handle)
+{
+	return async_send_buffer(phone,
+	    IPC_M_USBHC_CONTROL_READ_SETUP,
+	    target,
+	    buffer, size,
+	    handle);
+}
+
+/** Read data during control read transfer. */
+int usb_drv_async_control_read_data(int phone, usb_target_t target,
+    void *buffer, size_t size, size_t *actual_size,
+    usb_handle_t *handle)
+{
+	return async_recv_buffer(phone,
+	    IPC_M_USBHC_CONTROL_READ_DATA,
+	    target,
+	    buffer, size, actual_size,
+	    handle);
+}
+
+/** Finalize control read transfer. */
+int usb_drv_async_control_read_status(int phone, usb_target_t target,
+    usb_handle_t *handle)
+{
+	return async_send_buffer(phone,
+	    IPC_M_USBHC_CONTROL_READ_STATUS,
+	    target,
+	    NULL, 0,
+	    handle);
+}
+
 /**
  * @}
  */
