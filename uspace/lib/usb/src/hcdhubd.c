@@ -39,6 +39,7 @@
 #include <driver.h>
 #include <bool.h>
 #include <errno.h>
+#include <str_error.h>
 #include <usb/classes/hub.h>
 
 #include "hcdhubd_private.h"
@@ -149,10 +150,11 @@ static int fibril_add_child_device(void *arg)
 	}
 	match_id->id = child_info->match_id;
 	match_id->score = 10;
-	printf("adding child device with match \"%s\"\n", match_id->id);
 	add_match_id(&child->match_ids, match_id);
 
 	rc = child_device_register(child, child_info->parent);
+	printf("%s: adding child device with match \"%s\" (%s)\n",
+	    hc_driver->name, match_id->id, str_error(rc));
 	if (rc != EOK) {
 		goto failure;
 	}

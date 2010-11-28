@@ -77,45 +77,18 @@ int usb_add_hc_device(device_t *dev)
 
 	list_append(&hc_dev->link, &hc_list);
 
-	//add keyboard
-	/// @TODO this is not correct code
-
 	/*
-	 * Announce presence of child device.
+	 * FIXME: the following is a workaround to force loading of USB
+	 * keyboard driver.
+	 * Will be removed as soon as the hub driver is completed and
+	 * can detect connected devices.
 	 */
-	device_t *kbd = NULL;
-	match_id_t *match_id = NULL;
-
-	kbd = create_device();
-	if (kbd == NULL) {
-		printf("ERROR: enomem\n");
-	}
-	kbd->name = USB_KBD_DEVICE_NAME;
-
-	match_id = create_match_id();
-	if (match_id == NULL) {
-		printf("ERROR: enomem\n");
-	}
-
-	char *id;
-	rc = asprintf(&id, USB_KBD_DEVICE_NAME);
-	if (rc <= 0) {
-		printf("ERROR: enomem\n");
-		return rc;
-	}
-
-	match_id->id = id;
-	match_id->score = 30;
-
-	add_match_id(&kbd->match_ids, match_id);
-
-	rc = child_device_register(kbd, dev);
+	printf("%s: trying to add USB HID child device...\n", hc_driver->name);
+	rc = usb_hc_add_child_device(dev, USB_KBD_DEVICE_NAME, "usb&hid");
 	if (rc != EOK) {
-		printf("ERROR: cannot register kbd\n");
-		return rc;
+		printf("%s: adding USB HID child failed...\n", hc_driver->name);
 	}
 
-	printf("%s: registered root hub\n", dev->name);
 	return EOK;
 }
 
