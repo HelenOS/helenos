@@ -380,6 +380,60 @@ int child_device_register(device_t *child, device_t *parent)
 	return res;
 }
 
+/** Wrapper for child_device_register for devices with single match id.
+ *
+ * @param parent Parent device.
+ * @param child_name Child device name.
+ * @param child_match_id Child device match id.
+ * @param child_match_score Child device match score.
+ * @return Error code.
+ */
+int child_device_register_wrapper(device_t *parent, const char *child_name,
+    const char *child_match_id, int child_match_score)
+{
+	device_t *child = NULL;
+	match_id_t *match_id = NULL;
+	int rc;
+
+	child = create_device();
+	if (child == NULL) {
+		rc = ENOMEM;
+		goto failure;
+	}
+
+	child->name = child_name;
+
+	match_id = create_match_id();
+	if (match_id == NULL) {
+		rc = ENOMEM;
+		goto failure;
+	}
+
+	match_id->id = child_match_id;
+	match_id->score = child_match_score;
+	add_match_id(&child->match_ids, match_id);
+
+	rc = child_device_register(child, parent);
+	if (EOK != rc)
+		goto failure;
+
+	goto leave;
+
+failure:
+	if (match_id != NULL) {
+		match_id->id = NULL;
+		delete_match_id(match_id);
+	}
+
+	if (child != NULL) {
+		child->name = NULL;
+		delete_device(child);
+	}
+
+leave:
+	return rc;
+}
+
 int driver_main(driver_t *drv)
 {
 	/*

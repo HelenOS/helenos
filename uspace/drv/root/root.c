@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2010 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -51,6 +52,10 @@
 
 #define NAME "root"
 
+#define PLATFORM_DEVICE_NAME "hw"
+#define PLATFORM_DEVICE_MATCH_ID STRING(UARCH)
+#define PLATFORM_DEVICE_MATCH_SCORE 100
+
 static int root_add_device(device_t *dev);
 
 /** The root device driver's standard operations. */
@@ -72,49 +77,12 @@ static driver_t root_driver = {
 static int add_platform_child(device_t *parent)
 {
 	printf(NAME ": adding new child for platform device.\n");
+	printf(NAME ":   device node is `%s' (%d %s)\n", PLATFORM_DEVICE_NAME,
+	    PLATFORM_DEVICE_MATCH_SCORE, PLATFORM_DEVICE_MATCH_ID);
 	
-	int res = EOK;
-	device_t *platform = NULL;
-	match_id_t *match_id = NULL;
-	
-	/* Create new device. */
-	platform = create_device();
-	if (NULL == platform) {
-		res = ENOMEM;
-		goto failure;
-	}	
-	
-	platform->name = "hw";
-	printf(NAME ": the new device's name is %s.\n", platform->name);
-	
-	/* Initialize match id list. */
-	match_id = create_match_id();
-	if (NULL == match_id) {
-		res = ENOMEM;
-		goto failure;
-	}
-	
-	/* TODO - replace this with some better solution (sysinfo ?) */
-	match_id->id = STRING(UARCH);
-	match_id->score = 100;
-	add_match_id(&platform->match_ids, match_id);
-	
-	/* Register child device. */
-	res = child_device_register(platform, parent);
-	if (EOK != res)
-		goto failure;
-	
-	return res;
-	
-failure:
-	if (NULL != match_id)
-		match_id->id = NULL;
-	
-	if (NULL != platform) {
-		platform->name = NULL;
-		delete_device(platform);
-	}
-	
+	int res = child_device_register_wrapper(parent, PLATFORM_DEVICE_NAME,
+	    PLATFORM_DEVICE_MATCH_ID, PLATFORM_DEVICE_MATCH_SCORE);
+
 	return res;
 }
 
