@@ -1810,8 +1810,8 @@ int used_space_insert(as_area_t *area, uintptr_t page, size_t count)
 		}
 	}
 	
-	panic("Inconsistency detected while adding %" PRIs " pages of used "
-	    "space at %p.", count, page);
+	panic("Inconsistency detected while adding %zu pages of used "
+	    "space at %p.", count, (void *) page);
 }
 
 /** Mark portion of address space area as unused.
@@ -1990,8 +1990,8 @@ int used_space_remove(as_area_t *area, uintptr_t page, size_t count)
 	}
 	
 error:
-	panic("Inconsistency detected while removing %" PRIs " pages of used "
-	    "space from %p.", count, page);
+	panic("Inconsistency detected while removing %zu pages of used "
+	    "space from %p.", count, (void *) page);
 }
 
 /*
@@ -2104,9 +2104,10 @@ void as_print(as_t *as)
 			as_area_t *area = node->value[i];
 			
 			mutex_lock(&area->lock);
-			printf("as_area: %p, base=%p, pages=%" PRIs
-			    " (%p - %p)\n", area, area->base, area->pages,
-			    area->base, area->base + FRAMES2SIZE(area->pages));
+			printf("as_area: %p, base=%p, pages=%zu"
+			    " (%p - %p)\n", area, (void *) area->base,
+			    area->pages, (void *) area->base,
+			    (void *) (area->base + FRAMES2SIZE(area->pages)));
 			mutex_unlock(&area->lock);
 		}
 	}

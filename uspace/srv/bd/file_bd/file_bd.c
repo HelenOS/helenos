@@ -55,13 +55,16 @@
 
 #define NAME "file_bd"
 
-static const size_t block_size = 512;
+#define DEFAULT_BLOCK_SIZE 512
+
+static size_t block_size;
 static aoff64_t num_blocks;
 static FILE *img;
 
 static devmap_handle_t devmap_handle;
 static fibril_mutex_t dev_lock;
 
+static void print_usage(void);
 static int file_bd_init(const char *fname);
 static void file_bd_connection(ipc_callid_t iid, ipc_call_t *icall);
 static int file_bd_read_blocks(uint64_t ba, size_t cnt, void *buf);
@@ -70,22 +73,55 @@ static int file_bd_write_blocks(uint64_t ba, size_t cnt, const void *buf);
 int main(int argc, char **argv)
 {
 	int rc;
+	char *image_name;
+	char *device_name;
 
 	printf(NAME ": File-backed block device driver\n");
 
-	if (argc != 3) {
-		printf("Expected two arguments (image name, device name).\n");
+	block_size = DEFAULT_BLOCK_SIZE;
+
+	++argv; --argc;
+	while (*argv != NULL && (*argv)[0] == '-') {
+		/* Option */
+		if (str_cmp(*argv, "-b") == 0) {
+			if (argc < 2) {
+				printf("Argument missing.\n");
+				print_usage();
+				return -1;
+			}
+
+			rc = str_size_t(argv[1], NULL, 10, true, &block_size);
+			if (rc != EOK || block_size == 0) {
+				printf("Invalid block size '%s'.\n", argv[1]);
+				print_usage();
+				return -1;
+			}
+			++argv; --argc;
+		} else {
+			printf("Invalid option '%s'.\n", *argv);
+			print_usage();
+			return -1;
+		}
+		++argv; --argc;
+	}
+
+	if (argc < 2) {
+		printf("Missing arguments.\n");
+		print_usage();
 		return -1;
 	}
 
-	if (file_bd_init(argv[1]) != EOK)
+	image_name = argv[0];
+	device_name = argv[1];
+
+	if (file_bd_init(image_name) != EOK)
 		return -1;
 
-	rc = devmap_device_register(argv[2], &devmap_handle);
+	rc = devmap_device_register(device_name, &devmap_handle);
 	if (rc != EOK) {
 		devmap_hangup_phone(DEVMAP_DRIVER);
-		printf(NAME ": Unable to register device %s.\n",
-			argv[2]);
+		printf(NAME ": Unable to register device '%s'.\n",
+			device_name);
 		return rc;
 	}
 
@@ -95,6 +131,11 @@ int main(int argc, char **argv)
 
 	/* Not reached */
 	return 0;
+}
+
+static void print_usage(void)
+{
+	printf("Usage: " NAME " [-b <block_size>] <image_file> <device_name>\n");
 }
 
 static int file_bd_init(const char *fname)

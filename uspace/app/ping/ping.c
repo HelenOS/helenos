@@ -336,7 +336,7 @@ int main(int argc, char *argv[])
 		return 5;
 	}
 	
-	printf("PING %s (%s) %u(%u) bytes of data\n", config.dest_addr,
+	printf("PING %s (%s) %zu(%zu) bytes of data\n", config.dest_addr,
 	    config.dest_str, config.size, config.size);
 	
 	int icmp_phone = icmp_connect_module(SERVICE_ICMP, ICMP_CONNECT_TIMEOUT);
@@ -377,11 +377,11 @@ int main(int argc, char *argv[])
 		
 		switch (result) {
 		case ICMP_ECHO:
-			printf("%u bytes from ? (?): icmp_seq=%u ttl=? time=%u.%04u\n",
+			printf("%zu bytes from ? (?): icmp_seq=%u ttl=? time=%ld.%04ld\n",
 				config.size, seq, elapsed / 1000, elapsed % 1000);
 			break;
 		case ETIMEOUT:
-			printf("%u bytes from ? (?): icmp_seq=%u Timed out\n",
+			printf("%zu bytes from ? (?): icmp_seq=%u Timed out\n",
 				config.size, seq);
 			break;
 		default:

@@ -174,7 +174,7 @@ static int nildummy_device_message(device_id_t device_id, services_t service,
 		else
 			device->mtu = NET_DEFAULT_MTU;
 		
-		printf("Device %d already exists:\tMTU\t= %d\n",
+		printf("Device %d already exists:\tMTU\t= %zu\n",
 		    device->device_id, device->mtu);
 		fibril_rwlock_write_unlock(&nildummy_globals.devices_lock);
 		
@@ -231,7 +231,7 @@ static int nildummy_device_message(device_id_t device_id, services_t service,
 		return index;
 	}
 	
-	printf("%s: Device registered (id: %d, service: %d, mtu: %d)\n",
+	printf("%s: Device registered (id: %d, service: %d, mtu: %zu)\n",
 	    NAME, device->device_id, device->service, device->mtu);
 	fibril_rwlock_write_unlock(&nildummy_globals.devices_lock);
 	return EOK;

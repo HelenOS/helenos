@@ -160,7 +160,8 @@ const char *test_fpu1(void)
 	waitq_wakeup(&can_start, WAKEUP_ALL);
 	
 	while (atomic_get(&threads_ok) != total) {
-		TPRINTF("Threads left: %d\n", total - atomic_get(&threads_ok));
+		TPRINTF("Threads left: %" PRIua "\n",
+		    total - atomic_get(&threads_ok));
 		thread_sleep(1);
 	}
 	

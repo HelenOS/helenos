@@ -780,7 +780,7 @@ static void pane_row_range_display(int r0, int r1)
 	
 			c = str_decode(row_buf, &pos, size);
 			if (c != '\t') {
-				printf("%lc", c);
+				printf("%lc", (wint_t) c);
 				s_column += 1;
 			} else {
 				fill = 1 + ALIGN_UP(s_column, TAB_WIDTH)
@@ -829,7 +829,9 @@ static void pane_status_display(void)
 	console_set_style(con, STYLE_INVERTED);
 	int n = printf(" %d, %d: File '%s'. Ctrl-Q Quit  Ctrl-S Save  "
 	    "Ctrl-E Save As", coord.row, coord.column, fname);
-	printf("%*s", scr_columns - 1 - n, "");
+	
+	int pos = scr_columns - 1 - n;
+	printf("%*s", pos, "");
 	fflush(stdout);
 	console_set_style(con, STYLE_NORMAL);
 
@@ -1152,7 +1154,9 @@ static void status_display(char const *str)
 {
 	console_set_pos(con, 0, scr_rows - 1);
 	console_set_style(con, STYLE_INVERTED);
-	printf(" %*s ", -(scr_columns - 3), str);
+	
+	int pos = -(scr_columns - 3);
+	printf(" %*s ", pos, str);
 	fflush(stdout);
 	console_set_style(con, STYLE_NORMAL);
 
