@@ -109,7 +109,8 @@ RD_SRVS_NON_ESSENTIAL = \
 	
 RD_DRVS = \
 	root \
-	rootvirt
+	rootvirt \
+	test1
 
 RD_DRV_CFG = 
 

@@ -3,3 +3,7 @@
  *
  * Unless the list is empty, the last item shall be followed by a comma.
  */
+{
+	.name = "test1",
+	.match_id = "virtual&test1"
+},

@@ -85,7 +85,8 @@ DIRS = \
 	srv/net/tl/tcp \
 	srv/net/net \
 	drv/root \
-	drv/rootvirt
+	drv/rootvirt \
+	drv/test1
 
 ## Networking
 #
