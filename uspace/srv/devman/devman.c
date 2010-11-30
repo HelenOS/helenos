@@ -539,6 +539,12 @@ static void pass_devices_to_driver(driver_t *driver, dev_tree_t *tree)
 		}
 
 		/*
+		 * We remove the device from the list to allow safe adding
+		 * of new devices (no one will touch our item this way).
+		 */
+		list_remove(link);
+
+		/*
 		 * Unlock to avoid deadlock when adding device
 		 * handled by itself.
 		 */
@@ -551,6 +557,13 @@ static void pass_devices_to_driver(driver_t *driver, dev_tree_t *tree)
 		 * structure.
 		 */
 		fibril_mutex_lock(&driver->driver_mutex);
+
+		/*
+		 * Insert the device back.
+		 * The order is not relevant here so no harm is done
+		 * (actually, the order would be preserved in most cases).
+		 */
+		list_append(link, &driver->devices);
 
 		/*
 		 * Restart the cycle to go through all devices again.
@@ -1132,8 +1145,10 @@ dev_class_t *find_dev_class_no_lock(class_list_t *class_list,
 	
 	while (link != &class_list->classes) {
 		cl = list_get_instance(link, dev_class_t, link);
-		if (str_cmp(cl->name, class_name) == 0)
+		if (str_cmp(cl->name, class_name) == 0) {
 			return cl;
+		}
+		link = link->next;
 	}
 	
 	return NULL;
