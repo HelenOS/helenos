@@ -29,9 +29,9 @@
 USPACE_PREFIX = ../..
 LIBS = $(LIBDRV_PREFIX)/libdrv.a
 EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include
-BINARY = rootia32
+BINARY = rootpc
 
 SOURCES = \
-	rootia32.c
+	rootpc.c
 
 include $(USPACE_PREFIX)/Makefile.common

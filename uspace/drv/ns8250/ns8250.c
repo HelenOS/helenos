@@ -273,7 +273,7 @@ static bool ns8250_pio_enable(device_t *dev)
 	ns8250_dev_data_t *data = (ns8250_dev_data_t *)dev->driver_data;
 	
 	/* Gain control over port's registers. */
-	if (pio_enable((void *) data->io_addr, REG_COUNT,
+	if (pio_enable((void *)(uintptr_t) data->io_addr, REG_COUNT,
 	    (void **) &data->port)) {
 		printf(NAME ": error - cannot gain the port %lx for device "
 		    "%s.\n", data->io_addr, dev->name);

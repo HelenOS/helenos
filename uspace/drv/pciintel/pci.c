@@ -488,7 +488,7 @@ static int pci_add_device(device_t *dev)
 	bus_data->conf_io_addr =
 	    (uint32_t) hw_resources.resources[0].res.io_range.address;
 	
-	if (pio_enable((void *)bus_data->conf_io_addr, 8,
+	if (pio_enable((void *)(uintptr_t)bus_data->conf_io_addr, 8,
 	    &bus_data->conf_addr_port)) {
 		printf(NAME ": failed to enable configuration ports.\n");
 		delete_pci_bus_data(bus_data);
