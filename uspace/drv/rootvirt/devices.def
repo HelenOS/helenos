@@ -1,0 +1,5 @@
+/*
+ * Add list of virtual devices you want to launch driver for here.
+ *
+ * Unless the list is empty, the last item shall be followed by a comma.
+ */

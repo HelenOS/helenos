@@ -56,6 +56,10 @@
 #define PLATFORM_DEVICE_MATCH_ID STRING(UARCH)
 #define PLATFORM_DEVICE_MATCH_SCORE 100
 
+#define VIRTUAL_DEVICE_NAME "virt"
+#define VIRTUAL_DEVICE_MATCH_ID "rootvirt"
+#define VIRTUAL_DEVICE_MATCH_SCORE 100
+
 static int root_add_device(device_t *dev);
 
 /** The root device driver's standard operations. */
@@ -68,6 +72,23 @@ static driver_t root_driver = {
 	.name = NAME,
 	.driver_ops = &root_ops
 };
+
+/** Create the device which represents the root of virtual device tree.
+ *
+ * @param parent Parent of the newly created device.
+ * @return Error code.
+ */
+static int add_virtual_root_child(device_t *parent)
+{
+	printf(NAME ": adding new child for virtual devices.\n");
+	printf(NAME ":   device node is `%s' (%d %s)\n", VIRTUAL_DEVICE_NAME,
+	    VIRTUAL_DEVICE_MATCH_SCORE, VIRTUAL_DEVICE_MATCH_ID);
+
+	int res = child_device_register_wrapper(parent, VIRTUAL_DEVICE_NAME,
+	    VIRTUAL_DEVICE_MATCH_ID, VIRTUAL_DEVICE_MATCH_SCORE);
+
+	return res;
+}
 
 /** Create the device which represents the root of HW device tree.
  *
@@ -95,6 +116,13 @@ static int root_add_device(device_t *dev)
 {
 	printf(NAME ": root_add_device, device handle = %d\n", dev->handle);
 	
+	/*
+	 * Register virtual devices root.
+	 * We ignore error occurrence because virtual devices shall not be
+	 * vital for the system.
+	 */
+	add_virtual_root_child(dev);
+
 	/* Register root device's children. */
 	int res = add_platform_child(dev);
 	if (EOK != res)

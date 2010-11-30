@@ -85,7 +85,8 @@ DIRS = \
 	srv/net/tl/udp \
 	srv/net/tl/tcp \
 	srv/net/net \
-	drv/root
+	drv/root \
+	drv/rootvirt
 
 ## Networking
 #

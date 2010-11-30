@@ -108,7 +108,8 @@ RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/devman/devman
 	
 RD_DRVS = \
-	root
+	root \
+	rootvirt
 
 RD_DRV_CFG = 
 
