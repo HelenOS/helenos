@@ -48,6 +48,29 @@ static driver_t the_driver = {
 	.driver_ops = &driver_ops
 };
 
+/** Register child and inform user about it.
+ *
+ * @param parent Parent device.
+ * @param message Message for the user.
+ * @param name Device name.
+ * @param match_id Device match id.
+ * @param score Device match score.
+ */
+static void register_child_verbose(device_t *parent, const char *message,
+    const char *name, const char *match_id, int match_score)
+{
+	printf(NAME ": registering child device `%s': %s.\n",
+	   name, message);
+
+	int rc = child_device_register_wrapper(parent, name,
+	    match_id, match_score);
+
+	if (rc != EOK) {
+		printf(NAME ": failed to register child `%s' (%s).\n",
+		    name, str_error(rc));
+	}
+}
+
 /** Callback when new device is passed to this driver.
  * This function is the body of the test: it shall register new child
  * (named `clone') that shall be driven by the same task. When the clone
@@ -67,26 +90,17 @@ static driver_t the_driver = {
  */
 static int add_device(device_t *dev)
 {
-	int rc;
 	printf(NAME ": add_device(name=\"%s\", handle=%d)\n",
 	    dev->name, (int) dev->handle);
 
+	add_device_to_class(dev, "virtual");
+
 	if (dev->parent == NULL) {
-		printf(NAME ": cloning myself ;-).\n");
-		rc = child_device_register_wrapper(dev, "clone",
+		register_child_verbose(dev, "cloning myself ;-)", "clone",
 		    "virtual&test1", 10);
-		if (rc != EOK) {
-			printf(NAME ": failed to register clone (%s).\n",
-			    str_error(rc));
-		}
 	} else if (str_cmp(dev->name, "clone") == 0) {
-		printf(NAME ": registering child device run by the same task.\n");
-		rc = child_device_register_wrapper(dev, "child",
+		register_child_verbose(dev, "run by the same task", "child",
 		    "virtual&test1&child", 10);
-		if (rc != EOK) {
-			printf(NAME ": failed to register child (%s).\n",
-			    str_error(rc));
-		}
 	}
 
 	printf(NAME ": device `%s' accepted.\n", dev->name);

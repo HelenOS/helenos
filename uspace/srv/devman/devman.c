@@ -515,7 +515,7 @@ static void pass_devices_to_driver(driver_t *driver, dev_tree_t *tree)
 	link_t *link;
 	int phone;
 
-	printf(NAME ": pass_devices_to_driver\n");
+	printf(NAME ": pass_devices_to_driver(`%s')\n", driver->name);
 
 	fibril_mutex_lock(&driver->driver_mutex);
 
@@ -585,7 +585,7 @@ static void pass_devices_to_driver(driver_t *driver, dev_tree_t *tree)
  */
 void initialize_running_driver(driver_t *driver, dev_tree_t *tree)
 {
-	printf(NAME ": initialize_running_driver\n");
+	printf(NAME ": initialize_running_driver (`%s')\n", driver->name);
 	
 	/*
 	 * Pass devices which have been already assigned to the driver to the
