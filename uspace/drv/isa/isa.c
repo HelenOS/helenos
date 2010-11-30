@@ -281,7 +281,8 @@ static void isa_child_set_io_range(device_t *dev, size_t addr, size_t len)
 		data->hw_resources.count++;
 
 		printf(NAME ": added io range (addr=0x%x, size=0x%x) to "
-		    "device %s\n", addr, len, dev->name);
+		    "device %s\n", (unsigned int) addr, (unsigned int) len,
+		    dev->name);
 	}
 }
 
@@ -488,12 +489,12 @@ static void add_legacy_children(device_t *parent)
 
 static int isa_add_device(device_t *dev)
 {
-	printf(NAME ": isa_add_device, device handle = %d\n", dev->handle);
+	printf(NAME ": isa_add_device, device handle = %d\n",
+	    (int) dev->handle);
 
 	/* Add child devices. */
 	add_legacy_children(dev);
-	printf(NAME ": finished the enumeration of legacy devices\n",
-	    dev->handle);
+	printf(NAME ": finished the enumeration of legacy devices\n");
 
 	return EOK;
 }

@@ -50,17 +50,21 @@
 #include <stdlib.h>
 
 #ifndef NDEBUG
-#	define assert(expr) \
-		do { \
-			if (!(expr)) { \
-				printf("Assertion failed (%s) at file '%s', " \
-				    "line %d.\n", #expr, __FILE__, __LINE__); \
-				abort(); \
-			} \
-		} while (0)
-#else
-#	define assert(expr)
-#endif
+
+#define assert(expr) \
+	do { \
+		if (!(expr)) { \
+			printf("Assertion failed (%s) at file '%s', " \
+			    "line %d.\n", #expr, __FILE__, __LINE__); \
+			abort(); \
+		} \
+	} while (0)
+
+#else /* NDEBUG */
+
+#define assert(expr)
+
+#endif /* NDEBUG */
 
 #endif
 

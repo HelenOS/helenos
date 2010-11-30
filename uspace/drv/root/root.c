@@ -45,6 +45,7 @@
 #include <str.h>
 #include <ctype.h>
 #include <macros.h>
+#include <inttypes.h>
 
 #include <driver.h>
 #include <devman.h>
@@ -114,7 +115,8 @@ static int add_platform_child(device_t *parent)
  */
 static int root_add_device(device_t *dev)
 {
-	printf(NAME ": root_add_device, device handle = %d\n", dev->handle);
+	printf(NAME ": root_add_device, device handle=%" PRIun "\n",
+	    dev->handle);
 	
 	/*
 	 * Register virtual devices root.

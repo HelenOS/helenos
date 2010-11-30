@@ -43,11 +43,10 @@
 #include <debug.h>
 #include <align.h>
 #include <macros.h>
-
 #include <print.h>
 
-#define PHYSMEM_LIMIT32  0x07c000000ull
-#define PHYSMEM_LIMIT64  0x200000000ull
+#define PHYSMEM_LIMIT32  UINT64_C(0x07c000000)
+#define PHYSMEM_LIMIT64  UINT64_C(0x200000000)
 
 size_t hardcoded_unmapped_ktext_size = 0;
 size_t hardcoded_unmapped_kdata_size = 0;

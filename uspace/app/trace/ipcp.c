@@ -136,11 +136,11 @@ static void ipc_m_print(proto_t *proto, ipcarg_t method)
 	}
 
 	if (oper != NULL) {
-		printf("%s (%ld)", oper->name, method);
+		printf("%s (%" PRIun ")", oper->name, method);
 		return;
 	}
 
-	printf("%ld", method);
+	printf("%" PRIun, method);
 }
 
 void ipcp_init(void)
@@ -200,12 +200,13 @@ void ipcp_call_out(int phone, ipc_call_t *call, ipc_callid_t hash)
 	args = call->args;
 
 	if ((display_mask & DM_IPC) != 0) {
-		printf("Call ID: %p, phone: %d, proto: %s, method: ", hash,
-			phone, (proto ? proto->name : "n/a"));
+		printf("Call ID: %p, phone: %d, proto: %s, method: ",
+		    (void *) hash, phone,
+		    (proto ? proto->name : "n/a"));
 		ipc_m_print(proto, IPC_GET_METHOD(*call));
-		printf(" args: (%" PRIuIPCARG ", %" PRIuIPCARG ", %" PRIuIPCARG
-		    ", %" PRIuIPCARG ", %" PRIuIPCARG ")\n", args[1], args[2],
-		    args[3], args[4], args[5]);
+		printf(" args: (%" PRIun ", %" PRIun ", %" PRIun ", "
+		    "%" PRIun ", %" PRIun ")\n",
+		    args[1], args[2], args[3], args[4], args[5]);
 	}
 
 
@@ -280,10 +281,9 @@ static void parse_answer(ipc_callid_t hash, pending_call_t *pcall,
 	resp = answer->args;
 
 	if ((display_mask & DM_IPC) != 0) {
-		printf("Response to %p: retval=%ld, args = (%" PRIuIPCARG
-		    ", %" PRIuIPCARG ", %" PRIuIPCARG ", %" PRIuIPCARG
-		    ", %" PRIuIPCARG ")\n",
-		    hash, retval, IPC_GET_ARG1(*answer),
+		printf("Response to %p: retval=%" PRIdn ", args = (%" PRIun ", "
+		    "%" PRIun ", %" PRIun ", %" PRIun ", %" PRIun ")\n",
+		    (void *) hash, retval, IPC_GET_ARG1(*answer),
 		    IPC_GET_ARG2(*answer), IPC_GET_ARG3(*answer),
 		    IPC_GET_ARG4(*answer), IPC_GET_ARG5(*answer));
 	}
@@ -339,7 +339,7 @@ void ipcp_call_in(ipc_call_t *call, ipc_callid_t hash)
 	if ((hash & IPC_CALLID_ANSWERED) == 0 && hash != IPCP_CALLID_SYNC) {
 		/* Not a response */
 		if ((display_mask & DM_IPC) != 0) {
-			printf("Not a response (hash %p)\n", hash);
+			printf("Not a response (hash %p)\n", (void *) hash);
 		}
 		return;
 	}

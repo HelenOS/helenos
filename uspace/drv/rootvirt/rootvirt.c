@@ -109,7 +109,7 @@ static int add_device(device_t *dev)
 	}
 
 	printf(NAME ": add_device(name=\"%s\", handle=%d)\n",
-	    dev->name, dev->handle);
+	    dev->name, (int)dev->handle);
 	
 	/*
 	 * Go through all virtual devices and try to add them.

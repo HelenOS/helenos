@@ -1,0 +1,6 @@
+{
+	"print5",
+	"Extended printf test",
+	&test_print5,
+	true
+},

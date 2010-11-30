@@ -176,7 +176,8 @@ static bool rootpc_add_children(device_t *dev)
  */
 static int rootpc_add_device(device_t *dev)
 {
-	printf(NAME ": rootpc_add_device, device handle = %d\n", dev->handle);
+	printf(NAME ": rootpc_add_device, device handle = %d\n",
+	    (int)dev->handle);
 	
 	/* Register child devices. */
 	if (!rootpc_add_children(dev)) {

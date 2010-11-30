@@ -46,14 +46,13 @@
  * Identification of CPUs.
  * Contains only non-MP-Specification specific SMP code.
  */
-#define AMD_CPUID_EBX  0x68747541
-#define AMD_CPUID_ECX  0x444d4163
-#define AMD_CPUID_EDX  0x69746e65
+#define AMD_CPUID_EBX  UINT32_C(0x68747541)
+#define AMD_CPUID_ECX  UINT32_C(0x444d4163)
+#define AMD_CPUID_EDX  UINT32_C(0x69746e65)
 
-#define INTEL_CPUID_EBX  0x756e6547
-#define INTEL_CPUID_ECX  0x6c65746e
-#define INTEL_CPUID_EDX  0x49656e69
-
+#define INTEL_CPUID_EBX  UINT32_C(0x756e6547)
+#define INTEL_CPUID_ECX  UINT32_C(0x6c65746e)
+#define INTEL_CPUID_EDX  UINT32_C(0x49656e69)
 
 enum vendor {
 	VendorUnknown = 0,

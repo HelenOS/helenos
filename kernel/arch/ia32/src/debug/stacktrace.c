@@ -36,8 +36,8 @@
 #include <syscall/copy.h>
 #include <typedefs.h>
 
-#define FRAME_OFFSET_FP_PREV	0
-#define FRAME_OFFSET_RA		1
+#define FRAME_OFFSET_FP_PREV  0
+#define FRAME_OFFSET_RA       1
 
 bool kernel_stack_trace_context_validate(stack_trace_context_t *ctx)
 {

@@ -314,7 +314,7 @@ static int eth_device_message(device_id_t device_id, services_t service,
 		else
 			device->mtu = ETH_MAX_TAGGED_CONTENT(device->flags);
 		
-		printf("Device %d already exists:\tMTU\t= %d\n",
+		printf("Device %d already exists:\tMTU\t= %zu\n",
 		    device->device_id, device->mtu);
 		fibril_rwlock_write_unlock(&eth_globals.devices_lock);
 		
@@ -406,7 +406,7 @@ static int eth_device_message(device_id_t device_id, services_t service,
 		return index;
 	}
 	
-	printf("%s: Device registered (id: %d, service: %d: mtu: %d, "
+	printf("%s: Device registered (id: %d, service: %d: mtu: %zu, "
 	    "mac: %x:%x:%x:%x:%x:%x, flags: 0x%x)\n",
 	    NAME, device->device_id, device->service, device->mtu,
 	    device->addr_data[0], device->addr_data[1],

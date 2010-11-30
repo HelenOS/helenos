@@ -45,7 +45,6 @@ DIRS = \
 	app/taskdump \
 	app/tasks \
 	app/tester \
-	app/test_serial \
 	app/tetris \
 	app/trace \
 	app/top \

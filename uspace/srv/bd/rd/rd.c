@@ -229,7 +229,8 @@ static bool rd_init(void)
 		return false;
 	}
 	
-	printf("%s: Found RAM disk at %p, %d bytes\n", NAME, rd_ph_addr, rd_size);
+	printf("%s: Found RAM disk at %p, %zu bytes\n", NAME,
+	    (void *) rd_ph_addr, rd_size);
 	
 	int rc = devmap_driver_register(NAME, rd_connection);
 	if (rc < 0) {

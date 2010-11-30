@@ -38,35 +38,11 @@
 
 #include <inttypes.h>
 
-/* off64_t */
+/* off64_t, aoff64_t */
 #define PRIdOFF64 PRId64
 #define PRIuOFF64 PRIu64
 #define PRIxOFF64 PRIx64
 #define PRIXOFF64 PRIX64
-
-/* (s)size_t */
-#define PRIdSIZE PRIdPTR
-#define PRIuSIZE PRIuPTR
-#define PRIxSIZE PRIxPTR
-#define PRIXSIZE PRIXPTR
-
-/* sysarg_t */
-#define PRIdSYSARG PRIdPTR
-#define PRIuSYSARG PRIuPTR
-#define PRIxSYSARG PRIxPTR
-#define PRIXSYSARG PRIxPTR
-
-/* ipcarg_t */
-#define PRIdIPCARG PRIdPTR
-#define PRIuIPCARG PRIuPTR
-#define PRIxIPCARG PRIxPTR
-#define PRIXIPCARG PRIXPTR
-
-/* taskid_t */
-#define PRIdTASKID PRId64
-#define PRIuTASKID PRIu64
-#define PRIxTASKID PRIx64
-#define PRIXTASKID PRIx64
 
 #endif
 
