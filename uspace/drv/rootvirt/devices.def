@@ -7,3 +7,11 @@
 	.name = "test1",
 	.match_id = "virtual&test1"
 },
+{
+	.name = "test2alpha",
+	.match_id = "virtual&test2"
+},
+{
+	.name = "test2bravo",
+	.match_id = "virtual&test2"
+},

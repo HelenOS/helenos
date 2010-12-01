@@ -35,7 +35,7 @@
 #include <str_error.h>
 #include <driver.h>
 
-#define NAME "test1"
+#define NAME "test2"
 
 static int add_device(device_t *dev);
 
@@ -73,46 +73,47 @@ static void register_child_verbose(device_t *parent, const char *message,
 	}
 }
 
-/** Callback when new device is passed to this driver.
- * This function is the body of the test: it shall register new child
- * (named `clone') that shall be driven by the same task. When the clone
- * is added, it registers another child (named `child') that is also driven
- * by this task. The conditions ensure that we do not recurse indefinitely.
- * When successful, the device tree shall contain following fragment:
+/** Add child devices after some sleep.
  *
- * /virtual/test1
- * /virtual/test1/clone
- * /virtual/test1/clone/child
- *
- * and devman shall not deadlock.
- *
- *
- * @param dev New device.
- * @return Error code reporting success of the operation.
+ * @param arg Parent device structure (device_t *).
+ * @return Always EOK.
  */
+static int postponed_birth(void *arg)
+{
+	device_t *dev = (device_t *) arg;
+
+	async_usleep(1000);
+
+	register_child_verbose(dev, "child driven by the same task",
+	    "child", "virtual&test2", 10);
+	register_child_verbose(dev, "child driven by test1",
+	    "test1", "virtual&test1", 10);
+
+	add_device_to_class(dev, "virtual");
+
+	return EOK;
+}
+
+
 static int add_device(device_t *dev)
 {
 	printf(NAME ": add_device(name=\"%s\", handle=%d)\n",
 	    dev->name, (int) dev->handle);
 
-	add_device_to_class(dev, "virtual");
-
 	if (dev->parent == NULL) {
-		register_child_verbose(dev, "cloning myself ;-)", "clone",
-		    "virtual&test1", 10);
-	} else if (str_cmp(dev->name, "clone") == 0) {
-		register_child_verbose(dev, "run by the same task", "child",
-		    "virtual&test1&child", 10);
+		fid_t postpone = fibril_create(postponed_birth, dev);
+		fibril_add_ready(postpone);
+	} else {
+		register_child_verbose(dev, "child without available driver",
+		    "ERROR", "non-existent.match.id", 10);
 	}
-
-	printf(NAME ": device `%s' accepted.\n", dev->name);
 
 	return EOK;
 }
 
 int main(int argc, char *argv[])
 {
-	printf(NAME ": HelenOS test1 virtual device driver\n");
+	printf(NAME ": HelenOS test2 virtual device driver\n");
 	return driver_main(&the_driver);
 }
 
