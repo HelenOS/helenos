@@ -196,6 +196,13 @@ static int devman_receive_match_ids(ipcarg_t match_count,
 	return ret;
 }
 
+static int assign_driver_fibril(void *arg)
+{
+	node_t *node = (node_t *) arg;
+	assign_driver(node, &drivers_list, &device_tree);
+	return EOK;
+}
+
 /** Handle child device registration.
  *
  * Child devices are registered by their parent's device driver.
@@ -236,12 +243,27 @@ static void devman_add_child(ipc_callid_t callid, ipc_call_t *call)
 	printf(NAME ": devman_add_child %s\n", node->pathname);
 	
 	devman_receive_match_ids(match_count, &node->match_ids);
-	
+
+	/*
+	 * Try to find suitable driver and assign it to the device.
+	 * We do not want to block current fibril that is used to processing
+	 * incoming calls: we will launch a separate fibril to handle
+	 * the driver assigning. That is because assign_driver can actually
+	 * include task spawning which could take some time.
+	 */
+	fid_t assign_fibril = fibril_create(assign_driver_fibril, node);
+	if (assign_fibril == 0) {
+		/*
+		 * Fallback in case we are out of memory.
+		 * Probably not needed as we will die soon anyway ;-).
+		 */
+		(void) assign_driver_fibril(node);
+	} else {
+		fibril_add_ready(assign_fibril);
+	}
+
 	/* Return device handle to parent's driver. */
 	ipc_answer_1(callid, EOK, node->handle);
-	
-	/* Try to find suitable driver and assign it to the device. */
-	assign_driver(node, &drivers_list, &device_tree);
 }
 
 static void devmap_register_class_dev(dev_class_info_t *cli)
@@ -296,7 +318,7 @@ static void devman_add_device_to_class(ipc_callid_t callid, ipc_call_t *call)
 	
 	printf(NAME ": device '%s' added to class '%s', class name '%s' was "
 	    "asigned to it\n", dev->pathname, class_name, class_info->dev_name);
-	
+
 	ipc_answer_0(callid, EOK);
 }
 

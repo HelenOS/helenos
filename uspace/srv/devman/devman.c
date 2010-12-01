@@ -519,7 +519,7 @@ static void pass_devices_to_driver(driver_t *driver, dev_tree_t *tree)
 
 	fibril_mutex_lock(&driver->driver_mutex);
 
-	phone = ipc_connect_me_to(driver->phone, DRIVER_DEVMAN, 0, 0);
+	phone = async_connect_me_to(driver->phone, DRIVER_DEVMAN, 0, 0);
 
 	if (phone < 0) {
 		fibril_mutex_unlock(&driver->driver_mutex);
@@ -582,6 +582,7 @@ static void pass_devices_to_driver(driver_t *driver, dev_tree_t *tree)
 	 * the driver would be added to the device list and started
 	 * immediately and possibly started here as well.
 	 */
+	printf(NAME ": driver %s goes into running state.\n", driver->name);
 	driver->state = DRIVER_RUNNING;
 
 	fibril_mutex_unlock(&driver->driver_mutex);
@@ -711,7 +712,7 @@ void add_device(int phone, driver_t *drv, node_t *node, dev_tree_t *tree)
 	if (rc != EOK) {
 		/* TODO handle error */
 	}
-	
+
 	/* Wait for answer from the driver. */
 	async_wait_for(req, &rc);
 
@@ -754,14 +755,20 @@ bool assign_driver(node_t *node, driver_list_t *drivers_list, dev_tree_t *tree)
 	/* Attach the driver to the device. */
 	attach_driver(node, drv);
 	
+	fibril_mutex_lock(&drv->driver_mutex);
 	if (drv->state == DRIVER_NOT_STARTED) {
 		/* Start the driver. */
 		start_driver(drv);
 	}
+	fibril_mutex_unlock(&drv->driver_mutex);
 	
-	if (drv->state == DRIVER_RUNNING) {
+	fibril_mutex_lock(&drv->driver_mutex);
+	bool is_running = drv->state == DRIVER_RUNNING;
+	fibril_mutex_unlock(&drv->driver_mutex);
+
+	if (is_running) {
 		/* Notify the driver about the new device. */
-		int phone = ipc_connect_me_to(drv->phone, DRIVER_DEVMAN, 0, 0);
+		int phone = async_connect_me_to(drv->phone, DRIVER_DEVMAN, 0, 0);
 		if (phone > 0) {
 			add_device(phone, drv, node, tree);
 			ipc_hangup(phone);
@@ -923,7 +930,6 @@ bool insert_dev_node(dev_tree_t *tree, node_t *node, char *dev_name,
 	
 	node->name = dev_name;
 	if (!set_dev_path(node, parent)) {
-		fibril_rwlock_write_unlock(&tree->rwlock);
 		return false;
 	}
 	
