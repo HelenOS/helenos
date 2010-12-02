@@ -3,6 +3,7 @@
  *
  * Unless the list is empty, the last item shall be followed by a comma.
  */
+#ifdef CONFIG_TEST_DRIVERS
 {
 	.name = "test1",
 	.match_id = "virtual&test1"
@@ -15,3 +16,4 @@
 	.name = "test2bravo",
 	.match_id = "virtual&test2"
 },
+#endif
