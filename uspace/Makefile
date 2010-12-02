@@ -69,6 +69,7 @@ DIRS = \
 	srv/fs/tmpfs \
 	srv/fs/devfs \
 	srv/fs/pipefs \
+	srv/fs/ext2 \
 	srv/hid/adb_mouse \
 	srv/hid/char_mouse \
 	srv/hid/s3c24xx_ts \
@@ -139,7 +140,8 @@ LIBS = \
 	lib/softfloat \
 	lib/drv \
 	lib/packet \
-	lib/net
+	lib/net \
+	lib/ext2
 
 LIBC_BUILD = $(addsuffix .build,$(LIBC))
 LIBS_BUILD = $(addsuffix .build,$(LIBS))
