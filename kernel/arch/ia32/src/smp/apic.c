@@ -476,7 +476,7 @@ void l_apic_eoi(void)
 void l_apic_debug(void)
 {
 #ifdef LAPIC_VERBOSE
-	printf("LVT on cpu%" PRIs ", LAPIC ID: %" PRIu8 "\n",
+	printf("LVT on cpu%u, LAPIC ID: %" PRIu8 "\n",
 	    CPU->id, l_apic_id());
 	
 	lvt_tm_t tm;

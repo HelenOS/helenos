@@ -208,15 +208,17 @@ void bootstrap(void)
 	void *kernel_address_pa = ofw_translate((void *) KERNEL_ADDRESS);
 	void *loader_address_pa = ofw_translate((void *) LOADER_ADDRESS);
 	
-	printf("\nMemory statistics (total %llu MB, starting at %p)\n",
-	    bootinfo.memmap.total >> 20, bootinfo.physmem_start);
-	printf(" %p|%p: boot info structure\n", &bootinfo, bootinfo_pa);
-	printf(" %p|%p: kernel entry point\n", KERNEL_ADDRESS, kernel_address_pa);
-	printf(" %p|%p: loader entry point\n", LOADER_ADDRESS, loader_address_pa);
+	printf("\nMemory statistics (total %" PRIu64 " MB, starting at %p)\n",
+	    bootinfo.memmap.total >> 20, (void *) bootinfo.physmem_start);
+	printf(" %p|%p: boot info structure\n", &bootinfo, (void *) bootinfo_pa);
+	printf(" %p|%p: kernel entry point\n",
+	    (void *) KERNEL_ADDRESS, (void *) kernel_address_pa);
+	printf(" %p|%p: loader entry point\n",
+	    (void *) LOADER_ADDRESS, (void *) loader_address_pa);
 	
 	size_t i;
 	for (i = 0; i < COMPONENTS; i++)
-		printf(" %p|%p: %s image (%u/%u bytes)\n", components[i].start,
+		printf(" %p|%p: %s image (%zu/%zu bytes)\n", components[i].start,
 		    ofw_translate(components[i].start), components[i].name,
 		    components[i].inflated, components[i].size);
 	

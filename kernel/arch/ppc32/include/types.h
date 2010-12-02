@@ -49,11 +49,13 @@ typedef uint32_t atomic_count_t;
 typedef struct {
 } fncptr_t;
 
-#define PRIp   PRIx32  /**< Format for uintptr_t. */
-#define PRIs   PRIu32  /**< Format for size_t. */
+#define INTN_C(c)   INT32_C(c)
+#define UINTN_C(c)  UINT32_C(c)
+
 #define PRIdn  PRId32  /**< Format for native_t. */
 #define PRIun  PRIu32  /**< Format for unative_t. */
 #define PRIxn  PRIx32  /**< Format for hexadecimal unative_t. */
+#define PRIua  PRIu32  /**< Format for atomic_count_t. */
 
 #endif
 

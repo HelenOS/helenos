@@ -390,7 +390,7 @@ static int arp_mtu_changed_message(device_id_t device_id, size_t mtu)
 	}
 	device->packet_dimension.content = mtu;
 	fibril_rwlock_write_unlock(&arp_globals.lock);
-	printf("arp - device %d changed mtu to %d\n\n", device_id, mtu);
+	printf("arp - device %d changed mtu to %zu\n\n", device_id, mtu);
 	return EOK;
 }
 

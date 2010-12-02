@@ -25,23 +25,23 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
- 
+
  /** @addtogroup libc
  * @{
  */
 /** @file
  */
- 
+
 #ifndef LIBC_DEVICE_HW_RES_H_
 #define LIBC_DEVICE_HW_RES_H_
 
 typedef enum {
 	CHAR_READ_DEV = 0,
-	CHAR_WRITE_DEV	
+	CHAR_WRITE_DEV
 } hw_res_funcs_t;
 
-int read_dev(int dev_phone, void *buf, size_t len);
-int write_dev(int dev_phone, void *buf, size_t len);
+ssize_t read_dev(int dev_phone, void *buf, size_t len);
+ssize_t write_dev(int dev_phone, void *buf, size_t len);
 
 #endif
 

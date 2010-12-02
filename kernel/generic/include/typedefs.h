@@ -39,7 +39,7 @@
 #include <arch/common.h>
 #include <arch/types.h>
 
-#define NULL	((void *) 0)
+#define NULL  ((void *) 0)
 
 #define false  0
 #define true   1
@@ -67,8 +67,6 @@ typedef uint32_t context_id_t;
 
 typedef int32_t inr_t;
 typedef int32_t devno_t;
-
-typedef int32_t wchar_t;
 
 typedef volatile uint8_t ioport8_t;
 typedef volatile uint16_t ioport16_t;

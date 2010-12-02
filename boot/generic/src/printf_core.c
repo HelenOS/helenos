@@ -78,7 +78,8 @@ typedef enum {
 	PrintfQualifierInt,
 	PrintfQualifierLong,
 	PrintfQualifierLongLong,
-	PrintfQualifierPointer
+	PrintfQualifierPointer,
+	PrintfQualifierSize
 } qualifier_t;
 
 static const char *nullstr = "(NULL)";
@@ -430,8 +431,6 @@ static int print_number(uint64_t num, int width, int precision, int base,
  *  - "h"  Signed or unsigned short.@n
  *  - ""   Signed or unsigned int (default value).@n
  *  - "l"  Signed or unsigned long int.@n
- *         If conversion is "c", the character is wchar_t (wide character).@n
- *         If conversion is "s", the string is wchar_t * (wide string).@n
  *  - "ll" Signed or unsigned long long int.@n
  *
  * CONVERSION:@n
@@ -611,6 +610,11 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 					qualifier = PrintfQualifierLongLong;
 				}
 				break;
+			case 'z':
+				qualifier = PrintfQualifierSize;
+				i = nxt;
+				uc = str_decode(fmt, &nxt, STR_NO_LIMIT);
+				break;
 			default:
 				/* Default type */
 				qualifier = PrintfQualifierInt;
@@ -718,6 +722,10 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 				size = sizeof(void *);
 				precision = size << 1;
 				number = (uint64_t) (uintptr_t) va_arg(ap, void *);
+				break;
+			case PrintfQualifierSize:
+				size = sizeof(size_t);
+				number = (uint64_t) va_arg(ap, size_t);
 				break;
 			default:
 				/* Unknown qualifier */

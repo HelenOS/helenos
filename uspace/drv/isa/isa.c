@@ -492,8 +492,7 @@ static int isa_add_device(device_t *dev)
 
 	/* Add child devices. */
 	add_legacy_children(dev);
-	printf(NAME ": finished the enumeration of legacy devices\n",
-	    dev->handle);
+	printf(NAME ": finished the enumeration of legacy devices\n");
 
 	return EOK;
 }

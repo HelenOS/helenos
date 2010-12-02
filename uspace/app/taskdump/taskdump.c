@@ -84,14 +84,14 @@ int main(int argc, char *argv[])
 
 	rc = connect_task(task_id);
 	if (rc < 0) {
-		printf("Failed connecting to task %" PRIdTASKID ".\n", task_id);
+		printf("Failed connecting to task %" PRIu64 ".\n", task_id);
 		return 1;
 	}
 
 	app_name = get_app_task_name();
 	app_symtab = NULL;
 
-	printf("Dumping task '%s' (task ID %" PRIdTASKID ").\n", app_name, task_id);
+	printf("Dumping task '%s' (task ID %" PRIu64 ").\n", app_name, task_id);
 	autoload_syms();
 	putchar('\n');
 
@@ -125,7 +125,7 @@ static int connect_task(task_id_t task_id)
 
 	if (rc < 0) {
 		printf("Error connecting\n");
-		printf("ipc_connect_task(%" PRIdTASKID ") -> %d ", task_id, rc);
+		printf("ipc_connect_task(%" PRIu64 ") -> %d ", task_id, rc);
 		return rc;
 	}
 
@@ -167,7 +167,7 @@ static int parse_args(int argc, char *argv[])
 				--argc; ++argv;
 				core_file_name = *argv;
 			} else {
-				printf("Uknown option '%s'\n", arg[0]);
+				printf("Uknown option '%c'\n", arg[0]);
 				print_syntax();
 				return -1;
 			}
@@ -239,7 +239,7 @@ static int threads_dump(void)
 
 	printf("Threads:\n");
 	for (i = 0; i < n_threads; i++) {
-		printf(" [%d] hash: %p\n", 1+i, thash_buf[i]);
+		printf(" [%zu] hash: %p\n", 1 + i, (void *) thash_buf[i]);
 
 		thread_dump(thash_buf[i]);
 	}
@@ -283,12 +283,12 @@ static int areas_dump(void)
 
 	printf("Address space areas:\n");
 	for (i = 0; i < n_areas; i++) {
-		printf(" [%d] flags: %c%c%c%c base: %p size: %p\n", 1+i,
+		printf(" [%zu] flags: %c%c%c%c base: %p size: %zu\n", 1 + i,
 		    (ainfo_buf[i].flags & AS_AREA_READ) ? 'R' : '-',
 		    (ainfo_buf[i].flags & AS_AREA_WRITE) ? 'W' : '-',
 		    (ainfo_buf[i].flags & AS_AREA_EXEC) ? 'X' : '-',
 		    (ainfo_buf[i].flags & AS_AREA_CACHEABLE) ? 'C' : '-',
-		    ainfo_buf[i].start_addr, ainfo_buf[i].size);
+		    (void *) ainfo_buf[i].start_addr, ainfo_buf[i].size);
 	}
 
 	putchar('\n');
@@ -325,7 +325,8 @@ static int thread_dump(uintptr_t thash)
 	fp = istate_get_fp(&istate);
 
 	sym_pc = fmt_sym_address(pc);
-	printf("Thread %p crashed at %s. FP = %p\n", thash, sym_pc, fp);
+	printf("Thread %p crashed at %s. FP = %p\n", (void *) thash,
+	    sym_pc, (void *) fp);
 	free(sym_pc);
 
 	st.op_arg = NULL;
@@ -333,7 +334,7 @@ static int thread_dump(uintptr_t thash)
 
 	while (stacktrace_fp_valid(&st, fp)) {
 		sym_pc = fmt_sym_address(pc);
-		printf("  %p: %s\n", fp, sym_pc);
+		printf("  %p: %s\n", (void *) fp, sym_pc);
 		free(sym_pc);
 
 		rc = stacktrace_ra_get(&st, fp, &pc);
@@ -456,9 +457,9 @@ static char *fmt_sym_address(uintptr_t addr)
 	}
 
 	if (rc == EOK) {
-		rc = asprintf(&str, "%p (%s+%p)", addr, name, offs);
+		rc = asprintf(&str, "%p (%s+%zu)", (void *) addr, name, offs);
 	} else {
-		rc = asprintf(&str, "%p", addr);
+		rc = asprintf(&str, "%p", (void *) addr);
 	}
 
 	if (rc < 0) {

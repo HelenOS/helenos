@@ -40,9 +40,12 @@
 extern void __heap_init(void);
 extern uintptr_t get_max_heap_addr(void);
 
-extern void *malloc(const size_t size);
-extern void *calloc(const size_t nmemb, const size_t size);
-extern void *memalign(const size_t align, const size_t size);
+extern void *malloc(const size_t size)
+    __attribute__((malloc));
+extern void *calloc(const size_t nmemb, const size_t size)
+    __attribute__((malloc));
+extern void *memalign(const size_t align, const size_t size)
+    __attribute__((malloc));
 extern void *realloc(const void *addr, const size_t size);
 extern void free(const void *addr);
 

@@ -1013,7 +1013,7 @@ char *create_dev_name_for_class(dev_class_t *cl, const char *base_dev_name)
 		base_name = cl->base_dev_name;
 	
 	size_t idx = get_new_class_dev_idx(cl);
-	asprintf(&dev_name, "%s%d", base_name, idx);
+	asprintf(&dev_name, "%s%zu", base_name, idx);
 	
 	return dev_name;
 }

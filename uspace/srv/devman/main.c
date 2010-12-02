@@ -35,6 +35,7 @@
 /** @file
  */
 
+#include <inttypes.h>
 #include <assert.h>
 #include <ipc/services.h>
 #include <ipc/ns.h>
@@ -416,8 +417,8 @@ static void devman_forward(ipc_callid_t iid, ipc_call_t *icall,
 	
 	node_t *dev = find_dev_node(&device_tree, handle);
 	if (dev == NULL) {
-		printf(NAME ": devman_forward error - no device with handle %x "
-		    "was found.\n", handle);
+		printf(NAME ": devman_forward error - no device with handle %" PRIun
+		    " was found.\n", handle);
 		ipc_answer_0(iid, ENOENT);
 		return;
 	}
@@ -433,8 +434,8 @@ static void devman_forward(ipc_callid_t iid, ipc_call_t *icall,
 	}
 	
 	if (driver == NULL) {
-		printf(NAME ": devman_forward error - the device is not in "
-		    "usable state.\n", handle);
+		printf(NAME ": devman_forward error - the device is not in %" PRIun
+		    " usable state.\n", handle);
 		ipc_answer_0(iid, ENOENT);
 		return;
 	}
@@ -448,7 +449,7 @@ static void devman_forward(ipc_callid_t iid, ipc_call_t *icall,
 	if (driver->phone <= 0) {
 		printf(NAME ": devman_forward: cound not forward to driver %s ",
 		    driver->name);
-		printf("the driver's phone is %x).\n", driver->phone);
+		printf("the driver's phone is %" PRIun ").\n", driver->phone);
 		ipc_answer_0(iid, EINVAL);
 		return;
 	}

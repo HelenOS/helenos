@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
+#include <sys/typefmt.h>
 #include "config.h"
 #include "util.h"
 #include "errors.h"
@@ -121,7 +122,7 @@ int cmd_bdd(char **argv)
 	while (size > 0) {
 		rc = block_read_direct(handle, ba, 1, blk);
 		if (rc != EOK) {
-			printf("%s: Error reading block %llu\n", cmdname, ba);
+			printf("%s: Error reading block %" PRIuOFF64 "\n", cmdname, ba);
 			free(blk);
 			block_fini(handle);
 			return CMD_FAILURE;
