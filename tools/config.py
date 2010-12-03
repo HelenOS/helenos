@@ -52,7 +52,7 @@ def read_config(fname, config):
 	
 	for line in inf:
 		res = re.match(r'^(?:#!# )?([^#]\w*)\s*=\s*(.*?)\s*$', line)
-		if (res):
+		if res:
 			config[res.group(1)] = res.group(2)
 	
 	inf.close()
@@ -62,16 +62,16 @@ def check_condition(text, config, rules):
 	
 	ctype = 'cnf'
 	
-	if ((')|' in text) or ('|(' in text)):
+	if (')|' in text) or ('|(' in text):
 		ctype = 'dnf'
 	
-	if (ctype == 'cnf'):
+	if ctype == 'cnf':
 		conds = text.split('&')
 	else:
 		conds = text.split('|')
 	
 	for cond in conds:
-		if (cond.startswith('(')) and (cond.endswith(')')):
+		if cond.startswith('(') and cond.endswith(')'):
 			cond = cond[1:-1]
 		
 		inside = check_inside(cond, config, ctype)
@@ -79,38 +79,38 @@ def check_condition(text, config, rules):
 		if (ctype == 'cnf') and (not inside):
 			return False
 		
-		if (ctype == 'dnf') and (inside):
+		if (ctype == 'dnf') and inside:
 			return True
 	
-	if (ctype == 'cnf'):
+	if ctype == 'cnf':
 		return True
 	return False
 
 def check_inside(text, config, ctype):
 	"Check for condition"
 	
-	if (ctype == 'cnf'):
+	if ctype == 'cnf':
 		conds = text.split('|')
 	else:
 		conds = text.split('&')
 	
 	for cond in conds:
 		res = re.match(r'^(.*?)(!?=)(.*)$', cond)
-		if (not res):
+		if not res:
 			raise RuntimeError("Invalid condition: %s" % cond)
 		
 		condname = res.group(1)
 		oper = res.group(2)
 		condval = res.group(3)
 		
-		if (not condname in config):
+		if not condname in config:
 			varval = ''
 		else:
 			varval = config[condname]
 			if (varval == '*'):
 				varval = 'y'
 		
-		if (ctype == 'cnf'):
+		if ctype == 'cnf':
 			if (oper == '=') and (condval == varval):
 				return True
 		
@@ -123,7 +123,7 @@ def check_inside(text, config, ctype):
 			if (oper == '!=') and (condval == varval):
 				return False
 	
-	if (ctype == 'cnf'):
+	if ctype == 'cnf':
 		return False
 	
 	return True
@@ -138,11 +138,11 @@ def parse_rules(fname, rules):
 	
 	for line in inf:
 		
-		if (line.startswith('!')):
+		if line.startswith('!'):
 			# Ask a question
 			res = re.search(r'!\s*(?:\[(.*?)\])?\s*([^\s]+)\s*\((.*)\)\s*$', line)
 			
-			if (not res):
+			if not res:
 				raise RuntimeError("Weird line: %s" % line)
 			
 			cond = res.group(1)
@@ -154,7 +154,7 @@ def parse_rules(fname, rules):
 			choices = []
 			continue
 		
-		if (line.startswith('@')):
+		if line.startswith('@'):
 			# Add new line into the 'choices' array
 			res = re.match(r'@\s*(?:\[(.*?)\])?\s*"(.*?)"\s*(.*)$', line)
 			
@@ -164,12 +164,12 @@ def parse_rules(fname, rules):
 			choices.append((res.group(2), res.group(3)))
 			continue
 		
-		if (line.startswith('%')):
+		if line.startswith('%'):
 			# Name of the option
 			name = line[1:].strip()
 			continue
 		
-		if ((line.startswith('#')) or (line == '\n')):
+		if line.startswith('#') or (line == '\n'):
 			# Comment or empty line
 			continue
 		
@@ -181,7 +181,7 @@ def parse_rules(fname, rules):
 def yes_no(default):
 	"Return '*' if yes, ' ' if no"
 	
-	if (default == 'y'):
+	if default == 'y':
 		return '*'
 	
 	return ' '
@@ -199,7 +199,7 @@ def subchoice(screen, name, choices, default):
 	position = None
 	cnt = 0
 	for key, val in choices:
-		if ((default) and (key == default)):
+		if (default) and (key == default):
 			position = cnt
 		
 		options.append(" %-*s  %s " % (maxkey, key, val))
@@ -207,7 +207,7 @@ def subchoice(screen, name, choices, default):
 	
 	(button, value) = xtui.choice_window(screen, name, 'Choose value', options, position)
 	
-	if (button == 'cancel'):
+	if button == 'cancel':
 		return None
 	
 	return choices[value][0]
@@ -226,23 +226,25 @@ def subchoice(screen, name, choices, default):
 def infer_verify_choices(config, rules):
 	"Infer and verify configuration values."
 	
-	for varname, vartype, name, choices, cond in rules:
-		if ((cond) and (not check_condition(cond, config, rules))):
+	for rule in rules:
+		varname, vartype, name, choices, cond = rule
+
+		if cond and (not check_condition(cond, config, rules)):
 			continue
 		
-		if (not varname in config):
+		if not varname in config:
 			value = None
 		else:
 			value = config[varname]
 
-		if not rule_value_is_valid((varname, vartype, name, choices, cond), value):
+		if not rule_value_is_valid(rule, value):
 			value = None
 
-		default = rule_get_default((varname, vartype, name, choices, cond))
+		default = rule_get_default(rule)
 		if default != None:
 			config[varname] = default
 
-		if (not varname in config):
+		if not varname in config:
 			return False
 	
 	return True
@@ -253,17 +255,17 @@ def rule_get_default(rule):
 
 	default = None
 
-	if (vartype == 'choice'):
+	if vartype == 'choice':
 		# If there is just one option, use it
-		if (len(choices) == 1):
+		if len(choices) == 1:
 			default = choices[0][0]
-	elif (vartype == 'y'):
+	elif vartype == 'y':
 		default = '*'
-	elif (vartype == 'n'):
+	elif vartype == 'n':
 		default = 'n'
-	elif (vartype == 'y/n'):
+	elif vartype == 'y/n':
 		default = 'y'
-	elif (vartype == 'n/y'):
+	elif vartype == 'n/y':
 		default = 'n'
 	else:
 		raise RuntimeError("Unknown variable type: %s" % vartype)
@@ -282,20 +284,20 @@ def rule_get_option(rule, value):
 
 	option = None
 
-	if (vartype == 'choice'):
+	if vartype == 'choice':
 		# If there is just one option, don't ask
-		if (len(choices) != 1):
+		if len(choices) != 1:
 			if (value == None):
 				option = "?     %s --> " % name
 			else:
 				option = "      %s [%s] --> " % (name, value)
-	elif (vartype == 'y'):
+	elif vartype == 'y':
 		pass
-	elif (vartype == 'n'):
+	elif vartype == 'n':
 		pass
-	elif (vartype == 'y/n'):
+	elif vartype == 'y/n':
 		option = "  <%s> %s " % (yes_no(value), name)
-	elif (vartype == 'n/y'):
+	elif vartype == 'n/y':
 		option ="  <%s> %s " % (yes_no(value), name)
 	else:
 		raise RuntimeError("Unknown variable type: %s" % vartype)
@@ -315,19 +317,19 @@ def rule_value_is_valid(rule, value):
 	if value == None:
 		return True
 
-	if (vartype == 'choice'):
-		if (not value in [choice[0] for choice in choices]):
+	if vartype == 'choice':
+		if not value in [choice[0] for choice in choices]:
 			return False
-	elif (vartype == 'y'):
+	elif vartype == 'y':
 		if value != 'y':
 			return False
-	elif (vartype == 'n'):
+	elif vartype == 'n':
 		if value != 'n':
 			return False
-	elif (vartype == 'y/n'):
+	elif vartype == 'y/n':
 		if not value in ['y', 'n']:
 			return False
-	elif (vartype == 'n/y'):
+	elif vartype == 'n/y':
 		if not value in ['y', 'n']:
 			return False
 	else:
@@ -349,9 +351,9 @@ def create_output(mkname, mcname, config, rules):
 		version = [1, "unknown", "unknown"]
 		sys.stderr.write("failed\n")
 	
-	if (len(version) == 3):
+	if len(version) == 3:
 		revision = version[1]
-		if (version[0] != 1):
+		if version[0] != 1:
 			revision += 'M'
 		revision += ' (%s)' % version[2]
 	else:
@@ -371,10 +373,10 @@ def create_output(mkname, mcname, config, rules):
 	defs = 'CONFIG_DEFS ='
 	
 	for varname, vartype, name, choices, cond in rules:
-		if ((cond) and (not check_condition(cond, config, rules))):
+		if cond and (not check_condition(cond, config, rules)):
 			continue
 		
-		if (not varname in config):
+		if not varname in config:
 			value = ''
 		else:
 			value = config[varname]
@@ -383,15 +385,15 @@ def create_output(mkname, mcname, config, rules):
 		
 		outmk.write('# %s\n%s = %s\n\n' % (name, varname, value))
 		
-		if ((vartype == "y") or (vartype == "n") or (vartype == "y/n") or (vartype == "n/y")):
-			if (value == "y"):
+		if vartype in ["y", "n", "y/n", "n/y"]:
+			if value == "y":
 				outmc.write('/* %s */\n#define %s\n\n' % (name, varname))
 				defs += ' -D%s' % varname
 		else:
 			outmc.write('/* %s */\n#define %s %s\n#define %s_%s\n\n' % (name, varname, value, varname, value))
 			defs += ' -D%s=%s -D%s_%s' % (varname, value, varname, value)
 	
-	if (revision is not None):
+	if revision is not None:
 		outmk.write('REVISION = %s\n' % revision)
 		outmc.write('#define REVISION %s\n' % revision)
 		defs += ' "-DREVISION=%s"' % revision
@@ -422,7 +424,7 @@ def load_presets(root, fname, screen, config):
 		path = os.path.join(root, name)
 		canon = os.path.join(path, fname)
 		
-		if ((os.path.isdir(path)) and (os.path.exists(canon)) and (os.path.isfile(canon))):
+		if os.path.isdir(path) and os.path.exists(canon) and os.path.isfile(canon):
 			subprofile = False
 			
 			# Look for subprofiles
@@ -430,24 +432,24 @@ def load_presets(root, fname, screen, config):
 				subpath = os.path.join(path, subname)
 				subcanon = os.path.join(subpath, fname)
 				
-				if ((os.path.isdir(subpath)) and (os.path.exists(subcanon)) and (os.path.isfile(subcanon))):
+				if os.path.isdir(subpath) and os.path.exists(subcanon) and os.path.isfile(subcanon):
 					subprofile = True
 					options.append("%s (%s)" % (name, subname))
 					opt2path[cnt] = (canon, subcanon)
 					cnt += 1
 			
-			if (not subprofile):
+			if not subprofile:
 				options.append(name)
 				opt2path[cnt] = (canon, None)
 				cnt += 1
 	
 	(button, value) = xtui.choice_window(screen, 'Load preconfigured defaults', 'Choose configuration profile', options, None)
 	
-	if (button == 'cancel'):
+	if button == 'cancel':
 		return None
 	
 	read_config(opt2path[value][0], config)
-	if (opt2path[value][1] != None):
+	if opt2path[value][1] != None:
 		read_config(opt2path[value][1], config)
 
 def main():
@@ -462,14 +464,14 @@ def main():
 		read_config(MAKEFILE, config)
 	
 	# Default mode: only check values and regenerate configuration files
-	if ((len(sys.argv) >= 3) and (sys.argv[2] == 'default')):
+	if (len(sys.argv) >= 3) and (sys.argv[2] == 'default'):
 		if (infer_verify_choices(config, rules)):
 			create_output(MAKEFILE, MACROS, config, rules)
 			return 0
 	
 	# Check mode: only check configuration
-	if ((len(sys.argv) >= 3) and (sys.argv[2] == 'check')):
-		if (infer_verify_choices(config, rules)):
+	if (len(sys.argv) >= 3) and (sys.argv[2] == 'check'):
+		if infer_verify_choices(config, rules):
 			return 0
 		return 1
 	
@@ -481,7 +483,7 @@ def main():
 			
 			# Cancel out all values which have to be deduced
 			for varname, vartype, name, choices, cond in rules:
-				if ((vartype == 'y') and (varname in config) and (config[varname] == '*')):
+				if (vartype == 'y') and (varname in config) and (config[varname] == '*'):
 					config[varname] = None
 			
 			options = []
@@ -493,13 +495,13 @@ def main():
 			for rule in rules:
 				varname, vartype, name, choices, cond = rule
 				
-				if ((cond) and (not check_condition(cond, config, rules))):
+				if cond and (not check_condition(cond, config, rules)):
 					continue
 				
-				if (varname == selname):
+				if varname == selname:
 					position = cnt
 				
-				if (not varname in config):
+				if not varname in config:
 					value = None
 				else:
 					value = config[varname]
@@ -525,36 +527,36 @@ def main():
 			
 			(button, value) = xtui.choice_window(screen, 'HelenOS configuration', 'Choose configuration option', options, position)
 			
-			if (button == 'cancel'):
+			if button == 'cancel':
 				return 'Configuration canceled'
 			
-			if (button == 'done'):
+			if button == 'done':
 				if (infer_verify_choices(config, rules)):
 					break
 				else:
 					xtui.error_dialog(screen, 'Error', 'Some options have still undefined values. These options are marked with the "?" sign.')
 					continue
 			
-			if (value == 0):
+			if value == 0:
 				load_presets(PRESETS_DIR, MAKEFILE, screen, config)
 				position = 1
 				continue
 			
 			position = None
-			if (not value in opt2row):
+			if not value in opt2row:
 				raise RuntimeError("Error selecting value: %s" % value)
 			
 			(selname, seltype, name, choices) = opt2row[value]
 			
-			if (not selname in config):
+			if not selname in config:
 				value = None
 			else:
 				value = config[selname]
 			
-			if (seltype == 'choice'):
+			if seltype == 'choice':
 				config[selname] = subchoice(screen, name, choices, value)
-			elif ((seltype == 'y/n') or (seltype == 'n/y')):
-				if (config[selname] == 'y'):
+			elif (seltype == 'y/n') or (seltype == 'n/y'):
+				if config[selname] == 'y':
 					config[selname] = 'n'
 				else:
 					config[selname] = 'y'
