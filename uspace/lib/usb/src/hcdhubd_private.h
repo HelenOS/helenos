@@ -30,38 +30,22 @@
  * @{
  */
 /** @file
- * @brief USB driver.
+ * @brief Common definitions for both HC driver and hub driver.
  */
-#ifndef LIBUSB_USBDRV_H_
-#define LIBUSB_USBDRV_H_
+#ifndef LIBUSB_HCDHUBD_PRIVATE_H_
+#define LIBUSB_HCDHUBD_PRIVATE_H_
 
-#include "usb.h"
-#include <driver.h>
+#define USB_HUB_DEVICE_NAME "usbhub"
+#define USB_KBD_DEVICE_NAME "hid"
 
-int usb_drv_hc_connect(device_t *, unsigned int);
+extern link_t hc_list;
+extern usb_hc_driver_t *hc_driver;
 
-usb_address_t usb_drv_get_my_address(int, device_t *);
+extern usbhc_iface_t usbhc_interface;
 
-int usb_drv_async_interrupt_out(int, usb_target_t,
-    void *, size_t, usb_handle_t *);
-int usb_drv_async_interrupt_in(int, usb_target_t,
-    void *, size_t, size_t *, usb_handle_t *);
-
-int usb_drv_async_control_write_setup(int, usb_target_t,
-    void *, size_t, usb_handle_t *);
-int usb_drv_async_control_write_data(int, usb_target_t,
-    void *, size_t, usb_handle_t *);
-int usb_drv_async_control_write_status(int, usb_target_t,
-    usb_handle_t *);
-
-int usb_drv_async_control_read_setup(int, usb_target_t,
-    void *, size_t, usb_handle_t *);
-int usb_drv_async_control_read_data(int, usb_target_t,
-    void *, size_t, size_t *, usb_handle_t *);
-int usb_drv_async_control_read_status(int, usb_target_t,
-    usb_handle_t *);
-
-int usb_drv_async_wait_for(usb_handle_t);
+usb_address_t usb_get_address_by_handle(devman_handle_t);
+int usb_add_hc_device(device_t *);
+int usb_add_hub_device(device_t *);
 
 #endif
 /**

@@ -91,6 +91,17 @@
  *
  */
 typedef enum {
+	/** Tell USB address assigned to device.
+	 * Parameters:
+	 * - devman handle id
+	 * Answer:
+	 * - EINVAL - unknown handle or handle not managed by this driver
+	 * - ENOTSUP - operation not supported by HC (shall not happen)
+	 * - arbitrary error code if returned by remote implementation
+	 * - EOK - handle found, first parameter contains the USB address
+	 */
+	IPC_M_USBHC_GET_ADDRESS,
+
 	/** Asks for data buffer.
 	 * See explanation at usb_iface_funcs_t.
 	 * This function does not have counter part in functional interface
@@ -154,14 +165,36 @@ typedef void (*usbhc_iface_transfer_out_callback_t)(device_t *,
 typedef void (*usbhc_iface_transfer_in_callback_t)(device_t *,
     usb_transaction_outcome_t, size_t, void *);
 
+
+/** Out transfer processing function prototype. */
+typedef int (*usbhc_iface_transfer_out_t)(device_t *, usb_target_t,
+    void *, size_t,
+    usbhc_iface_transfer_out_callback_t, void *);
+
+/** Setup transfer processing function prototype. */
+typedef usbhc_iface_transfer_out_t usbhc_iface_transfer_setup_t;
+
+/** In transfer processing function prototype. */
+typedef int (*usbhc_iface_transfer_in_t)(device_t *, usb_target_t,
+    void *, size_t,
+    usbhc_iface_transfer_in_callback_t, void *);
+
 /** USB devices communication interface. */
 typedef struct {
-	int (*interrupt_out)(device_t *, usb_target_t,
-	    void *, size_t,
-	    usbhc_iface_transfer_out_callback_t, void *);
-	int (*interrupt_in)(device_t *, usb_target_t,
-	    void *, size_t,
+	int (*tell_address)(device_t *, devman_handle_t, usb_address_t *);
+
+	usbhc_iface_transfer_out_t interrupt_out;
+	usbhc_iface_transfer_in_t interrupt_in;
+
+	usbhc_iface_transfer_setup_t control_write_setup;
+	usbhc_iface_transfer_out_t control_write_data;
+	int (*control_write_status)(device_t *, usb_target_t,
 	    usbhc_iface_transfer_in_callback_t, void *);
+
+	usbhc_iface_transfer_setup_t control_read_setup;
+	usbhc_iface_transfer_in_t control_read_data;
+	int (*control_read_status)(device_t *, usb_target_t,
+	    usbhc_iface_transfer_out_callback_t, void *);
 } usbhc_iface_t;
 
 
