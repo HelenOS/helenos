@@ -231,17 +231,16 @@ def infer_verify_choices(config, rules):
 			continue
 		
 		if (not varname in config):
-			default = None
+			value = None
 		else:
-			default = config[varname]
+			value = config[varname]
 
-		if not rule_value_is_valid((varname, vartype, name, choices, cond), default):
-			default = None
+		if not rule_value_is_valid((varname, vartype, name, choices, cond), value):
+			value = None
 
-		rdef = rule_get_default((varname, vartype, name, choices, cond))
-		if rdef != None:
-			default = rdef
-			config[varname] = rdef
+		default = rule_get_default((varname, vartype, name, choices, cond))
+		if default != None:
+			config[varname] = default
 
 		if (not varname in config):
 			return False
@@ -376,21 +375,21 @@ def create_output(mkname, mcname, config, rules):
 			continue
 		
 		if (not varname in config):
-			default = ''
+			value = ''
 		else:
-			default = config[varname]
-			if (default == '*'):
-				default = 'y'
+			value = config[varname]
+			if (value == '*'):
+				value = 'y'
 		
-		outmk.write('# %s\n%s = %s\n\n' % (name, varname, default))
+		outmk.write('# %s\n%s = %s\n\n' % (name, varname, value))
 		
 		if ((vartype == "y") or (vartype == "n") or (vartype == "y/n") or (vartype == "n/y")):
-			if (default == "y"):
+			if (value == "y"):
 				outmc.write('/* %s */\n#define %s\n\n' % (name, varname))
 				defs += ' -D%s' % varname
 		else:
-			outmc.write('/* %s */\n#define %s %s\n#define %s_%s\n\n' % (name, varname, default, varname, default))
-			defs += ' -D%s=%s -D%s_%s' % (varname, default, varname, default)
+			outmc.write('/* %s */\n#define %s %s\n#define %s_%s\n\n' % (name, varname, value, varname, value))
+			defs += ' -D%s=%s -D%s_%s' % (varname, value, varname, value)
 	
 	if (revision is not None):
 		outmk.write('REVISION = %s\n' % revision)
@@ -501,19 +500,19 @@ def main():
 					position = cnt
 				
 				if (not varname in config):
-					default = None
+					value = None
 				else:
-					default = config[varname]
+					value = config[varname]
 				
-				if not rule_value_is_valid(rule, default):
-					default = None
+				if not rule_value_is_valid(rule, value):
+					value = None
 
-				rdef = rule_get_default(rule)
-				if rdef != None:
-					default = rdef
-					config[varname] = rdef
+				default = rule_get_default(rule)
+				if default != None:
+					value = default
+					config[varname] = default
 
-				option = rule_get_option(rule, default)
+				option = rule_get_option(rule, value)
 				if option != None:
 					options.append(option)
 				
@@ -548,12 +547,12 @@ def main():
 			(selname, seltype, name, choices) = opt2row[value]
 			
 			if (not selname in config):
-				default = None
+				value = None
 			else:
-				default = config[selname]
+				value = config[selname]
 			
 			if (seltype == 'choice'):
-				config[selname] = subchoice(screen, name, choices, default)
+				config[selname] = subchoice(screen, name, choices, value)
 			elif ((seltype == 'y/n') or (seltype == 'n/y')):
 				if (config[selname] == 'y'):
 					config[selname] = 'n'
