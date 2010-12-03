@@ -104,8 +104,7 @@ int usb_hcd_main(usb_hc_driver_t *hc) {
  * @param dev Host controller device.
  * @return Error code.
  */
-int usb_hcd_add_root_hub(usb_hc_device_t *dev)
-{
+int usb_hcd_add_root_hub(usb_hc_device_t *dev) {
 	char *id;
 	int rc = asprintf(&id, "usb&hc=%s&hub", dev->generic->name);
 	if (rc <= 0) {
@@ -128,10 +127,9 @@ struct child_device_info {
 };
 
 /** Adds a child device fibril worker. */
-static int fibril_add_child_device(void *arg)
-{
+static int fibril_add_child_device(void *arg) {
 	struct child_device_info *child_info
-	    = (struct child_device_info *) arg;
+			= (struct child_device_info *) arg;
 	int rc;
 
 	device_t *child = create_device();
@@ -153,10 +151,10 @@ static int fibril_add_child_device(void *arg)
 	add_match_id(&child->match_ids, match_id);
 
 	printf("%s: adding child device `%s' with match \"%s\"\n",
-	    hc_driver->name, child->name, match_id->id);
+			hc_driver->name, child->name, match_id->id);
 	rc = child_device_register(child, child_info->parent);
 	printf("%s: child device `%s' registration: %s\n",
-	    hc_driver->name, child->name, str_error(rc));
+			hc_driver->name, child->name, str_error(rc));
 
 	if (rc != EOK) {
 		goto failure;
@@ -194,13 +192,12 @@ leave:
  * @return Error code.
  */
 int usb_hc_add_child_device(device_t *parent, const char *name,
-    const char *match_id, bool create_fibril)
-{
+		const char *match_id, bool create_fibril) {
 	printf("%s: about to add child device `%s' (%s)\n", hc_driver->name,
-	    name, match_id);
+			name, match_id);
 
 	struct child_device_info *child_info
-	    = malloc(sizeof(struct child_device_info));
+			= malloc(sizeof (struct child_device_info));
 
 	child_info->parent = parent;
 	child_info->name = name;
@@ -224,10 +221,93 @@ int usb_hc_add_child_device(device_t *parent, const char *name,
  * @param handle Devman handle of the device.
  * @return USB device address or error code.
  */
-usb_address_t usb_get_address_by_handle(devman_handle_t handle)
-{
+usb_address_t usb_get_address_by_handle(devman_handle_t handle) {
 	/* TODO: search list of attached devices. */
 	return ENOENT;
+}
+
+usb_address_t usb_use_free_address(usb_hc_device_t * this_hcd) {
+	//is there free address?
+	link_t * addresses = &this_hcd->addresses;
+	if (list_empty(addresses)) return -1;
+	link_t * link_addr = addresses;
+	bool found = false;
+	usb_address_list_t * range = NULL;
+	while (!found) {
+		link_addr = link_addr->next;
+		if (link_addr == addresses) return -2;
+		range = list_get_instance(link_addr,
+				usb_address_list_t, link);
+		if (range->upper_bound - range->lower_bound > 0) {
+			found = true;
+		}
+	}
+	//now we have interval
+	int result = range->lower_bound;
+	++(range->lower_bound);
+	if (range->upper_bound - range->lower_bound == 0) {
+		list_remove(&range->link);
+		free(range);
+	}
+	return result;
+}
+
+void usb_free_used_address(usb_hc_device_t * this_hcd, usb_address_t addr) {
+	//check range
+	if (addr < usb_lowest_address || addr > usb_highest_address)
+		return;
+	link_t * addresses = &this_hcd->addresses;
+	link_t * link_addr = addresses;
+	//find 'good' interval
+	usb_address_list_t * found_range = NULL;
+	bool found = false;
+	while (!found) {
+		link_addr = link_addr->next;
+		if (link_addr == addresses) {
+			found = true;
+		} else {
+			usb_address_list_t * range = list_get_instance(link_addr,
+					usb_address_list_t, link);
+			if (	(range->lower_bound - 1 == addr) ||
+					(range->upper_bound == addr)) {
+				found = true;
+				found_range = range;
+			}
+			if (range->lower_bound - 1 > addr) {
+				found = true;
+			}
+
+		}
+	}
+	if (found_range == NULL) {
+		//no suitable range found
+		usb_address_list_t * result_range =
+				(usb_address_list_t*) malloc(sizeof (usb_address_list_t));
+		result_range->lower_bound = addr;
+		result_range->upper_bound = addr + 1;
+		list_insert_before(&result_range->link, link_addr);
+	} else {
+		//we have good range
+		if (found_range->lower_bound - 1 == addr) {
+			--found_range->lower_bound;
+		} else {
+			//only one possible case
+			++found_range->upper_bound;
+			if (found_range->link.next != addresses) {
+				usb_address_list_t * next_range =
+						list_get_instance( &found_range->link.next,
+						usb_address_list_t, link);
+				//check neighbour range
+				if (next_range->lower_bound == addr + 1) {
+					//join ranges
+					found_range->upper_bound = next_range->upper_bound;
+					list_remove(&next_range->link);
+					free(next_range);
+				}
+			}
+		}
+	}
+
 }
 
 /**

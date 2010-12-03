@@ -49,15 +49,30 @@ LIST_INITIALIZE(hc_list);
 /** Our HC driver. */
 usb_hc_driver_t *hc_driver = NULL;
 
+int usb_lowest_address = 1;
+
+int usb_highest_address = 255;
+
 static device_ops_t usb_device_ops = {
 	.interfaces[USBHC_DEV_IFACE] = &usbhc_interface
 };
+
+
+void usb_create_address_list(usb_hc_device_t * hcd){
+	list_initialize(&hcd->addresses);
+	usb_address_list_t * range =
+			(usb_address_list_t*)malloc(sizeof(usb_address_list_t));
+	range->lower_bound = usb_lowest_address;
+	range->upper_bound = usb_highest_address + 1;
+	list_append(&range->link, &hcd->addresses);
+}
 
 static usb_hc_device_t *usb_hc_device_create(device_t *dev) {
 	usb_hc_device_t *hc_dev = malloc(sizeof (usb_hc_device_t));
 
 	list_initialize(&hc_dev->link);
 	list_initialize(&hc_dev->hubs);
+	usb_create_address_list(hc_dev);
 	list_initialize(&hc_dev->attached_devices);
 	hc_dev->transfer_ops = NULL;
 
