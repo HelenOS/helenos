@@ -211,16 +211,128 @@ def subchoice(screen, name, choices, default):
 	
 	return choices[value][0]
 
-def check_choices(defaults, ask_names):
-	"Check whether all accessible variables have a default"
+## Infer and verify configuration values.
+#
+# Augment @a defaults with values that can be inferred, purge invalid ones
+# and verify that all variables have a value (previously specified or inferred).
+#
+# @param defaults	Configuration to work on
+# @param ask_names	Rules
+#
+# @return		True if configuration is complete and valid, False
+#			otherwise.
+#
+def infer_verify_choices(defaults, ask_names):
+	"Infer and verify configuration values."
 	
 	for varname, vartype, name, choices, cond in ask_names:
 		if ((cond) and (not check_condition(cond, defaults, ask_names))):
 			continue
 		
 		if (not varname in defaults):
+			default = None
+		else:
+			default = defaults[varname]
+
+		if not rule_value_is_valid((varname, vartype, name, choices, cond), default):
+			default = None
+
+		rdef = rule_get_default((varname, vartype, name, choices, cond))
+		if rdef != None:
+			default = rdef
+			defaults[varname] = rdef
+
+		if (not varname in defaults):
 			return False
 	
+	return True
+
+## Get default value from a rule.
+def rule_get_default(rule):
+	varname, vartype, name, choices, cond = rule
+
+	default = None
+
+	if (vartype == 'choice'):
+		# If there is just one option, use it
+		if (len(choices) == 1):
+			default = choices[0][0]
+	elif (vartype == 'y'):
+		default = '*'
+	elif (vartype == 'n'):
+		default = 'n'
+	elif (vartype == 'y/n'):
+		default = 'y'
+	elif (vartype == 'n/y'):
+		default = 'n'
+	else:
+		raise RuntimeError("Unknown variable type: %s" % vartype)
+
+	return default
+
+## Get option from a rule.
+#
+# @param rule	Rule for a variable
+# @param value	Current value of the variable
+#
+# @return Option (string) to ask or None which means not to ask.
+#
+def rule_get_option(rule, value):
+	varname, vartype, name, choices, cond = rule
+
+	option = None
+
+	if (vartype == 'choice'):
+		# If there is just one option, don't ask
+		if (len(choices) != 1):
+			if (value == None):
+				option = "?     %s --> " % name
+			else:
+				option = "      %s [%s] --> " % (name, value)
+	elif (vartype == 'y'):
+		pass
+	elif (vartype == 'n'):
+		pass
+	elif (vartype == 'y/n'):
+		option = "  <%s> %s " % (yes_no(value), name)
+	elif (vartype == 'n/y'):
+		option ="  <%s> %s " % (yes_no(value), name)
+	else:
+		raise RuntimeError("Unknown variable type: %s" % vartype)
+
+	return option
+
+## Check if variable value is valid.
+#
+# @param rule	Rule for the variable
+# @param value	Value of the variable
+#
+# @return	True if valid, False if not valid.
+#
+def rule_value_is_valid(rule, value):
+	varname, vartype, name, choices, cond = rule
+	
+	if value == None:
+		return True
+
+	if (vartype == 'choice'):
+		if (not value in [choice[0] for choice in choices]):
+			return False
+	elif (vartype == 'y'):
+		if value != 'y':
+			return False
+	elif (vartype == 'n'):
+		if value != 'n':
+			return False
+	elif (vartype == 'y/n'):
+		if not value in ['y', 'n']:
+			return False
+	elif (vartype == 'n/y'):
+		if not value in ['y', 'n']:
+			return False
+	else:
+		raise RuntimeError("Unknown variable type: %s" % vartype)
+
 	return True
 
 def create_output(mkname, mcname, defaults, ask_names):
@@ -349,13 +461,13 @@ def main():
 	
 	# Default mode: only check defaults and regenerate configuration
 	if ((len(sys.argv) >= 3) and (sys.argv[2] == 'default')):
-		if (check_choices(defaults, ask_names)):
+		if (infer_verify_choices(defaults, ask_names)):
 			create_output(MAKEFILE, MACROS, defaults, ask_names)
 			return 0
 	
 	# Check mode: only check defaults
 	if ((len(sys.argv) >= 3) and (sys.argv[2] == 'check')):
-		if (check_choices(defaults, ask_names)):
+		if (infer_verify_choices(defaults, ask_names)):
 			return 0
 		return 1
 	
@@ -376,7 +488,8 @@ def main():
 			
 			options.append("  --- Load preconfigured defaults ... ")
 			
-			for varname, vartype, name, choices, cond in ask_names:
+			for rule in ask_names:
+				varname, vartype, name, choices, cond = rule
 				
 				if ((cond) and (not check_condition(cond, defaults, ask_names))):
 					continue
@@ -389,39 +502,17 @@ def main():
 				else:
 					default = defaults[varname]
 				
-				if (vartype == 'choice'):
-					# Check if the default is an acceptable value
-					if ((default) and (not default in [choice[0] for choice in choices])):
-						default = None
-						defaults.pop(varname)
-					
-					# If there is just one option, use it
-					if (len(choices) == 1):
-						defaults[varname] = choices[0][0]
-						continue
-					
-					if (default == None):
-						options.append("?     %s --> " % name)
-					else:
-						options.append("      %s [%s] --> " % (name, default))
-				elif (vartype == 'y'):
-					defaults[varname] = '*'
-					continue
-				elif (vartype == 'n'):
-					defaults[varname] = 'n'
-					continue
-				elif (vartype == 'y/n'):
-					if (default == None):
-						default = 'y'
-						defaults[varname] = default
-					options.append("  <%s> %s " % (yes_no(default), name))
-				elif (vartype == 'n/y'):
-					if (default == None):
-						default = 'n'
-						defaults[varname] = default
-					options.append("  <%s> %s " % (yes_no(default), name))
-				else:
-					raise RuntimeError("Unknown variable type: %s" % vartype)
+				if not rule_value_is_valid(rule, default):
+					default = None
+
+				rdef = rule_get_default(rule)
+				if rdef != None:
+					default = rdef
+					defaults[varname] = rdef
+
+				option = rule_get_option(rule, default)
+				if option != None:
+					options.append(option)
 				
 				opt2row[cnt] = (varname, vartype, name, choices)
 				
@@ -436,7 +527,7 @@ def main():
 				return 'Configuration canceled'
 			
 			if (button == 'done'):
-				if (check_choices(defaults, ask_names)):
+				if (infer_verify_choices(defaults, ask_names)):
 					break
 				else:
 					xtui.error_dialog(screen, 'Error', 'Some options have still undefined values. These options are marked with the "?" sign.')
@@ -454,7 +545,7 @@ def main():
 			(selname, seltype, name, choices) = opt2row[value]
 			
 			if (not selname in defaults):
-					default = None
+				default = None
 			else:
 				default = defaults[selname]
 			
