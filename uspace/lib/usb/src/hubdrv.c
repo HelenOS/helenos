@@ -112,12 +112,11 @@ static void set_hub_address(usb_hc_device_t *hc, usb_address_t address);
 usb_hcd_hub_info_t * usb_create_hub_info(device_t * device) {
 	usb_hcd_hub_info_t* result = (usb_hcd_hub_info_t*) malloc(sizeof (usb_hcd_hub_info_t));
 	//get parent device
-	/// @TODO this code is not correct
 	device_t * my_hcd = device;
 	while (my_hcd->parent)
 		my_hcd = my_hcd->parent;
 	//dev->
-	printf("%s: owner hcd found: %s\n", hc_driver->name, my_hcd->name);
+	printf("[hcdhubd]%s: owner hcd found: %s\n", hc_driver->name, my_hcd->name);
 	//we add the hub into the first hc
 	//link_t *link_hc = hc_list.next;
 	//usb_hc_device_t *hc = list_get_instance(link_hc,
@@ -134,8 +133,14 @@ usb_hcd_hub_info_t * usb_create_hub_info(device_t * device) {
  * @return Error code.
  */
 int usb_add_hub_device(device_t *dev) {
-	usb_hc_device_t *hc = list_get_instance(hc_list.next, usb_hc_device_t, link);
-	set_hub_address(hc, 5);
+	//usb_hc_device_t *hc = list_get_instance(hc_list.next, usb_hc_device_t, link);
+	assert(dev->parent);
+	usb_hc_device_t *hc = (usb_hc_device_t*)dev->parent->driver_data;
+	usb_address_t addr =usb_use_free_address(hc);
+	if(addr<0){
+		printf("[hcdhubd] ERROR: cannot find an address \n");
+	}
+	set_hub_address(hc, addr);
 
 	check_hub_changes();
 
@@ -150,13 +155,13 @@ int usb_add_hub_device(device_t *dev) {
 	while (my_hcd->parent)
 		my_hcd = my_hcd->parent;
 	//dev->
-	printf("%s: owner hcd found: %s\n", hc_driver->name, my_hcd->name);
+	printf("[hcdhubd]%s: owner hcd found: %s\n", hc_driver->name, my_hcd->name);
 	my_hcd = dev;
 	while (my_hcd->parent)
 		my_hcd = my_hcd->parent;
 	//dev->
 
-	printf("%s: owner hcd found: %s\n", hc_driver->name, my_hcd->name);
+	printf("[hcdhubd]%s: owner hcd found: %s\n", hc_driver->name, my_hcd->name);
 
 	//create the hub structure
 	usb_hcd_hub_info_t * hub_info = usb_create_hub_info(dev);
@@ -182,7 +187,7 @@ int usb_add_hub_device(device_t *dev) {
  * @param address New hub address.
  */
 static void set_hub_address(usb_hc_device_t *hc, usb_address_t address) {
-	printf("%s: setting hub address to %d\n", hc->generic->name, address);
+	printf("[hcdhubd]%s: setting hub address to %d\n", hc->generic->name, address);
 	usb_target_t target = {0, 0};
 	usb_handle_t handle;
 	int rc;
@@ -216,7 +221,8 @@ static void set_hub_address(usb_hc_device_t *hc, usb_address_t address) {
 		return;
 	}
 
-	printf("%s: hub address changed\n", hc->generic->name);
+	printf("[hcdhubd]%s: hub address changed successfully to %d\n",
+			hc->generic->name, address);
 }
 
 /** Check changes on all known hubs.
