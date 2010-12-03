@@ -47,6 +47,7 @@
 #include <str.h>
 #include <ctype.h>
 #include <errno.h>
+#include <inttypes.h>
 
 #include <ipc/driver.h>
 
@@ -163,6 +164,8 @@ static void driver_add_device(ipc_callid_t iid, ipc_call_t *icall)
 	int res = EOK;
 	
 	devman_handle_t dev_handle =  IPC_GET_ARG1(*icall);
+    	devman_handle_t parent_dev_handle = IPC_GET_ARG2(*icall);
+    
 	device_t *dev = create_device();
 	dev->handle = dev_handle;
 	
@@ -170,12 +173,14 @@ static void driver_add_device(ipc_callid_t iid, ipc_call_t *icall)
 	dev->name = dev_name;
 	
 	add_to_devices_list(dev);
+	dev->parent = driver_get_device(&devices, parent_dev_handle);
+	
 	res = driver->driver_ops->add_device(dev);
 	if (0 == res) {
-		printf("%s: new device with handle = %x was added.\n",
+		printf("%s: new device with handle=%" PRIun " was added.\n",
 		    driver->name, dev_handle);
 	} else {
-		printf("%s: failed to add a new device with handle = %d.\n",
+		printf("%s: failed to add a new device with handle = %" PRIun ".\n",
 		    driver->name, dev_handle);
 		remove_from_devices_list(dev);
 		delete_device(dev);
@@ -202,8 +207,7 @@ static void driver_connection_devman(ipc_callid_t iid, ipc_call_t *icall)
 			driver_add_device(callid, &call);
 			break;
 		default:
-			if (!(callid & IPC_CALLID_NOTIFICATION))
-				ipc_answer_0(callid, ENOENT);
+			ipc_answer_0(callid, ENOENT);
 		}
 	}
 }
@@ -225,7 +229,7 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 
 	if (dev == NULL) {
 		printf("%s: driver_connection_gen error - no device with handle"
-		    " %x was found.\n", driver->name, handle);
+		    " %" PRIun " was found.\n", driver->name, handle);
 		ipc_answer_0(iid, ENOENT);
 		return;
 	}
@@ -289,7 +293,7 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 			if (NULL == iface) {
 				printf("%s: driver_connection_gen error - ",
 				    driver->name);
-				printf("device with handle %d has no interface "
+				printf("device with handle %" PRIun " has no interface "
 				    "with id %d.\n", handle, iface_idx);
 				ipc_answer_0(callid, ENOTSUP);
 				break;

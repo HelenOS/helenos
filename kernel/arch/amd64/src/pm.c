@@ -27,7 +27,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup amd64	
+/** @addtogroup amd64
  * @{
  */
 /** @file
@@ -51,68 +51,69 @@ descriptor_t gdt[GDT_ITEMS] = {
 	/* NULL descriptor */
 	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
 	/* KTEXT descriptor */
-	{ .limit_0_15  = 0xffff, 
-	  .base_0_15   = 0, 
-	  .base_16_23  = 0, 
-	  .access      = AR_PRESENT | AR_CODE | DPL_KERNEL | AR_READABLE, 
-	  .limit_16_19 = 0xf, 
-	  .available   = 0, 
-	  .longmode    = 1, 
+	{ .limit_0_15  = 0xffffU,
+	  .base_0_15   = 0,
+	  .base_16_23  = 0,
+	  .access      = AR_PRESENT | AR_CODE | DPL_KERNEL | AR_READABLE,
+	  .limit_16_19 = 0x0fU,
+	  .available   = 0,
+	  .longmode    = 1,
 	  .special     = 0,
-	  .granularity = 1, 
+	  .granularity = 1,
 	  .base_24_31  = 0 },
 	/* KDATA descriptor */
-	{ .limit_0_15  = 0xffff, 
-	  .base_0_15   = 0, 
-	  .base_16_23  = 0, 
-	  .access      = AR_PRESENT | AR_DATA | AR_WRITABLE | DPL_KERNEL, 
-	  .limit_16_19 = 0xf, 
-	  .available   = 0, 
-	  .longmode    = 0, 
-	  .special     = 0, 
-	  .granularity = 1, 
+	{ .limit_0_15  = 0xffffU,
+	  .base_0_15   = 0,
+	  .base_16_23  = 0,
+	  .access      = AR_PRESENT | AR_DATA | AR_WRITABLE | DPL_KERNEL,
+	  .limit_16_19 = 0x0fU,
+	  .available   = 0,
+	  .longmode    = 0,
+	  .special     = 0,
+	  .granularity = 1,
 	  .base_24_31  = 0 },
 	/* UDATA descriptor */
-	{ .limit_0_15  = 0xffff, 
-	  .base_0_15   = 0, 
-	  .base_16_23  = 0, 
-	  .access      = AR_PRESENT | AR_DATA | AR_WRITABLE | DPL_USER, 
-	  .limit_16_19 = 0xf, 
-	  .available   = 0, 
-	  .longmode    = 0, 
-	  .special     = 1, 
-	  .granularity = 1, 
+	{ .limit_0_15  = 0xffffU,
+	  .base_0_15   = 0,
+	  .base_16_23  = 0,
+	  .access      = AR_PRESENT | AR_DATA | AR_WRITABLE | DPL_USER,
+	  .limit_16_19 = 0x0fU,
+	  .available   = 0,
+	  .longmode    = 0,
+	  .special     = 1,
+	  .granularity = 1,
 	  .base_24_31  = 0 },
 	/* UTEXT descriptor */
-	{ .limit_0_15  = 0xffff, 
-	  .base_0_15   = 0, 
-	  .base_16_23  = 0, 
-	  .access      = AR_PRESENT | AR_CODE | DPL_USER, 
-	  .limit_16_19 = 0xf, 
-	  .available   = 0, 
-	  .longmode    = 1, 
-	  .special     = 0, 
-	  .granularity = 1, 
+	{ .limit_0_15  = 0xffffU,
+	  .base_0_15   = 0,
+	  .base_16_23  = 0,
+	  .access      = AR_PRESENT | AR_CODE | DPL_USER,
+	  .limit_16_19 = 0x0fU,
+	  .available   = 0,
+	  .longmode    = 1,
+	  .special     = 0,
+	  .granularity = 1,
 	  .base_24_31  = 0 },
 	/* KTEXT 32-bit protected, for protected mode before long mode */
-	{ .limit_0_15  = 0xffff, 
-	  .base_0_15   = 0, 
-	  .base_16_23  = 0, 
-	  .access      = AR_PRESENT | AR_CODE | DPL_KERNEL | AR_READABLE, 
-	  .limit_16_19 = 0xf, 
-	  .available   = 0, 
-	  .longmode    = 0, 
+	{ .limit_0_15  = 0xffffU,
+	  .base_0_15   = 0,
+	  .base_16_23  = 0,
+	  .access      = AR_PRESENT | AR_CODE | DPL_KERNEL | AR_READABLE,
+	  .limit_16_19 = 0x0fU,
+	  .available   = 0,
+	  .longmode    = 0,
 	  .special     = 1,
-	  .granularity = 1, 
+	  .granularity = 1,
 	  .base_24_31  = 0 },
 	/* TSS descriptor - set up will be completed later,
 	 * on AMD64 it is 64-bit - 2 items in table */
 	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
 	{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
 	/* VESA Init descriptor */
-#ifdef CONFIG_FB	
-	{ 0xffff, 0, VESA_INIT_SEGMENT >> 12, AR_PRESENT | AR_CODE | DPL_KERNEL,
-	  0xf, 0, 0, 0, 0, 0
+#ifdef CONFIG_FB
+	{
+		0xffff, 0, VESA_INIT_SEGMENT >> 12, AR_PRESENT | AR_CODE | DPL_KERNEL,
+		    0xf, 0, 0, 0, 0, 0
 	}
 #endif
 };
@@ -128,10 +129,10 @@ tss_t *tss_p = NULL;
 void gdt_tss_setbase(descriptor_t *d, uintptr_t base)
 {
 	tss_descriptor_t *td = (tss_descriptor_t *) d;
-
-	td->base_0_15 = base & 0xffff;
-	td->base_16_23 = ((base) >> 16) & 0xff;
-	td->base_24_31 = ((base) >> 24) & 0xff;
+	
+	td->base_0_15 = base & 0xffffU;
+	td->base_16_23 = ((base) >> 16) & 0xffU;
+	td->base_24_31 = ((base) >> 24) & 0xffU;
 	td->base_32_63 = ((base) >> 32);
 }
 
@@ -139,8 +140,8 @@ void gdt_tss_setlimit(descriptor_t *d, uint32_t limit)
 {
 	tss_descriptor_t *td = (tss_descriptor_t *) d;
 	
-	td->limit_0_15 = limit & 0xffff;
-	td->limit_16_19 = (limit >> 16) & 0xf;
+	td->limit_0_15 = limit & 0xffffU;
+	td->limit_16_19 = (limit >> 16) & 0x0fU;
 }
 
 void idt_setoffset(idescriptor_t *d, uintptr_t offset)
@@ -148,8 +149,8 @@ void idt_setoffset(idescriptor_t *d, uintptr_t offset)
 	/*
 	 * Offset is a linear address.
 	 */
-	d->offset_0_15 = offset & 0xffff;
-	d->offset_16_31 = offset >> 16 & 0xffff;
+	d->offset_0_15 = offset & 0xffffU;
+	d->offset_16_31 = (offset >> 16) & 0xffffU;
 	d->offset_32_63 = offset >> 32;
 }
 
@@ -164,18 +165,18 @@ void tss_initialize(tss_t *t)
 void idt_init(void)
 {
 	idescriptor_t *d;
-	int i;
-
+	unsigned int i;
+	
 	for (i = 0; i < IDT_ITEMS; i++) {
 		d = &idt[i];
-
+		
 		d->unused = 0;
 		d->selector = GDT_SELECTOR(KTEXT_DES);
-
+		
 		d->present = 1;
-		d->type = AR_INTERRUPT;	/* masking interrupt */
+		d->type = AR_INTERRUPT;  /* masking interrupt */
 	}
-
+	
 	d = &idt[0];
 	idt_setoffset(d++, (uintptr_t) &int_0);
 	idt_setoffset(d++, (uintptr_t) &int_1);

@@ -67,12 +67,14 @@ void bootstrap(void)
 	printf("\nMemory statistics (total %llu MB)\n", bootinfo.memmap.total >> 20);
 	printf(" %p|%p: real mode trampoline\n", &real_mode, real_mode_pa);
 	printf(" %p|%p: boot info structure\n", &bootinfo, bootinfo_pa);
-	printf(" %p|%p: kernel entry point\n", PA2KA(BOOT_OFFSET), BOOT_OFFSET);
-	printf(" %p|%p: loader entry point\n", LOADER_ADDRESS, loader_address_pa);
+	printf(" %p|%p: kernel entry point\n",
+	    (void *) PA2KA(BOOT_OFFSET), (void *) BOOT_OFFSET);
+	printf(" %p|%p: loader entry point\n",
+	    (void *) LOADER_ADDRESS, loader_address_pa);
 	
 	size_t i;
 	for (i = 0; i < COMPONENTS; i++)
-		printf(" %p|%p: %s image (%u/%u bytes)\n", components[i].start,
+		printf(" %p|%p: %s image (%zu/%zu bytes)\n", components[i].start,
 		    ofw_translate(components[i].start), components[i].name,
 		    components[i].inflated, components[i].size);
 	

@@ -75,6 +75,7 @@ extern const char *test_print1(void);
 extern const char *test_print2(void);
 extern const char *test_print3(void);
 extern const char *test_print4(void);
+extern const char *test_print5(void);
 extern const char *test_thread1(void);
 
 extern test_t tests[];

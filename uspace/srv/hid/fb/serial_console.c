@@ -46,6 +46,7 @@
 #include <io/color.h>
 #include <io/style.h>
 #include <str.h>
+#include <inttypes.h>
 #include <io/screenbuffer.h>
 
 #include "main.h"
@@ -134,7 +135,8 @@ void serial_goto(const ipcarg_t col, const ipcarg_t row)
 		return;
 	
 	char control[MAX_CONTROL];
-	snprintf(control, MAX_CONTROL, "\033[%u;%uf", row + 1, col + 1);
+	snprintf(control, MAX_CONTROL, "\033[%" PRIun ";%" PRIun "f",
+	    row + 1, col + 1);
 	serial_puts(control);
 }
 
@@ -252,7 +254,7 @@ void serial_scroll(ssize_t i)
 void serial_set_scroll_region(ipcarg_t last_row)
 {
 	char control[MAX_CONTROL];
-	snprintf(control, MAX_CONTROL, "\033[0;%ur", last_row);
+	snprintf(control, MAX_CONTROL, "\033[0;%" PRIun "r", last_row);
 	serial_puts(control);
 }
 

@@ -1,0 +1,6 @@
+{
+	"print1",
+	"String printf test",
+	&test_print1,
+	true
+},

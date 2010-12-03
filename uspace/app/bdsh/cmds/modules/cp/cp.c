@@ -94,7 +94,7 @@ static int64_t copy_file(const char *src, const char *dest,
 	total = lseek(fd1, 0, SEEK_END);
 
 	if (vb)
-		printf("%d bytes to copy\n", total);
+		printf("%" PRIu64 " bytes to copy\n", total);
 
 	lseek(fd1, 0, SEEK_SET);
 
@@ -129,7 +129,7 @@ static int64_t copy_file(const char *src, const char *dest,
 		 * removed as abort() exits the entire shell
 		 */
 		if (res != 0) {
-			printf("\n%d more bytes than actually exist were copied\n", res);
+			printf("\n%zd more bytes than actually exist were copied\n", res);
 			goto err;
 		}
 	}
@@ -186,7 +186,7 @@ int cmd_cp(char **argv)
 			help_cmd_cp(1);
 			return CMD_SUCCESS;
 		case 'v':
-			printf("%d\n", CP_VERSION);
+			printf("%s\n", CP_VERSION);
 			return CMD_SUCCESS;
 		case 'V':
 			verbose = 1;
@@ -222,7 +222,7 @@ int cmd_cp(char **argv)
 	ret = copy_file(argv[optind], argv[optind + 1], buffer, verbose);
 
 	if (verbose)
-		printf("%d bytes copied\n", ret);
+		printf("%" PRId64 " bytes copied\n", ret);
 
 	if (ret >= 0)
 		return CMD_SUCCESS;

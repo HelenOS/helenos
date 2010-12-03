@@ -650,8 +650,14 @@ void add_device(int phone, driver_t *drv, node_t *node, dev_tree_t *tree)
 	ipc_call_t answer;
 	
 	/* Send the device to the driver. */
-	aid_t req = async_send_1(phone, DRIVER_ADD_DEVICE, node->handle,
-	    &answer);
+	devman_handle_t parent_handle;
+	if (node->parent) {
+		parent_handle = node->parent->handle;
+	} else {
+		parent_handle = 0;
+	}
+	aid_t req = async_send_2(phone, DRIVER_ADD_DEVICE, node->handle,
+	    parent_handle, &answer);
 	
 	/* Send the device's name to the driver. */
 	rc = async_data_write_start(phone, node->name,
@@ -1021,7 +1027,7 @@ char *create_dev_name_for_class(dev_class_t *cl, const char *base_dev_name)
 		base_name = cl->base_dev_name;
 	
 	size_t idx = get_new_class_dev_idx(cl);
-	asprintf(&dev_name, "%s%d", base_name, idx);
+	asprintf(&dev_name, "%s%zu", base_name, idx);
 	
 	return dev_name;
 }

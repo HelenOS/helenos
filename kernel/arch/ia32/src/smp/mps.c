@@ -51,8 +51,8 @@
  * MultiProcessor Specification detection code.
  */
 
-#define FS_SIGNATURE  0x5f504d5f
-#define CT_SIGNATURE  0x504d4350
+#define FS_SIGNATURE  UINT32_C(0x5f504d5f)
+#define CT_SIGNATURE  UINT32_C(0x504d4350)
 
 static struct mps_fs *fs;
 static struct mps_ct *ct;
