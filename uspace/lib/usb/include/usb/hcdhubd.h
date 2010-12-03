@@ -153,6 +153,7 @@ int usb_hcd_add_root_hub(usb_hc_device_t *dev);
  * This will probably include only hub drivers.
  */
 
+device_t *usb_hc_connect(device_t *);
 
 int usb_hc_async_interrupt_out(usb_hc_device_t *, usb_target_t,
     void *, size_t, usb_handle_t *);

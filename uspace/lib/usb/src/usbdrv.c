@@ -54,7 +54,7 @@ typedef struct {
 
 /** Connect to host controller the device is physically attached to.
  *
- * @param handle Device handle.
+ * @param dev Device asking for connection.
  * @param flags Connection flags (blocking connection).
  * @return Phone to corresponding HC or error code.
  */
