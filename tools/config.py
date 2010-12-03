@@ -2,6 +2,7 @@
 #
 # Copyright (c) 2006 Ondrej Palkovsky
 # Copyright (c) 2009 Martin Decky
+# Copyright (c) 2010 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -39,12 +40,12 @@ import time
 import subprocess
 import xtui
 
-INPUT = sys.argv[1]
+RULES_FILE = sys.argv[1]
 MAKEFILE = 'Makefile.config'
 MACROS = 'config.h'
-PRECONF = 'defaults'
+PRESETS_DIR = 'defaults'
 
-def read_defaults(fname, defaults):
+def read_config(fname, config):
 	"Read saved values from last configuration run"
 	
 	inf = open(fname, 'r')
@@ -52,11 +53,11 @@ def read_defaults(fname, defaults):
 	for line in inf:
 		res = re.match(r'^(?:#!# )?([^#]\w*)\s*=\s*(.*?)\s*$', line)
 		if (res):
-			defaults[res.group(1)] = res.group(2)
+			config[res.group(1)] = res.group(2)
 	
 	inf.close()
 
-def check_condition(text, defaults, ask_names):
+def check_condition(text, config, rules):
 	"Check that the condition specified on input line is True (only CNF and DNF is supported)"
 	
 	ctype = 'cnf'
@@ -73,7 +74,7 @@ def check_condition(text, defaults, ask_names):
 		if (cond.startswith('(')) and (cond.endswith(')')):
 			cond = cond[1:-1]
 		
-		inside = check_inside(cond, defaults, ctype)
+		inside = check_inside(cond, config, ctype)
 		
 		if (ctype == 'cnf') and (not inside):
 			return False
@@ -85,7 +86,7 @@ def check_condition(text, defaults, ask_names):
 		return True
 	return False
 
-def check_inside(text, defaults, ctype):
+def check_inside(text, config, ctype):
 	"Check for condition"
 	
 	if (ctype == 'cnf'):
@@ -102,10 +103,10 @@ def check_inside(text, defaults, ctype):
 		oper = res.group(2)
 		condval = res.group(3)
 		
-		if (not condname in defaults):
+		if (not condname in config):
 			varval = ''
 		else:
-			varval = defaults[condname]
+			varval = config[condname]
 			if (varval == '*'):
 				varval = 'y'
 		
@@ -127,8 +128,8 @@ def check_inside(text, defaults, ctype):
 	
 	return True
 
-def parse_config(fname, ask_names):
-	"Parse configuration file"
+def parse_rules(fname, rules):
+	"Parse rules file"
 	
 	inf = open(fname, 'r')
 	
@@ -148,7 +149,7 @@ def parse_config(fname, ask_names):
 			varname = res.group(2)
 			vartype = res.group(3)
 			
-			ask_names.append((varname, vartype, name, choices, cond))
+			rules.append((varname, vartype, name, choices, cond))
 			name = ''
 			choices = []
 			continue
@@ -213,26 +214,26 @@ def subchoice(screen, name, choices, default):
 
 ## Infer and verify configuration values.
 #
-# Augment @a defaults with values that can be inferred, purge invalid ones
+# Augment @a config with values that can be inferred, purge invalid ones
 # and verify that all variables have a value (previously specified or inferred).
 #
-# @param defaults	Configuration to work on
-# @param ask_names	Rules
+# @param config	Configuration to work on
+# @param rules	Rules
 #
-# @return		True if configuration is complete and valid, False
-#			otherwise.
+# @return	True if configuration is complete and valid, False
+#		otherwise.
 #
-def infer_verify_choices(defaults, ask_names):
+def infer_verify_choices(config, rules):
 	"Infer and verify configuration values."
 	
-	for varname, vartype, name, choices, cond in ask_names:
-		if ((cond) and (not check_condition(cond, defaults, ask_names))):
+	for varname, vartype, name, choices, cond in rules:
+		if ((cond) and (not check_condition(cond, config, rules))):
 			continue
 		
-		if (not varname in defaults):
+		if (not varname in config):
 			default = None
 		else:
-			default = defaults[varname]
+			default = config[varname]
 
 		if not rule_value_is_valid((varname, vartype, name, choices, cond), default):
 			default = None
@@ -240,9 +241,9 @@ def infer_verify_choices(defaults, ask_names):
 		rdef = rule_get_default((varname, vartype, name, choices, cond))
 		if rdef != None:
 			default = rdef
-			defaults[varname] = rdef
+			config[varname] = rdef
 
-		if (not varname in defaults):
+		if (not varname in config):
 			return False
 	
 	return True
@@ -335,7 +336,7 @@ def rule_value_is_valid(rule, value):
 
 	return True
 
-def create_output(mkname, mcname, defaults, ask_names):
+def create_output(mkname, mcname, config, rules):
 	"Create output configuration"
 	
 	timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
@@ -370,14 +371,14 @@ def create_output(mkname, mcname, defaults, ask_names):
 	
 	defs = 'CONFIG_DEFS ='
 	
-	for varname, vartype, name, choices, cond in ask_names:
-		if ((cond) and (not check_condition(cond, defaults, ask_names))):
+	for varname, vartype, name, choices, cond in rules:
+		if ((cond) and (not check_condition(cond, config, rules))):
 			continue
 		
-		if (not varname in defaults):
+		if (not varname in config):
 			default = ''
 		else:
-			default = defaults[varname]
+			default = config[varname]
 			if (default == '*'):
 				default = 'y'
 		
@@ -410,7 +411,9 @@ def sorted_dir(root):
 	list.sort()
 	return list
 
-def read_preconfigured(root, fname, screen, defaults):
+## Choose a profile and load configuration presets.
+#
+def load_presets(root, fname, screen, config):
 	options = []
 	opt2path = {}
 	cnt = 0
@@ -444,30 +447,30 @@ def read_preconfigured(root, fname, screen, defaults):
 	if (button == 'cancel'):
 		return None
 	
-	read_defaults(opt2path[value][0], defaults)
+	read_config(opt2path[value][0], config)
 	if (opt2path[value][1] != None):
-		read_defaults(opt2path[value][1], defaults)
+		read_config(opt2path[value][1], config)
 
 def main():
-	defaults = {}
-	ask_names = []
+	config = {}
+	rules = []
 	
-	# Parse configuration file
-	parse_config(INPUT, ask_names)
+	# Parse rules file
+	parse_rules(RULES_FILE, rules)
 	
-	# Read defaults from previous run
+	# Read configuration from previous run
 	if os.path.exists(MAKEFILE):
-		read_defaults(MAKEFILE, defaults)
+		read_config(MAKEFILE, config)
 	
-	# Default mode: only check defaults and regenerate configuration
+	# Default mode: only check values and regenerate configuration files
 	if ((len(sys.argv) >= 3) and (sys.argv[2] == 'default')):
-		if (infer_verify_choices(defaults, ask_names)):
-			create_output(MAKEFILE, MACROS, defaults, ask_names)
+		if (infer_verify_choices(config, rules)):
+			create_output(MAKEFILE, MACROS, config, rules)
 			return 0
 	
-	# Check mode: only check defaults
+	# Check mode: only check configuration
 	if ((len(sys.argv) >= 3) and (sys.argv[2] == 'check')):
-		if (infer_verify_choices(defaults, ask_names)):
+		if (infer_verify_choices(config, rules)):
 			return 0
 		return 1
 	
@@ -477,10 +480,10 @@ def main():
 		position = None
 		while True:
 			
-			# Cancel out all defaults which have to be deduced
-			for varname, vartype, name, choices, cond in ask_names:
-				if ((vartype == 'y') and (varname in defaults) and (defaults[varname] == '*')):
-					defaults[varname] = None
+			# Cancel out all values which have to be deduced
+			for varname, vartype, name, choices, cond in rules:
+				if ((vartype == 'y') and (varname in config) and (config[varname] == '*')):
+					config[varname] = None
 			
 			options = []
 			opt2row = {}
@@ -488,19 +491,19 @@ def main():
 			
 			options.append("  --- Load preconfigured defaults ... ")
 			
-			for rule in ask_names:
+			for rule in rules:
 				varname, vartype, name, choices, cond = rule
 				
-				if ((cond) and (not check_condition(cond, defaults, ask_names))):
+				if ((cond) and (not check_condition(cond, config, rules))):
 					continue
 				
 				if (varname == selname):
 					position = cnt
 				
-				if (not varname in defaults):
+				if (not varname in config):
 					default = None
 				else:
-					default = defaults[varname]
+					default = config[varname]
 				
 				if not rule_value_is_valid(rule, default):
 					default = None
@@ -508,7 +511,7 @@ def main():
 				rdef = rule_get_default(rule)
 				if rdef != None:
 					default = rdef
-					defaults[varname] = rdef
+					config[varname] = rdef
 
 				option = rule_get_option(rule, default)
 				if option != None:
@@ -527,14 +530,14 @@ def main():
 				return 'Configuration canceled'
 			
 			if (button == 'done'):
-				if (infer_verify_choices(defaults, ask_names)):
+				if (infer_verify_choices(config, rules)):
 					break
 				else:
 					xtui.error_dialog(screen, 'Error', 'Some options have still undefined values. These options are marked with the "?" sign.')
 					continue
 			
 			if (value == 0):
-				read_preconfigured(PRECONF, MAKEFILE, screen, defaults)
+				load_presets(PRESETS_DIR, MAKEFILE, screen, config)
 				position = 1
 				continue
 			
@@ -544,22 +547,22 @@ def main():
 			
 			(selname, seltype, name, choices) = opt2row[value]
 			
-			if (not selname in defaults):
+			if (not selname in config):
 				default = None
 			else:
-				default = defaults[selname]
+				default = config[selname]
 			
 			if (seltype == 'choice'):
-				defaults[selname] = subchoice(screen, name, choices, default)
+				config[selname] = subchoice(screen, name, choices, default)
 			elif ((seltype == 'y/n') or (seltype == 'n/y')):
-				if (defaults[selname] == 'y'):
-					defaults[selname] = 'n'
+				if (config[selname] == 'y'):
+					config[selname] = 'n'
 				else:
-					defaults[selname] = 'y'
+					config[selname] = 'y'
 	finally:
 		xtui.screen_done(screen)
 	
-	create_output(MAKEFILE, MACROS, defaults, ask_names)
+	create_output(MAKEFILE, MACROS, config, rules)
 	return 0
 
 if __name__ == '__main__':
