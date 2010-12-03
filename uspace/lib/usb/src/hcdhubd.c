@@ -30,7 +30,7 @@
  * @{
  */
 /** @file
- * @brief HC driver and hub driver (implementation).
+ * @brief Common stuff for both HC driver and hub driver.
  */
 #include <usb/hcdhubd.h>
 #include <usb/devreq.h>
@@ -39,126 +39,17 @@
 #include <driver.h>
 #include <bool.h>
 #include <errno.h>
+#include <str_error.h>
 #include <usb/classes/hub.h>
 
-#define USB_HUB_DEVICE_NAME "usbhub"
-
-#define USB_KBD_DEVICE_NAME "hid"
-
-
-
-
-/** List of handled host controllers. */
-static LIST_INITIALIZE(hc_list);
-
-/** Our HC driver. */
-static usb_hc_driver_t *hc_driver = NULL;
-
-static usbhc_iface_t usb_interface = {
-	.interrupt_out = NULL,
-	.interrupt_in = NULL
-};
-
-static device_ops_t usb_device_ops = {
-	.interfaces[USBHC_DEV_IFACE] = &usb_interface
-};
-
-size_t USB_HUB_MAX_DESCRIPTOR_SIZE = 71;
-
-uint8_t USB_HUB_DESCRIPTOR_TYPE = 0x29;
-
-//*********************************************
-//
-//  various utils
-//
-//*********************************************
-
-void * usb_serialize_hub_descriptor(usb_hub_descriptor_t * descriptor) {
-	//base size
-	size_t size = 7;
-	//variable size according to port count
-	size_t var_size = descriptor->ports_count / 8 + ((descriptor->ports_count % 8 > 0) ? 1 : 0);
-	size += 2 * var_size;
-	uint8_t * result = (uint8_t*) malloc(size);
-	//size
-	result[0] = size;
-	//descriptor type
-	result[1] = USB_DESCTYPE_HUB;
-	result[2] = descriptor->ports_count;
-	/// @fixme handling of endianness??
-	result[3] = descriptor->hub_characteristics / 256;
-	result[4] = descriptor->hub_characteristics % 256;
-	result[5] = descriptor->pwr_on_2_good_time;
-	result[6] = descriptor->current_requirement;
-
-	size_t i;
-	for (i = 0; i < var_size; ++i) {
-		result[7 + i] = descriptor->devices_removable[i];
-	}
-	for (i = 0; i < var_size; ++i) {
-		result[7 + var_size + i] = 255;
-	}
-	return result;
-}
-
-usb_hub_descriptor_t * usb_deserialize_hub_desriptor(void * serialized_descriptor) {
-	uint8_t * sdescriptor = (uint8_t*) serialized_descriptor;
-	if (sdescriptor[1] != USB_DESCTYPE_HUB) return NULL;
-	usb_hub_descriptor_t * result = (usb_hub_descriptor_t*) malloc(sizeof (usb_hub_descriptor_t));
-	//uint8_t size = sdescriptor[0];
-	result->ports_count = sdescriptor[2];
-	/// @fixme handling of endianness??
-	result->hub_characteristics = sdescriptor[4] + 256 * sdescriptor[3];
-	result->pwr_on_2_good_time = sdescriptor[5];
-	result->current_requirement = sdescriptor[6];
-	size_t var_size = result->ports_count / 8 + ((result->ports_count % 8 > 0) ? 1 : 0);
-	result->devices_removable = (uint8_t*) malloc(var_size);
-
-	size_t i;
-	for (i = 0; i < var_size; ++i) {
-		result->devices_removable[i] = sdescriptor[7 + i];
-	}
-	return result;
-}
-
-
-//*********************************************
-//
-//  hub driver code
-//
-//*********************************************
-
-static void set_hub_address(usb_hc_device_t *hc, usb_address_t address);
-
-usb_hcd_hub_info_t * usb_create_hub_info(device_t * device) {
-	usb_hcd_hub_info_t* result = (usb_hcd_hub_info_t*) malloc(sizeof (usb_hcd_hub_info_t));
-	//get parent device
-	/// @TODO this code is not correct
-	device_t * my_hcd = device;
-	while (my_hcd->parent)
-		my_hcd = my_hcd->parent;
-	//dev->
-	printf("%s: owner hcd found: %s\n", hc_driver->name, my_hcd->name);
-	//we add the hub into the first hc
-	//link_t *link_hc = hc_list.next;
-	//usb_hc_device_t *hc = list_get_instance(link_hc,
-	//		usb_hc_device_t, link);
-	//must get generic device info
-
-
-	return result;
-}
+#include "hcdhubd_private.h"
 
 /** Callback when new device is detected and must be handled by this driver.
  *
  * @param dev New device.
- * @return Error code.hub added, hurrah!\n"
+ * @return Error code.
  */
 static int add_device(device_t *dev) {
-	/*
-	 * FIXME: use some magic to determine whether hub or another HC
-	 * was connected.
-	 */
 	bool is_hc = str_cmp(dev->name, USB_HUB_DEVICE_NAME) != 0;
 	printf("%s: add_device(name=\"%s\")\n", hc_driver->name, dev->name);
 
@@ -166,207 +57,14 @@ static int add_device(device_t *dev) {
 		/*
 		 * We are the HC itself.
 		 */
-		usb_hc_device_t *hc_dev = malloc(sizeof (usb_hc_device_t));
-		list_initialize(&hc_dev->link);
-		hc_dev->transfer_ops = NULL;
-
-		hc_dev->generic = dev;
-		dev->ops = &usb_device_ops;
-		hc_dev->generic->driver_data = hc_dev;
-
-		int rc = hc_driver->add_hc(hc_dev);
-		if (rc != EOK) {
-			free(hc_dev);
-			return rc;
-		}
-
-		/*
-		 * FIXME: The following line causes devman to hang.
-		 * Will investigate later why.
-		 */
-		// add_device_to_class(dev, "usbhc");
-
-		list_append(&hc_dev->link, &hc_list);
-
-		//add keyboard
-		/// @TODO this is not correct code
-		
-		/*
-		 * Announce presence of child device.
-		 */
-		device_t *kbd = NULL;
-		match_id_t *match_id = NULL;
-
-		kbd = create_device();
-		if (kbd == NULL) {
-			printf("ERROR: enomem\n");
-		}
-		kbd->name = USB_KBD_DEVICE_NAME;
-
-		match_id = create_match_id();
-		if (match_id == NULL) {
-			printf("ERROR: enomem\n");
-		}
-
-		char *id;
-		rc = asprintf(&id, USB_KBD_DEVICE_NAME);
-		if (rc <= 0) {
-			printf("ERROR: enomem\n");
-			return rc;
-		}
-
-		match_id->id = id;
-		match_id->score = 30;
-
-		add_match_id(&kbd->match_ids, match_id);
-
-		rc = child_device_register(kbd, dev);
-		if (rc != EOK) {
-			printf("ERROR: cannot register kbd\n");
-			return rc;
-		}
-
-		printf("%s: registered root hub\n", dev->name);
-		return EOK;
-
-
-
+		return usb_add_hc_device(dev);
 	} else {
-		usb_hc_device_t *hc = list_get_instance(hc_list.next, usb_hc_device_t, link);
-		set_hub_address(hc, 5);
-
 		/*
-		 * We are some (probably deeply nested) hub.
+		 * We are some (maybe deeply nested) hub.
 		 * Thus, assign our own operations and explore already
 		 * connected devices.
 		 */
-		//insert hub into list
-		//find owner hcd
-		device_t * my_hcd = dev;
-		while (my_hcd->parent)
-			my_hcd = my_hcd->parent;
-		//dev->
-		printf("%s: owner hcd found: %s\n", hc_driver->name, my_hcd->name);
-		my_hcd = dev;
-		while (my_hcd->parent)
-			my_hcd = my_hcd->parent;
-		//dev->
-
-		printf("%s: owner hcd found: %s\n", hc_driver->name, my_hcd->name);
-		
-		//create the hub structure
-		usb_hcd_hub_info_t * hub_info = usb_create_hub_info(dev);
-
-
-		//append into the list
-		//we add the hub into the first hc
-		list_append(&hub_info->link, &hc->hubs);
-
-
-
-		return EOK;
-		//return ENOTSUP;
-	}
-}
-
-/** Sample usage of usb_hc_async functions.
- * This function sets hub address using standard SET_ADDRESS request.
- *
- * @warning This function shall be removed once you are familiar with
- * the usb_hc_ API.
- *
- * @param hc Host controller the hub belongs to.
- * @param address New hub address.
- */
-static void set_hub_address(usb_hc_device_t *hc, usb_address_t address) {
-	printf("%s: setting hub address to %d\n", hc->generic->name, address);
-	usb_target_t target = {0, 0};
-	usb_handle_t handle;
-	int rc;
-
-	usb_device_request_setup_packet_t setup_packet = {
-		.request_type = 0,
-		.request = USB_DEVREQ_SET_ADDRESS,
-		.index = 0,
-		.length = 0,
-	};
-	setup_packet.value = address;
-
-	rc = usb_hc_async_control_write_setup(hc, target,
-			&setup_packet, sizeof (setup_packet), &handle);
-	if (rc != EOK) {
-		return;
-	}
-
-	rc = usb_hc_async_wait_for(handle);
-	if (rc != EOK) {
-		return;
-	}
-
-	rc = usb_hc_async_control_write_status(hc, target, &handle);
-	if (rc != EOK) {
-		return;
-	}
-
-	rc = usb_hc_async_wait_for(handle);
-	if (rc != EOK) {
-		return;
-	}
-
-	printf("%s: hub address changed\n", hc->generic->name);
-}
-
-/** Check changes on all known hubs.
- */
-static void check_hub_changes(void) {
-	/*
-	 * Iterate through all HCs.
-	 */
-	link_t *link_hc;
-	for (link_hc = hc_list.next;
-			link_hc != &hc_list;
-			link_hc = link_hc->next) {
-		usb_hc_device_t *hc = list_get_instance(link_hc,
-				usb_hc_device_t, link);
-		/*
-		 * Iterate through all their hubs.
-		 */
-		link_t *link_hub;
-		for (link_hub = hc->hubs.next;
-				link_hub != &hc->hubs;
-				link_hub = link_hub->next) {
-			usb_hcd_hub_info_t *hub = list_get_instance(link_hub,
-					usb_hcd_hub_info_t, link);
-
-			/*
-			 * Check status change pipe of this hub.
-			 */
-			usb_target_t target = {
-				.address = hub->device->address,
-				.endpoint = 1
-			};
-
-			// FIXME: count properly
-			size_t byte_length = (hub->port_count / 8) + 1;
-
-			void *change_bitmap = malloc(byte_length);
-			size_t actual_size;
-			usb_handle_t handle;
-
-			/*
-			 * Send the request.
-			 * FIXME: check returned value for possible errors
-			 */
-			usb_hc_async_interrupt_in(hc, target,
-					change_bitmap, byte_length, &actual_size,
-					&handle);
-
-			usb_hc_async_wait_for(handle);
-
-			/*
-			 * TODO: handle the changes.
-			 */
-		}
+		return usb_add_hub_device(dev);
 	}
 }
 
@@ -392,13 +90,6 @@ int usb_hcd_main(usb_hc_driver_t *hc) {
 	hc_driver_generic.name = hc->name;
 
 	/*
-	 * Launch here fibril that will periodically check all
-	 * attached hubs for status change.
-	 * WARN: This call will effectively do nothing.
-	 */
-	check_hub_changes();
-
-	/*
 	 * Run the device driver framework.
 	 */
 	return driver_main(&hc_driver_generic);
@@ -413,56 +104,130 @@ int usb_hcd_main(usb_hc_driver_t *hc) {
  * @param dev Host controller device.
  * @return Error code.
  */
-int usb_hcd_add_root_hub(usb_hc_device_t *dev) {
+int usb_hcd_add_root_hub(usb_hc_device_t *dev)
+{
+	char *id;
+	int rc = asprintf(&id, "usb&hc=%s&hub", dev->generic->name);
+	if (rc <= 0) {
+		return rc;
+	}
+
+	rc = usb_hc_add_child_device(dev->generic, USB_HUB_DEVICE_NAME, id, true);
+	if (rc != EOK) {
+		free(id);
+	}
+
+	return rc;
+}
+
+/** Info about child device. */
+struct child_device_info {
+	device_t *parent;
+	const char *name;
+	const char *match_id;
+};
+
+/** Adds a child device fibril worker. */
+static int fibril_add_child_device(void *arg)
+{
+	struct child_device_info *child_info
+	    = (struct child_device_info *) arg;
 	int rc;
 
-	/*
-	 * Announce presence of child device.
-	 */
-	device_t *hub = NULL;
+	device_t *child = create_device();
 	match_id_t *match_id = NULL;
 
-	hub = create_device();
-	if (hub == NULL) {
+	if (child == NULL) {
 		rc = ENOMEM;
 		goto failure;
 	}
-	hub->name = USB_HUB_DEVICE_NAME;
+	child->name = child_info->name;
 
 	match_id = create_match_id();
 	if (match_id == NULL) {
 		rc = ENOMEM;
 		goto failure;
 	}
+	match_id->id = child_info->match_id;
+	match_id->score = 10;
+	add_match_id(&child->match_ids, match_id);
 
-	char *id;
-	rc = asprintf(&id, "usb&hc=%s&hub", dev->generic->name);
-	if (rc <= 0) {
-		rc = ENOMEM;
-		goto failure;
-	}
+	printf("%s: adding child device `%s' with match \"%s\"\n",
+	    hc_driver->name, child->name, match_id->id);
+	rc = child_device_register(child, child_info->parent);
+	printf("%s: child device `%s' registration: %s\n",
+	    hc_driver->name, child->name, str_error(rc));
 
-	match_id->id = id;
-	match_id->score = 30;
-
-	add_match_id(&hub->match_ids, match_id);
-
-	rc = child_device_register(hub, dev->generic);
 	if (rc != EOK) {
 		goto failure;
 	}
 
-	printf("%s: registered root hub\n", dev->generic->name);
-	return EOK;
+	goto leave;
 
 failure:
-	if (hub != NULL) {
-		hub->name = NULL;
-		delete_device(hub);
+	if (child != NULL) {
+		child->name = NULL;
+		delete_device(child);
 	}
-	delete_match_id(match_id);
 
-	return rc;
+	if (match_id != NULL) {
+		match_id->id = NULL;
+		delete_match_id(match_id);
+	}
+
+leave:
+	free(arg);
+	return EOK;
+}
+
+/** Adds a child.
+ * Due to deadlock in devman when parent registers child that oughts to be
+ * driven by the same task, the child adding is done in separate fibril.
+ * Not optimal, but it works.
+ * Update: not under all circumstances the new fibril is successful either.
+ * Thus the last parameter to let the caller choose.
+ *
+ * @param parent Parent device.
+ * @param name Device name.
+ * @param match_id Match id.
+ * @param create_fibril Whether to run the addition in new fibril.
+ * @return Error code.
+ */
+int usb_hc_add_child_device(device_t *parent, const char *name,
+    const char *match_id, bool create_fibril)
+{
+	printf("%s: about to add child device `%s' (%s)\n", hc_driver->name,
+	    name, match_id);
+
+	struct child_device_info *child_info
+	    = malloc(sizeof(struct child_device_info));
+
+	child_info->parent = parent;
+	child_info->name = name;
+	child_info->match_id = match_id;
+
+	if (create_fibril) {
+		fid_t fibril = fibril_create(fibril_add_child_device, child_info);
+		if (!fibril) {
+			return ENOMEM;
+		}
+		fibril_add_ready(fibril);
+	} else {
+		fibril_add_child_device(child_info);
+	}
+
+	return EOK;
+}
+
+/** Tell USB address of given device.
+ *
+ * @param handle Devman handle of the device.
+ * @return USB device address or error code.
+ */
+usb_address_t usb_get_address_by_handle(devman_handle_t handle)
+{
+	/* TODO: search list of attached devices. */
+	return ENOENT;
 }
 
 /**
