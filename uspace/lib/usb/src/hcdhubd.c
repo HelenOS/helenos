@@ -107,7 +107,7 @@ int usb_hcd_main(usb_hc_driver_t *hc) {
 int usb_hcd_add_root_hub(usb_hc_device_t *dev)
 {
 	char *id;
-	int rc = asprintf(&id, "usb&hc=%s&hub", dev->generic->name);
+	int rc = asprintf(&id, "usb&hc=%s&hub", hc_driver->name);
 	if (rc <= 0) {
 		return rc;
 	}
@@ -133,6 +133,8 @@ static int fibril_add_child_device(void *arg)
 	struct child_device_info *child_info
 	    = (struct child_device_info *) arg;
 	int rc;
+
+	async_usleep(1000);
 
 	device_t *child = create_device();
 	match_id_t *match_id = NULL;
@@ -198,6 +200,12 @@ int usb_hc_add_child_device(device_t *parent, const char *name,
 {
 	printf("%s: about to add child device `%s' (%s)\n", hc_driver->name,
 	    name, match_id);
+
+	/*
+	 * Seems that creating fibril which postpones the action
+	 * is the best solution.
+	 */
+	create_fibril = true;
 
 	struct child_device_info *child_info
 	    = malloc(sizeof(struct child_device_info));
