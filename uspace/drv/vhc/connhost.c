@@ -147,12 +147,6 @@ static int enqueue_transfer_in(device_t *dev,
 }
 
 
-static int get_address(device_t *dev, devman_handle_t handle,
-    usb_address_t *address)
-{
-	return ENOTSUP;
-}
-
 static int interrupt_out(device_t *dev, usb_target_t target,
     void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
@@ -225,11 +219,12 @@ static int control_read_status(device_t *dev, usb_target_t target,
 
 
 usbhc_iface_t vhc_iface = {
-	.tell_address = get_address,
+	.tell_address = tell_address,
 
 	.reserve_default_address = reserve_default_address,
 	.release_default_address = release_default_address,
 	.request_address = request_address,
+	.bind_address = bind_address,
 	.release_address = release_address,
 
 	.interrupt_out = interrupt_out,
