@@ -135,6 +135,22 @@ usb_address_t usb_drv_request_address(int phone)
 	}
 }
 
+/** Inform HC about binding address with devman handle.
+ *
+ * @param phone Open phone to host controller driver.
+ * @param address Address to be binded.
+ * @param handle Devman handle of the device.
+ * @return Error code.
+ */
+int usb_drv_bind_address(int phone, usb_address_t address,
+    devman_handle_t handle)
+{
+	int rc = async_req_2_0(phone, IPC_M_USBHC_BIND_ADDRESS,
+	    address, handle);
+
+	return rc;
+}
+
 /** Inform HC about address release.
  *
  * @param phone Open phone to host controller driver.

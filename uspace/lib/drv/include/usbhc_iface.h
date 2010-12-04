@@ -136,6 +136,16 @@ typedef enum {
 	 */
 	IPC_M_USBHC_REQUEST_ADDRESS,
 
+	/** Bind USB address with devman handle.
+	 * Parameters:
+	 * - USB address
+	 * - devman handle
+	 * Answer:
+	 * - EOK - address binded
+	 * - ENOENT - address is not in use
+	 */
+	IPC_M_USBHC_BIND_ADDRESS,
+
 	/** Release address in use.
 	 * Arguments:
 	 * - address to be released
@@ -222,6 +232,7 @@ typedef struct {
 	int (*reserve_default_address)(device_t *);
 	int (*release_default_address)(device_t *);
 	int (*request_address)(device_t *, usb_address_t *);
+	int (*bind_address)(device_t *, usb_address_t, devman_handle_t);
 	int (*release_address)(device_t *, usb_address_t);
 
 	usbhc_iface_transfer_out_t interrupt_out;
