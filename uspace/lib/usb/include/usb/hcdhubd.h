@@ -145,7 +145,7 @@ typedef struct {
 
 
 int usb_hcd_main(usb_hc_driver_t *);
-int usb_hcd_add_root_hub(usb_hc_device_t *dev);
+int usb_hcd_add_root_hub(device_t *dev);
 
 
 /*

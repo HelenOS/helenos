@@ -30,24 +30,16 @@
  * @{
  */
 /** @file
- * @brief Connection handling of incoming calls.
+ * @brief UHCI driver
  */
-#ifndef VHCD_CONN_H_
-#define VHCD_CONN_H_
+#ifndef DRV_UHCI_UHCI_H
+#define DRV_UHCI_UHCI_H
 
-#include <usb/usb.h>
-#include <usb/hcdhubd.h>
 #include <usbhc_iface.h>
-#include "vhcd.h"
-#include "devices.h"
 
-void connection_handler_host(ipcarg_t);
+#define NAME "uhci"
 
-usb_hcd_transfer_ops_t vhc_transfer_ops;
-usbhc_iface_t vhc_iface;
-
-void default_connection_handler(device_t *, ipc_callid_t, ipc_call_t *);
-
+usbhc_iface_t uhci_iface;
 
 #endif
 /**

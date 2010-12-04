@@ -30,24 +30,14 @@
  * @{
  */
 /** @file
- * @brief Connection handling of incoming calls.
+ * @brief Hub driver.
  */
-#ifndef VHCD_CONN_H_
-#define VHCD_CONN_H_
+#ifndef DRV_USBHUB_USBHUB_H
+#define DRV_USBHUB_USBHUB_H
 
-#include <usb/usb.h>
-#include <usb/hcdhubd.h>
-#include <usbhc_iface.h>
-#include "vhcd.h"
-#include "devices.h"
+#define NAME "usbhub"
 
-void connection_handler_host(ipcarg_t);
-
-usb_hcd_transfer_ops_t vhc_transfer_ops;
-usbhc_iface_t vhc_iface;
-
-void default_connection_handler(device_t *, ipc_callid_t, ipc_call_t *);
-
+int usb_add_hub_device(device_t *);
 
 #endif
 /**

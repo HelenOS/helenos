@@ -50,22 +50,7 @@
  * @return Error code.
  */
 static int add_device(device_t *dev) {
-	bool is_hc = str_cmp(dev->name, USB_HUB_DEVICE_NAME) != 0;
-	printf("%s: add_device(name=\"%s\")\n", hc_driver->name, dev->name);
-
-	if (is_hc) {
-		/*
-		 * We are the HC itself.
-		 */
-		return usb_add_hc_device(dev);
-	} else {
-		/*
-		 * We are some (maybe deeply nested) hub.
-		 * Thus, assign our own operations and explore already
-		 * connected devices.
-		 */
-		return usb_add_hub_device(dev);
-	}
+	return ENOTSUP;
 }
 
 /** Operations for combined HC and HUB driver. */
@@ -104,15 +89,15 @@ int usb_hcd_main(usb_hc_driver_t *hc) {
  * @param dev Host controller device.
  * @return Error code.
  */
-int usb_hcd_add_root_hub(usb_hc_device_t *dev)
+int usb_hcd_add_root_hub(device_t *dev)
 {
 	char *id;
-	int rc = asprintf(&id, "usb&hc=%s&hub", hc_driver->name);
+	int rc = asprintf(&id, "usb&hub");
 	if (rc <= 0) {
 		return rc;
 	}
 
-	rc = usb_hc_add_child_device(dev->generic, USB_HUB_DEVICE_NAME, id, true);
+	rc = usb_hc_add_child_device(dev, USB_HUB_DEVICE_NAME, id, true);
 	if (rc != EOK) {
 		free(id);
 	}

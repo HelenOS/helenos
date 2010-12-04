@@ -32,15 +32,16 @@
 /** @file
  * @brief Hub driver.
  */
-#include <usb/hcdhubd.h>
+#include <driver.h>
 #include <usb/devreq.h>
 #include <usbhc_iface.h>
+#include <usb/usbdrv.h>
 #include <usb/descriptor.h>
 #include <driver.h>
 #include <bool.h>
 #include <errno.h>
 #include <usb/classes/hub.h>
-#include "hcdhubd_private.h"
+#include "usbhub.h"
 
 static void check_hub_changes(void);
 
@@ -107,23 +108,10 @@ usb_hub_descriptor_t * usb_deserialize_hub_desriptor(void * serialized_descripto
 //
 //*********************************************
 
-static void set_hub_address(usb_hc_device_t *hc, usb_address_t address);
+static void set_hub_address(device_t *dev, usb_address_t address);
 
 usb_hcd_hub_info_t * usb_create_hub_info(device_t * device) {
 	usb_hcd_hub_info_t* result = (usb_hcd_hub_info_t*) malloc(sizeof (usb_hcd_hub_info_t));
-	//get parent device
-	/// @TODO this code is not correct
-	device_t * my_hcd = device;
-	while (my_hcd->parent)
-		my_hcd = my_hcd->parent;
-	//dev->
-	printf("%s: owner hcd found: %s\n", hc_driver->name, my_hcd->name);
-	//we add the hub into the first hc
-	//link_t *link_hc = hc_list.next;
-	//usb_hc_device_t *hc = list_get_instance(link_hc,
-	//		usb_hc_device_t, link);
-	//must get generic device info
-
 
 	return result;
 }
@@ -134,8 +122,8 @@ usb_hcd_hub_info_t * usb_create_hub_info(device_t * device) {
  * @return Error code.
  */
 int usb_add_hub_device(device_t *dev) {
-	usb_hc_device_t *hc = list_get_instance(hc_list.next, usb_hc_device_t, link);
-	set_hub_address(hc, 5);
+	printf(NAME ": add_hub_device(handle=%d)\n", (int) dev->handle);
+	set_hub_address(dev, 5);
 
 	check_hub_changes();
 
@@ -144,29 +132,10 @@ int usb_add_hub_device(device_t *dev) {
 	 * Thus, assign our own operations and explore already
 	 * connected devices.
 	 */
-	//insert hub into list
-	//find owner hcd
-	device_t * my_hcd = dev;
-	while (my_hcd->parent)
-		my_hcd = my_hcd->parent;
-	//dev->
-	printf("%s: owner hcd found: %s\n", hc_driver->name, my_hcd->name);
-	my_hcd = dev;
-	while (my_hcd->parent)
-		my_hcd = my_hcd->parent;
-	//dev->
-
-	printf("%s: owner hcd found: %s\n", hc_driver->name, my_hcd->name);
 
 	//create the hub structure
 	usb_hcd_hub_info_t * hub_info = usb_create_hub_info(dev);
-
-
-	//append into the list
-	//we add the hub into the first hc
-	list_append(&hub_info->link, &hc->hubs);
-
-
+	(void)hub_info;
 
 	return EOK;
 	//return ENOTSUP;
@@ -181,8 +150,8 @@ int usb_add_hub_device(device_t *dev) {
  * @param hc Host controller the hub belongs to.
  * @param address New hub address.
  */
-static void set_hub_address(usb_hc_device_t *hc, usb_address_t address) {
-	printf("%s: setting hub address to %d\n", hc->generic->name, address);
+static void set_hub_address(device_t *dev, usb_address_t address) {
+	printf(NAME ": setting hub address to %d\n", address);
 	usb_target_t target = {0, 0};
 	usb_handle_t handle;
 	int rc;
@@ -195,81 +164,83 @@ static void set_hub_address(usb_hc_device_t *hc, usb_address_t address) {
 	};
 	setup_packet.value = address;
 
-	rc = usb_hc_async_control_write_setup(hc, target,
+	int hc = usb_drv_hc_connect(dev, 0);
+
+	rc = usb_drv_async_control_write_setup(hc, target,
 			&setup_packet, sizeof (setup_packet), &handle);
 	if (rc != EOK) {
 		return;
 	}
 
-	rc = usb_hc_async_wait_for(handle);
+	rc = usb_drv_async_wait_for(handle);
 	if (rc != EOK) {
 		return;
 	}
 
-	rc = usb_hc_async_control_write_status(hc, target, &handle);
+	rc = usb_drv_async_control_write_status(hc, target, &handle);
 	if (rc != EOK) {
 		return;
 	}
 
-	rc = usb_hc_async_wait_for(handle);
+	rc = usb_drv_async_wait_for(handle);
 	if (rc != EOK) {
 		return;
 	}
 
-	printf("%s: hub address changed\n", hc->generic->name);
+	printf(NAME ": hub address changed\n");
 }
 
 /** Check changes on all known hubs.
  */
 static void check_hub_changes(void) {
 	/*
-	 * Iterate through all HCs.
+	 * Iterate through all hubs.
 	 */
-	link_t *link_hc;
-	for (link_hc = hc_list.next;
-			link_hc != &hc_list;
-			link_hc = link_hc->next) {
-		usb_hc_device_t *hc = list_get_instance(link_hc,
-				usb_hc_device_t, link);
+	for (; false; ) {
 		/*
-		 * Iterate through all their hubs.
+		 * Check status change pipe of this hub.
 		 */
-		link_t *link_hub;
-		for (link_hub = hc->hubs.next;
-				link_hub != &hc->hubs;
-				link_hub = link_hub->next) {
-			usb_hcd_hub_info_t *hub = list_get_instance(link_hub,
-					usb_hcd_hub_info_t, link);
+		usb_target_t target = {
+			.address = 5,
+			.endpoint = 1
+		};
 
-			/*
-			 * Check status change pipe of this hub.
-			 */
-			usb_target_t target = {
-				.address = hub->device->address,
-				.endpoint = 1
-			};
+		size_t port_count = 7;
 
-			// FIXME: count properly
-			size_t byte_length = (hub->port_count / 8) + 1;
-
-			void *change_bitmap = malloc(byte_length);
-			size_t actual_size;
-			usb_handle_t handle;
-
-			/*
-			 * Send the request.
-			 * FIXME: check returned value for possible errors
-			 */
-			usb_hc_async_interrupt_in(hc, target,
-					change_bitmap, byte_length, &actual_size,
-					&handle);
-
-			usb_hc_async_wait_for(handle);
-
-			/*
-			 * TODO: handle the changes.
-			 */
+		/*
+		 * Connect to respective HC.
+		 */
+		int hc = usb_drv_hc_connect(NULL, 0);
+		if (hc < 0) {
+			continue;
 		}
+
+		// FIXME: count properly
+		size_t byte_length = (port_count / 8) + 1;
+
+		void *change_bitmap = malloc(byte_length);
+		size_t actual_size;
+		usb_handle_t handle;
+
+		/*
+		 * Send the request.
+		 * FIXME: check returned value for possible errors
+		 */
+		usb_drv_async_interrupt_in(hc, target,
+				change_bitmap, byte_length, &actual_size,
+				&handle);
+
+		usb_drv_async_wait_for(handle);
+
+		/*
+		 * TODO: handle the changes.
+		 */
+
+
+		/*
+		 * Hang-up the HC-connected phone.
+		 */
+		ipc_hangup(hc);
 	}
 }
 

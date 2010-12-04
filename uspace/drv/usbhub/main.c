@@ -25,31 +25,21 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#include <usb/usbdrv.h>
+#include <driver.h>
+#include <errno.h>
+#include "usbhub.h"
 
-/** @addtogroup usb
- * @{
- */
-/** @file
- * @brief Connection handling of incoming calls.
- */
-#ifndef VHCD_CONN_H_
-#define VHCD_CONN_H_
+static driver_ops_t hub_driver_ops = {
+	.add_device = usb_add_hub_device,
+};
 
-#include <usb/usb.h>
-#include <usb/hcdhubd.h>
-#include <usbhc_iface.h>
-#include "vhcd.h"
-#include "devices.h"
+static driver_t hub_driver = {
+	.name = "usbhub",
+	.driver_ops = &hub_driver_ops
+};
 
-void connection_handler_host(ipcarg_t);
-
-usb_hcd_transfer_ops_t vhc_transfer_ops;
-usbhc_iface_t vhc_iface;
-
-void default_connection_handler(device_t *, ipc_callid_t, ipc_call_t *);
-
-
-#endif
-/**
- * @}
- */
+int main(int argc, char *argv[])
+{
+	return driver_main(&hub_driver);
+}

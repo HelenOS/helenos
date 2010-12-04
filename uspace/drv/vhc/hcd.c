@@ -51,9 +51,13 @@
 #include "hub.h"
 #include "conn.h"
 
+static device_ops_t vhc_ops = {
+	.interfaces[USBHC_DEV_IFACE] = &vhc_iface,
+	.default_handler = default_connection_handler
+};
 
 static int vhc_count = 0;
-static int vhc_add_device(usb_hc_device_t *dev)
+static int vhc_add_device(device_t *dev)
 {
 	/*
 	 * Currently, we know how to simulate only single HC.
@@ -64,8 +68,7 @@ static int vhc_add_device(usb_hc_device_t *dev)
 
 	vhc_count++;
 
-	dev->transfer_ops = &vhc_transfer_ops;
-	dev->generic->ops->default_handler = default_connection_handler;
+	dev->ops = &vhc_ops;
 
 	/*
 	 * Initialize our hub and announce its presence.
@@ -78,9 +81,13 @@ static int vhc_add_device(usb_hc_device_t *dev)
 	return EOK;
 }
 
-static usb_hc_driver_t vhc_driver = {
+static driver_ops_t vhc_driver_ops = {
+	.add_device = vhc_add_device,
+};
+
+static driver_t vhc_driver = {
 	.name = NAME,
-	.add_hc = &vhc_add_device
+	.driver_ops = &vhc_driver_ops
 };
 
 /** Fibril wrapper for HC transaction manager.
@@ -113,7 +120,7 @@ int main(int argc, char * argv[])
 	 */
 	sleep(4);
 
-	return usb_hcd_main(&vhc_driver);
+	return driver_main(&vhc_driver);
 }
 
 
