@@ -48,6 +48,7 @@
 
 typedef struct {
 	usb_address_t address;
+	devman_handle_t devman_handle;
 	bool available;
 } address_info_t;
 
@@ -68,6 +69,7 @@ void address_init(void)
 	for (i = 0; i < ADDRESS_COUNT; i++) {
 		dev_address[i].address = i + 1;
 		dev_address[i].available = true;
+		dev_address[i].devman_handle = 0;
 	}
 
 	fibril_mutex_initialize(&address_guard);
@@ -119,6 +121,51 @@ int request_address(device_t *dev, usb_address_t *address)
 	}
 }
 
+int bind_address(device_t *dev, usb_address_t address, devman_handle_t handle)
+{
+	if (address == DEFAULT_ADDRESS) {
+		return EPERM;
+	}
+
+	int rc = EPERM;
+
+	fibril_mutex_lock(&address_guard);
+	usb_address_t i;
+	for (i = 0; i < ADDRESS_COUNT; i++) {
+		if (dev_address[i].address == address) {
+			if (dev_address[i].available) {
+				rc = ENOENT;
+				break;
+			}
+
+			dev_address[i].devman_handle = handle;
+			rc = EOK;
+			break;
+		}
+	}
+	fibril_mutex_unlock(&address_guard);
+
+	return rc;
+}
+
+int tell_address(device_t *dev, devman_handle_t handle, usb_address_t *address)
+{
+	int rc = ENOENT;
+
+	fibril_mutex_lock(&address_guard);
+	usb_address_t i;
+	for (i = 0; i < ADDRESS_COUNT; i++) {
+		if (dev_address[i].devman_handle == handle) {
+			*address = dev_address[i].address;
+			rc = EOK;
+			break;
+		}
+	}
+	fibril_mutex_unlock(&address_guard);
+
+	return rc;
+}
+
 int release_address(device_t *dev, usb_address_t address)
 {
 	if (address == DEFAULT_ADDRESS) {
@@ -137,6 +184,7 @@ int release_address(device_t *dev, usb_address_t address)
 			}
 
 			dev_address[i].available = true;
+			dev_address[i].devman_handle = 0;
 			rc = EOK;
 			break;
 		}

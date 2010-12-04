@@ -51,7 +51,9 @@ int reserve_default_address(device_t *);
 int release_default_address(device_t *);
 int request_address(device_t *, usb_address_t *);
 int release_address(device_t *, usb_address_t);
+int bind_address(device_t *, usb_address_t, devman_handle_t);
 
+int tell_address(device_t *, devman_handle_t, usb_address_t *);
 
 void default_connection_handler(device_t *, ipc_callid_t, ipc_call_t *);
 

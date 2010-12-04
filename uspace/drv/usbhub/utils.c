@@ -185,6 +185,54 @@ static void check_hub_changes(void) {
 		 * TODO: handle the changes.
 		 */
 
+		/*
+		 * WARNING: sample code, will not work out of the box.
+		 * And does not contain code for checking for errors.
+		 */
+#if 0
+		/*
+		 * Before opening the port, we must acquire the default
+		 * address.
+		 */
+		usb_drv_reserve_default_address(hc);
+
+		usb_address_t new_device_address = usb_drv_request_address(hc);
+
+		// TODO: open the port
+
+		// TODO: send request for setting address to new_device_address
+
+		/*
+		 * Once new address is set, we can release the default
+		 * address.
+		 */
+		usb_drv_release_default_address(hc);
+
+		/*
+		 * Obtain descriptors and create match ids for devman.
+		 */
+
+		// TODO: get device descriptors
+
+		// TODO: create match ids
+
+		// TODO: add child device
+
+		// child_device_register sets the device handle
+		// TODO: store it here
+		devman_handle_t new_device_handle = 0;
+
+		/*
+		 * Inform the HC that the new device has devman handle
+		 * assigned.
+		 */
+		usb_drv_bind_address(hc, new_device_address, new_device_handle);
+
+		/*
+		 * That's all.
+		 */
+#endif
+
 
 		/*
 		 * Hang-up the HC-connected phone.
