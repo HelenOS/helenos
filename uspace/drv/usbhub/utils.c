@@ -108,8 +108,6 @@ usb_hub_descriptor_t * usb_deserialize_hub_desriptor(void * serialized_descripto
 //
 //*********************************************
 
-static void set_hub_address(device_t *dev, usb_address_t address);
-
 usb_hcd_hub_info_t * usb_create_hub_info(device_t * device) {
 	usb_hcd_hub_info_t* result = (usb_hcd_hub_info_t*) malloc(sizeof (usb_hcd_hub_info_t));
 
@@ -123,7 +121,6 @@ usb_hcd_hub_info_t * usb_create_hub_info(device_t * device) {
  */
 int usb_add_hub_device(device_t *dev) {
 	printf(NAME ": add_hub_device(handle=%d)\n", (int) dev->handle);
-	set_hub_address(dev, 5);
 
 	check_hub_changes();
 
@@ -141,54 +138,6 @@ int usb_add_hub_device(device_t *dev) {
 	//return ENOTSUP;
 }
 
-/** Sample usage of usb_hc_async functions.
- * This function sets hub address using standard SET_ADDRESS request.
- *
- * @warning This function shall be removed once you are familiar with
- * the usb_hc_ API.
- *
- * @param hc Host controller the hub belongs to.
- * @param address New hub address.
- */
-static void set_hub_address(device_t *dev, usb_address_t address) {
-	printf(NAME ": setting hub address to %d\n", address);
-	usb_target_t target = {0, 0};
-	usb_handle_t handle;
-	int rc;
-
-	usb_device_request_setup_packet_t setup_packet = {
-		.request_type = 0,
-		.request = USB_DEVREQ_SET_ADDRESS,
-		.index = 0,
-		.length = 0,
-	};
-	setup_packet.value = address;
-
-	int hc = usb_drv_hc_connect(dev, 0);
-
-	rc = usb_drv_async_control_write_setup(hc, target,
-			&setup_packet, sizeof (setup_packet), &handle);
-	if (rc != EOK) {
-		return;
-	}
-
-	rc = usb_drv_async_wait_for(handle);
-	if (rc != EOK) {
-		return;
-	}
-
-	rc = usb_drv_async_control_write_status(hc, target, &handle);
-	if (rc != EOK) {
-		return;
-	}
-
-	rc = usb_drv_async_wait_for(handle);
-	if (rc != EOK) {
-		return;
-	}
-
-	printf(NAME ": hub address changed\n");
-}
 
 /** Check changes on all known hubs.
  */

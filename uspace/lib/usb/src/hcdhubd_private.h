@@ -46,6 +46,31 @@ extern usbhc_iface_t usbhc_interface;
 usb_address_t usb_get_address_by_handle(devman_handle_t);
 int usb_add_hc_device(device_t *);
 
+/** lowest allowed usb address */
+extern int usb_lowest_address;
+
+/** highest allowed usb address */
+extern int usb_highest_address;
+
+/**
+ * @brief initialize address list of given hcd
+ *
+ * This function should be used only for hcd initialization.
+ * It creates interval list of free addresses, thus it is initialized as
+ * list with one interval with whole address space. Using an address shrinks
+ * the interval, freeing an address extends an interval or creates a
+ * new one. 
+ *
+ * @param hcd
+ * @return
+ */
+void  usb_create_address_list(usb_hc_device_t * hcd);
+
+
+
+
+
+
 #endif
 /**
  * @}
