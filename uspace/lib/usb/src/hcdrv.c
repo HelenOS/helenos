@@ -46,8 +46,13 @@
 /** List of handled host controllers. */
 LIST_INITIALIZE(hc_list);
 
+/* Fake driver to have the name item initialized. */
+static usb_hc_driver_t hc_driver_fake = {
+	.name = "HCD",
+};
+
 /** Our HC driver. */
-usb_hc_driver_t *hc_driver = NULL;
+usb_hc_driver_t *hc_driver = &hc_driver_fake;
 
 int usb_lowest_address = 1;
 
@@ -85,6 +90,7 @@ static usb_hc_device_t *usb_hc_device_create(device_t *dev) {
 
 int usb_add_hc_device(device_t *dev)
 {
+	return ENOTSUP;
 	usb_hc_device_t *hc_dev = usb_hc_device_create(dev);
 
 	int rc = hc_driver->add_hc(hc_dev);

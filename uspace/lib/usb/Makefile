@@ -34,7 +34,6 @@ EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include -Iinclude
 SOURCES = \
 	src/hcdhubd.c \
 	src/hcdrv.c \
-	src/hubdrv.c \
 	src/localdrv.c \
 	src/remotedrv.c \
 	src/usb.c \

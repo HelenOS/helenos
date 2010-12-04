@@ -165,7 +165,7 @@ typedef struct {
 
 
 int usb_hcd_main(usb_hc_driver_t *);
-int usb_hcd_add_root_hub(usb_hc_device_t *dev);
+int usb_hcd_add_root_hub(device_t *dev);
 
 /**
  * find first not yet used address on this host controller and use it
@@ -190,6 +190,7 @@ void usb_free_used_address(usb_hc_device_t * this_hcd, usb_address_t addr );
  * This will probably include only hub drivers.
  */
 
+device_t *usb_hc_connect(device_t *);
 
 int usb_hc_async_interrupt_out(usb_hc_device_t *, usb_target_t,
     void *, size_t, usb_handle_t *);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Martin Decky
+ * Copyright (c) 2010 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,27 +26,22 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef BOOT_mips32_ARCH_H_
-#define BOOT_mips32_ARCH_H_
+/** @addtogroup usb
+ * @{
+ */
+/** @file
+ * @brief UHCI driver
+ */
+#ifndef DRV_UHCI_UHCI_H
+#define DRV_UHCI_UHCI_H
 
-#define PAGE_WIDTH  14
-#define PAGE_SIZE   (1 << PAGE_WIDTH)
+#include <usbhc_iface.h>
 
-#define CPUMAP_OFFSET    0x00001000
-#define STACK_OFFSET     0x00002000
-#define BOOTINFO_OFFSET  0x00003000
-#define BOOT_OFFSET      0x00100000
-#define LOADER_OFFSET    0x1fc00000
+#define NAME "uhci"
 
-#define MSIM_VIDEORAM_ADDRESS  0xb0000000
-#define MSIM_DORDER_ADDRESS    0xb0000100
-
-#ifndef __ASM__
-	#define PA2KA(addr)    (((uintptr_t) (addr)) + 0x80000000)
-	#define KSEG2PA(addr)  (((uintptr_t) (addr)) - 0xa0000000)
-#else
-	#define PA2KA(addr)    ((addr) + 0x80000000)
-	#define KSEG2PA(addr)  ((addr) - 0xa0000000)
-#endif
+usbhc_iface_t uhci_iface;
 
 #endif
+/**
+ * @}
+ */

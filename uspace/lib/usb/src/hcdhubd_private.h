@@ -45,7 +45,6 @@ extern usbhc_iface_t usbhc_interface;
 
 usb_address_t usb_get_address_by_handle(devman_handle_t);
 int usb_add_hc_device(device_t *);
-int usb_add_hub_device(device_t *);
 
 /** lowest allowed usb address */
 extern int usb_lowest_address;

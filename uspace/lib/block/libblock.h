@@ -72,8 +72,10 @@ typedef struct block {
 	fibril_rwlock_t contents_lock;
 	/** Handle of the device where the block resides. */
 	devmap_handle_t devmap_handle;
-	/** Block offset on the block device. Counted in 'size'-byte blocks. */
-	aoff64_t boff;
+	/** Logical block address */
+	aoff64_t lba;
+	/** Physical block address */
+	aoff64_t pba;
 	/** Size of the block. */
 	size_t size;
 	/** Link for placing the block into the free block list. */

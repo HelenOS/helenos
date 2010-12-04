@@ -38,6 +38,31 @@
 #include <bool.h>
 #include <errno.h>
 
+/** Find host controller when handled by current task.
+ *
+ * @param dev Device asking for connection.
+ * @return Device structure corresponding to parent host controller.
+ * @retval NULL Corresponding host controller not found.
+ */
+device_t *usb_hc_connect(device_t *dev)
+{
+	/*
+	 * FIXME: this will not work when some hub on the path is
+	 * not driven by the same task.
+	 */
+	device_t *parent = dev;
+	while (parent->parent != NULL) {
+		parent = parent->parent;
+	}
+	
+	if (dev == parent) {
+		printf("FIXME in %s:%d encountered!\n", __FILE__, __LINE__);
+		parent = NULL;
+	}
+
+	return parent;
+}
+
 /** Information about pending transaction on HC. */
 typedef struct {
 	/** Storage for actual number of bytes transferred. */

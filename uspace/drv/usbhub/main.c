@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Martin Decky
+ * Copyright (c) 2010 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,28 +25,21 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#include <usb/usbdrv.h>
+#include <driver.h>
+#include <errno.h>
+#include "usbhub.h"
 
-#ifndef BOOT_mips32_ARCH_H_
-#define BOOT_mips32_ARCH_H_
+static driver_ops_t hub_driver_ops = {
+	.add_device = usb_add_hub_device,
+};
 
-#define PAGE_WIDTH  14
-#define PAGE_SIZE   (1 << PAGE_WIDTH)
+static driver_t hub_driver = {
+	.name = "usbhub",
+	.driver_ops = &hub_driver_ops
+};
 
-#define CPUMAP_OFFSET    0x00001000
-#define STACK_OFFSET     0x00002000
-#define BOOTINFO_OFFSET  0x00003000
-#define BOOT_OFFSET      0x00100000
-#define LOADER_OFFSET    0x1fc00000
-
-#define MSIM_VIDEORAM_ADDRESS  0xb0000000
-#define MSIM_DORDER_ADDRESS    0xb0000100
-
-#ifndef __ASM__
-	#define PA2KA(addr)    (((uintptr_t) (addr)) + 0x80000000)
-	#define KSEG2PA(addr)  (((uintptr_t) (addr)) - 0xa0000000)
-#else
-	#define PA2KA(addr)    ((addr) + 0x80000000)
-	#define KSEG2PA(addr)  ((addr) - 0xa0000000)
-#endif
-
-#endif
+int main(int argc, char *argv[])
+{
+	return driver_main(&hub_driver);
+}

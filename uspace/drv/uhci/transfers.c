@@ -25,66 +25,10 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-/** @addtogroup usb
- * @{
- */
-/** @file
- * @brief Connection handling of calls from host (implementation).
- */
-#include <assert.h>
+#include <usb/hcdhubd.h>
 #include <errno.h>
-#include <usb/usb.h>
 
-#include "vhcd.h"
-#include "conn.h"
-#include "hc.h"
-
-typedef struct {
-	usb_direction_t direction;
-	usbhc_iface_transfer_out_callback_t out_callback;
-	usbhc_iface_transfer_in_callback_t in_callback;
-	device_t *dev;
-	void *arg;
-} transfer_info_t;
-
-static void universal_callback(void *buffer, size_t size,
-    usb_transaction_outcome_t outcome, void *arg)
-{
-	transfer_info_t *transfer = (transfer_info_t *) arg;
-
-	switch (transfer->direction) {
-		case USB_DIRECTION_IN:
-			transfer->in_callback(transfer->dev,
-			    size, outcome,
-			    transfer->arg);
-			break;
-		case USB_DIRECTION_OUT:
-			transfer->out_callback(transfer->dev,
-			    outcome,
-			    transfer->arg);
-			break;
-		default:
-			assert(false && "unreachable");
-			break;
-	}
-
-	free(transfer);
-}
-
-static transfer_info_t *create_transfer_info(device_t *dev,
-    usb_direction_t direction, void *arg)
-{
-	transfer_info_t *transfer = malloc(sizeof(transfer_info_t));
-
-	transfer->direction = direction;
-	transfer->in_callback = NULL;
-	transfer->out_callback = NULL;
-	transfer->arg = arg;
-	transfer->dev = dev;
-
-	return transfer;
-}
+#include "uhci.h"
 
 static int enqueue_transfer_out(device_t *dev,
     usb_target_t target, usb_transfer_type_t transfer_type,
@@ -96,14 +40,7 @@ static int enqueue_transfer_out(device_t *dev,
 	    usb_str_transfer_type(transfer_type),
 	    size);
 
-	transfer_info_t *transfer
-	    = create_transfer_info(dev, USB_DIRECTION_OUT, arg);
-	transfer->out_callback = callback;
-
-	hc_add_transaction_to_device(false, target, buffer, size,
-	    universal_callback, transfer);
-
-	return EOK;
+	return ENOTSUP;
 }
 
 static int enqueue_transfer_setup(device_t *dev,
@@ -116,14 +53,7 @@ static int enqueue_transfer_setup(device_t *dev,
 	    usb_str_transfer_type(transfer_type),
 	    size);
 
-	transfer_info_t *transfer
-	    = create_transfer_info(dev, USB_DIRECTION_OUT, arg);
-	transfer->out_callback = callback;
-
-	hc_add_transaction_to_device(true, target, buffer, size,
-	    universal_callback, transfer);
-
-	return EOK;
+	return ENOTSUP;
 }
 
 static int enqueue_transfer_in(device_t *dev,
@@ -136,16 +66,15 @@ static int enqueue_transfer_in(device_t *dev,
 	    usb_str_transfer_type(transfer_type),
 	    size);
 
-	transfer_info_t *transfer
-	    = create_transfer_info(dev, USB_DIRECTION_IN, arg);
-	transfer->in_callback = callback;
-
-	hc_add_transaction_from_device(target, buffer, size,
-	    universal_callback, transfer);
-
-	return EOK;
+	return ENOTSUP;
 }
 
+
+static int get_address(device_t *dev, devman_handle_t handle,
+    usb_address_t *address)
+{
+	return ENOTSUP;
+}
 
 static int interrupt_out(device_t *dev, usb_target_t target,
     void *data, size_t size,
@@ -218,27 +147,14 @@ static int control_read_status(device_t *dev, usb_target_t target,
 }
 
 
-usbhc_iface_t vhc_iface = {
-	.tell_address = tell_address,
-
-	.reserve_default_address = reserve_default_address,
-	.release_default_address = release_default_address,
-	.request_address = request_address,
-	.bind_address = bind_address,
-	.release_address = release_address,
-
+usbhc_iface_t uhci_iface = {
+	.tell_address = get_address,
 	.interrupt_out = interrupt_out,
 	.interrupt_in = interrupt_in,
-
 	.control_write_setup = control_write_setup,
 	.control_write_data = control_write_data,
 	.control_write_status = control_write_status,
-
 	.control_read_setup = control_read_setup,
 	.control_read_data = control_read_data,
 	.control_read_status = control_read_status
 };
-
-/**
- * @}
- */
