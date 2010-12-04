@@ -26,50 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusb usb
+/** @addtogroup usb
  * @{
  */
 /** @file
- * @brief Common definitions for both HC driver and hub driver.
+ * @brief Hub driver.
  */
-#ifndef LIBUSB_HCDHUBD_PRIVATE_H_
-#define LIBUSB_HCDHUBD_PRIVATE_H_
+#ifndef DRV_USBHUB_USBHUB_H
+#define DRV_USBHUB_USBHUB_H
 
-#define USB_HUB_DEVICE_NAME "usbhub"
-#define USB_KBD_DEVICE_NAME "hid"
+#define NAME "usbhub"
 
-extern link_t hc_list;
-extern usb_hc_driver_t *hc_driver;
-
-extern usbhc_iface_t usbhc_interface;
-
-usb_address_t usb_get_address_by_handle(devman_handle_t);
-int usb_add_hc_device(device_t *);
-
-/** lowest allowed usb address */
-extern int usb_lowest_address;
-
-/** highest allowed usb address */
-extern int usb_highest_address;
-
-/**
- * @brief initialize address list of given hcd
- *
- * This function should be used only for hcd initialization.
- * It creates interval list of free addresses, thus it is initialized as
- * list with one interval with whole address space. Using an address shrinks
- * the interval, freeing an address extends an interval or creates a
- * new one. 
- *
- * @param hcd
- * @return
- */
-void  usb_create_address_list(usb_hc_device_t * hcd);
-
-
-
-
-
+int usb_add_hub_device(device_t *);
 
 #endif
 /**

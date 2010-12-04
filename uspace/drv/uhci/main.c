@@ -27,52 +27,15 @@
  */
 #include <usb/hcdhubd.h>
 #include <errno.h>
+#include "uhci.h"
 
-static int enqueue_transfer_out(usb_hc_device_t *hc,
-    usb_hcd_attached_device_info_t *dev, usb_hc_endpoint_info_t *endpoint,
-    void *buffer, size_t size,
-    usb_hcd_transfer_callback_out_t callback, void *arg)
-{
-	printf("UHCI: transfer OUT [%d.%d (%s); %u]\n",
-	    dev->address, endpoint->endpoint,
-	    usb_str_transfer_type(endpoint->transfer_type),
-	    size);
-	return ENOTSUP;
-}
-
-static int enqueue_transfer_setup(usb_hc_device_t *hc,
-    usb_hcd_attached_device_info_t *dev, usb_hc_endpoint_info_t *endpoint,
-    void *buffer, size_t size,
-    usb_hcd_transfer_callback_out_t callback, void *arg)
-{
-	printf("UHCI: transfer SETUP [%d.%d (%s); %u]\n",
-	    dev->address, endpoint->endpoint,
-	    usb_str_transfer_type(endpoint->transfer_type),
-	    size);
-	return ENOTSUP;
-}
-
-static int enqueue_transfer_in(usb_hc_device_t *hc,
-    usb_hcd_attached_device_info_t *dev, usb_hc_endpoint_info_t *endpoint,
-    void *buffer, size_t size,
-    usb_hcd_transfer_callback_in_t callback, void *arg)
-{
-	printf("UHCI: transfer IN [%d.%d (%s); %u]\n",
-	    dev->address, endpoint->endpoint,
-	    usb_str_transfer_type(endpoint->transfer_type),
-	    size);
-	return ENOTSUP;
-}
-
-static usb_hcd_transfer_ops_t uhci_transfer_ops = {
-	.transfer_out = enqueue_transfer_out,
-	.transfer_in = enqueue_transfer_in,
-	.transfer_setup = enqueue_transfer_setup
+static device_ops_t uhci_ops = {
+	.interfaces[USBHC_DEV_IFACE] = &uhci_iface,
 };
 
-static int uhci_add_hc(usb_hc_device_t *device)
+static int uhci_add_device(device_t *device)
 {
-	device->transfer_ops = &uhci_transfer_ops;
+	device->ops = &uhci_ops;
 
 	/*
 	 * We need to announce the presence of our root hub.
@@ -82,9 +45,13 @@ static int uhci_add_hc(usb_hc_device_t *device)
 	return EOK;
 }
 
-usb_hc_driver_t uhci_driver = {
-	.name = "uhci",
-	.add_hc = uhci_add_hc
+static driver_ops_t uhci_driver_ops = {
+	.add_device = uhci_add_device,
+};
+
+static driver_t uhci_driver = {
+	.name = NAME,
+	.driver_ops = &uhci_driver_ops
 };
 
 int main(int argc, char *argv[])
@@ -92,6 +59,7 @@ int main(int argc, char *argv[])
 	/*
 	 * Do some global initializations.
 	 */
+	sleep(5);
 
-	return usb_hcd_main(&uhci_driver);
+	return driver_main(&uhci_driver);
 }

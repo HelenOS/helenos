@@ -40,6 +40,11 @@
 
 int usb_drv_hc_connect(device_t *, unsigned int);
 
+int usb_drv_reserve_default_address(int);
+int usb_drv_release_default_address(int);
+usb_address_t usb_drv_request_address(int);
+int usb_drv_release_address(int, usb_address_t);
+
 usb_address_t usb_drv_get_my_address(int, device_t *);
 
 int usb_drv_async_interrupt_out(int, usb_target_t,

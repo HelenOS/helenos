@@ -29,10 +29,10 @@
 USPACE_PREFIX = ../..
 LIBS = $(LIBDRV_PREFIX)/libdrv.a $(LIBUSB_PREFIX)/libusb.a
 EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include -I$(LIBUSB_PREFIX)/include
-BINARY = uhci
+BINARY = usbhub
 
 SOURCES = \
 	main.c \
-	transfers.c
+	utils.c
 
 include $(USPACE_PREFIX)/Makefile.common
