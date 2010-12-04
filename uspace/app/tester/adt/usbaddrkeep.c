@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Martin Decky
+ * Copyright (c) 2010 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,66 +26,41 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup tester
- * @{
- */
-/** @file
- */
+#include <stdio.h>
+#include <stdlib.h>
+#include <usb/hcd.h>
+#include <errno.h>
+#include "../tester.h"
 
-#ifndef TESTER_H_
-#define TESTER_H_
+#define MAX_ADDRESS 5
 
-#include <sys/types.h>
-#include <bool.h>
-#include <ipc/ipc.h>
 
-#define IPC_TEST_SERVICE  10240
-#define IPC_TEST_METHOD   2000
+const char *test_usbaddrkeep(void)
+{
+	int rc;
+	usb_address_keeping_t addresses;
 
-extern bool test_quiet;
-extern int test_argc;
-extern char **test_argv;
-
-#define TPRINTF(format, ...) \
-	{ \
-		if (!test_quiet) { \
-			fprintf(stderr, format, ##__VA_ARGS__); \
-		} \
+	TPRINTF("Initializing addresses keeping structure...\n");
+	usb_address_keeping_init(&addresses, MAX_ADDRESS);
+	
+	TPRINTF("Requesting address...\n");
+	usb_address_t addr = usb_address_keeping_request(&addresses);
+	TPRINTF("Address assigned: %d\n", (int) addr);
+	if (addr != 1) {
+		return "have not received expected address 1";
 	}
 
-typedef const char *(*test_entry_t)(void);
+	TPRINTF("Releasing not assigned address...\n");
+	rc = usb_address_keeping_release(&addresses, 2);
+	if (rc != ENOENT) {
+		return "have not received expected ENOENT";
+	}
 
-typedef struct {
-	const char *name;
-	const char *desc;
-	test_entry_t entry;
-	bool safe;
-} test_t;
+	TPRINTF("Releasing acquired address...\n");
+	rc = usb_address_keeping_release(&addresses, addr);
+	if (rc != EOK) {
+		return "have not received expected EOK";
+	}
 
-extern const char *test_thread1(void);
-extern const char *test_print1(void);
-extern const char *test_print2(void);
-extern const char *test_print3(void);
-extern const char *test_print4(void);
-extern const char *test_print5(void);
-extern const char *test_console1(void);
-extern const char *test_stdio1(void);
-extern const char *test_stdio2(void);
-extern const char *test_fault1(void);
-extern const char *test_fault2(void);
-extern const char *test_fault3(void);
-extern const char *test_vfs1(void);
-extern const char *test_ping_pong(void);
-extern const char *test_register(void);
-extern const char *test_connect(void);
-extern const char *test_loop1(void);
-extern const char *test_malloc1(void);
-extern const char *test_serial1(void);
-extern const char *test_usbaddrkeep(void);
-
-extern test_t tests[];
-
-#endif
-
-/** @}
- */
+	return NULL;
+}

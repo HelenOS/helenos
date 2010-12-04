@@ -30,8 +30,12 @@
 USPACE_PREFIX = ../..
 BINARY = tester
 
+LIBS += $(LIBUSB_PREFIX)/libusb.a
+EXTRA_CFLAGS += -I$(LIBUSB_PREFIX)/include
+
 SOURCES = \
 	tester.c \
+	adt/usbaddrkeep.c \
 	thread/thread1.c \
 	print/print1.c \
 	print/print2.c \

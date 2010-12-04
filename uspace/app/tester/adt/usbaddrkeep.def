@@ -1,0 +1,6 @@
+{
+	"usbaddrkeep",
+	"USB address keeping structure",
+	&test_usbaddrkeep,
+	true
+},
