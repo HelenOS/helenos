@@ -226,11 +226,19 @@ static int control_read_status(device_t *dev, usb_target_t target,
 
 usbhc_iface_t vhc_iface = {
 	.tell_address = get_address,
+
+	.reserve_default_address = reserve_default_address,
+	.release_default_address = release_default_address,
+	.request_address = request_address,
+	.release_address = release_address,
+
 	.interrupt_out = interrupt_out,
 	.interrupt_in = interrupt_in,
+
 	.control_write_setup = control_write_setup,
 	.control_write_data = control_write_data,
 	.control_write_status = control_write_status,
+
 	.control_read_setup = control_read_setup,
 	.control_read_data = control_read_data,
 	.control_read_status = control_read_status

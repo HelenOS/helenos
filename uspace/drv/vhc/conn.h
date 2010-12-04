@@ -46,6 +46,13 @@ void connection_handler_host(ipcarg_t);
 usb_hcd_transfer_ops_t vhc_transfer_ops;
 usbhc_iface_t vhc_iface;
 
+void address_init(void);
+int reserve_default_address(device_t *);
+int release_default_address(device_t *);
+int request_address(device_t *, usb_address_t *);
+int release_address(device_t *, usb_address_t);
+
+
 void default_connection_handler(device_t *, ipc_callid_t, ipc_call_t *);
 
 

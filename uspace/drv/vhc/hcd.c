@@ -71,6 +71,11 @@ static int vhc_add_device(device_t *dev)
 	dev->ops = &vhc_ops;
 
 	/*
+	 * Initialize address management.
+	 */
+	address_init();
+
+	/*
 	 * Initialize our hub and announce its presence.
 	 */
 	hub_init();
