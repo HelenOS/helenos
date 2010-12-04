@@ -51,17 +51,31 @@ static void remote_usbhc_control_write_status(device_t *, void *, ipc_callid_t, 
 static void remote_usbhc_control_read_setup(device_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbhc_control_read_data(device_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbhc_control_read_status(device_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usbhc_reserve_default_address(device_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usbhc_release_default_address(device_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usbhc_request_address(device_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usbhc_release_address(device_t *, void *, ipc_callid_t, ipc_call_t *);
 //static void remote_usbhc(device_t *, void *, ipc_callid_t, ipc_call_t *);
 
 /** Remote USB interface operations. */
 static remote_iface_func_ptr_t remote_usbhc_iface_ops [] = {
 	remote_usbhc_get_address,
+
 	remote_usbhc_get_buffer,
+
+	remote_usbhc_reserve_default_address,
+	remote_usbhc_release_default_address,
+
+	remote_usbhc_request_address,
+	remote_usbhc_release_address,
+
 	remote_usbhc_interrupt_out,
 	remote_usbhc_interrupt_in,
+
 	remote_usbhc_control_write_setup,
 	remote_usbhc_control_write_data,
 	remote_usbhc_control_write_status,
+
 	remote_usbhc_control_read_setup,
 	remote_usbhc_control_read_data,
 	remote_usbhc_control_read_status
@@ -133,6 +147,72 @@ void remote_usbhc_get_buffer(device_t *device, void *iface,
 
 	free(trans->buffer);
 	free(trans);
+}
+
+void remote_usbhc_reserve_default_address(device_t *device, void *iface,
+    ipc_callid_t callid, ipc_call_t *call)
+{
+	usbhc_iface_t *usb_iface = (usbhc_iface_t *) iface;
+
+	if (!usb_iface->reserve_default_address) {
+		ipc_answer_0(callid, ENOTSUP);
+		return;
+	}
+
+	int rc = usb_iface->reserve_default_address(device);
+
+	ipc_answer_0(callid, rc);
+}
+
+void remote_usbhc_release_default_address(device_t *device, void *iface,
+    ipc_callid_t callid, ipc_call_t *call)
+{
+	usbhc_iface_t *usb_iface = (usbhc_iface_t *) iface;
+
+	if (!usb_iface->release_default_address) {
+		ipc_answer_0(callid, ENOTSUP);
+		return;
+	}
+
+	int rc = usb_iface->release_default_address(device);
+
+	ipc_answer_0(callid, rc);
+}
+
+void remote_usbhc_request_address(device_t *device, void *iface,
+    ipc_callid_t callid, ipc_call_t *call)
+{
+	usbhc_iface_t *usb_iface = (usbhc_iface_t *) iface;
+
+	if (!usb_iface->request_address) {
+		ipc_answer_0(callid, ENOTSUP);
+		return;
+	}
+
+	usb_address_t address;
+	int rc = usb_iface->request_address(device, &address);
+	if (rc != EOK) {
+		ipc_answer_0(callid, rc);
+	} else {
+		ipc_answer_1(callid, EOK, (ipcarg_t) address);
+	}
+}
+
+void remote_usbhc_release_address(device_t *device, void *iface,
+    ipc_callid_t callid, ipc_call_t *call)
+{
+	usbhc_iface_t *usb_iface = (usbhc_iface_t *) iface;
+
+	if (!usb_iface->release_address) {
+		ipc_answer_0(callid, ENOTSUP);
+		return;
+	}
+
+	usb_address_t address = (usb_address_t) IPC_GET_ARG1(*call);
+
+	int rc = usb_iface->release_address(device, address);
+
+	ipc_answer_0(callid, rc);
 }
 
 

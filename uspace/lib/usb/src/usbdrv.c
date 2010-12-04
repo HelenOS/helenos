@@ -99,6 +99,53 @@ usb_address_t usb_drv_get_my_address(int phone, device_t *dev)
 	return (usb_address_t) address;
 }
 
+/** Tell HC to reserve default address.
+ *
+ * @param phone Open phone to host controller driver.
+ * @return Error code.
+ */
+int usb_drv_reserve_default_address(int phone)
+{
+	return async_req_0_0(phone, IPC_M_USBHC_RESERVE_DEFAULT_ADDRESS);
+}
+
+/** Tell HC to release default address.
+ *
+ * @param phone Open phone to host controller driver.
+ * @return Error code.
+ */
+int usb_drv_release_default_address(int phone)
+{
+	return async_req_0_0(phone, IPC_M_USBHC_RELEASE_DEFAULT_ADDRESS);
+}
+
+/** Ask HC for free address assignment.
+ *
+ * @param phone Open phone to host controller driver.
+ * @return Assigned USB address or negative error code.
+ */
+usb_address_t usb_drv_request_address(int phone)
+{
+	ipcarg_t address;
+	int rc = async_req_0_1(phone, IPC_M_USBHC_REQUEST_ADDRESS, &address);
+	if (rc != EOK) {
+		return rc;
+	} else {
+		return (usb_address_t) address;
+	}
+}
+
+/** Inform HC about address release.
+ *
+ * @param phone Open phone to host controller driver.
+ * @param address Address to be released.
+ * @return Error code.
+ */
+int usb_drv_release_address(int phone, usb_address_t address)
+{
+	return async_req_1_0(phone, IPC_M_USBHC_RELEASE_ADDRESS, address);
+}
+
 /** Send data to HCD.
  *
  * @param phone Phone to HC.
