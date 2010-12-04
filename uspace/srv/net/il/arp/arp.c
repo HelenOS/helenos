@@ -71,12 +71,37 @@
 /** ARP module name. */
 #define NAME  "arp"
 
+/** Number of microseconds to wait for an ARP reply. */
+#define ARP_TRANS_WAIT	1000000
+
 /** ARP global data. */
 arp_globals_t arp_globals;
 
 DEVICE_MAP_IMPLEMENT(arp_cache, arp_device_t);
 INT_MAP_IMPLEMENT(arp_protos, arp_proto_t);
-GENERIC_CHAR_MAP_IMPLEMENT(arp_addr, measured_string_t);
+GENERIC_CHAR_MAP_IMPLEMENT(arp_addr, arp_trans_t);
+
+static void arp_clear_trans(arp_trans_t *trans)
+{
+	if (trans->hw_addr) {
+		free(trans->hw_addr);
+		trans->hw_addr = NULL;
+	}
+	fibril_condvar_broadcast(&trans->cv);
+}
+
+static void arp_clear_addr(arp_addr_t *addresses)
+{
+	int count;
+	arp_trans_t *trans;
+
+	for (count = arp_addr_count(addresses) - 1; count >= 0; count--) {
+		trans = arp_addr_items_get_index(&addresses->values, count);
+		if (trans)
+			arp_clear_trans(trans);
+	}
+}
+
 
 /** Clears the device specific data.
  *
@@ -95,6 +120,7 @@ static void arp_clear_device(arp_device_t *device)
 				free(proto->addr);
 			if (proto->addr_data)
 				free(proto->addr_data);
+			arp_clear_addr(&proto->addresses);
 			arp_addr_destroy(&proto->addresses);
 		}
 	}
@@ -106,7 +132,7 @@ static int arp_clean_cache_req(int arp_phone)
 	int count;
 	arp_device_t *device;
 
-	fibril_rwlock_write_lock(&arp_globals.lock);
+	fibril_mutex_lock(&arp_globals.lock);
 	for (count = arp_cache_count(&arp_globals.cache) - 1; count >= 0;
 	    count--) {
 		device = arp_cache_get_index(&arp_globals.cache, count);
@@ -119,7 +145,7 @@ static int arp_clean_cache_req(int arp_phone)
 		}
 	}
 	arp_cache_clear(&arp_globals.cache);
-	fibril_rwlock_write_unlock(&arp_globals.lock);
+	fibril_mutex_unlock(&arp_globals.lock);
 	printf("Cache cleaned\n");
 	return EOK;
 }
@@ -129,20 +155,24 @@ static int arp_clear_address_req(int arp_phone, device_id_t device_id,
 {
 	arp_device_t *device;
 	arp_proto_t *proto;
+	arp_trans_t *trans;
 
-	fibril_rwlock_write_lock(&arp_globals.lock);
+	fibril_mutex_lock(&arp_globals.lock);
 	device = arp_cache_find(&arp_globals.cache, device_id);
 	if (!device) {
-		fibril_rwlock_write_unlock(&arp_globals.lock);
+		fibril_mutex_unlock(&arp_globals.lock);
 		return ENOENT;
 	}
 	proto = arp_protos_find(&device->protos, protocol);
 	if (!proto) {
-		fibril_rwlock_write_unlock(&arp_globals.lock);
+		fibril_mutex_unlock(&arp_globals.lock);
 		return ENOENT;
 	}
+	trans = arp_addr_find(&proto->addresses, address->value, address->length);
+	if (trans)
+		arp_clear_trans(trans);
 	arp_addr_exclude(&proto->addresses, address->value, address->length);
-	fibril_rwlock_write_unlock(&arp_globals.lock);
+	fibril_mutex_unlock(&arp_globals.lock);
 	return EOK;
 }
 
@@ -151,15 +181,15 @@ static int arp_clear_device_req(int arp_phone, device_id_t device_id)
 {
 	arp_device_t *device;
 
-	fibril_rwlock_write_lock(&arp_globals.lock);
+	fibril_mutex_lock(&arp_globals.lock);
 	device = arp_cache_find(&arp_globals.cache, device_id);
 	if (!device) {
-		fibril_rwlock_write_unlock(&arp_globals.lock);
+		fibril_mutex_unlock(&arp_globals.lock);
 		return ENOENT;
 	}
 	arp_clear_device(device);
 	printf("Device %d cleared\n", device_id);
-	fibril_rwlock_write_unlock(&arp_globals.lock);
+	fibril_mutex_unlock(&arp_globals.lock);
 	return EOK;
 }
 
@@ -220,7 +250,7 @@ static int arp_device_message(device_id_t device_id, services_t service,
 	int index;
 	int rc;
 
-	fibril_rwlock_write_lock(&arp_globals.lock);
+	fibril_mutex_lock(&arp_globals.lock);
 
 	/* An existing device? */
 	device = arp_cache_find(&arp_globals.cache, device_id);
@@ -228,7 +258,7 @@ static int arp_device_message(device_id_t device_id, services_t service,
 	if (device) {
 		if (device->service != service) {
 			printf("Device %d already exists\n", device->device_id);
-			fibril_rwlock_write_unlock(&arp_globals.lock);
+			fibril_mutex_unlock(&arp_globals.lock);
 			return EEXIST;
 		}
 		proto = arp_protos_find(&device->protos, protocol);
@@ -240,13 +270,13 @@ static int arp_device_message(device_id_t device_id, services_t service,
 		} else {
 			rc = arp_proto_create(&proto, protocol, address);
 			if (rc != EOK) {
-				fibril_rwlock_write_unlock(&arp_globals.lock);
+				fibril_mutex_unlock(&arp_globals.lock);
 				return rc;
 			}
 			index = arp_protos_add(&device->protos, proto->service,
 			    proto);
 			if (index < 0) {
-				fibril_rwlock_write_unlock(&arp_globals.lock);
+				fibril_mutex_unlock(&arp_globals.lock);
 				free(proto);
 				return index;
 			}
@@ -261,26 +291,26 @@ static int arp_device_message(device_id_t device_id, services_t service,
 		/* Create a new device */
 		device = (arp_device_t *) malloc(sizeof(arp_device_t));
 		if (!device) {
-			fibril_rwlock_write_unlock(&arp_globals.lock);
+			fibril_mutex_unlock(&arp_globals.lock);
 			return ENOMEM;
 		}
 		device->hardware = hardware;
 		device->device_id = device_id;
 		rc = arp_protos_initialize(&device->protos);
 		if (rc != EOK) {
-			fibril_rwlock_write_unlock(&arp_globals.lock);
+			fibril_mutex_unlock(&arp_globals.lock);
 			free(device);
 			return rc;
 		}
 		rc = arp_proto_create(&proto, protocol, address);
 		if (rc != EOK) {
-			fibril_rwlock_write_unlock(&arp_globals.lock);
+			fibril_mutex_unlock(&arp_globals.lock);
 			free(device);
 			return rc;
 		}
 		index = arp_protos_add(&device->protos, proto->service, proto);
 		if (index < 0) {
-			fibril_rwlock_write_unlock(&arp_globals.lock);
+			fibril_mutex_unlock(&arp_globals.lock);
 			arp_protos_destroy(&device->protos);
 			free(device);
 			return index;
@@ -292,7 +322,7 @@ static int arp_device_message(device_id_t device_id, services_t service,
 		    (ipcarg_t) device->device_id, SERVICE_ARP,
 		    arp_globals.client_connection);
 		if (device->phone < 0) {
-			fibril_rwlock_write_unlock(&arp_globals.lock);
+			fibril_mutex_unlock(&arp_globals.lock);
 			arp_protos_destroy(&device->protos);
 			free(device);
 			return EREFUSED;
@@ -302,7 +332,7 @@ static int arp_device_message(device_id_t device_id, services_t service,
 		rc = nil_packet_size_req(device->phone, device_id,
 		    &device->packet_dimension);
 		if (rc != EOK) {
-			fibril_rwlock_write_unlock(&arp_globals.lock);
+			fibril_mutex_unlock(&arp_globals.lock);
 			arp_protos_destroy(&device->protos);
 			free(device);
 			return rc;
@@ -312,7 +342,7 @@ static int arp_device_message(device_id_t device_id, services_t service,
 		rc = nil_get_addr_req(device->phone, device_id, &device->addr,
 		    &device->addr_data);
 		if (rc != EOK) {
-			fibril_rwlock_write_unlock(&arp_globals.lock);
+			fibril_mutex_unlock(&arp_globals.lock);
 			arp_protos_destroy(&device->protos);
 			free(device);
 			return rc;
@@ -322,7 +352,7 @@ static int arp_device_message(device_id_t device_id, services_t service,
 		rc = nil_get_broadcast_addr_req(device->phone, device_id,
 		    &device->broadcast_addr, &device->broadcast_data);
 		if (rc != EOK) {
-			fibril_rwlock_write_unlock(&arp_globals.lock);
+			fibril_mutex_unlock(&arp_globals.lock);
 			free(device->addr);
 			free(device->addr_data);
 			arp_protos_destroy(&device->protos);
@@ -333,7 +363,7 @@ static int arp_device_message(device_id_t device_id, services_t service,
 		rc = arp_cache_add(&arp_globals.cache, device->device_id,
 		    device);
 		if (rc != EOK) {
-			fibril_rwlock_write_unlock(&arp_globals.lock);
+			fibril_mutex_unlock(&arp_globals.lock);
 			free(device->addr);
 			free(device->addr_data);
 			free(device->broadcast_addr);
@@ -346,7 +376,7 @@ static int arp_device_message(device_id_t device_id, services_t service,
 		    " proto: %d)\n", NAME, device->device_id, device->hardware,
 		    device->service, protocol);
 	}
-	fibril_rwlock_write_unlock(&arp_globals.lock);
+	fibril_mutex_unlock(&arp_globals.lock);
 	
 	return EOK;
 }
@@ -362,11 +392,11 @@ int arp_initialize(async_client_conn_t client_connection)
 {
 	int rc;
 
-	fibril_rwlock_initialize(&arp_globals.lock);
-	fibril_rwlock_write_lock(&arp_globals.lock);
+	fibril_mutex_initialize(&arp_globals.lock);
+	fibril_mutex_lock(&arp_globals.lock);
 	arp_globals.client_connection = client_connection;
 	rc = arp_cache_initialize(&arp_globals.cache);
-	fibril_rwlock_write_unlock(&arp_globals.lock);
+	fibril_mutex_unlock(&arp_globals.lock);
 	
 	return rc;
 }
@@ -382,14 +412,14 @@ static int arp_mtu_changed_message(device_id_t device_id, size_t mtu)
 {
 	arp_device_t *device;
 
-	fibril_rwlock_write_lock(&arp_globals.lock);
+	fibril_mutex_lock(&arp_globals.lock);
 	device = arp_cache_find(&arp_globals.cache, device_id);
 	if (!device) {
-		fibril_rwlock_write_unlock(&arp_globals.lock);
+		fibril_mutex_unlock(&arp_globals.lock);
 		return ENOENT;
 	}
 	device->packet_dimension.content = mtu;
-	fibril_rwlock_write_unlock(&arp_globals.lock);
+	fibril_mutex_unlock(&arp_globals.lock);
 	printf("arp - device %d changed mtu to %d\n\n", device_id, mtu);
 	return EOK;
 }
@@ -420,7 +450,7 @@ static int arp_receive_message(device_id_t device_id, packet_t *packet)
 	arp_header_t *header;
 	arp_device_t *device;
 	arp_proto_t *proto;
-	measured_string_t *hw_source;
+	arp_trans_t *trans;
 	uint8_t *src_hw;
 	uint8_t *src_proto;
 	uint8_t *des_hw;
@@ -451,15 +481,15 @@ static int arp_receive_message(device_id_t device_id, packet_t *packet)
 	src_proto = src_hw + header->hardware_length;
 	des_hw = src_proto + header->protocol_length;
 	des_proto = des_hw + header->hardware_length;
-	hw_source = arp_addr_find(&proto->addresses, (char *) src_proto,
+	trans = arp_addr_find(&proto->addresses, (char *) src_proto,
 	    CONVERT_SIZE(uint8_t, char, header->protocol_length));
 	/* Exists? */
-	if (hw_source) {
-		if (hw_source->length != CONVERT_SIZE(uint8_t, char,
+	if (trans && trans->hw_addr) {
+		if (trans->hw_addr->length != CONVERT_SIZE(uint8_t, char,
 		    header->hardware_length)) {
 			return EINVAL;
 		}
-		memcpy(hw_source->value, src_hw, hw_source->length);
+		memcpy(trans->hw_addr->value, src_hw, trans->hw_addr->length);
 	}
 	/* Is my protocol address? */
 	if (proto->addr->length != CONVERT_SIZE(uint8_t, char,
@@ -469,18 +499,29 @@ static int arp_receive_message(device_id_t device_id, packet_t *packet)
 	if (!str_lcmp(proto->addr->value, (char *) des_proto,
 	    proto->addr->length)) {
 		/* Not already updated? */
-		if (!hw_source) {
-			hw_source = measured_string_create_bulk((char *) src_hw,
-			    CONVERT_SIZE(uint8_t, char,
+		if (!trans) {
+			trans = (arp_trans_t *) malloc(sizeof(arp_trans_t));
+			if (!trans)
+				return ENOMEM;
+			trans->hw_addr = NULL;
+			fibril_condvar_initialize(&trans->cv);
+			rc = arp_addr_add(&proto->addresses, (char *) src_proto,
+			    CONVERT_SIZE(uint8_t, char, header->protocol_length),
+			    trans);
+			if (rc != EOK) {
+				/* The generic char map has already freed trans! */
+				return rc;
+			}
+		}
+		if (!trans->hw_addr) {
+			trans->hw_addr = measured_string_create_bulk(
+			    (char *) src_hw, CONVERT_SIZE(uint8_t, char,
 			    header->hardware_length));
-			if (!hw_source)
+			if (!trans->hw_addr)
 				return ENOMEM;
 
-			rc = arp_addr_add(&proto->addresses, (char *) src_proto,
-			    CONVERT_SIZE(uint8_t, char,
-			    header->protocol_length), hw_source);
-			if (rc != EOK)
-				return rc;
+			/* Notify the fibrils that wait for the translation. */
+			fibril_condvar_broadcast(&trans->cv);
 		}
 		if (ntohs(header->operation) == ARPOP_REQUEST) {
 			header->operation = htons(ARPOP_REPLY);
@@ -489,7 +530,7 @@ static int arp_receive_message(device_id_t device_id, packet_t *packet)
 			    header->protocol_length);
 			memcpy(src_hw, device->addr->value,
 			    device->packet_dimension.addr_len);
-			memcpy(des_hw, hw_source->value,
+			memcpy(des_hw, trans->hw_addr->value,
 			    header->hardware_length);
 			
 			rc = packet_set_addr(packet, src_hw, des_hw,
@@ -526,12 +567,14 @@ arp_translate_message(device_id_t device_id, services_t protocol,
 {
 	arp_device_t *device;
 	arp_proto_t *proto;
-	measured_string_t *addr;
+	arp_trans_t *trans;
 	size_t length;
 	packet_t *packet;
 	arp_header_t *header;
+	bool retry = false;
 	int rc;
 
+restart:
 	if (!target || !translation)
 		return EBADMEM;
 
@@ -543,11 +586,23 @@ arp_translate_message(device_id_t device_id, services_t protocol,
 	if (!proto || (proto->addr->length != target->length))
 		return ENOENT;
 
-	addr = arp_addr_find(&proto->addresses, target->value, target->length);
-	if (addr) {
-		*translation = addr;
-		return EOK;
+	trans = arp_addr_find(&proto->addresses, target->value, target->length);
+	if (trans) {
+		if (trans->hw_addr) {
+			*translation = trans->hw_addr;
+			return EOK;
+		}
+		if (retry)
+			return EAGAIN;
+		rc = fibril_condvar_wait_timeout(&trans->cv, &arp_globals.lock,
+		    ARP_TRANS_WAIT);
+		if (rc == ETIMEOUT)
+			return ENOENT;
+		retry = true;
+		goto restart;
 	}
+	if (retry)
+		return EAGAIN;
 
 	/* ARP packet content size = header + (address + translation) * 2 */
 	length = 8 + 2 * (CONVERT_SIZE(char, uint8_t, proto->addr->length) +
@@ -592,7 +647,25 @@ arp_translate_message(device_id_t device_id, services_t protocol,
 	}
 
 	nil_send_msg(device->phone, device_id, packet, SERVICE_ARP);
-	return EAGAIN;
+
+	trans = (arp_trans_t *) malloc(sizeof(arp_trans_t));
+	if (!trans)
+		return ENOMEM;
+	trans->hw_addr = NULL;
+	fibril_condvar_initialize(&trans->cv);
+	rc = arp_addr_add(&proto->addresses, target->value, target->length,
+	    trans);
+	if (rc != EOK) {
+		/* The generic char map has already freed trans! */
+		return rc;
+	}
+	
+	rc = fibril_condvar_wait_timeout(&trans->cv, &arp_globals.lock,
+	    ARP_TRANS_WAIT);
+	if (rc == ETIMEOUT)
+		return ENOENT;
+	retry = true;
+	goto restart;
 }
 
 
@@ -643,21 +716,21 @@ arp_message_standalone(ipc_callid_t callid, ipc_call_t *call,
 		if (rc != EOK)
 			return rc;
 		
-		fibril_rwlock_read_lock(&arp_globals.lock);
+		fibril_mutex_lock(&arp_globals.lock);
 		rc = arp_translate_message(IPC_GET_DEVICE(call),
 		    IPC_GET_SERVICE(call), address, &translation);
 		free(address);
 		free(data);
 		if (rc != EOK) {
-			fibril_rwlock_read_unlock(&arp_globals.lock);
+			fibril_mutex_unlock(&arp_globals.lock);
 			return rc;
 		}
 		if (!translation) {
-			fibril_rwlock_read_unlock(&arp_globals.lock);
+			fibril_mutex_unlock(&arp_globals.lock);
 			return ENOENT;
 		}
 		rc = measured_strings_reply(translation, 1);
-		fibril_rwlock_read_unlock(&arp_globals.lock);
+		fibril_mutex_unlock(&arp_globals.lock);
 		return rc;
 
 	case NET_ARP_CLEAR_DEVICE:
@@ -687,7 +760,7 @@ arp_message_standalone(ipc_callid_t callid, ipc_call_t *call,
 		if (rc != EOK)
 			return rc;
 		
-		fibril_rwlock_read_lock(&arp_globals.lock);
+		fibril_mutex_lock(&arp_globals.lock);
 		do {
 			next = pq_detach(packet);
 			rc = arp_receive_message(IPC_GET_DEVICE(call), packet);
@@ -697,7 +770,7 @@ arp_message_standalone(ipc_callid_t callid, ipc_call_t *call,
 			}
 			packet = next;
 		} while (packet);
-		fibril_rwlock_read_unlock(&arp_globals.lock);
+		fibril_mutex_unlock(&arp_globals.lock);
 		
 		return EOK;
 	
