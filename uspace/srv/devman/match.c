@@ -34,6 +34,28 @@
 
 #include "devman.h"
 
+/** Compute compound score of driver and device.
+ *
+ * @param driver Match id of the driver.
+ * @param device Match id of the device.
+ * @return Compound score.
+ * @retval 0 No match at all.
+ */
+static int compute_match_score(match_id_t *driver, match_id_t *device)
+{
+	if (str_cmp(driver->id, device->id) == 0) {
+		/*
+		 * The strings matches, return their score multiplied.
+		 */
+		return driver->score * device->score;
+	} else {
+		/*
+		 * Different strings, return zero.
+		 */
+		return 0;
+	}
+}
+
 int get_match_score(driver_t *drv, node_t *dev)
 {
 	link_t *drv_head = &drv->match_ids.ids;
@@ -43,29 +65,29 @@ int get_match_score(driver_t *drv, node_t *dev)
 		return 0;
 	
 	/*
-	 * Find first matching pair.
+	 * Go through all pairs, return the highest score obtainetd.
 	 */
+	int highest_score = 0;
+	
 	link_t *drv_link = drv->match_ids.ids.next;
 	while (drv_link != drv_head) {
-		link_t *dev_link = dev->match_ids.ids.next;
+		link_t *dev_link = dev_head->next;
 		while (dev_link != dev_head) {
 			match_id_t *drv_id = list_get_instance(drv_link, match_id_t, link);
 			match_id_t *dev_id = list_get_instance(dev_link, match_id_t, link);
-
-			if (str_cmp(drv_id->id, dev_id->id) == 0) {
-				/*
-				 * We found a match.
-				 * Return the score of the match.
-				 */
-				return drv_id->score * dev_id->score;
+			
+			int score = compute_match_score(drv_id, dev_id);
+			if (score > highest_score) {
+				highest_score = score;
 			}
 
 			dev_link = dev_link->next;
 		}
+		
 		drv_link = drv_link->next;
 	}
 	
-	return 0;
+	return highest_score;
 }
 
 /** @}

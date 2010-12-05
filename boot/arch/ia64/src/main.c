@@ -61,12 +61,14 @@ void bootstrap(void)
 	version_print();
 	
 	printf(" %p|%p: boot info structure\n", &bootinfo, &bootinfo);
-	printf(" %p|%p: kernel entry point\n", KERNEL_ADDRESS, KERNEL_ADDRESS);
-	printf(" %p|%p: loader entry point\n", LOADER_ADDRESS, LOADER_ADDRESS);
+	printf(" %p|%p: kernel entry point\n",
+	    (void *) KERNEL_ADDRESS, (void *) KERNEL_ADDRESS);
+	printf(" %p|%p: loader entry point\n",
+	    (void *) LOADER_ADDRESS, (void *) LOADER_ADDRESS);
 	
 	size_t i;
 	for (i = 0; i < COMPONENTS; i++)
-		printf(" %p|%p: %s image (%u/%u bytes)\n", components[i].start,
+		printf(" %p|%p: %s image (%zu/%zu bytes)\n", components[i].start,
 		    components[i].start, components[i].name,
 		    components[i].inflated, components[i].size);
 	

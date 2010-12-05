@@ -91,12 +91,69 @@
  *
  */
 typedef enum {
+	/** Tell USB address assigned to device.
+	 * Parameters:
+	 * - devman handle id
+	 * Answer:
+	 * - EINVAL - unknown handle or handle not managed by this driver
+	 * - ENOTSUP - operation not supported by HC (shall not happen)
+	 * - arbitrary error code if returned by remote implementation
+	 * - EOK - handle found, first parameter contains the USB address
+	 */
+	IPC_M_USBHC_GET_ADDRESS,
+
 	/** Asks for data buffer.
 	 * See explanation at usb_iface_funcs_t.
 	 * This function does not have counter part in functional interface
 	 * as it is handled by the remote part itself.
 	 */
 	IPC_M_USBHC_GET_BUFFER,
+
+
+	/** Reserve usage of default address.
+	 * This call informs the host controller that the caller will be
+	 * using default USB address. It is duty of the HC driver to ensure
+	 * that only single entity will have it reserved.
+	 * The address is returned via IPC_M_USBHC_RELEASE_DEFAULT_ADDRESS.
+	 * The caller can start using the address after receiving EOK
+	 * answer.
+	 */
+	IPC_M_USBHC_RESERVE_DEFAULT_ADDRESS,
+
+	/** Release usage of default address.
+	 * @see IPC_M_USBHC_RESERVE_DEFAULT_ADDRESS
+	 */
+	IPC_M_USBHC_RELEASE_DEFAULT_ADDRESS,
+
+	/** Asks for address assignment by host controller.
+	 * Answer:
+	 * - ELIMIT - host controller run out of address
+	 * - EOK - address assigned
+	 * Answer arguments:
+	 * - assigned address
+	 *
+	 * The address must be released by via IPC_M_USBHC_RELEASE_ADDRESS.
+	 */
+	IPC_M_USBHC_REQUEST_ADDRESS,
+
+	/** Bind USB address with devman handle.
+	 * Parameters:
+	 * - USB address
+	 * - devman handle
+	 * Answer:
+	 * - EOK - address binded
+	 * - ENOENT - address is not in use
+	 */
+	IPC_M_USBHC_BIND_ADDRESS,
+
+	/** Release address in use.
+	 * Arguments:
+	 * - address to be released
+	 * Answer:
+	 * - ENOENT - address not in use
+	 * - EPERM - trying to release default USB address
+	 */
+	IPC_M_USBHC_RELEASE_ADDRESS,
 
 
 	/** Send interrupt data to device.
@@ -154,14 +211,42 @@ typedef void (*usbhc_iface_transfer_out_callback_t)(device_t *,
 typedef void (*usbhc_iface_transfer_in_callback_t)(device_t *,
     usb_transaction_outcome_t, size_t, void *);
 
+
+/** Out transfer processing function prototype. */
+typedef int (*usbhc_iface_transfer_out_t)(device_t *, usb_target_t,
+    void *, size_t,
+    usbhc_iface_transfer_out_callback_t, void *);
+
+/** Setup transfer processing function prototype. */
+typedef usbhc_iface_transfer_out_t usbhc_iface_transfer_setup_t;
+
+/** In transfer processing function prototype. */
+typedef int (*usbhc_iface_transfer_in_t)(device_t *, usb_target_t,
+    void *, size_t,
+    usbhc_iface_transfer_in_callback_t, void *);
+
 /** USB devices communication interface. */
 typedef struct {
-	int (*interrupt_out)(device_t *, usb_target_t,
-	    void *, size_t,
-	    usbhc_iface_transfer_out_callback_t, void *);
-	int (*interrupt_in)(device_t *, usb_target_t,
-	    void *, size_t,
+	int (*tell_address)(device_t *, devman_handle_t, usb_address_t *);
+
+	int (*reserve_default_address)(device_t *);
+	int (*release_default_address)(device_t *);
+	int (*request_address)(device_t *, usb_address_t *);
+	int (*bind_address)(device_t *, usb_address_t, devman_handle_t);
+	int (*release_address)(device_t *, usb_address_t);
+
+	usbhc_iface_transfer_out_t interrupt_out;
+	usbhc_iface_transfer_in_t interrupt_in;
+
+	usbhc_iface_transfer_setup_t control_write_setup;
+	usbhc_iface_transfer_out_t control_write_data;
+	int (*control_write_status)(device_t *, usb_target_t,
 	    usbhc_iface_transfer_in_callback_t, void *);
+
+	usbhc_iface_transfer_setup_t control_read_setup;
+	usbhc_iface_transfer_in_t control_read_data;
+	int (*control_read_status)(device_t *, usb_target_t,
+	    usbhc_iface_transfer_out_callback_t, void *);
 } usbhc_iface_t;
 
 

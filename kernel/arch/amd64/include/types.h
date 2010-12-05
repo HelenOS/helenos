@@ -49,28 +49,13 @@ typedef uint64_t atomic_count_t;
 typedef struct {
 } fncptr_t;
 
-/* Formats for uintptr_t, size_t */
-#define PRIp  "llx"
-#define PRIs  "llu"
+#define INTN_C(c)   INT64_C(c)
+#define UINTN_C(c)  UINT64_C(c)
 
-/* Formats for (u)int8_t, (u)int16_t, (u)int32_t, (u)int64_t and (u)native_t */
-#define PRId8   "d"
-#define PRId16  "d"
-#define PRId32  "d"
-#define PRId64  "lld"
-#define PRIdn   "lld"
-
-#define PRIu8   "u"
-#define PRIu16  "u"
-#define PRIu32  "u"
-#define PRIu64  "llu"
-#define PRIun   "llu"
-
-#define PRIx8   "x"
-#define PRIx16  "x"
-#define PRIx32  "x"
-#define PRIx64  "llx"
-#define PRIxn   "llx"
+#define PRIdn  PRId64  /**< Format for native_t. */
+#define PRIun  PRIu64  /**< Format for unative_t. */
+#define PRIxn  PRIx64  /**< Format for hexadecimal unative_t. */
+#define PRIua  PRIu64  /**< Format for atomic_count_t. */
 
 #endif
 

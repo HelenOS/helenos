@@ -309,8 +309,8 @@ void md_init(void)
 
 	retval = retval;
 	if (retval != HV_EOK) {
-		printf("Could not retrieve machine description, error = %d.\n",
-		    retval);
+		printf("Could not retrieve machine description, "
+		    "error=%" PRIu64 ".\n", retval);
 	}
 }
 

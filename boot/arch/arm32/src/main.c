@@ -60,7 +60,8 @@ void bootstrap(void)
 	printf(" %p|%p: bootstrap stack\n", &boot_stack, &boot_stack);
 	printf(" %p|%p: bootstrap page table\n", &boot_pt, &boot_pt);
 	printf(" %p|%p: boot info structure\n", &bootinfo, &bootinfo);
-	printf(" %p|%p: kernel entry point\n", PA2KA(BOOT_OFFSET), BOOT_OFFSET);
+	printf(" %p|%p: kernel entry point\n",
+	    (void *) PA2KA(BOOT_OFFSET), (void *) BOOT_OFFSET);
 	
 	size_t i;
 	for (i = 0; i < COMPONENTS; i++)

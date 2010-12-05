@@ -48,9 +48,5 @@ const char *test_print1(void)
 	TPRINTF("Expected output: \"very long \"\n");
 	TPRINTF("Real output:     \"%8.10s\"\n\n", "very long text");
 	
-	TPRINTF("Testing printf(\"%%s\", NULL):\n");
-	TPRINTF("Expected output: \"(NULL)\"\n");
-	TPRINTF("Real output:     \"%s\"\n\n", NULL);
-	
 	return NULL;
 }

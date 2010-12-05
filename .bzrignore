@@ -93,6 +93,7 @@ _link.ld
 ./uspace/dist/drv/root/
 ./uspace/dist/drv/rootia32/
 ./uspace/dist/drv/uhci/
+./uspace/dist/drv/usbhub/
 ./uspace/dist/drv/usbkbd/
 ./uspace/dist/drv/vhc/
 ./uspace/dist/srv/arp
@@ -129,6 +130,7 @@ _link.ld
 ./uspace/drv/pciintel/pciintel
 ./uspace/drv/rootia32/rootia32
 ./uspace/drv/uhci/uhci
+./uspace/drv/usbhub/usbhub
 ./uspace/drv/usbkbd/usbkbd
 ./uspace/drv/vhc/vhc
 ./uspace/srv/bd/ata_bd/ata_bd

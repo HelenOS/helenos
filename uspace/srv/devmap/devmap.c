@@ -554,7 +554,7 @@ static void devmap_device_register(ipc_callid_t iid, ipc_call_t *icall,
 	/* Check that device is not already registered */
 	if (devmap_device_find_name(namespace->name, device->name) != NULL) {
 		printf("%s: Device '%s/%s' already registered\n", NAME,
-		    device->namespace, device->name);
+		    device->namespace->name, device->name);
 		devmap_namespace_destroy(namespace);
 		fibril_mutex_unlock(&devices_list_mutex);
 		free(device->name);
@@ -1051,8 +1051,7 @@ static void devmap_connection_driver(ipc_callid_t iid, ipc_call_t *icall)
 			devmap_namespace_get_handle(callid, &call);
 			break;
 		default:
-			if (!(callid & IPC_CALLID_NOTIFICATION))
-				ipc_answer_0(callid, ENOENT);
+			ipc_answer_0(callid, ENOENT);
 		}
 	}
 	
@@ -1110,8 +1109,7 @@ static void devmap_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 			devmap_get_devices(callid, &call);
 			break;
 		default:
-			if (!(callid & IPC_CALLID_NOTIFICATION))
-				ipc_answer_0(callid, ENOENT);
+			ipc_answer_0(callid, ENOENT);
 		}
 	}
 }

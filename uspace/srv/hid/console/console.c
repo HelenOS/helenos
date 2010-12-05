@@ -803,7 +803,7 @@ skip_mouse:
 		if (i != KERNEL_CONSOLE) {
 			if (screenbuffer_init(&consoles[i].scr,
 			    fb_info.cols, fb_info.rows) == NULL) {
-				printf(NAME ": Unable to allocate screen buffer %u\n", i);
+				printf(NAME ": Unable to allocate screen buffer %zu\n", i);
 				return false;
 			}
 			screenbuffer_clear(&consoles[i].scr);
@@ -812,7 +812,7 @@ skip_mouse:
 			consoles[i].refcount = 0;
 			
 			char vc[DEVMAP_NAME_MAXLEN + 1];
-			snprintf(vc, DEVMAP_NAME_MAXLEN, "%s/vc%u", NAMESPACE, i);
+			snprintf(vc, DEVMAP_NAME_MAXLEN, "%s/vc%zu", NAMESPACE, i);
 			
 			if (devmap_device_register(vc, &consoles[i].devmap_handle) != EOK) {
 				devmap_hangup_phone(DEVMAP_DRIVER);

@@ -170,7 +170,7 @@ static void fibril_sleep(size_t sec)
  */
 static void on_keyboard_change(kb_status_t *status)
 {
-	printf("%s: Current keyboard status: %08hhb", NAME, status->modifiers);
+	printf("%s: Current keyboard status: %02hhx", NAME, status->modifiers);
 	size_t i;
 	for (i = 0; i < KB_MAX_KEYS_AT_ONCE; i++) {
 		printf(" 0x%02X", (int)status->pressed_keys[i]);

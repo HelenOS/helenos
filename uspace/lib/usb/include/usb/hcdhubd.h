@@ -36,6 +36,7 @@
 #define LIBUSB_HCDHUBD_H_
 
 #include <adt/list.h>
+#include <bool.h>
 #include <driver.h>
 #include <usb/usb.h>
 
@@ -114,6 +115,23 @@ typedef struct {
 	    usb_hcd_transfer_callback_in_t, void *);
 } usb_hcd_transfer_ops_t;
 
+/**
+ * @brief structure holding information about free and used addresses
+ *
+ * This structure should not be used outside usb hcd driver.
+ * You better consider it to be 'private'.
+ */
+typedef struct {
+	/** lower bound included in the interval */
+	usb_address_t lower_bound;
+
+	/** upper bound, excluded from the interval */
+	usb_address_t upper_bound;
+
+	/** */
+	link_t link;
+}usb_address_list_t;
+
 struct usb_hc_device {
 	/** Transfer operations. */
 	usb_hcd_transfer_ops_t *transfer_ops;
@@ -130,6 +148,9 @@ struct usb_hc_device {
 	/** List of hubs operating from this HC. */
 	link_t hubs;
 
+	/** Structure with free and used addresses */
+	link_t addresses;
+
 	/** Link to other driven HCs. */
 	link_t link;
 };
@@ -144,7 +165,24 @@ typedef struct {
 
 
 int usb_hcd_main(usb_hc_driver_t *);
-int usb_hcd_add_root_hub(usb_hc_device_t *dev);
+int usb_hcd_add_root_hub(device_t *dev);
+
+/**
+ * find first not yet used address on this host controller and use it
+ * @param this_hcd
+ * @return number in the range of allowed usb addresses or
+ *     a negative number if not succesful
+ */
+usb_address_t usb_use_free_address(usb_hc_device_t * this_hcd);
+
+/**
+ * @brief free the address in the address space of this hcd.
+ *
+ * if address is not used, nothing happens
+ * @param this_hcd
+ * @param addr
+ */
+void usb_free_used_address(usb_hc_device_t * this_hcd, usb_address_t addr );
 
 
 /*
@@ -152,6 +190,7 @@ int usb_hcd_add_root_hub(usb_hc_device_t *dev);
  * This will probably include only hub drivers.
  */
 
+device_t *usb_hc_connect(device_t *);
 
 int usb_hc_async_interrupt_out(usb_hc_device_t *, usb_target_t,
     void *, size_t, usb_handle_t *);
@@ -174,5 +213,6 @@ int usb_hc_async_control_read_status(usb_hc_device_t *, usb_target_t,
 
 int usb_hc_async_wait_for(usb_handle_t);
 
+int usb_hc_add_child_device(device_t *, const char *, const char *, bool);
 
 #endif

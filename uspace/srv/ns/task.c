@@ -261,8 +261,8 @@ void wait_for_task(task_id_t id, ipc_call_t *call, ipc_callid_t callid)
 
 	if (ht == NULL) {
 		/* No such task exists. */
-		retval = ENOENT;
-		goto out;
+		ipc_answer_0(callid, ENOENT);
+		return;
 	}
 
 	if (!ht->finished) {

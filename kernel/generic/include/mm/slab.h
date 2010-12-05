@@ -125,7 +125,8 @@ extern slab_cache_t *slab_cache_create(const char *, size_t, size_t,
     int (*)(void *, unsigned int), size_t (*)(void *), unsigned int);
 extern void slab_cache_destroy(slab_cache_t *);
 
-extern void * slab_alloc(slab_cache_t *, unsigned int);
+extern void *slab_alloc(slab_cache_t *, unsigned int)
+    __attribute__((malloc));
 extern void slab_free(slab_cache_t *, void *);
 extern size_t slab_reclaim(unsigned int);
 
@@ -137,7 +138,8 @@ extern void slab_enable_cpucache(void);
 extern void slab_print_list(void);
 
 /* malloc support */
-extern void *malloc(size_t, unsigned int);
+extern void *malloc(size_t, unsigned int)
+    __attribute__((malloc));
 extern void *realloc(void *, size_t, unsigned int);
 extern void free(void *);
 

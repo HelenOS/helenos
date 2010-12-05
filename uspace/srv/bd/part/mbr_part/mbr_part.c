@@ -205,7 +205,7 @@ static int mbr_init(const char *dev_name)
 	}
 
 	if (block_size < 512 || (block_size % 512) != 0) {
-		printf(NAME ": invalid block size %d.\n");
+		printf(NAME ": invalid block size %zu.\n", block_size);
 		return ENOTSUP;
 	}
 

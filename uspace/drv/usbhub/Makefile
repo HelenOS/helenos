@@ -1,6 +1,5 @@
 #
-# Copyright (c) 2005 Martin Decky
-# Copyright (c) 2007 Jakub Jermar
+# Copyright (c) 2010 Vojtech Horky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,9 +27,12 @@
 #
 
 USPACE_PREFIX = ../..
-BINARY = test_serial
+LIBS = $(LIBDRV_PREFIX)/libdrv.a $(LIBUSB_PREFIX)/libusb.a
+EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include -I$(LIBUSB_PREFIX)/include
+BINARY = usbhub
 
 SOURCES = \
-	test_serial.c
+	main.c \
+	utils.c
 
 include $(USPACE_PREFIX)/Makefile.common

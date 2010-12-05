@@ -134,20 +134,21 @@ static const char *vector_to_string(uint16_t vector)
 
 void istate_decode(istate_t *istate)
 {
-	printf("ar.bsp=%p\tar.bspstore=%p\n", istate->ar_bsp,
-	    istate->ar_bspstore);
-	printf("ar.rnat=%#018llx\tar.rsc=%#018llx\n", istate->ar_rnat,
-	    istate->ar_rsc);
-	printf("ar.ifs=%#018llx\tar.pfs=%#018llx\n", istate->ar_ifs,
-	    istate->ar_pfs);
-	printf("cr.isr=%#018llx\tcr.ipsr=%#018llx\t\n", istate->cr_isr.value,
-	    istate->cr_ipsr);
+	printf("ar.bsp=%p\tar.bspstore=%p\n",
+	    (void *) istate->ar_bsp, (void *) istate->ar_bspstore);
+	printf("ar.rnat=%#0" PRIx64 "\tar.rsc=%#0" PRIx64 "\n",
+	    istate->ar_rnat, istate->ar_rsc);
+	printf("ar.ifs=%#0" PRIx64 "\tar.pfs=%#0" PRIx64 "\n",
+	    istate->ar_ifs, istate->ar_pfs);
+	printf("cr.isr=%#0" PRIx64 "\tcr.ipsr=%#0" PRIx64 "\n",
+	    istate->cr_isr.value, istate->cr_ipsr.value);
 	
-	printf("cr.iip=%#018llx, #%d\t(%s)\n", istate->cr_iip, istate->cr_isr.ei,
+	printf("cr.iip=%#0" PRIx64 ", #%u\t(%s)\n",
+	    istate->cr_iip, istate->cr_isr.ei,
 	    symtab_fmt_name_lookup(istate->cr_iip));
-	printf("cr.iipa=%#018llx\t(%s)\n", istate->cr_iipa,
+	printf("cr.iipa=%#0" PRIx64 "\t(%s)\n", istate->cr_iipa,
 	    symtab_fmt_name_lookup(istate->cr_iipa));
-	printf("cr.ifa=%#018llx\t(%s)\n", istate->cr_ifa,
+	printf("cr.ifa=%#0" PRIx64 "\t(%s)\n", istate->cr_ifa,
 	    symtab_fmt_name_lookup(istate->cr_ifa));
 }
 
