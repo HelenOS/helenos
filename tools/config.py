@@ -453,15 +453,23 @@ def load_presets(root, fname, screen, config):
 		read_config(opt2path[value][1], config)
 
 def main():
+	cfgfile_in = None
 	config = {}
 	rules = []
 	
 	# Parse rules file
 	parse_rules(RULES_FILE, rules)
 	
-	# Read configuration from previous run
-	if os.path.exists(MAKEFILE):
-		read_config(MAKEFILE, config)
+	# Input configuration file can be specified on command line
+	# otherwise configuration from previous run is used.
+	if len(sys.argv) >= 4:
+		cfgfile_in = sys.argv[3]
+	else:
+		cfgfile_in = MAKEFILE
+	
+	# Read configuration file
+	if os.path.exists(cfgfile_in):
+		read_config(cfgfile_in, config)
 	
 	# Default mode: only check values and regenerate configuration files
 	if (len(sys.argv) >= 3) and (sys.argv[2] == 'default'):
