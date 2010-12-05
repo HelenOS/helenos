@@ -68,6 +68,9 @@ const char * usb_str_transaction_outcome(usb_transaction_outcome_t o);
  */
 typedef int usb_address_t;
 
+/** Default USB address. */
+#define USB_ADDRESS_DEFAULT 0
+
 /** USB endpoint number type.
  * Negative values could be used to indicate error.
  */

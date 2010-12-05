@@ -30,49 +30,70 @@
  * @{
  */
 /** @file
- * @brief USB driver.
+ * @brief USB driver - standard USB requests (implementation).
  */
-#ifndef LIBUSB_USBDRV_H_
-#define LIBUSB_USBDRV_H_
+#include <usb/usbdrv.h>
+#include <usb/devreq.h>
+#include <errno.h>
 
-#include <usb/usb.h>
-#include <driver.h>
+/** Change address of connected device.
+ *
+ * @see usb_drv_reserve_default_address
+ * @see usb_drv_release_default_address
+ * @see usb_drv_request_address
+ * @see usb_drv_release_address
+ * @see usb_drv_bind_address
+ *
+ * @param phone Open phone to HC driver.
+ * @param old_address Current address.
+ * @param address Address to be set.
+ * @return Error code.
+ */
+int usb_drv_req_set_address(int phone, usb_address_t old_address,
+    usb_address_t new_address)
+{
+	/* Prepare the target. */
+	usb_target_t target = {
+		.address = old_address,
+		.endpoint = 0
+	};
 
-int usb_drv_hc_connect(device_t *, unsigned int);
+	/* Prepare the setup packet. */
+	usb_device_request_setup_packet_t setup_packet = {
+		.request_type = 0,
+		.request = USB_DEVREQ_SET_ADDRESS,
+		.index = 0,
+		.length = 0,
+	};
+	setup_packet.value = new_address;
 
-int usb_drv_reserve_default_address(int);
-int usb_drv_release_default_address(int);
-usb_address_t usb_drv_request_address(int);
-int usb_drv_bind_address(int, usb_address_t, devman_handle_t);
-int usb_drv_release_address(int, usb_address_t);
+	usb_handle_t handle;
+	int rc;
 
-usb_address_t usb_drv_get_my_address(int, device_t *);
+	/* Start the control write transfer. */
+	rc = usb_drv_async_control_write_setup(phone, target,
+	    &setup_packet, sizeof(setup_packet), &handle);
+	if (rc != EOK) {
+		return rc;
+	}
+	rc = usb_drv_async_wait_for(handle);
+	if (rc != EOK) {
+		return rc;
+	}
 
-int usb_drv_async_interrupt_out(int, usb_target_t,
-    void *, size_t, usb_handle_t *);
-int usb_drv_async_interrupt_in(int, usb_target_t,
-    void *, size_t, size_t *, usb_handle_t *);
+	/* Finish the control write transfer. */
+	rc = usb_drv_async_control_write_status(phone, target, &handle);
+	if (rc != EOK) {
+		return rc;
+	}
+	rc = usb_drv_async_wait_for(handle);
+	if (rc != EOK) {
+		return rc;
+	}
 
-int usb_drv_async_control_write_setup(int, usb_target_t,
-    void *, size_t, usb_handle_t *);
-int usb_drv_async_control_write_data(int, usb_target_t,
-    void *, size_t, usb_handle_t *);
-int usb_drv_async_control_write_status(int, usb_target_t,
-    usb_handle_t *);
+	return EOK;
+}
 
-int usb_drv_async_control_read_setup(int, usb_target_t,
-    void *, size_t, usb_handle_t *);
-int usb_drv_async_control_read_data(int, usb_target_t,
-    void *, size_t, size_t *, usb_handle_t *);
-int usb_drv_async_control_read_status(int, usb_target_t,
-    usb_handle_t *);
-
-int usb_drv_async_wait_for(usb_handle_t);
-
-
-int usb_drv_req_set_address(int, usb_address_t, usb_address_t);
-
-#endif
 /**
  * @}
  */

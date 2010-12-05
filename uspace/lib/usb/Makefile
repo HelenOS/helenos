@@ -38,6 +38,7 @@ SOURCES = \
 	src/localdrv.c \
 	src/remotedrv.c \
 	src/usb.c \
+	src/usbdrvreq.c \
 	src/usbdrv.c
 
 include $(USPACE_PREFIX)/Makefile.common
