@@ -42,6 +42,9 @@
 #include <errno.h>
 #include <usb/classes/hub.h>
 #include "usbhub.h"
+#include "usbhub_private.h"
+#include "port_status.h"
+#include <usb/devreq.h>
 
 static void check_hub_changes(void);
 
@@ -53,6 +56,7 @@ size_t USB_HUB_MAX_DESCRIPTOR_SIZE = 71;
 //
 //*********************************************
 
+//hub descriptor utils
 void * usb_serialize_hub_descriptor(usb_hub_descriptor_t * descriptor) {
 	//base size
 	size_t size = 7;
@@ -84,7 +88,7 @@ void * usb_serialize_hub_descriptor(usb_hub_descriptor_t * descriptor) {
 usb_hub_descriptor_t * usb_deserialize_hub_desriptor(void * serialized_descriptor) {
 	uint8_t * sdescriptor = (uint8_t*) serialized_descriptor;
 	if (sdescriptor[1] != USB_DESCTYPE_HUB) return NULL;
-	usb_hub_descriptor_t * result = (usb_hub_descriptor_t*) malloc(sizeof (usb_hub_descriptor_t));
+	usb_hub_descriptor_t * result = usb_new(usb_hub_descriptor_t);
 	//uint8_t size = sdescriptor[0];
 	result->ports_count = sdescriptor[2];
 	/// @fixme handling of endianness??
@@ -101,6 +105,131 @@ usb_hub_descriptor_t * usb_deserialize_hub_desriptor(void * serialized_descripto
 	return result;
 }
 
+//control transactions
+int usb_drv_sync_control_read(
+    int phone, usb_target_t target,
+    usb_device_request_setup_packet_t * request,
+    void * rcvd_buffer, size_t rcvd_size, size_t * actual_size
+){
+	usb_handle_t handle;
+	int opResult;
+	//setup
+	opResult = usb_drv_async_control_read_setup(phone, target,
+        request, sizeof(usb_device_request_setup_packet_t),
+        &handle);
+	if(opResult!=EOK){
+		return opResult;
+	}
+	opResult = usb_drv_async_wait_for(handle);
+	if(opResult!=EOK){
+		return opResult;
+	}
+	//read
+	opResult = usb_drv_async_control_read_data(phone, target,
+	    rcvd_buffer,  rcvd_size, actual_size,
+	    &handle);
+	if(opResult!=EOK){
+		return opResult;
+	}
+	opResult = usb_drv_async_wait_for(handle);
+	if(opResult!=EOK){
+		return opResult;
+	}
+	//finalize
+	opResult = usb_drv_async_control_read_status(phone, target,
+	    &handle);
+	if(opResult!=EOK){
+		return opResult;
+	}
+	opResult = usb_drv_async_wait_for(handle);
+	if(opResult!=EOK){
+		return opResult;
+	}
+	return EOK;
+}
+
+
+int usb_drv_sync_control_write(
+    int phone, usb_target_t target,
+    usb_device_request_setup_packet_t * request,
+    void * sent_buffer, size_t sent_size
+){
+	usb_handle_t handle;
+	int opResult;
+	//setup
+	opResult = usb_drv_async_control_write_setup(phone, target,
+        request, sizeof(usb_device_request_setup_packet_t),
+        &handle);
+	if(opResult!=EOK){
+		return opResult;
+	}
+	opResult = usb_drv_async_wait_for(handle);
+	if(opResult!=EOK){
+		return opResult;
+	}
+	//write
+	opResult = usb_drv_async_control_write_data(phone, target,
+        sent_buffer, sent_size,
+        &handle);
+	if(opResult!=EOK){
+		return opResult;
+	}
+	opResult = usb_drv_async_wait_for(handle);
+	if(opResult!=EOK){
+		return opResult;
+	}
+	//finalize
+	opResult = usb_drv_async_control_write_status(phone, target,
+        &handle);
+	if(opResult!=EOK){
+		return opResult;
+	}
+	opResult = usb_drv_async_wait_for(handle);
+	if(opResult!=EOK){
+		return opResult;
+	}
+	return EOK;
+}
+
+//list implementation
+
+usb_general_list_t * usb_lst_create(void){
+	usb_general_list_t* result = usb_new(usb_general_list_t);
+	usb_lst_init(result);
+	return result;
+}
+
+void usb_lst_init(usb_general_list_t * lst){
+	lst->prev = lst;
+	lst->next = lst;
+	lst->data = NULL;
+}
+
+void usb_lst_prepend(usb_general_list_t* item, void* data){
+	usb_general_list_t* appended = usb_new(usb_general_list_t);
+	appended->data=data;
+	appended->next=item;
+	appended->prev=item->prev;
+	item->prev->next = appended;
+	item->prev = appended;
+}
+
+void usb_lst_append(usb_general_list_t* item, void* data){
+	usb_general_list_t* appended =usb_new(usb_general_list_t);
+	appended->data=data;
+	appended->next=item->next;
+	appended->prev=item;
+	item->next->prev = appended;
+	item->next = appended;
+}
+
+
+void usb_lst_remove(usb_general_list_t* item){
+	item->next->prev = item->prev;
+	item->prev->next = item->next;
+}
+
+
 
 //*********************************************
 //
@@ -108,9 +237,32 @@ usb_hub_descriptor_t * usb_deserialize_hub_desriptor(void * serialized_descripto
 //
 //*********************************************
 
-usb_hcd_hub_info_t * usb_create_hub_info(device_t * device) {
-	usb_hcd_hub_info_t* result = (usb_hcd_hub_info_t*) malloc(sizeof (usb_hcd_hub_info_t));
+usb_hub_info_t * usb_create_hub_info(device_t * device) {
+	usb_hub_info_t* result = usb_new(usb_hub_info_t);
+	//result->device = device;
+	result->port_count = -1;
 
+	//get hc connection
+	int hc = usb_drv_hc_connect(NULL, 0);
+	printf("[usb_hub] phone to hc = %d\n",hc);
+	if (hc < 0) {
+		return result;
+	}
+	//get some hub info
+
+	usb_address_t addr = usb_drv_get_my_address(hc,device);
+	printf("[usb_hub] addres of newly created hub = %d\n",addr);
+	/*if(addr<0){
+		//return result;
+		
+	}*/
+	result->device = usb_new(usb_hcd_attached_device_info_t);
+	result->device->address=addr;
+	//hub configuration?
+	printf("[usb_hub] hub info created\n");
+
+	
+	
 	return result;
 }
 
@@ -121,8 +273,7 @@ usb_hcd_hub_info_t * usb_create_hub_info(device_t * device) {
  */
 int usb_add_hub_device(device_t *dev) {
 	printf(NAME ": add_hub_device(handle=%d)\n", (int) dev->handle);
-
-	check_hub_changes();
+	printf("[usb_hub] hub device\n");
 
 	/*
 	 * We are some (probably deeply nested) hub.
@@ -131,12 +282,19 @@ int usb_add_hub_device(device_t *dev) {
 	 */
 
 	//create the hub structure
-	usb_hcd_hub_info_t * hub_info = usb_create_hub_info(dev);
-	(void)hub_info;
+	usb_hub_info_t * hub_info = usb_create_hub_info(dev);
+	usb_lst_append(&usb_hub_list, hub_info);
+	printf("[usb_hub] hub info added to list\n");
+	//(void)hub_info;
+	check_hub_changes();
+	printf("[usb_hub] hub dev added\n");
+	//test port status type...
 
 	return EOK;
 	//return ENOTSUP;
 }
+
+
 
 
 /** Check changes on all known hubs.
@@ -145,20 +303,29 @@ static void check_hub_changes(void) {
 	/*
 	 * Iterate through all hubs.
 	 */
-	for (; false; ) {
+	usb_general_list_t * lst_item;
+	for (lst_item = usb_hub_list.next;
+	     lst_item != &usb_hub_list;
+	     lst_item = lst_item->next) {
+		printf("[usb_hub] checking hub changes\n");
 		/*
 		 * Check status change pipe of this hub.
 		 */
+		
 		usb_target_t target = {
 			.address = 5,
 			.endpoint = 1
 		};
+		/// \TODO uncomment once it works correctly
+		//target.address = usb_create_hub_info(lst_item)->device->address;
 
 		size_t port_count = 7;
 
 		/*
 		 * Connect to respective HC.
 		 */
+		/// \FIXME this is incorrect code: here
+		/// must be used particular device instead of NULL
 		int hc = usb_drv_hc_connect(NULL, 0);
 		if (hc < 0) {
 			continue;
@@ -173,13 +340,88 @@ static void check_hub_changes(void) {
 
 		/*
 		 * Send the request.
-		 * FIXME: check returned value for possible errors
 		 */
-		usb_drv_async_interrupt_in(hc, target,
+		int opResult = usb_drv_async_interrupt_in(hc, target,
 				change_bitmap, byte_length, &actual_size,
 				&handle);
 
 		usb_drv_async_wait_for(handle);
+
+		if(opResult!=EOK){
+			printf("[usb_hub] something went wrong while getting status of hub\n");
+			continue;
+		}
+		unsigned int port;
+		for(port=0;port<port_count;++port){
+			bool interrupt = (((uint8_t*)change_bitmap)[port/8]>>(port%8))%2;
+			if(interrupt){
+				printf("[usb_hub] interrupt at port %d\n",port);
+				//determine type of change
+				usb_port_status_t status;
+				size_t rcvd_size;
+				usb_device_request_setup_packet_t request;
+				usb_hub_set_port_status_request(&request,port);
+
+				opResult = usb_drv_sync_control_read(
+				    hc, target,
+				    &request,
+				    &status, 4, &rcvd_size
+				);
+				if(opResult!=EOK){
+					continue;
+				}
+				if(rcvd_size!=sizeof(usb_port_status_t)){
+					continue;
+				}
+				
+				if(usb_port_connect_change(&status)){
+					printf("[usb_hub] some connectionchanged\n");
+					usb_drv_reserve_default_address(hc);
+					//enable port
+					usb_hub_set_enable_port_request(&request,port);
+					opResult = usb_drv_sync_control_write(
+						hc, target,
+						&request,
+						NULL, 0
+					);
+					if(opResult!=EOK){
+						continue;
+					}
+					//set address
+					usb_address_t new_device_address =
+							usb_drv_request_address(hc);
+					usb_hub_set_set_address_request
+							(&request,new_device_address);
+					opResult = usb_drv_sync_control_write(
+						hc, target,
+						&request,
+						NULL, 0
+					);
+					//some other work with drivers
+					/// \TODO do the work with drivers
+
+
+					usb_drv_release_default_address(hc);
+				}else{
+					printf("[usb_hub] no supported event occured\n");
+				}
+				/// \TODO handle other changes
+				/// \TODO debug log for various situations
+
+
+
+				/*
+				//configure device
+				usb_drv_reserve_default_address(hc);
+
+				usb_address_t new_device_address = usb_drv_request_address(hc);
+
+
+				usb_drv_release_default_address(hc);
+				 * */
+			}
+		}
+
 
 		/*
 		 * TODO: handle the changes.

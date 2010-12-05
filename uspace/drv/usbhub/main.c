@@ -29,6 +29,10 @@
 #include <driver.h>
 #include <errno.h>
 #include "usbhub.h"
+#include "usbhub_private.h"
+
+
+usb_general_list_t usb_hub_list;
 
 static driver_ops_t hub_driver_ops = {
 	.add_device = usb_add_hub_device,
@@ -41,5 +45,6 @@ static driver_t hub_driver = {
 
 int main(int argc, char *argv[])
 {
+	usb_lst_init(&usb_hub_list);
 	return driver_main(&hub_driver);
 }
