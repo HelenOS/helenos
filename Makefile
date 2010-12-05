@@ -40,12 +40,6 @@ COMMON_HEADER_PREV = $(COMMON_HEADER).prev
 CONFIG_MAKEFILE = Makefile.config
 CONFIG_HEADER = config.h
 
-ifeq ($(PROFILE),)
-	PRESETS_FILE =
-else
-	PRESETS_FILE = defaults/$(PROFILE)/Makefile.config
-endif
-
 .PHONY: all precheck cscope autotool config_auto config_default config distclean clean
 
 all: $(COMMON_MAKEFILE) $(COMMON_HEADER) $(CONFIG_MAKEFILE) $(CONFIG_HEADER)
@@ -71,7 +65,7 @@ $(CONFIG_MAKEFILE): config_default
 $(CONFIG_HEADER): config_default
 
 config_default: $(CONFIG_RULES)
-	$(CONFIG) $< default $(PRESETS_FILE)
+	$(CONFIG) $< default $(PROFILE)
 
 config: $(CONFIG_RULES)
 	$(CONFIG) $<

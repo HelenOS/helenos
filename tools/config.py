@@ -412,9 +412,9 @@ def sorted_dir(root):
 	list.sort()
 	return list
 
-## Choose a profile and load configuration presets.
+## Ask user to choose a configuration profile.
 #
-def load_presets(root, fname, screen, config):
+def profile_choose(root, fname, screen, config):
 	options = []
 	opt2path = {}
 	cnt = 0
@@ -435,12 +435,12 @@ def load_presets(root, fname, screen, config):
 				if os.path.isdir(subpath) and os.path.exists(subcanon) and os.path.isfile(subcanon):
 					subprofile = True
 					options.append("%s (%s)" % (name, subname))
-					opt2path[cnt] = (canon, subcanon)
+					opt2path[cnt] = [name, subname]
 					cnt += 1
 			
 			if not subprofile:
 				options.append(name)
-				opt2path[cnt] = (canon, None)
+				opt2path[cnt] = [name]
 				cnt += 1
 	
 	(button, value) = xtui.choice_window(screen, 'Load preconfigured defaults', 'Choose configuration profile', options, None)
@@ -448,12 +448,38 @@ def load_presets(root, fname, screen, config):
 	if button == 'cancel':
 		return None
 	
-	read_config(opt2path[value][0], config)
-	if opt2path[value][1] != None:
-		read_config(opt2path[value][1], config)
+	return opt2path[value]
+
+## Read presets from a configuration profile.
+#
+# @param profile	Profile to load from (a list of string components)
+# @param config		Output configuration
+#
+def presets_read(profile, config):
+	path = os.path.join(PRESETS_DIR, profile[0], MAKEFILE)
+	read_config(path, config)
+
+	if len(profile) > 1:
+		path = os.path.join(PRESETS_DIR, profile[0], profile[1], MAKEFILE)
+		read_config(path, config)
+
+## Parse profile name (relative OS path) into a list of components.
+#
+# @param profile_name	Relative path (using OS separator)
+# @return		List of components
+#
+def parse_profile_name(profile_name):
+	profile = []
+
+	head, tail = os.path.split(profile_name)
+	if head != '':
+		profile.append(head)
+
+	profile.append(tail)
+	return profile
 
 def main():
-	cfgfile_in = None
+	profile = None
 	config = {}
 	rules = []
 	
@@ -463,13 +489,10 @@ def main():
 	# Input configuration file can be specified on command line
 	# otherwise configuration from previous run is used.
 	if len(sys.argv) >= 4:
-		cfgfile_in = sys.argv[3]
-	else:
-		cfgfile_in = MAKEFILE
-	
-	# Read configuration file
-	if os.path.exists(cfgfile_in):
-		read_config(cfgfile_in, config)
+		profile = parse_profile_name(sys.argv[3])
+		presets_read(profile, config)
+	elif os.path.exists(MAKEFILE):
+		read_config(MAKEFILE, config)
 	
 	# Default mode: only check values and regenerate configuration files
 	if (len(sys.argv) >= 3) and (sys.argv[2] == 'default'):
@@ -546,7 +569,9 @@ def main():
 					continue
 			
 			if value == 0:
-				load_presets(PRESETS_DIR, MAKEFILE, screen, config)
+				profile = profile_choose(PRESETS_DIR, MAKEFILE, screen, config)
+				if profile != None:
+					presets_read(profile, config)
 				position = 1
 				continue
 			
