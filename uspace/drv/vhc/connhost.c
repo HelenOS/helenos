@@ -35,6 +35,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <usb/usb.h>
+#include <usb/hcd.h>
 
 #include "vhcd.h"
 #include "conn.h"
@@ -217,6 +218,60 @@ static int control_read_status(device_t *dev, usb_target_t target,
 	    callback, arg);
 }
 
+static usb_address_keeping_t addresses;
+
+
+static int reserve_default_address(device_t *dev)
+{
+	usb_address_keeping_reserve_default(&addresses);
+	return EOK;
+}
+
+static int release_default_address(device_t *dev)
+{
+	usb_address_keeping_release_default(&addresses);
+	return EOK;
+}
+
+static int request_address(device_t *dev, usb_address_t *address)
+{
+	usb_address_t addr = usb_address_keeping_request(&addresses);
+	if (addr < 0) {
+		return (int)addr;
+	}
+
+	*address = addr;
+	return EOK;
+}
+
+static int release_address(device_t *dev, usb_address_t address)
+{
+	return usb_address_keeping_release(&addresses, address);
+}
+
+static int bind_address(device_t *dev, usb_address_t address,
+    devman_handle_t handle)
+{
+	usb_address_keeping_devman_bind(&addresses, address, handle);
+	return EOK;
+}
+
+static int tell_address(device_t *dev, devman_handle_t handle,
+    usb_address_t *address)
+{
+	usb_address_t addr = usb_address_keeping_find(&addresses, handle);
+	if (addr < 0) {
+		return addr;
+	}
+
+	*address = addr;
+	return EOK;
+}
+
+void address_init(void)
+{
+	usb_address_keeping_init(&addresses, 50);
+}
 
 usbhc_iface_t vhc_iface = {
 	.tell_address = tell_address,

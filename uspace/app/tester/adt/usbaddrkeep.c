@@ -26,33 +26,41 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup usb
- * @{
- */
-/** @file
- * @brief Connection handling of incoming calls.
- */
-#ifndef VHCD_CONN_H_
-#define VHCD_CONN_H_
+#include <stdio.h>
+#include <stdlib.h>
+#include <usb/hcd.h>
+#include <errno.h>
+#include "../tester.h"
 
-#include <usb/usb.h>
-#include <usb/hcdhubd.h>
-#include <usbhc_iface.h>
-#include "vhcd.h"
-#include "devices.h"
-
-void connection_handler_host(ipcarg_t);
-
-usb_hcd_transfer_ops_t vhc_transfer_ops;
-usbhc_iface_t vhc_iface;
-
-void address_init(void);
+#define MAX_ADDRESS 5
 
 
-void default_connection_handler(device_t *, ipc_callid_t, ipc_call_t *);
+const char *test_usbaddrkeep(void)
+{
+	int rc;
+	usb_address_keeping_t addresses;
 
+	TPRINTF("Initializing addresses keeping structure...\n");
+	usb_address_keeping_init(&addresses, MAX_ADDRESS);
+	
+	TPRINTF("Requesting address...\n");
+	usb_address_t addr = usb_address_keeping_request(&addresses);
+	TPRINTF("Address assigned: %d\n", (int) addr);
+	if (addr != 1) {
+		return "have not received expected address 1";
+	}
 
-#endif
-/**
- * @}
- */
+	TPRINTF("Releasing not assigned address...\n");
+	rc = usb_address_keeping_release(&addresses, 2);
+	if (rc != ENOENT) {
+		return "have not received expected ENOENT";
+	}
+
+	TPRINTF("Releasing acquired address...\n");
+	rc = usb_address_keeping_release(&addresses, addr);
+	if (rc != EOK) {
+		return "have not received expected EOK";
+	}
+
+	return NULL;
+}

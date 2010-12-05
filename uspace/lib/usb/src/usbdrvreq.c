@@ -26,33 +26,74 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup usb
+/** @addtogroup libusb usb
  * @{
  */
 /** @file
- * @brief Connection handling of incoming calls.
+ * @brief USB driver - standard USB requests (implementation).
  */
-#ifndef VHCD_CONN_H_
-#define VHCD_CONN_H_
+#include <usb/usbdrv.h>
+#include <usb/devreq.h>
+#include <errno.h>
 
-#include <usb/usb.h>
-#include <usb/hcdhubd.h>
-#include <usbhc_iface.h>
-#include "vhcd.h"
-#include "devices.h"
+/** Change address of connected device.
+ *
+ * @see usb_drv_reserve_default_address
+ * @see usb_drv_release_default_address
+ * @see usb_drv_request_address
+ * @see usb_drv_release_address
+ * @see usb_drv_bind_address
+ *
+ * @param phone Open phone to HC driver.
+ * @param old_address Current address.
+ * @param address Address to be set.
+ * @return Error code.
+ */
+int usb_drv_req_set_address(int phone, usb_address_t old_address,
+    usb_address_t new_address)
+{
+	/* Prepare the target. */
+	usb_target_t target = {
+		.address = old_address,
+		.endpoint = 0
+	};
 
-void connection_handler_host(ipcarg_t);
+	/* Prepare the setup packet. */
+	usb_device_request_setup_packet_t setup_packet = {
+		.request_type = 0,
+		.request = USB_DEVREQ_SET_ADDRESS,
+		.index = 0,
+		.length = 0,
+	};
+	setup_packet.value = new_address;
 
-usb_hcd_transfer_ops_t vhc_transfer_ops;
-usbhc_iface_t vhc_iface;
+	usb_handle_t handle;
+	int rc;
 
-void address_init(void);
+	/* Start the control write transfer. */
+	rc = usb_drv_async_control_write_setup(phone, target,
+	    &setup_packet, sizeof(setup_packet), &handle);
+	if (rc != EOK) {
+		return rc;
+	}
+	rc = usb_drv_async_wait_for(handle);
+	if (rc != EOK) {
+		return rc;
+	}
 
+	/* Finish the control write transfer. */
+	rc = usb_drv_async_control_write_status(phone, target, &handle);
+	if (rc != EOK) {
+		return rc;
+	}
+	rc = usb_drv_async_wait_for(handle);
+	if (rc != EOK) {
+		return rc;
+	}
 
-void default_connection_handler(device_t *, ipc_callid_t, ipc_call_t *);
+	return EOK;
+}
 
-
-#endif
 /**
  * @}
  */

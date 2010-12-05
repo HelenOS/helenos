@@ -30,49 +30,55 @@
  * @{
  */
 /** @file
- * @brief USB driver.
+ * @brief HC driver.
  */
-#ifndef LIBUSB_USBDRV_H_
-#define LIBUSB_USBDRV_H_
+#ifndef LIBUSB_HCD_H_
+#define LIBUSB_HCD_H_
 
 #include <usb/usb.h>
-#include <driver.h>
+#include <fibril_synch.h>
+#include <devman.h>
 
-int usb_drv_hc_connect(device_t *, unsigned int);
+/** Info about used address. */
+typedef struct {
+	/** Linked list member. */
+	link_t link;
+	/** Address. */
+	usb_address_t address;
+	/** Corresponding devman handle. */
+	devman_handle_t devman_handle;
+} usb_address_keeping_used_t;
 
-int usb_drv_reserve_default_address(int);
-int usb_drv_release_default_address(int);
-usb_address_t usb_drv_request_address(int);
-int usb_drv_bind_address(int, usb_address_t, devman_handle_t);
-int usb_drv_release_address(int, usb_address_t);
+/** Structure for keeping track of free and used USB addresses. */
+typedef struct {
+	/** Head of list of used addresses. */
+	link_t used_addresses;
+	/** Upper bound for USB addresses. */
+	usb_address_t max_address;
+	/** Mutex protecting used address. */
+	fibril_mutex_t used_addresses_guard;
+	/** Condition variable for used addresses. */
+	fibril_condvar_t used_addresses_condvar;
 
-usb_address_t usb_drv_get_my_address(int, device_t *);
+	/** Condition variable mutex for default address. */
+	fibril_mutex_t default_condvar_guard;
+	/** Condition variable for default address. */
+	fibril_condvar_t default_condvar;
+	/** Whether is default address available. */
+	bool default_available;
+} usb_address_keeping_t;
 
-int usb_drv_async_interrupt_out(int, usb_target_t,
-    void *, size_t, usb_handle_t *);
-int usb_drv_async_interrupt_in(int, usb_target_t,
-    void *, size_t, size_t *, usb_handle_t *);
+void usb_address_keeping_init(usb_address_keeping_t *, usb_address_t);
 
-int usb_drv_async_control_write_setup(int, usb_target_t,
-    void *, size_t, usb_handle_t *);
-int usb_drv_async_control_write_data(int, usb_target_t,
-    void *, size_t, usb_handle_t *);
-int usb_drv_async_control_write_status(int, usb_target_t,
-    usb_handle_t *);
+void usb_address_keeping_reserve_default(usb_address_keeping_t *);
+void usb_address_keeping_release_default(usb_address_keeping_t *);
 
-int usb_drv_async_control_read_setup(int, usb_target_t,
-    void *, size_t, usb_handle_t *);
-int usb_drv_async_control_read_data(int, usb_target_t,
-    void *, size_t, size_t *, usb_handle_t *);
-int usb_drv_async_control_read_status(int, usb_target_t,
-    usb_handle_t *);
+usb_address_t usb_address_keeping_request(usb_address_keeping_t *);
+int usb_address_keeping_release(usb_address_keeping_t *, usb_address_t);
+void usb_address_keeping_devman_bind(usb_address_keeping_t *, usb_address_t,
+    devman_handle_t);
+usb_address_t usb_address_keeping_find(usb_address_keeping_t *,
+    devman_handle_t);
 
-int usb_drv_async_wait_for(usb_handle_t);
-
-
-int usb_drv_req_set_address(int, usb_address_t, usb_address_t);
 
 #endif
-/**
- * @}
- */
