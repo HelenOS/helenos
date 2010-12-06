@@ -542,12 +542,15 @@ def main():
 
 				default = rule_get_default(rule)
 				if default != None:
-					value = default
-					config[varname] = default
+					if value == None:
+						value = default
+					config[varname] = value
 
 				option = rule_get_option(rule, value)
 				if option != None:
 					options.append(option)
+				else:
+					continue
 				
 				opt2row[cnt] = (varname, vartype, name, choices)
 				
