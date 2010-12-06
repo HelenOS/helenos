@@ -65,7 +65,11 @@ $(CONFIG_MAKEFILE): config_default
 $(CONFIG_HEADER): config_default
 
 config_default: $(CONFIG_RULES)
+ifeq ($(HANDS_OFF),y)
+	$(CONFIG) $< hands-off $(PROFILE)
+else
 	$(CONFIG) $< default $(PROFILE)
+endif
 
 config: $(CONFIG_RULES)
 	$(CONFIG) $<

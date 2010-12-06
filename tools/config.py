@@ -494,11 +494,27 @@ def main():
 	elif os.path.exists(MAKEFILE):
 		read_config(MAKEFILE, config)
 	
-	# Default mode: only check values and regenerate configuration files
+	# Default mode: check values and regenerate configuration files
 	if (len(sys.argv) >= 3) and (sys.argv[2] == 'default'):
 		if (infer_verify_choices(config, rules)):
 			create_output(MAKEFILE, MACROS, config, rules)
 			return 0
+	
+	# Hands-off mode: check values and regenerate configuration files,
+	# but no interactive fallback
+	if (len(sys.argv) >= 3) and (sys.argv[2] == 'hands-off'):
+		# We deliberately test sys.argv >= 4 because we do not want
+		# to read implicitly any possible previous run configuration
+		if len(sys.argv) < 4:
+			sys.stderr.write("Configuration error: No presets specified\n")
+			return 2
+		
+		if (infer_verify_choices(config, rules)):
+			create_output(MAKEFILE, MACROS, config, rules)
+			return 0
+		
+		sys.stderr.write("Configuration error: The presets are ambiguous\n")
+		return 1
 	
 	# Check mode: only check configuration
 	if (len(sys.argv) >= 3) and (sys.argv[2] == 'check'):
