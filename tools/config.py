@@ -46,7 +46,7 @@ MACROS = 'config.h'
 PRESETS_DIR = 'defaults'
 
 def read_config(fname, config):
-	"Read saved values from last configuration run"
+	"Read saved values from last configuration run or a preset file"
 	
 	inf = open(fname, 'r')
 	
@@ -217,18 +217,18 @@ def subchoice(screen, name, choices, default):
 # Augment @a config with values that can be inferred, purge invalid ones
 # and verify that all variables have a value (previously specified or inferred).
 #
-# @param config	Configuration to work on
-# @param rules	Rules
+# @param config Configuration to work on
+# @param rules  Rules
 #
-# @return	True if configuration is complete and valid, False
-#		otherwise.
+# @return True if configuration is complete and valid, False
+#         otherwise.
 #
 def infer_verify_choices(config, rules):
 	"Infer and verify configuration values."
 	
 	for rule in rules:
 		varname, vartype, name, choices, cond = rule
-
+		
 		if cond and (not check_condition(cond, config, rules)):
 			continue
 		
@@ -236,25 +236,25 @@ def infer_verify_choices(config, rules):
 			value = None
 		else:
 			value = config[varname]
-
-		if not rule_value_is_valid(rule, value):
+		
+		if not validate_rule_value(rule, value):
 			value = None
-
-		default = rule_get_default(rule)
+		
+		default = get_default_rule(rule)
 		if default != None:
 			config[varname] = default
-
+		
 		if not varname in config:
 			return False
 	
 	return True
 
 ## Get default value from a rule.
-def rule_get_default(rule):
+def get_default_rule(rule):
 	varname, vartype, name, choices, cond = rule
-
+	
 	default = None
-
+	
 	if vartype == 'choice':
 		# If there is just one option, use it
 		if len(choices) == 1:
@@ -269,21 +269,21 @@ def rule_get_default(rule):
 		default = 'n'
 	else:
 		raise RuntimeError("Unknown variable type: %s" % vartype)
-
+	
 	return default
 
 ## Get option from a rule.
 #
-# @param rule	Rule for a variable
-# @param value	Current value of the variable
+# @param rule  Rule for a variable
+# @param value Current value of the variable
 #
 # @return Option (string) to ask or None which means not to ask.
 #
-def rule_get_option(rule, value):
+def get_rule_option(rule, value):
 	varname, vartype, name, choices, cond = rule
-
+	
 	option = None
-
+	
 	if vartype == 'choice':
 		# If there is just one option, don't ask
 		if len(choices) != 1:
@@ -301,22 +301,22 @@ def rule_get_option(rule, value):
 		option ="  <%s> %s " % (yes_no(value), name)
 	else:
 		raise RuntimeError("Unknown variable type: %s" % vartype)
-
+	
 	return option
 
 ## Check if variable value is valid.
 #
-# @param rule	Rule for the variable
-# @param value	Value of the variable
+# @param rule  Rule for the variable
+# @param value Value of the variable
 #
-# @return	True if valid, False if not valid.
+# @return True if valid, False if not valid.
 #
-def rule_value_is_valid(rule, value):
+def validate_rule_value(rule, value):
 	varname, vartype, name, choices, cond = rule
 	
 	if value == None:
 		return True
-
+	
 	if vartype == 'choice':
 		if not value in [choice[0] for choice in choices]:
 			return False
@@ -334,7 +334,7 @@ def rule_value_is_valid(rule, value):
 			return False
 	else:
 		raise RuntimeError("Unknown variable type: %s" % vartype)
-
+	
 	return True
 
 def create_output(mkname, mcname, config, rules):
@@ -414,7 +414,7 @@ def sorted_dir(root):
 
 ## Ask user to choose a configuration profile.
 #
-def profile_choose(root, fname, screen, config):
+def choose_profile(root, fname, screen, config):
 	options = []
 	opt2path = {}
 	cnt = 0
@@ -452,29 +452,29 @@ def profile_choose(root, fname, screen, config):
 
 ## Read presets from a configuration profile.
 #
-# @param profile	Profile to load from (a list of string components)
-# @param config		Output configuration
+# @param profile Profile to load from (a list of string components)
+# @param config  Output configuration
 #
-def presets_read(profile, config):
+def read_presets(profile, config):
 	path = os.path.join(PRESETS_DIR, profile[0], MAKEFILE)
 	read_config(path, config)
-
+	
 	if len(profile) > 1:
 		path = os.path.join(PRESETS_DIR, profile[0], profile[1], MAKEFILE)
 		read_config(path, config)
 
 ## Parse profile name (relative OS path) into a list of components.
 #
-# @param profile_name	Relative path (using OS separator)
-# @return		List of components
+# @param profile_name Relative path (using OS separator)
+# @return             List of components
 #
 def parse_profile_name(profile_name):
 	profile = []
-
+	
 	head, tail = os.path.split(profile_name)
 	if head != '':
 		profile.append(head)
-
+	
 	profile.append(tail)
 	return profile
 
@@ -490,7 +490,7 @@ def main():
 	# otherwise configuration from previous run is used.
 	if len(sys.argv) >= 4:
 		profile = parse_profile_name(sys.argv[3])
-		presets_read(profile, config)
+		read_presets(profile, config)
 	elif os.path.exists(MAKEFILE):
 		read_config(MAKEFILE, config)
 	
@@ -537,16 +537,16 @@ def main():
 				else:
 					value = config[varname]
 				
-				if not rule_value_is_valid(rule, value):
+				if not validate_rule_value(rule, value):
 					value = None
-
-				default = rule_get_default(rule)
+				
+				default = get_default_rule(rule)
 				if default != None:
 					if value == None:
 						value = default
 					config[varname] = value
-
-				option = rule_get_option(rule, value)
+				
+				option = get_rule_option(rule, value)
 				if option != None:
 					options.append(option)
 				else:
@@ -572,9 +572,9 @@ def main():
 					continue
 			
 			if value == 0:
-				profile = profile_choose(PRESETS_DIR, MAKEFILE, screen, config)
+				profile = choose_profile(PRESETS_DIR, MAKEFILE, screen, config)
 				if profile != None:
-					presets_read(profile, config)
+					read_presets(profile, config)
 				position = 1
 				continue
 			
