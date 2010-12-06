@@ -51,6 +51,8 @@
 
 vfs_info_t fat_vfs_info = {
 	.name = NAME,
+	.concurrent_read_write = false,
+	.write_retains_size = false,	
 };
 
 fs_reg_t fat_reg;
