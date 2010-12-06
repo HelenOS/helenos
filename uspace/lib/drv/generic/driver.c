@@ -164,6 +164,8 @@ static void driver_add_device(ipc_callid_t iid, ipc_call_t *icall)
 	int res = EOK;
 	
 	devman_handle_t dev_handle =  IPC_GET_ARG1(*icall);
+    	devman_handle_t parent_dev_handle = IPC_GET_ARG2(*icall);
+    
 	device_t *dev = create_device();
 	dev->handle = dev_handle;
 	
@@ -171,6 +173,8 @@ static void driver_add_device(ipc_callid_t iid, ipc_call_t *icall)
 	dev->name = dev_name;
 	
 	add_to_devices_list(dev);
+	dev->parent = driver_get_device(&devices, parent_dev_handle);
+	
 	res = driver->driver_ops->add_device(dev);
 	if (0 == res) {
 		printf("%s: new device with handle=%" PRIun " was added.\n",
@@ -374,6 +378,59 @@ int child_device_register(device_t *child, device_t *parent)
 		return res;
 	remove_from_devices_list(child);	
 	return res;
+}
+
+/** Wrapper for child_device_register for devices with single match id.
+ *
+ * @param parent Parent device.
+ * @param child_name Child device name.
+ * @param child_match_id Child device match id.
+ * @param child_match_score Child device match score.
+ * @return Error code.
+ */
+int child_device_register_wrapper(device_t *parent, const char *child_name,
+    const char *child_match_id, int child_match_score)
+{
+	device_t *child = NULL;
+	match_id_t *match_id = NULL;
+	int rc;
+
+	child = create_device();
+	if (child == NULL) {
+		rc = ENOMEM;
+		goto failure;
+	}
+
+	child->name = child_name;
+
+	match_id = create_match_id();
+	if (match_id == NULL) {
+		rc = ENOMEM;
+		goto failure;
+	}
+
+	match_id->id = child_match_id;
+	match_id->score = child_match_score;
+	add_match_id(&child->match_ids, match_id);
+
+	rc = child_device_register(child, parent);
+	if (EOK != rc)
+		goto failure;
+
+	return EOK;
+
+failure:
+	if (match_id != NULL) {
+		match_id->id = NULL;
+		delete_match_id(match_id);
+	}
+
+	if (child != NULL) {
+		child->name = NULL;
+		delete_device(child);
+	}
+
+	return rc;
 }
 
 int driver_main(driver_t *drv)
