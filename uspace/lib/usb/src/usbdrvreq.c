@@ -116,7 +116,7 @@ int usb_drv_req_get_device_descriptor(int phone, usb_address_t address,
 
 	/* Prepare the setup packet. */
 	usb_device_request_setup_packet_t setup_packet = {
-		.request_type = 0,
+		.request_type = 128,
 		.request = USB_DEVREQ_GET_DESCRIPTOR,
 		.index = 0,
 		.length = sizeof(usb_standard_device_descriptor_t)
@@ -129,7 +129,7 @@ int usb_drv_req_get_device_descriptor(int phone, usb_address_t address,
 
 	/* Start the control read transfer. */
 	rc = usb_drv_async_control_read_setup(phone, target,
-	    &setup_packet, sizeof(setup_packet), &handle);
+	    &setup_packet, sizeof(usb_device_request_setup_packet_t), &handle);
 	if (rc != EOK) {
 		return rc;
 	}
