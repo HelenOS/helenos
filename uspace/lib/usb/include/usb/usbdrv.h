@@ -37,6 +37,8 @@
 
 #include <usb/usb.h>
 #include <driver.h>
+#include <usb/devreq.h>
+#include <usb/descriptor.h>
 
 int usb_drv_hc_connect(device_t *, unsigned int);
 
@@ -71,6 +73,8 @@ int usb_drv_async_wait_for(usb_handle_t);
 
 
 int usb_drv_req_set_address(int, usb_address_t, usb_address_t);
+int usb_drv_req_get_device_descriptor(int, usb_address_t,
+    usb_standard_device_descriptor_t *);
 
 #endif
 /**
