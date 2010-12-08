@@ -571,11 +571,6 @@ def main():
 				if value == None and default != None:
 					value = default
 					config[varname] = default
-
-				if value == None:
-					if default == None:
-						value = default
-					config[varname] = value
 				
 				option = get_rule_option(rule, value)
 				if option != None:
