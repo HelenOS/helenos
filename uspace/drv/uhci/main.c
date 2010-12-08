@@ -26,6 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include <usb/hcdhubd.h>
+#include <usb/debug.h>
 #include <errno.h>
 #include "uhci.h"
 
@@ -35,11 +36,13 @@ static device_ops_t uhci_ops = {
 
 static int uhci_add_device(device_t *device)
 {
+	usb_dprintf(NAME, 1, "uhci_add_device() called\n");
 	device->ops = &uhci_ops;
 
 	/*
 	 * We need to announce the presence of our root hub.
 	 */
+	usb_dprintf(NAME, 2, "adding root hub\n");
 	usb_hcd_add_root_hub(device);
 
 	return EOK;
@@ -60,6 +63,7 @@ int main(int argc, char *argv[])
 	 * Do some global initializations.
 	 */
 	sleep(5);
+	usb_dprintf_enable(NAME, 5);
 
 	return driver_main(&uhci_driver);
 }
