@@ -241,7 +241,13 @@ def infer_verify_choices(config, rules):
 			value = None
 		
 		default = get_default_rule(rule)
-		if default != None:
+
+		#
+		# If we don't have a value but we do have
+		# a default, use it.
+		#
+		if value == None and default != None:
+			value = default
 			config[varname] = default
 		
 		if not varname in config:
@@ -557,8 +563,17 @@ def main():
 					value = None
 				
 				default = get_default_rule(rule)
-				if default != None:
-					if value == None:
+
+				#
+				# If we don't have a value but we do have
+				# a default, use it.
+				#
+				if value == None and default != None:
+					value = default
+					config[varname] = default
+
+				if value == None:
+					if default == None:
 						value = default
 					config[varname] = value
 				
