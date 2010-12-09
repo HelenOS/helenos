@@ -25,45 +25,54 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include <usb/hcdhubd.h>
-#include <usb/debug.h>
+
+/** @addtogroup usb
+ * @{
+ */
+/**
+ * @file
+ * @brief USB querying.
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
 #include <errno.h>
-#include "uhci.h"
+#include <str_error.h>
+#include <bool.h>
 
-static device_ops_t uhci_ops = {
-	.interfaces[USBHC_DEV_IFACE] = &uhci_iface,
-};
+#include <usb/usb.h>
+#include <usb/descriptor.h>
 
-static int uhci_add_device(device_t *device)
+#include "usbinfo.h"
+
+#define INDENT "  "
+
+#define BCD_INT(a) (((unsigned int)(a)) / 256)
+#define BCD_FRAC(a) (((unsigned int)(a)) % 256)
+
+#define BCD_FMT "%x.%x"
+#define BCD_ARGS(a) BCD_INT((a)), BCD_FRAC((a))
+
+void dump_standard_device_descriptor(usb_standard_device_descriptor_t *d)
 {
-	usb_dprintf(NAME, 1, "uhci_add_device() called\n");
-	device->ops = &uhci_ops;
+	printf("Standard device descriptor:\n");
 
-	/*
-	 * We need to announce the presence of our root hub.
-	 */
-	usb_dprintf(NAME, 2, "adding root hub\n");
-	usb_hcd_add_root_hub(device);
-
-	return EOK;
+	printf(INDENT "bLength = %d\n", d->length);
+	printf(INDENT "bDescriptorType = 0x%02x\n", d->descriptor_type);
+	printf(INDENT "bcdUSB = %d (" BCD_FMT ")\n", d->usb_spec_version,
+	    BCD_ARGS(d->usb_spec_version));
+	printf(INDENT "bDeviceClass = 0x%02x\n", d->device_class);
+	printf(INDENT "bDeviceSubClass = 0x%02x\n", d->device_subclass);
+	printf(INDENT "bDeviceProtocol = 0x%02x\n", d->device_protocol);
+	printf(INDENT "bMaxPacketSize0 = %d\n", d->max_packet_size);
+	printf(INDENT "idVendor = %d\n", d->vendor_id);
+	printf(INDENT "idProduct = %d\n", d->product_id);
+	printf(INDENT "bcdDevice = %d\n", d->device_version);
+	printf(INDENT "iManufacturer = %d\n", d->str_manufacturer);
+	printf(INDENT "iProduct = %d\n", d->str_product);
+	printf(INDENT "iSerialNumber = %d\n", d->str_serial_number);
+	printf(INDENT "bNumConfigurations = %d\n", d->configuration_count);
 }
 
-static driver_ops_t uhci_driver_ops = {
-	.add_device = uhci_add_device,
-};
-
-static driver_t uhci_driver = {
-	.name = NAME,
-	.driver_ops = &uhci_driver_ops
-};
-
-int main(int argc, char *argv[])
-{
-	/*
-	 * Do some global initializations.
-	 */
-	sleep(5);
-	usb_dprintf_enable(NAME, 5);
-
-	return driver_main(&uhci_driver);
-}
+/** @}
+ */

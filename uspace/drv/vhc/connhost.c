@@ -57,7 +57,7 @@ static void universal_callback(void *buffer, size_t size,
 	switch (transfer->direction) {
 		case USB_DIRECTION_IN:
 			transfer->in_callback(transfer->dev,
-			    size, outcome,
+			    outcome, size,
 			    transfer->arg);
 			break;
 		case USB_DIRECTION_OUT:

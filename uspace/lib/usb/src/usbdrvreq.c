@@ -33,7 +33,6 @@
  * @brief USB driver - standard USB requests (implementation).
  */
 #include <usb/usbdrv.h>
-#include <usb/devreq.h>
 #include <errno.h>
 
 /** Change address of connected device.
@@ -93,6 +92,90 @@ int usb_drv_req_set_address(int phone, usb_address_t old_address,
 
 	return EOK;
 }
+
+/** Retrieve device descriptor of connected USB device.
+ *
+ * @param[in] phone Open phone to HC driver.
+ * @param[in] address Device USB address.
+ * @param[out] descriptor Storage for the device descriptor.
+ * @return Error code.
+ * @retval EBADMEM @p descriptor is NULL.
+ */
+int usb_drv_req_get_device_descriptor(int phone, usb_address_t address,
+    usb_standard_device_descriptor_t *descriptor)
+{
+	if (descriptor == NULL) {
+		return EBADMEM;
+	}
+
+	/* Prepare the target. */
+	usb_target_t target = {
+		.address = address,
+		.endpoint = 0
+	};
+
+	/* Prepare the setup packet. */
+	usb_device_request_setup_packet_t setup_packet = {
+		.request_type = 128,
+		.request = USB_DEVREQ_GET_DESCRIPTOR,
+		.index = 0,
+		.length = sizeof(usb_standard_device_descriptor_t)
+	};
+	setup_packet.value_high = USB_DESCTYPE_DEVICE;
+	setup_packet.value_low = 0;
+
+	usb_handle_t handle;
+	int rc;
+
+	/* Start the control read transfer. */
+	rc = usb_drv_async_control_read_setup(phone, target,
+	    &setup_packet, sizeof(usb_device_request_setup_packet_t), &handle);
+	if (rc != EOK) {
+		return rc;
+	}
+	rc = usb_drv_async_wait_for(handle);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	/* Retrieve the descriptor. */
+	size_t actually_transferred = 0;
+	usb_standard_device_descriptor_t descriptor_tmp;
+	rc = usb_drv_async_control_read_data(phone, target,
+	    &descriptor_tmp, sizeof(usb_standard_device_descriptor_t),
+	    &actually_transferred, &handle);
+	if (rc != EOK) {
+		return rc;
+	}
+	rc = usb_drv_async_wait_for(handle);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	/* Finish the control read transfer. */
+	rc = usb_drv_async_control_read_status(phone, target, &handle);
+	if (rc != EOK) {
+		return rc;
+	}
+	rc = usb_drv_async_wait_for(handle);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	if (actually_transferred < sizeof(usb_standard_device_descriptor_t)) {
+		return ELIMIT;
+	}
+
+	/*
+	 * Everything is okay, copy the descriptor.
+	 */
+	memcpy(descriptor, &descriptor_tmp,
+	    sizeof(usb_standard_device_descriptor_t));
+
+	return EOK;
+}
+
+
 
 /**
  * @}

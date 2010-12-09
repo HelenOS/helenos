@@ -48,6 +48,7 @@ DIRS = \
 	app/tetris \
 	app/trace \
 	app/top \
+	app/usbinfo \
 	app/virtusbkbd \
 	app/netecho \
 	app/nettest1 \

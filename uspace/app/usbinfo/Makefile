@@ -27,20 +27,13 @@
 #
 
 USPACE_PREFIX = ../..
-LIBRARY = libusb
-LIBS = $(LIBDRV_PREFIX)/libdrv.a
-EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include -Iinclude
+BINARY = usbinfo
+
+LIBS = $(LIBUSB_PREFIX)/libusb.a $(LIBDRV_PREFIX)/libdrv.a
+EXTRA_CFLAGS = -I$(LIBUSB_PREFIX)/include -I$(LIBDRV_PREFIX)/include
 
 SOURCES = \
-	src/addrkeep.c \
-	src/debug.c \
-	src/drvpsync.c \
-	src/hcdhubd.c \
-	src/hcdrv.c \
-	src/localdrv.c \
-	src/remotedrv.c \
-	src/usb.c \
-	src/usbdrvreq.c \
-	src/usbdrv.c
+	dump.c \
+	main.c
 
 include $(USPACE_PREFIX)/Makefile.common

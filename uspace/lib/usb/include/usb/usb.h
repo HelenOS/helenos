@@ -70,6 +70,8 @@ typedef int usb_address_t;
 
 /** Default USB address. */
 #define USB_ADDRESS_DEFAULT 0
+/** Maximum address number in USB 1.1. */
+#define USB11_ADDRESS_MAX 128
 
 /** USB endpoint number type.
  * Negative values could be used to indicate error.

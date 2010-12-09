@@ -35,6 +35,8 @@
 #ifndef VHCD_VHCD_H_
 #define VHCD_VHCD_H_
 
+#include <usb/debug.h>
+
 #define NAME "vhc"
 #define NAME_DEV "hcd-virt-dev"
 #define NAMESPACE "usb"
@@ -42,8 +44,8 @@
 #define DEVMAP_PATH_HC NAMESPACE "/" NAME
 #define DEVMAP_PATH_DEV NAMESPACE "/" NAME_DEV
 
-extern int debug_level;
-void dprintf(int, const char *, ...);
+#define dprintf(level, format, ...) \
+	usb_dprintf(NAME, (level), format "\n", ##__VA_ARGS__)
 void dprintf_inval_call(int, ipc_call_t, ipcarg_t);
 
 #endif
