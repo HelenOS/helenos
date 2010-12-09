@@ -110,6 +110,9 @@ RD_SRVS_NON_ESSENTIAL = \
 	
 RD_DRVS = \
 	root \
+	rootvirt \
+	test1 \
+	test2 \
 	vhc
 
 RD_DRV_CFG = 

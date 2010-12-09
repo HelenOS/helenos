@@ -167,6 +167,11 @@ struct node {
 	 * Used by the hash table of devices indexed by devmap device handles.
 	 */
 	link_t devmap_link;
+
+	/**
+	 * Whether this device was already passed to the driver.
+	 */
+	bool passed_to_driver;
 };
 
 /** Represents device tree. */

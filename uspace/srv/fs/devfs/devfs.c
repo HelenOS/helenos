@@ -52,6 +52,8 @@
 
 static vfs_info_t devfs_vfs_info = {
 	.name = NAME,
+	.concurrent_read_write = false,
+	.write_retains_size = false,
 };
 
 fs_reg_t devfs_reg;

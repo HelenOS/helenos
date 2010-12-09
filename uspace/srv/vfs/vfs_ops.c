@@ -780,6 +780,7 @@ void vfs_close(ipc_callid_t rid, ipc_call_t *request)
 
 static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 {
+	vfs_info_t *vi;
 
 	/*
 	 * The following code strongly depends on the fact that the files data
@@ -806,11 +807,15 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 	 */
 	fibril_mutex_lock(&file->lock);
 
+	vi = fs_handle_to_info(file->node->fs_handle);
+	assert(vi);
+
 	/*
 	 * Lock the file's node so that no other client can read/write to it at
-	 * the same time.
+	 * the same time unless the FS supports concurrent reads/writes and its
+	 * write implementation does not modify the file size.
 	 */
-	if (read)
+	if (read || (vi->concurrent_read_write && vi->write_retains_size))
 		fibril_rwlock_read_lock(&file->node->contents_rwlock);
 	else
 		fibril_rwlock_write_lock(&file->node->contents_rwlock);
@@ -856,7 +861,7 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 		fibril_rwlock_read_unlock(&namespace_rwlock);
 	
 	/* Unlock the VFS node. */
-	if (read)
+	if (read || (vi->concurrent_read_write && vi->write_retains_size))
 		fibril_rwlock_read_unlock(&file->node->contents_rwlock);
 	else {
 		/* Update the cached version of node's size. */
