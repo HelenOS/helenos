@@ -66,31 +66,10 @@ int usb_drv_req_set_address(int phone, usb_address_t old_address,
 	};
 	setup_packet.value = new_address;
 
-	usb_handle_t handle;
-	int rc;
+	int rc = usb_drv_psync_control_write(phone, target,
+	    &setup_packet, sizeof(setup_packet), NULL, 0);
 
-	/* Start the control write transfer. */
-	rc = usb_drv_async_control_write_setup(phone, target,
-	    &setup_packet, sizeof(setup_packet), &handle);
-	if (rc != EOK) {
-		return rc;
-	}
-	rc = usb_drv_async_wait_for(handle);
-	if (rc != EOK) {
-		return rc;
-	}
-
-	/* Finish the control write transfer. */
-	rc = usb_drv_async_control_write_status(phone, target, &handle);
-	if (rc != EOK) {
-		return rc;
-	}
-	rc = usb_drv_async_wait_for(handle);
-	if (rc != EOK) {
-		return rc;
-	}
-
-	return EOK;
+	return rc;
 }
 
 /** Retrieve device descriptor of connected USB device.
@@ -124,53 +103,27 @@ int usb_drv_req_get_device_descriptor(int phone, usb_address_t address,
 	setup_packet.value_high = USB_DESCTYPE_DEVICE;
 	setup_packet.value_low = 0;
 
-	usb_handle_t handle;
-	int rc;
-
-	/* Start the control read transfer. */
-	rc = usb_drv_async_control_read_setup(phone, target,
-	    &setup_packet, sizeof(usb_device_request_setup_packet_t), &handle);
-	if (rc != EOK) {
-		return rc;
-	}
-	rc = usb_drv_async_wait_for(handle);
-	if (rc != EOK) {
-		return rc;
-	}
-
-	/* Retrieve the descriptor. */
+	/* Prepare local descriptor. */
 	size_t actually_transferred = 0;
 	usb_standard_device_descriptor_t descriptor_tmp;
-	rc = usb_drv_async_control_read_data(phone, target,
-	    &descriptor_tmp, sizeof(usb_standard_device_descriptor_t),
-	    &actually_transferred, &handle);
-	if (rc != EOK) {
-		return rc;
-	}
-	rc = usb_drv_async_wait_for(handle);
+
+	/* Perform the control read transaction. */
+	int rc = usb_drv_psync_control_read(phone, target,
+	    &setup_packet, sizeof(setup_packet),
+	    &descriptor_tmp, sizeof(descriptor_tmp), &actually_transferred);
+
 	if (rc != EOK) {
 		return rc;
 	}
 
-	/* Finish the control read transfer. */
-	rc = usb_drv_async_control_read_status(phone, target, &handle);
-	if (rc != EOK) {
-		return rc;
-	}
-	rc = usb_drv_async_wait_for(handle);
-	if (rc != EOK) {
-		return rc;
-	}
-
-	if (actually_transferred < sizeof(usb_standard_device_descriptor_t)) {
+	/* Verify that all data has been transferred. */
+	if (actually_transferred < sizeof(descriptor_tmp)) {
 		return ELIMIT;
 	}
 
-	/*
-	 * Everything is okay, copy the descriptor.
-	 */
+	/* Everything is okay, copy the descriptor. */
 	memcpy(descriptor, &descriptor_tmp,
-	    sizeof(usb_standard_device_descriptor_t));
+	    sizeof(descriptor_tmp));
 
 	return EOK;
 }
