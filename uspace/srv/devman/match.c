@@ -45,7 +45,7 @@ static int compute_match_score(match_id_t *driver, match_id_t *device)
 {
 	if (str_cmp(driver->id, device->id) == 0) {
 		/*
-		 * The strings matches, return their score multiplied.
+		 * The strings match, return the product of their scores.
 		 */
 		return driver->score * device->score;
 	} else {
@@ -65,7 +65,7 @@ int get_match_score(driver_t *drv, node_t *dev)
 		return 0;
 	
 	/*
-	 * Go through all pairs, return the highest score obtainetd.
+	 * Go through all pairs, return the highest score obtained.
 	 */
 	int highest_score = 0;
 	

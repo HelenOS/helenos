@@ -90,7 +90,7 @@
 				field->items = tmp; \
 			} \
 			field->items[field->next] = value; \
-			++field->next; \
+			field->next++; \
 			field->items[field->next] = NULL; \
 			return field->next - 1; \
 		} \
@@ -107,7 +107,7 @@
 		if (name##_is_valid(field)) { \
 			int index; \
 			field->magic = 0; \
-			for (index = 0; index < field->next; ++ index) { \
+			for (index = 0; index < field->next; index++) { \
 				if (field->items[index]) \
 					free(field->items[index]); \
 			} \

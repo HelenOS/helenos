@@ -46,7 +46,7 @@ MACROS = 'config.h'
 PRESETS_DIR = 'defaults'
 
 def read_config(fname, config):
-	"Read saved values from last configuration run"
+	"Read saved values from last configuration run or a preset file"
 	
 	inf = open(fname, 'r')
 	
@@ -217,18 +217,18 @@ def subchoice(screen, name, choices, default):
 # Augment @a config with values that can be inferred, purge invalid ones
 # and verify that all variables have a value (previously specified or inferred).
 #
-# @param config	Configuration to work on
-# @param rules	Rules
+# @param config Configuration to work on
+# @param rules  Rules
 #
-# @return	True if configuration is complete and valid, False
-#		otherwise.
+# @return True if configuration is complete and valid, False
+#         otherwise.
 #
 def infer_verify_choices(config, rules):
 	"Infer and verify configuration values."
 	
 	for rule in rules:
 		varname, vartype, name, choices, cond = rule
-
+		
 		if cond and (not check_condition(cond, config, rules)):
 			continue
 		
@@ -236,25 +236,31 @@ def infer_verify_choices(config, rules):
 			value = None
 		else:
 			value = config[varname]
-
-		if not rule_value_is_valid(rule, value):
+		
+		if not validate_rule_value(rule, value):
 			value = None
+		
+		default = get_default_rule(rule)
 
-		default = rule_get_default(rule)
-		if default != None:
+		#
+		# If we don't have a value but we do have
+		# a default, use it.
+		#
+		if value == None and default != None:
+			value = default
 			config[varname] = default
-
+		
 		if not varname in config:
 			return False
 	
 	return True
 
 ## Get default value from a rule.
-def rule_get_default(rule):
+def get_default_rule(rule):
 	varname, vartype, name, choices, cond = rule
-
+	
 	default = None
-
+	
 	if vartype == 'choice':
 		# If there is just one option, use it
 		if len(choices) == 1:
@@ -269,21 +275,21 @@ def rule_get_default(rule):
 		default = 'n'
 	else:
 		raise RuntimeError("Unknown variable type: %s" % vartype)
-
+	
 	return default
 
 ## Get option from a rule.
 #
-# @param rule	Rule for a variable
-# @param value	Current value of the variable
+# @param rule  Rule for a variable
+# @param value Current value of the variable
 #
 # @return Option (string) to ask or None which means not to ask.
 #
-def rule_get_option(rule, value):
+def get_rule_option(rule, value):
 	varname, vartype, name, choices, cond = rule
-
+	
 	option = None
-
+	
 	if vartype == 'choice':
 		# If there is just one option, don't ask
 		if len(choices) != 1:
@@ -301,22 +307,22 @@ def rule_get_option(rule, value):
 		option ="  <%s> %s " % (yes_no(value), name)
 	else:
 		raise RuntimeError("Unknown variable type: %s" % vartype)
-
+	
 	return option
 
 ## Check if variable value is valid.
 #
-# @param rule	Rule for the variable
-# @param value	Value of the variable
+# @param rule  Rule for the variable
+# @param value Value of the variable
 #
-# @return	True if valid, False if not valid.
+# @return True if valid, False if not valid.
 #
-def rule_value_is_valid(rule, value):
+def validate_rule_value(rule, value):
 	varname, vartype, name, choices, cond = rule
 	
 	if value == None:
 		return True
-
+	
 	if vartype == 'choice':
 		if not value in [choice[0] for choice in choices]:
 			return False
@@ -334,7 +340,7 @@ def rule_value_is_valid(rule, value):
 			return False
 	else:
 		raise RuntimeError("Unknown variable type: %s" % vartype)
-
+	
 	return True
 
 def create_output(mkname, mcname, config, rules):
@@ -412,9 +418,9 @@ def sorted_dir(root):
 	list.sort()
 	return list
 
-## Choose a profile and load configuration presets.
+## Ask user to choose a configuration profile.
 #
-def load_presets(root, fname, screen, config):
+def choose_profile(root, fname, screen, config):
 	options = []
 	opt2path = {}
 	cnt = 0
@@ -435,12 +441,12 @@ def load_presets(root, fname, screen, config):
 				if os.path.isdir(subpath) and os.path.exists(subcanon) and os.path.isfile(subcanon):
 					subprofile = True
 					options.append("%s (%s)" % (name, subname))
-					opt2path[cnt] = (canon, subcanon)
+					opt2path[cnt] = [name, subname]
 					cnt += 1
 			
 			if not subprofile:
 				options.append(name)
-				opt2path[cnt] = (canon, None)
+				opt2path[cnt] = [name]
 				cnt += 1
 	
 	(button, value) = xtui.choice_window(screen, 'Load preconfigured defaults', 'Choose configuration profile', options, None)
@@ -448,26 +454,73 @@ def load_presets(root, fname, screen, config):
 	if button == 'cancel':
 		return None
 	
-	read_config(opt2path[value][0], config)
-	if opt2path[value][1] != None:
-		read_config(opt2path[value][1], config)
+	return opt2path[value]
+
+## Read presets from a configuration profile.
+#
+# @param profile Profile to load from (a list of string components)
+# @param config  Output configuration
+#
+def read_presets(profile, config):
+	path = os.path.join(PRESETS_DIR, profile[0], MAKEFILE)
+	read_config(path, config)
+	
+	if len(profile) > 1:
+		path = os.path.join(PRESETS_DIR, profile[0], profile[1], MAKEFILE)
+		read_config(path, config)
+
+## Parse profile name (relative OS path) into a list of components.
+#
+# @param profile_name Relative path (using OS separator)
+# @return             List of components
+#
+def parse_profile_name(profile_name):
+	profile = []
+	
+	head, tail = os.path.split(profile_name)
+	if head != '':
+		profile.append(head)
+	
+	profile.append(tail)
+	return profile
 
 def main():
+	profile = None
 	config = {}
 	rules = []
 	
 	# Parse rules file
 	parse_rules(RULES_FILE, rules)
 	
-	# Read configuration from previous run
-	if os.path.exists(MAKEFILE):
+	# Input configuration file can be specified on command line
+	# otherwise configuration from previous run is used.
+	if len(sys.argv) >= 4:
+		profile = parse_profile_name(sys.argv[3])
+		read_presets(profile, config)
+	elif os.path.exists(MAKEFILE):
 		read_config(MAKEFILE, config)
 	
-	# Default mode: only check values and regenerate configuration files
+	# Default mode: check values and regenerate configuration files
 	if (len(sys.argv) >= 3) and (sys.argv[2] == 'default'):
 		if (infer_verify_choices(config, rules)):
 			create_output(MAKEFILE, MACROS, config, rules)
 			return 0
+	
+	# Hands-off mode: check values and regenerate configuration files,
+	# but no interactive fallback
+	if (len(sys.argv) >= 3) and (sys.argv[2] == 'hands-off'):
+		# We deliberately test sys.argv >= 4 because we do not want
+		# to read implicitly any possible previous run configuration
+		if len(sys.argv) < 4:
+			sys.stderr.write("Configuration error: No presets specified\n")
+			return 2
+		
+		if (infer_verify_choices(config, rules)):
+			create_output(MAKEFILE, MACROS, config, rules)
+			return 0
+		
+		sys.stderr.write("Configuration error: The presets are ambiguous\n")
+		return 1
 	
 	# Check mode: only check configuration
 	if (len(sys.argv) >= 3) and (sys.argv[2] == 'check'):
@@ -506,17 +559,24 @@ def main():
 				else:
 					value = config[varname]
 				
-				if not rule_value_is_valid(rule, value):
+				if not validate_rule_value(rule, value):
 					value = None
+				
+				default = get_default_rule(rule)
 
-				default = rule_get_default(rule)
-				if default != None:
+				#
+				# If we don't have a value but we do have
+				# a default, use it.
+				#
+				if value == None and default != None:
 					value = default
 					config[varname] = default
-
-				option = rule_get_option(rule, value)
+				
+				option = get_rule_option(rule, value)
 				if option != None:
 					options.append(option)
+				else:
+					continue
 				
 				opt2row[cnt] = (varname, vartype, name, choices)
 				
@@ -538,7 +598,9 @@ def main():
 					continue
 			
 			if value == 0:
-				load_presets(PRESETS_DIR, MAKEFILE, screen, config)
+				profile = choose_profile(PRESETS_DIR, MAKEFILE, screen, config)
+				if profile != None:
+					read_presets(profile, config)
 				position = 1
 				continue
 			
