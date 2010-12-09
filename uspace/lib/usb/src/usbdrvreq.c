@@ -129,6 +129,114 @@ int usb_drv_req_get_device_descriptor(int phone, usb_address_t address,
 }
 
 
+/** Retrieve configuration descriptor of connected USB device.
+ *
+ * The function does not retrieve additional data binded with configuration
+ * descriptor (such as its interface and endpoint descriptors) - use
+ * usb_drv_req_get_full_configuration_descriptor() instead.
+ *
+ * @param[in] phone Open phone to HC driver.
+ * @param[in] address Device USB address.
+ * @param[in] index Configuration descriptor index.
+ * @param[out] descriptor Storage for the configuration descriptor.
+ * @return Error code.
+ * @retval EBADMEM @p descriptor is NULL.
+ */
+int usb_drv_req_get_bare_configuration_descriptor(int phone,
+    usb_address_t address, int index,
+    usb_standard_configuration_descriptor_t *descriptor)
+{
+	if (descriptor == NULL) {
+		return EBADMEM;
+	}
+
+	/* Prepare the target. */
+	usb_target_t target = {
+		.address = address,
+		.endpoint = 0
+	};
+
+	/* Prepare the setup packet. */
+	usb_device_request_setup_packet_t setup_packet = {
+		.request_type = 128,
+		.request = USB_DEVREQ_GET_DESCRIPTOR,
+		.index = 0,
+		.length = sizeof(usb_standard_device_descriptor_t)
+	};
+	setup_packet.value_high = USB_DESCTYPE_CONFIGURATION;
+	setup_packet.value_low = index;
+
+	/* Prepare local descriptor. */
+	size_t actually_transferred = 0;
+	usb_standard_configuration_descriptor_t descriptor_tmp;
+
+	/* Perform the control read transaction. */
+	int rc = usb_drv_psync_control_read(phone, target,
+	    &setup_packet, sizeof(setup_packet),
+	    &descriptor_tmp, sizeof(descriptor_tmp), &actually_transferred);
+
+	if (rc != EOK) {
+		return rc;
+	}
+
+	/* Verify that all data has been transferred. */
+	if (actually_transferred < sizeof(descriptor_tmp)) {
+		return ELIMIT;
+	}
+
+	/* Everything is okay, copy the descriptor. */
+	memcpy(descriptor, &descriptor_tmp,
+	    sizeof(descriptor_tmp));
+
+	return EOK;
+}
+
+/** Retrieve full configuration descriptor of connected USB device.
+ *
+ * @warning The @p buffer might be touched (i.e. its contents changed)
+ * even when error occurres.
+ *
+ * @param[in] phone Open phone to HC driver.
+ * @param[in] address Device USB address.
+ * @param[in] index Configuration descriptor index.
+ * @param[out] buffer Buffer for the whole configuration descriptor.
+ * @param[in] buffer_size Size of the prepared @p buffer.
+ * @param[out] actual_buffer_size Bytes actually transfered.
+ * @return Error code.
+ * @retval EBADMEM @p descriptor is NULL.
+ */
+int usb_drv_req_get_full_configuration_descriptor(int phone,
+    usb_address_t address, int index,
+    void *buffer, size_t buffer_size, size_t *actual_buffer_size)
+{
+	if (buffer == NULL) {
+		return EBADMEM;
+	}
+
+	/* Prepare the target. */
+	usb_target_t target = {
+		.address = address,
+		.endpoint = 0
+	};
+
+	/* Prepare the setup packet. */
+	usb_device_request_setup_packet_t setup_packet = {
+		.request_type = 128,
+		.request = USB_DEVREQ_GET_DESCRIPTOR,
+		.index = 0,
+		.length = sizeof(usb_standard_device_descriptor_t)
+	};
+	setup_packet.value_high = USB_DESCTYPE_CONFIGURATION;
+	setup_packet.value_low = index;
+
+	/* Perform the control read transaction. */
+	int rc = usb_drv_psync_control_read(phone, target,
+	    &setup_packet, sizeof(setup_packet),
+	    buffer, buffer_size, actual_buffer_size);
+
+	return rc;
+}
+
 
 /**
  * @}
