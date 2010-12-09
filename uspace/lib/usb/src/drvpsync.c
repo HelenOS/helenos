@@ -99,6 +99,44 @@ int usb_drv_psync_control_write_status(int phone, usb_target_t target)
 }
 
 
+/** Perform complete control write transaction over USB.
+ *
+ * The DATA stage is performed only when @p data is not NULL and
+ * @p data_size is greater than zero.
+ *
+ * @param phone Open phone to host controller.
+ * @param target Target device and endpoint.
+ * @param setup_packet Setup packet data.
+ * @param setup_packet_size Size of the setup packet.
+ * @param data Data to be sent.
+ * @param data_size Size of the @p data buffer.
+ * @return Error code.
+ */
+int usb_drv_psync_control_write(int phone, usb_target_t target,
+    void *setup_packet, size_t setup_packet_size,
+    void *data, size_t data_size)
+{
+	int rc;
+	
+	rc = usb_drv_psync_control_write_setup(phone, target,
+	    setup_packet, setup_packet_size);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	if ((data != NULL) && (data_size > 0)) {
+		rc = usb_drv_psync_control_write_data(phone, target,
+		    data, data_size);
+		if (rc != EOK) {
+			return rc;
+		}
+	}
+
+	rc = usb_drv_psync_control_write_status(phone, target);
+
+	return rc;
+}
+
 
 int usb_drv_psync_control_read_setup(int phone, usb_target_t target,
     void *buffer, size_t size)
@@ -135,6 +173,45 @@ int usb_drv_psync_control_read_status(int phone, usb_target_t target)
 	}
 	return usb_drv_async_wait_for(h);
 }
+
+
+/** Perform complete control read transaction over USB.
+ *
+ * @param phone Open phone to host controller.
+ * @param target Target device and endpoint.
+ * @param setup_packet Setup packet data.
+ * @param setup_packet_size Size of the setup packet.
+ * @param data Storage for read data.
+ * @param data_size Size of the @p data buffer.
+ * @param actual_data_size Storage for number of actually transferred data from
+ *        device.
+ * @return Error code.
+ */
+int usb_drv_psync_control_read(int phone, usb_target_t target,
+    void *setup_packet, size_t setup_packet_size,
+    void *data, size_t data_size, size_t *actual_data_size)
+{
+	int rc;
+	
+	rc = usb_drv_psync_control_read_setup(phone, target,
+	    setup_packet, setup_packet_size);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	rc = usb_drv_psync_control_read_data(phone, target,
+	    data, data_size, actual_data_size);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	rc = usb_drv_psync_control_read_status(phone, target);
+
+	return rc;
+}
+
+
+
 
 /**
  * @}
