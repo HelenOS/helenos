@@ -70,7 +70,7 @@ int usb_drv_hc_connect(device_t *dev, unsigned int flags)
 	int rc;
 	devman_handle_t handle;
 
-	rc = devman_device_get_handle("/vhc", &handle, 0);
+	rc = devman_device_get_handle("/virt/usbhc", &handle, 0);
 	if (rc != EOK) {
 		return rc;
 	}

@@ -17,3 +17,8 @@
 	.match_id = "virtual&test2"
 },
 #endif
+/* Virtual USB host controller. */
+{
+	.name = "usbhc",
+	.match_id = "usb&hc=vhc"
+},
