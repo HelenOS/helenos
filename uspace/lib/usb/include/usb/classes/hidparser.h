@@ -26,32 +26,38 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup usb
+/** @addtogroup libusb usb
  * @{
  */
 /** @file
- * @brief Virtual USB hub.
+ * @brief USB HID parser.
  */
-#ifndef VHCD_HUB_H_
-#define VHCD_HUB_H_
+#ifndef LIBUSB_HIDPARSER_H_
+#define LIBUSB_HIDPARSER_H_
 
-#include <usbvirt/device.h>
-#include <driver.h>
+#include <stdint.h>
 
-#include "devices.h"
+/** HID report parser structure. */
+typedef struct {
+} usb_hid_report_parser_t;
 
-#define HUB_PORT_COUNT 6
+/** HID parser callbacks for IN items. */
+typedef struct {
+	/** Callback for keyboard.
+	 *
+	 * @param key_codes Array of pressed key (including modifiers).
+	 * @param count Length of @p key_codes.
+	 * @param arg Custom argument.
+	 */
+	void (*keyboard)(const uint32_t *key_codes, size_t count, void *arg);
+} usb_hid_report_in_callbacks_t;
 
-#define BITS2BYTES(bits) \
-    (bits ? ((((bits)-1)>>3)+1) : 0)
+int usb_hid_parse_report_descriptor(usb_hid_report_parser_t *parser, 
+    const uint8_t *data);
 
-extern usbvirt_device_t virthub_dev;
-
-void hub_init(device_t *);
-size_t hub_add_device(virtdev_connection_t *);
-void hub_remove_device(virtdev_connection_t *);
-bool hub_can_device_signal(virtdev_connection_t *);
-void hub_get_port_statuses(char *result, size_t len);
+int usb_hid_parse_report(const usb_hid_report_parser_t *parser,  
+    const uint8_t *data,
+    const usb_hid_report_in_callbacks_t *callbacks, void *arg);
 
 #endif
 /**

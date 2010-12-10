@@ -63,7 +63,7 @@ static void register_child_verbose(device_t *parent, const char *message,
 	   name, message);
 
 	int rc = child_device_register_wrapper(parent, name,
-	    match_id, match_score);
+	    match_id, match_score, NULL);
 
 	if (rc == EOK) {
 		printf(NAME ": registered child device `%s'.\n", name);

@@ -36,11 +36,14 @@
 #include <usbvirt/hub.h>
 #include <usbvirt/device.h>
 #include <errno.h>
+#include <str_error.h>
 #include <stdlib.h>
+#include <driver.h>
 
 #include "vhcd.h"
 #include "hub.h"
 #include "hubintern.h"
+#include "conn.h"
 
 
 /** Standard device descriptor. */
@@ -147,8 +150,30 @@ usbvirt_device_t virthub_dev = {
 /** Hub device. */
 hub_device_t hub_dev;
 
+static usb_address_t hub_set_address(usbvirt_device_t *hub)
+{
+	usb_address_t new_address;
+	int rc = vhc_iface.request_address(NULL, &new_address);
+	if (rc != EOK) {
+		return rc;
+	}
+	
+	usb_device_request_setup_packet_t setup_packet = {
+		.request_type = 0,
+		.request = USB_DEVREQ_SET_ADDRESS,
+		.index = 0,
+		.length = 0,
+	};
+	setup_packet.value = new_address;
+
+	hub->transaction_setup(hub, 0, &setup_packet, sizeof(setup_packet));
+	hub->transaction_in(hub, 0, NULL, 0, NULL);
+	
+	return new_address;
+}
+
 /** Initialize virtual hub. */
-void hub_init(void)
+void hub_init(device_t *hc_dev)
 {
 	size_t i;
 	for (i = 0; i < HUB_PORT_COUNT; i++) {
@@ -164,6 +189,29 @@ void hub_init(void)
 	virthub_dev.address = 7;
 	
 	dprintf(1, "virtual hub (%d ports) created", HUB_PORT_COUNT);
+
+	usb_address_t hub_address = hub_set_address(&virthub_dev);
+	if (hub_address < 0) {
+		dprintf(1, "problem changing hub address (%s)",
+		    str_error(hub_address));
+	}
+
+	dprintf(2, "virtual hub address changed to %d", hub_address);
+
+	char *id;
+	int rc = asprintf(&id, "usb&hub");
+	if (rc <= 0) {
+		return;
+	}
+	devman_handle_t hub_handle;
+	rc = child_device_register_wrapper(hc_dev, "hub", id, 10, &hub_handle);
+	if (rc != EOK) {
+		free(id);
+	}
+
+	vhc_iface.bind_address(NULL, hub_address, hub_handle);	
+
+	dprintf(2, "virtual hub has devman handle %d", (int) hub_handle);
 }
 
 /** Connect device to the hub.

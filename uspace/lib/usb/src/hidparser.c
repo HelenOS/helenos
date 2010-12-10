@@ -26,34 +26,45 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup usb
+/** @addtogroup libusb usb
  * @{
  */
 /** @file
- * @brief Virtual USB hub.
+ * @brief HID parser implementation.
  */
-#ifndef VHCD_HUB_H_
-#define VHCD_HUB_H_
+#include <usb/classes/hidparser.h>
+#include <errno.h>
 
-#include <usbvirt/device.h>
-#include <driver.h>
+/** Parse HID report descriptor.
+ *
+ * @param parser Opaque HID report parser structure.
+ * @param data Data describing the report.
+ * @return Error code.
+ */
+int usb_hid_parse_report_descriptor(usb_hid_report_parser_t *parser, 
+    const uint8_t *data)
+{
+	return ENOTSUP;
+}
 
-#include "devices.h"
+/** Parse and act upon a HID report.
+ *
+ * @see usb_hid_parse_report_descriptor
+ *
+ * @param parser Opaque HID report parser structure.
+ * @param data Data for the report.
+ * @param callbacks Callbacks for report actions.
+ * @param arg Custom argument (passed through to the callbacks).
+ * @return Error code.
+ */
+int usb_hid_parse_report(const usb_hid_report_parser_t *parser,  
+    const uint8_t *data,
+    const usb_hid_report_in_callbacks_t *callbacks, void *arg)
+{
+	return ENOTSUP;
+}
 
-#define HUB_PORT_COUNT 6
 
-#define BITS2BYTES(bits) \
-    (bits ? ((((bits)-1)>>3)+1) : 0)
-
-extern usbvirt_device_t virthub_dev;
-
-void hub_init(device_t *);
-size_t hub_add_device(virtdev_connection_t *);
-void hub_remove_device(virtdev_connection_t *);
-bool hub_can_device_signal(virtdev_connection_t *);
-void hub_get_port_statuses(char *result, size_t len);
-
-#endif
 /**
  * @}
  */

@@ -389,7 +389,8 @@ int child_device_register(device_t *child, device_t *parent)
  * @return Error code.
  */
 int child_device_register_wrapper(device_t *parent, const char *child_name,
-    const char *child_match_id, int child_match_score)
+    const char *child_match_id, int child_match_score,
+    devman_handle_t *child_handle)
 {
 	device_t *child = NULL;
 	match_id_t *match_id = NULL;
@@ -417,6 +418,9 @@ int child_device_register_wrapper(device_t *parent, const char *child_name,
 	if (EOK != rc)
 		goto failure;
 
+	if (child_handle != NULL) {
+		*child_handle = child->handle;
+	}
 	return EOK;
 
 failure:

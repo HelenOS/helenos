@@ -78,8 +78,7 @@ static int vhc_add_device(device_t *dev)
 	/*
 	 * Initialize our hub and announce its presence.
 	 */
-	hub_init();
-	usb_hcd_add_root_hub(dev);
+	hub_init(dev);
 
 	printf("%s: virtual USB host controller ready.\n", NAME);
 
