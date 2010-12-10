@@ -37,6 +37,7 @@ SOURCES = \
 	src/drvpsync.c \
 	src/hcdhubd.c \
 	src/hcdrv.c \
+	src/hidparser.c \
 	src/localdrv.c \
 	src/remotedrv.c \
 	src/usb.c \
