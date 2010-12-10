@@ -183,6 +183,8 @@ int transaction_in(usbvirt_device_t *device, usb_endpoint_t endpoint,
 			if (actual_size > size) {
 				actual_size = size;
 			}
+			device->lib_debug(device, 1, USBVIRT_DEBUGTAG_TRANSACTION,
+			    "in transaction: will copy %zu bytes", actual_size);
 			if (actual_size > 0) {
 				memcpy(buffer, transfer->data, actual_size);
 				if (data_size) {

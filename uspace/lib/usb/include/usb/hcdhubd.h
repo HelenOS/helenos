@@ -64,15 +64,6 @@ typedef struct {
 	link_t link;
 } usb_hcd_attached_device_info_t;
 
-/** Information about attached hub. */
-typedef struct {
-	/** Number of ports. */
-	size_t port_count;
-	/** General device info. */
-	usb_hcd_attached_device_info_t *device;
-	/** Link to other hubs. */
-	link_t link;
-} usb_hcd_hub_info_t;
 
 /** Host controller device. */
 typedef struct usb_hc_device usb_hc_device_t;

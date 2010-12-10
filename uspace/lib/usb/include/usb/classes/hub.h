@@ -176,6 +176,7 @@ typedef enum {
 } usb_hub_bm_request_type_t;
 
 /** @brief hub class request codes*/
+/// \TODO these are duplicit to standart descriptors
 typedef enum {
     /**  */
     USB_HUB_REQUEST_GET_STATUS = 0,
@@ -212,13 +213,6 @@ void * usb_serialize_hub_descriptor(usb_hub_descriptor_t * descriptor);
  */
 usb_hub_descriptor_t * usb_deserialize_hub_desriptor(void * sdescriptor);
 
-/**
- * @brief create hub structure instance
- * 
- * @param device
- * @return
- */
-usb_hcd_hub_info_t * usb_create_hub_info(device_t * device);
 
 
 
