@@ -185,8 +185,6 @@ void hub_init(device_t *hc_dev)
 	}
 	
 	usbvirt_connect_local(&virthub_dev);
-
-	virthub_dev.address = 7;
 	
 	dprintf(1, "virtual hub (%d ports) created", HUB_PORT_COUNT);
 

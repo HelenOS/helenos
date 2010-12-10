@@ -309,7 +309,6 @@ usb_hub_info_t * usb_create_hub_info(device_t * device, int hc) {
 	}
 	//get some hub info
 	usb_address_t addr = usb_drv_get_my_address(hc, device);
-	addr = 7;
 	printf("[usb_hub] addres of newly created hub = %d\n", addr);
 	/*if(addr<0){
 		//return result;
