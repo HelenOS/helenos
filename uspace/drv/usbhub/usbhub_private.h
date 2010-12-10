@@ -99,10 +99,13 @@ static inline usb_hub_info_t * usb_hub_lst_get_data(usb_general_list_t * item) {
 /**
  * @brief create hub structure instance
  *
+ * Set the address and port count information most importantly.
+ *
  * @param device
+ * @param hc host controller phone
  * @return
  */
-usb_hub_info_t * usb_create_hub_info(device_t * device);
+usb_hub_info_t * usb_create_hub_info(device_t * device, int hc);
 
 /** list of hubs maanged by this driver */
 extern usb_general_list_t usb_hub_list;
@@ -145,7 +148,7 @@ int usb_drv_sync_control_write(
 
 
 /**
- * set the device requsst to be a set address request
+ * set the device request to be a set address request
  * @param request
  * @param addr
  */
@@ -153,11 +156,28 @@ static inline void usb_hub_set_set_address_request(
 usb_device_request_setup_packet_t * request, uint16_t addr
 ){
 	request->index = 0;
-	request->request_type = 0;/// \TODO this is not very nice sollution
+	request->request_type = 0;/// \TODO this is not very nice sollution, we ned constant
 	request->request = USB_DEVREQ_SET_ADDRESS;
 	request->value = addr;
 	request->length = 0;
 }
+
+/**
+ * set the device request to be a get hub descriptor request.
+ * @warning the size is allways set to USB_HUB_MAX_DESCRIPTOR_SIZE
+ * @param request
+ * @param addr
+ */
+static inline void usb_hub_get_descriptor_request(
+usb_device_request_setup_packet_t * request
+){
+	request->index = 0;
+	request->request_type = USB_HUB_REQ_TYPE_GET_DESCRIPTOR;
+	request->request = USB_HUB_REQUEST_GET_DESCRIPTOR;
+	request->value = USB_DESCTYPE_HUB;
+	request->length = USB_HUB_MAX_DESCRIPTOR_SIZE;
+}
+
 
 
 #endif	/* USBHUB_PRIVATE_H */

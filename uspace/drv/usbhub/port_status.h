@@ -42,7 +42,7 @@
  * "Universal Serial Bus Specification Revision 1.1"
  *
  */
-typedef uint8_t usb_port_status_t[4];
+typedef uint32_t usb_port_status_t;
 
 /**
  * set values in request to be it a port status request
@@ -102,20 +102,90 @@ usb_hub_create_enable_port_request(uint16_t port){
 	return result;
 }
 
+/**
+ * set the device request to be a port disable request
+ * @param request
+ * @param port
+ */
+static inline void usb_hub_set_disable_port_request(
+usb_device_request_setup_packet_t * request, uint16_t port
+){
+	request->index = port;
+	request->request_type = USB_HUB_REQ_TYPE_SET_PORT_FEATURE;
+	request->request = USB_HUB_REQUEST_SET_FEATURE;
+	request->value = USB_HUB_FEATURE_C_PORT_SUSPEND;
+	request->length = 0;
+}
+
+/**
+ * disable specified port
+ * @param port
+ * @return
+ */
+static inline usb_device_request_setup_packet_t *
+usb_hub_create_disable_port_request(uint16_t port){
+	usb_device_request_setup_packet_t * result =
+		usb_new(usb_device_request_setup_packet_t);
+	usb_hub_set_disable_port_request(result,port);
+	return result;
+}
+
+/**
+ * set the device request to be a port disable request
+ * @param request
+ * @param port
+ */
+static inline void usb_hub_set_reset_port_request(
+usb_device_request_setup_packet_t * request, uint16_t port
+){
+	request->index = port;
+	request->request_type = USB_HUB_REQ_TYPE_SET_PORT_FEATURE;
+	request->request = USB_HUB_REQUEST_SET_FEATURE;
+	request->value = USB_HUB_FEATURE_PORT_RESET;
+	request->length = 0;
+}
+
+/**
+ * disable specified port
+ * @param port
+ * @return
+ */
+static inline usb_device_request_setup_packet_t *
+usb_hub_create_reset_port_request(uint16_t port){
+	usb_device_request_setup_packet_t * result =
+		usb_new(usb_device_request_setup_packet_t);
+	usb_hub_set_reset_port_request(result,port);
+	return result;
+}
+
+/**
+ * set the device request to be a port disable request
+ * @param request
+ * @param port
+ */
+static inline void usb_hub_set_power_port_request(
+usb_device_request_setup_packet_t * request, uint16_t port
+){
+	request->index = port;
+	request->request_type = USB_HUB_REQ_TYPE_SET_PORT_FEATURE;
+	request->request = USB_HUB_REQUEST_SET_FEATURE;
+	request->value = USB_HUB_FEATURE_PORT_POWER;
+	request->length = 0;
+}
 
 /** get i`th bit of port status */
 static inline bool usb_port_get_bit(usb_port_status_t * status, int idx)
 {
-	return (((*status)[idx/8])>>(idx%8))%2;
+	return (((*status)>>(idx))%2);
 }
 
 /** set i`th bit of port status */
 static inline void usb_port_set_bit(
 	usb_port_status_t * status, int idx, bool value)
 {
-	(*status)[idx/8] = value?
-		               ((*status)[idx/8]|(1<<(idx%8))):
-		               ((*status)[idx/8]&(~(1<<(idx%8))));
+	(*status) = value?
+		               ((*status)|(1<<(idx))):
+		               ((*status)&(~(1<<(idx))));
 }
 
 //device connnected on port
