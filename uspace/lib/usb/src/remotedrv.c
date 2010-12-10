@@ -299,7 +299,7 @@ static int remote_setup_transfer(device_t *dev, usb_target_t target,
  * @param arg Custom argument.
  */
 static void remote_in_callback(usb_hc_device_t *hc,
-    usb_transaction_outcome_t outcome, size_t actual_size, void *arg)
+    size_t actual_size, usb_transaction_outcome_t outcome, void *arg)
 {
 	transfer_info_t *transfer = (transfer_info_t *) arg;
 	transfer->in_callback(hc->generic, outcome, actual_size, transfer->arg);
