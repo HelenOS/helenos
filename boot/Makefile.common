@@ -110,6 +110,9 @@ RD_SRVS_NON_ESSENTIAL = \
 	
 RD_DRVS = \
 	root \
+	rootvirt \
+	test1 \
+	test2 \
 	vhc
 
 RD_DRV_CFG = 
@@ -141,9 +144,10 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/netecho/netecho \
 	$(USPACE_PATH)/app/ping/ping \
 	$(USPACE_PATH)/app/stats/stats \
-	$(USPACE_PATH)/app/virtusbkbd/vuk \
 	$(USPACE_PATH)/app/tasks/tasks \
-	$(USPACE_PATH)/app/top/top
+	$(USPACE_PATH)/app/top/top \
+	$(USPACE_PATH)/app/usbinfo/usbinfo \
+	$(USPACE_PATH)/app/virtusbkbd/vuk
 
 ifneq ($(CONFIG_BAREBONE),y)
 NET_CFG = \

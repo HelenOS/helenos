@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2010 Lenka Trochtova
+# Copyright (c) 2010 Vojtech Horky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,11 +27,13 @@
 #
 
 USPACE_PREFIX = ../..
-LIBS = $(LIBDRV_PREFIX)/libdrv.a
-EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include
-BINARY = rootia32
+BINARY = usbinfo
+
+LIBS = $(LIBUSB_PREFIX)/libusb.a $(LIBDRV_PREFIX)/libdrv.a
+EXTRA_CFLAGS = -I$(LIBUSB_PREFIX)/include -I$(LIBDRV_PREFIX)/include
 
 SOURCES = \
-	rootia32.c
+	dump.c \
+	main.c
 
 include $(USPACE_PREFIX)/Makefile.common
