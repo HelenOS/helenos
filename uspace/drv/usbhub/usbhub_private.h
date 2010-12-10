@@ -41,6 +41,7 @@
 #include <bool.h>
 #include <driver.h>
 #include <usb/usb.h>
+#include <usb/classes/hub.h>
 #include <usb/devreq.h>
 
 //************
@@ -151,6 +152,7 @@ int usb_drv_sync_control_write(
  * set the device request to be a set address request
  * @param request
  * @param addr
+ * \TODO this will be obsolete see usb/dev_req.h
  */
 static inline void usb_hub_set_set_address_request(
 usb_device_request_setup_packet_t * request, uint16_t addr
@@ -168,13 +170,14 @@ usb_device_request_setup_packet_t * request, uint16_t addr
  * @param request
  * @param addr
  */
-static inline void usb_hub_get_descriptor_request(
+static inline void usb_hub_set_descriptor_request(
 usb_device_request_setup_packet_t * request
 ){
 	request->index = 0;
 	request->request_type = USB_HUB_REQ_TYPE_GET_DESCRIPTOR;
 	request->request = USB_HUB_REQUEST_GET_DESCRIPTOR;
-	request->value = USB_DESCTYPE_HUB;
+	request->value_high = USB_DESCTYPE_HUB;
+	request->value_low = 0;
 	request->length = USB_HUB_MAX_DESCRIPTOR_SIZE;
 }
 

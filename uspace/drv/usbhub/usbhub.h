@@ -49,7 +49,6 @@ typedef struct {
 	usb_hcd_attached_device_info_t * device;
 } usb_hub_info_t;
 
-
 int usb_add_hub_device(device_t *);
 
 #endif

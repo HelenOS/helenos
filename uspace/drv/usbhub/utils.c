@@ -88,9 +88,15 @@ void * usb_serialize_hub_descriptor(usb_hub_descriptor_t * descriptor) {
 
 usb_hub_descriptor_t * usb_deserialize_hub_desriptor(void * serialized_descriptor) {
 	uint8_t * sdescriptor = (uint8_t*) serialized_descriptor;
-	if (sdescriptor[1] != USB_DESCTYPE_HUB) return NULL;
+
+	if (sdescriptor[1] != USB_DESCTYPE_HUB) {
+		printf("[usb_hub] wrong descriptor %x\n",sdescriptor[1]);
+		return NULL;
+	}
+
 	usb_hub_descriptor_t * result = usb_new(usb_hub_descriptor_t);
-	//uint8_t size = sdescriptor[0];
+	
+
 	result->ports_count = sdescriptor[2];
 	/// @fixme handling of endianness??
 	result->hub_characteristics = sdescriptor[4] + 256 * sdescriptor[3];
@@ -98,7 +104,7 @@ usb_hub_descriptor_t * usb_deserialize_hub_desriptor(void * serialized_descripto
 	result->current_requirement = sdescriptor[6];
 	size_t var_size = result->ports_count / 8 + ((result->ports_count % 8 > 0) ? 1 : 0);
 	result->devices_removable = (uint8_t*) malloc(var_size);
-
+	//printf("[usb_hub] getting removable devices data \n");
 	size_t i;
 	for (i = 0; i < var_size; ++i) {
 		result->devices_removable[i] = sdescriptor[7 + i];
@@ -297,12 +303,11 @@ usb_hub_info_t * usb_create_hub_info(device_t * device, int hc) {
 	result->port_count = -1;
 
 
-	printf("[usb_hub] phone to hc = %d\n", hc);
+	//printf("[usb_hub] phone to hc = %d\n", hc);
 	if (hc < 0) {
 		return result;
 	}
 	//get some hub info
-	/// \TODO get correct params
 	usb_address_t addr = usb_drv_get_my_address(hc, device);
 	addr = 7;
 	printf("[usb_hub] addres of newly created hub = %d\n", addr);
@@ -319,21 +324,35 @@ usb_hub_info_t * usb_create_hub_info(device_t * device, int hc) {
 	target.address = addr;
 	target.endpoint = 0;
 	usb_device_request_setup_packet_t request;
-	usb_hub_get_descriptor_request(&request);
+	//printf("[usb_hub] creating descriptor request\n");
+	usb_hub_set_descriptor_request(&request);
+
+	//printf("[usb_hub] creating serialized descriptor\n");
 	void * serialized_descriptor = malloc(USB_HUB_MAX_DESCRIPTOR_SIZE);
 	usb_hub_descriptor_t * descriptor;
 	size_t received_size;
 	int opResult;
-
+	//printf("[usb_hub] starting control transaction\n");
 	opResult = usb_drv_sync_control_read(
 			hc, target, &request, serialized_descriptor,
 			USB_HUB_MAX_DESCRIPTOR_SIZE, &received_size);
 	if (opResult != EOK) {
-		printf("[usb_hub] failed when receiving hub descriptor \n");
+		printf("[usb_hub] failed when receiving hub descriptor, badcode = %d\n",opResult);
+		///\TODO memory leak will occur here!
+		return result;
 	}
+	//printf("[usb_hub] deserializing descriptor\n");
 	descriptor = usb_deserialize_hub_desriptor(serialized_descriptor);
+	if(descriptor==NULL){
+		printf("[usb_hub] could not deserialize descriptor \n");
+		result->port_count = 1;///\TODO this code is only for debug!!!
+		return result;
+	}
+	//printf("[usb_hub] setting port count to %d\n",descriptor->ports_count);
 	result->port_count = descriptor->ports_count;
+	//printf("[usb_hub] freeing data\n");
 	free(serialized_descriptor);
+	free(descriptor->devices_removable);
 	free(descriptor);
 
 	//finish
@@ -361,7 +380,7 @@ int usb_add_hub_device(device_t *dev) {
 	//create the hub structure
 	//get hc connection
 	/// \TODO correct params
-	int hc = usb_drv_hc_connect(NULL, 0);
+	int hc = usb_drv_hc_connect(dev, 0);
 
 	usb_hub_info_t * hub_info = usb_create_hub_info(dev, hc);
 	int port;
@@ -415,9 +434,11 @@ static void usb_hub_init_add_device(int hc, uint16_t port, usb_target_t target) 
 	usb_device_request_setup_packet_t request;
 	int opResult;
 	printf("[usb_hub] some connection changed\n");
+
 	opResult = usb_drv_reserve_default_address(hc);
 	if (opResult != EOK) {
 		printf("[usb_hub] cannot assign default address, it is probably used\n");
+		return;
 	}
 	//reset port
 	usb_hub_set_reset_port_request(&request, port);
@@ -455,11 +476,14 @@ static void usb_hub_finalize_add_device(
 			);
 	if (opResult != EOK) {
 		printf("[usb_hub] could not set address for new device\n");
+		//will retry later...
+		return;
 	}
 	usb_drv_release_default_address(hc);
 
 
 	/// \TODO driver work
+	//add_child_device.....
 }
 
 /**

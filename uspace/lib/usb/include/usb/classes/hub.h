@@ -176,6 +176,7 @@ typedef enum {
 } usb_hub_bm_request_type_t;
 
 /** @brief hub class request codes*/
+/// \TODO these are duplicit to standart descriptors
 typedef enum {
     /**  */
     USB_HUB_REQUEST_GET_STATUS = 0,
