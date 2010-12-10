@@ -37,6 +37,8 @@
 
 #include <ipc/ipc.h>
 #include <async.h>
+#include <usb/usb.h>
+#include <usb/descriptor.h>
 
 /** Standard device request. */
 typedef enum {
@@ -81,6 +83,15 @@ typedef struct {
 	/** Length of extra data. */
 	uint16_t length;
 } __attribute__ ((packed)) usb_device_request_setup_packet_t;
+
+int usb_drv_req_set_address(int, usb_address_t, usb_address_t);
+int usb_drv_req_get_device_descriptor(int, usb_address_t,
+    usb_standard_device_descriptor_t *);
+int usb_drv_req_get_bare_configuration_descriptor(int, usb_address_t, int,
+    usb_standard_configuration_descriptor_t *);
+int usb_drv_req_get_full_configuration_descriptor(int, usb_address_t, int,
+    void *, size_t, size_t *);
+
 
 #endif
 /**

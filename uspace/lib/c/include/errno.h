@@ -82,10 +82,8 @@ extern int _errno;
 /** The socket is not connected or bound. */
 #define ENOTCONN	(-10057)
 
-/** The requested operation was not performed.
- *  Try again later.
- */
-#define TRY_AGAIN	(-11002)
+/** The requested operation was not performed. Try again later. */
+#define EAGAIN		(-11002)
 
 /** No data.
  */

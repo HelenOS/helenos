@@ -64,6 +64,7 @@ test_t tests[] = {
 #include "loop/loop1.def"
 #include "mm/malloc1.def"
 #include "hw/serial/serial1.def"
+#include "adt/usbaddrkeep.def"
 	{NULL, NULL, NULL, false}
 };
 

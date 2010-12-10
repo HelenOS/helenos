@@ -38,7 +38,6 @@ EXTRA_CFLAGS += \
 BINARY = vhc
 
 SOURCES = \
-	addrmgm.c \
 	conndev.c \
 	connhost.c \
 	debug.c \

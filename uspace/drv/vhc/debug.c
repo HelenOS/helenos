@@ -34,33 +34,10 @@
  */
 #include <stdio.h>
 #include <ipc/ipc.h>
+#include <usb/debug.h>
 
 #include "vhcd.h"
 
-/** Current debug level. */
-int debug_level = 0;
-
-/** Debugging printf.
- * This function is intended for single-line messages as it
- * automatically prints debugging prefix at the beginning of the
- * line.
- *
- * @see printf
- * @param level Debugging level.
- */
-void dprintf(int level, const char *format, ...)
-{
-	if (level > debug_level) {
-		return;
-	}
-	
-	printf("%s(%d): ", NAME, level);
-	va_list args;
-	va_start(args, format);
-	vprintf(format, args);
-	va_end(args);
-	printf("\n");
-}
 
 /** Debug print informing of invalid call.
  */
