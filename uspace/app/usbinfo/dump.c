@@ -46,12 +46,27 @@
 #include "usbinfo.h"
 
 #define INDENT "  "
+#define BYTES_PER_LINE 12
 
 #define BCD_INT(a) (((unsigned int)(a)) / 256)
 #define BCD_FRAC(a) (((unsigned int)(a)) % 256)
 
 #define BCD_FMT "%x.%x"
 #define BCD_ARGS(a) BCD_INT((a)), BCD_FRAC((a))
+
+void dump_buffer(const char *msg, const uint8_t *buffer, size_t length)
+{
+	printf("%s\n", msg);
+
+	size_t i;
+	for (i = 0; i < length; i++) {
+		printf("  0x%02X", buffer[i]);
+		if (((i > 0) && (((i+1) % BYTES_PER_LINE) == 0))
+		    || (i + 1 == length)) {
+			printf("\n");
+		}
+	}
+}
 
 void dump_standard_device_descriptor(usb_standard_device_descriptor_t *d)
 {
@@ -73,6 +88,29 @@ void dump_standard_device_descriptor(usb_standard_device_descriptor_t *d)
 	printf(INDENT "iSerialNumber = %d\n", d->str_serial_number);
 	printf(INDENT "bNumConfigurations = %d\n", d->configuration_count);
 }
+
+void dump_standard_configuration_descriptor(
+    int index, usb_standard_configuration_descriptor_t *d)
+{
+	bool self_powered = d->attributes & 64;
+	bool remote_wakeup = d->attributes & 32;
+	
+	printf("Standard configuration descriptor #%d\n", index);
+	printf(INDENT "bLength = %d\n", d->length);
+	printf(INDENT "bDescriptorType = 0x%02x\n", d->descriptor_type);
+	printf(INDENT "wTotalLength = %d\n", d->total_length);
+	printf(INDENT "bNumInterfaces = %d\n", d->interface_count);
+	printf(INDENT "bConfigurationValue = %d\n", d->configuration_number);
+	printf(INDENT "iConfiguration = %d\n", d->str_configuration);
+	printf(INDENT "bmAttributes = %d [%s%s%s]\n", d->attributes,
+	    self_powered ? "self-powered" : "",
+	    (self_powered & remote_wakeup) ? ", " : "",
+	    remote_wakeup ? "remote-wakeup" : "");
+	printf(INDENT "MaxPower = %d (%dmA)\n", d->max_power,
+	    2 * d->max_power);
+	// printf(INDENT " = %d\n", d->);
+}
+
 
 /** @}
  */

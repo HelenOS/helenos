@@ -43,11 +43,16 @@
 #include <usb/usbdrv.h>
 #include "usbinfo.h"
 
+#define DEFAULT_HOST_CONTROLLER_PATH "/virt/usbhc"
+
 static void print_usage(char *app_name)
 {
 	printf(NAME ": query USB devices for descriptors\n\n");
 	printf("Usage: %s /path/to/hc usb-address\n where\n", app_name);
-	printf("   /path/to/hc   Devman path to USB host controller\n");
+	printf("   /path/to/hc   Devman path to USB host controller " \
+	    "(use `-' for\n");
+	printf("                   default HC at `%s').\n",
+	    DEFAULT_HOST_CONTROLLER_PATH);
 	printf("   usb-address   USB address of device to be queried\n");
 	printf("\n");
 }
@@ -67,7 +72,7 @@ static int connect_to_hc(const char *path)
 	return phone;
 }
 
-int main(int argc, char * argv[])
+int main(int argc, char *argv[])
 {
 	if (argc != 3) {
 		print_usage(argv[0]);
@@ -80,6 +85,9 @@ int main(int argc, char * argv[])
 	/*
 	 * Connect to given host controller driver.
 	 */
+	if (str_cmp(hc_path, "-") == 0) {
+		hc_path = (char *) DEFAULT_HOST_CONTROLLER_PATH;
+	}
 	int hc_phone = connect_to_hc(hc_path);
 	if (hc_phone < 0) {
 		fprintf(stderr,
@@ -106,7 +114,7 @@ int main(int argc, char * argv[])
 	 * Get device descriptor and dump it.
 	 */
 	usb_standard_device_descriptor_t device_descriptor;
-	usb_dprintf("usbinfo", 1,
+	usb_dprintf(NAME, 1,
 	    "usb_drv_req_get_device_descriptor(%d, %d, %p)\n",
 	    hc_phone, (int) address, &device_descriptor);
 
@@ -120,6 +128,43 @@ int main(int argc, char * argv[])
 	}
 	dump_standard_device_descriptor(&device_descriptor);
 
+	/*
+	 * Get first configuration descriptor and dump it.
+	 */
+	usb_standard_configuration_descriptor_t config_descriptor;
+	int config_index = 0;
+	usb_dprintf(NAME, 1,
+	    "usb_drv_req_get_bare_configuration_descriptor(%d, %d, %d, %p)\n",
+	    hc_phone, (int) address, config_index, &config_descriptor);
+
+	rc = usb_drv_req_get_bare_configuration_descriptor(hc_phone, address,
+	    config_index, &config_descriptor );
+	if (rc != EOK) {
+		fprintf(stderr,
+		    NAME ": failed to fetch standard configuration descriptor: %s.\n",
+		    str_error(rc));
+		return rc;
+	}
+	dump_standard_configuration_descriptor(config_index,
+	    &config_descriptor);
+
+	void *full_config_descriptor = malloc(config_descriptor.total_length);
+	usb_dprintf(NAME, 1,
+	    "usb_drv_req_get_full_configuration_descriptor(%d, %d, %d, %p, %zu)\n",
+	    hc_phone, (int) address, config_index,
+	    full_config_descriptor, config_descriptor.total_length);
+
+	rc = usb_drv_req_get_full_configuration_descriptor(hc_phone, address,
+	    config_index,
+	    full_config_descriptor, config_descriptor.total_length, NULL);
+	if (rc != EOK) {
+		fprintf(stderr,
+		    NAME ": failed to fetch full configuration descriptor: %s.\n",
+		    str_error(rc));
+		return rc;
+	}
+	dump_buffer("Full configuration descriptor:",
+	    full_config_descriptor, config_descriptor.total_length);
 
 	return EOK;
 }
