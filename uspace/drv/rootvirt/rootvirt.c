@@ -83,7 +83,7 @@ static int add_child(device_t *parent, virtual_device_t *virt_dev)
 	    virt_dev->name, virt_dev->match_id);
 
 	int rc = child_device_register_wrapper(parent, virt_dev->name,
-	    virt_dev->match_id, 10);
+	    virt_dev->match_id, 10, NULL);
 
 	if (rc == EOK) {
 		printf(NAME ": registered child device `%s'\n",

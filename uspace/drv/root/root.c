@@ -86,7 +86,8 @@ static int add_virtual_root_child(device_t *parent)
 	    VIRTUAL_DEVICE_MATCH_SCORE, VIRTUAL_DEVICE_MATCH_ID);
 
 	int res = child_device_register_wrapper(parent, VIRTUAL_DEVICE_NAME,
-	    VIRTUAL_DEVICE_MATCH_ID, VIRTUAL_DEVICE_MATCH_SCORE);
+	    VIRTUAL_DEVICE_MATCH_ID, VIRTUAL_DEVICE_MATCH_SCORE,
+	    NULL);
 
 	return res;
 }
@@ -103,7 +104,8 @@ static int add_platform_child(device_t *parent)
 	    PLATFORM_DEVICE_MATCH_SCORE, PLATFORM_DEVICE_MATCH_ID);
 	
 	int res = child_device_register_wrapper(parent, PLATFORM_DEVICE_NAME,
-	    PLATFORM_DEVICE_MATCH_ID, PLATFORM_DEVICE_MATCH_SCORE);
+	    PLATFORM_DEVICE_MATCH_ID, PLATFORM_DEVICE_MATCH_SCORE,
+	    NULL);
 
 	return res;
 }
