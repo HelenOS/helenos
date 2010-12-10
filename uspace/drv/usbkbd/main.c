@@ -49,14 +49,19 @@ static usb_hid_dev_kbd_t *usbkbd_init_device(device_t *dev)
 
 	kbd_dev->device = dev;
 
+	// get phone to my HC and save it as my parent's phone
+	// TODO: maybe not a good idea if DDF will use parent_phone
+	kbd_dev->device->parent_phone = usb_drv_hc_connect(dev, 0);
+
 	kbd_dev->address = usb_drv_get_my_address(dev->parent_phone,
 	    dev);
 
-	if (kbd_dev->address < 0) {
-		fprintf(stderr, NAME ": No device address!\n");
-		free(kbd_dev);
-		return NULL;
-	}
+	// doesn't matter now that we have no address
+//	if (kbd_dev->address < 0) {
+//		fprintf(stderr, NAME ": No device address!\n");
+//		free(kbd_dev);
+//		return NULL;
+//	}
 
 	// default endpoint
 	kbd_dev->default_ep = CONTROL_EP;
@@ -68,7 +73,15 @@ static usb_hid_dev_kbd_t *usbkbd_init_device(device_t *dev)
 	return kbd_dev;
 }
 
-/* Call this periodically to check keyboard status changes. */
+static void usbkbd_process_interrupt_in(usb_hid_dev_kbd_t *kbd_dev,
+					char *buffer, size_t actual_size)
+{
+	/*
+	 * here, the parser will be called, probably with some callbacks
+	 * now only take last 6 bytes and process, i.e. send to kbd
+	 */
+}
+
 static void usbkbd_poll_keyboard(usb_hid_dev_kbd_t *kbd_dev)
 {
 	int rc;
@@ -88,29 +101,35 @@ static void usbkbd_poll_keyboard(usb_hid_dev_kbd_t *kbd_dev)
 		.endpoint = kbd_dev->default_ep
 	};
 
-	rc = usb_drv_async_interrupt_in(kbd_dev->device->parent_phone,
-	    poll_target, buffer, BUFFER_SIZE, &actual_size, &handle);
+	while (true) {
+		rc = usb_drv_async_interrupt_in(kbd_dev->device->parent_phone,
+		    poll_target, buffer, BUFFER_SIZE, &actual_size, &handle);
 
-	if (rc != EOK) {
-		return;
+		if (rc != EOK) {
+			continue;
+		}
+
+		rc = usb_drv_async_wait_for(handle);
+		if (rc != EOK) {
+			continue;
+		}
+
+		/*
+		 * If the keyboard answered with NAK, it returned no data.
+		 * This implies that no change happened since last query.
+		 */
+		if (actual_size == 0) {
+			continue;
+		}
+
+		/*
+		 * TODO: Process pressed keys.
+		 */
+		usbkbd_process_interrupt_in(kbd_dev, buffer, actual_size);
 	}
 
-	rc = usb_drv_async_wait_for(handle);
-	if (rc != EOK) {
-		return;
-	}
-
-	/*
-	 * If the keyboard answered with NAK, it returned no data.
-	 * This implies that no change happened since last query.
-	 */
-	if (actual_size == 0) {
-		return;
-	}
-
-	/*
-	 * TODO: Process pressed keys.
-	 */
+	// not reached
+	assert(0);
 }
 
 static int usbkbd_fibril_device(void *arg)
@@ -135,7 +154,7 @@ static int usbkbd_fibril_device(void *arg)
 static int usbkbd_add_device(device_t *dev)
 {
 	/* For now, fail immediately. */
-	return ENOTSUP;
+	//return ENOTSUP;
 
 	/*
 	 * When everything is okay, connect to "our" HC.
