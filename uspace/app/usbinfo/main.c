@@ -43,11 +43,16 @@
 #include <usb/usbdrv.h>
 #include "usbinfo.h"
 
+#define DEFAULT_HOST_CONTROLLER_PATH "/virt/usbhc"
+
 static void print_usage(char *app_name)
 {
 	printf(NAME ": query USB devices for descriptors\n\n");
 	printf("Usage: %s /path/to/hc usb-address\n where\n", app_name);
-	printf("   /path/to/hc   Devman path to USB host controller\n");
+	printf("   /path/to/hc   Devman path to USB host controller " \
+	    "(use `-' for\n");
+	printf("                   default HC at `%s').\n",
+	    DEFAULT_HOST_CONTROLLER_PATH);
 	printf("   usb-address   USB address of device to be queried\n");
 	printf("\n");
 }
@@ -67,7 +72,7 @@ static int connect_to_hc(const char *path)
 	return phone;
 }
 
-int main(int argc, char * argv[])
+int main(int argc, char *argv[])
 {
 	if (argc != 3) {
 		print_usage(argv[0]);
@@ -80,6 +85,9 @@ int main(int argc, char * argv[])
 	/*
 	 * Connect to given host controller driver.
 	 */
+	if (str_cmp(hc_path, "-") == 0) {
+		hc_path = (char *) DEFAULT_HOST_CONTROLLER_PATH;
+	}
 	int hc_phone = connect_to_hc(hc_path);
 	if (hc_phone < 0) {
 		fprintf(stderr,
