@@ -42,12 +42,8 @@
  */
 #define IPC_CALL_LEN  6
 
-/** Maximum active async calls per thread */
-#ifdef CONFIG_DEBUG
-	#define IPC_MAX_ASYNC_CALLS  4
-#else
-	#define IPC_MAX_ASYNC_CALLS  4000
-#endif
+/** Maximum active async calls per phone */
+#define IPC_MAX_ASYNC_CALLS  4
 
 /* Flags for calls */
 
