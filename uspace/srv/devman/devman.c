@@ -677,8 +677,6 @@ static void devmap_register_tree_device(node_t *node, dev_tree_t *tree)
 	free(devmap_pathname);
 }
 
-static FIBRIL_MUTEX_INITIALIZE(add_device_guard);
-
 /** Pass a device to running driver.
  *
  * @param drv		The driver's structure.
@@ -686,8 +684,6 @@ static FIBRIL_MUTEX_INITIALIZE(add_device_guard);
  */
 void add_device(int phone, driver_t *drv, node_t *node, dev_tree_t *tree)
 {
-	fibril_mutex_lock(&add_device_guard);
-
 	/*
 	 * We do not expect to have driver's mutex locked as we do not
 	 * access any structures that would affect driver_t.
@@ -718,8 +714,6 @@ void add_device(int phone, driver_t *drv, node_t *node, dev_tree_t *tree)
 
 	/* Wait for answer from the driver. */
 	async_wait_for(req, &rc);
-
-	fibril_mutex_unlock(&add_device_guard);
 
 	switch(rc) {
 	case EOK:
