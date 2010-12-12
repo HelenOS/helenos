@@ -40,7 +40,7 @@
 
 #include "devices.h"
 
-#define HUB_PORT_COUNT 6
+#define HUB_PORT_COUNT 2
 
 #define BITS2BYTES(bits) \
     (bits ? ((((bits)-1)>>3)+1) : 0)
