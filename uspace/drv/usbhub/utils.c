@@ -430,6 +430,7 @@ int usb_add_hub_device(device_t *dev) {
 	for (port = 1; port < hub_info->port_count+1; ++port) {
 		usb_hub_set_power_port_request(&request, port);
 		opResult = usb_drv_sync_control_write(hc, target, &request, NULL, 0);
+		printf("[usb_hub] powering port %d\n",port);
 		if (opResult != EOK) {
 			printf("[usb_hub]something went wrong when setting hub`s %dth port\n", port);
 		}
@@ -539,6 +540,9 @@ static void usb_hub_finalize_add_device( usb_hub_info_t * hub,
 		printf("[usb_hub] could not assign address of device in hcd \n");
 		return;
 	}
+	printf("[usb_hub] new device address %d, handle %d\n",
+	    new_device_address, child_handle);
+	sleep(60);
 	
 }
 
@@ -637,7 +641,7 @@ static void usb_hub_process_interrupt(usb_hub_info_t * hub, int hc,
 	usb_port_set_reset_completed(&status, false);
 	usb_port_set_dev_connected(&status, false);
 	if (status) {
-		printf("[usb_hub]there was some unsupported change on port\n");
+		printf("[usb_hub]there was some unsupported change on port %d\n",port);
 	}
 	/// \TODO handle other changes
 	/// \TODO debug log for various situations
@@ -674,6 +678,7 @@ void usb_hub_check_hub_changes(void) {
 		usb_target_t target;
 		target.address = hub_info->usb_device->address;
 		target.endpoint = 1;/// \TODO get from endpoint descriptor
+		printf("checking changes for hub at addr %d \n",target.address);
 
 		size_t port_count = hub_info->port_count;
 
