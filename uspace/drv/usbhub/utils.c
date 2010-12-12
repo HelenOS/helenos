@@ -351,9 +351,9 @@ usb_hub_info_t * usb_create_hub_info(device_t * device, int hc) {
 	//printf("[usb_hub] setting port count to %d\n",descriptor->ports_count);
 	result->port_count = descriptor->ports_count;
 	result->attached_devs = (usb_hub_attached_device_t*)
-	    malloc(result->port_count * sizeof(usb_hub_attached_device_t));
+	    malloc((result->port_count+1) * sizeof(usb_hub_attached_device_t));
 	int i;
-	for(i=0;i<result->port_count;++i){
+	for(i=0;i<result->port_count+1;++i){
 		result->attached_devs[i].devman_handle=0;
 		result->attached_devs[i].address=0;
 	}
@@ -427,7 +427,7 @@ int usb_add_hub_device(device_t *dev) {
 	}
 
 
-	for (port = 0; port < hub_info->port_count; ++port) {
+	for (port = 1; port < hub_info->port_count+1; ++port) {
 		usb_hub_set_power_port_request(&request, port);
 		opResult = usb_drv_sync_control_write(hc, target, &request, NULL, 0);
 		if (opResult != EOK) {
@@ -686,7 +686,7 @@ void usb_hub_check_hub_changes(void) {
 		}
 
 		// FIXME: count properly
-		size_t byte_length = (port_count / 8) + 1;
+		size_t byte_length = ((port_count+1) / 8) + 1;
 
 		void *change_bitmap = malloc(byte_length);
 		size_t actual_size;
@@ -706,7 +706,7 @@ void usb_hub_check_hub_changes(void) {
 			continue;
 		}
 		unsigned int port;
-		for (port = 0; port < port_count; ++port) {
+		for (port = 1; port < port_count+1; ++port) {
 			bool interrupt = (((uint8_t*) change_bitmap)[port / 8] >> (port % 8)) % 2;
 			if (interrupt) {
 				usb_hub_process_interrupt(
