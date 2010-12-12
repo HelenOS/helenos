@@ -34,6 +34,7 @@
 #include <usb/classes/hidparser.h>
 #include <usb/devreq.h>
 #include <usb/descriptor.h>
+#include "descparser.h"
 
 #define BUFFER_SIZE 32
 #define NAME "usbkbd"
@@ -52,47 +53,9 @@ static void usbkbd_process_keycodes(const uint16_t *key_codes, size_t count,
 /*
  * Kbd functions
  */
-static int usbkbd_parse_descriptors(usb_hid_dev_kbd_t *kbd_dev,
-                                    const uint8_t *data, size_t size)
+static int usbkbd_process_descriptors(usb_hid_dev_kbd_t *kbd_dev)
 {
-//	const uint8_t *pos = data;
-	
-//	// get the configuration descriptor (should be first)
-//	if (*pos != sizeof(usb_standard_configuration_descriptor_t)
-//	    || *(pos + 1) != USB_DESCTYPE_CONFIGURATION) {
-//		fprintf(stderr, "Wrong format of configuration descriptor");
-//		return EINVAL;
-//	}
-	
-//	usb_standard_configuration_descriptor_t config_descriptor;
-//	memcpy(&config_descriptor, pos, 
-//	    sizeof(usb_standard_configuration_descriptor_t));
-//	pos += sizeof(usb_standard_configuration_descriptor_t);
-	
-//	// parse other descriptors
-//	while (pos - data < size) {
-//		//uint8_t desc_size = *pos;
-//		uint8_t desc_type = *(pos + 1);
-//		switch (desc_type) {
-//		case USB_DESCTYPE_INTERFACE:
-//			break;
-//		case USB_DESCTYPE_ENDPOINT:
-//			break;
-//		case USB_DESCTYPE_HID:
-//			break;
-//		case USB_DESCTYPE_HID_REPORT:
-//			break;
-//		case USB_DESCTYPE_HID_PHYSICAL:
-//			break;
-//		}
-//	}
-	
-	return EOK;
-}
-
-static int usbkbd_get_descriptors(usb_hid_dev_kbd_t *kbd_dev)
-{
-	// get the first configuration descriptor (TODO: or some other??)
+	// get the first configuration descriptor (TODO: parse also other!)
 	usb_standard_configuration_descriptor_t config_desc;
 	
 	int rc = usb_drv_req_get_bare_configuration_descriptor(
@@ -121,7 +84,14 @@ static int usbkbd_get_descriptors(usb_hid_dev_kbd_t *kbd_dev)
 		return ELIMIT;
 	}
 	
-	rc = usbkbd_parse_descriptors(kbd_dev, descriptors, transferred);
+	kbd_dev->conf = (usb_hid_configuration_t *)calloc(1, 
+	    sizeof(usb_hid_configuration_t));
+	if (kbd_dev->conf == NULL) {
+		free(descriptors);
+		return ENOMEM;
+	}
+	
+	rc = usbkbd_parse_descriptors(descriptors, transferred, kbd_dev->conf);
 	free(descriptors);
 	
 	return rc;
@@ -129,8 +99,8 @@ static int usbkbd_get_descriptors(usb_hid_dev_kbd_t *kbd_dev)
 
 static usb_hid_dev_kbd_t *usbkbd_init_device(device_t *dev)
 {
-	usb_hid_dev_kbd_t *kbd_dev = (usb_hid_dev_kbd_t *)malloc(
-			sizeof(usb_hid_dev_kbd_t));
+	usb_hid_dev_kbd_t *kbd_dev = (usb_hid_dev_kbd_t *)calloc(1, 
+	    sizeof(usb_hid_dev_kbd_t));
 
 	if (kbd_dev == NULL) {
 		fprintf(stderr, NAME ": No memory!\n");
@@ -163,9 +133,8 @@ static usb_hid_dev_kbd_t *usbkbd_init_device(device_t *dev)
 	 * 2) set endpoints from endpoint descriptors
 	 */
 
-	// TODO: get descriptors
-	usbkbd_get_descriptors(kbd_dev);
-	// TODO: parse descriptors and save endpoints
+	// TODO: get descriptors, parse descriptors and save endpoints
+	usbkbd_process_descriptors(kbd_dev);
 
 	return kbd_dev;
 }

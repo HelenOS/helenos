@@ -32,6 +32,7 @@ EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include -I$(LIBUSB_PREFIX)/include
 BINARY = usbkbd
 
 SOURCES = \
-	main.c
+	main.c \
+	descparser.c
 
 include $(USPACE_PREFIX)/Makefile.common
