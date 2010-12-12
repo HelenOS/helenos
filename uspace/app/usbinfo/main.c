@@ -111,6 +111,20 @@ int main(int argc, char *argv[])
 	int rc;
 
 	/*
+	 * Dump information about possible match ids.
+	 */
+	match_id_list_t match_id_list;
+	init_match_ids(&match_id_list);
+	rc = usb_drv_create_device_match_ids(hc_phone, &match_id_list, address);
+	if (rc != EOK) {
+		fprintf(stderr,
+		    NAME ": failed to fetch match ids of the device: %s.\n",
+		    str_error(rc));
+		return rc;
+	}
+	dump_match_ids(&match_id_list);
+
+	/*
 	 * Get device descriptor and dump it.
 	 */
 	usb_standard_device_descriptor_t device_descriptor;

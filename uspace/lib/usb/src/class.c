@@ -26,30 +26,67 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup usb
+/** @addtogroup libusb usb
  * @{
  */
 /** @file
- * @brief Common header for usbinfo application.
+ * @brief Class related functions.
  */
-#ifndef USBINFO_USBINFO_H_
-#define USBINFO_USBINFO_H_
+#include <usb/classes/classes.h>
+#include <errno.h>
 
-#include <usb/usb.h>
-#include <usb/descriptor.h>
-#include <usb/debug.h>
-#include <ipc/devman.h>
+/** Tell string representation of USB class.
+ *
+ * @param cls Class code.
+ * @return String representation.
+ */
+const char *usb_str_class(usb_class_t cls)
+{
+	switch (cls) {
+		case USB_CLASS_USE_INTERFACE:
+			return "use-interface";
+		case USB_CLASS_AUDIO:
+			return "audio";
+		case USB_CLASS_COMMUNICATIONS_CDC_CONTROL:
+			return "communications";
+		case USB_CLASS_HID:
+			return "HID";
+		case USB_CLASS_PHYSICAL:
+			return "physical";
+		case USB_CLASS_IMAGE:
+			return "image";
+		case USB_CLASS_PRINTER:
+			return "printer";
+		case USB_CLASS_MASS_STORAGE:
+			return "mass-storage";
+		case USB_CLASS_HUB:
+			return "hub";
+		case USB_CLASS_CDC_DATA:
+			return "CDC";
+		case USB_CLASS_SMART_CARD:
+			return "smart-card";
+		case USB_CLASS_CONTENT_SECURITY:
+			return "security";
+		case USB_CLASS_VIDEO:
+			return "video";
+		case USB_CLASS_PERSONAL_HEALTHCARE:
+			return "healthcare";
+		case USB_CLASS_DIAGNOSTIC:
+			return "diagnostic";
+		case USB_CLASS_WIRELESS_CONTROLLER:
+			return "wireless";
+		case USB_CLASS_MISCELLANEOUS:
+			return "misc";
+		case USB_CLASS_APPLICATION_SPECIFIC:
+			return "application";
+		case USB_CLASS_VENDOR_SPECIFIC:
+			return "vendor";
+		default:
+			return "unknown";
+	}
+}
 
 
-#define NAME "usbinfo"
-
-void dump_buffer(const char *, const uint8_t *, size_t);
-void dump_match_ids(match_id_list_t *matches);
-void dump_standard_device_descriptor(usb_standard_device_descriptor_t *);
-void dump_standard_configuration_descriptor(int, 
-    usb_standard_configuration_descriptor_t *);
-
-#endif
 /**
  * @}
  */
