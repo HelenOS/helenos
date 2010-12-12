@@ -33,18 +33,19 @@
  * @brief Hub driver.
  */
 #include <driver.h>
-#include <usb/devreq.h>
+#include <bool.h>
+#include <errno.h>
+
 #include <usbhc_iface.h>
 #include <usb/usbdrv.h>
 #include <usb/descriptor.h>
-#include <driver.h>
-#include <bool.h>
-#include <errno.h>
+#include <usb/devreq.h>
 #include <usb/classes/hub.h>
+
 #include "usbhub.h"
 #include "usbhub_private.h"
 #include "port_status.h"
-#include <usb/devreq.h>
+
 
 static void check_hub_changes(void);
 
@@ -301,6 +302,8 @@ usb_hub_info_t * usb_create_hub_info(device_t * device, int hc) {
 	usb_hub_info_t* result = usb_new(usb_hub_info_t);
 	//result->device = device;
 	result->port_count = -1;
+	/// \TODO is this correct? is the device stored?
+	result->device = device;
 
 
 	//printf("[usb_hub] phone to hc = %d\n", hc);
@@ -315,8 +318,8 @@ usb_hub_info_t * usb_create_hub_info(device_t * device, int hc) {
 		
 	}*/
 
-	result->device = usb_new(usb_hcd_attached_device_info_t);
-	result->device->address = addr;
+	result->usb_device = usb_new(usb_hcd_attached_device_info_t);
+	result->usb_device->address = addr;
 
 	// get hub descriptor
 	usb_target_t target;
@@ -386,7 +389,7 @@ int usb_add_hub_device(device_t *dev) {
 	int opResult;
 	usb_device_request_setup_packet_t request;
 	usb_target_t target;
-	target.address = hub_info->device->address;
+	target.address = hub_info->usb_device->address;
 	target.endpoint = 0;
 	for (port = 0; port < hub_info->port_count; ++port) {
 		usb_hub_set_power_port_request(&request, port);
@@ -428,7 +431,6 @@ int usb_add_hub_device(device_t *dev) {
  * @param port
  * @param target
  */
-
 static void usb_hub_init_add_device(int hc, uint16_t port, usb_target_t target) {
 	usb_device_request_setup_packet_t request;
 	int opResult;
@@ -478,11 +480,24 @@ static void usb_hub_finalize_add_device(
 		//will retry later...
 		return;
 	}
+
+
 	usb_drv_release_default_address(hc);
+	/*
+	 devman_handle_t dev_handle;
+	rc = child_device_register_wrapper(hub_dev, "dev",
+	 *	match_id, match_score, &dev_handle);
+	if (rc != EOK) {
+		free(id);
+	}
+	 *
+	 */
 
 
 	/// \TODO driver work
 	//add_child_device.....
+	//opResult = usb_drv_bind_address(hc, new_device_address,
+    //devman_handle_t handle);...
 }
 
 /**
@@ -593,26 +608,21 @@ static void check_hub_changes(void) {
 			lst_item != &usb_hub_list;
 			lst_item = lst_item->next) {
 		printf("[usb_hub] checking hub changes\n");
+		usb_hub_info_t * hub_info = ((usb_hub_info_t*)lst_item->data);
 		/*
 		 * Check status change pipe of this hub.
 		 */
 
-		usb_target_t target = {
-			.address = 5,
-			.endpoint = 1
-		};
-		/// \TODO uncomment once it works correctly
-		//target.address = usb_create_hub_info(lst_item)->device->address;
+		usb_target_t target;
+		target.address = hub_info->usb_device->address;
+		target.endpoint = 1;
 
-		size_t port_count = 7;
+		size_t port_count = hub_info->port_count;
 
 		/*
 		 * Connect to respective HC.
 		 */
-		/// \FIXME this is incorrect code: here
-		/// must be used particular device instead of NULL
-		//which one?
-		int hc = usb_drv_hc_connect(NULL, 0);
+		int hc = usb_drv_hc_connect(hub_info->device, 0);
 		if (hc < 0) {
 			continue;
 		}

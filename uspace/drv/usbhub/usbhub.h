@@ -45,8 +45,11 @@
 typedef struct {
 	/** Number of ports. */
 	int port_count;
-	/** General device info. */
-	usb_hcd_attached_device_info_t * device;
+	/** General usb device info. */
+	usb_hcd_attached_device_info_t * usb_device;
+	/** General device info*/
+	device_t * device;
+
 } usb_hub_info_t;
 
 int usb_add_hub_device(device_t *);
