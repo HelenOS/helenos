@@ -198,7 +198,7 @@ usb_address_t usb_address_keeping_request(usb_address_keeping_t *addresses)
 		if (free_address == 0) {
 			usb_address_keeping_used_t *last
 			    = used_address_get_instance(addresses->used_addresses.next);
-			free_address = last->address;
+			free_address = last->address + 1;
 		}
 	}
 

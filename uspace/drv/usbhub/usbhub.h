@@ -39,12 +39,18 @@
 
 #include "usb/hcdhubd.h"
 
-
+/** basic information about device attached to hub */
+typedef struct{
+	usb_address_t address;
+	devman_handle_t devman_handle;
+}usb_hub_attached_device_t;
 
 /** Information about attached hub. */
 typedef struct {
 	/** Number of ports. */
 	int port_count;
+	/** attached device handles */
+	usb_hub_attached_device_t * attached_devs;
 	/** General usb device info. */
 	usb_hcd_attached_device_info_t * usb_device;
 	/** General device info*/

@@ -54,7 +54,7 @@ usb_device_request_setup_packet_t * request, uint16_t port
 ){
 	request->index = port;
 	request->request_type = USB_HUB_REQ_TYPE_GET_PORT_STATUS;
-	request->request = USB_HUB_REQUEST_GET_STATE;
+	request->request = USB_HUB_REQUEST_GET_STATUS;
 	request->value = 0;
 	request->length = 4;
 }

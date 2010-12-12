@@ -350,6 +350,13 @@ usb_hub_info_t * usb_create_hub_info(device_t * device, int hc) {
 	}
 	//printf("[usb_hub] setting port count to %d\n",descriptor->ports_count);
 	result->port_count = descriptor->ports_count;
+	result->attached_devs = (usb_hub_attached_device_t*)
+	    malloc((result->port_count+1) * sizeof(usb_hub_attached_device_t));
+	int i;
+	for(i=0;i<result->port_count+1;++i){
+		result->attached_devs[i].devman_handle=0;
+		result->attached_devs[i].address=0;
+	}
 	//printf("[usb_hub] freeing data\n");
 	free(serialized_descriptor);
 	free(descriptor->devices_removable);
@@ -384,14 +391,52 @@ int usb_add_hub_device(device_t *dev) {
 	usb_target_t target;
 	target.address = hub_info->usb_device->address;
 	target.endpoint = 0;
-	for (port = 0; port < hub_info->port_count; ++port) {
+
+	//get configuration descriptor
+	// this is not fully correct - there are more configurations
+	// and all should be checked
+	usb_standard_device_descriptor_t std_descriptor;
+	opResult = usb_drv_req_get_device_descriptor(hc, target.address,
+    &std_descriptor);
+	if(opResult!=EOK){
+		printf("[usb_hub] could not get device descriptor, %d\n",opResult);
+		return 1;///\TODO some proper error code needed
+	}
+	printf("[usb_hub] hub has %d configurations\n",std_descriptor.configuration_count);
+	if(std_descriptor.configuration_count<1){
+		printf("[usb_hub] THERE ARE NO CONFIGURATIONS AVAILABLE\n");
+	}
+	usb_standard_configuration_descriptor_t config_descriptor;
+	opResult = usb_drv_req_get_bare_configuration_descriptor(hc,
+        target.address, 0,
+        &config_descriptor);
+	if(opResult!=EOK){
+		printf("[usb_hub] could not get configuration descriptor, %d\n",opResult);
+		return 1;///\TODO some proper error code needed
+	}
+	//set configuration
+	request.request_type = 0;
+	request.request = USB_DEVREQ_SET_CONFIGURATION;
+	request.index=0;
+	request.length=0;
+	request.value_high=0;
+	request.value_low = config_descriptor.configuration_number;
+	opResult = usb_drv_sync_control_write(hc, target, &request, NULL, 0);
+	if (opResult != EOK) {
+		printf("[usb_hub]something went wrong when setting hub`s configuration, %d\n", opResult);
+	}
+
+
+	for (port = 1; port < hub_info->port_count+1; ++port) {
 		usb_hub_set_power_port_request(&request, port);
 		opResult = usb_drv_sync_control_write(hc, target, &request, NULL, 0);
+		printf("[usb_hub] powering port %d\n",port);
 		if (opResult != EOK) {
 			printf("[usb_hub]something went wrong when setting hub`s %dth port\n", port);
 		}
 	}
 	//ports powered, hub seems to be enabled
+	
 
 	ipc_hangup(hc);
 
@@ -410,6 +455,7 @@ int usb_add_hub_device(device_t *dev) {
 	printf("\taddress %d, has %d ports \n",
 			hub_info->usb_device->address,
 			hub_info->port_count);
+	printf("\tused configuration %d\n",config_descriptor.configuration_number);
 
 	return EOK;
 	//return ENOTSUP;
@@ -431,7 +477,7 @@ static void usb_hub_init_add_device(int hc, uint16_t port, usb_target_t target) 
 	usb_device_request_setup_packet_t request;
 	int opResult;
 	printf("[usb_hub] some connection changed\n");
-
+	//get default address
 	opResult = usb_drv_reserve_default_address(hc);
 	if (opResult != EOK) {
 		printf("[usb_hub] cannot assign default address, it is probably used\n");
@@ -477,7 +523,6 @@ static void usb_hub_finalize_add_device( usb_hub_info_t * hub,
 		return;
 	}
 
-
 	usb_drv_release_default_address(hc);
 
 	devman_handle_t child_handle;
@@ -487,7 +532,17 @@ static void usb_hub_finalize_add_device( usb_hub_info_t * hub,
 		printf("[usb_hub] could not start driver for new device \n");
 		return;
 	}
-	usb_drv_bind_address(hc, new_device_address, child_handle);
+	hub->attached_devs[port].devman_handle = child_handle;
+	hub->attached_devs[port].address = new_device_address;
+
+	opResult = usb_drv_bind_address(hc, new_device_address, child_handle);
+	if (opResult != EOK) {
+		printf("[usb_hub] could not assign address of device in hcd \n");
+		return;
+	}
+	printf("[usb_hub] new device address %d, handle %d\n",
+	    new_device_address, child_handle);
+	sleep(60);
 	
 }
 
@@ -497,11 +552,12 @@ static void usb_hub_finalize_add_device( usb_hub_info_t * hub,
  * @param port
  * @param target
  */
-static void usb_hub_removed_device(int hc, uint16_t port, usb_target_t target) {
-	usb_device_request_setup_packet_t request;
+static void usb_hub_removed_device(
+    usb_hub_info_t * hub, int hc, uint16_t port, usb_target_t target) {
+	//usb_device_request_setup_packet_t request;
 	int opResult;
 	//disable port
-	usb_hub_set_disable_port_request(&request, port);
+	/*usb_hub_set_disable_port_request(&request, port);
 	opResult = usb_drv_sync_control_write(
 			hc, target,
 			&request,
@@ -510,12 +566,22 @@ static void usb_hub_removed_device(int hc, uint16_t port, usb_target_t target) {
 	if (opResult != EOK) {
 		//continue;
 		printf("[usb_hub] something went wrong when disabling a port\n");
-	}
-	//remove device
-	//close address
-	//
+	}*/
+	/// \TODO remove device
 
-	///\TODO this code is not complete
+	hub->attached_devs[port].devman_handle=0;
+	//close address
+	if(hub->attached_devs[port].address!=0){
+		opResult = usb_drv_release_address(hc,hub->attached_devs[port].address);
+		if(opResult != EOK) {
+			printf("[usb_hub] could not release address of removed device: %d\n",opResult);
+		}
+		hub->attached_devs[port].address = 0;
+	}else{
+		printf("[usb_hub] this is strange, disconnected device had no address\n");
+		//device was disconnected before it`s port was reset - return default address
+		usb_drv_release_default_address(hc);
+	}
 }
 
 /**
@@ -524,14 +590,19 @@ static void usb_hub_removed_device(int hc, uint16_t port, usb_target_t target) {
  * @param port
  * @param target
  */
-static void usb_hub_process_interrupt(usb_hub_info_t * hub, int hc, uint16_t port, usb_target_t target) {
+static void usb_hub_process_interrupt(usb_hub_info_t * hub, int hc,
+        uint16_t port, usb_address_t address) {
 	printf("[usb_hub] interrupt at port %d\n", port);
 	//determine type of change
+	usb_target_t target;
+	target.address=address;
+	target.endpoint=0;
 	usb_port_status_t status;
 	size_t rcvd_size;
 	usb_device_request_setup_packet_t request;
 	int opResult;
 	usb_hub_set_port_status_request(&request, port);
+	//endpoint 0
 
 	opResult = usb_drv_sync_control_read(
 			hc, target,
@@ -552,7 +623,7 @@ static void usb_hub_process_interrupt(usb_hub_info_t * hub, int hc, uint16_t por
 			printf("[usb_hub] some connection changed\n");
 			usb_hub_init_add_device(hc, port, target);
 		} else {
-			usb_hub_removed_device(hc, port, target);
+			usb_hub_removed_device(hub, hc, port, target);
 		}
 	}
 	//port reset
@@ -570,7 +641,7 @@ static void usb_hub_process_interrupt(usb_hub_info_t * hub, int hc, uint16_t por
 	usb_port_set_reset_completed(&status, false);
 	usb_port_set_dev_connected(&status, false);
 	if (status) {
-		printf("[usb_hub]there was some unsupported change on port\n");
+		printf("[usb_hub]there was some unsupported change on port %d\n",port);
 	}
 	/// \TODO handle other changes
 	/// \TODO debug log for various situations
@@ -606,7 +677,8 @@ void usb_hub_check_hub_changes(void) {
 
 		usb_target_t target;
 		target.address = hub_info->usb_device->address;
-		target.endpoint = 1;
+		target.endpoint = 1;/// \TODO get from endpoint descriptor
+		printf("checking changes for hub at addr %d \n",target.address);
 
 		size_t port_count = hub_info->port_count;
 
@@ -619,7 +691,7 @@ void usb_hub_check_hub_changes(void) {
 		}
 
 		// FIXME: count properly
-		size_t byte_length = (port_count / 8) + 1;
+		size_t byte_length = ((port_count+1) / 8) + 1;
 
 		void *change_bitmap = malloc(byte_length);
 		size_t actual_size;
@@ -639,10 +711,11 @@ void usb_hub_check_hub_changes(void) {
 			continue;
 		}
 		unsigned int port;
-		for (port = 0; port < port_count; ++port) {
+		for (port = 1; port < port_count+1; ++port) {
 			bool interrupt = (((uint8_t*) change_bitmap)[port / 8] >> (port % 8)) % 2;
 			if (interrupt) {
-				usb_hub_process_interrupt(hub_info, hc, port, target);
+				usb_hub_process_interrupt(
+				        hub_info, hc, port, hub_info->usb_device->address);
 			}
 		}
 

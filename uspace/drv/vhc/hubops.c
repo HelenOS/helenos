@@ -199,7 +199,7 @@ void set_port_state(hub_port_t *port, hub_port_state_t state)
 			return EINVAL; \
 		} \
 	} while (false); \
-	hub_port_t *portvar = &hub_dev.ports[index]
+	hub_port_t *portvar = &hub_dev.ports[index-1]
 
 
 static int clear_hub_feature(uint16_t feature)
