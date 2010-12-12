@@ -100,6 +100,83 @@ failure:
 	return rc;
 }
 
+/** Add match ids based on configuration descriptor.
+ *
+ * @param hc Open phone to host controller.
+ * @param matches Match ids list to add matches to.
+ * @param address USB address of the attached device.
+ * @return Error code.
+ */
+static int usb_add_config_descriptor_match_ids(int hc,
+    match_id_list_t *matches, usb_address_t address,
+    int config_count)
+{
+	int final_rc = EOK;
+	
+	int config_index;
+	for (config_index = 0; config_index < config_count; config_index++) {
+		int rc;
+		usb_standard_configuration_descriptor_t config_descriptor;
+		rc = usb_drv_req_get_bare_configuration_descriptor(hc,
+		    address,  config_index, &config_descriptor);
+		if (rc != EOK) {
+			final_rc = rc;
+			continue;
+		}
+
+		size_t full_config_descriptor_size;
+		void *full_config_descriptor
+		    = malloc(config_descriptor.total_length);
+		rc = usb_drv_req_get_full_configuration_descriptor(hc,
+		    address, config_index,
+		    full_config_descriptor, config_descriptor.total_length,
+		    &full_config_descriptor_size);
+		if (rc != EOK) {
+			final_rc = rc;
+			continue;
+		}
+		if (full_config_descriptor_size
+		    != config_descriptor.total_length) {
+			final_rc = ERANGE;
+			continue;
+		}
+
+		/*
+		 * Iterate through config descriptor to find the interface
+		 * descriptors.
+		 */
+		size_t position = sizeof(config_descriptor);
+		while (position + 1 < full_config_descriptor_size) {
+			uint8_t *current_descriptor
+			    = ((uint8_t *) full_config_descriptor) + position;
+			uint8_t cur_descr_len = current_descriptor[0];
+			uint8_t cur_descr_type = current_descriptor[1];
+			
+			position += cur_descr_len;
+			
+			if (cur_descr_type != USB_DESCTYPE_INTERFACE) {
+				continue;
+			}
+			/*
+			 * Finally, we found an interface descriptor.
+			 */
+			usb_standard_interface_descriptor_t *interface
+			    = (usb_standard_interface_descriptor_t *)
+			    current_descriptor;
+			
+			rc = usb_add_match_id(matches, 50,
+			    "usb&interface&class=%s",
+			    usb_str_class(interface->interface_class));
+			if (rc != EOK) {
+				final_rc = rc;
+				break;
+			}
+		}
+	}
+	
+	return final_rc;
+}
+
 /** Create match ids describing attached device.
  *
  * @warning The list of match ids @p matches may change even when
@@ -148,9 +225,8 @@ int usb_drv_create_device_match_ids(int hc, match_id_list_t *matches,
 	}	
 
 	/*
-	 * If the device class does not point to interface,
-	 * it is added immediatelly, otherwise full configuration
-	 * descriptor must be obtained and parsed.
+	 * If the device class points to interface we skip adding
+	 * class directly.
 	 */
 	if (device_descriptor.device_class != USB_CLASS_USE_INTERFACE) {
 		rc = usb_add_match_id(matches, 50, "usb&class=%s",
@@ -158,8 +234,15 @@ int usb_drv_create_device_match_ids(int hc, match_id_list_t *matches,
 		if (rc != EOK) {
 			return rc;
 		}
-	} else {
-		/* TODO */
+	}
+	/*
+	 * Go through all configurations and add matches
+	 * based on interface class.
+	 */
+	rc = usb_add_config_descriptor_match_ids(hc, matches,
+	    address, device_descriptor.configuration_count);
+	if (rc != EOK) {
+		return rc;
 	}
 
 	/*
