@@ -332,6 +332,29 @@ fs_handle_t fs_name_to_handle(char *name, bool lock)
 	return handle;
 }
 
+/** Find the VFS info structure.
+ *
+ * @param handle	FS handle for which the VFS info structure is sought.
+ * @return		VFS info structure on success or NULL otherwise.
+ */
+vfs_info_t *fs_handle_to_info(fs_handle_t handle)
+{
+	vfs_info_t *info = NULL;
+	link_t *cur;
+
+	fibril_mutex_lock(&fs_head_lock);
+	for (cur = fs_head.next; cur != &fs_head; cur = cur->next) {
+		fs_info_t *fs = list_get_instance(cur, fs_info_t, fs_link);
+		if (fs->fs_handle == handle) { 
+			info = &fs->vfs_info;
+			break;
+		}
+	}
+	fibril_mutex_unlock(&fs_head_lock);
+
+	return info;
+}
+
 /**
  * @}
  */ 

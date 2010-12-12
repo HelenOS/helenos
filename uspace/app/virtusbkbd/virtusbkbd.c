@@ -201,7 +201,7 @@ static size_t keyboard_events_count =
 
 int main(int argc, char * argv[])
 {
-	printf("Dump of report descriptor (%u bytes):\n", report_descriptor_size);
+	printf("Dump of report descriptor (%zu bytes):\n", report_descriptor_size);
 	size_t i;
 	for (i = 0; i < report_descriptor_size; i++) {
 		printf("  0x%02X", report_descriptor[i]);

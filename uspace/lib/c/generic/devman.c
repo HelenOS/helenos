@@ -115,9 +115,10 @@ int devman_driver_register(const char *name, async_client_conn_t conn)
 static int devman_send_match_id(int phone, match_id_t *match_id) \
 {
 	ipc_call_t answer;
-	async_send_1(phone, DEVMAN_ADD_MATCH_ID, match_id->score, &answer);
+	aid_t req = async_send_1(phone, DEVMAN_ADD_MATCH_ID, match_id->score, &answer);
 	int retval = async_data_write_start(phone, match_id->id, str_size(match_id->id));
-	return retval;	
+	async_wait_for(req, NULL);
+	return retval;
 }
 
 

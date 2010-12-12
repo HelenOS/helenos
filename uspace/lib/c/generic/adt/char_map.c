@@ -89,10 +89,10 @@ char_map_add_item(char_map_t *map, const char *identifier, size_t length,
 		return ENOMEM;
 	}
 
-	map->items[map->next]->c = * identifier;
-	++ identifier;
-	++ map->next;
-	if ((length > 1) || ((length == 0) && (*identifier))) {
+	map->items[map->next]->c = *identifier;
+	identifier++;
+	map->next++;
+	if ((length > 1) || ((length == 0) && *identifier)) {
 		map->items[map->next - 1]->value = CHAR_MAP_NULL;
 		return char_map_add_item(map->items[map->next - 1], identifier,
 		    length ? length - 1 : 0, value);
@@ -141,16 +141,15 @@ int
 char_map_add(char_map_t *map, const char *identifier, size_t length,
     const int value)
 {
-	if (char_map_is_valid(map) && (identifier) &&
-	    ((length) || (*identifier))) {
+	if (char_map_is_valid(map) && identifier && (length || *identifier)) {
 		int index;
 
-		for (index = 0; index < map->next; ++ index) {
+		for (index = 0; index < map->next; index++) {
 			if (map->items[index]->c != *identifier)
 				continue;
 				
-			++ identifier;
-			if((length > 1) || ((length == 0) && (*identifier))) {
+			identifier++;
+			if((length > 1) || ((length == 0) && *identifier)) {
 				return char_map_add(map->items[index],
 				    identifier, length ? length - 1 : 0, value);
 			} else {
@@ -177,7 +176,7 @@ void char_map_destroy(char_map_t *map)
 		int index;
 
 		map->magic = 0;
-		for (index = 0; index < map->next; ++index)
+		for (index = 0; index < map->next; index++)
 			char_map_destroy(map->items[index]);
 
 		free(map->items);
@@ -206,12 +205,12 @@ char_map_find_node(const char_map_t *map, const char *identifier,
 	if (!char_map_is_valid(map))
 		return NULL;
 
-	if (length || (*identifier)) {
+	if (length || *identifier) {
 		int index;
 
-		for (index = 0; index < map->next; ++index) {
+		for (index = 0; index < map->next; index++) {
 			if (map->items[index]->c == *identifier) {
-				++identifier;
+				identifier++;
 				if (length == 1)
 					return map->items[index];
 

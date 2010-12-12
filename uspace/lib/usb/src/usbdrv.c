@@ -54,7 +54,7 @@ typedef struct {
 
 /** Connect to host controller the device is physically attached to.
  *
- * @param handle Device handle.
+ * @param dev Device asking for connection.
  * @param flags Connection flags (blocking connection).
  * @return Phone to corresponding HC or error code.
  */
@@ -70,7 +70,7 @@ int usb_drv_hc_connect(device_t *dev, unsigned int flags)
 	int rc;
 	devman_handle_t handle;
 
-	rc = devman_device_get_handle("/vhc", &handle, 0);
+	rc = devman_device_get_handle("/virt/usbhc", &handle, 0);
 	if (rc != EOK) {
 		return rc;
 	}
@@ -97,6 +97,69 @@ usb_address_t usb_drv_get_my_address(int phone, device_t *dev)
 	}
 
 	return (usb_address_t) address;
+}
+
+/** Tell HC to reserve default address.
+ *
+ * @param phone Open phone to host controller driver.
+ * @return Error code.
+ */
+int usb_drv_reserve_default_address(int phone)
+{
+	return async_req_0_0(phone, IPC_M_USBHC_RESERVE_DEFAULT_ADDRESS);
+}
+
+/** Tell HC to release default address.
+ *
+ * @param phone Open phone to host controller driver.
+ * @return Error code.
+ */
+int usb_drv_release_default_address(int phone)
+{
+	return async_req_0_0(phone, IPC_M_USBHC_RELEASE_DEFAULT_ADDRESS);
+}
+
+/** Ask HC for free address assignment.
+ *
+ * @param phone Open phone to host controller driver.
+ * @return Assigned USB address or negative error code.
+ */
+usb_address_t usb_drv_request_address(int phone)
+{
+	ipcarg_t address;
+	int rc = async_req_0_1(phone, IPC_M_USBHC_REQUEST_ADDRESS, &address);
+	if (rc != EOK) {
+		return rc;
+	} else {
+		return (usb_address_t) address;
+	}
+}
+
+/** Inform HC about binding address with devman handle.
+ *
+ * @param phone Open phone to host controller driver.
+ * @param address Address to be binded.
+ * @param handle Devman handle of the device.
+ * @return Error code.
+ */
+int usb_drv_bind_address(int phone, usb_address_t address,
+    devman_handle_t handle)
+{
+	int rc = async_req_2_0(phone, IPC_M_USBHC_BIND_ADDRESS,
+	    address, handle);
+
+	return rc;
+}
+
+/** Inform HC about address release.
+ *
+ * @param phone Open phone to host controller driver.
+ * @param address Address to be released.
+ * @return Error code.
+ */
+int usb_drv_release_address(int phone, usb_address_t address)
+{
+	return async_req_1_0(phone, IPC_M_USBHC_RELEASE_ADDRESS, address);
 }
 
 /** Send data to HCD.

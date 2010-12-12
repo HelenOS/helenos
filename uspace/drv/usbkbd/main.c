@@ -31,11 +31,56 @@
 #include <errno.h>
 #include <fibril.h>
 #include <usb/classes/hid.h>
+#include <usb/classes/hidparser.h>
+#include <usb/devreq.h>
 
 #define BUFFER_SIZE 32
 #define NAME "usbkbd"
 
 static const usb_endpoint_t CONTROL_EP = 0;
+
+/*
+ * Callbacks for parser
+ */
+static void usbkbd_process_keycodes(const uint16_t *key_codes, size_t count,
+                                    void *arg)
+{
+
+}
+
+/*
+ * Kbd functions
+ */
+static int usbkbd_get_descriptors()
+{
+	// copy-pasted:
+	
+	/* Prepare the setup packet. */
+	usb_device_request_setup_packet_t setup_packet = {
+		.request_type = 128,
+		.request = USB_DEVREQ_GET_DESCRIPTOR,
+		.index = 0,
+		.length = sizeof(usb_standard_device_descriptor_t)
+	};
+	
+	setup_packet.value_high = USB_DESCTYPE_DEVICE;
+	setup_packet.value_low = 0;
+
+	/* Prepare local descriptor. */
+	size_t actually_transferred = 0;
+	usb_standard_device_descriptor_t descriptor_tmp;
+
+	/* Perform the control read transaction. */
+	int rc = usb_drv_psync_control_read(phone, target,
+	    &setup_packet, sizeof(setup_packet),
+	    &descriptor_tmp, sizeof(descriptor_tmp), &actually_transferred);
+
+	if (rc != EOK) {
+		return rc;
+	}
+	
+	// end of copy-paste
+}
 
 static usb_hid_dev_kbd_t *usbkbd_init_device(device_t *dev)
 {
@@ -67,26 +112,33 @@ static usb_hid_dev_kbd_t *usbkbd_init_device(device_t *dev)
 	kbd_dev->default_ep = CONTROL_EP;
 
 	// TODO: get descriptors
-
+	usbkbd_get_descriptors();
 	// TODO: parse descriptors and save endpoints
 
 	return kbd_dev;
 }
 
 static void usbkbd_process_interrupt_in(usb_hid_dev_kbd_t *kbd_dev,
-					char *buffer, size_t actual_size)
+                                        uint8_t *buffer, size_t actual_size)
 {
 	/*
 	 * here, the parser will be called, probably with some callbacks
 	 * now only take last 6 bytes and process, i.e. send to kbd
 	 */
+
+	usb_hid_report_in_callbacks_t *callbacks =
+	    (usb_hid_report_in_callbacks_t *)malloc(
+		sizeof(usb_hid_report_in_callbacks_t));
+	callbacks->keyboard = usbkbd_process_keycodes;
+
+	usb_hid_parse_report(kbd_dev->parser, buffer, callbacks, NULL);
 }
 
 static void usbkbd_poll_keyboard(usb_hid_dev_kbd_t *kbd_dev)
 {
 	int rc;
 	usb_handle_t handle;
-	char buffer[BUFFER_SIZE];
+	uint8_t buffer[BUFFER_SIZE];
 	size_t actual_size;
 	//usb_endpoint_t poll_endpoint = 1;
 

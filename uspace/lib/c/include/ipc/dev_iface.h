@@ -53,5 +53,15 @@ typedef enum {
 #define DEV_FIRST_CUSTOM_METHOD \
 	DEV_IFACE_ID(DEV_FIRST_CUSTOM_METHOD_IDX)
 
+/*
+ * The first argument is actually method (as the "real" method is used
+ * for indexing into interfaces.
+ */
+
+#define DEV_IPC_GET_ARG1(call) IPC_GET_ARG2((call))
+#define DEV_IPC_GET_ARG2(call) IPC_GET_ARG3((call))
+#define DEV_IPC_GET_ARG3(call) IPC_GET_ARG4((call))
+#define DEV_IPC_GET_ARG4(call) IPC_GET_ARG5((call))
+
 
 #endif

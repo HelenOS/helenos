@@ -35,10 +35,18 @@
 #ifndef LIBUSB_USBDRV_H_
 #define LIBUSB_USBDRV_H_
 
-#include "usb.h"
+#include <usb/usb.h>
 #include <driver.h>
+#include <usb/devreq.h>
+#include <usb/descriptor.h>
 
 int usb_drv_hc_connect(device_t *, unsigned int);
+
+int usb_drv_reserve_default_address(int);
+int usb_drv_release_default_address(int);
+usb_address_t usb_drv_request_address(int);
+int usb_drv_bind_address(int, usb_address_t, devman_handle_t);
+int usb_drv_release_address(int, usb_address_t);
 
 usb_address_t usb_drv_get_my_address(int, device_t *);
 
@@ -47,12 +55,25 @@ int usb_drv_async_interrupt_out(int, usb_target_t,
 int usb_drv_async_interrupt_in(int, usb_target_t,
     void *, size_t, size_t *, usb_handle_t *);
 
+int usb_drv_psync_interrupt_out(int, usb_target_t, void *, size_t);
+int usb_drv_psync_interrupt_in(int, usb_target_t, void *, size_t, size_t *);
+
+
+
 int usb_drv_async_control_write_setup(int, usb_target_t,
     void *, size_t, usb_handle_t *);
 int usb_drv_async_control_write_data(int, usb_target_t,
     void *, size_t, usb_handle_t *);
 int usb_drv_async_control_write_status(int, usb_target_t,
     usb_handle_t *);
+
+int usb_drv_psync_control_write_setup(int, usb_target_t, void *, size_t);
+int usb_drv_psync_control_write_data(int, usb_target_t, void *, size_t);
+int usb_drv_psync_control_write_status(int, usb_target_t);
+
+int usb_drv_psync_control_write(int, usb_target_t,
+    void *, size_t, void *, size_t);
+
 
 int usb_drv_async_control_read_setup(int, usb_target_t,
     void *, size_t, usb_handle_t *);
@@ -61,7 +82,17 @@ int usb_drv_async_control_read_data(int, usb_target_t,
 int usb_drv_async_control_read_status(int, usb_target_t,
     usb_handle_t *);
 
+int usb_drv_psync_control_read_setup(int, usb_target_t, void *, size_t);
+int usb_drv_psync_control_read_data(int, usb_target_t, void *, size_t, size_t *);
+int usb_drv_psync_control_read_status(int, usb_target_t);
+
+int usb_drv_psync_control_read(int, usb_target_t,
+    void *, size_t, void *, size_t, size_t *);
+
+
+
 int usb_drv_async_wait_for(usb_handle_t);
+
 
 #endif
 /**

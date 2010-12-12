@@ -35,6 +35,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <usb/usb.h>
+#include <usb/hcd.h>
 
 #include "vhcd.h"
 #include "conn.h"
@@ -42,9 +43,9 @@
 
 typedef struct {
 	usb_direction_t direction;
-	usb_hcd_transfer_callback_out_t out_callback;
-	usb_hcd_transfer_callback_in_t in_callback;
-	usb_hc_device_t *hc;
+	usbhc_iface_transfer_out_callback_t out_callback;
+	usbhc_iface_transfer_in_callback_t in_callback;
+	device_t *dev;
 	void *arg;
 } transfer_info_t;
 
@@ -55,12 +56,12 @@ static void universal_callback(void *buffer, size_t size,
 
 	switch (transfer->direction) {
 		case USB_DIRECTION_IN:
-			transfer->in_callback(transfer->hc,
-			    size, outcome,
+			transfer->in_callback(transfer->dev,
+			    outcome, size,
 			    transfer->arg);
 			break;
 		case USB_DIRECTION_OUT:
-			transfer->out_callback(transfer->hc,
+			transfer->out_callback(transfer->dev,
 			    outcome,
 			    transfer->arg);
 			break;
@@ -72,7 +73,7 @@ static void universal_callback(void *buffer, size_t size,
 	free(transfer);
 }
 
-static transfer_info_t *create_transfer_info(usb_hc_device_t *hc,
+static transfer_info_t *create_transfer_info(device_t *dev,
     usb_direction_t direction, void *arg)
 {
 	transfer_info_t *transfer = malloc(sizeof(transfer_info_t));
@@ -81,29 +82,24 @@ static transfer_info_t *create_transfer_info(usb_hc_device_t *hc,
 	transfer->in_callback = NULL;
 	transfer->out_callback = NULL;
 	transfer->arg = arg;
-	transfer->hc = hc;
+	transfer->dev = dev;
 
 	return transfer;
 }
 
-static int enqueue_transfer_out(usb_hc_device_t *hc,
-    usb_hcd_attached_device_info_t *dev, usb_hc_endpoint_info_t *endpoint,
+static int enqueue_transfer_out(device_t *dev,
+    usb_target_t target, usb_transfer_type_t transfer_type,
     void *buffer, size_t size,
-    usb_hcd_transfer_callback_out_t callback, void *arg)
+    usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
-	printf(NAME ": transfer OUT [%d.%d (%s); %u]\n",
-	    dev->address, endpoint->endpoint,
-	    usb_str_transfer_type(endpoint->transfer_type),
+	printf(NAME ": transfer OUT [%d.%d (%s); %zu]\n",
+	    target.address, target.endpoint,
+	    usb_str_transfer_type(transfer_type),
 	    size);
 
 	transfer_info_t *transfer
-	    = create_transfer_info(hc, USB_DIRECTION_OUT, arg);
+	    = create_transfer_info(dev, USB_DIRECTION_OUT, arg);
 	transfer->out_callback = callback;
-
-	usb_target_t target = {
-		.address = dev->address,
-		.endpoint = endpoint->endpoint
-	};
 
 	hc_add_transaction_to_device(false, target, buffer, size,
 	    universal_callback, transfer);
@@ -111,24 +107,19 @@ static int enqueue_transfer_out(usb_hc_device_t *hc,
 	return EOK;
 }
 
-static int enqueue_transfer_setup(usb_hc_device_t *hc,
-    usb_hcd_attached_device_info_t *dev, usb_hc_endpoint_info_t *endpoint,
+static int enqueue_transfer_setup(device_t *dev,
+    usb_target_t target, usb_transfer_type_t transfer_type,
     void *buffer, size_t size,
-    usb_hcd_transfer_callback_out_t callback, void *arg)
+    usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
-	printf(NAME ": transfer SETUP [%d.%d (%s); %u]\n",
-	    dev->address, endpoint->endpoint,
-	    usb_str_transfer_type(endpoint->transfer_type),
+	printf(NAME ": transfer SETUP [%d.%d (%s); %zu]\n",
+	    target.address, target.endpoint,
+	    usb_str_transfer_type(transfer_type),
 	    size);
 
 	transfer_info_t *transfer
-	    = create_transfer_info(hc, USB_DIRECTION_OUT, arg);
+	    = create_transfer_info(dev, USB_DIRECTION_OUT, arg);
 	transfer->out_callback = callback;
-
-	usb_target_t target = {
-		.address = dev->address,
-		.endpoint = endpoint->endpoint
-	};
 
 	hc_add_transaction_to_device(true, target, buffer, size,
 	    universal_callback, transfer);
@@ -136,24 +127,19 @@ static int enqueue_transfer_setup(usb_hc_device_t *hc,
 	return EOK;
 }
 
-static int enqueue_transfer_in(usb_hc_device_t *hc,
-    usb_hcd_attached_device_info_t *dev, usb_hc_endpoint_info_t *endpoint,
+static int enqueue_transfer_in(device_t *dev,
+    usb_target_t target, usb_transfer_type_t transfer_type,
     void *buffer, size_t size,
-    usb_hcd_transfer_callback_in_t callback, void *arg)
+    usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
-	printf(NAME ": transfer IN [%d.%d (%s); %u]\n",
-	    dev->address, endpoint->endpoint,
-	    usb_str_transfer_type(endpoint->transfer_type),
+	printf(NAME ": transfer IN [%d.%d (%s); %zu]\n",
+	    target.address, target.endpoint,
+	    usb_str_transfer_type(transfer_type),
 	    size);
 
 	transfer_info_t *transfer
-	    = create_transfer_info(hc, USB_DIRECTION_IN, arg);
+	    = create_transfer_info(dev, USB_DIRECTION_IN, arg);
 	transfer->in_callback = callback;
-
-	usb_target_t target = {
-		.address = dev->address,
-		.endpoint = endpoint->endpoint
-	};
 
 	hc_add_transaction_from_device(target, buffer, size,
 	    universal_callback, transfer);
@@ -162,10 +148,150 @@ static int enqueue_transfer_in(usb_hc_device_t *hc,
 }
 
 
-usb_hcd_transfer_ops_t vhc_transfer_ops = {
-	.transfer_out = enqueue_transfer_out,
-	.transfer_in = enqueue_transfer_in,
-	.transfer_setup = enqueue_transfer_setup
+static int interrupt_out(device_t *dev, usb_target_t target,
+    void *data, size_t size,
+    usbhc_iface_transfer_out_callback_t callback, void *arg)
+{
+	return enqueue_transfer_out(dev, target, USB_TRANSFER_INTERRUPT,
+	    data, size,
+	    callback, arg);
+}
+
+static int interrupt_in(device_t *dev, usb_target_t target,
+    void *data, size_t size,
+    usbhc_iface_transfer_in_callback_t callback, void *arg)
+{
+	return enqueue_transfer_in(dev, target, USB_TRANSFER_INTERRUPT,
+	    data, size,
+	    callback, arg);
+}
+
+static int control_write_setup(device_t *dev, usb_target_t target,
+    void *data, size_t size,
+    usbhc_iface_transfer_out_callback_t callback, void *arg)
+{
+	return enqueue_transfer_setup(dev, target, USB_TRANSFER_CONTROL,
+	    data, size,
+	    callback, arg);
+}
+
+static int control_write_data(device_t *dev, usb_target_t target,
+    void *data, size_t size,
+    usbhc_iface_transfer_out_callback_t callback, void *arg)
+{
+	return enqueue_transfer_out(dev, target, USB_TRANSFER_CONTROL,
+	    data, size,
+	    callback, arg);
+}
+
+static int control_write_status(device_t *dev, usb_target_t target,
+    usbhc_iface_transfer_in_callback_t callback, void *arg)
+{
+	return enqueue_transfer_in(dev, target, USB_TRANSFER_CONTROL,
+	    NULL, 0,
+	    callback, arg);
+}
+
+static int control_read_setup(device_t *dev, usb_target_t target,
+    void *data, size_t size,
+    usbhc_iface_transfer_out_callback_t callback, void *arg)
+{
+	return enqueue_transfer_setup(dev, target, USB_TRANSFER_CONTROL,
+	    data, size,
+	    callback, arg);
+}
+
+static int control_read_data(device_t *dev, usb_target_t target,
+    void *data, size_t size,
+    usbhc_iface_transfer_in_callback_t callback, void *arg)
+{
+	return enqueue_transfer_in(dev, target, USB_TRANSFER_CONTROL,
+	    data, size,
+	    callback, arg);
+}
+
+static int control_read_status(device_t *dev, usb_target_t target,
+    usbhc_iface_transfer_out_callback_t callback, void *arg)
+{
+	return enqueue_transfer_out(dev, target, USB_TRANSFER_CONTROL,
+	    NULL, 0,
+	    callback, arg);
+}
+
+static usb_address_keeping_t addresses;
+
+
+static int reserve_default_address(device_t *dev)
+{
+	usb_address_keeping_reserve_default(&addresses);
+	return EOK;
+}
+
+static int release_default_address(device_t *dev)
+{
+	usb_address_keeping_release_default(&addresses);
+	return EOK;
+}
+
+static int request_address(device_t *dev, usb_address_t *address)
+{
+	usb_address_t addr = usb_address_keeping_request(&addresses);
+	if (addr < 0) {
+		return (int)addr;
+	}
+
+	*address = addr;
+	return EOK;
+}
+
+static int release_address(device_t *dev, usb_address_t address)
+{
+	return usb_address_keeping_release(&addresses, address);
+}
+
+static int bind_address(device_t *dev, usb_address_t address,
+    devman_handle_t handle)
+{
+	usb_address_keeping_devman_bind(&addresses, address, handle);
+	return EOK;
+}
+
+static int tell_address(device_t *dev, devman_handle_t handle,
+    usb_address_t *address)
+{
+	usb_address_t addr = usb_address_keeping_find(&addresses, handle);
+	if (addr < 0) {
+		return addr;
+	}
+
+	*address = addr;
+	return EOK;
+}
+
+void address_init(void)
+{
+	usb_address_keeping_init(&addresses, 50);
+}
+
+usbhc_iface_t vhc_iface = {
+	.tell_address = tell_address,
+
+	.reserve_default_address = reserve_default_address,
+	.release_default_address = release_default_address,
+	.request_address = request_address,
+	.bind_address = bind_address,
+	.release_address = release_address,
+
+	.interrupt_out = interrupt_out,
+	.interrupt_in = interrupt_in,
+
+	.control_write_setup = control_write_setup,
+	.control_write_data = control_write_data,
+	.control_write_status = control_write_status,
+
+	.control_read_setup = control_read_setup,
+	.control_read_data = control_read_data,
+	.control_read_status = control_read_status
 };
 
 /**

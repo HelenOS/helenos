@@ -56,6 +56,8 @@
 
 vfs_info_t tmpfs_vfs_info = {
 	.name = NAME,
+	.concurrent_read_write = false,
+	.write_retains_size = false,
 };
 
 fs_reg_t tmpfs_reg;
