@@ -74,6 +74,8 @@ int usb_hid_parse_report(const usb_hid_report_parser_t *parser,
 	}
 	
 	callbacks->keyboard(keys, 6, arg);
+	
+	return EOK;
 }
 
 
