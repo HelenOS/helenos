@@ -35,6 +35,10 @@
 #ifndef LIBUSB_HID_H_
 #define LIBUSB_HID_H_
 
+#include <usb/usb.h>
+#include <driver.h>
+#include <usb/classes/hidparser.h>
+
 /** USB/HID device requests. */
 typedef enum {
 	USB_HIDREQ_GET_REPORT = 1,
@@ -52,6 +56,52 @@ typedef enum {
 	USB_HID_PROTOCOL_KEYBOARD = 1,
 	USB_HID_PROTOCOL_MOUSE = 2
 } usb_hid_protocol_t;
+
+/** Part of standard USB HID descriptor specifying one class descriptor.
+ *
+ * (See HID Specification, p.22)
+ */
+typedef struct {
+	/** Type of class descriptor (Report or Physical). */
+	uint8_t class_descriptor_type;
+	/** Length of class descriptor. */
+	uint16_t class_descriptor_length;
+} __attribute__ ((packed)) usb_standard_hid_descriptor_class_item_t;
+
+/** Standard USB HID descriptor.
+ *
+ * (See HID Specification, p.22)
+ * 
+ * It is actually only the "header" of the descriptor, as it may have arbitrary
+ * length if more than one class descritor is provided.
+ */
+typedef struct {
+	/** Size of this descriptor in bytes. */
+	uint8_t length;
+	/** Descriptor type (USB_DESCTYPE_HID). */
+	uint8_t descriptor_type;
+	/** HID Class Specification release. */
+	uint16_t spec_release;
+	/** Country code of localized hardware. */
+	uint8_t country_code;
+	/** Total number of class (i.e. Report and Physical) descriptors. */
+	uint8_t class_count;
+	/** First mandatory class descriptor info. */
+	usb_standard_hid_descriptor_class_item_t class_descriptor;
+} __attribute__ ((packed)) usb_standard_hid_descriptor_t;
+
+
+/**
+ * @brief USB/HID keyboard device type.
+ *
+ * Quite dummy right now.
+ */
+typedef struct {
+	device_t *device;
+	usb_address_t address;
+	usb_endpoint_t default_ep;
+	usb_hid_report_parser_t *parser;
+} usb_hid_dev_kbd_t;
 
 #endif
 /**

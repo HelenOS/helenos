@@ -27,77 +27,265 @@
  */
 #include <usb/usbdrv.h>
 #include <driver.h>
+#include <ipc/driver.h>
 #include <errno.h>
+#include <fibril.h>
+#include <usb/classes/hid.h>
+#include <usb/classes/hidparser.h>
+#include <usb/devreq.h>
+#include <usb/descriptor.h>
 
 #define BUFFER_SIZE 32
+#define NAME "usbkbd"
 
-/* Call this periodically to check keyboard status changes. */
-static void poll_keyboard(device_t *dev)
+static const usb_endpoint_t CONTROL_EP = 0;
+
+/*
+ * Callbacks for parser
+ */
+static void usbkbd_process_keycodes(const uint16_t *key_codes, size_t count,
+                                    void *arg)
+{
+
+}
+
+/*
+ * Kbd functions
+ */
+static int usbkbd_parse_descriptors(usb_hid_dev_kbd_t *kbd_dev,
+                                    const uint8_t *data, size_t size)
+{
+//	const uint8_t *pos = data;
+	
+//	// get the configuration descriptor (should be first)
+//	if (*pos != sizeof(usb_standard_configuration_descriptor_t)
+//	    || *(pos + 1) != USB_DESCTYPE_CONFIGURATION) {
+//		fprintf(stderr, "Wrong format of configuration descriptor");
+//		return EINVAL;
+//	}
+	
+//	usb_standard_configuration_descriptor_t config_descriptor;
+//	memcpy(&config_descriptor, pos, 
+//	    sizeof(usb_standard_configuration_descriptor_t));
+//	pos += sizeof(usb_standard_configuration_descriptor_t);
+	
+//	// parse other descriptors
+//	while (pos - data < size) {
+//		//uint8_t desc_size = *pos;
+//		uint8_t desc_type = *(pos + 1);
+//		switch (desc_type) {
+//		case USB_DESCTYPE_INTERFACE:
+//			break;
+//		case USB_DESCTYPE_ENDPOINT:
+//			break;
+//		case USB_DESCTYPE_HID:
+//			break;
+//		case USB_DESCTYPE_HID_REPORT:
+//			break;
+//		case USB_DESCTYPE_HID_PHYSICAL:
+//			break;
+//		}
+//	}
+	
+	return EOK;
+}
+
+static int usbkbd_get_descriptors(usb_hid_dev_kbd_t *kbd_dev)
+{
+	// get the first configuration descriptor (TODO: or some other??)
+	usb_standard_configuration_descriptor_t config_desc;
+	
+	int rc = usb_drv_req_get_bare_configuration_descriptor(
+	    kbd_dev->device->parent_phone, kbd_dev->address, 0, &config_desc);
+	
+	if (rc != EOK) {
+		return rc;
+	}
+	
+	// prepare space for all underlying descriptors
+	uint8_t *descriptors = (uint8_t *)malloc(config_desc.total_length);
+	if (descriptors == NULL) {
+		return ENOMEM;
+	}
+	
+	size_t transferred = 0;
+	// get full configuration descriptor
+	rc = usb_drv_req_get_full_configuration_descriptor(
+	    kbd_dev->device->parent_phone, kbd_dev->address, 0, descriptors,
+	    config_desc.total_length, &transferred);
+	
+	if (rc != EOK) {
+		return rc;
+	}
+	if (transferred != config_desc.total_length) {
+		return ELIMIT;
+	}
+	
+	rc = usbkbd_parse_descriptors(kbd_dev, descriptors, transferred);
+	free(descriptors);
+	
+	return rc;
+}
+
+static usb_hid_dev_kbd_t *usbkbd_init_device(device_t *dev)
+{
+	usb_hid_dev_kbd_t *kbd_dev = (usb_hid_dev_kbd_t *)malloc(
+			sizeof(usb_hid_dev_kbd_t));
+
+	if (kbd_dev == NULL) {
+		fprintf(stderr, NAME ": No memory!\n");
+		return NULL;
+	}
+
+	kbd_dev->device = dev;
+
+	// get phone to my HC and save it as my parent's phone
+	// TODO: maybe not a good idea if DDF will use parent_phone
+	kbd_dev->device->parent_phone = usb_drv_hc_connect(dev, 0);
+
+	kbd_dev->address = usb_drv_get_my_address(dev->parent_phone,
+	    dev);
+
+	// doesn't matter now that we have no address
+//	if (kbd_dev->address < 0) {
+//		fprintf(stderr, NAME ": No device address!\n");
+//		free(kbd_dev);
+//		return NULL;
+//	}
+
+	// default endpoint
+	kbd_dev->default_ep = CONTROL_EP;
+	
+	/*
+	 * will need all descriptors:
+	 * 1) choose one configuration from configuration descriptors 
+	 *    (set it to the device)
+	 * 2) set endpoints from endpoint descriptors
+	 */
+
+	// TODO: get descriptors
+	usbkbd_get_descriptors(kbd_dev);
+	// TODO: parse descriptors and save endpoints
+
+	return kbd_dev;
+}
+
+static void usbkbd_process_interrupt_in(usb_hid_dev_kbd_t *kbd_dev,
+                                        uint8_t *buffer, size_t actual_size)
+{
+	/*
+	 * here, the parser will be called, probably with some callbacks
+	 * now only take last 6 bytes and process, i.e. send to kbd
+	 */
+
+	usb_hid_report_in_callbacks_t *callbacks =
+	    (usb_hid_report_in_callbacks_t *)malloc(
+		sizeof(usb_hid_report_in_callbacks_t));
+	callbacks->keyboard = usbkbd_process_keycodes;
+
+	usb_hid_parse_report(kbd_dev->parser, buffer, actual_size, callbacks, 
+	    NULL);
+}
+
+static void usbkbd_poll_keyboard(usb_hid_dev_kbd_t *kbd_dev)
 {
 	int rc;
 	usb_handle_t handle;
-	char buffer[BUFFER_SIZE];
+	uint8_t buffer[BUFFER_SIZE];
 	size_t actual_size;
-	usb_endpoint_t poll_endpoint = 1;
+	//usb_endpoint_t poll_endpoint = 1;
 
-	usb_address_t my_address = usb_drv_get_my_address(dev->parent_phone,
-	    dev);
-	if (my_address < 0) {
-		return;
-	}
+//	usb_address_t my_address = usb_drv_get_my_address(dev->parent_phone,
+//	    dev);
+//	if (my_address < 0) {
+//		return;
+//	}
 
 	usb_target_t poll_target = {
-		.address = my_address,
-		.endpoint = poll_endpoint
+		.address = kbd_dev->address,
+		.endpoint = kbd_dev->default_ep
 	};
 
-	rc = usb_drv_async_interrupt_in(dev->parent_phone, poll_target,
-	    buffer, BUFFER_SIZE, &actual_size, &handle);
-	if (rc != EOK) {
-		return;
+	while (true) {
+		rc = usb_drv_async_interrupt_in(kbd_dev->device->parent_phone,
+		    poll_target, buffer, BUFFER_SIZE, &actual_size, &handle);
+
+		if (rc != EOK) {
+			continue;
+		}
+
+		rc = usb_drv_async_wait_for(handle);
+		if (rc != EOK) {
+			continue;
+		}
+
+		/*
+		 * If the keyboard answered with NAK, it returned no data.
+		 * This implies that no change happened since last query.
+		 */
+		if (actual_size == 0) {
+			continue;
+		}
+
+		/*
+		 * TODO: Process pressed keys.
+		 */
+		usbkbd_process_interrupt_in(kbd_dev, buffer, actual_size);
 	}
 
-	rc = usb_drv_async_wait_for(handle);
-	if (rc != EOK) {
-		return;
-	}
-
-	/*
-	 * If the keyboard answered with NAK, it returned no data.
-	 * This implies that no change happened since last query.
-	 */
-	if (actual_size == 0) {
-		return;
-	}
-
-	/*
-	 * Process pressed keys.
-	 */
+	// not reached
+	assert(0);
 }
 
-static int add_kbd_device(device_t *dev)
+static int usbkbd_fibril_device(void *arg)
+{
+	printf("!!! USB device fibril\n");
+
+	if (arg == NULL) {
+		printf("No device!\n");
+		return -1;
+	}
+
+	device_t *dev = (device_t *)arg;
+
+	// initialize device (get and process descriptors, get address, etc.)
+	usb_hid_dev_kbd_t *kbd_dev = usbkbd_init_device(dev);
+
+	usbkbd_poll_keyboard(kbd_dev);
+
+	return EOK;
+}
+
+static int usbkbd_add_device(device_t *dev)
 {
 	/* For now, fail immediately. */
-	return ENOTSUP;
+	//return ENOTSUP;
 
 	/*
 	 * When everything is okay, connect to "our" HC.
+	 *
+	 * Not supported yet, skip..
 	 */
-	int phone = usb_drv_hc_connect(dev, 0);
-	if (phone < 0) {
-		/*
-		 * Connecting to HC failed, roll-back and announce
-		 * failure.
-		 */
-		return phone;
-	}
+//	int phone = usb_drv_hc_connect(dev, 0);
+//	if (phone < 0) {
+//		/*
+//		 * Connecting to HC failed, roll-back and announce
+//		 * failure.
+//		 */
+//		return phone;
+//	}
 
-	dev->parent_phone = phone;
+//	dev->parent_phone = phone;
 
 	/*
-	 * Just for fun ;-).
+	 * Create new fibril for handling this keyboard
 	 */
-	poll_keyboard(dev);
+	fid_t fid = fibril_create(usbkbd_fibril_device, dev);
+	if (fid == 0) {
+		printf("%s: failed to start fibril for HID device\n", NAME);
+		return ENOMEM;
+	}
+	fibril_add_ready(fid);
 
 	/*
 	 * Hurrah, device is initialized.
@@ -106,11 +294,11 @@ static int add_kbd_device(device_t *dev)
 }
 
 static driver_ops_t kbd_driver_ops = {
-	.add_device = add_kbd_device,
+	.add_device = usbkbd_add_device,
 };
 
 static driver_t kbd_driver = {
-	.name = "usbkbd",
+	.name = NAME,
 	.driver_ops = &kbd_driver_ops
 };
 
