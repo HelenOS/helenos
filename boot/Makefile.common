@@ -112,8 +112,7 @@ RD_DRVS = \
 	root \
 	rootvirt \
 	test1 \
-	test2 \
-	vhc
+	test2
 
 RD_DRV_CFG = 
 

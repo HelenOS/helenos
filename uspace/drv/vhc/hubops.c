@@ -194,9 +194,18 @@ static int get_bus_state(uint16_t portindex)
 	return ENOTSUP;
 }
 
-static int get_hub_descriptor(uint8_t descriptor_type,
-    uint8_t descriptor_index, uint16_t length)
+static int get_hub_descriptor(struct usbvirt_device *dev,
+    uint8_t descriptor_index,
+    uint8_t descriptor_type, uint16_t length)
 {
+	if (descriptor_type == USB_DESCTYPE_HUB) {
+		int rc = dev->control_transfer_reply(dev, 0,
+		    &hub_descriptor, hub_descriptor.length);
+
+		return rc;
+
+	}
+
 	return ENOTSUP;
 }
 
@@ -312,7 +321,7 @@ static int on_class_request(struct usbvirt_device *dev,
 			return get_bus_state(request->index);
 			
 		case USB_HUB_REQUEST_GET_DESCRIPTOR:
-			return get_hub_descriptor(request->value_low,
+			return get_hub_descriptor(dev, request->value_low,
 			    request->value_high, request->length);
 			
 		case USB_HUB_REQUEST_GET_STATUS:
