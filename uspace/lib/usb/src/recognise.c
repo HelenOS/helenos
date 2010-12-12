@@ -173,20 +173,66 @@ int usb_drv_create_device_match_ids(int hc, match_id_list_t *matches,
 	return EOK;
 }
 
-#if 0
+
 /** Probe for device kind and register it in devman.
  *
  * @param hc Open phone to the host controller.
- * @param dev Parent device.
+ * @param parent Parent device.
  * @param address Address of the (unknown) attached device.
  * @return Error code.
  */
-int usb_drv_register_child_in_devman(int hc, device_t *dev,
-    usb_address_t address)
+int usb_drv_register_child_in_devman(int hc, device_t *parent,
+    usb_address_t address, devman_handle_t *child_handle)
 {
+	device_t *child = NULL;
+	char *child_name = NULL;
+	int rc;
+
+	child = create_device();
+	if (child == NULL) {
+		rc = ENOMEM;
+		goto failure;
+	}
+
+	/*
+	 * TODO: some better child naming
+	 */
+	rc = asprintf(&child_name, "usb%p", child);
+	if (rc < 0) {
+		goto failure;
+	}
+	child->name = child_name;
+	
+	rc = usb_drv_create_device_match_ids(hc, &child->match_ids, address);
+	if (rc != EOK) {
+		goto failure;
+	}
+
+	rc = child_device_register(child, parent);
+	if (rc != EOK) {
+		goto failure;
+	}
+
+	if (child_handle != NULL) {
+		*child_handle = child->handle;
+	}
+	
+	return EOK;
+
+failure:
+	if (child != NULL) {
+		child->name = NULL;
+		/* This takes care of match_id deallocation as well. */
+		delete_device(child);
+	}
+	if (child_name != NULL) {
+		free(child_name);
+	}
+
+	return rc;
 
 }
-#endif
+
 
 /**
  * @}
