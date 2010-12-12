@@ -68,6 +68,19 @@ void dump_buffer(const char *msg, const uint8_t *buffer, size_t length)
 	}
 }
 
+void dump_match_ids(match_id_list_t *matches)
+{
+	printf("Match ids:\n");
+	link_t *link;
+	for (link = matches->ids.next;
+	    link != &matches->ids;
+	    link = link->next) {
+		match_id_t *match = list_get_instance(link, match_id_t, link);
+
+		printf(INDENT "%d %s\n", match->score, match->id);
+	}
+}
+
 void dump_standard_device_descriptor(usb_standard_device_descriptor_t *d)
 {
 	printf("Standard device descriptor:\n");
