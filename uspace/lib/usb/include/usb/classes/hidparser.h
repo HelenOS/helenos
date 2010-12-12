@@ -53,10 +53,10 @@ typedef struct {
 } usb_hid_report_in_callbacks_t;
 
 int usb_hid_parse_report_descriptor(usb_hid_report_parser_t *parser, 
-    const uint8_t *data);
+    const uint8_t *data, size_t size);
 
 int usb_hid_parse_report(const usb_hid_report_parser_t *parser,  
-    const uint8_t *data,
+    const uint8_t *data, size_t size,
     const usb_hid_report_in_callbacks_t *callbacks, void *arg);
 
 #endif
