@@ -30,38 +30,63 @@
  * @{
  */
 /** @file
- * @brief USB device classes and subclasses.
+ * @brief Class related functions.
  */
-#ifndef LIBUSB_CLASSES_H_
-#define LIBUSB_CLASSES_H_
+#include <usb/classes/classes.h>
+#include <errno.h>
 
-/** USB device class. */
-typedef enum {
-	USB_CLASS_USE_INTERFACE = 0x00,
-	USB_CLASS_AUDIO = 0x01,
-	USB_CLASS_COMMUNICATIONS_CDC_CONTROL = 0x02,
-	USB_CLASS_HID = 0x03,
-	USB_CLASS_PHYSICAL = 0x05,
-	USB_CLASS_IMAGE = 0x06,
-	USB_CLASS_PRINTER = 0x07,
-	USB_CLASS_MASS_STORAGE = 0x08,
-	USB_CLASS_HUB = 0x09,
-	USB_CLASS_CDC_DATA = 0x0A,
-	USB_CLASS_SMART_CARD = 0x0B,
-	USB_CLASS_CONTENT_SECURITY = 0x0D,
-	USB_CLASS_VIDEO = 0x0E,
-	USB_CLASS_PERSONAL_HEALTHCARE = 0x0F,
-	USB_CLASS_DIAGNOSTIC = 0xDC,
-	USB_CLASS_WIRELESS_CONTROLLER = 0xE0,
-	USB_CLASS_MISCELLANEOUS = 0xEF,
-	USB_CLASS_APPLICATION_SPECIFIC = 0xFE,
-	USB_CLASS_VENDOR_SPECIFIC = 0xFF,
-	/* USB_CLASS_ = 0x, */
-} usb_class_t;
+/** Tell string representation of USB class.
+ *
+ * @param cls Class code.
+ * @return String representation.
+ */
+const char *usb_str_class(usb_class_t cls)
+{
+	switch (cls) {
+		case USB_CLASS_USE_INTERFACE:
+			return "use-interface";
+		case USB_CLASS_AUDIO:
+			return "audio";
+		case USB_CLASS_COMMUNICATIONS_CDC_CONTROL:
+			return "communications";
+		case USB_CLASS_HID:
+			return "HID";
+		case USB_CLASS_PHYSICAL:
+			return "physical";
+		case USB_CLASS_IMAGE:
+			return "image";
+		case USB_CLASS_PRINTER:
+			return "printer";
+		case USB_CLASS_MASS_STORAGE:
+			return "mass-storage";
+		case USB_CLASS_HUB:
+			return "hub";
+		case USB_CLASS_CDC_DATA:
+			return "CDC";
+		case USB_CLASS_SMART_CARD:
+			return "smart-card";
+		case USB_CLASS_CONTENT_SECURITY:
+			return "security";
+		case USB_CLASS_VIDEO:
+			return "video";
+		case USB_CLASS_PERSONAL_HEALTHCARE:
+			return "healthcare";
+		case USB_CLASS_DIAGNOSTIC:
+			return "diagnostic";
+		case USB_CLASS_WIRELESS_CONTROLLER:
+			return "wireless";
+		case USB_CLASS_MISCELLANEOUS:
+			return "misc";
+		case USB_CLASS_APPLICATION_SPECIFIC:
+			return "application";
+		case USB_CLASS_VENDOR_SPECIFIC:
+			return "vendor";
+		default:
+			return "unknown";
+	}
+}
 
-const char *usb_str_class(usb_class_t);
 
-#endif
 /**
  * @}
  */
