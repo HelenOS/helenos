@@ -222,8 +222,10 @@ int main(int argc, char * argv[])
 	}
 	
 	printf("%s: Simulating keyboard events...\n", NAME);
-	kb_process_events(&status, keyboard_events, keyboard_events_count,
-	    on_keyboard_change);
+	while(1){
+		kb_process_events(&status, keyboard_events, keyboard_events_count,
+			on_keyboard_change);
+	}
 	
 	printf("%s: Terminating...\n", NAME);
 	
