@@ -120,6 +120,7 @@ typedef enum {
 /** Hub port information. */
 typedef struct {
 	virtdev_connection_t *device;
+	int index;
 	hub_port_state_t state;
 	uint16_t status_change;
 } hub_port_t;
