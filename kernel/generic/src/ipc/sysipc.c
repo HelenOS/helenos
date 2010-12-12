@@ -643,17 +643,17 @@ unative_t sys_ipc_call_sync_slow(unative_t phoneid, ipc_data_t *question,
 	return 0;
 }
 
-/** Check that the task did not exceed the allowed limit of asynchronous calls.
+/** Check that the task did not exceed the allowed limit of asynchronous calls
+ * made over a phone.
  *
+ * @param phone Phone to check the limit against. 
  * @return 0 if limit not reached or -1 if limit exceeded.
  *
  */
-static int check_call_limit(void)
+static int check_call_limit(phone_t *phone)
 {
-	if (atomic_preinc(&TASK->active_calls) > IPC_MAX_ASYNC_CALLS) {
-		atomic_dec(&TASK->active_calls);
+	if (atomic_get(&phone->active_calls) >= IPC_MAX_ASYNC_CALLS)
 		return -1;
-	}
 	
 	return 0;
 }
@@ -679,12 +679,12 @@ static int check_call_limit(void)
 unative_t sys_ipc_call_async_fast(unative_t phoneid, unative_t method,
     unative_t arg1, unative_t arg2, unative_t arg3, unative_t arg4)
 {
-	if (check_call_limit())
-		return IPC_CALLRET_TEMPORARY;
-	
 	phone_t *phone;
 	if (phone_get(phoneid, &phone) != EOK)
 		return IPC_CALLRET_FATAL;
+
+	if (check_call_limit(phone))
+		return IPC_CALLRET_TEMPORARY;
 	
 	call_t *call = ipc_call_alloc(0);
 	IPC_SET_METHOD(call->data, method);
@@ -719,12 +719,12 @@ unative_t sys_ipc_call_async_fast(unative_t phoneid, unative_t method,
  */
 unative_t sys_ipc_call_async_slow(unative_t phoneid, ipc_data_t *data)
 {
-	if (check_call_limit())
-		return IPC_CALLRET_TEMPORARY;
-	
 	phone_t *phone;
 	if (phone_get(phoneid, &phone) != EOK)
 		return IPC_CALLRET_FATAL;
+
+	if (check_call_limit(phone))
+		return IPC_CALLRET_TEMPORARY;
 
 	call_t *call = ipc_call_alloc(0);
 	int rc = copy_from_uspace(&call->data.args, &data->args,
@@ -1045,13 +1045,6 @@ restart:
 		if (call->flags & IPC_CALL_DISCARD_ANSWER) {
 			ipc_call_free(call);
 			goto restart;
-		} else {
-			/*
-			 * Decrement the counter of active calls only if the
-			 * call is not an answer to IPC_M_PHONE_HUNGUP,
-			 * which doesn't contribute to the counter.
-			 */
-			atomic_dec(&TASK->active_calls);
 		}
 		
 		STRUCT_TO_USPACE(&calldata->args, &call->data.args);

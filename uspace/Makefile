@@ -89,8 +89,7 @@ DIRS = \
 	drv/root \
 	drv/rootvirt \
 	drv/test1 \
-	drv/test2 \
-	drv/vhc
+	drv/test2
 
 ## Networking
 #
@@ -117,6 +116,10 @@ ifeq ($(UARCH),amd64)
 	DIRS += drv/pciintel
 	DIRS += drv/isa
 	DIRS += drv/ns8250
+	DIRS += drv/uhci
+	DIRS += drv/usbhub
+	DIRS += drv/usbkbd
+	DIRS += drv/vhc
 endif
 
 ifeq ($(UARCH),ia32)
@@ -127,6 +130,7 @@ ifeq ($(UARCH),ia32)
 	DIRS += drv/uhci
 	DIRS += drv/usbhub
 	DIRS += drv/usbkbd
+	DIRS += drv/vhc
 endif
 
 ifeq ($(UARCH),ppc32)
