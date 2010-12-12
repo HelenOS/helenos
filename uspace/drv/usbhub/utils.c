@@ -47,8 +47,6 @@
 #include "port_status.h"
 
 
-static void check_hub_changes(void);
-
 size_t USB_HUB_MAX_DESCRIPTOR_SIZE = 71;
 
 //*********************************************
@@ -364,11 +362,6 @@ usb_hub_info_t * usb_create_hub_info(device_t * device, int hc) {
 	return result;
 }
 
-/** Callback when new hub device is detected.
- *
- * @param dev New device.
- * @return Error code.
- */
 int usb_add_hub_device(device_t *dev) {
 	printf(NAME ": add_hub_device(handle=%d)\n", (int) dev->handle);
 	printf("[usb_hub] hub device\n");
@@ -406,7 +399,7 @@ int usb_add_hub_device(device_t *dev) {
 	usb_lst_append(&usb_hub_list, hub_info);
 	printf("[usb_hub] hub info added to list\n");
 	//(void)hub_info;
-	check_hub_changes();
+	usb_hub_check_hub_changes();
 
 	/// \TODO start the check loop, if not already started...
 
@@ -414,6 +407,9 @@ int usb_add_hub_device(device_t *dev) {
 	usb_hub_test_port_status();
 
 	printf("[usb_hub] hub dev added\n");
+	printf("\taddress %d, has %d ports \n",
+			hub_info->usb_device->address,
+			hub_info->port_count);
 
 	return EOK;
 	//return ENOTSUP;
@@ -460,7 +456,7 @@ static void usb_hub_init_add_device(int hc, uint16_t port, usb_target_t target) 
  * @param port
  * @param target
  */
-static void usb_hub_finalize_add_device(
+static void usb_hub_finalize_add_device( usb_hub_info_t * hub,
 		int hc, uint16_t port, usb_target_t target) {
 
 	usb_device_request_setup_packet_t request;
@@ -483,21 +479,16 @@ static void usb_hub_finalize_add_device(
 
 
 	usb_drv_release_default_address(hc);
-	/*
-	 devman_handle_t dev_handle;
-	rc = child_device_register_wrapper(hub_dev, "dev",
-	 *	match_id, match_score, &dev_handle);
-	if (rc != EOK) {
-		free(id);
+
+	devman_handle_t child_handle;
+	opResult = usb_drv_register_child_in_devman(hc, hub->device,
+        new_device_address, &child_handle);
+	if (opResult != EOK) {
+		printf("[usb_hub] could not start driver for new device \n");
+		return;
 	}
-	 *
-	 */
-
-
-	/// \TODO driver work
-	//add_child_device.....
-	//opResult = usb_drv_bind_address(hc, new_device_address,
-    //devman_handle_t handle);...
+	usb_drv_bind_address(hc, new_device_address, child_handle);
+	
 }
 
 /**
@@ -533,7 +524,7 @@ static void usb_hub_removed_device(int hc, uint16_t port, usb_target_t target) {
  * @param port
  * @param target
  */
-static void usb_hub_process_interrupt(int hc, uint16_t port, usb_target_t target) {
+static void usb_hub_process_interrupt(usb_hub_info_t * hub, int hc, uint16_t port, usb_target_t target) {
 	printf("[usb_hub] interrupt at port %d\n", port);
 	//determine type of change
 	usb_port_status_t status;
@@ -568,7 +559,7 @@ static void usb_hub_process_interrupt(int hc, uint16_t port, usb_target_t target
 	if (usb_port_reset_completed(&status)) {
 		printf("[usb_hub] finalizing add device\n");
 		if (usb_port_enabled(&status)) {
-			usb_hub_finalize_add_device(hc, port, target);
+			usb_hub_finalize_add_device(hub, hc, port, target);
 		} else {
 			printf("[usb_hub] ERROR: port reset, but port still not enabled\n");
 		}
@@ -599,7 +590,7 @@ static void usb_hub_process_interrupt(int hc, uint16_t port, usb_target_t target
 
 /** Check changes on all known hubs.
  */
-static void check_hub_changes(void) {
+void usb_hub_check_hub_changes(void) {
 	/*
 	 * Iterate through all hubs.
 	 */
@@ -651,7 +642,7 @@ static void check_hub_changes(void) {
 		for (port = 0; port < port_count; ++port) {
 			bool interrupt = (((uint8_t*) change_bitmap)[port / 8] >> (port % 8)) % 2;
 			if (interrupt) {
-				usb_hub_process_interrupt(hc, port, target);
+				usb_hub_process_interrupt(hub_info, hc, port, target);
 			}
 		}
 
