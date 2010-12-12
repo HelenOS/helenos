@@ -109,7 +109,7 @@ int main(int argc, char * argv[])
 {	
 	printf("%s: virtual USB host controller driver.\n", NAME);
 
-	usb_dprintf_enable(NAME, 10);
+	usb_dprintf_enable(NAME, 1);
 
 	fid_t fid = fibril_create(hc_manager_fibril, NULL);
 	if (fid == 0) {

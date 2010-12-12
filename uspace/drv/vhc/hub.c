@@ -143,7 +143,7 @@ usbvirt_descriptors_t descriptors = {
 usbvirt_device_t virthub_dev = {
 	.ops = &hub_ops,
 	.descriptors = &descriptors,
-	.lib_debug_level = 4,
+	.lib_debug_level = 1,
 	.lib_debug_enabled_tags = USBVIRT_DEBUGTAG_ALL
 };
 
@@ -176,9 +176,11 @@ static usb_address_t hub_set_address(usbvirt_device_t *hub)
 void hub_init(device_t *hc_dev)
 {
 	size_t i;
+	
 	for (i = 0; i < HUB_PORT_COUNT; i++) {
 		hub_port_t *port = &hub_dev.ports[i];
 		
+		port->index = (int) i;
 		port->device = NULL;
 		port->state = HUB_PORT_STATE_NOT_CONFIGURED;
 		port->status_change = 0;

@@ -49,7 +49,7 @@
 #include "devices.h"
 #include "hub.h"
 
-#define USLEEP_BASE (500 * 1000)
+#define USLEEP_BASE (0 * 500 * 1000)
 
 #define USLEEP_VAR 5000
 
@@ -115,7 +115,7 @@ void hc_manager(void)
 		
 		char ports[HUB_PORT_COUNT + 2];
 		hub_get_port_statuses(ports, HUB_PORT_COUNT + 1);
-		dprintf(3, "virtual hub: addr=%d ports=%s",
+		dprintf(0, "virtual hub: addr=%d ports=%s",
 		    virthub_dev.address, ports);
 		
 		link_t *first_transaction_link = transaction_list.next;
