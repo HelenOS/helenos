@@ -61,7 +61,17 @@ int usb_hid_parse_report(const usb_hid_report_parser_t *parser,
     const uint8_t *data,
     const usb_hid_report_in_callbacks_t *callbacks, void *arg)
 {
-	return ENOTSUP;
+	int i;
+	
+	// TODO: parse report
+	
+	uint16_t keys[6];
+	
+	for (i = 0; i < 6; ++i) {
+		keys[i] = data[i];
+	}
+	
+	callbacks->keyboard(keys, 6, arg);
 }
 
 
