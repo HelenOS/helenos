@@ -33,6 +33,7 @@
 #include <usb/classes/hid.h>
 #include <usb/classes/hidparser.h>
 #include <usb/devreq.h>
+#include <usb/descriptor.h>
 
 #define BUFFER_SIZE 32
 #define NAME "usbkbd"
@@ -51,35 +52,79 @@ static void usbkbd_process_keycodes(const uint16_t *key_codes, size_t count,
 /*
  * Kbd functions
  */
-static int usbkbd_get_descriptors()
+static int usbkbd_parse_descriptors(usb_hid_dev_kbd_t *kbd_dev,
+                                    const uint8_t *data, size_t size)
 {
-	// copy-pasted:
+//	const uint8_t *pos = data;
 	
-	/* Prepare the setup packet. */
-	usb_device_request_setup_packet_t setup_packet = {
-		.request_type = 128,
-		.request = USB_DEVREQ_GET_DESCRIPTOR,
-		.index = 0,
-		.length = sizeof(usb_standard_device_descriptor_t)
-	};
+//	// get the configuration descriptor (should be first)
+//	if (*pos != sizeof(usb_standard_configuration_descriptor_t)
+//	    || *(pos + 1) != USB_DESCTYPE_CONFIGURATION) {
+//		fprintf(stderr, "Wrong format of configuration descriptor");
+//		return EINVAL;
+//	}
 	
-	setup_packet.value_high = USB_DESCTYPE_DEVICE;
-	setup_packet.value_low = 0;
+//	usb_standard_configuration_descriptor_t config_descriptor;
+//	memcpy(&config_descriptor, pos, 
+//	    sizeof(usb_standard_configuration_descriptor_t));
+//	pos += sizeof(usb_standard_configuration_descriptor_t);
+	
+//	// parse other descriptors
+//	while (pos - data < size) {
+//		//uint8_t desc_size = *pos;
+//		uint8_t desc_type = *(pos + 1);
+//		switch (desc_type) {
+//		case USB_DESCTYPE_INTERFACE:
+//			break;
+//		case USB_DESCTYPE_ENDPOINT:
+//			break;
+//		case USB_DESCTYPE_HID:
+//			break;
+//		case USB_DESCTYPE_HID_REPORT:
+//			break;
+//		case USB_DESCTYPE_HID_PHYSICAL:
+//			break;
+//		}
+//	}
+	
+	return EOK;
+}
 
-	/* Prepare local descriptor. */
-	size_t actually_transferred = 0;
-	usb_standard_device_descriptor_t descriptor_tmp;
-
-	/* Perform the control read transaction. */
-	int rc = usb_drv_psync_control_read(phone, target,
-	    &setup_packet, sizeof(setup_packet),
-	    &descriptor_tmp, sizeof(descriptor_tmp), &actually_transferred);
-
+static int usbkbd_get_descriptors(usb_hid_dev_kbd_t *kbd_dev)
+{
+	// get the first configuration descriptor (TODO: or some other??)
+	usb_standard_configuration_descriptor_t config_desc;
+	
+	int rc = usb_drv_req_get_bare_configuration_descriptor(
+	    kbd_dev->device->parent_phone, kbd_dev->address, 0, &config_desc);
+	
 	if (rc != EOK) {
 		return rc;
 	}
 	
-	// end of copy-paste
+	// prepare space for all underlying descriptors
+	uint8_t *descriptors = (uint8_t *)malloc(config_desc.total_length);
+	if (descriptors == NULL) {
+		return ENOMEM;
+	}
+	
+	size_t transferred = 0;
+	// get full configuration descriptor
+	rc = usb_drv_req_get_full_configuration_descriptor(
+	    kbd_dev->device->parent_phone, kbd_dev->address, 0, descriptors,
+	    config_desc.total_length, &transferred);
+	
+	if (rc != EOK) {
+		return rc;
+	}
+	if (transferred != config_desc.total_length) {
+		return ELIMIT;
+	}
+	
+	rc = usbkbd_parse_descriptors(kbd_dev, descriptors, transferred);
+	free(descriptors);
+	
+	return rc;
 }
 
 static usb_hid_dev_kbd_t *usbkbd_init_device(device_t *dev)
@@ -110,9 +155,16 @@ static usb_hid_dev_kbd_t *usbkbd_init_device(device_t *dev)
 
 	// default endpoint
 	kbd_dev->default_ep = CONTROL_EP;
+	
+	/*
+	 * will need all descriptors:
+	 * 1) choose one configuration from configuration descriptors 
+	 *    (set it to the device)
+	 * 2) set endpoints from endpoint descriptors
+	 */
 
 	// TODO: get descriptors
-	usbkbd_get_descriptors();
+	usbkbd_get_descriptors(kbd_dev);
 	// TODO: parse descriptors and save endpoints
 
 	return kbd_dev;
@@ -131,7 +183,8 @@ static void usbkbd_process_interrupt_in(usb_hid_dev_kbd_t *kbd_dev,
 		sizeof(usb_hid_report_in_callbacks_t));
 	callbacks->keyboard = usbkbd_process_keycodes;
 
-	usb_hid_parse_report(kbd_dev->parser, buffer, callbacks, NULL);
+	usb_hid_parse_report(kbd_dev->parser, buffer, actual_size, callbacks, 
+	    NULL);
 }
 
 static void usbkbd_poll_keyboard(usb_hid_dev_kbd_t *kbd_dev)
