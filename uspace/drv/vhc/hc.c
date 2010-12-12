@@ -152,7 +152,7 @@ static transaction_t *transaction_create(usbvirt_transaction_type_t type,
 	transaction->callback = callback;
 	transaction->callback_arg = arg;
 	
-	dprintf(1, "creating transaction " TRANSACTION_FORMAT,
+	dprintf(3, "creating transaction " TRANSACTION_FORMAT,
 	    TRANSACTION_PRINTF(*transaction));
 	
 	return transaction;
