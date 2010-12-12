@@ -161,7 +161,7 @@ int usb_drv_req_get_bare_configuration_descriptor(int phone,
 		.request_type = 128,
 		.request = USB_DEVREQ_GET_DESCRIPTOR,
 		.index = 0,
-		.length = sizeof(usb_standard_device_descriptor_t)
+		.length = sizeof(usb_standard_configuration_descriptor_t)
 	};
 	setup_packet.value_high = USB_DESCTYPE_CONFIGURATION;
 	setup_packet.value_low = index;
@@ -224,7 +224,7 @@ int usb_drv_req_get_full_configuration_descriptor(int phone,
 		.request_type = 128,
 		.request = USB_DEVREQ_GET_DESCRIPTOR,
 		.index = 0,
-		.length = sizeof(usb_standard_device_descriptor_t)
+		.length = buffer_size
 	};
 	setup_packet.value_high = USB_DESCTYPE_CONFIGURATION;
 	setup_packet.value_low = index;
