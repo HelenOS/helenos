@@ -60,23 +60,13 @@ static int on_get_descriptor(struct usbvirt_device *dev,
     usb_device_request_setup_packet_t *request, uint8_t *data);
 static int on_set_configuration(struct usbvirt_device *dev,
     usb_device_request_setup_packet_t *request, uint8_t *data);
-static int on_class_request(struct usbvirt_device *dev,
-    usb_device_request_setup_packet_t *request, uint8_t *data);
 static int on_data_request(struct usbvirt_device *dev,
     usb_endpoint_t endpoint,
     void *buffer, size_t size, size_t *actual_size);
 static void set_port_state(hub_port_t *, hub_port_state_t);
 static void clear_port_status_change_nl(hub_port_t *, uint16_t);
 static void set_port_state_nl(hub_port_t *, hub_port_state_t);
-
-/** Hub operations. */
-usbvirt_device_ops_t hub_ops = {
-	.on_standard_request[USB_DEVREQ_GET_DESCRIPTOR] = on_get_descriptor,
-	.on_standard_request[USB_DEVREQ_SET_CONFIGURATION] = on_set_configuration,
-	.on_class_device_request = on_class_request,
-	.on_data = NULL,
-	.on_data_request = on_data_request
-};
+static int get_port_status(uint16_t portindex);
 
 /** Callback for GET_DESCRIPTOR request. */
 static int on_get_descriptor(struct usbvirt_device *dev,
@@ -299,7 +289,7 @@ static int get_hub_status(void)
 	    &hub_status, 4);
 }
 
-static int get_port_status(uint16_t portindex)
+int get_port_status(uint16_t portindex)
 {
 	_GET_PORT(port, portindex);
 	
@@ -383,70 +373,6 @@ static int set_port_feature(uint16_t feature, uint16_t portindex)
 #undef _GET_PORT
 
 
-/** Callback for class request. */
-static int on_class_request(struct usbvirt_device *dev,
-    usb_device_request_setup_packet_t *request, uint8_t *data)
-{	
-	dprintf(2, "hub class request (%d)", (int) request->request);
-	
-	uint8_t recipient = request->request_type & 31;
-	uint8_t direction = request->request_type >> 7;
-	
-#define _VERIFY(cond) \
-	do { \
-		if (!(cond)) { \
-			dprintf(0, "WARN: invalid class request (%s not met).\n", \
-			    NAME, #cond); \
-			return EINVAL; \
-		} \
-	} while (0)
-	
-	switch (request->request) {
-		case USB_HUB_REQUEST_CLEAR_FEATURE:
-			_VERIFY(direction == 0);
-			_VERIFY(request->length == 0);
-			if (recipient == 0) {
-				_VERIFY(request->index == 0);
-				return clear_hub_feature(request->value);
-			} else {
-				_VERIFY(recipient == 3);
-				return clear_port_feature(request->value,
-				    request->index);
-			}
-			
-		case USB_HUB_REQUEST_GET_STATE:
-			return get_bus_state(request->index);
-			
-		case USB_HUB_REQUEST_GET_DESCRIPTOR:
-			return get_hub_descriptor(dev, request->value_low,
-			    request->value_high, request->length);
-			
-		case USB_HUB_REQUEST_GET_STATUS:
-			if (recipient == 0) {
-				return get_hub_status();
-			} else {
-				return get_port_status(request->index);
-			}
-			
-		case USB_HUB_REQUEST_SET_FEATURE:
-			if (recipient == 0) {
-				return set_hub_feature(request->value);
-			} else {
-				return set_port_feature(request->value, request->index);
-			}
-			
-		default:
-			dprintf(0, "WARN: unknown request (%d)!\n",
-			    request->request);
-			break;
-	}
-	
-#undef _VERIFY	
-
-
-	return EOK;
-}
-
 void clear_port_status_change_nl(hub_port_t *port, uint16_t change)
 {
 	port->status_change &= (~change);
@@ -507,6 +433,147 @@ static int on_data_request(struct usbvirt_device *dev,
 	return EOK;
 }
 
+
+
+static int req_clear_hub_feature(usbvirt_device_t *dev,
+    usb_device_request_setup_packet_t *request,
+    uint8_t *data)
+{
+	return clear_hub_feature(request->value);
+}
+
+static int req_clear_port_feature(usbvirt_device_t *dev,
+    usb_device_request_setup_packet_t *request,
+    uint8_t *data)
+{
+	return clear_port_feature(request->value, request->index);
+}
+
+static int req_get_bus_state(usbvirt_device_t *dev,
+    usb_device_request_setup_packet_t *request,
+    uint8_t *data)
+{
+	return get_bus_state(request->index);
+}
+
+static int req_get_hub_descriptor(usbvirt_device_t *dev,
+    usb_device_request_setup_packet_t *request,
+    uint8_t *data)
+{
+	return get_hub_descriptor(dev, request->value_low,
+	    request->value_high, request->length);
+}
+
+static int req_get_hub_status(usbvirt_device_t *dev,
+    usb_device_request_setup_packet_t *request,
+    uint8_t *data)
+{
+	return get_hub_status();
+}
+
+static int req_get_port_status(usbvirt_device_t *dev,
+    usb_device_request_setup_packet_t *request,
+    uint8_t *data)
+{
+	return get_port_status(request->index);
+}
+
+static int req_set_hub_feature(usbvirt_device_t *dev,
+    usb_device_request_setup_packet_t *request,
+    uint8_t *data)
+{
+	return set_hub_feature(request->value);
+}
+
+static int req_set_port_feature(usbvirt_device_t *dev,
+    usb_device_request_setup_packet_t *request,
+    uint8_t *data)
+{
+	return set_port_feature(request->value, request->index);
+}
+
+#define CLASS_REQ_IN(recipient) \
+	USBVIRT_MAKE_CONTROL_REQUEST_TYPE(USB_DIRECTION_IN, \
+	USBVIRT_REQUEST_TYPE_CLASS, recipient)
+#define CLASS_REQ_OUT(recipient) \
+	USBVIRT_MAKE_CONTROL_REQUEST_TYPE(USB_DIRECTION_OUT, \
+	USBVIRT_REQUEST_TYPE_CLASS, recipient)
+
+#define REC_OTHER USBVIRT_REQUEST_RECIPIENT_OTHER
+#define REC_DEVICE USBVIRT_REQUEST_RECIPIENT_DEVICE
+#define DIR_IN USB_DIRECTION_IN
+#define DIR_OUT USB_DIRECTION_OUT
+
+#define CLASS_REQ(direction, recipient, req) \
+	.request_type = USBVIRT_MAKE_CONTROL_REQUEST_TYPE(direction, \
+	    USBVIRT_REQUEST_TYPE_CLASS, recipient), \
+	.request = req
+
+#define STD_REQ(direction, recipient, req) \
+	.request_type = USBVIRT_MAKE_CONTROL_REQUEST_TYPE(direction, \
+	    USBVIRT_REQUEST_TYPE_STANDARD, recipient), \
+	.request = req
+
+/** Hub operations on control endpoint zero. */
+static usbvirt_control_transfer_handler_t endpoint_zero_handlers[] = {
+	{
+		STD_REQ(DIR_OUT, REC_DEVICE, USB_DEVREQ_SET_CONFIGURATION),
+		.callback = on_set_configuration
+	},
+	{
+		STD_REQ(DIR_IN, REC_DEVICE, USB_DEVREQ_GET_DESCRIPTOR),
+		.callback = on_get_descriptor
+	},
+	{
+		CLASS_REQ(DIR_IN, REC_DEVICE, USB_DEVREQ_GET_DESCRIPTOR),
+		.callback = on_get_descriptor
+	},
+	{
+		CLASS_REQ(DIR_IN, REC_OTHER, USB_HUB_REQUEST_GET_STATUS),
+		.callback = req_get_port_status
+	},
+	{
+		CLASS_REQ(DIR_OUT, REC_DEVICE, USB_HUB_REQUEST_CLEAR_FEATURE),
+		.callback = req_clear_hub_feature
+	},
+	{
+		CLASS_REQ(DIR_OUT, REC_OTHER, USB_HUB_REQUEST_CLEAR_FEATURE),
+		.callback = req_clear_port_feature
+	},
+	{
+		CLASS_REQ(DIR_IN, REC_OTHER, USB_HUB_REQUEST_GET_STATE),
+		.callback = req_get_bus_state
+	},
+	{
+		CLASS_REQ(DIR_IN, REC_DEVICE, USB_HUB_REQUEST_GET_DESCRIPTOR),
+		.callback = req_get_hub_descriptor
+	},
+	{
+		CLASS_REQ(DIR_IN, REC_DEVICE, USB_HUB_REQUEST_GET_STATUS),
+		.callback = req_get_hub_status
+	},
+	{
+		CLASS_REQ(DIR_IN, REC_OTHER, USB_HUB_REQUEST_GET_STATUS),
+		.callback = req_get_port_status
+	},
+	{
+		CLASS_REQ(DIR_OUT, REC_DEVICE, USB_HUB_REQUEST_SET_FEATURE),
+		.callback = req_set_hub_feature
+	},
+	{
+		CLASS_REQ(DIR_OUT, REC_OTHER, USB_HUB_REQUEST_SET_FEATURE),
+		.callback = req_set_port_feature
+	},
+	USBVIRT_CONTROL_TRANSFER_HANDLER_LAST
+};
+
+
+/** Hub operations. */
+usbvirt_device_ops_t hub_ops = {
+	.control_transfer_handlers = endpoint_zero_handlers,
+	.on_data = NULL,
+	.on_data_request = on_data_request
+};
 
 /**
  * @}

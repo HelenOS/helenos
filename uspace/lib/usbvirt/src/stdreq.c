@@ -39,10 +39,6 @@
 
 #include "private.h"
 
-
-typedef int (*usbvirt_stdreq_handler_t)(usbvirt_device_t *,
-usb_device_request_setup_packet_t *, uint8_t *);
-
 /*
  * All sub handlers must return EFORWARD to inform the caller that
  * they were not able to process the request (yes, it is abuse of
@@ -176,44 +172,31 @@ static int handle_set_configuration(usbvirt_device_t *device,
 	return EOK;
 }
 
-static usbvirt_stdreq_handler_t local_handlers[USB_DEVREQ_LAST_STD] = {
-	[USB_DEVREQ_GET_DESCRIPTOR] = handle_get_descriptor,
-	[USB_DEVREQ_SET_ADDRESS] = handle_set_address,
-	[USB_DEVREQ_SET_CONFIGURATION] = handle_set_configuration
+
+#define MAKE_BM_REQUEST(direction, recipient) \
+	USBVIRT_MAKE_CONTROL_REQUEST_TYPE(direction, \
+	    USBVIRT_REQUEST_TYPE_STANDARD, recipient)
+#define MAKE_BM_REQUEST_DEV(direction) \
+	MAKE_BM_REQUEST(direction, USBVIRT_REQUEST_RECIPIENT_DEVICE)
+
+usbvirt_control_transfer_handler_t control_pipe_zero_local_handlers[] = {
+	{
+		.request_type = MAKE_BM_REQUEST_DEV(USB_DIRECTION_IN),
+		.request = USB_DEVREQ_GET_DESCRIPTOR,
+		.callback = handle_get_descriptor
+	},
+	{
+		.request_type = MAKE_BM_REQUEST_DEV(USB_DIRECTION_OUT),
+		.request = USB_DEVREQ_SET_ADDRESS,
+		.callback = handle_set_address
+	},
+	{
+		.request_type = MAKE_BM_REQUEST_DEV(USB_DIRECTION_OUT),
+		.request = USB_DEVREQ_SET_CONFIGURATION,
+		.callback = handle_set_configuration
+	},
+	USBVIRT_CONTROL_TRANSFER_HANDLER_LAST
 };
-
-/** Handle standard device request. */
-int handle_std_request(usbvirt_device_t *device,
-    usb_device_request_setup_packet_t *request_packet, uint8_t *data)
-{
-	int request = request_packet->request;
-
-	device->lib_debug(device, 3, USBVIRT_DEBUGTAG_CONTROL_PIPE_ZERO,
-	    "handling standard request %d", request);
-
-	if (request >= USB_DEVREQ_LAST_STD) {
-		return ENOTSUP;
-	}
-	
-	int rc = EFORWARD;
-	if ((device->ops)
-	    && (device->ops->on_standard_request[request])) {
-		rc = device->ops->on_standard_request[request](device,
-		    request_packet, data);
-	}
-
-	if (rc == EFORWARD) {
-		if (local_handlers[request]) {
-			rc = local_handlers[request](device,
-			    request_packet, data);
-		} else {
-			rc = ENOTSUP;
-		}
-	}
-
-	assert(rc != EFORWARD);
-	return rc;
-}
 
 /**
  * @}

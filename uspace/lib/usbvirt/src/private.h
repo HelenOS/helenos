@@ -86,6 +86,8 @@ static inline const char *str_device_state(usbvirt_device_state_t state)
 	}
 }
 
+extern usbvirt_control_transfer_handler_t control_pipe_zero_local_handlers[];
+
 #endif
 /**
  * @}

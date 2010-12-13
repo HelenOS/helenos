@@ -36,34 +36,46 @@
 
 #include "private.h"
 
-#define REQUEST_TYPE_STANDARD 0 
-#define REQUEST_TYPE_CLASS 1
-
-#define GET_MIDBITS_MASK(size, shift) \
-	(((1 << size) - 1) << shift)
-#define GET_MIDBITS(value, size, shift) \
-	((value & GET_MIDBITS_MASK(size, shift)) >> shift)
-
-
-static const char *str_request_type(int type)
-{
-	switch (type) {
-		case REQUEST_TYPE_STANDARD:
-			return "standard";
-		case REQUEST_TYPE_CLASS:
-			return "class";
-		default:
-			return "unknown";
-	}
-}
-
-/** Tell request type.
- * By type is meant either standard, class, vendor or other.
+/** Compares handler type with request packet type.
+ *
+ * @param handler Handler.
+ * @param request_packet Request packet.
+ * @return Whether handler can serve this packet.
  */
-static int request_get_type(uint8_t request_type)
+static bool is_suitable_handler(usbvirt_control_transfer_handler_t *handler,
+    usb_device_request_setup_packet_t *request_packet)
 {
-	return GET_MIDBITS(request_type, 2, 5);
+	return (
+	    (handler->request_type == request_packet->request_type)
+	    && (handler->request == request_packet->request));
+
 }
+
+/** Find suitable transfer handler for given request packet.
+ *
+ * @param handlers Array of available handlers.
+ * @param request_packet Request SETUP packet.
+ * @return Handler or NULL.
+ */
+static usbvirt_control_transfer_handler_t *find_handler(
+    usbvirt_control_transfer_handler_t *handlers,
+    usb_device_request_setup_packet_t *request_packet)
+{
+	if (handlers == NULL) {
+		return NULL;
+	}
+
+	while (handlers->callback != NULL) {
+		if (is_suitable_handler(handlers, request_packet)) {
+			return handlers;
+		}
+		handlers++;
+	}
+
+	return NULL;
+}
+
+
 
 /** Handle communication over control pipe zero.
  */
@@ -76,30 +88,41 @@ int control_pipe(usbvirt_device_t *device, usbvirt_control_transfer_t *transfer)
 		return ENOMEM;
 	}
 	
-	usb_device_request_setup_packet_t *request = (usb_device_request_setup_packet_t *) transfer->request;
-	uint8_t *remaining_data = transfer->data;
+	usb_device_request_setup_packet_t *request
+	    = (usb_device_request_setup_packet_t *) transfer->request;
+	printf("Request: %d,%d\n", request->request_type, request->request);
 	
-	int type = request_get_type(request->request_type);
-	
-	int rc = EOK;
-	
-	device->lib_debug(device, 2, USBVIRT_DEBUGTAG_CONTROL_PIPE_ZERO,
-	    "request type: %s", str_request_type(type));
-	
-	switch (type) {
-		case REQUEST_TYPE_STANDARD:
-			rc = handle_std_request(device, request, remaining_data);
-			break;
-		case REQUEST_TYPE_CLASS:
-			if (DEVICE_HAS_OP(device, on_class_device_request)) {
-				rc = device->ops->on_class_device_request(device,
-				    request, remaining_data);
-			}
-			break;
-		default:
-			break;
+	/*
+	 * First, see whether user provided its own callback.
+	 */
+	int rc = EFORWARD;
+	if (device->ops) {
+		usbvirt_control_transfer_handler_t *user_handler
+		    = find_handler(device->ops->control_transfer_handlers,
+		    request);
+		if (user_handler != NULL) {
+			rc = user_handler->callback(device, request,
+			    transfer->data);
+		}
+	}
+
+	/*
+	 * If there was no user callback or the callback returned EFORWARD,
+	 * we need to run a local handler.
+	 */
+	if (rc == EFORWARD) {
+		usbvirt_control_transfer_handler_t *lib_handler
+		    = find_handler(control_pipe_zero_local_handlers,
+		    request);
+		if (lib_handler != NULL) {
+			rc = lib_handler->callback(device, request,
+			    transfer->data);
+		}
 	}
 	
+	/*
+	 * Check for SET_ADDRESS finalization.
+	 */
 	if (device->new_address != -1) {
 		/*
 		 * TODO: handle when this request is invalid (e.g.

@@ -39,6 +39,18 @@
 #include <usb/descriptor.h>
 #include <usb/devreq.h>
 
+typedef enum {
+	USBVIRT_REQUEST_TYPE_STANDARD = 0,
+	USBVIRT_REQUEST_TYPE_CLASS = 1
+} usbvirt_request_type_t;
+
+typedef enum {
+	USBVIRT_REQUEST_RECIPIENT_DEVICE = 0,
+	USBVIRT_REQUEST_RECIPIENT_INTERFACE = 1,
+	USBVIRT_REQUEST_RECIPIENT_ENDPOINT = 2,
+	USBVIRT_REQUEST_RECIPIENT_OTHER = 3
+} usbvirt_request_recipient_t;
+
 typedef struct usbvirt_device usbvirt_device_t;
 struct usbvirt_control_transfer;
 
@@ -46,15 +58,28 @@ typedef int (*usbvirt_on_device_request_t)(usbvirt_device_t *dev,
 	usb_device_request_setup_packet_t *request,
 	uint8_t *data);
 
+typedef int (*usbvirt_control_request_callback_t)(usbvirt_device_t *dev,
+	usb_device_request_setup_packet_t *request,
+	uint8_t *data);
+
+typedef struct {
+	uint8_t request_type;
+	uint8_t request;
+	usbvirt_control_request_callback_t callback;
+} usbvirt_control_transfer_handler_t;
+
+#define USBVIRT_MAKE_CONTROL_REQUEST_TYPE(direction, type, recipient) \
+	((((direction) == USB_DIRECTION_IN) ? 1 : 0) << 7) \
+	| (((type) & 3) << 5) \
+	| (((recipient) & 31))
+
+#define USBVIRT_CONTROL_TRANSFER_HANDLER_LAST { 0, 0, NULL }
+
 /** Device operations. */
 typedef struct {
-	/** Callbacks for standard device requests.
-	 * The callbacks are indexed by usb_stddevreq_t enum.
-	 */
-	usbvirt_on_device_request_t on_standard_request[USB_DEVREQ_LAST_STD];
-	/** Callback for class-specific USB request. */
-	usbvirt_on_device_request_t on_class_device_request;
-	
+	/** Callbacks for transfers over control pipe zero. */
+	usbvirt_control_transfer_handler_t *control_transfer_handlers;
+
 	int (*on_control_transfer)(usbvirt_device_t *dev,
 	    usb_endpoint_t endpoint, struct usbvirt_control_transfer *transfer);
 	
