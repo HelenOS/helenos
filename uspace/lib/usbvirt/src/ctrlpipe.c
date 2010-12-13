@@ -75,13 +75,47 @@ static usbvirt_control_transfer_handler_t *find_handler(
 	return NULL;
 }
 
+#define _GET_BIT(byte, bit) \
+	(((byte) & (1 << (bit))) ? '1' : '0')
+#define _GET_BITS(byte) \
+	_GET_BIT(byte, 7), _GET_BIT(byte, 6), _GET_BIT(byte, 5), \
+	_GET_BIT(byte, 4), _GET_BIT(byte, 3), _GET_BIT(byte, 2), \
+	_GET_BIT(byte, 1), _GET_BIT(byte, 0)
+
+static int find_and_run_handler(usbvirt_device_t *device,
+    usbvirt_control_transfer_handler_t *handlers,
+    usb_device_request_setup_packet_t *setup_packet,
+    uint8_t *data)
+{
+	int rc = EFORWARD;
+	usbvirt_control_transfer_handler_t *suitable_handler
+	    = find_handler(handlers, setup_packet);
+	if (suitable_handler != NULL) {
+		const char *callback_name = "user handler";
+		if (suitable_handler->name != NULL) {
+			callback_name = suitable_handler->name;
+		}
+		device->lib_debug(device, 1, USBVIRT_DEBUGTAG_CONTROL_PIPE_ZERO,
+		    "pipe #0 - calling %s " \
+		        "[%c.%c%c.%c%c%c%c%c, R%d, V%d, I%d, L%d]",
+		    callback_name,
+		    _GET_BITS(setup_packet->request_type),
+		    setup_packet->request, setup_packet->value,
+		    setup_packet->index, setup_packet->length);
+		rc = suitable_handler->callback(device, setup_packet, data);
+	}
+
+	return rc;
+}
+#undef _GET_BITS
+#undef _GET_BIT
 
 
 /** Handle communication over control pipe zero.
  */
 int control_pipe(usbvirt_device_t *device, usbvirt_control_transfer_t *transfer)
 {
-	device->lib_debug(device, 1, USBVIRT_DEBUGTAG_CONTROL_PIPE_ZERO,
+	device->lib_debug(device, 2, USBVIRT_DEBUGTAG_CONTROL_PIPE_ZERO,
 	    "op on control pipe zero (request_size=%u)", transfer->request_size);
 	
 	if (transfer->request_size < sizeof(usb_device_request_setup_packet_t)) {
@@ -90,20 +124,15 @@ int control_pipe(usbvirt_device_t *device, usbvirt_control_transfer_t *transfer)
 	
 	usb_device_request_setup_packet_t *request
 	    = (usb_device_request_setup_packet_t *) transfer->request;
-	printf("Request: %d,%d\n", request->request_type, request->request);
-	
+
 	/*
 	 * First, see whether user provided its own callback.
 	 */
 	int rc = EFORWARD;
 	if (device->ops) {
-		usbvirt_control_transfer_handler_t *user_handler
-		    = find_handler(device->ops->control_transfer_handlers,
-		    request);
-		if (user_handler != NULL) {
-			rc = user_handler->callback(device, request,
-			    transfer->data);
-		}
+		rc = find_and_run_handler(device,
+		    device->ops->control_transfer_handlers,
+		    request, transfer->data);
 	}
 
 	/*
@@ -111,13 +140,9 @@ int control_pipe(usbvirt_device_t *device, usbvirt_control_transfer_t *transfer)
 	 * we need to run a local handler.
 	 */
 	if (rc == EFORWARD) {
-		usbvirt_control_transfer_handler_t *lib_handler
-		    = find_handler(control_pipe_zero_local_handlers,
-		    request);
-		if (lib_handler != NULL) {
-			rc = lib_handler->callback(device, request,
-			    transfer->data);
-		}
+		rc = find_and_run_handler(device,
+		    control_pipe_zero_local_handlers,
+		    request, transfer->data);
 	}
 	
 	/*

@@ -65,6 +65,7 @@ typedef int (*usbvirt_control_request_callback_t)(usbvirt_device_t *dev,
 typedef struct {
 	uint8_t request_type;
 	uint8_t request;
+	const char *name;
 	usbvirt_control_request_callback_t callback;
 } usbvirt_control_transfer_handler_t;
 
@@ -73,7 +74,7 @@ typedef struct {
 	| (((type) & 3) << 5) \
 	| (((recipient) & 31))
 
-#define USBVIRT_CONTROL_TRANSFER_HANDLER_LAST { 0, 0, NULL }
+#define USBVIRT_CONTROL_TRANSFER_HANDLER_LAST { 0, 0, NULL, NULL }
 
 /** Device operations. */
 typedef struct {

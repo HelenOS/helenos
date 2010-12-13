@@ -183,16 +183,19 @@ usbvirt_control_transfer_handler_t control_pipe_zero_local_handlers[] = {
 	{
 		.request_type = MAKE_BM_REQUEST_DEV(USB_DIRECTION_IN),
 		.request = USB_DEVREQ_GET_DESCRIPTOR,
+		.name = "GetDescriptor()",
 		.callback = handle_get_descriptor
 	},
 	{
 		.request_type = MAKE_BM_REQUEST_DEV(USB_DIRECTION_OUT),
 		.request = USB_DEVREQ_SET_ADDRESS,
+		.name = "SetAddress()",
 		.callback = handle_set_address
 	},
 	{
 		.request_type = MAKE_BM_REQUEST_DEV(USB_DIRECTION_OUT),
 		.request = USB_DEVREQ_SET_CONFIGURATION,
+		.name = "SetConfiguration()",
 		.callback = handle_set_configuration
 	},
 	USBVIRT_CONTROL_TRANSFER_HANDLER_LAST

@@ -137,6 +137,7 @@ static usbvirt_control_transfer_handler_t endpoint_zero_handlers[] = {
 		    USBVIRT_REQUEST_TYPE_STANDARD,
 		    USBVIRT_REQUEST_RECIPIENT_DEVICE),
 		.request = USB_DEVREQ_GET_DESCRIPTOR,
+		.name = "GetDescriptor",
 		.callback = stdreq_on_get_descriptor
 	},
 	{
@@ -145,6 +146,7 @@ static usbvirt_control_transfer_handler_t endpoint_zero_handlers[] = {
 		    USBVIRT_REQUEST_TYPE_CLASS,
 		    USBVIRT_REQUEST_RECIPIENT_DEVICE),
 		.request = USB_DEVREQ_GET_DESCRIPTOR,
+		.name = "GetDescriptor",
 		.callback = stdreq_on_get_descriptor
 	},
 	USBVIRT_CONTROL_TRANSFER_HANDLER_LAST
@@ -267,6 +269,7 @@ int main(int argc, char * argv[])
 	}
 	
 	printf("%s: Simulating keyboard events...\n", NAME);
+	fibril_sleep(10);
 	while (1) {
 		kb_process_events(&status, keyboard_events, keyboard_events_count,
 			on_keyboard_change);

@@ -518,50 +518,62 @@ static int req_set_port_feature(usbvirt_device_t *dev,
 static usbvirt_control_transfer_handler_t endpoint_zero_handlers[] = {
 	{
 		STD_REQ(DIR_OUT, REC_DEVICE, USB_DEVREQ_SET_CONFIGURATION),
+		.name = "SetConfiguration",
 		.callback = on_set_configuration
 	},
 	{
 		STD_REQ(DIR_IN, REC_DEVICE, USB_DEVREQ_GET_DESCRIPTOR),
+		.name = "GetDescriptor",
 		.callback = on_get_descriptor
 	},
 	{
 		CLASS_REQ(DIR_IN, REC_DEVICE, USB_DEVREQ_GET_DESCRIPTOR),
+		.name = "GetDescriptor",
 		.callback = on_get_descriptor
 	},
 	{
 		CLASS_REQ(DIR_IN, REC_OTHER, USB_HUB_REQUEST_GET_STATUS),
+		.name = "GetPortStatus",
 		.callback = req_get_port_status
 	},
 	{
 		CLASS_REQ(DIR_OUT, REC_DEVICE, USB_HUB_REQUEST_CLEAR_FEATURE),
+		.name = "ClearHubFeature",
 		.callback = req_clear_hub_feature
 	},
 	{
 		CLASS_REQ(DIR_OUT, REC_OTHER, USB_HUB_REQUEST_CLEAR_FEATURE),
+		.name = "ClearPortFeature",
 		.callback = req_clear_port_feature
 	},
 	{
 		CLASS_REQ(DIR_IN, REC_OTHER, USB_HUB_REQUEST_GET_STATE),
+		.name = "GetBusState",
 		.callback = req_get_bus_state
 	},
 	{
 		CLASS_REQ(DIR_IN, REC_DEVICE, USB_HUB_REQUEST_GET_DESCRIPTOR),
+		.name = "GetHubDescriptor",
 		.callback = req_get_hub_descriptor
 	},
 	{
 		CLASS_REQ(DIR_IN, REC_DEVICE, USB_HUB_REQUEST_GET_STATUS),
+		.name = "GetHubStatus",
 		.callback = req_get_hub_status
 	},
 	{
 		CLASS_REQ(DIR_IN, REC_OTHER, USB_HUB_REQUEST_GET_STATUS),
+		.name = "GetPortStatus",
 		.callback = req_get_port_status
 	},
 	{
 		CLASS_REQ(DIR_OUT, REC_DEVICE, USB_HUB_REQUEST_SET_FEATURE),
+		.name = "SetHubFeature",
 		.callback = req_set_hub_feature
 	},
 	{
 		CLASS_REQ(DIR_OUT, REC_OTHER, USB_HUB_REQUEST_SET_FEATURE),
+		.name = "SetPortFeature",
 		.callback = req_set_port_feature
 	},
 	USBVIRT_CONTROL_TRANSFER_HANDLER_LAST
