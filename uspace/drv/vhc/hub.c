@@ -39,6 +39,7 @@
 #include <str_error.h>
 #include <stdlib.h>
 #include <driver.h>
+#include <usb/usbdrv.h>
 
 #include "vhcd.h"
 #include "hub.h"
@@ -150,26 +151,33 @@ usbvirt_device_t virthub_dev = {
 /** Hub device. */
 hub_device_t hub_dev;
 
-static usb_address_t hub_set_address(usbvirt_device_t *hub)
+/** Register root hub in devman.
+ *
+ * @param arg Host controller device (type <code>device_t *</code>).
+ * @return Error code.
+ */
+static int hub_register_in_devman_fibril(void *arg)
 {
-	usb_address_t new_address;
-	int rc = vhc_iface.request_address(NULL, &new_address);
-	if (rc != EOK) {
-		return rc;
-	}
-	
-	usb_device_request_setup_packet_t setup_packet = {
-		.request_type = 0,
-		.request = USB_DEVREQ_SET_ADDRESS,
-		.index = 0,
-		.length = 0,
-	};
-	setup_packet.value = new_address;
+	device_t *hc_dev = (device_t *) arg;
 
-	hub->transaction_setup(hub, 0, &setup_packet, sizeof(setup_packet));
-	hub->transaction_in(hub, 0, NULL, 0, NULL);
-	
-	return new_address;
+	int hc = usb_drv_hc_connect(hc_dev, IPC_FLAG_BLOCKING);
+	if (hc < 0) {
+		printf(NAME ": failed to register root hub\n");
+		return hc;
+	}
+
+	usb_drv_reserve_default_address(hc);
+
+	usb_address_t hub_address = usb_drv_request_address(hc);
+	usb_drv_req_set_address(hc, USB_ADDRESS_DEFAULT, hub_address);
+
+	usb_drv_release_default_address(hc);
+
+	devman_handle_t hub_handle;
+	usb_drv_register_child_in_devman(hc, hc_dev, hub_address, &hub_handle);
+	usb_drv_bind_address(hc, hub_address, hub_handle);
+
+	return EOK;
 }
 
 /** Initialize virtual hub. */
@@ -189,30 +197,20 @@ void hub_init(device_t *hc_dev)
 	
 	usbvirt_connect_local(&virthub_dev);
 	
-	dprintf(1, "virtual hub (%d ports) created", HUB_PORT_COUNT);
-
-	usb_address_t hub_address = hub_set_address(&virthub_dev);
-	if (hub_address < 0) {
-		dprintf(1, "problem changing hub address (%s)",
-		    str_error(hub_address));
-	}
-
-	dprintf(2, "virtual hub address changed to %d", hub_address);
-
-	char *id;
-	int rc = asprintf(&id, "usb&hub");
-	if (rc <= 0) {
+	/*
+	 * We need to register the root hub.
+	 * This must be done in separate fibril because the device
+	 * we are connecting to are ourselves and we cannot connect
+	 * before leaving the add_device() function.
+	 */
+	fid_t root_hub_registration
+	    = fibril_create(hub_register_in_devman_fibril, hc_dev);
+	if (root_hub_registration == 0) {
+		printf(NAME ": failed to register root hub\n");
 		return;
 	}
-	devman_handle_t hub_handle;
-	rc = child_device_register_wrapper(hc_dev, "hub", id, 10, &hub_handle);
-	if (rc != EOK) {
-		free(id);
-	}
 
-	vhc_iface.bind_address(NULL, hub_address, hub_handle);	
-
-	dprintf(2, "virtual hub has devman handle %d", (int) hub_handle);
+	fibril_add_ready(root_hub_registration);
 }
 
 /** Connect device to the hub.
