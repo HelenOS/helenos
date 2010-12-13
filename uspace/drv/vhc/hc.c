@@ -67,9 +67,10 @@
 
 static link_t transaction_list;
 
-#define TRANSACTION_FORMAT "T[%d:%d %s (%d)]"
+#define TRANSACTION_FORMAT "T[%d.%d %s/%s (%d)]"
 #define TRANSACTION_PRINTF(t) \
 	(t).target.address, (t).target.endpoint, \
+	usb_str_transfer_type((t).transfer_type), \
 	usbvirt_str_transaction_type((t).type), \
 	(int)(t).len
 
@@ -142,7 +143,7 @@ void hc_manager(void)
 /** Create new transaction
  */
 static transaction_t *transaction_create(usbvirt_transaction_type_t type,
-    usb_target_t target,
+    usb_target_t target, usb_transfer_type_t transfer_type,
     void * buffer, size_t len,
     hc_transaction_done_callback_t callback, void * arg)
 {
@@ -150,6 +151,7 @@ static transaction_t *transaction_create(usbvirt_transaction_type_t type,
 	
 	list_initialize(&transaction->link);
 	transaction->type = type;
+	transaction->transfer_type = transfer_type;
 	transaction->target = target;
 	transaction->buffer = buffer;
 	transaction->len = len;
@@ -165,11 +167,13 @@ static transaction_t *transaction_create(usbvirt_transaction_type_t type,
 /** Add transaction directioned towards the device.
  */
 void hc_add_transaction_to_device(bool setup, usb_target_t target,
+    usb_transfer_type_t transfer_type,
     void * buffer, size_t len,
     hc_transaction_done_callback_t callback, void * arg)
 {
 	transaction_t *transaction = transaction_create(
-	    setup ? USBVIRT_TRANSACTION_SETUP : USBVIRT_TRANSACTION_OUT, target,
+	    setup ? USBVIRT_TRANSACTION_SETUP : USBVIRT_TRANSACTION_OUT,
+	    target, transfer_type,
 	    buffer, len, callback, arg);
 	list_append(&transaction->link, &transaction_list);
 }
@@ -177,11 +181,13 @@ void hc_add_transaction_to_device(bool setup, usb_target_t target,
 /** Add transaction directioned from the device.
  */
 void hc_add_transaction_from_device(usb_target_t target,
+    usb_transfer_type_t transfer_type,
     void * buffer, size_t len,
     hc_transaction_done_callback_t callback, void * arg)
 {
 	transaction_t *transaction = transaction_create(USBVIRT_TRANSACTION_IN,
-	    target, buffer, len, callback, arg);
+	    target, transfer_type,
+	    buffer, len, callback, arg);
 	list_append(&transaction->link, &transaction_list);
 }
 
