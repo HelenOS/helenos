@@ -36,6 +36,7 @@
 #define VHCD_HUBINTERN_H_
 
 #include "hub.h"
+#include <fibril_synch.h>
 
 /** Endpoint number for status change pipe. */
 #define HUB_STATUS_CHANGE_PIPE 1
@@ -123,6 +124,7 @@ typedef struct {
 	int index;
 	hub_port_state_t state;
 	uint16_t status_change;
+	fibril_mutex_t guard;
 } hub_port_t;
 
 /** Hub device type. */
@@ -138,6 +140,7 @@ extern usbvirt_device_ops_t hub_ops;
 
 void clear_port_status_change(hub_port_t *, uint16_t);
 void set_port_status_change(hub_port_t *, uint16_t);
+void set_port_status_change_nl(hub_port_t *, uint16_t);
 
 
 #endif

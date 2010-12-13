@@ -66,6 +66,8 @@ static int on_data_request(struct usbvirt_device *dev,
     usb_endpoint_t endpoint,
     void *buffer, size_t size, size_t *actual_size);
 static void set_port_state(hub_port_t *, hub_port_state_t);
+static void clear_port_status_change_nl(hub_port_t *, uint16_t);
+static void set_port_state_nl(hub_port_t *, hub_port_state_t);
 
 /** Standard USB requests. */
 static usbvirt_standard_device_request_ops_t standard_request_ops = {
@@ -134,9 +136,11 @@ static int set_port_state_delayed_fibril(void *arg)
 	
 	async_usleep(change->delay);
 	
+	fibril_mutex_lock(&change->port->guard);
 	if (change->port->state == change->old_state) {
-		set_port_state(change->port, change->new_state);
+		set_port_state_nl(change->port, change->new_state);
 	}
+	fibril_mutex_unlock(&change->port->guard);
 	
 	free(change);
 	
@@ -165,13 +169,24 @@ static void set_port_state_delayed(hub_port_t *port,
  */
 void set_port_state(hub_port_t *port, hub_port_state_t state)
 {
-	dprintf(1, "setting port %d state to %d (%c)", port->index,
-	    state, hub_port_state_as_char(state));
+	fibril_mutex_lock(&port->guard);
+	set_port_state_nl(port, state);
+	fibril_mutex_unlock(&port->guard);
+}
+
+void set_port_state_nl(hub_port_t *port, hub_port_state_t state)
+{
+
+	dprintf(2, "setting port %d state to %d (%c) from %c (change=%u)",
+	    port->index,
+	    state, hub_port_state_as_char(state),
+	    hub_port_state_as_char(port->state),
+	    (unsigned int) port->status_change);
 	
 	if (state == HUB_PORT_STATE_POWERED_OFF) {
-		clear_port_status_change(port, HUB_STATUS_C_PORT_CONNECTION);
-		clear_port_status_change(port, HUB_STATUS_C_PORT_ENABLE);
-		clear_port_status_change(port, HUB_STATUS_C_PORT_RESET);
+		clear_port_status_change_nl(port, HUB_STATUS_C_PORT_CONNECTION);
+		clear_port_status_change_nl(port, HUB_STATUS_C_PORT_ENABLE);
+		clear_port_status_change_nl(port, HUB_STATUS_C_PORT_RESET);
 	}
 	if (state == HUB_PORT_STATE_RESUMING) {
 		set_port_state_delayed(port, 10*1000,
@@ -183,7 +198,7 @@ void set_port_state(hub_port_t *port, hub_port_state_t state)
 	}
 	if ((port->state == HUB_PORT_STATE_RESETTING)
 	    && (state == HUB_PORT_STATE_ENABLED)) {
-		set_port_status_change(port, HUB_STATUS_C_PORT_RESET);
+		set_port_status_change_nl(port, HUB_STATUS_C_PORT_RESET);
 	}
 	
 	port->state = state;
@@ -211,45 +226,63 @@ static int clear_port_feature(uint16_t feature, uint16_t portindex)
 {	
 	_GET_PORT(port, portindex);
 	
+	fibril_mutex_lock(&port->guard);
+	int rc = ENOTSUP;
+
 	switch (feature) {
 		case USB_HUB_FEATURE_PORT_ENABLE:
 			if ((port->state != HUB_PORT_STATE_NOT_CONFIGURED)
 			    && (port->state != HUB_PORT_STATE_POWERED_OFF)) {
-				set_port_state(port, HUB_PORT_STATE_DISABLED);
+				set_port_state_nl(port, HUB_PORT_STATE_DISABLED);
 			}
-			return EOK;
+			rc = EOK;
+			break;
 		
 		case USB_HUB_FEATURE_PORT_SUSPEND:
 			if (port->state != HUB_PORT_STATE_SUSPENDED) {
-				return EOK;
+				rc = EOK;
+				break;
 			}
-			set_port_state(port, HUB_PORT_STATE_RESUMING);
-			return EOK;
+			set_port_state_nl(port, HUB_PORT_STATE_RESUMING);
+			rc = EOK;
+			break;
 			
 		case USB_HUB_FEATURE_PORT_POWER:
 			if (port->state != HUB_PORT_STATE_NOT_CONFIGURED) {
-				set_port_state(port, HUB_PORT_STATE_POWERED_OFF);
+				set_port_state_nl(port, HUB_PORT_STATE_POWERED_OFF);
 			}
-			return EOK;
+			rc = EOK;
+			break;
 		
 		case USB_HUB_FEATURE_C_PORT_CONNECTION:
-			clear_port_status_change(port, HUB_STATUS_C_PORT_CONNECTION);
-			return EOK;
+			clear_port_status_change_nl(port, HUB_STATUS_C_PORT_CONNECTION);
+			rc = EOK;
+			break;
 		
 		case USB_HUB_FEATURE_C_PORT_ENABLE:
-			clear_port_status_change(port, HUB_STATUS_C_PORT_ENABLE);
-			return EOK;
+			clear_port_status_change_nl(port, HUB_STATUS_C_PORT_ENABLE);
+			rc = EOK;
+			break;
 		
 		case USB_HUB_FEATURE_C_PORT_SUSPEND:
-			clear_port_status_change(port, HUB_STATUS_C_PORT_SUSPEND);
-			return EOK;
+			clear_port_status_change_nl(port, HUB_STATUS_C_PORT_SUSPEND);
+			rc = EOK;
+			break;
 			
 		case USB_HUB_FEATURE_C_PORT_OVER_CURRENT:
-			clear_port_status_change(port, HUB_STATUS_C_PORT_OVER_CURRENT);
-			return EOK;
+			clear_port_status_change_nl(port, HUB_STATUS_C_PORT_OVER_CURRENT);
+			rc = EOK;
+			break;
+
+		case USB_HUB_FEATURE_C_PORT_RESET:
+			clear_port_status_change_nl(port, HUB_STATUS_C_PORT_RESET);
+			rc = EOK;
+			break;
 	}
 	
-	return ENOTSUP;
+	fibril_mutex_unlock(&port->guard);
+
+	return rc;
 }
 
 static int get_bus_state(uint16_t portindex)
@@ -284,6 +317,8 @@ static int get_port_status(uint16_t portindex)
 {
 	_GET_PORT(port, portindex);
 	
+	fibril_mutex_lock(&port->guard);
+
 	uint32_t status;
 	status = MAKE_BYTE(
 	    /* Current connect status. */
@@ -311,6 +346,8 @@ static int get_port_status(uint16_t portindex)
 	    
 	status |= (port->status_change << 16);
 	
+	fibril_mutex_unlock(&port->guard);
+
 	dprintf(2, "GetPortStatus(port=%d, status=%u)\n", (int)portindex,
 	    (unsigned int) status);
 	return virthub_dev.control_transfer_reply(&virthub_dev, 0, &status, 4);
@@ -326,26 +363,35 @@ static int set_port_feature(uint16_t feature, uint16_t portindex)
 {
 	_GET_PORT(port, portindex);
 	
+	fibril_mutex_lock(&port->guard);
+
+	int rc = ENOTSUP;
+
 	switch (feature) {
 		case USB_HUB_FEATURE_PORT_RESET:
 			if (port->state != HUB_PORT_STATE_POWERED_OFF) {
-				set_port_state(port, HUB_PORT_STATE_RESETTING);
+				set_port_state_nl(port, HUB_PORT_STATE_RESETTING);
 			}
-			return EOK;
+			rc = EOK;
+			break;
 		
 		case USB_HUB_FEATURE_PORT_SUSPEND:
 			if (port->state == HUB_PORT_STATE_ENABLED) {
-				set_port_state(port, HUB_PORT_STATE_SUSPENDED);
+				set_port_state_nl(port, HUB_PORT_STATE_SUSPENDED);
 			}
-			return EOK;
+			rc = EOK;
+			break;
 		
 		case USB_HUB_FEATURE_PORT_POWER:
 			if (port->state == HUB_PORT_STATE_POWERED_OFF) {
-				set_port_state(port, HUB_PORT_STATE_DISCONNECTED);
+				set_port_state_nl(port, HUB_PORT_STATE_DISCONNECTED);
 			}
-			return EOK;
+			rc = EOK;
+			break;
 	}
-	return ENOTSUP;
+
+	fibril_mutex_unlock(&port->guard);
+	return rc;
 }
 
 #undef _GET_PORT
@@ -415,14 +461,33 @@ static int on_class_request(struct usbvirt_device *dev,
 	return EOK;
 }
 
-void clear_port_status_change(hub_port_t *port, uint16_t change)
+void clear_port_status_change_nl(hub_port_t *port, uint16_t change)
 {
 	port->status_change &= (~change);
+	dprintf(2, "cleared port %d status change %d (%u)", port->index,
+	    (int)change, (unsigned int) port->status_change);
+}
+
+void set_port_status_change_nl(hub_port_t *port, uint16_t change)
+{
+	port->status_change |= change;
+	dprintf(2, "set port %d status change %d (%u)", port->index,
+	    (int)change, (unsigned int) port->status_change);
+
+}
+
+void clear_port_status_change(hub_port_t *port, uint16_t change)
+{
+	fibril_mutex_lock(&port->guard);
+	clear_port_status_change_nl(port, change);
+	fibril_mutex_unlock(&port->guard);
 }
 
 void set_port_status_change(hub_port_t *port, uint16_t change)
 {
-	port->status_change |= change;
+	fibril_mutex_lock(&port->guard);
+	set_port_status_change_nl(port, change);
+	fibril_mutex_unlock(&port->guard);
 }
 
 /** Callback for data request. */
@@ -440,9 +505,11 @@ static int on_data_request(struct usbvirt_device *dev,
 	for (i = 0; i < HUB_PORT_COUNT; i++) {
 		hub_port_t *port = &hub_dev.ports[i];
 		
+		fibril_mutex_lock(&port->guard);
 		if (port->status_change != 0) {
 			change_map |= (1 << (i + 1));
 		}
+		fibril_mutex_unlock(&port->guard);
 	}
 	
 	uint8_t *b = (uint8_t *) buffer;
