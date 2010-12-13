@@ -505,29 +505,40 @@ static void usb_hub_init_add_device(int hc, uint16_t port, usb_target_t target) 
 static void usb_hub_finalize_add_device( usb_hub_info_t * hub,
 		int hc, uint16_t port, usb_target_t target) {
 
-	usb_device_request_setup_packet_t request;
 	int opResult;
 	printf("[usb_hub] finalizing add device\n");
-	usb_address_t new_device_address =
-			usb_drv_request_address(hc);
-	usb_hub_set_set_address_request
-			(&request, new_device_address);
-	opResult = usb_drv_sync_control_write(
-			hc, target,
-			&request,
-			NULL, 0
-			);
+	opResult = usb_hub_clear_port_feature(hc, target.address,
+	    port, USB_HUB_FEATURE_C_PORT_RESET);
+	if (opResult != EOK) {
+		goto release;
+	}
+
+	/* Request address at from host controller. */
+	usb_address_t new_device_address = usb_drv_request_address(hc);
+	if (new_device_address < 0) {
+		printf("[usb_hub] failed to get free USB address\n");
+		opResult = new_device_address;
+		goto release;
+	}
+	printf("[usb_hub] setting new address\n");
+	opResult = usb_drv_req_set_address(hc, USB_ADDRESS_DEFAULT,
+	    new_device_address);
+
 	if (opResult != EOK) {
 		printf("[usb_hub] could not set address for new device\n");
-		//will retry later...
+		goto release;
+	}
+
+release:
+	printf("[usb_hub] releasing default address\n");
+	usb_drv_release_default_address(hc);
+	if (opResult != EOK) {
 		return;
 	}
 
-	usb_drv_release_default_address(hc);
-
 	devman_handle_t child_handle;
 	opResult = usb_drv_register_child_in_devman(hc, hub->device,
-        new_device_address, &child_handle);
+            new_device_address, &child_handle);
 	if (opResult != EOK) {
 		printf("[usb_hub] could not start driver for new device \n");
 		return;
@@ -542,7 +553,6 @@ static void usb_hub_finalize_add_device( usb_hub_info_t * hub,
 	}
 	printf("[usb_hub] new device address %d, handle %d\n",
 	    new_device_address, child_handle);
-	sleep(60);
 	
 }
 
@@ -619,6 +629,9 @@ static void usb_hub_process_interrupt(usb_hub_info_t * hub, int hc,
 	}
 	//something connected/disconnected
 	if (usb_port_connect_change(&status)) {
+		opResult = usb_hub_clear_port_feature(hc, target.address,
+		    port, USB_HUB_FEATURE_C_PORT_CONNECTION);
+		// TODO: check opResult
 		if (usb_port_dev_connected(&status)) {
 			printf("[usb_hub] some connection changed\n");
 			usb_hub_init_add_device(hc, port, target);
@@ -628,7 +641,7 @@ static void usb_hub_process_interrupt(usb_hub_info_t * hub, int hc,
 	}
 	//port reset
 	if (usb_port_reset_completed(&status)) {
-		printf("[usb_hub] finalizing add device\n");
+		printf("[usb_hub] port reset complete\n");
 		if (usb_port_enabled(&status)) {
 			usb_hub_finalize_add_device(hub, hc, port, target);
 		} else {
@@ -669,7 +682,6 @@ void usb_hub_check_hub_changes(void) {
 	for (lst_item = usb_hub_list.next;
 			lst_item != &usb_hub_list;
 			lst_item = lst_item->next) {
-		printf("[usb_hub] checking hub changes\n");
 		usb_hub_info_t * hub_info = ((usb_hub_info_t*)lst_item->data);
 		/*
 		 * Check status change pipe of this hub.
@@ -678,7 +690,8 @@ void usb_hub_check_hub_changes(void) {
 		usb_target_t target;
 		target.address = hub_info->usb_device->address;
 		target.endpoint = 1;/// \TODO get from endpoint descriptor
-		printf("checking changes for hub at addr %d \n",target.address);
+		printf("[usb_hub] checking changes for hub at addr %d\n",
+		    target.address);
 
 		size_t port_count = hub_info->port_count;
 

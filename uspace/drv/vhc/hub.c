@@ -143,7 +143,7 @@ usbvirt_descriptors_t descriptors = {
 usbvirt_device_t virthub_dev = {
 	.ops = &hub_ops,
 	.descriptors = &descriptors,
-	.lib_debug_level = 1,
+	.lib_debug_level = 0,
 	.lib_debug_enabled_tags = USBVIRT_DEBUGTAG_ALL
 };
 
@@ -180,10 +180,11 @@ void hub_init(device_t *hc_dev)
 	for (i = 0; i < HUB_PORT_COUNT; i++) {
 		hub_port_t *port = &hub_dev.ports[i];
 		
-		port->index = (int) i;
+		port->index = (int) i + 1;
 		port->device = NULL;
 		port->state = HUB_PORT_STATE_NOT_CONFIGURED;
 		port->status_change = 0;
+		fibril_mutex_initialize(&port->guard);
 	}
 	
 	usbvirt_connect_local(&virthub_dev);
@@ -224,8 +225,10 @@ size_t hub_add_device(virtdev_connection_t *device)
 	size_t i;
 	for (i = 0; i < HUB_PORT_COUNT; i++) {
 		hub_port_t *port = &hub_dev.ports[i];
+		fibril_mutex_lock(&port->guard);
 		
 		if (port->device != NULL) {
+			fibril_mutex_unlock(&port->guard);
 			continue;
 		}
 		
@@ -240,9 +243,11 @@ size_t hub_add_device(virtdev_connection_t *device)
 		 */
 		//if (port->state == HUB_PORT_STATE_DISCONNECTED) {
 			port->state = HUB_PORT_STATE_DISABLED;
-			set_port_status_change(port, HUB_STATUS_C_PORT_CONNECTION);
+			set_port_status_change_nl(port, HUB_STATUS_C_PORT_CONNECTION);
 		//}
 		
+		fibril_mutex_unlock(&port->guard);
+
 		return i;
 	}
 	

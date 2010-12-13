@@ -49,9 +49,9 @@
 #include "devices.h"
 #include "hub.h"
 
-#define USLEEP_BASE (0 * 500 * 1000)
+#define USLEEP_BASE (0 * 5 * 1000)
 
-#define USLEEP_VAR 5000
+#define USLEEP_VAR 50
 
 #define SHORTENING_VAR 15
 
@@ -88,7 +88,7 @@ static inline unsigned int pseudo_random(unsigned int *seed)
 static void process_transaction_with_outcome(transaction_t * transaction,
     usb_transaction_outcome_t outcome)
 {
-	dprintf(3, "processing transaction " TRANSACTION_FORMAT ", outcome: %s",
+	dprintf(3, "transaction " TRANSACTION_FORMAT " done, outcome: %s",
 	    TRANSACTION_PRINTF(*transaction),
 	    usb_str_transaction_outcome(outcome));
 	
@@ -115,7 +115,7 @@ void hc_manager(void)
 		
 		char ports[HUB_PORT_COUNT + 2];
 		hub_get_port_statuses(ports, HUB_PORT_COUNT + 1);
-		dprintf(0, "virtual hub: addr=%d ports=%s",
+		dprintf(4, "virtual hub: addr=%d ports=%s",
 		    virthub_dev.address, ports);
 		
 		link_t *first_transaction_link = transaction_list.next;
@@ -123,6 +123,10 @@ void hc_manager(void)
 		    = transaction_get_instance(first_transaction_link);
 		list_remove(first_transaction_link);
 		
+
+		dprintf(0, "about to process " TRANSACTION_FORMAT " (vhub:%s)",
+		    TRANSACTION_PRINTF(*transaction), ports);
+
 		dprintf(3, "processing transaction " TRANSACTION_FORMAT "",
 		    TRANSACTION_PRINTF(*transaction));
 		

@@ -38,7 +38,7 @@
 #define BUFFER_SIZE 32
 #define NAME "usbkbd"
 
-static const usb_endpoint_t CONTROL_EP = 0;
+#define GUESSED_POLL_ENDPOINT 1
 
 /*
  * Callbacks for parser
@@ -154,7 +154,7 @@ static usb_hid_dev_kbd_t *usbkbd_init_device(device_t *dev)
 //	}
 
 	// default endpoint
-	kbd_dev->default_ep = CONTROL_EP;
+	kbd_dev->poll_endpoint = GUESSED_POLL_ENDPOINT;
 	
 	/*
 	 * will need all descriptors:
@@ -203,10 +203,11 @@ static void usbkbd_poll_keyboard(usb_hid_dev_kbd_t *kbd_dev)
 
 	usb_target_t poll_target = {
 		.address = kbd_dev->address,
-		.endpoint = kbd_dev->default_ep
+		.endpoint = kbd_dev->poll_endpoint
 	};
 
 	while (true) {
+		async_usleep(1000 * 1000);
 		rc = usb_drv_async_interrupt_in(kbd_dev->device->parent_phone,
 		    poll_target, buffer, BUFFER_SIZE, &actual_size, &handle);
 
