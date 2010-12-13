@@ -198,6 +198,8 @@ static inline void *device_get_iface(device_t *dev, dev_inferface_idx_t idx)
 }
 
 int child_device_register(device_t *, device_t *);
+int child_device_register_wrapper(device_t *, const char *, const char *, int,
+    devman_handle_t *);
 
 
 /* interrupts */

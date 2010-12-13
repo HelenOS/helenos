@@ -54,7 +54,8 @@
 #include "keys.h"
 #include "stdreq.h"
 
-#define LOOPS 5
+/** Pause between individual key-presses in seconds. */
+#define KEY_PRESS_DELAY 2
 #define NAME "virt-usb-kbd"
 
 
@@ -82,9 +83,34 @@ static int on_class_request(struct usbvirt_device *dev,
 	return EOK;
 }
 
+/** Compares current and last status of pressed keys.
+ *
+ * @warning Has side-efect - changes status_last field.
+ *
+ * @param status_now Status now.
+ * @param status_last Last status.
+ * @param len Size of status.
+ * @return Whether they are the same.
+ */
+static bool keypress_check_with_last_request(uint8_t *status_now,
+    uint8_t *status_last, size_t len)
+{
+	bool same = true;
+	size_t i;
+	for (i = 0; i < len; i++) {
+		if (status_now[i] != status_last[i]) {
+			status_last[i] = status_now[i];
+			same = false;
+		}
+	}
+	return same;
+}
+
 static int on_request_for_data(struct usbvirt_device *dev,
     usb_endpoint_t endpoint, void *buffer, size_t size, size_t *actual_size)
 {
+	static uint8_t last_data[2 + KB_MAX_KEYS_AT_ONCE];
+
 	if (size < 2 + KB_MAX_KEYS_AT_ONCE) {
 		return EINVAL;
 	}
@@ -100,6 +126,12 @@ static int on_request_for_data(struct usbvirt_device *dev,
 		data[2 + i] = status.pressed_keys[i];
 	}
 	
+	if (keypress_check_with_last_request(data, last_data,
+	    2 + KB_MAX_KEYS_AT_ONCE)) {
+		*actual_size = 0;
+		return EOK;
+	}
+
 	memcpy(buffer, &data, *actual_size);
 	
 	return EOK;
@@ -152,6 +184,8 @@ usbvirt_descriptors_t descriptors = {
 static usbvirt_device_t keyboard_dev = {
 	.ops = &keyboard_ops,
 	.descriptors = &descriptors,
+	.lib_debug_level = 3,
+	.lib_debug_enabled_tags = USBVIRT_DEBUGTAG_ALL,
 	.name = "keyboard"
 };
 
@@ -177,7 +211,7 @@ static void on_keyboard_change(kb_status_t *status)
 	}
 	printf("\n");
 	
-	fibril_sleep(1);
+	fibril_sleep(KEY_PRESS_DELAY);
 }
 
 /** Simulated keyboard events. */
@@ -202,7 +236,7 @@ static size_t keyboard_events_count =
 
 int main(int argc, char * argv[])
 {
-	printf("Dump of report descriptor (%u bytes):\n", report_descriptor_size);
+	printf("Dump of report descriptor (%zu bytes):\n", report_descriptor_size);
 	size_t i;
 	for (i = 0; i < report_descriptor_size; i++) {
 		printf("  0x%02X", report_descriptor[i]);
@@ -223,8 +257,10 @@ int main(int argc, char * argv[])
 	}
 	
 	printf("%s: Simulating keyboard events...\n", NAME);
-	kb_process_events(&status, keyboard_events, keyboard_events_count,
-	    on_keyboard_change);
+	while (1) {
+		kb_process_events(&status, keyboard_events, keyboard_events_count,
+			on_keyboard_change);
+	}
 	
 	printf("%s: Terminating...\n", NAME);
 	

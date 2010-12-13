@@ -152,7 +152,7 @@ static void handle_in_transaction(usbvirt_device_t *device,
 	/*
 	 * If the request was processed, we will send data back.
 	 */
-	if (rc == EOK) {
+	if ((rc == EOK) && (expected_len > 0)) {
 		size_t receive_len;
 		ipc_callid_t callid;
 		if (!async_data_read_receive(&callid, &receive_len)) {

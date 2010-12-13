@@ -48,6 +48,7 @@ DIRS = \
 	app/tetris \
 	app/trace \
 	app/top \
+	app/usbinfo \
 	app/virtusbkbd \
 	app/netecho \
 	app/nettest1 \
@@ -86,7 +87,9 @@ DIRS = \
 	srv/net/tl/tcp \
 	srv/net/net \
 	drv/root \
-	drv/vhc
+	drv/rootvirt \
+	drv/test1 \
+	drv/test2
 
 ## Networking
 #
@@ -109,16 +112,25 @@ ifneq ($(UARCH),abs32le)
 endif
 
 ifeq ($(UARCH),amd64)
-endif
-
-ifeq ($(UARCH),ia32)
-	DIRS += drv/rootia32
+	DIRS += drv/rootpc
 	DIRS += drv/pciintel
 	DIRS += drv/isa
 	DIRS += drv/ns8250
 	DIRS += drv/uhci
 	DIRS += drv/usbhub
 	DIRS += drv/usbkbd
+	DIRS += drv/vhc
+endif
+
+ifeq ($(UARCH),ia32)
+	DIRS += drv/rootpc
+	DIRS += drv/pciintel
+	DIRS += drv/isa
+	DIRS += drv/ns8250
+	DIRS += drv/uhci
+	DIRS += drv/usbhub
+	DIRS += drv/usbkbd
+	DIRS += drv/vhc
 endif
 
 ifeq ($(UARCH),ppc32)

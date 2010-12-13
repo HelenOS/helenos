@@ -35,7 +35,7 @@ static int enqueue_transfer_out(device_t *dev,
     void *buffer, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
-	printf(NAME ": transfer OUT [%d.%d (%s); %u]\n",
+	printf(NAME ": transfer OUT [%d.%d (%s); %zu]\n",
 	    target.address, target.endpoint,
 	    usb_str_transfer_type(transfer_type),
 	    size);
@@ -48,7 +48,7 @@ static int enqueue_transfer_setup(device_t *dev,
     void *buffer, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
-	printf(NAME ": transfer SETUP [%d.%d (%s); %u]\n",
+	printf(NAME ": transfer SETUP [%d.%d (%s); %zu]\n",
 	    target.address, target.endpoint,
 	    usb_str_transfer_type(transfer_type),
 	    size);
@@ -61,7 +61,7 @@ static int enqueue_transfer_in(device_t *dev,
     void *buffer, size_t size,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
-	printf(NAME ": transfer IN [%d.%d (%s); %u]\n",
+	printf(NAME ": transfer IN [%d.%d (%s); %zu]\n",
 	    target.address, target.endpoint,
 	    usb_str_transfer_type(transfer_type),
 	    size);

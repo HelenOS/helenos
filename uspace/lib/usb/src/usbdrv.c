@@ -35,6 +35,7 @@
 #include <usb/usbdrv.h>
 #include <usbhc_iface.h>
 #include <errno.h>
+#include <str_error.h>
 
 /** Information about pending transaction on HC. */
 typedef struct {
@@ -70,7 +71,7 @@ int usb_drv_hc_connect(device_t *dev, unsigned int flags)
 	int rc;
 	devman_handle_t handle;
 
-	rc = devman_device_get_handle("/vhc", &handle, 0);
+	rc = devman_device_get_handle("/virt/usbhc", &handle, 0);
 	if (rc != EOK) {
 		return rc;
 	}
@@ -89,10 +90,12 @@ int usb_drv_hc_connect(device_t *dev, unsigned int flags)
 usb_address_t usb_drv_get_my_address(int phone, device_t *dev)
 {
 	ipcarg_t address;
-	int rc = async_req_1_1(phone, IPC_M_USBHC_GET_ADDRESS,
+	int rc = async_req_2_1(phone, DEV_IFACE_ID(USBHC_DEV_IFACE),
+	    IPC_M_USBHC_GET_ADDRESS,
 	    dev->handle, &address);
 
 	if (rc != EOK) {
+		printf("usb_drv_get_my_address over %d failed: %s\n", phone, str_error(rc));
 		return rc;
 	}
 
@@ -106,7 +109,8 @@ usb_address_t usb_drv_get_my_address(int phone, device_t *dev)
  */
 int usb_drv_reserve_default_address(int phone)
 {
-	return async_req_0_0(phone, IPC_M_USBHC_RESERVE_DEFAULT_ADDRESS);
+	return async_req_1_0(phone, DEV_IFACE_ID(USBHC_DEV_IFACE),
+	    IPC_M_USBHC_RESERVE_DEFAULT_ADDRESS);
 }
 
 /** Tell HC to release default address.
@@ -116,7 +120,8 @@ int usb_drv_reserve_default_address(int phone)
  */
 int usb_drv_release_default_address(int phone)
 {
-	return async_req_0_0(phone, IPC_M_USBHC_RELEASE_DEFAULT_ADDRESS);
+	return async_req_1_0(phone, DEV_IFACE_ID(USBHC_DEV_IFACE),
+	    IPC_M_USBHC_RELEASE_DEFAULT_ADDRESS);
 }
 
 /** Ask HC for free address assignment.
@@ -127,7 +132,8 @@ int usb_drv_release_default_address(int phone)
 usb_address_t usb_drv_request_address(int phone)
 {
 	ipcarg_t address;
-	int rc = async_req_0_1(phone, IPC_M_USBHC_REQUEST_ADDRESS, &address);
+	int rc = async_req_1_1(phone, DEV_IFACE_ID(USBHC_DEV_IFACE),
+	    IPC_M_USBHC_REQUEST_ADDRESS, &address);
 	if (rc != EOK) {
 		return rc;
 	} else {
@@ -145,7 +151,8 @@ usb_address_t usb_drv_request_address(int phone)
 int usb_drv_bind_address(int phone, usb_address_t address,
     devman_handle_t handle)
 {
-	int rc = async_req_2_0(phone, IPC_M_USBHC_BIND_ADDRESS,
+	int rc = async_req_3_0(phone, DEV_IFACE_ID(USBHC_DEV_IFACE),
+	    IPC_M_USBHC_BIND_ADDRESS,
 	    address, handle);
 
 	return rc;
@@ -159,7 +166,8 @@ int usb_drv_bind_address(int phone, usb_address_t address,
  */
 int usb_drv_release_address(int phone, usb_address_t address)
 {
-	return async_req_1_0(phone, IPC_M_USBHC_RELEASE_ADDRESS, address);
+	return async_req_2_0(phone, DEV_IFACE_ID(USBHC_DEV_IFACE),
+	    IPC_M_USBHC_RELEASE_ADDRESS, address);
 }
 
 /** Send data to HCD.

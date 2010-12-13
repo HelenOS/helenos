@@ -59,6 +59,7 @@ typedef enum {
 	/* USB_CLASS_ = 0x, */
 } usb_class_t;
 
+const char *usb_str_class(usb_class_t);
 
 #endif
 /**

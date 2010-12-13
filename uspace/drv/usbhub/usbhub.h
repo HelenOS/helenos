@@ -37,7 +37,49 @@
 
 #define NAME "usbhub"
 
-int usb_add_hub_device(device_t *);
+#include "usb/hcdhubd.h"
+
+/** basic information about device attached to hub */
+typedef struct{
+	usb_address_t address;
+	devman_handle_t devman_handle;
+}usb_hub_attached_device_t;
+
+/** Information about attached hub. */
+typedef struct {
+	/** Number of ports. */
+	int port_count;
+	/** attached device handles */
+	usb_hub_attached_device_t * attached_devs;
+	/** General usb device info. */
+	usb_hcd_attached_device_info_t * usb_device;
+	/** General device info*/
+	device_t * device;
+
+} usb_hub_info_t;
+
+/**
+ * function running the hub-controlling loop.
+ * @param noparam fundtion does not need any parameters
+ */
+int usb_hub_control_loop(void * noparam);
+
+/** Callback when new hub device is detected.
+ *
+ * @param dev New device.
+ * @return Error code.
+ */
+int usb_add_hub_device(device_t *dev);
+
+/**
+ * check changes on all registered hubs
+ */
+void usb_hub_check_hub_changes(void);
+
+
+//int usb_add_hub_device(device_t *);
+
+
 
 #endif
 /**

@@ -36,17 +36,18 @@
 #define VHCD_HUB_H_
 
 #include <usbvirt/device.h>
+#include <driver.h>
 
 #include "devices.h"
 
-#define HUB_PORT_COUNT 6
+#define HUB_PORT_COUNT 2
 
 #define BITS2BYTES(bits) \
     (bits ? ((((bits)-1)>>3)+1) : 0)
 
 extern usbvirt_device_t virthub_dev;
 
-void hub_init(void);
+void hub_init(device_t *);
 size_t hub_add_device(virtdev_connection_t *);
 void hub_remove_device(virtdev_connection_t *);
 bool hub_can_device_signal(virtdev_connection_t *);

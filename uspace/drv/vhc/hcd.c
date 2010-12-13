@@ -78,8 +78,7 @@ static int vhc_add_device(device_t *dev)
 	/*
 	 * Initialize our hub and announce its presence.
 	 */
-	hub_init();
-	usb_hcd_add_root_hub(dev);
+	hub_init(dev);
 
 	printf("%s: virtual USB host controller ready.\n", NAME);
 
@@ -110,7 +109,7 @@ int main(int argc, char * argv[])
 {	
 	printf("%s: virtual USB host controller driver.\n", NAME);
 
-	debug_level = 10;
+	usb_dprintf_enable(NAME, 0);
 
 	fid_t fid = fibril_create(hc_manager_fibril, NULL);
 	if (fid == 0) {

@@ -81,6 +81,7 @@ extern const char *test_connect(void);
 extern const char *test_loop1(void);
 extern const char *test_malloc1(void);
 extern const char *test_serial1(void);
+extern const char *test_usbaddrkeep(void);
 
 extern test_t tests[];
 

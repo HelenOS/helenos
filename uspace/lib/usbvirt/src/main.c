@@ -182,7 +182,7 @@ static void callback_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 /** Create necessary phones for communication with virtual HCD.
  * This function wraps following calls:
- * -# open <code>/dev/devices/\\vhc</code> for reading
+ * -# open <code>/dev/devices/\\virt\\usbhc for reading
  * -# access phone of file opened in previous step
  * -# create callback through just opened phone
  * -# create handler for calling on data from host to function
@@ -202,7 +202,7 @@ int usbvirt_connect(usbvirt_device_t *dev)
 		return EEXISTS;
 	}
 	
-	const char *vhc_path = "/vhc";
+	const char *vhc_path = "/virt/usbhc";
 	int rc;
 	devman_handle_t handle;
 
