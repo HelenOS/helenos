@@ -181,6 +181,24 @@ usb_device_request_setup_packet_t * request
 	request->length = USB_HUB_MAX_DESCRIPTOR_SIZE;
 }
 
+static inline int usb_hub_clear_port_feature(int hc, usb_address_t address,
+    int port_index,
+    usb_hub_class_feature_t feature) {
+	usb_target_t target = {
+		.address = address,
+		.endpoint = 0
+	};
+	usb_device_request_setup_packet_t clear_request = {
+		.request_type = USB_HUB_REQ_TYPE_CLEAR_PORT_FEATURE,
+		.request = USB_DEVREQ_CLEAR_FEATURE,
+		.length = 0,
+		.index = port_index
+	};
+	clear_request.value = feature;
+	return usb_drv_psync_control_write(hc, target, &clear_request,
+	    sizeof(clear_request), NULL, 0);
+}
+
 
 
 #endif	/* USBHUB_PRIVATE_H */

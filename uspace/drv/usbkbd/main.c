@@ -207,7 +207,7 @@ static void usbkbd_poll_keyboard(usb_hid_dev_kbd_t *kbd_dev)
 	};
 
 	while (true) {
-		async_usleep(10 * 1000);
+		async_usleep(1000 * 1000);
 		rc = usb_drv_async_interrupt_in(kbd_dev->device->parent_phone,
 		    poll_target, buffer, BUFFER_SIZE, &actual_size, &handle);
 

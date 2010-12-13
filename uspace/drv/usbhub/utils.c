@@ -507,6 +507,11 @@ static void usb_hub_finalize_add_device( usb_hub_info_t * hub,
 
 	int opResult;
 	printf("[usb_hub] finalizing add device\n");
+	opResult = usb_hub_clear_port_feature(hc, target.address,
+	    port, USB_HUB_FEATURE_C_PORT_RESET);
+	if (opResult != EOK) {
+		goto release;
+	}
 
 	/* Request address at from host controller. */
 	usb_address_t new_device_address = usb_drv_request_address(hc);
@@ -624,6 +629,9 @@ static void usb_hub_process_interrupt(usb_hub_info_t * hub, int hc,
 	}
 	//something connected/disconnected
 	if (usb_port_connect_change(&status)) {
+		opResult = usb_hub_clear_port_feature(hc, target.address,
+		    port, USB_HUB_FEATURE_C_PORT_CONNECTION);
+		// TODO: check opResult
 		if (usb_port_dev_connected(&status)) {
 			printf("[usb_hub] some connection changed\n");
 			usb_hub_init_add_device(hc, port, target);
