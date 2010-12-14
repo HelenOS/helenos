@@ -551,7 +551,7 @@ release:
 		printf("[usb_hub] could not assign address of device in hcd \n");
 		return;
 	}
-	printf("[usb_hub] new device address %d, handle %d\n",
+	printf("[usb_hub] new device address %d, handle %zu\n",
 	    new_device_address, child_handle);
 	
 }
