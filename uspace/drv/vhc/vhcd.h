@@ -46,7 +46,7 @@
 
 #define dprintf(level, format, ...) \
 	usb_dprintf(NAME, (level), format "\n", ##__VA_ARGS__)
-void dprintf_inval_call(int, ipc_call_t, ipcarg_t);
+void dprintf_inval_call(int, ipc_call_t, sysarg_t);
 
 #endif
 /**

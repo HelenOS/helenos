@@ -58,7 +58,7 @@ extern int program_create_from_image(void *, char *, program_t *);
 extern int program_create_loader(program_t *, char *);
 extern void program_ready(program_t *);
 
-extern unative_t sys_program_spawn_loader(char *, size_t);
+extern sysarg_t sys_program_spawn_loader(char *, size_t);
 
 #endif
 

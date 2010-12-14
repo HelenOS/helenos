@@ -505,7 +505,7 @@ driver_t *find_driver(driver_list_t *drv_list, const char *drv_name)
  * @param driver	The driver.
  * @param phone		The phone to the driver.
  */
-void set_driver_phone(driver_t *driver, ipcarg_t phone)
+void set_driver_phone(driver_t *driver, sysarg_t phone)
 {
 	fibril_mutex_lock(&driver->driver_mutex);
 	assert(driver->state == DRIVER_STARTING);
@@ -699,7 +699,7 @@ void add_device(int phone, driver_t *drv, node_t *node, dev_tree_t *tree)
 	printf(NAME ": add_device (driver `%s', device `%s')\n", drv->name,
 	    node->name);
 	
-	ipcarg_t rc;
+	sysarg_t rc;
 	ipc_call_t answer;
 	
 	/* Send the device to the driver. */

@@ -103,7 +103,7 @@ void arch_pre_mm_init(void)
 
 static void iosapic_init(void)
 {
-	uint64_t IOSAPIC = PA2KA((unative_t)(iosapic_base)) | FW_OFFSET;
+	uint64_t IOSAPIC = PA2KA((sysarg_t)(iosapic_base)) | FW_OFFSET;
 	int i;
 	
 	int myid, myeid;
@@ -250,7 +250,7 @@ void userspace(uspace_arg_t *kernel_uarg)
  *
  * We use r13 (a.k.a. tp) for this purpose.
  */
-unative_t sys_tls_set(unative_t addr)
+sysarg_t sys_tls_set(sysarg_t addr)
 {
 	return 0;
 }
@@ -273,8 +273,8 @@ void arch_reboot(void)
  */
 void *arch_construct_function(fncptr_t *fptr, void *addr, void *caller)
 {
-	fptr->fnc = (unative_t) addr;
-	fptr->gp = ((unative_t *) caller)[1];
+	fptr->fnc = (sysarg_t) addr;
+	fptr->gp = ((sysarg_t *) caller)[1];
 	
 	return (void *) fptr;
 }

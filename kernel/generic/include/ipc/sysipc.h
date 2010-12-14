@@ -39,28 +39,36 @@
 #include <ipc/irq.h>
 #include <typedefs.h>
 
-extern unative_t sys_ipc_call_sync_fast(unative_t phoneid, unative_t method, 
-    unative_t arg1, unative_t arg2, unative_t arg3, ipc_data_t *data);
-extern unative_t sys_ipc_call_sync_slow(unative_t phoneid, ipc_data_t *question,
-    ipc_data_t *reply);
-extern unative_t sys_ipc_call_async_fast(unative_t phoneid, unative_t method, 
-    unative_t arg1, unative_t arg2, unative_t arg3, unative_t arg4);
-extern unative_t sys_ipc_call_async_slow(unative_t phoneid, ipc_data_t *data);
-extern unative_t sys_ipc_answer_fast(unative_t callid, unative_t retval, 
-    unative_t arg1, unative_t arg2, unative_t arg3, unative_t arg4);
-extern unative_t sys_ipc_answer_slow(unative_t callid, ipc_data_t *data);
-extern unative_t sys_ipc_wait_for_call(ipc_data_t *calldata, uint32_t usec,
-    unsigned int nonblocking);
-extern unative_t sys_ipc_poke(void);
-extern unative_t sys_ipc_forward_fast(unative_t callid, unative_t phoneid,
-    unative_t method, unative_t arg1, unative_t arg2, unsigned int mode);
-extern unative_t sys_ipc_forward_slow(unative_t callid, unative_t phoneid,
-    ipc_data_t *data, unsigned int mode);
-extern unative_t sys_ipc_hangup(unative_t phoneid);
-extern unative_t sys_ipc_register_irq(inr_t inr, devno_t devno, unative_t method,
-    irq_code_t *ucode);
-extern unative_t sys_ipc_unregister_irq(inr_t inr, devno_t devno);
-extern unative_t sys_ipc_connect_kbox(sysarg64_t *task_id);
+extern sysarg_t sys_ipc_call_sync_fast(sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t, ipc_data_t *);
+extern sysarg_t sys_ipc_call_sync_slow(sysarg_t, ipc_data_t *, ipc_data_t *);
+extern sysarg_t sys_ipc_call_async_fast(sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t, sysarg_t);
+extern sysarg_t sys_ipc_call_async_slow(sysarg_t, ipc_data_t *);
+extern sysarg_t sys_ipc_answer_fast(sysarg_t, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t);
+extern sysarg_t sys_ipc_answer_slow(sysarg_t, ipc_data_t *);
+extern sysarg_t sys_ipc_wait_for_call(ipc_data_t *, uint32_t, unsigned int);
+extern sysarg_t sys_ipc_poke(void);
+extern sysarg_t sys_ipc_forward_fast(sysarg_t, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t, unsigned int);
+extern sysarg_t sys_ipc_forward_slow(sysarg_t, sysarg_t, ipc_data_t *,
+    unsigned int);
+extern sysarg_t sys_ipc_hangup(sysarg_t);
+extern sysarg_t sys_ipc_register_irq(inr_t, devno_t, sysarg_t, irq_code_t *);
+extern sysarg_t sys_ipc_unregister_irq(inr_t, devno_t);
+
+#ifdef __32_BITS__
+
+extern sysarg_t sys_ipc_connect_kbox(sysarg64_t *);
+
+#endif  /* __32_BITS__ */
+
+#ifdef __64_BITS__
+
+extern sysarg_t sys_ipc_connect_kbox(sysarg_t);
+
+#endif  /* __64_BITS__ */
 
 #endif
 

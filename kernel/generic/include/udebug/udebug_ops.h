@@ -51,7 +51,7 @@ int udebug_args_read(thread_t *t, void **buffer);
 
 int udebug_regs_read(thread_t *t, void **buffer);
 
-int udebug_mem_read(unative_t uspace_addr, size_t n, void **buffer);
+int udebug_mem_read(sysarg_t uspace_addr, size_t n, void **buffer);
 
 #endif
 

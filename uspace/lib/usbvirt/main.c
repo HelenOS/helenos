@@ -51,7 +51,7 @@ typedef struct {
 	/** Phone to host controller. */
 	int vhcd_phone;
 	/** Device id. */
-	ipcarg_t id;
+	sysarg_t id;
 	/** Linked-list member. */
 	link_t link;
 } virtual_device_t;
@@ -79,7 +79,7 @@ static virtual_device_t *find_device(usbvirt_device_t *device)
 }
 
 /** Find virtual device wrapper by its id. */
-static virtual_device_t *find_device_by_id(ipcarg_t id)
+static virtual_device_t *find_device_by_id(sysarg_t id)
 {
 	if (list_empty(&device_list)) {
 		return NULL;
@@ -221,7 +221,7 @@ int usbvirt_connect(usbvirt_device_t *dev)
 		return hcd_phone;
 	}
 	
-	ipcarg_t phonehash;
+	sysarg_t phonehash;
 	rc = ipc_connect_to_me(hcd_phone, 0, 0, 0, &phonehash);
 	if (rc != EOK) {
 		printf("ipc_connect_to_me() failed\n");

@@ -78,7 +78,7 @@ static void vfs_mount_internal(ipc_callid_t rid, devmap_handle_t devmap_handle,
 	fs_index_t rindex;
 	size_t rsize;
 	unsigned rlnkcnt;
-	ipcarg_t rc;
+	sysarg_t rc;
 	int phone;
 	aid_t msg;
 	ipc_call_t answer;
@@ -125,7 +125,7 @@ static void vfs_mount_internal(ipc_callid_t rid, devmap_handle_t devmap_handle,
 			/* Tell the mountee that it is being mounted. */
 			phone = vfs_grab_phone(fs_handle);
 			msg = async_send_1(phone, VFS_OUT_MOUNTED,
-			    (ipcarg_t) devmap_handle, &answer);
+			    (sysarg_t) devmap_handle, &answer);
 			/* send the mount options */
 			rc = async_data_write_start(phone, (void *)opts,
 			    str_size(opts));
@@ -187,10 +187,10 @@ static void vfs_mount_internal(ipc_callid_t rid, devmap_handle_t devmap_handle,
 
 	phone = vfs_grab_phone(mp_res.triplet.fs_handle);
 	msg = async_send_4(phone, VFS_OUT_MOUNT,
-	    (ipcarg_t) mp_res.triplet.devmap_handle,
-	    (ipcarg_t) mp_res.triplet.index,
-	    (ipcarg_t) fs_handle,
-	    (ipcarg_t) devmap_handle, &answer);
+	    (sysarg_t) mp_res.triplet.devmap_handle,
+	    (sysarg_t) mp_res.triplet.index,
+	    (sysarg_t) fs_handle,
+	    (sysarg_t) devmap_handle, &answer);
 	
 	/* send connection */
 	rc = async_req_1_0(phone, IPC_M_CONNECTION_CLONE, mountee_phone);
@@ -308,7 +308,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	 */
 	ipc_call_t data;
 	ipc_callid_t callid = async_get_call(&data);
-	if (IPC_GET_METHOD(data) != IPC_M_PING) {
+	if (IPC_GET_IMETHOD(data) != IPC_M_PING) {
 		ipc_answer_0(callid, ENOTSUP);
 		ipc_answer_0(rid, ENOTSUP);
 		free(mp);
@@ -715,7 +715,7 @@ void vfs_sync(ipc_callid_t rid, ipc_call_t *request)
 	    file->node->index, &answer);
 
 	/* Wait for reply from the FS server. */
-	ipcarg_t rc;
+	sysarg_t rc;
 	async_wait_for(msg, &rc);
 	
 	vfs_release_phone(file->node->fs_handle, fs_phone);
@@ -746,7 +746,7 @@ int vfs_close_internal(vfs_file_t *file)
 		    file->node->devmap_handle, file->node->index, &answer);
 		
 		/* Wait for reply from the FS server. */
-		ipcarg_t rc;
+		sysarg_t rc;
 		async_wait_for(msg, &rc);
 		
 		vfs_release_phone(file->node->fs_handle, fs_phone);
@@ -838,7 +838,7 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 	 * ourselves. Note that call arguments are immutable in this case so we
 	 * don't have to bother.
 	 */
-	ipcarg_t rc;
+	sysarg_t rc;
 	ipc_call_t answer;
 	if (read) {
 		rc = async_data_read_forward_3_1(fs_phone, VFS_OUT_READ,
@@ -972,12 +972,12 @@ void vfs_seek(ipc_callid_t rid, ipc_call_t *request)
 int vfs_truncate_internal(fs_handle_t fs_handle, devmap_handle_t devmap_handle,
     fs_index_t index, aoff64_t size)
 {
-	ipcarg_t rc;
+	sysarg_t rc;
 	int fs_phone;
 	
 	fs_phone = vfs_grab_phone(fs_handle);
-	rc = async_req_4_0(fs_phone, VFS_OUT_TRUNCATE, (ipcarg_t) devmap_handle,
-	    (ipcarg_t) index, LOWER32(size), UPPER32(size));
+	rc = async_req_4_0(fs_phone, VFS_OUT_TRUNCATE, (sysarg_t) devmap_handle,
+	    (sysarg_t) index, LOWER32(size), UPPER32(size));
 	vfs_release_phone(fs_handle, fs_phone);
 	return (int)rc;
 }
@@ -1004,13 +1004,13 @@ void vfs_truncate(ipc_callid_t rid, ipc_call_t *request)
 	fibril_rwlock_write_unlock(&file->node->contents_rwlock);
 
 	fibril_mutex_unlock(&file->lock);
-	ipc_answer_0(rid, (ipcarg_t)rc);
+	ipc_answer_0(rid, (sysarg_t)rc);
 }
 
 void vfs_fstat(ipc_callid_t rid, ipc_call_t *request)
 {
 	int fd = IPC_GET_ARG1(*request);
-	ipcarg_t rc;
+	sysarg_t rc;
 
 	vfs_file_t *file = vfs_file_get(fd);
 	if (!file) {
@@ -1083,7 +1083,7 @@ void vfs_stat(ipc_callid_t rid, ipc_call_t *request)
 	    node->index, false, NULL);
 	ipc_forward_fast(callid, fs_phone, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
 	
-	ipcarg_t rv;
+	sysarg_t rv;
 	async_wait_for(msg, &rv);
 	vfs_release_phone(node->fs_handle, fs_phone);
 

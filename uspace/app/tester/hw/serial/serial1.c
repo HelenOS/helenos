@@ -92,10 +92,10 @@ const char *test_serial1(void)
 		return "Failed to allocate input buffer";
 	}
 	
-	ipcarg_t old_baud;
-	ipcarg_t old_par;
-	ipcarg_t old_stop;
-	ipcarg_t old_word_size;
+	sysarg_t old_baud;
+	sysarg_t old_par;
+	sysarg_t old_stop;
+	sysarg_t old_word_size;
 	
 	res = ipc_call_sync_0_4(phone, SERIAL_GET_COM_PROPS, &old_baud,
 	    &old_par, &old_word_size, &old_stop);

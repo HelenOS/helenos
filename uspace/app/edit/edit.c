@@ -99,8 +99,8 @@ static bool done;
 static pane_t pane;
 static bool cursor_visible;
 
-static ipcarg_t scr_rows;
-static ipcarg_t scr_columns;
+static sysarg_t scr_rows;
+static sysarg_t scr_columns;
 
 #define ROW_BUF_SIZE 4096
 #define BUF_SIZE 64
@@ -683,7 +683,7 @@ static void pane_text_display(void)
 	/* Clear the remaining rows if file is short. */
 	
 	int i;
-	ipcarg_t j;
+	sysarg_t j;
 	for (i = rows; i < pane.rows; ++i) {
 		console_set_pos(con, 0, i);
 		for (j = 0; j < scr_columns; ++j)

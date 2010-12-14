@@ -98,7 +98,7 @@ usb_transaction_outcome_t virtdev_send_to_all(transaction_t *transaction)
 		}
 		
 		ipc_call_t answer_data;
-		ipcarg_t answer_rc;
+		sysarg_t answer_rc;
 		aid_t req;
 		int rc = EOK;
 		int method = IPC_M_USBVIRT_TRANSACTION_SETUP;

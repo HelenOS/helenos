@@ -196,7 +196,7 @@ NO_TRACE void fault_if_from_uspace(istate_t *istate, const char *fmt, ...)
 	if (event_is_subscribed(EVENT_FAULT)) {
 		/* Notify the subscriber that a fault occurred. */
 		event_notify_3(EVENT_FAULT, LOWER32(TASK->taskid),
-		    UPPER32(TASK->taskid), (unative_t) THREAD);
+		    UPPER32(TASK->taskid), (sysarg_t) THREAD);
 		
 #ifdef CONFIG_UDEBUG
 		/* Wait for a debugging session. */
@@ -262,7 +262,7 @@ NO_TRACE static int cmd_exc_print(cmd_arg_t *argv)
 		order_suffix(exc_table[i].cycles, &cycles, &cycles_suffix);
 		
 		const char *symbol =
-		    symtab_fmt_name_lookup((unative_t) exc_table[i].handler);
+		    symtab_fmt_name_lookup((sysarg_t) exc_table[i].handler);
 		
 #ifdef __32_BITS__
 		printf("%-8u %-20s %9" PRIu64 "%c %9" PRIu64 "%c %10p %s\n",

@@ -289,23 +289,45 @@ void task_release(task_t *task)
 		task_destroy(task);
 }
 
-/** Syscall for reading task ID from userspace.
+#ifdef __32_BITS__
+
+/** Syscall for reading task ID from userspace (32 bits)
  *
- * @param uspace_task_id Userspace address of 8-byte buffer
- *                       where to store current task ID.
+ * @param uspace_taskid Pointer to user-space buffer
+ *                      where to store current task ID.
  *
  * @return Zero on success or an error code from @ref errno.h.
  *
  */
-unative_t sys_task_get_id(task_id_t *uspace_task_id)
+sysarg_t sys_task_get_id(sysarg64_t *uspace_taskid)
 {
 	/*
 	 * No need to acquire lock on TASK because taskid remains constant for
 	 * the lifespan of the task.
 	 */
-	return (unative_t) copy_to_uspace(uspace_task_id, &TASK->taskid,
+	return (sysarg_t) copy_to_uspace(uspace_taskid, &TASK->taskid,
 	    sizeof(TASK->taskid));
 }
+
+#endif  /* __32_BITS__ */
+
+#ifdef __64_BITS__
+
+/** Syscall for reading task ID from userspace (64 bits)
+ *
+ * @return Current task ID.
+ *
+ */
+sysarg_t sys_task_get_id(void)
+{
+	/*
+	 * No need to acquire lock on TASK because taskid remains constant for
+	 * the lifespan of the task.
+	 */
+	return TASK->taskid;
+}
+
+#endif  /* __64_BITS__ */
 
 /** Syscall for setting the task name.
  *
@@ -317,7 +339,7 @@ unative_t sys_task_get_id(task_id_t *uspace_task_id)
  * @return 0 on success or an error code from @ref errno.h.
  *
  */
-unative_t sys_task_set_name(const char *uspace_name, size_t name_len)
+sysarg_t sys_task_set_name(const char *uspace_name, size_t name_len)
 {
 	int rc;
 	char namebuf[TASK_NAME_BUFLEN];
@@ -329,7 +351,7 @@ unative_t sys_task_set_name(const char *uspace_name, size_t name_len)
 	
 	rc = copy_from_uspace(namebuf, uspace_name, name_len);
 	if (rc != 0)
-		return (unative_t) rc;
+		return (sysarg_t) rc;
 	
 	namebuf[name_len] = '\0';
 	str_cpy(TASK->name, TASK_NAME_BUFLEN, namebuf);

@@ -176,7 +176,7 @@ static void file_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 	void *fs_va = NULL;
 	ipc_callid_t callid;
 	ipc_call_t call;
-	ipcarg_t method;
+	sysarg_t method;
 	size_t comm_size;
 	int flags;
 	int retval;
@@ -201,7 +201,7 @@ static void file_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 	while (1) {
 		callid = async_get_call(&call);
-		method = IPC_GET_METHOD(call);
+		method = IPC_GET_IMETHOD(call);
 		switch (method) {
 		case IPC_M_PHONE_HUNGUP:
 			/* The other side has hung up. */

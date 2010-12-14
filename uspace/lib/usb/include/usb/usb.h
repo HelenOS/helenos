@@ -100,7 +100,7 @@ static inline int usb_target_same(usb_target_t a, usb_target_t b)
 /** General handle type.
  * Used by various USB functions as opaque handle.
  */
-typedef ipcarg_t usb_handle_t;
+typedef sysarg_t usb_handle_t;
 
 /** USB packet identifier. */
 typedef enum {

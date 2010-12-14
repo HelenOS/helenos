@@ -166,7 +166,7 @@ static void kbox_thread_proc(void *arg)
 		if (call == NULL)
 			continue;  /* Try again. */
 		
-		switch (IPC_GET_METHOD(call->data)) {
+		switch (IPC_GET_IMETHOD(call->data)) {
 		
 		case IPC_M_DEBUG_ALL:
 			/* Handle debug call. */
@@ -190,7 +190,6 @@ static void kbox_thread_proc(void *arg)
 	
 	LOG("Exiting.");
 }
-
 
 /** Connect phone to a task kernel-box specified by id.
  *
