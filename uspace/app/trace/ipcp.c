@@ -203,7 +203,7 @@ void ipcp_call_out(int phone, ipc_call_t *call, ipc_callid_t hash)
 		printf("Call ID: %p, phone: %d, proto: %s, method: ",
 		    (void *) hash, phone,
 		    (proto ? proto->name : "n/a"));
-		ipc_m_print(proto, IPC_GET_METHOD(*call));
+		ipc_m_print(proto, IPC_GET_IMETHOD(*call));
 		printf(" args: (%" PRIun ", %" PRIun ", %" PRIun ", "
 		    "%" PRIun ", %" PRIun ")\n",
 		    args[1], args[2], args[3], args[4], args[5]);
@@ -213,7 +213,7 @@ void ipcp_call_out(int phone, ipc_call_t *call, ipc_callid_t hash)
 	if ((display_mask & DM_USER) != 0) {
 
 		if (proto != NULL) {
-			oper = proto_get_oper(proto, IPC_GET_METHOD(*call));
+			oper = proto_get_oper(proto, IPC_GET_IMETHOD(*call));
 		} else {
 			oper = NULL;
 		}
@@ -275,7 +275,7 @@ static void parse_answer(ipc_callid_t hash, pending_call_t *pcall,
 //	printf("parse_answer\n");
 
 	phone = pcall->phone_hash;
-	method = IPC_GET_METHOD(pcall->question);
+	method = IPC_GET_IMETHOD(pcall->question);
 	retval = IPC_GET_RETVAL(*answer);
 
 	resp = answer->args;

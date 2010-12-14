@@ -692,7 +692,7 @@ static int icmp_process_message(ipc_call_t *call)
 	packet_t *packet;
 	int rc;
 
-	switch (IPC_GET_METHOD(*call)) {
+	switch (IPC_GET_IMETHOD(*call)) {
 	case NET_ICMP_DEST_UNREACH:
 		rc = packet_translate_remote(icmp_globals.net_phone, &packet,
 		    IPC_GET_PACKET(call));
@@ -823,7 +823,7 @@ static int icmp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 		callid = async_get_call(&call);
 
 		/* Process the call */
-		switch (IPC_GET_METHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			keep_on_going = false;
 			rc = EHANGUP;
@@ -899,7 +899,7 @@ int icmp_message_standalone(ipc_callid_t callid, ipc_call_t *call,
 	int rc;
 
 	*answer_count = 0;
-	switch (IPC_GET_METHOD(*call)) {
+	switch (IPC_GET_IMETHOD(*call)) {
 	case NET_TL_RECEIVED:
 		rc = packet_translate_remote(icmp_globals.net_phone, &packet,
 		    IPC_GET_PACKET(call));
@@ -952,7 +952,7 @@ static void tl_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		 * End if told to either by the message or the processing
 		 * result.
 		 */
-		if ((IPC_GET_METHOD(call) == IPC_M_PHONE_HUNGUP) ||
+		if ((IPC_GET_IMETHOD(call) == IPC_M_PHONE_HUNGUP) ||
 		    (res == EHANGUP))
 			return;
 		

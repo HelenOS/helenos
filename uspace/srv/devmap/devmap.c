@@ -386,7 +386,7 @@ static devmap_driver_t *devmap_driver_register(void)
 	ipc_call_t icall;
 	ipc_callid_t iid = async_get_call(&icall);
 	
-	if (IPC_GET_METHOD(icall) != DEVMAP_DRIVER_REGISTER) {
+	if (IPC_GET_IMETHOD(icall) != DEVMAP_DRIVER_REGISTER) {
 		ipc_answer_0(iid, EREFUSED);
 		return NULL;
 	}
@@ -415,7 +415,7 @@ static devmap_driver_t *devmap_driver_register(void)
 	ipc_call_t call;
 	ipc_callid_t callid = async_get_call(&call);
 	
-	if (IPC_GET_METHOD(call) != IPC_M_CONNECT_TO_ME) {
+	if (IPC_GET_IMETHOD(call) != IPC_M_CONNECT_TO_ME) {
 		free(driver->name);
 		free(driver);
 		ipc_answer_0(callid, ENOTSUP);
@@ -1026,7 +1026,7 @@ static void devmap_connection_driver(ipc_callid_t iid, ipc_call_t *icall)
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
 		
-		switch (IPC_GET_METHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			cont = false;
 			continue;
@@ -1077,7 +1077,7 @@ static void devmap_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
 		
-		switch (IPC_GET_METHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			cont = false;
 			continue;

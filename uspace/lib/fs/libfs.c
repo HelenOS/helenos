@@ -162,7 +162,7 @@ void libfs_mount(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	/* Accept the phone */
 	callid = async_get_call(&call);
 	int mountee_phone = (int) IPC_GET_ARG1(call);
-	if ((IPC_GET_METHOD(call) != IPC_M_CONNECTION_CLONE) ||
+	if ((IPC_GET_IMETHOD(call) != IPC_M_CONNECTION_CLONE) ||
 	    (mountee_phone < 0)) {
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);

@@ -407,7 +407,7 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 		int retval;
 		console_event_t ev;
 		
-		switch (IPC_GET_METHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			/* TODO: Handle hangup */
 			return;
@@ -450,7 +450,7 @@ static void mouse_events(ipc_callid_t iid, ipc_call_t *icall)
 		
 		int retval;
 		
-		switch (IPC_GET_METHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			/* TODO: Handle hangup */
 			return;
@@ -607,7 +607,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		arg2 = 0;
 		arg3 = 0;
 		
-		switch (IPC_GET_METHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			cons->refcount--;
 			if (cons->refcount == 0)

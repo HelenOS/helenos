@@ -41,14 +41,15 @@
  * (read/write port/memory, add information to notification ipc message).
  *
  * The structure of a notification message is as follows:
- * - METHOD: method as registered by the SYS_IPC_REGISTER_IRQ syscall
+ * - IMETHOD: interface and method as registered by the SYS_IPC_REGISTER_IRQ
+ *            syscall
  * - ARG1: payload modified by a 'top-half' handler
  * - ARG2: payload modified by a 'top-half' handler
  * - ARG3: payload modified by a 'top-half' handler
  * - ARG4: payload modified by a 'top-half' handler
  * - ARG5: payload modified by a 'top-half' handler
  * - in_phone_hash: interrupt counter (may be needed to assure correct order
- *         in multithreaded drivers)
+ *                  in multithreaded drivers)
  *
  * Note on synchronization for ipc_irq_register(), ipc_irq_unregister(),
  * ipc_irq_cleanup() and IRQ handlers:
@@ -129,17 +130,18 @@ static irq_code_t *code_from_uspace(irq_code_t *ucode)
 
 /** Register an answerbox as a receiving end for IRQ notifications.
  *
- * @param box    Receiving answerbox.
- * @param inr    IRQ number.
- * @param devno  Device number.
- * @param method Method to be associated with the notification.
- * @param ucode  Uspace pointer to top-half pseudocode.
+ * @param box     Receiving answerbox.
+ * @param inr     IRQ number.
+ * @param devno   Device number.
+ * @param imethod Interface and method to be associated
+ *                with the notification.
+ * @param ucode   Uspace pointer to top-half pseudocode.
  *
  * @return EBADMEM, ENOENT or EEXISTS on failure or 0 on success.
  *
  */
 int ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno,
-    sysarg_t method, irq_code_t *ucode)
+    sysarg_t imethod, irq_code_t *ucode)
 {
 	sysarg_t key[] = {
 		(sysarg_t) inr,
@@ -166,7 +168,7 @@ int ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno,
 	irq->handler = ipc_irq_top_half_handler;
 	irq->notif_cfg.notify = true;
 	irq->notif_cfg.answerbox = box;
-	irq->notif_cfg.method = method;
+	irq->notif_cfg.imethod = imethod;
 	irq->notif_cfg.code = code;
 	irq->notif_cfg.counter = 0;
 	
@@ -443,7 +445,7 @@ void ipc_irq_top_half_handler(irq_t *irq)
 		call->priv = ++irq->notif_cfg.counter;
 		
 		/* Set up args */
-		IPC_SET_METHOD(call->data, irq->notif_cfg.method);
+		IPC_SET_IMETHOD(call->data, irq->notif_cfg.imethod);
 		IPC_SET_ARG1(call->data, irq->notif_cfg.scratch[1]);
 		IPC_SET_ARG2(call->data, irq->notif_cfg.scratch[2]);
 		IPC_SET_ARG3(call->data, irq->notif_cfg.scratch[3]);
@@ -480,7 +482,7 @@ void ipc_irq_send_msg(irq_t *irq, sysarg_t a1, sysarg_t a2, sysarg_t a3,
 		/* Put a counter to the message */
 		call->priv = ++irq->notif_cfg.counter;
 		
-		IPC_SET_METHOD(call->data, irq->notif_cfg.method);
+		IPC_SET_IMETHOD(call->data, irq->notif_cfg.imethod);
 		IPC_SET_ARG1(call->data, a1);
 		IPC_SET_ARG2(call->data, a2);
 		IPC_SET_ARG3(call->data, a3);

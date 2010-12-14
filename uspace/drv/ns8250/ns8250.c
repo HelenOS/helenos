@@ -886,7 +886,7 @@ static int ns8250_set_props(device_t *dev, unsigned int baud_rate,
 static void ns8250_default_handler(device_t *dev, ipc_callid_t callid,
     ipc_call_t *call)
 {
-	sysarg_t method = IPC_GET_METHOD(*call);
+	sysarg_t method = IPC_GET_IMETHOD(*call);
 	int ret;
 	unsigned int baud_rate, parity, word_length, stop_bits;
 	

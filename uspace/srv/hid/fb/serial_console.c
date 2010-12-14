@@ -344,7 +344,7 @@ void serial_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		
 		int retval;
 		
-		switch (IPC_GET_METHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			client_connected = 0;
 			ipc_answer_0(callid, EOK);

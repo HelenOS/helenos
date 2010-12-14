@@ -308,7 +308,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	 */
 	ipc_call_t data;
 	ipc_callid_t callid = async_get_call(&data);
-	if (IPC_GET_METHOD(data) != IPC_M_PING) {
+	if (IPC_GET_IMETHOD(data) != IPC_M_PING) {
 		ipc_answer_0(callid, ENOTSUP);
 		ipc_answer_0(rid, ENOTSUP);
 		free(mp);

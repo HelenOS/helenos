@@ -136,7 +136,7 @@ int main(int argc, char **argv)
 		task_id_t id;
 		sysarg_t retval;
 		
-		switch (IPC_GET_METHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_SHARE_IN:
 			switch (IPC_GET_ARG3(call)) {
 			case SERVICE_MEM_REALTIME:

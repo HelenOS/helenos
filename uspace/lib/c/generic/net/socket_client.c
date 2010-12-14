@@ -213,7 +213,7 @@ static void socket_connection(ipc_callid_t iid, ipc_call_t * icall)
 loop:
 	callid = async_get_call(&call);
 
-	switch (IPC_GET_METHOD(call)) {
+	switch (IPC_GET_IMETHOD(call)) {
 	case NET_SOCKET_RECEIVED:
 	case NET_SOCKET_ACCEPTED:
 	case NET_SOCKET_DATA_FRAGMENT_SIZE:
@@ -228,7 +228,7 @@ loop:
 			break;
 		}
 		
-		switch (IPC_GET_METHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 		case NET_SOCKET_RECEIVED:
 			fibril_mutex_lock(&socket->receive_lock);
 			// push the number of received packet fragments

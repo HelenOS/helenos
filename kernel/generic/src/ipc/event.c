@@ -56,11 +56,11 @@ void event_init(void)
 		spinlock_initialize(&events[i].lock, "event.lock");
 		events[i].answerbox = NULL;
 		events[i].counter = 0;
-		events[i].method = 0;
+		events[i].imethod = 0;
 	}
 }
 
-static int event_subscribe(event_type_t evno, sysarg_t method,
+static int event_subscribe(event_type_t evno, sysarg_t imethod,
     answerbox_t *answerbox)
 {
 	if (evno >= EVENT_END)
@@ -72,7 +72,7 @@ static int event_subscribe(event_type_t evno, sysarg_t method,
 	
 	if (events[evno].answerbox == NULL) {
 		events[evno].answerbox = answerbox;
-		events[evno].method = method;
+		events[evno].imethod = imethod;
 		events[evno].counter = 0;
 		res = EOK;
 	} else
@@ -83,10 +83,10 @@ static int event_subscribe(event_type_t evno, sysarg_t method,
 	return res;
 }
 
-sysarg_t sys_event_subscribe(sysarg_t evno, sysarg_t method)
+sysarg_t sys_event_subscribe(sysarg_t evno, sysarg_t imethod)
 {
 	return (sysarg_t) event_subscribe((event_type_t) evno, (sysarg_t)
-	    method, &TASK->answerbox);
+	    imethod, &TASK->answerbox);
 }
 
 bool event_is_subscribed(event_type_t evno)
@@ -112,7 +112,7 @@ void event_cleanup_answerbox(answerbox_t *answerbox)
 		if (events[i].answerbox == answerbox) {
 			events[i].answerbox = NULL;
 			events[i].counter = 0;
-			events[i].method = 0;
+			events[i].imethod = 0;
 		}
 		spinlock_unlock(&events[i].lock);
 	}
@@ -129,7 +129,7 @@ void event_notify(event_type_t evno, sysarg_t a1, sysarg_t a2, sysarg_t a3,
 		if (call) {
 			call->flags |= IPC_CALL_NOTIF;
 			call->priv = ++events[evno].counter;
-			IPC_SET_METHOD(call->data, events[evno].method);
+			IPC_SET_IMETHOD(call->data, events[evno].imethod);
 			IPC_SET_ARG1(call->data, a1);
 			IPC_SET_ARG2(call->data, a2);
 			IPC_SET_ARG3(call->data, a3);

@@ -110,7 +110,7 @@ static void z8530_irq_handler(ipc_callid_t iid, ipc_call_t *call)
 	
 	if (cir_service)
 		async_msg_1(cir_phone, BUS_CLEAR_INTERRUPT,
-		    IPC_GET_METHOD(*call));
+		    IPC_GET_IMETHOD(*call));
 }
 
 /** @}

@@ -83,15 +83,15 @@
 
 /* Macros for manipulating calling data */
 #define IPC_SET_RETVAL(data, retval)  ((data).args[0] = (retval))
-#define IPC_SET_METHOD(data, val)     ((data).args[0] = (val))
+#define IPC_SET_IMETHOD(data, val)    ((data).args[0] = (val))
 #define IPC_SET_ARG1(data, val)       ((data).args[1] = (val))
 #define IPC_SET_ARG2(data, val)       ((data).args[2] = (val))
 #define IPC_SET_ARG3(data, val)       ((data).args[3] = (val))
 #define IPC_SET_ARG4(data, val)       ((data).args[4] = (val))
 #define IPC_SET_ARG5(data, val)       ((data).args[5] = (val))
 
-#define IPC_GET_METHOD(data)  ((data).args[0])
-#define IPC_GET_RETVAL(data)  ((data).args[0])
+#define IPC_GET_IMETHOD(data)  ((data).args[0])
+#define IPC_GET_RETVAL(data)   ((data).args[0])
 
 #define IPC_GET_ARG1(data)  ((data).args[1])
 #define IPC_GET_ARG2(data)  ((data).args[2])
@@ -115,8 +115,15 @@
  */
 #define IPC_FF_ROUTE_FROM_ME  (1 << 0)
 
+/** Kernel IPC interfaces
+ *
+ */
+#define IPC_IF_KERNEL  0
+
 /** System-specific methods - only through special syscalls
- * These methods have special behaviour
+ *
+ * These methods have special behaviour. These methods also
+ * have the implicit kernel interface 0.
  *
  */
 

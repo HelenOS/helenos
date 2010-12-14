@@ -382,7 +382,7 @@ static void ldr_connection(ipc_callid_t iid, ipc_call_t *icall)
 	while (1) {
 		callid = async_get_call(&call);
 		
-		switch (IPC_GET_METHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			exit(0);
 		case LOADER_GET_TASKID:
@@ -410,9 +410,9 @@ static void ldr_connection(ipc_callid_t iid, ipc_call_t *icall)
 			retval = ENOENT;
 			break;
 		}
-		if (IPC_GET_METHOD(call) != IPC_M_PHONE_HUNGUP) {
+		if (IPC_GET_IMETHOD(call) != IPC_M_PHONE_HUNGUP) {
 			DPRINTF("Responding EINVAL to method %d.\n",
-			    IPC_GET_METHOD(call));
+			    IPC_GET_IMETHOD(call));
 			ipc_answer_0(callid, EINVAL);
 		}
 	}

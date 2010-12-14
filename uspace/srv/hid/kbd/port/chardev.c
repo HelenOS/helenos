@@ -124,7 +124,7 @@ static void kbd_port_events(ipc_callid_t iid, ipc_call_t *icall)
 
 		int retval;
 
-		switch (IPC_GET_METHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			/* TODO: Handle hangup */
 			return;

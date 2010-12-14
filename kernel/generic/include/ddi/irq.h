@@ -121,8 +121,8 @@ typedef struct {
 	bool notify;
 	/** Answerbox for notifications. */
 	answerbox_t *answerbox;
-	/** Method to be used for the notification. */
-	sysarg_t method;
+	/** Interface and method to be used for the notification. */
+	sysarg_t imethod;
 	/** Arguments that will be sent if the IRQ is claimed. */
 	uint32_t scratch[IPC_CALL_LEN];
 	/** Top-half pseudocode. */

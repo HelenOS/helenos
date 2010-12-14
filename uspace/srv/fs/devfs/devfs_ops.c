@@ -574,7 +574,7 @@ void devfs_read(ipc_callid_t rid, ipc_call_t *request)
 		
 		/* Make a request at the driver */
 		ipc_call_t answer;
-		aid_t msg = async_send_3(dev->phone, IPC_GET_METHOD(*request),
+		aid_t msg = async_send_3(dev->phone, IPC_GET_IMETHOD(*request),
 		    IPC_GET_ARG1(*request), IPC_GET_ARG2(*request),
 		    IPC_GET_ARG3(*request), &answer);
 		
@@ -637,7 +637,7 @@ void devfs_write(ipc_callid_t rid, ipc_call_t *request)
 		
 		/* Make a request at the driver */
 		ipc_call_t answer;
-		aid_t msg = async_send_3(dev->phone, IPC_GET_METHOD(*request),
+		aid_t msg = async_send_3(dev->phone, IPC_GET_IMETHOD(*request),
 		    IPC_GET_ARG1(*request), IPC_GET_ARG2(*request),
 		    IPC_GET_ARG3(*request), &answer);
 		
@@ -745,7 +745,7 @@ void devfs_sync(ipc_callid_t rid, ipc_call_t *request)
 		
 		/* Make a request at the driver */
 		ipc_call_t answer;
-		aid_t msg = async_send_2(dev->phone, IPC_GET_METHOD(*request),
+		aid_t msg = async_send_2(dev->phone, IPC_GET_IMETHOD(*request),
 		    IPC_GET_ARG1(*request), IPC_GET_ARG2(*request), &answer);
 		
 		fibril_mutex_unlock(&devices_mutex);

@@ -91,7 +91,7 @@ static void obio_connection(ipc_callid_t iid, ipc_call_t *icall)
 		int inr;
 	
 		callid = async_get_call(&call);
-		switch (IPC_GET_METHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 		case BUS_CLEAR_INTERRUPT:
 			inr = IPC_GET_ARG1(call);
 			base_virt[OBIO_CIR(inr & INO_MASK)] = 0;

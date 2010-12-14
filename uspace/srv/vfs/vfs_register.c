@@ -176,8 +176,8 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	 */
 	ipc_call_t call;
 	ipc_callid_t callid = async_get_call(&call);
-	if (IPC_GET_METHOD(call) != IPC_M_CONNECT_TO_ME) {
-		dprintf("Unexpected call, method = %d\n", IPC_GET_METHOD(call));
+	if (IPC_GET_IMETHOD(call) != IPC_M_CONNECT_TO_ME) {
+		dprintf("Unexpected call, method = %d\n", IPC_GET_IMETHOD(call));
 		list_remove(&fs_info->fs_link);
 		fibril_mutex_unlock(&fs_head_lock);
 		free(fs_info);
@@ -196,7 +196,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	
 	size_t size;
 	if (!async_share_in_receive(&callid, &size)) {
-		dprintf("Unexpected call, method = %d\n", IPC_GET_METHOD(call));
+		dprintf("Unexpected call, method = %d\n", IPC_GET_IMETHOD(call));
 		list_remove(&fs_info->fs_link);
 		fibril_mutex_unlock(&fs_head_lock);
 		ipc_hangup(fs_info->phone);

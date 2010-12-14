@@ -287,7 +287,7 @@ static bool route_call(ipc_callid_t callid, ipc_call_t *call)
 	msg->call = *call;
 	list_append(&msg->link, &conn->msg_queue);
 	
-	if (IPC_GET_METHOD(*call) == IPC_M_PHONE_HUNGUP)
+	if (IPC_GET_IMETHOD(*call) == IPC_M_PHONE_HUNGUP)
 		conn->close_callid = callid;
 	
 	/* If the connection fibril is waiting for an event, activate it */
@@ -400,7 +400,7 @@ ipc_callid_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 			 * IPC_M_PHONE_HUNGUP until the caller notices. 
 			 */
 			memset(call, 0, sizeof(ipc_call_t));
-			IPC_SET_METHOD(*call, IPC_M_PHONE_HUNGUP);
+			IPC_SET_IMETHOD(*call, IPC_M_PHONE_HUNGUP);
 			futex_up(&async_futex);
 			return conn->close_callid;
 		}
@@ -587,7 +587,7 @@ static void handle_call(ipc_callid_t callid, ipc_call_t *call)
 		goto out;
 	}
 	
-	switch (IPC_GET_METHOD(*call)) {
+	switch (IPC_GET_IMETHOD(*call)) {
 	case IPC_M_CONNECT_ME:
 	case IPC_M_CONNECT_ME_TO:
 		/* Open new connection with fibril etc. */
@@ -1198,7 +1198,7 @@ int async_share_in_receive(ipc_callid_t *callid, size_t *size)
 	assert(size);
 
 	*callid = async_get_call(&data);
-	if (IPC_GET_METHOD(data) != IPC_M_SHARE_IN)
+	if (IPC_GET_IMETHOD(data) != IPC_M_SHARE_IN)
 		return 0;
 	*size = (size_t) IPC_GET_ARG2(data);
 	return 1;
@@ -1258,7 +1258,7 @@ int async_share_out_receive(ipc_callid_t *callid, size_t *size, int *flags)
 	assert(flags);
 
 	*callid = async_get_call(&data);
-	if (IPC_GET_METHOD(data) != IPC_M_SHARE_OUT)
+	if (IPC_GET_IMETHOD(data) != IPC_M_SHARE_OUT)
 		return 0;
 	*size = (size_t) IPC_GET_ARG2(data);
 	*flags = (int) IPC_GET_ARG3(data);
@@ -1316,7 +1316,7 @@ int async_data_read_receive(ipc_callid_t *callid, size_t *size)
 	assert(callid);
 
 	*callid = async_get_call(&data);
-	if (IPC_GET_METHOD(data) != IPC_M_DATA_READ)
+	if (IPC_GET_IMETHOD(data) != IPC_M_DATA_READ)
 		return 0;
 	if (size)
 		*size = (size_t) IPC_GET_ARG2(data);
@@ -1411,7 +1411,7 @@ int async_data_write_receive(ipc_callid_t *callid, size_t *size)
 	assert(callid);
 	
 	*callid = async_get_call(&data);
-	if (IPC_GET_METHOD(data) != IPC_M_DATA_WRITE)
+	if (IPC_GET_IMETHOD(data) != IPC_M_DATA_WRITE)
 		return 0;
 	
 	if (size)

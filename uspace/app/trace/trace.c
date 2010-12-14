@@ -294,7 +294,7 @@ static void sc_ipc_call_async_fast(sysarg_t *sc_args, sysarg_t sc_rc)
 
 	phoneid = sc_args[0];
 
-	IPC_SET_METHOD(call, sc_args[1]);
+	IPC_SET_IMETHOD(call, sc_args[1]);
 	IPC_SET_ARG1(call, sc_args[2]);
 	IPC_SET_ARG2(call, sc_args[3]);
 	IPC_SET_ARG3(call, sc_args[4]);
@@ -330,7 +330,7 @@ static void sc_ipc_call_sync_fast(sysarg_t *sc_args)
 //	printf("sc_ipc_call_sync_fast()\n");
 	phoneidx = sc_args[0];
 
-	IPC_SET_METHOD(question, sc_args[1]);
+	IPC_SET_IMETHOD(question, sc_args[1]);
 	IPC_SET_ARG1(question, sc_args[2]);
 	IPC_SET_ARG2(question, sc_args[3]);
 	IPC_SET_ARG3(question, sc_args[4]);

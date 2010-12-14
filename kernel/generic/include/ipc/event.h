@@ -46,8 +46,8 @@ typedef struct {
 	
 	/** Answerbox for notifications. */
 	answerbox_t *answerbox;
-	/** Method to be used for the notification. */
-	sysarg_t method;
+	/** Interface and method to be used for the notification. */
+	sysarg_t imethod;
 	/** Counter. */
 	size_t counter;
 } event_t;

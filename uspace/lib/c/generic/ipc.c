@@ -130,42 +130,42 @@ ipc_call_sync_fast(int phoneid, sysarg_t method, sysarg_t arg1, sysarg_t arg2,
 
 /** Make a synchronous call transmitting 5 arguments of payload.
  *
- * @param phoneid	Phone handle for the call.
- * @param method	Requested method.
- * @param arg1		Service-defined payload argument.
- * @param arg2		Service-defined payload argument.
- * @param arg3		Service-defined payload argument.
- * @param arg4		Service-defined payload argument.
- * @param arg5		Service-defined payload argument.
- * @param result1	If non-NULL, storage for the first return argument.
- * @param result2	If non-NULL, storage for the second return argument.
- * @param result3	If non-NULL, storage for the third return argument.
- * @param result4	If non-NULL, storage for the fourth return argument.
- * @param result5	If non-NULL, storage for the fifth return argument.
+ * @param phoneid Phone handle for the call.
+ * @param imethod Requested interface and method.
+ * @param arg1    Service-defined payload argument.
+ * @param arg2    Service-defined payload argument.
+ * @param arg3    Service-defined payload argument.
+ * @param arg4    Service-defined payload argument.
+ * @param arg5    Service-defined payload argument.
+ * @param result1 If non-NULL, storage for the first return argument.
+ * @param result2 If non-NULL, storage for the second return argument.
+ * @param result3 If non-NULL, storage for the third return argument.
+ * @param result4 If non-NULL, storage for the fourth return argument.
+ * @param result5 If non-NULL, storage for the fifth return argument.
  *
- * @return		Negative value means IPC error.
- *			Otherwise the RETVAL of the answer.
+ * @return Negative value means IPC error.
+ *         Otherwise the RETVAL of the answer.
+ *
  */
 int
-ipc_call_sync_slow(int phoneid, sysarg_t method, sysarg_t arg1, sysarg_t arg2,
+ipc_call_sync_slow(int phoneid, sysarg_t imethod, sysarg_t arg1, sysarg_t arg2,
     sysarg_t arg3, sysarg_t arg4, sysarg_t arg5, sysarg_t *result1,
     sysarg_t *result2, sysarg_t *result3, sysarg_t *result4, sysarg_t *result5)
 {
 	ipc_call_t data;
-	int callres;
-
-	IPC_SET_METHOD(data, method);
+	
+	IPC_SET_IMETHOD(data, imethod);
 	IPC_SET_ARG1(data, arg1);
 	IPC_SET_ARG2(data, arg2);
 	IPC_SET_ARG3(data, arg3);
 	IPC_SET_ARG4(data, arg4);
 	IPC_SET_ARG5(data, arg5);
-
-	callres = __SYSCALL3(SYS_IPC_CALL_SYNC_SLOW, phoneid, (sysarg_t) &data,
-	    (sysarg_t) &data);
+	
+	int callres = __SYSCALL3(SYS_IPC_CALL_SYNC_SLOW, phoneid,
+	    (sysarg_t) &data, (sysarg_t) &data);
 	if (callres)
 		return callres;
-
+	
 	if (result1)
 		*result1 = IPC_GET_ARG1(data);
 	if (result2)
@@ -176,16 +176,17 @@ ipc_call_sync_slow(int phoneid, sysarg_t method, sysarg_t arg1, sysarg_t arg2,
 		*result4 = IPC_GET_ARG4(data);
 	if (result5)
 		*result5 = IPC_GET_ARG5(data);
-
+	
 	return IPC_GET_RETVAL(data);
 }
 
 /** Syscall to send asynchronous message.
  *
- * @param phoneid	Phone handle for the call.
- * @param data		Call data with the request.
+ * @param phoneid Phone handle for the call.
+ * @param data    Call data with the request.
  *
- * @return		Hash of the call or an error code.
+ * @return Hash of the call or an error code.
+ *
  */
 static ipc_callid_t _ipc_call_async(int phoneid, ipc_call_t *data)
 {
@@ -276,46 +277,46 @@ static inline void ipc_finish_async(ipc_callid_t callid, int phoneid,
  * In case of fatal error, call the callback handler with the proper error code.
  * If the call cannot be temporarily made, queue it.
  *
- * @param phoneid	Phone handle for the call.
- * @param method	Requested method.
- * @param arg1		Service-defined payload argument.
- * @param arg2		Service-defined payload argument.
- * @param arg3		Service-defined payload argument.
- * @param arg4		Service-defined payload argument.
- * @param private	Argument to be passed to the answer/error callback.
- * @param callback	Answer or error callback.
- * @param can_preempt	If non-zero, the current fibril will be preempted in
- *			case the kernel temporarily refuses to accept more
- *			asynchronous calls.
+ * @param phoneid     Phone handle for the call.
+ * @param imethod     Requested interface and method.
+ * @param arg1        Service-defined payload argument.
+ * @param arg2        Service-defined payload argument.
+ * @param arg3        Service-defined payload argument.
+ * @param arg4        Service-defined payload argument.
+ * @param private     Argument to be passed to the answer/error callback.
+ * @param callback    Answer or error callback.
+ * @param can_preempt If non-zero, the current fibril will be preempted in
+ *                    case the kernel temporarily refuses to accept more
+ *                    asynchronous calls.
+ *
  */
-void ipc_call_async_fast(int phoneid, sysarg_t method, sysarg_t arg1,
+void ipc_call_async_fast(int phoneid, sysarg_t imethod, sysarg_t arg1,
     sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, void *private,
     ipc_async_callback_t callback, int can_preempt)
 {
 	async_call_t *call = NULL;
-	ipc_callid_t callid;
-
+	
 	if (callback) {
 		call = ipc_prepare_async(private, callback);
 		if (!call)
 			return;
 	}
-
+	
 	/*
 	 * We need to make sure that we get callid before another thread
 	 * accesses the queue again.
 	 */
 	futex_down(&ipc_futex);
-	callid = __SYSCALL6(SYS_IPC_CALL_ASYNC_FAST, phoneid, method, arg1,
-	    arg2, arg3, arg4);
-
+	ipc_callid_t callid = __SYSCALL6(SYS_IPC_CALL_ASYNC_FAST, phoneid,
+	    imethod, arg1, arg2, arg3, arg4);
+	
 	if (callid == (ipc_callid_t) IPC_CALLRET_TEMPORARY) {
 		if (!call) {
 			call = ipc_prepare_async(private, callback);
 			if (!call)
 				return;
 		}
-		IPC_SET_METHOD(call->u.msg.data, method);
+		IPC_SET_IMETHOD(call->u.msg.data, imethod);
 		IPC_SET_ARG1(call->u.msg.data, arg1);
 		IPC_SET_ARG2(call->u.msg.data, arg2);
 		IPC_SET_ARG3(call->u.msg.data, arg3);
@@ -336,21 +337,21 @@ void ipc_call_async_fast(int phoneid, sysarg_t method, sysarg_t arg1,
  * In case of fatal error, call the callback handler with the proper error code.
  * If the call cannot be temporarily made, queue it.
  *
- * @param phoneid	Phone handle for the call.
- * @param method	Requested method.
- * @param arg1		Service-defined payload argument.
- * @param arg2		Service-defined payload argument.
- * @param arg3		Service-defined payload argument.
- * @param arg4		Service-defined payload argument.
- * @param arg5		Service-defined payload argument.
- * @param private	Argument to be passed to the answer/error callback.
- * @param callback	Answer or error callback.
- * @param can_preempt	If non-zero, the current fibril will be preempted in
- *			case the kernel temporarily refuses to accept more
- *			asynchronous calls.
+ * @param phoneid     Phone handle for the call.
+ * @param imethod     Requested interface and method.
+ * @param arg1        Service-defined payload argument.
+ * @param arg2        Service-defined payload argument.
+ * @param arg3        Service-defined payload argument.
+ * @param arg4        Service-defined payload argument.
+ * @param arg5        Service-defined payload argument.
+ * @param private     Argument to be passed to the answer/error callback.
+ * @param callback    Answer or error callback.
+ * @param can_preempt If non-zero, the current fibril will be preempted in
+ *                    case the kernel temporarily refuses to accept more
+ *                    asynchronous calls.
  *
  */
-void ipc_call_async_slow(int phoneid, sysarg_t method, sysarg_t arg1,
+void ipc_call_async_slow(int phoneid, sysarg_t imethod, sysarg_t arg1,
     sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t arg5, void *private,
     ipc_async_callback_t callback, int can_preempt)
 {
@@ -361,7 +362,7 @@ void ipc_call_async_slow(int phoneid, sysarg_t method, sysarg_t arg1,
 	if (!call)
 		return;
 
-	IPC_SET_METHOD(call->u.msg.data, method);
+	IPC_SET_IMETHOD(call->u.msg.data, imethod);
 	IPC_SET_ARG1(call->u.msg.data, arg1);
 	IPC_SET_ARG2(call->u.msg.data, arg2);
 	IPC_SET_ARG3(call->u.msg.data, arg3);
@@ -675,41 +676,41 @@ int ipc_unregister_irq(int inr, int devno)
 
 /** Forward a received call to another destination.
  *
- * @param callid	Hash of the call to forward.
- * @param phoneid	Phone handle to use for forwarding.
- * @param method	New method for the forwarded call.
- * @param arg1		New value of the first argument for the forwarded call.
- * @param arg2		New value of the second argument for the forwarded call.
- * @param mode		Flags specifying mode of the forward operation.
+ * @param callid  Hash of the call to forward.
+ * @param phoneid Phone handle to use for forwarding.
+ * @param imethod New interface and method for the forwarded call.
+ * @param arg1    New value of the first argument for the forwarded call.
+ * @param arg2    New value of the second argument for the forwarded call.
+ * @param mode    Flags specifying mode of the forward operation.
  *
- * @return		Zero on success or an error code.
+ * @return Zero on success or an error code.
  *
  * For non-system methods, the old method, arg1 and arg2 are rewritten by the
  * new values. For system methods, the new method, arg1 and arg2 are written 
  * to the old arg1, arg2 and arg3, respectivelly. Calls with immutable 
  * methods are forwarded verbatim.
  */
-int ipc_forward_fast(ipc_callid_t callid, int phoneid, int method,
+int ipc_forward_fast(ipc_callid_t callid, int phoneid, int imethod,
     sysarg_t arg1, sysarg_t arg2, int mode)
 {
-	return __SYSCALL6(SYS_IPC_FORWARD_FAST, callid, phoneid, method, arg1, 
+	return __SYSCALL6(SYS_IPC_FORWARD_FAST, callid, phoneid, imethod, arg1,
 	    arg2, mode);
 }
 
 
-int ipc_forward_slow(ipc_callid_t callid, int phoneid, int method,
+int ipc_forward_slow(ipc_callid_t callid, int phoneid, int imethod,
     sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t arg5,
     int mode)
 {
 	ipc_call_t data;
-
-	IPC_SET_METHOD(data, method);
+	
+	IPC_SET_IMETHOD(data, imethod);
 	IPC_SET_ARG1(data, arg1);
 	IPC_SET_ARG2(data, arg2);
 	IPC_SET_ARG3(data, arg3);
 	IPC_SET_ARG4(data, arg4);
 	IPC_SET_ARG5(data, arg5);
-
+	
 	return __SYSCALL4(SYS_IPC_FORWARD_SLOW, callid, phoneid, (sysarg_t) &data, mode);
 }
 

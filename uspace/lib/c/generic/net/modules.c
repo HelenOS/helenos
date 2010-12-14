@@ -282,7 +282,7 @@ void refresh_answer(ipc_call_t *answer, int *answer_count)
 	if (answer) {
 		IPC_SET_RETVAL(*answer, 0);
 		// just to be precize
-		IPC_SET_METHOD(*answer, 0);
+		IPC_SET_IMETHOD(*answer, 0);
 		IPC_SET_ARG1(*answer, 0);
 		IPC_SET_ARG2(*answer, 0);
 		IPC_SET_ARG3(*answer, 0);

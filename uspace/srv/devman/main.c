@@ -73,7 +73,7 @@ static driver_t *devman_driver_register(void)
 	printf(NAME ": devman_driver_register \n");
 	
 	iid = async_get_call(&icall);
-	if (IPC_GET_METHOD(icall) != DEVMAN_DRIVER_REGISTER) {
+	if (IPC_GET_IMETHOD(icall) != DEVMAN_DRIVER_REGISTER) {
 		ipc_answer_0(iid, EREFUSED);
 		return NULL;
 	}
@@ -108,7 +108,7 @@ static driver_t *devman_driver_register(void)
 	printf(NAME ":  creating connection to the %s driver.\n", driver->name);
 	ipc_call_t call;
 	ipc_callid_t callid = async_get_call(&call);
-	if (IPC_GET_METHOD(call) != IPC_M_CONNECT_TO_ME) {
+	if (IPC_GET_IMETHOD(call) != IPC_M_CONNECT_TO_ME) {
 		ipc_answer_0(callid, ENOTSUP);
 		ipc_answer_0(iid, ENOTSUP);
 		return NULL;
@@ -140,7 +140,7 @@ static int devman_receive_match_id(match_id_list_t *match_ids)
 	int rc = 0;
 	
 	callid = async_get_call(&call);
-	if (DEVMAN_ADD_MATCH_ID != IPC_GET_METHOD(call)) {
+	if (DEVMAN_ADD_MATCH_ID != IPC_GET_IMETHOD(call)) {
 		printf(NAME ": ERROR: devman_receive_match_id - invalid "
 		    "protocol.\n");
 		ipc_answer_0(callid, EINVAL); 
@@ -366,7 +366,7 @@ static void devman_connection_driver(ipc_callid_t iid, ipc_call_t *icall)
 	while (cont) {
 		callid = async_get_call(&call);
 		
-		switch (IPC_GET_METHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			cont = false;
 			continue;
@@ -419,7 +419,7 @@ static void devman_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
 		
-		switch (IPC_GET_METHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			cont = false;
 			continue;
@@ -485,7 +485,7 @@ static void devman_forward(ipc_callid_t iid, ipc_call_t *icall,
  * mapper to the device manager. */
 static void devman_connection_devmapper(ipc_callid_t iid, ipc_call_t *icall)
 {
-	devmap_handle_t devmap_handle = IPC_GET_METHOD(*icall);
+	devmap_handle_t devmap_handle = IPC_GET_IMETHOD(*icall);
 	node_t *dev;
 
 	dev = find_devmap_tree_device(&device_tree, devmap_handle);
@@ -520,7 +520,7 @@ static void devman_connection(ipc_callid_t iid, ipc_call_t *icall)
 	 * work for device with handle == IPC_M_CONNECT_ME_TO, because devmapper
 	 * passes device handle to the driver as an ipc method.)
 	 */
-	if (IPC_GET_METHOD(*icall) != IPC_M_CONNECT_ME_TO)
+	if (IPC_GET_IMETHOD(*icall) != IPC_M_CONNECT_ME_TO)
 		devman_connection_devmapper(iid, icall);
 
 	/*

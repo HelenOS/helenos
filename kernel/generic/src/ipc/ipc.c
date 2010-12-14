@@ -366,7 +366,7 @@ int ipc_phone_hangup(phone_t *phone)
 		irq_spinlock_unlock(&box->lock, true);
 		
 		call_t *call = ipc_call_alloc(0);
-		IPC_SET_METHOD(call->data, IPC_M_PHONE_HUNGUP);
+		IPC_SET_IMETHOD(call->data, IPC_M_PHONE_HUNGUP);
 		call->flags |= IPC_CALL_DISCARD_ANSWER;
 		_ipc_call(phone, box, call);
 	}
@@ -546,7 +546,7 @@ restart_phones:
 			 * wakes up after the last phone has been
 			 * disconnected.
 			 */
-			IPC_SET_METHOD(call->data, IPC_M_PHONE_HUNGUP);
+			IPC_SET_IMETHOD(call->data, IPC_M_PHONE_HUNGUP);
 			call->flags |= IPC_CALL_DISCARD_ANSWER;
 			_ipc_call(phone, box, call);
 			
@@ -740,7 +740,7 @@ void ipc_print_task(task_id_t taskid)
 		    " A1:%" PRIun " A2:%" PRIun " A3:%" PRIun
 		    " A4:%" PRIun " A5:%" PRIun " Flags:%x\n", call,
 		    call->sender->taskid,
-		    IPC_GET_METHOD(call->data), IPC_GET_ARG1(call->data),
+		    IPC_GET_IMETHOD(call->data), IPC_GET_ARG1(call->data),
 		    IPC_GET_ARG2(call->data), IPC_GET_ARG3(call->data),
 		    IPC_GET_ARG4(call->data), IPC_GET_ARG5(call->data),
 		    call->flags);
@@ -756,7 +756,7 @@ void ipc_print_task(task_id_t taskid)
 		    " A1:%" PRIun " A2:%" PRIun " A3:%" PRIun
 		    " A4:%" PRIun " A5:%" PRIun " Flags:%x\n", call,
 		    call->sender->taskid,
-		    IPC_GET_METHOD(call->data), IPC_GET_ARG1(call->data),
+		    IPC_GET_IMETHOD(call->data), IPC_GET_ARG1(call->data),
 		    IPC_GET_ARG2(call->data), IPC_GET_ARG3(call->data),
 		    IPC_GET_ARG4(call->data), IPC_GET_ARG5(call->data),
 		    call->flags);
@@ -770,7 +770,7 @@ void ipc_print_task(task_id_t taskid)
 		call_t *call = list_get_instance(cur, call_t, link);
 		printf("Callid:%p M:%" PRIun " A1:%" PRIun " A2:%" PRIun
 		    " A3:%" PRIun " A4:%" PRIun " A5:%" PRIun " Flags:%x\n",
-		    call, IPC_GET_METHOD(call->data), IPC_GET_ARG1(call->data),
+		    call, IPC_GET_IMETHOD(call->data), IPC_GET_ARG1(call->data),
 		    IPC_GET_ARG2(call->data), IPC_GET_ARG3(call->data),
 		    IPC_GET_ARG4(call->data), IPC_GET_ARG5(call->data),
 		    call->flags);

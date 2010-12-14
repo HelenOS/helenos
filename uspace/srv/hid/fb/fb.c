@@ -1082,7 +1082,7 @@ static bool shm_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 	unsigned int w;
 	unsigned int h;
 	
-	switch (IPC_GET_METHOD(*call)) {
+	switch (IPC_GET_IMETHOD(*call)) {
 	case IPC_M_SHARE_OUT:
 		/* We accept one area for data interchange */
 		if (IPC_GET_ARG1(*call) == shm_id) {
@@ -1359,7 +1359,7 @@ static int anim_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 	int i, nvp;
 	int newval;
 	
-	switch (IPC_GET_METHOD(*call)) {
+	switch (IPC_GET_IMETHOD(*call)) {
 	case FB_ANIM_CREATE:
 		nvp = IPC_GET_ARG1(*call);
 		if (nvp == -1)
@@ -1434,7 +1434,7 @@ static int anim_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 			retval = EINVAL;
 			break;
 		}
-		newval = (IPC_GET_METHOD(*call) == FB_ANIM_START);
+		newval = (IPC_GET_IMETHOD(*call) == FB_ANIM_START);
 		if (newval ^ animations[i].enabled) {
 			animations[i].enabled = newval;
 			anims_enabled += newval ? 1 : -1;
@@ -1458,7 +1458,7 @@ static int pixmap_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 	int retval = EOK;
 	int i, nvp;
 	
-	switch (IPC_GET_METHOD(*call)) {
+	switch (IPC_GET_IMETHOD(*call)) {
 	case FB_VP_DRAW_PIXMAP:
 		nvp = IPC_GET_ARG1(*call);
 		if (nvp == -1)
@@ -1620,7 +1620,7 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		if (anim_handle(callid, &call, vp))
 			continue;
 		
-		switch (IPC_GET_METHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			client_connected = false;
 			
