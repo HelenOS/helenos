@@ -191,7 +191,6 @@ static void kbox_thread_proc(void *arg)
 	LOG("Exiting.");
 }
 
-
 /** Connect phone to a task kernel-box specified by id.
  *
  * Note that this is not completely atomic. For optimisation reasons, the task
