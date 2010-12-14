@@ -37,7 +37,7 @@
  * @ingroup libc
  */
 /** @file
- */ 
+ */
 
 #include <ipc/ipc.h>
 #include <libc.h>
@@ -844,17 +844,20 @@ int ipc_data_write_finalize(ipc_callid_t callid, void *dst, size_t size)
 	return ipc_answer_2(callid, EOK, (sysarg_t) dst, (sysarg_t) size);
 }
 
-#include <kernel/syscall/sysarg64.h>
 /** Connect to a task specified by id.
+ *
  */
 int ipc_connect_kbox(task_id_t id)
 {
-	sysarg64_t arg;
-
-	arg.value = (unsigned long long) id;
-
+#ifdef __32_BITS__
+	sysarg64_t arg = (sysarg64_t) id;
 	return __SYSCALL1(SYS_IPC_CONNECT_KBOX, (sysarg_t) &arg);
+#endif
+	
+#ifdef __64_BITS__
+	return __SYSCALL1(SYS_IPC_CONNECT_KBOX, (sysarg_t) id);
+#endif
 }
- 
+
 /** @}
  */

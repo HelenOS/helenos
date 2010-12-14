@@ -165,10 +165,22 @@ interface sys_event {
 
 interface sys_cap {
 		/* Grant capabilities to a task */
-		sysarg_t sys_cap_grant(sysarg64_t *uspace_taskid_arg, cap_t caps);
+#ifdef __32_BITS__
+		sysarg_t sys_cap_grant(sysarg64_t *uspace_taskid, cap_t caps);
+#endif
+		
+#ifdef __64_BITS__
+		sysarg_t sys_cap_grant(sysarg_t taskid, cap_t caps);
+#endif
 		
 		/* Revoke capabilities from a task */
-		sysarg_t sys_cap_revoke(sysarg64_t *uspace_taskid_arg, cap_t caps);
+#ifdef __32_BITS__
+		sysarg_t sys_cap_revoke(sysarg64_t *uspace_taskid, cap_t caps);
+#endif
+		
+#ifdef __64_BITS__
+		sysarg_t sys_cap_revoke(sysarg_t taskid, cap_t caps);
+#endif
 	protocol:
 		(
 			?sys_cap_grant +
@@ -220,7 +232,13 @@ interface sys_sysinfo {
 
 interface sys_debug {
 		/* Connect to the kernel debugging answerbox of a given task */
-		sysarg_t sys_ipc_connect_kbox(sysarg64_t *uspace_taskid_arg);
+#ifdef __32_BITS__
+		sysarg_t sys_ipc_connect_kbox(sysarg64_t *uspace_taskid);
+#endif
+		
+#ifdef __64_BITS__
+		sysarg_t sys_ipc_connect_kbox(sysarg_t taskid);
+#endif
 	protocol:
 		?sys_ipc_connect_kbox*
 };

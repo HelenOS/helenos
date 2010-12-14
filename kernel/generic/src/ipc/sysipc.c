@@ -48,6 +48,7 @@
 #include <arch/interrupt.h>
 #include <syscall/copy.h>
 #include <security/cap.h>
+#include <console/console.h>
 #include <mm/as.h>
 #include <print.h>
 
@@ -1127,28 +1128,46 @@ sysarg_t sys_ipc_unregister_irq(inr_t inr, devno_t devno)
 	return 0;
 }
 
-#include <console/console.h>
+#ifdef __32_BITS__
 
-/** Syscall connect to a task by id.
+/** Syscall connect to a task by ID (32 bits)
  *
  * @return Phone id on success, or negative error code.
  *
  */
-sysarg_t sys_ipc_connect_kbox(sysarg64_t *uspace_taskid_arg)
+sysarg_t sys_ipc_connect_kbox(sysarg64_t *uspace_taskid)
 {
 #ifdef CONFIG_UDEBUG
-	sysarg64_t taskid_arg;
-	int rc = copy_from_uspace(&taskid_arg, uspace_taskid_arg, sizeof(sysarg64_t));
+	sysarg64_t taskid;
+	int rc = copy_from_uspace(&taskid, uspace_taskid, sizeof(sysarg64_t));
 	if (rc != 0)
 		return (sysarg_t) rc;
 	
-	LOG("sys_ipc_connect_kbox(%" PRIu64 ")", taskid_arg.value);
-	
-	return ipc_connect_kbox(taskid_arg.value);
+	return ipc_connect_kbox((task_id_t) taskid);
 #else
 	return (sysarg_t) ENOTSUP;
 #endif
 }
+
+#endif  /* __32_BITS__ */
+
+#ifdef __64_BITS__
+
+/** Syscall connect to a task by ID (64 bits)
+ *
+ * @return Phone id on success, or negative error code.
+ *
+ */
+sysarg_t sys_ipc_connect_kbox(sysarg_t taskid)
+{
+#ifdef CONFIG_UDEBUG
+	return ipc_connect_kbox((task_id_t) taskid);
+#else
+	return (sysarg_t) ENOTSUP;
+#endif
+}
+
+#endif  /* __64_BITS__ */
 
 /** @}
  */

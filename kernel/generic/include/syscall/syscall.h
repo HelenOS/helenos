@@ -37,7 +37,7 @@
 
 typedef enum {
 	SYS_KLOG = 0,
-	SYS_TLS_SET = 1, /* Hardcoded in AMD64, IA32 uspace - fibril.S */
+	SYS_TLS_SET = 1,  /* Hardcoded for AMD64, IA-32 (fibril.S in uspace) */
 	
 	SYS_THREAD_CREATE,
 	SYS_THREAD_EXIT,
@@ -70,6 +70,7 @@ typedef enum {
 	SYS_IPC_HANGUP,
 	SYS_IPC_REGISTER_IRQ,
 	SYS_IPC_UNREGISTER_IRQ,
+	SYS_IPC_CONNECT_KBOX,
 	
 	SYS_EVENT_SUBSCRIBE,
 	
@@ -89,7 +90,6 @@ typedef enum {
 	SYS_DEBUG_ENABLE_CONSOLE,
 	SYS_DEBUG_DISABLE_CONSOLE,
 	
-	SYS_IPC_CONNECT_KBOX,
 	SYSCALL_END
 } syscall_t;
 

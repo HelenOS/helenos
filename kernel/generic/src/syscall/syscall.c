@@ -146,6 +146,7 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	(syshandler_t) sys_ipc_hangup,
 	(syshandler_t) sys_ipc_register_irq,
 	(syshandler_t) sys_ipc_unregister_irq,
+	(syshandler_t) sys_ipc_connect_kbox,
 	
 	/* Event notification syscalls. */
 	(syshandler_t) sys_event_subscribe,
@@ -168,9 +169,7 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	
 	/* Debug calls */
 	(syshandler_t) sys_debug_enable_console,
-	(syshandler_t) sys_debug_disable_console,
-	
-	(syshandler_t) sys_ipc_connect_kbox
+	(syshandler_t) sys_debug_disable_console
 };
 
 /** @}

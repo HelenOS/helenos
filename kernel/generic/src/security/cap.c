@@ -40,7 +40,6 @@
 #include <security/cap.h>
 #include <proc/task.h>
 #include <synch/spinlock.h>
-#include <syscall/sysarg64.h>
 #include <syscall/copy.h>
 #include <arch.h>
 #include <errno.h>
@@ -78,24 +77,19 @@ cap_t cap_get(task_t *task)
  *
  * The calling task must have the CAP_CAP capability.
  *
- * @param uspace_taskid_arg Userspace structure holding destination task ID.
- * @param caps Capabilities to grant.
+ * @param taskid Destination task ID.
+ * @param caps   Capabilities to grant.
  *
  * @return Zero on success or an error code from @ref errno.h.
  *
  */
-sysarg_t sys_cap_grant(sysarg64_t *uspace_taskid_arg, cap_t caps)
+static sysarg_t cap_grant(task_id_t taskid, cap_t caps)
 {
 	if (!(cap_get(TASK) & CAP_CAP))
 		return (sysarg_t) EPERM;
 	
-	sysarg64_t taskid_arg;
-	int rc = copy_from_uspace(&taskid_arg, uspace_taskid_arg, sizeof(sysarg64_t));
-	if (rc != 0)
-		return (sysarg_t) rc;
-	
 	irq_spinlock_lock(&tasks_lock, true);
-	task_t *task = task_find_by_id((task_id_t) taskid_arg.value);
+	task_t *task = task_find_by_id(taskid);
 	
 	if ((!task) || (!context_check(CONTEXT, task->context))) {
 		irq_spinlock_unlock(&tasks_lock, true);
@@ -115,22 +109,17 @@ sysarg_t sys_cap_grant(sysarg64_t *uspace_taskid_arg, cap_t caps)
  * The calling task must have the CAP_CAP capability or the caller must
  * attempt to revoke capabilities from itself.
  *
- * @param uspace_taskid_arg Userspace structure holding destination task ID.
- * @param caps Capabilities to revoke.
+ * @param taskid Destination task ID.
+ * @param caps   Capabilities to revoke.
  *
  * @return Zero on success or an error code from @ref errno.h.
  *
  */
-sysarg_t sys_cap_revoke(sysarg64_t *uspace_taskid_arg, cap_t caps)
+static sysarg_t cap_revoke(task_id_t taskid, cap_t caps)
 {
-	sysarg64_t taskid_arg;
-	int rc = copy_from_uspace(&taskid_arg, uspace_taskid_arg, sizeof(sysarg64_t));
-	if (rc != 0)
-		return (sysarg_t) rc;
-	
 	irq_spinlock_lock(&tasks_lock, true);
 	
-	task_t *task = task_find_by_id((task_id_t) taskid_arg.value);
+	task_t *task = task_find_by_id(taskid);
 	if ((!task) || (!context_check(CONTEXT, task->context))) {
 		irq_spinlock_unlock(&tasks_lock, true);
 		return (sysarg_t) ENOENT;
@@ -155,6 +144,86 @@ sysarg_t sys_cap_revoke(sysarg64_t *uspace_taskid_arg, cap_t caps)
 	irq_spinlock_unlock(&tasks_lock, true);
 	return 0;
 }
+
+#ifdef __32_BITS__
+
+/** Grant capabilities to a task (32 bits)
+ *
+ * The calling task must have the CAP_CAP capability.
+ *
+ * @param uspace_taskid User-space pointer to destination task ID.
+ * @param caps          Capabilities to grant.
+ *
+ * @return Zero on success or an error code from @ref errno.h.
+ *
+ */
+sysarg_t sys_cap_grant(sysarg64_t *uspace_taskid, cap_t caps)
+{
+	sysarg64_t taskid;
+	int rc = copy_from_uspace(&taskid, uspace_taskid, sizeof(sysarg64_t));
+	if (rc != 0)
+		return (sysarg_t) rc;
+	
+	return cap_grant((task_id_t) taskid, caps);
+}
+
+/** Revoke capabilities from a task (32 bits)
+ *
+ * The calling task must have the CAP_CAP capability or the caller must
+ * attempt to revoke capabilities from itself.
+ *
+ * @param uspace_taskid User-space pointer to destination task ID.
+ * @param caps          Capabilities to revoke.
+ *
+ * @return Zero on success or an error code from @ref errno.h.
+ *
+ */
+sysarg_t sys_cap_revoke(sysarg64_t *uspace_taskid, cap_t caps)
+{
+	sysarg64_t taskid;
+	int rc = copy_from_uspace(&taskid, uspace_taskid, sizeof(sysarg64_t));
+	if (rc != 0)
+		return (sysarg_t) rc;
+	
+	return cap_revoke((task_id_t) taskid, caps);
+}
+
+#endif  /* __32_BITS__ */
+
+#ifdef __64_BITS__
+
+/** Grant capabilities to a task (64 bits)
+ *
+ * The calling task must have the CAP_CAP capability.
+ *
+ * @param taskid Destination task ID.
+ * @param caps   Capabilities to grant.
+ *
+ * @return Zero on success or an error code from @ref errno.h.
+ *
+ */
+sysarg_t sys_cap_grant(sysarg_t taskid, cap_t caps)
+{
+	return cap_grant((task_id_t) taskid, caps);
+}
+
+/** Revoke capabilities from a task (64 bits)
+ *
+ * The calling task must have the CAP_CAP capability or the caller must
+ * attempt to revoke capabilities from itself.
+ *
+ * @param taskid Destination task ID.
+ * @param caps   Capabilities to revoke.
+ *
+ * @return Zero on success or an error code from @ref errno.h.
+ *
+ */
+sysarg_t sys_cap_revoke(sysarg_t taskid, cap_t caps)
+{
+	return cap_revoke((task_id_t) taskid, caps);
+}
+
+#endif  /* __64_BITS__ */
 
 /** @}
  */
