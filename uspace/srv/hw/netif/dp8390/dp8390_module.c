@@ -305,7 +305,7 @@ int netif_stop_message(netif_device_t * device){
 }
 
 int netif_initialize(void){
-	ipcarg_t phonehash;
+	sysarg_t phonehash;
 
 	async_set_interrupt_received(irq_handler);
 

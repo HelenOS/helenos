@@ -128,9 +128,9 @@ void vfs_node_delref(vfs_node_t *node)
 		 * Free up its resources.
 		 */
 		int phone = vfs_grab_phone(node->fs_handle);
-		ipcarg_t rc;
+		sysarg_t rc;
 		rc = async_req_2_0(phone, VFS_OUT_DESTROY,
-		    (ipcarg_t)node->devmap_handle, (ipcarg_t)node->index);
+		    (sysarg_t)node->devmap_handle, (sysarg_t)node->index);
 		assert(rc == EOK);
 		vfs_release_phone(node->fs_handle, phone);
 	}

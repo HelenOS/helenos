@@ -429,7 +429,7 @@ static int ip_netif_initialize(ip_netif_t *ip_netif)
 
 	// binds the netif service which also initializes the device
 	ip_netif->phone = nil_bind_service(ip_netif->service,
-	    (ipcarg_t) ip_netif->device_id, SERVICE_IP,
+	    (sysarg_t) ip_netif->device_id, SERVICE_IP,
 	    ip_globals.client_connection);
 	if (ip_netif->phone < 0) {
 		printf("Failed to contact the nil service %d\n",

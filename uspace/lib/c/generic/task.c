@@ -210,7 +210,7 @@ int task_spawnl(task_id_t *task_id, const char *path, ...)
 
 int task_wait(task_id_t id, task_exit_t *texit, int *retval)
 {
-	ipcarg_t te, rv;
+	sysarg_t te, rv;
 	int rc;
 
 	rc = (int) async_req_2_2(PHONE_NS, NS_TASK_WAIT, LOWER32(id),

@@ -115,7 +115,7 @@ static void s3c24xx_uart_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
 	ipc_callid_t callid;
 	ipc_call_t call;
-	ipcarg_t method;
+	sysarg_t method;
 	int retval;
 
 	/* Answer the IPC_M_CONNECT_ME_TO call. */

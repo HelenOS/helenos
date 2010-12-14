@@ -67,7 +67,7 @@ int adb_dev_init(void)
 	}
 
 	/* NB: The callback connection is slotted for removal */
-	ipcarg_t phonehash;
+	sysarg_t phonehash;
 	if (ipc_connect_to_me(dev_phone, 0, 0, 0, &phonehash) != 0) {
 		printf(NAME ": Failed to create callback from device\n");
 		return false;

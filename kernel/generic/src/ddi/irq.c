@@ -105,8 +105,8 @@ hash_table_t irq_uspace_hash_table;
  * there will be collisions between different keys.
  *
  */
-static size_t irq_ht_hash(unative_t *key);
-static bool irq_ht_compare(unative_t *key, size_t keys, link_t *item);
+static size_t irq_ht_hash(sysarg_t *key);
+static bool irq_ht_compare(sysarg_t *key, size_t keys, link_t *item);
 static void irq_ht_remove(link_t *item);
 
 static hash_table_operations_t irq_ht_ops = {
@@ -122,8 +122,8 @@ static hash_table_operations_t irq_ht_ops = {
  * elements with single key (sharing of one IRQ).
  *
  */
-static size_t irq_lin_hash(unative_t *key);
-static bool irq_lin_compare(unative_t *key, size_t keys, link_t *item);
+static size_t irq_lin_hash(sysarg_t *key);
+static bool irq_lin_compare(sysarg_t *key, size_t keys, link_t *item);
 static void irq_lin_remove(link_t *item);
 
 static hash_table_operations_t irq_lin_ops = {
@@ -193,9 +193,9 @@ void irq_initialize(irq_t *irq)
  */
 void irq_register(irq_t *irq)
 {
-	unative_t key[] = {
-		(unative_t) irq->inr,
-		(unative_t) irq->devno
+	sysarg_t key[] = {
+		(sysarg_t) irq->inr,
+		(sysarg_t) irq->devno
 	};
 	
 	irq_spinlock_lock(&irq_kernel_hash_table_lock, true);
@@ -211,9 +211,9 @@ void irq_register(irq_t *irq)
 static irq_t *irq_dispatch_and_lock_uspace(inr_t inr)
 {
 	link_t *lnk;
-	unative_t key[] = {
-		(unative_t) inr,
-		(unative_t) -1    /* Search will use claim() instead of devno */
+	sysarg_t key[] = {
+		(sysarg_t) inr,
+		(sysarg_t) -1    /* Search will use claim() instead of devno */
 	};
 	
 	irq_spinlock_lock(&irq_uspace_hash_table_lock, false);
@@ -234,9 +234,9 @@ static irq_t *irq_dispatch_and_lock_uspace(inr_t inr)
 static irq_t *irq_dispatch_and_lock_kernel(inr_t inr)
 {
 	link_t *lnk;
-	unative_t key[] = {
-		(unative_t) inr,
-		(unative_t) -1    /* Search will use claim() instead of devno */
+	sysarg_t key[] = {
+		(sysarg_t) inr,
+		(sysarg_t) -1    /* Search will use claim() instead of devno */
 	};
 	
 	irq_spinlock_lock(&irq_kernel_hash_table_lock, false);
@@ -305,7 +305,7 @@ irq_t *irq_dispatch_and_lock(inr_t inr)
  * @return Index into the hash table.
  *
  */
-size_t irq_ht_hash(unative_t key[])
+size_t irq_ht_hash(sysarg_t key[])
 {
 	inr_t inr = (inr_t) key[KEY_INR];
 	return inr % buckets;
@@ -332,7 +332,7 @@ size_t irq_ht_hash(unative_t key[])
  * @return True on match or false otherwise.
  *
  */
-bool irq_ht_compare(unative_t key[], size_t keys, link_t *item)
+bool irq_ht_compare(sysarg_t key[], size_t keys, link_t *item)
 {
 	irq_t *irq = hash_table_get_instance(item, irq_t, link);
 	inr_t inr = (inr_t) key[KEY_INR];
@@ -380,7 +380,7 @@ void irq_ht_remove(link_t *lnk)
  * @return Index into the hash table.
  *
  */
-size_t irq_lin_hash(unative_t key[])
+size_t irq_lin_hash(sysarg_t key[])
 {
 	inr_t inr = (inr_t) key[KEY_INR];
 	return inr;
@@ -407,7 +407,7 @@ size_t irq_lin_hash(unative_t key[])
  * @return True on match or false otherwise.
  *
  */
-bool irq_lin_compare(unative_t key[], size_t keys, link_t *item)
+bool irq_lin_compare(sysarg_t key[], size_t keys, link_t *item)
 {
 	irq_t *irq = list_get_instance(item, irq_t, link);
 	devno_t devno = (devno_t) key[KEY_DEVNO];

@@ -122,7 +122,7 @@ typedef struct {
 	/** Answerbox for notifications. */
 	answerbox_t *answerbox;
 	/** Method to be used for the notification. */
-	unative_t method;
+	sysarg_t method;
 	/** Arguments that will be sent if the IRQ is claimed. */
 	uint32_t scratch[IPC_CALL_LEN];
 	/** Top-half pseudocode. */

@@ -63,9 +63,9 @@ NO_TRACE static inline void cpu_sleep(void)
 	);
 }
 
-#define GEN_READ_REG(reg) NO_TRACE static inline unative_t read_ ##reg (void) \
+#define GEN_READ_REG(reg) NO_TRACE static inline sysarg_t read_ ##reg (void) \
 	{ \
-		unative_t res; \
+		sysarg_t res; \
 		asm volatile ( \
 			"movl %%" #reg ", %[res]" \
 			: [res] "=r" (res) \
@@ -73,7 +73,7 @@ NO_TRACE static inline void cpu_sleep(void)
 		return res; \
 	}
 
-#define GEN_WRITE_REG(reg) NO_TRACE static inline void write_ ##reg (unative_t regn) \
+#define GEN_WRITE_REG(reg) NO_TRACE static inline void write_ ##reg (sysarg_t regn) \
 	{ \
 		asm volatile ( \
 			"movl %[regn], %%" #reg \
@@ -365,7 +365,7 @@ NO_TRACE static inline void invlpg(uintptr_t addr)
 {
 	asm volatile (
 		"invlpg %[addr]\n"
-		:: [addr] "m" (*(unative_t *) addr)
+		:: [addr] "m" (*(sysarg_t *) addr)
 	);
 }
 

@@ -157,9 +157,9 @@ int mount(const char *fs_name, const char *mp, const char *fqdn,
 	async_serialize_start();
 	vfs_connect();
 	
-	ipcarg_t rc_orig;
+	sysarg_t rc_orig;
 	aid_t req = async_send_2(vfs_phone, VFS_IN_MOUNT, devmap_handle, flags, NULL);
-	ipcarg_t rc = async_data_write_start(vfs_phone, (void *) mpa, mpa_size);
+	sysarg_t rc = async_data_write_start(vfs_phone, (void *) mpa, mpa_size);
 	if (rc != EOK) {
 		async_wait_for(req, &rc_orig);
 		async_serialize_end();
@@ -237,8 +237,8 @@ int mount(const char *fs_name, const char *mp, const char *fqdn,
 
 int unmount(const char *mp)
 {
-	ipcarg_t rc;
-	ipcarg_t rc_orig;
+	sysarg_t rc;
+	sysarg_t rc_orig;
 	aid_t req;
 	size_t mpa_size;
 	char *mpa;
@@ -281,10 +281,10 @@ static int open_internal(const char *abs, size_t abs_size, int lflag, int oflag)
 	
 	ipc_call_t answer;
 	aid_t req = async_send_3(vfs_phone, VFS_IN_OPEN, lflag, oflag, 0, &answer);
-	ipcarg_t rc = async_data_write_start(vfs_phone, abs, abs_size);
+	sysarg_t rc = async_data_write_start(vfs_phone, abs, abs_size);
 	
 	if (rc != EOK) {
-		ipcarg_t rc_orig;
+		sysarg_t rc_orig;
 		async_wait_for(req, &rc_orig);
 		
 		async_serialize_end();
@@ -329,7 +329,7 @@ int open_node(fdi_node_t *node, int oflag)
 	aid_t req = async_send_4(vfs_phone, VFS_IN_OPEN_NODE, node->fs_handle,
 	    node->devmap_handle, node->index, oflag, &answer);
 	
-	ipcarg_t rc;
+	sysarg_t rc;
 	async_wait_for(req, &rc);
 	async_serialize_end();
 	futex_up(&vfs_phone_futex);
@@ -342,7 +342,7 @@ int open_node(fdi_node_t *node, int oflag)
 
 int close(int fildes)
 {
-	ipcarg_t rc;
+	sysarg_t rc;
 	
 	futex_down(&vfs_phone_futex);
 	async_serialize_start();
@@ -358,7 +358,7 @@ int close(int fildes)
 
 ssize_t read(int fildes, void *buf, size_t nbyte) 
 {
-	ipcarg_t rc;
+	sysarg_t rc;
 	ipc_call_t answer;
 	aid_t req;
 
@@ -369,7 +369,7 @@ ssize_t read(int fildes, void *buf, size_t nbyte)
 	req = async_send_1(vfs_phone, VFS_IN_READ, fildes, &answer);
 	rc = async_data_read_start(vfs_phone, (void *)buf, nbyte);
 	if (rc != EOK) {
-		ipcarg_t rc_orig;
+		sysarg_t rc_orig;
 	
 		async_wait_for(req, &rc_orig);
 		async_serialize_end();
@@ -390,7 +390,7 @@ ssize_t read(int fildes, void *buf, size_t nbyte)
 
 ssize_t write(int fildes, const void *buf, size_t nbyte) 
 {
-	ipcarg_t rc;
+	sysarg_t rc;
 	ipc_call_t answer;
 	aid_t req;
 
@@ -401,7 +401,7 @@ ssize_t write(int fildes, const void *buf, size_t nbyte)
 	req = async_send_1(vfs_phone, VFS_IN_WRITE, fildes, &answer);
 	rc = async_data_write_start(vfs_phone, (void *)buf, nbyte);
 	if (rc != EOK) {
-		ipcarg_t rc_orig;
+		sysarg_t rc_orig;
 	
 		async_wait_for(req, &rc_orig);
 		async_serialize_end();
@@ -426,7 +426,7 @@ int fsync(int fildes)
 	async_serialize_start();
 	vfs_connect();
 	
-	ipcarg_t rc = async_req_1_0(vfs_phone, VFS_IN_SYNC, fildes);
+	sysarg_t rc = async_req_1_0(vfs_phone, VFS_IN_SYNC, fildes);
 	
 	async_serialize_end();
 	futex_up(&vfs_phone_futex);
@@ -440,9 +440,9 @@ off64_t lseek(int fildes, off64_t offset, int whence)
 	async_serialize_start();
 	vfs_connect();
 	
-	ipcarg_t newoff_lo;
-	ipcarg_t newoff_hi;
-	ipcarg_t rc = async_req_4_2(vfs_phone, VFS_IN_SEEK, fildes,
+	sysarg_t newoff_lo;
+	sysarg_t newoff_hi;
+	sysarg_t rc = async_req_4_2(vfs_phone, VFS_IN_SEEK, fildes,
 	    LOWER32(offset), UPPER32(offset), whence,
 	    &newoff_lo, &newoff_hi);
 	
@@ -457,7 +457,7 @@ off64_t lseek(int fildes, off64_t offset, int whence)
 
 int ftruncate(int fildes, aoff64_t length)
 {
-	ipcarg_t rc;
+	sysarg_t rc;
 	
 	futex_down(&vfs_phone_futex);
 	async_serialize_start();
@@ -473,7 +473,7 @@ int ftruncate(int fildes, aoff64_t length)
 
 int fstat(int fildes, struct stat *stat)
 {
-	ipcarg_t rc;
+	sysarg_t rc;
 	aid_t req;
 
 	futex_down(&vfs_phone_futex);
@@ -483,7 +483,7 @@ int fstat(int fildes, struct stat *stat)
 	req = async_send_1(vfs_phone, VFS_IN_FSTAT, fildes, NULL);
 	rc = async_data_read_start(vfs_phone, (void *) stat, sizeof(struct stat));
 	if (rc != EOK) {
-		ipcarg_t rc_orig;
+		sysarg_t rc_orig;
 		
 		async_wait_for(req, &rc_orig);
 		async_serialize_end();
@@ -502,8 +502,8 @@ int fstat(int fildes, struct stat *stat)
 
 int stat(const char *path, struct stat *stat)
 {
-	ipcarg_t rc;
-	ipcarg_t rc_orig;
+	sysarg_t rc;
+	sysarg_t rc_orig;
 	aid_t req;
 	
 	size_t pa_size;
@@ -592,7 +592,7 @@ int closedir(DIR *dirp)
 
 int mkdir(const char *path, mode_t mode)
 {
-	ipcarg_t rc;
+	sysarg_t rc;
 	aid_t req;
 	
 	size_t pa_size;
@@ -607,7 +607,7 @@ int mkdir(const char *path, mode_t mode)
 	req = async_send_1(vfs_phone, VFS_IN_MKDIR, mode, NULL);
 	rc = async_data_write_start(vfs_phone, pa, pa_size);
 	if (rc != EOK) {
-		ipcarg_t rc_orig;
+		sysarg_t rc_orig;
 	
 		async_wait_for(req, &rc_orig);
 		async_serialize_end();
@@ -627,7 +627,7 @@ int mkdir(const char *path, mode_t mode)
 
 static int _unlink(const char *path, int lflag)
 {
-	ipcarg_t rc;
+	sysarg_t rc;
 	aid_t req;
 	
 	size_t pa_size;
@@ -642,7 +642,7 @@ static int _unlink(const char *path, int lflag)
 	req = async_send_0(vfs_phone, VFS_IN_UNLINK, NULL);
 	rc = async_data_write_start(vfs_phone, pa, pa_size);
 	if (rc != EOK) {
-		ipcarg_t rc_orig;
+		sysarg_t rc_orig;
 
 		async_wait_for(req, &rc_orig);
 		async_serialize_end();
@@ -672,8 +672,8 @@ int rmdir(const char *path)
 
 int rename(const char *old, const char *new)
 {
-	ipcarg_t rc;
-	ipcarg_t rc_orig;
+	sysarg_t rc;
+	sysarg_t rc_orig;
 	aid_t req;
 	
 	size_t olda_size;
@@ -809,8 +809,8 @@ int dup2(int oldfd, int newfd)
 	async_serialize_start();
 	vfs_connect();
 	
-	ipcarg_t ret;
-	ipcarg_t rc = async_req_2_1(vfs_phone, VFS_IN_DUP, oldfd, newfd, &ret);
+	sysarg_t ret;
+	sysarg_t rc = async_req_2_1(vfs_phone, VFS_IN_DUP, oldfd, newfd, &ret);
 	
 	async_serialize_end();
 	futex_up(&vfs_phone_futex);

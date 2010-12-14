@@ -422,7 +422,7 @@ static void ldr_connection(ipc_callid_t iid, ipc_call_t *icall)
  */
 int main(int argc, char *argv[])
 {
-	ipcarg_t phonead;
+	sysarg_t phonead;
 	task_id_t id;
 	int rc;
 

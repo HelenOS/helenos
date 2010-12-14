@@ -45,7 +45,7 @@
 #define IPCP_CALLID_SYNC 0
 
 typedef struct {
-	ipcarg_t phone_hash;
+	sysarg_t phone_hash;
 	ipc_call_t question;
 	oper_t *oper;
 
@@ -123,7 +123,7 @@ void ipcp_connection_clear(int phone)
 	connections[phone].proto = NULL;
 }
 
-static void ipc_m_print(proto_t *proto, ipcarg_t method)
+static void ipc_m_print(proto_t *proto, sysarg_t method)
 {
 	oper_t *oper;
 
@@ -191,7 +191,7 @@ void ipcp_call_out(int phone, ipc_call_t *call, ipc_callid_t hash)
 	proto_t *proto;
 	unsigned long key[1];
 	oper_t *oper;
-	ipcarg_t *args;
+	sysarg_t *args;
 	int i;
 
 	if (have_conn[phone]) proto = connections[phone].proto;
@@ -261,14 +261,14 @@ void ipcp_call_out(int phone, ipc_call_t *call, ipc_callid_t hash)
 static void parse_answer(ipc_callid_t hash, pending_call_t *pcall,
     ipc_call_t *answer)
 {
-	ipcarg_t phone;
-	ipcarg_t method;
-	ipcarg_t service;
-	ipcarg_t retval;
+	sysarg_t phone;
+	sysarg_t method;
+	sysarg_t service;
+	sysarg_t retval;
 	proto_t *proto;
 	int cphone;
 
-	ipcarg_t *resp;
+	sysarg_t *resp;
 	oper_t *oper;
 	int i;
 

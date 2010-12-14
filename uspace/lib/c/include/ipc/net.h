@@ -369,7 +369,7 @@
  */
 #define IPC_SET_DEVICE(answer, value) \
 	do { \
-		ipcarg_t argument = (ipcarg_t) (value); \
+		sysarg_t argument = (sysarg_t) (value); \
 		IPC_SET_ARG1(*answer, argument); \
 	} while (0)
 
@@ -378,7 +378,7 @@
  */
 #define IPC_SET_ADDR(answer, value) \
 	do { \
-		ipcarg_t argument = (ipcarg_t) (value); \
+		sysarg_t argument = (sysarg_t) (value); \
 		IPC_SET_ARG1(*answer, argument); \
 	} while (0)
 
@@ -387,7 +387,7 @@
  */
 #define IPC_SET_PREFIX(answer, value) \
 	do { \
-		ipcarg_t argument = (ipcarg_t) (value); \
+		sysarg_t argument = (sysarg_t) (value); \
 		IPC_SET_ARG2(*answer, argument); \
 	} while (0)
 
@@ -396,7 +396,7 @@
  */
 #define IPC_SET_CONTENT(answer, value) \
 	do { \
-		ipcarg_t argument = (ipcarg_t) (value); \
+		sysarg_t argument = (sysarg_t) (value); \
 		IPC_SET_ARG3(*answer, argument); \
 	} while (0)
 
@@ -405,7 +405,7 @@
  */
 #define IPC_SET_SUFFIX(answer, value) \
 	do { \
-		ipcarg_t argument = (ipcarg_t) (value); \
+		sysarg_t argument = (sysarg_t) (value); \
 		IPC_SET_ARG4(*answer, argument); \
 	} while (0)
 

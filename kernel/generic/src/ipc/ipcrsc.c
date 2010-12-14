@@ -143,7 +143,7 @@
  *         structure.
  *
  */
-call_t *get_call(unative_t callid)
+call_t *get_call(sysarg_t callid)
 {
 	link_t *lst;
 	call_t *result = NULL;
@@ -152,7 +152,7 @@ call_t *get_call(unative_t callid)
 	for (lst = TASK->answerbox.dispatched_calls.next;
 	    lst != &TASK->answerbox.dispatched_calls; lst = lst->next) {
 		call_t *call = list_get_instance(lst, call_t, link);
-		if ((unative_t) call == callid) {
+		if ((sysarg_t) call == callid) {
 			result = call;
 			break;
 		}

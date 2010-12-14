@@ -370,7 +370,7 @@ int udebug_thread_read(void **buffer, size_t buf_size, size_t *stored,
 	LOG("udebug_thread_read()");
 	
 	/* Allocate a buffer to hold thread IDs */
-	unative_t *id_buffer = malloc(buf_size + 1, 0);
+	sysarg_t *id_buffer = malloc(buf_size + 1, 0);
 	
 	mutex_lock(&TASK->udebug.lock);
 	
@@ -384,7 +384,7 @@ int udebug_thread_read(void **buffer, size_t buf_size, size_t *stored,
 	
 	/* Copy down the thread IDs */
 	
-	size_t max_ids = buf_size / sizeof(unative_t);
+	size_t max_ids = buf_size / sizeof(sysarg_t);
 	size_t copied_ids = 0;
 	size_t extra_ids = 0;
 	
@@ -403,7 +403,7 @@ int udebug_thread_read(void **buffer, size_t buf_size, size_t *stored,
 		
 		if (copied_ids < max_ids) {
 			/* Using thread struct pointer as identification hash */
-			id_buffer[copied_ids++] = (unative_t) thread;
+			id_buffer[copied_ids++] = (sysarg_t) thread;
 		} else
 			extra_ids++;
 	}
@@ -413,8 +413,8 @@ int udebug_thread_read(void **buffer, size_t buf_size, size_t *stored,
 	mutex_unlock(&TASK->udebug.lock);
 	
 	*buffer = id_buffer;
-	*stored = copied_ids * sizeof(unative_t);
-	*needed = (copied_ids + extra_ids) * sizeof(unative_t);
+	*stored = copied_ids * sizeof(sysarg_t);
+	*needed = (copied_ids + extra_ids) * sizeof(sysarg_t);
 	
 	return 0;
 }
@@ -462,7 +462,7 @@ int udebug_name_read(char **data, size_t *data_size)
 int udebug_args_read(thread_t *thread, void **buffer)
 {
 	/* Prepare a buffer to hold the arguments. */
-	unative_t *arg_buffer = malloc(6 * sizeof(unative_t), 0);
+	sysarg_t *arg_buffer = malloc(6 * sizeof(sysarg_t), 0);
 	
 	/* On success, this will lock t->udebug.lock. */
 	int rc = _thread_op_begin(thread, false);
@@ -477,7 +477,7 @@ int udebug_args_read(thread_t *thread, void **buffer)
 	}
 	
 	/* Copy to a local buffer before releasing the lock. */
-	memcpy(arg_buffer, thread->udebug.syscall_args, 6 * sizeof(unative_t));
+	memcpy(arg_buffer, thread->udebug.syscall_args, 6 * sizeof(sysarg_t));
 	
 	_thread_op_end(thread);
 	
@@ -538,7 +538,7 @@ int udebug_regs_read(thread_t *thread, void **buffer)
  * @param buffer      For storing a pointer to the allocated buffer.
  *
  */
-int udebug_mem_read(unative_t uspace_addr, size_t n, void **buffer)
+int udebug_mem_read(sysarg_t uspace_addr, size_t n, void **buffer)
 {
 	/* Verify task state */
 	mutex_lock(&TASK->udebug.lock);

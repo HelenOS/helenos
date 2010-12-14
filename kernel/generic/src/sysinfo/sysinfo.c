@@ -295,7 +295,7 @@ NO_TRACE static sysinfo_item_t *sysinfo_create_path(const char *name,
  *
  */
 void sysinfo_set_item_val(const char *name, sysinfo_item_t **root,
-    unative_t val)
+    sysarg_t val)
 {
 	/* Protect sysinfo tree consistency */
 	mutex_lock(&sysinfo_lock);
@@ -480,7 +480,7 @@ NO_TRACE static void sysinfo_dump_internal(sysinfo_item_t *root, unsigned int de
 	while (cur != NULL) {
 		sysinfo_indent(depth);
 		
-		unative_t val;
+		sysarg_t val;
 		size_t size;
 		
 		/* Display node value and type */
@@ -659,7 +659,7 @@ NO_TRACE static sysinfo_return_t sysinfo_get_item_uspace(void *ptr, size_t size,
  * @return Item value type.
  *
  */
-unative_t sys_sysinfo_get_tag(void *path_ptr, size_t path_size)
+sysarg_t sys_sysinfo_get_tag(void *path_ptr, size_t path_size)
 {
 	/*
 	 * Get the item.
@@ -678,7 +678,7 @@ unative_t sys_sysinfo_get_tag(void *path_ptr, size_t path_size)
 	else if (ret.tag == SYSINFO_VAL_FUNCTION_DATA)
 		ret.tag = SYSINFO_VAL_DATA;
 	
-	return (unative_t) ret.tag;
+	return (sysarg_t) ret.tag;
 }
 
 /** Get the sysinfo numerical value (syscall)
@@ -695,7 +695,7 @@ unative_t sys_sysinfo_get_tag(void *path_ptr, size_t path_size)
  * @return Error code (EOK in case of no error).
  *
  */
-unative_t sys_sysinfo_get_value(void *path_ptr, size_t path_size,
+sysarg_t sys_sysinfo_get_value(void *path_ptr, size_t path_size,
     void *value_ptr)
 {
 	int rc;
@@ -714,7 +714,7 @@ unative_t sys_sysinfo_get_value(void *path_ptr, size_t path_size,
 	else
 		rc = EINVAL;
 	
-	return (unative_t) rc;
+	return (sysarg_t) rc;
 }
 
 /** Get the sysinfo binary data size (syscall)
@@ -731,7 +731,7 @@ unative_t sys_sysinfo_get_value(void *path_ptr, size_t path_size,
  * @return Error code (EOK in case of no error).
  *
  */
-unative_t sys_sysinfo_get_data_size(void *path_ptr, size_t path_size,
+sysarg_t sys_sysinfo_get_data_size(void *path_ptr, size_t path_size,
     void *size_ptr)
 {
 	int rc;
@@ -751,7 +751,7 @@ unative_t sys_sysinfo_get_data_size(void *path_ptr, size_t path_size,
 	else
 		rc = EINVAL;
 	
-	return (unative_t) rc;
+	return (sysarg_t) rc;
 }
 
 /** Get the sysinfo binary data (syscall)
@@ -773,7 +773,7 @@ unative_t sys_sysinfo_get_data_size(void *path_ptr, size_t path_size,
  * @return Error code (EOK in case of no error).
  *
  */
-unative_t sys_sysinfo_get_data(void *path_ptr, size_t path_size,
+sysarg_t sys_sysinfo_get_data(void *path_ptr, size_t path_size,
     void *buffer_ptr, size_t buffer_size)
 {
 	int rc;
@@ -796,7 +796,7 @@ unative_t sys_sysinfo_get_data(void *path_ptr, size_t path_size,
 	if ((ret.tag == SYSINFO_VAL_FUNCTION_DATA) && (ret.data.data != NULL))
 		free(ret.data.data);
 	
-	return (unative_t) rc;
+	return (sysarg_t) rc;
 }
 
 /** @}

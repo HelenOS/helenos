@@ -861,7 +861,7 @@ static int write_blocks(devcon_t *devcon, aoff64_t ba, size_t cnt)
 /** Get block size used by the device. */
 static int get_block_size(int dev_phone, size_t *bsize)
 {
-	ipcarg_t bs;
+	sysarg_t bs;
 	int rc;
 
 	rc = async_req_0_1(dev_phone, BD_GET_BLOCK_SIZE, &bs);
@@ -874,7 +874,7 @@ static int get_block_size(int dev_phone, size_t *bsize)
 /** Get total number of blocks on block device. */
 static int get_num_blocks(int dev_phone, aoff64_t *nblocks)
 {
-	ipcarg_t nb_l, nb_h;
+	sysarg_t nb_l, nb_h;
 	int rc;
 
 	rc = async_req_0_2(dev_phone, BD_GET_NUM_BLOCKS, &nb_l, &nb_h);

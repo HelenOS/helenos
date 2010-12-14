@@ -218,7 +218,7 @@ static void i8042_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
 	ipc_callid_t callid;
 	ipc_call_t call;
-	ipcarg_t method;
+	sysarg_t method;
 	devmap_handle_t dh;
 	int retval;
 	int dev_id, i;

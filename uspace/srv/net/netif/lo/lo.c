@@ -163,7 +163,7 @@ static int create(device_id_t device_id, netif_device_t **device)
 
 int netif_initialize(void)
 {
-	ipcarg_t phonehash;
+	sysarg_t phonehash;
 
 	return REGISTER_ME(SERVICE_LO, &phonehash);
 }

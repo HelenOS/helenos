@@ -75,8 +75,8 @@
 
 typedef uint32_t cap_t;
 
-extern unative_t sys_cap_grant(sysarg64_t *uspace_taskid_arg, cap_t caps);
-extern unative_t sys_cap_revoke(sysarg64_t *uspace_taskid_arg, cap_t caps);
+extern sysarg_t sys_cap_grant(sysarg64_t *uspace_taskid_arg, cap_t caps);
+extern sysarg_t sys_cap_revoke(sysarg64_t *uspace_taskid_arg, cap_t caps);
 
 #endif
 

@@ -303,7 +303,7 @@ NO_TRACE static inline void write_msr(uint32_t msr, uint64_t value)
 	);
 }
 
-NO_TRACE static inline unative_t read_msr(uint32_t msr)
+NO_TRACE static inline sysarg_t read_msr(uint32_t msr)
 {
 	uint32_t ax, dx;
 	
@@ -342,7 +342,7 @@ NO_TRACE static inline void invlpg(uintptr_t addr)
 {
 	asm volatile (
 		"invlpg %[addr]\n"
-		:: [addr] "m" (*((unative_t *) addr))
+		:: [addr] "m" (*((sysarg_t *) addr))
 	);
 }
 
@@ -397,9 +397,9 @@ NO_TRACE static inline void tr_load(uint16_t sel)
 	);
 }
 
-#define GEN_READ_REG(reg) NO_TRACE static inline unative_t read_ ##reg (void) \
+#define GEN_READ_REG(reg) NO_TRACE static inline sysarg_t read_ ##reg (void) \
 	{ \
-		unative_t res; \
+		sysarg_t res; \
 		asm volatile ( \
 			"movq %%" #reg ", %[res]" \
 			: [res] "=r" (res) \
@@ -407,7 +407,7 @@ NO_TRACE static inline void tr_load(uint16_t sel)
 		return res; \
 	}
 
-#define GEN_WRITE_REG(reg) NO_TRACE static inline void write_ ##reg (unative_t regn) \
+#define GEN_WRITE_REG(reg) NO_TRACE static inline void write_ ##reg (sysarg_t regn) \
 	{ \
 		asm volatile ( \
 			"movq %[regn], %%" #reg \

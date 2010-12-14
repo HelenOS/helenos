@@ -103,9 +103,9 @@ static atomic_t ipc_futex = FUTEX_INITIALIZER;
  *			Otherwise the RETVAL of the answer is returned.
  */
 int
-ipc_call_sync_fast(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2,
-    ipcarg_t arg3, ipcarg_t *result1, ipcarg_t *result2, ipcarg_t *result3,
-    ipcarg_t *result4, ipcarg_t *result5)
+ipc_call_sync_fast(int phoneid, sysarg_t method, sysarg_t arg1, sysarg_t arg2,
+    sysarg_t arg3, sysarg_t *result1, sysarg_t *result2, sysarg_t *result3,
+    sysarg_t *result4, sysarg_t *result5)
 {
 	ipc_call_t resdata;
 	int callres;
@@ -147,9 +147,9 @@ ipc_call_sync_fast(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2,
  *			Otherwise the RETVAL of the answer.
  */
 int
-ipc_call_sync_slow(int phoneid, ipcarg_t method, ipcarg_t arg1, ipcarg_t arg2,
-    ipcarg_t arg3, ipcarg_t arg4, ipcarg_t arg5, ipcarg_t *result1,
-    ipcarg_t *result2, ipcarg_t *result3, ipcarg_t *result4, ipcarg_t *result5)
+ipc_call_sync_slow(int phoneid, sysarg_t method, sysarg_t arg1, sysarg_t arg2,
+    sysarg_t arg3, sysarg_t arg4, sysarg_t arg5, sysarg_t *result1,
+    sysarg_t *result2, sysarg_t *result3, sysarg_t *result4, sysarg_t *result5)
 {
 	ipc_call_t data;
 	int callres;
@@ -288,8 +288,8 @@ static inline void ipc_finish_async(ipc_callid_t callid, int phoneid,
  *			case the kernel temporarily refuses to accept more
  *			asynchronous calls.
  */
-void ipc_call_async_fast(int phoneid, ipcarg_t method, ipcarg_t arg1,
-    ipcarg_t arg2, ipcarg_t arg3, ipcarg_t arg4, void *private,
+void ipc_call_async_fast(int phoneid, sysarg_t method, sysarg_t arg1,
+    sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, void *private,
     ipc_async_callback_t callback, int can_preempt)
 {
 	async_call_t *call = NULL;
@@ -350,8 +350,8 @@ void ipc_call_async_fast(int phoneid, ipcarg_t method, ipcarg_t arg1,
  *			asynchronous calls.
  *
  */
-void ipc_call_async_slow(int phoneid, ipcarg_t method, ipcarg_t arg1,
-    ipcarg_t arg2, ipcarg_t arg3, ipcarg_t arg4, ipcarg_t arg5, void *private,
+void ipc_call_async_slow(int phoneid, sysarg_t method, sysarg_t arg1,
+    sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t arg5, void *private,
     ipc_async_callback_t callback, int can_preempt)
 {
 	async_call_t *call;
@@ -392,8 +392,8 @@ void ipc_call_async_slow(int phoneid, ipcarg_t method, ipcarg_t arg1,
  *
  * @return		Zero on success or a value from @ref errno.h on failure.
  */
-ipcarg_t ipc_answer_fast(ipc_callid_t callid, ipcarg_t retval, ipcarg_t arg1,
-    ipcarg_t arg2, ipcarg_t arg3, ipcarg_t arg4)
+sysarg_t ipc_answer_fast(ipc_callid_t callid, sysarg_t retval, sysarg_t arg1,
+    sysarg_t arg2, sysarg_t arg3, sysarg_t arg4)
 {
 	return __SYSCALL6(SYS_IPC_ANSWER_FAST, callid, retval, arg1, arg2, arg3,
 	    arg4);
@@ -411,8 +411,8 @@ ipcarg_t ipc_answer_fast(ipc_callid_t callid, ipcarg_t retval, ipcarg_t arg1,
  *
  * @return		Zero on success or a value from @ref errno.h on failure.
  */
-ipcarg_t ipc_answer_slow(ipc_callid_t callid, ipcarg_t retval, ipcarg_t arg1,
-    ipcarg_t arg2, ipcarg_t arg3, ipcarg_t arg4, ipcarg_t arg5)
+sysarg_t ipc_answer_slow(ipc_callid_t callid, sysarg_t retval, sysarg_t arg1,
+    sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t arg5)
 {
 	ipc_call_t data;
 
@@ -584,7 +584,7 @@ void ipc_poke(void)
  * @return		Zero on success or a negative error code.
  */
 int ipc_connect_to_me(int phoneid, int arg1, int arg2, int arg3, 
-    ipcarg_t *phonehash)
+    sysarg_t *phonehash)
 {
 	return ipc_call_sync_3_5(phoneid, IPC_M_CONNECT_TO_ME, arg1, arg2,
 	    arg3, NULL, NULL, NULL, NULL, phonehash);
@@ -601,7 +601,7 @@ int ipc_connect_to_me(int phoneid, int arg1, int arg2, int arg3,
  */
 int ipc_connect_me_to(int phoneid, int arg1, int arg2, int arg3)
 {
-	ipcarg_t newphid;
+	sysarg_t newphid;
 	int res;
 
 	res = ipc_call_sync_3_5(phoneid, IPC_M_CONNECT_ME_TO, arg1, arg2, arg3,
@@ -625,7 +625,7 @@ int ipc_connect_me_to(int phoneid, int arg1, int arg2, int arg3)
  */
 int ipc_connect_me_to_blocking(int phoneid, int arg1, int arg2, int arg3)
 {
-	ipcarg_t newphid;
+	sysarg_t newphid;
 	int res;
 
 	res = ipc_call_sync_4_5(phoneid, IPC_M_CONNECT_ME_TO, arg1, arg2, arg3,
@@ -690,7 +690,7 @@ int ipc_unregister_irq(int inr, int devno)
  * methods are forwarded verbatim.
  */
 int ipc_forward_fast(ipc_callid_t callid, int phoneid, int method,
-    ipcarg_t arg1, ipcarg_t arg2, int mode)
+    sysarg_t arg1, sysarg_t arg2, int mode)
 {
 	return __SYSCALL6(SYS_IPC_FORWARD_FAST, callid, phoneid, method, arg1, 
 	    arg2, mode);
@@ -698,7 +698,7 @@ int ipc_forward_fast(ipc_callid_t callid, int phoneid, int method,
 
 
 int ipc_forward_slow(ipc_callid_t callid, int phoneid, int method,
-    ipcarg_t arg1, ipcarg_t arg2, ipcarg_t arg3, ipcarg_t arg4, ipcarg_t arg5,
+    sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t arg5,
     int mode)
 {
 	ipc_call_t data;
@@ -724,12 +724,12 @@ int ipc_forward_slow(ipc_callid_t callid, int phoneid, int method,
  *
  * @return		Zero on success or a negative error code from errno.h.
  */
-int ipc_share_in_start(int phoneid, void *dst, size_t size, ipcarg_t arg,
+int ipc_share_in_start(int phoneid, void *dst, size_t size, sysarg_t arg,
     int *flags)
 {
 	sysarg_t tmp_flags = 0;
-	int res = ipc_call_sync_3_2(phoneid, IPC_M_SHARE_IN, (ipcarg_t) dst,
-	    (ipcarg_t) size, arg, NULL, &tmp_flags);
+	int res = ipc_call_sync_3_2(phoneid, IPC_M_SHARE_IN, (sysarg_t) dst,
+	    (sysarg_t) size, arg, NULL, &tmp_flags);
 	
 	if (flags)
 		*flags = tmp_flags;
@@ -750,7 +750,7 @@ int ipc_share_in_start(int phoneid, void *dst, size_t size, ipcarg_t arg,
  */
 int ipc_share_in_finalize(ipc_callid_t callid, void *src, int flags)
 {
-	return ipc_answer_2(callid, EOK, (ipcarg_t) src, (ipcarg_t) flags);
+	return ipc_answer_2(callid, EOK, (sysarg_t) src, (sysarg_t) flags);
 }
 
 /** Wrapper for making IPC_M_SHARE_OUT calls.
@@ -763,8 +763,8 @@ int ipc_share_in_finalize(ipc_callid_t callid, void *src, int flags)
  */
 int ipc_share_out_start(int phoneid, void *src, int flags)
 {
-	return ipc_call_sync_3_0(phoneid, IPC_M_SHARE_OUT, (ipcarg_t) src, 0,
-	    (ipcarg_t) flags);
+	return ipc_call_sync_3_0(phoneid, IPC_M_SHARE_OUT, (sysarg_t) src, 0,
+	    (sysarg_t) flags);
 }
 
 /** Wrapper for answering the IPC_M_SHARE_OUT calls.
@@ -779,7 +779,7 @@ int ipc_share_out_start(int phoneid, void *src, int flags)
  */
 int ipc_share_out_finalize(ipc_callid_t callid, void *dst)
 {
-	return ipc_answer_1(callid, EOK, (ipcarg_t) dst);
+	return ipc_answer_1(callid, EOK, (sysarg_t) dst);
 }
 
 
@@ -793,8 +793,8 @@ int ipc_share_out_finalize(ipc_callid_t callid, void *dst)
  */
 int ipc_data_read_start(int phoneid, void *dst, size_t size)
 {
-	return ipc_call_sync_2_0(phoneid, IPC_M_DATA_READ, (ipcarg_t) dst,
-	    (ipcarg_t) size);
+	return ipc_call_sync_2_0(phoneid, IPC_M_DATA_READ, (sysarg_t) dst,
+	    (sysarg_t) size);
 }
 
 /** Wrapper for answering the IPC_M_DATA_READ calls.
@@ -811,7 +811,7 @@ int ipc_data_read_start(int phoneid, void *dst, size_t size)
  */
 int ipc_data_read_finalize(ipc_callid_t callid, const void *src, size_t size)
 {
-	return ipc_answer_2(callid, EOK, (ipcarg_t) src, (ipcarg_t) size);
+	return ipc_answer_2(callid, EOK, (sysarg_t) src, (sysarg_t) size);
 }
 
 /** Wrapper for making IPC_M_DATA_WRITE calls.
@@ -824,8 +824,8 @@ int ipc_data_read_finalize(ipc_callid_t callid, const void *src, size_t size)
  */
 int ipc_data_write_start(int phoneid, const void *src, size_t size)
 {
-	return ipc_call_sync_2_0(phoneid, IPC_M_DATA_WRITE, (ipcarg_t) src,
-	    (ipcarg_t) size);
+	return ipc_call_sync_2_0(phoneid, IPC_M_DATA_WRITE, (sysarg_t) src,
+	    (sysarg_t) size);
 }
 
 /** Wrapper for answering the IPC_M_DATA_WRITE calls.
@@ -841,7 +841,7 @@ int ipc_data_write_start(int phoneid, const void *src, size_t size)
  */
 int ipc_data_write_finalize(ipc_callid_t callid, void *dst, size_t size)
 {
-	return ipc_answer_2(callid, EOK, (ipcarg_t) dst, (ipcarg_t) size);
+	return ipc_answer_2(callid, EOK, (sysarg_t) dst, (sysarg_t) size);
 }
 
 #include <kernel/syscall/sysarg64.h>

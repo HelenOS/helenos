@@ -198,11 +198,11 @@ static uint32_t color_table[16] = {
 
 static int rgb_from_attr(attr_rgb_t *rgb, const attrs_t *a);
 static int rgb_from_style(attr_rgb_t *rgb, int style);
-static int rgb_from_idx(attr_rgb_t *rgb, ipcarg_t fg_color,
-    ipcarg_t bg_color, ipcarg_t flags);
+static int rgb_from_idx(attr_rgb_t *rgb, sysarg_t fg_color,
+    sysarg_t bg_color, sysarg_t flags);
 
-static int fb_set_color(viewport_t *vport, ipcarg_t fg_color,
-    ipcarg_t bg_color, ipcarg_t attr);
+static int fb_set_color(viewport_t *vport, sysarg_t fg_color,
+    sysarg_t bg_color, sysarg_t attr);
 
 static void draw_glyph_aligned(unsigned int x, unsigned int y, bool cursor,
     uint8_t *glyphs, uint32_t glyph, uint32_t fg_color, uint32_t bg_color);
@@ -1071,7 +1071,7 @@ static bool shm_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 	static size_t intersize = 0;
 	
 	static unsigned char *shm = NULL;
-	static ipcarg_t shm_id = 0;
+	static sysarg_t shm_id = 0;
 	static size_t shm_size;
 	
 	bool handled = true;
@@ -1528,8 +1528,8 @@ static int rgb_from_style(attr_rgb_t *rgb, int style)
 	return EOK;
 }
 
-static int rgb_from_idx(attr_rgb_t *rgb, ipcarg_t fg_color,
-    ipcarg_t bg_color, ipcarg_t flags)
+static int rgb_from_idx(attr_rgb_t *rgb, sysarg_t fg_color,
+    sysarg_t bg_color, sysarg_t flags)
 {
 	fg_color = (fg_color & 7) | ((flags & CATTR_BRIGHT) ? 8 : 0);
 	bg_color = (bg_color & 7) | ((flags & CATTR_BRIGHT) ? 8 : 0);
@@ -1561,13 +1561,13 @@ static int rgb_from_attr(attr_rgb_t *rgb, const attrs_t *a)
 	return rc;
 }
 
-static int fb_set_style(viewport_t *vport, ipcarg_t style)
+static int fb_set_style(viewport_t *vport, sysarg_t style)
 {
 	return rgb_from_style(&vport->attr, (int) style);
 }
 
-static int fb_set_color(viewport_t *vport, ipcarg_t fg_color,
-    ipcarg_t bg_color, ipcarg_t flags)
+static int fb_set_color(viewport_t *vport, sysarg_t fg_color,
+    sysarg_t bg_color, sysarg_t flags)
 {
 	return rgb_from_idx(&vport->attr, fg_color, bg_color, flags);
 }

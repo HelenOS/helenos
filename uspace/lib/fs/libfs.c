@@ -154,7 +154,7 @@ void libfs_mount(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	fs_handle_t mr_fs_handle = (fs_handle_t) IPC_GET_ARG3(*request);
 	devmap_handle_t mr_devmap_handle = (devmap_handle_t) IPC_GET_ARG4(*request);
 	int res;
-	ipcarg_t rc;
+	sysarg_t rc;
 	
 	ipc_call_t call;
 	ipc_callid_t callid;

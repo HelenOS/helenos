@@ -183,7 +183,7 @@ static int devman_receive_match_id(match_id_list_t *match_ids)
  * @param match_ids	The list of the device's match ids.
  * @return		Zero on success, negative error code otherwise.
  */
-static int devman_receive_match_ids(ipcarg_t match_count,
+static int devman_receive_match_ids(sysarg_t match_count,
     match_id_list_t *match_ids)
 {
 	int ret = EOK;
@@ -210,7 +210,7 @@ static int assign_driver_fibril(void *arg)
 static void devman_add_child(ipc_callid_t callid, ipc_call_t *call)
 {
 	devman_handle_t parent_handle = IPC_GET_ARG1(*call);
-	ipcarg_t match_count = IPC_GET_ARG2(*call);
+	sysarg_t match_count = IPC_GET_ARG2(*call);
 	dev_tree_t *tree = &device_tree;
 	
 	fibril_rwlock_write_lock(&tree->rwlock);
@@ -530,7 +530,7 @@ static void devman_connection(ipc_callid_t iid, ipc_call_t *icall)
 	 */
 	
 	/* Select interface. */
-	switch ((ipcarg_t) (IPC_GET_ARG1(*icall))) {
+	switch ((sysarg_t) (IPC_GET_ARG1(*icall))) {
 	case DEVMAN_DRIVER:
 		devman_connection_driver(iid, icall);
 		break;
@@ -598,7 +598,7 @@ int main(int argc, char *argv[])
 	async_set_client_connection(devman_connection);
 
 	/* Register device manager at naming service. */
-	ipcarg_t phonead;
+	sysarg_t phonead;
 	if (ipc_connect_to_me(PHONE_NS, SERVICE_DEVMAN, 0, 0, &phonead) != 0)
 		return -1;
 

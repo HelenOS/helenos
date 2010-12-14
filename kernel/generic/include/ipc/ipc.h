@@ -310,7 +310,7 @@ typedef struct answerbox {
 } answerbox_t;
 
 typedef struct {
-	unative_t args[IPC_CALL_LEN];
+	sysarg_t args[IPC_CALL_LEN];
 	phone_t *phone;
 } ipc_data_t;
 
@@ -330,7 +330,7 @@ typedef struct {
 	answerbox_t *callerbox;
 	
 	/** Private data to internal IPC. */
-	unative_t priv;
+	sysarg_t priv;
 	
 	/** Data passed from/to userspace. */
 	ipc_data_t data;
@@ -367,7 +367,7 @@ extern int ipc_phone_hangup(phone_t *);
 extern void ipc_answerbox_init(answerbox_t *, struct task *);
 
 extern void ipc_cleanup(void);
-extern void ipc_backsend_err(phone_t *, call_t *, unative_t);
+extern void ipc_backsend_err(phone_t *, call_t *, sysarg_t);
 extern void ipc_answerbox_slam_phones(answerbox_t *, bool);
 extern void ipc_cleanup_call_list(link_t *);
 

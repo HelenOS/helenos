@@ -53,9 +53,9 @@ devno_t device_assign_devno(void)
 	return devno;
 }
 
-unative_t sys_device_assign_devno(void)
+sysarg_t sys_device_assign_devno(void)
 {
-	return (unative_t) device_assign_devno();
+	return (sysarg_t) device_assign_devno();
 }
 
 /** @}

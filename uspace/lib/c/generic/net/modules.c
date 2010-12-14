@@ -66,29 +66,29 @@ answer_call(ipc_callid_t callid, int result, ipc_call_t *answer,
 	if (answer || (!answer_count)) {
 		switch (answer_count) {
 		case 0:
-			ipc_answer_0(callid, (ipcarg_t) result);
+			ipc_answer_0(callid, (sysarg_t) result);
 			break;
 		case 1:
-			ipc_answer_1(callid, (ipcarg_t) result,
+			ipc_answer_1(callid, (sysarg_t) result,
 			    IPC_GET_ARG1(*answer));
 			break;
 		case 2:
-			ipc_answer_2(callid, (ipcarg_t) result,
+			ipc_answer_2(callid, (sysarg_t) result,
 			    IPC_GET_ARG1(*answer), IPC_GET_ARG2(*answer));
 			break;
 		case 3:
-			ipc_answer_3(callid, (ipcarg_t) result,
+			ipc_answer_3(callid, (sysarg_t) result,
 			    IPC_GET_ARG1(*answer), IPC_GET_ARG2(*answer),
 			    IPC_GET_ARG3(*answer));
 			break;
 		case 4:
-			ipc_answer_4(callid, (ipcarg_t) result,
+			ipc_answer_4(callid, (sysarg_t) result,
 			    IPC_GET_ARG1(*answer), IPC_GET_ARG2(*answer),
 			    IPC_GET_ARG3(*answer), IPC_GET_ARG4(*answer));
 			break;
 		case 5:
 		default:
-			ipc_answer_5(callid, (ipcarg_t) result,
+			ipc_answer_5(callid, (sysarg_t) result,
 			    IPC_GET_ARG1(*answer), IPC_GET_ARG2(*answer),
 			    IPC_GET_ARG3(*answer), IPC_GET_ARG4(*answer),
 			    IPC_GET_ARG5(*answer));
@@ -110,7 +110,7 @@ answer_call(ipc_callid_t callid, int result, ipc_call_t *answer,
  * @return		Other error codes as defined for the ipc_connect_to_me()
  *			function.
  */
-int bind_service(services_t need, ipcarg_t arg1, ipcarg_t arg2, ipcarg_t arg3,
+int bind_service(services_t need, sysarg_t arg1, sysarg_t arg2, sysarg_t arg3,
     async_client_conn_t client_receiver)
 {
 	return bind_service_timeout(need, arg1, arg2, arg3, client_receiver, 0);
@@ -133,8 +133,8 @@ int bind_service(services_t need, ipcarg_t arg1, ipcarg_t arg2, ipcarg_t arg3,
  *			function.
  *
  */
-int bind_service_timeout(services_t need, ipcarg_t arg1, ipcarg_t arg2,
-    ipcarg_t arg3, async_client_conn_t client_receiver, suseconds_t timeout)
+int bind_service_timeout(services_t need, sysarg_t arg1, sysarg_t arg2,
+    sysarg_t arg3, async_client_conn_t client_receiver, suseconds_t timeout)
 {
 	int rc;
 	
@@ -142,7 +142,7 @@ int bind_service_timeout(services_t need, ipcarg_t arg1, ipcarg_t arg2,
 	int phone = connect_to_service_timeout(need, timeout);
 	if (phone >= 0) {
 		/* Request the bidirectional connection */
-		ipcarg_t phonehash;
+		sysarg_t phonehash;
 		
 		rc = ipc_connect_to_me(phone, arg1, arg2, arg3, &phonehash);
 		if (rc != EOK) {

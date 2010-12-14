@@ -47,7 +47,7 @@ static waitq_t can_start;
 static void testit1(void *data)
 {
 	int i;
-	int arg __attribute__((aligned(16))) = (int) ((unative_t) data);
+	int arg __attribute__((aligned(16))) = (int) ((sysarg_t) data);
 	int after_arg __attribute__((aligned(16)));
 	
 	thread_detach(THREAD);
@@ -78,7 +78,7 @@ static void testit1(void *data)
 static void testit2(void *data)
 {
 	int i;
-	int arg __attribute__((aligned(16))) = (int) ((unative_t) data);
+	int arg __attribute__((aligned(16))) = (int) ((sysarg_t) data);
 	int after_arg __attribute__((aligned(16)));
 	
 	thread_detach(THREAD);
@@ -120,14 +120,14 @@ const char *test_sse1(void)
 	for (i = 0; i < THREADS; i++) {
 		thread_t *t;
 		
-		if (!(t = thread_create(testit1, (void *) ((unative_t) 2 * i), TASK, 0, "testit1", false))) {
+		if (!(t = thread_create(testit1, (void *) ((sysarg_t) 2 * i), TASK, 0, "testit1", false))) {
 			TPRINTF("could not create thread %u\n", 2 * i);
 			break;
 		}
 		thread_ready(t);
 		total++;
 		
-		if (!(t = thread_create(testit2, (void *) ((unative_t) 2 * i + 1), TASK, 0, "testit2", false))) {
+		if (!(t = thread_create(testit2, (void *) ((sysarg_t) 2 * i + 1), TASK, 0, "testit2", false))) {
 			TPRINTF("could not create thread %u\n", 2 * i + 1);
 			break;
 		}

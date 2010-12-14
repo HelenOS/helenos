@@ -77,7 +77,7 @@ static void get_as_area(ipc_callid_t callid, ipc_call_t *call, void *faddr,
 		}
 	}
 	
-	ipc_answer_2(callid, EOK, (ipcarg_t) *addr, AS_AREA_READ);
+	ipc_answer_2(callid, EOK, (sysarg_t) *addr, AS_AREA_READ);
 }
 
 static void setup_clock_area(ipc_callid_t callid, ipc_call_t *call, void **addr)
@@ -134,7 +134,7 @@ int main(int argc, char **argv)
 		ipc_callid_t callid = ipc_wait_for_call(&call);
 		
 		task_id_t id;
-		ipcarg_t retval;
+		sysarg_t retval;
 		
 		switch (IPC_GET_METHOD(call)) {
 		case IPC_M_SHARE_IN:

@@ -319,7 +319,7 @@ static int arp_device_message(device_id_t device_id, services_t service,
 		
 		/* Bind the new one */
 		device->phone = nil_bind_service(device->service,
-		    (ipcarg_t) device->device_id, SERVICE_ARP,
+		    (sysarg_t) device->device_id, SERVICE_ARP,
 		    arp_globals.client_connection);
 		if (device->phone < 0) {
 			fibril_mutex_unlock(&arp_globals.lock);

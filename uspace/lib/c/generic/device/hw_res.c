@@ -39,7 +39,7 @@
 
 bool get_hw_resources(int dev_phone, hw_resource_list_t *hw_resources)
 {
-	ipcarg_t count = 0;
+	sysarg_t count = 0;
 	int rc = async_req_1_1(dev_phone, DEV_IFACE_ID(HW_RES_DEV_IFACE), GET_RESOURCE_LIST, &count);
 	hw_resources->count = count;
 	if (EOK != rc) {

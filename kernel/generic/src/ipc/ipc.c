@@ -269,7 +269,7 @@ void ipc_answer(answerbox_t *box, call_t *call)
  * @param err   Return value to be used for the answer.
  *
  */
-void ipc_backsend_err(phone_t *phone, call_t *call, unative_t err)
+void ipc_backsend_err(phone_t *phone, call_t *call, sysarg_t err)
 {
 	call->data.phone = phone;
 	atomic_inc(&phone->active_calls);

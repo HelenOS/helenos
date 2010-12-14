@@ -60,7 +60,7 @@ void event_init(void)
 	}
 }
 
-static int event_subscribe(event_type_t evno, unative_t method,
+static int event_subscribe(event_type_t evno, sysarg_t method,
     answerbox_t *answerbox)
 {
 	if (evno >= EVENT_END)
@@ -83,9 +83,9 @@ static int event_subscribe(event_type_t evno, unative_t method,
 	return res;
 }
 
-unative_t sys_event_subscribe(unative_t evno, unative_t method)
+sysarg_t sys_event_subscribe(sysarg_t evno, sysarg_t method)
 {
-	return (unative_t) event_subscribe((event_type_t) evno, (unative_t)
+	return (sysarg_t) event_subscribe((event_type_t) evno, (sysarg_t)
 	    method, &TASK->answerbox);
 }
 
@@ -118,8 +118,8 @@ void event_cleanup_answerbox(answerbox_t *answerbox)
 	}
 }
 
-void event_notify(event_type_t evno, unative_t a1, unative_t a2, unative_t a3,
-    unative_t a4, unative_t a5)
+void event_notify(event_type_t evno, sysarg_t a1, sysarg_t a2, sysarg_t a3,
+    sysarg_t a4, sysarg_t a5)
 {
 	ASSERT(evno < EVENT_END);
 	

@@ -78,7 +78,7 @@ const char *test_register(void)
 {
 	async_set_client_connection(client_connection);
 	
-	ipcarg_t phonead;
+	sysarg_t phonead;
 	int res = ipc_connect_to_me(PHONE_NS, IPC_TEST_SERVICE, 0, 0, &phonead);
 	if (res != 0)
 		return "Failed registering IPC service";

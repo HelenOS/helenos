@@ -144,8 +144,8 @@ extern void task_create_arch(task_t *);
 extern void task_destroy_arch(task_t *);
 #endif
 
-extern unative_t sys_task_get_id(task_id_t *);
-extern unative_t sys_task_set_name(const char *, size_t);
+extern sysarg_t sys_task_get_id(task_id_t *);
+extern sysarg_t sys_task_set_name(const char *, size_t);
 
 #endif
 

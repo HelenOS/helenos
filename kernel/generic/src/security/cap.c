@@ -84,22 +84,22 @@ cap_t cap_get(task_t *task)
  * @return Zero on success or an error code from @ref errno.h.
  *
  */
-unative_t sys_cap_grant(sysarg64_t *uspace_taskid_arg, cap_t caps)
+sysarg_t sys_cap_grant(sysarg64_t *uspace_taskid_arg, cap_t caps)
 {
 	if (!(cap_get(TASK) & CAP_CAP))
-		return (unative_t) EPERM;
+		return (sysarg_t) EPERM;
 	
 	sysarg64_t taskid_arg;
 	int rc = copy_from_uspace(&taskid_arg, uspace_taskid_arg, sizeof(sysarg64_t));
 	if (rc != 0)
-		return (unative_t) rc;
+		return (sysarg_t) rc;
 	
 	irq_spinlock_lock(&tasks_lock, true);
 	task_t *task = task_find_by_id((task_id_t) taskid_arg.value);
 	
 	if ((!task) || (!context_check(CONTEXT, task->context))) {
 		irq_spinlock_unlock(&tasks_lock, true);
-		return (unative_t) ENOENT;
+		return (sysarg_t) ENOENT;
 	}
 	
 	irq_spinlock_lock(&task->lock, false);
@@ -121,19 +121,19 @@ unative_t sys_cap_grant(sysarg64_t *uspace_taskid_arg, cap_t caps)
  * @return Zero on success or an error code from @ref errno.h.
  *
  */
-unative_t sys_cap_revoke(sysarg64_t *uspace_taskid_arg, cap_t caps)
+sysarg_t sys_cap_revoke(sysarg64_t *uspace_taskid_arg, cap_t caps)
 {
 	sysarg64_t taskid_arg;
 	int rc = copy_from_uspace(&taskid_arg, uspace_taskid_arg, sizeof(sysarg64_t));
 	if (rc != 0)
-		return (unative_t) rc;
+		return (sysarg_t) rc;
 	
 	irq_spinlock_lock(&tasks_lock, true);
 	
 	task_t *task = task_find_by_id((task_id_t) taskid_arg.value);
 	if ((!task) || (!context_check(CONTEXT, task->context))) {
 		irq_spinlock_unlock(&tasks_lock, true);
-		return (unative_t) ENOENT;
+		return (sysarg_t) ENOENT;
 	}
 	
 	/*
@@ -146,7 +146,7 @@ unative_t sys_cap_revoke(sysarg64_t *uspace_taskid_arg, cap_t caps)
 	if ((!(TASK->capabilities & CAP_CAP)) || (task != TASK)) {
 		irq_spinlock_unlock(&TASK->lock, false);
 		irq_spinlock_unlock(&tasks_lock, true);
-		return (unative_t) EPERM;
+		return (sysarg_t) EPERM;
 	}
 	
 	task->capabilities &= ~caps;

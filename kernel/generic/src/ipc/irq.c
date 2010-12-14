@@ -139,11 +139,11 @@ static irq_code_t *code_from_uspace(irq_code_t *ucode)
  *
  */
 int ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno,
-    unative_t method, irq_code_t *ucode)
+    sysarg_t method, irq_code_t *ucode)
 {
-	unative_t key[] = {
-		(unative_t) inr,
-		(unative_t) devno
+	sysarg_t key[] = {
+		(sysarg_t) inr,
+		(sysarg_t) devno
 	};
 	
 	irq_code_t *code;
@@ -212,9 +212,9 @@ int ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno,
  */
 int ipc_irq_unregister(answerbox_t *box, inr_t inr, devno_t devno)
 {
-	unative_t key[] = {
-		(unative_t) inr,
-		(unative_t) devno
+	sysarg_t key[] = {
+		(sysarg_t) inr,
+		(sysarg_t) devno
 	};
 	
 	irq_spinlock_lock(&irq_uspace_hash_table_lock, true);
@@ -289,7 +289,7 @@ loop:
 			goto loop;
 		}
 		
-		unative_t key[2];
+		sysarg_t key[2];
 		key[0] = irq->inr;
 		key[1] = irq->devno;
 		
@@ -464,8 +464,8 @@ void ipc_irq_top_half_handler(irq_t *irq)
  * @param a5  Driver-specific payload argument.
  *
  */
-void ipc_irq_send_msg(irq_t *irq, unative_t a1, unative_t a2, unative_t a3,
-    unative_t a4, unative_t a5)
+void ipc_irq_send_msg(irq_t *irq, sysarg_t a1, sysarg_t a2, sysarg_t a3,
+    sysarg_t a4, sysarg_t a5)
 {
 	irq_spinlock_lock(&irq->lock, true);
 	

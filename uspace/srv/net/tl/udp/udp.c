@@ -392,8 +392,8 @@ static int udp_process_packet(device_id_t device_id, packet_t *packet,
 	/* Notify the destination socket */
 	fibril_rwlock_write_unlock(&udp_globals.lock);
 	async_msg_5(socket->phone, NET_SOCKET_RECEIVED,
-	    (ipcarg_t) socket->socket_id, packet_dimension->content, 0, 0,
-	    (ipcarg_t) fragments);
+	    (sysarg_t) socket->socket_id, packet_dimension->content, 0, 0,
+	    (sysarg_t) fragments);
 
 	return EOK;
 }

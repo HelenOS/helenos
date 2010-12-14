@@ -97,13 +97,13 @@ typedef enum {
 
 #include <typedefs.h>
 
-typedef unative_t (*syshandler_t)(unative_t, unative_t, unative_t, unative_t,
-    unative_t, unative_t);
+typedef sysarg_t (*syshandler_t)(sysarg_t, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t);
 
 extern syshandler_t syscall_table[SYSCALL_END];
-extern unative_t syscall_handler(unative_t, unative_t, unative_t, unative_t,
-    unative_t, unative_t, unative_t);
-extern unative_t sys_tls_set(unative_t);
+extern sysarg_t syscall_handler(sysarg_t, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t, sysarg_t);
+extern sysarg_t sys_tls_set(sysarg_t);
 
 #endif
 

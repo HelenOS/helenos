@@ -172,7 +172,7 @@ int main(int argc, char **argv)
 	/*
 	 * Register at the naming service.
 	 */
-	ipcarg_t phonead;
+	sysarg_t phonead;
 	ipc_connect_to_me(PHONE_NS, SERVICE_VFS, 0, 0, &phonead);
 	
 	/*

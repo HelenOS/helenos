@@ -1,21 +1,21 @@
 interface loader extends service {
 		/* Set task pathname */
-		ipcarg_t set_pathname(in_copy string pathname);
+		sysarg_t set_pathname(in_copy string pathname);
 		
 		/* Set task arguments */
-		ipcarg_t set_args(in_copy stream args);
+		sysarg_t set_args(in_copy stream args);
 		
 		/* Set task initial files */
-		ipcarg_t set_files(in_copy stream files);
+		sysarg_t set_files(in_copy stream files);
 		
 		/* Get task ID */
-		ipcarg_t get_taskid(out_copy stream id);
+		sysarg_t get_taskid(out_copy stream id);
 		
 		/* Load binary */
-		ipcarg_t load(void);
+		sysarg_t load(void);
 		
 		/* Run binary */
-		ipcarg_t run(void);
+		sysarg_t run(void);
 	protocol:
 		[loader.bp]
 };

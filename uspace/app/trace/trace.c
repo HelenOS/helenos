@@ -286,7 +286,7 @@ static void print_sc_args(sysarg_t *sc_args, int n)
 static void sc_ipc_call_async_fast(sysarg_t *sc_args, sysarg_t sc_rc)
 {
 	ipc_call_t call;
-	ipcarg_t phoneid;
+	sysarg_t phoneid;
 	
 	if (sc_rc == (sysarg_t) IPC_CALLRET_FATAL ||
 	    sc_rc == (sysarg_t) IPC_CALLRET_TEMPORARY)

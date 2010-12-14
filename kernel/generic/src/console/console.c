@@ -161,7 +161,7 @@ void klog_init(void)
 	klog_parea.frames = SIZE2FRAMES(sizeof(klog));
 	ddi_parea_register(&klog_parea);
 	
-	sysinfo_set_item_val("klog.faddr", NULL, (unative_t) faddr);
+	sysinfo_set_item_val("klog.faddr", NULL, (sysarg_t) faddr);
 	sysinfo_set_item_val("klog.pages", NULL, KLOG_PAGES);
 	
 	spinlock_lock(&klog_lock);
@@ -192,7 +192,7 @@ void release_console(void)
 }
 
 /** Tell kernel to get keyboard/console access again */
-unative_t sys_debug_enable_console(void)
+sysarg_t sys_debug_enable_console(void)
 {
 #ifdef CONFIG_KCONSOLE
 	grab_console();
@@ -203,7 +203,7 @@ unative_t sys_debug_enable_console(void)
 }
 
 /** Tell kernel to relinquish keyboard/console access */
-unative_t sys_debug_disable_console(void)
+sysarg_t sys_debug_disable_console(void)
 {
 	release_console();
 	return true;
@@ -332,23 +332,23 @@ void putchar(const wchar_t ch)
  * Print to kernel log.
  *
  */
-unative_t sys_klog(int fd, const void *buf, size_t size)
+sysarg_t sys_klog(int fd, const void *buf, size_t size)
 {
 	char *data;
 	int rc;
 	
 	if (size > PAGE_SIZE)
-		return (unative_t) ELIMIT;
+		return (sysarg_t) ELIMIT;
 	
 	if (size > 0) {
 		data = (char *) malloc(size + 1, 0);
 		if (!data)
-			return (unative_t) ENOMEM;
+			return (sysarg_t) ENOMEM;
 		
 		rc = copy_from_uspace(data, buf, size);
 		if (rc) {
 			free(data);
-			return (unative_t) rc;
+			return (sysarg_t) rc;
 		}
 		data[size] = 0;
 		

@@ -253,7 +253,7 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 		ipc_callid_t callid;
 		ipc_call_t call;
 		callid = async_get_call(&call);
-		ipcarg_t method = IPC_GET_METHOD(call);
+		sysarg_t method = IPC_GET_METHOD(call);
 		int iface_idx;
 		
 		switch  (method) {
@@ -307,7 +307,7 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 			assert(NULL != rem_iface);
 
 			/* get the method of the remote interface */
-			ipcarg_t iface_method_idx = IPC_GET_ARG1(call);
+			sysarg_t iface_method_idx = IPC_GET_ARG1(call);
 			remote_iface_func_ptr_t iface_method_ptr =
 			    get_remote_method(rem_iface, iface_method_idx);
 			if (NULL == iface_method_ptr) {
@@ -345,7 +345,7 @@ static void driver_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 static void driver_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
 	/* Select interface */
-	switch ((ipcarg_t) (IPC_GET_ARG1(*icall))) {
+	switch ((sysarg_t) (IPC_GET_ARG1(*icall))) {
 	case DRIVER_DEVMAN:
 		/* handle PnP events from device manager */
 		driver_connection_devman(iid, icall);
