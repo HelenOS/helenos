@@ -78,7 +78,7 @@ static int vhc_add_device(device_t *dev)
 	/*
 	 * Initialize our hub and announce its presence.
 	 */
-	hub_init(dev);
+	virtual_hub_device_init(dev);
 
 	printf("%s: virtual USB host controller ready.\n", NAME);
 
@@ -107,22 +107,23 @@ static int hc_manager_fibril(void *arg)
 
 int main(int argc, char * argv[])
 {	
-	printf("%s: virtual USB host controller driver.\n", NAME);
-
-	usb_dprintf_enable(NAME, 0);
-
-	fid_t fid = fibril_create(hc_manager_fibril, NULL);
-	if (fid == 0) {
-		printf("%s: failed to start HC manager fibril\n", NAME);
-		return ENOMEM;
-	}
-	fibril_add_ready(fid);
-
 	/*
 	 * Temporary workaround. Wait a little bit to be the last driver
 	 * in devman output.
 	 */
 	sleep(4);
+
+	printf(NAME ": virtual USB host controller driver.\n");
+
+	usb_dprintf_enable(NAME, 0);
+
+	fid_t fid = fibril_create(hc_manager_fibril, NULL);
+	if (fid == 0) {
+		printf(NAME ": failed to start HC manager fibril\n");
+		return ENOMEM;
+	}
+	fibril_add_ready(fid);
+
 
 	return driver_main(&vhc_driver);
 }
