@@ -156,12 +156,20 @@ static int handle_set_configuration(usbvirt_device_t *device,
 	}
 	
 	if (configuration_value == 0) {
+		if (DEVICE_HAS_OP(device, on_state_change)) {
+			device->ops->on_state_change(device, device->state,
+			    USBVIRT_STATE_ADDRESS);
+		}
 		device->state = USBVIRT_STATE_ADDRESS;
 	} else {
 		/*
 		* TODO: browse provided configurations and verify that
 		* user selected existing configuration.
 		*/
+		if (DEVICE_HAS_OP(device, on_state_change)) {
+			device->ops->on_state_change(device, device->state,
+			    USBVIRT_STATE_CONFIGURED);
+		}
 		device->state = USBVIRT_STATE_CONFIGURED;
 		if (device->descriptors) {
 			device->descriptors->current_configuration

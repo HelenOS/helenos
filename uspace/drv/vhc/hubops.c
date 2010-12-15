@@ -58,8 +58,6 @@
 
 static int on_get_descriptor(struct usbvirt_device *dev,
     usb_device_request_setup_packet_t *request, uint8_t *data);
-static int on_set_configuration(struct usbvirt_device *dev,
-    usb_device_request_setup_packet_t *request, uint8_t *data);
 static int on_data_request(struct usbvirt_device *dev,
     usb_endpoint_t endpoint,
     void *buffer, size_t size, size_t *actual_size);
@@ -82,20 +80,31 @@ static int on_get_descriptor(struct usbvirt_device *dev,
 	return EFORWARD;
 }
 
-/** Callback for SET_CONFIGURATION request. */
-int on_set_configuration(struct usbvirt_device *dev,
-    usb_device_request_setup_packet_t *request, uint8_t *data)
+static void change_all_ports_state(hub_device_t *hub, hub_port_state_t state)
 {
-	/* We must suspend power source to all ports. */
 	size_t i;
 	for (i = 0; i < HUB_PORT_COUNT; i++) {
-		hub_port_t *port = &hub_dev.ports[i];
-		
-		set_port_state(port, HUB_PORT_STATE_POWERED_OFF);
+		hub_port_t *port = &hub->ports[i];
+		set_port_state(port, state);
 	}
-	
-	/* Let the framework handle the rest of the job. */
-	return EFORWARD;
+}
+
+/** Callback when device changes states. */
+static void on_state_change(struct usbvirt_device *dev,
+    usbvirt_device_state_t old_state, usbvirt_device_state_t new_state)
+{
+	switch (new_state) {
+		case USBVIRT_STATE_CONFIGURED:
+			change_all_ports_state(&hub_dev,
+			    HUB_PORT_STATE_POWERED_OFF);
+			break;
+		case USBVIRT_STATE_ADDRESS:
+			change_all_ports_state(&hub_dev,
+			    HUB_PORT_STATE_NOT_CONFIGURED);
+			break;
+		default:
+			break;
+	}
 }
 
 struct delay_port_state_change {
@@ -517,11 +526,6 @@ static int req_set_port_feature(usbvirt_device_t *dev,
 /** Hub operations on control endpoint zero. */
 static usbvirt_control_transfer_handler_t endpoint_zero_handlers[] = {
 	{
-		STD_REQ(DIR_OUT, REC_DEVICE, USB_DEVREQ_SET_CONFIGURATION),
-		.name = "SetConfiguration",
-		.callback = on_set_configuration
-	},
-	{
 		STD_REQ(DIR_IN, REC_DEVICE, USB_DEVREQ_GET_DESCRIPTOR),
 		.name = "GetDescriptor",
 		.callback = on_get_descriptor
@@ -584,7 +588,8 @@ static usbvirt_control_transfer_handler_t endpoint_zero_handlers[] = {
 usbvirt_device_ops_t hub_ops = {
 	.control_transfer_handlers = endpoint_zero_handlers,
 	.on_data = NULL,
-	.on_data_request = on_data_request
+	.on_data_request = on_data_request,
+	.on_state_change = on_state_change,
 };
 
 /**

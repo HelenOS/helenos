@@ -153,15 +153,22 @@ int control_pipe(usbvirt_device_t *device, usbvirt_control_transfer_t *transfer)
 		 * TODO: handle when this request is invalid (e.g.
 		 * setting address when in configured state).
 		 */
+		usbvirt_device_state_t new_state;
 		if (device->new_address == 0) {
-			device->state = USBVIRT_STATE_DEFAULT;
+			new_state = USBVIRT_STATE_DEFAULT;
 		} else {
-			device->state = USBVIRT_STATE_ADDRESS;
+			new_state = USBVIRT_STATE_ADDRESS;
 		}
 		device->address = device->new_address;
 		
 		device->new_address = -1;
 		
+		if (DEVICE_HAS_OP(device, on_state_change)) {
+			device->ops->on_state_change(device, device->state,
+			    new_state);
+		}
+		device->state = new_state;
+
 		device->lib_debug(device, 2, USBVIRT_DEBUGTAG_CONTROL_PIPE_ZERO,
 		    "device address changed to %d (state %s)",
 		    device->address, str_device_state(device->state));

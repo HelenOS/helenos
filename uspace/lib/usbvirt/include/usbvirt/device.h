@@ -51,6 +51,15 @@ typedef enum {
 	USBVIRT_REQUEST_RECIPIENT_OTHER = 3
 } usbvirt_request_recipient_t;
 
+/** Possible states of virtual USB device.
+ * Notice that these are not 1:1 mappings to those in USB specification.
+ */
+typedef enum {
+	USBVIRT_STATE_DEFAULT,
+	USBVIRT_STATE_ADDRESS,
+	USBVIRT_STATE_CONFIGURED
+} usbvirt_device_state_t;
+
 typedef struct usbvirt_device usbvirt_device_t;
 struct usbvirt_control_transfer;
 
@@ -95,6 +104,19 @@ typedef struct {
 	/** Decides direction of control transfer. */
 	usb_direction_t (*decide_control_transfer_direction)(
 	    usb_endpoint_t endpoint, void *buffer, size_t size);
+
+	/** Callback when device changes its state.
+	 *
+	 * It is correct that this function is called when both states
+	 * are equal (e.g. this function is called during SET_CONFIGURATION
+	 * request done on already configured device).
+	 *
+	 * @warning The value of <code>dev->state</code> before calling
+	 * this function is not specified (i.e. can be @p old_state or
+	 * @p new_state).
+	 */
+	void (*on_state_change)(usbvirt_device_t *dev,
+	    usbvirt_device_state_t old_state, usbvirt_device_state_t new_state);
 } usbvirt_device_ops_t;
 
 /** Extra configuration data for GET_CONFIGURATION request. */
@@ -129,15 +151,6 @@ typedef struct {
 	/** Index of currently selected configuration. */
 	uint8_t current_configuration;
 } usbvirt_descriptors_t;
-
-/** Possible states of virtual USB device.
- * Notice that these are not 1:1 mappings to those in USB specification.
- */
-typedef enum {
-	USBVIRT_STATE_DEFAULT,
-	USBVIRT_STATE_ADDRESS,
-	USBVIRT_STATE_CONFIGURED
-} usbvirt_device_state_t;
 
 /** Information about on-going control transfer.
  */
