@@ -32,47 +32,20 @@
 /** @file
  * @brief
  */
-#ifndef VHCD_HUBINTERN_H_
-#define VHCD_HUBINTERN_H_
+#ifndef VHC_HUB_HUB_H_
+#define VHC_HUB_HUB_H_
 
-#include "hub.h"
 #include <fibril_synch.h>
 
-/** Endpoint number for status change pipe. */
-#define HUB_STATUS_CHANGE_PIPE 1
-/** Configuration value for hub configuration. */
-#define HUB_CONFIGURATION_ID 1
-
-/** Hub descriptor.
- */
-typedef struct {
-	/** Size of this descriptor in bytes. */
-	uint8_t length;
-	/** Descriptor type (USB_DESCTYPE_HUB). */
-	uint8_t type;
-	/** Number of downstream ports. */
-	uint8_t port_count;
-	/** Hub characteristics. */
-	uint16_t characteristics;
-	/** Time from power-on to stabilized current.
-	 * Expressed in 2ms unit.
-	 */
-	uint8_t power_on_warm_up;
-	/** Maximum current (in mA). */
-	uint8_t max_current;
-	/** Whether device at given port is removable. */
-	uint8_t removable_device[BITS2BYTES(HUB_PORT_COUNT+1)];
-	/** Port power control.
-	 * This is USB1.0 compatibility field, all bits must be 1.
-	 */
-	uint8_t port_power[BITS2BYTES(HUB_PORT_COUNT+1)];
-} __attribute__ ((packed)) hub_descriptor_t;
+#define HUB_PORT_COUNT 2
+#define BITS2BYTES(bits) (bits ? ((((bits)-1)>>3)+1) : 0)
 
 /** Hub port internal state.
  * Some states (e.g. port over current) are not covered as they are not
  * simulated at all.
  */
 typedef enum {
+	HUB_PORT_STATE_UNKNOWN,
 	HUB_PORT_STATE_NOT_CONFIGURED,
 	HUB_PORT_STATE_POWERED_OFF,
 	HUB_PORT_STATE_DISCONNECTED,
@@ -84,29 +57,7 @@ typedef enum {
 	/* HUB_PORT_STATE_, */
 } hub_port_state_t;
 
-/** Convert hub port state to a char. */
-static inline char hub_port_state_as_char(hub_port_state_t state) {
-	switch (state) {
-		case HUB_PORT_STATE_NOT_CONFIGURED:
-			return '-';
-		case HUB_PORT_STATE_POWERED_OFF:
-			return 'O';
-		case HUB_PORT_STATE_DISCONNECTED:
-			return 'X';
-		case HUB_PORT_STATE_DISABLED:
-			return 'D';
-		case HUB_PORT_STATE_RESETTING:
-			return 'R';
-		case HUB_PORT_STATE_ENABLED:
-			return 'E';
-		case HUB_PORT_STATE_SUSPENDED:
-			return 'S';
-		case HUB_PORT_STATE_RESUMING:
-			return 'F';
-		default:
-			return '?';
-	}
-}
+char hub_port_state_to_char(hub_port_state_t);
 
 /** Hub status change mask bits. */
 typedef enum {
@@ -120,27 +71,31 @@ typedef enum {
 
 /** Hub port information. */
 typedef struct {
-	virtdev_connection_t *device;
-	int index;
+	void *connected_device;
+	size_t index;
 	hub_port_state_t state;
 	uint16_t status_change;
-	fibril_mutex_t guard;
 } hub_port_t;
 
 /** Hub device type. */
 typedef struct {
 	hub_port_t ports[HUB_PORT_COUNT];
-} hub_device_t;
+	void *custom_data;
+	fibril_mutex_t guard;
+} hub_t;
 
-extern hub_device_t hub_dev;
-
-extern hub_descriptor_t hub_descriptor;
-
-extern usbvirt_device_ops_t hub_ops;
-
-void clear_port_status_change(hub_port_t *, uint16_t);
-void set_port_status_change(hub_port_t *, uint16_t);
-void set_port_status_change_nl(hub_port_t *, uint16_t);
+void hub_init(hub_t *);
+size_t hub_connect_device(hub_t *, void *);
+size_t hub_find_device(hub_t *, void *);
+void hub_acquire(hub_t *);
+void hub_release(hub_t *);
+void hub_set_port_state(hub_t *, size_t, hub_port_state_t);
+void hub_set_port_state_all(hub_t *, hub_port_state_t);
+hub_port_state_t hub_get_port_state(hub_t *, size_t);
+void hub_clear_port_status_change(hub_t *, size_t, hub_status_change_t);
+uint16_t hub_get_port_status_change(hub_t *, size_t);
+uint32_t hub_get_port_status(hub_t *, size_t);
+uint8_t hub_get_status_change_bitmap(hub_t *);
 
 
 #endif

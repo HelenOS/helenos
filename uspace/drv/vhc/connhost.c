@@ -101,7 +101,7 @@ static int enqueue_transfer_out(device_t *dev,
 	    = create_transfer_info(dev, USB_DIRECTION_OUT, arg);
 	transfer->out_callback = callback;
 
-	hc_add_transaction_to_device(false, target, buffer, size,
+	hc_add_transaction_to_device(false, target, transfer_type, buffer, size,
 	    universal_callback, transfer);
 
 	return EOK;
@@ -121,7 +121,7 @@ static int enqueue_transfer_setup(device_t *dev,
 	    = create_transfer_info(dev, USB_DIRECTION_OUT, arg);
 	transfer->out_callback = callback;
 
-	hc_add_transaction_to_device(true, target, buffer, size,
+	hc_add_transaction_to_device(true, target, transfer_type, buffer, size,
 	    universal_callback, transfer);
 
 	return EOK;
@@ -141,7 +141,7 @@ static int enqueue_transfer_in(device_t *dev,
 	    = create_transfer_info(dev, USB_DIRECTION_IN, arg);
 	transfer->in_callback = callback;
 
-	hc_add_transaction_from_device(target, buffer, size,
+	hc_add_transaction_from_device(target, transfer_type, buffer, size,
 	    universal_callback, transfer);
 
 	return EOK;

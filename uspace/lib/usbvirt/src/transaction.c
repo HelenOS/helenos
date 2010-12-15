@@ -36,7 +36,6 @@
 #include <stdlib.h>
 #include <mem.h>
 
-#include "hub.h"
 #include "private.h"
 
 static usb_direction_t setup_transaction_direction(usbvirt_device_t *,

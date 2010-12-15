@@ -37,7 +37,8 @@
 
 #include <usbvirt/device.h>
 
-extern usbvirt_standard_device_request_ops_t standard_request_ops;
+int stdreq_on_get_descriptor(usbvirt_device_t *,
+    usb_device_request_setup_packet_t *, uint8_t *);
 
 #endif
 /**
