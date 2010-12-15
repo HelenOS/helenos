@@ -101,7 +101,7 @@ static void process_transaction_with_outcome(transaction_t * transaction,
 
 /** Host controller manager main function.
  */
-void hc_manager(void)
+static int hc_manager_fibril(void *arg)
 {
 	list_initialize(&transaction_list);
 	
@@ -138,6 +138,19 @@ void hc_manager(void)
 
 		free(transaction);
 	}
+
+	assert(false && "unreachable");
+	return EOK;
+}
+
+void hc_manager(void)
+{
+	fid_t fid = fibril_create(hc_manager_fibril, NULL);
+	if (fid == 0) {
+		printf(NAME ": failed to start HC manager fibril\n");
+		return;
+	}
+	fibril_add_ready(fid);
 }
 
 /** Create new transaction

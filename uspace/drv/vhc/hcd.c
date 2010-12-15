@@ -94,16 +94,6 @@ static driver_t vhc_driver = {
 	.driver_ops = &vhc_driver_ops
 };
 
-/** Fibril wrapper for HC transaction manager.
- *
- * @param arg Not used.
- * @return Nothing, return argument is unreachable.
- */
-static int hc_manager_fibril(void *arg)
-{
-	hc_manager();
-	return EOK;
-}
 
 int main(int argc, char * argv[])
 {	
@@ -111,19 +101,13 @@ int main(int argc, char * argv[])
 	 * Temporary workaround. Wait a little bit to be the last driver
 	 * in devman output.
 	 */
-	sleep(4);
-
-	printf(NAME ": virtual USB host controller driver.\n");
+	sleep(5);
 
 	usb_dprintf_enable(NAME, 0);
 
-	fid_t fid = fibril_create(hc_manager_fibril, NULL);
-	if (fid == 0) {
-		printf(NAME ": failed to start HC manager fibril\n");
-		return ENOMEM;
-	}
-	fibril_add_ready(fid);
+	printf(NAME ": virtual USB host controller driver.\n");
 
+	hc_manager();
 
 	return driver_main(&vhc_driver);
 }
