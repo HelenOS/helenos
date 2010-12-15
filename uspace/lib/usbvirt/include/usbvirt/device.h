@@ -179,6 +179,9 @@ struct usbvirt_device {
 	/** Callback device operations. */
 	usbvirt_device_ops_t *ops;
 	
+	/** Custom device data. */
+	void *device_data;
+
 	/** Reply onto control transfer.
 	 */
 	int (*control_transfer_reply)(usbvirt_device_t *dev,
