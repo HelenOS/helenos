@@ -85,7 +85,13 @@ static int req_on_data(struct usbvirt_device *dev,
 	return EOK;
 }
 
-
+/** Handle ClearHubFeature request.
+ *
+ * @param dev Virtual device representing the hub.
+ * @param request The SETUP packet of the control request.
+ * @param data Extra data (when DATA stage present).
+ * @return Error code.
+ */
 static int req_clear_hub_feature(usbvirt_device_t *dev,
     usb_device_request_setup_packet_t *request,
     uint8_t *data)
@@ -93,6 +99,13 @@ static int req_clear_hub_feature(usbvirt_device_t *dev,
 	return ENOTSUP;
 }
 
+/** Handle ClearPortFeature request.
+ *
+ * @param dev Virtual device representing the hub.
+ * @param request The SETUP packet of the control request.
+ * @param data Extra data (when DATA stage present).
+ * @return Error code.
+ */
 static int req_clear_port_feature(usbvirt_device_t *dev,
     usb_device_request_setup_packet_t *request,
     uint8_t *data)
@@ -166,6 +179,13 @@ static int req_clear_port_feature(usbvirt_device_t *dev,
 	return rc;
 }
 
+/** Handle GetBusState request.
+ *
+ * @param dev Virtual device representing the hub.
+ * @param request The SETUP packet of the control request.
+ * @param data Extra data (when DATA stage present).
+ * @return Error code.
+ */
 static int req_get_bus_state(usbvirt_device_t *dev,
     usb_device_request_setup_packet_t *request,
     uint8_t *data)
@@ -173,6 +193,13 @@ static int req_get_bus_state(usbvirt_device_t *dev,
 	return ENOTSUP;
 }
 
+/** Handle GetDescriptor request.
+ *
+ * @param dev Virtual device representing the hub.
+ * @param request The SETUP packet of the control request.
+ * @param data Extra data (when DATA stage present).
+ * @return Error code.
+ */
 static int req_get_descriptor(usbvirt_device_t *dev,
     usb_device_request_setup_packet_t *request,
     uint8_t *data)
@@ -187,6 +214,13 @@ static int req_get_descriptor(usbvirt_device_t *dev,
 	return EFORWARD;
 }
 
+/** Handle GetHubStatus request.
+ *
+ * @param dev Virtual device representing the hub.
+ * @param request The SETUP packet of the control request.
+ * @param data Extra data (when DATA stage present).
+ * @return Error code.
+ */
 static int req_get_hub_status(usbvirt_device_t *dev,
     usb_device_request_setup_packet_t *request,
     uint8_t *data)
@@ -197,6 +231,13 @@ static int req_get_hub_status(usbvirt_device_t *dev,
 	    &hub_status, sizeof(hub_status));
 }
 
+/** Handle GetPortStatus request.
+ *
+ * @param dev Virtual device representing the hub.
+ * @param request The SETUP packet of the control request.
+ * @param data Extra data (when DATA stage present).
+ * @return Error code.
+ */
 static int req_get_port_status(usbvirt_device_t *dev,
     usb_device_request_setup_packet_t *request,
     uint8_t *data)
@@ -212,6 +253,13 @@ static int req_get_port_status(usbvirt_device_t *dev,
 	return dev->control_transfer_reply(dev, 0, &status, 4);
 }
 
+/** Handle SetHubFeature request.
+ *
+ * @param dev Virtual device representing the hub.
+ * @param request The SETUP packet of the control request.
+ * @param data Extra data (when DATA stage present).
+ * @return Error code.
+ */
 static int req_set_hub_feature(usbvirt_device_t *dev,
     usb_device_request_setup_packet_t *request,
     uint8_t *data)
@@ -219,6 +267,13 @@ static int req_set_hub_feature(usbvirt_device_t *dev,
 	return ENOTSUP;
 }
 
+/** Handle SetPortFeature request.
+ *
+ * @param dev Virtual device representing the hub.
+ * @param request The SETUP packet of the control request.
+ * @param data Extra data (when DATA stage present).
+ * @return Error code.
+ */
 static int req_set_port_feature(usbvirt_device_t *dev,
     usb_device_request_setup_packet_t *request,
     uint8_t *data)
@@ -264,24 +319,41 @@ static int req_set_port_feature(usbvirt_device_t *dev,
 }
 
 
-
+/** IN class request. */
 #define CLASS_REQ_IN(recipient) \
 	USBVIRT_MAKE_CONTROL_REQUEST_TYPE(USB_DIRECTION_IN, \
 	USBVIRT_REQUEST_TYPE_CLASS, recipient)
+/** OUT class request. */
 #define CLASS_REQ_OUT(recipient) \
 	USBVIRT_MAKE_CONTROL_REQUEST_TYPE(USB_DIRECTION_OUT, \
 	USBVIRT_REQUEST_TYPE_CLASS, recipient)
 
+/** Recipient: other. */
 #define REC_OTHER USBVIRT_REQUEST_RECIPIENT_OTHER
+/** Recipient: device. */
 #define REC_DEVICE USBVIRT_REQUEST_RECIPIENT_DEVICE
+/** Direction: in. */
 #define DIR_IN USB_DIRECTION_IN
+/** Direction: out. */
 #define DIR_OUT USB_DIRECTION_OUT
 
+/** Create a class request.
+ *
+ * @param direction Request direction.
+ * @param recipient Request recipient.
+ * @param req Request code.
+ */
 #define CLASS_REQ(direction, recipient, req) \
 	.request_type = USBVIRT_MAKE_CONTROL_REQUEST_TYPE(direction, \
 	    USBVIRT_REQUEST_TYPE_CLASS, recipient), \
 	.request = req
 
+/** Create a standard request.
+ *
+ * @param direction Request direction.
+ * @param recipient Request recipient.
+ * @param req Request code.
+ */
 #define STD_REQ(direction, recipient, req) \
 	.request_type = USBVIRT_MAKE_CONTROL_REQUEST_TYPE(direction, \
 	    USBVIRT_REQUEST_TYPE_STANDARD, recipient), \

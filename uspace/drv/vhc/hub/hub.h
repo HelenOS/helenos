@@ -30,7 +30,7 @@
  * @{
  */
 /** @file
- * @brief
+ * @brief Representation of an USB hub.
  */
 #ifndef VHC_HUB_HUB_H_
 #define VHC_HUB_HUB_H_
@@ -71,16 +71,23 @@ typedef enum {
 
 /** Hub port information. */
 typedef struct {
+	/** Custom pointer to connected device. */
 	void *connected_device;
+	/** Port index (one based). */
 	size_t index;
+	/** Port state. */
 	hub_port_state_t state;
+	/** Status change bitmap. */
 	uint16_t status_change;
 } hub_port_t;
 
 /** Hub device type. */
 typedef struct {
+	/** Hub ports. */
 	hub_port_t ports[HUB_PORT_COUNT];
+	/** Custom hub data. */
 	void *custom_data;
+	/** Access guard to the whole hub. */
 	fibril_mutex_t guard;
 } hub_t;
 

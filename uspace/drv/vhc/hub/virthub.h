@@ -30,7 +30,7 @@
  * @{
  */
 /** @file
- * @brief
+ * @brief USB hub as a virtual USB device.
  */
 #ifndef VHC_HUB_VIRTHUB_H_
 #define VHC_HUB_VIRTHUB_H_

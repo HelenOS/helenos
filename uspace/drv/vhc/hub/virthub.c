@@ -71,6 +71,7 @@ usb_standard_interface_descriptor_t std_interface_descriptor = {
 	.str_interface = 0
 };
 
+/** Hub descriptor. */
 hub_descriptor_t hub_descriptor = {
 	.length = sizeof(hub_descriptor_t),
 	.type = USB_DESCTYPE_HUB,
@@ -139,6 +140,11 @@ usbvirt_descriptors_t descriptors = {
 	.configuration_count = 1,
 };
 
+/** Initializes virtual hub device.
+ *
+ * @param dev Virtual USB device backend.
+ * @return Error code.
+ */
 int virthub_init(usbvirt_device_t *dev)
 {
 	if (dev == NULL) {
@@ -162,6 +168,12 @@ int virthub_init(usbvirt_device_t *dev)
 	return EOK;
 }
 
+/** Connect a device to a virtual hub.
+ *
+ * @param dev Virtual device representing the hub.
+ * @param conn Device to be connected.
+ * @return Port device was connected to.
+ */
 int virthub_connect_device(usbvirt_device_t *dev, virtdev_connection_t *conn)
 {
 	assert(dev != NULL);
@@ -176,6 +188,12 @@ int virthub_connect_device(usbvirt_device_t *dev, virtdev_connection_t *conn)
 	return port;
 }
 
+/** Disconnect a device from a virtual hub.
+ *
+ * @param dev Virtual device representing the hub.
+ * @param conn Device to be disconnected.
+ * @return Error code.
+ */
 int virthub_disconnect_device(usbvirt_device_t *dev, virtdev_connection_t *conn)
 {
 	assert(dev != NULL);
@@ -184,11 +202,18 @@ int virthub_disconnect_device(usbvirt_device_t *dev, virtdev_connection_t *conn)
 	hub_t *hub = (hub_t *) dev->device_data;
 
 	hub_acquire(hub);
+	/* TODO: implement. */
 	hub_release(hub);
 
 	return ENOTSUP;
 }
 
+/** Whether trafic is propagated to given device.
+ *
+ * @param dev Virtual device representing the hub.
+ * @param conn Connected device.
+ * @return Whether port is signalling to the device.
+ */
 bool virthub_is_device_enabled(usbvirt_device_t *dev, virtdev_connection_t *conn)
 {
 	assert(dev != NULL);
@@ -208,6 +233,12 @@ bool virthub_is_device_enabled(usbvirt_device_t *dev, virtdev_connection_t *conn
 	return state == HUB_PORT_STATE_ENABLED;
 }
 
+/** Format status of a virtual hub.
+ *
+ * @param dev Virtual device representing the hub.
+ * @param[out] status Hub status information.
+ * @param[in] len Size of the @p status buffer.
+ */
 void virthub_get_status(usbvirt_device_t *dev, char *status, size_t len)
 {
 	assert(dev != NULL);

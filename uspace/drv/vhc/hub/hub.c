@@ -30,7 +30,7 @@
  * @{
  */
 /** @file
- * @brief Virtual USB hub.
+ * @brief Representation of an USB hub (implementation).
  */
 #include <usb/classes/classes.h>
 #include <usbvirt/hub.h>
@@ -337,6 +337,13 @@ uint32_t hub_get_port_status(hub_t *hub, size_t port_index)
 	return status;
 }
 
+/** Create hub status change bitmap.
+ *
+ * @warning This function assumes that the whole bitmap fits into 8 bits.
+ *
+ * @param hub Hub in question.
+ * @return Hub status change bitmap.
+ */
 uint8_t hub_get_status_change_bitmap(hub_t *hub)
 {
 	uint8_t change_map = 0;
@@ -360,6 +367,13 @@ uint8_t hub_get_status_change_bitmap(hub_t *hub)
  *
  */
 
+/** Find a port in a hub.
+ *
+ * @param hub Hub in question.
+ * @param port Port index (zero based).
+ * @return Port structure.
+ * @retval NULL Invalid port index.
+ */
 static hub_port_t *get_hub_port(hub_t *hub, size_t port)
 {
 	if (port >= HUB_PORT_COUNT) {
@@ -369,6 +383,11 @@ static hub_port_t *get_hub_port(hub_t *hub, size_t port)
 	return &hub->ports[port];
 }
 
+/** Adds a port status change to a port.
+ *
+ * @param port The port with status change.
+ * @param change Change to be added to the status.
+ */
 static void set_port_status_change(hub_port_t *port,
     hub_status_change_t change)
 {
@@ -376,6 +395,11 @@ static void set_port_status_change(hub_port_t *port,
 	port->status_change |= change;
 }
 
+/** Clears a port status change on a port.
+ *
+ * @param port The port with status change.
+ * @param change Change to be removed from the status.
+ */
 static void clear_port_status_change(hub_port_t *port,
     uint16_t change)
 {
@@ -383,14 +407,25 @@ static void clear_port_status_change(hub_port_t *port,
 	port->status_change &= (~change);
 }
 
+/** Structure for automatic (delayed) port state change. */
 struct delay_port_state_change {
+	/** Delay in microseconds. */
 	suseconds_t delay;
+	/** Old state of the port. */
 	hub_port_state_t old_state;
+	/** New state of the port. */
 	hub_port_state_t new_state;
+	/** Port index (zero based). */
 	size_t port;
+	/** Hub. */
 	hub_t *hub;
 };
 
+/** Fibril responsible for delayed port state change.
+ *
+ * @param arg Pointer to delay_port_state_change.
+ * @return Always EOK.
+ */
 static int set_port_state_delayed_fibril(void *arg)
 {
 	struct delay_port_state_change *change
@@ -415,6 +450,17 @@ static int set_port_state_delayed_fibril(void *arg)
 	return EOK;
 }
 
+/** Change port state with a delay.
+ *
+ * @warning If the port state changes during the waiting phase, the state
+ * is not changed.
+ *
+ * @param hub Hub in question.
+ * @param port_index Port index (zero based).
+ * @param delay_time_ms Delay time in miliseconds.
+ * @param old_state Old (current) state of the port.
+ * @param new_state New state of the port.
+ */
 static void set_port_state_delayed(hub_t *hub, size_t port_index,
     suseconds_t delay_time_ms,
     hub_port_state_t old_state, hub_port_state_t new_state)
