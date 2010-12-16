@@ -48,15 +48,6 @@
 
 #include <sys/time.h>
 
-/** Converts the data length between different types.
- *
- * @param[in] type_from	The source type.
- * @param[in] type_to	The destination type.
- * @param[in] count	The number units of the source type size.
- */
-#define CONVERT_SIZE(type_from, type_to, count) \
-	((sizeof(type_from) / sizeof(type_to)) * (count))
-
 /** Registers the module service at the name server.
  *
  * @param[in] me	The module service.

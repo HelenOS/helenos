@@ -441,7 +441,7 @@ static int ip_netif_initialize(ip_netif_t *ip_netif)
 	if (ip_netif->arp) {
 		if (route) {
 			address.value = (char *) &route->address.s_addr;
-			address.length = CONVERT_SIZE(in_addr_t, char, 1);
+			address.length = sizeof(in_addr_t);
 			
 			rc = arp_device_req(ip_netif->arp->phone,
 			    ip_netif->device_id, SERVICE_IP, ip_netif->service,
@@ -1004,7 +1004,7 @@ ip_send_route(packet_t *packet, ip_netif_t *netif, ip_route_t *route,
 	if (netif->arp && (route->address.s_addr != dest.s_addr)) {
 		destination.value = route->gateway.s_addr ?
 		    (char *) &route->gateway.s_addr : (char *) &dest.s_addr;
-		destination.length = CONVERT_SIZE(dest.s_addr, char, 1);
+		destination.length = sizeof(dest.s_addr);
 
 		rc = arp_translate_req(netif->arp->phone, netif->device_id,
 		    SERVICE_IP, &destination, &translation, &data);
