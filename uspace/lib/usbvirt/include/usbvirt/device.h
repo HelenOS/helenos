@@ -39,15 +39,23 @@
 #include <usb/descriptor.h>
 #include <usb/devreq.h>
 
+/** Request type of a control transfer. */
 typedef enum {
+	/** Standard USB request. */
 	USBVIRT_REQUEST_TYPE_STANDARD = 0,
+	/** Standard class USB request. */
 	USBVIRT_REQUEST_TYPE_CLASS = 1
 } usbvirt_request_type_t;
 
+/** Recipient of control request. */
 typedef enum {
+	/** Device is the recipient of the control request. */
 	USBVIRT_REQUEST_RECIPIENT_DEVICE = 0,
+	/** Interface is the recipient of the control request. */
 	USBVIRT_REQUEST_RECIPIENT_INTERFACE = 1,
+	/** Endpoint is the recipient of the control request. */
 	USBVIRT_REQUEST_RECIPIENT_ENDPOINT = 2,
+	/** Other part of the device is the recipient of the control request. */
 	USBVIRT_REQUEST_RECIPIENT_OTHER = 3
 } usbvirt_request_recipient_t;
 
@@ -55,8 +63,11 @@ typedef enum {
  * Notice that these are not 1:1 mappings to those in USB specification.
  */
 typedef enum {
+	/** Default state, device listens at default address. */
 	USBVIRT_STATE_DEFAULT,
+	/** Device has non-default address assigned. */
 	USBVIRT_STATE_ADDRESS,
+	/** Device is configured. */
 	USBVIRT_STATE_CONFIGURED
 } usbvirt_device_state_t;
 
@@ -67,22 +78,46 @@ typedef int (*usbvirt_on_device_request_t)(usbvirt_device_t *dev,
 	usb_device_request_setup_packet_t *request,
 	uint8_t *data);
 
+/** Callback for control request over pipe zero.
+ *
+ * @param dev Virtual device answering the call.
+ * @param request Request setup packet.
+ * @param data Data when DATA stage is present.
+ * @return Error code.
+ */
 typedef int (*usbvirt_control_request_callback_t)(usbvirt_device_t *dev,
 	usb_device_request_setup_packet_t *request,
 	uint8_t *data);
 
+/** Handler for control transfer on endpoint zero. */
 typedef struct {
+	/** Request type bitmap.
+	 * Use USBVIRT_MAKE_CONTROL_REQUEST_TYPE for creating the bitmap.
+	 */
 	uint8_t request_type;
+	/** Request code. */
 	uint8_t request;
+	/** Request name for debugging. */
 	const char *name;
+	/** Callback for the request.
+	 * NULL value here announces end of a list.
+	 */
 	usbvirt_control_request_callback_t callback;
 } usbvirt_control_transfer_handler_t;
 
+/** Create control request type bitmap.
+ *
+ * @param direction Transfer direction (use usb_direction_t).
+ * @param type Request type (use usbvirt_request_type_t).
+ * @param recipient Recipient of the request (use usbvirt_request_recipient_t).
+ * @return Request type bitmap.
+ */
 #define USBVIRT_MAKE_CONTROL_REQUEST_TYPE(direction, type, recipient) \
 	((((direction) == USB_DIRECTION_IN) ? 1 : 0) << 7) \
 	| (((type) & 3) << 5) \
 	| (((recipient) & 31))
 
+/** Create last item in an array of control request handlers. */
 #define USBVIRT_CONTROL_TRANSFER_HANDLER_LAST { 0, 0, NULL, NULL }
 
 /** Device operations. */
