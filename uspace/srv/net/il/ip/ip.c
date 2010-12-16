@@ -638,7 +638,7 @@ ip_prepare_packet(in_addr_t *source, in_addr_t dest, packet_t *packet,
 	header = (ip_header_t *) packet_get_data(packet);
 	if (destination) {
 		rc = packet_set_addr(packet, NULL, (uint8_t *) destination->value,
-		    CONVERT_SIZE(char, uint8_t, destination->length));
+		    destination->length);
 	} else {
 		rc = packet_set_addr(packet, NULL, NULL, 0);
 	}
@@ -686,8 +686,7 @@ ip_prepare_packet(in_addr_t *source, in_addr_t dest, packet_t *packet,
 			if (destination) {
 				rc = packet_set_addr(next, NULL,
 				    (uint8_t *) destination->value,
-				    CONVERT_SIZE(char, uint8_t,
-				    destination->length));
+				    destination->length);
 				if (rc != EOK) {
 				    	free(last_header);
 					return rc;
@@ -717,7 +716,7 @@ ip_prepare_packet(in_addr_t *source, in_addr_t dest, packet_t *packet,
 		if (destination) {
 			rc = packet_set_addr(next, NULL,
 			    (uint8_t *) destination->value,
-			    CONVERT_SIZE(char, uint8_t, destination->length));
+			    destination->length);
 			if (rc != EOK) {
 				free(last_header);
 				return rc;
@@ -1757,8 +1756,7 @@ ip_received_error_msg_local(int ip_phone, device_id_t device_id,
 		    (header->destination_address & route->netmask.s_addr))) {
 			// clear the ARP mapping if any
 			address.value = (char *) &header->destination_address;
-			address.length = CONVERT_SIZE(uint8_t, char,
-			    sizeof(header->destination_address));
+			address.length = sizeof(header->destination_address);
 			arp_clear_address_req(netif->arp->phone,
 			    netif->device_id, SERVICE_IP, &address);
 		}
