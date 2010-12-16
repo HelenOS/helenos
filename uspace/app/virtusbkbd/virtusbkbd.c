@@ -75,13 +75,6 @@ static int on_incoming_data(struct usbvirt_device *dev,
 	return EOK;
 }
 
-static int on_class_request(struct usbvirt_device *dev,
-    usb_device_request_setup_packet_t *request, uint8_t *data)
-{	
-	printf("%s: class request (%d)\n", NAME, (int) request->request);
-	
-	return EOK;
-}
 
 /** Compares current and last status of pressed keys.
  *
@@ -137,13 +130,33 @@ static int on_request_for_data(struct usbvirt_device *dev,
 	return EOK;
 }
 
+static usbvirt_control_transfer_handler_t endpoint_zero_handlers[] = {
+	{
+		.request_type = USBVIRT_MAKE_CONTROL_REQUEST_TYPE(
+		    USB_DIRECTION_IN,
+		    USBVIRT_REQUEST_TYPE_STANDARD,
+		    USBVIRT_REQUEST_RECIPIENT_DEVICE),
+		.request = USB_DEVREQ_GET_DESCRIPTOR,
+		.name = "GetDescriptor",
+		.callback = stdreq_on_get_descriptor
+	},
+	{
+		.request_type = USBVIRT_MAKE_CONTROL_REQUEST_TYPE(
+		    USB_DIRECTION_IN,
+		    USBVIRT_REQUEST_TYPE_CLASS,
+		    USBVIRT_REQUEST_RECIPIENT_DEVICE),
+		.request = USB_DEVREQ_GET_DESCRIPTOR,
+		.name = "GetDescriptor",
+		.callback = stdreq_on_get_descriptor
+	},
+	USBVIRT_CONTROL_TRANSFER_HANDLER_LAST
+};
 
 /** Keyboard callbacks.
  * We abuse the fact that static variables are zero-filled.
  */
 static usbvirt_device_ops_t keyboard_ops = {
-	.standard_request_ops = &standard_request_ops,
-	.on_class_device_request = on_class_request,
+	.control_transfer_handlers = endpoint_zero_handlers,
 	.on_data = on_incoming_data,
 	.on_data_request = on_request_for_data
 };
@@ -256,6 +269,7 @@ int main(int argc, char * argv[])
 	}
 	
 	printf("%s: Simulating keyboard events...\n", NAME);
+	fibril_sleep(10);
 	while (1) {
 		kb_process_events(&status, keyboard_events, keyboard_events_count,
 			on_keyboard_change);

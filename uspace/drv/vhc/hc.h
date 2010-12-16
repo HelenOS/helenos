@@ -54,6 +54,8 @@ typedef struct {
 	link_t link;
 	/** Transaction type. */
 	usbvirt_transaction_type_t type;
+	/** Transfer type. */
+	usb_transfer_type_t transfer_type;
 	/** Device address. */
 	usb_target_t target;
 	/** Direction of the transaction. */
@@ -70,11 +72,13 @@ typedef struct {
 
 void hc_manager(void);
 
-void hc_add_transaction_to_device(bool setup, usb_target_t target,
+void hc_add_transaction_to_device(bool setup,
+    usb_target_t target, usb_transfer_type_t transfer_type,
     void * buffer, size_t len,
     hc_transaction_done_callback_t callback, void * arg);
 
-void hc_add_transaction_from_device(usb_target_t target,
+void hc_add_transaction_from_device(
+    usb_target_t target, usb_transfer_type_t transfer_type,
     void * buffer, size_t len,
     hc_transaction_done_callback_t callback, void * arg);
 

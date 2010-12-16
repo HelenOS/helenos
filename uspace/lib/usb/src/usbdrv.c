@@ -71,12 +71,12 @@ int usb_drv_hc_connect(device_t *dev, unsigned int flags)
 	int rc;
 	devman_handle_t handle;
 
-	rc = devman_device_get_handle("/virt/usbhc", &handle, 0);
+	rc = devman_device_get_handle("/virt/usbhc", &handle, flags);
 	if (rc != EOK) {
 		return rc;
 	}
 	
-	int phone = devman_device_connect(handle, 0);
+	int phone = devman_device_connect(handle, flags);
 
 	return phone;
 }

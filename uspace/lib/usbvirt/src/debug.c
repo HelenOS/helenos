@@ -35,7 +35,6 @@
 #include <stdio.h>
 #include <bool.h>
 
-#include "device.h"
 #include "private.h"
 
 

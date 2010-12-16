@@ -39,6 +39,38 @@
 #include <usb/descriptor.h>
 #include <usb/devreq.h>
 
+/** Request type of a control transfer. */
+typedef enum {
+	/** Standard USB request. */
+	USBVIRT_REQUEST_TYPE_STANDARD = 0,
+	/** Standard class USB request. */
+	USBVIRT_REQUEST_TYPE_CLASS = 1
+} usbvirt_request_type_t;
+
+/** Recipient of control request. */
+typedef enum {
+	/** Device is the recipient of the control request. */
+	USBVIRT_REQUEST_RECIPIENT_DEVICE = 0,
+	/** Interface is the recipient of the control request. */
+	USBVIRT_REQUEST_RECIPIENT_INTERFACE = 1,
+	/** Endpoint is the recipient of the control request. */
+	USBVIRT_REQUEST_RECIPIENT_ENDPOINT = 2,
+	/** Other part of the device is the recipient of the control request. */
+	USBVIRT_REQUEST_RECIPIENT_OTHER = 3
+} usbvirt_request_recipient_t;
+
+/** Possible states of virtual USB device.
+ * Notice that these are not 1:1 mappings to those in USB specification.
+ */
+typedef enum {
+	/** Default state, device listens at default address. */
+	USBVIRT_STATE_DEFAULT,
+	/** Device has non-default address assigned. */
+	USBVIRT_STATE_ADDRESS,
+	/** Device is configured. */
+	USBVIRT_STATE_CONFIGURED
+} usbvirt_device_state_t;
+
 typedef struct usbvirt_device usbvirt_device_t;
 struct usbvirt_control_transfer;
 
@@ -46,31 +78,53 @@ typedef int (*usbvirt_on_device_request_t)(usbvirt_device_t *dev,
 	usb_device_request_setup_packet_t *request,
 	uint8_t *data);
 
-/** Callbacks for standard device requests.
- * When these functions are NULL or return EFORWARD, this
- * framework will try to satisfy the request by itself.
+/** Callback for control request over pipe zero.
+ *
+ * @param dev Virtual device answering the call.
+ * @param request Request setup packet.
+ * @param data Data when DATA stage is present.
+ * @return Error code.
  */
+typedef int (*usbvirt_control_request_callback_t)(usbvirt_device_t *dev,
+	usb_device_request_setup_packet_t *request,
+	uint8_t *data);
+
+/** Handler for control transfer on endpoint zero. */
 typedef struct {
-	usbvirt_on_device_request_t on_get_status;
-	usbvirt_on_device_request_t on_clear_feature;
-	usbvirt_on_device_request_t on_set_feature;
-	usbvirt_on_device_request_t on_set_address;
-	usbvirt_on_device_request_t on_get_descriptor;
-	usbvirt_on_device_request_t on_set_descriptor;
-	usbvirt_on_device_request_t on_get_configuration;
-	usbvirt_on_device_request_t on_set_configuration;
-	usbvirt_on_device_request_t on_get_interface;
-	usbvirt_on_device_request_t on_set_interface;
-	usbvirt_on_device_request_t on_synch_frame;
-} usbvirt_standard_device_request_ops_t;
+	/** Request type bitmap.
+	 * Use USBVIRT_MAKE_CONTROL_REQUEST_TYPE for creating the bitmap.
+	 */
+	uint8_t request_type;
+	/** Request code. */
+	uint8_t request;
+	/** Request name for debugging. */
+	const char *name;
+	/** Callback for the request.
+	 * NULL value here announces end of a list.
+	 */
+	usbvirt_control_request_callback_t callback;
+} usbvirt_control_transfer_handler_t;
+
+/** Create control request type bitmap.
+ *
+ * @param direction Transfer direction (use usb_direction_t).
+ * @param type Request type (use usbvirt_request_type_t).
+ * @param recipient Recipient of the request (use usbvirt_request_recipient_t).
+ * @return Request type bitmap.
+ */
+#define USBVIRT_MAKE_CONTROL_REQUEST_TYPE(direction, type, recipient) \
+	((((direction) == USB_DIRECTION_IN) ? 1 : 0) << 7) \
+	| (((type) & 3) << 5) \
+	| (((recipient) & 31))
+
+/** Create last item in an array of control request handlers. */
+#define USBVIRT_CONTROL_TRANSFER_HANDLER_LAST { 0, 0, NULL, NULL }
 
 /** Device operations. */
 typedef struct {
-	/** Callbacks for standard deivce requests. */
-	usbvirt_standard_device_request_ops_t *standard_request_ops;
-	/** Callback for class-specific USB request. */
-	usbvirt_on_device_request_t on_class_device_request;
-	
+	/** Callbacks for transfers over control pipe zero. */
+	usbvirt_control_transfer_handler_t *control_transfer_handlers;
+
 	int (*on_control_transfer)(usbvirt_device_t *dev,
 	    usb_endpoint_t endpoint, struct usbvirt_control_transfer *transfer);
 	
@@ -85,6 +139,19 @@ typedef struct {
 	/** Decides direction of control transfer. */
 	usb_direction_t (*decide_control_transfer_direction)(
 	    usb_endpoint_t endpoint, void *buffer, size_t size);
+
+	/** Callback when device changes its state.
+	 *
+	 * It is correct that this function is called when both states
+	 * are equal (e.g. this function is called during SET_CONFIGURATION
+	 * request done on already configured device).
+	 *
+	 * @warning The value of <code>dev->state</code> before calling
+	 * this function is not specified (i.e. can be @p old_state or
+	 * @p new_state).
+	 */
+	void (*on_state_change)(usbvirt_device_t *dev,
+	    usbvirt_device_state_t old_state, usbvirt_device_state_t new_state);
 } usbvirt_device_ops_t;
 
 /** Extra configuration data for GET_CONFIGURATION request. */
@@ -120,15 +187,6 @@ typedef struct {
 	uint8_t current_configuration;
 } usbvirt_descriptors_t;
 
-/** Possible states of virtual USB device.
- * Notice that these are not 1:1 mappings to those in USB specification.
- */
-typedef enum {
-	USBVIRT_STATE_DEFAULT,
-	USBVIRT_STATE_ADDRESS,
-	USBVIRT_STATE_CONFIGURED
-} usbvirt_device_state_t;
-
 /** Information about on-going control transfer.
  */
 typedef struct usbvirt_control_transfer {
@@ -156,6 +214,9 @@ struct usbvirt_device {
 	/** Callback device operations. */
 	usbvirt_device_ops_t *ops;
 	
+	/** Custom device data. */
+	void *device_data;
+
 	/** Reply onto control transfer.
 	 */
 	int (*control_transfer_reply)(usbvirt_device_t *dev,
