@@ -72,7 +72,7 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
 		
-		switch (IPC_GET_METHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			keep_on_going = false;
 			break;
@@ -172,7 +172,7 @@ int main(int argc, char **argv)
 	/*
 	 * Register at the naming service.
 	 */
-	ipcarg_t phonead;
+	sysarg_t phonead;
 	ipc_connect_to_me(PHONE_NS, SERVICE_VFS, 0, 0, &phonead);
 	
 	/*

@@ -42,35 +42,22 @@ typedef uint64_t pfn_t;
 
 typedef uint64_t ipl_t;
 
-typedef uint64_t unative_t;
+typedef uint64_t sysarg_t;
 typedef int64_t native_t;
 typedef uint64_t atomic_count_t;
 
 typedef struct {
-	unative_t fnc;
-	unative_t gp;
+	sysarg_t fnc;
+	sysarg_t gp;
 } __attribute__((may_alias)) fncptr_t;
 
-#define PRIp "lx"  /**< Format for uintptr_t. */
-#define PRIs "lu"  /**< Format for size_t. */
+#define INTN_C(c)   INT64_C(c)
+#define UINTN_C(c)  UINT64_C(c)
 
-#define PRId8 "d"    /**< Format for int8_t. */
-#define PRId16 "d"   /**< Format for int16_t. */
-#define PRId32 "d"   /**< Format for int32_t. */
-#define PRId64 "ld"  /**< Format for int64_t. */
-#define PRIdn "d"    /**< Format for native_t. */
-
-#define PRIu8 "u"    /**< Format for uint8_t. */
-#define PRIu16 "u"   /**< Format for uint16_t. */
-#define PRIu32 "u"   /**< Format for uint32_t. */
-#define PRIu64 "lu"  /**< Format for uint64_t. */
-#define PRIun "u"    /**< Format for unative_t. */
-
-#define PRIx8 "x"    /**< Format for hexadecimal (u)int8_t. */
-#define PRIx16 "x"   /**< Format for hexadecimal (u)int16_t. */
-#define PRIx32 "x"   /**< Format for hexadecimal (u)uint32_t. */
-#define PRIx64 "lx"  /**< Format for hexadecimal (u)int64_t. */
-#define PRIxn "x"    /**< Format for hexadecimal (u)native_t. */
+#define PRIdn  PRId64  /**< Format for native_t. */
+#define PRIun  PRIu64  /**< Format for sysarg_t. */
+#define PRIxn  PRIx64  /**< Format for hexadecimal sysarg_t. */
+#define PRIua  PRIu64  /**< Format for atomic_count_t. */
 
 #endif
 

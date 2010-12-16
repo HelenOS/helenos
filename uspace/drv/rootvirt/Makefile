@@ -1,6 +1,5 @@
 #
-# Copyright (c) 2005 Martin Decky
-# Copyright (c) 2007 Jakub Jermar
+# Copyright (c) 2010 Vojtech Horky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,9 +27,11 @@
 #
 
 USPACE_PREFIX = ../..
-BINARY = test_serial
+LIBS = $(LIBDRV_PREFIX)/libdrv.a
+EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include
+BINARY = rootvirt
 
 SOURCES = \
-	test_serial.c
+	rootvirt.c
 
 include $(USPACE_PREFIX)/Makefile.common

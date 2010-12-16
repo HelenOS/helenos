@@ -132,7 +132,8 @@ unsigned int try_exec(char *cmd, char **argv)
 	
 	rc = task_wait(tid, &texit, &retval);
 	if (rc != EOK) {
-		printf("%s: Failed waiting for command (%s)\n", str_error(rc));
+		printf("%s: Failed waiting for command (%s)\n", progname,
+		    str_error(rc));
 	} else if (texit != TASK_EXIT_NORMAL) {
 		printf("%s: Command failed (unexpectedly terminated)\n", progname);
 	} else if (retval != 0) {

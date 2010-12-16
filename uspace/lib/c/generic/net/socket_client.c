@@ -213,7 +213,7 @@ static void socket_connection(ipc_callid_t iid, ipc_call_t * icall)
 loop:
 	callid = async_get_call(&call);
 
-	switch (IPC_GET_METHOD(call)) {
+	switch (IPC_GET_IMETHOD(call)) {
 	case NET_SOCKET_RECEIVED:
 	case NET_SOCKET_ACCEPTED:
 	case NET_SOCKET_DATA_FRAGMENT_SIZE:
@@ -228,7 +228,7 @@ loop:
 			break;
 		}
 		
-		switch (IPC_GET_METHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 		case NET_SOCKET_RECEIVED:
 			fibril_mutex_lock(&socket->receive_lock);
 			// push the number of received packet fragments
@@ -277,7 +277,7 @@ loop:
 		rc = ENOTSUP;
 	}
 
-	ipc_answer_0(callid, (ipcarg_t) rc);
+	ipc_answer_0(callid, (sysarg_t) rc);
 	goto loop;
 }
 
@@ -403,8 +403,8 @@ int socket(int domain, int type, int protocol)
 	int phone;
 	int socket_id;
 	services_t service;
-	ipcarg_t fragment_size;
-	ipcarg_t header_size;
+	sysarg_t fragment_size;
+	sysarg_t header_size;
 	int rc;
 
 	// find the appropriate service
@@ -493,7 +493,7 @@ int socket(int domain, int type, int protocol)
 		dyn_fifo_destroy(&socket->received);
 		dyn_fifo_destroy(&socket->accepted);
 		free(socket);
-		async_msg_3(phone, NET_SOCKET_CLOSE, (ipcarg_t) socket_id, 0,
+		async_msg_3(phone, NET_SOCKET_CLOSE, (sysarg_t) socket_id, 0,
 		    service);
 		return rc;
 	}
@@ -515,12 +515,12 @@ int socket(int domain, int type, int protocol)
  * @return		Other error codes as defined for the spcific message.
  */
 static int
-socket_send_data(int socket_id, ipcarg_t message, ipcarg_t arg2,
+socket_send_data(int socket_id, sysarg_t message, sysarg_t arg2,
     const void *data, size_t datalength)
 {
 	socket_t *socket;
 	aid_t message_id;
-	ipcarg_t result;
+	sysarg_t result;
 
 	if (!data)
 		return EBADMEM;
@@ -539,7 +539,7 @@ socket_send_data(int socket_id, ipcarg_t message, ipcarg_t arg2,
 
 	// request the message
 	message_id = async_send_3(socket->phone, message,
-	    (ipcarg_t) socket->socket_id, arg2, socket->service, NULL);
+	    (sysarg_t) socket->socket_id, arg2, socket->service, NULL);
 	// send the address
 	async_data_write_start(socket->phone, data, datalength);
 
@@ -599,7 +599,7 @@ int listen(int socket_id, int backlog)
 
 	// request listen backlog change
 	result = (int) async_req_3_0(socket->phone, NET_SOCKET_LISTEN,
-	    (ipcarg_t) socket->socket_id, (ipcarg_t) backlog, socket->service);
+	    (sysarg_t) socket->socket_id, (sysarg_t) backlog, socket->service);
 
 	fibril_rwlock_read_unlock(&socket_globals.lock);
 	return result;
@@ -624,7 +624,7 @@ int accept(int socket_id, struct sockaddr * cliaddr, socklen_t * addrlen)
 	socket_t *socket;
 	socket_t *new_socket;
 	aid_t message_id;
-	ipcarg_t ipc_result;
+	sysarg_t ipc_result;
 	int result;
 	ipc_call_t answer;
 
@@ -682,7 +682,7 @@ int accept(int socket_id, struct sockaddr * cliaddr, socklen_t * addrlen)
 
 	// request accept
 	message_id = async_send_5(socket->phone, NET_SOCKET_ACCEPT,
-	    (ipcarg_t) socket->socket_id, 0, socket->service, 0,
+	    (sysarg_t) socket->socket_id, 0, socket->service, 0,
 	    new_socket->socket_id, &answer);
 
 	// read address
@@ -781,7 +781,7 @@ int closesocket(int socket_id)
 
 	// request close
 	rc = (int) async_req_3_0(socket->phone, NET_SOCKET_CLOSE,
-	    (ipcarg_t) socket->socket_id, 0, socket->service);
+	    (sysarg_t) socket->socket_id, 0, socket->service);
 	if (rc != EOK) {
 		fibril_rwlock_write_unlock(&socket_globals.lock);
 		return rc;
@@ -814,13 +814,13 @@ int closesocket(int socket_id)
  *			message.
  */
 static int
-sendto_core(ipcarg_t message, int socket_id, const void *data,
+sendto_core(sysarg_t message, int socket_id, const void *data,
     size_t datalength, int flags, const struct sockaddr *toaddr,
     socklen_t addrlen)
 {
 	socket_t *socket;
 	aid_t message_id;
-	ipcarg_t result;
+	sysarg_t result;
 	size_t fragments;
 	ipc_call_t answer;
 
@@ -854,9 +854,9 @@ sendto_core(ipcarg_t message, int socket_id, const void *data,
 
 	// request send
 	message_id = async_send_5(socket->phone, message,
-	    (ipcarg_t) socket->socket_id,
+	    (sysarg_t) socket->socket_id,
 	    (fragments == 1 ? datalength : socket->data_fragment_size),
-	    socket->service, (ipcarg_t) flags, fragments, &answer);
+	    socket->service, (sysarg_t) flags, fragments, &answer);
 
 	// send the address if given
 	if (!toaddr ||
@@ -972,12 +972,12 @@ sendto(int socket_id, const void *data, size_t datalength, int flags,
  * @return		Other error codes as defined for the spcific message.
  */
 static int
-recvfrom_core(ipcarg_t message, int socket_id, void *data, size_t datalength,
+recvfrom_core(sysarg_t message, int socket_id, void *data, size_t datalength,
     int flags, struct sockaddr *fromaddr, socklen_t *addrlen)
 {
 	socket_t *socket;
 	aid_t message_id;
-	ipcarg_t ipc_result;
+	sysarg_t ipc_result;
 	int result;
 	size_t fragments;
 	size_t *lengths;
@@ -1030,8 +1030,8 @@ recvfrom_core(ipcarg_t message, int socket_id, void *data, size_t datalength,
 
 		// request packet data
 		message_id = async_send_4(socket->phone, message,
-		    (ipcarg_t) socket->socket_id, 0, socket->service,
-		    (ipcarg_t) flags, &answer);
+		    (sysarg_t) socket->socket_id, 0, socket->service,
+		    (sysarg_t) flags, &answer);
 
 		// read the address if desired
 		if(!fromaddr ||
@@ -1059,8 +1059,8 @@ recvfrom_core(ipcarg_t message, int socket_id, void *data, size_t datalength,
 	} else {
 		// request packet data
 		message_id = async_send_4(socket->phone, message,
-		    (ipcarg_t) socket->socket_id, 0, socket->service,
-		    (ipcarg_t) flags, &answer);
+		    (sysarg_t) socket->socket_id, 0, socket->service,
+		    (sysarg_t) flags, &answer);
 
 		// read the address if desired
 		if (!fromaddr ||
@@ -1159,7 +1159,7 @@ getsockopt(int socket_id, int level, int optname, void *value, size_t *optlen)
 {
 	socket_t *socket;
 	aid_t message_id;
-	ipcarg_t result;
+	sysarg_t result;
 
 	if (!value || !optlen)
 		return EBADMEM;
@@ -1178,7 +1178,7 @@ getsockopt(int socket_id, int level, int optname, void *value, size_t *optlen)
 
 	// request option value
 	message_id = async_send_3(socket->phone, NET_SOCKET_GETSOCKOPT,
-	    (ipcarg_t) socket->socket_id, (ipcarg_t) optname, socket->service,
+	    (sysarg_t) socket->socket_id, (sysarg_t) optname, socket->service,
 	    NULL);
 
 	// read the length
@@ -1213,7 +1213,7 @@ setsockopt(int socket_id, int level, int optname, const void *value,
 {
 	// send the value
 	return socket_send_data(socket_id, NET_SOCKET_SETSOCKOPT,
-	    (ipcarg_t) optname, value, optlen);
+	    (sysarg_t) optname, value, optlen);
 }
 
 /** @}

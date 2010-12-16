@@ -29,24 +29,24 @@
 #ifndef KERN_amd64_CONTEXT_OFFSET_H_
 #define KERN_amd64_CONTEXT_OFFSET_H_
 
-#define OFFSET_SP  0x0
-#define OFFSET_PC  0x8
-#define OFFSET_RBX 0x10
-#define OFFSET_RBP 0x18
-#define OFFSET_R12 0x20
-#define OFFSET_R13 0x28
-#define OFFSET_R14 0x30
-#define OFFSET_R15 0x38
+#define OFFSET_SP   0x00
+#define OFFSET_PC   0x08
+#define OFFSET_RBX  0x10
+#define OFFSET_RBP  0x18
+#define OFFSET_R12  0x20
+#define OFFSET_R13  0x28
+#define OFFSET_R14  0x30
+#define OFFSET_R15  0x38
 
 #ifdef KERNEL
-# define OFFSET_IPL 0x40
+	#define OFFSET_IPL  0x40
 #else
-# define OFFSET_TLS 0x40
+	#define OFFSET_TLS  0x40
 #endif
 
 #ifdef __ASM__
 
-# ctx: address of the structure with saved context 
+# ctx: address of the structure with saved context
 # pc: return address
 .macro CONTEXT_SAVE_ARCH_CORE ctx:req pc:req
 	movq \pc, OFFSET_PC(\ctx)
@@ -60,14 +60,14 @@
 	movq %r15, OFFSET_R15(\ctx)
 .endm
 
-# ctx: address of the structure with saved context 
+# ctx: address of the structure with saved context
 .macro CONTEXT_RESTORE_ARCH_CORE ctx:req pc:req
 	movq OFFSET_R15(\ctx), %r15
 	movq OFFSET_R14(\ctx), %r14
 	movq OFFSET_R13(\ctx), %r13
 	movq OFFSET_R12(\ctx), %r12
 	movq OFFSET_RBP(\ctx), %rbp
-	movq OFFSET_RBX(\ctx), %rbx	
+	movq OFFSET_RBX(\ctx), %rbx
 	
 	movq OFFSET_SP(\ctx), %rsp   # ctx->sp -> %rsp
 	

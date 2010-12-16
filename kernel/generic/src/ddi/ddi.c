@@ -231,10 +231,10 @@ NO_TRACE static int ddi_iospace_enable(task_id_t id, uintptr_t ioaddr,
  * @return 0 on success, otherwise it returns error code found in errno.h
  *
  */
-unative_t sys_physmem_map(unative_t phys_base, unative_t virt_base,
-    unative_t pages, unative_t flags)
+sysarg_t sys_physmem_map(sysarg_t phys_base, sysarg_t virt_base,
+    sysarg_t pages, sysarg_t flags)
 {
-	return (unative_t) ddi_physmem_map(ALIGN_DOWN((uintptr_t) phys_base,
+	return (sysarg_t) ddi_physmem_map(ALIGN_DOWN((uintptr_t) phys_base,
 	    FRAME_SIZE), ALIGN_DOWN((uintptr_t) virt_base, PAGE_SIZE),
 	    (size_t) pages, (int) flags);
 }
@@ -246,14 +246,14 @@ unative_t sys_physmem_map(unative_t phys_base, unative_t virt_base,
  * @return 0 on success, otherwise it returns error code found in errno.h
  *
  */
-unative_t sys_iospace_enable(ddi_ioarg_t *uspace_io_arg)
+sysarg_t sys_iospace_enable(ddi_ioarg_t *uspace_io_arg)
 {
 	ddi_ioarg_t arg;
 	int rc = copy_from_uspace(&arg, uspace_io_arg, sizeof(ddi_ioarg_t));
 	if (rc != 0)
-		return (unative_t) rc;
+		return (sysarg_t) rc;
 	
-	return (unative_t) ddi_iospace_enable((task_id_t) arg.task_id,
+	return (sysarg_t) ddi_iospace_enable((task_id_t) arg.task_id,
 	    (uintptr_t) arg.ioaddr, (size_t) arg.size);
 }
 
@@ -264,7 +264,7 @@ unative_t sys_iospace_enable(ddi_ioarg_t *uspace_io_arg)
  * 
  * @retutn Zero on success, error code otherwise.
  */
-unative_t sys_interrupt_enable(int irq, int enable)
+sysarg_t sys_interrupt_enable(int irq, int enable)
 {
 /* FIXME: this needs to be generic code, or better not be in kernel at all. */
 #if 0

@@ -45,6 +45,7 @@
 #include <sysinfo.h>
 #include <stdio.h>
 #include <errno.h>
+#include <inttypes.h>
 
 #include "i8042.h"
 
@@ -200,7 +201,8 @@ static int i8042_init(void)
 	i8042_kbd.cmds[3].addr = (void *) &((i8042_t *) i8042_kernel)->data;
 	ipc_register_irq(inr_a, device_assign_devno(), 0, &i8042_kbd);
 	ipc_register_irq(inr_b, device_assign_devno(), 0, &i8042_kbd);
-	printf("%s: registered for interrupts %d and %d\n", NAME, inr_a, inr_b);
+	printf("%s: registered for interrupts %" PRIun " and %" PRIun "\n",
+	    NAME, inr_a, inr_b);
 
 	wait_ready();
 	pio_write_8(&i8042->status, i8042_CMD_WRITE_CMDB);
@@ -216,7 +218,7 @@ static void i8042_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
 	ipc_callid_t callid;
 	ipc_call_t call;
-	ipcarg_t method;
+	sysarg_t method;
 	devmap_handle_t dh;
 	int retval;
 	int dev_id, i;
@@ -245,7 +247,7 @@ static void i8042_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 	while (1) {
 		callid = async_get_call(&call);
-		method = IPC_GET_METHOD(call);
+		method = IPC_GET_IMETHOD(call);
 		switch (method) {
 		case IPC_M_PHONE_HUNGUP:
 			/* The other side has hung up. */
@@ -261,7 +263,7 @@ static void i8042_connection(ipc_callid_t iid, ipc_call_t *icall)
 			retval = 0;
 			break;
 		case IPC_FIRST_USER_METHOD:
-			printf(NAME ": write %d to devid %d\n",
+			printf(NAME ": write %" PRIun " to devid %d\n",
 			    IPC_GET_ARG1(call), dev_id);
 			i8042_port_write(dev_id, IPC_GET_ARG1(call));
 			retval = 0;

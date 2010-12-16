@@ -269,7 +269,7 @@ void ipc_answer(answerbox_t *box, call_t *call)
  * @param err   Return value to be used for the answer.
  *
  */
-void ipc_backsend_err(phone_t *phone, call_t *call, unative_t err)
+void ipc_backsend_err(phone_t *phone, call_t *call, sysarg_t err)
 {
 	call->data.phone = phone;
 	atomic_inc(&phone->active_calls);
@@ -366,7 +366,7 @@ int ipc_phone_hangup(phone_t *phone)
 		irq_spinlock_unlock(&box->lock, true);
 		
 		call_t *call = ipc_call_alloc(0);
-		IPC_SET_METHOD(call->data, IPC_M_PHONE_HUNGUP);
+		IPC_SET_IMETHOD(call->data, IPC_M_PHONE_HUNGUP);
 		call->flags |= IPC_CALL_DISCARD_ANSWER;
 		_ipc_call(phone, box, call);
 	}
@@ -546,7 +546,7 @@ restart_phones:
 			 * wakes up after the last phone has been
 			 * disconnected.
 			 */
-			IPC_SET_METHOD(call->data, IPC_M_PHONE_HUNGUP);
+			IPC_SET_IMETHOD(call->data, IPC_M_PHONE_HUNGUP);
 			call->flags |= IPC_CALL_DISCARD_ANSWER;
 			_ipc_call(phone, box, call);
 			
@@ -654,14 +654,6 @@ void ipc_cleanup(void)
 		ASSERT((call->flags & IPC_CALL_ANSWERED) ||
 		    (call->flags & IPC_CALL_NOTIF));
 		
-		/*
-		 * Record the receipt of this call in the current task's counter
-		 * of active calls. IPC_M_PHONE_HUNGUP calls do not contribute
-		 * to this counter so do not record answers to them either.
-		 */
-		if (!(call->flags & IPC_CALL_DISCARD_ANSWER))
-			atomic_dec(&TASK->active_calls);
-		
 		ipc_call_free(call);
 	}
 }
@@ -701,12 +693,12 @@ void ipc_print_task(task_id_t taskid)
 	size_t i;
 	for (i = 0; i < IPC_MAX_PHONES; i++) {
 		if (SYNCH_FAILED(mutex_trylock(&task->phones[i].lock))) {
-			printf("%d: mutex busy\n", i);
+			printf("%zu: mutex busy\n", i);
 			continue;
 		}
 		
 		if (task->phones[i].state != IPC_PHONE_FREE) {
-			printf("%" PRIs ": ", i);
+			printf("%zu: ", i);
 			
 			switch (task->phones[i].state) {
 			case IPC_PHONE_CONNECTING:
@@ -748,7 +740,7 @@ void ipc_print_task(task_id_t taskid)
 		    " A1:%" PRIun " A2:%" PRIun " A3:%" PRIun
 		    " A4:%" PRIun " A5:%" PRIun " Flags:%x\n", call,
 		    call->sender->taskid,
-		    IPC_GET_METHOD(call->data), IPC_GET_ARG1(call->data),
+		    IPC_GET_IMETHOD(call->data), IPC_GET_ARG1(call->data),
 		    IPC_GET_ARG2(call->data), IPC_GET_ARG3(call->data),
 		    IPC_GET_ARG4(call->data), IPC_GET_ARG5(call->data),
 		    call->flags);
@@ -764,7 +756,7 @@ void ipc_print_task(task_id_t taskid)
 		    " A1:%" PRIun " A2:%" PRIun " A3:%" PRIun
 		    " A4:%" PRIun " A5:%" PRIun " Flags:%x\n", call,
 		    call->sender->taskid,
-		    IPC_GET_METHOD(call->data), IPC_GET_ARG1(call->data),
+		    IPC_GET_IMETHOD(call->data), IPC_GET_ARG1(call->data),
 		    IPC_GET_ARG2(call->data), IPC_GET_ARG3(call->data),
 		    IPC_GET_ARG4(call->data), IPC_GET_ARG5(call->data),
 		    call->flags);
@@ -778,7 +770,7 @@ void ipc_print_task(task_id_t taskid)
 		call_t *call = list_get_instance(cur, call_t, link);
 		printf("Callid:%p M:%" PRIun " A1:%" PRIun " A2:%" PRIun
 		    " A3:%" PRIun " A4:%" PRIun " A5:%" PRIun " Flags:%x\n",
-		    call, IPC_GET_METHOD(call->data), IPC_GET_ARG1(call->data),
+		    call, IPC_GET_IMETHOD(call->data), IPC_GET_ARG1(call->data),
 		    IPC_GET_ARG2(call->data), IPC_GET_ARG3(call->data),
 		    IPC_GET_ARG4(call->data), IPC_GET_ARG5(call->data),
 		    call->flags);

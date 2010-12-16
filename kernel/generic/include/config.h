@@ -65,7 +65,7 @@ typedef struct {
 } ballocs_t;
 
 typedef struct {
-	size_t cpu_count;            /**< Number of processors detected. */
+	unsigned int cpu_count;      /**< Number of processors detected. */
 	volatile size_t cpu_active;  /**< Number of processors that are up and running. */
 	
 	uintptr_t base;

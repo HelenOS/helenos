@@ -273,9 +273,9 @@ static bool ns8250_pio_enable(device_t *dev)
 	ns8250_dev_data_t *data = (ns8250_dev_data_t *)dev->driver_data;
 	
 	/* Gain control over port's registers. */
-	if (pio_enable((void *) data->io_addr, REG_COUNT,
+	if (pio_enable((void *)(uintptr_t) data->io_addr, REG_COUNT,
 	    (void **) &data->port)) {
-		printf(NAME ": error - cannot gain the port %lx for device "
+		printf(NAME ": error - cannot gain the port %#" PRIx32 " for device "
 		    "%s.\n", data->io_addr, dev->name);
 		return false;
 	}
@@ -726,7 +726,7 @@ static inline int ns8250_unregister_interrupt_handler(device_t *dev)
 static int ns8250_add_device(device_t *dev)
 {
 	printf(NAME ": ns8250_add_device %s (handle = %d)\n",
-	    dev->name, dev->handle);
+	    dev->name, (int) dev->handle);
 	
 	int res = ns8250_dev_initialize(dev);
 	if (res != EOK)
@@ -886,7 +886,7 @@ static int ns8250_set_props(device_t *dev, unsigned int baud_rate,
 static void ns8250_default_handler(device_t *dev, ipc_callid_t callid,
     ipc_call_t *call)
 {
-	ipcarg_t method = IPC_GET_METHOD(*call);
+	sysarg_t method = IPC_GET_IMETHOD(*call);
 	int ret;
 	unsigned int baud_rate, parity, word_length, stop_bits;
 	

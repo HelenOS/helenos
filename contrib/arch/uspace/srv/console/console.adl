@@ -1,42 +1,42 @@
 interface console extends service {
 		/* Read characters from console */
-		ipcarg_t read(out_copy stream data);
+		sysarg_t read(out_copy stream data);
 		
 		/* Write characters to console */
-		ipcarg_t write(in_copy stream data);
+		sysarg_t write(in_copy stream data);
 		
 		/* Get last event from event queue */
-		ipcarg_t get_event(out ipcarg_t type, out ipcarg_t key, out ipcarg_t mods, out ipcarg_t char);
+		sysarg_t get_event(out sysarg_t type, out sysarg_t key, out sysarg_t mods, out sysarg_t char);
 		
 		/* Flush output buffer */
-		ipcarg_t sync(void);
+		sysarg_t sync(void);
 		
 		/* Clear console */
-		ipcarg_t clear(void);
+		sysarg_t clear(void);
 		
 		/* Move cursor to given position */
-		ipcarg_t goto(in ipcarg_t col, in ipcarg_t row);
+		sysarg_t goto(in sysarg_t col, in sysarg_t row);
 		
 		/* Get console dimensions (in character cells) */
-		ipcarg_t get_size(out ipcarg_t cols, in ipcarg_t rows);
+		sysarg_t get_size(out sysarg_t cols, in sysarg_t rows);
 		
 		/* Get color capabilities */
-		ipcarg_t get_color_cap(void);
+		sysarg_t get_color_cap(void);
 		
 		/* Set abstract text style */
-		ipcarg_t set_style(in ipcarg_t style);
+		sysarg_t set_style(in sysarg_t style);
 		
 		/* Set EGA-based text color */
-		ipcarg_t set_color(in ipcarg_t fb_color, in ipcarg_t bg_color, in ipcarg_t attr);
+		sysarg_t set_color(in sysarg_t fb_color, in sysarg_t bg_color, in sysarg_t attr);
 		
 		/* Set RGB-based text color */
-		ipcarg_t set_rgb_color(in ipcarg_t fb_color, in ipcarg_t bg_color);
+		sysarg_t set_rgb_color(in sysarg_t fb_color, in sysarg_t bg_color);
 		
 		/* Set cursor visibility */
-		ipcarg_t cursor_visibility(in ipcarg_t visible);
+		sysarg_t cursor_visibility(in sysarg_t visible);
 		
 		/* Switch to kernel debugging console (if available) */
-		ipcarg_t kcon_enable(void);
+		sysarg_t kcon_enable(void);
 	protocol:
 		[console.bp]
 };

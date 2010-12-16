@@ -34,6 +34,28 @@
 
 #include "devman.h"
 
+/** Compute compound score of driver and device.
+ *
+ * @param driver Match id of the driver.
+ * @param device Match id of the device.
+ * @return Compound score.
+ * @retval 0 No match at all.
+ */
+static int compute_match_score(match_id_t *driver, match_id_t *device)
+{
+	if (str_cmp(driver->id, device->id) == 0) {
+		/*
+		 * The strings match, return the product of their scores.
+		 */
+		return driver->score * device->score;
+	} else {
+		/*
+		 * Different strings, return zero.
+		 */
+		return 0;
+	}
+}
+
 int get_match_score(driver_t *drv, node_t *dev)
 {
 	link_t *drv_head = &drv->match_ids.ids;
@@ -42,65 +64,30 @@ int get_match_score(driver_t *drv, node_t *dev)
 	if (list_empty(drv_head) || list_empty(dev_head))
 		return 0;
 	
+	/*
+	 * Go through all pairs, return the highest score obtained.
+	 */
+	int highest_score = 0;
+	
 	link_t *drv_link = drv->match_ids.ids.next;
-	link_t *dev_link = dev->match_ids.ids.next;
-	
-	match_id_t *drv_id = list_get_instance(drv_link, match_id_t, link);
-	match_id_t *dev_id = list_get_instance(dev_link, match_id_t, link);
-	
-	int score_next_drv = 0;
-	int score_next_dev = 0;
-	
-	do {
-		match_id_t *tmp_ma_id;
-	
-		if (str_cmp(drv_id->id, dev_id->id) == 0) {
-		 	/*
-		 	 * We found a match.
-		 	 * Return the score of the match.
-		 	 */
-			return drv_id->score * dev_id->score;
-		}
-		
-		/*
-		 * Compute the next score we get, if we advance in the driver's
-		 * list of match ids.
-		 */
-		if (drv_link->next != drv_head) {
-			tmp_ma_id = list_get_instance(drv_link->next,
-			    match_id_t, link);
-			score_next_drv = dev_id->score * tmp_ma_id->score;
-		} else {
-			score_next_drv = 0;
-		}
-		
-		/*
-		 * Compute the next score we get, if we advance in the device's
-		 * list of match ids.
-		 */
-		if (dev_link->next != dev_head) {
-			tmp_ma_id = list_get_instance(dev_link->next,
-			    match_id_t, link);
-			score_next_dev = drv_id->score * tmp_ma_id->score;
-		} else {
-			score_next_dev = 0;
-		}
-		
-		/*
-		 * Advance in one of the two lists, so we get the next highest
-		 * score.
-		 */
-		if (score_next_drv > score_next_dev) {
-			drv_link = drv_link->next;
-			drv_id = list_get_instance(drv_link, match_id_t, link);
-		} else {
+	while (drv_link != drv_head) {
+		link_t *dev_link = dev_head->next;
+		while (dev_link != dev_head) {
+			match_id_t *drv_id = list_get_instance(drv_link, match_id_t, link);
+			match_id_t *dev_id = list_get_instance(dev_link, match_id_t, link);
+			
+			int score = compute_match_score(drv_id, dev_id);
+			if (score > highest_score) {
+				highest_score = score;
+			}
+
 			dev_link = dev_link->next;
-			dev_id = list_get_instance(dev_link, match_id_t, link);
 		}
 		
-	} while (drv_link->next != drv_head && dev_link->next != dev_head);
+		drv_link = drv_link->next;
+	}
 	
-	return 0;
+	return highest_score;
 }
 
 /** @}

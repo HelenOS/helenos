@@ -611,8 +611,8 @@ NO_TRACE static void _slab_cache_create(slab_cache_t *cache, const char *name,
 	memsetb(cache, sizeof(*cache), 0);
 	cache->name = name;
 	
-	if (align < sizeof(unative_t))
-		align = sizeof(unative_t);
+	if (align < sizeof(sysarg_t))
+		align = sizeof(sysarg_t);
 	
 	size = ALIGN_UP(size, align);
 	
@@ -889,7 +889,7 @@ void slab_print_list(void)
 		
 		irq_spinlock_unlock(&slab_cache_lock, true);
 		
-		printf("%-18s %8" PRIs " %8u %8" PRIs " %8ld %8ld %8ld %-5s\n",
+		printf("%-18s %8zu %8u %8zu %8ld %8ld %8ld %-5s\n",
 		    name, size, (1 << order), objects, allocated_slabs,
 		    cached_objs, allocated_objs,
 		    flags & SLAB_CACHE_SLINSIDE ? "in" : "out");

@@ -726,7 +726,7 @@ void sched_print_list(void)
 		
 		irq_spinlock_lock(&cpus[cpu].lock, true);
 		
-		printf("cpu%u: address=%p, nrdy=%ld, needs_relink=%" PRIs "\n",
+		printf("cpu%u: address=%p, nrdy=%" PRIua ", needs_relink=%zu\n",
 		    cpus[cpu].id, &cpus[cpu], atomic_get(&cpus[cpu].nrdy),
 		    cpus[cpu].needs_relink);
 		

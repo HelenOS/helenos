@@ -144,8 +144,8 @@ int program_create_from_image(void *image_addr, char *name, program_t *prg)
 			return ELIMIT;
 		
 		program_loader = image_addr;
-		LOG("Registered program loader at 0x%" PRIp,
-		    image_addr);
+		LOG("Registered program loader at %p",
+		    (void *) image_addr);
 		
 		return EOK;
 	}
@@ -209,7 +209,7 @@ void program_ready(program_t *prg)
  * @return EOK on success or an error code from @ref errno.h.
  *
  */
-unative_t sys_program_spawn_loader(char *uspace_name, size_t name_len)
+sysarg_t sys_program_spawn_loader(char *uspace_name, size_t name_len)
 {
 	/* Cap length of name and copy it from userspace. */
 	if (name_len > TASK_NAME_BUFLEN - 1)
@@ -218,7 +218,7 @@ unative_t sys_program_spawn_loader(char *uspace_name, size_t name_len)
 	char namebuf[TASK_NAME_BUFLEN];
 	int rc = copy_from_uspace(namebuf, uspace_name, name_len);
 	if (rc != 0)
-		return (unative_t) rc;
+		return (sysarg_t) rc;
 	
 	namebuf[name_len] = 0;
 	

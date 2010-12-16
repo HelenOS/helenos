@@ -55,8 +55,8 @@
 #include <udebug/udebug.h>
 
 /** Dispatch system call */
-unative_t syscall_handler(unative_t a1, unative_t a2, unative_t a3,
-    unative_t a4, unative_t a5, unative_t a6, unative_t id)
+sysarg_t syscall_handler(sysarg_t a1, sysarg_t a2, sysarg_t a3,
+    sysarg_t a4, sysarg_t a5, sysarg_t a6, sysarg_t id)
 {
 	/* Do userpace accounting */
 	irq_spinlock_lock(&THREAD->lock, true);
@@ -73,7 +73,7 @@ unative_t syscall_handler(unative_t a1, unative_t a2, unative_t a3,
 		udebug_syscall_event(a1, a2, a3, a4, a5, a6, id, 0, false);
 #endif
 	
-	unative_t rc;
+	sysarg_t rc;
 	if (id < SYSCALL_END) {
 		rc = syscall_table[id](a1, a2, a3, a4, a5, a6);
 	} else {
@@ -146,6 +146,7 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	(syshandler_t) sys_ipc_hangup,
 	(syshandler_t) sys_ipc_register_irq,
 	(syshandler_t) sys_ipc_unregister_irq,
+	(syshandler_t) sys_ipc_connect_kbox,
 	
 	/* Event notification syscalls. */
 	(syshandler_t) sys_event_subscribe,
@@ -168,9 +169,7 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	
 	/* Debug calls */
 	(syshandler_t) sys_debug_enable_console,
-	(syshandler_t) sys_debug_disable_console,
-	
-	(syshandler_t) sys_ipc_connect_kbox
+	(syshandler_t) sys_debug_disable_console
 };
 
 /** @}

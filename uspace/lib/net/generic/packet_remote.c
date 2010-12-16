@@ -85,7 +85,7 @@ packet_return(int phone, packet_t **packet, packet_id_t packet_id, size_t size)
 		return rc;
 	}
 	
-	ipcarg_t result;
+	sysarg_t result;
 	async_wait_for(message, &result);
 	
 	return result;
@@ -115,7 +115,7 @@ int packet_translate_remote(int phone, packet_t **packet, packet_id_t packet_id)
 	
 	*packet = pm_find(packet_id);
 	if (!*packet) {
-		ipcarg_t size;
+		sysarg_t size;
 		
 		rc = async_req_1_1(phone, NET_PACKET_GET_SIZE, packet_id,
 		    &size);
@@ -150,8 +150,8 @@ int packet_translate_remote(int phone, packet_t **packet, packet_id_t packet_id)
 packet_t *packet_get_4_remote(int phone, size_t max_content, size_t addr_len,
     size_t max_prefix, size_t max_suffix)
 {
-	ipcarg_t packet_id;
-	ipcarg_t size;
+	sysarg_t packet_id;
+	sysarg_t size;
 	int rc;
 	
 	rc = async_req_4_2(phone, NET_PACKET_CREATE_4, max_content, addr_len,
@@ -181,8 +181,8 @@ packet_t *packet_get_4_remote(int phone, size_t max_content, size_t addr_len,
  */
 packet_t *packet_get_1_remote(int phone, size_t content)
 {
-	ipcarg_t packet_id;
-	ipcarg_t size;
+	sysarg_t packet_id;
+	sysarg_t size;
 	int rc;
 	
 	rc = async_req_1_2(phone, NET_PACKET_CREATE_1, content, &packet_id,

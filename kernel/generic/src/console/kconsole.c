@@ -425,7 +425,7 @@ bool kconsole_check_poll(void)
 }
 
 NO_TRACE static bool parse_int_arg(const char *text, size_t len,
-    unative_t *result)
+    sysarg_t *result)
 {
 	bool isaddr = false;
 	bool isptr = false;
@@ -460,11 +460,11 @@ NO_TRACE static bool parse_int_arg(const char *text, size_t len,
 			return false;
 		case EOK:
 			if (isaddr)
-				*result = (unative_t) symaddr;
+				*result = (sysarg_t) symaddr;
 			else if (isptr)
-				*result = **((unative_t **) symaddr);
+				*result = **((sysarg_t **) symaddr);
 			else
-				*result = *((unative_t *) symaddr);
+				*result = *((sysarg_t *) symaddr);
 			break;
 		default:
 			printf("Unknown error.\n");
@@ -482,9 +482,9 @@ NO_TRACE static bool parse_int_arg(const char *text, size_t len,
 			printf("Integer overflow.\n");
 			return false;
 		case EOK:
-			*result = (unative_t) value;
+			*result = (sysarg_t) value;
 			if (isptr)
-				*result = *((unative_t *) *result);
+				*result = *((sysarg_t *) *result);
 			break;
 		default:
 			printf("Unknown error.\n");
@@ -628,7 +628,7 @@ NO_TRACE static cmd_info_t *parse_cmdline(const char *cmdline, size_t size)
 					str_ncpy(buf, cmd->argv[i].len,
 					    cmdline + start + 1,
 					    (end - start) - 1);
-					cmd->argv[i].intval = (unative_t) buf;
+					cmd->argv[i].intval = (sysarg_t) buf;
 					cmd->argv[i].vartype = ARG_TYPE_STRING;
 				} else {
 					printf("Wrong syntax.\n");

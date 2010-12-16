@@ -322,8 +322,8 @@ int pci_read_bar(device_t *dev, int addr)
 	
 	if (range_addr != 0) {
 		printf(NAME ": device %s : ", dev->name);
-		printf("address = %x", range_addr);
-		printf(", size = %x\n", range_size);
+		printf("address = %" PRIx64, range_addr);
+		printf(", size = %x\n", (unsigned int) range_size);
 	}
 	
 	pci_add_range(dev, range_addr, range_size, io);
@@ -478,7 +478,7 @@ static int pci_add_device(device_t *dev)
 		return EPARTY;	/* FIXME: use another EC */
 	}	
 	
-	printf(NAME ": conf_addr = %x.\n",
+	printf(NAME ": conf_addr = %" PRIx64 ".\n",
 	    hw_resources.resources[0].res.io_range.address);
 	
 	assert(hw_resources.count > 0);
@@ -488,7 +488,7 @@ static int pci_add_device(device_t *dev)
 	bus_data->conf_io_addr =
 	    (uint32_t) hw_resources.resources[0].res.io_range.address;
 	
-	if (pio_enable((void *)bus_data->conf_io_addr, 8,
+	if (pio_enable((void *)(uintptr_t)bus_data->conf_io_addr, 8,
 	    &bus_data->conf_addr_port)) {
 		printf(NAME ": failed to enable configuration ports.\n");
 		delete_pci_bus_data(bus_data);

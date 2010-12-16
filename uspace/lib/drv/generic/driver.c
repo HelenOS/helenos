@@ -47,6 +47,7 @@
 #include <str.h>
 #include <ctype.h>
 #include <errno.h>
+#include <inttypes.h>
 
 #include <ipc/driver.h>
 
@@ -79,7 +80,7 @@ static irq_code_t default_pseudocode = {
 
 static void driver_irq_handler(ipc_callid_t iid, ipc_call_t *icall)
 {
-	int id = (int)IPC_GET_METHOD(*icall);
+	int id = (int)IPC_GET_IMETHOD(*icall);
 	interrupt_context_t *ctx;
 	
 	ctx = find_interrupt_context_by_id(&interrupt_contexts, id);
@@ -163,6 +164,8 @@ static void driver_add_device(ipc_callid_t iid, ipc_call_t *icall)
 	int res = EOK;
 	
 	devman_handle_t dev_handle =  IPC_GET_ARG1(*icall);
+    	devman_handle_t parent_dev_handle = IPC_GET_ARG2(*icall);
+    
 	device_t *dev = create_device();
 	dev->handle = dev_handle;
 	
@@ -170,12 +173,14 @@ static void driver_add_device(ipc_callid_t iid, ipc_call_t *icall)
 	dev->name = dev_name;
 	
 	add_to_devices_list(dev);
+	dev->parent = driver_get_device(&devices, parent_dev_handle);
+	
 	res = driver->driver_ops->add_device(dev);
 	if (0 == res) {
-		printf("%s: new device with handle = %x was added.\n",
+		printf("%s: new device with handle=%" PRIun " was added.\n",
 		    driver->name, dev_handle);
 	} else {
-		printf("%s: failed to add a new device with handle = %d.\n",
+		printf("%s: failed to add a new device with handle = %" PRIun ".\n",
 		    driver->name, dev_handle);
 		remove_from_devices_list(dev);
 		delete_device(dev);
@@ -194,7 +199,7 @@ static void driver_connection_devman(ipc_callid_t iid, ipc_call_t *icall)
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
 
-		switch (IPC_GET_METHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			cont = false;
 			continue;
@@ -202,8 +207,7 @@ static void driver_connection_devman(ipc_callid_t iid, ipc_call_t *icall)
 			driver_add_device(callid, &call);
 			break;
 		default:
-			if (!(callid & IPC_CALLID_NOTIFICATION))
-				ipc_answer_0(callid, ENOENT);
+			ipc_answer_0(callid, ENOENT);
 		}
 	}
 }
@@ -225,7 +229,7 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 
 	if (dev == NULL) {
 		printf("%s: driver_connection_gen error - no device with handle"
-		    " %x was found.\n", driver->name, handle);
+		    " %" PRIun " was found.\n", driver->name, handle);
 		ipc_answer_0(iid, ENOENT);
 		return;
 	}
@@ -249,7 +253,7 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 		ipc_callid_t callid;
 		ipc_call_t call;
 		callid = async_get_call(&call);
-		ipcarg_t method = IPC_GET_METHOD(call);
+		sysarg_t method = IPC_GET_IMETHOD(call);
 		int iface_idx;
 		
 		switch  (method) {
@@ -289,7 +293,7 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 			if (NULL == iface) {
 				printf("%s: driver_connection_gen error - ",
 				    driver->name);
-				printf("device with handle %d has no interface "
+				printf("device with handle %" PRIun " has no interface "
 				    "with id %d.\n", handle, iface_idx);
 				ipc_answer_0(callid, ENOTSUP);
 				break;
@@ -303,7 +307,7 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 			assert(NULL != rem_iface);
 
 			/* get the method of the remote interface */
-			ipcarg_t iface_method_idx = IPC_GET_ARG1(call);
+			sysarg_t iface_method_idx = IPC_GET_ARG1(call);
 			remote_iface_func_ptr_t iface_method_ptr =
 			    get_remote_method(rem_iface, iface_method_idx);
 			if (NULL == iface_method_ptr) {
@@ -341,7 +345,7 @@ static void driver_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 static void driver_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
 	/* Select interface */
-	switch ((ipcarg_t) (IPC_GET_ARG1(*icall))) {
+	switch ((sysarg_t) (IPC_GET_ARG1(*icall))) {
 	case DRIVER_DEVMAN:
 		/* handle PnP events from device manager */
 		driver_connection_devman(iid, icall);
@@ -374,6 +378,59 @@ int child_device_register(device_t *child, device_t *parent)
 		return res;
 	remove_from_devices_list(child);	
 	return res;
+}
+
+/** Wrapper for child_device_register for devices with single match id.
+ *
+ * @param parent Parent device.
+ * @param child_name Child device name.
+ * @param child_match_id Child device match id.
+ * @param child_match_score Child device match score.
+ * @return Error code.
+ */
+int child_device_register_wrapper(device_t *parent, const char *child_name,
+    const char *child_match_id, int child_match_score)
+{
+	device_t *child = NULL;
+	match_id_t *match_id = NULL;
+	int rc;
+
+	child = create_device();
+	if (child == NULL) {
+		rc = ENOMEM;
+		goto failure;
+	}
+
+	child->name = child_name;
+
+	match_id = create_match_id();
+	if (match_id == NULL) {
+		rc = ENOMEM;
+		goto failure;
+	}
+
+	match_id->id = child_match_id;
+	match_id->score = child_match_score;
+	add_match_id(&child->match_ids, match_id);
+
+	rc = child_device_register(child, parent);
+	if (EOK != rc)
+		goto failure;
+
+	return EOK;
+
+failure:
+	if (match_id != NULL) {
+		match_id->id = NULL;
+		delete_match_id(match_id);
+	}
+
+	if (child != NULL) {
+		child->name = NULL;
+		delete_device(child);
+	}
+
+	return rc;
 }
 
 int driver_main(driver_t *drv)

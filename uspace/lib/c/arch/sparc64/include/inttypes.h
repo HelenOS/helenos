@@ -29,46 +29,14 @@
 /** @addtogroup libcsparc64
  * @{
  */
-/** @file Macros for format specifiers.
- *
- * Macros for formatting stdint types as specified in section
- * 7.8.1 Macros for format specifiers of the C99 draft specification
- * (ISO/IEC 9899:201x). Only some macros from the specification are
- * implemented.
- */
 
 #ifndef LIBC_sparc64_INTTYPES_H_
 #define LIBC_sparc64_INTTYPES_H_
 
-#define PRId8 "d"
-#define PRId16 "d"
-#define PRId32 "d"
-#define PRId64 "lld"
-#define PRIdPTR "lld"
-
-#define PRIo8 "o"
-#define PRIo16 "o"
-#define PRIo32 "o"
-#define PRIo64 "llo"
-#define PRIoPTR "llo"
-
-#define PRIu8 "u"
-#define PRIu16 "u"
-#define PRIu32 "u"
-#define PRIu64 "llu"
-#define PRIuPTR "llu"
-
-#define PRIx8 "x"
-#define PRIx16 "x"
-#define PRIx32 "x"
-#define PRIx64 "llx"
-#define PRIxPTR "llx"
-
-#define PRIX8 "X"
-#define PRIX16 "X"
-#define PRIX32 "X"
-#define PRIX64 "llX"
-#define PRIXPTR "llX"
+#define PRIdn  PRId64  /**< Format for native_t. */
+#define PRIun  PRIu64  /**< Format for sysarg_t. */
+#define PRIxn  PRIx64  /**< Format for hexadecimal sysarg_t. */
+#define PRIua  PRIu64  /**< Format for atomic_count_t. */
 
 #endif
 

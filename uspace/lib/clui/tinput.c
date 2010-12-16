@@ -139,8 +139,8 @@ static void tinput_position_caret(tinput_t *ti)
 /** Update row0 in case the screen could have scrolled. */
 static void tinput_update_origin(tinput_t *ti)
 {
-	ipcarg_t width = ti->col0 + ti->nc;
-	ipcarg_t rows = (width / ti->con_cols) + 1;
+	sysarg_t width = ti->col0 + ti->nc;
+	sysarg_t rows = (width / ti->con_cols) + 1;
 	
 	/* Update row0 if the screen scrolled. */
 	if (ti->row0 + rows > ti->con_rows)
@@ -152,10 +152,10 @@ static void tinput_insert_char(tinput_t *ti, wchar_t c)
 	if (ti->nc == INPUT_MAX_SIZE)
 		return;
 	
-	ipcarg_t new_width = ti->col0 + ti->nc + 1;
+	sysarg_t new_width = ti->col0 + ti->nc + 1;
 	if (new_width % ti->con_cols == 0) {
 		/* Advancing to new line. */
-		ipcarg_t new_height = (new_width / ti->con_cols) + 1;
+		sysarg_t new_height = (new_width / ti->con_cols) + 1;
 		if (new_height >= ti->con_rows) {
 			/* Disallow text longer than 1 page for now. */
 			return;
@@ -183,8 +183,8 @@ static void tinput_insert_string(tinput_t *ti, const char *str)
 	if (ilen == 0)
 		return;
 	
-	ipcarg_t new_width = ti->col0 + ti->nc + ilen;
-	ipcarg_t new_height = (new_width / ti->con_cols) + 1;
+	sysarg_t new_width = ti->col0 + ti->nc + ilen;
+	sysarg_t new_height = (new_width / ti->con_cols) + 1;
 	if (new_height >= ti->con_rows) {
 		/* Disallow text longer than 1 page for now. */
 		return;

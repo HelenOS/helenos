@@ -43,11 +43,9 @@
 
 #define IPC_FLAG_BLOCKING  0x01
 
-typedef sysarg_t ipcarg_t;
-
 typedef struct {
-	ipcarg_t args[IPC_CALL_LEN];
-	ipcarg_t in_phone_hash;
+	sysarg_t args[IPC_CALL_LEN];
+	sysarg_t in_phone_hash;
 } ipc_call_t;
 
 typedef sysarg_t ipc_callid_t;
@@ -182,12 +180,12 @@ typedef void (* ipc_async_callback_t)(void *, int, ipc_call_t *);
 	ipc_call_sync_slow((phoneid), (method), (arg1), (arg2), (arg3), \
 	    (arg4), (arg5), (res1), (res2), (res3), (res4), (res5))
 
-extern int ipc_call_sync_fast(int, ipcarg_t, ipcarg_t, ipcarg_t, ipcarg_t,
-    ipcarg_t *, ipcarg_t *, ipcarg_t *, ipcarg_t *, ipcarg_t *);
+extern int ipc_call_sync_fast(int, sysarg_t, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t *, sysarg_t *, sysarg_t *, sysarg_t *, sysarg_t *);
 
-extern int ipc_call_sync_slow(int, ipcarg_t, ipcarg_t, ipcarg_t, ipcarg_t,
-    ipcarg_t, ipcarg_t, ipcarg_t *, ipcarg_t *, ipcarg_t *, ipcarg_t *,
-    ipcarg_t *);
+extern int ipc_call_sync_slow(int, sysarg_t, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t, sysarg_t *, sysarg_t *, sysarg_t *, sysarg_t *,
+    sysarg_t *);
 
 extern ipc_callid_t ipc_wait_cycle(ipc_call_t *, uint32_t, int);
 extern ipc_callid_t ipc_wait_for_call_timeout(ipc_call_t *, uint32_t);
@@ -219,10 +217,10 @@ extern ipc_callid_t ipc_trywait_for_call(ipc_call_t *);
 #define ipc_answer_5(callid, retval, arg1, arg2, arg3, arg4, arg5) \
 	ipc_answer_slow((callid), (retval), (arg1), (arg2), (arg3), (arg4), (arg5))
 
-extern ipcarg_t ipc_answer_fast(ipc_callid_t, ipcarg_t, ipcarg_t, ipcarg_t,
-    ipcarg_t, ipcarg_t);
-extern ipcarg_t ipc_answer_slow(ipc_callid_t, ipcarg_t, ipcarg_t, ipcarg_t,
-    ipcarg_t, ipcarg_t, ipcarg_t);
+extern sysarg_t ipc_answer_fast(ipc_callid_t, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t);
+extern sysarg_t ipc_answer_slow(ipc_callid_t, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t, sysarg_t);
 
 /*
  * User-friendly wrappers for ipc_call_async_fast() and ipc_call_async_slow().
@@ -254,20 +252,20 @@ extern ipcarg_t ipc_answer_slow(ipc_callid_t, ipcarg_t, ipcarg_t, ipcarg_t,
 	ipc_call_async_slow((phoneid), (method), (arg1), (arg2), (arg3), \
 	    (arg4), (arg5), (private), (callback), (can_preempt))
 
-extern void ipc_call_async_fast(int, ipcarg_t, ipcarg_t, ipcarg_t, ipcarg_t,
-    ipcarg_t, void *, ipc_async_callback_t, int);
-extern void ipc_call_async_slow(int, ipcarg_t, ipcarg_t, ipcarg_t, ipcarg_t,
-    ipcarg_t, ipcarg_t, void *, ipc_async_callback_t, int);
+extern void ipc_call_async_fast(int, sysarg_t, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t, void *, ipc_async_callback_t, int);
+extern void ipc_call_async_slow(int, sysarg_t, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t, void *, ipc_async_callback_t, int);
 
-extern int ipc_connect_to_me(int, int, int, int, ipcarg_t *);
+extern int ipc_connect_to_me(int, int, int, int, sysarg_t *);
 extern int ipc_connect_me_to(int, int, int, int);
 extern int ipc_connect_me_to_blocking(int, int, int, int);
 extern int ipc_hangup(int);
 extern int ipc_register_irq(int, int, int, irq_code_t *);
 extern int ipc_unregister_irq(int, int);
-extern int ipc_forward_fast(ipc_callid_t, int, int, ipcarg_t, ipcarg_t, int);
-extern int ipc_forward_slow(ipc_callid_t, int, int, ipcarg_t, ipcarg_t,
-    ipcarg_t, ipcarg_t, ipcarg_t, int);
+extern int ipc_forward_fast(ipc_callid_t, int, int, sysarg_t, sysarg_t, int);
+extern int ipc_forward_slow(ipc_callid_t, int, int, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t, sysarg_t, int);
 
 /*
  * User-friendly wrappers for ipc_share_in_start().
@@ -281,7 +279,7 @@ extern int ipc_forward_slow(ipc_callid_t, int, int, ipcarg_t, ipcarg_t,
 #define ipc_share_in_start_1_1(phoneid, dst, size, arg, flags) \
 	ipc_share_in_start((phoneid), (dst), (size), (arg), (flags))
 
-extern int ipc_share_in_start(int, void *, size_t, ipcarg_t, int *);
+extern int ipc_share_in_start(int, void *, size_t, sysarg_t, int *);
 extern int ipc_share_in_finalize(ipc_callid_t, void *, int );
 extern int ipc_share_out_start(int, void *, int);
 extern int ipc_share_out_finalize(ipc_callid_t, void *);

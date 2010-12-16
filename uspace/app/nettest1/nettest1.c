@@ -355,7 +355,7 @@ int main(int argc, char *argv[])
 
 	/* Check data buffer size */
 	if (size <= 0) {
-		fprintf(stderr, "Data buffer size too small (%d). Using 1024 "
+		fprintf(stderr, "Data buffer size too small (%zu). Using 1024 "
 		    "bytes instead.\n", size);
 		size = 1024;
 	}
@@ -387,7 +387,7 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Failed to allocate receive buffer.\n");
 		return ENOMEM;
 	}
-	socket_ids[sockets] = NULL;
+	socket_ids[sockets] = 0;
 
 	if (verbose)
 		printf("Starting tests\n");
@@ -409,7 +409,7 @@ int main(int argc, char *argv[])
 		return rc;
 	}
 
-	printf("Tested in %d microseconds\n", tv_sub(&time_after,
+	printf("Tested in %ld microseconds\n", tv_sub(&time_after,
 	    &time_before));
 
 	if (verbose)

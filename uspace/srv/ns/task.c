@@ -44,7 +44,7 @@
 #define TASK_HASH_TABLE_CHAINS  256
 #define P2I_HASH_TABLE_CHAINS  256
 
-static int get_id_by_phone(ipcarg_t phone_hash, task_id_t *id);
+static int get_id_by_phone(sysarg_t phone_hash, task_id_t *id);
 
 /* TODO:
  *
@@ -123,7 +123,7 @@ static hash_table_t task_hash_table;
 
 typedef struct {
 	link_t link;
-	ipcarg_t phash;    /**< Task ID. */
+	sysarg_t phash;    /**< Task ID. */
 	task_id_t id;    /**< Task ID. */
 } p2i_entry_t;
 
@@ -247,7 +247,7 @@ loop:
 
 void wait_for_task(task_id_t id, ipc_call_t *call, ipc_callid_t callid)
 {
-	ipcarg_t retval;
+	sysarg_t retval;
 	task_exit_t texit;
 
 	unsigned long keys[2] = {
@@ -261,8 +261,8 @@ void wait_for_task(task_id_t id, ipc_call_t *call, ipc_callid_t callid)
 
 	if (ht == NULL) {
 		/* No such task exists. */
-		retval = ENOENT;
-		goto out;
+		ipc_answer_0(callid, ENOENT);
+		return;
 	}
 
 	if (!ht->finished) {
@@ -392,7 +392,7 @@ int ns_task_disconnect(ipc_call_t *call)
 	return EOK;
 }
 
-static int get_id_by_phone(ipcarg_t phone_hash, task_id_t *id)
+static int get_id_by_phone(sysarg_t phone_hash, task_id_t *id)
 {
 	unsigned long keys[1];
 	link_t *link;

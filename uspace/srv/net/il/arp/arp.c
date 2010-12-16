@@ -319,7 +319,7 @@ static int arp_device_message(device_id_t device_id, services_t service,
 		
 		/* Bind the new one */
 		device->phone = nil_bind_service(device->service,
-		    (ipcarg_t) device->device_id, SERVICE_ARP,
+		    (sysarg_t) device->device_id, SERVICE_ARP,
 		    arp_globals.client_connection);
 		if (device->phone < 0) {
 			fibril_mutex_unlock(&arp_globals.lock);
@@ -420,7 +420,7 @@ static int arp_mtu_changed_message(device_id_t device_id, size_t mtu)
 	}
 	device->packet_dimension.content = mtu;
 	fibril_mutex_unlock(&arp_globals.lock);
-	printf("arp - device %d changed mtu to %d\n\n", device_id, mtu);
+	printf("arp - device %d changed mtu to %zu\n\n", device_id, mtu);
 	return EOK;
 }
 
@@ -694,7 +694,7 @@ arp_message_standalone(ipc_callid_t callid, ipc_call_t *call,
 	int rc;
 	
 	*answer_count = 0;
-	switch (IPC_GET_METHOD(*call)) {
+	switch (IPC_GET_IMETHOD(*call)) {
 	case IPC_M_PHONE_HUNGUP:
 		return EOK;
 	
@@ -814,7 +814,7 @@ static void il_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		 * End if told to either by the message or the processing
 		 * result.
 		 */
-		if ((IPC_GET_METHOD(call) == IPC_M_PHONE_HUNGUP) ||
+		if ((IPC_GET_IMETHOD(call) == IPC_M_PHONE_HUNGUP) ||
 		    (res == EHANGUP))
 			return;
 		

@@ -237,7 +237,7 @@ static void eth_receiver(ipc_callid_t iid, ipc_call_t *icall)
 	int rc;
 
 	while (true) {
-		switch (IPC_GET_METHOD(*icall)) {
+		switch (IPC_GET_IMETHOD(*icall)) {
 		case NET_NIL_DEVICE_STATE:
 			nil_device_state_msg_local(0, IPC_GET_DEVICE(icall),
 			    IPC_GET_STATE(icall));
@@ -250,10 +250,10 @@ static void eth_receiver(ipc_callid_t iid, ipc_call_t *icall)
 				rc = nil_received_msg_local(0,
 				    IPC_GET_DEVICE(icall), packet, 0);
 			}
-			ipc_answer_0(iid, (ipcarg_t) rc);
+			ipc_answer_0(iid, (sysarg_t) rc);
 			break;
 		default:
-			ipc_answer_0(iid, (ipcarg_t) ENOTSUP);
+			ipc_answer_0(iid, (sysarg_t) ENOTSUP);
 		}
 		
 		iid = async_get_call(icall);
@@ -314,7 +314,7 @@ static int eth_device_message(device_id_t device_id, services_t service,
 		else
 			device->mtu = ETH_MAX_TAGGED_CONTENT(device->flags);
 		
-		printf("Device %d already exists:\tMTU\t= %d\n",
+		printf("Device %d already exists:\tMTU\t= %zu\n",
 		    device->device_id, device->mtu);
 		fibril_rwlock_write_unlock(&eth_globals.devices_lock);
 		
@@ -406,7 +406,7 @@ static int eth_device_message(device_id_t device_id, services_t service,
 		return index;
 	}
 	
-	printf("%s: Device registered (id: %d, service: %d: mtu: %d, "
+	printf("%s: Device registered (id: %d, service: %d: mtu: %zu, "
 	    "mac: %x:%x:%x:%x:%x:%x, flags: 0x%x)\n",
 	    NAME, device->device_id, device->service, device->mtu,
 	    device->addr_data[0], device->addr_data[1],
@@ -848,7 +848,7 @@ int nil_message_standalone(const char *name, ipc_callid_t callid,
 	int rc;
 	
 	*answer_count = 0;
-	switch (IPC_GET_METHOD(*call)) {
+	switch (IPC_GET_IMETHOD(*call)) {
 	case IPC_M_PHONE_HUNGUP:
 		return EOK;
 	
@@ -925,7 +925,7 @@ static void nil_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		 * End if told to either by the message or the processing
 		 * result.
 		 */
-		if ((IPC_GET_METHOD(call) == IPC_M_PHONE_HUNGUP) ||
+		if ((IPC_GET_IMETHOD(call) == IPC_M_PHONE_HUNGUP) ||
 		    (res == EHANGUP))
 			return;
 		
