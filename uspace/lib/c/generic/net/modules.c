@@ -197,46 +197,6 @@ int connect_to_service_timeout(services_t need, suseconds_t timeout)
 	}
 }
 
-/** Receives data from the other party.
- *
- * The received data buffer is allocated and returned.
- *
- * @param[out] data	The data buffer to be filled.
- * @param[out] length	The buffer length.
- * @return		EOK on success.
- * @return		EBADMEM if the data or the length parameter is NULL.
- * @return		EINVAL if the client does not send data.
- * @return		ENOMEM if there is not enough memory left.
- * @return		Other error codes as defined for the
- *			async_data_write_finalize() function.
- */
-int data_receive(void **data, size_t *length)
-{
-	ipc_callid_t callid;
-	int rc;
-
-	if (!data || !length)
-		return EBADMEM;
-
-	// fetch the request
-	if (!async_data_write_receive(&callid, length))
-		return EINVAL;
-
-	// allocate the buffer
-	*data = malloc(*length);
-	if (!*data)
-		return ENOMEM;
-
-	// fetch the data
-	rc = async_data_write_finalize(callid, *data, *length);
-	if (rc != EOK) {
-		free(data);
-		return rc;
-	}
-
-	return EOK;
-}
-
 /** Replies the data to the other party.
  *
  * @param[in] data	The data buffer to be sent.

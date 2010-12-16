@@ -482,20 +482,16 @@ static int arp_receive_message(device_id_t device_id, packet_t *packet)
 	des_hw = src_proto + header->protocol_length;
 	des_proto = des_hw + header->hardware_length;
 	trans = arp_addr_find(&proto->addresses, (char *) src_proto,
-	    CONVERT_SIZE(uint8_t, char, header->protocol_length));
+	    header->protocol_length);
 	/* Exists? */
 	if (trans && trans->hw_addr) {
-		if (trans->hw_addr->length != CONVERT_SIZE(uint8_t, char,
-		    header->hardware_length)) {
+		if (trans->hw_addr->length != header->hardware_length)
 			return EINVAL;
-		}
 		memcpy(trans->hw_addr->value, src_hw, trans->hw_addr->length);
 	}
 	/* Is my protocol address? */
-	if (proto->addr->length != CONVERT_SIZE(uint8_t, char,
-	    header->protocol_length)) {
+	if (proto->addr->length != header->protocol_length)
 		return EINVAL;
-	}
 	if (!str_lcmp(proto->addr->value, (char *) des_proto,
 	    proto->addr->length)) {
 		/* Not already updated? */
@@ -506,8 +502,7 @@ static int arp_receive_message(device_id_t device_id, packet_t *packet)
 			trans->hw_addr = NULL;
 			fibril_condvar_initialize(&trans->cv);
 			rc = arp_addr_add(&proto->addresses, (char *) src_proto,
-			    CONVERT_SIZE(uint8_t, char, header->protocol_length),
-			    trans);
+			    header->protocol_length, trans);
 			if (rc != EOK) {
 				/* The generic char map has already freed trans! */
 				return rc;
@@ -515,8 +510,7 @@ static int arp_receive_message(device_id_t device_id, packet_t *packet)
 		}
 		if (!trans->hw_addr) {
 			trans->hw_addr = measured_string_create_bulk(
-			    (char *) src_hw, CONVERT_SIZE(uint8_t, char,
-			    header->hardware_length));
+			    (char *) src_hw, header->hardware_length);
 			if (!trans->hw_addr)
 				return ENOMEM;
 
@@ -605,8 +599,7 @@ restart:
 		return EAGAIN;
 
 	/* ARP packet content size = header + (address + translation) * 2 */
-	length = 8 + 2 * (CONVERT_SIZE(char, uint8_t, proto->addr->length) +
-	    CONVERT_SIZE(char, uint8_t, device->addr->length));
+	length = 8 + 2 * (proto->addr->length + device->addr->length);
 	if (length > device->packet_dimension.content)
 		return ELIMIT;
 
@@ -639,8 +632,7 @@ restart:
 	memcpy(((uint8_t *) header) + length, target->value, target->length);
 
 	rc = packet_set_addr(packet, (uint8_t *) device->addr->value,
-	    (uint8_t *) device->broadcast_addr->value,
-	    CONVERT_SIZE(char, uint8_t, device->addr->length));
+	    (uint8_t *) device->broadcast_addr->value, device->addr->length);
 	if (rc != EOK) {
 		pq_release_remote(arp_globals.net_phone, packet_get_id(packet));
 		return rc;
