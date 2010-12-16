@@ -1948,7 +1948,8 @@ ip_message_standalone(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *answer,
 		    IP_GET_GATEWAY(call));
 
 	case NET_IP_GET_ROUTE:
-		rc = data_receive((void **) &addr, &addrlen);
+		rc = async_data_write_accept((void **) &addr, false, 0, 0, 0,
+		    &addrlen);
 		if (rc != EOK)
 			return rc;
 		
