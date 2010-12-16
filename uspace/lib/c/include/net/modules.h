@@ -62,7 +62,6 @@ extern int bind_service_timeout(services_t, sysarg_t, sysarg_t, sysarg_t,
     async_client_conn_t, suseconds_t);
 extern int connect_to_service(services_t);
 extern int connect_to_service_timeout(services_t, suseconds_t);
-extern int data_receive(void **, size_t *);
 extern int data_reply(void *, size_t);
 extern void refresh_answer(ipc_call_t *, int *);
 
