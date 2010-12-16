@@ -309,7 +309,7 @@ int netif_initialize(void){
 
 	async_set_interrupt_received(irq_handler);
 
-	return REGISTER_ME(SERVICE_DP8390, &phonehash);
+	return ipc_connect_to_me(PHONE_NS, SERVICE_DP8390, 0, 0, &phonehash);
 }
 
 /** Default thread for new connections.

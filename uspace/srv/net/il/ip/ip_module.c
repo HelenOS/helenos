@@ -79,7 +79,7 @@ int il_module_start_standalone(async_client_conn_t client_connection)
 	if (rc != EOK)
 		goto out;
 	
-	rc = REGISTER_ME(SERVICE_IP, &phonehash);
+	rc = ipc_connect_to_me(PHONE_NS, SERVICE_IP, 0, 0, &phonehash);
 	if (rc != EOK)
 		goto out;
 	

@@ -48,14 +48,6 @@
 
 #include <sys/time.h>
 
-/** Registers the module service at the name server.
- *
- * @param[in] me	The module service.
- * @param[out] phonehash The created phone hash.
- */
-#define REGISTER_ME(me, phonehash) \
-	ipc_connect_to_me(PHONE_NS, (me), 0, 0, (phonehash))
-
 /** Connect to the needed module function type definition.
  *
  * @param[in] need	The needed module service.
