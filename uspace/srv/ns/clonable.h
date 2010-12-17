@@ -39,9 +39,9 @@
 extern int clonable_init(void);
 
 extern bool service_clonable(int service);
-extern void register_clonable(ipcarg_t service, ipcarg_t phone,
+extern void register_clonable(sysarg_t service, sysarg_t phone,
     ipc_call_t *call, ipc_callid_t callid);
-extern void connect_to_clonable(ipcarg_t service, ipc_call_t *call,
+extern void connect_to_clonable(sysarg_t service, ipc_call_t *call,
     ipc_callid_t callid);
 
 #endif

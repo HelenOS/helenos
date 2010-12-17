@@ -212,7 +212,7 @@ void itlb_pte_copy(pte_t *t)
 }
 
 /** ITLB miss handler. */
-void fast_instruction_access_mmu_miss(unative_t unused, istate_t *istate)
+void fast_instruction_access_mmu_miss(sysarg_t unused, istate_t *istate)
 {
 	uintptr_t va = ALIGN_DOWN(istate->tpc, PAGE_SIZE);
 	pte_t *t;

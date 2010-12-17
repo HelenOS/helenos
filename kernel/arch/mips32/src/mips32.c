@@ -232,7 +232,7 @@ void after_thread_ran_arch(void)
  * We have it currently in K1, it is
  * possible to have it separately in the future.
  */
-unative_t sys_tls_set(unative_t addr)
+sysarg_t sys_tls_set(sysarg_t addr)
 {
 	return 0;
 }

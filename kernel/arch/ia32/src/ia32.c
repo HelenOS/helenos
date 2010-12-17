@@ -210,7 +210,7 @@ void calibrate_delay_loop(void)
  * TLS pointer is set in GS register. That means, the GS contains
  * selector, and the descriptor->base is the correct address.
  */
-unative_t sys_tls_set(unative_t addr)
+sysarg_t sys_tls_set(sysarg_t addr)
 {
 	THREAD->arch.tls = addr;
 	set_tls_desc(addr);

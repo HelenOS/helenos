@@ -42,7 +42,7 @@ typedef uint64_t pfn_t;
 
 typedef uint64_t ipl_t;
 
-typedef uint64_t unative_t;
+typedef uint64_t sysarg_t;
 typedef int64_t native_t;
 typedef uint64_t atomic_count_t;
 
@@ -53,8 +53,8 @@ typedef struct {
 #define UINTN_C(c)  UINT64_C(c)
 
 #define PRIdn  PRId64  /**< Format for native_t. */
-#define PRIun  PRIu64  /**< Format for unative_t. */
-#define PRIxn  PRIx64  /**< Format for hexadecimal unative_t. */
+#define PRIun  PRIu64  /**< Format for sysarg_t. */
+#define PRIxn  PRIx64  /**< Format for hexadecimal sysarg_t. */
 #define PRIua  PRIu64  /**< Format for atomic_count_t. */
 
 #endif

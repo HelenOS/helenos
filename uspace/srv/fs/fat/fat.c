@@ -51,6 +51,8 @@
 
 vfs_info_t fat_vfs_info = {
 	.name = NAME,
+	.concurrent_read_write = false,
+	.write_retains_size = false,	
 };
 
 fs_reg_t fat_reg;
@@ -90,7 +92,7 @@ static void fat_connection(ipc_callid_t iid, ipc_call_t *icall)
 		ipc_call_t call;
 	
 		callid = async_get_call(&call);
-		switch  (IPC_GET_METHOD(call)) {
+		switch  (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			return;
 		case VFS_OUT_MOUNTED:

@@ -61,7 +61,7 @@ typedef struct {
 	/** Size of the buffer. */
 	size_t len;
 	/** Integer value. */
-	unative_t intval;
+	sysarg_t intval;
 	/** Resulting type of variable arg */
 	cmd_arg_type_t vartype;
 } cmd_arg_t;

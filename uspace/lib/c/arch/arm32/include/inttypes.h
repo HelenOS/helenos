@@ -33,9 +33,9 @@
 #ifndef LIBC_arm32_INTTYPES_H_
 #define LIBC_arm32_INTTYPES_H_
 
-#define PRIdn  PRId32  /**< Format for sysarg_t, ipcarg_t, etc. */
-#define PRIun  PRIu32  /**< Format for sysarg_t, ipcarg_t, etc. */
-#define PRIxn  PRIx32  /**< Format for hexadecimal sysarg_t, ipcarg_t, etc. */
+#define PRIdn  PRId32  /**< Format for native_t. */
+#define PRIun  PRIu32  /**< Format for sysarg_t. */
+#define PRIxn  PRIx32  /**< Format for hexadecimal sysarg_t. */
 #define PRIua  PRIu32  /**< Format for atomic_count_t. */
 
 #endif

@@ -497,7 +497,7 @@ driver_t *find_driver(driver_list_t *drv_list, const char *drv_name)
  * @param driver	The driver.
  * @param phone		The phone to the driver.
  */
-void set_driver_phone(driver_t *driver, ipcarg_t phone)
+void set_driver_phone(driver_t *driver, sysarg_t phone)
 {
 	fibril_mutex_lock(&driver->driver_mutex);
 	assert(driver->state == DRIVER_STARTING);
@@ -677,8 +677,6 @@ static void devmap_register_tree_device(node_t *node, dev_tree_t *tree)
 	free(devmap_pathname);
 }
 
-static FIBRIL_MUTEX_INITIALIZE(add_device_guard);
-
 /** Pass a device to running driver.
  *
  * @param drv		The driver's structure.
@@ -686,8 +684,6 @@ static FIBRIL_MUTEX_INITIALIZE(add_device_guard);
  */
 void add_device(int phone, driver_t *drv, node_t *node, dev_tree_t *tree)
 {
-	fibril_mutex_lock(&add_device_guard);
-
 	/*
 	 * We do not expect to have driver's mutex locked as we do not
 	 * access any structures that would affect driver_t.
@@ -695,7 +691,7 @@ void add_device(int phone, driver_t *drv, node_t *node, dev_tree_t *tree)
 	printf(NAME ": add_device (driver `%s', device `%s')\n", drv->name,
 	    node->name);
 	
-	ipcarg_t rc;
+	sysarg_t rc;
 	ipc_call_t answer;
 	
 	/* Send the device to the driver. */
@@ -718,8 +714,6 @@ void add_device(int phone, driver_t *drv, node_t *node, dev_tree_t *tree)
 
 	/* Wait for answer from the driver. */
 	async_wait_for(req, &rc);
-
-	fibril_mutex_unlock(&add_device_guard);
 
 	switch(rc) {
 	case EOK:
@@ -765,9 +759,6 @@ bool assign_driver(node_t *node, driver_list_t *drivers_list, dev_tree_t *tree)
 		/* Start the driver. */
 		start_driver(drv);
 	}
-	fibril_mutex_unlock(&drv->driver_mutex);
-	
-	fibril_mutex_lock(&drv->driver_mutex);
 	bool is_running = drv->state == DRIVER_RUNNING;
 	fibril_mutex_unlock(&drv->driver_mutex);
 

@@ -69,7 +69,7 @@ static parea_t clock_parea;
  * For updating  seconds correctly.
  *
  */
-static unative_t secfrag = 0;
+static sysarg_t secfrag = 0;
 
 /** Initialize realtime clock counter
  *
@@ -99,8 +99,8 @@ void clock_counter_init(void)
 	 * physmem_map() the clock_parea.
 	 *
 	 */
-	sysinfo_set_item_val("clock.cacheable", NULL, (unative_t) true);
-	sysinfo_set_item_val("clock.faddr", NULL, (unative_t) faddr);
+	sysinfo_set_item_val("clock.cacheable", NULL, (sysarg_t) true);
+	sysinfo_set_item_val("clock.faddr", NULL, (sysarg_t) faddr);
 }
 
 /** Update public counters

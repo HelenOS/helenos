@@ -302,10 +302,10 @@ extern mem_backend_t phys_backend;
 extern unsigned int elf_load(elf_header_t *, as_t *, unsigned int);
 
 /* Address space area related syscalls. */
-extern unative_t sys_as_area_create(uintptr_t, size_t, unsigned int);
-extern unative_t sys_as_area_resize(uintptr_t, size_t, unsigned int);
-extern unative_t sys_as_area_change_flags(uintptr_t, unsigned int);
-extern unative_t sys_as_area_destroy(uintptr_t);
+extern sysarg_t sys_as_area_create(uintptr_t, size_t, unsigned int);
+extern sysarg_t sys_as_area_resize(uintptr_t, size_t, unsigned int);
+extern sysarg_t sys_as_area_change_flags(uintptr_t, unsigned int);
+extern sysarg_t sys_as_area_destroy(uintptr_t);
 
 /* Introspection functions. */
 extern void as_get_area_info(as_t *, as_area_info_t **, size_t *);

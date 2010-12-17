@@ -80,7 +80,7 @@ static irq_code_t default_pseudocode = {
 
 static void driver_irq_handler(ipc_callid_t iid, ipc_call_t *icall)
 {
-	int id = (int)IPC_GET_METHOD(*icall);
+	int id = (int)IPC_GET_IMETHOD(*icall);
 	interrupt_context_t *ctx;
 	
 	ctx = find_interrupt_context_by_id(&interrupt_contexts, id);
@@ -199,7 +199,7 @@ static void driver_connection_devman(ipc_callid_t iid, ipc_call_t *icall)
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
 
-		switch (IPC_GET_METHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			cont = false;
 			continue;
@@ -253,7 +253,7 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 		ipc_callid_t callid;
 		ipc_call_t call;
 		callid = async_get_call(&call);
-		ipcarg_t method = IPC_GET_METHOD(call);
+		sysarg_t method = IPC_GET_IMETHOD(call);
 		int iface_idx;
 		
 		switch  (method) {
@@ -307,7 +307,7 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 			assert(NULL != rem_iface);
 
 			/* get the method of the remote interface */
-			ipcarg_t iface_method_idx = IPC_GET_ARG1(call);
+			sysarg_t iface_method_idx = IPC_GET_ARG1(call);
 			remote_iface_func_ptr_t iface_method_ptr =
 			    get_remote_method(rem_iface, iface_method_idx);
 			if (NULL == iface_method_ptr) {
@@ -345,7 +345,7 @@ static void driver_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 static void driver_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
 	/* Select interface */
-	switch ((ipcarg_t) (IPC_GET_ARG1(*icall))) {
+	switch ((sysarg_t) (IPC_GET_ARG1(*icall))) {
 	case DRIVER_DEVMAN:
 		/* handle PnP events from device manager */
 		driver_connection_devman(iid, icall);
@@ -417,7 +417,7 @@ int child_device_register_wrapper(device_t *parent, const char *child_name,
 	if (EOK != rc)
 		goto failure;
 
-	goto leave;
+	return EOK;
 
 failure:
 	if (match_id != NULL) {
@@ -430,7 +430,6 @@ failure:
 		delete_device(child);
 	}
 
-leave:
 	return rc;
 }
 

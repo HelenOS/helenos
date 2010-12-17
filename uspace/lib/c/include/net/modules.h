@@ -48,23 +48,6 @@
 
 #include <sys/time.h>
 
-/** Converts the data length between different types.
- *
- * @param[in] type_from	The source type.
- * @param[in] type_to	The destination type.
- * @param[in] count	The number units of the source type size.
- */
-#define CONVERT_SIZE(type_from, type_to, count) \
-	((sizeof(type_from) / sizeof(type_to)) * (count))
-
-/** Registers the module service at the name server.
- *
- * @param[in] me	The module service.
- * @param[out] phonehash The created phone hash.
- */
-#define REGISTER_ME(me, phonehash) \
-	ipc_connect_to_me(PHONE_NS, (me), 0, 0, (phonehash))
-
 /** Connect to the needed module function type definition.
  *
  * @param[in] need	The needed module service.
@@ -73,13 +56,12 @@
 typedef int connect_module_t(services_t need);
 
 extern void answer_call(ipc_callid_t, int, ipc_call_t *, int);
-extern int bind_service(services_t, ipcarg_t, ipcarg_t, ipcarg_t,
+extern int bind_service(services_t, sysarg_t, sysarg_t, sysarg_t,
     async_client_conn_t);
-extern int bind_service_timeout(services_t, ipcarg_t, ipcarg_t, ipcarg_t,
+extern int bind_service_timeout(services_t, sysarg_t, sysarg_t, sysarg_t,
     async_client_conn_t, suseconds_t);
 extern int connect_to_service(services_t);
 extern int connect_to_service_timeout(services_t, suseconds_t);
-extern int data_receive(void **, size_t *);
 extern int data_reply(void *, size_t);
 extern void refresh_answer(ipc_call_t *, int *);
 

@@ -57,7 +57,7 @@ extern icmp_globals_t icmp_globals;
 
 int tl_module_start_standalone(async_client_conn_t client_connection)
 {
-	ipcarg_t phonehash;
+	sysarg_t phonehash;
 	int rc;
 
 	async_set_client_connection(client_connection);
@@ -73,7 +73,7 @@ int tl_module_start_standalone(async_client_conn_t client_connection)
 	if (rc != EOK)
 		goto out;
 
-	rc = REGISTER_ME(SERVICE_ICMP, &phonehash);
+	rc = ipc_connect_to_me(PHONE_NS, SERVICE_ICMP, 0, 0, &phonehash);
 	if (rc != EOK)
 		goto out;
 

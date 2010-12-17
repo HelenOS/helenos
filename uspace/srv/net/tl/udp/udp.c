@@ -392,8 +392,8 @@ static int udp_process_packet(device_id_t device_id, packet_t *packet,
 	/* Notify the destination socket */
 	fibril_rwlock_write_unlock(&udp_globals.lock);
 	async_msg_5(socket->phone, NET_SOCKET_RECEIVED,
-	    (ipcarg_t) socket->socket_id, packet_dimension->content, 0, 0,
-	    (ipcarg_t) fragments);
+	    (sysarg_t) socket->socket_id, packet_dimension->content, 0, 0,
+	    (sysarg_t) fragments);
 
 	return EOK;
 }
@@ -741,7 +741,7 @@ static int udp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 		callid = async_get_call(&call);
 
 		/* Process the call */
-		switch (IPC_GET_METHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			keep_on_going = false;
 			res = EHANGUP;
@@ -770,7 +770,8 @@ static int udp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 			break;
 
 		case NET_SOCKET_BIND:
-			res = data_receive((void **) &addr, &addrlen);
+			res = async_data_write_accept((void **) &addr, false,
+			    0, 0, 0, &addrlen);
 			if (res != EOK)
 				break;
 			fibril_rwlock_write_lock(&udp_globals.lock);
@@ -783,7 +784,8 @@ static int udp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 			break;
 
 		case NET_SOCKET_SENDTO:
-			res = data_receive((void **) &addr, &addrlen);
+			res = async_data_write_accept((void **) &addr, false,
+			    0, 0, 0, &addrlen);
 			if (res != EOK)
 				break;
 
@@ -865,7 +867,7 @@ int udp_message_standalone(ipc_callid_t callid, ipc_call_t *call,
 
 	*answer_count = 0;
 
-	switch (IPC_GET_METHOD(*call)) {
+	switch (IPC_GET_IMETHOD(*call)) {
 	case NET_TL_RECEIVED:
 		rc = packet_translate_remote(udp_globals.net_phone, &packet,
 		    IPC_GET_PACKET(call));
@@ -912,7 +914,7 @@ static void tl_client_connection(ipc_callid_t iid, ipc_call_t * icall)
 		 * End if told to either by the message or the processing
 		 * result.
 		 */
-		if ((IPC_GET_METHOD(call) == IPC_M_PHONE_HUNGUP) ||
+		if ((IPC_GET_IMETHOD(call) == IPC_M_PHONE_HUNGUP) ||
 		    (res == EHANGUP))
 			return;
 		

@@ -35,8 +35,9 @@
 #ifndef LIBC_IPC_VFS_H_
 #define LIBC_IPC_VFS_H_
 
-#include <sys/types.h>
 #include <ipc/ipc.h>
+#include <sys/types.h>
+#include <bool.h>
 
 #define FS_NAME_MAXLEN  20
 #define MAX_PATH_LEN    (64 * 1024)
@@ -54,6 +55,8 @@ typedef uint32_t fs_index_t;
 typedef struct {
 	/** Unique identifier of the fs. */
 	char name[FS_NAME_MAXLEN + 1];
+	bool concurrent_read_write;
+	bool write_retains_size;
 } vfs_info_t;
 
 typedef enum {

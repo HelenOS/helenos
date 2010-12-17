@@ -123,7 +123,7 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 	
 	while (true) {
 		callid = async_get_call(&call);
-		switch (IPC_GET_METHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			/*
 			 * The other side has hung up.

@@ -429,7 +429,7 @@ static int ip_netif_initialize(ip_netif_t *ip_netif)
 
 	// binds the netif service which also initializes the device
 	ip_netif->phone = nil_bind_service(ip_netif->service,
-	    (ipcarg_t) ip_netif->device_id, SERVICE_IP,
+	    (sysarg_t) ip_netif->device_id, SERVICE_IP,
 	    ip_globals.client_connection);
 	if (ip_netif->phone < 0) {
 		printf("Failed to contact the nil service %d\n",
@@ -441,7 +441,7 @@ static int ip_netif_initialize(ip_netif_t *ip_netif)
 	if (ip_netif->arp) {
 		if (route) {
 			address.value = (char *) &route->address.s_addr;
-			address.length = CONVERT_SIZE(in_addr_t, char, 1);
+			address.length = sizeof(in_addr_t);
 			
 			rc = arp_device_req(ip_netif->arp->phone,
 			    ip_netif->device_id, SERVICE_IP, ip_netif->service,
@@ -638,7 +638,7 @@ ip_prepare_packet(in_addr_t *source, in_addr_t dest, packet_t *packet,
 	header = (ip_header_t *) packet_get_data(packet);
 	if (destination) {
 		rc = packet_set_addr(packet, NULL, (uint8_t *) destination->value,
-		    CONVERT_SIZE(char, uint8_t, destination->length));
+		    destination->length);
 	} else {
 		rc = packet_set_addr(packet, NULL, NULL, 0);
 	}
@@ -686,8 +686,7 @@ ip_prepare_packet(in_addr_t *source, in_addr_t dest, packet_t *packet,
 			if (destination) {
 				rc = packet_set_addr(next, NULL,
 				    (uint8_t *) destination->value,
-				    CONVERT_SIZE(char, uint8_t,
-				    destination->length));
+				    destination->length);
 				if (rc != EOK) {
 				    	free(last_header);
 					return rc;
@@ -717,7 +716,7 @@ ip_prepare_packet(in_addr_t *source, in_addr_t dest, packet_t *packet,
 		if (destination) {
 			rc = packet_set_addr(next, NULL,
 			    (uint8_t *) destination->value,
-			    CONVERT_SIZE(char, uint8_t, destination->length));
+			    destination->length);
 			if (rc != EOK) {
 				free(last_header);
 				return rc;
@@ -1005,7 +1004,7 @@ ip_send_route(packet_t *packet, ip_netif_t *netif, ip_route_t *route,
 	if (netif->arp && (route->address.s_addr != dest.s_addr)) {
 		destination.value = route->gateway.s_addr ?
 		    (char *) &route->gateway.s_addr : (char *) &dest.s_addr;
-		destination.length = CONVERT_SIZE(dest.s_addr, char, 1);
+		destination.length = sizeof(dest.s_addr);
 
 		rc = arp_translate_req(netif->arp->phone, netif->device_id,
 		    SERVICE_IP, &destination, &translation, &data);
@@ -1757,8 +1756,7 @@ ip_received_error_msg_local(int ip_phone, device_id_t device_id,
 		    (header->destination_address & route->netmask.s_addr))) {
 			// clear the ARP mapping if any
 			address.value = (char *) &header->destination_address;
-			address.length = CONVERT_SIZE(uint8_t, char,
-			    sizeof(header->destination_address));
+			address.length = sizeof(header->destination_address);
 			arp_clear_address_req(netif->arp->phone,
 			    netif->device_id, SERVICE_IP, &address);
 		}
@@ -1901,7 +1899,7 @@ ip_message_standalone(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *answer,
 	int rc;
 	
 	*answer_count = 0;
-	switch (IPC_GET_METHOD(*call)) {
+	switch (IPC_GET_IMETHOD(*call)) {
 	case IPC_M_PHONE_HUNGUP:
 		return EOK;
 	
@@ -1950,7 +1948,8 @@ ip_message_standalone(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *answer,
 		    IP_GET_GATEWAY(call));
 
 	case NET_IP_GET_ROUTE:
-		rc = data_receive((void **) &addr, &addrlen);
+		rc = async_data_write_accept((void **) &addr, false, 0, 0, 0,
+		    &addrlen);
 		if (rc != EOK)
 			return rc;
 		
@@ -2024,7 +2023,7 @@ static void il_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		 * End if told to either by the message or the processing
 		 * result.
 		 */
-		if ((IPC_GET_METHOD(call) == IPC_M_PHONE_HUNGUP) ||
+		if ((IPC_GET_IMETHOD(call) == IPC_M_PHONE_HUNGUP) ||
 		    (res == EHANGUP)) {
 			return;
 		}
