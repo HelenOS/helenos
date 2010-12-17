@@ -44,9 +44,11 @@
 #include <vfs/vfs.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <device/char.h>
 #include "../../tester.h"
 
 #define DEVICE_PATH "/dev/devices/\\virt\\null"
+#define BUFFER_SIZE 64
 
 const char *test_virtchar1(void)
 {
@@ -55,7 +57,7 @@ const char *test_virtchar1(void)
 	if (fd < 0) {
 		TPRINTF(" ...error: %s\n", str_error(fd));
 		if (fd == ENOENT) {
-			TPRINTF("  (error was ENOENT: " \
+			TPRINTF(" (error was ENOENT: " \
 			    "have you compiled test drivers?)\n");
 		}
 		return "Failed opening " DEVICE_PATH " for reading";
@@ -72,9 +74,20 @@ const char *test_virtchar1(void)
 	}
 	TPRINTF(" ...phone is %d\n", phone);
 	
+	TPRINTF("Will try to read...\n");
+	size_t i;
+	char buffer[BUFFER_SIZE];
+	read_dev(phone, buffer, BUFFER_SIZE);
+	TPRINTF(" ...verifying that we read zeroes only...\n");
+	for (i = 0; i < BUFFER_SIZE; i++) {
+		if (buffer[i] != 0) {
+			return "Not all bytes are zeroes";
+		}
+	}
+	TPRINTF(" ...data read okay\n");
 	
 	/* Clean-up. */
-	TPRINTF("Closing phones and file descriptors...");
+	TPRINTF("Closing phones and file descriptors");
 	ipc_hangup(phone);
 	close(fd);
 	
