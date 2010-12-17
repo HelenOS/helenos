@@ -46,6 +46,7 @@
 
 #include "devices.h"
 #include "hub.h"
+#include "hub/virthub.h"
 #include "vhcd.h"
 
 #define list_foreach(pos, head) \
@@ -68,7 +69,7 @@ virtdev_connection_t *virtdev_add_device(int phone)
 	dev->phone = phone;
 	list_append(&dev->link, &devices);
 	
-	hub_add_device(dev);
+	virthub_connect_device(&virtual_hub_device, dev);
 	
 	return dev;
 }
@@ -77,7 +78,7 @@ virtdev_connection_t *virtdev_add_device(int phone)
  */
 void virtdev_destroy_device(virtdev_connection_t *dev)
 {
-	hub_remove_device(dev);
+	virthub_disconnect_device(&virtual_hub_device, dev);
 	list_remove(&dev->link);
 	free(dev);
 }
@@ -93,12 +94,12 @@ usb_transaction_outcome_t virtdev_send_to_all(transaction_t *transaction)
 		virtdev_connection_t *dev
 		    = list_get_instance(pos, virtdev_connection_t, link);
 		
-		if (!hub_can_device_signal(dev)) {
+		if (!virthub_is_device_enabled(&virtual_hub_device, dev)) {
 			continue;
 		}
 		
 		ipc_call_t answer_data;
-		ipcarg_t answer_rc;
+		sysarg_t answer_rc;
 		aid_t req;
 		int rc = EOK;
 		int method = IPC_M_USBVIRT_TRANSACTION_SETUP;
@@ -144,19 +145,21 @@ usb_transaction_outcome_t virtdev_send_to_all(transaction_t *transaction)
 	 * Send the data to the virtual hub as well
 	 * (if the address matches).
 	 */
-	if (virthub_dev.address == transaction->target.address) {
+	if (virtual_hub_device.address == transaction->target.address) {
 		size_t tmp;
-		dprintf(3, "sending `%s' transaction to hub",
+		dprintf(1, "sending `%s' transaction to hub",
 		    usbvirt_str_transaction_type(transaction->type));
 		switch (transaction->type) {
 			case USBVIRT_TRANSACTION_SETUP:
-				virthub_dev.transaction_setup(&virthub_dev,
+				virtual_hub_device.transaction_setup(
+				    &virtual_hub_device,
 				    transaction->target.endpoint,
 				    transaction->buffer, transaction->len);
 				break;
 				
 			case USBVIRT_TRANSACTION_IN:
-				virthub_dev.transaction_in(&virthub_dev,
+				virtual_hub_device.transaction_in(
+				    &virtual_hub_device,
 				    transaction->target.endpoint,
 				    transaction->buffer, transaction->len,
 				    &tmp);
@@ -166,7 +169,8 @@ usb_transaction_outcome_t virtdev_send_to_all(transaction_t *transaction)
 				break;
 				
 			case USBVIRT_TRANSACTION_OUT:
-				virthub_dev.transaction_out(&virthub_dev,
+				virtual_hub_device.transaction_out(
+				    &virtual_hub_device,
 				    transaction->target.endpoint,
 				    transaction->buffer, transaction->len);
 				break;

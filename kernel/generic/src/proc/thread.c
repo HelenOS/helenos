@@ -754,7 +754,7 @@ thread_t *thread_find_by_id(thread_id_t thread_id)
 /** Process syscall to create new thread.
  *
  */
-unative_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name,
+sysarg_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name,
     size_t name_len, thread_id_t *uspace_thread_id)
 {
 	if (name_len > THREAD_NAME_BUFLEN - 1)
@@ -763,7 +763,7 @@ unative_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name,
 	char namebuf[THREAD_NAME_BUFLEN];
 	int rc = copy_from_uspace(namebuf, uspace_name, name_len);
 	if (rc != 0)
-		return (unative_t) rc;
+		return (sysarg_t) rc;
 	
 	namebuf[name_len] = 0;
 	
@@ -778,7 +778,7 @@ unative_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name,
 	rc = copy_from_uspace(kernel_uarg, uspace_uarg, sizeof(uspace_arg_t));
 	if (rc != 0) {
 		free(kernel_uarg);
-		return (unative_t) rc;
+		return (sysarg_t) rc;
 	}
 	
 	thread_t *thread = thread_create(uinit, kernel_uarg, TASK,
@@ -803,7 +803,7 @@ unative_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name,
 				slab_free(thread_slab, thread);
 				free(kernel_uarg);
 				
-				return (unative_t) rc;
+				return (sysarg_t) rc;
 			 }
 		}
 		
@@ -826,13 +826,13 @@ unative_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name,
 	} else
 		free(kernel_uarg);
 	
-	return (unative_t) ENOMEM;
+	return (sysarg_t) ENOMEM;
 }
 
 /** Process syscall to terminate thread.
  *
  */
-unative_t sys_thread_exit(int uspace_status)
+sysarg_t sys_thread_exit(int uspace_status)
 {
 	thread_exit();
 	
@@ -848,19 +848,19 @@ unative_t sys_thread_exit(int uspace_status)
  * @return 0 on success or an error code from @ref errno.h.
  *
  */
-unative_t sys_thread_get_id(thread_id_t *uspace_thread_id)
+sysarg_t sys_thread_get_id(thread_id_t *uspace_thread_id)
 {
 	/*
 	 * No need to acquire lock on THREAD because tid
 	 * remains constant for the lifespan of the thread.
 	 *
 	 */
-	return (unative_t) copy_to_uspace(uspace_thread_id, &THREAD->tid,
+	return (sysarg_t) copy_to_uspace(uspace_thread_id, &THREAD->tid,
 	    sizeof(THREAD->tid));
 }
 
 /** Syscall wrapper for sleeping. */
-unative_t sys_thread_usleep(uint32_t usec)
+sysarg_t sys_thread_usleep(uint32_t usec)
 {
 	thread_usleep(usec);
 	return 0;

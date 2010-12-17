@@ -611,8 +611,8 @@ NO_TRACE static void _slab_cache_create(slab_cache_t *cache, const char *name,
 	memsetb(cache, sizeof(*cache), 0);
 	cache->name = name;
 	
-	if (align < sizeof(unative_t))
-		align = sizeof(unative_t);
+	if (align < sizeof(sysarg_t))
+		align = sizeof(sysarg_t);
 	
 	size = ALIGN_UP(size, align);
 	

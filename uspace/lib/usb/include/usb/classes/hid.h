@@ -126,7 +126,7 @@ typedef struct {
 	device_t *device;
 	usb_hid_configuration_t *conf;
 	usb_address_t address;
-	usb_endpoint_t default_ep;
+	usb_endpoint_t poll_endpoint;
 	usb_hid_report_parser_t *parser;
 } usb_hid_dev_kbd_t;
 

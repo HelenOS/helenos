@@ -71,12 +71,12 @@ int usb_drv_hc_connect(device_t *dev, unsigned int flags)
 	int rc;
 	devman_handle_t handle;
 
-	rc = devman_device_get_handle("/virt/usbhc", &handle, 0);
+	rc = devman_device_get_handle("/virt/usbhc", &handle, flags);
 	if (rc != EOK) {
 		return rc;
 	}
 	
-	int phone = devman_device_connect(handle, 0);
+	int phone = devman_device_connect(handle, flags);
 
 	return phone;
 }
@@ -89,7 +89,7 @@ int usb_drv_hc_connect(device_t *dev, unsigned int flags)
  */
 usb_address_t usb_drv_get_my_address(int phone, device_t *dev)
 {
-	ipcarg_t address;
+	sysarg_t address;
 	int rc = async_req_2_1(phone, DEV_IFACE_ID(USBHC_DEV_IFACE),
 	    IPC_M_USBHC_GET_ADDRESS,
 	    dev->handle, &address);
@@ -131,7 +131,7 @@ int usb_drv_release_default_address(int phone)
  */
 usb_address_t usb_drv_request_address(int phone)
 {
-	ipcarg_t address;
+	sysarg_t address;
 	int rc = async_req_1_1(phone, DEV_IFACE_ID(USBHC_DEV_IFACE),
 	    IPC_M_USBHC_REQUEST_ADDRESS, &address);
 	if (rc != EOK) {
@@ -297,11 +297,11 @@ static int async_recv_buffer(int phone, int method,
  * 	be stored.
  * @return Error status.
  */
-static int read_buffer_in(int phone, ipcarg_t hash,
+static int read_buffer_in(int phone, sysarg_t hash,
     void *buffer, size_t size, size_t *actual_size)
 {
 	ipc_call_t answer_data;
-	ipcarg_t answer_rc;
+	sysarg_t answer_rc;
 	aid_t req;
 	int rc;
 
@@ -349,7 +349,7 @@ int usb_drv_async_wait_for(usb_handle_t handle)
 
 	transfer_info_t *transfer = (transfer_info_t *) handle;
 
-	ipcarg_t answer_rc;
+	sysarg_t answer_rc;
 	async_wait_for(transfer->request, &answer_rc);
 
 	if (answer_rc != EOK) {
@@ -366,7 +366,7 @@ int usb_drv_async_wait_for(usb_handle_t handle)
 		 * side.
 		 * We will use it when actually reading-in the data.
 		 */
-		ipcarg_t buffer_hash = IPC_GET_ARG1(transfer->reply);
+		sysarg_t buffer_hash = IPC_GET_ARG1(transfer->reply);
 		if (buffer_hash == 0) {
 			rc = ENOENT;
 			goto leave;

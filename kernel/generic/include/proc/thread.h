@@ -240,11 +240,11 @@ extern bool thread_exists(thread_t *);
 extern slab_cache_t *fpu_context_slab;
 
 /* Thread syscall prototypes. */
-extern unative_t sys_thread_create(uspace_arg_t *, char *, size_t,
+extern sysarg_t sys_thread_create(uspace_arg_t *, char *, size_t,
     thread_id_t *);
-extern unative_t sys_thread_exit(int);
-extern unative_t sys_thread_get_id(thread_id_t *);
-extern unative_t sys_thread_usleep(uint32_t);
+extern sysarg_t sys_thread_exit(int);
+extern sysarg_t sys_thread_get_id(thread_id_t *);
+extern sysarg_t sys_thread_usleep(uint32_t);
 
 #endif
 

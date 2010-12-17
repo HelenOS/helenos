@@ -429,7 +429,7 @@ static int ip_netif_initialize(ip_netif_t *ip_netif)
 
 	// binds the netif service which also initializes the device
 	ip_netif->phone = nil_bind_service(ip_netif->service,
-	    (ipcarg_t) ip_netif->device_id, SERVICE_IP,
+	    (sysarg_t) ip_netif->device_id, SERVICE_IP,
 	    ip_globals.client_connection);
 	if (ip_netif->phone < 0) {
 		printf("Failed to contact the nil service %d\n",
@@ -1901,7 +1901,7 @@ ip_message_standalone(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *answer,
 	int rc;
 	
 	*answer_count = 0;
-	switch (IPC_GET_METHOD(*call)) {
+	switch (IPC_GET_IMETHOD(*call)) {
 	case IPC_M_PHONE_HUNGUP:
 		return EOK;
 	
@@ -2024,7 +2024,7 @@ static void il_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		 * End if told to either by the message or the processing
 		 * result.
 		 */
-		if ((IPC_GET_METHOD(call) == IPC_M_PHONE_HUNGUP) ||
+		if ((IPC_GET_IMETHOD(call) == IPC_M_PHONE_HUNGUP) ||
 		    (res == EHANGUP)) {
 			return;
 		}

@@ -28,6 +28,7 @@
 #include <usb/hcdhubd.h>
 #include <usb/debug.h>
 #include <errno.h>
+#include <driver.h>
 #include "uhci.h"
 
 static device_ops_t uhci_ops = {

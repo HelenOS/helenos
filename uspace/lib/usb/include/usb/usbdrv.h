@@ -93,6 +93,10 @@ int usb_drv_psync_control_read(int, usb_target_t,
 
 int usb_drv_async_wait_for(usb_handle_t);
 
+int usb_drv_create_device_match_ids(int, match_id_list_t *, usb_address_t);
+int usb_drv_register_child_in_devman(int, device_t *, usb_address_t,
+    devman_handle_t *);
+
 
 #endif
 /**

@@ -419,7 +419,7 @@ void devfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 	char *opts;
 	
 	/* Accept the mount options */
-	ipcarg_t retval = async_data_write_accept((void **) &opts, true, 0, 0,
+	sysarg_t retval = async_data_write_accept((void **) &opts, true, 0, 0,
 	    0, NULL);
 	if (retval != EOK) {
 		ipc_answer_0(rid, retval);
@@ -574,7 +574,7 @@ void devfs_read(ipc_callid_t rid, ipc_call_t *request)
 		
 		/* Make a request at the driver */
 		ipc_call_t answer;
-		aid_t msg = async_send_3(dev->phone, IPC_GET_METHOD(*request),
+		aid_t msg = async_send_3(dev->phone, IPC_GET_IMETHOD(*request),
 		    IPC_GET_ARG1(*request), IPC_GET_ARG2(*request),
 		    IPC_GET_ARG3(*request), &answer);
 		
@@ -583,7 +583,7 @@ void devfs_read(ipc_callid_t rid, ipc_call_t *request)
 		fibril_mutex_unlock(&devices_mutex);
 		
 		/* Wait for reply from the driver. */
-		ipcarg_t rc;
+		sysarg_t rc;
 		async_wait_for(msg, &rc);
 		size_t bytes = IPC_GET_ARG1(answer);
 		
@@ -637,7 +637,7 @@ void devfs_write(ipc_callid_t rid, ipc_call_t *request)
 		
 		/* Make a request at the driver */
 		ipc_call_t answer;
-		aid_t msg = async_send_3(dev->phone, IPC_GET_METHOD(*request),
+		aid_t msg = async_send_3(dev->phone, IPC_GET_IMETHOD(*request),
 		    IPC_GET_ARG1(*request), IPC_GET_ARG2(*request),
 		    IPC_GET_ARG3(*request), &answer);
 		
@@ -647,7 +647,7 @@ void devfs_write(ipc_callid_t rid, ipc_call_t *request)
 		fibril_mutex_unlock(&devices_mutex);
 		
 		/* Wait for reply from the driver. */
-		ipcarg_t rc;
+		sysarg_t rc;
 		async_wait_for(msg, &rc);
 		size_t bytes = IPC_GET_ARG1(answer);
 		
@@ -745,13 +745,13 @@ void devfs_sync(ipc_callid_t rid, ipc_call_t *request)
 		
 		/* Make a request at the driver */
 		ipc_call_t answer;
-		aid_t msg = async_send_2(dev->phone, IPC_GET_METHOD(*request),
+		aid_t msg = async_send_2(dev->phone, IPC_GET_IMETHOD(*request),
 		    IPC_GET_ARG1(*request), IPC_GET_ARG2(*request), &answer);
 		
 		fibril_mutex_unlock(&devices_mutex);
 		
 		/* Wait for reply from the driver */
-		ipcarg_t rc;
+		sysarg_t rc;
 		async_wait_for(msg, &rc);
 		
 		/* Driver reply is the final result of the whole operation */

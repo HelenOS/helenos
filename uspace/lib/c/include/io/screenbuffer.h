@@ -83,12 +83,12 @@ typedef struct {
 typedef struct {
 	keyfield_t *buffer;      /**< Screen content - characters and
 	                              their attributes (used as a circular buffer) */
-	ipcarg_t size_x;         /**< Number of columns  */
-	ipcarg_t size_y;         /**< Number of rows */
+	sysarg_t size_x;         /**< Number of columns  */
+	sysarg_t size_y;         /**< Number of rows */
 	
 	/** Coordinates of last printed character for determining cursor position */
-	ipcarg_t position_x;
-	ipcarg_t position_y;
+	sysarg_t position_x;
+	sysarg_t position_y;
 	
 	attrs_t attrs;           /**< Current attributes. */
 	size_t top_line;         /**< Points to buffer[][] line that will
@@ -108,7 +108,7 @@ typedef struct {
  * @return Keyfield structure with character and its attributes on x, y
  *
  */
-static inline keyfield_t *get_field_at(screenbuffer_t *scr, ipcarg_t x, ipcarg_t y)
+static inline keyfield_t *get_field_at(screenbuffer_t *scr, sysarg_t x, sysarg_t y)
 {
 	return scr->buffer + x + ((y + scr->top_line) % scr->size_y) * scr->size_x;
 }
@@ -142,12 +142,12 @@ static inline bool attrs_same(attrs_t a1, attrs_t a2)
 }
 
 extern void screenbuffer_putchar(screenbuffer_t *, wchar_t);
-extern screenbuffer_t *screenbuffer_init(screenbuffer_t *, ipcarg_t, ipcarg_t);
+extern screenbuffer_t *screenbuffer_init(screenbuffer_t *, sysarg_t, sysarg_t);
 
 extern void screenbuffer_clear(screenbuffer_t *);
-extern void screenbuffer_clear_line(screenbuffer_t *, ipcarg_t);
+extern void screenbuffer_clear_line(screenbuffer_t *, sysarg_t);
 extern void screenbuffer_copy_buffer(screenbuffer_t *, keyfield_t *);
-extern void screenbuffer_goto(screenbuffer_t *, ipcarg_t, ipcarg_t);
+extern void screenbuffer_goto(screenbuffer_t *, sysarg_t, sysarg_t);
 extern void screenbuffer_set_style(screenbuffer_t *, uint8_t);
 extern void screenbuffer_set_color(screenbuffer_t *, uint8_t, uint8_t, uint8_t);
 extern void screenbuffer_set_rgb_color(screenbuffer_t *, uint32_t, uint32_t);

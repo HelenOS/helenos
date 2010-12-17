@@ -229,7 +229,7 @@ static void draw_text_data(keyfield_t *data, sysarg_t x, sysarg_t y,
 
 static int save_screen(void)
 {
-	ipcarg_t i;
+	sysarg_t i;
 	
 	/* Find empty screen */
 	for (i = 0; (i < MAX_SAVED_SCREENS) && (saved_screens[i].data); i++);
@@ -244,7 +244,7 @@ static int save_screen(void)
 	return (int) i;
 }
 
-static int print_screen(ipcarg_t i)
+static int print_screen(sysarg_t i)
 {
 	if ((i >= MAX_SAVED_SCREENS) || (saved_screens[i].data))
 		memcpy(scr_addr, saved_screens[i].data, 2 * scr_width *
@@ -275,10 +275,10 @@ static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		
 		wchar_t c;
 		
-		ipcarg_t col;
-		ipcarg_t row;
-		ipcarg_t w;
-		ipcarg_t h;
+		sysarg_t col;
+		sysarg_t row;
+		sysarg_t w;
+		sysarg_t h;
 		
 		ssize_t rows;
 		
@@ -289,10 +289,10 @@ static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		uint32_t fg_rgb;
 		uint32_t bg_rgb;
 		
-		ipcarg_t scr;
+		sysarg_t scr;
 		int retval;
 		
-		switch (IPC_GET_METHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			client_connected = 0;
 			ipc_answer_0(callid, EOK);
@@ -369,12 +369,12 @@ static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			rows = IPC_GET_ARG1(call);
 			
 			if (rows >= 0) {
-				if ((ipcarg_t) rows > scr_height) {
+				if ((sysarg_t) rows > scr_height) {
 					retval = EINVAL;
 					break;
 				}
 			} else {
-				if ((ipcarg_t) (-rows) > scr_height) {
+				if ((sysarg_t) (-rows) > scr_height) {
 					retval = EINVAL;
 					break;
 				}

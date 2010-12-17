@@ -25,9 +25,12 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include <usb/usbdrv.h>
+
 #include <driver.h>
 #include <errno.h>
+#include <async.h>
+
+#include <usb/usbdrv.h>
 #include "usbhub.h"
 #include "usbhub_private.h"
 
@@ -43,8 +46,24 @@ static driver_t hub_driver = {
 	.driver_ops = &hub_driver_ops
 };
 
+int usb_hub_control_loop(void * noparam){
+	while(true){
+		usb_hub_check_hub_changes();
+		async_usleep(1000 * 1000);
+	}
+	return 0;
+}
+
+
 int main(int argc, char *argv[])
 {
 	usb_lst_init(&usb_hub_list);
+	fid_t fid = fibril_create(usb_hub_control_loop, NULL);
+	if (fid == 0) {
+		printf("%s: failed to start fibril for HUB devices\n", NAME);
+		return ENOMEM;
+	}
+	fibril_add_ready(fid);
+
 	return driver_main(&hub_driver);
 }

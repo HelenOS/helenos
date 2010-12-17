@@ -38,11 +38,13 @@
 #include <usb/usb.h>
 #include <usb/descriptor.h>
 #include <usb/debug.h>
+#include <ipc/devman.h>
 
 
 #define NAME "usbinfo"
 
 void dump_buffer(const char *, const uint8_t *, size_t);
+void dump_match_ids(match_id_list_t *matches);
 void dump_standard_device_descriptor(usb_standard_device_descriptor_t *);
 void dump_standard_configuration_descriptor(int, 
     usb_standard_configuration_descriptor_t *);

@@ -255,7 +255,7 @@ void calibrate_delay_loop(void)
  * The specs say, that on %fs:0 there is stored contents of %fs register,
  * we need not to go to CPL0 to read it.
  */
-unative_t sys_tls_set(unative_t addr)
+sysarg_t sys_tls_set(sysarg_t addr)
 {
 	THREAD->arch.tls = addr;
 	write_msr(AMD_MSR_FS, addr);

@@ -39,19 +39,12 @@
 #include <driver.h>
 
 #include "devices.h"
+#include "hub/hub.h"
+#include "hub/virthub.h"
 
-#define HUB_PORT_COUNT 6
+extern usbvirt_device_t virtual_hub_device;
 
-#define BITS2BYTES(bits) \
-    (bits ? ((((bits)-1)>>3)+1) : 0)
-
-extern usbvirt_device_t virthub_dev;
-
-void hub_init(device_t *);
-size_t hub_add_device(virtdev_connection_t *);
-void hub_remove_device(virtdev_connection_t *);
-bool hub_can_device_signal(virtdev_connection_t *);
-void hub_get_port_statuses(char *result, size_t len);
+void virtual_hub_device_init(device_t *);
 
 #endif
 /**

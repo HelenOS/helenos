@@ -75,7 +75,7 @@ static ssize_t rw_dev(int dev_phone, void *buf, size_t len, bool read)
 		ret = async_data_write_start(dev_phone, buf, len);
 	}
 	
-	ipcarg_t rc;
+	sysarg_t rc;
 	if (ret != EOK) {
 		async_wait_for(req, &rc);
 		async_serialize_end();

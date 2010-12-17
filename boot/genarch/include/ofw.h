@@ -39,7 +39,7 @@
 #define OFW_TREE_PROPERTY_MAX_NAMELEN   32
 #define OFW_TREE_PROPERTY_MAX_VALUELEN  64
 
-typedef unative_t ofw_arg_t;
+typedef sysarg_t ofw_arg_t;
 typedef native_t ofw_ret_t;
 typedef uint32_t ofw_prop_t;
 typedef uint32_t ihandle;

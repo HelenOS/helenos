@@ -64,7 +64,7 @@ typedef enum {
 struct sysinfo_item;
 
 /** Gerated numeric value function */
-typedef unative_t (*sysinfo_fn_val_t)(struct sysinfo_item *);
+typedef sysarg_t (*sysinfo_fn_val_t)(struct sysinfo_item *);
 
 /** Generated binary data function */
 typedef void *(*sysinfo_fn_data_t)(struct sysinfo_item *, size_t *, bool);
@@ -81,7 +81,7 @@ typedef struct {
  *
  */
 typedef union {
-	unative_t val;              /**< Constant numberic value */
+	sysarg_t val;               /**< Constant numberic value */
 	sysinfo_fn_val_t fn_val;    /**< Generated numeric value function */
 	sysinfo_fn_data_t fn_data;  /**< Generated binary data function */
 	sysinfo_data_t data;        /**< Constant binary data */
@@ -98,7 +98,7 @@ typedef union {
 typedef struct {
 	sysinfo_item_val_type_t tag;  /**< Return value type */
 	union {
-		unative_t val;            /**< Numberic value */
+		sysarg_t val;             /**< Numberic value */
 		sysinfo_data_t data;      /**< Binary data */
 	};
 } sysinfo_return_t;
@@ -129,7 +129,7 @@ typedef struct sysinfo_item {
 	struct sysinfo_item *next;            /**< Sibling item */
 } sysinfo_item_t;
 
-extern void sysinfo_set_item_val(const char *, sysinfo_item_t **, unative_t);
+extern void sysinfo_set_item_val(const char *, sysinfo_item_t **, sysarg_t);
 extern void sysinfo_set_item_data(const char *, sysinfo_item_t **, void *,
     size_t);
 extern void sysinfo_set_item_fn_val(const char *, sysinfo_item_t **,
@@ -144,10 +144,10 @@ extern void sysinfo_set_subtree_fn(const char *, sysinfo_item_t **,
 extern void sysinfo_init(void);
 extern void sysinfo_dump(sysinfo_item_t *);
 
-extern unative_t sys_sysinfo_get_tag(void *, size_t);
-extern unative_t sys_sysinfo_get_value(void *, size_t, void *);
-extern unative_t sys_sysinfo_get_data_size(void *, size_t, void *);
-extern unative_t sys_sysinfo_get_data(void *, size_t, void *, size_t);
+extern sysarg_t sys_sysinfo_get_tag(void *, size_t);
+extern sysarg_t sys_sysinfo_get_value(void *, size_t, void *);
+extern sysarg_t sys_sysinfo_get_data_size(void *, size_t, void *);
+extern sysarg_t sys_sysinfo_get_data(void *, size_t, void *, size_t);
 
 #endif
 
