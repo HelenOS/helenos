@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Martin Decky
+ * Copyright (c) 2010 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,66 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup tester
- * @{
- */
 /** @file
  */
+#ifndef DRV_TEST1_TEST1_H_
+#define DRV_TEST1_TEST1_H_
 
-#ifndef TESTER_H_
-#define TESTER_H_
+#include <driver.h>
 
-#include <sys/types.h>
-#include <bool.h>
-#include <ipc/ipc.h>
+#define NAME "test1"
 
-#define IPC_TEST_SERVICE  10240
-#define IPC_TEST_METHOD   2000
-
-extern bool test_quiet;
-extern int test_argc;
-extern char **test_argv;
-
-#define TPRINTF(format, ...) \
-	{ \
-		if (!test_quiet) { \
-			fprintf(stderr, format, ##__VA_ARGS__); \
-		} \
-	}
-
-typedef const char *(*test_entry_t)(void);
-
-typedef struct {
-	const char *name;
-	const char *desc;
-	test_entry_t entry;
-	bool safe;
-} test_t;
-
-extern const char *test_thread1(void);
-extern const char *test_print1(void);
-extern const char *test_print2(void);
-extern const char *test_print3(void);
-extern const char *test_print4(void);
-extern const char *test_print5(void);
-extern const char *test_console1(void);
-extern const char *test_stdio1(void);
-extern const char *test_stdio2(void);
-extern const char *test_fault1(void);
-extern const char *test_fault2(void);
-extern const char *test_fault3(void);
-extern const char *test_vfs1(void);
-extern const char *test_ping_pong(void);
-extern const char *test_register(void);
-extern const char *test_connect(void);
-extern const char *test_loop1(void);
-extern const char *test_malloc1(void);
-extern const char *test_serial1(void);
-extern const char *test_virtchar1(void);
-
-extern test_t tests[];
+extern device_ops_t char_device_ops;
 
 #endif
-
-/** @}
- */

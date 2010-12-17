@@ -32,6 +32,7 @@ EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include
 BINARY = test1
 
 SOURCES = \
+	char.c \
 	test1.c
 
 include $(USPACE_PREFIX)/Makefile.common

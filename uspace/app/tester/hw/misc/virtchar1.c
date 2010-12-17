@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Martin Decky
+ * Copyright (c) 2010 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,65 +27,59 @@
  */
 
 /** @addtogroup tester
+ * @brief Test the virtual char driver
  * @{
  */
-/** @file
+/**
+ * @file
  */
 
-#ifndef TESTER_H_
-#define TESTER_H_
-
+#include <inttypes.h>
+#include <errno.h>
+#include <str_error.h>
 #include <sys/types.h>
-#include <bool.h>
-#include <ipc/ipc.h>
+#include <async.h>
+#include <device/char.h>
+#include <str.h>
+#include <vfs/vfs.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include "../../tester.h"
 
-#define IPC_TEST_SERVICE  10240
-#define IPC_TEST_METHOD   2000
+#define DEVICE_PATH "/dev/devices/\\virt\\null"
 
-extern bool test_quiet;
-extern int test_argc;
-extern char **test_argv;
-
-#define TPRINTF(format, ...) \
-	{ \
-		if (!test_quiet) { \
-			fprintf(stderr, format, ##__VA_ARGS__); \
-		} \
+const char *test_virtchar1(void)
+{
+	TPRINTF("Opening %s...\n", DEVICE_PATH);
+	int fd = open(DEVICE_PATH, O_RDONLY);
+	if (fd < 0) {
+		TPRINTF(" ...error: %s\n", str_error(fd));
+		if (fd == ENOENT) {
+			TPRINTF("  (error was ENOENT: " \
+			    "have you compiled test drivers?)\n");
+		}
+		return "Failed opening " DEVICE_PATH " for reading";
 	}
+	
+	TPRINTF(" ...file handle %d\n", fd);
 
-typedef const char *(*test_entry_t)(void);
-
-typedef struct {
-	const char *name;
-	const char *desc;
-	test_entry_t entry;
-	bool safe;
-} test_t;
-
-extern const char *test_thread1(void);
-extern const char *test_print1(void);
-extern const char *test_print2(void);
-extern const char *test_print3(void);
-extern const char *test_print4(void);
-extern const char *test_print5(void);
-extern const char *test_console1(void);
-extern const char *test_stdio1(void);
-extern const char *test_stdio2(void);
-extern const char *test_fault1(void);
-extern const char *test_fault2(void);
-extern const char *test_fault3(void);
-extern const char *test_vfs1(void);
-extern const char *test_ping_pong(void);
-extern const char *test_register(void);
-extern const char *test_connect(void);
-extern const char *test_loop1(void);
-extern const char *test_malloc1(void);
-extern const char *test_serial1(void);
-extern const char *test_virtchar1(void);
-
-extern test_t tests[];
-
-#endif
+	TPRINTF("Asking for phone...\n");
+	int phone = fd_phone(fd);
+	if (phone < 0) {
+		close(fd);
+		TPRINTF(" ...error: %s\n", str_error(phone));
+		return "Failed to get phone to device";
+	}
+	TPRINTF(" ...phone is %d\n", phone);
+	
+	
+	/* Clean-up. */
+	TPRINTF("Closing phones and file descriptors...");
+	ipc_hangup(phone);
+	close(fd);
+	
+	return NULL;
+}
 
 /** @}
  */

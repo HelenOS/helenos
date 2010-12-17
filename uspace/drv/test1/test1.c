@@ -33,9 +33,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <str_error.h>
-#include <driver.h>
-
-#define NAME "test1"
+#include "test1.h"
 
 static int add_device(device_t *dev);
 
@@ -97,7 +95,9 @@ static int add_device(device_t *dev)
 
 	add_device_to_class(dev, "virtual");
 
-	if (dev->parent == NULL) {
+	if (str_cmp(dev->name, "null") == 0) {
+		dev->ops = &char_device_ops;
+	} else if (dev->parent == NULL) {
 		register_child_verbose(dev, "cloning myself ;-)", "clone",
 		    "virtual&test1", 10);
 	} else if (str_cmp(dev->name, "clone") == 0) {
@@ -115,5 +115,4 @@ int main(int argc, char *argv[])
 	printf(NAME ": HelenOS test1 virtual device driver\n");
 	return driver_main(&the_driver);
 }
-
 
