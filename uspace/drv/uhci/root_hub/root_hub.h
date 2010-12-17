@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky, Jan Vesely
+ * Copyright (c) 2010 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,51 +25,38 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include <usb/hcdhubd.h>
-#include <usb/debug.h>
-#include <errno.h>
+/** @addtogroup usb
+ * @{
+ */
+/** @file
+ * @brief UHCI driver
+ */
+#ifndef DRV_UHCI_TD_ROOT_HUB_H
+#define DRV_UHCI_TD_ROOT_HUB_H
 
-#include "iface.h"
-#include "name.h"
-#include "uhci.h"
+#include <fibril.h>
+#include <driver.h>
 
+#define UHCI_ROOT_HUB_PORT_COUNT 2
+#define UHCI_ROOT_HUB_PORT_REGISTERS_OFFSET 0x10
 
-static device_ops_t uhci_ops = {
-	.interfaces[USBHC_DEV_IFACE] = &uhci_iface,
-};
+typedef struct port_regs {
+	uint16_t portsc[UHCI_ROOT_HUB_PORT_COUNT];
+} port_regs_t;
 
-static int uhci_add_device(device_t *device)
-{
-	usb_dprintf(NAME, 1, "uhci_add_device() called\n");
-	device->ops = &uhci_ops;
+typedef struct root_hub {
+	port_regs_t *registers;
+	fid_t checker;
+} uhci_root_hub_t;
 
-	uhci_init( device, (void*)0xc020 );
+int uhci_root_hub_init(
+  uhci_root_hub_t *instance, device_t *device, void *addr );
 
-	/*
-	 * We need to announce the presence of our root hub.
-	 */
-//	usb_dprintf(NAME, 2, "adding root hub\n");
-//	usb_hcd_add_root_hub(device);
+int uhci_root_hub_fini( uhci_root_hub_t* instance );
 
-	return EOK;
-}
+//int uhci_root_hub_check_ports( void * device );
 
-static driver_ops_t uhci_driver_ops = {
-	.add_device = uhci_add_device,
-};
-
-static driver_t uhci_driver = {
-	.name = NAME,
-	.driver_ops = &uhci_driver_ops
-};
-
-int main(int argc, char *argv[])
-{
-	/*
-	 * Do some global initializations.
-	 */
-	sleep( 5);
-	usb_dprintf_enable(NAME, 5);
-
-	return driver_main(&uhci_driver);
-}
+#endif
+/**
+ * @}
+ */

@@ -32,7 +32,7 @@
 /** @file
  * @brief Address keeping.
  */
-#include <usb/hcd.h>
+#include <usb/addrkeep.h>
 #include <errno.h>
 #include <assert.h>
 

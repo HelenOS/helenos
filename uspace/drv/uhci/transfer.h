@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky, Jan Vesely
+ * Copyright (c) 2010 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,51 +25,57 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include <usb/hcdhubd.h>
-#include <usb/debug.h>
-#include <errno.h>
+/** @addtogroup usb
+ * @{
+ */
+/** @file
+ * @brief UHCI driver
+ */
+#ifndef DRV_UHCI_TRANSFER_H
+#define DRV_UHCI_TRANSFER_H
 
-#include "iface.h"
-#include "name.h"
-#include "uhci.h"
+/** Status field in UHCI Transfer Descriptor (TD) */
+typedef struct status {
+	uint8_t active:1;
+	uint8_t stalled:1;
+	uint8_t data_buffer_error:1;
+	uint8_t babble:1;
+	uint8_t nak:1;
+	uint8_t crc:1;
+	uint8_t bitstuff:1;
+	uint8_t :1; /* reserved */
+} status_t
+
+/** UHCI Transfer Descriptor */
+typedef struct td {
+	uint32_t fpl:28;
+	char :1; /* reserved */
+	uint8_t depth:1;
+	uint8_t qh:1;
+	uint8_t terminate:1;
+
+	char :2; /* reserved */
+	uint8_t spd:1;
+	uint8_t error_count:2;
+	uint8_t low_speed:1;
+	uint8_t isochronous:1;
+	uint8_t ioc:1;
+	status_t status;
+	char :5; /* reserved */
+	uint16_t act_len:10;
+
+	uint16_t maxlen:11;
+	char :1; /* reserved */
+	uint8_t toggle:1;
+	uint8_t end_point:4;
+	uint8_t address:7;
+	uint8_t pid;
+
+	uint32_t buffer_ptr;
+} __attribute__(("packed")) td_t;
 
 
-static device_ops_t uhci_ops = {
-	.interfaces[USBHC_DEV_IFACE] = &uhci_iface,
-};
-
-static int uhci_add_device(device_t *device)
-{
-	usb_dprintf(NAME, 1, "uhci_add_device() called\n");
-	device->ops = &uhci_ops;
-
-	uhci_init( device, (void*)0xc020 );
-
-	/*
-	 * We need to announce the presence of our root hub.
-	 */
-//	usb_dprintf(NAME, 2, "adding root hub\n");
-//	usb_hcd_add_root_hub(device);
-
-	return EOK;
-}
-
-static driver_ops_t uhci_driver_ops = {
-	.add_device = uhci_add_device,
-};
-
-static driver_t uhci_driver = {
-	.name = NAME,
-	.driver_ops = &uhci_driver_ops
-};
-
-int main(int argc, char *argv[])
-{
-	/*
-	 * Do some global initializations.
-	 */
-	sleep( 5);
-	usb_dprintf_enable(NAME, 5);
-
-	return driver_main(&uhci_driver);
-}
+#endif
+/**
+ * @}
+ */

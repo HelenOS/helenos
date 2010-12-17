@@ -28,8 +28,9 @@
 #include <usb/hcdhubd.h>
 #include <errno.h>
 
+#include "iface.h"
 #include "uhci.h"
-
+/*
 static int enqueue_transfer_out(device_t *dev,
     usb_target_t target, usb_transfer_type_t transfer_type,
     void *buffer, size_t size,
@@ -68,92 +69,93 @@ static int enqueue_transfer_in(device_t *dev,
 
 	return ENOTSUP;
 }
-
+*/
 
 static int get_address(device_t *dev, devman_handle_t handle,
     usb_address_t *address)
 {
 	return ENOTSUP;
 }
-
+/*----------------------------------------------------------------------------*/
 static int interrupt_out(device_t *dev, usb_target_t target,
     void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
-	return enqueue_transfer_out(dev, target, USB_TRANSFER_INTERRUPT,
-	    data, size,
-	    callback, arg);
+	return uhci_out(dev, target, USB_TRANSFER_INTERRUPT,
+	    data, size, callback, arg);
 }
-
+/*----------------------------------------------------------------------------*/
 static int interrupt_in(device_t *dev, usb_target_t target,
     void *data, size_t size,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
-	return enqueue_transfer_in(dev, target, USB_TRANSFER_INTERRUPT,
-	    data, size,
-	    callback, arg);
+	return uhci_in(dev, target, USB_TRANSFER_INTERRUPT,
+	    data, size, callback, arg);
 }
-
+/*----------------------------------------------------------------------------*/
 static int control_write_setup(device_t *dev, usb_target_t target,
     void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
-	return enqueue_transfer_setup(dev, target, USB_TRANSFER_CONTROL,
-	    data, size,
-	    callback, arg);
+	return uhci_setup(dev, target, USB_TRANSFER_CONTROL,
+	    data, size, callback, arg);
 }
-
+/*----------------------------------------------------------------------------*/
 static int control_write_data(device_t *dev, usb_target_t target,
     void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
-	return enqueue_transfer_out(dev, target, USB_TRANSFER_CONTROL,
-	    data, size,
-	    callback, arg);
+	return uhci_out(dev, target, USB_TRANSFER_CONTROL,
+	    data, size, callback, arg);
 }
-
+/*----------------------------------------------------------------------------*/
 static int control_write_status(device_t *dev, usb_target_t target,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
-	return enqueue_transfer_in(dev, target, USB_TRANSFER_CONTROL,
-	    NULL, 0,
-	    callback, arg);
+	return uhci_in(dev, target, USB_TRANSFER_CONTROL,
+	    NULL, 0, callback, arg);
 }
-
+/*----------------------------------------------------------------------------*/
 static int control_read_setup(device_t *dev, usb_target_t target,
     void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
-	return enqueue_transfer_setup(dev, target, USB_TRANSFER_CONTROL,
-	    data, size,
-	    callback, arg);
+	return uhci_setup(dev, target, USB_TRANSFER_CONTROL,
+	    data, size, callback, arg);
 }
-
+/*----------------------------------------------------------------------------*/
 static int control_read_data(device_t *dev, usb_target_t target,
     void *data, size_t size,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
-	return enqueue_transfer_in(dev, target, USB_TRANSFER_CONTROL,
-	    data, size,
-	    callback, arg);
+	return uhci_in(dev, target, USB_TRANSFER_CONTROL,
+	    data, size, callback, arg);
 }
-
+/*----------------------------------------------------------------------------*/
 static int control_read_status(device_t *dev, usb_target_t target,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
-	return enqueue_transfer_out(dev, target, USB_TRANSFER_CONTROL,
-	    NULL, 0,
-	    callback, arg);
+	return uhci_out(dev, target, USB_TRANSFER_CONTROL,
+	    NULL, 0, callback, arg);
 }
 
 
 usbhc_iface_t uhci_iface = {
 	.tell_address = get_address,
+
+	.reserve_default_address = NULL,
+	.release_default_address = NULL,
+	.request_address = NULL,
+	.bind_address = NULL,
+	.release_address = NULL,
+
 	.interrupt_out = interrupt_out,
 	.interrupt_in = interrupt_in,
+
 	.control_write_setup = control_write_setup,
 	.control_write_data = control_write_data,
 	.control_write_status = control_write_status,
+
 	.control_read_setup = control_read_setup,
 	.control_read_data = control_read_data,
 	.control_read_status = control_read_status

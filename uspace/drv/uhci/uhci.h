@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2010 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,7 +25,6 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 /** @addtogroup usb
  * @{
  */
@@ -35,11 +34,58 @@
 #ifndef DRV_UHCI_UHCI_H
 #define DRV_UHCI_UHCI_H
 
+#include <fibril.h>
+
+#include <usb/addrkeep.h>
+#include <usb/hcdhubd.h>
 #include <usbhc_iface.h>
 
-#define NAME "uhci"
+#include "root_hub/root_hub.h"
 
-usbhc_iface_t uhci_iface;
+typedef struct uhci_regs {
+	uint16_t usbcmd;
+	uint16_t usbsts;
+	uint16_t usbintr;
+	uint16_t frnum;
+	uint32_t flbaseadd;
+	uint8_t sofmod;
+} regs_t;
+
+typedef struct uhci {
+	usb_address_keeping_t address_manager;
+	uhci_root_hub_t root_hub;
+	volatile regs_t* registers;
+
+} uhci_t ;
+
+/* init uhci specifics in device.driver_data */
+int uhci_init( device_t *device, void *regs );
+
+int uhci_destroy( device_t *device );
+
+int uhci_in(
+  device_t *dev,
+	usb_target_t target,
+	usb_transfer_type_t transfer_type,
+	void *buffer, size_t size,
+	usbhc_iface_transfer_in_callback_t callback, void *arg
+	);
+
+int uhci_out(
+  device_t *dev,
+	usb_target_t target,
+  usb_transfer_type_t transfer_type,
+  void *buffer, size_t size,
+	usbhc_iface_transfer_out_callback_t callback, void *arg
+  );
+
+int uhci_setup(
+  device_t *dev,
+  usb_target_t target,
+  usb_transfer_type_t transfer_type,
+  void *buffer, size_t size,
+  usbhc_iface_transfer_out_callback_t callback, void *arg
+  );
 
 #endif
 /**
