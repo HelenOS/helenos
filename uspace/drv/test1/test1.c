@@ -97,6 +97,7 @@ static int add_device(device_t *dev)
 
 	if (str_cmp(dev->name, "null") == 0) {
 		dev->ops = &char_device_ops;
+		add_device_to_class(dev, "virt-null");
 	} else if (dev->parent == NULL) {
 		register_child_verbose(dev, "cloning myself ;-)", "clone",
 		    "virtual&test1", 10);
