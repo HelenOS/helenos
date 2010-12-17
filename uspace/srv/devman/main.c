@@ -280,7 +280,8 @@ static void devmap_register_class_dev(dev_class_info_t *cli)
 	 * Register the device by the device mapper and remember its devmap
 	 * handle.
 	 */
-	devmap_device_register(devmap_pathname, &cli->devmap_handle);
+	devmap_device_register_with_iface(devmap_pathname,
+	    &cli->devmap_handle, DEVMAN_CONNECT_FROM_DEVMAP);
 	
 	/*
 	 * Add device to the hash map of class devices registered by device
