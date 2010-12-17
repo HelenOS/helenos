@@ -41,11 +41,11 @@
 
 /** Debug print informing of invalid call.
  */
-void dprintf_inval_call(int level, ipc_call_t call, ipcarg_t phone_hash)
+void dprintf_inval_call(int level, ipc_call_t call, sysarg_t phone_hash)
 {
 	dprintf(level, "phone%#x: invalid call [%u (%u, %u, %u, %u, %u)]",
 	    phone_hash,
-	    IPC_GET_METHOD(call),
+	    IPC_GET_IMETHOD(call),
 	    IPC_GET_ARG1(call), IPC_GET_ARG2(call), IPC_GET_ARG3(call),
 	    IPC_GET_ARG4(call), IPC_GET_ARG5(call));
 }

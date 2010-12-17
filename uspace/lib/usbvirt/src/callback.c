@@ -39,8 +39,6 @@
 #include <stdlib.h>
 #include <mem.h>
 
-#include "hub.h"
-#include "device.h"
 #include "private.h"
 
 #define NAMESPACE "usb"
@@ -154,7 +152,7 @@ static void handle_in_transaction(usbvirt_device_t *device,
 	/*
 	 * If the request was processed, we will send data back.
 	 */
-	if (rc == EOK) {
+	if ((rc == EOK) && (expected_len > 0)) {
 		size_t receive_len;
 		ipc_callid_t callid;
 		if (!async_data_read_receive(&callid, &receive_len)) {
@@ -202,7 +200,7 @@ void device_callback_connection(usbvirt_device_t *device, ipc_callid_t iid, ipc_
 		ipc_call_t call; 
 		
 		callid = async_get_call(&call);
-		switch (IPC_GET_METHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 			case IPC_M_PHONE_HUNGUP:
 				ipc_answer_0(callid, EOK);
 				return;

@@ -84,7 +84,7 @@ static void e(void *data)
 		}
 		
 		if ((int) (100000000 * e) != E_10e8) {
-			TPRINTF("tid%" PRIu64 ": e*10e8=%zd should be %" PRIun "\n", THREAD->tid, (unative_t) (100000000 * e), (unative_t) E_10e8);
+			TPRINTF("tid%" PRIu64 ": e*10e8=%zd should be %" PRIun "\n", THREAD->tid, (sysarg_t) (100000000 * e), (sysarg_t) E_10e8);
 			atomic_inc(&threads_fault);
 			break;
 		}
@@ -117,7 +117,7 @@ static void pi(void *data)
 		}
 		
 		if ((int) (1000000 * pi) != PI_10e8) {
-			TPRINTF("tid%" PRIu64 ": pi*10e8=%zd should be %" PRIun "\n", THREAD->tid, (unative_t) (1000000 * pi), (unative_t) (PI_10e8 / 100));
+			TPRINTF("tid%" PRIu64 ": pi*10e8=%zd should be %" PRIun "\n", THREAD->tid, (sysarg_t) (1000000 * pi), (sysarg_t) (PI_10e8 / 100));
 			atomic_inc(&threads_fault);
 			break;
 		}

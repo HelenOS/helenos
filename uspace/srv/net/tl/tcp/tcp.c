@@ -828,10 +828,10 @@ int tcp_queue_received_packet(socket_core_t *socket,
 
 	/* Notify the destination socket */
 	async_msg_5(socket->phone, NET_SOCKET_RECEIVED,
-	    (ipcarg_t) socket->socket_id,
+	    (sysarg_t) socket->socket_id,
 	    ((packet_dimension->content < socket_data->data_fragment_size) ?
 	    packet_dimension->content : socket_data->data_fragment_size), 0, 0,
-	    (ipcarg_t) fragments);
+	    (sysarg_t) fragments);
 
 	return EOK;
 }
@@ -1089,9 +1089,9 @@ int tcp_process_syn_received(socket_core_t *socket,
 		if (rc == EOK) {
 			/* Notify the destination socket */
 			async_msg_5(socket->phone, NET_SOCKET_ACCEPTED,
-			    (ipcarg_t) listening_socket->socket_id,
+			    (sysarg_t) listening_socket->socket_id,
 			    socket_data->data_fragment_size, TCP_HEADER_SIZE,
-			    0, (ipcarg_t) socket->socket_id);
+			    0, (sysarg_t) socket->socket_id);
 
 			fibril_rwlock_write_unlock(socket_data->local_lock);
 			return EOK;
@@ -1239,7 +1239,7 @@ tcp_message_standalone(ipc_callid_t callid, ipc_call_t *call,
 	assert(answer_count);
 
 	*answer_count = 0;
-	switch (IPC_GET_METHOD(*call)) {
+	switch (IPC_GET_IMETHOD(*call)) {
 	case NET_TL_RECEIVED:
 //		fibril_rwlock_read_lock(&tcp_globals.lock);
 		rc = packet_translate_remote(tcp_globals.net_phone, &packet,
@@ -1322,7 +1322,7 @@ int tcp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 		callid = async_get_call(&call);
 
 		/* Process the call */
-		switch (IPC_GET_METHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			keep_on_going = false;
 			res = EHANGUP;
@@ -2480,7 +2480,7 @@ static void tl_client_connection(ipc_callid_t iid, ipc_call_t * icall)
 		 * End if told to either by the message or the processing
 		 * result.
 		 */
-		if ((IPC_GET_METHOD(call) == IPC_M_PHONE_HUNGUP) ||
+		if ((IPC_GET_IMETHOD(call) == IPC_M_PHONE_HUNGUP) ||
 		    (res == EHANGUP))
 			return;
 

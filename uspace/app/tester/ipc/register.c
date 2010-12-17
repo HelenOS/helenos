@@ -55,7 +55,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		ipc_callid_t callid = async_get_call(&call);
 		int retval;
 		
-		switch (IPC_GET_METHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			TPRINTF("Phone %" PRIun " hung up\n", icall->in_phone_hash);
 			retval = 0;
@@ -78,7 +78,7 @@ const char *test_register(void)
 {
 	async_set_client_connection(client_connection);
 	
-	ipcarg_t phonead;
+	sysarg_t phonead;
 	int res = ipc_connect_to_me(PHONE_NS, IPC_TEST_SERVICE, 0, 0, &phonead);
 	if (res != 0)
 		return "Failed registering IPC service";

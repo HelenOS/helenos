@@ -92,7 +92,7 @@ typedef enum {
  */
 #define IP_SET_HEADERLEN(answer, value) \
 	do { \
-		ipcarg_t argument = (ipcarg_t) (value); \
+		sysarg_t argument = (sysarg_t) (value); \
 		IPC_SET_ARG2(*answer, argument); \
 	} while (0)
 

@@ -119,7 +119,7 @@ typedef struct {
 	/** Pointer to where the answer data is stored. */
 	ipc_call_t *dataptr;
 	
-	ipcarg_t retval;
+	sysarg_t retval;
 } amsg_t;
 
 /**
@@ -139,7 +139,7 @@ typedef struct {
 	link_t link;
 	
 	/** Incoming phone hash. */
-	ipcarg_t in_phone_hash;
+	sysarg_t in_phone_hash;
 	
 	/** Messages that should be delivered to this fibril. */
 	link_t msg_queue;
@@ -287,7 +287,7 @@ static bool route_call(ipc_callid_t callid, ipc_call_t *call)
 	msg->call = *call;
 	list_append(&msg->link, &conn->msg_queue);
 	
-	if (IPC_GET_METHOD(*call) == IPC_M_PHONE_HUNGUP)
+	if (IPC_GET_IMETHOD(*call) == IPC_M_PHONE_HUNGUP)
 		conn->close_callid = callid;
 	
 	/* If the connection fibril is waiting for an event, activate it */
@@ -400,7 +400,7 @@ ipc_callid_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 			 * IPC_M_PHONE_HUNGUP until the caller notices. 
 			 */
 			memset(call, 0, sizeof(ipc_call_t));
-			IPC_SET_METHOD(*call, IPC_M_PHONE_HUNGUP);
+			IPC_SET_IMETHOD(*call, IPC_M_PHONE_HUNGUP);
 			futex_up(&async_futex);
 			return conn->close_callid;
 		}
@@ -528,7 +528,7 @@ static int connection_fibril(void *arg)
  * @return New fibril id or NULL on failure.
  *
  */
-fid_t async_new_connection(ipcarg_t in_phone_hash, ipc_callid_t callid,
+fid_t async_new_connection(sysarg_t in_phone_hash, ipc_callid_t callid,
     ipc_call_t *call, void (*cfibril)(ipc_callid_t, ipc_call_t *))
 {
 	connection_t *conn = malloc(sizeof(*conn));
@@ -587,7 +587,7 @@ static void handle_call(ipc_callid_t callid, ipc_call_t *call)
 		goto out;
 	}
 	
-	switch (IPC_GET_METHOD(*call)) {
+	switch (IPC_GET_IMETHOD(*call)) {
 	case IPC_M_CONNECT_ME:
 	case IPC_M_CONNECT_ME_TO:
 		/* Open new connection with fibril etc. */
@@ -806,8 +806,8 @@ static void reply_received(void *arg, int retval, ipc_call_t *data)
  * @return Hash of the sent message or 0 on error.
  *
  */
-aid_t async_send_fast(int phoneid, ipcarg_t method, ipcarg_t arg1,
-    ipcarg_t arg2, ipcarg_t arg3, ipcarg_t arg4, ipc_call_t *dataptr)
+aid_t async_send_fast(int phoneid, sysarg_t method, sysarg_t arg1,
+    sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, ipc_call_t *dataptr)
 {
 	amsg_t *msg = malloc(sizeof(*msg));
 	
@@ -845,8 +845,8 @@ aid_t async_send_fast(int phoneid, ipcarg_t method, ipcarg_t arg1,
  * @return Hash of the sent message or 0 on error.
  *
  */
-aid_t async_send_slow(int phoneid, ipcarg_t method, ipcarg_t arg1,
-    ipcarg_t arg2, ipcarg_t arg3, ipcarg_t arg4, ipcarg_t arg5,
+aid_t async_send_slow(int phoneid, sysarg_t method, sysarg_t arg1,
+    sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t arg5,
     ipc_call_t *dataptr)
 {
 	amsg_t *msg = malloc(sizeof(*msg));
@@ -874,7 +874,7 @@ aid_t async_send_slow(int phoneid, ipcarg_t method, ipcarg_t arg1,
  *               be stored.
  *
  */
-void async_wait_for(aid_t amsgid, ipcarg_t *retval)
+void async_wait_for(aid_t amsgid, sysarg_t *retval)
 {
 	amsg_t *msg = (amsg_t *) amsgid;
 	
@@ -910,7 +910,7 @@ done:
  * @return Zero on success, ETIMEOUT if the timeout has expired.
  *
  */
-int async_wait_timeout(aid_t amsgid, ipcarg_t *retval, suseconds_t timeout)
+int async_wait_timeout(aid_t amsgid, sysarg_t *retval, suseconds_t timeout)
 {
 	amsg_t *msg = (amsg_t *) amsgid;
 	
@@ -1022,15 +1022,15 @@ void async_set_interrupt_received(async_client_conn_t intr)
  * @return Return code of the reply or a negative error code.
  *
  */
-ipcarg_t async_req_fast(int phoneid, ipcarg_t method, ipcarg_t arg1,
-    ipcarg_t arg2, ipcarg_t arg3, ipcarg_t arg4, ipcarg_t *r1, ipcarg_t *r2,
-    ipcarg_t *r3, ipcarg_t *r4, ipcarg_t *r5)
+sysarg_t async_req_fast(int phoneid, sysarg_t method, sysarg_t arg1,
+    sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t *r1, sysarg_t *r2,
+    sysarg_t *r3, sysarg_t *r4, sysarg_t *r5)
 {
 	ipc_call_t result;
 	aid_t eid = async_send_4(phoneid, method, arg1, arg2, arg3, arg4,
 	    &result);
 	
-	ipcarg_t rc;
+	sysarg_t rc;
 	async_wait_for(eid, &rc);
 	
 	if (r1)
@@ -1071,15 +1071,15 @@ ipcarg_t async_req_fast(int phoneid, ipcarg_t method, ipcarg_t arg1,
  * @return Return code of the reply or a negative error code.
  *
  */
-ipcarg_t async_req_slow(int phoneid, ipcarg_t method, ipcarg_t arg1,
-    ipcarg_t arg2, ipcarg_t arg3, ipcarg_t arg4, ipcarg_t arg5, ipcarg_t *r1,
-    ipcarg_t *r2, ipcarg_t *r3, ipcarg_t *r4, ipcarg_t *r5)
+sysarg_t async_req_slow(int phoneid, sysarg_t method, sysarg_t arg1,
+    sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t arg5, sysarg_t *r1,
+    sysarg_t *r2, sysarg_t *r3, sysarg_t *r4, sysarg_t *r5)
 {
 	ipc_call_t result;
 	aid_t eid = async_send_5(phoneid, method, arg1, arg2, arg3, arg4, arg5,
 	    &result);
 	
-	ipcarg_t rc;
+	sysarg_t rc;
 	async_wait_for(eid, &rc);
 	
 	if (r1)
@@ -1112,10 +1112,10 @@ ipcarg_t async_req_slow(int phoneid, ipcarg_t method, ipcarg_t arg1,
  * @return		New phone handle on success or a negative error code.
  */
 int
-async_connect_me_to(int phoneid, ipcarg_t arg1, ipcarg_t arg2, ipcarg_t arg3)
+async_connect_me_to(int phoneid, sysarg_t arg1, sysarg_t arg2, sysarg_t arg3)
 {
 	int rc;
-	ipcarg_t newphid;
+	sysarg_t newphid;
 
 	rc = async_req_3_5(phoneid, IPC_M_CONNECT_ME_TO, arg1, arg2, arg3, NULL,
 	    NULL, NULL, NULL, &newphid);
@@ -1139,11 +1139,11 @@ async_connect_me_to(int phoneid, ipcarg_t arg1, ipcarg_t arg2, ipcarg_t arg3)
  * @return		New phone handle on success or a negative error code.
  */
 int
-async_connect_me_to_blocking(int phoneid, ipcarg_t arg1, ipcarg_t arg2,
-    ipcarg_t arg3)
+async_connect_me_to_blocking(int phoneid, sysarg_t arg1, sysarg_t arg2,
+    sysarg_t arg3)
 {
 	int rc;
-	ipcarg_t newphid;
+	sysarg_t newphid;
 
 	rc = async_req_4_5(phoneid, IPC_M_CONNECT_ME_TO, arg1, arg2, arg3,
 	    IPC_FLAG_BLOCKING, NULL, NULL, NULL, NULL, &newphid);
@@ -1165,13 +1165,13 @@ async_connect_me_to_blocking(int phoneid, ipcarg_t arg1, ipcarg_t arg2,
  *
  * @return		Zero on success or a negative error code from errno.h.
  */
-int async_share_in_start(int phoneid, void *dst, size_t size, ipcarg_t arg,
+int async_share_in_start(int phoneid, void *dst, size_t size, sysarg_t arg,
     int *flags)
 {
 	int res;
 	sysarg_t tmp_flags;
-	res = async_req_3_2(phoneid, IPC_M_SHARE_IN, (ipcarg_t) dst,
-	    (ipcarg_t) size, arg, NULL, &tmp_flags);
+	res = async_req_3_2(phoneid, IPC_M_SHARE_IN, (sysarg_t) dst,
+	    (sysarg_t) size, arg, NULL, &tmp_flags);
 	if (flags)
 		*flags = tmp_flags;
 	return res;
@@ -1198,7 +1198,7 @@ int async_share_in_receive(ipc_callid_t *callid, size_t *size)
 	assert(size);
 
 	*callid = async_get_call(&data);
-	if (IPC_GET_METHOD(data) != IPC_M_SHARE_IN)
+	if (IPC_GET_IMETHOD(data) != IPC_M_SHARE_IN)
 		return 0;
 	*size = (size_t) IPC_GET_ARG2(data);
 	return 1;
@@ -1230,8 +1230,8 @@ int async_share_in_finalize(ipc_callid_t callid, void *src, int flags)
  */
 int async_share_out_start(int phoneid, void *src, int flags)
 {
-	return async_req_3_0(phoneid, IPC_M_SHARE_OUT, (ipcarg_t) src, 0,
-	    (ipcarg_t) flags);
+	return async_req_3_0(phoneid, IPC_M_SHARE_OUT, (sysarg_t) src, 0,
+	    (sysarg_t) flags);
 }
 
 /** Wrapper for receiving the IPC_M_SHARE_OUT calls using the async framework.
@@ -1258,7 +1258,7 @@ int async_share_out_receive(ipc_callid_t *callid, size_t *size, int *flags)
 	assert(flags);
 
 	*callid = async_get_call(&data);
-	if (IPC_GET_METHOD(data) != IPC_M_SHARE_OUT)
+	if (IPC_GET_IMETHOD(data) != IPC_M_SHARE_OUT)
 		return 0;
 	*size = (size_t) IPC_GET_ARG2(data);
 	*flags = (int) IPC_GET_ARG3(data);
@@ -1291,8 +1291,8 @@ int async_share_out_finalize(ipc_callid_t callid, void *dst)
  */
 int async_data_read_start(int phoneid, void *dst, size_t size)
 {
-	return async_req_2_0(phoneid, IPC_M_DATA_READ, (ipcarg_t) dst,
-	    (ipcarg_t) size);
+	return async_req_2_0(phoneid, IPC_M_DATA_READ, (sysarg_t) dst,
+	    (sysarg_t) size);
 }
 
 /** Wrapper for receiving the IPC_M_DATA_READ calls using the async framework.
@@ -1316,7 +1316,7 @@ int async_data_read_receive(ipc_callid_t *callid, size_t *size)
 	assert(callid);
 
 	*callid = async_get_call(&data);
-	if (IPC_GET_METHOD(data) != IPC_M_DATA_READ)
+	if (IPC_GET_IMETHOD(data) != IPC_M_DATA_READ)
 		return 0;
 	if (size)
 		*size = (size_t) IPC_GET_ARG2(data);
@@ -1344,8 +1344,8 @@ int async_data_read_finalize(ipc_callid_t callid, const void *src, size_t size)
  *
  *
  */
-int async_data_read_forward_fast(int phoneid, ipcarg_t method, ipcarg_t arg1,
-    ipcarg_t arg2, ipcarg_t arg3, ipcarg_t arg4, ipc_call_t *dataptr)
+int async_data_read_forward_fast(int phoneid, sysarg_t method, sysarg_t arg1,
+    sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, ipc_call_t *dataptr)
 {
 	ipc_callid_t callid;
 	if (!async_data_read_receive(&callid, NULL)) {
@@ -1368,7 +1368,7 @@ int async_data_read_forward_fast(int phoneid, ipcarg_t method, ipcarg_t arg1,
 		return retval;
 	}
 	
-	ipcarg_t rc;
+	sysarg_t rc;
 	async_wait_for(msg, &rc);
 	
 	return (int) rc;
@@ -1385,8 +1385,8 @@ int async_data_read_forward_fast(int phoneid, ipcarg_t method, ipcarg_t arg1,
  */
 int async_data_write_start(int phoneid, const void *src, size_t size)
 {
-	return async_req_2_0(phoneid, IPC_M_DATA_WRITE, (ipcarg_t) src,
-	    (ipcarg_t) size);
+	return async_req_2_0(phoneid, IPC_M_DATA_WRITE, (sysarg_t) src,
+	    (sysarg_t) size);
 }
 
 /** Wrapper for receiving the IPC_M_DATA_WRITE calls using the async framework.
@@ -1411,7 +1411,7 @@ int async_data_write_receive(ipc_callid_t *callid, size_t *size)
 	assert(callid);
 	
 	*callid = async_get_call(&data);
-	if (IPC_GET_METHOD(data) != IPC_M_DATA_WRITE)
+	if (IPC_GET_IMETHOD(data) != IPC_M_DATA_WRITE)
 		return 0;
 	
 	if (size)
@@ -1530,8 +1530,8 @@ void async_data_write_void(const int retval)
  *
  *
  */
-int async_data_write_forward_fast(int phoneid, ipcarg_t method, ipcarg_t arg1,
-    ipcarg_t arg2, ipcarg_t arg3, ipcarg_t arg4, ipc_call_t *dataptr)
+int async_data_write_forward_fast(int phoneid, sysarg_t method, sysarg_t arg1,
+    sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, ipc_call_t *dataptr)
 {
 	ipc_callid_t callid;
 	if (!async_data_write_receive(&callid, NULL)) {
@@ -1554,7 +1554,7 @@ int async_data_write_forward_fast(int phoneid, ipcarg_t method, ipcarg_t arg1,
 		return retval;
 	}
 	
-	ipcarg_t rc;
+	sysarg_t rc;
 	async_wait_for(msg, &rc);
 	
 	return (int) rc;

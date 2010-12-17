@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2010 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,23 +26,78 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic
+/** @addtogroup libusbvirt usb
  * @{
  */
+/** @file
+ * @brief Debugging support.
+ */
+#include <stdio.h>
+#include <bool.h>
+
+#include "private.h"
+
+
+static void debug_print(int level, uint8_t tag,
+    int current_level, uint8_t enabled_tags,
+    const char *format, va_list args)
+{
+	if (level > current_level) {
+		return;
+	}
+	
+	if ((tag & enabled_tags) == 0) {
+		return;
+	}
+	
+	bool print_prefix = true;
+	
+	if ((format[0] == '%') && (format[1] == 'M')) {
+		format += 2;
+		print_prefix = false;
+	}
+	
+	if (print_prefix) {
+		printf("[vusb]: ");
+		while (--level > 0) {
+			printf(" ");
+		}
+	}
+	
+	vprintf(format, args);
+	
+	if (print_prefix) {
+		printf("\n");
+	}
+}
+
+
+void user_debug(usbvirt_device_t *device, int level, uint8_t tag,
+    const char *format, ...)
+{
+	va_list args;
+	va_start(args, format);
+	
+	debug_print(level, tag,
+	    device->debug_level, device->debug_enabled_tags,
+	    format, args);
+	
+	va_end(args);
+}
+
+void lib_debug(usbvirt_device_t *device, int level, uint8_t tag,
+    const char *format, ...)
+{
+	va_list args;
+	va_start(args, format);
+	
+	debug_print(level, tag,
+	    device->lib_debug_level, device->lib_debug_enabled_tags,
+	    format, args);
+	
+	va_end(args);
+}
 
 /**
- * @file
- * @brief Wrapper for explicit 64-bit arguments passed to syscalls.
- */
-
-#ifndef KERN_SYSARG64_H_
-#define KERN_SYSARG64_H_
-
-typedef struct {
-	unsigned long long value;
-} sysarg64_t;
-
-#endif
-
-/** @}
+ * @}
  */

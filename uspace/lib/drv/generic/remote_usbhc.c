@@ -121,7 +121,7 @@ void remote_usbhc_get_address(device_t *device, void *iface,
 void remote_usbhc_get_buffer(device_t *device, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
-	ipcarg_t buffer_hash = DEV_IPC_GET_ARG1(*call);
+	sysarg_t buffer_hash = DEV_IPC_GET_ARG1(*call);
 	async_transaction_t * trans = (async_transaction_t *)buffer_hash;
 	if (trans == NULL) {
 		ipc_answer_0(callid, ENOENT);
@@ -196,7 +196,7 @@ void remote_usbhc_request_address(device_t *device, void *iface,
 	if (rc != EOK) {
 		ipc_answer_0(callid, rc);
 	} else {
-		ipc_answer_1(callid, EOK, (ipcarg_t) address);
+		ipc_answer_1(callid, EOK, (sysarg_t) address);
 	}
 }
 
@@ -253,7 +253,7 @@ static void callback_in(device_t *device,
 	async_transaction_t *trans = (async_transaction_t *)arg;
 
 	// FIXME - answer according to outcome
-	ipc_answer_1(trans->caller, EOK, (ipcarg_t)trans);
+	ipc_answer_1(trans->caller, EOK, (sysarg_t)trans);
 
 	trans->size = actual_size;
 }

@@ -32,19 +32,21 @@ LIBS = \
 	$(LIBUSBVIRT_PREFIX)/libusbvirt.a \
 	$(LIBDRV_PREFIX)/libdrv.a
 EXTRA_CFLAGS += \
-	-I$(LIB_PREFIX) \
+	-I$(LIBUSBVIRT_PREFIX)/include \
 	-I$(LIBUSB_PREFIX)/include \
 	-I$(LIBDRV_PREFIX)/include
 BINARY = vhc
 
 SOURCES = \
+	hub/hub.c \
+	hub/virthub.c \
+	hub/virthubops.c \
 	conndev.c \
 	connhost.c \
 	debug.c \
 	devices.c \
 	hc.c \
 	hcd.c \
-	hub.c \
-	hubops.c
+	hub.c
 
 include $(USPACE_PREFIX)/Makefile.common

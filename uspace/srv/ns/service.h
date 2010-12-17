@@ -38,8 +38,8 @@
 extern int service_init(void);
 extern void process_pending_conn(void);
 
-extern int register_service(ipcarg_t service, ipcarg_t phone, ipc_call_t *call);
-extern void connect_to_service(ipcarg_t service, ipc_call_t *call,
+extern int register_service(sysarg_t service, sysarg_t phone, ipc_call_t *call);
+extern void connect_to_service(sysarg_t service, ipc_call_t *call,
      ipc_callid_t callid);
 
 #endif

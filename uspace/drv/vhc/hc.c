@@ -49,9 +49,9 @@
 #include "devices.h"
 #include "hub.h"
 
-#define USLEEP_BASE (0 * 500 * 1000)
+#define USLEEP_BASE (0 * 5 * 1000)
 
-#define USLEEP_VAR 5000
+#define USLEEP_VAR 50
 
 #define SHORTENING_VAR 15
 
@@ -67,14 +67,17 @@
 
 static link_t transaction_list;
 
-#define TRANSACTION_FORMAT "T[%d:%d %s (%d)]"
+#define TRANSACTION_FORMAT "T[%d.%d %s/%s (%d)]"
 #define TRANSACTION_PRINTF(t) \
 	(t).target.address, (t).target.endpoint, \
+	usb_str_transfer_type((t).transfer_type), \
 	usbvirt_str_transaction_type((t).type), \
 	(int)(t).len
 
 #define transaction_get_instance(lnk) \
 	list_get_instance(lnk, transaction_t, link)
+
+#define HUB_STATUS_MAX_LEN (HUB_PORT_COUNT + 64)
 
 static inline unsigned int pseudo_random(unsigned int *seed)
 {
@@ -88,7 +91,7 @@ static inline unsigned int pseudo_random(unsigned int *seed)
 static void process_transaction_with_outcome(transaction_t * transaction,
     usb_transaction_outcome_t outcome)
 {
-	dprintf(3, "processing transaction " TRANSACTION_FORMAT ", outcome: %s",
+	dprintf(3, "transaction " TRANSACTION_FORMAT " done, outcome: %s",
 	    TRANSACTION_PRINTF(*transaction),
 	    usb_str_transaction_outcome(outcome));
 	
@@ -98,7 +101,7 @@ static void process_transaction_with_outcome(transaction_t * transaction,
 
 /** Host controller manager main function.
  */
-void hc_manager(void)
+static int hc_manager_fibril(void *arg)
 {
 	list_initialize(&transaction_list);
 	
@@ -113,16 +116,18 @@ void hc_manager(void)
 			continue;
 		}
 		
-		char ports[HUB_PORT_COUNT + 2];
-		hub_get_port_statuses(ports, HUB_PORT_COUNT + 1);
-		dprintf(0, "virtual hub: addr=%d ports=%s",
-		    virthub_dev.address, ports);
+		char ports[HUB_STATUS_MAX_LEN + 1];
+		virthub_get_status(&virtual_hub_device, ports, HUB_STATUS_MAX_LEN);
 		
 		link_t *first_transaction_link = transaction_list.next;
 		transaction_t *transaction
 		    = transaction_get_instance(first_transaction_link);
 		list_remove(first_transaction_link);
 		
+
+		dprintf(0, "about to process " TRANSACTION_FORMAT " [%s]",
+		    TRANSACTION_PRINTF(*transaction), ports);
+
 		dprintf(3, "processing transaction " TRANSACTION_FORMAT "",
 		    TRANSACTION_PRINTF(*transaction));
 		
@@ -133,12 +138,25 @@ void hc_manager(void)
 
 		free(transaction);
 	}
+
+	assert(false && "unreachable");
+	return EOK;
+}
+
+void hc_manager(void)
+{
+	fid_t fid = fibril_create(hc_manager_fibril, NULL);
+	if (fid == 0) {
+		printf(NAME ": failed to start HC manager fibril\n");
+		return;
+	}
+	fibril_add_ready(fid);
 }
 
 /** Create new transaction
  */
 static transaction_t *transaction_create(usbvirt_transaction_type_t type,
-    usb_target_t target,
+    usb_target_t target, usb_transfer_type_t transfer_type,
     void * buffer, size_t len,
     hc_transaction_done_callback_t callback, void * arg)
 {
@@ -146,6 +164,7 @@ static transaction_t *transaction_create(usbvirt_transaction_type_t type,
 	
 	list_initialize(&transaction->link);
 	transaction->type = type;
+	transaction->transfer_type = transfer_type;
 	transaction->target = target;
 	transaction->buffer = buffer;
 	transaction->len = len;
@@ -161,11 +180,13 @@ static transaction_t *transaction_create(usbvirt_transaction_type_t type,
 /** Add transaction directioned towards the device.
  */
 void hc_add_transaction_to_device(bool setup, usb_target_t target,
+    usb_transfer_type_t transfer_type,
     void * buffer, size_t len,
     hc_transaction_done_callback_t callback, void * arg)
 {
 	transaction_t *transaction = transaction_create(
-	    setup ? USBVIRT_TRANSACTION_SETUP : USBVIRT_TRANSACTION_OUT, target,
+	    setup ? USBVIRT_TRANSACTION_SETUP : USBVIRT_TRANSACTION_OUT,
+	    target, transfer_type,
 	    buffer, len, callback, arg);
 	list_append(&transaction->link, &transaction_list);
 }
@@ -173,11 +194,13 @@ void hc_add_transaction_to_device(bool setup, usb_target_t target,
 /** Add transaction directioned from the device.
  */
 void hc_add_transaction_from_device(usb_target_t target,
+    usb_transfer_type_t transfer_type,
     void * buffer, size_t len,
     hc_transaction_done_callback_t callback, void * arg)
 {
 	transaction_t *transaction = transaction_create(USBVIRT_TRANSACTION_IN,
-	    target, buffer, len, callback, arg);
+	    target, transfer_type,
+	    buffer, len, callback, arg);
 	list_append(&transaction->link, &transaction_list);
 }
 

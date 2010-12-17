@@ -211,7 +211,7 @@ typedef struct {
 
 	waitq_t go_wq;
 	call_t *go_call;
-	unative_t syscall_args[6];
+	sysarg_t syscall_args[6];
 	istate_t *uspace_state;
 
 	/** What type of event are we stopped in or 0 if none. */
@@ -228,8 +228,8 @@ struct thread;
 void udebug_task_init(udebug_task_t *ut);
 void udebug_thread_initialize(udebug_thread_t *ut);
 
-void udebug_syscall_event(unative_t a1, unative_t a2, unative_t a3,
-    unative_t a4, unative_t a5, unative_t a6, unative_t id, unative_t rc,
+void udebug_syscall_event(sysarg_t a1, sysarg_t a2, sysarg_t a3,
+    sysarg_t a4, sysarg_t a5, sysarg_t a6, sysarg_t id, sysarg_t rc,
     bool end_variant);
 
 void udebug_thread_b_event_attach(struct thread *t, struct task *ta);

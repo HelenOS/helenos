@@ -85,7 +85,7 @@ void calibrate_delay_loop(void)
 {
 }
 
-unative_t sys_tls_set(unative_t addr)
+sysarg_t sys_tls_set(sysarg_t addr)
 {
 	return EOK;
 }

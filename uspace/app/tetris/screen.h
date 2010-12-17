@@ -52,13 +52,13 @@
 #include <bool.h>
 
 typedef struct {
-	ipcarg_t ws_row;
-	ipcarg_t ws_col;
+	sysarg_t ws_row;
+	sysarg_t ws_col;
 } winsize_t;
 
 extern winsize_t winsize;
 
-extern void moveto(ipcarg_t r, ipcarg_t c);
+extern void moveto(sysarg_t r, sysarg_t c);
 extern void clear_screen(void);
 
 /* just calls putchar; for tputs */

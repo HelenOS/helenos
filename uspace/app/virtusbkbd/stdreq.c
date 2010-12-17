@@ -38,25 +38,7 @@
 #include "stdreq.h"
 #include "kbdconfig.h"
 
-static int on_get_descriptor(struct usbvirt_device *dev,
-    usb_device_request_setup_packet_t *request, uint8_t *data);
-
-usbvirt_standard_device_request_ops_t standard_request_ops = {
-	.on_get_status = NULL,
-	.on_clear_feature = NULL,
-	.on_set_feature = NULL,
-	.on_set_address = NULL,
-	.on_get_descriptor = on_get_descriptor,
-	.on_set_descriptor = NULL,
-	.on_get_configuration = NULL,
-	.on_set_configuration = NULL,
-	.on_get_interface = NULL,
-	.on_set_interface = NULL,
-	.on_synch_frame = NULL
-};
-
-
-static int on_get_descriptor(struct usbvirt_device *dev,
+int stdreq_on_get_descriptor(struct usbvirt_device *dev,
     usb_device_request_setup_packet_t *request, uint8_t *data)
 {
 	if (request->value_high == USB_DESCTYPE_HID_REPORT) {

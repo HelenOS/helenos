@@ -101,7 +101,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 	while (1) {
 		callid = async_get_call(&call);
-		switch (IPC_GET_METHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			if (client_phone != -1) {
 				ipc_hangup(client_phone);

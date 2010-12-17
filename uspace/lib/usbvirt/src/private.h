@@ -35,8 +35,9 @@
 #ifndef LIBUSBVIRT_PRIVATE_H_
 #define LIBUSBVIRT_PRIVATE_H_
 
-#include "device.h"
-#include "hub.h"
+#include <usbvirt/device.h>
+#include <usbvirt/hub.h>
+#include <assert.h>
 
 
 #define DEVICE_HAS_OP(dev, op) \
@@ -84,6 +85,8 @@ static inline const char *str_device_state(usbvirt_device_state_t state)
 			return "unknown";
 	}
 }
+
+extern usbvirt_control_transfer_handler_t control_pipe_zero_local_handlers[];
 
 #endif
 /**

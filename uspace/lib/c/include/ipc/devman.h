@@ -41,7 +41,7 @@
 
 #define DEVMAN_NAME_MAXLEN 256
 
-typedef ipcarg_t devman_handle_t;
+typedef sysarg_t devman_handle_t;
 
 /** Ids of device models used for device-to-driver matching.
  */

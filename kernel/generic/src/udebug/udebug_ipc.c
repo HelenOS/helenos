@@ -209,8 +209,8 @@ static void udebug_receive_thread_read(call_t *call)
  */
 static void udebug_receive_name_read(call_t *call)
 {
-	unative_t uspace_addr;
-	unative_t to_copy;
+	sysarg_t uspace_addr;
+	sysarg_t to_copy;
 	size_t data_size;
 	size_t buf_size;
 	void *data;
@@ -256,8 +256,8 @@ static void udebug_receive_name_read(call_t *call)
  */
 static void udebug_receive_areas_read(call_t *call)
 {
-	unative_t uspace_addr;
-	unative_t to_copy;
+	sysarg_t uspace_addr;
+	sysarg_t to_copy;
 	size_t data_size;
 	size_t buf_size;
 	void *data;
@@ -303,7 +303,7 @@ static void udebug_receive_areas_read(call_t *call)
 static void udebug_receive_args_read(call_t *call)
 {
 	thread_t *t;
-	unative_t uspace_addr;
+	sysarg_t uspace_addr;
 	int rc;
 	void *buffer;
 
@@ -327,7 +327,7 @@ static void udebug_receive_args_read(call_t *call)
 	   same code in process_answer() can be used 
 	   (no way to distinguish method in answer) */
 	IPC_SET_ARG1(call->data, uspace_addr);
-	IPC_SET_ARG2(call->data, 6 * sizeof(unative_t));
+	IPC_SET_ARG2(call->data, 6 * sizeof(sysarg_t));
 	call->buffer = buffer;
 
 	ipc_answer(&TASK->kb.box, call);
@@ -340,8 +340,8 @@ static void udebug_receive_args_read(call_t *call)
 static void udebug_receive_regs_read(call_t *call)
 {
 	thread_t *t;
-	unative_t uspace_addr;
-	unative_t to_copy;
+	sysarg_t uspace_addr;
+	sysarg_t to_copy;
 	void *buffer;
 	int rc;
 
@@ -381,8 +381,8 @@ static void udebug_receive_regs_read(call_t *call)
  */
 static void udebug_receive_mem_read(call_t *call)
 {
-	unative_t uspace_dst;
-	unative_t uspace_src;
+	sysarg_t uspace_dst;
+	sysarg_t uspace_src;
 	unsigned size;
 	void *buffer;
 	int rc;

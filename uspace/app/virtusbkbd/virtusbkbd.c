@@ -54,7 +54,8 @@
 #include "keys.h"
 #include "stdreq.h"
 
-#define LOOPS 5
+/** Pause between individual key-presses in seconds. */
+#define KEY_PRESS_DELAY 2
 #define NAME "virt-usb-kbd"
 
 
@@ -74,17 +75,35 @@ static int on_incoming_data(struct usbvirt_device *dev,
 	return EOK;
 }
 
-static int on_class_request(struct usbvirt_device *dev,
-    usb_device_request_setup_packet_t *request, uint8_t *data)
-{	
-	printf("%s: class request (%d)\n", NAME, (int) request->request);
-	
-	return EOK;
+
+/** Compares current and last status of pressed keys.
+ *
+ * @warning Has side-efect - changes status_last field.
+ *
+ * @param status_now Status now.
+ * @param status_last Last status.
+ * @param len Size of status.
+ * @return Whether they are the same.
+ */
+static bool keypress_check_with_last_request(uint8_t *status_now,
+    uint8_t *status_last, size_t len)
+{
+	bool same = true;
+	size_t i;
+	for (i = 0; i < len; i++) {
+		if (status_now[i] != status_last[i]) {
+			status_last[i] = status_now[i];
+			same = false;
+		}
+	}
+	return same;
 }
 
 static int on_request_for_data(struct usbvirt_device *dev,
     usb_endpoint_t endpoint, void *buffer, size_t size, size_t *actual_size)
 {
+	static uint8_t last_data[2 + KB_MAX_KEYS_AT_ONCE];
+
 	if (size < 2 + KB_MAX_KEYS_AT_ONCE) {
 		return EINVAL;
 	}
@@ -100,18 +119,44 @@ static int on_request_for_data(struct usbvirt_device *dev,
 		data[2 + i] = status.pressed_keys[i];
 	}
 	
+	if (keypress_check_with_last_request(data, last_data,
+	    2 + KB_MAX_KEYS_AT_ONCE)) {
+		*actual_size = 0;
+		return EOK;
+	}
+
 	memcpy(buffer, &data, *actual_size);
 	
 	return EOK;
 }
 
+static usbvirt_control_transfer_handler_t endpoint_zero_handlers[] = {
+	{
+		.request_type = USBVIRT_MAKE_CONTROL_REQUEST_TYPE(
+		    USB_DIRECTION_IN,
+		    USBVIRT_REQUEST_TYPE_STANDARD,
+		    USBVIRT_REQUEST_RECIPIENT_DEVICE),
+		.request = USB_DEVREQ_GET_DESCRIPTOR,
+		.name = "GetDescriptor",
+		.callback = stdreq_on_get_descriptor
+	},
+	{
+		.request_type = USBVIRT_MAKE_CONTROL_REQUEST_TYPE(
+		    USB_DIRECTION_IN,
+		    USBVIRT_REQUEST_TYPE_CLASS,
+		    USBVIRT_REQUEST_RECIPIENT_DEVICE),
+		.request = USB_DEVREQ_GET_DESCRIPTOR,
+		.name = "GetDescriptor",
+		.callback = stdreq_on_get_descriptor
+	},
+	USBVIRT_CONTROL_TRANSFER_HANDLER_LAST
+};
 
 /** Keyboard callbacks.
  * We abuse the fact that static variables are zero-filled.
  */
 static usbvirt_device_ops_t keyboard_ops = {
-	.standard_request_ops = &standard_request_ops,
-	.on_class_device_request = on_class_request,
+	.control_transfer_handlers = endpoint_zero_handlers,
 	.on_data = on_incoming_data,
 	.on_data_request = on_request_for_data
 };
@@ -151,6 +196,8 @@ usbvirt_descriptors_t descriptors = {
 static usbvirt_device_t keyboard_dev = {
 	.ops = &keyboard_ops,
 	.descriptors = &descriptors,
+	.lib_debug_level = 3,
+	.lib_debug_enabled_tags = USBVIRT_DEBUGTAG_ALL,
 	.name = "keyboard"
 };
 
@@ -176,7 +223,7 @@ static void on_keyboard_change(kb_status_t *status)
 	}
 	printf("\n");
 	
-	fibril_sleep(1);
+	fibril_sleep(KEY_PRESS_DELAY);
 }
 
 /** Simulated keyboard events. */
@@ -222,7 +269,8 @@ int main(int argc, char * argv[])
 	}
 	
 	printf("%s: Simulating keyboard events...\n", NAME);
-	while(1){
+	fibril_sleep(10);
+	while (1) {
 		kb_process_events(&status, keyboard_events, keyboard_events_count,
 			on_keyboard_change);
 	}

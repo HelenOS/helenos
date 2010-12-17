@@ -78,7 +78,7 @@ static inline bool is_valid_iface_idx(int idx)
 }
 
 remote_iface_t *get_remote_iface(int);
-remote_iface_func_ptr_t get_remote_method(remote_iface_t *, ipcarg_t);
+remote_iface_func_ptr_t get_remote_method(remote_iface_t *, sysarg_t);
 
 
 /* device class */
