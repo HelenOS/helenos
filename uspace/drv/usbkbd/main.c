@@ -47,7 +47,12 @@ static const usb_endpoint_t CONTROL_EP = 0;
 static void usbkbd_process_keycodes(const uint16_t *key_codes, size_t count,
                                     void *arg)
 {
-
+	printf("Got keys: ");
+	unsigned i;
+	for (i = 0; i < count; ++i) {
+		printf("%d ", key_codes[i]);
+	}
+	printf("\n");
 }
 
 /*
