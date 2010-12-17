@@ -669,7 +669,8 @@ static void devmap_register_tree_device(node_t *node, dev_tree_t *tree)
 		return;
 	}
 	
-	devmap_device_register(devmap_pathname, &node->devmap_handle);
+	devmap_device_register_with_iface(devmap_pathname,
+	    &node->devmap_handle, DEVMAN_CONNECT_FROM_DEVMAP);
 	
 	tree_add_devmap_device(tree, node);
 	
