@@ -218,8 +218,8 @@ void udebug_before_thread_runs(void)
  * a SYSCALL_B or SYSCALL_E event, depending on the value of @a end_variant.
  *
  */
-void udebug_syscall_event(unative_t a1, unative_t a2, unative_t a3,
-    unative_t a4, unative_t a5, unative_t a6, unative_t id, unative_t rc,
+void udebug_syscall_event(sysarg_t a1, sysarg_t a2, sysarg_t a3,
+    sysarg_t a4, sysarg_t a5, sysarg_t a6, sysarg_t id, sysarg_t rc,
     bool end_variant)
 {
 	udebug_event_t etype =
@@ -313,7 +313,7 @@ void udebug_thread_b_event_attach(struct thread *thread, struct task *task)
 	THREAD->udebug.go_call = NULL;
 	IPC_SET_RETVAL(call->data, 0);
 	IPC_SET_ARG1(call->data, UDEBUG_EVENT_THREAD_B);
-	IPC_SET_ARG2(call->data, (unative_t) thread);
+	IPC_SET_ARG2(call->data, (sysarg_t) thread);
 	
 	/*
 	 * Make sure udebug.go is false when going to sleep

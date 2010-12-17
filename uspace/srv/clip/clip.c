@@ -117,7 +117,7 @@ static void clip_get_data(ipc_callid_t rid, ipc_call_t *request)
 			break;
 		}
 		
-		ipcarg_t retval = async_data_read_finalize(callid, clip_data, size);
+		sysarg_t retval = async_data_read_finalize(callid, clip_data, size);
 		if (retval != EOK) {
 			ipc_answer_0(rid, retval);
 			break;
@@ -144,7 +144,7 @@ static void clip_content(ipc_callid_t rid, ipc_call_t *request)
 	clipboard_tag_t tag = clip_tag;
 	
 	fibril_mutex_unlock(&clip_mtx);
-	ipc_answer_2(rid, EOK, (ipcarg_t) size, (ipcarg_t) tag);
+	ipc_answer_2(rid, EOK, (sysarg_t) size, (sysarg_t) tag);
 }
 
 static void clip_connection(ipc_callid_t iid, ipc_call_t *icall)
@@ -157,7 +157,7 @@ static void clip_connection(ipc_callid_t iid, ipc_call_t *icall)
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
 		
-		switch (IPC_GET_METHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			cont = false;
 			continue;
@@ -182,7 +182,7 @@ int main(int argc, char *argv[])
 	
 	async_set_client_connection(clip_connection);
 	
-	ipcarg_t phonead;
+	sysarg_t phonead;
 	if (ipc_connect_to_me(PHONE_NS, SERVICE_CLIPBOARD, 0, 0, &phonead) != 0) 
 		return -1;
 	

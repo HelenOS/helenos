@@ -1150,7 +1150,7 @@ def parse_adl(base, root, inname, nested, indent):
 					context.add(NULL)
 					continue
 				
-				if ((token == "ipcarg_t") or (token == "unative_t")):
+				if (token == "sysarg_t"):
 					output += "\n%s%s " % (tabs(indent), token)
 					context.add(PROTOTYPE)
 					continue

@@ -46,7 +46,7 @@
 static int get_device_name(int phone, char *buffer, size_t len)
 {
 	ipc_call_t answer_data;
-	ipcarg_t answer_rc;
+	sysarg_t answer_rc;
 	aid_t req;
 	int rc;
 	
@@ -82,7 +82,7 @@ static int get_device_name(int phone, char *buffer, size_t len)
 void default_connection_handler(device_t *dev,
     ipc_callid_t icallid, ipc_call_t *icall)
 {
-	ipcarg_t method = IPC_GET_METHOD(*icall);
+	sysarg_t method = IPC_GET_IMETHOD(*icall);
 
 	if (method == IPC_M_CONNECT_TO_ME) {
 		int callback = IPC_GET_ARG5(*icall);

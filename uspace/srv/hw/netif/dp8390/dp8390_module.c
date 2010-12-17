@@ -62,7 +62,7 @@
 /** Returns the device from the interrupt call.
  *  @param[in] call The interrupt call.
  */
-#define IRQ_GET_DEVICE(call)			(device_id_t) IPC_GET_METHOD(*call)
+#define IRQ_GET_DEVICE(call)			(device_id_t) IPC_GET_IMETHOD(*call)
 
 /** Returns the interrupt status register from the interrupt call.
  *  @param[in] call The interrupt call.
@@ -305,7 +305,7 @@ int netif_stop_message(netif_device_t * device){
 }
 
 int netif_initialize(void){
-	ipcarg_t phonehash;
+	sysarg_t phonehash;
 
 	async_set_interrupt_received(irq_handler);
 
@@ -342,7 +342,7 @@ static void netif_client_connection(ipc_callid_t iid, ipc_call_t * icall)
 		    &answer_count);
 		
 		/* End if said to either by the message or the processing result */
-		if ((IPC_GET_METHOD(call) == IPC_M_PHONE_HUNGUP) || (res == EHANGUP))
+		if ((IPC_GET_IMETHOD(call) == IPC_M_PHONE_HUNGUP) || (res == EHANGUP))
 			return;
 		
 		/* Answer the message */

@@ -46,14 +46,14 @@ typedef struct {
 	
 	/** Answerbox for notifications. */
 	answerbox_t *answerbox;
-	/** Method to be used for the notification. */
-	unative_t method;
+	/** Interface and method to be used for the notification. */
+	sysarg_t imethod;
 	/** Counter. */
 	size_t counter;
 } event_t;
 
 extern void event_init(void);
-extern unative_t sys_event_subscribe(unative_t, unative_t);
+extern sysarg_t sys_event_subscribe(sysarg_t, sysarg_t);
 extern bool event_is_subscribed(event_type_t);
 extern void event_cleanup_answerbox(answerbox_t *);
 
@@ -70,8 +70,8 @@ extern void event_cleanup_answerbox(answerbox_t *);
 #define event_notify_5(e, a1, a2, a3, a4, a5) \
 	event_notify((e), (a1), (a2), (a3), (a4), (a5))
 
-extern void event_notify(event_type_t, unative_t, unative_t, unative_t,
-    unative_t, unative_t);
+extern void event_notify(event_type_t, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t);
 
 #endif
 

@@ -1256,7 +1256,7 @@ hit:
 	}
 
 	rc = fat_node_put(fn);
-	ipc_answer_1(rid, rc, (ipcarg_t)bytes);
+	ipc_answer_1(rid, rc, (sysarg_t)bytes);
 }
 
 void fat_write(ipc_callid_t rid, ipc_call_t *request)

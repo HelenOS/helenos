@@ -60,7 +60,7 @@ typedef struct {
 	/** Pointer to the linked list of devices controlled by this driver */
 	link_t devices;
 	/** Phone asociated with this driver */
-	ipcarg_t phone;
+	sysarg_t phone;
 	/** Device driver name */
 	char *name;
 	/** Fibril mutex for list of devices owned by this driver */
@@ -386,7 +386,7 @@ static devmap_driver_t *devmap_driver_register(void)
 	ipc_call_t icall;
 	ipc_callid_t iid = async_get_call(&icall);
 	
-	if (IPC_GET_METHOD(icall) != DEVMAP_DRIVER_REGISTER) {
+	if (IPC_GET_IMETHOD(icall) != DEVMAP_DRIVER_REGISTER) {
 		ipc_answer_0(iid, EREFUSED);
 		return NULL;
 	}
@@ -415,7 +415,7 @@ static devmap_driver_t *devmap_driver_register(void)
 	ipc_call_t call;
 	ipc_callid_t callid = async_get_call(&call);
 	
-	if (IPC_GET_METHOD(call) != IPC_M_CONNECT_TO_ME) {
+	if (IPC_GET_IMETHOD(call) != IPC_M_CONNECT_TO_ME) {
 		free(driver->name);
 		free(driver);
 		ipc_answer_0(callid, ENOTSUP);
@@ -822,7 +822,7 @@ static void devmap_get_namespaces(ipc_callid_t iid, ipc_call_t *icall)
 		pos++;
 	}
 	
-	ipcarg_t retval = async_data_read_finalize(callid, desc, size);
+	sysarg_t retval = async_data_read_finalize(callid, desc, size);
 	
 	free(desc);
 	fibril_mutex_unlock(&devices_list_mutex);
@@ -889,7 +889,7 @@ static void devmap_get_devices(ipc_callid_t iid, ipc_call_t *icall)
 		}
 	}
 	
-	ipcarg_t retval = async_data_read_finalize(callid, desc, size);
+	sysarg_t retval = async_data_read_finalize(callid, desc, size);
 	
 	free(desc);
 	fibril_mutex_unlock(&devices_list_mutex);
@@ -963,12 +963,12 @@ static void devmap_null_create(ipc_callid_t iid, ipc_call_t *icall)
 	fibril_mutex_unlock(&devices_list_mutex);
 	fibril_mutex_unlock(&null_devices_mutex);
 	
-	ipc_answer_1(iid, EOK, (ipcarg_t) i);
+	ipc_answer_1(iid, EOK, (sysarg_t) i);
 }
 
 static void devmap_null_destroy(ipc_callid_t iid, ipc_call_t *icall)
 {
-	ipcarg_t i = IPC_GET_ARG1(*icall);
+	sysarg_t i = IPC_GET_ARG1(*icall);
 	if (i >= NULL_DEVICES) {
 		ipc_answer_0(iid, ELIMIT);
 		return;
@@ -1026,7 +1026,7 @@ static void devmap_connection_driver(ipc_callid_t iid, ipc_call_t *icall)
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
 		
-		switch (IPC_GET_METHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			cont = false;
 			continue;
@@ -1077,7 +1077,7 @@ static void devmap_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
 		
-		switch (IPC_GET_METHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			cont = false;
 			continue;
@@ -1120,7 +1120,7 @@ static void devmap_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 static void devmap_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
 	/* Select interface */
-	switch ((ipcarg_t) (IPC_GET_ARG1(*icall))) {
+	switch ((sysarg_t) (IPC_GET_ARG1(*icall))) {
 	case DEVMAP_DRIVER:
 		devmap_connection_driver(iid, icall);
 		break;
@@ -1153,7 +1153,7 @@ int main(int argc, char *argv[])
 	async_set_client_connection(devmap_connection);
 	
 	/* Register device mapper at naming service */
-	ipcarg_t phonead;
+	sysarg_t phonead;
 	if (ipc_connect_to_me(PHONE_NS, SERVICE_DEVMAP, 0, 0, &phonead) != 0) 
 		return -1;
 	

@@ -34,7 +34,7 @@
 
 typedef uint32_t size_t;
 typedef uint32_t uintptr_t;
-typedef uint32_t unative_t;
+typedef uint32_t sysarg_t;
 typedef int32_t native_t;
 
 typedef struct {

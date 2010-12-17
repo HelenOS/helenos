@@ -200,7 +200,7 @@ void device_callback_connection(usbvirt_device_t *device, ipc_callid_t iid, ipc_
 		ipc_call_t call; 
 		
 		callid = async_get_call(&call);
-		switch (IPC_GET_METHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 			case IPC_M_PHONE_HUNGUP:
 				ipc_answer_0(callid, EOK);
 				return;

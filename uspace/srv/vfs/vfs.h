@@ -53,7 +53,7 @@ typedef struct {
 	vfs_info_t vfs_info;
 	fs_handle_t fs_handle;
 	fibril_mutex_t phone_lock;
-	ipcarg_t phone;
+	sysarg_t phone;
 } fs_info_t;
 
 /**

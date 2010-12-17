@@ -30,45 +30,52 @@
  * @{
  */
 /**
- * @file	cap.c
- * @brief	Functions to grant/revoke capabilities to/from a task.
+ * @file  cap.c
+ * @brief Functions to grant/revoke capabilities to/from a task.
  */
 
 #include <cap.h>
 #include <task.h>
 #include <libc.h>
-#include <kernel/syscall/sysarg64.h>
 
 /** Grant capabilities to a task.
  *
- * @param id Destination task ID.
+ * @param id   Destination task ID.
  * @param caps Capabilities to grant.
  *
  * @return Zero on success or a value from @ref errno.h on failure.
+ *
  */
 int cap_grant(task_id_t id, unsigned int caps)
 {
-	sysarg64_t arg;
-	
-	arg.value = (unsigned long long) id;
-
+#ifdef __32_BITS__
+	sysarg64_t arg = (sysarg64_t) id;
 	return __SYSCALL2(SYS_CAP_GRANT, (sysarg_t) &arg, (sysarg_t) caps);
+#endif
+	
+#ifdef __64_BITS__
+	return __SYSCALL2(SYS_CAP_GRANT, (sysarg_t) id, (sysarg_t) caps);
+#endif
 }
 
 /** Revoke capabilities from a task.
  *
- * @param id Destination task ID.
+ * @param id   Destination task ID.
  * @param caps Capabilities to revoke.
  *
  * @return Zero on success or a value from @ref errno.h on failure.
+ *
  */
 int cap_revoke(task_id_t id, unsigned int caps)
 {
-	sysarg64_t arg;
-	
-	arg.value = (unsigned long long) id;
-
+#ifdef __32_BITS__
+	sysarg64_t arg = (sysarg64_t) id;
 	return __SYSCALL2(SYS_CAP_REVOKE, (sysarg_t) &arg, (sysarg_t) caps);
+#endif
+	
+#ifdef __64_BITS__
+	return __SYSCALL2(SYS_CAP_REVOKE, (sysarg_t) id, (sysarg_t) caps);
+#endif
 }
 
 /** @}

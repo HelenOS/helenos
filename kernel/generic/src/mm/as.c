@@ -1999,31 +1999,31 @@ error:
  */
 
 /** Wrapper for as_area_create(). */
-unative_t sys_as_area_create(uintptr_t address, size_t size, unsigned int flags)
+sysarg_t sys_as_area_create(uintptr_t address, size_t size, unsigned int flags)
 {
 	if (as_area_create(AS, flags | AS_AREA_CACHEABLE, size, address,
 	    AS_AREA_ATTR_NONE, &anon_backend, NULL))
-		return (unative_t) address;
+		return (sysarg_t) address;
 	else
-		return (unative_t) -1;
+		return (sysarg_t) -1;
 }
 
 /** Wrapper for as_area_resize(). */
-unative_t sys_as_area_resize(uintptr_t address, size_t size, unsigned int flags)
+sysarg_t sys_as_area_resize(uintptr_t address, size_t size, unsigned int flags)
 {
-	return (unative_t) as_area_resize(AS, address, size, 0);
+	return (sysarg_t) as_area_resize(AS, address, size, 0);
 }
 
 /** Wrapper for as_area_change_flags(). */
-unative_t sys_as_area_change_flags(uintptr_t address, unsigned int flags)
+sysarg_t sys_as_area_change_flags(uintptr_t address, unsigned int flags)
 {
-	return (unative_t) as_area_change_flags(AS, flags, address);
+	return (sysarg_t) as_area_change_flags(AS, flags, address);
 }
 
 /** Wrapper for as_area_destroy(). */
-unative_t sys_as_area_destroy(uintptr_t address)
+sysarg_t sys_as_area_destroy(uintptr_t address)
 {
-	return (unative_t) as_area_destroy(AS, address);
+	return (sysarg_t) as_area_destroy(AS, address);
 }
 
 /** Get list of adress space areas.

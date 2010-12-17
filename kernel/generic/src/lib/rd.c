@@ -95,7 +95,7 @@ int init_rd(rd_header_t *header, size_t size)
 	sysinfo_set_item_val("rd.header_size", NULL, hsize);	
 	sysinfo_set_item_val("rd.size", NULL, dsize);
 	sysinfo_set_item_val("rd.address.physical", NULL,
-	    (unative_t)	KA2PA((void *) header + hsize));
+	    (sysarg_t) KA2PA((void *) header + hsize));
 
 	return RE_OK;
 }
