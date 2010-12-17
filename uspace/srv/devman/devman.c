@@ -61,6 +61,16 @@ static int devmap_devices_compare(unsigned long key[], hash_count_t keys,
 	return (dev->devmap_handle == (devmap_handle_t) key[0]);
 }
 
+static int devmap_devices_class_compare(unsigned long key[], hash_count_t keys,
+    link_t *item)
+{
+	dev_class_info_t *class_info
+	    = hash_table_get_instance(item, dev_class_info_t, devmap_link);
+	assert(class_info != NULL);
+
+	return (class_info->devmap_handle == (devmap_handle_t) key[0]);
+}
+
 static void devices_remove_callback(link_t *item)
 {
 }
@@ -74,6 +84,12 @@ static hash_table_operations_t devman_devices_ops = {
 static hash_table_operations_t devmap_devices_ops = {
 	.hash = devices_hash,
 	.compare = devmap_devices_compare,
+	.remove_callback = devices_remove_callback
+};
+
+static hash_table_operations_t devmap_devices_class_ops = {
+	.hash = devices_hash,
+	.compare = devmap_devices_class_compare,
 	.remove_callback = devices_remove_callback
 };
 
@@ -1042,8 +1058,12 @@ dev_class_info_t *create_dev_class_info(void)
 	dev_class_info_t *info;
 	
 	info = (dev_class_info_t *) malloc(sizeof(dev_class_info_t));
-	if (info != NULL)
+	if (info != NULL) {
 		memset(info, 0, sizeof(dev_class_info_t));
+		list_initialize(&info->dev_classes);
+		list_initialize(&info->devmap_link);
+		list_initialize(&info->link);
+	}
 	
 	return info;
 }
@@ -1167,7 +1187,7 @@ void init_class_list(class_list_t *class_list)
 	list_initialize(&class_list->classes);
 	fibril_rwlock_initialize(&class_list->rwlock);
 	hash_table_create(&class_list->devmap_devices, DEVICE_BUCKETS, 1,
-	    &devmap_devices_ops);
+	    &devmap_devices_class_ops);
 }
 
 
@@ -1215,6 +1235,8 @@ void class_add_devmap_device(class_list_t *class_list, dev_class_info_t *cli)
 	fibril_rwlock_write_lock(&class_list->rwlock);
 	hash_table_insert(&class_list->devmap_devices, &key, &cli->devmap_link);
 	fibril_rwlock_write_unlock(&class_list->rwlock);
+
+	assert(find_devmap_class_device(class_list, cli->devmap_handle) != NULL);
 }
 
 void tree_add_devmap_device(dev_tree_t *tree, node_t *node)
