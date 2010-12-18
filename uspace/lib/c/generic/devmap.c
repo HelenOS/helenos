@@ -126,12 +126,19 @@ int devmap_driver_register(const char *name, async_client_conn_t conn)
 
 /** Register new device.
  *
- * @param namespace Namespace name.
- * @param fqdn      Fully qualified device name.
- * @param handle    Output: Handle to the created instance of device.
+ * The @p interface is used when forwarding connection to the driver.
+ * If not 0, the first argument is the interface and the second argument
+ * is the devmap handle of the device.
+ * When the interface is zero (default), the first argument is directly
+ * the handle (to ensure backward compatibility).
+ *
+ * @param fqdn Fully qualified device name.
+ * @param[out] handle Handle to the created instance of device.
+ * @param interface Interface when forwarding.
  *
  */
-int devmap_device_register(const char *fqdn, devmap_handle_t *handle)
+int devmap_device_register_with_iface(const char *fqdn,
+    devmap_handle_t *handle, sysarg_t interface)
 {
 	int phone = devmap_get_phone(DEVMAP_DRIVER, IPC_FLAG_BLOCKING);
 	
@@ -141,7 +148,7 @@ int devmap_device_register(const char *fqdn, devmap_handle_t *handle)
 	async_serialize_start();
 	
 	ipc_call_t answer;
-	aid_t req = async_send_2(phone, DEVMAP_DEVICE_REGISTER, 0, 0,
+	aid_t req = async_send_2(phone, DEVMAP_DEVICE_REGISTER, interface, 0,
 	    &answer);
 	
 	sysarg_t retval = async_data_write_start(phone, fqdn, str_size(fqdn));
@@ -166,6 +173,18 @@ int devmap_device_register(const char *fqdn, devmap_handle_t *handle)
 	
 	return retval;
 }
+
+/** Register new device.
+ *
+ * @param fqdn      Fully qualified device name.
+ * @param handle    Output: Handle to the created instance of device.
+ *
+ */
+int devmap_device_register(const char *fqdn, devmap_handle_t *handle)
+{
+	return devmap_device_register_with_iface(fqdn, handle, 0);
+}
+
 
 int devmap_device_get_handle(const char *fqdn, devmap_handle_t *handle, unsigned int flags)
 {

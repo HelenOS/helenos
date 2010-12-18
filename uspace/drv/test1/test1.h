@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2010 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,42 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
- * @{
- */
 /** @file
  */
+#ifndef DRV_TEST1_TEST1_H_
+#define DRV_TEST1_TEST1_H_
 
-#ifndef LIBC_DEVMAP_H_
-#define LIBC_DEVMAP_H_
+#include <driver.h>
 
-#include <ipc/devmap.h>
-#include <async.h>
-#include <bool.h>
+#define NAME "test1"
 
-extern int devmap_get_phone(devmap_interface_t, unsigned int);
-extern void devmap_hangup_phone(devmap_interface_t iface);
-
-extern int devmap_driver_register(const char *, async_client_conn_t);
-extern int devmap_device_register(const char *, devmap_handle_t *);
-extern int devmap_device_register_with_iface(const char *, devmap_handle_t *, sysarg_t);
-
-extern int devmap_device_get_handle(const char *, devmap_handle_t *, unsigned int);
-extern int devmap_namespace_get_handle(const char *, devmap_handle_t *, unsigned int);
-extern devmap_handle_type_t devmap_handle_probe(devmap_handle_t);
-
-extern int devmap_device_connect(devmap_handle_t, unsigned int);
-
-extern int devmap_null_create(void);
-extern void devmap_null_destroy(int);
-
-extern size_t devmap_count_namespaces(void);
-extern size_t devmap_count_devices(devmap_handle_t);
-
-extern size_t devmap_get_namespaces(dev_desc_t **);
-extern size_t devmap_get_devices(devmap_handle_t, dev_desc_t **);
+extern device_ops_t char_device_ops;
 
 #endif
-
-/** @}
- */
