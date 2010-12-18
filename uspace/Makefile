@@ -92,15 +92,9 @@ DIRS = \
 ## Networking
 #
 
-ifeq ($(CONFIG_NETIF_NIL_BUNDLE),y)
-	LIBN = \
-		srv/net/nil/eth \
-		srv/net/nil/nildummy
-else
-	DIRS += \
-		srv/net/nil/eth \
-		srv/net/nil/nildummy
-endif
+DIRS += \
+	srv/net/nil/eth \
+	srv/net/nil/nildummy
 
 ## Platform-specific hardware support
 #
