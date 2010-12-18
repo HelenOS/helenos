@@ -36,7 +36,7 @@
 
 #include <stdint.h>
 
-typedef struct port_status {
+struct port_register {
 	uint8_t connected:1;
 	uint8_t connect_change:1;
 	uint8_t enabled:1;
@@ -65,9 +65,14 @@ typedef struct port_status {
 //	uint8_t enabled:1;
 //	uint8_t connect_change:1;
 //	uint8_t connected:1;
-} __attribute__((packed)) port_status_t;
+} __attribute__((packed));
 
-void print_port_status( port_status_t *status );
+typedef union port_status {
+	struct port_register status;
+	uint16_t raw_value;
+} port_status_t;
+
+void print_port_status( const port_status_t *status );
 #endif
 /**
  * @}

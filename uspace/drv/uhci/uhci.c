@@ -1,5 +1,6 @@
 #include <errno.h>
 #include <usb/debug.h>
+#include <usb/usb.h>
 
 #include "name.h"
 #include "uhci.h"
@@ -15,6 +16,9 @@ int uhci_init(device_t *device, void *regs)
 	if (!instance)
 		{ return ENOMEM; }
 	memset( instance, 0, sizeof(uhci_t) );
+
+	/* init address keeper(libusb) */
+	usb_address_keeping_init( &instance->address_manager, USB11_ADDRESS_MAX );
 
 	/* allow access to hc control registers */
 	regs_t *io;
