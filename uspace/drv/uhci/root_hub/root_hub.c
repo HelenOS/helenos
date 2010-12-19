@@ -99,6 +99,9 @@ int uhci_root_hub_new_device( device_t *hc, unsigned port )
 
 	uhci_t *uhci_instance = (uhci_t*)hc->driver_data;
 
+	/* get default address */
+	usb_address_keeping_reserve_default( &uhci_instance->address_manager );
+
 	/* enable port */
 	{
 		volatile uint16_t * address =
@@ -122,6 +125,8 @@ int uhci_root_hub_new_device( device_t *hc, unsigned port )
 		printf( NAME": Failed to assign address to the device" );
 		return ENOMEM;
 	}
+	/* release default address */
+	usb_address_keeping_release_default( &uhci_instance->address_manager );
 
 	/* report to devman */
 	devman_handle_t child = 0;
@@ -145,15 +150,9 @@ static usb_address_t uhci_root_hub_assign_address( device_t *hc )
 	const usb_address_t usb_address = usb_address_keeping_request(
 	  &uhci_instance->address_manager );
 
-	/* get default address */
-	usb_address_keeping_reserve_default( &uhci_instance->address_manager );
-
 	/* assign new address */
 	/* TODO send new address*/
 	usb_dprintf( NAME, 3, "Assigned address 0x%x.\n", usb_address );
-
-	/* release default address */
-	usb_address_keeping_release_default( &uhci_instance->address_manager );
 
 	return usb_address;
 }
