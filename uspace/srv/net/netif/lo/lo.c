@@ -165,7 +165,7 @@ int netif_initialize(void)
 {
 	sysarg_t phonehash;
 
-	return REGISTER_ME(SERVICE_LO, &phonehash);
+	return ipc_connect_to_me(PHONE_NS, SERVICE_LO, 0, 0, &phonehash);
 }
 
 int netif_probe_message(device_id_t device_id, int irq, uintptr_t io)

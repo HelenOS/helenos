@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Lukas Mejdrech
+ * Copyright (c) 2010 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,70 +26,31 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup tcp
- * @{
- */
-
 /** @file
- * TCP standalone module implementation.
- * Contains skeleton module functions mapping.
- * The functions are used by the module skeleton as module specific entry
- * points.
- * @see module.c
  */
 
-#include "tcp.h"
-#include "tcp_module.h"
-
-#include <async.h>
-#include <stdio.h>
+#include <assert.h>
 #include <errno.h>
-#include <ipc/ipc.h>
-#include <ipc/services.h>
+#include <mem.h>
+#include <char.h>
 
-#include <net/ip_protocols.h>
-#include <net/modules.h>
-#include <net/packet.h>
-#include <net_interface.h>
+#include "test1.h"
 
-#include <ip_interface.h>
-#include <tl_local.h>
-
-/** TCP module global data. */
-extern tcp_globals_t tcp_globals;
-
-int tl_module_start_standalone(async_client_conn_t client_connection)
-{
-	sysarg_t phonehash;
-	int rc;
-
-	async_set_client_connection(client_connection);
-	tcp_globals.net_phone = net_connect_module();
-
-	rc = pm_init();
-	if (rc != EOK)
-		return rc;
-
-	rc = tcp_initialize(client_connection);
-	if (rc != EOK)
-		goto out;
-
-	rc = ipc_connect_to_me(PHONE_NS, SERVICE_TCP, 0, 0, &phonehash);
-	if (rc != EOK)
-		goto out;
-	
-	async_manager();
-	
-out:
-	pm_destroy();
-	return rc;
+static int impl_char_read(device_t *dev, char *buf, size_t count) {
+	memset(buf, 0, count);
+	return count;
 }
 
-int tl_module_message_standalone(ipc_callid_t callid, ipc_call_t *call,
-    ipc_call_t *answer, int *answer_count)
-{
-	return tcp_message_standalone(callid, call, answer, answer_count);
+static int imp_char_write(device_t *dev, char *buf, size_t count) {
+	return count;
 }
 
-/** @}
- */
+static char_iface_t char_interface = {
+	.read = &impl_char_read,
+	.write = &imp_char_write
+};
+
+device_ops_t char_device_ops = {
+	.interfaces[CHAR_DEV_IFACE] = &char_interface
+};
+
