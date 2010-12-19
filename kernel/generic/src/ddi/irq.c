@@ -135,6 +135,9 @@ static hash_table_operations_t irq_lin_ops = {
 /** Number of buckets in either of the hash tables. */
 static size_t buckets;
 
+/** Last valid INR. */
+inr_t last_inr = 0;
+
 /** Initialize IRQ subsystem.
  *
  * @param inrs   Numbers of unique IRQ numbers or INRs.
@@ -144,6 +147,8 @@ static size_t buckets;
 void irq_init(size_t inrs, size_t chains)
 {
 	buckets = chains;
+	last_inr = inrs - 1;
+
 	/*
 	 * Be smart about the choice of the hash table operations.
 	 * In cases in which inrs equals the requested number of
