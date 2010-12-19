@@ -400,7 +400,7 @@ int usb_add_hub_device(device_t *dev) {
     &std_descriptor);
 	if(opResult!=EOK){
 		printf("[usb_hub] could not get device descriptor, %d\n",opResult);
-		return 1;///\TODO some proper error code needed
+		return opResult;
 	}
 	printf("[usb_hub] hub has %d configurations\n",std_descriptor.configuration_count);
 	if(std_descriptor.configuration_count<1){
@@ -412,7 +412,7 @@ int usb_add_hub_device(device_t *dev) {
         &config_descriptor);
 	if(opResult!=EOK){
 		printf("[usb_hub] could not get configuration descriptor, %d\n",opResult);
-		return 1;///\TODO some proper error code needed
+		return opResult;
 	}
 	//set configuration
 	request.request_type = 0;
