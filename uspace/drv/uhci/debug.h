@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky, Jan Vesely
+ * Copyright (c) 2010 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,46 +25,37 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include <usb/hcdhubd.h>
-#include <errno.h>
+/** @addtogroup usb
+ * @{
+ */
+/** @file
+ * @brief UHCI driver
+ */
+#ifndef DRV_UHCI_DEBUG_H
+#define DRV_UHCI_DEBUG_H
 
-#include "debug.h"
-#include "iface.h"
+#include <usb/debug.h>
+
 #include "name.h"
-#include "uhci.h"
 
-
-static device_ops_t uhci_ops = {
-	.interfaces[USBHC_DEV_IFACE] = &uhci_iface,
+enum debug_levels {
+	DEBUG_LEVEL_FATAL_ERROR = 1,
+	DEBUG_LEVEL_CRITICAL_ERROR = 2,
+	DEBUG_LEVEL_ERROR = 3,
+	DEBUG_LEVEL_WARNING = 4,
+	DEBUG_LEVEL_INFO = 5
 };
 
-static int uhci_add_device(device_t *device)
-{
-//	usb_dprintf(NAME, DEBUG, "uhci_add_device() called\n");
-	uhci_print_info( "uhci_add_device() called\n" );
-	device->ops = &uhci_ops;
+#define uhci_printf( level, fmt, args...) \
+	usb_dprintf( NAME, level, fmt, ##args )
 
-	uhci_init( device, (void*)0xc020 );
+#define uhci_print_error( fmt, args... ) \
+	usb_dprintf( NAME, DEBUG_LEVEL_ERROR, fmt, ##args )
 
-	return EOK;
-}
+#define uhci_print_info( fmt, args... ) \
+	usb_dprintf( NAME, DEBUG_LEVEL_INFO, fmt, ##args )
 
-static driver_ops_t uhci_driver_ops = {
-	.add_device = uhci_add_device,
-};
-
-static driver_t uhci_driver = {
-	.name = NAME,
-	.driver_ops = &uhci_driver_ops
-};
-
-int main(int argc, char *argv[])
-{
-	/*
-	 * Do some global initializations.
-	 */
-	sleep( 5 );
-	usb_dprintf_enable(NAME, DEBUG_LEVEL_INFO);
-
-	return driver_main(&uhci_driver);
-}
+#endif
+/**
+ * @}
+ */

@@ -2,6 +2,7 @@
 #include <usb/debug.h>
 #include <usb/usb.h>
 
+#include "debug.h"
 #include "name.h"
 #include "uhci.h"
 
@@ -9,7 +10,7 @@
 int uhci_init(device_t *device, void *regs)
 {
 	assert( device );
-	usb_dprintf(NAME, 1, "Initializing device at address %p\n", device);
+	uhci_print_info( "Initializing device at address %p\n", device);
 
 	/* create instance */
 	uhci_t *instance = malloc( sizeof(uhci_t) );
@@ -51,7 +52,7 @@ int uhci_in(
 	usbhc_iface_transfer_in_callback_t callback, void *arg
 	)
 {
-	usb_dprintf(NAME, 1, "transfer IN [%d.%d (%s); %zu]\n",
+	uhci_print_info( "transfer IN [%d.%d (%s); %zu]\n",
 	    target.address, target.endpoint,
 	    usb_str_transfer_type(transfer_type),
 	    size);
@@ -67,7 +68,7 @@ int uhci_out(
 	usbhc_iface_transfer_out_callback_t callback, void *arg
   )
 {
-	usb_dprintf(NAME, 1, "transfer OUT [%d.%d (%s); %zu]\n",
+	uhci_print_info( "transfer OUT [%d.%d (%s); %zu]\n",
 	    target.address, target.endpoint,
 	    usb_str_transfer_type(transfer_type),
 	    size);
@@ -83,7 +84,7 @@ int uhci_setup(
   usbhc_iface_transfer_out_callback_t callback, void *arg
   )
 {
-	usb_dprintf(NAME, 1, "transfer SETUP [%d.%d (%s); %zu]\n",
+	uhci_print_info( "transfer SETUP [%d.%d (%s); %zu]\n",
 	    target.address, target.endpoint,
 	    usb_str_transfer_type(transfer_type),
 	    size);
