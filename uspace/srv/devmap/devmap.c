@@ -98,6 +98,8 @@ typedef struct {
 	char *name;
 	/** Device driver handling this device */
 	devmap_driver_t *driver;
+	/** Use this interface when forwarding to driver. */
+	sysarg_t forward_interface;
 } devmap_device_t;
 
 LIST_INITIALIZE(devices_list);
@@ -516,6 +518,9 @@ static void devmap_device_register(ipc_callid_t iid, ipc_call_t *icall,
 		return;
 	}
 	
+	/* Set the interface, if any. */
+	device->forward_interface = IPC_GET_ARG1(*icall);
+
 	/* Get fqdn */
 	char *fqdn;
 	int rc = async_data_write_accept((void **) &fqdn, true, 0,
@@ -565,7 +570,7 @@ static void devmap_device_register(ipc_callid_t iid, ipc_call_t *icall,
 	
 	/* Get unique device handle */
 	device->handle = devmap_create_handle();
-	
+
 	devmap_namespace_addref(namespace, device);
 	device->driver = driver;
 	
@@ -616,8 +621,15 @@ static void devmap_forward(ipc_callid_t callid, ipc_call_t *call)
 		return;
 	}
 	
-	ipc_forward_fast(callid, dev->driver->phone, dev->handle,
-	    IPC_GET_ARG3(*call), 0, IPC_FF_NONE);
+	if (dev->forward_interface == 0) {
+		ipc_forward_fast(callid, dev->driver->phone,
+		    dev->handle, 0, 0,
+		    IPC_FF_NONE);
+	} else {
+		ipc_forward_fast(callid, dev->driver->phone,
+		    dev->forward_interface, dev->handle, 0,
+		    IPC_FF_NONE);
+	}
 	
 	fibril_mutex_unlock(&devices_list_mutex);
 }

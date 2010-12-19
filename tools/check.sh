@@ -1,5 +1,7 @@
+#! /bin/bash
+
 #
-# Copyright (c) 2010 Vojtech Horky
+# Copyright (c) 2010 Jakub Jermar 
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,13 +28,62 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-USPACE_PREFIX = ../..
-LIBS = $(LIBDRV_PREFIX)/libdrv.a
-EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include
-BINARY = test1
+if [ $1" " == "-h " ];
+then
+	echo "Perform pre-integration hands-off build of all profiles."
+	echo
+	echo "Syntax:"
+	echo " $0 [-h] [args...]"
+	echo
+	echo " -h        Print this help."
+	echo " args...   All other args are passed to make (e.g. -j 6)"
+	echo
 
-SOURCES = \
-	char.c \
-	test1.c
+	exit
+fi
 
-include $(USPACE_PREFIX)/Makefile.common
+FAILED=""
+PASSED=""
+PROFILES=""
+DIRS=`find defaults/ -name Makefile.config | sed 's/^defaults\/\(.*\)\/Makefile.config/\1/' | sort`
+
+for D in $DIRS;
+do
+	for H in $DIRS;
+	do
+		if [ `echo $H | grep "^$D\/.*"`x != "x"  ];
+		then
+			continue 2 
+		fi
+	done
+	PROFILES="$PROFILES $D"
+done
+
+echo ">>> Going to build the following profiles:"
+echo $PROFILES
+
+for P in $PROFILES;
+do
+	echo -n ">>>> Building $P... "
+	( make distclean && make PROFILE=$P HANDS_OFF=y $1 ) >>/dev/null 2>>/dev/null
+	if [ $? -ne 0 ];
+	then
+		FAILED="$FAILED $P"
+		echo "failed."
+	else
+		PASSED="$PASSED $P"
+		echo "ok."
+	fi
+done
+
+echo ">>> Done."
+echo
+
+echo ">>> The following profiles passed:"
+echo $PASSED
+echo
+
+echo ">>> The following profiles failed:"
+echo $FAILED
+echo
+

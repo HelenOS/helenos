@@ -196,7 +196,7 @@ int netif_get_addr_message(device_id_t device_id, measured_string_t *address){
 	if (rc != EOK)
 		return rc;
 	address->value = (char *) (&((dpeth_t *) device->specific)->de_address);
-	address->length = CONVERT_SIZE(ether_addr_t, char, 1);
+	address->length = sizeof(ether_addr_t);
 	return EOK;
 }
 
@@ -309,7 +309,7 @@ int netif_initialize(void){
 
 	async_set_interrupt_received(irq_handler);
 
-	return REGISTER_ME(SERVICE_DP8390, &phonehash);
+	return ipc_connect_to_me(PHONE_NS, SERVICE_DP8390, 0, 0, &phonehash);
 }
 
 /** Default thread for new connections.

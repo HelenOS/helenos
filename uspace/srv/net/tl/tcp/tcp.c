@@ -1364,7 +1364,8 @@ int tcp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 			break;
 
 		case NET_SOCKET_BIND:
-			res = data_receive((void **) &addr, &addrlen);
+			res = async_data_write_accept((void **) &addr, false,
+			    0, 0, 0, &addrlen);
 			if (res != EOK)
 				break;
 			fibril_rwlock_write_lock(&tcp_globals.lock);
@@ -1401,7 +1402,8 @@ int tcp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 			break;
 
 		case NET_SOCKET_CONNECT:
-			res = data_receive((void **) &addr, &addrlen);
+			res = async_data_write_accept((void **) &addr, false,
+			    0, 0, 0, &addrlen);
 			if (res != EOK)
 				break;
 			/*
@@ -1452,7 +1454,8 @@ int tcp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 			break;
 
 		case NET_SOCKET_SENDTO:
-			res = data_receive((void **) &addr, &addrlen);
+			res = async_data_write_accept((void **) &addr, false,
+			    0, 0, 0, &addrlen);
 			if (res != EOK)
 				break;
 			fibril_rwlock_read_lock(&tcp_globals.lock);
