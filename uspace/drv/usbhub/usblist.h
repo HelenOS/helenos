@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2010 Matus Dekanek
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,47 +26,63 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <driver.h>
-#include <errno.h>
-#include <async.h>
 
-#include <usb/usbdrv.h>
+#ifndef USBLIST_H
+#define	USBLIST_H
+/** @addtogroup usb hub driver
+ * @{
+ */
+/** @file
+ * @brief HC driver and hub driver.
+ *
+ * My private list implementation; I did not like the original helenos list.
+ * This one does not depend on the structure of stored data and has
+ * much simpler and more straight-forward semantics.
+ */
 
-#include "usbhub.h"
-#include "usbhub_private.h"
+/**
+ * general list structure
+ */
+typedef struct usb_general_list{
+	void * data;
+	struct usb_general_list * prev, * next;
+} usb_general_list_t;
+
+/** create head of usb general list */
+usb_general_list_t * usb_lst_create(void);
+
+/** initialize head of usb general list */
+void usb_lst_init(usb_general_list_t * lst);
 
 
-usb_general_list_t usb_hub_list;
+/** is the list empty? */
+static inline bool usb_lst_empty(usb_general_list_t * lst){
+	return lst?(lst->next==lst):true;
+}
 
-static driver_ops_t hub_driver_ops = {
-	.add_device = usb_add_hub_device,
-};
+/** append data behind item */
+void usb_lst_append(usb_general_list_t * lst, void * data);
 
-static driver_t hub_driver = {
-	.name = "usbhub",
-	.driver_ops = &hub_driver_ops
-};
+/** prepend data beore item */
+void usb_lst_prepend(usb_general_list_t * lst, void * data);
 
-int usb_hub_control_loop(void * noparam){
-	while(true){
-		usb_hub_check_hub_changes();
-		async_usleep(1000 * 1000);
-	}
-	return 0;
+/** remove list item from list */
+void usb_lst_remove(usb_general_list_t * item);
+
+/** get data o specified type from list item */
+#define usb_lst_get_data(item, type)  (type *) (item->data)
+
+/** get usb_hub_info_t data from list item */
+static inline usb_hub_info_t * usb_hub_lst_get_data(usb_general_list_t * item) {
+	return usb_lst_get_data(item,usb_hub_info_t);
 }
 
 
-int main(int argc, char *argv[])
-{
-	usb_dprintf_enable(NAME,1);
-	usb_lst_init(&usb_hub_list);
-	fid_t fid = fibril_create(usb_hub_control_loop, NULL);
-	if (fid == 0) {
-		dprintf(1, "failed to start fibril for HUB devices");
-		//printf("%s: failed to start fibril for HUB devices\n", NAME);
-		return ENOMEM;
-	}
-	fibril_add_ready(fid);
+/**
+ * @}
+ */
 
-	return driver_main(&hub_driver);
-}
+
+
+#endif	/* USBLIST_H */
+

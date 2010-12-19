@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2010 Matus Dekanek
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,48 +25,56 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+/** @addtogroup usb hub driver
+ * @{
+ */
+/** @file
+ * @brief usblist implementation
+ */
+#include <sys/types.h>
 
-#include <driver.h>
-#include <errno.h>
-#include <async.h>
-
-#include <usb/usbdrv.h>
-
-#include "usbhub.h"
 #include "usbhub_private.h"
 
 
-usb_general_list_t usb_hub_list;
+usb_general_list_t * usb_lst_create(void) {
+	usb_general_list_t* result = usb_new(usb_general_list_t);
+	usb_lst_init(result);
+	return result;
+}
 
-static driver_ops_t hub_driver_ops = {
-	.add_device = usb_add_hub_device,
-};
+void usb_lst_init(usb_general_list_t * lst) {
+	lst->prev = lst;
+	lst->next = lst;
+	lst->data = NULL;
+}
 
-static driver_t hub_driver = {
-	.name = "usbhub",
-	.driver_ops = &hub_driver_ops
-};
+void usb_lst_prepend(usb_general_list_t* item, void* data) {
+	usb_general_list_t* appended = usb_new(usb_general_list_t);
+	appended->data = data;
+	appended->next = item;
+	appended->prev = item->prev;
+	item->prev->next = appended;
+	item->prev = appended;
+}
 
-int usb_hub_control_loop(void * noparam){
-	while(true){
-		usb_hub_check_hub_changes();
-		async_usleep(1000 * 1000);
-	}
-	return 0;
+void usb_lst_append(usb_general_list_t* item, void* data) {
+	usb_general_list_t* appended = usb_new(usb_general_list_t);
+	appended->data = data;
+	appended->next = item->next;
+	appended->prev = item;
+	item->next->prev = appended;
+	item->next = appended;
+}
+
+void usb_lst_remove(usb_general_list_t* item) {
+	item->next->prev = item->prev;
+	item->prev->next = item->next;
 }
 
 
-int main(int argc, char *argv[])
-{
-	usb_dprintf_enable(NAME,1);
-	usb_lst_init(&usb_hub_list);
-	fid_t fid = fibril_create(usb_hub_control_loop, NULL);
-	if (fid == 0) {
-		dprintf(1, "failed to start fibril for HUB devices");
-		//printf("%s: failed to start fibril for HUB devices\n", NAME);
-		return ENOMEM;
-	}
-	fibril_add_ready(fid);
 
-	return driver_main(&hub_driver);
-}
+/**
+ * @}
+ */
+
+
