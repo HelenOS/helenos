@@ -31,6 +31,7 @@
 #include <async.h>
 
 #include <usb/usbdrv.h>
+
 #include "usbhub.h"
 #include "usbhub_private.h"
 
@@ -57,10 +58,12 @@ int usb_hub_control_loop(void * noparam){
 
 int main(int argc, char *argv[])
 {
+	usb_dprintf_enable(NAME,1);
 	usb_lst_init(&usb_hub_list);
 	fid_t fid = fibril_create(usb_hub_control_loop, NULL);
 	if (fid == 0) {
-		printf("%s: failed to start fibril for HUB devices\n", NAME);
+		dprintf(1, "failed to start fibril for HUB devices");
+		//printf("%s: failed to start fibril for HUB devices\n", NAME);
 		return ENOMEM;
 	}
 	fibril_add_ready(fid);

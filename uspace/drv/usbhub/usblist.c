@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Lukas Mejdrech
+ * Copyright (c) 2010 Matus Dekanek
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,71 +25,56 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-/** @addtogroup tcp
+/** @addtogroup usb hub driver
  * @{
  */
-
 /** @file
- * TCP standalone module implementation.
- * Contains skeleton module functions mapping.
- * The functions are used by the module skeleton as module specific entry
- * points.
- * @see module.c
+ * @brief usblist implementation
  */
+#include <sys/types.h>
 
-#include "tcp.h"
-#include "tcp_module.h"
+#include "usbhub_private.h"
 
-#include <async.h>
-#include <stdio.h>
-#include <errno.h>
-#include <ipc/ipc.h>
-#include <ipc/services.h>
 
-#include <net/ip_protocols.h>
-#include <net/modules.h>
-#include <net/packet.h>
-#include <net_interface.h>
-
-#include <ip_interface.h>
-#include <tl_local.h>
-
-/** TCP module global data. */
-extern tcp_globals_t tcp_globals;
-
-int tl_module_start_standalone(async_client_conn_t client_connection)
-{
-	sysarg_t phonehash;
-	int rc;
-
-	async_set_client_connection(client_connection);
-	tcp_globals.net_phone = net_connect_module();
-
-	rc = pm_init();
-	if (rc != EOK)
-		return rc;
-
-	rc = tcp_initialize(client_connection);
-	if (rc != EOK)
-		goto out;
-
-	rc = ipc_connect_to_me(PHONE_NS, SERVICE_TCP, 0, 0, &phonehash);
-	if (rc != EOK)
-		goto out;
-	
-	async_manager();
-	
-out:
-	pm_destroy();
-	return rc;
+usb_general_list_t * usb_lst_create(void) {
+	usb_general_list_t* result = usb_new(usb_general_list_t);
+	usb_lst_init(result);
+	return result;
 }
 
-int tl_module_message_standalone(ipc_callid_t callid, ipc_call_t *call,
-    ipc_call_t *answer, int *answer_count)
-{
-	return tcp_message_standalone(callid, call, answer, answer_count);
+void usb_lst_init(usb_general_list_t * lst) {
+	lst->prev = lst;
+	lst->next = lst;
+	lst->data = NULL;
 }
 
-/** @}
+void usb_lst_prepend(usb_general_list_t* item, void* data) {
+	usb_general_list_t* appended = usb_new(usb_general_list_t);
+	appended->data = data;
+	appended->next = item;
+	appended->prev = item->prev;
+	item->prev->next = appended;
+	item->prev = appended;
+}
+
+void usb_lst_append(usb_general_list_t* item, void* data) {
+	usb_general_list_t* appended = usb_new(usb_general_list_t);
+	appended->data = data;
+	appended->next = item->next;
+	appended->prev = item;
+	item->next->prev = appended;
+	item->next = appended;
+}
+
+void usb_lst_remove(usb_general_list_t* item) {
+	item->next->prev = item->prev;
+	item->prev->next = item->next;
+}
+
+
+
+/**
+ * @}
  */
+
+

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Lukas Mejdrech
+ * Copyright (c) 2010 Matus Dekanek
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,70 +26,63 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup tcp
+
+#ifndef USBLIST_H
+#define	USBLIST_H
+/** @addtogroup usb hub driver
  * @{
  */
-
 /** @file
- * TCP standalone module implementation.
- * Contains skeleton module functions mapping.
- * The functions are used by the module skeleton as module specific entry
- * points.
- * @see module.c
+ * @brief HC driver and hub driver.
+ *
+ * My private list implementation; I did not like the original helenos list.
+ * This one does not depend on the structure of stored data and has
+ * much simpler and more straight-forward semantics.
  */
 
-#include "tcp.h"
-#include "tcp_module.h"
-
-#include <async.h>
-#include <stdio.h>
-#include <errno.h>
-#include <ipc/ipc.h>
-#include <ipc/services.h>
-
-#include <net/ip_protocols.h>
-#include <net/modules.h>
-#include <net/packet.h>
-#include <net_interface.h>
-
-#include <ip_interface.h>
-#include <tl_local.h>
-
-/** TCP module global data. */
-extern tcp_globals_t tcp_globals;
-
-int tl_module_start_standalone(async_client_conn_t client_connection)
-{
-	sysarg_t phonehash;
-	int rc;
-
-	async_set_client_connection(client_connection);
-	tcp_globals.net_phone = net_connect_module();
-
-	rc = pm_init();
-	if (rc != EOK)
-		return rc;
-
-	rc = tcp_initialize(client_connection);
-	if (rc != EOK)
-		goto out;
-
-	rc = ipc_connect_to_me(PHONE_NS, SERVICE_TCP, 0, 0, &phonehash);
-	if (rc != EOK)
-		goto out;
-	
-	async_manager();
-	
-out:
-	pm_destroy();
-	return rc;
-}
-
-int tl_module_message_standalone(ipc_callid_t callid, ipc_call_t *call,
-    ipc_call_t *answer, int *answer_count)
-{
-	return tcp_message_standalone(callid, call, answer, answer_count);
-}
-
-/** @}
+/**
+ * general list structure
  */
+typedef struct usb_general_list{
+	void * data;
+	struct usb_general_list * prev, * next;
+} usb_general_list_t;
+
+/** create head of usb general list */
+usb_general_list_t * usb_lst_create(void);
+
+/** initialize head of usb general list */
+void usb_lst_init(usb_general_list_t * lst);
+
+
+/** is the list empty? */
+static inline bool usb_lst_empty(usb_general_list_t * lst){
+	return lst?(lst->next==lst):true;
+}
+
+/** append data behind item */
+void usb_lst_append(usb_general_list_t * lst, void * data);
+
+/** prepend data beore item */
+void usb_lst_prepend(usb_general_list_t * lst, void * data);
+
+/** remove list item from list */
+void usb_lst_remove(usb_general_list_t * item);
+
+/** get data o specified type from list item */
+#define usb_lst_get_data(item, type)  (type *) (item->data)
+
+/** get usb_hub_info_t data from list item */
+static inline usb_hub_info_t * usb_hub_lst_get_data(usb_general_list_t * item) {
+	return usb_lst_get_data(item,usb_hub_info_t);
+}
+
+
+/**
+ * @}
+ */
+
+
+
+#endif	/* USBLIST_H */
+
