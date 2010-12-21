@@ -342,6 +342,12 @@ bool fibril_rwlock_is_write_locked(fibril_rwlock_t *frw)
 	return locked;
 }
 
+bool fibril_rwlock_is_locked(fibril_rwlock_t *frw)
+{
+	return fibril_rwlock_is_read_locked(frw) ||
+	    fibril_rwlock_is_write_locked(frw);
+}
+
 void fibril_condvar_initialize(fibril_condvar_t *fcv)
 {
 	list_initialize(&fcv->waiters);
