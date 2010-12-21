@@ -451,6 +451,8 @@ void pci_bus_scan(device_t *parent, int bus_num)
 
 static int pci_add_device(device_t *dev)
 {
+	int rc;
+
 	printf(NAME ": pci_add_device\n");
 	
 	pci_bus_data_t *bus_data = create_pci_bus_data();
@@ -465,17 +467,18 @@ static int pci_add_device(device_t *dev)
 		printf(NAME ": pci_add_device failed to connect to the "
 		    "parent's driver.\n");
 		delete_pci_bus_data(bus_data);
-		return EPARTY;	/* FIXME: use another EC */
+		return dev->parent_phone;
 	}
 	
 	hw_resource_list_t hw_resources;
 	
-	if (!get_hw_resources(dev->parent_phone, &hw_resources)) {
+	rc = get_hw_resources(dev->parent_phone, &hw_resources);
+	if (rc != EOK) {
 		printf(NAME ": pci_add_device failed to get hw resources for "
 		    "the device.\n");
 		delete_pci_bus_data(bus_data);
 		ipc_hangup(dev->parent_phone);
-		return EPARTY;	/* FIXME: use another EC */
+		return rc;
 	}	
 	
 	printf(NAME ": conf_addr = %" PRIx64 ".\n",
