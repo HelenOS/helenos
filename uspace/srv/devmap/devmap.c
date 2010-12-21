@@ -45,6 +45,7 @@
 #include <stdlib.h>
 #include <str.h>
 #include <ipc/devmap.h>
+#include <assert.h>
 
 #define NAME          "devmap"
 #define NULL_DEVICES  256
@@ -207,15 +208,13 @@ static bool devmap_fqdn_split(const char *fqdn, char **ns_name, char **name)
 	return true;
 }
 
-/** Find namespace with given name.
- *
- * The devices_list_mutex should be already held when
- * calling this function.
- *
- */
+/** Find namespace with given name. */
 static devmap_namespace_t *devmap_namespace_find_name(const char *name)
 {
 	link_t *item;
+	
+	assert(fibril_mutex_is_locked(&devices_list_mutex));
+	
 	for (item = namespaces_list.next; item != &namespaces_list; item = item->next) {
 		devmap_namespace_t *namespace =
 		    list_get_instance(item, devmap_namespace_t, namespaces);
@@ -228,15 +227,15 @@ static devmap_namespace_t *devmap_namespace_find_name(const char *name)
 
 /** Find namespace with given handle.
  *
- * The devices_list_mutex should be already held when
- * calling this function.
- *
  * @todo: use hash table
  *
  */
 static devmap_namespace_t *devmap_namespace_find_handle(devmap_handle_t handle)
 {
 	link_t *item;
+	
+	assert(fibril_mutex_is_locked(&devices_list_mutex));
+	
 	for (item = namespaces_list.next; item != &namespaces_list; item = item->next) {
 		devmap_namespace_t *namespace =
 		    list_get_instance(item, devmap_namespace_t, namespaces);
@@ -247,16 +246,14 @@ static devmap_namespace_t *devmap_namespace_find_handle(devmap_handle_t handle)
 	return NULL;
 }
 
-/** Find device with given name.
- *
- * The devices_list_mutex should be already held when
- * calling this function.
- *
- */
+/** Find device with given name. */
 static devmap_device_t *devmap_device_find_name(const char *ns_name,
     const char *name)
 {
 	link_t *item;
+	
+	assert(fibril_mutex_is_locked(&devices_list_mutex));
+	
 	for (item = devices_list.next; item != &devices_list; item = item->next) {
 		devmap_device_t *device =
 		    list_get_instance(item, devmap_device_t, devices);
@@ -270,15 +267,15 @@ static devmap_device_t *devmap_device_find_name(const char *ns_name,
 
 /** Find device with given handle.
  *
- * The devices_list_mutex should be already held when
- * calling this function.
- *
  * @todo: use hash table
  *
  */
 static devmap_device_t *devmap_device_find_handle(devmap_handle_t handle)
 {
 	link_t *item;
+	
+	assert(fibril_mutex_is_locked(&devices_list_mutex));
+	
 	for (item = devices_list.next; item != &devices_list; item = item->next) {
 		devmap_device_t *device =
 		    list_get_instance(item, devmap_device_t, devices);
@@ -289,15 +286,14 @@ static devmap_device_t *devmap_device_find_handle(devmap_handle_t handle)
 	return NULL;
 }
 
-/** Create a namespace (if not already present)
- *
- * The devices_list_mutex should be already held when
- * calling this function.
- *
- */
+/** Create a namespace (if not already present). */
 static devmap_namespace_t *devmap_namespace_create(const char *ns_name)
 {
-	devmap_namespace_t *namespace = devmap_namespace_find_name(ns_name);
+	devmap_namespace_t *namespace;
+	
+	assert(fibril_mutex_is_locked(&devices_list_mutex));
+	
+	namespace = devmap_namespace_find_name(ns_name);
 	if (namespace != NULL)
 		return namespace;
 	
@@ -322,14 +318,11 @@ static devmap_namespace_t *devmap_namespace_create(const char *ns_name)
 	return namespace;
 }
 
-/** Destroy a namespace (if it is no longer needed)
- *
- * The devices_list_mutex should be already held when
- * calling this function.
- *
- */
+/** Destroy a namespace (if it is no longer needed). */
 static void devmap_namespace_destroy(devmap_namespace_t *namespace)
 {
+	assert(fibril_mutex_is_locked(&devices_list_mutex));
+
 	if (namespace->refcnt == 0) {
 		list_remove(&(namespace->namespaces));
 		
@@ -338,39 +331,30 @@ static void devmap_namespace_destroy(devmap_namespace_t *namespace)
 	}
 }
 
-/** Increase namespace reference count by including device
- *
- * The devices_list_mutex should be already held when
- * calling this function.
- *
- */
+/** Increase namespace reference count by including device. */
 static void devmap_namespace_addref(devmap_namespace_t *namespace,
     devmap_device_t *device)
 {
+	assert(fibril_mutex_is_locked(&devices_list_mutex));
+
 	device->namespace = namespace;
 	namespace->refcnt++;
 }
 
-/** Decrease namespace reference count
- *
- * The devices_list_mutex should be already held when
- * calling this function.
- *
- */
+/** Decrease namespace reference count. */
 static void devmap_namespace_delref(devmap_namespace_t *namespace)
 {
+	assert(fibril_mutex_is_locked(&devices_list_mutex));
+
 	namespace->refcnt--;
 	devmap_namespace_destroy(namespace);
 }
 
-/** Unregister device and free it
- *
- * The devices_list_mutex should be already held when
- * calling this function.
- *
- */
+/** Unregister device and free it. */
 static void devmap_device_unregister_core(devmap_device_t *device)
 {
+	assert(fibril_mutex_is_locked(&devices_list_mutex));
+
 	devmap_namespace_delref(device->namespace);
 	list_remove(&(device->devices));
 	list_remove(&(device->driver_devices));
