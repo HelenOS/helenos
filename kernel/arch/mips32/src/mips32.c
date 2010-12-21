@@ -167,6 +167,21 @@ void arch_pre_smp_init(void)
 
 void arch_post_smp_init(void)
 {
+	static const char *platform;
+
+	/* Set platform name. */
+#ifdef MACHINE_msim
+	platform = "msim";
+#endif
+#ifdef MACHINE_bgxemul
+	platform = "gxemul";
+#endif
+#ifdef MACHINE_lgxemul
+	platform = "gxemul";
+#endif
+	sysinfo_set_item_data("platform", NULL, (void *) platform,
+	    str_size(platform));
+
 #ifdef CONFIG_MIPS_KBD
 	/*
 	 * Initialize the msim/GXemul keyboard port. Then initialize the serial line
