@@ -278,10 +278,10 @@ int devmap_device_connect(devmap_handle_t handle, unsigned int flags)
 	int phone;
 	
 	if (flags & IPC_FLAG_BLOCKING) {
-		phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_DEVMAP,
+		phone = async_connect_me_to_blocking(PHONE_NS, SERVICE_DEVMAP,
 		    DEVMAP_CONNECT_TO_DEVICE, handle);
 	} else {
-		phone = ipc_connect_me_to(PHONE_NS, SERVICE_DEVMAP,
+		phone = async_connect_me_to(PHONE_NS, SERVICE_DEVMAP,
 		    DEVMAP_CONNECT_TO_DEVICE, handle);
 	}
 	
