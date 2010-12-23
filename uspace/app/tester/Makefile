@@ -50,8 +50,6 @@ SOURCES = \
 	fault/fault3.c \
 	vfs/vfs1.c \
 	ipc/ping_pong.c \
-	ipc/register.c \
-	ipc/connect.c \
 	loop/loop1.c \
 	mm/malloc1.c \
 	hw/misc/virtchar1.c \
