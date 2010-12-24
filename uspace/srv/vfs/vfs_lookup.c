@@ -178,8 +178,11 @@ int vfs_lookup_internal(char *path, int lflag, vfs_lookup_res_t *result,
 	memset(plb, 0, cnt2);
 	fibril_mutex_unlock(&plb_mutex);
 	
-	if (((int) rc < EOK) || (!result))
+	if ((int) rc < EOK)
 		return (int) rc;
+
+	if (!result)
+		return EOK;
 	
 	result->triplet.fs_handle = (fs_handle_t) rc;
 	result->triplet.devmap_handle = (devmap_handle_t) IPC_GET_ARG1(answer);

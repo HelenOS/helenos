@@ -341,15 +341,15 @@ static int ns8250_dev_initialize(device_t *dev)
 	if (dev->parent_phone < 0) {
 		printf(NAME ": failed to connect to the parent driver of the "
 		    "device %s.\n", dev->name);
-		ret = EPARTY;	/* FIXME: use another EC */
+		ret = dev->parent_phone;
 		goto failed;
 	}
 	
 	/* Get hw resources. */
-	if (!get_hw_resources(dev->parent_phone, &hw_resources)) {
+	ret = get_hw_resources(dev->parent_phone, &hw_resources);
+	if (ret != EOK) {
 		printf(NAME ": failed to get hw resources for the device "
 		    "%s.\n", dev->name);
-		ret = EPARTY;	/* FIXME: use another EC */
 		goto failed;
 	}
 	
@@ -373,7 +373,7 @@ static int ns8250_dev_initialize(device_t *dev)
 			if (res->res.io_range.size < REG_COUNT) {
 				printf(NAME ": i/o range assigned to the device "
 				    "%s is too small.\n", dev->name);
-				ret = EPARTY;	/* FIXME: use another EC */
+				ret = ELIMIT;
 				goto failed;
 			}
 			ioport = true;
@@ -389,7 +389,7 @@ static int ns8250_dev_initialize(device_t *dev)
 	if (!irq || !ioport) {
 		printf(NAME ": missing hw resource(s) for the device %s.\n",
 		    dev->name);
-		ret = EPARTY;	/* FIXME: use another EC */
+		ret = ENOENT;
 		goto failed;
 	}
 	
