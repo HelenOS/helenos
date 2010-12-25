@@ -37,7 +37,7 @@
  * is selected, accepts incoming connections.
  */
 
-#include <malloc.h>
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <str.h>
@@ -220,31 +220,35 @@ static int netecho_parse_option(int argc, char *argv[], int *index)
  * @param listening_id	Listening socket.
  * @return		EOK on success or negative error code.
  */
-static int netecho_socket_echo_message(int listening_id)
+static int netecho_socket_process_message(int listening_id)
 {
-	socklen_t max_length = sizeof(struct sockaddr_in6);
-	uint8_t address_data[max_length];
-	struct sockaddr *address = (struct sockaddr *) address_data;
+	uint8_t address_buf[sizeof(struct sockaddr_in6)];
+
 	socklen_t addrlen;
 	int socket_id;
 	ssize_t rcv_size;
 	size_t length;
 	uint8_t *address_start;
-	struct sockaddr_in *address_in = (struct sockaddr_in *) address;
-	struct sockaddr_in6 *address_in6 = (struct sockaddr_in6 *) address;
+
 	char address_string[INET6_ADDRSTRLEN];
+	struct sockaddr_in *address_in = (struct sockaddr_in *) address_buf;
+	struct sockaddr_in6 *address_in6 = (struct sockaddr_in6 *) address_buf;
+	struct sockaddr *address = (struct sockaddr *) address_buf;
+
 	int rc;
 
-	addrlen = (socklen_t) max_length;
 	if (type == SOCK_STREAM) {
-		/* Accept a socket if the stream socket is used */
-		socket_id = accept(listening_id, address, &addrlen);
+		/* Accept a socket if a stream socket is used */
+		addrlen = sizeof(address_buf);
+            	socket_id = accept(listening_id, (void *) address_buf, &addrlen);
 		if (socket_id <= 0) {
 			socket_print_error(stderr, socket_id, "Socket accept: ", "\n");
 		} else {
 			if (verbose)
 				printf("Socket %d accepted\n", socket_id);
 		}
+
+		assert((size_t) addrlen <= sizeof(address_buf));
 	} else {
 		socket_id = listening_id;
 	}
@@ -253,7 +257,8 @@ static int netecho_socket_echo_message(int listening_id)
 	if (socket_id > 0) {
 
 		/* Receive a message to echo */
-		rcv_size = recvfrom(socket_id, data, size, 0, address, &addrlen);
+		rcv_size = recvfrom(socket_id, data, size, 0, address,
+		    &addrlen);
 		if (rcv_size < 0) {
 			socket_print_error(stderr, rcv_size, "Socket receive: ", "\n");
 		} else {
@@ -311,12 +316,11 @@ static int netecho_socket_echo_message(int listening_id)
 
 int main(int argc, char *argv[])
 {
-	socklen_t max_length = sizeof(struct sockaddr_in6);
-	uint8_t address_data[max_length];
-	struct sockaddr *address = (struct sockaddr *) address_data;
-	struct sockaddr_in *address_in = (struct sockaddr_in *) address;
-	struct sockaddr_in6 *address_in6 = (struct sockaddr_in6 *) address;
+	struct sockaddr *address;;
+	struct sockaddr_in address_in;
+	struct sockaddr_in6 address_in6;
 	socklen_t addrlen;
+
 	int listening_id;
 	int index;
 	int rc;
@@ -350,17 +354,18 @@ int main(int argc, char *argv[])
 	reply_length = reply ? str_length(reply) : 0;
 
 	/* Prepare the address buffer */
-	bzero(address_data, max_length);
 	switch (family) {
 	case PF_INET:
-		address_in->sin_family = AF_INET;
-		address_in->sin_port = htons(port);
-		addrlen = sizeof(struct sockaddr_in);
+		address_in.sin_family = AF_INET;
+		address_in.sin_port = htons(port);
+		address = (struct sockaddr *) &address_in;
+		addrlen = sizeof(address_in);
 		break;
 	case PF_INET6:
-		address_in6->sin6_family = AF_INET6;
-		address_in6->sin6_port = htons(port);
-		addrlen = sizeof(struct sockaddr_in6);
+		address_in6.sin6_family = AF_INET6;
+		address_in6.sin6_port = htons(port);
+		address = (struct sockaddr *) &address_in6;
+		addrlen = sizeof(address_in6);
 		break;
 	default:
 		fprintf(stderr, "Protocol family is not supported\n");
@@ -405,7 +410,7 @@ int main(int argc, char *argv[])
 	 * or indefinitely if set to a negative value
 	 */
 	while (count) {
-		rc = netecho_socket_echo_message(listening_id);
+		rc = netecho_socket_process_message(listening_id);
 		if (rc != EOK)
 			break;
 
@@ -413,7 +418,7 @@ int main(int argc, char *argv[])
 		if (count > 0) {
 			count--;
 			if (verbose)
-				printf("Waiting for next %d packet(s)\n", count);
+				printf("Waiting for next %d message(s)\n", count);
 		}
 	}
 
