@@ -311,7 +311,7 @@ NO_TRACE static bool check_area_conflicts(as_t *as, uintptr_t va, size_t size,
 	 * We don't want any area to have conflicts with NULL page.
 	 *
 	 */
-	if (overlaps(va, size, NULL, PAGE_SIZE))
+	if (overlaps(va, size, (uintptr_t) NULL, PAGE_SIZE))
 		return false;
 	
 	/*
@@ -1810,8 +1810,8 @@ int used_space_insert(as_area_t *area, uintptr_t page, size_t count)
 		}
 	}
 	
-	panic("Inconsistency detected while adding %" PRIs " pages of used "
-	    "space at %p.", count, page);
+	panic("Inconsistency detected while adding %zu pages of used "
+	    "space at %p.", count, (void *) page);
 }
 
 /** Mark portion of address space area as unused.
@@ -1990,8 +1990,8 @@ int used_space_remove(as_area_t *area, uintptr_t page, size_t count)
 	}
 	
 error:
-	panic("Inconsistency detected while removing %" PRIs " pages of used "
-	    "space from %p.", count, page);
+	panic("Inconsistency detected while removing %zu pages of used "
+	    "space from %p.", count, (void *) page);
 }
 
 /*
@@ -1999,31 +1999,31 @@ error:
  */
 
 /** Wrapper for as_area_create(). */
-unative_t sys_as_area_create(uintptr_t address, size_t size, unsigned int flags)
+sysarg_t sys_as_area_create(uintptr_t address, size_t size, unsigned int flags)
 {
 	if (as_area_create(AS, flags | AS_AREA_CACHEABLE, size, address,
 	    AS_AREA_ATTR_NONE, &anon_backend, NULL))
-		return (unative_t) address;
+		return (sysarg_t) address;
 	else
-		return (unative_t) -1;
+		return (sysarg_t) -1;
 }
 
 /** Wrapper for as_area_resize(). */
-unative_t sys_as_area_resize(uintptr_t address, size_t size, unsigned int flags)
+sysarg_t sys_as_area_resize(uintptr_t address, size_t size, unsigned int flags)
 {
-	return (unative_t) as_area_resize(AS, address, size, 0);
+	return (sysarg_t) as_area_resize(AS, address, size, 0);
 }
 
 /** Wrapper for as_area_change_flags(). */
-unative_t sys_as_area_change_flags(uintptr_t address, unsigned int flags)
+sysarg_t sys_as_area_change_flags(uintptr_t address, unsigned int flags)
 {
-	return (unative_t) as_area_change_flags(AS, flags, address);
+	return (sysarg_t) as_area_change_flags(AS, flags, address);
 }
 
 /** Wrapper for as_area_destroy(). */
-unative_t sys_as_area_destroy(uintptr_t address)
+sysarg_t sys_as_area_destroy(uintptr_t address)
 {
-	return (unative_t) as_area_destroy(AS, address);
+	return (sysarg_t) as_area_destroy(AS, address);
 }
 
 /** Get list of adress space areas.
@@ -2104,9 +2104,10 @@ void as_print(as_t *as)
 			as_area_t *area = node->value[i];
 			
 			mutex_lock(&area->lock);
-			printf("as_area: %p, base=%p, pages=%" PRIs
-			    " (%p - %p)\n", area, area->base, area->pages,
-			    area->base, area->base + FRAMES2SIZE(area->pages));
+			printf("as_area: %p, base=%p, pages=%zu"
+			    " (%p - %p)\n", area, (void *) area->base,
+			    area->pages, (void *) area->base,
+			    (void *) (area->base + FRAMES2SIZE(area->pages)));
 			mutex_unlock(&area->lock);
 		}
 	}

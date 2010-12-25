@@ -52,7 +52,7 @@ typedef struct {
 } srv_proto_t;
 
 typedef struct {
-	ipcarg_t method;
+	sysarg_t method;
 	oper_t *oper;
 	link_t link;
 } method_oper_t;

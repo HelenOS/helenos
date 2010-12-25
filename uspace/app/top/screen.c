@@ -46,8 +46,8 @@
 #include "screen.h"
 #include "top.h"
 
-static ipcarg_t warn_col = 0;
-static ipcarg_t warn_row = 0;
+static sysarg_t warn_col = 0;
+static sysarg_t warn_row = 0;
 
 static void screen_style_normal(void)
 {
@@ -61,19 +61,19 @@ static void screen_style_inverted(void)
 	console_set_style(fphone(stdout), STYLE_INVERTED);
 }
 
-static void screen_moveto(ipcarg_t col, ipcarg_t row)
+static void screen_moveto(sysarg_t col, sysarg_t row)
 {
 	fflush(stdout);
 	console_set_pos(fphone(stdout), col, row);
 }
 
-static void screen_get_pos(ipcarg_t *col, ipcarg_t *row)
+static void screen_get_pos(sysarg_t *col, sysarg_t *row)
 {
 	fflush(stdout);
 	console_get_pos(fphone(stdout), col, row);
 }
 
-static void screen_get_size(ipcarg_t *col, ipcarg_t *row)
+static void screen_get_size(sysarg_t *col, sysarg_t *row)
 {
 	fflush(stdout);
 	console_get_size(fphone(stdout), col, row);
@@ -93,15 +93,15 @@ static void screen_restart(bool clear)
 
 static void screen_newline(void)
 {
-	ipcarg_t cols;
-	ipcarg_t rows;
+	sysarg_t cols;
+	sysarg_t rows;
 	screen_get_size(&cols, &rows);
 	
-	ipcarg_t c;
-	ipcarg_t r;
+	sysarg_t c;
+	sysarg_t r;
 	screen_get_pos(&c, &r);
 	
-	ipcarg_t i;
+	sysarg_t i;
 	for (i = c + 1; i < cols; i++)
 		puts(" ");
 	
@@ -141,21 +141,25 @@ static void print_percent(fixed_float ffloat, unsigned int precision)
 
 static void print_string(const char *str)
 {
-	ipcarg_t cols;
-	ipcarg_t rows;
+	sysarg_t cols;
+	sysarg_t rows;
 	screen_get_size(&cols, &rows);
 	
-	ipcarg_t c;
-	ipcarg_t r;
+	sysarg_t c;
+	sysarg_t r;
 	screen_get_pos(&c, &r);
 	
-	if (c < cols)
-		printf("%.*s", cols - c - 1, str);
+	if (c < cols) {
+		int pos = cols - c - 1;
+		printf("%.*s", pos, str);
+	}
 }
 
 static inline void print_global_head(data_t *data)
 {
-	printf("top - %02lu:%02lu:%02lu up %u days, %02u:%02u:%02u, load average:",
+	printf("top - %02lu:%02lu:%02lu up "
+	    "%" PRIun " days, %02" PRIun ":%02" PRIun ":%02" PRIun ", "
+	    "load average:",
 	    data->hours, data->minutes, data->seconds,
 	    data->udays, data->uhours, data->uminutes, data->useconds);
 	
@@ -170,7 +174,7 @@ static inline void print_global_head(data_t *data)
 
 static inline void print_task_summary(data_t *data)
 {
-	printf("tasks: %u total", data->tasks_count);
+	printf("tasks: %zu total", data->tasks_count);
 	screen_newline();
 }
 
@@ -210,8 +214,8 @@ static inline void print_thread_summary(data_t *data)
 		}
 	}
 	
-	printf("threads: %u total, %u running, %u ready, %u sleeping, %u lingering, "
-	    "%u other, %u invalid",
+	printf("threads: %zu total, %zu running, %zu ready, "
+	    "%zu sleeping, %zu lingering, %zu other, %zu invalid",
 	    total, running, ready, sleeping, lingering, other, invalid);
 	screen_newline();
 }
@@ -277,12 +281,12 @@ static inline void print_tasks_head(void)
 
 static inline void print_tasks(data_t *data)
 {
-	ipcarg_t cols;
-	ipcarg_t rows;
+	sysarg_t cols;
+	sysarg_t rows;
 	screen_get_size(&cols, &rows);
 	
-	ipcarg_t col;
-	ipcarg_t row;
+	sysarg_t col;
+	sysarg_t row;
 	screen_get_pos(&col, &row);
 	
 	size_t i;
@@ -294,7 +298,7 @@ static inline void print_tasks(data_t *data)
 		char virtmem_suffix;
 		order_suffix(task->virtmem, &virtmem, &virtmem_suffix);
 		
-		printf("%-8" PRIu64 " %9u %8" PRIu64 "%c ", task->task_id,
+		printf("%-8" PRIu64 " %9zu %8" PRIu64 "%c ", task->task_id,
 		    task->threads, virtmem, virtmem_suffix);
 		print_percent(perc->virtmem, 2);
 		puts(" ");
@@ -324,12 +328,12 @@ static inline void print_ipc_head(void)
 
 static inline void print_ipc(data_t *data)
 {
-	ipcarg_t cols;
-	ipcarg_t rows;
+	sysarg_t cols;
+	sysarg_t rows;
 	screen_get_size(&cols, &rows);
 	
-	ipcarg_t col;
-	ipcarg_t row;
+	sysarg_t col;
+	sysarg_t row;
 	screen_get_pos(&col, &row);
 	
 	size_t i;
@@ -391,12 +395,12 @@ static inline void print_excs_head(void)
 
 static inline void print_excs(data_t *data)
 {
-	ipcarg_t cols;
-	ipcarg_t rows;
+	sysarg_t cols;
+	sysarg_t rows;
 	screen_get_size(&cols, &rows);
 	
-	ipcarg_t col;
-	ipcarg_t row;
+	sysarg_t col;
+	sysarg_t row;
 	screen_get_pos(&col, &row);
 	
 	size_t i;
@@ -434,12 +438,12 @@ static inline void print_excs(data_t *data)
 
 static void print_help(void)
 {
-	ipcarg_t cols;
-	ipcarg_t rows;
+	sysarg_t cols;
+	sysarg_t rows;
 	screen_get_size(&cols, &rows);
 	
-	ipcarg_t col;
-	ipcarg_t row;
+	sysarg_t col;
+	sysarg_t row;
 	screen_get_pos(&col, &row);
 	
 	screen_newline();

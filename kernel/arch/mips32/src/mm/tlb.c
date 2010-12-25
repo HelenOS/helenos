@@ -322,7 +322,8 @@ void tlb_refill_fail(istate_t *istate)
 {
 	uintptr_t va = cp0_badvaddr_read();
 	
-	fault_if_from_uspace(istate, "TLB Refill Exception on %p.", va);
+	fault_if_from_uspace(istate, "TLB Refill Exception on %p.",
+	    (void *) va);
 	panic_memtrap(istate, PF_ACCESS_UNKNOWN, va, "TLB Refill Exception.");
 }
 
@@ -331,7 +332,8 @@ void tlb_invalid_fail(istate_t *istate)
 {
 	uintptr_t va = cp0_badvaddr_read();
 	
-	fault_if_from_uspace(istate, "TLB Invalid Exception on %p.", va);
+	fault_if_from_uspace(istate, "TLB Invalid Exception on %p.",
+	    (void *) va);
 	panic_memtrap(istate, PF_ACCESS_UNKNOWN, va, "TLB Invalid Exception.");
 }
 
@@ -339,7 +341,8 @@ void tlb_modified_fail(istate_t *istate)
 {
 	uintptr_t va = cp0_badvaddr_read();
 	
-	fault_if_from_uspace(istate, "TLB Modified Exception on %p.", va);
+	fault_if_from_uspace(istate, "TLB Modified Exception on %p.",
+	    (void *) va);
 	panic_memtrap(istate, PF_ACCESS_WRITE, va, "TLB Modified Exception.");
 }
 

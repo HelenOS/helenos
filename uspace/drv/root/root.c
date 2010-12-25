@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2010 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -44,12 +45,22 @@
 #include <str.h>
 #include <ctype.h>
 #include <macros.h>
+#include <inttypes.h>
+#include <sysinfo.h>
 
 #include <driver.h>
 #include <devman.h>
 #include <ipc/devman.h>
 
 #define NAME "root"
+
+#define PLATFORM_DEVICE_NAME "hw"
+#define PLATFORM_DEVICE_MATCH_ID_FMT "platform/%s"
+#define PLATFORM_DEVICE_MATCH_SCORE 100
+
+#define VIRTUAL_DEVICE_NAME "virt"
+#define VIRTUAL_DEVICE_MATCH_ID "rootvirt"
+#define VIRTUAL_DEVICE_MATCH_SCORE 100
 
 static int root_add_device(device_t *dev);
 
@@ -64,6 +75,23 @@ static driver_t root_driver = {
 	.driver_ops = &root_ops
 };
 
+/** Create the device which represents the root of virtual device tree.
+ *
+ * @param parent Parent of the newly created device.
+ * @return Error code.
+ */
+static int add_virtual_root_child(device_t *parent)
+{
+	printf(NAME ": adding new child for virtual devices.\n");
+	printf(NAME ":   device node is `%s' (%d %s)\n", VIRTUAL_DEVICE_NAME,
+	    VIRTUAL_DEVICE_MATCH_SCORE, VIRTUAL_DEVICE_MATCH_ID);
+
+	int res = child_device_register_wrapper(parent, VIRTUAL_DEVICE_NAME,
+	    VIRTUAL_DEVICE_MATCH_ID, VIRTUAL_DEVICE_MATCH_SCORE);
+
+	return res;
+}
+
 /** Create the device which represents the root of HW device tree.
  *
  * @param parent	Parent of the newly created device.
@@ -71,50 +99,44 @@ static driver_t root_driver = {
  */
 static int add_platform_child(device_t *parent)
 {
+	char *match_id;
+	char *platform;
+	size_t platform_size;
+	int res;
+
+	/* Get platform name from sysinfo. */
+
+	platform = sysinfo_get_data("platform", &platform_size);
+	if (platform == NULL) {
+		printf(NAME ": Failed to obtain platform name.\n");
+		return ENOENT;
+	}
+
+	/* Null-terminate string. */
+	platform = realloc(platform, platform_size + 1);
+	if (platform == NULL) {
+		printf(NAME ": Memory allocation failed.\n");
+		return ENOMEM;
+	}
+
+	platform[platform_size] = '\0';
+
+	/* Construct match ID. */
+
+	if (asprintf(&match_id, PLATFORM_DEVICE_MATCH_ID_FMT, platform) == -1) {
+		printf(NAME ": Memory allocation failed.\n");
+		return ENOMEM;
+	}
+
+	/* Add child. */
+
 	printf(NAME ": adding new child for platform device.\n");
-	
-	int res = EOK;
-	device_t *platform = NULL;
-	match_id_t *match_id = NULL;
-	
-	/* Create new device. */
-	platform = create_device();
-	if (NULL == platform) {
-		res = ENOMEM;
-		goto failure;
-	}	
-	
-	platform->name = "hw";
-	printf(NAME ": the new device's name is %s.\n", platform->name);
-	
-	/* Initialize match id list. */
-	match_id = create_match_id();
-	if (NULL == match_id) {
-		res = ENOMEM;
-		goto failure;
-	}
-	
-	/* TODO - replace this with some better solution (sysinfo ?) */
-	match_id->id = STRING(UARCH);
-	match_id->score = 100;
-	add_match_id(&platform->match_ids, match_id);
-	
-	/* Register child device. */
-	res = child_device_register(platform, parent);
-	if (EOK != res)
-		goto failure;
-	
-	return res;
-	
-failure:
-	if (NULL != match_id)
-		match_id->id = NULL;
-	
-	if (NULL != platform) {
-		platform->name = NULL;
-		delete_device(platform);
-	}
-	
+	printf(NAME ":   device node is `%s' (%d %s)\n", PLATFORM_DEVICE_NAME,
+	    PLATFORM_DEVICE_MATCH_SCORE, match_id);
+
+	res = child_device_register_wrapper(parent, PLATFORM_DEVICE_NAME,
+	    match_id, PLATFORM_DEVICE_MATCH_SCORE);
+
 	return res;
 }
 
@@ -125,8 +147,16 @@ failure:
  */
 static int root_add_device(device_t *dev)
 {
-	printf(NAME ": root_add_device, device handle = %d\n", dev->handle);
+	printf(NAME ": root_add_device, device handle=%" PRIun "\n",
+	    dev->handle);
 	
+	/*
+	 * Register virtual devices root.
+	 * We ignore error occurrence because virtual devices shall not be
+	 * vital for the system.
+	 */
+	add_virtual_root_child(dev);
+
 	/* Register root device's children. */
 	int res = add_platform_child(dev);
 	if (EOK != res)

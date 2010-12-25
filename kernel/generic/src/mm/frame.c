@@ -144,10 +144,11 @@ NO_TRACE static size_t zones_insert_zone(pfn_t base, size_t count,
 			if ((zones.info[i].flags != flags) ||
 			    (!iswithin(zones.info[i].base, zones.info[i].count,
 			    base, count))) {
-				printf("Zone (%p, %p) overlaps with previous zone (%p, %p)!\n",
-				    PFN2ADDR(base), PFN2ADDR(count),
-				    PFN2ADDR(zones.info[i].base),
-				    PFN2ADDR(zones.info[i].count));
+				printf("Zone (%p, %p) overlaps "
+				    "with previous zone (%p %p)!\n",
+				    (void *) PFN2ADDR(base), (void *) PFN2ADDR(count),
+				    (void *) PFN2ADDR(zones.info[i].base),
+				    (void *) PFN2ADDR(zones.info[i].count));
 			}
 			
 			return (size_t) -1;
@@ -877,7 +878,7 @@ size_t zone_create(pfn_t start, size_t count, pfn_t confframe,
 		 * nobody tries to do that. If some platform requires, remove
 		 * the assert
 		 */
-		ASSERT(confframe != NULL);
+		ASSERT(confframe != ADDR2PFN((uintptr_t ) NULL));
 		
 		/* If confframe is supposed to be inside our zone, then make sure
 		 * it does not span kernel & init
@@ -1048,8 +1049,8 @@ loop:
 		 */
 		
 #ifdef CONFIG_DEBUG
-		printf("Thread %" PRIu64 " waiting for %" PRIs " frames, "
-		    "%" PRIs " available.\n", THREAD->tid, size, avail);
+		printf("Thread %" PRIu64 " waiting for %zu frames, "
+		    "%zu available.\n", THREAD->tid, size, avail);
 #endif
 		
 		mutex_lock(&mem_avail_mtx);
@@ -1103,7 +1104,7 @@ void frame_free(uintptr_t frame)
 	 * First, find host frame zone for addr.
 	 */
 	pfn_t pfn = ADDR2PFN(frame);
-	size_t znum = find_zone(pfn, 1, NULL);
+	size_t znum = find_zone(pfn, 1, 0);
 	
 	ASSERT(znum != (size_t) -1);
 	
@@ -1140,7 +1141,7 @@ NO_TRACE void frame_reference_add(pfn_t pfn)
 	/*
 	 * First, find host frame zone for addr.
 	 */
-	size_t znum = find_zone(pfn, 1, NULL);
+	size_t znum = find_zone(pfn, 1, 0);
 	
 	ASSERT(znum != (size_t) -1);
 	
@@ -1296,23 +1297,23 @@ void zones_print_list(void)
 		
 		bool available = zone_flags_available(flags);
 		
-		printf("%-4" PRIs, i);
+		printf("%-4zu", i);
 		
 #ifdef __32_BITS__
-		printf("  %10p", base);
+		printf("  %p", (void *) base);
 #endif
 		
 #ifdef __64_BITS__
-		printf(" %18p", base);
+		printf(" %p", (void *) base);
 #endif
 		
-		printf(" %12" PRIs " %c%c%c      ", count,
+		printf(" %12zu %c%c%c      ", count,
 		    available ? 'A' : ' ',
 		    (flags & ZONE_RESERVED) ? 'R' : ' ',
 		    (flags & ZONE_FIRMWARE) ? 'F' : ' ');
 		
 		if (available)
-			printf("%14" PRIs " %14" PRIs,
+			printf("%14zu %14zu",
 			    free_count, busy_count);
 		
 		printf("\n");
@@ -1353,9 +1354,9 @@ void zone_print_one(size_t num)
 	
 	bool available = zone_flags_available(flags);
 	
-	printf("Zone number:       %" PRIs "\n", znum);
-	printf("Zone base address: %p\n", base);
-	printf("Zone size:         %" PRIs " frames (%" PRIs " KiB)\n", count,
+	printf("Zone number:       %zu\n", znum);
+	printf("Zone base address: %p\n", (void *) base);
+	printf("Zone size:         %zu frames (%zu KiB)\n", count,
 	    SIZE2KB(FRAMES2SIZE(count)));
 	printf("Zone flags:        %c%c%c\n",
 	    available ? 'A' : ' ',
@@ -1363,9 +1364,9 @@ void zone_print_one(size_t num)
 	    (flags & ZONE_FIRMWARE) ? 'F' : ' ');
 	
 	if (available) {
-		printf("Allocated space:   %" PRIs " frames (%" PRIs " KiB)\n",
+		printf("Allocated space:   %zu frames (%zu KiB)\n",
 		    busy_count, SIZE2KB(FRAMES2SIZE(busy_count)));
-		printf("Available space:   %" PRIs " frames (%" PRIs " KiB)\n",
+		printf("Available space:   %zu frames (%zu KiB)\n",
 		    free_count, SIZE2KB(FRAMES2SIZE(free_count)));
 	}
 }

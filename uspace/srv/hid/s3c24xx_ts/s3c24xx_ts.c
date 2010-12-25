@@ -49,6 +49,7 @@
 #include <stdlib.h>
 #include <sysinfo.h>
 #include <errno.h>
+#include <inttypes.h>
 
 #include "s3c24xx_ts.h"
 
@@ -135,8 +136,8 @@ static int s3c24xx_ts_init(s3c24xx_ts_t *ts)
 	ts->last_x = 0;
 	ts->last_y = 0;
 
-	printf(NAME ": device at physical address 0x%x, inr %d.\n",
-	    ts->paddr, inr);
+	printf(NAME ": device at physical address %p, inr %" PRIun ".\n",
+	    (void *) ts->paddr, inr);
 
 	async_set_interrupt_received(s3c24xx_ts_irq_handler);
 	ipc_register_irq(inr, device_assign_devno(), 0, &ts_irq_code);
@@ -380,7 +381,7 @@ static void s3c24xx_ts_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 	while (1) {
 		callid = async_get_call(&call);
-		switch (IPC_GET_METHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			if (ts->client_phone != -1) {
 				ipc_hangup(ts->client_phone);

@@ -156,6 +156,12 @@ void arch_pre_smp_init(void)
 
 void arch_post_smp_init(void)
 {
+	/* Currently the only supported platform for ia32 is 'pc'. */
+	static const char *platform = "pc";
+
+	sysinfo_set_item_data("platform", NULL, (void *) platform,
+	    str_size(platform));
+
 #ifdef CONFIG_PC_KBD
 	/*
 	 * Initialize the i8042 controller. Then initialize the keyboard
@@ -210,7 +216,7 @@ void calibrate_delay_loop(void)
  * TLS pointer is set in GS register. That means, the GS contains
  * selector, and the descriptor->base is the correct address.
  */
-unative_t sys_tls_set(unative_t addr)
+sysarg_t sys_tls_set(sysarg_t addr)
 {
 	THREAD->arch.tls = addr;
 	set_tls_desc(addr);

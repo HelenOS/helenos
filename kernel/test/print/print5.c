@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2005 Josef Cejka
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,64 +26,30 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdio.h>
-#include <unistd.h>
-#include <async.h>
-#include <errno.h>
-#include "../tester.h"
+/*
+ * This test tests several features of the HelenOS
+ * printf() implementation which go beyond the POSIX
+ * specification and GNU printf() behaviour.
+ *
+ * Therefore we disable printf() argument checking by
+ * the GCC compiler in this source file to avoid false
+ * positives.
+ *
+ */
+#define NVERIFY_PRINTF
 
-#define MAX_CONNECTIONS  50
+#include <print.h>
+#include <test.h>
 
-static int connections[MAX_CONNECTIONS];
-
-static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
+const char *test_print5(void)
 {
-	unsigned int i;
+	TPRINTF("Testing printf(\"%%s\", NULL):\n");
+	TPRINTF("Expected output: \"(NULL)\"\n");
+	TPRINTF("Real output:     \"%s\"\n\n", (char *) NULL);
 	
-	TPRINTF("Connected phone %#x accepting\n", icall->in_phone_hash);
-	ipc_answer_0(iid, EOK);
-	for (i = 0; i < MAX_CONNECTIONS; i++) {
-		if (!connections[i]) {
-			connections[i] = icall->in_phone_hash;
-			break;
-		}
-	}
-	
-	while (true) {
-		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
-		int retval;
-		
-		switch (IPC_GET_METHOD(call)) {
-		case IPC_M_PHONE_HUNGUP:
-			TPRINTF("Phone %#x hung up\n", icall->in_phone_hash);
-			retval = 0;
-			break;
-		case IPC_TEST_METHOD:
-			TPRINTF("Received well known message from %#x: %#x\n",
-			    icall->in_phone_hash, callid);
-			ipc_answer_0(callid, EOK);
-			break;
-		default:
-			TPRINTF("Received unknown message from %#x: %#x\n",
-			    icall->in_phone_hash, callid);
-			ipc_answer_0(callid, ENOENT);
-			break;
-		}
-	}
-}
-
-const char *test_register(void)
-{
-	async_set_client_connection(client_connection);
-	
-	ipcarg_t phonead;
-	int res = ipc_connect_to_me(PHONE_NS, IPC_TEST_SERVICE, 0, 0, &phonead);
-	if (res != 0)
-		return "Failed registering IPC service";
-	
-	TPRINTF("Registered as service %u, accepting connections\n", IPC_TEST_SERVICE);
-	async_manager();
+	TPRINTF("Testing printf(\"%%c %%3.2c %%-3.2c %%2.3c %%-2.3c\", 'a', 'b', 'c', 'd', 'e'):\n");
+	TPRINTF("Expected output: [a] [  b] [c  ] [ d] [e ]\n");
+	TPRINTF("Real output:     [%c] [%3.2c] [%-3.2c] [%2.3c] [%-2.3c]\n\n", 'a', 'b', 'c', 'd', 'e');
 	
 	return NULL;
 }

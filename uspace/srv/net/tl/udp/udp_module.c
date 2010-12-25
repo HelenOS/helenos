@@ -58,7 +58,7 @@ extern udp_globals_t udp_globals;
 
 int tl_module_start_standalone(async_client_conn_t client_connection)
 {
-	ipcarg_t phonehash;
+	sysarg_t phonehash;
 	int rc;
 
 	async_set_client_connection(client_connection);
@@ -74,7 +74,7 @@ int tl_module_start_standalone(async_client_conn_t client_connection)
 	if (rc != EOK)
 		goto out;
 	
-	rc = REGISTER_ME(SERVICE_UDP, &phonehash);
+	rc = ipc_connect_to_me(PHONE_NS, SERVICE_UDP, 0, 0, &phonehash);
 	if (rc != EOK)
 		goto out;
 

@@ -38,7 +38,7 @@
 #include <net/packet.h>
 
 extern int nil_device_state_msg_remote(int, device_id_t, int);
-extern int nil_received_msg_remote(int, device_id_t, packet_t, services_t);
+extern int nil_received_msg_remote(int, device_id_t, packet_t *, services_t);
 
 #endif
 

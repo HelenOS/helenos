@@ -42,9 +42,9 @@
 /** Service hash table item. */
 typedef struct {
 	link_t link;
-	ipcarg_t service;        /**< Number of the service. */
-	ipcarg_t phone;          /**< Phone registered with the service. */
-	ipcarg_t in_phone_hash;  /**< Incoming phone hash. */
+	sysarg_t service;        /**< Number of the service. */
+	sysarg_t phone;          /**< Phone registered with the service. */
+	sysarg_t in_phone_hash;  /**< Incoming phone hash. */
 } hashed_service_t;
 
 /** Compute hash index into service hash table.
@@ -114,10 +114,10 @@ static hash_table_t service_hash_table;
 /** Pending connection structure. */
 typedef struct {
 	link_t link;
-	ipcarg_t service;        /**< Number of the service. */
+	sysarg_t service;        /**< Number of the service. */
 	ipc_callid_t callid;     /**< Call ID waiting for the connection */
-	ipcarg_t arg2;           /**< Second argument */
-	ipcarg_t arg3;           /**< Third argument */
+	sysarg_t arg2;           /**< Second argument */
+	sysarg_t arg3;           /**< Third argument */
 } pending_conn_t;
 
 static link_t pending_conn;
@@ -173,7 +173,7 @@ loop:
  * @return Zero on success or a value from @ref errno.h.
  *
  */
-int register_service(ipcarg_t service, ipcarg_t phone, ipc_call_t *call)
+int register_service(sysarg_t service, sysarg_t phone, ipc_call_t *call)
 {
 	unsigned long keys[3] = {
 		service,
@@ -206,9 +206,9 @@ int register_service(ipcarg_t service, ipcarg_t phone, ipc_call_t *call)
  * @return Zero on success or a value from @ref errno.h.
  *
  */
-void connect_to_service(ipcarg_t service, ipc_call_t *call, ipc_callid_t callid)
+void connect_to_service(sysarg_t service, ipc_call_t *call, ipc_callid_t callid)
 {
-	ipcarg_t retval;
+	sysarg_t retval;
 	unsigned long keys[3] = {
 		service,
 		0,

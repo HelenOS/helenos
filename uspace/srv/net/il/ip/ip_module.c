@@ -65,7 +65,7 @@ il_module_message_standalone(ipc_callid_t callid, ipc_call_t *call,
 
 int il_module_start_standalone(async_client_conn_t client_connection)
 {
-	ipcarg_t phonehash;
+	sysarg_t phonehash;
 	int rc;
 	
 	async_set_client_connection(client_connection);
@@ -79,7 +79,7 @@ int il_module_start_standalone(async_client_conn_t client_connection)
 	if (rc != EOK)
 		goto out;
 	
-	rc = REGISTER_ME(SERVICE_IP, &phonehash);
+	rc = ipc_connect_to_me(PHONE_NS, SERVICE_IP, 0, 0, &phonehash);
 	if (rc != EOK)
 		goto out;
 	

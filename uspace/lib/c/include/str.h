@@ -85,6 +85,9 @@ extern bool wstr_remove(wchar_t *str, size_t pos);
 extern char *str_dup(const char *);
 extern char *str_ndup(const char *, size_t max_size);
 
+extern int str_uint64(const char *, char **, unsigned int, bool, uint64_t *);
+extern int str_size_t(const char *, char **, unsigned int, bool, size_t *);
+
 extern void order_suffix(const uint64_t val, uint64_t *rv, char *suffix);
 
 /*

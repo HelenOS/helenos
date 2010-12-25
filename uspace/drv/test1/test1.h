@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Lukas Mejdrech
+ * Copyright (c) 2010 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,30 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libpacket
- * @{
- */
-
 /** @file
  */
+#ifndef DRV_TEST1_TEST1_H_
+#define DRV_TEST1_TEST1_H_
 
-#ifndef LIBPACKET_PACKET_LOCAL_H_
-#define LIBPACKET_PACKET_LOCAL_H_
+#include <driver.h>
 
-#include <net/packet.h>
+#define NAME "test1"
 
-/** @name Packet local interface
- */
-/*@{*/
-
-extern int packet_translate_local(int, packet_t *, packet_id_t);
-extern packet_t packet_get_4_local(int, size_t, size_t, size_t, size_t);
-extern packet_t packet_get_1_local(int, size_t);
-extern void pq_release_local(int, packet_id_t);
-
-/*@}*/
+extern device_ops_t char_device_ops;
 
 #endif
-
-/** @}
- */

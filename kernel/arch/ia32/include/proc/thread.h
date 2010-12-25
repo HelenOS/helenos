@@ -38,7 +38,7 @@
 #include <typedefs.h>
 
 typedef struct {
-	unative_t tls;
+	sysarg_t tls;
 } thread_arch_t;
 
 #define thr_constructor_arch(thr)

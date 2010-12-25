@@ -64,12 +64,17 @@ typedef struct arp_globals arp_globals_t;
  */
 typedef struct arp_proto arp_proto_t;
 
+/** Type definition of the ARP address translation record.
+ * @see arp_trans
+ */
+typedef struct arp_trans arp_trans_t;
+
 /** ARP address map.
  *
  * Translates addresses.
  * @see generic_char_map.h
  */
-GENERIC_CHAR_MAP_DECLARE(arp_addr, measured_string_t);
+GENERIC_CHAR_MAP_DECLARE(arp_addr, arp_trans_t);
 
 /** ARP address cache.
  *
@@ -88,11 +93,11 @@ INT_MAP_DECLARE(arp_protos, arp_proto_t);
 /** ARP device specific data. */
 struct arp_device {
 	/** Actual device hardware address. */
-	measured_string_t * addr;
+	measured_string_t *addr;
 	/** Actual device hardware address data. */
 	char *addr_data;
 	/** Broadcast device hardware address. */
-	measured_string_t * broadcast_addr;
+	measured_string_t *broadcast_addr;
 	/** Broadcast device hardware address data. */
 	char *broadcast_data;
 	/** Device identifier. */
@@ -128,7 +133,7 @@ struct arp_globals {
 	/** Networking module phone. */
 	int net_phone;
 	/** Safety lock. */
-	fibril_rwlock_t lock;
+	fibril_mutex_t lock;
 };
 
 /** ARP protocol specific data. */
@@ -143,7 +148,19 @@ struct arp_proto {
 	services_t service;
 };
 
+/** ARP address translation record. */
+struct arp_trans {
+	/**
+	 * Hardware address for the translation. NULL denotes an incomplete
+	 * record with possible waiters.
+	 */ 
+	measured_string_t *hw_addr;
+	/** Condition variable used for waiting for completion of the record. */
+	fibril_condvar_t cv;
+};
+
 #endif
 
 /** @}
  */
+

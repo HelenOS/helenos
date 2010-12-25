@@ -47,6 +47,7 @@
 #include <stdlib.h>
 #include <sysinfo.h>
 #include <errno.h>
+#include <inttypes.h>
 
 #include "s3c24xx_uart.h"
 
@@ -94,7 +95,8 @@ int main(int argc, char *argv[])
 	rc = devmap_device_register(NAMESPACE "/" NAME, &uart->devmap_handle);
 	if (rc != EOK) {
 		devmap_hangup_phone(DEVMAP_DRIVER);
-		printf(NAME ": Unable to register device %s.\n");
+		printf(NAME ": Unable to register device %s.\n",
+		    NAMESPACE "/" NAME);
 		return -1;
 	}
 
@@ -113,7 +115,7 @@ static void s3c24xx_uart_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
 	ipc_callid_t callid;
 	ipc_call_t call;
-	ipcarg_t method;
+	sysarg_t method;
 	int retval;
 
 	/* Answer the IPC_M_CONNECT_ME_TO call. */
@@ -121,7 +123,7 @@ static void s3c24xx_uart_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 	while (1) {
 		callid = async_get_call(&call);
-		method = IPC_GET_METHOD(call);
+		method = IPC_GET_IMETHOD(call);
 		switch (method) {
 		case IPC_M_PHONE_HUNGUP:
 			/* The other side has hung up. */
@@ -133,7 +135,7 @@ static void s3c24xx_uart_connection(ipc_callid_t iid, ipc_call_t *icall)
 			retval = 0;
 			break;
 		case CHAR_WRITE_BYTE:
-			printf(NAME ": write %d to device\n",
+			printf(NAME ": write %" PRIun " to device\n",
 			    IPC_GET_ARG1(call));
 			s3c24xx_uart_sendb(uart, (uint8_t) IPC_GET_ARG1(call));
 			retval = 0;
@@ -184,8 +186,8 @@ static int s3c24xx_uart_init(s3c24xx_uart_t *uart)
 	uart->io = vaddr;
 	uart->client_phone = -1;
 
-	printf(NAME ": device at physical address 0x%x, inr %d.\n",
-	    uart->paddr, inr);
+	printf(NAME ": device at physical address %p, inr %" PRIun ".\n",
+	    (void *) uart->paddr, inr);
 
 	async_set_interrupt_received(s3c24xx_uart_irq_handler);
 

@@ -1,85 +1,85 @@
 interface vfs extends service {
 		/* Register a filesystem driver */
-		ipcarg_t register(in_copy string name);
+		sysarg_t register(in_copy string name);
 		
 		/* Mount filesystem */
-		ipcarg_t mount(in ipcarg_t device, in ipcarg_t flags, in_copy string point, in_copy string opts, in_copy string fs);
+		sysarg_t mount(in sysarg_t device, in sysarg_t flags, in_copy string point, in_copy string opts, in_copy string fs);
 		
 		/* Open file */
-		ipcarg_t open(in ipcarg_t lflag, in ipcarg_t oflag, in ipcarg_t mode, in_copy string path, out ipcarg_t fd);
+		sysarg_t open(in sysarg_t lflag, in sysarg_t oflag, in sysarg_t mode, in_copy string path, out sysarg_t fd);
 		
 		/* Open file using node */
-		ipcarg_t open_node(in ipcarg_t fs_handle, in ipcarg_t dev_handle, in ipcarg_t index, in ipcarg_t oflag, out ipcarg_t fd);
+		sysarg_t open_node(in sysarg_t fs_handle, in sysarg_t dev_handle, in sysarg_t index, in sysarg_t oflag, out sysarg_t fd);
 		
 		/* Read data from file */
-		ipcarg_t read(in ipcarg_t fd, out_copy stream data);
+		sysarg_t read(in sysarg_t fd, out_copy stream data);
 		
 		/* Write data to file */
-		ipcarg_t write(in ipcarg_t fd, in_copy stream data);
+		sysarg_t write(in sysarg_t fd, in_copy stream data);
 		
 		/* Seek in file */
-		ipcarg_t seek(in ipcarg_t fd, in ipcarg_t offset, in ipcarg_t whence);
+		sysarg_t seek(in sysarg_t fd, in sysarg_t offset, in sysarg_t whence);
 		
 		/* Truncate file */
-		ipcarg_t truncate(in ipcarg_t fd, in ipcarg_t size);
+		sysarg_t truncate(in sysarg_t fd, in sysarg_t size);
 		
 		/* Get file metadata */
-		ipcarg_t fstat(in ipcarg_t fd, out_copy stream stat);
+		sysarg_t fstat(in sysarg_t fd, out_copy stream stat);
 		
 		/* Get directory entry metadata */
-		ipcarg_t stat(in_copy string path, out_copy stream stat);
+		sysarg_t stat(in_copy string path, out_copy stream stat);
 		
 		/* Create directory */
-		ipcarg_t mkdir(in ipcarg_t mode, in_copy string path);
+		sysarg_t mkdir(in sysarg_t mode, in_copy string path);
 		
 		/* Delete directory entry */
-		ipcarg_t unlink(in ipcarg_t lflag, in_copy string path);
+		sysarg_t unlink(in sysarg_t lflag, in_copy string path);
 		
 		/* Rename directory entry */
-		ipcarg_t rename(in_copy string old, in_copy string new);
+		sysarg_t rename(in_copy string old, in_copy string new);
 		
 		/* Flush file buffers */
-		ipcarg_t sync(in ipcarg_t fd);
+		sysarg_t sync(in sysarg_t fd);
 		
 		/* In-protocol status value */
-		ipcarg_t ipc_m_ping(void);
+		sysarg_t ipc_m_ping(void);
 		
 		/* Close connection */
-		ipcarg_t ipc_m_phone_hungup(void);
+		sysarg_t ipc_m_phone_hungup(void);
 	protocol:
 		[vfs.bp]
 };
 
 interface fs extends service {
 		/* Notify filesystem that it was mounted */
-		ipcarg_t mounted(in ipcarg_t dev_handle, in_copy string opts);
+		sysarg_t mounted(in sysarg_t dev_handle, in_copy string opts);
 		
 		/* Mount filesystem */
-		ipcarg_t mount(in ipcarg_t device, in ipcarg_t flags, in_copy string point, in_copy string opts, ...);
+		sysarg_t mount(in sysarg_t device, in sysarg_t flags, in_copy string point, in_copy string opts, ...);
 		
 		/* Open file by node */
-		ipcarg_t open_node(in ipcarg_t lflag, in ipcarg_t oflag, in ipcarg_t mode, ...);
+		sysarg_t open_node(in sysarg_t lflag, in sysarg_t oflag, in sysarg_t mode, ...);
 		
 		/* Lookup file */
-		ipcarg_t lookup(in ipcarg_t lflag, in ipcarg_t oflag, in ipcarg_t mode, ...);
+		sysarg_t lookup(in sysarg_t lflag, in sysarg_t oflag, in sysarg_t mode, ...);
 		
 		/* Read data from file */
-		ipcarg_t read(in ipcarg_t dev_handle, in ipcarg_t fs_index, in ipcarg_t offset, out_copy stream data);
+		sysarg_t read(in sysarg_t dev_handle, in sysarg_t fs_index, in sysarg_t offset, out_copy stream data);
 		
 		/* Write data to file */
-		ipcarg_t write(in ipcarg_t dev_handle, in ipcarg_t fs_index, in ipcarg_t offset, in_copy stream data);
+		sysarg_t write(in sysarg_t dev_handle, in sysarg_t fs_index, in sysarg_t offset, in_copy stream data);
 		
 		/* Truncate file */
-		ipcarg_t truncate(in ipcarg_t dev_handle, in ipcarg_t fs_index, in ipcarg_t size);
+		sysarg_t truncate(in sysarg_t dev_handle, in sysarg_t fs_index, in sysarg_t size);
 		
 		/* Get directory entry metadata */
-		ipcarg_t stat(in ipcarg_t dev_handle, in ipcarg_t fs_index, out_copy stream stat);
+		sysarg_t stat(in sysarg_t dev_handle, in sysarg_t fs_index, out_copy stream stat);
 		
 		/* Flush file buffers */
-		ipcarg_t sync(in ipcarg_t dev_handle, in ipcarg_t fs_index);
+		sysarg_t sync(in sysarg_t dev_handle, in sysarg_t fs_index);
 		
 		/* Notify on file close */
-		ipcarg_t close(in ipcarg_t dev_handle, in ipcarg_t fs_index);
+		sysarg_t close(in sysarg_t dev_handle, in sysarg_t fs_index);
 };
 
 frame io_dispatcher {

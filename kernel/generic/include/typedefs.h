@@ -39,7 +39,7 @@
 #include <arch/common.h>
 #include <arch/types.h>
 
-#define NULL  0UL
+#define NULL  ((void *) 0)
 
 #define false  0
 #define true   1
@@ -68,11 +68,16 @@ typedef uint32_t context_id_t;
 typedef int32_t inr_t;
 typedef int32_t devno_t;
 
-typedef int32_t wchar_t;
-
 typedef volatile uint8_t ioport8_t;
 typedef volatile uint16_t ioport16_t;
 typedef volatile uint32_t ioport32_t;
+
+#ifdef __32_BITS__
+
+/** Explicit 64-bit arguments passed to syscalls. */
+typedef uint64_t sysarg64_t;
+
+#endif /* __32_BITS__ */
 
 #endif
 

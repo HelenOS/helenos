@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2005 Josef Cejka
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,23 +26,31 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic
- * @{
+/*
+ * This test tests several features of the HelenOS
+ * printf() implementation which go beyond the POSIX
+ * specification and GNU printf() behaviour.
+ *
+ * Therefore we disable printf() argument checking by
+ * the GCC compiler in this source file to avoid false
+ * positives.
+ *
  */
+#define NVERIFY_PRINTF
 
-/**
- * @file
- * @brief Wrapper for explicit 64-bit arguments passed to syscalls.
- */
+#include <stdio.h>
+#include <unistd.h>
+#include "../tester.h"
 
-#ifndef KERN_SYSARG64_H_
-#define KERN_SYSARG64_H_
-
-typedef struct {
-	unsigned long long value;
-} sysarg64_t;
-
-#endif
-
-/** @}
- */
+const char *test_print5(void)
+{
+	TPRINTF("Testing printf(\"%%s\", NULL):\n");
+	TPRINTF("Expected output: \"(NULL)\"\n");
+	TPRINTF("Real output:     \"%s\"\n\n", (char *) NULL);
+	
+	TPRINTF("Testing printf(\"%%c %%3.2c %%-3.2c %%2.3c %%-2.3c\", 'a', 'b', 'c', 'd', 'e'):\n");
+	TPRINTF("Expected output: [a] [  b] [c  ] [ d] [e ]\n");
+	TPRINTF("Real output:     [%c] [%3.2c] [%-3.2c] [%2.3c] [%-2.3c]\n\n", 'a', 'b', 'c', 'd', 'e');
+	
+	return NULL;
+}

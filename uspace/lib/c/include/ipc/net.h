@@ -191,83 +191,83 @@
  * @param[in] call The IPC call to be checked.
  */
 #define IS_NET_MESSAGE(call) \
-	IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_FIRST, NET_LAST)
+	IS_IN_INTERVAL(IPC_GET_IMETHOD(*call), NET_FIRST, NET_LAST)
 
 /** Returns a value indicating whether the IPC call is an ARP message.
  * @param[in] call The IPC call to be checked.
  */
 #define IS_NET_ARP_MESSAGE(call) \
-	IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_ARP_FIRST, NET_ARP_LAST)
+	IS_IN_INTERVAL(IPC_GET_IMETHOD(*call), NET_ARP_FIRST, NET_ARP_LAST)
 
 /** Returns a value indicating whether the IPC call is an Ethernet message.
  * @param[in] call The IPC call to be checked.
  */
 #define IS_NET_ETH_MESSAGE(call) \
-	IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_ETH_FIRST, NET_ETH_LAST)
+	IS_IN_INTERVAL(IPC_GET_IMETHOD(*call), NET_ETH_FIRST, NET_ETH_LAST)
 
 /** Returns a value indicating whether the IPC call is an ICMP message.
  * @param[in] call The IPC call to be checked.
  */
 #define IS_NET_ICMP_MESSAGE(call) \
-	IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_ICMP_FIRST, NET_ICMP_LAST)
+	IS_IN_INTERVAL(IPC_GET_IMETHOD(*call), NET_ICMP_FIRST, NET_ICMP_LAST)
 
 /** Returns a value indicating whether the IPC call is an inter-network layer
  * message.
  * @param[in] call The IPC call to be checked.
  */
 #define IS_NET_IL_MESSAGE(call) \
-	IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_IL_FIRST, NET_IL_LAST)
+	IS_IN_INTERVAL(IPC_GET_IMETHOD(*call), NET_IL_FIRST, NET_IL_LAST)
 
 /** Returns a value indicating whether the IPC call is an IP message.
  * @param[in] call The IPC call to be checked.
  */
 #define IS_NET_IP_MESSAGE(call) \
-	IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_IP_FIRST, NET_IP_LAST)
+	IS_IN_INTERVAL(IPC_GET_IMETHOD(*call), NET_IP_FIRST, NET_IP_LAST)
 
 /** Returns a value indicating whether the IPC call is a generic networking
  * message.
  * @param[in] call The IPC call to be checked.
  */
 #define IS_NET_NET_MESSAGE(call) \
-	IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_NET_FIRST, NET_NET_LAST)
+	IS_IN_INTERVAL(IPC_GET_IMETHOD(*call), NET_NET_FIRST, NET_NET_LAST)
 
 /** Returns a value indicating whether the IPC call is a network interface layer
  * message.
  * @param[in] call The IPC call to be checked.
  */
 #define IS_NET_NIL_MESSAGE(call) \
-	IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_NIL_FIRST, NET_NIL_LAST)
+	IS_IN_INTERVAL(IPC_GET_IMETHOD(*call), NET_NIL_FIRST, NET_NIL_LAST)
 
 /** Returns a value indicating whether the IPC call is a packet manaagement
  * system message.
  * @param[in] call The IPC call to be checked.
  */
 #define IS_NET_PACKET_MESSAGE(call) \
-	IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_PACKET_FIRST, NET_PACKET_LAST)
+	IS_IN_INTERVAL(IPC_GET_IMETHOD(*call), NET_PACKET_FIRST, NET_PACKET_LAST)
 
 /** Returns a value indicating whether the IPC call is a socket message.
  * @param[in] call The IPC call to be checked.
  */
 #define IS_NET_SOCKET_MESSAGE(call) \
-	IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_SOCKET_FIRST, NET_SOCKET_LAST)
+	IS_IN_INTERVAL(IPC_GET_IMETHOD(*call), NET_SOCKET_FIRST, NET_SOCKET_LAST)
 
 /** Returns a value indicating whether the IPC call is a TCP message.
  * @param[in] call The IPC call to be checked.
  */
 #define IS_NET_TCP_MESSAGE(call) \
-	IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_TCP_FIRST, NET_TCP_LAST)
+	IS_IN_INTERVAL(IPC_GET_IMETHOD(*call), NET_TCP_FIRST, NET_TCP_LAST)
 
 /** Returns a value indicating whether the IPC call is a transport layer message.
  * @param[in] call The IPC call to be checked.
  */
 #define IS_NET_TL_MESSAGE(call) \
-	IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_TL_FIRST, NET_TL_LAST)
+	IS_IN_INTERVAL(IPC_GET_IMETHOD(*call), NET_TL_FIRST, NET_TL_LAST)
 
 /** Returns a value indicating whether the IPC call is a UDP message.
  * @param[in] call The IPC call to be checked.
  */
 #define IS_NET_UDP_MESSAGE(call) \
-	IS_IN_INTERVAL(IPC_GET_METHOD(*call), NET_UDP_FIRST, NET_UDP_LAST)
+	IS_IN_INTERVAL(IPC_GET_IMETHOD(*call), NET_UDP_FIRST, NET_UDP_LAST)
 
 /*@}*/
 
@@ -369,7 +369,7 @@
  */
 #define IPC_SET_DEVICE(answer, value) \
 	do { \
-		ipcarg_t argument = (ipcarg_t) (value); \
+		sysarg_t argument = (sysarg_t) (value); \
 		IPC_SET_ARG1(*answer, argument); \
 	} while (0)
 
@@ -378,7 +378,7 @@
  */
 #define IPC_SET_ADDR(answer, value) \
 	do { \
-		ipcarg_t argument = (ipcarg_t) (value); \
+		sysarg_t argument = (sysarg_t) (value); \
 		IPC_SET_ARG1(*answer, argument); \
 	} while (0)
 
@@ -387,7 +387,7 @@
  */
 #define IPC_SET_PREFIX(answer, value) \
 	do { \
-		ipcarg_t argument = (ipcarg_t) (value); \
+		sysarg_t argument = (sysarg_t) (value); \
 		IPC_SET_ARG2(*answer, argument); \
 	} while (0)
 
@@ -396,7 +396,7 @@
  */
 #define IPC_SET_CONTENT(answer, value) \
 	do { \
-		ipcarg_t argument = (ipcarg_t) (value); \
+		sysarg_t argument = (sysarg_t) (value); \
 		IPC_SET_ARG3(*answer, argument); \
 	} while (0)
 
@@ -405,7 +405,7 @@
  */
 #define IPC_SET_SUFFIX(answer, value) \
 	do { \
-		ipcarg_t argument = (ipcarg_t) (value); \
+		sysarg_t argument = (sysarg_t) (value); \
 		IPC_SET_ARG4(*answer, argument); \
 	} while (0)
 

@@ -38,11 +38,7 @@ CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
 -include $(COMMON_MAKEFILE)
 -include $(CONFIG_MAKEFILE)
 
-ifeq ($(CONFIG_NETIF_NIL_BUNDLE),y)
-	LIBRARY = libeth
-else
-	BINARY = eth
-endif
+BINARY = eth
 
 SOURCES = \
 	eth.c \

@@ -69,7 +69,7 @@ static void standard_console_init(ofw_tree_node_t *aliases)
 		panic("Cannot find screen alias.");
 	ofw_tree_node_t *screen = ofw_tree_lookup(prop_scr->value);
 	if (!screen)
-		panic("Cannot find %s.", prop_scr->value);
+		panic("Cannot find %s.", (char *) prop_scr->value);
 	
 	scr_init(screen);
 #endif
@@ -82,7 +82,7 @@ static void standard_console_init(ofw_tree_node_t *aliases)
 		panic("Cannot find keyboard alias.");
 	ofw_tree_node_t *keyboard = ofw_tree_lookup(prop_kbd->value);
 	if (!keyboard)
-		panic("Cannot find %s.", prop_kbd->value);
+		panic("Cannot find %s.", (char *) prop_kbd->value);
 	
 	kbd_init(keyboard);
 #endif

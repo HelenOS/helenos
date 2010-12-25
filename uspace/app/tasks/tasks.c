@@ -76,7 +76,7 @@ static void list_tasks(void)
 		order_suffix(stats_tasks[i].ucycles, &ucycles, &usuffix);
 		order_suffix(stats_tasks[i].kcycles, &kcycles, &ksuffix);
 		
-		printf("%8" PRIu64 "%8u %8" PRIu64"%c %12"
+		printf("%8" PRIu64 "%8zu %8" PRIu64 "%c %12"
 		    PRIu64 "%c %12" PRIu64 "%c %s\n", stats_tasks[i].task_id,
 		    stats_tasks[i].threads, virtmem, vmsuffix, ucycles, usuffix,
 		    kcycles, ksuffix, stats_tasks[i].name);
@@ -159,7 +159,7 @@ static void list_cpus(void)
 		return;
 	}
 	
-	printf("%s: %u CPU(s) detected\n", NAME, count);
+	printf("%s: %zu CPU(s) detected\n", NAME, count);
 	
 	size_t i;
 	for (i = 0; i < count; i++) {

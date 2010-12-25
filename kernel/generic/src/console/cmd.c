@@ -553,12 +553,18 @@ int cmd_help(cmd_arg_t *argv)
 		spinlock_unlock(&hlp->lock);
 	}
 	
+	unsigned int _len = (unsigned int) len;
+	if ((_len != len) || (((int) _len) < 0)) {
+		printf("Command length overflow\n");
+		return 1;
+	}
+	
 	for (cur = cmd_head.next; cur != &cmd_head; cur = cur->next) {
 		cmd_info_t *hlp;
 		hlp = list_get_instance(cur, cmd_info_t, link);
 		
 		spinlock_lock(&hlp->lock);
-		printf("%-*s %s\n", len, hlp->name, hlp->description);
+		printf("%-*s %s\n", _len, hlp->name, hlp->description);
 		spinlock_unlock(&hlp->lock);
 	}
 	
@@ -594,7 +600,7 @@ int cmd_uptime(cmd_arg_t *argv)
 	ASSERT(uptime);
 	
 	/* This doesn't have to be very accurate */
-	unative_t sec = uptime->seconds1;
+	sysarg_t sec = uptime->seconds1;
 	
 	printf("Up %" PRIun " days, %" PRIun " hours, %" PRIun " minutes, %" PRIun " seconds\n",
 		sec / 86400, (sec % 86400) / 3600, (sec % 3600) / 60, sec % 60);
@@ -649,7 +655,7 @@ int cmd_call0(cmd_arg_t *argv)
 {
 	uintptr_t symaddr;
 	char *symbol;
-	unative_t (*fnc)(void);
+	sysarg_t (*fnc)(void);
 	fncptr_t fptr;
 	int rc;
 
@@ -665,9 +671,9 @@ int cmd_call0(cmd_arg_t *argv)
 		ipl_t ipl;
 
 		ipl = interrupts_disable();
-		fnc = (unative_t (*)(void)) arch_construct_function(&fptr,
+		fnc = (sysarg_t (*)(void)) arch_construct_function(&fptr,
 		    (void *) symaddr, (void *) cmd_call0);
-		printf("Calling %s() (%p)\n", symbol, symaddr);
+		printf("Calling %s() (%p)\n", symbol, (void *) symaddr);
 		printf("Result: %#" PRIxn "\n", fnc());
 		interrupts_restore(ipl);
 	} else {
@@ -684,7 +690,7 @@ int cmd_mcall0(cmd_arg_t *argv)
 	 * call the function.
 	 */
 	
-	size_t i;
+	unsigned int i;
 	for (i = 0; i < config.cpu_count; i++) {
 		if (!cpus[i].active)
 			continue;
@@ -696,13 +702,13 @@ int cmd_mcall0(cmd_arg_t *argv)
 			thread->cpu = &cpus[i];
 			irq_spinlock_unlock(&thread->lock, true);
 			
-			printf("cpu%" PRIs ": ", i);
+			printf("cpu%u: ", i);
 			
 			thread_ready(thread);
 			thread_join(thread);
 			thread_detach(thread);
 		} else
-			printf("Unable to create thread for cpu%" PRIs "\n", i);
+			printf("Unable to create thread for cpu%u\n", i);
 	}
 	
 	return 1;
@@ -713,8 +719,8 @@ int cmd_call1(cmd_arg_t *argv)
 {
 	uintptr_t symaddr;
 	char *symbol;
-	unative_t (*fnc)(unative_t, ...);
-	unative_t arg1 = argv[1].intval;
+	sysarg_t (*fnc)(sysarg_t, ...);
+	sysarg_t arg1 = argv[1].intval;
 	fncptr_t fptr;
 	int rc;
 
@@ -730,8 +736,11 @@ int cmd_call1(cmd_arg_t *argv)
 		ipl_t ipl;
 
 		ipl = interrupts_disable();
-		fnc = (unative_t (*)(unative_t, ...)) arch_construct_function(&fptr, (void *) symaddr, (void *) cmd_call1);
-		printf("Calling f(%#" PRIxn "): %p: %s\n", arg1, symaddr, symbol);
+		fnc = (sysarg_t (*)(sysarg_t, ...))
+		    arch_construct_function(&fptr, (void *) symaddr,
+		    (void *) cmd_call1);
+		printf("Calling f(%#" PRIxn "): %p: %s\n", arg1,
+		    (void *) symaddr, symbol);
 		printf("Result: %#" PRIxn "\n", fnc(arg1));
 		interrupts_restore(ipl);
 	} else {
@@ -746,9 +755,9 @@ int cmd_call2(cmd_arg_t *argv)
 {
 	uintptr_t symaddr;
 	char *symbol;
-	unative_t (*fnc)(unative_t, unative_t, ...);
-	unative_t arg1 = argv[1].intval;
-	unative_t arg2 = argv[2].intval;
+	sysarg_t (*fnc)(sysarg_t, sysarg_t, ...);
+	sysarg_t arg1 = argv[1].intval;
+	sysarg_t arg2 = argv[2].intval;
 	fncptr_t fptr;
 	int rc;
 
@@ -764,9 +773,11 @@ int cmd_call2(cmd_arg_t *argv)
 		ipl_t ipl;
 
 		ipl = interrupts_disable();
-		fnc = (unative_t (*)(unative_t, unative_t, ...)) arch_construct_function(&fptr, (void *) symaddr, (void *) cmd_call2);
+		fnc = (sysarg_t (*)(sysarg_t, sysarg_t, ...))
+		    arch_construct_function(&fptr, (void *) symaddr,
+		    (void *) cmd_call2);
 		printf("Calling f(%#" PRIxn ", %#" PRIxn "): %p: %s\n", 
-		       arg1, arg2, symaddr, symbol);
+		       arg1, arg2, (void *) symaddr, symbol);
 		printf("Result: %#" PRIxn "\n", fnc(arg1, arg2));
 		interrupts_restore(ipl);
 	} else {
@@ -780,10 +791,10 @@ int cmd_call3(cmd_arg_t *argv)
 {
 	uintptr_t symaddr;
 	char *symbol;
-	unative_t (*fnc)(unative_t, unative_t, unative_t, ...);
-	unative_t arg1 = argv[1].intval;
-	unative_t arg2 = argv[2].intval;
-	unative_t arg3 = argv[3].intval;
+	sysarg_t (*fnc)(sysarg_t, sysarg_t, sysarg_t, ...);
+	sysarg_t arg1 = argv[1].intval;
+	sysarg_t arg2 = argv[2].intval;
+	sysarg_t arg3 = argv[3].intval;
 	fncptr_t fptr;
 	int rc;
 	
@@ -799,9 +810,11 @@ int cmd_call3(cmd_arg_t *argv)
 		ipl_t ipl;
 
 		ipl = interrupts_disable();
-		fnc = (unative_t (*)(unative_t, unative_t, unative_t, ...)) arch_construct_function(&fptr, (void *) symaddr, (void *) cmd_call3);
-		printf("Calling f(%#" PRIxn ",%#" PRIxn ", %#" PRIxn "): %p: %s\n", 
-		       arg1, arg2, arg3, symaddr, symbol);
+		fnc = (sysarg_t (*)(sysarg_t, sysarg_t, sysarg_t, ...))
+		    arch_construct_function(&fptr, (void *) symaddr,
+		    (void *) cmd_call3);
+		printf("Calling f(%#" PRIxn ",%#" PRIxn ", %#" PRIxn "): %p: %s\n",
+		       arg1, arg2, arg3, (void *) symaddr, symbol);
 		printf("Result: %#" PRIxn "\n", fnc(arg1, arg2, arg3));
 		interrupts_restore(ipl);
 	} else {
@@ -874,7 +887,7 @@ int cmd_set4(cmd_arg_t *argv)
 		rc = symtab_addr_lookup((char *) argv->buffer, &addr);
 	
 	if (rc == ENOENT)
-		printf("Symbol %s not found.\n", argv->buffer);
+		printf("Symbol %s not found.\n", (char *) argv->buffer);
 	else if (rc == EINVAL)
 		printf("Invalid address.\n");
 	else if (rc == EOVERFLOW) {
@@ -883,7 +896,7 @@ int cmd_set4(cmd_arg_t *argv)
 	} else if (rc == EOK) {
 		if (pointer)
 			addr = *(uintptr_t *) addr;
-		printf("Writing %#" PRIx64 " -> %p\n", arg1, addr);
+		printf("Writing %#" PRIx32" -> %p\n", arg1, (void *) addr);
 		*(uint32_t *) addr = arg1;
 	} else
 		printf("No symbol information available.\n");
@@ -1171,10 +1184,17 @@ static void list_tests(void)
 			len = str_length(test->name);
 	}
 	
-	for (test = tests; test->name != NULL; test++)
-		printf("%-*s %s%s\n", len, test->name, test->desc, (test->safe ? "" : " (unsafe)"));
+	unsigned int _len = (unsigned int) len;
+	if ((_len != len) || (((int) _len) < 0)) {
+		printf("Command length overflow\n");
+		return;
+	}
 	
-	printf("%-*s Run all safe tests\n", len, "*");
+	for (test = tests; test->name != NULL; test++)
+		printf("%-*s %s%s\n", _len, test->name, test->desc,
+		    (test->safe ? "" : " (unsafe)"));
+	
+	printf("%-*s Run all safe tests\n", _len, "*");
 }
 
 /** Command for listing and running kernel tests

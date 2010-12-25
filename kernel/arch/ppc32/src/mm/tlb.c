@@ -110,7 +110,8 @@ static pte_t *find_mapping_and_check(as_t *as, uintptr_t badvaddr, int access,
 
 static void pht_refill_fail(uintptr_t badvaddr, istate_t *istate)
 {
-	fault_if_from_uspace(istate, "PHT Refill Exception on %p.", badvaddr);
+	fault_if_from_uspace(istate, "PHT Refill Exception on %p.",
+	    (void *) badvaddr);
 	panic_memtrap(istate, PF_ACCESS_UNKNOWN, badvaddr,
 	    "PHT Refill Exception.");
 }
@@ -458,12 +459,12 @@ void tlb_invalidate_pages(asid_t asid, uintptr_t page, size_t cnt)
 	} else \
 		length = 0; \
 	\
-	printf(name ": page=%.*p frame=%.*p length=%d KB (mask=%#x)%s%s\n", \
-	    sizeof(upper) * 2, upper & 0xffff0000, sizeof(lower) * 2, \
-	    lower & 0xffff0000, length, mask, \
+	printf(name ": page=%#0" PRIx32 " frame=%#0" PRIx32 \
+	    " length=%#0" PRIx32 " KB (mask=%#0" PRIx32 ")%s%s\n", \
+	    upper & UINT32_C(0xffff0000), lower & UINT32_C(0xffff0000), \
+	    length, mask, \
 	    ((upper >> 1) & 1) ? " supervisor" : "", \
 	    (upper & 1) ? " user" : "");
-
 
 void tlb_print(void)
 {
@@ -472,8 +473,9 @@ void tlb_print(void)
 	for (sr = 0; sr < 16; sr++) {
 		uint32_t vsid = sr_get(sr << 28);
 		
-		printf("sr[%02u]: vsid=%.*p (asid=%u)%s%s\n", sr,
-		    sizeof(vsid) * 2, vsid & 0xffffff, (vsid & 0xffffff) >> 4,
+		printf("sr[%02" PRIu32 "]: vsid=%#0" PRIx32 " (asid=%" PRIu32 ")"
+		    "%s%s\n", sr, vsid & UINT32_C(0x00ffffff),
+		    (vsid & UINT32_C(0x00ffffff)) >> 4,
 		    ((vsid >> 30) & 1) ? " supervisor" : "",
 		    ((vsid >> 29) & 1) ? " user" : "");
 	}

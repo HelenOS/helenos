@@ -38,7 +38,7 @@
 
 void cache_error(istate_t *istate)
 {
-	panic("cache_error exception (epc=%p).", istate->epc);
+	panic("cache_error exception (epc=%p).", (void *) istate->epc);
 }
 
 /** @}

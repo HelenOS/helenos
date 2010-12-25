@@ -62,10 +62,10 @@
  */
 int
 icmp_destination_unreachable_msg(int icmp_phone, icmp_code_t code,
-    icmp_param_t mtu, packet_t packet)
+    icmp_param_t mtu, packet_t *packet)
 {
-	async_msg_3(icmp_phone, NET_ICMP_DEST_UNREACH, (ipcarg_t) code,
-	    (ipcarg_t) packet_get_id(packet), (ipcarg_t) mtu);
+	async_msg_3(icmp_phone, NET_ICMP_DEST_UNREACH, (sysarg_t) code,
+	    (sysarg_t) packet_get_id(packet), (sysarg_t) mtu);
 	return EOK;
 }
 
@@ -81,10 +81,10 @@ icmp_destination_unreachable_msg(int icmp_phone, icmp_code_t code,
  * @return		EPERM if the ICMP error notifications are disabled.
  * @return		ENOMEM if there is not enough memory left.
  */
-int icmp_source_quench_msg(int icmp_phone, packet_t packet)
+int icmp_source_quench_msg(int icmp_phone, packet_t *packet)
 {
 	async_msg_2(icmp_phone, NET_ICMP_SOURCE_QUENCH, 0,
-	    (ipcarg_t) packet_get_id(packet));
+	    (sysarg_t) packet_get_id(packet));
 	return EOK;
 }
 
@@ -101,10 +101,10 @@ int icmp_source_quench_msg(int icmp_phone, packet_t packet)
  * @return		EPERM if the ICMP error notifications are disabled.
  * @return		ENOMEM if there is not enough memory left.
  */
-int icmp_time_exceeded_msg(int icmp_phone, icmp_code_t code, packet_t packet)
+int icmp_time_exceeded_msg(int icmp_phone, icmp_code_t code, packet_t *packet)
 {
-	async_msg_2(icmp_phone, NET_ICMP_TIME_EXCEEDED, (ipcarg_t) code,
-	    (ipcarg_t) packet_get_id(packet));
+	async_msg_2(icmp_phone, NET_ICMP_TIME_EXCEEDED, (sysarg_t) code,
+	    (sysarg_t) packet_get_id(packet));
 	return EOK;
 }
 
@@ -123,10 +123,10 @@ int icmp_time_exceeded_msg(int icmp_phone, icmp_code_t code, packet_t packet)
  * @return		ENOMEM if there is not enough memory left.
  */
 int icmp_parameter_problem_msg(int icmp_phone, icmp_code_t code,
-    icmp_param_t pointer, packet_t packet)
+    icmp_param_t pointer, packet_t *packet)
 {
-	async_msg_3(icmp_phone, NET_ICMP_PARAMETERPROB, (ipcarg_t) code,
-	    (ipcarg_t) packet_get_id(packet), (ipcarg_t) pointer);
+	async_msg_3(icmp_phone, NET_ICMP_PARAMETERPROB, (sysarg_t) code,
+	    (sysarg_t) packet_get_id(packet), (sysarg_t) pointer);
 	return EOK;
 }
 

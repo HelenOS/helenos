@@ -200,8 +200,7 @@ int nil_initialize(int net_phone)
 	eth_globals.net_phone = net_phone;
 
 	eth_globals.broadcast_addr =
-	    measured_string_create_bulk("\xFF\xFF\xFF\xFF\xFF\xFF",
-	    CONVERT_SIZE(uint8_t, char, ETH_ADDR));
+	    measured_string_create_bulk("\xFF\xFF\xFF\xFF\xFF\xFF", ETH_ADDR);
 	if (!eth_globals.broadcast_addr) {
 		rc = ENOMEM;
 		goto out;
@@ -233,11 +232,11 @@ out:
  */
 static void eth_receiver(ipc_callid_t iid, ipc_call_t *icall)
 {
-	packet_t packet;
+	packet_t *packet;
 	int rc;
 
 	while (true) {
-		switch (IPC_GET_METHOD(*icall)) {
+		switch (IPC_GET_IMETHOD(*icall)) {
 		case NET_NIL_DEVICE_STATE:
 			nil_device_state_msg_local(0, IPC_GET_DEVICE(icall),
 			    IPC_GET_STATE(icall));
@@ -250,10 +249,10 @@ static void eth_receiver(ipc_callid_t iid, ipc_call_t *icall)
 				rc = nil_received_msg_local(0,
 				    IPC_GET_DEVICE(icall), packet, 0);
 			}
-			ipc_answer_0(iid, (ipcarg_t) rc);
+			ipc_answer_0(iid, (sysarg_t) rc);
 			break;
 		default:
-			ipc_answer_0(iid, (ipcarg_t) ENOTSUP);
+			ipc_answer_0(iid, (sysarg_t) ENOTSUP);
 		}
 		
 		iid = async_get_call(icall);
@@ -314,7 +313,7 @@ static int eth_device_message(device_id_t device_id, services_t service,
 		else
 			device->mtu = ETH_MAX_TAGGED_CONTENT(device->flags);
 		
-		printf("Device %d already exists:\tMTU\t= %d\n",
+		printf("Device %d already exists:\tMTU\t= %zu\n",
 		    device->device_id, device->mtu);
 		fibril_rwlock_write_unlock(&eth_globals.devices_lock);
 		
@@ -406,7 +405,7 @@ static int eth_device_message(device_id_t device_id, services_t service,
 		return index;
 	}
 	
-	printf("%s: Device registered (id: %d, service: %d: mtu: %d, "
+	printf("%s: Device registered (id: %d, service: %d: mtu: %zu, "
 	    "mac: %x:%x:%x:%x:%x:%x, flags: 0x%x)\n",
 	    NAME, device->device_id, device->service, device->mtu,
 	    device->addr_data[0], device->addr_data[1],
@@ -428,7 +427,7 @@ static int eth_device_message(device_id_t device_id, services_t service,
  * @return		NULL if the dummy device FCS checksum is invalid.
  * @return		NULL if the packet address length is not big enough.
  */
-static eth_proto_t *eth_process_packet(int flags, packet_t packet)
+static eth_proto_t *eth_process_packet(int flags, packet_t *packet)
 {
 	eth_header_snap_t *header;
 	size_t length;
@@ -508,10 +507,10 @@ static eth_proto_t *eth_process_packet(int flags, packet_t packet)
 }
 
 int nil_received_msg_local(int nil_phone, device_id_t device_id,
-    packet_t packet, services_t target)
+    packet_t *packet, services_t target)
 {
 	eth_proto_t *proto;
-	packet_t next;
+	packet_t *next;
 	eth_device_t *device;
 	int flags;
 
@@ -679,7 +678,7 @@ static int eth_register_message(services_t service, int phone)
  * @return		ENOMEM if there is not enough memory in the packet.
  */
 static int
-eth_prepare_packet(int flags, packet_t packet, uint8_t *src_addr, int ethertype,
+eth_prepare_packet(int flags, packet_t *packet, uint8_t *src_addr, int ethertype,
     size_t mtu)
 {
 	eth_header_snap_t *header;
@@ -786,12 +785,12 @@ eth_prepare_packet(int flags, packet_t packet, uint8_t *src_addr, int ethertype,
  * @return		ENOENT if there no such device.
  * @return		EINVAL if the service parameter is not known.
  */
-static int eth_send_message(device_id_t device_id, packet_t packet,
+static int eth_send_message(device_id_t device_id, packet_t *packet,
     services_t sender)
 {
 	eth_device_t *device;
-	packet_t next;
-	packet_t tmp;
+	packet_t *next;
+	packet_t *tmp;
 	int ethertype;
 	int rc;
 
@@ -840,7 +839,7 @@ int nil_message_standalone(const char *name, ipc_callid_t callid,
     ipc_call_t *call, ipc_call_t *answer, int *answer_count)
 {
 	measured_string_t *address;
-	packet_t packet;
+	packet_t *packet;
 	size_t addrlen;
 	size_t prefix;
 	size_t suffix;
@@ -848,7 +847,7 @@ int nil_message_standalone(const char *name, ipc_callid_t callid,
 	int rc;
 	
 	*answer_count = 0;
-	switch (IPC_GET_METHOD(*call)) {
+	switch (IPC_GET_IMETHOD(*call)) {
 	case IPC_M_PHONE_HUNGUP:
 		return EOK;
 	
@@ -925,7 +924,7 @@ static void nil_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		 * End if told to either by the message or the processing
 		 * result.
 		 */
-		if ((IPC_GET_METHOD(call) == IPC_M_PHONE_HUNGUP) ||
+		if ((IPC_GET_IMETHOD(call) == IPC_M_PHONE_HUNGUP) ||
 		    (res == EHANGUP))
 			return;
 		

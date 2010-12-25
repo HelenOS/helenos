@@ -322,8 +322,8 @@ int pci_read_bar(device_t *dev, int addr)
 	
 	if (range_addr != 0) {
 		printf(NAME ": device %s : ", dev->name);
-		printf("address = %x", range_addr);
-		printf(", size = %x\n", range_size);
+		printf("address = %" PRIx64, range_addr);
+		printf(", size = %x\n", (unsigned int) range_size);
 	}
 	
 	pci_add_range(dev, range_addr, range_size, io);
@@ -451,6 +451,8 @@ void pci_bus_scan(device_t *parent, int bus_num)
 
 static int pci_add_device(device_t *dev)
 {
+	int rc;
+
 	printf(NAME ": pci_add_device\n");
 	
 	pci_bus_data_t *bus_data = create_pci_bus_data();
@@ -465,20 +467,21 @@ static int pci_add_device(device_t *dev)
 		printf(NAME ": pci_add_device failed to connect to the "
 		    "parent's driver.\n");
 		delete_pci_bus_data(bus_data);
-		return EPARTY;	/* FIXME: use another EC */
+		return dev->parent_phone;
 	}
 	
 	hw_resource_list_t hw_resources;
 	
-	if (!get_hw_resources(dev->parent_phone, &hw_resources)) {
+	rc = get_hw_resources(dev->parent_phone, &hw_resources);
+	if (rc != EOK) {
 		printf(NAME ": pci_add_device failed to get hw resources for "
 		    "the device.\n");
 		delete_pci_bus_data(bus_data);
 		ipc_hangup(dev->parent_phone);
-		return EPARTY;	/* FIXME: use another EC */
+		return rc;
 	}	
 	
-	printf(NAME ": conf_addr = %x.\n",
+	printf(NAME ": conf_addr = %" PRIx64 ".\n",
 	    hw_resources.resources[0].res.io_range.address);
 	
 	assert(hw_resources.count > 0);
@@ -488,7 +491,7 @@ static int pci_add_device(device_t *dev)
 	bus_data->conf_io_addr =
 	    (uint32_t) hw_resources.resources[0].res.io_range.address;
 	
-	if (pio_enable((void *)bus_data->conf_io_addr, 8,
+	if (pio_enable((void *)(uintptr_t)bus_data->conf_io_addr, 8,
 	    &bus_data->conf_addr_port)) {
 		printf(NAME ": failed to enable configuration ports.\n");
 		delete_pci_bus_data(bus_data);

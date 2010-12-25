@@ -50,7 +50,7 @@
  * @return		The IP header length in bytes.
  * @return		Zero if there is no IP header.
  */
-size_t ip_client_header_length(packet_t packet)
+size_t ip_client_header_length(packet_t *packet)
 {
 	ip_header_t *header;
 
@@ -151,7 +151,7 @@ ip_client_get_pseudo_header(ip_protocol_t protocol, struct sockaddr *src,
  * @return		ENOMEM if there is not enough memory left in the packet.
  */
 int
-ip_client_prepare_packet(packet_t packet, ip_protocol_t protocol, ip_ttl_t ttl,
+ip_client_prepare_packet(packet_t *packet, ip_protocol_t protocol, ip_ttl_t ttl,
     ip_tos_t tos, int dont_fragment, size_t ipopt_length)
 {
 	ip_header_t *header;
@@ -207,7 +207,7 @@ ip_client_prepare_packet(packet_t packet, ip_protocol_t protocol, ip_ttl_t ttl,
  *			header.
  */
 int
-ip_client_process_packet(packet_t packet, ip_protocol_t *protocol,
+ip_client_process_packet(packet_t *packet, ip_protocol_t *protocol,
     ip_ttl_t *ttl, ip_tos_t *tos, int *dont_fragment, size_t *ipopt_length)
 {
 	ip_header_t *header;

@@ -238,7 +238,7 @@ int async_relation_create(int key_phone)
 		 * Make a one-time attempt to connect a new relation phone.
 		 */
 retry:
-		rel_phone = ipc_connect_me_to(key_phone, 0, 0, 0);
+		rel_phone = async_connect_me_to(key_phone, 0, 0, 0);
 		if (rel_phone >= 0) {
 			/* success, do nothing */
 		} else if (!list_empty(&global_rel_head)) {

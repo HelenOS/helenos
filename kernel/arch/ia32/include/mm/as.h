@@ -35,23 +35,23 @@
 #ifndef KERN_ia32_AS_H_
 #define KERN_ia32_AS_H_
 
-#define KERNEL_ADDRESS_SPACE_SHADOWED_ARCH	0
+#define KERNEL_ADDRESS_SPACE_SHADOWED_ARCH  0
 
-#define KERNEL_ADDRESS_SPACE_START_ARCH		((unsigned long) 0x80000000)
-#define KERNEL_ADDRESS_SPACE_END_ARCH		((unsigned long) 0xffffffff)
-#define USER_ADDRESS_SPACE_START_ARCH		((unsigned long) 0x00000000)
-#define USER_ADDRESS_SPACE_END_ARCH		((unsigned long) 0x7fffffff)
+#define KERNEL_ADDRESS_SPACE_START_ARCH  UINT32_C(0x80000000)
+#define KERNEL_ADDRESS_SPACE_END_ARCH    UINT32_C(0xffffffff)
+#define USER_ADDRESS_SPACE_START_ARCH    UINT32_C(0x00000000)
+#define USER_ADDRESS_SPACE_END_ARCH      UINT32_C(0x7fffffff)
 
-#define USTACK_ADDRESS_ARCH	(USER_ADDRESS_SPACE_END_ARCH - (PAGE_SIZE - 1))
+#define USTACK_ADDRESS_ARCH  (USER_ADDRESS_SPACE_END_ARCH - (PAGE_SIZE - 1))
 
 typedef struct {
 } as_arch_t;
 
 #include <genarch/mm/as_pt.h>
 
-#define as_constructor_arch(as, flags)		(as != as)
-#define as_destructor_arch(as)			(as != as)
-#define as_create_arch(as, flags)		(as != as)
+#define as_constructor_arch(as, flags)  (as != as)
+#define as_destructor_arch(as)          (as != as)
+#define as_create_arch(as, flags)       (as != as)
 #define as_install_arch(as)
 #define as_deinstall_arch(as)
 #define as_invalidate_translation_cache(as, page, cnt)

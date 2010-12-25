@@ -40,9 +40,9 @@
 #include <net/icmp_codes.h>
 #include <net/packet.h>
 
-extern int icmp_client_process_packet(packet_t, icmp_type_t *, icmp_code_t *,
+extern int icmp_client_process_packet(packet_t *, icmp_type_t *, icmp_code_t *,
     icmp_param_t *, icmp_param_t *);
-extern size_t icmp_client_header_length(packet_t);
+extern size_t icmp_client_header_length(packet_t *);
 
 #endif
 

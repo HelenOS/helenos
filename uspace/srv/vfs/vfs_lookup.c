@@ -160,12 +160,12 @@ int vfs_lookup_internal(char *path, int lflag, vfs_lookup_res_t *result,
 
 	ipc_call_t answer;
 	int phone = vfs_grab_phone(root->fs_handle);
-	aid_t req = async_send_5(phone, VFS_OUT_LOOKUP, (ipcarg_t) first,
-	    (ipcarg_t) (first + len - 1) % PLB_SIZE,
-	    (ipcarg_t) root->devmap_handle, (ipcarg_t) lflag, (ipcarg_t) index,
+	aid_t req = async_send_5(phone, VFS_OUT_LOOKUP, (sysarg_t) first,
+	    (sysarg_t) (first + len - 1) % PLB_SIZE,
+	    (sysarg_t) root->devmap_handle, (sysarg_t) lflag, (sysarg_t) index,
 	    &answer);
 	
-	ipcarg_t rc;
+	sysarg_t rc;
 	async_wait_for(req, &rc);
 	vfs_release_phone(root->fs_handle, phone);
 	
@@ -178,8 +178,11 @@ int vfs_lookup_internal(char *path, int lflag, vfs_lookup_res_t *result,
 	memset(plb, 0, cnt2);
 	fibril_mutex_unlock(&plb_mutex);
 	
-	if (((int) rc < EOK) || (!result))
+	if ((int) rc < EOK)
 		return (int) rc;
+
+	if (!result)
+		return EOK;
 	
 	result->triplet.fs_handle = (fs_handle_t) rc;
 	result->triplet.devmap_handle = (devmap_handle_t) IPC_GET_ARG1(answer);
@@ -209,10 +212,10 @@ int vfs_open_node_internal(vfs_lookup_res_t *result)
 	
 	ipc_call_t answer;
 	aid_t req = async_send_2(phone, VFS_OUT_OPEN_NODE,
-	    (ipcarg_t) result->triplet.devmap_handle,
-	    (ipcarg_t) result->triplet.index, &answer);
+	    (sysarg_t) result->triplet.devmap_handle,
+	    (sysarg_t) result->triplet.index, &answer);
 	
-	ipcarg_t rc;
+	sysarg_t rc;
 	async_wait_for(req, &rc);
 	vfs_release_phone(result->triplet.fs_handle, phone);
 	

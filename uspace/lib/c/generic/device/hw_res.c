@@ -37,29 +37,27 @@
 #include <async.h>
 #include <malloc.h>
 
-bool get_hw_resources(int dev_phone, hw_resource_list_t *hw_resources)
+int get_hw_resources(int dev_phone, hw_resource_list_t *hw_resources)
 {
-	ipcarg_t count = 0;
+	sysarg_t count = 0;
 	int rc = async_req_1_1(dev_phone, DEV_IFACE_ID(HW_RES_DEV_IFACE), GET_RESOURCE_LIST, &count);
 	hw_resources->count = count;
-	if (EOK != rc) {
-		return false;
-	}
+	if (rc != EOK)
+		return rc;
 	
 	size_t size = count * sizeof(hw_resource_t);
 	hw_resources->resources = (hw_resource_t *)malloc(size);
-	if (NULL == hw_resources->resources) {
-		return false;
-	}
+	if (!hw_resources->resources)
+		return ENOMEM;
 	
 	rc = async_data_read_start(dev_phone, hw_resources->resources, size);
-	if (EOK != rc) {
+	if (rc != EOK) {
 		free(hw_resources->resources);
 		hw_resources->resources = NULL;
-		return false;
+		return rc;
 	}
 	 	 
-	return true;	 
+	return EOK;
 }
 
 bool enable_interrupt(int dev_phone)

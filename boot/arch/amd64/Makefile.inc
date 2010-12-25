@@ -36,7 +36,7 @@ RD_SRVS_NON_ESSENTIAL += \
 	$(USPACE_PATH)/srv/hid/char_mouse/char_ms
 
 RD_DRVS += \
-	rootia32 \
+	rootpc \
 	pciintel \
 	isa \
 	ns8250

@@ -154,7 +154,7 @@ static int gpt_init(const char *dev_name)
 	}
 
 	if (block_size < 512 || (block_size % 512) != 0) {
-		printf(NAME ": invalid block size %d.\n");
+		printf(NAME ": invalid block size %zu.\n", block_size);
 		return ENOTSUP;
 	}
 
@@ -314,7 +314,7 @@ static void gpt_connection(ipc_callid_t iid, ipc_call_t *icall)
 	void *fs_va = NULL;
 	ipc_callid_t callid;
 	ipc_call_t call;
-	ipcarg_t method;
+	sysarg_t method;
 	devmap_handle_t dh;
 	int flags;
 	int retval;
@@ -359,7 +359,7 @@ static void gpt_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 	while (1) {
 		callid = async_get_call(&call);
-		method = IPC_GET_METHOD(call);
+		method = IPC_GET_IMETHOD(call);
 		switch (method) {
 		case IPC_M_PHONE_HUNGUP:
 			/* The other side has hung up. */

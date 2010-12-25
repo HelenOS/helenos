@@ -247,10 +247,10 @@ int tl_set_address_port(struct sockaddr * addr, int addrlen, uint16_t port)
  * @return		ENOENT if no packet may be sent.
  */
 int
-tl_prepare_icmp_packet(int packet_phone, int icmp_phone, packet_t packet,
+tl_prepare_icmp_packet(int packet_phone, int icmp_phone, packet_t *packet,
     services_t error)
 {
-	packet_t next;
+	packet_t *next;
 	uint8_t *src;
 	int length;
 
@@ -286,7 +286,7 @@ tl_prepare_icmp_packet(int packet_phone, int icmp_phone, packet_t packet,
  *			async_data_read_finalize() function.
  */
 int
-tl_socket_read_packet_data(int packet_phone, packet_t *packet, size_t prefix,
+tl_socket_read_packet_data(int packet_phone, packet_t **packet, size_t prefix,
     const packet_dimension_t *dimension, const struct sockaddr *addr,
     socklen_t addrlen)
 {

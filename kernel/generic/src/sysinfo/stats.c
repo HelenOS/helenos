@@ -86,7 +86,7 @@ static mutex_t load_lock;
  * @return System uptime (in secords).
  *
  */
-static unative_t get_stats_uptime(struct sysinfo_item *item)
+static sysarg_t get_stats_uptime(struct sysinfo_item *item)
 {
 	/* This doesn't have to be very accurate */
 	return uptime->seconds1;

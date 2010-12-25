@@ -159,7 +159,7 @@ struct tcp_timeout {
 	size_t key_length;
 };
 
-static int tcp_release_and_return(packet_t, int);
+static int tcp_release_and_return(packet_t *, int);
 static void tcp_prepare_operation_header(socket_core_t *, tcp_socket_data_t *,
     tcp_header_t *, int synchronize, int);
 static int tcp_prepare_timeout(int (*)(void *), socket_core_t *,
@@ -170,42 +170,42 @@ static int tcp_timeout(void *);
 
 static int tcp_release_after_timeout(void *);
 
-static int tcp_process_packet(device_id_t, packet_t, services_t);
+static int tcp_process_packet(device_id_t, packet_t *, services_t);
 static int tcp_connect_core(socket_core_t *, socket_cores_t *,
     struct sockaddr *, socklen_t);
 static int tcp_queue_prepare_packet(socket_core_t *, tcp_socket_data_t *,
-    packet_t, size_t);
-static int tcp_queue_packet(socket_core_t *, tcp_socket_data_t *, packet_t,
+    packet_t *, size_t);
+static int tcp_queue_packet(socket_core_t *, tcp_socket_data_t *, packet_t *,
     size_t);
-static packet_t tcp_get_packets_to_send(socket_core_t *, tcp_socket_data_t *);
-static void tcp_send_packets(device_id_t, packet_t);
+static packet_t *tcp_get_packets_to_send(socket_core_t *, tcp_socket_data_t *);
+static void tcp_send_packets(device_id_t, packet_t *);
 
 static void tcp_process_acknowledgement(socket_core_t *, tcp_socket_data_t *,
     tcp_header_t *);
-static packet_t tcp_send_prepare_packet(socket_core_t *, tcp_socket_data_t *,
-    packet_t, size_t, size_t);
-static packet_t tcp_prepare_copy(socket_core_t *, tcp_socket_data_t *, packet_t,
-    size_t, size_t);
+static packet_t *tcp_send_prepare_packet(socket_core_t *, tcp_socket_data_t *,
+    packet_t *, size_t, size_t);
+static packet_t *tcp_prepare_copy(socket_core_t *, tcp_socket_data_t *,
+    packet_t *, size_t, size_t);
 /* static */ void tcp_retransmit_packet(socket_core_t *, tcp_socket_data_t *,
     size_t);
-static int tcp_create_notification_packet(packet_t *, socket_core_t *,
+static int tcp_create_notification_packet(packet_t **, socket_core_t *,
     tcp_socket_data_t *, int, int);
 static void tcp_refresh_socket_data(tcp_socket_data_t *);
 
 static void tcp_initialize_socket_data(tcp_socket_data_t *);
 
 static int tcp_process_listen(socket_core_t *, tcp_socket_data_t *,
-    tcp_header_t *, packet_t, struct sockaddr *, struct sockaddr *, size_t);
+    tcp_header_t *, packet_t *, struct sockaddr *, struct sockaddr *, size_t);
 static int tcp_process_syn_sent(socket_core_t *, tcp_socket_data_t *,
-    tcp_header_t *, packet_t);
+    tcp_header_t *, packet_t *);
 static int tcp_process_syn_received(socket_core_t *, tcp_socket_data_t *,
-    tcp_header_t *, packet_t);
+    tcp_header_t *, packet_t *);
 static int tcp_process_established(socket_core_t *, tcp_socket_data_t *,
-    tcp_header_t *, packet_t, int, size_t);
+    tcp_header_t *, packet_t *, int, size_t);
 static int tcp_queue_received_packet(socket_core_t *, tcp_socket_data_t *,
-    packet_t, int, size_t);
+    packet_t *, int, size_t);
 
-static int tcp_received_msg(device_id_t, packet_t, services_t, services_t);
+static int tcp_received_msg(device_id_t, packet_t *, services_t, services_t);
 static int tcp_process_client_messages(ipc_callid_t, ipc_call_t);
 
 static int tcp_listen_message(socket_cores_t *, int, int);
@@ -261,7 +261,7 @@ out:
 	return rc;
 }
 
-int tcp_received_msg(device_id_t device_id, packet_t packet,
+int tcp_received_msg(device_id_t device_id, packet_t *packet,
     services_t receiver, services_t error)
 {
 	int rc;
@@ -279,7 +279,7 @@ int tcp_received_msg(device_id_t device_id, packet_t packet,
 	return rc;
 }
 
-int tcp_process_packet(device_id_t device_id, packet_t packet, services_t error)
+int tcp_process_packet(device_id_t device_id, packet_t *packet, services_t error)
 {
 	size_t length;
 	size_t offset;
@@ -287,7 +287,7 @@ int tcp_process_packet(device_id_t device_id, packet_t packet, services_t error)
 	tcp_header_t *header;
 	socket_core_t *socket;
 	tcp_socket_data_t *socket_data;
-	packet_t next_packet;
+	packet_t *next_packet;
 	size_t total_length;
 	uint32_t checksum;
 	int fragments;
@@ -452,7 +452,7 @@ int tcp_process_packet(device_id_t device_id, packet_t packet, services_t error)
 	}
 
 has_error_service:
-	fibril_rwlock_read_unlock(&tcp_globals.lock);
+	fibril_rwlock_write_unlock(&tcp_globals.lock);
 
 	/* TODO error reporting/handling */
 	switch (socket_data->state) {
@@ -492,11 +492,11 @@ has_error_service:
 }
 
 int tcp_process_established(socket_core_t *socket, tcp_socket_data_t *
-    socket_data, tcp_header_t *header, packet_t packet, int fragments,
+    socket_data, tcp_header_t *header, packet_t *packet, int fragments,
     size_t total_length)
 {
-	packet_t next_packet;
-	packet_t tmp_packet;
+	packet_t *next_packet;
+	packet_t *tmp_packet;
 	uint32_t old_incoming;
 	size_t order;
 	uint32_t sequence_number;
@@ -800,7 +800,7 @@ int tcp_process_established(socket_core_t *socket, tcp_socket_data_t *
 }
 
 int tcp_queue_received_packet(socket_core_t *socket,
-    tcp_socket_data_t *socket_data, packet_t packet, int fragments,
+    tcp_socket_data_t *socket_data, packet_t *packet, int fragments,
     size_t total_length)
 {
 	packet_dimension_t *packet_dimension;
@@ -828,18 +828,18 @@ int tcp_queue_received_packet(socket_core_t *socket,
 
 	/* Notify the destination socket */
 	async_msg_5(socket->phone, NET_SOCKET_RECEIVED,
-	    (ipcarg_t) socket->socket_id,
+	    (sysarg_t) socket->socket_id,
 	    ((packet_dimension->content < socket_data->data_fragment_size) ?
 	    packet_dimension->content : socket_data->data_fragment_size), 0, 0,
-	    (ipcarg_t) fragments);
+	    (sysarg_t) fragments);
 
 	return EOK;
 }
 
 int tcp_process_syn_sent(socket_core_t *socket, tcp_socket_data_t *
-    socket_data, tcp_header_t *header, packet_t packet)
+    socket_data, tcp_header_t *header, packet_t *packet)
 {
-	packet_t next_packet;
+	packet_t *next_packet;
 	int rc;
 
 	assert(socket);
@@ -896,10 +896,10 @@ int tcp_process_syn_sent(socket_core_t *socket, tcp_socket_data_t *
 
 int tcp_process_listen(socket_core_t *listening_socket,
     tcp_socket_data_t *listening_socket_data, tcp_header_t *header,
-    packet_t packet, struct sockaddr *src, struct sockaddr *dest,
+    packet_t *packet, struct sockaddr *src, struct sockaddr *dest,
     size_t addrlen)
 {
-	packet_t next_packet;
+	packet_t *next_packet;
 	socket_core_t *socket;
 	tcp_socket_data_t *socket_data;
 	int socket_id;
@@ -1055,7 +1055,7 @@ int tcp_process_listen(socket_core_t *listening_socket,
 }
 
 int tcp_process_syn_received(socket_core_t *socket,
-    tcp_socket_data_t *socket_data, tcp_header_t *header, packet_t packet)
+    tcp_socket_data_t *socket_data, tcp_header_t *header, packet_t *packet)
 {
 	socket_core_t *listening_socket;
 	tcp_socket_data_t *listening_socket_data;
@@ -1089,9 +1089,9 @@ int tcp_process_syn_received(socket_core_t *socket,
 		if (rc == EOK) {
 			/* Notify the destination socket */
 			async_msg_5(socket->phone, NET_SOCKET_ACCEPTED,
-			    (ipcarg_t) listening_socket->socket_id,
+			    (sysarg_t) listening_socket->socket_id,
 			    socket_data->data_fragment_size, TCP_HEADER_SIZE,
-			    0, (ipcarg_t) socket->socket_id);
+			    0, (sysarg_t) socket->socket_id);
 
 			fibril_rwlock_write_unlock(socket_data->local_lock);
 			return EOK;
@@ -1126,9 +1126,9 @@ void tcp_process_acknowledgement(socket_core_t *socket,
 {
 	size_t number;
 	size_t length;
-	packet_t packet;
-	packet_t next;
-	packet_t acknowledged = NULL;
+	packet_t *packet;
+	packet_t *next;
+	packet_t *acknowledged = NULL;
 	uint32_t old;
 
 	assert(socket);
@@ -1231,7 +1231,7 @@ int
 tcp_message_standalone(ipc_callid_t callid, ipc_call_t *call,
     ipc_call_t *answer, int *answer_count)
 {
-	packet_t packet;
+	packet_t *packet;
 	int rc;
 
 	assert(call);
@@ -1239,7 +1239,7 @@ tcp_message_standalone(ipc_callid_t callid, ipc_call_t *call,
 	assert(answer_count);
 
 	*answer_count = 0;
-	switch (IPC_GET_METHOD(*call)) {
+	switch (IPC_GET_IMETHOD(*call)) {
 	case NET_TL_RECEIVED:
 //		fibril_rwlock_read_lock(&tcp_globals.lock);
 		rc = packet_translate_remote(tcp_globals.net_phone, &packet,
@@ -1322,7 +1322,7 @@ int tcp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 		callid = async_get_call(&call);
 
 		/* Process the call */
-		switch (IPC_GET_METHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			keep_on_going = false;
 			res = EHANGUP;
@@ -1364,7 +1364,8 @@ int tcp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 			break;
 
 		case NET_SOCKET_BIND:
-			res = data_receive((void **) &addr, &addrlen);
+			res = async_data_write_accept((void **) &addr, false,
+			    0, 0, 0, &addrlen);
 			if (res != EOK)
 				break;
 			fibril_rwlock_write_lock(&tcp_globals.lock);
@@ -1401,7 +1402,8 @@ int tcp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 			break;
 
 		case NET_SOCKET_CONNECT:
-			res = data_receive((void **) &addr, &addrlen);
+			res = async_data_write_accept((void **) &addr, false,
+			    0, 0, 0, &addrlen);
 			if (res != EOK)
 				break;
 			/*
@@ -1452,7 +1454,8 @@ int tcp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 			break;
 
 		case NET_SOCKET_SENDTO:
-			res = data_receive((void **) &addr, &addrlen);
+			res = async_data_write_accept((void **) &addr, false,
+			    0, 0, 0, &addrlen);
 			if (res != EOK)
 				break;
 			fibril_rwlock_read_lock(&tcp_globals.lock);
@@ -1653,8 +1656,8 @@ int tcp_release_after_timeout(void *data)
 void tcp_retransmit_packet(socket_core_t *socket, tcp_socket_data_t *
     socket_data, size_t sequence_number)
 {
-	packet_t packet;
-	packet_t copy;
+	packet_t *packet;
+	packet_t *copy;
 	size_t data_length;
 
 	assert(socket);
@@ -1735,7 +1738,7 @@ int tcp_connect_core(socket_core_t *socket, socket_cores_t *local_sockets,
     struct sockaddr *addr, socklen_t addrlen)
 {
 	tcp_socket_data_t *socket_data;
-	packet_t packet;
+	packet_t *packet;
 	int rc;
 
 	assert(socket);
@@ -1799,6 +1802,8 @@ int tcp_connect_core(socket_core_t *socket, socket_cores_t *local_sockets,
 			fibril_mutex_lock(&socket_data->operation.mutex);
 			fibril_rwlock_write_unlock(socket_data->local_lock);
 
+			socket_data->state = TCP_SOCKET_SYN_SENT;
+
 			/* Send the packet */
 			printf("connecting %d\n", packet_get_id(packet));
 			tcp_send_packets(socket_data->device_id, packet);
@@ -1823,7 +1828,7 @@ int tcp_connect_core(socket_core_t *socket, socket_cores_t *local_sockets,
 }
 
 int tcp_queue_prepare_packet(socket_core_t *socket,
-    tcp_socket_data_t *socket_data, packet_t packet, size_t data_length)
+    tcp_socket_data_t *socket_data, packet_t *packet, size_t data_length)
 {
 	tcp_header_t *header;
 	int rc;
@@ -1854,7 +1859,7 @@ int tcp_queue_prepare_packet(socket_core_t *socket,
 }
 
 int tcp_queue_packet(socket_core_t *socket, tcp_socket_data_t *socket_data,
-    packet_t packet, size_t data_length)
+    packet_t *packet, size_t data_length)
 {
 	int rc;
 
@@ -1875,13 +1880,13 @@ int tcp_queue_packet(socket_core_t *socket, tcp_socket_data_t *socket_data,
 	return EOK;
 }
 
-packet_t tcp_get_packets_to_send(socket_core_t *socket, tcp_socket_data_t *
+packet_t *tcp_get_packets_to_send(socket_core_t *socket, tcp_socket_data_t *
     socket_data)
 {
-	packet_t packet;
-	packet_t copy;
-	packet_t sending = NULL;
-	packet_t previous = NULL;
+	packet_t *packet;
+	packet_t *copy;
+	packet_t *sending = NULL;
+	packet_t *previous = NULL;
 	size_t data_length;
 	int rc;
 
@@ -1935,8 +1940,8 @@ packet_t tcp_get_packets_to_send(socket_core_t *socket, tcp_socket_data_t *
 	return sending;
 }
 
-packet_t tcp_send_prepare_packet(socket_core_t *socket, tcp_socket_data_t *
-    socket_data, packet_t packet, size_t data_length, size_t sequence_number)
+packet_t *tcp_send_prepare_packet(socket_core_t *socket, tcp_socket_data_t *
+    socket_data, packet_t *packet, size_t data_length, size_t sequence_number)
 {
 	tcp_header_t *header;
 	uint32_t checksum;
@@ -1996,10 +2001,10 @@ packet_t tcp_send_prepare_packet(socket_core_t *socket, tcp_socket_data_t *
 	return packet;
 }
 
-packet_t tcp_prepare_copy(socket_core_t *socket, tcp_socket_data_t *
-    socket_data, packet_t packet, size_t data_length, size_t sequence_number)
+packet_t *tcp_prepare_copy(socket_core_t *socket, tcp_socket_data_t *
+    socket_data, packet_t *packet, size_t data_length, size_t sequence_number)
 {
-	packet_t copy;
+	packet_t *copy;
 
 	assert(socket);
 	assert(socket_data);
@@ -2014,9 +2019,9 @@ packet_t tcp_prepare_copy(socket_core_t *socket, tcp_socket_data_t *
 	    sequence_number);
 }
 
-void tcp_send_packets(device_id_t device_id, packet_t packet)
+void tcp_send_packets(device_id_t device_id, packet_t *packet)
 {
-	packet_t next;
+	packet_t *next;
 
 	while (packet) {
 		next = pq_detach(packet);
@@ -2081,8 +2086,9 @@ int tcp_prepare_timeout(int (*timeout_function)(void *tcp_timeout_t),
 	fibril = fibril_create(timeout_function, operation_timeout);
 	if (!fibril) {
 		free(operation_timeout);
-		return EPARTY;	/* FIXME: use another EC */
+		return ENOMEM;
 	}
+
 //      fibril_mutex_lock(&socket_data->operation.mutex);
 	/* Start the timeout fibril */
 	fibril_add_ready(fibril);
@@ -2096,7 +2102,7 @@ int tcp_recvfrom_message(socket_cores_t *local_sockets, int socket_id,
 	socket_core_t *socket;
 	tcp_socket_data_t *socket_data;
 	int packet_id;
-	packet_t packet;
+	packet_t *packet;
 	size_t length;
 	int rc;
 
@@ -2154,7 +2160,7 @@ int tcp_send_message(socket_cores_t *local_sockets, int socket_id,
 	socket_core_t *socket;
 	tcp_socket_data_t *socket_data;
 	packet_dimension_t *packet_dimension;
-	packet_t packet;
+	packet_t *packet;
 	size_t total_length;
 	tcp_header_t *header;
 	int index;
@@ -2228,7 +2234,7 @@ tcp_close_message(socket_cores_t *local_sockets, int socket_id)
 {
 	socket_core_t *socket;
 	tcp_socket_data_t *socket_data;
-	packet_t packet;
+	packet_t *packet;
 	int rc;
 
 	/* Find the socket */
@@ -2292,7 +2298,7 @@ tcp_close_message(socket_cores_t *local_sockets, int socket_id)
 	return EOK;
 }
 
-int tcp_create_notification_packet(packet_t *packet, socket_core_t *socket,
+int tcp_create_notification_packet(packet_t **packet, socket_core_t *socket,
     tcp_socket_data_t *socket_data, int synchronize, int finalize)
 {
 	packet_dimension_t *packet_dimension;
@@ -2441,7 +2447,7 @@ void tcp_free_socket_data(socket_core_t *socket)
  * @param[in] result	The result to be returned.
  * @return		The result parameter.
  */
-int tcp_release_and_return(packet_t packet, int result)
+int tcp_release_and_return(packet_t *packet, int result)
 {
 	pq_release_remote(tcp_globals.net_phone, packet_get_id(packet));
 	return result;
@@ -2480,7 +2486,7 @@ static void tl_client_connection(ipc_callid_t iid, ipc_call_t * icall)
 		 * End if told to either by the message or the processing
 		 * result.
 		 */
-		if ((IPC_GET_METHOD(call) == IPC_M_PHONE_HUNGUP) ||
+		if ((IPC_GET_IMETHOD(call) == IPC_M_PHONE_HUNGUP) ||
 		    (res == EHANGUP))
 			return;
 

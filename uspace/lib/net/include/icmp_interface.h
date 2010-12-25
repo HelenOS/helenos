@@ -50,10 +50,10 @@
 /*@{*/
 
 extern int icmp_destination_unreachable_msg(int, icmp_code_t, icmp_param_t,
-    packet_t);
-extern int icmp_source_quench_msg(int, packet_t);
-extern int icmp_time_exceeded_msg(int, icmp_code_t, packet_t);
-extern int icmp_parameter_problem_msg(int, icmp_code_t, icmp_param_t, packet_t);
+    packet_t *);
+extern int icmp_source_quench_msg(int, packet_t *);
+extern int icmp_time_exceeded_msg(int, icmp_code_t, packet_t *);
+extern int icmp_parameter_problem_msg(int, icmp_code_t, icmp_param_t, packet_t *);
 
 /*@}*/
 

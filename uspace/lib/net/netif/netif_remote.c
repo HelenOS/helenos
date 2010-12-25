@@ -92,7 +92,7 @@ netif_probe_req_remote(int netif_phone, device_id_t device_id, int irq, int io)
  *			function.
  */
 int
-netif_send_msg_remote(int netif_phone, device_id_t device_id, packet_t packet,
+netif_send_msg_remote(int netif_phone, device_id_t device_id, packet_t *packet,
     services_t sender)
 {
 	return generic_send_msg_remote(netif_phone, NET_NETIF_SEND, device_id,
@@ -143,10 +143,10 @@ int netif_stats_req_remote(int netif_phone, device_id_t device_id,
 		return EBADMEM;
 	
 	aid_t message_id = async_send_1(netif_phone, NET_NETIF_STATS,
-	    (ipcarg_t) device_id, NULL);
+	    (sysarg_t) device_id, NULL);
 	async_data_read_start(netif_phone, stats, sizeof(*stats));
 	
-	ipcarg_t result;
+	sysarg_t result;
 	async_wait_for(message_id, &result);
 	
 	return (int) result;

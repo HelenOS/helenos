@@ -121,8 +121,8 @@ typedef struct {
 	bool notify;
 	/** Answerbox for notifications. */
 	answerbox_t *answerbox;
-	/** Method to be used for the notification. */
-	unative_t method;
+	/** Interface and method to be used for the notification. */
+	sysarg_t imethod;
 	/** Arguments that will be sent if the IRQ is claimed. */
 	uint32_t scratch[IPC_CALL_LEN];
 	/** Top-half pseudocode. */
@@ -187,6 +187,8 @@ typedef struct irq {
 
 IRQ_SPINLOCK_EXTERN(irq_uspace_hash_table_lock);
 extern hash_table_t irq_uspace_hash_table;
+
+extern inr_t last_inr;
 
 extern void irq_init(size_t, size_t);
 extern void irq_initialize(irq_t *);

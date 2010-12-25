@@ -266,16 +266,16 @@ dpeth_t *dep;
 
 	if (!debug)
 	{
-		printf("%s: NE%d000 at %X:%d\n",
-			dep->de_name, dep->de_16bit ? 2 : 1,
-			dep->de_base_port, dep->de_irq);
+		printf("%s: NE%d000 at %#lx:%d\n",
+		    dep->de_name, dep->de_16bit ? 2 : 1,
+		    dep->de_base_port, dep->de_irq);
 	}
 	else
 	{
 		printf("%s: Novell NE%d000 ethernet card at I/O address "
-			"0x%X, memory size 0x%X, irq %d\n",
-			dep->de_name, dep->de_16bit ? 2 : 1,
-			dep->de_base_port, dep->de_ramsize, dep->de_irq);
+		    "%#lx, memory size %#lx, irq %d\n",
+		    dep->de_name, dep->de_16bit ? 2 : 1,
+		    dep->de_base_port, dep->de_ramsize, dep->de_irq);
 	}
 }
 
