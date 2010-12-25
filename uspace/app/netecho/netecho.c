@@ -116,7 +116,7 @@ int main(int argc, char *argv[])
 	int value;
 	int rc;
 
-	// parse the command line arguments
+	/* Parse command line arguments */
 	for (index = 1; index < argc; ++ index) {
 		if (argv[index][0] == '-') {
 			switch (argv[index][1]) {
@@ -165,7 +165,7 @@ int main(int argc, char *argv[])
 			case 'v':
 				verbose = 1;
 				break;
-			// long options with the double minus sign ('-')
+			/* Long options with double dash */
 			case '-':
 				if (str_lcmp(argv[index] + 2, "backlog=", 6) == 0) {
 					rc = arg_parse_int(argc, argv, &index, &backlog, 8);
@@ -218,22 +218,23 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	// check the buffer size
+	/* Check buffer size */
 	if (size <= 0) {
 		fprintf(stderr, "Receive size too small (%zu). Using 1024 bytes instead.\n", size);
 		size = 1024;
 	}
-	// size plus the terminating null (\0)
+
+	/* size plus the terminating null character. */
 	data = (char *) malloc(size + 1);
 	if (!data) {
 		fprintf(stderr, "Failed to allocate receive buffer.\n");
 		return ENOMEM;
 	}
 
-	// set the reply size if set
+	/* Set the reply size if set */
 	reply_length = reply ? str_length(reply) : 0;
 
-	// prepare the address buffer
+	/* Prepare the address buffer */
 	bzero(address_data, max_length);
 	switch (family) {
 	case PF_INET:
@@ -251,21 +252,22 @@ int main(int argc, char *argv[])
 		return EAFNOSUPPORT;
 	}
 
-	// get a listening socket
+	/* Get a listening socket */
 	listening_id = socket(family, type, 0);
 	if (listening_id < 0) {
 		socket_print_error(stderr, listening_id, "Socket create: ", "\n");
 		return listening_id;
 	}
 
-	// if the stream socket is used
+	/* if the stream socket is used */
 	if (type == SOCK_STREAM) {
-		// check the backlog
+		/* Check backlog size */
 		if (backlog <= 0) {
 			fprintf(stderr, "Accepted sockets queue size too small (%zu). Using 3 instead.\n", size);
 			backlog = 3;
 		}
-		// set the backlog
+
+		/* Set the backlog */
 		rc = listen(listening_id, backlog);
 		if (rc != EOK) {
 			socket_print_error(stderr, rc, "Socket listen: ", "\n");
@@ -273,7 +275,7 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	// bind the listenning socket
+	/* Bind the listening socket */
 	rc = bind(listening_id, address, addrlen);
 	if (rc != EOK) {
 		socket_print_error(stderr, rc, "Socket bind: ", "\n");
@@ -285,13 +287,15 @@ int main(int argc, char *argv[])
 
 	socket_id = listening_id;
 
-	// do count times
-	// or indefinitely if set to a negative value
+	/*
+	 * do count times
+	 * or indefinitely if set to a negative value
+	 */
 	while (count) {
 
 		addrlen = max_length;
 		if (type == SOCK_STREAM) {
-			// acceept a socket if the stream socket is used
+			/* Accept a socket if the stream socket is used */
 			socket_id = accept(listening_id, address, &addrlen);
 			if (socket_id <= 0) {
 				socket_print_error(stderr, socket_id, "Socket accept: ", "\n");
@@ -301,19 +305,19 @@ int main(int argc, char *argv[])
 			}
 		}
 
-		// if the datagram socket is used or the stream socked was accepted
+		/* if the datagram socket is used or the stream socked was accepted */
 		if (socket_id > 0) {
 
-			// receive an echo request
+			/* Receive a message to echo */
 			value = recvfrom(socket_id, data, size, 0, address, &addrlen);
 			if (value < 0) {
 				socket_print_error(stderr, value, "Socket receive: ", "\n");
 			} else {
 				length = (size_t) value;
 				if (verbose) {
-					// print the header
+					/* Print the header */
 
-					// get the source port and prepare the address buffer
+					/* Get the source port and prepare the address buffer */
 					address_start = NULL;
 					switch (address->sa_family) {
 					case AF_INET:
@@ -328,7 +332,8 @@ int main(int argc, char *argv[])
 						fprintf(stderr, "Address family %u (%#x) is not supported.\n",
 						    address->sa_family, address->sa_family);
 					}
-					// parse the source address
+		
+					/* Parse source address */
 					if (address_start) {
 						rc = inet_ntop(address->sa_family, address_start, address_string, sizeof(address_string));
 						if (rc != EOK) {
@@ -341,13 +346,13 @@ int main(int argc, char *argv[])
 					}
 				}
 
-				// answer the request either with the static reply or the original data
+				/* Answer the request either with the static reply or the original data */
 				rc = sendto(socket_id, reply ? reply : data, reply ? reply_length : length, 0, address, addrlen);
 				if (rc != EOK)
 					socket_print_error(stderr, rc, "Socket send: ", "\n");
 			}
 
-			// close the accepted stream socket
+			/* Close accepted stream socket */
 			if (type == SOCK_STREAM) {
 				rc = closesocket(socket_id);
 				if (rc != EOK)
@@ -356,7 +361,7 @@ int main(int argc, char *argv[])
 
 		}
 
-		// decrease the count if positive
+		/* Decrease count if positive */
 		if (count > 0) {
 			count--;
 			if (verbose)
@@ -367,7 +372,7 @@ int main(int argc, char *argv[])
 	if (verbose)
 		printf("Closing the socket\n");
 
-	// close the listenning socket
+	/* Close listenning socket */
 	rc = closesocket(listening_id);
 	if (rc != EOK) {
 		socket_print_error(stderr, rc, "Close socket: ", "\n");
