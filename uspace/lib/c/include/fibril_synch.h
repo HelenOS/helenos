@@ -104,12 +104,16 @@ extern void fibril_mutex_initialize(fibril_mutex_t *);
 extern void fibril_mutex_lock(fibril_mutex_t *);
 extern bool fibril_mutex_trylock(fibril_mutex_t *);
 extern void fibril_mutex_unlock(fibril_mutex_t *);
+extern bool fibril_mutex_is_locked(fibril_mutex_t *);
 
 extern void fibril_rwlock_initialize(fibril_rwlock_t *);
 extern void fibril_rwlock_read_lock(fibril_rwlock_t *);
 extern void fibril_rwlock_write_lock(fibril_rwlock_t *);
 extern void fibril_rwlock_read_unlock(fibril_rwlock_t *);
 extern void fibril_rwlock_write_unlock(fibril_rwlock_t *);
+extern bool fibril_rwlock_is_read_locked(fibril_rwlock_t *);
+extern bool fibril_rwlock_is_write_locked(fibril_rwlock_t *);
+extern bool fibril_rwlock_is_locked(fibril_rwlock_t *);
 
 extern void fibril_condvar_initialize(fibril_condvar_t *);
 extern int fibril_condvar_wait_timeout(fibril_condvar_t *, fibril_mutex_t *,

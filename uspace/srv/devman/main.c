@@ -280,7 +280,8 @@ static void devmap_register_class_dev(dev_class_info_t *cli)
 	 * Register the device by the device mapper and remember its devmap
 	 * handle.
 	 */
-	devmap_device_register(devmap_pathname, &cli->devmap_handle);
+	devmap_device_register_with_iface(devmap_pathname,
+	    &cli->devmap_handle, DEVMAN_CONNECT_FROM_DEVMAP);
 	
 	/*
 	 * Add device to the hash map of class devices registered by device
@@ -485,7 +486,7 @@ static void devman_forward(ipc_callid_t iid, ipc_call_t *icall,
  * mapper to the device manager. */
 static void devman_connection_devmapper(ipc_callid_t iid, ipc_call_t *icall)
 {
-	devmap_handle_t devmap_handle = IPC_GET_IMETHOD(*icall);
+	devmap_handle_t devmap_handle = IPC_GET_ARG2(*icall);
 	node_t *dev;
 
 	dev = find_devmap_tree_device(&device_tree, devmap_handle);
@@ -502,33 +503,15 @@ static void devman_connection_devmapper(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 	
-	printf(NAME ": devman_connection_devmapper: forward connection to "
-	    "device %s to driver %s.\n", dev->pathname, dev->drv->name);
 	ipc_forward_fast(iid, dev->drv->phone, DRIVER_CLIENT, dev->handle, 0,
 	    IPC_FF_NONE);
+	printf(NAME ": devman_connection_devmapper: forwarded connection to "
+	    "device %s to driver %s.\n", dev->pathname, dev->drv->name);
 }
 
 /** Function for handling connections to device manager. */
 static void devman_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
-	/*
-	 * Silly hack to enable the device manager to register as a driver by
-	 * the device mapper. If the ipc method is not IPC_M_CONNECT_ME_TO, this
-	 * is not the forwarded connection from naming service, so it must be a
-	 * connection from the devmapper which thinks this is a devmapper-style
-	 * driver. So pretend this is a devmapper-style driver. (This does not
-	 * work for device with handle == IPC_M_CONNECT_ME_TO, because devmapper
-	 * passes device handle to the driver as an ipc method.)
-	 */
-	if (IPC_GET_IMETHOD(*icall) != IPC_M_CONNECT_ME_TO)
-		devman_connection_devmapper(iid, icall);
-
-	/*
-	 * ipc method is IPC_M_CONNECT_ME_TO, so this is forwarded connection
-	 * from naming service by which we registered as device manager, so be
-	 * device manager.
-	 */
-	
 	/* Select interface. */
 	switch ((sysarg_t) (IPC_GET_ARG1(*icall))) {
 	case DEVMAN_DRIVER:
@@ -540,6 +523,10 @@ static void devman_connection(ipc_callid_t iid, ipc_call_t *icall)
 	case DEVMAN_CONNECT_TO_DEVICE:
 		/* Connect client to selected device. */
 		devman_forward(iid, icall, false);
+		break;
+	case DEVMAN_CONNECT_FROM_DEVMAP:
+		/* Someone connected through devmap node. */
+		devman_connection_devmapper(iid, icall);
 		break;
 	case DEVMAN_CONNECT_TO_PARENTS_DEVICE:
 		/* Connect client to selected device. */

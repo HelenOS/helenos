@@ -188,6 +188,8 @@ typedef struct irq {
 IRQ_SPINLOCK_EXTERN(irq_uspace_hash_table_lock);
 extern hash_table_t irq_uspace_hash_table;
 
+extern inr_t last_inr;
+
 extern void irq_init(size_t, size_t);
 extern void irq_initialize(irq_t *);
 extern void irq_register(irq_t *);

@@ -27,8 +27,8 @@
  */
 
 /**
- * @defgroup root_pc Root HW device driver for ia32 and amd64 platform.
- * @brief HelenOS root HW device driver for ia32 and amd64 platform.
+ * @defgroup root_pc PC platform driver.
+ * @brief HelenOS PC platform driver.
  * @{
  */
 
@@ -181,8 +181,7 @@ static int rootpc_add_device(device_t *dev)
 	
 	/* Register child devices. */
 	if (!rootpc_add_children(dev)) {
-		printf(NAME ": failed to add child devices for platform "
-		    "ia32.\n");
+		printf(NAME ": failed to add child devices for PC platform.\n");
 	}
 	
 	return EOK;
@@ -195,7 +194,7 @@ static void root_pc_init(void)
 
 int main(int argc, char *argv[])
 {
-	printf(NAME ": HelenOS rootpc device driver\n");
+	printf(NAME ": HelenOS PC platform driver\n");
 	root_pc_init();
 	return driver_main(&rootpc_driver);
 }

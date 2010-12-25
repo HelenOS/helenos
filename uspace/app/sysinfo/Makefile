@@ -1,6 +1,5 @@
 #
-# Copyright (c) 2005 Martin Decky
-# Copyright (c) 2007 Jakub Jermar
+# Copyright (c) 2010 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,27 +27,10 @@
 #
 
 USPACE_PREFIX = ../..
-BINARY = tester
+EXTRA_CFLAGS = -Iinclude
+BINARY = sysinfo
 
 SOURCES = \
-	tester.c \
-	thread/thread1.c \
-	print/print1.c \
-	print/print2.c \
-	print/print3.c \
-	print/print4.c \
-	print/print5.c \
-	console/console1.c \
-	stdio/stdio1.c \
-	stdio/stdio2.c \
-	fault/fault1.c \
-	fault/fault2.c \
-	fault/fault3.c \
-	vfs/vfs1.c \
-	ipc/ping_pong.c \
-	loop/loop1.c \
-	mm/malloc1.c \
-	hw/misc/virtchar1.c \
-	hw/serial/serial1.c
+	sysinfo.c
 
 include $(USPACE_PREFIX)/Makefile.common
