@@ -63,6 +63,9 @@ static size_t size = 1024;
 static int verbose = 0;
 
 static char *reply = NULL;
+static size_t reply_length;
+
+static char *data;
 
 static void echo_print_help(void)
 {
@@ -212,6 +215,100 @@ static int netecho_parse_option(int argc, char *argv[], int *index)
 	return EOK;
 }
 
+/** Echo one message (accept one connection and echo message).
+ *
+ * @param listening_id	Listening socket.
+ * @return		EOK on success or negative error code.
+ */
+static int netecho_socket_echo_message(int listening_id)
+{
+	socklen_t max_length = sizeof(struct sockaddr_in6);
+	uint8_t address_data[max_length];
+	struct sockaddr *address = (struct sockaddr *) address_data;
+	socklen_t addrlen;
+	int socket_id;
+	ssize_t rcv_size;
+	size_t length;
+	uint8_t *address_start;
+	struct sockaddr_in *address_in = (struct sockaddr_in *) address;
+	struct sockaddr_in6 *address_in6 = (struct sockaddr_in6 *) address;
+	char address_string[INET6_ADDRSTRLEN];
+	int rc;
+
+	addrlen = (socklen_t) max_length;
+	if (type == SOCK_STREAM) {
+		/* Accept a socket if the stream socket is used */
+		socket_id = accept(listening_id, address, &addrlen);
+		if (socket_id <= 0) {
+			socket_print_error(stderr, socket_id, "Socket accept: ", "\n");
+		} else {
+			if (verbose)
+				printf("Socket %d accepted\n", socket_id);
+		}
+	} else {
+		socket_id = listening_id;
+	}
+
+	/* if the datagram socket is used or the stream socked was accepted */
+	if (socket_id > 0) {
+
+		/* Receive a message to echo */
+		rcv_size = recvfrom(socket_id, data, size, 0, address, &addrlen);
+		if (rcv_size < 0) {
+			socket_print_error(stderr, rcv_size, "Socket receive: ", "\n");
+		} else {
+			length = (size_t) rcv_size;
+			if (verbose) {
+				/* Print the header */
+
+				/* Get the source port and prepare the address buffer */
+				address_start = NULL;
+				switch (address->sa_family) {
+				case AF_INET:
+					port = ntohs(address_in->sin_port);
+					address_start = (uint8_t *) &address_in->sin_addr.s_addr;
+					break;
+				case AF_INET6:
+					port = ntohs(address_in6->sin6_port);
+					address_start = (uint8_t *) &address_in6->sin6_addr.s6_addr;
+					break;
+				default:
+					fprintf(stderr, "Address family %u (%#x) is not supported.\n",
+					    address->sa_family, address->sa_family);
+				}
+
+				/* Parse source address */
+				if (address_start) {
+					rc = inet_ntop(address->sa_family, address_start, address_string, sizeof(address_string));
+					if (rc != EOK) {
+						fprintf(stderr, "Received address error %d\n", rc);
+					} else {
+						data[length] = '\0';
+						printf("Socket %d received %zu bytes from %s:%d\n%s\n",
+						    socket_id, length, address_string, port, data);
+					}
+				}
+			}
+
+			/* Answer the request either with the static reply or the original data */
+			rc = sendto(socket_id, reply ? reply : data, reply ? reply_length : length, 0, address, addrlen);
+			if (rc != EOK)
+				socket_print_error(stderr, rc, "Socket send: ", "\n");
+		}
+
+		/* Close accepted stream socket */
+		if (type == SOCK_STREAM) {
+			rc = closesocket(socket_id);
+			if (rc != EOK)
+				socket_print_error(stderr, rc, "Close socket: ", "\n");
+		}
+
+	}
+
+	return EOK;
+}
+
+
 int main(int argc, char *argv[])
 {
 	socklen_t max_length = sizeof(struct sockaddr_in6);
@@ -220,15 +317,8 @@ int main(int argc, char *argv[])
 	struct sockaddr_in *address_in = (struct sockaddr_in *) address;
 	struct sockaddr_in6 *address_in6 = (struct sockaddr_in6 *) address;
 	socklen_t addrlen;
-	char address_string[INET6_ADDRSTRLEN];
-	uint8_t *address_start;
-	int socket_id;
 	int listening_id;
-	char *data;
-	size_t length;
 	int index;
-	size_t reply_length;
-	ssize_t rcv_size;
 	int rc;
 
 	/* Parse command line arguments */
@@ -310,81 +400,14 @@ int main(int argc, char *argv[])
 	if (verbose)
 		printf("Socket %d listenning at %d\n", listening_id, port);
 
-	socket_id = listening_id;
-
 	/*
 	 * do count times
 	 * or indefinitely if set to a negative value
 	 */
 	while (count) {
-
-		addrlen = max_length;
-		if (type == SOCK_STREAM) {
-			/* Accept a socket if the stream socket is used */
-			socket_id = accept(listening_id, address, &addrlen);
-			if (socket_id <= 0) {
-				socket_print_error(stderr, socket_id, "Socket accept: ", "\n");
-			} else {
-				if (verbose)
-					printf("Socket %d accepted\n", socket_id);
-			}
-		}
-
-		/* if the datagram socket is used or the stream socked was accepted */
-		if (socket_id > 0) {
-
-			/* Receive a message to echo */
-			rcv_size = recvfrom(socket_id, data, size, 0, address, &addrlen);
-			if (rcv_size < 0) {
-				socket_print_error(stderr, rcv_size, "Socket receive: ", "\n");
-			} else {
-				length = (size_t) rcv_size;
-				if (verbose) {
-					/* Print the header */
-
-					/* Get the source port and prepare the address buffer */
-					address_start = NULL;
-					switch (address->sa_family) {
-					case AF_INET:
-						port = ntohs(address_in->sin_port);
-						address_start = (uint8_t *) &address_in->sin_addr.s_addr;
-						break;
-					case AF_INET6:
-						port = ntohs(address_in6->sin6_port);
-						address_start = (uint8_t *) &address_in6->sin6_addr.s6_addr;
-						break;
-					default:
-						fprintf(stderr, "Address family %u (%#x) is not supported.\n",
-						    address->sa_family, address->sa_family);
-					}
-		
-					/* Parse source address */
-					if (address_start) {
-						rc = inet_ntop(address->sa_family, address_start, address_string, sizeof(address_string));
-						if (rc != EOK) {
-							fprintf(stderr, "Received address error %d\n", rc);
-						} else {
-							data[length] = '\0';
-							printf("Socket %d received %zu bytes from %s:%d\n%s\n",
-							    socket_id, length, address_string, port, data);
-						}
-					}
-				}
-
-				/* Answer the request either with the static reply or the original data */
-				rc = sendto(socket_id, reply ? reply : data, reply ? reply_length : length, 0, address, addrlen);
-				if (rc != EOK)
-					socket_print_error(stderr, rc, "Socket send: ", "\n");
-			}
-
-			/* Close accepted stream socket */
-			if (type == SOCK_STREAM) {
-				rc = closesocket(socket_id);
-				if (rc != EOK)
-					socket_print_error(stderr, rc, "Close socket: ", "\n");
-			}
-
-		}
+		rc = netecho_socket_echo_message(listening_id);
+		if (rc != EOK)
+			break;
 
 		/* Decrease count if positive */
 		if (count > 0) {
