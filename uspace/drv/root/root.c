@@ -46,6 +46,7 @@
 #include <ctype.h>
 #include <macros.h>
 #include <inttypes.h>
+#include <sysinfo.h>
 
 #include <driver.h>
 #include <devman.h>
@@ -54,7 +55,7 @@
 #define NAME "root"
 
 #define PLATFORM_DEVICE_NAME "hw"
-#define PLATFORM_DEVICE_MATCH_ID STRING(UARCH)
+#define PLATFORM_DEVICE_MATCH_ID_FMT "platform/%s"
 #define PLATFORM_DEVICE_MATCH_SCORE 100
 
 #define VIRTUAL_DEVICE_NAME "virt"
@@ -99,13 +100,43 @@ static int add_virtual_root_child(device_t *parent)
  */
 static int add_platform_child(device_t *parent)
 {
+	char *match_id;
+	char *platform;
+	size_t platform_size;
+	int res;
+
+	/* Get platform name from sysinfo. */
+
+	platform = sysinfo_get_data("platform", &platform_size);
+	if (platform == NULL) {
+		printf(NAME ": Failed to obtain platform name.\n");
+		return ENOENT;
+	}
+
+	/* Null-terminate string. */
+	platform = realloc(platform, platform_size + 1);
+	if (platform == NULL) {
+		printf(NAME ": Memory allocation failed.\n");
+		return ENOMEM;
+	}
+
+	platform[platform_size] = '\0';
+
+	/* Construct match ID. */
+
+	if (asprintf(&match_id, PLATFORM_DEVICE_MATCH_ID_FMT, platform) == -1) {
+		printf(NAME ": Memory allocation failed.\n");
+		return ENOMEM;
+	}
+
+	/* Add child. */
+
 	printf(NAME ": adding new child for platform device.\n");
 	printf(NAME ":   device node is `%s' (%d %s)\n", PLATFORM_DEVICE_NAME,
-	    PLATFORM_DEVICE_MATCH_SCORE, PLATFORM_DEVICE_MATCH_ID);
-	
-	int res = child_device_register_wrapper(parent, PLATFORM_DEVICE_NAME,
-	    PLATFORM_DEVICE_MATCH_ID, PLATFORM_DEVICE_MATCH_SCORE,
-	    NULL);
+	    PLATFORM_DEVICE_MATCH_SCORE, match_id);
+
+	res = child_device_register_wrapper(parent, PLATFORM_DEVICE_NAME,
+	    match_id, PLATFORM_DEVICE_MATCH_SCORE, NULL);
 
 	return res;
 }

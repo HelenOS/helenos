@@ -51,6 +51,7 @@ _link.ld
 ./uspace/app/nettest2/nettest2
 ./uspace/app/ping/ping
 ./uspace/app/redir/redir
+./uspace/app/sysinfo/sysinfo
 ./uspace/app/sbi/sbi
 ./uspace/app/stats/stats
 ./uspace/app/taskdump/taskdump
