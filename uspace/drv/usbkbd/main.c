@@ -83,7 +83,7 @@ static void send_key(int key, int type, wchar_t c) {
 }
 
 static void send_alnum(int key, wchar_t c) {
-	printf(NAME ": sending key '%lc' to console\n", c);
+	printf(NAME ": sending key '%lc' to console\n", (wint_t) c);
 	send_key(key, KEY_PRESS, c);
 	send_key(key, KEY_RELEASE, c);
 }
