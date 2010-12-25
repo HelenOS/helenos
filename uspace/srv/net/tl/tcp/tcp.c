@@ -1802,6 +1802,8 @@ int tcp_connect_core(socket_core_t *socket, socket_cores_t *local_sockets,
 			fibril_mutex_lock(&socket_data->operation.mutex);
 			fibril_rwlock_write_unlock(socket_data->local_lock);
 
+			socket_data->state = TCP_SOCKET_SYN_SENT;
+
 			/* Send the packet */
 			printf("connecting %d\n", packet_get_id(packet));
 			tcp_send_packets(socket_data->device_id, packet);
