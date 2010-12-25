@@ -56,35 +56,42 @@
 static void echo_print_help(void)
 {
 	printf(
-		"Network echo server\n" \
-		"Usage: " NAME " [options]\n" \
-		"Where options are:\n" \
-		"-b backlog | --backlog=size\n" \
-		"\tThe size of the accepted sockets queue. Only for SOCK_STREAM. The default is 3.\n" \
-		"\n" \
-		"-c count | --count=count\n" \
-		"\tThe number of received messages to handle. A negative number means infinity. The default is infinity.\n" \
-		"\n" \
-		"-f protocol_family | --family=protocol_family\n" \
-		"\tThe listenning socket protocol family. Only the PF_INET and PF_INET6 are supported.\n"
-		"\n" \
-		"-h | --help\n" \
-		"\tShow this application help.\n"
-		"\n" \
-		"-p port_number | --port=port_number\n" \
-		"\tThe port number the application should listen at. The default is 7.\n" \
-		"\n" \
-		"-r reply_string | --reply=reply_string\n" \
-		"\tThe constant reply string. The default is the original data received.\n" \
-		"\n" \
-		"-s receive_size | --size=receive_size\n" \
-		"\tThe maximum receive data size the application should accept. The default is 1024 bytes.\n" \
-		"\n" \
-		"-t socket_type | --type=socket_type\n" \
-		"\tThe listenning socket type. Only the SOCK_DGRAM and the SOCK_STREAM are supported.\n" \
-		"\n" \
-		"-v | --verbose\n" \
-		"\tShow all output messages.\n"
+	    "Network echo server\n"
+	    "Usage: " NAME " [options]\n"
+	    "Where options are:\n"
+	    "-b backlog | --backlog=size\n"
+	    "\tThe size of the accepted sockets queue. Only for SOCK_STREAM. "
+	    "The default is 3.\n"
+	    "\n"
+	    "-c count | --count=count\n"
+	    "\tThe number of received messages to handle. A negative number "
+	    "means infinity. The default is infinity.\n"
+	    "\n"
+	    "-f protocol_family | --family=protocol_family\n"
+	    "\tThe listenning socket protocol family. Only the PF_INET and "
+	    "PF_INET6 are supported.\n"
+	    "\n"
+	    "-h | --help\n"
+	    "\tShow this application help.\n"
+	    "\n"
+	    "-p port_number | --port=port_number\n"
+	    "\tThe port number the application should listen at. The default "
+	    "is 7.\n"
+	    "\n"
+	    "-r reply_string | --reply=reply_string\n"
+	    "\tThe constant reply string. The default is the original data "
+	    "received.\n"
+	    "\n"
+	    "-s receive_size | --size=receive_size\n"
+	    "\tThe maximum receive data size the application should accept. "
+	    "The default is 1024 bytes.\n"
+	    "\n"
+	    "-t socket_type | --type=socket_type\n"
+	    "\tThe listenning socket type. Only the SOCK_DGRAM and the "
+	    "SOCK_STREAM are supported.\n"
+	    "\n"
+	    "-v | --verbose\n"
+	    "\tShow all output messages.\n"
 	);
 }
 
@@ -117,7 +124,7 @@ int main(int argc, char *argv[])
 	int rc;
 
 	/* Parse command line arguments */
-	for (index = 1; index < argc; ++ index) {
+	for (index = 1; index < argc; ++index) {
 		if (argv[index][0] == '-') {
 			switch (argv[index][1]) {
 			case 'b':
