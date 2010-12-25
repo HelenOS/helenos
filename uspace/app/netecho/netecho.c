@@ -31,8 +31,10 @@
  */
 
 /** @file
- * Network echo application.
- * Answers received packets.
+ * Network echo server.
+ *
+ * Sockets-based server that echoes incomming messages. If stream mode
+ * is selected, accepts incoming connections.
  */
 
 #include <malloc.h>
@@ -49,14 +51,13 @@
 
 #include "print_error.h"
 
-/** Network echo module name. */
-#define NAME	"Network Echo"
+#define NAME "netecho"
 
 static void echo_print_help(void)
 {
 	printf(
-		"Network Echo aplication\n" \
-		"Usage: echo [options]\n" \
+		"Network echo server\n" \
+		"Usage: " NAME " [options]\n" \
 		"Where options are:\n" \
 		"-b backlog | --backlog=size\n" \
 		"\tThe size of the accepted sockets queue. Only for SOCK_STREAM. The default is 3.\n" \
