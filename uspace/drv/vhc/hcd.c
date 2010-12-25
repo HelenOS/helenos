@@ -71,11 +71,6 @@ static int vhc_add_device(device_t *dev)
 	dev->ops = &vhc_ops;
 
 	/*
-	 * Initialize address management.
-	 */
-	address_init();
-
-	/*
 	 * Initialize our hub and announce its presence.
 	 */
 	virtual_hub_device_init(dev);
@@ -107,8 +102,19 @@ int main(int argc, char * argv[])
 
 	printf(NAME ": virtual USB host controller driver.\n");
 
+	/*
+	 * Initialize address management.
+	 */
+	address_init();
+
+	/*
+	 * Run the transfer scheduler.
+	 */
 	hc_manager();
 
+	/*
+	 * We are also a driver within devman framework.
+	 */
 	return driver_main(&vhc_driver);
 }
 
