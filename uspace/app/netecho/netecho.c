@@ -39,6 +39,7 @@
 
 #include <malloc.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <str.h>
 #include <task.h>
 #include <arg_parse.h>
@@ -52,6 +53,16 @@
 #include "print_error.h"
 
 #define NAME "netecho"
+
+static int count = -1;
+static int family = PF_INET;
+static sock_type_t type = SOCK_DGRAM;
+static uint16_t port = 7;
+static int backlog = 3;
+static size_t size = 1024;
+static int verbose = 0;
+
+static char *reply = NULL;
 
 static void echo_print_help(void)
 {
@@ -95,17 +106,114 @@ static void echo_print_help(void)
 	);
 }
 
+static int netecho_parse_option(int argc, char *argv[], int *index)
+{
+	int value;
+	int rc;
+
+	switch (argv[*index][1]) {
+	case 'b':
+		rc = arg_parse_int(argc, argv, index, &backlog, 0);
+		if (rc != EOK)
+			return rc;
+		break;
+	case 'c':
+		rc = arg_parse_int(argc, argv, index, &count, 0);
+		if (rc != EOK)
+			return rc;
+		break;
+	case 'f':
+		rc = arg_parse_name_int(argc, argv, index, &family, 0,
+		    socket_parse_protocol_family);
+		if (rc != EOK)
+			return rc;
+		break;
+	case 'h':
+		echo_print_help();
+		exit(0);
+		break;
+	case 'p':
+		rc = arg_parse_int(argc, argv, index, &value, 0);
+		if (rc != EOK)
+			return rc;
+		port = (uint16_t) value;
+		break;
+	case 'r':
+		rc = arg_parse_string(argc, argv, index, &reply, 0);
+		if (rc != EOK)
+			return rc;
+		break;
+	case 's':
+		rc = arg_parse_int(argc, argv, index, &value, 0);
+		if (rc != EOK)
+			return rc;
+		size = (value >= 0) ? (size_t) value : 0;
+		break;
+	case 't':
+		rc = arg_parse_name_int(argc, argv, index, &value, 0,
+		    socket_parse_socket_type);
+		if (rc != EOK)
+			return rc;
+		type = (sock_type_t) value;
+		break;
+	case 'v':
+		verbose = 1;
+		break;
+	/* Long options with double dash */
+	case '-':
+		if (str_lcmp(argv[*index] + 2, "backlog=", 6) == 0) {
+			rc = arg_parse_int(argc, argv, index, &backlog, 8);
+			if (rc != EOK)
+				return rc;
+		} else if (str_lcmp(argv[*index] + 2, "count=", 6) == 0) {
+			rc = arg_parse_int(argc, argv, index, &count, 8);
+			if (rc != EOK)
+				return rc;
+		} else if (str_lcmp(argv[*index] + 2, "family=", 7) == 0) {
+			rc = arg_parse_name_int(argc, argv, index, &family, 9,
+			    socket_parse_protocol_family);
+			if (rc != EOK)
+				return rc;
+		} else if (str_lcmp(argv[*index] + 2, "help", 5) == 0) {
+			echo_print_help();
+			return EOK;
+		} else if (str_lcmp(argv[*index] + 2, "port=", 5) == 0) {
+			rc = arg_parse_int(argc, argv, index, &value, 7);
+			if (rc != EOK)
+				return rc;
+			port = (uint16_t) value;
+		} else if (str_lcmp(argv[*index] + 2, "reply=", 6) == 0) {
+			rc = arg_parse_string(argc, argv, index, &reply, 8);
+			if (rc != EOK)
+				return rc;
+		} else if (str_lcmp(argv[*index] + 2, "size=", 5) == 0) {
+			rc = arg_parse_int(argc, argv, index, &value, 7);
+			if (rc != EOK)
+				return rc;
+			size = (value >= 0) ? (size_t) value : 0;
+		} else if (str_lcmp(argv[*index] + 2, "type=", 5) == 0) {
+			rc = arg_parse_name_int(argc, argv, index, &value, 7,
+			    socket_parse_socket_type);
+			if (rc != EOK)
+				return rc;
+			type = (sock_type_t) value;
+		} else if (str_lcmp(argv[*index] + 2, "verbose", 8) == 0) {
+			verbose = 1;
+		} else {
+			echo_print_help();
+			return EINVAL;
+		}
+		break;
+	default:
+		echo_print_help();
+		return EINVAL;
+	}
+
+	return EOK;
+}
+
 int main(int argc, char *argv[])
 {
-	size_t size = 1024;
-	int verbose = 0;
-	char *reply = NULL;
-	sock_type_t type = SOCK_DGRAM;
-	int count = -1;
-	int family = PF_INET;
-	uint16_t port = 7;
-	int backlog = 3;
-
 	socklen_t max_length = sizeof(struct sockaddr_in6);
 	uint8_t address_data[max_length];
 	struct sockaddr *address = (struct sockaddr *) address_data;
@@ -120,105 +228,15 @@ int main(int argc, char *argv[])
 	size_t length;
 	int index;
 	size_t reply_length;
-	int value;
+	ssize_t rcv_size;
 	int rc;
 
 	/* Parse command line arguments */
 	for (index = 1; index < argc; ++index) {
 		if (argv[index][0] == '-') {
-			switch (argv[index][1]) {
-			case 'b':
-				rc = arg_parse_int(argc, argv, &index, &backlog, 0);
-				if (rc != EOK)
-					return rc;
-				break;
-			case 'c':
-				rc = arg_parse_int(argc, argv, &index, &count, 0);
-				if (rc != EOK)
-					return rc;
-				break;
-			case 'f':
-				rc = arg_parse_name_int(argc, argv, &index, &family, 0, socket_parse_protocol_family);
-				if (rc != EOK)
-					return rc;
-				break;
-			case 'h':
-				echo_print_help();
-				return EOK;
-				break;
-			case 'p':
-				rc = arg_parse_int(argc, argv, &index, &value, 0);
-				if (rc != EOK)
-					return rc;
-				port = (uint16_t) value;
-				break;
-			case 'r':
-				rc = arg_parse_string(argc, argv, &index, &reply, 0);
-				if (rc != EOK)
-					return rc;
-				break;
-			case 's':
-				rc = arg_parse_int(argc, argv, &index, &value, 0);
-				if (rc != EOK)
-					return rc;
-				size = (value >= 0) ? (size_t) value : 0;
-				break;
-			case 't':
-				rc = arg_parse_name_int(argc, argv, &index, &value, 0, socket_parse_socket_type);
-				if (rc != EOK)
-					return rc;
-				type = (sock_type_t) value;
-				break;
-			case 'v':
-				verbose = 1;
-				break;
-			/* Long options with double dash */
-			case '-':
-				if (str_lcmp(argv[index] + 2, "backlog=", 6) == 0) {
-					rc = arg_parse_int(argc, argv, &index, &backlog, 8);
-					if (rc != EOK)
-						return rc;
-				} else if (str_lcmp(argv[index] + 2, "count=", 6) == 0) {
-					rc = arg_parse_int(argc, argv, &index, &count, 8);
-					if (rc != EOK)
-						return rc;
-				} else if (str_lcmp(argv[index] + 2, "family=", 7) == 0) {
-					rc = arg_parse_name_int(argc, argv, &index, &family, 9, socket_parse_protocol_family);
-					if (rc != EOK)
-						return rc;
-				} else if (str_lcmp(argv[index] + 2, "help", 5) == 0) {
-					echo_print_help();
-					return EOK;
-				} else if (str_lcmp(argv[index] + 2, "port=", 5) == 0) {
-					rc = arg_parse_int(argc, argv, &index, &value, 7);
-					if (rc != EOK)
-						return rc;
-					port = (uint16_t) value;
-				} else if (str_lcmp(argv[index] + 2, "reply=", 6) == 0) {
-					rc = arg_parse_string(argc, argv, &index, &reply, 8);
-					if (rc != EOK)
-						return rc;
-				} else if (str_lcmp(argv[index] + 2, "size=", 5) == 0) {
-					rc = arg_parse_int(argc, argv, &index, &value, 7);
-					if (rc != EOK)
-						return rc;
-					size = (value >= 0) ? (size_t) value : 0;
-				} else if (str_lcmp(argv[index] + 2, "type=", 5) == 0) {
-					rc = arg_parse_name_int(argc, argv, &index, &value, 7, socket_parse_socket_type);
-					if (rc != EOK)
-						return rc;
-					type = (sock_type_t) value;
-				} else if (str_lcmp(argv[index] + 2, "verbose", 8) == 0) {
-					verbose = 1;
-				} else {
-					echo_print_help();
-					return EINVAL;
-				}
-				break;
-			default:
-				echo_print_help();
-				return EINVAL;
-			}
+			rc = netecho_parse_option(argc, argv, &index);
+			if (rc != EOK)
+				return rc;
 		} else {
 			echo_print_help();
 			return EINVAL;
@@ -316,11 +334,11 @@ int main(int argc, char *argv[])
 		if (socket_id > 0) {
 
 			/* Receive a message to echo */
-			value = recvfrom(socket_id, data, size, 0, address, &addrlen);
-			if (value < 0) {
-				socket_print_error(stderr, value, "Socket receive: ", "\n");
+			rcv_size = recvfrom(socket_id, data, size, 0, address, &addrlen);
+			if (rcv_size < 0) {
+				socket_print_error(stderr, rcv_size, "Socket receive: ", "\n");
 			} else {
-				length = (size_t) value;
+				length = (size_t) rcv_size;
 				if (verbose) {
 					/* Print the header */
 
