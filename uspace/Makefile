@@ -54,6 +54,7 @@ DIRS = \
 	app/nettest1 \
 	app/nettest2 \
 	app/ping \
+	app/sysinfo \
 	srv/clip \
 	srv/devmap \
 	srv/devman \

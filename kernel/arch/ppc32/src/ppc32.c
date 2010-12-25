@@ -248,6 +248,12 @@ void irq_initialize_arch(irq_t *irq)
 
 void arch_post_smp_init(void)
 {
+	/* Currently the only supported platform for ppc32 is 'mac'. */
+	static const char *platform = "mac";
+
+	sysinfo_set_item_data("platform", NULL, (void *) platform,
+	    str_size(platform));
+
 	ofw_tree_walk_by_device_type("mac-io", macio_register, NULL);
 }
 

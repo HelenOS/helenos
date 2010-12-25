@@ -64,7 +64,8 @@ struct arm_machine_ops gxemul_machine_ops = {
 	gxemul_frame_init,
 	gxemul_output_init,
 	gxemul_input_init,
-	gxemul_get_irq_count
+	gxemul_get_irq_count,
+	gxemul_get_platform_name
 };
 
 void gxemul_init(void)
@@ -129,6 +130,11 @@ void gxemul_input_init(void)
 size_t gxemul_get_irq_count(void)
 {
 	return GXEMUL_IRQ_COUNT;
+}
+
+const char *gxemul_get_platform_name(void)
+{
+	return "gxemul";
 }
 
 /** Starts gxemul Real Time Clock device, which asserts regular interrupts.
