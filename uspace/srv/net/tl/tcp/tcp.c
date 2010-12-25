@@ -452,7 +452,7 @@ int tcp_process_packet(device_id_t device_id, packet_t *packet, services_t error
 	}
 
 has_error_service:
-	fibril_rwlock_read_unlock(&tcp_globals.lock);
+	fibril_rwlock_write_unlock(&tcp_globals.lock);
 
 	/* TODO error reporting/handling */
 	switch (socket_data->state) {
