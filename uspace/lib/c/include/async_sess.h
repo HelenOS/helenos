@@ -32,12 +32,12 @@
 /** @file
  */
 
-#ifndef LIBC_ASYNC_REL_H_
-#define LIBC_ASYNC_REL_H_
+#ifndef LIBC_ASYNC_SESS_H_
+#define LIBC_ASYNC_SESS_H_
 
-extern int async_rel_init(void);
-extern int async_relation_create(int);
-extern void async_relation_destroy(int, int);
+extern int async_sess_init(void);
+extern int async_transaction_begin(int);
+extern void async_transaction_end(int, int);
 
 #endif
 

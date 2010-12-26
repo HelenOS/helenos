@@ -38,7 +38,7 @@
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <async.h>
-#include <async_rel.h>
+#include <async_sess.h>
 #include <fibril.h>
 #include <fibril_synch.h>
 #include <errno.h>
@@ -269,7 +269,7 @@ int vfs_grab_phone(fs_handle_t handle)
 		if (fs->fs_handle == handle) {
 			fibril_mutex_unlock(&fs_head_lock);
 			fibril_mutex_lock(&fs->phone_lock);
-			phone = async_relation_create(fs->phone);
+			phone = async_transaction_begin(fs->phone);
 			fibril_mutex_unlock(&fs->phone_lock);
 
 			assert(phone > 0);
@@ -295,7 +295,7 @@ void vfs_release_phone(fs_handle_t handle, int phone)
 		if (fs->fs_handle == handle) {
 			fibril_mutex_unlock(&fs_head_lock);
 			fibril_mutex_lock(&fs->phone_lock);
-			async_relation_destroy(fs->phone, phone);
+			async_transaction_end(fs->phone, phone);
 			fibril_mutex_unlock(&fs->phone_lock);
 			return;
 		}
