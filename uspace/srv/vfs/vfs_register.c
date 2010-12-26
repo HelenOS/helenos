@@ -38,7 +38,6 @@
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <async.h>
-#include <async_sess.h>
 #include <fibril.h>
 #include <fibril_synch.h>
 #include <errno.h>

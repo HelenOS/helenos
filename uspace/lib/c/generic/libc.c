@@ -49,7 +49,6 @@
 #include <fibril.h>
 #include <ipc/ipc.h>
 #include <async.h>
-#include <async_sess.h>
 #include <as.h>
 #include <loader/pcb.h>
 
