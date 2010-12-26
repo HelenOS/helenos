@@ -35,9 +35,18 @@
 #ifndef LIBC_ASYNC_SESS_H_
 #define LIBC_ASYNC_SESS_H_
 
-extern int async_sess_init(void);
-extern int async_transaction_begin(int);
-extern void async_transaction_end(int, int);
+#include <adt/list.h>
+
+typedef struct {
+	int sess_phone;		/**< Phone for cloning off the connections. */
+	link_t conn_head;	/**< List of open data connections. */
+} async_sess_t;
+
+extern void _async_sess_init(void);
+extern void async_session_create(async_sess_t *, int);
+extern void async_session_destroy(async_sess_t *);
+extern int async_transaction_begin(async_sess_t *);
+extern void async_transaction_end(async_sess_t *, int);
 
 #endif
 

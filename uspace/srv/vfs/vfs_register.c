@@ -110,6 +110,8 @@ static bool vfs_info_sane(vfs_info_t *info)
  */
 void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 {
+	int phone;
+	
 	dprintf("Processing VFS_REGISTER request received from %p.\n",
 	    request->in_phone_hash);
 	
@@ -185,7 +187,9 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 		ipc_answer_0(rid, EINVAL);
 		return;
 	}
-	fs_info->phone = IPC_GET_ARG5(call);
+	
+	phone = IPC_GET_ARG5(call);
+	async_session_create(&fs_info->session, phone);
 	ipc_answer_0(callid, EOK);
 	
 	dprintf("Callback connection to FS created.\n");
@@ -199,7 +203,8 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 		dprintf("Unexpected call, method = %d\n", IPC_GET_IMETHOD(call));
 		list_remove(&fs_info->fs_link);
 		fibril_mutex_unlock(&fs_head_lock);
-		ipc_hangup(fs_info->phone);
+		async_session_destroy(&fs_info->session);
+		ipc_hangup(phone);
 		free(fs_info);
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
@@ -213,7 +218,8 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 		dprintf("Client suggests wrong size of PFB, size = %d\n", size);
 		list_remove(&fs_info->fs_link);
 		fibril_mutex_unlock(&fs_head_lock);
-		ipc_hangup(fs_info->phone);
+		async_session_destroy(&fs_info->session);
+		ipc_hangup(phone);
 		free(fs_info);
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
@@ -269,7 +275,7 @@ int vfs_grab_phone(fs_handle_t handle)
 		if (fs->fs_handle == handle) {
 			fibril_mutex_unlock(&fs_head_lock);
 			fibril_mutex_lock(&fs->phone_lock);
-			phone = async_transaction_begin(fs->phone);
+			phone = async_transaction_begin(&fs->session);
 			fibril_mutex_unlock(&fs->phone_lock);
 
 			assert(phone > 0);
@@ -295,7 +301,7 @@ void vfs_release_phone(fs_handle_t handle, int phone)
 		if (fs->fs_handle == handle) {
 			fibril_mutex_unlock(&fs_head_lock);
 			fibril_mutex_lock(&fs->phone_lock);
-			async_transaction_end(fs->phone, phone);
+			async_transaction_end(&fs->session, phone);
 			fibril_mutex_unlock(&fs->phone_lock);
 			return;
 		}

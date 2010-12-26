@@ -65,7 +65,6 @@ void __main(void *pcb_ptr)
 	/* Initialize user task run-time environment */
 	__heap_init();
 	__async_init();
-	(void) async_sess_init();
 	fibril_t *fibril = fibril_setup();
 	__tcb_set(fibril->tcb);
 	

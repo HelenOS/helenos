@@ -106,14 +106,6 @@
 #include <errno.h>
 #include <assert.h>
 
-#define SESSION_HASH_BUCKETS	16
-
-typedef struct {
-	link_t link;		/**< Session hash table link. */
-	int sess_phone;		/**< The phone serving as session identifier. */
-	link_t conn_head;	/**< List of open connections. */
-} sess_node_t;
-
 typedef struct {
 	link_t conn_link;	/**< Link for the list of connections. */
 	link_t global_link;	/**< Link for the global list of phones. */
@@ -131,49 +123,30 @@ static fibril_mutex_t async_sess_mutex;
 static LIST_INITIALIZE(inactive_conn_head);
 
 /**
- * Hash table mapping session phone IDs to session records.
+ * List of all existing sessions.
  */
-static hash_table_t session_ht;
-
-static hash_index_t sess_ht_hash(unsigned long *key)
-{
-	return *key % SESSION_HASH_BUCKETS;
-}
-
-static int sess_ht_compare(unsigned long *key, hash_count_t keys, link_t *item)
-{
-	sess_node_t *sess = hash_table_get_instance(item, sess_node_t, link);
-
-	return *key == (unsigned long) sess->sess_phone;
-}
-
-static void sess_ht_remove(link_t *item)
-{
-}
-
-static hash_table_operations_t session_hash_ops = {
-	.hash = sess_ht_hash,
-	.compare = sess_ht_compare,
-	.remove_callback = sess_ht_remove
-};
+//static LIST_INITIALIZE(session_list);
 
 /** Initialize the async_sess subsystem.
  *
  * Needs to be called prior to any other interface in this file.
  */
-int async_sess_init(void)
+void _async_sess_init(void)
 {
 	fibril_mutex_initialize(&async_sess_mutex);
 	list_initialize(&inactive_conn_head);
-	return hash_table_create(&session_ht, SESSION_HASH_BUCKETS, 1,
-	    &session_hash_ops);
 }
 
-static void sess_node_initialize(sess_node_t *sess)
+void async_session_create(async_sess_t *sess, int phone)
 {
-	link_initialize(&sess->link);
-	sess->sess_phone = -1;
+	sess->sess_phone = phone;
 	list_initialize(&sess->conn_head);
+}
+
+void async_session_destroy(async_sess_t *sess)
+{
+	sess->sess_phone = -1;
+	/* todo */
 }
 
 static void conn_node_initialize(conn_node_t *conn)
@@ -185,44 +158,16 @@ static void conn_node_initialize(conn_node_t *conn)
 
 /** Start new transaction in a session.
  *
- * @param sess_phone	Phone representing the session.
+ * @param sess_phone	Session.
  * @return		Phone representing the new transaction or a negative error
  *			code.
  */
-int async_transaction_begin(int sess_phone)
+int async_transaction_begin(async_sess_t *sess)
 {
-	unsigned long key = (unsigned long) sess_phone;
-	link_t *lnk;
-	sess_node_t *sess;
 	conn_node_t *conn;
 	int data_phone;
 
 	fibril_mutex_lock(&async_sess_mutex);
-	lnk = hash_table_find(&session_ht, &key);
-	if (!lnk) {
-		/*
-		 * The session node was not found in the hash table. Try to allocate
-		 * and hash in a new one.
-		 */
-		sess = (sess_node_t *) malloc(sizeof(sess_node_t));
-		if (!sess) {
-			/*
-			 * As a possible improvement, we could make a one-time
-			 * attempt to create a phone without trying to add the
-			 * key node into the hash.
-			 */
-			fibril_mutex_unlock(&async_sess_mutex);
-			return ENOMEM;
-		}
-		sess_node_initialize(sess);
-		sess->sess_phone = sess_phone;
-		hash_table_insert(&session_ht, &key, &sess->link);
-	} else {
-		/*
-		 * Found the session node.
-		 */
-		sess = hash_table_get_instance(lnk, sess_node_t, link);
-	}
 
 	if (!list_empty(&sess->conn_head)) {
 		/*
@@ -241,7 +186,7 @@ int async_transaction_begin(int sess_phone)
 		 * Make a one-time attempt to connect a new data phone.
 		 */
 retry:
-		data_phone = async_connect_me_to(sess_phone, 0, 0, 0);
+		data_phone = async_connect_me_to(sess->sess_phone, 0, 0, 0);
 		if (data_phone >= 0) {
 			/* success, do nothing */
 		} else if (!list_empty(&inactive_conn_head)) {
@@ -275,20 +220,14 @@ retry:
 
 /** Finish a transaction.
  *
- * @param sess_phone	Phone representing the session.
+ * @param sess		Session.
  * @param data_phone	Phone representing the transaction within the session.
  */
-void async_transaction_end(int sess_phone, int data_phone)
+void async_transaction_end(async_sess_t *sess, int data_phone)
 {
-	unsigned long key = (unsigned long) sess_phone;
-	sess_node_t *sess;
 	conn_node_t *conn;
-	link_t *lnk;
 
 	fibril_mutex_lock(&async_sess_mutex);
-	lnk = hash_table_find(&session_ht, &key);
-	assert(lnk);
-	sess = hash_table_get_instance(lnk, sess_node_t, link);
 	conn = (conn_node_t *) malloc(sizeof(conn_node_t));
 	if (!conn) {
 		/*
