@@ -106,9 +106,10 @@
 #include <errno.h>
 #include <assert.h>
 
+/** An inactive open connection. */
 typedef struct {
-	link_t conn_link;	/**< Link for the list of connections. */
-	link_t global_link;	/**< Link for the global list of phones. */
+	link_t sess_link;	/**< Link for the session list of inactive connections. */
+	link_t global_link;	/**< Link for the global list of inactive connectinos. */
 	int data_phone;		/**< Connected data phone. */
 } conn_node_t;
 
@@ -138,6 +139,17 @@ void _async_sess_init(void)
 	list_initialize(&session_list_head);
 }
 
+/** Create a session.
+ *
+ * Session is a logical datapath from a client task to a server task.
+ * One session can accomodate multiple concurrent exchanges. Here
+ * @a phone is a phone connected to the desired server task.
+ *
+ * This function always succeeds.
+ *
+ * @param sess	Session structure provided by caller, will be filled in.
+ * @param phone	Phone connected to the desired server task.
+ */
 void async_session_create(async_sess_t *sess, int phone)
 {
 	sess->sess_phone = phone;
@@ -149,6 +161,13 @@ void async_session_create(async_sess_t *sess, int phone)
 	fibril_mutex_unlock(&async_sess_mutex);
 }
 
+/** Destroy a session.
+ *
+ * Dismantle session structure @a sess and release any resources (connections)
+ * held by the session.
+ *
+ * @param sess	Session to destroy.
+ */
 void async_session_destroy(async_sess_t *sess)
 {
 	conn_node_t *conn;
@@ -164,9 +183,9 @@ void async_session_destroy(async_sess_t *sess)
 	/* Tear down all data connections. */
 	while (!list_empty(&sess->conn_head)) {
 		conn = list_get_instance(sess->conn_head.next, conn_node_t,
-		    conn_link);
+		    sess_link);
 
-		list_remove(&conn->conn_link);
+		list_remove(&conn->sess_link);
 		list_remove(&conn->global_link);
 		
 		ipc_hangup(conn->data_phone);
@@ -176,7 +195,7 @@ void async_session_destroy(async_sess_t *sess)
 
 static void conn_node_initialize(conn_node_t *conn)
 {
-	link_initialize(&conn->conn_link);
+	link_initialize(&conn->sess_link);
 	link_initialize(&conn->global_link);
 	conn->data_phone = -1;
 }
@@ -199,8 +218,8 @@ int async_exchange_begin(async_sess_t *sess)
 		 * There are inactive connections in the session.
 		 */
 		conn = list_get_instance(sess->conn_head.next, conn_node_t,
-		    conn_link);
-		list_remove(&conn->conn_link);
+		    sess_link);
+		list_remove(&conn->sess_link);
 		list_remove(&conn->global_link);
 		
 		data_phone = conn->data_phone;
@@ -223,7 +242,7 @@ retry:
 			conn = list_get_instance(inactive_conn_head.next,
 			    conn_node_t, global_link);
 			list_remove(&conn->global_link);
-			list_remove(&conn->conn_link);
+			list_remove(&conn->sess_link);
 			data_phone = conn->data_phone;
 			free(conn);
 			ipc_hangup(data_phone);
@@ -266,7 +285,7 @@ void async_exchange_end(async_sess_t *sess, int data_phone)
 
 	conn_node_initialize(conn);
 	conn->data_phone = data_phone;
-	list_append(&conn->conn_link, &sess->conn_head);
+	list_append(&conn->sess_link, &sess->conn_head);
 	list_append(&conn->global_link, &inactive_conn_head);
 	fibril_mutex_unlock(&async_sess_mutex);
 }
