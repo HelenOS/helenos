@@ -53,7 +53,6 @@ typedef struct {
 	link_t fs_link;
 	vfs_info_t vfs_info;
 	fs_handle_t fs_handle;
-	fibril_mutex_t phone_lock;
 	async_sess_t session;
 } fs_info_t;
 

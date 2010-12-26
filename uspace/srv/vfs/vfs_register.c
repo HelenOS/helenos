@@ -137,7 +137,6 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	}
 	
 	link_initialize(&fs_info->fs_link);
-	fibril_mutex_initialize(&fs_info->phone_lock);
 	fs_info->vfs_info = *vfs_info;
 	free(vfs_info);
 	
@@ -274,9 +273,7 @@ int vfs_grab_phone(fs_handle_t handle)
 		fs = list_get_instance(cur, fs_info_t, fs_link);
 		if (fs->fs_handle == handle) {
 			fibril_mutex_unlock(&fs_head_lock);
-			fibril_mutex_lock(&fs->phone_lock);
 			phone = async_transaction_begin(&fs->session);
-			fibril_mutex_unlock(&fs->phone_lock);
 
 			assert(phone > 0);
 			return phone;
@@ -300,9 +297,7 @@ void vfs_release_phone(fs_handle_t handle, int phone)
 		fs = list_get_instance(cur, fs_info_t, fs_link);
 		if (fs->fs_handle == handle) {
 			fibril_mutex_unlock(&fs_head_lock);
-			fibril_mutex_lock(&fs->phone_lock);
 			async_transaction_end(&fs->session, phone);
-			fibril_mutex_unlock(&fs->phone_lock);
 			return;
 		}
 	}
