@@ -145,8 +145,22 @@ void async_session_create(async_sess_t *sess, int phone)
 
 void async_session_destroy(async_sess_t *sess)
 {
+	conn_node_t *conn;
+
+	/* We did not connect the phone so we do not hang it up either. */
 	sess->sess_phone = -1;
-	/* todo */
+
+	/* Tear down all data connections. */
+	while (!list_empty(&sess->conn_head)) {
+		conn = list_get_instance(sess->conn_head.next, conn_node_t,
+		    conn_link);
+
+		list_remove(&conn->conn_link);
+		list_remove(&conn->global_link);
+		
+		ipc_hangup(conn->data_phone);
+		free(conn);
+	}
 }
 
 static void conn_node_initialize(conn_node_t *conn)
