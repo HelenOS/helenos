@@ -40,6 +40,7 @@
 typedef struct {
 	int sess_phone;		/**< Phone for cloning off the connections. */
 	link_t conn_head;	/**< List of open data connections. */
+	link_t sess_link;	/**< Link in global list of open sessions. */
 } async_sess_t;
 
 extern void _async_sess_init(void);

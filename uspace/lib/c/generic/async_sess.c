@@ -113,7 +113,7 @@ typedef struct {
 } conn_node_t;
 
 /**
- * Mutex protecting the inactive_conn_head list and the session_hash hash table.
+ * Mutex protecting the inactive_conn_head list and the session list.
  */
 static fibril_mutex_t async_sess_mutex;
 
@@ -123,9 +123,9 @@ static fibril_mutex_t async_sess_mutex;
 static LIST_INITIALIZE(inactive_conn_head);
 
 /**
- * List of all existing sessions.
+ * List of all open sessions.
  */
-//static LIST_INITIALIZE(session_list);
+static LIST_INITIALIZE(session_list_head);
 
 /** Initialize the async_sess subsystem.
  *
@@ -135,17 +135,28 @@ void _async_sess_init(void)
 {
 	fibril_mutex_initialize(&async_sess_mutex);
 	list_initialize(&inactive_conn_head);
+	list_initialize(&session_list_head);
 }
 
 void async_session_create(async_sess_t *sess, int phone)
 {
 	sess->sess_phone = phone;
 	list_initialize(&sess->conn_head);
+	
+	/* Add to list of sessions. */
+	fibril_mutex_lock(&async_sess_mutex);
+	list_append(&sess->sess_link, &session_list_head);
+	fibril_mutex_unlock(&async_sess_mutex);
 }
 
 void async_session_destroy(async_sess_t *sess)
 {
 	conn_node_t *conn;
+
+	/* Remove from list of sessions. */
+	fibril_mutex_lock(&async_sess_mutex);
+	list_remove(&sess->sess_link);
+	fibril_mutex_unlock(&async_sess_mutex);
 
 	/* We did not connect the phone so we do not hang it up either. */
 	sess->sess_phone = -1;
