@@ -36,15 +36,15 @@
  * This file implements simple session support for the async framework.
  *
  * By the term 'session', we mean a logical data path between a client and a
- * server over which the client can perform multiple concurrent transactions.
- * Each transaction consists of one or more requests (IPC calls) which can
+ * server over which the client can perform multiple concurrent exchanges.
+ * Each exchange consists of one or more requests (IPC calls) which can
  * be potentially blocking.
  *
  * Clients and servers are naturally connected using IPC phones, thus an IPC
  * phone represents a session between a client and a server. In one
- * session, there can be many outstanding transactions. In the current
- * implementation each concurrent transaction takes place over a different
- * connection (there can be at most one active transaction per connection).
+ * session, there can be many outstanding exchanges. In the current
+ * implementation each concurrent exchanges takes place over a different
+ * connection (there can be at most one active exchage per connection).
  *
  * Sessions make it useful for a client or client API to support concurrent
  * requests, independent of the actual implementation. Sessions provide
@@ -54,25 +54,25 @@
  *
  * There are several possible implementations of sessions. This implementation
  * uses additional phones to represent sessions. Using phones both for the
- * session and also for its transactions/connections has several advantages:
+ * session and also for its exchages/connections has several advantages:
  *
- * - to make a series of transactions over a session, the client can continue to
+ * - to make a series of exchanges over a session, the client can continue to
  *   use the existing async framework APIs
  * - the server supports sessions by the virtue of spawning a new connection
  *   fibril, just as it does for every new connection even without sessions
  * - the implementation is pretty straightforward; a very naive implementation
- *   would be to make each transaction using a fresh phone (that is what we
+ *   would be to make each exchage using a fresh phone (that is what we
  *   have done in the past); a slightly better approach would be to cache
- *   connections so that they can be reused by a later transaction within
+ *   connections so that they can be reused by a later exchange within
  *   the same session (that is what this implementation does)
  *
  * The main disadvantages of using phones to represent sessions are:
  *
- * - if there are too many transactions (even cached ones), the task may hit its
+ * - if there are too many exchanges (even cached ones), the task may hit its
  *   limit on the maximum number of connected phones, which could prevent the
  *   task from making new IPC connections to other tasks
  * - if there are too many IPC connections already, it may be impossible to
- *   create a transaction by connecting a new phone thanks to the task's limit on
+ *   create an exchange by connecting a new phone thanks to the task's limit on
  *   the maximum number of connected phones
  *
  * These problems can be alleviated by increasing the limit on the maximum
@@ -156,13 +156,13 @@ static void conn_node_initialize(conn_node_t *conn)
 	conn->data_phone = -1;
 }
 
-/** Start new transaction in a session.
+/** Start new exchange in a session.
  *
  * @param sess_phone	Session.
- * @return		Phone representing the new transaction or a negative error
+ * @return		Phone representing the new exchange or a negative error
  *			code.
  */
-int async_transaction_begin(async_sess_t *sess)
+int async_exchange_begin(async_sess_t *sess)
 {
 	conn_node_t *conn;
 	int data_phone;
@@ -218,12 +218,12 @@ retry:
 	return data_phone;
 }
 
-/** Finish a transaction.
+/** Finish an exchange.
  *
  * @param sess		Session.
- * @param data_phone	Phone representing the transaction within the session.
+ * @param data_phone	Phone representing the exchange within the session.
  */
-void async_transaction_end(async_sess_t *sess, int data_phone)
+void async_exchange_end(async_sess_t *sess, int data_phone)
 {
 	conn_node_t *conn;
 

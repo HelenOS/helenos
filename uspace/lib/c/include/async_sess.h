@@ -45,8 +45,8 @@ typedef struct {
 extern void _async_sess_init(void);
 extern void async_session_create(async_sess_t *, int);
 extern void async_session_destroy(async_sess_t *);
-extern int async_transaction_begin(async_sess_t *);
-extern void async_transaction_end(async_sess_t *, int);
+extern int async_exchange_begin(async_sess_t *);
+extern void async_exchange_end(async_sess_t *, int);
 
 #endif
 

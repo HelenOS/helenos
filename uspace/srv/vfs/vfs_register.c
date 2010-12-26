@@ -273,7 +273,7 @@ int vfs_grab_phone(fs_handle_t handle)
 		fs = list_get_instance(cur, fs_info_t, fs_link);
 		if (fs->fs_handle == handle) {
 			fibril_mutex_unlock(&fs_head_lock);
-			phone = async_transaction_begin(&fs->session);
+			phone = async_exchange_begin(&fs->session);
 
 			assert(phone > 0);
 			return phone;
@@ -297,7 +297,7 @@ void vfs_release_phone(fs_handle_t handle, int phone)
 		fs = list_get_instance(cur, fs_info_t, fs_link);
 		if (fs->fs_handle == handle) {
 			fibril_mutex_unlock(&fs_head_lock);
-			async_transaction_end(&fs->session, phone);
+			async_exchange_end(&fs->session, phone);
 			return;
 		}
 	}
