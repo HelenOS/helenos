@@ -965,13 +965,14 @@ sendto(int socket_id, const void *data, size_t datalength, int flags,
  * @param[in,out] addrlen The address length. The maximum address length is
  *			read. The actual address length is set. Used only if
  *			fromaddr is not NULL.
- * @return		EOK on success.
+ * @return		Positive received message size in bytes on success.
+ * @return		Zero if no more data (other side closed the connection).
  * @return		ENOTSOCK if the socket is not found.
  * @return		EBADMEM if the data parameter is NULL.
  * @return		NO_DATA if the datalength or addrlen parameter is zero.
  * @return		Other error codes as defined for the spcific message.
  */
-static int
+static ssize_t
 recvfrom_core(sysarg_t message, int socket_id, void *data, size_t datalength,
     int flags, struct sockaddr *fromaddr, socklen_t *addrlen)
 {
@@ -983,6 +984,7 @@ recvfrom_core(sysarg_t message, int socket_id, void *data, size_t datalength,
 	size_t *lengths;
 	size_t index;
 	ipc_call_t answer;
+	ssize_t retval;
 
 	if (!data)
 		return EBADMEM;
@@ -1082,15 +1084,17 @@ recvfrom_core(sysarg_t message, int socket_id, void *data, size_t datalength,
 		// dequeue the received packet
 		dyn_fifo_pop(&socket->received);
 		// return read data length
-		result = SOCKET_GET_READ_DATA_LENGTH(answer);
+		retval = SOCKET_GET_READ_DATA_LENGTH(answer);
 		// set address length
 		if (fromaddr && addrlen)
 			*addrlen = SOCKET_GET_ADDRESS_LENGTH(answer);
+	} else {
+		retval = (ssize_t) result;
 	}
 
 	fibril_mutex_unlock(&socket->receive_lock);
 	fibril_rwlock_read_unlock(&socket_globals.lock);
-	return result;
+	return retval;
 }
 
 /** Receives data via the socket.
@@ -1099,14 +1103,15 @@ recvfrom_core(sysarg_t message, int socket_id, void *data, size_t datalength,
  * @param[out] data	The data buffer to be filled.
  * @param[in] datalength The data length.
  * @param[in] flags	Various receive flags.
- * @return		EOK on success.
+ * @return		Positive received message size in bytes on success.
+ * @return		Zero if no more data (other side closed the connection).
  * @return		ENOTSOCK if the socket is not found.
  * @return		EBADMEM if the data parameter is NULL.
  * @return		NO_DATA if the datalength parameter is zero.
  * @return		Other error codes as defined for the NET_SOCKET_RECV
  *			message.
  */
-int recv(int socket_id, void *data, size_t datalength, int flags)
+ssize_t recv(int socket_id, void *data, size_t datalength, int flags)
 {
 	// without the address
 	return recvfrom_core(NET_SOCKET_RECV, socket_id, data, datalength,
@@ -1122,14 +1127,15 @@ int recv(int socket_id, void *data, size_t datalength, int flags)
  * @param[out] fromaddr	The source address.
  * @param[in,out] addrlen The address length. The maximum address length is
  *			read. The actual address length is set.
- * @return		EOK on success.
+ * @return		Positive received message size in bytes on success.
+ * @return		Zero if no more data (other side closed the connection).
  * @return		ENOTSOCK if the socket is not found.
  * @return		EBADMEM if the data or fromaddr parameter is NULL.
  * @return		NO_DATA if the datalength or addrlen parameter is zero.
  * @return		Other error codes as defined for the NET_SOCKET_RECVFROM
  *			message.
  */
-int
+ssize_t
 recvfrom(int socket_id, void *data, size_t datalength, int flags,
     struct sockaddr *fromaddr, socklen_t *addrlen)
 {
