@@ -1005,7 +1005,7 @@ recvfrom_core(sysarg_t message, int socket_id, void *data, size_t datalength,
 	fibril_mutex_lock(&socket->receive_lock);
 	// wait for a received packet
 	++socket->blocked;
-	while ((result = dyn_fifo_value(&socket->received)) <= 0) {
+	while ((result = dyn_fifo_value(&socket->received)) < 0) {
 		fibril_rwlock_read_unlock(&socket_globals.lock);
 		fibril_condvar_wait(&socket->receive_signal,
 		    &socket->receive_lock);
@@ -1017,6 +1017,11 @@ recvfrom_core(sysarg_t message, int socket_id, void *data, size_t datalength,
 	}
 	--socket->blocked;
 	fragments = (size_t) result;
+
+	if (fragments == 0) {
+		/* No more data, other side has closed the connection. */
+		return 0;
+	}
 
 	// prepare lengths if more fragments
 	if (fragments > 1) {
@@ -1056,7 +1061,7 @@ recvfrom_core(sysarg_t message, int socket_id, void *data, size_t datalength,
 		}
 
 		free(lengths);
-	} else {
+	} else { /* fragments == 1 */
 		// request packet data
 		message_id = async_send_4(socket->phone, message,
 		    (sysarg_t) socket->socket_id, 0, socket->service,
