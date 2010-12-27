@@ -1,2 +1,1 @@
-10 ia32
-10 amd64
+10 platform/pc

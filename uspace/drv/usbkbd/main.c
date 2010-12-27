@@ -28,6 +28,9 @@
 #include <usb/usbdrv.h>
 #include <driver.h>
 #include <ipc/driver.h>
+#include <ipc/kbd.h>
+#include <io/keycode.h>
+#include <io/console.h>
 #include <errno.h>
 #include <fibril.h>
 #include <usb/classes/hid.h>
@@ -39,6 +42,51 @@
 #define NAME "usbkbd"
 
 #define GUESSED_POLL_ENDPOINT 1
+
+static void default_connection_handler(device_t *, ipc_callid_t, ipc_call_t *);
+static device_ops_t keyboard_ops = {
+	.default_handler = default_connection_handler
+};
+
+static int console_callback_phone = -1;
+
+/** Default handler for IPC methods not handled by DDF.
+ *
+ * @param dev Device handling the call.
+ * @param icallid Call id.
+ * @param icall Call data.
+ */
+void default_connection_handler(device_t *dev,
+    ipc_callid_t icallid, ipc_call_t *icall)
+{
+	sysarg_t method = IPC_GET_IMETHOD(*icall);
+
+	if (method == IPC_M_CONNECT_TO_ME) {
+		int callback = IPC_GET_ARG5(*icall);
+
+		if (console_callback_phone != -1) {
+			ipc_answer_0(icallid, ELIMIT);
+			return;
+		}
+
+		console_callback_phone = callback;
+		ipc_answer_0(icallid, EOK);
+		return;
+	}
+
+	ipc_answer_0(icallid, EINVAL);
+}
+
+static void send_key(int key, int type, wchar_t c) {
+	async_msg_4(console_callback_phone, KBD_EVENT, type, key,
+	    KM_NUM_LOCK, c);
+}
+
+static void send_alnum(int key, wchar_t c) {
+	printf(NAME ": sending key '%lc' to console\n", (wint_t) c);
+	send_key(key, KEY_PRESS, c);
+	send_key(key, KEY_RELEASE, c);
+}
 
 /*
  * Callbacks for parser
@@ -183,6 +231,15 @@ static void usbkbd_process_interrupt_in(usb_hid_dev_kbd_t *kbd_dev,
 		sizeof(usb_hid_report_in_callbacks_t));
 	callbacks->keyboard = usbkbd_process_keycodes;
 
+	if (console_callback_phone != -1) {
+		static size_t counter = 0;
+		counter++;
+		if (counter > 3) {
+			counter = 0;
+			send_alnum(KC_A, L'a');
+		}
+	}
+
 	usb_hid_parse_report(kbd_dev->parser, buffer, actual_size, callbacks, 
 	    NULL);
 }
@@ -287,6 +344,10 @@ static int usbkbd_add_device(device_t *dev)
 		return ENOMEM;
 	}
 	fibril_add_ready(fid);
+
+	dev->ops = &keyboard_ops;
+
+	add_device_to_class(dev, "keyboard");
 
 	/*
 	 * Hurrah, device is initialized.

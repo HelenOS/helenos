@@ -39,12 +39,7 @@
 #include <sys/stat.h>
 #include "../tester.h"
 
-#define FS_TYPE      "tmpfs"
-#define MOUNT_POINT  "/tmp"
-#define OPTIONS      ""
-#define FLAGS        0
-
-#define TEST_DIRECTORY  MOUNT_POINT "/testdir"
+#define TEST_DIRECTORY  "/tmp/testdir"
 #define TEST_FILE       TEST_DIRECTORY "/testfile"
 #define TEST_FILE2      TEST_DIRECTORY "/nextfile"
 
@@ -74,25 +69,11 @@ static const char *read_root(void)
 
 const char *test_vfs1(void)
 {
-	if (mkdir(MOUNT_POINT, 0) != 0)
+	int rc;
+	if ((rc = mkdir(TEST_DIRECTORY, 0)) != 0) {
+		TPRINTF("rc=%d\n", rc);
 		return "mkdir() failed";
-	TPRINTF("Created directory %s\n", MOUNT_POINT);
-	
-	int rc = mount(FS_TYPE, MOUNT_POINT, "", OPTIONS, FLAGS);
-	switch (rc) {
-	case EOK:
-		TPRINTF("Mounted %s on %s\n", FS_TYPE, MOUNT_POINT);
-		break;
-	case EBUSY:
-		TPRINTF("(INFO) Filesystem already mounted on %s\n", MOUNT_POINT);
-		break;
-	default:
-		TPRINTF("(ERR) IPC returned errno %d (is tmpfs loaded?)\n", rc);
-		return "mount() failed";
 	}
-	
-	if (mkdir(TEST_DIRECTORY, 0) != 0)
-		return "mkdir() failed";
 	TPRINTF("Created directory %s\n", TEST_DIRECTORY);
 	
 	int fd0 = open(TEST_FILE, O_CREAT);

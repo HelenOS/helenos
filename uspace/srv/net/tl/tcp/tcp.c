@@ -2084,8 +2084,9 @@ int tcp_prepare_timeout(int (*timeout_function)(void *tcp_timeout_t),
 	fibril = fibril_create(timeout_function, operation_timeout);
 	if (!fibril) {
 		free(operation_timeout);
-		return EPARTY;	/* FIXME: use another EC */
+		return ENOMEM;
 	}
+
 //      fibril_mutex_lock(&socket_data->operation.mutex);
 	/* Start the timeout fibril */
 	fibril_add_ready(fibril);
