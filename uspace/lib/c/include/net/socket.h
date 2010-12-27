@@ -59,8 +59,8 @@ extern int closesocket(int);
 extern int send(int, void *, size_t, int);
 extern int sendto(int, const void *, size_t, int, const struct sockaddr *,
     socklen_t);
-extern int recv(int, void *, size_t, int);
-extern int recvfrom(int, void *, size_t, int, struct sockaddr *, socklen_t *);
+extern ssize_t recv(int, void *, size_t, int);
+extern ssize_t recvfrom(int, void *, size_t, int, struct sockaddr *, socklen_t *);
 extern int getsockopt(int, int, int, void *, size_t *);
 extern int setsockopt(int, int, int, const void *, size_t);
 

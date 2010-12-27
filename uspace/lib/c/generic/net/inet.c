@@ -63,22 +63,22 @@ inet_ntop(uint16_t family, const uint8_t *data, char *address, size_t length)
 
 	switch (family) {
 	case AF_INET:
-		// check the output buffer size
+		/* Check output buffer size */
 		if (length < INET_ADDRSTRLEN)
 			return ENOMEM;
 			
-		// fill the buffer with the IPv4 address
+		/* Fill buffer with IPv4 address */
 		snprintf(address, length, "%hhu.%hhu.%hhu.%hhu",
 		    data[0], data[1], data[2], data[3]);
 
 		return EOK;
 
 	case AF_INET6:
-		// check the output buffer size
+		/* Check output buffer size */
 		if (length < INET6_ADDRSTRLEN)
 			return ENOMEM;
 		
-		// fill the buffer with the IPv6 address
+		/* Fill buffer with IPv6 address */
 		snprintf(address, length,
 		    "%hhx%hhx:%hhx%hhx:%hhx%hhx:%hhx%hhx:%hhx%hhx:%hhx%hhx:"
 		    "%hhx%hhx:%hhx%hhx",
@@ -123,7 +123,7 @@ int inet_pton(uint16_t family, const char *address, uint8_t *data)
 	if (!data)
 		return EINVAL;
 
-	// set the processing parameters
+	/* Set processing parameters */
 	switch (family) {
 	case AF_INET:
 		count = 4;
@@ -141,43 +141,45 @@ int inet_pton(uint16_t family, const char *address, uint8_t *data)
 		return ENOTSUP;
 	}
 
-	// erase if no address
+	/* Erase if no address */
 	if (!address) {
 		bzero(data, count);
 		return ENOENT;
 	}
 
-	// process the string from the beginning
+	/* Process string from the beginning */
 	next = address;
 	index = 0;
 	do {
-		// if the actual character is set
+		/* If the actual character is set */
 		if (next && *next) {
 
-			// if not on the first character
+			/* If not on the first character */
 			if (index) {
-				// move to the next character
+				/* Move to the next character */
 				++next;
 			}
 
-			// parse the actual integral value
+			/* Parse the actual integral value */
 			value = strtoul(next, &last, base);
-			// remember the last problematic character
-			// should be either '.' or ':' but is ignored to be more
-			// generic
+			/*
+			 * Remember the last problematic character
+			 * should be either '.' or ':' but is ignored to be
+			 * more generic
+			 */
 			next = last;
 
-			// fill the address data byte by byte
+			/* Fill the address data byte by byte */
 			shift = bytes - 1;
 			do {
-				// like little endian
+				/* like little endian */
 				data[index + shift] = value;
 				value >>= 8;
 			} while(shift --);
 
 			index += bytes;
 		} else {
-			// erase the rest of the address
+			/* Erase the rest of the address */
 			bzero(data + index, count - index);
 			return EOK;
 		}

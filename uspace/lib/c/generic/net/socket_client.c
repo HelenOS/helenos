@@ -219,7 +219,7 @@ loop:
 	case NET_SOCKET_DATA_FRAGMENT_SIZE:
 		fibril_rwlock_read_lock(&socket_globals.lock);
 
-		// find the socket
+		/* Find the socket */
 		socket = sockets_find(socket_get_sockets(),
 		    SOCKET_GET_SOCKET_ID(call));
 		if (!socket) {
@@ -231,24 +231,24 @@ loop:
 		switch (IPC_GET_IMETHOD(call)) {
 		case NET_SOCKET_RECEIVED:
 			fibril_mutex_lock(&socket->receive_lock);
-			// push the number of received packet fragments
+			/* Push the number of received packet fragments */
 			rc = dyn_fifo_push(&socket->received,
 			    SOCKET_GET_DATA_FRAGMENTS(call),
 			    SOCKET_MAX_RECEIVED_SIZE);
 			if (rc == EOK) {
-				// signal the received packet
+				/* Signal the received packet */
 				fibril_condvar_signal(&socket->receive_signal);
 			}
 			fibril_mutex_unlock(&socket->receive_lock);
 			break;
 
 		case NET_SOCKET_ACCEPTED:
-			// push the new socket identifier
+			/* Push the new socket identifier */
 			fibril_mutex_lock(&socket->accept_lock);
 			rc = dyn_fifo_push(&socket->accepted, 1,
 			    SOCKET_MAX_ACCEPTED_SIZE);
 			if (rc == EOK) {
-				// signal the accepted socket
+				/* Signal the accepted socket */
 				fibril_condvar_signal(&socket->accept_signal);
 			}
 			fibril_mutex_unlock(&socket->accept_lock);
@@ -263,7 +263,7 @@ loop:
 		    socket->data_fragment_size)) {
 			fibril_rwlock_write_lock(&socket->sending_lock);
 
-			// set the data fragment size
+			/* Set the data fragment size */
 			socket->data_fragment_size =
 			    SOCKET_GET_DATA_FRAGMENT_SIZE(call);
 
@@ -341,7 +341,7 @@ static int socket_generate_new_id(void)
 		} else if (count == SOCKET_ID_TRIES) {
 			socket_id = 1;
 			++count;
-		// only this branch for last_id
+		/* Only this branch for last_id */
 		} else {
 			if (socket_id < INT_MAX) {
 				++socket_id;
@@ -407,7 +407,7 @@ int socket(int domain, int type, int protocol)
 	sysarg_t header_size;
 	int rc;
 
-	// find the appropriate service
+	/* Find the appropriate service */
 	switch (domain) {
 	case PF_INET:
 		switch (type) {
@@ -456,7 +456,7 @@ int socket(int domain, int type, int protocol)
 	if (phone < 0)
 		return phone;
 
-	// create a new socket structure
+	/* Create a new socket structure */
 	socket = (socket_t *) malloc(sizeof(socket_t));
 	if (!socket)
 		return ENOMEM;
@@ -464,7 +464,7 @@ int socket(int domain, int type, int protocol)
 	bzero(socket, sizeof(*socket));
 	fibril_rwlock_write_lock(&socket_globals.lock);
 
-	// request a new socket
+	/* Request a new socket */
 	socket_id = socket_generate_new_id();
 	if (socket_id <= 0) {
 		fibril_rwlock_write_unlock(&socket_globals.lock);
@@ -483,9 +483,9 @@ int socket(int domain, int type, int protocol)
 	socket->data_fragment_size = (size_t) fragment_size;
 	socket->header_size = (size_t) header_size;
 
-	// finish the new socket initialization
+	/* Finish the new socket initialization */
 	socket_initialize(socket, socket_id, phone, service);
-	// store the new socket
+	/* Store the new socket */
 	rc = sockets_add(socket_get_sockets(), socket_id, socket);
 
 	fibril_rwlock_write_unlock(&socket_globals.lock);
@@ -530,17 +530,17 @@ socket_send_data(int socket_id, sysarg_t message, sysarg_t arg2,
 
 	fibril_rwlock_read_lock(&socket_globals.lock);
 
-	// find the socket
+	/* Find the socket */
 	socket = sockets_find(socket_get_sockets(), socket_id);
 	if (!socket) {
 		fibril_rwlock_read_unlock(&socket_globals.lock);
 		return ENOTSOCK;
 	}
 
-	// request the message
+	/* Request the message */
 	message_id = async_send_3(socket->phone, message,
 	    (sysarg_t) socket->socket_id, arg2, socket->service, NULL);
-	// send the address
+	/* Send the address */
 	async_data_write_start(socket->phone, data, datalength);
 
 	fibril_rwlock_read_unlock(&socket_globals.lock);
@@ -565,7 +565,7 @@ int bind(int socket_id, const struct sockaddr * my_addr, socklen_t addrlen)
 	if (addrlen <= 0)
 		return EINVAL;
 
-	// send the address
+	/* Send the address */
 	return socket_send_data(socket_id, NET_SOCKET_BIND, 0, my_addr,
 	    (size_t) addrlen);
 }
@@ -590,14 +590,14 @@ int listen(int socket_id, int backlog)
 
 	fibril_rwlock_read_lock(&socket_globals.lock);
 
-	// find the socket
+	/* Find the socket */
 	socket = sockets_find(socket_get_sockets(), socket_id);
 	if (!socket) {
 		fibril_rwlock_read_unlock(&socket_globals.lock);
 		return ENOTSOCK;
 	}
 
-	// request listen backlog change
+	/* Request listen backlog change */
 	result = (int) async_req_3_0(socket->phone, NET_SOCKET_LISTEN,
 	    (sysarg_t) socket->socket_id, (sysarg_t) backlog, socket->service);
 
@@ -633,7 +633,7 @@ int accept(int socket_id, struct sockaddr * cliaddr, socklen_t * addrlen)
 
 	fibril_rwlock_write_lock(&socket_globals.lock);
 
-	// find the socket
+	/* Find the socket */
 	socket = sockets_find(socket_get_sockets(), socket_id);
 	if (!socket) {
 		fibril_rwlock_write_unlock(&socket_globals.lock);
@@ -642,19 +642,19 @@ int accept(int socket_id, struct sockaddr * cliaddr, socklen_t * addrlen)
 
 	fibril_mutex_lock(&socket->accept_lock);
 
-	// wait for an accepted socket
+	/* Wait for an accepted socket */
 	++ socket->blocked;
 	while (dyn_fifo_value(&socket->accepted) <= 0) {
 		fibril_rwlock_write_unlock(&socket_globals.lock);
 		fibril_condvar_wait(&socket->accept_signal, &socket->accept_lock);
-		// drop the accept lock to avoid deadlock
+		/* Drop the accept lock to avoid deadlock */
 		fibril_mutex_unlock(&socket->accept_lock);
 		fibril_rwlock_write_lock(&socket_globals.lock);
 		fibril_mutex_lock(&socket->accept_lock);
 	}
 	-- socket->blocked;
 
-	// create a new scoket
+	/* Create a new socket */
 	new_socket = (socket_t *) malloc(sizeof(socket_t));
 	if (!new_socket) {
 		fibril_mutex_unlock(&socket->accept_lock);
@@ -680,12 +680,12 @@ int accept(int socket_id, struct sockaddr * cliaddr, socklen_t * addrlen)
 		return result;
 	}
 
-	// request accept
+	/* Request accept */
 	message_id = async_send_5(socket->phone, NET_SOCKET_ACCEPT,
 	    (sysarg_t) socket->socket_id, 0, socket->service, 0,
 	    new_socket->socket_id, &answer);
 
-	// read address
+	/* Read address */
 	ipc_data_read_start(socket->phone, cliaddr, *addrlen);
 	fibril_rwlock_write_unlock(&socket_globals.lock);
 	async_wait_for(message_id, &ipc_result);
@@ -694,14 +694,14 @@ int accept(int socket_id, struct sockaddr * cliaddr, socklen_t * addrlen)
 		if (result != socket_id)
 			result = EINVAL;
 
-		// dequeue the accepted socket if successful
+		/* Dequeue the accepted socket if successful */
 		dyn_fifo_pop(&socket->accepted);
-		// set address length
+		/* Set address length */
 		*addrlen = SOCKET_GET_ADDRESS_LENGTH(answer);
 		new_socket->data_fragment_size =
 		    SOCKET_GET_DATA_FRAGMENT_SIZE(answer);
 	} else if (result == ENOTSOCK) {
-		// empty the queue if no accepted sockets
+		/* Empty the queue if no accepted sockets */
 		while (dyn_fifo_pop(&socket->accepted) > 0)
 			;
 	}
@@ -730,7 +730,7 @@ int connect(int socket_id, const struct sockaddr *serv_addr, socklen_t addrlen)
 	if (!addrlen)
 		return EDESTADDRREQ;
 
-	// send the address
+	/* Send the address */
 	return socket_send_data(socket_id, NET_SOCKET_CONNECT, 0, serv_addr,
 	    addrlen);
 }
@@ -743,7 +743,7 @@ static void socket_destroy(socket_t *socket)
 {
 	int accepted_id;
 
-	// destroy all accepted sockets
+	/* Destroy all accepted sockets */
 	while ((accepted_id = dyn_fifo_pop(&socket->accepted)) >= 0)
 		socket_destroy(sockets_find(socket_get_sockets(), accepted_id));
 
@@ -779,14 +779,14 @@ int closesocket(int socket_id)
 		return EINPROGRESS;
 	}
 
-	// request close
+	/* Request close */
 	rc = (int) async_req_3_0(socket->phone, NET_SOCKET_CLOSE,
 	    (sysarg_t) socket->socket_id, 0, socket->service);
 	if (rc != EOK) {
 		fibril_rwlock_write_unlock(&socket_globals.lock);
 		return rc;
 	}
-	// free the socket structure
+	/* Free the socket structure */
 	socket_destroy(socket);
 
 	fibril_rwlock_write_unlock(&socket_globals.lock);
@@ -832,7 +832,7 @@ sendto_core(sysarg_t message, int socket_id, const void *data,
 
 	fibril_rwlock_read_lock(&socket_globals.lock);
 
-	// find socket
+	/* Find socket */
 	socket = sockets_find(socket_get_sockets(), socket_id);
 	if (!socket) {
 		fibril_rwlock_read_unlock(&socket_globals.lock);
@@ -841,7 +841,7 @@ sendto_core(sysarg_t message, int socket_id, const void *data,
 
 	fibril_rwlock_read_lock(&socket->sending_lock);
 
-	// compute data fragment count
+	/* Compute data fragment count */
 	if (socket->data_fragment_size > 0) {
 		fragments = (datalength + socket->header_size) /
 		    socket->data_fragment_size;
@@ -852,26 +852,26 @@ sendto_core(sysarg_t message, int socket_id, const void *data,
 		fragments = 1;
 	}
 
-	// request send
+	/* Request send */
 	message_id = async_send_5(socket->phone, message,
 	    (sysarg_t) socket->socket_id,
 	    (fragments == 1 ? datalength : socket->data_fragment_size),
 	    socket->service, (sysarg_t) flags, fragments, &answer);
 
-	// send the address if given
+	/* Send the address if given */
 	if (!toaddr ||
 	    (async_data_write_start(socket->phone, toaddr, addrlen) == EOK)) {
 		if (fragments == 1) {
-			// send all if only one fragment
+			/* Send all if only one fragment */
 			async_data_write_start(socket->phone, data, datalength);
 		} else {
-			// send the first fragment
+			/* Send the first fragment */
 			async_data_write_start(socket->phone, data,
 			    socket->data_fragment_size - socket->header_size);
 			data = ((const uint8_t *) data) +
 			    socket->data_fragment_size - socket->header_size;
 	
-			// send the middle fragments
+			/* Send the middle fragments */
 			while (--fragments > 1) {
 				async_data_write_start(socket->phone, data,
 				    socket->data_fragment_size);
@@ -879,7 +879,7 @@ sendto_core(sysarg_t message, int socket_id, const void *data,
 				    socket->data_fragment_size;
 			}
 
-			// send the last fragment
+			/* Send the last fragment */
 			async_data_write_start(socket->phone, data,
 			    (datalength + socket->header_size) %
 			    socket->data_fragment_size);
@@ -891,7 +891,7 @@ sendto_core(sysarg_t message, int socket_id, const void *data,
 	if ((SOCKET_GET_DATA_FRAGMENT_SIZE(answer) > 0) &&
 	    (SOCKET_GET_DATA_FRAGMENT_SIZE(answer) !=
 	    socket->data_fragment_size)) {
-		// set the data fragment size
+		/* Set the data fragment size */
 		socket->data_fragment_size =
 		    SOCKET_GET_DATA_FRAGMENT_SIZE(answer);
 	}
@@ -916,7 +916,7 @@ sendto_core(sysarg_t message, int socket_id, const void *data,
  */
 int send(int socket_id, void *data, size_t datalength, int flags)
 {
-	// without the address
+	/* Without the address */
 	return sendto_core(NET_SOCKET_SEND, socket_id, data, datalength, flags,
 	    NULL, 0);
 }
@@ -949,7 +949,7 @@ sendto(int socket_id, const void *data, size_t datalength, int flags,
 	if (!addrlen)
 		return EDESTADDRREQ;
 
-	// with the address
+	/* With the address */
 	return sendto_core(NET_SOCKET_SENDTO, socket_id, data, datalength,
 	    flags, toaddr, addrlen);
 }
@@ -965,13 +965,14 @@ sendto(int socket_id, const void *data, size_t datalength, int flags,
  * @param[in,out] addrlen The address length. The maximum address length is
  *			read. The actual address length is set. Used only if
  *			fromaddr is not NULL.
- * @return		EOK on success.
+ * @return		Positive received message size in bytes on success.
+ * @return		Zero if no more data (other side closed the connection).
  * @return		ENOTSOCK if the socket is not found.
  * @return		EBADMEM if the data parameter is NULL.
  * @return		NO_DATA if the datalength or addrlen parameter is zero.
  * @return		Other error codes as defined for the spcific message.
  */
-static int
+static ssize_t
 recvfrom_core(sysarg_t message, int socket_id, void *data, size_t datalength,
     int flags, struct sockaddr *fromaddr, socklen_t *addrlen)
 {
@@ -983,6 +984,7 @@ recvfrom_core(sysarg_t message, int socket_id, void *data, size_t datalength,
 	size_t *lengths;
 	size_t index;
 	ipc_call_t answer;
+	ssize_t retval;
 
 	if (!data)
 		return EBADMEM;
@@ -995,7 +997,7 @@ recvfrom_core(sysarg_t message, int socket_id, void *data, size_t datalength,
 
 	fibril_rwlock_read_lock(&socket_globals.lock);
 
-	// find the socket
+	/* Find the socket */
 	socket = sockets_find(socket_get_sockets(), socket_id);
 	if (!socket) {
 		fibril_rwlock_read_unlock(&socket_globals.lock);
@@ -1003,14 +1005,14 @@ recvfrom_core(sysarg_t message, int socket_id, void *data, size_t datalength,
 	}
 
 	fibril_mutex_lock(&socket->receive_lock);
-	// wait for a received packet
+	/* Wait for a received packet */
 	++socket->blocked;
-	while ((result = dyn_fifo_value(&socket->received)) <= 0) {
+	while ((result = dyn_fifo_value(&socket->received)) < 0) {
 		fibril_rwlock_read_unlock(&socket_globals.lock);
 		fibril_condvar_wait(&socket->receive_signal,
 		    &socket->receive_lock);
 
-		// drop the receive lock to avoid deadlock
+		/* Drop the receive lock to avoid deadlock */
 		fibril_mutex_unlock(&socket->receive_lock);
 		fibril_rwlock_read_lock(&socket_globals.lock);
 		fibril_mutex_lock(&socket->receive_lock);
@@ -1018,7 +1020,12 @@ recvfrom_core(sysarg_t message, int socket_id, void *data, size_t datalength,
 	--socket->blocked;
 	fragments = (size_t) result;
 
-	// prepare lengths if more fragments
+	if (fragments == 0) {
+		/* No more data, other side has closed the connection. */
+		return 0;
+	}
+
+	/* Prepare lengths if more fragments */
 	if (fragments > 1) {
 		lengths = (size_t *) malloc(sizeof(size_t) * fragments +
 		    sizeof(size_t));
@@ -1028,21 +1035,21 @@ recvfrom_core(sysarg_t message, int socket_id, void *data, size_t datalength,
 			return ENOMEM;
 		}
 
-		// request packet data
+		/* Request packet data */
 		message_id = async_send_4(socket->phone, message,
 		    (sysarg_t) socket->socket_id, 0, socket->service,
 		    (sysarg_t) flags, &answer);
 
-		// read the address if desired
+		/* Read the address if desired */
 		if(!fromaddr ||
 		    (async_data_read_start(socket->phone, fromaddr,
 		    *addrlen) == EOK)) {
-			// read the fragment lengths
+			/* Read the fragment lengths */
 			if (async_data_read_start(socket->phone, lengths,
 			    sizeof(int) * (fragments + 1)) == EOK) {
 				if (lengths[fragments] <= datalength) {
 
-					// read all fragments if long enough
+					/* Read all fragments if long enough */
 					for (index = 0; index < fragments;
 					    ++index) {
 						async_data_read_start(
@@ -1056,17 +1063,17 @@ recvfrom_core(sysarg_t message, int socket_id, void *data, size_t datalength,
 		}
 
 		free(lengths);
-	} else {
-		// request packet data
+	} else { /* fragments == 1 */
+		/* Request packet data */
 		message_id = async_send_4(socket->phone, message,
 		    (sysarg_t) socket->socket_id, 0, socket->service,
 		    (sysarg_t) flags, &answer);
 
-		// read the address if desired
+		/* Read the address if desired */
 		if (!fromaddr ||
 		    (async_data_read_start(socket->phone, fromaddr,
 		        *addrlen) == EOK)) {
-			// read all if only one fragment
+			/* Read all if only one fragment */
 			async_data_read_start(socket->phone, data, datalength);
 		}
 	}
@@ -1074,18 +1081,20 @@ recvfrom_core(sysarg_t message, int socket_id, void *data, size_t datalength,
 	async_wait_for(message_id, &ipc_result);
 	result = (int) ipc_result;
 	if (result == EOK) {
-		// dequeue the received packet
+		/* Dequeue the received packet */
 		dyn_fifo_pop(&socket->received);
-		// return read data length
-		result = SOCKET_GET_READ_DATA_LENGTH(answer);
-		// set address length
+		/* Return read data length */
+		retval = SOCKET_GET_READ_DATA_LENGTH(answer);
+		/* Set address length */
 		if (fromaddr && addrlen)
 			*addrlen = SOCKET_GET_ADDRESS_LENGTH(answer);
+	} else {
+		retval = (ssize_t) result;
 	}
 
 	fibril_mutex_unlock(&socket->receive_lock);
 	fibril_rwlock_read_unlock(&socket_globals.lock);
-	return result;
+	return retval;
 }
 
 /** Receives data via the socket.
@@ -1094,16 +1103,17 @@ recvfrom_core(sysarg_t message, int socket_id, void *data, size_t datalength,
  * @param[out] data	The data buffer to be filled.
  * @param[in] datalength The data length.
  * @param[in] flags	Various receive flags.
- * @return		EOK on success.
+ * @return		Positive received message size in bytes on success.
+ * @return		Zero if no more data (other side closed the connection).
  * @return		ENOTSOCK if the socket is not found.
  * @return		EBADMEM if the data parameter is NULL.
  * @return		NO_DATA if the datalength parameter is zero.
  * @return		Other error codes as defined for the NET_SOCKET_RECV
  *			message.
  */
-int recv(int socket_id, void *data, size_t datalength, int flags)
+ssize_t recv(int socket_id, void *data, size_t datalength, int flags)
 {
-	// without the address
+	/* Without the address */
 	return recvfrom_core(NET_SOCKET_RECV, socket_id, data, datalength,
 	    flags, NULL, NULL);
 }
@@ -1117,14 +1127,15 @@ int recv(int socket_id, void *data, size_t datalength, int flags)
  * @param[out] fromaddr	The source address.
  * @param[in,out] addrlen The address length. The maximum address length is
  *			read. The actual address length is set.
- * @return		EOK on success.
+ * @return		Positive received message size in bytes on success.
+ * @return		Zero if no more data (other side closed the connection).
  * @return		ENOTSOCK if the socket is not found.
  * @return		EBADMEM if the data or fromaddr parameter is NULL.
  * @return		NO_DATA if the datalength or addrlen parameter is zero.
  * @return		Other error codes as defined for the NET_SOCKET_RECVFROM
  *			message.
  */
-int
+ssize_t
 recvfrom(int socket_id, void *data, size_t datalength, int flags,
     struct sockaddr *fromaddr, socklen_t *addrlen)
 {
@@ -1134,7 +1145,7 @@ recvfrom(int socket_id, void *data, size_t datalength, int flags,
 	if (!addrlen)
 		return NO_DATA;
 
-	// with the address
+	/* With the address */
 	return recvfrom_core(NET_SOCKET_RECVFROM, socket_id, data, datalength,
 	    flags, fromaddr, addrlen);
 }
@@ -1169,22 +1180,22 @@ getsockopt(int socket_id, int level, int optname, void *value, size_t *optlen)
 
 	fibril_rwlock_read_lock(&socket_globals.lock);
 
-	// find the socket
+	/* Find the socket */
 	socket = sockets_find(socket_get_sockets(), socket_id);
 	if (!socket) {
 		fibril_rwlock_read_unlock(&socket_globals.lock);
 		return ENOTSOCK;
 	}
 
-	// request option value
+	/* Request option value */
 	message_id = async_send_3(socket->phone, NET_SOCKET_GETSOCKOPT,
 	    (sysarg_t) socket->socket_id, (sysarg_t) optname, socket->service,
 	    NULL);
 
-	// read the length
+	/* Read the length */
 	if (async_data_read_start(socket->phone, optlen,
 	    sizeof(*optlen)) == EOK) {
-		// read the value
+		/* Read the value */
 		async_data_read_start(socket->phone, value, *optlen);
 	}
 
@@ -1211,7 +1222,7 @@ int
 setsockopt(int socket_id, int level, int optname, const void *value,
     size_t optlen)
 {
-	// send the value
+	/* Send the value */
 	return socket_send_data(socket_id, NET_SOCKET_SETSOCKOPT,
 	    (sysarg_t) optname, value, optlen);
 }
