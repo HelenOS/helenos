@@ -34,6 +34,7 @@
  */
 #include <usb/usbdrv.h>
 #include <usbhc_iface.h>
+#include <usb_iface.h>
 #include <errno.h>
 #include <str_error.h>
 
@@ -52,6 +53,38 @@ typedef struct {
 	/** Initial call identifier. */
 	aid_t request;
 } transfer_info_t;
+
+/** Find handle of host controller the device is physically attached to.
+ *
+ * @param[in] dev Device looking for its host controller.
+ * @param[out] handle Host controller devman handle.
+ * @return Error code.
+ */
+int usb_drv_find_hc(device_t *dev, devman_handle_t *handle)
+{
+	if (dev == NULL) {
+		return EBADMEM;
+	}
+	if (handle == NULL) {
+		return EBADMEM;
+	}
+
+	int parent_phone = devman_parent_device_connect(dev->handle, 0);
+	if (parent_phone < 0) {
+		return parent_phone;
+	}
+
+	devman_handle_t h;
+	int rc = async_req_1_1(parent_phone, DEV_IFACE_ID(USB_DEV_IFACE),
+	    IPC_M_USB_GET_HOST_CONTROLLER_HANDLE, &h);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	*handle = h;
+
+	return EOK;
+}
 
 /** Connect to host controller the device is physically attached to.
  *

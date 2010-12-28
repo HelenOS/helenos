@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2010 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,45 +26,38 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
- * @defgroup libdrv generic device driver support.
- * @brief HelenOS generic device driver support.
+/** @addtogroup libdrv usb
  * @{
  */
-
 /** @file
+ * @brief USB interface definition.
  */
 
-#include "dev_iface.h"
-#include "remote_res.h"
-#include "remote_char.h"
-#include "remote_usb.h"
-#include "remote_usbhc.h"
+#ifndef LIBDRV_USB_IFACE_H_
+#define LIBDRV_USB_IFACE_H_
 
-static iface_dipatch_table_t remote_ifaces = {
-	.ifaces = {
-		&remote_res_iface,
-		&remote_char_iface,
-		&remote_usb_iface,
-		&remote_usbhc_iface
-	}
-};
+#include "driver.h"
+#include <usb/usb.h>
+typedef enum {
+	/** Tell devman handle of device host controller.
+	 * Parameters:
+	 * - none
+	 * Answer:
+	 * - EOK - request processed without errors
+	 * - ENOTSUP - this indicates invalid USB driver
+	 * Parameters of the answer:
+	 * - devman handle of HC caller is physically connected to
+	 */
+	IPC_M_USB_GET_HOST_CONTROLLER_HANDLE
+} usb_iface_funcs_t;
 
-remote_iface_t* get_remote_iface(int idx)
-{	
-	assert(is_valid_iface_idx(idx));
-	return remote_ifaces.ifaces[idx];
-}
+/** USB device communication interface. */
+typedef struct {
+	int (*get_hc_handle)(device_t *, devman_handle_t *);
+} usb_iface_t;
 
-remote_iface_func_ptr_t
-get_remote_method(remote_iface_t *rem_iface, sysarg_t iface_method_idx)
-{
-	if (iface_method_idx >= rem_iface->method_count) {
-		return NULL;
-	}
-	return rem_iface->methods[iface_method_idx];
-}
 
+#endif
 /**
  * @}
  */

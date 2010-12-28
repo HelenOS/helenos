@@ -38,6 +38,8 @@ typedef enum {
 	HW_RES_DEV_IFACE = 0,	
 	CHAR_DEV_IFACE,
 
+	/** Interface provided by any USB device. */
+	USB_DEV_IFACE,
 	/** Interface provided by USB host controller. */
 	USBHC_DEV_IFACE,
 
