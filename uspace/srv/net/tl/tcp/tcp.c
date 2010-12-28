@@ -768,9 +768,6 @@ int tcp_process_established(socket_core_t *socket, tcp_socket_data_t *
 		forced_ack = true;
 	}
 
-	if (header->finalize)
-		socket_data->next_incoming += 1;
-
 	/* If next in sequence is an incoming FIN */
 	if (socket_data->next_incoming == socket_data->fin_incoming) {
 		/* Advance sequence number */
