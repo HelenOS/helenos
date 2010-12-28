@@ -2243,7 +2243,7 @@ int tcp_send_message(socket_cores_t *local_sockets, int socket_id,
 			return tcp_release_and_return(packet, ENOMEM);
 
 		tcp_prepare_operation_header(socket, socket_data, header, 0, 0);
-		rc = tcp_queue_packet(socket, socket_data, packet, 0);
+		rc = tcp_queue_packet(socket, socket_data, packet, total_length);
 		if (rc != EOK)
 			return rc;
 	}
