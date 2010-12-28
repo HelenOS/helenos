@@ -189,7 +189,7 @@ static usb_hid_dev_kbd_t *usbkbd_init_device(device_t *dev)
 
 	// get phone to my HC and save it as my parent's phone
 	// TODO: maybe not a good idea if DDF will use parent_phone
-	kbd_dev->device->parent_phone = usb_drv_hc_connect(dev, 0);
+	kbd_dev->device->parent_phone = usb_drv_hc_connect_auto(dev, 0);
 
 	kbd_dev->address = usb_drv_get_my_address(dev->parent_phone,
 	    dev);
@@ -324,7 +324,7 @@ static int usbkbd_add_device(device_t *dev)
 	 *
 	 * Not supported yet, skip..
 	 */
-//	int phone = usb_drv_hc_connect(dev, 0);
+//	int phone = usb_drv_hc_connect_auto(dev, 0);
 //	if (phone < 0) {
 //		/*
 //		 * Connecting to HC failed, roll-back and announce
