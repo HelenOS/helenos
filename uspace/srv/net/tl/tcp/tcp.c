@@ -768,9 +768,6 @@ int tcp_process_established(socket_core_t *socket, tcp_socket_data_t *
 		forced_ack = true;
 	}
 
-	if (header->finalize)
-		socket_data->next_incoming += 1;
-
 	/* If next in sequence is an incoming FIN */
 	if (socket_data->next_incoming == socket_data->fin_incoming) {
 		/* Advance sequence number */
@@ -2246,7 +2243,7 @@ int tcp_send_message(socket_cores_t *local_sockets, int socket_id,
 			return tcp_release_and_return(packet, ENOMEM);
 
 		tcp_prepare_operation_header(socket, socket_data, header, 0, 0);
-		rc = tcp_queue_packet(socket, socket_data, packet, 0);
+		rc = tcp_queue_packet(socket, socket_data, packet, total_length);
 		if (rc != EOK)
 			return rc;
 	}

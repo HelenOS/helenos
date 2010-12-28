@@ -1022,6 +1022,8 @@ recvfrom_core(sysarg_t message, int socket_id, void *data, size_t datalength,
 
 	if (fragments == 0) {
 		/* No more data, other side has closed the connection. */
+		fibril_mutex_unlock(&socket->receive_lock);
+		fibril_rwlock_read_unlock(&socket_globals.lock);
 		return 0;
 	}
 
