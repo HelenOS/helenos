@@ -55,7 +55,6 @@
 #include <ipc/kbox.h>
 #include <mm/as.h>
 #include <sysinfo/abi.h>
-#include <typedefs.h>
 
 struct thread;
 
