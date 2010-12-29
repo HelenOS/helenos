@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2010 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,36 +26,50 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup kill
  * @{
  */
-/** @file
+/**
+ * @file Forecfully terminate a task.
  */
 
-#ifndef LIBC_TASK_H_
-#define LIBC_TASK_H_
+#include <errno.h>
+#include <stdio.h>
+#include <task.h>
 
-#include <sys/types.h>
+#define NAME "kill"
 
-typedef uint64_t task_id_t;
+static void print_syntax(void)
+{
+	printf("Syntax: " NAME " <task ID>\n");
+}
 
-typedef enum {
-	TASK_EXIT_NORMAL,
-	TASK_EXIT_UNEXPECTED
-} task_exit_t;
+int main(int argc, char *argv[])
+{
+	char *eptr;
+	task_id_t taskid;
+	int rc;
 
-extern task_id_t task_get_id(void);
-extern int task_set_name(const char *);
-extern int task_kill(task_id_t);
+	if (argc != 2) {
+		print_syntax();
+		return 1;
+	}
 
-extern task_id_t task_spawn(const char *, const char *const[], int *);
-extern int task_spawnv(task_id_t *, const char *path, const char *const []);
-extern int task_spawnl(task_id_t *, const char *path, ...);
+	taskid = strtoul(argv[1], &eptr, 0);
+	if (*eptr != '\0') {
+		printf("Invalid task ID argument '%s'.\n", argv[1]);
+		return 1;
+	}
 
-extern int task_wait(task_id_t id, task_exit_t *, int *);
-extern int task_retval(int);
+	rc = task_kill(taskid);
+	if (rc != EOK) {
+		printf("Failed to kill task with ID %llu (error %d)\n",
+		    (unsigned long long) taskid, rc);
+		return 2;
+	}
 
-#endif
+	return 0;
+}
 
 /** @}
  */

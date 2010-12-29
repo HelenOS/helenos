@@ -119,6 +119,7 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	
 	(syshandler_t) sys_task_get_id,
 	(syshandler_t) sys_task_set_name,
+	(syshandler_t) sys_task_kill,
 	(syshandler_t) sys_program_spawn_loader,
 	
 	/* Synchronization related syscalls. */

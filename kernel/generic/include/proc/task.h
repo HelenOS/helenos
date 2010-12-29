@@ -55,6 +55,7 @@
 #include <ipc/kbox.h>
 #include <mm/as.h>
 #include <sysinfo/abi.h>
+#include <typedefs.h>
 
 struct thread;
 
@@ -153,6 +154,7 @@ extern sysarg_t sys_task_get_id(void);
 #endif
 
 extern sysarg_t sys_task_set_name(const char *, size_t);
+extern sysarg_t sys_task_kill(task_id_t *);
 
 #endif
 

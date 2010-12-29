@@ -37,6 +37,7 @@ DIRS = \
 	app/edit \
 	app/getterm \
 	app/init \
+	app/kill \
 	app/klog \
 	app/mkfat \
 	app/redir \
