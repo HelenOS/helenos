@@ -64,6 +64,7 @@
 #include <task.h>
 #include <macros.h>
 
+#include "ata_hw.h"
 #include "ata_bd.h"
 
 #define NAME       "ata_bd"
