@@ -27,8 +27,8 @@
  */
 
 /**
- * @defgroup root_ia32 Root HW device driver for ia32 platform.
- * @brief HelenOS root HW device driver for ia32 platform.
+ * @defgroup root_pc PC platform driver.
+ * @brief HelenOS PC platform driver.
  * @{
  */
 
@@ -52,24 +52,24 @@
 #include <resource.h>
 #include <device/hw_res.h>
 
-#define NAME "rootia32"
+#define NAME "rootpc"
 
-typedef struct rootia32_child_dev_data {
+typedef struct rootpc_child_dev_data {
 	hw_resource_list_t hw_resources;
-} rootia32_child_dev_data_t;
+} rootpc_child_dev_data_t;
 
-static int rootia32_add_device(device_t *dev);
-static void root_ia32_init(void);
+static int rootpc_add_device(device_t *dev);
+static void root_pc_init(void);
 
 /** The root device driver's standard operations. */
-static driver_ops_t rootia32_ops = {
-	.add_device = &rootia32_add_device
+static driver_ops_t rootpc_ops = {
+	.add_device = &rootpc_add_device
 };
 
 /** The root device driver structure. */
-static driver_t rootia32_driver = {
+static driver_t rootpc_driver = {
 	.name = NAME,
-	.driver_ops = &rootia32_ops
+	.driver_ops = &rootpc_ops
 };
 
 static hw_resource_t pci_conf_regs = {
@@ -81,25 +81,25 @@ static hw_resource_t pci_conf_regs = {
 	}
 };
 
-static rootia32_child_dev_data_t pci_data = {
+static rootpc_child_dev_data_t pci_data = {
 	.hw_resources = {
 		1,
 		&pci_conf_regs
 	}
 };
 
-static hw_resource_list_t *rootia32_get_child_resources(device_t *dev)
+static hw_resource_list_t *rootpc_get_child_resources(device_t *dev)
 {
-	rootia32_child_dev_data_t *data;
+	rootpc_child_dev_data_t *data;
 	
-	data = (rootia32_child_dev_data_t *) dev->driver_data;
+	data = (rootpc_child_dev_data_t *) dev->driver_data;
 	if (NULL == data)
 		return NULL;
 	
 	return &data->hw_resources;
 }
 
-static bool rootia32_enable_child_interrupt(device_t *dev)
+static bool rootpc_enable_child_interrupt(device_t *dev)
 {
 	/* TODO */
 	
@@ -107,16 +107,16 @@ static bool rootia32_enable_child_interrupt(device_t *dev)
 }
 
 static resource_iface_t child_res_iface = {
-	&rootia32_get_child_resources,
-	&rootia32_enable_child_interrupt
+	&rootpc_get_child_resources,
+	&rootpc_enable_child_interrupt
 };
 
-/* Initialized in root_ia32_init() function. */
-static device_ops_t rootia32_child_ops;
+/* Initialized in root_pc_init() function. */
+static device_ops_t rootpc_child_ops;
 
 static bool
-rootia32_add_child(device_t *parent, const char *name, const char *str_match_id,
-    rootia32_child_dev_data_t *drv_data)
+rootpc_add_child(device_t *parent, const char *name, const char *str_match_id,
+    rootpc_child_dev_data_t *drv_data)
 {
 	printf(NAME ": adding new child device '%s'.\n", name);
 	
@@ -141,7 +141,7 @@ rootia32_add_child(device_t *parent, const char *name, const char *str_match_id,
 	add_match_id(&child->match_ids, match_id);
 	
 	/* Set provided operations to the device. */
-	child->ops = &rootia32_child_ops;
+	child->ops = &rootpc_child_ops;
 	
 	/* Register child device. */
 	if (EOK != child_device_register(child, parent))
@@ -163,9 +163,9 @@ failure:
 	return false;
 }
 
-static bool rootia32_add_children(device_t *dev)
+static bool rootpc_add_children(device_t *dev)
 {
-	return rootia32_add_child(dev, "pci0", "intel_pci", &pci_data);
+	return rootpc_add_child(dev, "pci0", "intel_pci", &pci_data);
 }
 
 /** Get the root device.
@@ -174,29 +174,29 @@ static bool rootia32_add_children(device_t *dev)
  *			of HW and pseudo devices).
  * @return		Zero on success, negative error number otherwise.
  */
-static int rootia32_add_device(device_t *dev)
+static int rootpc_add_device(device_t *dev)
 {
-	printf(NAME ": rootia32_add_device, device handle = %d\n", dev->handle);
+	printf(NAME ": rootpc_add_device, device handle = %d\n",
+	    (int)dev->handle);
 	
 	/* Register child devices. */
-	if (!rootia32_add_children(dev)) {
-		printf(NAME ": failed to add child devices for platform "
-		    "ia32.\n");
+	if (!rootpc_add_children(dev)) {
+		printf(NAME ": failed to add child devices for PC platform.\n");
 	}
 	
 	return EOK;
 }
 
-static void root_ia32_init(void)
+static void root_pc_init(void)
 {
-	rootia32_child_ops.interfaces[HW_RES_DEV_IFACE] = &child_res_iface;
+	rootpc_child_ops.interfaces[HW_RES_DEV_IFACE] = &child_res_iface;
 }
 
 int main(int argc, char *argv[])
 {
-	printf(NAME ": HelenOS rootia32 device driver\n");
-	root_ia32_init();
-	return driver_main(&rootia32_driver);
+	printf(NAME ": HelenOS PC platform driver\n");
+	root_pc_init();
+	return driver_main(&rootpc_driver);
 }
 
 /**

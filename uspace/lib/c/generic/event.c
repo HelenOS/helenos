@@ -48,7 +48,7 @@
  *
  * @return Value returned by the kernel.
  */
-int event_subscribe(event_type_t e, ipcarg_t method)
+int event_subscribe(event_type_t e, sysarg_t method)
 {
 	return __SYSCALL2(SYS_EVENT_SUBSCRIBE, (sysarg_t) e, (sysarg_t) method);
 }

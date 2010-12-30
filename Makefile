@@ -27,6 +27,7 @@
 #
 
 CSCOPE = cscope
+CHECK = tools/check.sh
 CONFIG = tools/config.py
 AUTOTOOL = tools/autotool.py
 SANDBOX = autotool
@@ -40,7 +41,7 @@ COMMON_HEADER_PREV = $(COMMON_HEADER).prev
 CONFIG_MAKEFILE = Makefile.config
 CONFIG_HEADER = config.h
 
-.PHONY: all precheck cscope autotool config_default config distclean clean
+.PHONY: all precheck cscope autotool config_auto config_default config distclean clean check
 
 all: $(COMMON_MAKEFILE) $(COMMON_HEADER) $(CONFIG_MAKEFILE) $(CONFIG_HEADER)
 	cp -a $(COMMON_HEADER) $(COMMON_HEADER_PREV)
@@ -54,6 +55,14 @@ precheck: clean
 cscope:
 	find kernel boot uspace -regex '^.*\.[chsS]$$' | xargs $(CSCOPE) -b -k -u -f$(CSCOPE).out
 
+# Pre-integration build check
+check: $(CHECK)
+ifdef JOBS 
+	$(CHECK) -j $(JOBS)
+else
+	$(CHECK)
+endif
+
 $(COMMON_MAKEFILE): autotool
 $(COMMON_HEADER): autotool
 
@@ -65,7 +74,11 @@ $(CONFIG_MAKEFILE): config_default
 $(CONFIG_HEADER): config_default
 
 config_default: $(CONFIG_RULES)
-	$(CONFIG) $< default
+ifeq ($(HANDS_OFF),y)
+	$(CONFIG) $< hands-off $(PROFILE)
+else
+	$(CONFIG) $< default $(PROFILE)
+endif
 
 config: $(CONFIG_RULES)
 	$(CONFIG) $<

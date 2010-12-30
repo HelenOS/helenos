@@ -37,6 +37,7 @@ DIRS = \
 	app/edit \
 	app/getterm \
 	app/init \
+	app/kill \
 	app/klog \
 	app/mkfat \
 	app/redir \
@@ -52,6 +53,8 @@ DIRS = \
 	app/nettest1 \
 	app/nettest2 \
 	app/ping \
+	app/websrv \
+	app/sysinfo \
 	srv/clip \
 	srv/devmap \
 	srv/devman \
@@ -84,20 +87,17 @@ DIRS = \
 	srv/net/tl/udp \
 	srv/net/tl/tcp \
 	srv/net/net \
-	drv/root
+	drv/root \
+	drv/rootvirt \
+	drv/test1 \
+	drv/test2
 
 ## Networking
 #
 
-ifeq ($(CONFIG_NETIF_NIL_BUNDLE),y)
-	LIBN = \
-		srv/net/nil/eth \
-		srv/net/nil/nildummy
-else
-	DIRS += \
-		srv/net/nil/eth \
-		srv/net/nil/nildummy
-endif
+DIRS += \
+	srv/net/nil/eth \
+	srv/net/nil/nildummy
 
 ## Platform-specific hardware support
 #
@@ -107,10 +107,14 @@ ifneq ($(UARCH),abs32le)
 endif
 
 ifeq ($(UARCH),amd64)
+	DIRS += drv/rootpc
+	DIRS += drv/pciintel
+	DIRS += drv/isa
+	DIRS += drv/ns8250
 endif
 
 ifeq ($(UARCH),ia32)
-	DIRS += drv/rootia32
+	DIRS += drv/rootpc
 	DIRS += drv/pciintel
 	DIRS += drv/isa
 	DIRS += drv/ns8250

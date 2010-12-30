@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2010 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,23 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic
- * @{
+/** @file
  */
+#ifndef DRV_TEST1_TEST1_H_
+#define DRV_TEST1_TEST1_H_
 
-/**
- * @file
- * @brief Wrapper for explicit 64-bit arguments passed to syscalls.
- */
+#include <driver.h>
 
-#ifndef KERN_SYSARG64_H_
-#define KERN_SYSARG64_H_
+#define NAME "test1"
 
-typedef struct {
-	unsigned long long value;
-} sysarg64_t;
+extern device_ops_t char_device_ops;
 
 #endif
-
-/** @}
- */

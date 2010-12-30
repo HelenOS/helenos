@@ -41,7 +41,7 @@
 
 #define DEVMAN_NAME_MAXLEN 256
 
-typedef ipcarg_t devman_handle_t;
+typedef sysarg_t devman_handle_t;
 
 /** Ids of device models used for device-to-driver matching.
  */
@@ -122,6 +122,7 @@ typedef enum {
 	DEVMAN_DRIVER = 1,
 	DEVMAN_CLIENT,
 	DEVMAN_CONNECT_TO_DEVICE,
+	DEVMAN_CONNECT_FROM_DEVMAP,
 	DEVMAN_CONNECT_TO_PARENTS_DEVICE
 } devman_interface_t;
 

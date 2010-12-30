@@ -321,7 +321,7 @@ static int net_initialize(async_client_conn_t client_connection)
  */
 static int net_module_start(async_client_conn_t client_connection)
 {
-	ipcarg_t phonehash;
+	sysarg_t phonehash;
 	int rc;
 	
 	async_set_client_connection(client_connection);
@@ -334,7 +334,7 @@ static int net_module_start(async_client_conn_t client_connection)
 	if (rc != EOK)
 		goto out;
 	
-	rc = REGISTER_ME(SERVICE_NETWORKING, &phonehash);
+	rc = ipc_connect_to_me(PHONE_NS, SERVICE_NETWORKING, 0, 0, &phonehash);
 	if (rc != EOK)
 		goto out;
 	
@@ -631,7 +631,7 @@ int net_message(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *answer,
 	int rc;
 	
 	*answer_count = 0;
-	switch (IPC_GET_METHOD(*call)) {
+	switch (IPC_GET_IMETHOD(*call)) {
 	case IPC_M_PHONE_HUNGUP:
 		return EOK;
 	case NET_NET_GET_DEVICE_CONF:
@@ -696,7 +696,7 @@ static void net_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		int res = net_module_message(callid, &call, &answer, &answer_count);
 		
 		/* End if told to either by the message or the processing result */
-		if ((IPC_GET_METHOD(call) == IPC_M_PHONE_HUNGUP) || (res == EHANGUP))
+		if ((IPC_GET_IMETHOD(call) == IPC_M_PHONE_HUNGUP) || (res == EHANGUP))
 			return;
 		
 		/* Answer the message */

@@ -62,33 +62,33 @@ void
 answer_call(ipc_callid_t callid, int result, ipc_call_t *answer,
     int answer_count)
 {
-	// choose the most efficient answer function
+	/* Choose the most efficient answer function */
 	if (answer || (!answer_count)) {
 		switch (answer_count) {
 		case 0:
-			ipc_answer_0(callid, (ipcarg_t) result);
+			ipc_answer_0(callid, (sysarg_t) result);
 			break;
 		case 1:
-			ipc_answer_1(callid, (ipcarg_t) result,
+			ipc_answer_1(callid, (sysarg_t) result,
 			    IPC_GET_ARG1(*answer));
 			break;
 		case 2:
-			ipc_answer_2(callid, (ipcarg_t) result,
+			ipc_answer_2(callid, (sysarg_t) result,
 			    IPC_GET_ARG1(*answer), IPC_GET_ARG2(*answer));
 			break;
 		case 3:
-			ipc_answer_3(callid, (ipcarg_t) result,
+			ipc_answer_3(callid, (sysarg_t) result,
 			    IPC_GET_ARG1(*answer), IPC_GET_ARG2(*answer),
 			    IPC_GET_ARG3(*answer));
 			break;
 		case 4:
-			ipc_answer_4(callid, (ipcarg_t) result,
+			ipc_answer_4(callid, (sysarg_t) result,
 			    IPC_GET_ARG1(*answer), IPC_GET_ARG2(*answer),
 			    IPC_GET_ARG3(*answer), IPC_GET_ARG4(*answer));
 			break;
 		case 5:
 		default:
-			ipc_answer_5(callid, (ipcarg_t) result,
+			ipc_answer_5(callid, (sysarg_t) result,
 			    IPC_GET_ARG1(*answer), IPC_GET_ARG2(*answer),
 			    IPC_GET_ARG3(*answer), IPC_GET_ARG4(*answer),
 			    IPC_GET_ARG5(*answer));
@@ -110,7 +110,7 @@ answer_call(ipc_callid_t callid, int result, ipc_call_t *answer,
  * @return		Other error codes as defined for the ipc_connect_to_me()
  *			function.
  */
-int bind_service(services_t need, ipcarg_t arg1, ipcarg_t arg2, ipcarg_t arg3,
+int bind_service(services_t need, sysarg_t arg1, sysarg_t arg2, sysarg_t arg3,
     async_client_conn_t client_receiver)
 {
 	return bind_service_timeout(need, arg1, arg2, arg3, client_receiver, 0);
@@ -133,8 +133,8 @@ int bind_service(services_t need, ipcarg_t arg1, ipcarg_t arg2, ipcarg_t arg3,
  *			function.
  *
  */
-int bind_service_timeout(services_t need, ipcarg_t arg1, ipcarg_t arg2,
-    ipcarg_t arg3, async_client_conn_t client_receiver, suseconds_t timeout)
+int bind_service_timeout(services_t need, sysarg_t arg1, sysarg_t arg2,
+    sysarg_t arg3, async_client_conn_t client_receiver, suseconds_t timeout)
 {
 	int rc;
 	
@@ -142,7 +142,7 @@ int bind_service_timeout(services_t need, ipcarg_t arg1, ipcarg_t arg2,
 	int phone = connect_to_service_timeout(need, timeout);
 	if (phone >= 0) {
 		/* Request the bidirectional connection */
-		ipcarg_t phonehash;
+		sysarg_t phonehash;
 		
 		rc = ipc_connect_to_me(phone, arg1, arg2, arg3, &phonehash);
 		if (rc != EOK) {
@@ -177,7 +177,7 @@ int connect_to_service_timeout(services_t need, suseconds_t timeout)
 {
 	int phone;
 
-	// if no timeout is set
+	/* If no timeout is set */
 	if (timeout <= 0)
 		return async_connect_me_to_blocking(PHONE_NS, need, 0, 0);
 
@@ -186,55 +186,15 @@ int connect_to_service_timeout(services_t need, suseconds_t timeout)
 		if ((phone >= 0) || (phone != ENOENT))
 			return phone;
 
-		// end if no time is left
+		/* Abort if no time is left */
 		if (timeout <= 0)
 			return ETIMEOUT;
 
-		// wait the minimum of the module wait time and the timeout
+		/* Wait the minimum of the module wait time and the timeout */
 		usleep((timeout <= MODULE_WAIT_TIME) ?
 		    timeout : MODULE_WAIT_TIME);
 		timeout -= MODULE_WAIT_TIME;
 	}
-}
-
-/** Receives data from the other party.
- *
- * The received data buffer is allocated and returned.
- *
- * @param[out] data	The data buffer to be filled.
- * @param[out] length	The buffer length.
- * @return		EOK on success.
- * @return		EBADMEM if the data or the length parameter is NULL.
- * @return		EINVAL if the client does not send data.
- * @return		ENOMEM if there is not enough memory left.
- * @return		Other error codes as defined for the
- *			async_data_write_finalize() function.
- */
-int data_receive(void **data, size_t *length)
-{
-	ipc_callid_t callid;
-	int rc;
-
-	if (!data || !length)
-		return EBADMEM;
-
-	// fetch the request
-	if (!async_data_write_receive(&callid, length))
-		return EINVAL;
-
-	// allocate the buffer
-	*data = malloc(*length);
-	if (!*data)
-		return ENOMEM;
-
-	// fetch the data
-	rc = async_data_write_finalize(callid, *data, *length);
-	if (rc != EOK) {
-		free(data);
-		return rc;
-	}
-
-	return EOK;
 }
 
 /** Replies the data to the other party.
@@ -253,17 +213,17 @@ int data_reply(void *data, size_t data_length)
 	size_t length;
 	ipc_callid_t callid;
 
-	// fetch the request
+	/* Fetch the request */
 	if (!async_data_read_receive(&callid, &length))
 		return EINVAL;
 
-	// check the requested data size
+	/* Check the requested data size */
 	if (length < data_length) {
 		async_data_read_finalize(callid, data, length);
 		return EOVERFLOW;
 	}
 
-	// send the data
+	/* Send the data */
 	return async_data_read_finalize(callid, data, data_length);
 }
 
@@ -281,8 +241,8 @@ void refresh_answer(ipc_call_t *answer, int *answer_count)
 
 	if (answer) {
 		IPC_SET_RETVAL(*answer, 0);
-		// just to be precize
-		IPC_SET_METHOD(*answer, 0);
+		/* Just to be precise */
+		IPC_SET_IMETHOD(*answer, 0);
 		IPC_SET_ARG1(*answer, 0);
 		IPC_SET_ARG2(*answer, 0);
 		IPC_SET_ARG3(*answer, 0);

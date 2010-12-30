@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2010 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,48 +26,30 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdio.h>
-#include <unistd.h>
-#include <atomic.h>
-#include "../tester.h"
+/** @addtogroup libc
+ * @{
+ */
+/** @file
+ */
 
-static atomic_t finish;
+#ifndef LIBC_ASYNC_SESS_H_
+#define LIBC_ASYNC_SESS_H_
 
-static void callback(void *priv, int retval, ipc_call_t *data)
-{
-	atomic_set(&finish, 1);
-}
+#include <adt/list.h>
 
-const char *test_connect(void)
-{
-	TPRINTF("Connecting to %u...", IPC_TEST_SERVICE);
-	int phone = ipc_connect_me_to(PHONE_NS, IPC_TEST_SERVICE, 0, 0);
-	if (phone > 0) {
-		TPRINTF("phoneid %d\n", phone);
-	} else {
-		TPRINTF("\n");
-		return "ipc_connect_me_to() failed";
-	}
-	
-	printf("Sending synchronous message...\n");
-	int retval = ipc_call_sync_0_0(phone, IPC_TEST_METHOD);
-	TPRINTF("Received response to synchronous message\n");
-	
-	TPRINTF("Sending asynchronous message...\n");
-	atomic_set(&finish, 0);
-	ipc_call_async_0(phone, IPC_TEST_METHOD, NULL, callback, 1);
-	while (atomic_get(&finish) != 1)
-		TPRINTF(".");
-	TPRINTF("Received response to asynchronous message\n");
-	
-	TPRINTF("Hanging up...");
-	retval = ipc_hangup(phone);
-	if (retval == 0) {
-		TPRINTF("OK\n");
-	} else {
-		TPRINTF("\n");
-		return "ipc_hangup() failed";
-	}
-	
-	return NULL;
-}
+typedef struct {
+	int sess_phone;		/**< Phone for cloning off the connections. */
+	link_t conn_head;	/**< List of open data connections. */
+	link_t sess_link;	/**< Link in global list of open sessions. */
+} async_sess_t;
+
+extern void _async_sess_init(void);
+extern void async_session_create(async_sess_t *, int);
+extern void async_session_destroy(async_sess_t *);
+extern int async_exchange_begin(async_sess_t *);
+extern void async_exchange_end(async_sess_t *, int);
+
+#endif
+
+/** @}
+ */

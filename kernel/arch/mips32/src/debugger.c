@@ -133,7 +133,7 @@ static struct {
  * @return true if it is jump instruction, false otherwise
  *
  */
-bool is_jump(unative_t instr)
+bool is_jump(sysarg_t instr)
 {
 	unsigned int i;
 	
@@ -165,8 +165,8 @@ int cmd_add_breakpoint(cmd_arg_t *argv)
 			irq_spinlock_unlock(&bkpoint_lock, true);
 			return 0;
 		} else if ((breakpoints[i].address == (uintptr_t) argv->intval +
-		    sizeof(unative_t)) || (breakpoints[i].address ==
-		    (uintptr_t) argv->intval - sizeof(unative_t))) {
+		    sizeof(sysarg_t)) || (breakpoints[i].address ==
+		    (uintptr_t) argv->intval - sizeof(sysarg_t))) {
 			printf("Adjacent breakpoints not supported, conflict "
 			    "with %d.\n", i);
 			irq_spinlock_unlock(&bkpoint_lock, true);
@@ -193,8 +193,8 @@ int cmd_add_breakpoint(cmd_arg_t *argv)
 	printf("Adding breakpoint on address %p\n", (void *) argv->intval);
 	
 	cur->address = (uintptr_t) argv->intval;
-	cur->instruction = ((unative_t *) cur->address)[0];
-	cur->nextinstruction = ((unative_t *) cur->address)[1];
+	cur->instruction = ((sysarg_t *) cur->address)[0];
+	cur->nextinstruction = ((sysarg_t *) cur->address)[1];
 	if (argv == &add_argv) {
 		cur->flags = 0;
 	} else {  /* We are add extended */
@@ -208,7 +208,7 @@ int cmd_add_breakpoint(cmd_arg_t *argv)
 	cur->counter = 0;
 	
 	/* Set breakpoint */
-	*((unative_t *) cur->address) = 0x0d;
+	*((sysarg_t *) cur->address) = 0x0d;
 	smc_coherence(cur->address);
 	
 	irq_spinlock_unlock(&bkpoint_lock, true);
@@ -340,7 +340,7 @@ void debugger_bpoint(istate_t *istate)
 		
 		/* Reinst only breakpoint */
 		if ((breakpoints[i].flags & BKPOINT_REINST) &&
-		    (fireaddr == breakpoints[i].address + sizeof(unative_t))) {
+		    (fireaddr == breakpoints[i].address + sizeof(sysarg_t))) {
 			cur = &breakpoints[i];
 			break;
 		}

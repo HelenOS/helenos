@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jakub Jermar
+ * Copyright (c) 2010 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,20 +26,31 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
- * @{
- */
 /** @file
  */
 
-#ifndef LIBC_ASYNC_REL_H_
-#define LIBC_ASYNC_REL_H_
+#include <assert.h>
+#include <errno.h>
+#include <mem.h>
+#include <char.h>
 
-extern int async_rel_init(void);
-extern int async_relation_create(int);
-extern void async_relation_destroy(int, int);
+#include "test1.h"
 
-#endif
+static int impl_char_read(device_t *dev, char *buf, size_t count) {
+	memset(buf, 0, count);
+	return count;
+}
 
-/** @}
- */
+static int imp_char_write(device_t *dev, char *buf, size_t count) {
+	return count;
+}
+
+static char_iface_t char_interface = {
+	.read = &impl_char_read,
+	.write = &imp_char_write
+};
+
+device_ops_t char_device_ops = {
+	.interfaces[CHAR_DEV_IFACE] = &char_interface
+};
+

@@ -94,9 +94,8 @@ static inline void clean_hw_resource_list(hw_resource_list_t *hw_res)
 
 
 
-bool get_hw_resources(int dev_phone, hw_resource_list_t *hw_resources);
-
-bool enable_interrupt(int dev_phone);
+extern int get_hw_resources(int, hw_resource_list_t *);
+extern bool enable_interrupt(int);
 
 
 #endif

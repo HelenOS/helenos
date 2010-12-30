@@ -143,7 +143,7 @@ NO_TRACE static inline bool zone_flags_available(zone_flags_t flags)
 }
 
 #define IS_BUDDY_ORDER_OK(index, order) \
-    ((~(((unative_t) -1) << (order)) & (index)) == 0)
+    ((~(((sysarg_t) -1) << (order)) & (index)) == 0)
 #define IS_BUDDY_LEFT_BLOCK(zone, frame) \
     (((frame_index((zone), (frame)) >> (frame)->buddy_order) & 0x01) == 0)
 #define IS_BUDDY_RIGHT_BLOCK(zone, frame) \

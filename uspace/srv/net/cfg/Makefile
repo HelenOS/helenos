@@ -35,13 +35,8 @@ CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
 -include $(COMMON_MAKEFILE)
 -include $(CONFIG_MAKEFILE)
 
-ifeq ($(CONFIG_NETIF_NIL_BUNDLE),y)
-	LO_SOURCE = lo.netif_nil_bundle
-	NE2K_SOURCE = ne2k.netif_nil_bundle
-else
-	LO_SOURCE = lo.netif_standalone
-	NE2K_SOURCE = ne2k.netif_standalone
-endif
+LO_SOURCE = lo.netif_standalone
+NE2K_SOURCE = ne2k.netif_standalone
 
 LO_TARGET = lo
 NE2K_TARGET = ne2k

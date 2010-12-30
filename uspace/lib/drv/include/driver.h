@@ -78,7 +78,7 @@ static inline bool is_valid_iface_idx(int idx)
 }
 
 remote_iface_t *get_remote_iface(int);
-remote_iface_func_ptr_t get_remote_method(remote_iface_t *, ipcarg_t);
+remote_iface_func_ptr_t get_remote_method(remote_iface_t *, sysarg_t);
 
 
 /* device class */
@@ -198,6 +198,7 @@ static inline void *device_get_iface(device_t *dev, dev_inferface_idx_t idx)
 }
 
 int child_device_register(device_t *, device_t *);
+int child_device_register_wrapper(device_t *, const char *, const char *, int);
 
 
 /* interrupts */

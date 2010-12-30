@@ -124,7 +124,7 @@ static void setup_dr(int curidx)
 	unsigned int flags = breakpoints[curidx].flags;
 	
 	/* Disable breakpoint in DR7 */
-	unative_t dr7 = read_dr7();
+	sysarg_t dr7 = read_dr7();
 	dr7 &= ~(0x02U << (curidx * 2));
 	
 	/* Setup DR register */
@@ -151,17 +151,17 @@ static void setup_dr(int curidx)
 		
 		if (!(flags & BKPOINT_INSTR)) {
 #ifdef __32_BITS__
-			dr7 |= ((unative_t) 0x03U) << (18 + 4 * curidx);
+			dr7 |= ((sysarg_t) 0x03U) << (18 + 4 * curidx);
 #endif
 			
 #ifdef __64_BITS__
-			dr7 |= ((unative_t) 0x02U) << (18 + 4 * curidx);
+			dr7 |= ((sysarg_t) 0x02U) << (18 + 4 * curidx);
 #endif
 			
 			if ((flags & BKPOINT_WRITE))
-				dr7 |= ((unative_t) 0x01U) << (16 + 4 * curidx);
+				dr7 |= ((sysarg_t) 0x01U) << (16 + 4 * curidx);
 			else if ((flags & BKPOINT_READ_WRITE))
-				dr7 |= ((unative_t) 0x03U) << (16 + 4 * curidx);
+				dr7 |= ((sysarg_t) 0x03U) << (16 + 4 * curidx);
 		}
 		
 		/* Enable global breakpoint */
@@ -226,14 +226,14 @@ static void handle_exception(int slot, istate_t *istate)
 	/* Handle zero checker */
 	if (!(breakpoints[slot].flags & BKPOINT_INSTR)) {
 		if ((breakpoints[slot].flags & BKPOINT_CHECK_ZERO)) {
-			if (*((unative_t *) breakpoints[slot].address) != 0)
+			if (*((sysarg_t *) breakpoints[slot].address) != 0)
 				return;
 			
 			printf("*** Found ZERO on address %p (slot %d) ***\n",
 			    (void *) breakpoints[slot].address, slot);
 		} else {
 			printf("Data watchpoint - new data: %#" PRIxn "\n",
-			    *((unative_t *) breakpoints[slot].address));
+			    *((sysarg_t *) breakpoints[slot].address));
 		}
 	}
 	
@@ -278,7 +278,7 @@ static void debug_exception(unsigned int n __attribute__((unused)), istate_t *is
 	istate->eflags |= EFLAGS_RF;
 #endif
 	
-	unative_t dr6 = read_dr6();
+	sysarg_t dr6 = read_dr6();
 	
 	unsigned int i;
 	for (i = 0; i < BKPOINTS_MAX; i++) {
@@ -383,7 +383,7 @@ int cmd_print_breakpoints(cmd_arg_t *argv __attribute__((unused)))
  */
 int cmd_del_breakpoint(cmd_arg_t *argv)
 {
-	unative_t bpno = argv->intval;
+	sysarg_t bpno = argv->intval;
 	if (bpno > BKPOINTS_MAX) {
 		printf("Invalid breakpoint number.\n");
 		return 0;

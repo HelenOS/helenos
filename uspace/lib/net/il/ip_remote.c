@@ -66,8 +66,8 @@ int ip_add_route_req_remote(int ip_phone, device_id_t device_id,
     in_addr_t address, in_addr_t netmask, in_addr_t gateway)
 {
 	return (int) async_req_4_0(ip_phone, NET_IP_ADD_ROUTE,
-	    (ipcarg_t) device_id, (ipcarg_t) gateway.s_addr,
-	    (ipcarg_t) address.s_addr, (ipcarg_t) netmask.s_addr);
+	    (sysarg_t) device_id, (sysarg_t) gateway.s_addr,
+	    (sysarg_t) address.s_addr, (sysarg_t) netmask.s_addr);
 }
 
 /** Creates bidirectional connection with the ip module service and registers
@@ -85,7 +85,7 @@ int ip_add_route_req_remote(int ip_phone, device_id_t device_id,
 int ip_bind_service(services_t service, int protocol, services_t me,
     async_client_conn_t receiver)
 {
-	return (int) bind_service(service, (ipcarg_t) protocol, me, service,
+	return (int) bind_service(service, (sysarg_t) protocol, me, service,
 	    receiver);
 }
 
@@ -150,7 +150,7 @@ int ip_get_route_req_remote(int ip_phone, ip_protocol_t protocol,
 	
 	ipc_call_t answer;
 	aid_t message_id = async_send_1(ip_phone, NET_IP_GET_ROUTE,
-	    (ipcarg_t) protocol, &answer);
+	    (sysarg_t) protocol, &answer);
 	
 	if ((async_data_write_start(ip_phone, destination, addrlen) == EOK) &&
 	    (async_data_read_start(ip_phone, headerlen,
@@ -163,7 +163,7 @@ int ip_get_route_req_remote(int ip_phone, ip_protocol_t protocol,
 		}
 	}
 	
-	ipcarg_t result;
+	sysarg_t result;
 	async_wait_for(message_id, &result);
 	
 	if ((result != EOK) && *header)
@@ -243,7 +243,7 @@ int ip_set_gateway_req_remote(int ip_phone, device_id_t device_id,
     in_addr_t gateway)
 {
 	return (int) async_req_2_0(ip_phone, NET_IP_SET_GATEWAY,
-	    (ipcarg_t) device_id, (ipcarg_t) gateway.s_addr);
+	    (sysarg_t) device_id, (sysarg_t) gateway.s_addr);
 }
 
 /** @}

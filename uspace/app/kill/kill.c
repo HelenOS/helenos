@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2010 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,65 +26,50 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <inttypes.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <async.h>
+/** @addtogroup kill
+ * @{
+ */
+/**
+ * @file Forecfully terminate a task.
+ */
+
 #include <errno.h>
-#include "../tester.h"
+#include <stdio.h>
+#include <task.h>
 
-#define MAX_CONNECTIONS  50
+#define NAME "kill"
 
-static int connections[MAX_CONNECTIONS];
-
-static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void print_syntax(void)
 {
-	unsigned int i;
-	
-	TPRINTF("Connected phone %" PRIun " accepting\n", icall->in_phone_hash);
-	ipc_answer_0(iid, EOK);
-	for (i = 0; i < MAX_CONNECTIONS; i++) {
-		if (!connections[i]) {
-			connections[i] = icall->in_phone_hash;
-			break;
-		}
-	}
-	
-	while (true) {
-		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
-		int retval;
-		
-		switch (IPC_GET_METHOD(call)) {
-		case IPC_M_PHONE_HUNGUP:
-			TPRINTF("Phone %" PRIun " hung up\n", icall->in_phone_hash);
-			retval = 0;
-			break;
-		case IPC_TEST_METHOD:
-			TPRINTF("Received well known message from %" PRIun ": %" PRIun "\n",
-			    icall->in_phone_hash, callid);
-			ipc_answer_0(callid, EOK);
-			break;
-		default:
-			TPRINTF("Received unknown message from %" PRIun ": %" PRIun "\n",
-			    icall->in_phone_hash, callid);
-			ipc_answer_0(callid, ENOENT);
-			break;
-		}
-	}
+	printf("Syntax: " NAME " <task ID>\n");
 }
 
-const char *test_register(void)
+int main(int argc, char *argv[])
 {
-	async_set_client_connection(client_connection);
-	
-	ipcarg_t phonead;
-	int res = ipc_connect_to_me(PHONE_NS, IPC_TEST_SERVICE, 0, 0, &phonead);
-	if (res != 0)
-		return "Failed registering IPC service";
-	
-	TPRINTF("Registered as service %u, accepting connections\n", IPC_TEST_SERVICE);
-	async_manager();
-	
-	return NULL;
+	char *eptr;
+	task_id_t taskid;
+	int rc;
+
+	if (argc != 2) {
+		print_syntax();
+		return 1;
+	}
+
+	taskid = strtoul(argv[1], &eptr, 0);
+	if (*eptr != '\0') {
+		printf("Invalid task ID argument '%s'.\n", argv[1]);
+		return 1;
+	}
+
+	rc = task_kill(taskid);
+	if (rc != EOK) {
+		printf("Failed to kill task with ID %llu (error %d)\n",
+		    (unsigned long long) taskid, rc);
+		return 2;
+	}
+
+	return 0;
 }
+
+/** @}
+ */

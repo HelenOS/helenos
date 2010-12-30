@@ -49,6 +49,7 @@
 #include <userspace.h>
 #include <ddi/irq.h>
 #include <str.h>
+#include <sysinfo/sysinfo.h>
 
 memmap_t memmap;
 
@@ -110,6 +111,12 @@ void arch_pre_smp_init(void)
 
 void arch_post_smp_init(void)
 {
+	/* Currently the only supported platform for sparc64/sun4u is 'sun4u'. */
+	static const char *platform = "sun4u";
+
+	sysinfo_set_item_data("platform", NULL, (void *) platform,
+	    str_size(platform));
+
 	standalone_sparc64_console_init();
 }
 

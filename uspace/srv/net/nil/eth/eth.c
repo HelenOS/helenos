@@ -200,8 +200,7 @@ int nil_initialize(int net_phone)
 	eth_globals.net_phone = net_phone;
 
 	eth_globals.broadcast_addr =
-	    measured_string_create_bulk("\xFF\xFF\xFF\xFF\xFF\xFF",
-	    CONVERT_SIZE(uint8_t, char, ETH_ADDR));
+	    measured_string_create_bulk("\xFF\xFF\xFF\xFF\xFF\xFF", ETH_ADDR);
 	if (!eth_globals.broadcast_addr) {
 		rc = ENOMEM;
 		goto out;
@@ -237,7 +236,7 @@ static void eth_receiver(ipc_callid_t iid, ipc_call_t *icall)
 	int rc;
 
 	while (true) {
-		switch (IPC_GET_METHOD(*icall)) {
+		switch (IPC_GET_IMETHOD(*icall)) {
 		case NET_NIL_DEVICE_STATE:
 			nil_device_state_msg_local(0, IPC_GET_DEVICE(icall),
 			    IPC_GET_STATE(icall));
@@ -250,10 +249,10 @@ static void eth_receiver(ipc_callid_t iid, ipc_call_t *icall)
 				rc = nil_received_msg_local(0,
 				    IPC_GET_DEVICE(icall), packet, 0);
 			}
-			ipc_answer_0(iid, (ipcarg_t) rc);
+			ipc_answer_0(iid, (sysarg_t) rc);
 			break;
 		default:
-			ipc_answer_0(iid, (ipcarg_t) ENOTSUP);
+			ipc_answer_0(iid, (sysarg_t) ENOTSUP);
 		}
 		
 		iid = async_get_call(icall);
@@ -848,7 +847,7 @@ int nil_message_standalone(const char *name, ipc_callid_t callid,
 	int rc;
 	
 	*answer_count = 0;
-	switch (IPC_GET_METHOD(*call)) {
+	switch (IPC_GET_IMETHOD(*call)) {
 	case IPC_M_PHONE_HUNGUP:
 		return EOK;
 	
@@ -925,7 +924,7 @@ static void nil_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		 * End if told to either by the message or the processing
 		 * result.
 		 */
-		if ((IPC_GET_METHOD(call) == IPC_M_PHONE_HUNGUP) ||
+		if ((IPC_GET_IMETHOD(call) == IPC_M_PHONE_HUNGUP) ||
 		    (res == EHANGUP))
 			return;
 		

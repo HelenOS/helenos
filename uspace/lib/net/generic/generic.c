@@ -58,8 +58,8 @@ int
 generic_device_state_msg_remote(int phone, int message, device_id_t device_id,
     int state, services_t target)
 {
-	async_msg_3(phone, (ipcarg_t) message, (ipcarg_t) device_id,
-	    (ipcarg_t) state, target);
+	async_msg_3(phone, (sysarg_t) message, (sysarg_t) device_id,
+	    (sysarg_t) state, target);
 	
 	return EOK;
 }
@@ -80,8 +80,8 @@ int
 generic_device_req_remote(int phone, int message, device_id_t device_id,
     int arg2, services_t service)
 {
-	return (int) async_req_3_0(phone, (ipcarg_t) message,
-	    (ipcarg_t) device_id, (ipcarg_t) arg2, (ipcarg_t) service);
+	return (int) async_req_3_0(phone, (sysarg_t) message,
+	    (sysarg_t) device_id, (sysarg_t) arg2, (sysarg_t) service);
 }
 
 /** Returns the address.
@@ -102,15 +102,15 @@ generic_get_addr_req(int phone, int message, device_id_t device_id,
     measured_string_t **address, char ** data)
 {
 	aid_t message_id;
-	ipcarg_t result;
+	sysarg_t result;
 	int string;
 
 	if (!address || !data)
 		return EBADMEM;
 
 	// request the address
-	message_id = async_send_1(phone, (ipcarg_t) message,
-	    (ipcarg_t) device_id, NULL);
+	message_id = async_send_1(phone, (sysarg_t) message,
+	    (sysarg_t) device_id, NULL);
 	string = measured_strings_return(phone, address, data, 1);
 	async_wait_for(message_id, &result);
 
@@ -142,13 +142,13 @@ generic_packet_size_req_remote(int phone, int message, device_id_t device_id,
 	if (!packet_dimension)
 		return EBADMEM;
 	
-	ipcarg_t addr_len;
-	ipcarg_t prefix;
-	ipcarg_t content;
-	ipcarg_t suffix;
+	sysarg_t addr_len;
+	sysarg_t prefix;
+	sysarg_t content;
+	sysarg_t suffix;
 	
-	ipcarg_t result = async_req_1_4(phone, (ipcarg_t) message,
-	    (ipcarg_t) device_id, &addr_len, &prefix, &content, &suffix);
+	sysarg_t result = async_req_1_4(phone, (sysarg_t) message,
+	    (sysarg_t) device_id, &addr_len, &prefix, &content, &suffix);
 	
 	packet_dimension->prefix = (size_t) prefix;
 	packet_dimension->content = (size_t) content;
@@ -174,11 +174,11 @@ generic_received_msg_remote(int phone, int message, device_id_t device_id,
     packet_id_t packet_id, services_t target, services_t error)
 {
 	if (error) {
-		async_msg_4(phone, (ipcarg_t) message, (ipcarg_t) device_id,
-		    (ipcarg_t) packet_id, (ipcarg_t) target, (ipcarg_t) error);
+		async_msg_4(phone, (sysarg_t) message, (sysarg_t) device_id,
+		    (sysarg_t) packet_id, (sysarg_t) target, (sysarg_t) error);
 	} else {
-		async_msg_3(phone, (ipcarg_t) message, (ipcarg_t) device_id,
-		    (ipcarg_t) packet_id, (ipcarg_t) target);
+		async_msg_3(phone, (sysarg_t) message, (sysarg_t) device_id,
+		    (sysarg_t) packet_id, (sysarg_t) target);
 	}
 	
 	return EOK;
@@ -200,11 +200,11 @@ generic_send_msg_remote(int phone, int message, device_id_t device_id,
     packet_id_t packet_id, services_t sender, services_t error)
 {
 	if (error) {
-		async_msg_4(phone, (ipcarg_t) message, (ipcarg_t) device_id,
-		    (ipcarg_t) packet_id, (ipcarg_t) sender, (ipcarg_t) error);
+		async_msg_4(phone, (sysarg_t) message, (sysarg_t) device_id,
+		    (sysarg_t) packet_id, (sysarg_t) sender, (sysarg_t) error);
 	} else {
-		async_msg_3(phone, (ipcarg_t) message, (ipcarg_t) device_id,
-		    (ipcarg_t) packet_id, (ipcarg_t) sender);
+		async_msg_3(phone, (sysarg_t) message, (sysarg_t) device_id,
+		    (sysarg_t) packet_id, (sysarg_t) sender);
 	}
 	
 	return EOK;
@@ -236,7 +236,7 @@ generic_translate_req(int phone, int message, device_id_t device_id,
     measured_string_t **translation, char **data)
 {
 	aid_t message_id;
-	ipcarg_t result;
+	sysarg_t result;
 	int string;
 
 	if (!configuration || (count == 0))
@@ -245,8 +245,8 @@ generic_translate_req(int phone, int message, device_id_t device_id,
 		return EBADMEM;
 
 	// request the translation
-	message_id = async_send_3(phone, (ipcarg_t) message,
-	    (ipcarg_t) device_id, (ipcarg_t) count, (ipcarg_t) service, NULL);
+	message_id = async_send_3(phone, (sysarg_t) message,
+	    (sysarg_t) device_id, (sysarg_t) count, (sysarg_t) service, NULL);
 	measured_strings_send(phone, configuration, count);
 	string = measured_strings_return(phone, translation, data, count);
 	async_wait_for(message_id, &result);

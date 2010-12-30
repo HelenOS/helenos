@@ -600,7 +600,7 @@ int cmd_uptime(cmd_arg_t *argv)
 	ASSERT(uptime);
 	
 	/* This doesn't have to be very accurate */
-	unative_t sec = uptime->seconds1;
+	sysarg_t sec = uptime->seconds1;
 	
 	printf("Up %" PRIun " days, %" PRIun " hours, %" PRIun " minutes, %" PRIun " seconds\n",
 		sec / 86400, (sec % 86400) / 3600, (sec % 3600) / 60, sec % 60);
@@ -655,7 +655,7 @@ int cmd_call0(cmd_arg_t *argv)
 {
 	uintptr_t symaddr;
 	char *symbol;
-	unative_t (*fnc)(void);
+	sysarg_t (*fnc)(void);
 	fncptr_t fptr;
 	int rc;
 
@@ -671,7 +671,7 @@ int cmd_call0(cmd_arg_t *argv)
 		ipl_t ipl;
 
 		ipl = interrupts_disable();
-		fnc = (unative_t (*)(void)) arch_construct_function(&fptr,
+		fnc = (sysarg_t (*)(void)) arch_construct_function(&fptr,
 		    (void *) symaddr, (void *) cmd_call0);
 		printf("Calling %s() (%p)\n", symbol, (void *) symaddr);
 		printf("Result: %#" PRIxn "\n", fnc());
@@ -719,8 +719,8 @@ int cmd_call1(cmd_arg_t *argv)
 {
 	uintptr_t symaddr;
 	char *symbol;
-	unative_t (*fnc)(unative_t, ...);
-	unative_t arg1 = argv[1].intval;
+	sysarg_t (*fnc)(sysarg_t, ...);
+	sysarg_t arg1 = argv[1].intval;
 	fncptr_t fptr;
 	int rc;
 
@@ -736,7 +736,7 @@ int cmd_call1(cmd_arg_t *argv)
 		ipl_t ipl;
 
 		ipl = interrupts_disable();
-		fnc = (unative_t (*)(unative_t, ...))
+		fnc = (sysarg_t (*)(sysarg_t, ...))
 		    arch_construct_function(&fptr, (void *) symaddr,
 		    (void *) cmd_call1);
 		printf("Calling f(%#" PRIxn "): %p: %s\n", arg1,
@@ -755,9 +755,9 @@ int cmd_call2(cmd_arg_t *argv)
 {
 	uintptr_t symaddr;
 	char *symbol;
-	unative_t (*fnc)(unative_t, unative_t, ...);
-	unative_t arg1 = argv[1].intval;
-	unative_t arg2 = argv[2].intval;
+	sysarg_t (*fnc)(sysarg_t, sysarg_t, ...);
+	sysarg_t arg1 = argv[1].intval;
+	sysarg_t arg2 = argv[2].intval;
 	fncptr_t fptr;
 	int rc;
 
@@ -773,7 +773,7 @@ int cmd_call2(cmd_arg_t *argv)
 		ipl_t ipl;
 
 		ipl = interrupts_disable();
-		fnc = (unative_t (*)(unative_t, unative_t, ...))
+		fnc = (sysarg_t (*)(sysarg_t, sysarg_t, ...))
 		    arch_construct_function(&fptr, (void *) symaddr,
 		    (void *) cmd_call2);
 		printf("Calling f(%#" PRIxn ", %#" PRIxn "): %p: %s\n", 
@@ -791,10 +791,10 @@ int cmd_call3(cmd_arg_t *argv)
 {
 	uintptr_t symaddr;
 	char *symbol;
-	unative_t (*fnc)(unative_t, unative_t, unative_t, ...);
-	unative_t arg1 = argv[1].intval;
-	unative_t arg2 = argv[2].intval;
-	unative_t arg3 = argv[3].intval;
+	sysarg_t (*fnc)(sysarg_t, sysarg_t, sysarg_t, ...);
+	sysarg_t arg1 = argv[1].intval;
+	sysarg_t arg2 = argv[2].intval;
+	sysarg_t arg3 = argv[3].intval;
 	fncptr_t fptr;
 	int rc;
 	
@@ -810,7 +810,7 @@ int cmd_call3(cmd_arg_t *argv)
 		ipl_t ipl;
 
 		ipl = interrupts_disable();
-		fnc = (unative_t (*)(unative_t, unative_t, unative_t, ...))
+		fnc = (sysarg_t (*)(sysarg_t, sysarg_t, sysarg_t, ...))
 		    arch_construct_function(&fptr, (void *) symaddr,
 		    (void *) cmd_call3);
 		printf("Calling f(%#" PRIxn ",%#" PRIxn ", %#" PRIxn "): %p: %s\n",
