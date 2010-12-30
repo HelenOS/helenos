@@ -39,6 +39,12 @@
 #include <fibril_synch.h>
 #include <str.h>
 
+/** Base addresses for ATA I/O blocks. */
+typedef struct {
+	uintptr_t cmd;	/**< Command block base address. */
+	uintptr_t ctl;	/**< Control block base address. */
+} ata_base_t;
+
 /** Timeout definitions. Unit is 10 ms. */
 enum ata_timeout {
 	TIMEOUT_PROBE	=  100, /*  1 s */
@@ -80,6 +86,7 @@ typedef struct {
 	uint8_t h;
 } block_coord_t;
 
+/** ATA device state structure. */
 typedef struct {
 	bool present;
 	enum addr_mode amode;
