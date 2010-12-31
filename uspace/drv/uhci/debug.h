@@ -40,10 +40,11 @@
 
 enum debug_levels {
 	DEBUG_LEVEL_FATAL_ERROR = 1,
-	DEBUG_LEVEL_CRITICAL_ERROR = 2,
-	DEBUG_LEVEL_ERROR = 3,
-	DEBUG_LEVEL_WARNING = 4,
-	DEBUG_LEVEL_INFO = 5
+	DEBUG_LEVEL_ERROR = 2,
+	DEBUG_LEVEL_WARNING = 3,
+	DEBUG_LEVEL_INFO = 4,
+	DEBUG_LEVEL_VERBOSE = 5,
+	DEBUG_LEVEL_MAX = DEBUG_LEVEL_VERBOSE
 };
 
 #define uhci_printf( level, fmt, args...) \
@@ -54,6 +55,9 @@ enum debug_levels {
 
 #define uhci_print_info( fmt, args... ) \
 	usb_dprintf( NAME, DEBUG_LEVEL_INFO, fmt, ##args )
+
+#define uhci_print_verbose( fmt, args... ) \
+	usb_dprintf( NAME, DEBUG_LEVEL_VERBOSE, fmt, ##args )
 
 #endif
 /**

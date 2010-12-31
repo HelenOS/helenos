@@ -55,7 +55,6 @@ typedef struct uhci {
 	usb_address_keeping_t address_manager;
 	uhci_root_hub_t root_hub;
 	volatile regs_t* registers;
-
 } uhci_t ;
 
 /* init uhci specifics in device.driver_data */

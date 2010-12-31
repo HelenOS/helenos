@@ -28,12 +28,13 @@
 
 USPACE_PREFIX = ../..
 LIBS = $(LIBDRV_PREFIX)/libdrv.a $(LIBUSB_PREFIX)/libusb.a
-EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include -I$(LIBUSB_PREFIX)/include
+EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include -I$(LIBUSB_PREFIX)/include -I.
 BINARY = uhci
 
 SOURCES = \
 	iface.c \
 	main.c \
+	root_hub/port.c \
 	root_hub/port_status.c \
 	root_hub/root_hub.c \
 	uhci.c
