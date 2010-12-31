@@ -29,28 +29,37 @@
  * @{
  */
 /** @file
- * @brief UHCI driver
+ * @brief UHCI port driver
  */
-#ifndef DRV_UHCI_ROOT_HUB_H
-#define DRV_UHCI_ROOT_HUB_H
+#ifndef DRV_UHCI_PORT_H
+#define DRV_UHCI_PORT_H
 
-#include <fibril.h>
+#include <assert.h>
 #include <driver.h>
+#include <stdint.h>
 
-#include "port.h"
+typedef uint16_t uhci_port_reg_t;
 
-#define UHCI_ROOT_HUB_PORT_COUNT 2
-#define UHCI_ROOT_HUB_PORT_REGISTERS_OFFSET 0x10
+typedef struct uhci_port
+{
+	uhci_port_reg_t *address;
+	device_t *hc;
+	unsigned number;
+	unsigned wait_period_usec;
+} uhci_port_t;
 
-typedef struct root_hub {
-	uhci_port_t ports[UHCI_ROOT_HUB_PORT_COUNT];
-	fid_t checker[UHCI_ROOT_HUB_PORT_COUNT];
-} uhci_root_hub_t;
+static inline void uhci_port_init(
+  uhci_port_t *port, uhci_port_reg_t *address, device_t *hc, unsigned number,
+  unsigned usec)
+{
+	assert( port );
+	port->address = address;
+	port->hc = hc;
+	port->number = number;
+	port->wait_period_usec = usec;
+}
 
-int uhci_root_hub_init(
-  uhci_root_hub_t *instance, device_t *device, void *addr);
-
-int uhci_root_hub_fini(uhci_root_hub_t* instance);
+int uhci_port_check(void *port);
 #endif
 /**
  * @}
