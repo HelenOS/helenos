@@ -208,6 +208,12 @@ NO_TRACE void fault_if_from_uspace(istate_t *istate, const char *fmt, ...)
 	thread_exit();
 }
 
+istate_t *istate_get(thread_t *thread)
+{
+	return (istate_t *) ((uint8_t *) thread->kstack + THREAD_STACK_SIZE -
+	    sizeof(istate_t));
+}
+
 #ifdef CONFIG_KCONSOLE
 
 static char flag_buf[MAX_CMDLINE + 1];
