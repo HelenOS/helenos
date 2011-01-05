@@ -748,6 +748,8 @@ int __async_init(void)
 		printf("%s: Cannot create async hash table\n", "libc");
 		return ENOMEM;
 	}
+
+	_async_sess_init();
 	
 	return 0;
 }

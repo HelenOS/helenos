@@ -1,6 +1,5 @@
 #
-# Copyright (c) 2005 Martin Decky
-# Copyright (c) 2007 Jakub Jermar
+# Copyright (c) 2010 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,21 +26,12 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-USPACE_PREFIX = ../../../..
-ROOT_PATH = $(USPACE_PREFIX)/..
-LIBS = $(LIBNET_PREFIX)/libnet.a
-EXTRA_CFLAGS = -I$(LIBNET_PREFIX)/include
-
-COMMON_MAKEFILE = $(ROOT_PATH)/Makefile.common
-CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
-
--include $(COMMON_MAKEFILE)
--include $(CONFIG_MAKEFILE)
-
-BINARY = eth
+USPACE_PREFIX = ../..
+LIBS =
+EXTRA_CFLAGS =
+BINARY = websrv
 
 SOURCES = \
-	eth.c \
-	eth_module.c
+	websrv.c
 
 include $(USPACE_PREFIX)/Makefile.common

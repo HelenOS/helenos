@@ -62,7 +62,7 @@ void
 answer_call(ipc_callid_t callid, int result, ipc_call_t *answer,
     int answer_count)
 {
-	// choose the most efficient answer function
+	/* Choose the most efficient answer function */
 	if (answer || (!answer_count)) {
 		switch (answer_count) {
 		case 0:
@@ -177,7 +177,7 @@ int connect_to_service_timeout(services_t need, suseconds_t timeout)
 {
 	int phone;
 
-	// if no timeout is set
+	/* If no timeout is set */
 	if (timeout <= 0)
 		return async_connect_me_to_blocking(PHONE_NS, need, 0, 0);
 
@@ -186,11 +186,11 @@ int connect_to_service_timeout(services_t need, suseconds_t timeout)
 		if ((phone >= 0) || (phone != ENOENT))
 			return phone;
 
-		// end if no time is left
+		/* Abort if no time is left */
 		if (timeout <= 0)
 			return ETIMEOUT;
 
-		// wait the minimum of the module wait time and the timeout
+		/* Wait the minimum of the module wait time and the timeout */
 		usleep((timeout <= MODULE_WAIT_TIME) ?
 		    timeout : MODULE_WAIT_TIME);
 		timeout -= MODULE_WAIT_TIME;
@@ -213,17 +213,17 @@ int data_reply(void *data, size_t data_length)
 	size_t length;
 	ipc_callid_t callid;
 
-	// fetch the request
+	/* Fetch the request */
 	if (!async_data_read_receive(&callid, &length))
 		return EINVAL;
 
-	// check the requested data size
+	/* Check the requested data size */
 	if (length < data_length) {
 		async_data_read_finalize(callid, data, length);
 		return EOVERFLOW;
 	}
 
-	// send the data
+	/* Send the data */
 	return async_data_read_finalize(callid, data, data_length);
 }
 
@@ -241,7 +241,7 @@ void refresh_answer(ipc_call_t *answer, int *answer_count)
 
 	if (answer) {
 		IPC_SET_RETVAL(*answer, 0);
-		// just to be precize
+		/* Just to be precise */
 		IPC_SET_IMETHOD(*answer, 0);
 		IPC_SET_ARG1(*answer, 0);
 		IPC_SET_ARG2(*answer, 0);

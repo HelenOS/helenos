@@ -37,6 +37,8 @@ DIRS = \
 	app/edit \
 	app/getterm \
 	app/init \
+	app/kill \
+	app/killall \
 	app/klog \
 	app/mkfat \
 	app/redir \
@@ -54,6 +56,7 @@ DIRS = \
 	app/nettest1 \
 	app/nettest2 \
 	app/ping \
+	app/websrv \
 	app/sysinfo \
 	srv/clip \
 	srv/devmap \
@@ -95,15 +98,9 @@ DIRS = \
 ## Networking
 #
 
-ifeq ($(CONFIG_NETIF_NIL_BUNDLE),y)
-	LIBN = \
-		srv/net/nil/eth \
-		srv/net/nil/nildummy
-else
-	DIRS += \
-		srv/net/nil/eth \
-		srv/net/nil/nildummy
-endif
+DIRS += \
+	srv/net/nil/eth \
+	srv/net/nil/nildummy
 
 ## Platform-specific hardware support
 #

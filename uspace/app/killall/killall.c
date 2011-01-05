@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2010 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,36 +26,59 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup killall
  * @{
  */
-/** @file
+/**
+ * @file Forcefully terminate a task specified by name.
  */
 
-#ifndef LIBC_TASK_H_
-#define LIBC_TASK_H_
+#include <errno.h>
+#include <stdio.h>
+#include <task.h>
+#include <stats.h>
+#include <str_error.h>
+#include <malloc.h>
 
-#include <sys/types.h>
+#define NAME  "killall"
 
-typedef uint64_t task_id_t;
+static void print_syntax(void)
+{
+	printf("Syntax: " NAME " <task name>\n");
+}
 
-typedef enum {
-	TASK_EXIT_NORMAL,
-	TASK_EXIT_UNEXPECTED
-} task_exit_t;
-
-extern task_id_t task_get_id(void);
-extern int task_set_name(const char *);
-extern int task_kill(task_id_t);
-
-extern task_id_t task_spawn(const char *, const char *const[], int *);
-extern int task_spawnv(task_id_t *, const char *path, const char *const []);
-extern int task_spawnl(task_id_t *, const char *path, ...);
-
-extern int task_wait(task_id_t id, task_exit_t *, int *);
-extern int task_retval(int);
-
-#endif
+int main(int argc, char *argv[])
+{
+	if (argc != 2) {
+		print_syntax();
+		return 1;
+	}
+	
+	size_t count;
+	stats_task_t *stats_tasks = stats_get_tasks(&count);
+	
+	if (stats_tasks == NULL) {
+		fprintf(stderr, "%s: Unable to get tasks\n", NAME);
+		return 2;
+	}
+	
+	size_t i;
+	for (i = 0; i < count; i++) {
+		if (str_cmp(stats_tasks[i].name, argv[1]) == 0) {
+			task_id_t taskid = stats_tasks[i].task_id;
+			int rc = task_kill(taskid);
+			if (rc != EOK)
+				printf("Failed to kill task ID %" PRIu64 ": %s\n",
+				    taskid, str_error(rc));
+			else
+				printf("Killed task ID %" PRIu64 "\n", taskid);
+		}
+	}
+	
+	free(stats_tasks);
+	
+	return 0;
+}
 
 /** @}
  */
