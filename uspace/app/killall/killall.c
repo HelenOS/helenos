@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jiri Svoboda
+ * Copyright (c) 2010 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,49 +26,57 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup kill
+/** @addtogroup killall
  * @{
  */
 /**
- * @file Forcefully terminate a task.
+ * @file Forcefully terminate a task specified by name.
  */
 
 #include <errno.h>
 #include <stdio.h>
 #include <task.h>
+#include <stats.h>
 #include <str_error.h>
+#include <malloc.h>
 
-#define NAME  "kill"
+#define NAME  "killall"
 
 static void print_syntax(void)
 {
-	printf("Syntax: " NAME " <task ID>\n");
+	printf("Syntax: " NAME " <task name>\n");
 }
 
 int main(int argc, char *argv[])
 {
-	char *eptr;
-	task_id_t taskid;
-	int rc;
-
 	if (argc != 2) {
 		print_syntax();
 		return 1;
 	}
-
-	taskid = strtoul(argv[1], &eptr, 0);
-	if (*eptr != '\0') {
-		printf("Invalid task ID argument '%s'.\n", argv[1]);
+	
+	size_t count;
+	stats_task_t *stats_tasks = stats_get_tasks(&count);
+	
+	if (stats_tasks == NULL) {
+		fprintf(stderr, "%s: Unable to get tasks\n", NAME);
 		return 2;
 	}
-
-	rc = task_kill(taskid);
-	if (rc != EOK) {
-		printf("Failed to kill task ID %" PRIu64 ": %s\n",
-		    taskid, str_error(rc));
-		return 3;
+	
+	size_t i;
+	for (i = 0; i < count; i++) {
+		if (str_cmp(stats_tasks[i].name, argv[1]) == 0) {
+			task_id_t taskid = stats_tasks[i].task_id;
+			int rc = task_kill(taskid);
+			if (rc != EOK)
+				printf("Failed to kill task ID %" PRIu64 ": %s\n",
+				    taskid, str_error(rc));
+			else
+				printf("Killed task ID %" PRIu64 "\n", taskid);
+		}
 	}
-
+	
+	free(stats_tasks);
+	
 	return 0;
 }
 
