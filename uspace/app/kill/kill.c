@@ -30,14 +30,15 @@
  * @{
  */
 /**
- * @file Forecfully terminate a task.
+ * @file Forcefully terminate a task.
  */
 
 #include <errno.h>
 #include <stdio.h>
 #include <task.h>
+#include <str_error.h>
 
-#define NAME "kill"
+#define NAME  "kill"
 
 static void print_syntax(void)
 {
@@ -58,14 +59,14 @@ int main(int argc, char *argv[])
 	taskid = strtoul(argv[1], &eptr, 0);
 	if (*eptr != '\0') {
 		printf("Invalid task ID argument '%s'.\n", argv[1]);
-		return 1;
+		return 2;
 	}
 
 	rc = task_kill(taskid);
 	if (rc != EOK) {
-		printf("Failed to kill task with ID %llu (error %d)\n",
-		    (unsigned long long) taskid, rc);
-		return 2;
+		printf("Failed to kill task ID %" PRIu64 ": %s\n",
+		    taskid, str_error(rc));
+		return 3;
 	}
 
 	return 0;
