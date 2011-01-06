@@ -58,7 +58,6 @@ static void dp_pio16_user2nic(dpeth_t *dep, void *buf, size_t offset, int nic_ad
 static void dp_pio8_nic2user(dpeth_t *dep, int nic_addr, void *buf, size_t offset, size_t size);
 static void dp_pio16_nic2user(dpeth_t *dep, int nic_addr, void *buf, size_t offset, size_t size);
 static void conf_hw(dpeth_t *dep);
-static void reply(dpeth_t *dep, int err, int may_block);
 static void insb(port_t port, void *buf, size_t size);
 static void insw(port_t port, void *buf, size_t size);
 
@@ -81,18 +80,6 @@ int do_init(dpeth_t *dep, int mode)
 	if (dep->de_mode == DEM_DISABLED)
 		// might call do_probe()
 		return EXDEV;
-	
-	if (dep->de_mode == DEM_SINK) {
-//		strncpy((char *) dep->de_address.ea_addr, "ZDP", 6);
-//		dep->de_address.ea_addr[5] = port;
-//		reply_mess.m_type = DL_CONF_REPLY;
-//		reply_mess.m3_i1 = mp->DL_PORT;
-//		reply_mess.m3_i2 = DE_PORT_NR;
-//		*(ether_addr_t *) reply_mess.m3_ca1 = dep->de_address;
-//		mess_reply(mp, &reply_mess);
-//		return;
-		return EOK;
-	}
 	
 	assert(dep->de_mode == DEM_ENABLED);
 	assert(dep->de_flags & DEF_ENABLED);
@@ -122,8 +109,7 @@ int do_init(dpeth_t *dep, int mode)
 
 void do_stop(dpeth_t *dep)
 {
-	if ((dep->de_mode != DEM_SINK)
-	    && (dep->de_mode == DEM_ENABLED)
+	if ((dep->de_mode == DEM_ENABLED)
 	    && (dep->de_flags & DEF_ENABLED)) {
 		outb_reg0(dep, DP_CR, CR_STP | CR_DM_ABORT);
 		(dep->de_stopf)(dep);
@@ -160,7 +146,7 @@ int do_pwrite(dpeth_t *dep, packet_t *packet, int from_int)
 	int size;
 	int sendq_head;
 /*	dpeth_t *dep;
-
+	
 	port = mp->DL_PORT;
 	count = mp->DL_COUNT;
 	if (port < 0 || port >= DE_PORT_NR)
@@ -168,16 +154,9 @@ int do_pwrite(dpeth_t *dep, packet_t *packet, int from_int)
 	dep= &de_table[port];
 	dep->de_client= mp->DL_PROC;
 */
-	if (dep->de_mode == DEM_SINK) {
-		assert(!from_int);
-//		dep->de_flags |= DEF_PACK_SEND;
-		reply(dep, EOK, false);
-//		return;
-		return EOK;
-	}
 	
 	assert(dep->de_mode == DEM_ENABLED);
-	assert(dep->de_flags &DEF_ENABLED);
+	assert(dep->de_flags & DEF_ENABLED);
 	
 	if ((dep->packet_queue) && (!from_int)) {
 //	if (dep->de_flags &DEF_SEND_AVAIL){
@@ -191,7 +170,6 @@ int do_pwrite(dpeth_t *dep, packet_t *packet, int from_int)
 //			fprintf(stderr, "dp8390: should not be sending\n");
 //		dep->de_sendmsg= *mp;
 //		dep->de_flags |= DEF_SEND_AVAIL;
-//		reply(dep, EOK, false);
 //		return;
 //		return queue_packet(dep, packet);
 //	}
@@ -243,18 +221,6 @@ int do_pwrite(dpeth_t *dep, packet_t *packet, int from_int)
 	dep->de_sendq_head = sendq_head;
 	
 //	dep->de_flags |= DEF_PACK_SEND;
-	
-	/*
-	 * If the interrupt handler called, don't send a reply. The reply
-	 * will be sent after all interrupts are handled.
-	 */
-	if (from_int)
-		return EOK;
-	
-	reply(dep, EOK, false);
-	
-	assert(dep->de_mode == DEM_ENABLED);
-	assert(dep->de_flags & DEF_ENABLED);
 	
 	return EOK;
 }
@@ -539,7 +505,6 @@ void dp_check_ints(dpeth_t *dep, int isr)
 		 * The chip is stopped, and all arrived packets
 		 * are delivered.
 		 */
-		printf("<reset>\n");
 		dp_reset(dep);
 	}
 }
@@ -691,7 +656,6 @@ static int dp_pkt2user(dpeth_t *dep, int page, int length)
 		    sizeof(dp_rcvhdr_t), buf, 0, length);
 	}
 	
-	dep->de_read_s = length;
 	dep->de_flags |= DEF_PACK_RECV;
 //	dep->de_flags &= ~DEF_READING;
 	
@@ -833,39 +797,6 @@ static void conf_hw(dpeth_t *dep)
 	
 	dep->de_mode = DEM_ENABLED;
 	dep->de_flags = DEF_EMPTY;
-}
-
-static void reply(dpeth_t *dep, int err, int may_block)
-{
-/*	message reply;
-	int status;
-	int r;
-	
-	status = 0;
-	if (dep->de_flags &DEF_PACK_SEND)
-		status |= DL_PACK_SEND;
-	
-	if (dep->de_flags &DEF_PACK_RECV)
-		status |= DL_PACK_RECV;
-	
-	reply.m_type = DL_TASK_REPLY;
-	reply.DL_PORT = dep - de_table;
-	reply.DL_PROC = dep->de_client;
-	reply.DL_STAT = status | ((u32_t) err << 16);
-	reply.DL_COUNT = dep->de_read_s;
-	reply.DL_CLCK = 0;  *//* Don't know */
-	
-/*	r = send(dep->de_client, &reply);
-	if (r == ELOCKED && may_block) {
-		printf("send locked\n");
-		return;
-	}
-	
-	if (r < 0)
-		fprintf(stderr, "dp8390: send failed\n");
-	
-*/	dep->de_read_s = 0;
-//	dep->de_flags &= ~(DEF_PACK_SEND | DEF_PACK_RECV);
 }
 
 static void insb(port_t port, void *buf, size_t size)

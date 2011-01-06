@@ -300,7 +300,7 @@ int netif_send_message(device_id_t device_id, packet_t *packet,
 			netif_pq_release(packet_get_id(packet));
 		
 		packet = next;
-	} while(packet);
+	} while (packet);
 	
 	return EOK;
 }

@@ -285,10 +285,7 @@ typedef struct dpeth {
 	int de_flags;
 	int de_mode;
 	eth_stat_t de_stat;
-	size_t de_read_s;
-//	int de_client;
-//	message de_sendmsg;
-	dp_user2nicf_t de_user2nicf; 
+	dp_user2nicf_t de_user2nicf;
 	dp_nic2userf_t de_nic2userf;
 	dp_getblock_t de_getblockf;
 } dpeth_t;
@@ -307,7 +304,6 @@ typedef struct dpeth {
 #define DEF_STOPPED     0x400
 
 #define DEM_DISABLED  0x0
-#define DEM_SINK      0x1
 #define DEM_ENABLED   0x2
 
 #endif

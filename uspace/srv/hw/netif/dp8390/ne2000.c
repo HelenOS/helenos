@@ -144,15 +144,15 @@ void ne_init(dpeth_t *dep)
 	
 	dep->de_data_port= dep->de_base_port + NE_DATA;
 	if (dep->de_16bit) {
-		dep->de_ramsize= NE2000_SIZE;
-		dep->de_offset_page= NE2000_START / DP_PAGESIZE;
+		dep->de_ramsize = NE2000_SIZE;
+		dep->de_offset_page = NE2000_START / DP_PAGESIZE;
 	} else {
-		dep->de_ramsize= NE1000_SIZE;
-		dep->de_offset_page= NE1000_START / DP_PAGESIZE;
+		dep->de_ramsize = NE1000_SIZE;
+		dep->de_offset_page = NE1000_START / DP_PAGESIZE;
 	}
 	
 	/* Allocate one send buffer (1.5KB) per 8KB of on board memory. */
-	sendq_nr= dep->de_ramsize / 0x2000;
+	sendq_nr = dep->de_ramsize / 0x2000;
 	
 	if (sendq_nr < 1)
 		sendq_nr = 1;
@@ -161,7 +161,7 @@ void ne_init(dpeth_t *dep)
 	
 	dep->de_sendq_nr = sendq_nr;
 	for (i = 0; i < sendq_nr; i++)
-		dep->de_sendq[i].sq_sendpage= dep->de_offset_page + i * SENDQ_PAGES;
+		dep->de_sendq[i].sq_sendpage = dep->de_offset_page + i * SENDQ_PAGES;
 	
 	dep->de_startpage = dep->de_offset_page + i * SENDQ_PAGES;
 	dep->de_stoppage = dep->de_offset_page + dep->de_ramsize / DP_PAGESIZE;
