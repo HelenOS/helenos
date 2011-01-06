@@ -77,18 +77,6 @@
  */
 #define outw(port, value)  pio_write_16((ioport16_t *) (port), (value))
 
-/** Copies a memory block.
- *  @param proc The source process. Ignored parameter.
- *  @param src_s Ignored parameter.
- *  @param[in] src The source address.
- *  @param me The current proces. Ignored parameter.
- *  @param dst_s Ignored parameter.
- *  @param[in] dst The destination address.
- *  @param[in] bytes The block size in bytes.
- *  @returns EOK.
- */
-#define sys_vircopy(proc, src_s, src, me, dst_s, dst, bytes)	({memcpy((void *)(dst), (void *)(src), (bytes)); EOK;})
-
 /** Reads a memory block byte by byte.
  *  @param[in] port The address to be written.
  *  @param[in] dst The destination address.
@@ -180,24 +168,18 @@ typedef struct eth_stat {
 	unsigned long ets_OWC;
 } eth_stat_t;
 
-/* errno.h */
-/** Generic error.
- */
-#define EGENERIC     EINVAL
-
 /* ether.h */
 /** Minimum Ethernet packet size in bytes.
  */
-#define ETH_MIN_PACK_SIZE		  60
+#define ETH_MIN_PACK_SIZE  60
 
 /** Maximum Ethernet packet size in bytes.
  */
-#define ETH_MAX_PACK_SIZE_TAGGED	1518
+#define ETH_MAX_PACK_SIZE_TAGGED  1518
 
 /** Ethernet address type definition.
  */
-typedef struct ether_addr
-{
+typedef struct ether_addr {
 	/** Address data.
 	 */
 	uint8_t ea_addr[6];

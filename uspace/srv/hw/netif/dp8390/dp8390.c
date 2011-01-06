@@ -673,7 +673,7 @@ static int dp_pkt2user(dpeth_t *dep, int page, int length)
 	packet_t *packet;
 	
 //	if (!(dep->de_flags & DEF_READING))
-//		return EGENERIC;
+//		return EINVAL;
 	
 	packet = netif_packet_get_1(length);
 	if (!packet)
@@ -770,7 +770,7 @@ static void dp_pio16_user2nic(dpeth_t *dep, iovec_dat_t *iovp, size_t offset, in
 {
 	void *vir_user;
 	size_t ecount;
-	int i, r;
+	int i;
 	size_t bytes;
 	//uint8_t two_bytes[2];
 	uint16_t two_bytes;
@@ -809,12 +809,7 @@ static void dp_pio16_user2nic(dpeth_t *dep, iovec_dat_t *iovp, size_t offset, in
 		vir_user = iovp->iod_iovec[i].iov_addr + offset;
 		
 		if (odd_byte) {
-			r = sys_vircopy(user_proc, D, vir_user,
-			//	SELF, D, (vir_bytes) &two_bytes[1], 1);
-				SELF, D, &(((uint8_t *) &two_bytes)[1]), 1);
-			
-			if (r != EOK)
-				fprintf(stderr, "DP8390: dp_pio16_user2nic: sys_vircopy failed\n");
+			memcpy(&(((uint8_t *) &two_bytes)[1]), vir_user, 1);
 			
 			//outw(dep->de_data_port, *(uint16_t *) two_bytes);
 			outw(dep->de_data_port, two_bytes);
@@ -840,12 +835,7 @@ static void dp_pio16_user2nic(dpeth_t *dep, iovec_dat_t *iovp, size_t offset, in
 		if (bytes) {
 			assert(bytes == 1);
 			
-			r = sys_vircopy(user_proc, D, vir_user,
-			//	SELF, D, (vir_bytes) &two_bytes[0], 1);
-				SELF, D, &(((uint8_t *) &two_bytes)[0]), 1);
-			
-			if (r != EOK)
-				fprintf(stderr, "DP8390: dp_pio16_user2nic: sys_vircopy failed\n");
+			memcpy(&(((uint8_t *) &two_bytes)[0]), vir_user, 1);
 			
 			count--;
 			offset++;
@@ -914,7 +904,7 @@ static void dp_pio16_nic2user(dpeth_t *dep, int nic_addr, iovec_dat_t *iovp, siz
 {
 	void *vir_user;
 	size_t ecount;
-	int i, r;
+	int i;
 	size_t bytes;
 	//uint8_t two_bytes[2];
 	uint16_t two_bytes;
@@ -952,11 +942,7 @@ static void dp_pio16_nic2user(dpeth_t *dep, int nic_addr, iovec_dat_t *iovp, siz
 		vir_user = iovp->iod_iovec[i].iov_addr + offset;
 		
 		if (odd_byte) {
-			//r= sys_vircopy(SELF, D, (vir_bytes)&two_bytes[1],
-			r= sys_vircopy(SELF, D, &(((uint8_t *) &two_bytes)[1]),
-			    user_proc, D, vir_user, 1);
-			if (r != EOK)
-				fprintf(stderr, "DP8390: dp_pio16_nic2user: sys_vircopy failed\n");
+			memcpy(vir_user, &(((uint8_t *) &two_bytes)[1]), 1);
 			
 			count--;
 			offset++;
@@ -982,11 +968,7 @@ static void dp_pio16_nic2user(dpeth_t *dep, int nic_addr, iovec_dat_t *iovp, siz
 			
 			//*(uint16_t *) two_bytes= inw(dep->de_data_port);
 			two_bytes = inw(dep->de_data_port);
-			//r= sys_vircopy(SELF, D, (vir_bytes) &two_bytes[0],
-			r = sys_vircopy(SELF, D, &(((uint8_t *) &two_bytes)[0]),
-			    user_proc, D, vir_user,  1);
-			if (r != EOK)
-				fprintf(stderr, "DP8390: dp_pio16_nic2user: sys_vircopy failed\n");
+			memcpy(vir_user, &(((uint8_t *) &two_bytes)[0]), 1);
 			
 			count--;
 			offset++;
