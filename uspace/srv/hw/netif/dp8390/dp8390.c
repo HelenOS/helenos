@@ -23,7 +23,7 @@
  *  @return EOK on success.
  *  @return EINVAL
  */
-int queue_packet(dpeth_t * dep, packet_t *packet);
+int queue_packet(dpeth_t *dep, packet_t *packet);
 
 /** Reads a memory block byte by byte.
  *  @param[in] port The source address.
@@ -225,14 +225,14 @@ int do_pwrite(dpeth_t *dep, packet_t *packet, int from_int)
 	}
 	
 	(dep->de_user2nicf)(dep, buf, 0,
-	    dep->de_sendq[sendq_head].sq_sendpage * DP_PAGESIZE,
-	    size);
-	dep->de_sendq[sendq_head].sq_filled= true;
+	    dep->de_sendq[sendq_head].sq_sendpage * DP_PAGESIZE, size);
+	dep->de_sendq[sendq_head].sq_filled = true;
+	
 	if (dep->de_sendq_tail == sendq_head) {
 		outb_reg0(dep, DP_TPSR, dep->de_sendq[sendq_head].sq_sendpage);
 		outb_reg0(dep, DP_TBCR1, size >> 8);
 		outb_reg0(dep, DP_TBCR0, size & 0xff);
-		outb_reg0(dep, DP_CR, CR_TXP | CR_EXTRA);  /* there it goes.. */
+		outb_reg0(dep, DP_CR, CR_TXP | CR_EXTRA);  /* there it goes .. */
 	} else
 		dep->de_sendq[sendq_head].sq_size = size;
 	
@@ -246,7 +246,7 @@ int do_pwrite(dpeth_t *dep, packet_t *packet, int from_int)
 	
 	/*
 	 * If the interrupt handler called, don't send a reply. The reply
-	 * will be sent after all interrupts are handled. 
+	 * will be sent after all interrupts are handled.
 	 */
 	if (from_int)
 		return EOK;
@@ -539,6 +539,7 @@ void dp_check_ints(dpeth_t *dep, int isr)
 		 * The chip is stopped, and all arrived packets
 		 * are delivered.
 		 */
+		printf("<reset>\n");
 		dp_reset(dep);
 	}
 }
