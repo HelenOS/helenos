@@ -54,9 +54,8 @@ void do_stop(dpeth_t *dep);
 
 /** Processes the interrupt.
  *  @param[in,out] dep The network interface structure.
- *  @param[in] isr The interrupt status register.
  */
-void dp_check_ints(dpeth_t *dep, int isr);
+void dp_check_ints(dpeth_t *dep);
 
 /** Probes and initializes the network interface.
  *  @param[in,out] dep The network interface structure.

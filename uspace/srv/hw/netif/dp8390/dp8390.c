@@ -477,147 +477,124 @@ dpeth_t *dep;
 	dep->de_flags &= ~DEF_STOPPED;
 }
 
-/*===========================================================================*
- *				dp_check_ints				     *
- *===========================================================================*/
-void dp_check_ints(dep, isr)
-dpeth_t *dep;
-int isr;
+void dp_check_ints(dpeth_t *dep)
 {
-	int /*isr,*/ tsr;
+	int isr, tsr;
 	int size, sendq_tail;
-
-	if (!(dep->de_flags &DEF_ENABLED))
+	
+	if (!(dep->de_flags & DEF_ENABLED))
 		fprintf(stderr, "dp8390: got premature interrupt\n");
-
-	for(;;)
-	{
-//		isr = inb_reg0(dep, DP_ISR);
+	
+	for (;;) {
+		isr = inb_reg0(dep, DP_ISR);
 		if (!isr)
 			break;
+		
 		outb_reg0(dep, DP_ISR, isr);
-		if (isr &(ISR_PTX|ISR_TXE))
-		{
-			if (isr &ISR_TXE)
-			{
+		
+		if (isr & (ISR_PTX | ISR_TXE)) {
+			if (isr & ISR_TXE)
 				dep->de_stat.ets_sendErr++;
-			}
-			else
-			{
+			else {
 				tsr = inb_reg0(dep, DP_TSR);
-
-				if (tsr &TSR_PTX) dep->de_stat.ets_packetT++;
-#if 0	/* Reserved in later manuals, should be ignored */
-				if (!(tsr &TSR_DFR))
-				{
-					/* In most (all?) implementations of
-					 * the dp8390, this bit is set
-					 * when the packet is not deferred
-					 */
-					dep->de_stat.ets_transDef++;
-				}
-#endif
-				if (tsr &TSR_COL) dep->de_stat.ets_collision++;
-				if (tsr &TSR_ABT) dep->de_stat.ets_transAb++;
-				if (tsr &TSR_CRS) dep->de_stat.ets_carrSense++;
-				if (tsr &TSR_FU
-					&& ++dep->de_stat.ets_fifoUnder <= 10)
-				{
-					printf("%s: fifo underrun\n",
-						dep->de_name);
-				}
-				if (tsr &TSR_CDH
-					&& ++dep->de_stat.ets_CDheartbeat <= 10)
-				{
-					printf("%s: CD heart beat failure\n",
-						dep->de_name);
-				}
-				if (tsr &TSR_OWC) dep->de_stat.ets_OWC++;
+				
+				if (tsr & TSR_PTX)
+					dep->de_stat.ets_packetT++;
+				
+				if (tsr & TSR_COL)
+					dep->de_stat.ets_collision++;
+				
+				if (tsr & TSR_ABT)
+					dep->de_stat.ets_transAb++;
+				
+				if (tsr & TSR_CRS)
+					dep->de_stat.ets_carrSense++;
+				
+				if ((tsr & TSR_FU) && (++dep->de_stat.ets_fifoUnder <= 10))
+					printf("%s: fifo underrun\n", dep->de_name);
+				
+				if ((tsr & TSR_CDH) && (++dep->de_stat.ets_CDheartbeat <= 10))
+					printf("%s: CD heart beat failure\n", dep->de_name);
+				
+				if (tsr & TSR_OWC)
+					dep->de_stat.ets_OWC++;
 			}
-			sendq_tail= dep->de_sendq_tail;
-
-			if (!(dep->de_sendq[sendq_tail].sq_filled))
-			{
+			
+			sendq_tail = dep->de_sendq_tail;
+			
+			if (!(dep->de_sendq[sendq_tail].sq_filled)) {
 				/* Software bug? */
 				assert(false);
-
+				
 				/* Or hardware bug? */
-				printf(
-				"%s: transmit interrupt, but not sending\n",
-					dep->de_name);
+				printf("%s: transmit interrupt, but not sending\n", dep->de_name);
 				continue;
 			}
-			dep->de_sendq[sendq_tail].sq_filled= 0;
+			
+			dep->de_sendq[sendq_tail].sq_filled = 0;
+			
 			if (++sendq_tail == dep->de_sendq_nr)
-				sendq_tail= 0;
-			dep->de_sendq_tail= sendq_tail;
-			if (dep->de_sendq[sendq_tail].sq_filled)
-			{
-				size= dep->de_sendq[sendq_tail].sq_size;
+				sendq_tail = 0;
+			
+			dep->de_sendq_tail = sendq_tail;
+			
+			if (dep->de_sendq[sendq_tail].sq_filled) {
+				size = dep->de_sendq[sendq_tail].sq_size;
 				outb_reg0(dep, DP_TPSR,
-					dep->de_sendq[sendq_tail].sq_sendpage);
+				    dep->de_sendq[sendq_tail].sq_sendpage);
 				outb_reg0(dep, DP_TBCR1, size >> 8);
-				outb_reg0(dep, DP_TBCR0, size &0xff);
+				outb_reg0(dep, DP_TBCR0, size & 0xff);
 				outb_reg0(dep, DP_CR, CR_TXP | CR_EXTRA);
 			}
+			
 //			if (dep->de_flags &DEF_SEND_AVAIL)
 				dp_send(dep);
 		}
-
-		if (isr &ISR_PRX)
-		{
+		
+		if (isr & ISR_PRX) {
 			/* Only call dp_recv if there is a read request */
 //			if (dep->de_flags) &DEF_READING)
 				dp_recv(dep);
 		}
 		
-		if (isr &ISR_RXE) dep->de_stat.ets_recvErr++;
-		if (isr &ISR_CNT)
-		{
+		if (isr & ISR_RXE)
+			dep->de_stat.ets_recvErr++;
+		
+		if (isr & ISR_CNT) {
 			dep->de_stat.ets_CRCerr += inb_reg0(dep, DP_CNTR0);
 			dep->de_stat.ets_frameAll += inb_reg0(dep, DP_CNTR1);
 			dep->de_stat.ets_missedP += inb_reg0(dep, DP_CNTR2);
 		}
-		if (isr &ISR_OVW)
-		{
+		
+		if (isr & ISR_OVW) {
 			dep->de_stat.ets_OVW++;
-#if 0
-			{printW(); printf(
-				"%s: got overwrite warning\n", dep->de_name);}
-#endif
-/*			if (dep->de_flags &DEF_READING)
-			{
-				printf(
-"dp_check_ints: strange: overwrite warning and pending read request\n");
+/*			if (dep->de_flags & DEF_READING) {
+				printf("dp_check_ints: strange: overwrite warning and pending read request\n");
 				dp_recv(dep);
 			}
 */		}
-		if (isr &ISR_RDC)
-		{
+		
+		if (isr & ISR_RDC) {
 			/* Nothing to do */
 		}
-		if (isr &ISR_RST)
-		{
-			/* this means we got an interrupt but the ethernet 
+		
+		if (isr & ISR_RST) {
+			/*
+			 * This means we got an interrupt but the ethernet 
 			 * chip is shutdown. We set the flag DEF_STOPPED,
 			 * and continue processing arrived packets. When the
 			 * receive buffer is empty, we reset the dp8390.
 			 */
-#if 0
-			 {printW(); printf(
-				"%s: NIC stopped\n", dep->de_name);}
-#endif
 			dep->de_flags |= DEF_STOPPED;
 			break;
 		}
-		isr = inb_reg0(dep, DP_ISR);
 	}
-//	if ((dep->de_flags &(DEF_READING|DEF_STOPPED)) == 
-//						(DEF_READING|DEF_STOPPED))
-	if ((dep->de_flags &DEF_STOPPED) == DEF_STOPPED)
-	{
-		/* The chip is stopped, and all arrived packets are 
-		 * delivered.
+	
+//	if ((dep->de_flags & (DEF_READING | DEF_STOPPED)) == (DEF_READING | DEF_STOPPED))
+	if ((dep->de_flags & DEF_STOPPED) == DEF_STOPPED) {
+		/*
+		 * The chip is stopped, and all arrived packets
+		 * are delivered.
 		 */
 		dp_reset(dep);
 	}
