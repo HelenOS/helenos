@@ -142,18 +142,8 @@ int queue_packet(dpeth_t *dep, packet_t *packet)
 
 int do_pwrite(dpeth_t *dep, packet_t *packet, int from_int)
 {
-//	int port, count, size;
 	int size;
 	int sendq_head;
-/*	dpeth_t *dep;
-	
-	port = mp->DL_PORT;
-	count = mp->DL_COUNT;
-	if (port < 0 || port >= DE_PORT_NR)
-		fprintf(stderr, "dp8390: illegal port\n");
-	dep= &de_table[port];
-	dep->de_client= mp->DL_PROC;
-*/
 	
 	assert(dep->de_mode == DEM_ENABLED);
 	assert(dep->de_flags & DEF_ENABLED);
@@ -164,36 +154,16 @@ int do_pwrite(dpeth_t *dep, packet_t *packet, int from_int)
 		return queue_packet(dep, packet);
 	}
 	
-	sendq_head= dep->de_sendq_head;
-//	if (dep->de_sendq[sendq_head].sq_filled) {
-//		if (from_int)
-//			fprintf(stderr, "dp8390: should not be sending\n");
-//		dep->de_sendmsg= *mp;
+	sendq_head = dep->de_sendq_head;
+	if (dep->de_sendq[sendq_head].sq_filled) {
+		if (from_int)
+			fprintf(stderr, "dp8390: should not be sending\n");
 //		dep->de_flags |= DEF_SEND_AVAIL;
-//		return;
-//		return queue_packet(dep, packet);
-//	}
+		return queue_packet(dep, packet);
+	}
+	
 //	assert(!(dep->de_flags &DEF_PACK_SEND));
 	
-/*	if (vectored) {
-		get_userdata(mp->DL_PROC, (vir_bytes) mp->DL_ADDR,
-			(count > IOVEC_NR ? IOVEC_NR : count) *
-			sizeof(iovec_t), dep->de_write_iovec.iod_iovec);
-		dep->de_write_iovec.iod_iovec_s = count;
-		dep->de_write_iovec.iod_iovec_addr = (vir_bytes) mp->DL_ADDR;
-		
-		dep->de_tmp_iovec = dep->de_write_iovec;
-		size = calc_iovec_size(&dep->de_tmp_iovec);
-	} else {
-		dep->de_write_iovec.iod_iovec[0].iov_addr =
-			(vir_bytes) mp->DL_ADDR;
-		dep->de_write_iovec.iod_iovec[0].iov_size =
-			mp->DL_COUNT;
-		dep->de_write_iovec.iod_iovec_s = 1;
-		dep->de_write_iovec.iod_iovec_addr = 0;
-		size= mp->DL_COUNT;
-	}
-*/
 	void *buf = packet_get_data(packet);
 	size = packet_get_data_length(packet);
 	
@@ -215,7 +185,7 @@ int do_pwrite(dpeth_t *dep, packet_t *packet, int from_int)
 		dep->de_sendq[sendq_head].sq_size = size;
 	
 	if (++sendq_head == dep->de_sendq_nr)
-		sendq_head= 0;
+		sendq_head = 0;
 	
 	assert(sendq_head < SENDQ_NR);
 	dep->de_sendq_head = sendq_head;
@@ -585,22 +555,6 @@ static void dp_send(dpeth_t *dep)
 	
 //	if (!dep->packet_queue)
 //		dep->de_flags &= ~DEF_SEND_AVAIL;
-	
-/*	switch (dep->de_sendmsg.m_type) {
-	case DL_WRITE:
-		do_vwrite(&dep->de_sendmsg, true, false);
-		break;
-	case DL_WRITEV:
-		do_vwrite(&dep->de_sendmsg, true, true);
-		break;
-	case DL_WRITEV_S:
-		do_vwrite_s(&dep->de_sendmsg, true);
-		break;
-	default:
-		fprintf(stderr, "dp8390: wrong type\n");
-		break;
-	}
-*/
 }
 
 static void dp_pio8_getblock(dpeth_t *dep, int page, size_t offset, size_t size, void *dst)

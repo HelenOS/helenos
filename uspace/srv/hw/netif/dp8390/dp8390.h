@@ -17,44 +17,38 @@
 
 /* National Semiconductor DP8390 Network Interface Controller. */
 
-				/* Page 0, for reading ------------- */
-#define	DP_CR		0x0	/* Read side of Command Register     */
-#define	DP_CLDA0	0x1	/* Current Local Dma Address 0       */
-#define	DP_CLDA1	0x2	/* Current Local Dma Address 1       */
-#define	DP_BNRY		0x3	/* Boundary Pointer                  */
-#define	DP_TSR		0x4	/* Transmit Status Register          */
-#define	DP_NCR		0x5	/* Number of Collisions Register     */
-#define	DP_FIFO		0x6	/* Fifo ??                           */
-#define	DP_ISR		0x7	/* Interrupt Status Register         */
-#define	DP_CRDA0	0x8	/* Current Remote Dma Address 0      */
-#define	DP_CRDA1	0x9	/* Current Remote Dma Address 1      */
-#define	DP_DUM1		0xA	/* unused                            */
-#define	DP_DUM2		0xB	/* unused                            */
-#define	DP_RSR		0xC	/* Receive Status Register           */
-#define	DP_CNTR0	0xD	/* Tally Counter 0                   */
-#define	DP_CNTR1	0xE	/* Tally Counter 1                   */
-#define	DP_CNTR2	0xF	/* Tally Counter 2                   */
+/** Page 0, for reading */
+#define DP_CR     0x00  /**< Command Register */
+#define DP_CLDA0  0x01  /**< Current Local DMA Address 0 */
+#define DP_CLDA1  0x02  /**< Current Local DMA Address 1 */
+#define DP_BNRY   0x03  /**< Boundary Pointer */
+#define DP_TSR    0x04  /**< Transmit Status Register */
+#define DP_NCR    0x05  /**< Number of Collisions Register */
+#define DP_FIFO   0x06  /**< FIFO */
+#define DP_ISR    0x07  /**< Interrupt Status Register */
+#define DP_CRDA0  0x08  /**< Current Remote DMA Address 0 */
+#define DP_CRDA1  0x09  /**< Current Remote DMA Address 1 */
+#define DP_RSR    0x0c  /**< Receive Status Register */
+#define DP_CNTR0  0x0d  /**< Tally Counter 0 */
+#define DP_CNTR1  0x0e  /**< Tally Counter 1 */
+#define DP_CNTR2  0x0f  /**< Tally Counter 2 */
 
-				/* Page 0, for writing ------------- */
-#define	DP_CR		0x0	/* Write side of Command Register    */
-#define	DP_PSTART	0x1	/* Page Start Register               */
-#define	DP_PSTOP	0x2	/* Page Stop Register                */
-#define	DP_BNRY		0x3	/* Boundary Pointer                  */
-#define	DP_TPSR		0x4	/* Transmit Page Start Register      */
-#define	DP_TBCR0	0x5	/* Transmit Byte Count Register 0    */
-#define	DP_TBCR1	0x6	/* Transmit Byte Count Register 1    */
-#define	DP_ISR		0x7	/* Interrupt Status Register         */
-#define	DP_RSAR0	0x8	/* Remote Start Address Register 0   */
-#define	DP_RSAR1	0x9	/* Remote Start Address Register 1   */
-#define	DP_RBCR0	0xA	/* Remote Byte Count Register 0      */
-#define	DP_RBCR1	0xB	/* Remote Byte Count Register 1      */
-#define	DP_RCR		0xC	/* Receive Configuration Register    */
-#define	DP_TCR		0xD	/* Transmit Configuration Register   */
-#define	DP_DCR		0xE	/* Data Configuration Register       */
-#define	DP_IMR		0xF	/* Interrupt Mask Register           */
+/** Page 0, for writing */
+#define DP_PSTART  0x01  /**< Page Start Register*/
+#define DP_PSTOP   0x02  /**< Page Stop Register */
+#define DP_TPSR    0x04  /**< Transmit Page Start Register */
+#define DP_TBCR0   0x05  /**< Transmit Byte Count Register 0 */
+#define DP_TBCR1   0x06  /**< Transmit Byte Count Register 1 */
+#define DP_RSAR0   0x08  /**< Remote Start Address Register 0 */
+#define DP_RSAR1   0x09  /**< Remote Start Address Register 1 */
+#define DP_RBCR0   0x0a  /**< Remote Byte Count Register 0 */
+#define DP_RBCR1   0x0b  /**< Remote Byte Count Register 1 */
+#define DP_RCR     0x0c  /**< Receive Configuration Register */
+#define DP_TCR     0x0d  /**< Transmit Configuration Register */
+#define DP_DCR     0x0e  /**< Data Configuration Register */
+#define DP_IMR     0x0f  /**< Interrupt Mask Register */
 
-				/* Page 1, read/write -------------- */
-#define	DP_CR		0x0	/* Command Register                  */
+/** Page 1, read/write */
 #define	DP_PAR0		0x1	/* Physical Address Register 0       */
 #define	DP_PAR1		0x2	/* Physical Address Register 1       */
 #define	DP_PAR2		0x3	/* Physical Address Register 2       */
@@ -183,28 +177,28 @@ typedef struct dp_rcvhdr {
 /** Page size */
 #define DP_PAGESIZE  256
 
-/** Reads 1 byte from the zero page register.
+/** Read 1 byte from the zero page register.
  *  @param[in] dep The network interface structure.
  *  @param[in] reg The register offset.
  *  @returns The read value.
  */
 #define inb_reg0(dep, reg)  (inb(dep->de_dp8390_port + reg))
 
-/** Writes 1 byte zero page register.
+/** Write 1 byte zero page register.
  *  @param[in] dep The network interface structure.
  *  @param[in] reg The register offset.
  *  @param[in] data The value to be written.
  */
 #define outb_reg0(dep, reg, data)  (outb(dep->de_dp8390_port + reg, data))
 
-/** Reads 1 byte from the first page register.
+/** Read 1 byte from the first page register.
  *  @param[in] dep The network interface structure.
  *  @param[in] reg The register offset.
  *  @returns The read value.
  */
 #define inb_reg1(dep, reg)  (inb(dep->de_dp8390_port + reg))
 
-/** Writes 1 byte first page register.
+/** Write 1 byte first page register.
  *  @param[in] dep The network interface structure.
  *  @param[in] reg The register offset.
  *  @param[in] data The value to be written.
@@ -221,12 +215,12 @@ typedef void (*dp_user2nicf_t)(struct dpeth *dep, void *buf, size_t offset, int 
 typedef void (*dp_nic2userf_t)(struct dpeth *dep, int nic_addr, void *buf, size_t offset, size_t size);
 typedef void (*dp_getblock_t)(struct dpeth *dep, int page, size_t offset, size_t size, void *dst);
 
-#define SENDQ_NR     1  /* Maximum size of the send queue */
+#define SENDQ_NR     2  /* Maximum size of the send queue */
 #define SENDQ_PAGES  6  /* 6 * DP_PAGESIZE >= 1514 bytes */
 
 /** Maximum number of waiting packets to be sent or received.
  */
-#define MAX_PACKETS  4
+#define MAX_PACKETS  1024
 
 typedef struct dpeth {
 	/** Outgoing packets queue */
@@ -289,8 +283,6 @@ typedef struct dpeth {
 	dp_nic2userf_t de_nic2userf;
 	dp_getblock_t de_getblockf;
 } dpeth_t;
-
-#define DEI_DEFAULT  0x8000
 
 #define DEF_EMPTY       0x000
 #define DEF_PACK_SEND   0x001

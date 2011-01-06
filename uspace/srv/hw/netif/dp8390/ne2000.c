@@ -166,9 +166,6 @@ void ne_init(dpeth_t *dep)
 	dep->de_startpage = dep->de_offset_page + i * SENDQ_PAGES;
 	dep->de_stoppage = dep->de_offset_page + dep->de_ramsize / DP_PAGESIZE;
 	
-	/* Can't override the default IRQ. */
-	dep->de_irq &= ~DEI_DEFAULT;
-	
 	printf("%s: Novell NE%d000 ethernet card at I/O address "
 	    "%#lx, memory size %#lx, irq %d\n",
 	    dep->de_name, dep->de_16bit ? 2 : 1,
