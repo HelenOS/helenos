@@ -350,8 +350,6 @@ typedef struct dpeth
 #define DEM_SINK	0x1
 #define DEM_ENABLED	0x2
 
-#define debug		1
-
 #endif
 
 /** @}

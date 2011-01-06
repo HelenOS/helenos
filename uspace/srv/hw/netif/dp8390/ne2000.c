@@ -15,34 +15,18 @@
 #include "dp8390.h"
 #include "ne2000.h"
 
-/** Number of bytes to transfer.
- */
-#define N 100
-
-/** Sleeps for the defined millicesonds.
- *  @param[in] millis The number of milliseconds to sleep.
- */
-#define milli_delay(millis)	usleep((millis) * 1000)
+/** Number of bytes to transfer */
+#define N  100
 
 /** Type definition of the testing function.
  */
 _PROTOTYPE(typedef int (*testf_t), (dpeth_t *dep, int pos, u8_t *pat)	);
 
-/** First data pattern.
- */
-u8_t	pat0[]= {0x00, 0x00, 0x00, 0x00};
-
-/** Second data pattern.
- */
-u8_t	pat1[]= {0xFF, 0xFF, 0xFF, 0xFF};
-
-/** Third data pattern.
- */
-u8_t	pat2[]= {0xA5, 0x5A, 0x69, 0x96};
-
-/** Fourth data pattern.
- */
-u8_t	pat3[]= {0x96, 0x69, 0x5A, 0xA5};
+/** Data patterns */
+u8_t pat0[]= {0x00, 0x00, 0x00, 0x00};
+u8_t pat1[]= {0xFF, 0xFF, 0xFF, 0xFF};
+u8_t pat2[]= {0xA5, 0x5A, 0x69, 0x96};
+u8_t pat3[]= {0x96, 0x69, 0x5A, 0xA5};
 
 /** Tests 8 bit NE2000 network interface.
  *  @param[in,out] dep The network interface structure.
@@ -91,9 +75,9 @@ int ne_probe(dpeth_t *dep)
 	for (dep->de_16bit = 0; dep->de_16bit < 2; dep->de_16bit++) {
 		/* Reset the ethernet card */
 		byte= inb_ne(dep, NE_RESET);
-		milli_delay(2);
+		usleep(2000);
 		outb_ne(dep, NE_RESET, byte);
-		milli_delay(2);
+		usleep(2000);
 		
 		/* Reset the dp8390 */
 		outb_reg0(dep, DP_CR, CR_STP | CR_DM_ABORT);
@@ -192,140 +176,95 @@ void ne_init(dpeth_t *dep)
 	/* Can't override the default IRQ. */
 	dep->de_irq &= ~DEI_DEFAULT;
 	
-	if (!debug)
-	{
-		printf("%s: NE%d000 at %#lx:%d\n",
-		    dep->de_name, dep->de_16bit ? 2 : 1,
-		    dep->de_base_port, dep->de_irq);
-	}
-	else
-	{
-		printf("%s: Novell NE%d000 ethernet card at I/O address "
-		    "%#lx, memory size %#lx, irq %d\n",
-		    dep->de_name, dep->de_16bit ? 2 : 1,
-		    dep->de_base_port, dep->de_ramsize, dep->de_irq);
-	}
+	printf("%s: Novell NE%d000 ethernet card at I/O address "
+	    "%#lx, memory size %#lx, irq %d\n",
+	    dep->de_name, dep->de_16bit ? 2 : 1,
+	    dep->de_base_port, dep->de_ramsize, dep->de_irq);
 }
 
-/*===========================================================================*
- *				test_8					     *
- *===========================================================================*/
-static int test_8(dep, pos, pat)
-dpeth_t *dep;
-int pos;
-u8_t *pat;
+static int test_8(dpeth_t *dep, int pos, u8_t *pat)
 {
 	u8_t buf[4];
 	int i;
-	int r;
-
-	outb_reg0(dep, DP_ISR, 0xFF);
-
+	
+	outb_reg0(dep, DP_ISR, 0xff);
+	
 	/* Setup a transfer to put the pattern. */
 	outb_reg0(dep, DP_RBCR0, 4);
 	outb_reg0(dep, DP_RBCR1, 0);
-	outb_reg0(dep, DP_RSAR0, pos &0xFF);
+	outb_reg0(dep, DP_RSAR0, pos & 0xff);
 	outb_reg0(dep, DP_RSAR1, pos >> 8);
 	outb_reg0(dep, DP_CR, CR_DM_RW | CR_PS_P0 | CR_STA);
-
-	for (i= 0; i<4; i++)
+	
+	for (i = 0; i < 4; i++)
 		outb_ne(dep, NE_DATA, pat[i]);
-
-	for (i= 0; i<N; i++)
-	{
-		if (inb_reg0(dep, DP_ISR) &ISR_RDC)
+	
+	for (i = 0; i < N; i++) {
+		if (inb_reg0(dep, DP_ISR) & ISR_RDC)
 			break;
 	}
-	if (i == N)
-	{
-		if (debug)
-		{
-			printf("%s: NE1000 remote DMA test failed\n",
-				dep->de_name);
-		}
+	
+	if (i == N) {
+		printf("%s: NE1000 remote DMA test failed\n", dep->de_name);
 		return 0;
 	}
-
+	
 	outb_reg0(dep, DP_RBCR0, 4);
 	outb_reg0(dep, DP_RBCR1, 0);
-	outb_reg0(dep, DP_RSAR0, pos &0xFF);
+	outb_reg0(dep, DP_RSAR0, pos & 0xff);
 	outb_reg0(dep, DP_RSAR1, pos >> 8);
 	outb_reg0(dep, DP_CR, CR_DM_RR | CR_PS_P0 | CR_STA);
-
-	for (i= 0; i<4; i++)
-		buf[i]= inb_ne(dep, NE_DATA);
-
-	r= (memcmp(buf, pat, 4) == 0);
-	return r;
+	
+	for (i = 0; i < 4; i++)
+		buf[i] = inb_ne(dep, NE_DATA);
+	
+	return (memcmp(buf, pat, 4) == 0);
 }
 
-/*===========================================================================*
- *				test_16					     *
- *===========================================================================*/
-static int test_16(dep, pos, pat)
-dpeth_t *dep;
-int pos;
-u8_t *pat;
+static int test_16(dpeth_t *dep, int pos, u8_t *pat)
 {
 	u8_t buf[4];
 	int i;
-	int r;
-
-	outb_reg0(dep, DP_ISR, 0xFF);
-
+	
+	outb_reg0(dep, DP_ISR, 0xff);
+	
 	/* Setup a transfer to put the pattern. */
 	outb_reg0(dep, DP_RBCR0, 4);
 	outb_reg0(dep, DP_RBCR1, 0);
-	outb_reg0(dep, DP_RSAR0, pos &0xFF);
+	outb_reg0(dep, DP_RSAR0, pos & 0xff);
 	outb_reg0(dep, DP_RSAR1, pos >> 8);
 	outb_reg0(dep, DP_CR, CR_DM_RW | CR_PS_P0 | CR_STA);
-
-	for (i= 0; i<4; i += 2)
-	{
-		outw_ne(dep, NE_DATA, *(u16_t *)(pat+i));
-	}
-
-	for (i= 0; i<N; i++)
-	{
+	
+	for (i = 0; i < 4; i += 2)
+		outw_ne(dep, NE_DATA, *(u16_t *)(pat + i));
+	
+	for (i = 0; i < N; i++) {
 		if (inb_reg0(dep, DP_ISR) &ISR_RDC)
 			break;
 	}
-	if (i == N)
-	{
-		if (debug)
-		{
-			printf("%s: NE2000 remote DMA test failed\n",
-				dep->de_name);
-		}
+	
+	if (i == N) {
+		printf("%s: NE2000 remote DMA test failed\n", dep->de_name);
 		return 0;
 	}
-
+	
 	outb_reg0(dep, DP_RBCR0, 4);
 	outb_reg0(dep, DP_RBCR1, 0);
-	outb_reg0(dep, DP_RSAR0, pos &0xFF);
+	outb_reg0(dep, DP_RSAR0, pos & 0xff);
 	outb_reg0(dep, DP_RSAR1, pos >> 8);
 	outb_reg0(dep, DP_CR, CR_DM_RR | CR_PS_P0 | CR_STA);
-
-	for (i= 0; i<4; i += 2)
-	{
-		*(u16_t *)(buf+i)= inw_ne(dep, NE_DATA);
-	}
-
-	r= (memcmp(buf, pat, 4) == 0);
-	return r;
+	
+	for (i = 0; i < 4; i += 2)
+		*(u16_t *)(buf + i) = inw_ne(dep, NE_DATA);
+	
+	return (memcmp(buf, pat, 4) == 0);
 }
 
-/*===========================================================================*
- *				ne_stop					     *
- *===========================================================================*/
-static void ne_stop(dep)
-dpeth_t *dep;
+static void ne_stop(dpeth_t *dep)
 {
-	int byte;
-
 	/* Reset the ethernet card */
-	byte= inb_ne(dep, NE_RESET);
-	milli_delay(2);
+	int byte = inb_ne(dep, NE_RESET);
+	usleep(2000);
 	outb_ne(dep, NE_RESET, byte);
 }
 

@@ -337,11 +337,9 @@ void dp_init(dpeth_t *dep)
 	dep->de_flags = DEF_EMPTY;
 	(*dep->de_initf)(dep);
 	
-	if (debug) {
-		printf("%s: Ethernet address ", dep->de_name);
-		for (i = 0; i < 6; i++)
-			printf("%x%c", dep->de_address.ea_addr[i], i < 5 ? ':' : '\n');
-	}
+	printf("%s: Ethernet address ", dep->de_name);
+	for (i = 0; i < 6; i++)
+		printf("%x%c", dep->de_address.ea_addr[i], i < 5 ? ':' : '\n');
 	
 	/*
 	 * Initialization of the dp8390 following the mandatory procedure
@@ -515,9 +513,6 @@ int isr;
 		{
 			if (isr &ISR_TXE)
 			{
-#if DEBUG
- {printf("%s: got send Error\n", dep->de_name);}
-#endif
 				dep->de_stat.ets_sendErr++;
 			}
 			else
@@ -557,7 +552,7 @@ int isr;
 			if (!(dep->de_sendq[sendq_tail].sq_filled))
 			{
 				/* Software bug? */
-				assert(!debug);
+				assert(false);
 
 				/* Or hardware bug? */
 				printf(
