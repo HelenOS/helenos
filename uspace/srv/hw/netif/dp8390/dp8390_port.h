@@ -43,20 +43,6 @@
 #include <libarch/ddi.h>
 #include <sys/types.h>
 
-/** Macro for difining functions.
- *  @param[in] function The function type and name definition.
- *  @param[in] params The function parameters definition.
- */
-#define _PROTOTYPE(function, params) function params
-
-/** Type definition of the unsigned byte.
- */
-typedef uint8_t u8_t;
-
-/** Type definition of the unsigned short.
- */
-typedef uint16_t u16_t;
-
 /** Compares two memory blocks.
  *  @param[in] first The first memory block.
  *  @param[in] second The second memory block.
@@ -65,36 +51,31 @@ typedef uint16_t u16_t;
  *  @returns -1 if the first is greater than the second.
  *  @returns 1 if the second is greater than the first.
  */
-#define memcmp(first, second, size)	bcmp((char *) (first), (char *) (second), (size))
+#define memcmp(first, second, size)  bcmp((char *) (first), (char *) (second), (size))
 
 /** Reads 1 byte.
  *  @param[in] port The address to be read.
  *  @returns The read value.
  */
-#define inb(port)	pio_read_8((ioport8_t *) (port))
+#define inb(port)  pio_read_8((ioport8_t *) (port))
 
 /** Reads 1 word (2 bytes).
  *  @param[in] port The address to be read.
  *  @returns The read value.
  */
-#define inw(port)	pio_read_16((ioport16_t *) (port))
+#define inw(port)  pio_read_16((ioport16_t *) (port))
 
 /** Writes 1 byte.
  *  @param[in] port The address to be written.
  *  @param[in] value The value to be written.
  */
-#define outb(port, value)	pio_write_8((ioport8_t *) (port), (value))
+#define outb(port, value)  pio_write_8((ioport8_t *) (port), (value))
 
 /** Writes 1 word (2 bytes).
  *  @param[in] port The address to be written.
  *  @param[in] value The value to be written.
  */
-#define outw(port, value)	pio_write_16((ioport16_t *) (port), (value))
-
-/** Prints out the driver critical error.
- *  Does not call the system panic().
- */
-#define panic(...)	printf("%s%s%d", __VA_ARGS__)
+#define outw(port, value)  pio_write_16((ioport16_t *) (port), (value))
 
 /** Copies a memory block.
  *  @param proc The source process. Ignored parameter.
@@ -140,37 +121,19 @@ typedef uint16_t u16_t;
  */
 #define do_vir_outsw(port, proc, src, bytes)	outsw((port), (void *)(src), (bytes))
 
-/* com.h */
 /* Bits in 'DL_MODE' field of DL requests. */
-#  define DL_NOMODE		0x0
-#  define DL_PROMISC_REQ	0x2
-#  define DL_MULTI_REQ		0x4
-#  define DL_BROAD_REQ		0x8
+#define DL_NOMODE       0x0
+#define DL_PROMISC_REQ  0x2
+#define DL_MULTI_REQ    0x4
+#define DL_BROAD_REQ    0x8
 
-/* const.h */
-/** True value.
- */
-#define TRUE               1	/* used for turning integers into Booleans */
-
-/** False value.
- */
-#define FALSE              0	/* used for turning integers into Booleans */
-
-/** No number value.
- */
-#define NO_NUM        0x8000	/* used as numerical argument to panic() */
-
-/* devio.h */
-//typedef u16_t port_t;
 /** Type definition of a port.
  */
 typedef long port_t;
 
-/* dl_eth.h */
 /** Ethernet statistics.
  */
-typedef struct eth_stat
-{
+typedef struct eth_stat {
 	/** Number of receive errors.
 	 */
 	unsigned long ets_recvErr;
@@ -241,7 +204,7 @@ typedef struct ether_addr
 {
 	/** Address data.
 	 */
-	u8_t ea_addr[6];
+	uint8_t ea_addr[6];
 } ether_addr_t;
 
 /* type.h */

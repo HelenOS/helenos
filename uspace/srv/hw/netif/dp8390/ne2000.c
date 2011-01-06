@@ -15,31 +15,31 @@
 /** Number of bytes to transfer */
 #define N  100
 
-typedef int (*testf_t)(dpeth_t *dep, int pos, u8_t *pat);
+typedef int (*testf_t)(dpeth_t *dep, int pos, uint8_t *pat);
 
 /** Data patterns */
-u8_t pat0[] = {0x00, 0x00, 0x00, 0x00};
-u8_t pat1[] = {0xFF, 0xFF, 0xFF, 0xFF};
-u8_t pat2[] = {0xA5, 0x5A, 0x69, 0x96};
-u8_t pat3[] = {0x96, 0x69, 0x5A, 0xA5};
+uint8_t pat0[] = {0x00, 0x00, 0x00, 0x00};
+uint8_t pat1[] = {0xFF, 0xFF, 0xFF, 0xFF};
+uint8_t pat2[] = {0xA5, 0x5A, 0x69, 0x96};
+uint8_t pat3[] = {0x96, 0x69, 0x5A, 0xA5};
 
 /** Tests 8 bit NE2000 network interface.
  *  @param[in,out] dep The network interface structure.
  *  @param[in] pos The starting position.
  *  @param[in] pat The data pattern to be written.
  *  @returns True on success.
- *  @returns FALSE otherwise.
+ *  @returns false otherwise.
  */
-static int test_8(dpeth_t *dep, int pos, u8_t *pat);
+static int test_8(dpeth_t *dep, int pos, uint8_t *pat);
 
 /** Tests 16 bit NE2000 network interface.
  *  @param[in,out] dep The network interface structure.
  *  @param[in] pos The starting position.
  *  @param[in] pat The data pattern to be written.
  *  @returns True on success.
- *  @returns FALSE otherwise.
+ *  @returns false otherwise.
  */
-static int test_16(dpeth_t *dep, int pos, u8_t *pat);
+static int test_16(dpeth_t *dep, int pos, uint8_t *pat);
 
 /** Stops the NE2000 network interface.
  *  @param[in,out] dep The network interface structure.
@@ -177,9 +177,9 @@ void ne_init(dpeth_t *dep)
 	    dep->de_base_port, dep->de_ramsize, dep->de_irq);
 }
 
-static int test_8(dpeth_t *dep, int pos, u8_t *pat)
+static int test_8(dpeth_t *dep, int pos, uint8_t *pat)
 {
-	u8_t buf[4];
+	uint8_t buf[4];
 	int i;
 	
 	outb_reg0(dep, DP_ISR, 0xff);
@@ -216,9 +216,9 @@ static int test_8(dpeth_t *dep, int pos, u8_t *pat)
 	return (memcmp(buf, pat, 4) == 0);
 }
 
-static int test_16(dpeth_t *dep, int pos, u8_t *pat)
+static int test_16(dpeth_t *dep, int pos, uint8_t *pat)
 {
-	u8_t buf[4];
+	uint8_t buf[4];
 	int i;
 	
 	outb_reg0(dep, DP_ISR, 0xff);
@@ -231,7 +231,7 @@ static int test_16(dpeth_t *dep, int pos, u8_t *pat)
 	outb_reg0(dep, DP_CR, CR_DM_RW | CR_PS_P0 | CR_STA);
 	
 	for (i = 0; i < 4; i += 2)
-		outw_ne(dep, NE_DATA, *(u16_t *)(pat + i));
+		outw_ne(dep, NE_DATA, *(uint16_t *)(pat + i));
 	
 	for (i = 0; i < N; i++) {
 		if (inb_reg0(dep, DP_ISR) &ISR_RDC)
@@ -250,7 +250,7 @@ static int test_16(dpeth_t *dep, int pos, u8_t *pat)
 	outb_reg0(dep, DP_CR, CR_DM_RR | CR_PS_P0 | CR_STA);
 	
 	for (i = 0; i < 4; i += 2)
-		*(u16_t *)(buf + i) = inw_ne(dep, NE_DATA);
+		*(uint16_t *)(buf + i) = inw_ne(dep, NE_DATA);
 	
 	return (memcmp(buf, pat, 4) == 0);
 }

@@ -260,7 +260,7 @@ int netif_send_message(device_id_t device_id, packet_t *packet, services_t sende
 	// process packet queue
 	do{
 		next = pq_detach(packet);
-		if(do_pwrite(dep, packet, FALSE) != EBUSY){
+		if(do_pwrite(dep, packet, false) != EBUSY){
 			netif_pq_release(packet_get_id(packet));
 		}
 		packet = next;

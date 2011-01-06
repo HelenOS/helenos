@@ -10,12 +10,10 @@
 #define __NET_NETIF_DP8390_H__
 
 #include <net/packet.h>
-
 #include "dp8390_port.h"
 
-/** Input/output size.
- */
-#define DP8390_IO_SIZE	0x020
+/** Input/output size */
+#define DP8390_IO_SIZE  0x0020
 
 /* National Semiconductor DP8390 Network Interface Controller. */
 
@@ -165,119 +163,96 @@
 #define RSR_DIS		0x40	/* Receiver Disabled                 */
 #define RSR_DFR		0x80	/* In later manuals: Deferring       */
 
-/** Type definition of the receive header.
+/** Type definition of the receive header
+ *
  */
-typedef struct dp_rcvhdr
-{
-	/** Copy of rsr.
-	 */
-	u8_t dr_status;
-	/** Pointer to next packet.
-	 */
-	u8_t dr_next;
-	/** Receive Byte Count Low.
-	 */
-	u8_t dr_rbcl;
-	/** Receive Byte Count High.
-	 */
-	u8_t dr_rbch;
+typedef struct dp_rcvhdr {
+	/** Copy of rsr */
+	uint8_t dr_status;
+	
+	/** Pointer to next packet */
+	uint8_t dr_next;
+	
+	/** Receive Byte Count Low */
+	uint8_t dr_rbcl;
+	
+	/** Receive Byte Count High */
+	uint8_t dr_rbch;
 } dp_rcvhdr_t;
 
-/** Page size.
- */
-#define DP_PAGESIZE	256
+/** Page size */
+#define DP_PAGESIZE  256
 
-/* Some macros to simplify accessing the dp8390 */
 /** Reads 1 byte from the zero page register.
  *  @param[in] dep The network interface structure.
  *  @param[in] reg The register offset.
  *  @returns The read value.
  */
-#define inb_reg0(dep, reg)		(inb(dep->de_dp8390_port+reg))
+#define inb_reg0(dep, reg)  (inb(dep->de_dp8390_port+reg))
 
 /** Writes 1 byte zero page register.
  *  @param[in] dep The network interface structure.
  *  @param[in] reg The register offset.
  *  @param[in] data The value to be written.
  */
-#define outb_reg0(dep, reg, data)	(outb(dep->de_dp8390_port+reg, data))
+#define outb_reg0(dep, reg, data)  (outb(dep->de_dp8390_port+reg, data))
 
 /** Reads 1 byte from the first page register.
  *  @param[in] dep The network interface structure.
  *  @param[in] reg The register offset.
  *  @returns The read value.
  */
-#define inb_reg1(dep, reg)		(inb(dep->de_dp8390_port+reg))
+#define inb_reg1(dep, reg)  (inb(dep->de_dp8390_port+reg))
 
 /** Writes 1 byte first page register.
  *  @param[in] dep The network interface structure.
  *  @param[in] reg The register offset.
  *  @param[in] data The value to be written.
  */
-#define outb_reg1(dep, reg, data)	(outb(dep->de_dp8390_port+reg, data))
+#define outb_reg1(dep, reg, data)  (outb(dep->de_dp8390_port+reg, data))
 
 /* Software interface to the dp8390 driver */
 
 struct dpeth;
 struct iovec_dat;
 
-_PROTOTYPE(typedef void (*dp_initf_t), (struct dpeth *dep)		);
-_PROTOTYPE(typedef void (*dp_stopf_t), (struct dpeth *dep)		);
-_PROTOTYPE(typedef void (*dp_user2nicf_t), (struct dpeth *dep,
-			struct iovec_dat *iovp, vir_bytes offset,
-			int nic_addr, vir_bytes count) );
-_PROTOTYPE(typedef void (*dp_nic2userf_t), (struct dpeth *dep,
-			int nic_addr, struct iovec_dat *iovp,
-			vir_bytes offset, vir_bytes count) );
-_PROTOTYPE(typedef void (*dp_getblock_t), (struct dpeth *dep,
-		int page, size_t offset, size_t size, void *dst)	);
+typedef void (*dp_initf_t)(struct dpeth *dep);
+typedef void (*dp_stopf_t)(struct dpeth *dep);
+typedef void (*dp_user2nicf_t)(struct dpeth *dep, struct iovec_dat *iovp, vir_bytes offset, int nic_addr, vir_bytes count);
+typedef void (*dp_nic2userf_t)(struct dpeth *dep, int nic_addr, struct iovec_dat *iovp, vir_bytes offset, vir_bytes count);
+typedef void (*dp_getblock_t)(struct dpeth *dep, int page, size_t offset, size_t size, void *dst);
 
 #define IOVEC_NR  1
 
-typedef struct iovec_dat
-{
+typedef struct iovec_dat {
   iovec_t iod_iovec[IOVEC_NR];
   int iod_iovec_s;
-  // no direct process access
   int iod_proc_nr;
   vir_bytes iod_iovec_addr;
 } iovec_dat_t;
-/*
-typedef struct iovec_dat_s
-{
-  iovec_s_t iod_iovec[IOVEC_NR];
-  int iod_iovec_s;
-  int iod_proc_nr;
-  cp_grant_id_t iod_grant;
-  vir_bytes iod_iovec_offset;
-} iovec_dat_s_t;
-*/
-#define SENDQ_NR	1	/* Maximum size of the send queue */
-#define SENDQ_PAGES	6	/* 6 * DP_PAGESIZE >= 1514 bytes */
+
+#define SENDQ_NR     1  /* Maximum size of the send queue */
+#define SENDQ_PAGES  6  /* 6 * DP_PAGESIZE >= 1514 bytes */
 
 /** Maximum number of waiting packets to be sent or received.
  */
 #define MAX_PACKETS  4
 
-typedef struct dpeth
-{
-	/** Outgoing packets queue.
-	 */
+typedef struct dpeth {
+	/** Outgoing packets queue */
 	packet_t *packet_queue;
 	
-	/** Outgoing packets count.
-	 */
+	/** Outgoing packets count */
 	int packet_count;
 	
-	/** Received packets queue.
-	 */
+	/** Received packets queue */
 	packet_t *received_queue;
 	
-	/** Received packets count.
-	 */
+	/** Received packets count */
 	int received_count;
-
-	/* The de_base_port field is the starting point of the probe.
+	
+	/*
+	 * The de_base_port field is the starting point of the probe.
 	 * The conf routine also fills de_linmem and de_irq. If the probe
 	 * routine knows the irq and/or memory address because they are
 	 * hardwired in the board, the probe should modify these fields.
@@ -292,7 +267,8 @@ typedef struct dpeth
 	dp_stopf_t de_stopf; 
 	char de_name[sizeof("dp8390#n")];
 	
-	/* The initf function fills the following fields. Only cards that do
+	/*
+	 * The initf function fills the following fields. Only cards that do
 	 * programmed I/O fill in the de_pata_port field.
 	 * In addition, the init routine has to fill in the sendq data
 	 * structures.
@@ -308,14 +284,14 @@ typedef struct dpeth
 	
 	/* Do it yourself send queue */
 	struct sendq {
-		int sq_filled;		/* this buffer contains a packet */
-		int sq_size;		/* with this size */
-		int sq_sendpage;	/* starting page of the buffer */
+		int sq_filled;    /* this buffer contains a packet */
+		int sq_size;      /* with this size */
+		int sq_sendpage;  /* starting page of the buffer */
 	} de_sendq[SENDQ_NR];
 	
 	int de_sendq_nr;
-	int de_sendq_head;		/* Enqueue at the head */
-	int de_sendq_tail;		/* Dequeue at the tail */
+	int de_sendq_head;  /* Enqueue at the head */
+	int de_sendq_tail;  /* Dequeue at the tail */
 	
 	/* Fields for internal use by the dp8390 driver. */
 	int de_flags;
@@ -332,22 +308,22 @@ typedef struct dpeth
 	dp_getblock_t de_getblockf;
 } dpeth_t;
 
-#define DEI_DEFAULT	0x8000
+#define DEI_DEFAULT  0x8000
 
-#define DEF_EMPTY	0x000
-#define DEF_PACK_SEND	0x001
-#define DEF_PACK_RECV	0x002
-#define DEF_SEND_AVAIL	0x004
-#define DEF_READING	0x010
-#define DEF_PROMISC	0x040
-#define DEF_MULTI	0x080
-#define DEF_BROAD	0x100
-#define DEF_ENABLED	0x200
-#define DEF_STOPPED	0x400
+#define DEF_EMPTY       0x000
+#define DEF_PACK_SEND   0x001
+#define DEF_PACK_RECV   0x002
+#define DEF_SEND_AVAIL  0x004
+#define DEF_READING     0x010
+#define DEF_PROMISC     0x040
+#define DEF_MULTI       0x080
+#define DEF_BROAD       0x100
+#define DEF_ENABLED     0x200
+#define DEF_STOPPED     0x400
 
-#define DEM_DISABLED	0x0
-#define DEM_SINK	0x1
-#define DEM_ENABLED	0x2
+#define DEM_DISABLED  0x0
+#define DEM_SINK      0x1
+#define DEM_ENABLED   0x2
 
 #endif
 
