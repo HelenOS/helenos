@@ -91,35 +91,31 @@
 
 /** Reads a memory block byte by byte.
  *  @param[in] port The address to be written.
- *  @param proc The source process. Ignored parameter.
  *  @param[in] dst The destination address.
  *  @param[in] bytes The block size in bytes.
  */
-#define do_vir_insb(port, proc, dst, bytes)	insb((port), (void *)(dst), (bytes))
+#define do_vir_insb(port, dst, bytes)  insb((port), (void *)(dst), (bytes))
 
 /** Reads a memory block word by word (2 bytes).
  *  @param[in] port The address to be written.
- *  @param proc The source process. Ignored parameter.
  *  @param[in] dst The destination address.
  *  @param[in] bytes The block size in bytes.
  */
-#define do_vir_insw(port, proc, dst, bytes)	insw((port), (void *)(dst), (bytes))
+#define do_vir_insw(port, dst, bytes)  insw((port), (void *)(dst), (bytes))
 
 /** Writes a memory block byte by byte.
  *  @param[in] port The address to be written.
- *  @param proc The source process. Ignored parameter.
  *  @param[in] src The source address.
  *  @param[in] bytes The block size in bytes.
  */
-#define do_vir_outsb(port, proc, src, bytes)	outsb((port), (void *)(src), (bytes))
+#define do_vir_outsb(port, src, bytes)  outsb((port), (void *)(src), (bytes))
 
 /** Writes a memory block word by word (2 bytes).
  *  @param[in] port The address to be written.
- *  @param proc The source process. Ignored parameter.
  *  @param[in] src The source address.
  *  @param[in] bytes The block size in bytes.
  */
-#define do_vir_outsw(port, proc, src, bytes)	outsw((port), (void *)(src), (bytes))
+#define do_vir_outsw(port, src, bytes)  outsw((port), (void *)(src), (bytes))
 
 /* Bits in 'DL_MODE' field of DL requests. */
 #define DL_NOMODE       0x0
@@ -207,24 +203,16 @@ typedef struct ether_addr
 	uint8_t ea_addr[6];
 } ether_addr_t;
 
-/* type.h */
-/** Type definition of the physical addresses and lengths in bytes.
- */
-typedef unsigned long phys_bytes;
-
-/** Type definition of the virtual addresses and lengths in bytes.
- */
-typedef unsigned long vir_bytes;
-
 /** Type definition of the input/output vector.
  */
 typedef struct {
 	/** Address of an I/O buffer.
 	 */
-	vir_bytes iov_addr;
-	/** Sizeof an I/O buffer.
+	void *iov_addr;
+	
+	/** Size of an I/O buffer.
 	 */
-	vir_bytes iov_size;
+	size_t iov_size;
 } iovec_t;
 
 #endif

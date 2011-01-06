@@ -218,8 +218,8 @@ struct iovec_dat;
 
 typedef void (*dp_initf_t)(struct dpeth *dep);
 typedef void (*dp_stopf_t)(struct dpeth *dep);
-typedef void (*dp_user2nicf_t)(struct dpeth *dep, struct iovec_dat *iovp, vir_bytes offset, int nic_addr, vir_bytes count);
-typedef void (*dp_nic2userf_t)(struct dpeth *dep, int nic_addr, struct iovec_dat *iovp, vir_bytes offset, vir_bytes count);
+typedef void (*dp_user2nicf_t)(struct dpeth *dep, struct iovec_dat *iovp, size_t offset, int nic_addr, size_t count);
+typedef void (*dp_nic2userf_t)(struct dpeth *dep, int nic_addr, struct iovec_dat *iovp, size_t offset, size_t count);
 typedef void (*dp_getblock_t)(struct dpeth *dep, int page, size_t offset, size_t size, void *dst);
 
 #define IOVEC_NR  1
@@ -227,8 +227,7 @@ typedef void (*dp_getblock_t)(struct dpeth *dep, int page, size_t offset, size_t
 typedef struct iovec_dat {
   iovec_t iod_iovec[IOVEC_NR];
   int iod_iovec_s;
-  int iod_proc_nr;
-  vir_bytes iod_iovec_addr;
+  void *iod_iovec_addr;
 } iovec_dat_t;
 
 #define SENDQ_NR     1  /* Maximum size of the send queue */
@@ -253,14 +252,13 @@ typedef struct dpeth {
 	
 	/*
 	 * The de_base_port field is the starting point of the probe.
-	 * The conf routine also fills de_linmem and de_irq. If the probe
+	 * The conf routine also fills de_irq. If the probe
 	 * routine knows the irq and/or memory address because they are
 	 * hardwired in the board, the probe should modify these fields.
 	 * Futhermore, the probe routine should also fill in de_initf and
 	 * de_stopf fields with the appropriate function pointers.
 	 */
 	port_t de_base_port;
-	phys_bytes de_linmem;
 	int de_irq;
 	dp_initf_t de_initf;
 	dp_stopf_t de_stopf;
@@ -299,7 +297,7 @@ typedef struct dpeth {
 	iovec_dat_t de_read_iovec;
 	iovec_dat_t de_write_iovec;
 	iovec_dat_t de_tmp_iovec;
-	vir_bytes de_read_s;
+	size_t de_read_s;
 //	int de_client;
 //	message de_sendmsg;
 	dp_user2nicf_t de_user2nicf; 

@@ -109,8 +109,6 @@ int ne_probe(dpeth_t *dep)
 		    f(dep, loc1, pat2) && f(dep, loc1, pat3) &&
 		    f(dep, loc2, pat0) && f(dep, loc2, pat1) &&
 		    f(dep, loc2, pat2) && f(dep, loc2, pat3)) {
-			/* We don't need a memory segment */
-			dep->de_linmem = 0;
 			dep->de_initf = ne_init;
 			dep->de_stopf = ne_stop;
 			return 1;
