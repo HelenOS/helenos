@@ -78,55 +78,6 @@ int do_probe(dpeth_t *dep)
 	return EOK;
 }
 
-void dp8390_dump(dpeth_t *dep)
-{
-//	dpeth_t *dep;
-	int /*i,*/ isr;
-
-//	printf("\n");
-//	for (i= 0, dep = &de_table[0]; i<DE_PORT_NR; i++, dep++)
-//	{
-#if XXX
-		if (dep->de_mode == DEM_DISABLED)
-			printf("dp8390 port %d is disabled\n", i);
-		else if (dep->de_mode == DEM_SINK)
-			printf("dp8390 port %d is in sink mode\n", i);
-#endif
-
-		if (dep->de_mode != DEM_ENABLED)
-//			continue;
-			return;
-
-//		printf("dp8390 statistics of port %d:\n", i);
-
-		printf("recvErr    :%8ld\t", dep->de_stat.ets_recvErr);
-		printf("sendErr    :%8ld\t", dep->de_stat.ets_sendErr);
-		printf("OVW        :%8ld\n", dep->de_stat.ets_OVW);
-
-		printf("CRCerr     :%8ld\t", dep->de_stat.ets_CRCerr);
-		printf("frameAll   :%8ld\t", dep->de_stat.ets_frameAll);
-		printf("missedP    :%8ld\n", dep->de_stat.ets_missedP);
-
-		printf("packetR    :%8ld\t", dep->de_stat.ets_packetR);
-		printf("packetT    :%8ld\t", dep->de_stat.ets_packetT);
-		printf("transDef   :%8ld\n", dep->de_stat.ets_transDef);
-
-		printf("collision  :%8ld\t", dep->de_stat.ets_collision);
-		printf("transAb    :%8ld\t", dep->de_stat.ets_transAb);
-		printf("carrSense  :%8ld\n", dep->de_stat.ets_carrSense);
-
-		printf("fifoUnder  :%8ld\t", dep->de_stat.ets_fifoUnder);
-		printf("fifoOver   :%8ld\t", dep->de_stat.ets_fifoOver);
-		printf("CDheartbeat:%8ld\n", dep->de_stat.ets_CDheartbeat);
-
-		printf("OWC        :%8ld\t", dep->de_stat.ets_OWC);
-
-		isr= inb_reg0(dep, DP_ISR);
-		printf("dp_isr = 0x%x + 0x%x, de_flags = 0x%x\n", isr,
-					inb_reg0(dep, DP_ISR), dep->de_flags);
-//	}
-}
-
 int do_init(dpeth_t *dep, int mode)
 {
 	if (dep->de_mode == DEM_DISABLED)
@@ -426,53 +377,59 @@ void dp_init(dpeth_t *dep)
 	}
 }
 
-static void dp_reinit(dep)
-dpeth_t *dep;
+static void dp_reinit(dpeth_t *dep)
 {
 	int dp_rcr_reg;
-
+	
 	outb_reg0(dep, DP_CR, CR_PS_P0 | CR_EXTRA);
-
+	
 	dp_rcr_reg = 0;
-	if (dep->de_flags &DEF_PROMISC)
+	
+	if (dep->de_flags & DEF_PROMISC)
 		dp_rcr_reg |= RCR_AB | RCR_PRO | RCR_AM;
-	if (dep->de_flags &DEF_BROAD)
+	
+	if (dep->de_flags & DEF_BROAD)
 		dp_rcr_reg |= RCR_AB;
-	if (dep->de_flags &DEF_MULTI)
+	
+	if (dep->de_flags & DEF_MULTI)
 		dp_rcr_reg |= RCR_AM;
+	
 	outb_reg0(dep, DP_RCR, dp_rcr_reg);
 }
 
-/*===========================================================================*
- *				dp_reset				     *
- *===========================================================================*/
-static void dp_reset(dep)
-dpeth_t *dep;
+static void dp_reset(dpeth_t *dep)
 {
 	int i;
-
+	
 	/* Stop chip */
 	outb_reg0(dep, DP_CR, CR_STP | CR_DM_ABORT);
 	outb_reg0(dep, DP_RBCR0, 0);
 	outb_reg0(dep, DP_RBCR1, 0);
-	for (i= 0; i < 0x1000 && ((inb_reg0(dep, DP_ISR) &ISR_RST) == 0); i++)
+	
+	for (i = 0; i < 0x1000 && ((inb_reg0(dep, DP_ISR) & ISR_RST) == 0); i++)
 		; /* Do nothing */
-	outb_reg0(dep, DP_TCR, TCR_1EXTERNAL|TCR_OFST);
-	outb_reg0(dep, DP_CR, CR_STA|CR_DM_ABORT);
+	
+	outb_reg0(dep, DP_TCR, TCR_1EXTERNAL | TCR_OFST);
+	outb_reg0(dep, DP_CR, CR_STA | CR_DM_ABORT);
 	outb_reg0(dep, DP_TCR, TCR_NORMAL);
-
-	/* Acknowledge the ISR_RDC (remote dma) interrupt. */
-	for (i= 0; i < 0x1000 && ((inb_reg0(dep, DP_ISR) &ISR_RDC) == 0); i++)
+	
+	/* Acknowledge the ISR_RDC (remote DMA) interrupt. */
+	for (i = 0; i < 0x1000 && ((inb_reg0(dep, DP_ISR) &ISR_RDC) == 0); i++)
 		; /* Do nothing */
-	outb_reg0(dep, DP_ISR, inb_reg0(dep, DP_ISR) &~ISR_RDC);
-
-	/* Reset the transmit ring. If we were transmitting a packet, we
+	
+	outb_reg0(dep, DP_ISR, inb_reg0(dep, DP_ISR) & ~ISR_RDC);
+	
+	/*
+	 * Reset the transmit ring. If we were transmitting a packet, we
 	 * pretend that the packet is processed. Higher layers will
 	 * retransmit if the packet wasn't actually sent.
 	 */
-	dep->de_sendq_head= dep->de_sendq_tail= 0;
-	for (i= 0; i<dep->de_sendq_nr; i++)
-		dep->de_sendq[i].sq_filled= 0;
+	dep->de_sendq_head = 0;
+	dep->de_sendq_tail = 0;
+	
+	for (i = 0; i < dep->de_sendq_nr; i++)
+		dep->de_sendq[i].sq_filled = 0;
+	
 	dp_send(dep);
 	dep->de_flags &= ~DEF_STOPPED;
 }
@@ -601,113 +558,85 @@ static void dp_recv(dpeth_t *dep)
 	vir_bytes length;
 	int packet_processed, r;
 	uint16_t eth_type;
-
+	
 	packet_processed = false;
 	pageno = inb_reg0(dep, DP_BNRY) + 1;
-	if (pageno == dep->de_stoppage) pageno = dep->de_startpage;
-
-	do
-	{
+	if (pageno == dep->de_stoppage)
+		pageno = dep->de_startpage;
+	
+	do {
 		outb_reg0(dep, DP_CR, CR_PS_P1 | CR_EXTRA);
 		curr = inb_reg1(dep, DP_CURR);
 		outb_reg0(dep, DP_CR, CR_PS_P0 | CR_EXTRA);
-
-		if (curr == pageno) break;
-
-		(dep->de_getblockf)(dep, pageno, (size_t)0, sizeof(header),
-			&header);
-		(dep->de_getblockf)(dep, pageno, sizeof(header) +
-			2*sizeof(ether_addr_t), sizeof(eth_type), &eth_type);
-
-		length = (header.dr_rbcl | (header.dr_rbch << 8)) -
-			sizeof(dp_rcvhdr_t);
+		
+		if (curr == pageno)
+			break;
+		
+		(dep->de_getblockf)(dep, pageno, (size_t) 0, sizeof(header), &header);
+		(dep->de_getblockf)(dep, pageno, sizeof(header) + 2 * sizeof(ether_addr_t), sizeof(eth_type), &eth_type);
+		
+		length = (header.dr_rbcl | (header.dr_rbch << 8)) - sizeof(dp_rcvhdr_t);
 		next = header.dr_next;
-		if (length < ETH_MIN_PACK_SIZE ||
-			length > ETH_MAX_PACK_SIZE_TAGGED)
-		{
-			printf("%s: packet with strange length arrived: %d\n",
-				dep->de_name, (int) length);
+		if ((length < ETH_MIN_PACK_SIZE) || (length > ETH_MAX_PACK_SIZE_TAGGED)) {
+			printf("%s: packet with strange length arrived: %d\n", dep->de_name, (int) length);
 			next= curr;
-		}
-		else if (next < dep->de_startpage || next >= dep->de_stoppage)
-		{
+		} else if ((next < dep->de_startpage) || (next >= dep->de_stoppage)) {
 			printf("%s: strange next page\n", dep->de_name);
 			next= curr;
-		}
-/*		else if (eth_type == eth_ign_proto)
-		{
-*/			/* Hack: ignore packets of a given protocol, useful
-			 * if you share a net with 80 computers sending
-			 * Amoeba FLIP broadcasts.  (Protocol 0x8146.)
+		} else if (header.dr_status & RSR_FO) {
+			/*
+			 * This is very serious, so we issue a warning and
+			 * reset the buffers
 			 */
-/*			static int first= 1;
-			if (first)
-			{
-				first= 0;
-				printf("%s: dropping proto 0x%04x packets\n",
-					dep->de_name,
-					ntohs(eth_ign_proto));
-			}
-			dep->de_stat.ets_packetR++;
-		}
-*/		else if (header.dr_status &RSR_FO)
-		{
-			/* This is very serious, so we issue a warning and
-			 * reset the buffers */
-			printf("%s: fifo overrun, resetting receive buffer\n",
-				dep->de_name);
+			printf("%s: fifo overrun, resetting receive buffer\n", dep->de_name);
 			dep->de_stat.ets_fifoOver++;
 			next = curr;
-		}
-		else if ((header.dr_status &RSR_PRX) && 
-					   (dep->de_flags &DEF_ENABLED))
-		{
-//			if (dep->de_safecopy_read)
-//				r = dp_pkt2user_s(dep, pageno, length);
-//			else
-				r = dp_pkt2user(dep, pageno, length);
+		} else if ((header.dr_status & RSR_PRX) && (dep->de_flags & DEF_ENABLED)) {
+			r = dp_pkt2user(dep, pageno, length);
 			if (r != EOK)
 				return;
-
+			
 			packet_processed = true;
 			dep->de_stat.ets_packetR++;
 		}
+		
 		if (next == dep->de_startpage)
 			outb_reg0(dep, DP_BNRY, dep->de_stoppage - 1);
 		else
 			outb_reg0(dep, DP_BNRY, next - 1);
-
+		
 		pageno = next;
-	}
-	while (!packet_processed);
+	} while (!packet_processed);
 }
 
-/*===========================================================================*
- *				dp_send					     *
- *===========================================================================*/
-static void dp_send(dep)
-dpeth_t *dep;
+static void dp_send(dpeth_t *dep)
 {
 	packet_t *packet;
-
+	
 //	if (!(dep->de_flags &DEF_SEND_AVAIL))
 //		return;
-
-	if(dep->packet_queue){
+	
+	if (dep->packet_queue) {
 		packet = dep->packet_queue;
 		dep->packet_queue = pq_detach(packet);
 		do_pwrite(dep, packet, true);
 		netif_pq_release(packet_get_id(packet));
-		-- dep->packet_count;
+		--dep->packet_count;
 	}
-//	if(! dep->packet_queue){
+	
+//	if (!dep->packet_queue)
 //		dep->de_flags &= ~DEF_SEND_AVAIL;
-//	}
-/*	switch(dep->de_sendmsg.m_type)
-	{
-	case DL_WRITE:	do_vwrite(&dep->de_sendmsg, true, false);	break;
-	case DL_WRITEV:	do_vwrite(&dep->de_sendmsg, true, true);	break;
-	case DL_WRITEV_S: do_vwrite_s(&dep->de_sendmsg, true);	break;
+	
+/*	switch (dep->de_sendmsg.m_type) {
+	case DL_WRITE:
+		do_vwrite(&dep->de_sendmsg, true, false);
+		break;
+	case DL_WRITEV:
+		do_vwrite(&dep->de_sendmsg, true, true);
+		break;
+	case DL_WRITEV_S:
+		do_vwrite_s(&dep->de_sendmsg, true);
+		break;
 	default:
 		fprintf(stderr, "dp8390: wrong type\n");
 		break;
@@ -715,15 +644,7 @@ dpeth_t *dep;
 */
 }
 
-/*===========================================================================*
- *				dp_pio8_getblock			     *
- *===========================================================================*/
-static void dp_pio8_getblock(dep, page, offset, size, dst)
-dpeth_t *dep;
-int page;
-size_t offset;
-size_t size;
-void *dst;
+static void dp_pio8_getblock(dpeth_t *dep, int page, size_t offset, size_t size, void *dst)
 {
 	offset = page * DP_PAGESIZE + offset;
 	outb_reg0(dep, DP_RBCR0, size &0xFF);
@@ -731,19 +652,11 @@ void *dst;
 	outb_reg0(dep, DP_RSAR0, offset &0xFF);
 	outb_reg0(dep, DP_RSAR1, offset >> 8);
 	outb_reg0(dep, DP_CR, CR_DM_RR | CR_PS_P0 | CR_STA);
-
+	
 	insb(dep->de_data_port, dst, size);
 }
 
-/*===========================================================================*
- *				dp_pio16_getblock			     *
- *===========================================================================*/
-static void dp_pio16_getblock(dep, page, offset, size, dst)
-dpeth_t *dep;
-int page;
-size_t offset;
-size_t size;
-void *dst;
+static void dp_pio16_getblock(dpeth_t *dep, int page, size_t offset, size_t size, void *dst)
 {
 	offset = page * DP_PAGESIZE + offset;
 	outb_reg0(dep, DP_RBCR0, size &0xFF);
@@ -751,78 +664,62 @@ void *dst;
 	outb_reg0(dep, DP_RSAR0, offset &0xFF);
 	outb_reg0(dep, DP_RSAR1, offset >> 8);
 	outb_reg0(dep, DP_CR, CR_DM_RR | CR_PS_P0 | CR_STA);
-
-	assert (!(size &1));
+	
+	assert(!(size & 1));
+	
 	insw(dep->de_data_port, dst, size);
 }
 
-/*===========================================================================*
- *				dp_pkt2user				     *
- *===========================================================================*/
-static int dp_pkt2user(dep, page, length)
-dpeth_t *dep;
-int page, length;
+static int dp_pkt2user(dpeth_t *dep, int page, int length)
 {
 	int last, count;
 	packet_t *packet;
-
-//	if (!(dep->de_flags &DEF_READING))
+	
+//	if (!(dep->de_flags & DEF_READING))
 //		return EGENERIC;
-
+	
 	packet = netif_packet_get_1(length);
-	if(! packet){
+	if (!packet)
 		return ENOMEM;
-	}
+	
 	dep->de_read_iovec.iod_iovec[0].iov_addr = (vir_bytes) packet_suffix(packet, length);
 	dep->de_read_iovec.iod_iovec[0].iov_size = length;
 	dep->de_read_iovec.iod_iovec_s = 1;
 	dep->de_read_iovec.iod_iovec_addr = (uintptr_t) NULL;
-
+	
 	last = page + (length - 1) / DP_PAGESIZE;
-	if (last >= dep->de_stoppage)
-	{
-		count = (dep->de_stoppage - page) * DP_PAGESIZE -
-			sizeof(dp_rcvhdr_t);
-
+	if (last >= dep->de_stoppage) {
+		count = (dep->de_stoppage - page) * DP_PAGESIZE - sizeof(dp_rcvhdr_t);
+		
 		/* Save read_iovec since we need it twice. */
 		dep->de_tmp_iovec = dep->de_read_iovec;
 		(dep->de_nic2userf)(dep, page * DP_PAGESIZE +
-			sizeof(dp_rcvhdr_t), &dep->de_tmp_iovec, 0, count);
-		(dep->de_nic2userf)(dep, dep->de_startpage * DP_PAGESIZE, 
-			&dep->de_read_iovec, count, length - count);
-	}
-	else
-	{
+		    sizeof(dp_rcvhdr_t), &dep->de_tmp_iovec, 0, count);
+		(dep->de_nic2userf)(dep, dep->de_startpage * DP_PAGESIZE,
+		    &dep->de_read_iovec, count, length - count);
+	} else {
 		(dep->de_nic2userf)(dep, page * DP_PAGESIZE +
-			sizeof(dp_rcvhdr_t), &dep->de_read_iovec, 0, length);
+		    sizeof(dp_rcvhdr_t), &dep->de_read_iovec, 0, length);
 	}
-
+	
 	dep->de_read_s = length;
 	dep->de_flags |= DEF_PACK_RECV;
 //	dep->de_flags &= ~DEF_READING;
-
-	if(dep->received_count >= MAX_PACKETS){
+	
+	if (dep->received_count >= MAX_PACKETS) {
 		netif_pq_release(packet_get_id(packet));
 		return ELIMIT;
-	}else{
-		if(pq_add(&dep->received_queue, packet, 0, 0) == EOK){
-			++ dep->received_count;
-		}else{
+	} else {
+		if (pq_add(&dep->received_queue, packet, 0, 0) == EOK)
+			++dep->received_count;
+		else
 			netif_pq_release(packet_get_id(packet));
-		}
 	}
+	
 	return EOK;
 }
 
-/*===========================================================================*
- *				dp_pio8_user2nic			     *
- *===========================================================================*/
-static void dp_pio8_user2nic(dep, iovp, offset, nic_addr, count)
-dpeth_t *dep;
-iovec_dat_t *iovp;
-vir_bytes offset;
-int nic_addr;
-vir_bytes count;
+static void dp_pio8_user2nic(dpeth_t *dep, iovec_dat_t *iovp, vir_bytes offset, int nic_addr, vir_bytes count)
 {
 //	phys_bytes phys_user;
 	int i;

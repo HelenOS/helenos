@@ -72,11 +72,6 @@ int do_probe(dpeth_t * dep);
  */
 int do_pwrite(dpeth_t * dep, packet_t *packet, int from_int);
 
-/** Prints out network interface information.
- *  @param[in] dep The network interface structure.
- */
-void dp8390_dump(dpeth_t * dep);
-
 #endif
 
 /** @}
