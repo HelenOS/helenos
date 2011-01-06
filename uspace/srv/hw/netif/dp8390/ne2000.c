@@ -205,10 +205,10 @@ void ne_init(dpeth_t *dep)
 	dep->de_startpage = dep->de_offset_page + i * SENDQ_PAGES;
 	dep->de_stoppage = dep->de_offset_page + dep->de_ramsize / DP_PAGESIZE;
 	
-	printf("%s: Novell NE%d000 ethernet card at I/O address "
+	printf("Novell NE%d000 ethernet card at I/O address "
 	    "%#lx, memory size %#lx, irq %d\n",
-	    dep->de_name, dep->de_16bit ? 2 : 1,
-	    dep->de_base_port, dep->de_ramsize, dep->de_irq);
+	    dep->de_16bit ? 2 : 1, dep->de_base_port, dep->de_ramsize,
+	    dep->de_irq);
 }
 
 static int test_8(dpeth_t *dep, int pos, uint8_t *pat)
@@ -234,7 +234,7 @@ static int test_8(dpeth_t *dep, int pos, uint8_t *pat)
 	}
 	
 	if (i == N) {
-		printf("%s: NE1000 remote DMA test failed\n", dep->de_name);
+		printf("NE1000 remote DMA test failed\n");
 		return 0;
 	}
 	
@@ -273,7 +273,7 @@ static int test_16(dpeth_t *dep, int pos, uint8_t *pat)
 	}
 	
 	if (i == N) {
-		printf("%s: NE2000 remote DMA test failed\n", dep->de_name);
+		printf("NE2000 remote DMA test failed\n");
 		return 0;
 	}
 	

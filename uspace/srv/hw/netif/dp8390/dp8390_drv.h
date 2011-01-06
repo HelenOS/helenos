@@ -39,13 +39,7 @@
 
 #include "dp8390.h"
 
-/** Initializes and/or starts the network interface.
- *  @param[in,out] dep The network interface structure.
- *  @param[in] mode The state mode.
- *  @returns EOK on success.
- *  @returns EXDEV if the network interface is disabled.
- */
-int do_init(dpeth_t *dep, int mode);
+int do_init(dpeth_t *dep);
 
 /** Stops the network interface.
  *  @param[in,out] dep The network interface structure.

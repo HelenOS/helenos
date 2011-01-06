@@ -101,35 +101,32 @@ int do_probe(dpeth_t *dep)
 {
 	/* This is the default, try to (re)locate the device. */
 	conf_hw(dep);
-	if (dep->de_mode == DEM_DISABLED)
+	if (!dep->up)
 		/* Probe failed, or the device is configured off. */
 		return EXDEV;
 	
-	if (dep->de_mode == DEM_ENABLED)
+	if (dep->up)
 		dp_init(dep);
 	
 	return EOK;
 }
 
-int do_init(dpeth_t *dep, int mode)
+/** Initialize and/or start the network interface.
+ *
+ *  @param[in,out] dep The network interface structure.
+ *
+ *  @return EOK on success.
+ *  @return EXDEV if the network interface is disabled.
+ *
+ */
+int do_init(dpeth_t *dep)
 {
-	if (dep->de_mode == DEM_DISABLED)
+	if (!dep->up)
 		/* FIXME: Perhaps call do_probe()? */
 		return EXDEV;
 	
-	assert(dep->de_mode == DEM_ENABLED);
-	assert(dep->de_flags & DEF_ENABLED);
-	
-	dep->de_flags &= ~(DEF_PROMISC | DEF_MULTI | DEF_BROAD);
-	
-	if (mode &DL_PROMISC_REQ)
-		dep->de_flags |= DEF_PROMISC | DEF_MULTI | DEF_BROAD;
-	
-	if (mode &DL_MULTI_REQ)
-		dep->de_flags |= DEF_MULTI;
-	
-	if (mode &DL_BROAD_REQ)
-		dep->de_flags |= DEF_BROAD;
+	assert(dep->up);
+	assert(dep->enabled);
 	
 	dp_reinit(dep);
 	return EOK;
@@ -137,10 +134,11 @@ int do_init(dpeth_t *dep, int mode)
 
 void do_stop(dpeth_t *dep)
 {
-	if ((dep->de_mode == DEM_ENABLED)
-	    && (dep->de_flags & DEF_ENABLED)) {
+	if ((dep->up) && (dep->enabled)) {
 		outb_reg0(dep, DP_CR, CR_STP | CR_DM_ABORT);
 		(dep->de_stopf)(dep);
+		dep->enabled = false;
+		dep->stopped = false;
 		dep->sending = false;
 		dep->send_avail = false;
 	}
@@ -151,8 +149,8 @@ int do_pwrite(dpeth_t *dep, packet_t *packet, int from_int)
 	int size;
 	int sendq_head;
 	
-	assert(dep->de_mode == DEM_ENABLED);
-	assert(dep->de_flags & DEF_ENABLED);
+	assert(dep->up);
+	assert(dep->enabled);
 	
 	if (dep->send_avail) {
 		fprintf(stderr, "Send already in progress\n");
@@ -212,11 +210,13 @@ void dp_init(dpeth_t *dep)
 	int i;
 	
 	/* General initialization */
+	dep->enabled = false;
+	dep->stopped = false;
 	dep->sending = false;
 	dep->send_avail = false;
 	(*dep->de_initf)(dep);
 	
-	printf("%s: Ethernet address ", dep->de_name);
+	printf("Ethernet address ");
 	for (i = 0; i < 6; i++)
 		printf("%x%c", dep->de_address.ea_addr[i], i < 5 ? ':' : '\n');
 	
@@ -240,16 +240,7 @@ void dp_init(dpeth_t *dep)
 	outb_reg0(dep, DP_RBCR1, 0);
 	
 	/* Step 4: */
-	dp_rcr_reg = 0;
-	
-	if (dep->de_flags & DEF_PROMISC)
-		dp_rcr_reg |= RCR_AB | RCR_PRO | RCR_AM;
-	
-	if (dep->de_flags & DEF_BROAD)
-		dp_rcr_reg |= RCR_AB;
-	
-	if (dep->de_flags & DEF_MULTI)
-		dp_rcr_reg |= RCR_AM;
+	dp_rcr_reg = RCR_AB;  /* Enable broadcasts */
 	
 	outb_reg0(dep, DP_RCR, dp_rcr_reg);
 	
@@ -300,7 +291,7 @@ void dp_init(dpeth_t *dep)
 	inb_reg0(dep, DP_CNTR2);
 	
 	/* Finish the initialization. */
-	dep->de_flags |= DEF_ENABLED;
+	dep->enabled = true;
 	for (i = 0; i < dep->de_sendq_nr; i++)
 		dep->de_sendq[i].sq_filled= 0;
 	
@@ -324,16 +315,8 @@ static void dp_reinit(dpeth_t *dep)
 	
 	outb_reg0(dep, DP_CR, CR_PS_P0 | CR_EXTRA);
 	
-	dp_rcr_reg = 0;
-	
-	if (dep->de_flags & DEF_PROMISC)
-		dp_rcr_reg |= RCR_AB | RCR_PRO | RCR_AM;
-	
-	if (dep->de_flags & DEF_BROAD)
-		dp_rcr_reg |= RCR_AB;
-	
-	if (dep->de_flags & DEF_MULTI)
-		dp_rcr_reg |= RCR_AM;
+	/* Enable broadcasts */
+	dp_rcr_reg = RCR_AB;
 	
 	outb_reg0(dep, DP_RCR, dp_rcr_reg);
 }
@@ -372,7 +355,7 @@ static void dp_reset(dpeth_t *dep)
 		dep->de_sendq[i].sq_filled = 0;
 	
 	dep->send_avail = false;
-	dep->de_flags &= ~DEF_STOPPED;
+	dep->stopped = false;
 }
 
 static uint8_t isr_acknowledge(dpeth_t *dep)
@@ -388,9 +371,6 @@ void dp_check_ints(int nil_phone, device_id_t device_id, dpeth_t *dep, uint8_t i
 {
 	int tsr;
 	int size, sendq_tail;
-	
-	if (!(dep->de_flags & DEF_ENABLED))
-		fprintf(stderr, "dp8390: got premature interrupt\n");
 	
 	for (; (isr & 0x7f) != 0; isr = isr_acknowledge(dep)) {
 		if (isr & (ISR_PTX | ISR_TXE)) {
@@ -412,10 +392,10 @@ void dp_check_ints(int nil_phone, device_id_t device_id, dpeth_t *dep, uint8_t i
 					dep->de_stat.ets_carrSense++;
 				
 				if ((tsr & TSR_FU) && (++dep->de_stat.ets_fifoUnder <= 10))
-					printf("%s: fifo underrun\n", dep->de_name);
+					printf("FIFO underrun\n");
 				
 				if ((tsr & TSR_CDH) && (++dep->de_stat.ets_CDheartbeat <= 10))
-					printf("%s: CD heart beat failure\n", dep->de_name);
+					printf("CD heart beat failure\n");
 				
 				if (tsr & TSR_OWC)
 					dep->de_stat.ets_OWC++;
@@ -424,8 +404,7 @@ void dp_check_ints(int nil_phone, device_id_t device_id, dpeth_t *dep, uint8_t i
 			sendq_tail = dep->de_sendq_tail;
 			
 			if (!(dep->de_sendq[sendq_tail].sq_filled)) {
-				/* Or hardware bug? */
-				printf("%s: transmit interrupt, but not sending\n", dep->de_name);
+				printf("PTX interrupt, but no frame to send\n");
 				continue;
 			}
 			
@@ -469,20 +448,20 @@ void dp_check_ints(int nil_phone, device_id_t device_id, dpeth_t *dep, uint8_t i
 		
 		if (isr & ISR_RST) {
 			/*
-			 * This means we got an interrupt but the ethernet 
-			 * chip is shutdown. We set the flag DEF_STOPPED,
+			 * This means we got an interrupt but the ethernet
+			 * chip is shutdown. We set the flag 'stopped'
 			 * and continue processing arrived packets. When the
 			 * receive buffer is empty, we reset the dp8390.
 			 */
-			dep->de_flags |= DEF_STOPPED;
+			dep->stopped = true;
 			break;
 		}
 	}
 	
-	if ((dep->de_flags & DEF_STOPPED) == DEF_STOPPED) {
+	if (dep->stopped) {
 		/*
-		 * The chip is stopped, and all arrived packets
-		 * are delivered.
+		 * The chip is stopped, and all arrived
+		 * frames are delivered.
 		 */
 		dp_reset(dep);
 	}
@@ -517,20 +496,20 @@ static void dp_recv(int nil_phone, device_id_t device_id, dpeth_t *dep)
 		length = (header.dr_rbcl | (header.dr_rbch << 8)) - sizeof(dp_rcvhdr_t);
 		next = header.dr_next;
 		if ((length < ETH_MIN_PACK_SIZE) || (length > ETH_MAX_PACK_SIZE_TAGGED)) {
-			printf("%s: packet with strange length arrived: %d\n", dep->de_name, (int) length);
+			printf("Packet with strange length arrived: %zu\n", length);
 			next= curr;
 		} else if ((next < dep->de_startpage) || (next >= dep->de_stoppage)) {
-			printf("%s: strange next page\n", dep->de_name);
+			printf("Strange next page\n");
 			next= curr;
 		} else if (header.dr_status & RSR_FO) {
 			/*
 			 * This is very serious, so we issue a warning and
 			 * reset the buffers
 			 */
-			printf("%s: fifo overrun, resetting receive buffer\n", dep->de_name);
+			printf("FIFO overrun, resetting receive buffer\n");
 			dep->de_stat.ets_fifoOver++;
 			next = curr;
-		} else if ((header.dr_status & RSR_PRX) && (dep->de_flags & DEF_ENABLED)) {
+		} else if ((header.dr_status & RSR_PRX) && (dep->enabled)) {
 			r = dp_pkt2user(nil_phone, device_id, dep, pageno, length);
 			if (r != EOK)
 				return;
@@ -709,13 +688,14 @@ static void dp_pio16_nic2user(dpeth_t *dep, int nic_addr, void *buf, size_t offs
 static void conf_hw(dpeth_t *dep)
 {
 	if (!ne_probe(dep)) {
-		printf("%s: No ethernet card found at %#lx\n",
-		    dep->de_name, dep->de_base_port);
-		dep->de_mode= DEM_DISABLED;
+		printf("No ethernet card found at %#lx\n", dep->de_base_port);
+		dep->up = false;
 		return;
 	}
 	
-	dep->de_mode = DEM_ENABLED;
+	dep->up = true;
+	dep->enabled = false;
+	dep->stopped = false;
 	dep->sending = false;
 	dep->send_avail = false;
 }

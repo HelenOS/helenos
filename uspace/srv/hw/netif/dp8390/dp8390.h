@@ -88,21 +88,21 @@
 #define DP_IMR     0x0f  /**< Interrupt Mask Register */
 
 /** Page 1, read/write */
-#define	DP_PAR0		0x1	/* Physical Address Register 0       */
-#define	DP_PAR1		0x2	/* Physical Address Register 1       */
-#define	DP_PAR2		0x3	/* Physical Address Register 2       */
-#define	DP_PAR3		0x4	/* Physical Address Register 3       */
-#define	DP_PAR4		0x5	/* Physical Address Register 4       */
-#define	DP_PAR5		0x6	/* Physical Address Register 5       */
-#define	DP_CURR		0x7	/* Current Page Register             */
-#define	DP_MAR0		0x8	/* Multicast Address Register 0      */
-#define	DP_MAR1		0x9	/* Multicast Address Register 1      */
-#define	DP_MAR2		0xA	/* Multicast Address Register 2      */
-#define	DP_MAR3		0xB	/* Multicast Address Register 3      */
-#define	DP_MAR4		0xC	/* Multicast Address Register 4      */
-#define	DP_MAR5		0xD	/* Multicast Address Register 5      */
-#define	DP_MAR6		0xE	/* Multicast Address Register 6      */
-#define	DP_MAR7		0xF	/* Multicast Address Register 7      */
+#define DP_PAR0  0x01  /**< Physical Address Register 0 */
+#define DP_PAR1  0x02  /**< Physical Address Register 1 */
+#define DP_PAR2  0x03  /**< Physical Address Register 2 */
+#define DP_PAR3  0x04  /**< Physical Address Register 3 */
+#define DP_PAR4  0x05  /**< Physical Address Register 4 */
+#define DP_PAR5  0x06  /**< Physical Address Register 5 */
+#define DP_CURR  0x07  /**< Current Page Register */
+#define DP_MAR0  0x08  /**< Multicast Address Register 0 */
+#define DP_MAR1  0x09  /**< Multicast Address Register 1 */
+#define DP_MAR2  0x0a  /**< Multicast Address Register 2 */
+#define DP_MAR3  0x0b  /**< Multicast Address Register 3 */
+#define DP_MAR4  0x0c  /**< Multicast Address Register 4 */
+#define DP_MAR5  0x0d  /**< Multicast Address Register 5 */
+#define DP_MAR6  0x0e  /**< Multicast Address Register 6 */
+#define DP_MAR7  0x0f  /**< Multicast Address Register 7 */
 
 /* Bits in dp_cr */
 #define CR_STP		0x01	/* Stop: software reset              */
@@ -270,7 +270,6 @@ typedef struct dpeth {
 	int de_irq;
 	dp_initf_t de_initf;
 	dp_stopf_t de_stopf;
-	char de_name[sizeof("dp8390#n")];
 	
 	/*
 	 * The initf function fills the following fields. Only cards that do
@@ -299,26 +298,18 @@ typedef struct dpeth {
 	int de_sendq_tail;  /* Dequeue at the tail */
 	
 	/* Fields for internal use by the dp8390 driver. */
-	int de_flags;
-	int de_mode;
 	eth_stat_t de_stat;
 	dp_user2nicf_t de_user2nicf;
 	dp_nic2userf_t de_nic2userf;
 	dp_getblock_t de_getblockf;
 	
 	/* Driver flags */
+	bool up;
+	bool enabled;
+	bool stopped;
 	bool sending;
 	bool send_avail;
 } dpeth_t;
-
-#define DEF_PROMISC     0x040
-#define DEF_MULTI       0x080
-#define DEF_BROAD       0x100
-#define DEF_ENABLED     0x200
-#define DEF_STOPPED     0x400
-
-#define DEM_DISABLED  0x0
-#define DEM_ENABLED   0x2
 
 #endif
 

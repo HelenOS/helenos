@@ -77,12 +77,6 @@
  */
 #define outw(port, value)  pio_write_16((ioport16_t *) (port), (value))
 
-/* Bits in 'DL_MODE' field of DL requests. */
-#define DL_NOMODE       0x0
-#define DL_PROMISC_REQ  0x2
-#define DL_MULTI_REQ    0x4
-#define DL_BROAD_REQ    0x8
-
 /** Type definition of a port.
  */
 typedef long port_t;
