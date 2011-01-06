@@ -80,16 +80,6 @@ static int test_8(dpeth_t *dep, int pos, uint8_t *pat);
  */
 static int test_16(dpeth_t *dep, int pos, uint8_t *pat);
 
-/** Stops the NE2000 network interface.
- *  @param[in,out] dep The network interface structure.
- */
-static void ne_stop(dpeth_t *dep);
-
-/** Initializes the NE2000 network interface.
- *  @param[in,out] dep The network interface structure.
- */
-void ne_init(struct dpeth *dep);
-
 int ne_probe(dpeth_t *dep)
 {
 	int byte;
@@ -135,21 +125,19 @@ int ne_probe(dpeth_t *dep)
 		}
 		
 		if (dep->de_16bit) {
-			loc1= NE2000_START;
-			loc2= NE2000_START + NE2000_SIZE - 4;
-			f= test_16;
+			loc1 = NE2000_START;
+			loc2 = NE2000_START + NE2000_SIZE - 4;
+			f = test_16;
 		} else {
-			loc1= NE1000_START;
-			loc2= NE1000_START + NE1000_SIZE - 4;
-			f= test_8;
+			loc1 = NE1000_START;
+			loc2 = NE1000_START + NE1000_SIZE - 4;
+			f = test_8;
 		}
 		
 		if (f(dep, loc1, pat0) && f(dep, loc1, pat1) &&
 		    f(dep, loc1, pat2) && f(dep, loc1, pat3) &&
 		    f(dep, loc2, pat0) && f(dep, loc2, pat1) &&
 		    f(dep, loc2, pat2) && f(dep, loc2, pat3)) {
-			dep->de_initf = ne_init;
-			dep->de_stopf = ne_stop;
 			return 1;
 		}
 	}
@@ -157,6 +145,11 @@ int ne_probe(dpeth_t *dep)
 	return 0;
 }
 
+/** Initializes the NE2000 network interface.
+ *
+ *  @param[in,out] dep The network interface structure.
+ *
+ */
 void ne_init(dpeth_t *dep)
 {
 	int i;
@@ -289,7 +282,12 @@ static int test_16(dpeth_t *dep, int pos, uint8_t *pat)
 	return (memcmp(buf, pat, 4) == 0);
 }
 
-static void ne_stop(dpeth_t *dep)
+/** Stop the NE2000 network interface.
+ *
+ *  @param[in,out] dep The network interface structure.
+ *
+ */
+void ne_stop(dpeth_t *dep)
 {
 	/* Reset the ethernet card */
 	int byte = inb_ne(dep, NE_RESET);

@@ -109,7 +109,9 @@
 
 struct dpeth;
 
-int ne_probe(struct dpeth *dep);
+extern int ne_probe(struct dpeth *);
+extern void ne_init(struct dpeth *);
+extern void ne_stop(struct dpeth *);
 
 #endif
 

@@ -244,16 +244,6 @@ typedef struct dp_rcvhdr {
  */
 #define outb_reg1(dep, reg, data)  (outb(dep->de_dp8390_port + reg, data))
 
-/* Software interface to the dp8390 driver */
-
-struct dpeth;
-
-typedef void (*dp_initf_t)(struct dpeth *dep);
-typedef void (*dp_stopf_t)(struct dpeth *dep);
-typedef void (*dp_user2nicf_t)(struct dpeth *dep, void *buf, size_t offset, int nic_addr, size_t size);
-typedef void (*dp_nic2userf_t)(struct dpeth *dep, int nic_addr, void *buf, size_t offset, size_t size);
-typedef void (*dp_getblock_t)(struct dpeth *dep, int page, size_t offset, size_t size, void *dst);
-
 #define SENDQ_NR     2  /* Maximum size of the send queue */
 #define SENDQ_PAGES  6  /* 6 * DP_PAGESIZE >= 1514 bytes */
 
@@ -263,20 +253,10 @@ typedef struct dpeth {
 	 * The conf routine also fills de_irq. If the probe
 	 * routine knows the irq and/or memory address because they are
 	 * hardwired in the board, the probe should modify these fields.
-	 * Futhermore, the probe routine should also fill in de_initf and
-	 * de_stopf fields with the appropriate function pointers.
 	 */
 	port_t de_base_port;
 	int de_irq;
-	dp_initf_t de_initf;
-	dp_stopf_t de_stopf;
 	
-	/*
-	 * The initf function fills the following fields. Only cards that do
-	 * programmed I/O fill in the de_pata_port field.
-	 * In addition, the init routine has to fill in the sendq data
-	 * structures.
-	 */
 	ether_addr_t de_address;
 	port_t de_dp8390_port;
 	port_t de_data_port;
@@ -299,9 +279,6 @@ typedef struct dpeth {
 	
 	/* Fields for internal use by the dp8390 driver. */
 	eth_stat_t de_stat;
-	dp_user2nicf_t de_user2nicf;
-	dp_nic2userf_t de_nic2userf;
-	dp_getblock_t de_getblockf;
 	
 	/* Driver flags */
 	bool up;

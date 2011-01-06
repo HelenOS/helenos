@@ -86,13 +86,7 @@ static void dp_init(dpeth_t *dep);
 static void dp_reinit(dpeth_t *dep);
 static void dp_reset(dpeth_t *dep);
 static void dp_recv(int nil_phone, device_id_t device_id, dpeth_t *dep);
-static void dp_pio8_getblock(dpeth_t *dep, int page, size_t offset, size_t size, void *dst);
-static void dp_pio16_getblock(dpeth_t *dep, int page, size_t offset, size_t size, void *dst);
 static int dp_pkt2user(int nil_phone, device_id_t device_id, dpeth_t *dep, int page, int length);
-static void dp_pio8_user2nic(dpeth_t *dep, void *buf, size_t offset, int nic_addr, size_t size);
-static void dp_pio16_user2nic(dpeth_t *dep, void *buf, size_t offset, int nic_addr, size_t size);
-static void dp_pio8_nic2user(dpeth_t *dep, int nic_addr, void *buf, size_t offset, size_t size);
-static void dp_pio16_nic2user(dpeth_t *dep, int nic_addr, void *buf, size_t offset, size_t size);
 static void conf_hw(dpeth_t *dep);
 static void insb(port_t port, void *buf, size_t size);
 static void insw(port_t port, void *buf, size_t size);
@@ -136,12 +130,62 @@ void do_stop(dpeth_t *dep)
 {
 	if ((dep->up) && (dep->enabled)) {
 		outb_reg0(dep, DP_CR, CR_STP | CR_DM_ABORT);
-		(dep->de_stopf)(dep);
+		ne_stop(dep);
+		
 		dep->enabled = false;
 		dep->stopped = false;
 		dep->sending = false;
 		dep->send_avail = false;
 	}
+}
+
+static void dp_user2nic(dpeth_t *dep, void *buf, size_t offset, int nic_addr, size_t size)
+{
+	size_t ecount = size & ~1;
+	
+	outb_reg0(dep, DP_ISR, ISR_RDC);
+	
+	if (dep->de_16bit) {
+		outb_reg0(dep, DP_RBCR0, ecount & 0xff);
+		outb_reg0(dep, DP_RBCR1, ecount >> 8);
+	} else {
+		outb_reg0(dep, DP_RBCR0, size & 0xff);
+		outb_reg0(dep, DP_RBCR1, size >> 8);
+	}
+	
+	outb_reg0(dep, DP_RSAR0, nic_addr & 0xff);
+	outb_reg0(dep, DP_RSAR1, nic_addr >> 8);
+	outb_reg0(dep, DP_CR, CR_DM_RW | CR_PS_P0 | CR_STA);
+	
+	if (dep->de_16bit) {
+		void *ptr = buf + offset;
+		
+		if (ecount != 0) {
+			outsw(dep->de_data_port, ptr, ecount);
+			size -= ecount;
+			offset += ecount;
+			ptr += ecount;
+		}
+		
+		if (size) {
+			assert(size == 1);
+			
+			uint16_t two_bytes;
+			
+			memcpy(&(((uint8_t *) &two_bytes)[0]), ptr, 1);
+			outw(dep->de_data_port, two_bytes);
+		}
+	} else
+		outsb(dep->de_data_port, buf + offset, size);
+	
+	unsigned int i;
+	for (i = 0; i < 100; i++) {
+		if (inb_reg0(dep, DP_ISR) & ISR_RDC)
+			break;
+	}
+	
+	if (i == 100)
+		fprintf(stderr, "Remote DMA failed to complete\n");
 }
 
 int do_pwrite(dpeth_t *dep, packet_t *packet, int from_int)
@@ -177,8 +221,8 @@ int do_pwrite(dpeth_t *dep, packet_t *packet, int from_int)
 		return EINVAL;
 	}
 	
-	(dep->de_user2nicf)(dep, buf, 0,
-	    dep->de_sendq[sendq_head].sq_sendpage * DP_PAGESIZE, size);
+	dp_user2nic(dep, buf, 0, dep->de_sendq[sendq_head].sq_sendpage
+	    * DP_PAGESIZE, size);
 	dep->de_sendq[sendq_head].sq_filled = true;
 	
 	if (dep->de_sendq_tail == sendq_head) {
@@ -214,7 +258,7 @@ void dp_init(dpeth_t *dep)
 	dep->stopped = false;
 	dep->sending = false;
 	dep->send_avail = false;
-	(*dep->de_initf)(dep);
+	ne_init(dep);
 	
 	printf("Ethernet address ");
 	for (i = 0; i < 6; i++)
@@ -297,16 +341,6 @@ void dp_init(dpeth_t *dep)
 	
 	dep->de_sendq_head = 0;
 	dep->de_sendq_tail = 0;
-	
-	if (dep->de_16bit) {
-		dep->de_user2nicf= dp_pio16_user2nic;
-		dep->de_nic2userf= dp_pio16_nic2user;
-		dep->de_getblockf= dp_pio16_getblock;
-	} else {
-		dep->de_user2nicf= dp_pio8_user2nic;
-		dep->de_nic2userf= dp_pio8_nic2user;
-		dep->de_getblockf= dp_pio8_getblock;
-	}
 }
 
 static void dp_reinit(dpeth_t *dep)
@@ -469,6 +503,23 @@ void dp_check_ints(int nil_phone, device_id_t device_id, dpeth_t *dep, uint8_t i
 	dep->sending = false;
 }
 
+static void dp_getblock(dpeth_t *dep, int page, size_t offset, size_t size, void *dst)
+{
+	offset = page * DP_PAGESIZE + offset;
+	
+	outb_reg0(dep, DP_RBCR0, size & 0xff);
+	outb_reg0(dep, DP_RBCR1, size >> 8);
+	outb_reg0(dep, DP_RSAR0, offset & 0xff);
+	outb_reg0(dep, DP_RSAR1, offset >> 8);
+	outb_reg0(dep, DP_CR, CR_DM_RR | CR_PS_P0 | CR_STA);
+	
+	if (dep->de_16bit) {
+		assert((size % 2) == 0);
+		insw(dep->de_data_port, dst, size);
+	} else
+		insb(dep->de_data_port, dst, size);
+}
+
 static void dp_recv(int nil_phone, device_id_t device_id, dpeth_t *dep)
 {
 	dp_rcvhdr_t header;
@@ -490,8 +541,9 @@ static void dp_recv(int nil_phone, device_id_t device_id, dpeth_t *dep)
 		if (curr == pageno)
 			break;
 		
-		(dep->de_getblockf)(dep, pageno, (size_t) 0, sizeof(header), &header);
-		(dep->de_getblockf)(dep, pageno, sizeof(header) + 2 * sizeof(ether_addr_t), sizeof(eth_type), &eth_type);
+		dp_getblock(dep, pageno, (size_t) 0, sizeof(header), &header);
+		dp_getblock(dep, pageno, sizeof(header) +
+		    2 * sizeof(ether_addr_t), sizeof(eth_type), &eth_type);
 		
 		length = (header.dr_rbcl | (header.dr_rbch << 8)) - sizeof(dp_rcvhdr_t);
 		next = header.dr_next;
@@ -527,30 +579,40 @@ static void dp_recv(int nil_phone, device_id_t device_id, dpeth_t *dep)
 	} while (!packet_processed);
 }
 
-static void dp_pio8_getblock(dpeth_t *dep, int page, size_t offset, size_t size, void *dst)
+static void dp_nic2user(dpeth_t *dep, int nic_addr, void *buf, size_t offset, size_t size)
 {
-	offset = page * DP_PAGESIZE + offset;
-	outb_reg0(dep, DP_RBCR0, size &0xFF);
-	outb_reg0(dep, DP_RBCR1, size >> 8);
-	outb_reg0(dep, DP_RSAR0, offset &0xFF);
-	outb_reg0(dep, DP_RSAR1, offset >> 8);
+	size_t ecount = size & ~1;
+	
+	if (dep->de_16bit) {
+		outb_reg0(dep, DP_RBCR0, ecount & 0xFF);
+		outb_reg0(dep, DP_RBCR1, ecount >> 8);
+	} else {
+		outb_reg0(dep, DP_RBCR0, size & 0xff);
+		outb_reg0(dep, DP_RBCR1, size >> 8);
+	}
+	
+	outb_reg0(dep, DP_RSAR0, nic_addr & 0xff);
+	outb_reg0(dep, DP_RSAR1, nic_addr >> 8);
 	outb_reg0(dep, DP_CR, CR_DM_RR | CR_PS_P0 | CR_STA);
 	
-	insb(dep->de_data_port, dst, size);
-}
-
-static void dp_pio16_getblock(dpeth_t *dep, int page, size_t offset, size_t size, void *dst)
-{
-	offset = page * DP_PAGESIZE + offset;
-	outb_reg0(dep, DP_RBCR0, size &0xFF);
-	outb_reg0(dep, DP_RBCR1, size >> 8);
-	outb_reg0(dep, DP_RSAR0, offset &0xFF);
-	outb_reg0(dep, DP_RSAR1, offset >> 8);
-	outb_reg0(dep, DP_CR, CR_DM_RR | CR_PS_P0 | CR_STA);
-	
-	assert(!(size & 1));
-	
-	insw(dep->de_data_port, dst, size);
+	if (dep->de_16bit) {
+		void *ptr = buf + offset;
+		
+		if (ecount != 0) {
+			insw(dep->de_data_port, ptr, ecount);
+			size -= ecount;
+			offset += ecount;
+			ptr += ecount;
+		}
+		
+		if (size) {
+			assert(size == 1);
+			
+			uint16_t two_bytes = inw(dep->de_data_port);
+			memcpy(ptr, &(((uint8_t *) &two_bytes)[0]), 1);
+		}
+	} else
+		insb(dep->de_data_port, buf + offset, size);
 }
 
 static int dp_pkt2user(int nil_phone, device_id_t device_id, dpeth_t *dep, int page, int length)
@@ -568,121 +630,18 @@ static int dp_pkt2user(int nil_phone, device_id_t device_id, dpeth_t *dep, int p
 	if (last >= dep->de_stoppage) {
 		count = (dep->de_stoppage - page) * DP_PAGESIZE - sizeof(dp_rcvhdr_t);
 		
-		(dep->de_nic2userf)(dep, page * DP_PAGESIZE +
-		    sizeof(dp_rcvhdr_t), buf, 0, count);
-		(dep->de_nic2userf)(dep, dep->de_startpage * DP_PAGESIZE,
+		dp_nic2user(dep, page * DP_PAGESIZE + sizeof(dp_rcvhdr_t),
+		    buf, 0, count);
+		dp_nic2user(dep, dep->de_startpage * DP_PAGESIZE,
 		    buf, count, length - count);
 	} else {
-		(dep->de_nic2userf)(dep, page * DP_PAGESIZE +
-		    sizeof(dp_rcvhdr_t), buf, 0, length);
+		dp_nic2user(dep, page * DP_PAGESIZE + sizeof(dp_rcvhdr_t),
+		    buf, 0, length);
 	}
 	
 	nil_received_msg(nil_phone, device_id, packet, SERVICE_NONE);
 	
 	return EOK;
-}
-
-static void dp_pio8_user2nic(dpeth_t *dep, void *buf, size_t offset, int nic_addr, size_t size)
-{
-	outb_reg0(dep, DP_ISR, ISR_RDC);
-	
-	outb_reg0(dep, DP_RBCR0, size & 0xFF);
-	outb_reg0(dep, DP_RBCR1, size >> 8);
-	outb_reg0(dep, DP_RSAR0, nic_addr & 0xFF);
-	outb_reg0(dep, DP_RSAR1, nic_addr >> 8);
-	outb_reg0(dep, DP_CR, CR_DM_RW | CR_PS_P0 | CR_STA);
-	
-	outsb(dep->de_data_port, buf + offset, size);
-	
-	unsigned int i;
-	for (i = 0; i < 100; i++) {
-		if (inb_reg0(dep, DP_ISR) & ISR_RDC)
-			break;
-	}
-	
-	if (i == 100)
-		fprintf(stderr, "dp8390: remote DMA failed to complete\n");
-}
-
-static void dp_pio16_user2nic(dpeth_t *dep, void *buf, size_t offset, int nic_addr, size_t size)
-{
-	void *vir_user;
-	size_t ecount;
-	uint16_t two_bytes;
-	
-	ecount = size & ~1;
-	
-	outb_reg0(dep, DP_ISR, ISR_RDC);
-	outb_reg0(dep, DP_RBCR0, ecount & 0xFF);
-	outb_reg0(dep, DP_RBCR1, ecount >> 8);
-	outb_reg0(dep, DP_RSAR0, nic_addr & 0xFF);
-	outb_reg0(dep, DP_RSAR1, nic_addr >> 8);
-	outb_reg0(dep, DP_CR, CR_DM_RW | CR_PS_P0 | CR_STA);
-	
-	vir_user = buf + offset;
-	if (ecount != 0) {
-		outsw(dep->de_data_port, vir_user, ecount);
-		size -= ecount;
-		offset += ecount;
-		vir_user += ecount;
-	}
-	
-	if (size) {
-		assert(size == 1);
-		
-		memcpy(&(((uint8_t *) &two_bytes)[0]), vir_user, 1);
-		outw(dep->de_data_port, two_bytes);
-	}
-	
-	unsigned int i;
-	for (i = 0; i < 100; i++) {
-		if (inb_reg0(dep, DP_ISR) & ISR_RDC)
-			break;
-	}
-	
-	if (i == 100)
-		fprintf(stderr, "dp8390: remote dma failed to complete\n");
-}
-
-static void dp_pio8_nic2user(dpeth_t *dep, int nic_addr, void *buf, size_t offset, size_t size)
-{
-	outb_reg0(dep, DP_RBCR0, size & 0xFF);
-	outb_reg0(dep, DP_RBCR1, size >> 8);
-	outb_reg0(dep, DP_RSAR0, nic_addr & 0xFF);
-	outb_reg0(dep, DP_RSAR1, nic_addr >> 8);
-	outb_reg0(dep, DP_CR, CR_DM_RR | CR_PS_P0 | CR_STA);
-	
-	insb(dep->de_data_port, buf + offset, size);
-}
-
-static void dp_pio16_nic2user(dpeth_t *dep, int nic_addr, void *buf, size_t offset, size_t size)
-{
-	void *vir_user;
-	size_t ecount;
-	uint16_t two_bytes;
-	
-	ecount = size & ~1;
-	
-	outb_reg0(dep, DP_RBCR0, ecount & 0xFF);
-	outb_reg0(dep, DP_RBCR1, ecount >> 8);
-	outb_reg0(dep, DP_RSAR0, nic_addr & 0xFF);
-	outb_reg0(dep, DP_RSAR1, nic_addr >> 8);
-	outb_reg0(dep, DP_CR, CR_DM_RR | CR_PS_P0 | CR_STA);
-	
-	vir_user = buf + offset;
-	if (ecount != 0) {
-		insw(dep->de_data_port, vir_user, ecount);
-		size -= ecount;
-		offset += ecount;
-		vir_user += ecount;
-	}
-	
-	if (size) {
-		assert(size == 1);
-		
-		two_bytes = inw(dep->de_data_port);
-		memcpy(vir_user, &(((uint8_t *) &two_bytes)[0]), 1);
-	}
 }
 
 static void conf_hw(dpeth_t *dep)
