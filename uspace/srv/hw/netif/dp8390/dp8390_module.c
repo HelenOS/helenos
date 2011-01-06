@@ -91,9 +91,9 @@ static irq_cmd_t dp8390_cmds[] = {
 		.srcarg = 3
 	},
 	{
-		.cmd = CMD_PIO_WRITE_8,
+		.cmd = CMD_PIO_WRITE_A_8,
 		.addr = NULL,
-		.value = 0xff
+		.srcarg = 3
 	},
 	{
 		.cmd = CMD_ACCEPT

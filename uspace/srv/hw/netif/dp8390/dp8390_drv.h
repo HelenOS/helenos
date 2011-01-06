@@ -55,7 +55,7 @@ void do_stop(dpeth_t *dep);
 /** Processes the interrupt.
  *  @param[in,out] dep The network interface structure.
  */
-void dp_check_ints(int nil_phone, device_id_t device_id, dpeth_t *dep, int isr);
+void dp_check_ints(int nil_phone, device_id_t device_id, dpeth_t *dep, uint8_t isr);
 
 /** Probes and initializes the network interface.
  *  @param[in,out] dep The network interface structure.

@@ -374,7 +374,16 @@ static void dp_reset(dpeth_t *dep)
 	dep->de_flags &= ~DEF_STOPPED;
 }
 
-void dp_check_ints(int nil_phone, device_id_t device_id, dpeth_t *dep, int isr)
+static uint8_t isr_acknowledge(dpeth_t *dep)
+{
+	uint8_t isr = inb_reg0(dep, DP_ISR) & 0x7f;
+	if (isr != 0)
+		outb_reg0(dep, DP_ISR, isr);
+	
+	return isr;
+}
+
+void dp_check_ints(int nil_phone, device_id_t device_id, dpeth_t *dep, uint8_t isr)
 {
 	int tsr;
 	int size, sendq_tail;
@@ -382,9 +391,7 @@ void dp_check_ints(int nil_phone, device_id_t device_id, dpeth_t *dep, int isr)
 	if (!(dep->de_flags & DEF_ENABLED))
 		fprintf(stderr, "dp8390: got premature interrupt\n");
 	
-	for (; isr; isr = inb_reg0(dep, DP_ISR)) {
-		outb_reg0(dep, DP_ISR, isr);
-		
+	for (; isr != 0; isr = isr_acknowledge(dep)) {
 		if (isr & (ISR_PTX | ISR_TXE)) {
 			if (isr & ISR_TXE)
 				dep->de_stat.ets_sendErr++;
