@@ -305,11 +305,12 @@ typedef struct dpeth {
 	dp_user2nicf_t de_user2nicf;
 	dp_nic2userf_t de_nic2userf;
 	dp_getblock_t de_getblockf;
+	
+	/* Driver flags */
+	bool sending;
+	bool send_avail;
 } dpeth_t;
 
-#define DEF_EMPTY       0x000
-#define DEF_PACK_SEND   0x001
-#define DEF_SEND_AVAIL  0x004
 #define DEF_PROMISC     0x040
 #define DEF_MULTI       0x080
 #define DEF_BROAD       0x100

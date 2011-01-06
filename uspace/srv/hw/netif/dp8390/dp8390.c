@@ -141,7 +141,8 @@ void do_stop(dpeth_t *dep)
 	    && (dep->de_flags & DEF_ENABLED)) {
 		outb_reg0(dep, DP_CR, CR_STP | CR_DM_ABORT);
 		(dep->de_stopf)(dep);
-		dep->de_flags = DEF_EMPTY;
+		dep->sending = false;
+		dep->send_avail = false;
 	}
 }
 
@@ -153,8 +154,8 @@ int do_pwrite(dpeth_t *dep, packet_t *packet, int from_int)
 	assert(dep->de_mode == DEM_ENABLED);
 	assert(dep->de_flags & DEF_ENABLED);
 	
-	if (dep->de_flags & DEF_SEND_AVAIL) {
-		fprintf(stderr, "dp8390: send already in progress\n");
+	if (dep->send_avail) {
+		fprintf(stderr, "Send already in progress\n");
 		return EBUSY;
 	}
 	
@@ -162,13 +163,13 @@ int do_pwrite(dpeth_t *dep, packet_t *packet, int from_int)
 	if (dep->de_sendq[sendq_head].sq_filled) {
 		if (from_int)
 			fprintf(stderr, "dp8390: should not be sending\n");
-		dep->de_flags |= DEF_SEND_AVAIL;
-		dep->de_flags &= ~DEF_PACK_SEND;
+		dep->send_avail = true;
+		dep->sending = false;
 		
 		return EBUSY;
 	}
 	
-	assert(!(dep->de_flags & DEF_PACK_SEND));
+	assert(!dep->sending);
 	
 	void *buf = packet_get_data(packet);
 	size = packet_get_data_length(packet);
@@ -195,13 +196,12 @@ int do_pwrite(dpeth_t *dep, packet_t *packet, int from_int)
 	
 	assert(sendq_head < SENDQ_NR);
 	dep->de_sendq_head = sendq_head;
-	
-	dep->de_flags |= DEF_PACK_SEND;
+	dep->sending = true;
 	
 	if (from_int)
 		return EOK;
 	
-	dep->de_flags &= ~DEF_PACK_SEND;
+	dep->sending = false;
 	
 	return EOK;
 }
@@ -212,7 +212,8 @@ void dp_init(dpeth_t *dep)
 	int i;
 	
 	/* General initialization */
-	dep->de_flags = DEF_EMPTY;
+	dep->sending = false;
+	dep->send_avail = false;
 	(*dep->de_initf)(dep);
 	
 	printf("%s: Ethernet address ", dep->de_name);
@@ -370,7 +371,7 @@ static void dp_reset(dpeth_t *dep)
 	for (i = 0; i < dep->de_sendq_nr; i++)
 		dep->de_sendq[i].sq_filled = 0;
 	
-	dep->de_flags &= ~DEF_SEND_AVAIL;
+	dep->send_avail = false;
 	dep->de_flags &= ~DEF_STOPPED;
 }
 
@@ -444,7 +445,7 @@ void dp_check_ints(int nil_phone, device_id_t device_id, dpeth_t *dep, uint8_t i
 				outb_reg0(dep, DP_CR, CR_TXP | CR_EXTRA);
 			}
 			
-			dep->de_flags &= ~DEF_SEND_AVAIL;
+			dep->send_avail = false;
 		}
 		
 		if (isr & ISR_PRX)
@@ -486,7 +487,7 @@ void dp_check_ints(int nil_phone, device_id_t device_id, dpeth_t *dep, uint8_t i
 		dp_reset(dep);
 	}
 	
-	dep->de_flags &= ~DEF_PACK_SEND;
+	dep->sending = false;
 }
 
 static void dp_recv(int nil_phone, device_id_t device_id, dpeth_t *dep)
@@ -715,7 +716,8 @@ static void conf_hw(dpeth_t *dep)
 	}
 	
 	dep->de_mode = DEM_ENABLED;
-	dep->de_flags = DEF_EMPTY;
+	dep->sending = false;
+	dep->send_avail = false;
 }
 
 static void insb(port_t port, void *buf, size_t size)
