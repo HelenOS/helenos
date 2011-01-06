@@ -218,23 +218,7 @@ typedef void (*dp_getblock_t)(struct dpeth *dep, int page, size_t offset, size_t
 #define SENDQ_NR     2  /* Maximum size of the send queue */
 #define SENDQ_PAGES  6  /* 6 * DP_PAGESIZE >= 1514 bytes */
 
-/** Maximum number of waiting packets to be sent or received.
- */
-#define MAX_PACKETS  1024
-
 typedef struct dpeth {
-	/** Outgoing packets queue */
-	packet_t *packet_queue;
-	
-	/** Outgoing packets count */
-	int packet_count;
-	
-	/** Received packets queue */
-	packet_t *received_queue;
-	
-	/** Received packets count */
-	int received_count;
-	
 	/*
 	 * The de_base_port field is the starting point of the probe.
 	 * The conf routine also fills de_irq. If the probe

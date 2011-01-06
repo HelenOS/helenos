@@ -114,39 +114,25 @@ static irq_code_t dp8390_code = {
  */
 static void irq_handler(ipc_callid_t iid, ipc_call_t *call)
 {
+	device_id_t device_id = IRQ_GET_DEVICE(*call);
 	netif_device_t *device;
+	int nil_phone;
 	dpeth_t *dep;
-	packet_t *received;
-	device_id_t device_id;
-	int phone;
 	
-	device_id = IRQ_GET_DEVICE(*call);
 	fibril_rwlock_write_lock(&netif_globals.lock);
 	
-	if (find_device(device_id, &device) != EOK) {
-		fibril_rwlock_write_unlock(&netif_globals.lock);
-		return;
-	}
-	
-	dep = (dpeth_t *) device->specific;
-	if (dep->de_mode != DEM_ENABLED) {
-		fibril_rwlock_write_unlock(&netif_globals.lock);
-		return;
-	}
-	
-	assert(dep->de_flags & DEF_ENABLED);
-	
-	dp_check_ints(dep, IRQ_GET_ISR(*call));
-	
-	if (dep->received_queue) {
-		received = dep->received_queue;
-		phone = device->nil_phone;
-		dep->received_queue = NULL;
-		dep->received_count = 0;
-		fibril_rwlock_write_unlock(&netif_globals.lock);
-		nil_received_msg(phone, device_id, received, SERVICE_NONE);
+	if (find_device(device_id, &device) == EOK) {
+		nil_phone = device->nil_phone;
+		dep = (dpeth_t *) device->specific;
 	} else
-		fibril_rwlock_write_unlock(&netif_globals.lock);
+		dep = NULL;
+	
+	fibril_rwlock_write_unlock(&netif_globals.lock);
+	
+	if ((dep != NULL) && (dep->de_mode == DEM_ENABLED)) {
+		assert(dep->de_flags & DEF_ENABLED);
+		dp_check_ints(nil_phone, device_id, dep, IRQ_GET_ISR(*call));
+	}
 }
 
 /** Changes the network interface state.

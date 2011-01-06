@@ -11,48 +11,45 @@
 #include <errno.h>
 #include <netif_local.h>
 #include <net/packet.h>
+#include <nil_interface.h>
 #include <packet_client.h>
 #include "dp8390_drv.h"
 #include "dp8390_port.h"
 #include "dp8390.h"
 #include "ne2000.h"
 
-/** Queues the outgoing packet.
- *  @param[in] dep The network interface structure.
- *  @param[in] packet The outgoing packet.
- *  @return EOK on success.
- *  @return EINVAL
- */
-int queue_packet(dpeth_t *dep, packet_t *packet);
-
-/** Reads a memory block byte by byte.
+/** Read a memory block byte by byte.
+ *
  *  @param[in] port The source address.
  *  @param[out] buf The destination buffer.
  *  @param[in] size The memory block size in bytes.
+ *
  */
 static void outsb(port_t port, void * buf, size_t size);
 
-/** Reads a memory block word by word.
+/** Read a memory block word by word.
+ *
  *  @param[in] port The source address.
  *  @param[out] buf The destination buffer.
  *  @param[in] size The memory block size in bytes.
+ *
  */
 static void outsw(port_t port, void * buf, size_t size);
 
-/* Some clones of the dp8390 and the PC emulator 'Bochs' require the CR_STA
+/*
+ * Some clones of the dp8390 and the PC emulator 'Bochs' require the CR_STA
  * on writes to the CR register. Additional CR_STAs do not appear to hurt
- * genuine dp8390s
+ * genuine dp8390s.
  */
 #define CR_EXTRA  CR_STA
 
 static void dp_init(dpeth_t *dep);
 static void dp_reinit(dpeth_t *dep);
 static void dp_reset(dpeth_t *dep);
-static void dp_recv(dpeth_t *dep);
-static void dp_send(dpeth_t *dep);
+static void dp_recv(int nil_phone, device_id_t device_id, dpeth_t *dep);
 static void dp_pio8_getblock(dpeth_t *dep, int page, size_t offset, size_t size, void *dst);
 static void dp_pio16_getblock(dpeth_t *dep, int page, size_t offset, size_t size, void *dst);
-static int dp_pkt2user(dpeth_t *dep, int page, int length);
+static int dp_pkt2user(int nil_phone, device_id_t device_id, dpeth_t *dep, int page, int length);
 static void dp_pio8_user2nic(dpeth_t *dep, void *buf, size_t offset, int nic_addr, size_t size);
 static void dp_pio16_user2nic(dpeth_t *dep, void *buf, size_t offset, int nic_addr, size_t size);
 static void dp_pio8_nic2user(dpeth_t *dep, int nic_addr, void *buf, size_t offset, size_t size);
@@ -95,15 +92,7 @@ int do_init(dpeth_t *dep, int mode)
 	if (mode &DL_BROAD_REQ)
 		dep->de_flags |= DEF_BROAD;
 	
-//	dep->de_client = mp->m_source;
 	dp_reinit(dep);
-	
-//	reply_mess.m_type = DL_CONF_REPLY;
-//	reply_mess.m3_i1 = mp->DL_PORT;
-//	reply_mess.m3_i2 = DE_PORT_NR;
-//	*(ether_addr_t *) reply_mess.m3_ca1 = dep->de_address;
-	
-//	mess_reply(mp, &reply_mess);
 	return EOK;
 }
 
@@ -117,29 +106,6 @@ void do_stop(dpeth_t *dep)
 	}
 }
 
-int queue_packet(dpeth_t *dep, packet_t *packet)
-{
-	packet_t *tmp;
-	
-	if (dep->packet_count >= MAX_PACKETS) {
-		netif_pq_release(packet_get_id(packet));
-		return ELIMIT;
-	}
-	
-	tmp = dep->packet_queue;
-	while (pq_next(tmp))
-		tmp = pq_next(tmp);
-	
-	if (pq_add(&tmp, packet, 0, 0) != EOK)
-		return EINVAL;
-	
-	if (!dep->packet_count)
-		dep->packet_queue = packet;
-	
-	++dep->packet_count;
-	return EBUSY;
-}
-
 int do_pwrite(dpeth_t *dep, packet_t *packet, int from_int)
 {
 	int size;
@@ -148,21 +114,22 @@ int do_pwrite(dpeth_t *dep, packet_t *packet, int from_int)
 	assert(dep->de_mode == DEM_ENABLED);
 	assert(dep->de_flags & DEF_ENABLED);
 	
-	if ((dep->packet_queue) && (!from_int)) {
-//	if (dep->de_flags &DEF_SEND_AVAIL){
-//		fprintf(stderr, "dp8390: send already in progress\n");
-		return queue_packet(dep, packet);
+	if (dep->de_flags & DEF_SEND_AVAIL) {
+		fprintf(stderr, "dp8390: send already in progress\n");
+		return EBUSY;
 	}
 	
 	sendq_head = dep->de_sendq_head;
 	if (dep->de_sendq[sendq_head].sq_filled) {
 		if (from_int)
 			fprintf(stderr, "dp8390: should not be sending\n");
-//		dep->de_flags |= DEF_SEND_AVAIL;
-		return queue_packet(dep, packet);
+		dep->de_flags |= DEF_SEND_AVAIL;
+		dep->de_flags &= ~(DEF_PACK_SEND | DEF_PACK_RECV);
+		
+		return EBUSY;
 	}
 	
-//	assert(!(dep->de_flags &DEF_PACK_SEND));
+	assert(!(dep->de_flags & DEF_PACK_SEND));
 	
 	void *buf = packet_get_data(packet);
 	size = packet_get_data_length(packet);
@@ -190,7 +157,12 @@ int do_pwrite(dpeth_t *dep, packet_t *packet, int from_int)
 	assert(sendq_head < SENDQ_NR);
 	dep->de_sendq_head = sendq_head;
 	
-//	dep->de_flags |= DEF_PACK_SEND;
+	dep->de_flags |= DEF_PACK_SEND;
+	
+	if (from_int)
+		return EOK;
+	
+	dep->de_flags &= ~(DEF_PACK_SEND | DEF_PACK_RECV);
 	
 	return EOK;
 }
@@ -359,11 +331,11 @@ static void dp_reset(dpeth_t *dep)
 	for (i = 0; i < dep->de_sendq_nr; i++)
 		dep->de_sendq[i].sq_filled = 0;
 	
-	dp_send(dep);
+	dep->de_flags &= ~DEF_SEND_AVAIL;
 	dep->de_flags &= ~DEF_STOPPED;
 }
 
-void dp_check_ints(dpeth_t *dep, int isr)
+void dp_check_ints(int nil_phone, device_id_t device_id, dpeth_t *dep, int isr)
 {
 	int tsr;
 	int size, sendq_tail;
@@ -426,14 +398,13 @@ void dp_check_ints(dpeth_t *dep, int isr)
 				outb_reg0(dep, DP_CR, CR_TXP | CR_EXTRA);
 			}
 			
-//			if (dep->de_flags &DEF_SEND_AVAIL)
-				dp_send(dep);
+			dep->de_flags &= ~DEF_SEND_AVAIL;
 		}
 		
 		if (isr & ISR_PRX) {
 			/* Only call dp_recv if there is a read request */
-//			if (dep->de_flags) &DEF_READING)
-				dp_recv(dep);
+//			if (dep->de_flags) & DEF_READING)
+				dp_recv(nil_phone, device_id, dep);
 		}
 		
 		if (isr & ISR_RXE)
@@ -477,9 +448,11 @@ void dp_check_ints(dpeth_t *dep, int isr)
 		 */
 		dp_reset(dep);
 	}
+	
+	dep->de_flags &= ~(DEF_PACK_SEND | DEF_PACK_RECV);
 }
 
-static void dp_recv(dpeth_t *dep)
+static void dp_recv(int nil_phone, device_id_t device_id, dpeth_t *dep)
 {
 	dp_rcvhdr_t header;
 	//unsigned pageno, curr, next;
@@ -521,7 +494,7 @@ static void dp_recv(dpeth_t *dep)
 			dep->de_stat.ets_fifoOver++;
 			next = curr;
 		} else if ((header.dr_status & RSR_PRX) && (dep->de_flags & DEF_ENABLED)) {
-			r = dp_pkt2user(dep, pageno, length);
+			r = dp_pkt2user(nil_phone, device_id, dep, pageno, length);
 			if (r != EOK)
 				return;
 			
@@ -536,25 +509,6 @@ static void dp_recv(dpeth_t *dep)
 		
 		pageno = next;
 	} while (!packet_processed);
-}
-
-static void dp_send(dpeth_t *dep)
-{
-	packet_t *packet;
-	
-//	if (!(dep->de_flags &DEF_SEND_AVAIL))
-//		return;
-	
-	if (dep->packet_queue) {
-		packet = dep->packet_queue;
-		dep->packet_queue = pq_detach(packet);
-		do_pwrite(dep, packet, true);
-		netif_pq_release(packet_get_id(packet));
-		--dep->packet_count;
-	}
-	
-//	if (!dep->packet_queue)
-//		dep->de_flags &= ~DEF_SEND_AVAIL;
 }
 
 static void dp_pio8_getblock(dpeth_t *dep, int page, size_t offset, size_t size, void *dst)
@@ -583,7 +537,7 @@ static void dp_pio16_getblock(dpeth_t *dep, int page, size_t offset, size_t size
 	insw(dep->de_data_port, dst, size);
 }
 
-static int dp_pkt2user(dpeth_t *dep, int page, int length)
+static int dp_pkt2user(int nil_phone, device_id_t device_id, dpeth_t *dep, int page, int length)
 {
 	int last, count;
 	packet_t *packet;
@@ -613,15 +567,7 @@ static int dp_pkt2user(dpeth_t *dep, int page, int length)
 	dep->de_flags |= DEF_PACK_RECV;
 //	dep->de_flags &= ~DEF_READING;
 	
-	if (dep->received_count >= MAX_PACKETS) {
-		netif_pq_release(packet_get_id(packet));
-		return ELIMIT;
-	} else {
-		if (pq_add(&dep->received_queue, packet, 0, 0) == EOK)
-			++dep->received_count;
-		else
-			netif_pq_release(packet_get_id(packet));
-	}
+	nil_received_msg(nil_phone, device_id, packet, SERVICE_NONE);
 	
 	return EOK;
 }
