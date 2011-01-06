@@ -1,27 +1,40 @@
 /*
- * Copyright (c) 1987,1997, 2006, Vrije Universiteit, Amsterdam, The Netherlands All rights reserved. Redistribution and use of the MINIX 3 operating system in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+ * Copyright (c) 2009 Lukas Mejdrech
+ * Copyright (c) 2011 Martin Decky
+ * All rights reserved.
  *
- * * Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
- * * Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
- * * Neither the name of the Vrije Universiteit nor the names of the software authors or contributors may be used to endorse or promote products derived from this software without specific prior written permission.
- * * Any deviations from these conditions require written permission from the copyright holder in advance
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
  *
+ * - Redistributions of source code must retain the above copyright
+ *   notice, this list of conditions and the following disclaimer.
+ * - Redistributions in binary form must reproduce the above copyright
+ *   notice, this list of conditions and the following disclaimer in the
+ *   documentation and/or other materials provided with the distribution.
+ * - The name of the author may not be used to endorse or promote products
+ *   derived from this software without specific prior written permission.
  *
- * Disclaimer
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS, AUTHORS, AND CONTRIBUTORS ``AS IS'' AND ANY EXPRESS OR
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
  * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
  * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
- * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR ANY AUTHORS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
  * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
  * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
  * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+/*
+ * This code is based upon the NE2000 driver for MINIX,
+ * distributed according to a BSD-style license.
  *
- * Changes:
- *  2009 ported to HelenOS, Lukas Mejdrech
+ * Copyright (c) 1987, 1997, 2006 Vrije Universiteit
+ * Copyright (c) 1992, 1994 Philip Homburg
+ * Copyright (c) 1996 G. Falzoni
+ *
  */
 
 /** @addtogroup dp8390
@@ -36,60 +49,45 @@
 #define __NET_NETIF_DP8390_H__
 
 #include <net/packet.h>
-
 #include "dp8390_port.h"
-#include "local.h"
 
-/** Input/output size.
- */
-#define DP8390_IO_SIZE	0x020
-
-/*
-dp8390.h
-
-Created:	before Dec 28, 1992 by Philip Homburg
-*/
+/** Input/output size */
+#define DP8390_IO_SIZE  0x0020
 
 /* National Semiconductor DP8390 Network Interface Controller. */
 
-				/* Page 0, for reading ------------- */
-#define	DP_CR		0x0	/* Read side of Command Register     */
-#define	DP_CLDA0	0x1	/* Current Local Dma Address 0       */
-#define	DP_CLDA1	0x2	/* Current Local Dma Address 1       */
-#define	DP_BNRY		0x3	/* Boundary Pointer                  */
-#define	DP_TSR		0x4	/* Transmit Status Register          */
-#define	DP_NCR		0x5	/* Number of Collisions Register     */
-#define	DP_FIFO		0x6	/* Fifo ??                           */
-#define	DP_ISR		0x7	/* Interrupt Status Register         */
-#define	DP_CRDA0	0x8	/* Current Remote Dma Address 0      */
-#define	DP_CRDA1	0x9	/* Current Remote Dma Address 1      */
-#define	DP_DUM1		0xA	/* unused                            */
-#define	DP_DUM2		0xB	/* unused                            */
-#define	DP_RSR		0xC	/* Receive Status Register           */
-#define	DP_CNTR0	0xD	/* Tally Counter 0                   */
-#define	DP_CNTR1	0xE	/* Tally Counter 1                   */
-#define	DP_CNTR2	0xF	/* Tally Counter 2                   */
+/** Page 0, for reading */
+#define DP_CR     0x00  /**< Command Register */
+#define DP_CLDA0  0x01  /**< Current Local DMA Address 0 */
+#define DP_CLDA1  0x02  /**< Current Local DMA Address 1 */
+#define DP_BNRY   0x03  /**< Boundary Pointer */
+#define DP_TSR    0x04  /**< Transmit Status Register */
+#define DP_NCR    0x05  /**< Number of Collisions Register */
+#define DP_FIFO   0x06  /**< FIFO */
+#define DP_ISR    0x07  /**< Interrupt Status Register */
+#define DP_CRDA0  0x08  /**< Current Remote DMA Address 0 */
+#define DP_CRDA1  0x09  /**< Current Remote DMA Address 1 */
+#define DP_RSR    0x0c  /**< Receive Status Register */
+#define DP_CNTR0  0x0d  /**< Tally Counter 0 */
+#define DP_CNTR1  0x0e  /**< Tally Counter 1 */
+#define DP_CNTR2  0x0f  /**< Tally Counter 2 */
 
-				/* Page 0, for writing ------------- */
-#define	DP_CR		0x0	/* Write side of Command Register    */
-#define	DP_PSTART	0x1	/* Page Start Register               */
-#define	DP_PSTOP	0x2	/* Page Stop Register                */
-#define	DP_BNRY		0x3	/* Boundary Pointer                  */
-#define	DP_TPSR		0x4	/* Transmit Page Start Register      */
-#define	DP_TBCR0	0x5	/* Transmit Byte Count Register 0    */
-#define	DP_TBCR1	0x6	/* Transmit Byte Count Register 1    */
-#define	DP_ISR		0x7	/* Interrupt Status Register         */
-#define	DP_RSAR0	0x8	/* Remote Start Address Register 0   */
-#define	DP_RSAR1	0x9	/* Remote Start Address Register 1   */
-#define	DP_RBCR0	0xA	/* Remote Byte Count Register 0      */
-#define	DP_RBCR1	0xB	/* Remote Byte Count Register 1      */
-#define	DP_RCR		0xC	/* Receive Configuration Register    */
-#define	DP_TCR		0xD	/* Transmit Configuration Register   */
-#define	DP_DCR		0xE	/* Data Configuration Register       */
-#define	DP_IMR		0xF	/* Interrupt Mask Register           */
+/** Page 0, for writing */
+#define DP_PSTART  0x01  /**< Page Start Register*/
+#define DP_PSTOP   0x02  /**< Page Stop Register */
+#define DP_TPSR    0x04  /**< Transmit Page Start Register */
+#define DP_TBCR0   0x05  /**< Transmit Byte Count Register 0 */
+#define DP_TBCR1   0x06  /**< Transmit Byte Count Register 1 */
+#define DP_RSAR0   0x08  /**< Remote Start Address Register 0 */
+#define DP_RSAR1   0x09  /**< Remote Start Address Register 1 */
+#define DP_RBCR0   0x0a  /**< Remote Byte Count Register 0 */
+#define DP_RBCR1   0x0b  /**< Remote Byte Count Register 1 */
+#define DP_RCR     0x0c  /**< Receive Configuration Register */
+#define DP_TCR     0x0d  /**< Transmit Configuration Register */
+#define DP_DCR     0x0e  /**< Data Configuration Register */
+#define DP_IMR     0x0f  /**< Interrupt Mask Register */
 
-				/* Page 1, read/write -------------- */
-#define	DP_CR		0x0	/* Command Register                  */
+/** Page 1, read/write */
 #define	DP_PAR0		0x1	/* Physical Address Register 0       */
 #define	DP_PAR1		0x2	/* Physical Address Register 1       */
 #define	DP_PAR2		0x3	/* Physical Address Register 2       */
@@ -198,152 +196,84 @@ Created:	before Dec 28, 1992 by Philip Homburg
 #define RSR_DIS		0x40	/* Receiver Disabled                 */
 #define RSR_DFR		0x80	/* In later manuals: Deferring       */
 
-/** Type definition of the receive header.
+/** Type definition of the receive header
+ *
  */
-typedef struct dp_rcvhdr
-{
-	/** Copy of rsr.
-	 */
-	u8_t dr_status;
-	/** Pointer to next packet.
-	 */
-	u8_t dr_next;
-	/** Receive Byte Count Low.
-	 */
-	u8_t dr_rbcl;
-	/** Receive Byte Count High.
-	 */
-	u8_t dr_rbch;
+typedef struct dp_rcvhdr {
+	/** Copy of rsr */
+	uint8_t dr_status;
+	
+	/** Pointer to next packet */
+	uint8_t dr_next;
+	
+	/** Receive Byte Count Low */
+	uint8_t dr_rbcl;
+	
+	/** Receive Byte Count High */
+	uint8_t dr_rbch;
 } dp_rcvhdr_t;
 
-/** Page size.
- */
-#define DP_PAGESIZE	256
+/** Page size */
+#define DP_PAGESIZE  256
 
-/* Some macros to simplify accessing the dp8390 */
-/** Reads 1 byte from the zero page register.
+/** Read 1 byte from the zero page register.
  *  @param[in] dep The network interface structure.
  *  @param[in] reg The register offset.
  *  @returns The read value.
  */
-#define inb_reg0(dep, reg)		(inb(dep->de_dp8390_port+reg))
+#define inb_reg0(dep, reg)  (inb(dep->de_dp8390_port + reg))
 
-/** Writes 1 byte zero page register.
+/** Write 1 byte zero page register.
  *  @param[in] dep The network interface structure.
  *  @param[in] reg The register offset.
  *  @param[in] data The value to be written.
  */
-#define outb_reg0(dep, reg, data)	(outb(dep->de_dp8390_port+reg, data))
+#define outb_reg0(dep, reg, data)  (outb(dep->de_dp8390_port + reg, data))
 
-/** Reads 1 byte from the first page register.
+/** Read 1 byte from the first page register.
  *  @param[in] dep The network interface structure.
  *  @param[in] reg The register offset.
  *  @returns The read value.
  */
-#define inb_reg1(dep, reg)		(inb(dep->de_dp8390_port+reg))
+#define inb_reg1(dep, reg)  (inb(dep->de_dp8390_port + reg))
 
-/** Writes 1 byte first page register.
+/** Write 1 byte first page register.
  *  @param[in] dep The network interface structure.
  *  @param[in] reg The register offset.
  *  @param[in] data The value to be written.
  */
-#define outb_reg1(dep, reg, data)	(outb(dep->de_dp8390_port+reg, data))
+#define outb_reg1(dep, reg, data)  (outb(dep->de_dp8390_port + reg, data))
 
 /* Software interface to the dp8390 driver */
 
 struct dpeth;
-struct iovec_dat;
-//struct iovec_dat_s;
-_PROTOTYPE(typedef void (*dp_initf_t), (struct dpeth *dep)		);
-_PROTOTYPE(typedef void (*dp_stopf_t), (struct dpeth *dep)		);
-_PROTOTYPE(typedef void (*dp_user2nicf_t), (struct dpeth *dep,
-			struct iovec_dat *iovp, vir_bytes offset,
-			int nic_addr, vir_bytes count) );
-//_PROTOTYPE(typedef void (*dp_user2nicf_s_t), (struct dpeth *dep,
-//			struct iovec_dat_s *iovp, vir_bytes offset,
-//			int nic_addr, vir_bytes count)			);
-_PROTOTYPE(typedef void (*dp_nic2userf_t), (struct dpeth *dep,
-			int nic_addr, struct iovec_dat *iovp,
-			vir_bytes offset, vir_bytes count) );
-//_PROTOTYPE(typedef void (*dp_nic2userf_s_t), (struct dpeth *dep,
-//			int nic_addr, struct iovec_dat_s *iovp,
-//			vir_bytes offset, vir_bytes count)		);
-//#if 0
-//_PROTOTYPE(typedef void (*dp_getheaderf_t), (struct dpeth *dep,
-//			int page, struct dp_rcvhdr *h, u16_t *eth_type)	);
-//#endif
-_PROTOTYPE(typedef void (*dp_getblock_t), (struct dpeth *dep,
-		int page, size_t offset, size_t size, void *dst)	);
 
-/* iovectors are handled IOVEC_NR entries at a time. */
-//#define IOVEC_NR	16
-// no vectors allowed
-#define IOVEC_NR	1
+typedef void (*dp_initf_t)(struct dpeth *dep);
+typedef void (*dp_stopf_t)(struct dpeth *dep);
+typedef void (*dp_user2nicf_t)(struct dpeth *dep, void *buf, size_t offset, int nic_addr, size_t size);
+typedef void (*dp_nic2userf_t)(struct dpeth *dep, int nic_addr, void *buf, size_t offset, size_t size);
+typedef void (*dp_getblock_t)(struct dpeth *dep, int page, size_t offset, size_t size, void *dst);
 
-/*
-typedef int irq_hook_t;
-*/
-typedef struct iovec_dat
-{
-  iovec_t iod_iovec[IOVEC_NR];
-  int iod_iovec_s;
-  // no direct process access
-  int iod_proc_nr;
-  vir_bytes iod_iovec_addr;
-} iovec_dat_t;
-/*
-typedef struct iovec_dat_s
-{
-  iovec_s_t iod_iovec[IOVEC_NR];
-  int iod_iovec_s;
-  int iod_proc_nr;
-  cp_grant_id_t iod_grant;
-  vir_bytes iod_iovec_offset;
-} iovec_dat_s_t;
-*/
-#define SENDQ_NR	1	/* Maximum size of the send queue */
-#define SENDQ_PAGES	6	/* 6 * DP_PAGESIZE >= 1514 bytes */
+#define SENDQ_NR     2  /* Maximum size of the send queue */
+#define SENDQ_PAGES  6  /* 6 * DP_PAGESIZE >= 1514 bytes */
 
-/** Maximum number of waiting packets to be sent or received.
- */
-#define MAX_PACKETS	4
-
-typedef struct dpeth
-{
-	/** Outgoing packets queue.
-	 */
-	packet_t *packet_queue;
-	/** Outgoing packets count.
-	 */
-	int packet_count;
-
-	/** Received packets queue.
-	 */
-	packet_t *received_queue;
-	/** Received packets count.
-	 */
-	int received_count;
-
-	/* The de_base_port field is the starting point of the probe.
-	 * The conf routine also fills de_linmem and de_irq. If the probe
+typedef struct dpeth {
+	/*
+	 * The de_base_port field is the starting point of the probe.
+	 * The conf routine also fills de_irq. If the probe
 	 * routine knows the irq and/or memory address because they are
 	 * hardwired in the board, the probe should modify these fields.
 	 * Futhermore, the probe routine should also fill in de_initf and
-	 * de_stopf fields with the appropriate function pointers and set
-	 * de_prog_IO iff programmed I/O is to be used.
+	 * de_stopf fields with the appropriate function pointers.
 	 */
 	port_t de_base_port;
-	phys_bytes de_linmem;
-	char *de_locmem;
 	int de_irq;
-	int de_int_pending;
-//	irq_hook_t de_hook;
-	dp_initf_t de_initf; 
-	dp_stopf_t de_stopf; 
-	int de_prog_IO;
+	dp_initf_t de_initf;
+	dp_stopf_t de_stopf;
 	char de_name[sizeof("dp8390#n")];
-
-	/* The initf function fills the following fields. Only cards that do
+	
+	/*
+	 * The initf function fills the following fields. Only cards that do
 	 * programmed I/O fill in the de_pata_port field.
 	 * In addition, the init routine has to fill in the sendq data
 	 * structures.
@@ -356,74 +286,38 @@ typedef struct dpeth
 	int de_offset_page;
 	int de_startpage;
 	int de_stoppage;
-
-	/* should be here - read even for ne2k isa init... */
-	char de_pci;			/* TRUE iff PCI device */
-
-#if ENABLE_PCI
-	/* PCI config */
-//	char de_pci;			/* TRUE iff PCI device */
-//	u8_t de_pcibus;	
-//	u8_t de_pcidev;	
-//	u8_t de_pcifunc;	
-#endif
-
+	
 	/* Do it yourself send queue */
-	struct sendq
-	{
-		int sq_filled;		/* this buffer contains a packet */
-		int sq_size;		/* with this size */
-		int sq_sendpage;	/* starting page of the buffer */
+	struct sendq {
+		int sq_filled;    /* this buffer contains a packet */
+		int sq_size;      /* with this size */
+		int sq_sendpage;  /* starting page of the buffer */
 	} de_sendq[SENDQ_NR];
+	
 	int de_sendq_nr;
-	int de_sendq_head;		/* Enqueue at the head */
-	int de_sendq_tail;		/* Dequeue at the tail */
-
+	int de_sendq_head;  /* Enqueue at the head */
+	int de_sendq_tail;  /* Dequeue at the tail */
+	
 	/* Fields for internal use by the dp8390 driver. */
 	int de_flags;
 	int de_mode;
 	eth_stat_t de_stat;
-	iovec_dat_t de_read_iovec;
-//	iovec_dat_s_t de_read_iovec_s;
-//	int de_safecopy_read;
-	iovec_dat_t de_write_iovec;
-//	iovec_dat_s_t de_write_iovec_s;
-	iovec_dat_t de_tmp_iovec;
-//	iovec_dat_s_t de_tmp_iovec_s;
-	vir_bytes de_read_s;
-//	int de_client;
-//	message de_sendmsg;
-	dp_user2nicf_t de_user2nicf; 
-//	dp_user2nicf_s_t de_user2nicf_s; 
+	dp_user2nicf_t de_user2nicf;
 	dp_nic2userf_t de_nic2userf;
-//	dp_nic2userf_s_t de_nic2userf_s; 
 	dp_getblock_t de_getblockf;
 } dpeth_t;
 
-#define DEI_DEFAULT	0x8000
+#define DEF_EMPTY       0x000
+#define DEF_PACK_SEND   0x001
+#define DEF_SEND_AVAIL  0x004
+#define DEF_PROMISC     0x040
+#define DEF_MULTI       0x080
+#define DEF_BROAD       0x100
+#define DEF_ENABLED     0x200
+#define DEF_STOPPED     0x400
 
-#define DEF_EMPTY	0x000
-#define DEF_PACK_SEND	0x001
-#define DEF_PACK_RECV	0x002
-#define DEF_SEND_AVAIL	0x004
-#define DEF_READING	0x010
-#define DEF_PROMISC	0x040
-#define DEF_MULTI	0x080
-#define DEF_BROAD	0x100
-#define DEF_ENABLED	0x200
-#define DEF_STOPPED	0x400
-
-#define DEM_DISABLED	0x0
-#define DEM_SINK	0x1
-#define DEM_ENABLED	0x2
-
-//#if !__minix_vmd
-#define debug		1	/* Standard Minix lacks debug variable */
-//#endif
-
-/*
- * $PchId: dp8390.h,v 1.10 2005/02/10 17:26:06 philip Exp $
- */
+#define DEM_DISABLED  0x0
+#define DEM_ENABLED   0x2
 
 #endif
 
