@@ -86,13 +86,7 @@ static void dp_init(dpeth_t *dep);
 static void dp_reinit(dpeth_t *dep);
 static void dp_reset(dpeth_t *dep);
 static void dp_recv(int nil_phone, device_id_t device_id, dpeth_t *dep);
-static void dp_pio8_getblock(dpeth_t *dep, int page, size_t offset, size_t size, void *dst);
-static void dp_pio16_getblock(dpeth_t *dep, int page, size_t offset, size_t size, void *dst);
 static int dp_pkt2user(int nil_phone, device_id_t device_id, dpeth_t *dep, int page, int length);
-static void dp_pio8_user2nic(dpeth_t *dep, void *buf, size_t offset, int nic_addr, size_t size);
-static void dp_pio16_user2nic(dpeth_t *dep, void *buf, size_t offset, int nic_addr, size_t size);
-static void dp_pio8_nic2user(dpeth_t *dep, int nic_addr, void *buf, size_t offset, size_t size);
-static void dp_pio16_nic2user(dpeth_t *dep, int nic_addr, void *buf, size_t offset, size_t size);
 static void conf_hw(dpeth_t *dep);
 static void insb(port_t port, void *buf, size_t size);
 static void insw(port_t port, void *buf, size_t size);
@@ -101,35 +95,32 @@ int do_probe(dpeth_t *dep)
 {
 	/* This is the default, try to (re)locate the device. */
 	conf_hw(dep);
-	if (dep->de_mode == DEM_DISABLED)
+	if (!dep->up)
 		/* Probe failed, or the device is configured off. */
 		return EXDEV;
 	
-	if (dep->de_mode == DEM_ENABLED)
+	if (dep->up)
 		dp_init(dep);
 	
 	return EOK;
 }
 
-int do_init(dpeth_t *dep, int mode)
+/** Initialize and/or start the network interface.
+ *
+ *  @param[in,out] dep The network interface structure.
+ *
+ *  @return EOK on success.
+ *  @return EXDEV if the network interface is disabled.
+ *
+ */
+int do_init(dpeth_t *dep)
 {
-	if (dep->de_mode == DEM_DISABLED)
+	if (!dep->up)
 		/* FIXME: Perhaps call do_probe()? */
 		return EXDEV;
 	
-	assert(dep->de_mode == DEM_ENABLED);
-	assert(dep->de_flags & DEF_ENABLED);
-	
-	dep->de_flags &= ~(DEF_PROMISC | DEF_MULTI | DEF_BROAD);
-	
-	if (mode &DL_PROMISC_REQ)
-		dep->de_flags |= DEF_PROMISC | DEF_MULTI | DEF_BROAD;
-	
-	if (mode &DL_MULTI_REQ)
-		dep->de_flags |= DEF_MULTI;
-	
-	if (mode &DL_BROAD_REQ)
-		dep->de_flags |= DEF_BROAD;
+	assert(dep->up);
+	assert(dep->enabled);
 	
 	dp_reinit(dep);
 	return EOK;
@@ -137,12 +128,64 @@ int do_init(dpeth_t *dep, int mode)
 
 void do_stop(dpeth_t *dep)
 {
-	if ((dep->de_mode == DEM_ENABLED)
-	    && (dep->de_flags & DEF_ENABLED)) {
+	if ((dep->up) && (dep->enabled)) {
 		outb_reg0(dep, DP_CR, CR_STP | CR_DM_ABORT);
-		(dep->de_stopf)(dep);
-		dep->de_flags = DEF_EMPTY;
+		ne_stop(dep);
+		
+		dep->enabled = false;
+		dep->stopped = false;
+		dep->sending = false;
+		dep->send_avail = false;
 	}
+}
+
+static void dp_user2nic(dpeth_t *dep, void *buf, size_t offset, int nic_addr, size_t size)
+{
+	size_t ecount = size & ~1;
+	
+	outb_reg0(dep, DP_ISR, ISR_RDC);
+	
+	if (dep->de_16bit) {
+		outb_reg0(dep, DP_RBCR0, ecount & 0xff);
+		outb_reg0(dep, DP_RBCR1, ecount >> 8);
+	} else {
+		outb_reg0(dep, DP_RBCR0, size & 0xff);
+		outb_reg0(dep, DP_RBCR1, size >> 8);
+	}
+	
+	outb_reg0(dep, DP_RSAR0, nic_addr & 0xff);
+	outb_reg0(dep, DP_RSAR1, nic_addr >> 8);
+	outb_reg0(dep, DP_CR, CR_DM_RW | CR_PS_P0 | CR_STA);
+	
+	if (dep->de_16bit) {
+		void *ptr = buf + offset;
+		
+		if (ecount != 0) {
+			outsw(dep->de_data_port, ptr, ecount);
+			size -= ecount;
+			offset += ecount;
+			ptr += ecount;
+		}
+		
+		if (size) {
+			assert(size == 1);
+			
+			uint16_t two_bytes;
+			
+			memcpy(&(((uint8_t *) &two_bytes)[0]), ptr, 1);
+			outw(dep->de_data_port, two_bytes);
+		}
+	} else
+		outsb(dep->de_data_port, buf + offset, size);
+	
+	unsigned int i;
+	for (i = 0; i < 100; i++) {
+		if (inb_reg0(dep, DP_ISR) & ISR_RDC)
+			break;
+	}
+	
+	if (i == 100)
+		fprintf(stderr, "Remote DMA failed to complete\n");
 }
 
 int do_pwrite(dpeth_t *dep, packet_t *packet, int from_int)
@@ -150,11 +193,11 @@ int do_pwrite(dpeth_t *dep, packet_t *packet, int from_int)
 	int size;
 	int sendq_head;
 	
-	assert(dep->de_mode == DEM_ENABLED);
-	assert(dep->de_flags & DEF_ENABLED);
+	assert(dep->up);
+	assert(dep->enabled);
 	
-	if (dep->de_flags & DEF_SEND_AVAIL) {
-		fprintf(stderr, "dp8390: send already in progress\n");
+	if (dep->send_avail) {
+		fprintf(stderr, "Send already in progress\n");
 		return EBUSY;
 	}
 	
@@ -162,13 +205,13 @@ int do_pwrite(dpeth_t *dep, packet_t *packet, int from_int)
 	if (dep->de_sendq[sendq_head].sq_filled) {
 		if (from_int)
 			fprintf(stderr, "dp8390: should not be sending\n");
-		dep->de_flags |= DEF_SEND_AVAIL;
-		dep->de_flags &= ~DEF_PACK_SEND;
+		dep->send_avail = true;
+		dep->sending = false;
 		
 		return EBUSY;
 	}
 	
-	assert(!(dep->de_flags & DEF_PACK_SEND));
+	assert(!dep->sending);
 	
 	void *buf = packet_get_data(packet);
 	size = packet_get_data_length(packet);
@@ -178,8 +221,8 @@ int do_pwrite(dpeth_t *dep, packet_t *packet, int from_int)
 		return EINVAL;
 	}
 	
-	(dep->de_user2nicf)(dep, buf, 0,
-	    dep->de_sendq[sendq_head].sq_sendpage * DP_PAGESIZE, size);
+	dp_user2nic(dep, buf, 0, dep->de_sendq[sendq_head].sq_sendpage
+	    * DP_PAGESIZE, size);
 	dep->de_sendq[sendq_head].sq_filled = true;
 	
 	if (dep->de_sendq_tail == sendq_head) {
@@ -195,13 +238,12 @@ int do_pwrite(dpeth_t *dep, packet_t *packet, int from_int)
 	
 	assert(sendq_head < SENDQ_NR);
 	dep->de_sendq_head = sendq_head;
-	
-	dep->de_flags |= DEF_PACK_SEND;
+	dep->sending = true;
 	
 	if (from_int)
 		return EOK;
 	
-	dep->de_flags &= ~DEF_PACK_SEND;
+	dep->sending = false;
 	
 	return EOK;
 }
@@ -212,10 +254,13 @@ void dp_init(dpeth_t *dep)
 	int i;
 	
 	/* General initialization */
-	dep->de_flags = DEF_EMPTY;
-	(*dep->de_initf)(dep);
+	dep->enabled = false;
+	dep->stopped = false;
+	dep->sending = false;
+	dep->send_avail = false;
+	ne_init(dep);
 	
-	printf("%s: Ethernet address ", dep->de_name);
+	printf("Ethernet address ");
 	for (i = 0; i < 6; i++)
 		printf("%x%c", dep->de_address.ea_addr[i], i < 5 ? ':' : '\n');
 	
@@ -239,16 +284,7 @@ void dp_init(dpeth_t *dep)
 	outb_reg0(dep, DP_RBCR1, 0);
 	
 	/* Step 4: */
-	dp_rcr_reg = 0;
-	
-	if (dep->de_flags & DEF_PROMISC)
-		dp_rcr_reg |= RCR_AB | RCR_PRO | RCR_AM;
-	
-	if (dep->de_flags & DEF_BROAD)
-		dp_rcr_reg |= RCR_AB;
-	
-	if (dep->de_flags & DEF_MULTI)
-		dp_rcr_reg |= RCR_AM;
+	dp_rcr_reg = RCR_AB;  /* Enable broadcasts */
 	
 	outb_reg0(dep, DP_RCR, dp_rcr_reg);
 	
@@ -299,22 +335,12 @@ void dp_init(dpeth_t *dep)
 	inb_reg0(dep, DP_CNTR2);
 	
 	/* Finish the initialization. */
-	dep->de_flags |= DEF_ENABLED;
+	dep->enabled = true;
 	for (i = 0; i < dep->de_sendq_nr; i++)
 		dep->de_sendq[i].sq_filled= 0;
 	
 	dep->de_sendq_head = 0;
 	dep->de_sendq_tail = 0;
-	
-	if (dep->de_16bit) {
-		dep->de_user2nicf= dp_pio16_user2nic;
-		dep->de_nic2userf= dp_pio16_nic2user;
-		dep->de_getblockf= dp_pio16_getblock;
-	} else {
-		dep->de_user2nicf= dp_pio8_user2nic;
-		dep->de_nic2userf= dp_pio8_nic2user;
-		dep->de_getblockf= dp_pio8_getblock;
-	}
 }
 
 static void dp_reinit(dpeth_t *dep)
@@ -323,16 +349,8 @@ static void dp_reinit(dpeth_t *dep)
 	
 	outb_reg0(dep, DP_CR, CR_PS_P0 | CR_EXTRA);
 	
-	dp_rcr_reg = 0;
-	
-	if (dep->de_flags & DEF_PROMISC)
-		dp_rcr_reg |= RCR_AB | RCR_PRO | RCR_AM;
-	
-	if (dep->de_flags & DEF_BROAD)
-		dp_rcr_reg |= RCR_AB;
-	
-	if (dep->de_flags & DEF_MULTI)
-		dp_rcr_reg |= RCR_AM;
+	/* Enable broadcasts */
+	dp_rcr_reg = RCR_AB;
 	
 	outb_reg0(dep, DP_RCR, dp_rcr_reg);
 }
@@ -370,13 +388,13 @@ static void dp_reset(dpeth_t *dep)
 	for (i = 0; i < dep->de_sendq_nr; i++)
 		dep->de_sendq[i].sq_filled = 0;
 	
-	dep->de_flags &= ~DEF_SEND_AVAIL;
-	dep->de_flags &= ~DEF_STOPPED;
+	dep->send_avail = false;
+	dep->stopped = false;
 }
 
 static uint8_t isr_acknowledge(dpeth_t *dep)
 {
-	uint8_t isr = inb_reg0(dep, DP_ISR) & 0x7f;
+	uint8_t isr = inb_reg0(dep, DP_ISR);
 	if (isr != 0)
 		outb_reg0(dep, DP_ISR, isr);
 	
@@ -388,10 +406,7 @@ void dp_check_ints(int nil_phone, device_id_t device_id, dpeth_t *dep, uint8_t i
 	int tsr;
 	int size, sendq_tail;
 	
-	if (!(dep->de_flags & DEF_ENABLED))
-		fprintf(stderr, "dp8390: got premature interrupt\n");
-	
-	for (; isr != 0; isr = isr_acknowledge(dep)) {
+	for (; (isr & 0x7f) != 0; isr = isr_acknowledge(dep)) {
 		if (isr & (ISR_PTX | ISR_TXE)) {
 			if (isr & ISR_TXE)
 				dep->de_stat.ets_sendErr++;
@@ -411,10 +426,10 @@ void dp_check_ints(int nil_phone, device_id_t device_id, dpeth_t *dep, uint8_t i
 					dep->de_stat.ets_carrSense++;
 				
 				if ((tsr & TSR_FU) && (++dep->de_stat.ets_fifoUnder <= 10))
-					printf("%s: fifo underrun\n", dep->de_name);
+					printf("FIFO underrun\n");
 				
 				if ((tsr & TSR_CDH) && (++dep->de_stat.ets_CDheartbeat <= 10))
-					printf("%s: CD heart beat failure\n", dep->de_name);
+					printf("CD heart beat failure\n");
 				
 				if (tsr & TSR_OWC)
 					dep->de_stat.ets_OWC++;
@@ -423,12 +438,11 @@ void dp_check_ints(int nil_phone, device_id_t device_id, dpeth_t *dep, uint8_t i
 			sendq_tail = dep->de_sendq_tail;
 			
 			if (!(dep->de_sendq[sendq_tail].sq_filled)) {
-				/* Or hardware bug? */
-				printf("%s: transmit interrupt, but not sending\n", dep->de_name);
+				printf("PTX interrupt, but no frame to send\n");
 				continue;
 			}
 			
-			dep->de_sendq[sendq_tail].sq_filled = 0;
+			dep->de_sendq[sendq_tail].sq_filled = false;
 			
 			if (++sendq_tail == dep->de_sendq_nr)
 				sendq_tail = 0;
@@ -444,7 +458,7 @@ void dp_check_ints(int nil_phone, device_id_t device_id, dpeth_t *dep, uint8_t i
 				outb_reg0(dep, DP_CR, CR_TXP | CR_EXTRA);
 			}
 			
-			dep->de_flags &= ~DEF_SEND_AVAIL;
+			dep->send_avail = false;
 		}
 		
 		if (isr & ISR_PRX)
@@ -468,25 +482,42 @@ void dp_check_ints(int nil_phone, device_id_t device_id, dpeth_t *dep, uint8_t i
 		
 		if (isr & ISR_RST) {
 			/*
-			 * This means we got an interrupt but the ethernet 
-			 * chip is shutdown. We set the flag DEF_STOPPED,
+			 * This means we got an interrupt but the ethernet
+			 * chip is shutdown. We set the flag 'stopped'
 			 * and continue processing arrived packets. When the
 			 * receive buffer is empty, we reset the dp8390.
 			 */
-			dep->de_flags |= DEF_STOPPED;
+			dep->stopped = true;
 			break;
 		}
 	}
 	
-	if ((dep->de_flags & DEF_STOPPED) == DEF_STOPPED) {
+	if (dep->stopped) {
 		/*
-		 * The chip is stopped, and all arrived packets
-		 * are delivered.
+		 * The chip is stopped, and all arrived
+		 * frames are delivered.
 		 */
 		dp_reset(dep);
 	}
 	
-	dep->de_flags &= ~DEF_PACK_SEND;
+	dep->sending = false;
+}
+
+static void dp_getblock(dpeth_t *dep, int page, size_t offset, size_t size, void *dst)
+{
+	offset = page * DP_PAGESIZE + offset;
+	
+	outb_reg0(dep, DP_RBCR0, size & 0xff);
+	outb_reg0(dep, DP_RBCR1, size >> 8);
+	outb_reg0(dep, DP_RSAR0, offset & 0xff);
+	outb_reg0(dep, DP_RSAR1, offset >> 8);
+	outb_reg0(dep, DP_CR, CR_DM_RR | CR_PS_P0 | CR_STA);
+	
+	if (dep->de_16bit) {
+		assert((size % 2) == 0);
+		insw(dep->de_data_port, dst, size);
+	} else
+		insb(dep->de_data_port, dst, size);
 }
 
 static void dp_recv(int nil_phone, device_id_t device_id, dpeth_t *dep)
@@ -510,26 +541,27 @@ static void dp_recv(int nil_phone, device_id_t device_id, dpeth_t *dep)
 		if (curr == pageno)
 			break;
 		
-		(dep->de_getblockf)(dep, pageno, (size_t) 0, sizeof(header), &header);
-		(dep->de_getblockf)(dep, pageno, sizeof(header) + 2 * sizeof(ether_addr_t), sizeof(eth_type), &eth_type);
+		dp_getblock(dep, pageno, (size_t) 0, sizeof(header), &header);
+		dp_getblock(dep, pageno, sizeof(header) +
+		    2 * sizeof(ether_addr_t), sizeof(eth_type), &eth_type);
 		
 		length = (header.dr_rbcl | (header.dr_rbch << 8)) - sizeof(dp_rcvhdr_t);
 		next = header.dr_next;
 		if ((length < ETH_MIN_PACK_SIZE) || (length > ETH_MAX_PACK_SIZE_TAGGED)) {
-			printf("%s: packet with strange length arrived: %d\n", dep->de_name, (int) length);
+			printf("Packet with strange length arrived: %zu\n", length);
 			next= curr;
 		} else if ((next < dep->de_startpage) || (next >= dep->de_stoppage)) {
-			printf("%s: strange next page\n", dep->de_name);
+			printf("Strange next page\n");
 			next= curr;
 		} else if (header.dr_status & RSR_FO) {
 			/*
 			 * This is very serious, so we issue a warning and
 			 * reset the buffers
 			 */
-			printf("%s: fifo overrun, resetting receive buffer\n", dep->de_name);
+			printf("FIFO overrun, resetting receive buffer\n");
 			dep->de_stat.ets_fifoOver++;
 			next = curr;
-		} else if ((header.dr_status & RSR_PRX) && (dep->de_flags & DEF_ENABLED)) {
+		} else if ((header.dr_status & RSR_PRX) && (dep->enabled)) {
 			r = dp_pkt2user(nil_phone, device_id, dep, pageno, length);
 			if (r != EOK)
 				return;
@@ -547,30 +579,40 @@ static void dp_recv(int nil_phone, device_id_t device_id, dpeth_t *dep)
 	} while (!packet_processed);
 }
 
-static void dp_pio8_getblock(dpeth_t *dep, int page, size_t offset, size_t size, void *dst)
+static void dp_nic2user(dpeth_t *dep, int nic_addr, void *buf, size_t offset, size_t size)
 {
-	offset = page * DP_PAGESIZE + offset;
-	outb_reg0(dep, DP_RBCR0, size &0xFF);
-	outb_reg0(dep, DP_RBCR1, size >> 8);
-	outb_reg0(dep, DP_RSAR0, offset &0xFF);
-	outb_reg0(dep, DP_RSAR1, offset >> 8);
+	size_t ecount = size & ~1;
+	
+	if (dep->de_16bit) {
+		outb_reg0(dep, DP_RBCR0, ecount & 0xFF);
+		outb_reg0(dep, DP_RBCR1, ecount >> 8);
+	} else {
+		outb_reg0(dep, DP_RBCR0, size & 0xff);
+		outb_reg0(dep, DP_RBCR1, size >> 8);
+	}
+	
+	outb_reg0(dep, DP_RSAR0, nic_addr & 0xff);
+	outb_reg0(dep, DP_RSAR1, nic_addr >> 8);
 	outb_reg0(dep, DP_CR, CR_DM_RR | CR_PS_P0 | CR_STA);
 	
-	insb(dep->de_data_port, dst, size);
-}
-
-static void dp_pio16_getblock(dpeth_t *dep, int page, size_t offset, size_t size, void *dst)
-{
-	offset = page * DP_PAGESIZE + offset;
-	outb_reg0(dep, DP_RBCR0, size &0xFF);
-	outb_reg0(dep, DP_RBCR1, size >> 8);
-	outb_reg0(dep, DP_RSAR0, offset &0xFF);
-	outb_reg0(dep, DP_RSAR1, offset >> 8);
-	outb_reg0(dep, DP_CR, CR_DM_RR | CR_PS_P0 | CR_STA);
-	
-	assert(!(size & 1));
-	
-	insw(dep->de_data_port, dst, size);
+	if (dep->de_16bit) {
+		void *ptr = buf + offset;
+		
+		if (ecount != 0) {
+			insw(dep->de_data_port, ptr, ecount);
+			size -= ecount;
+			offset += ecount;
+			ptr += ecount;
+		}
+		
+		if (size) {
+			assert(size == 1);
+			
+			uint16_t two_bytes = inw(dep->de_data_port);
+			memcpy(ptr, &(((uint8_t *) &two_bytes)[0]), 1);
+		}
+	} else
+		insb(dep->de_data_port, buf + offset, size);
 }
 
 static int dp_pkt2user(int nil_phone, device_id_t device_id, dpeth_t *dep, int page, int length)
@@ -588,13 +630,13 @@ static int dp_pkt2user(int nil_phone, device_id_t device_id, dpeth_t *dep, int p
 	if (last >= dep->de_stoppage) {
 		count = (dep->de_stoppage - page) * DP_PAGESIZE - sizeof(dp_rcvhdr_t);
 		
-		(dep->de_nic2userf)(dep, page * DP_PAGESIZE +
-		    sizeof(dp_rcvhdr_t), buf, 0, count);
-		(dep->de_nic2userf)(dep, dep->de_startpage * DP_PAGESIZE,
+		dp_nic2user(dep, page * DP_PAGESIZE + sizeof(dp_rcvhdr_t),
+		    buf, 0, count);
+		dp_nic2user(dep, dep->de_startpage * DP_PAGESIZE,
 		    buf, count, length - count);
 	} else {
-		(dep->de_nic2userf)(dep, page * DP_PAGESIZE +
-		    sizeof(dp_rcvhdr_t), buf, 0, length);
+		dp_nic2user(dep, page * DP_PAGESIZE + sizeof(dp_rcvhdr_t),
+		    buf, 0, length);
 	}
 	
 	nil_received_msg(nil_phone, device_id, packet, SERVICE_NONE);
@@ -602,120 +644,19 @@ static int dp_pkt2user(int nil_phone, device_id_t device_id, dpeth_t *dep, int p
 	return EOK;
 }
 
-static void dp_pio8_user2nic(dpeth_t *dep, void *buf, size_t offset, int nic_addr, size_t size)
-{
-	outb_reg0(dep, DP_ISR, ISR_RDC);
-	
-	outb_reg0(dep, DP_RBCR0, size & 0xFF);
-	outb_reg0(dep, DP_RBCR1, size >> 8);
-	outb_reg0(dep, DP_RSAR0, nic_addr & 0xFF);
-	outb_reg0(dep, DP_RSAR1, nic_addr >> 8);
-	outb_reg0(dep, DP_CR, CR_DM_RW | CR_PS_P0 | CR_STA);
-	
-	outsb(dep->de_data_port, buf + offset, size);
-	
-	unsigned int i;
-	for (i = 0; i < 100; i++) {
-		if (inb_reg0(dep, DP_ISR) & ISR_RDC)
-			break;
-	}
-	
-	if (i == 100)
-		fprintf(stderr, "dp8390: remote DMA failed to complete\n");
-}
-
-static void dp_pio16_user2nic(dpeth_t *dep, void *buf, size_t offset, int nic_addr, size_t size)
-{
-	void *vir_user;
-	size_t ecount;
-	uint16_t two_bytes;
-	
-	ecount = size & ~1;
-	
-	outb_reg0(dep, DP_ISR, ISR_RDC);
-	outb_reg0(dep, DP_RBCR0, ecount & 0xFF);
-	outb_reg0(dep, DP_RBCR1, ecount >> 8);
-	outb_reg0(dep, DP_RSAR0, nic_addr & 0xFF);
-	outb_reg0(dep, DP_RSAR1, nic_addr >> 8);
-	outb_reg0(dep, DP_CR, CR_DM_RW | CR_PS_P0 | CR_STA);
-	
-	vir_user = buf + offset;
-	if (ecount != 0) {
-		outsw(dep->de_data_port, vir_user, ecount);
-		size -= ecount;
-		offset += ecount;
-		vir_user += ecount;
-	}
-	
-	if (size) {
-		assert(size == 1);
-		
-		memcpy(&(((uint8_t *) &two_bytes)[0]), vir_user, 1);
-		outw(dep->de_data_port, two_bytes);
-	}
-	
-	unsigned int i;
-	for (i = 0; i < 100; i++) {
-		if (inb_reg0(dep, DP_ISR) & ISR_RDC)
-			break;
-	}
-	
-	if (i == 100)
-		fprintf(stderr, "dp8390: remote dma failed to complete\n");
-}
-
-static void dp_pio8_nic2user(dpeth_t *dep, int nic_addr, void *buf, size_t offset, size_t size)
-{
-	outb_reg0(dep, DP_RBCR0, size & 0xFF);
-	outb_reg0(dep, DP_RBCR1, size >> 8);
-	outb_reg0(dep, DP_RSAR0, nic_addr & 0xFF);
-	outb_reg0(dep, DP_RSAR1, nic_addr >> 8);
-	outb_reg0(dep, DP_CR, CR_DM_RR | CR_PS_P0 | CR_STA);
-	
-	insb(dep->de_data_port, buf + offset, size);
-}
-
-static void dp_pio16_nic2user(dpeth_t *dep, int nic_addr, void *buf, size_t offset, size_t size)
-{
-	void *vir_user;
-	size_t ecount;
-	uint16_t two_bytes;
-	
-	ecount = size & ~1;
-	
-	outb_reg0(dep, DP_RBCR0, ecount & 0xFF);
-	outb_reg0(dep, DP_RBCR1, ecount >> 8);
-	outb_reg0(dep, DP_RSAR0, nic_addr & 0xFF);
-	outb_reg0(dep, DP_RSAR1, nic_addr >> 8);
-	outb_reg0(dep, DP_CR, CR_DM_RR | CR_PS_P0 | CR_STA);
-	
-	vir_user = buf + offset;
-	if (ecount != 0) {
-		insw(dep->de_data_port, vir_user, ecount);
-		size -= ecount;
-		offset += ecount;
-		vir_user += ecount;
-	}
-	
-	if (size) {
-		assert(size == 1);
-		
-		two_bytes = inw(dep->de_data_port);
-		memcpy(vir_user, &(((uint8_t *) &two_bytes)[0]), 1);
-	}
-}
-
 static void conf_hw(dpeth_t *dep)
 {
 	if (!ne_probe(dep)) {
-		printf("%s: No ethernet card found at %#lx\n",
-		    dep->de_name, dep->de_base_port);
-		dep->de_mode= DEM_DISABLED;
+		printf("No ethernet card found at %#lx\n", dep->de_base_port);
+		dep->up = false;
 		return;
 	}
 	
-	dep->de_mode = DEM_ENABLED;
-	dep->de_flags = DEF_EMPTY;
+	dep->up = true;
+	dep->enabled = false;
+	dep->stopped = false;
+	dep->sending = false;
+	dep->send_avail = false;
 }
 
 static void insb(port_t port, void *buf, size_t size)

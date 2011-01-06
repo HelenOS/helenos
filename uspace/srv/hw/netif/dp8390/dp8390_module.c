@@ -129,8 +129,8 @@ static void irq_handler(ipc_callid_t iid, ipc_call_t *call)
 	
 	fibril_rwlock_write_unlock(&netif_globals.lock);
 	
-	if ((dep != NULL) && (dep->de_mode == DEM_ENABLED)) {
-		assert(dep->de_flags & DEF_ENABLED);
+	if ((dep != NULL) && (dep->up)) {
+		assert(dep->enabled);
 		dp_check_ints(nil_phone, device_id, dep, IRQ_GET_ISR(*call));
 	}
 }
@@ -232,7 +232,7 @@ int netif_probe_message(device_id_t device_id, int irq, uintptr_t io)
 	device->specific = (void *) dep;
 	device->state = NETIF_STOPPED;
 	dep->de_irq = irq;
-	dep->de_mode = DEM_DISABLED;
+	dep->up = false;
 	
 	//TODO address?
 	rc = pio_enable((void *) io, DP8390_IO_SIZE, (void **) &dep->de_base_port);
@@ -305,7 +305,7 @@ int netif_start_message(netif_device_t * device)
 		if (rc != EOK)
 			return rc;
 		
-		rc = do_init(dep, DL_BROAD_REQ);
+		rc = do_init(dep);
 		if (rc != EOK) {
 			ipc_unregister_irq(dep->de_irq, device->device_id);
 			return rc;
