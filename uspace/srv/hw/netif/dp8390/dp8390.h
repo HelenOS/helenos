@@ -1,29 +1,3 @@
-/*
- * Copyright (c) 1987,1997, 2006, Vrije Universiteit, Amsterdam, The Netherlands All rights reserved. Redistribution and use of the MINIX 3 operating system in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
- *
- * * Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
- * * Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
- * * Neither the name of the Vrije Universiteit nor the names of the software authors or contributors may be used to endorse or promote products derived from this software without specific prior written permission.
- * * Any deviations from these conditions require written permission from the copyright holder in advance
- *
- *
- * Disclaimer
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS, AUTHORS, AND CONTRIBUTORS ``AS IS'' AND ANY EXPRESS OR
- * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
- * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
- * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR ANY AUTHORS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * Changes:
- *  2009 ported to HelenOS, Lukas Mejdrech
- */
-
 /** @addtogroup dp8390
  *  @{
  */
@@ -43,12 +17,6 @@
 /** Input/output size.
  */
 #define DP8390_IO_SIZE	0x020
-
-/*
-dp8390.h
-
-Created:	before Dec 28, 1992 by Philip Homburg
-*/
 
 /* National Semiconductor DP8390 Network Interface Controller. */
 
@@ -329,18 +297,15 @@ typedef struct dpeth
 	 * routine knows the irq and/or memory address because they are
 	 * hardwired in the board, the probe should modify these fields.
 	 * Futhermore, the probe routine should also fill in de_initf and
-	 * de_stopf fields with the appropriate function pointers and set
-	 * de_prog_IO iff programmed I/O is to be used.
+	 * de_stopf fields with the appropriate function pointers.
 	 */
 	port_t de_base_port;
 	phys_bytes de_linmem;
-	char *de_locmem;
 	int de_irq;
 	int de_int_pending;
 //	irq_hook_t de_hook;
 	dp_initf_t de_initf; 
 	dp_stopf_t de_stopf; 
-	int de_prog_IO;
 	char de_name[sizeof("dp8390#n")];
 
 	/* The initf function fills the following fields. Only cards that do
@@ -359,14 +324,6 @@ typedef struct dpeth
 
 	/* should be here - read even for ne2k isa init... */
 	char de_pci;			/* TRUE iff PCI device */
-
-#if ENABLE_PCI
-	/* PCI config */
-//	char de_pci;			/* TRUE iff PCI device */
-//	u8_t de_pcibus;	
-//	u8_t de_pcidev;	
-//	u8_t de_pcifunc;	
-#endif
 
 	/* Do it yourself send queue */
 	struct sendq
@@ -417,13 +374,7 @@ typedef struct dpeth
 #define DEM_SINK	0x1
 #define DEM_ENABLED	0x2
 
-//#if !__minix_vmd
-#define debug		1	/* Standard Minix lacks debug variable */
-//#endif
-
-/*
- * $PchId: dp8390.h,v 1.10 2005/02/10 17:26:06 philip Exp $
- */
+#define debug		1
 
 #endif
 

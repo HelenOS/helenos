@@ -1,29 +1,3 @@
-/*
- * Copyright (c) 1987,1997, 2006, Vrije Universiteit, Amsterdam, The Netherlands All rights reserved. Redistribution and use of the MINIX 3 operating system in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
- *
- * * Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
- * * Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
- * * Neither the name of the Vrije Universiteit nor the names of the software authors or contributors may be used to endorse or promote products derived from this software without specific prior written permission.
- * * Any deviations from these conditions require written permission from the copyright holder in advance
- *
- *
- * Disclaimer
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS, AUTHORS, AND CONTRIBUTORS ``AS IS'' AND ANY EXPRESS OR
- * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
- * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
- * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR ANY AUTHORS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * Changes:
- *  2009 ported to HelenOS, Lukas Mejdrech
- */
-
 /** @addtogroup dp8390
  *  @{
  */
@@ -42,18 +16,6 @@
 
 #include "dp8390_drv.h"
 #include "dp8390_port.h"
-
-/*
- * dp8390.c
- *
- * Created:	before Dec 28, 1992 by Philip Homburg <philip@f-mnx.phicoh.com>
- *
- * Modified Mar 10 1994 by Philip Homburg
- *	Become a generic dp8390 driver.
- *
- * Modified Dec 20 1996 by G. Falzoni <falzoni@marina.scn.de>
- *	Added support for 3c503 boards.
- */
 
 #include "local.h"
 #include "dp8390.h"
@@ -80,136 +42,40 @@ static void outsb(port_t port, void * buf, size_t size);
  */
 static void outsw(port_t port, void * buf, size_t size);
 
-//static u16_t eth_ign_proto;
-//static char *progname;
-
-/* Configuration */
-/*typedef struct dp_conf
-{
-	port_t dpc_port;
-	int dpc_irq;
-	phys_bytes dpc_mem;
-	char *dpc_envvar;
-} dp_conf_t;
-*/
-//dp_conf_t dp_conf[]=	/* Card addresses */
-//{
-	/* I/O port, IRQ,  Buffer address,  Env. var. */
-/*	{ 0x280,     3,    0xD0000,        "DPETH0"	},
-	{ 0x300,     5,    0xC8000,        "DPETH1"	},
-	{ 0x380,    10,    0xD8000,        "DPETH2"	},
-};
-*/
-/* Test if dp_conf has exactly DE_PORT_NR entries.  If not then you will see
- * the error: "array size is negative".
- */
-//extern int ___dummy[DE_PORT_NR == sizeof(dp_conf)/sizeof(dp_conf[0]) ? 1 : -1];
-
-/* Card inits configured out? */
-#if !ENABLE_WDETH
-#define wdeth_probe(dep)	(0)
-#endif
-#if !ENABLE_NE2000
-#define ne_probe(dep)		(0)
-#endif
-#if !ENABLE_3C503
-#define el2_probe(dep)		(0)
-#endif
-
 /* Some clones of the dp8390 and the PC emulator 'Bochs' require the CR_STA
  * on writes to the CR register. Additional CR_STAs do not appear to hurt
  * genuine dp8390s
  */
 #define CR_EXTRA	CR_STA
 
-//#if ENABLE_PCI
-//_PROTOTYPE(static void pci_conf, (void)				);
-//#endif
-//_PROTOTYPE(static void do_vwrite, (message *mp, int from_int,
-//							int vectored)	);
-//_PROTOTYPE(static void do_vwrite_s, (message *mp, int from_int)	);
-//_PROTOTYPE(static void do_vread, (message *mp, int vectored)		);
-//_PROTOTYPE(static void do_vread_s, (message *mp)			);
-//_PROTOTYPE(static void do_init, (message *mp)				);
-//_PROTOTYPE(static void do_int, (dpeth_t *dep)				);
-//_PROTOTYPE(static void do_getstat, (message *mp)			);
-//_PROTOTYPE(static void do_getstat_s, (message *mp)			);
-//_PROTOTYPE(static void do_getname, (message *mp)			);
-//_PROTOTYPE(static void do_stop, (message *mp)				);
 _PROTOTYPE(static void dp_init, (dpeth_t *dep)				);
-//_PROTOTYPE(static void dp_confaddr, (dpeth_t *dep)			);
 _PROTOTYPE(static void dp_reinit, (dpeth_t *dep)			);
 _PROTOTYPE(static void dp_reset, (dpeth_t *dep)			);
-//_PROTOTYPE(static void dp_check_ints, (dpeth_t *dep)			);
 _PROTOTYPE(static void dp_recv, (dpeth_t *dep)				);
 _PROTOTYPE(static void dp_send, (dpeth_t *dep)				);
-//_PROTOTYPE(static void dp8390_stop, (void)				);
-_PROTOTYPE(static void dp_getblock, (dpeth_t *dep, int page,
-				size_t offset, size_t size, void *dst)	);
 _PROTOTYPE(static void dp_pio8_getblock, (dpeth_t *dep, int page,
 				size_t offset, size_t size, void *dst)	);
 _PROTOTYPE(static void dp_pio16_getblock, (dpeth_t *dep, int page,
 				size_t offset, size_t size, void *dst)	);
 _PROTOTYPE(static int dp_pkt2user, (dpeth_t *dep, int page,
 							int length) );
-//_PROTOTYPE(static int dp_pkt2user_s, (dpeth_t *dep, int page,
-//							int length)	);
-_PROTOTYPE(static void dp_user2nic, (dpeth_t *dep, iovec_dat_t *iovp, 
-		vir_bytes offset, int nic_addr, vir_bytes count) );
-//_PROTOTYPE(static void dp_user2nic_s, (dpeth_t *dep, iovec_dat_s_t *iovp, 
-//		vir_bytes offset, int nic_addr, vir_bytes count)	);
 _PROTOTYPE(static void dp_pio8_user2nic, (dpeth_t *dep,
 				iovec_dat_t *iovp, vir_bytes offset,
 				int nic_addr, vir_bytes count) );
-//_PROTOTYPE(static void dp_pio8_user2nic_s, (dpeth_t *dep,
-//				iovec_dat_s_t *iovp, vir_bytes offset,
-//				int nic_addr, vir_bytes count)		);
 _PROTOTYPE(static void dp_pio16_user2nic, (dpeth_t *dep,
 				iovec_dat_t *iovp, vir_bytes offset,
 				int nic_addr, vir_bytes count) );
-//_PROTOTYPE(static void dp_pio16_user2nic_s, (dpeth_t *dep,
-//				iovec_dat_s_t *iovp, vir_bytes offset,
-//				int nic_addr, vir_bytes count)		);
-_PROTOTYPE(static void dp_nic2user, (dpeth_t *dep, int nic_addr, 
-		iovec_dat_t *iovp, vir_bytes offset, vir_bytes count)	);
-//_PROTOTYPE(static void dp_nic2user_s, (dpeth_t *dep, int nic_addr, 
-//		iovec_dat_s_t *iovp, vir_bytes offset, vir_bytes count)	);
 _PROTOTYPE(static void dp_pio8_nic2user, (dpeth_t *dep, int nic_addr, 
 		iovec_dat_t *iovp, vir_bytes offset, vir_bytes count)	);
-//_PROTOTYPE(static void dp_pio8_nic2user_s, (dpeth_t *dep, int nic_addr, 
-//		iovec_dat_s_t *iovp, vir_bytes offset, vir_bytes count)	);
 _PROTOTYPE(static void dp_pio16_nic2user, (dpeth_t *dep, int nic_addr, 
 		iovec_dat_t *iovp, vir_bytes offset, vir_bytes count)	);
-//_PROTOTYPE(static void dp_pio16_nic2user_s, (dpeth_t *dep, int nic_addr, 
-//		iovec_dat_s_t *iovp, vir_bytes offset, vir_bytes count)	);
 _PROTOTYPE(static void dp_next_iovec, (iovec_dat_t *iovp)		);
-//_PROTOTYPE(static void dp_next_iovec_s, (iovec_dat_s_t *iovp)		);
 _PROTOTYPE(static void conf_hw, (dpeth_t *dep)				);
-//_PROTOTYPE(static void update_conf, (dpeth_t *dep, dp_conf_t *dcp)	);
-_PROTOTYPE(static void map_hw_buffer, (dpeth_t *dep)			);
-//_PROTOTYPE(static int calc_iovec_size, (iovec_dat_t *iovp)		);
-//_PROTOTYPE(static int calc_iovec_size_s, (iovec_dat_s_t *iovp)		);
 _PROTOTYPE(static void reply, (dpeth_t *dep, int err, int may_block)	);
-//_PROTOTYPE(static void mess_reply, (message *req, message *reply)	);
 _PROTOTYPE(static void get_userdata, (int user_proc,
 		vir_bytes user_addr, vir_bytes count, void *loc_addr)	);
-//_PROTOTYPE(static void get_userdata_s, (int user_proc,
-//		cp_grant_id_t grant, vir_bytes offset, vir_bytes count,
-//		void *loc_addr)	);
-//_PROTOTYPE(static void put_userdata, (int user_proc,
-//		vir_bytes user_addr, vir_bytes count, void *loc_addr)	);
-//_PROTOTYPE(static void put_userdata_s, (int user_proc,
-//		cp_grant_id_t grant, size_t count, void *loc_addr)	);
 _PROTOTYPE(static void insb, (port_t port, void *buf, size_t size)				);
 _PROTOTYPE(static void insw, (port_t port, void *buf, size_t size)				);
-//_PROTOTYPE(static void do_vir_insb, (port_t port, int proc,
-//					vir_bytes buf, size_t size)	);
-//_PROTOTYPE(static void do_vir_insw, (port_t port, int proc,
-//					vir_bytes buf, size_t size)	);
-//_PROTOTYPE(static void do_vir_outsb, (port_t port, int proc,
-//					vir_bytes buf, size_t size)	);
-//_PROTOTYPE(static void do_vir_outsw, (port_t port, int proc,
-//					vir_bytes buf, size_t size)	);
 
 int do_probe(dpeth_t * dep){
 	/* This is the default, try to (re)locate the device. */
@@ -494,9 +360,6 @@ dpeth_t *dep;
 							i < 5 ? ':' : '\n');
 	}
 
-	/* Map buffer */
-	map_hw_buffer(dep);
-
 	/* Initialization of the dp8390 following the mandatory procedure
 	 * in reference manual ("DP8390D/NS32490D NIC Network Interface
 	 * Controller", National Semiconductor, July 1995, Page 29).
@@ -566,15 +429,7 @@ dpeth_t *dep;
 		dep->de_sendq[i].sq_filled= 0;
 	dep->de_sendq_head= 0;
 	dep->de_sendq_tail= 0;
-	if (!dep->de_prog_IO)
-	{
-		dep->de_user2nicf= dp_user2nic;
-//		dep->de_user2nicf_s= dp_user2nic_s;
-		dep->de_nic2userf= dp_nic2user;
-//		dep->de_nic2userf_s= dp_nic2user_s;
-		dep->de_getblockf= dp_getblock;
-	}
-	else if (dep->de_16bit)
+	if (dep->de_16bit)
 	{
 		dep->de_user2nicf= dp_pio16_user2nic;
 //		dep->de_user2nicf_s= dp_pio16_user2nic_s;
@@ -937,23 +792,6 @@ dpeth_t *dep;
 }
 
 /*===========================================================================*
- *				dp_getblock				     *
- *===========================================================================*/
-static void dp_getblock(dep, page, offset, size, dst)
-dpeth_t *dep;
-int page;
-size_t offset;
-size_t size;
-void *dst;
-{
-//	int r;
-
-	offset = page * DP_PAGESIZE + offset;
-
-	memcpy(dst, dep->de_locmem + offset, size);
-}
-
-/*===========================================================================*
  *				dp_pio8_getblock			     *
  *===========================================================================*/
 static void dp_pio8_getblock(dep, page, offset, size, dst)
@@ -1050,56 +888,6 @@ int page, length;
 		}
 	}
 	return OK;
-}
-
-/*===========================================================================*
- *				dp_user2nic				     *
- *===========================================================================*/
-static void dp_user2nic(dep, iovp, offset, nic_addr, count)
-dpeth_t *dep;
-iovec_dat_t *iovp;
-vir_bytes offset;
-int nic_addr;
-vir_bytes count;
-{
-	vir_bytes vir_hw;//, vir_user;
-	//int bytes, i, r;
-	int i, r;
-	vir_bytes bytes;
-
-	vir_hw = (vir_bytes)dep->de_locmem + nic_addr;
-
-	i= 0;
-	while (count > 0)
-	{
-		if (i >= IOVEC_NR)
-		{
-			dp_next_iovec(iovp);
-			i= 0;
-			continue;
-		}
-		assert(i < iovp->iod_iovec_s);
-		if (offset >= iovp->iod_iovec[i].iov_size)
-		{
-			offset -= iovp->iod_iovec[i].iov_size;
-			i++;
-			continue;
-		}
-		bytes = iovp->iod_iovec[i].iov_size - offset;
-		if (bytes > count)
-			bytes = count;
-
-		r= sys_vircopy(iovp->iod_proc_nr, D,
-			iovp->iod_iovec[i].iov_addr + offset,
-			SELF, D, vir_hw, bytes);
-		if (r != OK)
-			panic("DP8390", "dp_user2nic: sys_vircopy failed", r);
-
-		count -= bytes;
-		vir_hw += bytes;
-		offset += bytes;
-	}
-	assert(count == 0);
 }
 
 /*===========================================================================*
@@ -1277,55 +1065,6 @@ vir_bytes count;
 	{
 		panic("", "dp8390: remote dma failed to complete", NO_NUM);
 	}
-}
-
-/*===========================================================================*
- *				dp_nic2user				     *
- *===========================================================================*/
-static void dp_nic2user(dep, nic_addr, iovp, offset, count)
-dpeth_t *dep;
-int nic_addr;
-iovec_dat_t *iovp;
-vir_bytes offset;
-vir_bytes count;
-{
-	vir_bytes vir_hw;//, vir_user;
-	vir_bytes bytes;
-	int i, r;
-
-	vir_hw = (vir_bytes)dep->de_locmem + nic_addr;
-
-	i= 0;
-	while (count > 0)
-	{
-		if (i >= IOVEC_NR)
-		{
-			dp_next_iovec(iovp);
-			i= 0;
-			continue;
-		}
-		assert(i < iovp->iod_iovec_s);
-		if (offset >= iovp->iod_iovec[i].iov_size)
-		{
-			offset -= iovp->iod_iovec[i].iov_size;
-			i++;
-			continue;
-		}
-		bytes = iovp->iod_iovec[i].iov_size - offset;
-		if (bytes > count)
-			bytes = count;
-
-		r= sys_vircopy(SELF, D, vir_hw,
-			iovp->iod_proc_nr, D,
-			iovp->iod_iovec[i].iov_addr + offset, bytes);
-		if (r != OK)
-			panic("DP8390", "dp_nic2user: sys_vircopy failed", r);
-
-		count -= bytes;
-		vir_hw += bytes;
-		offset += bytes;
-	}
-	assert(count == 0);
 }
 
 /*===========================================================================*
@@ -1513,8 +1252,7 @@ dpeth_t *dep;
 //	update_conf(dep, dcp);
 //	if (dep->de_mode != DEM_ENABLED)
 //		return;
-	if (!wdeth_probe(dep) && !ne_probe(dep) && !el2_probe(dep))
-	{
+	if (!ne_probe(dep)) {
 		printf("%s: No ethernet card found at %#lx\n",
 		    dep->de_name, dep->de_base_port);
 		dep->de_mode= DEM_DISABLED;
@@ -1527,47 +1265,6 @@ dpeth_t *dep;
 
 	dep->de_flags = DEF_EMPTY;
 //	dep->de_stat = empty_stat;
-}
-
-/*===========================================================================*
- *				map_hw_buffer				     *
- *===========================================================================*/
-static void map_hw_buffer(dep)
-dpeth_t *dep;
-{
-//	int r;
-//	size_t o, size;
-//	char *buf, *abuf;
-
-	if (dep->de_prog_IO)
-	{
-#if 0
-		if(debug){
-			printf(
-			"map_hw_buffer: programmed I/O, no need to map buffer\n");
-		}
-#endif
-		dep->de_locmem = (char *)-dep->de_ramsize; /* trap errors */
-		return;
-	}else{
-		printf("map_hw_buffer: no buffer!\n");
-	}
-
-//	size = dep->de_ramsize + PAGE_SIZE;	/* Add PAGE_SIZE for
-//						 * alignment
-//						 */
-//	buf= malloc(size);
-//	if (buf == NULL)
-//		panic(__FILE__, "map_hw_buffer: cannot malloc size", size);
-//	o= PAGE_SIZE - ((vir_bytes)buf % PAGE_SIZE);
-//	abuf= buf + o;
-//	printf("buf at 0x%x, abuf at 0x%x\n", buf, abuf);
-
-//	r= sys_vm_map(SELF, 1 /* map */, (vir_bytes)abuf,
-//			dep->de_ramsize, (phys_bytes)dep->de_linmem);
-//	if (r != OK)
-//		panic(__FILE__, "map_hw_buffer: sys_vm_map failed", r);
-//	dep->de_locmem = abuf;
 }
 
 /*===========================================================================*
@@ -1663,10 +1360,6 @@ static void outsw(port_t port, void *buf, size_t size)
 		outw(port, *((uint16_t *) buf + i));
 	}
 }
-
-/*
- * $PchId: dp8390.c,v 1.25 2005/02/10 17:32:07 philip Exp $
- */
 
 /** @}
  */

@@ -1,29 +1,3 @@
-/*
- * Copyright (c) 1987,1997, 2006, Vrije Universiteit, Amsterdam, The Netherlands All rights reserved. Redistribution and use of the MINIX 3 operating system in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
- *
- * * Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
- * * Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
- * * Neither the name of the Vrije Universiteit nor the names of the software authors or contributors may be used to endorse or promote products derived from this software without specific prior written permission.
- * * Any deviations from these conditions require written permission from the copyright holder in advance
- *
- *
- * Disclaimer
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS, AUTHORS, AND CONTRIBUTORS ``AS IS'' AND ANY EXPRESS OR
- * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
- * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
- * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR ANY AUTHORS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
- * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- * Changes:
- *  2009 ported to HelenOS, Lukas Mejdrech
- */
-
 /** @addtogroup ne2k
  *  @{
  */
@@ -37,34 +11,13 @@
 
 #include "dp8390_port.h"
 
-/*
-ne2000.c
-
-Driver for the ne2000 ethernet cards. This file contains only the ne2000
-specific code, the rest is in dp8390.c
-
-Created:	March 15, 1994 by Philip Homburg <philip@f-mnx.phicoh.com>
-*/
-
-//#include "../drivers.h"
-
-//#include <net/gen/ether.h>
-//#include <net/gen/eth_io.h>
-//#if __minix_vmd
-//#include "config.h"
-//#endif
-
 #include "local.h"
 #include "dp8390.h"
 #include "ne2000.h"
 
-#if ENABLE_NE2000
-
 /** Number of bytes to transfer.
  */
 #define N 100
-
-//#define MILLIS_TO_TICKS(m)  (((m)*HZ/1000)+1)
 
 /** Sleeps for the defined millicesonds.
  *  @param[in] millis The number of milliseconds to sleep.
@@ -113,7 +66,6 @@ static int test_16(dpeth_t *dep, int pos, u8_t *pat);
  *  @param[in,out] dep The network interface structure.
  */
 static void ne_stop(dpeth_t *dep);
-//_PROTOTYPE(static void milli_delay, (unsigned long millis)		);
 
 /** Initializes the NE2000 network interface.
  *  @param[in,out] dep The network interface structure.
@@ -195,7 +147,6 @@ dpeth_t *dep;
 			if (!dep->de_pci)
 				dep->de_initf= ne_init;
 			dep->de_stopf= ne_stop;
-			dep->de_prog_IO= 1;
 			return 1;
 		}
 	}
@@ -400,17 +351,6 @@ dpeth_t *dep;
 	milli_delay(2);
 	outb_ne(dep, NE_RESET, byte);
 }
-/*
-static void milli_delay(unsigned long millis)
-{
-	tickdelay(MILLIS_TO_TICKS(millis));
-}
-*/
-#endif /* ENABLE_NE2000 */
-
-/*
- * $PchId: ne2000.c,v 1.10 2004/08/03 12:03:00 philip Exp $
- */
 
 /** @}
  */

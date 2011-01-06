@@ -130,7 +130,6 @@ static void irq_handler(ipc_callid_t iid, ipc_call_t * call)
 	}else{
 		fibril_rwlock_write_unlock(&netif_globals.lock);
 	}
-	ipc_answer_0(iid, EOK);
 }
 
 /** Changes the network interface state.
