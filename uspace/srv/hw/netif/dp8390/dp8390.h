@@ -12,7 +12,6 @@
 #include <net/packet.h>
 
 #include "dp8390_port.h"
-#include "local.h"
 
 /** Input/output size.
  */

@@ -10,7 +10,6 @@
 #define __NET_NETIF_NE2000_H__
 
 #include <libarch/ddi.h>
-
 #include "dp8390_port.h"
 
 /** DP8390 register offset.
@@ -60,14 +59,18 @@
  *  @param[in] reg The register offset.
  *  @returns The read value.
  */
-#define inw_ne(dep, reg)  (inw(dep->de_base_port+reg))
+#define inw_ne(dep, reg)  (inw(dep->de_base_port + reg))
 
 /** Writes 1 word (2 bytes) register.
  *  @param[in] dep The network interface structure.
  *  @param[in] reg The register offset.
  *  @param[in] data The value to be written.
  */
-#define outw_ne(dep, reg, data)  (outw(dep->de_base_port+reg, data))
+#define outw_ne(dep, reg, data)  (outw(dep->de_base_port + reg, data))
+
+struct dpeth;
+
+int ne_probe(struct dpeth *dep);
 
 #endif
 

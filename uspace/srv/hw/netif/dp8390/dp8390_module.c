@@ -42,7 +42,6 @@
 #include <malloc.h>
 #include <ipc/ipc.h>
 #include <ipc/services.h>
-
 #include <net/modules.h>
 #include <packet_client.h>
 #include <adt/measured_strings.h>
@@ -50,7 +49,6 @@
 #include <nil_interface.h>
 #include <netif_interface.h>
 #include <netif_local.h>
-
 #include "dp8390.h"
 #include "dp8390_drv.h"
 #include "dp8390_port.h"

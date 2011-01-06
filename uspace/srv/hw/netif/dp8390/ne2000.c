@@ -8,10 +8,7 @@
 
 #include <stdio.h>
 #include <unistd.h>
-
 #include "dp8390_port.h"
-
-#include "local.h"
 #include "dp8390.h"
 #include "ne2000.h"
 
@@ -20,13 +17,13 @@
 
 /** Type definition of the testing function.
  */
-_PROTOTYPE(typedef int (*testf_t), (dpeth_t *dep, int pos, u8_t *pat)	);
+_PROTOTYPE(typedef int (*testf_t), (dpeth_t *dep, int pos, u8_t *pat));
 
 /** Data patterns */
-u8_t pat0[]= {0x00, 0x00, 0x00, 0x00};
-u8_t pat1[]= {0xFF, 0xFF, 0xFF, 0xFF};
-u8_t pat2[]= {0xA5, 0x5A, 0x69, 0x96};
-u8_t pat3[]= {0x96, 0x69, 0x5A, 0xA5};
+u8_t pat0[] = {0x00, 0x00, 0x00, 0x00};
+u8_t pat1[] = {0xFF, 0xFF, 0xFF, 0xFF};
+u8_t pat2[] = {0xA5, 0x5A, 0x69, 0x96};
+u8_t pat3[] = {0x96, 0x69, 0x5A, 0xA5};
 
 /** Tests 8 bit NE2000 network interface.
  *  @param[in,out] dep The network interface structure.

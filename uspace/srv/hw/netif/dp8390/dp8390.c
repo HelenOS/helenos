@@ -9,16 +9,13 @@
 #include <assert.h>
 #include <byteorder.h>
 #include <errno.h>
-
 #include <netif_local.h>
 #include <net/packet.h>
 #include <packet_client.h>
-
 #include "dp8390_drv.h"
 #include "dp8390_port.h"
-
-#include "local.h"
 #include "dp8390.h"
+#include "ne2000.h"
 
 /** Queues the outgoing packet.
  *  @param[in] dep The network interface structure.
