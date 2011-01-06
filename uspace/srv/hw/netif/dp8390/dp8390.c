@@ -331,7 +331,7 @@ int do_pwrite(dpeth_t *dep, packet_t *packet, int from_int)
 void dp_init(dpeth_t *dep)
 {
 	int dp_rcr_reg;
-	int i;//, r;
+	int i;
 	
 	/* General initialization */
 	dep->de_flags = DEF_EMPTY;
@@ -342,51 +342,65 @@ void dp_init(dpeth_t *dep)
 		for (i = 0; i < 6; i++)
 			printf("%x%c", dep->de_address.ea_addr[i], i < 5 ? ':' : '\n');
 	}
-
-	/* Initialization of the dp8390 following the mandatory procedure
+	
+	/*
+	 * Initialization of the dp8390 following the mandatory procedure
 	 * in reference manual ("DP8390D/NS32490D NIC Network Interface
 	 * Controller", National Semiconductor, July 1995, Page 29).
 	 */
+	
 	/* Step 1: */
 	outb_reg0(dep, DP_CR, CR_PS_P0 | CR_STP | CR_DM_ABORT);
+	
 	/* Step 2: */
 	if (dep->de_16bit)
 		outb_reg0(dep, DP_DCR, DCR_WORDWIDE | DCR_8BYTES | DCR_BMS);
 	else
 		outb_reg0(dep, DP_DCR, DCR_BYTEWIDE | DCR_8BYTES | DCR_BMS);
+	
 	/* Step 3: */
 	outb_reg0(dep, DP_RBCR0, 0);
 	outb_reg0(dep, DP_RBCR1, 0);
+	
 	/* Step 4: */
 	dp_rcr_reg = 0;
-	if (dep->de_flags &DEF_PROMISC)
+	
+	if (dep->de_flags & DEF_PROMISC)
 		dp_rcr_reg |= RCR_AB | RCR_PRO | RCR_AM;
-	if (dep->de_flags &DEF_BROAD)
+	
+	if (dep->de_flags & DEF_BROAD)
 		dp_rcr_reg |= RCR_AB;
-	if (dep->de_flags &DEF_MULTI)
+	
+	if (dep->de_flags & DEF_MULTI)
 		dp_rcr_reg |= RCR_AM;
+	
 	outb_reg0(dep, DP_RCR, dp_rcr_reg);
+	
 	/* Step 5: */
 	outb_reg0(dep, DP_TCR, TCR_INTERNAL);
+	
 	/* Step 6: */
 	outb_reg0(dep, DP_BNRY, dep->de_startpage);
 	outb_reg0(dep, DP_PSTART, dep->de_startpage);
 	outb_reg0(dep, DP_PSTOP, dep->de_stoppage);
+	
 	/* Step 7: */
 	outb_reg0(dep, DP_ISR, 0xFF);
+	
 	/* Step 8: */
 	outb_reg0(dep, DP_IMR, IMR_PRXE | IMR_PTXE | IMR_RXEE | IMR_TXEE |
-		IMR_OVWE | IMR_CNTE);
+	    IMR_OVWE | IMR_CNTE);
+	
 	/* Step 9: */
 	outb_reg0(dep, DP_CR, CR_PS_P1 | CR_DM_ABORT | CR_STP);
-
+	
 	outb_reg1(dep, DP_PAR0, dep->de_address.ea_addr[0]);
 	outb_reg1(dep, DP_PAR1, dep->de_address.ea_addr[1]);
 	outb_reg1(dep, DP_PAR2, dep->de_address.ea_addr[2]);
 	outb_reg1(dep, DP_PAR3, dep->de_address.ea_addr[3]);
 	outb_reg1(dep, DP_PAR4, dep->de_address.ea_addr[4]);
 	outb_reg1(dep, DP_PAR5, dep->de_address.ea_addr[5]);
-
+	
 	outb_reg1(dep, DP_MAR0, 0xff);
 	outb_reg1(dep, DP_MAR1, 0xff);
 	outb_reg1(dep, DP_MAR2, 0xff);
@@ -395,59 +409,38 @@ void dp_init(dpeth_t *dep)
 	outb_reg1(dep, DP_MAR5, 0xff);
 	outb_reg1(dep, DP_MAR6, 0xff);
 	outb_reg1(dep, DP_MAR7, 0xff);
-
+	
 	outb_reg1(dep, DP_CURR, dep->de_startpage + 1);
+	
 	/* Step 10: */
 	outb_reg0(dep, DP_CR, CR_DM_ABORT | CR_STA);
+	
 	/* Step 11: */
 	outb_reg0(dep, DP_TCR, TCR_NORMAL);
-
-	inb_reg0(dep, DP_CNTR0);		/* reset counters by reading */
+	
+	inb_reg0(dep, DP_CNTR0);  /* Reset counters by reading */
 	inb_reg0(dep, DP_CNTR1);
 	inb_reg0(dep, DP_CNTR2);
-
+	
 	/* Finish the initialization. */
 	dep->de_flags |= DEF_ENABLED;
-	for (i= 0; i<dep->de_sendq_nr; i++)
+	for (i = 0; i < dep->de_sendq_nr; i++)
 		dep->de_sendq[i].sq_filled= 0;
-	dep->de_sendq_head= 0;
-	dep->de_sendq_tail= 0;
-	if (dep->de_16bit)
-	{
+	
+	dep->de_sendq_head = 0;
+	dep->de_sendq_tail = 0;
+	
+	if (dep->de_16bit) {
 		dep->de_user2nicf= dp_pio16_user2nic;
-//		dep->de_user2nicf_s= dp_pio16_user2nic_s;
 		dep->de_nic2userf= dp_pio16_nic2user;
-//		dep->de_nic2userf_s= dp_pio16_nic2user_s;
 		dep->de_getblockf= dp_pio16_getblock;
-	}
-	else
-	{
+	} else {
 		dep->de_user2nicf= dp_pio8_user2nic;
-//		dep->de_user2nicf_s= dp_pio8_user2nic_s;
 		dep->de_nic2userf= dp_pio8_nic2user;
-//		dep->de_nic2userf_s= dp_pio8_nic2user_s;
 		dep->de_getblockf= dp_pio8_getblock;
 	}
-
-	/* Set the interrupt handler and policy. Do not automatically 
-	 * reenable interrupts. Return the IRQ line number on interrupts.
- 	 */
-/* 	dep->de_hook = dep->de_irq;
-	r= sys_irqsetpolicy(dep->de_irq, 0, &dep->de_hook);
-	if (r != OK)
-		panic("DP8390", "sys_irqsetpolicy failed", r);
-
-	r= sys_irqenable(&dep->de_hook);
-	if (r != OK)
-	{
-		panic("DP8390", "unable enable interrupts", r);
-	}
-*/
 }
 
-/*===========================================================================*
- *				dp_reinit				     *
- *===========================================================================*/
 static void dp_reinit(dep)
 dpeth_t *dep;
 {

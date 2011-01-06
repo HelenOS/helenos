@@ -221,36 +221,20 @@ typedef struct dp_rcvhdr
 
 struct dpeth;
 struct iovec_dat;
-//struct iovec_dat_s;
+
 _PROTOTYPE(typedef void (*dp_initf_t), (struct dpeth *dep)		);
 _PROTOTYPE(typedef void (*dp_stopf_t), (struct dpeth *dep)		);
 _PROTOTYPE(typedef void (*dp_user2nicf_t), (struct dpeth *dep,
 			struct iovec_dat *iovp, vir_bytes offset,
 			int nic_addr, vir_bytes count) );
-//_PROTOTYPE(typedef void (*dp_user2nicf_s_t), (struct dpeth *dep,
-//			struct iovec_dat_s *iovp, vir_bytes offset,
-//			int nic_addr, vir_bytes count)			);
 _PROTOTYPE(typedef void (*dp_nic2userf_t), (struct dpeth *dep,
 			int nic_addr, struct iovec_dat *iovp,
 			vir_bytes offset, vir_bytes count) );
-//_PROTOTYPE(typedef void (*dp_nic2userf_s_t), (struct dpeth *dep,
-//			int nic_addr, struct iovec_dat_s *iovp,
-//			vir_bytes offset, vir_bytes count)		);
-//#if 0
-//_PROTOTYPE(typedef void (*dp_getheaderf_t), (struct dpeth *dep,
-//			int page, struct dp_rcvhdr *h, u16_t *eth_type)	);
-//#endif
 _PROTOTYPE(typedef void (*dp_getblock_t), (struct dpeth *dep,
 		int page, size_t offset, size_t size, void *dst)	);
 
-/* iovectors are handled IOVEC_NR entries at a time. */
-//#define IOVEC_NR	16
-// no vectors allowed
-#define IOVEC_NR	1
+#define IOVEC_NR  1
 
-/*
-typedef int irq_hook_t;
-*/
 typedef struct iovec_dat
 {
   iovec_t iod_iovec[IOVEC_NR];
@@ -274,20 +258,22 @@ typedef struct iovec_dat_s
 
 /** Maximum number of waiting packets to be sent or received.
  */
-#define MAX_PACKETS	4
+#define MAX_PACKETS  4
 
 typedef struct dpeth
 {
 	/** Outgoing packets queue.
 	 */
 	packet_t *packet_queue;
+	
 	/** Outgoing packets count.
 	 */
 	int packet_count;
-
+	
 	/** Received packets queue.
 	 */
 	packet_t *received_queue;
+	
 	/** Received packets count.
 	 */
 	int received_count;
@@ -303,11 +289,10 @@ typedef struct dpeth
 	phys_bytes de_linmem;
 	int de_irq;
 	int de_int_pending;
-//	irq_hook_t de_hook;
 	dp_initf_t de_initf; 
 	dp_stopf_t de_stopf; 
 	char de_name[sizeof("dp8390#n")];
-
+	
 	/* The initf function fills the following fields. Only cards that do
 	 * programmed I/O fill in the de_pata_port field.
 	 * In addition, the init routine has to fill in the sendq data
@@ -321,39 +306,30 @@ typedef struct dpeth
 	int de_offset_page;
 	int de_startpage;
 	int de_stoppage;
-
-	/* should be here - read even for ne2k isa init... */
-	char de_pci;			/* TRUE iff PCI device */
-
+	
 	/* Do it yourself send queue */
-	struct sendq
-	{
+	struct sendq {
 		int sq_filled;		/* this buffer contains a packet */
 		int sq_size;		/* with this size */
 		int sq_sendpage;	/* starting page of the buffer */
 	} de_sendq[SENDQ_NR];
+	
 	int de_sendq_nr;
 	int de_sendq_head;		/* Enqueue at the head */
 	int de_sendq_tail;		/* Dequeue at the tail */
-
+	
 	/* Fields for internal use by the dp8390 driver. */
 	int de_flags;
 	int de_mode;
 	eth_stat_t de_stat;
 	iovec_dat_t de_read_iovec;
-//	iovec_dat_s_t de_read_iovec_s;
-//	int de_safecopy_read;
 	iovec_dat_t de_write_iovec;
-//	iovec_dat_s_t de_write_iovec_s;
 	iovec_dat_t de_tmp_iovec;
-//	iovec_dat_s_t de_tmp_iovec_s;
 	vir_bytes de_read_s;
 //	int de_client;
 //	message de_sendmsg;
 	dp_user2nicf_t de_user2nicf; 
-//	dp_user2nicf_s_t de_user2nicf_s; 
 	dp_nic2userf_t de_nic2userf;
-//	dp_nic2userf_s_t de_nic2userf_s; 
 	dp_getblock_t de_getblockf;
 } dpeth_t;
 

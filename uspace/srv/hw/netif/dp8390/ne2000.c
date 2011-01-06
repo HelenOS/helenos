@@ -72,149 +72,126 @@ static void ne_stop(dpeth_t *dep);
  */
 void ne_init(struct dpeth *dep);
 
-/*===========================================================================*
- *				ne_probe				     *
- *===========================================================================*/
-int ne_probe(dep)
-dpeth_t *dep;
+int ne_probe(dpeth_t *dep)
 {
 	int byte;
 	int i;
 	int loc1, loc2;
 	testf_t f;
-
-	dep->de_dp8390_port= dep->de_base_port + NE_DP8390;
-
-	/* We probe for an ne1000 or an ne2000 by testing whether the
+	
+	dep->de_dp8390_port = dep->de_base_port + NE_DP8390;
+	
+	/*
+	 * We probe for an ne1000 or an ne2000 by testing whether the
 	 * on board is reachable through the dp8390. Note that the
 	 * ne1000 is an 8bit card and has a memory region distict from
 	 * the 16bit ne2000
 	 */
-
-	for (dep->de_16bit= 0; dep->de_16bit < 2; dep->de_16bit++)
-	{
+	
+	for (dep->de_16bit = 0; dep->de_16bit < 2; dep->de_16bit++) {
 		/* Reset the ethernet card */
 		byte= inb_ne(dep, NE_RESET);
 		milli_delay(2);
 		outb_ne(dep, NE_RESET, byte);
 		milli_delay(2);
-
+		
 		/* Reset the dp8390 */
 		outb_reg0(dep, DP_CR, CR_STP | CR_DM_ABORT);
-		for (i= 0; i < 0x1000 && ((inb_reg0(dep, DP_ISR) &ISR_RST) == 0); i++)
+		for (i = 0; i < 0x1000 && ((inb_reg0(dep, DP_ISR) & ISR_RST) == 0); i++)
 			; /* Do nothing */
-
+		
 		/* Check if the dp8390 is really there */
-		if ((inb_reg0(dep, DP_CR) &(CR_STP|CR_DM_ABORT)) !=
-			(CR_STP|CR_DM_ABORT))
-		{
+		if ((inb_reg0(dep, DP_CR) & (CR_STP | CR_DM_ABORT)) !=
+		    (CR_STP | CR_DM_ABORT))
 			return 0;
-		}
-
+		
 		/* Disable the receiver and init TCR and DCR. */
 		outb_reg0(dep, DP_RCR, RCR_MON);
 		outb_reg0(dep, DP_TCR, TCR_NORMAL);
-		if (dep->de_16bit)
-		{
+		if (dep->de_16bit) {
 			outb_reg0(dep, DP_DCR, DCR_WORDWIDE | DCR_8BYTES |
-				DCR_BMS);
-		}
-		else
-		{
+			    DCR_BMS);
+		} else {
 			outb_reg0(dep, DP_DCR, DCR_BYTEWIDE | DCR_8BYTES |
-				DCR_BMS);
+			    DCR_BMS);
 		}
-
-		if (dep->de_16bit)
-		{
+		
+		if (dep->de_16bit) {
 			loc1= NE2000_START;
 			loc2= NE2000_START + NE2000_SIZE - 4;
 			f= test_16;
-		}
-		else
-		{
+		} else {
 			loc1= NE1000_START;
 			loc2= NE1000_START + NE1000_SIZE - 4;
 			f= test_8;
 		}
-		if (f(dep, loc1, pat0) && f(dep, loc1, pat1) && 
-			f(dep, loc1, pat2) && f(dep, loc1, pat3) && 
-			f(dep, loc2, pat0) && f(dep, loc2, pat1) && 
-			f(dep, loc2, pat2) && f(dep, loc2, pat3))
-		{
+		
+		if (f(dep, loc1, pat0) && f(dep, loc1, pat1) &&
+		    f(dep, loc1, pat2) && f(dep, loc1, pat3) &&
+		    f(dep, loc2, pat0) && f(dep, loc2, pat1) &&
+		    f(dep, loc2, pat2) && f(dep, loc2, pat3)) {
 			/* We don't need a memory segment */
-			dep->de_linmem= 0;
-			if (!dep->de_pci)
-				dep->de_initf= ne_init;
-			dep->de_stopf= ne_stop;
+			dep->de_linmem = 0;
+			dep->de_initf = ne_init;
+			dep->de_stopf = ne_stop;
 			return 1;
 		}
 	}
+	
 	return 0;
 }
 
-/*===========================================================================*
- *				ne_init					     *
- *===========================================================================*/
-void ne_init(dep)
-dpeth_t *dep;
+void ne_init(dpeth_t *dep)
 {
 	int i;
 	int word, sendq_nr;
-
+	
 	/* Setup a transfer to get the ethernet address. */
 	if (dep->de_16bit)
 		outb_reg0(dep, DP_RBCR0, 6*2);
 	else
 		outb_reg0(dep, DP_RBCR0, 6);
+	
 	outb_reg0(dep, DP_RBCR1, 0);
 	outb_reg0(dep, DP_RSAR0, 0);
 	outb_reg0(dep, DP_RSAR1, 0);
 	outb_reg0(dep, DP_CR, CR_DM_RR | CR_PS_P0 | CR_STA);
-
-	for (i= 0; i<6; i++)
-	{
-		if (dep->de_16bit)
-		{
-			word= inw_ne(dep, NE_DATA);
-			dep->de_address.ea_addr[i]= word;
-		}
-		else
-		{
+	
+	for (i = 0; i < 6; i++) {
+		if (dep->de_16bit) {
+			word = inw_ne(dep, NE_DATA);
+			dep->de_address.ea_addr[i] = word;
+		} else
 			dep->de_address.ea_addr[i] = inb_ne(dep, NE_DATA);
-		}
 	}
+	
 	dep->de_data_port= dep->de_base_port + NE_DATA;
-	if (dep->de_16bit)
-	{
+	if (dep->de_16bit) {
 		dep->de_ramsize= NE2000_SIZE;
 		dep->de_offset_page= NE2000_START / DP_PAGESIZE;
-	}
-	else
-	{
+	} else {
 		dep->de_ramsize= NE1000_SIZE;
 		dep->de_offset_page= NE1000_START / DP_PAGESIZE;
 	}
-
+	
 	/* Allocate one send buffer (1.5KB) per 8KB of on board memory. */
 	sendq_nr= dep->de_ramsize / 0x2000;
+	
 	if (sendq_nr < 1)
-		sendq_nr= 1;
+		sendq_nr = 1;
 	else if (sendq_nr > SENDQ_NR)
-		sendq_nr= SENDQ_NR;
-	dep->de_sendq_nr= sendq_nr;
-	for (i= 0; i<sendq_nr; i++)
-	{
-		dep->de_sendq[i].sq_sendpage= dep->de_offset_page +
-			i*SENDQ_PAGES;	
-	}
-
-	dep->de_startpage= dep->de_offset_page + i*SENDQ_PAGES;
-	dep->de_stoppage= dep->de_offset_page + dep->de_ramsize / DP_PAGESIZE;
-
+		sendq_nr = SENDQ_NR;
+	
+	dep->de_sendq_nr = sendq_nr;
+	for (i = 0; i < sendq_nr; i++)
+		dep->de_sendq[i].sq_sendpage= dep->de_offset_page + i * SENDQ_PAGES;
+	
+	dep->de_startpage = dep->de_offset_page + i * SENDQ_PAGES;
+	dep->de_stoppage = dep->de_offset_page + dep->de_ramsize / DP_PAGESIZE;
+	
 	/* Can't override the default IRQ. */
 	dep->de_irq &= ~DEI_DEFAULT;
-
+	
 	if (!debug)
 	{
 		printf("%s: NE%d000 at %#lx:%d\n",
