@@ -24,7 +24,7 @@
  *  @param[in] dep The network interface structure.
  *  @param[in] packet The outgoing packet.
  *  @return EOK on success.
- *  @return EINVAL 
+ *  @return EINVAL
  */
 int queue_packet(dpeth_t * dep, packet_t *packet);
 
@@ -46,7 +46,7 @@ static void outsw(port_t port, void * buf, size_t size);
  * on writes to the CR register. Additional CR_STAs do not appear to hurt
  * genuine dp8390s
  */
-#define CR_EXTRA	CR_STA
+#define CR_EXTRA  CR_STA
 
 _PROTOTYPE(static void dp_init, (dpeth_t *dep)				);
 _PROTOTYPE(static void dp_reinit, (dpeth_t *dep)			);
@@ -77,23 +77,21 @@ _PROTOTYPE(static void get_userdata, (int user_proc,
 _PROTOTYPE(static void insb, (port_t port, void *buf, size_t size)				);
 _PROTOTYPE(static void insw, (port_t port, void *buf, size_t size)				);
 
-int do_probe(dpeth_t * dep){
+int do_probe(dpeth_t *dep)
+{
 	/* This is the default, try to (re)locate the device. */
 	conf_hw(dep);
 	if (dep->de_mode == DEM_DISABLED)
-	{
 		/* Probe failed, or the device is configured off. */
-		return EXDEV;//ENXIO;
-	}
+		return EXDEV;
+	
 	if (dep->de_mode == DEM_ENABLED)
 		dp_init(dep);
+	
 	return EOK;
 }
 
-/*===========================================================================*
- *				dp8390_dump				     *
- *===========================================================================*/
-void dp8390_dump(dpeth_t * dep)
+void dp8390_dump(dpeth_t *dep)
 {
 //	dpeth_t *dep;
 	int /*i,*/ isr;
@@ -142,21 +140,15 @@ void dp8390_dump(dpeth_t * dep)
 //	}
 }
 
-/*===========================================================================*
- *				do_init					     *
- *===========================================================================*/
-int do_init(dpeth_t * dep, int mode){
+int do_init(dpeth_t *dep, int mode)
+{
 	if (dep->de_mode == DEM_DISABLED)
-	{
 		// might call do_probe()
 		return EXDEV;
-	}
-
-	if (dep->de_mode == DEM_SINK)
-	{
+	
+	if (dep->de_mode == DEM_SINK) {
 //		strncpy((char *) dep->de_address.ea_addr, "ZDP", 6);
 //		dep->de_address.ea_addr[5] = port;
-//		dp_confaddr(dep);
 //		reply_mess.m_type = DL_CONF_REPLY;
 //		reply_mess.m3_i1 = mp->DL_PORT;
 //		reply_mess.m3_i2 = DE_PORT_NR;
@@ -165,68 +157,68 @@ int do_init(dpeth_t * dep, int mode){
 //		return;
 		return EOK;
 	}
+	
 	assert(dep->de_mode == DEM_ENABLED);
-	assert(dep->de_flags &DEF_ENABLED);
-
+	assert(dep->de_flags & DEF_ENABLED);
+	
 	dep->de_flags &= ~(DEF_PROMISC | DEF_MULTI | DEF_BROAD);
-
+	
 	if (mode &DL_PROMISC_REQ)
 		dep->de_flags |= DEF_PROMISC | DEF_MULTI | DEF_BROAD;
+	
 	if (mode &DL_MULTI_REQ)
 		dep->de_flags |= DEF_MULTI;
+	
 	if (mode &DL_BROAD_REQ)
 		dep->de_flags |= DEF_BROAD;
-
+	
 //	dep->de_client = mp->m_source;
 	dp_reinit(dep);
-
+	
 //	reply_mess.m_type = DL_CONF_REPLY;
 //	reply_mess.m3_i1 = mp->DL_PORT;
 //	reply_mess.m3_i2 = DE_PORT_NR;
 //	*(ether_addr_t *) reply_mess.m3_ca1 = dep->de_address;
-
+	
 //	mess_reply(mp, &reply_mess);
 	return EOK;
 }
 
-/*===========================================================================*
- *				do_stop					     *
- *===========================================================================*/
-void do_stop(dpeth_t * dep){
-	if((dep->de_mode != DEM_SINK) && (dep->de_mode == DEM_ENABLED) && (dep->de_flags &DEF_ENABLED)){
+void do_stop(dpeth_t *dep)
+{
+	if ((dep->de_mode != DEM_SINK)
+	    && (dep->de_mode == DEM_ENABLED)
+	    && (dep->de_flags & DEF_ENABLED)) {
 		outb_reg0(dep, DP_CR, CR_STP | CR_DM_ABORT);
 		(dep->de_stopf)(dep);
-
 		dep->de_flags = DEF_EMPTY;
 	}
 }
 
-int queue_packet(dpeth_t * dep, packet_t *packet){
+int queue_packet(dpeth_t *dep, packet_t *packet)
+{
 	packet_t *tmp;
-
-	if(dep->packet_count >= MAX_PACKETS){
+	
+	if (dep->packet_count >= MAX_PACKETS) {
 		netif_pq_release(packet_get_id(packet));
 		return ELIMIT;
 	}
-
+	
 	tmp = dep->packet_queue;
-	while(pq_next(tmp)){
+	while (pq_next(tmp))
 		tmp = pq_next(tmp);
-	}
-	if(pq_add(&tmp, packet, 0, 0) != EOK){
+	
+	if (pq_add(&tmp, packet, 0, 0) != EOK)
 		return EINVAL;
-	}
-	if(! dep->packet_count){
+	
+	if (!dep->packet_count)
 		dep->packet_queue = packet;
-	}
-	++ dep->packet_count;
+	
+	++dep->packet_count;
 	return EBUSY;
 }
 
-/*===========================================================================*
- *			based on	do_vwrite				     *
- *===========================================================================*/
-int do_pwrite(dpeth_t * dep, packet_t *packet, int from_int)
+int do_pwrite(dpeth_t *dep, packet_t *packet, int from_int)
 {
 //	int port, count, size;
 	int size;
@@ -240,25 +232,25 @@ int do_pwrite(dpeth_t * dep, packet_t *packet, int from_int)
 	dep= &de_table[port];
 	dep->de_client= mp->DL_PROC;
 */
-	if (dep->de_mode == DEM_SINK)
-	{
+	if (dep->de_mode == DEM_SINK) {
 		assert(!from_int);
 //		dep->de_flags |= DEF_PACK_SEND;
 		reply(dep, OK, FALSE);
 //		return;
 		return EOK;
 	}
+	
 	assert(dep->de_mode == DEM_ENABLED);
 	assert(dep->de_flags &DEF_ENABLED);
-	if(dep->packet_queue && (! from_int)){
+	
+	if ((dep->packet_queue) && (!from_int)) {
 //	if (dep->de_flags &DEF_SEND_AVAIL){
 //		panic("", "dp8390: send already in progress", NO_NUM);
 		return queue_packet(dep, packet);
 	}
-
+	
 	sendq_head= dep->de_sendq_head;
-//	if (dep->de_sendq[sendq_head].sq_filled)
-//	{
+//	if (dep->de_sendq[sendq_head].sq_filled) {
 //		if (from_int)
 //			panic("", "dp8390: should not be sending\n", NO_NUM);
 //		dep->de_sendmsg= *mp;
@@ -268,21 +260,18 @@ int do_pwrite(dpeth_t * dep, packet_t *packet, int from_int)
 //		return queue_packet(dep, packet);
 //	}
 //	assert(!(dep->de_flags &DEF_PACK_SEND));
-
-/*	if (vectored)
-	{
+	
+/*	if (vectored) {
 		get_userdata(mp->DL_PROC, (vir_bytes) mp->DL_ADDR,
 			(count > IOVEC_NR ? IOVEC_NR : count) *
 			sizeof(iovec_t), dep->de_write_iovec.iod_iovec);
 		dep->de_write_iovec.iod_iovec_s = count;
 		dep->de_write_iovec.iod_proc_nr = mp->DL_PROC;
 		dep->de_write_iovec.iod_iovec_addr = (vir_bytes) mp->DL_ADDR;
-
+		
 		dep->de_tmp_iovec = dep->de_write_iovec;
 		size = calc_iovec_size(&dep->de_tmp_iovec);
-	}
-	else
-	{ 
+	} else {
 		dep->de_write_iovec.iod_iovec[0].iov_addr =
 			(vir_bytes) mp->DL_ADDR;
 		dep->de_write_iovec.iod_iovec[0].iov_size =
@@ -298,66 +287,60 @@ int do_pwrite(dpeth_t * dep, packet_t *packet, int from_int)
 	dep->de_write_iovec.iod_iovec[0].iov_size = size;
 	dep->de_write_iovec.iod_iovec_s = 1;
 	dep->de_write_iovec.iod_iovec_addr = (uintptr_t) NULL;
-
-	if (size < ETH_MIN_PACK_SIZE || size > ETH_MAX_PACK_SIZE_TAGGED)
-	{
+	
+	if (size < ETH_MIN_PACK_SIZE || size > ETH_MAX_PACK_SIZE_TAGGED) {
 		panic("", "dp8390: invalid packet size", size);
 		return EINVAL;
 	}
+	
 	(dep->de_user2nicf)(dep, &dep->de_write_iovec, 0,
-		dep->de_sendq[sendq_head].sq_sendpage * DP_PAGESIZE,
-		size);
+	    dep->de_sendq[sendq_head].sq_sendpage * DP_PAGESIZE,
+	    size);
 	dep->de_sendq[sendq_head].sq_filled= TRUE;
-	if (dep->de_sendq_tail == sendq_head)
-	{
+	if (dep->de_sendq_tail == sendq_head) {
 		outb_reg0(dep, DP_TPSR, dep->de_sendq[sendq_head].sq_sendpage);
 		outb_reg0(dep, DP_TBCR1, size >> 8);
-		outb_reg0(dep, DP_TBCR0, size &0xff);
-		outb_reg0(dep, DP_CR, CR_TXP | CR_EXTRA);/* there it goes.. */
-	}
-	else
-		dep->de_sendq[sendq_head].sq_size= size;
+		outb_reg0(dep, DP_TBCR0, size & 0xff);
+		outb_reg0(dep, DP_CR, CR_TXP | CR_EXTRA);  /* there it goes.. */
+	} else
+		dep->de_sendq[sendq_head].sq_size = size;
 	
 	if (++sendq_head == dep->de_sendq_nr)
 		sendq_head= 0;
+	
 	assert(sendq_head < SENDQ_NR);
-	dep->de_sendq_head= sendq_head;
-
+	dep->de_sendq_head = sendq_head;
+	
 //	dep->de_flags |= DEF_PACK_SEND;
-
-	/* If the interrupt handler called, don't send a reply. The reply
+	
+	/*
+	 * If the interrupt handler called, don't send a reply. The reply
 	 * will be sent after all interrupts are handled. 
 	 */
 	if (from_int)
 		return EOK;
+	
 	reply(dep, OK, FALSE);
-
+	
 	assert(dep->de_mode == DEM_ENABLED);
-	assert(dep->de_flags &DEF_ENABLED);
+	assert(dep->de_flags & DEF_ENABLED);
+	
 	return EOK;
 }
 
-/*===========================================================================*
- *				dp_init					     *
- *===========================================================================*/
-void dp_init(dep)
-dpeth_t *dep;
+void dp_init(dpeth_t *dep)
 {
 	int dp_rcr_reg;
 	int i;//, r;
-
+	
 	/* General initialization */
 	dep->de_flags = DEF_EMPTY;
 	(*dep->de_initf)(dep);
-
-//	dp_confaddr(dep);
-
-	if (debug)
-	{
+	
+	if (debug) {
 		printf("%s: Ethernet address ", dep->de_name);
-		for (i= 0; i < 6; i++)
-			printf("%x%c", dep->de_address.ea_addr[i],
-							i < 5 ? ':' : '\n');
+		for (i = 0; i < 6; i++)
+			printf("%x%c", dep->de_address.ea_addr[i], i < 5 ? ':' : '\n');
 	}
 
 	/* Initialization of the dp8390 following the mandatory procedure
