@@ -188,47 +188,38 @@ typedef struct dp_rcvhdr {
  *  @param[in] reg The register offset.
  *  @returns The read value.
  */
-#define inb_reg0(dep, reg)  (inb(dep->de_dp8390_port+reg))
+#define inb_reg0(dep, reg)  (inb(dep->de_dp8390_port + reg))
 
 /** Writes 1 byte zero page register.
  *  @param[in] dep The network interface structure.
  *  @param[in] reg The register offset.
  *  @param[in] data The value to be written.
  */
-#define outb_reg0(dep, reg, data)  (outb(dep->de_dp8390_port+reg, data))
+#define outb_reg0(dep, reg, data)  (outb(dep->de_dp8390_port + reg, data))
 
 /** Reads 1 byte from the first page register.
  *  @param[in] dep The network interface structure.
  *  @param[in] reg The register offset.
  *  @returns The read value.
  */
-#define inb_reg1(dep, reg)  (inb(dep->de_dp8390_port+reg))
+#define inb_reg1(dep, reg)  (inb(dep->de_dp8390_port + reg))
 
 /** Writes 1 byte first page register.
  *  @param[in] dep The network interface structure.
  *  @param[in] reg The register offset.
  *  @param[in] data The value to be written.
  */
-#define outb_reg1(dep, reg, data)  (outb(dep->de_dp8390_port+reg, data))
+#define outb_reg1(dep, reg, data)  (outb(dep->de_dp8390_port + reg, data))
 
 /* Software interface to the dp8390 driver */
 
 struct dpeth;
-struct iovec_dat;
 
 typedef void (*dp_initf_t)(struct dpeth *dep);
 typedef void (*dp_stopf_t)(struct dpeth *dep);
-typedef void (*dp_user2nicf_t)(struct dpeth *dep, struct iovec_dat *iovp, size_t offset, int nic_addr, size_t count);
-typedef void (*dp_nic2userf_t)(struct dpeth *dep, int nic_addr, struct iovec_dat *iovp, size_t offset, size_t count);
+typedef void (*dp_user2nicf_t)(struct dpeth *dep, void *buf, size_t offset, int nic_addr, size_t size);
+typedef void (*dp_nic2userf_t)(struct dpeth *dep, int nic_addr, void *buf, size_t offset, size_t size);
 typedef void (*dp_getblock_t)(struct dpeth *dep, int page, size_t offset, size_t size, void *dst);
-
-#define IOVEC_NR  1
-
-typedef struct iovec_dat {
-  iovec_t iod_iovec[IOVEC_NR];
-  int iod_iovec_s;
-  void *iod_iovec_addr;
-} iovec_dat_t;
 
 #define SENDQ_NR     1  /* Maximum size of the send queue */
 #define SENDQ_PAGES  6  /* 6 * DP_PAGESIZE >= 1514 bytes */
@@ -294,9 +285,6 @@ typedef struct dpeth {
 	int de_flags;
 	int de_mode;
 	eth_stat_t de_stat;
-	iovec_dat_t de_read_iovec;
-	iovec_dat_t de_write_iovec;
-	iovec_dat_t de_tmp_iovec;
 	size_t de_read_s;
 //	int de_client;
 //	message de_sendmsg;

@@ -77,34 +77,6 @@
  */
 #define outw(port, value)  pio_write_16((ioport16_t *) (port), (value))
 
-/** Reads a memory block byte by byte.
- *  @param[in] port The address to be written.
- *  @param[in] dst The destination address.
- *  @param[in] bytes The block size in bytes.
- */
-#define do_vir_insb(port, dst, bytes)  insb((port), (void *)(dst), (bytes))
-
-/** Reads a memory block word by word (2 bytes).
- *  @param[in] port The address to be written.
- *  @param[in] dst The destination address.
- *  @param[in] bytes The block size in bytes.
- */
-#define do_vir_insw(port, dst, bytes)  insw((port), (void *)(dst), (bytes))
-
-/** Writes a memory block byte by byte.
- *  @param[in] port The address to be written.
- *  @param[in] src The source address.
- *  @param[in] bytes The block size in bytes.
- */
-#define do_vir_outsb(port, src, bytes)  outsb((port), (void *)(src), (bytes))
-
-/** Writes a memory block word by word (2 bytes).
- *  @param[in] port The address to be written.
- *  @param[in] src The source address.
- *  @param[in] bytes The block size in bytes.
- */
-#define do_vir_outsw(port, src, bytes)  outsw((port), (void *)(src), (bytes))
-
 /* Bits in 'DL_MODE' field of DL requests. */
 #define DL_NOMODE       0x0
 #define DL_PROMISC_REQ  0x2
@@ -168,7 +140,6 @@ typedef struct eth_stat {
 	unsigned long ets_OWC;
 } eth_stat_t;
 
-/* ether.h */
 /** Minimum Ethernet packet size in bytes.
  */
 #define ETH_MIN_PACK_SIZE  60
@@ -184,18 +155,6 @@ typedef struct ether_addr {
 	 */
 	uint8_t ea_addr[6];
 } ether_addr_t;
-
-/** Type definition of the input/output vector.
- */
-typedef struct {
-	/** Address of an I/O buffer.
-	 */
-	void *iov_addr;
-	
-	/** Size of an I/O buffer.
-	 */
-	size_t iov_size;
-} iovec_t;
 
 #endif
 
