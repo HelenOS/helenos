@@ -232,7 +232,7 @@ int do_pwrite(dpeth_t *dep, packet_t *packet, int from_int)
 	if (dep->de_mode == DEM_SINK) {
 		assert(!from_int);
 //		dep->de_flags |= DEF_PACK_SEND;
-		reply(dep, OK, FALSE);
+		reply(dep, EOK, FALSE);
 //		return;
 		return EOK;
 	}
@@ -252,7 +252,7 @@ int do_pwrite(dpeth_t *dep, packet_t *packet, int from_int)
 //			panic("", "dp8390: should not be sending\n", NO_NUM);
 //		dep->de_sendmsg= *mp;
 //		dep->de_flags |= DEF_SEND_AVAIL;
-//		reply(dep, OK, FALSE);
+//		reply(dep, EOK, FALSE);
 //		return;
 //		return queue_packet(dep, packet);
 //	}
@@ -317,7 +317,7 @@ int do_pwrite(dpeth_t *dep, packet_t *packet, int from_int)
 	if (from_int)
 		return EOK;
 	
-	reply(dep, OK, FALSE);
+	reply(dep, EOK, FALSE);
 	
 	assert(dep->de_mode == DEM_ENABLED);
 	assert(dep->de_flags & DEF_ENABLED);
@@ -710,7 +710,7 @@ dpeth_t *dep;
 //				r = dp_pkt2user_s(dep, pageno, length);
 //			else
 				r = dp_pkt2user(dep, pageno, length);
-			if (r != OK)
+			if (r != EOK)
 				return;
 
 			packet_processed = TRUE;
@@ -855,7 +855,7 @@ int page, length;
 			netif_pq_release(packet_get_id(packet));
 		}
 	}
-	return OK;
+	return EOK;
 }
 
 /*===========================================================================*
@@ -973,7 +973,7 @@ vir_bytes count;
 			r= sys_vircopy(user_proc, D, vir_user, 
 			//	SELF, D, (vir_bytes)&two_bytes[1], 1);
 				SELF, D, (vir_bytes)&(((u8_t *)&two_bytes)[1]), 1);
-			if (r != OK)
+			if (r != EOK)
 			{
 				panic("DP8390",
 					"dp_pio16_user2nic: sys_vircopy failed",
@@ -1005,7 +1005,7 @@ vir_bytes count;
 			r= sys_vircopy(user_proc, D, vir_user, 
 			//	SELF, D, (vir_bytes)&two_bytes[0], 1);
 				SELF, D, (vir_bytes)&(((u8_t *)&two_bytes)[0]), 1);
-			if (r != OK)
+			if (r != EOK)
 			{
 				panic("DP8390",
 					"dp_pio16_user2nic: sys_vircopy failed",
@@ -1137,7 +1137,7 @@ vir_bytes count;
 			//r= sys_vircopy(SELF, D, (vir_bytes)&two_bytes[1],
 			r= sys_vircopy(SELF, D, (vir_bytes)&(((u8_t *)&two_bytes)[1]),
 				user_proc, D, vir_user,  1);
-			if (r != OK)
+			if (r != EOK)
 			{
 				panic("DP8390",
 					"dp_pio16_nic2user: sys_vircopy failed",
@@ -1169,7 +1169,7 @@ vir_bytes count;
 			//r= sys_vircopy(SELF, D, (vir_bytes)&two_bytes[0],
 			r= sys_vircopy(SELF, D, (vir_bytes)&(((u8_t *)&two_bytes)[0]),
 				user_proc, D, vir_user,  1);
-			if (r != OK)
+			if (r != EOK)
 			{
 				panic("DP8390",
 					"dp_pio16_nic2user: sys_vircopy failed",
@@ -1289,7 +1289,7 @@ void *loc_addr;
 
 	r= sys_vircopy(user_proc, D, user_addr,
 		SELF, D, (vir_bytes)loc_addr, count);
-	if (r != OK)
+	if (r != EOK)
 		panic("DP8390", "get_userdata: sys_vircopy failed", r);
 }
 

@@ -15,9 +15,7 @@
 /** Number of bytes to transfer */
 #define N  100
 
-/** Type definition of the testing function.
- */
-_PROTOTYPE(typedef int (*testf_t), (dpeth_t *dep, int pos, u8_t *pat));
+typedef int (*testf_t)(dpeth_t *dep, int pos, u8_t *pat);
 
 /** Data patterns */
 u8_t pat0[] = {0x00, 0x00, 0x00, 0x00};

@@ -49,10 +49,6 @@
  */
 #define _PROTOTYPE(function, params) function params
 
-/** Success error code.
- */
-#define OK	EOK
-
 /** Type definition of the unsigned byte.
  */
 typedef uint8_t u8_t;
