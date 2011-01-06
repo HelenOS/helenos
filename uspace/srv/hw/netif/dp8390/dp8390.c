@@ -75,7 +75,7 @@ int do_probe(dpeth_t *dep)
 int do_init(dpeth_t *dep, int mode)
 {
 	if (dep->de_mode == DEM_DISABLED)
-		// might call do_probe()
+		/* FIXME: Perhaps call do_probe()? */
 		return EXDEV;
 	
 	assert(dep->de_mode == DEM_ENABLED);
@@ -401,11 +401,8 @@ void dp_check_ints(int nil_phone, device_id_t device_id, dpeth_t *dep, int isr)
 			dep->de_flags &= ~DEF_SEND_AVAIL;
 		}
 		
-		if (isr & ISR_PRX) {
-			/* Only call dp_recv if there is a read request */
-//			if (dep->de_flags) & DEF_READING)
-				dp_recv(nil_phone, device_id, dep);
-		}
+		if (isr & ISR_PRX)
+			dp_recv(nil_phone, device_id, dep);
 		
 		if (isr & ISR_RXE)
 			dep->de_stat.ets_recvErr++;
@@ -416,13 +413,8 @@ void dp_check_ints(int nil_phone, device_id_t device_id, dpeth_t *dep, int isr)
 			dep->de_stat.ets_missedP += inb_reg0(dep, DP_CNTR2);
 		}
 		
-		if (isr & ISR_OVW) {
+		if (isr & ISR_OVW)
 			dep->de_stat.ets_OVW++;
-/*			if (dep->de_flags & DEF_READING) {
-				printf("dp_check_ints: strange: overwrite warning and pending read request\n");
-				dp_recv(dep);
-			}
-*/		}
 		
 		if (isr & ISR_RDC) {
 			/* Nothing to do */
@@ -440,7 +432,6 @@ void dp_check_ints(int nil_phone, device_id_t device_id, dpeth_t *dep, int isr)
 		}
 	}
 	
-//	if ((dep->de_flags & (DEF_READING | DEF_STOPPED)) == (DEF_READING | DEF_STOPPED))
 	if ((dep->de_flags & DEF_STOPPED) == DEF_STOPPED) {
 		/*
 		 * The chip is stopped, and all arrived packets
@@ -455,7 +446,6 @@ void dp_check_ints(int nil_phone, device_id_t device_id, dpeth_t *dep, int isr)
 static void dp_recv(int nil_phone, device_id_t device_id, dpeth_t *dep)
 {
 	dp_rcvhdr_t header;
-	//unsigned pageno, curr, next;
 	int pageno, curr, next;
 	size_t length;
 	int packet_processed, r;
@@ -542,9 +532,6 @@ static int dp_pkt2user(int nil_phone, device_id_t device_id, dpeth_t *dep, int p
 	int last, count;
 	packet_t *packet;
 	
-//	if (!(dep->de_flags & DEF_READING))
-//		return EINVAL;
-	
 	packet = netif_packet_get_1(length);
 	if (!packet)
 		return ENOMEM;
@@ -565,7 +552,6 @@ static int dp_pkt2user(int nil_phone, device_id_t device_id, dpeth_t *dep, int p
 	}
 	
 	dep->de_flags |= DEF_PACK_RECV;
-//	dep->de_flags &= ~DEF_READING;
 	
 	nil_received_msg(nil_phone, device_id, packet, SERVICE_NONE);
 	
@@ -677,17 +663,6 @@ static void dp_pio16_nic2user(dpeth_t *dep, int nic_addr, void *buf, size_t offs
 
 static void conf_hw(dpeth_t *dep)
 {
-//	int ifnr;
-//	dp_conf_t *dcp;
-	
-//	dep->de_mode= DEM_DISABLED;	/* Superfluous */
-//	ifnr= dep-de_table;
-	
-//	dcp= &dp_conf[ifnr];
-//	update_conf(dep, dcp);
-//	if (dep->de_mode != DEM_ENABLED)
-//		return;
-	
 	if (!ne_probe(dep)) {
 		printf("%s: No ethernet card found at %#lx\n",
 		    dep->de_name, dep->de_base_port);
