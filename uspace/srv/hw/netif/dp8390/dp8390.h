@@ -262,9 +262,8 @@ typedef struct dpeth {
 	port_t de_base_port;
 	phys_bytes de_linmem;
 	int de_irq;
-	int de_int_pending;
-	dp_initf_t de_initf; 
-	dp_stopf_t de_stopf; 
+	dp_initf_t de_initf;
+	dp_stopf_t de_stopf;
 	char de_name[sizeof("dp8390#n")];
 	
 	/*

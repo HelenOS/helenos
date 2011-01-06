@@ -57,10 +57,19 @@
  */
 #define NAME  "dp8390"
 
-/** Returns the device from the interrupt call.
+/** Return the device from the interrupt call.
+ *
  *  @param[in] call The interrupt call.
+ *
  */
-#define IRQ_GET_DEVICE(call)  (device_id_t) IPC_GET_IMETHOD(*call)
+#define IRQ_GET_DEVICE(call)  ((device_id_t) IPC_GET_IMETHOD(call))
+
+/** Return the ISR from the interrupt call.
+ *
+ *  @param[in] call The interrupt call.
+ *
+ */
+#define IRQ_GET_ISR(call)  ((int) IPC_GET_ARG2(call))
 
 /** DP8390 kernel interrupt command sequence.
  */
@@ -71,9 +80,20 @@ static irq_cmd_t dp8390_cmds[] = {
 		.dstarg = 2
 	},
 	{
+		.cmd = CMD_BTEST,
+		.value = 0x7f,
+		.srcarg = 2,
+		.dstarg = 3,
+	},
+	{
 		.cmd = CMD_PREDICATE,
-		.value = 1,
-		.srcarg = 2
+		.value = 2,
+		.srcarg = 3
+	},
+	{
+		.cmd = CMD_PIO_WRITE_8,
+		.addr = NULL,
+		.value = 0xff
 	},
 	{
 		.cmd = CMD_ACCEPT
@@ -100,7 +120,7 @@ static void irq_handler(ipc_callid_t iid, ipc_call_t *call)
 	device_id_t device_id;
 	int phone;
 	
-	device_id = IRQ_GET_DEVICE(call);
+	device_id = IRQ_GET_DEVICE(*call);
 	fibril_rwlock_write_lock(&netif_globals.lock);
 	
 	if (find_device(device_id, &device) != EOK) {
@@ -116,8 +136,7 @@ static void irq_handler(ipc_callid_t iid, ipc_call_t *call)
 	
 	assert(dep->de_flags & DEF_ENABLED);
 	
-	dep->de_int_pending = 0;
-	dp_check_ints(dep);
+	dp_check_ints(dep, IRQ_GET_ISR(*call));
 	
 	if (dep->received_queue) {
 		received = dep->received_queue;
@@ -278,7 +297,7 @@ int netif_send_message(device_id_t device_id, packet_t *packet,
 		next = pq_detach(packet);
 		
 		if (do_pwrite(dep, packet, false) != EBUSY)
-			netif_pq_release(packet_get_id(packet));\
+			netif_pq_release(packet_get_id(packet));
 		
 		packet = next;
 	} while(packet);
@@ -294,7 +313,7 @@ int netif_start_message(netif_device_t * device)
 	if (device->state != NETIF_ACTIVE) {
 		dep = (dpeth_t *) device->specific;
 		dp8390_cmds[0].addr = (void *) (uintptr_t) (dep->de_dp8390_port + DP_ISR);
-		dp8390_cmds[2].addr = dp8390_cmds[0].addr;
+		dp8390_cmds[3].addr = dp8390_cmds[0].addr;
 		
 		rc = ipc_register_irq(dep->de_irq, device->device_id, device->device_id, &dp8390_code);
 		if (rc != EOK)

@@ -477,19 +477,15 @@ dpeth_t *dep;
 	dep->de_flags &= ~DEF_STOPPED;
 }
 
-void dp_check_ints(dpeth_t *dep)
+void dp_check_ints(dpeth_t *dep, int isr)
 {
-	int isr, tsr;
+	int tsr;
 	int size, sendq_tail;
 	
 	if (!(dep->de_flags & DEF_ENABLED))
 		fprintf(stderr, "dp8390: got premature interrupt\n");
 	
-	for (;;) {
-		isr = inb_reg0(dep, DP_ISR);
-		if (!isr)
-			break;
-		
+	for (; isr; isr = inb_reg0(dep, DP_ISR)) {
 		outb_reg0(dep, DP_ISR, isr);
 		
 		if (isr & (ISR_PTX | ISR_TXE)) {
@@ -523,9 +519,6 @@ void dp_check_ints(dpeth_t *dep)
 			sendq_tail = dep->de_sendq_tail;
 			
 			if (!(dep->de_sendq[sendq_tail].sq_filled)) {
-				/* Software bug? */
-				assert(false);
-				
 				/* Or hardware bug? */
 				printf("%s: transmit interrupt, but not sending\n", dep->de_name);
 				continue;
@@ -600,11 +593,7 @@ void dp_check_ints(dpeth_t *dep)
 	}
 }
 
-/*===========================================================================*
- *				dp_recv					     *
- *===========================================================================*/
-static void dp_recv(dep)
-dpeth_t *dep;
+static void dp_recv(dpeth_t *dep)
 {
 	dp_rcvhdr_t header;
 	//unsigned pageno, curr, next;
