@@ -72,6 +72,49 @@ int usb_drv_req_set_address(int phone, usb_address_t old_address,
 	return rc;
 }
 
+/** Retrieve USB descriptor of connected USB device.
+ *
+ * @param[in] hc_phone Open phone to HC driver.
+ * @param[in] address Device USB address.
+ * @param[in] request_type Request type (standard/class/vendor).
+ * @param[in] descriptor_type Descriptor type (device/configuration/HID/...).
+ * @param[in] descriptor_index Descriptor index.
+ * @param[in] langauge Language index.
+ * @param[out] buffer Buffer where to store the retrieved descriptor.
+ * @param[in] size Size of the @p buffer.
+ * @param[out] actual_size Number of bytes actually transferred.
+ * @return Error code.
+ */
+int usb_drv_req_get_descriptor(int hc_phone, usb_address_t address,
+    usb_request_type_t request_type,
+    uint8_t descriptor_type, uint8_t descriptor_index,
+    uint16_t language,
+    void *buffer, size_t size, size_t *actual_size)
+{
+	/* Prepare the target. */
+	usb_target_t target = {
+		.address = address,
+		.endpoint = 0
+	};
+
+	/* Prepare the setup packet. */
+	usb_device_request_setup_packet_t setup_packet = {
+		.request_type = 128 | (request_type << 5),
+		.request = USB_DEVREQ_GET_DESCRIPTOR,
+		.index = language,
+		.length = (uint16_t) size,
+	};
+	setup_packet.value_high = descriptor_type;
+	setup_packet.value_low = descriptor_index;
+	
+	/* Perform CONTROL READ */
+	int rc = usb_drv_psync_control_read(hc_phone, target,
+	    &setup_packet, sizeof(setup_packet),
+	    buffer, size, actual_size);
+	
+	return rc;
+}
+
 /** Retrieve device descriptor of connected USB device.
  *
  * @param[in] phone Open phone to HC driver.
@@ -86,31 +129,15 @@ int usb_drv_req_get_device_descriptor(int phone, usb_address_t address,
 	if (descriptor == NULL) {
 		return EBADMEM;
 	}
-
-	/* Prepare the target. */
-	usb_target_t target = {
-		.address = address,
-		.endpoint = 0
-	};
-
-	/* Prepare the setup packet. */
-	usb_device_request_setup_packet_t setup_packet = {
-		.request_type = 128,
-		.request = USB_DEVREQ_GET_DESCRIPTOR,
-		.index = 0,
-		.length = sizeof(usb_standard_device_descriptor_t)
-	};
-	setup_packet.value_high = USB_DESCTYPE_DEVICE;
-	setup_packet.value_low = 0;
-
-	/* Prepare local descriptor. */
+	
 	size_t actually_transferred = 0;
 	usb_standard_device_descriptor_t descriptor_tmp;
-
-	/* Perform the control read transaction. */
-	int rc = usb_drv_psync_control_read(phone, target,
-	    &setup_packet, sizeof(setup_packet),
-	    &descriptor_tmp, sizeof(descriptor_tmp), &actually_transferred);
+	int rc = usb_drv_req_get_descriptor(phone, address,
+	    USB_REQUEST_TYPE_STANDARD,
+	    USB_DESCTYPE_DEVICE, 0,
+	    0,
+	    &descriptor_tmp, sizeof(descriptor_tmp),
+	    &actually_transferred);
 
 	if (rc != EOK) {
 		return rc;
@@ -149,31 +176,15 @@ int usb_drv_req_get_bare_configuration_descriptor(int phone,
 	if (descriptor == NULL) {
 		return EBADMEM;
 	}
-
-	/* Prepare the target. */
-	usb_target_t target = {
-		.address = address,
-		.endpoint = 0
-	};
-
-	/* Prepare the setup packet. */
-	usb_device_request_setup_packet_t setup_packet = {
-		.request_type = 128,
-		.request = USB_DEVREQ_GET_DESCRIPTOR,
-		.index = 0,
-		.length = sizeof(usb_standard_configuration_descriptor_t)
-	};
-	setup_packet.value_high = USB_DESCTYPE_CONFIGURATION;
-	setup_packet.value_low = index;
-
-	/* Prepare local descriptor. */
+	
 	size_t actually_transferred = 0;
 	usb_standard_configuration_descriptor_t descriptor_tmp;
-
-	/* Perform the control read transaction. */
-	int rc = usb_drv_psync_control_read(phone, target,
-	    &setup_packet, sizeof(setup_packet),
-	    &descriptor_tmp, sizeof(descriptor_tmp), &actually_transferred);
+	int rc = usb_drv_req_get_descriptor(phone, address,
+	    USB_REQUEST_TYPE_STANDARD,
+	    USB_DESCTYPE_CONFIGURATION, 0,
+	    0,
+	    &descriptor_tmp, sizeof(descriptor_tmp),
+	    &actually_transferred);
 
 	if (rc != EOK) {
 		return rc;
@@ -213,26 +224,12 @@ int usb_drv_req_get_full_configuration_descriptor(int phone,
 		return EBADMEM;
 	}
 
-	/* Prepare the target. */
-	usb_target_t target = {
-		.address = address,
-		.endpoint = 0
-	};
-
-	/* Prepare the setup packet. */
-	usb_device_request_setup_packet_t setup_packet = {
-		.request_type = 128,
-		.request = USB_DEVREQ_GET_DESCRIPTOR,
-		.index = 0,
-		.length = buffer_size
-	};
-	setup_packet.value_high = USB_DESCTYPE_CONFIGURATION;
-	setup_packet.value_low = index;
-
-	/* Perform the control read transaction. */
-	int rc = usb_drv_psync_control_read(phone, target,
-	    &setup_packet, sizeof(setup_packet),
-	    buffer, buffer_size, actual_buffer_size);
+	int rc = usb_drv_req_get_descriptor(phone, address,
+	    USB_REQUEST_TYPE_STANDARD,
+	    USB_DESCTYPE_CONFIGURATION, 0,
+	    0,
+	    buffer, buffer_size,
+	    actual_buffer_size);
 
 	return rc;
 }
