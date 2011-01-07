@@ -32,11 +32,39 @@
 /** @file
  * @brief Functions for recognising kind of attached devices.
  */
+#include <usb_iface.h>
 #include <usb/usbdrv.h>
 #include <usb/classes/classes.h>
 #include <stdio.h>
 #include <errno.h>
 
+static int usb_iface_get_hc_handle(device_t *dev, devman_handle_t *handle)
+{
+	assert(dev);
+	assert(dev->parent != NULL);
+
+	device_t *parent = dev->parent;
+
+	if (parent->ops && parent->ops->interfaces[USB_DEV_IFACE]) {
+		usb_iface_t *usb_iface
+		    = (usb_iface_t *) parent->ops->interfaces[USB_DEV_IFACE];
+		assert(usb_iface != NULL);
+		if (usb_iface->get_hc_handle) {
+			int rc = usb_iface->get_hc_handle(parent, handle);
+			return rc;
+		}
+	}
+
+	return ENOTSUP;
+}
+
+static usb_iface_t usb_iface = {
+	.get_hc_handle = usb_iface_get_hc_handle
+};
+
+static device_ops_t child_ops = {
+	.interfaces[USB_DEV_IFACE] = &usb_iface
+};
 
 #define BCD_INT(a) (((unsigned int)(a)) / 256)
 #define BCD_FRAC(a) (((unsigned int)(a)) % 256)
@@ -284,7 +312,9 @@ int usb_drv_register_child_in_devman(int hc, device_t *parent,
 	if (rc < 0) {
 		goto failure;
 	}
+	child->parent = parent;
 	child->name = child_name;
+	child->ops = &child_ops;
 	
 	rc = usb_drv_create_device_match_ids(hc, &child->match_ids, address);
 	if (rc != EOK) {

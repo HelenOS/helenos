@@ -457,8 +457,9 @@ static void devman_forward(ipc_callid_t iid, ipc_call_t *icall,
 	}
 	
 	if (driver == NULL) {
-		printf(NAME ": devman_forward error - the device is not in %" PRIun
-		    " usable state.\n", handle);
+		printf(NAME ": devman_forward error - the device %" PRIun \
+		    " (%s) is not in usable state.\n",
+		    handle, dev->pathname);
 		ipc_answer_0(iid, ENOENT);
 		return;
 	}

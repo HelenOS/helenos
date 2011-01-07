@@ -45,14 +45,29 @@
 #include <driver.h>
 
 #include <usb/usb.h>
+#include <usb_iface.h>
 #include "vhcd.h"
 #include "hc.h"
 #include "devices.h"
 #include "hub.h"
 #include "conn.h"
 
+static int usb_iface_get_hc_handle(device_t *dev, devman_handle_t *handle)
+{
+	/* This shall be called only for VHC device. */
+	assert(dev->parent == NULL);
+
+	*handle = dev->handle;
+	return EOK;
+}
+
+static usb_iface_t hc_usb_iface = {
+	.get_hc_handle = usb_iface_get_hc_handle
+};
+
 static device_ops_t vhc_ops = {
 	.interfaces[USBHC_DEV_IFACE] = &vhc_iface,
+	.interfaces[USB_DEV_IFACE] = &hc_usb_iface,
 	.default_handler = default_connection_handler
 };
 
