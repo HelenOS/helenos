@@ -221,6 +221,15 @@ int usbkbd_parse_descriptors(const uint8_t *data, size_t size,
 			pos += actual_iface->hid_desc.class_desc_count
 			    * sizeof(usb_standard_hid_class_descriptor_info_t);
 			
+			size_t tmp = (size_t)(pos - data);
+			printf("Parser position: %d, remaining: %d\n",
+			       pos - data, size - tmp);
+			
+			/*
+			 * TODO: this is not good, only 7 bytes remaining,
+			 *       something is wrong!
+			 */
+			
 			hid_i = 0;
 			
 			break;
@@ -240,6 +249,8 @@ int usbkbd_parse_descriptors(const uint8_t *data, size_t size,
 			// class-specific descriptor info
 			uint16_t length = 
 			    actual_iface->class_desc_info[hid_i].length;
+			
+			printf("Saving class-specific descriptor #%d\n", hid_i);
 			
 			actual_iface->class_descs[hid_i] = 
 			    (uint8_t *)malloc(length);
@@ -378,6 +389,7 @@ static void dump_hid_class_descriptor(int index, uint8_t type,
                                       const uint8_t *d, size_t size )
 {
 	printf("Class-specific descriptor #%d (type: %u)\n", index, type);
+	assert(d != NULL);
 	dump_buffer("", d, size);
 }
 
@@ -397,6 +409,8 @@ void usbkbd_print_config(const usb_hid_configuration_t *config)
 		}
 		dump_standard_hid_descriptor_header(&iface_d->hid_desc);
 		printf("\n");
+//		printf("%d class-specific descriptors\n", 
+//		    iface_d->hid_desc.class_desc_count);
 		for (j = 0; j < iface_d->hid_desc.class_desc_count; ++j) {
 			dump_standard_hid_class_descriptor_info(
 			    &iface_d->class_desc_info[j]);

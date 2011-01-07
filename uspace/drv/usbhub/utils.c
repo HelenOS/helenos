@@ -690,8 +690,8 @@ void usb_hub_check_hub_changes(void) {
 		usb_target_t target;
 		target.address = hub_info->usb_device->address;
 		target.endpoint = 1;/// \TODO get from endpoint descriptor
-		printf("[usb_hub] checking changes for hub at addr %d\n",
-		    target.address);
+//		printf("[usb_hub] checking changes for hub at addr %d\n",
+//		    target.address);
 
 		size_t port_count = hub_info->port_count;
 

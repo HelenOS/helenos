@@ -99,6 +99,8 @@ static int usbkbd_process_descriptors(usb_hid_dev_kbd_t *kbd_dev)
 	rc = usbkbd_parse_descriptors(descriptors, transferred, kbd_dev->conf);
 	free(descriptors);
 	
+	//usbkbd_print_config(kbd_dev->conf);
+	
 	return rc;
 }
 
