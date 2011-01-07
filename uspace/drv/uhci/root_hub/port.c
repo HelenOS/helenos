@@ -36,7 +36,7 @@ int uhci_port_check(void *port)
 		port_status.raw_value = pio_read_16(port_instance->address);
 
 		/* debug print */
-		uhci_print_info("Port(%d) status %#x:\n",
+		uhci_print_info("Port(%d) status %#.4x:\n",
 		  port_instance->number, port_status.raw_value);
 		print_port_status( &port_status );
 
@@ -47,6 +47,10 @@ int uhci_port_check(void *port)
 			} else {
 				/* TODO */
 				/* remove device here */
+				uhci_print_error(
+				  "Don't know how to remove device %#x.\n",
+				  port_instance->attached_device);
+				uhci_port_set_enabled(port_instance, false);
 			}
 		}
 		async_usleep(port_instance->wait_period_usec);
@@ -77,17 +81,18 @@ static int uhci_port_new_device(uhci_port_t *port)
 
 	if (address <= 0) { /* address assigning went wrong */
 		uhci_port_set_enabled(port, false);
-		uhci_print_error("Failed to assign address to the device");
+		uhci_print_error("Failed to assign address to the device.\n");
 		return ENOMEM;
 	}
 
 	/* report to devman */
-	devman_handle_t child = 0;
-	report_new_device(port->hc, address, port->number, &child);
+	assert( port->attached_device == 0 );
+	report_new_device(port->hc, address, port->number,
+		&port->attached_device);
 
 	/* bind address */
 	usb_address_keeping_devman_bind(&uhci_instance->address_manager,
-	  address, child);
+	  address, port->attached_device);
 
 	return EOK;
 }
@@ -101,11 +106,11 @@ static int uhci_port_set_enabled(uhci_port_t *port, bool enabled)
 	port_status.raw_value = pio_read_16( port->address );
 
 	/* enable port: register write */
-	port_status.status.enabled_change = 0;
-	port_status.status.enabled = (bool)enabled;
+	port_status.status.enabled = enabled;
 	pio_write_16( port->address, port_status.raw_value );
 
-	uhci_print_info( "Enabled port %d.\n", port->number );
+	uhci_print_info( "%s port %d.\n",
+	  enabled ? "Enabled" : "Disabled", port->number );
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -215,12 +220,18 @@ static usb_address_t assign_address_to_zero_device( device_t *hc )
 
 	uhci_setup(
 	  hc, new_device, USB_TRANSFER_CONTROL, &data, sizeof(data),
-		sync_out_callback, (void*)&value );
+		sync_out_callback, (void*)&value);
 	uhci_print_verbose("address assignment sent, waiting to complete.\n");
 
 	sync_wait_for(&value);
+	if (value.result != USB_OUTCOME_OK) {
+		uhci_print_error(
+		  "Failed to assign address to the connected device.\n");
+		usb_address_keeping_release(&uhci_instance->address_manager,
+		  usb_address);
+		return -1;
+	}
 
-	uhci_print_info( "Assigned address %#x.\n", usb_address );
-
+	uhci_print_info("Assigned address %#x.\n", usb_address);
 	return usb_address;
 }
