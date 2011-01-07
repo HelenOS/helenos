@@ -42,6 +42,8 @@
 #include <adt/list.h>
 #include <bool.h>
 #include <driver.h>
+#include <futex.h>
+
 #include <usb/usb.h>
 #include <usb/usbdrv.h>
 #include <usb/classes/hub.h>
@@ -65,7 +67,7 @@
 	usb_dprintf(NAME, (level), format "\n", ##__VA_ARGS__)
 
 /**
- * @brief create hub structure instance
+ * create hub structure instance
  *
  * Set the address and port count information most importantly.
  *
@@ -78,9 +80,12 @@ usb_hub_info_t * usb_create_hub_info(device_t * device, int hc);
 /** list of hubs maanged by this driver */
 extern usb_general_list_t usb_hub_list;
 
+/** lock for hub list*/
+extern futex_t usb_hub_list_lock;
+
 
 /**
- * @brief perform complete control read transaction
+ * perform complete control read transaction
  *
  * manages all three steps of transaction: setup, read and finalize
  * @param phone
@@ -98,9 +103,9 @@ int usb_drv_sync_control_read(
 );
 
 /**
- * @brief perform complete control write transaction
+ * perform complete control write transaction
  *
- * maanges all three steps of transaction: setup, write and finalize
+ * manages all three steps of transaction: setup, write and finalize
  * @param phone
  * @param target
  * @param request request to send data
@@ -113,23 +118,6 @@ int usb_drv_sync_control_write(
     usb_device_request_setup_packet_t * request,
     void * sent_buffer, size_t sent_size
 );
-
-
-/**
- * set the device request to be a set address request
- * @param request
- * @param addr
- * \TODO this will be obsolete see usb/dev_req.h
- */
-static inline void usb_hub_set_set_address_request(
-usb_device_request_setup_packet_t * request, uint16_t addr
-){
-	request->index = 0;
-	request->request_type = 0;/// \TODO this is not very nice sollution, we ned constant
-	request->request = USB_DEVREQ_SET_ADDRESS;
-	request->value = addr;
-	request->length = 0;
-}
 
 /**
  * set the device request to be a get hub descriptor request.

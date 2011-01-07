@@ -199,62 +199,7 @@ int usb_drv_sync_control_write(
 }
 
 
-/*
- * method for testing port status bitmap
- 
-static void usb_hub_test_port_status(void) {
-	printf("[usb_hub] -------------port status test---------\n");
-	usb_port_status_t status = 0;
 
-	//printf("original status %d (should be 0)\n",(uint32_t)status);
-	usb_port_set_bit(&status, 1, 1);
-	//printf("%d =?= 2\n",(uint32_t)status);
-	if (status != 2) {
-		printf("[usb_port_status] test failed: wrong set of bit 1\n");
-		return;
-	}
-	usb_port_set_bit(&status, 3, 1);
-	if (status != 10) {
-		printf("[usb_port_status] test failed: wrong set of bit 3\n");
-		return;
-	}
-
-	usb_port_set_bit(&status, 15, 1);
-	if (status != 10 + (1 << 15)) {
-		printf("[usb_port_status] test failed: wrong set of bit 15\n");
-		return;
-	}
-	usb_port_set_bit(&status, 1, 0);
-	if (status != 8 + (1 << 15)) {
-		printf("[usb_port_status] test failed: wrong unset of bit 1\n");
-		return;
-	}
-	int i;
-	for (i = 0; i < 32; ++i) {
-		if (i == 3 || i == 15) {
-			if (!usb_port_get_bit(&status, i)) {
-				printf("[usb_port_status] test failed: wrong bit at %d\n", i);
-			}
-		} else {
-			if (usb_port_get_bit(&status, i)) {
-				printf("[usb_port_status] test failed: wrong bit at %d\n", i);
-			}
-		}
-	}
-
-	printf("test ok\n");
-
-
-	//printf("%d =?= 10\n",(uint32_t)status);
-
-	//printf("this should be 0: %d \n",usb_port_get_bit(&status,0));
-	//printf("this should be 1: %d \n",usb_port_get_bit(&status,1));
-	//printf("this should be 0: %d \n",usb_port_get_bit(&status,2));
-	//printf("this should be 1: %d \n",usb_port_get_bit(&status,3));
-	//printf("this should be 0: %d \n",usb_port_get_bit(&status,4));
-
-}
-*/
 
 
 /**
