@@ -72,6 +72,49 @@ int usb_drv_req_set_address(int phone, usb_address_t old_address,
 	return rc;
 }
 
+/** Retrieve USB descriptor of connected USB device.
+ *
+ * @param[in] hc_phone Open phone to HC driver.
+ * @param[in] address Device USB address.
+ * @param[in] request_type Request type (standard/class/vendor).
+ * @param[in] descriptor_type Descriptor type (device/configuration/HID/...).
+ * @param[in] descriptor_index Descriptor index.
+ * @param[in] langauge Language index.
+ * @param[out] buffer Buffer where to store the retrieved descriptor.
+ * @param[in] size Size of the @p buffer.
+ * @param[out] actual_size Number of bytes actually transferred.
+ * @return Error code.
+ */
+int usb_drv_req_get_descriptor(int hc_phone, usb_address_t address,
+    usb_request_type_t request_type,
+    uint8_t descriptor_type, uint8_t descriptor_index,
+    uint16_t language,
+    void *buffer, size_t size, size_t *actual_size)
+{
+	/* Prepare the target. */
+	usb_target_t target = {
+		.address = address,
+		.endpoint = 0
+	};
+
+	/* Prepare the setup packet. */
+	usb_device_request_setup_packet_t setup_packet = {
+		.request_type = 128 | (request_type << 5),
+		.request = USB_DEVREQ_GET_DESCRIPTOR,
+		.index = language,
+		.length = (uint16_t) size,
+	};
+	setup_packet.value_high = descriptor_type;
+	setup_packet.value_low = descriptor_index;
+	
+	/* Perform CONTROL READ */
+	int rc = usb_drv_psync_control_read(hc_phone, target,
+	    &setup_packet, sizeof(setup_packet),
+	    buffer, size, actual_size);
+	
+	return rc;
+}
+
 /** Retrieve device descriptor of connected USB device.
  *
  * @param[in] phone Open phone to HC driver.
