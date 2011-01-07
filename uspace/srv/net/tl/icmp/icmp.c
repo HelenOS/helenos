@@ -528,7 +528,7 @@ static int icmp_process_packet(packet_t *packet, services_t error)
 	icmp_type_t type;
 	icmp_code_t code;
 	int rc;
-
+	
 	switch (error) {
 	case SERVICE_NONE:
 		break;

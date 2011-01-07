@@ -39,13 +39,7 @@
 
 #include "dp8390.h"
 
-/** Initializes and/or starts the network interface.
- *  @param[in,out] dep The network interface structure.
- *  @param[in] mode The state mode.
- *  @returns EOK on success.
- *  @returns EXDEV if the network interface is disabled.
- */
-int do_init(dpeth_t *dep, int mode);
+int do_init(dpeth_t *dep);
 
 /** Stops the network interface.
  *  @param[in,out] dep The network interface structure.
@@ -54,9 +48,8 @@ void do_stop(dpeth_t *dep);
 
 /** Processes the interrupt.
  *  @param[in,out] dep The network interface structure.
- *  @param[in] isr The interrupt status register.
  */
-void dp_check_ints(dpeth_t *dep, int isr);
+void dp_check_ints(int nil_phone, device_id_t device_id, dpeth_t *dep, uint8_t isr);
 
 /** Probes and initializes the network interface.
  *  @param[in,out] dep The network interface structure.
@@ -69,14 +62,9 @@ int do_probe(dpeth_t * dep);
  *  @param[in,out] dep The network interface structure.
  *  @param[in] packet The packet t be sent.
  *  @param[in] from_int The value indicating whether the sending is initialized from the interrupt handler.
- *  @returns 
+ *  @returns
  */
 int do_pwrite(dpeth_t * dep, packet_t *packet, int from_int);
-
-/** Prints out network interface information.
- *  @param[in] dep The network interface structure.
- */
-void dp8390_dump(dpeth_t * dep);
 
 #endif
 
