@@ -59,7 +59,7 @@
  *			netif_get_addr_message() function.
  */
 int netif_get_addr_req_remote(int netif_phone, device_id_t device_id,
-    measured_string_t **address, char **data)
+    measured_string_t **address, uint8_t **data)
 {
 	return generic_get_addr_req(netif_phone, NET_NETIF_GET_ADDR, device_id,
 	    address, data);

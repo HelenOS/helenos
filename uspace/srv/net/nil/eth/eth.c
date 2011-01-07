@@ -406,7 +406,7 @@ static int eth_device_message(device_id_t device_id, services_t service,
 	}
 	
 	printf("%s: Device registered (id: %d, service: %d: mtu: %zu, "
-	    "mac: %x:%x:%x:%x:%x:%x, flags: 0x%x)\n",
+	    "mac: %02x:%02x:%02x:%02x:%02x:%02x, flags: 0x%x)\n",
 	    NAME, device->device_id, device->service, device->mtu,
 	    device->addr_data[0], device->addr_data[1],
 	    device->addr_data[2], device->addr_data[3],

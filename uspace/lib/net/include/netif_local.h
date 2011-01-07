@@ -195,7 +195,7 @@ extern int netif_get_device_stats(device_id_t device_id,
     device_stats_t *stats);
 
 extern int netif_get_addr_req_local(int, device_id_t, measured_string_t **,
-    char **);
+    uint8_t **);
 extern int netif_probe_req_local(int, device_id_t, int, int);
 extern int netif_send_msg_local(int, device_id_t, packet_t *, services_t);
 extern int netif_start_req_local(int, device_id_t);

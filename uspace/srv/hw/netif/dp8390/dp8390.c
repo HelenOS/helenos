@@ -262,7 +262,7 @@ void dp_init(dpeth_t *dep)
 	
 	printf("Ethernet address ");
 	for (i = 0; i < 6; i++)
-		printf("%x%c", dep->de_address.ea_addr[i], i < 5 ? ':' : '\n');
+		printf("%02x%c", dep->de_address.ea_addr[i], i < 5 ? ':' : '\n');
 	
 	/*
 	 * Initialization of the dp8390 following the mandatory procedure

@@ -40,8 +40,10 @@
 #include <errno.h>
 #include <err.h>
 #include <malloc.h>
+#include <sysinfo.h>
 #include <ipc/ipc.h>
 #include <ipc/services.h>
+#include <ipc/irc.h>
 #include <net/modules.h>
 #include <packet_client.h>
 #include <adt/measured_strings.h>
@@ -70,6 +72,9 @@
  *
  */
 #define IRQ_GET_ISR(call)  ((int) IPC_GET_ARG2(call))
+
+static int irc_service = 0;
+static int irc_phone = -1;
 
 /** DP8390 kernel interrupt command sequence.
  */
@@ -135,10 +140,13 @@ static void irq_handler(ipc_callid_t iid, ipc_call_t *call)
 	}
 }
 
-/** Changes the network interface state.
+/** Change the network interface state.
+ *
  *  @param[in,out] device The network interface.
- *  @param[in] state The new state.
- *  @returns The new state.
+ *  @param[in]     state  The new state.
+ *
+ *  @return The new state.
+ *
  */
 static int change_state(netif_device_t *device, device_state_t state)
 {
@@ -271,7 +279,7 @@ int netif_send_message(device_id_t device_id, packet_t *packet,
 	if (rc != EOK)
 		return rc;
 	
-	if (device->state != NETIF_ACTIVE){
+	if (device->state != NETIF_ACTIVE) {
 		netif_pq_release(packet_get_id(packet));
 		return EFORWARD;
 	}
@@ -311,7 +319,12 @@ int netif_start_message(netif_device_t * device)
 			return rc;
 		}
 		
-		return change_state(device, NETIF_ACTIVE);
+		rc = change_state(device, NETIF_ACTIVE);
+		
+		if (irc_service)
+			async_msg_1(irc_phone, IRC_ENABLE_INTERRUPT, dep->de_irq);
+		
+		return rc;
 	}
 	
 	return EOK;
@@ -333,8 +346,24 @@ int netif_stop_message(netif_device_t * device)
 
 int netif_initialize(void)
 {
-	sysarg_t phonehash;
+	sysarg_t apic;
+	sysarg_t i8259;
+	
+	if ((sysinfo_get_value("apic", &apic) == EOK) && (apic))
+		irc_service = SERVICE_APIC;
+	else if ((sysinfo_get_value("i8259", &i8259) == EOK) && (i8259))
+		irc_service = SERVICE_I8259;
+	
+	if (irc_service) {
+		while (irc_phone < 0) {
+			irc_phone = ipc_connect_me_to_blocking(PHONE_NS, irc_service,
+			    0, 0);
+		}
+	}
+	
 	async_set_interrupt_received(irq_handler);
+	
+	sysarg_t phonehash;
 	return ipc_connect_to_me(PHONE_NS, SERVICE_DP8390, 0, 0, &phonehash);
 }
 
