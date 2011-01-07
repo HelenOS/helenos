@@ -186,6 +186,10 @@ usb_address_t usb_address_keeping_request(usb_address_keeping_t *addresses)
 		free_address = 1;
 		new_address_position = addresses->used_addresses.next;
 	} else {
+		usb_address_keeping_used_t *first
+		    = used_address_get_instance(addresses->used_addresses.next);
+		previous_address = first->address;
+		
 		for_all_used_addresses(new_address_position, addresses) {
 			usb_address_keeping_used_t *info
 			    = used_address_get_instance(new_address_position);
@@ -193,6 +197,7 @@ usb_address_t usb_address_keeping_request(usb_address_keeping_t *addresses)
 				free_address = previous_address + 1;
 				break;
 			}
+			previous_address = info->address;
 		}
 
 		if (free_address == 0) {
