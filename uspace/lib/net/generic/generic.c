@@ -99,7 +99,7 @@ generic_device_req_remote(int phone, int message, device_id_t device_id,
  */
 int
 generic_get_addr_req(int phone, int message, device_id_t device_id,
-    measured_string_t **address, char ** data)
+    measured_string_t **address, uint8_t **data)
 {
 	aid_t message_id;
 	sysarg_t result;
@@ -111,7 +111,7 @@ generic_get_addr_req(int phone, int message, device_id_t device_id,
 	// request the address
 	message_id = async_send_1(phone, (sysarg_t) message,
 	    (sysarg_t) device_id, NULL);
-	string = measured_strings_return(phone, address, data, 1);
+	string = measured_strings_return(phone, address, (char **) data, 1);
 	async_wait_for(message_id, &result);
 
 	// if not successful

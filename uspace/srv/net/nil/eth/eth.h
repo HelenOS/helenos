@@ -90,8 +90,9 @@ struct eth_device {
 	
 	/** Actual device hardware address. */
 	measured_string_t *addr;
+	
 	/** Actual device hardware address data. */
-	char *addr_data;
+	uint8_t *addr_data;
 };
 
 /** Ethernet protocol specific data. */

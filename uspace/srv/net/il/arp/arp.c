@@ -214,7 +214,7 @@ static int arp_proto_create(arp_proto_t **proto, services_t service,
 	
 	(*proto)->service = service;
 	(*proto)->addr = address;
-	(*proto)->addr_data = address->value;
+	(*proto)->addr_data = (uint8_t *) address->value;
 	
 	rc = arp_addr_initialize(&(*proto)->addresses);
 	if (rc != EOK) {
@@ -266,7 +266,7 @@ static int arp_device_message(device_id_t device_id, services_t service,
 			free(proto->addr);
 			free(proto->addr_data);
 			proto->addr = address;
-			proto->addr_data = address->value;
+			proto->addr_data = (uint8_t *) address->value;
 		} else {
 			rc = arp_proto_create(&proto, protocol, address);
 			if (rc != EOK) {
