@@ -38,12 +38,14 @@
 #include "dev_iface.h"
 #include "remote_res.h"
 #include "remote_char.h"
+#include "remote_usb.h"
 #include "remote_usbhc.h"
 
 static iface_dipatch_table_t remote_ifaces = {
 	.ifaces = {
 		&remote_res_iface,
 		&remote_char_iface,
+		&remote_usb_iface,
 		&remote_usbhc_iface
 	}
 };

@@ -70,6 +70,7 @@ static void gta02_frame_init(void);
 static void gta02_output_init(void);
 static void gta02_input_init(void);
 static size_t gta02_get_irq_count(void);
+static const char *gta02_get_platform_name(void);
 
 static void gta02_timer_irq_init(void);
 static void gta02_timer_start(void);
@@ -91,7 +92,8 @@ struct arm_machine_ops gta02_machine_ops = {
 	gta02_frame_init,
 	gta02_output_init,
 	gta02_input_init,
-	gta02_get_irq_count
+	gta02_get_irq_count,
+	gta02_get_platform_name
 };
 
 static void gta02_init(void)
@@ -232,6 +234,11 @@ static void gta02_input_init(void)
 size_t gta02_get_irq_count(void)
 {
 	return GTA02_IRQ_COUNT;
+}
+
+const char *gta02_get_platform_name(void)
+{
+	return "gta02";
 }
 
 static void gta02_timer_irq_init(void)

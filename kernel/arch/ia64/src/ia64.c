@@ -146,6 +146,18 @@ void arch_pre_smp_init(void)
 
 void arch_post_smp_init(void)
 {
+	static const char *platform;
+
+	/* Set platform name. */
+#ifdef MACHINE_ski
+	platform = "pc";
+#endif
+#ifdef MACHINE_i460GX
+	platform = "i460GX";
+#endif
+	sysinfo_set_item_data("platform", NULL, (void *) platform,
+	    str_size(platform));
+
 #ifdef MACHINE_ski
 	ski_instance_t *ski_instance = skiin_init();
 	if (ski_instance) {

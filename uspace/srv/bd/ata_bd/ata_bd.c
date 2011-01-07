@@ -64,10 +64,14 @@
 #include <task.h>
 #include <macros.h>
 
+#include "ata_hw.h"
 #include "ata_bd.h"
 
 #define NAME       "ata_bd"
 #define NAMESPACE  "bd"
+
+/** Number of defined legacy controller base addresses. */
+#define LEGACY_CTLS 4
 
 /** Physical block size. Should be always 512. */
 static const size_t block_size = 512;
@@ -76,9 +80,17 @@ static const size_t block_size = 512;
 static size_t comm_size;
 
 /** I/O base address of the command registers. */
-static uintptr_t cmd_physical = 0x1f0;
+static uintptr_t cmd_physical;
 /** I/O base address of the control registers. */
-static uintptr_t ctl_physical = 0x170;
+static uintptr_t ctl_physical;
+
+/** I/O base addresses for legacy (ISA-compatible) controllers. */
+static ata_base_t legacy_base[LEGACY_CTLS] = {
+	{ 0x1f0, 0x3f0 },
+	{ 0x170, 0x370 },
+	{ 0x1e8, 0x3e8 },
+	{ 0x168, 0x368 }
+};
 
 static ata_cmd_t *cmd;
 static ata_ctl_t *ctl;
@@ -86,6 +98,7 @@ static ata_ctl_t *ctl;
 /** Per-disk state. */
 static disk_t disk[MAX_DISKS];
 
+static void print_syntax(void);
 static int ata_bd_init(void);
 static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall);
 static int ata_bd_read_blocks(int disk_id, uint64_t ba, size_t cnt,
@@ -109,11 +122,27 @@ int main(int argc, char **argv)
 	char name[16];
 	int i, rc;
 	int n_disks;
+	unsigned ctl_num;
+	char *eptr;
 
 	printf(NAME ": ATA disk driver\n");
 
-	printf("I/O address %p/%p\n", (void *) ctl_physical,
-	    (void *) cmd_physical);
+	if (argc > 1) {
+		ctl_num = strtoul(argv[1], &eptr, 0);
+		if (*eptr != '\0' || ctl_num == 0 || ctl_num > 4) {
+			printf("Invalid argument.\n");
+			print_syntax();
+			return -1;
+		}
+	} else {
+		ctl_num = 1;
+	}
+
+	cmd_physical = legacy_base[ctl_num - 1].cmd;
+	ctl_physical = legacy_base[ctl_num - 1].ctl;
+
+	printf("I/O address %p/%p\n", (void *) cmd_physical,
+	    (void *) ctl_physical);
 
 	if (ata_bd_init() != EOK)
 		return -1;
@@ -138,7 +167,7 @@ int main(int argc, char **argv)
 		if (disk[i].present == false)
 			continue;
 		
-		snprintf(name, 16, "%s/disk%d", NAMESPACE, i);
+		snprintf(name, 16, "%s/ata%udisk%d", NAMESPACE, ctl_num, i);
 		rc = devmap_device_register(name, &disk[i].devmap_handle);
 		if (rc != EOK) {
 			devmap_hangup_phone(DEVMAP_DRIVER);
@@ -159,6 +188,13 @@ int main(int argc, char **argv)
 
 	/* Not reached */
 	return 0;
+}
+
+
+static void print_syntax(void)
+{
+	printf("Syntax: " NAME " <controller_number>\n");
+	printf("Controller number = 1..4\n");
 }
 
 /** Print one-line device summary. */

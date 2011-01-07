@@ -76,12 +76,11 @@ extern const char *test_fault2(void);
 extern const char *test_fault3(void);
 extern const char *test_vfs1(void);
 extern const char *test_ping_pong(void);
-extern const char *test_register(void);
-extern const char *test_connect(void);
 extern const char *test_loop1(void);
 extern const char *test_malloc1(void);
 extern const char *test_serial1(void);
 extern const char *test_usbaddrkeep(void);
+extern const char *test_virtchar1(void);
 
 extern test_t tests[];
 

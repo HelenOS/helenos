@@ -53,6 +53,7 @@ typedef enum {
 	CMD_PIO_READ_16,
 	/** Read 4 bytes from the I/O space. */
 	CMD_PIO_READ_32,
+	
 	/** Write 1 byte to the I/O space. */
 	CMD_PIO_WRITE_8,
 	/** Write 2 bytes to the I/O space. */
@@ -61,19 +62,37 @@ typedef enum {
 	CMD_PIO_WRITE_32,
 	
 	/**
-	 * Perform a bit test on the source argument and store the result into
-	 * the destination argument.
+	 * Write 1 byte from the source argument
+	 * to the I/O space.
+	 */
+	CMD_PIO_WRITE_A_8,
+	/**
+	 * Write 2 bytes from the source argument
+	 * to the I/O space.
+	 */
+	CMD_PIO_WRITE_A_16,
+	/**
+	 * Write 4 bytes from the source argument
+	 * to the I/O space.
+	 */
+	CMD_PIO_WRITE_A_32,
+	
+	/**
+	 * Perform a bit masking on the source argument
+	 * and store the result into the destination argument.
 	 */
 	CMD_BTEST,
 	
 	/**
-	 * Predicate the execution of the following N commands by the boolean
-	 * value of the source argument.
+	 * Predicate the execution of the following
+	 * N commands by the boolean value of the source
+	 * argument.
 	 */
 	CMD_PREDICATE,
 	
 	/** Accept the interrupt. */
 	CMD_ACCEPT,
+	
 	/** Decline the interrupt. */
 	CMD_DECLINE,
 	CMD_LAST
@@ -187,6 +206,8 @@ typedef struct irq {
 
 IRQ_SPINLOCK_EXTERN(irq_uspace_hash_table_lock);
 extern hash_table_t irq_uspace_hash_table;
+
+extern inr_t last_inr;
 
 extern void irq_init(size_t, size_t);
 extern void irq_initialize(irq_t *);

@@ -200,8 +200,7 @@ int nil_initialize(int net_phone)
 	eth_globals.net_phone = net_phone;
 
 	eth_globals.broadcast_addr =
-	    measured_string_create_bulk("\xFF\xFF\xFF\xFF\xFF\xFF",
-	    CONVERT_SIZE(uint8_t, char, ETH_ADDR));
+	    measured_string_create_bulk("\xFF\xFF\xFF\xFF\xFF\xFF", ETH_ADDR);
 	if (!eth_globals.broadcast_addr) {
 		rc = ENOMEM;
 		goto out;

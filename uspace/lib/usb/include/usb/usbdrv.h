@@ -40,7 +40,9 @@
 #include <usb/devreq.h>
 #include <usb/descriptor.h>
 
-int usb_drv_hc_connect(device_t *, unsigned int);
+int usb_drv_find_hc(device_t *, devman_handle_t *);
+int usb_drv_hc_connect(device_t *, devman_handle_t, unsigned int);
+int usb_drv_hc_connect_auto(device_t *, unsigned int);
 
 int usb_drv_reserve_default_address(int);
 int usb_drv_release_default_address(int);
