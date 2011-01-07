@@ -25,7 +25,7 @@ int uhci_root_hub_init( uhci_root_hub_t *hub, device_t *hc, void *addr )
 
 	/* add fibrils for periodic port checks */
 	unsigned i = 0;
-	for (; i< UHCI_ROOT_HUB_PORT_COUNT; ++i) {
+	for (; i < UHCI_ROOT_HUB_PORT_COUNT; ++i) {
 		/* mind pointer arithmetics */
 		uhci_port_init(
 		  &hub->ports[i], regs + i, hc, i, ROOT_HUB_WAIT_USEC);
@@ -36,6 +36,7 @@ int uhci_root_hub_init( uhci_root_hub_t *hub, device_t *hc, void *addr )
 			return ENOMEM;
 		}
 		fibril_add_ready(hub->checker[i]);
+		uhci_print_verbose(" added fibril for port %d: %p.\n", i, hub->checker[i]);
 	}
 
 	return EOK;

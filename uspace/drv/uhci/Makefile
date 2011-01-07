@@ -37,6 +37,7 @@ SOURCES = \
 	root_hub/port.c \
 	root_hub/port_status.c \
 	root_hub/root_hub.c \
-	uhci.c
+	uhci.c \
+	utils/hc_synchronizer.c
 
 include $(USPACE_PREFIX)/Makefile.common

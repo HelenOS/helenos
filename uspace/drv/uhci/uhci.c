@@ -88,6 +88,7 @@ int uhci_setup(
 	    target.address, target.endpoint,
 	    usb_str_transfer_type(transfer_type),
 	    size);
+//	callback( dev, USB_OUTCOME_OK, arg );
 
 	return ENOTSUP;
 }

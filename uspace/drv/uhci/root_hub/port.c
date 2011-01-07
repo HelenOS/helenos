@@ -1,12 +1,14 @@
 
+#include <atomic.h>
+#include <errno.h>
 #include <usb/devreq.h>
 #include <usb/usb.h>
-#include <errno.h>
 
 #include "debug.h"
 #include "uhci.h"
 #include "port.h"
 #include "port_status.h"
+#include "utils/hc_synchronizer.h"
 
 struct usb_match {
 	int id_score;
@@ -103,7 +105,7 @@ static int uhci_port_set_enabled(uhci_port_t *port, bool enabled)
 	port_status.status.enabled = (bool)enabled;
 	pio_write_16( port->address, port_status.raw_value );
 
-	uhci_print_info( "Enabled port %d.\n", port );
+	uhci_print_info( "Enabled port %d.\n", port->number );
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -190,16 +192,31 @@ static usb_address_t assign_address_to_zero_device( device_t *hc )
 	uhci_t *uhci_instance = (uhci_t*)hc->driver_data;
 	/* get new address */
 	const usb_address_t usb_address =
-	  usb_address_keeping_request( &uhci_instance->address_manager );
+	  usb_address_keeping_request(&uhci_instance->address_manager);
+
+	if (usb_address <= 0) {
+		return usb_address;
+	}
 
 	/* assign new address */
 	usb_target_t new_device = { USB_ADDRESS_DEFAULT, 0 };
-	usb_device_request_setup_packet_t data;
+	usb_device_request_setup_packet_t data =
+	{
+		.request_type = 0,
+		.request = USB_DEVREQ_SET_ADDRESS,
+		{ .value = usb_address },
+		.index = 0,
+		.length = 0
+	};
+
+	sync_value_t value;
 
 	uhci_setup(
-	  hc, new_device, USB_TRANSFER_CONTROL, &data, sizeof(data), NULL, NULL );
-	uhci_print_verbose( "address assignment sent, waiting to complete.\n" );
+	  hc, new_device, USB_TRANSFER_CONTROL, &data, sizeof(data),
+		sync_out_callback, (void*)&value );
+	uhci_print_verbose("address assignment sent, waiting to complete.\n");
 
+//	sync_wait_for(&value);
 
 	uhci_print_info( "Assigned address %#x.\n", usb_address );
 
