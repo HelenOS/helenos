@@ -34,6 +34,7 @@ EXTRA_CFLAGS = -I$(LIBUSB_PREFIX)/include -I$(LIBDRV_PREFIX)/include
 
 SOURCES = \
 	dump.c \
+	info.c \
 	main.c
 
 include $(USPACE_PREFIX)/Makefile.common

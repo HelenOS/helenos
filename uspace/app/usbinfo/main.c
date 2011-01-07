@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2010-2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,148 +39,169 @@
 #include <errno.h>
 #include <str_error.h>
 #include <bool.h>
+#include <getopt.h>
 #include <devman.h>
+#include <devmap.h>
 #include <usb/usbdrv.h>
 #include "usbinfo.h"
 
-#define DEFAULT_HOST_CONTROLLER_PATH "/virt/usbhc"
+enum {
+	ACTION_HELP = 256,
+	ACTION_DEVICE_ADDRESS,
+	ACTION_HOST_CONTROLLER,
+	ACTION_DEVICE,
+};
+
+static struct option long_options[] = {
+	{"help", no_argument, NULL, ACTION_HELP},
+	{"address", required_argument, NULL, ACTION_DEVICE_ADDRESS},
+	{"host-controller", required_argument, NULL, ACTION_HOST_CONTROLLER},
+	{"device", required_argument, NULL, ACTION_DEVICE},
+	{0, 0, NULL, 0}
+};
+static const char *short_options = "ha:t:d:";
 
 static void print_usage(char *app_name)
 {
+#define INDENT "      "
 	printf(NAME ": query USB devices for descriptors\n\n");
-	printf("Usage: %s /path/to/hc usb-address\n where\n", app_name);
-	printf("   /path/to/hc   Devman path to USB host controller " \
-	    "(use `-' for\n");
-	printf("                   default HC at `%s').\n",
-	    DEFAULT_HOST_CONTROLLER_PATH);
-	printf("   usb-address   USB address of device to be queried\n");
+	printf("Usage: %s [options]\n", app_name);
+	printf(" -h --help\n" INDENT \
+	    "Display this help.\n");
+	printf(" -tID --host-controller ID\n" INDENT \
+	    "Set host controller (ID can be path or class number)\n");
+	printf(" -aADDR --address ADDR\n" INDENT \
+	    "Set device address\n");
 	printf("\n");
+#undef INDENT
 }
 
-static int connect_to_hc(const char *path)
+static int set_new_host_controller(int *phone, const char *path)
 {
 	int rc;
-	devman_handle_t handle;
+	int tmp_phone;
 
-	rc = devman_device_get_handle(path, &handle, 0);
-	if (rc != EOK) {
-		return rc;
+	if (path[0] != '/') {
+		int hc_class_index = (int) strtol(path, NULL, 10);
+		char *dev_path;
+		rc = asprintf(&dev_path, "class/usbhc\\%d", hc_class_index);
+		if (rc < 0) {
+			internal_error(rc);
+			return rc;
+		}
+		devmap_handle_t handle;
+		rc = devmap_device_get_handle(dev_path, &handle, 0);
+		if (rc < 0) {
+			fprintf(stderr,
+			    NAME ": failed getting handle of `devman://%s'.\n",
+			    dev_path);
+			free(dev_path);
+			return rc;
+		}
+		tmp_phone = devmap_device_connect(handle, 0);
+		if (tmp_phone < 0) {
+			fprintf(stderr,
+			    NAME ": could not connect to `%s'.\n",
+			    dev_path);
+			free(dev_path);
+			return tmp_phone;
+		}
+		free(dev_path);
+	} else {
+		devman_handle_t handle;
+		rc = devman_device_get_handle(path, &handle, 0);
+		if (rc != EOK) {
+			fprintf(stderr,
+			    NAME ": failed getting handle of `devmap::/%s'.\n",
+			    path);
+			return rc;
+		}
+		tmp_phone = devman_device_connect(handle, 0);
+		if (tmp_phone < 0) {
+			fprintf(stderr,
+			    NAME ": could not connect to `%s'.\n",
+			    path);
+			return tmp_phone;
+		}
 	}
 
-	int phone = devman_device_connect(handle, 0);
+	*phone = tmp_phone;
 
-	return phone;
+	return EOK;
 }
 
-int main(int argc, char *argv[])
+static int connect_with_address(int hc_phone, const char *str_address)
 {
-	if (argc != 3) {
-		print_usage(argv[0]);
-		return EINVAL;
-	}
-
-	char *hc_path = argv[1];
-	long int address_long = strtol(argv[2], NULL, 0);
-
-	/*
-	 * Connect to given host controller driver.
-	 */
-	if (str_cmp(hc_path, "-") == 0) {
-		hc_path = (char *) DEFAULT_HOST_CONTROLLER_PATH;
-	}
-	int hc_phone = connect_to_hc(hc_path);
-	if (hc_phone < 0) {
-		fprintf(stderr,
-		    NAME ": unable to connect to HC at `%s': %s.\n",
-		    hc_path, str_error(hc_phone));
-		return hc_phone;
-	}
-
-	/*
-	 * Verify address is okay.
-	 */
-	usb_address_t address = (usb_address_t) address_long;
+	usb_address_t address = (usb_address_t) strtol(str_address, NULL, 0);
 	if ((address < 0) || (address >= USB11_ADDRESS_MAX)) {
 		fprintf(stderr, NAME ": USB address out of range.\n");
 		return ERANGE;
 	}
 
-	/*
-	 * Now, learn information about the device.
-	 */
-	int rc;
-
-	/*
-	 * Dump information about possible match ids.
-	 */
-	match_id_list_t match_id_list;
-	init_match_ids(&match_id_list);
-	rc = usb_drv_create_device_match_ids(hc_phone, &match_id_list, address);
-	if (rc != EOK) {
-		fprintf(stderr,
-		    NAME ": failed to fetch match ids of the device: %s.\n",
-		    str_error(rc));
-		return rc;
+	if (hc_phone < 0) {
+		fprintf(stderr, NAME ": no active host controller.\n");
+		return ENOENT;
 	}
-	dump_match_ids(&match_id_list);
 
-	/*
-	 * Get device descriptor and dump it.
-	 */
-	usb_standard_device_descriptor_t device_descriptor;
-	usb_dprintf(NAME, 1,
-	    "usb_drv_req_get_device_descriptor(%d, %d, %p)\n",
-	    hc_phone, (int) address, &device_descriptor);
+	return dump_device(hc_phone, address);
+}
 
-	rc = usb_drv_req_get_device_descriptor(hc_phone, address,
-	    &device_descriptor);
-	if (rc != EOK) {
-		fprintf(stderr,
-		    NAME ": failed to fetch standard device descriptor: %s.\n",
-		    str_error(rc));
-		return rc;
+
+int main(int argc, char *argv[])
+{
+	int hc_phone = -1;
+
+	if (argc <= 1) {
+		print_usage(argv[0]);
+		return -1;
 	}
-	dump_standard_device_descriptor(&device_descriptor);
 
-	/*
-	 * Get first configuration descriptor and dump it.
-	 */
-	usb_standard_configuration_descriptor_t config_descriptor;
-	int config_index = 0;
-	usb_dprintf(NAME, 1,
-	    "usb_drv_req_get_bare_configuration_descriptor(%d, %d, %d, %p)\n",
-	    hc_phone, (int) address, config_index, &config_descriptor);
+	int i;
+	do {
+		i = getopt_long(argc, argv, short_options, long_options, NULL);
+		switch (i) {
+			case -1:
+				break;
 
-	rc = usb_drv_req_get_bare_configuration_descriptor(hc_phone, address,
-	    config_index, &config_descriptor );
-	if (rc != EOK) {
-		fprintf(stderr,
-		    NAME ": failed to fetch standard configuration descriptor: %s.\n",
-		    str_error(rc));
-		return rc;
-	}
-	dump_standard_configuration_descriptor(config_index,
-	    &config_descriptor);
+			case '?':
+				print_usage(argv[0]);
+				return -1;
 
-	void *full_config_descriptor = malloc(config_descriptor.total_length);
-	usb_dprintf(NAME, 1,
-	    "usb_drv_req_get_full_configuration_descriptor(%d, %d, %d, %p, %zu)\n",
-	    hc_phone, (int) address, config_index,
-	    full_config_descriptor, config_descriptor.total_length);
+			case 'h':
+			case ACTION_HELP:
+				print_usage(argv[0]);
+				return 0;
 
-	rc = usb_drv_req_get_full_configuration_descriptor(hc_phone, address,
-	    config_index,
-	    full_config_descriptor, config_descriptor.total_length, NULL);
-	if (rc != EOK) {
-		fprintf(stderr,
-		    NAME ": failed to fetch full configuration descriptor: %s.\n",
-		    str_error(rc));
-		return rc;
-	}
-	dump_buffer("Full configuration descriptor:",
-	    full_config_descriptor, config_descriptor.total_length);
+			case 'a':
+			case ACTION_DEVICE_ADDRESS: {
+				int rc = connect_with_address(hc_phone, optarg);
+				if (rc != EOK) {
+					return rc;
+				}
+				break;
+			}
 
-	return EOK;
+			case 't':
+			case ACTION_HOST_CONTROLLER: {
+				int rc = set_new_host_controller(&hc_phone,
+				    optarg);
+				if (rc != EOK) {
+					return rc;
+				}
+				break;
+			}
+
+			case 'd':
+			case ACTION_DEVICE:
+				break;
+
+			default:
+				break;
+		}
+
+	} while (i != -1);
+
+	return 0;
 }
 
 
