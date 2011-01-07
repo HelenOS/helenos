@@ -38,6 +38,7 @@ SOURCES = \
 	root_hub/port_status.c \
 	root_hub/root_hub.c \
 	uhci.c \
+	utils/fibril_semaphore.c \
 	utils/hc_synchronizer.c
 
 include $(USPACE_PREFIX)/Makefile.common

@@ -184,6 +184,7 @@ static int report_new_device(
 
 	return EOK;
 }
+
 static usb_address_t assign_address_to_zero_device( device_t *hc )
 {
 	assert( hc );
@@ -210,13 +211,14 @@ static usb_address_t assign_address_to_zero_device( device_t *hc )
 	};
 
 	sync_value_t value;
+	sync_init(&value);
 
 	uhci_setup(
 	  hc, new_device, USB_TRANSFER_CONTROL, &data, sizeof(data),
 		sync_out_callback, (void*)&value );
 	uhci_print_verbose("address assignment sent, waiting to complete.\n");
 
-//	sync_wait_for(&value);
+	sync_wait_for(&value);
 
 	uhci_print_info( "Assigned address %#x.\n", usb_address );
 

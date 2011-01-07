@@ -25,39 +25,44 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 /** @addtogroup usb
  * @{
  */
 /** @file
  * @brief UHCI driver
  */
-#ifndef DRV_UHCI_UTIL_SYNCHRONIZER_H
-#define DRV_UHCI_UTIL_SYNCHRONIZER_H
+#ifndef DRV_UHCI_UTILS_FIBRIL_SEMAPHORE_H
+#define DRV_UHCI_UTILS_FIBRIL_SEMAPHORE_H
 
-#include <assert.h>
-#include <driver.h>
-#include <usb/usb.h>
+#include <bool.h>
+#include <fibril.h>
 
-#include "debug.h"
-#include "utils/fibril_semaphore.h"
+typedef struct {
+  fibril_owner_info_t oi;   /* Keep this the first thing. */
+  int counter;
+	int value;
+  link_t waiters;
+} fibril_semaphore_t;
 
-typedef struct value
-{
-	/* TODO Think of better fibril synch to use */
-	usb_transaction_outcome_t result;
-	size_t size;
-	fibril_semaphore_t done;
-} sync_value_t;
+#define FIBRIL_SEMAPHORE_INITIALIZER(name) \
+  { \
+    .oi = { \
+      .owned_by = NULL \
+    }, \
+    .counter = 0, \
+		.value = 0, \
+    .waiters = { \
+      .prev = &name.waiters, \
+      .next = &name.waiters, \
+    } \
+  }
 
-void sync_init(sync_value_t *value);
+extern void fibril_semaphore_initialize(fibril_semaphore_t *, int value);
+extern void fibril_semaphore_down(fibril_semaphore_t *);
+extern bool fibril_semaphore_trydown(fibril_semaphore_t *);
+extern void fibril_semaphore_up(fibril_semaphore_t *);
 
-void sync_wait_for(sync_value_t *value);
-
-void sync_in_callback(
-  device_t *device, usb_transaction_outcome_t result, size_t size, void *value);
-
-void sync_out_callback(
-  device_t *device, usb_transaction_outcome_t result, void *value);
 #endif
 /**
  * @}

@@ -1,11 +1,15 @@
 #include "hc_synchronizer.h"
 
+void sync_init(sync_value_t *value)
+{
+	assert(value);
+	fibril_semaphore_initialize(&value->done, 0);
+}
+/*----------------------------------------------------------------------------*/
 void sync_wait_for(sync_value_t *value)
 {
 	assert( value );
-	value->waiting_fibril = fibril_get_id();
-	uhci_print_verbose("turning off fibril %p.\n", value->waiting_fibril);
-	fibril_switch(FIBRIL_TO_MANAGER);
+	fibril_semaphore_down(&value->done);
 }
 /*----------------------------------------------------------------------------*/
 void sync_in_callback(
@@ -15,7 +19,7 @@ void sync_in_callback(
 	assert(value);
 	value->size = size;
 	value->result = result;
-	fibril_add_ready(value->waiting_fibril);
+	fibril_semaphore_up(&value->done);
 }
 /*----------------------------------------------------------------------------*/
 void sync_out_callback(
@@ -24,6 +28,5 @@ void sync_out_callback(
 	sync_value_t *value = arg;
 	assert(value);
 	value->result = result;
-	uhci_print_verbose("resuming fibril %p.\n", value->waiting_fibril);
-	fibril_add_ready(value->waiting_fibril);
+	fibril_semaphore_up(&value->done);
 }
