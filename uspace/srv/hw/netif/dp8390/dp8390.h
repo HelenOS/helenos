@@ -244,7 +244,7 @@ typedef struct dp_rcvhdr {
  */
 #define outb_reg1(dep, reg, data)  (outb(dep->de_dp8390_port + reg, data))
 
-#define SENDQ_NR     2  /* Maximum size of the send queue */
+#define SENDQ_NR     1  /* Maximum size of the send queue */
 #define SENDQ_PAGES  6  /* 6 * DP_PAGESIZE >= 1514 bytes */
 
 typedef struct dpeth {
