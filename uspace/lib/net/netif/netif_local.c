@@ -220,7 +220,7 @@ int netif_get_addr_req_local(int netif_phone, device_id_t device_id,
 	
 	fibril_rwlock_read_unlock(&netif_globals.lock);
 	
-	*data = (uint8_t *) (**address).value;
+	*data = (**address).value;
 	
 	return rc;
 }

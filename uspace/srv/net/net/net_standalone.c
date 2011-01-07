@@ -62,22 +62,22 @@ int net_initialize_build(async_client_conn_t client_connection)
 {
 	int rc;
 	
-	task_id_t task_id = spawn("/srv/ip");
+	task_id_t task_id = net_spawn((uint8_t *) "/srv/ip");
 	if (!task_id)
 		return EINVAL;
 	
-	rc = add_module(NULL, &net_globals.modules, IP_NAME,
-	    IP_FILENAME, SERVICE_IP, task_id, ip_connect_module);
+	rc = add_module(NULL, &net_globals.modules, (uint8_t *) IP_NAME,
+	    (uint8_t *) IP_FILENAME, SERVICE_IP, task_id, ip_connect_module);
 	if (rc != EOK)
 		return rc;
 	
-	if (!spawn("/srv/icmp"))
+	if (!net_spawn((uint8_t *) "/srv/icmp"))
 		return EINVAL;
 	
-	if (!spawn("/srv/udp"))
+	if (!net_spawn((uint8_t *) "/srv/udp"))
 		return EINVAL;
 	
-	if (!spawn("/srv/tcp"))
+	if (!net_spawn((uint8_t *) "/srv/tcp"))
 		return EINVAL;
 	
 	return EOK;

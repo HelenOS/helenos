@@ -549,10 +549,10 @@ static void dp_recv(int nil_phone, device_id_t device_id, dpeth_t *dep)
 		next = header.dr_next;
 		if ((length < ETH_MIN_PACK_SIZE) || (length > ETH_MAX_PACK_SIZE_TAGGED)) {
 			printf("Packet with strange length arrived: %zu\n", length);
-			next= curr;
+			next = curr;
 		} else if ((next < dep->de_startpage) || (next >= dep->de_stoppage)) {
 			printf("Strange next page\n");
-			next= curr;
+			next = curr;
 		} else if (header.dr_status & RSR_FO) {
 			/*
 			 * This is very serious, so we issue a warning and

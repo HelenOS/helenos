@@ -240,7 +240,7 @@ static int test_8(dpeth_t *dep, int pos, uint8_t *pat)
 	for (i = 0; i < 4; i++)
 		buf[i] = inb_ne(dep, NE_DATA);
 	
-	return (memcmp(buf, pat, 4) == 0);
+	return (bcmp(buf, pat, 4) == 0);
 }
 
 static int test_16(dpeth_t *dep, int pos, uint8_t *pat)
@@ -279,7 +279,7 @@ static int test_16(dpeth_t *dep, int pos, uint8_t *pat)
 	for (i = 0; i < 4; i += 2)
 		*(uint16_t *)(buf + i) = inw_ne(dep, NE_DATA);
 	
-	return (memcmp(buf, pat, 4) == 0);
+	return (bcmp(buf, pat, 4) == 0);
 }
 
 /** Stop the NE2000 network interface.

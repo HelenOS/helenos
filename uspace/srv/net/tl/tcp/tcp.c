@@ -153,7 +153,7 @@ struct tcp_timeout {
 	suseconds_t timeout;
 
 	/** Port map key. */
-	char *key;
+	uint8_t *key;
 
 	/** Port map key length. */
 	size_t key_length;
@@ -357,12 +357,12 @@ int tcp_process_packet(device_id_t device_id, packet_t *packet, services_t error
 	
 	/* Find the destination socket */
 	socket = socket_port_find(&tcp_globals.sockets,
-	    ntohs(header->destination_port), (const char *) src, addrlen);
+	    ntohs(header->destination_port), (uint8_t *) src, addrlen);
 	if (!socket) {
 		/* Find the listening destination socket */
 		socket = socket_port_find(&tcp_globals.sockets,
-		    ntohs(header->destination_port), SOCKET_MAP_KEY_LISTENING,
-		    0);
+		    ntohs(header->destination_port),
+		    (uint8_t *) SOCKET_MAP_KEY_LISTENING, 0);
 	}
 
 	if (!socket) {
@@ -997,7 +997,7 @@ int tcp_process_listen(socket_core_t *listening_socket,
 
 	/* Find the destination socket */
 	listening_socket = socket_port_find(&tcp_globals.sockets,
-	    listening_port, SOCKET_MAP_KEY_LISTENING, 0);
+	    listening_port, (uint8_t *) SOCKET_MAP_KEY_LISTENING, 0);
 	if (!listening_socket ||
 	    (listening_socket->socket_id != listening_socket_id)) {
 		fibril_rwlock_write_unlock(&tcp_globals.lock);
@@ -1021,9 +1021,9 @@ int tcp_process_listen(socket_core_t *listening_socket,
 	assert(socket_data);
 
 	rc = socket_port_add(&tcp_globals.sockets, listening_port, socket,
-	    (const char *) socket_data->addr, socket_data->addrlen);
+	    (uint8_t *) socket_data->addr, socket_data->addrlen);
 	assert(socket == socket_port_find(&tcp_globals.sockets, listening_port,
-	    (const char *) socket_data->addr, socket_data->addrlen));
+	    (uint8_t *) socket_data->addr, socket_data->addrlen));
 
 //	rc = socket_bind_free_port(&tcp_globals.sockets, socket,
 //	    TCP_FREE_PORTS_START, TCP_FREE_PORTS_END,
@@ -2108,7 +2108,7 @@ int tcp_prepare_timeout(int (*timeout_function)(void *tcp_timeout_t),
 	operation_timeout->state = state;
 
 	/* Copy the key */
-	operation_timeout->key = ((char *) operation_timeout) +
+	operation_timeout->key = ((uint8_t *) operation_timeout) +
 	    sizeof(*operation_timeout);
 	operation_timeout->key_length = socket->key_length;
 	memcpy(operation_timeout->key, socket->key, socket->key_length);

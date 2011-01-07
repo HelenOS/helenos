@@ -43,16 +43,6 @@
 #include <libarch/ddi.h>
 #include <sys/types.h>
 
-/** Compares two memory blocks.
- *  @param[in] first The first memory block.
- *  @param[in] second The second memory block.
- *  @param[in] size The blocks size in bytes.
- *  @returns 0 if equeal.
- *  @returns -1 if the first is greater than the second.
- *  @returns 1 if the second is greater than the first.
- */
-#define memcmp(first, second, size)  bcmp((char *) (first), (char *) (second), (size))
-
 /** Reads 1 byte.
  *  @param[in] port The address to be read.
  *  @returns The read value.

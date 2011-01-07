@@ -212,7 +212,7 @@ int netif_get_addr_message(device_id_t device_id, measured_string_t *address)
 	if (rc != EOK)
 		return rc;
 	
-	address->value = (char *) (&((dpeth_t *) device->specific)->de_address);
+	address->value = (uint8_t *) &((dpeth_t *) device->specific)->de_address;
 	address->length = sizeof(ether_addr_t);
 	return EOK;
 }
