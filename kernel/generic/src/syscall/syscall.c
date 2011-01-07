@@ -44,6 +44,7 @@
 #include <arch.h>
 #include <debug.h>
 #include <ddi/device.h>
+#include <interrupt.h>
 #include <ipc/sysipc.h>
 #include <synch/futex.h>
 #include <synch/smc.h>
@@ -65,9 +66,15 @@ sysarg_t syscall_handler(sysarg_t a1, sysarg_t a2, sysarg_t a3,
 	
 #ifdef CONFIG_UDEBUG
 	/*
+	 * An istate_t-compatible record was created on the stack by the
+	 * low-level syscall handler. This is the userspace space state
+	 * structure.
+	 */
+	THREAD->udebug.uspace_state = istate_get(THREAD);
+
+	/*
 	 * Early check for undebugged tasks. We do not lock anything as this
 	 * test need not be precise in either direction.
-	 *
 	 */
 	if (THREAD->udebug.active)
 		udebug_syscall_event(a1, a2, a3, a4, a5, a6, id, 0, false);
@@ -97,6 +104,9 @@ sysarg_t syscall_handler(sysarg_t a1, sysarg_t a2, sysarg_t a3,
 		udebug_stoppable_begin();
 		udebug_stoppable_end();
 	}
+
+	/* Clear userspace state pointer */
+	THREAD->udebug.uspace_state = NULL;
 #endif
 	
 	/* Do kernel accounting */
@@ -119,6 +129,7 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	
 	(syshandler_t) sys_task_get_id,
 	(syshandler_t) sys_task_set_name,
+	(syshandler_t) sys_task_kill,
 	(syshandler_t) sys_program_spawn_loader,
 	
 	/* Synchronization related syscalls. */

@@ -359,6 +359,25 @@ sysarg_t sys_task_set_name(const char *uspace_name, size_t name_len)
 	return EOK;
 }
 
+/** Syscall to forcefully terminate a task
+ *
+ * @param uspace_taskid Pointer to task ID in user space.
+ *
+ * @return 0 on success or an error code from @ref errno.h.
+ *
+ */
+sysarg_t sys_task_kill(task_id_t *uspace_taskid)
+{
+	task_id_t taskid;
+	int rc;
+
+	rc = copy_from_uspace(&taskid, uspace_taskid, sizeof(taskid));
+	if (rc != 0)
+		return (sysarg_t) rc;
+
+	return (sysarg_t) task_kill(taskid);
+}
+
 /** Find task structure corresponding to task ID.
  *
  * The tasks_lock must be already held by the caller of this function and

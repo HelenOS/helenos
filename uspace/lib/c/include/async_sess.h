@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2010 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,28 +32,22 @@
 /** @file
  */
 
-#ifndef LIBC_TASK_H_
-#define LIBC_TASK_H_
+#ifndef LIBC_ASYNC_SESS_H_
+#define LIBC_ASYNC_SESS_H_
 
-#include <sys/types.h>
+#include <adt/list.h>
 
-typedef uint64_t task_id_t;
+typedef struct {
+	int sess_phone;		/**< Phone for cloning off the connections. */
+	link_t conn_head;	/**< List of open data connections. */
+	link_t sess_link;	/**< Link in global list of open sessions. */
+} async_sess_t;
 
-typedef enum {
-	TASK_EXIT_NORMAL,
-	TASK_EXIT_UNEXPECTED
-} task_exit_t;
-
-extern task_id_t task_get_id(void);
-extern int task_set_name(const char *);
-extern int task_kill(task_id_t);
-
-extern task_id_t task_spawn(const char *, const char *const[], int *);
-extern int task_spawnv(task_id_t *, const char *path, const char *const []);
-extern int task_spawnl(task_id_t *, const char *path, ...);
-
-extern int task_wait(task_id_t id, task_exit_t *, int *);
-extern int task_retval(int);
+extern void _async_sess_init(void);
+extern void async_session_create(async_sess_t *, int);
+extern void async_session_destroy(async_sess_t *);
+extern int async_exchange_begin(async_sess_t *);
+extern void async_exchange_end(async_sess_t *, int);
 
 #endif
 
