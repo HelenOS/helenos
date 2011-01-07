@@ -1,20 +1,35 @@
 #include <assert.h>
 #include <stdio.h>
 
+#include "debug.h"
 #include "port_status.h"
 
-void print_port_status( const port_status_t *status )
+struct flag_name
 {
-	assert( status );
-	printf( "\tsuspended: %s\n", status->status.suspended ? "YES" : "NO" );
-	printf( "\tin reset: %s\n", status->status.reset ? "YES" : "NO" );
-	printf( "\tlow speed: %s\n", status->status.low_speed ? "YES" : "NO" );
-	printf( "\tresume detected: %s\n", status->status.resume ? "YES" : "NO" );
-	printf( "\talways \"1\" reserved bit: %s\n",
-	  status->status.always_one ? "YES" : "NO" );
-	/* line status skipped */
-	printf( "\tenable/disable change: %s\n", status->status.enabled_change ? "YES" : "NO" );
-	printf( "\tport enabled: %s\n", status->status.enabled ? "YES" : "NO" );
-	printf( "\tconnect change: %s\n", status->status.connect_change ? "YES" : "NO" );
-	printf( "\tconnected: %s\n", status->status.connected ? "YES" : "NO" );
+	unsigned flag;
+	const char *name;
+};
+
+static const struct flag_name flags[] =
+{
+	{ STATUS_SUSPEND, "suspended" },
+	{ STATUS_IN_RESET, "in reset" },
+	{ STATUS_LOW_SPEED, "low speed device" },
+	{ STATUS_ALWAYS_ONE, "always 1 bit" },
+	{ STATUS_RESUME, "resume" },
+	{ STATUS_LINE_D_MINUS, "line D- value" },
+	{ STATUS_LINE_D_PLUS, "line D+ value" },
+	{ STATUS_ENABLED_CHANGED, "enabled changed" },
+	{ STATUS_ENABLED, "enabled" },
+	{ STATUS_CONNECTED_CHANGED, "connected changed" },
+	{ STATUS_CONNECTED, "connected" }
+};
+
+void print_port_status(port_status_t value)
+{
+	unsigned i = 0;
+	for (;i < sizeof(flags)/sizeof(struct flag_name); ++i) {
+		uhci_print_verbose("\t%s status: %s.\n", flags[i].name,
+		  value & flags[i].flag ? "ON" : "OFF");
+	}
 }

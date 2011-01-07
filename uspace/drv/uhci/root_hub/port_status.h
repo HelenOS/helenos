@@ -34,45 +34,34 @@
 #ifndef DRV_UHCI_TD_PORT_STATUS_H
 #define DRV_UHCI_TD_PORT_STATUS_H
 
+#include <libarch/ddi.h>
 #include <stdint.h>
 
-struct port_register {
-	uint8_t connected:1;
-	uint8_t connect_change:1;
-	uint8_t enabled:1;
-	uint8_t enabled_change:1;
-	uint8_t line:2;
-	uint8_t resume:1;
-	const uint8_t always_one:1; /* reserved */
+typedef uint16_t port_status_t;
 
-	uint8_t low_speed:1;
-	uint8_t reset:1;
-	uint8_t :2; /* reserved */
-	uint8_t suspended:1;
-	uint8_t :3; /* reserved */
-	/* first byte */
-//	uint8_t :3; /* reserved */
-//	uint8_t suspended:1;
-//	uint8_t :2; /* reserved */
-//	uint8_t reset:1;
-//	uint8_t low_speed:1;
+enum {
+	STATUS_CONNECTED         = 1 << 0,
+	STATUS_CONNECTED_CHANGED = 1 << 1,
+	STATUS_ENABLED           = 1 << 2,
+	STATUS_ENABLED_CHANGED   = 1 << 3,
+	STATUS_LINE_D_PLUS       = 1 << 4,
+	STATUS_LINE_D_MINUS      = 1 << 5,
+	STATUS_RESUME            = 1 << 6,
+	STATUS_ALWAYS_ONE        = 1 << 7,
 
-	/* second byte */
-//	uint8_t :1; /* reserved */
-//	uint8_t resume:1;
-//	uint8_t line:2;
-//	uint8_t enabled_change:1;
-//	uint8_t enabled:1;
-//	uint8_t connect_change:1;
-//	uint8_t connected:1;
-} __attribute__((packed));
+	STATUS_LOW_SPEED = 1 <<  8,
+	STATUS_IN_RESET  = 1 <<  9,
+	STATUS_SUSPEND   = 1 << 12,
+};
 
-typedef union port_status {
-	struct port_register status;
-	uint16_t raw_value;
-} port_status_t;
+static inline port_status_t port_status_read(port_status_t * address)
+	{ return pio_read_16(address); }
 
-void print_port_status( const port_status_t *status );
+static inline void port_status_write(
+  port_status_t * address, port_status_t value)
+	{ pio_write_16(address, value); }
+
+void print_port_status(const port_status_t status);
 #endif
 /**
  * @}

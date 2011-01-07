@@ -32,16 +32,17 @@ int uhci_port_check(void *port)
 		  port_instance->number, port_instance->address);
 
 		/* read register value */
-		port_status_t port_status;
-		port_status.raw_value = pio_read_16(port_instance->address);
+		port_status_t port_status =
+			port_status_read(port_instance->address);
+//		port_status.raw_value = pio_read_16(port_instance->address);
 
 		/* debug print */
 		uhci_print_info("Port(%d) status %#.4x:\n",
-		  port_instance->number, port_status.raw_value);
-		print_port_status( &port_status );
+		  port_instance->number, port_status);
+		print_port_status( port_status );
 
-		if (port_status.status.connect_change) {
-			if (port_status.status.connected) {
+		if (port_status & STATUS_CONNECTED_CHANGED) {
+			if (port_status & STATUS_CONNECTED) {
 				/* assign address and report new device */
 				uhci_port_new_device(port_instance);
 			} else {
@@ -102,12 +103,21 @@ static int uhci_port_set_enabled(uhci_port_t *port, bool enabled)
 	assert(port);
 
 	/* read register value */
-	port_status_t port_status;
-	port_status.raw_value = pio_read_16( port->address );
+	port_status_t port_status
+		= port_status_read(port->address);
 
 	/* enable port: register write */
+	if (enabled) {
+		port_status |= STATUS_ENABLED;
+	} else {
+		port_status &= ~STATUS_ENABLED;
+	}
+	port_status_write( port->address, port_status );
+
+/*
 	port_status.status.enabled = enabled;
 	pio_write_16( port->address, port_status.raw_value );
+*/
 
 	uhci_print_info( "%s port %d.\n",
 	  enabled ? "Enabled" : "Disabled", port->number );

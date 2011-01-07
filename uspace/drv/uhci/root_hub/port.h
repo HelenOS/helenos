@@ -38,11 +38,11 @@
 #include <driver.h>
 #include <stdint.h>
 
-typedef uint16_t uhci_port_reg_t;
+#include "port_status.h"
 
 typedef struct uhci_port
 {
-	uhci_port_reg_t *address;
+	port_status_t *address;
 	device_t *hc;
 	unsigned number;
 	unsigned wait_period_usec;
@@ -50,7 +50,7 @@ typedef struct uhci_port
 } uhci_port_t;
 
 static inline void uhci_port_init(
-  uhci_port_t *port, uhci_port_reg_t *address, device_t *hc, unsigned number,
+  uhci_port_t *port, port_status_t *address, device_t *hc, unsigned number,
   unsigned usec)
 {
 	assert( port );

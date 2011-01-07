@@ -14,9 +14,9 @@ int uhci_root_hub_init( uhci_root_hub_t *hub, device_t *hc, void *addr )
 	assert( hub );
 
 	/* allow access to root hub registers */
-	uhci_port_reg_t *regs;
+	port_status_t *regs;
 	const int ret = pio_enable(
-	  addr, sizeof(uhci_port_reg_t) * UHCI_ROOT_HUB_PORT_COUNT, (void**)&regs);
+	  addr, sizeof(port_status_t) * UHCI_ROOT_HUB_PORT_COUNT, (void**)&regs);
 
 	if (ret < 0) {
 		uhci_print_error(": Failed to gain access to port registers at %p\n", regs);
