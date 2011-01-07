@@ -403,6 +403,24 @@ irq_ownership_t ipc_irq_top_half_claim(irq_t *irq)
 			pio_write_32((ioport32_t *) code->cmds[i].addr,
 			    (uint32_t) code->cmds[i].value);
 			break;
+		case CMD_PIO_WRITE_A_8:
+			if (srcarg) {
+				pio_write_8((ioport8_t *) code->cmds[i].addr,
+				    (uint8_t) scratch[srcarg]);
+			}
+			break;
+		case CMD_PIO_WRITE_A_16:
+			if (srcarg) {
+				pio_write_16((ioport16_t *) code->cmds[i].addr,
+				    (uint16_t) scratch[srcarg]);
+			}
+			break;
+		case CMD_PIO_WRITE_A_32:
+			if (srcarg) {
+				pio_write_32((ioport32_t *) code->cmds[i].addr,
+				    (uint32_t) scratch[srcarg]);
+			}
+			break;
 		case CMD_BTEST:
 			if ((srcarg) && (dstarg)) {
 				dstval = scratch[srcarg] & code->cmds[i].value;

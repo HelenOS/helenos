@@ -100,6 +100,8 @@ RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/hw/netif/dp8390/dp8390 \
 	$(USPACE_PATH)/srv/hw/bus/usb/hcd/virtual/vhcd \
 	$(USPACE_PATH)/srv/net/netif/lo/lo \
+	$(USPACE_PATH)/srv/net/nil/eth/eth \
+	$(USPACE_PATH)/srv/net/nil/nildummy/nildummy \
 	$(USPACE_PATH)/srv/net/il/arp/arp \
 	$(USPACE_PATH)/srv/net/il/ip/ip \
 	$(USPACE_PATH)/srv/net/tl/icmp/icmp \
@@ -116,12 +118,6 @@ RD_DRVS = \
 
 RD_DRV_CFG = 
 
-ifneq ($(CONFIG_NETIF_NIL_BUNDLE),y)
-	RD_SRVS_NON_ESSENTIAL += \
-		$(USPACE_PATH)/srv/net/nil/eth/eth \
-		$(USPACE_PATH)/srv/net/nil/nildummy/nildummy
-endif
-
 RD_APPS_ESSENTIAL = \
 	$(USPACE_PATH)/app/bdsh/bdsh \
 	$(USPACE_PATH)/app/getterm/getterm \
@@ -129,6 +125,8 @@ RD_APPS_ESSENTIAL = \
 
 RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/edit/edit \
+	$(USPACE_PATH)/app/kill/kill \
+	$(USPACE_PATH)/app/killall/killall \
 	$(USPACE_PATH)/app/mkfat/mkfat \
 	$(USPACE_PATH)/app/sbi/sbi \
 	$(USPACE_PATH)/app/redir/redir \
@@ -147,7 +145,8 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/tasks/tasks \
 	$(USPACE_PATH)/app/top/top \
 	$(USPACE_PATH)/app/usbinfo/usbinfo \
-	$(USPACE_PATH)/app/virtusbkbd/vuk
+	$(USPACE_PATH)/app/virtusbkbd/vuk \
+	$(USPACE_PATH)/app/websrv/websrv
 
 ifneq ($(CONFIG_BAREBONE),y)
 NET_CFG = \

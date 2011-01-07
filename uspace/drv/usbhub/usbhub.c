@@ -36,7 +36,7 @@
 #include <bool.h>
 #include <errno.h>
 
-#include <usbhc_iface.h>
+#include <usb_iface.h>
 #include <usb/usbdrv.h>
 #include <usb/descriptor.h>
 #include <usb/devreq.h>
@@ -45,6 +45,14 @@
 #include "usbhub.h"
 #include "usbhub_private.h"
 #include "port_status.h"
+
+static usb_iface_t hub_usb_iface = {
+	.get_hc_handle = usb_drv_find_hc
+};
+
+static device_ops_t hub_device_ops = {
+	.interfaces[USB_DEV_IFACE] = &hub_usb_iface
+};
 
 //*********************************************
 //
@@ -134,10 +142,14 @@ int usb_add_hub_device(device_t *dev) {
 	 * Thus, assign our own operations and explore already
 	 * connected devices.
 	 */
+	dev->ops = &hub_device_ops;
 
 	//create the hub structure
 	//get hc connection
-	int hc = usb_drv_hc_connect(dev, 0);
+	int hc = usb_drv_hc_connect_auto(dev, 0);
+	if (hc < 0) {
+		return hc;
+	}
 
 	usb_hub_info_t * hub_info = usb_create_hub_info(dev, hc);
 	int port;
@@ -463,7 +475,7 @@ void usb_hub_check_hub_changes(void) {
 		/*
 		 * Connect to respective HC.
 		 */
-		int hc = usb_drv_hc_connect(hub_info->device, 0);
+		int hc = usb_drv_hc_connect_auto(hub_info->device, 0);
 		if (hc < 0) {
 			continue;
 		}

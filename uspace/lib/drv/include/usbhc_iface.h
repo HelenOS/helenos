@@ -30,7 +30,7 @@
  * @{
  */
 /** @file
- * @brief USB interface definition.
+ * @brief USB host controller interface definition.
  */
 
 #ifndef LIBDRV_USBHC_IFACE_H_
@@ -225,7 +225,7 @@ typedef int (*usbhc_iface_transfer_in_t)(device_t *, usb_target_t,
     void *, size_t,
     usbhc_iface_transfer_in_callback_t, void *);
 
-/** USB devices communication interface. */
+/** USB host controller communication interface. */
 typedef struct {
 	int (*tell_address)(device_t *, devman_handle_t, usb_address_t *);
 

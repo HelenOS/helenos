@@ -184,8 +184,8 @@ void main_bsp_separated_stack(void)
 	
 	LOG("\nconfig.base=%p config.kernel_size=%zu"
 	    "\nconfig.stack_base=%p config.stack_size=%zu",
-	    config.base, config.kernel_size, config.stack_base,
-	    config.stack_size);
+	    (void *) config.base, config.kernel_size,
+	    (void *) config.stack_base, config.stack_size);
 	
 #ifdef CONFIG_KCONSOLE
 	/*
@@ -241,7 +241,7 @@ void main_bsp_separated_stack(void)
 		size_t i;
 		for (i = 0; i < init.cnt; i++)
 			LOG("init[%zu].addr=%p, init[%zu].size=%zu",
-			    i, init.tasks[i].addr, i, init.tasks[i].size);
+			    i, (void *) init.tasks[i].addr, i, init.tasks[i].size);
 	} else
 		printf("No init binaries found.\n");
 	

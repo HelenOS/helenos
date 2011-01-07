@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2010 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,45 +26,59 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
- * @defgroup libdrv generic device driver support.
- * @brief HelenOS generic device driver support.
+/** @addtogroup killall
  * @{
  */
-
-/** @file
+/**
+ * @file Forcefully terminate a task specified by name.
  */
 
-#include "dev_iface.h"
-#include "remote_res.h"
-#include "remote_char.h"
-#include "remote_usb.h"
-#include "remote_usbhc.h"
+#include <errno.h>
+#include <stdio.h>
+#include <task.h>
+#include <stats.h>
+#include <str_error.h>
+#include <malloc.h>
 
-static iface_dipatch_table_t remote_ifaces = {
-	.ifaces = {
-		&remote_res_iface,
-		&remote_char_iface,
-		&remote_usb_iface,
-		&remote_usbhc_iface
-	}
-};
+#define NAME  "killall"
 
-remote_iface_t* get_remote_iface(int idx)
-{	
-	assert(is_valid_iface_idx(idx));
-	return remote_ifaces.ifaces[idx];
-}
-
-remote_iface_func_ptr_t
-get_remote_method(remote_iface_t *rem_iface, sysarg_t iface_method_idx)
+static void print_syntax(void)
 {
-	if (iface_method_idx >= rem_iface->method_count) {
-		return NULL;
-	}
-	return rem_iface->methods[iface_method_idx];
+	printf("Syntax: " NAME " <task name>\n");
 }
 
-/**
- * @}
+int main(int argc, char *argv[])
+{
+	if (argc != 2) {
+		print_syntax();
+		return 1;
+	}
+	
+	size_t count;
+	stats_task_t *stats_tasks = stats_get_tasks(&count);
+	
+	if (stats_tasks == NULL) {
+		fprintf(stderr, "%s: Unable to get tasks\n", NAME);
+		return 2;
+	}
+	
+	size_t i;
+	for (i = 0; i < count; i++) {
+		if (str_cmp(stats_tasks[i].name, argv[1]) == 0) {
+			task_id_t taskid = stats_tasks[i].task_id;
+			int rc = task_kill(taskid);
+			if (rc != EOK)
+				printf("Failed to kill task ID %" PRIu64 ": %s\n",
+				    taskid, str_error(rc));
+			else
+				printf("Killed task ID %" PRIu64 "\n", taskid);
+		}
+	}
+	
+	free(stats_tasks);
+	
+	return 0;
+}
+
+/** @}
  */

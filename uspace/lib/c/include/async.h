@@ -36,6 +36,7 @@
 #define LIBC_ASYNC_H_
 
 #include <ipc/ipc.h>
+#include <async_sess.h>
 #include <fibril.h>
 #include <sys/time.h>
 #include <atomic.h>

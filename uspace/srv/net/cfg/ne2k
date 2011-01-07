@@ -3,10 +3,10 @@
 NAME=ne2k
 
 NETIF=dp8390
-NIL=dp8390
+NIL=eth
 IL=ip
 
-IRQ=9
+IRQ=5
 IO=300
 
 # 8023_2_LSAP, 8023_2_SNAP

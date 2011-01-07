@@ -43,6 +43,8 @@ _link.ld
 ./uspace/app/edit/edit
 ./uspace/app/getterm/getterm
 ./uspace/app/init/init
+./uspace/app/kill/kill
+./uspace/app/killall/killall
 ./uspace/app/klog/klog
 ./uspace/app/mkfat/mkfat
 ./uspace/app/netstart/netstart
@@ -64,6 +66,7 @@ _link.ld
 ./uspace/app/usb/usb
 ./uspace/app/usbinfo/usbinfo
 ./uspace/app/virtusbkbd/vuk
+./uspace/app/websrv/websrv
 ./uspace/dist/app/*
 ./uspace/dist/cfg/net/general
 ./uspace/dist/cfg/net/lo

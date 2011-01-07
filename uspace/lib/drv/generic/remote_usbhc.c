@@ -58,7 +58,7 @@ static void remote_usbhc_bind_address(device_t *, void *, ipc_callid_t, ipc_call
 static void remote_usbhc_release_address(device_t *, void *, ipc_callid_t, ipc_call_t *);
 //static void remote_usbhc(device_t *, void *, ipc_callid_t, ipc_call_t *);
 
-/** Remote USB interface operations. */
+/** Remote USB host controller interface operations. */
 static remote_iface_func_ptr_t remote_usbhc_iface_ops [] = {
 	remote_usbhc_get_address,
 
@@ -83,7 +83,7 @@ static remote_iface_func_ptr_t remote_usbhc_iface_ops [] = {
 	remote_usbhc_control_read_status
 };
 
-/** Remote USB interface structure.
+/** Remote USB host controller interface structure.
  */
 remote_iface_t remote_usbhc_iface = {
 	.method_count = sizeof(remote_usbhc_iface_ops) /

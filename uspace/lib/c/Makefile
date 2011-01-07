@@ -86,7 +86,7 @@ GENERIC_SOURCES = \
 	generic/sysinfo.c \
 	generic/ipc.c \
 	generic/async.c \
-	generic/async_rel.c \
+	generic/async_sess.c \
 	generic/loader.c \
 	generic/getopt.c \
 	generic/adt/list.o \

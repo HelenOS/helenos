@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2010 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,45 +26,30 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
- * @defgroup libdrv generic device driver support.
- * @brief HelenOS generic device driver support.
+/** @addtogroup libc
  * @{
  */
-
 /** @file
  */
 
-#include "dev_iface.h"
-#include "remote_res.h"
-#include "remote_char.h"
-#include "remote_usb.h"
-#include "remote_usbhc.h"
+#ifndef LIBC_ASYNC_SESS_H_
+#define LIBC_ASYNC_SESS_H_
 
-static iface_dipatch_table_t remote_ifaces = {
-	.ifaces = {
-		&remote_res_iface,
-		&remote_char_iface,
-		&remote_usb_iface,
-		&remote_usbhc_iface
-	}
-};
+#include <adt/list.h>
 
-remote_iface_t* get_remote_iface(int idx)
-{	
-	assert(is_valid_iface_idx(idx));
-	return remote_ifaces.ifaces[idx];
-}
+typedef struct {
+	int sess_phone;		/**< Phone for cloning off the connections. */
+	link_t conn_head;	/**< List of open data connections. */
+	link_t sess_link;	/**< Link in global list of open sessions. */
+} async_sess_t;
 
-remote_iface_func_ptr_t
-get_remote_method(remote_iface_t *rem_iface, sysarg_t iface_method_idx)
-{
-	if (iface_method_idx >= rem_iface->method_count) {
-		return NULL;
-	}
-	return rem_iface->methods[iface_method_idx];
-}
+extern void _async_sess_init(void);
+extern void async_session_create(async_sess_t *, int);
+extern void async_session_destroy(async_sess_t *);
+extern int async_exchange_begin(async_sess_t *);
+extern void async_exchange_end(async_sess_t *, int);
 
-/**
- * @}
+#endif
+
+/** @}
  */
