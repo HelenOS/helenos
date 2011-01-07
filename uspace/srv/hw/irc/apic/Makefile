@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2006 Martin Decky
+# Copyright (c) 2011 Martin Decky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,37 +26,10 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-BOOT_OUTPUT = image.boot
-POST_OUTPUT = $(ROOT_PATH)/image.iso
-POSTBUILD = Makefile.silo
-
-BFD_NAME = elf64-sparc
-BFD_OUTPUT = $(BFD_NAME)
-BFD_ARCH = sparc
-
-BITS = 64
-ENDIANESS = BE
-PAGE_SIZE = 16384
-EXTRA_CFLAGS = -mcpu=ultrasparc -m64 -mno-fpu -mcmodel=medlow
-
-RD_SRVS_NON_ESSENTIAL +=
-
-RD_SRVS_ESSENTIAL += \
-	$(USPACE_PATH)/srv/hw/irc/fhc/fhc \
-	$(USPACE_PATH)/srv/hw/irc/obio/obio
+USPACE_PREFIX = ../../../..
+BINARY = apic
 
 SOURCES = \
-	arch/$(BARCH)/src/asm.S \
-	arch/$(BARCH)/src/main.c \
-	arch/$(BARCH)/src/ofw.c \
-	$(COMPS_C) \
-	genarch/src/ofw.c \
-	genarch/src/ofw_tree.c \
-	generic/src/balloc.c \
-	generic/src/memstr.c \
-	generic/src/printf_core.c \
-	generic/src/vprintf.c \
-	generic/src/printf.c \
-	generic/src/str.c \
-	generic/src/version.c \
-	generic/src/inflate.c
+	apic.c
+
+include $(USPACE_PREFIX)/Makefile.common

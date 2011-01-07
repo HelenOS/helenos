@@ -30,16 +30,17 @@
  * @{
  */
 /** @file
- */ 
+ */
 
-#ifndef LIBC_BUS_H_
-#define LIBC_BUS_H_
+#ifndef LIBC_IRC_H_
+#define LIBC_IRC_H_
 
 #include <ipc/ipc.h>
 
 typedef enum {
-	BUS_CLEAR_INTERRUPT = IPC_FIRST_USER_METHOD
-} bus_request_t;
+	IRC_ENABLE_INTERRUPT = IPC_FIRST_USER_METHOD,
+	IRC_CLEAR_INTERRUPT
+} irc_request_t;
 
 #endif
 

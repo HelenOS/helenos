@@ -85,6 +85,7 @@ void i8259_init(void)
 	enable_irqs_function = pic_enable_irqs;
 	disable_irqs_function = pic_disable_irqs;
 	eoi_function = pic_eoi;
+	irqs_info = "i8259";
 
 	pic_disable_irqs(0xffff);		/* disable all irq's */
 	pic_enable_irqs(1 << IRQ_PIC1);		/* but enable pic1 */

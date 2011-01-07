@@ -107,17 +107,23 @@ ifneq ($(UARCH),abs32le)
 endif
 
 ifeq ($(UARCH),amd64)
-	DIRS += drv/rootpc
-	DIRS += drv/pciintel
-	DIRS += drv/isa
-	DIRS += drv/ns8250
+	DIRS += \
+		drv/rootpc \
+		drv/pciintel \
+		drv/isa \
+		drv/ns8250 \
+		srv/hw/irc/apic \
+		srv/hw/irc/i8259
 endif
 
 ifeq ($(UARCH),ia32)
-	DIRS += drv/rootpc
-	DIRS += drv/pciintel
-	DIRS += drv/isa
-	DIRS += drv/ns8250
+	DIRS += \
+		drv/rootpc \
+		drv/pciintel \
+		drv/isa \
+		drv/ns8250 \
+		srv/hw/irc/apic \
+		srv/hw/irc/i8259
 endif
 
 ifeq ($(UARCH),ppc32)
@@ -126,8 +132,8 @@ endif
 
 ifeq ($(UARCH),sparc64)
 	DIRS += \
-		srv/hw/cir/fhc \
-		srv/hw/cir/obio
+		srv/hw/irc/fhc \
+		srv/hw/irc/obio
 endif
 
 ## System libraries
