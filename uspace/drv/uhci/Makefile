@@ -39,6 +39,7 @@ SOURCES = \
 	root_hub/root_hub.c \
 	uhci.c \
 	utils/fibril_semaphore.c \
-	utils/hc_synchronizer.c
+	utils/hc_synchronizer.c \
+	utils/identify.c
 
 include $(USPACE_PREFIX)/Makefile.common

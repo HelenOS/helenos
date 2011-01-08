@@ -25,48 +25,54 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup usb
- * @{
- */
-/** @file
- * @brief UHCI driver
- */
-#ifndef DRV_UHCI_UTIL_SYNCHRONIZER_H
-#define DRV_UHCI_UTIL_SYNCHRONIZER_H
 
-#include <assert.h>
-#include <driver.h>
-#include <usb/usb.h>
+#include <errno.h>
+#include <usb/classes/classes.h>
+#include <usb/descriptor.h>
+#include <usb/usbdrv.h>
 
-#include "debug.h"
-#include "utils/fibril_semaphore.h"
+#include "identify.h"
 
-typedef struct value
+struct device_descriptor_packet
 {
-	/* TODO Think of better fibril synch to use */
-	usb_transaction_outcome_t result;
-	size_t size;
-	fibril_semaphore_t done;
-} sync_value_t;
+	usb_device_request_setup_packet_t request;
+	usb_standard_device_descriptor_t descriptor;
+};
+#define DEVICE_DESCRIPTOR_PACKET_INITIALIZER \
+	{ \
+		.request = { \
+			.request_type = 0, \
+			.request = USB_DEVREQ_GET_DESCRIPTOR, \
+			{ .value = USB_DESCTYPE_DEVICE }, \
+			.index = 0, \
+			.length = sizeof(usb_standard_device_descriptor_t) \
+		} \
+	}
+/*----------------------------------------------------------------------------*/
+struct configuration_descriptor_packet
+{
+	usb_device_request_setup_packet_t request;
+	usb_standard_configuration_descriptor_t descriptor;
+};
+#define CONFIGURATION_DESCRIPTOR_PACKET_INITIALIZER \
+	{ \
+		.request = { \
+			.request_type = 0, \
+			.request = USB_DEVREQ_GET_DESCRIPTOR, \
+			{ .value = USB_DESCTYPE_CONFIGURATION }, \
+			.index = 0, \
+			.length = sizeof(usb_standard_device_descriptor_t); \
+		}; \
+	}
+/*----------------------------------------------------------------------------*/
+int identify_device(device_t *hc, device_t *child, usb_address_t address)
+{
+	struct device_descriptor_packet packet =
+	  DEVICE_DESCRIPTOR_PACKET_INITIALIZER;
 
-void sync_init(sync_value_t *value);
+  packet.descriptor.device_class = USB_CLASS_HUB;
+  usb_drv_create_match_ids_from_device_descriptor(
+	  &child->match_ids, &packet.descriptor );
 
-void sync_wait_for(sync_value_t *value);
-
-void sync_in_callback(
-  device_t *device, usb_transaction_outcome_t result, size_t size, void *value);
-
-void sync_out_callback(
-  device_t *device, usb_transaction_outcome_t result, void *value);
-
-int uhci_setup_sync(
-  device_t *hc,
-  usb_target_t target,
-  usb_transfer_type_t type,
-  void *buffer, size_t size,
-  sync_value_t *result
-  );
-#endif
-/**
- * @}
- */
+	return 0;
+}

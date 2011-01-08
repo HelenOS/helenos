@@ -31,41 +31,14 @@
 /** @file
  * @brief UHCI driver
  */
-#ifndef DRV_UHCI_UTIL_SYNCHRONIZER_H
-#define DRV_UHCI_UTIL_SYNCHRONIZER_H
+#ifndef DRV_UHCI_UTILS_IDENTIFY_H
+#define DRV_UHCI_UTILS_IDENTIFY_H
 
-#include <assert.h>
 #include <driver.h>
 #include <usb/usb.h>
 
-#include "debug.h"
-#include "utils/fibril_semaphore.h"
+int identify_device(device_t *hc, device_t *child, usb_address_t address);
 
-typedef struct value
-{
-	/* TODO Think of better fibril synch to use */
-	usb_transaction_outcome_t result;
-	size_t size;
-	fibril_semaphore_t done;
-} sync_value_t;
-
-void sync_init(sync_value_t *value);
-
-void sync_wait_for(sync_value_t *value);
-
-void sync_in_callback(
-  device_t *device, usb_transaction_outcome_t result, size_t size, void *value);
-
-void sync_out_callback(
-  device_t *device, usb_transaction_outcome_t result, void *value);
-
-int uhci_setup_sync(
-  device_t *hc,
-  usb_target_t target,
-  usb_transfer_type_t type,
-  void *buffer, size_t size,
-  sync_value_t *result
-  );
 #endif
 /**
  * @}
