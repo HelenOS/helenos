@@ -153,11 +153,19 @@ void _async_sess_init(void)
 void async_session_create(async_sess_t *sess, int phone)
 {
 	sess->sess_phone = phone;
+	sess->connect_arg1 = 0;
 	list_initialize(&sess->conn_head);
 	
 	/* Add to list of sessions. */
 	fibril_mutex_lock(&async_sess_mutex);
 	list_append(&sess->sess_link, &session_list_head);
+	fibril_mutex_unlock(&async_sess_mutex);
+}
+
+void async_session_set_connect_args(async_sess_t *sess, sysarg_t arg1)
+{
+	fibril_mutex_lock(&async_sess_mutex);
+	sess->connect_arg1 = arg1;
 	fibril_mutex_unlock(&async_sess_mutex);
 }
 
@@ -230,7 +238,8 @@ int async_exchange_begin(async_sess_t *sess)
 		 * Make a one-time attempt to connect a new data phone.
 		 */
 retry:
-		data_phone = async_connect_me_to(sess->sess_phone, 0, 0, 0);
+		data_phone = async_connect_me_to(sess->sess_phone,
+		    sess->connect_arg1, 0, 0);
 		if (data_phone >= 0) {
 			/* success, do nothing */
 		} else if (!list_empty(&inactive_conn_head)) {
