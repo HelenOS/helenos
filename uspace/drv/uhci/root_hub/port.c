@@ -1,7 +1,6 @@
 
-#include <atomic.h>
 #include <errno.h>
-#include <usb/devreq.h>
+#include <usb/devreq.h> /* for usb_device_request_setup_packet_t */
 #include <usb/usb.h>
 
 #include "debug.h"
@@ -9,6 +8,7 @@
 #include "port.h"
 #include "port_status.h"
 #include "utils/hc_synchronizer.h"
+#include "utils/identify.h"
 
 struct usb_match {
 	int id_score;
@@ -34,7 +34,6 @@ int uhci_port_check(void *port)
 		/* read register value */
 		port_status_t port_status =
 			port_status_read(port_instance->address);
-//		port_status.raw_value = pio_read_16(port_instance->address);
 
 		/* debug print */
 		uhci_print_info("Port(%d) status %#.4x:\n",
@@ -86,7 +85,7 @@ static int uhci_port_new_device(uhci_port_t *port)
 		return ENOMEM;
 	}
 
-	/* report to devman */
+	/* communicate and possibly report to devman */
 	assert( port->attached_device == 0 );
 	report_new_device(port->hc, address, port->number,
 		&port->attached_device);
@@ -135,71 +134,36 @@ static int report_new_device(
 	if (child == NULL)
 		{ return ENOMEM; }
 
-	char *name;
-	int ret;
+	int ret = 0;
+#define CHECK_RET_DELETE_CHILD_RETURN(ret, child, message, args...)\
+	if (ret < 0) { \
+		uhci_print_error("Failed(%d) to "message, ret, ##args); \
+		delete_device(child); \
+		return ret; \
+	} else (void)0
 
-	ret = asprintf( &name, "usbdevice on hc%p/%d/%#x", hc, hub_port, address );
-	if (ret < 0) {
-		uhci_print_error( "Failed to create device name.\n" );
-		delete_device( child );
-		return ret;
-	}
+	char *name;
+
+	/* create name */
+	ret = asprintf(&name, "usbdevice on hc%p/%d(%#x)", hc, hub_port, address);
+	CHECK_RET_DELETE_CHILD_RETURN(ret, child, "create device name.\n");
+
 	child->name = name;
 
-	/* TODO get and parse device descriptor */
-	const int vendor = 1;
-	const int product = 1;
-	const char* release = "unknown";
-	const char* class = "unknown";
+	/* use descriptors to identify the device */
+	ret = identify_device(hc, child, address);
+	CHECK_RET_DELETE_CHILD_RETURN(ret, child, "identify device.\n");
 
-	/* create match ids TODO fix class printf*/
-	static const struct usb_match usb_matches[] = {
-	  { 100, "usb&vendor=%d&product=%d&release=%s" },
-	  {  90, "usb&vendor=%d&product=%d" },
-	  {  50, "usb&class=%d" },
-	  {   1, "usb&fallback" }
-	};
-
-	unsigned i = 0;
-	for (;i < sizeof( usb_matches )/ sizeof( struct usb_match ); ++i ) {
-		char *match_str;
-		const int ret = asprintf(
-		  &match_str, usb_matches[i].id_string, vendor, product, release, class );
-		if (ret < 0 ) {
-			uhci_print_error( "Failed to create matchid string.\n" );
-			delete_device( child );
-			return ret;
-		}
-		uhci_print_verbose( "Adding match id rule:%s\n", match_str );
-
-		match_id_t *id = create_match_id();
-		if (id == NULL) {
-			uhci_print_error( "Failed to create matchid.\n" );
-			delete_device( child );
-			free( match_str );
-			return ENOMEM;
-		}
-		id->id = match_str;
-		id->score = usb_matches[i].id_score;
-		add_match_id( &child->match_ids, id );
-
-		uhci_print_info( "Added match id, score: %d, string %s\n",
-		  id->score, id->id );
-	}
-
+	/* all went well, tell devman */
 	ret = child_device_register( child, hc );
-	if (ret < 0) {
-		uhci_print_error( "Failed to create device name.\n" );
-		delete_device( child );
-		return ret;
-	}
+	CHECK_RET_DELETE_CHILD_RETURN(ret, child, "register device.\n");
 
 	if (handle != NULL)
 		{ *handle = child->handle; }
 
 	return EOK;
 }
-
+/*----------------------------------------------------------------------------*/
 static usb_address_t assign_address_to_zero_device( device_t *hc )
 {
 	assert( hc );
@@ -225,16 +189,11 @@ static usb_address_t assign_address_to_zero_device( device_t *hc )
 		.length = 0
 	};
 
-	sync_value_t value;
-	sync_init(&value);
+	sync_value_t sync;
+	uhci_setup_sync(hc, new_device,
+	  USB_TRANSFER_CONTROL, &data, sizeof(data), &sync);
 
-	uhci_setup(
-	  hc, new_device, USB_TRANSFER_CONTROL, &data, sizeof(data),
-		sync_out_callback, (void*)&value);
-	uhci_print_verbose("address assignment sent, waiting to complete.\n");
-
-	sync_wait_for(&value);
-	if (value.result != USB_OUTCOME_OK) {
+	if (sync.result != USB_OUTCOME_OK) {
 		uhci_print_error(
 		  "Failed to assign address to the connected device.\n");
 		usb_address_keeping_release(&uhci_instance->address_manager,
