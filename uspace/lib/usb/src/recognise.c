@@ -32,11 +32,39 @@
 /** @file
  * @brief Functions for recognising kind of attached devices.
  */
+#include <usb_iface.h>
 #include <usb/usbdrv.h>
 #include <usb/classes/classes.h>
 #include <stdio.h>
 #include <errno.h>
 
+static int usb_iface_get_hc_handle(device_t *dev, devman_handle_t *handle)
+{
+	assert(dev);
+	assert(dev->parent != NULL);
+
+	device_t *parent = dev->parent;
+
+	if (parent->ops && parent->ops->interfaces[USB_DEV_IFACE]) {
+		usb_iface_t *usb_iface
+		    = (usb_iface_t *) parent->ops->interfaces[USB_DEV_IFACE];
+		assert(usb_iface != NULL);
+		if (usb_iface->get_hc_handle) {
+			int rc = usb_iface->get_hc_handle(parent, handle);
+			return rc;
+		}
+	}
+
+	return ENOTSUP;
+}
+
+static usb_iface_t usb_iface = {
+	.get_hc_handle = usb_iface_get_hc_handle
+};
+
+static device_ops_t child_ops = {
+	.interfaces[USB_DEV_IFACE] = &usb_iface
+};
 
 #define BCD_INT(a) (((unsigned int)(a)) / 256)
 #define BCD_FRAC(a) (((unsigned int)(a)) % 256)
@@ -100,6 +128,105 @@ failure:
 	return rc;
 }
 
+/** Create DDF match ids from USB device descriptor.
+ *
+ * @param matches List of match ids to extend.
+ * @param device_descriptor Device descriptor returned by given device.
+ * @return Error code.
+ */
+int usb_drv_create_match_ids_from_device_descriptor(
+    match_id_list_t *matches,
+    const usb_standard_device_descriptor_t *device_descriptor)
+{
+	int rc;
+	
+	/*
+	 * Unless the vendor id is 0, the pair idVendor-idProduct
+	 * quite uniquely describes the device.
+	 */
+	if (device_descriptor->vendor_id != 0) {
+		/* First, with release number. */
+		rc = usb_add_match_id(matches, 100,
+		    "usb&vendor=%d&product=%d&release=" BCD_FMT,
+		    (int) device_descriptor->vendor_id,
+		    (int) device_descriptor->product_id,
+		    BCD_ARGS(device_descriptor->device_version));
+		if (rc != EOK) {
+			return rc;
+		}
+		
+		/* Next, without release number. */
+		rc = usb_add_match_id(matches, 90, "usb&vendor=%d&product=%d",
+		    (int) device_descriptor->vendor_id,
+		    (int) device_descriptor->product_id);
+		if (rc != EOK) {
+			return rc;
+		}
+	}	
+
+	/*
+	 * If the device class points to interface we skip adding
+	 * class directly.
+	 */
+	if (device_descriptor->device_class != USB_CLASS_USE_INTERFACE) {
+		rc = usb_add_match_id(matches, 50, "usb&class=%s",
+		    usb_str_class(device_descriptor->device_class));
+		if (rc != EOK) {
+			return rc;
+		}
+	}
+	
+	return EOK;
+}
+
+/** Create DDF match ids from USB configuration descriptor.
+ * The configuration descriptor is expected to be in the complete form,
+ * i.e. including interface, endpoint etc. descriptors.
+ *
+ * @param matches List of match ids to extend.
+ * @param config_descriptor Configuration descriptor returned by given device.
+ * @param total_size Size of the @p config_descriptor.
+ * @return Error code.
+ */
+int usb_drv_create_match_ids_from_configuration_descriptor(
+    match_id_list_t *matches,
+    const void *config_descriptor, size_t total_size)
+{
+	/*
+	 * Iterate through config descriptor to find the interface
+	 * descriptors.
+	 */
+	size_t position = sizeof(usb_standard_configuration_descriptor_t);
+	while (position + 1 < total_size) {
+		uint8_t *current_descriptor
+		    = ((uint8_t *) config_descriptor) + position;
+		uint8_t cur_descr_len = current_descriptor[0];
+		uint8_t cur_descr_type = current_descriptor[1];
+		
+		position += cur_descr_len;
+		
+		if (cur_descr_type != USB_DESCTYPE_INTERFACE) {
+			continue;
+		}
+		
+		/*
+		 * Finally, we found an interface descriptor.
+		 */
+		usb_standard_interface_descriptor_t *interface
+		    = (usb_standard_interface_descriptor_t *)
+		    current_descriptor;
+		
+		int rc = usb_add_match_id(matches, 50,
+		    "usb&interface&class=%s",
+		    usb_str_class(interface->interface_class));
+		if (rc != EOK) {
+			return rc;
+		}
+	}
+	
+	return EOK;
+}
+
 /** Add match ids based on configuration descriptor.
  *
  * @param hc Open phone to host controller.
@@ -140,38 +267,15 @@ static int usb_add_config_descriptor_match_ids(int hc,
 			final_rc = ERANGE;
 			continue;
 		}
-
-		/*
-		 * Iterate through config descriptor to find the interface
-		 * descriptors.
-		 */
-		size_t position = sizeof(config_descriptor);
-		while (position + 1 < full_config_descriptor_size) {
-			uint8_t *current_descriptor
-			    = ((uint8_t *) full_config_descriptor) + position;
-			uint8_t cur_descr_len = current_descriptor[0];
-			uint8_t cur_descr_type = current_descriptor[1];
-			
-			position += cur_descr_len;
-			
-			if (cur_descr_type != USB_DESCTYPE_INTERFACE) {
-				continue;
-			}
-			/*
-			 * Finally, we found an interface descriptor.
-			 */
-			usb_standard_interface_descriptor_t *interface
-			    = (usb_standard_interface_descriptor_t *)
-			    current_descriptor;
-			
-			rc = usb_add_match_id(matches, 50,
-			    "usb&interface&class=%s",
-			    usb_str_class(interface->interface_class));
-			if (rc != EOK) {
-				final_rc = rc;
-				break;
-			}
+		
+		rc = usb_drv_create_match_ids_from_configuration_descriptor(
+		    matches,
+		    full_config_descriptor, full_config_descriptor_size);
+		if (rc != EOK) {
+			final_rc = rc;
+			continue;
 		}
+		
 	}
 	
 	return final_rc;
@@ -191,6 +295,10 @@ int usb_drv_create_device_match_ids(int hc, match_id_list_t *matches,
     usb_address_t address)
 {
 	int rc;
+	
+	/*
+	 * Retrieve device descriptor and add matches from it.
+	 */
 	usb_standard_device_descriptor_t device_descriptor;
 
 	rc = usb_drv_req_get_device_descriptor(hc, address,
@@ -198,43 +306,13 @@ int usb_drv_create_device_match_ids(int hc, match_id_list_t *matches,
 	if (rc != EOK) {
 		return rc;
 	}
-
-	/*
-	 * Unless the vendor id is 0, the pair idVendor-idProduct
-	 * quite uniquely describes the device.
-	 */
-	if (device_descriptor.vendor_id != 0) {
-		/* First, with release number. */
-		rc = usb_add_match_id(matches, 100,
-		    "usb&vendor=%d&product=%d&release=" BCD_FMT,
-		    (int) device_descriptor.vendor_id,
-		    (int) device_descriptor.product_id,
-		    BCD_ARGS(device_descriptor.device_version));
-		if (rc != EOK) {
-			return rc;
-		}
-		
-		/* Next, without release number. */
-		rc = usb_add_match_id(matches, 90, "usb&vendor=%d&product=%d",
-		    (int) device_descriptor.vendor_id,
-		    (int) device_descriptor.product_id);
-		if (rc != EOK) {
-			return rc;
-		}
-
-	}	
-
-	/*
-	 * If the device class points to interface we skip adding
-	 * class directly.
-	 */
-	if (device_descriptor.device_class != USB_CLASS_USE_INTERFACE) {
-		rc = usb_add_match_id(matches, 50, "usb&class=%s",
-		    usb_str_class(device_descriptor.device_class));
-		if (rc != EOK) {
-			return rc;
-		}
+	
+	rc = usb_drv_create_match_ids_from_device_descriptor(matches,
+	    &device_descriptor);
+	if (rc != EOK) {
+		return rc;
 	}
+	
 	/*
 	 * Go through all configurations and add matches
 	 * based on interface class.
@@ -284,7 +362,9 @@ int usb_drv_register_child_in_devman(int hc, device_t *parent,
 	if (rc < 0) {
 		goto failure;
 	}
+	child->parent = parent;
 	child->name = child_name;
+	child->ops = &child_ops;
 	
 	rc = usb_drv_create_device_match_ids(hc, &child->match_ids, address);
 	if (rc != EOK) {

@@ -78,7 +78,7 @@ int hub_register_in_devman_fibril(void *arg)
 {
 	device_t *hc_dev = (device_t *) arg;
 
-	int hc = usb_drv_hc_connect(hc_dev, IPC_FLAG_BLOCKING);
+	int hc = usb_drv_hc_connect(hc_dev, hc_dev->handle, IPC_FLAG_BLOCKING);
 	if (hc < 0) {
 		printf(NAME ": failed to register root hub\n");
 		return hc;

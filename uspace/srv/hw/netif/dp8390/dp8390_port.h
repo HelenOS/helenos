@@ -43,24 +43,6 @@
 #include <libarch/ddi.h>
 #include <sys/types.h>
 
-/** Macro for difining functions.
- *  @param[in] function The function type and name definition.
- *  @param[in] params The function parameters definition.
- */
-#define _PROTOTYPE(function, params) function params
-
-/** Success error code.
- */
-#define OK	EOK
-
-/** Type definition of the unsigned byte.
- */
-typedef uint8_t u8_t;
-
-/** Type definition of the unsigned short.
- */
-typedef uint16_t u16_t;
-
 /** Compares two memory blocks.
  *  @param[in] first The first memory block.
  *  @param[in] second The second memory block.
@@ -69,112 +51,39 @@ typedef uint16_t u16_t;
  *  @returns -1 if the first is greater than the second.
  *  @returns 1 if the second is greater than the first.
  */
-#define memcmp(first, second, size)	bcmp((char *) (first), (char *) (second), (size))
+#define memcmp(first, second, size)  bcmp((char *) (first), (char *) (second), (size))
 
 /** Reads 1 byte.
  *  @param[in] port The address to be read.
  *  @returns The read value.
  */
-#define inb(port)	pio_read_8((ioport8_t *) (port))
+#define inb(port)  pio_read_8((ioport8_t *) (port))
 
 /** Reads 1 word (2 bytes).
  *  @param[in] port The address to be read.
  *  @returns The read value.
  */
-#define inw(port)	pio_read_16((ioport16_t *) (port))
+#define inw(port)  pio_read_16((ioport16_t *) (port))
 
 /** Writes 1 byte.
  *  @param[in] port The address to be written.
  *  @param[in] value The value to be written.
  */
-#define outb(port, value)	pio_write_8((ioport8_t *) (port), (value))
+#define outb(port, value)  pio_write_8((ioport8_t *) (port), (value))
 
 /** Writes 1 word (2 bytes).
  *  @param[in] port The address to be written.
  *  @param[in] value The value to be written.
  */
-#define outw(port, value)	pio_write_16((ioport16_t *) (port), (value))
+#define outw(port, value)  pio_write_16((ioport16_t *) (port), (value))
 
-/** Prints out the driver critical error.
- *  Does not call the system panic().
- */
-#define panic(...)	printf("%s%s%d", __VA_ARGS__)
-
-/** Copies a memory block.
- *  @param proc The source process. Ignored parameter.
- *  @param src_s Ignored parameter.
- *  @param[in] src The source address.
- *  @param me The current proces. Ignored parameter.
- *  @param dst_s Ignored parameter.
- *  @param[in] dst The destination address.
- *  @param[in] bytes The block size in bytes.
- *  @returns EOK.
- */
-#define sys_vircopy(proc, src_s, src, me, dst_s, dst, bytes)	({memcpy((void *)(dst), (void *)(src), (bytes)); EOK;})
-
-/** Reads a memory block byte by byte.
- *  @param[in] port The address to be written.
- *  @param proc The source process. Ignored parameter.
- *  @param[in] dst The destination address.
- *  @param[in] bytes The block size in bytes.
- */
-#define do_vir_insb(port, proc, dst, bytes)	insb((port), (void *)(dst), (bytes))
-
-/** Reads a memory block word by word (2 bytes).
- *  @param[in] port The address to be written.
- *  @param proc The source process. Ignored parameter.
- *  @param[in] dst The destination address.
- *  @param[in] bytes The block size in bytes.
- */
-#define do_vir_insw(port, proc, dst, bytes)	insw((port), (void *)(dst), (bytes))
-
-/** Writes a memory block byte by byte.
- *  @param[in] port The address to be written.
- *  @param proc The source process. Ignored parameter.
- *  @param[in] src The source address.
- *  @param[in] bytes The block size in bytes.
- */
-#define do_vir_outsb(port, proc, src, bytes)	outsb((port), (void *)(src), (bytes))
-
-/** Writes a memory block word by word (2 bytes).
- *  @param[in] port The address to be written.
- *  @param proc The source process. Ignored parameter.
- *  @param[in] src The source address.
- *  @param[in] bytes The block size in bytes.
- */
-#define do_vir_outsw(port, proc, src, bytes)	outsw((port), (void *)(src), (bytes))
-
-/* com.h */
-/* Bits in 'DL_MODE' field of DL requests. */
-#  define DL_NOMODE		0x0
-#  define DL_PROMISC_REQ	0x2
-#  define DL_MULTI_REQ		0x4
-#  define DL_BROAD_REQ		0x8
-
-/* const.h */
-/** True value.
- */
-#define TRUE               1	/* used for turning integers into Booleans */
-
-/** False value.
- */
-#define FALSE              0	/* used for turning integers into Booleans */
-
-/** No number value.
- */
-#define NO_NUM        0x8000	/* used as numerical argument to panic() */
-
-/* devio.h */
-//typedef u16_t port_t;
 /** Type definition of a port.
  */
 typedef long port_t;
 
-/* dl_eth.h */
 /** Ethernet statistics.
  */
-typedef struct eth_stat
-{
+typedef struct eth_stat {
 	/** Number of receive errors.
 	 */
 	unsigned long ets_recvErr;
@@ -225,48 +134,21 @@ typedef struct eth_stat
 	unsigned long ets_OWC;
 } eth_stat_t;
 
-/* errno.h */
-/** Generic error.
- */
-#define EGENERIC     EINVAL
-
-/* ether.h */
 /** Minimum Ethernet packet size in bytes.
  */
-#define ETH_MIN_PACK_SIZE		  60
+#define ETH_MIN_PACK_SIZE  60
 
 /** Maximum Ethernet packet size in bytes.
  */
-#define ETH_MAX_PACK_SIZE_TAGGED	1518
+#define ETH_MAX_PACK_SIZE_TAGGED  1518
 
 /** Ethernet address type definition.
  */
-typedef struct ether_addr
-{
+typedef struct ether_addr {
 	/** Address data.
 	 */
-	u8_t ea_addr[6];
+	uint8_t ea_addr[6];
 } ether_addr_t;
-
-/* type.h */
-/** Type definition of the physical addresses and lengths in bytes.
- */
-typedef unsigned long phys_bytes;
-
-/** Type definition of the virtual addresses and lengths in bytes.
- */
-typedef unsigned long vir_bytes;
-
-/** Type definition of the input/output vector.
- */
-typedef struct {
-	/** Address of an I/O buffer.
-	 */
-	vir_bytes iov_addr;
-	/** Sizeof an I/O buffer.
-	 */
-	vir_bytes iov_size;
-} iovec_t;
 
 #endif
 

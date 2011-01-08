@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2010 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,48 +26,58 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdio.h>
-#include <unistd.h>
-#include <atomic.h>
-#include "../tester.h"
+/** @addtogroup libdrv
+ * @{
+ */
+/** @file
+ */
 
-static atomic_t finish;
+#include <ipc/ipc.h>
+#include <async.h>
+#include <errno.h>
 
-static void callback(void *priv, int retval, ipc_call_t *data)
+#include "usb_iface.h"
+#include "driver.h"
+
+
+static void remote_usb_get_hc_handle(device_t *, void *, ipc_callid_t, ipc_call_t *);
+//static void remote_usb(device_t *, void *, ipc_callid_t, ipc_call_t *);
+
+/** Remote USB interface operations. */
+static remote_iface_func_ptr_t remote_usb_iface_ops [] = {
+	remote_usb_get_hc_handle
+};
+
+/** Remote USB interface structure.
+ */
+remote_iface_t remote_usb_iface = {
+	.method_count = sizeof(remote_usb_iface_ops) /
+	    sizeof(remote_usb_iface_ops[0]),
+	.methods = remote_usb_iface_ops
+};
+
+
+void remote_usb_get_hc_handle(device_t *device, void *iface,
+    ipc_callid_t callid, ipc_call_t *call)
 {
-	atomic_set(&finish, 1);
+	usb_iface_t *usb_iface = (usb_iface_t *) iface;
+
+	if (usb_iface->get_hc_handle == NULL) {
+		ipc_answer_0(callid, ENOTSUP);
+		return;
+	}
+
+	devman_handle_t handle;
+	int rc = usb_iface->get_hc_handle(device, &handle);
+	if (rc != EOK) {
+		ipc_answer_0(callid, rc);
+	}
+
+	ipc_answer_1(callid, EOK, (sysarg_t) handle);
 }
 
-const char *test_connect(void)
-{
-	TPRINTF("Connecting to %u...", IPC_TEST_SERVICE);
-	int phone = ipc_connect_me_to(PHONE_NS, IPC_TEST_SERVICE, 0, 0);
-	if (phone > 0) {
-		TPRINTF("phoneid %d\n", phone);
-	} else {
-		TPRINTF("\n");
-		return "ipc_connect_me_to() failed";
-	}
-	
-	printf("Sending synchronous message...\n");
-	int retval = ipc_call_sync_0_0(phone, IPC_TEST_METHOD);
-	TPRINTF("Received response to synchronous message\n");
-	
-	TPRINTF("Sending asynchronous message...\n");
-	atomic_set(&finish, 0);
-	ipc_call_async_0(phone, IPC_TEST_METHOD, NULL, callback, 1);
-	while (atomic_get(&finish) != 1)
-		TPRINTF(".");
-	TPRINTF("Received response to asynchronous message\n");
-	
-	TPRINTF("Hanging up...");
-	retval = ipc_hangup(phone);
-	if (retval == 0) {
-		TPRINTF("OK\n");
-	} else {
-		TPRINTF("\n");
-		return "ipc_hangup() failed";
-	}
-	
-	return NULL;
-}
+
+
+/**
+ * @}
+ */

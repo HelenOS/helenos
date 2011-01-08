@@ -91,6 +91,8 @@ int usb_drv_req_get_bare_configuration_descriptor(int, usb_address_t, int,
     usb_standard_configuration_descriptor_t *);
 int usb_drv_req_get_full_configuration_descriptor(int, usb_address_t, int,
     void *, size_t, size_t *);
+int usb_drv_req_get_descriptor(int, usb_address_t, usb_request_type_t,
+    uint8_t, uint8_t, uint16_t, void *, size_t, size_t *);
 
 
 #endif

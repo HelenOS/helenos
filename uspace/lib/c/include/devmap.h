@@ -44,6 +44,7 @@ extern void devmap_hangup_phone(devmap_interface_t iface);
 
 extern int devmap_driver_register(const char *, async_client_conn_t);
 extern int devmap_device_register(const char *, devmap_handle_t *);
+extern int devmap_device_register_with_iface(const char *, devmap_handle_t *, sysarg_t);
 
 extern int devmap_device_get_handle(const char *, devmap_handle_t *, unsigned int);
 extern int devmap_namespace_get_handle(const char *, devmap_handle_t *, unsigned int);

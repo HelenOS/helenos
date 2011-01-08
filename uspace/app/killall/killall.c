@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2010 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,65 +26,59 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <inttypes.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <async.h>
+/** @addtogroup killall
+ * @{
+ */
+/**
+ * @file Forcefully terminate a task specified by name.
+ */
+
 #include <errno.h>
-#include "../tester.h"
+#include <stdio.h>
+#include <task.h>
+#include <stats.h>
+#include <str_error.h>
+#include <malloc.h>
 
-#define MAX_CONNECTIONS  50
+#define NAME  "killall"
 
-static int connections[MAX_CONNECTIONS];
-
-static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void print_syntax(void)
 {
-	unsigned int i;
+	printf("Syntax: " NAME " <task name>\n");
+}
+
+int main(int argc, char *argv[])
+{
+	if (argc != 2) {
+		print_syntax();
+		return 1;
+	}
 	
-	TPRINTF("Connected phone %" PRIun " accepting\n", icall->in_phone_hash);
-	ipc_answer_0(iid, EOK);
-	for (i = 0; i < MAX_CONNECTIONS; i++) {
-		if (!connections[i]) {
-			connections[i] = icall->in_phone_hash;
-			break;
+	size_t count;
+	stats_task_t *stats_tasks = stats_get_tasks(&count);
+	
+	if (stats_tasks == NULL) {
+		fprintf(stderr, "%s: Unable to get tasks\n", NAME);
+		return 2;
+	}
+	
+	size_t i;
+	for (i = 0; i < count; i++) {
+		if (str_cmp(stats_tasks[i].name, argv[1]) == 0) {
+			task_id_t taskid = stats_tasks[i].task_id;
+			int rc = task_kill(taskid);
+			if (rc != EOK)
+				printf("Failed to kill task ID %" PRIu64 ": %s\n",
+				    taskid, str_error(rc));
+			else
+				printf("Killed task ID %" PRIu64 "\n", taskid);
 		}
 	}
 	
-	while (true) {
-		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
-		int retval;
-		
-		switch (IPC_GET_IMETHOD(call)) {
-		case IPC_M_PHONE_HUNGUP:
-			TPRINTF("Phone %" PRIun " hung up\n", icall->in_phone_hash);
-			retval = 0;
-			break;
-		case IPC_TEST_METHOD:
-			TPRINTF("Received well known message from %" PRIun ": %" PRIun "\n",
-			    icall->in_phone_hash, callid);
-			ipc_answer_0(callid, EOK);
-			break;
-		default:
-			TPRINTF("Received unknown message from %" PRIun ": %" PRIun "\n",
-			    icall->in_phone_hash, callid);
-			ipc_answer_0(callid, ENOENT);
-			break;
-		}
-	}
+	free(stats_tasks);
+	
+	return 0;
 }
 
-const char *test_register(void)
-{
-	async_set_client_connection(client_connection);
-	
-	sysarg_t phonead;
-	int res = ipc_connect_to_me(PHONE_NS, IPC_TEST_SERVICE, 0, 0, &phonead);
-	if (res != 0)
-		return "Failed registering IPC service";
-	
-	TPRINTF("Registered as service %u, accepting connections\n", IPC_TEST_SERVICE);
-	async_manager();
-	
-	return NULL;
-}
+/** @}
+ */

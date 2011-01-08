@@ -61,6 +61,16 @@ static int devmap_devices_compare(unsigned long key[], hash_count_t keys,
 	return (dev->devmap_handle == (devmap_handle_t) key[0]);
 }
 
+static int devmap_devices_class_compare(unsigned long key[], hash_count_t keys,
+    link_t *item)
+{
+	dev_class_info_t *class_info
+	    = hash_table_get_instance(item, dev_class_info_t, devmap_link);
+	assert(class_info != NULL);
+
+	return (class_info->devmap_handle == (devmap_handle_t) key[0]);
+}
+
 static void devices_remove_callback(link_t *item)
 {
 }
@@ -74,6 +84,12 @@ static hash_table_operations_t devman_devices_ops = {
 static hash_table_operations_t devmap_devices_ops = {
 	.hash = devices_hash,
 	.compare = devmap_devices_compare,
+	.remove_callback = devices_remove_callback
+};
+
+static hash_table_operations_t devmap_devices_class_ops = {
+	.hash = devices_hash,
+	.compare = devmap_devices_class_compare,
 	.remove_callback = devices_remove_callback
 };
 
@@ -375,6 +391,7 @@ bool create_root_node(dev_tree_t *tree)
 
 	printf(NAME ": create_root_node\n");
 
+	fibril_rwlock_write_lock(&tree->rwlock);
 	node = create_dev_node();
 	if (node != NULL) {
 		insert_dev_node(tree, node, clone_string(""), NULL);
@@ -384,6 +401,7 @@ bool create_root_node(dev_tree_t *tree)
 		add_match_id(&node->match_ids, id);
 		tree->root_node = node;
 	}
+	fibril_rwlock_write_unlock(&tree->rwlock);
 
 	return node != NULL;
 }
@@ -446,8 +464,6 @@ void attach_driver(node_t *node, driver_t *drv)
 
 /** Start a driver
  *
- * The driver's mutex is assumed to be locked.
- *
  * @param drv		The driver's structure.
  * @return		True if the driver's task is successfully spawned, false
  *			otherwise.
@@ -456,6 +472,8 @@ bool start_driver(driver_t *drv)
 {
 	int rc;
 
+	assert(fibril_mutex_is_locked(&drv->driver_mutex));
+	
 	printf(NAME ": start_driver '%s'\n", drv->name);
 	
 	rc = task_spawnl(NULL, drv->binary_path, drv->binary_path, NULL);
@@ -677,7 +695,8 @@ static void devmap_register_tree_device(node_t *node, dev_tree_t *tree)
 		return;
 	}
 	
-	devmap_device_register(devmap_pathname, &node->devmap_handle);
+	devmap_device_register_with_iface(devmap_pathname,
+	    &node->devmap_handle, DEVMAN_CONNECT_FROM_DEVMAP);
 	
 	tree_add_devmap_device(tree, node);
 	
@@ -849,8 +868,6 @@ void delete_dev_node(node_t *node)
 
 /** Find the device node structure of the device witch has the specified handle.
  *
- * Device tree's rwlock should be held at least for reading.
- *
  * @param tree		The device tree where we look for the device node.
  * @param handle	The handle of the device.
  * @return		The device node.
@@ -858,7 +875,11 @@ void delete_dev_node(node_t *node)
 node_t *find_dev_node_no_lock(dev_tree_t *tree, devman_handle_t handle)
 {
 	unsigned long key = handle;
-	link_t *link = hash_table_find(&tree->devman_devices, &key);
+	link_t *link;
+	
+	assert(fibril_rwlock_is_locked(&tree->rwlock));
+	
+	link = hash_table_find(&tree->devman_devices, &key);
 	return hash_table_get_instance(link, node_t, devman_link);
 }
 
@@ -914,9 +935,6 @@ static bool set_dev_path(node_t *node, node_t *parent)
 
 /** Insert new device into device tree.
  *
- * The device tree's rwlock should be already held exclusively when calling this
- * function.
- *
  * @param tree		The device tree.
  * @param node		The newly added device node. 
  * @param dev_name	The name of the newly added device.
@@ -931,6 +949,7 @@ bool insert_dev_node(dev_tree_t *tree, node_t *node, char *dev_name,
 	assert(node != NULL);
 	assert(tree != NULL);
 	assert(dev_name != NULL);
+	assert(fibril_rwlock_is_write_locked(&tree->rwlock));
 	
 	node->name = dev_name;
 	if (!set_dev_path(node, parent)) {
@@ -1049,8 +1068,12 @@ dev_class_info_t *create_dev_class_info(void)
 	dev_class_info_t *info;
 	
 	info = (dev_class_info_t *) malloc(sizeof(dev_class_info_t));
-	if (info != NULL)
+	if (info != NULL) {
 		memset(info, 0, sizeof(dev_class_info_t));
+		list_initialize(&info->dev_classes);
+		list_initialize(&info->devmap_link);
+		list_initialize(&info->link);
+	}
 	
 	return info;
 }
@@ -1174,7 +1197,7 @@ void init_class_list(class_list_t *class_list)
 	list_initialize(&class_list->classes);
 	fibril_rwlock_initialize(&class_list->rwlock);
 	hash_table_create(&class_list->devmap_devices, DEVICE_BUCKETS, 1,
-	    &devmap_devices_ops);
+	    &devmap_devices_class_ops);
 }
 
 
@@ -1222,6 +1245,8 @@ void class_add_devmap_device(class_list_t *class_list, dev_class_info_t *cli)
 	fibril_rwlock_write_lock(&class_list->rwlock);
 	hash_table_insert(&class_list->devmap_devices, &key, &cli->devmap_link);
 	fibril_rwlock_write_unlock(&class_list->rwlock);
+
+	assert(find_devmap_class_device(class_list, cli->devmap_handle) != NULL);
 }
 
 void tree_add_devmap_device(dev_tree_t *tree, node_t *node)

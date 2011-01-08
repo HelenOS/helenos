@@ -26,6 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include <usb/hcdhubd.h>
+#include <usb_iface.h>
 #include <errno.h>
 
 #include "debug.h"
@@ -33,9 +34,22 @@
 #include "name.h"
 #include "uhci.h"
 
+static int usb_iface_get_hc_handle(device_t *dev, devman_handle_t *handle)
+{
+	/* This shall be called only for the UHCI itself. */
+	assert(dev->parent == NULL);
+
+	*handle = dev->handle;
+	return EOK;
+}
+
+static usb_iface_t hc_usb_iface = {
+	.get_hc_handle = usb_iface_get_hc_handle
+};
 
 static device_ops_t uhci_ops = {
-	.interfaces[USBHC_DEV_IFACE] = &uhci_iface,
+	.interfaces[USB_DEV_IFACE] = &hc_usb_iface,
+	.interfaces[USBHC_DEV_IFACE] = &uhci_iface
 };
 
 static int uhci_add_device(device_t *device)

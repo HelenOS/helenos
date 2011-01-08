@@ -34,6 +34,7 @@
  */
 #include <usb/usbdrv.h>
 #include <usbhc_iface.h>
+#include <usb_iface.h>
 #include <errno.h>
 #include <str_error.h>
 
@@ -53,32 +54,75 @@ typedef struct {
 	aid_t request;
 } transfer_info_t;
 
+/** Find handle of host controller the device is physically attached to.
+ *
+ * @param[in] dev Device looking for its host controller.
+ * @param[out] handle Host controller devman handle.
+ * @return Error code.
+ */
+int usb_drv_find_hc(device_t *dev, devman_handle_t *handle)
+{
+	if (dev == NULL) {
+		return EBADMEM;
+	}
+	if (handle == NULL) {
+		return EBADMEM;
+	}
+
+	int parent_phone = devman_parent_device_connect(dev->handle,
+	    IPC_FLAG_BLOCKING);
+	if (parent_phone < 0) {
+		return parent_phone;
+	}
+
+	devman_handle_t h;
+	int rc = async_req_1_1(parent_phone, DEV_IFACE_ID(USB_DEV_IFACE),
+	    IPC_M_USB_GET_HOST_CONTROLLER_HANDLE, &h);
+
+	ipc_hangup(parent_phone);
+
+	if (rc != EOK) {
+		return rc;
+	}
+
+	*handle = h;
+
+	return EOK;
+}
+
+/** Connect to host controller the device is physically attached to.
+ *
+ * @param dev Device asking for connection.
+ * @param hc_handle Devman handle of the host controller.
+ * @param flags Connection flags (blocking connection).
+ * @return Phone to the HC or error code.
+ */
+int usb_drv_hc_connect(device_t *dev, devman_handle_t hc_handle,
+    unsigned int flags)
+{
+	return devman_device_connect(hc_handle, flags);
+}
+
 /** Connect to host controller the device is physically attached to.
  *
  * @param dev Device asking for connection.
  * @param flags Connection flags (blocking connection).
  * @return Phone to corresponding HC or error code.
  */
-int usb_drv_hc_connect(device_t *dev, unsigned int flags)
+int usb_drv_hc_connect_auto(device_t *dev, unsigned int flags)
 {
+	int rc;
+	devman_handle_t hc_handle;
+
 	/*
 	 * Call parent hub to obtain device handle of respective HC.
 	 */
-
-	/*
-	 * FIXME: currently we connect always to virtual host controller.
-	 */
-	int rc;
-	devman_handle_t handle;
-
-	rc = devman_device_get_handle("/virt/usbhc", &handle, flags);
+	rc = usb_drv_find_hc(dev, &hc_handle);
 	if (rc != EOK) {
 		return rc;
 	}
 	
-	int phone = devman_device_connect(handle, flags);
-
-	return phone;
+	return usb_drv_hc_connect(dev, hc_handle, flags);
 }
 
 /** Tell USB address assigned to given device.

@@ -31,11 +31,13 @@
 #include <async.h>
 
 #include <usb/usbdrv.h>
+
 #include "usbhub.h"
 #include "usbhub_private.h"
 
 
 usb_general_list_t usb_hub_list;
+futex_t usb_hub_list_lock;
 
 static driver_ops_t hub_driver_ops = {
 	.add_device = usb_add_hub_device,
@@ -57,10 +59,14 @@ int usb_hub_control_loop(void * noparam){
 
 int main(int argc, char *argv[])
 {
+	usb_dprintf_enable(NAME,1);
+	futex_initialize(&usb_hub_list_lock, 0);
 	usb_lst_init(&usb_hub_list);
+	futex_up(&usb_hub_list_lock);
 	fid_t fid = fibril_create(usb_hub_control_loop, NULL);
 	if (fid == 0) {
-		printf("%s: failed to start fibril for HUB devices\n", NAME);
+		dprintf(1, "failed to start fibril for HUB devices");
+		//printf("%s: failed to start fibril for HUB devices\n", NAME);
 		return ENOMEM;
 	}
 	fibril_add_ready(fid);

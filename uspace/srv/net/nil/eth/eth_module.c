@@ -65,7 +65,7 @@ int nil_module_start_standalone(async_client_conn_t client_connection)
 	if (rc != EOK)
 		goto out;
 
-	rc = REGISTER_ME(SERVICE_ETHERNET, &phonehash);
+	rc = ipc_connect_to_me(PHONE_NS, SERVICE_ETHERNET, 0, 0, &phonehash);
 	if (rc != EOK)
 		goto out;
 	

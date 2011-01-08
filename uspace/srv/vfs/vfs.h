@@ -33,6 +33,7 @@
 #ifndef VFS_VFS_H_
 #define VFS_VFS_H_
 
+#include <async.h>
 #include <ipc/ipc.h>
 #include <adt/list.h>
 #include <fibril_synch.h>
@@ -52,8 +53,7 @@ typedef struct {
 	link_t fs_link;
 	vfs_info_t vfs_info;
 	fs_handle_t fs_handle;
-	fibril_mutex_t phone_lock;
-	sysarg_t phone;
+	async_sess_t session;
 } fs_info_t;
 
 /**

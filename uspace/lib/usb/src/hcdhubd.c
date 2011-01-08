@@ -35,6 +35,7 @@
 #include <usb/hcdhubd.h>
 #include <usb/devreq.h>
 #include <usbhc_iface.h>
+#include <usb_iface.h>
 #include <usb/descriptor.h>
 #include <driver.h>
 #include <bool.h>
@@ -43,6 +44,35 @@
 #include <usb/classes/hub.h>
 
 #include "hcdhubd_private.h"
+
+
+static int usb_iface_get_hc_handle(device_t *dev, devman_handle_t *handle)
+{
+	assert(dev);
+	assert(dev->parent != NULL);
+
+	device_t *parent = dev->parent;
+
+	if (parent->ops && parent->ops->interfaces[USB_DEV_IFACE]) {
+		usb_iface_t *usb_iface
+		    = (usb_iface_t *) parent->ops->interfaces[USB_DEV_IFACE];
+		assert(usb_iface != NULL);
+		if (usb_iface->get_hc_handle) {
+			int rc = usb_iface->get_hc_handle(parent, handle);
+			return rc;
+		}
+	}
+
+	return ENOTSUP;
+}
+
+static usb_iface_t usb_iface = {
+	.get_hc_handle = usb_iface_get_hc_handle
+};
+
+static device_ops_t child_ops = {
+	.interfaces[USB_DEV_IFACE] = &usb_iface
+};
 
 /** Callback when new device is detected and must be handled by this driver.
  *
@@ -128,6 +158,8 @@ static int fibril_add_child_device(void *arg) {
 		goto failure;
 	}
 	child->name = child_info->name;
+	child->parent = child_info->parent;
+	child->ops = &child_ops;
 
 	match_id = create_match_id();
 	if (match_id == NULL) {

@@ -325,7 +325,7 @@ static int thread_dump(uintptr_t thash)
 	fp = istate_get_fp(&istate);
 
 	sym_pc = fmt_sym_address(pc);
-	printf("Thread %p crashed at %s. FP = %p\n", (void *) thash,
+	printf("Thread %p: PC = %s. FP = %p\n", (void *) thash,
 	    sym_pc, (void *) fp);
 	free(sym_pc);
 

@@ -16,6 +16,10 @@
 	.name = "test2bravo",
 	.match_id = "virtual&test2"
 },
+{
+	.name = "null",
+	.match_id = "virtual&test1"
+},
 #endif
 /* Virtual USB host controller. */
 /*

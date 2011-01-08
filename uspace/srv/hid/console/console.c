@@ -316,8 +316,9 @@ static void write_char(console_t *cons, wchar_t ch)
 /** Switch to new console */
 static void change_console(console_t *cons)
 {
-	if (cons == active_console)
+	if (cons == active_console) {
 		return;
+	}
 	
 	fb_pending_flush();
 	
@@ -457,8 +458,9 @@ static void mouse_events(ipc_callid_t iid, ipc_call_t *icall)
 		case MEVENT_BUTTON:
 			if (IPC_GET_ARG1(call) == 1) {
 				int newcon = gcons_mouse_btn((bool) IPC_GET_ARG2(call));
-				if (newcon != -1)
+				if (newcon != -1) {
 					change_console(&consoles[newcon]);
+				}
 			}
 			retval = 0;
 			break;
@@ -709,30 +711,141 @@ static void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
 	change_console(prev_console);
 }
 
-static bool console_init(char *input)
+static int connect_keyboard(char *path)
 {
-	/* Connect to input device */
-	int input_fd = open(input, O_RDONLY);
-	if (input_fd < 0) {
-		printf(NAME ": Failed opening %s\n", input);
-		return false;
+	int fd = open(path, O_RDONLY);
+	if (fd < 0) {
+		return fd;
 	}
 	
-	kbd_phone = fd_phone(input_fd);
-	if (kbd_phone < 0) {
+	int phone = fd_phone(fd);
+	if (phone < 0) {
 		printf(NAME ": Failed to connect to input device\n");
-		return false;
+		return phone;
 	}
 	
 	/* NB: The callback connection is slotted for removal */
 	sysarg_t phonehash;
-	if (ipc_connect_to_me(kbd_phone, SERVICE_CONSOLE, 0, 0, &phonehash) != 0) {
+	int rc = async_req_3_5(phone, IPC_M_CONNECT_TO_ME, SERVICE_CONSOLE,
+	    0, 0, NULL, NULL, NULL, NULL, &phonehash);
+	if (rc != EOK) {
 		printf(NAME ": Failed to create callback from input device\n");
-		return false;
+		return rc;
 	}
 	
 	async_new_connection(phonehash, 0, NULL, keyboard_events);
-	
+
+	printf(NAME ": we got a hit (new keyboard \"%s\").\n", path);
+
+	return phone;
+}
+
+/** Try to connect to given keyboard, bypassing provided libc routines.
+ *
+ * @param devmap_path Path to keyboard without /dev prefix.
+ * @return Phone or error code.
+ */
+static int connect_keyboard_bypass(char *devmap_path)
+{
+	int devmap_phone = async_connect_me_to_blocking(PHONE_NS,
+	    SERVICE_DEVMAP, DEVMAP_CLIENT, 0);
+	if (devmap_phone < 0) {
+		return devmap_phone;
+	}
+	ipc_call_t answer;
+	aid_t req = async_send_2(devmap_phone, DEVMAP_DEVICE_GET_HANDLE,
+	    0, 0,  &answer);
+
+	sysarg_t retval = async_data_write_start(devmap_phone,
+	    devmap_path, str_size(devmap_path));
+	if (retval != EOK) {
+		async_wait_for(req, NULL);
+		ipc_hangup(devmap_phone);
+		return retval;
+	}
+
+	async_wait_for(req, &retval);
+
+	if (retval != EOK) {
+		ipc_hangup(devmap_phone);
+		return retval;
+	}
+
+	devmap_handle_t handle = (devmap_handle_t) IPC_GET_ARG1(answer);
+
+	ipc_hangup(devmap_phone);
+
+	int phone = async_connect_me_to(PHONE_NS,
+	    SERVICE_DEVMAP, DEVMAP_CONNECT_TO_DEVICE, handle);
+	if (phone < 0) {
+		return phone;
+	}
+
+	/* NB: The callback connection is slotted for removal */
+	sysarg_t phonehash;
+	int rc = async_req_3_5(phone, IPC_M_CONNECT_TO_ME, SERVICE_CONSOLE,
+	    0, 0, NULL, NULL, NULL, NULL, &phonehash);
+	if (rc != EOK) {
+		printf(NAME ": Failed to create callback from input device\n");
+		return rc;
+	}
+
+	async_new_connection(phonehash, 0, NULL, keyboard_events);
+
+	printf(NAME ": we got a hit (new keyboard \"/dev/%s\").\n",
+	    devmap_path);
+
+	return phone;
+}
+
+
+static int check_new_keyboards(void *arg)
+{
+	char *class_name = (char *) arg;
+
+	int index = 1;
+
+	while (true) {
+		async_usleep(1 * 500 * 1000);
+		char *path;
+		int rc = asprintf(&path, "class/%s\\%d", class_name, index);
+		if (rc < 0) {
+			continue;
+		}
+		rc = 0;
+		rc = connect_keyboard_bypass(path);
+		if (rc > 0) {
+			/* We do not allow unplug. */
+			index++;
+		}
+
+		free(path);
+	}
+
+	return EOK;
+}
+
+
+/** Start a fibril monitoring hot-plugged keyboards.
+ */
+static void check_new_keyboards_in_background()
+{
+	fid_t fid = fibril_create(check_new_keyboards, (void *)"keyboard");
+	if (!fid) {
+		printf(NAME ": failed to create hot-plug-watch fibril.\n");
+		return;
+	}
+	fibril_add_ready(fid);
+}
+
+static bool console_init(char *input)
+{
+	/* Connect to input device */
+	kbd_phone = connect_keyboard(input);
+	if (kbd_phone < 0) {
+		return false;
+	}
+
 	/* Connect to mouse device */
 	mouse_phone = -1;
 	int mouse_fd = open("/dev/hid_in/mouse", O_RDONLY);
@@ -748,6 +861,7 @@ static bool console_init(char *input)
 		goto skip_mouse;
 	}
 	
+	sysarg_t phonehash;
 	if (ipc_connect_to_me(mouse_phone, SERVICE_CONSOLE, 0, 0, &phonehash) != 0) {
 		printf(NAME ": Failed to create callback from mouse device\n");
 		mouse_phone = -1;
@@ -840,6 +954,9 @@ skip_mouse:
 	
 	async_set_interrupt_received(interrupt_received);
 	
+	/* Start fibril for checking on hot-plugged keyboards. */
+	check_new_keyboards_in_background();
+
 	return true;
 }
 
@@ -859,7 +976,7 @@ int main(int argc, char *argv[])
 	
 	if (!console_init(argv[1]))
 		return -1;
-	
+
 	printf(NAME ": Accepting connections\n");
 	async_manager();
 	
