@@ -40,6 +40,6 @@ SOURCES = \
 	uhci.c \
 	utils/fibril_semaphore.c \
 	utils/hc_synchronizer.c \
-	utils/identify.c
+	utils/usb_device.c
 
 include $(USPACE_PREFIX)/Makefile.common

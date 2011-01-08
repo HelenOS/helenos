@@ -25,54 +25,24 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+/** @addtogroup usb
+ * @{
+ */
+/** @file
+ * @brief UHCI driver
+ */
+#ifndef DRV_UHCI_UTILS_IDENTIFY_H
+#define DRV_UHCI_UTILS_IDENTIFY_H
 
-#include <errno.h>
-#include <usb/classes/classes.h>
-#include <usb/descriptor.h>
-#include <usb/usbdrv.h>
+#include <driver.h>
+#include <usb/usb.h>
 
-#include "identify.h"
+int usb_device_identify(device_t *device, device_t *hc, usb_address_t address);
 
-struct device_descriptor_packet
-{
-	usb_device_request_setup_packet_t request;
-	usb_standard_device_descriptor_t descriptor;
-};
-#define DEVICE_DESCRIPTOR_PACKET_INITIALIZER \
-	{ \
-		.request = { \
-			.request_type = 0, \
-			.request = USB_DEVREQ_GET_DESCRIPTOR, \
-			{ .value = USB_DESCTYPE_DEVICE }, \
-			.index = 0, \
-			.length = sizeof(usb_standard_device_descriptor_t) \
-		} \
-	}
-/*----------------------------------------------------------------------------*/
-struct configuration_descriptor_packet
-{
-	usb_device_request_setup_packet_t request;
-	usb_standard_configuration_descriptor_t descriptor;
-};
-#define CONFIGURATION_DESCRIPTOR_PACKET_INITIALIZER \
-	{ \
-		.request = { \
-			.request_type = 0, \
-			.request = USB_DEVREQ_GET_DESCRIPTOR, \
-			{ .value = USB_DESCTYPE_CONFIGURATION }, \
-			.index = 0, \
-			.length = sizeof(usb_standard_device_descriptor_t); \
-		}; \
-	}
-/*----------------------------------------------------------------------------*/
-int identify_device(device_t *hc, device_t *child, usb_address_t address)
-{
-	struct device_descriptor_packet packet =
-	  DEVICE_DESCRIPTOR_PACKET_INITIALIZER;
+int usb_device_init(device_t *device, device_t *hc, usb_address_t address,
+  int port);
 
-  packet.descriptor.device_class = USB_CLASS_HUB;
-  usb_drv_create_match_ids_from_device_descriptor(
-	  &child->match_ids, &packet.descriptor );
-
-	return 0;
-}
+#endif
+/**
+ * @}
+ */

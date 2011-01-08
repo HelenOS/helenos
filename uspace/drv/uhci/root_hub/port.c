@@ -8,18 +8,12 @@
 #include "port.h"
 #include "port_status.h"
 #include "utils/hc_synchronizer.h"
-#include "utils/identify.h"
-
-struct usb_match {
-	int id_score;
-	const char *id_string;
-};
+#include "utils/usb_device.h"
 
 static int uhci_port_new_device(uhci_port_t *port);
+static int uhci_port_remove_device(uhci_port_t *port);
 static int uhci_port_set_enabled(uhci_port_t *port, bool enabled);
-static usb_address_t assign_address_to_zero_device( device_t *hc );
-static int report_new_device(
-  device_t *hc, usb_address_t address, int hub_port, devman_handle_t *handle);
+static usb_address_t assign_address_to_zero_device(device_t *hc);
 
 /*----------------------------------------------------------------------------*/
 int uhci_port_check(void *port)
@@ -42,15 +36,9 @@ int uhci_port_check(void *port)
 
 		if (port_status & STATUS_CONNECTED_CHANGED) {
 			if (port_status & STATUS_CONNECTED) {
-				/* assign address and report new device */
 				uhci_port_new_device(port_instance);
 			} else {
-				/* TODO */
-				/* remove device here */
-				uhci_print_error(
-				  "Don't know how to remove device %#x.\n",
-				  port_instance->attached_device);
-				uhci_port_set_enabled(port_instance, false);
+				uhci_port_remove_device(port_instance);
 			}
 		}
 		async_usleep(port_instance->wait_period_usec);
@@ -76,24 +64,55 @@ static int uhci_port_new_device(uhci_port_t *port)
 	/* assign address to device */
 	usb_address_t address = assign_address_to_zero_device(port->hc);
 
-	/* release default address */
-	usb_address_keeping_release_default(&uhci_instance->address_manager);
 
 	if (address <= 0) { /* address assigning went wrong */
-		uhci_port_set_enabled(port, false);
 		uhci_print_error("Failed to assign address to the device.\n");
+		uhci_port_set_enabled(port, false);
+		usb_address_keeping_release_default(&uhci_instance->address_manager);
 		return ENOMEM;
 	}
 
-	/* communicate and possibly report to devman */
-	assert( port->attached_device == 0 );
-	report_new_device(port->hc, address, port->number,
-		&port->attached_device);
+	/* release default address */
+	usb_address_keeping_release_default(&uhci_instance->address_manager);
 
-	/* bind address */
+	/* communicate and possibly report to devman */
+	assert(port->attached_device == 0);
+
+#define CHECK_RET_DELETE_CHILD_RETURN(ret, child, message, args...)\
+	if (ret < 0) { \
+		uhci_print_error("Failed(%d) to "message, ret, ##args); \
+		if (child) { \
+			delete_device(child); \
+		} \
+		uhci_port_set_enabled(port, false); \
+		usb_address_keeping_release(&uhci_instance->address_manager, address); \
+		return ret; \
+	} else (void)0
+
+	device_t *child = create_device();
+
+	int ret = child ? EOK : ENOMEM;
+	CHECK_RET_DELETE_CHILD_RETURN(ret, child, "create device.\n" );
+
+	ret = usb_device_init(child, port->hc, address, port->number );
+	CHECK_RET_DELETE_CHILD_RETURN(ret, child, "init usb device.\n" );
+
+	ret = child_device_register(child, port->hc);
+	CHECK_RET_DELETE_CHILD_RETURN(ret, child, "register usb device.\n" );
+
+	/* store device and bind address, can not fail */
+	port->attached_device = child->handle;
 	usb_address_keeping_devman_bind(&uhci_instance->address_manager,
 	  address, port->attached_device);
 
+	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+static int uhci_port_remove_device(uhci_port_t *port)
+{
+	uhci_print_error(	"Don't know how to remove device %#x.\n",
+		port->attached_device);
+	uhci_port_set_enabled(port, false);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -113,54 +132,8 @@ static int uhci_port_set_enabled(uhci_port_t *port, bool enabled)
 	}
 	port_status_write( port->address, port_status );
 
-/*
-	port_status.status.enabled = enabled;
-	pio_write_16( port->address, port_status.raw_value );
-*/
-
 	uhci_print_info( "%s port %d.\n",
 	  enabled ? "Enabled" : "Disabled", port->number );
-	return EOK;
-}
-/*----------------------------------------------------------------------------*/
-static int report_new_device(
-  device_t *hc, usb_address_t address, int hub_port, devman_handle_t *handle)
-{
-	assert( hc );
-	assert( address > 0 );
-	assert( address <= USB11_ADDRESS_MAX );
-
-	device_t *child = create_device();
-	if (child == NULL)
-		{ return ENOMEM; }
-
-	int ret = 0;
-#define CHECK_RET_DELETE_CHILD_RETURN(ret, child, message, args...)\
-	if (ret < 0) { \
-		uhci_print_error("Failed(%d) to "message, ret, ##args); \
-		delete_device(child); \
-		return ret; \
-	} else (void)0
-
-	char *name;
-
-	/* create name */
-	ret = asprintf(&name, "usbdevice on hc%p/%d(%#x)", hc, hub_port, address);
-	CHECK_RET_DELETE_CHILD_RETURN(ret, child, "create device name.\n");
-
-	child->name = name;
-
-	/* use descriptors to identify the device */
-	ret = identify_device(hc, child, address);
-	CHECK_RET_DELETE_CHILD_RETURN(ret, child, "identify device.\n");
-
-	/* all went well, tell devman */
-	ret = child_device_register( child, hc );
-	CHECK_RET_DELETE_CHILD_RETURN(ret, child, "register device.\n");
-
-	if (handle != NULL)
-		{ *handle = child->handle; }
-
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -170,6 +143,7 @@ static usb_address_t assign_address_to_zero_device( device_t *hc )
 	assert( hc->driver_data );
 
 	uhci_t *uhci_instance = (uhci_t*)hc->driver_data;
+
 	/* get new address */
 	const usb_address_t usb_address =
 	  usb_address_keeping_request(&uhci_instance->address_manager);
