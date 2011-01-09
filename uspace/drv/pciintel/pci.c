@@ -472,7 +472,7 @@ static int pci_add_device(device_t *dev)
 	
 	hw_resource_list_t hw_resources;
 	
-	rc = get_hw_resources(dev->parent_phone, &hw_resources);
+	rc = hw_res_get_resource_list(dev->parent_phone, &hw_resources);
 	if (rc != EOK) {
 		printf(NAME ": pci_add_device failed to get hw resources for "
 		    "the device.\n");
@@ -496,7 +496,7 @@ static int pci_add_device(device_t *dev)
 		printf(NAME ": failed to enable configuration ports.\n");
 		delete_pci_bus_data(bus_data);
 		ipc_hangup(dev->parent_phone);
-		clean_hw_resource_list(&hw_resources);
+		hw_res_clean_resource_list(&hw_resources);
 		return EADDRNOTAVAIL;
 	}
 	bus_data->conf_data_port = (char *) bus_data->conf_addr_port + 4;
@@ -507,7 +507,7 @@ static int pci_add_device(device_t *dev)
 	printf(NAME ": scanning the bus\n");
 	pci_bus_scan(dev, 0);
 	
-	clean_hw_resource_list(&hw_resources);
+	hw_res_clean_resource_list(&hw_resources);
 	
 	return EOK;
 }
@@ -536,7 +536,7 @@ void init_pci_dev_data(pci_dev_data_t *dev_data, int bus, int dev, int fn)
 void delete_pci_dev_data(pci_dev_data_t *dev_data)
 {
 	if (dev_data != NULL) {
-		clean_hw_resource_list(&dev_data->hw_resources);
+		hw_res_clean_resource_list(&dev_data->hw_resources);
 		free(dev_data);
 	}
 }

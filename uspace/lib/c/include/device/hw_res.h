@@ -40,8 +40,8 @@
 
 /** HW resource provider interface */
 typedef enum {
-	GET_RESOURCE_LIST = 0,
-	ENABLE_INTERRUPT
+	HW_RES_GET_RESOURCE_LIST = 0,
+	HW_RES_ENABLE_INTERRUPT
 } hw_res_funcs_t;
 
 /** HW resource types */
@@ -83,7 +83,7 @@ typedef struct {
 	hw_resource_t *resources;
 } hw_resource_list_t;
 
-static inline void clean_hw_resource_list(hw_resource_list_t *hw_res)
+static inline void hw_res_clean_resource_list(hw_resource_list_t *hw_res)
 {
 	if (hw_res->resources != NULL) {
 		free(hw_res->resources);
@@ -94,8 +94,8 @@ static inline void clean_hw_resource_list(hw_resource_list_t *hw_res)
 	hw_res->count = 0;
 }
 
-extern int get_hw_resources(int, hw_resource_list_t *);
-extern bool enable_interrupt(int);
+extern int hw_res_get_resource_list(int, hw_resource_list_t *);
+extern bool hw_res_enable_interrupt(int);
 
 #endif
 

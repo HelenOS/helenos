@@ -346,7 +346,7 @@ static int ns8250_dev_initialize(device_t *dev)
 	}
 	
 	/* Get hw resources. */
-	ret = get_hw_resources(dev->parent_phone, &hw_resources);
+	ret = hw_res_get_resource_list(dev->parent_phone, &hw_resources);
 	if (ret != EOK) {
 		printf(NAME ": failed to get hw resources for the device "
 		    "%s.\n", dev->name);
@@ -393,12 +393,12 @@ static int ns8250_dev_initialize(device_t *dev)
 		goto failed;
 	}
 	
-	clean_hw_resource_list(&hw_resources);
+	hw_res_clean_resource_list(&hw_resources);
 	return ret;
 	
 failed:
 	ns8250_dev_cleanup(dev);
-	clean_hw_resource_list(&hw_resources);
+	hw_res_clean_resource_list(&hw_resources);
 	return ret;
 }
 
