@@ -187,10 +187,10 @@ static inline void delete_device(device_t *dev)
 	free(dev);
 }
 
-static inline void *device_get_iface(device_t *dev, dev_inferface_idx_t idx)
+static inline void *device_get_ops(device_t *dev, dev_inferface_idx_t idx)
 {
 	assert(is_valid_iface_idx(idx));
-	if (NULL == dev->ops)
+	if (dev->ops == NULL)
 		return NULL;
 	return dev->ops->interfaces[idx];
 }

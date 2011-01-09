@@ -139,7 +139,7 @@ static void remove_from_devices_list(device_t *dev)
 	fibril_mutex_unlock(&devices_mutex);
 }
 
-static device_t * driver_get_device(link_t *devices, devman_handle_t handle)
+static device_t *driver_get_device(link_t *devices, devman_handle_t handle)
 {
 	device_t *dev = NULL;
 	
@@ -163,9 +163,9 @@ static void driver_add_device(ipc_callid_t iid, ipc_call_t *icall)
 	char *dev_name = NULL;
 	int res = EOK;
 	
-	devman_handle_t dev_handle =  IPC_GET_ARG1(*icall);
+	devman_handle_t dev_handle = IPC_GET_ARG1(*icall);
     	devman_handle_t parent_dev_handle = IPC_GET_ARG2(*icall);
-    
+	
 	device_t *dev = create_device();
 	dev->handle = dev_handle;
 	
@@ -176,7 +176,7 @@ static void driver_add_device(ipc_callid_t iid, ipc_call_t *icall)
 	dev->parent = driver_get_device(&devices, parent_dev_handle);
 	
 	res = driver->driver_ops->add_device(dev);
-	if (0 == res) {
+	if (res == 0) {
 		printf("%s: new device with handle=%" PRIun " was added.\n",
 		    driver->name, dev_handle);
 	} else {
@@ -245,7 +245,7 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 	if (NULL != dev->ops && NULL != dev->ops->open)
 		ret = (*dev->ops->open)(dev);
 	
-	ipc_answer_0(iid, ret);	
+	ipc_answer_0(iid, ret);
 	if (EOK != ret)
 		return;
 
@@ -257,13 +257,13 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 		int iface_idx;
 		
 		switch  (method) {
-		case IPC_M_PHONE_HUNGUP:		
+		case IPC_M_PHONE_HUNGUP:
 			/* close the device */
 			if (NULL != dev->ops && NULL != dev->ops->close)
 				(*dev->ops->close)(dev);
 			ipc_answer_0(callid, EOK);
 			return;
-		default:		
+		default:
 			/* convert ipc interface id to interface index */
 			
 			iface_idx = DEV_IFACE_IDX(method);
@@ -288,9 +288,9 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 
 			/* calling one of the device's interfaces */
 			
-			/* get the device interface structure */
-			void *iface = device_get_iface(dev, iface_idx);
-			if (NULL == iface) {
+			/* Get the interface ops structure. */
+			void *ops = device_get_ops(dev, iface_idx);
+			if (ops == NULL) {
 				printf("%s: driver_connection_gen error - ",
 				    driver->name);
 				printf("device with handle %" PRIun " has no interface "
@@ -303,7 +303,7 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 			 * Get the corresponding interface for remote request
 			 * handling ("remote interface").
 			 */
-			remote_iface_t* rem_iface = get_remote_iface(iface_idx);
+			remote_iface_t *rem_iface = get_remote_iface(iface_idx);
 			assert(NULL != rem_iface);
 
 			/* get the method of the remote interface */
@@ -324,7 +324,7 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 			 * pass it to the corresponding local interface method
 			 * associated with the device by its driver.
 			 */
-			(*iface_method_ptr)(dev, iface, callid, &call);
+			(*iface_method_ptr)(dev, ops, callid, &call);
 			break;
 		}
 	}
@@ -376,7 +376,7 @@ int child_device_register(device_t *child, device_t *parent)
 	    parent->handle, &child->handle);
 	if (EOK == res)
 		return res;
-	remove_from_devices_list(child);	
+	remove_from_devices_list(child);
 	return res;
 }
 
