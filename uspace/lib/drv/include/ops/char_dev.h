@@ -32,15 +32,15 @@
 /** @file
  */
 
-#ifndef LIBDRV_CHAR_H_
-#define LIBDRV_CHAR_H_
+#ifndef LIBDRV_OPS_CHAR_DEV_H_
+#define LIBDRV_OPS_CHAR_DEV_H_
 
-#include "driver.h"
+#include "../driver.h"
 
-typedef struct char_iface {
+typedef struct {
 	int (*read)(device_t *, char *, size_t);
 	int (*write)(device_t *, char *, size_t);
-} char_iface_t;
+} char_dev_ops_t;
 
 #endif
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Lenka Trochtova 
+ * Copyright (c) 2010 Lenka Trochtova
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,25 +26,24 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libdrv
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef LIBDRV_RESOURCE_H_
-#define LIBDRV_RESOURCE_H_
+#ifndef LIBC_DEVICE_CHAR_DEV_H_
+#define LIBC_DEVICE_CHAR_DEV_H_
 
-#include "driver.h"
+typedef enum {
+	CHAR_DEV_READ = 0,
+	CHAR_DEV_WRITE
+} char_dev_method_t;
 
-typedef struct resource_iface {
-	 hw_resource_list_t *(* get_resources)(device_t *);
-	 bool (*enable_interrupt)(device_t *);
-} resource_iface_t;
-
+ssize_t char_dev_read(int dev_phone, void *buf, size_t len);
+ssize_t char_dev_write(int dev_phone, void *buf, size_t len);
 
 #endif
 
-/**
- * @}
+/** @}
  */

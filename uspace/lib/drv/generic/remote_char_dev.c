@@ -36,7 +36,7 @@
 #include <async.h>
 #include <errno.h>
 
-#include "char.h"
+#include "ops/char_dev.h"
 #include "driver.h"
 
 #define MAX_CHAR_RW_COUNT 256
@@ -45,7 +45,7 @@ static void remote_char_read(device_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_char_write(device_t *, void *, ipc_callid_t, ipc_call_t *);
 
 /** Remote character interface operations. */
-static remote_iface_func_ptr_t remote_char_iface_ops [] = {
+static remote_iface_func_ptr_t remote_char_dev_iface_ops[] = {
 	&remote_char_read,
 	&remote_char_write
 };
@@ -55,10 +55,10 @@ static remote_iface_func_ptr_t remote_char_iface_ops [] = {
  * Interface for processing request from remote clients addressed to the
  * character interface.
  */
-remote_iface_t remote_char_iface = {
-	.method_count = sizeof(remote_char_iface_ops) /
+remote_iface_t remote_char_dev_iface = {
+	.method_count = sizeof(remote_char_dev_iface_ops) /
 	    sizeof(remote_iface_func_ptr_t),
-	.methods = remote_char_iface_ops
+	.methods = remote_char_dev_iface_ops
 };
 
 /** Process the read request from the remote client.
@@ -73,8 +73,8 @@ remote_iface_t remote_char_iface = {
 static void
 remote_char_read(device_t *dev, void *iface, ipc_callid_t callid,
     ipc_call_t *call)
-{	
-	char_iface_t *char_iface = (char_iface_t *) iface;
+{
+	char_dev_ops_t *char_iface = (char_dev_ops_t *) iface;
 	ipc_callid_t cid;
 	
 	size_t len;
@@ -121,7 +121,7 @@ static void
 remote_char_write(device_t *dev, void *iface, ipc_callid_t callid,
     ipc_call_t *call)
 {
-	char_iface_t *char_iface = (char_iface_t *) iface;
+	char_dev_ops_t *char_iface = (char_dev_ops_t *) iface;
 	ipc_callid_t cid;
 	size_t len;
 	
@@ -135,7 +135,7 @@ remote_char_write(device_t *dev, void *iface, ipc_callid_t callid,
 		async_data_write_finalize(cid, NULL, 0);
 		ipc_answer_0(callid, ENOTSUP);
 		return;
-	}	
+	}
 	
 	if (len > MAX_CHAR_RW_COUNT)
 		len = MAX_CHAR_RW_COUNT;

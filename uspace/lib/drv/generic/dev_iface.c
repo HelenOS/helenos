@@ -36,18 +36,18 @@
  */
 
 #include "dev_iface.h"
-#include "remote_res.h"
-#include "remote_char.h"
+#include "remote_hw_res.h"
+#include "remote_char_dev.h"
 
 static iface_dipatch_table_t remote_ifaces = {
 	.ifaces = {
-		&remote_res_iface,
-		&remote_char_iface
+		&remote_hw_res_iface,
+		&remote_char_dev_iface
 	}
 };
 
 remote_iface_t* get_remote_iface(int idx)
-{	
+{
 	assert(is_valid_iface_idx(idx));
 	return remote_ifaces.ifaces[idx];
 }

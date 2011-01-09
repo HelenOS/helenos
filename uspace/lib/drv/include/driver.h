@@ -40,8 +40,6 @@
 #include <devman.h>
 #include <ipc/devman.h>
 #include <ipc/dev_iface.h>
-#include <device/hw_res.h>
-#include <device/char.h>
 #include <assert.h>
 #include <ddi.h>
 #include <libarch/ddi.h>

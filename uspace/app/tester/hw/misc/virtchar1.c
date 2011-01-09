@@ -39,12 +39,11 @@
 #include <str_error.h>
 #include <sys/types.h>
 #include <async.h>
-#include <device/char.h>
+#include <device/char_dev.h>
 #include <str.h>
 #include <vfs/vfs.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <device/char.h>
 #include "../../tester.h"
 
 #define DEVICE_PATH_NORMAL "/dev/devices/\\virt\\null"
@@ -78,7 +77,7 @@ static const char *test_virtchar1_internal(const char *path)
 	TPRINTF(" Will try to read...\n");
 	size_t i;
 	char buffer[BUFFER_SIZE];
-	read_dev(phone, buffer, BUFFER_SIZE);
+	char_dev_read(phone, buffer, BUFFER_SIZE);
 	TPRINTF(" ...verifying that we read zeroes only...\n");
 	for (i = 0; i < BUFFER_SIZE; i++) {
 		if (buffer[i] != 0) {
