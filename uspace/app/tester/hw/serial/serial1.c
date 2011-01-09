@@ -120,7 +120,7 @@ const char *test_serial1(void)
 	
 	size_t total = 0;
 	while (total < cnt) {
-		ssize_t read = read_dev(phone, buf, cnt - total);
+		ssize_t read = char_dev_read(phone, buf, cnt - total);
 		
 		if (read < 0) {
 			ipc_call_sync_4_0(phone, SERIAL_SET_COM_PROPS, old_baud,
@@ -151,7 +151,7 @@ const char *test_serial1(void)
 			 * Write data back to the device to test the opposite
 			 * direction of data transfer.
 			 */
-			ssize_t written = write_dev(phone, buf, read);
+			ssize_t written = char_dev_write(phone, buf, read);
 			
 			if (written < 0) {
 				ipc_call_sync_4_0(phone, SERIAL_SET_COM_PROPS, old_baud,
@@ -180,7 +180,7 @@ const char *test_serial1(void)
 	TPRINTF("Trying to write EOT banner to the serial device\n");
 	
 	size_t eot_size = str_size(EOT);
-	ssize_t written = write_dev(phone, (void *) EOT, eot_size);
+	ssize_t written = char_dev_write(phone, (void *) EOT, eot_size);
 	
 	ipc_call_sync_4_0(phone, SERIAL_SET_COM_PROPS, old_baud,
 	    old_par, old_word_size, old_stop);

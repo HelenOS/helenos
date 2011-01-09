@@ -78,7 +78,7 @@ static const char *test_virtchar1_internal(const char *path)
 	TPRINTF(" Will try to read...\n");
 	size_t i;
 	char buffer[BUFFER_SIZE];
-	read_dev(phone, buffer, BUFFER_SIZE);
+	char_dev_read(phone, buffer, BUFFER_SIZE);
 	TPRINTF(" ...verifying that we read zeroes only...\n");
 	for (i = 0; i < BUFFER_SIZE; i++) {
 		if (buffer[i] != 0) {

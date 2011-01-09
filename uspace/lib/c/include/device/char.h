@@ -36,12 +36,12 @@
 #define LIBC_DEVICE_HW_RES_H_
 
 typedef enum {
-	CHAR_READ_DEV = 0,
-	CHAR_WRITE_DEV
+	CHAR_DEV_READ = 0,
+	CHAR_DEV_WRITE
 } hw_res_funcs_t;
 
-ssize_t read_dev(int dev_phone, void *buf, size_t len);
-ssize_t write_dev(int dev_phone, void *buf, size_t len);
+ssize_t char_dev_read(int dev_phone, void *buf, size_t len);
+ssize_t char_dev_write(int dev_phone, void *buf, size_t len);
 
 #endif
 
