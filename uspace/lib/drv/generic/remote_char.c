@@ -36,7 +36,7 @@
 #include <async.h>
 #include <errno.h>
 
-#include "char_dev.h"
+#include "ops/char_dev.h"
 #include "driver.h"
 
 #define MAX_CHAR_RW_COUNT 256

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2010 Lenka Trochtova 
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,15 +32,18 @@
 /** @file
  */
 
-#ifndef LIBDRV_CHAR_DEV_H_
-#define LIBDRV_CHAR_DEV_H_
+#ifndef LIBDRV_OPS_HW_RES_H_
+#define LIBDRV_OPS_HW_RES_H_
 
-#include "driver.h"
+#include <device/hw_res.h>
+#include <sys/types.h>
+
+#include "../driver.h"
 
 typedef struct {
-	int (*read)(device_t *, char *, size_t);
-	int (*write)(device_t *, char *, size_t);
-} char_dev_ops_t;
+	 hw_resource_list_t *(*get_resource_list)(device_t *);
+	 bool (*enable_interrupt)(device_t *);
+} hw_res_ops_t;
 
 #endif
 

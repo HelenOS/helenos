@@ -50,7 +50,7 @@
 #include <sys/stat.h>
 
 #include <driver.h>
-#include <hw_res.h>
+#include <ops/hw_res.h>
 
 #include <devman.h>
 #include <ipc/devman.h>

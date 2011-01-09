@@ -36,8 +36,8 @@
 #include <async.h>
 #include <errno.h>
 
+#include "ops/hw_res.h"
 #include "driver.h"
-#include "hw_res.h"
 
 static void remote_res_get_resource_list(device_t *, void *, ipc_callid_t,
     ipc_call_t *);

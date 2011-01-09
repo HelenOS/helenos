@@ -32,7 +32,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <mem.h>
-#include <char_dev.h>
+#include <ops/char_dev.h>
 
 #include "test1.h"
 

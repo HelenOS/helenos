@@ -52,7 +52,7 @@
 #include <libarch/ddi.h>
 
 #include <driver.h>
-#include <char_dev.h>
+#include <ops/char_dev.h>
 
 #include <devman.h>
 #include <ipc/devman.h>

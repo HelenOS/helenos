@@ -49,7 +49,7 @@
 #include <devman.h>
 #include <ipc/devman.h>
 #include <ipc/dev_iface.h>
-#include <hw_res.h>
+#include <ops/hw_res.h>
 #include <device/hw_res.h>
 
 #define NAME "rootpc"
