@@ -79,7 +79,7 @@ int usb_drv_req_set_address(int phone, usb_address_t old_address,
  * @param[in] request_type Request type (standard/class/vendor).
  * @param[in] descriptor_type Descriptor type (device/configuration/HID/...).
  * @param[in] descriptor_index Descriptor index.
- * @param[in] langauge Language index.
+ * @param[in] language Language index.
  * @param[out] buffer Buffer where to store the retrieved descriptor.
  * @param[in] size Size of the @p buffer.
  * @param[out] actual_size Number of bytes actually transferred.
@@ -91,6 +91,13 @@ int usb_drv_req_get_descriptor(int hc_phone, usb_address_t address,
     uint16_t language,
     void *buffer, size_t size, size_t *actual_size)
 {
+	if (buffer == NULL) {
+		return EBADMEM;
+	}
+	if (size == 0) {
+		return EINVAL;
+	}
+
 	/* Prepare the target. */
 	usb_target_t target = {
 		.address = address,
@@ -220,10 +227,6 @@ int usb_drv_req_get_full_configuration_descriptor(int phone,
     usb_address_t address, int index,
     void *buffer, size_t buffer_size, size_t *actual_buffer_size)
 {
-	if (buffer == NULL) {
-		return EBADMEM;
-	}
-
 	int rc = usb_drv_req_get_descriptor(phone, address,
 	    USB_REQUEST_TYPE_STANDARD,
 	    USB_DESCTYPE_CONFIGURATION, 0,
