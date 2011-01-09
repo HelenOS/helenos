@@ -46,33 +46,10 @@
 #include <fibril_synch.h>
 #include <malloc.h>
 
+#include "dev_iface.h"
+
 struct device;
 typedef struct device device_t;
-
-/*
- * Device interface
- */
-
-/*
- * First two parameters: device and interface structure registered by the
- * devices driver.
- */
-typedef void remote_iface_func_t(device_t *, void *, ipc_callid_t,
-    ipc_call_t *);
-typedef remote_iface_func_t *remote_iface_func_ptr_t;
-typedef void remote_handler_t(device_t *, ipc_callid_t, ipc_call_t *);
-
-typedef struct {
-	size_t method_count;
-	remote_iface_func_ptr_t *methods;
-} remote_iface_t;
-
-typedef struct {
-	remote_iface_t *ifaces[DEV_IFACE_COUNT];
-} iface_dipatch_table_t;
-
-extern remote_iface_t *get_remote_iface(int);
-extern remote_iface_func_ptr_t get_remote_method(remote_iface_t *, sysarg_t);
 
 /*
  * Device class
@@ -136,7 +113,6 @@ struct device {
 	/** Link in the list of devices handled by the driver */
 	link_t link;
 };
-
 
 /*
  * Driver

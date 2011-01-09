@@ -35,6 +35,8 @@
 /** @file
  */
 
+#include <assert.h>
+
 #include "dev_iface.h"
 #include "remote_hw_res.h"
 #include "remote_char_dev.h"
