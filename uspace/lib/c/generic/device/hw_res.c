@@ -40,7 +40,9 @@
 int get_hw_resources(int dev_phone, hw_resource_list_t *hw_resources)
 {
 	sysarg_t count = 0;
-	int rc = async_req_1_1(dev_phone, DEV_IFACE_ID(HW_RES_DEV_IFACE), GET_RESOURCE_LIST, &count);
+
+	int rc = async_req_1_1(dev_phone, DEV_IFACE_ID(HW_RES_DEV_IFACE),
+	    GET_RESOURCE_LIST, &count);
 	hw_resources->count = count;
 	if (rc != EOK)
 		return rc;
@@ -56,13 +58,14 @@ int get_hw_resources(int dev_phone, hw_resource_list_t *hw_resources)
 		hw_resources->resources = NULL;
 		return rc;
 	}
-	 	 
+	
 	return EOK;
 }
 
 bool enable_interrupt(int dev_phone)
 {
-	int rc = async_req_1_0(dev_phone, DEV_IFACE_ID(HW_RES_DEV_IFACE), ENABLE_INTERRUPT);
+	int rc = async_req_1_0(dev_phone, DEV_IFACE_ID(HW_RES_DEV_IFACE),
+	    ENABLE_INTERRUPT);
 	return rc == EOK;
 }
  

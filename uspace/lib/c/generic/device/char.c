@@ -81,7 +81,7 @@ static ssize_t rw_dev(int dev_phone, void *buf, size_t len, bool read)
 		async_serialize_end();
 		if (rc == EOK)
 			return (ssize_t) ret;
-			
+		
 		return (ssize_t) rc;
 	}
 	
