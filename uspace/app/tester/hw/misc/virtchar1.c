@@ -39,12 +39,11 @@
 #include <str_error.h>
 #include <sys/types.h>
 #include <async.h>
-#include <device/char.h>
+#include <device/char_dev.h>
 #include <str.h>
 #include <vfs/vfs.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <device/char.h>
 #include "../../tester.h"
 
 #define DEVICE_PATH_NORMAL "/dev/devices/\\virt\\null"

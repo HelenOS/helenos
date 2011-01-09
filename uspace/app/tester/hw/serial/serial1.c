@@ -44,7 +44,7 @@
 #include <ipc/services.h>
 #include <ipc/devman.h>
 #include <devman.h>
-#include <device/char.h>
+#include <device/char_dev.h>
 #include <str.h>
 #include <ipc/serial_ctl.h>
 #include "../../tester.h"

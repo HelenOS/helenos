@@ -33,7 +33,7 @@
  */
 
 #include <ipc/dev_iface.h>
-#include <device/char.h>
+#include <device/char_dev.h>
 #include <errno.h>
 #include <async.h>
 #include <malloc.h>

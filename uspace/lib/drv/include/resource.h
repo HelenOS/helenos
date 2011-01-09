@@ -35,7 +35,8 @@
 #ifndef LIBDRV_RESOURCE_H_
 #define LIBDRV_RESOURCE_H_
 
-#include "driver.h"
+#include <device/hw_res.h>
+#include <sys/types.h>
 
 typedef struct resource_iface {
 	 hw_resource_list_t *(* get_resources)(device_t *);

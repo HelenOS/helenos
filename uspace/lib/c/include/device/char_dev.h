@@ -32,13 +32,13 @@
 /** @file
  */
 
-#ifndef LIBC_DEVICE_HW_RES_H_
-#define LIBC_DEVICE_HW_RES_H_
+#ifndef LIBC_DEVICE_CHAR_DEV_H_
+#define LIBC_DEVICE_CHAR_DEV_H_
 
 typedef enum {
 	CHAR_DEV_READ = 0,
 	CHAR_DEV_WRITE
-} hw_res_funcs_t;
+} char_dev_method_t;
 
 ssize_t char_dev_read(int dev_phone, void *buf, size_t len);
 ssize_t char_dev_write(int dev_phone, void *buf, size_t len);

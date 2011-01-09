@@ -42,7 +42,7 @@
 typedef enum {
 	HW_RES_GET_RESOURCE_LIST = 0,
 	HW_RES_ENABLE_INTERRUPT
-} hw_res_funcs_t;
+} hw_res_method_t;
 
 /** HW resource types */
 typedef enum {
