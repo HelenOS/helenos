@@ -37,447 +37,589 @@
  *
  */
 
-/** @addtogroup dp8390
+/** @addtogroup ne2000
  *  @{
  */
 
 /** @file
- *  DP8390 network interface core implementation.
+ *
+ * NE2000 (based on DP8390) network interface core implementation.
+ * Only the basic NE2000 PIO (ISA) interface is supported, remote
+ * DMA is completely absent from this code for simplicity.
+ *
  */
 
 #include <assert.h>
 #include <byteorder.h>
 #include <errno.h>
-#include <netif_local.h>
+#include <libarch/ddi.h>
+#include <netif_skel.h>
 #include <net/packet.h>
 #include <nil_interface.h>
 #include <packet_client.h>
-#include "dp8390_drv.h"
-#include "dp8390_port.h"
 #include "dp8390.h"
-#include "ne2000.h"
 
-/** Read a memory block byte by byte.
- *
- *  @param[in] port The source address.
- *  @param[out] buf The destination buffer.
- *  @param[in] size The memory block size in bytes.
+/** Page size */
+#define DP_PAGE  256
+
+/** 6 * DP_PAGE >= 1514 bytes */
+#define SQ_PAGES  6
+
+/* NE2000 implementation. */
+
+/** NE2000 Data Register */
+#define NE2K_DATA  0x0010
+
+/** NE2000 Reset register */
+#define NE2K_RESET  0x001f
+
+/** NE2000 data start */
+#define NE2K_START  0x4000
+
+/** NE2000 data size */
+#define NE2K_SIZE  0x4000
+
+/** NE2000 retry count */
+#define NE2K_RETRY  100
+
+/** NE2000 error messages rate limiting */
+#define NE2K_ERL  10
+
+/** Minimum Ethernet packet size in bytes */
+#define ETH_MIN_PACK_SIZE  60
+
+/** Maximum Ethernet packet size in bytes */
+#define ETH_MAX_PACK_SIZE_TAGGED  1518
+
+/** Type definition of the receive header
  *
  */
-static void outsb(port_t port, void * buf, size_t size);
+typedef struct {
+	/** Copy of RSR */
+	uint8_t status;
+	
+	/** Pointer to next packet */
+	uint8_t next;
+	
+	/** Receive Byte Count Low */
+	uint8_t rbcl;
+	
+	/** Receive Byte Count High */
+	uint8_t rbch;
+} recv_header_t;
 
 /** Read a memory block word by word.
  *
- *  @param[in] port The source address.
- *  @param[out] buf The destination buffer.
- *  @param[in] size The memory block size in bytes.
+ * @param[in]  port Source address.
+ * @param[out] buf  Destination buffer.
+ * @param[in]  size Memory block size in bytes.
  *
  */
-static void outsw(port_t port, void * buf, size_t size);
-
-/*
- * Some clones of the dp8390 and the PC emulator 'Bochs' require the CR_STA
- * on writes to the CR register. Additional CR_STAs do not appear to hurt
- * genuine dp8390s.
- */
-#define CR_EXTRA  CR_STA
-
-static void dp_init(dpeth_t *dep);
-static void dp_reinit(dpeth_t *dep);
-static void dp_reset(dpeth_t *dep);
-static void dp_recv(int nil_phone, device_id_t device_id, dpeth_t *dep);
-static int dp_pkt2user(int nil_phone, device_id_t device_id, dpeth_t *dep, int page, int length);
-static void conf_hw(dpeth_t *dep);
-static void insb(port_t port, void *buf, size_t size);
-static void insw(port_t port, void *buf, size_t size);
-
-int do_probe(dpeth_t *dep)
+static void pio_read_buf_16(void *port, void *buf, size_t size)
 {
-	/* This is the default, try to (re)locate the device. */
-	conf_hw(dep);
-	if (!dep->up)
-		/* Probe failed, or the device is configured off. */
-		return EXDEV;
+	size_t i;
 	
-	if (dep->up)
-		dp_init(dep);
-	
-	return EOK;
+	for (i = 0; (i << 1) < size; i++)
+		*((uint16_t *) buf + i) = pio_read_16((ioport16_t *) (port));
 }
 
-/** Initialize and/or start the network interface.
+/** Write a memory block word by word.
  *
- *  @param[in,out] dep The network interface structure.
- *
- *  @return EOK on success.
- *  @return EXDEV if the network interface is disabled.
+ * @param[in] port Destination address.
+ * @param[in] buf  Source buffer.
+ * @param[in] size Memory block size in bytes.
  *
  */
-int do_init(dpeth_t *dep)
+static void pio_write_buf_16(void *port, void *buf, size_t size)
 {
-	if (!dep->up)
-		/* FIXME: Perhaps call do_probe()? */
-		return EXDEV;
+	size_t i;
 	
-	assert(dep->up);
-	assert(dep->enabled);
-	
-	dp_reinit(dep);
-	return EOK;
+	for (i = 0; (i << 1) < size; i++)
+		pio_write_16((ioport16_t *) port, *((uint16_t *) buf + i));
 }
 
-void do_stop(dpeth_t *dep)
+static void ne2k_download(ne2k_t *ne2k, void *buf, size_t addr, size_t size)
 {
-	if ((dep->up) && (dep->enabled)) {
-		outb_reg0(dep, DP_CR, CR_STP | CR_DM_ABORT);
-		ne_stop(dep);
+	size_t esize = size & ~1;
+	
+	pio_write_8(ne2k->port + DP_RBCR0, esize & 0xff);
+	pio_write_8(ne2k->port + DP_RBCR1, (esize >> 8) & 0xff);
+	pio_write_8(ne2k->port + DP_RSAR0, addr & 0xff);
+	pio_write_8(ne2k->port + DP_RSAR1, (addr >> 8) & 0xff);
+	pio_write_8(ne2k->port + DP_CR, CR_DM_RR | CR_PS_P0 | CR_STA);
+	
+	if (esize != 0) {
+		pio_read_buf_16(ne2k->data_port, buf, esize);
+		size -= esize;
+		buf += esize;
+	}
+	
+	if (size) {
+		assert(size == 1);
 		
-		dep->enabled = false;
-		dep->stopped = false;
-		dep->sending = false;
-		dep->send_avail = false;
+		uint16_t word = pio_read_16(ne2k->data_port);
+		memcpy(buf, &word, 1);
 	}
 }
 
-static void dp_user2nic(dpeth_t *dep, void *buf, size_t offset, int nic_addr, size_t size)
+static void ne2k_upload(ne2k_t *ne2k, void *buf, size_t addr, size_t size)
 {
-	size_t ecount = size & ~1;
+	size_t esize = size & ~1;
 	
-	outb_reg0(dep, DP_ISR, ISR_RDC);
+	pio_write_8(ne2k->port + DP_RBCR0, esize & 0xff);
+	pio_write_8(ne2k->port + DP_RBCR1, (esize >> 8) & 0xff);
+	pio_write_8(ne2k->port + DP_RSAR0, addr & 0xff);
+	pio_write_8(ne2k->port + DP_RSAR1, (addr >> 8) & 0xff);
+	pio_write_8(ne2k->port + DP_CR, CR_DM_RW | CR_PS_P0 | CR_STA);
 	
-	if (dep->de_16bit) {
-		outb_reg0(dep, DP_RBCR0, ecount & 0xff);
-		outb_reg0(dep, DP_RBCR1, ecount >> 8);
-	} else {
-		outb_reg0(dep, DP_RBCR0, size & 0xff);
-		outb_reg0(dep, DP_RBCR1, size >> 8);
+	if (esize != 0) {
+		pio_write_buf_16(ne2k->data_port, buf, esize);
+		size -= esize;
+		buf += esize;
 	}
 	
-	outb_reg0(dep, DP_RSAR0, nic_addr & 0xff);
-	outb_reg0(dep, DP_RSAR1, nic_addr >> 8);
-	outb_reg0(dep, DP_CR, CR_DM_RW | CR_PS_P0 | CR_STA);
-	
-	if (dep->de_16bit) {
-		void *ptr = buf + offset;
+	if (size) {
+		assert(size == 1);
 		
-		if (ecount != 0) {
-			outsw(dep->de_data_port, ptr, ecount);
-			size -= ecount;
-			offset += ecount;
-			ptr += ecount;
-		}
+		uint16_t word = 0;
 		
-		if (size) {
-			assert(size == 1);
-			
-			uint16_t two_bytes;
-			
-			memcpy(&(((uint8_t *) &two_bytes)[0]), ptr, 1);
-			outw(dep->de_data_port, two_bytes);
-		}
-	} else
-		outsb(dep->de_data_port, buf + offset, size);
-	
+		memcpy(&word, buf, 1);
+		pio_write_16(ne2k->data_port, word);
+	}
+}
+
+/** Probe and initialize the network interface.
+ *
+ * @param[in,out] ne2k Network interface structure.
+ * @param[in]     port Device address.
+ * @param[in]     irq  Device interrupt vector.
+ *
+ * @return EOK on success.
+ * @return EXDEV if the network interface was not recognized.
+ *
+ */
+int ne2k_probe(ne2k_t *ne2k, void *port, int irq)
+{
 	unsigned int i;
-	for (i = 0; i < 100; i++) {
-		if (inb_reg0(dep, DP_ISR) & ISR_RDC)
+	
+	/* General initialization */
+	ne2k->port = port;
+	ne2k->data_port = ne2k->port + NE2K_DATA;
+	ne2k->irq = irq;
+	ne2k->probed = false;
+	ne2k->up = false;
+	
+	/* Reset the ethernet card */
+	uint8_t val = pio_read_8(ne2k->port + NE2K_RESET);
+	usleep(2000);
+	pio_write_8(ne2k->port + NE2K_RESET, val);
+	usleep(2000);
+	
+	/* Reset the DP8390 */
+	pio_write_8(ne2k->port + DP_CR, CR_STP | CR_DM_ABORT);
+	for (i = 0; i < 0x1000; i++) {
+		if (pio_read_8(ne2k->port + DP_ISR) != 0)
 			break;
 	}
 	
-	if (i == 100)
-		fprintf(stderr, "Remote DMA failed to complete\n");
-}
-
-int do_pwrite(dpeth_t *dep, packet_t *packet, int from_int)
-{
-	int size;
-	int sendq_head;
+	/* Check if the DP8390 is really there */
+	val = pio_read_8(ne2k->port + DP_CR);
+	if ((val & (CR_STP | CR_DM_ABORT)) != (CR_STP | CR_DM_ABORT))
+		return EXDEV;
 	
-	assert(dep->up);
-	assert(dep->enabled);
+	/* Disable the receiver and init TCR and DCR */
+	pio_write_8(ne2k->port + DP_RCR, RCR_MON);
+	pio_write_8(ne2k->port + DP_TCR, TCR_NORMAL);
+	pio_write_8(ne2k->port + DP_DCR, DCR_WORDWIDE | DCR_8BYTES | DCR_BMS);
 	
-	if (dep->send_avail) {
-		fprintf(stderr, "Send already in progress\n");
-		return EBUSY;
-	}
+	/* Setup a transfer to get the MAC address */
+	pio_write_8(ne2k->port + DP_RBCR0, ETH_ADDR << 1);
+	pio_write_8(ne2k->port + DP_RBCR1, 0);
+	pio_write_8(ne2k->port + DP_RSAR0, 0);
+	pio_write_8(ne2k->port + DP_RSAR1, 0);
+	pio_write_8(ne2k->port + DP_CR, CR_DM_RR | CR_PS_P0 | CR_STA);
 	
-	sendq_head = dep->de_sendq_head;
-	if (dep->de_sendq[sendq_head].sq_filled) {
-		if (from_int)
-			fprintf(stderr, "dp8390: should not be sending\n");
-		dep->send_avail = true;
-		dep->sending = false;
-		
-		return EBUSY;
-	}
-	
-	assert(!dep->sending);
-	
-	void *buf = packet_get_data(packet);
-	size = packet_get_data_length(packet);
-	
-	if (size < ETH_MIN_PACK_SIZE || size > ETH_MAX_PACK_SIZE_TAGGED) {
-		fprintf(stderr, "dp8390: invalid packet size\n");
-		return EINVAL;
-	}
-	
-	dp_user2nic(dep, buf, 0, dep->de_sendq[sendq_head].sq_sendpage
-	    * DP_PAGESIZE, size);
-	dep->de_sendq[sendq_head].sq_filled = true;
-	
-	if (dep->de_sendq_tail == sendq_head) {
-		outb_reg0(dep, DP_TPSR, dep->de_sendq[sendq_head].sq_sendpage);
-		outb_reg0(dep, DP_TBCR1, size >> 8);
-		outb_reg0(dep, DP_TBCR0, size & 0xff);
-		outb_reg0(dep, DP_CR, CR_TXP | CR_EXTRA);  /* there it goes .. */
-	} else
-		dep->de_sendq[sendq_head].sq_size = size;
-	
-	if (++sendq_head == dep->de_sendq_nr)
-		sendq_head = 0;
-	
-	assert(sendq_head < SENDQ_NR);
-	dep->de_sendq_head = sendq_head;
-	dep->sending = true;
-	
-	if (from_int)
-		return EOK;
-	
-	dep->sending = false;
-	
-	return EOK;
-}
-
-void dp_init(dpeth_t *dep)
-{
-	int dp_rcr_reg;
-	int i;
-	
-	/* General initialization */
-	dep->enabled = false;
-	dep->stopped = false;
-	dep->sending = false;
-	dep->send_avail = false;
-	ne_init(dep);
-	
-	printf("Ethernet address ");
-	for (i = 0; i < 6; i++)
-		printf("%02x%c", dep->de_address.ea_addr[i], i < 5 ? ':' : '\n');
+	for (i = 0; i < ETH_ADDR; i++)
+		ne2k->mac[i] = pio_read_16(ne2k->data_port);
 	
 	/*
-	 * Initialization of the dp8390 following the mandatory procedure
+	 * Setup send queue. Use the first
+	 * SQ_PAGES of NE2000 memory for the send
+	 * buffer.
+	 */
+	ne2k->sq.dirty = false;
+	ne2k->sq.page = NE2K_START / DP_PAGE;
+	fibril_mutex_initialize(&ne2k->sq_mutex);
+	fibril_condvar_initialize(&ne2k->sq_cv);
+	
+	/*
+	 * Setup receive ring buffer. Use all the rest
+	 * of the NE2000 memory (except the first SQ_PAGES
+	 * reserved for the send buffer) for the receive
+	 * ring buffer.
+	 */
+	ne2k->start_page = ne2k->sq.page + SQ_PAGES;
+	ne2k->stop_page = ne2k->sq.page + NE2K_SIZE / DP_PAGE;
+	
+	/*
+	 * Initialization of the DP8390 following the mandatory procedure
 	 * in reference manual ("DP8390D/NS32490D NIC Network Interface
 	 * Controller", National Semiconductor, July 1995, Page 29).
 	 */
 	
 	/* Step 1: */
-	outb_reg0(dep, DP_CR, CR_PS_P0 | CR_STP | CR_DM_ABORT);
+	pio_write_8(ne2k->port + DP_CR, CR_PS_P0 | CR_STP | CR_DM_ABORT);
 	
 	/* Step 2: */
-	if (dep->de_16bit)
-		outb_reg0(dep, DP_DCR, DCR_WORDWIDE | DCR_8BYTES | DCR_BMS);
-	else
-		outb_reg0(dep, DP_DCR, DCR_BYTEWIDE | DCR_8BYTES | DCR_BMS);
+	pio_write_8(ne2k->port + DP_DCR, DCR_WORDWIDE | DCR_8BYTES | DCR_BMS);
 	
 	/* Step 3: */
-	outb_reg0(dep, DP_RBCR0, 0);
-	outb_reg0(dep, DP_RBCR1, 0);
+	pio_write_8(ne2k->port + DP_RBCR0, 0);
+	pio_write_8(ne2k->port + DP_RBCR1, 0);
 	
 	/* Step 4: */
-	dp_rcr_reg = RCR_AB;  /* Enable broadcasts */
-	
-	outb_reg0(dep, DP_RCR, dp_rcr_reg);
+	pio_write_8(ne2k->port + DP_RCR, RCR_AB);
 	
 	/* Step 5: */
-	outb_reg0(dep, DP_TCR, TCR_INTERNAL);
+	pio_write_8(ne2k->port + DP_TCR, TCR_INTERNAL);
 	
 	/* Step 6: */
-	outb_reg0(dep, DP_BNRY, dep->de_startpage);
-	outb_reg0(dep, DP_PSTART, dep->de_startpage);
-	outb_reg0(dep, DP_PSTOP, dep->de_stoppage);
+	pio_write_8(ne2k->port + DP_BNRY, ne2k->start_page);
+	pio_write_8(ne2k->port + DP_PSTART, ne2k->start_page);
+	pio_write_8(ne2k->port + DP_PSTOP, ne2k->stop_page);
 	
 	/* Step 7: */
-	outb_reg0(dep, DP_ISR, 0xFF);
+	pio_write_8(ne2k->port + DP_ISR, 0xff);
 	
 	/* Step 8: */
-	outb_reg0(dep, DP_IMR, IMR_PRXE | IMR_PTXE | IMR_RXEE | IMR_TXEE |
-	    IMR_OVWE | IMR_CNTE);
+	pio_write_8(ne2k->port + DP_IMR,
+	    IMR_PRXE | IMR_PTXE | IMR_RXEE | IMR_TXEE | IMR_OVWE | IMR_CNTE);
 	
 	/* Step 9: */
-	outb_reg0(dep, DP_CR, CR_PS_P1 | CR_DM_ABORT | CR_STP);
+	pio_write_8(ne2k->port + DP_CR, CR_PS_P1 | CR_DM_ABORT | CR_STP);
 	
-	outb_reg1(dep, DP_PAR0, dep->de_address.ea_addr[0]);
-	outb_reg1(dep, DP_PAR1, dep->de_address.ea_addr[1]);
-	outb_reg1(dep, DP_PAR2, dep->de_address.ea_addr[2]);
-	outb_reg1(dep, DP_PAR3, dep->de_address.ea_addr[3]);
-	outb_reg1(dep, DP_PAR4, dep->de_address.ea_addr[4]);
-	outb_reg1(dep, DP_PAR5, dep->de_address.ea_addr[5]);
+	pio_write_8(ne2k->port + DP_PAR0, ne2k->mac[0]);
+	pio_write_8(ne2k->port + DP_PAR1, ne2k->mac[1]);
+	pio_write_8(ne2k->port + DP_PAR2, ne2k->mac[2]);
+	pio_write_8(ne2k->port + DP_PAR3, ne2k->mac[3]);
+	pio_write_8(ne2k->port + DP_PAR4, ne2k->mac[4]);
+	pio_write_8(ne2k->port + DP_PAR5, ne2k->mac[5]);
 	
-	outb_reg1(dep, DP_MAR0, 0xff);
-	outb_reg1(dep, DP_MAR1, 0xff);
-	outb_reg1(dep, DP_MAR2, 0xff);
-	outb_reg1(dep, DP_MAR3, 0xff);
-	outb_reg1(dep, DP_MAR4, 0xff);
-	outb_reg1(dep, DP_MAR5, 0xff);
-	outb_reg1(dep, DP_MAR6, 0xff);
-	outb_reg1(dep, DP_MAR7, 0xff);
+	pio_write_8(ne2k->port + DP_MAR0, 0xff);
+	pio_write_8(ne2k->port + DP_MAR1, 0xff);
+	pio_write_8(ne2k->port + DP_MAR2, 0xff);
+	pio_write_8(ne2k->port + DP_MAR3, 0xff);
+	pio_write_8(ne2k->port + DP_MAR4, 0xff);
+	pio_write_8(ne2k->port + DP_MAR5, 0xff);
+	pio_write_8(ne2k->port + DP_MAR6, 0xff);
+	pio_write_8(ne2k->port + DP_MAR7, 0xff);
 	
-	outb_reg1(dep, DP_CURR, dep->de_startpage + 1);
+	pio_write_8(ne2k->port + DP_CURR, ne2k->start_page + 1);
 	
 	/* Step 10: */
-	outb_reg0(dep, DP_CR, CR_DM_ABORT | CR_STA);
+	pio_write_8(ne2k->port + DP_CR, CR_DM_ABORT | CR_STA);
 	
 	/* Step 11: */
-	outb_reg0(dep, DP_TCR, TCR_NORMAL);
+	pio_write_8(ne2k->port + DP_TCR, TCR_NORMAL);
 	
-	inb_reg0(dep, DP_CNTR0);  /* Reset counters by reading */
-	inb_reg0(dep, DP_CNTR1);
-	inb_reg0(dep, DP_CNTR2);
+	/* Reset counters by reading */
+	pio_read_8(ne2k->port + DP_CNTR0);
+	pio_read_8(ne2k->port + DP_CNTR1);
+	pio_read_8(ne2k->port + DP_CNTR2);
 	
-	/* Finish the initialization. */
-	dep->enabled = true;
-	for (i = 0; i < dep->de_sendq_nr; i++)
-		dep->de_sendq[i].sq_filled= 0;
-	
-	dep->de_sendq_head = 0;
-	dep->de_sendq_tail = 0;
+	/* Finish the initialization */
+	ne2k->probed = true;
+	return EOK;
 }
 
-static void dp_reinit(dpeth_t *dep)
+/** Start the network interface.
+ *
+ * @param[in,out] ne2k Network interface structure.
+ *
+ * @return EOK on success.
+ * @return EXDEV if the network interface is disabled.
+ *
+ */
+int ne2k_up(ne2k_t *ne2k)
 {
-	int dp_rcr_reg;
+	if (!ne2k->probed)
+		return EXDEV;
 	
-	outb_reg0(dep, DP_CR, CR_PS_P0 | CR_EXTRA);
+	pio_write_8(ne2k->port + DP_CR, CR_PS_P0 | CR_STA);
+	pio_write_8(ne2k->port + DP_RCR, RCR_AB);
 	
-	/* Enable broadcasts */
-	dp_rcr_reg = RCR_AB;
-	
-	outb_reg0(dep, DP_RCR, dp_rcr_reg);
+	ne2k->up = true;
+	return EOK;
 }
 
-static void dp_reset(dpeth_t *dep)
+/** Stop the network interface.
+ *
+ * @param[in,out] ne2k Network interface structure.
+ *
+ */
+void ne2k_down(ne2k_t *ne2k)
 {
-	int i;
+	if ((ne2k->probed) && (ne2k->up)) {
+		pio_write_8(ne2k->port + DP_CR, CR_STP | CR_DM_ABORT);
+		
+		/* Reset the ethernet card */
+		uint8_t val = pio_read_8(ne2k->port + NE2K_RESET);
+		usleep(2000);
+		pio_write_8(ne2k->port + NE2K_RESET, val);
+		
+		ne2k->up = false;
+	}
+}
+
+/** Send a frame.
+ *
+ * @param[in,out] ne2k   Network interface structure.
+ * @param[in]     packet Frame to be sent.
+ *
+ */
+void ne2k_send(ne2k_t *ne2k, packet_t *packet)
+{
+	assert(ne2k->probed);
+	assert(ne2k->up);
 	
-	/* Stop chip */
-	outb_reg0(dep, DP_CR, CR_STP | CR_DM_ABORT);
-	outb_reg0(dep, DP_RBCR0, 0);
-	outb_reg0(dep, DP_RBCR1, 0);
+	fibril_mutex_lock(&ne2k->sq_mutex);
 	
-	for (i = 0; i < 0x1000 && ((inb_reg0(dep, DP_ISR) & ISR_RST) == 0); i++)
-		; /* Do nothing */
+	while (ne2k->sq.dirty)
+		fibril_condvar_wait(&ne2k->sq_cv, &ne2k->sq_mutex);
 	
-	outb_reg0(dep, DP_TCR, TCR_1EXTERNAL | TCR_OFST);
-	outb_reg0(dep, DP_CR, CR_STA | CR_DM_ABORT);
-	outb_reg0(dep, DP_TCR, TCR_NORMAL);
+	void *buf = packet_get_data(packet);
+	size_t size = packet_get_data_length(packet);
 	
-	/* Acknowledge the ISR_RDC (remote DMA) interrupt. */
-	for (i = 0; i < 0x1000 && ((inb_reg0(dep, DP_ISR) &ISR_RDC) == 0); i++)
-		; /* Do nothing */
+	if ((size < ETH_MIN_PACK_SIZE) || (size > ETH_MAX_PACK_SIZE_TAGGED)) {
+		fprintf(stderr, "%s: Frame dropped (invalid size %zu bytes)\n",
+		    NAME, size);
+		return;
+	}
 	
-	outb_reg0(dep, DP_ISR, inb_reg0(dep, DP_ISR) & ~ISR_RDC);
+	/* Upload the frame to the ethernet card */
+	ne2k_upload(ne2k, buf, ne2k->sq.page * DP_PAGE, size);
+	ne2k->sq.dirty = true;
+	ne2k->sq.size = size;
+	
+	/* Initialize the transfer */
+	pio_write_8(ne2k->port + DP_TPSR, ne2k->sq.page);
+	pio_write_8(ne2k->port + DP_TBCR0, size & 0xff);
+	pio_write_8(ne2k->port + DP_TBCR1, (size >> 8) & 0xff);
+	pio_write_8(ne2k->port + DP_CR, CR_TXP | CR_STA);
+	
+	fibril_mutex_unlock(&ne2k->sq_mutex);
+}
+
+static void ne2k_reset(ne2k_t *ne2k)
+{
+	unsigned int i;
+	
+	/* Stop the chip */
+	pio_write_8(ne2k->port + DP_CR, CR_STP | CR_DM_ABORT);
+	pio_write_8(ne2k->port + DP_RBCR0, 0);
+	pio_write_8(ne2k->port + DP_RBCR1, 0);
+	
+	for (i = 0; i < 0x1000; i++) {
+		if ((pio_read_8(ne2k->port + DP_ISR) & ISR_RST) != 0)
+			break;
+	}
+	
+	pio_write_8(ne2k->port + DP_TCR, TCR_1EXTERNAL | TCR_OFST);
+	pio_write_8(ne2k->port + DP_CR, CR_STA | CR_DM_ABORT);
+	pio_write_8(ne2k->port + DP_TCR, TCR_NORMAL);
+	
+	/* Acknowledge the ISR_RDC (remote DMA) interrupt */
+	for (i = 0; i < 0x1000; i++) {
+		if ((pio_read_8(ne2k->port + DP_ISR) & ISR_RDC) != 0)
+			break;
+	}
+	
+	uint8_t val = pio_read_8(ne2k->port + DP_ISR);
+	pio_write_8(ne2k->port + DP_ISR, val & ~ISR_RDC);
 	
 	/*
-	 * Reset the transmit ring. If we were transmitting a packet, we
-	 * pretend that the packet is processed. Higher layers will
+	 * Reset the transmit ring. If we were transmitting a frame,
+	 * we pretend that the packet is processed. Higher layers will
 	 * retransmit if the packet wasn't actually sent.
 	 */
-	dep->de_sendq_head = 0;
-	dep->de_sendq_tail = 0;
-	
-	for (i = 0; i < dep->de_sendq_nr; i++)
-		dep->de_sendq[i].sq_filled = 0;
-	
-	dep->send_avail = false;
-	dep->stopped = false;
+	fibril_mutex_lock(&ne2k->sq_mutex);
+	ne2k->sq.dirty = false;
+	fibril_mutex_unlock(&ne2k->sq_mutex);
 }
 
-static uint8_t isr_acknowledge(dpeth_t *dep)
+static uint8_t ne2k_isr_ack(ne2k_t *ne2k)
 {
-	uint8_t isr = inb_reg0(dep, DP_ISR);
+	uint8_t isr = pio_read_8(ne2k->port + DP_ISR);
 	if (isr != 0)
-		outb_reg0(dep, DP_ISR, isr);
+		pio_write_8(ne2k->port + DP_ISR, isr);
 	
 	return isr;
 }
 
-void dp_check_ints(int nil_phone, device_id_t device_id, dpeth_t *dep, uint8_t isr)
+static void ne2k_receive_frame(ne2k_t *ne2k, uint8_t page, size_t length,
+    int nil_phone, device_id_t device_id)
 {
-	int tsr;
-	int size, sendq_tail;
+	packet_t *packet = netif_packet_get_1(length);
+	if (!packet)
+		return;
 	
-	for (; (isr & 0x7f) != 0; isr = isr_acknowledge(dep)) {
+	void *buf = packet_suffix(packet, length);
+	bzero(buf, length);
+	uint8_t last = page + length / DP_PAGE;
+	
+	if (last >= ne2k->stop_page) {
+		size_t left = (ne2k->stop_page - page) * DP_PAGE
+		    - sizeof(recv_header_t);
+		
+		ne2k_download(ne2k, buf, page * DP_PAGE + sizeof(recv_header_t),
+		    left);
+		ne2k_download(ne2k, buf + left, ne2k->start_page * DP_PAGE,
+		    length - left);
+	} else
+		ne2k_download(ne2k, buf, page * DP_PAGE + sizeof(recv_header_t),
+		    length);
+	
+	ne2k->stats.receive_packets++;
+	nil_received_msg(nil_phone, device_id, packet, SERVICE_NONE);
+}
+
+static void ne2k_receive(ne2k_t *ne2k, int nil_phone, device_id_t device_id)
+{
+	while (true) {
+		uint8_t boundary = pio_read_8(ne2k->port + DP_BNRY) + 1;
+		
+		if (boundary == ne2k->stop_page)
+			boundary = ne2k->start_page;
+		
+		pio_write_8(ne2k->port + DP_CR, CR_PS_P1 | CR_STA);
+		uint8_t current = pio_read_8(ne2k->port + DP_CURR);
+		pio_write_8(ne2k->port + DP_CR, CR_PS_P0 | CR_STA);
+		
+		if (current == boundary)
+			/* No more frames to process */
+			break;
+		
+		recv_header_t header;
+		size_t size = sizeof(header);
+		size_t offset = boundary * DP_PAGE;
+		
+		/* Get the frame header */
+		pio_write_8(ne2k->port + DP_RBCR0, size & 0xff);
+		pio_write_8(ne2k->port + DP_RBCR1, (size >> 8) & 0xff);
+		pio_write_8(ne2k->port + DP_RSAR0, offset & 0xff);
+		pio_write_8(ne2k->port + DP_RSAR1, (offset >> 8) & 0xff);
+		pio_write_8(ne2k->port + DP_CR, CR_DM_RR | CR_PS_P0 | CR_STA);
+		
+		pio_read_buf_16(ne2k->data_port, (void *) &header, size);
+		
+		size_t length =
+		    (((size_t) header.rbcl) | (((size_t) header.rbch) << 8)) - size;
+		uint8_t next = header.next;
+		
+		if ((length < ETH_MIN_PACK_SIZE)
+		    || (length > ETH_MAX_PACK_SIZE_TAGGED)) {
+			fprintf(stderr, "%s: Rant frame (%zu bytes)\n", NAME, length);
+			next = current;
+		} else if ((header.next < ne2k->start_page)
+		    || (header.next > ne2k->stop_page)) {
+			fprintf(stderr, "%s: Malformed next frame %u\n", NAME,
+			    header.next);
+			next = current;
+		} else if (header.status & RSR_FO) {
+			/*
+			 * This is very serious, so we issue a warning and
+			 * reset the buffers.
+			 */
+			fprintf(stderr, "%s: FIFO overrun\n", NAME);
+			ne2k->overruns++;
+			next = current;
+		} else if ((header.status & RSR_PRX) && (ne2k->up))
+			ne2k_receive_frame(ne2k, boundary, length, nil_phone, device_id);
+		
+		/*
+		 * Update the boundary pointer
+		 * to the value of the page
+		 * prior to the next packet to
+		 * be processed.
+		 */
+		if (next == ne2k->start_page)
+			next = ne2k->stop_page - 1;
+		else
+			next--;
+		
+		pio_write_8(ne2k->port + DP_BNRY, next);
+	}
+}
+
+void ne2k_interrupt(ne2k_t *ne2k, uint8_t isr, int nil_phone, device_id_t device_id)
+{
+	bool signal = false;
+	bool stopped = false;
+	
+	for (; (isr & 0x7f) != 0; isr = ne2k_isr_ack(ne2k)) {
 		if (isr & (ISR_PTX | ISR_TXE)) {
 			if (isr & ISR_TXE)
-				dep->de_stat.ets_sendErr++;
+				ne2k->stats.send_errors++;
 			else {
-				tsr = inb_reg0(dep, DP_TSR);
+				uint8_t tsr = pio_read_8(ne2k->port + DP_TSR);
 				
 				if (tsr & TSR_PTX)
-					dep->de_stat.ets_packetT++;
+					ne2k->stats.send_packets++;
 				
 				if (tsr & TSR_COL)
-					dep->de_stat.ets_collision++;
+					ne2k->stats.collisions++;
 				
 				if (tsr & TSR_ABT)
-					dep->de_stat.ets_transAb++;
+					ne2k->stats.send_aborted_errors++;
 				
 				if (tsr & TSR_CRS)
-					dep->de_stat.ets_carrSense++;
+					ne2k->stats.send_carrier_errors++;
 				
-				if ((tsr & TSR_FU) && (++dep->de_stat.ets_fifoUnder <= 10))
-					printf("FIFO underrun\n");
+				if (tsr & TSR_FU) {
+					ne2k->underruns++;
+					if (ne2k->underruns < NE2K_ERL)
+						fprintf(stderr, "%s: FIFO underrun\n", NAME);
+				}
 				
-				if ((tsr & TSR_CDH) && (++dep->de_stat.ets_CDheartbeat <= 10))
-					printf("CD heart beat failure\n");
+				if (tsr & TSR_CDH) {
+					ne2k->stats.send_heartbeat_errors++;
+					if (ne2k->stats.send_heartbeat_errors < NE2K_ERL)
+						fprintf(stderr, "%s: CD heartbeat failure\n", NAME);
+				}
 				
 				if (tsr & TSR_OWC)
-					dep->de_stat.ets_OWC++;
+					ne2k->stats.send_window_errors++;
 			}
 			
-			sendq_tail = dep->de_sendq_tail;
+			fibril_mutex_lock(&ne2k->sq_mutex);
 			
-			if (!(dep->de_sendq[sendq_tail].sq_filled)) {
-				printf("PTX interrupt, but no frame to send\n");
-				continue;
+			if (ne2k->sq.dirty) {
+				/* Prepare the buffer for next packet */
+				ne2k->sq.dirty = false;
+				ne2k->sq.size = 0;
+				signal = true;
+			} else {
+				ne2k->misses++;
+				if (ne2k->misses < NE2K_ERL)
+					fprintf(stderr, "%s: Spurious PTX interrupt\n", NAME);
 			}
 			
-			dep->de_sendq[sendq_tail].sq_filled = false;
-			
-			if (++sendq_tail == dep->de_sendq_nr)
-				sendq_tail = 0;
-			
-			dep->de_sendq_tail = sendq_tail;
-			
-			if (dep->de_sendq[sendq_tail].sq_filled) {
-				size = dep->de_sendq[sendq_tail].sq_size;
-				outb_reg0(dep, DP_TPSR,
-				    dep->de_sendq[sendq_tail].sq_sendpage);
-				outb_reg0(dep, DP_TBCR1, size >> 8);
-				outb_reg0(dep, DP_TBCR0, size & 0xff);
-				outb_reg0(dep, DP_CR, CR_TXP | CR_EXTRA);
-			}
-			
-			dep->send_avail = false;
+			fibril_mutex_unlock(&ne2k->sq_mutex);
 		}
 		
 		if (isr & ISR_PRX)
-			dp_recv(nil_phone, device_id, dep);
+			ne2k_receive(ne2k, nil_phone, device_id);
 		
 		if (isr & ISR_RXE)
-			dep->de_stat.ets_recvErr++;
+			ne2k->stats.receive_errors++;
 		
 		if (isr & ISR_CNT) {
-			dep->de_stat.ets_CRCerr += inb_reg0(dep, DP_CNTR0);
-			dep->de_stat.ets_frameAll += inb_reg0(dep, DP_CNTR1);
-			dep->de_stat.ets_missedP += inb_reg0(dep, DP_CNTR2);
-		}
-		
-		if (isr & ISR_OVW)
-			dep->de_stat.ets_OVW++;
-		
-		if (isr & ISR_RDC) {
-			/* Nothing to do */
+			ne2k->stats.receive_crc_errors +=
+			    pio_read_8(ne2k->port + DP_CNTR0);
+			ne2k->stats.receive_frame_errors +=
+			    pio_read_8(ne2k->port + DP_CNTR1);
+			ne2k->stats.receive_missed_errors +=
+			    pio_read_8(ne2k->port + DP_CNTR2);
 		}
 		
 		if (isr & ISR_RST) {
@@ -485,210 +627,23 @@ void dp_check_ints(int nil_phone, device_id_t device_id, dpeth_t *dep, uint8_t i
 			 * This means we got an interrupt but the ethernet
 			 * chip is shutdown. We set the flag 'stopped'
 			 * and continue processing arrived packets. When the
-			 * receive buffer is empty, we reset the dp8390.
+			 * receive buffer is empty, we reset the DP8390.
 			 */
-			dep->stopped = true;
-			break;
+			stopped = true;
 		}
 	}
 	
-	if (dep->stopped) {
+	if (stopped) {
 		/*
 		 * The chip is stopped, and all arrived
 		 * frames are delivered.
 		 */
-		dp_reset(dep);
+		ne2k_reset(ne2k);
 	}
 	
-	dep->sending = false;
-}
-
-static void dp_getblock(dpeth_t *dep, int page, size_t offset, size_t size, void *dst)
-{
-	offset = page * DP_PAGESIZE + offset;
-	
-	outb_reg0(dep, DP_RBCR0, size & 0xff);
-	outb_reg0(dep, DP_RBCR1, size >> 8);
-	outb_reg0(dep, DP_RSAR0, offset & 0xff);
-	outb_reg0(dep, DP_RSAR1, offset >> 8);
-	outb_reg0(dep, DP_CR, CR_DM_RR | CR_PS_P0 | CR_STA);
-	
-	if (dep->de_16bit) {
-		assert((size % 2) == 0);
-		insw(dep->de_data_port, dst, size);
-	} else
-		insb(dep->de_data_port, dst, size);
-}
-
-static void dp_recv(int nil_phone, device_id_t device_id, dpeth_t *dep)
-{
-	dp_rcvhdr_t header;
-	int pageno, curr, next;
-	size_t length;
-	int packet_processed, r;
-	uint16_t eth_type;
-	
-	packet_processed = false;
-	pageno = inb_reg0(dep, DP_BNRY) + 1;
-	if (pageno == dep->de_stoppage)
-		pageno = dep->de_startpage;
-	
-	do {
-		outb_reg0(dep, DP_CR, CR_PS_P1 | CR_EXTRA);
-		curr = inb_reg1(dep, DP_CURR);
-		outb_reg0(dep, DP_CR, CR_PS_P0 | CR_EXTRA);
-		
-		if (curr == pageno)
-			break;
-		
-		dp_getblock(dep, pageno, (size_t) 0, sizeof(header), &header);
-		dp_getblock(dep, pageno, sizeof(header) +
-		    2 * sizeof(ether_addr_t), sizeof(eth_type), &eth_type);
-		
-		length = (header.dr_rbcl | (header.dr_rbch << 8)) - sizeof(dp_rcvhdr_t);
-		next = header.dr_next;
-		if ((length < ETH_MIN_PACK_SIZE) || (length > ETH_MAX_PACK_SIZE_TAGGED)) {
-			printf("Packet with strange length arrived: %zu\n", length);
-			next = curr;
-		} else if ((next < dep->de_startpage) || (next >= dep->de_stoppage)) {
-			printf("Strange next page\n");
-			next = curr;
-		} else if (header.dr_status & RSR_FO) {
-			/*
-			 * This is very serious, so we issue a warning and
-			 * reset the buffers
-			 */
-			printf("FIFO overrun, resetting receive buffer\n");
-			dep->de_stat.ets_fifoOver++;
-			next = curr;
-		} else if ((header.dr_status & RSR_PRX) && (dep->enabled)) {
-			r = dp_pkt2user(nil_phone, device_id, dep, pageno, length);
-			if (r != EOK)
-				return;
-			
-			packet_processed = true;
-			dep->de_stat.ets_packetR++;
-		}
-		
-		if (next == dep->de_startpage)
-			outb_reg0(dep, DP_BNRY, dep->de_stoppage - 1);
-		else
-			outb_reg0(dep, DP_BNRY, next - 1);
-		
-		pageno = next;
-	} while (!packet_processed);
-}
-
-static void dp_nic2user(dpeth_t *dep, int nic_addr, void *buf, size_t offset, size_t size)
-{
-	size_t ecount = size & ~1;
-	
-	if (dep->de_16bit) {
-		outb_reg0(dep, DP_RBCR0, ecount & 0xFF);
-		outb_reg0(dep, DP_RBCR1, ecount >> 8);
-	} else {
-		outb_reg0(dep, DP_RBCR0, size & 0xff);
-		outb_reg0(dep, DP_RBCR1, size >> 8);
-	}
-	
-	outb_reg0(dep, DP_RSAR0, nic_addr & 0xff);
-	outb_reg0(dep, DP_RSAR1, nic_addr >> 8);
-	outb_reg0(dep, DP_CR, CR_DM_RR | CR_PS_P0 | CR_STA);
-	
-	if (dep->de_16bit) {
-		void *ptr = buf + offset;
-		
-		if (ecount != 0) {
-			insw(dep->de_data_port, ptr, ecount);
-			size -= ecount;
-			offset += ecount;
-			ptr += ecount;
-		}
-		
-		if (size) {
-			assert(size == 1);
-			
-			uint16_t two_bytes = inw(dep->de_data_port);
-			memcpy(ptr, &(((uint8_t *) &two_bytes)[0]), 1);
-		}
-	} else
-		insb(dep->de_data_port, buf + offset, size);
-}
-
-static int dp_pkt2user(int nil_phone, device_id_t device_id, dpeth_t *dep, int page, int length)
-{
-	int last, count;
-	packet_t *packet;
-	
-	packet = netif_packet_get_1(length);
-	if (!packet)
-		return ENOMEM;
-	
-	void *buf = packet_suffix(packet, length);
-	
-	last = page + (length - 1) / DP_PAGESIZE;
-	if (last >= dep->de_stoppage) {
-		count = (dep->de_stoppage - page) * DP_PAGESIZE - sizeof(dp_rcvhdr_t);
-		
-		dp_nic2user(dep, page * DP_PAGESIZE + sizeof(dp_rcvhdr_t),
-		    buf, 0, count);
-		dp_nic2user(dep, dep->de_startpage * DP_PAGESIZE,
-		    buf, count, length - count);
-	} else {
-		dp_nic2user(dep, page * DP_PAGESIZE + sizeof(dp_rcvhdr_t),
-		    buf, 0, length);
-	}
-	
-	nil_received_msg(nil_phone, device_id, packet, SERVICE_NONE);
-	
-	return EOK;
-}
-
-static void conf_hw(dpeth_t *dep)
-{
-	if (!ne_probe(dep)) {
-		printf("No ethernet card found at %#lx\n", dep->de_base_port);
-		dep->up = false;
-		return;
-	}
-	
-	dep->up = true;
-	dep->enabled = false;
-	dep->stopped = false;
-	dep->sending = false;
-	dep->send_avail = false;
-}
-
-static void insb(port_t port, void *buf, size_t size)
-{
-	size_t i;
-	
-	for (i = 0; i < size; i++)
-		*((uint8_t *) buf + i) = inb(port);
-}
-
-static void insw(port_t port, void *buf, size_t size)
-{
-	size_t i;
-	
-	for (i = 0; i * 2 < size; i++)
-		*((uint16_t *) buf + i) = inw(port);
-}
-
-static void outsb(port_t port, void *buf, size_t size)
-{
-	size_t i;
-	
-	for (i = 0; i < size; i++)
-		outb(port, *((uint8_t *) buf + i));
-}
-
-static void outsw(port_t port, void *buf, size_t size)
-{
-	size_t i;
-	
-	for (i = 0; i * 2 < size; i++)
-		outw(port, *((uint16_t *) buf + i));
+	/* Signal a next frame to be sent */
+	if (signal)
+		fibril_condvar_broadcast(&ne2k->sq_cv);
 }
 
 /** @}

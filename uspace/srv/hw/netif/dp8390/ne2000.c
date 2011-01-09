@@ -27,272 +27,334 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/*
- * This code is based upon the NE2000 driver for MINIX,
- * distributed according to a BSD-style license.
- *
- * Copyright (c) 1987, 1997, 2006 Vrije Universiteit
- * Copyright (c) 1992, 1994 Philip Homburg
- * Copyright (c) 1996 G. Falzoni
- *
- */
-
-/** @addtogroup ne2k
+/** @addtogroup ne2000
  *  @{
  */
 
 /** @file
- *  NE1000 and NE2000 network interface initialization and probe functions implementation.
+ *  NE2000 network interface implementation.
  */
 
-#include <stdio.h>
-#include <unistd.h>
-#include "dp8390_port.h"
+#include <assert.h>
+#include <async.h>
+#include <ddi.h>
+#include <errno.h>
+#include <err.h>
+#include <malloc.h>
+#include <sysinfo.h>
+#include <ipc/ipc.h>
+#include <ipc/services.h>
+#include <ipc/irc.h>
+#include <net/modules.h>
+#include <packet_client.h>
+#include <adt/measured_strings.h>
+#include <net/device.h>
+#include <netif_skel.h>
+#include <nil_interface.h>
 #include "dp8390.h"
-#include "ne2000.h"
 
-/** Number of bytes to transfer */
-#define N  100
-
-typedef int (*testf_t)(dpeth_t *dep, int pos, uint8_t *pat);
-
-/** Data patterns */
-uint8_t pat0[] = {0x00, 0x00, 0x00, 0x00};
-uint8_t pat1[] = {0xFF, 0xFF, 0xFF, 0xFF};
-uint8_t pat2[] = {0xA5, 0x5A, 0x69, 0x96};
-uint8_t pat3[] = {0x96, 0x69, 0x5A, 0xA5};
-
-/** Tests 8 bit NE2000 network interface.
- *  @param[in,out] dep The network interface structure.
- *  @param[in] pos The starting position.
- *  @param[in] pat The data pattern to be written.
- *  @returns True on success.
- *  @returns false otherwise.
+/** Return the device from the interrupt call.
+ *
+ *  @param[in] call The interrupt call.
+ *
  */
-static int test_8(dpeth_t *dep, int pos, uint8_t *pat);
+#define IRQ_GET_DEVICE(call)  ((device_id_t) IPC_GET_IMETHOD(call))
 
-/** Tests 16 bit NE2000 network interface.
- *  @param[in,out] dep The network interface structure.
- *  @param[in] pos The starting position.
- *  @param[in] pat The data pattern to be written.
- *  @returns True on success.
- *  @returns false otherwise.
+/** Return the ISR from the interrupt call.
+ *
+ * @param[in] call The interrupt call.
+ *
  */
-static int test_16(dpeth_t *dep, int pos, uint8_t *pat);
+#define IRQ_GET_ISR(call)  ((int) IPC_GET_ARG2(call))
 
-int ne_probe(dpeth_t *dep)
+static int irc_service = 0;
+static int irc_phone = -1;
+
+/** DP8390 kernel interrupt command sequence.
+ *
+ */
+static irq_cmd_t ne2k_cmds[] = {
+	{
+		.cmd = CMD_PIO_READ_8,
+		.addr = NULL,
+		.dstarg = 2
+	},
+	{
+		.cmd = CMD_BTEST,
+		.value = 0x7f,
+		.srcarg = 2,
+		.dstarg = 3,
+	},
+	{
+		.cmd = CMD_PREDICATE,
+		.value = 2,
+		.srcarg = 3
+	},
+	{
+		.cmd = CMD_PIO_WRITE_A_8,
+		.addr = NULL,
+		.srcarg = 3
+	},
+	{
+		.cmd = CMD_ACCEPT
+	}
+};
+
+/** DP8390 kernel interrupt code.
+ *
+ */
+static irq_code_t ne2k_code = {
+	sizeof(ne2k_cmds) / sizeof(irq_cmd_t),
+	ne2k_cmds
+};
+
+/** Handle the interrupt notification.
+ *
+ * This is the interrupt notification function.
+ *
+ * @param[in] iid  Interrupt notification identifier.
+ * @param[in] call Interrupt notification.
+ *
+ */
+static void irq_handler(ipc_callid_t iid, ipc_call_t *call)
 {
-	int byte;
-	int i;
-	int loc1, loc2;
-	testf_t f;
+	device_id_t device_id = IRQ_GET_DEVICE(*call);
+	netif_device_t *device;
+	int nil_phone;
+	ne2k_t *ne2k;
 	
-	dep->de_dp8390_port = dep->de_base_port + NE_DP8390;
+	fibril_rwlock_read_lock(&netif_globals.lock);
+	
+	if (find_device(device_id, &device) == EOK) {
+		nil_phone = device->nil_phone;
+		ne2k = (ne2k_t *) device->specific;
+	} else
+		ne2k = NULL;
+	
+	fibril_rwlock_read_unlock(&netif_globals.lock);
+	
+	if (ne2k != NULL)
+		ne2k_interrupt(ne2k, IRQ_GET_ISR(*call), nil_phone, device_id);
+}
+
+/** Change the network interface state.
+ *
+ * @param[in,out] device Network interface.
+ * @param[in]     state  New state.
+ *
+ */
+static void change_state(netif_device_t *device, device_state_t state)
+{
+	if (device->state != state) {
+		device->state = state;
+		
+		const char *desc;
+		switch (state) {
+		case NETIF_ACTIVE:
+			desc = "active";
+			break;
+		case NETIF_STOPPED:
+			desc = "stopped";
+			break;
+		default:
+			desc = "unknown";
+		}
+		
+		printf("%s: State changed to %s\n", NAME, desc);
+	}
+}
+
+int netif_specific_message(ipc_callid_t callid, ipc_call_t *call,
+    ipc_call_t *answer, size_t *count)
+{
+	return ENOTSUP;
+}
+
+int netif_get_device_stats(device_id_t device_id, device_stats_t *stats)
+{
+	if (!stats)
+		return EBADMEM;
+	
+	netif_device_t *device;
+	int rc = find_device(device_id, &device);
+	if (rc != EOK)
+		return rc;
+	
+	ne2k_t *ne2k = (ne2k_t *) device->specific;
+	
+	memcpy(stats, &ne2k->stats, sizeof(device_stats_t));
+	return EOK;
+}
+
+int netif_get_addr_message(device_id_t device_id, measured_string_t *address)
+{
+	if (!address)
+		return EBADMEM;
+	
+	netif_device_t *device;
+	int rc = find_device(device_id, &device);
+	if (rc != EOK)
+		return rc;
+	
+	ne2k_t *ne2k = (ne2k_t *) device->specific;
+	
+	address->value = ne2k->mac;
+	address->length = ETH_ADDR;
+	return EOK;
+}
+
+int netif_probe_message(device_id_t device_id, int irq, void *io)
+{
+	netif_device_t *device =
+	    (netif_device_t *) malloc(sizeof(netif_device_t));
+	if (!device)
+		return ENOMEM;
+	
+	ne2k_t *ne2k = (ne2k_t *) malloc(sizeof(ne2k_t));
+	if (!ne2k) {
+		free(device);
+		return ENOMEM;
+	}
+	
+	void *port;
+	int rc = pio_enable((void *) io, NE2K_IO_SIZE, &port);
+	if (rc != EOK) {
+		free(ne2k);
+		free(device);
+		return rc;
+	}
+	
+	bzero(device, sizeof(netif_device_t));
+	bzero(ne2k, sizeof(ne2k_t));
+	
+	device->device_id = device_id;
+	device->nil_phone = -1;
+	device->specific = (void *) ne2k;
+	device->state = NETIF_STOPPED;
+	
+	rc = ne2k_probe(ne2k, port, irq);
+	if (rc != EOK) {
+		printf("%s: No ethernet card found at I/O address %p\n",
+		    NAME, port);
+		free(ne2k);
+		free(device);
+		return rc;
+	}
+	
+	rc = netif_device_map_add(&netif_globals.device_map, device->device_id, device);
+	if (rc != EOK) {
+		free(ne2k);
+		free(device);
+		return rc;
+	}
+	
+	printf("%s: Ethernet card at I/O address %p, IRQ %d, MAC ",
+	    NAME, port, irq);
+	
+	unsigned int i;
+	for (i = 0; i < ETH_ADDR; i++)
+		printf("%02x%c", ne2k->mac[i], i < 5 ? ':' : '\n');
+	
+	return EOK;
+}
+
+int netif_start_message(netif_device_t *device)
+{
+	if (device->state != NETIF_ACTIVE) {
+		ne2k_t *ne2k = (ne2k_t *) device->specific;
+		
+		ne2k_cmds[0].addr = ne2k->port + DP_ISR;
+		ne2k_cmds[3].addr = ne2k_cmds[0].addr;
+		
+		int rc = ipc_register_irq(ne2k->irq, device->device_id,
+		    device->device_id, &ne2k_code);
+		if (rc != EOK)
+			return rc;
+		
+		rc = ne2k_up(ne2k);
+		if (rc != EOK) {
+			ipc_unregister_irq(ne2k->irq, device->device_id);
+			return rc;
+		}
+		
+		if (irc_service)
+			async_msg_1(irc_phone, IRC_ENABLE_INTERRUPT, ne2k->irq);
+		
+		change_state(device, NETIF_ACTIVE);
+	}
+	
+	return device->state;
+}
+
+int netif_stop_message(netif_device_t *device)
+{
+	if (device->state != NETIF_STOPPED) {
+		ne2k_t *ne2k = (ne2k_t *) device->specific;
+		
+		ne2k_down(ne2k);
+		ipc_unregister_irq(ne2k->irq, device->device_id);
+		change_state(device, NETIF_STOPPED);
+	}
+	
+	return EOK;
+}
+
+int netif_send_message(device_id_t device_id, packet_t *packet,
+    services_t sender)
+{
+	netif_device_t *device;
+	int rc = find_device(device_id, &device);
+	if (rc != EOK)
+		return rc;
+	
+	if (device->state != NETIF_ACTIVE) {
+		netif_pq_release(packet_get_id(packet));
+		return EFORWARD;
+	}
+	
+	ne2k_t *ne2k = (ne2k_t *) device->specific;
 	
 	/*
-	 * We probe for an ne1000 or an ne2000 by testing whether the
-	 * on board is reachable through the dp8390. Note that the
-	 * ne1000 is an 8bit card and has a memory region distict from
-	 * the 16bit ne2000
+	 * Process the packet queue
 	 */
 	
-	for (dep->de_16bit = 0; dep->de_16bit < 2; dep->de_16bit++) {
-		/* Reset the ethernet card */
-		byte= inb_ne(dep, NE_RESET);
-		usleep(2000);
-		outb_ne(dep, NE_RESET, byte);
-		usleep(2000);
-		
-		/* Reset the dp8390 */
-		outb_reg0(dep, DP_CR, CR_STP | CR_DM_ABORT);
-		for (i = 0; i < 0x1000 && ((inb_reg0(dep, DP_ISR) & ISR_RST) == 0); i++)
-			; /* Do nothing */
-		
-		/* Check if the dp8390 is really there */
-		if ((inb_reg0(dep, DP_CR) & (CR_STP | CR_DM_ABORT)) !=
-		    (CR_STP | CR_DM_ABORT))
-			return 0;
-		
-		/* Disable the receiver and init TCR and DCR. */
-		outb_reg0(dep, DP_RCR, RCR_MON);
-		outb_reg0(dep, DP_TCR, TCR_NORMAL);
-		if (dep->de_16bit) {
-			outb_reg0(dep, DP_DCR, DCR_WORDWIDE | DCR_8BYTES |
-			    DCR_BMS);
-		} else {
-			outb_reg0(dep, DP_DCR, DCR_BYTEWIDE | DCR_8BYTES |
-			    DCR_BMS);
-		}
-		
-		if (dep->de_16bit) {
-			loc1 = NE2000_START;
-			loc2 = NE2000_START + NE2000_SIZE - 4;
-			f = test_16;
-		} else {
-			loc1 = NE1000_START;
-			loc2 = NE1000_START + NE1000_SIZE - 4;
-			f = test_8;
-		}
-		
-		if (f(dep, loc1, pat0) && f(dep, loc1, pat1) &&
-		    f(dep, loc1, pat2) && f(dep, loc1, pat3) &&
-		    f(dep, loc2, pat0) && f(dep, loc2, pat1) &&
-		    f(dep, loc2, pat2) && f(dep, loc2, pat3)) {
-			return 1;
+	do {
+		packet_t *next = pq_detach(packet);
+		ne2k_send(ne2k, packet);
+		netif_pq_release(packet_get_id(packet));
+		packet = next;
+	} while (packet);
+	
+	return EOK;
+}
+
+int netif_initialize(void)
+{
+	sysarg_t apic;
+	sysarg_t i8259;
+	
+	if ((sysinfo_get_value("apic", &apic) == EOK) && (apic))
+		irc_service = SERVICE_APIC;
+	else if ((sysinfo_get_value("i8259", &i8259) == EOK) && (i8259))
+		irc_service = SERVICE_I8259;
+	
+	if (irc_service) {
+		while (irc_phone < 0) {
+			irc_phone = ipc_connect_me_to_blocking(PHONE_NS, irc_service,
+			    0, 0);
 		}
 	}
 	
-	return 0;
+	async_set_interrupt_received(irq_handler);
+	
+	sysarg_t phonehash;
+	return ipc_connect_to_me(PHONE_NS, SERVICE_DP8390, 0, 0, &phonehash);
 }
 
-/** Initializes the NE2000 network interface.
- *
- *  @param[in,out] dep The network interface structure.
- *
- */
-void ne_init(dpeth_t *dep)
+int main(int argc, char *argv[])
 {
-	int i;
-	int word, sendq_nr;
-	
-	/* Setup a transfer to get the ethernet address. */
-	if (dep->de_16bit)
-		outb_reg0(dep, DP_RBCR0, 6*2);
-	else
-		outb_reg0(dep, DP_RBCR0, 6);
-	
-	outb_reg0(dep, DP_RBCR1, 0);
-	outb_reg0(dep, DP_RSAR0, 0);
-	outb_reg0(dep, DP_RSAR1, 0);
-	outb_reg0(dep, DP_CR, CR_DM_RR | CR_PS_P0 | CR_STA);
-	
-	for (i = 0; i < 6; i++) {
-		if (dep->de_16bit) {
-			word = inw_ne(dep, NE_DATA);
-			dep->de_address.ea_addr[i] = word;
-		} else
-			dep->de_address.ea_addr[i] = inb_ne(dep, NE_DATA);
-	}
-	
-	dep->de_data_port= dep->de_base_port + NE_DATA;
-	if (dep->de_16bit) {
-		dep->de_ramsize = NE2000_SIZE;
-		dep->de_offset_page = NE2000_START / DP_PAGESIZE;
-	} else {
-		dep->de_ramsize = NE1000_SIZE;
-		dep->de_offset_page = NE1000_START / DP_PAGESIZE;
-	}
-	
-	/* Allocate one send buffer (1.5KB) per 8KB of on board memory. */
-	sendq_nr = dep->de_ramsize / 0x2000;
-	
-	if (sendq_nr < 1)
-		sendq_nr = 1;
-	else if (sendq_nr > SENDQ_NR)
-		sendq_nr = SENDQ_NR;
-	
-	dep->de_sendq_nr = sendq_nr;
-	for (i = 0; i < sendq_nr; i++)
-		dep->de_sendq[i].sq_sendpage = dep->de_offset_page + i * SENDQ_PAGES;
-	
-	dep->de_startpage = dep->de_offset_page + i * SENDQ_PAGES;
-	dep->de_stoppage = dep->de_offset_page + dep->de_ramsize / DP_PAGESIZE;
-	
-	printf("Novell NE%d000 ethernet card at I/O address "
-	    "%#lx, memory size %#lx, irq %d\n",
-	    dep->de_16bit ? 2 : 1, dep->de_base_port, dep->de_ramsize,
-	    dep->de_irq);
-}
-
-static int test_8(dpeth_t *dep, int pos, uint8_t *pat)
-{
-	uint8_t buf[4];
-	int i;
-	
-	outb_reg0(dep, DP_ISR, 0xff);
-	
-	/* Setup a transfer to put the pattern. */
-	outb_reg0(dep, DP_RBCR0, 4);
-	outb_reg0(dep, DP_RBCR1, 0);
-	outb_reg0(dep, DP_RSAR0, pos & 0xff);
-	outb_reg0(dep, DP_RSAR1, pos >> 8);
-	outb_reg0(dep, DP_CR, CR_DM_RW | CR_PS_P0 | CR_STA);
-	
-	for (i = 0; i < 4; i++)
-		outb_ne(dep, NE_DATA, pat[i]);
-	
-	for (i = 0; i < N; i++) {
-		if (inb_reg0(dep, DP_ISR) & ISR_RDC)
-			break;
-	}
-	
-	if (i == N) {
-		printf("NE1000 remote DMA test failed\n");
-		return 0;
-	}
-	
-	outb_reg0(dep, DP_RBCR0, 4);
-	outb_reg0(dep, DP_RBCR1, 0);
-	outb_reg0(dep, DP_RSAR0, pos & 0xff);
-	outb_reg0(dep, DP_RSAR1, pos >> 8);
-	outb_reg0(dep, DP_CR, CR_DM_RR | CR_PS_P0 | CR_STA);
-	
-	for (i = 0; i < 4; i++)
-		buf[i] = inb_ne(dep, NE_DATA);
-	
-	return (bcmp(buf, pat, 4) == 0);
-}
-
-static int test_16(dpeth_t *dep, int pos, uint8_t *pat)
-{
-	uint8_t buf[4];
-	int i;
-	
-	outb_reg0(dep, DP_ISR, 0xff);
-	
-	/* Setup a transfer to put the pattern. */
-	outb_reg0(dep, DP_RBCR0, 4);
-	outb_reg0(dep, DP_RBCR1, 0);
-	outb_reg0(dep, DP_RSAR0, pos & 0xff);
-	outb_reg0(dep, DP_RSAR1, pos >> 8);
-	outb_reg0(dep, DP_CR, CR_DM_RW | CR_PS_P0 | CR_STA);
-	
-	for (i = 0; i < 4; i += 2)
-		outw_ne(dep, NE_DATA, *(uint16_t *)(pat + i));
-	
-	for (i = 0; i < N; i++) {
-		if (inb_reg0(dep, DP_ISR) &ISR_RDC)
-			break;
-	}
-	
-	if (i == N) {
-		printf("NE2000 remote DMA test failed\n");
-		return 0;
-	}
-	
-	outb_reg0(dep, DP_RBCR0, 4);
-	outb_reg0(dep, DP_RBCR1, 0);
-	outb_reg0(dep, DP_RSAR0, pos & 0xff);
-	outb_reg0(dep, DP_RSAR1, pos >> 8);
-	outb_reg0(dep, DP_CR, CR_DM_RR | CR_PS_P0 | CR_STA);
-	
-	for (i = 0; i < 4; i += 2)
-		*(uint16_t *)(buf + i) = inw_ne(dep, NE_DATA);
-	
-	return (bcmp(buf, pat, 4) == 0);
-}
-
-/** Stop the NE2000 network interface.
- *
- *  @param[in,out] dep The network interface structure.
- *
- */
-void ne_stop(dpeth_t *dep)
-{
-	/* Reset the ethernet card */
-	int byte = inb_ne(dep, NE_RESET);
-	usleep(2000);
-	outb_ne(dep, NE_RESET, byte);
+	/* Start the module */
+	return netif_module_start();
 }
 
 /** @}
