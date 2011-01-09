@@ -160,7 +160,7 @@ socket_cores_release(int packet_phone, socket_cores_t *local_sockets,
  */
 static int
 socket_port_add_core(socket_port_t *socket_port, socket_core_t *socket,
-    const char *key, size_t key_length)
+    const uint8_t *key, size_t key_length)
 {
 	socket_core_t **socket_ref;
 	int rc;
@@ -215,8 +215,8 @@ socket_bind_insert(socket_ports_t *global_sockets, socket_core_t *socket,
 	if (rc != EOK)
 		goto fail;
 	
-	rc = socket_port_add_core(socket_port, socket, SOCKET_MAP_KEY_LISTENING,
-	    0);
+	rc = socket_port_add_core(socket_port, socket,
+	    (const uint8_t *) SOCKET_MAP_KEY_LISTENING, 0);
 	if (rc != EOK)
 		goto fail;
 	
@@ -601,7 +601,7 @@ int socket_reply_packets(packet_t *packet, size_t *length)
  * @return		NULL if no socket was found.
  */
 socket_core_t *
-socket_port_find(socket_ports_t *global_sockets, int port, const char *key,
+socket_port_find(socket_ports_t *global_sockets, int port, const uint8_t *key,
     size_t key_length)
 {
 	socket_port_t *socket_port;
@@ -679,7 +679,7 @@ socket_port_release(socket_ports_t *global_sockets, socket_core_t *socket)
  */
 int
 socket_port_add(socket_ports_t *global_sockets, int port,
-    socket_core_t *socket, const char *key, size_t key_length)
+    socket_core_t *socket, const uint8_t *key, size_t key_length)
 {
 	socket_port_t *socket_port;
 	int rc;

@@ -134,8 +134,6 @@ packet_init(packet_t *packet, size_t addr_len, size_t max_prefix,
 
 /** Creates a new packet of dimensions at least as given.
  *
- * Should be used only when the global data are locked.
- *
  * @param[in] length	The total length of the packet, including the header,
  *			the addresses and the data of the packet.
  * @param[in] addr_len	The source and destination addresses maximal length in
@@ -152,6 +150,8 @@ packet_create(size_t length, size_t addr_len, size_t max_prefix,
 {
 	packet_t *packet;
 	int rc;
+
+	assert(fibril_mutex_is_locked(&ps_globals.lock));
 
 	// already locked
 	packet = (packet_t *) mmap(NULL, length, PROTO_READ | PROTO_WRITE,
@@ -232,8 +232,6 @@ packet_get_local(size_t addr_len, size_t max_prefix, size_t max_content,
 
 /** Release the packet and returns it to the appropriate free packet queue.
  *
- * Should be used only when the global data are locked.
- *
  * @param[in] packet	The packet to be released.
  *
  */
@@ -241,6 +239,8 @@ static void packet_release(packet_t *packet)
 {
 	int index;
 	int result;
+
+	assert(fibril_mutex_is_locked(&ps_globals.lock));
 
 	for (index = 0; (index < FREE_QUEUES_COUNT - 1) &&
 	    (packet->length > ps_globals.sizes[index]); index++) {

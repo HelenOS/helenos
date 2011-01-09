@@ -208,6 +208,25 @@ NO_TRACE void fault_if_from_uspace(istate_t *istate, const char *fmt, ...)
 	thread_exit();
 }
 
+/** Get istate structure of a thread.
+ *
+ * Get pointer to the istate structure at the bottom of the kernel stack.
+ *
+ * This function can be called in interrupt or user context. In interrupt
+ * context the istate structure is created by the low-level exception
+ * handler. In user context the istate structure is created by the
+ * low-level syscall handler.
+ */
+istate_t *istate_get(thread_t *thread)
+{
+	/*
+	 * The istate structure should be right at the bottom of the kernel
+	 * stack.
+	 */
+	return (istate_t *) ((uint8_t *) thread->kstack + THREAD_STACK_SIZE -
+	    sizeof(istate_t));
+}
+
 #ifdef CONFIG_KCONSOLE
 
 static char flag_buf[MAX_CMDLINE + 1];

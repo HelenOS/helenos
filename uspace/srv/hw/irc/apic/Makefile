@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2010 Martin Decky
+# Copyright (c) 2011 Martin Decky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,35 +26,10 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-USPACE_PREFIX = ../../..
-ROOT_PATH = $(USPACE_PREFIX)/..
+USPACE_PREFIX = ../../../..
+BINARY = apic
 
-COMMON_MAKEFILE = $(ROOT_PATH)/Makefile.common
-CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
+SOURCES = \
+	apic.c
 
--include $(COMMON_MAKEFILE)
--include $(CONFIG_MAKEFILE)
-
-ifeq ($(CONFIG_NETIF_NIL_BUNDLE),y)
-	LO_SOURCE = lo.netif_nil_bundle
-	NE2K_SOURCE = ne2k.netif_nil_bundle
-else
-	LO_SOURCE = lo.netif_standalone
-	NE2K_SOURCE = ne2k.netif_standalone
-endif
-
-LO_TARGET = lo
-NE2K_TARGET = ne2k
-
-.PHONY: all clean
-
-all: $(LO_TARGET) $(NE2K_TARGET)
-
-clean:
-	rm -f $(LO_TARGET) $(NE2K_TARGET)
-
-$(LO_TARGET): $(LO_SOURCE)
-	cp $< $@
-
-$(NE2K_TARGET): $(NE2K_SOURCE)
-	cp $< $@
+include $(USPACE_PREFIX)/Makefile.common

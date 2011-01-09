@@ -103,17 +103,17 @@ int udp_initialize(async_client_conn_t client_connection)
 {
 	measured_string_t names[] = {
 		{
-			(char *) "UDP_CHECKSUM_COMPUTING",
+			(uint8_t *) "UDP_CHECKSUM_COMPUTING",
 			22
 		},
 		{
-			(char *) "UDP_AUTOBINDING",
+			(uint8_t *) "UDP_AUTOBINDING",
 			15
 		}
 	};
 	measured_string_t *configuration;
 	size_t count = sizeof(names) / sizeof(measured_string_t);
-	char *data;
+	uint8_t *data;
 	int rc;
 
 	fibril_rwlock_initialize(&udp_globals.lock);
@@ -282,7 +282,7 @@ static int udp_process_packet(device_id_t device_id, packet_t *packet,
 
 	/* Find the destination socket */
 	socket = socket_port_find(&udp_globals.sockets,
-	ntohs(header->destination_port), SOCKET_MAP_KEY_LISTENING, 0);
+	    ntohs(header->destination_port), (uint8_t *) SOCKET_MAP_KEY_LISTENING, 0);
 	if (!socket) {
 		if (tl_prepare_icmp_packet(udp_globals.net_phone,
 		    udp_globals.icmp_phone, packet, error) == EOK) {

@@ -481,7 +481,7 @@ static int arp_receive_message(device_id_t device_id, packet_t *packet)
 	src_proto = src_hw + header->hardware_length;
 	des_hw = src_proto + header->protocol_length;
 	des_proto = des_hw + header->hardware_length;
-	trans = arp_addr_find(&proto->addresses, (char *) src_proto,
+	trans = arp_addr_find(&proto->addresses, src_proto,
 	    header->protocol_length);
 	/* Exists? */
 	if (trans && trans->hw_addr) {
@@ -492,8 +492,8 @@ static int arp_receive_message(device_id_t device_id, packet_t *packet)
 	/* Is my protocol address? */
 	if (proto->addr->length != header->protocol_length)
 		return EINVAL;
-	if (!str_lcmp(proto->addr->value, (char *) des_proto,
-	    proto->addr->length)) {
+	
+	if (!bcmp(proto->addr->value, des_proto, proto->addr->length)) {
 		/* Not already updated? */
 		if (!trans) {
 			trans = (arp_trans_t *) malloc(sizeof(arp_trans_t));
@@ -501,7 +501,7 @@ static int arp_receive_message(device_id_t device_id, packet_t *packet)
 				return ENOMEM;
 			trans->hw_addr = NULL;
 			fibril_condvar_initialize(&trans->cv);
-			rc = arp_addr_add(&proto->addresses, (char *) src_proto,
+			rc = arp_addr_add(&proto->addresses, src_proto,
 			    header->protocol_length, trans);
 			if (rc != EOK) {
 				/* The generic char map has already freed trans! */
@@ -509,11 +509,11 @@ static int arp_receive_message(device_id_t device_id, packet_t *packet)
 			}
 		}
 		if (!trans->hw_addr) {
-			trans->hw_addr = measured_string_create_bulk(
-			    (char *) src_hw, header->hardware_length);
+			trans->hw_addr = measured_string_create_bulk(src_hw,
+			    header->hardware_length);
 			if (!trans->hw_addr)
 				return ENOMEM;
-
+			
 			/* Notify the fibrils that wait for the translation. */
 			fibril_condvar_broadcast(&trans->cv);
 		}
@@ -680,7 +680,7 @@ arp_message_standalone(ipc_callid_t callid, ipc_call_t *call,
 {
 	measured_string_t *address;
 	measured_string_t *translation;
-	char *data;
+	uint8_t *data;
 	packet_t *packet;
 	packet_t *next;
 	int rc;
@@ -747,6 +747,7 @@ arp_message_standalone(ipc_callid_t callid, ipc_call_t *call,
 		return EOK;
 	
 	case NET_IL_RECEIVED:
+		
 		rc = packet_translate_remote(arp_globals.net_phone, &packet,
 		    IPC_GET_PACKET(call));
 		if (rc != EOK)

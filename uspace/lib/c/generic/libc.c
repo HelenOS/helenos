@@ -49,7 +49,6 @@
 #include <fibril.h>
 #include <ipc/ipc.h>
 #include <async.h>
-#include <async_rel.h>
 #include <as.h>
 #include <loader/pcb.h>
 
@@ -65,7 +64,6 @@ void __main(void *pcb_ptr)
 	/* Initialize user task run-time environment */
 	__heap_init();
 	__async_init();
-	(void) async_rel_init();
 	fibril_t *fibril = fibril_setup();
 	__tcb_set(fibril->tcb);
 	

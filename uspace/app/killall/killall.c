@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2010 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,48 +26,59 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup killall
+ * @{
+ */
+/**
+ * @file Forcefully terminate a task specified by name.
+ */
+
+#include <errno.h>
 #include <stdio.h>
-#include <unistd.h>
-#include <atomic.h>
-#include "../tester.h"
+#include <task.h>
+#include <stats.h>
+#include <str_error.h>
+#include <malloc.h>
 
-static atomic_t finish;
+#define NAME  "killall"
 
-static void callback(void *priv, int retval, ipc_call_t *data)
+static void print_syntax(void)
 {
-	atomic_set(&finish, 1);
+	printf("Syntax: " NAME " <task name>\n");
 }
 
-const char *test_connect(void)
+int main(int argc, char *argv[])
 {
-	TPRINTF("Connecting to %u...", IPC_TEST_SERVICE);
-	int phone = ipc_connect_me_to(PHONE_NS, IPC_TEST_SERVICE, 0, 0);
-	if (phone > 0) {
-		TPRINTF("phoneid %d\n", phone);
-	} else {
-		TPRINTF("\n");
-		return "ipc_connect_me_to() failed";
+	if (argc != 2) {
+		print_syntax();
+		return 1;
 	}
 	
-	printf("Sending synchronous message...\n");
-	int retval = ipc_call_sync_0_0(phone, IPC_TEST_METHOD);
-	TPRINTF("Received response to synchronous message\n");
+	size_t count;
+	stats_task_t *stats_tasks = stats_get_tasks(&count);
 	
-	TPRINTF("Sending asynchronous message...\n");
-	atomic_set(&finish, 0);
-	ipc_call_async_0(phone, IPC_TEST_METHOD, NULL, callback, 1);
-	while (atomic_get(&finish) != 1)
-		TPRINTF(".");
-	TPRINTF("Received response to asynchronous message\n");
-	
-	TPRINTF("Hanging up...");
-	retval = ipc_hangup(phone);
-	if (retval == 0) {
-		TPRINTF("OK\n");
-	} else {
-		TPRINTF("\n");
-		return "ipc_hangup() failed";
+	if (stats_tasks == NULL) {
+		fprintf(stderr, "%s: Unable to get tasks\n", NAME);
+		return 2;
 	}
 	
-	return NULL;
+	size_t i;
+	for (i = 0; i < count; i++) {
+		if (str_cmp(stats_tasks[i].name, argv[1]) == 0) {
+			task_id_t taskid = stats_tasks[i].task_id;
+			int rc = task_kill(taskid);
+			if (rc != EOK)
+				printf("Failed to kill task ID %" PRIu64 ": %s\n",
+				    taskid, str_error(rc));
+			else
+				printf("Killed task ID %" PRIu64 "\n", taskid);
+		}
+	}
+	
+	free(stats_tasks);
+	
+	return 0;
 }
+
+/** @}
+ */

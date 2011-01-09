@@ -52,16 +52,16 @@
 #include <netif_local.h>
 
 /** Default hardware address. */
-#define DEFAULT_ADDR		"\0\0\0\0\0\0"
+#define DEFAULT_ADDR  0
 
 /** Default address length. */
-#define DEFAULT_ADDR_LEN	(sizeof(DEFAULT_ADDR) / sizeof(char))
+#define DEFAULT_ADDR_LEN  6
 
 /** Loopback module name. */
 #define NAME  "lo"
 
 /** Network interface global data. */
-netif_globals_t	netif_globals;
+netif_globals_t netif_globals;
 
 int netif_specific_message(ipc_callid_t callid, ipc_call_t *call,
     ipc_call_t *answer, int *answer_count)
@@ -73,10 +73,13 @@ int netif_get_addr_message(device_id_t device_id, measured_string_t *address)
 {
 	if (!address)
 		return EBADMEM;
-
-	address->value = str_dup(DEFAULT_ADDR);
+	
+	uint8_t *addr = (uint8_t *) malloc(DEFAULT_ADDR_LEN);
+	memset(addr, DEFAULT_ADDR, DEFAULT_ADDR_LEN);
+	
+	address->value = addr;
 	address->length = DEFAULT_ADDR_LEN;
-
+	
 	return EOK;
 }
 

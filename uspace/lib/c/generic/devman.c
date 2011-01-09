@@ -57,10 +57,10 @@ int devman_get_phone(devman_interface_t iface, unsigned int flags)
 			return devman_phone_driver;
 		
 		if (flags & IPC_FLAG_BLOCKING)
-			devman_phone_driver = ipc_connect_me_to_blocking(PHONE_NS,
-			    SERVICE_DEVMAN, DEVMAN_DRIVER, 0);
+			devman_phone_driver = async_connect_me_to_blocking(
+			    PHONE_NS, SERVICE_DEVMAN, DEVMAN_DRIVER, 0);
 		else
-			devman_phone_driver = ipc_connect_me_to(PHONE_NS,
+			devman_phone_driver = async_connect_me_to(PHONE_NS,
 			    SERVICE_DEVMAN, DEVMAN_DRIVER, 0);
 		
 		return devman_phone_driver;
@@ -69,10 +69,10 @@ int devman_get_phone(devman_interface_t iface, unsigned int flags)
 			return devman_phone_client;
 		
 		if (flags & IPC_FLAG_BLOCKING)
-			devman_phone_client = ipc_connect_me_to_blocking(PHONE_NS,
-			    SERVICE_DEVMAN, DEVMAN_CLIENT, 0);
+			devman_phone_client = async_connect_me_to_blocking(
+			    PHONE_NS, SERVICE_DEVMAN, DEVMAN_CLIENT, 0);
 		else
-			devman_phone_client = ipc_connect_me_to(PHONE_NS,
+			devman_phone_client = async_connect_me_to(PHONE_NS,
 			    SERVICE_DEVMAN, DEVMAN_CLIENT, 0);
 		
 		return devman_phone_client;
@@ -229,10 +229,10 @@ int devman_device_connect(devman_handle_t handle, unsigned int flags)
 	int phone;
 	
 	if (flags & IPC_FLAG_BLOCKING) {
-		phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_DEVMAN,
+		phone = async_connect_me_to_blocking(PHONE_NS, SERVICE_DEVMAN,
 		    DEVMAN_CONNECT_TO_DEVICE, handle);
 	} else {
-		phone = ipc_connect_me_to(PHONE_NS, SERVICE_DEVMAN,
+		phone = async_connect_me_to(PHONE_NS, SERVICE_DEVMAN,
 		    DEVMAN_CONNECT_TO_DEVICE, handle);
 	}
 	
@@ -244,10 +244,10 @@ int devman_parent_device_connect(devman_handle_t handle, unsigned int flags)
 	int phone;
 	
 	if (flags & IPC_FLAG_BLOCKING) {
-		phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_DEVMAN,
+		phone = async_connect_me_to_blocking(PHONE_NS, SERVICE_DEVMAN,
 		    DEVMAN_CONNECT_TO_PARENTS_DEVICE, handle);
 	} else {
-		phone = ipc_connect_me_to(PHONE_NS, SERVICE_DEVMAN,
+		phone = async_connect_me_to(PHONE_NS, SERVICE_DEVMAN,
 		    DEVMAN_CONNECT_TO_PARENTS_DEVICE, handle);
 	}
 	

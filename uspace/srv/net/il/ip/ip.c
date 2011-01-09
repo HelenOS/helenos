@@ -274,8 +274,8 @@ int ip_initialize(async_client_conn_t client_connection)
 	rc = modules_initialize(&ip_globals.modules);
 	if (rc != EOK)
 		goto out;
-	rc = add_module(NULL, &ip_globals.modules, ARP_NAME, ARP_FILENAME,
-	    SERVICE_ARP, 0, arp_connect_module);
+	rc = add_module(NULL, &ip_globals.modules, (uint8_t *) ARP_NAME,
+	    (uint8_t *) ARP_FILENAME, SERVICE_ARP, 0, arp_connect_module);
 
 out:
 	fibril_rwlock_write_unlock(&ip_globals.lock);
@@ -311,41 +311,41 @@ static int ip_netif_initialize(ip_netif_t *ip_netif)
 {
 	measured_string_t names[] = {
 		{
-			(char *) "IPV",
+			(uint8_t *) "IPV",
 			3
 		},
 		{
-			(char *) "IP_CONFIG",
+			(uint8_t *) "IP_CONFIG",
 			9
 		},
 		{
-			(char *) "IP_ADDR",
+			(uint8_t *) "IP_ADDR",
 			7
 		},
 		{
-			(char *) "IP_NETMASK",
+			(uint8_t *) "IP_NETMASK",
 			10
 		},
 		{
-			(char *) "IP_GATEWAY",
+			(uint8_t *) "IP_GATEWAY",
 			10
 		},
 		{
-			(char *) "IP_BROADCAST",
+			(uint8_t *) "IP_BROADCAST",
 			12
 		},
 		{
-			(char *) "ARP",
+			(uint8_t *) "ARP",
 			3
 		},
 		{
-			(char *) "IP_ROUTING",
+			(uint8_t *) "IP_ROUTING",
 			10
 		}
 	};
 	measured_string_t *configuration;
 	size_t count = sizeof(names) / sizeof(measured_string_t);
-	char *data;
+	uint8_t *data;
 	measured_string_t address;
 	ip_route_t *route;
 	in_addr_t gateway;
@@ -367,9 +367,9 @@ static int ip_netif_initialize(ip_netif_t *ip_netif)
 	
 	if (configuration) {
 		if (configuration[0].value)
-			ip_netif->ipv = strtol(configuration[0].value, NULL, 0);
-
-		ip_netif->dhcp = !str_lcmp(configuration[1].value, "dhcp",
+			ip_netif->ipv = strtol((char *) configuration[0].value, NULL, 0);
+		
+		ip_netif->dhcp = !str_lcmp((char *) configuration[1].value, "dhcp",
 		    configuration[1].length);
 		
 		if (ip_netif->dhcp) {
@@ -393,13 +393,13 @@ static int ip_netif_initialize(ip_netif_t *ip_netif)
 				return index;
 			}
 			
-			if ((inet_pton(AF_INET, configuration[2].value,
+			if ((inet_pton(AF_INET, (char *) configuration[2].value,
 			    (uint8_t *) &route->address.s_addr) != EOK) ||
-			    (inet_pton(AF_INET, configuration[3].value,
+			    (inet_pton(AF_INET, (char *) configuration[3].value,
 			    (uint8_t *) &route->netmask.s_addr) != EOK) ||
-			    (inet_pton(AF_INET, configuration[4].value,
+			    (inet_pton(AF_INET, (char *) configuration[4].value,
 			    (uint8_t *) &gateway.s_addr) == EINVAL) ||
-			    (inet_pton(AF_INET, configuration[5].value,
+			    (inet_pton(AF_INET, (char *) configuration[5].value,
 			    (uint8_t *) &ip_netif->broadcast.s_addr) == EINVAL))
 			    {
 				net_free_settings(configuration, data);
@@ -440,7 +440,7 @@ static int ip_netif_initialize(ip_netif_t *ip_netif)
 	// has to be after the device netif module initialization
 	if (ip_netif->arp) {
 		if (route) {
-			address.value = (char *) &route->address.s_addr;
+			address.value = (uint8_t *) &route->address.s_addr;
 			address.length = sizeof(in_addr_t);
 			
 			rc = arp_device_req(ip_netif->arp->phone,
@@ -996,14 +996,14 @@ ip_send_route(packet_t *packet, ip_netif_t *netif, ip_route_t *route,
 {
 	measured_string_t destination;
 	measured_string_t *translation;
-	char *data;
+	uint8_t *data;
 	int phone;
 	int rc;
 
 	// get destination hardware address
 	if (netif->arp && (route->address.s_addr != dest.s_addr)) {
 		destination.value = route->gateway.s_addr ?
-		    (char *) &route->gateway.s_addr : (char *) &dest.s_addr;
+		    (uint8_t *) &route->gateway.s_addr : (uint8_t *) &dest.s_addr;
 		destination.length = sizeof(dest.s_addr);
 
 		rc = arp_translate_req(netif->arp->phone, netif->device_id,
@@ -1755,7 +1755,7 @@ ip_received_error_msg_local(int ip_phone, device_id_t device_id,
 		if (route && ((route->address.s_addr & route->netmask.s_addr) ==
 		    (header->destination_address & route->netmask.s_addr))) {
 			// clear the ARP mapping if any
-			address.value = (char *) &header->destination_address;
+			address.value = (uint8_t *) &header->destination_address;
 			address.length = sizeof(header->destination_address);
 			arp_clear_address_req(netif->arp->phone,
 			    netif->device_id, SERVICE_IP, &address);

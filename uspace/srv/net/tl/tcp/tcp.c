@@ -153,7 +153,7 @@ struct tcp_timeout {
 	suseconds_t timeout;
 
 	/** Port map key. */
-	char *key;
+	uint8_t *key;
 
 	/** Port map key length. */
 	size_t key_length;
@@ -204,6 +204,7 @@ static int tcp_process_established(socket_core_t *, tcp_socket_data_t *,
     tcp_header_t *, packet_t *, int, size_t);
 static int tcp_queue_received_packet(socket_core_t *, tcp_socket_data_t *,
     packet_t *, int, size_t);
+static void tcp_queue_received_end_of_data(socket_core_t *socket);
 
 static int tcp_received_msg(device_id_t, packet_t *, services_t, services_t);
 static int tcp_process_client_messages(ipc_callid_t, ipc_call_t);
@@ -356,12 +357,12 @@ int tcp_process_packet(device_id_t device_id, packet_t *packet, services_t error
 	
 	/* Find the destination socket */
 	socket = socket_port_find(&tcp_globals.sockets,
-	    ntohs(header->destination_port), (const char *) src, addrlen);
+	    ntohs(header->destination_port), (uint8_t *) src, addrlen);
 	if (!socket) {
 		/* Find the listening destination socket */
 		socket = socket_port_find(&tcp_globals.sockets,
-		    ntohs(header->destination_port), SOCKET_MAP_KEY_LISTENING,
-		    0);
+		    ntohs(header->destination_port),
+		    (uint8_t *) SOCKET_MAP_KEY_LISTENING, 0);
 	}
 
 	if (!socket) {
@@ -452,7 +453,7 @@ int tcp_process_packet(device_id_t device_id, packet_t *packet, services_t error
 	}
 
 has_error_service:
-	fibril_rwlock_read_unlock(&tcp_globals.lock);
+	fibril_rwlock_write_unlock(&tcp_globals.lock);
 
 	/* TODO error reporting/handling */
 	switch (socket_data->state) {
@@ -503,6 +504,7 @@ int tcp_process_established(socket_core_t *socket, tcp_socket_data_t *
 	size_t length;
 	size_t offset;
 	uint32_t new_sequence_number;
+	bool forced_ack;
 	int rc;
 
 	assert(socket);
@@ -511,11 +513,15 @@ int tcp_process_established(socket_core_t *socket, tcp_socket_data_t *
 	assert(header);
 	assert(packet);
 
+	forced_ack = false;
+
 	new_sequence_number = ntohl(header->sequence_number);
 	old_incoming = socket_data->next_incoming;
 
-	if (header->finalize)
-		socket_data->fin_incoming = new_sequence_number;
+	if (header->finalize) {
+		socket_data->fin_incoming = new_sequence_number +
+		    total_length - TCP_HEADER_LENGTH(header);
+	}
 
 	/* Trim begining if containing expected data */
 	if (IS_IN_INTERVAL_OVERFLOW(new_sequence_number,
@@ -759,18 +765,26 @@ int tcp_process_established(socket_core_t *socket, tcp_socket_data_t *
 		printf("unexpected\n");
 		/* Release duplicite or restricted */
 		pq_release_remote(tcp_globals.net_phone, packet_get_id(packet));
+		forced_ack = true;
 	}
 
-	/* Change state according to the acknowledging incoming fin */
-	if (IS_IN_INTERVAL_OVERFLOW(old_incoming, socket_data->fin_incoming,
-	    socket_data->next_incoming)) {
+	/* If next in sequence is an incoming FIN */
+	if (socket_data->next_incoming == socket_data->fin_incoming) {
+		/* Advance sequence number */
+		socket_data->next_incoming += 1;
+
+		/* Handle FIN */
 		switch (socket_data->state) {
 		case TCP_SOCKET_FIN_WAIT_1:
 		case TCP_SOCKET_FIN_WAIT_2:
 		case TCP_SOCKET_CLOSING:
 			socket_data->state = TCP_SOCKET_CLOSING;
 			break;
-		/*case TCP_ESTABLISHED:*/
+		case TCP_SOCKET_ESTABLISHED:
+			/* Queue end-of-data marker on the socket. */
+			tcp_queue_received_end_of_data(socket);
+			socket_data->state = TCP_SOCKET_CLOSE_WAIT;
+			break;
 		default:
 			socket_data->state = TCP_SOCKET_CLOSE_WAIT;
 			break;
@@ -778,7 +792,7 @@ int tcp_process_established(socket_core_t *socket, tcp_socket_data_t *
 	}
 
 	packet = tcp_get_packets_to_send(socket, socket_data);
-	if (!packet) {
+	if (!packet && (socket_data->next_incoming != old_incoming || forced_ack)) {
 		/* Create the notification packet */
 		rc = tcp_create_notification_packet(&packet, socket,
 		    socket_data, 0, 0);
@@ -834,6 +848,24 @@ int tcp_queue_received_packet(socket_core_t *socket,
 	    (sysarg_t) fragments);
 
 	return EOK;
+}
+
+/** Queue end-of-data marker on the socket.
+ *
+ * Next element in the sequence space is FIN. Queue end-of-data marker
+ * on the socket.
+ *
+ * @param socket	Socket
+ */
+static void tcp_queue_received_end_of_data(socket_core_t *socket)
+{
+	assert(socket != NULL);
+
+	/* Notify the destination socket */
+	async_msg_5(socket->phone, NET_SOCKET_RECEIVED,
+	    (sysarg_t) socket->socket_id,
+	    0, 0, 0,
+	    (sysarg_t) 0 /* 0 fragments == no more data */);
 }
 
 int tcp_process_syn_sent(socket_core_t *socket, tcp_socket_data_t *
@@ -965,7 +997,7 @@ int tcp_process_listen(socket_core_t *listening_socket,
 
 	/* Find the destination socket */
 	listening_socket = socket_port_find(&tcp_globals.sockets,
-	    listening_port, SOCKET_MAP_KEY_LISTENING, 0);
+	    listening_port, (uint8_t *) SOCKET_MAP_KEY_LISTENING, 0);
 	if (!listening_socket ||
 	    (listening_socket->socket_id != listening_socket_id)) {
 		fibril_rwlock_write_unlock(&tcp_globals.lock);
@@ -989,9 +1021,9 @@ int tcp_process_listen(socket_core_t *listening_socket,
 	assert(socket_data);
 
 	rc = socket_port_add(&tcp_globals.sockets, listening_port, socket,
-	    (const char *) socket_data->addr, socket_data->addrlen);
+	    (uint8_t *) socket_data->addr, socket_data->addrlen);
 	assert(socket == socket_port_find(&tcp_globals.sockets, listening_port,
-	    (const char *) socket_data->addr, socket_data->addrlen));
+	    (uint8_t *) socket_data->addr, socket_data->addrlen));
 
 //	rc = socket_bind_free_port(&tcp_globals.sockets, socket,
 //	    TCP_FREE_PORTS_START, TCP_FREE_PORTS_END,
@@ -1802,6 +1834,8 @@ int tcp_connect_core(socket_core_t *socket, socket_cores_t *local_sockets,
 			fibril_mutex_lock(&socket_data->operation.mutex);
 			fibril_rwlock_write_unlock(socket_data->local_lock);
 
+			socket_data->state = TCP_SOCKET_SYN_SENT;
+
 			/* Send the packet */
 			printf("connecting %d\n", packet_get_id(packet));
 			tcp_send_packets(socket_data->device_id, packet);
@@ -2074,7 +2108,7 @@ int tcp_prepare_timeout(int (*timeout_function)(void *tcp_timeout_t),
 	operation_timeout->state = state;
 
 	/* Copy the key */
-	operation_timeout->key = ((char *) operation_timeout) +
+	operation_timeout->key = ((uint8_t *) operation_timeout) +
 	    sizeof(*operation_timeout);
 	operation_timeout->key_length = socket->key_length;
 	memcpy(operation_timeout->key, socket->key, socket->key_length);
@@ -2084,8 +2118,9 @@ int tcp_prepare_timeout(int (*timeout_function)(void *tcp_timeout_t),
 	fibril = fibril_create(timeout_function, operation_timeout);
 	if (!fibril) {
 		free(operation_timeout);
-		return EPARTY;	/* FIXME: use another EC */
+		return ENOMEM;
 	}
+
 //      fibril_mutex_lock(&socket_data->operation.mutex);
 	/* Start the timeout fibril */
 	fibril_add_ready(fibril);
@@ -2208,7 +2243,7 @@ int tcp_send_message(socket_cores_t *local_sockets, int socket_id,
 			return tcp_release_and_return(packet, ENOMEM);
 
 		tcp_prepare_operation_header(socket, socket_data, header, 0, 0);
-		rc = tcp_queue_packet(socket, socket_data, packet, 0);
+		rc = tcp_queue_packet(socket, socket_data, packet, total_length);
 		if (rc != EOK)
 			return rc;
 	}

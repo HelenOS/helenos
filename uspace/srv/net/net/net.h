@@ -104,10 +104,10 @@ typedef struct {
 	/** Serving network interface driver module index. */
 	module_t *driver;
 	
-	device_id_t id;	/**< System-unique network interface identifier. */
-	module_t *il;	/**< Serving internet layer module index. */
-	char *name;	/**< System-unique network interface name. */
-	module_t *nil;	/**< Serving link layer module index. */
+	device_id_t id;  /**< System-unique network interface identifier. */
+	module_t *il;    /**< Serving internet layer module index. */
+	uint8_t *name;   /**< System-unique network interface name. */
+	module_t *nil;   /**< Serving link layer module index. */
 } netif_t;
 
 /** Present network interfaces.
@@ -132,7 +132,8 @@ typedef struct {
 	netifs_t netifs;
 } net_globals_t;
 
-extern int add_configuration(measured_strings_t *, const char *, const char *);
+extern int add_configuration(measured_strings_t *, const uint8_t *,
+    const uint8_t *);
 extern int net_module_message(ipc_callid_t, ipc_call_t *, ipc_call_t *, int *);
 extern int net_initialize_build(async_client_conn_t);
 extern int net_message(ipc_callid_t, ipc_call_t *, ipc_call_t *, int *);

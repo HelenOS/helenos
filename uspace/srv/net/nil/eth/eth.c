@@ -200,7 +200,7 @@ int nil_initialize(int net_phone)
 	eth_globals.net_phone = net_phone;
 
 	eth_globals.broadcast_addr =
-	    measured_string_create_bulk("\xFF\xFF\xFF\xFF\xFF\xFF", ETH_ADDR);
+	    measured_string_create_bulk((uint8_t *) "\xFF\xFF\xFF\xFF\xFF\xFF", ETH_ADDR);
 	if (!eth_globals.broadcast_addr) {
 		rc = ENOMEM;
 		goto out;
@@ -283,17 +283,17 @@ static int eth_device_message(device_id_t device_id, services_t service,
 	int index;
 	measured_string_t names[2] = {
 		{
-			(char *) "ETH_MODE",
+			(uint8_t *) "ETH_MODE",
 			8
 		},
 		{
-			(char *) "ETH_DUMMY",
+			(uint8_t *) "ETH_DUMMY",
 			9
 		}
 	};
 	measured_string_t *configuration;
 	size_t count = sizeof(names) / sizeof(measured_string_t);
-	char *data;
+	uint8_t *data;
 	eth_proto_t *proto;
 	int rc;
 
@@ -357,10 +357,10 @@ static int eth_device_message(device_id_t device_id, services_t service,
 	}
 
 	if (configuration) {
-		if (!str_lcmp(configuration[0].value, "DIX",
+		if (!str_lcmp((char *) configuration[0].value, "DIX",
 		    configuration[0].length)) {
 			device->flags |= ETH_DIX;
-		} else if(!str_lcmp(configuration[0].value, "8023_2_LSAP",
+		} else if(!str_lcmp((char *) configuration[0].value, "8023_2_LSAP",
 		    configuration[0].length)) {
 			device->flags |= ETH_8023_2_LSAP;
 		} else {
@@ -406,7 +406,7 @@ static int eth_device_message(device_id_t device_id, services_t service,
 	}
 	
 	printf("%s: Device registered (id: %d, service: %d: mtu: %zu, "
-	    "mac: %x:%x:%x:%x:%x:%x, flags: 0x%x)\n",
+	    "mac: %02x:%02x:%02x:%02x:%02x:%02x, flags: 0x%x)\n",
 	    NAME, device->device_id, device->service, device->mtu,
 	    device->addr_data[0], device->addr_data[1],
 	    device->addr_data[2], device->addr_data[3],

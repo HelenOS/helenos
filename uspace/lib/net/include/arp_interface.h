@@ -49,7 +49,7 @@
 extern int arp_device_req(int, device_id_t, services_t, services_t,
     measured_string_t *);
 extern int arp_translate_req(int, device_id_t, services_t, measured_string_t *,
-    measured_string_t **, char **);
+    measured_string_t **, uint8_t **);
 extern int arp_clear_device_req(int, device_id_t);
 extern int arp_clear_address_req(int, device_id_t, services_t,
     measured_string_t *);

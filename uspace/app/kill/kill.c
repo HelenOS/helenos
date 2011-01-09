@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jakub Jermar
+ * Copyright (c) 2010 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,20 +26,51 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup kill
  * @{
  */
-/** @file
+/**
+ * @file Forcefully terminate a task.
  */
 
-#ifndef LIBC_ASYNC_REL_H_
-#define LIBC_ASYNC_REL_H_
+#include <errno.h>
+#include <stdio.h>
+#include <task.h>
+#include <str_error.h>
 
-extern int async_rel_init(void);
-extern int async_relation_create(int);
-extern void async_relation_destroy(int, int);
+#define NAME  "kill"
 
-#endif
+static void print_syntax(void)
+{
+	printf("Syntax: " NAME " <task ID>\n");
+}
+
+int main(int argc, char *argv[])
+{
+	char *eptr;
+	task_id_t taskid;
+	int rc;
+
+	if (argc != 2) {
+		print_syntax();
+		return 1;
+	}
+
+	taskid = strtoul(argv[1], &eptr, 0);
+	if (*eptr != '\0') {
+		printf("Invalid task ID argument '%s'.\n", argv[1]);
+		return 2;
+	}
+
+	rc = task_kill(taskid);
+	if (rc != EOK) {
+		printf("Failed to kill task ID %" PRIu64 ": %s\n",
+		    taskid, str_error(rc));
+		return 3;
+	}
+
+	return 0;
+}
 
 /** @}
  */

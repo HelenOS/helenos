@@ -404,17 +404,17 @@ int icmp_initialize(async_client_conn_t client_connection)
 {
 	measured_string_t names[] = {
 		{
-			(char *) "ICMP_ERROR_REPORTING",
+			(uint8_t *) "ICMP_ERROR_REPORTING",
 			20
 		},
 		{
-			(char *) "ICMP_ECHO_REPLYING",
+			(uint8_t *) "ICMP_ECHO_REPLYING",
 			18
 		}
 	};
 	measured_string_t *configuration;
 	size_t count = sizeof(names) / sizeof(measured_string_t);
-	char *data;
+	uint8_t *data;
 	int rc;
 
 	fibril_rwlock_initialize(&icmp_globals.lock);
@@ -528,7 +528,7 @@ static int icmp_process_packet(packet_t *packet, services_t error)
 	icmp_type_t type;
 	icmp_code_t code;
 	int rc;
-
+	
 	switch (error) {
 	case SERVICE_NONE:
 		break;
