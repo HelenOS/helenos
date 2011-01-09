@@ -149,23 +149,20 @@ void _async_sess_init(void)
  *
  * @param sess	Session structure provided by caller, will be filled in.
  * @param phone	Phone connected to the desired server task.
+ * @param arg1	Value to pass as first argument upon creating a new
+ *		connection. Typical use is to identify a resource within
+ *		the server that the caller wants to access (port ID,
+ *		interface ID, device ID, etc.).
  */
-void async_session_create(async_sess_t *sess, int phone)
+void async_session_create(async_sess_t *sess, int phone, sysarg_t arg1)
 {
 	sess->sess_phone = phone;
-	sess->connect_arg1 = 0;
+	sess->connect_arg1 = arg1;
 	list_initialize(&sess->conn_head);
 	
 	/* Add to list of sessions. */
 	fibril_mutex_lock(&async_sess_mutex);
 	list_append(&sess->sess_link, &session_list_head);
-	fibril_mutex_unlock(&async_sess_mutex);
-}
-
-void async_session_set_connect_args(async_sess_t *sess, sysarg_t arg1)
-{
-	fibril_mutex_lock(&async_sess_mutex);
-	sess->connect_arg1 = arg1;
 	fibril_mutex_unlock(&async_sess_mutex);
 }
 
