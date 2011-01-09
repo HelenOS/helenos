@@ -48,7 +48,7 @@
 #include <devman.h>
 #include <ipc/devman.h>
 #include <ipc/dev_iface.h>
-#include <resource.h>
+#include <hw_res.h>
 #include <device/hw_res.h>
 #include <ddi.h>
 #include <libarch/ddi.h>
@@ -76,7 +76,7 @@ static bool pciintel_enable_child_interrupt(device_t *dev)
 	return false;
 }
 
-static resource_iface_t pciintel_child_res_iface = {
+static hw_res_ops_t pciintel_child_hw_res_ops = {
 	&pciintel_get_child_resources,
 	&pciintel_enable_child_interrupt
 };
@@ -514,7 +514,7 @@ static int pci_add_device(device_t *dev)
 
 static void pciintel_init(void)
 {
-	pci_child_ops.interfaces[HW_RES_DEV_IFACE] = &pciintel_child_res_iface;
+	pci_child_ops.interfaces[HW_RES_DEV_IFACE] = &pciintel_child_hw_res_ops;
 }
 
 pci_dev_data_t *create_pci_dev_data(void)

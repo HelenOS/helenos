@@ -37,28 +37,28 @@
 #include <errno.h>
 
 #include "driver.h"
-#include "resource.h"
+#include "hw_res.h"
 
-static void remote_res_get_resources(device_t *, void *, ipc_callid_t,
+static void remote_res_get_resource_list(device_t *, void *, ipc_callid_t,
     ipc_call_t *);
 static void remote_res_enable_interrupt(device_t *, void *, ipc_callid_t,
     ipc_call_t *);
 
-static remote_iface_func_ptr_t remote_res_iface_ops [] = {
-	&remote_res_get_resources,
+static remote_iface_func_ptr_t remote_hw_res_iface_ops [] = {
+	&remote_res_get_resource_list,
 	&remote_res_enable_interrupt
 };
 
-remote_iface_t remote_res_iface = {
-	.method_count = sizeof(remote_res_iface_ops) /
+remote_iface_t remote_hw_res_iface = {
+	.method_count = sizeof(remote_hw_res_iface_ops) /
 	    sizeof(remote_iface_func_ptr_t),
-	.methods = remote_res_iface_ops
+	.methods = remote_hw_res_iface_ops
 };
 
 static void remote_res_enable_interrupt(device_t *dev, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
-	resource_iface_t *ires = (resource_iface_t *) iface;
+	hw_res_ops_t *ires = (hw_res_ops_t *) iface;
 	
 	if (NULL == ires->enable_interrupt)
 		ipc_answer_0(callid, ENOTSUP);
@@ -68,16 +68,16 @@ static void remote_res_enable_interrupt(device_t *dev, void *iface,
 		ipc_answer_0(callid, EREFUSED);
 }
 
-static void remote_res_get_resources(device_t *dev, void *iface,
+static void remote_res_get_resource_list(device_t *dev, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
-	resource_iface_t *ires = (resource_iface_t *) iface;
-	if (NULL == ires->get_resources) {
+	hw_res_ops_t *ires = (hw_res_ops_t *) iface;
+	if (NULL == ires->get_resource_list) {
 		ipc_answer_0(callid, ENOTSUP);
 		return;
 	}
 	
-	hw_resource_list_t *hw_resources = ires->get_resources(dev);
+	hw_resource_list_t *hw_resources = ires->get_resource_list(dev);
 	if (NULL == hw_resources){
 		ipc_answer_0(callid, ENOENT);
 		return;

@@ -32,17 +32,16 @@
 /** @file
  */
 
-#ifndef LIBDRV_RESOURCE_H_
-#define LIBDRV_RESOURCE_H_
+#ifndef LIBDRV_HW_RES_H_
+#define LIBDRV_HW_RES_H_
 
 #include <device/hw_res.h>
 #include <sys/types.h>
 
-typedef struct resource_iface {
-	 hw_resource_list_t *(* get_resources)(device_t *);
+typedef struct {
+	 hw_resource_list_t *(*get_resource_list)(device_t *);
 	 bool (*enable_interrupt)(device_t *);
-} resource_iface_t;
-
+} hw_res_ops_t;
 
 #endif
 

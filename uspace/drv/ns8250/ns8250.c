@@ -52,8 +52,7 @@
 #include <libarch/ddi.h>
 
 #include <driver.h>
-#include <char.h>
-#include <resource.h>
+#include <char_dev.h>
 
 #include <devman.h>
 #include <ipc/devman.h>
@@ -226,7 +225,7 @@ static int ns8250_write(device_t *dev, char *buf, size_t count)
 static device_ops_t ns8250_dev_ops;
 
 /** The character interface's callbacks. */
-static char_iface_t ns8250_char_iface = {
+static char_dev_ops_t ns8250_char_dev_ops = {
 	.read = &ns8250_read,
 	.write = &ns8250_write
 };
@@ -923,7 +922,7 @@ static void ns8250_init(void)
 	ns8250_dev_ops.open = &ns8250_open;
 	ns8250_dev_ops.close = &ns8250_close;
 	
-	ns8250_dev_ops.interfaces[CHAR_DEV_IFACE] = &ns8250_char_iface;
+	ns8250_dev_ops.interfaces[CHAR_DEV_IFACE] = &ns8250_char_dev_ops;
 	ns8250_dev_ops.default_handler = &ns8250_default_handler;
 }
 

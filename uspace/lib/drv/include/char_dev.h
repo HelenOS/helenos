@@ -32,10 +32,15 @@
 /** @file
  */
 
-#ifndef LIBDRV_REMOTE_RES_H_
-#define LIBDRV_REMOTE_RES_H_
+#ifndef LIBDRV_CHAR_DEV_H_
+#define LIBDRV_CHAR_DEV_H_
 
-extern remote_iface_t remote_res_iface;
+#include "driver.h"
+
+typedef struct {
+	int (*read)(device_t *, char *, size_t);
+	int (*write)(device_t *, char *, size_t);
+} char_dev_ops_t;
 
 #endif
 

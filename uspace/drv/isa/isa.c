@@ -50,7 +50,7 @@
 #include <sys/stat.h>
 
 #include <driver.h>
-#include <resource.h>
+#include <hw_res.h>
 
 #include <devman.h>
 #include <ipc/devman.h>
@@ -83,7 +83,7 @@ static bool isa_enable_child_interrupt(device_t *dev)
 	return false;
 }
 
-static resource_iface_t isa_child_res_iface = {
+static hw_res_ops_t isa_child_hw_res_ops = {
 	&isa_get_child_resources,
 	&isa_enable_child_interrupt
 };
@@ -501,7 +501,7 @@ static int isa_add_device(device_t *dev)
 
 static void isa_init() 
 {
-	isa_child_dev_ops.interfaces[HW_RES_DEV_IFACE] = &isa_child_res_iface;
+	isa_child_dev_ops.interfaces[HW_RES_DEV_IFACE] = &isa_child_hw_res_ops;
 }
 
 int main(int argc, char *argv[])
