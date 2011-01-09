@@ -35,7 +35,7 @@
 #ifndef LIBDRV_REMOTE_CHAR_H_
 #define LIBDRV_REMOTE_CHAR_H_
 
-remote_iface_t remote_char_iface;
+extern remote_iface_t remote_char_iface;
 
 #endif
 

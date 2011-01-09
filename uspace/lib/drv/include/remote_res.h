@@ -35,7 +35,7 @@
 #ifndef LIBDRV_REMOTE_RES_H_
 #define LIBDRV_REMOTE_RES_H_
 
-remote_iface_t remote_res_iface;
+extern remote_iface_t remote_res_iface;
 
 #endif
 
