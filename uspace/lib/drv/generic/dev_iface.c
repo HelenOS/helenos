@@ -35,6 +35,8 @@
 /** @file
  */
 
+#include <assert.h>
+
 #include "dev_iface.h"
 #include "remote_hw_res.h"
 #include "remote_char_dev.h"
@@ -46,7 +48,7 @@ static iface_dipatch_table_t remote_ifaces = {
 	}
 };
 
-remote_iface_t* get_remote_iface(int idx)
+remote_iface_t *get_remote_iface(int idx)
 {
 	assert(is_valid_iface_idx(idx));
 	return remote_ifaces.ifaces[idx];
@@ -58,7 +60,13 @@ get_remote_method(remote_iface_t *rem_iface, sysarg_t iface_method_idx)
 	if (iface_method_idx >= rem_iface->method_count) {
 		return NULL;
 	}
+
 	return rem_iface->methods[iface_method_idx];
+}
+
+bool is_valid_iface_idx(int idx)
+{
+	return (0 <= idx) && (idx < DEV_IFACE_MAX);
 }
 
 /**
