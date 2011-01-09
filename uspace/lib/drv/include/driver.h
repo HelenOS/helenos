@@ -71,15 +71,8 @@ typedef struct {
 	remote_iface_t *ifaces[DEV_IFACE_COUNT];
 } iface_dipatch_table_t;
 
-
-static inline bool is_valid_iface_idx(int idx)
-{
-	return (0 <= idx) && (idx < DEV_IFACE_MAX);
-}
-
-remote_iface_t *get_remote_iface(int);
-remote_iface_func_ptr_t get_remote_method(remote_iface_t *, sysarg_t);
-
+extern remote_iface_t *get_remote_iface(int);
+extern remote_iface_func_ptr_t get_remote_method(remote_iface_t *, sysarg_t);
 
 /*
  * Device class
@@ -170,40 +163,13 @@ int driver_main(driver_t *);
  *
  * @return		The device structure.
  */
-static inline device_t *create_device(void)
-{
-	device_t *dev = malloc(sizeof(device_t));
+extern device_t *create_device(void);
+extern void delete_device(device_t *);
+extern void *device_get_ops(device_t *, dev_inferface_idx_t);
 
-	if (dev != NULL) {
-		memset(dev, 0, sizeof(device_t));
-		init_match_ids(&dev->match_ids);
-	}
-
-	return dev;
-}
-
-/** Delete device structure.
- *
- * @param dev		The device structure.
- */
-static inline void delete_device(device_t *dev)
-{
-	clean_match_ids(&dev->match_ids);
-	if (dev->name != NULL)
-		free(dev->name);
-	free(dev);
-}
-
-static inline void *device_get_ops(device_t *dev, dev_inferface_idx_t idx)
-{
-	assert(is_valid_iface_idx(idx));
-	if (dev->ops == NULL)
-		return NULL;
-	return dev->ops->interfaces[idx];
-}
-
-int child_device_register(device_t *, device_t *);
-int child_device_register_wrapper(device_t *, const char *, const char *, int);
+extern int child_device_register(device_t *, device_t *);
+extern int child_device_register_wrapper(device_t *, const char *, const char *,
+    int);
 
 /*
  * Interrupts
@@ -225,107 +191,24 @@ typedef struct interrupt_context_list {
 	fibril_mutex_t mutex;
 } interrupt_context_list_t;
 
-static inline interrupt_context_t *create_interrupt_context(void)
-{
-	interrupt_context_t *ctx;
-	
-	ctx = (interrupt_context_t *) malloc(sizeof(interrupt_context_t));
-	if (ctx != NULL)
-		memset(ctx, 0, sizeof(interrupt_context_t));
-	
-	return ctx;
-}
+extern interrupt_context_t *create_interrupt_context(void);
+extern void delete_interrupt_context(interrupt_context_t *);
+extern void init_interrupt_context_list(interrupt_context_list_t *);
+extern void add_interrupt_context(interrupt_context_list_t *,
+    interrupt_context_t *);
+extern void remove_interrupt_context(interrupt_context_list_t *,
+    interrupt_context_t *);
+extern interrupt_context_t *find_interrupt_context_by_id(
+    interrupt_context_list_t *, int);
+extern interrupt_context_t *find_interrupt_context(
+    interrupt_context_list_t *, device_t *, int);
 
-static inline void delete_interrupt_context(interrupt_context_t *ctx)
-{
-	if (ctx != NULL)
-		free(ctx);
-}
-
-static inline void init_interrupt_context_list(interrupt_context_list_t *list)
-{
-	memset(list, 0, sizeof(interrupt_context_list_t));
-	fibril_mutex_initialize(&list->mutex);
-	list_initialize(&list->contexts);
-}
-
-static inline void
-add_interrupt_context(interrupt_context_list_t *list, interrupt_context_t *ctx)
-{
-	fibril_mutex_lock(&list->mutex);
-	ctx->id = list->curr_id++;
-	list_append(&ctx->link, &list->contexts);
-	fibril_mutex_unlock(&list->mutex);
-}
-
-static inline void
-remove_interrupt_context(interrupt_context_list_t *list,
-    interrupt_context_t *ctx)
-{
-	fibril_mutex_lock(&list->mutex);
-	list_remove(&ctx->link);
-	fibril_mutex_unlock(&list->mutex);
-}
-
-static inline interrupt_context_t *
-find_interrupt_context_by_id(interrupt_context_list_t *list, int id)
-{
-	fibril_mutex_lock(&list->mutex);
-	
-	link_t *link = list->contexts.next;
-	interrupt_context_t *ctx;
-	
-	while (link != &list->contexts) {
-		ctx = list_get_instance(link, interrupt_context_t, link);
-		if (ctx->id == id) {
-			fibril_mutex_unlock(&list->mutex);
-			return ctx;
-		}
-		link = link->next;
-	}
-	
-	fibril_mutex_unlock(&list->mutex);
-	return NULL;
-}
-
-static inline interrupt_context_t *
-find_interrupt_context(interrupt_context_list_t *list, device_t *dev, int irq)
-{
-	fibril_mutex_lock(&list->mutex);
-	
-	link_t *link = list->contexts.next;
-	interrupt_context_t *ctx;
-	
-	while (link != &list->contexts) {
-		ctx = list_get_instance(link, interrupt_context_t, link);
-		if (ctx->irq == irq && ctx->dev == dev) {
-			fibril_mutex_unlock(&list->mutex);
-			return ctx;
-		}
-		link = link->next;
-	}
-	
-	fibril_mutex_unlock(&list->mutex);
-	return NULL;
-}
-
-int register_interrupt_handler(device_t *, int, interrupt_handler_t *,
+extern int register_interrupt_handler(device_t *, int, interrupt_handler_t *,
     irq_code_t *);
-int unregister_interrupt_handler(device_t *, int);
+extern int unregister_interrupt_handler(device_t *, int);
 
-
-/** Get default handler for client requests */
-static inline remote_handler_t *device_get_default_handler(device_t *dev)
-{
-	if (dev->ops == NULL)
-		return NULL;
-	return dev->ops->default_handler;
-}
-
-static inline int add_device_to_class(device_t *dev, const char *class_name)
-{
-	return devman_add_device_to_class(dev->handle, class_name);
-}
+extern remote_handler_t *device_get_default_handler(device_t *);
+extern int add_device_to_class(device_t *, const char *);
 
 #endif
 

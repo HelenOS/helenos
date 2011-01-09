@@ -62,6 +62,11 @@ get_remote_method(remote_iface_t *rem_iface, sysarg_t iface_method_idx)
 	return rem_iface->methods[iface_method_idx];
 }
 
+bool is_valid_iface_idx(int idx)
+{
+	return (0 <= idx) && (idx < DEV_IFACE_MAX);
+}
+
 /**
  * @}
  */

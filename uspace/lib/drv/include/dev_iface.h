@@ -39,6 +39,9 @@
 
 /* TODO declare device interface structures here */
 
+extern bool is_valid_iface_idx(int);
+
+
 #endif
 
 /**

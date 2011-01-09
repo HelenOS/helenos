@@ -51,6 +51,7 @@
 
 #include <ipc/driver.h>
 
+#include "dev_iface.h"
 #include "driver.h"
 
 /** Driver structure */
@@ -84,6 +85,90 @@ static void driver_irq_handler(ipc_callid_t iid, ipc_call_t *icall)
 	if (ctx != NULL && ctx->handler != NULL)
 		(*ctx->handler)(ctx->dev, iid, icall);
 }
+
+interrupt_context_t *create_interrupt_context(void)
+{
+	interrupt_context_t *ctx;
+	
+	ctx = (interrupt_context_t *) malloc(sizeof(interrupt_context_t));
+	if (ctx != NULL)
+		memset(ctx, 0, sizeof(interrupt_context_t));
+	
+	return ctx;
+}
+
+void delete_interrupt_context(interrupt_context_t *ctx)
+{
+	if (ctx != NULL)
+		free(ctx);
+}
+
+void init_interrupt_context_list(interrupt_context_list_t *list)
+{
+	memset(list, 0, sizeof(interrupt_context_list_t));
+	fibril_mutex_initialize(&list->mutex);
+	list_initialize(&list->contexts);
+}
+
+void
+add_interrupt_context(interrupt_context_list_t *list, interrupt_context_t *ctx)
+{
+	fibril_mutex_lock(&list->mutex);
+	ctx->id = list->curr_id++;
+	list_append(&ctx->link, &list->contexts);
+	fibril_mutex_unlock(&list->mutex);
+}
+
+void remove_interrupt_context(interrupt_context_list_t *list,
+    interrupt_context_t *ctx)
+{
+	fibril_mutex_lock(&list->mutex);
+	list_remove(&ctx->link);
+	fibril_mutex_unlock(&list->mutex);
+}
+
+interrupt_context_t *
+find_interrupt_context_by_id(interrupt_context_list_t *list, int id)
+{
+	fibril_mutex_lock(&list->mutex);
+	
+	link_t *link = list->contexts.next;
+	interrupt_context_t *ctx;
+	
+	while (link != &list->contexts) {
+		ctx = list_get_instance(link, interrupt_context_t, link);
+		if (ctx->id == id) {
+			fibril_mutex_unlock(&list->mutex);
+			return ctx;
+		}
+		link = link->next;
+	}
+	
+	fibril_mutex_unlock(&list->mutex);
+	return NULL;
+}
+
+interrupt_context_t *
+find_interrupt_context(interrupt_context_list_t *list, device_t *dev, int irq)
+{
+	fibril_mutex_lock(&list->mutex);
+	
+	link_t *link = list->contexts.next;
+	interrupt_context_t *ctx;
+	
+	while (link != &list->contexts) {
+		ctx = list_get_instance(link, interrupt_context_t, link);
+		if (ctx->irq == irq && ctx->dev == dev) {
+			fibril_mutex_unlock(&list->mutex);
+			return ctx;
+		}
+		link = link->next;
+	}
+	
+	fibril_mutex_unlock(&list->mutex);
+	return NULL;
+}
+
 
 int
 register_interrupt_handler(device_t *dev, int irq, interrupt_handler_t *handler,
@@ -364,6 +449,42 @@ static void driver_connection(ipc_callid_t iid, ipc_call_t *icall)
 	}
 }
 
+/** Create new device structure.
+ *
+ * @return		The device structure.
+ */
+device_t *create_device(void)
+{
+	device_t *dev = malloc(sizeof(device_t));
+
+	if (dev != NULL) {
+		memset(dev, 0, sizeof(device_t));
+		init_match_ids(&dev->match_ids);
+	}
+
+	return dev;
+}
+
+/** Delete device structure.
+ *
+ * @param dev		The device structure.
+ */
+void delete_device(device_t *dev)
+{
+	clean_match_ids(&dev->match_ids);
+	if (dev->name != NULL)
+		free(dev->name);
+	free(dev);
+}
+
+void *device_get_ops(device_t *dev, dev_inferface_idx_t idx)
+{
+	assert(is_valid_iface_idx(idx));
+	if (dev->ops == NULL)
+		return NULL;
+	return dev->ops->interfaces[idx];
+}
+
 int child_device_register(device_t *child, device_t *parent)
 {
 	assert(child->name != NULL);
@@ -432,6 +553,19 @@ failure:
 	}
 	
 	return rc;
+}
+
+/** Get default handler for client requests */
+remote_handler_t *device_get_default_handler(device_t *dev)
+{
+	if (dev->ops == NULL)
+		return NULL;
+	return dev->ops->default_handler;
+}
+
+int add_device_to_class(device_t *dev, const char *class_name)
+{
+	return devman_add_device_to_class(dev->handle, class_name);
 }
 
 int driver_main(driver_t *drv)
