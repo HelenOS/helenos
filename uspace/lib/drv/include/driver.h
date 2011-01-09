@@ -49,7 +49,9 @@
 struct device;
 typedef struct device device_t;
 
-/* device interface */
+/*
+ * Device interface
+ */
 
 /*
  * First two parameters: device and interface structure registered by the
@@ -72,16 +74,18 @@ typedef struct {
 
 static inline bool is_valid_iface_idx(int idx)
 {
-	return 0 <= idx && idx < DEV_IFACE_MAX;
+	return (0 <= idx) && (idx < DEV_IFACE_MAX);
 }
 
 remote_iface_t *get_remote_iface(int);
 remote_iface_func_ptr_t get_remote_method(remote_iface_t *, sysarg_t);
 
 
-/* device class */
+/*
+ * Device class
+ */
 
-/** Devices operations. */
+/** Devices operations */
 typedef struct device_ops {
 	/**
 	 * Optional callback function called when a client is connecting to the
@@ -107,9 +111,11 @@ typedef struct device_ops {
 } device_ops_t;
 
 
-/* device */
+/*
+ * Device
+ */
 
-/** The device. */
+/** Device structure */
 struct device {
 	/**
 	 * Globally unique device identifier (assigned to the device by the
@@ -118,44 +124,43 @@ struct device {
 	devman_handle_t handle;
 	
 	/**
-	 * The phone to the parent device driver (if it is different from this
-	 * driver).
+	 * Phone to the parent device driver (if it is different from this
+	 * driver)
 	 */
 	int parent_phone;
 	
-	/** Parent device if handled by this driver, NULL otherwise. */
+	/** Parent device if handled by this driver, NULL otherwise */
 	device_t *parent;
-	/** The device's name. */
+	/** Device name */
 	const char *name;
-	/** The list of device ids for device-to-driver matching. */
+	/** List of device ids for device-to-driver matching */
 	match_id_list_t match_ids;
-	/** The device driver's data associated with this device. */
+	/** Driver-specific data associated with this device */
 	void *driver_data;
-	/** The implementation of operations provided by this device. */
+	/** The implementation of operations provided by this device */
 	device_ops_t *ops;
 	
-	/**
-	 * Pointer to the previous and next device in the list of devices
-	 * handled by the driver.
-	 */
+	/** Link in the list of devices handled by the driver */
 	link_t link;
 };
 
 
-/* driver */
+/*
+ * Driver
+ */
 
-/** Generic device driver operations. */
+/** Generic device driver operations */
 typedef struct driver_ops {
-	/** Callback method for passing a new device to the device driver.*/
+	/** Callback method for passing a new device to the device driver */
 	int (*add_device)(device_t *dev);
-	/* TODO add other generic driver operations */
+	/* TODO: add other generic driver operations */
 } driver_ops_t;
 
-/** The driver structure.*/
+/** Driver structure */
 typedef struct driver {
-	/** The name of the device driver. */
+	/** Name of the device driver */
 	const char *name;
-	/** Generic device driver operations. */
+	/** Generic device driver operations */
 	driver_ops_t *driver_ops;
 } driver_t;
 
@@ -168,10 +173,12 @@ int driver_main(driver_t *);
 static inline device_t *create_device(void)
 {
 	device_t *dev = malloc(sizeof(device_t));
-	if (NULL != dev) {
+
+	if (dev != NULL) {
 		memset(dev, 0, sizeof(device_t));
 		init_match_ids(&dev->match_ids);
-	}	
+	}
+
 	return dev;
 }
 
@@ -182,7 +189,7 @@ static inline device_t *create_device(void)
 static inline void delete_device(device_t *dev)
 {
 	clean_match_ids(&dev->match_ids);
-	if (NULL != dev->name)
+	if (dev->name != NULL)
 		free(dev->name);
 	free(dev);
 }
@@ -198,8 +205,9 @@ static inline void *device_get_ops(device_t *dev, dev_inferface_idx_t idx)
 int child_device_register(device_t *, device_t *);
 int child_device_register_wrapper(device_t *, const char *, const char *, int);
 
-
-/* interrupts */
+/*
+ * Interrupts
+ */
 
 typedef void interrupt_handler_t(device_t *, ipc_callid_t, ipc_call_t *);
 
@@ -222,7 +230,7 @@ static inline interrupt_context_t *create_interrupt_context(void)
 	interrupt_context_t *ctx;
 	
 	ctx = (interrupt_context_t *) malloc(sizeof(interrupt_context_t));
-	if (NULL != ctx)
+	if (ctx != NULL)
 		memset(ctx, 0, sizeof(interrupt_context_t));
 	
 	return ctx;
@@ -230,7 +238,7 @@ static inline interrupt_context_t *create_interrupt_context(void)
 
 static inline void delete_interrupt_context(interrupt_context_t *ctx)
 {
-	if (NULL != ctx)
+	if (ctx != NULL)
 		free(ctx);
 }
 
@@ -269,7 +277,7 @@ find_interrupt_context_by_id(interrupt_context_list_t *list, int id)
 	
 	while (link != &list->contexts) {
 		ctx = list_get_instance(link, interrupt_context_t, link);
-		if (id == ctx->id) {
+		if (ctx->id == id) {
 			fibril_mutex_unlock(&list->mutex);
 			return ctx;
 		}
@@ -290,7 +298,7 @@ find_interrupt_context(interrupt_context_list_t *list, device_t *dev, int irq)
 	
 	while (link != &list->contexts) {
 		ctx = list_get_instance(link, interrupt_context_t, link);
-		if (irq == ctx->irq && dev == ctx->dev) {
+		if (ctx->irq == irq && ctx->dev == dev) {
 			fibril_mutex_unlock(&list->mutex);
 			return ctx;
 		}
@@ -306,11 +314,10 @@ int register_interrupt_handler(device_t *, int, interrupt_handler_t *,
 int unregister_interrupt_handler(device_t *, int);
 
 
-/* default handler for client requests */
-
+/** Get default handler for client requests */
 static inline remote_handler_t *device_get_default_handler(device_t *dev)
 {
-	if (NULL == dev->ops)
+	if (dev->ops == NULL)
 		return NULL;
 	return dev->ops->default_handler;
 }
