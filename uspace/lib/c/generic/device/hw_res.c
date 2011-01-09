@@ -25,13 +25,13 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
- 
+
  /** @addtogroup libc
  * @{
  */
 /** @file
  */
- 
+
 #include <device/hw_res.h>
 #include <errno.h>
 #include <async.h>
@@ -43,6 +43,7 @@ int get_hw_resources(int dev_phone, hw_resource_list_t *hw_resources)
 
 	int rc = async_req_1_1(dev_phone, DEV_IFACE_ID(HW_RES_DEV_IFACE),
 	    GET_RESOURCE_LIST, &count);
+
 	hw_resources->count = count;
 	if (rc != EOK)
 		return rc;
@@ -66,10 +67,9 @@ bool enable_interrupt(int dev_phone)
 {
 	int rc = async_req_1_0(dev_phone, DEV_IFACE_ID(HW_RES_DEV_IFACE),
 	    ENABLE_INTERRUPT);
+
 	return rc == EOK;
 }
- 
- 
- 
- /** @}
+
+/** @}
  */
