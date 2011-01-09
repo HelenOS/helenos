@@ -695,31 +695,31 @@ static int icmp_process_message(ipc_call_t *call)
 	switch (IPC_GET_IMETHOD(*call)) {
 	case NET_ICMP_DEST_UNREACH:
 		rc = packet_translate_remote(icmp_globals.net_phone, &packet,
-		    IPC_GET_PACKET(call));
+		    IPC_GET_PACKET(*call));
 		if (rc != EOK)
 			return rc;
 		return icmp_destination_unreachable_msg_local(0,
-		    ICMP_GET_CODE(call), ICMP_GET_MTU(call), packet);
+		    ICMP_GET_CODE(*call), ICMP_GET_MTU(*call), packet);
 	case NET_ICMP_SOURCE_QUENCH:
 		rc = packet_translate_remote(icmp_globals.net_phone, &packet,
-		    IPC_GET_PACKET(call));
+		    IPC_GET_PACKET(*call));
 		if (rc != EOK)
 			return rc;
 		return icmp_source_quench_msg_local(0, packet);
 	case NET_ICMP_TIME_EXCEEDED:
 		rc = packet_translate_remote(icmp_globals.net_phone, &packet,
-		    IPC_GET_PACKET(call));
+		    IPC_GET_PACKET(*call));
 		if (rc != EOK)
 			return rc;
-		return icmp_time_exceeded_msg_local(0, ICMP_GET_CODE(call),
+		return icmp_time_exceeded_msg_local(0, ICMP_GET_CODE(*call),
 		    packet);
 	case NET_ICMP_PARAMETERPROB:
 		rc = packet_translate_remote(icmp_globals.net_phone, &packet,
-		    IPC_GET_PACKET(call));
+		    IPC_GET_PACKET(*call));
 		if (rc != EOK)
 			return rc;
-		return icmp_parameter_problem_msg_local(0, ICMP_GET_CODE(call),
-		    ICMP_GET_POINTER(call), packet);
+		return icmp_parameter_problem_msg_local(0, ICMP_GET_CODE(*call),
+		    ICMP_GET_POINTER(*call), packet);
 	default:
 		return ENOTSUP;
 	}
@@ -786,7 +786,7 @@ static int icmp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 {
 	bool keep_on_going = true;
 	ipc_call_t answer;
-	int answer_count;
+	size_t answer_count;
 	size_t length;
 	struct sockaddr *addr;
 	ipc_callid_t data_callid;
@@ -893,7 +893,7 @@ static int icmp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
  * @see IS_NET_ICMP_MESSAGE()
  */
 int icmp_message_standalone(ipc_callid_t callid, ipc_call_t *call,
-    ipc_call_t *answer, int *answer_count)
+    ipc_call_t *answer, size_t *answer_count)
 {
 	packet_t *packet;
 	int rc;
@@ -902,14 +902,14 @@ int icmp_message_standalone(ipc_callid_t callid, ipc_call_t *call,
 	switch (IPC_GET_IMETHOD(*call)) {
 	case NET_TL_RECEIVED:
 		rc = packet_translate_remote(icmp_globals.net_phone, &packet,
-		    IPC_GET_PACKET(call));
+		    IPC_GET_PACKET(*call));
 		if (rc != EOK)
 			return rc;
-		return icmp_received_msg_local(IPC_GET_DEVICE(call), packet,
-		    SERVICE_ICMP, IPC_GET_ERROR(call));
+		return icmp_received_msg_local(IPC_GET_DEVICE(*call), packet,
+		    SERVICE_ICMP, IPC_GET_ERROR(*call));
 	
 	case NET_ICMP_INIT:
-		return icmp_process_client_messages(callid, * call);
+		return icmp_process_client_messages(callid, *call);
 	
 	default:
 		return icmp_process_message(call);
@@ -935,7 +935,7 @@ static void tl_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	
 	while (true) {
 		ipc_call_t answer;
-		int answer_count;
+		size_t answer_count;
 		
 		/* Clear the answer structure */
 		refresh_answer(&answer, &answer_count);

@@ -134,9 +134,9 @@ typedef struct {
 
 extern int add_configuration(measured_strings_t *, const uint8_t *,
     const uint8_t *);
-extern int net_module_message(ipc_callid_t, ipc_call_t *, ipc_call_t *, int *);
+extern int net_module_message(ipc_callid_t, ipc_call_t *, ipc_call_t *, size_t *);
 extern int net_initialize_build(async_client_conn_t);
-extern int net_message(ipc_callid_t, ipc_call_t *, ipc_call_t *, int *);
+extern int net_message(ipc_callid_t, ipc_call_t *, ipc_call_t *, size_t *);
 
 #endif
 

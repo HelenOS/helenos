@@ -48,8 +48,7 @@
 #include <packet_client.h>
 #include <net/device.h>
 #include <nil_interface.h>
-#include <netif_interface.h>
-#include <netif_local.h>
+#include <netif_skel.h>
 
 /** Default hardware address. */
 #define DEFAULT_ADDR  0
@@ -64,7 +63,7 @@
 netif_globals_t netif_globals;
 
 int netif_specific_message(ipc_callid_t callid, ipc_call_t *call,
-    ipc_call_t *answer, int *answer_count)
+    ipc_call_t *answer, size_t *count)
 {
 	return ENOTSUP;
 }
@@ -171,7 +170,7 @@ int netif_initialize(void)
 	return ipc_connect_to_me(PHONE_NS, SERVICE_LO, 0, 0, &phonehash);
 }
 
-int netif_probe_message(device_id_t device_id, int irq, uintptr_t io)
+int netif_probe_message(device_id_t device_id, int irq, void *io)
 {
 	netif_device_t *device;
 	int rc;
@@ -232,54 +231,10 @@ int netif_stop_message(netif_device_t *device)
 	return change_state_message(device, NETIF_STOPPED);
 }
 
-/** Default thread for new connections.
- *
- * @param[in] iid	The initial message identifier.
- * @param[in] icall	The initial message call structure.
- */
-static void netif_client_connection(ipc_callid_t iid, ipc_call_t *icall)
-{
-	/*
-	 * Accept the connection
-	 *  - Answer the first IPC_M_CONNECT_ME_TO call.
-	 */
-	ipc_answer_0(iid, EOK);
-	
-	while (true) {
-		ipc_call_t answer;
-		int answer_count;
-		
-		/* Clear the answer structure */
-		refresh_answer(&answer, &answer_count);
-		
-		/* Fetch the next message */
-		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
-		
-		/* Process the message */
-		int res = netif_module_message(NAME, callid, &call, &answer,
-		    &answer_count);
-		
-		/*
-		 * End if told to either by the message or the processing
-		 * result.
-		 */
-		if ((IPC_GET_IMETHOD(call) == IPC_M_PHONE_HUNGUP) ||
-		    (res == EHANGUP))
-			return;
-		
-		/* Answer the message */
-		answer_call(callid, res, &answer, answer_count);
-	}
-}
-
 int main(int argc, char *argv[])
 {
-	int rc;
-	
 	/* Start the module */
-	rc = netif_module_start(netif_client_connection);
-	return rc;
+	return netif_module_start();
 }
 
 /** @}

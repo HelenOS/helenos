@@ -473,9 +473,9 @@ static int start_device(netif_t *netif)
 	int irq = setting ? strtol((char *) setting->value, NULL, 10) : 0;
 	
 	setting = measured_strings_find(&netif->configuration, (uint8_t *) CONF_IO, 0);
-	int io = setting ? strtol((char *) setting->value, NULL, 16) : 0;
+	uintptr_t io = setting ? strtol((char *) setting->value, NULL, 16) : 0;
 	
-	rc = netif_probe_req_remote(netif->driver->phone, netif->id, irq, io);
+	rc = netif_probe_req(netif->driver->phone, netif->id, irq, (void *) io);
 	if (rc != EOK)
 		return rc;
 	
@@ -510,7 +510,7 @@ static int start_device(netif_t *netif)
 		return ENOENT;
 	}
 	
-	return netif_start_req_remote(netif->driver->phone, netif->id);
+	return netif_start_req(netif->driver->phone, netif->id);
 }
 
 /** Read the configuration and start all network interfaces.
@@ -612,8 +612,8 @@ static int startup(void)
 
 /** Process the networking message.
  *
- * @param[in] callid        The message identifier.
- * @param[in] call          The message parameters.
+ * @param[in]  callid       The message identifier.
+ * @param[in]  call         The message parameters.
  * @param[out] answer       The message answer parameters.
  * @param[out] answer_count The last parameter for the actual answer
  *                          in the answer parameter.
@@ -626,7 +626,7 @@ static int startup(void)
  *
  */
 int net_message(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *answer,
-    int *answer_count)
+    size_t *answer_count)
 {
 	measured_string_t *strings;
 	uint8_t *data;
@@ -638,29 +638,29 @@ int net_message(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *answer,
 		return EOK;
 	case NET_NET_GET_DEVICE_CONF:
 		rc = measured_strings_receive(&strings, &data,
-		    IPC_GET_COUNT(call));
+		    IPC_GET_COUNT(*call));
 		if (rc != EOK)
 			return rc;
-		net_get_device_conf_req(0, IPC_GET_DEVICE(call), &strings,
-		    IPC_GET_COUNT(call), NULL);
+		net_get_device_conf_req(0, IPC_GET_DEVICE(*call), &strings,
+		    IPC_GET_COUNT(*call), NULL);
 		
 		/* Strings should not contain received data anymore */
 		free(data);
 		
-		rc = measured_strings_reply(strings, IPC_GET_COUNT(call));
+		rc = measured_strings_reply(strings, IPC_GET_COUNT(*call));
 		free(strings);
 		return rc;
 	case NET_NET_GET_CONF:
 		rc = measured_strings_receive(&strings, &data,
-		    IPC_GET_COUNT(call));
+		    IPC_GET_COUNT(*call));
 		if (rc != EOK)
 			return rc;
-		net_get_conf_req(0, &strings, IPC_GET_COUNT(call), NULL);
+		net_get_conf_req(0, &strings, IPC_GET_COUNT(*call), NULL);
 		
 		/* Strings should not contain received data anymore */
 		free(data);
 		
-		rc = measured_strings_reply(strings, IPC_GET_COUNT(call));
+		rc = measured_strings_reply(strings, IPC_GET_COUNT(*call));
 		free(strings);
 		return rc;
 	case NET_NET_STARTUP:
@@ -687,7 +687,7 @@ static void net_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	while (true) {
 		/* Clear the answer structure */
 		ipc_call_t answer;
-		int answer_count;
+		size_t answer_count;
 		refresh_answer(&answer, &answer_count);
 		
 		/* Fetch the next message */

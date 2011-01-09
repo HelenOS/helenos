@@ -169,7 +169,7 @@ int ip_get_route_req_remote(int ip_phone, ip_protocol_t protocol,
 	if ((result != EOK) && *header)
 		free(*header);
 	else
-		*device_id = IPC_GET_DEVICE(&answer);
+		*device_id = IPC_GET_DEVICE(answer);
 	
 	return (int) result;
 }

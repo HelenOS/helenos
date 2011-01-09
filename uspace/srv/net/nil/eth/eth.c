@@ -53,7 +53,7 @@
 #include <ethernet_protocols.h>
 #include <protocol_map.h>
 #include <net/device.h>
-#include <netif_interface.h>
+#include <netif_remote.h>
 #include <net_interface.h>
 #include <nil_interface.h>
 #include <il_interface.h>
@@ -238,16 +238,16 @@ static void eth_receiver(ipc_callid_t iid, ipc_call_t *icall)
 	while (true) {
 		switch (IPC_GET_IMETHOD(*icall)) {
 		case NET_NIL_DEVICE_STATE:
-			nil_device_state_msg_local(0, IPC_GET_DEVICE(icall),
-			    IPC_GET_STATE(icall));
+			nil_device_state_msg_local(0, IPC_GET_DEVICE(*icall),
+			    IPC_GET_STATE(*icall));
 			ipc_answer_0(iid, EOK);
 			break;
 		case NET_NIL_RECEIVED:
 			rc = packet_translate_remote(eth_globals.net_phone,
-			    &packet, IPC_GET_PACKET(icall));
+			    &packet, IPC_GET_PACKET(*icall));
 			if (rc == EOK) {
 				rc = nil_received_msg_local(0,
-				    IPC_GET_DEVICE(icall), packet, 0);
+				    IPC_GET_DEVICE(*icall), packet, 0);
 			}
 			ipc_answer_0(iid, (sysarg_t) rc);
 			break;
@@ -836,7 +836,7 @@ static int eth_send_message(device_id_t device_id, packet_t *packet,
 }
 
 int nil_message_standalone(const char *name, ipc_callid_t callid,
-    ipc_call_t *call, ipc_call_t *answer, int *answer_count)
+    ipc_call_t *call, ipc_call_t *answer, size_t *answer_count)
 {
 	measured_string_t *address;
 	packet_t *packet;
@@ -852,41 +852,41 @@ int nil_message_standalone(const char *name, ipc_callid_t callid,
 		return EOK;
 	
 	case NET_NIL_DEVICE:
-		return eth_device_message(IPC_GET_DEVICE(call),
-		    IPC_GET_SERVICE(call), IPC_GET_MTU(call));
+		return eth_device_message(IPC_GET_DEVICE(*call),
+		    IPC_GET_SERVICE(*call), IPC_GET_MTU(*call));
 	case NET_NIL_SEND:
 		rc = packet_translate_remote(eth_globals.net_phone, &packet,
-		    IPC_GET_PACKET(call));
+		    IPC_GET_PACKET(*call));
 		if (rc != EOK)
 			return rc;
-		return eth_send_message(IPC_GET_DEVICE(call), packet,
-		    IPC_GET_SERVICE(call));
+		return eth_send_message(IPC_GET_DEVICE(*call), packet,
+		    IPC_GET_SERVICE(*call));
 	case NET_NIL_PACKET_SPACE:
-		rc = eth_packet_space_message(IPC_GET_DEVICE(call), &addrlen,
+		rc = eth_packet_space_message(IPC_GET_DEVICE(*call), &addrlen,
 		    &prefix, &content, &suffix);
 		if (rc != EOK)
 			return rc;
-		IPC_SET_ADDR(answer, addrlen);
-		IPC_SET_PREFIX(answer, prefix);
-		IPC_SET_CONTENT(answer, content);
-		IPC_SET_SUFFIX(answer, suffix);
+		IPC_SET_ADDR(*answer, addrlen);
+		IPC_SET_PREFIX(*answer, prefix);
+		IPC_SET_CONTENT(*answer, content);
+		IPC_SET_SUFFIX(*answer, suffix);
 		*answer_count = 4;
 		return EOK;
 	case NET_NIL_ADDR:
-		rc = eth_addr_message(IPC_GET_DEVICE(call), ETH_LOCAL_ADDR,
+		rc = eth_addr_message(IPC_GET_DEVICE(*call), ETH_LOCAL_ADDR,
 		    &address);
 		if (rc != EOK)
 			return rc;
 		return measured_strings_reply(address, 1);
 	case NET_NIL_BROADCAST_ADDR:
-		rc = eth_addr_message(IPC_GET_DEVICE(call), ETH_BROADCAST_ADDR,
+		rc = eth_addr_message(IPC_GET_DEVICE(*call), ETH_BROADCAST_ADDR,
 		    &address);
 		if (rc != EOK)
 			return EOK;
 		return measured_strings_reply(address, 1);
 	case IPC_M_CONNECT_TO_ME:
-		return eth_register_message(NIL_GET_PROTO(call),
-		    IPC_GET_PHONE(call));
+		return eth_register_message(NIL_GET_PROTO(*call),
+		    IPC_GET_PHONE(*call));
 	}
 	
 	return ENOTSUP;
@@ -907,10 +907,10 @@ static void nil_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	
 	while (true) {
 		ipc_call_t answer;
-		int answer_count;
+		size_t count;
 		
 		/* Clear the answer structure */
-		refresh_answer(&answer, &answer_count);
+		refresh_answer(&answer, &count);
 		
 		/* Fetch the next message */
 		ipc_call_t call;
@@ -918,7 +918,7 @@ static void nil_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		
 		/* Process the message */
 		int res = nil_module_message_standalone(NAME, callid, &call,
-		    &answer, &answer_count);
+		    &answer, &count);
 		
 		/*
 		 * End if told to either by the message or the processing
@@ -929,7 +929,7 @@ static void nil_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			return;
 		
 		/* Answer the message */
-		answer_call(callid, res, &answer, answer_count);
+		answer_call(callid, res, &answer, count);
 	}
 }
 

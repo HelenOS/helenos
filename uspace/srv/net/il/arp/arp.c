@@ -456,7 +456,7 @@ static int arp_receive_message(device_id_t device_id, packet_t *packet)
 	uint8_t *des_hw;
 	uint8_t *des_proto;
 	int rc;
-
+	
 	length = packet_get_data_length(packet);
 	if (length <= sizeof(arp_header_t))
 		return EINVAL;
@@ -676,7 +676,7 @@ restart:
  */
 int
 arp_message_standalone(ipc_callid_t callid, ipc_call_t *call,
-    ipc_call_t *answer, int *answer_count)
+    ipc_call_t *answer, size_t *answer_count)
 {
 	measured_string_t *address;
 	measured_string_t *translation;
@@ -695,8 +695,8 @@ arp_message_standalone(ipc_callid_t callid, ipc_call_t *call,
 		if (rc != EOK)
 			return rc;
 		
-		rc = arp_device_message(IPC_GET_DEVICE(call),
-		    IPC_GET_SERVICE(call), ARP_GET_NETIF(call), address);
+		rc = arp_device_message(IPC_GET_DEVICE(*call),
+		    IPC_GET_SERVICE(*call), ARP_GET_NETIF(*call), address);
 		if (rc != EOK) {
 			free(address);
 			free(data);
@@ -709,8 +709,8 @@ arp_message_standalone(ipc_callid_t callid, ipc_call_t *call,
 			return rc;
 		
 		fibril_mutex_lock(&arp_globals.lock);
-		rc = arp_translate_message(IPC_GET_DEVICE(call),
-		    IPC_GET_SERVICE(call), address, &translation);
+		rc = arp_translate_message(IPC_GET_DEVICE(*call),
+		    IPC_GET_SERVICE(*call), address, &translation);
 		free(address);
 		free(data);
 		if (rc != EOK) {
@@ -726,15 +726,15 @@ arp_message_standalone(ipc_callid_t callid, ipc_call_t *call,
 		return rc;
 
 	case NET_ARP_CLEAR_DEVICE:
-		return arp_clear_device_req(0, IPC_GET_DEVICE(call));
+		return arp_clear_device_req(0, IPC_GET_DEVICE(*call));
 
 	case NET_ARP_CLEAR_ADDRESS:
 		rc = measured_strings_receive(&address, &data, 1);
 		if (rc != EOK)
 			return rc;
 		
-		arp_clear_address_req(0, IPC_GET_DEVICE(call),
-		    IPC_GET_SERVICE(call), address);
+		arp_clear_address_req(0, IPC_GET_DEVICE(*call),
+		    IPC_GET_SERVICE(*call), address);
 		free(address);
 		free(data);
 		return EOK;
@@ -749,14 +749,14 @@ arp_message_standalone(ipc_callid_t callid, ipc_call_t *call,
 	case NET_IL_RECEIVED:
 		
 		rc = packet_translate_remote(arp_globals.net_phone, &packet,
-		    IPC_GET_PACKET(call));
+		    IPC_GET_PACKET(*call));
 		if (rc != EOK)
 			return rc;
 		
 		fibril_mutex_lock(&arp_globals.lock);
 		do {
 			next = pq_detach(packet);
-			rc = arp_receive_message(IPC_GET_DEVICE(call), packet);
+			rc = arp_receive_message(IPC_GET_DEVICE(*call), packet);
 			if (rc != 1) {
 				pq_release_remote(arp_globals.net_phone,
 				    packet_get_id(packet));
@@ -768,8 +768,8 @@ arp_message_standalone(ipc_callid_t callid, ipc_call_t *call,
 		return EOK;
 	
 	case NET_IL_MTU_CHANGED:
-		return arp_mtu_changed_message(IPC_GET_DEVICE(call),
-		    IPC_GET_MTU(call));
+		return arp_mtu_changed_message(IPC_GET_DEVICE(*call),
+		    IPC_GET_MTU(*call));
 	}
 	
 	return ENOTSUP;
@@ -790,10 +790,10 @@ static void il_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	
 	while (true) {
 		ipc_call_t answer;
-		int answer_count;
+		size_t count;
 		
 		/* Clear the answer structure */
-		refresh_answer(&answer, &answer_count);
+		refresh_answer(&answer, &count);
 		
 		/* Fetch the next message */
 		ipc_call_t call;
@@ -801,7 +801,7 @@ static void il_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		
 		/* Process the message */
 		int res = il_module_message_standalone(callid, &call, &answer,
-		    &answer_count);
+		    &count);
 		
 		/*
 		 * End if told to either by the message or the processing
@@ -812,7 +812,7 @@ static void il_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			return;
 		
 		/* Answer the message */
-		answer_call(callid, res, &answer, answer_count);
+		answer_call(callid, res, &answer, count);
 	}
 }
 

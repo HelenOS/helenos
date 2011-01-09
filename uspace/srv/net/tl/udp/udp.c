@@ -706,13 +706,13 @@ static int udp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 	int res;
 	bool keep_on_going = true;
 	socket_cores_t local_sockets;
-	int app_phone = IPC_GET_PHONE(&call);
+	int app_phone = IPC_GET_PHONE(call);
 	struct sockaddr *addr;
 	int socket_id;
 	size_t addrlen;
 	size_t size;
 	ipc_call_t answer;
-	int answer_count;
+	size_t answer_count;
 	packet_dimension_t *packet_dimension;
 
 	/*
@@ -860,7 +860,7 @@ static int udp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
  * @see IS_NET_UDP_MESSAGE()
  */
 int udp_message_standalone(ipc_callid_t callid, ipc_call_t *call,
-    ipc_call_t *answer, int *answer_count)
+    ipc_call_t *answer, size_t *answer_count)
 {
 	packet_t *packet;
 	int rc;
@@ -870,13 +870,13 @@ int udp_message_standalone(ipc_callid_t callid, ipc_call_t *call,
 	switch (IPC_GET_IMETHOD(*call)) {
 	case NET_TL_RECEIVED:
 		rc = packet_translate_remote(udp_globals.net_phone, &packet,
-		    IPC_GET_PACKET(call));
+		    IPC_GET_PACKET(*call));
 		if (rc != EOK)
 			return rc;
-		return udp_received_msg(IPC_GET_DEVICE(call), packet,
-		    SERVICE_UDP, IPC_GET_ERROR(call));
+		return udp_received_msg(IPC_GET_DEVICE(*call), packet,
+		    SERVICE_UDP, IPC_GET_ERROR(*call));
 	case IPC_M_CONNECT_TO_ME:
-		return udp_process_client_messages(callid, * call);
+		return udp_process_client_messages(callid, *call);
 	}
 
 	return ENOTSUP;
@@ -897,7 +897,7 @@ static void tl_client_connection(ipc_callid_t iid, ipc_call_t * icall)
 	
 	while (true) {
 		ipc_call_t answer;
-		int answer_count;
+		size_t answer_count;
 		
 		/* Clear the answer structure */
 		refresh_answer(&answer, &answer_count);

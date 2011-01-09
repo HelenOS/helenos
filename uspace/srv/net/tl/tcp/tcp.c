@@ -1261,7 +1261,7 @@ void tcp_process_acknowledgement(socket_core_t *socket,
  */
 int
 tcp_message_standalone(ipc_callid_t callid, ipc_call_t *call,
-    ipc_call_t *answer, int *answer_count)
+    ipc_call_t *answer, size_t *answer_count)
 {
 	packet_t *packet;
 	int rc;
@@ -1275,13 +1275,13 @@ tcp_message_standalone(ipc_callid_t callid, ipc_call_t *call,
 	case NET_TL_RECEIVED:
 //		fibril_rwlock_read_lock(&tcp_globals.lock);
 		rc = packet_translate_remote(tcp_globals.net_phone, &packet,
-		    IPC_GET_PACKET(call));
+		    IPC_GET_PACKET(*call));
 		if (rc != EOK) {
 //			fibril_rwlock_read_unlock(&tcp_globals.lock);
 			return rc;
 		}
-		rc = tcp_received_msg(IPC_GET_DEVICE(call), packet, SERVICE_TCP,
-		    IPC_GET_ERROR(call));
+		rc = tcp_received_msg(IPC_GET_DEVICE(*call), packet, SERVICE_TCP,
+		    IPC_GET_ERROR(*call));
 //		fibril_rwlock_read_unlock(&tcp_globals.lock);
 		return rc;
 	case IPC_M_CONNECT_TO_ME:
@@ -1322,14 +1322,14 @@ int tcp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 	int res;
 	bool keep_on_going = true;
 	socket_cores_t local_sockets;
-	int app_phone = IPC_GET_PHONE(&call);
+	int app_phone = IPC_GET_PHONE(call);
 	struct sockaddr *addr;
 	int socket_id;
 	size_t addrlen;
 	size_t size;
 	fibril_rwlock_t lock;
 	ipc_call_t answer;
-	int answer_count;
+	size_t answer_count;
 	tcp_socket_data_t *socket_data;
 	socket_core_t *socket;
 	packet_dimension_t *packet_dimension;
@@ -2501,7 +2501,7 @@ static void tl_client_connection(ipc_callid_t iid, ipc_call_t * icall)
 
 	while (true) {
 		ipc_call_t answer;
-		int answer_count;
+		size_t answer_count;
 
 		/* Clear the answer structure */
 		refresh_answer(&answer, &answer_count);
