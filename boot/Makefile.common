@@ -131,10 +131,8 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/redir/redir \
 	$(USPACE_PATH)/app/taskdump/taskdump \
 	$(USPACE_PATH)/app/tester/tester \
-	$(USPACE_PATH)/app/test_serial/test_serial \
 	$(USPACE_PATH)/app/tetris/tetris \
 	$(USPACE_PATH)/app/trace/trace \
-	$(USPACE_PATH)/app/netstart/netstart \
 	$(USPACE_PATH)/app/nettest1/nettest1 \
 	$(USPACE_PATH)/app/nettest2/nettest2 \
 	$(USPACE_PATH)/app/netecho/netecho \
