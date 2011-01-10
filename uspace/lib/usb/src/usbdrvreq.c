@@ -35,6 +35,118 @@
 #include <usb/usbdrv.h>
 #include <errno.h>
 
+#define PREPARE_TARGET(name, target_address) \
+	usb_target_t name = { \
+		.address = target_address, \
+		.endpoint = 0 \
+	}
+
+#define PREPARE_SETUP_PACKET(name, p_direction, p_type, p_recipient, p_request, p_value, p_index, p_length) \
+	usb_device_request_setup_packet_t setup_packet = { \
+		.request_type = \
+			((p_direction) == USB_DIRECTION_IN ? 128 : 0) \
+			| ((p_type) << 5) \
+			| (p_recipient), \
+		.request = (p_request), \
+		{ .value = (p_value) }, \
+		.index = (p_index), \
+		.length = (p_length) \
+	}
+
+#define PREPARE_SETUP_PACKET_LOHI(name, p_direction, p_type, p_recipient, p_request, p_value_low, p_value_high, p_index, p_length) \
+	PREPARE_SETUP_PACKET(name, p_direction, p_type, p_recipient, \
+	    p_request, (p_value_low) | ((p_value_high) << 8), \
+	    p_index, p_length)
+
+/** Retrieve status of a USB device.
+ *
+ * @param hc_phone
+ * @param address
+ * @param recipient
+ * @param recipient_index
+ * @param status
+ * @return
+ */
+int usb_drv_req_get_status(int hc_phone, usb_address_t address,
+    usb_request_recipient_t recipient, uint16_t recipient_index,
+    uint16_t *status)
+{
+	if (status == NULL) {
+		return EBADMEM;
+	}
+
+	PREPARE_TARGET(target, address);
+
+	PREPARE_SETUP_PACKET(setup_packet,
+	    USB_DIRECTION_IN, USB_REQUEST_TYPE_STANDARD,
+	    recipient, USB_DEVREQ_GET_STATUS, 0, recipient_index, 2);
+
+	size_t transfered;
+	uint16_t tmp_status;
+	int rc = usb_drv_psync_control_read(hc_phone, target,
+	    &setup_packet, sizeof(setup_packet), &tmp_status, 2, &transfered);
+	if (rc != EOK) {
+		return rc;
+	}
+	if (transfered != 2) {
+		return ERANGE;
+	}
+
+	*status = tmp_status;
+
+	return EOK;
+}
+
+/** Clear or disable USB device feature.
+ *
+ * @param hc_phone
+ * @param address
+ * @param recipient
+ * @param selector
+ * @param index
+ * @return
+ */
+int usb_drv_req_clear_feature(int hc_phone, usb_address_t address,
+    usb_request_recipient_t recipient,
+    uint16_t selector, uint16_t index)
+{
+	PREPARE_TARGET(target, address);
+
+	PREPARE_SETUP_PACKET(setup_packet,
+	    USB_DIRECTION_OUT, USB_REQUEST_TYPE_STANDARD,
+	    recipient, USB_DEVREQ_CLEAR_FEATURE, selector, index, 0);
+
+	int rc = usb_drv_psync_control_write(hc_phone, target,
+	    &setup_packet, sizeof(setup_packet), NULL, 0);
+
+	return rc;
+}
+
+/** Set or enable USB device feature.
+ *
+ * @param hc_phone
+ * @param address
+ * @param recipient
+ * @param selector
+ * @param index
+ * @return
+ */
+int usb_drv_req_set_feature(int hc_phone, usb_address_t address,
+    usb_request_recipient_t recipient,
+    uint16_t selector, uint16_t index)
+{
+	PREPARE_TARGET(target, address);
+
+	PREPARE_SETUP_PACKET(setup_packet,
+	    USB_DIRECTION_OUT, USB_REQUEST_TYPE_STANDARD,
+	    recipient, USB_DEVREQ_SET_FEATURE, selector, index, 0);
+
+	int rc = usb_drv_psync_control_write(hc_phone, target,
+	    &setup_packet, sizeof(setup_packet), NULL, 0);
+
+	return rc;
+}
+
 /** Change address of connected device.
  *
  * @see usb_drv_reserve_default_address
@@ -237,6 +349,159 @@ int usb_drv_req_get_full_configuration_descriptor(int phone,
 	return rc;
 }
 
+/** Update existing descriptor of a USB device.
+ *
+ * @param hc_phone
+ * @param address
+ * @param descriptor_type
+ * @param descriptor_index
+ * @param language
+ * @param descriptor
+ * @param descriptor_size
+ * @return
+ */
+int usb_drv_req_set_descriptor(int hc_phone, usb_address_t address,
+    uint8_t descriptor_type, uint8_t descriptor_index,
+    uint16_t language,
+    void *descriptor, size_t descriptor_size)
+{
+	PREPARE_TARGET(target, address);
+
+	PREPARE_SETUP_PACKET_LOHI(setup_packet, USB_DIRECTION_OUT,
+	    USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_DEVICE,
+	    USB_DEVREQ_SET_DESCRIPTOR, descriptor_index, descriptor_type,
+	    language, descriptor_size);
+
+	int rc = usb_drv_psync_control_write(hc_phone, target,
+	    &setup_packet, sizeof(setup_packet),
+	    descriptor, descriptor_size);
+
+	return rc;
+}
+
+/** Determine current configuration value of USB device.
+ *
+ * @param hc_phone
+ * @param address
+ * @param configuration_value
+ * @return
+ */
+int usb_drv_req_get_configuration(int hc_phone, usb_address_t address,
+    uint8_t *configuration_value)
+{
+	if (configuration_value == NULL) {
+		return EBADMEM;
+	}
+
+	PREPARE_TARGET(target, address);
+
+	PREPARE_SETUP_PACKET(setup_packet, USB_DIRECTION_IN,
+	    USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_DEVICE,
+	    USB_DEVREQ_GET_CONFIGURATION, 0, 0, 1);
+
+	uint8_t value;
+	size_t transfered;
+	int rc = usb_drv_psync_control_read(hc_phone, target,
+	    &setup_packet, sizeof(setup_packet), &value, 1, &transfered);
+
+	if (rc != EOK) {
+		return rc;
+	}
+
+	if (transfered != 1) {
+		return ERANGE;
+	}
+
+	*configuration_value = value;
+
+	return EOK;
+}
+
+/** Set configuration of USB device.
+ *
+ * @param hc_phone
+ * @param address
+ * @param configuration_value
+ * @return
+ */
+int usb_drv_req_set_configuration(int hc_phone, usb_address_t address,
+    uint8_t configuration_value)
+{
+	PREPARE_TARGET(target, address);
+
+	PREPARE_SETUP_PACKET_LOHI(setup_packet, USB_DIRECTION_OUT,
+	    USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_DEVICE,
+	    USB_DEVREQ_SET_CONFIGURATION, configuration_value, 0,
+	    0, 0);
+
+	int rc = usb_drv_psync_control_write(hc_phone, target,
+	    &setup_packet, sizeof(setup_packet), NULL, 0);
+
+	return rc;
+}
+
+/** Determine alternate setting of USB device interface.
+ *
+ * @param hc_phone
+ * @param address
+ * @param interface_index
+ * @param alternate_setting
+ * @return
+ */
+int usb_drv_req_get_interface(int hc_phone, usb_address_t address,
+    uint16_t interface_index, uint8_t *alternate_setting)
+{
+	if (alternate_setting == NULL) {
+		return EBADMEM;
+	}
+
+	PREPARE_TARGET(target, address);
+
+	PREPARE_SETUP_PACKET(setup_packet, USB_DIRECTION_IN,
+	    USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_INTERFACE,
+	    USB_DEVREQ_GET_INTERFACE, 0, interface_index, 1);
+
+	uint8_t alternate;
+	size_t transfered;
+	int rc = usb_drv_psync_control_read(hc_phone, target,
+	    &setup_packet, sizeof(setup_packet), &alternate, 1, &transfered);
+
+	if (rc != EOK) {
+		return rc;
+	}
+
+	if (transfered != 1) {
+		return ERANGE;
+	}
+
+	*alternate_setting = alternate;
+
+	return EOK;
+}
+
+/** Select an alternate setting of USB device interface.
+ *
+ * @param hc_phone
+ * @param address
+ * @param interface_index
+ * @param alternate_setting
+ * @return
+ */
+int usb_drv_req_set_interface(int hc_phone, usb_address_t address,
+    uint16_t interface_index, uint8_t alternate_setting)
+{
+	PREPARE_TARGET(target, address);
+
+	PREPARE_SETUP_PACKET_LOHI(setup_packet, USB_DIRECTION_OUT,
+	    USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_INTERFACE,
+	    USB_DEVREQ_SET_INTERFACE, alternate_setting, 0,
+	    0, 0);
+
+	int rc = usb_drv_psync_control_write(hc_phone, target,
+	    &setup_packet, sizeof(setup_packet), NULL, 0);
+
+	return rc;
+}
 
 /**
  * @}
