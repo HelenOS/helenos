@@ -35,13 +35,30 @@
 #include <usb/usbdrv.h>
 #include <errno.h>
 
+/**  Prepare USB target for control endpoint.
+ *
+ * @param name Variable name with the USB target.
+ * @param target_address Target USB address.
+ */
 #define PREPARE_TARGET(name, target_address) \
 	usb_target_t name = { \
 		.address = target_address, \
 		.endpoint = 0 \
 	}
 
-#define PREPARE_SETUP_PACKET(name, p_direction, p_type, p_recipient, p_request, p_value, p_index, p_length) \
+/** Prepare setup packet.
+ *
+ * @param name Variable name with the setup packet.
+ * @param p_direction Data transfer direction.
+ * @param p_type Request type (standard/class/vendor)
+ * @param p_recipient Recipient of the request.
+ * @param p_request Request.
+ * @param p_value wValue field of setup packet.
+ * @param p_index wIndex field of setup packet.
+ * @param p_length Length of extra data.
+ */
+#define PREPARE_SETUP_PACKET(name, p_direction, p_type, p_recipient, \
+    p_request, p_value, p_index, p_length) \
 	usb_device_request_setup_packet_t setup_packet = { \
 		.request_type = \
 			((p_direction) == USB_DIRECTION_IN ? 128 : 0) \
@@ -53,19 +70,32 @@
 		.length = (p_length) \
 	}
 
-#define PREPARE_SETUP_PACKET_LOHI(name, p_direction, p_type, p_recipient, p_request, p_value_low, p_value_high, p_index, p_length) \
+/** Prepare setup packet.
+ *
+ * @param name Variable name with the setup packet.
+ * @param p_direction Data transfer direction.
+ * @param p_type Request type (standard/class/vendor)
+ * @param p_recipient Recipient of the request.
+ * @param p_request Request.
+ * @param p_value_low wValue field of setup packet (low byte).
+ * @param p_value_high wValue field of setup packet (high byte).
+ * @param p_index wIndex field of setup packet.
+ * @param p_length Length of extra data.
+ */
+#define PREPARE_SETUP_PACKET_LOHI(name, p_direction, p_type, p_recipient, \
+    p_request, p_value_low, p_value_high, p_index, p_length) \
 	PREPARE_SETUP_PACKET(name, p_direction, p_type, p_recipient, \
 	    p_request, (p_value_low) | ((p_value_high) << 8), \
 	    p_index, p_length)
 
 /** Retrieve status of a USB device.
  *
- * @param hc_phone
- * @param address
- * @param recipient
- * @param recipient_index
- * @param status
- * @return
+ * @param[in] hc_phone Open phone to HC driver.
+ * @param[in] address Device address.
+ * @param[in] recipient Recipient of the request.
+ * @param[in] recipient_index Index of @p recipient.
+ * @param[out] status Status (see figure 9-4 in USB 1.1 specification).
+ * @return Error code.
  */
 int usb_drv_req_get_status(int hc_phone, usb_address_t address,
     usb_request_recipient_t recipient, uint16_t recipient_index,
@@ -99,12 +129,12 @@ int usb_drv_req_get_status(int hc_phone, usb_address_t address,
 
 /** Clear or disable USB device feature.
  *
- * @param hc_phone
- * @param address
- * @param recipient
- * @param selector
- * @param index
- * @return
+ * @param[in] hc_phone Open phone to HC driver.
+ * @param[in] address Device address.
+ * @param[in] recipient Recipient of the request.
+ * @param[in] selector Feature selector.
+ * @param[in] index Index of @p recipient.
+ * @return Error code.
  */
 int usb_drv_req_clear_feature(int hc_phone, usb_address_t address,
     usb_request_recipient_t recipient,
@@ -124,12 +154,12 @@ int usb_drv_req_clear_feature(int hc_phone, usb_address_t address,
 
 /** Set or enable USB device feature.
  *
- * @param hc_phone
- * @param address
- * @param recipient
- * @param selector
- * @param index
- * @return
+ * @param[in] hc_phone Open phone to HC driver.
+ * @param[in] address Device address.
+ * @param[in] recipient Recipient of the request.
+ * @param[in] selector Feature selector.
+ * @param[in] index Index of @p recipient.
+ * @return Error code.
  */
 int usb_drv_req_set_feature(int hc_phone, usb_address_t address,
     usb_request_recipient_t recipient,
@@ -155,9 +185,9 @@ int usb_drv_req_set_feature(int hc_phone, usb_address_t address,
  * @see usb_drv_release_address
  * @see usb_drv_bind_address
  *
- * @param phone Open phone to HC driver.
- * @param old_address Current address.
- * @param address Address to be set.
+ * @param[in] phone Open phone to HC driver.
+ * @param[in] old_address Current address.
+ * @param[in] address Address to be set.
  * @return Error code.
  */
 int usb_drv_req_set_address(int phone, usb_address_t old_address,
@@ -178,7 +208,7 @@ int usb_drv_req_set_address(int phone, usb_address_t old_address,
 /** Retrieve USB descriptor of connected USB device.
  *
  * @param[in] hc_phone Open phone to HC driver.
- * @param[in] address Device USB address.
+ * @param[in] address Device address.
  * @param[in] request_type Request type (standard/class/vendor).
  * @param[in] descriptor_type Descriptor type (device/configuration/HID/...).
  * @param[in] descriptor_index Descriptor index.
@@ -220,7 +250,7 @@ int usb_drv_req_get_descriptor(int hc_phone, usb_address_t address,
 /** Retrieve device descriptor of connected USB device.
  *
  * @param[in] phone Open phone to HC driver.
- * @param[in] address Device USB address.
+ * @param[in] address Device address.
  * @param[out] descriptor Storage for the device descriptor.
  * @return Error code.
  * @retval EBADMEM @p descriptor is NULL.
@@ -265,7 +295,7 @@ int usb_drv_req_get_device_descriptor(int phone, usb_address_t address,
  * usb_drv_req_get_full_configuration_descriptor() instead.
  *
  * @param[in] phone Open phone to HC driver.
- * @param[in] address Device USB address.
+ * @param[in] address Device address.
  * @param[in] index Configuration descriptor index.
  * @param[out] descriptor Storage for the configuration descriptor.
  * @return Error code.
@@ -307,10 +337,10 @@ int usb_drv_req_get_bare_configuration_descriptor(int phone,
 /** Retrieve full configuration descriptor of connected USB device.
  *
  * @warning The @p buffer might be touched (i.e. its contents changed)
- * even when error occurres.
+ * even when error occurs.
  *
  * @param[in] phone Open phone to HC driver.
- * @param[in] address Device USB address.
+ * @param[in] address Device address.
  * @param[in] index Configuration descriptor index.
  * @param[out] buffer Buffer for the whole configuration descriptor.
  * @param[in] buffer_size Size of the prepared @p buffer.
@@ -334,20 +364,22 @@ int usb_drv_req_get_full_configuration_descriptor(int phone,
 
 /** Update existing descriptor of a USB device.
  *
- * @param hc_phone
- * @param address
- * @param descriptor_type
- * @param descriptor_index
- * @param language
- * @param descriptor
- * @param descriptor_size
- * @return
+ * @param[in] hc_phone Open phone to HC driver.
+ * @param[in] address Device address.
+ * @param[in] descriptor_type Descriptor type (device/configuration/...).
+ * @param[in] descriptor_index Descriptor index.
+ * @param[in] language Language index.
+ * @param[in] descriptor Actual descriptor data.
+ * @param[in] descriptor_size Descriptor size.
+ * @return Error code.
  */
 int usb_drv_req_set_descriptor(int hc_phone, usb_address_t address,
     uint8_t descriptor_type, uint8_t descriptor_index,
     uint16_t language,
     void *descriptor, size_t descriptor_size)
 {
+	// FIXME: check that descriptor is not too big
+
 	PREPARE_TARGET(target, address);
 
 	PREPARE_SETUP_PACKET_LOHI(setup_packet, USB_DIRECTION_OUT,
@@ -364,10 +396,10 @@ int usb_drv_req_set_descriptor(int hc_phone, usb_address_t address,
 
 /** Determine current configuration value of USB device.
  *
- * @param hc_phone
- * @param address
- * @param configuration_value
- * @return
+ * @param[in] hc_phone Open phone to HC driver.
+ * @param[in] address Device address.
+ * @param[out] configuration_value Current configuration value.
+ * @return Error code.
  */
 int usb_drv_req_get_configuration(int hc_phone, usb_address_t address,
     uint8_t *configuration_value)
@@ -402,10 +434,10 @@ int usb_drv_req_get_configuration(int hc_phone, usb_address_t address,
 
 /** Set configuration of USB device.
  *
- * @param hc_phone
- * @param address
- * @param configuration_value
- * @return
+ * @param[in] hc_phone Open phone to HC driver.
+ * @param[in] address Device address.
+ * @param[in] configuration_value New configuration value.
+ * @return Error code.
  */
 int usb_drv_req_set_configuration(int hc_phone, usb_address_t address,
     uint8_t configuration_value)
@@ -425,11 +457,11 @@ int usb_drv_req_set_configuration(int hc_phone, usb_address_t address,
 
 /** Determine alternate setting of USB device interface.
  *
- * @param hc_phone
- * @param address
- * @param interface_index
- * @param alternate_setting
- * @return
+ * @param[in] hc_phone Open phone to HC driver.
+ * @param[in] address Device address.
+ * @param[in] interface_index Interface index.
+ * @param[out] alternate_setting Value of alternate setting.
+ * @return Error code.
  */
 int usb_drv_req_get_interface(int hc_phone, usb_address_t address,
     uint16_t interface_index, uint8_t *alternate_setting)
@@ -464,11 +496,11 @@ int usb_drv_req_get_interface(int hc_phone, usb_address_t address,
 
 /** Select an alternate setting of USB device interface.
  *
- * @param hc_phone
- * @param address
- * @param interface_index
- * @param alternate_setting
- * @return
+ * @param[in] hc_phone Open phone to HC driver.
+ * @param[in] address Device address.
+ * @param[in] interface_index Interface index.
+ * @param[in] alternate_setting Value of alternate setting.
+ * @return Error code.
  */
 int usb_drv_req_set_interface(int hc_phone, usb_address_t address,
     uint16_t interface_index, uint8_t alternate_setting)
