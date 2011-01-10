@@ -75,22 +75,36 @@ static int irc_phone = -1;
  */
 static irq_cmd_t ne2k_cmds[] = {
 	{
+		/* Read Interrupt Status Register */
 		.cmd = CMD_PIO_READ_8,
 		.addr = NULL,
 		.dstarg = 2
 	},
 	{
+		/* Mask supported interrupt causes */
 		.cmd = CMD_BTEST,
-		.value = 0x7f,
+		.value = (ISR_PRX | ISR_PTX | ISR_RXE | ISR_TXE | ISR_OVW |
+		    ISR_CNT | ISR_RDC),
 		.srcarg = 2,
 		.dstarg = 3,
 	},
 	{
+		/* Predicate for accepting the interrupt */
 		.cmd = CMD_PREDICATE,
-		.value = 2,
+		.value = 3,
 		.srcarg = 3
 	},
 	{
+		/*
+		 * Mask future interrupts via
+		 * Interrupt Mask Register
+		 */
+		.cmd = CMD_PIO_WRITE_8,
+		.addr = NULL,
+		.value = 0
+	},
+	{
+		/* Acknowledge the current interrupt */
 		.cmd = CMD_PIO_WRITE_A_8,
 		.addr = NULL,
 		.srcarg = 3
@@ -264,7 +278,8 @@ int netif_start_message(netif_device_t *device)
 		ne2k_t *ne2k = (ne2k_t *) device->specific;
 		
 		ne2k_cmds[0].addr = ne2k->port + DP_ISR;
-		ne2k_cmds[3].addr = ne2k_cmds[0].addr;
+		ne2k_cmds[3].addr = ne2k->port + DP_IMR;
+		ne2k_cmds[4].addr = ne2k_cmds[0].addr;
 		
 		int rc = ipc_register_irq(ne2k->irq, device->device_id,
 		    device->device_id, &ne2k_code);

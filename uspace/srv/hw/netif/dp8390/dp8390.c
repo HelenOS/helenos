@@ -447,15 +447,6 @@ static void ne2k_reset(ne2k_t *ne2k)
 	fibril_mutex_unlock(&ne2k->sq_mutex);
 }
 
-static uint8_t ne2k_isr_ack(ne2k_t *ne2k)
-{
-	uint8_t isr = pio_read_8(ne2k->port + DP_ISR);
-	if (isr != 0)
-		pio_write_8(ne2k->port + DP_ISR, isr);
-	
-	return isr;
-}
-
 static void ne2k_receive_frame(ne2k_t *ne2k, uint8_t page, size_t length,
     int nil_phone, device_id_t device_id)
 {
@@ -553,87 +544,74 @@ static void ne2k_receive(ne2k_t *ne2k, int nil_phone, device_id_t device_id)
 
 void ne2k_interrupt(ne2k_t *ne2k, uint8_t isr, int nil_phone, device_id_t device_id)
 {
-	bool signal = false;
-	bool stopped = false;
-	
-	for (; (isr & 0x7f) != 0; isr = ne2k_isr_ack(ne2k)) {
-		if (isr & (ISR_PTX | ISR_TXE)) {
-			if (isr & ISR_TXE)
-				ne2k->stats.send_errors++;
-			else {
-				uint8_t tsr = pio_read_8(ne2k->port + DP_TSR);
-				
-				if (tsr & TSR_PTX)
-					ne2k->stats.send_packets++;
-				
-				if (tsr & TSR_COL)
-					ne2k->stats.collisions++;
-				
-				if (tsr & TSR_ABT)
-					ne2k->stats.send_aborted_errors++;
-				
-				if (tsr & TSR_CRS)
-					ne2k->stats.send_carrier_errors++;
-				
-				if (tsr & TSR_FU) {
-					ne2k->underruns++;
-					if (ne2k->underruns < NE2K_ERL)
-						fprintf(stderr, "%s: FIFO underrun\n", NAME);
-				}
-				
-				if (tsr & TSR_CDH) {
-					ne2k->stats.send_heartbeat_errors++;
-					if (ne2k->stats.send_heartbeat_errors < NE2K_ERL)
-						fprintf(stderr, "%s: CD heartbeat failure\n", NAME);
-				}
-				
-				if (tsr & TSR_OWC)
-					ne2k->stats.send_window_errors++;
+	if (isr & (ISR_PTX | ISR_TXE)) {
+		if (isr & ISR_TXE)
+			ne2k->stats.send_errors++;
+		else {
+			uint8_t tsr = pio_read_8(ne2k->port + DP_TSR);
+			
+			if (tsr & TSR_PTX)
+				ne2k->stats.send_packets++;
+			
+			if (tsr & TSR_COL)
+				ne2k->stats.collisions++;
+			
+			if (tsr & TSR_ABT)
+				ne2k->stats.send_aborted_errors++;
+			
+			if (tsr & TSR_CRS)
+				ne2k->stats.send_carrier_errors++;
+			
+			if (tsr & TSR_FU) {
+				ne2k->underruns++;
+				if (ne2k->underruns < NE2K_ERL)
+					fprintf(stderr, "%s: FIFO underrun\n", NAME);
 			}
 			
-			fibril_mutex_lock(&ne2k->sq_mutex);
-			
-			if (ne2k->sq.dirty) {
-				/* Prepare the buffer for next packet */
-				ne2k->sq.dirty = false;
-				ne2k->sq.size = 0;
-				signal = true;
-			} else {
-				ne2k->misses++;
-				if (ne2k->misses < NE2K_ERL)
-					fprintf(stderr, "%s: Spurious PTX interrupt\n", NAME);
+			if (tsr & TSR_CDH) {
+				ne2k->stats.send_heartbeat_errors++;
+				if (ne2k->stats.send_heartbeat_errors < NE2K_ERL)
+					fprintf(stderr, "%s: CD heartbeat failure\n", NAME);
 			}
 			
-			fibril_mutex_unlock(&ne2k->sq_mutex);
+			if (tsr & TSR_OWC)
+				ne2k->stats.send_window_errors++;
 		}
 		
-		if (isr & ISR_PRX)
-			ne2k_receive(ne2k, nil_phone, device_id);
+		fibril_mutex_lock(&ne2k->sq_mutex);
 		
-		if (isr & ISR_RXE)
-			ne2k->stats.receive_errors++;
-		
-		if (isr & ISR_CNT) {
-			ne2k->stats.receive_crc_errors +=
-			    pio_read_8(ne2k->port + DP_CNTR0);
-			ne2k->stats.receive_frame_errors +=
-			    pio_read_8(ne2k->port + DP_CNTR1);
-			ne2k->stats.receive_missed_errors +=
-			    pio_read_8(ne2k->port + DP_CNTR2);
+		if (ne2k->sq.dirty) {
+			/* Prepare the buffer for next packet */
+			ne2k->sq.dirty = false;
+			ne2k->sq.size = 0;
+			
+			/* Signal a next frame to be sent */
+			fibril_condvar_broadcast(&ne2k->sq_cv);
+		} else {
+			ne2k->misses++;
+			if (ne2k->misses < NE2K_ERL)
+				fprintf(stderr, "%s: Spurious PTX interrupt\n", NAME);
 		}
 		
-		if (isr & ISR_RST) {
-			/*
-			 * This means we got an interrupt but the ethernet
-			 * chip is shutdown. We set the flag 'stopped'
-			 * and continue processing arrived packets. When the
-			 * receive buffer is empty, we reset the DP8390.
-			 */
-			stopped = true;
-		}
+		fibril_mutex_unlock(&ne2k->sq_mutex);
 	}
 	
-	if (stopped) {
+	if (isr & ISR_PRX)
+		ne2k_receive(ne2k, nil_phone, device_id);
+	
+	if (isr & ISR_RXE)
+		ne2k->stats.receive_errors++;
+	
+	if (isr & ISR_CNT) {
+		ne2k->stats.receive_crc_errors +=
+		    pio_read_8(ne2k->port + DP_CNTR0);
+		ne2k->stats.receive_frame_errors +=
+		    pio_read_8(ne2k->port + DP_CNTR1);
+		ne2k->stats.receive_missed_errors +=
+		    pio_read_8(ne2k->port + DP_CNTR2);
+	}
+	
+	if (isr & ISR_RST) {
 		/*
 		 * The chip is stopped, and all arrived
 		 * frames are delivered.
@@ -641,9 +619,9 @@ void ne2k_interrupt(ne2k_t *ne2k, uint8_t isr, int nil_phone, device_id_t device
 		ne2k_reset(ne2k);
 	}
 	
-	/* Signal a next frame to be sent */
-	if (signal)
-		fibril_condvar_broadcast(&ne2k->sq_cv);
+	/* Unmask interrupts to be processed in the next round */
+	pio_write_8(ne2k->port + DP_IMR,
+	    IMR_PRXE | IMR_PTXE | IMR_RXEE | IMR_TXEE | IMR_OVWE | IMR_CNTE);
 }
 
 /** @}
