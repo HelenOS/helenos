@@ -80,7 +80,7 @@
 #define NE2K_SIZE  0x4000
 
 /** NE2000 retry count */
-#define NE2K_RETRY  100
+#define NE2K_RETRY  0x1000
 
 /** NE2000 error messages rate limiting */
 #define NE2K_ERL  10
@@ -188,6 +188,24 @@ static void ne2k_upload(ne2k_t *ne2k, void *buf, size_t addr, size_t size)
 	}
 }
 
+static void ne2k_init(ne2k_t *ne2k)
+{
+	unsigned int i;
+	
+	/* Reset the ethernet card */
+	uint8_t val = pio_read_8(ne2k->port + NE2K_RESET);
+	usleep(2000);
+	pio_write_8(ne2k->port + NE2K_RESET, val);
+	usleep(2000);
+	
+	/* Reset the DP8390 */
+	pio_write_8(ne2k->port + DP_CR, CR_STP | CR_DM_ABORT);
+	for (i = 0; i < NE2K_RETRY; i++) {
+		if (pio_read_8(ne2k->port + DP_ISR) != 0)
+			break;
+	}
+}
+
 /** Probe and initialize the network interface.
  *
  * @param[in,out] ne2k Network interface structure.
@@ -209,21 +227,10 @@ int ne2k_probe(ne2k_t *ne2k, void *port, int irq)
 	ne2k->probed = false;
 	ne2k->up = false;
 	
-	/* Reset the ethernet card */
-	uint8_t val = pio_read_8(ne2k->port + NE2K_RESET);
-	usleep(2000);
-	pio_write_8(ne2k->port + NE2K_RESET, val);
-	usleep(2000);
-	
-	/* Reset the DP8390 */
-	pio_write_8(ne2k->port + DP_CR, CR_STP | CR_DM_ABORT);
-	for (i = 0; i < 0x1000; i++) {
-		if (pio_read_8(ne2k->port + DP_ISR) != 0)
-			break;
-	}
+	ne2k_init(ne2k);
 	
 	/* Check if the DP8390 is really there */
-	val = pio_read_8(ne2k->port + DP_CR);
+	uint8_t val = pio_read_8(ne2k->port + DP_CR);
 	if ((val & (CR_STP | CR_DM_ABORT)) != (CR_STP | CR_DM_ABORT))
 		return EXDEV;
 	
@@ -241,6 +248,25 @@ int ne2k_probe(ne2k_t *ne2k, void *port, int irq)
 	
 	for (i = 0; i < ETH_ADDR; i++)
 		ne2k->mac[i] = pio_read_16(ne2k->data_port);
+	
+	ne2k->probed = true;
+	return EOK;
+}
+
+/** Start the network interface.
+ *
+ * @param[in,out] ne2k Network interface structure.
+ *
+ * @return EOK on success.
+ * @return EXDEV if the network interface is disabled.
+ *
+ */
+int ne2k_up(ne2k_t *ne2k)
+{
+	if (!ne2k->probed)
+		return EXDEV;
+	
+	ne2k_init(ne2k);
 	
 	/*
 	 * Setup send queue. Use the first
@@ -328,26 +354,6 @@ int ne2k_probe(ne2k_t *ne2k, void *port, int irq)
 	pio_read_8(ne2k->port + DP_CNTR2);
 	
 	/* Finish the initialization */
-	ne2k->probed = true;
-	return EOK;
-}
-
-/** Start the network interface.
- *
- * @param[in,out] ne2k Network interface structure.
- *
- * @return EOK on success.
- * @return EXDEV if the network interface is disabled.
- *
- */
-int ne2k_up(ne2k_t *ne2k)
-{
-	if (!ne2k->probed)
-		return EXDEV;
-	
-	pio_write_8(ne2k->port + DP_CR, CR_PS_P0 | CR_STA);
-	pio_write_8(ne2k->port + DP_RCR, RCR_AB);
-	
 	ne2k->up = true;
 	return EOK;
 }
@@ -361,12 +367,7 @@ void ne2k_down(ne2k_t *ne2k)
 {
 	if ((ne2k->probed) && (ne2k->up)) {
 		pio_write_8(ne2k->port + DP_CR, CR_STP | CR_DM_ABORT);
-		
-		/* Reset the ethernet card */
-		uint8_t val = pio_read_8(ne2k->port + NE2K_RESET);
-		usleep(2000);
-		pio_write_8(ne2k->port + NE2K_RESET, val);
-		
+		ne2k_init(ne2k);
 		ne2k->up = false;
 	}
 }
@@ -419,7 +420,7 @@ static void ne2k_reset(ne2k_t *ne2k)
 	pio_write_8(ne2k->port + DP_RBCR0, 0);
 	pio_write_8(ne2k->port + DP_RBCR1, 0);
 	
-	for (i = 0; i < 0x1000; i++) {
+	for (i = 0; i < NE2K_RETRY; i++) {
 		if ((pio_read_8(ne2k->port + DP_ISR) & ISR_RST) != 0)
 			break;
 	}
@@ -429,7 +430,7 @@ static void ne2k_reset(ne2k_t *ne2k)
 	pio_write_8(ne2k->port + DP_TCR, TCR_NORMAL);
 	
 	/* Acknowledge the ISR_RDC (remote DMA) interrupt */
-	for (i = 0; i < 0x1000; i++) {
+	for (i = 0; i < NE2K_RETRY; i++) {
 		if ((pio_read_8(ne2k->port + DP_ISR) & ISR_RDC) != 0)
 			break;
 	}

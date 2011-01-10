@@ -292,10 +292,10 @@ int netif_start_message(netif_device_t *device)
 			return rc;
 		}
 		
+		change_state(device, NETIF_ACTIVE);
+		
 		if (irc_service)
 			async_msg_1(irc_phone, IRC_ENABLE_INTERRUPT, ne2k->irq);
-		
-		change_state(device, NETIF_ACTIVE);
 	}
 	
 	return device->state;
