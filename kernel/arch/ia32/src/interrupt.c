@@ -61,6 +61,7 @@
 void (* disable_irqs_function)(uint16_t irqmask) = NULL;
 void (* enable_irqs_function)(uint16_t irqmask) = NULL;
 void (* eoi_function)(void) = NULL;
+const char *irqs_info = NULL;
 
 void istate_decode(istate_t *istate)
 {

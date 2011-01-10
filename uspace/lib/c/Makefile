@@ -58,7 +58,7 @@ GENERIC_SOURCES = \
 	generic/devmap.c \
 	generic/devman.c \
 	generic/device/hw_res.c \
-	generic/device/char.c \
+	generic/device/char_dev.c \
 	generic/event.c \
 	generic/errno.c \
 	generic/mem.c \

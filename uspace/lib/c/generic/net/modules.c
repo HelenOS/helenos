@@ -31,7 +31,7 @@
  */
 
 /** @file
- * Generic module functions implementation. 
+ * Generic module functions implementation.
  *
  * @todo MAKE IT POSSIBLE TO REMOVE THIS FILE VIA EITHER REPLACING PART OF ITS
  * FUNCTIONALITY OR VIA INTEGRATING ITS FUNCTIONALITY MORE TIGHTLY WITH THE REST
@@ -51,20 +51,20 @@
 /** The time between connect requests in microseconds. */
 #define MODULE_WAIT_TIME	(10 * 1000)
 
-/** Answers the call.
+/** Answer a call.
  *
- * @param[in] callid	The call identifier.
- * @param[in] result	The message processing result.
- * @param[in] answer	The message processing answer.
- * @param[in] answer_count The number of answer parameters.
+ * @param[in] callid Call identifier.
+ * @param[in] result Message processing result.
+ * @param[in] answer Message processing answer.
+ * @param[in] count  Number of answer parameters.
+ *
  */
-void
-answer_call(ipc_callid_t callid, int result, ipc_call_t *answer,
-    int answer_count)
+void answer_call(ipc_callid_t callid, int result, ipc_call_t *answer,
+    size_t count)
 {
-	/* Choose the most efficient answer function */
-	if (answer || (!answer_count)) {
-		switch (answer_count) {
+	/* Choose the most efficient function */
+	if ((answer != NULL) || (count == 0)) {
+		switch (count) {
 		case 0:
 			ipc_answer_0(callid, (sysarg_t) result);
 			break;
@@ -227,21 +227,21 @@ int data_reply(void *data, size_t data_length)
 	return async_data_read_finalize(callid, data, data_length);
 }
 
-/** Refreshes answer structure and parameters count.
+/** Refresh answer structure and argument count.
  *
- * Erases all attributes.
+ * Erase all arguments.
  *
- * @param[in,out] answer The message processing answer structure.
- * @param[in,out] answer_count The number of answer parameters.
+ * @param[in,out] answer Message processing answer structure.
+ * @param[in,out] count  Number of answer arguments.
+ *
  */
-void refresh_answer(ipc_call_t *answer, int *answer_count)
+void refresh_answer(ipc_call_t *answer, size_t *count)
 {
-	if (answer_count)
-		*answer_count = 0;
-
-	if (answer) {
+	if (count != NULL)
+		*count = 0;
+	
+	if (answer != NULL) {
 		IPC_SET_RETVAL(*answer, 0);
-		/* Just to be precise */
 		IPC_SET_IMETHOD(*answer, 0);
 		IPC_SET_ARG1(*answer, 0);
 		IPC_SET_ARG2(*answer, 0);

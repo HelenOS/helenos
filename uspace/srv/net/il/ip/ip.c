@@ -274,8 +274,8 @@ int ip_initialize(async_client_conn_t client_connection)
 	rc = modules_initialize(&ip_globals.modules);
 	if (rc != EOK)
 		goto out;
-	rc = add_module(NULL, &ip_globals.modules, ARP_NAME, ARP_FILENAME,
-	    SERVICE_ARP, 0, arp_connect_module);
+	rc = add_module(NULL, &ip_globals.modules, (uint8_t *) ARP_NAME,
+	    (uint8_t *) ARP_FILENAME, SERVICE_ARP, 0, arp_connect_module);
 
 out:
 	fibril_rwlock_write_unlock(&ip_globals.lock);
@@ -311,41 +311,41 @@ static int ip_netif_initialize(ip_netif_t *ip_netif)
 {
 	measured_string_t names[] = {
 		{
-			(char *) "IPV",
+			(uint8_t *) "IPV",
 			3
 		},
 		{
-			(char *) "IP_CONFIG",
+			(uint8_t *) "IP_CONFIG",
 			9
 		},
 		{
-			(char *) "IP_ADDR",
+			(uint8_t *) "IP_ADDR",
 			7
 		},
 		{
-			(char *) "IP_NETMASK",
+			(uint8_t *) "IP_NETMASK",
 			10
 		},
 		{
-			(char *) "IP_GATEWAY",
+			(uint8_t *) "IP_GATEWAY",
 			10
 		},
 		{
-			(char *) "IP_BROADCAST",
+			(uint8_t *) "IP_BROADCAST",
 			12
 		},
 		{
-			(char *) "ARP",
+			(uint8_t *) "ARP",
 			3
 		},
 		{
-			(char *) "IP_ROUTING",
+			(uint8_t *) "IP_ROUTING",
 			10
 		}
 	};
 	measured_string_t *configuration;
 	size_t count = sizeof(names) / sizeof(measured_string_t);
-	char *data;
+	uint8_t *data;
 	measured_string_t address;
 	ip_route_t *route;
 	in_addr_t gateway;
@@ -367,9 +367,9 @@ static int ip_netif_initialize(ip_netif_t *ip_netif)
 	
 	if (configuration) {
 		if (configuration[0].value)
-			ip_netif->ipv = strtol(configuration[0].value, NULL, 0);
-
-		ip_netif->dhcp = !str_lcmp(configuration[1].value, "dhcp",
+			ip_netif->ipv = strtol((char *) configuration[0].value, NULL, 0);
+		
+		ip_netif->dhcp = !str_lcmp((char *) configuration[1].value, "dhcp",
 		    configuration[1].length);
 		
 		if (ip_netif->dhcp) {
@@ -393,13 +393,13 @@ static int ip_netif_initialize(ip_netif_t *ip_netif)
 				return index;
 			}
 			
-			if ((inet_pton(AF_INET, configuration[2].value,
+			if ((inet_pton(AF_INET, (char *) configuration[2].value,
 			    (uint8_t *) &route->address.s_addr) != EOK) ||
-			    (inet_pton(AF_INET, configuration[3].value,
+			    (inet_pton(AF_INET, (char *) configuration[3].value,
 			    (uint8_t *) &route->netmask.s_addr) != EOK) ||
-			    (inet_pton(AF_INET, configuration[4].value,
+			    (inet_pton(AF_INET, (char *) configuration[4].value,
 			    (uint8_t *) &gateway.s_addr) == EINVAL) ||
-			    (inet_pton(AF_INET, configuration[5].value,
+			    (inet_pton(AF_INET, (char *) configuration[5].value,
 			    (uint8_t *) &ip_netif->broadcast.s_addr) == EINVAL))
 			    {
 				net_free_settings(configuration, data);
@@ -440,7 +440,7 @@ static int ip_netif_initialize(ip_netif_t *ip_netif)
 	// has to be after the device netif module initialization
 	if (ip_netif->arp) {
 		if (route) {
-			address.value = (char *) &route->address.s_addr;
+			address.value = (uint8_t *) &route->address.s_addr;
 			address.length = sizeof(in_addr_t);
 			
 			rc = arp_device_req(ip_netif->arp->phone,
@@ -476,6 +476,11 @@ static int ip_netif_initialize(ip_netif_t *ip_netif)
 		ip_globals.gateway.netmask.s_addr = 0;
 		ip_globals.gateway.gateway.s_addr = gateway.s_addr;
 		ip_globals.gateway.netif = ip_netif;
+		
+		char defgateway[INET_ADDRSTRLEN];
+		inet_ntop(AF_INET, (uint8_t *) &gateway.s_addr,
+		    defgateway, INET_ADDRSTRLEN);
+		printf("%s: Default gateway (%s)\n", NAME, defgateway);
 	}
 
 	return EOK;
@@ -996,14 +1001,14 @@ ip_send_route(packet_t *packet, ip_netif_t *netif, ip_route_t *route,
 {
 	measured_string_t destination;
 	measured_string_t *translation;
-	char *data;
+	uint8_t *data;
 	int phone;
 	int rc;
 
 	// get destination hardware address
 	if (netif->arp && (route->address.s_addr != dest.s_addr)) {
 		destination.value = route->gateway.s_addr ?
-		    (char *) &route->gateway.s_addr : (char *) &dest.s_addr;
+		    (uint8_t *) &route->gateway.s_addr : (uint8_t *) &dest.s_addr;
 		destination.length = sizeof(dest.s_addr);
 
 		rc = arp_translate_req(netif->arp->phone, netif->device_id,
@@ -1068,18 +1073,17 @@ ip_netif_find_route(ip_netif_t *netif, in_addr_t destination)
 {
 	int index;
 	ip_route_t *route;
-
+	
 	if (!netif)
 		return NULL;
-
-	// start with the first one - the direct route
+	
+	/* Start with the first one (the direct route) */
 	for (index = 0; index < ip_routes_count(&netif->routes); index++) {
 		route = ip_routes_get_index(&netif->routes, index);
-		if (route &&
+		if ((route) &&
 		    ((route->address.s_addr & route->netmask.s_addr) ==
-		    (destination.s_addr & route->netmask.s_addr))) {
+		    (destination.s_addr & route->netmask.s_addr)))
 			return route;
-		}
 	}
 
 	return NULL;
@@ -1287,7 +1291,7 @@ ip_send_msg_local(int il_phone, device_id_t device_id, packet_t *packet,
 	// device specified?
 	if (device_id > 0) {
 		netif = ip_netifs_find(&ip_globals.netifs, device_id);
-		route = ip_netif_find_route(netif, * dest);
+		route = ip_netif_find_route(netif, *dest);
 		if (netif && !route && (ip_globals.gateway.netif == netif))
 			route = &ip_globals.gateway;
 	}
@@ -1317,7 +1321,7 @@ ip_send_msg_local(int il_phone, device_id_t device_id, packet_t *packet,
 			return ip_release_and_return(packet, EINVAL);
 		}
 	}
-
+	
 	// if the local host is the destination
 	if ((route->address.s_addr == dest->s_addr) &&
 	    (dest->s_addr != IPV4_LOCALHOST_ADDRESS)) {
@@ -1561,7 +1565,7 @@ ip_process_packet(device_id_t device_id, packet_t *packet)
 	struct sockaddr_in addr_in;
 	socklen_t addrlen;
 	int rc;
-
+	
 	header = (ip_header_t *) packet_get_data(packet);
 	if (!header)
 		return ip_release_and_return(packet, ENOMEM);
@@ -1587,7 +1591,7 @@ ip_process_packet(device_id_t device_id, packet_t *packet)
 		}
 		return EINVAL;
 	}
-
+	
 	// process ipopt and get destination
 	dest = ip_get_destination(header);
 
@@ -1608,7 +1612,7 @@ ip_process_packet(device_id_t device_id, packet_t *packet)
 	rc = packet_set_addr(packet, NULL, (uint8_t *) &addr, addrlen);
 	if (rc != EOK)
 		return rc;
-
+	
 	route = ip_find_route(dest);
 	if (!route) {
 		phone = ip_prepare_icmp_and_get_phone(0, packet, header);
@@ -1755,7 +1759,7 @@ ip_received_error_msg_local(int ip_phone, device_id_t device_id,
 		if (route && ((route->address.s_addr & route->netmask.s_addr) ==
 		    (header->destination_address & route->netmask.s_addr))) {
 			// clear the ARP mapping if any
-			address.value = (char *) &header->destination_address;
+			address.value = (uint8_t *) &header->destination_address;
 			address.length = sizeof(header->destination_address);
 			arp_clear_address_req(netif->arp->phone,
 			    netif->device_id, SERVICE_IP, &address);
@@ -1885,7 +1889,7 @@ static int ip_receive_message(device_id_t device_id, packet_t *packet)
  */
 int
 ip_message_standalone(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *answer,
-    int *answer_count)
+    size_t *answer_count)
 {
 	packet_t *packet;
 	struct sockaddr *addr;
@@ -1904,48 +1908,48 @@ ip_message_standalone(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *answer,
 		return EOK;
 	
 	case IPC_M_CONNECT_TO_ME:
-		return ip_register(IL_GET_PROTO(call), IL_GET_SERVICE(call),
-		    IPC_GET_PHONE(call), NULL);
+		return ip_register(IL_GET_PROTO(*call), IL_GET_SERVICE(*call),
+		    IPC_GET_PHONE(*call), NULL);
 	
 	case NET_IL_DEVICE:
-		return ip_device_req_local(0, IPC_GET_DEVICE(call),
-		    IPC_GET_SERVICE(call));
+		return ip_device_req_local(0, IPC_GET_DEVICE(*call),
+		    IPC_GET_SERVICE(*call));
 	
 	case NET_IL_SEND:
 		rc = packet_translate_remote(ip_globals.net_phone, &packet,
-		    IPC_GET_PACKET(call));
+		    IPC_GET_PACKET(*call));
 		if (rc != EOK)
 			return rc;
-		return ip_send_msg_local(0, IPC_GET_DEVICE(call), packet, 0,
-		    IPC_GET_ERROR(call));
+		return ip_send_msg_local(0, IPC_GET_DEVICE(*call), packet, 0,
+		    IPC_GET_ERROR(*call));
 	
 	case NET_IL_DEVICE_STATE:
-		return ip_device_state_message(IPC_GET_DEVICE(call),
-		    IPC_GET_STATE(call));
+		return ip_device_state_message(IPC_GET_DEVICE(*call),
+		    IPC_GET_STATE(*call));
 	
 	case NET_IL_RECEIVED:
 		rc = packet_translate_remote(ip_globals.net_phone, &packet,
-		    IPC_GET_PACKET(call));
+		    IPC_GET_PACKET(*call));
 		if (rc != EOK)
 			return rc;
-		return ip_receive_message(IPC_GET_DEVICE(call), packet);
+		return ip_receive_message(IPC_GET_DEVICE(*call), packet);
 	
 	case NET_IP_RECEIVED_ERROR:
 		rc = packet_translate_remote(ip_globals.net_phone, &packet,
-		    IPC_GET_PACKET(call));
+		    IPC_GET_PACKET(*call));
 		if (rc != EOK)
 			return rc;
-		return ip_received_error_msg_local(0, IPC_GET_DEVICE(call),
-		    packet, IPC_GET_TARGET(call), IPC_GET_ERROR(call));
+		return ip_received_error_msg_local(0, IPC_GET_DEVICE(*call),
+		    packet, IPC_GET_TARGET(*call), IPC_GET_ERROR(*call));
 	
 	case NET_IP_ADD_ROUTE:
-		return ip_add_route_req_local(0, IPC_GET_DEVICE(call),
-		    IP_GET_ADDRESS(call), IP_GET_NETMASK(call),
-		    IP_GET_GATEWAY(call));
+		return ip_add_route_req_local(0, IPC_GET_DEVICE(*call),
+		    IP_GET_ADDRESS(*call), IP_GET_NETMASK(*call),
+		    IP_GET_GATEWAY(*call));
 
 	case NET_IP_SET_GATEWAY:
-		return ip_set_gateway_req_local(0, IPC_GET_DEVICE(call),
-		    IP_GET_GATEWAY(call));
+		return ip_set_gateway_req_local(0, IPC_GET_DEVICE(*call),
+		    IP_GET_GATEWAY(*call));
 
 	case NET_IP_GET_ROUTE:
 		rc = async_data_write_accept((void **) &addr, false, 0, 0, 0,
@@ -1953,13 +1957,13 @@ ip_message_standalone(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *answer,
 		if (rc != EOK)
 			return rc;
 		
-		rc = ip_get_route_req_local(0, IP_GET_PROTOCOL(call), addr,
+		rc = ip_get_route_req_local(0, IP_GET_PROTOCOL(*call), addr,
 		    (socklen_t) addrlen, &device_id, &header, &headerlen);
 		if (rc != EOK)
 			return rc;
 		
-		IPC_SET_DEVICE(answer, device_id);
-		IP_SET_HEADERLEN(answer, headerlen);
+		IPC_SET_DEVICE(*answer, device_id);
+		IP_SET_HEADERLEN(*answer, headerlen);
 		
 		*answer_count = 2;
 		
@@ -1971,21 +1975,21 @@ ip_message_standalone(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *answer,
 		return rc;
 	
 	case NET_IL_PACKET_SPACE:
-		rc = ip_packet_size_message(IPC_GET_DEVICE(call), &addrlen,
+		rc = ip_packet_size_message(IPC_GET_DEVICE(*call), &addrlen,
 		    &prefix, &content, &suffix);
 		if (rc != EOK)
 			return rc;
 		
-		IPC_SET_ADDR(answer, addrlen);
-		IPC_SET_PREFIX(answer, prefix);
-		IPC_SET_CONTENT(answer, content);
-		IPC_SET_SUFFIX(answer, suffix);
+		IPC_SET_ADDR(*answer, addrlen);
+		IPC_SET_PREFIX(*answer, prefix);
+		IPC_SET_CONTENT(*answer, content);
+		IPC_SET_SUFFIX(*answer, suffix);
 		*answer_count = 4;
 		return EOK;
 	
 	case NET_IL_MTU_CHANGED:
-		return ip_mtu_changed_message(IPC_GET_DEVICE(call),
-		    IPC_GET_MTU(call));
+		return ip_mtu_changed_message(IPC_GET_DEVICE(*call),
+		    IPC_GET_MTU(*call));
 	}
 	
 	return ENOTSUP;
@@ -2006,10 +2010,10 @@ static void il_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	
 	while (true) {
 		ipc_call_t answer;
-		int answer_count;
+		size_t count;
 		
 		/* Clear the answer structure */
-		refresh_answer(&answer, &answer_count);
+		refresh_answer(&answer, &count);
 		
 		/* Fetch the next message */
 		ipc_call_t call;
@@ -2017,7 +2021,7 @@ static void il_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		
 		/* Process the message */
 		int res = il_module_message_standalone(callid, &call, &answer,
-		    &answer_count);
+		    &count);
 		
 		/*
 		 * End if told to either by the message or the processing
@@ -2029,7 +2033,7 @@ static void il_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		}
 		
 		/* Answer the message */
-		answer_call(callid, res, &answer, answer_count);
+		answer_call(callid, res, &answer, count);
 	}
 }
 

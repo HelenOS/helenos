@@ -187,7 +187,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	}
 	
 	phone = IPC_GET_ARG5(call);
-	async_session_create(&fs_info->session, phone);
+	async_session_create(&fs_info->session, phone, 0);
 	ipc_answer_0(callid, EOK);
 	
 	dprintf("Callback connection to FS created.\n");

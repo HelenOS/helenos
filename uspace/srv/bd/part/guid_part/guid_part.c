@@ -190,7 +190,6 @@ static int gpt_init(const char *dev_name)
 
 		rc = devmap_device_register(name, &dev);
 		if (rc != EOK) {
-			devmap_hangup_phone(DEVMAP_DRIVER);
 			printf(NAME ": Unable to register device %s.\n", name);
 			return rc;
 		}

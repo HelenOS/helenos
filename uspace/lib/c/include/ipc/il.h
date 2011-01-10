@@ -74,14 +74,18 @@ typedef enum {
 /*@{*/
 
 /** Return the protocol number message parameter.
- * @param[in] call The message call structure.
+ *
+ * @param[in] call Message call structure.
+ *
  */
-#define IL_GET_PROTO(call)	(int) IPC_GET_ARG1(*call)
+#define IL_GET_PROTO(call)  ((int) IPC_GET_ARG1(call))
 
 /** Return the registering service message parameter.
- * @param[in] call The message call structure.
+ *
+ * @param[in] call Message call structure.
+ *
  */
-#define IL_GET_SERVICE(call)	(services_t) IPC_GET_ARG2(*call)
+#define IL_GET_SERVICE(call)  ((services_t) IPC_GET_ARG2(call))
 
 /*@}*/
 

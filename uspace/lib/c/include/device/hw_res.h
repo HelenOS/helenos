@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
  
- /** @addtogroup libc
+/** @addtogroup libc
  * @{
  */
 /** @file
@@ -38,14 +38,13 @@
 #include <ipc/dev_iface.h>
 #include <bool.h>
 
-// HW resource provider interface
-
+/** HW resource provider interface */
 typedef enum {
-	GET_RESOURCE_LIST = 0,
-	ENABLE_INTERRUPT	
-} hw_res_funcs_t;
+	HW_RES_GET_RESOURCE_LIST = 0,
+	HW_RES_ENABLE_INTERRUPT
+} hw_res_method_t;
 
-/** HW resource types. */
+/** HW resource types */
 typedef enum {
 	INTERRUPT,
 	IO_RANGE, 
@@ -57,46 +56,46 @@ typedef enum {
 	BIG_ENDIAN
 } endianness_t;
 
-
-/** HW resource (e.g. interrupt, memory register, i/o register etc.). */
-typedef struct hw_resource {
+/** HW resource (e.g. interrupt, memory register, i/o register etc.) */
+typedef struct {
 	hw_res_type_t type;
 	union {
 		struct {
 			uint64_t address;
-			endianness_t endianness;			
-			size_t size;			
+			endianness_t endianness;
+			size_t size;
 		} mem_range;
+
 		struct {
 			uint64_t address;
-			endianness_t endianness;			
-			size_t size;			
+			endianness_t endianness;
+			size_t size;
 		} io_range;
+
 		struct {
-			int irq;			
-		} interrupt;		
-	} res;	
+			int irq;
+		} interrupt;
+	} res;
 } hw_resource_t;
 
-typedef struct hw_resource_list {
+typedef struct {
 	size_t count;
-	hw_resource_t *resources;	
+	hw_resource_t *resources;
 } hw_resource_list_t;
 
-static inline void clean_hw_resource_list(hw_resource_list_t *hw_res)
+static inline void hw_res_clean_resource_list(hw_resource_list_t *hw_res)
 {
-	if(NULL != hw_res->resources) {
+	if (hw_res->resources != NULL) {
 		free(hw_res->resources);
+
 		hw_res->resources = NULL;
 	}
-	hw_res->count = 0;	
+
+	hw_res->count = 0;
 }
 
-
-
-extern int get_hw_resources(int, hw_resource_list_t *);
-extern bool enable_interrupt(int);
-
+extern int hw_res_get_resource_list(int, hw_resource_list_t *);
+extern bool hw_res_enable_interrupt(int);
 
 #endif
 

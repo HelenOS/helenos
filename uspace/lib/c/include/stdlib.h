@@ -45,6 +45,9 @@
 		_exit(1); \
 	} while (0)
 
+#define core() \
+	*((int *) 0) = 0xbadbad;
+
 #define exit(status)  _exit((status))
 
 #define RAND_MAX  714025
