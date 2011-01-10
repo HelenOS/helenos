@@ -62,7 +62,7 @@ int net_connect_module(void)
  * @see	net_get_device_conf_req()
  * @see net_get_conf_req()
  */
-void net_free_settings(measured_string_t *settings, char *data)
+void net_free_settings(measured_string_t *settings, uint8_t *data)
 {
 	if (settings)
 		free(settings);
@@ -90,7 +90,7 @@ void net_free_settings(measured_string_t *settings, char *data)
  */
 int
 net_get_conf_req(int net_phone, measured_string_t **configuration,
-    size_t count, char **data)
+    size_t count, uint8_t **data)
 {
 	return generic_translate_req(net_phone, NET_NET_GET_DEVICE_CONF, 0, 0,
 	    *configuration, count, configuration, data);
@@ -117,7 +117,7 @@ net_get_conf_req(int net_phone, measured_string_t **configuration,
  */
 int
 net_get_device_conf_req(int net_phone, device_id_t device_id,
-    measured_string_t **configuration, size_t count, char **data)
+    measured_string_t **configuration, size_t count, uint8_t **data)
 {
 	return generic_translate_req(net_phone, NET_NET_GET_DEVICE_CONF,
 	    device_id, 0, *configuration, count, configuration, data);

@@ -58,9 +58,9 @@ extern ip_globals_t ip_globals;
 
 int
 il_module_message_standalone(ipc_callid_t callid, ipc_call_t *call,
-    ipc_call_t *answer, int *answer_count)
+    ipc_call_t *answer, size_t *count)
 {
-	return ip_message_standalone(callid, call, answer, answer_count);
+	return ip_message_standalone(callid, call, answer, count);
 }
 
 int il_module_start_standalone(async_client_conn_t client_connection)

@@ -43,7 +43,7 @@
 
 extern int arp_initialize(async_client_conn_t);
 extern int arp_message_standalone(ipc_callid_t, ipc_call_t *, ipc_call_t *,
-    int *);
+    size_t *);
 
 #endif
 

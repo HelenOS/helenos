@@ -792,7 +792,7 @@ bool assign_driver(node_t *node, driver_list_t *drivers_list, dev_tree_t *tree)
 	if (is_running) {
 		/* Notify the driver about the new device. */
 		int phone = async_connect_me_to(drv->phone, DRIVER_DEVMAN, 0, 0);
-		if (phone > 0) {
+		if (phone >= 0) {
 			add_device(phone, drv, node, tree);
 			ipc_hangup(phone);
 		}

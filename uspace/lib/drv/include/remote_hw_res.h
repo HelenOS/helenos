@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Lukas Mejdrech
+ * Copyright (c) 2010 Lenka Trochtova
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,27 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libnet
+/** @addtogroup libdrv
  * @{
  */
+/** @file
+ */
 
-#ifndef LIBNET_NETIF_INTERFACE_H_
-#define LIBNET_NETIF_INTERFACE_H_
+#ifndef LIBDRV_REMOTE_HW_RES_H_
+#define LIBDRV_REMOTE_HW_RES_H_
 
-#include <netif_remote.h>
-#include <packet_client.h>
-
-#define netif_module_message    netif_module_message_standalone
-#define netif_module_start      netif_module_start_standalone
-#define netif_get_addr_req      netif_get_addr_req_remote
-#define netif_probe_req         netif_probe_req_remote
-#define netif_send_msg          netif_send_msg_remote
-#define netif_start_req         netif_start_req_remote
-#define netif_stop_req          netif_stop_req_remote
-#define netif_stats_req         netif_stats_req_remote
-#define netif_bind_service      netif_bind_service_remote
+extern remote_iface_t remote_hw_res_iface;
 
 #endif
 
-/** @}
+/**
+ * @}
  */

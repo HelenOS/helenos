@@ -42,7 +42,6 @@ BINARY = dp8390
 
 SOURCES = \
 	dp8390.c \
-	dp8390_module.c \
 	ne2000.c
 
 include $(USPACE_PREFIX)/Makefile.common
