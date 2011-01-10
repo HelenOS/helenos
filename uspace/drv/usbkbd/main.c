@@ -77,16 +77,12 @@ void default_connection_handler(device_t *dev,
 	ipc_answer_0(icallid, EINVAL);
 }
 
+#if 0
 static void send_key(int key, int type, wchar_t c) {
 	async_msg_4(console_callback_phone, KBD_EVENT, type, key,
 	    KM_NUM_LOCK, c);
 }
-
-static void send_alnum(int key, wchar_t c) {
-	printf(NAME ": sending key '%lc' to console\n", (wint_t) c);
-	send_key(key, KEY_PRESS, c);
-	send_key(key, KEY_RELEASE, c);
-}
+#endif
 
 /*
  * Callbacks for parser
@@ -230,15 +226,6 @@ static void usbkbd_process_interrupt_in(usb_hid_dev_kbd_t *kbd_dev,
 	    (usb_hid_report_in_callbacks_t *)malloc(
 		sizeof(usb_hid_report_in_callbacks_t));
 	callbacks->keyboard = usbkbd_process_keycodes;
-
-	if (console_callback_phone != -1) {
-		static size_t counter = 0;
-		counter++;
-		if (counter > 3) {
-			counter = 0;
-			send_alnum(KC_A, L'a');
-		}
-	}
 
 	usb_hid_parse_report(kbd_dev->parser, buffer, actual_size, callbacks, 
 	    NULL);

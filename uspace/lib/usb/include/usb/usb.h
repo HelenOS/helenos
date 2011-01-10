@@ -61,6 +61,13 @@ typedef enum {
 	USB_REQUEST_TYPE_VENDOR = 2
 } usb_request_type_t;
 
+/** USB request recipient. */
+typedef enum {
+	USB_REQUEST_RECIPIENT_DEVICE = 0,
+	USB_REQUEST_RECIPIENT_INTERFACE = 1,
+	USB_REQUEST_RECIPIENT_ENDPOINT = 2
+} usb_request_recipient_t;
+
 /** USB transaction outcome. */
 typedef enum {
 	USB_OUTCOME_OK,
