@@ -78,13 +78,13 @@ int devman_get_phone(devman_interface_t iface, unsigned int flags)
 			return devman_phone_client;
 		}
 		
-		if (flags & IPC_FLAG_BLOCKING)
+		if (flags & IPC_FLAG_BLOCKING) {
 			devman_phone_client = async_connect_me_to_blocking(
 			    PHONE_NS, SERVICE_DEVMAN, DEVMAN_CLIENT, 0);
-		else
+		} else {
 			devman_phone_client = async_connect_me_to(PHONE_NS,
 			    SERVICE_DEVMAN, DEVMAN_CLIENT, 0);
-			fibril_mutex_unlock(&devman_phone_mutex);
+		}
 		
 		fibril_mutex_unlock(&devman_phone_mutex);
 		return devman_phone_client;
