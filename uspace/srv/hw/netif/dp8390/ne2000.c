@@ -313,6 +313,7 @@ int netif_start_message(netif_device_t *device)
 		ne2k_cmds[0].addr = ne2k->port + DP_ISR;
 		ne2k_cmds[3].addr = ne2k->port + DP_IMR;
 		ne2k_cmds[4].addr = ne2k_cmds[0].addr;
+		ne2k_cmds[5].addr = ne2k->port + DP_TSR;
 		
 		int rc = ipc_register_irq(ne2k->irq, device->device_id,
 		    device->device_id, &ne2k_code);
