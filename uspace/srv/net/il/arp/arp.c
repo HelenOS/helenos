@@ -541,80 +541,26 @@ static int arp_receive_message(device_id_t device_id, packet_t *packet)
 	return EOK;
 }
 
-
-/** Returns the hardware address for the given protocol address.
- *
- * Sends the ARP request packet if the hardware address is not found in the
- * cache.
- *
- * @param[in] device_id	The device identifier.
- * @param[in] protocol	The protocol service.
- * @param[in] target	The target protocol address.
- * @param[out] translation Where the hardware address of the target is stored.
- * @return		EOK on success.
- * @return		EAGAIN if the caller should try again.
- * @return		Other error codes in case of error.
- */
-static int
-arp_translate_message(device_id_t device_id, services_t protocol,
-    measured_string_t *target, measured_string_t **translation)
+static int arp_send_request(device_id_t device_id, services_t protocol,
+    measured_string_t *target, arp_device_t *device, arp_proto_t *proto)
 {
-	arp_device_t *device;
-	arp_proto_t *proto;
-	arp_trans_t *trans;
-	size_t length;
-	packet_t *packet;
-	arp_header_t *header;
-	bool retry = false;
-	int rc;
-
-restart:
-	if (!target || !translation)
-		return EBADMEM;
-
-	device = arp_cache_find(&arp_globals.cache, device_id);
-	if (!device)
-		return ENOENT;
-
-	proto = arp_protos_find(&device->protos, protocol);
-	if (!proto || (proto->addr->length != target->length))
-		return ENOENT;
-
-	trans = arp_addr_find(&proto->addresses, target->value, target->length);
-	if (trans) {
-		if (trans->hw_addr) {
-			*translation = trans->hw_addr;
-			return EOK;
-		}
-		if (retry)
-			return EAGAIN;
-		rc = fibril_condvar_wait_timeout(&trans->cv, &arp_globals.lock,
-		    ARP_TRANS_WAIT);
-		if (rc == ETIMEOUT)
-			return ENOENT;
-		retry = true;
-		goto restart;
-	}
-	if (retry)
-		return EAGAIN;
-
 	/* ARP packet content size = header + (address + translation) * 2 */
-	length = 8 + 2 * (proto->addr->length + device->addr->length);
+	size_t length = 8 + 2 * (proto->addr->length + device->addr->length);
 	if (length > device->packet_dimension.content)
 		return ELIMIT;
-
-	packet = packet_get_4_remote(arp_globals.net_phone,
+	
+	packet_t *packet = packet_get_4_remote(arp_globals.net_phone,
 	    device->packet_dimension.addr_len, device->packet_dimension.prefix,
 	    length, device->packet_dimension.suffix);
 	if (!packet)
 		return ENOMEM;
-
-	header = (arp_header_t *) packet_suffix(packet, length);
+	
+	arp_header_t *header = (arp_header_t *) packet_suffix(packet, length);
 	if (!header) {
 		pq_release_remote(arp_globals.net_phone, packet_get_id(packet));
 		return ENOMEM;
 	}
-
+	
 	header->hardware = htons(device->hardware);
 	header->hardware_length = (uint8_t) device->addr->length;
 	header->protocol = htons(protocol_map(device->service, protocol));
@@ -630,16 +576,81 @@ restart:
 	bzero(((uint8_t *) header) + length, device->addr->length);
 	length += device->addr->length;
 	memcpy(((uint8_t *) header) + length, target->value, target->length);
-
-	rc = packet_set_addr(packet, (uint8_t *) device->addr->value,
+	
+	int rc = packet_set_addr(packet, (uint8_t *) device->addr->value,
 	    (uint8_t *) device->broadcast_addr->value, device->addr->length);
 	if (rc != EOK) {
 		pq_release_remote(arp_globals.net_phone, packet_get_id(packet));
 		return rc;
 	}
-
+	
 	nil_send_msg(device->phone, device_id, packet, SERVICE_ARP);
+	return EOK;
+}
 
+/** Return the hardware address for the given protocol address.
+ *
+ * Send the ARP request packet if the hardware address is not found in the
+ * cache.
+ *
+ * @param[in]  device_id   Device identifier.
+ * @param[in]  protocol    Protocol service.
+ * @param[in]  target      Target protocol address.
+ * @param[out] translation Where the hardware address of the target is stored.
+ *
+ * @return EOK on success.
+ * @return EAGAIN if the caller should try again.
+ * @return Other error codes in case of error.
+ *
+ */
+static int
+arp_translate_message(device_id_t device_id, services_t protocol,
+    measured_string_t *target, measured_string_t **translation)
+{
+	arp_device_t *device;
+	arp_proto_t *proto;
+	arp_trans_t *trans;
+	bool retry = false;
+	int rc;
+	
+restart:
+	if ((!target) || (!translation))
+		return EBADMEM;
+	
+	device = arp_cache_find(&arp_globals.cache, device_id);
+	if (!device)
+		return ENOENT;
+	
+	proto = arp_protos_find(&device->protos, protocol);
+	if ((!proto) || (proto->addr->length != target->length))
+		return ENOENT;
+	
+	trans = arp_addr_find(&proto->addresses, target->value, target->length);
+	if (trans) {
+		if (trans->hw_addr) {
+			*translation = trans->hw_addr;
+			return EOK;
+		}
+		
+		if (retry)
+			return EAGAIN;
+		
+		rc = arp_send_request(device_id, protocol, target, device, proto);
+		if (rc != EOK)
+			return rc;
+		
+		rc = fibril_condvar_wait_timeout(&trans->cv, &arp_globals.lock,
+		    ARP_TRANS_WAIT);
+		if (rc == ETIMEOUT)
+			return ENOENT;
+		
+		retry = true;
+		goto restart;
+	}
+	
+	if (retry)
+		return EAGAIN;
+	
 	trans = (arp_trans_t *) malloc(sizeof(arp_trans_t));
 	if (!trans)
 		return ENOMEM;
@@ -652,10 +663,15 @@ restart:
 		return rc;
 	}
 	
+	rc = arp_send_request(device_id, protocol, target, device, proto);
+	if (rc != EOK)
+		return rc;
+	
 	rc = fibril_condvar_wait_timeout(&trans->cv, &arp_globals.lock,
 	    ARP_TRANS_WAIT);
 	if (rc == ETIMEOUT)
 		return ENOENT;
+	
 	retry = true;
 	goto restart;
 }
