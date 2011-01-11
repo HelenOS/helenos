@@ -53,9 +53,7 @@
 #include <byteorder.h>
 #include <errno.h>
 #include <libarch/ddi.h>
-#include <netif_skel.h>
 #include <net/packet.h>
-#include <nil_interface.h>
 #include <packet_client.h>
 #include "dp8390.h"
 
@@ -343,7 +341,7 @@ int ne2k_up(ne2k_t *ne2k)
 	pio_write_8(ne2k->port + DP_CURR, ne2k->start_page + 1);
 	
 	/* Step 10: */
-	pio_write_8(ne2k->port + DP_CR, CR_DM_ABORT | CR_STA);
+	pio_write_8(ne2k->port + DP_CR, CR_PS_P0 | CR_DM_ABORT | CR_STA);
 	
 	/* Step 11: */
 	pio_write_8(ne2k->port + DP_TCR, TCR_NORMAL);
@@ -448,14 +446,21 @@ static void ne2k_reset(ne2k_t *ne2k)
 	fibril_mutex_unlock(&ne2k->sq_mutex);
 }
 
-static void ne2k_receive_frame(ne2k_t *ne2k, uint8_t page, size_t length,
-    int nil_phone, device_id_t device_id)
+static frame_t *ne2k_receive_frame(ne2k_t *ne2k, uint8_t page, size_t length)
 {
-	packet_t *packet = netif_packet_get_1(length);
-	if (!packet)
-		return;
+	frame_t *frame = (frame_t *) malloc(sizeof(frame_t));
+	if (frame == NULL)
+		return NULL;
 	
-	void *buf = packet_suffix(packet, length);
+	link_initialize(&frame->link);
+	
+	frame->packet = netif_packet_get_1(length);
+	if (frame->packet == NULL) {
+		free(frame);
+		return NULL;
+	}
+	
+	void *buf = packet_suffix(frame->packet, length);
 	bzero(buf, length);
 	uint8_t last = page + length / DP_PAGE;
 	
@@ -472,11 +477,20 @@ static void ne2k_receive_frame(ne2k_t *ne2k, uint8_t page, size_t length,
 		    length);
 	
 	ne2k->stats.receive_packets++;
-	nil_received_msg(nil_phone, device_id, packet, SERVICE_NONE);
+	return frame;
 }
 
-static void ne2k_receive(ne2k_t *ne2k, int nil_phone, device_id_t device_id)
+static link_t *ne2k_receive(ne2k_t *ne2k)
 {
+	/*
+	 * Allocate memory for the list of received frames.
+	 * If the allocation fails here we still receive the
+	 * frames from the network, but they will be lost.
+	 */
+	link_t *frames = (link_t *) malloc(sizeof(link_t));
+	if (frames != NULL)
+		list_initialize(frames);
+	
 	while (true) {
 		uint8_t boundary = pio_read_8(ne2k->port + DP_BNRY) + 1;
 		
@@ -525,8 +539,11 @@ static void ne2k_receive(ne2k_t *ne2k, int nil_phone, device_id_t device_id)
 			fprintf(stderr, "%s: FIFO overrun\n", NAME);
 			ne2k->overruns++;
 			next = current;
-		} else if ((header.status & RSR_PRX) && (ne2k->up))
-			ne2k_receive_frame(ne2k, boundary, length, nil_phone, device_id);
+		} else if ((header.status & RSR_PRX) && (ne2k->up)) {
+			frame_t *frame = ne2k_receive_frame(ne2k, boundary, length);
+			if ((frame != NULL) && (frames != NULL))
+				list_append(&frame->link, frames);
+		}
 		
 		/*
 		 * Update the boundary pointer
@@ -541,16 +558,19 @@ static void ne2k_receive(ne2k_t *ne2k, int nil_phone, device_id_t device_id)
 		
 		pio_write_8(ne2k->port + DP_BNRY, next);
 	}
+	
+	return frames;
 }
 
-void ne2k_interrupt(ne2k_t *ne2k, uint8_t isr, int nil_phone, device_id_t device_id)
+link_t *ne2k_interrupt(ne2k_t *ne2k, uint8_t isr, uint8_t tsr)
 {
+	/* List of received frames */
+	link_t *frames = NULL;
+	
 	if (isr & (ISR_PTX | ISR_TXE)) {
 		if (isr & ISR_TXE)
 			ne2k->stats.send_errors++;
 		else {
-			uint8_t tsr = pio_read_8(ne2k->port + DP_TSR);
-			
 			if (tsr & TSR_PTX)
 				ne2k->stats.send_packets++;
 			
@@ -597,9 +617,6 @@ void ne2k_interrupt(ne2k_t *ne2k, uint8_t isr, int nil_phone, device_id_t device
 		fibril_mutex_unlock(&ne2k->sq_mutex);
 	}
 	
-	if (isr & ISR_PRX)
-		ne2k_receive(ne2k, nil_phone, device_id);
-	
 	if (isr & ISR_RXE)
 		ne2k->stats.receive_errors++;
 	
@@ -612,6 +629,9 @@ void ne2k_interrupt(ne2k_t *ne2k, uint8_t isr, int nil_phone, device_id_t device
 		    pio_read_8(ne2k->port + DP_CNTR2);
 	}
 	
+	if (isr & ISR_PRX)
+		frames = ne2k_receive(ne2k);
+	
 	if (isr & ISR_RST) {
 		/*
 		 * The chip is stopped, and all arrived
@@ -623,6 +643,8 @@ void ne2k_interrupt(ne2k_t *ne2k, uint8_t isr, int nil_phone, device_id_t device
 	/* Unmask interrupts to be processed in the next round */
 	pio_write_8(ne2k->port + DP_IMR,
 	    IMR_PRXE | IMR_PTXE | IMR_RXEE | IMR_TXEE | IMR_OVWE | IMR_CNTE);
+	
+	return frames;
 }
 
 /** @}

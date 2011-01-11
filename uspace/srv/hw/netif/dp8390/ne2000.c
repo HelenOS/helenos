@@ -67,6 +67,13 @@
  */
 #define IRQ_GET_ISR(call)  ((int) IPC_GET_ARG2(call))
 
+/** Return the TSR from the interrupt call.
+ *
+ * @param[in] call The interrupt call.
+ *
+ */
+#define IRQ_GET_TSR(call)  ((int) IPC_GET_ARG3(call))
+
 static int irc_service = 0;
 static int irc_phone = -1;
 
@@ -91,7 +98,7 @@ static irq_cmd_t ne2k_cmds[] = {
 	{
 		/* Predicate for accepting the interrupt */
 		.cmd = CMD_PREDICATE,
-		.value = 3,
+		.value = 4,
 		.srcarg = 3
 	},
 	{
@@ -110,6 +117,12 @@ static irq_cmd_t ne2k_cmds[] = {
 		.srcarg = 3
 	},
 	{
+		/* Read Transmit Status Register */
+		.cmd = CMD_PIO_READ_8,
+		.addr = NULL,
+		.dstarg = 3
+	},
+	{
 		.cmd = CMD_ACCEPT
 	}
 };
@@ -124,7 +137,11 @@ static irq_code_t ne2k_code = {
 
 /** Handle the interrupt notification.
  *
- * This is the interrupt notification function.
+ * This is the interrupt notification function. It is quarantied
+ * that there is only a single instance of this notification
+ * function running at one time until the return from the
+ * ne2k_interrupt() function (where the interrupts are unmasked
+ * again).
  *
  * @param[in] iid  Interrupt notification identifier.
  * @param[in] call Interrupt notification.
@@ -147,8 +164,24 @@ static void irq_handler(ipc_callid_t iid, ipc_call_t *call)
 	
 	fibril_rwlock_read_unlock(&netif_globals.lock);
 	
-	if (ne2k != NULL)
-		ne2k_interrupt(ne2k, IRQ_GET_ISR(*call), nil_phone, device_id);
+	if (ne2k != NULL) {
+		link_t *frames =
+		    ne2k_interrupt(ne2k, IRQ_GET_ISR(*call), IRQ_GET_TSR(*call));
+		
+		if (frames != NULL) {
+			while (!list_empty(frames)) {
+				frame_t *frame =
+				    list_get_instance(frames->next, frame_t, link);
+				
+				list_remove(&frame->link);
+				nil_received_msg(nil_phone, device_id, frame->packet,
+				    SERVICE_NONE);
+				free(frame);
+			}
+			
+			free(frames);
+		}
+	}
 }
 
 /** Change the network interface state.
