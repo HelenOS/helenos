@@ -44,6 +44,7 @@
 #include <errno.h>
 
 #include <ipc/ipc.h>
+#include <ipc/nil.h>
 #include <ipc/net.h>
 #include <ipc/services.h>
 
@@ -55,15 +56,13 @@
 #include <net/device.h>
 #include <netif_remote.h>
 #include <net_interface.h>
-#include <nil_interface.h>
 #include <il_interface.h>
 #include <adt/measured_strings.h>
 #include <packet_client.h>
 #include <packet_remote.h>
-#include <nil_local.h>
+#include <nil_skel.h>
 
 #include "eth.h"
-#include "eth_header.h"
 
 /** The module name. */
 #define NAME  "eth"
@@ -71,84 +70,86 @@
 /** Reserved packet prefix length. */
 #define ETH_PREFIX \
 	(sizeof(eth_header_t) + sizeof(eth_header_lsap_t) + \
-	sizeof(eth_header_snap_t))
+	    sizeof(eth_header_snap_t))
 
 /** Reserved packet suffix length. */
-#define ETH_SUFFIX \
-	sizeof(eth_fcs_t)
+#define ETH_SUFFIX  (sizeof(eth_fcs_t))
 
 /** Maximum packet content length. */
-#define ETH_MAX_CONTENT 1500u
+#define ETH_MAX_CONTENT  1500u
 
 /** Minimum packet content length. */
-#define ETH_MIN_CONTENT 46u
+#define ETH_MIN_CONTENT  46u
 
 /** Maximum tagged packet content length. */
 #define ETH_MAX_TAGGED_CONTENT(flags) \
 	(ETH_MAX_CONTENT - \
-	((IS_8023_2_LSAP(flags) || IS_8023_2_SNAP(flags)) ? \
-	sizeof(eth_header_lsap_t) : 0) - \
-	(IS_8023_2_SNAP(flags) ? sizeof(eth_header_snap_t) : 0))
+	    ((IS_8023_2_LSAP(flags) || IS_8023_2_SNAP(flags)) ? \
+	    sizeof(eth_header_lsap_t) : 0) - \
+	    (IS_8023_2_SNAP(flags) ? sizeof(eth_header_snap_t) : 0))
 
 /** Minimum tagged packet content length. */
 #define ETH_MIN_TAGGED_CONTENT(flags) \
 	(ETH_MIN_CONTENT - \
-	((IS_8023_2_LSAP(flags) || IS_8023_2_SNAP(flags)) ? \
-	sizeof(eth_header_lsap_t) : 0) - \
-	(IS_8023_2_SNAP(flags) ? sizeof(eth_header_snap_t) : 0))
+	    ((IS_8023_2_LSAP(flags) || IS_8023_2_SNAP(flags)) ? \
+	    sizeof(eth_header_lsap_t) : 0) - \
+	    (IS_8023_2_SNAP(flags) ? sizeof(eth_header_snap_t) : 0))
 
 /** Dummy flag shift value. */
-#define ETH_DUMMY_SHIFT	0
+#define ETH_DUMMY_SHIFT  0
 
 /** Mode flag shift value. */
-#define ETH_MODE_SHIFT	1
+#define ETH_MODE_SHIFT  1
 
 /** Dummy device flag.
  * Preamble and FCS are mandatory part of the packets.
  */
-#define ETH_DUMMY		(1 << ETH_DUMMY_SHIFT)
+#define ETH_DUMMY  (1 << ETH_DUMMY_SHIFT)
 
 /** Returns the dummy flag.
  * @see ETH_DUMMY
  */
-#define IS_DUMMY(flags)		((flags) & ETH_DUMMY)
+#define IS_DUMMY(flags)  ((flags) & ETH_DUMMY)
 
 /** Device mode flags.
  * @see ETH_DIX
  * @see ETH_8023_2_LSAP
  * @see ETH_8023_2_SNAP
  */
-#define ETH_MODE_MASK		(3 << ETH_MODE_SHIFT)
+#define ETH_MODE_MASK  (3 << ETH_MODE_SHIFT)
 
 /** DIX Ethernet mode flag. */
-#define ETH_DIX			(1 << ETH_MODE_SHIFT)
+#define ETH_DIX  (1 << ETH_MODE_SHIFT)
 
-/** Returns whether the DIX Ethernet mode flag is set.
+/** Return whether the DIX Ethernet mode flag is set.
  *
- * @param[in] flags	The ethernet flags.
+ * @param[in] flags Ethernet flags.
  * @see ETH_DIX
+ *
  */
-#define IS_DIX(flags)		(((flags) & ETH_MODE_MASK) == ETH_DIX)
+#define IS_DIX(flags)  (((flags) & ETH_MODE_MASK) == ETH_DIX)
 
 /** 802.3 + 802.2 + LSAP mode flag. */
-#define ETH_8023_2_LSAP		(2 << ETH_MODE_SHIFT)
+#define ETH_8023_2_LSAP  (2 << ETH_MODE_SHIFT)
 
-/** Returns whether the 802.3 + 802.2 + LSAP mode flag is set.
+/** Return whether the 802.3 + 802.2 + LSAP mode flag is set.
  *
- * @param[in] flags	The ethernet flags.
+ * @param[in] flags Ethernet flags.
  * @see ETH_8023_2_LSAP
+ *
  */
-#define IS_8023_2_LSAP(flags)	(((flags) & ETH_MODE_MASK) == ETH_8023_2_LSAP)
+#define IS_8023_2_LSAP(flags)  (((flags) & ETH_MODE_MASK) == ETH_8023_2_LSAP)
 
 /** 802.3 + 802.2 + LSAP + SNAP mode flag. */
-#define ETH_8023_2_SNAP		(3 << ETH_MODE_SHIFT)
+#define ETH_8023_2_SNAP  (3 << ETH_MODE_SHIFT)
 
-/** Returns whether the 802.3 + 802.2 + LSAP + SNAP mode flag is set.
+/** Return whether the 802.3 + 802.2 + LSAP + SNAP mode flag is set.
  *
- * @param[in] flags	The ethernet flags.
+ * @param[in] flags Ethernet flags.
  * @see ETH_8023_2_SNAP
+ *
  */
-#define IS_8023_2_SNAP(flags)	(((flags) & ETH_MODE_MASK) == ETH_8023_2_SNAP)
+#define IS_8023_2_SNAP(flags)  (((flags) & ETH_MODE_MASK) == ETH_8023_2_SNAP)
 
 /** Type definition of the ethernet address type.
  * @see eth_addr_type
@@ -835,8 +836,8 @@ static int eth_send_message(device_id_t device_id, packet_t *packet,
 	return EOK;
 }
 
-int nil_message_standalone(const char *name, ipc_callid_t callid,
-    ipc_call_t *call, ipc_call_t *answer, size_t *answer_count)
+int nil_module_message(ipc_callid_t callid, ipc_call_t *call,
+    ipc_call_t *answer, size_t *answer_count)
 {
 	measured_string_t *address;
 	packet_t *packet;
@@ -892,54 +893,10 @@ int nil_message_standalone(const char *name, ipc_callid_t callid,
 	return ENOTSUP;
 }
 
-/** Default thread for new connections.
- *
- * @param[in] iid	The initial message identifier.
- * @param[in] icall	The initial message call structure.
- */
-static void nil_client_connection(ipc_callid_t iid, ipc_call_t *icall)
-{
-	/*
-	 * Accept the connection
-	 *  - Answer the first IPC_M_CONNECT_ME_TO call.
-	 */
-	ipc_answer_0(iid, EOK);
-	
-	while (true) {
-		ipc_call_t answer;
-		size_t count;
-		
-		/* Clear the answer structure */
-		refresh_answer(&answer, &count);
-		
-		/* Fetch the next message */
-		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
-		
-		/* Process the message */
-		int res = nil_module_message_standalone(NAME, callid, &call,
-		    &answer, &count);
-		
-		/*
-		 * End if told to either by the message or the processing
-		 * result.
-		 */
-		if ((IPC_GET_IMETHOD(call) == IPC_M_PHONE_HUNGUP) ||
-		    (res == EHANGUP))
-			return;
-		
-		/* Answer the message */
-		answer_call(callid, res, &answer, count);
-	}
-}
-
 int main(int argc, char *argv[])
 {
-	int rc;
-	
 	/* Start the module */
-	rc = nil_module_start_standalone(nil_client_connection);
-	return rc;
+	return nil_module_start(SERVICE_ETHERNET);
 }
 
 /** @}

@@ -74,7 +74,7 @@
 #include <ip_interface.h>
 #include <ip_header.h>
 #include <net_interface.h>
-#include <nil_interface.h>
+#include <nil_remote.h>
 #include <tl_interface.h>
 #include <packet_remote.h>
 #include <il_local.h>

@@ -50,6 +50,7 @@
 #include <ipc/net.h>
 #include <ipc/net_net.h>
 #include <ipc/il.h>
+#include <ipc/nil.h>
 
 #include <net/modules.h>
 #include <net/packet.h>
@@ -61,7 +62,7 @@
 #include <adt/module_map.h>
 
 #include <netif_remote.h>
-#include <nil_interface.h>
+#include <nil_remote.h>
 #include <net_interface.h>
 #include <ip_interface.h>
 

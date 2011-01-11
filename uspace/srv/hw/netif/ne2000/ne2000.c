@@ -50,7 +50,7 @@
 #include <adt/measured_strings.h>
 #include <net/device.h>
 #include <netif_skel.h>
-#include <nil_interface.h>
+#include <nil_remote.h>
 #include "dp8390.h"
 
 /** Return the device from the interrupt call.
@@ -345,7 +345,7 @@ int netif_stop_message(netif_device_t *device)
 		change_state(device, NETIF_STOPPED);
 	}
 	
-	return EOK;
+	return device->state;
 }
 
 int netif_send_message(device_id_t device_id, packet_t *packet,

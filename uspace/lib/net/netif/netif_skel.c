@@ -32,7 +32,7 @@
 
 /** @file
  * Network interface module skeleton implementation.
- * @see netif.h
+ * @see netif_skel.h
  */
 
 #include <async.h>
@@ -51,8 +51,8 @@
 #include <packet_remote.h>
 #include <adt/measured_strings.h>
 #include <net/device.h>
-#include <nil_interface.h>
 #include <netif_skel.h>
+#include <nil_remote.h>
 
 DEVICE_MAP_IMPLEMENT(netif_device_map, netif_device_t);
 

@@ -53,14 +53,13 @@
 #include <ipc/net.h>
 #include <ipc/arp.h>
 #include <ipc/il.h>
+#include <ipc/nil.h>
 #include <byteorder.h>
 #include <errno.h>
-
 #include <net/modules.h>
 #include <net/device.h>
 #include <net/packet.h>
-
-#include <nil_interface.h>
+#include <nil_remote.h>
 #include <protocol_map.h>
 #include <packet_client.h>
 #include <packet_remote.h>

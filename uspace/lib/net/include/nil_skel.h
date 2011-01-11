@@ -31,16 +31,34 @@
  */
 
 /** @file
- * Network interface layer interface implementation for remote modules.
- * @see nil_remote.h
+ * Network interface layer modules common skeleton.
+ * All network interface layer modules have to implement this interface.
  */
 
-#include <nil_remote.h>
-#include <generic.h>
+#ifndef LIBNET_NIL_SKEL_H_
+#define LIBNET_NIL_SKEL_H_
+
+#include <async.h>
+#include <fibril_synch.h>
+#include <ipc/ipc.h>
+#include <ipc/services.h>
+
+#include <adt/measured_strings.h>
 #include <net/device.h>
 #include <net/packet.h>
-#include <packet_client.h>
-#include <ipc/nil.h>
+
+/** Module initialization.
+ *
+ * Is called by the module_start() function.
+ *
+ * @param[in] net_phone Networking module phone.
+ *
+ * @return EOK on success.
+ * @return Other error codes as defined for each specific module
+ *         initialize function.
+ *
+ */
+extern int nil_initialize(int);
 
 /** Notify the network interface layer about the device state change.
  *
@@ -53,11 +71,7 @@
  *         device state function.
  *
  */
-int nil_device_state_msg(int nil_phone, device_id_t device_id, int state)
-{
-	return generic_device_state_msg_remote(nil_phone, NET_NIL_DEVICE_STATE,
-	    device_id, state, 0);
-}
+extern int nil_device_state_msg_local(int, device_id_t, int);
 
 /** Pass the packet queue to the network interface layer.
  *
@@ -74,12 +88,30 @@ int nil_device_state_msg(int nil_phone, device_id_t device_id, int state)
  *         received function.
  *
  */
-int nil_received_msg(int nil_phone, device_id_t device_id,
-    packet_t *packet, services_t target)
-{
-	return generic_received_msg_remote(nil_phone, NET_NIL_RECEIVED,
-	    device_id, packet_get_id(packet), target, 0);
-}
+extern int nil_received_msg_local(int, device_id_t, packet_t *, services_t);
+
+/** Message processing function.
+ *
+ * @param[in]  name   Module name.
+ * @param[in]  callid Message identifier.
+ * @param[in]  call   Message parameters.
+ * @param[out] answer Message answer parameters.
+ * @param[out] count  Message answer arguments.
+ *
+ * @return EOK on success.
+ * @return ENOTSUP if the message is not known.
+ * @return Other error codes as defined for each specific module
+ *         message function.
+ *
+ * @see IS_NET_NIL_MESSAGE()
+ *
+ */
+extern int nil_module_message(ipc_callid_t, ipc_call_t *, ipc_call_t *,
+    size_t *);
+
+extern int nil_module_start(int);
+
+#endif
 
 /** @}
  */
