@@ -540,9 +540,11 @@ static link_t *ne2k_receive(ne2k_t *ne2k)
 			ne2k->overruns++;
 			next = current;
 		} else if ((header.status & RSR_PRX) && (ne2k->up)) {
-			frame_t *frame = ne2k_receive_frame(ne2k, boundary, length);
-			if ((frame != NULL) && (frames != NULL))
-				list_append(&frame->link, frames);
+			if (frames != NULL) {
+				frame_t *frame = ne2k_receive_frame(ne2k, boundary, length);
+				if (frame != NULL)
+					list_append(&frame->link, frames);
+			}
 		}
 		
 		/*
