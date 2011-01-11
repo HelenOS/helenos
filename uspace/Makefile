@@ -79,7 +79,7 @@ DIRS = \
 	srv/hid/kbd \
 	srv/hw/char/i8042 \
 	srv/hw/char/s3c24xx_uart \
-	srv/hw/netif/dp8390 \
+	srv/hw/netif/ne2000 \
 	srv/net/netif/lo \
 	srv/net/il/arp \
 	srv/net/il/ip \

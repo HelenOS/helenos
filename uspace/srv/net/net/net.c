@@ -287,8 +287,8 @@ static int net_initialize(async_client_conn_t client_connection)
 	    (uint8_t *) LO_FILENAME, SERVICE_LO, 0, connect_to_service);
 	if (rc != EOK)
 		return rc;
-	rc = add_module(NULL, &net_globals.modules, (uint8_t *) DP8390_NAME,
-	    (uint8_t *) DP8390_FILENAME, SERVICE_DP8390, 0, connect_to_service);
+	rc = add_module(NULL, &net_globals.modules, (uint8_t *) NE2000_NAME,
+	    (uint8_t *) NE2000_FILENAME, SERVICE_NE2000, 0, connect_to_service);
 	if (rc != EOK)
 		return rc;
 	rc = add_module(NULL, &net_globals.modules, (uint8_t *) ETHERNET_NAME,

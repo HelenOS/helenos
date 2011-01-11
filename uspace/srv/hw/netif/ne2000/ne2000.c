@@ -77,7 +77,7 @@
 static int irc_service = 0;
 static int irc_phone = -1;
 
-/** DP8390 kernel interrupt command sequence.
+/** NE2000 kernel interrupt command sequence.
  *
  */
 static irq_cmd_t ne2k_cmds[] = {
@@ -127,7 +127,7 @@ static irq_cmd_t ne2k_cmds[] = {
 	}
 };
 
-/** DP8390 kernel interrupt code.
+/** NE2000 kernel interrupt code.
  *
  */
 static irq_code_t ne2k_code = {
@@ -397,7 +397,7 @@ int netif_initialize(void)
 	async_set_interrupt_received(irq_handler);
 	
 	sysarg_t phonehash;
-	return ipc_connect_to_me(PHONE_NS, SERVICE_DP8390, 0, 0, &phonehash);
+	return ipc_connect_to_me(PHONE_NS, SERVICE_NE2000, 0, 0, &phonehash);
 }
 
 int main(int argc, char *argv[])
