@@ -56,7 +56,7 @@
 #include <net/device.h>
 #include <netif_remote.h>
 #include <net_interface.h>
-#include <il_interface.h>
+#include <il_remote.h>
 #include <adt/measured_strings.h>
 #include <packet_client.h>
 #include <packet_remote.h>
@@ -246,10 +246,10 @@ static void eth_receiver(ipc_callid_t iid, ipc_call_t *icall)
 		case NET_NIL_RECEIVED:
 			rc = packet_translate_remote(eth_globals.net_phone,
 			    &packet, IPC_GET_PACKET(*icall));
-			if (rc == EOK) {
+			if (rc == EOK)
 				rc = nil_received_msg_local(0,
 				    IPC_GET_DEVICE(*icall), packet, 0);
-			}
+			
 			ipc_answer_0(iid, (sysarg_t) rc);
 			break;
 		default:

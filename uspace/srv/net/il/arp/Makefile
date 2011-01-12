@@ -33,7 +33,6 @@ EXTRA_CFLAGS = -I$(LIBNET_PREFIX)/include
 BINARY = arp
 
 SOURCES = \
-	arp.c \
-	arp_module.c
+	arp.c
 
 include $(USPACE_PREFIX)/Makefile.common

@@ -67,7 +67,7 @@
 #include <net_checksum.h>
 #include <icmp_client.h>
 #include <icmp_interface.h>
-#include <il_interface.h>
+#include <il_remote.h>
 #include <ip_client.h>
 #include <ip_interface.h>
 #include <net_interface.h>

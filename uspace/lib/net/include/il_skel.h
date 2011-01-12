@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Lukas Mejdrech
+ * Copyright (c) 2010 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,23 +26,58 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ip
+/** @addtogroup libnet
  * @{
  */
 
+#ifndef LIBNET_IL_SKEL_H_
+#define LIBNET_IL_SKEL_H_
+
 /** @file
- * IP module functions.
- * The functions are used as IP module entry points.
+ * Internetwork layer module skeleton.
+ * The skeleton has to be part of each internetwork layer module.
  */
 
-#ifndef NET_IP_MODULE_H_
-#define NET_IP_MODULE_H_
-
+#include <async.h>
+#include <fibril_synch.h>
 #include <ipc/ipc.h>
+#include <ipc/services.h>
 
-extern int ip_initialize(async_client_conn_t);
-extern int ip_message_standalone(ipc_callid_t, ipc_call_t *, ipc_call_t *,
-    size_t *);
+#include <adt/measured_strings.h>
+#include <net/device.h>
+#include <net/packet.h>
+
+/** Module initialization.
+ *
+ * This has to be implemented in user code.
+ *
+ * @param[in] net_phone Networking module phone.
+ *
+ * @return EOK on success.
+ * @return Other error codes as defined for each specific module
+ *         initialize function.
+ *
+ */
+extern int il_initialize(int net_phone);
+
+/** Process the Internet layer module message.
+ *
+ * This has to be implemented in user code.
+ *
+ * @param[in]  callid Message identifier.
+ * @param[in]  call   Message parameters.
+ * @param[out] answer Answer.
+ * @param[out] count  Number of arguments of the answer.
+ *
+ * @return EOK on success.
+ * @return Other error codes as defined for the arp_message()
+ *         function.
+ *
+ */
+extern int il_module_message(ipc_callid_t callid, ipc_call_t *call,
+    ipc_call_t *answer, size_t *answer_count);
+
+extern int il_module_start(int);
 
 #endif
 

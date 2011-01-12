@@ -35,11 +35,6 @@
  * @see arp.h
  */
 
-#include "arp.h"
-#include "arp_header.h"
-#include "arp_oc.h"
-#include "arp_module.h"
-
 #include <async.h>
 #include <malloc.h>
 #include <mem.h>
@@ -63,15 +58,53 @@
 #include <protocol_map.h>
 #include <packet_client.h>
 #include <packet_remote.h>
-#include <il_interface.h>
-#include <il_local.h>
-
+#include <il_remote.h>
+#include <il_skel.h>
+#include "arp.h"
 
 /** ARP module name. */
 #define NAME  "arp"
 
 /** Number of microseconds to wait for an ARP reply. */
 #define ARP_TRANS_WAIT  1000000
+
+/** @name ARP operation codes definitions */
+/*@{*/
+
+/** REQUEST operation code. */
+#define ARPOP_REQUEST  1
+
+/** REPLY operation code. */
+#define ARPOP_REPLY  2
+
+/*@}*/
+
+/** Type definition of an ARP protocol header.
+ * @see arp_header
+ */
+typedef struct arp_header arp_header_t;
+
+/** ARP protocol header. */
+struct arp_header {
+	/**
+	 * Hardware type identifier.
+	 * @see hardware.h
+	 */
+	uint16_t hardware;
+	
+	/** Protocol identifier. */
+	uint16_t protocol;
+	/** Hardware address length in bytes. */
+	uint8_t hardware_length;
+	/** Protocol address length in bytes. */
+	uint8_t protocol_length;
+	
+	/**
+	 * ARP packet type.
+	 * @see arp_oc.h
+	 */
+	uint16_t operation;
+} __attribute__ ((packed));
 
 /** ARP global data. */
 arp_globals_t arp_globals;
@@ -232,218 +265,6 @@ static int arp_proto_create(arp_proto_t **proto, services_t service,
 	return EOK;
 }
 
-/** Register the device.
- *
- * Create new device entry in the cache or update the protocol address if the
- * device with the device identifier and the driver service exists.
- *
- * @param[in] device_id Device identifier.
- * @param[in] service   Device driver service.
- * @param[in] protocol  Protocol service.
- * @param[in] address   Actual device protocol address.
- *
- * @return EOK on success.
- * @return EEXIST if another device with the same device identifier
- *         and different driver service exists.
- * @return ENOMEM if there is not enough memory left.
- * @return Other error codes as defined for the
- *         measured_strings_return() function.
- *
- */
-static int arp_device_message(device_id_t device_id, services_t service,
-    services_t protocol, measured_string_t *address)
-{
-	int index;
-	int rc;
-	
-	fibril_mutex_lock(&arp_globals.lock);
-	
-	/* An existing device? */
-	arp_device_t *device = arp_cache_find(&arp_globals.cache, device_id);
-	if (device) {
-		if (device->service != service) {
-			printf("%s: Device %d already exists\n", NAME,
-			    device->device_id);
-			fibril_mutex_unlock(&arp_globals.lock);
-			return EEXIST;
-		}
-		
-		arp_proto_t *proto = arp_protos_find(&device->protos, protocol);
-		if (proto) {
-			free(proto->addr);
-			free(proto->addr_data);
-			proto->addr = address;
-			proto->addr_data = address->value;
-		} else {
-			rc = arp_proto_create(&proto, protocol, address);
-			if (rc != EOK) {
-				fibril_mutex_unlock(&arp_globals.lock);
-				return rc;
-			}
-			
-			index = arp_protos_add(&device->protos, proto->service,
-			    proto);
-			if (index < 0) {
-				fibril_mutex_unlock(&arp_globals.lock);
-				free(proto);
-				return index;
-			}
-			
-			printf("%s: New protocol added (id: %d, proto: %d)\n", NAME,
-			    device_id, protocol);
-		}
-	} else {
-		hw_type_t hardware = hardware_map(service);
-		if (!hardware)
-			return ENOENT;
-		
-		/* Create new device */
-		device = (arp_device_t *) malloc(sizeof(arp_device_t));
-		if (!device) {
-			fibril_mutex_unlock(&arp_globals.lock);
-			return ENOMEM;
-		}
-		
-		device->hardware = hardware;
-		device->device_id = device_id;
-		rc = arp_protos_initialize(&device->protos);
-		if (rc != EOK) {
-			fibril_mutex_unlock(&arp_globals.lock);
-			free(device);
-			return rc;
-		}
-		
-		arp_proto_t *proto;
-		rc = arp_proto_create(&proto, protocol, address);
-		if (rc != EOK) {
-			fibril_mutex_unlock(&arp_globals.lock);
-			free(device);
-			return rc;
-		}
-		
-		index = arp_protos_add(&device->protos, proto->service, proto);
-		if (index < 0) {
-			fibril_mutex_unlock(&arp_globals.lock);
-			arp_protos_destroy(&device->protos);
-			free(device);
-			return index;
-		}
-		
-		device->service = service;
-		
-		/* Bind */
-		device->phone = nil_bind_service(device->service,
-		    (sysarg_t) device->device_id, SERVICE_ARP,
-		    arp_globals.client_connection);
-		if (device->phone < 0) {
-			fibril_mutex_unlock(&arp_globals.lock);
-			arp_protos_destroy(&device->protos);
-			free(device);
-			return EREFUSED;
-		}
-		
-		/* Get packet dimensions */
-		rc = nil_packet_size_req(device->phone, device_id,
-		    &device->packet_dimension);
-		if (rc != EOK) {
-			fibril_mutex_unlock(&arp_globals.lock);
-			arp_protos_destroy(&device->protos);
-			free(device);
-			return rc;
-		}
-		
-		/* Get hardware address */
-		rc = nil_get_addr_req(device->phone, device_id, &device->addr,
-		    &device->addr_data);
-		if (rc != EOK) {
-			fibril_mutex_unlock(&arp_globals.lock);
-			arp_protos_destroy(&device->protos);
-			free(device);
-			return rc;
-		}
-		
-		/* Get broadcast address */
-		rc = nil_get_broadcast_addr_req(device->phone, device_id,
-		    &device->broadcast_addr, &device->broadcast_data);
-		if (rc != EOK) {
-			fibril_mutex_unlock(&arp_globals.lock);
-			free(device->addr);
-			free(device->addr_data);
-			arp_protos_destroy(&device->protos);
-			free(device);
-			return rc;
-		}
-		
-		rc = arp_cache_add(&arp_globals.cache, device->device_id,
-		    device);
-		if (rc != EOK) {
-			fibril_mutex_unlock(&arp_globals.lock);
-			free(device->addr);
-			free(device->addr_data);
-			free(device->broadcast_addr);
-			free(device->broadcast_data);
-			arp_protos_destroy(&device->protos);
-			free(device);
-			return rc;
-		}
-		printf("%s: Device registered (id: %d, type: 0x%x, service: %d,"
-		    " proto: %d)\n", NAME, device->device_id, device->hardware,
-		    device->service, protocol);
-	}
-	
-	fibril_mutex_unlock(&arp_globals.lock);
-	return EOK;
-}
-
-/** Initialize the ARP module.
- *
- *  @param[in] client_connection The client connection processing function.
- *                               The module skeleton propagates its own one.
- *
- *  @return EOK on success.
- *  @return ENOMEM if there is not enough memory left.
- *
- */
-int arp_initialize(async_client_conn_t client_connection)
-{
-	fibril_mutex_initialize(&arp_globals.lock);
-	
-	fibril_mutex_lock(&arp_globals.lock);
-	arp_globals.client_connection = client_connection;
-	int rc = arp_cache_initialize(&arp_globals.cache);
-	fibril_mutex_unlock(&arp_globals.lock);
-	
-	return rc;
-}
-
-/** Update the device content length according to the new MTU value.
- *
- * @param[in] device_id Device identifier.
- * @param[in] mtu       New MTU value.
- *
- * @return ENOENT if device is not found.
- * @return EOK on success.
- *
- */
-static int arp_mtu_changed_message(device_id_t device_id, size_t mtu)
-{
-	fibril_mutex_lock(&arp_globals.lock);
-	
-	arp_device_t *device = arp_cache_find(&arp_globals.cache, device_id);
-	if (!device) {
-		fibril_mutex_unlock(&arp_globals.lock);
-		return ENOENT;
-	}
-	
-	device->packet_dimension.content = mtu;
-	
-	fibril_mutex_unlock(&arp_globals.lock);
-	
-	printf("%s: Device %d changed MTU to %zu\n", NAME, device_id, mtu);
-	
-	return EOK;
-}
-
 /** Process the received ARP packet.
  *
  * Update the source hardware address if the source entry exists or the packet
@@ -560,6 +381,261 @@ static int arp_receive_message(device_id_t device_id, packet_t *packet)
 	}
 	
 	return EOK;
+}
+
+/** Update the device content length according to the new MTU value.
+ *
+ * @param[in] device_id Device identifier.
+ * @param[in] mtu       New MTU value.
+ *
+ * @return ENOENT if device is not found.
+ * @return EOK on success.
+ *
+ */
+static int arp_mtu_changed_message(device_id_t device_id, size_t mtu)
+{
+	fibril_mutex_lock(&arp_globals.lock);
+	
+	arp_device_t *device = arp_cache_find(&arp_globals.cache, device_id);
+	if (!device) {
+		fibril_mutex_unlock(&arp_globals.lock);
+		return ENOENT;
+	}
+	
+	device->packet_dimension.content = mtu;
+	
+	fibril_mutex_unlock(&arp_globals.lock);
+	
+	printf("%s: Device %d changed MTU to %zu\n", NAME, device_id, mtu);
+	
+	return EOK;
+}
+
+/** Process IPC messages from the registered device driver modules
+ *
+ * @param[in]     iid   Message identifier.
+ * @param[in,out] icall Message parameters.
+ *
+ */
+static void arp_receiver(ipc_callid_t iid, ipc_call_t *icall)
+{
+	packet_t *packet;
+	int rc;
+	
+	while (true) {
+		switch (IPC_GET_IMETHOD(*icall)) {
+		case NET_IL_DEVICE_STATE:
+			/* Do nothing - keep the cache */
+			ipc_answer_0(iid, (sysarg_t) EOK);
+			break;
+		
+		case NET_IL_RECEIVED:
+			rc = packet_translate_remote(arp_globals.net_phone, &packet,
+			    IPC_GET_PACKET(*icall));
+			if (rc == EOK) {
+				fibril_mutex_lock(&arp_globals.lock);
+				do {
+					packet_t *next = pq_detach(packet);
+					rc = arp_receive_message(IPC_GET_DEVICE(*icall), packet);
+					if (rc != 1) {
+						pq_release_remote(arp_globals.net_phone,
+						    packet_get_id(packet));
+					}
+					
+					packet = next;
+				} while (packet);
+				fibril_mutex_unlock(&arp_globals.lock);
+			}
+			ipc_answer_0(iid, (sysarg_t) rc);
+			break;
+		
+		case NET_IL_MTU_CHANGED:
+			rc = arp_mtu_changed_message(IPC_GET_DEVICE(*icall),
+			    IPC_GET_MTU(*icall));
+			ipc_answer_0(iid, (sysarg_t) rc);
+			break;
+		
+		default:
+			ipc_answer_0(iid, (sysarg_t) ENOTSUP);
+		}
+		
+		iid = async_get_call(icall);
+	}
+}
+
+/** Register the device.
+ *
+ * Create new device entry in the cache or update the protocol address if the
+ * device with the device identifier and the driver service exists.
+ *
+ * @param[in] device_id Device identifier.
+ * @param[in] service   Device driver service.
+ * @param[in] protocol  Protocol service.
+ * @param[in] address   Actual device protocol address.
+ *
+ * @return EOK on success.
+ * @return EEXIST if another device with the same device identifier
+ *         and different driver service exists.
+ * @return ENOMEM if there is not enough memory left.
+ * @return Other error codes as defined for the
+ *         measured_strings_return() function.
+ *
+ */
+static int arp_device_message(device_id_t device_id, services_t service,
+    services_t protocol, measured_string_t *address)
+{
+	int index;
+	int rc;
+	
+	fibril_mutex_lock(&arp_globals.lock);
+	
+	/* An existing device? */
+	arp_device_t *device = arp_cache_find(&arp_globals.cache, device_id);
+	if (device) {
+		if (device->service != service) {
+			printf("%s: Device %d already exists\n", NAME,
+			    device->device_id);
+			fibril_mutex_unlock(&arp_globals.lock);
+			return EEXIST;
+		}
+		
+		arp_proto_t *proto = arp_protos_find(&device->protos, protocol);
+		if (proto) {
+			free(proto->addr);
+			free(proto->addr_data);
+			proto->addr = address;
+			proto->addr_data = address->value;
+		} else {
+			rc = arp_proto_create(&proto, protocol, address);
+			if (rc != EOK) {
+				fibril_mutex_unlock(&arp_globals.lock);
+				return rc;
+			}
+			
+			index = arp_protos_add(&device->protos, proto->service,
+			    proto);
+			if (index < 0) {
+				fibril_mutex_unlock(&arp_globals.lock);
+				free(proto);
+				return index;
+			}
+			
+			printf("%s: New protocol added (id: %d, proto: %d)\n", NAME,
+			    device_id, protocol);
+		}
+	} else {
+		hw_type_t hardware = hardware_map(service);
+		if (!hardware)
+			return ENOENT;
+		
+		/* Create new device */
+		device = (arp_device_t *) malloc(sizeof(arp_device_t));
+		if (!device) {
+			fibril_mutex_unlock(&arp_globals.lock);
+			return ENOMEM;
+		}
+		
+		device->hardware = hardware;
+		device->device_id = device_id;
+		rc = arp_protos_initialize(&device->protos);
+		if (rc != EOK) {
+			fibril_mutex_unlock(&arp_globals.lock);
+			free(device);
+			return rc;
+		}
+		
+		arp_proto_t *proto;
+		rc = arp_proto_create(&proto, protocol, address);
+		if (rc != EOK) {
+			fibril_mutex_unlock(&arp_globals.lock);
+			free(device);
+			return rc;
+		}
+		
+		index = arp_protos_add(&device->protos, proto->service, proto);
+		if (index < 0) {
+			fibril_mutex_unlock(&arp_globals.lock);
+			arp_protos_destroy(&device->protos);
+			free(device);
+			return index;
+		}
+		
+		device->service = service;
+		
+		/* Bind */
+		device->phone = nil_bind_service(device->service,
+		    (sysarg_t) device->device_id, SERVICE_ARP,
+		    arp_receiver);
+		if (device->phone < 0) {
+			fibril_mutex_unlock(&arp_globals.lock);
+			arp_protos_destroy(&device->protos);
+			free(device);
+			return EREFUSED;
+		}
+		
+		/* Get packet dimensions */
+		rc = nil_packet_size_req(device->phone, device_id,
+		    &device->packet_dimension);
+		if (rc != EOK) {
+			fibril_mutex_unlock(&arp_globals.lock);
+			arp_protos_destroy(&device->protos);
+			free(device);
+			return rc;
+		}
+		
+		/* Get hardware address */
+		rc = nil_get_addr_req(device->phone, device_id, &device->addr,
+		    &device->addr_data);
+		if (rc != EOK) {
+			fibril_mutex_unlock(&arp_globals.lock);
+			arp_protos_destroy(&device->protos);
+			free(device);
+			return rc;
+		}
+		
+		/* Get broadcast address */
+		rc = nil_get_broadcast_addr_req(device->phone, device_id,
+		    &device->broadcast_addr, &device->broadcast_data);
+		if (rc != EOK) {
+			fibril_mutex_unlock(&arp_globals.lock);
+			free(device->addr);
+			free(device->addr_data);
+			arp_protos_destroy(&device->protos);
+			free(device);
+			return rc;
+		}
+		
+		rc = arp_cache_add(&arp_globals.cache, device->device_id,
+		    device);
+		if (rc != EOK) {
+			fibril_mutex_unlock(&arp_globals.lock);
+			free(device->addr);
+			free(device->addr_data);
+			free(device->broadcast_addr);
+			free(device->broadcast_data);
+			arp_protos_destroy(&device->protos);
+			free(device);
+			return rc;
+		}
+		printf("%s: Device registered (id: %d, type: 0x%x, service: %d,"
+		    " proto: %d)\n", NAME, device->device_id, device->hardware,
+		    device->service, protocol);
+	}
+	
+	fibril_mutex_unlock(&arp_globals.lock);
+	return EOK;
+}
+
+int il_initialize(int net_phone)
+{
+	fibril_mutex_initialize(&arp_globals.lock);
+	
+	fibril_mutex_lock(&arp_globals.lock);
+	arp_globals.net_phone = net_phone;
+	int rc = arp_cache_initialize(&arp_globals.cache);
+	fibril_mutex_unlock(&arp_globals.lock);
+	
+	return rc;
 }
 
 static int arp_send_request(device_id_t device_id, services_t protocol,
@@ -713,14 +789,12 @@ restart:
  * @see IS_NET_ARP_MESSAGE()
  *
  */
-int arp_message(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *answer,
+int il_module_message(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *answer,
     size_t *count)
 {
 	measured_string_t *address;
 	measured_string_t *translation;
 	uint8_t *data;
-	packet_t *packet;
-	packet_t *next;
 	int rc;
 	
 	*count = 0;
@@ -783,85 +857,15 @@ int arp_message(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *answer,
 	
 	case NET_ARP_CLEAN_CACHE:
 		return arp_clean_cache_req(0);
-	
-	case NET_IL_DEVICE_STATE:
-		/* Do nothing - keep the cache */
-		return EOK;
-	
-	case NET_IL_RECEIVED:
-		
-		rc = packet_translate_remote(arp_globals.net_phone, &packet,
-		    IPC_GET_PACKET(*call));
-		if (rc != EOK)
-			return rc;
-		
-		fibril_mutex_lock(&arp_globals.lock);
-		do {
-			next = pq_detach(packet);
-			rc = arp_receive_message(IPC_GET_DEVICE(*call), packet);
-			if (rc != 1) {
-				pq_release_remote(arp_globals.net_phone,
-				    packet_get_id(packet));
-			}
-			packet = next;
-		} while (packet);
-		fibril_mutex_unlock(&arp_globals.lock);
-		
-		return EOK;
-	
-	case NET_IL_MTU_CHANGED:
-		return arp_mtu_changed_message(IPC_GET_DEVICE(*call),
-		    IPC_GET_MTU(*call));
 	}
 	
 	return ENOTSUP;
 }
 
-/** Default thread for new connections.
- *
- * @param[in] iid   Initial message identifier.
- * @param[in] icall Initial message call structure.
- */
-static void il_client_connection(ipc_callid_t iid, ipc_call_t *icall)
-{
-	/*
-	 * Accept the connection
-	 *  - Answer the first IPC_M_CONNECT_ME_TO call.
-	 */
-	ipc_answer_0(iid, EOK);
-	
-	while (true) {
-		ipc_call_t answer;
-		size_t count;
-		
-		/* Clear the answer structure */
-		refresh_answer(&answer, &count);
-		
-		/* Fetch the next message */
-		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
-		
-		/* Process the message */
-		int res = il_module_message(callid, &call, &answer,
-		    &count);
-		
-		/*
-		 * End if told to either by the message or the processing
-		 * result.
-		 */
-		if ((IPC_GET_IMETHOD(call) == IPC_M_PHONE_HUNGUP) ||
-		    (res == EHANGUP))
-			return;
-		
-		/* Answer the message */
-		answer_call(callid, res, &answer, count);
-	}
-}
-
 int main(int argc, char *argv[])
 {
 	/* Start the module */
-	return il_module_start(il_client_connection);
+	return il_module_start(SERVICE_ARP);
 }
 
 /** @}

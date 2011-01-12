@@ -26,28 +26,32 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup arp
- *  @{
+/** @addtogroup libnet
+ * @{
  */
 
 /** @file
- * ARP operation codes according to the on-line IANA - Address Resolution
- * Protocol (ARP) Parameters
- * http://www.iana.org/assignments/arp-parameters/arp-parameters.xml
- * cited January 14 2009.
+ * Internetwork layer module interface for the underlying network interface
+ * layer. This interface is always called by the remote modules.
  */
 
-#ifndef NET_ARP_ARPOP_H_
-#define NET_ARP_ARPOP_H_
+#ifndef LIBNET_IL_REMOTE_H_
+#define LIBNET_IL_REMOTE_H_
 
-/** @name ARP operation codes definitions */
+#include <ipc/services.h>
+#include <sys/types.h>
+
+#include <net/device.h>
+#include <net/packet.h>
+
+/** @name Internetwork layer module interface
+ * This interface is used by other modules.
+ */
 /*@{*/
 
-/** REQUEST operation code. */
-#define ARPOP_REQUEST	1
-
-/** REPLY operation code. */
-#define ARPOP_REPLY	2
+extern int il_device_state_msg(int, device_id_t, device_state_t, services_t);
+extern int il_received_msg(int, device_id_t, packet_t *, services_t);
+extern int il_mtu_changed_msg(int, device_id_t, size_t, services_t);
 
 /*@}*/
 

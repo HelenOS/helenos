@@ -35,9 +35,6 @@
  * @see arp.h
  */
 
-#include "ip.h"
-#include "ip_module.h"
-
 #include <async.h>
 #include <errno.h>
 #include <fibril_synch.h>
@@ -51,6 +48,7 @@
 #include <ipc/ip.h>
 #include <sys/types.h>
 #include <byteorder.h>
+#include "ip.h"
 
 #include <adt/measured_strings.h>
 #include <adt/module_map.h>
@@ -69,7 +67,6 @@
 #include <net_checksum.h>
 #include <icmp_client.h>
 #include <icmp_interface.h>
-#include <il_interface.h>
 #include <ip_client.h>
 #include <ip_interface.h>
 #include <ip_header.h>
@@ -77,7 +74,8 @@
 #include <nil_remote.h>
 #include <tl_interface.h>
 #include <packet_remote.h>
-#include <il_local.h>
+#include <il_remote.h>
+#include <il_skel.h>
 
 /** IP module name. */
 #define NAME			"ip"
@@ -121,6 +119,8 @@ ip_globals_t ip_globals;
 DEVICE_MAP_IMPLEMENT(ip_netifs, ip_netif_t);
 INT_MAP_IMPLEMENT(ip_protos, ip_proto_t);
 GENERIC_FIELD_IMPLEMENT(ip_routes, ip_route_t);
+
+static void ip_receiver(ipc_callid_t, ipc_call_t *);
 
 /** Releases the packet and returns the result.
  *
@@ -243,29 +243,21 @@ ip_prepare_icmp_and_get_phone(services_t error, packet_t *packet,
 	return phone;
 }
 
-/** Initializes the IP module.
- *
- * @param[in] client_connection The client connection processing function. The
- *			module skeleton propagates its own one.
- * @return		EOK on success.
- * @return		ENOMEM if there is not enough memory left.
- */
-int ip_initialize(async_client_conn_t client_connection)
+int il_initialize(int net_phone)
 {
-	int rc;
-
 	fibril_rwlock_initialize(&ip_globals.lock);
 	fibril_rwlock_write_lock(&ip_globals.lock);
 	fibril_rwlock_initialize(&ip_globals.protos_lock);
 	fibril_rwlock_initialize(&ip_globals.netifs_lock);
+	
+	ip_globals.net_phone = net_phone;
 	ip_globals.packet_counter = 0;
 	ip_globals.gateway.address.s_addr = 0;
 	ip_globals.gateway.netmask.s_addr = 0;
 	ip_globals.gateway.gateway.s_addr = 0;
 	ip_globals.gateway.netif = NULL;
-	ip_globals.client_connection = client_connection;
 	
-	rc = ip_netifs_initialize(&ip_globals.netifs);
+	int rc = ip_netifs_initialize(&ip_globals.netifs);
 	if (rc != EOK)
 		goto out;
 	rc = ip_protos_initialize(&ip_globals.protos);
@@ -430,7 +422,7 @@ static int ip_netif_initialize(ip_netif_t *ip_netif)
 	// binds the netif service which also initializes the device
 	ip_netif->phone = nil_bind_service(ip_netif->service,
 	    (sysarg_t) ip_netif->device_id, SERVICE_IP,
-	    ip_globals.client_connection);
+	    ip_receiver);
 	if (ip_netif->phone < 0) {
 		printf("Failed to contact the nil service %d\n",
 		    ip_netif->service);
@@ -486,77 +478,142 @@ static int ip_netif_initialize(ip_netif_t *ip_netif)
 	return EOK;
 }
 
-/** Updates the device content length according to the new MTU value.
- *
- * @param[in] device_id	The device identifier.
- * @param[in] mtu	The new mtu value.
- * @return		EOK on success.
- * @return		ENOENT if device is not found.
- */
-static int ip_mtu_changed_message(device_id_t device_id, size_t mtu)
+static int ip_device_req_local(int il_phone, device_id_t device_id,
+    services_t netif)
 {
-	ip_netif_t *netif;
+	ip_netif_t *ip_netif;
+	ip_route_t *route;
+	int index;
+	int rc;
+
+	ip_netif = (ip_netif_t *) malloc(sizeof(ip_netif_t));
+	if (!ip_netif)
+		return ENOMEM;
+
+	rc = ip_routes_initialize(&ip_netif->routes);
+	if (rc != EOK) {
+		free(ip_netif);
+		return rc;
+	}
+
+	ip_netif->device_id = device_id;
+	ip_netif->service = netif;
+	ip_netif->state = NETIF_STOPPED;
 
 	fibril_rwlock_write_lock(&ip_globals.netifs_lock);
-	netif = ip_netifs_find(&ip_globals.netifs, device_id);
-	if (!netif) {
+
+	rc = ip_netif_initialize(ip_netif);
+	if (rc != EOK) {
 		fibril_rwlock_write_unlock(&ip_globals.netifs_lock);
-		return ENOENT;
+		ip_routes_destroy(&ip_netif->routes);
+		free(ip_netif);
+		return rc;
 	}
-	netif->packet_dimension.content = mtu;
+	if (ip_netif->arp)
+		ip_netif->arp->usage++;
+
+	// print the settings
+	printf("%s: Device registered (id: %d, phone: %d, ipv: %d, conf: %s)\n",
+	    NAME, ip_netif->device_id, ip_netif->phone, ip_netif->ipv,
+	    ip_netif->dhcp ? "dhcp" : "static");
+	
+	// TODO ipv6 addresses
+	
+	char address[INET_ADDRSTRLEN];
+	char netmask[INET_ADDRSTRLEN];
+	char gateway[INET_ADDRSTRLEN];
+	
+	for (index = 0; index < ip_routes_count(&ip_netif->routes); index++) {
+		route = ip_routes_get_index(&ip_netif->routes, index);
+		if (route) {
+			inet_ntop(AF_INET, (uint8_t *) &route->address.s_addr,
+			    address, INET_ADDRSTRLEN);
+			inet_ntop(AF_INET, (uint8_t *) &route->netmask.s_addr,
+			    netmask, INET_ADDRSTRLEN);
+			inet_ntop(AF_INET, (uint8_t *) &route->gateway.s_addr,
+			    gateway, INET_ADDRSTRLEN);
+			printf("%s: Route %d (address: %s, netmask: %s, "
+			    "gateway: %s)\n", NAME, index, address, netmask,
+			    gateway);
+		}
+	}
+	
+	inet_ntop(AF_INET, (uint8_t *) &ip_netif->broadcast.s_addr, address,
+	    INET_ADDRSTRLEN);
 	fibril_rwlock_write_unlock(&ip_globals.netifs_lock);
 
-	printf("%s: Device %d changed MTU to %zu\n", NAME, device_id, mtu);
+	printf("%s: Broadcast (%s)\n", NAME, address);
 
 	return EOK;
 }
 
-/** Updates the device state.
+/** Searches the network interfaces if there is a suitable route.
  *
- * @param[in] device_id	The device identifier.
- * @param[in] state	The new state value.
- * @return		EOK on success.
- * @return		ENOENT if device is not found.
+ * @param[in] netif	The network interface to be searched for routes. May be
+ *			NULL.
+ * @param[in] destination The destination address.
+ * @return		The found route.
+ * @return		NULL if no route was found.
  */
-static int ip_device_state_message(device_id_t device_id, device_state_t state)
+static ip_route_t *ip_netif_find_route(ip_netif_t *netif,
+    in_addr_t destination)
 {
-	ip_netif_t *netif;
-
-	fibril_rwlock_write_lock(&ip_globals.netifs_lock);
-	// find the device
-	netif = ip_netifs_find(&ip_globals.netifs, device_id);
-	if (!netif) {
-		fibril_rwlock_write_unlock(&ip_globals.netifs_lock);
-		return ENOENT;
-	}
-	netif->state = state;
-	fibril_rwlock_write_unlock(&ip_globals.netifs_lock);
-
-	printf("%s: Device %d changed state to %d\n", NAME, device_id, state);
-
-	return EOK;
-}
-
-
-/** Prefixes a middle fragment header based on the last fragment header to the
- * packet.
- *
- * @param[in] packet	The packet to be prefixed.
- * @param[in] last	The last header to be copied.
- * @return		The prefixed middle header.
- * @return		NULL on error.
- */
-static ip_header_t *
-ip_create_middle_header(packet_t *packet, ip_header_t *last)
-{
-	ip_header_t *middle;
-
-	middle = (ip_header_t *) packet_suffix(packet, IP_HEADER_LENGTH(last));
-	if (!middle)
+	int index;
+	ip_route_t *route;
+	
+	if (!netif)
 		return NULL;
-	memcpy(middle, last, IP_HEADER_LENGTH(last));
-	middle->flags |= IPFLAG_MORE_FRAGMENTS;
-	return middle;
+	
+	/* Start with the first one (the direct route) */
+	for (index = 0; index < ip_routes_count(&netif->routes); index++) {
+		route = ip_routes_get_index(&netif->routes, index);
+		if ((route) &&
+		    ((route->address.s_addr & route->netmask.s_addr) ==
+		    (destination.s_addr & route->netmask.s_addr)))
+			return route;
+	}
+
+	return NULL;
+}
+
+/** Searches all network interfaces if there is a suitable route.
+ *
+ * @param[in] destination The destination address.
+ * @return		The found route.
+ * @return		NULL if no route was found.
+ */
+static ip_route_t *ip_find_route(in_addr_t destination) {
+	int index;
+	ip_route_t *route;
+	ip_netif_t *netif;
+
+	// start with the last netif - the newest one
+	index = ip_netifs_count(&ip_globals.netifs) - 1;
+	while (index >= 0) {
+		netif = ip_netifs_get_index(&ip_globals.netifs, index);
+		if (netif && (netif->state == NETIF_ACTIVE)) {
+			route = ip_netif_find_route(netif, destination);
+			if (route)
+				return route;
+		}
+		index--;
+	}
+
+	return &ip_globals.gateway;
+}
+
+/** Returns the network interface's IP address.
+ *
+ * @param[in] netif	The network interface.
+ * @return		The IP address.
+ * @return		NULL if no IP address was found.
+ */
+static in_addr_t *ip_netif_address(ip_netif_t *netif)
+{
+	ip_route_t *route;
+
+	route = ip_routes_get_index(&netif->routes, 0);
+	return route ? &route->address : NULL;
 }
 
 /** Copies the fragment header.
@@ -625,9 +682,8 @@ static void ip_create_last_header(ip_header_t *last, ip_header_t *first)
  * @return		Other error codes as defined for the packet_set_addr()
  *			function.
  */
-static int
-ip_prepare_packet(in_addr_t *source, in_addr_t dest, packet_t *packet,
-    measured_string_t *destination)
+static int ip_prepare_packet(in_addr_t *source, in_addr_t dest,
+    packet_t *packet, measured_string_t *destination)
 {
 	size_t length;
 	ip_header_t *header;
@@ -756,8 +812,7 @@ ip_prepare_packet(in_addr_t *source, in_addr_t dest, packet_t *packet,
  * @return		Other error codes as defined for the pq_insert_after()
  *			function.
  */
-static int
-ip_fragment_packet_data(packet_t *packet, packet_t *new_packet,
+static int ip_fragment_packet_data(packet_t *packet, packet_t *new_packet,
     ip_header_t *header, ip_header_t *new_header, size_t length,
     const struct sockaddr *src, const struct sockaddr *dest, socklen_t addrlen)
 {
@@ -791,6 +846,27 @@ ip_fragment_packet_data(packet_t *packet, packet_t *new_packet,
 		return rc;
 
 	return pq_insert_after(packet, new_packet);
+}
+
+/** Prefixes a middle fragment header based on the last fragment header to the
+ * packet.
+ *
+ * @param[in] packet	The packet to be prefixed.
+ * @param[in] last	The last header to be copied.
+ * @return		The prefixed middle header.
+ * @return		NULL on error.
+ */
+static ip_header_t *ip_create_middle_header(packet_t *packet,
+    ip_header_t *last)
+{
+	ip_header_t *middle;
+
+	middle = (ip_header_t *) packet_suffix(packet, IP_HEADER_LENGTH(last));
+	if (!middle)
+		return NULL;
+	memcpy(middle, last, IP_HEADER_LENGTH(last));
+	middle->flags |= IPFLAG_MORE_FRAGMENTS;
+	return middle;
 }
 
 /** Checks the packet length and fragments it if needed.
@@ -995,9 +1071,8 @@ ip_split_packet(packet_t *packet, size_t prefix, size_t content, size_t suffix,
  * @return		Other error codes as defined for the ip_prepare_packet()
  *			function.
  */
-static int
-ip_send_route(packet_t *packet, ip_netif_t *netif, ip_route_t *route,
-    in_addr_t *src, in_addr_t dest, services_t error)
+static int ip_send_route(packet_t *packet, ip_netif_t *netif,
+    ip_route_t *route, in_addr_t *src, in_addr_t dest, services_t error)
 {
 	measured_string_t destination;
 	measured_string_t *translation;
@@ -1060,197 +1135,8 @@ ip_send_route(packet_t *packet, ip_netif_t *netif, ip_route_t *route,
 	return rc;
 }
 
-/** Searches the network interfaces if there is a suitable route.
- *
- * @param[in] netif	The network interface to be searched for routes. May be
- *			NULL.
- * @param[in] destination The destination address.
- * @return		The found route.
- * @return		NULL if no route was found.
- */
-static ip_route_t *
-ip_netif_find_route(ip_netif_t *netif, in_addr_t destination)
-{
-	int index;
-	ip_route_t *route;
-	
-	if (!netif)
-		return NULL;
-	
-	/* Start with the first one (the direct route) */
-	for (index = 0; index < ip_routes_count(&netif->routes); index++) {
-		route = ip_routes_get_index(&netif->routes, index);
-		if ((route) &&
-		    ((route->address.s_addr & route->netmask.s_addr) ==
-		    (destination.s_addr & route->netmask.s_addr)))
-			return route;
-	}
-
-	return NULL;
-}
-
-/** Searches all network interfaces if there is a suitable route.
- *
- * @param[in] destination The destination address.
- * @return		The found route.
- * @return		NULL if no route was found.
- */
-static ip_route_t *ip_find_route(in_addr_t destination) {
-	int index;
-	ip_route_t *route;
-	ip_netif_t *netif;
-
-	// start with the last netif - the newest one
-	index = ip_netifs_count(&ip_globals.netifs) - 1;
-	while (index >= 0) {
-		netif = ip_netifs_get_index(&ip_globals.netifs, index);
-		if (netif && (netif->state == NETIF_ACTIVE)) {
-			route = ip_netif_find_route(netif, destination);
-			if (route)
-				return route;
-		}
-		index--;
-	}
-
-	return &ip_globals.gateway;
-}
-
-/** Returns the network interface's IP address.
- *
- * @param[in] netif	The network interface.
- * @return		The IP address.
- * @return		NULL if no IP address was found.
- */
-static in_addr_t *ip_netif_address(ip_netif_t *netif)
-{
-	ip_route_t *route;
-
-	route = ip_routes_get_index(&netif->routes, 0);
-	return route ? &route->address : NULL;
-}
-
-/** Registers the transport layer protocol.
- *
- * The traffic of this protocol will be supplied using either the receive
- * function or IPC message.
- *
- * @param[in] protocol	The transport layer module protocol.
- * @param[in] service	The transport layer module service.
- * @param[in] phone	The transport layer module phone.
- * @param[in] received_msg The receiving function.
- * @return		EOK on success.
- * @return		EINVAL if the protocol parameter and/or the service
- *			parameter is zero.
- * @return		EINVAL if the phone parameter is not a positive number
- *			and the tl_receive_msg is NULL.
- * @return		ENOMEM if there is not enough memory left.
- */
-static int
-ip_register(int protocol, services_t service, int phone,
-    tl_received_msg_t received_msg)
-{
-	ip_proto_t *proto;
-	int index;
-
-	if (!protocol || !service || ((phone < 0) && !received_msg))
-		return EINVAL;
-
-	proto = (ip_proto_t *) malloc(sizeof(ip_protos_t));
-	if (!proto)
-		return ENOMEM;
-
-	proto->protocol = protocol;
-	proto->service = service;
-	proto->phone = phone;
-	proto->received_msg = received_msg;
-
-	fibril_rwlock_write_lock(&ip_globals.protos_lock);
-	index = ip_protos_add(&ip_globals.protos, proto->protocol, proto);
-	if (index < 0) {
-		fibril_rwlock_write_unlock(&ip_globals.protos_lock);
-		free(proto);
-		return index;
-	}
-	fibril_rwlock_write_unlock(&ip_globals.protos_lock);
-
-	printf("%s: Protocol registered (protocol: %d, phone: %d)\n",
-	    NAME, proto->protocol, proto->phone);
-
-	return EOK;
-}
-
-static int
-ip_device_req_local(int il_phone, device_id_t device_id, services_t netif)
-{
-	ip_netif_t *ip_netif;
-	ip_route_t *route;
-	int index;
-	int rc;
-
-	ip_netif = (ip_netif_t *) malloc(sizeof(ip_netif_t));
-	if (!ip_netif)
-		return ENOMEM;
-
-	rc = ip_routes_initialize(&ip_netif->routes);
-	if (rc != EOK) {
-		free(ip_netif);
-		return rc;
-	}
-
-	ip_netif->device_id = device_id;
-	ip_netif->service = netif;
-	ip_netif->state = NETIF_STOPPED;
-
-	fibril_rwlock_write_lock(&ip_globals.netifs_lock);
-
-	rc = ip_netif_initialize(ip_netif);
-	if (rc != EOK) {
-		fibril_rwlock_write_unlock(&ip_globals.netifs_lock);
-		ip_routes_destroy(&ip_netif->routes);
-		free(ip_netif);
-		return rc;
-	}
-	if (ip_netif->arp)
-		ip_netif->arp->usage++;
-
-	// print the settings
-	printf("%s: Device registered (id: %d, phone: %d, ipv: %d, conf: %s)\n",
-	    NAME, ip_netif->device_id, ip_netif->phone, ip_netif->ipv,
-	    ip_netif->dhcp ? "dhcp" : "static");
-	
-	// TODO ipv6 addresses
-	
-	char address[INET_ADDRSTRLEN];
-	char netmask[INET_ADDRSTRLEN];
-	char gateway[INET_ADDRSTRLEN];
-	
-	for (index = 0; index < ip_routes_count(&ip_netif->routes); index++) {
-		route = ip_routes_get_index(&ip_netif->routes, index);
-		if (route) {
-			inet_ntop(AF_INET, (uint8_t *) &route->address.s_addr,
-			    address, INET_ADDRSTRLEN);
-			inet_ntop(AF_INET, (uint8_t *) &route->netmask.s_addr,
-			    netmask, INET_ADDRSTRLEN);
-			inet_ntop(AF_INET, (uint8_t *) &route->gateway.s_addr,
-			    gateway, INET_ADDRSTRLEN);
-			printf("%s: Route %d (address: %s, netmask: %s, "
-			    "gateway: %s)\n", NAME, index, address, netmask,
-			    gateway);
-		}
-	}
-	
-	inet_ntop(AF_INET, (uint8_t *) &ip_netif->broadcast.s_addr, address,
-	    INET_ADDRSTRLEN);
-	fibril_rwlock_write_unlock(&ip_globals.netifs_lock);
-
-	printf("%s: Broadcast (%s)\n", NAME, address);
-
-	return EOK;
-}
-
-static int
-ip_send_msg_local(int il_phone, device_id_t device_id, packet_t *packet,
-    services_t sender, services_t error)
+static int ip_send_msg_local(int il_phone, device_id_t device_id,
+    packet_t *packet, services_t sender, services_t error)
 {
 	int addrlen;
 	ip_netif_t *netif;
@@ -1354,65 +1240,28 @@ ip_send_msg_local(int il_phone, device_id_t device_id, packet_t *packet,
 	return rc;
 }
 
-/** Returns the device packet dimensions for sending.
+/** Updates the device state.
  *
- * @param[in] phone	The service module phone.
- * @param[in] message	The service specific message.
  * @param[in] device_id	The device identifier.
- * @param[out] addr_len	The minimum reserved address length.
- * @param[out] prefix	The minimum reserved prefix size.
- * @param[out] content	The maximum content size.
- * @param[out] suffix	The minimum reserved suffix size.
+ * @param[in] state	The new state value.
  * @return		EOK on success.
+ * @return		ENOENT if device is not found.
  */
-static int
-ip_packet_size_message(device_id_t device_id, size_t *addr_len, size_t *prefix,
-    size_t *content, size_t *suffix)
+static int ip_device_state_message(device_id_t device_id, device_state_t state)
 {
 	ip_netif_t *netif;
-	int index;
 
-	if (!addr_len || !prefix || !content || !suffix)
-		return EBADMEM;
-
-	*content = IP_MAX_CONTENT - IP_PREFIX;
-	fibril_rwlock_read_lock(&ip_globals.netifs_lock);
-	if (device_id < 0) {
-		*addr_len = IP_ADDR;
-		*prefix = 0;
-		*suffix = 0;
-
-		for (index = ip_netifs_count(&ip_globals.netifs) - 1;
-		    index >= 0; index--) {
-			netif = ip_netifs_get_index(&ip_globals.netifs, index);
-			if (!netif)
-				continue;
-			
-			if (netif->packet_dimension.addr_len > *addr_len)
-				*addr_len = netif->packet_dimension.addr_len;
-			
-			if (netif->packet_dimension.prefix > *prefix)
-				*prefix = netif->packet_dimension.prefix;
-				
-			if (netif->packet_dimension.suffix > *suffix)
-				*suffix = netif->packet_dimension.suffix;
-		}
-
-		*prefix = *prefix + IP_PREFIX;
-		*suffix = *suffix + IP_SUFFIX;
-	} else {
-		netif = ip_netifs_find(&ip_globals.netifs, device_id);
-		if (!netif) {
-			fibril_rwlock_read_unlock(&ip_globals.netifs_lock);
-			return ENOENT;
-		}
-
-		*addr_len = (netif->packet_dimension.addr_len > IP_ADDR) ?
-		    netif->packet_dimension.addr_len : IP_ADDR;
-		*prefix = netif->packet_dimension.prefix + IP_PREFIX;
-		*suffix = netif->packet_dimension.suffix + IP_SUFFIX;
+	fibril_rwlock_write_lock(&ip_globals.netifs_lock);
+	// find the device
+	netif = ip_netifs_find(&ip_globals.netifs, device_id);
+	if (!netif) {
+		fibril_rwlock_write_unlock(&ip_globals.netifs_lock);
+		return ENOENT;
 	}
-	fibril_rwlock_read_unlock(&ip_globals.netifs_lock);
+	netif->state = state;
+	fibril_rwlock_write_unlock(&ip_globals.netifs_lock);
+
+	printf("%s: Device %d changed state to %d\n", NAME, device_id, state);
 
 	return EOK;
 }
@@ -1452,9 +1301,8 @@ static in_addr_t ip_get_destination(ip_header_t *header)
  * @return		Other error codes as defined for the protocol specific
  *			tl_received_msg() function.
  */
-static int
-ip_deliver_local(device_id_t device_id, packet_t *packet, ip_header_t *header,
-    services_t error)
+static int ip_deliver_local(device_id_t device_id, packet_t *packet,
+    ip_header_t *header, services_t error)
 {
 	ip_proto_t *proto;
 	int phone;
@@ -1554,8 +1402,7 @@ ip_deliver_local(device_id_t device_id, packet_t *packet, ip_header_t *header,
  * @return		ENOENT if the packet is for another host and the routing
  *			is disabled.
  */
-static int
-ip_process_packet(device_id_t device_id, packet_t *packet)
+static int ip_process_packet(device_id_t device_id, packet_t *packet)
 {
 	ip_header_t *header;
 	in_addr_t dest;
@@ -1644,6 +1491,191 @@ ip_process_packet(device_id_t device_id, packet_t *packet)
 	
 	return ENOENT;
 }
+
+/** Returns the device packet dimensions for sending.
+ *
+ * @param[in] phone	The service module phone.
+ * @param[in] message	The service specific message.
+ * @param[in] device_id	The device identifier.
+ * @param[out] addr_len	The minimum reserved address length.
+ * @param[out] prefix	The minimum reserved prefix size.
+ * @param[out] content	The maximum content size.
+ * @param[out] suffix	The minimum reserved suffix size.
+ * @return		EOK on success.
+ */
+static int ip_packet_size_message(device_id_t device_id, size_t *addr_len,
+    size_t *prefix, size_t *content, size_t *suffix)
+{
+	ip_netif_t *netif;
+	int index;
+
+	if (!addr_len || !prefix || !content || !suffix)
+		return EBADMEM;
+
+	*content = IP_MAX_CONTENT - IP_PREFIX;
+	fibril_rwlock_read_lock(&ip_globals.netifs_lock);
+	if (device_id < 0) {
+		*addr_len = IP_ADDR;
+		*prefix = 0;
+		*suffix = 0;
+
+		for (index = ip_netifs_count(&ip_globals.netifs) - 1;
+		    index >= 0; index--) {
+			netif = ip_netifs_get_index(&ip_globals.netifs, index);
+			if (!netif)
+				continue;
+			
+			if (netif->packet_dimension.addr_len > *addr_len)
+				*addr_len = netif->packet_dimension.addr_len;
+			
+			if (netif->packet_dimension.prefix > *prefix)
+				*prefix = netif->packet_dimension.prefix;
+				
+			if (netif->packet_dimension.suffix > *suffix)
+				*suffix = netif->packet_dimension.suffix;
+		}
+
+		*prefix = *prefix + IP_PREFIX;
+		*suffix = *suffix + IP_SUFFIX;
+	} else {
+		netif = ip_netifs_find(&ip_globals.netifs, device_id);
+		if (!netif) {
+			fibril_rwlock_read_unlock(&ip_globals.netifs_lock);
+			return ENOENT;
+		}
+
+		*addr_len = (netif->packet_dimension.addr_len > IP_ADDR) ?
+		    netif->packet_dimension.addr_len : IP_ADDR;
+		*prefix = netif->packet_dimension.prefix + IP_PREFIX;
+		*suffix = netif->packet_dimension.suffix + IP_SUFFIX;
+	}
+	fibril_rwlock_read_unlock(&ip_globals.netifs_lock);
+
+	return EOK;
+}
+
+/** Updates the device content length according to the new MTU value.
+ *
+ * @param[in] device_id	The device identifier.
+ * @param[in] mtu	The new mtu value.
+ * @return		EOK on success.
+ * @return		ENOENT if device is not found.
+ */
+static int ip_mtu_changed_message(device_id_t device_id, size_t mtu)
+{
+	ip_netif_t *netif;
+
+	fibril_rwlock_write_lock(&ip_globals.netifs_lock);
+	netif = ip_netifs_find(&ip_globals.netifs, device_id);
+	if (!netif) {
+		fibril_rwlock_write_unlock(&ip_globals.netifs_lock);
+		return ENOENT;
+	}
+	netif->packet_dimension.content = mtu;
+	fibril_rwlock_write_unlock(&ip_globals.netifs_lock);
+
+	printf("%s: Device %d changed MTU to %zu\n", NAME, device_id, mtu);
+
+	return EOK;
+}
+
+/** Process IPC messages from the registered device driver modules
+ *
+ * @param[in]     iid   Message identifier.
+ * @param[in,out] icall Message parameters.
+ *
+ */
+static void ip_receiver(ipc_callid_t iid, ipc_call_t *icall)
+{
+	packet_t *packet;
+	int rc;
+	
+	while (true) {
+		switch (IPC_GET_IMETHOD(*icall)) {
+		case NET_IL_DEVICE_STATE:
+			rc = ip_device_state_message(IPC_GET_DEVICE(*icall),
+			    IPC_GET_STATE(*icall));
+			ipc_answer_0(iid, (sysarg_t) rc);
+			break;
+		
+		case NET_IL_RECEIVED:
+			rc = packet_translate_remote(ip_globals.net_phone, &packet,
+			    IPC_GET_PACKET(*icall));
+			if (rc == EOK) {
+				do {
+					packet_t *next = pq_detach(packet);
+					ip_process_packet(IPC_GET_DEVICE(*icall), packet);
+					packet = next;
+				} while (packet);
+			}
+			
+			ipc_answer_0(iid, (sysarg_t) rc);
+			break;
+		
+		case NET_IL_MTU_CHANGED:
+			rc = ip_mtu_changed_message(IPC_GET_DEVICE(*icall),
+			    IPC_GET_MTU(*icall));
+			ipc_answer_0(iid, (sysarg_t) rc);
+			break;
+		
+		default:
+			ipc_answer_0(iid, (sysarg_t) ENOTSUP);
+		}
+		
+		iid = async_get_call(icall);
+	}
+}
+
+/** Registers the transport layer protocol.
+ *
+ * The traffic of this protocol will be supplied using either the receive
+ * function or IPC message.
+ *
+ * @param[in] protocol	The transport layer module protocol.
+ * @param[in] service	The transport layer module service.
+ * @param[in] phone	The transport layer module phone.
+ * @param[in] received_msg The receiving function.
+ * @return		EOK on success.
+ * @return		EINVAL if the protocol parameter and/or the service
+ *			parameter is zero.
+ * @return		EINVAL if the phone parameter is not a positive number
+ *			and the tl_receive_msg is NULL.
+ * @return		ENOMEM if there is not enough memory left.
+ */
+static int
+ip_register(int protocol, services_t service, int phone,
+    tl_received_msg_t received_msg)
+{
+	ip_proto_t *proto;
+	int index;
+
+	if (!protocol || !service || ((phone < 0) && !received_msg))
+		return EINVAL;
+
+	proto = (ip_proto_t *) malloc(sizeof(ip_protos_t));
+	if (!proto)
+		return ENOMEM;
+
+	proto->protocol = protocol;
+	proto->service = service;
+	proto->phone = phone;
+	proto->received_msg = received_msg;
+
+	fibril_rwlock_write_lock(&ip_globals.protos_lock);
+	index = ip_protos_add(&ip_globals.protos, proto->protocol, proto);
+	if (index < 0) {
+		fibril_rwlock_write_unlock(&ip_globals.protos_lock);
+		free(proto);
+		return index;
+	}
+	fibril_rwlock_write_unlock(&ip_globals.protos_lock);
+
+	printf("%s: Protocol registered (protocol: %d, phone: %d)\n",
+	    NAME, proto->protocol, proto->phone);
+
+	return EOK;
+}
+
 
 static int
 ip_add_route_req_local(int ip_phone, device_id_t device_id, in_addr_t address,
@@ -1844,35 +1876,6 @@ ip_get_route_req_local(int ip_phone, ip_protocol_t protocol,
 	return EOK;
 }
 
-/** Processes the received IP packet or the packet queue one by one.
- *
- * The packet is either passed to another module or released on error.
- *
- * @param[in] device_id	The source device identifier.
- * @param[in,out] packet The received packet.
- * @return		EOK on success and the packet is no longer needed.
- * @return		EINVAL if the packet is too small to carry the IP
- *			packet.
- * @return		EINVAL if the received address lengths differs from the
- *			registered values.
- * @return		ENOENT if the device is not found in the cache.
- * @return		ENOENT if the protocol for the device is not found in
- *			the cache.
- * @return		ENOMEM if there is not enough memory left.
- */
-static int ip_receive_message(device_id_t device_id, packet_t *packet)
-{
-	packet_t *next;
-
-	do {
-		next = pq_detach(packet);
-		ip_process_packet(device_id, packet);
-		packet = next;
-	} while (packet);
-
-	return EOK;
-}
-
 /** Processes the IP message.
  *
  * @param[in] callid	The message identifier.
@@ -1884,21 +1887,20 @@ static int ip_receive_message(device_id_t device_id, packet_t *packet)
  * @return		ENOTSUP if the message is not known.
  *
  * @see ip_interface.h
- * @see il_interface.h
+ * @see il_remote.h
  * @see IS_NET_IP_MESSAGE()
  */
-int
-ip_message_standalone(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *answer,
+int il_module_message(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *answer,
     size_t *answer_count)
 {
 	packet_t *packet;
 	struct sockaddr *addr;
+	void *header;
+	size_t headerlen;
 	size_t addrlen;
 	size_t prefix;
 	size_t suffix;
 	size_t content;
-	void *header;
-	size_t headerlen;
 	device_id_t device_id;
 	int rc;
 	
@@ -1911,28 +1913,9 @@ ip_message_standalone(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *answer,
 		return ip_register(IL_GET_PROTO(*call), IL_GET_SERVICE(*call),
 		    IPC_GET_PHONE(*call), NULL);
 	
-	case NET_IL_DEVICE:
+	case NET_IP_DEVICE:
 		return ip_device_req_local(0, IPC_GET_DEVICE(*call),
 		    IPC_GET_SERVICE(*call));
-	
-	case NET_IL_SEND:
-		rc = packet_translate_remote(ip_globals.net_phone, &packet,
-		    IPC_GET_PACKET(*call));
-		if (rc != EOK)
-			return rc;
-		return ip_send_msg_local(0, IPC_GET_DEVICE(*call), packet, 0,
-		    IPC_GET_ERROR(*call));
-	
-	case NET_IL_DEVICE_STATE:
-		return ip_device_state_message(IPC_GET_DEVICE(*call),
-		    IPC_GET_STATE(*call));
-	
-	case NET_IL_RECEIVED:
-		rc = packet_translate_remote(ip_globals.net_phone, &packet,
-		    IPC_GET_PACKET(*call));
-		if (rc != EOK)
-			return rc;
-		return ip_receive_message(IPC_GET_DEVICE(*call), packet);
 	
 	case NET_IP_RECEIVED_ERROR:
 		rc = packet_translate_remote(ip_globals.net_phone, &packet,
@@ -1974,7 +1957,7 @@ ip_message_standalone(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *answer,
 		free(header);
 		return rc;
 	
-	case NET_IL_PACKET_SPACE:
+	case NET_IP_PACKET_SPACE:
 		rc = ip_packet_size_message(IPC_GET_DEVICE(*call), &addrlen,
 		    &prefix, &content, &suffix);
 		if (rc != EOK)
@@ -1987,60 +1970,23 @@ ip_message_standalone(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *answer,
 		*answer_count = 4;
 		return EOK;
 	
-	case NET_IL_MTU_CHANGED:
-		return ip_mtu_changed_message(IPC_GET_DEVICE(*call),
-		    IPC_GET_MTU(*call));
+	case NET_IP_SEND:
+		rc = packet_translate_remote(ip_globals.net_phone, &packet,
+		    IPC_GET_PACKET(*call));
+		if (rc != EOK)
+			return rc;
+		
+		return ip_send_msg_local(0, IPC_GET_DEVICE(*call), packet, 0,
+		    IPC_GET_ERROR(*call));
 	}
 	
 	return ENOTSUP;
 }
 
-/** Default thread for new connections.
- *
- * @param[in] iid	The initial message identifier.
- * @param[in] icall	The initial message call structure.
- */
-static void il_client_connection(ipc_callid_t iid, ipc_call_t *icall)
-{
-	/*
-	 * Accept the connection
-	 *  - Answer the first IPC_M_CONNECT_ME_TO call.
-	 */
-	ipc_answer_0(iid, EOK);
-	
-	while (true) {
-		ipc_call_t answer;
-		size_t count;
-		
-		/* Clear the answer structure */
-		refresh_answer(&answer, &count);
-		
-		/* Fetch the next message */
-		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
-		
-		/* Process the message */
-		int res = il_module_message(callid, &call, &answer,
-		    &count);
-		
-		/*
-		 * End if told to either by the message or the processing
-		 * result.
-		 */
-		if ((IPC_GET_IMETHOD(call) == IPC_M_PHONE_HUNGUP) ||
-		    (res == EHANGUP)) {
-			return;
-		}
-		
-		/* Answer the message */
-		answer_call(callid, res, &answer, count);
-	}
-}
-
 int main(int argc, char *argv[])
 {
 	/* Start the module */
-	return il_module_start(il_client_connection);
+	return il_module_start(SERVICE_IP);
 }
 
 /** @}

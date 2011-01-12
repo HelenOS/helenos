@@ -47,7 +47,7 @@
 
 #include <net/modules.h>
 #include <net/device.h>
-#include <il_interface.h>
+#include <il_remote.h>
 #include <adt/measured_strings.h>
 #include <net/packet.h>
 #include <packet_remote.h>
@@ -117,10 +117,10 @@ static void nildummy_receiver(ipc_callid_t iid, ipc_call_t *icall)
 		case NET_NIL_RECEIVED:
 			rc = packet_translate_remote(nildummy_globals.net_phone,
 			    &packet, IPC_GET_PACKET(*icall));
-			if (rc == EOK) {
+			if (rc == EOK)
 				rc = nil_received_msg_local(0,
 				    IPC_GET_DEVICE(*icall), packet, 0);
-			}
+			
 			ipc_answer_0(iid, (sysarg_t) rc);
 			break;
 		

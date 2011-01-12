@@ -49,7 +49,7 @@
 
 /** Module initialization.
  *
- * Is called by the module_start() function.
+ * This has to be implemented in user code.
  *
  * @param[in] net_phone Networking module phone.
  *
@@ -58,9 +58,11 @@
  *         initialize function.
  *
  */
-extern int nil_initialize(int);
+extern int nil_initialize(int net_phone);
 
 /** Notify the network interface layer about the device state change.
+ *
+ * This has to be implemented in user code.
  *
  * @param[in] nil_phone Network interface layer phone.
  * @param[in] device_id Device identifier.
@@ -78,6 +80,8 @@ extern int nil_device_state_msg_local(int, device_id_t, int);
  * Process and redistribute the received packet queue to the registered
  * upper layers.
  *
+ * This has to be implemented in user code.
+ *
  * @param[in] nil_phone Network interface layer phone.
  * @param[in] device_id Source device identifier.
  * @param[in] packet    Received packet or the received packet queue.
@@ -91,6 +95,8 @@ extern int nil_device_state_msg_local(int, device_id_t, int);
 extern int nil_received_msg_local(int, device_id_t, packet_t *, services_t);
 
 /** Message processing function.
+ *
+ * This has to be implemented in user code.
  *
  * @param[in]  name   Module name.
  * @param[in]  callid Message identifier.

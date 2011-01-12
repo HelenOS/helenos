@@ -137,8 +137,6 @@ struct ip_route {
 
 /** IP global data. */
 struct ip_globals {
-	/** Default client connection function for support modules. */
-	async_client_conn_t client_connection;
 	/** Default gateway. */
 	ip_route_t gateway;
 	/** Safety lock. */

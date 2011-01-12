@@ -31,13 +31,13 @@
  */
 
 /** @file
- * Network interface layer module skeleton implementation.
- * @see nil_skel.h
+ * Internetworking layer module skeleton implementation.
+ * @see il_skel.h
  */
 
 #include <bool.h>
 #include <errno.h>
-#include <nil_skel.h>
+#include <il_skel.h>
 #include <net_interface.h>
 #include <net/modules.h>
 
@@ -47,7 +47,7 @@
  * @param[in] icall The initial message call structure.
  *
  */
-static void nil_client_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void il_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
 	/*
 	 * Accept the connection by answering
@@ -67,7 +67,7 @@ static void nil_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		ipc_callid_t callid = async_get_call(&call);
 		
 		/* Process the message */
-		int res = nil_module_message(callid, &call, &answer,
+		int res = il_module_message(callid, &call, &answer,
 		    &count);
 		
 		/*
@@ -83,7 +83,7 @@ static void nil_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	}
 }
 
-/** Start the network interface layer module.
+/** Start the internetworking layer module.
  *
  * Initialize the client connection serving function, initialize
  * the module, register the module service and start the async
@@ -93,22 +93,22 @@ static void nil_client_connection(ipc_callid_t iid, ipc_call_t *icall)
  *
  * @return EOK on success.
  * @return Other error codes as defined for the pm_init() function.
- * @return Other error codes as defined for the nil_initialize()
+ * @return Other error codes as defined for the il_initialize()
  *         function.
  * @return Other error codes as defined for the REGISTER_ME() macro
  *         function.
  *
  */
-int nil_module_start(int service)
+int il_module_start(int service)
 {
-	async_set_client_connection(nil_client_connection);
+	async_set_client_connection(il_client_connection);
 	int net_phone = net_connect_module();
 	
 	int rc = pm_init();
 	if (rc != EOK)
 		return rc;
 	
-	rc = nil_initialize(net_phone);
+	rc = il_initialize(net_phone);
 	if (rc != EOK)
 		goto out;
 	
