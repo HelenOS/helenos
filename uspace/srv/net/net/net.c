@@ -44,6 +44,7 @@
 #include <malloc.h>
 #include <stdio.h>
 #include <str.h>
+#include <str_error.h>
 
 #include <ipc/ipc.h>
 #include <ipc/services.h>
@@ -332,7 +333,6 @@ static int net_module_start(async_client_conn_t client_connection)
 	if (rc != EOK)
 		return rc;
 	
-	
 	rc = net_initialize(client_connection);
 	if (rc != EOK)
 		goto out;
@@ -591,8 +591,11 @@ static int startup(void)
 		
 		rc = start_device(netif);
 		if (rc != EOK) {
+			printf("%s: Error starting interface %s (%s)\n", NAME,
+			    netif->name, str_error(rc));
 			measured_strings_destroy(&netif->configuration);
 			netifs_exclude_index(&net_globals.netifs, index);
+			
 			return rc;
 		}
 		
@@ -709,15 +712,7 @@ static void net_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 int main(int argc, char *argv[])
 {
-	int rc;
-	
-	rc = net_module_start(net_client_connection);
-	if (rc != EOK) {
-		fprintf(stderr, "%s: net_module_start error %i\n", NAME, rc);
-		return rc;
-	}
-	
-	return EOK;
+	return net_module_start(net_client_connection);
 }
 
 /** @}
