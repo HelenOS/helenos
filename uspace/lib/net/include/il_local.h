@@ -47,7 +47,7 @@
  * @return		Other error codes as defined for the arp_message()
  *			function.
  */
-extern int il_module_message_standalone(ipc_callid_t callid, ipc_call_t *call,
+extern int il_module_message(ipc_callid_t callid, ipc_call_t *call,
     ipc_call_t *answer, size_t *answer_count);
 
 /** Starts the Internet layer module.
@@ -64,7 +64,7 @@ extern int il_module_message_standalone(ipc_callid_t callid, ipc_call_t *call,
  * @return		Other error codes as defined for the REGISTER_ME() macro
  *			function.
  */
-extern int il_module_start_standalone(async_client_conn_t client_connection);
+extern int il_module_start(async_client_conn_t client_connection);
 
 #endif
 

@@ -57,13 +57,13 @@
 extern ip_globals_t ip_globals;
 
 int
-il_module_message_standalone(ipc_callid_t callid, ipc_call_t *call,
+il_module_message(ipc_callid_t callid, ipc_call_t *call,
     ipc_call_t *answer, size_t *count)
 {
 	return ip_message_standalone(callid, call, answer, count);
 }
 
-int il_module_start_standalone(async_client_conn_t client_connection)
+int il_module_start(async_client_conn_t client_connection)
 {
 	sysarg_t phonehash;
 	int rc;

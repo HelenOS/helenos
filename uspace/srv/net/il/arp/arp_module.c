@@ -56,21 +56,20 @@
 /** ARP module global data. */
 extern arp_globals_t arp_globals;
 
-int il_module_message_standalone(ipc_callid_t callid, ipc_call_t *call,
+int il_module_message(ipc_callid_t callid, ipc_call_t *call,
     ipc_call_t *answer, size_t *count)
 {
-	return arp_message_standalone(callid, call, answer, count);
+	return arp_message(callid, call, answer, count);
 }
 
-int il_module_start_standalone(async_client_conn_t client_connection)
+int il_module_start(async_client_conn_t client_connection)
 {
 	sysarg_t phonehash;
-	int rc;
 	
 	async_set_client_connection(client_connection);
 	arp_globals.net_phone = net_connect_module();
 	
-	rc = pm_init();
+	int rc = pm_init();
 	if (rc != EOK)
 		return rc;
 	
@@ -83,7 +82,7 @@ int il_module_start_standalone(async_client_conn_t client_connection)
 		goto out;
 	
 	async_manager();
-
+	
 out:
 	pm_destroy();
 	return rc;

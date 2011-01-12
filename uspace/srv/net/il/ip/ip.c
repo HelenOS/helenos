@@ -2020,7 +2020,7 @@ static void il_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		ipc_callid_t callid = async_get_call(&call);
 		
 		/* Process the message */
-		int res = il_module_message_standalone(callid, &call, &answer,
+		int res = il_module_message(callid, &call, &answer,
 		    &count);
 		
 		/*
@@ -2037,18 +2037,10 @@ static void il_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	}
 }
 
-/** Starts the module.
- *
- * @return EOK on success.
- * @return Other error codes as defined for each specific module start function.
- */
 int main(int argc, char *argv[])
 {
-	int rc;
-	
 	/* Start the module */
-	rc = il_module_start_standalone(il_client_connection);
-	return rc;
+	return il_module_start(il_client_connection);
 }
 
 /** @}

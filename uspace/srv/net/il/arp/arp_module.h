@@ -42,7 +42,7 @@
 #include <async.h>
 
 extern int arp_initialize(async_client_conn_t);
-extern int arp_message_standalone(ipc_callid_t, ipc_call_t *, ipc_call_t *,
+extern int arp_message(ipc_callid_t, ipc_call_t *, ipc_call_t *,
     size_t *);
 
 #endif
