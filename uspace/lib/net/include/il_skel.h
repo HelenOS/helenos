@@ -60,7 +60,7 @@
  */
 extern int il_initialize(int net_phone);
 
-/** Process the Internet layer module message.
+/** Process the internetwork layer module message.
  *
  * This has to be implemented in user code.
  *
@@ -70,8 +70,7 @@ extern int il_initialize(int net_phone);
  * @param[out] count  Number of arguments of the answer.
  *
  * @return EOK on success.
- * @return Other error codes as defined for the arp_message()
- *         function.
+ * @return Other error codes as defined for each specific module.
  *
  */
 extern int il_module_message(ipc_callid_t callid, ipc_call_t *call,

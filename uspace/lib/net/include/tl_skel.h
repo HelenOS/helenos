@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Lukas Mejdrech
+ * Copyright (c) 2010 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,24 +26,57 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup tcp
+/** @addtogroup libnet
  * @{
  */
 
+#ifndef LIBNET_TL_SKEL_H_
+#define LIBNET_TL_SKEL_H_
+
 /** @file
- * TCP module functions.
- * The functions are used as TCP module entry points.
+ * Transport layer module skeleton.
+ * The skeleton has to be part of each transport layer module.
  */
 
-#ifndef NET_TCP_MODULE_H_
-#define NET_TCP_MODULE_H_
-
 #include <async.h>
+#include <fibril_synch.h>
 #include <ipc/ipc.h>
+#include <ipc/services.h>
 
-extern int tcp_initialize(async_client_conn_t);
-extern int tcp_message_standalone(ipc_callid_t, ipc_call_t *, ipc_call_t *,
-    size_t *);
+#include <adt/measured_strings.h>
+#include <net/device.h>
+#include <net/packet.h>
+
+/** Module initialization.
+ *
+ * This has to be implemented in user code.
+ *
+ * @param[in] net_phone Networking module phone.
+ *
+ * @return EOK on success.
+ * @return Other error codes as defined for each specific module
+ *         initialize function.
+ *
+ */
+extern int tl_initialize(int net_phone);
+
+/** Process the transport layer module message.
+ *
+ * This has to be implemented in user code.
+ *
+ * @param[in]  callid Message identifier.
+ * @param[in]  call   Message parameters.
+ * @param[out] answer Answer.
+ * @param[out] count  Number of arguments of the answer.
+ *
+ * @return EOK on success.
+ * @return Other error codes as defined for each specific module.
+ *
+ */
+extern int tl_module_message(ipc_callid_t, ipc_call_t *,
+    ipc_call_t *, size_t *);
+
+extern int tl_module_start(int);
 
 #endif
 

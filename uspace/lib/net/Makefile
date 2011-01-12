@@ -51,7 +51,8 @@ SOURCES = \
 	tl/icmp_remote.c \
 	tl/icmp_client.c \
 	tl/socket_core.c \
-	tl/tl_interface.c \
-	tl/tl_common.c
+	tl/tl_common.c \
+	tl/tl_remote.c \
+	tl/tl_skel.c
 
 include $(USPACE_PREFIX)/Makefile.common

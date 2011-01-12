@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Lukas Mejdrech
+ * Copyright (c) 2009 Lukas Mejdrech
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,70 +26,37 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup udp
+/** @addtogroup libnet
  * @{
  */
 
 /** @file
- * UDP standalone module implementation.
- * Contains skeleton module functions mapping.
- * The functions are used by the module skeleton as module specific entry
- * points.
- * @see module.c
+ * Transport layer module interface for the underlying internetwork layer.
  */
 
-#include "udp.h"
-#include "udp_module.h"
+#ifndef LIBNET_TL_REMOTE_H_
+#define LIBNET_TL_REMOTE_H_
 
 #include <async.h>
-#include <stdio.h>
-#include <errno.h>
-#include <ipc/ipc.h>
 #include <ipc/services.h>
+#include <ipc/tl.h>
 
-#include <net/modules.h>
+#include <generic.h>
+#include <net/device.h>
 #include <net/packet.h>
+#include <packet_client.h>
 
-#include <net_interface.h>
-#include <tl_local.h>
+/** @name Transport layer module interface
+ * This interface is used by other modules.
+ */
+/*@{*/
 
-/** UDP module global data. */
-extern udp_globals_t udp_globals;
+extern int tl_received_msg(int, device_id_t, packet_t *, services_t,
+    services_t);
 
-int tl_module_start_standalone(async_client_conn_t client_connection)
-{
-	sysarg_t phonehash;
-	int rc;
+/*@}*/
 
-	async_set_client_connection(client_connection);
-	udp_globals.net_phone = net_connect_module();
-	if (udp_globals.net_phone < 0)
-		return udp_globals.net_phone;
-	
-	rc = pm_init();
-	if (rc != EOK)
-		return EOK;
-		
-	rc = udp_initialize(client_connection);
-	if (rc != EOK)
-		goto out;
-	
-	rc = ipc_connect_to_me(PHONE_NS, SERVICE_UDP, 0, 0, &phonehash);
-	if (rc != EOK)
-		goto out;
-
-	async_manager();
-
-out:
-	pm_destroy();
-	return rc;
-}
-
-int tl_module_message_standalone(ipc_callid_t callid, ipc_call_t *call,
-    ipc_call_t *answer, size_t *count)
-{
-	return udp_message_standalone(callid, call, answer, count);
-}
+#endif
 
 /** @}
  */

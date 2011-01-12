@@ -103,6 +103,8 @@ int il_module_start(int service)
 {
 	async_set_client_connection(il_client_connection);
 	int net_phone = net_connect_module();
+	if (net_phone < 0)
+		return net_phone;
 	
 	int rc = pm_init();
 	if (rc != EOK)
