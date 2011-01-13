@@ -164,7 +164,7 @@ int arp_device_req(int arp_phone, device_id_t device_id, services_t protocol,
  */
 int
 arp_translate_req(int arp_phone, device_id_t device_id, services_t protocol,
-    measured_string_t *address, measured_string_t **translation, char **data)
+    measured_string_t *address, measured_string_t **translation, uint8_t **data)
 {
 	return generic_translate_req(arp_phone, NET_ARP_TRANSLATE, device_id,
 	    protocol, address, 1, translation, data);

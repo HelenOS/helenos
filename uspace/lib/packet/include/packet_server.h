@@ -47,7 +47,7 @@
 #include <ipc/ipc.h>
 
 extern int packet_server_message(ipc_callid_t, ipc_call_t *, ipc_call_t *,
-    int *);
+    size_t *);
 
 #endif
 

@@ -85,7 +85,7 @@ struct socket_core {
 	/** Protocol specific data. */
 	void *specific_data;
 	/** Socket ports map key. */
-	const char *key;
+	const uint8_t *key;
 	/** Length of the Socket ports map key. */
 	size_t key_length;
 };
@@ -117,11 +117,11 @@ extern int socket_create(socket_cores_t *, int, void *, int *);
 extern int socket_destroy(int, int, socket_cores_t *, socket_ports_t *,
     void (*)(socket_core_t *));
 extern int socket_reply_packets(packet_t *, size_t *);
-extern socket_core_t *socket_port_find(socket_ports_t *, int, const char *,
+extern socket_core_t *socket_port_find(socket_ports_t *, int, const uint8_t *,
     size_t);
 extern void socket_port_release(socket_ports_t *, socket_core_t *);
 extern int socket_port_add(socket_ports_t *, int, socket_core_t *,
-    const char *, size_t);
+    const uint8_t *, size_t);
 
 #endif
 

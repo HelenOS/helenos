@@ -179,7 +179,7 @@ static int netecho_parse_option(int argc, char *argv[], int *index)
 				return rc;
 		} else if (str_lcmp(argv[*index] + 2, "help", 5) == 0) {
 			echo_print_help();
-			return EOK;
+			exit(0);
 		} else if (str_lcmp(argv[*index] + 2, "port=", 5) == 0) {
 			rc = arg_parse_int(argc, argv, index, &value, 7);
 			if (rc != EOK)

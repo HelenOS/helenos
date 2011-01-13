@@ -221,17 +221,22 @@ void *memmove(void *dst, const void *src, size_t n)
 
 /** Compare two memory areas.
  *
- * @param s1		Pointer to the first area to compare.
- * @param s2		Pointer to the second area to compare.
- * @param len		Size of the first area in bytes. Both areas must have
- * 			the same length.
- * @return		If len is 0, return zero. If the areas match, return
- * 			zero. Otherwise return non-zero.
+ * @param s1  Pointer to the first area to compare.
+ * @param s2  Pointer to the second area to compare.
+ * @param len Size of the first area in bytes. Both areas must have
+ *            the same length.
+ *
+ * @return If len is 0, return zero. If the areas match, return
+ *         zero. Otherwise return non-zero.
+ *
  */
-int bcmp(const char *s1, const char *s2, size_t len)
+int bcmp(const void *s1, const void *s2, size_t len)
 {
-	for (; len && *s1++ == *s2++; len--)
-		;
+	uint8_t *u1 = (uint8_t *) s1;
+	uint8_t *u2 = (uint8_t *) s2;
+	
+	for (; (len != 0) && (*u1++ == *u2++); len--);
+	
 	return len;
 }
 

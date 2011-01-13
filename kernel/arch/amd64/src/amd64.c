@@ -234,11 +234,10 @@ void arch_post_smp_init(void)
 	    (uintptr_t) I8042_BASE);
 #endif
 	
-	/*
-	 * This nasty hack should also go away ASAP.
-	 */
-	trap_virtual_enable_irqs(1 << IRQ_DP8390);
-	sysinfo_set_item_val("netif.dp8390.inr", NULL, IRQ_DP8390);
+	if (irqs_info != NULL)
+		sysinfo_set_item_val(irqs_info, NULL, true);
+	
+	sysinfo_set_item_val("netif.ne2000.inr", NULL, IRQ_NE2000);
 }
 
 void calibrate_delay_loop(void)

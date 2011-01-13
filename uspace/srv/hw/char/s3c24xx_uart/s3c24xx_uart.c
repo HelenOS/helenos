@@ -94,7 +94,6 @@ int main(int argc, char *argv[])
 
 	rc = devmap_device_register(NAMESPACE "/" NAME, &uart->devmap_handle);
 	if (rc != EOK) {
-		devmap_hangup_phone(DEVMAP_DRIVER);
 		printf(NAME ": Unable to register device %s.\n",
 		    NAMESPACE "/" NAME);
 		return -1;

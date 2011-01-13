@@ -41,7 +41,6 @@ CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
 BINARY = nildummy
 
 SOURCES = \
-	nildummy.c \
-	nildummy_module.c
+	nildummy.c
 
 include $(USPACE_PREFIX)/Makefile.common

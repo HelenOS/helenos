@@ -147,7 +147,6 @@ int main(int argc, char *argv[])
 		snprintf(name, 16, "%s/ps2%c", NAMESPACE, dchar[i]);
 		rc = devmap_device_register(name, &i8042_port[i].devmap_handle);
 		if (rc != EOK) {
-			devmap_hangup_phone(DEVMAP_DRIVER);
 			printf(NAME ": Unable to register device %s.\n", name);
 			return rc;
 		}

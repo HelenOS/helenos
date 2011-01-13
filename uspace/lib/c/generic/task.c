@@ -64,11 +64,22 @@ task_id_t task_get_id(void)
  *             program.
  *
  * @return Zero on success or negative error code.
- *
  */
 int task_set_name(const char *name)
 {
 	return __SYSCALL2(SYS_TASK_SET_NAME, (sysarg_t) name, str_size(name));
+}
+
+/** Kill a task.
+ *
+ * @param task_id ID of task to kill.
+ *
+ * @return Zero on success or negative error code.
+ */
+
+int task_kill(task_id_t task_id)
+{
+	return (int) __SYSCALL1(SYS_TASK_KILL, (sysarg_t) &task_id);
 }
 
 /** Create a new task by running an executable from the filesystem.

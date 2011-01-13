@@ -53,7 +53,6 @@ extern void ddi_parea_register(parea_t *);
 
 extern sysarg_t sys_physmem_map(sysarg_t, sysarg_t, sysarg_t, sysarg_t);
 extern sysarg_t sys_iospace_enable(ddi_ioarg_t *);
-extern sysarg_t sys_interrupt_enable(int irq, int enable);
 
 /*
  * Interface to be implemented by all architectures.

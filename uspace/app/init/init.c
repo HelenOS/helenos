@@ -60,7 +60,7 @@
 #define TMPFS_MOUNT_POINT  "/tmp"
 
 #define DATA_FS_TYPE      "fat"
-#define DATA_DEVICE       "bd/disk0"
+#define DATA_DEVICE       "bd/ata1disk0"
 #define DATA_MOUNT_POINT  "/data"
 
 #define SRV_CONSOLE  "/srv/console"
@@ -272,6 +272,8 @@ int main(int argc, char *argv[])
 	
 	mount_tmpfs();
 	
+	spawn("/srv/apic");
+	spawn("/srv/i8259");
 	spawn("/srv/fhc");
 	spawn("/srv/obio");
 	srv_start("/srv/cuda_adb");

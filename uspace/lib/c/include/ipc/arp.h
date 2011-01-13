@@ -68,14 +68,12 @@ typedef enum {
 /** @name ARP specific message parameters definitions */
 /*@{*/
 
-/** Returns the protocol service message parameter.
- * @param[in] call The message call structure.
+/** Return the protocol service message parameter.
+ *
+ * @param[in] call Message call structure.
+ *
  */
-#define ARP_GET_NETIF(call) \
-	({ \
-		services_t service = (services_t) IPC_GET_ARG2(*call); \
-		service; \
-	})
+#define ARP_GET_NETIF(call) ((services_t) IPC_GET_ARG2(call))
 
 /*@}*/
 

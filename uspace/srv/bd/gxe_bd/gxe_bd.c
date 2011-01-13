@@ -144,7 +144,6 @@ static int gxe_bd_init(void)
 		snprintf(name, 16, "%s/disk%d", NAMESPACE, i);
 		rc = devmap_device_register(name, &devmap_handle[i]);
 		if (rc != EOK) {
-			devmap_hangup_phone(DEVMAP_DRIVER);
 			printf(NAME ": Unable to register device %s.\n", name);
 			return rc;
 		}

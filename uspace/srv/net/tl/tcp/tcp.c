@@ -35,10 +35,6 @@
  * @see tcp.h
  */
 
-#include "tcp.h"
-#include "tcp_header.h"
-#include "tcp_module.h"
-
 #include <assert.h>
 #include <async.h>
 #include <fibril_synch.h>
@@ -71,11 +67,14 @@
 #include <net_interface.h>
 #include <socket_core.h>
 #include <tl_common.h>
-#include <tl_local.h>
-#include <tl_interface.h>
+#include <tl_remote.h>
+#include <tl_skel.h>
+
+#include "tcp.h"
+#include "tcp_header.h"
 
 /** TCP module name. */
-#define NAME	"TCP protocol"
+#define NAME  "tcp"
 
 /** The TCP window default value. */
 #define NET_DEFAULT_TCP_WINDOW		10240
@@ -153,7 +152,7 @@ struct tcp_timeout {
 	suseconds_t timeout;
 
 	/** Port map key. */
-	char *key;
+	uint8_t *key;
 
 	/** Port map key length. */
 	size_t key_length;
@@ -219,48 +218,6 @@ static int tcp_close_message(socket_cores_t *, int);
 
 /** TCP global data. */
 tcp_globals_t tcp_globals;
-
-/** Initializes the TCP module.
- *
- * @param[in] client_connection The client connection processing function. The
- *			module skeleton propagates its own one.
- * @return		EOK on success.
- * @return		ENOMEM if there is not enough memory left.
- */
-int tcp_initialize(async_client_conn_t client_connection)
-{
-	int rc;
-
-	assert(client_connection);
-
-	fibril_rwlock_initialize(&tcp_globals.lock);
-	fibril_rwlock_write_lock(&tcp_globals.lock);
-
-	tcp_globals.icmp_phone = icmp_connect_module(SERVICE_ICMP,
-	    ICMP_CONNECT_TIMEOUT);
-	tcp_globals.ip_phone = ip_bind_service(SERVICE_IP, IPPROTO_TCP,
-	    SERVICE_TCP, client_connection);
-	if (tcp_globals.ip_phone < 0) {
-		fibril_rwlock_write_unlock(&tcp_globals.lock);
-		return tcp_globals.ip_phone;
-	}
-	
-	rc = socket_ports_initialize(&tcp_globals.sockets);
-	if (rc != EOK)
-		goto out;
-
-	rc = packet_dimensions_initialize(&tcp_globals.dimensions);
-	if (rc != EOK) {
-		socket_ports_destroy(&tcp_globals.sockets);
-		goto out;
-	}
-
-	tcp_globals.last_used_port = TCP_FREE_PORTS_START - 1;
-
-out:
-	fibril_rwlock_write_unlock(&tcp_globals.lock);
-	return rc;
-}
 
 int tcp_received_msg(device_id_t device_id, packet_t *packet,
     services_t receiver, services_t error)
@@ -357,12 +314,12 @@ int tcp_process_packet(device_id_t device_id, packet_t *packet, services_t error
 	
 	/* Find the destination socket */
 	socket = socket_port_find(&tcp_globals.sockets,
-	    ntohs(header->destination_port), (const char *) src, addrlen);
+	    ntohs(header->destination_port), (uint8_t *) src, addrlen);
 	if (!socket) {
 		/* Find the listening destination socket */
 		socket = socket_port_find(&tcp_globals.sockets,
-		    ntohs(header->destination_port), SOCKET_MAP_KEY_LISTENING,
-		    0);
+		    ntohs(header->destination_port),
+		    (uint8_t *) SOCKET_MAP_KEY_LISTENING, 0);
 	}
 
 	if (!socket) {
@@ -997,7 +954,7 @@ int tcp_process_listen(socket_core_t *listening_socket,
 
 	/* Find the destination socket */
 	listening_socket = socket_port_find(&tcp_globals.sockets,
-	    listening_port, SOCKET_MAP_KEY_LISTENING, 0);
+	    listening_port, (uint8_t *) SOCKET_MAP_KEY_LISTENING, 0);
 	if (!listening_socket ||
 	    (listening_socket->socket_id != listening_socket_id)) {
 		fibril_rwlock_write_unlock(&tcp_globals.lock);
@@ -1021,9 +978,9 @@ int tcp_process_listen(socket_core_t *listening_socket,
 	assert(socket_data);
 
 	rc = socket_port_add(&tcp_globals.sockets, listening_port, socket,
-	    (const char *) socket_data->addr, socket_data->addrlen);
+	    (uint8_t *) socket_data->addr, socket_data->addrlen);
 	assert(socket == socket_port_find(&tcp_globals.sockets, listening_port,
-	    (const char *) socket_data->addr, socket_data->addrlen));
+	    (uint8_t *) socket_data->addr, socket_data->addrlen));
 
 //	rc = socket_bind_free_port(&tcp_globals.sockets, socket,
 //	    TCP_FREE_PORTS_START, TCP_FREE_PORTS_END,
@@ -1259,31 +1216,15 @@ void tcp_process_acknowledgement(socket_core_t *socket,
  * @see tcp_interface.h
  * @see IS_NET_TCP_MESSAGE()
  */
-int
-tcp_message_standalone(ipc_callid_t callid, ipc_call_t *call,
-    ipc_call_t *answer, int *answer_count)
+int tl_module_message(ipc_callid_t callid, ipc_call_t *call,
+    ipc_call_t *answer, size_t *answer_count)
 {
-	packet_t *packet;
-	int rc;
-
 	assert(call);
 	assert(answer);
 	assert(answer_count);
 
 	*answer_count = 0;
 	switch (IPC_GET_IMETHOD(*call)) {
-	case NET_TL_RECEIVED:
-//		fibril_rwlock_read_lock(&tcp_globals.lock);
-		rc = packet_translate_remote(tcp_globals.net_phone, &packet,
-		    IPC_GET_PACKET(call));
-		if (rc != EOK) {
-//			fibril_rwlock_read_unlock(&tcp_globals.lock);
-			return rc;
-		}
-		rc = tcp_received_msg(IPC_GET_DEVICE(call), packet, SERVICE_TCP,
-		    IPC_GET_ERROR(call));
-//		fibril_rwlock_read_unlock(&tcp_globals.lock);
-		return rc;
 	case IPC_M_CONNECT_TO_ME:
 		return tcp_process_client_messages(callid, *call);
 	}
@@ -1322,14 +1263,14 @@ int tcp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 	int res;
 	bool keep_on_going = true;
 	socket_cores_t local_sockets;
-	int app_phone = IPC_GET_PHONE(&call);
+	int app_phone = IPC_GET_PHONE(call);
 	struct sockaddr *addr;
 	int socket_id;
 	size_t addrlen;
 	size_t size;
 	fibril_rwlock_t lock;
 	ipc_call_t answer;
-	int answer_count;
+	size_t answer_count;
 	tcp_socket_data_t *socket_data;
 	socket_core_t *socket;
 	packet_dimension_t *packet_dimension;
@@ -2108,7 +2049,7 @@ int tcp_prepare_timeout(int (*timeout_function)(void *tcp_timeout_t),
 	operation_timeout->state = state;
 
 	/* Copy the key */
-	operation_timeout->key = ((char *) operation_timeout) +
+	operation_timeout->key = ((uint8_t *) operation_timeout) +
 	    sizeof(*operation_timeout);
 	operation_timeout->key_length = socket->key_length;
 	memcpy(operation_timeout->key, socket->key, socket->key_length);
@@ -2485,63 +2426,80 @@ int tcp_release_and_return(packet_t *packet, int result)
 	return result;
 }
 
-/** Default thread for new connections.
+/** Process IPC messages from the IP module
  *
- * @param[in] iid	The initial message identifier.
- * @param[in] icall	The initial message call structure.
+ * @param[in]     iid   Message identifier.
+ * @param[in,out] icall Message parameters.
  *
  */
-static void tl_client_connection(ipc_callid_t iid, ipc_call_t * icall)
+static void tcp_receiver(ipc_callid_t iid, ipc_call_t *icall)
 {
-	/*
-	 * Accept the connection
-	 *  - Answer the first IPC_M_CONNECT_ME_TO call.
-	 */
-	ipc_answer_0(iid, EOK);
-
+	packet_t *packet;
+	int rc;
+	
 	while (true) {
-		ipc_call_t answer;
-		int answer_count;
-
-		/* Clear the answer structure */
-		refresh_answer(&answer, &answer_count);
-
-		/* Fetch the next message */
-		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
-
-		/* Process the message */
-		int res = tl_module_message_standalone(callid, &call, &answer,
-		    &answer_count);
-
-		/*
-		 * End if told to either by the message or the processing
-		 * result.
-		 */
-		if ((IPC_GET_IMETHOD(call) == IPC_M_PHONE_HUNGUP) ||
-		    (res == EHANGUP))
-			return;
-
-		/*
-		 * Answer the message 
-		 */
-		answer_call(callid, res, &answer, answer_count);
+		switch (IPC_GET_IMETHOD(*icall)) {
+		case NET_TL_RECEIVED:
+			rc = packet_translate_remote(tcp_globals.net_phone, &packet,
+			    IPC_GET_PACKET(*icall));
+			if (rc == EOK)
+				rc = tcp_received_msg(IPC_GET_DEVICE(*icall), packet,
+				    SERVICE_TCP, IPC_GET_ERROR(*icall));
+			
+			ipc_answer_0(iid, (sysarg_t) rc);
+			break;
+		default:
+			ipc_answer_0(iid, (sysarg_t) ENOTSUP);
+		}
+		
+		iid = async_get_call(icall);
 	}
 }
 
-/** Starts the module.
+/** Initialize the TCP module.
  *
- * @return		EOK on success.
- * @return		Other error codes as defined for each specific module
- *			start function.
+ * @param[in] net_phone Network module phone.
+ *
+ * @return EOK on success.
+ * @return ENOMEM if there is not enough memory left.
+ *
  */
-int
-main(int argc, char *argv[])
+int tl_initialize(int net_phone)
 {
-	int rc;
+	fibril_rwlock_initialize(&tcp_globals.lock);
+	fibril_rwlock_write_lock(&tcp_globals.lock);
+	
+	tcp_globals.net_phone = net_phone;
+	
+	tcp_globals.icmp_phone = icmp_connect_module(SERVICE_ICMP,
+	    ICMP_CONNECT_TIMEOUT);
+	tcp_globals.ip_phone = ip_bind_service(SERVICE_IP, IPPROTO_TCP,
+	    SERVICE_TCP, tcp_receiver);
+	if (tcp_globals.ip_phone < 0) {
+		fibril_rwlock_write_unlock(&tcp_globals.lock);
+		return tcp_globals.ip_phone;
+	}
+	
+	int rc = socket_ports_initialize(&tcp_globals.sockets);
+	if (rc != EOK)
+		goto out;
 
-	rc = tl_module_start_standalone(tl_client_connection);
+	rc = packet_dimensions_initialize(&tcp_globals.dimensions);
+	if (rc != EOK) {
+		socket_ports_destroy(&tcp_globals.sockets);
+		goto out;
+	}
+
+	tcp_globals.last_used_port = TCP_FREE_PORTS_START - 1;
+
+out:
+	fibril_rwlock_write_unlock(&tcp_globals.lock);
 	return rc;
+}
+
+int main(int argc, char *argv[])
+{
+	return tl_module_start(SERVICE_TCP);
 }
 
 /** @}

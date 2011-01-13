@@ -153,6 +153,7 @@ extern sysarg_t sys_task_get_id(void);
 #endif
 
 extern sysarg_t sys_task_set_name(const char *, size_t);
+extern sysarg_t sys_task_kill(task_id_t *);
 
 #endif
 

@@ -52,8 +52,7 @@
 #include <libarch/ddi.h>
 
 #include <driver.h>
-#include <char.h>
-#include <resource.h>
+#include <ops/char_dev.h>
 
 #include <devman.h>
 #include <ipc/devman.h>
@@ -226,7 +225,7 @@ static int ns8250_write(device_t *dev, char *buf, size_t count)
 static device_ops_t ns8250_dev_ops;
 
 /** The character interface's callbacks. */
-static char_iface_t ns8250_char_iface = {
+static char_dev_ops_t ns8250_char_dev_ops = {
 	.read = &ns8250_read,
 	.write = &ns8250_write
 };
@@ -346,7 +345,7 @@ static int ns8250_dev_initialize(device_t *dev)
 	}
 	
 	/* Get hw resources. */
-	ret = get_hw_resources(dev->parent_phone, &hw_resources);
+	ret = hw_res_get_resource_list(dev->parent_phone, &hw_resources);
 	if (ret != EOK) {
 		printf(NAME ": failed to get hw resources for the device "
 		    "%s.\n", dev->name);
@@ -393,12 +392,12 @@ static int ns8250_dev_initialize(device_t *dev)
 		goto failed;
 	}
 	
-	clean_hw_resource_list(&hw_resources);
+	hw_res_clean_resource_list(&hw_resources);
 	return ret;
 	
 failed:
 	ns8250_dev_cleanup(dev);
-	clean_hw_resource_list(&hw_resources);
+	hw_res_clean_resource_list(&hw_resources);
 	return ret;
 }
 
@@ -431,12 +430,6 @@ static inline void ns8250_port_interrupts_disable(ioport8_t *port)
 static int ns8250_interrupt_enable(device_t *dev)
 {
 	ns8250_dev_data_t *data = (ns8250_dev_data_t *) dev->driver_data;
-	int res;
-	
-	/* Enable interrupt globally. */
-	res = interrupt_enable(data->irq);
-	if (res != EOK)
-		return res;
 	
 	/* Enable interrupt on the serial port. */
 	ns8250_port_interrupts_enable(data->port);
@@ -923,7 +916,7 @@ static void ns8250_init(void)
 	ns8250_dev_ops.open = &ns8250_open;
 	ns8250_dev_ops.close = &ns8250_close;
 	
-	ns8250_dev_ops.interfaces[CHAR_DEV_IFACE] = &ns8250_char_iface;
+	ns8250_dev_ops.interfaces[CHAR_DEV_IFACE] = &ns8250_char_dev_ops;
 	ns8250_dev_ops.default_handler = &ns8250_default_handler;
 }
 

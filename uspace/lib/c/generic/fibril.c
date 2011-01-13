@@ -360,5 +360,10 @@ void fibril_dec_sercount(void)
 	serialization_count--;
 }
 
+int fibril_get_sercount(void)
+{
+	return serialization_count;
+}
+
 /** @}
  */

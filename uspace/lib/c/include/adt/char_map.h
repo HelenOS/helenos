@@ -40,12 +40,12 @@
 #include <libarch/types.h>
 
 /** Invalid assigned value used also if an&nbsp;entry does not exist. */
-#define CHAR_MAP_NULL	(-1)
+#define CHAR_MAP_NULL  (-1)
 
 /** Type definition of the character string to integer map.
  *  @see char_map
  */
-typedef struct char_map	char_map_t;
+typedef struct char_map char_map_t;
 
 /** Character string to integer map item.
  *
@@ -55,7 +55,7 @@ typedef struct char_map	char_map_t;
  */
 struct char_map {
 	/** Actually mapped character. */
-	char c;
+	uint8_t c;
 	/** Stored integral value. */
 	int value;
 	/** Next character array size. */
@@ -70,10 +70,10 @@ struct char_map {
 
 extern int char_map_initialize(char_map_t *);
 extern void char_map_destroy(char_map_t *);
-extern int char_map_exclude(char_map_t *, const char *, size_t);
-extern int char_map_add(char_map_t *, const char *, size_t, const int);
-extern int char_map_find(const char_map_t *, const char *, size_t);
-extern int char_map_update(char_map_t *, const char *, size_t, const int);
+extern int char_map_exclude(char_map_t *, const uint8_t *, size_t);
+extern int char_map_add(char_map_t *, const uint8_t *, size_t, const int);
+extern int char_map_find(const char_map_t *, const uint8_t *, size_t);
+extern int char_map_update(char_map_t *, const uint8_t *, size_t, const int);
 
 #endif
 

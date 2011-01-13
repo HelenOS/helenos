@@ -35,9 +35,6 @@
  * @see icmp.h
  */
 
-#include "icmp.h"
-#include "icmp_module.h"
-
 #include <async.h>
 #include <atomic.h>
 #include <fibril.h>
@@ -67,16 +64,18 @@
 #include <net_checksum.h>
 #include <icmp_client.h>
 #include <icmp_interface.h>
-#include <il_interface.h>
+#include <il_remote.h>
 #include <ip_client.h>
 #include <ip_interface.h>
 #include <net_interface.h>
-#include <tl_interface.h>
-#include <tl_local.h>
+#include <tl_remote.h>
+#include <tl_skel.h>
 #include <icmp_header.h>
 
+#include "icmp.h"
+
 /** ICMP module name. */
-#define NAME	"ICMP protocol"
+#define NAME  "icmp"
 
 /** Default ICMP error reporting. */
 #define NET_DEFAULT_ICMP_ERROR_REPORTING	true
@@ -393,80 +392,6 @@ static int icmp_parameter_problem_msg_local(int icmp_phone, icmp_code_t code,
 	    SERVICE_ICMP, 0, 0, 0);
 }
 
-/** Initializes the ICMP module.
- *
- * @param[in] client_connection The client connection processing function. The
- *			module skeleton propagates its own one.
- * @return		EOK on success.
- * @return		ENOMEM if there is not enough memory left.
- */
-int icmp_initialize(async_client_conn_t client_connection)
-{
-	measured_string_t names[] = {
-		{
-			(char *) "ICMP_ERROR_REPORTING",
-			20
-		},
-		{
-			(char *) "ICMP_ECHO_REPLYING",
-			18
-		}
-	};
-	measured_string_t *configuration;
-	size_t count = sizeof(names) / sizeof(measured_string_t);
-	char *data;
-	int rc;
-
-	fibril_rwlock_initialize(&icmp_globals.lock);
-	fibril_rwlock_write_lock(&icmp_globals.lock);
-	icmp_replies_initialize(&icmp_globals.replies);
-	icmp_echo_data_initialize(&icmp_globals.echo_data);
-	
-	icmp_globals.ip_phone = ip_bind_service(SERVICE_IP, IPPROTO_ICMP,
-	    SERVICE_ICMP, client_connection);
-	if (icmp_globals.ip_phone < 0) {
-		fibril_rwlock_write_unlock(&icmp_globals.lock);
-		return icmp_globals.ip_phone;
-	}
-	
-	rc = ip_packet_size_req(icmp_globals.ip_phone, -1,
-	    &icmp_globals.packet_dimension);
-	if (rc != EOK) {
-		fibril_rwlock_write_unlock(&icmp_globals.lock);
-		return rc;
-	}
-
-	icmp_globals.packet_dimension.prefix += ICMP_HEADER_SIZE;
-	icmp_globals.packet_dimension.content -= ICMP_HEADER_SIZE;
-
-	icmp_globals.error_reporting = NET_DEFAULT_ICMP_ERROR_REPORTING;
-	icmp_globals.echo_replying = NET_DEFAULT_ICMP_ECHO_REPLYING;
-
-	/* Get configuration */
-	configuration = &names[0];
-	rc = net_get_conf_req(icmp_globals.net_phone, &configuration, count,
-	    &data);
-	if (rc != EOK) {
-		fibril_rwlock_write_unlock(&icmp_globals.lock);
-		return rc;
-	}
-	
-	if (configuration) {
-		if (configuration[0].value) {
-			icmp_globals.error_reporting =
-			    (configuration[0].value[0] == 'y');
-		}
-		if (configuration[1].value) {
-			icmp_globals.echo_replying =
-			    (configuration[1].value[0] == 'y');
-		}
-		net_free_settings(configuration, data);
-	}
-
-	fibril_rwlock_write_unlock(&icmp_globals.lock);
-	return EOK;
-}
-
 /** Tries to set the pending reply result as the received message type.
  *
  * If the reply data is not present, the reply timed out and the other fibril
@@ -528,7 +453,7 @@ static int icmp_process_packet(packet_t *packet, services_t error)
 	icmp_type_t type;
 	icmp_code_t code;
 	int rc;
-
+	
 	switch (error) {
 	case SERVICE_NONE:
 		break;
@@ -669,6 +594,112 @@ static int icmp_received_msg_local(device_id_t device_id, packet_t *packet,
 	return EOK;
 }
 
+/** Process IPC messages from the IP module
+ *
+ * @param[in]     iid   Message identifier.
+ * @param[in,out] icall Message parameters.
+ *
+ */
+static void icmp_receiver(ipc_callid_t iid, ipc_call_t *icall)
+{
+	packet_t *packet;
+	int rc;
+	
+	while (true) {
+		switch (IPC_GET_IMETHOD(*icall)) {
+		case NET_TL_RECEIVED:
+			rc = packet_translate_remote(icmp_globals.net_phone, &packet,
+			    IPC_GET_PACKET(*icall));
+			if (rc == EOK)
+				rc = icmp_received_msg_local(IPC_GET_DEVICE(*icall), packet,
+				    SERVICE_ICMP, IPC_GET_ERROR(*icall));
+			
+			ipc_answer_0(iid, (sysarg_t) rc);
+			break;
+		default:
+			ipc_answer_0(iid, (sysarg_t) ENOTSUP);
+		}
+		
+		iid = async_get_call(icall);
+	}
+}
+
+/** Initialize the ICMP module.
+ *
+ * @param[in] net_phone Network module phone.
+ *
+ * @return EOK on success.
+ * @return ENOMEM if there is not enough memory left.
+ *
+ */
+int tl_initialize(int net_phone)
+{
+	measured_string_t names[] = {
+		{
+			(uint8_t *) "ICMP_ERROR_REPORTING",
+			20
+		},
+		{
+			(uint8_t *) "ICMP_ECHO_REPLYING",
+			18
+		}
+	};
+	measured_string_t *configuration;
+	size_t count = sizeof(names) / sizeof(measured_string_t);
+	uint8_t *data;
+	
+	fibril_rwlock_initialize(&icmp_globals.lock);
+	fibril_rwlock_write_lock(&icmp_globals.lock);
+	icmp_replies_initialize(&icmp_globals.replies);
+	icmp_echo_data_initialize(&icmp_globals.echo_data);
+	
+	icmp_globals.net_phone = net_phone;
+	
+	icmp_globals.ip_phone = ip_bind_service(SERVICE_IP, IPPROTO_ICMP,
+	    SERVICE_ICMP, icmp_receiver);
+	if (icmp_globals.ip_phone < 0) {
+		fibril_rwlock_write_unlock(&icmp_globals.lock);
+		return icmp_globals.ip_phone;
+	}
+	
+	int rc = ip_packet_size_req(icmp_globals.ip_phone, -1,
+	    &icmp_globals.packet_dimension);
+	if (rc != EOK) {
+		fibril_rwlock_write_unlock(&icmp_globals.lock);
+		return rc;
+	}
+	
+	icmp_globals.packet_dimension.prefix += ICMP_HEADER_SIZE;
+	icmp_globals.packet_dimension.content -= ICMP_HEADER_SIZE;
+	
+	icmp_globals.error_reporting = NET_DEFAULT_ICMP_ERROR_REPORTING;
+	icmp_globals.echo_replying = NET_DEFAULT_ICMP_ECHO_REPLYING;
+	
+	/* Get configuration */
+	configuration = &names[0];
+	rc = net_get_conf_req(icmp_globals.net_phone, &configuration, count,
+	    &data);
+	if (rc != EOK) {
+		fibril_rwlock_write_unlock(&icmp_globals.lock);
+		return rc;
+	}
+	
+	if (configuration) {
+		if (configuration[0].value) {
+			icmp_globals.error_reporting =
+			    (configuration[0].value[0] == 'y');
+		}
+		if (configuration[1].value) {
+			icmp_globals.echo_replying =
+			    (configuration[1].value[0] == 'y');
+		}
+		net_free_settings(configuration, data);
+	}
+	
+	fibril_rwlock_write_unlock(&icmp_globals.lock);
+	return EOK;
+}
+
 /** Processes the generic client messages.
  *
  * @param[in] call	The message parameters.
@@ -695,31 +726,31 @@ static int icmp_process_message(ipc_call_t *call)
 	switch (IPC_GET_IMETHOD(*call)) {
 	case NET_ICMP_DEST_UNREACH:
 		rc = packet_translate_remote(icmp_globals.net_phone, &packet,
-		    IPC_GET_PACKET(call));
+		    IPC_GET_PACKET(*call));
 		if (rc != EOK)
 			return rc;
 		return icmp_destination_unreachable_msg_local(0,
-		    ICMP_GET_CODE(call), ICMP_GET_MTU(call), packet);
+		    ICMP_GET_CODE(*call), ICMP_GET_MTU(*call), packet);
 	case NET_ICMP_SOURCE_QUENCH:
 		rc = packet_translate_remote(icmp_globals.net_phone, &packet,
-		    IPC_GET_PACKET(call));
+		    IPC_GET_PACKET(*call));
 		if (rc != EOK)
 			return rc;
 		return icmp_source_quench_msg_local(0, packet);
 	case NET_ICMP_TIME_EXCEEDED:
 		rc = packet_translate_remote(icmp_globals.net_phone, &packet,
-		    IPC_GET_PACKET(call));
+		    IPC_GET_PACKET(*call));
 		if (rc != EOK)
 			return rc;
-		return icmp_time_exceeded_msg_local(0, ICMP_GET_CODE(call),
+		return icmp_time_exceeded_msg_local(0, ICMP_GET_CODE(*call),
 		    packet);
 	case NET_ICMP_PARAMETERPROB:
 		rc = packet_translate_remote(icmp_globals.net_phone, &packet,
-		    IPC_GET_PACKET(call));
+		    IPC_GET_PACKET(*call));
 		if (rc != EOK)
 			return rc;
-		return icmp_parameter_problem_msg_local(0, ICMP_GET_CODE(call),
-		    ICMP_GET_POINTER(call), packet);
+		return icmp_parameter_problem_msg_local(0, ICMP_GET_CODE(*call),
+		    ICMP_GET_POINTER(*call), packet);
 	default:
 		return ENOTSUP;
 	}
@@ -786,7 +817,7 @@ static int icmp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 {
 	bool keep_on_going = true;
 	ipc_call_t answer;
-	int answer_count;
+	size_t answer_count;
 	size_t length;
 	struct sockaddr *addr;
 	ipc_callid_t data_callid;
@@ -892,90 +923,25 @@ static int icmp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
  * @see icmp_interface.h
  * @see IS_NET_ICMP_MESSAGE()
  */
-int icmp_message_standalone(ipc_callid_t callid, ipc_call_t *call,
-    ipc_call_t *answer, int *answer_count)
+int tl_module_message	(ipc_callid_t callid, ipc_call_t *call,
+    ipc_call_t *answer, size_t *answer_count)
 {
-	packet_t *packet;
-	int rc;
-
 	*answer_count = 0;
 	switch (IPC_GET_IMETHOD(*call)) {
-	case NET_TL_RECEIVED:
-		rc = packet_translate_remote(icmp_globals.net_phone, &packet,
-		    IPC_GET_PACKET(call));
-		if (rc != EOK)
-			return rc;
-		return icmp_received_msg_local(IPC_GET_DEVICE(call), packet,
-		    SERVICE_ICMP, IPC_GET_ERROR(call));
-	
 	case NET_ICMP_INIT:
-		return icmp_process_client_messages(callid, * call);
-	
+		return icmp_process_client_messages(callid, *call);
 	default:
 		return icmp_process_message(call);
 	}
-
+	
 	return ENOTSUP;
 }
 
-
-/** Default thread for new connections.
- *
- * @param[in] iid The initial message identifier.
- * @param[in] icall The initial message call structure.
- *
- */
-static void tl_client_connection(ipc_callid_t iid, ipc_call_t *icall)
-{
-	/*
-	 * Accept the connection
-	 *  - Answer the first IPC_M_CONNECT_ME_TO call.
-	 */
-	ipc_answer_0(iid, EOK);
-	
-	while (true) {
-		ipc_call_t answer;
-		int answer_count;
-		
-		/* Clear the answer structure */
-		refresh_answer(&answer, &answer_count);
-		
-		/* Fetch the next message */
-		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
-		
-		/* Process the message */
-		int res = tl_module_message_standalone(callid, &call, &answer,
-		    &answer_count);
-		
-		/*
-		 * End if told to either by the message or the processing
-		 * result.
-		 */
-		if ((IPC_GET_IMETHOD(call) == IPC_M_PHONE_HUNGUP) ||
-		    (res == EHANGUP))
-			return;
-		
-		/* Answer the message */
-		answer_call(callid, res, &answer, answer_count);
-	}
-}
-
-/** Starts the module.
- *
- * @return		EOK on success.
- * @return		Other error codes as defined for each specific module
- *			start function.
- */
 int main(int argc, char *argv[])
 {
-	int rc;
-	
 	/* Start the module */
-	rc = tl_module_start_standalone(tl_client_connection);
-	return rc;
+	return tl_module_start(SERVICE_ICMP);
 }
 
 /** @}
  */
-
