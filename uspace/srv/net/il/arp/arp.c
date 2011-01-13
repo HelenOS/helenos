@@ -39,6 +39,7 @@
 #include <malloc.h>
 #include <mem.h>
 #include <fibril_synch.h>
+#include <assert.h>
 #include <stdio.h>
 #include <str.h>
 #include <task.h>
@@ -707,6 +708,8 @@ static int arp_translate_message(device_id_t device_id, services_t protocol,
 {
 	bool retry = false;
 	int rc;
+
+	assert(fibril_mutex_is_locked(&arp_globals.lock));
 	
 restart:
 	if ((!target) || (!translation))
@@ -724,29 +727,62 @@ restart:
 	    target->length);
 	if (trans) {
 		if (trans->hw_addr) {
+			/* The translation is in place. */
 			*translation = trans->hw_addr;
 			return EOK;
 		}
 		
 		if (retry) {
-			/* Remove the translation from the map */
+			/*
+			 * We may get here as a result of being signalled for
+			 * some reason while waiting for the translation (e.g.
+			 * translation becoming available, record being removed
+			 * from the table) and then losing the race for
+			 * the arp_globals.lock with someone else who modified
+			 * the table.
+			 *
+			 * Remove the incomplete record so that it is possible
+			 * to make new ARP requests.
+			 */
 			arp_clear_trans(trans);
 			arp_addr_exclude(&proto->addresses, target->value,
 			    target->length);
 			return EAGAIN;
 		}
 		
+		/*
+		 * We are a random passer-by who merely joins an already waiting
+		 * fibril in waiting for the translation.
+		 */
 		rc = fibril_condvar_wait_timeout(&trans->cv, &arp_globals.lock,
 		    ARP_TRANS_WAIT);
 		if (rc == ETIMEOUT)
 			return ENOENT;
 		
+		/*
+		 * Need to recheck because we did not hold the lock while
+		 * sleeping on the condition variable.
+		 */
 		retry = true;
 		goto restart;
 	}
 	
 	if (retry)
 		return EAGAIN;
+
+	/*
+	 * We are under the protection of arp_globals.lock, so we can afford to
+	 * first send the ARP request and then insert an incomplete ARP record.
+	 * The incomplete record is used to tell any other potential waiter
+	 * that this fibril has already sent the request and that it is waiting
+	 * for the answer. Lastly, any fibril which sees the incomplete request
+	 * can perform a timed wait on its condition variable to wait for the
+	 * ARP reply to arrive.
+	 */
+
+	rc = arp_send_request(device_id, protocol, target, device, proto);
+	if (rc != EOK)
+		return rc;
 	
 	trans = (arp_trans_t *) malloc(sizeof(arp_trans_t));
 	if (!trans)
@@ -762,15 +798,26 @@ restart:
 		return rc;
 	}
 	
-	rc = arp_send_request(device_id, protocol, target, device, proto);
-	if (rc != EOK)
-		return rc;
-	
 	rc = fibril_condvar_wait_timeout(&trans->cv, &arp_globals.lock,
 	    ARP_TRANS_WAIT);
-	if (rc == ETIMEOUT)
+	if (rc == ETIMEOUT) {
+		/*
+		 * Remove the incomplete record so that it is possible to make 
+		 * new ARP requests.
+		 */
+		arp_clear_trans(trans);
+		arp_addr_exclude(&proto->addresses, target->value,
+		    target->length);
 		return ENOENT;
+	}
 	
+	/*
+	 * We need to recheck that the translation has indeed become available,
+	 * because we dropped the arp_globals.lock while sleeping on the
+	 * condition variable and someone else might have e.g. removed the
+	 * translation before we managed to lock arp_globals.lock again.
+	 */
+
 	retry = true;
 	goto restart;
 }
