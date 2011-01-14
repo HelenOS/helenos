@@ -695,8 +695,6 @@ NO_TRACE static void zone_reduce_region(size_t znum, pfn_t frame_idx,
  * not to be 2^order size. Once the allocator is running it is no longer
  * possible, merged configuration data occupies more space :-/
  *
- * The function uses
- *
  */
 bool zone_merge(size_t z1, size_t z2)
 {
