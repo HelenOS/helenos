@@ -64,7 +64,7 @@
  * @return		EEXIST if the key character string is already used.
  */
 static int
-char_map_add_item(char_map_t *map, const char *identifier, size_t length,
+char_map_add_item(char_map_t *map, const uint8_t *identifier, size_t length,
     const int value)
 {
 	if (map->next == (map->size - 1)) {
@@ -138,7 +138,7 @@ static int char_map_is_valid(const char_map_t *map)
  *			char_map_add_item() function.
  */
 int
-char_map_add(char_map_t *map, const char *identifier, size_t length,
+char_map_add(char_map_t *map, const uint8_t *identifier, size_t length,
     const int value)
 {
 	if (char_map_is_valid(map) && identifier && (length || *identifier)) {
@@ -199,7 +199,7 @@ void char_map_destroy(char_map_t *map)
  * @return		NULL if the key is not assigned a node.
  */
 static char_map_t *
-char_map_find_node(const char_map_t *map, const char *identifier,
+char_map_find_node(const char_map_t *map, const uint8_t *identifier,
     size_t length)
 {
 	if (!char_map_is_valid(map))
@@ -240,7 +240,7 @@ char_map_find_node(const char_map_t *map, const char *identifier,
  * @return		The integral value assigned to the key character string.
  * @return		CHAR_MAP_NULL if the key is not assigned a value.
  */
-int char_map_exclude(char_map_t *map, const char *identifier, size_t length)
+int char_map_exclude(char_map_t *map, const uint8_t *identifier, size_t length)
 {
 	char_map_t *node;
 
@@ -268,7 +268,7 @@ int char_map_exclude(char_map_t *map, const char *identifier, size_t length)
  *  @return		The integral value assigned to the key character string.
  *  @return		CHAR_MAP_NULL if the key is not assigned a value.
  */
-int char_map_find(const char_map_t *map, const char *identifier, size_t length)
+int char_map_find(const char_map_t *map, const uint8_t *identifier, size_t length)
 {
 	char_map_t *node;
 
@@ -328,7 +328,7 @@ int char_map_initialize(char_map_t *map)
  *			function.
  */
 int
-char_map_update(char_map_t *map, const char *identifier, const size_t length,
+char_map_update(char_map_t *map, const uint8_t *identifier, const size_t length,
     const int value)
 {
 	char_map_t *node;

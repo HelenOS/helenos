@@ -153,7 +153,7 @@ struct tcp_timeout {
 	suseconds_t timeout;
 
 	/** Port map key. */
-	char *key;
+	uint8_t *key;
 
 	/** Port map key length. */
 	size_t key_length;
@@ -357,12 +357,12 @@ int tcp_process_packet(device_id_t device_id, packet_t *packet, services_t error
 	
 	/* Find the destination socket */
 	socket = socket_port_find(&tcp_globals.sockets,
-	    ntohs(header->destination_port), (const char *) src, addrlen);
+	    ntohs(header->destination_port), (uint8_t *) src, addrlen);
 	if (!socket) {
 		/* Find the listening destination socket */
 		socket = socket_port_find(&tcp_globals.sockets,
-		    ntohs(header->destination_port), SOCKET_MAP_KEY_LISTENING,
-		    0);
+		    ntohs(header->destination_port),
+		    (uint8_t *) SOCKET_MAP_KEY_LISTENING, 0);
 	}
 
 	if (!socket) {
@@ -997,7 +997,7 @@ int tcp_process_listen(socket_core_t *listening_socket,
 
 	/* Find the destination socket */
 	listening_socket = socket_port_find(&tcp_globals.sockets,
-	    listening_port, SOCKET_MAP_KEY_LISTENING, 0);
+	    listening_port, (uint8_t *) SOCKET_MAP_KEY_LISTENING, 0);
 	if (!listening_socket ||
 	    (listening_socket->socket_id != listening_socket_id)) {
 		fibril_rwlock_write_unlock(&tcp_globals.lock);
@@ -1021,9 +1021,9 @@ int tcp_process_listen(socket_core_t *listening_socket,
 	assert(socket_data);
 
 	rc = socket_port_add(&tcp_globals.sockets, listening_port, socket,
-	    (const char *) socket_data->addr, socket_data->addrlen);
+	    (uint8_t *) socket_data->addr, socket_data->addrlen);
 	assert(socket == socket_port_find(&tcp_globals.sockets, listening_port,
-	    (const char *) socket_data->addr, socket_data->addrlen));
+	    (uint8_t *) socket_data->addr, socket_data->addrlen));
 
 //	rc = socket_bind_free_port(&tcp_globals.sockets, socket,
 //	    TCP_FREE_PORTS_START, TCP_FREE_PORTS_END,
@@ -1261,7 +1261,7 @@ void tcp_process_acknowledgement(socket_core_t *socket,
  */
 int
 tcp_message_standalone(ipc_callid_t callid, ipc_call_t *call,
-    ipc_call_t *answer, int *answer_count)
+    ipc_call_t *answer, size_t *answer_count)
 {
 	packet_t *packet;
 	int rc;
@@ -1275,13 +1275,13 @@ tcp_message_standalone(ipc_callid_t callid, ipc_call_t *call,
 	case NET_TL_RECEIVED:
 //		fibril_rwlock_read_lock(&tcp_globals.lock);
 		rc = packet_translate_remote(tcp_globals.net_phone, &packet,
-		    IPC_GET_PACKET(call));
+		    IPC_GET_PACKET(*call));
 		if (rc != EOK) {
 //			fibril_rwlock_read_unlock(&tcp_globals.lock);
 			return rc;
 		}
-		rc = tcp_received_msg(IPC_GET_DEVICE(call), packet, SERVICE_TCP,
-		    IPC_GET_ERROR(call));
+		rc = tcp_received_msg(IPC_GET_DEVICE(*call), packet, SERVICE_TCP,
+		    IPC_GET_ERROR(*call));
 //		fibril_rwlock_read_unlock(&tcp_globals.lock);
 		return rc;
 	case IPC_M_CONNECT_TO_ME:
@@ -1322,14 +1322,14 @@ int tcp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 	int res;
 	bool keep_on_going = true;
 	socket_cores_t local_sockets;
-	int app_phone = IPC_GET_PHONE(&call);
+	int app_phone = IPC_GET_PHONE(call);
 	struct sockaddr *addr;
 	int socket_id;
 	size_t addrlen;
 	size_t size;
 	fibril_rwlock_t lock;
 	ipc_call_t answer;
-	int answer_count;
+	size_t answer_count;
 	tcp_socket_data_t *socket_data;
 	socket_core_t *socket;
 	packet_dimension_t *packet_dimension;
@@ -2108,7 +2108,7 @@ int tcp_prepare_timeout(int (*timeout_function)(void *tcp_timeout_t),
 	operation_timeout->state = state;
 
 	/* Copy the key */
-	operation_timeout->key = ((char *) operation_timeout) +
+	operation_timeout->key = ((uint8_t *) operation_timeout) +
 	    sizeof(*operation_timeout);
 	operation_timeout->key_length = socket->key_length;
 	memcpy(operation_timeout->key, socket->key, socket->key_length);
@@ -2501,7 +2501,7 @@ static void tl_client_connection(ipc_callid_t iid, ipc_call_t * icall)
 
 	while (true) {
 		ipc_call_t answer;
-		int answer_count;
+		size_t answer_count;
 
 		/* Clear the answer structure */
 		refresh_answer(&answer, &answer_count);

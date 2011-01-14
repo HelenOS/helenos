@@ -177,6 +177,7 @@ void apic_init(void)
 	enable_irqs_function = io_apic_enable_irqs;
 	disable_irqs_function = io_apic_disable_irqs;
 	eoi_function = l_apic_eoi;
+	irqs_info = "apic";
 	
 	/*
 	 * Configure interrupt routing.

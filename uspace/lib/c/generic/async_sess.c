@@ -109,12 +109,13 @@
 /** An inactive open connection. */
 typedef struct {
 	link_t sess_link;	/**< Link for the session list of inactive connections. */
-	link_t global_link;	/**< Link for the global list of inactive connectinos. */
+	link_t global_link;	/**< Link for the global list of inactive connections. */
 	int data_phone;		/**< Connected data phone. */
 } conn_node_t;
 
 /**
- * Mutex protecting the inactive_conn_head list and the session list.
+ * Mutex protecting the inactive_conn_head list, the session list and the
+ * avail_phone condition variable.
  */
 static fibril_mutex_t async_sess_mutex;
 
@@ -127,6 +128,11 @@ static LIST_INITIALIZE(inactive_conn_head);
  * List of all open sessions.
  */
 static LIST_INITIALIZE(session_list_head);
+
+/**
+ * Condition variable used to wait for a phone to become available.
+ */
+static FIBRIL_CONDVAR_INITIALIZE(avail_phone_cv);
 
 /** Initialize the async_sess subsystem.
  *
@@ -149,10 +155,15 @@ void _async_sess_init(void)
  *
  * @param sess	Session structure provided by caller, will be filled in.
  * @param phone	Phone connected to the desired server task.
+ * @param arg1	Value to pass as first argument upon creating a new
+ *		connection. Typical use is to identify a resource within
+ *		the server that the caller wants to access (port ID,
+ *		interface ID, device ID, etc.).
  */
-void async_session_create(async_sess_t *sess, int phone)
+void async_session_create(async_sess_t *sess, int phone, sysarg_t arg1)
 {
 	sess->sess_phone = phone;
+	sess->connect_arg1 = arg1;
 	list_initialize(&sess->conn_head);
 	
 	/* Add to list of sessions. */
@@ -191,6 +202,8 @@ void async_session_destroy(async_sess_t *sess)
 		ipc_hangup(conn->data_phone);
 		free(conn);
 	}
+	
+	fibril_condvar_broadcast(&avail_phone_cv);
 }
 
 static void conn_node_initialize(conn_node_t *conn)
@@ -230,7 +243,8 @@ int async_exchange_begin(async_sess_t *sess)
 		 * Make a one-time attempt to connect a new data phone.
 		 */
 retry:
-		data_phone = async_connect_me_to(sess->sess_phone, 0, 0, 0);
+		data_phone = async_connect_me_to(sess->sess_phone,
+		    sess->connect_arg1, 0, 0);
 		if (data_phone >= 0) {
 			/* success, do nothing */
 		} else if (!list_empty(&inactive_conn_head)) {
@@ -249,12 +263,10 @@ retry:
 			goto retry;
 		} else {
 			/*
-			 * This is unfortunate. We failed both to find a cached
-			 * connection or to create a new one even after cleaning up
-			 * the cache. This is most likely due to too many
-			 * open sessions (connected session phones).
+			 * Wait for a phone to become available.
 			 */
-			data_phone = ELIMIT;
+			fibril_condvar_wait(&avail_phone_cv, &async_sess_mutex);
+			goto retry;
 		}
 	}
 
@@ -272,14 +284,15 @@ void async_exchange_end(async_sess_t *sess, int data_phone)
 	conn_node_t *conn;
 
 	fibril_mutex_lock(&async_sess_mutex);
+	fibril_condvar_signal(&avail_phone_cv);
 	conn = (conn_node_t *) malloc(sizeof(conn_node_t));
 	if (!conn) {
 		/*
 		 * Being unable to remember the connected data phone here
 		 * means that we simply hang up.
 		 */
-		fibril_mutex_unlock(&async_sess_mutex);
 		ipc_hangup(data_phone);
+		fibril_mutex_unlock(&async_sess_mutex);
 		return;
 	}
 

@@ -321,7 +321,7 @@ static int packet_reply(packet_t *packet)
  */
 int
 packet_server_message(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *answer,
-    int *answer_count)
+    size_t *answer_count)
 {
 	packet_t *packet;
 
@@ -332,7 +332,7 @@ packet_server_message(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *answer,
 	
 	case NET_PACKET_CREATE_1:
 		packet = packet_get_local(DEFAULT_ADDR_LEN, DEFAULT_PREFIX,
-		    IPC_GET_CONTENT(call), DEFAULT_SUFFIX);
+		    IPC_GET_CONTENT(*call), DEFAULT_SUFFIX);
 		if (!packet)
 			return ENOMEM;
 		*answer_count = 2;
@@ -342,11 +342,11 @@ packet_server_message(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *answer,
 	
 	case NET_PACKET_CREATE_4:
 		packet = packet_get_local(
-		    ((DEFAULT_ADDR_LEN < IPC_GET_ADDR_LEN(call)) ?
-		    IPC_GET_ADDR_LEN(call) : DEFAULT_ADDR_LEN),
-		    DEFAULT_PREFIX + IPC_GET_PREFIX(call),
-		    IPC_GET_CONTENT(call),
-		    DEFAULT_SUFFIX + IPC_GET_SUFFIX(call));
+		    ((DEFAULT_ADDR_LEN < IPC_GET_ADDR_LEN(*call)) ?
+		    IPC_GET_ADDR_LEN(*call) : DEFAULT_ADDR_LEN),
+		    DEFAULT_PREFIX + IPC_GET_PREFIX(*call),
+		    IPC_GET_CONTENT(*call),
+		    DEFAULT_SUFFIX + IPC_GET_SUFFIX(*call));
 		if (!packet)
 			return ENOMEM;
 		*answer_count = 2;
@@ -355,13 +355,13 @@ packet_server_message(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *answer,
 		return EOK;
 	
 	case NET_PACKET_GET:
-		packet = pm_find(IPC_GET_ID(call));
+		packet = pm_find(IPC_GET_ID(*call));
 		if (!packet_is_valid(packet))
 			return ENOENT;
 		return packet_reply(packet);
 	
 	case NET_PACKET_GET_SIZE:
-		packet = pm_find(IPC_GET_ID(call));
+		packet = pm_find(IPC_GET_ID(*call));
 		if (!packet_is_valid(packet))
 			return ENOENT;
 		IPC_SET_ARG1(*answer, (sysarg_t) packet->length);
@@ -369,7 +369,7 @@ packet_server_message(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *answer,
 		return EOK;
 	
 	case NET_PACKET_RELEASE:
-		return packet_release_wrapper(IPC_GET_ID(call));
+		return packet_release_wrapper(IPC_GET_ID(*call));
 	}
 	
 	return ENOTSUP;

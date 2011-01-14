@@ -41,16 +41,16 @@
 #include <sys/types.h>
 
 /** Ethernet address length. */
-#define ETH_ADDR	6
+#define ETH_ADDR  6
 
 /** Ethernet header preamble value. */
-#define ETH_PREAMBLE	0x55
+#define ETH_PREAMBLE  0x55
 
 /** Ethernet header start of frame value. */
-#define ETH_SFD		0xD5
+#define ETH_SFD  0xD5
 
 /** IEEE 802.2 unordered information control field. */
-#define IEEE_8023_2_UI	0x03
+#define IEEE_8023_2_UI  0x03
 
 /** Type definition of the Ethernet header IEEE 802.3 + 802.2 + SNAP extensions.
  * @see eth_header_snap
