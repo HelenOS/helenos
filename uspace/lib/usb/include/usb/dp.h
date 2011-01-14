@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,35 +26,38 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup usb
+/** @addtogroup libusb
  * @{
  */
 /** @file
- * @brief Common header for usbinfo application.
+ * @brief USB descriptor parser.
  */
-#ifndef USBINFO_USBINFO_H_
-#define USBINFO_USBINFO_H_
+#ifndef LIBUSB_DP_H_
+#define LIBUSB_DP_H_
 
+#include <sys/types.h>
 #include <usb/usb.h>
 #include <usb/descriptor.h>
-#include <usb/debug.h>
-#include <ipc/devman.h>
 
+typedef struct {
+	int child;
+	int parent;
+} usb_dp_descriptor_nesting_t;
 
-#define NAME "usbinfo"
+typedef struct {
+	usb_dp_descriptor_nesting_t *nesting;
+} usb_dp_parser_t;
 
-void dump_buffer(const char *, const uint8_t *, size_t);
-void dump_match_ids(match_id_list_t *matches);
-void dump_standard_device_descriptor(usb_standard_device_descriptor_t *);
-void dump_standard_configuration_descriptor(int, 
-    usb_standard_configuration_descriptor_t *);
-int dump_device(int, usb_address_t);
-void dump_descriptor_tree(uint8_t *, size_t);
+typedef struct {
+	uint8_t *data;
+	size_t size;
+	void *arg;
+} usb_dp_parser_data_t;
 
-static inline void internal_error(int err)
-{
-	fprintf(stderr, NAME ": internal error (%s).\n", str_error(err));
-}
+uint8_t *usb_dp_get_nested_descriptor(usb_dp_parser_t *,
+    usb_dp_parser_data_t *, uint8_t *);
+uint8_t *usb_dp_get_sibling_descriptor(usb_dp_parser_t *,
+    usb_dp_parser_data_t *, uint8_t *, uint8_t *);
 
 #endif
 /**
