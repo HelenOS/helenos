@@ -209,7 +209,21 @@ void dump_descriptor_string(size_t indent, uint8_t *descr, size_t size)
 
 void dump_descriptor_endpoint(size_t indent, uint8_t *descr, size_t size)
 {
-	dump_descriptor_generic(indent, descr, size);
+	usb_standard_endpoint_descriptor_t *d
+	   = (usb_standard_endpoint_descriptor_t *) descr;
+	
+	int endpoint = d->endpoint_address & 15;
+	usb_direction_t direction = d->endpoint_address & 128
+	    ? USB_DIRECTION_IN : USB_DIRECTION_OUT;
+	
+	PRINTLINE(indent, "bLength = %d\n", d->length);
+	PRINTLINE(indent, "bDescriptorType = 0x%02X\n", d->descriptor_type);
+	PRINTLINE(indent, "bEndpointAddress = 0x%02X [%d, %s]\n",
+	    d->endpoint_address, endpoint,
+	    direction == USB_DIRECTION_IN ? "in" : "out");
+	PRINTLINE(indent, "bmAttributes = %d\n", d->attributes);
+	PRINTLINE(indent, "wMaxPacketSize = %d\n", d->max_packet_size);
+	PRINTLINE(indent, "bInterval = %dms\n", d->poll_interval);
 }
 
 void dump_descriptor_hid(size_t indent, uint8_t *descr, size_t size)
