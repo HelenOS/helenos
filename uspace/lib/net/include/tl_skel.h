@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Lukas Mejdrech
+ * Copyright (c) 2010 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,30 +26,57 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup arp
- *  @{
+/** @addtogroup libnet
+ * @{
  */
+
+#ifndef LIBNET_TL_SKEL_H_
+#define LIBNET_TL_SKEL_H_
 
 /** @file
- * ARP operation codes according to the on-line IANA - Address Resolution
- * Protocol (ARP) Parameters
- * http://www.iana.org/assignments/arp-parameters/arp-parameters.xml
- * cited January 14 2009.
+ * Transport layer module skeleton.
+ * The skeleton has to be part of each transport layer module.
  */
 
-#ifndef NET_ARP_ARPOP_H_
-#define NET_ARP_ARPOP_H_
+#include <async.h>
+#include <fibril_synch.h>
+#include <ipc/ipc.h>
+#include <ipc/services.h>
 
-/** @name ARP operation codes definitions */
-/*@{*/
+#include <adt/measured_strings.h>
+#include <net/device.h>
+#include <net/packet.h>
 
-/** REQUEST operation code. */
-#define ARPOP_REQUEST	1
+/** Module initialization.
+ *
+ * This has to be implemented in user code.
+ *
+ * @param[in] net_phone Networking module phone.
+ *
+ * @return EOK on success.
+ * @return Other error codes as defined for each specific module
+ *         initialize function.
+ *
+ */
+extern int tl_initialize(int net_phone);
 
-/** REPLY operation code. */
-#define ARPOP_REPLY	2
+/** Process the transport layer module message.
+ *
+ * This has to be implemented in user code.
+ *
+ * @param[in]  callid Message identifier.
+ * @param[in]  call   Message parameters.
+ * @param[out] answer Answer.
+ * @param[out] count  Number of arguments of the answer.
+ *
+ * @return EOK on success.
+ * @return Other error codes as defined for each specific module.
+ *
+ */
+extern int tl_module_message(ipc_callid_t, ipc_call_t *,
+    ipc_call_t *, size_t *);
 
-/*@}*/
+extern int tl_module_start(int);
 
 #endif
 

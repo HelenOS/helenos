@@ -41,7 +41,6 @@ CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
 BINARY = eth
 
 SOURCES = \
-	eth.c \
-	eth_module.c
+	eth.c
 
 include $(USPACE_PREFIX)/Makefile.common

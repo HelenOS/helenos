@@ -42,14 +42,9 @@
 			 */
 
 			/**
-			 * @defgroup dp8390 Generic DP8390 network interface family service
+			 * @defgroup ne2000 NE2000 network interface service
 			 * @ingroup netif
 			 */
-
-				/**
-				 * @defgroup ne2k NE2000 network interface family
-				 * @ingroup dp8390
-				 */
 
 		/**
 		 * @defgroup net_nil Network interface layer

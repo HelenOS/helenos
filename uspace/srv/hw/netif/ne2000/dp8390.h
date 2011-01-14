@@ -49,7 +49,9 @@
 #define __NET_NETIF_DP8390_H__
 
 #include <fibril_synch.h>
+#include <adt/list.h>
 #include <net/packet.h>
+#include <netif_skel.h>
 
 /** Module name */
 #define NAME  "ne2000"
@@ -229,11 +231,16 @@ typedef struct {
 	uint64_t overruns;   /**< FIFO overruns */
 } ne2k_t;
 
+typedef struct {
+	link_t link;
+	packet_t *packet;
+} frame_t;
+
 extern int ne2k_probe(ne2k_t *, void *, int);
 extern int ne2k_up(ne2k_t *);
 extern void ne2k_down(ne2k_t *);
 extern void ne2k_send(ne2k_t *, packet_t *);
-extern void ne2k_interrupt(ne2k_t *, uint8_t isr, int, device_id_t);
+extern link_t *ne2k_interrupt(ne2k_t *, uint8_t, uint8_t);
 
 #endif
 

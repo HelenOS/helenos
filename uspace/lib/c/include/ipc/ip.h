@@ -46,10 +46,15 @@
 
 /** IP module messages. */
 typedef enum {
+	/** New device message.
+	 * @see ip_device_req()
+	 */
+	NET_IP_DEVICE = NET_IP_FIRST,
+	
 	/** Adds the routing entry.
 	 * @see ip_add_route()
 	 */
-	NET_IP_ADD_ROUTE = NET_IP_FIRST,
+	NET_IP_ADD_ROUTE,
 	
 	/** Gets the actual route information.
 	 * @see ip_get_route()
@@ -64,7 +69,17 @@ typedef enum {
 	/** Sets the default gateway.
 	 * @see ip_set_default_gateway()
 	 */
-	NET_IP_SET_GATEWAY
+	NET_IP_SET_GATEWAY,
+	
+	/** Packet size message.
+	 * @see ip_packet_size_req()
+	 */
+	NET_IP_PACKET_SPACE,
+	
+	/** Packet send message.
+	 * @see ip_send_msg()
+	 */
+	NET_IP_SEND
 } ip_messages;
 
 /** @name IP specific message parameters definitions */
