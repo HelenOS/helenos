@@ -158,6 +158,7 @@ NO_TRACE static inline bool zone_flags_available(zone_flags_t flags)
 extern void frame_init(void);
 extern void *frame_alloc_generic(uint8_t, frame_flags_t, size_t *);
 extern void *frame_alloc(uint8_t, frame_flags_t);
+extern void frame_free_generic(uintptr_t, frame_flags_t);
 extern void frame_free(uintptr_t);
 extern void frame_reference_add(pfn_t);
 

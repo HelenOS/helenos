@@ -1097,9 +1097,10 @@ void *frame_alloc(uint8_t order, frame_flags_t flags)
  * structure to free list.
  *
  * @param frame Physical Address of of the frame to be freed.
+ * @param flags Flags to control memory reservation.
  *
  */
-void frame_free(uintptr_t frame)
+void frame_free_generic(uintptr_t frame, frame_flags_t flags)
 {
 	irq_spinlock_lock(&zones.lock, true);
 	
@@ -1127,6 +1128,11 @@ void frame_free(uintptr_t frame)
 		condvar_broadcast(&mem_avail_cv);
 	}
 	mutex_unlock(&mem_avail_mtx);
+}
+
+void frame_free(uintptr_t frame)
+{
+	frame_free_generic(frame, 0);
 }
 
 /** Add reference to frame.
