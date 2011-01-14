@@ -42,12 +42,13 @@
 
 #include <usb/usb.h>
 #include <usb/descriptor.h>
+#include <usb/classes/classes.h>
 
 #include "usbinfo.h"
 #include <usb/dp.h>
 
 #define INDENT "  "
-#define PRINTLINE(indent, fmt, ...) printf("%s" fmt, get_indent(indent), __VA_ARGS__)
+#define PRINTLINE(indent, fmt, ...) printf("%s - " fmt, get_indent(indent), __VA_ARGS__)
 #define BYTES_PER_LINE 12
 
 #define BCD_INT(a) (((unsigned int)(a)) / 256)
@@ -199,7 +200,22 @@ void dump_descriptor_configuration(size_t indent, uint8_t *descr, size_t size)
 
 void dump_descriptor_interface(size_t indent, uint8_t *descr, size_t size)
 {
-	dump_descriptor_generic(indent, descr, size);
+	usb_standard_interface_descriptor_t *d
+	    = (usb_standard_interface_descriptor_t *) descr;
+	if (size != sizeof(*d)) {
+		return;
+	}
+	
+	PRINTLINE(indent, "bLength = %d\n", d->length);
+	PRINTLINE(indent, "bDescriptorType = 0x%02x\n", d->descriptor_type);
+	PRINTLINE(indent, "bInterfaceNumber = %d\n", d->interface_number);
+	PRINTLINE(indent, "bAlternateSetting = %d\n", d->alternate_setting);
+	PRINTLINE(indent, "bNumEndpoints = %d\n", d->endpoint_count);
+	PRINTLINE(indent, "bInterfaceClass = %s\n", d->interface_class == 0
+	    ? "reserved (0)" : usb_str_class(d->interface_class));
+	PRINTLINE(indent, "bInterfaceSubClass = %d\n", d->interface_subclass);
+	PRINTLINE(indent, "bInterfaceProtocol = %d\n", d->interface_protocol);
+	PRINTLINE(indent, "iInterface = %d\n", d->str_interface);
 }
 
 void dump_descriptor_string(size_t indent, uint8_t *descr, size_t size)
@@ -211,6 +227,9 @@ void dump_descriptor_endpoint(size_t indent, uint8_t *descr, size_t size)
 {
 	usb_standard_endpoint_descriptor_t *d
 	   = (usb_standard_endpoint_descriptor_t *) descr;
+	if (size != sizeof(*d)) {
+		return;
+	}
 	
 	int endpoint = d->endpoint_address & 15;
 	usb_direction_t direction = d->endpoint_address & 128
