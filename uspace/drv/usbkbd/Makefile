@@ -33,6 +33,7 @@ BINARY = usbkbd
 
 SOURCES = \
 	main.c \
-	descparser.c
+	descparser.c \
+	descdump.c
 
 include $(USPACE_PREFIX)/Makefile.common

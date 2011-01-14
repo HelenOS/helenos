@@ -31,6 +31,7 @@
 #include <usb/classes/hid.h>
 #include <usb/descriptor.h>
 #include "descparser.h"
+#include "descdump.h"
 
 static void usbkbd_config_free(usb_hid_configuration_t *config)
 {
@@ -93,6 +94,9 @@ int usbkbd_parse_descriptors(const uint8_t *data, size_t size,
 	memcpy(&config->config_descriptor, pos, 
 	    sizeof(usb_standard_configuration_descriptor_t));
 	pos += sizeof(usb_standard_configuration_descriptor_t);
+
+	printf("Parsed configuration descriptor: \n");
+	dump_standard_configuration_descriptor(0, &config->config_descriptor);
 	
 	int ret = EOK;
 
@@ -101,7 +105,7 @@ int usbkbd_parse_descriptors(const uint8_t *data, size_t size,
 		fprintf(stderr, "Expected interface descriptor, but got %u.\n", 
 		    *(pos + 1));
 		return EINVAL;
-	}	
+	}
 	
 	// prepare place for interface descriptors
 	config->interfaces = (usb_hid_iface_t *)calloc(
@@ -111,7 +115,7 @@ int usbkbd_parse_descriptors(const uint8_t *data, size_t size,
 	// as long as these are < 0, there is no space allocated for
 	// the respective structures
 	int ep_i = -1;
-	int hid_i = -1;
+	//int hid_i = -1;
 	
 	usb_hid_iface_t *actual_iface = NULL;
 	//usb_standard_endpoint_descriptor_t *actual_ep = NULL;
@@ -133,6 +137,9 @@ int usbkbd_parse_descriptors(const uint8_t *data, size_t size,
 			
 			memcpy(&actual_iface->iface_desc, pos, desc_size);
 			pos += desc_size;
+
+			printf("Parsed interface descriptor: \n");
+			dump_standard_interface_descriptor(&actual_iface->iface_desc);
 			
 			// allocate space for endpoint descriptors
 			uint8_t eps = actual_iface->iface_desc.endpoint_count;
@@ -169,6 +176,9 @@ int usbkbd_parse_descriptors(const uint8_t *data, size_t size,
 			// save the endpoint descriptor
 			memcpy(&actual_iface->endpoints[ep_i], pos, desc_size);
 			pos += desc_size;
+
+			printf("Parsed endpoint descriptor: \n");
+			dump_standard_endpoint_descriptor(&actual_iface->endpoints[ep_i]);
 			++ep_i;
 			
 			break;
@@ -193,6 +203,9 @@ int usbkbd_parse_descriptors(const uint8_t *data, size_t size,
 				ret = EINVAL;
 				goto end;
 			}
+
+			printf("Parsed HID descriptor header: \n");
+			dump_standard_hid_descriptor_header(&actual_iface->hid_desc);
 			
 			// allocate space for all class-specific descriptor info
 			actual_iface->class_desc_info = 
@@ -205,35 +218,36 @@ int usbkbd_parse_descriptors(const uint8_t *data, size_t size,
 			}
 			
 			// allocate space for all class-specific descriptors
-			actual_iface->class_descs = (uint8_t **)calloc(
+			/*actual_iface->class_descs = (uint8_t **)calloc(
 			    actual_iface->hid_desc.class_desc_count,
 			    sizeof(uint8_t *));
 			if (actual_iface->class_descs == NULL) {
 				ret = ENOMEM;
 				goto end;
-			}
+			}*/
 
 			// copy all class-specific descriptor info
 			// TODO: endianness
+			/*
 			memcpy(actual_iface->class_desc_info, pos, 
 			    actual_iface->hid_desc.class_desc_count
 			    * sizeof(usb_standard_hid_class_descriptor_info_t));
 			pos += actual_iface->hid_desc.class_desc_count
 			    * sizeof(usb_standard_hid_class_descriptor_info_t);
+
+			printf("Parsed HID descriptor info:\n");
+			dump_standard_hid_class_descriptor_info(
+			    actual_iface->class_desc_info);
+			*/
 			
-			size_t tmp = (size_t)(pos - data);
+			/*size_t tmp = (size_t)(pos - data);
 			printf("Parser position: %d, remaining: %d\n",
-			       pos - data, size - tmp);
-			
-			/*
-			 * TODO: this is not good, only 7 bytes remaining,
-			 *       something is wrong!
-			 */
-			
-			hid_i = 0;
+			       pos - data, size - tmp);*/
+
+			//hid_i = 0;
 			
 			break;
-		case USB_DESCTYPE_HID_REPORT:
+/*		case USB_DESCTYPE_HID_REPORT:
 		case USB_DESCTYPE_HID_PHYSICAL: {
 			// check if the type matches
 			uint8_t exp_type = 
@@ -261,9 +275,14 @@ int usbkbd_parse_descriptors(const uint8_t *data, size_t size,
 			
 			memcpy(actual_iface->class_descs[hid_i], pos, length);
 			pos += length;
+
+			printf("Parsed class-specific descriptor:\n");
+			dump_hid_class_descriptor(hid_i, desc_type, 
+			                          actual_iface->class_descs[hid_i], length);
+			                          
 			++hid_i;
 			
-			break; }
+			break; }*/
 		default:
 			fprintf(stderr, "Got descriptor of unknown type: %u.\n",
 				desc_type);
@@ -279,118 +298,6 @@ end:
 	}
 	
 	return ret;
-}
-
-/*----------------------------------------------------------------------------*/
-
-#define BYTES_PER_LINE 12
-
-static void dump_buffer(const char *msg, const uint8_t *buffer, size_t length)
-{
-	printf("%s\n", msg);
-
-	size_t i;
-	for (i = 0; i < length; i++) {
-		printf("  0x%02X", buffer[i]);
-		if (((i > 0) && (((i+1) % BYTES_PER_LINE) == 0))
-		    || (i + 1 == length)) {
-			printf("\n");
-		}
-	}
-}
-
-/*----------------------------------------------------------------------------*/
-
-#define INDENT "  "
-
-static void dump_standard_configuration_descriptor(
-    int index, const usb_standard_configuration_descriptor_t *d)
-{
-	bool self_powered = d->attributes & 64;
-	bool remote_wakeup = d->attributes & 32;
-	
-	printf("Standard configuration descriptor #%d\n", index);
-	printf(INDENT "bLength = %d\n", d->length);
-	printf(INDENT "bDescriptorType = 0x%02x\n", d->descriptor_type);
-	printf(INDENT "wTotalLength = %d\n", d->total_length);
-	printf(INDENT "bNumInterfaces = %d\n", d->interface_count);
-	printf(INDENT "bConfigurationValue = %d\n", d->configuration_number);
-	printf(INDENT "iConfiguration = %d\n", d->str_configuration);
-	printf(INDENT "bmAttributes = %d [%s%s%s]\n", d->attributes,
-	    self_powered ? "self-powered" : "",
-	    (self_powered & remote_wakeup) ? ", " : "",
-	    remote_wakeup ? "remote-wakeup" : "");
-	printf(INDENT "MaxPower = %d (%dmA)\n", d->max_power,
-	    2 * d->max_power);
-	// printf(INDENT " = %d\n", d->);
-}
-
-static void dump_standard_interface_descriptor(
-    const usb_standard_interface_descriptor_t *d)
-{
-	printf("Standard interface descriptor\n");
-	printf(INDENT "bLength = %d\n", d->length);
-	printf(INDENT "bDescriptorType = 0x%02x\n", d->descriptor_type);
-	printf(INDENT "bInterfaceNumber = %d\n", d->interface_number);
-	printf(INDENT "bAlternateSetting = %d\n", d->alternate_setting);
-	printf(INDENT "bNumEndpoints = %d\n", d->endpoint_count);
-	printf(INDENT "bInterfaceClass = %d\n", d->interface_class);
-	printf(INDENT "bInterfaceSubClass = %d\n", d->interface_subclass);
-	printf(INDENT "bInterfaceProtocol = %d\n", d->interface_protocol);
-	printf(INDENT "iInterface = %d", d->str_interface);
-}
-
-static void dump_standard_endpoint_descriptor(
-    const usb_standard_endpoint_descriptor_t *d)
-{
-	const char *transfer_type;
-	switch (d->attributes & 3) {
-	case USB_TRANSFER_CONTROL:
-		transfer_type = "control";
-		break;
-	case USB_TRANSFER_ISOCHRONOUS:
-		transfer_type = "isochronous";
-		break;
-	case USB_TRANSFER_BULK:
-		transfer_type = "bulk";
-		break;
-	case USB_TRANSFER_INTERRUPT:
-		transfer_type = "interrupt";
-		break;
-	}
-
-	printf("Standard endpoint descriptor\n");
-	printf(INDENT "bLength = %d\n", d->length);
-	printf(INDENT "bDescriptorType = 0x%02x\n", d->descriptor_type);
-	printf(INDENT "bmAttributes = %d [%s]\n", d->attributes, transfer_type);
-	printf(INDENT "wMaxPacketSize = %d\n", d->max_packet_size);
-	printf(INDENT "bInterval = %d\n", d->poll_interval);
-}
-
-static void dump_standard_hid_descriptor_header(
-    const usb_standard_hid_descriptor_t *d)
-{
-	printf("Standard HID descriptor\n");
-	printf(INDENT "bLength = %d\n", d->length);
-	printf(INDENT "bDescriptorType = 0x%02x\n", d->descriptor_type);
-	printf(INDENT "bcdHID = %d\n", d->spec_release);
-	printf(INDENT "bCountryCode = %d\n", d->country_code);
-	printf(INDENT "bNumDescriptors = %d\n", d->class_desc_count);
-}
-
-static void dump_standard_hid_class_descriptor_info(
-    const usb_standard_hid_class_descriptor_info_t *d)
-{
-	printf(INDENT "bDescriptorType = %d\n", d->type);
-	printf(INDENT "wDescriptorLength = %d\n", d->length);
-}
-
-static void dump_hid_class_descriptor(int index, uint8_t type, 
-                                      const uint8_t *d, size_t size )
-{
-	printf("Class-specific descriptor #%d (type: %u)\n", index, type);
-	assert(d != NULL);
-	dump_buffer("", d, size);
 }
 
 void usbkbd_print_config(const usb_hid_configuration_t *config)

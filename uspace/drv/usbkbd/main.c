@@ -106,6 +106,25 @@ static void usbkbd_process_keycodes(const uint16_t *key_codes, size_t count,
 /*
  * Kbd functions
  */
+static int usbkbd_get_report_descriptor(usb_hid_dev_kbd_t *kbd_dev)
+{
+	// iterate over all configurations and interfaces
+	// TODO: more configurations!!
+	unsigned i;
+	for (i = 0; i < kbd_dev->conf->config_descriptor.interface_count; ++i) {
+		uint8_t type = 
+		    kbd_dev->conf->interfaces[i].hid_desc.report_desc_info.type;
+		// TODO: endianness
+		uint16_t length = 
+		    kbd_dev->conf->interfaces[i].hid_desc.report_desc_info.length;
+
+		// allocate space for the report descriptor
+		kbd_dev->conf->interfaces[i].report_desc = (uint8_t *)malloc(length);
+		// get the descriptor from the device
+		
+	}
+}
+
 static int usbkbd_process_descriptors(usb_hid_dev_kbd_t *kbd_dev)
 {
 	// get the first configuration descriptor (TODO: parse also other!)
@@ -146,8 +165,11 @@ static int usbkbd_process_descriptors(usb_hid_dev_kbd_t *kbd_dev)
 	
 	rc = usbkbd_parse_descriptors(descriptors, transferred, kbd_dev->conf);
 	free(descriptors);
+
+	// get and report descriptors
+	rc = usbkbd_get_report_descriptor(kbd_dev);
 	
-	//usbkbd_print_config(kbd_dev->conf);
+	usbkbd_print_config(kbd_dev->conf);
 	
 	return rc;
 }
@@ -222,6 +244,8 @@ static void usbkbd_process_interrupt_in(usb_hid_dev_kbd_t *kbd_dev,
 
 static void usbkbd_poll_keyboard(usb_hid_dev_kbd_t *kbd_dev)
 {
+	return;
+	
 	int rc;
 	usb_handle_t handle;
 	uint8_t buffer[BUFFER_SIZE];

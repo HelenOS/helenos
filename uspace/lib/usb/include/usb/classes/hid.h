@@ -92,10 +92,12 @@ typedef struct {
 	uint8_t country_code;
 	/** Total number of class-specific (i.e. Report and Physical) 
 	 * descriptors. 
+	 *
+	 * @note There is always only one Report descriptor.
 	 */
 	uint8_t class_desc_count;
-//	/** First mandatory class descriptor info. */
-//	usb_standard_hid_descriptor_class_item_t class_descriptor;
+	/** First mandatory class descriptor (Report) info. */
+	usb_standard_hid_descriptor_class_item_t report_desc_info;
 } __attribute__ ((packed)) usb_standard_hid_descriptor_t;
 
 /**
@@ -105,8 +107,9 @@ typedef struct {
 	usb_standard_interface_descriptor_t iface_desc;
 	usb_standard_endpoint_descriptor_t *endpoints;
 	usb_standard_hid_descriptor_t hid_desc;
-	usb_standard_hid_class_descriptor_info_t *class_desc_info;
-	uint8_t **class_descs;
+	uint8_t *report_desc;
+	//usb_standard_hid_class_descriptor_info_t *class_desc_info;
+	//uint8_t **class_descs;
 } usb_hid_iface_t;
 
 /**
@@ -129,6 +132,8 @@ typedef struct {
 	usb_endpoint_t poll_endpoint;
 	usb_hid_report_parser_t *parser;
 } usb_hid_dev_kbd_t;
+
+// TODO: more configurations!
 
 #endif
 /**
