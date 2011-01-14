@@ -46,6 +46,7 @@ typedef struct uhci_port
 	device_t *hc;
 	unsigned number;
 	unsigned wait_period_usec;
+	int hc_phone;
 	devman_handle_t attached_device;
 } uhci_port_t;
 
@@ -57,6 +58,7 @@ static inline void uhci_port_init(
 	port->address = address;
 	port->hc = hc;
 	port->number = number;
+	port->hc_phone = -1;
 	port->wait_period_usec = usec;
 	port->attached_device = 0;
 }

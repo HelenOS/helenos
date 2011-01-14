@@ -6,7 +6,6 @@
 #include "name.h"
 #include "uhci.h"
 
-
 int uhci_init(device_t *device, void *regs)
 {
 	assert( device );
@@ -57,7 +56,9 @@ int uhci_in(
 	    usb_str_transfer_type(transfer_type),
 	    size);
 
-	return ENOTSUP;
+	callback( dev, 0, USB_OUTCOME_OK, arg );
+
+	return EOK;
 }
 /*----------------------------------------------------------------------------*/
 int uhci_out(
@@ -73,7 +74,8 @@ int uhci_out(
 	    usb_str_transfer_type(transfer_type),
 	    size);
 
-	return ENOTSUP;
+	callback( dev, USB_OUTCOME_OK, arg );
+	return EOK;
 }
 /*----------------------------------------------------------------------------*/
 int uhci_setup(
@@ -88,8 +90,8 @@ int uhci_setup(
 	    target.address, target.endpoint,
 	    usb_str_transfer_type(transfer_type),
 	    size);
-	callback( dev, USB_OUTCOME_OK, arg );
 
-	return ENOTSUP;
+	callback( dev, USB_OUTCOME_OK, arg );
+	return EOK;
 }
 /*----------------------------------------------------------------------------*/

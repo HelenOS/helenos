@@ -7,7 +7,7 @@
 #include "debug.h"
 #include "root_hub.h"
 
-#define ROOT_HUB_WAIT_USEC 10000000 /* 10 second */
+#define ROOT_HUB_WAIT_USEC 10000000 /* 10 seconds */
 
 int uhci_root_hub_init( uhci_root_hub_t *hub, device_t *hc, void *addr )
 {
