@@ -66,6 +66,8 @@ typedef uint8_t frame_flags_t;
 #define FRAME_ATOMIC      0x2
 /** Do not start reclaiming when no free memory. */
 #define FRAME_NO_RECLAIM  0x4
+/** Do not reserve / unreserve memory. */
+#define FRAME_NO_RESERVE  0x8
 
 typedef uint8_t zone_flags_t;
 
