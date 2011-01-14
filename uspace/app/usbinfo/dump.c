@@ -55,9 +55,39 @@
 #define BCD_FMT "%x.%x"
 #define BCD_ARGS(a) BCD_INT((a)), BCD_FRAC((a))
 
+static void dump_descriptor_by_type(size_t, uint8_t *, size_t);
+
+typedef struct {
+	int descriptor;
+	void (*dump)(size_t indent, uint8_t *descriptor, size_t length);
+} descriptor_dump_t;
+
+static void dump_descriptor_device(size_t, uint8_t *, size_t);
+static void dump_descriptor_configuration(size_t, uint8_t *, size_t);
+static void dump_descriptor_interface(size_t, uint8_t *, size_t);
+static void dump_descriptor_string(size_t, uint8_t *, size_t);
+static void dump_descriptor_endpoint(size_t, uint8_t *, size_t);
+static void dump_descriptor_hid(size_t, uint8_t *, size_t);
+static void dump_descriptor_hub(size_t, uint8_t *, size_t);
+static void dump_descriptor_generic(size_t, uint8_t *, size_t);
+
+static descriptor_dump_t descriptor_dumpers[] = {
+	{ USB_DESCTYPE_DEVICE, dump_descriptor_device },
+	{ USB_DESCTYPE_CONFIGURATION, dump_descriptor_configuration },
+	{ USB_DESCTYPE_STRING, dump_descriptor_string },
+	{ USB_DESCTYPE_INTERFACE, dump_descriptor_interface },
+	{ USB_DESCTYPE_ENDPOINT, dump_descriptor_endpoint },
+	{ USB_DESCTYPE_HID, dump_descriptor_hid },
+	{ USB_DESCTYPE_HUB, dump_descriptor_hub },
+	{ -1, dump_descriptor_generic },
+	{ -1, NULL }
+};
+
 void dump_buffer(const char *msg, const uint8_t *buffer, size_t length)
 {
-	printf("%s\n", msg);
+	if (msg != NULL) {
+		printf("%s\n", msg);
+	}
 
 	size_t i;
 	for (i = 0; i < length; i++) {
@@ -69,23 +99,36 @@ void dump_buffer(const char *msg, const uint8_t *buffer, size_t length)
 	}
 }
 
-void dump_match_ids(match_id_list_t *matches)
+void dump_descriptor_by_type(size_t indent, uint8_t *d, size_t length)
 {
-	printf("Match ids:\n");
-	link_t *link;
-	for (link = matches->ids.next;
-	    link != &matches->ids;
-	    link = link->next) {
-		match_id_t *match = list_get_instance(link, match_id_t, link);
-
-		printf(INDENT "%d %s\n", match->score, match->id);
+	if (length < 2) {
+		return;
 	}
+	int type = d[1];
+	
+	descriptor_dump_t *dumper = descriptor_dumpers;
+	while (dumper->dump != NULL) {
+		if ((dumper->descriptor == type) || (dumper->descriptor < 0)) {
+			dumper->dump(indent, d, length);
+			return;
+		}
+		dumper++;
+	}			
 }
 
-void dump_standard_device_descriptor(usb_standard_device_descriptor_t *d)
+void dump_usb_descriptor(uint8_t *descriptor, size_t size)
 {
-	printf("Standard device descriptor:\n");
+	dump_descriptor_by_type(0, descriptor, size);
+}
 
+void dump_descriptor_device(size_t indent, uint8_t *descr, size_t size)
+{
+	usb_standard_device_descriptor_t *d
+	    = (usb_standard_device_descriptor_t *) descr;
+	if (size != sizeof(*d)) {
+		return;
+	}
+	
 	printf(INDENT "bLength = %d\n", d->length);
 	printf(INDENT "bDescriptorType = 0x%02x\n", d->descriptor_type);
 	printf(INDENT "bcdUSB = %d (" BCD_FMT ")\n", d->usb_spec_version,
@@ -103,13 +146,17 @@ void dump_standard_device_descriptor(usb_standard_device_descriptor_t *d)
 	printf(INDENT "bNumConfigurations = %d\n", d->configuration_count);
 }
 
-void dump_standard_configuration_descriptor(
-    int index, usb_standard_configuration_descriptor_t *d)
+void dump_descriptor_configuration(size_t indent, uint8_t *descr, size_t size)
 {
+	usb_standard_configuration_descriptor_t *d
+	    = (usb_standard_configuration_descriptor_t *) descr;
+	if (size != sizeof(*d)) {
+		return;
+	}
+	
 	bool self_powered = d->attributes & 64;
 	bool remote_wakeup = d->attributes & 32;
 	
-	printf("Standard configuration descriptor #%d\n", index);
 	printf(INDENT "bLength = %d\n", d->length);
 	printf(INDENT "bDescriptorType = 0x%02x\n", d->descriptor_type);
 	printf(INDENT "wTotalLength = %d\n", d->total_length);
@@ -122,7 +169,50 @@ void dump_standard_configuration_descriptor(
 	    remote_wakeup ? "remote-wakeup" : "");
 	printf(INDENT "MaxPower = %d (%dmA)\n", d->max_power,
 	    2 * d->max_power);
-	// printf(INDENT " = %d\n", d->);
+}
+
+void dump_descriptor_interface(size_t indent, uint8_t *descr, size_t size)
+{
+	dump_descriptor_generic(indent, descr, size);
+}
+
+void dump_descriptor_string(size_t indent, uint8_t *descr, size_t size)
+{
+	dump_descriptor_generic(indent, descr, size);
+}
+
+void dump_descriptor_endpoint(size_t indent, uint8_t *descr, size_t size)
+{
+	dump_descriptor_generic(indent, descr, size);
+}
+
+void dump_descriptor_hid(size_t indent, uint8_t *descr, size_t size)
+{
+	dump_descriptor_generic(indent, descr, size);
+}
+
+void dump_descriptor_hub(size_t indent, uint8_t *descr, size_t size)
+{
+	dump_descriptor_generic(indent, descr, size);
+}
+
+void dump_descriptor_generic(size_t indent, uint8_t *descr, size_t size)
+{
+	dump_buffer(NULL, descr, size);
+}
+
+
+void dump_match_ids(match_id_list_t *matches)
+{
+	printf("Match ids:\n");
+	link_t *link;
+	for (link = matches->ids.next;
+	    link != &matches->ids;
+	    link = link->next) {
+		match_id_t *match = list_get_instance(link, match_id_t, link);
+
+		printf(INDENT "%d %s\n", match->score, match->id);
+	}
 }
 
 static void dump_tree_descriptor(uint8_t *descriptor, size_t depth)
@@ -151,6 +241,8 @@ static void dump_tree_descriptor(uint8_t *descriptor, size_t depth)
 #undef _TYPE
 	}
 	printf("0x%02x (%s)\n", type, name);
+	dump_descriptor_by_type(depth, descriptor, descriptor[0]);
+	
 }
 
 static void dump_tree_internal(usb_dp_parser_t *parser, usb_dp_parser_data_t *data,
