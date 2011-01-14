@@ -107,8 +107,6 @@ int dump_device(int hc_phone, usb_address_t address)
 		    str_error(rc));
 		return rc;
 	}
-	dump_buffer("Full configuration descriptor:",
-	    full_config_descriptor, config_descriptor.total_length);
 
 	dump_descriptor_tree(full_config_descriptor,
 	    config_descriptor.total_length);

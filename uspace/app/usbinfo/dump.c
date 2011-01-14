@@ -47,6 +47,7 @@
 #include <usb/dp.h>
 
 #define INDENT "  "
+#define PRINTLINE(indent, fmt, ...) printf("%s" fmt, get_indent(indent), __VA_ARGS__)
 #define BYTES_PER_LINE 12
 
 #define BCD_INT(a) (((unsigned int)(a)) / 256)
@@ -83,18 +84,43 @@ static descriptor_dump_t descriptor_dumpers[] = {
 	{ -1, NULL }
 };
 
-void dump_buffer(const char *msg, const uint8_t *buffer, size_t length)
+static const char *get_indent(size_t level)
+{
+	static const char *indents[] = {
+		INDENT,
+		INDENT INDENT,
+		INDENT INDENT INDENT,
+		INDENT INDENT INDENT INDENT,
+		INDENT INDENT INDENT INDENT INDENT
+	};
+	static size_t indents_count = sizeof(indents)/sizeof(indents[0]);
+	if (level >= indents_count) {
+		return indents[indents_count - 1];
+	}
+	return indents[level];
+}
+
+void dump_buffer(const char *msg, size_t indent,
+    const uint8_t *buffer, size_t length)
 {
 	if (msg != NULL) {
 		printf("%s\n", msg);
 	}
 
 	size_t i;
+	if (length > 0) {
+		printf("%s", get_indent(indent));
+	}
 	for (i = 0; i < length; i++) {
-		printf("  0x%02X", buffer[i]);
+		printf("0x%02X", buffer[i]);
 		if (((i > 0) && (((i+1) % BYTES_PER_LINE) == 0))
 		    || (i + 1 == length)) {
 			printf("\n");
+			if (i + 1 < length) {
+				printf("%s", get_indent(indent));
+			}
+		} else {
+			printf("  ");
 		}
 	}
 }
@@ -129,21 +155,21 @@ void dump_descriptor_device(size_t indent, uint8_t *descr, size_t size)
 		return;
 	}
 	
-	printf(INDENT "bLength = %d\n", d->length);
-	printf(INDENT "bDescriptorType = 0x%02x\n", d->descriptor_type);
-	printf(INDENT "bcdUSB = %d (" BCD_FMT ")\n", d->usb_spec_version,
+	PRINTLINE(indent, "bLength = %d\n", d->length);
+	PRINTLINE(indent, "bDescriptorType = 0x%02x\n", d->descriptor_type);
+	PRINTLINE(indent, "bcdUSB = %d (" BCD_FMT ")\n", d->usb_spec_version,
 	    BCD_ARGS(d->usb_spec_version));
-	printf(INDENT "bDeviceClass = 0x%02x\n", d->device_class);
-	printf(INDENT "bDeviceSubClass = 0x%02x\n", d->device_subclass);
-	printf(INDENT "bDeviceProtocol = 0x%02x\n", d->device_protocol);
-	printf(INDENT "bMaxPacketSize0 = %d\n", d->max_packet_size);
-	printf(INDENT "idVendor = %d\n", d->vendor_id);
-	printf(INDENT "idProduct = %d\n", d->product_id);
-	printf(INDENT "bcdDevice = %d\n", d->device_version);
-	printf(INDENT "iManufacturer = %d\n", d->str_manufacturer);
-	printf(INDENT "iProduct = %d\n", d->str_product);
-	printf(INDENT "iSerialNumber = %d\n", d->str_serial_number);
-	printf(INDENT "bNumConfigurations = %d\n", d->configuration_count);
+	PRINTLINE(indent, "bDeviceClass = 0x%02x\n", d->device_class);
+	PRINTLINE(indent, "bDeviceSubClass = 0x%02x\n", d->device_subclass);
+	PRINTLINE(indent, "bDeviceProtocol = 0x%02x\n", d->device_protocol);
+	PRINTLINE(indent, "bMaxPacketSize0 = %d\n", d->max_packet_size);
+	PRINTLINE(indent, "idVendor = %d\n", d->vendor_id);
+	PRINTLINE(indent, "idProduct = %d\n", d->product_id);
+	PRINTLINE(indent, "bcdDevice = %d\n", d->device_version);
+	PRINTLINE(indent, "iManufacturer = %d\n", d->str_manufacturer);
+	PRINTLINE(indent, "iProduct = %d\n", d->str_product);
+	PRINTLINE(indent, "iSerialNumber = %d\n", d->str_serial_number);
+	PRINTLINE(indent, "bNumConfigurations = %d\n", d->configuration_count);
 }
 
 void dump_descriptor_configuration(size_t indent, uint8_t *descr, size_t size)
@@ -157,17 +183,17 @@ void dump_descriptor_configuration(size_t indent, uint8_t *descr, size_t size)
 	bool self_powered = d->attributes & 64;
 	bool remote_wakeup = d->attributes & 32;
 	
-	printf(INDENT "bLength = %d\n", d->length);
-	printf(INDENT "bDescriptorType = 0x%02x\n", d->descriptor_type);
-	printf(INDENT "wTotalLength = %d\n", d->total_length);
-	printf(INDENT "bNumInterfaces = %d\n", d->interface_count);
-	printf(INDENT "bConfigurationValue = %d\n", d->configuration_number);
-	printf(INDENT "iConfiguration = %d\n", d->str_configuration);
-	printf(INDENT "bmAttributes = %d [%s%s%s]\n", d->attributes,
+	PRINTLINE(indent, "bLength = %d\n", d->length);
+	PRINTLINE(indent, "bDescriptorType = 0x%02x\n", d->descriptor_type);
+	PRINTLINE(indent, "wTotalLength = %d\n", d->total_length);
+	PRINTLINE(indent, "bNumInterfaces = %d\n", d->interface_count);
+	PRINTLINE(indent, "bConfigurationValue = %d\n", d->configuration_number);
+	PRINTLINE(indent, "iConfiguration = %d\n", d->str_configuration);
+	PRINTLINE(indent, "bmAttributes = %d [%s%s%s]\n", d->attributes,
 	    self_powered ? "self-powered" : "",
 	    (self_powered & remote_wakeup) ? ", " : "",
 	    remote_wakeup ? "remote-wakeup" : "");
-	printf(INDENT "MaxPower = %d (%dmA)\n", d->max_power,
+	PRINTLINE(indent, "MaxPower = %d (%dmA)\n", d->max_power,
 	    2 * d->max_power);
 }
 
@@ -198,7 +224,7 @@ void dump_descriptor_hub(size_t indent, uint8_t *descr, size_t size)
 
 void dump_descriptor_generic(size_t indent, uint8_t *descr, size_t size)
 {
-	dump_buffer(NULL, descr, size);
+	dump_buffer(NULL, indent, descr, size);
 }
 
 
@@ -220,10 +246,6 @@ static void dump_tree_descriptor(uint8_t *descriptor, size_t depth)
 	if (descriptor == NULL) {
 		return;
 	}
-	while (depth > 0) {
-		printf("  ");
-		depth--;
-	}
 	int type = (int) *(descriptor + 1);
 	const char *name = "unknown";
 	switch (type) {
@@ -240,7 +262,7 @@ static void dump_tree_descriptor(uint8_t *descriptor, size_t depth)
 		_TYPE(HUB);
 #undef _TYPE
 	}
-	printf("0x%02x (%s)\n", type, name);
+	printf("%s%s (0x%02X):\n", get_indent(depth), name, type);
 	dump_descriptor_by_type(depth, descriptor, descriptor[0]);
 	
 }
@@ -263,7 +285,7 @@ static void dump_tree(usb_dp_parser_t *parser, usb_dp_parser_data_t *data)
 {
 	uint8_t *ptr = data->data;
 	printf("Descriptor tree:\n");
-	dump_tree_internal(parser, data, ptr, 1);
+	dump_tree_internal(parser, data, ptr, 0);
 }
 
 #define NESTING(parentname, childname) \

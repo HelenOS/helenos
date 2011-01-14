@@ -43,7 +43,7 @@
 
 #define NAME "usbinfo"
 
-void dump_buffer(const char *, const uint8_t *, size_t);
+void dump_buffer(const char *, size_t, const uint8_t *, size_t);
 void dump_match_ids(match_id_list_t *matches);
 void dump_usb_descriptor(uint8_t *, size_t);
 int dump_device(int, usb_address_t);
