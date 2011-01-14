@@ -48,6 +48,12 @@ void dump_match_ids(match_id_list_t *matches);
 void dump_standard_device_descriptor(usb_standard_device_descriptor_t *);
 void dump_standard_configuration_descriptor(int, 
     usb_standard_configuration_descriptor_t *);
+int dump_device(int, usb_address_t);
+
+static inline void internal_error(int err)
+{
+	fprintf(stderr, NAME ": internal error (%s).\n", str_error(err));
+}
 
 #endif
 /**

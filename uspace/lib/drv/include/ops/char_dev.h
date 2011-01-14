@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Jakub Jermar
+ * Copyright (c) 2010 Lenka Trochtova
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,22 +26,24 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
+/** @addtogroup libdrv
  * @{
  */
 /** @file
- */ 
+ */
 
-#ifndef LIBC_BUS_H_
-#define LIBC_BUS_H_
+#ifndef LIBDRV_OPS_CHAR_DEV_H_
+#define LIBDRV_OPS_CHAR_DEV_H_
 
-#include <ipc/ipc.h>
+#include "../driver.h"
 
-typedef enum {
-	BUS_CLEAR_INTERRUPT = IPC_FIRST_USER_METHOD
-} bus_request_t;
+typedef struct {
+	int (*read)(device_t *, char *, size_t);
+	int (*write)(device_t *, char *, size_t);
+} char_dev_ops_t;
 
 #endif
 
-/** @}
+/**
+ * @}
  */

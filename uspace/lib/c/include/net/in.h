@@ -42,12 +42,12 @@
 #include <sys/types.h>
 
 /** INET string address maximum length. */
-#define INET_ADDRSTRLEN		(4 * 3 + 3 + 1)
+#define INET_ADDRSTRLEN  (4 * 3 + 3 + 1)
 
 /** Type definition of the INET address.
  * @see in_addr
  */
-typedef struct in_addr		in_addr_t;
+typedef struct in_addr in_addr_t;
 
 /** Type definition of the INET socket address.
  * @see sockaddr_in

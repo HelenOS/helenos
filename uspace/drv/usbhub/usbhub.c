@@ -74,7 +74,7 @@ usb_hub_info_t * usb_create_hub_info(device_t * device, int hc) {
 	}
 	//get some hub info
 	usb_address_t addr = usb_drv_get_my_address(hc, device);
-	dprintf(1,"[usb_hub] addres of newly created hub = %d", addr);
+	dprintf(1,"[usb_hub] address of newly created hub = %d", addr);
 	/*if(addr<0){
 		//return result;
 
@@ -173,6 +173,7 @@ int usb_add_hub_device(device_t *dev) {
 	if(std_descriptor.configuration_count<1){
 		dprintf(1,"[usb_hub] THERE ARE NO CONFIGURATIONS AVAILABLE");
 	}
+	/// \TODO check other configurations
 	usb_standard_configuration_descriptor_t config_descriptor;
 	opResult = usb_drv_req_get_bare_configuration_descriptor(hc,
         target.address, 0,
@@ -193,7 +194,6 @@ int usb_add_hub_device(device_t *dev) {
 		dprintf(1,"[usb_hub]something went wrong when setting hub`s configuration, %d", opResult);
 	}
 
-
 	for (port = 1; port < hub_info->port_count+1; ++port) {
 		usb_hub_set_power_port_request(&request, port);
 		opResult = usb_drv_sync_control_write(hc, target, &request, NULL, 0);
@@ -204,11 +204,13 @@ int usb_add_hub_device(device_t *dev) {
 	}
 	//ports powered, hub seems to be enabled
 
-
 	ipc_hangup(hc);
 
 	//add the hub to list
+	futex_down(&usb_hub_list_lock);
 	usb_lst_append(&usb_hub_list, hub_info);
+	futex_up(&usb_hub_list_lock);
+
 	dprintf(1,"[usb_hub] hub info added to list");
 	//(void)hub_info;
 	usb_hub_check_hub_changes();
@@ -232,6 +234,22 @@ int usb_add_hub_device(device_t *dev) {
 //  hub driver code, main loop
 //
 //*********************************************
+
+/**
+ * convenience function for releasing default address and writing debug info
+ * (these few lines are used too often to be written again and again)
+ * @param hc
+ * @return
+ */
+inline static int usb_hub_release_default_address(int hc){
+	int opResult;
+	dprintf(1,"[usb_hub] releasing default address");
+	opResult = usb_drv_release_default_address(hc);
+	if (opResult != EOK) {
+		dprintf(1,"[usb_hub] failed to release default address");
+	}
+	return opResult;
+}
 
 /**
  * reset the port with new device and reserve the default address
@@ -258,25 +276,9 @@ static void usb_hub_init_add_device(int hc, uint16_t port, usb_target_t target) 
 			);
 	if (opResult != EOK) {
 		dprintf(1,"[usb_hub] something went wrong when reseting a port");
+		usb_hub_release_default_address(hc);
 	}
 }
-
-/**
- * convenience function for releasing default address and writing debug info
- * (these few lines are used too often to be written again and again)
- * @param hc
- * @return
- */
-inline static int usb_hub_release_default_address(int hc){
-	int opResult;
-	dprintf(1,"[usb_hub] releasing default address");
-	opResult = usb_drv_release_default_address(hc);
-	if (opResult != EOK) {
-		dprintf(1,"[usb_hub] failed to release default address");
-	}
-	return opResult;
-}
-
 
 /**
  * finalize adding new device after port reset
@@ -342,7 +344,7 @@ static void usb_hub_finalize_add_device( usb_hub_info_t * hub,
 }
 
 /**
- * unregister device address in hc, close the port
+ * unregister device address in hc
  * @param hc
  * @param port
  * @param target
@@ -351,17 +353,7 @@ static void usb_hub_removed_device(
     usb_hub_info_t * hub, int hc, uint16_t port, usb_target_t target) {
 	//usb_device_request_setup_packet_t request;
 	int opResult;
-	//disable port
-	/*usb_hub_set_disable_port_request(&request, port);
-	opResult = usb_drv_sync_control_write(
-			hc, target,
-			&request,
-			NULL, 0
-			);
-	if (opResult != EOK) {
-		//continue;
-		printf("[usb_hub] something went wrong when disabling a port\n");
-	}*/
+	
 	/// \TODO remove device
 
 	hub->attached_devs[port].devman_handle=0;
@@ -456,9 +448,11 @@ void usb_hub_check_hub_changes(void) {
 	 * Iterate through all hubs.
 	 */
 	usb_general_list_t * lst_item;
+	futex_down(&usb_hub_list_lock);
 	for (lst_item = usb_hub_list.next;
 			lst_item != &usb_hub_list;
 			lst_item = lst_item->next) {
+		futex_up(&usb_hub_list_lock);
 		usb_hub_info_t * hub_info = ((usb_hub_info_t*)lst_item->data);
 		/*
 		 * Check status change pipe of this hub.
@@ -509,9 +503,12 @@ void usb_hub_check_hub_changes(void) {
 				        hub_info, hc, port, hub_info->usb_device->address);
 			}
 		}
+		free(change_bitmap);
 
 		ipc_hangup(hc);
+		futex_down(&usb_hub_list_lock);
 	}
+	futex_up(&usb_hub_list_lock);
 }
 
 

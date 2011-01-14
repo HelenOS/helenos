@@ -705,8 +705,9 @@ void ipc_print_task(task_id_t taskid)
 				printf("connecting ");
 				break;
 			case IPC_PHONE_CONNECTED:
-				printf("connected to: %p ",
-				    task->phones[i].callee);
+				printf("connected to: %p (%" PRIu64 ") ",
+				    task->phones[i].callee,
+				    task->phones[i].callee->task->taskid);
 				break;
 			case IPC_PHONE_SLAMMED:
 				printf("slammed by: %p ", 

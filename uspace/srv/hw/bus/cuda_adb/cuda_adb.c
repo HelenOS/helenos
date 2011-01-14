@@ -161,7 +161,6 @@ int main(int argc, char *argv[])
 
 	rc = devmap_device_register("adb/kbd", &devmap_handle);
 	if (rc != EOK) {
-		devmap_hangup_phone(DEVMAP_DRIVER);
 		printf(NAME ": Unable to register device %s.\n", "adb/kdb");
 		return rc;
 	}
@@ -171,7 +170,6 @@ int main(int argc, char *argv[])
 
 	rc = devmap_device_register("adb/mouse", &devmap_handle);
 	if (rc != EOK) {
-		devmap_hangup_phone(DEVMAP_DRIVER);
 		printf(NAME ": Unable to register device %s.\n", "adb/mouse");
 		return rc;
 	}

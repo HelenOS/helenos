@@ -39,8 +39,8 @@ SOURCES = \
 	generic/packet_remote.c \
 	generic/protocol_map.c \
 	adt/module_map.c \
-	netif/netif_local.c \
 	netif/netif_remote.c \
+	netif/netif_skel.c \
 	nil/nil_remote.c \
 	il/il_interface.c \
 	il/ip_remote.c \

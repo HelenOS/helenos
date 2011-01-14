@@ -170,7 +170,6 @@ int main(int argc, char **argv)
 		snprintf(name, 16, "%s/ata%udisk%d", NAMESPACE, ctl_num, i);
 		rc = devmap_device_register(name, &disk[i].devmap_handle);
 		if (rc != EOK) {
-			devmap_hangup_phone(DEVMAP_DRIVER);
 			printf(NAME ": Unable to register device %s.\n", name);
 			return rc;
 		}

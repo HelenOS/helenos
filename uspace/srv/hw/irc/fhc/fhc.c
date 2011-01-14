@@ -37,7 +37,7 @@
 
 #include <ipc/ipc.h>
 #include <ipc/services.h>
-#include <ipc/bus.h>
+#include <ipc/irc.h>
 #include <ipc/ns.h>
 #include <sysinfo.h>
 #include <as.h>
@@ -82,7 +82,11 @@ static void fhc_connection(ipc_callid_t iid, ipc_call_t *icall)
 	
 		callid = async_get_call(&call);
 		switch (IPC_GET_IMETHOD(call)) {
-		case BUS_CLEAR_INTERRUPT:
+		case IRC_ENABLE_INTERRUPT:
+			/* Noop */
+			ipc_answer_0(callid, EOK);
+			break;
+		case IRC_CLEAR_INTERRUPT:
 			inr = IPC_GET_ARG1(call);
 			switch (inr) {
 			case FHC_UART_INR:

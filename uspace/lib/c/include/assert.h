@@ -56,6 +56,8 @@
 		if (!(expr)) { \
 			printf("Assertion failed (%s) at file '%s', " \
 			    "line %d.\n", #expr, __FILE__, __LINE__); \
+			stacktrace_print(); \
+			core(); \
 			abort(); \
 		} \
 	} while (0)

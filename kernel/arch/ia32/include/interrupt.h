@@ -73,6 +73,7 @@
 extern void (* disable_irqs_function)(uint16_t);
 extern void (* enable_irqs_function)(uint16_t);
 extern void (* eoi_function)(void);
+extern const char *irqs_info;
 
 extern void interrupt_init(void);
 extern void trap_virtual_enable_irqs(uint16_t);

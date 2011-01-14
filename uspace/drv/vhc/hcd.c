@@ -85,6 +85,8 @@ static int vhc_add_device(device_t *dev)
 
 	dev->ops = &vhc_ops;
 
+	devman_add_device_to_class(dev->handle, "usbhc");
+
 	/*
 	 * Initialize our hub and announce its presence.
 	 */
