@@ -30,7 +30,7 @@
  * @{
  */
 /** @file
- * @brief Hub driver.
+ * @brief Hub driver private definitions
  */
 
 #ifndef USBHUB_PRIVATE_H
@@ -67,7 +67,7 @@
 	usb_dprintf(NAME, (level), format "\n", ##__VA_ARGS__)
 
 /**
- * create hub structure instance
+ * Create hub structure instance
  *
  * Set the address and port count information most importantly.
  *
@@ -77,23 +77,23 @@
  */
 usb_hub_info_t * usb_create_hub_info(device_t * device, int hc);
 
-/** list of hubs maanged by this driver */
+/** List of hubs maanged by this driver */
 extern usb_general_list_t usb_hub_list;
 
-/** lock for hub list*/
+/** Lock for hub list*/
 extern futex_t usb_hub_list_lock;
 
 
 /**
- * perform complete control read transaction
+ * Perform complete control read transaction
  *
- * manages all three steps of transaction: setup, read and finalize
+ * Manages all three steps of transaction: setup, read and finalize
  * @param phone
  * @param target
- * @param request request for data
- * @param rcvd_buffer received data
+ * @param request Request packet
+ * @param rcvd_buffer Received data
  * @param rcvd_size
- * @param actual_size actual size of received data
+ * @param actual_size Actual size of received data
  * @return error code
  */
 int usb_drv_sync_control_read(
@@ -103,12 +103,12 @@ int usb_drv_sync_control_read(
 );
 
 /**
- * perform complete control write transaction
+ * Perform complete control write transaction
  *
- * manages all three steps of transaction: setup, write and finalize
+ * Manages all three steps of transaction: setup, write and finalize
  * @param phone
  * @param target
- * @param request request to send data
+ * @param request Request packet to send data
  * @param sent_buffer
  * @param sent_size
  * @return error code
@@ -120,7 +120,7 @@ int usb_drv_sync_control_write(
 );
 
 /**
- * set the device request to be a get hub descriptor request.
+ * Set the device request to be a get hub descriptor request.
  * @warning the size is allways set to USB_HUB_MAX_DESCRIPTOR_SIZE
  * @param request
  * @param addr
@@ -136,6 +136,15 @@ usb_device_request_setup_packet_t * request
 	request->length = USB_HUB_MAX_DESCRIPTOR_SIZE;
 }
 
+/**
+ * Clear feature on hub port.
+ *
+ * @param hc Host controller telephone
+ * @param address Hub address
+ * @param port_index Port
+ * @param feature Feature selector
+ * @return Operation result
+ */
 static inline int usb_hub_clear_port_feature(int hc, usb_address_t address,
     int port_index,
     usb_hub_class_feature_t feature) {
