@@ -1090,6 +1090,11 @@ void *frame_alloc(uint8_t order, frame_flags_t flags)
 	return frame_alloc_generic(order, flags, NULL);
 }
 
+void *frame_alloc_noreserve(uint8_t order, frame_flags_t flags)
+{
+	return frame_alloc_generic(order, flags | FRAME_NO_RESERVE, NULL);
+}
+
 /** Free a frame.
  *
  * Find respective frame structure for supplied physical frame address.
@@ -1133,6 +1138,11 @@ void frame_free_generic(uintptr_t frame, frame_flags_t flags)
 void frame_free(uintptr_t frame)
 {
 	frame_free_generic(frame, 0);
+}
+
+void frame_free_noreserve(uintptr_t frame)
+{
+	frame_free_generic(frame, FRAME_NO_RESERVE);
 }
 
 /** Add reference to frame.
