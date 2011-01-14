@@ -33,7 +33,7 @@
  */
 
 #include <ipc/dev_iface.h>
-#include <device/char.h>
+#include <device/char_dev.h>
 #include <errno.h>
 #include <async.h>
 #include <malloc.h>
@@ -44,20 +44,16 @@
  * Helper function to read to or write from a device
  * using its character interface.
  *
- * @param dev_phone Phone to the device.
- * @param buf       Buffer for the data read
- *                  from or written to the device.
- * @param len       Maximum length of the data to be
- *                  read or written.
- * @param read      Read from the device if true,
- *                  write to it otherwise.
+ * @param dev_phone	Phone to the device.
+ * @param buf		Buffer for the data read from or written to the device.
+ * @param size		Maximum size of data (in bytes) to be read or written.
+ * @param read		Read from the device if true, write to it otherwise.
  *
- * @return Non-negative number of bytes actually read
- *         from or written to the device on success,
- *         negative error number otherwise.
- *
+ * @return		Non-negative number of bytes actually read from or
+ *			written to the device on success, negative error number
+ *			otherwise.
  */
-static ssize_t rw_dev(int dev_phone, void *buf, size_t len, bool read)
+static ssize_t char_dev_rw(int dev_phone, void *buf, size_t size, bool read)
 {
 	async_serialize_start();
 	
@@ -67,12 +63,12 @@ static ssize_t rw_dev(int dev_phone, void *buf, size_t len, bool read)
 	
 	if (read) {
 		req = async_send_1(dev_phone, DEV_IFACE_ID(CHAR_DEV_IFACE),
-		    CHAR_READ_DEV, &answer);
-		ret = async_data_read_start(dev_phone, buf, len);
+		    CHAR_DEV_READ, &answer);
+		ret = async_data_read_start(dev_phone, buf, size);
 	} else {
 		req = async_send_1(dev_phone, DEV_IFACE_ID(CHAR_DEV_IFACE),
-		    CHAR_WRITE_DEV, &answer);
-		ret = async_data_write_start(dev_phone, buf, len);
+		    CHAR_DEV_WRITE, &answer);
+		ret = async_data_write_start(dev_phone, buf, size);
 	}
 	
 	sysarg_t rc;
@@ -81,7 +77,7 @@ static ssize_t rw_dev(int dev_phone, void *buf, size_t len, bool read)
 		async_serialize_end();
 		if (rc == EOK)
 			return (ssize_t) ret;
-			
+		
 		return (ssize_t) rc;
 	}
 	
@@ -95,38 +91,33 @@ static ssize_t rw_dev(int dev_phone, void *buf, size_t len, bool read)
 	return (ssize_t) IPC_GET_ARG1(answer);
 }
 
-/** Read from device using its character interface.
+/** Read from character device.
  *
- * @param dev_phone Phone to the device.
- * @param buf       Output buffer for the data
- *                  read from the device.
- * @param len       Maximum length of the data to be read.
+ * @param dev_phone	Phone to the device.
+ * @param buf		Output buffer for the data read from the device.
+ * @param size		Maximum size (in bytes) of the data to be read.
  *
- * @return Non-negative number of bytes actually read
- *         from the device on success, negative error
- *         number otherwise.
- *
+ * @return		Non-negative number of bytes actually read from the
+ *			device on success, negative error number otherwise.
  */
-ssize_t read_dev(int dev_phone, void *buf, size_t len)
+ssize_t char_dev_read(int dev_phone, void *buf, size_t size)
 {
-	return rw_dev(dev_phone, buf, len, true);
+	return char_dev_rw(dev_phone, buf, size, true);
 }
 
-/** Write to device using its character interface.
+/** Write to character device.
  *
- * @param dev_phone Phone to the device.
- * @param buf       Input buffer containg the data
- *                  to be written to the device.
- * @param len       Maximum length of the data to be written.
+ * @param dev_phone	Phone to the device.
+ * @param buf		Input buffer containg the data to be written to the
+ *			device.
+ * @param size		Maximum size (in bytes) of the data to be written.
  *
- * @return Non-negative number of bytes actually written
- *         to the device on success, negative error number
- *         otherwise.
- *
+ * @return		Non-negative number of bytes actually written to the
+ *			device on success, negative error number otherwise.
  */
-ssize_t write_dev(int dev_phone, void *buf, size_t len)
+ssize_t char_dev_write(int dev_phone, void *buf, size_t size)
 {
-	return rw_dev(dev_phone, buf, len, false);
+	return char_dev_rw(dev_phone, buf, size, false);
 }
 
 /** @}

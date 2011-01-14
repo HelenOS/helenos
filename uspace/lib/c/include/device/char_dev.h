@@ -26,19 +26,24 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libdrv
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef LIBDRV_REMOTE_RES_H_
-#define LIBDRV_REMOTE_RES_H_
+#ifndef LIBC_DEVICE_CHAR_DEV_H_
+#define LIBC_DEVICE_CHAR_DEV_H_
 
-remote_iface_t remote_res_iface;
+typedef enum {
+	CHAR_DEV_READ = 0,
+	CHAR_DEV_WRITE
+} char_dev_method_t;
+
+ssize_t char_dev_read(int dev_phone, void *buf, size_t len);
+ssize_t char_dev_write(int dev_phone, void *buf, size_t len);
 
 #endif
 
-/**
- * @}
+/** @}
  */

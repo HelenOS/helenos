@@ -84,14 +84,28 @@ typedef struct {
 	uint16_t length;
 } __attribute__ ((packed)) usb_device_request_setup_packet_t;
 
+
+int usb_drv_req_get_status(int, usb_address_t, usb_request_recipient_t,
+    uint16_t, uint16_t *);
+int usb_drv_req_clear_feature(int, usb_address_t, usb_request_recipient_t,
+    uint16_t, uint16_t);
+int usb_drv_req_set_feature(int, usb_address_t, usb_request_recipient_t,
+    uint16_t, uint16_t);
 int usb_drv_req_set_address(int, usb_address_t, usb_address_t);
+int usb_drv_req_get_descriptor(int, usb_address_t, usb_request_type_t,
+    uint8_t, uint8_t, uint16_t, void *, size_t, size_t *);
 int usb_drv_req_get_device_descriptor(int, usb_address_t,
     usb_standard_device_descriptor_t *);
 int usb_drv_req_get_bare_configuration_descriptor(int, usb_address_t, int,
     usb_standard_configuration_descriptor_t *);
 int usb_drv_req_get_full_configuration_descriptor(int, usb_address_t, int,
     void *, size_t, size_t *);
-
+int usb_drv_req_set_descriptor(int, usb_address_t, uint8_t, uint8_t, uint16_t,
+    void *, size_t);
+int usb_drv_req_get_configuration(int, usb_address_t, uint8_t *);
+int usb_drv_req_set_configuration(int, usb_address_t, uint8_t);
+int usb_drv_req_get_interface(int, usb_address_t, uint16_t, uint8_t *);
+int usb_drv_req_set_interface(int, usb_address_t, uint16_t, uint8_t);
 
 #endif
 /**

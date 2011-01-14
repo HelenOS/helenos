@@ -453,9 +453,6 @@ bool devfs_init(void)
 	    DEVICES_KEYS, &devices_ops))
 		return false;
 	
-	if (devmap_get_phone(DEVMAP_CLIENT, IPC_FLAG_BLOCKING) < 0)
-		return false;
-	
 	return true;
 }
 

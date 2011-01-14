@@ -95,7 +95,7 @@ extern int nil_received_msg_local(int, device_id_t, packet_t *, services_t);
  * @see IS_NET_NIL_MESSAGE()
  */
 extern int nil_message_standalone(const char *, ipc_callid_t, ipc_call_t *,
-    ipc_call_t *, int *);
+    ipc_call_t *, size_t *);
 
 /** Pass the parameters to the module specific nil_message() function.
  *
@@ -111,7 +111,7 @@ extern int nil_message_standalone(const char *, ipc_callid_t, ipc_call_t *,
  *			message function.
  */
 extern int nil_module_message_standalone(const char *, ipc_callid_t,
-    ipc_call_t *, ipc_call_t *, int *);
+    ipc_call_t *, ipc_call_t *, size_t *);
 
 /** Start the standalone nil layer module.
  *

@@ -43,7 +43,7 @@
 
 extern int udp_initialize(async_client_conn_t);
 extern int udp_message_standalone(ipc_callid_t, ipc_call_t *, ipc_call_t *,
-    int *);
+    size_t *);
 
 #endif
 

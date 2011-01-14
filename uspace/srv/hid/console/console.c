@@ -929,7 +929,6 @@ skip_mouse:
 			snprintf(vc, DEVMAP_NAME_MAXLEN, "%s/vc%zu", NAMESPACE, i);
 			
 			if (devmap_device_register(vc, &consoles[i].devmap_handle) != EOK) {
-				devmap_hangup_phone(DEVMAP_DRIVER);
 				printf(NAME ": Unable to register device %s\n", vc);
 				return false;
 			}

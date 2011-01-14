@@ -106,6 +106,8 @@ _link.ld
 ./uspace/srv/hw/bus/pci/pci
 ./uspace/srv/hw/char/i8042/i8042
 ./uspace/srv/hw/char/s3c24xx_uart/s3c24ser
+./uspace/srv/hw/irc/apic/apic
+./uspace/srv/hw/irc/i8259/i8259
 ./uspace/srv/hw/netif/dp8390/dp8390
 ./uspace/srv/loader/loader
 ./uspace/srv/net/cfg/lo

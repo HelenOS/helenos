@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2009 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,22 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- /** @addtogroup libc
+/** @addtogroup libcipc
  * @{
  */
 /** @file
  */
 
-#ifndef LIBC_DEVICE_HW_RES_H_
-#define LIBC_DEVICE_HW_RES_H_
+#ifndef LIBC_IRC_H_
+#define LIBC_IRC_H_
+
+#include <ipc/ipc.h>
 
 typedef enum {
-	CHAR_READ_DEV = 0,
-	CHAR_WRITE_DEV
-} hw_res_funcs_t;
-
-ssize_t read_dev(int dev_phone, void *buf, size_t len);
-ssize_t write_dev(int dev_phone, void *buf, size_t len);
+	IRC_ENABLE_INTERRUPT = IPC_FIRST_USER_METHOD,
+	IRC_CLEAR_INTERRUPT
+} irc_request_t;
 
 #endif
 

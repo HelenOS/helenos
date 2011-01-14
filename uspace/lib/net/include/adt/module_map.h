@@ -64,17 +64,17 @@ struct module_struct {
 	/** Usage counter. */
 	int usage;
 	/** Module name. */
-	const char *name;
+	const uint8_t *name;
 	/** Module full path filename. */
-	const char *filename;
+	const uint8_t *filename;
 	/** Connecting function. */
 	connect_module_t *connect_module;
 };
 
-extern int add_module(module_t **, modules_t *, const char *, const char *,
-    services_t, task_id_t, connect_module_t *);
-extern module_t *get_running_module(modules_t *, char *);
-extern task_id_t spawn(const char *);
+extern int add_module(module_t **, modules_t *, const uint8_t *,
+    const uint8_t *, services_t, task_id_t, connect_module_t *);
+extern module_t *get_running_module(modules_t *, uint8_t *);
+extern task_id_t net_spawn(const uint8_t *);
 
 #endif
 

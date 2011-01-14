@@ -77,9 +77,9 @@ out:
 }
 
 int nil_module_message_standalone(const char *name, ipc_callid_t callid,
-    ipc_call_t *call, ipc_call_t *answer, int *answer_count)
+    ipc_call_t *call, ipc_call_t *answer, size_t *count)
 {
-	return nil_message_standalone(name, callid, call, answer, answer_count);
+	return nil_message_standalone(name, callid, call, answer, count);
 }
 
 /** @}

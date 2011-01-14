@@ -51,8 +51,7 @@
  *			function.
  */
 extern int tl_module_message_standalone(ipc_callid_t, ipc_call_t *,
-    ipc_call_t *, int *);
-
+    ipc_call_t *, size_t *);
 
 /** Processes the TL module message.
  *
