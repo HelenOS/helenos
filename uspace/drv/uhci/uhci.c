@@ -56,7 +56,7 @@ int uhci_in(
 	    usb_str_transfer_type(transfer_type),
 	    size);
 
-	callback( dev, 0, USB_OUTCOME_OK, arg );
+	callback( dev, size, USB_OUTCOME_OK, arg );
 
 	return EOK;
 }
@@ -90,6 +90,8 @@ int uhci_setup(
 	    target.address, target.endpoint,
 	    usb_str_transfer_type(transfer_type),
 	    size);
+	uhci_print_info("Setup packet content: %x %x.\n", ((uint8_t*)buffer)[0],
+	  ((uint8_t*)buffer)[1]);
 
 	callback( dev, USB_OUTCOME_OK, arg );
 	return EOK;
