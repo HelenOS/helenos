@@ -345,6 +345,8 @@ int usb_drv_create_device_match_ids(int hc, match_id_list_t *matches,
 int usb_drv_register_child_in_devman(int hc, device_t *parent,
     usb_address_t address, devman_handle_t *child_handle)
 {
+	static size_t device_name_index = 0;
+
 	device_t *child = NULL;
 	char *child_name = NULL;
 	int rc;
@@ -356,9 +358,10 @@ int usb_drv_register_child_in_devman(int hc, device_t *parent,
 	}
 
 	/*
-	 * TODO: some better child naming
+	 * TODO: Once the device driver framework support persistent
+	 * naming etc., something more descriptive could be created.
 	 */
-	rc = asprintf(&child_name, "usb%p", child);
+	rc = asprintf(&child_name, "usbdev%02zu", device_name_index);
 	if (rc < 0) {
 		goto failure;
 	}
@@ -380,6 +383,8 @@ int usb_drv_register_child_in_devman(int hc, device_t *parent,
 		*child_handle = child->handle;
 	}
 	
+	device_name_index++;
+
 	return EOK;
 
 failure:

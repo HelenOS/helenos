@@ -44,6 +44,7 @@
 #include <usb/descriptor.h>
 
 #include "usbinfo.h"
+#include <usb/dp.h>
 
 #define INDENT "  "
 #define BYTES_PER_LINE 12
@@ -124,6 +125,85 @@ void dump_standard_configuration_descriptor(
 	// printf(INDENT " = %d\n", d->);
 }
 
+static void dump_tree_descriptor(uint8_t *descriptor, size_t depth)
+{
+	if (descriptor == NULL) {
+		return;
+	}
+	while (depth > 0) {
+		printf("  ");
+		depth--;
+	}
+	int type = (int) *(descriptor + 1);
+	const char *name = "unknown";
+	switch (type) {
+#define _TYPE(descriptor_type) \
+		case USB_DESCTYPE_##descriptor_type: name = #descriptor_type; break
+		_TYPE(DEVICE);
+		_TYPE(CONFIGURATION);
+		_TYPE(STRING);
+		_TYPE(INTERFACE);
+		_TYPE(ENDPOINT);
+		_TYPE(HID);
+		_TYPE(HID_REPORT);
+		_TYPE(HID_PHYSICAL);
+		_TYPE(HUB);
+#undef _TYPE
+	}
+	printf("0x%02x (%s)\n", type, name);
+}
+
+static void dump_tree_internal(usb_dp_parser_t *parser, usb_dp_parser_data_t *data,
+    uint8_t *root, size_t depth)
+{
+	if (root == NULL) {
+		return;
+	}
+	dump_tree_descriptor(root, depth);
+	uint8_t *child = usb_dp_get_nested_descriptor(parser, data, root);
+	do {
+		dump_tree_internal(parser, data, child, depth + 1);
+		child = usb_dp_get_sibling_descriptor(parser, data, root, child);
+	} while (child != NULL);
+}
+
+static void dump_tree(usb_dp_parser_t *parser, usb_dp_parser_data_t *data)
+{
+	uint8_t *ptr = data->data;
+	printf("Descriptor tree:\n");
+	dump_tree_internal(parser, data, ptr, 1);
+}
+
+#define NESTING(parentname, childname) \
+	{ \
+		.child = USB_DESCTYPE_##childname, \
+		.parent = USB_DESCTYPE_##parentname, \
+	}
+#define LAST_NESTING { -1, -1 }
+
+static usb_dp_descriptor_nesting_t descriptor_nesting[] = {
+	NESTING(CONFIGURATION, INTERFACE),
+	NESTING(INTERFACE, ENDPOINT),
+	NESTING(INTERFACE, HUB),
+	NESTING(INTERFACE, HID),
+	NESTING(HID, HID_REPORT),
+	LAST_NESTING
+};
+
+static usb_dp_parser_t parser = {
+	.nesting = descriptor_nesting
+};
+
+void dump_descriptor_tree(uint8_t *descriptors, size_t length)
+{
+	usb_dp_parser_data_t data = {
+		.data = descriptors,
+		.size = length,
+		.arg = NULL
+	};
+
+	dump_tree(&parser, &data);
+}
 
 /** @}
  */
