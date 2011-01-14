@@ -35,6 +35,7 @@ SOURCES = \
 	src/addrkeep.c \
 	src/class.c \
 	src/debug.c \
+	src/dp.c \
 	src/drvpsync.c \
 	src/hcdhubd.c \
 	src/hcdrv.c \

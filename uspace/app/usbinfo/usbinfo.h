@@ -49,6 +49,7 @@ void dump_standard_device_descriptor(usb_standard_device_descriptor_t *);
 void dump_standard_configuration_descriptor(int, 
     usb_standard_configuration_descriptor_t *);
 int dump_device(int, usb_address_t);
+void dump_descriptor_tree(uint8_t *, size_t);
 
 static inline void internal_error(int err)
 {

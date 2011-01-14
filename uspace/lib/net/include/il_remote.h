@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Lukas Mejdrech
+ * Copyright (c) 2009 Lukas Mejdrech
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,24 +26,34 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup tcp
+/** @addtogroup libnet
  * @{
  */
 
 /** @file
- * TCP module functions.
- * The functions are used as TCP module entry points.
+ * Internetwork layer module interface for the underlying network interface
+ * layer. This interface is always called by the remote modules.
  */
 
-#ifndef NET_TCP_MODULE_H_
-#define NET_TCP_MODULE_H_
+#ifndef LIBNET_IL_REMOTE_H_
+#define LIBNET_IL_REMOTE_H_
 
-#include <async.h>
-#include <ipc/ipc.h>
+#include <ipc/services.h>
+#include <sys/types.h>
 
-extern int tcp_initialize(async_client_conn_t);
-extern int tcp_message_standalone(ipc_callid_t, ipc_call_t *, ipc_call_t *,
-    size_t *);
+#include <net/device.h>
+#include <net/packet.h>
+
+/** @name Internetwork layer module interface
+ * This interface is used by other modules.
+ */
+/*@{*/
+
+extern int il_device_state_msg(int, device_id_t, device_state_t, services_t);
+extern int il_received_msg(int, device_id_t, packet_t *, services_t);
+extern int il_mtu_changed_msg(int, device_id_t, size_t, services_t);
+
+/*@}*/
 
 #endif
 

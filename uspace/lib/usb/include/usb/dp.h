@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Lukas Mejdrech
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,32 +26,40 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup arp
- *  @{
+/** @addtogroup libusb
+ * @{
  */
-
 /** @file
- * ARP operation codes according to the on-line IANA - Address Resolution
- * Protocol (ARP) Parameters
- * http://www.iana.org/assignments/arp-parameters/arp-parameters.xml
- * cited January 14 2009.
+ * @brief USB descriptor parser.
  */
+#ifndef LIBUSB_DP_H_
+#define LIBUSB_DP_H_
 
-#ifndef NET_ARP_ARPOP_H_
-#define NET_ARP_ARPOP_H_
+#include <sys/types.h>
+#include <usb/usb.h>
+#include <usb/descriptor.h>
 
-/** @name ARP operation codes definitions */
-/*@{*/
+typedef struct {
+	int child;
+	int parent;
+} usb_dp_descriptor_nesting_t;
 
-/** REQUEST operation code. */
-#define ARPOP_REQUEST	1
+typedef struct {
+	usb_dp_descriptor_nesting_t *nesting;
+} usb_dp_parser_t;
 
-/** REPLY operation code. */
-#define ARPOP_REPLY	2
+typedef struct {
+	uint8_t *data;
+	size_t size;
+	void *arg;
+} usb_dp_parser_data_t;
 
-/*@}*/
+uint8_t *usb_dp_get_nested_descriptor(usb_dp_parser_t *,
+    usb_dp_parser_data_t *, uint8_t *);
+uint8_t *usb_dp_get_sibling_descriptor(usb_dp_parser_t *,
+    usb_dp_parser_data_t *, uint8_t *, uint8_t *);
 
 #endif
-
-/** @}
+/**
+ * @}
  */

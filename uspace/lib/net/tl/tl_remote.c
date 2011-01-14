@@ -26,60 +26,41 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup eth
+/** @addtogroup libnet
  * @{
  */
 
-/** @file
- *  Ethernet module stub.
- *  @see module.c
- */
+#include <tl_remote.h>
+#include <generic.h>
+#include <packet_client.h>
 
-#include "eth.h"
-
-#include <async.h>
-#include <stdio.h>
-#include <errno.h>
-
-#include <ipc/ipc.h>
 #include <ipc/services.h>
+#include <ipc/tl.h>
 
-#include <net/modules.h>
-#include <net_interface.h>
+#include <net/device.h>
 #include <net/packet.h>
-#include <nil_local.h>
 
-int nil_module_start_standalone(async_client_conn_t client_connection)
+/** Notify the remote transport layer modules about the received packet/s.
+ *
+ * @param[in] tl_phone  The transport layer module phone used for remote calls.
+ * @param[in] device_id The device identifier.
+ * @param[in] packet    The received packet or the received packet queue.
+ *                      The packet queue is used to carry a fragmented
+ *                      datagram. The first packet contains the headers,
+ *                      the others contain only data.
+ * @param[in] target    The target transport layer module service to be
+ *                      delivered to.
+ * @param[in] error     The packet error reporting service. Prefixes the
+ *                      received packet.
+ *
+ * @return EOK on success.
+ *
+ */
+int tl_received_msg(int tl_phone, device_id_t device_id, packet_t *packet,
+    services_t target, services_t error)
 {
-	sysarg_t phonehash;
-	int rc;
-	
-	async_set_client_connection(client_connection);
-	int net_phone = net_connect_module();
-
-	rc = pm_init();
-	if (rc != EOK)
-		return rc;
-	
-	rc = nil_initialize(net_phone);
-	if (rc != EOK)
-		goto out;
-
-	rc = ipc_connect_to_me(PHONE_NS, SERVICE_ETHERNET, 0, 0, &phonehash);
-	if (rc != EOK)
-		goto out;
-	
-	async_manager();
-
-out:
-	pm_destroy();
-	return rc;
-}
-
-int nil_module_message_standalone(const char *name, ipc_callid_t callid,
-    ipc_call_t *call, ipc_call_t *answer, size_t *count)
-{
-	return nil_message_standalone(name, callid, call, answer, count);
+	return generic_received_msg_remote(tl_phone, NET_TL_RECEIVED, device_id,
+	    packet_get_id(packet), target, error);
 }
 
 /** @}

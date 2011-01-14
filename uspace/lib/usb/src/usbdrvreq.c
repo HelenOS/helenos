@@ -59,7 +59,7 @@
  */
 #define PREPARE_SETUP_PACKET(name, p_direction, p_type, p_recipient, \
     p_request, p_value, p_index, p_length) \
-	usb_device_request_setup_packet_t setup_packet = { \
+	usb_device_request_setup_packet_t name = { \
 		.request_type = \
 			((p_direction) == USB_DIRECTION_IN ? 128 : 0) \
 			| ((p_type) << 5) \

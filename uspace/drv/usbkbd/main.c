@@ -89,8 +89,8 @@ static void send_key(int key, int type, wchar_t c) {
 /*
  * Callbacks for parser
  */
-static void usbkbd_process_keycodes(const uint16_t *key_codes, size_t count,
-                                    void *arg)
+static void usbkbd_process_keycodes(const uint8_t *key_codes, size_t count,
+                                    uint8_t modifiers, void *arg)
 {
 	printf("Got keys: ");
 	unsigned i;
@@ -189,6 +189,15 @@ static int usbkbd_process_descriptors(usb_hid_dev_kbd_t *kbd_dev)
 	}
 	
 	usbkbd_print_config(kbd_dev->conf);
+
+	/*
+	 * TODO: 
+	 * 1) select one configuration (lets say the first)
+	 * 2) how many interfaces?? how to select one??
+     *    ("The default setting for an interface is always alternate setting zero.")
+	 * 3) find endpoint which is IN and INTERRUPT (parse), save its number
+     *    as the endpoint for polling
+	 */
 	
 	return EOK;
 }
@@ -207,10 +216,19 @@ static usb_hid_dev_kbd_t *usbkbd_init_device(device_t *dev)
 
 	// get phone to my HC and save it as my parent's phone
 	// TODO: maybe not a good idea if DDF will use parent_phone
-	kbd_dev->device->parent_phone = usb_drv_hc_connect_auto(dev, 0);
+	int rc = kbd_dev->device->parent_phone = usb_drv_hc_connect_auto(dev, 0);
+	if (rc < 0) {
+		printf("Problem setting phone to HC.\n");
+		free(kbd_dev);
+		return NULL;
+	}
 
-	kbd_dev->address = usb_drv_get_my_address(dev->parent_phone,
-	    dev);
+	rc = kbd_dev->address = usb_drv_get_my_address(dev->parent_phone, dev);
+	if (rc < 0) {
+		printf("Problem getting address of the device.\n");
+		free(kbd_dev);
+		return NULL;
+	}
 
 	// doesn't matter now that we have no address
 //	if (kbd_dev->address < 0) {
@@ -238,18 +256,15 @@ static usb_hid_dev_kbd_t *usbkbd_init_device(device_t *dev)
 static void usbkbd_process_interrupt_in(usb_hid_dev_kbd_t *kbd_dev,
                                         uint8_t *buffer, size_t actual_size)
 {
-	/*
-	 * here, the parser will be called, probably with some callbacks
-	 * now only take last 6 bytes and process, i.e. send to kbd
-	 */
-
 	usb_hid_report_in_callbacks_t *callbacks =
 	    (usb_hid_report_in_callbacks_t *)malloc(
 		sizeof(usb_hid_report_in_callbacks_t));
 	callbacks->keyboard = usbkbd_process_keycodes;
 
-	usb_hid_parse_report(kbd_dev->parser, buffer, actual_size, callbacks, 
-	    NULL);
+	//usb_hid_parse_report(kbd_dev->parser, buffer, actual_size, callbacks, 
+	//    NULL);
+	printf("Calling usb_hid_boot_keyboard_input_report()...\n)");
+	usb_hid_boot_keyboard_input_report(buffer, actual_size, callbacks, NULL);
 }
 
 static void usbkbd_poll_keyboard(usb_hid_dev_kbd_t *kbd_dev)
