@@ -478,8 +478,8 @@ static void devman_forward(ipc_callid_t iid, ipc_call_t *icall,
 		return;
 	}
 
-	printf(NAME ": devman_forward: forward connection to device %s to "
-	    "driver %s.\n", dev->pathname, driver->name);
+//	printf(NAME ": devman_forward: forward connection to device %s to "
+//	    "driver %s.\n", dev->pathname, driver->name);
 	ipc_forward_fast(iid, driver->phone, method, dev->handle, 0, IPC_FF_NONE);
 }
 
