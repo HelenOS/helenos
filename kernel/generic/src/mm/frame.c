@@ -1085,6 +1085,11 @@ loop:
 	return (void *) PFN2ADDR(pfn);
 }
 
+void *frame_alloc(uint8_t order, frame_flags_t flags)
+{
+	return frame_alloc_generic(order, flags, NULL);
+}
+
 /** Free a frame.
  *
  * Find respective frame structure for supplied physical frame address.

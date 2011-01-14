@@ -155,11 +155,9 @@ NO_TRACE static inline bool zone_flags_available(zone_flags_t flags)
 #define IS_BUDDY_RIGHT_BLOCK_ABS(zone, frame) \
     (((frame_index_abs((zone), (frame)) >> (frame)->buddy_order) & 0x1) == 1)
 
-#define frame_alloc(order, flags) \
-    frame_alloc_generic((order), (flags), NULL)
-
 extern void frame_init(void);
 extern void *frame_alloc_generic(uint8_t, frame_flags_t, size_t *);
+extern void *frame_alloc(uint8_t, frame_flags_t);
 extern void frame_free(uintptr_t);
 extern void frame_reference_add(pfn_t);
 
