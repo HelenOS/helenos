@@ -152,7 +152,7 @@ int elf_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 		 * as COW.
 		 */
 		if (entry->p_flags & PF_W) {
-			frame = (uintptr_t)frame_alloc(ONE_FRAME, 0);
+			frame = (uintptr_t)frame_alloc_noreserve(ONE_FRAME, 0);
 			memcpy((void *) PA2KA(frame),
 			    (void *) (base + i * FRAME_SIZE), FRAME_SIZE);
 			if (entry->p_flags & PF_X) {
@@ -170,7 +170,7 @@ int elf_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 		 * To resolve the situation, a frame must be allocated
 		 * and cleared.
 		 */
-		frame = (uintptr_t)frame_alloc(ONE_FRAME, 0);
+		frame = (uintptr_t) frame_alloc_noreserve(ONE_FRAME, 0);
 		memsetb((void *) PA2KA(frame), FRAME_SIZE, 0);
 		dirty = true;
 	} else {
@@ -192,7 +192,7 @@ int elf_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 		else
 			pad_hi = 0;
 
-		frame = (uintptr_t)frame_alloc(ONE_FRAME, 0);
+		frame = (uintptr_t) frame_alloc_noreserve(ONE_FRAME, 0);
 		memcpy((void *) (PA2KA(frame) + pad_lo),
 		    (void *) (base + i * FRAME_SIZE + pad_lo),
 		    FRAME_SIZE - pad_lo - pad_hi);
@@ -251,7 +251,7 @@ void elf_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame)
 			 * Free the frame with the copy of writable segment
 			 * data.
 			 */
-			frame_free(frame);
+			frame_free_noreserve(frame);
 		}
 	} else {
 		/*
@@ -259,7 +259,7 @@ void elf_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame)
 		 * lower part is backed by the ELF image and the upper is
 		 * anonymous). In any case, a frame needs to be freed.
 		 */
-		frame_free(frame);
+		frame_free_noreserve(frame);
 	}
 }
 

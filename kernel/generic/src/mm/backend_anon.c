@@ -114,7 +114,8 @@ int anon_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 				}
 			}
 			if (allocate) {
-				frame = (uintptr_t) frame_alloc(ONE_FRAME, 0);
+				frame = (uintptr_t) frame_alloc_noreserve(
+				    ONE_FRAME, 0);
 				memsetb((void *) PA2KA(frame), FRAME_SIZE, 0);
 				
 				/*
@@ -144,7 +145,7 @@ int anon_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 		 *   do not forget to distinguish between
 		 *   the different causes
 		 */
-		frame = (uintptr_t) frame_alloc(ONE_FRAME, 0);
+		frame = (uintptr_t) frame_alloc_noreserve(ONE_FRAME, 0);
 		memsetb((void *) PA2KA(frame), FRAME_SIZE, 0);
 	}
 	
@@ -173,7 +174,7 @@ void anon_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame)
 	ASSERT(page_table_locked(area->as));
 	ASSERT(mutex_locked(&area->lock));
 
-	frame_free(frame);
+	frame_free_noreserve(frame);
 }
 
 /** Share the anonymous address space area.
