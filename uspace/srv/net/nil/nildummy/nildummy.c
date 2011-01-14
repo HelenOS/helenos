@@ -41,18 +41,18 @@
 #include <stdio.h>
 #include <str.h>
 #include <ipc/ipc.h>
+#include <ipc/nil.h>
 #include <ipc/net.h>
 #include <ipc/services.h>
 
 #include <net/modules.h>
 #include <net/device.h>
-#include <nil_interface.h>
-#include <il_interface.h>
+#include <il_remote.h>
 #include <adt/measured_strings.h>
 #include <net/packet.h>
 #include <packet_remote.h>
 #include <netif_remote.h>
-#include <nil_local.h>
+#include <nil_skel.h>
 
 #include "nildummy.h"
 
@@ -80,8 +80,6 @@ int nil_device_state_msg_local(int nil_phone, device_id_t device_id, int state)
 
 int nil_initialize(int net_phone)
 {
-	int rc;
-	
 	fibril_rwlock_initialize(&nildummy_globals.devices_lock);
 	fibril_rwlock_initialize(&nildummy_globals.protos_lock);
 	fibril_rwlock_write_lock(&nildummy_globals.devices_lock);
@@ -89,7 +87,7 @@ int nil_initialize(int net_phone)
 	
 	nildummy_globals.net_phone = net_phone;
 	nildummy_globals.proto.phone = 0;
-	rc = nildummy_devices_initialize(&nildummy_globals.devices);
+	int rc = nildummy_devices_initialize(&nildummy_globals.devices);
 	
 	fibril_rwlock_write_unlock(&nildummy_globals.protos_lock);
 	fibril_rwlock_write_unlock(&nildummy_globals.devices_lock);
@@ -97,17 +95,17 @@ int nil_initialize(int net_phone)
 	return rc;
 }
 
-/** Process IPC messages from the registered device driver modules in an
- * infinite loop.
+/** Process IPC messages from the registered device driver modules
  *
- * @param[in] iid	The message identifier.
- * @param[in,out]	icall The message parameters.
+ * @param[in]     iid   Message identifier.
+ * @param[in,out] icall Message parameters.
+ *
  */
 static void nildummy_receiver(ipc_callid_t iid, ipc_call_t *icall)
 {
 	packet_t *packet;
 	int rc;
-
+	
 	while (true) {
 		switch (IPC_GET_IMETHOD(*icall)) {
 		case NET_NIL_DEVICE_STATE:
@@ -119,10 +117,10 @@ static void nildummy_receiver(ipc_callid_t iid, ipc_call_t *icall)
 		case NET_NIL_RECEIVED:
 			rc = packet_translate_remote(nildummy_globals.net_phone,
 			    &packet, IPC_GET_PACKET(*icall));
-			if (rc == EOK) {
+			if (rc == EOK)
 				rc = nil_received_msg_local(0,
 				    IPC_GET_DEVICE(*icall), packet, 0);
-			}
+			
 			ipc_answer_0(iid, (sysarg_t) rc);
 			break;
 		
@@ -138,28 +136,27 @@ static void nildummy_receiver(ipc_callid_t iid, ipc_call_t *icall)
  *
  * Determine the device local hardware address.
  *
- * @param[in] device_id	The new device identifier.
- * @param[in] service	The device driver service.
- * @param[in] mtu	The device maximum transmission unit.
- * @return		EOK on success.
- * @return		EEXIST if the device with the different service exists.
- * @return		ENOMEM if there is not enough memory left.
- * @return		Other error codes as defined for the
- *			netif_bind_service() function.
- * @return		Other error codes as defined for the
- *			netif_get_addr_req() function.
+ * @param[in] device_id New device identifier.
+ * @param[in] service   Device driver service.
+ * @param[in] mtu       Device maximum transmission unit.
+ *
+ * @return EOK on success.
+ * @return EEXIST if the device with the different service exists.
+ * @return ENOMEM if there is not enough memory left.
+ * @return Other error codes as defined for the
+ *         netif_bind_service() function.
+ * @return Other error codes as defined for the
+ *         netif_get_addr_req() function.
+ *
  */
 static int nildummy_device_message(device_id_t device_id, services_t service,
     size_t mtu)
 {
-	nildummy_device_t *device;
-	int index;
-	int rc;
-
 	fibril_rwlock_write_lock(&nildummy_globals.devices_lock);
-
+	
 	/* An existing device? */
-	device = nildummy_devices_find(&nildummy_globals.devices, device_id);
+	nildummy_device_t *device =
+	    nildummy_devices_find(&nildummy_globals.devices, device_id);
 	if (device) {
 		if (device->service != service) {
 			printf("Device %d already exists\n", device->device_id);
@@ -212,8 +209,8 @@ static int nildummy_device_message(device_id_t device_id, services_t service,
 	}
 	
 	/* Get hardware address */
-	rc = netif_get_addr_req(device->phone, device->device_id, &device->addr,
-	    &device->addr_data);
+	int rc = netif_get_addr_req(device->phone, device->device_id,
+	    &device->addr, &device->addr_data);
 	if (rc != EOK) {
 		fibril_rwlock_write_unlock(&nildummy_globals.devices_lock);
 		free(device);
@@ -221,7 +218,7 @@ static int nildummy_device_message(device_id_t device_id, services_t service,
 	}
 	
 	/* Add to the cache */
-	index = nildummy_devices_add(&nildummy_globals.devices,
+	int index = nildummy_devices_add(&nildummy_globals.devices,
 	    device->device_id, device);
 	if (index < 0) {
 		fibril_rwlock_write_unlock(&nildummy_globals.devices_lock);
@@ -239,28 +236,31 @@ static int nildummy_device_message(device_id_t device_id, services_t service,
 
 /** Return the device hardware address.
  *
- * @param[in] device_id	The device identifier.
- * @param[out] address	The device hardware address.
- * @return		 EOK on success.
- * @return		EBADMEM if the address parameter is NULL.
- * @return		ENOENT if there no such device.
+ * @param[in]  device_id Device identifier.
+ * @param[out] address   Device hardware address.
+ *
+ * @return EOK on success.
+ * @return EBADMEM if the address parameter is NULL.
+ * @return ENOENT if there no such device.
  *
  */
 static int nildummy_addr_message(device_id_t device_id,
     measured_string_t **address)
 {
-	nildummy_device_t *device;
-
 	if (!address)
 		return EBADMEM;
 	
 	fibril_rwlock_read_lock(&nildummy_globals.devices_lock);
-	device = nildummy_devices_find(&nildummy_globals.devices, device_id);
+	
+	nildummy_device_t *device =
+	    nildummy_devices_find(&nildummy_globals.devices, device_id);
 	if (!device) {
 		fibril_rwlock_read_unlock(&nildummy_globals.devices_lock);
 		return ENOENT;
 	}
+	
 	*address = device->addr;
+	
 	fibril_rwlock_read_unlock(&nildummy_globals.devices_lock);
 	
 	return (*address) ? EOK : ENOENT;
@@ -268,32 +268,34 @@ static int nildummy_addr_message(device_id_t device_id,
 
 /** Return the device packet dimensions for sending.
  *
- * @param[in] device_id	The device identifier.
- * @param[out] addr_len	The minimum reserved address length.
- * @param[out] prefix	The minimum reserved prefix size.
- * @param[out] content	The maximum content size.
- * @param[out] suffix	The minimum reserved suffix size.
- * @return		EOK on success.
- * @return		EBADMEM if either one of the parameters is NULL.
- * @return		ENOENT if there is no such device.
+ * @param[in]  device_id Device identifier.
+ * @param[out] addr_len  Minimum reserved address length.
+ * @param[out] prefix    Minimum reserved prefix size.
+ * @param[out] content   Maximum content size.
+ * @param[out] suffix    Minimum reserved suffix size.
+ *
+ * @return EOK on success.
+ * @return EBADMEM if either one of the parameters is NULL.
+ * @return ENOENT if there is no such device.
  *
  */
 static int nildummy_packet_space_message(device_id_t device_id, size_t *addr_len,
     size_t *prefix, size_t *content, size_t *suffix)
 {
-	nildummy_device_t *device;
-
-	if (!addr_len || !prefix || !content || !suffix)
+	if ((!addr_len) || (!prefix) || (!content) || (!suffix))
 		return EBADMEM;
 	
 	fibril_rwlock_read_lock(&nildummy_globals.devices_lock);
-	device = nildummy_devices_find(&nildummy_globals.devices, device_id);
+	
+	nildummy_device_t *device =
+	    nildummy_devices_find(&nildummy_globals.devices, device_id);
 	if (!device) {
 		fibril_rwlock_read_unlock(&nildummy_globals.devices_lock);
 		return ENOENT;
 	}
-
+	
 	*content = device->mtu;
+	
 	fibril_rwlock_read_unlock(&nildummy_globals.devices_lock);
 	
 	*addr_len = 0;
@@ -305,17 +307,17 @@ static int nildummy_packet_space_message(device_id_t device_id, size_t *addr_len
 int nil_received_msg_local(int nil_phone, device_id_t device_id,
     packet_t *packet, services_t target)
 {
-	packet_t *next;
-
 	fibril_rwlock_read_lock(&nildummy_globals.protos_lock);
+	
 	if (nildummy_globals.proto.phone) {
 		do {
-			next = pq_detach(packet);
+			packet_t *next = pq_detach(packet);
 			il_received_msg(nildummy_globals.proto.phone, device_id,
 			    packet, nildummy_globals.proto.service);
 			packet = next;
-		} while(packet);
+		} while (packet);
 	}
+	
 	fibril_rwlock_read_unlock(&nildummy_globals.protos_lock);
 	
 	return EOK;
@@ -325,11 +327,13 @@ int nil_received_msg_local(int nil_phone, device_id_t device_id,
  *
  * Pass received packets for this service.
  *
- * @param[in] service	The module service.
- * @param[in] phone	The service phone.
- * @return		EOK on success.
- * @return		ENOENT if the service is not known.
- * @return		ENOMEM if there is not enough memory left.
+ * @param[in] service Module service.
+ * @param[in] phone   Service phone.
+ *
+ * @return EOK on success.
+ * @return ENOENT if the service is not known.
+ * @return ENOMEM if there is not enough memory left.
+ *
  */
 static int nildummy_register_message(services_t service, int phone)
 {
@@ -346,35 +350,39 @@ static int nildummy_register_message(services_t service, int phone)
 
 /** Send the packet queue.
  *
- * @param[in] device_id	The device identifier.
- * @param[in] packet	The packet queue.
- * @param[in] sender	The sending module service.
- * @return		EOK on success.
- * @return		ENOENT if there no such device.
- * @return		EINVAL if the service parameter is not known.
+ * @param[in] device_id Device identifier.
+ * @param[in] packet    Packet queue.
+ * @param[in] sender    Sending module service.
+ *
+ * @return EOK on success.
+ * @return ENOENT if there no such device.
+ * @return EINVAL if the service parameter is not known.
+ *
  */
 static int nildummy_send_message(device_id_t device_id, packet_t *packet,
     services_t sender)
 {
-	nildummy_device_t *device;
-
 	fibril_rwlock_read_lock(&nildummy_globals.devices_lock);
-	device = nildummy_devices_find(&nildummy_globals.devices, device_id);
+	
+	nildummy_device_t *device =
+	    nildummy_devices_find(&nildummy_globals.devices, device_id);
 	if (!device) {
 		fibril_rwlock_read_unlock(&nildummy_globals.devices_lock);
 		return ENOENT;
 	}
-
+	
 	/* Send packet queue */
 	if (packet)
 		netif_send_msg(device->phone, device_id, packet,
 		    SERVICE_NILDUMMY);
+	
 	fibril_rwlock_read_unlock(&nildummy_globals.devices_lock);
+	
 	return EOK;
 }
 
-int nil_message_standalone(const char *name, ipc_callid_t callid,
-    ipc_call_t *call, ipc_call_t *answer, size_t *answer_count)
+int nil_module_message(ipc_callid_t callid, ipc_call_t *call,
+    ipc_call_t *answer, size_t *answer_count)
 {
 	measured_string_t *address;
 	packet_t *packet;
@@ -433,54 +441,10 @@ int nil_message_standalone(const char *name, ipc_callid_t callid,
 	return ENOTSUP;
 }
 
-/** Default thread for new connections.
- *
- * @param[in] iid	The initial message identifier.
- * @param[in] icall	The initial message call structure.
- */
-static void nil_client_connection(ipc_callid_t iid, ipc_call_t *icall)
-{
-	/*
-	 * Accept the connection
-	 *  - Answer the first IPC_M_CONNECT_ME_TO call.
-	 */
-	ipc_answer_0(iid, EOK);
-	
-	while (true) {
-		ipc_call_t answer;
-		size_t count;
-		
-		/* Clear the answer structure */
-		refresh_answer(&answer, &count);
-		
-		/* Fetch the next message */
-		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
-		
-		/* Process the message */
-		int res = nil_module_message_standalone(NAME, callid, &call,
-		    &answer, &count);
-		
-		/*
-		 * End if told to either by the message or the processing
-		 * result.
-		 */
-		if ((IPC_GET_IMETHOD(call) == IPC_M_PHONE_HUNGUP) ||
-		    (res == EHANGUP))
-			return;
-		
-		/* Answer the message */
-		answer_call(callid, res, &answer, count);
-	}
-}
-
 int main(int argc, char *argv[])
 {
-	int rc;
-	
 	/* Start the module */
-	rc = nil_module_start_standalone(nil_client_connection);
-	return rc;
+	return nil_module_start(SERVICE_NILDUMMY);
 }
 
 /** @}

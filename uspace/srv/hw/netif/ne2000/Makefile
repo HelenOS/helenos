@@ -38,7 +38,7 @@ CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
 -include $(COMMON_MAKEFILE)
 -include $(CONFIG_MAKEFILE)
 
-BINARY = dp8390
+BINARY = ne2000
 
 SOURCES = \
 	dp8390.c \

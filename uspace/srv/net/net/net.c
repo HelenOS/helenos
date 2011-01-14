@@ -44,12 +44,14 @@
 #include <malloc.h>
 #include <stdio.h>
 #include <str.h>
+#include <str_error.h>
 
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <ipc/net.h>
 #include <ipc/net_net.h>
 #include <ipc/il.h>
+#include <ipc/nil.h>
 
 #include <net/modules.h>
 #include <net/packet.h>
@@ -61,7 +63,7 @@
 #include <adt/module_map.h>
 
 #include <netif_remote.h>
-#include <nil_interface.h>
+#include <nil_remote.h>
 #include <net_interface.h>
 #include <ip_interface.h>
 
@@ -287,8 +289,8 @@ static int net_initialize(async_client_conn_t client_connection)
 	    (uint8_t *) LO_FILENAME, SERVICE_LO, 0, connect_to_service);
 	if (rc != EOK)
 		return rc;
-	rc = add_module(NULL, &net_globals.modules, (uint8_t *) DP8390_NAME,
-	    (uint8_t *) DP8390_FILENAME, SERVICE_DP8390, 0, connect_to_service);
+	rc = add_module(NULL, &net_globals.modules, (uint8_t *) NE2000_NAME,
+	    (uint8_t *) NE2000_FILENAME, SERVICE_NE2000, 0, connect_to_service);
 	if (rc != EOK)
 		return rc;
 	rc = add_module(NULL, &net_globals.modules, (uint8_t *) ETHERNET_NAME,
@@ -330,7 +332,6 @@ static int net_module_start(async_client_conn_t client_connection)
 	rc = pm_init();
 	if (rc != EOK)
 		return rc;
-	
 	
 	rc = net_initialize(client_connection);
 	if (rc != EOK)
@@ -590,8 +591,11 @@ static int startup(void)
 		
 		rc = start_device(netif);
 		if (rc != EOK) {
+			printf("%s: Error starting interface %s (%s)\n", NAME,
+			    netif->name, str_error(rc));
 			measured_strings_destroy(&netif->configuration);
 			netifs_exclude_index(&net_globals.netifs, index);
+			
 			return rc;
 		}
 		
@@ -708,15 +712,7 @@ static void net_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 int main(int argc, char *argv[])
 {
-	int rc;
-	
-	rc = net_module_start(net_client_connection);
-	if (rc != EOK) {
-		fprintf(stderr, "%s: net_module_start error %i\n", NAME, rc);
-		return rc;
-	}
-	
-	return EOK;
+	return net_module_start(net_client_connection);
 }
 
 /** @}

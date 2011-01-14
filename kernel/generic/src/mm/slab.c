@@ -805,15 +805,10 @@ void slab_free(slab_cache_t *cache, void *obj)
 	_slab_free(cache, obj, NULL);
 }
 
-/** Go through all caches and reclaim what is possible
- *
- * Interrupts must be disabled before calling this function,
- * otherwise  memory allocation from interrupts can deadlock.
- *
- */
+/** Go through all caches and reclaim what is possible */
 size_t slab_reclaim(unsigned int flags)
 {
-	irq_spinlock_lock(&slab_cache_lock, false);
+	irq_spinlock_lock(&slab_cache_lock, true);
 	
 	size_t frames = 0;
 	link_t *cur;
@@ -823,7 +818,7 @@ size_t slab_reclaim(unsigned int flags)
 		frames += _slab_reclaim(cache, flags);
 	}
 	
-	irq_spinlock_unlock(&slab_cache_lock, false);
+	irq_spinlock_unlock(&slab_cache_lock, true);
 	
 	return frames;
 }

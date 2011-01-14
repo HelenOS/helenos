@@ -50,7 +50,7 @@
 #include <adt/measured_strings.h>
 #include <net/device.h>
 #include <netif_skel.h>
-#include <nil_interface.h>
+#include <nil_remote.h>
 #include "dp8390.h"
 
 /** Return the device from the interrupt call.
@@ -67,40 +67,67 @@
  */
 #define IRQ_GET_ISR(call)  ((int) IPC_GET_ARG2(call))
 
+/** Return the TSR from the interrupt call.
+ *
+ * @param[in] call The interrupt call.
+ *
+ */
+#define IRQ_GET_TSR(call)  ((int) IPC_GET_ARG3(call))
+
 static int irc_service = 0;
 static int irc_phone = -1;
 
-/** DP8390 kernel interrupt command sequence.
+/** NE2000 kernel interrupt command sequence.
  *
  */
 static irq_cmd_t ne2k_cmds[] = {
 	{
+		/* Read Interrupt Status Register */
 		.cmd = CMD_PIO_READ_8,
 		.addr = NULL,
 		.dstarg = 2
 	},
 	{
+		/* Mask supported interrupt causes */
 		.cmd = CMD_BTEST,
-		.value = 0x7f,
+		.value = (ISR_PRX | ISR_PTX | ISR_RXE | ISR_TXE | ISR_OVW |
+		    ISR_CNT | ISR_RDC),
 		.srcarg = 2,
 		.dstarg = 3,
 	},
 	{
+		/* Predicate for accepting the interrupt */
 		.cmd = CMD_PREDICATE,
-		.value = 2,
+		.value = 4,
 		.srcarg = 3
 	},
 	{
+		/*
+		 * Mask future interrupts via
+		 * Interrupt Mask Register
+		 */
+		.cmd = CMD_PIO_WRITE_8,
+		.addr = NULL,
+		.value = 0
+	},
+	{
+		/* Acknowledge the current interrupt */
 		.cmd = CMD_PIO_WRITE_A_8,
 		.addr = NULL,
 		.srcarg = 3
+	},
+	{
+		/* Read Transmit Status Register */
+		.cmd = CMD_PIO_READ_8,
+		.addr = NULL,
+		.dstarg = 3
 	},
 	{
 		.cmd = CMD_ACCEPT
 	}
 };
 
-/** DP8390 kernel interrupt code.
+/** NE2000 kernel interrupt code.
  *
  */
 static irq_code_t ne2k_code = {
@@ -110,7 +137,11 @@ static irq_code_t ne2k_code = {
 
 /** Handle the interrupt notification.
  *
- * This is the interrupt notification function.
+ * This is the interrupt notification function. It is quarantied
+ * that there is only a single instance of this notification
+ * function running at one time until the return from the
+ * ne2k_interrupt() function (where the interrupts are unmasked
+ * again).
  *
  * @param[in] iid  Interrupt notification identifier.
  * @param[in] call Interrupt notification.
@@ -133,8 +164,24 @@ static void irq_handler(ipc_callid_t iid, ipc_call_t *call)
 	
 	fibril_rwlock_read_unlock(&netif_globals.lock);
 	
-	if (ne2k != NULL)
-		ne2k_interrupt(ne2k, IRQ_GET_ISR(*call), nil_phone, device_id);
+	if (ne2k != NULL) {
+		link_t *frames =
+		    ne2k_interrupt(ne2k, IRQ_GET_ISR(*call), IRQ_GET_TSR(*call));
+		
+		if (frames != NULL) {
+			while (!list_empty(frames)) {
+				frame_t *frame =
+				    list_get_instance(frames->next, frame_t, link);
+				
+				list_remove(&frame->link);
+				nil_received_msg(nil_phone, device_id, frame->packet,
+				    SERVICE_NONE);
+				free(frame);
+			}
+			
+			free(frames);
+		}
+	}
 }
 
 /** Change the network interface state.
@@ -264,7 +311,9 @@ int netif_start_message(netif_device_t *device)
 		ne2k_t *ne2k = (ne2k_t *) device->specific;
 		
 		ne2k_cmds[0].addr = ne2k->port + DP_ISR;
-		ne2k_cmds[3].addr = ne2k_cmds[0].addr;
+		ne2k_cmds[3].addr = ne2k->port + DP_IMR;
+		ne2k_cmds[4].addr = ne2k_cmds[0].addr;
+		ne2k_cmds[5].addr = ne2k->port + DP_TSR;
 		
 		int rc = ipc_register_irq(ne2k->irq, device->device_id,
 		    device->device_id, &ne2k_code);
@@ -277,10 +326,10 @@ int netif_start_message(netif_device_t *device)
 			return rc;
 		}
 		
+		change_state(device, NETIF_ACTIVE);
+		
 		if (irc_service)
 			async_msg_1(irc_phone, IRC_ENABLE_INTERRUPT, ne2k->irq);
-		
-		change_state(device, NETIF_ACTIVE);
 	}
 	
 	return device->state;
@@ -296,7 +345,7 @@ int netif_stop_message(netif_device_t *device)
 		change_state(device, NETIF_STOPPED);
 	}
 	
-	return EOK;
+	return device->state;
 }
 
 int netif_send_message(device_id_t device_id, packet_t *packet,
@@ -348,7 +397,7 @@ int netif_initialize(void)
 	async_set_interrupt_received(irq_handler);
 	
 	sysarg_t phonehash;
-	return ipc_connect_to_me(PHONE_NS, SERVICE_DP8390, 0, 0, &phonehash);
+	return ipc_connect_to_me(PHONE_NS, SERVICE_NE2000, 0, 0, &phonehash);
 }
 
 int main(int argc, char *argv[])

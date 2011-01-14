@@ -26,23 +26,35 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ip
+/** @addtogroup libnet
  * @{
  */
 
 /** @file
- * IP module functions.
- * The functions are used as IP module entry points.
+ * Transport layer module interface for the underlying internetwork layer.
  */
 
-#ifndef NET_IP_MODULE_H_
-#define NET_IP_MODULE_H_
+#ifndef LIBNET_TL_REMOTE_H_
+#define LIBNET_TL_REMOTE_H_
 
-#include <ipc/ipc.h>
+#include <async.h>
+#include <ipc/services.h>
+#include <ipc/tl.h>
 
-extern int ip_initialize(async_client_conn_t);
-extern int ip_message_standalone(ipc_callid_t, ipc_call_t *, ipc_call_t *,
-    size_t *);
+#include <generic.h>
+#include <net/device.h>
+#include <net/packet.h>
+#include <packet_client.h>
+
+/** @name Transport layer module interface
+ * This interface is used by other modules.
+ */
+/*@{*/
+
+extern int tl_received_msg(int, device_id_t, packet_t *, services_t,
+    services_t);
+
+/*@}*/
 
 #endif
 
