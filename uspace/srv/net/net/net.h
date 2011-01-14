@@ -51,8 +51,8 @@
  * @{
  */
 
-#define DP8390_FILENAME  "/srv/dp8390"
-#define DP8390_NAME      "dp8390"
+#define NE2000_FILENAME  "/srv/ne2000"
+#define NE2000_NAME      "ne2000"
 
 #define ETHERNET_FILENAME  "/srv/eth"
 #define ETHERNET_NAME      "eth"

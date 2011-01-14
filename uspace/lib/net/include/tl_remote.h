@@ -31,27 +31,28 @@
  */
 
 /** @file
- * Internetwork layer module interface for the underlying network interface
- * layer. This interface is always called by the remote modules.
+ * Transport layer module interface for the underlying internetwork layer.
  */
 
-#ifndef LIBNET_IL_INTERFACE_H_
-#define LIBNET_IL_INTERFACE_H_
+#ifndef LIBNET_TL_REMOTE_H_
+#define LIBNET_TL_REMOTE_H_
 
+#include <async.h>
 #include <ipc/services.h>
-#include <sys/types.h>
+#include <ipc/tl.h>
 
+#include <generic.h>
 #include <net/device.h>
 #include <net/packet.h>
+#include <packet_client.h>
 
-/** @name Internetwork layer module interface
+/** @name Transport layer module interface
  * This interface is used by other modules.
  */
 /*@{*/
 
-extern int il_device_state_msg(int, device_id_t, device_state_t, services_t);
-extern int il_received_msg(int, device_id_t, packet_t *, services_t);
-extern int il_mtu_changed_msg(int, device_id_t, size_t, services_t);
+extern int tl_received_msg(int, device_id_t, packet_t *, services_t,
+    services_t);
 
 /*@}*/
 

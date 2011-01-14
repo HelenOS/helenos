@@ -26,45 +26,57 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libnet 
+/** @addtogroup libnet
  * @{
  */
 
-#ifndef LIBNET_IL_LOCAL_H_
-#define LIBNET_IL_LOCAL_H_
+#ifndef LIBNET_TL_SKEL_H_
+#define LIBNET_TL_SKEL_H_
 
-#include <ipc/ipc.h>
+/** @file
+ * Transport layer module skeleton.
+ * The skeleton has to be part of each transport layer module.
+ */
+
 #include <async.h>
+#include <fibril_synch.h>
+#include <ipc/ipc.h>
+#include <ipc/services.h>
 
-/** Processes the Internet layer module message.
- *
- * @param[in]		callid The message identifier.
- * @param[in]		call The message parameters.
- * @param[out]		answer The message answer parameters.
- * @param[out]		answer_count The last parameter for the actual answer in
- *			the answer parameter.
- * @return		EOK on success.
- * @return		Other error codes as defined for the arp_message()
- *			function.
- */
-extern int il_module_message_standalone(ipc_callid_t callid, ipc_call_t *call,
-    ipc_call_t *answer, size_t *answer_count);
+#include <adt/measured_strings.h>
+#include <net/device.h>
+#include <net/packet.h>
 
-/** Starts the Internet layer module.
+/** Module initialization.
  *
- * Initializes the client connection servicing function, initializes the module,
- * registers the module service and starts the async manager, processing IPC
- * messages in an infinite loop.
+ * This has to be implemented in user code.
  *
- * @param[in] client_connection The client connection processing function. The
- *			module skeleton propagates its own one.
- * @return		EOK on successful module termination.
- * @return		Other error codes as defined for the arp_initialize()
- *			function.
- * @return		Other error codes as defined for the REGISTER_ME() macro
- *			function.
+ * @param[in] net_phone Networking module phone.
+ *
+ * @return EOK on success.
+ * @return Other error codes as defined for each specific module
+ *         initialize function.
+ *
  */
-extern int il_module_start_standalone(async_client_conn_t client_connection);
+extern int tl_initialize(int net_phone);
+
+/** Process the transport layer module message.
+ *
+ * This has to be implemented in user code.
+ *
+ * @param[in]  callid Message identifier.
+ * @param[in]  call   Message parameters.
+ * @param[out] answer Answer.
+ * @param[out] count  Number of arguments of the answer.
+ *
+ * @return EOK on success.
+ * @return Other error codes as defined for each specific module.
+ *
+ */
+extern int tl_module_message(ipc_callid_t, ipc_call_t *,
+    ipc_call_t *, size_t *);
+
+extern int tl_module_start(int);
 
 #endif
 

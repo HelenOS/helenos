@@ -97,8 +97,7 @@ RD_SRVS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/srv/fs/tmpfs/tmpfs \
 	$(USPACE_PATH)/srv/fs/fat/fat \
 	$(USPACE_PATH)/srv/taskmon/taskmon \
-	$(USPACE_PATH)/srv/hw/netif/dp8390/dp8390 \
-	$(USPACE_PATH)/srv/hw/bus/usb/hcd/virtual/vhcd \
+	$(USPACE_PATH)/srv/hw/netif/ne2000/ne2000 \
 	$(USPACE_PATH)/srv/net/netif/lo/lo \
 	$(USPACE_PATH)/srv/net/nil/eth/eth \
 	$(USPACE_PATH)/srv/net/nil/nildummy/nildummy \
@@ -132,10 +131,8 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/redir/redir \
 	$(USPACE_PATH)/app/taskdump/taskdump \
 	$(USPACE_PATH)/app/tester/tester \
-	$(USPACE_PATH)/app/test_serial/test_serial \
 	$(USPACE_PATH)/app/tetris/tetris \
 	$(USPACE_PATH)/app/trace/trace \
-	$(USPACE_PATH)/app/netstart/netstart \
 	$(USPACE_PATH)/app/nettest1/nettest1 \
 	$(USPACE_PATH)/app/nettest2/nettest2 \
 	$(USPACE_PATH)/app/netecho/netecho \

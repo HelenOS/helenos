@@ -49,7 +49,7 @@ eth_type_t protocol_map(services_t nil, services_t il)
 {
 	switch (nil) {
 	case SERVICE_ETHERNET:
-	case SERVICE_DP8390:
+	case SERVICE_NE2000:
 		switch (il) {
 		case SERVICE_IP:
 			return ETH_P_IP;
@@ -75,7 +75,7 @@ services_t protocol_unmap(services_t nil, int protocol)
 {
 	switch (nil) {
 	case SERVICE_ETHERNET:
-	case SERVICE_DP8390:
+	case SERVICE_NE2000:
 		switch (protocol) {
 		case ETH_P_IP:
 			return SERVICE_IP;
@@ -138,7 +138,7 @@ hw_type_t hardware_map(services_t nil)
 {
 	switch (nil) {
 	case SERVICE_ETHERNET:
-	case SERVICE_DP8390:
+	case SERVICE_NE2000:
 		return HW_ETHER;
 	default:
 		return 0;
