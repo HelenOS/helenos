@@ -129,8 +129,8 @@ static int usbkbd_get_report_descriptor(usb_hid_dev_kbd_t *kbd_dev)
 
 		assert(actual_size == length);
 
-		dump_hid_class_descriptor(0, USB_DESCTYPE_HID_REPORT, 
-		    kbd_dev->conf->interfaces[i].report_desc, length);
+		//dump_hid_class_descriptor(0, USB_DESCTYPE_HID_REPORT, 
+		//    kbd_dev->conf->interfaces[i].report_desc, length);
 	}
 
 	return EOK;
