@@ -56,7 +56,7 @@ int uhci_in(
 	    usb_str_transfer_type(transfer_type),
 	    size);
 
-	callback( dev, size, USB_OUTCOME_OK, arg );
+	callback( dev, USB_OUTCOME_OK, size, arg );
 
 	return EOK;
 }
