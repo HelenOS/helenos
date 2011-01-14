@@ -31,7 +31,7 @@ int uhci_port_check(void *port)
 		/* debug print */
 		uhci_print_info("Port(%d) status %#.4x:\n",
 		  port_instance->number, port_status);
-		print_port_status( port_status );
+		print_port_status(port_status);
 
 		if (port_status & STATUS_CONNECTED_CHANGED) {
 			if (port_status & STATUS_CONNECTED) {
@@ -50,7 +50,6 @@ static int uhci_port_new_device(uhci_port_t *port)
 	assert(port);
 	assert(port->hc);
 
-
 	uhci_print_info("Adding new device on port %d.\n", port->number);
 
 	uhci_t *uhci_instance = (uhci_t*)(port->hc->driver_data);
@@ -66,10 +65,10 @@ static int uhci_port_new_device(uhci_port_t *port)
 	}
 
 	/* enable port */
-	uhci_port_set_enabled( port, true );
+	uhci_port_set_enabled(port, true);
 
 	/* assign address to device */
-	int ret = usb_drv_req_set_address( port->hc_phone, 0, usb_address );
+	int ret = usb_drv_req_set_address(port->hc_phone, 0, usb_address);
 
 
 	if (ret != EOK) { /* address assigning went wrong */
@@ -94,13 +93,12 @@ static int uhci_port_new_device(uhci_port_t *port)
 		return ENOMEM;
 	}
 
-
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
 static int uhci_port_remove_device(uhci_port_t *port)
 {
-	uhci_print_error(	"Don't know how to remove device %#x.\n",
+	uhci_print_error("Don't know how to remove device %#x.\n",
 		port->attached_device);
 	uhci_port_set_enabled(port, false);
 	return EOK;
@@ -120,10 +118,10 @@ static int uhci_port_set_enabled(uhci_port_t *port, bool enabled)
 	} else {
 		port_status &= ~STATUS_ENABLED;
 	}
-	port_status_write( port->address, port_status );
+	port_status_write(port->address, port_status);
 
-	uhci_print_info( "%s port %d.\n",
-	  enabled ? "Enabled" : "Disabled", port->number );
+	uhci_print_info("%s port %d.\n",
+	  enabled ? "Enabled" : "Disabled", port->number);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
