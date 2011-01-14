@@ -38,6 +38,7 @@
 #include <usb/devreq.h>
 #include <usb/descriptor.h>
 #include "descparser.h"
+#include "descdump.h"
 
 #define BUFFER_SIZE 32
 #define NAME "usbkbd"
@@ -108,17 +109,31 @@ static int usbkbd_get_report_descriptor(usb_hid_dev_kbd_t *kbd_dev)
 	// TODO: more configurations!!
 	unsigned i;
 	for (i = 0; i < kbd_dev->conf->config_descriptor.interface_count; ++i) {
-		uint8_t type = 
-		    kbd_dev->conf->interfaces[i].hid_desc.report_desc_info.type;
 		// TODO: endianness
 		uint16_t length = 
 		    kbd_dev->conf->interfaces[i].hid_desc.report_desc_info.length;
+		size_t actual_size = 0;
 
 		// allocate space for the report descriptor
 		kbd_dev->conf->interfaces[i].report_desc = (uint8_t *)malloc(length);
-		// get the descriptor from the device
 		
+		// get the descriptor from the device
+		int rc = usb_drv_req_get_descriptor(kbd_dev->device->parent_phone,
+		    kbd_dev->address, USB_REQUEST_TYPE_CLASS, USB_DESCTYPE_HID_REPORT, 
+		    0, i, kbd_dev->conf->interfaces[i].report_desc, length, 
+		    &actual_size);
+
+		if (rc != EOK) {
+			return rc;
+		}
+
+		assert(actual_size == length);
+
+		dump_hid_class_descriptor(0, USB_DESCTYPE_HID_REPORT, 
+		    kbd_dev->conf->interfaces[i].report_desc, length);
 	}
+
+	return EOK;
 }
 
 static int usbkbd_process_descriptors(usb_hid_dev_kbd_t *kbd_dev)
@@ -161,13 +176,21 @@ static int usbkbd_process_descriptors(usb_hid_dev_kbd_t *kbd_dev)
 	
 	rc = usbkbd_parse_descriptors(descriptors, transferred, kbd_dev->conf);
 	free(descriptors);
+	if (rc != EOK) {
+		printf("Problem with parsing standard descriptors.\n");
+		return rc;
+	}
 
 	// get and report descriptors
 	rc = usbkbd_get_report_descriptor(kbd_dev);
+	if (rc != EOK) {
+		printf("Problem with parsing HID REPORT descriptor.\n");
+		return rc;
+	}
 	
 	usbkbd_print_config(kbd_dev->conf);
 	
-	return rc;
+	return EOK;
 }
 
 static usb_hid_dev_kbd_t *usbkbd_init_device(device_t *dev)

@@ -124,6 +124,8 @@ void dump_standard_hid_descriptor_header(
 	printf(INDENT "bcdHID = %d\n", d->spec_release);
 	printf(INDENT "bCountryCode = %d\n", d->country_code);
 	printf(INDENT "bNumDescriptors = %d\n", d->class_desc_count);
+	printf(INDENT "bDescriptorType = %d\n", d->report_desc_info.type);
+	printf(INDENT "wDescriptorLength = %d\n", d->report_desc_info.length);
 }
 
 void dump_standard_hid_class_descriptor_info(

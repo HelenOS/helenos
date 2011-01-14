@@ -51,7 +51,7 @@ static void usbkbd_config_free(usb_hid_configuration_t *config)
 		if (iface->endpoints != NULL) {
 			free(config->interfaces[i].endpoints);
 		}
-		if (iface->class_desc_info != NULL) {
+		/*if (iface->class_desc_info != NULL) {
 			free(iface->class_desc_info);
 		}
 		if (iface->class_descs != NULL) {
@@ -63,7 +63,7 @@ static void usbkbd_config_free(usb_hid_configuration_t *config)
 					free(iface->class_descs[j]);
 				}
 			}
-		}
+		}*/
 	}
 	
 	free(config->interfaces);	
@@ -151,6 +151,8 @@ int usbkbd_parse_descriptors(const uint8_t *data, size_t size,
 				goto end;
 			}
 			ep_i = 0;
+
+			printf("Remaining size: %d\n", size - (size_t)(pos - data));
 			
 			break;
 		case USB_DESCTYPE_ENDPOINT:
@@ -183,8 +185,9 @@ int usbkbd_parse_descriptors(const uint8_t *data, size_t size,
 			
 			break;
 		case USB_DESCTYPE_HID:
-			if (desc_size < sizeof(usb_standard_hid_descriptor_t)
-			   + sizeof(usb_standard_hid_class_descriptor_info_t)) {
+			if (desc_size < sizeof(usb_standard_hid_descriptor_t)) {
+				printf("Wrong size of descriptor: %d (should be %d)\n",
+				    desc_size, sizeof(usb_standard_hid_descriptor_t));
 				ret = EINVAL;
 				goto end;
 			}
@@ -194,7 +197,7 @@ int usbkbd_parse_descriptors(const uint8_t *data, size_t size,
 			       sizeof(usb_standard_hid_descriptor_t));
 			pos += sizeof(usb_standard_hid_descriptor_t);
 			
-			if (actual_iface->hid_desc.class_desc_count
+			/*if (actual_iface->hid_desc.class_desc_count
 			    * sizeof(usb_standard_hid_class_descriptor_info_t)
 			    != desc_size 
 			        - sizeof(usb_standard_hid_descriptor_t)) {
@@ -202,20 +205,20 @@ int usbkbd_parse_descriptors(const uint8_t *data, size_t size,
 					"\n");
 				ret = EINVAL;
 				goto end;
-			}
+			}*/
 
 			printf("Parsed HID descriptor header: \n");
 			dump_standard_hid_descriptor_header(&actual_iface->hid_desc);
 			
 			// allocate space for all class-specific descriptor info
-			actual_iface->class_desc_info = 
+			/*actual_iface->class_desc_info = 
 			    (usb_standard_hid_class_descriptor_info_t *)malloc(
 			    actual_iface->hid_desc.class_desc_count
 			    * sizeof(usb_standard_hid_class_descriptor_info_t));
 			if (actual_iface->class_desc_info == NULL) {
 				ret = ENOMEM;
 				goto end;
-			}
+			}*/
 			
 			// allocate space for all class-specific descriptors
 			/*actual_iface->class_descs = (uint8_t **)calloc(
@@ -316,9 +319,12 @@ void usbkbd_print_config(const usb_hid_configuration_t *config)
 		}
 		dump_standard_hid_descriptor_header(&iface_d->hid_desc);
 		printf("\n");
+		dump_hid_class_descriptor(0, USB_DESCTYPE_HID_REPORT, 
+		    iface_d->report_desc, iface_d->hid_desc.report_desc_info.length);
+		printf("\n");
 //		printf("%d class-specific descriptors\n", 
 //		    iface_d->hid_desc.class_desc_count);
-		for (j = 0; j < iface_d->hid_desc.class_desc_count; ++j) {
+		/*for (j = 0; j < iface_d->hid_desc.class_desc_count; ++j) {
 			dump_standard_hid_class_descriptor_info(
 			    &iface_d->class_desc_info[j]);
 		}
@@ -328,6 +334,6 @@ void usbkbd_print_config(const usb_hid_configuration_t *config)
 			    iface_d->class_desc_info[j].type,
 			    iface_d->class_descs[j],
 			    iface_d->class_desc_info[j].length);
-		}
+		}*/
 	}
 }

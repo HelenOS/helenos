@@ -97,7 +97,7 @@ typedef struct {
 	 */
 	uint8_t class_desc_count;
 	/** First mandatory class descriptor (Report) info. */
-	usb_standard_hid_descriptor_class_item_t report_desc_info;
+	usb_standard_hid_class_descriptor_info_t report_desc_info;
 } __attribute__ ((packed)) usb_standard_hid_descriptor_t;
 
 /**
