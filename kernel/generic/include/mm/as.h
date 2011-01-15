@@ -230,9 +230,13 @@ typedef struct {
 
 /** Address space area backend structure. */
 typedef struct mem_backend {
+	bool (* create)(as_area_t *);
+	bool (* resize)(as_area_t *, size_t);
+	void (* share)(as_area_t *);
+	void (* destroy)(as_area_t *);
+
 	int (* page_fault)(as_area_t *, uintptr_t, pf_access_t);
 	void (* frame_free)(as_area_t *, uintptr_t, uintptr_t);
-	void (* share)(as_area_t *);
 } mem_backend_t;
 
 extern as_t *AS_KERNEL;

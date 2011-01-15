@@ -38,6 +38,7 @@
 
 #include <mm/as.h>
 #include <mm/page.h>
+#include <mm/reserve.h>
 #include <genarch/mm/page_pt.h>
 #include <genarch/mm/page_ht.h>
 #include <mm/frame.h>
@@ -54,15 +55,103 @@
 #include <arch/mm/cache.h>
 #endif
 
+static bool anon_create(as_area_t *);
+static bool anon_resize(as_area_t *, size_t);
+static void anon_share(as_area_t *area);
+static void anon_destroy(as_area_t *);
+
 static int anon_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access);
 static void anon_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame);
-static void anon_share(as_area_t *area);
 
 mem_backend_t anon_backend = {
+	.create = anon_create,
+	.resize = anon_resize,
+	.share = anon_share,
+	.destroy = anon_destroy,
+
 	.page_fault = anon_page_fault,
 	.frame_free = anon_frame_free,
-	.share = anon_share
 };
+
+bool anon_create(as_area_t *area)
+{
+	return reserve_try_alloc(area->pages);
+}
+
+bool anon_resize(as_area_t *area, size_t new_pages)
+{
+	/**
+	 * @todo
+	 * Reserve also space needed for the supporting strutures allocated
+	 * during page fault.
+	 */
+
+	if (new_pages > area->pages)
+		return reserve_try_alloc(new_pages - area->pages);
+	else if (new_pages < area->pages)
+		reserve_free(area->pages - new_pages);
+
+	return true;
+}
+
+/** Share the anonymous address space area.
+ *
+ * Sharing of anonymous area is done by duplicating its entire mapping
+ * to the pagemap. Page faults will primarily search for frames there.
+ *
+ * The address space and address space area must be already locked.
+ *
+ * @param area Address space area to be shared.
+ */
+void anon_share(as_area_t *area)
+{
+	link_t *cur;
+
+	ASSERT(mutex_locked(&area->as->lock));
+	ASSERT(mutex_locked(&area->lock));
+
+	/*
+	 * Copy used portions of the area to sh_info's page map.
+	 */
+	mutex_lock(&area->sh_info->lock);
+	for (cur = area->used_space.leaf_head.next;
+	    cur != &area->used_space.leaf_head; cur = cur->next) {
+		btree_node_t *node;
+		unsigned int i;
+		
+		node = list_get_instance(cur, btree_node_t, leaf_link);
+		for (i = 0; i < node->keys; i++) {
+			uintptr_t base = node->key[i];
+			size_t count = (size_t) node->value[i];
+			unsigned int j;
+			
+			for (j = 0; j < count; j++) {
+				pte_t *pte;
+			
+				page_table_lock(area->as, false);
+				pte = page_mapping_find(area->as,
+				    base + j * PAGE_SIZE);
+				ASSERT(pte && PTE_VALID(pte) &&
+				    PTE_PRESENT(pte));
+				btree_insert(&area->sh_info->pagemap,
+				    (base + j * PAGE_SIZE) - area->base,
+				    (void *) PTE_GET_FRAME(pte), NULL);
+				page_table_unlock(area->as, false);
+
+				pfn_t pfn = ADDR2PFN(PTE_GET_FRAME(pte));
+				frame_reference_add(pfn);
+			}
+
+		}
+	}
+	mutex_unlock(&area->sh_info->lock);
+}
+
+void anon_destroy(as_area_t *area)
+{
+	reserve_free(area->pages);
+}
+
 
 /** Service a page fault in the anonymous memory address space area.
  *
@@ -175,59 +264,6 @@ void anon_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame)
 	ASSERT(mutex_locked(&area->lock));
 
 	frame_free_noreserve(frame);
-}
-
-/** Share the anonymous address space area.
- *
- * Sharing of anonymous area is done by duplicating its entire mapping
- * to the pagemap. Page faults will primarily search for frames there.
- *
- * The address space and address space area must be already locked.
- *
- * @param area Address space area to be shared.
- */
-void anon_share(as_area_t *area)
-{
-	link_t *cur;
-
-	ASSERT(mutex_locked(&area->as->lock));
-	ASSERT(mutex_locked(&area->lock));
-
-	/*
-	 * Copy used portions of the area to sh_info's page map.
-	 */
-	mutex_lock(&area->sh_info->lock);
-	for (cur = area->used_space.leaf_head.next;
-	    cur != &area->used_space.leaf_head; cur = cur->next) {
-		btree_node_t *node;
-		unsigned int i;
-		
-		node = list_get_instance(cur, btree_node_t, leaf_link);
-		for (i = 0; i < node->keys; i++) {
-			uintptr_t base = node->key[i];
-			size_t count = (size_t) node->value[i];
-			unsigned int j;
-			
-			for (j = 0; j < count; j++) {
-				pte_t *pte;
-			
-				page_table_lock(area->as, false);
-				pte = page_mapping_find(area->as,
-				    base + j * PAGE_SIZE);
-				ASSERT(pte && PTE_VALID(pte) &&
-				    PTE_PRESENT(pte));
-				btree_insert(&area->sh_info->pagemap,
-				    (base + j * PAGE_SIZE) - area->base,
-				    (void *) PTE_GET_FRAME(pte), NULL);
-				page_table_unlock(area->as, false);
-
-				pfn_t pfn = ADDR2PFN(PTE_GET_FRAME(pte));
-				frame_reference_add(pfn);
-			}
-
-		}
-	}
-	mutex_unlock(&area->sh_info->lock);
 }
 
 /** @}
