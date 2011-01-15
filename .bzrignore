@@ -108,7 +108,8 @@ _link.ld
 ./uspace/srv/hw/char/s3c24xx_uart/s3c24ser
 ./uspace/srv/hw/irc/apic/apic
 ./uspace/srv/hw/irc/i8259/i8259
-./uspace/srv/hw/netif/dp8390/dp8390
+./uspace/srv/hw/netif/ne2000/dp8390
+./uspace/srv/hw/netif/ne2000/ne2000
 ./uspace/srv/loader/loader
 ./uspace/srv/net/cfg/lo
 ./uspace/srv/net/cfg/ne2k
