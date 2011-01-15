@@ -51,10 +51,6 @@
 #include <arch.h>
 #include <arch/barrier.h>
 
-#ifdef CONFIG_VIRT_IDX_DCACHE
-#include <arch/mm/cache.h>
-#endif
-
 static bool elf_create(as_area_t *);
 static bool elf_resize(as_area_t *, size_t);
 static void elf_share(as_area_t *);

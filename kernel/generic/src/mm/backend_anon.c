@@ -51,10 +51,6 @@
 #include <align.h>
 #include <arch.h>
 
-#ifdef CONFIG_VIRT_IDX_DCACHE
-#include <arch/mm/cache.h>
-#endif
-
 static bool anon_create(as_area_t *);
 static bool anon_resize(as_area_t *, size_t);
 static void anon_share(as_area_t *area);

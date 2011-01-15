@@ -78,10 +78,6 @@
 #include <syscall/copy.h>
 #include <arch/interrupt.h>
 
-#ifdef CONFIG_VIRT_IDX_DCACHE
-#include <arch/mm/cache.h>
-#endif /* CONFIG_VIRT_IDX_DCACHE */
-
 /**
  * Each architecture decides what functions will be used to carry out
  * address space operations such as creating or locking page tables.
