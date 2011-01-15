@@ -95,8 +95,8 @@ static void process_transaction_with_outcome(transaction_t * transaction,
 	    TRANSACTION_PRINTF(*transaction),
 	    usb_str_transaction_outcome(outcome));
 	
-	transaction->callback(transaction->buffer, transaction->len, outcome,
-	    transaction->callback_arg);
+	transaction->callback(transaction->buffer, transaction->actual_len,
+	    outcome, transaction->callback_arg);
 }
 
 /** Host controller manager main function.
@@ -168,6 +168,7 @@ static transaction_t *transaction_create(usbvirt_transaction_type_t type,
 	transaction->target = target;
 	transaction->buffer = buffer;
 	transaction->len = len;
+	transaction->actual_len = len;
 	transaction->callback = callback;
 	transaction->callback_arg = arg;
 	
