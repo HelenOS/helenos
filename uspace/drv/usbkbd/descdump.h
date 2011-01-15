@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2010 Lubos Slovak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,51 +25,27 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#ifndef USBHID_DESCDUMP_H_
+#define USBHID_DESCDUMP_H_
 
-#include <driver.h>
-#include <errno.h>
-#include <async.h>
+#include <usb/classes/hid.h>
 
-#include <usb/usbdrv.h>
+void dump_standard_configuration_descriptor(
+    int index, const usb_standard_configuration_descriptor_t *d);
 
-#include "usbhub.h"
-#include "usbhub_private.h"
+void dump_standard_interface_descriptor(
+    const usb_standard_interface_descriptor_t *d);
 
+void dump_standard_endpoint_descriptor(
+    const usb_standard_endpoint_descriptor_t *d);
 
-usb_general_list_t usb_hub_list;
-futex_t usb_hub_list_lock;
+void dump_standard_hid_descriptor_header(
+    const usb_standard_hid_descriptor_t *d);
 
-static driver_ops_t hub_driver_ops = {
-	.add_device = usb_add_hub_device,
-};
+void dump_standard_hid_class_descriptor_info(
+    const usb_standard_hid_class_descriptor_info_t *d);
 
-static driver_t hub_driver = {
-	.name = "usbhub",
-	.driver_ops = &hub_driver_ops
-};
+void dump_hid_class_descriptor(int index, uint8_t type, 
+    const uint8_t *d, size_t size);
 
-int usb_hub_control_loop(void * noparam){
-	while(true){
-		usb_hub_check_hub_changes();
-		async_usleep(1000 * 1000 );/// \TODO proper number once
-	}
-	return 0;
-}
-
-
-int main(int argc, char *argv[])
-{
-	usb_dprintf_enable(NAME,1);
-	futex_initialize(&usb_hub_list_lock, 0);
-	usb_lst_init(&usb_hub_list);
-	futex_up(&usb_hub_list_lock);
-	fid_t fid = fibril_create(usb_hub_control_loop, NULL);
-	if (fid == 0) {
-		dprintf(1, "failed to start fibril for HUB devices");
-		//printf("%s: failed to start fibril for HUB devices\n", NAME);
-		return ENOMEM;
-	}
-	fibril_add_ready(fid);
-
-	return driver_main(&hub_driver);
-}
+#endif /* USBHID_DESCDUMP_H_ */

@@ -45,6 +45,7 @@
 #include "usbhub.h"
 #include "usbhub_private.h"
 #include "port_status.h"
+#include "usb/usb.h"
 
 static usb_iface_t hub_usb_iface = {
 	.get_hc_handle = usb_drv_find_hc
@@ -84,12 +85,6 @@ usb_hub_info_t * usb_create_hub_info(device_t * device, int hc) {
 	result->usb_device->address = addr;
 
 	// get hub descriptor
-	usb_target_t target;
-	target.address = addr;
-	target.endpoint = 0;
-	usb_device_request_setup_packet_t request;
-	//printf("[usb_hub] creating descriptor request\n");
-	usb_hub_set_descriptor_request(&request);
 
 	//printf("[usb_hub] creating serialized descriptor\n");
 	void * serialized_descriptor = malloc(USB_HUB_MAX_DESCRIPTOR_SIZE);
@@ -97,9 +92,12 @@ usb_hub_info_t * usb_create_hub_info(device_t * device, int hc) {
 	size_t received_size;
 	int opResult;
 	//printf("[usb_hub] starting control transaction\n");
-	opResult = usb_drv_sync_control_read(
-			hc, target, &request, serialized_descriptor,
+	
+	opResult = usb_drv_req_get_descriptor(hc, addr,
+			USB_REQUEST_TYPE_CLASS,
+			USB_DESCTYPE_HUB, 0, 0, serialized_descriptor,
 			USB_HUB_MAX_DESCRIPTOR_SIZE, &received_size);
+
 	if (opResult != EOK) {
 		dprintf(1,"[usb_hub] failed when receiving hub descriptor, badcode = %d",opResult);
 		free(serialized_descriptor);
@@ -154,7 +152,6 @@ int usb_add_hub_device(device_t *dev) {
 	usb_hub_info_t * hub_info = usb_create_hub_info(dev, hc);
 	int port;
 	int opResult;
-	usb_device_request_setup_packet_t request;
 	usb_target_t target;
 	target.address = hub_info->usb_device->address;
 	target.endpoint = 0;
@@ -172,6 +169,7 @@ int usb_add_hub_device(device_t *dev) {
 	dprintf(1,"[usb_hub] hub has %d configurations",std_descriptor.configuration_count);
 	if(std_descriptor.configuration_count<1){
 		dprintf(1,"[usb_hub] THERE ARE NO CONFIGURATIONS AVAILABLE");
+		//shouldn`t I return?
 	}
 	/// \TODO check other configurations
 	usb_standard_configuration_descriptor_t config_descriptor;
@@ -183,17 +181,14 @@ int usb_add_hub_device(device_t *dev) {
 		return opResult;
 	}
 	//set configuration
-	request.request_type = 0;
-	request.request = USB_DEVREQ_SET_CONFIGURATION;
-	request.index=0;
-	request.length=0;
-	request.value_high=0;
-	request.value_low = config_descriptor.configuration_number;
-	opResult = usb_drv_sync_control_write(hc, target, &request, NULL, 0);
+	opResult = usb_drv_req_set_configuration(hc, target.address,
+    config_descriptor.configuration_number);
+
 	if (opResult != EOK) {
 		dprintf(1,"[usb_hub]something went wrong when setting hub`s configuration, %d", opResult);
 	}
 
+	usb_device_request_setup_packet_t request;
 	for (port = 1; port < hub_info->port_count+1; ++port) {
 		usb_hub_set_power_port_request(&request, port);
 		opResult = usb_drv_sync_control_write(hc, target, &request, NULL, 0);
@@ -228,7 +223,6 @@ int usb_add_hub_device(device_t *dev) {
 }
 
 
-
 //*********************************************
 //
 //  hub driver code, main loop
@@ -236,8 +230,8 @@ int usb_add_hub_device(device_t *dev) {
 //*********************************************
 
 /**
- * convenience function for releasing default address and writing debug info
- * (these few lines are used too often to be written again and again)
+ * Convenience function for releasing default address and writing debug info
+ * (these few lines are used too often to be written again and again).
  * @param hc
  * @return
  */
@@ -252,7 +246,7 @@ inline static int usb_hub_release_default_address(int hc){
 }
 
 /**
- * reset the port with new device and reserve the default address
+ * Reset the port with new device and reserve the default address.
  * @param hc
  * @param port
  * @param target
@@ -281,7 +275,7 @@ static void usb_hub_init_add_device(int hc, uint16_t port, usb_target_t target) 
 }
 
 /**
- * finalize adding new device after port reset
+ * Finalize adding new device after port reset
  * @param hc
  * @param port
  * @param target
@@ -344,7 +338,7 @@ static void usb_hub_finalize_add_device( usb_hub_info_t * hub,
 }
 
 /**
- * unregister device address in hc
+ * Unregister device address in hc
  * @param hc
  * @param port
  * @param target
@@ -354,7 +348,9 @@ static void usb_hub_removed_device(
 	//usb_device_request_setup_packet_t request;
 	int opResult;
 	
-	/// \TODO remove device
+	/** \TODO remove device from device manager - not yet implemented in
+	 * devide manager
+	 */
 
 	hub->attached_devs[port].devman_handle=0;
 	//close address
@@ -375,7 +371,7 @@ static void usb_hub_removed_device(
 }
 
 /**
- * process interrupts on given hub port
+ * Process interrupts on given hub port
  * @param hc
  * @param port
  * @param target
@@ -433,15 +429,17 @@ static void usb_hub_process_interrupt(usb_hub_info_t * hub, int hc,
 	usb_port_set_reset(&status, false);
 	usb_port_set_reset_completed(&status, false);
 	usb_port_set_dev_connected(&status, false);
-	if (status) {
-		dprintf(1,"[usb_hub]there was some unsupported change on port %d",port);
+	if (status>>16) {
+		dprintf(1,"[usb_hub]there was some unsupported change on port %d: %X",port,status);
+
 	}
 	/// \TODO handle other changes
 	/// \TODO debug log for various situations
 
 }
 
-/* Check changes on all known hubs.
+/**
+ * Check changes on all known hubs.
  */
 void usb_hub_check_hub_changes(void) {
 	/*
@@ -461,8 +459,8 @@ void usb_hub_check_hub_changes(void) {
 		usb_target_t target;
 		target.address = hub_info->usb_device->address;
 		target.endpoint = 1;/// \TODO get from endpoint descriptor
-		dprintf(1,"[usb_hub] checking changes for hub at addr %d",
-		    target.address);
+		/*dprintf(1,"[usb_hub] checking changes for hub at addr %d",
+		    target.address);*/
 
 		size_t port_count = hub_info->port_count;
 

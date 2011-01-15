@@ -39,7 +39,6 @@
  *
  * @param parser Opaque HID report parser structure.
  * @param data Data describing the report.
- * @param size Size of the descriptor in bytes.
  * @return Error code.
  */
 int usb_hid_parse_report_descriptor(usb_hid_report_parser_t *parser, 
@@ -54,7 +53,6 @@ int usb_hid_parse_report_descriptor(usb_hid_report_parser_t *parser,
  *
  * @param parser Opaque HID report parser structure.
  * @param data Data for the report.
- * @param size Size of the data in bytes.
  * @param callbacks Callbacks for report actions.
  * @param arg Custom argument (passed through to the callbacks).
  * @return Error code.
@@ -65,19 +63,93 @@ int usb_hid_parse_report(const usb_hid_report_parser_t *parser,
 {
 	int i;
 	
-	// TODO: parse report
+	/* main parsing loop */
+	while(0){
+	}
 	
-	uint16_t keys[6];
+	
+	uint8_t keys[6];
 	
 	for (i = 0; i < 6; ++i) {
 		keys[i] = data[i];
 	}
 	
-	callbacks->keyboard(keys, 6, arg);
-	
+	callbacks->keyboard(keys, 6, 0, arg);
+
 	return EOK;
 }
 
+/** Free the HID report parser structure 
+ *
+ * @param parser Opaque HID report parser structure
+ * @return Error code
+ */
+int usb_hid_free_report_parser(usb_hid_report_parser_t *parser)
+{
+
+	return EOK;
+}
+
+
+/**
+ * Parse input report.
+ *
+ * @param data Data for report
+ * @param size Size of report
+ * @param callbacks Callbacks for report actions
+ * @param arg Custom arguments
+ *
+ * @return Error code
+ */
+int usb_hid_boot_keyboard_input_report(const uint8_t *data, size_t size,
+	const usb_hid_report_in_callbacks_t *callbacks, void *arg)
+{
+	int i;
+	usb_hid_report_item_t item;
+
+	/* fill item due to the boot protocol report descriptor */
+	// modifier keys are in the first byte
+	uint8_t modifiers = data[0];
+
+	item.offset = 2; /* second byte is reserved */
+	item.size = 8;
+	item.count = 6;
+	item.usage_min = 0;
+	item.usage_max = 255;
+	item.logical_min = 0;
+	item.logical_max = 255;
+
+	if(size != 8){
+		return -1;
+	}
+
+	uint8_t keys[6];
+	for(i=item.offset; i<item.count; i++) {
+		keys[i-2] = data[i];
+	}
+
+	callbacks->keyboard(keys, 6, modifiers, arg);
+	return EOK;
+}
+
+/**
+ * Makes output report for keyboard boot protocol
+ *
+ * @param leds
+ * @param output Output report data buffer
+ * @param size Size of the output buffer
+ * @return Error code
+ */
+int usb_hid_boot_keyboard_output_report(uint8_t leds, uint8_t *data, size_t size)
+{
+	if(size != 1){
+		return -1;
+	}
+
+	/* used only first five bits, others are only padding*/
+	*data = leds;
+	return EOK;
+}
 
 /**
  * @}

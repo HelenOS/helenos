@@ -115,7 +115,7 @@ int main(int argc, char * argv[])
 	 */
 	sleep(5);
 
-	usb_dprintf_enable(NAME, 0);
+	usb_dprintf_enable(NAME, -1);
 
 	printf(NAME ": virtual USB host controller driver.\n");
 

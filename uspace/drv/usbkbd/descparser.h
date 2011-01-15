@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2010 Lubos Slovak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,51 +25,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#ifndef USBHID_DESCPARSER_H_
+#define USBHID_DESCPARSER_H_
 
-#include <driver.h>
-#include <errno.h>
-#include <async.h>
+#include <usb/classes/hid.h>
 
-#include <usb/usbdrv.h>
+int usbkbd_parse_descriptors(const uint8_t *data, size_t size,
+                             usb_hid_configuration_t *config);
 
-#include "usbhub.h"
-#include "usbhub_private.h"
+void usbkbd_print_config(const usb_hid_configuration_t *config);
 
-
-usb_general_list_t usb_hub_list;
-futex_t usb_hub_list_lock;
-
-static driver_ops_t hub_driver_ops = {
-	.add_device = usb_add_hub_device,
-};
-
-static driver_t hub_driver = {
-	.name = "usbhub",
-	.driver_ops = &hub_driver_ops
-};
-
-int usb_hub_control_loop(void * noparam){
-	while(true){
-		usb_hub_check_hub_changes();
-		async_usleep(1000 * 1000 );/// \TODO proper number once
-	}
-	return 0;
-}
-
-
-int main(int argc, char *argv[])
-{
-	usb_dprintf_enable(NAME,1);
-	futex_initialize(&usb_hub_list_lock, 0);
-	usb_lst_init(&usb_hub_list);
-	futex_up(&usb_hub_list_lock);
-	fid_t fid = fibril_create(usb_hub_control_loop, NULL);
-	if (fid == 0) {
-		dprintf(1, "failed to start fibril for HUB devices");
-		//printf("%s: failed to start fibril for HUB devices\n", NAME);
-		return ENOMEM;
-	}
-	fibril_add_ready(fid);
-
-	return driver_main(&hub_driver);
-}
+#endif
