@@ -186,7 +186,7 @@ int usbkbd_parse_descriptors(const uint8_t *data, size_t size,
 			break;
 		case USB_DESCTYPE_HID:
 			if (desc_size < sizeof(usb_standard_hid_descriptor_t)) {
-				printf("Wrong size of descriptor: %d (should be %d)\n",
+				printf("Wrong size of descriptor: %d (should be %zu)\n",
 				    desc_size, sizeof(usb_standard_hid_descriptor_t));
 				ret = EINVAL;
 				goto end;
