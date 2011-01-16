@@ -37,6 +37,7 @@ SOURCES = \
 	src/debug.c \
 	src/dp.c \
 	src/drvpsync.c \
+	src/dump.c \
 	src/hcdhubd.c \
 	src/hcdrv.c \
 	src/hidparser.c \
