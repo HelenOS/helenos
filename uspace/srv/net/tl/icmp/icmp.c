@@ -122,12 +122,12 @@ static int phone_net = -1;
 static int phone_ip = -1;
 static bool error_reporting = true;
 static bool echo_replying = true;
+static packet_dimension_t icmp_dimension;
 
 /** ICMP client identification counter */
 static atomic_t icmp_client;
-static packet_dimension_t icmp_dimension;
 
-/** ICMP identifier and sequence number */
+/** ICMP identifier and sequence number (client-specific) */
 static fibril_local icmp_param_t icmp_id;
 static fibril_local icmp_param_t icmp_seq;
 
@@ -141,8 +141,8 @@ static hash_index_t replies_hash(unsigned long key[])
 	 * ICMP identifier and sequence numbers
 	 * are 16-bit values.
 	 */
-	hash_index_t index = (key[0] & 0xffff) << 16 | (key[1] & 0xffff);
-	return index % REPLY_BUCKETS;
+	hash_index_t index = ((key[0] & 0xffff) << 16) | (key[1] & 0xffff);
+	return (index % REPLY_BUCKETS);
 }
 
 static int replies_compare(unsigned long key[], hash_count_t keys, link_t *item)
@@ -208,6 +208,12 @@ static int icmp_send_packet(icmp_type_t type, icmp_code_t code,
 	
 	header->type = type;
 	header->code = code;
+	
+	/*
+	 * The checksum needs to be calculated
+	 * with a virtual checksum field set to
+	 * zero.
+	 */
 	header->checksum = 0;
 	header->checksum = ICMP_CHECKSUM(header,
 	    packet_get_data_length(packet));
@@ -280,7 +286,6 @@ static icmp_header_t *icmp_prepare_packet(packet_t *packet)
  * @return EINVAL if the addrlen parameter is less or equal to
  *         zero.
  * @return ENOMEM if there is not enough memory left.
- * @return EPARTY if there was an internal error.
  *
  */
 static int icmp_echo(icmp_param_t id, icmp_param_t sequence, size_t size,
@@ -327,7 +332,7 @@ static int icmp_echo(icmp_param_t id, icmp_param_t sequence, size_t size,
 		return ENOMEM;
 	}
 	
-	bzero(header, sizeof(*header));
+	bzero(header, sizeof(icmp_header_t));
 	header->un.echo.identifier = id;
 	header->un.echo.sequence_number = sequence;
 	
@@ -438,6 +443,8 @@ static void icmp_process_echo_reply(packet_t *packet, icmp_header_t *header,
 {
 	unsigned long key[REPLY_KEYS] =
 	    {header->un.echo.identifier, header->un.echo.sequence_number};
+	
+	/* The packet is no longer needed */
 	icmp_release(packet);
 	
 	/* Find the pending reply */
@@ -696,6 +703,8 @@ int tl_initialize(int net_phone)
 }
 
 /** Per-connection initialization
+ *
+ * Initialize client-specific global variables.
  *
  */
 void tl_connection(void)
