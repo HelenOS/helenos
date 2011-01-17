@@ -95,8 +95,8 @@ int usbkbd_parse_descriptors(const uint8_t *data, size_t size,
 	    sizeof(usb_standard_configuration_descriptor_t));
 	pos += sizeof(usb_standard_configuration_descriptor_t);
 
-	printf("Parsed configuration descriptor: \n");
-	dump_standard_configuration_descriptor(0, &config->config_descriptor);
+	//printf("Parsed configuration descriptor: \n");
+	//dump_standard_configuration_descriptor(0, &config->config_descriptor);
 	
 	int ret = EOK;
 
@@ -138,8 +138,8 @@ int usbkbd_parse_descriptors(const uint8_t *data, size_t size,
 			memcpy(&actual_iface->iface_desc, pos, desc_size);
 			pos += desc_size;
 
-			printf("Parsed interface descriptor: \n");
-			dump_standard_interface_descriptor(&actual_iface->iface_desc);
+			//printf("Parsed interface descriptor: \n");
+			//dump_standard_interface_descriptor(&actual_iface->iface_desc);
 			
 			// allocate space for endpoint descriptors
 			uint8_t eps = actual_iface->iface_desc.endpoint_count;
@@ -152,7 +152,7 @@ int usbkbd_parse_descriptors(const uint8_t *data, size_t size,
 			}
 			ep_i = 0;
 
-			printf("Remaining size: %d\n", size - (size_t)(pos - data));
+			//printf("Remaining size: %d\n", size - (size_t)(pos - data));
 			
 			break;
 		case USB_DESCTYPE_ENDPOINT:
@@ -179,8 +179,8 @@ int usbkbd_parse_descriptors(const uint8_t *data, size_t size,
 			memcpy(&actual_iface->endpoints[ep_i], pos, desc_size);
 			pos += desc_size;
 
-			printf("Parsed endpoint descriptor: \n");
-			dump_standard_endpoint_descriptor(&actual_iface->endpoints[ep_i]);
+			//printf("Parsed endpoint descriptor: \n");
+			//dump_standard_endpoint_descriptor(&actual_iface->endpoints[ep_i]);
 			++ep_i;
 			
 			break;
@@ -207,8 +207,8 @@ int usbkbd_parse_descriptors(const uint8_t *data, size_t size,
 				goto end;
 			}*/
 
-			printf("Parsed HID descriptor header: \n");
-			dump_standard_hid_descriptor_header(&actual_iface->hid_desc);
+			//printf("Parsed HID descriptor header: \n");
+			//dump_standard_hid_descriptor_header(&actual_iface->hid_desc);
 			
 			// allocate space for all class-specific descriptor info
 			/*actual_iface->class_desc_info = 

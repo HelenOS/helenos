@@ -34,6 +34,7 @@
  */
 #include <usb/classes/hidparser.h>
 #include <errno.h>
+#include <stdio.h>
 
 /** Parse HID report descriptor.
  *
@@ -119,13 +120,13 @@ int usb_hid_boot_keyboard_input_report(const uint8_t *data, size_t size,
 	item.logical_min = 0;
 	item.logical_max = 255;
 
-	if(size != 8){
-		return -1;
+	if (size != 8) {
+		return ERANGE;
 	}
 
 	uint8_t keys[6];
-	for(i=item.offset; i<item.count; i++) {
-		keys[i-2] = data[i];
+	for (i = 0; i < item.count; i++) {
+		keys[i] = data[i + item.offset];
 	}
 
 	callbacks->keyboard(keys, 6, modifiers, arg);
