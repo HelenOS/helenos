@@ -40,10 +40,10 @@
 #include <ipc/services.h>
 #include <sys/time.h>
 
-/** Default timeout for incoming connections in microseconds. */
-#define ICMP_CONNECT_TIMEOUT	(1 * 1000 * 1000)
+/** Default timeout for incoming connections in microseconds (1 sec). */
+#define ICMP_CONNECT_TIMEOUT  1000000
 
-extern int icmp_connect_module(services_t, suseconds_t);
+extern int icmp_connect_module(suseconds_t);
 
 #endif
 

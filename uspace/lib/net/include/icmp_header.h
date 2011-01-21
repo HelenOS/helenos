@@ -44,28 +44,18 @@
 #include <net/icmp_codes.h>
 
 /** ICMP header size in bytes. */
-#define ICMP_HEADER_SIZE	sizeof(icmp_header_t)
-
-/** Type definition of the echo specific data.
- * @see icmp_echo
- */
-typedef struct icmp_echo icmp_echo_t;
+#define ICMP_HEADER_SIZE  sizeof(icmp_header_t)
 
 /** Echo specific data. */
-struct icmp_echo {
+typedef struct icmp_echo {
 	/** Message idintifier. */
 	icmp_param_t identifier;
 	/** Message sequence number. */
 	icmp_param_t sequence_number;
-} __attribute__ ((packed));
-
-/** Type definition of the internet control message header.
- * @see icmp_header
- */
-typedef struct icmp_header icmp_header_t;
+} __attribute__((packed)) icmp_echo_t;
 
 /** Internet control message header. */
-struct icmp_header {
+typedef struct icmp_header {
 	/** The type of the message. */
 	uint8_t type;
 	
@@ -82,11 +72,11 @@ struct icmp_header {
 	 * not match the contents, the datagram is discarded.
 	 */
 	uint16_t checksum;
-
+	
 	/** Message specific data. */
 	union {
 		/** Echo specific data. */
-		icmp_echo_t  echo;
+		icmp_echo_t echo;
 		/** Proposed gateway value. */
 		in_addr_t gateway;
 		
@@ -106,7 +96,7 @@ struct icmp_header {
 			icmp_param_t reserved;
 		} param;
 	} un;
-} __attribute__ ((packed));
+} __attribute__((packed)) icmp_header_t;
 
 #endif
 
