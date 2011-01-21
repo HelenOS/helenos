@@ -1,0 +1,6 @@
+{
+	"mapping1",
+	"Page mapping test",
+	&test_mapping1,
+	true
+},
