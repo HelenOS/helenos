@@ -202,6 +202,10 @@ int usb_drv_create_match_ids_from_configuration_descriptor(
 		    = ((uint8_t *) config_descriptor) + position;
 		uint8_t cur_descr_len = current_descriptor[0];
 		uint8_t cur_descr_type = current_descriptor[1];
+
+		if (cur_descr_len == 0) {
+			return ENOENT;
+		}
 		
 		position += cur_descr_len;
 		

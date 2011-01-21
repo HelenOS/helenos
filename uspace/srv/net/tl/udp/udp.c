@@ -60,7 +60,7 @@
 #include <ip_client.h>
 #include <ip_interface.h>
 #include <icmp_client.h>
-#include <icmp_interface.h>
+#include <icmp_remote.h>
 #include <net_interface.h>
 #include <socket_core.h>
 #include <tl_common.h>
@@ -392,8 +392,7 @@ int tl_initialize(int net_phone)
 	
 	udp_globals.net_phone = net_phone;
 	
-	udp_globals.icmp_phone = icmp_connect_module(SERVICE_ICMP,
-	    ICMP_CONNECT_TIMEOUT);
+	udp_globals.icmp_phone = icmp_connect_module(ICMP_CONNECT_TIMEOUT);
 	
 	udp_globals.ip_phone = ip_bind_service(SERVICE_IP, IPPROTO_UDP,
 	    SERVICE_UDP, udp_receiver);
@@ -877,6 +876,13 @@ static int udp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 	return res;
 }
 
+/** Per-connection initialization
+ *
+ */
+void tl_connection(void)
+{
+}
+
 /** Processes the UDP message.
  *
  * @param[in] callid	The message identifier.
@@ -890,7 +896,7 @@ static int udp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
  * @see udp_interface.h
  * @see IS_NET_UDP_MESSAGE()
  */
-int tl_module_message(ipc_callid_t callid, ipc_call_t *call,
+int tl_message(ipc_callid_t callid, ipc_call_t *call,
     ipc_call_t *answer, size_t *answer_count)
 {
 	*answer_count = 0;
