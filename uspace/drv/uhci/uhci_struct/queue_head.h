@@ -1,3 +1,4 @@
+
 /*
  * Copyright (c) 2010 Jan Vesely
  * All rights reserved.
@@ -31,49 +32,33 @@
 /** @file
  * @brief UHCI driver
  */
-#ifndef DRV_UHCI_TRANSFER_H
-#define DRV_UHCI_TRANSFER_H
+#ifndef DRV_UHCI_QH_H
+#define DRV_UHCI_QH_H
 
-/** Status field in UHCI Transfer Descriptor (TD) */
-typedef struct status {
-	uint8_t active:1;
-	uint8_t stalled:1;
-	uint8_t data_buffer_error:1;
-	uint8_t babble:1;
-	uint8_t nak:1;
-	uint8_t crc:1;
-	uint8_t bitstuff:1;
-	uint8_t :1; /* reserved */
-} status_t
+#include <assert.h>
 
-/** UHCI Transfer Descriptor */
-typedef struct td {
-	uint32_t fpl:28;
-	char :1; /* reserved */
-	uint8_t depth:1;
-	uint8_t qh:1;
-	uint8_t terminate:1;
+#include "translating_malloc.h"
+#include "link_pointer.h"
 
-	char :2; /* reserved */
-	uint8_t spd:1;
-	uint8_t error_count:2;
-	uint8_t low_speed:1;
-	uint8_t isochronous:1;
-	uint8_t ioc:1;
-	status_t status;
-	char :5; /* reserved */
-	uint16_t act_len:10;
+typedef struct queue_head {
+	link_pointer_t next_queue;
+	link_pointer_t element;
+} __attribute__((packed)) queue_head_t;
 
-	uint16_t maxlen:11;
-	char :1; /* reserved */
-	uint8_t toggle:1;
-	uint8_t end_point:4;
-	uint8_t address:7;
-	uint8_t pid;
+static inline void queue_head_init(queue_head_t *instance, uint32_t next_pa)
+{
+	assert(instance);
+	assert((next_pa & 0xf) == 0);
 
-	uint32_t buffer_ptr;
-} __attribute__(("packed")) td_t;
-
+	memset(instance, 0, sizeof(*instance));
+	instance->element.terminate = 1;
+	if (next_pa) {
+		instance->next_queue.terminate = 0;
+		instance->next_queue.addr = next_pa >> 4;
+	} else {
+		instance->element.terminate = 1;
+	}
+}
 
 #endif
 /**

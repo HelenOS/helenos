@@ -2,9 +2,13 @@
 #include <usb/debug.h>
 #include <usb/usb.h>
 
+#include "translating_malloc.h"
+
 #include "debug.h"
 #include "name.h"
 #include "uhci.h"
+
+static int init_tranfer_lists(transfer_list_t list[]);
 
 int uhci_init(device_t *device, void *regs)
 {
@@ -25,21 +29,71 @@ int uhci_init(device_t *device, void *regs)
 	int ret = pio_enable( regs, sizeof(regs_t), (void**)&io);
 	if (ret < 0) {
 		free( instance );
-		printf(NAME": Failed to gain access to registers at %p\n", io);
+		uhci_print_error("Failed to gain access to registers at %p\n", io);
 		return ret;
 	}
 	instance->registers = io;
 
 	/* init root hub */
-	ret = uhci_root_hub_init( &instance->root_hub, device,
-	  (char*)regs + UHCI_ROOT_HUB_PORT_REGISTERS_OFFSET );
+	ret = uhci_root_hub_init(&instance->root_hub, device,
+	  (char*)regs + UHCI_ROOT_HUB_PORT_REGISTERS_OFFSET);
 	if (ret < 0) {
-		free( instance );
-		printf(NAME": Failed to initialize root hub driver.\n");
+		free(instance);
+		uhci_print_error("Failed to initialize root hub driver.\n");
+		return ret;
+	}
+
+	instance->frame_list = trans_malloc(sizeof(frame_list_t));
+	if (instance->frame_list == NULL) {
+		uhci_print_error("Failed to allocate frame list pointer.\n");
+		uhci_root_hub_fini(&instance->root_hub);
+		free(instance);
+		return ENOMEM;
+	}
+
+	const uintptr_t pa = (uintptr_t)addr_to_phys(instance->frame_list);
+
+	pio_write_32(&instance->registers->flbaseadd, (uint32_t)pa);
+
+	ret = init_tranfer_lists(instance->transfers);
+	if (ret != EOK) {
+		uhci_print_error("Transfer list initialization failed.\n");
+		uhci_root_hub_fini(&instance->root_hub);
+		free(instance);
 		return ret;
 	}
 
 	device->driver_data = instance;
+	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+int init_tranfer_lists(transfer_list_t transfers[])
+{
+	//TODO:refactor
+	int ret;
+	ret = transfer_list_init(&transfers[USB_TRANSFER_BULK], NULL);
+	if (ret != EOK) {
+		uhci_print_error("Failed to inititalize bulk queue.\n");
+		return ret;
+	}
+
+	ret = transfer_list_init(
+	  &transfers[USB_TRANSFER_CONTROL], &transfers[USB_TRANSFER_BULK]);
+	if (ret != EOK) {
+		uhci_print_error("Failed to inititalize control queue.\n");
+		transfer_list_fini(&transfers[USB_TRANSFER_BULK]);
+		return ret;
+	}
+
+	ret = transfer_list_init(
+	  &transfers[USB_TRANSFER_INTERRUPT], &transfers[USB_TRANSFER_CONTROL]);
+	if (ret != EOK) {
+		uhci_print_error("Failed to interrupt control queue.\n");
+		transfer_list_fini(&transfers[USB_TRANSFER_CONTROL]);
+		transfer_list_fini(&transfers[USB_TRANSFER_BULK]);
+		return ret;
+	}
+
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/

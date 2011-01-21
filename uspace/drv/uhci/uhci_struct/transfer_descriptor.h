@@ -31,16 +31,58 @@
 /** @file
  * @brief UHCI driver
  */
-#ifndef DRV_UHCI_TD_PTR_H
-#define DRV_UHCI_TD_PTR_H
+#ifndef DRV_UHCI_TRANSFER_DESCRIPTOR_H
+#define DRV_UHCI_TRANSFER_DESCRIPTOR_H
 
-/** UHCI Transfer Descriptor pointer */
-typedef struct td_ptr {
+#include "callback.h"
+
+/** Status field in UHCI Transfer Descriptor (TD) */
+typedef struct status {
+	uint8_t active:1;
+	uint8_t stalled:1;
+	uint8_t data_buffer_error:1;
+	uint8_t babble:1;
+	uint8_t nak:1;
+	uint8_t crc:1;
+	uint8_t bitstuff:1;
+	uint8_t :1; /* reserved */
+} status_t;
+
+/** UHCI Transfer Descriptor */
+typedef struct transfer_descriptor {
 	uint32_t fpl:28;
-	char :2;
+	char :1; /* reserved */
+	uint8_t depth:1;
 	uint8_t qh:1;
 	uint8_t terminate:1;
-} __attribute__(("packed")) td_ptr_t;
+
+	char :2; /* reserved */
+	uint8_t spd:1;
+	uint8_t error_count:2;
+	uint8_t low_speed:1;
+	uint8_t isochronous:1;
+	uint8_t ioc:1;
+	status_t status;
+	char :5; /* reserved */
+	uint16_t act_len:10;
+
+	uint16_t maxlen:11;
+	char :1; /* reserved */
+	uint8_t toggle:1;
+	uint8_t end_point:4;
+	uint8_t address:7;
+	uint8_t pid;
+
+	uint32_t buffer_ptr;
+
+	/* there is 16 byte of data available here
+	 * those are used to store callback pointer
+	 * and next pointer. Thus there is some free space
+	 * on 32bits systems.
+	 */
+	struct transfer_descriptor *next;
+	callback_t *callback;
+} __attribute__((packed)) transfer_descriptor_t;
 
 #endif
 /**

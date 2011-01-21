@@ -31,69 +31,46 @@
 /** @file
  * @brief UHCI driver
  */
-#ifndef DRV_UHCI_UHCI_H
-#define DRV_UHCI_UHCI_H
+#ifndef DRV_UHCI_TRANSFER_LIST_H
+#define DRV_UHCI_TRANSFER_LIST_H
 
-#include <fibril.h>
+#include "debug.h"
+#include "translating_malloc.h"
+#include "uhci_struct/queue_head.h"
+#include "uhci_struct/transfer_descriptor.h"
 
-#include <usb/addrkeep.h>
-#include <usb/hcdhubd.h>
-#include <usbhc_iface.h>
+typedef struct transfer_list
+{
+	transfer_descriptor_t *first;
+	transfer_descriptor_t *last;
+	queue_head_t *queue_head;
+	uint32_t queue_head_pa;
+} transfer_list_t;
 
-#include "root_hub/root_hub.h"
-#include "uhci_struct/frame_list.h"
-#include "transfer_list.h"
+static inline int transfer_list_init(
+  transfer_list_t *instance, transfer_list_t *next)
+{
+	assert(instance);
+	instance->first = NULL;
+	instance->last = NULL;
+	instance->queue_head = trans_malloc(sizeof(queue_head_t));
+	if (!instance->queue_head) {
+		uhci_print_error("Failed to allocate queue head.\n");
+		return ENOMEM;
+	}
+	instance->queue_head_pa = (uintptr_t)addr_to_phys(instance->queue_head);
 
+	uint32_t next_pa = next ? next->queue_head_pa : 0;
+	queue_head_init(instance->queue_head, next_pa);
+	return EOK;
+}
 
-typedef struct uhci_regs {
-	uint16_t usbcmd;
-	uint16_t usbsts;
-	uint16_t usbintr;
-	uint16_t frnum;
-	uint32_t flbaseadd;
-	uint8_t sofmod;
-} regs_t;
-
-#define TRANSFER_QUEUES 4
-
-typedef struct uhci {
-	usb_address_keeping_t address_manager;
-	uhci_root_hub_t root_hub;
-	volatile regs_t *registers;
-
-	frame_list_t *frame_list;
-
-	transfer_list_t transfers[TRANSFER_QUEUES];
-} uhci_t;
-
-/* init uhci specifics in device.driver_data */
-int uhci_init( device_t *device, void *regs );
-
-int uhci_destroy( device_t *device );
-
-int uhci_in(
-  device_t *dev,
-	usb_target_t target,
-	usb_transfer_type_t transfer_type,
-	void *buffer, size_t size,
-	usbhc_iface_transfer_in_callback_t callback, void *arg
-	);
-
-int uhci_out(
-  device_t *dev,
-	usb_target_t target,
-  usb_transfer_type_t transfer_type,
-  void *buffer, size_t size,
-	usbhc_iface_transfer_out_callback_t callback, void *arg
-  );
-
-int uhci_setup(
-  device_t *dev,
-  usb_target_t target,
-  usb_transfer_type_t transfer_type,
-  void *buffer, size_t size,
-  usbhc_iface_transfer_out_callback_t callback, void *arg
-  );
+static inline void transfer_list_fini(transfer_list_t *instance)
+{
+	assert(instance);
+	if (instance->queue_head)
+		free(instance->queue_head);
+}
 
 #endif
 /**

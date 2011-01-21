@@ -31,13 +31,19 @@
 /** @file
  * @brief UHCI driver
  */
-#ifndef DRV_UHCI_LINK_PTR_H
-#define DRV_UHCI_LINK_PTR_H
+#ifndef DRV_UHCI_CALLBACK_H
+#define DRV_UHCI_CALLBACK_H
 
-#include "td_ptr.h"
+#include <usbhc_iface.h>
 
-/** Links in Frame List */
-typedef td_ptr_t link_ptr_t;
+typedef struct callback
+{
+	union {
+		usbhc_iface_transfer_in_callback_t callback_in;
+		usbhc_iface_transfer_out_callback_t callback_out;
+	};
+	void* buffer;
+} callback_t;
 
 #endif
 /**

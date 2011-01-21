@@ -31,71 +31,20 @@
 /** @file
  * @brief UHCI driver
  */
-#ifndef DRV_UHCI_UHCI_H
-#define DRV_UHCI_UHCI_H
+#ifndef DRV_UHCI_LINK_POINTER_H
+#define DRV_UHCI_LINK_POINTER_H
 
-#include <fibril.h>
-
-#include <usb/addrkeep.h>
-#include <usb/hcdhubd.h>
-#include <usbhc_iface.h>
-
-#include "root_hub/root_hub.h"
-#include "uhci_struct/frame_list.h"
-#include "transfer_list.h"
-
-
-typedef struct uhci_regs {
-	uint16_t usbcmd;
-	uint16_t usbsts;
-	uint16_t usbintr;
-	uint16_t frnum;
-	uint32_t flbaseadd;
-	uint8_t sofmod;
-} regs_t;
-
-#define TRANSFER_QUEUES 4
-
-typedef struct uhci {
-	usb_address_keeping_t address_manager;
-	uhci_root_hub_t root_hub;
-	volatile regs_t *registers;
-
-	frame_list_t *frame_list;
-
-	transfer_list_t transfers[TRANSFER_QUEUES];
-} uhci_t;
-
-/* init uhci specifics in device.driver_data */
-int uhci_init( device_t *device, void *regs );
-
-int uhci_destroy( device_t *device );
-
-int uhci_in(
-  device_t *dev,
-	usb_target_t target,
-	usb_transfer_type_t transfer_type,
-	void *buffer, size_t size,
-	usbhc_iface_transfer_in_callback_t callback, void *arg
-	);
-
-int uhci_out(
-  device_t *dev,
-	usb_target_t target,
-  usb_transfer_type_t transfer_type,
-  void *buffer, size_t size,
-	usbhc_iface_transfer_out_callback_t callback, void *arg
-  );
-
-int uhci_setup(
-  device_t *dev,
-  usb_target_t target,
-  usb_transfer_type_t transfer_type,
-  void *buffer, size_t size,
-  usbhc_iface_transfer_out_callback_t callback, void *arg
-  );
+/* UHCI link pointer, used by many data structures */
+typedef struct link_pointer {
+	uint32_t addr:28;
+	uint8_t zero:1;
+	uint8_t reserved:1;
+	uint8_t qh:1;
+	uint8_t terminate:1;
+} __attribute__((packed)) link_pointer_t;
 
 #endif
 /**
  * @}
  */
+

@@ -1,4 +1,3 @@
-
 /*
  * Copyright (c) 2010 Jan Vesely
  * All rights reserved.
@@ -32,15 +31,14 @@
 /** @file
  * @brief UHCI driver
  */
-#ifndef DRV_UHCI_QH_H
-#define DRV_UHCI_QH_H
+#ifndef DRV_UHCI_FRAME_LIST_H
+#define DRV_UHCI_FRAME_LIST_H
 
-#include "link_ptr.h"
+#include "link_pointer.h"
 
-typedef struct qh {
-	link_ptr_t
-} __attribute__(("packed")) link_ptr_t;
+#define UHCI_FRAME_LIST_COUNT 1024
 
+typedef link_pointer_t frame_list_t[UHCI_FRAME_LIST_COUNT];
 #endif
 /**
  * @}
