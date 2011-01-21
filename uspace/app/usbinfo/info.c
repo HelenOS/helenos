@@ -71,7 +71,7 @@ int dump_device(int hc_phone, usb_address_t address)
 		    str_error(rc));
 		return rc;
 	}
-	dump_standard_device_descriptor(&device_descriptor);
+	dump_usb_descriptor((uint8_t *)&device_descriptor, sizeof(device_descriptor));
 
 	/*
 	 * Get first configuration descriptor and dump it.
@@ -90,8 +90,7 @@ int dump_device(int hc_phone, usb_address_t address)
 		    str_error(rc));
 		return rc;
 	}
-	dump_standard_configuration_descriptor(config_index,
-	    &config_descriptor);
+	//dump_standard_configuration_descriptor(config_index, &config_descriptor);
 
 	void *full_config_descriptor = malloc(config_descriptor.total_length);
 	usb_dprintf(NAME, 1,
@@ -108,8 +107,6 @@ int dump_device(int hc_phone, usb_address_t address)
 		    str_error(rc));
 		return rc;
 	}
-	dump_buffer("Full configuration descriptor:",
-	    full_config_descriptor, config_descriptor.total_length);
 
 	dump_descriptor_tree(full_config_descriptor,
 	    config_descriptor.total_length);

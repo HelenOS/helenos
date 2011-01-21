@@ -39,7 +39,7 @@
 #include <bool.h>
 
 /** Maximum number of keys that can be pressed simultaneously. */
-#define KB_MAX_KEYS_AT_ONCE 4
+#define KB_MAX_KEYS_AT_ONCE 6
 
 /** Key code type. */
 typedef uint8_t kb_key_code_t;

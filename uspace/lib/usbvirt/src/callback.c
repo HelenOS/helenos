@@ -159,10 +159,13 @@ static void handle_in_transaction(usbvirt_device_t *device,
 			ipc_answer_0(iid, EINVAL);
 			return;
 		}
-		async_data_read_finalize(callid, buffer, receive_len);
+		if (len > receive_len) {
+			len = receive_len;
+		}
+		async_data_read_finalize(callid, buffer, len);
 	}
 	
-	ipc_answer_0(iid, rc);
+	ipc_answer_1(iid, rc, len);
 }
 
 /** Wrapper for getting device name. */
