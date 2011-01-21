@@ -63,7 +63,7 @@
 #include <ip_client.h>
 #include <ip_interface.h>
 #include <icmp_client.h>
-#include <icmp_interface.h>
+#include <icmp_remote.h>
 #include <net_interface.h>
 #include <socket_core.h>
 #include <tl_common.h>
@@ -1203,6 +1203,13 @@ void tcp_process_acknowledgement(socket_core_t *socket,
 	}
 }
 
+/** Per-connection initialization
+ *
+ */
+void tl_connection(void)
+{
+}
+
 /** Processes the TCP message.
  *
  * @param[in] callid	The message identifier.
@@ -1216,7 +1223,7 @@ void tcp_process_acknowledgement(socket_core_t *socket,
  * @see tcp_interface.h
  * @see IS_NET_TCP_MESSAGE()
  */
-int tl_module_message(ipc_callid_t callid, ipc_call_t *call,
+int tl_message(ipc_callid_t callid, ipc_call_t *call,
     ipc_call_t *answer, size_t *answer_count)
 {
 	assert(call);
@@ -2471,8 +2478,7 @@ int tl_initialize(int net_phone)
 	
 	tcp_globals.net_phone = net_phone;
 	
-	tcp_globals.icmp_phone = icmp_connect_module(SERVICE_ICMP,
-	    ICMP_CONNECT_TIMEOUT);
+	tcp_globals.icmp_phone = icmp_connect_module(ICMP_CONNECT_TIMEOUT);
 	tcp_globals.ip_phone = ip_bind_service(SERVICE_IP, IPPROTO_TCP,
 	    SERVICE_TCP, tcp_receiver);
 	if (tcp_globals.ip_phone < 0) {
