@@ -46,6 +46,7 @@ extern int as_area_change_flags(void *address, int flags);
 extern int as_area_destroy(void *address);
 extern void *set_maxheapsize(size_t mhs);
 extern void * as_get_mappable_page(size_t sz);
+extern int as_get_physical_mapping(void *address, uintptr_t *frame);
 
 #endif
 
