@@ -51,7 +51,7 @@ static driver_t hub_driver = {
 int usb_hub_control_loop(void * noparam){
 	while(true){
 		usb_hub_check_hub_changes();
-		async_usleep(1000 * 1000);
+		async_usleep(1000 * 1000 );/// \TODO proper number once
 	}
 	return 0;
 }

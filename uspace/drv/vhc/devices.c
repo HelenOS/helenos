@@ -137,6 +137,7 @@ usb_transaction_outcome_t virtdev_send_to_all(transaction_t *transaction)
 			async_wait_for(req, NULL);
 		} else {
 			async_wait_for(req, &answer_rc);
+			transaction->actual_len = IPC_GET_ARG1(answer_data);
 			rc = (int)answer_rc;
 		}
 	}

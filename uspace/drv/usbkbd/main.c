@@ -41,6 +41,7 @@
 #include "descparser.h"
 #include "descdump.h"
 #include "conv.h"
+#include "layout.h"
 
 #define BUFFER_SIZE 32
 #define NAME "usbkbd"
@@ -124,8 +125,16 @@ static unsigned mods = KM_NUM_LOCK;
  */
 static unsigned lock_keys;
 
+#define NUM_LAYOUTS 3
+
+static layout_op_t *layout[NUM_LAYOUTS] = {
+	&us_qwerty_op,
+	&us_dvorak_op,
+	&cz_op
+};
+
 // TODO: put to device?
-//static int active_layout = 0;
+static int active_layout = 0;
 
 static void kbd_push_ev(int type, unsigned int key)
 {
@@ -205,11 +214,11 @@ static void kbd_push_ev(int type, unsigned int key)
 	ev.key = key;
 	ev.mods = mods;
 
-	//ev.c = layout[active_layout]->parse_ev(&ev);
+	ev.c = layout[active_layout]->parse_ev(&ev);
 
 	printf("Sending key %d to the console\n", ev.key);
 	assert(console_callback_phone != -1);
-	async_msg_4(console_callback_phone, KBD_EVENT, ev.type, ev.key, ev.mods, 0);
+	async_msg_4(console_callback_phone, KBD_EVENT, ev.type, ev.key, ev.mods, ev.c);
 }
 /*
  * End of copy-paste
@@ -404,9 +413,9 @@ static void usbkbd_process_interrupt_in(usb_hid_dev_kbd_t *kbd_dev,
 
 	//usb_hid_parse_report(kbd_dev->parser, buffer, actual_size, callbacks, 
 	//    NULL);
-//	printf("Calling usb_hid_boot_keyboard_input_report() with size %d\n",
-//	    actual_size);
-//	dump_buffer("bufffer: ", buffer, actual_size);
+	printf("Calling usb_hid_boot_keyboard_input_report() with size %d\n",
+	    actual_size);
+	//dump_buffer("bufffer: ", buffer, actual_size);
 	int rc = usb_hid_boot_keyboard_input_report(buffer, actual_size, callbacks, 
 	    NULL);
 	if (rc != EOK) {
@@ -456,7 +465,7 @@ static void usbkbd_poll_keyboard(usb_hid_dev_kbd_t *kbd_dev)
 		 * This implies that no change happened since last query.
 		 */
 		if (actual_size == 0) {
-			printf("Keyboar returned NAK\n");
+			printf("Keyboard returned NAK\n");
 			continue;
 		}
 
@@ -464,8 +473,7 @@ static void usbkbd_poll_keyboard(usb_hid_dev_kbd_t *kbd_dev)
 		 * TODO: Process pressed keys.
 		 */
 		printf("Calling usbkbd_process_interrupt_in()\n");
-		// actual_size is not set, workaround...
-		usbkbd_process_interrupt_in(kbd_dev, buffer, /*actual_size*/8);
+		usbkbd_process_interrupt_in(kbd_dev, buffer, actual_size);
 	}
 
 	// not reached

@@ -35,6 +35,7 @@ SOURCES = \
 	main.c \
 	descparser.c \
 	descdump.c \
-	conv.c
+	conv.c \
+	us_qwerty.c
 
 include $(USPACE_PREFIX)/Makefile.common

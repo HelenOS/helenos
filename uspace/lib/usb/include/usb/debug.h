@@ -34,9 +34,13 @@
  */
 #ifndef LIBUSB_DEBUG_H_
 #define LIBUSB_DEBUG_H_
+#include <stdio.h>
+#include <usb/usb.h>
 
 void usb_dprintf(const char *tag, int level, const char *format, ...);
 void usb_dprintf_enable(const char *tag, int level);
 
+void usb_dump_standard_descriptor(FILE *, const char *, const char *,
+    const uint8_t *, size_t);
 
 #endif
