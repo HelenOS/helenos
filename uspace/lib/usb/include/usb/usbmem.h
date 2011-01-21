@@ -57,7 +57,10 @@
 
 #include <sys/types.h>
 
-extern void * mman_malloc(size_t size);
+extern void * mman_malloc(
+		size_t size,
+		size_t alignment,
+		unsigned long max_physical_address);
 
 extern void * mman_getVA(void * addr);
 
