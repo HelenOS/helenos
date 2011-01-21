@@ -133,7 +133,6 @@ static layout_op_t *layout[NUM_LAYOUTS] = {
 	&cz_op
 };
 
-// TODO: put to device?
 static int active_layout = 0;
 
 static void kbd_push_ev(int type, unsigned int key)
@@ -188,7 +187,7 @@ static void kbd_push_ev(int type, unsigned int key)
 	printf("mods: 0x%x\n", mods);
 	printf("keycode: %u\n", key);
 */
-	/*
+	
 	if (type == KEY_PRESS && (mods & KM_LCTRL) &&
 		key == KC_F1) {
 		active_layout = 0;
@@ -209,7 +208,7 @@ static void kbd_push_ev(int type, unsigned int key)
 		layout[active_layout]->reset();
 		return;
 	}
-	*/
+	
 	ev.type = type;
 	ev.key = key;
 	ev.mods = mods;
@@ -235,7 +234,7 @@ static void kbd_push_ev(int type, unsigned int key)
  * Callbacks for parser
  */
 static void usbkbd_process_keycodes(const uint8_t *key_codes, size_t count,
-                                    uint8_t modifiers, void *arg)
+    uint8_t modifiers, void *arg)
 {
 	printf("Got keys: ");
 	unsigned i;

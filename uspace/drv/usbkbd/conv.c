@@ -29,7 +29,7 @@
 #include <stdint.h>
 #include "conv.h"
 
-static int scanmap_simple[] = {
+static int scanmap_simple[255] = {
 
 //	[0x29] = KC_BACKTICK,
 
@@ -55,7 +55,7 @@ static int scanmap_simple[] = {
 	[0x15] = KC_R,
 	[0x16] = KC_S,
 	[0x17] = KC_T,
-	[0x12] = KC_U,
+	[0x18] = KC_U,
 	[0x19] = KC_V,
 	[0x1a] = KC_W,
 	[0x1b] = KC_X,
