@@ -34,6 +34,8 @@
 #ifndef DRV_UHCI_TRANSFER_DESCRIPTOR_H
 #define DRV_UHCI_TRANSFER_DESCRIPTOR_H
 
+#include <mem.h>
+#include <usb/usb.h>
 #include "callback.h"
 
 /** Status field in UHCI Transfer Descriptor (TD) */
@@ -69,7 +71,7 @@ typedef struct transfer_descriptor {
 	uint16_t maxlen:11;
 	char :1; /* reserved */
 	uint8_t toggle:1;
-	uint8_t end_point:4;
+	uint8_t endpoint:4;
 	uint8_t address:7;
 	uint8_t pid;
 
@@ -83,6 +85,31 @@ typedef struct transfer_descriptor {
 	struct transfer_descriptor *next;
 	callback_t *callback;
 } __attribute__((packed)) transfer_descriptor_t;
+
+static inline int transfer_descriptor_init(transfer_descriptor_t *instance,
+  int error_count, size_t size, bool isochronous, usb_target_t target,
+	int pid)
+{
+	assert(instance);
+	bzero(instance, sizeof(transfer_descriptor_t));
+
+	instance->depth = 1;
+	instance->terminate = 1;
+
+	assert(error_count < 4);
+	instance->error_count = error_count;
+	instance->status.active = 1;
+
+	assert(size < 1024);
+	instance->maxlen = size;
+
+	instance->address = target.address;
+	instance->endpoint = target.endpoint;
+
+	instance->pid = pid;
+
+	return EOK;
+}
 
 #endif
 /**

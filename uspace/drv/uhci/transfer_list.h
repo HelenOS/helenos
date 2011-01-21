@@ -69,7 +69,7 @@ static inline void transfer_list_fini(transfer_list_t *instance)
 {
 	assert(instance);
 	if (instance->queue_head)
-		free(instance->queue_head);
+		trans_free(instance->queue_head);
 }
 
 #endif

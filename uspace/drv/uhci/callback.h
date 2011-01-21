@@ -34,17 +34,58 @@
 #ifndef DRV_UHCI_CALLBACK_H
 #define DRV_UHCI_CALLBACK_H
 
+#include <mem.h>
 #include <usbhc_iface.h>
+
+#include "debug.h"
+#include "translating_malloc.h"
 
 typedef struct callback
 {
-	union {
-		usbhc_iface_transfer_in_callback_t callback_in;
-		usbhc_iface_transfer_out_callback_t callback_out;
-	};
-	void* buffer;
+	usbhc_iface_transfer_in_callback_t callback_in;
+	usbhc_iface_transfer_out_callback_t callback_out;
+	void *old_buffer;
+	void *new_buffer;
+	void *arg;
+	size_t buffer_size;
+	device_t *dev;
 } callback_t;
 
+
+static inline int callback_init(callback_t *instance, device_t *dev,
+  void *buffer, size_t size, usbhc_iface_transfer_in_callback_t func_in,
+  usbhc_iface_transfer_out_callback_t func_out, void *arg)
+{
+	assert(instance);
+	assert(func_in == NULL || func_out == NULL);
+	instance->new_buffer = trans_malloc(size);
+	if (!instance->new_buffer) {
+		uhci_print_error("Failed to allocate device acessible buffer.\n");
+		return ENOMEM;
+	}
+
+	if (func_out)
+		memcpy(instance->new_buffer, buffer, size);
+
+	instance->callback_out = func_out;
+	instance->callback_in = func_in;
+	instance->old_buffer = buffer;
+	instance->buffer_size = size;
+	instance->dev = dev;
+	return EOK;
+}
+#define callback_in_init(instance, dev, buffer, size, func, arg) \
+	callback_init(instance, dev, buffer, size, func, NULL, arg)
+
+#define callback_out_init(instance, dev, buffer, size, func, arg) \
+	callback_init(instance, dev, buffer, size, func, NULL, arg)
+
+static inline void callback_fini(callback_t *instance)
+{
+	assert(instance);
+	if (instance->new_buffer)
+		trans_free(instance->new_buffer);
+}
 #endif
 /**
  * @}

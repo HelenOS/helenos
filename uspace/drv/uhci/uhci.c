@@ -67,36 +67,6 @@ int uhci_init(device_t *device, void *regs)
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-int init_tranfer_lists(transfer_list_t transfers[])
-{
-	//TODO:refactor
-	int ret;
-	ret = transfer_list_init(&transfers[USB_TRANSFER_BULK], NULL);
-	if (ret != EOK) {
-		uhci_print_error("Failed to inititalize bulk queue.\n");
-		return ret;
-	}
-
-	ret = transfer_list_init(
-	  &transfers[USB_TRANSFER_CONTROL], &transfers[USB_TRANSFER_BULK]);
-	if (ret != EOK) {
-		uhci_print_error("Failed to inititalize control queue.\n");
-		transfer_list_fini(&transfers[USB_TRANSFER_BULK]);
-		return ret;
-	}
-
-	ret = transfer_list_init(
-	  &transfers[USB_TRANSFER_INTERRUPT], &transfers[USB_TRANSFER_CONTROL]);
-	if (ret != EOK) {
-		uhci_print_error("Failed to interrupt control queue.\n");
-		transfer_list_fini(&transfers[USB_TRANSFER_CONTROL]);
-		transfer_list_fini(&transfers[USB_TRANSFER_BULK]);
-		return ret;
-	}
-
-	return EOK;
-}
-/*----------------------------------------------------------------------------*/
 int uhci_in(
   device_t *dev,
 	usb_target_t target,
@@ -109,8 +79,35 @@ int uhci_in(
 	    target.address, target.endpoint,
 	    usb_str_transfer_type(transfer_type),
 	    size);
+	if (size >= 1024)
+		return ENOTSUP;
 
-	callback( dev, USB_OUTCOME_OK, size, arg );
+	callback_t *job = malloc(sizeof(callback_t));
+	if (job == NULL) {
+		uhci_print_error("Failed to allocate callback structure.\n");
+		return ENOMEM;
+	}
+
+#define CHECK_RET_FREE_JOB(r, message) \
+	if (r != EOK) { \
+		uhci_print_error(message); \
+		callback_fini(job); \
+		trans_free(job); \
+		return r; \
+	} else (void) 0
+
+	int ret = callback_in_init(job, dev, buffer, size, callback, arg);
+	CHECK_RET_FREE_JOB(ret, "Failed to initialize callback structure.\n");
+
+	transfer_descriptor_t *td = trans_malloc(sizeof(transfer_descriptor_t));
+	ret = (td == NULL) ? ENOMEM : EOK;
+	CHECK_RET_FREE_JOB(ret, "Failed to allocate tranfer descriptor.\n");
+
+	transfer_descriptor_init(td, 3, size, false, target, USB_PID_IN);
+
+
+	// TODO: add to list
+//	callback(dev, USB_OUTCOME_OK, size, arg);
 
 	return EOK;
 }
@@ -151,3 +148,34 @@ int uhci_setup(
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
+int init_tranfer_lists(transfer_list_t transfers[])
+{
+	//TODO:refactor
+	transfers[USB_TRANSFER_ISOCHRONOUS].first = NULL;
+	transfers[USB_TRANSFER_ISOCHRONOUS].last = NULL;
+	int ret;
+	ret = transfer_list_init(&transfers[USB_TRANSFER_BULK], NULL);
+	if (ret != EOK) {
+		uhci_print_error("Failed to inititalize bulk queue.\n");
+		return ret;
+	}
+
+	ret = transfer_list_init(
+	  &transfers[USB_TRANSFER_CONTROL], &transfers[USB_TRANSFER_BULK]);
+	if (ret != EOK) {
+		uhci_print_error("Failed to inititalize control queue.\n");
+		transfer_list_fini(&transfers[USB_TRANSFER_BULK]);
+		return ret;
+	}
+
+	ret = transfer_list_init(
+	  &transfers[USB_TRANSFER_INTERRUPT], &transfers[USB_TRANSFER_CONTROL]);
+	if (ret != EOK) {
+		uhci_print_error("Failed to interrupt control queue.\n");
+		transfer_list_fini(&transfers[USB_TRANSFER_CONTROL]);
+		transfer_list_fini(&transfers[USB_TRANSFER_BULK]);
+		return ret;
+	}
+
+	return EOK;
+}
