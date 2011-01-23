@@ -186,9 +186,7 @@ usb_transaction_outcome_t virtdev_send_to_all(transaction_t *transaction)
 				    transaction->target.endpoint,
 				    transaction->buffer, transaction->len,
 				    &tmp);
-				if (tmp < transaction->len) {
-					transaction->len = tmp;
-				}
+				transaction->actual_len = tmp;
 				break;
 				
 			case USBVIRT_TRANSACTION_OUT:
