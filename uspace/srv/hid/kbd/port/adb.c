@@ -71,7 +71,7 @@ int kbd_port_init(void)
 
 	/* NB: The callback connection is slotted for removal */
 	sysarg_t phonehash;
-	if (ipc_connect_to_me(dev_phone, 0, 0, 0, &phonehash) != 0) {
+	if (ipc_connect_to_me(dev_phone, 0, 0, 0, NULL, &phonehash) != 0) {
 		printf(NAME ": Failed to create callback from device\n");
 		return false;
 	}

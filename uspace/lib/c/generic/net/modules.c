@@ -144,7 +144,8 @@ int bind_service_timeout(services_t need, sysarg_t arg1, sysarg_t arg2,
 		/* Request the bidirectional connection */
 		sysarg_t phonehash;
 		
-		rc = ipc_connect_to_me(phone, arg1, arg2, arg3, &phonehash);
+		rc = ipc_connect_to_me(phone, arg1, arg2, arg3, NULL,
+		    &phonehash);
 		if (rc != EOK) {
 			ipc_hangup(phone);
 			return rc;

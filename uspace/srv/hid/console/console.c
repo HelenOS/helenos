@@ -726,7 +726,8 @@ static bool console_init(char *input)
 	
 	/* NB: The callback connection is slotted for removal */
 	sysarg_t phonehash;
-	if (ipc_connect_to_me(kbd_phone, SERVICE_CONSOLE, 0, 0, &phonehash) != 0) {
+	if (ipc_connect_to_me(kbd_phone, SERVICE_CONSOLE, 0, 0, NULL,
+	    &phonehash) != 0) {
 		printf(NAME ": Failed to create callback from input device\n");
 		return false;
 	}
@@ -748,7 +749,8 @@ static bool console_init(char *input)
 		goto skip_mouse;
 	}
 	
-	if (ipc_connect_to_me(mouse_phone, SERVICE_CONSOLE, 0, 0, &phonehash) != 0) {
+	if (ipc_connect_to_me(mouse_phone, SERVICE_CONSOLE, 0, 0, NULL,
+	    &phonehash) != 0) {
 		printf(NAME ": Failed to create callback from mouse device\n");
 		mouse_phone = -1;
 		goto skip_mouse;

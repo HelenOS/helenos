@@ -101,7 +101,7 @@ int fs_register(int vfs_phone, fs_reg_t *reg, vfs_info_t *info,
 	/*
 	 * Ask VFS for callback connection.
 	 */
-	ipc_connect_to_me(vfs_phone, 0, 0, 0, &reg->vfs_phonehash);
+	ipc_connect_to_me(vfs_phone, 0, 0, 0, NULL, &reg->vfs_phonehash);
 	
 	/*
 	 * Allocate piece of address space for PLB.
