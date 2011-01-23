@@ -46,6 +46,7 @@
 typedef struct {
 	sysarg_t args[IPC_CALL_LEN];
 	sysarg_t in_phone_hash;
+	sysarg_t in_task_hash;
 } ipc_call_t;
 
 typedef sysarg_t ipc_callid_t;
