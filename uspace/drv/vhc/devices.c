@@ -89,6 +89,20 @@ void virtdev_destroy_device(virtdev_connection_t *dev)
  */
 usb_transaction_outcome_t virtdev_send_to_all(transaction_t *transaction)
 {
+	/* For easier debugging. */
+	switch (transaction->type) {
+		case USBVIRT_TRANSACTION_SETUP:
+		case USBVIRT_TRANSACTION_OUT:
+			transaction->actual_len = transaction->len;
+			break;
+		case USBVIRT_TRANSACTION_IN:
+			transaction->actual_len = 0;
+			break;
+		default:
+			assert(false && "unreachable branch in switch()");
+	}
+	usb_transaction_outcome_t outcome = USB_OUTCOME_BABBLE;
+
 	link_t *pos;
 	list_foreach(pos, &devices) {
 		virtdev_connection_t *dev
@@ -140,6 +154,14 @@ usb_transaction_outcome_t virtdev_send_to_all(transaction_t *transaction)
 			transaction->actual_len = IPC_GET_ARG1(answer_data);
 			rc = (int)answer_rc;
 		}
+
+		/*
+		 * If at least one device was able to accept this
+		 * transaction and process it, we can announce success.
+		 */
+		if (rc == EOK) {
+			outcome = USB_OUTCOME_OK;
+		}
 	}
 	
 	/*
@@ -177,13 +199,14 @@ usb_transaction_outcome_t virtdev_send_to_all(transaction_t *transaction)
 				break;
 		}
 		dprintf(4, "transaction on hub processed...");
+		outcome = USB_OUTCOME_OK;
 	}
 	
 	/*
 	 * TODO: maybe screw some transactions to get more
 	 * real-life image.
 	 */
-	return USB_OUTCOME_OK;
+	return outcome;
 }
 
 /**
