@@ -55,6 +55,9 @@ static void tl_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	 */
 	ipc_answer_0(iid, EOK);
 	
+	/* Per-connection initialization */
+	tl_connection();
+	
 	while (true) {
 		ipc_call_t answer;
 		size_t count;
@@ -67,8 +70,7 @@ static void tl_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		ipc_callid_t callid = async_get_call(&call);
 		
 		/* Process the message */
-		int res = tl_module_message(callid, &call, &answer,
-		    &count);
+		int res = tl_message(callid, &call, &answer, &count);
 		
 		/*
 		 * End if told to either by the message or the processing

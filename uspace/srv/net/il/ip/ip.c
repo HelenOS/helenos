@@ -66,7 +66,7 @@
 #include <arp_interface.h>
 #include <net_checksum.h>
 #include <icmp_client.h>
-#include <icmp_interface.h>
+#include <icmp_remote.h>
 #include <ip_client.h>
 #include <ip_interface.h>
 #include <ip_header.h>

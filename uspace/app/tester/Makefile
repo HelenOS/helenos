@@ -52,6 +52,7 @@ SOURCES = \
 	ipc/ping_pong.c \
 	loop/loop1.c \
 	mm/malloc1.c \
+	mm/mapping1.c \
 	hw/misc/virtchar1.c \
 	hw/serial/serial1.c
 
