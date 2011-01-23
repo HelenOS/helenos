@@ -51,6 +51,7 @@
 #include <ddi/irq.h>
 #include <str.h>
 #include <arch/drivers/niagara.h>
+#include <sysinfo/sysinfo.h>
 
 memmap_t memmap;
 
@@ -108,6 +109,12 @@ void arch_pre_smp_init(void)
 
 void arch_post_smp_init(void)
 {
+	/* Currently the only supported platform for sparc64/sun4v is 'sun4v'. */
+	static const char *platform = "sun4v";
+
+	sysinfo_set_item_data("platform", NULL, (void *) platform,
+	    str_size(platform));
+
 	niagarain_init();
 }
 

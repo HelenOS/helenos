@@ -85,7 +85,7 @@ typedef struct {
 
 typedef struct {
 	int fs_handle;           /**< File system handle. */
-	ipcarg_t vfs_phonehash;  /**< Initial VFS phonehash. */
+	sysarg_t vfs_phonehash;  /**< Initial VFS phonehash. */
 	uint8_t *plb_ro;         /**< Read-only PLB view. */
 } fs_reg_t;
 

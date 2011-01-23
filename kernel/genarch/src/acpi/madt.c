@@ -164,7 +164,7 @@ static void madt_io_apic_entry(struct madt_io_apic *ioa, size_t i)
 	if (madt_io_apic_entry_cnt == 0) {
 		/* Remember index of the first io apic entry */
 		madt_io_apic_entry_index = i;
-		io_apic = (uint32_t *) (unative_t) ioa->io_apic_address;
+		io_apic = (uint32_t *) (sysarg_t) ioa->io_apic_address;
 	} else {
 		/* Currently not supported */
 	}
@@ -189,7 +189,7 @@ void acpi_madt_parse(void)
 	    (((uint8_t *) acpi_madt) + acpi_madt->header.length);
 	struct madt_apic_header *hdr;
 	
-	l_apic = (uint32_t *) (unative_t) acpi_madt->l_apic_address;
+	l_apic = (uint32_t *) (sysarg_t) acpi_madt->l_apic_address;
 	
 	/* Count MADT entries */
 	unsigned int madt_entries_index_cnt = 0;

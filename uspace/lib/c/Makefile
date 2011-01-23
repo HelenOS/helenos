@@ -58,7 +58,7 @@ GENERIC_SOURCES = \
 	generic/devmap.c \
 	generic/devman.c \
 	generic/device/hw_res.c \
-	generic/device/char.c \
+	generic/device/char_dev.c \
 	generic/event.c \
 	generic/errno.c \
 	generic/mem.c \
@@ -86,7 +86,7 @@ GENERIC_SOURCES = \
 	generic/sysinfo.c \
 	generic/ipc.c \
 	generic/async.c \
-	generic/async_rel.c \
+	generic/async_sess.c \
 	generic/loader.c \
 	generic/getopt.c \
 	generic/adt/list.o \

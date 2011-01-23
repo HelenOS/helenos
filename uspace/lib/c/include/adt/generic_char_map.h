@@ -61,11 +61,11 @@
 		int magic; \
 	}; \
 	\
-	int name##_add(name##_t *, const char *, const size_t, type *); \
+	int name##_add(name##_t *, const uint8_t *, const size_t, type *); \
 	int name##_count(name##_t *); \
 	void name##_destroy(name##_t *); \
-	void name##_exclude(name##_t *, const char *, const size_t); \
-	type *name##_find(name##_t *, const char *, const size_t); \
+	void name##_exclude(name##_t *, const uint8_t *, const size_t); \
+	type *name##_find(name##_t *, const uint8_t *, const size_t); \
 	int name##_initialize(name##_t *); \
 	int name##_is_valid(name##_t *);
 
@@ -73,13 +73,14 @@
  *
  * Should follow declaration with the same parameters.
  *
- * @param[in] name	Name of the map.
- * @param[in] type	Inner object type.
+ * @param[in] name Name of the map.
+ * @param[in] type Inner object type.
+ *
  */
 #define GENERIC_CHAR_MAP_IMPLEMENT(name, type) \
 	GENERIC_FIELD_IMPLEMENT(name##_items, type) \
 	\
-	int name##_add(name##_t *map, const char *name, const size_t length, \
+	int name##_add(name##_t *map, const uint8_t *name, const size_t length, \
 	     type *value) \
 	{ \
 		int rc; \
@@ -111,7 +112,7 @@
 		} \
 	} \
 	\
-	void name##_exclude(name##_t *map, const char *name, \
+	void name##_exclude(name##_t *map, const uint8_t *name, \
 	    const size_t length) \
 	{ \
 		if (name##_is_valid(map)) { \
@@ -123,7 +124,7 @@
 		} \
 	} \
 	\
-	type *name##_find(name##_t *map, const char *name, \
+	type *name##_find(name##_t *map, const uint8_t *name, \
 	    const size_t length) \
 	{ \
 		if (name##_is_valid(map)) { \

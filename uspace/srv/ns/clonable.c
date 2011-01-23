@@ -45,7 +45,7 @@
 /** Request for connection to a clonable service. */
 typedef struct {
 	link_t link;
-	ipcarg_t service;
+	sysarg_t service;
 	ipc_call_t call;
 	ipc_callid_t callid;
 } cs_req_t;
@@ -72,7 +72,7 @@ bool service_clonable(int service)
  * @param call    Pointer to call structure.
  *
  */
-void register_clonable(ipcarg_t service, ipcarg_t phone, ipc_call_t *call,
+void register_clonable(sysarg_t service, sysarg_t phone, ipc_call_t *call,
     ipc_callid_t callid)
 {
 	if (list_empty(&cs_req)) {
@@ -106,7 +106,7 @@ void register_clonable(ipcarg_t service, ipcarg_t phone, ipc_call_t *call,
  * @return Zero on success or a value from @ref errno.h.
  *
  */
-void connect_to_clonable(ipcarg_t service, ipc_call_t *call,
+void connect_to_clonable(sysarg_t service, ipc_call_t *call,
     ipc_callid_t callid)
 {
 	assert(service == SERVICE_LOAD);

@@ -61,17 +61,17 @@ void *_memcpy(void *dst, const void *src, size_t cnt)
 {
 	unsigned int i, j;
 	
-	if (ALIGN_UP((uintptr_t) src, sizeof(unative_t)) != (uintptr_t) src ||
-	    ALIGN_UP((uintptr_t) dst, sizeof(unative_t)) != (uintptr_t) dst) {
+	if (ALIGN_UP((uintptr_t) src, sizeof(sysarg_t)) != (uintptr_t) src ||
+	    ALIGN_UP((uintptr_t) dst, sizeof(sysarg_t)) != (uintptr_t) dst) {
 		for (i = 0; i < cnt; i++)
 			((uint8_t *) dst)[i] = ((uint8_t *) src)[i];
 	} else { 
-		for (i = 0; i < cnt / sizeof(unative_t); i++)
-			((unative_t *) dst)[i] = ((unative_t *) src)[i];
+		for (i = 0; i < cnt / sizeof(sysarg_t); i++)
+			((sysarg_t *) dst)[i] = ((sysarg_t *) src)[i];
 		
-		for (j = 0; j < cnt % sizeof(unative_t); j++)
-			((uint8_t *)(((unative_t *) dst) + i))[j] =
-			    ((uint8_t *)(((unative_t *) src) + i))[j];
+		for (j = 0; j < cnt % sizeof(sysarg_t); j++)
+			((uint8_t *)(((sysarg_t *) dst) + i))[j] =
+			    ((uint8_t *)(((sysarg_t *) src) + i))[j];
 	}
 		
 	return (char *) dst;

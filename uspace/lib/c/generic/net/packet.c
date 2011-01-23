@@ -190,7 +190,7 @@ void pm_destroy(void)
 		}
 	}
 	gpm_destroy(&pm_globals.packet_map);
-	// leave locked
+	/* leave locked */
 }
 
 /** Add packet to the sorted queue.

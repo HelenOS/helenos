@@ -46,8 +46,8 @@
 #include "screen.h"
 #include "top.h"
 
-static ipcarg_t warn_col = 0;
-static ipcarg_t warn_row = 0;
+static sysarg_t warn_col = 0;
+static sysarg_t warn_row = 0;
 
 static void screen_style_normal(void)
 {
@@ -61,19 +61,19 @@ static void screen_style_inverted(void)
 	console_set_style(fphone(stdout), STYLE_INVERTED);
 }
 
-static void screen_moveto(ipcarg_t col, ipcarg_t row)
+static void screen_moveto(sysarg_t col, sysarg_t row)
 {
 	fflush(stdout);
 	console_set_pos(fphone(stdout), col, row);
 }
 
-static void screen_get_pos(ipcarg_t *col, ipcarg_t *row)
+static void screen_get_pos(sysarg_t *col, sysarg_t *row)
 {
 	fflush(stdout);
 	console_get_pos(fphone(stdout), col, row);
 }
 
-static void screen_get_size(ipcarg_t *col, ipcarg_t *row)
+static void screen_get_size(sysarg_t *col, sysarg_t *row)
 {
 	fflush(stdout);
 	console_get_size(fphone(stdout), col, row);
@@ -93,15 +93,15 @@ static void screen_restart(bool clear)
 
 static void screen_newline(void)
 {
-	ipcarg_t cols;
-	ipcarg_t rows;
+	sysarg_t cols;
+	sysarg_t rows;
 	screen_get_size(&cols, &rows);
 	
-	ipcarg_t c;
-	ipcarg_t r;
+	sysarg_t c;
+	sysarg_t r;
 	screen_get_pos(&c, &r);
 	
-	ipcarg_t i;
+	sysarg_t i;
 	for (i = c + 1; i < cols; i++)
 		puts(" ");
 	
@@ -141,12 +141,12 @@ static void print_percent(fixed_float ffloat, unsigned int precision)
 
 static void print_string(const char *str)
 {
-	ipcarg_t cols;
-	ipcarg_t rows;
+	sysarg_t cols;
+	sysarg_t rows;
 	screen_get_size(&cols, &rows);
 	
-	ipcarg_t c;
-	ipcarg_t r;
+	sysarg_t c;
+	sysarg_t r;
 	screen_get_pos(&c, &r);
 	
 	if (c < cols) {
@@ -281,12 +281,12 @@ static inline void print_tasks_head(void)
 
 static inline void print_tasks(data_t *data)
 {
-	ipcarg_t cols;
-	ipcarg_t rows;
+	sysarg_t cols;
+	sysarg_t rows;
 	screen_get_size(&cols, &rows);
 	
-	ipcarg_t col;
-	ipcarg_t row;
+	sysarg_t col;
+	sysarg_t row;
 	screen_get_pos(&col, &row);
 	
 	size_t i;
@@ -328,12 +328,12 @@ static inline void print_ipc_head(void)
 
 static inline void print_ipc(data_t *data)
 {
-	ipcarg_t cols;
-	ipcarg_t rows;
+	sysarg_t cols;
+	sysarg_t rows;
 	screen_get_size(&cols, &rows);
 	
-	ipcarg_t col;
-	ipcarg_t row;
+	sysarg_t col;
+	sysarg_t row;
 	screen_get_pos(&col, &row);
 	
 	size_t i;
@@ -395,12 +395,12 @@ static inline void print_excs_head(void)
 
 static inline void print_excs(data_t *data)
 {
-	ipcarg_t cols;
-	ipcarg_t rows;
+	sysarg_t cols;
+	sysarg_t rows;
 	screen_get_size(&cols, &rows);
 	
-	ipcarg_t col;
-	ipcarg_t row;
+	sysarg_t col;
+	sysarg_t row;
 	screen_get_pos(&col, &row);
 	
 	size_t i;
@@ -438,12 +438,12 @@ static inline void print_excs(data_t *data)
 
 static void print_help(void)
 {
-	ipcarg_t cols;
-	ipcarg_t rows;
+	sysarg_t cols;
+	sysarg_t rows;
 	screen_get_size(&cols, &rows);
 	
-	ipcarg_t col;
-	ipcarg_t row;
+	sysarg_t col;
+	sysarg_t row;
 	screen_get_pos(&col, &row);
 	
 	screen_newline();

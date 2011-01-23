@@ -101,7 +101,6 @@ int main(int argc, char *argv[])
 
 	rc = devmap_device_register(NAMESPACE "/mouse", &ts->devmap_handle);
 	if (rc != EOK) {
-		devmap_hangup_phone(DEVMAP_DRIVER);
 		printf(NAME ": Unable to register device %s.\n",
 		    NAMESPACE "/mouse");
 		return -1;
@@ -381,7 +380,7 @@ static void s3c24xx_ts_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 	while (1) {
 		callid = async_get_call(&call);
-		switch (IPC_GET_METHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			if (ts->client_phone != -1) {
 				ipc_hangup(ts->client_phone);

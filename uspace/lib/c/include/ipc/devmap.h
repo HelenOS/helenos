@@ -39,7 +39,7 @@
 
 #define DEVMAP_NAME_MAXLEN  255
 
-typedef ipcarg_t devmap_handle_t;
+typedef sysarg_t devmap_handle_t;
 
 typedef enum {
 	DEV_HANDLE_NONE,

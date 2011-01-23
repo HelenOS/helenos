@@ -44,6 +44,7 @@
 #include <arch.h>
 #include <debug.h>
 #include <ddi/device.h>
+#include <interrupt.h>
 #include <ipc/sysipc.h>
 #include <synch/futex.h>
 #include <synch/smc.h>
@@ -55,8 +56,8 @@
 #include <udebug/udebug.h>
 
 /** Dispatch system call */
-unative_t syscall_handler(unative_t a1, unative_t a2, unative_t a3,
-    unative_t a4, unative_t a5, unative_t a6, unative_t id)
+sysarg_t syscall_handler(sysarg_t a1, sysarg_t a2, sysarg_t a3,
+    sysarg_t a4, sysarg_t a5, sysarg_t a6, sysarg_t id)
 {
 	/* Do userpace accounting */
 	irq_spinlock_lock(&THREAD->lock, true);
@@ -65,15 +66,21 @@ unative_t syscall_handler(unative_t a1, unative_t a2, unative_t a3,
 	
 #ifdef CONFIG_UDEBUG
 	/*
+	 * An istate_t-compatible record was created on the stack by the
+	 * low-level syscall handler. This is the userspace space state
+	 * structure.
+	 */
+	THREAD->udebug.uspace_state = istate_get(THREAD);
+
+	/*
 	 * Early check for undebugged tasks. We do not lock anything as this
 	 * test need not be precise in either direction.
-	 *
 	 */
 	if (THREAD->udebug.active)
 		udebug_syscall_event(a1, a2, a3, a4, a5, a6, id, 0, false);
 #endif
 	
-	unative_t rc;
+	sysarg_t rc;
 	if (id < SYSCALL_END) {
 		rc = syscall_table[id](a1, a2, a3, a4, a5, a6);
 	} else {
@@ -97,6 +104,9 @@ unative_t syscall_handler(unative_t a1, unative_t a2, unative_t a3,
 		udebug_stoppable_begin();
 		udebug_stoppable_end();
 	}
+
+	/* Clear userspace state pointer */
+	THREAD->udebug.uspace_state = NULL;
 #endif
 	
 	/* Do kernel accounting */
@@ -119,6 +129,7 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	
 	(syshandler_t) sys_task_get_id,
 	(syshandler_t) sys_task_set_name,
+	(syshandler_t) sys_task_kill,
 	(syshandler_t) sys_program_spawn_loader,
 	
 	/* Synchronization related syscalls. */
@@ -146,6 +157,7 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	(syshandler_t) sys_ipc_hangup,
 	(syshandler_t) sys_ipc_register_irq,
 	(syshandler_t) sys_ipc_unregister_irq,
+	(syshandler_t) sys_ipc_connect_kbox,
 	
 	/* Event notification syscalls. */
 	(syshandler_t) sys_event_subscribe,
@@ -158,7 +170,6 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	(syshandler_t) sys_device_assign_devno,
 	(syshandler_t) sys_physmem_map,
 	(syshandler_t) sys_iospace_enable,
-	(syshandler_t) sys_interrupt_enable,
 	
 	/* Sysinfo syscalls */
 	(syshandler_t) sys_sysinfo_get_tag,
@@ -168,9 +179,7 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	
 	/* Debug calls */
 	(syshandler_t) sys_debug_enable_console,
-	(syshandler_t) sys_debug_disable_console,
-	
-	(syshandler_t) sys_ipc_connect_kbox
+	(syshandler_t) sys_debug_disable_console
 };
 
 /** @}

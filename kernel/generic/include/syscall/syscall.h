@@ -37,7 +37,7 @@
 
 typedef enum {
 	SYS_KLOG = 0,
-	SYS_TLS_SET = 1, /* Hardcoded in AMD64, IA32 uspace - fibril.S */
+	SYS_TLS_SET = 1,  /* Hardcoded for AMD64, IA-32 (fibril.S in uspace) */
 	
 	SYS_THREAD_CREATE,
 	SYS_THREAD_EXIT,
@@ -46,6 +46,7 @@ typedef enum {
 	
 	SYS_TASK_GET_ID,
 	SYS_TASK_SET_NAME,
+	SYS_TASK_KILL,
 	SYS_PROGRAM_SPAWN_LOADER,
 	
 	SYS_FUTEX_SLEEP,
@@ -70,6 +71,7 @@ typedef enum {
 	SYS_IPC_HANGUP,
 	SYS_IPC_REGISTER_IRQ,
 	SYS_IPC_UNREGISTER_IRQ,
+	SYS_IPC_CONNECT_KBOX,
 	
 	SYS_EVENT_SUBSCRIBE,
 	
@@ -79,7 +81,6 @@ typedef enum {
 	SYS_DEVICE_ASSIGN_DEVNO,
 	SYS_PHYSMEM_MAP,
 	SYS_IOSPACE_ENABLE,
-	SYS_INTERRUPT_ENABLE,
 	
 	SYS_SYSINFO_GET_TAG,
 	SYS_SYSINFO_GET_VALUE,
@@ -89,7 +90,6 @@ typedef enum {
 	SYS_DEBUG_ENABLE_CONSOLE,
 	SYS_DEBUG_DISABLE_CONSOLE,
 	
-	SYS_IPC_CONNECT_KBOX,
 	SYSCALL_END
 } syscall_t;
 
@@ -97,13 +97,13 @@ typedef enum {
 
 #include <typedefs.h>
 
-typedef unative_t (*syshandler_t)(unative_t, unative_t, unative_t, unative_t,
-    unative_t, unative_t);
+typedef sysarg_t (*syshandler_t)(sysarg_t, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t);
 
 extern syshandler_t syscall_table[SYSCALL_END];
-extern unative_t syscall_handler(unative_t, unative_t, unative_t, unative_t,
-    unative_t, unative_t, unative_t);
-extern unative_t sys_tls_set(unative_t);
+extern sysarg_t syscall_handler(sysarg_t, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t, sysarg_t);
+extern sysarg_t sys_tls_set(sysarg_t);
 
 #endif
 

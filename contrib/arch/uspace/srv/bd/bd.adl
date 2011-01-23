@@ -1,15 +1,15 @@
 interface bd extends service {
 		/* Share out data buffer */
-		ipcarg_t ipc_m_share_out(in ipcarg_t as_area_base, in ipcarg_t as_area_size, in ipcarg_t flags, out ipcarg_t dst_as_area_base);
+		sysarg_t ipc_m_share_out(in sysarg_t as_area_base, in sysarg_t as_area_size, in sysarg_t flags, out sysarg_t dst_as_area_base);
 		
 		/* Get block size */
-		ipcarg_t get_block_size(out ipcarg_t block_size);
+		sysarg_t get_block_size(out sysarg_t block_size);
 		
 		/* Read blocks via shared data buffer */
-		ipcarg_t read_blocks(in ipcarg_t index_lower, in ipcarg_t index_upper, in ipcarg_t count);
+		sysarg_t read_blocks(in sysarg_t index_lower, in sysarg_t index_upper, in sysarg_t count);
 		
 		/* Write blocks via shared data buffer */
-		ipcarg_t write_blocks(in ipcarg_t index_lower, in ipcarg_t index_upper, in ipcarg_t count);
+		sysarg_t write_blocks(in sysarg_t index_lower, in sysarg_t index_upper, in sysarg_t count);
 	protocol:
 		[bd.bp]
 };

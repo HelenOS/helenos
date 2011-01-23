@@ -40,7 +40,7 @@
 #define SYSCALL_KSTACK_RSP  1
 
 typedef struct {
-	unative_t tls;
+	sysarg_t tls;
 	/** User and kernel RSP for syscalls. */
 	uint64_t syscall_rsp[2];
 } thread_arch_t;

@@ -43,7 +43,7 @@ extern void *memset(void *, int, size_t);
 extern void *memcpy(void *, const void *, size_t);
 extern void *memmove(void *, const void *, size_t);
 
-extern int bcmp(const char *, const char *, size_t);
+extern int bcmp(const void *, const void *, size_t);
 
 #endif
 

@@ -32,7 +32,7 @@
 
 /** @file
  * ICMP module messages.
- * @see icmp_interface.h
+ * @see icmp_remote.h
  */
 
 #ifndef LIBC_ICMP_MESSAGES_
@@ -47,119 +47,91 @@
 
 /** ICMP module messages. */
 typedef enum {
-	/** Sends echo request. @see icmp_echo() */
+	/** Send echo request. @see icmp_echo() */
 	NET_ICMP_ECHO = NET_ICMP_FIRST,
 	
 	/**
-	 * Sends destination unreachable error message.
+	 * Send destination unreachable error message.
 	 * @see icmp_destination_unreachable_msg()
 	 */
 	NET_ICMP_DEST_UNREACH,
 	
 	/**
-	 * Sends source quench error message.
+	 * Send source quench error message.
 	 * @see icmp_source_quench_msg()
 	 */
 	NET_ICMP_SOURCE_QUENCH,
 	
 	/**
-	 * Sends time exceeded error message.
+	 * Send time exceeded error message.
 	 * @see icmp_time_exceeded_msg()
 	 */
 	NET_ICMP_TIME_EXCEEDED,
 	
 	/**
-	 * Sends parameter problem error message.
+	 * Send parameter problem error message.
 	 * @see icmp_parameter_problem_msg()
 	 */
-	NET_ICMP_PARAMETERPROB,
-	
-	/** Initializes new connection. */
-	NET_ICMP_INIT
-} icmp_messages;
+	NET_ICMP_PARAMETERPROB
+} icmp_messages_t;
 
 /** @name ICMP specific message parameters definitions */
 /*@{*/
 
-/** Returns the ICMP code message parameter.
+/** Return the ICMP code message parameter.
  *
- * @param[in] call	The message call structure.
+ * @param[in] call Message call structure.
+ *
  */
-#define ICMP_GET_CODE(call) \
-	({ \
-		icmp_code_t code = (icmp_code_t) IPC_GET_ARG1(*call); \
-		code; \
-	})
+#define ICMP_GET_CODE(call)  ((icmp_code_t) IPC_GET_ARG1(call))
 
-/** Returns the ICMP link MTU message parameter.
+/** Return the ICMP link MTU message parameter.
  *
- * @param[in] call	The message call structure.
+ * @param[in] call Message call structure.
+ *
  */
-#define ICMP_GET_MTU(call) \
-	({ \
-		icmp_param_t mtu = (icmp_param_t) IPC_GET_ARG3(*call); \
-		mtu; \
-	})
+#define ICMP_GET_MTU(call)  ((icmp_param_t) IPC_GET_ARG3(call))
 
-/** Returns the pointer message parameter.
+/** Return the pointer message parameter.
  *
- * @param[in] call	The message call structure.
+ * @param[in] call Message call structure.
+ *
  */
-#define ICMP_GET_POINTER(call) \
-	({ \
-		icmp_param_t pointer = (icmp_param_t) IPC_GET_ARG3(*call); \
-		pointer; \
-	})
+#define ICMP_GET_POINTER(call)  ((icmp_param_t) IPC_GET_ARG3(call))
 
-/** Returns the size message parameter.
+/** Return the size message parameter.
  *
- * @param[in] call	The message call structure.
+ * @param[in] call Message call structure.
+ *
  */
-#define ICMP_GET_SIZE(call) \
-	({ \
-		size_t size = (size_t) IPC_GET_ARG1(call); \
-		size; \
-	})
+#define ICMP_GET_SIZE(call)  ((size_t) IPC_GET_ARG1(call))
 
-/** Returns the timeout message parameter.
+/** Return the timeout message parameter.
  *
- * @param[in] call	The message call structure.
+ * @param[in] call Message call structure.
+ *
  */
-#define ICMP_GET_TIMEOUT(call) \
-	({ \
-		suseconds_t timeout = (suseconds_t) IPC_GET_ARG2(call); \
-		timeout; \
-	})
+#define ICMP_GET_TIMEOUT(call)  ((suseconds_t) IPC_GET_ARG2(call))
 
-/** Returns the time to live message parameter.
+/** Return the time to live message parameter.
  *
- * @param[in] call	The message call structure.
+ * @param[in] call Message call structure.
+ *
  */
-#define ICMP_GET_TTL(call) \
-	({ \
-		ip_ttl_t ttl = (ip_ttl_t) IPC_GET_ARG3(call); \
-		ttl; \
-	})
+#define ICMP_GET_TTL(call)  ((ip_ttl_t) IPC_GET_ARG3(call))
 
-/** Returns the type of service message parameter.
+/** Return the type of service message parameter.
  *
- * @param[in] call	The message call structure.
+ * @param[in] call Message call structure.
+ *
  */
-#define ICMP_GET_TOS(call) \
-	({ \
-		ip_tos_t tos = (ip_tos_t) IPC_GET_ARG4(call); \
-		tos; \
-	})
+#define ICMP_GET_TOS(call)  ((ip_tos_t) IPC_GET_ARG4(call))
 
-/** Returns the dont fragment message parameter.
+/** Return the dont fragment message parameter.
  *
- * @param[in] call	The message call structure.
+ * @param[in] call Message call structure.
  */
-#define ICMP_GET_DONT_FRAGMENT(call) \
-	({ \
-		int dont_fragment = (int) IPC_GET_ARG5(call); \
-		dont_fragment; \
-	})
+#define ICMP_GET_DONT_FRAGMENT(call)  ((int) IPC_GET_ARG5(call))
 
 /*@}*/
 

@@ -123,7 +123,7 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 	
 	while (true) {
 		callid = async_get_call(&call);
-		switch (IPC_GET_METHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			/*
 			 * The other side has hung up.
@@ -240,7 +240,6 @@ static bool rd_init(void)
 	
 	devmap_handle_t devmap_handle;
 	if (devmap_device_register("bd/initrd", &devmap_handle) != EOK) {
-		devmap_hangup_phone(DEVMAP_DRIVER);
 		printf("%s: Unable to register device\n", NAME);
 		return false;
 	}

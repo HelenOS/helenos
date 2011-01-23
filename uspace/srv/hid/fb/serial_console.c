@@ -54,14 +54,14 @@
 
 #define MAX_CONTROL 20
 
-static ipcarg_t scr_width;
-static ipcarg_t scr_height;
+static sysarg_t scr_width;
+static sysarg_t scr_height;
 static bool color = true;    /**< True if producing color output. */
 static bool utf8 = false;    /**< True if producing UTF8 output. */
 static putc_function_t putc_function;
 
-static ipcarg_t lastcol = 0;
-static ipcarg_t lastrow = 0;
+static sysarg_t lastcol = 0;
+static sysarg_t lastrow = 0;
 static attrs_t cur_attr = {
 	.t = at_style,
 	.a.s.style = STYLE_NORMAL
@@ -129,7 +129,7 @@ static void serial_putchar(wchar_t ch)
 		(*putc_function)('?');
 }
 
-void serial_goto(const ipcarg_t col, const ipcarg_t row)
+void serial_goto(const sysarg_t col, const sysarg_t row)
 {
 	if ((col > scr_width) || (row > scr_height))
 		return;
@@ -251,7 +251,7 @@ void serial_scroll(ssize_t i)
 }
 
 /** Set scrolling region. */
-void serial_set_scroll_region(ipcarg_t last_row)
+void serial_set_scroll_region(sysarg_t last_row)
 {
 	char control[MAX_CONTROL];
 	snprintf(control, MAX_CONTROL, "\033[0;%" PRIun "r", last_row);
@@ -268,7 +268,7 @@ void serial_cursor_enable(void)
 	serial_puts("\033[?25h");
 }
 
-void serial_console_init(putc_function_t putc_fn, ipcarg_t w, ipcarg_t h)
+void serial_console_init(putc_function_t putc_fn, sysarg_t w, sysarg_t h)
 {
 	scr_width = w;
 	scr_height = h;
@@ -285,17 +285,17 @@ void serial_console_init(putc_function_t putc_fn, ipcarg_t w, ipcarg_t h)
  * @param height Number of columns.
  *
  */
-static void draw_text_data(keyfield_t *data, ipcarg_t x0, ipcarg_t y0,
-    ipcarg_t width, ipcarg_t height)
+static void draw_text_data(keyfield_t *data, sysarg_t x0, sysarg_t y0,
+    sysarg_t width, sysarg_t height)
 {
 	attrs_t *a0 = &data[0].attrs;
 	serial_set_attrs(a0);
 	
-	ipcarg_t y;
+	sysarg_t y;
 	for (y = 0; y < height; y++) {
 		serial_goto(x0, y0 + y);
 		
-		ipcarg_t x;
+		sysarg_t x;
 		for (x = 0; x < width; x++) {
 			attrs_t *attr = &data[y * width + x].attrs;
 			
@@ -336,15 +336,15 @@ void serial_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		ipc_callid_t callid = async_get_call(&call);
 		
 		wchar_t c;
-		ipcarg_t col;
-		ipcarg_t row;
-		ipcarg_t w;
-		ipcarg_t h;
+		sysarg_t col;
+		sysarg_t row;
+		sysarg_t w;
+		sysarg_t h;
 		ssize_t rows;
 		
 		int retval;
 		
-		switch (IPC_GET_METHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			client_connected = 0;
 			ipc_answer_0(callid, EOK);
@@ -441,12 +441,12 @@ void serial_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			rows = IPC_GET_ARG1(call);
 			
 			if (rows >= 0) {
-				if ((ipcarg_t) rows > scr_height) {
+				if ((sysarg_t) rows > scr_height) {
 					retval = EINVAL;
 					break;
 				}
 			} else {
-				if ((ipcarg_t) (-rows) > scr_height) {
+				if ((sysarg_t) (-rows) > scr_height) {
 					retval = EINVAL;
 					break;
 				}

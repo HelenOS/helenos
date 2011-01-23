@@ -113,7 +113,7 @@ int main(int argc, char *argv[])
 	if (!initialized)
 		return -1;
 	
-	ipcarg_t phonead;
+	sysarg_t phonead;
 	if (ipc_connect_to_me(PHONE_NS, SERVICE_VIDEO, 0, 0, &phonead) != 0) 
 		return -1;
 	

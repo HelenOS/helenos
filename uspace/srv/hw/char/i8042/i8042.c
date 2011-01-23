@@ -147,7 +147,6 @@ int main(int argc, char *argv[])
 		snprintf(name, 16, "%s/ps2%c", NAMESPACE, dchar[i]);
 		rc = devmap_device_register(name, &i8042_port[i].devmap_handle);
 		if (rc != EOK) {
-			devmap_hangup_phone(DEVMAP_DRIVER);
 			printf(NAME ": Unable to register device %s.\n", name);
 			return rc;
 		}
@@ -218,7 +217,7 @@ static void i8042_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
 	ipc_callid_t callid;
 	ipc_call_t call;
-	ipcarg_t method;
+	sysarg_t method;
 	devmap_handle_t dh;
 	int retval;
 	int dev_id, i;
@@ -247,7 +246,7 @@ static void i8042_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 	while (1) {
 		callid = async_get_call(&call);
-		method = IPC_GET_METHOD(call);
+		method = IPC_GET_IMETHOD(call);
 		switch (method) {
 		case IPC_M_PHONE_HUNGUP:
 			/* The other side has hung up. */

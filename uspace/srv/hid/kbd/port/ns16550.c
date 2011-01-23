@@ -35,7 +35,7 @@
  */
 
 #include <ipc/ipc.h>
-#include <ipc/bus.h>
+#include <ipc/irc.h>
 #include <async.h>
 #include <sysinfo.h>
 #include <kbd.h>
@@ -121,8 +121,8 @@ static void ns16550_irq_handler(ipc_callid_t iid, ipc_call_t *call)
 	kbd_push_scancode(scan_code);
 	
 	if (cir_service)
-		async_msg_1(cir_phone, BUS_CLEAR_INTERRUPT,
-		    IPC_GET_METHOD(*call));
+		async_msg_1(cir_phone, IRC_CLEAR_INTERRUPT,
+		    IPC_GET_IMETHOD(*call));
 }
 
 /**

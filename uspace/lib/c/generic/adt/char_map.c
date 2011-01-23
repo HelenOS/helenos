@@ -64,7 +64,7 @@
  * @return		EEXIST if the key character string is already used.
  */
 static int
-char_map_add_item(char_map_t *map, const char *identifier, size_t length,
+char_map_add_item(char_map_t *map, const uint8_t *identifier, size_t length,
     const int value)
 {
 	if (map->next == (map->size - 1)) {
@@ -89,10 +89,10 @@ char_map_add_item(char_map_t *map, const char *identifier, size_t length,
 		return ENOMEM;
 	}
 
-	map->items[map->next]->c = * identifier;
-	++ identifier;
-	++ map->next;
-	if ((length > 1) || ((length == 0) && (*identifier))) {
+	map->items[map->next]->c = *identifier;
+	identifier++;
+	map->next++;
+	if ((length > 1) || ((length == 0) && *identifier)) {
 		map->items[map->next - 1]->value = CHAR_MAP_NULL;
 		return char_map_add_item(map->items[map->next - 1], identifier,
 		    length ? length - 1 : 0, value);
@@ -138,19 +138,18 @@ static int char_map_is_valid(const char_map_t *map)
  *			char_map_add_item() function.
  */
 int
-char_map_add(char_map_t *map, const char *identifier, size_t length,
+char_map_add(char_map_t *map, const uint8_t *identifier, size_t length,
     const int value)
 {
-	if (char_map_is_valid(map) && (identifier) &&
-	    ((length) || (*identifier))) {
+	if (char_map_is_valid(map) && identifier && (length || *identifier)) {
 		int index;
 
-		for (index = 0; index < map->next; ++ index) {
+		for (index = 0; index < map->next; index++) {
 			if (map->items[index]->c != *identifier)
 				continue;
 				
-			++ identifier;
-			if((length > 1) || ((length == 0) && (*identifier))) {
+			identifier++;
+			if((length > 1) || ((length == 0) && *identifier)) {
 				return char_map_add(map->items[index],
 				    identifier, length ? length - 1 : 0, value);
 			} else {
@@ -177,7 +176,7 @@ void char_map_destroy(char_map_t *map)
 		int index;
 
 		map->magic = 0;
-		for (index = 0; index < map->next; ++index)
+		for (index = 0; index < map->next; index++)
 			char_map_destroy(map->items[index]);
 
 		free(map->items);
@@ -200,18 +199,18 @@ void char_map_destroy(char_map_t *map)
  * @return		NULL if the key is not assigned a node.
  */
 static char_map_t *
-char_map_find_node(const char_map_t *map, const char *identifier,
+char_map_find_node(const char_map_t *map, const uint8_t *identifier,
     size_t length)
 {
 	if (!char_map_is_valid(map))
 		return NULL;
 
-	if (length || (*identifier)) {
+	if (length || *identifier) {
 		int index;
 
-		for (index = 0; index < map->next; ++index) {
+		for (index = 0; index < map->next; index++) {
 			if (map->items[index]->c == *identifier) {
-				++identifier;
+				identifier++;
 				if (length == 1)
 					return map->items[index];
 
@@ -241,7 +240,7 @@ char_map_find_node(const char_map_t *map, const char *identifier,
  * @return		The integral value assigned to the key character string.
  * @return		CHAR_MAP_NULL if the key is not assigned a value.
  */
-int char_map_exclude(char_map_t *map, const char *identifier, size_t length)
+int char_map_exclude(char_map_t *map, const uint8_t *identifier, size_t length)
 {
 	char_map_t *node;
 
@@ -269,7 +268,7 @@ int char_map_exclude(char_map_t *map, const char *identifier, size_t length)
  *  @return		The integral value assigned to the key character string.
  *  @return		CHAR_MAP_NULL if the key is not assigned a value.
  */
-int char_map_find(const char_map_t *map, const char *identifier, size_t length)
+int char_map_find(const char_map_t *map, const uint8_t *identifier, size_t length)
 {
 	char_map_t *node;
 
@@ -329,7 +328,7 @@ int char_map_initialize(char_map_t *map)
  *			function.
  */
 int
-char_map_update(char_map_t *map, const char *identifier, const size_t length,
+char_map_update(char_map_t *map, const uint8_t *identifier, const size_t length,
     const int value)
 {
 	char_map_t *node;
