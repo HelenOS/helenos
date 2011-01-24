@@ -320,10 +320,10 @@ typedef struct answerbox {
 
 typedef struct {
 	sysarg_t args[IPC_CALL_LEN];
+	/** Task which made or forwarded the call with IPC_FF_ROUTE_FROM_ME. */
+	struct task *task;
 	/** Phone which made or last masqueraded this call. */
 	phone_t *phone;
-	/** Last task to perform _ipc_call(). */
-	struct task *task;
 } ipc_data_t;
 
 typedef struct {
