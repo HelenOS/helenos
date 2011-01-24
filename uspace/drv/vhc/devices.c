@@ -57,15 +57,18 @@ static LIST_INITIALIZE(devices);
 
 /** Create virtual device.
  *
- * @param address USB address.
  * @param phone Callback phone.
  * @return New device.
- * @retval NULL Out of memory or address already occupied.
+ * @retval NULL Out of memory.
  */
 virtdev_connection_t *virtdev_add_device(int phone)
 {
 	virtdev_connection_t *dev = (virtdev_connection_t *)
 	    malloc(sizeof(virtdev_connection_t));
+	if (dev == NULL) {
+		return NULL;
+	}
+
 	dev->phone = phone;
 	list_append(&dev->link, &devices);
 	

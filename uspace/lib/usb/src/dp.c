@@ -44,7 +44,7 @@
  *
  * @param data Parser data.
  * @param ptr Pointer to be verified.
- * @return Whether @ptr points inside <code>data->data</code> field.
+ * @return Whether @p ptr points inside <code>data->data</code> field.
  */
 static bool is_valid_descriptor_pointer(usb_dp_parser_data_t *data,
     uint8_t *ptr)

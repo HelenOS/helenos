@@ -175,3 +175,11 @@
 	 * @ingroup usb
 	 * @brief Library for creating USB devices drivers.
 	 */
+
+	 /**
+	  * @defgroup usbhub USB hub driver
+	  * @ingroup usb
+	  * @brief USB hub driver.
+	  */
+	  */
+
