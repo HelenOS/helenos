@@ -91,8 +91,8 @@ extern aid_t async_send_slow(int, sysarg_t, sysarg_t, sysarg_t, sysarg_t,
 extern void async_wait_for(aid_t, sysarg_t *);
 extern int async_wait_timeout(aid_t, sysarg_t *, suseconds_t);
 
-extern fid_t async_new_connection(sysarg_t, ipc_callid_t, ipc_call_t *,
-    void (*)(ipc_callid_t, ipc_call_t *));
+extern fid_t async_new_connection(sysarg_t, sysarg_t, ipc_callid_t,
+    ipc_call_t *, void (*)(ipc_callid_t, ipc_call_t *));
 extern void async_usleep(suseconds_t);
 extern void async_create_manager(void);
 extern void async_destroy_manager(void);

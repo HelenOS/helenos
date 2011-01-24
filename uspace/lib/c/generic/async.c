@@ -138,6 +138,8 @@ typedef struct {
 	/** Hash table link. */
 	link_t link;
 	
+	/** Incoming client task hash. */
+	sysarg_t in_task_hash;
 	/** Incoming phone hash. */
 	sysarg_t in_phone_hash;
 	
@@ -516,6 +518,7 @@ static int connection_fibril(void *arg)
  * it into the hash table, so that later we can easily do routing of messages to
  * particular fibrils.
  *
+ * @param in_task_hash  Identification of the incoming connection.
  * @param in_phone_hash Identification of the incoming connection.
  * @param callid        Hash of the opening IPC_M_CONNECT_ME_TO call.
  *                      If callid is zero, the connection was opened by
@@ -528,8 +531,9 @@ static int connection_fibril(void *arg)
  * @return New fibril id or NULL on failure.
  *
  */
-fid_t async_new_connection(sysarg_t in_phone_hash, ipc_callid_t callid,
-    ipc_call_t *call, void (*cfibril)(ipc_callid_t, ipc_call_t *))
+fid_t async_new_connection(sysarg_t in_task_hash, sysarg_t in_phone_hash,
+    ipc_callid_t callid, ipc_call_t *call,
+    void (*cfibril)(ipc_callid_t, ipc_call_t *))
 {
 	connection_t *conn = malloc(sizeof(*conn));
 	if (!conn) {
@@ -538,6 +542,7 @@ fid_t async_new_connection(sysarg_t in_phone_hash, ipc_callid_t callid,
 		return (uintptr_t) NULL;
 	}
 	
+	conn->in_task_hash = in_task_hash;
 	conn->in_phone_hash = in_phone_hash;
 	list_initialize(&conn->msg_queue);
 	conn->callid = callid;
@@ -591,8 +596,8 @@ static void handle_call(ipc_callid_t callid, ipc_call_t *call)
 	case IPC_M_CONNECT_ME:
 	case IPC_M_CONNECT_ME_TO:
 		/* Open new connection with fibril etc. */
-		async_new_connection(IPC_GET_ARG5(*call), callid, call,
-		    client_connection);
+		async_new_connection(call->in_task_hash, IPC_GET_ARG5(*call),
+		    callid, call, client_connection);
 		goto out;
 	}
 	

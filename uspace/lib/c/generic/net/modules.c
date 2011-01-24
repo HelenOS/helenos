@@ -142,15 +142,17 @@ int bind_service_timeout(services_t need, sysarg_t arg1, sysarg_t arg2,
 	int phone = connect_to_service_timeout(need, timeout);
 	if (phone >= 0) {
 		/* Request the bidirectional connection */
+		sysarg_t taskhash;
 		sysarg_t phonehash;
 		
-		rc = ipc_connect_to_me(phone, arg1, arg2, arg3, NULL,
+		rc = ipc_connect_to_me(phone, arg1, arg2, arg3, &taskhash,
 		    &phonehash);
 		if (rc != EOK) {
 			ipc_hangup(phone);
 			return rc;
 		}
-		async_new_connection(phonehash, 0, NULL, client_receiver);
+		async_new_connection(taskhash, phonehash, 0, NULL,
+		    client_receiver);
 	}
 	
 	return phone;
