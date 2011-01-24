@@ -43,14 +43,14 @@
 #include <bool.h>
 
 typedef ipc_callid_t aid_t;
-typedef void (*async_client_conn_t)(ipc_callid_t callid, ipc_call_t *call);
+typedef void (*async_client_conn_t)(ipc_callid_t, ipc_call_t *);
 
 extern atomic_t async_futex;
 
 extern atomic_t threads_in_ipc_wait;
 
 extern int __async_init(void);
-extern ipc_callid_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs);
+extern ipc_callid_t async_get_call_timeout(ipc_call_t *, suseconds_t);
 
 static inline ipc_callid_t async_get_call(ipc_call_t *data)
 {
@@ -84,23 +84,21 @@ static inline void async_manager(void)
 	async_send_slow((phoneid), (method), (arg1), (arg2), (arg3), (arg4), \
 	    (arg5), (dataptr))
 
-extern aid_t async_send_fast(int phoneid, sysarg_t method, sysarg_t arg1,
-    sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, ipc_call_t *dataptr);
-extern aid_t async_send_slow(int phoneid, sysarg_t method, sysarg_t arg1,
-    sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t arg5,
-    ipc_call_t *dataptr);
-extern void async_wait_for(aid_t amsgid, sysarg_t *result);
-extern int async_wait_timeout(aid_t amsgid, sysarg_t *retval,
-    suseconds_t timeout);
+extern aid_t async_send_fast(int, sysarg_t, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t, ipc_call_t *);
+extern aid_t async_send_slow(int, sysarg_t, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t, ipc_call_t *);
+extern void async_wait_for(aid_t, sysarg_t *);
+extern int async_wait_timeout(aid_t, sysarg_t *, suseconds_t);
 
-extern fid_t async_new_connection(sysarg_t in_phone_hash, ipc_callid_t callid,
-    ipc_call_t *call, void (*cthread)(ipc_callid_t, ipc_call_t *));
-extern void async_usleep(suseconds_t timeout);
+extern fid_t async_new_connection(sysarg_t, ipc_callid_t, ipc_call_t *,
+    void (*)(ipc_callid_t, ipc_call_t *));
+extern void async_usleep(suseconds_t);
 extern void async_create_manager(void);
 extern void async_destroy_manager(void);
 
-extern void async_set_client_connection(async_client_conn_t conn);
-extern void async_set_interrupt_received(async_client_conn_t conn);
+extern void async_set_client_connection(async_client_conn_t);
+extern void async_set_interrupt_received(async_client_conn_t);
 
 /* Wrappers for simple communication */
 #define async_msg_0(phone, method) \
@@ -242,12 +240,11 @@ extern void async_set_interrupt_received(async_client_conn_t conn);
 	async_req_slow((phoneid), (method), (arg1), (arg2), (arg3), (arg4), \
 	    (arg5), (rc1), (rc2), (rc3), (rc4), (rc5))
 
-extern sysarg_t async_req_fast(int phoneid, sysarg_t method, sysarg_t arg1,
-    sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t *r1, sysarg_t *r2,
-    sysarg_t *r3, sysarg_t *r4, sysarg_t *r5);
-extern sysarg_t async_req_slow(int phoneid, sysarg_t method, sysarg_t arg1,
-    sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t arg5, sysarg_t *r1,
-    sysarg_t *r2, sysarg_t *r3, sysarg_t *r4, sysarg_t *r5);
+extern sysarg_t async_req_fast(int, sysarg_t, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t *, sysarg_t *, sysarg_t *, sysarg_t *, sysarg_t *);
+extern sysarg_t async_req_slow(int, sysarg_t, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t, sysarg_t *, sysarg_t *, sysarg_t *, sysarg_t *,
+    sysarg_t *);
 
 static inline void async_serialize_start(void)
 {
