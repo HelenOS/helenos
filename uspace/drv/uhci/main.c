@@ -54,11 +54,11 @@ static device_ops_t uhci_ops = {
 
 static int uhci_add_device(device_t *device)
 {
-//	usb_dprintf(NAME, DEBUG, "uhci_add_device() called\n");
 	uhci_print_info( "uhci_add_device() called\n" );
 	device->ops = &uhci_ops;
 
-	uhci_init( device, (void*)0xc020 );
+	// TODO: get this value out of pci driver
+	uhci_init(device, (void*)0xc020);
 
 	return EOK;
 }
@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
 	/*
 	 * Do some global initializations.
 	 */
-	sleep( 5 );
+	sleep(5);
 	usb_dprintf_enable(NAME, DEBUG_LEVEL_MAX);
 
 	return driver_main(&uhci_driver);

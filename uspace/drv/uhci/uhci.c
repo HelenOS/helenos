@@ -8,9 +8,17 @@
 #include "name.h"
 #include "uhci.h"
 
-static int init_tranfer_lists(transfer_list_t list[]);
+static int uhci_init_tranfer_lists(transfer_list_t list[]);
 
-//static int init_transfer();
+static inline int uhci_add_transfer(
+  device_t *dev,
+	usb_target_t target,
+  usb_transfer_type_t transfer_type,
+	usb_packet_id pid,
+  void *buffer, size_t size,
+  usbhc_iface_transfer_out_callback_t callback_out,
+  usbhc_iface_transfer_in_callback_t callback_in,
+	void *arg );
 
 int uhci_init(device_t *device, void *regs)
 {
@@ -57,7 +65,7 @@ int uhci_init(device_t *device, void *regs)
 
 	pio_write_32(&instance->registers->flbaseadd, (uint32_t)pa);
 
-	ret = init_tranfer_lists(instance->transfers);
+	ret = uhci_init_tranfer_lists(instance->transfers);
 	if (ret != EOK) {
 		uhci_print_error("Transfer list initialization failed.\n");
 		uhci_root_hub_fini(&instance->root_hub);
@@ -81,6 +89,91 @@ int uhci_in(
 	    target.address, target.endpoint,
 	    usb_str_transfer_type(transfer_type),
 	    size);
+	return uhci_add_transfer(
+	  dev, target, transfer_type, USB_PID_IN, buffer, size, NULL, callback, arg);
+}
+/*----------------------------------------------------------------------------*/
+int uhci_out(
+  device_t *dev,
+  usb_target_t target,
+  usb_transfer_type_t transfer_type,
+  void *buffer, size_t size,
+	usbhc_iface_transfer_out_callback_t callback, void *arg
+  )
+{
+	uhci_print_info( "transfer OUT [%d.%d (%s); %zu]\n",
+	    target.address, target.endpoint,
+	    usb_str_transfer_type(transfer_type),
+	    size);
+	return uhci_add_transfer(
+	  dev, target, transfer_type, USB_PID_OUT, buffer, size, callback, NULL, arg);
+}
+/*----------------------------------------------------------------------------*/
+int uhci_setup(
+  device_t *dev,
+  usb_target_t target,
+  usb_transfer_type_t transfer_type,
+  void *buffer, size_t size,
+  usbhc_iface_transfer_out_callback_t callback, void *arg
+  )
+{
+	uhci_print_info( "transfer SETUP [%d.%d (%s); %zu]\n",
+	    target.address, target.endpoint,
+	    usb_str_transfer_type(transfer_type),
+	    size);
+	uhci_print_info("Setup packet content: %x %x.\n", ((uint8_t*)buffer)[0],
+	  ((uint8_t*)buffer)[1]);
+	return uhci_add_transfer( dev,
+	  target, transfer_type, USB_PID_SETUP, buffer, size, callback, NULL, arg);
+
+}
+/*----------------------------------------------------------------------------*/
+int uhci_init_tranfer_lists(transfer_list_t transfers[])
+{
+	//TODO:refactor
+	transfers[USB_TRANSFER_ISOCHRONOUS].first = NULL;
+	transfers[USB_TRANSFER_ISOCHRONOUS].last = NULL;
+
+	int ret;
+	ret = transfer_list_init(&transfers[USB_TRANSFER_BULK], NULL);
+	if (ret != EOK) {
+		uhci_print_error("Failed to initialize bulk queue.\n");
+		return ret;
+	}
+
+	ret = transfer_list_init(
+	  &transfers[USB_TRANSFER_CONTROL], &transfers[USB_TRANSFER_BULK]);
+	if (ret != EOK) {
+		uhci_print_error("Failed to initialize control queue.\n");
+		transfer_list_fini(&transfers[USB_TRANSFER_BULK]);
+		return ret;
+	}
+
+	ret = transfer_list_init(
+	  &transfers[USB_TRANSFER_INTERRUPT], &transfers[USB_TRANSFER_CONTROL]);
+	if (ret != EOK) {
+		uhci_print_error("Failed to initialize interrupt queue.\n");
+		transfer_list_fini(&transfers[USB_TRANSFER_CONTROL]);
+		transfer_list_fini(&transfers[USB_TRANSFER_BULK]);
+		return ret;
+	}
+
+	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+static inline int uhci_add_transfer(
+  device_t *dev,
+	usb_target_t target,
+  usb_transfer_type_t transfer_type,
+	usb_packet_id pid,
+  void *buffer, size_t size,
+  usbhc_iface_transfer_out_callback_t callback_out,
+  usbhc_iface_transfer_in_callback_t callback_in,
+	void *arg )
+{
+	// TODO: Add support for isochronous transfers
+	if (transfer_type == USB_TRANSFER_ISOCHRONOUS)
+		return ENOTSUP;
 
 	if (size >= 1024)
 		return ENOTSUP;
@@ -105,14 +198,14 @@ int uhci_in(
 	ret= job ? EOK : ENOMEM;
 	CHECK_RET_TRANS_FREE_JOB_TD("Failed to allocate callback structure.\n");
 
-	ret = callback_in_init(job, dev, buffer, size, callback, arg);
+	ret = callback_init(job, dev, buffer, size, callback_in, callback_out, arg);
 	CHECK_RET_TRANS_FREE_JOB_TD("Failed to initialize callback structure.\n");
 
 	td = trans_malloc(sizeof(transfer_descriptor_t));
 	ret = td ? ENOMEM : EOK;
 	CHECK_RET_TRANS_FREE_JOB_TD("Failed to allocate tranfer descriptor.\n");
 
-	ret = transfer_descriptor_init(td, 3, size, false, target, USB_PID_IN);
+	ret = transfer_descriptor_init(td, 3, size, false, target, pid);
 	CHECK_RET_TRANS_FREE_JOB_TD("Failed to initialize transfer descriptor.\n");
 
 	td->callback = job;
@@ -123,74 +216,6 @@ int uhci_in(
 
 	ret = transfer_list_append(&instance->transfers[transfer_type], td);
 	CHECK_RET_TRANS_FREE_JOB_TD("Failed to append transfer descriptor.\n");
-
-	return EOK;
-}
-/*----------------------------------------------------------------------------*/
-int uhci_out(
-  device_t *dev,
-  usb_target_t target,
-  usb_transfer_type_t transfer_type,
-  void *buffer, size_t size,
-	usbhc_iface_transfer_out_callback_t callback, void *arg
-  )
-{
-	uhci_print_info( "transfer OUT [%d.%d (%s); %zu]\n",
-	    target.address, target.endpoint,
-	    usb_str_transfer_type(transfer_type),
-	    size);
-
-	callback( dev, USB_OUTCOME_OK, arg );
-	return EOK;
-}
-/*----------------------------------------------------------------------------*/
-int uhci_setup(
-  device_t *dev,
-  usb_target_t target,
-  usb_transfer_type_t transfer_type,
-  void *buffer, size_t size,
-  usbhc_iface_transfer_out_callback_t callback, void *arg
-  )
-{
-	uhci_print_info( "transfer SETUP [%d.%d (%s); %zu]\n",
-	    target.address, target.endpoint,
-	    usb_str_transfer_type(transfer_type),
-	    size);
-	uhci_print_info("Setup packet content: %x %x.\n", ((uint8_t*)buffer)[0],
-	  ((uint8_t*)buffer)[1]);
-
-	callback( dev, USB_OUTCOME_OK, arg );
-	return EOK;
-}
-/*----------------------------------------------------------------------------*/
-int init_tranfer_lists(transfer_list_t transfers[])
-{
-	//TODO:refactor
-	transfers[USB_TRANSFER_ISOCHRONOUS].first = NULL;
-	transfers[USB_TRANSFER_ISOCHRONOUS].last = NULL;
-	int ret;
-	ret = transfer_list_init(&transfers[USB_TRANSFER_BULK], NULL);
-	if (ret != EOK) {
-		uhci_print_error("Failed to inititalize bulk queue.\n");
-		return ret;
-	}
-
-	ret = transfer_list_init(
-	  &transfers[USB_TRANSFER_CONTROL], &transfers[USB_TRANSFER_BULK]);
-	if (ret != EOK) {
-		uhci_print_error("Failed to inititalize control queue.\n");
-		transfer_list_fini(&transfers[USB_TRANSFER_BULK]);
-		return ret;
-	}
-
-	ret = transfer_list_init(
-	  &transfers[USB_TRANSFER_INTERRUPT], &transfers[USB_TRANSFER_CONTROL]);
-	if (ret != EOK) {
-		uhci_print_error("Failed to interrupt control queue.\n");
-		transfer_list_fini(&transfers[USB_TRANSFER_CONTROL]);
-		transfer_list_fini(&transfers[USB_TRANSFER_BULK]);
-		return ret;
-	}
 
 	return EOK;
 }
