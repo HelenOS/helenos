@@ -202,7 +202,7 @@ int virthub_disconnect_device(usbvirt_device_t *dev, virtdev_connection_t *conn)
 	hub_t *hub = (hub_t *) dev->device_data;
 
 	hub_acquire(hub);
-	/* TODO: implement. */
+	hub_disconnect_device(hub, conn);
 	hub_release(hub);
 
 	return ENOTSUP;

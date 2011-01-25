@@ -154,6 +154,28 @@ size_t hub_connect_device(hub_t *hub, void *device)
 	return (size_t) -1;
 }
 
+/** Disconnects a device from a hub.
+ *
+ * @param hub Hub the device was connected to.
+ * @param device Device to be disconnected.
+ * @return Error code.
+ */
+int hub_disconnect_device(hub_t *hub, void *device)
+{
+	size_t index = hub_find_device(hub, device);
+	if (index == (size_t) -1) {
+		return ENOENT;
+	}
+
+	hub_port_t *port = &hub->ports[index];
+
+	port->connected_device = NULL;
+	port->state = HUB_PORT_STATE_DISCONNECTED;
+	set_port_status_change(port, HUB_STATUS_C_PORT_CONNECTION);
+
+	return EOK;
+}
+
 /** Find port device is connected to.
  *
  * @param hub Hub in question.
