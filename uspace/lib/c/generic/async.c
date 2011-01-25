@@ -133,6 +133,13 @@ typedef struct {
 } msg_t;
 
 typedef struct {
+	sysarg_t in_task_hash;
+	link_t link;
+	int refcnt;
+	void *data;
+} client_t;
+
+typedef struct {
 	awaiter_t wdata;
 	
 	/** Hash table link. */
@@ -175,10 +182,35 @@ static async_client_conn_t client_connection = default_client_connection;
  */
 static async_client_conn_t interrupt_received = default_interrupt_received;
 
+static hash_table_t client_hash_table;
 static hash_table_t conn_hash_table;
 static LIST_INITIALIZE(timeout_list);
 
-#define CONN_HASH_TABLE_CHAINS  32
+#define CLIENT_HASH_TABLE_BUCKETS	32
+#define CONN_HASH_TABLE_BUCKETS		32
+
+static hash_index_t client_hash(unsigned long *key)
+{
+	assert(key);
+	return (((*key) >> 4) % CLIENT_HASH_TABLE_BUCKETS); 
+}
+
+static int client_compare(unsigned long key[], hash_count_t keys, link_t *item)
+{
+	client_t *cl = hash_table_get_instance(item, client_t, link);
+	return (key[0] == cl->in_task_hash);
+}
+
+static void client_remove(link_t *item)
+{
+}
+
+/** Operations for the client hash table. */
+static hash_table_operations_t client_hash_table_ops = {
+	.hash = client_hash,
+	.compare = client_compare,
+	.remove_callback = client_remove
+};
 
 /** Compute hash into the connection hash table based on the source phone hash.
  *
@@ -190,7 +222,7 @@ static LIST_INITIALIZE(timeout_list);
 static hash_index_t conn_hash(unsigned long *key)
 {
 	assert(key);
-	return (((*key) >> 4) % CONN_HASH_TABLE_CHAINS);
+	return (((*key) >> 4) % CONN_HASH_TABLE_BUCKETS);
 }
 
 /** Compare hash table item with a key.
@@ -481,21 +513,67 @@ static void default_interrupt_received(ipc_callid_t callid, ipc_call_t *call)
  */
 static int connection_fibril(void *arg)
 {
+	unsigned long key;
+	client_t *cl;
+	link_t *lnk;
+
 	/*
-	 * Setup fibril-local connection pointer and call client_connection().
-	 *
+	 * Setup fibril-local connection pointer.
 	 */
 	FIBRIL_connection = (connection_t *) arg;
+
+	/*
+	 * Add our reference for the current connection in the client task
+	 * tracking structure. If this is the first reference, create and
+	 * hash in a new tracking structure.
+	 */
+	futex_down(&async_futex);
+	key = FIBRIL_connection->in_task_hash;
+	lnk = hash_table_find(&client_hash_table, &key);
+	if (lnk) {
+		cl = hash_table_get_instance(lnk, client_t, link);
+		cl->refcnt++;
+	} else {
+		cl = malloc(sizeof(client_t));
+		if (!cl) {
+			ipc_answer_0(FIBRIL_connection->callid, ENOMEM);
+			futex_up(&async_futex);
+			return 0;
+		}
+		cl->in_task_hash = FIBRIL_connection->in_task_hash;
+		cl->data = NULL;
+		cl->refcnt = 1;
+		hash_table_insert(&client_hash_table, &key, &cl->link);
+	}
+	futex_up(&async_futex);
+
+	/*
+	 * Call the connection handler function.
+	 */
 	FIBRIL_connection->cfibril(FIBRIL_connection->callid,
 	    &FIBRIL_connection->call);
 	
-	/* Remove myself from the connection hash table */
+	/*
+	 * Remove the reference for this client task connection.
+	 */
 	futex_down(&async_futex);
-	unsigned long key = FIBRIL_connection->in_phone_hash;
+	if (--cl->refcnt == 0) {
+		hash_table_remove(&client_hash_table, &key, 1);
+		free(cl);
+	}
+	futex_up(&async_futex);
+
+	/*
+	 * Remove myself from the connection hash table.
+	 */
+	futex_down(&async_futex);
+	key = FIBRIL_connection->in_phone_hash;
 	hash_table_remove(&conn_hash_table, &key, 1);
 	futex_up(&async_futex);
 	
-	/* Answer all remaining messages with EHANGUP */
+	/*
+	 * Answer all remaining messages with EHANGUP.
+	 */
 	while (!list_empty(&FIBRIL_connection->msg_queue)) {
 		msg_t *msg;
 		
@@ -506,6 +584,10 @@ static int connection_fibril(void *arg)
 		free(msg);
 	}
 	
+	/*
+	 * If the connection was hung-up, answer the last call,
+	 * i.e. IPC_M_PHONE_HUNGUP.
+	 */
 	if (FIBRIL_connection->close_callid)
 		ipc_answer_0(FIBRIL_connection->close_callid, EOK);
 	
@@ -748,9 +830,9 @@ void async_destroy_manager(void)
  */
 int __async_init(void)
 {
-	if (!hash_table_create(&conn_hash_table, CONN_HASH_TABLE_CHAINS, 1,
-	    &conn_hash_table_ops)) {
-		printf("%s: Cannot create async hash table\n", "libc");
+	if (!hash_table_create(&client_hash_table, CLIENT_HASH_TABLE_BUCKETS, 1,
+	    &client_hash_table_ops) || !hash_table_create(&conn_hash_table,
+	    CONN_HASH_TABLE_BUCKETS, 1, &conn_hash_table_ops)) {
 		return ENOMEM;
 	}
 
