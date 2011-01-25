@@ -37,6 +37,7 @@
 #include <mem.h>
 #include <usb/usb.h>
 
+#include "translating_malloc.h"
 #include "callback.h"
 #include "link_pointer.h"
 
@@ -117,6 +118,14 @@ static inline int transfer_descriptor_init(transfer_descriptor_t *instance,
 	instance->callback = NULL;
 
 	return EOK;
+}
+
+static inline void transfer_descriptor_append(
+  transfer_descriptor_t *instance, transfer_descriptor_t *item)
+{
+	assert(instance);
+	instance->next_va = item;
+	instance->next = (uintptr_t)addr_to_phys( item ) & LINK_POINTER_ADDRESS_MASK;
 }
 
 #endif

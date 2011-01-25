@@ -10,6 +10,8 @@
 
 static int init_tranfer_lists(transfer_list_t list[]);
 
+//static int init_transfer();
+
 int uhci_init(device_t *device, void *regs)
 {
 	assert( device );
@@ -79,6 +81,7 @@ int uhci_in(
 	    target.address, target.endpoint,
 	    usb_str_transfer_type(transfer_type),
 	    size);
+
 	if (size >= 1024)
 		return ENOTSUP;
 
@@ -103,7 +106,14 @@ int uhci_in(
 	ret = (td == NULL) ? ENOMEM : EOK;
 	CHECK_RET_FREE_JOB(ret, "Failed to allocate tranfer descriptor.\n");
 
-	transfer_descriptor_init(td, 3, size, false, target, USB_PID_IN);
+	ret = transfer_descriptor_init(td, 3, size, false, target, USB_PID_IN);
+	if (ret != EOK) {
+		uhci_print_error("Failed to initialize transfer descriptor.\n");
+		trans_free(td);
+		trans_free(job);
+		return ret;
+	}
+	td->callback = job;
 
 
 	// TODO: add to list
