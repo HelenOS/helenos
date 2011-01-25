@@ -172,7 +172,7 @@ size_t hub_find_device(hub_t *hub, void *device)
 		}
 	}
 
-	return 0;
+	return -1;
 }
 
 /** Acquire exclusive access to the hub.
