@@ -22,5 +22,29 @@ int transfer_list_init(transfer_list_t *instance, transfer_list_t *next)
 int transfer_list_append(
   transfer_list_t *instance, transfer_descriptor_t *transfer)
 {
+	assert(instance);
+	assert(transfer);
+
+	uint32_t pa = (uintptr_t)addr_to_phys(transfer);
+	assert((pa & LINK_POINTER_ADDRESS_MASK) == pa);
+
+	/* empty list */
+	if (instance->first == NULL) {
+		assert(instance->last == NULL);
+		instance->first = instance->last = transfer;
+	} else {
+		assert(instance->last);
+		instance->last->next_va = transfer;
+
+		assert(instance->last->next & LINK_POINTER_TERMINATE_FLAG);
+		instance->last->next = (pa & LINK_POINTER_ADDRESS_MASK);
+		instance->last = transfer;
+	}
+
+	assert(instance->queue_head);
+	if (instance->queue_head->element & LINK_POINTER_TERMINATE_FLAG) {
+		instance->queue_head->element = (pa & LINK_POINTER_ADDRESS_MASK);
+	}
+	uhci_print_info("Successfully added transfer to the hc queue.\n");
 	return EOK;
 }

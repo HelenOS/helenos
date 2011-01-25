@@ -12,13 +12,13 @@ static int uhci_init_tranfer_lists(transfer_list_t list[]);
 
 static inline int uhci_add_transfer(
   device_t *dev,
-	usb_target_t target,
+  usb_target_t target,
   usb_transfer_type_t transfer_type,
-	usb_packet_id pid,
+  usb_packet_id pid,
   void *buffer, size_t size,
   usbhc_iface_transfer_out_callback_t callback_out,
   usbhc_iface_transfer_in_callback_t callback_in,
-	void *arg );
+  void *arg );
 
 int uhci_init(device_t *device, void *regs)
 {
@@ -163,13 +163,13 @@ int uhci_init_tranfer_lists(transfer_list_t transfers[])
 /*----------------------------------------------------------------------------*/
 static inline int uhci_add_transfer(
   device_t *dev,
-	usb_target_t target,
+  usb_target_t target,
   usb_transfer_type_t transfer_type,
-	usb_packet_id pid,
+  usb_packet_id pid,
   void *buffer, size_t size,
   usbhc_iface_transfer_out_callback_t callback_out,
   usbhc_iface_transfer_in_callback_t callback_in,
-	void *arg )
+  void *arg )
 {
 	// TODO: Add support for isochronous transfers
 	if (transfer_type == USB_TRANSFER_ISOCHRONOUS)
@@ -202,8 +202,8 @@ static inline int uhci_add_transfer(
 	CHECK_RET_TRANS_FREE_JOB_TD("Failed to initialize callback structure.\n");
 
 	td = trans_malloc(sizeof(transfer_descriptor_t));
-	ret = td ? ENOMEM : EOK;
-	CHECK_RET_TRANS_FREE_JOB_TD("Failed to allocate tranfer descriptor.\n");
+	ret = td ? EOK : ENOMEM;
+	CHECK_RET_TRANS_FREE_JOB_TD("Failed to allocate transfer descriptor.\n");
 
 	ret = transfer_descriptor_init(td, 3, size, false, target, pid);
 	CHECK_RET_TRANS_FREE_JOB_TD("Failed to initialize transfer descriptor.\n");
