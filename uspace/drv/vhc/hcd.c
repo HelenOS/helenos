@@ -68,6 +68,7 @@ static usb_iface_t hc_usb_iface = {
 static device_ops_t vhc_ops = {
 	.interfaces[USBHC_DEV_IFACE] = &vhc_iface,
 	.interfaces[USB_DEV_IFACE] = &hc_usb_iface,
+	.close = on_client_close,
 	.default_handler = default_connection_handler
 };
 

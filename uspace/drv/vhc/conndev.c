@@ -87,7 +87,7 @@ void default_connection_handler(device_t *dev,
 	if (method == IPC_M_CONNECT_TO_ME) {
 		int callback = IPC_GET_ARG5(*icall);
 		virtdev_connection_t *dev
-		    = virtdev_add_device(callback);
+		    = virtdev_add_device(callback, (sysarg_t)fibril_get_id());
 		if (!dev) {
 			ipc_answer_0(icallid, EEXISTS);
 			ipc_hangup(callback);
@@ -98,15 +98,31 @@ void default_connection_handler(device_t *dev,
 		char devname[DEVICE_NAME_MAXLENGTH + 1];
 		int rc = get_device_name(callback, devname, DEVICE_NAME_MAXLENGTH);
 
-		dprintf(0, "virtual device connected (name: %s)",
-		    rc == EOK ? devname : "<unknown>");
-
-		/* FIXME: destroy the device when the client disconnects. */
+		dprintf(0, "virtual device connected (name: %s, id: %x)",
+		    rc == EOK ? devname : "<unknown>", dev->id);
 
 		return;
 	}
 
 	ipc_answer_0(icallid, EINVAL);
+}
+
+/** Callback for DDF when client disconnects.
+ *
+ * @param d Device the client was connected to.
+ */
+void on_client_close(device_t *d)
+{
+	/*
+	 * Maybe a virtual device is being unplugged.
+	 */
+	virtdev_connection_t *dev = virtdev_find((sysarg_t)fibril_get_id());
+	if (dev == NULL) {
+		return;
+	}
+
+	dprintf(0, "virtual device disconnected (id: %x)", dev->id);
+	virtdev_destroy_device(dev);
 }
 
 

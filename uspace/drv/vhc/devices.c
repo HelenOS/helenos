@@ -58,10 +58,11 @@ static LIST_INITIALIZE(devices);
 /** Create virtual device.
  *
  * @param phone Callback phone.
+ * @param id Device id.
  * @return New device.
  * @retval NULL Out of memory.
  */
-virtdev_connection_t *virtdev_add_device(int phone)
+virtdev_connection_t *virtdev_add_device(int phone, sysarg_t id)
 {
 	virtdev_connection_t *dev = (virtdev_connection_t *)
 	    malloc(sizeof(virtdev_connection_t));
@@ -70,11 +71,32 @@ virtdev_connection_t *virtdev_add_device(int phone)
 	}
 
 	dev->phone = phone;
+	dev->id = id;
 	list_append(&dev->link, &devices);
 	
 	virthub_connect_device(&virtual_hub_device, dev);
 	
 	return dev;
+}
+
+/** Find virtual device by id.
+ *
+ * @param id Device id.
+ * @return Device with given id.
+ * @retval NULL No such device.
+ */
+virtdev_connection_t *virtdev_find(sysarg_t id)
+{
+	link_t *pos;
+	list_foreach(pos, &devices) {
+		virtdev_connection_t *dev
+		    = list_get_instance(pos, virtdev_connection_t, link);
+		if (dev->id == id) {
+			return dev;
+		}
+	}
+
+	return NULL;
 }
 
 /** Destroy virtual device.
