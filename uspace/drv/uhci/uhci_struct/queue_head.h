@@ -37,7 +37,6 @@
 
 #include <assert.h>
 
-#include "translating_malloc.h"
 #include "link_pointer.h"
 
 typedef struct queue_head {
@@ -45,18 +44,17 @@ typedef struct queue_head {
 	link_pointer_t element;
 } __attribute__((packed)) queue_head_t;
 
-static inline void queue_head_init(queue_head_t *instance, uint32_t next_pa)
+static inline void queue_head_init(queue_head_t *instance, uint32_t next_queue_pa)
 {
 	assert(instance);
-	assert((next_pa & 0xf) == 0);
+	assert((next_queue_pa & LINK_POINTER_ADDRESS_MASK) == next_queue_pa);
 
-	memset(instance, 0, sizeof(*instance));
-	instance->element.terminate = 1;
-	if (next_pa) {
-		instance->next_queue.terminate = 0;
-		instance->next_queue.addr = next_pa >> 4;
+	instance->element = 0 | LINK_POINTER_TERMINATE_FLAG;
+	if (next_queue_pa) {
+		instance->next_queue = (next_queue_pa & LINK_POINTER_ADDRESS_MASK)
+		  | LINK_POINTER_QUEUE_HEAD_FLAG;
 	} else {
-		instance->element.terminate = 1;
+		instance->next_queue = 0 | LINK_POINTER_TERMINATE_FLAG;
 	}
 }
 
