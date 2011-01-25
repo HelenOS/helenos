@@ -150,6 +150,9 @@ typedef struct {
 	/** Incoming phone hash. */
 	sysarg_t in_phone_hash;
 	
+	/** Link to the client tracking structure. */
+	client_t *client;
+
 	/** Messages that should be delivered to this fibril. */
 	link_t msg_queue;
 	
@@ -190,6 +193,13 @@ void async_set_client_data_constructor(async_client_data_ctor_t ctor)
 void async_set_client_data_destructor(async_client_data_dtor_t dtor)
 {
 	async_client_data_destroy = dtor;
+}
+
+void *async_client_data_get(void)
+{
+	assert(FIBRIL_connection);
+
+	return FIBRIL_connection->client->data;
 }
 
 static void default_client_connection(ipc_callid_t callid, ipc_call_t *call);
@@ -573,6 +583,8 @@ static int connection_fibril(void *arg)
 		hash_table_insert(&client_hash_table, &key, &cl->link);
 	}
 	futex_up(&async_futex);
+
+	FIBRIL_connection->client = cl;
 
 	/*
 	 * Call the connection handler function.
