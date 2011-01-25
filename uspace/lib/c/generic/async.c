@@ -540,7 +540,7 @@ static int connection_fibril(void *arg)
 	unsigned long key;
 	client_t *cl;
 	link_t *lnk;
-	void *unref_client_data = NULL;
+	bool destroy = false;
 
 	/*
 	 * Setup fibril-local connection pointer.
@@ -586,13 +586,15 @@ static int connection_fibril(void *arg)
 	futex_down(&async_futex);
 	if (--cl->refcnt == 0) {
 		hash_table_remove(&client_hash_table, &key, 1);
-		unref_client_data = cl->data;
-		free(cl);
+		destroy = true;
 	}
 	futex_up(&async_futex);
 
-	if (unref_client_data)
-		async_client_data_destroy(unref_client_data);
+	if (destroy) {
+		if (cl->data)
+			async_client_data_destroy(cl->data);
+		free(cl);
+	}
 
 	/*
 	 * Remove myself from the connection hash table.
