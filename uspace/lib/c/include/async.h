@@ -43,6 +43,10 @@
 #include <bool.h>
 
 typedef ipc_callid_t aid_t;
+
+typedef void *(*async_client_data_ctor_t)(void);
+typedef void (*async_client_data_dtor_t)(void *);
+
 typedef void (*async_client_conn_t)(ipc_callid_t, ipc_call_t *);
 
 extern atomic_t async_futex;
@@ -96,6 +100,9 @@ extern fid_t async_new_connection(sysarg_t, sysarg_t, ipc_callid_t,
 extern void async_usleep(suseconds_t);
 extern void async_create_manager(void);
 extern void async_destroy_manager(void);
+
+extern void async_set_client_data_constructor(async_client_data_ctor_t);
+extern void async_set_client_data_destructor(async_client_data_dtor_t);
 
 extern void async_set_client_connection(async_client_conn_t);
 extern void async_set_interrupt_received(async_client_conn_t);

@@ -168,6 +168,30 @@ typedef struct {
 /** Identifier of the incoming connection handled by the current fibril. */
 fibril_local connection_t *FIBRIL_connection;
 
+static void *default_client_data_constructor(void)
+{
+	return NULL;
+}
+
+static void default_client_data_destructor(void *data)
+{
+}
+
+static async_client_data_ctor_t async_client_data_create =
+    default_client_data_constructor;
+static async_client_data_dtor_t async_client_data_destroy =
+    default_client_data_destructor;
+
+void async_set_client_data_constructor(async_client_data_ctor_t ctor)
+{
+	async_client_data_create = ctor;
+}
+
+void async_set_client_data_destructor(async_client_data_dtor_t dtor)
+{
+	async_client_data_destroy = dtor;
+}
+
 static void default_client_connection(ipc_callid_t callid, ipc_call_t *call);
 static void default_interrupt_received(ipc_callid_t callid, ipc_call_t *call);
 
@@ -516,6 +540,7 @@ static int connection_fibril(void *arg)
 	unsigned long key;
 	client_t *cl;
 	link_t *lnk;
+	void *unref_client_data = NULL;
 
 	/*
 	 * Setup fibril-local connection pointer.
@@ -541,7 +566,9 @@ static int connection_fibril(void *arg)
 			return 0;
 		}
 		cl->in_task_hash = FIBRIL_connection->in_task_hash;
-		cl->data = NULL;
+		async_serialize_start();
+		cl->data = async_client_data_create();
+		async_serialize_end();
 		cl->refcnt = 1;
 		hash_table_insert(&client_hash_table, &key, &cl->link);
 	}
@@ -559,9 +586,13 @@ static int connection_fibril(void *arg)
 	futex_down(&async_futex);
 	if (--cl->refcnt == 0) {
 		hash_table_remove(&client_hash_table, &key, 1);
+		unref_client_data = cl->data;
 		free(cl);
 	}
 	futex_up(&async_futex);
+
+	if (unref_client_data)
+		async_client_data_destroy(unref_client_data);
 
 	/*
 	 * Remove myself from the connection hash table.
