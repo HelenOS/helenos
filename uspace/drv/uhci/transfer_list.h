@@ -47,23 +47,7 @@ typedef struct transfer_list
 	uint32_t queue_head_pa;
 } transfer_list_t;
 
-static inline int transfer_list_init(
-  transfer_list_t *instance, transfer_list_t *next)
-{
-	assert(instance);
-	instance->first = NULL;
-	instance->last = NULL;
-	instance->queue_head = trans_malloc(sizeof(queue_head_t));
-	if (!instance->queue_head) {
-		uhci_print_error("Failed to allocate queue head.\n");
-		return ENOMEM;
-	}
-	instance->queue_head_pa = (uintptr_t)addr_to_phys(instance->queue_head);
-
-	uint32_t next_pa = next ? next->queue_head_pa : 0;
-	queue_head_init(instance->queue_head, next_pa);
-	return EOK;
-}
+int transfer_list_init(transfer_list_t *instance, transfer_list_t *next);
 
 static inline void transfer_list_fini(transfer_list_t *instance)
 {
@@ -71,6 +55,9 @@ static inline void transfer_list_fini(transfer_list_t *instance)
 	if (instance->queue_head)
 		trans_free(instance->queue_head);
 }
+
+int transfer_list_append(
+  transfer_list_t *instance, transfer_descriptor_t *transfer);
 
 #endif
 /**

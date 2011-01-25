@@ -21,7 +21,7 @@ int uhci_init(device_t *device, void *regs)
 	uhci_t *instance = malloc( sizeof(uhci_t) );
 	if (!instance)
 		{ return ENOMEM; }
-	memset( instance, 0, sizeof(uhci_t) );
+	bzero( instance, sizeof(uhci_t) );
 
 	/* init address keeper(libusb) */
 	usb_address_keeping_init( &instance->address_manager, USB11_ADDRESS_MAX );
@@ -85,39 +85,44 @@ int uhci_in(
 	if (size >= 1024)
 		return ENOTSUP;
 
-	callback_t *job = malloc(sizeof(callback_t));
-	if (job == NULL) {
-		uhci_print_error("Failed to allocate callback structure.\n");
-		return ENOMEM;
-	}
+	transfer_descriptor_t *td = NULL;
+	callback_t *job = NULL;
+	int ret = EOK;
 
-#define CHECK_RET_FREE_JOB(r, message) \
-	if (r != EOK) { \
+#define CHECK_RET_TRANS_FREE_JOB_TD(message) \
+	if (ret != EOK) { \
 		uhci_print_error(message); \
-		callback_fini(job); \
-		trans_free(job); \
-		return r; \
+		if (job) { \
+			callback_fini(job); \
+			trans_free(job); \
+		} \
+		if (td) { trans_free(td); } \
+		return ret; \
 	} else (void) 0
 
-	int ret = callback_in_init(job, dev, buffer, size, callback, arg);
-	CHECK_RET_FREE_JOB(ret, "Failed to initialize callback structure.\n");
 
-	transfer_descriptor_t *td = trans_malloc(sizeof(transfer_descriptor_t));
-	ret = (td == NULL) ? ENOMEM : EOK;
-	CHECK_RET_FREE_JOB(ret, "Failed to allocate tranfer descriptor.\n");
+	job = malloc(sizeof(callback_t));
+	ret= job ? EOK : ENOMEM;
+	CHECK_RET_TRANS_FREE_JOB_TD("Failed to allocate callback structure.\n");
+
+	ret = callback_in_init(job, dev, buffer, size, callback, arg);
+	CHECK_RET_TRANS_FREE_JOB_TD("Failed to initialize callback structure.\n");
+
+	td = trans_malloc(sizeof(transfer_descriptor_t));
+	ret = td ? ENOMEM : EOK;
+	CHECK_RET_TRANS_FREE_JOB_TD("Failed to allocate tranfer descriptor.\n");
 
 	ret = transfer_descriptor_init(td, 3, size, false, target, USB_PID_IN);
-	if (ret != EOK) {
-		uhci_print_error("Failed to initialize transfer descriptor.\n");
-		trans_free(td);
-		trans_free(job);
-		return ret;
-	}
+	CHECK_RET_TRANS_FREE_JOB_TD("Failed to initialize transfer descriptor.\n");
+
 	td->callback = job;
 
+	assert(dev);
+	uhci_t *instance = (uhci_t*)dev->driver_data;
+	assert(instance);
 
-	// TODO: add to list
-//	callback(dev, USB_OUTCOME_OK, size, arg);
+	ret = transfer_list_append(&instance->transfers[transfer_type], td);
+	CHECK_RET_TRANS_FREE_JOB_TD("Failed to append transfer descriptor.\n");
 
 	return EOK;
 }
