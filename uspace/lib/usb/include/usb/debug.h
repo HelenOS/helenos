@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusb usb
+/** @addtogroup libusb
  * @{
  */
 /** @file
@@ -44,3 +44,7 @@ void usb_dump_standard_descriptor(FILE *, const char *, const char *,
     const uint8_t *, size_t);
 
 #endif
+/**
+ * @}
+ */
+
