@@ -95,44 +95,40 @@ static int sysinfo_get_data_size(const char *path, size_t *size)
  */
 void *sysinfo_get_data(const char *path, size_t *size)
 {
-	/* The binary data size might change during time.
-	   Unfortunatelly we cannot allocate the buffer
-	   and transfer the data as a single atomic operation.
+	/*
+	 * The binary data size might change during time.
+	 * Unfortunatelly we cannot allocate the buffer
+	 * and transfer the data as a single atomic operation.
+	 */
 	
-	   Let's hope that the number of iterations is bounded
-	   in common cases. */
-	
-	void *data = NULL;
-	
-	while (true) {
-		/* Get the binary data size */
-		int ret = sysinfo_get_data_size(path, size);
-		if ((ret != EOK) || (size == 0)) {
-			/* Not a binary data item
-			   or an empty item */
-			break;
-		}
-		
-		data = realloc(data, *size);
-		if (data == NULL)
-			break;
-		
-		/* Get the data */
-		ret = __SYSCALL4(SYS_SYSINFO_GET_DATA, (sysarg_t) path,
-		    (sysarg_t) str_size(path), (sysarg_t) data, (sysarg_t) *size);
-		if (ret == EOK)
-			return data;
-		
-		if (ret != ENOMEM) {
-			/* The failure to get the data was not caused
-			   by wrong buffer size */
-			break;
-		}
+	/* Get the binary data size */
+	int ret = sysinfo_get_data_size(path, size);
+	if ((ret != EOK) || (size == 0)) {
+		/*
+		 * Not a binary data item
+		 * or an empty item.
+		 */
+		*size = 0;
+		return NULL;
 	}
 	
-	if (data != NULL)
-		free(data);
+	void *data = malloc(*size);
+	if (data == NULL) {
+		*size = 0;
+		return NULL;
+	}
 	
+	/* Get the data */
+	size_t sz;
+	ret = __SYSCALL5(SYS_SYSINFO_GET_DATA, (sysarg_t) path,
+	    (sysarg_t) str_size(path), (sysarg_t) data, (sysarg_t) *size,
+	    (sysarg_t) &sz);
+	if (ret == EOK) {
+		*size = sz;
+		return data;
+	}
+	
+	free(data);
 	*size = 0;
 	return NULL;
 }

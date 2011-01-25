@@ -147,7 +147,7 @@ extern void sysinfo_dump(sysinfo_item_t *);
 extern sysarg_t sys_sysinfo_get_tag(void *, size_t);
 extern sysarg_t sys_sysinfo_get_value(void *, size_t, void *);
 extern sysarg_t sys_sysinfo_get_data_size(void *, size_t, void *);
-extern sysarg_t sys_sysinfo_get_data(void *, size_t, void *, size_t);
+extern sysarg_t sys_sysinfo_get_data(void *, size_t, void *, size_t, size_t *);
 
 #endif
 
