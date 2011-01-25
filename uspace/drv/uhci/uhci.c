@@ -8,8 +8,8 @@
 #include "name.h"
 #include "uhci.h"
 
-static int uhci_init_tranfer_lists(transfer_list_t list[]);
-
+static int uhci_init_transfer_lists(transfer_list_t list[]);
+static int uhci_clean_finished(void *arg);
 static inline int uhci_add_transfer(
   device_t *dev,
   usb_target_t target,
@@ -22,38 +22,45 @@ static inline int uhci_add_transfer(
 
 int uhci_init(device_t *device, void *regs)
 {
-	assert( device );
-	uhci_print_info( "Initializing device at address %p\n", device);
+	assert(device);
+	uhci_print_info("Initializing device at address %p.\n", device);
+
+#define CHECK_RET_FREE_INSTANCE(message...) \
+	if (ret != EOK) { \
+		uhci_print_error(message); \
+		if (instance) { \
+			free(instance); \
+		} \
+		return ret; \
+	} else (void) 0
 
 	/* create instance */
 	uhci_t *instance = malloc( sizeof(uhci_t) );
-	if (!instance)
-		{ return ENOMEM; }
-	bzero( instance, sizeof(uhci_t) );
+	int ret = instance ? EOK : ENOMEM;
+	CHECK_RET_FREE_INSTANCE("Failed to allocate uhci driver instance.\n");
+
+	bzero(instance, sizeof(uhci_t));
 
 	/* init address keeper(libusb) */
-	usb_address_keeping_init( &instance->address_manager, USB11_ADDRESS_MAX );
+	usb_address_keeping_init(&instance->address_manager, USB11_ADDRESS_MAX);
 
 	/* allow access to hc control registers */
 	regs_t *io;
-	int ret = pio_enable( regs, sizeof(regs_t), (void**)&io);
-	if (ret < 0) {
-		free( instance );
-		uhci_print_error("Failed to gain access to registers at %p\n", io);
-		return ret;
-	}
+	ret = pio_enable(regs, sizeof(regs_t), (void**)&io);
+	CHECK_RET_FREE_INSTANCE("Failed to gain access to registers at %p.\n", io);
 	instance->registers = io;
+
+	/* init transfer lists */
+	ret = uhci_init_transfer_lists(instance->transfers);
+	CHECK_RET_FREE_INSTANCE("Failed to initialize transfer lists.\n");
 
 	/* init root hub */
 	ret = uhci_root_hub_init(&instance->root_hub, device,
 	  (char*)regs + UHCI_ROOT_HUB_PORT_REGISTERS_OFFSET);
-	if (ret < 0) {
-		free(instance);
-		uhci_print_error("Failed to initialize root hub driver.\n");
-		return ret;
-	}
+	CHECK_RET_FREE_INSTANCE("Failed to initialize root hub driver.\n");
 
-	instance->frame_list = trans_malloc(sizeof(frame_list_t));
+	instance->frame_list =
+	  trans_malloc(sizeof(link_pointer_t) * UHCI_FRAME_LIST_COUNT);
 	if (instance->frame_list == NULL) {
 		uhci_print_error("Failed to allocate frame list pointer.\n");
 		uhci_root_hub_fini(&instance->root_hub);
@@ -61,17 +68,21 @@ int uhci_init(device_t *device, void *regs)
 		return ENOMEM;
 	}
 
+	/* initialize all frames to point to the first queue head */
+	unsigned i = 0;
+	const uint32_t queue =
+	  instance->transfers[USB_TRANSFER_INTERRUPT].queue_head_pa
+	  | LINK_POINTER_QUEUE_HEAD_FLAG;
+	for(; i < UHCI_FRAME_LIST_COUNT; ++i) {
+		instance->frame_list[i] = queue;
+	}
+
 	const uintptr_t pa = (uintptr_t)addr_to_phys(instance->frame_list);
 
 	pio_write_32(&instance->registers->flbaseadd, (uint32_t)pa);
 
-	ret = uhci_init_tranfer_lists(instance->transfers);
-	if (ret != EOK) {
-		uhci_print_error("Transfer list initialization failed.\n");
-		uhci_root_hub_fini(&instance->root_hub);
-		free(instance);
-		return ret;
-	}
+	instance->cleaner = fibril_create(uhci_clean_finished, instance);
+	fibril_add_ready(instance->cleaner);
 
 	device->driver_data = instance;
 	return EOK;
@@ -128,7 +139,7 @@ int uhci_setup(
 
 }
 /*----------------------------------------------------------------------------*/
-int uhci_init_tranfer_lists(transfer_list_t transfers[])
+int uhci_init_transfer_lists(transfer_list_t transfers[])
 {
 	//TODO:refactor
 	transfers[USB_TRANSFER_ISOCHRONOUS].first = NULL;
@@ -217,5 +228,18 @@ static inline int uhci_add_transfer(
 	ret = transfer_list_append(&instance->transfers[transfer_type], td);
 	CHECK_RET_TRANS_FREE_JOB_TD("Failed to append transfer descriptor.\n");
 
+	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+int uhci_clean_finished(void* arg)
+{
+	uhci_print_verbose("Started cleaning fibril.\n");
+	uhci_t *instance = (uhci_t*)arg;
+	assert(instance);
+	while(1) {
+		uhci_print_verbose("Running cleaning fibril on %p.\n", instance);
+
+		async_usleep(1000000);
+	}
 	return EOK;
 }

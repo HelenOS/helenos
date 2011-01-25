@@ -41,9 +41,7 @@
 #include <usbhc_iface.h>
 
 #include "root_hub/root_hub.h"
-#include "uhci_struct/frame_list.h"
 #include "transfer_list.h"
-
 
 typedef struct uhci_regs {
 	uint16_t usbcmd;
@@ -55,15 +53,17 @@ typedef struct uhci_regs {
 } regs_t;
 
 #define TRANSFER_QUEUES 4
+#define UHCI_FRAME_LIST_COUNT 1024
 
 typedef struct uhci {
 	usb_address_keeping_t address_manager;
 	uhci_root_hub_t root_hub;
 	volatile regs_t *registers;
 
-	frame_list_t *frame_list;
+	link_pointer_t *frame_list;
 
 	transfer_list_t transfers[TRANSFER_QUEUES];
+	fid_t cleaner;
 } uhci_t;
 
 /* init uhci specifics in device.driver_data */
