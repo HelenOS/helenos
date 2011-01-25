@@ -37,10 +37,11 @@
 /* UHCI link pointer, used by many data structures */
 typedef uint32_t link_pointer_t;
 
-#define LINK_POINTER_TERMINATE_FLAG (1 << 0);
-#define LINK_POINTER_QUEUE_HEAD_FLAG (1 << 1);
-#define LINK_POINTER_ZERO_BIT_FLAG (1 << 2);
-#define LINK_POINTER_RESERVED_FLAG (1 << 3);
+#define LINK_POINTER_TERMINATE_FLAG (1 << 0)
+#define LINK_POINTER_QUEUE_HEAD_FLAG (1 << 1)
+#define LINK_POINTER_ZERO_BIT_FLAG (1 << 2)
+#define LINK_POINTER_VERTICAL_FLAG (1 << 2)
+#define LINK_POINTER_RESERVED_FLAG (1 << 3)
 
 #define LINK_POINTER_ADDRESS_MASK 0xfffffff0 /* upper 28 bits */
 

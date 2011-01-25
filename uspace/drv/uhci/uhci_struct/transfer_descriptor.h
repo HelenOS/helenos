@@ -36,44 +36,51 @@
 
 #include <mem.h>
 #include <usb/usb.h>
-#include "callback.h"
 
-/** Status field in UHCI Transfer Descriptor (TD) */
-typedef struct status {
-	uint8_t active:1;
-	uint8_t stalled:1;
-	uint8_t data_buffer_error:1;
-	uint8_t babble:1;
-	uint8_t nak:1;
-	uint8_t crc:1;
-	uint8_t bitstuff:1;
-	uint8_t :1; /* reserved */
-} status_t;
+#include "callback.h"
+#include "link_pointer.h"
 
 /** UHCI Transfer Descriptor */
 typedef struct transfer_descriptor {
-	uint32_t fpl:28;
-	char :1; /* reserved */
-	uint8_t depth:1;
-	uint8_t qh:1;
-	uint8_t terminate:1;
+	link_pointer_t next;
 
-	char :2; /* reserved */
-	uint8_t spd:1;
-	uint8_t error_count:2;
-	uint8_t low_speed:1;
-	uint8_t isochronous:1;
-	uint8_t ioc:1;
-	status_t status;
-	char :5; /* reserved */
-	uint16_t act_len:10;
+	uint32_t status;
 
-	uint16_t maxlen:11;
-	char :1; /* reserved */
-	uint8_t toggle:1;
-	uint8_t endpoint:4;
-	uint8_t address:7;
-	uint8_t pid;
+#define TD_STATUS_RESERVED_MASK 0xc000f800
+#define TD_STATUS_SPD_FLAG ( 1 << 29 )
+#define TD_STATUS_ERROR_COUNT_POS ( 27 )
+#define TD_STATUS_ERROR_COUNT_MASK ( 0x11 )
+#define TD_STATUS_ERROR_COUNT_DEFAULT 3
+#define TD_STATUS_LOW_SPEED_FLAG ( 1 << 26 )
+#define TD_STATUS_ISOCHRONOUS_FLAG ( 1 << 25 )
+#define TD_STATUS_COMPLETE_INTERRUPT_FLAG ( 1 << 24 )
+
+#define TD_STATUS_ACTIVE ( 1 << 23 )
+#define TD_STATUS_ERROR_STALLED ( 1 << 22 )
+#define TD_STATUS_ERROR_BUFFER ( 1 << 21 )
+#define TD_STATUS_ERROR_BABBLE ( 1 << 20 )
+#define TD_STATUS_ERROR_NAK ( 1 << 19 )
+#define TD_STATUS_ERROR_CRC ( 1 << 18 )
+#define TD_STATUS_ERROR_BIT_STUFF ( 1 << 17 )
+#define TD_STATUS_ERROR_RESERVED ( 1 << 16 )
+#define TD_STATUS_POS 16
+#define TD_STATUS_MASK ( 0xff )
+
+#define TD_STATUS_ACTLEN_POS 0
+#define TD_STATUS_ACTLEN_MASK 0x7ff
+
+	uint32_t device;
+
+#define TD_DEVICE_MAXLEN_POS 21
+#define TD_DEVICE_MAXLEN_MASK ( 0x7ff )
+#define TD_DEVICE_RESERVED_FLAG ( 1 << 20 )
+#define TD_DEVICE_DATA_TOGGLE_ONE_FLAG ( 1 << 19 )
+#define TD_DEVICE_ENDPOINT_POS 15
+#define TD_DEVICE_ENDPOINT_MASK ( 0xf )
+#define TD_DEVICE_ADDRESS_POS 8
+#define TD_DEVICE_ADDRESS_MASK ( 0x7f )
+#define TD_DEVICE_PID_POS 0
+#define TD_DEVICE_PID_MASK ( 0xff )
 
 	uint32_t buffer_ptr;
 
@@ -82,7 +89,7 @@ typedef struct transfer_descriptor {
 	 * and next pointer. Thus there is some free space
 	 * on 32bits systems.
 	 */
-	struct transfer_descriptor *next;
+	struct transfer_descriptor *next_va;
 	callback_t *callback;
 } __attribute__((packed)) transfer_descriptor_t;
 
@@ -91,22 +98,23 @@ static inline int transfer_descriptor_init(transfer_descriptor_t *instance,
 	int pid)
 {
 	assert(instance);
-	bzero(instance, sizeof(transfer_descriptor_t));
 
-	instance->depth = 1;
-	instance->terminate = 1;
-
-	assert(error_count < 4);
-	instance->error_count = error_count;
-	instance->status.active = 1;
+	instance->next =
+	  0 | LINK_POINTER_VERTICAL_FLAG | LINK_POINTER_TERMINATE_FLAG;
 
 	assert(size < 1024);
-	instance->maxlen = size;
+	instance->status = 0
+	  | ((error_count & TD_STATUS_ERROR_COUNT_MASK) << TD_STATUS_ERROR_COUNT_POS)
+	  | TD_STATUS_ACTIVE;
 
-	instance->address = target.address;
-	instance->endpoint = target.endpoint;
+	instance->device = 0
+		| ((size & TD_DEVICE_MAXLEN_MASK) << TD_DEVICE_MAXLEN_POS)
+		| ((target.address & TD_DEVICE_ADDRESS_MASK) << TD_DEVICE_ADDRESS_POS)
+		| ((target.endpoint & TD_DEVICE_ENDPOINT_MASK) << TD_DEVICE_ENDPOINT_POS)
+		| ((pid & TD_DEVICE_PID_MASK) << TD_DEVICE_PID_POS);
 
-	instance->pid = pid;
+	instance->next_va = NULL;
+	instance->callback = NULL;
 
 	return EOK;
 }
