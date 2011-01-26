@@ -603,6 +603,7 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	 */
 	vfs_node_addref(node);
 	vfs_node_put(node);
+	vfs_file_put(file);
 	
 	/* Success! Return the new file descriptor to the client. */
 	ipc_answer_1(rid, EOK, fd);
@@ -675,6 +676,7 @@ void vfs_open_node(ipc_callid_t rid, ipc_call_t *request)
 	 */
 	vfs_node_addref(node);
 	vfs_node_put(node);
+	vfs_file_put(file);
 	
 	/* Success! Return the new file descriptor to the client. */
 	ipc_answer_1(rid, EOK, fd);
@@ -710,7 +712,8 @@ void vfs_sync(ipc_callid_t rid, ipc_call_t *request)
 	
 	vfs_release_phone(file->node->fs_handle, fs_phone);
 	fibril_mutex_unlock(&file->lock);
-	
+
+	vfs_file_put(file);
 	ipc_answer_0(rid, rc);
 }
 
@@ -764,6 +767,7 @@ void vfs_close(ipc_callid_t rid, ipc_call_t *request)
 	if (ret != EOK)
 		ipc_answer_0(rid, ret);
 	
+	vfs_file_put(file);
 	ret = vfs_fd_free(fd);
 	ipc_answer_0(rid, ret);
 }
@@ -864,7 +868,8 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 	if (rc == EOK)
 		file->pos += bytes;
 	fibril_mutex_unlock(&file->lock);
-	
+	vfs_file_put(file);	
+
 	/*
 	 * FS server's reply is the final result of the whole operation we
 	 * return to the client.
@@ -904,6 +909,7 @@ void vfs_seek(ipc_callid_t rid, ipc_call_t *request)
 		if (off >= 0) {
 			file->pos = (aoff64_t) off;
 			fibril_mutex_unlock(&file->lock);
+			vfs_file_put(file);
 			ipc_answer_1(rid, EOK, off);
 			return;
 		}
@@ -911,12 +917,14 @@ void vfs_seek(ipc_callid_t rid, ipc_call_t *request)
 	case SEEK_CUR:
 		if ((off >= 0) && (file->pos + off < file->pos)) {
 			fibril_mutex_unlock(&file->lock);
+			vfs_file_put(file);
 			ipc_answer_0(rid, EOVERFLOW);
 			return;
 		}
 		
 		if ((off < 0) && (file->pos < (aoff64_t) -off)) {
 			fibril_mutex_unlock(&file->lock);
+			vfs_file_put(file);
 			ipc_answer_0(rid, EOVERFLOW);
 			return;
 		}
@@ -925,6 +933,7 @@ void vfs_seek(ipc_callid_t rid, ipc_call_t *request)
 		newoff = (file->pos > OFF64_MAX) ?  OFF64_MAX : file->pos;
 		
 		fibril_mutex_unlock(&file->lock);
+		vfs_file_put(file);
 		ipc_answer_2(rid, EOK, LOWER32(newoff),
 		    UPPER32(newoff));
 		return;
@@ -935,6 +944,7 @@ void vfs_seek(ipc_callid_t rid, ipc_call_t *request)
 		if ((off >= 0) && (size + off < size)) {
 			fibril_rwlock_read_unlock(&file->node->contents_rwlock);
 			fibril_mutex_unlock(&file->lock);
+			vfs_file_put(file);
 			ipc_answer_0(rid, EOVERFLOW);
 			return;
 		}
@@ -942,6 +952,7 @@ void vfs_seek(ipc_callid_t rid, ipc_call_t *request)
 		if ((off < 0) && (size < (aoff64_t) -off)) {
 			fibril_rwlock_read_unlock(&file->node->contents_rwlock);
 			fibril_mutex_unlock(&file->lock);
+			vfs_file_put(file);
 			ipc_answer_0(rid, EOVERFLOW);
 			return;
 		}
@@ -951,11 +962,13 @@ void vfs_seek(ipc_callid_t rid, ipc_call_t *request)
 		
 		fibril_rwlock_read_unlock(&file->node->contents_rwlock);
 		fibril_mutex_unlock(&file->lock);
+		vfs_file_put(file);
 		ipc_answer_2(rid, EOK, LOWER32(newoff), UPPER32(newoff));
 		return;
 	}
 	
 	fibril_mutex_unlock(&file->lock);
+	vfs_file_put(file);
 	ipc_answer_0(rid, EINVAL);
 }
 
@@ -994,6 +1007,7 @@ void vfs_truncate(ipc_callid_t rid, ipc_call_t *request)
 	fibril_rwlock_write_unlock(&file->node->contents_rwlock);
 
 	fibril_mutex_unlock(&file->lock);
+	vfs_file_put(file);
 	ipc_answer_0(rid, (sysarg_t)rc);
 }
 
@@ -1010,6 +1024,7 @@ void vfs_fstat(ipc_callid_t rid, ipc_call_t *request)
 
 	ipc_callid_t callid;
 	if (!async_data_read_receive(&callid, NULL)) {
+		vfs_file_put(file);
 		ipc_answer_0(callid, EINVAL);
 		ipc_answer_0(rid, EINVAL);
 		return;
@@ -1027,6 +1042,7 @@ void vfs_fstat(ipc_callid_t rid, ipc_call_t *request)
 	vfs_release_phone(file->node->fs_handle, fs_phone);
 
 	fibril_mutex_unlock(&file->lock);
+	vfs_file_put(file);
 	ipc_answer_0(rid, rc);
 }
 
@@ -1328,16 +1344,16 @@ void vfs_dup(ipc_callid_t rid, ipc_call_t *request)
 	int oldfd = IPC_GET_ARG1(*request);
 	int newfd = IPC_GET_ARG2(*request);
 	
+	/* If the file descriptors are the same, do nothing. */
+	if (oldfd == newfd) {
+		ipc_answer_1(rid, EOK, newfd);
+		return;
+	}
+	
 	/* Lookup the file structure corresponding to oldfd. */
 	vfs_file_t *oldfile = vfs_file_get(oldfd);
 	if (!oldfile) {
 		ipc_answer_0(rid, EBADF);
-		return;
-	}
-	
-	/* If the file descriptors are the same, do nothing. */
-	if (oldfd == newfd) {
-		ipc_answer_1(rid, EOK, newfd);
 		return;
 	}
 	
@@ -1354,6 +1370,8 @@ void vfs_dup(ipc_callid_t rid, ipc_call_t *request)
 		int ret = vfs_close_internal(newfile);
 		if (ret != EOK) {
 			fibril_mutex_unlock(&oldfile->lock);
+			vfs_file_put(oldfile);
+			vfs_file_put(newfile);
 			ipc_answer_0(rid, ret);
 			return;
 		}
@@ -1361,14 +1379,18 @@ void vfs_dup(ipc_callid_t rid, ipc_call_t *request)
 		ret = vfs_fd_free(newfd);
 		if (ret != EOK) {
 			fibril_mutex_unlock(&oldfile->lock);
+			vfs_file_put(oldfile);
+			vfs_file_put(newfile);
 			ipc_answer_0(rid, ret);
 			return;
 		}
+		vfs_file_put(newfile);
 	}
 	
 	/* Assign the old file to newfd. */
 	int ret = vfs_fd_assign(oldfile, newfd);
 	fibril_mutex_unlock(&oldfile->lock);
+	vfs_file_put(oldfile);
 	
 	if (ret != EOK)
 		ipc_answer_0(rid, ret);
