@@ -191,7 +191,7 @@ extern void *vfs_client_data_create(void);
 extern void vfs_client_data_destroy(void *);
 
 extern vfs_file_t *vfs_file_get(int);
-extern int vfs_fd_assign(vfs_file_t *file, int fd);
+extern int vfs_fd_assign(vfs_file_t *, int);
 extern int vfs_fd_alloc(bool desc);
 extern int vfs_fd_free(int);
 
