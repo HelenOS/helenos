@@ -396,8 +396,7 @@ int netif_initialize(void)
 	
 	async_set_interrupt_received(irq_handler);
 	
-	sysarg_t phonehash;
-	return ipc_connect_to_me(PHONE_NS, SERVICE_NE2000, 0, 0, &phonehash);
+	return ipc_connect_to_me(PHONE_NS, SERVICE_NE2000, 0, 0, NULL, NULL);
 }
 
 int main(int argc, char *argv[])

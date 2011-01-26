@@ -164,7 +164,9 @@
  *                       responds with error, phone is deallocated and
  *                       error is sent back to caller. Otherwise 
  *                       the call is accepted and the response is sent back.
- *                     - the allocated phoneid is passed to userspace 
+ *                     - the hash of the client task is passed to userspace
+ *                       (on the receiving side) as ARG4 of the call.
+ *                     - the hash of the allocated phone is passed to userspace
  *                       (on the receiving side) as ARG5 of the call.
  *
  */
@@ -318,6 +320,9 @@ typedef struct answerbox {
 
 typedef struct {
 	sysarg_t args[IPC_CALL_LEN];
+	/** Task which made or forwarded the call with IPC_FF_ROUTE_FROM_ME. */
+	struct task *task;
+	/** Phone which made or last masqueraded this call. */
 	phone_t *phone;
 } ipc_data_t;
 

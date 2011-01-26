@@ -422,7 +422,6 @@ static void ldr_connection(ipc_callid_t iid, ipc_call_t *icall)
  */
 int main(int argc, char *argv[])
 {
-	sysarg_t phonead;
 	task_id_t id;
 	int rc;
 
@@ -438,7 +437,7 @@ int main(int argc, char *argv[])
 	async_set_client_connection(ldr_connection);
 	
 	/* Register at naming service. */
-	if (ipc_connect_to_me(PHONE_NS, SERVICE_LOAD, 0, 0, &phonead) != 0) 
+	if (ipc_connect_to_me(PHONE_NS, SERVICE_LOAD, 0, 0, NULL, NULL) != 0)
 		return -2;
 
 	async_manager();
