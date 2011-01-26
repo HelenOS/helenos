@@ -25,6 +25,9 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+/** @addtogroup drvusbhid
+ * @{
+ */
 #ifndef USBHID_DESCDUMP_H_
 #define USBHID_DESCDUMP_H_
 
@@ -49,3 +52,7 @@ void dump_hid_class_descriptor(int index, uint8_t type,
     const uint8_t *d, size_t size);
 
 #endif /* USBHID_DESCDUMP_H_ */
+
+/**
+ * @}
+ */
