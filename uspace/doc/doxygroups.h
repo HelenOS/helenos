@@ -176,10 +176,39 @@
 	 * @brief Library for creating USB devices drivers.
 	 */
 
+	/**
+	 * @defgroup usbvirt USB virtualization
+	 * @ingroup usb
+	 * @brief Support for virtual USB devices.
+	 */
+
+		/**
+		 * @defgroup libusbvirt USB virtualization library
+		 * @ingroup usbvirt
+		 * @brief Library for creating virtual USB devices.
+		 */
+
+		/**
+		 * @defgroup drvusbvhc Virtual USB host controller
+		 * @ingroup usbvirt
+		 * @brief Driver simulating work of USB host controller.
+		 */
+
 	 /**
-	  * @defgroup usbhub USB hub driver
+	  * @defgroup drvusbhub USB hub driver
 	  * @ingroup usb
 	  * @brief USB hub driver.
 	  */
+
+	 /**
+	  * @defgroup drvusbhid USB HID driver
+	  * @ingroup usb
+	  * @brief USB driver for HID devices.
+	  */
+
+	 /**
+	  * @defgroup drvusbuhci UHCI driver
+	  * @ingroup usb
+	  * @brief Driver for USB host controller UHCI.
 	  */
 

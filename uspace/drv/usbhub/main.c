@@ -26,6 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup drvusbhub
+ * @{
+ */
+
 #include <driver.h>
 #include <errno.h>
 #include <async.h>
@@ -75,3 +79,8 @@ int main(int argc, char *argv[])
 
 	return driver_main(&hub_driver);
 }
+
+/**
+ * @}
+ */
+
