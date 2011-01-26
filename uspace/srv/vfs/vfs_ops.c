@@ -490,11 +490,6 @@ void vfs_unmount(ipc_callid_t rid, ipc_call_t *request)
 
 void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 {
-	if (!vfs_files_init()) {
-		ipc_answer_0(rid, ENOMEM);
-		return;
-	}
-	
 	/*
 	 * The POSIX interface is open(path, oflag, mode).
 	 * We can receive oflags and mode along with the VFS_IN_OPEN call;
@@ -616,11 +611,6 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 void vfs_open_node(ipc_callid_t rid, ipc_call_t *request)
 {
 	// FIXME: check for sanity of the supplied fs, dev and index
-	
-	if (!vfs_files_init()) {
-		ipc_answer_0(rid, ENOMEM);
-		return;
-	}
 	
 	/*
 	 * The interface is open_node(fs, dev, index, oflag).
