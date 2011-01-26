@@ -65,7 +65,7 @@ static void list_tasks(void)
 		return;
 	}
 	
-	printf("      ID  Threads      Mem       uCycles       kCycles   Name\n");
+	printf(" Task ID  Threads      Mem       uCycles       kCycles   Name\n");
 	
 	size_t i;
 	for (i = 0; i < count; i++) {
@@ -95,7 +95,7 @@ static void list_threads(task_id_t task_id, bool all)
 		return;
 	}
 	
-	printf("    ID    State  CPU   Prio    [k]uCycles    [k]kcycles   Cycle fault\n");
+	printf(" ThrID    State  CPU   Prio    [k]uCycles    [k]kcycles   Cycle fault\n");
 	size_t i;
 	for (i = 0; i < count; i++) {
 		if ((all) || (stats_threads[i].task_id == task_id)) {
