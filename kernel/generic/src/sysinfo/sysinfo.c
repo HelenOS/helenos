@@ -39,6 +39,7 @@
 #include <synch/mutex.h>
 #include <arch/asm.h>
 #include <errno.h>
+#include <macros.h>
 
 /** Maximal sysinfo path length */
 #define SYSINFO_MAX_PATH  2048
@@ -760,35 +761,43 @@ sysarg_t sys_sysinfo_get_data_size(void *path_ptr, size_t path_size,
  * to be properly null-terminated (the last passed
  * character must be null).
  *
- * The user space buffer must be sized exactly according
- * to the size of the binary data, otherwise the request
- * fails.
+ * If the user space buffer size does not equal
+ * the actual size of the returned data, the data
+ * is truncated. Whether this is actually a fatal
+ * error or the data can be still interpreted as valid
+ * depends on the nature of the data and has to be
+ * decided by the user space.
+ *
+ * The actual size of data returned is stored to
+ * size_ptr.
  *
  * @param path_ptr    Sysinfo path in the user address space.
  * @param path_size   Size of the path string.
  * @param buffer_ptr  User space pointer to the buffer where
  *                    to store the binary data.
  * @param buffer_size User space buffer size.
+ * @param size_ptr    User space pointer where to store the
+ *                    binary data size.
  *
  * @return Error code (EOK in case of no error).
  *
  */
 sysarg_t sys_sysinfo_get_data(void *path_ptr, size_t path_size,
-    void *buffer_ptr, size_t buffer_size)
+    void *buffer_ptr, size_t buffer_size, size_t *size_ptr)
 {
 	int rc;
 	
 	/* Get the item */
-	sysinfo_return_t ret = sysinfo_get_item_uspace(path_ptr, path_size, false);
-
+	sysinfo_return_t ret = sysinfo_get_item_uspace(path_ptr, path_size,
+	    false);
+	
 	/* Only constant or generated binary data is considered */
-	if ((ret.tag == SYSINFO_VAL_DATA) || (ret.tag == SYSINFO_VAL_FUNCTION_DATA)) {
-		/* Check destination buffer size */
-		if (ret.data.size == buffer_size)
-			rc = copy_to_uspace(buffer_ptr, ret.data.data,
-			    ret.data.size);
-		else
-			rc = ENOMEM;
+	if ((ret.tag == SYSINFO_VAL_DATA) ||
+	    (ret.tag == SYSINFO_VAL_FUNCTION_DATA)) {
+		size_t size = min(ret.data.size, buffer_size);
+		rc = copy_to_uspace(buffer_ptr, ret.data.data, size);
+		if (rc == EOK)
+			rc = copy_to_uspace(size_ptr, &size, sizeof(size));
 	} else
 		rc = EINVAL;
 	
