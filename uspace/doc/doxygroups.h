@@ -195,9 +195,20 @@
 		 */
 
 	 /**
-	  * @defgroup usbhub USB hub driver
+	  * @defgroup drvusbhub USB hub driver
 	  * @ingroup usb
 	  * @brief USB hub driver.
 	  */
+
+	 /**
+	  * @defgroup drvusbhid USB HID driver
+	  * @ingroup usb
+	  * @brief USB driver for HID devices.
+	  */
+
+	 /**
+	  * @defgroup drvusbuhci UHCI driver
+	  * @ingroup usb
+	  * @brief Driver for USB host controller UHCI.
 	  */
 
