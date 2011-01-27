@@ -590,14 +590,20 @@ static bool thread_walker(avltree_node_t *node, void *arg)
 	order_suffix(thread->ucycles, &ucycles, &usuffix);
 	order_suffix(thread->kcycles, &kcycles, &ksuffix);
 	
+	char *name;
+	if (str_cmp(thread->name, "uinit") == 0)
+		name = thread->task->name;
+	else
+		name = thread->name;
+	
 #ifdef __32_BITS__
 	if (*additional)
-		printf("%-8" PRIu64" %10p %9" PRIu64 "%c %9" PRIu64 "%c ",
-		    thread->tid, thread->kstack, ucycles, usuffix,
-		    kcycles, ksuffix);
+		printf("%-8 %10p" PRIu64" %10p %9" PRIu64 "%c %9" PRIu64 "%c ",
+		    thread->tid, thread->thread_code, thread->kstack,
+		    ucycles, usuffix, kcycles, ksuffix);
 	else
-		printf("%-8" PRIu64" %-14s %10p %-8s %10p %-5" PRIu32 " %10p\n",
-		    thread->tid, thread->name, thread, thread_states[thread->state],
+		printf("%-8" PRIu64" %-14s %10p %-8s %10p %-5" PRIu32 "\n",
+		    thread->tid, name, thread, thread_states[thread->state],
 		    thread->task, thread->task->context, thread->thread_code);
 #endif
 	
@@ -609,7 +615,7 @@ static bool thread_walker(avltree_node_t *node, void *arg)
 		    ucycles, usuffix, kcycles, ksuffix);
 	else
 		printf("%-8" PRIu64" %-14s %18p %-8s %18p %-5" PRIu32 "\n",
-		    thread->tid, thread->name, thread, thread_states[thread->state],
+		    thread->tid, name, thread, thread_states[thread->state],
 		    thread->task, thread->task->context);
 #endif
 	
@@ -647,11 +653,11 @@ void thread_print_list(bool additional)
 	
 #ifdef __32_BITS__
 	if (additional)
-		printf("[id    ] [stack   ] [ucycles ] [kcycles ] [cpu]"
-		    " [waitqueue]\n");
+		printf("[id    ] [code    ] [stack   ] [ucycles ] [kcycles ]"
+		    " [cpu] [waitqueue]\n");
 	else
 		printf("[id    ] [name        ] [address ] [state ] [task    ]"
-		    " [ctx] [code    ]\n");
+		    " [ctx]\n");
 #endif
 	
 #ifdef __64_BITS__
