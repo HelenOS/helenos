@@ -448,12 +448,14 @@ void task_get_accounting(task_t *task, uint64_t *ucycles, uint64_t *kcycles)
 
 static void task_kill_internal(task_t *task)
 {
-	link_t *cur;
+	irq_spinlock_lock(&task->lock, false);
+	irq_spinlock_lock(&threads_lock, false);
 	
 	/*
 	 * Interrupt all threads.
 	 */
-	irq_spinlock_lock(&task->lock, false);
+	
+	link_t *cur;
 	for (cur = task->th_head.next; cur != &task->th_head; cur = cur->next) {
 		thread_t *thread = list_get_instance(cur, thread_t, th_link);
 		bool sleeping = false;
@@ -470,6 +472,7 @@ static void task_kill_internal(task_t *task)
 			waitq_interrupt_sleep(thread);
 	}
 	
+	irq_spinlock_unlock(&threads_lock, false);
 	irq_spinlock_unlock(&task->lock, false);
 }
 
