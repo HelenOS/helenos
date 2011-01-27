@@ -32,10 +32,10 @@
 
 /** @file
  * Internetwork layer module interface for the underlying network interface
- * layer. This interface is always called by the remote modules.
+ * layer.
  */
 
-#include <il_interface.h>
+#include <il_remote.h>
 #include <generic.h>
 #include <packet_client.h>
 

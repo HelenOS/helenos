@@ -35,7 +35,9 @@ SOURCES = \
 	src/addrkeep.c \
 	src/class.c \
 	src/debug.c \
+	src/dp.c \
 	src/drvpsync.c \
+	src/dump.c \
 	src/hcdhubd.c \
 	src/hcdrv.c \
 	src/hidparser.c \
@@ -44,6 +46,7 @@ SOURCES = \
 	src/remotedrv.c \
 	src/usb.c \
 	src/usbdrvreq.c \
-	src/usbdrv.c
+	src/usbdrv.c \
+	src/usbmem.c
 
 include $(USPACE_PREFIX)/Makefile.common

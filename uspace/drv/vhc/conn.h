@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup usb
+/** @addtogroup drvusbvhc
  * @{
  */
 /** @file
@@ -50,6 +50,7 @@ void address_init(void);
 
 
 void default_connection_handler(device_t *, ipc_callid_t, ipc_call_t *);
+void on_client_close(device_t *);
 
 
 #endif

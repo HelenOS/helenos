@@ -26,7 +26,8 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libdrv usb
+/** @addtogroup libdrv
+ * @addtogroup usb
  * @{
  */
 /** @file

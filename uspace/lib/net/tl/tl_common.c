@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libnet 
+/** @addtogroup libnet
  * @{
  */
 
@@ -38,10 +38,10 @@
 #include <tl_common.h>
 #include <packet_client.h>
 #include <packet_remote.h>
-#include <icmp_interface.h>
+#include <icmp_remote.h>
 #include <ip_remote.h>
 #include <ip_interface.h>
-#include <tl_interface.h>
+#include <tl_remote.h>
 
 #include <net/socket_codes.h>
 #include <net/in.h>

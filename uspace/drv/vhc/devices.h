@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup usb
+/** @addtogroup drvusbvhc
  * @{
  */ 
 /** @file
@@ -44,12 +44,14 @@
 typedef struct {
 	/** Phone used when sending data to device. */
 	int phone;
+	/** Unique identification. */
+	sysarg_t id;
 	/** Linked-list handle. */
 	link_t link;
 } virtdev_connection_t;
 
-virtdev_connection_t *virtdev_add_device(int);
-virtdev_connection_t *virtdev_get_mine(void);
+virtdev_connection_t *virtdev_add_device(int, sysarg_t);
+virtdev_connection_t *virtdev_find(sysarg_t);
 void virtdev_destroy_device(virtdev_connection_t *);
 usb_transaction_outcome_t virtdev_send_to_all(transaction_t *);
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Lukas Mejdrech
+ * Copyright (c) 2010 Lubos Slovak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,27 +25,34 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-/** @addtogroup tcp
+/** @addtogroup drvusbhid
  * @{
  */
+#ifndef USBHID_DESCDUMP_H_
+#define USBHID_DESCDUMP_H_
 
-/** @file
- * TCP module functions.
- * The functions are used as TCP module entry points.
- */
+#include <usb/classes/hid.h>
 
-#ifndef NET_TCP_MODULE_H_
-#define NET_TCP_MODULE_H_
+void dump_standard_configuration_descriptor(
+    int index, const usb_standard_configuration_descriptor_t *d);
 
-#include <async.h>
-#include <ipc/ipc.h>
+void dump_standard_interface_descriptor(
+    const usb_standard_interface_descriptor_t *d);
 
-extern int tcp_initialize(async_client_conn_t);
-extern int tcp_message_standalone(ipc_callid_t, ipc_call_t *, ipc_call_t *,
-    size_t *);
+void dump_standard_endpoint_descriptor(
+    const usb_standard_endpoint_descriptor_t *d);
 
-#endif
+void dump_standard_hid_descriptor_header(
+    const usb_standard_hid_descriptor_t *d);
 
-/** @}
+void dump_standard_hid_class_descriptor_info(
+    const usb_standard_hid_class_descriptor_info_t *d);
+
+void dump_hid_class_descriptor(int index, uint8_t type, 
+    const uint8_t *d, size_t size);
+
+#endif /* USBHID_DESCDUMP_H_ */
+
+/**
+ * @}
  */

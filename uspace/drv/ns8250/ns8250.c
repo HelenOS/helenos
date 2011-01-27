@@ -430,12 +430,6 @@ static inline void ns8250_port_interrupts_disable(ioport8_t *port)
 static int ns8250_interrupt_enable(device_t *dev)
 {
 	ns8250_dev_data_t *data = (ns8250_dev_data_t *) dev->driver_data;
-	int res;
-	
-	/* Enable interrupt globally. */
-	res = interrupt_enable(data->irq);
-	if (res != EOK)
-		return res;
 	
 	/* Enable interrupt on the serial port. */
 	ns8250_port_interrupts_enable(data->port);

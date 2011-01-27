@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Lukas Mejdrech
+ * Copyright (c) 2010 Lubos Slovak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,69 +25,22 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-/** @addtogroup arp
- *  @{
+/** @addtogroup drvusbhid
+ * @{
  */
 
-/** @file
- * ARP standalone module implementation.
- * Contains skeleton module functions mapping.
- * The functions are used by the module skeleton as module specific entry
- * points.
- * @see module.c
- */
+#ifndef USBHID_DESCPARSER_H_
+#define USBHID_DESCPARSER_H_
 
-#include <async.h>
-#include <stdio.h>
-#include <errno.h>
+#include <usb/classes/hid.h>
 
-#include <ipc/ipc.h>
-#include <ipc/services.h>
+int usbkbd_parse_descriptors(const uint8_t *data, size_t size,
+                             usb_hid_configuration_t *config);
 
-#include <net/modules.h>
-#include <net_interface.h>
-#include <net/packet.h>
-#include <il_local.h>
+void usbkbd_print_config(const usb_hid_configuration_t *config);
 
-#include "arp.h"
-#include "arp_module.h"
+#endif
 
-/** ARP module global data. */
-extern arp_globals_t arp_globals;
-
-int il_module_message_standalone(ipc_callid_t callid, ipc_call_t *call,
-    ipc_call_t *answer, size_t *count)
-{
-	return arp_message_standalone(callid, call, answer, count);
-}
-
-int il_module_start_standalone(async_client_conn_t client_connection)
-{
-	sysarg_t phonehash;
-	int rc;
-	
-	async_set_client_connection(client_connection);
-	arp_globals.net_phone = net_connect_module();
-	
-	rc = pm_init();
-	if (rc != EOK)
-		return rc;
-	
-	rc = arp_initialize(client_connection);
-	if (rc != EOK)
-		goto out;
-	
-	rc = ipc_connect_to_me(PHONE_NS, SERVICE_ARP, 0, 0, &phonehash);
-	if (rc != EOK)
-		goto out;
-	
-	async_manager();
-
-out:
-	pm_destroy();
-	return rc;
-}
-
-/** @}
+/**
+ * @}
  */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Lukas Mejdrech
+ * Copyright (c) 2009 Lukas Mejdrech
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,70 +26,39 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup udp
- * @{
+/** @addtogroup libnet
+ *  @{
  */
 
-/** @file
- * UDP standalone module implementation.
- * Contains skeleton module functions mapping.
- * The functions are used by the module skeleton as module specific entry
- * points.
- * @see module.c
- */
+#ifndef LIBNET_ICMP_REMOTE_H_
+#define LIBNET_ICMP_REMOTE_H_
 
-#include "udp.h"
-#include "udp_module.h"
+#include <net/socket_codes.h>
+#include <sys/types.h>
 
-#include <async.h>
-#include <stdio.h>
-#include <errno.h>
-#include <ipc/ipc.h>
-#include <ipc/services.h>
-
-#include <net/modules.h>
+#include <net/device.h>
+#include <adt/measured_strings.h>
 #include <net/packet.h>
+#include <net/inet.h>
+#include <net/ip_codes.h>
+#include <net/icmp_codes.h>
+#include <net/icmp_common.h>
 
-#include <net_interface.h>
-#include <tl_local.h>
+/** @name ICMP module interface
+ * This interface is used by other modules.
+ */
+/*@{*/
 
-/** UDP module global data. */
-extern udp_globals_t udp_globals;
+extern int icmp_destination_unreachable_msg(int, icmp_code_t, icmp_param_t,
+    packet_t *);
+extern int icmp_source_quench_msg(int, packet_t *);
+extern int icmp_time_exceeded_msg(int, icmp_code_t, packet_t *);
+extern int icmp_parameter_problem_msg(int, icmp_code_t, icmp_param_t,
+    packet_t *);
 
-int tl_module_start_standalone(async_client_conn_t client_connection)
-{
-	sysarg_t phonehash;
-	int rc;
+/*@}*/
 
-	async_set_client_connection(client_connection);
-	udp_globals.net_phone = net_connect_module();
-	if (udp_globals.net_phone < 0)
-		return udp_globals.net_phone;
-	
-	rc = pm_init();
-	if (rc != EOK)
-		return EOK;
-		
-	rc = udp_initialize(client_connection);
-	if (rc != EOK)
-		goto out;
-	
-	rc = ipc_connect_to_me(PHONE_NS, SERVICE_UDP, 0, 0, &phonehash);
-	if (rc != EOK)
-		goto out;
-
-	async_manager();
-
-out:
-	pm_destroy();
-	return rc;
-}
-
-int tl_module_message_standalone(ipc_callid_t callid, ipc_call_t *call,
-    ipc_call_t *answer, size_t *count)
-{
-	return udp_message_standalone(callid, call, answer, count);
-}
+#endif
 
 /** @}
  */

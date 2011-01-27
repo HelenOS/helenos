@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup usb
+/** @addtogroup drvusbvhc
  * @{
  */
 /** @file
@@ -64,6 +64,8 @@ typedef struct {
 	void * buffer;
 	/** Transaction data length. */
 	size_t len;
+	/** Data length actually transfered. */
+	size_t actual_len;
 	/** Callback after transaction is done. */
 	hc_transaction_done_callback_t callback;
 	/** Argument to the callback. */

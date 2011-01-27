@@ -32,7 +32,7 @@
 
 /** @file
  * Network interface module skeleton implementation.
- * @see netif.h
+ * @see netif_skel.h
  */
 
 #include <async.h>
@@ -51,8 +51,8 @@
 #include <packet_remote.h>
 #include <adt/measured_strings.h>
 #include <net/device.h>
-#include <nil_interface.h>
 #include <netif_skel.h>
+#include <nil_remote.h>
 
 DEVICE_MAP_IMPLEMENT(netif_device_map, netif_device_t);
 
@@ -129,8 +129,8 @@ static int netif_start_req_local(int netif_phone, device_id_t device_id)
 	int result = netif_start_message(device);
 	if (result > NETIF_NULL) {
 		int phone = device->nil_phone;
-		fibril_rwlock_write_unlock(&netif_globals.lock);
 		nil_device_state_msg(phone, device_id, result);
+		fibril_rwlock_write_unlock(&netif_globals.lock);
 		return EOK;
 	}
 	
@@ -165,8 +165,8 @@ static int netif_stop_req_local(int netif_phone, device_id_t device_id)
 	int result = netif_stop_message(device);
 	if (result > NETIF_NULL) {
 		int phone = device->nil_phone;
-		fibril_rwlock_write_unlock(&netif_globals.lock);
 		nil_device_state_msg(phone, device_id, result);
+		fibril_rwlock_write_unlock(&netif_globals.lock);
 		return EOK;
 	}
 	

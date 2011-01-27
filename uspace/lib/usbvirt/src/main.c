@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusbvirt usb
+/** @addtogroup libusbvirt
  * @{
  */
 /** @file
@@ -182,7 +182,7 @@ static void callback_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 /** Create necessary phones for communication with virtual HCD.
  * This function wraps following calls:
- * -# open <code>/dev/devices/\\virt\\usbhc for reading
+ * -# open <code>/dev/devices/\\virt\\usbhc</code> for reading
  * -# access phone of file opened in previous step
  * -# create callback through just opened phone
  * -# create handler for calling on data from host to function

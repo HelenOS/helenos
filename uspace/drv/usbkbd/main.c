@@ -25,6 +25,9 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+/** @addtogroup drvusbhid
+ * @{
+ */
 #include <usb/usbdrv.h>
 #include <driver.h>
 #include <ipc/driver.h>
@@ -37,6 +40,8 @@
 #include <usb/classes/hidparser.h>
 #include <usb/devreq.h>
 #include <usb/descriptor.h>
+#include "descparser.h"
+#include "descdump.h"
 
 #define BUFFER_SIZE 32
 #define NAME "usbkbd"
@@ -87,56 +92,56 @@ static void send_key(int key, int type, wchar_t c) {
 /*
  * Callbacks for parser
  */
-static void usbkbd_process_keycodes(const uint16_t *key_codes, size_t count,
-                                    void *arg)
+static void usbkbd_process_keycodes(const uint8_t *key_codes, size_t count,
+                                    uint8_t modifiers, void *arg)
 {
-
+	printf("Got keys: ");
+	unsigned i;
+	for (i = 0; i < count; ++i) {
+		printf("%d ", key_codes[i]);
+	}
+	printf("\n");
 }
 
 /*
  * Kbd functions
  */
-static int usbkbd_parse_descriptors(usb_hid_dev_kbd_t *kbd_dev,
-                                    const uint8_t *data, size_t size)
+static int usbkbd_get_report_descriptor(usb_hid_dev_kbd_t *kbd_dev)
 {
-//	const uint8_t *pos = data;
-	
-//	// get the configuration descriptor (should be first)
-//	if (*pos != sizeof(usb_standard_configuration_descriptor_t)
-//	    || *(pos + 1) != USB_DESCTYPE_CONFIGURATION) {
-//		fprintf(stderr, "Wrong format of configuration descriptor");
-//		return EINVAL;
-//	}
-	
-//	usb_standard_configuration_descriptor_t config_descriptor;
-//	memcpy(&config_descriptor, pos, 
-//	    sizeof(usb_standard_configuration_descriptor_t));
-//	pos += sizeof(usb_standard_configuration_descriptor_t);
-	
-//	// parse other descriptors
-//	while (pos - data < size) {
-//		//uint8_t desc_size = *pos;
-//		uint8_t desc_type = *(pos + 1);
-//		switch (desc_type) {
-//		case USB_DESCTYPE_INTERFACE:
-//			break;
-//		case USB_DESCTYPE_ENDPOINT:
-//			break;
-//		case USB_DESCTYPE_HID:
-//			break;
-//		case USB_DESCTYPE_HID_REPORT:
-//			break;
-//		case USB_DESCTYPE_HID_PHYSICAL:
-//			break;
-//		}
-//	}
-	
+	// iterate over all configurations and interfaces
+	// TODO: more configurations!!
+	unsigned i;
+	for (i = 0; i < kbd_dev->conf->config_descriptor.interface_count; ++i) {
+		// TODO: endianness
+		uint16_t length = 
+		    kbd_dev->conf->interfaces[i].hid_desc.report_desc_info.length;
+		size_t actual_size = 0;
+
+		// allocate space for the report descriptor
+		kbd_dev->conf->interfaces[i].report_desc = (uint8_t *)malloc(length);
+		
+		// get the descriptor from the device
+		int rc = usb_drv_req_get_descriptor(kbd_dev->device->parent_phone,
+		    kbd_dev->address, USB_REQUEST_TYPE_CLASS, USB_DESCTYPE_HID_REPORT, 
+		    0, i, kbd_dev->conf->interfaces[i].report_desc, length, 
+		    &actual_size);
+
+		if (rc != EOK) {
+			return rc;
+		}
+
+		assert(actual_size == length);
+
+		//dump_hid_class_descriptor(0, USB_DESCTYPE_HID_REPORT, 
+		//    kbd_dev->conf->interfaces[i].report_desc, length);
+	}
+
 	return EOK;
 }
 
-static int usbkbd_get_descriptors(usb_hid_dev_kbd_t *kbd_dev)
+static int usbkbd_process_descriptors(usb_hid_dev_kbd_t *kbd_dev)
 {
-	// get the first configuration descriptor (TODO: or some other??)
+	// get the first configuration descriptor (TODO: parse also other!)
 	usb_standard_configuration_descriptor_t config_desc;
 	
 	int rc = usb_drv_req_get_bare_configuration_descriptor(
@@ -165,16 +170,45 @@ static int usbkbd_get_descriptors(usb_hid_dev_kbd_t *kbd_dev)
 		return ELIMIT;
 	}
 	
-	rc = usbkbd_parse_descriptors(kbd_dev, descriptors, transferred);
-	free(descriptors);
+	kbd_dev->conf = (usb_hid_configuration_t *)calloc(1, 
+	    sizeof(usb_hid_configuration_t));
+	if (kbd_dev->conf == NULL) {
+		free(descriptors);
+		return ENOMEM;
+	}
 	
-	return rc;
+	rc = usbkbd_parse_descriptors(descriptors, transferred, kbd_dev->conf);
+	free(descriptors);
+	if (rc != EOK) {
+		printf("Problem with parsing standard descriptors.\n");
+		return rc;
+	}
+
+	// get and report descriptors
+	rc = usbkbd_get_report_descriptor(kbd_dev);
+	if (rc != EOK) {
+		printf("Problem with parsing HID REPORT descriptor.\n");
+		return rc;
+	}
+	
+	//usbkbd_print_config(kbd_dev->conf);
+
+	/*
+	 * TODO: 
+	 * 1) select one configuration (lets say the first)
+	 * 2) how many interfaces?? how to select one??
+     *    ("The default setting for an interface is always alternate setting zero.")
+	 * 3) find endpoint which is IN and INTERRUPT (parse), save its number
+     *    as the endpoint for polling
+	 */
+	
+	return EOK;
 }
 
 static usb_hid_dev_kbd_t *usbkbd_init_device(device_t *dev)
 {
-	usb_hid_dev_kbd_t *kbd_dev = (usb_hid_dev_kbd_t *)malloc(
-			sizeof(usb_hid_dev_kbd_t));
+	usb_hid_dev_kbd_t *kbd_dev = (usb_hid_dev_kbd_t *)calloc(1, 
+	    sizeof(usb_hid_dev_kbd_t));
 
 	if (kbd_dev == NULL) {
 		fprintf(stderr, NAME ": No memory!\n");
@@ -185,10 +219,19 @@ static usb_hid_dev_kbd_t *usbkbd_init_device(device_t *dev)
 
 	// get phone to my HC and save it as my parent's phone
 	// TODO: maybe not a good idea if DDF will use parent_phone
-	kbd_dev->device->parent_phone = usb_drv_hc_connect_auto(dev, 0);
+	int rc = kbd_dev->device->parent_phone = usb_drv_hc_connect_auto(dev, 0);
+	if (rc < 0) {
+		printf("Problem setting phone to HC.\n");
+		free(kbd_dev);
+		return NULL;
+	}
 
-	kbd_dev->address = usb_drv_get_my_address(dev->parent_phone,
-	    dev);
+	rc = kbd_dev->address = usb_drv_get_my_address(dev->parent_phone, dev);
+	if (rc < 0) {
+		printf("Problem getting address of the device.\n");
+		free(kbd_dev);
+		return NULL;
+	}
 
 	// doesn't matter now that we have no address
 //	if (kbd_dev->address < 0) {
@@ -207,9 +250,8 @@ static usb_hid_dev_kbd_t *usbkbd_init_device(device_t *dev)
 	 * 2) set endpoints from endpoint descriptors
 	 */
 
-	// TODO: get descriptors
-	usbkbd_get_descriptors(kbd_dev);
-	// TODO: parse descriptors and save endpoints
+	// TODO: get descriptors, parse descriptors and save endpoints
+	usbkbd_process_descriptors(kbd_dev);
 
 	return kbd_dev;
 }
@@ -217,22 +259,21 @@ static usb_hid_dev_kbd_t *usbkbd_init_device(device_t *dev)
 static void usbkbd_process_interrupt_in(usb_hid_dev_kbd_t *kbd_dev,
                                         uint8_t *buffer, size_t actual_size)
 {
-	/*
-	 * here, the parser will be called, probably with some callbacks
-	 * now only take last 6 bytes and process, i.e. send to kbd
-	 */
-
 	usb_hid_report_in_callbacks_t *callbacks =
 	    (usb_hid_report_in_callbacks_t *)malloc(
 		sizeof(usb_hid_report_in_callbacks_t));
 	callbacks->keyboard = usbkbd_process_keycodes;
 
-	usb_hid_parse_report(kbd_dev->parser, buffer, actual_size, callbacks, 
-	    NULL);
+	//usb_hid_parse_report(kbd_dev->parser, buffer, actual_size, callbacks, 
+	//    NULL);
+	printf("Calling usb_hid_boot_keyboard_input_report()...\n)");
+	usb_hid_boot_keyboard_input_report(buffer, actual_size, callbacks, NULL);
 }
 
 static void usbkbd_poll_keyboard(usb_hid_dev_kbd_t *kbd_dev)
 {
+	return;
+	
 	int rc;
 	usb_handle_t handle;
 	uint8_t buffer[BUFFER_SIZE];
@@ -355,3 +396,7 @@ int main(int argc, char *argv[])
 {
 	return driver_main(&kbd_driver);
 }
+
+/**
+ * @}
+ */

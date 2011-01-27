@@ -26,6 +26,10 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup drvusbhub
+ * @{
+ */
+
 #include <driver.h>
 #include <errno.h>
 #include <async.h>
@@ -51,7 +55,7 @@ static driver_t hub_driver = {
 int usb_hub_control_loop(void * noparam){
 	while(true){
 		usb_hub_check_hub_changes();
-		async_usleep(1000 * 1000);
+		async_usleep(1000 * 1000 );/// \TODO proper number once
 	}
 	return 0;
 }
@@ -59,17 +63,24 @@ int usb_hub_control_loop(void * noparam){
 
 int main(int argc, char *argv[])
 {
-	usb_dprintf_enable(NAME,1);
+	usb_dprintf_enable(NAME, 0);
+
 	futex_initialize(&usb_hub_list_lock, 0);
 	usb_lst_init(&usb_hub_list);
 	futex_up(&usb_hub_list_lock);
+
 	fid_t fid = fibril_create(usb_hub_control_loop, NULL);
 	if (fid == 0) {
-		dprintf(1, "failed to start fibril for HUB devices");
-		//printf("%s: failed to start fibril for HUB devices\n", NAME);
+		fprintf(stderr, NAME ": failed to start monitoring fibril," \
+		    " driver aborting.\n");
 		return ENOMEM;
 	}
 	fibril_add_ready(fid);
 
 	return driver_main(&hub_driver);
 }
+
+/**
+ * @}
+ */
+

@@ -40,6 +40,7 @@
 #include <proc/task.h>
 #include <proc/program.h>
 #include <mm/as.h>
+#include <mm/page.h>
 #include <print.h>
 #include <arch.h>
 #include <debug.h>
@@ -143,6 +144,9 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	(syshandler_t) sys_as_area_change_flags,
 	(syshandler_t) sys_as_area_destroy,
 	
+	/* Page mapping related syscalls. */
+	(syshandler_t) sys_page_find_mapping,
+	
 	/* IPC related syscalls. */
 	(syshandler_t) sys_ipc_call_sync_fast,
 	(syshandler_t) sys_ipc_call_sync_slow,
@@ -170,7 +174,6 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	(syshandler_t) sys_device_assign_devno,
 	(syshandler_t) sys_physmem_map,
 	(syshandler_t) sys_iospace_enable,
-	(syshandler_t) sys_interrupt_enable,
 	
 	/* Sysinfo syscalls */
 	(syshandler_t) sys_sysinfo_get_tag,

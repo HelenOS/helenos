@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Lukas Mejdrech
+ * Copyright (c) 2010 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,30 +30,53 @@
  * @{
  */
 
+#ifndef LIBNET_IL_SKEL_H_
+#define LIBNET_IL_SKEL_H_
+
 /** @file
- * Internetwork layer module interface for the underlying network interface
- * layer. This interface is always called by the remote modules.
+ * Internetwork layer module skeleton.
+ * The skeleton has to be part of each internetwork layer module.
  */
 
-#ifndef LIBNET_IL_INTERFACE_H_
-#define LIBNET_IL_INTERFACE_H_
-
+#include <async.h>
+#include <fibril_synch.h>
+#include <ipc/ipc.h>
 #include <ipc/services.h>
-#include <sys/types.h>
 
+#include <adt/measured_strings.h>
 #include <net/device.h>
 #include <net/packet.h>
 
-/** @name Internetwork layer module interface
- * This interface is used by other modules.
+/** Module initialization.
+ *
+ * This has to be implemented in user code.
+ *
+ * @param[in] net_phone Networking module phone.
+ *
+ * @return EOK on success.
+ * @return Other error codes as defined for each specific module
+ *         initialize function.
+ *
  */
-/*@{*/
+extern int il_initialize(int net_phone);
 
-extern int il_device_state_msg(int, device_id_t, device_state_t, services_t);
-extern int il_received_msg(int, device_id_t, packet_t *, services_t);
-extern int il_mtu_changed_msg(int, device_id_t, size_t, services_t);
+/** Process the internetwork layer module message.
+ *
+ * This has to be implemented in user code.
+ *
+ * @param[in]  callid Message identifier.
+ * @param[in]  call   Message parameters.
+ * @param[out] answer Answer.
+ * @param[out] count  Number of arguments of the answer.
+ *
+ * @return EOK on success.
+ * @return Other error codes as defined for each specific module.
+ *
+ */
+extern int il_module_message(ipc_callid_t callid, ipc_call_t *call,
+    ipc_call_t *answer, size_t *answer_count);
 
-/*@}*/
+extern int il_module_start(int);
 
 #endif
 

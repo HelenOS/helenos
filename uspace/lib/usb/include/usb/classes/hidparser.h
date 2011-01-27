@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusb usb
+/** @addtogroup libusb
  * @{
  */
 /** @file
@@ -37,9 +37,26 @@
 
 #include <stdint.h>
 
+/**
+ * Description of report items
+ */
+typedef struct {
+
+	uint8_t usage_min;
+	uint8_t usage_max;
+	uint8_t logical_min;
+	uint8_t logical_max;
+	uint8_t size;
+	uint8_t count;
+	uint8_t offset;
+
+} usb_hid_report_item_t;
+
+
 /** HID report parser structure. */
 typedef struct {
 } usb_hid_report_parser_t;
+
 
 /** HID parser callbacks for IN items. */
 typedef struct {
@@ -49,8 +66,23 @@ typedef struct {
 	 * @param count Length of @p key_codes.
 	 * @param arg Custom argument.
 	 */
-	void (*keyboard)(const uint16_t *key_codes, size_t count, void *arg);
+	void (*keyboard)(const uint8_t *key_codes, size_t count, const uint8_t modifiers, void *arg);
 } usb_hid_report_in_callbacks_t;
+
+#define USB_HID_BOOT_KEYBOARD_NUM_LOCK		0x01
+#define USB_HID_BOOT_KEYBOARD_CAPS_LOCK		0x02
+#define USB_HID_BOOT_KEYBOARD_SCROLL_LOCK	0x04
+#define USB_HID_BOOT_KEYBOARD_COMPOSE		0x08
+#define USB_HID_BOOT_KEYBOARD_KANA			0x10
+
+/*
+ * modifiers definitions
+ */
+
+int usb_hid_boot_keyboard_input_report(const uint8_t *data, size_t size,
+	const usb_hid_report_in_callbacks_t *callbacks, void *arg);
+
+int usb_hid_boot_keyboard_output_report(uint8_t leds, uint8_t *data, size_t size);
 
 int usb_hid_parse_report_descriptor(usb_hid_report_parser_t *parser, 
     const uint8_t *data, size_t size);
@@ -58,6 +90,9 @@ int usb_hid_parse_report_descriptor(usb_hid_report_parser_t *parser,
 int usb_hid_parse_report(const usb_hid_report_parser_t *parser,  
     const uint8_t *data, size_t size,
     const usb_hid_report_in_callbacks_t *callbacks, void *arg);
+
+
+int usb_hid_free_report_parser(usb_hid_report_parser_t *parser);
 
 #endif
 /**

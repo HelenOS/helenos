@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusb usb
+/** @addtogroup libusb
  * @{
  */
 /** @file
@@ -59,7 +59,7 @@
  */
 #define PREPARE_SETUP_PACKET(name, p_direction, p_type, p_recipient, \
     p_request, p_value, p_index, p_length) \
-	usb_device_request_setup_packet_t setup_packet = { \
+	usb_device_request_setup_packet_t name = { \
 		.request_type = \
 			((p_direction) == USB_DIRECTION_IN ? 128 : 0) \
 			| ((p_type) << 5) \
@@ -187,7 +187,7 @@ int usb_drv_req_set_feature(int hc_phone, usb_address_t address,
  *
  * @param[in] phone Open phone to HC driver.
  * @param[in] old_address Current address.
- * @param[in] address Address to be set.
+ * @param[in] new_address Address to be set.
  * @return Error code.
  */
 int usb_drv_req_set_address(int phone, usb_address_t old_address,

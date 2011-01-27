@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Lukas Mejdrech
+ * Copyright (c) 2010 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,61 +26,66 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup eth
+/** @addtogroup libnet
  * @{
  */
 
+#ifndef LIBNET_TL_SKEL_H_
+#define LIBNET_TL_SKEL_H_
+
 /** @file
- *  Ethernet module stub.
- *  @see module.c
+ * Transport layer module skeleton.
+ * The skeleton has to be part of each transport layer module.
  */
 
-#include "eth.h"
-
 #include <async.h>
-#include <stdio.h>
-#include <errno.h>
-
+#include <fibril_synch.h>
 #include <ipc/ipc.h>
 #include <ipc/services.h>
 
-#include <net/modules.h>
-#include <net_interface.h>
+#include <adt/measured_strings.h>
+#include <net/device.h>
 #include <net/packet.h>
-#include <nil_local.h>
 
-int nil_module_start_standalone(async_client_conn_t client_connection)
-{
-	sysarg_t phonehash;
-	int rc;
-	
-	async_set_client_connection(client_connection);
-	int net_phone = net_connect_module();
+/** Module initialization.
+ *
+ * This has to be implemented in user code.
+ *
+ * @param[in] net_phone Networking module phone.
+ *
+ * @return EOK on success.
+ * @return Other error codes as defined for each specific module
+ *         initialize function.
+ *
+ */
+extern int tl_initialize(int net_phone);
 
-	rc = pm_init();
-	if (rc != EOK)
-		return rc;
-	
-	rc = nil_initialize(net_phone);
-	if (rc != EOK)
-		goto out;
+/** Per-connection module initialization.
+ *
+ * This has to be implemented in user code.
+ *
+ */
+extern void tl_connection(void);
 
-	rc = ipc_connect_to_me(PHONE_NS, SERVICE_ETHERNET, 0, 0, &phonehash);
-	if (rc != EOK)
-		goto out;
-	
-	async_manager();
+/** Process the transport layer module message.
+ *
+ * This has to be implemented in user code.
+ *
+ * @param[in]  callid Message identifier.
+ * @param[in]  call   Message parameters.
+ * @param[out] answer Answer.
+ * @param[out] count  Number of arguments of the answer.
+ *
+ * @return EOK on success.
+ * @return Other error codes as defined for each specific module.
+ *
+ */
+extern int tl_message(ipc_callid_t, ipc_call_t *,
+    ipc_call_t *, size_t *);
 
-out:
-	pm_destroy();
-	return rc;
-}
+extern int tl_module_start(int);
 
-int nil_module_message_standalone(const char *name, ipc_callid_t callid,
-    ipc_call_t *call, ipc_call_t *answer, size_t *count)
-{
-	return nil_message_standalone(name, callid, call, answer, count);
-}
+#endif
 
 /** @}
  */

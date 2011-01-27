@@ -103,6 +103,7 @@ typedef struct {
 	task_id_t task_id;            /**< Task ID */
 	char name[TASK_NAME_BUFLEN];  /**< Task name (in kernel) */
 	size_t virtmem;               /**< Size of VAS (bytes) */
+	size_t resmem;                /**< Size of resident (used) memory (bytes) */
 	size_t threads;               /**< Number of threads */
 	uint64_t ucycles;             /**< Number of CPU cycles in user space */
 	uint64_t kcycles;             /**< Number of CPU cycles in kernel */

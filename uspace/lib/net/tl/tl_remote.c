@@ -26,26 +26,42 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup arp
+/** @addtogroup libnet
  * @{
  */
 
-/** @file
- * ARP module functions.
- * The functions are used as ARP module entry points.
+#include <tl_remote.h>
+#include <generic.h>
+#include <packet_client.h>
+
+#include <ipc/services.h>
+#include <ipc/tl.h>
+
+#include <net/device.h>
+#include <net/packet.h>
+
+/** Notify the remote transport layer modules about the received packet/s.
+ *
+ * @param[in] tl_phone  The transport layer module phone used for remote calls.
+ * @param[in] device_id The device identifier.
+ * @param[in] packet    The received packet or the received packet queue.
+ *                      The packet queue is used to carry a fragmented
+ *                      datagram. The first packet contains the headers,
+ *                      the others contain only data.
+ * @param[in] target    The target transport layer module service to be
+ *                      delivered to.
+ * @param[in] error     The packet error reporting service. Prefixes the
+ *                      received packet.
+ *
+ * @return EOK on success.
+ *
  */
-
-#ifndef NET_ARP_MODULE_H_
-#define NET_ARP_MODULE_H_
-
-#include <ipc/ipc.h>
-#include <async.h>
-
-extern int arp_initialize(async_client_conn_t);
-extern int arp_message_standalone(ipc_callid_t, ipc_call_t *, ipc_call_t *,
-    size_t *);
-
-#endif
+int tl_received_msg(int tl_phone, device_id_t device_id, packet_t *packet,
+    services_t target, services_t error)
+{
+	return generic_received_msg_remote(tl_phone, NET_TL_RECEIVED, device_id,
+	    packet_get_id(packet), target, error);
+}
 
 /** @}
  */

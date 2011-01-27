@@ -26,10 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
-#ifndef USBLIST_H
-#define	USBLIST_H
-/** @addtogroup usb hub driver
+/** @addtogroup drvusbhub
  * @{
  */
 /** @file
@@ -39,6 +36,8 @@
  * This one does not depend on the structure of stored data and has
  * much simpler and more straight-forward semantics.
  */
+#ifndef USBLIST_H
+#define	USBLIST_H
 
 /**
  * general list structure
@@ -77,12 +76,7 @@ static inline usb_hub_info_t * usb_hub_lst_get_data(usb_general_list_t * item) {
 	return usb_lst_get_data(item,usb_hub_info_t);
 }
 
-
+#endif	/* USBLIST_H */
 /**
  * @}
  */
-
-
-
-#endif	/* USBLIST_H */
-

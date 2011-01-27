@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusb usb
+/** @addtogroup libusb
  * @{
  */
 /** @file
@@ -38,6 +38,12 @@
 #include <stdio.h>
 #include <errno.h>
 
+/** Callback for getting host controller handle.
+ *
+ * @param dev Device in question.
+ * @param[out] handle Devman handle of the host controller.
+ * @return Error code.
+ */
 static int usb_iface_get_hc_handle(device_t *dev, devman_handle_t *handle)
 {
 	assert(dev);
@@ -202,6 +208,10 @@ int usb_drv_create_match_ids_from_configuration_descriptor(
 		    = ((uint8_t *) config_descriptor) + position;
 		uint8_t cur_descr_len = current_descriptor[0];
 		uint8_t cur_descr_type = current_descriptor[1];
+
+		if (cur_descr_len == 0) {
+			return ENOENT;
+		}
 		
 		position += cur_descr_len;
 		
@@ -232,6 +242,7 @@ int usb_drv_create_match_ids_from_configuration_descriptor(
  * @param hc Open phone to host controller.
  * @param matches Match ids list to add matches to.
  * @param address USB address of the attached device.
+ * @param config_count Number of configurations the device has.
  * @return Error code.
  */
 static int usb_add_config_descriptor_match_ids(int hc,
@@ -337,14 +348,17 @@ int usb_drv_create_device_match_ids(int hc, match_id_list_t *matches,
 
 /** Probe for device kind and register it in devman.
  *
- * @param hc Open phone to the host controller.
- * @param parent Parent device.
- * @param address Address of the (unknown) attached device.
+ * @param[in] hc Open phone to the host controller.
+ * @param[in] parent Parent device.
+ * @param[in] address Address of the (unknown) attached device.
+ * @param[out] child_handle Handle of the child device.
  * @return Error code.
  */
 int usb_drv_register_child_in_devman(int hc, device_t *parent,
     usb_address_t address, devman_handle_t *child_handle)
 {
+	static size_t device_name_index = 0;
+
 	device_t *child = NULL;
 	char *child_name = NULL;
 	int rc;
@@ -356,9 +370,10 @@ int usb_drv_register_child_in_devman(int hc, device_t *parent,
 	}
 
 	/*
-	 * TODO: some better child naming
+	 * TODO: Once the device driver framework support persistent
+	 * naming etc., something more descriptive could be created.
 	 */
-	rc = asprintf(&child_name, "usb%p", child);
+	rc = asprintf(&child_name, "usbdev%02zu", device_name_index);
 	if (rc < 0) {
 		goto failure;
 	}
@@ -380,6 +395,8 @@ int usb_drv_register_child_in_devman(int hc, device_t *parent,
 		*child_handle = child->handle;
 	}
 	
+	device_name_index++;
+
 	return EOK;
 
 failure:

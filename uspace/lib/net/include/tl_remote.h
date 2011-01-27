@@ -26,46 +26,35 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup arp
- *  @{
+/** @addtogroup libnet
+ * @{
  */
 
 /** @file
- * ARP protocol header.
- * Based on the RFC 826.
+ * Transport layer module interface for the underlying internetwork layer.
  */
 
-#ifndef NET_ARP_HEADER_H_
-#define NET_ARP_HEADER_H_
+#ifndef LIBNET_TL_REMOTE_H_
+#define LIBNET_TL_REMOTE_H_
 
-#include <sys/types.h>
+#include <async.h>
+#include <ipc/services.h>
+#include <ipc/tl.h>
 
-/** Type definition of an ARP protocol header.
- * @see arp_header
+#include <generic.h>
+#include <net/device.h>
+#include <net/packet.h>
+#include <packet_client.h>
+
+/** @name Transport layer module interface
+ * This interface is used by other modules.
  */
-typedef struct arp_header arp_header_t;
+/*@{*/
 
-/** ARP protocol header. */
-struct arp_header {
-	/**
-	 * Hardware type identifier.
-	 * @see hardware.h
-	 */
-	uint16_t hardware;
-	
-	/** Protocol identifier. */
-	uint16_t protocol;
-	/** Hardware address length in bytes. */
-	uint8_t hardware_length;
-	/** Protocol address length in bytes. */
-	uint8_t protocol_length;
-	
-	/**
-	 * ARP packet type.
-	 * @see arp_oc.h
-	 */
-	uint16_t operation;
-} __attribute__ ((packed));
+extern int tl_received_msg(int, device_id_t, packet_t *, services_t,
+    services_t);
+
+/*@}*/
 
 #endif
 

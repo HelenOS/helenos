@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Martin Decky
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,47 +26,40 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libnet 
+/** @addtogroup libusb
  * @{
  */
-
-#ifndef LIBNET_IL_LOCAL_H_
-#define LIBNET_IL_LOCAL_H_
-
-#include <ipc/ipc.h>
-#include <async.h>
-
-/** Processes the Internet layer module message.
- *
- * @param[in]		callid The message identifier.
- * @param[in]		call The message parameters.
- * @param[out]		answer The message answer parameters.
- * @param[out]		answer_count The last parameter for the actual answer in
- *			the answer parameter.
- * @return		EOK on success.
- * @return		Other error codes as defined for the arp_message()
- *			function.
+/** @file
+ * @brief USB descriptor parser.
  */
-extern int il_module_message_standalone(ipc_callid_t callid, ipc_call_t *call,
-    ipc_call_t *answer, size_t *answer_count);
+#ifndef LIBUSB_DP_H_
+#define LIBUSB_DP_H_
 
-/** Starts the Internet layer module.
- *
- * Initializes the client connection servicing function, initializes the module,
- * registers the module service and starts the async manager, processing IPC
- * messages in an infinite loop.
- *
- * @param[in] client_connection The client connection processing function. The
- *			module skeleton propagates its own one.
- * @return		EOK on successful module termination.
- * @return		Other error codes as defined for the arp_initialize()
- *			function.
- * @return		Other error codes as defined for the REGISTER_ME() macro
- *			function.
- */
-extern int il_module_start_standalone(async_client_conn_t client_connection);
+#include <sys/types.h>
+#include <usb/usb.h>
+#include <usb/descriptor.h>
+
+typedef struct {
+	int child;
+	int parent;
+} usb_dp_descriptor_nesting_t;
+
+typedef struct {
+	usb_dp_descriptor_nesting_t *nesting;
+} usb_dp_parser_t;
+
+typedef struct {
+	uint8_t *data;
+	size_t size;
+	void *arg;
+} usb_dp_parser_data_t;
+
+uint8_t *usb_dp_get_nested_descriptor(usb_dp_parser_t *,
+    usb_dp_parser_data_t *, uint8_t *);
+uint8_t *usb_dp_get_sibling_descriptor(usb_dp_parser_t *,
+    usb_dp_parser_data_t *, uint8_t *, uint8_t *);
 
 #endif
-
-/** @}
+/**
+ * @}
  */

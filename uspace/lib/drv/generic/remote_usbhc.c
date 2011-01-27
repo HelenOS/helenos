@@ -242,7 +242,7 @@ static void callback_out(device_t *device,
 	async_transaction_t *trans = (async_transaction_t *)arg;
 
 	// FIXME - answer according to outcome
-	ipc_answer_0(trans->caller, EOK);
+	ipc_answer_0(trans->caller, outcome);
 
 	free(trans);
 }
@@ -253,7 +253,7 @@ static void callback_in(device_t *device,
 	async_transaction_t *trans = (async_transaction_t *)arg;
 
 	// FIXME - answer according to outcome
-	ipc_answer_1(trans->caller, EOK, (sysarg_t)trans);
+	ipc_answer_1(trans->caller, outcome, (sysarg_t)trans);
 
 	trans->size = actual_size;
 }

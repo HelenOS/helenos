@@ -42,14 +42,9 @@
 			 */
 
 			/**
-			 * @defgroup dp8390 Generic DP8390 network interface family service
+			 * @defgroup ne2000 NE2000 network interface service
 			 * @ingroup netif
 			 */
-
-				/**
-				 * @defgroup ne2k NE2000 network interface family
-				 * @ingroup dp8390
-				 */
 
 		/**
 		 * @defgroup net_nil Network interface layer
@@ -180,3 +175,40 @@
 	 * @ingroup usb
 	 * @brief Library for creating USB devices drivers.
 	 */
+
+	/**
+	 * @defgroup usbvirt USB virtualization
+	 * @ingroup usb
+	 * @brief Support for virtual USB devices.
+	 */
+
+		/**
+		 * @defgroup libusbvirt USB virtualization library
+		 * @ingroup usbvirt
+		 * @brief Library for creating virtual USB devices.
+		 */
+
+		/**
+		 * @defgroup drvusbvhc Virtual USB host controller
+		 * @ingroup usbvirt
+		 * @brief Driver simulating work of USB host controller.
+		 */
+
+	 /**
+	  * @defgroup drvusbhub USB hub driver
+	  * @ingroup usb
+	  * @brief USB hub driver.
+	  */
+
+	 /**
+	  * @defgroup drvusbhid USB HID driver
+	  * @ingroup usb
+	  * @brief USB driver for HID devices.
+	  */
+
+	 /**
+	  * @defgroup drvusbuhci UHCI driver
+	  * @ingroup usb
+	  * @brief Driver for USB host controller UHCI.
+	  */
+
