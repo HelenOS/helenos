@@ -77,27 +77,30 @@
 static int cmd_help(cmd_arg_t *argv);
 static cmd_info_t help_info = {
 	.name = "help",
-	.description = "List of supported commands.",
+	.description = "List supported commands.",
 	.func = cmd_help,
 	.argc = 0
 };
 
+/* Data and methods for 'reboot' command. */
 static int cmd_reboot(cmd_arg_t *argv);
 static cmd_info_t reboot_info = {
 	.name = "reboot",
-	.description = "Reboot.",
+	.description = "Reboot system.",
 	.func = cmd_reboot,
 	.argc = 0
 };
 
+/* Data and methods for 'uptime' command. */
 static int cmd_uptime(cmd_arg_t *argv);
 static cmd_info_t uptime_info = {
 	.name = "uptime",
-	.description = "Print uptime information.",
+	.description = "Show system uptime.",
 	.func = cmd_uptime,
 	.argc = 0
 };
 
+/* Data and methods for 'continue' command. */
 static int cmd_continue(cmd_arg_t *argv);
 static cmd_info_t continue_info = {
 	.name = "continue",
@@ -107,6 +110,7 @@ static cmd_info_t continue_info = {
 };
 
 #ifdef CONFIG_TEST
+/* Data and methods for 'test' command. */
 static char test_buf[MAX_CMDLINE + 1];
 static int cmd_test(cmd_arg_t *argv);
 static cmd_arg_t test_argv[] = {
@@ -118,12 +122,13 @@ static cmd_arg_t test_argv[] = {
 };
 static cmd_info_t test_info = {
 	.name = "test",
-	.description = "Print list of kernel tests or run a test.",
+	.description = "<test> List kernel tests or run a test.",
 	.func = cmd_test,
 	.argc = 1,
 	.argv = test_argv
 };
 
+/* Data and methods for 'bench' command. */
 static int cmd_bench(cmd_arg_t *argv);
 static cmd_arg_t bench_argv[] = {
 	{
@@ -137,7 +142,7 @@ static cmd_arg_t bench_argv[] = {
 };
 static cmd_info_t bench_info = {
 	.name = "bench",
-	.description = "Run kernel test as benchmark.",
+	.description = "<test> <count> Run kernel test as benchmark.",
 	.func = cmd_bench,
 	.argc = 2,
 	.argv = bench_argv
@@ -147,7 +152,7 @@ static cmd_info_t bench_info = {
 /* Data and methods for 'description' command. */
 static int cmd_desc(cmd_arg_t *argv);
 static void desc_help(void);
-static char desc_buf[MAX_CMDLINE+1];
+static char desc_buf[MAX_CMDLINE + 1];
 static cmd_arg_t desc_argv = {
 	.type = ARG_TYPE_STRING,
 	.buffer = desc_buf,
@@ -155,7 +160,7 @@ static cmd_arg_t desc_argv = {
 };
 static cmd_info_t desc_info = {
 	.name = "describe",
-	.description = "Describe specified command.",
+	.description = "<command> Describe specified command.",
 	.help = desc_help,
 	.func = cmd_desc,
 	.argc = 1,
@@ -164,7 +169,7 @@ static cmd_info_t desc_info = {
 
 /* Data and methods for 'symaddr' command. */
 static int cmd_symaddr(cmd_arg_t *argv);
-static char symaddr_buf[MAX_CMDLINE+1];
+static char symaddr_buf[MAX_CMDLINE + 1];
 static cmd_arg_t symaddr_argv = {
 	.type = ARG_TYPE_STRING,
 	.buffer = symaddr_buf,
@@ -172,13 +177,14 @@ static cmd_arg_t symaddr_argv = {
 };
 static cmd_info_t symaddr_info = {
 	.name = "symaddr",
-	.description = "Return symbol address.",
+	.description = "<symbol> Return symbol address.",
 	.func = cmd_symaddr,
 	.argc = 1,
 	.argv = &symaddr_argv
 };
 
-static char set_buf[MAX_CMDLINE+1];
+/* Data and methods for 'set4' command. */
+static char set_buf[MAX_CMDLINE + 1];
 static int cmd_set4(cmd_arg_t *argv);
 static cmd_arg_t set4_argv[] = {
 	{
@@ -192,7 +198,7 @@ static cmd_arg_t set4_argv[] = {
 };
 static cmd_info_t set4_info = {
 	.name = "set4",
-	.description = "set <dest_addr> <value> - 4byte version",
+	.description = "<addr> <value> Set 4B memory location to a value.",
 	.func = cmd_set4,
 	.argc = 2,
 	.argv = set4_argv
@@ -212,7 +218,7 @@ static cmd_arg_t call0_argv = {
 };
 static cmd_info_t call0_info = {
 	.name = "call0",
-	.description = "call0 <function> -> call function().",
+	.description = "<function> Call function().",
 	.func = cmd_call0,
 	.argc = 1,
 	.argv = &call0_argv
@@ -227,7 +233,7 @@ static cmd_arg_t mcall0_argv = {
 };
 static cmd_info_t mcall0_info = {
 	.name = "mcall0",
-	.description = "mcall0 <function> -> call function() on each CPU.",
+	.description = "<function> Call function() on each CPU.",
 	.func = cmd_mcall0,
 	.argc = 1,
 	.argv = &mcall0_argv
@@ -249,7 +255,7 @@ static cmd_arg_t call1_argv[] = {
 };
 static cmd_info_t call1_info = {
 	.name = "call1",
-	.description = "call1 <function> <arg1> -> call function(arg1).",
+	.description = "<function> <arg1> Call function(arg1).",
 	.func = cmd_call1,
 	.argc = 2,
 	.argv = call1_argv
@@ -276,7 +282,7 @@ static cmd_arg_t call2_argv[] = {
 };
 static cmd_info_t call2_info = {
 	.name = "call2",
-	.description = "call2 <function> <arg1> <arg2> -> call function(arg1,arg2).",
+	.description = "<function> <arg1> <arg2> Call function(arg1, arg2).",
 	.func = cmd_call2,
 	.argc = 3,
 	.argv = call2_argv
@@ -309,7 +315,7 @@ static cmd_arg_t call3_argv[] = {
 };
 static cmd_info_t call3_info = {
 	.name = "call3",
-	.description = "call3 <function> <arg1> <arg2> <arg3> -> call function(arg1,arg2,arg3).",
+	.description = "<function> <arg1> <arg2> <arg3> Call function(arg1, arg2, arg3).",
 	.func = cmd_call3,
 	.argc = 4,
 	.argv = call3_argv
@@ -339,7 +345,7 @@ cmd_info_t physmem_info = {
 static int cmd_tlb(cmd_arg_t *argv);
 cmd_info_t tlb_info = {
 	.name = "tlb",
-	.description = "Print TLB of current processor.",
+	.description = "Print TLB of the current CPU.",
 	.help = NULL,
 	.func = cmd_tlb,
 	.argc = 0,
@@ -376,11 +382,23 @@ static cmd_info_t tasks_info = {
 	.argv = &tasks_argv
 };
 
+/* Data and methods for 'btrace' command */
+static int cmd_btrace(cmd_arg_t *argv);
+static cmd_arg_t btrace_argv = {
+	.type = ARG_TYPE_INT,
+};
+static cmd_info_t btrace_info = {
+	.name = "btrace",
+	.description = "<threadid> Show thread stack trace.",
+	.func = cmd_btrace,
+	.argc = 1,
+	.argv = &btrace_argv
+};
 
 static int cmd_sched(cmd_arg_t *argv);
 static cmd_info_t sched_info = {
 	.name = "scheduler",
-	.description = "List all scheduler information.",
+	.description = "Show scheduler information.",
 	.func = cmd_sched,
 	.argc = 0
 };
@@ -405,9 +423,23 @@ static cmd_info_t sysinfo_info = {
 static int cmd_zones(cmd_arg_t *argv);
 static cmd_info_t zones_info = {
 	.name = "zones",
-	.description = "List of memory zones.",
+	.description = "List memory zones.",
 	.func = cmd_zones,
 	.argc = 0
+};
+
+/* Data and methods for 'zone' command */
+static int cmd_zone(cmd_arg_t *argv);
+static cmd_arg_t zone_argv = {
+	.type = ARG_TYPE_INT,
+};
+
+static cmd_info_t zone_info = {
+	.name = "zone",
+	.description = "<zone> Show memory zone structure.",
+	.func = cmd_zone,
+	.argc = 1,
+	.argv = &zone_argv
 };
 
 /* Data and methods for 'ipc' command */
@@ -417,7 +449,7 @@ static cmd_arg_t ipc_argv = {
 };
 static cmd_info_t ipc_info = {
 	.name = "ipc",
-	.description = "ipc <taskid> Show IPC information of given task.",
+	.description = "<taskid> Show IPC information of a task.",
 	.func = cmd_ipc,
 	.argc = 1,
 	.argv = &ipc_argv
@@ -430,24 +462,10 @@ static cmd_arg_t kill_argv = {
 };
 static cmd_info_t kill_info = {
 	.name = "kill",
-	.description = "kill <taskid> Kill a task.",
+	.description = "<taskid> Kill a task.",
 	.func = cmd_kill,
 	.argc = 1,
 	.argv = &kill_argv
-};
-
-/* Data and methods for 'zone' command */
-static int cmd_zone(cmd_arg_t *argv);
-static cmd_arg_t zone_argv = {
-	.type = ARG_TYPE_INT,
-};
-
-static cmd_info_t zone_info = {
-	.name = "zone",
-	.description = "Show memory zone structure.",
-	.func = cmd_zone,
-	.argc = 1,
-	.argv = &zone_argv
 };
 
 /* Data and methods for 'cpus' command. */
@@ -473,6 +491,7 @@ cmd_info_t version_info = {
 };
 
 static cmd_info_t *basic_commands[] = {
+	&btrace_info,
 	&call0_info,
 	&mcall0_info,
 	&call1_info,
@@ -481,21 +500,21 @@ static cmd_info_t *basic_commands[] = {
 	&continue_info,
 	&cpus_info,
 	&desc_info,
-	&reboot_info,
-	&uptime_info,
 	&halt_info,
 	&help_info,
 	&ipc_info,
 	&kill_info,
+	&physmem_info,
+	&reboot_info,
+	&sched_info,
 	&set4_info,
 	&slabs_info,
-	&sysinfo_info,
 	&symaddr_info,
-	&sched_info,
-	&threads_info,
+	&sysinfo_info,
 	&tasks_info,
-	&physmem_info,
+	&threads_info,
 	&tlb_info,
+	&uptime_info,
 	&version_info,
 	&zones_info,
 	&zone_info,
@@ -529,7 +548,6 @@ void cmd_init(void)
 			printf("Cannot register command %s\n", basic_commands[i]->name);
 	}
 }
-
 
 /** List supported commands.
  *
@@ -573,7 +591,6 @@ int cmd_help(cmd_arg_t *argv)
 	return 1;
 }
 
-
 /** Reboot the system.
  *
  * @param argv Argument vector.
@@ -587,7 +604,6 @@ int cmd_reboot(cmd_arg_t *argv)
 	/* Not reached */
 	return 1;
 }
-
 
 /** Print system uptime information.
  *
@@ -823,7 +839,6 @@ int cmd_call3(cmd_arg_t *argv)
 	return 1;
 }
 
-
 /** Print detailed description of 'describe' command. */
 void desc_help(void)
 {
@@ -910,7 +925,7 @@ int cmd_set4(cmd_arg_t *argv)
  *
  * @return Always 1
  */
-int cmd_slabs(cmd_arg_t * argv)
+int cmd_slabs(cmd_arg_t *argv)
 {
 	slab_print_list();
 	return 1;
@@ -922,14 +937,13 @@ int cmd_slabs(cmd_arg_t * argv)
  *
  * @return Always 1
  */
-int cmd_sysinfo(cmd_arg_t * argv)
+int cmd_sysinfo(cmd_arg_t *argv)
 {
 	sysinfo_dump(NULL);
 	return 1;
 }
 
-
-/** Command for listings Thread information
+/** Command for listing thread information
  *
  * @param argv Ignored
  *
@@ -947,7 +961,7 @@ int cmd_threads(cmd_arg_t *argv)
 	return 1;
 }
 
-/** Command for listings Task information
+/** Command for listing task information
  *
  * @param argv Ignored
  *
@@ -965,13 +979,26 @@ int cmd_tasks(cmd_arg_t *argv)
 	return 1;
 }
 
-/** Command for listings Thread information
+/** Command for printing thread stack trace
+ *
+ * @param argv Integer argument from cmdline expected
+ *
+ * return Always 1
+ *
+ */
+int cmd_btrace(cmd_arg_t *argv)
+{
+	thread_stack_trace(argv[0].intval);
+	return 1;
+}
+
+/** Command for printing scheduler information
  *
  * @param argv Ignores
  *
  * @return Always 1
  */
-int cmd_sched(cmd_arg_t * argv)
+int cmd_sched(cmd_arg_t *argv)
 {
 	sched_print_list();
 	return 1;
@@ -983,7 +1010,7 @@ int cmd_sched(cmd_arg_t * argv)
  *
  * return Always 1
  */
-int cmd_zones(cmd_arg_t * argv)
+int cmd_zones(cmd_arg_t *argv)
 {
 	zones_print_list();
 	return 1;
@@ -995,19 +1022,19 @@ int cmd_zones(cmd_arg_t * argv)
  *
  * return Always 1
  */
-int cmd_zone(cmd_arg_t * argv)
+int cmd_zone(cmd_arg_t *argv)
 {
 	zone_print_one(argv[0].intval);
 	return 1;
 }
 
-/** Command for printing task ipc details
+/** Command for printing task IPC details
  *
  * @param argv Integer argument from cmdline expected
  *
  * return Always 1
  */
-int cmd_ipc(cmd_arg_t * argv)
+int cmd_ipc(cmd_arg_t *argv)
 {
 	ipc_print_task(argv[0].intval);
 	return 1;
@@ -1019,7 +1046,7 @@ int cmd_ipc(cmd_arg_t * argv)
  *
  * return 0 on failure, 1 on success.
  */
-int cmd_kill(cmd_arg_t * argv)
+int cmd_kill(cmd_arg_t *argv)
 {
 	if (task_kill(argv[0].intval) != EOK)
 		return 0;

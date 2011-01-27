@@ -61,6 +61,7 @@
 #include <cpu.h>
 #include <print.h>
 #include <debug.h>
+#include <stacktrace.h>
 
 static void scheduler_separated_stack(void);
 
@@ -76,7 +77,7 @@ static void before_task_runs(void)
  *
  * Perform actions that need to be
  * taken before the newly selected
- * tread is passed control.
+ * thread is passed control.
  *
  * THREAD->lock is locked on entry
  *
@@ -86,7 +87,7 @@ static void before_thread_runs(void)
 	before_thread_runs_arch();
 	
 #ifdef CONFIG_FPU_LAZY
-	if(THREAD == CPU->fpu_owner)
+	if (THREAD == CPU->fpu_owner)
 		fpu_enable();
 	else
 		fpu_disable();
@@ -99,6 +100,16 @@ static void before_thread_runs(void)
 		THREAD->fpu_context_exists = 1;
 	}
 #endif
+	
+	if (THREAD->btrace) {
+		istate_t *istate = THREAD->udebug.uspace_state;
+		if (istate != NULL) {
+			printf("Thread %" PRIu64 " stack trace:\n", THREAD->tid);
+			stack_trace_istate(istate);
+		}
+		
+		THREAD->btrace = false;
+	}
 }
 
 /** Take actions after THREAD had run.
@@ -644,7 +655,6 @@ not_satisfied:
 			if (thread) {
 				/*
 				 * Ready thread on local CPU
-				 *
 				 */
 				
 				irq_spinlock_pass(&(cpu->rq[rq].lock), &thread->lock);

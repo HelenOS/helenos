@@ -238,14 +238,14 @@ void thread_init(void)
  *
  * Switch thread to the ready state.
  *
- * @param t Thread to make ready.
+ * @param thread Thread to make ready.
  *
  */
 void thread_ready(thread_t *thread)
 {
 	irq_spinlock_lock(&thread->lock, true);
 	
-	ASSERT(!(thread->state == Ready));
+	ASSERT(thread->state != Ready);
 	
 	int i = (thread->priority < RQ_COUNT - 1)
 	    ? ++thread->priority : thread->priority;
@@ -337,6 +337,7 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task,
 	thread->in_copy_to_uspace = false;
 	
 	thread->interrupted = false;
+	thread->btrace = false;
 	thread->detached = false;
 	waitq_initialize(&thread->join_wq);
 	
@@ -534,8 +535,8 @@ int thread_join_timeout(thread_t *thread, uint32_t usec, unsigned int flags)
 
 /** Detach thread.
  *
- * Mark the thread as detached, if the thread is already in the Lingering
- * state, deallocate its resources.
+ * Mark the thread as detached. If the thread is already
+ * in the Lingering state, deallocate its resources.
  *
  * @param thread Thread to be detached.
  *
@@ -739,7 +740,7 @@ thread_t *thread_find_by_id(thread_id_t thread_id)
 {
 	ASSERT(interrupts_disabled());
 	ASSERT(irq_spinlock_locked(&threads_lock));
-
+	
 	thread_iterator_t iterator;
 	
 	iterator.thread_id = thread_id;
@@ -750,6 +751,48 @@ thread_t *thread_find_by_id(thread_id_t thread_id)
 	return iterator.thread;
 }
 
+void thread_stack_trace(thread_id_t thread_id)
+{
+	irq_spinlock_lock(&threads_lock, true);
+	
+	thread_t *thread = thread_find_by_id(thread_id);
+	if (thread == NULL) {
+		printf("No such thread.\n");
+		irq_spinlock_unlock(&threads_lock, true);
+		return;
+	}
+	
+	irq_spinlock_lock(&thread->lock, false);
+	
+	/*
+	 * Schedule a stack trace to be printed
+	 * just before the thread is scheduled next.
+	 *
+	 * If the thread is sleeping then try to interrupt
+	 * the sleep. Any request for printing an uspace stack
+	 * trace from within the kernel should be always
+	 * considered a last resort debugging means, therefore
+	 * forcing the thread's sleep to be interrupted
+	 * is probably justifiable.
+	 */
+	
+	bool sleeping = false;
+	istate_t *istate = thread->udebug.uspace_state;
+	if (istate != NULL) {
+		printf("Scheduling thread stack trace.\n");
+		thread->btrace = true;
+		if (thread->state == Sleeping)
+			sleeping = true;
+	} else
+		printf("Thread interrupt state not available.\n");
+	
+	irq_spinlock_unlock(&thread->lock, false);
+	
+	if (sleeping)
+		waitq_interrupt_sleep(thread);
+	
+	irq_spinlock_unlock(&threads_lock, true);
+}
 
 /** Process syscall to create new thread.
  *
@@ -792,7 +835,6 @@ sysarg_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name,
 				 * We have encountered a failure, but the thread
 				 * has already been created. We need to undo its
 				 * creation now.
-				 *
 				 */
 				
 				/*
@@ -814,7 +856,6 @@ sysarg_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name,
 		 * otherwise we would either miss some thread or receive
 		 * THREAD_B events for threads that already existed
 		 * and could be detected with THREAD_READ before.
-		 *
 		 */
 		udebug_thread_b_event_attach(thread, TASK);
 #else
