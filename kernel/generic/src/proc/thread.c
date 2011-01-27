@@ -598,23 +598,23 @@ static bool thread_walker(avltree_node_t *node, void *arg)
 	
 #ifdef __32_BITS__
 	if (*additional)
-		printf("%-8 %10p" PRIu64" %10p %9" PRIu64 "%c %9" PRIu64 "%c ",
+		printf("%-8" PRIu64 " %10p %10p %9" PRIu64 "%c %9" PRIu64 "%c ",
 		    thread->tid, thread->thread_code, thread->kstack,
 		    ucycles, usuffix, kcycles, ksuffix);
 	else
-		printf("%-8" PRIu64" %-14s %10p %-8s %10p %-5" PRIu32 "\n",
+		printf("%-8" PRIu64 " %-14s %10p %-8s %10p %-5" PRIu32 "\n",
 		    thread->tid, name, thread, thread_states[thread->state],
-		    thread->task, thread->task->context, thread->thread_code);
+		    thread->task, thread->task->context);
 #endif
 	
 #ifdef __64_BITS__
 	if (*additional)
-		printf("%-8" PRIu64" %18p %18p\n"
+		printf("%-8" PRIu64 " %18p %18p\n"
 		    "         %9" PRIu64 "%c %9" PRIu64 "%c ",
 		    thread->tid, thread->thread_code, thread->kstack,
 		    ucycles, usuffix, kcycles, ksuffix);
 	else
-		printf("%-8" PRIu64" %-14s %18p %-8s %18p %-5" PRIu32 "\n",
+		printf("%-8" PRIu64 " %-14s %18p %-8s %18p %-5" PRIu32 "\n",
 		    thread->tid, name, thread, thread_states[thread->state],
 		    thread->task, thread->task->context);
 #endif
