@@ -62,15 +62,12 @@
 #include <print.h>
 #include <debug.h>
 
-static void before_task_runs(void);
-static void before_thread_runs(void);
-static void after_thread_ran(void);
 static void scheduler_separated_stack(void);
 
 atomic_t nrdy;  /**< Number of ready threads in the system. */
 
 /** Carry out actions before new task runs. */
-void before_task_runs(void)
+static void before_task_runs(void)
 {
 	before_task_runs_arch();
 }
@@ -84,9 +81,10 @@ void before_task_runs(void)
  * THREAD->lock is locked on entry
  *
  */
-void before_thread_runs(void)
+static void before_thread_runs(void)
 {
 	before_thread_runs_arch();
+	
 #ifdef CONFIG_FPU_LAZY
 	if(THREAD == CPU->fpu_owner)
 		fpu_enable();
@@ -112,7 +110,7 @@ void before_thread_runs(void)
  * THREAD->lock is locked on entry
  *
  */
-void after_thread_ran(void)
+static void after_thread_ran(void)
 {
 	after_thread_ran_arch();
 }
@@ -390,7 +388,6 @@ void scheduler_separated_stack(void)
 	 * Hold the current task and the address space to prevent their
 	 * possible destruction should thread_destroy() be called on this or any
 	 * other processor while the scheduler is still using them.
-	 *
 	 */
 	if (old_task)
 		task_hold(old_task);
@@ -416,12 +413,10 @@ repeat:
 				/*
 				 * The thread structure is kept allocated until
 				 * somebody calls thread_detach() on it.
-				 *
 				 */
 				if (!irq_spinlock_trylock(&THREAD->join_wq.lock)) {
 					/*
 					 * Avoid deadlock.
-					 *
 					 */
 					irq_spinlock_unlock(&THREAD->lock, false);
 					delay(HZ);
@@ -442,7 +437,6 @@ repeat:
 		case Sleeping:
 			/*
 			 * Prefer the thread after it's woken up.
-			 *
 			 */
 			THREAD->priority = -1;
 			
@@ -450,7 +444,6 @@ repeat:
 			 * We need to release wq->lock which we locked in
 			 * waitq_sleep(). Address of wq->lock is kept in
 			 * THREAD->sleep_queue.
-			 *
 			 */
 			irq_spinlock_unlock(&THREAD->sleep_queue->lock, false);
 			
@@ -460,7 +453,6 @@ repeat:
 		default:
 			/*
 			 * Entering state is unexpected.
-			 *
 			 */
 			panic("tid%" PRIu64 ": unexpected state %s.",
 			    THREAD->tid, thread_states[THREAD->state]);
@@ -479,23 +471,20 @@ repeat:
 	relink_rq(priority);
 	
 	/*
-	 * If both the old and the new task are the same, lots of work is
-	 * avoided.
-	 *
+	 * If both the old and the new task are the same,
+	 * lots of work is avoided.
 	 */
 	if (TASK != THREAD->task) {
 		as_t *new_as = THREAD->task->as;
 		
 		/*
-		 * Note that it is possible for two tasks to share one address
-		 * space.
-		 (
+		 * Note that it is possible for two tasks
+		 * to share one address space.
 		 */
 		if (old_as != new_as) {
 			/*
 			 * Both tasks and address spaces are different.
 			 * Replace the old one with the new one.
-			 *
 			 */
 			as_switch(old_as, new_as);
 		}
@@ -526,14 +515,12 @@ repeat:
 	 * therefore cannot be used to map it. The kernel stack, if
 	 * necessary, is to be mapped in before_thread_runs(). This
 	 * function must be executed before the switch to the new stack.
-	 *
 	 */
 	before_thread_runs();
 	
 	/*
 	 * Copy the knowledge of CPU, TASK, THREAD and preemption counter to
 	 * thread's stack.
-	 *
 	 */
 	the_copy(THE, (the_t *) THREAD->kstack);
 	
