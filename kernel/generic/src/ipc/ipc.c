@@ -689,42 +689,41 @@ void ipc_print_task(task_id_t taskid)
 	/* Hand-over-hand locking */
 	irq_spinlock_exchange(&tasks_lock, &task->lock);
 	
-	/* Print opened phones & details */
-	printf("PHONE:\n");
+	printf("[phone id] [calls] [state\n");
 	
 	size_t i;
 	for (i = 0; i < IPC_MAX_PHONES; i++) {
 		if (SYNCH_FAILED(mutex_trylock(&task->phones[i].lock))) {
-			printf("%zu: mutex busy\n", i);
+			printf("%-10zu (mutex busy)\n", i);
 			continue;
 		}
 		
 		if (task->phones[i].state != IPC_PHONE_FREE) {
-			printf("%zu: ", i);
+			printf("%-10zu %7" PRIun " ", i,
+			    atomic_get(&task->phones[i].active_calls));
 			
 			switch (task->phones[i].state) {
 			case IPC_PHONE_CONNECTING:
-				printf("connecting ");
+				printf("connecting");
 				break;
 			case IPC_PHONE_CONNECTED:
-				printf("connected to: %p (%" PRIu64 ") ",
-				    task->phones[i].callee,
-				    task->phones[i].callee->task->taskid);
+				printf("connected to %" PRIu64 " (%s)",
+				    task->phones[i].callee->task->taskid,
+				    task->phones[i].callee->task->name);
 				break;
 			case IPC_PHONE_SLAMMED:
-				printf("slammed by: %p ", 
+				printf("slammed by %p",
 				    task->phones[i].callee);
 				break;
 			case IPC_PHONE_HUNGUP:
-				printf("hung up - was: %p ", 
+				printf("hung up by %p",
 				    task->phones[i].callee);
 				break;
 			default:
 				break;
 			}
 			
-			printf("active: %" PRIun "\n",
-			    atomic_get(&task->phones[i].active_calls));
+			printf("\n");
 		}
 		
 		mutex_unlock(&task->phones[i].lock);
@@ -732,51 +731,81 @@ void ipc_print_task(task_id_t taskid)
 	
 	irq_spinlock_lock(&task->answerbox.lock, false);
 	
+#ifdef __32_BITS__
+	printf("[call id ] [method] [arg1] [arg2] [arg3] [arg4] [arg5]"
+	    " [flags] [sender\n");
+#endif
+	
+#ifdef __64_BITS__
+	printf("[call id         ] [method] [arg1] [arg2] [arg3] [arg4]"
+	    " [arg5] [flags] [sender\n");
+#endif
+	
 	link_t *cur;
 	
-	/* Print answerbox - calls */
-	printf("ABOX - CALLS:\n");
+	printf(" --- incomming calls ---\n");
 	for (cur = task->answerbox.calls.next; cur != &task->answerbox.calls;
 	    cur = cur->next) {
 		call_t *call = list_get_instance(cur, call_t, link);
-		printf("Callid: %p Srctask:%" PRIu64 " M:%" PRIun 
-		    " A1:%" PRIun " A2:%" PRIun " A3:%" PRIun
-		    " A4:%" PRIun " A5:%" PRIun " Flags:%x\n", call,
-		    call->sender->taskid,
+		
+#ifdef __32_BITS__
+		printf("%10p ", call);
+#endif
+		
+#ifdef __64_BITS__
+		printf("%18p ", call);
+#endif
+		
+		printf("%-8" PRIun " %-6" PRIun " %-6" PRIun " %-6" PRIun
+		    " %-6" PRIun " %-6" PRIun " %-7x %" PRIu64 " (%s)\n",
 		    IPC_GET_IMETHOD(call->data), IPC_GET_ARG1(call->data),
 		    IPC_GET_ARG2(call->data), IPC_GET_ARG3(call->data),
 		    IPC_GET_ARG4(call->data), IPC_GET_ARG5(call->data),
-		    call->flags);
+		    call->flags, call->sender->taskid, call->sender->name);
 	}
 	
-	/* Print answerbox - dispatched calls */
-	printf("ABOX - DISPATCHED CALLS:\n");
+	printf(" --- dispatched calls ---\n");
 	for (cur = task->answerbox.dispatched_calls.next;
 	    cur != &task->answerbox.dispatched_calls;
 	    cur = cur->next) {
 		call_t *call = list_get_instance(cur, call_t, link);
-		printf("Callid: %p Srctask:%" PRIu64 " M:%" PRIun
-		    " A1:%" PRIun " A2:%" PRIun " A3:%" PRIun
-		    " A4:%" PRIun " A5:%" PRIun " Flags:%x\n", call,
-		    call->sender->taskid,
+		
+#ifdef __32_BITS__
+		printf("%10p ", call);
+#endif
+		
+#ifdef __64_BITS__
+		printf("%18p ", call);
+#endif
+		
+		printf("%-8" PRIun " %-6" PRIun " %-6" PRIun " %-6" PRIun
+		    " %-6" PRIun " %-6" PRIun " %-7x %" PRIu64 " (%s)\n",
 		    IPC_GET_IMETHOD(call->data), IPC_GET_ARG1(call->data),
 		    IPC_GET_ARG2(call->data), IPC_GET_ARG3(call->data),
 		    IPC_GET_ARG4(call->data), IPC_GET_ARG5(call->data),
-		    call->flags);
+		    call->flags, call->sender->taskid, call->sender->name);
 	}
 	
-	/* Print answerbox - answers */
-	printf("ABOX - ANSWERS:\n");
+	printf(" --- outgoing answers ---\n");
 	for (cur = task->answerbox.answers.next;
 	    cur != &task->answerbox.answers;
 	    cur = cur->next) {
 		call_t *call = list_get_instance(cur, call_t, link);
-		printf("Callid:%p M:%" PRIun " A1:%" PRIun " A2:%" PRIun
-		    " A3:%" PRIun " A4:%" PRIun " A5:%" PRIun " Flags:%x\n",
-		    call, IPC_GET_IMETHOD(call->data), IPC_GET_ARG1(call->data),
+		
+#ifdef __32_BITS__
+		printf("%10p ", call);
+#endif
+		
+#ifdef __64_BITS__
+		printf("%18p ", call);
+#endif
+		
+		printf("%-8" PRIun " %-6" PRIun " %-6" PRIun " %-6" PRIun
+		    " %-6" PRIun " %-6" PRIun " %-7x %" PRIu64 " (%s)\n",
+		    IPC_GET_IMETHOD(call->data), IPC_GET_ARG1(call->data),
 		    IPC_GET_ARG2(call->data), IPC_GET_ARG3(call->data),
 		    IPC_GET_ARG4(call->data), IPC_GET_ARG5(call->data),
-		    call->flags);
+		    call->flags, call->sender->taskid, call->sender->name);
 	}
 	
 	irq_spinlock_unlock(&task->answerbox.lock, false);

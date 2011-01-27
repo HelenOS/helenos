@@ -341,20 +341,34 @@ sysarg_t sys_task_get_id(void)
  */
 sysarg_t sys_task_set_name(const char *uspace_name, size_t name_len)
 {
-	int rc;
 	char namebuf[TASK_NAME_BUFLEN];
 	
 	/* Cap length of name and copy it from userspace. */
-	
 	if (name_len > TASK_NAME_BUFLEN - 1)
 		name_len = TASK_NAME_BUFLEN - 1;
 	
-	rc = copy_from_uspace(namebuf, uspace_name, name_len);
+	int rc = copy_from_uspace(namebuf, uspace_name, name_len);
 	if (rc != 0)
 		return (sysarg_t) rc;
 	
 	namebuf[name_len] = '\0';
+	
+	/*
+	 * As the task name is referenced also from the
+	 * threads, lock the threads' lock for the course
+	 * of the update.
+	 */
+	
+	irq_spinlock_lock(&tasks_lock, true);
+	irq_spinlock_lock(&TASK->lock, false);
+	irq_spinlock_lock(&threads_lock, false);
+	
+	/* Set task name */
 	str_cpy(TASK->name, TASK_NAME_BUFLEN, namebuf);
+	
+	irq_spinlock_unlock(&threads_lock, false);
+	irq_spinlock_unlock(&TASK->lock, false);
+	irq_spinlock_unlock(&tasks_lock, true);
 	
 	return EOK;
 }
