@@ -216,8 +216,8 @@ static inline int uhci_add_transfer(
 	ret = td ? EOK : ENOMEM;
 	CHECK_RET_TRANS_FREE_JOB_TD("Failed to allocate transfer descriptor.\n");
 
-	ret = transfer_descriptor_init(td, 3, size, false, target, pid);
-	CHECK_RET_TRANS_FREE_JOB_TD("Failed to initialize transfer descriptor.\n");
+	transfer_descriptor_init(td, 3, size, false, target, pid);
+//	CHECK_RET_TRANS_FREE_JOB_TD("Failed to initialize transfer descriptor.\n");
 
 	td->callback = job;
 
@@ -236,8 +236,25 @@ int uhci_clean_finished(void* arg)
 	uhci_print_verbose("Started cleaning fibril.\n");
 	uhci_t *instance = (uhci_t*)arg;
 	assert(instance);
+
 	while(1) {
 		uhci_print_verbose("Running cleaning fibril on %p.\n", instance);
+		/* iterate all transfer queues */
+		usb_transfer_type_t i = USB_TRANSFER_BULK;
+		for (; i > USB_TRANSFER_ISOCHRONOUS; --i) {
+			/* Remove inactive transfers from the top of the queue
+			 * TODO: should I reach queue head or is this enough? */
+			while (instance->transfers[i].first &&
+			 !(instance->transfers[i].first->status & TD_STATUS_ERROR_ACTIVE)) {
+				transfer_descriptor_t *transfer = instance->transfers[i].first;
+				uhci_print_verbose("Cleaning fibril found inactive transport.");
+				instance->transfers[i].first = transfer->next_va;
+				transfer_descriptor_fini(transfer);
+				trans_free(transfer);
+			}
+			if (!instance->transfers[i].first)
+				instance->transfers[i].last = instance->transfers[i].first;
+		}
 
 		async_usleep(1000000);
 	}
