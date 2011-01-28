@@ -42,7 +42,7 @@
 #include <assert.h>
 #include <stacktrace.h>
 #include <stdlib.h>
-#include "priv/async.h"
+#include "private/async.h"
 
 static void optimize_execution_power(void)
 {

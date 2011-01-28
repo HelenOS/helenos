@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Martin Decky
+ * Copyright (c) 2006 Ondrej Palkovsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,75 +26,61 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup lc Libc
- * @brief HelenOS C library
- * @{
- * @}
- */
-
-/** @addtogroup libc generic
- * @ingroup lc
+/** @addtogroup libc
  * @{
  */
-
 /** @file
  */
 
-#include <stdio.h>
-#include <unistd.h>
-#include <malloc.h>
-#include <tls.h>
-#include <thread.h>
+#ifndef LIBC_PRIVATE_ASYNC_H_
+#define LIBC_PRIVATE_ASYNC_H_
+
+#include <adt/list.h>
 #include <fibril.h>
-#include <ipc/ipc.h>
-#include <async.h>
-#include <as.h>
-#include <loader/pcb.h>
-#include "private/libc.h"
+#include <sys/time.h>
+#include <bool.h>
 
-void _exit(int status)
-{
-	thread_exit(status);
-}
+/** Structures of this type are used to track the timeout events. */
+typedef struct {
+	/** If true, this struct is in the timeout list. */
+	bool inlist;
+	
+	/** Timeout list link. */
+	link_t link;
+	
+	/** If true, we have timed out. */
+	bool occurred;
+	
+	/** Expiration time. */
+	struct timeval expires;
+} to_event_t;
 
-void __main(void *pcb_ptr)
-{
-	/* Initialize user task run-time environment */
-	__heap_init();
-	__async_init();
-	fibril_t *fibril = fibril_setup();
-	__tcb_set(fibril->tcb);
+/** Structures of this type are used to track the wakeup events. */
+typedef struct {
+	/** If true, this struct is in a synchronization object wait queue. */
+	bool inlist;
 	
-	/* Save the PCB pointer */
-	__pcb = (pcb_t *) pcb_ptr;
-	
-	int argc;
-	char **argv;
-	
-	/* Get command line arguments and initialize
-	   standard input and output */
-	if (__pcb == NULL) {
-		argc = 0;
-		argv = NULL;
-		__stdio_init(0, NULL);
-	} else {
-		argc = __pcb->argc;
-		argv = __pcb->argv;
-		__stdio_init(__pcb->filc, __pcb->filv);
-		(void) chdir(__pcb->cwd);
-	}
-	
-	/* Run main() and set task return value
-	   according the result */
-	(void) task_retval(main(argc, argv));
-}
+	/** Wait queue linkage. */
+	link_t link;
+} wu_event_t;
 
-void __exit(void)
-{
-	__stdio_done();
-	fibril_teardown(__tcb_get()->fibril_data);
-	_exit(0);
-}
+/** Structures of this type represent a waiting fibril. */
+typedef struct {
+	/** Identification of and link to the waiting fibril. */
+	fid_t fid;
+	
+	/** If true, this fibril is currently active. */
+	bool active;
+	
+	/** Timeout wait data. */
+	to_event_t to_event;
+	/** Wakeup wait data. */
+	wu_event_t wu_event;
+} awaiter_t;
+
+extern void async_insert_timeout(awaiter_t *);
+
+#endif
 
 /** @}
  */

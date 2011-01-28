@@ -103,7 +103,7 @@
 #include <sys/time.h>
 #include <arch/barrier.h>
 #include <bool.h>
-#include "priv/async.h"
+#include "private/async.h"
 
 atomic_t async_futex = FUTEX_INITIALIZER;
 
