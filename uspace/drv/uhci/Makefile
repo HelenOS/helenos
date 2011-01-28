@@ -39,6 +39,7 @@ SOURCES = \
 	root_hub/port_status.c \
 	root_hub/root_hub.c \
 	transfer_list.c \
-	uhci.c 
+	uhci.c \
+	uhci_struct/transfer_descriptor.c
 
 include $(USPACE_PREFIX)/Makefile.common
