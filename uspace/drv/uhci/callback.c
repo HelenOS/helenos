@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <mem.h>
 
 #include "callback.h"
 
@@ -24,4 +25,23 @@ int callback_init(callback_t *instance, device_t *dev,
 	instance->buffer_size = size;
 	instance->dev = dev;
 	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+void callback_run(
+callback_t *instance, usb_transaction_outcome_t outcome, size_t act_size)
+{
+	assert(instance);
+
+	/* update the old buffer */
+	if (instance->new_buffer) {
+		memcpy(instance->new_buffer, instance->old_buffer, instance->buffer_size);
+		trans_free(instance->new_buffer);
+		instance->new_buffer = NULL;
+	}
+
+	if (instance->callback_in) {
+		assert(instance->callback_out == NULL);
+		instance->callback_in(
+		  instance->dev, act_size, outcome, instance->arg);
+	}
 }

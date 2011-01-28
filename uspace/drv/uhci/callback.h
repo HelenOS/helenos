@@ -34,8 +34,8 @@
 #ifndef DRV_UHCI_CALLBACK_H
 #define DRV_UHCI_CALLBACK_H
 
-#include <mem.h>
 #include <usbhc_iface.h>
+#include <usb/usb.h>
 
 #include "debug.h"
 #include "translating_malloc.h"
@@ -48,6 +48,7 @@ typedef struct callback
 	void *new_buffer;
 	void *arg;
 	size_t buffer_size;
+	size_t actual_size;
 	device_t *dev;
 } callback_t;
 
@@ -68,6 +69,9 @@ static inline void callback_fini(callback_t *instance)
 	if (instance->new_buffer)
 		trans_free(instance->new_buffer);
 }
+
+void callback_run(
+  callback_t *instance, usb_transaction_outcome_t outcome, size_t act_size);
 #endif
 /**
  * @}
