@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,60 +26,77 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup usbvirtkbd
+/** @addtogroup usbvirthub
  * @{
  */
-/** @file
- * @brief HID Report Descriptor.
- */
-#ifndef VUK_REPORT_H_
-#define VUK_REPORT_H_
-
-#include "items.h"
-
-/** Use standard Usage Page. */
-#define STD_USAGE_PAGE(page) \
-	ITEM_CREATE1(ITEM_GLOBAL, TAG_USAGE_PAGE, page)
-
-/** Usage with one byte usage ID. */
-#define USAGE1(usage_id) \
-	ITEM_CREATE1(ITEM_LOCAL, TAG_USAGE, usage_id)
-
-/** Start a collection. */
-#define START_COLLECTION(collection) \
-	ITEM_CREATE1(ITEM_MAIN, TAG_COLLECTION, collection)
-
-/** End a collection. */
-#define END_COLLECTION() \
-	ITEM_CREATE0(ITEM_MAIN, TAG_END_COLLECTION)
-
-
-#define USAGE_MINIMUM1(value) \
-	ITEM_CREATE1(ITEM_LOCAL, TAG_USAGE_MINIMUM, value)
-	
-#define USAGE_MAXIMUM1(value) \
-	ITEM_CREATE1(ITEM_LOCAL, TAG_USAGE_MAXIMUM, value)
-	
-#define LOGICAL_MINIMUM1(value) \
-	ITEM_CREATE1(ITEM_GLOBAL, TAG_LOGICAL_MINIMUM, value)
-
-#define LOGICAL_MAXIMUM1(value) \
-	ITEM_CREATE1(ITEM_GLOBAL, TAG_LOGICAL_MAXIMUM, value)
-
-#define REPORT_SIZE1(size) \
-	ITEM_CREATE1(ITEM_GLOBAL, TAG_REPORT_SIZE, size)
-
-#define REPORT_COUNT1(count) \
-	ITEM_CREATE1(ITEM_GLOBAL, TAG_REPORT_COUNT, count)
-	
-#define INPUT(modifiers) \
-	ITEM_CREATE1(ITEM_MAIN, TAG_INPUT, modifiers)
-
-#define OUTPUT(modifiers) \
-	ITEM_CREATE1(ITEM_MAIN, TAG_OUTPUT, modifiers)
-
-
-#endif
 /**
- * @}
+ * @file
+ * @brief Virtual USB hub.
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <str_error.h>
+#include <bool.h>
+
+#include <usb/usb.h>
+#include <usb/descriptor.h>
+#include <usb/classes/hub.h>
+#include <usbvirt/device.h>
+#include <usbvirt/hub.h>
+
+#include "vhc_hub/virthub.h"
+
+#define NAME "vuh"
+
+static usbvirt_device_t hub_device;
+
+#define VERBOSE_SLEEP(sec, msg, ...) \
+	do { \
+		char _status[HUB_PORT_COUNT + 2]; \
+		printf(NAME ": doing nothing for %zu seconds...\n", \
+		    (size_t) (sec)); \
+		fibril_sleep((sec)); \
+		virthub_get_status(&hub_device, _status, HUB_PORT_COUNT + 1); \
+		printf(NAME ": " msg " [%s]\n" #__VA_ARGS__, _status); \
+	} while (0)
+
+static void fibril_sleep(size_t sec)
+{
+	while (sec-- > 0) {
+		async_usleep(1000*1000);
+	}
+}
+
+static int dev1 = 1;
+
+int main(int argc, char * argv[])
+{
+	int rc;
+
+	printf(NAME ": virtual USB hub.\n");
+
+	rc = virthub_init(&hub_device);
+	if (rc != EOK) {
+		printf(NAME ": Unable to start communication with VHCD (%s).\n",
+		    str_error(rc));
+		return rc;
+	}
+	
+	while (true) {
+		VERBOSE_SLEEP(8, "will pretend device plug-in...");
+		virthub_connect_device(&hub_device, &dev1);
+
+		VERBOSE_SLEEP(8, "will pretend device un-plug...");
+		virthub_disconnect_device(&hub_device, &dev1);
+	}
+
+	usbvirt_disconnect(&hub_device);
+	
+	return 0;
+}
+
+
+/** @}
  */
