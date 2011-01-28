@@ -2,8 +2,6 @@
 #include <mem.h>
 
 #include "callback.h"
-
-
 int callback_init(callback_t *instance, device_t *dev,
   void *buffer, size_t size, usbhc_iface_transfer_in_callback_t func_in,
   usbhc_iface_transfer_out_callback_t func_out, void *arg)

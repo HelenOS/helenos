@@ -63,11 +63,29 @@ int callback_init(callback_t *instance, device_t *dev,
 #define callback_out_init(instance, dev, buffer, size, func, arg) \
 	callback_init(instance, dev, buffer, size, func, NULL, arg)
 
+static inline callback_t *callback_get(device_t *dev,
+  void *buffer, size_t size, usbhc_iface_transfer_in_callback_t func_in,
+  usbhc_iface_transfer_out_callback_t func_out, void *arg)
+{
+	callback_t *instance = malloc(sizeof(callback_t));
+	if (callback_init(instance, dev, buffer, size, func_in, func_out, arg)) {
+		free(instance);
+		instance = NULL;
+	}
+	return instance;
+}
+
 static inline void callback_fini(callback_t *instance)
 {
 	assert(instance);
 	if (instance->new_buffer)
 		trans_free(instance->new_buffer);
+}
+
+static inline void callback_dispose(callback_t *instance)
+{
+	callback_fini(instance);
+	free(instance);
 }
 
 void callback_run(
