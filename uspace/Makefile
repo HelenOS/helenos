@@ -45,7 +45,6 @@ DIRS = \
 	app/sbi \
 	app/stats \
 	app/taskdump \
-	app/tasks \
 	app/tester \
 	app/tetris \
 	app/trace \

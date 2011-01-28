@@ -182,8 +182,7 @@ int main(int argc, char *argv[])
 	
 	async_set_client_connection(clip_connection);
 	
-	sysarg_t phonead;
-	if (ipc_connect_to_me(PHONE_NS, SERVICE_CLIPBOARD, 0, 0, &phonead) != 0) 
+	if (ipc_connect_to_me(PHONE_NS, SERVICE_CLIPBOARD, 0, 0, NULL, NULL)) 
 		return -1;
 	
 	printf(NAME ": Accepting connections\n");

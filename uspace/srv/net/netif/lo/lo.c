@@ -166,8 +166,7 @@ static int lo_create(device_id_t device_id, netif_device_t **device)
 
 int netif_initialize(void)
 {
-	sysarg_t phonehash;
-	return ipc_connect_to_me(PHONE_NS, SERVICE_LO, 0, 0, &phonehash);
+	return ipc_connect_to_me(PHONE_NS, SERVICE_LO, 0, 0, NULL, NULL);
 }
 
 int netif_probe_message(device_id_t device_id, int irq, void *io)

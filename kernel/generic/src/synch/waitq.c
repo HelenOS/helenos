@@ -126,8 +126,12 @@ out:
 
 /** Interrupt sleeping thread.
  *
- * This routine attempts to interrupt a thread from its sleep in a waitqueue.
- * If the thread is not found sleeping, no action is taken.
+ * This routine attempts to interrupt a thread from its sleep in
+ * a waitqueue. If the thread is not found sleeping, no action
+ * is taken.
+ *
+ * The threads_lock must be already held and interrupts must be
+ * disabled upon calling this function.
  *
  * @param thread Thread to be interrupted.
  *
@@ -137,9 +141,10 @@ void waitq_interrupt_sleep(thread_t *thread)
 	bool do_wakeup = false;
 	DEADLOCK_PROBE_INIT(p_wqlock);
 	
-	irq_spinlock_lock(&threads_lock, true);
-	if (!thread_exists(thread))
-		goto out;
+	/*
+	 * The thread is quaranteed to exist because
+	 * threads_lock is held.
+	 */
 	
 grab_locks:
 	irq_spinlock_lock(&thread->lock, false);
@@ -149,16 +154,15 @@ grab_locks:
 		if (!(thread->sleep_interruptible)) {
 			/*
 			 * The sleep cannot be interrupted.
-			 *
 			 */
 			irq_spinlock_unlock(&thread->lock, false);
-			goto out;
+			return;
 		}
 		
 		if (!irq_spinlock_trylock(&wq->lock)) {
+			/* Avoid deadlock */
 			irq_spinlock_unlock(&thread->lock, false);
 			DEADLOCK_PROBE(p_wqlock, DEADLOCK_THRESHOLD);
-			/* Avoid deadlock */
 			goto grab_locks;
 		}
 		
@@ -172,13 +176,11 @@ grab_locks:
 		thread->sleep_queue = NULL;
 		irq_spinlock_unlock(&wq->lock, false);
 	}
+	
 	irq_spinlock_unlock(&thread->lock, false);
 	
 	if (do_wakeup)
 		thread_ready(thread);
-	
-out:
-	irq_spinlock_unlock(&threads_lock, true);
 }
 
 /** Interrupt the first thread sleeping in the wait queue.
@@ -369,7 +371,6 @@ int waitq_sleep_timeout_unsafe(waitq_t *wq, uint32_t usec, unsigned int flags)
 		/*
 		 * If the thread was already interrupted,
 		 * don't go to sleep at all.
-		 *
 		 */
 		if (THREAD->interrupted) {
 			irq_spinlock_unlock(&THREAD->lock, false);
@@ -380,7 +381,6 @@ int waitq_sleep_timeout_unsafe(waitq_t *wq, uint32_t usec, unsigned int flags)
 		/*
 		 * Set context that will be restored if the sleep
 		 * of this thread is ever interrupted.
-		 *
 		 */
 		THREAD->sleep_interruptible = true;
 		if (!context_save(&THREAD->sleep_interruption_context)) {
