@@ -45,6 +45,7 @@
 
 typedef struct {
 	sysarg_t args[IPC_CALL_LEN];
+	sysarg_t in_task_hash;
 	sysarg_t in_phone_hash;
 } ipc_call_t;
 
@@ -257,7 +258,7 @@ extern void ipc_call_async_fast(int, sysarg_t, sysarg_t, sysarg_t, sysarg_t,
 extern void ipc_call_async_slow(int, sysarg_t, sysarg_t, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t, void *, ipc_async_callback_t, int);
 
-extern int ipc_connect_to_me(int, int, int, int, sysarg_t *);
+extern int ipc_connect_to_me(int, int, int, int, sysarg_t *, sysarg_t *);
 extern int ipc_connect_me_to(int, int, int, int);
 extern int ipc_connect_me_to_blocking(int, int, int, int);
 extern int ipc_hangup(int);

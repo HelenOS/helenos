@@ -220,7 +220,8 @@ int usbvirt_connect(usbvirt_device_t *dev)
 	}
 	
 	sysarg_t phonehash;
-	rc = ipc_connect_to_me(hcd_phone, 0, 0, 0, &phonehash);
+	sysarg_t taskhash;
+	rc = ipc_connect_to_me(hcd_phone, 0, 0, 0, &taskhash, &phonehash);
 	if (rc != EOK) {
 		printf("ipc_connect_to_me() failed\n");
 		return rc;
@@ -232,7 +233,7 @@ int usbvirt_connect(usbvirt_device_t *dev)
 	virtual_device->vhcd_phone = hcd_phone;
 	virtual_device->id = 0;
 	
-	async_new_connection(phonehash, 0, NULL, callback_connection);
+	async_new_connection(taskhash, phonehash, 0, NULL, callback_connection);
 	
 	return EOK;
 }

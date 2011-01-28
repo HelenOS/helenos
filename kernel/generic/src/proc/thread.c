@@ -238,14 +238,14 @@ void thread_init(void)
  *
  * Switch thread to the ready state.
  *
- * @param t Thread to make ready.
+ * @param thread Thread to make ready.
  *
  */
 void thread_ready(thread_t *thread)
 {
 	irq_spinlock_lock(&thread->lock, true);
 	
-	ASSERT(!(thread->state == Ready));
+	ASSERT(thread->state != Ready);
 	
 	int i = (thread->priority < RQ_COUNT - 1)
 	    ? ++thread->priority : thread->priority;
@@ -349,7 +349,8 @@ thread_t *thread_create(void (* func)(void *), void *arg, task_t *task,
 	thread->threads_tree_node.key = (uintptr_t) thread;
 	
 #ifdef CONFIG_UDEBUG
-	/* Init debugging stuff */
+	/* Initialize debugging stuff */
+	thread->btrace = false;
 	udebug_thread_initialize(&thread->udebug);
 #endif
 	
@@ -534,8 +535,8 @@ int thread_join_timeout(thread_t *thread, uint32_t usec, unsigned int flags)
 
 /** Detach thread.
  *
- * Mark the thread as detached, if the thread is already in the Lingering
- * state, deallocate its resources.
+ * Mark the thread as detached. If the thread is already
+ * in the Lingering state, deallocate its resources.
  *
  * @param thread Thread to be detached.
  *
@@ -589,26 +590,32 @@ static bool thread_walker(avltree_node_t *node, void *arg)
 	order_suffix(thread->ucycles, &ucycles, &usuffix);
 	order_suffix(thread->kcycles, &kcycles, &ksuffix);
 	
+	char *name;
+	if (str_cmp(thread->name, "uinit") == 0)
+		name = thread->task->name;
+	else
+		name = thread->name;
+	
 #ifdef __32_BITS__
 	if (*additional)
-		printf("%-8" PRIu64" %10p %9" PRIu64 "%c %9" PRIu64 "%c ",
-		    thread->tid, thread->kstack, ucycles, usuffix,
-		    kcycles, ksuffix);
+		printf("%-8" PRIu64 " %10p %10p %9" PRIu64 "%c %9" PRIu64 "%c ",
+		    thread->tid, thread->thread_code, thread->kstack,
+		    ucycles, usuffix, kcycles, ksuffix);
 	else
-		printf("%-8" PRIu64" %-14s %10p %-8s %10p %-5" PRIu32 " %10p\n",
-		    thread->tid, thread->name, thread, thread_states[thread->state],
-		    thread->task, thread->task->context, thread->thread_code);
+		printf("%-8" PRIu64 " %-14s %10p %-8s %10p %-5" PRIu32 "\n",
+		    thread->tid, name, thread, thread_states[thread->state],
+		    thread->task, thread->task->context);
 #endif
 	
 #ifdef __64_BITS__
 	if (*additional)
-		printf("%-8" PRIu64" %18p %18p\n"
+		printf("%-8" PRIu64 " %18p %18p\n"
 		    "         %9" PRIu64 "%c %9" PRIu64 "%c ",
 		    thread->tid, thread->thread_code, thread->kstack,
 		    ucycles, usuffix, kcycles, ksuffix);
 	else
-		printf("%-8" PRIu64" %-14s %18p %-8s %18p %-5" PRIu32 "\n",
-		    thread->tid, thread->name, thread, thread_states[thread->state],
+		printf("%-8" PRIu64 " %-14s %18p %-8s %18p %-5" PRIu32 "\n",
+		    thread->tid, name, thread, thread_states[thread->state],
 		    thread->task, thread->task->context);
 #endif
 	
@@ -646,11 +653,11 @@ void thread_print_list(bool additional)
 	
 #ifdef __32_BITS__
 	if (additional)
-		printf("[id    ] [stack   ] [ucycles ] [kcycles ] [cpu]"
-		    " [waitqueue]\n");
+		printf("[id    ] [code    ] [stack   ] [ucycles ] [kcycles ]"
+		    " [cpu] [waitqueue]\n");
 	else
 		printf("[id    ] [name        ] [address ] [state ] [task    ]"
-		    " [ctx] [code    ]\n");
+		    " [ctx]\n");
 #endif
 	
 #ifdef __64_BITS__
@@ -739,7 +746,7 @@ thread_t *thread_find_by_id(thread_id_t thread_id)
 {
 	ASSERT(interrupts_disabled());
 	ASSERT(irq_spinlock_locked(&threads_lock));
-
+	
 	thread_iterator_t iterator;
 	
 	iterator.thread_id = thread_id;
@@ -750,6 +757,52 @@ thread_t *thread_find_by_id(thread_id_t thread_id)
 	return iterator.thread;
 }
 
+#ifdef CONFIG_UDEBUG
+
+void thread_stack_trace(thread_id_t thread_id)
+{
+	irq_spinlock_lock(&threads_lock, true);
+	
+	thread_t *thread = thread_find_by_id(thread_id);
+	if (thread == NULL) {
+		printf("No such thread.\n");
+		irq_spinlock_unlock(&threads_lock, true);
+		return;
+	}
+	
+	irq_spinlock_lock(&thread->lock, false);
+	
+	/*
+	 * Schedule a stack trace to be printed
+	 * just before the thread is scheduled next.
+	 *
+	 * If the thread is sleeping then try to interrupt
+	 * the sleep. Any request for printing an uspace stack
+	 * trace from within the kernel should be always
+	 * considered a last resort debugging means, therefore
+	 * forcing the thread's sleep to be interrupted
+	 * is probably justifiable.
+	 */
+	
+	bool sleeping = false;
+	istate_t *istate = thread->udebug.uspace_state;
+	if (istate != NULL) {
+		printf("Scheduling thread stack trace.\n");
+		thread->btrace = true;
+		if (thread->state == Sleeping)
+			sleeping = true;
+	} else
+		printf("Thread interrupt state not available.\n");
+	
+	irq_spinlock_unlock(&thread->lock, false);
+	
+	if (sleeping)
+		waitq_interrupt_sleep(thread);
+	
+	irq_spinlock_unlock(&threads_lock, true);
+}
+
+#endif /* CONFIG_UDEBUG */
 
 /** Process syscall to create new thread.
  *
@@ -792,7 +845,6 @@ sysarg_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name,
 				 * We have encountered a failure, but the thread
 				 * has already been created. We need to undo its
 				 * creation now.
-				 *
 				 */
 				
 				/*
@@ -814,7 +866,6 @@ sysarg_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name,
 		 * otherwise we would either miss some thread or receive
 		 * THREAD_B events for threads that already existed
 		 * and could be detected with THREAD_READ before.
-		 *
 		 */
 		udebug_thread_b_event_attach(thread, TASK);
 #else

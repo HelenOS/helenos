@@ -325,7 +325,6 @@ static int net_initialize(async_client_conn_t client_connection)
  */
 static int net_module_start(async_client_conn_t client_connection)
 {
-	sysarg_t phonehash;
 	int rc;
 	
 	async_set_client_connection(client_connection);
@@ -337,7 +336,7 @@ static int net_module_start(async_client_conn_t client_connection)
 	if (rc != EOK)
 		goto out;
 	
-	rc = ipc_connect_to_me(PHONE_NS, SERVICE_NETWORKING, 0, 0, &phonehash);
+	rc = ipc_connect_to_me(PHONE_NS, SERVICE_NETWORKING, 0, 0, NULL, NULL);
 	if (rc != EOK)
 		goto out;
 	

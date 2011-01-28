@@ -115,8 +115,7 @@ int devmap_driver_register(const char *name, async_client_conn_t conn)
 	
 	async_set_client_connection(conn);
 	
-	sysarg_t callback_phonehash;
-	ipc_connect_to_me(phone, 0, 0, 0, &callback_phonehash);
+	ipc_connect_to_me(phone, 0, 0, 0, NULL, NULL);
 	async_wait_for(req, &retval);
 	
 	async_serialize_end();
