@@ -46,7 +46,7 @@
 #include <usbvirt/device.h>
 #include <usbvirt/hub.h>
 
-#include "virthub.h"
+#include "vhc_hub/virthub.h"
 
 #define NAME "vuh"
 

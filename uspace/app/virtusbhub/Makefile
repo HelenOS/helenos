@@ -41,12 +41,12 @@ SOURCES = \
 	$(STOLEN_VHC_SOURCES)
 
 STOLEN_VHC_SOURCES = \
-	hub.c \
-	virthub.c \
-	virthubops.c 
+	vhc_hub/hub.c \
+	vhc_hub/virthub.c \
+	vhc_hub/virthubops.c 
 STOLEN_VHC_HEADERS = \
-	hub.h \
-	virthub.h
+	vhc_hub/hub.h \
+	vhc_hub/virthub.h
 
 PRE_DEPEND = $(STOLEN_VHC_SOURCES) $(STOLEN_VHC_HEADERS)
 
@@ -56,18 +56,7 @@ HUB_IN_VHC = $(USPACE_PREFIX)/drv/vhc/hub
 
 include $(USPACE_PREFIX)/Makefile.common
 
-
-hub.h: $(HUB_IN_VHC)/hub.h
-	ln -sfn $(HUB_IN_VHC)/$@ $@
-
-hub.c: $(HUB_IN_VHC)/hub.c
-	ln -sfn $(HUB_IN_VHC)/$@ $@
-
-virthub.h: $(HUB_IN_VHC)/virthub.h
-	ln -sfn $(HUB_IN_VHC)/$@ $@
-
-virthub.c: $(HUB_IN_VHC)/virthub.c
-	ln -sfn $(HUB_IN_VHC)/$@ $@
-
-virthubops.c: $(HUB_IN_VHC)/virthubops.c
-	ln -sfn $(HUB_IN_VHC)/$@ $@
+vhc_hub/%.h: $(HUB_IN_VHC)/%.h
+	ln -sfn ../$(HUB_IN_VHC)/$*.h $@
+vhc_hub/%.c: $(HUB_IN_VHC)/%.c
+	ln -sfn ../$(HUB_IN_VHC)/$*.c $@
