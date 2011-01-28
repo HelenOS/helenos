@@ -45,8 +45,9 @@ static inline void * addr_to_phys(void *addr)
 {
 	uintptr_t result;
 	int ret = as_get_physical_mapping(addr, &result);
+
 	assert(ret == 0);
-	return (void*)result;
+	return (void*)(result | ((uintptr_t)addr & 0xfff));
 }
 
 static inline void * malloc32(size_t size)
