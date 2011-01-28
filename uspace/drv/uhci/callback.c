@@ -22,6 +22,7 @@ int callback_init(callback_t *instance, device_t *dev,
 	instance->old_buffer = buffer;
 	instance->buffer_size = size;
 	instance->dev = dev;
+	instance->arg = arg;
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -39,7 +40,16 @@ callback_t *instance, usb_transaction_outcome_t outcome, size_t act_size)
 
 	if (instance->callback_in) {
 		assert(instance->callback_out == NULL);
+		uhci_print_verbose("Callback in: %p %x %d.\n",
+		  instance->callback_in, outcome, act_size);
 		instance->callback_in(
 		  instance->dev, act_size, outcome, instance->arg);
+	} else {
+		assert(instance->callback_out);
+		assert(instance->callback_in == NULL);
+		uhci_print_verbose("Callback out: %p %p %x %p .\n",
+		 instance->callback_out, instance->dev, outcome, instance->arg);
+		instance->callback_out(
+		  instance->dev, outcome, instance->arg);
 	}
 }
