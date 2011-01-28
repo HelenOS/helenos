@@ -26,12 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup usb
+/** @addtogroup usbinfo
  * @{
  */
 /**
  * @file
- * @brief
+ * Dumping of generic device properties.
  */
 #include <stdio.h>
 #include <str_error.h>

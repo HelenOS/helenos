@@ -209,21 +209,30 @@
 		 * @brief Virtual USB keyboard for virtual host controller.
 		 */
 
-	 /**
-	  * @defgroup drvusbhub USB hub driver
-	  * @ingroup usb
-	  * @brief USB hub driver.
-	  */
+	/**
+	 * @defgroup usbinfo USB info application
+	 * @ingroup usb
+	 * @brief Application for querying USB devices.
+	 * @details
+	 * The intended usage of this application is to query new USB devices
+	 * for their descriptors etc. to simplify driver writing.
+	 */
 
-	 /**
-	  * @defgroup drvusbhid USB HID driver
-	  * @ingroup usb
-	  * @brief USB driver for HID devices.
-	  */
+	/**
+	 * @defgroup drvusbhub USB hub driver
+	 * @ingroup usb
+	 * @brief USB hub driver.
+	 */
 
-	 /**
-	  * @defgroup drvusbuhci UHCI driver
-	  * @ingroup usb
-	  * @brief Driver for USB host controller UHCI.
-	  */
+	/**
+	 * @defgroup drvusbhid USB HID driver
+	 * @ingroup usb
+	 * @brief USB driver for HID devices.
+	 */
+
+	/**
+	 * @defgroup drvusbuhci UHCI driver
+	 * @ingroup usb
+	 * @brief Driver for USB host controller UHCI.
+	 */
 

@@ -1,5 +1,7 @@
 /*
- * Copyright (c) 2010 Lubos Slovak
+ * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2011 Lubos Slovak 
+ * (copied from /uspace/srv/hid/kbd/include/layout.h)
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,19 +27,28 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 /** @addtogroup drvusbhid
  * @{
  */
+/** @file
+ * Keyboard layout.
+ */
 
-#ifndef USBHID_DESCPARSER_H_
-#define USBHID_DESCPARSER_H_
+#ifndef USBHID_LAYOUT_H_
+#define USBHID_LAYOUT_H_
 
-#include <usb/classes/hid.h>
+#include <sys/types.h>
+#include <io/console.h>
 
-int usbkbd_parse_descriptors(const uint8_t *data, size_t size,
-                             usb_hid_configuration_t *config);
+typedef struct {
+	void (*reset)(void);
+	wchar_t (*parse_ev)(console_event_t *);
+} layout_op_t;
 
-void usbkbd_print_config(const usb_hid_configuration_t *config);
+extern layout_op_t us_qwerty_op;
+extern layout_op_t us_dvorak_op;
+extern layout_op_t cz_op;
 
 #endif
 

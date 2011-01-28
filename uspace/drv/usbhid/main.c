@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Lubos Slovak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,9 +26,15 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 /** @addtogroup drvusbhid
  * @{
  */
+/**
+ * @file
+ * Main routines of USB HID driver.
+ */
+
 #include <usb/usbdrv.h>
 #include <driver.h>
 #include <ipc/driver.h>
@@ -47,7 +54,7 @@
 #include "layout.h"
 
 #define BUFFER_SIZE 32
-#define NAME "usbkbd"
+#define NAME "usbhid"
 
 #define GUESSED_POLL_ENDPOINT 1
 

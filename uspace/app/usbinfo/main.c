@@ -26,12 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup usb
+/** @addtogroup usbinfo
  * @{
  */
 /**
  * @file
- * @brief USB querying.
+ * USB querying.
  */
 
 #include <stdio.h>

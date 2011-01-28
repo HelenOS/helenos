@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2011 Lubos Slovak 
- * (copied from /uspace/srv/hid/kbd/include/layout.h)
+ * Copyright (c) 2010 Lubos Slovak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,30 +26,37 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup usb
- * @brief 
- * @ingroup
+/** @addtogroup drvusbhid
  * @{
  */
 /** @file
+ * Descriptor dumping.
  */
 
-#ifndef USBHID_LAYOUT_H_
-#define USBHID_LAYOUT_H_
+#ifndef USBHID_DESCDUMP_H_
+#define USBHID_DESCDUMP_H_
 
-#include <sys/types.h>
-#include <io/console.h>
+#include <usb/classes/hid.h>
 
-typedef struct {
-	void (*reset)(void);
-	wchar_t (*parse_ev)(console_event_t *);
-} layout_op_t;
+void dump_standard_configuration_descriptor(
+    int index, const usb_standard_configuration_descriptor_t *d);
 
-extern layout_op_t us_qwerty_op;
-extern layout_op_t us_dvorak_op;
-extern layout_op_t cz_op;
+void dump_standard_interface_descriptor(
+    const usb_standard_interface_descriptor_t *d);
 
-#endif
+void dump_standard_endpoint_descriptor(
+    const usb_standard_endpoint_descriptor_t *d);
+
+void dump_standard_hid_descriptor_header(
+    const usb_standard_hid_descriptor_t *d);
+
+void dump_standard_hid_class_descriptor_info(
+    const usb_standard_hid_class_descriptor_info_t *d);
+
+void dump_hid_class_descriptor(int index, uint8_t type, 
+    const uint8_t *d, size_t size);
+
+#endif /* USBHID_DESCDUMP_H_ */
 
 /**
  * @}
