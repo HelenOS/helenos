@@ -30,46 +30,6 @@
 
 #include "iface.h"
 #include "uhci.h"
-/*
-static int enqueue_transfer_out(device_t *dev,
-    usb_target_t target, usb_transfer_type_t transfer_type,
-    void *buffer, size_t size,
-    usbhc_iface_transfer_out_callback_t callback, void *arg)
-{
-	printf(NAME ": transfer OUT [%d.%d (%s); %zu]\n",
-	    target.address, target.endpoint,
-	    usb_str_transfer_type(transfer_type),
-	    size);
-
-	return ENOTSUP;
-}
-
-static int enqueue_transfer_setup(device_t *dev,
-    usb_target_t target, usb_transfer_type_t transfer_type,
-    void *buffer, size_t size,
-    usbhc_iface_transfer_out_callback_t callback, void *arg)
-{
-	printf(NAME ": transfer SETUP [%d.%d (%s); %zu]\n",
-	    target.address, target.endpoint,
-	    usb_str_transfer_type(transfer_type),
-	    size);
-
-	return ENOTSUP;
-}
-
-static int enqueue_transfer_in(device_t *dev,
-    usb_target_t target, usb_transfer_type_t transfer_type,
-    void *buffer, size_t size,
-    usbhc_iface_transfer_in_callback_t callback, void *arg)
-{
-	printf(NAME ": transfer IN [%d.%d (%s); %zu]\n",
-	    target.address, target.endpoint,
-	    usb_str_transfer_type(transfer_type),
-	    size);
-
-	return ENOTSUP;
-}
-*/
 
 static int get_address(device_t *dev, devman_handle_t handle,
     usb_address_t *address)
@@ -81,62 +41,62 @@ static int interrupt_out(device_t *dev, usb_target_t target,
     void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
-	return uhci_out(dev, target, USB_TRANSFER_INTERRUPT,
-	    data, size, callback, arg);
+	return uhci_transfer(dev, target, USB_TRANSFER_INTERRUPT, 0, USB_PID_OUT,
+		data, size, callback, NULL, arg);
 }
 /*----------------------------------------------------------------------------*/
 static int interrupt_in(device_t *dev, usb_target_t target,
     void *data, size_t size,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
-	return uhci_in(dev, target, USB_TRANSFER_INTERRUPT,
-	    data, size, callback, arg);
+	return uhci_transfer(dev, target, USB_TRANSFER_INTERRUPT, 0, USB_PID_IN,
+		data, size, NULL, callback, arg);
 }
 /*----------------------------------------------------------------------------*/
 static int control_write_setup(device_t *dev, usb_target_t target,
     void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
-	return uhci_setup(dev, target, USB_TRANSFER_CONTROL,
-	    data, size, callback, arg);
+	return uhci_transfer(dev, target, USB_TRANSFER_CONTROL, 0, USB_PID_SETUP,
+		data, size, callback, NULL, arg);
 }
 /*----------------------------------------------------------------------------*/
 static int control_write_data(device_t *dev, usb_target_t target,
     void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
-	return uhci_out(dev, target, USB_TRANSFER_CONTROL,
-	    data, size, callback, arg);
+	return uhci_transfer(dev, target, USB_TRANSFER_CONTROL, 1, USB_PID_OUT,
+		data, size, callback, NULL, arg);
 }
 /*----------------------------------------------------------------------------*/
 static int control_write_status(device_t *dev, usb_target_t target,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
-	return uhci_in(dev, target, USB_TRANSFER_CONTROL,
-	    NULL, 0, callback, arg);
+	return uhci_transfer(dev, target, USB_TRANSFER_CONTROL, 0, USB_PID_IN,
+		NULL, 0, NULL, callback, arg);
 }
 /*----------------------------------------------------------------------------*/
 static int control_read_setup(device_t *dev, usb_target_t target,
     void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
-	return uhci_setup(dev, target, USB_TRANSFER_CONTROL,
-	    data, size, callback, arg);
+	return uhci_transfer(dev, target, USB_TRANSFER_CONTROL, 0, USB_PID_SETUP,
+		data, size, callback, NULL, arg);
 }
 /*----------------------------------------------------------------------------*/
 static int control_read_data(device_t *dev, usb_target_t target,
     void *data, size_t size,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
-	return uhci_in(dev, target, USB_TRANSFER_CONTROL,
-	    data, size, callback, arg);
+	return uhci_transfer(dev, target, USB_TRANSFER_CONTROL, 1, USB_PID_IN,
+		data, size, NULL, callback, arg);
 }
 /*----------------------------------------------------------------------------*/
 static int control_read_status(device_t *dev, usb_target_t target,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
-	return uhci_out(dev, target, USB_TRANSFER_CONTROL,
-	    NULL, 0, callback, arg);
+	return uhci_transfer(dev, target, USB_TRANSFER_CONTROL, 0, USB_PID_OUT,
+		NULL, 0, callback, NULL, arg);
 }
 
 

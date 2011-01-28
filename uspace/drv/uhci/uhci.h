@@ -45,6 +45,7 @@
 
 typedef struct uhci_regs {
 	uint16_t usbcmd;
+#define USB_CMD_
 	uint16_t usbsts;
 	uint16_t usbintr;
 	uint16_t frnum;
@@ -71,29 +72,16 @@ int uhci_init( device_t *device, void *regs );
 
 int uhci_destroy( device_t *device );
 
-int uhci_in(
-  device_t *dev,
-	usb_target_t target,
-	usb_transfer_type_t transfer_type,
-	void *buffer, size_t size,
-	usbhc_iface_transfer_in_callback_t callback, void *arg
-	);
-
-int uhci_out(
-  device_t *dev,
-	usb_target_t target,
-  usb_transfer_type_t transfer_type,
-  void *buffer, size_t size,
-	usbhc_iface_transfer_out_callback_t callback, void *arg
-  );
-
-int uhci_setup(
+int uhci_transfer(
   device_t *dev,
   usb_target_t target,
   usb_transfer_type_t transfer_type,
+	bool toggle,
+  usb_packet_id pid,
   void *buffer, size_t size,
-  usbhc_iface_transfer_out_callback_t callback, void *arg
-  );
+  usbhc_iface_transfer_out_callback_t callback_out,
+  usbhc_iface_transfer_in_callback_t callback_in,
+  void *arg );
 
 #endif
 /**

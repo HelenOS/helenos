@@ -10,15 +10,6 @@
 
 static int uhci_init_transfer_lists(transfer_list_t list[]);
 static int uhci_clean_finished(void *arg);
-static inline int uhci_add_transfer(
-  device_t *dev,
-  usb_target_t target,
-  usb_transfer_type_t transfer_type,
-  usb_packet_id pid,
-  void *buffer, size_t size,
-  usbhc_iface_transfer_out_callback_t callback_out,
-  usbhc_iface_transfer_in_callback_t callback_in,
-  void *arg );
 
 int uhci_init(device_t *device, void *regs)
 {
@@ -35,7 +26,7 @@ int uhci_init(device_t *device, void *regs)
 	} else (void) 0
 
 	/* create instance */
-	uhci_t *instance = malloc( sizeof(uhci_t) );
+	uhci_t *instance = malloc(sizeof(uhci_t));
 	int ret = instance ? EOK : ENOMEM;
 	CHECK_RET_FREE_INSTANCE("Failed to allocate uhci driver instance.\n");
 
@@ -43,24 +34,28 @@ int uhci_init(device_t *device, void *regs)
 
 	/* init address keeper(libusb) */
 	usb_address_keeping_init(&instance->address_manager, USB11_ADDRESS_MAX);
+	uhci_print_verbose("Initialized address manager.\n");
 
 	/* allow access to hc control registers */
 	regs_t *io;
 	ret = pio_enable(regs, sizeof(regs_t), (void**)&io);
 	CHECK_RET_FREE_INSTANCE("Failed to gain access to registers at %p.\n", io);
 	instance->registers = io;
+	uhci_print_verbose("Device registers accessible.\n");
 
 	/* init transfer lists */
 	ret = uhci_init_transfer_lists(instance->transfers);
 	CHECK_RET_FREE_INSTANCE("Failed to initialize transfer lists.\n");
+	uhci_print_verbose("Transfer lists initialized.\n");
 
 	/* init root hub */
 	ret = uhci_root_hub_init(&instance->root_hub, device,
 	  (char*)regs + UHCI_ROOT_HUB_PORT_REGISTERS_OFFSET);
 	CHECK_RET_FREE_INSTANCE("Failed to initialize root hub driver.\n");
 
+	uhci_print_verbose("Initializing frame list.\n");
 	instance->frame_list =
-	  malloc32(sizeof(link_pointer_t) * UHCI_FRAME_LIST_COUNT);
+	  memallign32(sizeof(link_pointer_t) * UHCI_FRAME_LIST_COUNT, 4096);
 	if (instance->frame_list == NULL) {
 		uhci_print_error("Failed to allocate frame list pointer.\n");
 		uhci_root_hub_fini(&instance->root_hub);
@@ -86,57 +81,6 @@ int uhci_init(device_t *device, void *regs)
 
 	device->driver_data = instance;
 	return EOK;
-}
-/*----------------------------------------------------------------------------*/
-int uhci_in(
-  device_t *dev,
-	usb_target_t target,
-	usb_transfer_type_t transfer_type,
-	void *buffer, size_t size,
-	usbhc_iface_transfer_in_callback_t callback, void *arg
-	)
-{
-	uhci_print_info( "transfer IN [%d.%d (%s); %zu]\n",
-	    target.address, target.endpoint,
-	    usb_str_transfer_type(transfer_type),
-	    size);
-	return uhci_add_transfer(
-	  dev, target, transfer_type, USB_PID_IN, buffer, size, NULL, callback, arg);
-}
-/*----------------------------------------------------------------------------*/
-int uhci_out(
-  device_t *dev,
-  usb_target_t target,
-  usb_transfer_type_t transfer_type,
-  void *buffer, size_t size,
-	usbhc_iface_transfer_out_callback_t callback, void *arg
-  )
-{
-	uhci_print_info( "transfer OUT [%d.%d (%s); %zu]\n",
-	    target.address, target.endpoint,
-	    usb_str_transfer_type(transfer_type),
-	    size);
-	return uhci_add_transfer(
-	  dev, target, transfer_type, USB_PID_OUT, buffer, size, callback, NULL, arg);
-}
-/*----------------------------------------------------------------------------*/
-int uhci_setup(
-  device_t *dev,
-  usb_target_t target,
-  usb_transfer_type_t transfer_type,
-  void *buffer, size_t size,
-  usbhc_iface_transfer_out_callback_t callback, void *arg
-  )
-{
-	uhci_print_info( "transfer SETUP [%d.%d (%s); %zu]\n",
-	    target.address, target.endpoint,
-	    usb_str_transfer_type(transfer_type),
-	    size);
-	uhci_print_info("Setup packet content: %x %x.\n", ((uint8_t*)buffer)[0],
-	  ((uint8_t*)buffer)[1]);
-	return uhci_add_transfer( dev,
-	  target, transfer_type, USB_PID_SETUP, buffer, size, callback, NULL, arg);
-
 }
 /*----------------------------------------------------------------------------*/
 int uhci_init_transfer_lists(transfer_list_t transfers[])
@@ -172,10 +116,11 @@ int uhci_init_transfer_lists(transfer_list_t transfers[])
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-static inline int uhci_add_transfer(
+int uhci_transfer(
   device_t *dev,
   usb_target_t target,
   usb_transfer_type_t transfer_type,
+	bool toggle,
   usb_packet_id pid,
   void *buffer, size_t size,
   usbhc_iface_transfer_out_callback_t callback_out,
@@ -247,7 +192,6 @@ int uhci_clean_finished(void* arg)
 			if (!instance->transfers[i].first)
 				instance->transfers[i].last = instance->transfers[i].first;
 		}
-
 		async_usleep(1000000);
 	}
 	return EOK;
