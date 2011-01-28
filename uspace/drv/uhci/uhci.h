@@ -63,6 +63,8 @@ typedef struct uhci_regs {
 
 #define TRANSFER_QUEUES 4
 #define UHCI_FRAME_LIST_COUNT 1024
+#define UHCI_CLEANER_TIMEOUT 5000000
+#define UHCI_DEBUGER_TIMEOUT 3000000
 
 typedef struct uhci {
 	usb_address_keeping_t address_manager;
@@ -73,6 +75,7 @@ typedef struct uhci {
 
 	transfer_list_t transfers[TRANSFER_QUEUES];
 	fid_t cleaner;
+	fid_t debug_checker;
 } uhci_t;
 
 /* init uhci specifics in device.driver_data */

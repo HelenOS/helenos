@@ -10,6 +10,7 @@
 
 static int uhci_init_transfer_lists(transfer_list_t list[]);
 static int uhci_clean_finished(void *arg);
+static int uhci_debug_checker(void *arg);
 
 int uhci_init(device_t *device, void *regs)
 {
@@ -78,6 +79,9 @@ int uhci_init(device_t *device, void *regs)
 
 	instance->cleaner = fibril_create(uhci_clean_finished, instance);
 	fibril_add_ready(instance->cleaner);
+
+	instance->debug_checker = fibril_create(uhci_debug_checker, instance);
+	fibril_add_ready(instance->debug_checker);
 
 	uhci_print_verbose("Starting UHCI HC.\n");
 	uint16_t cmd = pio_read_16(&instance->registers->usbcmd);
@@ -183,23 +187,58 @@ int uhci_clean_finished(void* arg)
 	while(1) {
 		uhci_print_verbose("Running cleaning fibril on: %p.\n", instance);
 		/* iterate all transfer queues */
-		int i = 1;
+		int i = 0;
 		for (; i < TRANSFER_QUEUES; ++i) {
 			/* Remove inactive transfers from the top of the queue
 			 * TODO: should I reach queue head or is this enough? */
-			uhci_print_verbose("Running cleaning fibril on queue: %p.\n",
-				&instance->transfers[i]);
+			volatile transfer_descriptor_t * it =
+				instance->transfers[i].first;
+			uhci_print_verbose("Running cleaning fibril on queue: %p (%s).\n",
+				&instance->transfers[i], it ? "SOMETHING" : "EMPTY");
 			while (instance->transfers[i].first &&
 			 !(instance->transfers[i].first->status & TD_STATUS_ERROR_ACTIVE)) {
 				transfer_descriptor_t *transfer = instance->transfers[i].first;
-				uhci_print_verbose("Cleaning fibril found inactive transport.");
+				uhci_print_info("Inactive transfer calling callback.\n");
 				instance->transfers[i].first = transfer->next_va;
 				transfer_descriptor_dispose(transfer);
 			}
 			if (!instance->transfers[i].first)
 				instance->transfers[i].last = instance->transfers[i].first;
 		}
-		async_usleep(1000000);
+		async_usleep(UHCI_CLEANER_TIMEOUT);
 	}
 	return EOK;
+}
+/*---------------------------------------------------------------------------*/
+int uhci_debug_checker(void *arg)
+{
+	return 0;
+	uhci_t *instance = (uhci_t*)arg;
+	assert(instance);
+	while (1) {
+		uint16_t reg;
+		reg = pio_read_16(&instance->registers->usbcmd);
+		uhci_print_verbose("Command register: %X\n", reg);
+		reg = pio_read_16(&instance->registers->usbsts);
+		uhci_print_verbose("Status register: %X\n", reg);
+		uintptr_t frame_list = pio_read_32(&instance->registers->flbaseadd);
+		uhci_print_verbose("Framelist address: %p vs. %p.\n",
+			frame_list, addr_to_phys(instance->frame_list));
+		int frnum = pio_read_16(&instance->registers->frnum) & 0x3ff;
+		uhci_print_verbose("Framelist item: %d \n", frnum );
+
+		queue_head_t* qh = instance->transfers[USB_TRANSFER_INTERRUPT].queue_head;
+		uhci_print_verbose("Interrupt QH: %p vs. %p.\n",
+			instance->frame_list[frnum], addr_to_phys(qh));
+
+		uhci_print_verbose("Control QH: %p vs. %p.\n", qh->next_queue,
+			addr_to_phys(instance->transfers[USB_TRANSFER_CONTROL].queue_head));
+		qh = instance->transfers[USB_TRANSFER_CONTROL].queue_head;
+
+		uhci_print_verbose("Bulk QH: %p vs. %p.\n", qh->next_queue,
+			addr_to_phys(instance->transfers[USB_TRANSFER_BULK].queue_head));
+
+		async_usleep(UHCI_DEBUGER_TIMEOUT);
+	}
+	return 0;
 }
