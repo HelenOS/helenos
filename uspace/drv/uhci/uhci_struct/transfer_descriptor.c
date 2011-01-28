@@ -26,18 +26,25 @@ void transfer_descriptor_init(transfer_descriptor_t *instance,
 
 	uhci_print_verbose("Creating device field: %x.\n", instance->device);
 
-	instance->buffer_ptr = (uintptr_t)addr_to_phys(buffer);
+	if (size) {
+		instance->buffer_ptr = (uintptr_t)addr_to_phys(buffer);
 
-	uhci_print_verbose("Creating buffer field: %p(%p).\n",
-	  buffer, instance->buffer_ptr);
+		uhci_print_verbose("Creating buffer field: %p(%p).\n",
+			buffer, instance->buffer_ptr);
 
-	char * buff = buffer;
+		if (size >= 8) {
+			char * buff = buffer;
 
-	uhci_print_verbose("Buffer dump(8B): %x %x %x %x %x %x %x %x.\n",
-	  buff[0], buff[1], buff[2], buff[3], buff[4], buff[5], buff[6], buff[7]);
+			uhci_print_verbose("Buffer dump(8B): %x %x %x %x %x %x %x %x.\n",
+				buff[0], buff[1], buff[2], buff[3], buff[4], buff[5], buff[6], buff[7]);
+		}
+	} else {
+		instance->buffer_ptr = 0;
+	}
 
 	instance->next_va = NULL;
 	instance->callback = NULL;
+	uhci_print_info("Created a new TD.\n");
 }
 
 static inline usb_transaction_outcome_t convert_outcome(uint32_t status)
@@ -73,6 +80,6 @@ void transfer_descriptor_fini(transfer_descriptor_t *instance)
 	assert(instance);
 	callback_run(instance->callback,
 		convert_outcome(instance->status),
-		instance->status >> TD_STATUS_ACTLEN_POS & TD_STATUS_ACTLEN_MASK
+		((instance->status >> TD_STATUS_ACTLEN_POS) + 1) & TD_STATUS_ACTLEN_MASK
 	);
 }

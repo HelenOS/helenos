@@ -174,6 +174,7 @@ int uhci_transfer(
 	uhci_t *instance = (uhci_t*)dev->driver_data;
 	assert(instance);
 
+	uhci_print_verbose("Appending a new transfer to queue.\n");
 	ret = transfer_list_append(&instance->transfers[transfer_type], td);
 	CHECK_RET_TRANS_FREE_JOB_TD("Failed to append transfer descriptor.\n");
 
@@ -225,9 +226,9 @@ int uhci_debug_checker(void *arg)
 	while (1) {
 		uint16_t reg;
 		reg = pio_read_16(&instance->registers->usbcmd);
-		uhci_print_verbose("Command register: %X\n", reg);
+		uhci_print_info("Command register: %X\n", reg);
 		reg = pio_read_16(&instance->registers->usbsts);
-		uhci_print_verbose("Status register: %X\n", reg);
+		uhci_print_info("Status register: %X\n", reg);
 /*
 		uintptr_t frame_list = pio_read_32(&instance->registers->flbaseadd);
 		uhci_print_verbose("Framelist address: %p vs. %p.\n",
