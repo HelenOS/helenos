@@ -45,7 +45,15 @@
 
 typedef struct uhci_regs {
 	uint16_t usbcmd;
-#define USB_CMD_
+#define UHCI_CMD_MAX_PACKET (1 << 7)
+#define UHCI_CMD_CONFIGURE  (1 << 6)
+#define UHCI_CMD_DEBUG  (1 << 5)
+#define UHCI_CMD_FORCE_GLOBAL_RESUME  (1 << 4)
+#define UHCI_CMD_FORCE_GLOBAL_SUSPEND  (1 << 3)
+#define UHCI_CMD_GLOBAL_RESET  (1 << 2)
+#define UHCI_CMD_HCRESET  (1 << 1)
+#define UHCI_CMD_RUN_STOP  (1 << 0)
+
 	uint16_t usbsts;
 	uint16_t usbintr;
 	uint16_t frnum;

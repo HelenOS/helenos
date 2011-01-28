@@ -54,8 +54,8 @@ int uhci_init(device_t *device, void *regs)
 	CHECK_RET_FREE_INSTANCE("Failed to initialize root hub driver.\n");
 
 	uhci_print_verbose("Initializing frame list.\n");
-	instance->frame_list =
-	  memallign32(sizeof(link_pointer_t) * UHCI_FRAME_LIST_COUNT, 4096);
+	instance->frame_list = get_page();
+//	  memalign32(sizeof(link_pointer_t) * UHCI_FRAME_LIST_COUNT, 4096);
 	if (instance->frame_list == NULL) {
 		uhci_print_error("Failed to allocate frame list pointer.\n");
 		uhci_root_hub_fini(&instance->root_hub);
@@ -78,6 +78,11 @@ int uhci_init(device_t *device, void *regs)
 
 	instance->cleaner = fibril_create(uhci_clean_finished, instance);
 	fibril_add_ready(instance->cleaner);
+
+	uhci_print_verbose("Starting UHCI HC.\n");
+	uint16_t cmd = pio_read_16(&instance->registers->usbcmd);
+	cmd |= UHCI_CMD_RUN_STOP | UHCI_CMD_CONFIGURE;
+	pio_write_16(&instance->registers->usbcmd, cmd);
 
 	device->driver_data = instance;
 	return EOK;
@@ -176,12 +181,14 @@ int uhci_clean_finished(void* arg)
 	assert(instance);
 
 	while(1) {
-		uhci_print_verbose("Running cleaning fibril on %p.\n", instance);
+		uhci_print_verbose("Running cleaning fibril on: %p.\n", instance);
 		/* iterate all transfer queues */
-		usb_transfer_type_t i = USB_TRANSFER_BULK;
-		for (; i > USB_TRANSFER_ISOCHRONOUS; --i) {
+		int i = 1;
+		for (; i < TRANSFER_QUEUES; ++i) {
 			/* Remove inactive transfers from the top of the queue
 			 * TODO: should I reach queue head or is this enough? */
+			uhci_print_verbose("Running cleaning fibril on queue: %p.\n",
+				&instance->transfers[i]);
 			while (instance->transfers[i].first &&
 			 !(instance->transfers[i].first->status & TD_STATUS_ERROR_ACTIVE)) {
 				transfer_descriptor_t *transfer = instance->transfers[i].first;
