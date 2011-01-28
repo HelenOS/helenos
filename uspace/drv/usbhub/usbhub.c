@@ -202,9 +202,9 @@ int usb_add_hub_device(device_t *dev) {
 	ipc_hangup(hc);
 
 	//add the hub to list
-	futex_down(&usb_hub_list_lock);
+	fibril_mutex_lock(&usb_hub_list_lock);
 	usb_lst_append(&usb_hub_list, hub_info);
-	futex_up(&usb_hub_list_lock);
+	fibril_mutex_unlock(&usb_hub_list_lock);
 
 	dprintf(1, "hub info added to list");
 	//(void)hub_info;
@@ -444,11 +444,11 @@ void usb_hub_check_hub_changes(void) {
 	 * Iterate through all hubs.
 	 */
 	usb_general_list_t * lst_item;
-	futex_down(&usb_hub_list_lock);
+	fibril_mutex_lock(&usb_hub_list_lock);
 	for (lst_item = usb_hub_list.next;
 			lst_item != &usb_hub_list;
 			lst_item = lst_item->next) {
-		futex_up(&usb_hub_list_lock);
+		fibril_mutex_unlock(&usb_hub_list_lock);
 		usb_hub_info_t * hub_info = ((usb_hub_info_t*)lst_item->data);
 		/*
 		 * Check status change pipe of this hub.
@@ -487,6 +487,7 @@ void usb_hub_check_hub_changes(void) {
 		usb_drv_async_wait_for(handle);
 
 		if (opResult != EOK) {
+			free(change_bitmap);
 			dprintf(1, "something went wrong while getting status of hub");
 			continue;
 		}
@@ -502,9 +503,9 @@ void usb_hub_check_hub_changes(void) {
 		free(change_bitmap);
 
 		ipc_hangup(hc);
-		futex_down(&usb_hub_list_lock);
+		fibril_mutex_lock(&usb_hub_list_lock);
 	}
-	futex_up(&usb_hub_list_lock);
+	fibril_mutex_unlock(&usb_hub_list_lock);
 }
 
 
