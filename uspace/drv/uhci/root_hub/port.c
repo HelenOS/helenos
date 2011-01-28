@@ -1,5 +1,6 @@
 
 #include <errno.h>
+#include <str_error.h>
 //#include <usb/devreq.h> /* for usb_device_request_setup_packet_t */
 #include <usb/usb.h>
 #include <usb/usbdrv.h>
@@ -21,17 +22,23 @@ int uhci_port_check(void *port)
 	port_instance->hc_phone = devman_device_connect(port_instance->hc->handle, 0);
 
 	while (1) {
-		uhci_print_info("Port(%d) status address %p:\n",
-		  port_instance->number, port_instance->address);
-
-		/* read register value */
+		/* Read port status. */
 		port_status_t port_status =
 			port_status_read(port_instance->address);
 
-		/* debug print */
-		uhci_print_info("Port(%d) status %#.4x:\n",
-		  port_instance->number, port_status);
-		print_port_status(port_status);
+		uhci_print_info("Port %d: %04X (@ 0x%x) = " \
+		    "%s,%s,%s,%s,[%s,%s],%s,%s,%s,%s\n",
+		    port_instance->number, port_status, port_instance->address,
+		    UHCI_GET_STR_FLAG(port_status, STATUS_SUSPEND, "suspend", "up"),
+		    UHCI_GET_STR_FLAG(port_status, STATUS_IN_RESET, "in reset", "-"),
+		    UHCI_GET_STR_FLAG(port_status, STATUS_LOW_SPEED, "lowsp", "fullsp"),
+		    UHCI_GET_STR_FLAG(port_status, STATUS_RESUME, "resume", "k-state"),
+		    UHCI_GET_STR_FLAG(port_status, STATUS_LINE_D_MINUS, "D- on", "D- off"),
+		    UHCI_GET_STR_FLAG(port_status, STATUS_LINE_D_PLUS, "D+ on", "D+ off"),
+		    UHCI_GET_STR_FLAG(port_status, STATUS_ENABLED_CHANGED, "enblchg", "-"),
+		    UHCI_GET_STR_FLAG(port_status, STATUS_ENABLED, "enabled", "disabled"),
+		    UHCI_GET_STR_FLAG(port_status, STATUS_CONNECTED_CHANGED, "connchg", "-"),
+		    UHCI_GET_STR_FLAG(port_status, STATUS_CONNECTED, "hasdev", "nodev"));
 
 		if (port_status & STATUS_CONNECTED_CHANGED) {
 			if (port_status & STATUS_CONNECTED) {
@@ -80,7 +87,8 @@ static int uhci_port_new_device(uhci_port_t *port)
 
 
 	if (ret != EOK) { /* address assigning went wrong */
-		uhci_print_error("Failed(%d) to assign address to the device.\n", ret);
+		uhci_print_error("Failed to assign address (port %d): %s.\n",
+		    port->number, str_error(ret));
 		uhci_port_set_enabled(port, false);
 		usb_address_keeping_release_default(&uhci_instance->address_manager);
 		return ENOMEM;

@@ -55,6 +55,13 @@ typedef struct uhci_regs {
 #define UHCI_CMD_RUN_STOP  (1 << 0)
 
 	uint16_t usbsts;
+#define UHCI_STATUS_HALTED (1 << 5)
+#define UHCI_STATUS_PROCESS_ERROR (1 << 4)
+#define UHCI_STATUS_SYSTEM_ERROR (1 << 3)
+#define UHCI_STATUS_RESUME (1 << 2)
+#define UHCI_STATUS_ERROR_INTERRUPT (1 << 1)
+#define UHCI_STATUS_INTERRUPT (1 << 0)
+
 	uint16_t usbintr;
 	uint16_t frnum;
 	uint32_t flbaseadd;

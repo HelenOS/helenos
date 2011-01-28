@@ -59,6 +59,10 @@ enum debug_levels {
 #define uhci_print_verbose( fmt, args... ) \
 	usb_dprintf( NAME, DEBUG_LEVEL_VERBOSE, fmt, ##args )
 
+#define UHCI_GET_STR_FLAG(reg, flag, msg_set, msg_unset) \
+	((((reg) & (flag)) > 0) ? (msg_set) : (msg_unset))
+
+
 #endif
 /**
  * @}

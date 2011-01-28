@@ -217,6 +217,7 @@ int uhci_clean_finished(void* arg)
 	}
 	return EOK;
 }
+
 /*---------------------------------------------------------------------------*/
 int uhci_debug_checker(void *arg)
 {
@@ -226,8 +227,16 @@ int uhci_debug_checker(void *arg)
 		uint16_t reg;
 		reg = pio_read_16(&instance->registers->usbcmd);
 		uhci_print_verbose("Command register: %X\n", reg);
+
 		reg = pio_read_16(&instance->registers->usbsts);
-		uhci_print_verbose("Status register: %X\n", reg);
+		uhci_print_verbose("Status register: %X (%s,%s,%s,%s,%s,%s)\n",
+		    reg,
+		    UHCI_GET_STR_FLAG(reg, UHCI_STATUS_HALTED, "halted", "-"),
+		    UHCI_GET_STR_FLAG(reg, UHCI_STATUS_PROCESS_ERROR, "prerr", "-"),
+		    UHCI_GET_STR_FLAG(reg, UHCI_STATUS_SYSTEM_ERROR, "syserr", "-"),
+		    UHCI_GET_STR_FLAG(reg, UHCI_STATUS_RESUME, "res", "-"),
+		    UHCI_GET_STR_FLAG(reg, UHCI_STATUS_ERROR_INTERRUPT, "errintr", "-"),
+		    UHCI_GET_STR_FLAG(reg, UHCI_STATUS_INTERRUPT, "intr", "-"));
 /*
 		uintptr_t frame_list = pio_read_32(&instance->registers->flbaseadd);
 		uhci_print_verbose("Framelist address: %p vs. %p.\n",
