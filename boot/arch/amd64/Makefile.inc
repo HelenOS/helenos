@@ -44,7 +44,7 @@ RD_DRVS += \
 	ns8250 \
 	uhci \
 	usbhub \
-	usbkbd \
+	usbhid \
 	vhc
 
 RD_DRV_CFG += \

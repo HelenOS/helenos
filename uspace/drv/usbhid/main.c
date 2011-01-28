@@ -54,7 +54,7 @@
 #include "layout.h"
 
 #define BUFFER_SIZE 32
-#define NAME "usbkbd"
+#define NAME "usbhid"
 
 #define GUESSED_POLL_ENDPOINT 1
 

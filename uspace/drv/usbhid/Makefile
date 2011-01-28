@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2010 Vojtech Horky
+# Copyright (c) 2010-2011 Vojtech Horky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -29,7 +29,7 @@
 USPACE_PREFIX = ../..
 LIBS = $(LIBDRV_PREFIX)/libdrv.a $(LIBUSB_PREFIX)/libusb.a
 EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include -I$(LIBUSB_PREFIX)/include -I.
-BINARY = usbkbd
+BINARY = usbhid
 
 STOLEN_LAYOUT_SOURCES = \
 	layout/us_qwerty.c \
