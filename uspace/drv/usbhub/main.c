@@ -41,7 +41,7 @@
 
 
 usb_general_list_t usb_hub_list;
-futex_t usb_hub_list_lock;
+fibril_mutex_t usb_hub_list_lock;
 
 static driver_ops_t hub_driver_ops = {
 	.add_device = usb_add_hub_device,
@@ -64,10 +64,11 @@ int usb_hub_control_loop(void * noparam){
 int main(int argc, char *argv[])
 {
 	usb_dprintf_enable(NAME, 0);
-
-	futex_initialize(&usb_hub_list_lock, 0);
+	
+	fibril_mutex_initialize(&usb_hub_list_lock);
+	fibril_mutex_lock(&usb_hub_list_lock);
 	usb_lst_init(&usb_hub_list);
-	futex_up(&usb_hub_list_lock);
+	fibril_mutex_unlock(&usb_hub_list_lock);
 
 	fid_t fid = fibril_create(usb_hub_control_loop, NULL);
 	if (fid == 0) {
