@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBC_ASYNC_PRIV_H_
-#define LIBC_ASYNC_PRIV_H_
+#ifndef LIBC_PRIV_ASYNC_H_
+#define LIBC_PRIV_ASYNC_H_
 
 #include <adt/list.h>
 #include <fibril.h>
@@ -50,7 +50,7 @@ typedef struct {
 	
 	/** If true, we have timed out. */
 	bool occurred;
-
+	
 	/** Expiration time. */
 	struct timeval expires;
 } to_event_t;
@@ -64,7 +64,6 @@ typedef struct {
 	link_t link;
 } wu_event_t;
 
-
 /** Structures of this type represent a waiting fibril. */
 typedef struct {
 	/** Identification of and link to the waiting fibril. */
@@ -72,14 +71,14 @@ typedef struct {
 	
 	/** If true, this fibril is currently active. */
 	bool active;
-
+	
 	/** Timeout wait data. */
 	to_event_t to_event;
 	/** Wakeup wait data. */
 	wu_event_t wu_event;
 } awaiter_t;
 
-extern void async_insert_timeout(awaiter_t *wd);
+extern void async_insert_timeout(awaiter_t *);
 
 #endif
 

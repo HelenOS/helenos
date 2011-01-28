@@ -35,7 +35,6 @@
 #include <fibril_synch.h>
 #include <fibril.h>
 #include <async.h>
-#include <async_priv.h>
 #include <adt/list.h>
 #include <futex.h>
 #include <sys/time.h>
@@ -43,6 +42,7 @@
 #include <assert.h>
 #include <stacktrace.h>
 #include <stdlib.h>
+#include "priv/async.h"
 
 static void optimize_execution_power(void)
 {

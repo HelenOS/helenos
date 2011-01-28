@@ -93,7 +93,6 @@
 
 #include <futex.h>
 #include <async.h>
-#include <async_priv.h>
 #include <fibril.h>
 #include <stdio.h>
 #include <adt/hash_table.h>
@@ -104,6 +103,7 @@
 #include <sys/time.h>
 #include <arch/barrier.h>
 #include <bool.h>
+#include "priv/async.h"
 
 atomic_t async_futex = FUTEX_INITIALIZER;
 
