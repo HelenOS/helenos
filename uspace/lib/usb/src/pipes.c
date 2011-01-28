@@ -1,0 +1,286 @@
+/*
+ * Copyright (c) 2011 Vojtech Horky
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * - Redistributions of source code must retain the above copyright
+ *   notice, this list of conditions and the following disclaimer.
+ * - Redistributions in binary form must reproduce the above copyright
+ *   notice, this list of conditions and the following disclaimer in the
+ *   documentation and/or other materials provided with the distribution.
+ * - The name of the author may not be used to endorse or promote products
+ *   derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+/** @addtogroup libusb
+ * @{
+ */
+/** @file
+ * Communication between device drivers and host controller driver.
+ *
+ * Note on synchronousness of the operations: there is ABSOLUTELY NO
+ * guarantee that a call to particular function will not trigger a fibril
+ * switch.
+ * The initialization functions may actually involve contacting some other
+ * task, starting/ending a session might involve asynchronous IPC and since
+ * the transfer functions uses IPC, asynchronous nature of them is obvious.
+ * The pseudo synchronous versions for the transfers internally call the
+ * asynchronous ones and so fibril switch is possible in them as well.
+ */
+#include <usb/usb.h>
+#include <usb/pipes.h>
+#include <errno.h>
+
+/** Initialize connection to USB device.
+ *
+ * @param connection Connection structure to be initialized.
+ * @param device Generic device backing the USB device.
+ * @return Error code.
+ */
+int usb_device_connection_initialize(usb_device_connection_t *connection,
+    device_t *device)
+{
+	return ENOTSUP;
+}
+
+
+/** Initialize USB endpoint pipe.
+ *
+ * @param pipe Endpoint pipe to be initialized.
+ * @param connection Connection to the USB device backing this pipe (the wire).
+ * @param endpoint_no Endpoint number (in USB 1.1 in range 0 to 15).
+ * @param transfer_type Transfer type (e.g. interrupt or bulk).
+ * @param direction Endpoint direction (in/out).
+ * @return Error code.
+ */
+int usb_endpoint_pipe_initialize(usb_endpoint_pipe_t *pipe,
+    usb_device_connection_t *connection, usb_endpoint_t endpoint_no,
+    usb_transfer_type_t transfer_type, usb_direction_t direction)
+{
+	return ENOTSUP;
+}
+
+
+/** Initialize USB endpoint pipe as the default zero control pipe.
+ *
+ * @param pipe Endpoint pipe to be initialized.
+ * @param connection Connection to the USB device backing this pipe (the wire).
+ * @return Error code.
+ */
+int usb_endpoint_pipe_initialize_default_control(usb_endpoint_pipe_t *pipe,
+    usb_device_connection_t *connection)
+{
+	return ENOTSUP;
+}
+
+
+/** Start a session on the endpoint pipe.
+ *
+ * A session is something inside what any communication occurs.
+ * It is expected that sessions would be started right before the transfer
+ * and ended - see usb_endpoint_pipe_end_session() - after the last
+ * transfer.
+ * The reason for this is that session actually opens some communication
+ * channel to the host controller (or to the physical hardware if you
+ * wish) and thus it involves acquiring kernel resources.
+ * Since they are limited, sessions shall not be longer than strictly
+ * necessary.
+ *
+ * @param pipe Endpoint pipe to start the session on.
+ * @return Error code.
+ */
+int usb_endpoint_pipe_start_session(usb_endpoint_pipe_t *pipe)
+{
+	return ENOTSUP;
+}
+
+
+/** Ends a session on the endpoint pipe.
+ *
+ * @see usb_endpoint_pipe_start_session
+ *
+ * @param pipe Endpoint pipe to end the session on.
+ * @return Error code.
+ */
+int usb_endpoint_pipe_end_session(usb_endpoint_pipe_t *pipe)
+{
+	return ENOTSUP;
+}
+
+
+/** Request a read (in) transfer on an endpoint pipe.
+ *
+ * @param[in] pipe Pipe used for the transfer.
+ * @param[out] buffer Buffer where to store the data.
+ * @param[in] size Size of the buffer (in bytes).
+ * @param[out] size_transfered Number of bytes that were actually transfered.
+ * @return Error code.
+ */
+int usb_endpoint_pipe_read(usb_endpoint_pipe_t *pipe,
+    void *buffer, size_t size, size_t *size_transfered)
+{
+	return ENOTSUP;
+}
+
+/** Request a write (out) transfer on an endpoint pipe.
+ *
+ * @param[in] pipe Pipe used for the transfer.
+ * @param[in] buffer Buffer with data to transfer.
+ * @param[in] size Size of the buffer (in bytes).
+ * @return Error code.
+ */
+int usb_endpoint_pipe_write(usb_endpoint_pipe_t *pipe,
+    void *buffer, size_t size)
+{
+	return ENOTSUP;
+}
+
+
+/** Request a control read transfer on an endpoint pipe.
+ *
+ * This function encapsulates all three stages of a control transfer.
+ *
+ * @param[in] pipe Pipe used for the transfer.
+ * @param[in] setup_buffer Buffer with the setup packet.
+ * @param[in] setup_buffer_size Size of the setup packet (in bytes).
+ * @param[out] data_buffer Buffer for incoming data.
+ * @param[in] data_buffer_size Size of the buffer for incoming data (in bytes).
+ * @param[out] data_transfered_size Number of bytes that were actually
+ *                                  transfered during the DATA stage.
+ * @return Error code.
+ */
+int usb_endpoint_pipe_control_read(usb_endpoint_pipe_t *pipe,
+    void *setup_buffer, size_t setup_buffer_size,
+    void *data_buffer, size_t data_buffer_size, size_t *data_transfered_size)
+{
+	return ENOTSUP;
+}
+
+
+/** Request a control write transfer on an endpoint pipe.
+ *
+ * This function encapsulates all three stages of a control transfer.
+ *
+ * @param[in] pipe Pipe used for the transfer.
+ * @param[in] setup_buffer Buffer with the setup packet.
+ * @param[in] setup_buffer_size Size of the setup packet (in bytes).
+ * @param[in] data_buffer Buffer with data to be sent.
+ * @param[in] data_buffer_size Size of the buffer with outgoing data (in bytes).
+ * @return Error code.
+ */
+int usb_endpoint_pipe_control_write(usb_endpoint_pipe_t *pipe,
+    void *setup_buffer, size_t setup_buffer_size,
+    void *data_buffer, size_t data_buffer_size)
+{
+	return ENOTSUP;
+}
+
+
+/** Request a read (in) transfer on an endpoint pipe (asynchronous version).
+ *
+ * @param[in] pipe Pipe used for the transfer.
+ * @param[out] buffer Buffer where to store the data.
+ * @param[in] size Size of the buffer (in bytes).
+ * @param[out] size_transfered Number of bytes that were actually transfered.
+ * @param[out] handle Handle of the transfer.
+ * @return Error code.
+ */
+int usb_endpoint_pipe_async_read(usb_endpoint_pipe_t *pipe,
+    void *buffer, size_t size, size_t *size_transfered,
+    usb_handle_t *handle)
+{
+	return ENOTSUP;
+}
+
+
+/** Request a write (out) transfer on an endpoint pipe (asynchronous version).
+ *
+ * @param[in] pipe Pipe used for the transfer.
+ * @param[in] buffer Buffer with data to transfer.
+ * @param[in] size Size of the buffer (in bytes).
+ * @param[out] handle Handle of the transfer.
+ * @return Error code.
+ */
+int usb_endpoint_pipe_async_write(usb_endpoint_pipe_t *pipe,
+    void *buffer, size_t size,
+    usb_handle_t *handle)
+{
+	return ENOTSUP;
+}
+
+
+/** Request a control read transfer on an endpoint pipe (asynchronous version).
+ *
+ * This function encapsulates all three stages of a control transfer.
+ *
+ * @param[in] pipe Pipe used for the transfer.
+ * @param[in] setup_buffer Buffer with the setup packet.
+ * @param[in] setup_buffer_size Size of the setup packet (in bytes).
+ * @param[out] data_buffer Buffer for incoming data.
+ * @param[in] data_buffer_size Size of the buffer for incoming data (in bytes).
+ * @param[out] data_transfered_size Number of bytes that were actually
+ *                                  transfered during the DATA stage.
+ * @param[out] handle Handle of the transfer.
+ * @return Error code.
+ */
+int usb_endpoint_pipe_async_control_read(usb_endpoint_pipe_t *pipe,
+    void *setup_buffer, size_t setup_buffer_size,
+    void *data_buffer, size_t data_buffer_size, size_t *data_transfered_size,
+    usb_handle_t *handle)
+{
+	return ENOTSUP;
+}
+
+
+/** Request a control write transfer on an endpoint pipe (asynchronous version).
+ *
+ * This function encapsulates all three stages of a control transfer.
+ *
+ * @param[in] pipe Pipe used for the transfer.
+ * @param[in] setup_buffer Buffer with the setup packet.
+ * @param[in] setup_buffer_size Size of the setup packet (in bytes).
+ * @param[in] data_buffer Buffer with data to be sent.
+ * @param[in] data_buffer_size Size of the buffer with outgoing data (in bytes).
+ * @param[out] handle Handle of the transfer.
+ * @return Error code.
+ */
+int usb_endpoint_pipe_async_control_write(usb_endpoint_pipe_t *pipe,
+    void *setup_buffer, size_t setup_buffer_size,
+    void *data_buffer, size_t data_buffer_size,
+    usb_handle_t *handle)
+{
+	return ENOTSUP;
+}
+
+/** Wait for transfer completion.
+ *
+ * The function blocks the caller fibril until the transfer associated
+ * with given @p handle is completed.
+ *
+ * @param[in] pipe Pipe the transfer executed on.
+ * @param[in] handle Transfer handle.
+ * @return Error code.
+ */
+int usb_endpoint_pipe_wait_for(usb_endpoint_pipe_t *pipe, usb_handle_t handle)
+{
+	return ENOTSUP;
+}
+
+
+/**
+ * @}
+ */
