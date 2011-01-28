@@ -30,26 +30,24 @@ USPACE_PREFIX = ../..
 LIBS = $(LIBDRV_PREFIX)/libdrv.a $(LIBUSB_PREFIX)/libusb.a
 EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include -I$(LIBUSB_PREFIX)/include -I.
 BINARY = usbkbd
-SRV_KBD = $(USPACE_PREFIX)/srv/hid/kbd
+
+STOLEN_LAYOUT_SOURCES = \
+	layout/us_qwerty.c \
+	layout/us_dvorak.c \
+	layout/cz.c
 
 SOURCES = \
 	main.c \
 	descparser.c \
 	descdump.c \
 	conv.c \
-	us_qwerty.c \
-	us_dvorak.c \
-	cz.c
+	$(STOLEN_LAYOUT_SOURCES)
+
+EXTRA_CLEAN = $(STOLEN_LAYOUT_SOURCES)
+
+SRV_KBD = $(USPACE_PREFIX)/srv/hid/kbd
 
 include $(USPACE_PREFIX)/Makefile.common
 
-us_qwerty.c:
-	ln -snf $(SRV_KBD)/layout/$@ $@
-
-us_dvorak.c:
-	ln -snf $(SRV_KBD)/layout/$@ $@
-
-cz.c:
-	ln -snf $(SRV_KBD)/layout/$@ $@
-
-
+layout/%.c: $(SRV_KBD)/layout/%.c
+	ln -sfn ../$< $@
