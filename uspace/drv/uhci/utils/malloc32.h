@@ -52,7 +52,7 @@ static inline void * addr_to_phys(void *addr)
 
 static inline void * malloc32(size_t size)
 /* TODO: this is ugly */
-	{ return memalign(size, 128); }
+	{ return memalign(size, 16); }
 
 static inline void * get_page()
 {
