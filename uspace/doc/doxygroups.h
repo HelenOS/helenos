@@ -194,6 +194,15 @@
 		 * @brief Driver simulating work of USB host controller.
 		 */
 
+		/**
+		 * @defgroup usbvirthub Virtual USB hub
+		 * @ingroup usbvirt
+		 * @brief Extra virtual USB hub for virtual host controller.
+		 * @details
+		 * Some of the sources are shared with virtual host controller,
+		 * see @ref drvusbvhc for the rest of the files.
+		 */
+
 	 /**
 	  * @defgroup drvusbhub USB hub driver
 	  * @ingroup usb

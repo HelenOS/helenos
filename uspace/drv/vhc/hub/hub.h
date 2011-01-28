@@ -37,7 +37,9 @@
 
 #include <fibril_synch.h>
 
+#ifndef HUB_PORT_COUNT
 #define HUB_PORT_COUNT 2
+#endif
 #define BITS2BYTES(bits) (bits ? ((((bits)-1)>>3)+1) : 0)
 
 /** Hub port internal state.

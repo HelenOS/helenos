@@ -163,9 +163,15 @@ int virthub_init(usbvirt_device_t *dev)
 	hub_init(hub);
 	dev->device_data = hub;
 
-	usbvirt_connect_local(dev);
+	int rc;
+#ifdef STANDALONE_HUB
+	dev->name = "hub";
+	rc = usbvirt_connect(dev);
+#else
+	rc = usbvirt_connect_local(dev);
+#endif
 
-	return EOK;
+	return rc;
 }
 
 /** Connect a device to a virtual hub.
