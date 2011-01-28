@@ -94,11 +94,31 @@ typedef struct transfer_descriptor {
 	callback_t *callback;
 } __attribute__((packed)) transfer_descriptor_t;
 
+
 void transfer_descriptor_init(transfer_descriptor_t *instance,
   int error_count, size_t size, bool isochronous, usb_target_t target,
 	int pid);
 
+static inline transfer_descriptor_t * transfer_descriptor_get(
+  int error_count, size_t size, bool isochronous, usb_target_t target, int pid)
+{
+	transfer_descriptor_t * instance =
+	  trans_malloc(sizeof(transfer_descriptor_t));
+
+	if (instance)
+		transfer_descriptor_init(
+		  instance, error_count, size, isochronous, target, pid);
+	return instance;
+}
+
 void transfer_descriptor_fini(transfer_descriptor_t *instance);
+
+static inline void transfer_descriptor_dispose(transfer_descriptor_t *instance)
+{
+	assert(instance);
+	transfer_descriptor_fini(instance);
+	trans_free(instance);
+}
 
 static inline void transfer_descriptor_append(
   transfer_descriptor_t *instance, transfer_descriptor_t *item)
