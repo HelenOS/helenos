@@ -37,7 +37,7 @@
 #include <mem.h>
 #include <usb/usb.h>
 
-#include "translating_malloc.h"
+#include "utils/malloc32.h"
 #include "callback.h"
 #include "link_pointer.h"
 
@@ -103,7 +103,7 @@ static inline transfer_descriptor_t * transfer_descriptor_get(
   int error_count, size_t size, bool isochronous, usb_target_t target, int pid)
 {
 	transfer_descriptor_t * instance =
-	  trans_malloc(sizeof(transfer_descriptor_t));
+	  malloc32(sizeof(transfer_descriptor_t));
 
 	if (instance)
 		transfer_descriptor_init(
@@ -117,7 +117,7 @@ static inline void transfer_descriptor_dispose(transfer_descriptor_t *instance)
 {
 	assert(instance);
 	transfer_descriptor_fini(instance);
-	trans_free(instance);
+	free32(instance);
 }
 
 static inline void transfer_descriptor_append(

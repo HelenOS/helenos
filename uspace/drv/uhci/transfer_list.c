@@ -7,7 +7,7 @@ int transfer_list_init(transfer_list_t *instance, transfer_list_t *next)
 	assert(instance);
 	instance->first = NULL;
 	instance->last = NULL;
-	instance->queue_head = trans_malloc(sizeof(queue_head_t));
+	instance->queue_head = malloc32(sizeof(queue_head_t));
 	if (!instance->queue_head) {
 		uhci_print_error("Failed to allocate queue head.\n");
 		return ENOMEM;

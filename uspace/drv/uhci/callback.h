@@ -38,7 +38,7 @@
 #include <usb/usb.h>
 
 #include "debug.h"
-#include "translating_malloc.h"
+#include "utils/malloc32.h"
 
 typedef struct callback
 {
@@ -79,7 +79,7 @@ static inline void callback_fini(callback_t *instance)
 {
 	assert(instance);
 	if (instance->new_buffer)
-		trans_free(instance->new_buffer);
+		free32(instance->new_buffer);
 }
 
 static inline void callback_dispose(callback_t *instance)

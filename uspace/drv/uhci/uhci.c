@@ -2,7 +2,7 @@
 #include <usb/debug.h>
 #include <usb/usb.h>
 
-#include "translating_malloc.h"
+#include "utils/malloc32.h"
 
 #include "debug.h"
 #include "name.h"
@@ -60,7 +60,7 @@ int uhci_init(device_t *device, void *regs)
 	CHECK_RET_FREE_INSTANCE("Failed to initialize root hub driver.\n");
 
 	instance->frame_list =
-	  trans_malloc(sizeof(link_pointer_t) * UHCI_FRAME_LIST_COUNT);
+	  malloc32(sizeof(link_pointer_t) * UHCI_FRAME_LIST_COUNT);
 	if (instance->frame_list == NULL) {
 		uhci_print_error("Failed to allocate frame list pointer.\n");
 		uhci_root_hub_fini(&instance->root_hub);
@@ -199,7 +199,7 @@ static inline int uhci_add_transfer(
 		if (job) { \
 			callback_dispose(job); \
 		} \
-		if (td) { trans_free(td); } \
+		if (td) { free32(td); } \
 		return ret; \
 	} else (void) 0
 
@@ -242,8 +242,7 @@ int uhci_clean_finished(void* arg)
 				transfer_descriptor_t *transfer = instance->transfers[i].first;
 				uhci_print_verbose("Cleaning fibril found inactive transport.");
 				instance->transfers[i].first = transfer->next_va;
-				transfer_descriptor_fini(transfer);
-				trans_free(transfer);
+				transfer_descriptor_dispose(transfer);
 			}
 			if (!instance->transfers[i].first)
 				instance->transfers[i].last = instance->transfers[i].first;

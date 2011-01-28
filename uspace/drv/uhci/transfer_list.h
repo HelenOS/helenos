@@ -35,9 +35,9 @@
 #define DRV_UHCI_TRANSFER_LIST_H
 
 #include "debug.h"
-#include "translating_malloc.h"
 #include "uhci_struct/queue_head.h"
 #include "uhci_struct/transfer_descriptor.h"
+#include "utils/malloc32.h"
 
 typedef struct transfer_list
 {
@@ -53,7 +53,7 @@ static inline void transfer_list_fini(transfer_list_t *instance)
 {
 	assert(instance);
 	if (instance->queue_head)
-		trans_free(instance->queue_head);
+		free32(instance->queue_head);
 }
 
 int transfer_list_append(

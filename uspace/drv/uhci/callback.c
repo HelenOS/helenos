@@ -8,7 +8,7 @@ int callback_init(callback_t *instance, device_t *dev,
 {
 	assert(instance);
 	assert(func_in == NULL || func_out == NULL);
-	instance->new_buffer = trans_malloc(size);
+	instance->new_buffer = malloc32(size);
 	if (!instance->new_buffer) {
 		uhci_print_error("Failed to allocate device acessible buffer.\n");
 		return ENOMEM;
@@ -33,7 +33,7 @@ callback_t *instance, usb_transaction_outcome_t outcome, size_t act_size)
 	/* update the old buffer */
 	if (instance->new_buffer) {
 		memcpy(instance->new_buffer, instance->old_buffer, instance->buffer_size);
-		trans_free(instance->new_buffer);
+		free32(instance->new_buffer);
 		instance->new_buffer = NULL;
 	}
 

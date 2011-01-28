@@ -34,19 +34,17 @@
 #ifndef DRV_UHCI_TRANSLATOR_H
 #define DRV_UHCI_TRANSLATOR_H
 
-#include <malloc.h>
+#include <usb/usbmem.h>
 
-static inline void * addr_to_phys( void *addr )
-	{ return addr; }
+static inline void * addr_to_phys(void *addr)
+	{ return mman_getPA(addr); }
 
-static inline void * addr_to_virt( void *addr )
-	{ return addr; }
+static inline void * malloc32(size_t size)
+/* TODO: tis is ugly */
+	{ return mman_malloc(size, 128, 0xffffffff); }
 
-static inline void * trans_malloc( size_t size )
-	{ return malloc( size ); }
-
-static inline void trans_free( void * addr )
-	{ free( addr ); }
+static inline void free32(void * addr)
+	{ mman_free(addr); }
 
 #endif
 /**
