@@ -94,7 +94,7 @@ static elf_info_t interp_info;
 static bool is_dyn_linked;
 
 /** Used to limit number of connections to one. */
-static bool connected;
+static bool connected = false;
 
 static void ldr_get_taskid(ipc_callid_t rid, ipc_call_t *request)
 {
@@ -422,24 +422,19 @@ static void ldr_connection(ipc_callid_t iid, ipc_call_t *icall)
  */
 int main(int argc, char *argv[])
 {
-	task_id_t id;
-	int rc;
-
-	connected = false;
-
-	/* Introduce this task to the NS (give it our task ID). */
-	id = task_get_id();
-	rc = async_req_2_0(PHONE_NS, NS_ID_INTRO, LOWER32(id), UPPER32(id));
-	if (rc != EOK)
-		return -1;
-
 	/* Set a handler of incomming connections. */
 	async_set_client_connection(ldr_connection);
 	
+	/* Introduce this task to the NS (give it our task ID). */
+	task_id_t id = task_get_id();
+	int rc = async_req_2_0(PHONE_NS, NS_ID_INTRO, LOWER32(id), UPPER32(id));
+	if (rc != EOK)
+		return -1;
+	
 	/* Register at naming service. */
-	if (ipc_connect_to_me(PHONE_NS, SERVICE_LOAD, 0, 0, NULL, NULL) != 0)
+	if (service_register(SERVICE_LOAD) != EOK)
 		return -2;
-
+	
 	async_manager();
 	
 	/* Never reached */

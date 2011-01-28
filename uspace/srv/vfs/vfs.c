@@ -37,6 +37,7 @@
 
 #include <ipc/ipc.h>
 #include <ipc/services.h>
+#include <ipc/ns.h>
 #include <async.h>
 #include <errno.h>
 #include <stdio.h>
@@ -46,7 +47,7 @@
 #include <atomic.h>
 #include "vfs.h"
 
-#define NAME "vfs"
+#define NAME  "vfs"
 
 static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
@@ -171,7 +172,10 @@ int main(int argc, char **argv)
 	/*
 	 * Register at the naming service.
 	 */
-	ipc_connect_to_me(PHONE_NS, SERVICE_VFS, 0, 0, NULL, NULL);
+	if (service_register(SERVICE_VFS) != EOK) {
+		printf("%s: Cannot register VFS service\n", NAME);
+		return EINVAL;
+	}
 	
 	/*
 	 * Start accepting connections.

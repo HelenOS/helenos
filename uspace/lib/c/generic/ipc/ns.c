@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2011 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,32 +26,57 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libcipc
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef LIBIPC_NS_H_
-#define LIBIPC_NS_H_
+#include <async.h>
+#include <ipc/services.h>
+#include <ipc/ns.h>
+#include <sysinfo.h>
+#include <errno.h>
+#include <as.h>
+#include <macros.h>
 
-#include <sys/types.h>
-#include <ipc/ipc.h>
+int service_register(sysarg_t service)
+{
+	return async_connect_to_me(PHONE_NS, service, 0, 0, NULL);
+}
 
-typedef enum {
-	NS_PING = IPC_FIRST_USER_METHOD,
-	NS_TASK_WAIT,
-	NS_ID_INTRO,
-	NS_RETVAL
-} ns_request_t;
+int service_connect(sysarg_t service, sysarg_t arg2, sysarg_t arg3)
+{
+	return async_connect_me_to(PHONE_NS, service, arg2, arg3);
+}
 
-extern int service_register(sysarg_t);
-extern int service_connect(sysarg_t, sysarg_t, sysarg_t);
-extern int service_connect_blocking(sysarg_t, sysarg_t, sysarg_t);
+int service_connect_blocking(sysarg_t service, sysarg_t arg2, sysarg_t arg3)
+{
+	return async_connect_me_to_blocking(PHONE_NS, service, arg2, arg3);
+}
 
-extern wchar_t *service_klog_share_in(size_t *);
-
-#endif
+wchar_t *service_klog_share_in(size_t *length)
+{
+	size_t pages;
+	if (sysinfo_get_value("klog.pages", &pages) != EOK)
+		return NULL;
+	
+	size_t size = pages * PAGE_SIZE;
+	*length = size / sizeof(wchar_t);
+	
+	wchar_t *klog = (wchar_t *) as_get_mappable_page(size);
+	if (klog == NULL)
+		return NULL;
+	
+	int res = async_share_in_start_1_0(PHONE_NS, (void *) klog, size,
+	    SERVICE_MEM_KLOG);
+	if (res != EOK) {
+		as_area_destroy((void *) klog);
+		return NULL;
+	}
+	
+	return klog;
+}
 
 /** @}
  */

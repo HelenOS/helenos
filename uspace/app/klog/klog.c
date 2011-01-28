@@ -36,6 +36,7 @@
 
 #include <stdio.h>
 #include <ipc/ipc.h>
+#include <ipc/ns.h>
 #include <async.h>
 #include <ipc/services.h>
 #include <as.h>
@@ -78,25 +79,9 @@ static void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
 
 int main(int argc, char *argv[])
 {
-	size_t klog_pages;
-	if (sysinfo_get_value("klog.pages", &klog_pages) != EOK) {
-		printf("%s: Error getting klog address\n", NAME);
-		return -1;
-	}
-	
-	size_t klog_size = klog_pages * PAGE_SIZE;
-	klog_length = klog_size / sizeof(wchar_t);
-	
-	klog = (wchar_t *) as_get_mappable_page(klog_size);
+	klog = service_klog_share_in(&klog_length);
 	if (klog == NULL) {
-		printf("%s: Error allocating memory area\n", NAME);
-		return -1;
-	}
-	
-	int res = async_share_in_start_1_0(PHONE_NS, (void *) klog,
-	    klog_size, SERVICE_MEM_KLOG);
-	if (res != EOK) {
-		printf("%s: Error initializing memory area\n", NAME);
+		printf("%s: Error accessing to klog\n", NAME);
 		return -1;
 	}
 	
@@ -108,7 +93,6 @@ int main(int argc, char *argv[])
 	/*
 	 * Mode "a" would be definitively much better here, but it is
 	 * not well supported by the FAT driver.
-	 *
 	 */
 	log = fopen(LOG_FNAME, "w");
 	if (log == NULL)

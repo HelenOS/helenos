@@ -265,6 +265,8 @@ static inline void async_serialize_end(void)
 	fibril_dec_sercount();
 }
 
+extern int async_connect_to_me(int, sysarg_t, sysarg_t, sysarg_t,
+    async_client_conn_t);
 extern int async_connect_me_to(int, sysarg_t, sysarg_t, sysarg_t);
 extern int async_connect_me_to_blocking(int, sysarg_t, sysarg_t, sysarg_t);
 

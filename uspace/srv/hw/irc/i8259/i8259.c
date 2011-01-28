@@ -149,7 +149,7 @@ static bool i8259_init(void)
 	}
 	
 	async_set_client_connection(i8259_connection);
-	ipc_connect_to_me(PHONE_NS, SERVICE_I8259, 0, 0, NULL, NULL);
+	service_register(SERVICE_I8259);
 	
 	return true;
 }

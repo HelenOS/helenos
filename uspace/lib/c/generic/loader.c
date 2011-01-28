@@ -35,6 +35,7 @@
 #include <ipc/ipc.h>
 #include <ipc/loader.h>
 #include <ipc/services.h>
+#include <ipc/ns.h>
 #include <libc.h>
 #include <task.h>
 #include <str.h>
@@ -62,7 +63,7 @@ int loader_spawn(const char *name)
 
 loader_t *loader_connect(void)
 {
-	int phone_id = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_LOAD, 0, 0);
+	int phone_id = service_connect_blocking(SERVICE_LOAD, 0, 0);
 	if (phone_id < 0)
 		return NULL;
 	

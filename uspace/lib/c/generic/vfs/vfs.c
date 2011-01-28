@@ -44,6 +44,7 @@
 #include <sys/types.h>
 #include <ipc/ipc.h>
 #include <ipc/services.h>
+#include <ipc/ns.h>
 #include <async.h>
 #include <fibril_synch.h>
 #include <errno.h>
@@ -117,10 +118,8 @@ char *absolutize(const char *path, size_t *retlen)
 /** Connect to VFS service and create session. */
 static void vfs_connect(void)
 {
-	while (vfs_phone < 0) {
-		vfs_phone = async_connect_me_to_blocking(PHONE_NS, SERVICE_VFS,
-		    0, 0);
-	}
+	while (vfs_phone < 0)
+		vfs_phone = service_connect_blocking(SERVICE_VFS, 0, 0);
 	
 	async_session_create(&vfs_session, vfs_phone, 0);
 }

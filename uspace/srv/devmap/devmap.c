@@ -1149,7 +1149,7 @@ int main(int argc, char *argv[])
 	async_set_client_connection(devmap_connection);
 	
 	/* Register device mapper at naming service */
-	if (ipc_connect_to_me(PHONE_NS, SERVICE_DEVMAP, 0, 0, NULL, NULL) != 0)
+	if (service_register(SERVICE_DEVMAP) != EOK)
 		return -1;
 	
 	printf("%s: Accepting connections\n", NAME);

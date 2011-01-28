@@ -57,7 +57,7 @@
  *
  *   int fibril1(void *arg)
  *   {
- *     conn = ipc_connect_me_to();
+ *     conn = async_connect_me_to();
  *     c1 = async_send(conn);
  *     c2 = async_send(conn);
  *     async_wait_for(c1);
@@ -1234,57 +1234,84 @@ sysarg_t async_req_slow(int phoneid, sysarg_t method, sysarg_t arg1,
 	return rc;
 }
 
-/** Wrapper for making IPC_M_CONNECT_ME_TO calls using the async framework.
- * 
+/** Wrapper for making IPC_M_CONNECT_TO_ME calls using the async framework.
+ *
  * Ask through phone for a new connection to some service.
  *
- * @param phoneid	Phone handle used for contacting the other side.
- * @param arg1		User defined argument.
- * @param arg2		User defined argument.
- * @param arg3		User defined argument.
+ * @param phone           Phone handle used for contacting the other side.
+ * @param arg1            User defined argument.
+ * @param arg2            User defined argument.
+ * @param arg3            User defined argument.
+ * @param client_receiver Connection handing routine.
  *
- * @return		New phone handle on success or a negative error code.
+ * @return New phone handle on success or a negative error code.
+ *
  */
-int
-async_connect_me_to(int phoneid, sysarg_t arg1, sysarg_t arg2, sysarg_t arg3)
+int async_connect_to_me(int phone, sysarg_t arg1, sysarg_t arg2,
+    sysarg_t arg3, async_client_conn_t client_receiver)
 {
-	int rc;
-	sysarg_t newphid;
-
-	rc = async_req_3_5(phoneid, IPC_M_CONNECT_ME_TO, arg1, arg2, arg3, NULL,
-	    NULL, NULL, NULL, &newphid);
-	
-	if (rc != EOK)	
+	sysarg_t task_hash;
+	sysarg_t phone_hash;
+	int rc = async_req_3_5(phone, IPC_M_CONNECT_TO_ME, arg1, arg2, arg3,
+	    NULL, NULL, NULL, &task_hash, &phone_hash);
+	if (rc != EOK)
 		return rc;
+	
+	if (client_receiver != NULL)
+		async_new_connection(task_hash, phone_hash, 0, NULL,
+		    client_receiver);
+	
+	return EOK;
+}
 
+/** Wrapper for making IPC_M_CONNECT_ME_TO calls using the async framework.
+ *
+ * Ask through phone for a new connection to some service.
+ *
+ * @param phone Phone handle used for contacting the other side.
+ * @param arg1  User defined argument.
+ * @param arg2  User defined argument.
+ * @param arg3  User defined argument.
+ *
+ * @return New phone handle on success or a negative error code.
+ *
+ */
+int async_connect_me_to(int phone, sysarg_t arg1, sysarg_t arg2,
+    sysarg_t arg3)
+{
+	sysarg_t newphid;
+	int rc = async_req_3_5(phone, IPC_M_CONNECT_ME_TO, arg1, arg2, arg3,
+	    NULL, NULL, NULL, NULL, &newphid);
+	
+	if (rc != EOK)
+		return rc;
+	
 	return newphid;
 }
 
 /** Wrapper for making IPC_M_CONNECT_ME_TO calls using the async framework.
- * 
+ *
  * Ask through phone for a new connection to some service and block until
  * success.
  *
- * @param phoneid	Phone handle used for contacting the other side.
- * @param arg1		User defined argument.
- * @param arg2		User defined argument.
- * @param arg3		User defined argument.
+ * @param phoneid Phone handle used for contacting the other side.
+ * @param arg1    User defined argument.
+ * @param arg2    User defined argument.
+ * @param arg3    User defined argument.
  *
- * @return		New phone handle on success or a negative error code.
+ * @return New phone handle on success or a negative error code.
+ *
  */
-int
-async_connect_me_to_blocking(int phoneid, sysarg_t arg1, sysarg_t arg2,
+int async_connect_me_to_blocking(int phoneid, sysarg_t arg1, sysarg_t arg2,
     sysarg_t arg3)
 {
-	int rc;
 	sysarg_t newphid;
-
-	rc = async_req_4_5(phoneid, IPC_M_CONNECT_ME_TO, arg1, arg2, arg3,
+	int rc = async_req_4_5(phoneid, IPC_M_CONNECT_ME_TO, arg1, arg2, arg3,
 	    IPC_FLAG_BLOCKING, NULL, NULL, NULL, NULL, &newphid);
 	
-	if (rc != EOK)	
+	if (rc != EOK)
 		return rc;
-
+	
 	return newphid;
 }
 

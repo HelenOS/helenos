@@ -28,8 +28,9 @@
 
 #include <stdio.h>
 #include <bool.h>
-#include <ipc/ipc.h>
 #include <async.h>
+#include <ipc/ipc.h>
+#include <ipc/ns.h>
 #include <ipc/services.h>
 #include <ipc/clipboard.h>
 #include <malloc.h>
@@ -182,7 +183,7 @@ int main(int argc, char *argv[])
 	
 	async_set_client_connection(clip_connection);
 	
-	if (ipc_connect_to_me(PHONE_NS, SERVICE_CLIPBOARD, 0, 0, NULL, NULL)) 
+	if (service_register(SERVICE_CLIPBOARD) != EOK)
 		return -1;
 	
 	printf(NAME ": Accepting connections\n");

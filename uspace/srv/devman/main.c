@@ -585,7 +585,7 @@ int main(int argc, char *argv[])
 	async_set_client_connection(devman_connection);
 
 	/* Register device manager at naming service. */
-	if (ipc_connect_to_me(PHONE_NS, SERVICE_DEVMAN, 0, 0, NULL, NULL) != 0)
+	if (service_register(SERVICE_DEVMAN) != EOK)
 		return -1;
 
 	printf(NAME ": Accepting connections\n");

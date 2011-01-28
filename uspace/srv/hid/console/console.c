@@ -39,6 +39,7 @@
 #include <ipc/mouse.h>
 #include <ipc/fb.h>
 #include <ipc/services.h>
+#include <ipc/ns.h>
 #include <errno.h>
 #include <ipc/console.h>
 #include <unistd.h>
@@ -761,7 +762,7 @@ static bool console_init(char *input)
 skip_mouse:
 	
 	/* Connect to framebuffer driver */
-	fb_info.phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_VIDEO, 0, 0);
+	fb_info.phone = service_connect_blocking(SERVICE_VIDEO, 0, 0);
 	if (fb_info.phone < 0) {
 		printf(NAME ": Failed to connect to video service\n");
 		return -1;
@@ -837,10 +838,9 @@ skip_mouse:
 	async_serialize_end();
 	
 	/* Receive kernel notifications */
+	async_set_interrupt_received(interrupt_received);
 	if (event_subscribe(EVENT_KCONSOLE, 0) != EOK)
 		printf(NAME ": Error registering kconsole notifications\n");
-	
-	async_set_interrupt_received(interrupt_received);
 	
 	return true;
 }

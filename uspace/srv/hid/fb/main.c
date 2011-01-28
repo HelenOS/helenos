@@ -28,6 +28,7 @@
 
 #include <ipc/ipc.h>
 #include <ipc/services.h>
+#include <ipc/ns.h>
 #include <sysinfo.h>
 #include <async.h>
 #include <as.h>
@@ -113,7 +114,7 @@ int main(int argc, char *argv[])
 	if (!initialized)
 		return -1;
 	
-	if (ipc_connect_to_me(PHONE_NS, SERVICE_VIDEO, 0, 0, NULL, NULL) != 0)
+	if (service_register(SERVICE_VIDEO) != EOK)
 		return -1;
 	
 	printf("%s: Accepting connections\n", NAME);

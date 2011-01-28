@@ -30,6 +30,7 @@
 #include <str.h>
 #include <ipc/ipc.h>
 #include <ipc/services.h>
+#include <ipc/ns.h>
 #include <ipc/devmap.h>
 #include <devmap.h>
 #include <async.h>
@@ -49,11 +50,11 @@ int devmap_get_phone(devmap_interface_t iface, unsigned int flags)
 			return devmap_phone_driver;
 		
 		if (flags & IPC_FLAG_BLOCKING)
-			devmap_phone_driver = ipc_connect_me_to_blocking(PHONE_NS,
-			    SERVICE_DEVMAP, DEVMAP_DRIVER, 0);
+			devmap_phone_driver = service_connect_blocking(SERVICE_DEVMAP,
+			    DEVMAP_DRIVER, 0);
 		else
-			devmap_phone_driver = ipc_connect_me_to(PHONE_NS,
-			    SERVICE_DEVMAP, DEVMAP_DRIVER, 0);
+			devmap_phone_driver = service_connect(SERVICE_DEVMAP,
+			    DEVMAP_DRIVER, 0);
 		
 		return devmap_phone_driver;
 	case DEVMAP_CLIENT:
@@ -61,11 +62,11 @@ int devmap_get_phone(devmap_interface_t iface, unsigned int flags)
 			return devmap_phone_client;
 		
 		if (flags & IPC_FLAG_BLOCKING)
-			devmap_phone_client = ipc_connect_me_to_blocking(PHONE_NS,
-			    SERVICE_DEVMAP, DEVMAP_CLIENT, 0);
+			devmap_phone_client = service_connect_blocking(SERVICE_DEVMAP,
+			    DEVMAP_CLIENT, 0);
 		else
-			devmap_phone_client = ipc_connect_me_to(PHONE_NS,
-			    SERVICE_DEVMAP, DEVMAP_CLIENT, 0);
+			devmap_phone_client = service_connect(SERVICE_DEVMAP,
+			    DEVMAP_CLIENT, 0);
 		
 		return devmap_phone_client;
 	default:

@@ -82,6 +82,7 @@ GENERIC_SOURCES = \
 	generic/io/printf_core.c \
 	generic/io/console.c \
 	generic/io/screenbuffer.c \
+	generic/ipc/ns.c \
 	generic/malloc.c \
 	generic/sysinfo.c \
 	generic/ipc.c \

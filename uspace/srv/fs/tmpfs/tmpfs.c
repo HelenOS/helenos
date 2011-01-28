@@ -43,6 +43,7 @@
 #include "tmpfs.h"
 #include <ipc/ipc.h>
 #include <ipc/services.h>
+#include <ipc/ns.h>
 #include <async.h>
 #include <errno.h>
 #include <unistd.h>
@@ -156,7 +157,7 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	int vfs_phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_VFS, 0, 0);
+	int vfs_phone = service_connect_blocking(SERVICE_VFS, 0, 0);
 	if (vfs_phone < EOK) {
 		printf(NAME ": Unable to connect to VFS\n");
 		return -1;

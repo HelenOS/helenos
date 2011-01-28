@@ -107,7 +107,7 @@ static bool apic_init(void)
 	}
 	
 	async_set_client_connection(apic_connection);
-	ipc_connect_to_me(PHONE_NS, SERVICE_APIC, 0, 0, NULL, NULL);
+	service_register(SERVICE_APIC);
 	
 	return true;
 }

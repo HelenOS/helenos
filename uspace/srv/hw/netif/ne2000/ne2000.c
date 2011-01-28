@@ -44,6 +44,7 @@
 #include <sysinfo.h>
 #include <ipc/ipc.h>
 #include <ipc/services.h>
+#include <ipc/ns.h>
 #include <ipc/irc.h>
 #include <net/modules.h>
 #include <packet_client.h>
@@ -388,10 +389,8 @@ int netif_initialize(void)
 		irc_service = SERVICE_I8259;
 	
 	if (irc_service) {
-		while (irc_phone < 0) {
-			irc_phone = ipc_connect_me_to_blocking(PHONE_NS, irc_service,
-			    0, 0);
-		}
+		while (irc_phone < 0)
+			irc_phone = service_connect_blocking(irc_service, 0, 0);
 	}
 	
 	async_set_interrupt_received(irq_handler);
