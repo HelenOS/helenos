@@ -415,7 +415,7 @@ static void usbkbd_process_interrupt_in(usb_hid_dev_kbd_t *kbd_dev,
 
 	//usb_hid_parse_report(kbd_dev->parser, buffer, actual_size, callbacks, 
 	//    NULL);
-	printf("Calling usb_hid_boot_keyboard_input_report() with size %d\n",
+	printf("Calling usb_hid_boot_keyboard_input_report() with size %zu\n",
 	    actual_size);
 	//dump_buffer("bufffer: ", buffer, actual_size);
 	int rc = usb_hid_boot_keyboard_input_report(buffer, actual_size, callbacks, 
