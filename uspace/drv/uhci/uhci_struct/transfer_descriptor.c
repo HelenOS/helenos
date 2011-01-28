@@ -2,12 +2,14 @@
 
 void transfer_descriptor_init(transfer_descriptor_t *instance,
   int error_count, size_t size, bool isochronous, usb_target_t target,
-	int pid)
+	int pid, void *buffer)
 {
 	assert(instance);
 
 	instance->next =
-	  0 | LINK_POINTER_VERTICAL_FLAG | LINK_POINTER_TERMINATE_FLAG;
+	  0 | LINK_POINTER_TERMINATE_FLAG;
+
+	uhci_print_verbose("Creating link field: %x.\n", instance->next);
 
 	assert(size < 1024);
 	instance->status = 0
@@ -17,10 +19,22 @@ void transfer_descriptor_init(transfer_descriptor_t *instance,
 	uhci_print_verbose("Creating status field: %x.\n", instance->status);
 
 	instance->device = 0
-		| ((size & TD_DEVICE_MAXLEN_MASK) << TD_DEVICE_MAXLEN_POS)
+		| (((size - 1) & TD_DEVICE_MAXLEN_MASK) << TD_DEVICE_MAXLEN_POS)
 		| ((target.address & TD_DEVICE_ADDRESS_MASK) << TD_DEVICE_ADDRESS_POS)
 		| ((target.endpoint & TD_DEVICE_ENDPOINT_MASK) << TD_DEVICE_ENDPOINT_POS)
 		| ((pid & TD_DEVICE_PID_MASK) << TD_DEVICE_PID_POS);
+
+	uhci_print_verbose("Creating device field: %x.\n", instance->device);
+
+	instance->buffer_ptr = (uintptr_t)addr_to_phys(buffer);
+
+	uhci_print_verbose("Creating buffer field: %p(%p).\n",
+	  buffer, instance->buffer_ptr);
+
+	char * buff = buffer;
+
+	uhci_print_verbose("Buffer dump(8B): %x %x %x %x %x %x %x %x.\n",
+	  buff[0], buff[1], buff[2], buff[3], buff[4], buff[5], buff[6], buff[7]);
 
 	instance->next_va = NULL;
 	instance->callback = NULL;

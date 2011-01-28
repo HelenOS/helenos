@@ -97,17 +97,18 @@ typedef struct transfer_descriptor {
 
 void transfer_descriptor_init(transfer_descriptor_t *instance,
   int error_count, size_t size, bool isochronous, usb_target_t target,
-	int pid);
+	int pid, void *buffer);
 
 static inline transfer_descriptor_t * transfer_descriptor_get(
-  int error_count, size_t size, bool isochronous, usb_target_t target, int pid)
+  int error_count, size_t size, bool isochronous, usb_target_t target,
+  int pid, void *buffer)
 {
 	transfer_descriptor_t * instance =
 	  malloc32(sizeof(transfer_descriptor_t));
 
 	if (instance)
 		transfer_descriptor_init(
-		  instance, error_count, size, isochronous, target, pid);
+		  instance, error_count, size, isochronous, target, pid, buffer);
 	return instance;
 }
 

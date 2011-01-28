@@ -84,10 +84,12 @@ int uhci_init(device_t *device, void *regs)
 	fibril_add_ready(instance->debug_checker);
 
 	uhci_print_verbose("Starting UHCI HC.\n");
+	pio_write_16(&instance->registers->usbcmd, UHCI_CMD_RUN_STOP);
+/*
 	uint16_t cmd = pio_read_16(&instance->registers->usbcmd);
-	cmd |= UHCI_CMD_RUN_STOP | UHCI_CMD_CONFIGURE;
+	cmd |= UHCI_CMD_DEBUG;
 	pio_write_16(&instance->registers->usbcmd, cmd);
-
+*/
 	device->driver_data = instance;
 	return EOK;
 }
@@ -162,7 +164,7 @@ int uhci_transfer(
 	ret = job ? EOK : ENOMEM;
 	CHECK_RET_TRANS_FREE_JOB_TD("Failed to allocate callback structure.\n");
 
-	td = transfer_descriptor_get(3, size, false, target, pid);
+	td = transfer_descriptor_get(3, size, false, target, pid, job->new_buffer);
 	ret = td ? EOK : ENOMEM;
 	CHECK_RET_TRANS_FREE_JOB_TD("Failed to setup transfer descriptor.\n");
 
@@ -177,7 +179,7 @@ int uhci_transfer(
 
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------------*/
 int uhci_clean_finished(void* arg)
 {
 	uhci_print_verbose("Started cleaning fibril.\n");
@@ -195,10 +197,16 @@ int uhci_clean_finished(void* arg)
 				instance->transfers[i].first;
 			uhci_print_verbose("Running cleaning fibril on queue: %p (%s).\n",
 				&instance->transfers[i], it ? "SOMETHING" : "EMPTY");
+
+		if (it)
+			uhci_print_verbose("First in queue: %p (%x).\n",
+				it, it->status);
+
 			while (instance->transfers[i].first &&
 			 !(instance->transfers[i].first->status & TD_STATUS_ERROR_ACTIVE)) {
 				transfer_descriptor_t *transfer = instance->transfers[i].first;
-				uhci_print_info("Inactive transfer calling callback.\n");
+				uhci_print_info("Inactive transfer calling callback with status %x.\n",
+				  transfer->status);
 				instance->transfers[i].first = transfer->next_va;
 				transfer_descriptor_dispose(transfer);
 			}
@@ -212,7 +220,6 @@ int uhci_clean_finished(void* arg)
 /*---------------------------------------------------------------------------*/
 int uhci_debug_checker(void *arg)
 {
-	return 0;
 	uhci_t *instance = (uhci_t*)arg;
 	assert(instance);
 	while (1) {
@@ -221,6 +228,7 @@ int uhci_debug_checker(void *arg)
 		uhci_print_verbose("Command register: %X\n", reg);
 		reg = pio_read_16(&instance->registers->usbsts);
 		uhci_print_verbose("Status register: %X\n", reg);
+/*
 		uintptr_t frame_list = pio_read_32(&instance->registers->flbaseadd);
 		uhci_print_verbose("Framelist address: %p vs. %p.\n",
 			frame_list, addr_to_phys(instance->frame_list));
@@ -237,6 +245,10 @@ int uhci_debug_checker(void *arg)
 
 		uhci_print_verbose("Bulk QH: %p vs. %p.\n", qh->next_queue,
 			addr_to_phys(instance->transfers[USB_TRANSFER_BULK].queue_head));
+	uint16_t cmd = pio_read_16(&instance->registers->usbcmd);
+	cmd |= UHCI_CMD_RUN_STOP;
+	pio_write_16(&instance->registers->usbcmd, cmd);
+*/
 
 		async_usleep(UHCI_DEBUGER_TIMEOUT);
 	}
