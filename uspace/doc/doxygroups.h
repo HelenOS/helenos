@@ -203,6 +203,12 @@
 		 * see @ref drvusbvhc for the rest of the files.
 		 */
 
+		/**
+		 * @defgroup usbvirtkbd Virtual USB keybaord
+		 * @ingroup usbvirt
+		 * @brief Virtual USB keyboard for virtual host controller.
+		 */
+
 	 /**
 	  * @defgroup drvusbhub USB hub driver
 	  * @ingroup usb
