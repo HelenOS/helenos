@@ -35,6 +35,14 @@ int uhci_port_check(void *port)
 
 		if (port_status & STATUS_CONNECTED_CHANGED) {
 			if (port_status & STATUS_CONNECTED) {
+				/* new device */
+				port_status |= STATUS_IN_RESET;
+				port_status_write(port_instance->address, port_status);
+				async_usleep(1000);
+				port_status =
+					port_status_read(port_instance->address);
+				port_status &= ~STATUS_IN_RESET;
+				port_status_write(port_instance->address, port_status);
 				uhci_port_new_device(port_instance);
 			} else {
 				uhci_port_remove_device(port_instance);
