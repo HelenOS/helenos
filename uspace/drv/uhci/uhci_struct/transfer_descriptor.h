@@ -45,12 +45,12 @@
 typedef struct transfer_descriptor {
 	link_pointer_t next;
 
-	uint32_t status;
+	volatile uint32_t status;
 
 #define TD_STATUS_RESERVED_MASK 0xc000f800
 #define TD_STATUS_SPD_FLAG ( 1 << 29 )
 #define TD_STATUS_ERROR_COUNT_POS ( 27 )
-#define TD_STATUS_ERROR_COUNT_MASK ( 0x11 )
+#define TD_STATUS_ERROR_COUNT_MASK ( 0x3 )
 #define TD_STATUS_ERROR_COUNT_DEFAULT 3
 #define TD_STATUS_LOW_SPEED_FLAG ( 1 << 26 )
 #define TD_STATUS_ISOCHRONOUS_FLAG ( 1 << 25 )
@@ -70,7 +70,7 @@ typedef struct transfer_descriptor {
 #define TD_STATUS_ACTLEN_POS 0
 #define TD_STATUS_ACTLEN_MASK 0x7ff
 
-	uint32_t device;
+	volatile uint32_t device;
 
 #define TD_DEVICE_MAXLEN_POS 21
 #define TD_DEVICE_MAXLEN_MASK ( 0x7ff )
@@ -83,7 +83,7 @@ typedef struct transfer_descriptor {
 #define TD_DEVICE_PID_POS 0
 #define TD_DEVICE_PID_MASK ( 0xff )
 
-	uint32_t buffer_ptr;
+	volatile uint32_t buffer_ptr;
 
 	/* there is 16 bytes of data available here
 	 * those are used to store callback pointer

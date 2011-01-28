@@ -14,6 +14,8 @@ void transfer_descriptor_init(transfer_descriptor_t *instance,
 	  | ((error_count & TD_STATUS_ERROR_COUNT_MASK) << TD_STATUS_ERROR_COUNT_POS)
 	  | TD_STATUS_ERROR_ACTIVE;
 
+	uhci_print_verbose("Creating status field: %x.\n", instance->status);
+
 	instance->device = 0
 		| ((size & TD_DEVICE_MAXLEN_MASK) << TD_DEVICE_MAXLEN_POS)
 		| ((target.address & TD_DEVICE_ADDRESS_MASK) << TD_DEVICE_ADDRESS_POS)
