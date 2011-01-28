@@ -25,6 +25,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
+/** @addtogroup drvusbhid
+ * @{
+ */
+/** @file
+ * USB scancode parser.
+ */
+
 #include <io/keycode.h>
 #include <stdint.h>
 #include "conv.h"
@@ -184,3 +192,7 @@ unsigned int usbkbd_parse_scancode(int scancode)
 //		kbd_push_ev(type, key);
 	return key;
 }
+
+/**
+ * @}
+ */

@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2009 Jiri Svoboda
  * Copyright (c) 2011 Lubos Slovak 
  * (copied from /uspace/srv/hid/kbd/include/layout.h)
  * All rights reserved.
@@ -27,12 +28,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup usb
- * @brief 
- * @ingroup
+/** @addtogroup drvusbhid
  * @{
  */
 /** @file
+ * Keyboard layout.
  */
 
 #ifndef USBHID_LAYOUT_H_

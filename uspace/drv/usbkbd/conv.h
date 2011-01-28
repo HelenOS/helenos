@@ -26,11 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup usb
+/** @addtogroup drvusbhid
  * @{
  */
 /** @file
- * @brief USB Scancode parser.
+ * USB scancode parser.
  */
 
 #ifndef USBHID_CONV_H_
@@ -39,3 +39,7 @@
 unsigned int usbkbd_parse_scancode(int scancode);
 
 #endif
+
+/**
+ * @}
+ */
