@@ -212,12 +212,9 @@ static inline int uhci_add_transfer(
 	ret = callback_init(job, dev, buffer, size, callback_in, callback_out, arg);
 	CHECK_RET_TRANS_FREE_JOB_TD("Failed to initialize callback structure.\n");
 
-	td = trans_malloc(sizeof(transfer_descriptor_t));
+	td = transfer_descriptor_get(3, size, false, target, pid);
 	ret = td ? EOK : ENOMEM;
-	CHECK_RET_TRANS_FREE_JOB_TD("Failed to allocate transfer descriptor.\n");
-
-	transfer_descriptor_init(td, 3, size, false, target, pid);
-//	CHECK_RET_TRANS_FREE_JOB_TD("Failed to initialize transfer descriptor.\n");
+	CHECK_RET_TRANS_FREE_JOB_TD("Failed to setup transfer descriptor.\n");
 
 	td->callback = job;
 
