@@ -36,15 +36,41 @@
 
 #include <usb/usbmem.h>
 
+#include <assert.h>
+#include <malloc.h>
+#include <mem.h>
+#include <as.h>
+
 static inline void * addr_to_phys(void *addr)
-	{ return mman_getPA(addr); }
+{
+	uintptr_t result;
+	int ret = as_get_physical_mapping(addr, &result);
+	assert(ret == 0);
+	return (void*)result;
+}
 
 static inline void * malloc32(size_t size)
-/* TODO: tis is ugly */
-	{ return mman_malloc(size, 128, 0xffffffff); }
+/* TODO: this is ugly */
+	{ return memalign(size, 128); }
+
+static inline void * get_page()
+{
+	void * free_address = as_get_mappable_page(4096);
+	assert(free_address);
+	if (free_address == 0)
+		return 0;
+	void* ret =
+	  as_area_create(free_address, 4096, AS_AREA_READ | AS_AREA_WRITE |AS_AREA_CACHEABLE);
+	if (ret != free_address)
+		return 0;
+	return ret;
+}
+
+static inline void * memalign32(size_t size, size_t alignment)
+	{ return memalign(size, alignment); }
 
 static inline void free32(void * addr)
-	{ mman_free(addr); }
+	{ free(addr); }
 
 #endif
 /**
