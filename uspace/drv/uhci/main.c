@@ -58,9 +58,7 @@ static int uhci_add_device(device_t *device)
 	device->ops = &uhci_ops;
 
 	// TODO: get this value out of pci driver
-	uhci_init(device, (void*)0xc020);
-
-	return EOK;
+	return uhci_init(device, (void*)0xc020);
 }
 
 static driver_ops_t uhci_driver_ops = {
