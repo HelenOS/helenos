@@ -197,20 +197,16 @@ static inline int uhci_add_transfer(
 	if (ret != EOK) { \
 		uhci_print_error(message); \
 		if (job) { \
-			callback_fini(job); \
-			trans_free(job); \
+			callback_dispose(job); \
 		} \
 		if (td) { trans_free(td); } \
 		return ret; \
 	} else (void) 0
 
 
-	job = malloc(sizeof(callback_t));
-	ret= job ? EOK : ENOMEM;
+	job = callback_get(dev, buffer, size, callback_in, callback_out, arg);
+	ret = job ? EOK : ENOMEM;
 	CHECK_RET_TRANS_FREE_JOB_TD("Failed to allocate callback structure.\n");
-
-	ret = callback_init(job, dev, buffer, size, callback_in, callback_out, arg);
-	CHECK_RET_TRANS_FREE_JOB_TD("Failed to initialize callback structure.\n");
 
 	td = transfer_descriptor_get(3, size, false, target, pid);
 	ret = td ? EOK : ENOMEM;
