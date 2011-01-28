@@ -25,6 +25,10 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+/** @addtogroup drvusbhid
+ * @{
+ */
+
 #ifndef USBHID_DESCPARSER_H_
 #define USBHID_DESCPARSER_H_
 
@@ -36,3 +40,7 @@ int usbkbd_parse_descriptors(const uint8_t *data, size_t size,
 void usbkbd_print_config(const usb_hid_configuration_t *config);
 
 #endif
+
+/**
+ * @}
+ */

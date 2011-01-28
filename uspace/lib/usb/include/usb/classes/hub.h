@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusb usb
+/** @addtogroup libusb
  * @{
  */
 /** @file
@@ -67,7 +67,7 @@ typedef enum {
  *
  *	For more information see Universal Serial Bus Specification Revision 1.1 chapter 11.16.2
  */
-typedef struct hub_descriptor_type{
+typedef struct usb_hub_descriptor_type {
     /** Number of bytes in this descriptor, including this byte */
     //uint8_t bDescLength;
 
