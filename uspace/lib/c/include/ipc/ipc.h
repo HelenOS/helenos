@@ -32,8 +32,8 @@
 /** @file
  */
 
-#ifndef LIBIPC_IPC_H_
-#define LIBIPC_IPC_H_
+#ifndef LIBC_IPC_H_
+#define LIBC_IPC_H_
 
 #include <task.h>
 #include <kernel/ipc/ipc.h>
