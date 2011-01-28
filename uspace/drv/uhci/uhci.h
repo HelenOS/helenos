@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup usb
+/** @addtogroup drvusbuhci
  * @{
  */
 /** @file
@@ -40,6 +40,8 @@
 #define NAME "uhci"
 
 usbhc_iface_t uhci_iface;
+
+int pci_get_my_registers(device_t *, uintptr_t *, size_t *, int *);
 
 #endif
 /**
