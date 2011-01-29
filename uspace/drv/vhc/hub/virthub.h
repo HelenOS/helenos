@@ -36,8 +36,13 @@
 #define VHC_HUB_VIRTHUB_H_
 
 #include <usbvirt/device.h>
-#include "../devices.h"
 #include "hub.h"
+
+#ifdef STANDALONE_HUB
+#define virtdev_connection_t int
+#else
+#include "../devices.h"
+#endif
 
 /** Endpoint number for status change pipe. */
 #define HUB_STATUS_CHANGE_PIPE 1

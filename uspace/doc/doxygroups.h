@@ -194,21 +194,45 @@
 		 * @brief Driver simulating work of USB host controller.
 		 */
 
-	 /**
-	  * @defgroup drvusbhub USB hub driver
-	  * @ingroup usb
-	  * @brief USB hub driver.
-	  */
+		/**
+		 * @defgroup usbvirthub Virtual USB hub
+		 * @ingroup usbvirt
+		 * @brief Extra virtual USB hub for virtual host controller.
+		 * @details
+		 * Some of the sources are shared with virtual host controller,
+		 * see @ref drvusbvhc for the rest of the files.
+		 */
 
-	 /**
-	  * @defgroup drvusbhid USB HID driver
-	  * @ingroup usb
-	  * @brief USB driver for HID devices.
-	  */
+		/**
+		 * @defgroup usbvirtkbd Virtual USB keybaord
+		 * @ingroup usbvirt
+		 * @brief Virtual USB keyboard for virtual host controller.
+		 */
 
-	 /**
-	  * @defgroup drvusbuhci UHCI driver
-	  * @ingroup usb
-	  * @brief Driver for USB host controller UHCI.
-	  */
+	/**
+	 * @defgroup usbinfo USB info application
+	 * @ingroup usb
+	 * @brief Application for querying USB devices.
+	 * @details
+	 * The intended usage of this application is to query new USB devices
+	 * for their descriptors etc. to simplify driver writing.
+	 */
+
+	/**
+	 * @defgroup drvusbhub USB hub driver
+	 * @ingroup usb
+	 * @brief USB hub driver.
+	 */
+
+	/**
+	 * @defgroup drvusbhid USB HID driver
+	 * @ingroup usb
+	 * @brief USB driver for HID devices.
+	 */
+
+	/**
+	 * @defgroup drvusbuhci UHCI driver
+	 * @ingroup usb
+	 * @brief Driver for USB host controller UHCI.
+	 */
 

@@ -726,14 +726,15 @@ static int connect_keyboard(char *path)
 	
 	/* NB: The callback connection is slotted for removal */
 	sysarg_t phonehash;
+	sysarg_t taskhash;
 	int rc = async_req_3_5(phone, IPC_M_CONNECT_TO_ME, SERVICE_CONSOLE,
-	    0, 0, NULL, NULL, NULL, NULL, &phonehash);
+	    0, 0, NULL, NULL, NULL, &taskhash, &phonehash);
 	if (rc != EOK) {
 		printf(NAME ": Failed to create callback from input device\n");
 		return rc;
 	}
 	
-	async_new_connection(phonehash, 0, NULL, keyboard_events);
+	async_new_connection(taskhash, phonehash, 0, NULL, keyboard_events);
 
 	printf(NAME ": we got a hit (new keyboard \"%s\").\n", path);
 
@@ -783,14 +784,15 @@ static int connect_keyboard_bypass(char *devmap_path)
 
 	/* NB: The callback connection is slotted for removal */
 	sysarg_t phonehash;
+	sysarg_t taskhash;
 	int rc = async_req_3_5(phone, IPC_M_CONNECT_TO_ME, SERVICE_CONSOLE,
-	    0, 0, NULL, NULL, NULL, NULL, &phonehash);
+	    0, 0, NULL, NULL, NULL, &taskhash, &phonehash);
 	if (rc != EOK) {
 		printf(NAME ": Failed to create callback from input device\n");
 		return rc;
 	}
 
-	async_new_connection(phonehash, 0, NULL, keyboard_events);
+	async_new_connection(taskhash, phonehash, 0, NULL, keyboard_events);
 
 	printf(NAME ": we got a hit (new keyboard \"/dev/%s\").\n",
 	    devmap_path);
@@ -861,14 +863,16 @@ static bool console_init(char *input)
 		goto skip_mouse;
 	}
 	
+	sysarg_t taskhash;
 	sysarg_t phonehash;
-	if (ipc_connect_to_me(mouse_phone, SERVICE_CONSOLE, 0, 0, &phonehash) != 0) {
+	if (ipc_connect_to_me(mouse_phone, SERVICE_CONSOLE, 0, 0, &taskhash,
+	    &phonehash) != 0) {
 		printf(NAME ": Failed to create callback from mouse device\n");
 		mouse_phone = -1;
 		goto skip_mouse;
 	}
 	
-	async_new_connection(phonehash, 0, NULL, mouse_events);
+	async_new_connection(taskhash, phonehash, 0, NULL, mouse_events);
 skip_mouse:
 	
 	/* Connect to framebuffer driver */

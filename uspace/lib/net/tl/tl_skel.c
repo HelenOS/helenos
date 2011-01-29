@@ -116,8 +116,7 @@ int tl_module_start(int service)
 	if (rc != EOK)
 		goto out;
 	
-	sysarg_t phonehash;
-	rc = ipc_connect_to_me(PHONE_NS, service, 0, 0, &phonehash);
+	rc = ipc_connect_to_me(PHONE_NS, service, 0, 0, NULL, NULL);
 	if (rc != EOK)
 		goto out;
 	

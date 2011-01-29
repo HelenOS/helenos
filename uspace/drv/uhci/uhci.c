@@ -12,7 +12,7 @@ static int uhci_init_transfer_lists(transfer_list_t list[]);
 static int uhci_clean_finished(void *arg);
 static int uhci_debug_checker(void *arg);
 
-int uhci_init(device_t *device, void *regs)
+int uhci_init(device_t *device, void *regs, size_t reg_size)
 {
 	assert(device);
 	uhci_print_info("Initializing device at address %p.\n", device);
@@ -39,7 +39,8 @@ int uhci_init(device_t *device, void *regs)
 
 	/* allow access to hc control registers */
 	regs_t *io;
-	ret = pio_enable(regs, sizeof(regs_t), (void**)&io);
+	assert(reg_size >= sizeof(regs_t));
+	ret = pio_enable(regs, reg_size, (void**)&io);
 	CHECK_RET_FREE_INSTANCE("Failed to gain access to registers at %p.\n", io);
 	instance->registers = io;
 	uhci_print_verbose("Device registers accessible.\n");

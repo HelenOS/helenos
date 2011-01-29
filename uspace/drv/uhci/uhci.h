@@ -25,7 +25,8 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup usb
+
+/** @addtogroup drvusbuhci
  * @{
  */
 /** @file
@@ -85,7 +86,7 @@ typedef struct uhci {
 } uhci_t;
 
 /* init uhci specifics in device.driver_data */
-int uhci_init( device_t *device, void *regs );
+int uhci_init( device_t *device, void *regs, size_t reg_size );
 
 int uhci_destroy( device_t *device );
 
@@ -99,6 +100,8 @@ int uhci_transfer(
   usbhc_iface_transfer_out_callback_t callback_out,
   usbhc_iface_transfer_in_callback_t callback_in,
   void *arg );
+
+int pci_get_my_registers(device_t *, uintptr_t *, size_t *, int *);
 
 #endif
 /**

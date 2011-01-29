@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Lubos Slovak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,9 +26,15 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 /** @addtogroup drvusbhid
  * @{
  */
+/**
+ * @file
+ * Main routines of USB HID driver.
+ */
+
 #include <usb/usbdrv.h>
 #include <driver.h>
 #include <ipc/driver.h>
@@ -40,11 +47,14 @@
 #include <usb/classes/hidparser.h>
 #include <usb/devreq.h>
 #include <usb/descriptor.h>
+#include <io/console.h>
 #include "descparser.h"
 #include "descdump.h"
+#include "conv.h"
+#include "layout.h"
 
 #define BUFFER_SIZE 32
-#define NAME "usbkbd"
+#define NAME "usbhid"
 
 #define GUESSED_POLL_ENDPOINT 1
 
@@ -90,15 +100,161 @@ static void send_key(int key, int type, wchar_t c) {
 #endif
 
 /*
+ * TODO: Move somewhere else
+ */
+/*
+#define BYTES_PER_LINE 12
+
+static void dump_buffer(const char *msg, const uint8_t *buffer, size_t length)
+{
+	printf("%s\n", msg);
+	
+	size_t i;
+	for (i = 0; i < length; i++) {
+		printf("  0x%02X", buffer[i]);
+		if (((i > 0) && (((i+1) % BYTES_PER_LINE) == 0))
+		    || (i + 1 == length)) {
+			printf("\n");
+		}
+	}
+}
+*/
+/*
+ * Copy-paste from srv/hid/kbd/generic/kbd.c
+ */
+
+/** Currently active modifiers. 
+ *
+ * TODO: put to device?
+ */
+static unsigned mods = KM_NUM_LOCK;
+
+/** Currently pressed lock keys. We track these to tackle autorepeat.  
+ *
+ * TODO: put to device? 
+ */
+static unsigned lock_keys;
+
+#define NUM_LAYOUTS 3
+
+static layout_op_t *layout[NUM_LAYOUTS] = {
+	&us_qwerty_op,
+	&us_dvorak_op,
+	&cz_op
+};
+
+static int active_layout = 0;
+
+static void kbd_push_ev(int type, unsigned int key)
+{
+	console_event_t ev;
+	unsigned mod_mask;
+
+	// TODO: replace by our own parsing?? or are the key codes identical??
+	switch (key) {
+	case KC_LCTRL: mod_mask = KM_LCTRL; break;
+	case KC_RCTRL: mod_mask = KM_RCTRL; break;
+	case KC_LSHIFT: mod_mask = KM_LSHIFT; break;
+	case KC_RSHIFT: mod_mask = KM_RSHIFT; break;
+	case KC_LALT: mod_mask = KM_LALT; break;
+	case KC_RALT: mod_mask = KM_RALT; break;
+	default: mod_mask = 0; break;
+	}
+
+	if (mod_mask != 0) {
+		if (type == KEY_PRESS)
+			mods = mods | mod_mask;
+		else
+			mods = mods & ~mod_mask;
+	}
+
+	switch (key) {
+	case KC_CAPS_LOCK: mod_mask = KM_CAPS_LOCK; break;
+	case KC_NUM_LOCK: mod_mask = KM_NUM_LOCK; break;
+	case KC_SCROLL_LOCK: mod_mask = KM_SCROLL_LOCK; break;
+	default: mod_mask = 0; break;
+	}
+
+	if (mod_mask != 0) {
+		if (type == KEY_PRESS) {
+			/*
+			 * Only change lock state on transition from released
+			 * to pressed. This prevents autorepeat from messing
+			 * up the lock state.
+			 */
+			mods = mods ^ (mod_mask & ~lock_keys);
+			lock_keys = lock_keys | mod_mask;
+
+			/* Update keyboard lock indicator lights. */
+			// TODO
+			//kbd_ctl_set_ind(mods);
+		} else {
+			lock_keys = lock_keys & ~mod_mask;
+		}
+	}
+/*
+	printf("type: %d\n", type);
+	printf("mods: 0x%x\n", mods);
+	printf("keycode: %u\n", key);
+*/
+	
+	if (type == KEY_PRESS && (mods & KM_LCTRL) &&
+		key == KC_F1) {
+		active_layout = 0;
+		layout[active_layout]->reset();
+		return;
+	}
+
+	if (type == KEY_PRESS && (mods & KM_LCTRL) &&
+		key == KC_F2) {
+		active_layout = 1;
+		layout[active_layout]->reset();
+		return;
+	}
+
+	if (type == KEY_PRESS && (mods & KM_LCTRL) &&
+		key == KC_F3) {
+		active_layout = 2;
+		layout[active_layout]->reset();
+		return;
+	}
+	
+	ev.type = type;
+	ev.key = key;
+	ev.mods = mods;
+
+	ev.c = layout[active_layout]->parse_ev(&ev);
+
+	printf("Sending key %d to the console\n", ev.key);
+	assert(console_callback_phone != -1);
+	async_msg_4(console_callback_phone, KBD_EVENT, ev.type, ev.key, ev.mods, ev.c);
+}
+/*
+ * End of copy-paste
+ */
+
+	/*
+	 * TODO:
+	 * 1) key press / key release - how does the keyboard notify about release?
+	 * 2) layouts (use the already defined), not important now
+	 * 3) 
+	 */
+
+/*
  * Callbacks for parser
  */
 static void usbkbd_process_keycodes(const uint8_t *key_codes, size_t count,
-                                    uint8_t modifiers, void *arg)
+    uint8_t modifiers, void *arg)
 {
 	printf("Got keys: ");
 	unsigned i;
 	for (i = 0; i < count; ++i) {
 		printf("%d ", key_codes[i]);
+		// TODO: Key press / release
+
+		// TODO: NOT WORKING
+		unsigned int key = usbkbd_parse_scancode(key_codes[i]);
+		kbd_push_ev(KEY_PRESS, key);
 	}
 	printf("\n");
 }
@@ -266,14 +422,18 @@ static void usbkbd_process_interrupt_in(usb_hid_dev_kbd_t *kbd_dev,
 
 	//usb_hid_parse_report(kbd_dev->parser, buffer, actual_size, callbacks, 
 	//    NULL);
-	printf("Calling usb_hid_boot_keyboard_input_report()...\n)");
-	usb_hid_boot_keyboard_input_report(buffer, actual_size, callbacks, NULL);
+	printf("Calling usb_hid_boot_keyboard_input_report() with size %zu\n",
+	    actual_size);
+	//dump_buffer("bufffer: ", buffer, actual_size);
+	int rc = usb_hid_boot_keyboard_input_report(buffer, actual_size, callbacks, 
+	    NULL);
+	if (rc != EOK) {
+		printf("Error in usb_hid_boot_keyboard_input_report(): %d\n", rc);
+	}
 }
 
 static void usbkbd_poll_keyboard(usb_hid_dev_kbd_t *kbd_dev)
 {
-	return;
-	
 	int rc;
 	usb_handle_t handle;
 	uint8_t buffer[BUFFER_SIZE];
@@ -291,17 +451,21 @@ static void usbkbd_poll_keyboard(usb_hid_dev_kbd_t *kbd_dev)
 		.endpoint = kbd_dev->poll_endpoint
 	};
 
+	printf("Polling keyboard...\n");
+
 	while (true) {
-		async_usleep(1000 * 1000);
+		async_usleep(1000 * 1000 * 2);
 		rc = usb_drv_async_interrupt_in(kbd_dev->device->parent_phone,
 		    poll_target, buffer, BUFFER_SIZE, &actual_size, &handle);
 
 		if (rc != EOK) {
+			printf("Error in usb_drv_async_interrupt_in(): %d\n", rc);
 			continue;
 		}
 
 		rc = usb_drv_async_wait_for(handle);
 		if (rc != EOK) {
+			printf("Error in usb_drv_async_wait_for(): %d\n", rc);
 			continue;
 		}
 
@@ -310,12 +474,14 @@ static void usbkbd_poll_keyboard(usb_hid_dev_kbd_t *kbd_dev)
 		 * This implies that no change happened since last query.
 		 */
 		if (actual_size == 0) {
+			printf("Keyboard returned NAK\n");
 			continue;
 		}
 
 		/*
 		 * TODO: Process pressed keys.
 		 */
+		printf("Calling usbkbd_process_interrupt_in()\n");
 		usbkbd_process_interrupt_in(kbd_dev, buffer, actual_size);
 	}
 
@@ -336,6 +502,10 @@ static int usbkbd_fibril_device(void *arg)
 
 	// initialize device (get and process descriptors, get address, etc.)
 	usb_hid_dev_kbd_t *kbd_dev = usbkbd_init_device(dev);
+	if (kbd_dev == NULL) {
+		printf("Error while initializing device.\n");
+		return -1;
+	}
 
 	usbkbd_poll_keyboard(kbd_dev);
 

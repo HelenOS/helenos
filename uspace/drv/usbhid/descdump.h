@@ -25,21 +25,38 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 /** @addtogroup drvusbhid
  * @{
  */
+/** @file
+ * Descriptor dumping.
+ */
 
-#ifndef USBHID_DESCPARSER_H_
-#define USBHID_DESCPARSER_H_
+#ifndef USBHID_DESCDUMP_H_
+#define USBHID_DESCDUMP_H_
 
 #include <usb/classes/hid.h>
 
-int usbkbd_parse_descriptors(const uint8_t *data, size_t size,
-                             usb_hid_configuration_t *config);
+void dump_standard_configuration_descriptor(
+    int index, const usb_standard_configuration_descriptor_t *d);
 
-void usbkbd_print_config(const usb_hid_configuration_t *config);
+void dump_standard_interface_descriptor(
+    const usb_standard_interface_descriptor_t *d);
 
-#endif
+void dump_standard_endpoint_descriptor(
+    const usb_standard_endpoint_descriptor_t *d);
+
+void dump_standard_hid_descriptor_header(
+    const usb_standard_hid_descriptor_t *d);
+
+void dump_standard_hid_class_descriptor_info(
+    const usb_standard_hid_class_descriptor_info_t *d);
+
+void dump_hid_class_descriptor(int index, uint8_t type, 
+    const uint8_t *d, size_t size);
+
+#endif /* USBHID_DESCDUMP_H_ */
 
 /**
  * @}

@@ -273,7 +273,7 @@ static inline void print_physmem_info(data_t *data)
 static inline void print_tasks_head(void)
 {
 	screen_style_inverted();
-	printf("[taskid] [threads] [resident] [%%resi] [virtual] [%%virt]"
+	printf("[taskid] [thrds] [resident] [%%resi] [virtual] [%%virt]"
 	    " [%%user] [%%kern] [name");
 	screen_newline();
 	screen_style_normal();
@@ -302,7 +302,7 @@ static inline void print_tasks(data_t *data)
 		char virtmem_suffix;
 		order_suffix(task->virtmem, &virtmem, &virtmem_suffix);
 		
-		printf("%-8" PRIu64 " %9zu %9" PRIu64 "%c ",
+		printf("%-8" PRIu64 " %7zu %9" PRIu64 "%c ",
 		    task->task_id, task->threads, resmem, resmem_suffix);
 		print_percent(perc->resmem, 2);
 		printf(" %8" PRIu64 "%c ", virtmem, virtmem_suffix);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,62 +26,77 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbhub
+/** @addtogroup usbvirthub
  * @{
  */
+/**
+ * @file
+ * @brief Virtual USB hub.
+ */
 
-#include <driver.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <errno.h>
-#include <async.h>
+#include <str_error.h>
+#include <bool.h>
 
-#include <usb/usbdrv.h>
+#include <usb/usb.h>
+#include <usb/descriptor.h>
+#include <usb/classes/hub.h>
+#include <usbvirt/device.h>
+#include <usbvirt/hub.h>
 
-#include "usbhub.h"
-#include "usbhub_private.h"
+#include "vhc_hub/virthub.h"
 
+#define NAME "vuh"
 
-usb_general_list_t usb_hub_list;
-fibril_mutex_t usb_hub_list_lock;
+static usbvirt_device_t hub_device;
 
-static driver_ops_t hub_driver_ops = {
-	.add_device = usb_add_hub_device,
-};
+#define VERBOSE_SLEEP(sec, msg, ...) \
+	do { \
+		char _status[HUB_PORT_COUNT + 2]; \
+		printf(NAME ": doing nothing for %zu seconds...\n", \
+		    (size_t) (sec)); \
+		fibril_sleep((sec)); \
+		virthub_get_status(&hub_device, _status, HUB_PORT_COUNT + 1); \
+		printf(NAME ": " msg " [%s]\n" #__VA_ARGS__, _status); \
+	} while (0)
 
-static driver_t hub_driver = {
-	.name = "usbhub",
-	.driver_ops = &hub_driver_ops
-};
-
-int usb_hub_control_loop(void * noparam){
-	while(true){
-		usb_hub_check_hub_changes();
-		async_usleep(1000 * 1000 );/// \TODO proper number once
+static void fibril_sleep(size_t sec)
+{
+	while (sec-- > 0) {
+		async_usleep(1000*1000);
 	}
+}
+
+static int dev1 = 1;
+
+int main(int argc, char * argv[])
+{
+	int rc;
+
+	printf(NAME ": virtual USB hub.\n");
+
+	rc = virthub_init(&hub_device);
+	if (rc != EOK) {
+		printf(NAME ": Unable to start communication with VHCD (%s).\n",
+		    str_error(rc));
+		return rc;
+	}
+	
+	while (true) {
+		VERBOSE_SLEEP(8, "will pretend device plug-in...");
+		virthub_connect_device(&hub_device, &dev1);
+
+		VERBOSE_SLEEP(8, "will pretend device un-plug...");
+		virthub_disconnect_device(&hub_device, &dev1);
+	}
+
+	usbvirt_disconnect(&hub_device);
+	
 	return 0;
 }
 
 
-int main(int argc, char *argv[])
-{
-	usb_dprintf_enable(NAME, 0);
-	
-	fibril_mutex_initialize(&usb_hub_list_lock);
-	fibril_mutex_lock(&usb_hub_list_lock);
-	usb_lst_init(&usb_hub_list);
-	fibril_mutex_unlock(&usb_hub_list_lock);
-
-	fid_t fid = fibril_create(usb_hub_control_loop, NULL);
-	if (fid == 0) {
-		fprintf(stderr, NAME ": failed to start monitoring fibril," \
-		    " driver aborting.\n");
-		return ENOMEM;
-	}
-	fibril_add_ready(fid);
-
-	return driver_main(&hub_driver);
-}
-
-/**
- * @}
+/** @}
  */
-

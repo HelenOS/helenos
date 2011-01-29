@@ -58,16 +58,6 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 	 */
 	ipc_answer_0(iid, EOK);
 	
-	/*
-	 * Here we enter the main connection fibril loop.
-	 * The logic behind this loop and the protocol is that we'd like to keep
-	 * each connection open until the client hangs up. When the client hangs
-	 * up, we will free its VFS state. The act of hanging up the connection
-	 * by the client is equivalent to client termination because we cannot
-	 * distinguish one from the other. On the other hand, the client can
-	 * hang up arbitrarily if it has no open files and reestablish the
-	 * connection later.
-	 */
 	while (keep_on_going) {
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
@@ -132,8 +122,11 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		}
 	}
-	
-	vfs_files_done();
+
+	/*
+	 * Open files for this client will be cleaned up when its last
+	 * connection fibril terminates.
+	 */
 }
 
 int main(int argc, char **argv)
@@ -165,6 +158,12 @@ int main(int argc, char **argv)
 	memset(plb, 0, PLB_SIZE);
 	
 	/*
+	 * Set client data constructor and destructor.
+	 */
+	async_set_client_data_constructor(vfs_client_data_create);
+	async_set_client_data_destructor(vfs_client_data_destroy);
+
+	/*
 	 * Set a connection handling function/fibril.
 	 */
 	async_set_client_connection(vfs_connection);
@@ -172,8 +171,7 @@ int main(int argc, char **argv)
 	/*
 	 * Register at the naming service.
 	 */
-	sysarg_t phonead;
-	ipc_connect_to_me(PHONE_NS, SERVICE_VFS, 0, 0, &phonead);
+	ipc_connect_to_me(PHONE_NS, SERVICE_VFS, 0, 0, NULL, NULL);
 	
 	/*
 	 * Start accepting connections.

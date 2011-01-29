@@ -1,5 +1,7 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2011 Lubos Slovak 
+ * (copied from /uspace/srv/hid/kbd/include/layout.h)
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,62 +28,30 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbhub
+/** @addtogroup drvusbhid
  * @{
  */
+/** @file
+ * Keyboard layout.
+ */
 
-#include <driver.h>
-#include <errno.h>
-#include <async.h>
+#ifndef USBHID_LAYOUT_H_
+#define USBHID_LAYOUT_H_
 
-#include <usb/usbdrv.h>
+#include <sys/types.h>
+#include <io/console.h>
 
-#include "usbhub.h"
-#include "usbhub_private.h"
+typedef struct {
+	void (*reset)(void);
+	wchar_t (*parse_ev)(console_event_t *);
+} layout_op_t;
 
+extern layout_op_t us_qwerty_op;
+extern layout_op_t us_dvorak_op;
+extern layout_op_t cz_op;
 
-usb_general_list_t usb_hub_list;
-fibril_mutex_t usb_hub_list_lock;
-
-static driver_ops_t hub_driver_ops = {
-	.add_device = usb_add_hub_device,
-};
-
-static driver_t hub_driver = {
-	.name = "usbhub",
-	.driver_ops = &hub_driver_ops
-};
-
-int usb_hub_control_loop(void * noparam){
-	while(true){
-		usb_hub_check_hub_changes();
-		async_usleep(1000 * 1000 );/// \TODO proper number once
-	}
-	return 0;
-}
-
-
-int main(int argc, char *argv[])
-{
-	usb_dprintf_enable(NAME, 0);
-	
-	fibril_mutex_initialize(&usb_hub_list_lock);
-	fibril_mutex_lock(&usb_hub_list_lock);
-	usb_lst_init(&usb_hub_list);
-	fibril_mutex_unlock(&usb_hub_list_lock);
-
-	fid_t fid = fibril_create(usb_hub_control_loop, NULL);
-	if (fid == 0) {
-		fprintf(stderr, NAME ": failed to start monitoring fibril," \
-		    " driver aborting.\n");
-		return ENOMEM;
-	}
-	fibril_add_ready(fid);
-
-	return driver_main(&hub_driver);
-}
+#endif
 
 /**
  * @}
  */
-

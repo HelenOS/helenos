@@ -25,8 +25,10 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include <usb_iface.h>
+#include <driver.h>
 #include <errno.h>
+#include <str_error.h>
+#include <usb_iface.h>
 
 #include "debug.h"
 #include "iface.h"
@@ -56,8 +58,23 @@ static int uhci_add_device(device_t *device)
 	uhci_print_info( "uhci_add_device() called\n" );
 	device->ops = &uhci_ops;
 
-	// TODO: get this value out of pci driver
-	return uhci_init(device, (void*)0xc020);
+	uintptr_t io_reg_base;
+	size_t io_reg_size;
+	int irq;
+
+	int rc = pci_get_my_registers(device,
+	    &io_reg_base, &io_reg_size, &irq);
+
+	if (rc != EOK) {
+		uhci_print_fatal("failed to get I/O registers addresses: %s.\n",
+		    str_error(rc));
+		return rc;
+	}
+
+	uhci_print_info("I/O regs at 0x%X (size %zu), IRQ %d.\n",
+	    io_reg_base, io_reg_size, irq);
+
+	return uhci_init(device, (void*)io_reg_base, io_reg_size);
 }
 
 static driver_ops_t uhci_driver_ops = {

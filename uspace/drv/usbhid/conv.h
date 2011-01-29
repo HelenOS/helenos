@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Lubos Slovak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,62 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbhub
+/** @addtogroup drvusbhid
  * @{
  */
+/** @file
+ * USB scancode parser.
+ */
 
-#include <driver.h>
-#include <errno.h>
-#include <async.h>
+#ifndef USBHID_CONV_H_
+#define USBHID_CONV_H_
 
-#include <usb/usbdrv.h>
+unsigned int usbkbd_parse_scancode(int scancode);
 
-#include "usbhub.h"
-#include "usbhub_private.h"
-
-
-usb_general_list_t usb_hub_list;
-fibril_mutex_t usb_hub_list_lock;
-
-static driver_ops_t hub_driver_ops = {
-	.add_device = usb_add_hub_device,
-};
-
-static driver_t hub_driver = {
-	.name = "usbhub",
-	.driver_ops = &hub_driver_ops
-};
-
-int usb_hub_control_loop(void * noparam){
-	while(true){
-		usb_hub_check_hub_changes();
-		async_usleep(1000 * 1000 );/// \TODO proper number once
-	}
-	return 0;
-}
-
-
-int main(int argc, char *argv[])
-{
-	usb_dprintf_enable(NAME, 0);
-	
-	fibril_mutex_initialize(&usb_hub_list_lock);
-	fibril_mutex_lock(&usb_hub_list_lock);
-	usb_lst_init(&usb_hub_list);
-	fibril_mutex_unlock(&usb_hub_list_lock);
-
-	fid_t fid = fibril_create(usb_hub_control_loop, NULL);
-	if (fid == 0) {
-		fprintf(stderr, NAME ": failed to start monitoring fibril," \
-		    " driver aborting.\n");
-		return ENOMEM;
-	}
-	fibril_add_ready(fid);
-
-	return driver_main(&hub_driver);
-}
+#endif
 
 /**
  * @}
  */
-
