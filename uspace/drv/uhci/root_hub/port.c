@@ -1,11 +1,9 @@
 
 #include <errno.h>
-//#include <usb/devreq.h> /* for usb_device_request_setup_packet_t */
 #include <usb/usb.h>
 #include <usb/usbdrv.h>
 
 #include "debug.h"
-#include "uhci.h"
 #include "port.h"
 #include "port_status.h"
 
@@ -49,19 +47,22 @@ int uhci_port_check(void *port)
 static int uhci_port_new_device(uhci_port_t *port)
 {
 	assert(port);
-	assert(port->hc);
+	assert(port->hc_phone);
 
 	uhci_print_info("Adding new device on port %d.\n", port->number);
 
-	uhci_t *uhci_instance = (uhci_t*)(port->hc->driver_data);
 
 	/* get default address */
-	usb_address_keeping_reserve_default(&uhci_instance->address_manager);
+	int ret = usb_drv_reserve_default_address(port->hc_phone);
+	if (ret != EOK) {
+		uhci_print_error("Failed to reserve default address.\n");
+		return ret;
+	}
 
-	const usb_address_t usb_address =
-	  usb_address_keeping_request(&uhci_instance->address_manager);
+	const usb_address_t usb_address = usb_drv_request_address(port->hc_phone);
 
 	if (usb_address <= 0) {
+		uhci_print_error("Recieved invalid address(%d).\n", usb_address);
 		return usb_address;
 	}
 	/*
@@ -87,18 +88,26 @@ static int uhci_port_new_device(uhci_port_t *port)
 	port_status_write(port->address, port_status);
 
 	/* assign address to device */
-	int ret = usb_drv_req_set_address(port->hc_phone, 0, usb_address);
+	ret = usb_drv_req_set_address(port->hc_phone, 0, usb_address);
 
 
 	if (ret != EOK) { /* address assigning went wrong */
 		uhci_print_error("Failed(%d) to assign address to the device.\n", ret);
 		uhci_port_set_enabled(port, false);
-		usb_address_keeping_release_default(&uhci_instance->address_manager);
-		return ENOMEM;
+		int release = usb_drv_release_default_address(port->hc_phone);
+		if (release != EOK) {
+			uhci_print_fatal("Failed to release default address.\n");
+			return release;
+		}
+		return ret;
 	}
 
 	/* release default address */
-	usb_address_keeping_release_default(&uhci_instance->address_manager);
+	ret = usb_drv_release_default_address(port->hc_phone);
+	if (ret != EOK) {
+		uhci_print_fatal("Failed to release default address.\n");
+		return ret;
+	}
 
 	/* communicate and possibly report to devman */
 	assert(port->attached_device == 0);
@@ -112,13 +121,15 @@ static int uhci_port_new_device(uhci_port_t *port)
 		return ENOMEM;
 	}
 
+	/* TODO: bind the address here */
+
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
 static int uhci_port_remove_device(uhci_port_t *port)
 {
 	uhci_print_error("Don't know how to remove device %#x.\n",
-		port->attached_device);
+		(unsigned int)port->attached_device);
 	uhci_port_set_enabled(port, false);
 	return EOK;
 }
