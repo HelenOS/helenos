@@ -46,10 +46,10 @@
 #include <tls.h>
 #include <thread.h>
 #include <fibril.h>
-#include <async.h>
 #include <as.h>
 #include <loader/pcb.h>
 #include "private/libc.h"
+#include "private/async.h"
 
 void _exit(int status)
 {

@@ -56,7 +56,6 @@ typedef void (*async_client_conn_t)(ipc_callid_t, ipc_call_t *);
 
 extern atomic_t threads_in_ipc_wait;
 
-extern int __async_init(void);
 extern ipc_callid_t async_get_call_timeout(ipc_call_t *, suseconds_t);
 
 static inline ipc_callid_t async_get_call(ipc_call_t *data)
