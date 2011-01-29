@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Josef Cejka
+ * Copyright (c) 2011 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,18 +32,12 @@
 /** @file
  */
 
-#ifndef LIBC_SETJMP_H_
-#define LIBC_SETJMP_H_
+#ifndef LIBC_PRIVATE_MALLOC_H_
+#define LIBC_PRIVATE_MALLOC_H_
 
-#include <libarch/fibril.h>
-
-typedef context_t jmp_buf;
-
-extern int setjmp(jmp_buf env);
-extern void longjmp(jmp_buf env, int val) __attribute__((noreturn));
+extern void __malloc_init(void);
 
 #endif
 
 /** @}
  */
-

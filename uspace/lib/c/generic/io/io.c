@@ -45,6 +45,7 @@
 #include <vfs/vfs.h>
 #include <ipc/devmap.h>
 #include <adt/list.h>
+#include "../private/io.h"
 
 static void _ffillbuf(FILE *stream);
 static void _fflushbuf(FILE *stream);

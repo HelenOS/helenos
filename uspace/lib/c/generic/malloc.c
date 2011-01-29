@@ -44,6 +44,7 @@
 #include <mem.h>
 #include <futex.h>
 #include <adt/gcdlcm.h>
+#include "private/malloc.h"
 
 /* Magic used in heap headers. */
 #define HEAP_BLOCK_HEAD_MAGIC  0xBEEF0101
@@ -214,27 +215,24 @@ static void shrink_heap(void)
 
 /** Initialize the heap allocator
  *
- * Find how much physical memory we have and create
- * the heap management structures that mark the whole
- * physical memory as a single free block.
+ * Create initial heap memory area. This routine is
+ * only called from libc initialization, thus we do not
+ * take any locks.
  *
  */
-void __heap_init(void)
+void __malloc_init(void)
 {
-	futex_down(&malloc_futex);
+	if (!as_area_create((void *) &_heap, PAGE_SIZE,
+	    AS_AREA_WRITE | AS_AREA_READ))
+		abort();
 	
-	if (as_area_create((void *) &_heap, PAGE_SIZE,
-	    AS_AREA_WRITE | AS_AREA_READ)) {
-		heap_pages = 1;
-		heap_start = (void *) ALIGN_UP((uintptr_t) &_heap, BASE_ALIGN);
-		heap_end =
-		    (void *) ALIGN_DOWN(((uintptr_t) &_heap) + PAGE_SIZE, BASE_ALIGN);
-		
-		/* Make the entire area one large block. */
-		block_init(heap_start, heap_end - heap_start, true);
-	}
+	heap_pages = 1;
+	heap_start = (void *) ALIGN_UP((uintptr_t) &_heap, BASE_ALIGN);
+	heap_end =
+	    (void *) ALIGN_DOWN(((uintptr_t) &_heap) + PAGE_SIZE, BASE_ALIGN);
 	
-	futex_up(&malloc_futex);
+	/* Make the entire area one large block. */
+	block_init(heap_start, heap_end - heap_start, true);
 }
 
 /** Get maximum heap address

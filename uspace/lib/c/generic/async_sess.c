@@ -104,6 +104,7 @@
 #include <malloc.h>
 #include <errno.h>
 #include <assert.h>
+#include "private/async_sess.h"
 
 /** An inactive open connection. */
 typedef struct {
@@ -136,8 +137,9 @@ static FIBRIL_CONDVAR_INITIALIZE(avail_phone_cv);
 /** Initialize the async_sess subsystem.
  *
  * Needs to be called prior to any other interface in this file.
+ *
  */
-void _async_sess_init(void)
+void __async_sess_init(void)
 {
 	fibril_mutex_initialize(&async_sess_mutex);
 	list_initialize(&inactive_conn_head);

@@ -104,7 +104,7 @@ void fibril_mutex_lock(fibril_mutex_t *fm)
 	fibril_t *f = (fibril_t *) fibril_get_id();
 
 	if (fibril_get_sercount() != 0)
-		core();
+		abort();
 
 	futex_down(&async_futex);
 	if (fm->counter-- <= 0) {
@@ -197,7 +197,7 @@ void fibril_rwlock_read_lock(fibril_rwlock_t *frw)
 	fibril_t *f = (fibril_t *) fibril_get_id();
 	
 	if (fibril_get_sercount() != 0)
-		core();
+		abort();
 
 	futex_down(&async_futex);
 	if (frw->writers) {
@@ -225,7 +225,7 @@ void fibril_rwlock_write_lock(fibril_rwlock_t *frw)
 	fibril_t *f = (fibril_t *) fibril_get_id();
 	
 	if (fibril_get_sercount() != 0)
-		core();
+		abort();
 
 	futex_down(&async_futex);
 	if (frw->writers || frw->readers) {

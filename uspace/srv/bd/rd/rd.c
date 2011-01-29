@@ -101,7 +101,7 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 	/*
 	 * Now we wait for the client to send us its communication as_area.
 	 */
-	int flags;
+	unsigned int flags;
 	if (async_share_out_receive(&callid, &comm_size, &flags)) {
 		fs_va = as_get_mappable_page(comm_size);
 		if (fs_va) {

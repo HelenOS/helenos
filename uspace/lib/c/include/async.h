@@ -56,17 +56,13 @@ typedef void (*async_client_conn_t)(ipc_callid_t, ipc_call_t *);
 
 extern atomic_t threads_in_ipc_wait;
 
+#define async_manager() \
+	fibril_switch(FIBRIL_TO_MANAGER)
+
+#define async_get_call(data) \
+	async_get_call_timeout(data, 0)
+
 extern ipc_callid_t async_get_call_timeout(ipc_call_t *, suseconds_t);
-
-static inline ipc_callid_t async_get_call(ipc_call_t *data)
-{
-	return async_get_call_timeout(data, 0);
-}
-
-static inline void async_manager(void)
-{
-	fibril_switch(FIBRIL_TO_MANAGER);
-}
 
 /*
  * User-friendly wrappers for async_send_fast() and async_send_slow(). The
@@ -141,9 +137,10 @@ extern sysarg_t async_answer_5(ipc_callid_t, sysarg_t, sysarg_t, sysarg_t,
  * Wrappers for forwarding routines.
  */
 
-extern int async_forward_fast(ipc_callid_t, int, int, sysarg_t, sysarg_t, int);
-extern int async_forward_slow(ipc_callid_t, int, int, sysarg_t, sysarg_t,
-    sysarg_t, sysarg_t, sysarg_t, int);
+extern int async_forward_fast(ipc_callid_t, int, sysarg_t, sysarg_t, sysarg_t,
+    unsigned int);
+extern int async_forward_slow(ipc_callid_t, int, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t, sysarg_t, unsigned int);
 
 /*
  * User-friendly wrappers for async_req_fast() and async_req_slow(). The macros
@@ -304,11 +301,12 @@ extern void async_poke(void);
 #define async_share_in_start_1_1(phoneid, dst, size, arg, flags) \
 	async_share_in_start((phoneid), (dst), (size), (arg), (flags))
 
-extern int async_share_in_start(int, void *, size_t, sysarg_t, int *);
-extern int async_share_in_receive(ipc_callid_t *, size_t *);
-extern int async_share_in_finalize(ipc_callid_t, void *, int );
-extern int async_share_out_start(int, void *, int);
-extern int async_share_out_receive(ipc_callid_t *, size_t *, int *);
+extern int async_share_in_start(int, void *, size_t, sysarg_t, unsigned int *);
+extern bool async_share_in_receive(ipc_callid_t *, size_t *);
+extern int async_share_in_finalize(ipc_callid_t, void *, unsigned int);
+
+extern int async_share_out_start(int, void *, unsigned int);
+extern bool async_share_out_receive(ipc_callid_t *, size_t *, unsigned int *);
 extern int async_share_out_finalize(ipc_callid_t, void *);
 
 /*
@@ -342,7 +340,7 @@ extern int async_share_out_finalize(ipc_callid_t, void *);
 	    (arg4), (answer))
 
 extern int async_data_read_start(int, void *, size_t);
-extern int async_data_read_receive(ipc_callid_t *, size_t *);
+extern bool async_data_read_receive(ipc_callid_t *, size_t *);
 extern int async_data_read_finalize(ipc_callid_t, const void *, size_t);
 
 extern int async_data_read_forward_fast(int, sysarg_t, sysarg_t, sysarg_t,
@@ -381,12 +379,12 @@ extern int async_data_read_forward_fast(int, sysarg_t, sysarg_t, sysarg_t,
 	    (arg4), (answer))
 
 extern int async_data_write_start(int, const void *, size_t);
-extern int async_data_write_receive(ipc_callid_t *, size_t *);
+extern bool async_data_write_receive(ipc_callid_t *, size_t *);
 extern int async_data_write_finalize(ipc_callid_t, void *, size_t);
 
 extern int async_data_write_accept(void **, const bool, const size_t,
     const size_t, const size_t, size_t *);
-extern void async_data_write_void(const int);
+extern void async_data_write_void(sysarg_t);
 
 extern int async_data_write_forward_fast(int, sysarg_t, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t, ipc_call_t *);

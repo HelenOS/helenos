@@ -36,7 +36,6 @@
 void __entry(void)
 {
 	__main(NULL);
-	__exit();
 }
 
 /** @}
