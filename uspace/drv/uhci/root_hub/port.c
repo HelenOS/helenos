@@ -19,7 +19,7 @@ int uhci_port_check(void *port)
 	port_instance->hc_phone = devman_device_connect(port_instance->hc->handle, 0);
 
 	while (1) {
-		uhci_print_info("Port(%d) status address %p:\n",
+		uhci_print_verbose("Port(%d) status address %p:\n",
 		  port_instance->number, port_instance->address);
 
 		/* read register value */
@@ -27,7 +27,7 @@ int uhci_port_check(void *port)
 			port_status_read(port_instance->address);
 
 		/* debug print */
-		uhci_print_info("Port(%d) status %#.4x:\n",
+		uhci_print_info("Port(%d) status %#.4x\n",
 		  port_instance->number, port_status);
 		print_port_status(port_status);
 

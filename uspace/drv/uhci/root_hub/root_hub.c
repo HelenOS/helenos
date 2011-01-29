@@ -12,6 +12,7 @@
 int uhci_root_hub_init( uhci_root_hub_t *hub, device_t *hc, void *addr )
 {
 	assert(hub);
+	usb_dprintf_enable(NAME, DEBUG_LEVEL_INFO);
 
 	/* allow access to root hub registers */
 	port_status_t *regs;
