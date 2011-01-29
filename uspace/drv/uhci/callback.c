@@ -48,7 +48,7 @@ callback_t *instance, usb_transaction_outcome_t outcome, size_t act_size)
 		uhci_print_verbose("Callback in: %p %x %d.\n",
 		  instance->callback_in, outcome, act_size);
 		instance->callback_in(
-		  instance->dev, act_size, outcome, instance->arg);
+		  instance->dev, outcome, act_size, instance->arg);
 	} else {
 		assert(instance->callback_out);
 		assert(instance->callback_in == NULL);

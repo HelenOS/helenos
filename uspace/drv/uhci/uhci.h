@@ -37,7 +37,6 @@
 #include <fibril.h>
 
 #include <usb/addrkeep.h>
-#include <usb/hcdhubd.h>
 #include <usbhc_iface.h>
 
 #include "root_hub/root_hub.h"
