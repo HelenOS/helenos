@@ -41,6 +41,9 @@
 #include <mem.h>
 #include <as.h>
 
+#define UHCI_STRCUTURES_ALIGNMENT 16
+#define UHCI_REQUIRED_PAGE_SIZE 4096
+
 static inline void * addr_to_phys(void *addr)
 {
 	uintptr_t result;
@@ -51,17 +54,17 @@ static inline void * addr_to_phys(void *addr)
 }
 
 static inline void * malloc32(size_t size)
-/* TODO: this is ugly */
-	{ return memalign(16, size); }
+	{ return memalign(UHCI_STRCUTURES_ALIGNMENT, size); }
 
 static inline void * get_page()
 {
-	void * free_address = as_get_mappable_page(4096);
+	void * free_address = as_get_mappable_page(UHCI_REQUIRED_PAGE_SIZE);
 	assert(free_address);
 	if (free_address == 0)
 		return 0;
 	void* ret =
-	  as_area_create(free_address, 4096, AS_AREA_READ | AS_AREA_WRITE |AS_AREA_CACHEABLE);
+	  as_area_create(free_address, UHCI_REQUIRED_PAGE_SIZE,
+		  AS_AREA_READ | AS_AREA_WRITE);
 	if (ret != free_address)
 		return 0;
 	return ret;
