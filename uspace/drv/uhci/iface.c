@@ -34,7 +34,61 @@
 static int get_address(device_t *dev, devman_handle_t handle,
     usb_address_t *address)
 {
-	return ENOTSUP;
+	assert(dev);
+	uhci_t *hc = (uhci_t *)dev->driver_data;
+	assert(hc);
+	*address = usb_address_keeping_find(&hc->address_manager, handle);
+	if (*address <= 0)
+	  return *address;
+	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+static int reserve_default_address(device_t *dev)
+{
+	assert(dev);
+	uhci_t *hc = (uhci_t *)dev->driver_data;
+	assert(hc);
+	usb_address_keeping_reserve_default(&hc->address_manager);
+	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+static int release_default_address(device_t *dev)
+{
+	assert(dev);
+	uhci_t *hc = (uhci_t *)dev->driver_data;
+	assert(hc);
+	usb_address_keeping_release_default(&hc->address_manager);
+	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+static int request_address(device_t *dev, usb_address_t *address)
+{
+	assert(dev);
+	uhci_t *hc = (uhci_t *)dev->driver_data;
+	assert(hc);
+	*address = usb_address_keeping_request(&hc->address_manager);
+	if (*address <= 0)
+	  return *address;
+	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+static int bind_address(
+  device_t *dev, usb_address_t address, devman_handle_t handle)
+{
+	assert(dev);
+	uhci_t *hc = (uhci_t *)dev->driver_data;
+	assert(hc);
+	usb_address_keeping_devman_bind(&hc->address_manager, address, handle);
+	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+static int release_address(device_t *dev, usb_address_t address)
+{
+	assert(dev);
+	uhci_t *hc = (uhci_t *)dev->driver_data;
+	assert(hc);
+	usb_address_keeping_release_default(&hc->address_manager);
+	return EOK;
 }
 /*----------------------------------------------------------------------------*/
 static int interrupt_out(device_t *dev, usb_target_t target,
@@ -103,11 +157,11 @@ static int control_read_status(device_t *dev, usb_target_t target,
 usbhc_iface_t uhci_iface = {
 	.tell_address = get_address,
 
-	.reserve_default_address = NULL,
-	.release_default_address = NULL,
-	.request_address = NULL,
-	.bind_address = NULL,
-	.release_address = NULL,
+	.reserve_default_address = reserve_default_address,
+	.release_default_address = release_default_address,
+	.request_address = request_address,
+	.bind_address = bind_address,
+	.release_address = release_address,
 
 	.interrupt_out = interrupt_out,
 	.interrupt_in = interrupt_in,
