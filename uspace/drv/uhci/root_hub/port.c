@@ -43,13 +43,6 @@ int uhci_port_check(void *port)
 		if (port_status & STATUS_CONNECTED_CHANGED) {
 			if (port_status & STATUS_CONNECTED) {
 				/* new device */
-				port_status |= STATUS_IN_RESET;
-				port_status_write(port_instance->address, port_status);
-				async_usleep(1000);
-				port_status =
-					port_status_read(port_instance->address);
-				port_status &= ~STATUS_IN_RESET;
-				port_status_write(port_instance->address, port_status);
 				uhci_port_new_device(port_instance);
 			} else {
 				uhci_port_remove_device(port_instance);
@@ -78,9 +71,27 @@ static int uhci_port_new_device(uhci_port_t *port)
 	if (usb_address <= 0) {
 		return usb_address;
 	}
+	/*
+	 * the host then waits for at least 100 ms to allow completion of
+	 * an insertion process and for power at the device to become stable.
+	 */
+	async_usleep(100000);
 
 	/* enable port */
 	uhci_port_set_enabled(port, true);
+
+	/* The hub maintains the reset signal to that port for 10 ms
+	 * (See Section 11.5.1.5)
+	 */
+	port_status_t port_status =
+		port_status_read(port->address);
+	port_status |= STATUS_IN_RESET;
+	port_status_write(port->address, port_status);
+	async_usleep(10000);
+	port_status =
+		port_status_read(port->address);
+	port_status &= ~STATUS_IN_RESET;
+	port_status_write(port->address, port_status);
 
 	/* assign address to device */
 	int ret = usb_drv_req_set_address(port->hc_phone, 0, usb_address);
