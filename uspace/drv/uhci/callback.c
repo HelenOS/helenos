@@ -36,8 +36,9 @@ callback_t *instance, usb_transaction_outcome_t outcome, size_t act_size)
 	assert(instance);
 
 	/* update the old buffer */
-	if (instance->new_buffer) {
-		memcpy(instance->new_buffer, instance->old_buffer, instance->buffer_size);
+	if (instance->new_buffer &&
+	  (instance->new_buffer != instance->old_buffer)) {
+		memcpy(instance->old_buffer, instance->new_buffer, instance->buffer_size);
 		free32(instance->new_buffer);
 		instance->new_buffer = NULL;
 	}
