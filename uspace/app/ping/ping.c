@@ -34,11 +34,11 @@
  * Packet Internet Network Grouper.
  */
 
+#include <async.h>
 #include <stdio.h>
 #include <str.h>
 #include <task.h>
 #include <time.h>
-#include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <str_error.h>
 #include <errno.h>
@@ -354,7 +354,7 @@ int main(int argc, char *argv[])
 			fprintf(stderr, "%s: gettimeofday failed (%s)\n", NAME,
 			    str_error(ret));
 			
-			ipc_hangup(icmp_phone);
+			async_hangup(icmp_phone);
 			return ret;
 		}
 		
@@ -369,7 +369,7 @@ int main(int argc, char *argv[])
 			fprintf(stderr, "%s: gettimeofday failed (%s)\n", NAME,
 			    str_error(ret));
 			
-			ipc_hangup(icmp_phone);
+			async_hangup(icmp_phone);
 			return ret;
 		}
 		
@@ -389,7 +389,7 @@ int main(int argc, char *argv[])
 		}
 	}
 	
-	ipc_hangup(icmp_phone);
+	async_hangup(icmp_phone);
 	
 	return 0;
 }

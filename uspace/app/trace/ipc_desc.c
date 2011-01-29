@@ -32,8 +32,8 @@
 /** @file
  */
 
+#include <ipc/common.h>
 #include <stdlib.h>
-#include <ipc/ipc.h>
 #include "ipc_desc.h"
 
 ipc_m_desc_t ipc_methods[] = {

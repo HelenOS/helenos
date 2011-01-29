@@ -39,7 +39,6 @@
  */
 
 #include <stdio.h>
-#include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <ipc/ns.h>
 #include <async.h>
@@ -62,7 +61,7 @@ fs_reg_t devfs_reg;
 static void devfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
 	if (iid)
-		ipc_answer_0(iid, EOK);
+		async_answer_0(iid, EOK);
 	
 	while (true) {
 		ipc_call_t call;
@@ -111,7 +110,7 @@ static void devfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 			devfs_destroy(callid, &call);
 			break;
 		default:
-			ipc_answer_0(callid, ENOTSUP);
+			async_answer_0(callid, ENOTSUP);
 			break;
 		}
 	}

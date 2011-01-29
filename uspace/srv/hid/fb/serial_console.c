@@ -38,7 +38,6 @@
  */
 
 #include <stdio.h>
-#include <ipc/ipc.h>
 #include <async.h>
 #include <ipc/fb.h>
 #include <bool.h>

@@ -33,7 +33,7 @@
 #ifndef NS_TASK_H__
 #define NS_TASK_H__
 
-#include <ipc/ipc.h>
+#include <ipc/common.h>
 
 extern int task_init(void);
 extern void process_pending_wait(void);

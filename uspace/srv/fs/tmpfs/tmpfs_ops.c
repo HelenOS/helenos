@@ -38,7 +38,6 @@
 
 #include "tmpfs.h"
 #include "../../vfs/vfs.h"
-#include <ipc/ipc.h>
 #include <macros.h>
 #include <stdint.h>
 #include <async.h>
@@ -449,7 +448,7 @@ void tmpfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 	char *opts;
 	rc = async_data_write_accept((void **) &opts, true, 0, 0, 0, NULL);
 	if (rc != EOK) {
-		ipc_answer_0(rid, rc);
+		async_answer_0(rid, rc);
 		return;
 	}
 
@@ -458,14 +457,14 @@ void tmpfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 	if ((rc == EOK) && (rootfn)) {
 		(void) tmpfs_node_put(rootfn);
 		free(opts);
-		ipc_answer_0(rid, EEXIST);
+		async_answer_0(rid, EEXIST);
 		return;
 	}
 
 	/* Initialize TMPFS instance. */
 	if (!tmpfs_instance_init(devmap_handle)) {
 		free(opts);
-		ipc_answer_0(rid, ENOMEM);
+		async_answer_0(rid, ENOMEM);
 		return;
 	}
 
@@ -474,12 +473,12 @@ void tmpfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 	tmpfs_node_t *rootp = TMPFS_NODE(rootfn);
 	if (str_cmp(opts, "restore") == 0) {
 		if (tmpfs_restore(devmap_handle))
-			ipc_answer_3(rid, EOK, rootp->index, rootp->size,
+			async_answer_3(rid, EOK, rootp->index, rootp->size,
 			    rootp->lnkcnt);
 		else
-			ipc_answer_0(rid, ELIMIT);
+			async_answer_0(rid, ELIMIT);
 	} else {
-		ipc_answer_3(rid, EOK, rootp->index, rootp->size,
+		async_answer_3(rid, EOK, rootp->index, rootp->size,
 		    rootp->lnkcnt);
 	}
 	free(opts);
@@ -495,7 +494,7 @@ void tmpfs_unmounted(ipc_callid_t rid, ipc_call_t *request)
 	devmap_handle_t devmap_handle = (devmap_handle_t) IPC_GET_ARG1(*request);
 
 	tmpfs_instance_done(devmap_handle);
-	ipc_answer_0(rid, EOK);
+	async_answer_0(rid, EOK);
 }
 
 void tmpfs_unmount(ipc_callid_t rid, ipc_call_t *request)
@@ -525,7 +524,7 @@ void tmpfs_read(ipc_callid_t rid, ipc_call_t *request)
 	};
 	hlp = hash_table_find(&nodes, key);
 	if (!hlp) {
-		ipc_answer_0(rid, ENOENT);
+		async_answer_0(rid, ENOENT);
 		return;
 	}
 	tmpfs_node_t *nodep = hash_table_get_instance(hlp, tmpfs_node_t,
@@ -537,8 +536,8 @@ void tmpfs_read(ipc_callid_t rid, ipc_call_t *request)
 	ipc_callid_t callid;
 	size_t size;
 	if (!async_data_read_receive(&callid, &size)) {
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
+		async_answer_0(callid, EINVAL);
+		async_answer_0(rid, EINVAL);
 		return;
 	}
 
@@ -565,8 +564,8 @@ void tmpfs_read(ipc_callid_t rid, ipc_call_t *request)
 			;
 
 		if (lnk == &nodep->cs_head) {
-			ipc_answer_0(callid, ENOENT);
-			ipc_answer_1(rid, ENOENT, 0);
+			async_answer_0(callid, ENOENT);
+			async_answer_1(rid, ENOENT, 0);
 			return;
 		}
 
@@ -580,7 +579,7 @@ void tmpfs_read(ipc_callid_t rid, ipc_call_t *request)
 	/*
 	 * Answer the VFS_READ call.
 	 */
-	ipc_answer_1(rid, EOK, bytes);
+	async_answer_1(rid, EOK, bytes);
 }
 
 void tmpfs_write(ipc_callid_t rid, ipc_call_t *request)
@@ -600,7 +599,7 @@ void tmpfs_write(ipc_callid_t rid, ipc_call_t *request)
 	};
 	hlp = hash_table_find(&nodes, key);
 	if (!hlp) {
-		ipc_answer_0(rid, ENOENT);
+		async_answer_0(rid, ENOENT);
 		return;
 	}
 	tmpfs_node_t *nodep = hash_table_get_instance(hlp, tmpfs_node_t,
@@ -612,8 +611,8 @@ void tmpfs_write(ipc_callid_t rid, ipc_call_t *request)
 	ipc_callid_t callid;
 	size_t size;
 	if (!async_data_write_receive(&callid, &size)) {
-		ipc_answer_0(callid, EINVAL);	
-		ipc_answer_0(rid, EINVAL);
+		async_answer_0(callid, EINVAL);	
+		async_answer_0(rid, EINVAL);
 		return;
 	}
 
@@ -623,7 +622,7 @@ void tmpfs_write(ipc_callid_t rid, ipc_call_t *request)
 	if (pos + size <= nodep->size) {
 		/* The file size is not changing. */
 		(void) async_data_write_finalize(callid, nodep->data + pos, size);
-		ipc_answer_2(rid, EOK, size, nodep->size);
+		async_answer_2(rid, EOK, size, nodep->size);
 		return;
 	}
 	size_t delta = (pos + size) - nodep->size;
@@ -636,8 +635,8 @@ void tmpfs_write(ipc_callid_t rid, ipc_call_t *request)
 	 */
 	void *newdata = realloc(nodep->data, nodep->size + delta);
 	if (!newdata) {
-		ipc_answer_0(callid, ENOMEM);
-		ipc_answer_2(rid, EOK, 0, nodep->size);
+		async_answer_0(callid, ENOMEM);
+		async_answer_2(rid, EOK, 0, nodep->size);
 		return;
 	}
 	/* Clear any newly allocated memory in order to emulate gaps. */
@@ -645,7 +644,7 @@ void tmpfs_write(ipc_callid_t rid, ipc_call_t *request)
 	nodep->size += delta;
 	nodep->data = newdata;
 	(void) async_data_write_finalize(callid, nodep->data + pos, size);
-	ipc_answer_2(rid, EOK, size, nodep->size);
+	async_answer_2(rid, EOK, size, nodep->size);
 }
 
 void tmpfs_truncate(ipc_callid_t rid, ipc_call_t *request)
@@ -664,25 +663,25 @@ void tmpfs_truncate(ipc_callid_t rid, ipc_call_t *request)
 	};
 	link_t *hlp = hash_table_find(&nodes, key);
 	if (!hlp) {
-		ipc_answer_0(rid, ENOENT);
+		async_answer_0(rid, ENOENT);
 		return;
 	}
 	tmpfs_node_t *nodep = hash_table_get_instance(hlp, tmpfs_node_t,
 	    nh_link);
 	
 	if (size == nodep->size) {
-		ipc_answer_0(rid, EOK);
+		async_answer_0(rid, EOK);
 		return;
 	}
 	
 	if (size > SIZE_MAX) {
-		ipc_answer_0(rid, ENOMEM);
+		async_answer_0(rid, ENOMEM);
 		return;
 	}
 	
 	void *newdata = realloc(nodep->data, size);
 	if (!newdata) {
-		ipc_answer_0(rid, ENOMEM);
+		async_answer_0(rid, ENOMEM);
 		return;
 	}
 	
@@ -693,12 +692,12 @@ void tmpfs_truncate(ipc_callid_t rid, ipc_call_t *request)
 	
 	nodep->size = size;
 	nodep->data = newdata;
-	ipc_answer_0(rid, EOK);
+	async_answer_0(rid, EOK);
 }
 
 void tmpfs_close(ipc_callid_t rid, ipc_call_t *request)
 {
-	ipc_answer_0(rid, EOK);
+	async_answer_0(rid, EOK);
 }
 
 void tmpfs_destroy(ipc_callid_t rid, ipc_call_t *request)
@@ -714,13 +713,13 @@ void tmpfs_destroy(ipc_callid_t rid, ipc_call_t *request)
 	};
 	hlp = hash_table_find(&nodes, key);
 	if (!hlp) {
-		ipc_answer_0(rid, ENOENT);
+		async_answer_0(rid, ENOENT);
 		return;
 	}
 	tmpfs_node_t *nodep = hash_table_get_instance(hlp, tmpfs_node_t,
 	    nh_link);
 	rc = tmpfs_destroy_node(FS_NODE(nodep));
-	ipc_answer_0(rid, rc);
+	async_answer_0(rid, rc);
 }
 
 void tmpfs_open_node(ipc_callid_t rid, ipc_call_t *request)
@@ -739,7 +738,7 @@ void tmpfs_sync(ipc_callid_t rid, ipc_call_t *request)
 	 * TMPFS keeps its data structures always consistent,
 	 * thus the sync operation is a no-op.
 	 */
-	ipc_answer_0(rid, EOK);
+	async_answer_0(rid, EOK);
 }
 
 /**
