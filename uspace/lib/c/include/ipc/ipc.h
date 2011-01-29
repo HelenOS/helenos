@@ -52,6 +52,7 @@ typedef void (*ipc_async_callback_t)(void *, int, ipc_call_t *);
  * arguments of payload and n denotes number of return values. Whenever
  * possible, the fast version is used.
  */
+
 #define ipc_call_sync_0_0(phoneid, method) \
 	ipc_call_sync_fast((phoneid), (method), 0, 0, 0, 0, 0, 0, 0, 0)
 #define ipc_call_sync_0_1(phoneid, method, res1) \
@@ -181,15 +182,13 @@ extern int ipc_call_sync_slow(int, sysarg_t, sysarg_t, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t, sysarg_t *, sysarg_t *, sysarg_t *, sysarg_t *,
     sysarg_t *);
 
-extern ipc_callid_t ipc_wait_cycle(ipc_call_t *, uint32_t, int);
-extern ipc_callid_t ipc_wait_for_call_timeout(ipc_call_t *, uint32_t);
+extern ipc_callid_t ipc_wait_cycle(ipc_call_t *, sysarg_t, unsigned int);
 extern void ipc_poke(void);
 
-static inline ipc_callid_t ipc_wait_for_call(ipc_call_t *data)
-{
-	return ipc_wait_for_call_timeout(data, SYNCH_NO_TIMEOUT);
-}
+#define ipc_wait_for_call(data) \
+	ipc_wait_for_call_timeout(data, SYNCH_NO_TIMEOUT);
 
+extern ipc_callid_t ipc_wait_for_call_timeout(ipc_call_t *, sysarg_t);
 extern ipc_callid_t ipc_trywait_for_call(ipc_call_t *);
 
 /*
@@ -198,6 +197,7 @@ extern ipc_callid_t ipc_trywait_for_call(ipc_call_t *);
  * arguments. The macros decide between the fast and the slow version according
  * to m.
  */
+
 #define ipc_answer_0(callid, retval) \
 	ipc_answer_fast((callid), (retval), 0, 0, 0, 0)
 #define ipc_answer_1(callid, retval, arg1) \
@@ -222,6 +222,7 @@ extern sysarg_t ipc_answer_slow(ipc_callid_t, sysarg_t, sysarg_t, sysarg_t,
  * arguments. The macros decide between the fast and the slow version according
  * to m.
  */
+
 #define ipc_call_async_0(phoneid, method, private, callback, can_preempt) \
 	ipc_call_async_fast((phoneid), (method), 0, 0, 0, 0, (private), \
 	    (callback), (can_preempt))
@@ -247,21 +248,26 @@ extern sysarg_t ipc_answer_slow(ipc_callid_t, sysarg_t, sysarg_t, sysarg_t,
 	    (arg4), (arg5), (private), (callback), (can_preempt))
 
 extern void ipc_call_async_fast(int, sysarg_t, sysarg_t, sysarg_t, sysarg_t,
-    sysarg_t, void *, ipc_async_callback_t, int);
+    sysarg_t, void *, ipc_async_callback_t, bool);
 extern void ipc_call_async_slow(int, sysarg_t, sysarg_t, sysarg_t, sysarg_t,
-    sysarg_t, sysarg_t, void *, ipc_async_callback_t, int);
+    sysarg_t, sysarg_t, void *, ipc_async_callback_t, bool);
 
-extern int ipc_connect_to_me(int, int, int, int, sysarg_t *, sysarg_t *);
-extern int ipc_connect_me_to(int, int, int, int);
-extern int ipc_connect_me_to_blocking(int, int, int, int);
+extern int ipc_connect_to_me(int, sysarg_t, sysarg_t, sysarg_t, sysarg_t *,
+    sysarg_t *);
+extern int ipc_connect_me_to(int, sysarg_t, sysarg_t, sysarg_t);
+extern int ipc_connect_me_to_blocking(int, sysarg_t, sysarg_t, sysarg_t);
+
 extern int ipc_hangup(int);
-extern int ipc_forward_fast(ipc_callid_t, int, int, sysarg_t, sysarg_t, int);
-extern int ipc_forward_slow(ipc_callid_t, int, int, sysarg_t, sysarg_t,
-    sysarg_t, sysarg_t, sysarg_t, int);
+
+extern int ipc_forward_fast(ipc_callid_t, int, sysarg_t, sysarg_t, sysarg_t,
+    unsigned int);
+extern int ipc_forward_slow(ipc_callid_t, int, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t, sysarg_t, unsigned int);
 
 /*
  * User-friendly wrappers for ipc_share_in_start().
  */
+
 #define ipc_share_in_start_0_0(phoneid, dst, size) \
 	ipc_share_in_start((phoneid), (dst), (size), 0, NULL)
 #define ipc_share_in_start_0_1(phoneid, dst, size, flags) \
@@ -271,9 +277,9 @@ extern int ipc_forward_slow(ipc_callid_t, int, int, sysarg_t, sysarg_t,
 #define ipc_share_in_start_1_1(phoneid, dst, size, arg, flags) \
 	ipc_share_in_start((phoneid), (dst), (size), (arg), (flags))
 
-extern int ipc_share_in_start(int, void *, size_t, sysarg_t, int *);
-extern int ipc_share_in_finalize(ipc_callid_t, void *, int );
-extern int ipc_share_out_start(int, void *, int);
+extern int ipc_share_in_start(int, void *, size_t, sysarg_t, unsigned int *);
+extern int ipc_share_in_finalize(ipc_callid_t, void *, unsigned int);
+extern int ipc_share_out_start(int, void *, unsigned int);
 extern int ipc_share_out_finalize(ipc_callid_t, void *);
 extern int ipc_data_read_start(int, void *, size_t);
 extern int ipc_data_read_finalize(ipc_callid_t, const void *, size_t);

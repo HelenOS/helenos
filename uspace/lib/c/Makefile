@@ -96,7 +96,6 @@ GENERIC_SOURCES = \
 	generic/adt/measured_strings.c \
 	generic/adt/char_map.c \
 	generic/time.c \
-	generic/err.c \
 	generic/stdlib.c \
 	generic/mman.c \
 	generic/udebug.c \

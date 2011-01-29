@@ -40,7 +40,7 @@
 #include <libarch/config.h>
 
 #ifndef NULL
-	#define NULL	((void *) 0)
+	#define NULL  ((void *) 0)
 #endif
 
 #define getpagesize()  (PAGE_SIZE)
@@ -73,7 +73,7 @@ extern char *getcwd(char *buf, size_t);
 extern int rmdir(const char *);
 extern int chdir(const char *);
 
-extern void _exit(int) __attribute__((noreturn));
+extern void exit(int) __attribute__((noreturn));
 extern int usleep(useconds_t);
 extern unsigned int sleep(unsigned int);
 

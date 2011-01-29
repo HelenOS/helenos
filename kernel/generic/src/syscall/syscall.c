@@ -85,8 +85,7 @@ sysarg_t syscall_handler(sysarg_t a1, sysarg_t a2, sysarg_t a3,
 		rc = syscall_table[id](a1, a2, a3, a4, a5, a6);
 	} else {
 		printf("Task %" PRIu64": Unknown syscall %#" PRIxn, TASK->taskid, id);
-		task_kill(TASK->taskid);
-		thread_exit();
+		task_kill_self(true);
 	}
 	
 	if (THREAD->interrupted)
@@ -130,6 +129,7 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	(syshandler_t) sys_task_get_id,
 	(syshandler_t) sys_task_set_name,
 	(syshandler_t) sys_task_kill,
+	(syshandler_t) sys_task_exit,
 	(syshandler_t) sys_program_spawn_loader,
 	
 	/* Synchronization related syscalls. */

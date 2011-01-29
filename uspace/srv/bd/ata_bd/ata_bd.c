@@ -264,7 +264,7 @@ static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 	ipc_call_t call;
 	sysarg_t method;
 	devmap_handle_t dh;
-	int flags;
+	unsigned int flags;
 	int retval;
 	uint64_t ba;
 	size_t cnt;

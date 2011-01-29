@@ -36,8 +36,7 @@
 #define LIBC_PRIVATE_LIBC_H_
 
 extern int main(int, char *[]);
-extern void __main(void *);
-extern void __exit(void);
+extern void __main(void *) __attribute__((noreturn));
 
 #endif
 
