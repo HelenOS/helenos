@@ -173,6 +173,7 @@ static void gta02_output_init(void)
 		stdout_wire(fb_dev);
 		fb_parea.pbase = GTA02_FB_BASE;
 		fb_parea.frames = 150;
+		fb_parea.unpriv = false;
 		ddi_parea_register(&fb_parea);
 	}
 #endif
