@@ -33,13 +33,15 @@
  */
 
 #include <sys/time.h>
-#include <unistd.h>
+#include <time.h>
 #include <bool.h>
-#include <ipc/ns.h>
 #include <arch/barrier.h>
 #include <macros.h>
+#include <errno.h>
+#include <sysinfo.h>
+#include <as.h>
+#include <ddi.h>
 #include <libc.h>
-#include <time.h>
 
 /** Pointer to kernel shared variables with time */
 struct {
@@ -136,10 +138,29 @@ int tv_gteq(struct timeval *tv1, struct timeval *tv2)
  */
 int gettimeofday(struct timeval *tv, struct timezone *tz)
 {
-	if (!ktime) {
-		ktime = service_realtime_share_in();
-		if (!ktime)
+	if (ktime == NULL) {
+		uintptr_t faddr;
+		int rc = sysinfo_get_value("clock.faddr", &faddr);
+		if (rc != EOK) {
+			errno = rc;
 			return -1;
+		}
+		
+		void *addr = as_get_mappable_page(PAGE_SIZE);
+		if (addr == NULL) {
+			errno = ENOMEM;
+			return -1;
+		}
+		
+		rc = physmem_map((void *) faddr, addr, 1,
+		    AS_AREA_READ | AS_AREA_CACHEABLE);
+		if (rc != EOK) {
+			as_area_destroy(addr);
+			errno = rc;
+			return -1;
+		}
+		
+		ktime = addr;
 	}
 	
 	if (tz) {

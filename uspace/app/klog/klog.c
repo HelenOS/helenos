@@ -35,15 +35,14 @@
  */
 
 #include <stdio.h>
-#include <ipc/ns.h>
 #include <async.h>
-#include <ipc/services.h>
 #include <as.h>
-#include <sysinfo.h>
+#include <ddi.h>
 #include <event.h>
 #include <errno.h>
 #include <str_error.h>
 #include <io/klog.h>
+#include <sysinfo.h>
 
 #define NAME       "klog"
 #define LOG_FNAME  "/log/klog"
@@ -78,15 +77,44 @@ static void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
 
 int main(int argc, char *argv[])
 {
-	klog = service_klog_share_in(&klog_length);
-	if (klog == NULL) {
-		printf("%s: Error accessing to klog\n", NAME);
-		return -1;
+	size_t pages;
+	int rc = sysinfo_get_value("klog.pages", &pages);
+	if (rc != EOK) {
+		fprintf(stderr, "%s: Unable to get number of klog pages\n",
+		    NAME);
+		return rc;
 	}
 	
-	if (event_subscribe(EVENT_KLOG, 0) != EOK) {
-		printf("%s: Error registering klog notifications\n", NAME);
-		return -1;
+	uintptr_t faddr;
+	rc = sysinfo_get_value("klog.faddr", &faddr);
+	if (rc != EOK) {
+		fprintf(stderr, "%s: Unable to get klog physical address\n",
+		    NAME);
+		return rc;
+	}
+	
+	size_t size = pages * PAGE_SIZE;
+	klog_length = size / sizeof(wchar_t);
+	
+	klog = (wchar_t *) as_get_mappable_page(size);
+	if (klog == NULL) {
+		fprintf(stderr, "%s: Unable to allocate virtual memory area\n",
+		    NAME);
+		return ENOMEM;
+	}
+	
+	rc = physmem_map((void *) faddr, (void *) klog, pages,
+	    AS_AREA_READ | AS_AREA_CACHEABLE);
+	if (rc != EOK) {
+		fprintf(stderr, "%s: Unable to map klog\n", NAME);
+		return rc;
+	}
+	
+	rc = event_subscribe(EVENT_KLOG, 0);
+	if (rc != EOK) {
+		fprintf(stderr, "%s: Unable to register klog notifications\n",
+		    NAME);
+		return rc;
 	}
 	
 	/*

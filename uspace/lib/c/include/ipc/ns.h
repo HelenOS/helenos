@@ -49,9 +49,6 @@ extern int service_register(sysarg_t);
 extern int service_connect(sysarg_t, sysarg_t, sysarg_t);
 extern int service_connect_blocking(sysarg_t, sysarg_t, sysarg_t);
 
-extern wchar_t *service_klog_share_in(size_t *);
-extern void *service_realtime_share_in(void);
-
 #endif
 
 /** @}

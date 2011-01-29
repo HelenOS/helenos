@@ -33,12 +33,7 @@
  */
 
 #include <async.h>
-#include <ipc/services.h>
 #include <ipc/ns.h>
-#include <sysinfo.h>
-#include <errno.h>
-#include <as.h>
-#include <macros.h>
 
 int service_register(sysarg_t service)
 {
@@ -53,45 +48,6 @@ int service_connect(sysarg_t service, sysarg_t arg2, sysarg_t arg3)
 int service_connect_blocking(sysarg_t service, sysarg_t arg2, sysarg_t arg3)
 {
 	return async_connect_me_to_blocking(PHONE_NS, service, arg2, arg3);
-}
-
-wchar_t *service_klog_share_in(size_t *length)
-{
-	size_t pages;
-	if (sysinfo_get_value("klog.pages", &pages) != EOK)
-		return NULL;
-	
-	size_t size = pages * PAGE_SIZE;
-	*length = size / sizeof(wchar_t);
-	
-	wchar_t *klog = (wchar_t *) as_get_mappable_page(size);
-	if (klog == NULL)
-		return NULL;
-	
-	int res = async_share_in_start_1_0(PHONE_NS, (void *) klog, size,
-	    SERVICE_MEM_KLOG);
-	if (res != EOK) {
-		as_area_destroy((void *) klog);
-		return NULL;
-	}
-	
-	return klog;
-}
-
-void *service_realtime_share_in(void)
-{
-	void *rtime = as_get_mappable_page(PAGE_SIZE);
-	if (rtime == NULL)
-		return NULL;
-	
-	int res = async_share_in_start_1_0(PHONE_NS, rtime, PAGE_SIZE,
-	    SERVICE_MEM_REALTIME);
-	if (res != EOK) {
-		as_area_destroy((void *) rtime);
-		return NULL;
-	}
-	
-	return rtime;
 }
 
 /** @}
