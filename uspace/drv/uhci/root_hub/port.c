@@ -1,7 +1,7 @@
 
 #include <errno.h>
-#include <usb/usb.h>
-#include <usb/usbdrv.h>
+#include <usb/usb.h>    /* usb_address_t */
+#include <usb/usbdrv.h> /* usb_drv_*     */
 
 #include "debug.h"
 #include "port.h"
@@ -120,6 +120,8 @@ static int uhci_port_new_device(uhci_port_t *port)
 		uhci_port_set_enabled(port, false);
 		return ENOMEM;
 	}
+	uhci_print_info("Sucessfully added device on port(%d) address(%d).\n",
+		port->number, usb_address);
 
 	/* TODO: bind the address here */
 

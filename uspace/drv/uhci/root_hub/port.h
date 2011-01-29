@@ -35,7 +35,7 @@
 #define DRV_UHCI_PORT_H
 
 #include <assert.h>
-#include <driver.h>
+#include <driver.h> /* device_t */
 #include <stdint.h>
 
 #include "port_status.h"
@@ -54,7 +54,7 @@ static inline void uhci_port_init(
   uhci_port_t *port, port_status_t *address, device_t *hc, unsigned number,
   unsigned usec)
 {
-	assert( port );
+	assert(port);
 	port->address = address;
 	port->hc = hc;
 	port->number = number;

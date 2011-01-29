@@ -37,7 +37,8 @@
 #include <stdio.h>
 #include <usb/debug.h>
 
-#define NAME "uhci_root_hub"
+#define NAME "uhci_root_hubd"
+
 enum debug_levels {
 	DEBUG_LEVEL_FATAL_ERROR = 1,
 	DEBUG_LEVEL_ERROR = 2,
