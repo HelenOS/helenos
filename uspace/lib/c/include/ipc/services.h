@@ -65,9 +65,11 @@ typedef enum {
 	SERVICE_SOCKET
 } services_t;
 
-/* Memory area to be received from NS */
-#define SERVICE_MEM_REALTIME    1
-#define SERVICE_MEM_KLOG        2
+/* Memory areas to be received from NS */
+typedef enum {
+	SERVICE_MEM_REALTIME = 1,
+	SERVICE_MEM_KLOG = 2
+} mem_services_t;
 
 #endif
 

@@ -36,7 +36,7 @@
 #define LIBC_NS_H_
 
 #include <sys/types.h>
-#include <ipc/ipc.h>
+#include <ipc/common.h>
 
 typedef enum {
 	NS_PING = IPC_FIRST_USER_METHOD,
@@ -50,6 +50,7 @@ extern int service_connect(sysarg_t, sysarg_t, sysarg_t);
 extern int service_connect_blocking(sysarg_t, sysarg_t, sysarg_t);
 
 extern wchar_t *service_klog_share_in(size_t *);
+extern void *service_realtime_share_in(void);
 
 #endif
 
