@@ -44,13 +44,8 @@
 #include <malloc.h>
 #include <errno.h>
 #include <adt/list.h>
-#include <stdio.h>
-#include <unistd.h>
 #include <futex.h>
-#include <kernel/synch/synch.h>
-#include <async.h>
 #include <fibril.h>
-#include <assert.h>
 
 /**
  * Structures of this type are used for keeping track of sent asynchronous calls
@@ -647,33 +642,6 @@ int ipc_connect_me_to_blocking(int phoneid, int arg1, int arg2, int arg3)
 int ipc_hangup(int phoneid)
 {
 	return __SYSCALL1(SYS_IPC_HANGUP, phoneid);
-}
-
-/** Register IRQ notification.
- *
- * @param inr		IRQ number.
- * @param devno		Device number of the device generating inr.
- * @param method	Use this method for notifying me.
- * @param ucode		Top-half pseudocode handler.
- *
- * @return		Value returned by the kernel.
- */
-int ipc_register_irq(int inr, int devno, int method, irq_code_t *ucode)
-{
-	return __SYSCALL4(SYS_IPC_REGISTER_IRQ, inr, devno, method,
-	    (sysarg_t) ucode);
-}
-
-/** Unregister IRQ notification.
- *
- * @param inr		IRQ number.
- * @param devno		Device number of the device generating inr.
- *
- * @return		Value returned by the kernel.
- */
-int ipc_unregister_irq(int inr, int devno)
-{
-	return __SYSCALL2(SYS_IPC_UNREGISTER_IRQ, inr, devno);
 }
 
 /** Forward a received call to another destination.

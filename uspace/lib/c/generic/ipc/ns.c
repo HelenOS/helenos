@@ -78,5 +78,21 @@ wchar_t *service_klog_share_in(size_t *length)
 	return klog;
 }
 
+void *service_realtime_share_in(void)
+{
+	void *rtime = as_get_mappable_page(PAGE_SIZE);
+	if (rtime == NULL)
+		return NULL;
+	
+	int res = async_share_in_start_1_0(PHONE_NS, rtime, PAGE_SIZE,
+	    SERVICE_MEM_REALTIME);
+	if (res != EOK) {
+		as_area_destroy((void *) rtime);
+		return NULL;
+	}
+	
+	return rtime;
+}
+
 /** @}
  */

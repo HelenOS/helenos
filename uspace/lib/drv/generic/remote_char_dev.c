@@ -32,7 +32,6 @@
 /** @file
  */
 
-#include <ipc/ipc.h>
 #include <async.h>
 #include <errno.h>
 
@@ -80,13 +79,13 @@ remote_char_read(device_t *dev, void *ops, ipc_callid_t callid,
 	size_t len;
 	if (!async_data_read_receive(&cid, &len)) {
 		/* TODO handle protocol error. */
-		ipc_answer_0(callid, EINVAL);
+		async_answer_0(callid, EINVAL);
 		return;
 	}
 	
 	if (!char_dev_ops->read) {
 		async_data_read_finalize(cid, NULL, 0);
-		ipc_answer_0(callid, ENOTSUP);
+		async_answer_0(callid, ENOTSUP);
 		return;
 	}
 	
@@ -99,13 +98,13 @@ remote_char_read(device_t *dev, void *ops, ipc_callid_t callid,
 	if (ret < 0) {
 		/* Some error occured. */
 		async_data_read_finalize(cid, buf, 0);
-		ipc_answer_0(callid, ret);
+		async_answer_0(callid, ret);
 		return;
 	}
 	
 	/* The operation was successful, return the number of data read. */
 	async_data_read_finalize(cid, buf, ret);
-	ipc_answer_1(callid, EOK, ret);
+	async_answer_1(callid, EOK, ret);
 }
 
 /** Process the write request from the remote client.
@@ -127,13 +126,13 @@ remote_char_write(device_t *dev, void *ops, ipc_callid_t callid,
 	
 	if (!async_data_write_receive(&cid, &len)) {
 		/* TODO handle protocol error. */
-		ipc_answer_0(callid, EINVAL);
+		async_answer_0(callid, EINVAL);
 		return;
 	}
 	
 	if (!char_dev_ops->write) {
 		async_data_write_finalize(cid, NULL, 0);
-		ipc_answer_0(callid, ENOTSUP);
+		async_answer_0(callid, ENOTSUP);
 		return;
 	}
 	
@@ -147,13 +146,13 @@ remote_char_write(device_t *dev, void *ops, ipc_callid_t callid,
 	int ret = (*char_dev_ops->write)(dev, buf, len);
 	if (ret < 0) {
 		/* Some error occured. */
-		ipc_answer_0(callid, ret);
+		async_answer_0(callid, ret);
 	} else {
 		/*
 		 * The operation was successful, return the number of data
 		 * written.
 		 */
-		ipc_answer_1(callid, EOK, ret);
+		async_answer_1(callid, EOK, ret);
 	}
 }
 

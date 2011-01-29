@@ -35,7 +35,6 @@
  * @brief i8259 driver.
  */
 
-#include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <ipc/irc.h>
 #include <ipc/ns.h>
@@ -108,21 +107,21 @@ static void i8259_connection(ipc_callid_t iid, ipc_call_t *icall)
 	/*
 	 * Answer the first IPC_M_CONNECT_ME_TO call.
 	 */
-	ipc_answer_0(iid, EOK);
+	async_answer_0(iid, EOK);
 	
 	while (true) {
 		callid = async_get_call(&call);
 		
 		switch (IPC_GET_IMETHOD(call)) {
 		case IRC_ENABLE_INTERRUPT:
-			ipc_answer_0(callid, pic_enable_irq(IPC_GET_ARG1(call)));
+			async_answer_0(callid, pic_enable_irq(IPC_GET_ARG1(call)));
 			break;
 		case IRC_CLEAR_INTERRUPT:
 			/* Noop */
-			ipc_answer_0(callid, EOK);
+			async_answer_0(callid, EOK);
 			break;
 		default:
-			ipc_answer_0(callid, EINVAL);
+			async_answer_0(callid, EINVAL);
 			break;
 		}
 	}

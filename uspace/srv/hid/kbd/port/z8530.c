@@ -34,7 +34,6 @@
  * @brief Z8530 keyboard port driver.
  */
 
-#include <ipc/ipc.h>
 #include <ipc/irc.h>
 #include <async.h>
 #include <sysinfo.h>

@@ -34,7 +34,6 @@
  * @brief NS16550 port driver.
  */
 
-#include <ipc/ipc.h>
 #include <ipc/irc.h>
 #include <async.h>
 #include <sysinfo.h>

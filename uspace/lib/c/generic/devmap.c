@@ -28,7 +28,6 @@
  */
 
 #include <str.h>
-#include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <ipc/ns.h>
 #include <ipc/devmap.h>
@@ -79,13 +78,13 @@ void devmap_hangup_phone(devmap_interface_t iface)
 	switch (iface) {
 	case DEVMAP_DRIVER:
 		if (devmap_phone_driver >= 0) {
-			ipc_hangup(devmap_phone_driver);
+			async_hangup(devmap_phone_driver);
 			devmap_phone_driver = -1;
 		}
 		break;
 	case DEVMAP_CLIENT:
 		if (devmap_phone_client >= 0) {
-			ipc_hangup(devmap_phone_client);
+			async_hangup(devmap_phone_client);
 			devmap_phone_client = -1;
 		}
 		break;
@@ -116,7 +115,7 @@ int devmap_driver_register(const char *name, async_client_conn_t conn)
 	
 	async_set_client_connection(conn);
 	
-	ipc_connect_to_me(phone, 0, 0, 0, NULL, NULL);
+	async_connect_to_me(phone, 0, 0, 0, NULL);
 	async_wait_for(req, &retval);
 	
 	async_serialize_end();

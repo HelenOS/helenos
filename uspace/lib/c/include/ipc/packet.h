@@ -37,7 +37,6 @@
 #ifndef LIBC_PACKET_MESSAGES_
 #define LIBC_PACKET_MESSAGES_
 
-#include <ipc/ipc.h>
 #include <ipc/net.h>
 
 /** Packet server module messages. */

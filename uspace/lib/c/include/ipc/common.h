@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2011 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,50 +26,32 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libdrv
+/** @addtogroup libcipc
  * @{
  */
 /** @file
  */
 
-#ifndef LIBDRV_DEV_IFACE_H_
-#define LIBDRV_DEV_IFACE_H_
+#ifndef LIBC_IPC_COMMON_H_
+#define LIBC_IPC_COMMON_H_
 
-#include <ipc/common.h>
-#include <ipc/dev_iface.h>
+#include <sys/types.h>
+#include <atomic.h>
+#include <kernel/ipc/ipc.h>
 
-/*
- * Device interface
- */
-
-struct device;
-
-/*
- * First two parameters: device and interface structure registered by the
- * devices driver.
- */
-typedef void remote_iface_func_t(struct device *, void *, ipc_callid_t,
-    ipc_call_t *);
-typedef remote_iface_func_t *remote_iface_func_ptr_t;
-typedef void remote_handler_t(struct device *, ipc_callid_t, ipc_call_t *);
+#define IPC_FLAG_BLOCKING  0x01
 
 typedef struct {
-	size_t method_count;
-	remote_iface_func_ptr_t *methods;
-} remote_iface_t;
+	sysarg_t args[IPC_CALL_LEN];
+	sysarg_t in_task_hash;
+	sysarg_t in_phone_hash;
+} ipc_call_t;
 
-typedef struct {
-	remote_iface_t *ifaces[DEV_IFACE_COUNT];
-} iface_dipatch_table_t;
+typedef sysarg_t ipc_callid_t;
 
-extern remote_iface_t *get_remote_iface(int);
-extern remote_iface_func_ptr_t get_remote_method(remote_iface_t *, sysarg_t);
-
-
-extern bool is_valid_iface_idx(int);
+extern atomic_t async_futex;
 
 #endif
 
-/**
- * @}
+/** @}
  */

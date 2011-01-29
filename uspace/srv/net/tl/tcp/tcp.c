@@ -43,7 +43,6 @@
 #include <stdio.h>
 #include <errno.h>
 
-#include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <ipc/net.h>
 #include <ipc/tl.h>
@@ -1505,7 +1504,7 @@ int tcp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 	}
 
 	/* Release the application phone */
-	ipc_hangup(app_phone);
+	async_hangup(app_phone);
 
 	printf("release\n");
 	/* Release all local sockets */
@@ -2453,10 +2452,10 @@ static void tcp_receiver(ipc_callid_t iid, ipc_call_t *icall)
 				rc = tcp_received_msg(IPC_GET_DEVICE(*icall), packet,
 				    SERVICE_TCP, IPC_GET_ERROR(*icall));
 			
-			ipc_answer_0(iid, (sysarg_t) rc);
+			async_answer_0(iid, (sysarg_t) rc);
 			break;
 		default:
-			ipc_answer_0(iid, (sysarg_t) ENOTSUP);
+			async_answer_0(iid, (sysarg_t) ENOTSUP);
 		}
 		
 		iid = async_get_call(icall);

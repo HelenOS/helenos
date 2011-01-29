@@ -39,7 +39,6 @@
 #ifndef LIBC_IL_MESSAGES_H_
 #define LIBC_IL_MESSAGES_H_
 
-#include <ipc/ipc.h>
 #include <ipc/net.h>
 
 /** Internet layer modules messages. */

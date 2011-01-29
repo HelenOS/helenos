@@ -37,25 +37,20 @@
 
 #include <kernel/udebug/udebug.h>
 #include <sys/types.h>
-#include <libarch/types.h>
 
 typedef sysarg_t thash_t;
 
-int udebug_begin(int phoneid);
-int udebug_end(int phoneid);
-int udebug_set_evmask(int phoneid, udebug_evmask_t mask);
-int udebug_thread_read(int phoneid, void *buffer, size_t n,
-	size_t *copied, size_t *needed);
-int udebug_name_read(int phoneid, void *buffer, size_t n,
-	size_t *copied, size_t *needed);
-int udebug_areas_read(int phoneid, void *buffer, size_t n,
-	size_t *copied, size_t *needed);
-int udebug_mem_read(int phoneid, void *buffer, uintptr_t addr, size_t n);
-int udebug_args_read(int phoneid, thash_t tid, sysarg_t *buffer);
-int udebug_regs_read(int phoneid, thash_t tid, void *buffer);
-int udebug_go(int phoneid, thash_t tid, udebug_event_t *ev_type,
-	sysarg_t *val0, sysarg_t *val1);
-int udebug_stop(int phoneid, thash_t tid);
+int udebug_begin(int);
+int udebug_end(int);
+int udebug_set_evmask(int, udebug_evmask_t);
+int udebug_thread_read(int, void *, size_t , size_t *, size_t *);
+int udebug_name_read(int, void *, size_t, size_t *, size_t *);
+int udebug_areas_read(int, void *, size_t, size_t *, size_t *);
+int udebug_mem_read(int, void *, uintptr_t, size_t);
+int udebug_args_read(int, thash_t, sysarg_t *);
+int udebug_regs_read(int, thash_t, void *);
+int udebug_go(int, thash_t, udebug_event_t *, sysarg_t *, sysarg_t *);
+int udebug_stop(int, thash_t);
 
 #endif
 

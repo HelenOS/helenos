@@ -36,7 +36,6 @@
 
 #include <ddi.h>
 #include <libarch/ddi.h>
-#include <ipc/ipc.h>
 #include <async.h>
 #include <unistd.h>
 #include <sysinfo.h>

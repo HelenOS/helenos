@@ -589,7 +589,7 @@ static void pass_devices_to_driver(driver_t *driver, dev_tree_t *tree)
 		link = driver->devices.next;
 	}
 
-	ipc_hangup(phone);
+	async_hangup(phone);
 
 	/*
 	 * Once we passed all devices to the driver, we need to mark the
@@ -786,7 +786,7 @@ bool assign_driver(node_t *node, driver_list_t *drivers_list, dev_tree_t *tree)
 		int phone = async_connect_me_to(drv->phone, DRIVER_DEVMAN, 0, 0);
 		if (phone >= 0) {
 			add_device(phone, drv, node, tree);
-			ipc_hangup(phone);
+			async_hangup(phone);
 		}
 	}
 	

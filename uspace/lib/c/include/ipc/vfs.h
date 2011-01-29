@@ -35,7 +35,7 @@
 #ifndef LIBC_IPC_VFS_H_
 #define LIBC_IPC_VFS_H_
 
-#include <ipc/ipc.h>
+#include <ipc/common.h>
 #include <sys/types.h>
 #include <bool.h>
 

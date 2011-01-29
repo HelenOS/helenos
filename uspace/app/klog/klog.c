@@ -35,7 +35,6 @@
  */
 
 #include <stdio.h>
-#include <ipc/ipc.h>
 #include <ipc/ns.h>
 #include <async.h>
 #include <ipc/services.h>

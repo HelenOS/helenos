@@ -34,7 +34,6 @@
  * @brief ADB keyboard port driver.
  */
 
-#include <ipc/ipc.h>
 #include <ipc/adb.h>
 #include <async.h>
 #include <kbd_port.h>

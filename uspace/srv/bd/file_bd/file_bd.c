@@ -40,7 +40,6 @@
 
 #include <stdio.h>
 #include <unistd.h>
-#include <ipc/ipc.h>
 #include <ipc/bd.h>
 #include <async.h>
 #include <as.h>
@@ -183,16 +182,16 @@ static void file_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 	size_t cnt;
 
 	/* Answer the IPC_M_CONNECT_ME_TO call. */
-	ipc_answer_0(iid, EOK);
+	async_answer_0(iid, EOK);
 
 	if (!async_share_out_receive(&callid, &comm_size, &flags)) {
-		ipc_answer_0(callid, EHANGUP);
+		async_answer_0(callid, EHANGUP);
 		return;
 	}
 
 	fs_va = as_get_mappable_page(comm_size);
 	if (fs_va == NULL) {
-		ipc_answer_0(callid, EHANGUP);
+		async_answer_0(callid, EHANGUP);
 		return;
 	}
 
@@ -204,7 +203,7 @@ static void file_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 		switch (method) {
 		case IPC_M_PHONE_HUNGUP:
 			/* The other side has hung up. */
-			ipc_answer_0(callid, EOK);
+			async_answer_0(callid, EOK);
 			return;
 		case BD_READ_BLOCKS:
 			ba = MERGE_LOUP32(IPC_GET_ARG1(call),
@@ -227,17 +226,17 @@ static void file_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 			retval = file_bd_write_blocks(ba, cnt, fs_va);
 			break;
 		case BD_GET_BLOCK_SIZE:
-			ipc_answer_1(callid, EOK, block_size);
+			async_answer_1(callid, EOK, block_size);
 			continue;
 		case BD_GET_NUM_BLOCKS:
-			ipc_answer_2(callid, EOK, LOWER32(num_blocks),
+			async_answer_2(callid, EOK, LOWER32(num_blocks),
 			    UPPER32(num_blocks));
 			continue;
 		default:
 			retval = EINVAL;
 			break;
 		}
-		ipc_answer_0(callid, retval);
+		async_answer_0(callid, retval);
 	}
 }
 

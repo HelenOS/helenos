@@ -34,7 +34,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <ipc/ipc.h>
 #include <adt/hash_table.h>
 
 #include "trace.h"

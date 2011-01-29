@@ -40,7 +40,6 @@
 #include <async.h>
 #include <bool.h>
 
-
 extern int devman_get_phone(devman_interface_t, unsigned int);
 extern void devman_hangup_phone(devman_interface_t);
 

@@ -32,7 +32,6 @@
 /** @file
  */
 
-#include <ipc/ipc.h>
 #include <ipc/loader.h>
 #include <ipc/services.h>
 #include <ipc/ns.h>
@@ -319,7 +318,7 @@ int loader_run(loader_t *ldr)
 	if (rc != EOK)
 		return rc;
 	
-	ipc_hangup(ldr->phone_id);
+	async_hangup(ldr->phone_id);
 	ldr->phone_id = 0;
 	return EOK;
 }
@@ -337,7 +336,7 @@ int loader_run(loader_t *ldr)
  */
 void loader_abort(loader_t *ldr)
 {
-	ipc_hangup(ldr->phone_id);
+	async_hangup(ldr->phone_id);
 	ldr->phone_id = 0;
 }
 

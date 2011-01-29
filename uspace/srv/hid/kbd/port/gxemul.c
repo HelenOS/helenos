@@ -34,7 +34,6 @@
  * @brief	GXEmul keyboard port driver.
  */
 
-#include <ipc/ipc.h>
 #include <async.h>
 #include <sysinfo.h>
 #include <kbd_port.h>

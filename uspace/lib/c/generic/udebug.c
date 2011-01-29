@@ -30,11 +30,10 @@
  * @{
  */
 /** @file
- */ 
+ */
 
 #include <udebug.h>
 #include <sys/types.h>
-#include <ipc/ipc.h>
 #include <async.h>
 
 int udebug_begin(int phoneid)

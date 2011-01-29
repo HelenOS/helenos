@@ -35,7 +35,6 @@
  * @brief VFS service for HelenOS.
  */
 
-#include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <ipc/ns.h>
 #include <async.h>
@@ -57,7 +56,7 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 	 * The connection was opened via the IPC_CONNECT_ME_TO call.
 	 * This call needs to be answered.
 	 */
-	ipc_answer_0(iid, EOK);
+	async_answer_0(iid, EOK);
 	
 	while (keep_on_going) {
 		ipc_call_t call;
@@ -119,7 +118,7 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case VFS_IN_DUP:
 			vfs_dup(callid, &call);
 		default:
-			ipc_answer_0(callid, ENOTSUP);
+			async_answer_0(callid, ENOTSUP);
 			break;
 		}
 	}
