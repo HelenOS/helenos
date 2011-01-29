@@ -72,7 +72,7 @@ int kbd_port_init(void)
 	
 	msim_cmds[0].addr = (void *) vaddr;
 	async_set_interrupt_received(msim_irq_handler);
-	ipc_register_irq(inr, device_assign_devno(), 0, &msim_kbd);
+	register_irq(inr, device_assign_devno(), 0, &msim_kbd);
 	
 	return 0;
 }
