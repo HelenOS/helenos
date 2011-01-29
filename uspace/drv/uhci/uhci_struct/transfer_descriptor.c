@@ -1,4 +1,26 @@
+#include <stdio.h>
 #include "transfer_descriptor.h"
+
+#define BUFFER_LEN 10
+
+static void buffer_to_str(char *str, size_t str_size,
+    uint8_t *buffer, size_t buffer_size)
+{
+	if (buffer_size == 0) {
+		*str = 0;
+		return;
+	}
+	while (str_size >= 4) {
+		snprintf(str, 4, " %02X", (int) *buffer);
+		str += 3;
+		str_size -= 3;
+		buffer++;
+		buffer_size--;
+		if (buffer_size == 0) {
+			break;
+		}
+	}
+}
 
 void transfer_descriptor_init(transfer_descriptor_t *instance,
   int error_count, size_t size, bool isochronous, usb_target_t target,
@@ -31,10 +53,9 @@ void transfer_descriptor_init(transfer_descriptor_t *instance,
 	uhci_print_verbose("Creating buffer field: %p(%p).\n",
 	  buffer, instance->buffer_ptr);
 
-	char * buff = buffer;
-
-	uhci_print_verbose("Buffer dump(8B): %x %x %x %x %x %x %x %x.\n",
-	  buff[0], buff[1], buff[2], buff[3], buff[4], buff[5], buff[6], buff[7]);
+	char buffer_dump[BUFFER_LEN];
+	buffer_to_str(buffer_dump, BUFFER_LEN, buffer, size);
+	uhci_print_verbose("Buffer dump (%zuB): %s.\n", size, buffer_dump);
 
 	instance->next_va = NULL;
 	instance->callback = NULL;
