@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include "transfer_descriptor.h"
 
-#define BUFFER_LEN 10
+#define BUFFER_LEN 40
 
 static void buffer_to_str(char *str, size_t str_size,
     uint8_t *buffer, size_t buffer_size)
