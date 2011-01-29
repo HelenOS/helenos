@@ -99,7 +99,7 @@ int kbd_port_init(void)
 		return -1;
 	
 	async_set_interrupt_received(pl050_irq_handler);
-	ipc_register_irq(inr, device_assign_devno(), 0, &pl050_kbd);
+	register_irq(inr, device_assign_devno(), 0, &pl050_kbd);
 	
 	return 0;
 }

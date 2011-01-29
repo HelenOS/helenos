@@ -109,7 +109,7 @@ int ns16550_port_init(void)
 	ns16550_kbd.cmds[3].addr = (void *) (ns16550_kernel + RBR_REG);
 	
 	async_set_interrupt_received(ns16550_irq_handler);
-	ipc_register_irq(inr, device_assign_devno(), inr, &ns16550_kbd);
+	register_irq(inr, device_assign_devno(), inr, &ns16550_kbd);
 	
 	return pio_enable((void *) ns16550_physical, 8, &vaddr);
 }

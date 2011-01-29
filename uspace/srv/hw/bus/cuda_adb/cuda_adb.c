@@ -275,7 +275,7 @@ static int cuda_init(void)
 
 	cuda_irq_code.cmds[0].addr = (void *) &((cuda_t *) instance->cuda_kernel)->ifr;
 	async_set_interrupt_received(cuda_irq_handler);
-	ipc_register_irq(10, device_assign_devno(), 0, &cuda_irq_code);
+	register_irq(10, device_assign_devno(), 0, &cuda_irq_code);
 
 	/* Enable SR interrupt. */
 	pio_write_8(&dev->ier, TIP | TREQ);

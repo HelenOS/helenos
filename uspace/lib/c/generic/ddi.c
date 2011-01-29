@@ -138,7 +138,7 @@ int pio_enable(void *pio_addr, size_t size, void **use_addr)
  */
 int register_irq(int inr, int devno, int method, irq_code_t *ucode)
 {
-	return __SYSCALL4(SYS_IPC_REGISTER_IRQ, inr, devno, method,
+	return __SYSCALL4(SYS_REGISTER_IRQ, inr, devno, method,
 	    (sysarg_t) ucode);
 }
 
@@ -152,7 +152,7 @@ int register_irq(int inr, int devno, int method, irq_code_t *ucode)
  */
 int unregister_irq(int inr, int devno)
 {
-	return __SYSCALL2(SYS_IPC_UNREGISTER_IRQ, inr, devno);
+	return __SYSCALL2(SYS_UNREGISTER_IRQ, inr, devno);
 }
 
 /** @}

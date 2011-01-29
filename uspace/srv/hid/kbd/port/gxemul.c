@@ -72,7 +72,7 @@ int kbd_port_init(void)
 	
 	async_set_interrupt_received(gxemul_irq_handler);
 	gxemul_cmds[0].addr = (void *) addr;
-	ipc_register_irq(inr, device_assign_devno(), 0, &gxemul_kbd);
+	register_irq(inr, device_assign_devno(), 0, &gxemul_kbd);
 	return 0;
 }
 
