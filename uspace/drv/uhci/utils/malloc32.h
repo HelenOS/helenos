@@ -52,7 +52,7 @@ static inline void * addr_to_phys(void *addr)
 
 static inline void * malloc32(size_t size)
 /* TODO: this is ugly */
-	{ return memalign(size, 16); }
+	{ return memalign(16, size); }
 
 static inline void * get_page()
 {
@@ -68,7 +68,7 @@ static inline void * get_page()
 }
 
 static inline void * memalign32(size_t size, size_t alignment)
-	{ return memalign(size, alignment); }
+	{ return memalign(alignment, size); }
 
 static inline void free32(void * addr)
 	{ free(addr); }
