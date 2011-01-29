@@ -14,9 +14,15 @@ static int uhci_port_set_enabled(uhci_port_t *port, bool enabled);
 /*----------------------------------------------------------------------------*/
 int uhci_port_check(void *port)
 {
+	async_usleep( 1000000 );
 	uhci_port_t *port_instance = port;
 	assert(port_instance);
 	port_instance->hc_phone = devman_device_connect(port_instance->hc->handle, 0);
+	if (port_instance->hc_phone < 0) {
+		uhci_print_fatal("Failed(%d) to connect to the hc(handle=%x.\n",
+			port_instance->hc_phone, (unsigned)port_instance->hc->handle);
+		return port_instance->hc_phone;
+	}
 
 	while (1) {
 		uhci_print_verbose("Port(%d) status address %p:\n",
