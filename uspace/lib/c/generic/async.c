@@ -76,14 +76,14 @@
  *   my_client_connection(icallid, *icall)
  *   {
  *     if (want_refuse) {
- *       ipc_answer_0(icallid, ELIMIT);
+ *       async_answer_0(icallid, ELIMIT);
  *       return;
  *     }
- *     ipc_answer_0(icallid, EOK);
+ *     async_answer_0(icallid, EOK);
  *
  *     callid = async_get_call(&call);
  *     somehow_handle_the_call(callid, call);
- *     ipc_answer_2(callid, 1, 2, 3);
+ *     async_answer_2(callid, 1, 2, 3);
  *
  *     callid = async_get_call(&call);
  *     ...
@@ -91,13 +91,16 @@
  *
  */
 
-#include <futex.h>
+#define LIBC_ASYNC_C_
+#include <ipc/ipc.h>
 #include <async.h>
+#undef LIBC_ASYNC_C_
+
+#include <futex.h>
 #include <fibril.h>
 #include <stdio.h>
 #include <adt/hash_table.h>
 #include <adt/list.h>
-#include <ipc/ipc.h>
 #include <assert.h>
 #include <errno.h>
 #include <sys/time.h>
@@ -1234,6 +1237,89 @@ sysarg_t async_req_slow(int phoneid, sysarg_t method, sysarg_t arg1,
 	return rc;
 }
 
+void async_msg_0(int phone, sysarg_t imethod)
+{
+	ipc_call_async_0(phone, imethod, NULL, NULL, true);
+}
+
+void async_msg_1(int phone, sysarg_t imethod, sysarg_t arg1)
+{
+	ipc_call_async_1(phone, imethod, arg1, NULL, NULL, true);
+}
+
+void async_msg_2(int phone, sysarg_t imethod, sysarg_t arg1, sysarg_t arg2)
+{
+	ipc_call_async_2(phone, imethod, arg1, arg2, NULL, NULL, true);
+}
+
+void async_msg_3(int phone, sysarg_t imethod, sysarg_t arg1, sysarg_t arg2,
+    sysarg_t arg3)
+{
+	ipc_call_async_3(phone, imethod, arg1, arg2, arg3, NULL, NULL, true);
+}
+
+void async_msg_4(int phone, sysarg_t imethod, sysarg_t arg1, sysarg_t arg2,
+    sysarg_t arg3, sysarg_t arg4)
+{
+	ipc_call_async_4(phone, imethod, arg1, arg2, arg3, arg4, NULL, NULL,
+	    true);
+}
+
+void async_msg_5(int phone, sysarg_t imethod, sysarg_t arg1, sysarg_t arg2,
+    sysarg_t arg3, sysarg_t arg4, sysarg_t arg5)
+{
+	ipc_call_async_5(phone, imethod, arg1, arg2, arg3, arg4, arg5, NULL,
+	    NULL, true);
+}
+
+sysarg_t async_answer_0(ipc_callid_t callid, sysarg_t retval)
+{
+	return ipc_answer_0(callid, retval);
+}
+
+sysarg_t async_answer_1(ipc_callid_t callid, sysarg_t retval, sysarg_t arg1)
+{
+	return ipc_answer_1(callid, retval, arg1);
+}
+
+sysarg_t async_answer_2(ipc_callid_t callid, sysarg_t retval, sysarg_t arg1,
+    sysarg_t arg2)
+{
+	return ipc_answer_2(callid, retval, arg1, arg2);
+}
+
+sysarg_t async_answer_3(ipc_callid_t callid, sysarg_t retval, sysarg_t arg1,
+    sysarg_t arg2, sysarg_t arg3)
+{
+	return ipc_answer_3(callid, retval, arg1, arg2, arg3);
+}
+
+sysarg_t async_answer_4(ipc_callid_t callid, sysarg_t retval, sysarg_t arg1,
+    sysarg_t arg2, sysarg_t arg3, sysarg_t arg4)
+{
+	return ipc_answer_4(callid, retval, arg1, arg2, arg3, arg4);
+}
+
+sysarg_t async_answer_5(ipc_callid_t callid, sysarg_t retval, sysarg_t arg1,
+    sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t arg5)
+{
+	return ipc_answer_5(callid, retval, arg1, arg2, arg3, arg4, arg5);
+}
+
+int async_forward_fast(ipc_callid_t callid, int phoneid, int imethod,
+    sysarg_t arg1, sysarg_t arg2, int mode)
+{
+	return ipc_forward_fast(callid, phoneid, imethod, arg1, arg2, mode);
+}
+
+int async_forward_slow(ipc_callid_t callid, int phoneid, int imethod,
+    sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t arg5,
+    int mode)
+{
+	return ipc_forward_slow(callid, phoneid, imethod, arg1, arg2, arg3, arg4,
+	    arg5, mode);
+}
+
 /** Wrapper for making IPC_M_CONNECT_TO_ME calls using the async framework.
  *
  * Ask through phone for a new connection to some service.
@@ -1313,6 +1399,32 @@ int async_connect_me_to_blocking(int phoneid, sysarg_t arg1, sysarg_t arg2,
 		return rc;
 	
 	return newphid;
+}
+
+/** Connect to a task specified by id.
+ *
+ */
+int async_connect_kbox(task_id_t id)
+{
+	return ipc_connect_kbox(id);
+}
+
+/** Wrapper for ipc_hangup.
+ *
+ * @param phone Phone handle to hung up.
+ *
+ * @return Zero on success or a negative error code.
+ *
+ */
+int async_hangup(int phone)
+{
+	return ipc_hangup(phone);
+}
+
+/** Interrupt one thread of this task from waiting for IPC. */
+void async_poke(void)
+{
+	ipc_poke();
 }
 
 /** Wrapper for making IPC_M_SHARE_IN calls using the async framework.
@@ -1503,7 +1615,6 @@ int async_data_read_finalize(ipc_callid_t callid, const void *src, size_t size)
 
 /** Wrapper for forwarding any read request
  *
- *
  */
 int async_data_read_forward_fast(int phoneid, sysarg_t method, sysarg_t arg1,
     sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, ipc_call_t *dataptr)
@@ -1688,7 +1799,6 @@ void async_data_write_void(const int retval)
 }
 
 /** Wrapper for forwarding any data that is about to be received
- *
  *
  */
 int async_data_write_forward_fast(int phoneid, sysarg_t method, sysarg_t arg1,

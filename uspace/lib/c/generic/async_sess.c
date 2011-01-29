@@ -98,7 +98,6 @@
  */
 
 #include <async_sess.h>
-#include <ipc/ipc.h>
 #include <fibril_synch.h>
 #include <adt/list.h>
 #include <adt/hash_table.h>
@@ -199,7 +198,7 @@ void async_session_destroy(async_sess_t *sess)
 		list_remove(&conn->sess_link);
 		list_remove(&conn->global_link);
 		
-		ipc_hangup(conn->data_phone);
+		async_hangup(conn->data_phone);
 		free(conn);
 	}
 	
@@ -259,7 +258,7 @@ retry:
 			list_remove(&conn->sess_link);
 			data_phone = conn->data_phone;
 			free(conn);
-			ipc_hangup(data_phone);
+			async_hangup(data_phone);
 			goto retry;
 		} else {
 			/*
@@ -291,7 +290,7 @@ void async_exchange_end(async_sess_t *sess, int data_phone)
 		 * Being unable to remember the connected data phone here
 		 * means that we simply hang up.
 		 */
-		ipc_hangup(data_phone);
+		async_hangup(data_phone);
 		fibril_mutex_unlock(&async_sess_mutex);
 		return;
 	}

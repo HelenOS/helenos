@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Jakub Jermar 
+ * Copyright (c) 2008 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,7 +42,6 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <ipc/ns.h>
 #include <async.h>

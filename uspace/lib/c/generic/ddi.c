@@ -126,5 +126,34 @@ int pio_enable(void *pio_addr, size_t size, void **use_addr)
 	return physmem_map(phys, virt, pages, AS_AREA_READ | AS_AREA_WRITE);
 }
 
+/** Register IRQ notification.
+ *
+ * @param inr    IRQ number.
+ * @param devno  Device number of the device generating inr.
+ * @param method Use this method for notifying me.
+ * @param ucode  Top-half pseudocode handler.
+ *
+ * @return Value returned by the kernel.
+ *
+ */
+int register_irq(int inr, int devno, int method, irq_code_t *ucode)
+{
+	return __SYSCALL4(SYS_IPC_REGISTER_IRQ, inr, devno, method,
+	    (sysarg_t) ucode);
+}
+
+/** Unregister IRQ notification.
+ *
+ * @param inr   IRQ number.
+ * @param devno Device number of the device generating inr.
+ *
+ * @return Value returned by the kernel.
+ *
+ */
+int unregister_irq(int inr, int devno)
+{
+	return __SYSCALL2(SYS_IPC_UNREGISTER_IRQ, inr, devno);
+}
+
 /** @}
  */

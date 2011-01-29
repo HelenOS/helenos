@@ -32,26 +32,19 @@
 /** @file
  */
 
+#if ((defined(LIBC_ASYNC_H_)) && (!defined(LIBC_ASYNC_C_)))
+	#error Do not intermix low-level IPC interface and async framework
+#endif
+
 #ifndef LIBC_IPC_H_
 #define LIBC_IPC_H_
 
-#include <task.h>
-#include <kernel/ipc/ipc.h>
-#include <kernel/ddi/irq.h>
 #include <sys/types.h>
+#include <ipc/common.h>
 #include <kernel/synch/synch.h>
+#include <task.h>
 
-#define IPC_FLAG_BLOCKING  0x01
-
-typedef struct {
-	sysarg_t args[IPC_CALL_LEN];
-	sysarg_t in_task_hash;
-	sysarg_t in_phone_hash;
-} ipc_call_t;
-
-typedef sysarg_t ipc_callid_t;
-
-typedef void (* ipc_async_callback_t)(void *, int, ipc_call_t *);
+typedef void (*ipc_async_callback_t)(void *, int, ipc_call_t *);
 
 /*
  * User-friendly wrappers for ipc_call_sync_fast() and ipc_call_sync_slow().
@@ -262,8 +255,6 @@ extern int ipc_connect_to_me(int, int, int, int, sysarg_t *, sysarg_t *);
 extern int ipc_connect_me_to(int, int, int, int);
 extern int ipc_connect_me_to_blocking(int, int, int, int);
 extern int ipc_hangup(int);
-extern int ipc_register_irq(int, int, int, irq_code_t *);
-extern int ipc_unregister_irq(int, int);
 extern int ipc_forward_fast(ipc_callid_t, int, int, sysarg_t, sysarg_t, int);
 extern int ipc_forward_slow(ipc_callid_t, int, int, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t, sysarg_t, int);

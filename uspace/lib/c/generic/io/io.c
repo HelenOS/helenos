@@ -40,6 +40,7 @@
 #include <errno.h>
 #include <bool.h>
 #include <malloc.h>
+#include <async.h>
 #include <io/klog.h>
 #include <vfs/vfs.h>
 #include <ipc/devmap.h>
@@ -321,7 +322,7 @@ int fclose(FILE *stream)
 	fflush(stream);
 	
 	if (stream->phone >= 0)
-		ipc_hangup(stream->phone);
+		async_hangup(stream->phone);
 	
 	if (stream->fd >= 0)
 		rc = close(stream->fd);

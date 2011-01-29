@@ -36,8 +36,6 @@
 #ifndef LIBCLUI_TINPUT_H_
 #define LIBCLUI_TINPUT_H_
 
-#include <ipc/ipc.h>
-
 #define HISTORY_LEN     10
 #define INPUT_MAX_SIZE  1024
 
