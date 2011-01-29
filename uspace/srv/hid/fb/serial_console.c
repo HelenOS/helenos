@@ -317,12 +317,12 @@ void serial_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	size_t intersize = 0;
 	
 	if (client_connected) {
-		ipc_answer_0(iid, ELIMIT);
+		async_answer_0(iid, ELIMIT);
 		return;
 	}
 	
 	client_connected = 1;
-	ipc_answer_0(iid, EOK);
+	async_answer_0(iid, EOK);
 	
 	/* Clear the terminal, set scrolling region
 	   to 0 - height rows. */
@@ -346,7 +346,7 @@ void serial_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			client_connected = 0;
-			ipc_answer_0(callid, EOK);
+			async_answer_0(callid, EOK);
 			
 			/* Exit thread */
 			return;
@@ -405,10 +405,10 @@ void serial_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			retval = 0;
 			break;
 		case FB_GET_CSIZE:
-			ipc_answer_2(callid, EOK, scr_width, scr_height);
+			async_answer_2(callid, EOK, scr_width, scr_height);
 			continue;
 		case FB_GET_COLOR_CAP:
-			ipc_answer_1(callid, EOK, color ? FB_CCAP_INDEXED :
+			async_answer_1(callid, EOK, color ? FB_CCAP_INDEXED :
 			    FB_CCAP_STYLE);
 			continue;
 		case FB_CLEAR:
@@ -476,7 +476,7 @@ void serial_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		default:
 			retval = ENOENT;
 		}
-		ipc_answer_0(callid, retval);
+		async_answer_0(callid, retval);
 	}
 }
 
