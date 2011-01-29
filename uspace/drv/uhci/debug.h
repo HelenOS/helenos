@@ -34,6 +34,7 @@
 #ifndef DRV_UHCI_DEBUG_H
 #define DRV_UHCI_DEBUG_H
 
+#include <stdio.h>
 #include <usb/debug.h>
 
 #include "name.h"
@@ -48,10 +49,16 @@ enum debug_levels {
 };
 
 #define uhci_printf( level, fmt, args...) \
-	usb_dprintf( NAME, level, fmt, ##args )
+	usb_dprintf(NAME, level, fmt, ##args)
+
+#define uhci_print_fatal( fmt, args... ) \
+	fprintf(stderr, "[" NAME ":FATAL ERROR]: " fmt, ##args)
 
 #define uhci_print_error( fmt, args... ) \
-	usb_dprintf( NAME, DEBUG_LEVEL_ERROR, fmt, ##args )
+	fprintf(stderr, "[" NAME ":ERROR]: " fmt, ##args)
+
+#define uhci_print_warning( fmt, args... ) \
+	usb_dprintf( NAME, DEBUG_LEVEL_WARNING, fmt, ##args )
 
 #define uhci_print_info( fmt, args... ) \
 	usb_dprintf( NAME, DEBUG_LEVEL_INFO, fmt, ##args )
