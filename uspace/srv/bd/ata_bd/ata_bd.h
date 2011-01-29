@@ -52,8 +52,13 @@ enum ata_timeout {
 	TIMEOUT_DRDY	= 1000  /* 10 s */
 };
 
-/** Block addressing mode. */
-enum addr_mode {
+enum ata_dev_type {
+	ata_reg_dev,	/* Register device (no packet feature set support) */
+	ata_pkt_dev	/* Packet device (supports packet feature set). */
+};
+
+/** Register device block addressing mode. */
+enum rd_addr_mode {
 	am_chs,		/**< CHS block addressing */
 	am_lba28,	/**< LBA-28 block addressing */
 	am_lba48	/**< LBA-48 block addressing */
@@ -61,8 +66,7 @@ enum addr_mode {
 
 /** Block coordinates */
 typedef struct {
-	/** Addressing mode used */
-	enum addr_mode amode;
+	enum rd_addr_mode amode;
 
 	union {
 		/** CHS coordinates */
@@ -89,7 +93,12 @@ typedef struct {
 /** ATA device state structure. */
 typedef struct {
 	bool present;
-	enum addr_mode amode;
+
+	/** Device type */
+	enum ata_dev_type dev_type;
+
+	/** Addressing mode to use (if register device) */
+	enum rd_addr_mode amode;
 
 	/*
 	 * Geometry. Only valid if operating in CHS mode.

@@ -111,6 +111,7 @@ static int ata_bd_write_block(int disk_id, uint64_t ba, size_t cnt,
     const void *buf);
 static int disk_init(disk_t *d, int disk_id);
 static int drive_identify(int drive_id, void *buf);
+static int identify_pkt_dev(int dev_idx, void *buf);
 static void disk_print_summary(disk_t *d);
 static int coord_calc(disk_t *d, uint64_t ba, block_coord_t *bc);
 static void coord_sc_program(const block_coord_t *bc, uint16_t scnt);
@@ -203,17 +204,22 @@ static void disk_print_summary(disk_t *d)
 
 	printf("%s: ", d->model);
 
-	switch (d->amode) {
-	case am_chs:
-		printf("CHS %u cylinders, %u heads, %u sectors",
-		    disk->geom.cylinders, disk->geom.heads, disk->geom.sectors);
-		break;
-	case am_lba28:
-		printf("LBA-28");
-		break;
-	case am_lba48:
-		printf("LBA-48");
-		break;
+	if (d->dev_type == ata_reg_dev) {
+		switch (d->amode) {
+		case am_chs:
+			printf("CHS %u cylinders, %u heads, %u sectors",
+			    disk->geom.cylinders, disk->geom.heads,
+			    disk->geom.sectors);
+			break;
+		case am_lba28:
+			printf("LBA-28");
+			break;
+		case am_lba48:
+			printf("LBA-48");
+			break;
+		}
+	} else {
+		printf("PACKET");
 	}
 
 	printf(" %" PRIu64 " blocks", d->blocks);
@@ -359,13 +365,46 @@ static int disk_init(disk_t *d, int disk_id)
 	int rc;
 	unsigned i;
 
+	d->present = false;
+
+	/* Try identify command. */
 	rc = drive_identify(disk_id, &idata);
-	if (rc != EOK) {
-		d->present = false;
-		return rc;
+	if (rc == EOK) {
+		/* Success. It's a register (non-packet) device. */
+		printf("ATA register-only device found.\n");
+		d->present = true;
+		d->dev_type = ata_reg_dev;
+	} else if (rc == EIO) {
+		/*
+		 * There is something, but not a register device.
+		 * It could be a packet device.
+		 */
+		rc = identify_pkt_dev(disk_id, &idata);
+		if (rc == EOK) {
+			/* We have a packet device. */
+			d->present = true;
+			d->dev_type = ata_pkt_dev;
+		} else {
+			/* Nope. Something's there, but not recognized. */
+		}
+	} else {
+		/* Operation timed out. That means there is no device there. */
 	}
 
-	if ((idata.caps & cap_lba) == 0) {
+	if (d->present == false)
+		return EIO;
+
+	printf("device caps: 0x%04x\n", idata.caps);
+	if (d->dev_type == ata_pkt_dev) {
+		/* Packet device */
+		d->amode = 0;
+
+		d->geom.cylinders = 0;
+		d->geom.heads = 0;
+		d->geom.sectors = 0;
+
+		d->blocks = 0;
+	} else if ((idata.caps & rd_cap_lba) == 0) {
 		/* Device only supports CHS addressing. */
 		d->amode = am_chs;
 
@@ -473,6 +512,9 @@ static int ata_bd_write_blocks(int disk_id, uint64_t ba, size_t cnt,
  *
  * @param disk_id	Device ID, 0 or 1.
  * @param buf		Pointer to a 512-byte buffer.
+ *
+ * @return		ETIMEOUT on timeout (this can mean the device is
+ *			not present). EIO if device responds with error.
  */
 static int drive_identify(int disk_id, void *buf)
 {
@@ -484,7 +526,7 @@ static int drive_identify(int disk_id, void *buf)
 	drv_head = ((disk_id != 0) ? DHR_DRV : 0);
 
 	if (wait_status(0, ~SR_BSY, NULL, TIMEOUT_PROBE) != EOK)
-		return EIO;
+		return ETIMEOUT;
 
 	pio_write_8(&cmd->drive_head, drv_head);
 
@@ -493,14 +535,61 @@ static int drive_identify(int disk_id, void *buf)
 	 * show up by not setting SR_DRDY.
 	 */
 	if (wait_status(SR_DRDY, ~SR_BSY, NULL, TIMEOUT_PROBE) != EOK)
-		return EIO;
+		return ETIMEOUT;
 
 	pio_write_8(&cmd->command, CMD_IDENTIFY_DRIVE);
 
 	if (wait_status(0, ~SR_BSY, &status, TIMEOUT_PROBE) != EOK)
-		return EIO;
+		return ETIMEOUT;
 
 	/* Read data from the disk buffer. */
+
+	if ((status & SR_DRQ) != 0) {
+		for (i = 0; i < block_size / 2; i++) {
+			data = pio_read_16(&cmd->data_port);
+			((uint16_t *) buf)[i] = data;
+		}
+	}
+
+	if ((status & SR_ERR) != 0) {
+		return EIO;
+	}
+
+	return EOK;
+}
+
+/** Issue Identify Packet Device command.
+ *
+ * Reads @c identify data into the provided buffer. This is used to detect
+ * whether an ATAPI device is present and if so, to determine its parameters.
+ *
+ * @param dev_idx	Device index, 0 or 1.
+ * @param buf		Pointer to a 512-byte buffer.
+ */
+static int identify_pkt_dev(int dev_idx, void *buf)
+{
+	uint16_t data;
+	uint8_t status;
+	uint8_t drv_head;
+	size_t i;
+
+	drv_head = ((dev_idx != 0) ? DHR_DRV : 0);
+
+	if (wait_status(0, ~SR_BSY, NULL, TIMEOUT_PROBE) != EOK)
+		return EIO;
+
+	pio_write_8(&cmd->drive_head, drv_head);
+
+	/* For ATAPI commands we do not need to wait for DRDY. */
+	if (wait_status(0, ~SR_BSY, NULL, TIMEOUT_PROBE) != EOK)
+		return EIO;
+
+	pio_write_8(&cmd->command, CMD_IDENTIFY_PKT_DEV);
+
+	if (wait_status(0, ~SR_BSY, &status, TIMEOUT_BSY) != EOK)
+		return EIO;
+
+	/* Read data from the device buffer. */
 
 	if ((status & SR_DRQ) != 0) {
 		for (i = 0; i < block_size / 2; i++) {

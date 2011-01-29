@@ -133,10 +133,11 @@ enum ata_command {
 	CMD_READ_SECTORS_EXT	= 0x24,
 	CMD_WRITE_SECTORS	= 0x30,
 	CMD_WRITE_SECTORS_EXT	= 0x34,
+	CMD_IDENTIFY_PKT_DEV	= 0xA1,
 	CMD_IDENTIFY_DRIVE	= 0xEC
 };
 
-/** Data returned from @c identify command. */
+/** Data returned from identify device and identify packet device command. */
 typedef struct {
 	uint16_t gen_conf;
 	uint16_t cylinders;
@@ -158,7 +159,7 @@ typedef struct {
 
 	uint16_t max_rw_multiple;
 	uint16_t _res48;
-	uint16_t caps;
+	uint16_t caps;		/* Different meaning for packet device */
 	uint16_t _res50;
 	uint16_t pio_timing;
 	uint16_t dma_timing;
@@ -213,11 +214,24 @@ typedef struct {
 	uint16_t _res160[1 + 255 - 160];
 } identify_data_t;
 
-enum ata_caps {
-	cap_iordy	= 0x0800,
-	cap_iordy_cbd	= 0x0400,
-	cap_lba		= 0x0200,
-	cap_dma		= 0x0100
+/** Capability bits for register device. */
+enum ata_regdev_caps {
+	rd_cap_iordy		= 0x0800,
+	rd_cap_iordy_cbd	= 0x0400,
+	rd_cap_lba		= 0x0200,
+	rd_cap_dma		= 0x0100
+};
+
+/** Capability bits for packet device. */
+enum ata_pktdev_caps {
+	pd_cap_ildma		= 0x8000,
+	pd_cap_cmdqueue		= 0x4000,
+	pd_cap_overlap		= 0x2000,
+	pd_cap_need_softreset	= 0x1000,	/* Obsolete (ATAPI-6) */
+	pd_cap_iordy		= 0x0800,
+	pd_cap_iordy_dis	= 0x0400,
+	pd_cap_lba		= 0x0200,	/* Must be on */
+	pd_cap_dma		= 0x0100
 };
 
 /** Bits of @c identify_data_t.cmd_set1 */
