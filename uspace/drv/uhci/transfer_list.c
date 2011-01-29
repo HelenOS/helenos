@@ -45,7 +45,7 @@ int transfer_list_append(
 	if (instance->queue_head->element & LINK_POINTER_TERMINATE_FLAG) {
 		instance->queue_head->element = (pa & LINK_POINTER_ADDRESS_MASK);
 	}
-	uhci_print_info("Successfully added transfer to the hc queue %p.\n",
+	uhci_print_verbose("Successfully added transfer to the hc queue %p.\n",
 	  instance);
 	return EOK;
 }

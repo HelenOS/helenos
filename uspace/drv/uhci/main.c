@@ -76,7 +76,7 @@ int main(int argc, char *argv[])
 	 * Do some global initializations.
 	 */
 	sleep(5);
-	usb_dprintf_enable(NAME, DEBUG_LEVEL_MAX);
+	usb_dprintf_enable(NAME, DEBUG_LEVEL_INFO);
 
 	return driver_main(&uhci_driver);
 }

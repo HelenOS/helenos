@@ -33,7 +33,7 @@ void transfer_descriptor_init(transfer_descriptor_t *instance,
 	uhci_print_info("Created TD: %X:%X:%X:%X(%p).\n",
 		instance->next, instance->status, instance->device,
 	  instance->buffer_ptr, buffer);
-
+#if 0
 	if (size) {
 		unsigned char * buff = buffer;
 		uhci_print_verbose("TD Buffer dump(%p-%dB): ", buffer, size);
@@ -44,6 +44,7 @@ void transfer_descriptor_init(transfer_descriptor_t *instance,
 		}
 		printf("\n");
 	}
+#endif
 }
 
 static inline usb_transaction_outcome_t convert_outcome(uint32_t status)

@@ -224,11 +224,9 @@ int uhci_debug_checker(void *arg)
 	uhci_t *instance = (uhci_t*)arg;
 	assert(instance);
 	while (1) {
-		uint16_t reg;
-		reg = pio_read_16(&instance->registers->usbcmd);
-		uhci_print_info("Command register: %X\n", reg);
-		reg = pio_read_16(&instance->registers->usbsts);
-		uhci_print_info("Status register: %X\n", reg);
+		uint16_t cmd = pio_read_16(&instance->registers->usbcmd);
+		uint16_t sts = pio_read_16(&instance->registers->usbsts);
+		uhci_print_verbose("Command register: %X Status register: %X\n", cmd, sts);
 /*
 		uintptr_t frame_list = pio_read_32(&instance->registers->flbaseadd);
 		uhci_print_verbose("Framelist address: %p vs. %p.\n",
