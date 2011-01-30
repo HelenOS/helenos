@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Lubos Slovak
+ * Copyright (c) 2010 Lubos Slovak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,16 +26,25 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup usb
+/** @addtogroup drvusbhid
  * @{
  */
 /** @file
- * @brief USB Scancode parser.
+ * Descriptor parser.
  */
 
-#ifndef USBHID_CONV_H_
-#define USBHID_CONV_H_
+#ifndef USBHID_DESCPARSER_H_
+#define USBHID_DESCPARSER_H_
 
-unsigned int usbkbd_parse_scancode(int scancode);
+#include "hid.h"
+
+int usbkbd_parse_descriptors(const uint8_t *data, size_t size,
+                             usb_hid_configuration_t *config);
+
+void usbkbd_print_config(const usb_hid_configuration_t *config);
 
 #endif
+
+/**
+ * @}
+ */

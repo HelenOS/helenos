@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2011 Lubos Slovak 
- * (copied from /uspace/srv/hid/kbd/include/layout.h)
+ * Copyright (c) 2011 Lubos Slovak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,28 +26,17 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup usb
- * @brief 
- * @ingroup
+/** @addtogroup drvusbhid
  * @{
  */
 /** @file
+ * USB scancode parser.
  */
 
-#ifndef USBHID_LAYOUT_H_
-#define USBHID_LAYOUT_H_
+#ifndef USBHID_CONV_H_
+#define USBHID_CONV_H_
 
-#include <sys/types.h>
-#include <io/console.h>
-
-typedef struct {
-	void (*reset)(void);
-	wchar_t (*parse_ev)(console_event_t *);
-} layout_op_t;
-
-extern layout_op_t us_qwerty_op;
-extern layout_op_t us_dvorak_op;
-extern layout_op_t cz_op;
+unsigned int usbkbd_parse_scancode(int scancode);
 
 #endif
 

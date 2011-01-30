@@ -26,11 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup usb
+/** @addtogroup usbinfo
  * @{
  */
 /** @file
- * @brief Common header for usbinfo application.
+ * Common header for usbinfo application.
  */
 #ifndef USBINFO_USBINFO_H_
 #define USBINFO_USBINFO_H_

@@ -33,6 +33,7 @@ BINARY = uhci
 
 SOURCES = \
 	main.c \
+	pci.c \
 	transfers.c
 
 include $(USPACE_PREFIX)/Makefile.common
