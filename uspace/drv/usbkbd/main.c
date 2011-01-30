@@ -41,6 +41,7 @@
 #include <usb/devreq.h>
 #include <usb/descriptor.h>
 #include <io/console.h>
+#include "hid.h"
 #include "descparser.h"
 #include "descdump.h"
 #include "conv.h"

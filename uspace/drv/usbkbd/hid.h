@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Lubos Slovak
+ * Copyright (c) 2011 Lubos Slovak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,34 +25,53 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 /** @addtogroup drvusbhid
  * @{
  */
-#ifndef USBHID_DESCDUMP_H_
-#define USBHID_DESCDUMP_H_
+/** @file
+ * Common definitions.
+ */
 
-#include "hid.h"
+#ifndef USBHID_HID_H_
+#define USBHID_HID_H_
 
-void dump_standard_configuration_descriptor(
-    int index, const usb_standard_configuration_descriptor_t *d);
-
-void dump_standard_interface_descriptor(
-    const usb_standard_interface_descriptor_t *d);
-
-void dump_standard_endpoint_descriptor(
-    const usb_standard_endpoint_descriptor_t *d);
-
-void dump_standard_hid_descriptor_header(
-    const usb_standard_hid_descriptor_t *d);
-
-void dump_standard_hid_class_descriptor_info(
-    const usb_standard_hid_class_descriptor_info_t *d);
-
-void dump_hid_class_descriptor(int index, uint8_t type, 
-    const uint8_t *d, size_t size);
-
-#endif /* USBHID_DESCDUMP_H_ */
+#include <usb/classes/hid.h>
+#include <driver.h>
 
 /**
- * @}
+ *
  */
+typedef struct {
+	usb_standard_interface_descriptor_t iface_desc;
+	usb_standard_endpoint_descriptor_t *endpoints;
+	usb_standard_hid_descriptor_t hid_desc;
+	uint8_t *report_desc;
+	//usb_standard_hid_class_descriptor_info_t *class_desc_info;
+	//uint8_t **class_descs;
+} usb_hid_iface_t;
+
+/**
+ *
+ */
+typedef struct {
+	usb_standard_configuration_descriptor_t config_descriptor;
+	usb_hid_iface_t *interfaces;
+} usb_hid_configuration_t;
+
+/**
+ * @brief USB/HID keyboard device type.
+ *
+ * Quite dummy right now.
+ */
+typedef struct {
+	device_t *device;
+	usb_hid_configuration_t *conf;
+	usb_address_t address;
+	usb_endpoint_t poll_endpoint;
+	usb_hid_report_parser_t *parser;
+} usb_hid_dev_kbd_t;
+
+// TODO: more configurations!
+
+#endif
