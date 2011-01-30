@@ -44,6 +44,14 @@
 #include <usb/usb.h>
 #include <usb/pipes.h>
 #include <errno.h>
+#include <assert.h>
+#include <usb/usbdrv.h>
+
+#define _PREPARE_TARGET(varname, pipe) \
+	usb_target_t varname = { \
+		.address = (pipe)->wire->address, \
+		.endpoint = (pipe)->endpoint_no \
+	}
 
 /** Initialize connection to USB device.
  *
@@ -54,7 +62,31 @@
 int usb_device_connection_initialize(usb_device_connection_t *connection,
     device_t *device)
 {
-	return ENOTSUP;
+	assert(connection);
+	assert(device);
+
+	int rc;
+	devman_handle_t hc_handle;
+	usb_address_t my_address;
+
+	rc = usb_drv_find_hc(device, &hc_handle);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	int hc_phone = devman_device_connect(hc_handle, 0);
+	if (hc_phone < 0) {
+		return hc_phone;
+	}
+
+	my_address = usb_drv_get_my_address(hc_phone, device);
+	if (my_address < 0) {
+		return my_address;
+	}
+
+	connection->hc_handle = hc_handle;
+	connection->address = my_address;
+	return EOK;
 }
 
 
@@ -71,7 +103,16 @@ int usb_endpoint_pipe_initialize(usb_endpoint_pipe_t *pipe,
     usb_device_connection_t *connection, usb_endpoint_t endpoint_no,
     usb_transfer_type_t transfer_type, usb_direction_t direction)
 {
-	return ENOTSUP;
+	assert(pipe);
+	assert(connection);
+
+	pipe->wire = connection;
+	pipe->hc_phone = -1;
+	pipe->endpoint_no = endpoint_no;
+	pipe->transfer_type = transfer_type;
+	pipe->direction = direction;
+
+	return EOK;
 }
 
 
@@ -84,7 +125,13 @@ int usb_endpoint_pipe_initialize(usb_endpoint_pipe_t *pipe,
 int usb_endpoint_pipe_initialize_default_control(usb_endpoint_pipe_t *pipe,
     usb_device_connection_t *connection)
 {
-	return ENOTSUP;
+	assert(pipe);
+	assert(connection);
+
+	int rc = usb_endpoint_pipe_initialize(pipe, connection,
+	    0, USB_TRANSFER_CONTROL, USB_DIRECTION_BOTH);
+
+	return rc;
 }
 
 
@@ -105,7 +152,20 @@ int usb_endpoint_pipe_initialize_default_control(usb_endpoint_pipe_t *pipe,
  */
 int usb_endpoint_pipe_start_session(usb_endpoint_pipe_t *pipe)
 {
-	return ENOTSUP;
+	assert(pipe);
+
+	if (pipe->hc_phone >= 0) {
+		return EBUSY;
+	}
+
+	int phone = devman_device_connect(pipe->wire->hc_handle, 0);
+	if (phone < 0) {
+		return phone;
+	}
+
+	pipe->hc_phone = phone;
+
+	return EOK;
 }
 
 
@@ -118,7 +178,20 @@ int usb_endpoint_pipe_start_session(usb_endpoint_pipe_t *pipe)
  */
 int usb_endpoint_pipe_end_session(usb_endpoint_pipe_t *pipe)
 {
-	return ENOTSUP;
+	assert(pipe);
+
+	if (pipe->hc_phone < 0) {
+		return ENOENT;
+	}
+
+	int rc = ipc_hangup(pipe->hc_phone);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	pipe->hc_phone = -1;
+
+	return EOK;
 }
 
 
@@ -133,7 +206,19 @@ int usb_endpoint_pipe_end_session(usb_endpoint_pipe_t *pipe)
 int usb_endpoint_pipe_read(usb_endpoint_pipe_t *pipe,
     void *buffer, size_t size, size_t *size_transfered)
 {
-	return ENOTSUP;
+	assert(pipe);
+
+	int rc;
+	usb_handle_t handle;
+
+	rc = usb_endpoint_pipe_async_read(pipe, buffer, size, size_transfered,
+	    &handle);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	rc = usb_endpoint_pipe_wait_for(pipe, handle);
+	return rc;
 }
 
 /** Request a write (out) transfer on an endpoint pipe.
@@ -146,7 +231,18 @@ int usb_endpoint_pipe_read(usb_endpoint_pipe_t *pipe,
 int usb_endpoint_pipe_write(usb_endpoint_pipe_t *pipe,
     void *buffer, size_t size)
 {
-	return ENOTSUP;
+	assert(pipe);
+
+	int rc;
+	usb_handle_t handle;
+
+	rc = usb_endpoint_pipe_async_write(pipe, buffer, size, &handle);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	rc = usb_endpoint_pipe_wait_for(pipe, handle);
+	return rc;
 }
 
 
@@ -203,7 +299,33 @@ int usb_endpoint_pipe_async_read(usb_endpoint_pipe_t *pipe,
     void *buffer, size_t size, size_t *size_transfered,
     usb_handle_t *handle)
 {
-	return ENOTSUP;
+	assert(pipe);
+
+	if (pipe->hc_phone < 0) {
+		return EBADF;
+	}
+
+	if (pipe->direction != USB_DIRECTION_IN) {
+		return EBADF;
+	}
+
+	int rc;
+	_PREPARE_TARGET(target, pipe);
+
+	switch (pipe->transfer_type) {
+		case USB_TRANSFER_INTERRUPT:
+			rc = usb_drv_async_interrupt_in(pipe->hc_phone, target,
+			    buffer, size, size_transfered, handle);
+			break;
+		case USB_TRANSFER_CONTROL:
+			rc = EBADF;
+			break;
+		default:
+			rc = ENOTSUP;
+			break;
+	}
+
+	return rc;
 }
 
 
@@ -219,7 +341,33 @@ int usb_endpoint_pipe_async_write(usb_endpoint_pipe_t *pipe,
     void *buffer, size_t size,
     usb_handle_t *handle)
 {
-	return ENOTSUP;
+	assert(pipe);
+
+	if (pipe->hc_phone < 0) {
+		return EBADF;
+	}
+
+	if (pipe->direction != USB_DIRECTION_OUT) {
+		return EBADF;
+	}
+
+	int rc;
+	_PREPARE_TARGET(target, pipe);
+
+	switch (pipe->transfer_type) {
+		case USB_TRANSFER_INTERRUPT:
+			rc = usb_drv_async_interrupt_out(pipe->hc_phone, target,
+			    buffer, size, handle);
+			break;
+		case USB_TRANSFER_CONTROL:
+			rc = EBADF;
+			break;
+		default:
+			rc = ENOTSUP;
+			break;
+	}
+
+	return rc;
 }
 
 
@@ -277,7 +425,7 @@ int usb_endpoint_pipe_async_control_write(usb_endpoint_pipe_t *pipe,
  */
 int usb_endpoint_pipe_wait_for(usb_endpoint_pipe_t *pipe, usb_handle_t handle)
 {
-	return ENOTSUP;
+	return usb_drv_async_wait_for(handle);
 }
 
 

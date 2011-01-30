@@ -48,6 +48,8 @@
 typedef struct {
 	/** Handle of the host controller device is connected to. */
 	devman_handle_t hc_handle;
+	/** Address of the device. */
+	usb_address_t address;
 } usb_device_connection_t;
 
 /**
