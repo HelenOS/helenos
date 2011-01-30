@@ -263,7 +263,21 @@ int usb_endpoint_pipe_control_read(usb_endpoint_pipe_t *pipe,
     void *setup_buffer, size_t setup_buffer_size,
     void *data_buffer, size_t data_buffer_size, size_t *data_transfered_size)
 {
-	return ENOTSUP;
+	assert(pipe);
+
+	int rc;
+	usb_handle_t handle;
+
+	rc = usb_endpoint_pipe_async_control_read(pipe,
+	    setup_buffer, setup_buffer_size,
+	    data_buffer, data_buffer_size, data_transfered_size,
+	    &handle);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	rc = usb_endpoint_pipe_wait_for(pipe, handle);
+	return rc;
 }
 
 
@@ -282,7 +296,21 @@ int usb_endpoint_pipe_control_write(usb_endpoint_pipe_t *pipe,
     void *setup_buffer, size_t setup_buffer_size,
     void *data_buffer, size_t data_buffer_size)
 {
-	return ENOTSUP;
+	assert(pipe);
+
+	int rc;
+	usb_handle_t handle;
+
+	rc = usb_endpoint_pipe_async_control_write(pipe,
+	    setup_buffer, setup_buffer_size,
+	    data_buffer, data_buffer_size,
+	    &handle);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	rc = usb_endpoint_pipe_wait_for(pipe, handle);
+	return rc;
 }
 
 
@@ -390,7 +418,26 @@ int usb_endpoint_pipe_async_control_read(usb_endpoint_pipe_t *pipe,
     void *data_buffer, size_t data_buffer_size, size_t *data_transfered_size,
     usb_handle_t *handle)
 {
-	return ENOTSUP;
+	assert(pipe);
+
+	if (pipe->hc_phone < 0) {
+		return EBADF;
+	}
+
+	if ((pipe->direction != USB_DIRECTION_BOTH)
+	    || (pipe->transfer_type != USB_TRANSFER_CONTROL)) {
+		return EBADF;
+	}
+
+	int rc;
+	_PREPARE_TARGET(target, pipe);
+
+	rc = usb_drv_async_control_read(pipe->hc_phone, target,
+	    setup_buffer, setup_buffer_size,
+	    data_buffer, data_buffer_size, data_transfered_size,
+	    handle);
+
+	return rc;
 }
 
 
@@ -411,7 +458,26 @@ int usb_endpoint_pipe_async_control_write(usb_endpoint_pipe_t *pipe,
     void *data_buffer, size_t data_buffer_size,
     usb_handle_t *handle)
 {
-	return ENOTSUP;
+	assert(pipe);
+
+	if (pipe->hc_phone < 0) {
+		return EBADF;
+	}
+
+	if ((pipe->direction != USB_DIRECTION_BOTH)
+	    || (pipe->transfer_type != USB_TRANSFER_CONTROL)) {
+		return EBADF;
+	}
+
+	int rc;
+	_PREPARE_TARGET(target, pipe);
+
+	rc = usb_drv_async_control_write(pipe->hc_phone, target,
+	    setup_buffer, setup_buffer_size,
+	    data_buffer, data_buffer_size,
+	    handle);
+
+	return rc;
 }
 
 /** Wait for transfer completion.
