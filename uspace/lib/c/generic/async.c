@@ -42,11 +42,6 @@
  * You should be able to write very simple multithreaded programs, the async
  * framework will automatically take care of most synchronization problems.
  *
- * Default semantics:
- * - async_send_*(): Send asynchronously. If the kernel refuses to send
- *                   more messages, [ try to get responses from kernel, if
- *                   nothing found, might try synchronous ]
- *
  * Example of use (pseudo C):
  *
  * 1) Multithreaded client application
@@ -57,7 +52,7 @@
  *
  *   int fibril1(void *arg)
  *   {
- *     conn = ipc_connect_me_to();
+ *     conn = async_connect_me_to();
  *     c1 = async_send(conn);
  *     c2 = async_send(conn);
  *     async_wait_for(c1);
@@ -76,14 +71,14 @@
  *   my_client_connection(icallid, *icall)
  *   {
  *     if (want_refuse) {
- *       ipc_answer_0(icallid, ELIMIT);
+ *       async_answer_0(icallid, ELIMIT);
  *       return;
  *     }
- *     ipc_answer_0(icallid, EOK);
+ *     async_answer_0(icallid, EOK);
  *
  *     callid = async_get_call(&call);
  *     somehow_handle_the_call(callid, call);
- *     ipc_answer_2(callid, 1, 2, 3);
+ *     async_answer_2(callid, 1, 2, 3);
  *
  *     callid = async_get_call(&call);
  *     ...
@@ -91,19 +86,22 @@
  *
  */
 
-#include <futex.h>
+#define LIBC_ASYNC_C_
+#include <ipc/ipc.h>
 #include <async.h>
-#include <async_priv.h>
+#undef LIBC_ASYNC_C_
+
+#include <futex.h>
 #include <fibril.h>
 #include <stdio.h>
 #include <adt/hash_table.h>
 #include <adt/list.h>
-#include <ipc/ipc.h>
 #include <assert.h>
 #include <errno.h>
 #include <sys/time.h>
 #include <arch/barrier.h>
 #include <bool.h>
+#include "private/async.h"
 
 atomic_t async_futex = FUTEX_INITIALIZER;
 
@@ -123,8 +121,8 @@ typedef struct {
 } amsg_t;
 
 /**
- * Structures of this type are used to group information about a call and a
- * message queue link.
+ * Structures of this type are used to group information about
+ * a call and about a message queue link.
  */
 typedef struct {
 	link_t link;
@@ -152,7 +150,7 @@ typedef struct {
 	
 	/** Link to the client tracking structure. */
 	client_t *client;
-
+	
 	/** Messages that should be delivered to this fibril. */
 	link_t msg_queue;
 	
@@ -169,7 +167,7 @@ typedef struct {
 } connection_t;
 
 /** Identifier of the incoming connection handled by the current fibril. */
-fibril_local connection_t *FIBRIL_connection;
+static fibril_local connection_t *FIBRIL_connection;
 
 static void *default_client_data_constructor(void)
 {
@@ -198,17 +196,38 @@ void async_set_client_data_destructor(async_client_data_dtor_t dtor)
 void *async_client_data_get(void)
 {
 	assert(FIBRIL_connection);
-
 	return FIBRIL_connection->client->data;
 }
 
-static void default_client_connection(ipc_callid_t callid, ipc_call_t *call);
-static void default_interrupt_received(ipc_callid_t callid, ipc_call_t *call);
+/** Default fibril function that gets called to handle new connection.
+ *
+ * This function is defined as a weak symbol - to be redefined in user code.
+ *
+ * @param callid Hash of the incoming call.
+ * @param call   Data of the incoming call.
+ *
+ */
+static void default_client_connection(ipc_callid_t callid, ipc_call_t *call)
+{
+	ipc_answer_0(callid, ENOENT);
+}
 
 /**
  * Pointer to a fibril function that will be used to handle connections.
  */
 static async_client_conn_t client_connection = default_client_connection;
+
+/** Default fibril function that gets called to handle interrupt notifications.
+ *
+ * This function is defined as a weak symbol - to be redefined in user code.
+ *
+ * @param callid Hash of the incoming call.
+ * @param call   Data of the incoming call.
+ *
+ */
+static void default_interrupt_received(ipc_callid_t callid, ipc_call_t *call)
+{
+}
 
 /**
  * Pointer to a fibril function that will be used to handle interrupt
@@ -220,19 +239,19 @@ static hash_table_t client_hash_table;
 static hash_table_t conn_hash_table;
 static LIST_INITIALIZE(timeout_list);
 
-#define CLIENT_HASH_TABLE_BUCKETS	32
-#define CONN_HASH_TABLE_BUCKETS		32
+#define CLIENT_HASH_TABLE_BUCKETS  32
+#define CONN_HASH_TABLE_BUCKETS    32
 
-static hash_index_t client_hash(unsigned long *key)
+static hash_index_t client_hash(unsigned long key[])
 {
 	assert(key);
-	return (((*key) >> 4) % CLIENT_HASH_TABLE_BUCKETS); 
+	return (((key[0]) >> 4) % CLIENT_HASH_TABLE_BUCKETS);
 }
 
 static int client_compare(unsigned long key[], hash_count_t keys, link_t *item)
 {
-	client_t *cl = hash_table_get_instance(item, client_t, link);
-	return (key[0] == cl->in_task_hash);
+	client_t *client = hash_table_get_instance(item, client_t, link);
+	return (key[0] == client->in_task_hash);
 }
 
 static void client_remove(link_t *item)
@@ -253,10 +272,10 @@ static hash_table_operations_t client_hash_table_ops = {
  * @return Index into the connection hash table.
  *
  */
-static hash_index_t conn_hash(unsigned long *key)
+static hash_index_t conn_hash(unsigned long key[])
 {
 	assert(key);
-	return (((*key) >> 4) % CONN_HASH_TABLE_BUCKETS);
+	return (((key[0]) >> 4) % CONN_HASH_TABLE_BUCKETS);
 }
 
 /** Compare hash table item with a key.
@@ -270,8 +289,8 @@ static hash_index_t conn_hash(unsigned long *key)
  */
 static int conn_compare(unsigned long key[], hash_count_t keys, link_t *item)
 {
-	connection_t *hs = hash_table_get_instance(item, connection_t, link);
-	return (key[0] == hs->in_phone_hash);
+	connection_t *conn = hash_table_get_instance(item, connection_t, link);
+	return (key[0] == conn->in_phone_hash);
 }
 
 /** Connection hash table removal callback function.
@@ -286,7 +305,6 @@ static void conn_remove(link_t *item)
 {
 	free(hash_table_get_instance(item, connection_t, link));
 }
-
 
 /** Operations for the connection hash table. */
 static hash_table_operations_t conn_hash_table_ops = {
@@ -307,11 +325,12 @@ void async_insert_timeout(awaiter_t *wd)
 	
 	link_t *tmp = timeout_list.next;
 	while (tmp != &timeout_list) {
-		awaiter_t *cur;
+		awaiter_t *cur
+		    = list_get_instance(tmp, awaiter_t, to_event.link);
 		
-		cur = list_get_instance(tmp, awaiter_t, to_event.link);
 		if (tv_gteq(&cur->to_event.expires, &wd->to_event.expires))
 			break;
+		
 		tmp = tmp->next;
 	}
 	
@@ -328,7 +347,7 @@ void async_insert_timeout(awaiter_t *wd)
  * @param call   Data of the incoming call.
  *
  * @return False if the call doesn't match any connection.
- *         True if the call was passed to the respective connection fibril.
+ * @return True if the call was passed to the respective connection fibril.
  *
  */
 static bool route_call(ipc_callid_t callid, ipc_call_t *call)
@@ -465,14 +484,14 @@ ipc_callid_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 			 * closed by the client but the server did not notice
 			 * the first IPC_M_PHONE_HUNGUP call and continues to
 			 * call async_get_call_timeout(). Repeat
-			 * IPC_M_PHONE_HUNGUP until the caller notices. 
+			 * IPC_M_PHONE_HUNGUP until the caller notices.
 			 */
 			memset(call, 0, sizeof(ipc_call_t));
 			IPC_SET_IMETHOD(*call, IPC_M_PHONE_HUNGUP);
 			futex_up(&async_futex);
 			return conn->close_callid;
 		}
-
+		
 		if (usecs)
 			async_insert_timeout(&conn->wdata);
 		
@@ -510,31 +529,6 @@ ipc_callid_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs)
 	return callid;
 }
 
-/** Default fibril function that gets called to handle new connection.
- *
- * This function is defined as a weak symbol - to be redefined in user code.
- *
- * @param callid Hash of the incoming call.
- * @param call   Data of the incoming call.
- *
- */
-static void default_client_connection(ipc_callid_t callid, ipc_call_t *call)
-{
-	ipc_answer_0(callid, ENOENT);
-}
-
-/** Default fibril function that gets called to handle interrupt notifications.
- *
- * This function is defined as a weak symbol - to be redefined in user code.
- *
- * @param callid Hash of the incoming call.
- * @param call   Data of the incoming call.
- *
- */
-static void default_interrupt_received(ipc_callid_t callid, ipc_call_t *call)
-{
-}
-
 /** Wrapper for client connection fibril.
  *
  * When a new connection arrives, a fibril with this implementing function is
@@ -547,45 +541,49 @@ static void default_interrupt_received(ipc_callid_t callid, ipc_call_t *call)
  */
 static int connection_fibril(void *arg)
 {
-	unsigned long key;
-	client_t *cl;
-	link_t *lnk;
-	bool destroy = false;
-
 	/*
 	 * Setup fibril-local connection pointer.
 	 */
 	FIBRIL_connection = (connection_t *) arg;
-
+	
+	futex_down(&async_futex);
+	
 	/*
 	 * Add our reference for the current connection in the client task
 	 * tracking structure. If this is the first reference, create and
 	 * hash in a new tracking structure.
 	 */
-	futex_down(&async_futex);
-	key = FIBRIL_connection->in_task_hash;
-	lnk = hash_table_find(&client_hash_table, &key);
+	
+	unsigned long key = FIBRIL_connection->in_task_hash;
+	link_t *lnk = hash_table_find(&client_hash_table, &key);
+	
+	client_t *client;
+	
 	if (lnk) {
-		cl = hash_table_get_instance(lnk, client_t, link);
-		cl->refcnt++;
+		client = hash_table_get_instance(lnk, client_t, link);
+		client->refcnt++;
 	} else {
-		cl = malloc(sizeof(client_t));
-		if (!cl) {
+		client = malloc(sizeof(client_t));
+		if (!client) {
 			ipc_answer_0(FIBRIL_connection->callid, ENOMEM);
 			futex_up(&async_futex);
 			return 0;
 		}
-		cl->in_task_hash = FIBRIL_connection->in_task_hash;
+		
+		client->in_task_hash = FIBRIL_connection->in_task_hash;
+		
 		async_serialize_start();
-		cl->data = async_client_data_create();
+		client->data = async_client_data_create();
 		async_serialize_end();
-		cl->refcnt = 1;
-		hash_table_insert(&client_hash_table, &key, &cl->link);
+		
+		client->refcnt = 1;
+		hash_table_insert(&client_hash_table, &key, &client->link);
 	}
+	
 	futex_up(&async_futex);
-
-	FIBRIL_connection->client = cl;
-
+	
+	FIBRIL_connection->client = client;
+	
 	/*
 	 * Call the connection handler function.
 	 */
@@ -595,19 +593,25 @@ static int connection_fibril(void *arg)
 	/*
 	 * Remove the reference for this client task connection.
 	 */
+	bool destroy;
+	
 	futex_down(&async_futex);
-	if (--cl->refcnt == 0) {
+	
+	if (--client->refcnt == 0) {
 		hash_table_remove(&client_hash_table, &key, 1);
 		destroy = true;
-	}
+	} else
+		destroy = false;
+	
 	futex_up(&async_futex);
-
+	
 	if (destroy) {
-		if (cl->data)
-			async_client_data_destroy(cl->data);
-		free(cl);
+		if (client->data)
+			async_client_data_destroy(client->data);
+		
+		free(client);
 	}
-
+	
 	/*
 	 * Remove myself from the connection hash table.
 	 */
@@ -620,10 +624,10 @@ static int connection_fibril(void *arg)
 	 * Answer all remaining messages with EHANGUP.
 	 */
 	while (!list_empty(&FIBRIL_connection->msg_queue)) {
-		msg_t *msg;
+		msg_t *msg =
+		    list_get_instance(FIBRIL_connection->msg_queue.next, msg_t,
+		    link);
 		
-		msg = list_get_instance(FIBRIL_connection->msg_queue.next,
-		    msg_t, link);
 		list_remove(&msg->link);
 		ipc_answer_0(msg->callid, EHANGUP);
 		free(msg);
@@ -666,6 +670,7 @@ fid_t async_new_connection(sysarg_t in_task_hash, sysarg_t in_phone_hash,
 	if (!conn) {
 		if (callid)
 			ipc_answer_0(callid, ENOMEM);
+		
 		return (uintptr_t) NULL;
 	}
 	
@@ -713,31 +718,27 @@ fid_t async_new_connection(sysarg_t in_task_hash, sysarg_t in_phone_hash,
  */
 static void handle_call(ipc_callid_t callid, ipc_call_t *call)
 {
-	/* Unrouted call - do some default behaviour */
+	/* Unrouted call - take some default action */
 	if ((callid & IPC_CALLID_NOTIFICATION)) {
 		process_notification(callid, call);
-		goto out;
+		return;
 	}
 	
 	switch (IPC_GET_IMETHOD(*call)) {
 	case IPC_M_CONNECT_ME:
 	case IPC_M_CONNECT_ME_TO:
-		/* Open new connection with fibril etc. */
+		/* Open new connection with fibril, etc. */
 		async_new_connection(call->in_task_hash, IPC_GET_ARG5(*call),
 		    callid, call, client_connection);
-		goto out;
+		return;
 	}
 	
 	/* Try to route the call through the connection hash table */
 	if (route_call(callid, call))
-		goto out;
+		return;
 	
 	/* Unknown call from unknown phone - hang it up */
 	ipc_answer_0(callid, EHANGUP);
-	return;
-	
-out:
-	;
 }
 
 /** Fire all timeouts that expired. */
@@ -750,14 +751,14 @@ static void handle_expired_timeouts(void)
 	
 	link_t *cur = timeout_list.next;
 	while (cur != &timeout_list) {
-		awaiter_t *waiter;
+		awaiter_t *waiter =
+		    list_get_instance(cur, awaiter_t, to_event.link);
 		
-		waiter = list_get_instance(cur, awaiter_t, to_event.link);
 		if (tv_gt(&waiter->to_event.expires, &tv))
 			break;
-
+		
 		cur = cur->next;
-
+		
 		list_remove(&waiter->to_event.link);
 		waiter->to_event.inlist = false;
 		waiter->to_event.occurred = true;
@@ -784,7 +785,7 @@ static int async_manager_worker(void)
 {
 	while (true) {
 		if (fibril_switch(FIBRIL_FROM_MANAGER)) {
-			futex_up(&async_futex); 
+			futex_up(&async_futex);
 			/*
 			 * async_futex is always held when entering a manager
 			 * fibril.
@@ -807,13 +808,12 @@ static int async_manager_worker(void)
 				handle_expired_timeouts();
 				continue;
 			} else
-				timeout = tv_sub(&waiter->to_event.expires,
-				    &tv);
+				timeout = tv_sub(&waiter->to_event.expires, &tv);
 		} else
 			timeout = SYNCH_NO_TIMEOUT;
 		
 		futex_up(&async_futex);
-
+		
 		atomic_inc(&threads_in_ipc_wait);
 		
 		ipc_call_t call;
@@ -821,7 +821,7 @@ static int async_manager_worker(void)
 		    SYNCH_FLAGS_NONE);
 		
 		atomic_dec(&threads_in_ipc_wait);
-
+		
 		if (!callid) {
 			handle_expired_timeouts();
 			continue;
@@ -871,19 +871,16 @@ void async_destroy_manager(void)
 
 /** Initialize the async framework.
  *
- * @return Zero on success or an error code.
  */
-int __async_init(void)
+void __async_init(void)
 {
 	if (!hash_table_create(&client_hash_table, CLIENT_HASH_TABLE_BUCKETS, 1,
-	    &client_hash_table_ops) || !hash_table_create(&conn_hash_table,
-	    CONN_HASH_TABLE_BUCKETS, 1, &conn_hash_table_ops)) {
-		return ENOMEM;
-	}
-
-	_async_sess_init();
+	    &client_hash_table_ops))
+		abort();
 	
-	return 0;
+	if (!hash_table_create(&conn_hash_table, CONN_HASH_TABLE_BUCKETS, 1,
+	    &conn_hash_table_ops))
+		abort();
 }
 
 /** Reply received callback.
@@ -896,6 +893,7 @@ int __async_init(void)
  * @param arg    Pointer to the asynchronous message record.
  * @param retval Value returned in the answer.
  * @param data   Call data of the answer.
+ *
  */
 static void reply_received(void *arg, int retval, ipc_call_t *data)
 {
@@ -943,7 +941,7 @@ static void reply_received(void *arg, int retval, ipc_call_t *data)
 aid_t async_send_fast(int phoneid, sysarg_t method, sysarg_t arg1,
     sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, ipc_call_t *dataptr)
 {
-	amsg_t *msg = malloc(sizeof(*msg));
+	amsg_t *msg = malloc(sizeof(amsg_t));
 	
 	if (!msg)
 		return 0;
@@ -952,7 +950,11 @@ aid_t async_send_fast(int phoneid, sysarg_t method, sysarg_t arg1,
 	msg->dataptr = dataptr;
 	
 	msg->wdata.to_event.inlist = false;
-	/* We may sleep in the next method, but it will use its own mechanism */
+	
+	/*
+	 * We may sleep in the next method,
+	 * but it will use its own means
+	 */
 	msg->wdata.active = true;
 	
 	ipc_call_async_4(phoneid, method, arg1, arg2, arg3, arg4, msg,
@@ -983,7 +985,7 @@ aid_t async_send_slow(int phoneid, sysarg_t method, sysarg_t arg1,
     sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t arg5,
     ipc_call_t *dataptr)
 {
-	amsg_t *msg = malloc(sizeof(*msg));
+	amsg_t *msg = malloc(sizeof(amsg_t));
 	
 	if (!msg)
 		return 0;
@@ -992,7 +994,11 @@ aid_t async_send_slow(int phoneid, sysarg_t method, sysarg_t arg1,
 	msg->dataptr = dataptr;
 	
 	msg->wdata.to_event.inlist = false;
-	/* We may sleep in next method, but it will use its own mechanism */
+	
+	/*
+	 * We may sleep in the next method,
+	 * but it will use its own means
+	 */
 	msg->wdata.active = true;
 	
 	ipc_call_async_5(phoneid, method, arg1, arg2, arg3, arg4, arg5, msg,
@@ -1091,7 +1097,7 @@ done:
  */
 void async_usleep(suseconds_t timeout)
 {
-	amsg_t *msg = malloc(sizeof(*msg));
+	amsg_t *msg = malloc(sizeof(amsg_t));
 	
 	if (!msg)
 		return;
@@ -1234,135 +1240,277 @@ sysarg_t async_req_slow(int phoneid, sysarg_t method, sysarg_t arg1,
 	return rc;
 }
 
-/** Wrapper for making IPC_M_CONNECT_ME_TO calls using the async framework.
- * 
+void async_msg_0(int phone, sysarg_t imethod)
+{
+	ipc_call_async_0(phone, imethod, NULL, NULL, true);
+}
+
+void async_msg_1(int phone, sysarg_t imethod, sysarg_t arg1)
+{
+	ipc_call_async_1(phone, imethod, arg1, NULL, NULL, true);
+}
+
+void async_msg_2(int phone, sysarg_t imethod, sysarg_t arg1, sysarg_t arg2)
+{
+	ipc_call_async_2(phone, imethod, arg1, arg2, NULL, NULL, true);
+}
+
+void async_msg_3(int phone, sysarg_t imethod, sysarg_t arg1, sysarg_t arg2,
+    sysarg_t arg3)
+{
+	ipc_call_async_3(phone, imethod, arg1, arg2, arg3, NULL, NULL, true);
+}
+
+void async_msg_4(int phone, sysarg_t imethod, sysarg_t arg1, sysarg_t arg2,
+    sysarg_t arg3, sysarg_t arg4)
+{
+	ipc_call_async_4(phone, imethod, arg1, arg2, arg3, arg4, NULL, NULL,
+	    true);
+}
+
+void async_msg_5(int phone, sysarg_t imethod, sysarg_t arg1, sysarg_t arg2,
+    sysarg_t arg3, sysarg_t arg4, sysarg_t arg5)
+{
+	ipc_call_async_5(phone, imethod, arg1, arg2, arg3, arg4, arg5, NULL,
+	    NULL, true);
+}
+
+sysarg_t async_answer_0(ipc_callid_t callid, sysarg_t retval)
+{
+	return ipc_answer_0(callid, retval);
+}
+
+sysarg_t async_answer_1(ipc_callid_t callid, sysarg_t retval, sysarg_t arg1)
+{
+	return ipc_answer_1(callid, retval, arg1);
+}
+
+sysarg_t async_answer_2(ipc_callid_t callid, sysarg_t retval, sysarg_t arg1,
+    sysarg_t arg2)
+{
+	return ipc_answer_2(callid, retval, arg1, arg2);
+}
+
+sysarg_t async_answer_3(ipc_callid_t callid, sysarg_t retval, sysarg_t arg1,
+    sysarg_t arg2, sysarg_t arg3)
+{
+	return ipc_answer_3(callid, retval, arg1, arg2, arg3);
+}
+
+sysarg_t async_answer_4(ipc_callid_t callid, sysarg_t retval, sysarg_t arg1,
+    sysarg_t arg2, sysarg_t arg3, sysarg_t arg4)
+{
+	return ipc_answer_4(callid, retval, arg1, arg2, arg3, arg4);
+}
+
+sysarg_t async_answer_5(ipc_callid_t callid, sysarg_t retval, sysarg_t arg1,
+    sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t arg5)
+{
+	return ipc_answer_5(callid, retval, arg1, arg2, arg3, arg4, arg5);
+}
+
+int async_forward_fast(ipc_callid_t callid, int phoneid, sysarg_t imethod,
+    sysarg_t arg1, sysarg_t arg2, unsigned int mode)
+{
+	return ipc_forward_fast(callid, phoneid, imethod, arg1, arg2, mode);
+}
+
+int async_forward_slow(ipc_callid_t callid, int phoneid, sysarg_t imethod,
+    sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t arg5,
+    unsigned int mode)
+{
+	return ipc_forward_slow(callid, phoneid, imethod, arg1, arg2, arg3, arg4,
+	    arg5, mode);
+}
+
+/** Wrapper for making IPC_M_CONNECT_TO_ME calls using the async framework.
+ *
  * Ask through phone for a new connection to some service.
  *
- * @param phoneid	Phone handle used for contacting the other side.
- * @param arg1		User defined argument.
- * @param arg2		User defined argument.
- * @param arg3		User defined argument.
+ * @param phone           Phone handle used for contacting the other side.
+ * @param arg1            User defined argument.
+ * @param arg2            User defined argument.
+ * @param arg3            User defined argument.
+ * @param client_receiver Connection handing routine.
  *
- * @return		New phone handle on success or a negative error code.
+ * @return New phone handle on success or a negative error code.
+ *
  */
-int
-async_connect_me_to(int phoneid, sysarg_t arg1, sysarg_t arg2, sysarg_t arg3)
+int async_connect_to_me(int phone, sysarg_t arg1, sysarg_t arg2,
+    sysarg_t arg3, async_client_conn_t client_receiver)
 {
-	int rc;
-	sysarg_t newphid;
-
-	rc = async_req_3_5(phoneid, IPC_M_CONNECT_ME_TO, arg1, arg2, arg3, NULL,
-	    NULL, NULL, NULL, &newphid);
-	
-	if (rc != EOK)	
+	sysarg_t task_hash;
+	sysarg_t phone_hash;
+	int rc = async_req_3_5(phone, IPC_M_CONNECT_TO_ME, arg1, arg2, arg3,
+	    NULL, NULL, NULL, &task_hash, &phone_hash);
+	if (rc != EOK)
 		return rc;
+	
+	if (client_receiver != NULL)
+		async_new_connection(task_hash, phone_hash, 0, NULL,
+		    client_receiver);
+	
+	return EOK;
+}
 
+/** Wrapper for making IPC_M_CONNECT_ME_TO calls using the async framework.
+ *
+ * Ask through phone for a new connection to some service.
+ *
+ * @param phone Phone handle used for contacting the other side.
+ * @param arg1  User defined argument.
+ * @param arg2  User defined argument.
+ * @param arg3  User defined argument.
+ *
+ * @return New phone handle on success or a negative error code.
+ *
+ */
+int async_connect_me_to(int phone, sysarg_t arg1, sysarg_t arg2,
+    sysarg_t arg3)
+{
+	sysarg_t newphid;
+	int rc = async_req_3_5(phone, IPC_M_CONNECT_ME_TO, arg1, arg2, arg3,
+	    NULL, NULL, NULL, NULL, &newphid);
+	
+	if (rc != EOK)
+		return rc;
+	
 	return newphid;
 }
 
 /** Wrapper for making IPC_M_CONNECT_ME_TO calls using the async framework.
- * 
+ *
  * Ask through phone for a new connection to some service and block until
  * success.
  *
- * @param phoneid	Phone handle used for contacting the other side.
- * @param arg1		User defined argument.
- * @param arg2		User defined argument.
- * @param arg3		User defined argument.
+ * @param phoneid Phone handle used for contacting the other side.
+ * @param arg1    User defined argument.
+ * @param arg2    User defined argument.
+ * @param arg3    User defined argument.
  *
- * @return		New phone handle on success or a negative error code.
+ * @return New phone handle on success or a negative error code.
+ *
  */
-int
-async_connect_me_to_blocking(int phoneid, sysarg_t arg1, sysarg_t arg2,
+int async_connect_me_to_blocking(int phoneid, sysarg_t arg1, sysarg_t arg2,
     sysarg_t arg3)
 {
-	int rc;
 	sysarg_t newphid;
-
-	rc = async_req_4_5(phoneid, IPC_M_CONNECT_ME_TO, arg1, arg2, arg3,
+	int rc = async_req_4_5(phoneid, IPC_M_CONNECT_ME_TO, arg1, arg2, arg3,
 	    IPC_FLAG_BLOCKING, NULL, NULL, NULL, NULL, &newphid);
 	
-	if (rc != EOK)	
+	if (rc != EOK)
 		return rc;
-
+	
 	return newphid;
 }
 
-/** Wrapper for making IPC_M_SHARE_IN calls using the async framework.
+/** Connect to a task specified by id.
  *
- * @param phoneid	Phone that will be used to contact the receiving side.
- * @param dst		Destination address space area base.
- * @param size		Size of the destination address space area.
- * @param arg		User defined argument.
- * @param flags		Storage where the received flags will be stored. Can be
- *			NULL.
+ */
+int async_connect_kbox(task_id_t id)
+{
+	return ipc_connect_kbox(id);
+}
+
+/** Wrapper for ipc_hangup.
  *
- * @return		Zero on success or a negative error code from errno.h.
+ * @param phone Phone handle to hung up.
+ *
+ * @return Zero on success or a negative error code.
+ *
+ */
+int async_hangup(int phone)
+{
+	return ipc_hangup(phone);
+}
+
+/** Interrupt one thread of this task from waiting for IPC. */
+void async_poke(void)
+{
+	ipc_poke();
+}
+
+/** Wrapper for IPC_M_SHARE_IN calls using the async framework.
+ *
+ * @param phoneid Phone that will be used to contact the receiving side.
+ * @param dst     Destination address space area base.
+ * @param size    Size of the destination address space area.
+ * @param arg     User defined argument.
+ * @param flags   Storage for the received flags. Can be NULL.
+ *
+ * @return Zero on success or a negative error code from errno.h.
+ *
  */
 int async_share_in_start(int phoneid, void *dst, size_t size, sysarg_t arg,
-    int *flags)
+    unsigned int *flags)
 {
-	int res;
 	sysarg_t tmp_flags;
-	res = async_req_3_2(phoneid, IPC_M_SHARE_IN, (sysarg_t) dst,
+	int res = async_req_3_2(phoneid, IPC_M_SHARE_IN, (sysarg_t) dst,
 	    (sysarg_t) size, arg, NULL, &tmp_flags);
+	
 	if (flags)
-		*flags = tmp_flags;
+		*flags = (unsigned int) tmp_flags;
+	
 	return res;
 }
 
 /** Wrapper for receiving the IPC_M_SHARE_IN calls using the async framework.
  *
- * This wrapper only makes it more comfortable to receive IPC_M_SHARE_IN calls
- * so that the user doesn't have to remember the meaning of each IPC argument.
+ * This wrapper only makes it more comfortable to receive IPC_M_SHARE_IN
+ * calls so that the user doesn't have to remember the meaning of each IPC
+ * argument.
  *
  * So far, this wrapper is to be used from within a connection fibril.
  *
- * @param callid	Storage where the hash of the IPC_M_SHARE_IN call will
- * 			be stored.
- * @param size		Destination address space area size.	
+ * @param callid Storage for the hash of the IPC_M_SHARE_IN call.
+ * @param size   Destination address space area size.
  *
- * @return		Non-zero on success, zero on failure.
+ * @return True on success, false on failure.
+ *
  */
-int async_share_in_receive(ipc_callid_t *callid, size_t *size)
+bool async_share_in_receive(ipc_callid_t *callid, size_t *size)
 {
-	ipc_call_t data;
-	
 	assert(callid);
 	assert(size);
-
+	
+	ipc_call_t data;
 	*callid = async_get_call(&data);
+	
 	if (IPC_GET_IMETHOD(data) != IPC_M_SHARE_IN)
-		return 0;
+		return false;
+	
 	*size = (size_t) IPC_GET_ARG2(data);
-	return 1;
+	return true;
 }
 
 /** Wrapper for answering the IPC_M_SHARE_IN calls using the async framework.
  *
- * This wrapper only makes it more comfortable to answer IPC_M_DATA_READ calls
- * so that the user doesn't have to remember the meaning of each IPC argument.
+ * This wrapper only makes it more comfortable to answer IPC_M_DATA_READ
+ * calls so that the user doesn't have to remember the meaning of each IPC
+ * argument.
  *
- * @param callid	Hash of the IPC_M_DATA_READ call to answer.
- * @param src		Source address space base.
- * @param flags		Flags to be used for sharing. Bits can be only cleared.
+ * @param callid Hash of the IPC_M_DATA_READ call to answer.
+ * @param src    Source address space base.
+ * @param flags  Flags to be used for sharing. Bits can be only cleared.
  *
- * @return		Zero on success or a value from @ref errno.h on failure.
+ * @return Zero on success or a value from @ref errno.h on failure.
+ *
  */
-int async_share_in_finalize(ipc_callid_t callid, void *src, int flags)
+int async_share_in_finalize(ipc_callid_t callid, void *src, unsigned int flags)
 {
 	return ipc_share_in_finalize(callid, src, flags);
 }
 
-/** Wrapper for making IPC_M_SHARE_OUT calls using the async framework.
+/** Wrapper for IPC_M_SHARE_OUT calls using the async framework.
  *
- * @param phoneid	Phone that will be used to contact the receiving side.
- * @param src		Source address space area base address.
- * @param flags		Flags to be used for sharing. Bits can be only cleared.
+ * @param phoneid Phone that will be used to contact the receiving side.
+ * @param src     Source address space area base address.
+ * @param flags   Flags to be used for sharing. Bits can be only cleared.
  *
- * @return		Zero on success or a negative error code from errno.h.
+ * @return Zero on success or a negative error code from errno.h.
+ *
  */
-int async_share_out_start(int phoneid, void *src, int flags)
+int async_share_out_start(int phoneid, void *src, unsigned int flags)
 {
 	return async_req_3_0(phoneid, IPC_M_SHARE_OUT, (sysarg_t) src, 0,
 	    (sysarg_t) flags);
@@ -1370,58 +1518,61 @@ int async_share_out_start(int phoneid, void *src, int flags)
 
 /** Wrapper for receiving the IPC_M_SHARE_OUT calls using the async framework.
  *
- * This wrapper only makes it more comfortable to receive IPC_M_SHARE_OUT calls
- * so that the user doesn't have to remember the meaning of each IPC argument.
+ * This wrapper only makes it more comfortable to receive IPC_M_SHARE_OUT
+ * calls so that the user doesn't have to remember the meaning of each IPC
+ * argument.
  *
  * So far, this wrapper is to be used from within a connection fibril.
  *
- * @param callid	Storage where the hash of the IPC_M_SHARE_OUT call will
- * 			be stored.
- * @param size		Storage where the source address space area size will be
- *			stored.
- * @param flags		Storage where the sharing flags will be stored.
+ * @param callid Storage for the hash of the IPC_M_SHARE_OUT call.
+ * @param size   Storage for the source address space area size.
+ * @param flags  Storage for the sharing flags.
  *
- * @return		Non-zero on success, zero on failure.
+ * @return True on success, false on failure.
+ *
  */
-int async_share_out_receive(ipc_callid_t *callid, size_t *size, int *flags)
+bool async_share_out_receive(ipc_callid_t *callid, size_t *size, unsigned int *flags)
 {
-	ipc_call_t data;
-	
 	assert(callid);
 	assert(size);
 	assert(flags);
-
+	
+	ipc_call_t data;
 	*callid = async_get_call(&data);
+	
 	if (IPC_GET_IMETHOD(data) != IPC_M_SHARE_OUT)
-		return 0;
+		return false;
+	
 	*size = (size_t) IPC_GET_ARG2(data);
-	*flags = (int) IPC_GET_ARG3(data);
-	return 1;
+	*flags = (unsigned int) IPC_GET_ARG3(data);
+	return true;
 }
 
 /** Wrapper for answering the IPC_M_SHARE_OUT calls using the async framework.
  *
- * This wrapper only makes it more comfortable to answer IPC_M_SHARE_OUT calls
- * so that the user doesn't have to remember the meaning of each IPC argument.
+ * This wrapper only makes it more comfortable to answer IPC_M_SHARE_OUT
+ * calls so that the user doesn't have to remember the meaning of each IPC
+ * argument.
  *
- * @param callid	Hash of the IPC_M_DATA_WRITE call to answer.
- * @param dst		Destination address space area base address.	
+ * @param callid Hash of the IPC_M_DATA_WRITE call to answer.
+ * @param dst    Destination address space area base address.
  *
- * @return		Zero on success or a value from @ref errno.h on failure.
+ * @return Zero on success or a value from @ref errno.h on failure.
+ *
  */
 int async_share_out_finalize(ipc_callid_t callid, void *dst)
 {
 	return ipc_share_out_finalize(callid, dst);
 }
 
-
-/** Wrapper for making IPC_M_DATA_READ calls using the async framework.
+/** Wrapper for IPC_M_DATA_READ calls using the async framework.
  *
- * @param phoneid	Phone that will be used to contact the receiving side.
- * @param dst		Address of the beginning of the destination buffer.
- * @param size		Size of the destination buffer.
+ * @param phoneid Phone that will be used to contact the receiving side.
+ * @param dst     Address of the beginning of the destination buffer.
+ * @param size    Size of the destination buffer.
  *
- * @return		Zero on success or a negative error code from errno.h.
+ * @return Zero on success or a negative error code from errno.h.
+ *
  */
 int async_data_read_start(int phoneid, void *dst, size_t size)
 {
@@ -1431,43 +1582,47 @@ int async_data_read_start(int phoneid, void *dst, size_t size)
 
 /** Wrapper for receiving the IPC_M_DATA_READ calls using the async framework.
  *
- * This wrapper only makes it more comfortable to receive IPC_M_DATA_READ calls
- * so that the user doesn't have to remember the meaning of each IPC argument.
+ * This wrapper only makes it more comfortable to receive IPC_M_DATA_READ
+ * calls so that the user doesn't have to remember the meaning of each IPC
+ * argument.
  *
  * So far, this wrapper is to be used from within a connection fibril.
  *
- * @param callid	Storage where the hash of the IPC_M_DATA_READ call will
- * 			be stored.
- * @param size		Storage where the maximum size will be stored. Can be
- *			NULL.
+ * @param callid Storage for the hash of the IPC_M_DATA_READ.
+ * @param size   Storage for the maximum size. Can be NULL.
  *
- * @return		Non-zero on success, zero on failure.
+ * @return True on success, false on failure.
+ *
  */
-int async_data_read_receive(ipc_callid_t *callid, size_t *size)
+bool async_data_read_receive(ipc_callid_t *callid, size_t *size)
 {
-	ipc_call_t data;
-	
 	assert(callid);
-
+	
+	ipc_call_t data;
 	*callid = async_get_call(&data);
+	
 	if (IPC_GET_IMETHOD(data) != IPC_M_DATA_READ)
-		return 0;
+		return false;
+	
 	if (size)
 		*size = (size_t) IPC_GET_ARG2(data);
-	return 1;
+	
+	return true;
 }
 
 /** Wrapper for answering the IPC_M_DATA_READ calls using the async framework.
  *
- * This wrapper only makes it more comfortable to answer IPC_M_DATA_READ calls
- * so that the user doesn't have to remember the meaning of each IPC argument.
+ * This wrapper only makes it more comfortable to answer IPC_M_DATA_READ
+ * calls so that the user doesn't have to remember the meaning of each IPC
+ * argument.
  *
- * @param callid	Hash of the IPC_M_DATA_READ call to answer.
- * @param src		Source address for the IPC_M_DATA_READ call.
- * @param size		Size for the IPC_M_DATA_READ call. Can be smaller than
- *			the maximum size announced by the sender.
+ * @param callid Hash of the IPC_M_DATA_READ call to answer.
+ * @param src    Source address for the IPC_M_DATA_READ call.
+ * @param size   Size for the IPC_M_DATA_READ call. Can be smaller than
+ *               the maximum size announced by the sender.
  *
- * @return		Zero on success or a value from @ref errno.h on failure.
+ * @return Zero on success or a value from @ref errno.h on failure.
+ *
  */
 int async_data_read_finalize(ipc_callid_t callid, const void *src, size_t size)
 {
@@ -1475,7 +1630,6 @@ int async_data_read_finalize(ipc_callid_t callid, const void *src, size_t size)
 }
 
 /** Wrapper for forwarding any read request
- *
  *
  */
 int async_data_read_forward_fast(int phoneid, sysarg_t method, sysarg_t arg1,
@@ -1508,7 +1662,7 @@ int async_data_read_forward_fast(int phoneid, sysarg_t method, sysarg_t arg1,
 	return (int) rc;
 }
 
-/** Wrapper for making IPC_M_DATA_WRITE calls using the async framework.
+/** Wrapper for IPC_M_DATA_WRITE calls using the async framework.
  *
  * @param phoneid Phone that will be used to contact the receiving side.
  * @param src     Address of the beginning of the source buffer.
@@ -1525,39 +1679,39 @@ int async_data_write_start(int phoneid, const void *src, size_t size)
 
 /** Wrapper for receiving the IPC_M_DATA_WRITE calls using the async framework.
  *
- * This wrapper only makes it more comfortable to receive IPC_M_DATA_WRITE calls
- * so that the user doesn't have to remember the meaning of each IPC argument.
+ * This wrapper only makes it more comfortable to receive IPC_M_DATA_WRITE
+ * calls so that the user doesn't have to remember the meaning of each IPC
+ * argument.
  *
  * So far, this wrapper is to be used from within a connection fibril.
  *
- * @param callid Storage where the hash of the IPC_M_DATA_WRITE call will
- *               be stored.
- * @param size   Storage where the suggested size will be stored. May be
- *               NULL
+ * @param callid Storage for the hash of the IPC_M_DATA_WRITE.
+ * @param size   Storage for the suggested size. May be NULL.
  *
- * @return Non-zero on success, zero on failure.
+ * @return True on success, false on failure.
  *
  */
-int async_data_write_receive(ipc_callid_t *callid, size_t *size)
+bool async_data_write_receive(ipc_callid_t *callid, size_t *size)
 {
-	ipc_call_t data;
-	
 	assert(callid);
 	
+	ipc_call_t data;
 	*callid = async_get_call(&data);
+	
 	if (IPC_GET_IMETHOD(data) != IPC_M_DATA_WRITE)
-		return 0;
+		return false;
 	
 	if (size)
 		*size = (size_t) IPC_GET_ARG2(data);
 	
-	return 1;
+	return true;
 }
 
 /** Wrapper for answering the IPC_M_DATA_WRITE calls using the async framework.
  *
- * This wrapper only makes it more comfortable to answer IPC_M_DATA_WRITE calls
- * so that the user doesn't have to remember the meaning of each IPC argument.
+ * This wrapper only makes it more comfortable to answer IPC_M_DATA_WRITE
+ * calls so that the user doesn't have to remember the meaning of each IPC
+ * argument.
  *
  * @param callid Hash of the IPC_M_DATA_WRITE call to answer.
  * @param dst    Final destination address for the IPC_M_DATA_WRITE call.
@@ -1653,7 +1807,7 @@ int async_data_write_accept(void **data, const bool nullterm,
  * @param retval Error value from @ref errno.h to be returned to the caller.
  *
  */
-void async_data_write_void(const int retval)
+void async_data_write_void(sysarg_t retval)
 {
 	ipc_callid_t callid;
 	async_data_write_receive(&callid, NULL);
@@ -1661,7 +1815,6 @@ void async_data_write_void(const int retval)
 }
 
 /** Wrapper for forwarding any data that is about to be received
- *
  *
  */
 int async_data_write_forward_fast(int phoneid, sysarg_t method, sysarg_t arg1,

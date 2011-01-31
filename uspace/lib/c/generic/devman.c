@@ -27,8 +27,8 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
- 
- /** @addtogroup libc
+
+/** @addtogroup libc
  * @{
  */
 /** @file
@@ -36,7 +36,6 @@
 
 #include <str.h>
 #include <stdio.h>
-#include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <ipc/devman.h>
 #include <devman.h>
@@ -115,7 +114,7 @@ int devman_driver_register(const char *name, async_client_conn_t conn)
 	
 	async_set_client_connection(conn);
 	
-	ipc_connect_to_me(phone, 0, 0, 0, NULL, NULL);
+	async_connect_to_me(phone, 0, 0, 0, NULL);
 	async_wait_for(req, &retval);
 	
 	async_serialize_end();
@@ -220,13 +219,13 @@ void devman_hangup_phone(devman_interface_t iface)
 	switch (iface) {
 	case DEVMAN_DRIVER:
 		if (devman_phone_driver >= 0) {
-			ipc_hangup(devman_phone_driver);
+			async_hangup(devman_phone_driver);
 			devman_phone_driver = -1;
 		}
 		break;
 	case DEVMAN_CLIENT:
 		if (devman_phone_client >= 0) {
-			ipc_hangup(devman_phone_client);
+			async_hangup(devman_phone_client);
 			devman_phone_client = -1;
 		}
 		break;

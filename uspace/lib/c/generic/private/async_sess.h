@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2011 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,15 +32,12 @@
 /** @file
  */
 
-#include <stdio.h>
-#include <stdlib.h>
+#ifndef LIBC_PRIVATE_ASYNC_SESS_H_
+#define LIBC_PRIVATE_ASYNC_SESS_H_
 
-/* TODO
-void errx(int __status, __const char *__format, ...)
-{
-	_exit(0);
-}
-*/
+extern void __async_sess_init(void);
+
+#endif
 
 /** @}
  */

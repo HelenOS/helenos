@@ -39,7 +39,6 @@
 #include <ddi.h>
 #include <libarch/ddi.h>
 #include <devmap.h>
-#include <ipc/ipc.h>
 #include <ipc/char.h>
 #include <async.h>
 #include <unistd.h>
@@ -118,7 +117,7 @@ static void s3c24xx_uart_connection(ipc_callid_t iid, ipc_call_t *icall)
 	int retval;
 
 	/* Answer the IPC_M_CONNECT_ME_TO call. */
-	ipc_answer_0(iid, EOK);
+	async_answer_0(iid, EOK);
 
 	while (1) {
 		callid = async_get_call(&call);
@@ -126,7 +125,7 @@ static void s3c24xx_uart_connection(ipc_callid_t iid, ipc_call_t *icall)
 		switch (method) {
 		case IPC_M_PHONE_HUNGUP:
 			/* The other side has hung up. */
-			ipc_answer_0(callid, EOK);
+			async_answer_0(callid, EOK);
 			return;
 		case IPC_M_CONNECT_TO_ME:
 			printf(NAME ": creating callback connection\n");
@@ -143,7 +142,7 @@ static void s3c24xx_uart_connection(ipc_callid_t iid, ipc_call_t *icall)
 			retval = EINVAL;
 			break;
 		}
-		ipc_answer_0(callid, retval);
+		async_answer_0(callid, retval);
 	}
 }
 
@@ -190,7 +189,7 @@ static int s3c24xx_uart_init(s3c24xx_uart_t *uart)
 
 	async_set_interrupt_received(s3c24xx_uart_irq_handler);
 
-	ipc_register_irq(inr, device_assign_devno(), 0, &uart_irq_code);
+	register_irq(inr, device_assign_devno(), 0, &uart_irq_code);
 
 	/* Enable FIFO, Tx trigger level: empty, Rx trigger level: 1 byte. */
 	pio_write_32(&uart->io->ufcon, UFCON_FIFO_ENABLE |

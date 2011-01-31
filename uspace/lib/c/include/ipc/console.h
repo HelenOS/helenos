@@ -35,7 +35,6 @@
 #ifndef LIBC_IPC_CONSOLE_H_
 #define LIBC_IPC_CONSOLE_H_
 
-#include <ipc/ipc.h>
 #include <ipc/vfs.h>
 
 typedef enum {

@@ -42,10 +42,9 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <errno.h>
-
+#include <task.h>
 #include <ipc/services.h>
 #include <ipc/socket.h>
-
 #include <net/modules.h>
 #include <net/in.h>
 #include <net/socket.h>
@@ -277,7 +276,7 @@ loop:
 		rc = ENOTSUP;
 	}
 
-	ipc_answer_0(callid, (sysarg_t) rc);
+	async_answer_0(callid, (sysarg_t) rc);
 	goto loop;
 }
 
@@ -686,7 +685,7 @@ int accept(int socket_id, struct sockaddr * cliaddr, socklen_t * addrlen)
 	    new_socket->socket_id, &answer);
 
 	/* Read address */
-	ipc_data_read_start(socket->phone, cliaddr, *addrlen);
+	async_data_read_start(socket->phone, cliaddr, *addrlen);
 	fibril_rwlock_write_unlock(&socket_globals.lock);
 	async_wait_for(message_id, &ipc_result);
 	result = (int) ipc_result;

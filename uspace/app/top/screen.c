@@ -36,7 +36,6 @@
  */
 
 #include <stdio.h>
-#include <ipc/ipc.h>
 #include <io/console.h>
 #include <io/style.h>
 #include <vfs/vfs.h>
@@ -273,8 +272,8 @@ static inline void print_physmem_info(data_t *data)
 static inline void print_tasks_head(void)
 {
 	screen_style_inverted();
-	printf("[taskid] [threads] [virtual] [%%virt] [%%user]"
-	    " [%%kernel] [name");
+	printf("[taskid] [thrds] [resident] [%%resi] [virtual] [%%virt]"
+	    " [%%user] [%%kern] [name");
 	screen_newline();
 	screen_style_normal();
 }
@@ -294,16 +293,22 @@ static inline void print_tasks(data_t *data)
 		stats_task_t *task = data->tasks + data->tasks_map[i];
 		perc_task_t *perc = data->tasks_perc + data->tasks_map[i];
 		
+		uint64_t resmem;
+		char resmem_suffix;
+		order_suffix(task->resmem, &resmem, &resmem_suffix);
+		
 		uint64_t virtmem;
 		char virtmem_suffix;
 		order_suffix(task->virtmem, &virtmem, &virtmem_suffix);
 		
-		printf("%-8" PRIu64 " %9zu %8" PRIu64 "%c ", task->task_id,
-		    task->threads, virtmem, virtmem_suffix);
+		printf("%-8" PRIu64 " %7zu %9" PRIu64 "%c ",
+		    task->task_id, task->threads, resmem, resmem_suffix);
+		print_percent(perc->resmem, 2);
+		printf(" %8" PRIu64 "%c ", virtmem, virtmem_suffix);
 		print_percent(perc->virtmem, 2);
 		puts(" ");
 		print_percent(perc->ucycles, 2);
-		puts("   ");
+		puts(" ");
 		print_percent(perc->kcycles, 2);
 		puts(" ");
 		print_string(task->name);

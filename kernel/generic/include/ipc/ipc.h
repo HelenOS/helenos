@@ -337,7 +337,6 @@ typedef struct {
 	/*
 	 * The caller box is different from sender->answerbox
 	 * for synchronous calls.
-	 *
 	 */
 	answerbox_t *callerbox;
 	
@@ -354,7 +353,6 @@ typedef struct {
 	 * The forward operation can masquerade the caller phone. For those
 	 * cases, we must keep it aside so that the answer is processed
 	 * correctly.
-	 *
 	 */
 	phone_t *caller_phone;
 } call_t;

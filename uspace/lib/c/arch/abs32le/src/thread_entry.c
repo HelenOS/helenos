@@ -30,7 +30,7 @@
  */
 
 #include <unistd.h>
-#include <thread.h>
+#include "../../../generic/private/thread.h"
 
 void __thread_entry(void)
 {

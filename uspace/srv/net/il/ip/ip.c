@@ -40,7 +40,6 @@
 #include <fibril_synch.h>
 #include <stdio.h>
 #include <str.h>
-#include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <ipc/net.h>
 #include <ipc/nil.h>
@@ -1595,7 +1594,7 @@ static void ip_receiver(ipc_callid_t iid, ipc_call_t *icall)
 		case NET_IL_DEVICE_STATE:
 			rc = ip_device_state_message(IPC_GET_DEVICE(*icall),
 			    IPC_GET_STATE(*icall));
-			ipc_answer_0(iid, (sysarg_t) rc);
+			async_answer_0(iid, (sysarg_t) rc);
 			break;
 		
 		case NET_IL_RECEIVED:
@@ -1609,17 +1608,17 @@ static void ip_receiver(ipc_callid_t iid, ipc_call_t *icall)
 				} while (packet);
 			}
 			
-			ipc_answer_0(iid, (sysarg_t) rc);
+			async_answer_0(iid, (sysarg_t) rc);
 			break;
 		
 		case NET_IL_MTU_CHANGED:
 			rc = ip_mtu_changed_message(IPC_GET_DEVICE(*icall),
 			    IPC_GET_MTU(*icall));
-			ipc_answer_0(iid, (sysarg_t) rc);
+			async_answer_0(iid, (sysarg_t) rc);
 			break;
 		
 		default:
-			ipc_answer_0(iid, (sysarg_t) ENOTSUP);
+			async_answer_0(iid, (sysarg_t) ENOTSUP);
 		}
 		
 		iid = async_get_call(icall);

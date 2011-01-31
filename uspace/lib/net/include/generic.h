@@ -38,7 +38,6 @@
 #define LIBNET_GENERIC_H_
 
 #include <async.h>
-#include <ipc/ipc.h>
 #include <ipc/services.h>
 
 #include <net/device.h>

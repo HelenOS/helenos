@@ -130,6 +130,7 @@ extern void task_hold(task_t *);
 extern void task_release(task_t *);
 extern task_t *task_find_by_id(task_id_t);
 extern int task_kill(task_id_t);
+extern void task_kill_self(bool) __attribute__((noreturn));
 extern void task_get_accounting(task_t *, uint64_t *, uint64_t *);
 extern void task_print_list(bool);
 
@@ -154,6 +155,7 @@ extern sysarg_t sys_task_get_id(void);
 
 extern sysarg_t sys_task_set_name(const char *, size_t);
 extern sysarg_t sys_task_kill(task_id_t *);
+extern sysarg_t sys_task_exit(sysarg_t);
 
 #endif
 

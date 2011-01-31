@@ -37,9 +37,7 @@
 #ifndef LIBC_NET_MESSAGES_H_
 #define LIBC_NET_MESSAGES_H_
 
-#include <ipc/ipc.h>
 #include <ipc/services.h>
-
 #include <net/device.h>
 #include <net/packet.h>
 

@@ -38,7 +38,6 @@
 #ifndef LIBC_ARP_MESSAGES_
 #define LIBC_ARP_MESSAGES_
 
-#include <ipc/ipc.h>
 #include <ipc/net.h>
 
 /** ARP module messages. */

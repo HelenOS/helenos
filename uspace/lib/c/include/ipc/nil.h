@@ -37,7 +37,6 @@
 #ifndef LIBC_NIL_MESSAGES_H_
 #define LIBC_NIL_MESSAGES_H_
 
-#include <ipc/ipc.h>
 #include <ipc/net.h>
 
 /** Network interface layer module messages. */
