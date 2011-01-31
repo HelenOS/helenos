@@ -437,6 +437,7 @@ retry:
 			b->data = malloc(cache->lblock_size);
 			if (!b->data) {
 				free(b);
+				b = NULL;
 				goto recycle;
 			}
 			cache->blocks_cached++;
