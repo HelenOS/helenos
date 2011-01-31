@@ -34,7 +34,7 @@
 #ifndef DRV_UHCI_TD_NAME_H
 #define DRV_UHCI_TD_NAME_H
 
-#define NAME "uhci"
+#define NAME "uhci-hcd"
 
 #endif
 /**

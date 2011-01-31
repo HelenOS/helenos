@@ -29,7 +29,7 @@
 USPACE_PREFIX = ../..
 LIBS = $(LIBDRV_PREFIX)/libdrv.a $(LIBUSB_PREFIX)/libusb.a
 EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include -I$(LIBUSB_PREFIX)/include -I.
-BINARY = uhci
+BINARY = uhci-hcd
 
 SOURCES = \
 	callback.c \
