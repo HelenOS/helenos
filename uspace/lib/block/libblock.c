@@ -293,8 +293,10 @@ int block_cache_init(devmap_handle_t devmap_handle, size_t size, unsigned blocks
 	cache->mode = mode;
 
 	/* Allow 1:1 or small-to-large block size translation */
-	if (cache->lblock_size % devcon->pblock_size != 0)
+	if (cache->lblock_size % devcon->pblock_size != 0) {
+		free(cache);
 		return ENOTSUP;
+	}
 
 	cache->blocks_cluster = cache->lblock_size / devcon->pblock_size;
 
