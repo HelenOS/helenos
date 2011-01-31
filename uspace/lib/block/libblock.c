@@ -623,8 +623,8 @@ retry:
 			 */
 			unsigned long key = block->lba;
 			hash_table_remove(&cache->block_hash, &key, 1);
-			free(block);
 			free(block->data);
+			free(block);
 			cache->blocks_cached--;
 			fibril_mutex_unlock(&cache->lock);
 			return rc;
