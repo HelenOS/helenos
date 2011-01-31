@@ -552,8 +552,13 @@ void cmd_init(void)
 
 	for (i = 0; basic_commands[i]; i++) {
 		cmd_initialize(basic_commands[i]);
-		if (!cmd_register(basic_commands[i]))
-			printf("Cannot register command %s\n", basic_commands[i]->name);
+	}
+
+	for (i = 0; basic_commands[i]; i++) {
+		if (!cmd_register(basic_commands[i])) {
+			printf("Cannot register command %s\n",
+			    basic_commands[i]->name);
+		}
 	}
 }
 
