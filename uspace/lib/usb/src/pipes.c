@@ -81,12 +81,15 @@ int usb_device_connection_initialize_from_device(
 
 	my_address = usb_drv_get_my_address(hc_phone, device);
 	if (my_address < 0) {
-		return my_address;
+		rc = my_address;
+		goto leave;
 	}
 
 	rc = usb_device_connection_initialize(connection,
 	    hc_handle, my_address);
 
+leave:
+	ipc_hangup(hc_phone);
 	return rc;
 }
 
