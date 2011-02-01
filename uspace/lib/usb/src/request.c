@@ -223,16 +223,13 @@ int usb_request_get_descriptor(usb_endpoint_pipe_t *pipe,
 		return EINVAL;
 	}
 
-	PREPARE_SETUP_PACKET_LOHI(setup_packet, USB_DIRECTION_IN,
+	uint16_t wValue = descriptor_index | (descriptor_type << 8);
+
+	return usb_control_request_get(pipe,
 	    request_type, USB_REQUEST_RECIPIENT_DEVICE,
-	    USB_DEVREQ_GET_DESCRIPTOR, descriptor_index, descriptor_type,
-	    language, size);
-
-	int rc = usb_endpoint_pipe_control_read(pipe,
-	    &setup_packet, sizeof(setup_packet),
+	    USB_DEVREQ_GET_DESCRIPTOR,
+	    wValue, language,
 	    buffer, size, actual_size);
-
-	return rc;
 }
 
 /**
