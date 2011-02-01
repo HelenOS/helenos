@@ -1,3 +1,5 @@
+#include <usb/debug.h>
+
 #include "transfer_descriptor.h"
 
 void transfer_descriptor_init(transfer_descriptor_t *instance,
@@ -30,7 +32,7 @@ void transfer_descriptor_init(transfer_descriptor_t *instance,
 		instance->buffer_ptr = (uintptr_t)addr_to_phys(buffer);
 	}
 
-	uhci_print_info("Created TD: %X:%X:%X:%X(%p).\n",
+	usb_log_info("Created TD: %X:%X:%X:%X(%p).\n",
 		instance->next, instance->status, instance->device,
 	  instance->buffer_ptr, buffer);
 #if 0

@@ -1,11 +1,9 @@
 #include <errno.h>
+
 #include <usb/debug.h>
 #include <usb/usb.h>
 
 #include "utils/malloc32.h"
-
-#include "debug.h"
-#include "name.h"
 #include "uhci.h"
 
 static int uhci_init_transfer_lists(transfer_list_t list[]);
@@ -15,11 +13,11 @@ static int uhci_debug_checker(void *arg);
 int uhci_init(device_t *device, void *regs, size_t reg_size)
 {
 	assert(device);
-	uhci_print_info("Initializing device at address %p.\n", device);
+	usb_log_info("Initializing device at address %p.\n", device);
 
 #define CHECK_RET_FREE_INSTANCE(message...) \
 	if (ret != EOK) { \
-		uhci_print_error(message); \
+		usb_log_error(message); \
 		if (instance) { \
 			free(instance); \
 		} \
@@ -35,7 +33,7 @@ int uhci_init(device_t *device, void *regs, size_t reg_size)
 
 	/* init address keeper(libusb) */
 	usb_address_keeping_init(&instance->address_manager, USB11_ADDRESS_MAX);
-	uhci_print_verbose("Initialized address manager.\n");
+	usb_log_debug("Initialized address manager.\n");
 
 	/* allow access to hc control registers */
 	regs_t *io;
@@ -43,15 +41,15 @@ int uhci_init(device_t *device, void *regs, size_t reg_size)
 	ret = pio_enable(regs, reg_size, (void**)&io);
 	CHECK_RET_FREE_INSTANCE("Failed to gain access to registers at %p.\n", io);
 	instance->registers = io;
-	uhci_print_verbose("Device registers accessible.\n");
+	usb_log_debug("Device registers accessible.\n");
 
 	/* init transfer lists */
 	ret = uhci_init_transfer_lists(instance->transfers);
 	CHECK_RET_FREE_INSTANCE("Failed to initialize transfer lists.\n");
-	uhci_print_verbose("Transfer lists initialized.\n");
+	usb_log_debug("Transfer lists initialized.\n");
 
 
-	uhci_print_verbose("Initializing frame list.\n");
+	usb_log_debug("Initializing frame list.\n");
 	instance->frame_list = get_page();
 	ret = instance ? EOK : ENOMEM;
 	CHECK_RET_FREE_INSTANCE("Failed to get frame list page.\n");
@@ -75,7 +73,7 @@ int uhci_init(device_t *device, void *regs, size_t reg_size)
 	instance->debug_checker = fibril_create(uhci_debug_checker, instance);
 	fibril_add_ready(instance->debug_checker);
 
-	uhci_print_verbose("Starting UHCI HC.\n");
+	usb_log_debug("Starting UHCI HC.\n");
 	pio_write_16(&instance->registers->usbcmd, UHCI_CMD_RUN_STOP);
 /*
 	uint16_t cmd = pio_read_16(&instance->registers->usbcmd);
@@ -95,14 +93,14 @@ int uhci_init_transfer_lists(transfer_list_t transfers[])
 	int ret;
 	ret = transfer_list_init(&transfers[USB_TRANSFER_BULK], NULL);
 	if (ret != EOK) {
-		uhci_print_error("Failed to initialize bulk queue.\n");
+		usb_log_error("Failed to initialize bulk queue.\n");
 		return ret;
 	}
 
 	ret = transfer_list_init(
 	  &transfers[USB_TRANSFER_CONTROL], &transfers[USB_TRANSFER_BULK]);
 	if (ret != EOK) {
-		uhci_print_error("Failed to initialize control queue.\n");
+		usb_log_error("Failed to initialize control queue.\n");
 		transfer_list_fini(&transfers[USB_TRANSFER_BULK]);
 		return ret;
 	}
@@ -110,7 +108,7 @@ int uhci_init_transfer_lists(transfer_list_t transfers[])
 	ret = transfer_list_init(
 	  &transfers[USB_TRANSFER_INTERRUPT], &transfers[USB_TRANSFER_CONTROL]);
 	if (ret != EOK) {
-		uhci_print_error("Failed to initialize interrupt queue.\n");
+		usb_log_error("Failed to initialize interrupt queue.\n");
 		transfer_list_fini(&transfers[USB_TRANSFER_CONTROL]);
 		transfer_list_fini(&transfers[USB_TRANSFER_BULK]);
 		return ret;
@@ -143,7 +141,7 @@ int uhci_transfer(
 
 #define CHECK_RET_TRANS_FREE_JOB_TD(message) \
 	if (ret != EOK) { \
-		uhci_print_error(message); \
+		usb_log_error(message); \
 		if (job) { \
 			callback_dispose(job); \
 		} \
@@ -166,7 +164,7 @@ int uhci_transfer(
 	uhci_t *instance = (uhci_t*)dev->driver_data;
 	assert(instance);
 
-	uhci_print_verbose("Appending a new transfer to queue.\n");
+	usb_log_debug("Appending a new transfer to queue.\n");
 	ret = transfer_list_append(&instance->transfers[transfer_type], td);
 	CHECK_RET_TRANS_FREE_JOB_TD("Failed to append transfer descriptor.\n");
 
@@ -175,12 +173,12 @@ int uhci_transfer(
 /*---------------------------------------------------------------------------*/
 int uhci_clean_finished(void* arg)
 {
-	uhci_print_verbose("Started cleaning fibril.\n");
+	usb_log_debug("Started cleaning fibril.\n");
 	uhci_t *instance = (uhci_t*)arg;
 	assert(instance);
 
 	while(1) {
-		uhci_print_verbose("Running cleaning fibril on: %p.\n", instance);
+		usb_log_debug("Running cleaning fibril on: %p.\n", instance);
 		/* iterate all transfer queues */
 		int i = 0;
 		for (; i < TRANSFER_QUEUES; ++i) {
@@ -188,17 +186,17 @@ int uhci_clean_finished(void* arg)
 			 * TODO: should I reach queue head or is this enough? */
 			volatile transfer_descriptor_t * it =
 				instance->transfers[i].first;
-			uhci_print_verbose("Running cleaning fibril on queue: %p (%s).\n",
+			usb_log_debug("Running cleaning fibril on queue: %p (%s).\n",
 				&instance->transfers[i], it ? "SOMETHING" : "EMPTY");
 
 		if (it)
-			uhci_print_verbose("First in queue: %p (%x).\n",
+			usb_log_debug("First in queue: %p (%x).\n",
 				it, it->status);
 
 			while (instance->transfers[i].first &&
 			 !(instance->transfers[i].first->status & TD_STATUS_ERROR_ACTIVE)) {
 				transfer_descriptor_t *transfer = instance->transfers[i].first;
-				uhci_print_info("Inactive transfer calling callback with status %x.\n",
+				usb_log_info("Inactive transfer calling callback with status %x.\n",
 				  transfer->status);
 				instance->transfers[i].first = transfer->next_va;
 				transfer_descriptor_dispose(transfer);
@@ -218,23 +216,23 @@ int uhci_debug_checker(void *arg)
 	while (1) {
 		uint16_t cmd = pio_read_16(&instance->registers->usbcmd);
 		uint16_t sts = pio_read_16(&instance->registers->usbsts);
-		uhci_print_verbose("Command register: %X Status register: %X\n", cmd, sts);
+		usb_log_debug("Command register: %X Status register: %X\n", cmd, sts);
 /*
 		uintptr_t frame_list = pio_read_32(&instance->registers->flbaseadd);
-		uhci_print_verbose("Framelist address: %p vs. %p.\n",
+		usb_log_debug("Framelist address: %p vs. %p.\n",
 			frame_list, addr_to_phys(instance->frame_list));
 		int frnum = pio_read_16(&instance->registers->frnum) & 0x3ff;
-		uhci_print_verbose("Framelist item: %d \n", frnum );
+		usb_log_debug("Framelist item: %d \n", frnum );
 
 		queue_head_t* qh = instance->transfers[USB_TRANSFER_INTERRUPT].queue_head;
-		uhci_print_verbose("Interrupt QH: %p vs. %p.\n",
+		usb_log_debug("Interrupt QH: %p vs. %p.\n",
 			instance->frame_list[frnum], addr_to_phys(qh));
 
-		uhci_print_verbose("Control QH: %p vs. %p.\n", qh->next_queue,
+		usb_log_debug("Control QH: %p vs. %p.\n", qh->next_queue,
 			addr_to_phys(instance->transfers[USB_TRANSFER_CONTROL].queue_head));
 		qh = instance->transfers[USB_TRANSFER_CONTROL].queue_head;
 
-		uhci_print_verbose("Bulk QH: %p vs. %p.\n", qh->next_queue,
+		usb_log_debug("Bulk QH: %p vs. %p.\n", qh->next_queue,
 			addr_to_phys(instance->transfers[USB_TRANSFER_BULK].queue_head));
 	uint16_t cmd = pio_read_16(&instance->registers->usbcmd);
 	cmd |= UHCI_CMD_RUN_STOP;

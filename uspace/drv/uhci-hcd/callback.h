@@ -37,7 +37,6 @@
 #include <usbhc_iface.h>
 #include <usb/usb.h>
 
-#include "debug.h"
 #include "utils/malloc32.h"
 
 typedef struct callback

@@ -1,9 +1,11 @@
 #include <assert.h>
 #include <errno.h>
 #include <stdio.h>
+
 #include <usb_iface.h>
 
-#include "debug.h"
+#include <usb/debug.h>
+
 #include "root_hub.h"
 /*----------------------------------------------------------------------------*/
 static int usb_iface_get_hc_handle(device_t *dev, devman_handle_t *handle)
@@ -26,7 +28,6 @@ static int usb_iface_get_hc_handle(device_t *dev, devman_handle_t *handle)
   return ENOTSUP;
 }
 /*----------------------------------------------------------------------------*/
-
 static usb_iface_t usb_iface = {
   .get_hc_handle = usb_iface_get_hc_handle
 };
@@ -40,13 +41,13 @@ int setup_root_hub(device_t **device, device_t *hc)
 	assert(device);
 	device_t *hub = create_device();
 	if (!hub) {
-		uhci_print_error("Failed to create root hub device structure.\n");
+		usb_log_error("Failed to create root hub device structure.\n");
 		return ENOMEM;
 	}
 	char *name;
 	int ret = asprintf(&name, "UHCI Root Hub");
 	if (ret < 0) {
-		uhci_print_error("Failed to create root hub name.\n");
+		usb_log_error("Failed to create root hub name.\n");
 		free(hub);
 		return ENOMEM;
 	}
@@ -54,7 +55,7 @@ int setup_root_hub(device_t **device, device_t *hc)
 	char *match_str;
 	ret = asprintf(&match_str, "usb&uhci&root-hub");
 	if (ret < 0) {
-		uhci_print_error("Failed to create root hub match string.\n");
+		usb_log_error("Failed to create root hub match string.\n");
 		free(hub);
 		free(name);
 		return ENOMEM;
@@ -62,7 +63,7 @@ int setup_root_hub(device_t **device, device_t *hc)
 
 	match_id_t *match_id = create_match_id();
 	if (!match_id) {
-		uhci_print_error("Failed to create root hub match id.\n");
+		usb_log_error("Failed to create root hub match id.\n");
 		free(hub);
 		free(match_str);
 		return ENOMEM;

@@ -27,15 +27,16 @@
  */
 #include <driver.h>
 #include <errno.h>
-#include <str_error.h>
 #include <usb_iface.h>
 
-#include "debug.h"
+#include <usb/debug.h>
+
 #include "iface.h"
-#include "name.h"
 #include "pci.h"
 #include "root_hub.h"
 #include "uhci.h"
+
+#define NAME "uhci-hcd"
 
 static int usb_iface_get_hc_handle(device_t *dev, devman_handle_t *handle)
 {
@@ -57,7 +58,9 @@ static device_ops_t uhci_ops = {
 
 static int uhci_add_device(device_t *device)
 {
-	uhci_print_info( "uhci_add_device() called\n" );
+	assert(device);
+
+	usb_log_info("uhci_add_device() called\n");
 	device->ops = &uhci_ops;
 
 	uintptr_t io_reg_base;
@@ -68,32 +71,32 @@ static int uhci_add_device(device_t *device)
 	    &io_reg_base, &io_reg_size, &irq);
 
 	if (rc != EOK) {
-		uhci_print_fatal("failed to get I/O registers addresses: %s.\n",
-		    str_error(rc));
+		usb_log_error("Failed(%d) to get I/O registers addresses for device:.\n",
+		    rc, device->handle);
 		return rc;
 	}
 
-	uhci_print_info("I/O regs at 0x%X (size %zu), IRQ %d.\n",
+	usb_log_info("I/O regs at 0x%X (size %zu), IRQ %d.\n",
 	    io_reg_base, io_reg_size, irq);
 
 	int ret = uhci_init(device, (void*)io_reg_base, io_reg_size);
 
 	if (ret != EOK) {
-		uhci_print_error("Failed to init uhci-hcd.\n");
+		usb_log_error("Failed to init uhci-hcd.\n");
 		return ret;
 	}
 	device_t *rh;
 	ret = setup_root_hub(&rh, device);
 
 	if (ret != EOK) {
-		uhci_print_error("Failed to setup uhci root hub.\n");
+		usb_log_error("Failed to setup uhci root hub.\n");
 		/* TODO: destroy uhci here */
 		return ret;
 	}
 
 	ret = child_device_register(rh, device);
 	if (ret != EOK) {
-		uhci_print_error("Failed to register root hub.\n");
+		usb_log_error("Failed to register root hub.\n");
 		/* TODO: destroy uhci here */
 		return ret;
 	}
@@ -116,7 +119,7 @@ int main(int argc, char *argv[])
 	 * Do some global initializations.
 	 */
 	sleep(5);
-	usb_dprintf_enable(NAME, DEBUG_LEVEL_INFO);
+	usb_log_enable(USB_LOG_LEVEL_INFO, NAME);
 
 	return driver_main(&uhci_driver);
 }

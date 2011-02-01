@@ -1,6 +1,8 @@
 #include <errno.h>
 #include <mem.h>
 
+#include <usb/debug.h>
+
 #include "callback.h"
 int callback_init(callback_t *instance, device_t *dev,
   void *buffer, size_t size, usbhc_iface_transfer_in_callback_t func_in,
@@ -11,7 +13,7 @@ int callback_init(callback_t *instance, device_t *dev,
 	if (size > 0) {
 		instance->new_buffer = malloc32(size);
 		if (!instance->new_buffer) {
-			uhci_print_error("Failed to allocate device acessible buffer.\n");
+			usb_log_error("Failed to allocate device acessible buffer.\n");
 			return ENOMEM;
 		}
 		if (func_out)
@@ -45,14 +47,14 @@ callback_t *instance, usb_transaction_outcome_t outcome, size_t act_size)
 
 	if (instance->callback_in) {
 		assert(instance->callback_out == NULL);
-		uhci_print_verbose("Callback in: %p %x %d.\n",
+		usb_log_debug("Callback in: %p %x %d.\n",
 		  instance->callback_in, outcome, act_size);
 		instance->callback_in(
 		  instance->dev, outcome, act_size, instance->arg);
 	} else {
 		assert(instance->callback_out);
 		assert(instance->callback_in == NULL);
-		uhci_print_verbose("Callback out: %p %p %x %p .\n",
+		usb_log_debug("Callback out: %p %p %x %p .\n",
 		 instance->callback_out, instance->dev, outcome, instance->arg);
 		instance->callback_out(
 		  instance->dev, outcome, instance->arg);

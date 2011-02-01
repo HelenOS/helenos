@@ -34,7 +34,6 @@
 #ifndef DRV_UHCI_TRANSFER_LIST_H
 #define DRV_UHCI_TRANSFER_LIST_H
 
-#include "debug.h"
 #include "uhci_struct/queue_head.h"
 #include "uhci_struct/transfer_descriptor.h"
 #include "utils/malloc32.h"

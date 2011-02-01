@@ -1,5 +1,7 @@
 #include <errno.h>
 
+#include <usb/debug.h>
+
 #include "transfer_list.h"
 
 int transfer_list_init(transfer_list_t *instance, transfer_list_t *next)
@@ -9,7 +11,7 @@ int transfer_list_init(transfer_list_t *instance, transfer_list_t *next)
 	instance->last = NULL;
 	instance->queue_head = malloc32(sizeof(queue_head_t));
 	if (!instance->queue_head) {
-		uhci_print_error("Failed to allocate queue head.\n");
+		usb_log_error("Failed to allocate queue head.\n");
 		return ENOMEM;
 	}
 	instance->queue_head_pa = (uintptr_t)addr_to_phys(instance->queue_head);
@@ -45,7 +47,7 @@ int transfer_list_append(
 	if (instance->queue_head->element & LINK_POINTER_TERMINATE_FLAG) {
 		instance->queue_head->element = (pa & LINK_POINTER_ADDRESS_MASK);
 	}
-	uhci_print_verbose("Successfully added transfer to the hc queue %p.\n",
+	usb_log_debug("Successfully added transfer to the hc queue %p.\n",
 	  instance);
 	return EOK;
 }
