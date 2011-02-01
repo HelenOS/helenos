@@ -1,9 +1,10 @@
 
 #include <errno.h>
+
 #include <usb/usb.h>    /* usb_address_t */
 #include <usb/usbdrv.h> /* usb_drv_*     */
+#include <usb/debug.h>
 
-#include "debug.h"
 #include "port.h"
 #include "port_status.h"
 
@@ -26,11 +27,11 @@ int uhci_port_init(
 
 	port->checker = fibril_create(uhci_port_check, port);
 	if (port->checker == 0) {
-		uhci_print_error(": failed to launch root hub fibril.");
+		usb_log_error(": failed to launch root hub fibril.");
 		return ENOMEM;
 	}
 	fibril_add_ready(port->checker);
-	uhci_print_verbose(
+	usb_log_debug(
 	  "Added fibril for port %d: %p.\n", number, port->checker);
 	return EOK;
 }
@@ -48,7 +49,7 @@ int uhci_port_check(void *port)
 	assert(port_instance);
 
 	while (1) {
-		uhci_print_verbose("Port(%d) status address %p:\n",
+		usb_log_debug("Port(%d) status address %p:\n",
 		  port_instance->number, port_instance->address);
 
 		/* read register value */
@@ -56,7 +57,7 @@ int uhci_port_check(void *port)
 			port_status_read(port_instance->address);
 
 		/* debug print */
-		uhci_print_info("Port(%d) status %#.4x\n",
+		usb_log_info("Port(%d) status %#.4x\n",
 		  port_instance->number, port_status);
 		print_port_status(port_status);
 
@@ -78,20 +79,20 @@ static int uhci_port_new_device(uhci_port_t *port)
 	assert(port);
 	assert(port->hc_phone);
 
-	uhci_print_info("Adding new device on port %d.\n", port->number);
+	usb_log_info("Adding new device on port %d.\n", port->number);
 
 
 	/* get default address */
 	int ret = usb_drv_reserve_default_address(port->hc_phone);
 	if (ret != EOK) {
-		uhci_print_error("Failed to reserve default address.\n");
+		usb_log_error("Failed to reserve default address.\n");
 		return ret;
 	}
 
 	const usb_address_t usb_address = usb_drv_request_address(port->hc_phone);
 
 	if (usb_address <= 0) {
-		uhci_print_error("Recieved invalid address(%d).\n", usb_address);
+		usb_log_error("Recieved invalid address(%d).\n", usb_address);
 		return usb_address;
 	}
 	/*
@@ -121,11 +122,11 @@ static int uhci_port_new_device(uhci_port_t *port)
 
 
 	if (ret != EOK) { /* address assigning went wrong */
-		uhci_print_error("Failed(%d) to assign address to the device.\n", ret);
+		usb_log_error("Failed(%d) to assign address to the device.\n", ret);
 		uhci_port_set_enabled(port, false);
 		int release = usb_drv_release_default_address(port->hc_phone);
 		if (release != EOK) {
-			uhci_print_fatal("Failed to release default address.\n");
+			usb_log_error("Failed to release default address.\n");
 			return release;
 		}
 		return ret;
@@ -134,7 +135,7 @@ static int uhci_port_new_device(uhci_port_t *port)
 	/* release default address */
 	ret = usb_drv_release_default_address(port->hc_phone);
 	if (ret != EOK) {
-		uhci_print_fatal("Failed to release default address.\n");
+		usb_log_error("Failed to release default address.\n");
 		return ret;
 	}
 
@@ -145,11 +146,11 @@ static int uhci_port_new_device(uhci_port_t *port)
 	  usb_address, &port->attached_device);
 
 	if (ret != EOK) { /* something went wrong */
-		uhci_print_error("Failed(%d) in usb_drv_register_child.\n", ret);
+		usb_log_error("Failed(%d) in usb_drv_register_child.\n", ret);
 		uhci_port_set_enabled(port, false);
 		return ENOMEM;
 	}
-	uhci_print_info("Sucessfully added device on port(%d) address(%d).\n",
+	usb_log_info("Sucessfully added device on port(%d) address(%d).\n",
 		port->number, usb_address);
 
 	/* TODO: bind the address here */
@@ -159,7 +160,7 @@ static int uhci_port_new_device(uhci_port_t *port)
 /*----------------------------------------------------------------------------*/
 static int uhci_port_remove_device(uhci_port_t *port)
 {
-	uhci_print_error("Don't know how to remove device %#x.\n",
+	usb_log_error("Don't know how to remove device %#x.\n",
 		(unsigned int)port->attached_device);
 	uhci_port_set_enabled(port, false);
 	return EOK;
@@ -181,7 +182,7 @@ static int uhci_port_set_enabled(uhci_port_t *port, bool enabled)
 	}
 	port_status_write(port->address, port_status);
 
-	uhci_print_info("%s port %d.\n",
+	usb_log_info("%s port %d.\n",
 	  enabled ? "Enabled" : "Disabled", port->number);
 	return EOK;
 }

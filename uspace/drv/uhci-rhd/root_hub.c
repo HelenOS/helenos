@@ -5,8 +5,8 @@
 #include <stdio.h>
 
 #include <usb/usbdrv.h>
+#include <usb/debug.h>
 
-#include "debug.h"
 #include "root_hub.h"
 
 
@@ -17,7 +17,7 @@ int uhci_root_hub_init(
 	assert(rh);
 	int ret;
 	ret = usb_drv_find_hc(rh, &instance->hc_handle);
-	uhci_print_info("rh found(%d) hc handle: %d.\n", ret, instance->hc_handle);
+	usb_log_info("rh found(%d) hc handle: %d.\n", ret, instance->hc_handle);
 	if (ret != EOK) {
 		return ret;
 	}
@@ -26,7 +26,7 @@ int uhci_root_hub_init(
 	rh->parent_phone = devman_device_connect(8, 0);
 	//usb_drv_hc_connect(rh, instance->hc_handle, 0);
 	if (rh->parent_phone < 0) {
-		uhci_print_error("Failed to connect to the HC device.\n");
+		usb_log_error("Failed to connect to the HC device.\n");
 		return rh->parent_phone;
 	}
 
@@ -37,7 +37,7 @@ int uhci_root_hub_init(
 	  addr, sizeof(port_status_t) * UHCI_ROOT_HUB_PORT_COUNT, (void**)&regs);
 
 	if (ret < 0) {
-		uhci_print_error(": Failed to gain access to port registers at %p\n", regs);
+		usb_log_error("Failed to gain access to port registers at %p\n", regs);
 		return ret;
 	}
 

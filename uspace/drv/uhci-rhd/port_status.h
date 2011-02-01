@@ -34,7 +34,8 @@
 #ifndef DRV_UHCI_TD_PORT_STATUS_H
 #define DRV_UHCI_TD_PORT_STATUS_H
 
-#include <libarch/ddi.h>
+#include <libarch/ddi.h> /* pio_read and pio_write */
+
 #include <stdint.h>
 
 typedef uint16_t port_status_t;
@@ -58,7 +59,7 @@ static inline port_status_t port_status_read(port_status_t * address)
 	{ return pio_read_16(address); }
 
 static inline void port_status_write(
-  port_status_t * address, port_status_t value)
+  port_status_t *address, port_status_t value)
 	{ pio_write_16(address, value); }
 
 void print_port_status(const port_status_t status);

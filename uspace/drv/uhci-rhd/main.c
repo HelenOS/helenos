@@ -27,19 +27,22 @@
  */
 #include <driver.h>
 #include <errno.h>
-#include <str_error.h>
-#include <usb_iface.h>
 
-#include "debug.h"
-//#include "iface.h"
+#include <usb_iface.h>
+#include <usb/debug.h>
+
 #include "root_hub.h"
+
+#define NAME "uhci-rhd"
 
 static int usb_iface_get_hc_handle(device_t *dev, devman_handle_t *handle)
 {
-	/* This shall be called only for the UHCI itself. */
 	assert(dev);
 	assert(dev->driver_data);
+	assert(handle);
+
 	*handle = ((uhci_root_hub_t*)dev->driver_data)->hc_handle;
+	usb_log_debug("Answering HC handle: %d.\n", *handle);
 
 	return EOK;
 }
@@ -57,19 +60,26 @@ static int uhci_rh_add_device(device_t *device)
 	if (!device)
 		return ENOTSUP;
 
-	uhci_print_info("%s called device %d\n", __FUNCTION__, device->handle);
+	usb_log_debug2("%s called device %d\n", __FUNCTION__, device->handle);
 	device->ops = &uhci_rh_ops;
 
 	uhci_root_hub_t *rh = malloc(sizeof(uhci_root_hub_t));
 	if (!rh) {
+		usb_log_error("Failed to allocate memory for driver instance.\n");
 		return ENOMEM;
 	}
+
+	/* TODO: get register values from hc */
 	int ret = uhci_root_hub_init(rh, (void*)0xc030, 4, device);
 	if (ret != EOK) {
+		usb_log_error("Failed(%d) to initialize driver instance.\n", ret);
 		free(rh);
 		return ret;
 	}
+
 	device->driver_data = rh;
+	usb_log_info("Sucessfully initialized driver isntance for device:%d.\n",
+	    device->handle);
 	return EOK;
 }
 
@@ -84,10 +94,6 @@ static driver_t uhci_rh_driver = {
 
 int main(int argc, char *argv[])
 {
-	/*
-	 * Do some global initializations.
-	 */
-	usb_dprintf_enable(NAME, DEBUG_LEVEL_INFO);
-
+	usb_log_enable(USB_LOG_LEVEL_INFO, NAME);
 	return driver_main(&uhci_rh_driver);
 }

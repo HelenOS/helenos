@@ -51,7 +51,7 @@ typedef struct root_hub {
 int uhci_root_hub_init(
   uhci_root_hub_t *instance, void *addr, size_t size, device_t *rh);
 
-int uhci_root_hub_fini(uhci_root_hub_t* instance);
+int uhci_root_hub_fini(uhci_root_hub_t *instance);
 #endif
 /**
  * @}
