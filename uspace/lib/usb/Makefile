@@ -45,6 +45,7 @@ SOURCES = \
 	src/pipes.c \
 	src/recognise.c \
 	src/remotedrv.c \
+	src/request.c \
 	src/usb.c \
 	src/usbdrvreq.c \
 	src/usbdrv.c \
