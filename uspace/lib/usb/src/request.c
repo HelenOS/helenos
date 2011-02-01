@@ -78,7 +78,7 @@
 	    p_request, (p_value_low) | ((p_value_high) << 8), \
 	    p_index, p_length)
 
-#define MAX_DATA_LENGTH (~((uint16_t)0))
+#define MAX_DATA_LENGTH ((size_t)(0xFFFF))
 
 /** Generic wrapper for SET requests using standard control request format.
  *
