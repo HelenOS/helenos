@@ -112,6 +112,9 @@ static int ata_bd_write_block(int disk_id, uint64_t ba, size_t cnt,
 static int disk_init(disk_t *d, int disk_id);
 static int drive_identify(int drive_id, void *buf);
 static int identify_pkt_dev(int dev_idx, void *buf);
+static int ata_cmd_packet(int dev_idx, const void *cpkt, size_t cpkt_size,
+    void *obuf, size_t obuf_size);
+static int ata_pcmd_inquiry(int dev_idx, void *obuf, size_t obuf_size);
 static void disk_print_summary(disk_t *d);
 static int coord_calc(disk_t *d, uint64_t ba, block_coord_t *bc);
 static void coord_sc_program(const block_coord_t *bc, uint16_t scnt);
@@ -359,6 +362,7 @@ static int disk_init(disk_t *d, int disk_id)
 {
 	identify_data_t idata;
 	uint8_t model[40];
+	uint8_t inq_buf[36];
 	uint16_t w;
 	uint8_t c;
 	size_t pos, len;
@@ -366,13 +370,13 @@ static int disk_init(disk_t *d, int disk_id)
 	unsigned i;
 
 	d->present = false;
+	fibril_mutex_initialize(&d->lock);
 
 	/* Try identify command. */
 	rc = drive_identify(disk_id, &idata);
 	if (rc == EOK) {
 		/* Success. It's a register (non-packet) device. */
 		printf("ATA register-only device found.\n");
-		d->present = true;
 		d->dev_type = ata_reg_dev;
 	} else if (rc == EIO) {
 		/*
@@ -382,17 +386,15 @@ static int disk_init(disk_t *d, int disk_id)
 		rc = identify_pkt_dev(disk_id, &idata);
 		if (rc == EOK) {
 			/* We have a packet device. */
-			d->present = true;
 			d->dev_type = ata_pkt_dev;
 		} else {
 			/* Nope. Something's there, but not recognized. */
+			return EIO;
 		}
 	} else {
 		/* Operation timed out. That means there is no device there. */
-	}
-
-	if (d->present == false)
 		return EIO;
+	}
 
 	printf("device caps: 0x%04x\n", idata.caps);
 	if (d->dev_type == ata_pkt_dev) {
@@ -461,9 +463,21 @@ static int disk_init(disk_t *d, int disk_id)
 	}
 	d->model[pos] = '\0';
 
-	d->present = true;
-	fibril_mutex_initialize(&d->lock);
+	if (d->dev_type == ata_pkt_dev) {
+		/* Send inquiry. */
+		rc = ata_pcmd_inquiry(0, inq_buf, 36);
+		if (rc != EOK) {
+			printf("Device inquiry failed.\n");
+			d->present = false;
+			return EIO;
+		}
 
+		/* Check device type. */
+		if ((inq_buf[0] & 0x1f) != 0x05)
+			printf("Warning: Peripheral device type is not CD-ROM.\n");
+	}
+
+	d->present = true;
 	return EOK;
 }
 
@@ -600,6 +614,121 @@ static int identify_pkt_dev(int dev_idx, void *buf)
 
 	if ((status & SR_ERR) != 0)
 		return EIO;
+
+	return EOK;
+}
+
+/** Issue packet command (i. e. write a command packet to the device).
+ *
+ * Only data-in commands are supported (e.g. inquiry, read).
+ *
+ * @param dev_idx	Device index (0 or 1)
+ * @param obuf		Buffer for storing data read from device
+ * @param obuf_size	Size of obuf in bytes
+ *
+ * @return EOK on success, EIO on error.
+ */
+static int ata_cmd_packet(int dev_idx, const void *cpkt, size_t cpkt_size,
+    void *obuf, size_t obuf_size)
+{
+	size_t i;
+	uint8_t status;
+	uint8_t drv_head;
+	disk_t *d;
+	size_t data_size;
+	uint16_t val;
+
+	d = &disk[dev_idx];
+	fibril_mutex_lock(&d->lock);
+
+	/* New value for Drive/Head register */
+	drv_head =
+	    ((dev_idx != 0) ? DHR_DRV : 0);
+
+	if (wait_status(0, ~SR_BSY, NULL, TIMEOUT_PROBE) != EOK) {
+		fibril_mutex_unlock(&d->lock);
+		return EIO;
+	}
+
+	pio_write_8(&cmd->drive_head, drv_head);
+
+	if (wait_status(0, ~(SR_BSY|SR_DRQ), NULL, TIMEOUT_BSY) != EOK) {
+		fibril_mutex_unlock(&d->lock);
+		return EIO;
+	}
+
+	/* Byte count <- max. number of bytes we can read in one transfer. */
+	pio_write_8(&cmd->cylinder_low, 0xfe);
+	pio_write_8(&cmd->cylinder_high, 0xff);
+
+	pio_write_8(&cmd->command, CMD_PACKET);
+
+	if (wait_status(SR_DRQ, ~SR_BSY, &status, TIMEOUT_BSY) != EOK) {
+		fibril_mutex_unlock(&d->lock);
+		return EIO;
+	}
+
+	/* Write command packet. */
+	for (i = 0; i < (cpkt_size + 1) / 2; i++)
+		pio_write_16(&cmd->data_port, ((uint16_t *) cpkt)[i]);
+
+	if (wait_status(0, ~SR_BSY, &status, TIMEOUT_BSY) != EOK) {
+		fibril_mutex_unlock(&d->lock);
+		return EIO;
+	}
+
+	if ((status & SR_DRQ) == 0) {
+		fibril_mutex_unlock(&d->lock);
+		return EIO;
+	}
+
+	/* Read byte count. */
+	data_size = (uint16_t) pio_read_8(&cmd->cylinder_low) +
+	    ((uint16_t) pio_read_8(&cmd->cylinder_high) << 8);
+
+	/* Check whether data fits into output buffer. */
+	if (data_size > obuf_size) {
+		/* Output buffer is too small to store data. */
+		fibril_mutex_unlock(&d->lock);
+		return EIO;
+	}
+
+	/* Read data from the device buffer. */
+	for (i = 0; i < (data_size + 1) / 2; i++) {
+		val = pio_read_16(&cmd->data_port);
+		((uint16_t *) obuf)[i] = val;
+	}
+
+	if (status & SR_ERR) {
+		fibril_mutex_unlock(&d->lock);
+		return EIO;
+	}
+
+	fibril_mutex_unlock(&d->lock);
+
+	return EOK;
+}
+
+/** Send ATAPI Inquiry.
+ *
+ * @param dev_idx	Device index (0 or 1)
+ * @param obuf		Buffer for storing inquiry data read from device
+ * @param obuf_size	Size of obuf in bytes
+ *
+ * @return EOK on success, EIO on error.
+ */
+static int ata_pcmd_inquiry(int dev_idx, void *obuf, size_t obuf_size)
+{
+	uint8_t cp[12];
+	int rc;
+
+	memset(cp, 0, 12);
+	cp[0] = 0x12; /* Inquiry */
+	cp[4] = min(obuf_size, 0xff); /* Allocation length */
+
+	rc = ata_cmd_packet(0, cp, 12, obuf, obuf_size);
+	if (rc != EOK)
+		return rc;
 
 	return EOK;
 }
