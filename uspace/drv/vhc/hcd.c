@@ -93,7 +93,8 @@ static int vhc_add_device(device_t *dev)
 	 */
 	virtual_hub_device_init(dev);
 
-	printf("%s: virtual USB host controller ready.\n", NAME);
+	usb_log_info("Virtual USB host controller ready (id = %zu).\n",
+	    (size_t) dev->handle);
 
 	return EOK;
 }
@@ -116,7 +117,7 @@ int main(int argc, char * argv[])
 	 */
 	sleep(5);
 
-	usb_dprintf_enable(NAME, -1);
+	usb_log_enable(USB_LOG_LEVEL_INFO, NAME);
 
 	printf(NAME ": virtual USB host controller driver.\n");
 

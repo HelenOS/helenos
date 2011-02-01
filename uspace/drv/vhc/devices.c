@@ -195,7 +195,7 @@ usb_transaction_outcome_t virtdev_send_to_all(transaction_t *transaction)
 	 */
 	if (virtual_hub_device.address == transaction->target.address) {
 		size_t tmp;
-		dprintf(1, "sending `%s' transaction to hub",
+		usb_log_debug2("Sending `%s' transaction to hub.\n",
 		    usbvirt_str_transaction_type(transaction->type));
 		switch (transaction->type) {
 			case USBVIRT_TRANSACTION_SETUP:
@@ -221,7 +221,6 @@ usb_transaction_outcome_t virtdev_send_to_all(transaction_t *transaction)
 				    transaction->buffer, transaction->len);
 				break;
 		}
-		dprintf(4, "transaction on hub processed...");
 		outcome = USB_OUTCOME_OK;
 	}
 	
