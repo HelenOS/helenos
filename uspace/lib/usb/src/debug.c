@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2010-2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -59,6 +59,13 @@ typedef struct {
 static LIST_INITIALIZE(tag_list);
 /** Mutex guard for the list of all tags. */
 static FIBRIL_MUTEX_INITIALIZE(tag_list_guard);
+
+/** Level of logging messages. */
+static usb_log_level_t log_level = USB_LOG_LEVEL_WARNING;
+/** Prefix for logging messages. */
+static const char *log_prefix = "usb";
+/** Serialization mutex for logging functions. */
+static FIBRIL_MUTEX_INITIALIZE(log_serializer);
 
 /** Find or create new tag with given name.
  *
@@ -154,6 +161,67 @@ leave:
 	fibril_mutex_unlock(&tag_list_guard);
 }
 
+/** Enable logging.
+ *
+ * @param level Maximal enabled level (including this one).
+ * @param message_prefix Prefix for each printed message.
+ */
+void usb_log_enable(usb_log_level_t level, const char *message_prefix)
+{
+	log_prefix = message_prefix;
+	log_level = level;
+}
+
+
+static const char *log_level_name(usb_log_level_t level)
+{
+	switch (level) {
+		case USB_LOG_LEVEL_FATAL:
+			return " FATAL";
+		case USB_LOG_LEVEL_ERROR:
+			return " ERROR";
+		case USB_LOG_LEVEL_WARNING:
+			return " WARN";
+		case USB_LOG_LEVEL_INFO:
+			return " info";
+		default:
+			return "";
+	}
+}
+
+/** Print logging message.
+ *
+ * @param level Verbosity level of the message.
+ * @param format Formatting directive.
+ */
+void usb_log_printf(usb_log_level_t level, const char *format, ...)
+{
+	if (level > log_level) {
+		return;
+	}
+
+	FILE *stream = NULL;
+	switch (level) {
+		case USB_LOG_LEVEL_FATAL:
+		case USB_LOG_LEVEL_ERROR:
+			stream = stderr;
+			break;
+		default:
+			stream = stdout;
+			break;
+	}
+	assert(stream != NULL);
+
+	va_list args;
+	va_start(args, format);
+
+	fibril_mutex_lock(&log_serializer);
+	fprintf(stream, "[%s]%s: ", log_prefix, log_level_name(level));
+	vfprintf(stream, format, args);
+	fibril_mutex_unlock(&log_serializer);
+
+	va_end(args);
+}
 
 /**
  * @}
