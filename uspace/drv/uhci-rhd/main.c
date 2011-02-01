@@ -85,7 +85,7 @@ static int uhci_rh_add_device(device_t *device)
 	}
 
 	device->driver_data = rh;
-	usb_log_info("Sucessfully initialized driver isntance for device:%d.\n",
+	usb_log_info("Sucessfully initialized driver instance for device:%d.\n",
 	    device->handle);
 	return EOK;
 }

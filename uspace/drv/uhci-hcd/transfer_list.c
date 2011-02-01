@@ -42,7 +42,7 @@ int transfer_list_init(transfer_list_t *instance, transfer_list_t *next)
 	assert(instance);
 	instance->first = NULL;
 	instance->last = NULL;
-	instance->queue_head = malloc32(sizeof(queue_head_t));
+	instance->queue_head = queue_head_get();
 	if (!instance->queue_head) {
 		usb_log_error("Failed to allocate queue head.\n");
 		return ENOMEM;

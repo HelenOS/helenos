@@ -43,7 +43,7 @@ static int get_address(device_t *dev, devman_handle_t handle,
     usb_address_t *address)
 {
 	assert(dev);
-	uhci_t *hc = (uhci_t *)dev->driver_data;
+	uhci_t *hc = dev_to_uhci(dev);
 	assert(hc);
 	*address = usb_address_keeping_find(&hc->address_manager, handle);
 	if (*address <= 0)
@@ -54,7 +54,7 @@ static int get_address(device_t *dev, devman_handle_t handle,
 static int reserve_default_address(device_t *dev)
 {
 	assert(dev);
-	uhci_t *hc = (uhci_t *)dev->driver_data;
+	uhci_t *hc = dev_to_uhci(dev);
 	assert(hc);
 	usb_address_keeping_reserve_default(&hc->address_manager);
 	return EOK;
@@ -63,7 +63,7 @@ static int reserve_default_address(device_t *dev)
 static int release_default_address(device_t *dev)
 {
 	assert(dev);
-	uhci_t *hc = (uhci_t *)dev->driver_data;
+	uhci_t *hc = dev_to_uhci(dev);
 	assert(hc);
 	usb_address_keeping_release_default(&hc->address_manager);
 	return EOK;
@@ -72,7 +72,7 @@ static int release_default_address(device_t *dev)
 static int request_address(device_t *dev, usb_address_t *address)
 {
 	assert(dev);
-	uhci_t *hc = (uhci_t *)dev->driver_data;
+	uhci_t *hc = dev_to_uhci(dev);
 	assert(hc);
 	*address = usb_address_keeping_request(&hc->address_manager);
 	if (*address <= 0)
@@ -84,7 +84,7 @@ static int bind_address(
   device_t *dev, usb_address_t address, devman_handle_t handle)
 {
 	assert(dev);
-	uhci_t *hc = (uhci_t *)dev->driver_data;
+	uhci_t *hc = dev_to_uhci(dev);
 	assert(hc);
 	usb_address_keeping_devman_bind(&hc->address_manager, address, handle);
 	return EOK;
@@ -93,7 +93,7 @@ static int bind_address(
 static int release_address(device_t *dev, usb_address_t address)
 {
 	assert(dev);
-	uhci_t *hc = (uhci_t *)dev->driver_data;
+	uhci_t *hc = dev_to_uhci(dev);
 	assert(hc);
 	usb_address_keeping_release_default(&hc->address_manager);
 	return EOK;
@@ -103,7 +103,10 @@ static int interrupt_out(device_t *dev, usb_target_t target,
     void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
-	return uhci_transfer(dev, target, USB_TRANSFER_INTERRUPT, 0, USB_PID_OUT,
+	assert(dev);
+	uhci_t *hc = dev_to_uhci(dev);
+	assert(hc);
+	return uhci_transfer(hc, dev, target, USB_TRANSFER_INTERRUPT, 0, USB_PID_OUT,
 		data, size, callback, NULL, arg);
 }
 /*----------------------------------------------------------------------------*/
@@ -111,7 +114,10 @@ static int interrupt_in(device_t *dev, usb_target_t target,
     void *data, size_t size,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
-	return uhci_transfer(dev, target, USB_TRANSFER_INTERRUPT, 0, USB_PID_IN,
+	assert(dev);
+	uhci_t *hc = dev_to_uhci(dev);
+	assert(hc);
+	return uhci_transfer(hc, dev, target, USB_TRANSFER_INTERRUPT, 0, USB_PID_IN,
 		data, size, NULL, callback, arg);
 }
 /*----------------------------------------------------------------------------*/
@@ -119,7 +125,10 @@ static int control_write_setup(device_t *dev, usb_target_t target,
     void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
-	return uhci_transfer(dev, target, USB_TRANSFER_CONTROL, 0, USB_PID_SETUP,
+	assert(dev);
+	uhci_t *hc = dev_to_uhci(dev);
+	assert(hc);
+	return uhci_transfer(hc, dev, target, USB_TRANSFER_CONTROL, 0, USB_PID_SETUP,
 		data, size, callback, NULL, arg);
 }
 /*----------------------------------------------------------------------------*/
@@ -127,14 +136,20 @@ static int control_write_data(device_t *dev, usb_target_t target,
     void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
-	return uhci_transfer(dev, target, USB_TRANSFER_CONTROL, 1, USB_PID_OUT,
+	assert(dev);
+	uhci_t *hc = dev_to_uhci(dev);
+	assert(hc);
+	return uhci_transfer(hc, dev, target, USB_TRANSFER_CONTROL, 1, USB_PID_OUT,
 		data, size, callback, NULL, arg);
 }
 /*----------------------------------------------------------------------------*/
 static int control_write_status(device_t *dev, usb_target_t target,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
-	return uhci_transfer(dev, target, USB_TRANSFER_CONTROL, 0, USB_PID_IN,
+	assert(dev);
+	uhci_t *hc = dev_to_uhci(dev);
+	assert(hc);
+	return uhci_transfer(hc, dev, target, USB_TRANSFER_CONTROL, 0, USB_PID_IN,
 		NULL, 0, NULL, callback, arg);
 }
 /*----------------------------------------------------------------------------*/
@@ -142,7 +157,10 @@ static int control_read_setup(device_t *dev, usb_target_t target,
     void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
-	return uhci_transfer(dev, target, USB_TRANSFER_CONTROL, 0, USB_PID_SETUP,
+	assert(dev);
+	uhci_t *hc = dev_to_uhci(dev);
+	assert(hc);
+	return uhci_transfer(hc, dev, target, USB_TRANSFER_CONTROL, 0, USB_PID_SETUP,
 		data, size, callback, NULL, arg);
 }
 /*----------------------------------------------------------------------------*/
@@ -150,14 +168,20 @@ static int control_read_data(device_t *dev, usb_target_t target,
     void *data, size_t size,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
-	return uhci_transfer(dev, target, USB_TRANSFER_CONTROL, 1, USB_PID_IN,
+	assert(dev);
+	uhci_t *hc = dev_to_uhci(dev);
+	assert(hc);
+	return uhci_transfer(hc, dev, target, USB_TRANSFER_CONTROL, 1, USB_PID_IN,
 		data, size, NULL, callback, arg);
 }
 /*----------------------------------------------------------------------------*/
 static int control_read_status(device_t *dev, usb_target_t target,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
-	return uhci_transfer(dev, target, USB_TRANSFER_CONTROL, 0, USB_PID_OUT,
+	assert(dev);
+	uhci_t *hc = dev_to_uhci(dev);
+	assert(hc);
+	return uhci_transfer(hc, dev, target, USB_TRANSFER_CONTROL, 0, USB_PID_OUT,
 		NULL, 0, callback, NULL, arg);
 }
 

@@ -73,8 +73,8 @@ static inline void * get_page()
 static inline void * memalign32(size_t size, size_t alignment)
 	{ return memalign(alignment, size); }
 
-static inline void free32(void * addr)
-	{ free(addr); }
+static inline void free32(void *addr)
+	{ if (addr) free(addr); }
 
 #endif
 /**

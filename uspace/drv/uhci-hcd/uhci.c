@@ -36,33 +36,19 @@
 #include <usb/debug.h>
 #include <usb/usb.h>
 
-#include "utils/malloc32.h"
 #include "uhci.h"
 
 static int uhci_init_transfer_lists(transfer_list_t list[]);
 static int uhci_clean_finished(void *arg);
 static int uhci_debug_checker(void *arg);
 
-int uhci_init(device_t *device, void *regs, size_t reg_size)
+int uhci_init(uhci_t *instance, void *regs, size_t reg_size)
 {
-	assert(device);
-	usb_log_info("Initializing device at address %p.\n", device);
-
-#define CHECK_RET_FREE_INSTANCE(message...) \
+#define CHECK_RET_RETURN(message...) \
 	if (ret != EOK) { \
 		usb_log_error(message); \
-		if (instance) { \
-			free(instance); \
-		} \
 		return ret; \
 	} else (void) 0
-
-	/* create instance */
-	uhci_t *instance = malloc(sizeof(uhci_t));
-	int ret = instance ? EOK : ENOMEM;
-	CHECK_RET_FREE_INSTANCE("Failed to allocate uhci driver instance.\n");
-
-	bzero(instance, sizeof(uhci_t));
 
 	/* init address keeper(libusb) */
 	usb_address_keeping_init(&instance->address_manager, USB11_ADDRESS_MAX);
@@ -71,27 +57,27 @@ int uhci_init(device_t *device, void *regs, size_t reg_size)
 	/* allow access to hc control registers */
 	regs_t *io;
 	assert(reg_size >= sizeof(regs_t));
-	ret = pio_enable(regs, reg_size, (void**)&io);
-	CHECK_RET_FREE_INSTANCE("Failed to gain access to registers at %p.\n", io);
+	int ret = pio_enable(regs, reg_size, (void**)&io);
+	CHECK_RET_RETURN("Failed to gain access to registers at %p.\n", io);
 	instance->registers = io;
 	usb_log_debug("Device registers accessible.\n");
 
 	/* init transfer lists */
 	ret = uhci_init_transfer_lists(instance->transfers);
-	CHECK_RET_FREE_INSTANCE("Failed to initialize transfer lists.\n");
+	CHECK_RET_RETURN("Failed to initialize transfer lists.\n");
 	usb_log_debug("Transfer lists initialized.\n");
 
 
 	usb_log_debug("Initializing frame list.\n");
 	instance->frame_list = get_page();
 	ret = instance ? EOK : ENOMEM;
-	CHECK_RET_FREE_INSTANCE("Failed to get frame list page.\n");
+	CHECK_RET_RETURN("Failed to get frame list page.\n");
 
 	/* initialize all frames to point to the first queue head */
-	unsigned i = 0;
 	const uint32_t queue =
 	  instance->transfers[USB_TRANSFER_INTERRUPT].queue_head_pa
 	  | LINK_POINTER_QUEUE_HEAD_FLAG;
+	unsigned i = 0;
 	for(; i < UHCI_FRAME_LIST_COUNT; ++i) {
 		instance->frame_list[i] = queue;
 	}
@@ -106,14 +92,15 @@ int uhci_init(device_t *device, void *regs, size_t reg_size)
 	instance->debug_checker = fibril_create(uhci_debug_checker, instance);
 	fibril_add_ready(instance->debug_checker);
 
-	usb_log_debug("Starting UHCI HC.\n");
-	pio_write_16(&instance->registers->usbcmd, UHCI_CMD_RUN_STOP);
+	/* Start the hc with large(64b) packet FSBR */
+	pio_write_16(&instance->registers->usbcmd,
+	    UHCI_CMD_RUN_STOP | UHCI_CMD_MAX_PACKET);
+	usb_log_debug("Started UHCI HC.\n");
 /*
 	uint16_t cmd = pio_read_16(&instance->registers->usbcmd);
 	cmd |= UHCI_CMD_DEBUG;
 	pio_write_16(&instance->registers->usbcmd, cmd);
 */
-	device->driver_data = instance;
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -151,6 +138,7 @@ int uhci_init_transfer_lists(transfer_list_t transfers[])
 }
 /*----------------------------------------------------------------------------*/
 int uhci_transfer(
+  uhci_t *instance,
   device_t *dev,
   usb_target_t target,
   usb_transfer_type_t transfer_type,
@@ -171,6 +159,7 @@ int uhci_transfer(
 	transfer_descriptor_t *td = NULL;
 	callback_t *job = NULL;
 	int ret = EOK;
+	assert(dev);
 
 #define CHECK_RET_TRANS_FREE_JOB_TD(message) \
 	if (ret != EOK) { \
@@ -182,7 +171,6 @@ int uhci_transfer(
 		return ret; \
 	} else (void) 0
 
-
 	job = callback_get(dev, buffer, size, callback_in, callback_out, arg);
 	ret = job ? EOK : ENOMEM;
 	CHECK_RET_TRANS_FREE_JOB_TD("Failed to allocate callback structure.\n");
@@ -192,10 +180,6 @@ int uhci_transfer(
 	CHECK_RET_TRANS_FREE_JOB_TD("Failed to setup transfer descriptor.\n");
 
 	td->callback = job;
-
-	assert(dev);
-	uhci_t *instance = (uhci_t*)dev->driver_data;
-	assert(instance);
 
 	usb_log_debug("Appending a new transfer to queue.\n");
 	ret = transfer_list_append(&instance->transfers[transfer_type], td);

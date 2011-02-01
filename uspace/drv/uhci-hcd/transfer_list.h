@@ -36,7 +36,6 @@
 
 #include "uhci_struct/queue_head.h"
 #include "uhci_struct/transfer_descriptor.h"
-#include "utils/malloc32.h"
 
 typedef struct transfer_list
 {
@@ -51,8 +50,7 @@ int transfer_list_init(transfer_list_t *instance, transfer_list_t *next);
 static inline void transfer_list_fini(transfer_list_t *instance)
 {
 	assert(instance);
-	if (instance->queue_head)
-		free32(instance->queue_head);
+	queue_head_dispose(instance->queue_head);
 }
 
 int transfer_list_append(

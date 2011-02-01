@@ -84,11 +84,12 @@ typedef struct uhci {
 } uhci_t;
 
 /* init uhci specifics in device.driver_data */
-int uhci_init(device_t *device, void *regs, size_t reg_size);
+int uhci_init(uhci_t *instance, void *regs, size_t reg_size);
 
-int uhci_destroy(device_t *device);
+int uhci_fini(uhci_t *device);
 
 int uhci_transfer(
+  uhci_t *instance,
   device_t *dev,
   usb_target_t target,
   usb_transfer_type_t transfer_type,
@@ -98,6 +99,9 @@ int uhci_transfer(
   usbhc_iface_transfer_out_callback_t callback_out,
   usbhc_iface_transfer_in_callback_t callback_in,
   void *arg );
+
+static inline uhci_t * dev_to_uhci(device_t *dev)
+	{ return (uhci_t*)dev->driver_data; }
 
 #endif
 /**

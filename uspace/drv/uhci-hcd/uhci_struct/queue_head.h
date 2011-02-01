@@ -35,9 +35,11 @@
 #ifndef DRV_UHCI_QH_H
 #define DRV_UHCI_QH_H
 
+/* libc */
 #include <assert.h>
 
 #include "link_pointer.h"
+#include "utils/malloc32.h"
 
 typedef struct queue_head {
 	link_pointer_t next_queue;
@@ -57,6 +59,13 @@ static inline void queue_head_init(queue_head_t *instance, uint32_t next_queue_p
 		instance->next_queue = 0 | LINK_POINTER_TERMINATE_FLAG;
 	}
 }
+
+static inline queue_head_t * queue_head_get()
+	{ return malloc32(sizeof(queue_head_t)); }
+
+static inline void queue_head_dispose(queue_head_t *head)
+	{ free32(head); }
+
 
 #endif
 /**

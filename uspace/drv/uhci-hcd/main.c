@@ -86,8 +86,13 @@ static int uhci_add_device(device_t *device)
 	usb_log_info("I/O regs at 0x%X (size %zu), IRQ %d.\n",
 	    io_reg_base, io_reg_size, irq);
 
-	int ret = uhci_init(device, (void*)io_reg_base, io_reg_size);
+	uhci_t *uhci_hc = malloc(sizeof(uhci_t));
+	if (!uhci_hc) {
+		usb_log_error("Failed to allocaete memory for uhci hcd driver.\n");
+		return ENOMEM;
+	}
 
+	int ret = uhci_init(uhci_hc, (void*)io_reg_base, io_reg_size);
 	if (ret != EOK) {
 		usb_log_error("Failed to init uhci-hcd.\n");
 		return ret;
@@ -107,6 +112,8 @@ static int uhci_add_device(device_t *device)
 		/* TODO: destroy uhci here */
 		return ret;
 	}
+
+	device->driver_data = uhci_hc;
 
 	return EOK;
 }
