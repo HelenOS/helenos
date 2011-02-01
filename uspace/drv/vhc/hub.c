@@ -62,7 +62,7 @@ void virtual_hub_device_init(device_t *hc_dev)
 	fid_t root_hub_registration
 	    = fibril_create(hub_register_in_devman_fibril, hc_dev);
 	if (root_hub_registration == 0) {
-		printf(NAME ": failed to create hub registration fibril\n");
+		usb_log_fatal("Failed to create hub registration fibril.\n");
 		return;
 	}
 
