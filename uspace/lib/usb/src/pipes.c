@@ -59,8 +59,8 @@
  * @param device Generic device backing the USB device.
  * @return Error code.
  */
-int usb_device_connection_initialize(usb_device_connection_t *connection,
-    device_t *device)
+int usb_device_connection_initialize_from_device(
+    usb_device_connection_t *connection, device_t *device)
 {
 	assert(connection);
 	assert(device);

@@ -411,7 +411,7 @@ static usb_hid_dev_kbd_t *usbkbd_init_device(device_t *dev)
 	/*
 	 * Initialize the backing connection to the host controller.
 	 */
-	rc = usb_device_connection_initialize(&kbd_dev->wire, dev);
+	rc = usb_device_connection_initialize_from_device(&kbd_dev->wire, dev);
 	if (rc != EOK) {
 		printf("Problem initializing connection to device: %s.\n",
 		    str_error(rc));

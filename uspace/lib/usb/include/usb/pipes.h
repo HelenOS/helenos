@@ -79,7 +79,8 @@ typedef struct {
 } usb_endpoint_pipe_t;
 
 
-int usb_device_connection_initialize(usb_device_connection_t *, device_t *);
+int usb_device_connection_initialize_from_device(usb_device_connection_t *,
+    device_t *);
 
 int usb_endpoint_pipe_initialize(usb_endpoint_pipe_t *,
     usb_device_connection_t *,
