@@ -39,6 +39,14 @@
 #include <usb/usb.h>
 #include <usb/pipes.h>
 
+int usb_control_request_set(usb_endpoint_pipe_t *,
+    usb_request_type_t, usb_request_recipient_t, uint8_t,
+    uint16_t, uint16_t, void *, size_t);
+
+int usb_control_request_get(usb_endpoint_pipe_t *,
+    usb_request_type_t, usb_request_recipient_t, uint8_t,
+    uint16_t, uint16_t, void *, size_t, size_t *);
+
 int usb_request_get_descriptor(usb_endpoint_pipe_t *, usb_request_type_t,
     uint8_t, uint8_t, uint16_t, void *, size_t, size_t *);
 

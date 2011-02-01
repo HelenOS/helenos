@@ -78,6 +78,125 @@
 	    p_request, (p_value_low) | ((p_value_high) << 8), \
 	    p_index, p_length)
 
+#define MAX_DATA_LENGTH (~((uint16_t)0))
+
+/** Generic wrapper for SET requests using standard control request format.
+ *
+ * @see usb_endpoint_pipe_control_write
+ *
+ * @param pipe Pipe used for the communication.
+ * @param request_type Request type (standard/class/vendor).
+ * @param recipient Request recipient (e.g. device or endpoint).
+ * @param request Actual request (e.g. GET_DESCRIPTOR).
+ * @param value Value of @c wValue field of setup packet
+ * 	(must be in USB endianness).
+ * @param index Value of @c wIndex field of setup packet
+ * 	(must be in USB endianness).
+ * @param data Data to be sent during DATA stage
+ * 	(expected to be in USB endianness).
+ * @param data_size Size of the @p data buffer (in native endianness).
+ * @return Error code.
+ * @retval EBADMEM @p pipe is NULL.
+ * @retval EBADMEM @p data is NULL and @p data_size is not zero.
+ * @retval ERANGE Data buffer too large.
+ */
+int usb_control_request_set(usb_endpoint_pipe_t *pipe,
+    usb_request_type_t request_type, usb_request_recipient_t recipient,
+    uint8_t request,
+    uint16_t value, uint16_t index,
+    void *data, size_t data_size)
+{
+	if (pipe == NULL) {
+		return EBADMEM;
+	}
+
+	if (data_size > MAX_DATA_LENGTH) {
+		return ERANGE;
+	}
+
+	if ((data_size > 0) && (data == NULL)) {
+		return EBADMEM;
+	}
+
+	/*
+	 * TODO: check that @p request_type and @p recipient are
+	 * within ranges.
+	 */
+
+	usb_device_request_setup_packet_t setup_packet;
+	setup_packet.request_type = (request_type << 5) | recipient;
+	setup_packet.request = request;
+	setup_packet.value = value;
+	setup_packet.index = index;
+	setup_packet.length = (uint16_t) data_size;
+
+	int rc = usb_endpoint_pipe_control_write(pipe,
+	    &setup_packet, sizeof(setup_packet),
+	    data, data_size);
+
+	return rc;
+}
+
+ /** Generic wrapper for GET requests using standard control request format.
+  *
+  * @see usb_endpoint_pipe_control_read
+  *
+  * @param pipe Pipe used for the communication.
+  * @param request_type Request type (standard/class/vendor).
+  * @param recipient Request recipient (e.g. device or endpoint).
+  * @param request Actual request (e.g. GET_DESCRIPTOR).
+  * @param value Value of @c wValue field of setup packet
+  * 	(must be in USB endianness).
+  * @param index Value of @c wIndex field of setup packet
+  *	(must be in USB endianness).
+  * @param data Buffer where to store data accepted during the DATA stage.
+  *	(they will come in USB endianess).
+  * @param data_size Size of the @p data buffer
+  * 	(in native endianness).
+  * @param actual_data_size Actual size of transfered data
+  * 	(in native endianness).
+  * @return Error code.
+  * @retval EBADMEM @p pipe is NULL.
+  * @retval EBADMEM @p data is NULL and @p data_size is not zero.
+  * @retval ERANGE Data buffer too large.
+  */
+int usb_control_request_get(usb_endpoint_pipe_t *pipe,
+    usb_request_type_t request_type, usb_request_recipient_t recipient,
+    uint8_t request,
+    uint16_t value, uint16_t index,
+    void *data, size_t data_size, size_t *actual_data_size)
+{
+	if (pipe == NULL) {
+		return EBADMEM;
+	}
+
+	if (data_size > MAX_DATA_LENGTH) {
+		return ERANGE;
+	}
+
+	if ((data_size > 0) && (data == NULL)) {
+		return EBADMEM;
+	}
+
+	/*
+	 * TODO: check that @p request_type and @p recipient are
+	 * within ranges.
+	 */
+
+	usb_device_request_setup_packet_t setup_packet;
+	setup_packet.request_type = 128 | (request_type << 5) | recipient;
+	setup_packet.request = request;
+	setup_packet.value = value;
+	setup_packet.index = index;
+	setup_packet.length = (uint16_t) data_size;
+
+	int rc = usb_endpoint_pipe_control_read(pipe,
+	    &setup_packet, sizeof(setup_packet),
+	    data, data_size, actual_data_size);
+
+	return rc;
+}
+
 
 /** Retrieve USB descriptor of a USB device.
  *
