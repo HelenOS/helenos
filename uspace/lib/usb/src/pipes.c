@@ -84,11 +84,34 @@ int usb_device_connection_initialize_from_device(
 		return my_address;
 	}
 
-	connection->hc_handle = hc_handle;
-	connection->address = my_address;
-	return EOK;
+	rc = usb_device_connection_initialize(connection,
+	    hc_handle, my_address);
+
+	return rc;
 }
 
+/** Initialize connection to USB device.
+ *
+ * @param connection Connection structure to be initialized.
+ * @param host_controller_handle Devman handle of host controller device is
+ * 	connected to.
+ * @param device_address Device USB address.
+ * @return Error code.
+ */
+int usb_device_connection_initialize(usb_device_connection_t *connection,
+    devman_handle_t host_controller_handle, usb_address_t device_address)
+{
+	assert(connection);
+
+	if ((device_address < 0) || (device_address >= USB11_ADDRESS_MAX)) {
+		return EINVAL;
+	}
+
+	connection->hc_handle = host_controller_handle;
+	connection->address = device_address;
+
+	return EOK;
+}
 
 /** Initialize USB endpoint pipe.
  *
