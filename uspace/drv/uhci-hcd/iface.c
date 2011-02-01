@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Vojtech Horky, Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,8 +25,15 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+/** @addtogroup usb
+ * @{
+ */
+/** @file
+ * @brief UHCI driver
+ */
 #include <driver.h>
 #include <remote_usbhc.h>
+
 #include <errno.h>
 
 #include "iface.h"
@@ -175,3 +182,6 @@ usbhc_iface_t uhci_iface = {
 	.control_read_data = control_read_data,
 	.control_read_status = control_read_status
 };
+/**
+ * @}
+ */

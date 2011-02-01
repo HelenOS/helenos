@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky, Jan Vesely
+ * Copyright (c) 2011 Vojtech Horky, Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,10 +25,17 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+/** @addtogroup usb
+ * @{
+ */
+/** @file
+ * @brief UHCI driver
+ */
 #include <driver.h>
+#include <usb_iface.h>
+
 #include <errno.h>
 
-#include <usb_iface.h>
 #include <usb/debug.h>
 
 #include "root_hub.h"
@@ -97,3 +104,6 @@ int main(int argc, char *argv[])
 	usb_log_enable(USB_LOG_LEVEL_INFO, NAME);
 	return driver_main(&uhci_rh_driver);
 }
+/**
+ * @}
+ */
