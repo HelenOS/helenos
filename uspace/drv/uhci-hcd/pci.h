@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jan Vesely
+ * Copyright (c) 2010 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,18 +25,22 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup usb
+
+/** @addtogroup drvusbuhci
  * @{
  */
 /** @file
  * @brief UHCI driver
  */
-#ifndef DRV_UHCI_NAME_H
-#define DRV_UHCI_NAME_H
+#ifndef DRV_UHCI_PCI_H
+#define DRV_UHCI_PCI_H
 
-#define NAME "uhci-hcd"
+#include <driver.h>
+
+int pci_get_my_registers(device_t *, uintptr_t *, size_t *, int *);
 
 #endif
 /**
  * @}
  */
+

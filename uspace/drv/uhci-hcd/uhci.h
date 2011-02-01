@@ -40,7 +40,6 @@
 #include <usb/addrkeep.h>
 #include <usbhc_iface.h>
 
-#include "root_hub/root_hub.h"
 #include "transfer_list.h"
 
 typedef struct uhci_regs {
@@ -75,7 +74,6 @@ typedef struct uhci_regs {
 
 typedef struct uhci {
 	usb_address_keeping_t address_manager;
-	uhci_root_hub_t root_hub;
 	volatile regs_t *registers;
 
 	link_pointer_t *frame_list;
@@ -86,9 +84,9 @@ typedef struct uhci {
 } uhci_t;
 
 /* init uhci specifics in device.driver_data */
-int uhci_init( device_t *device, void *regs, size_t reg_size );
+int uhci_init(device_t *device, void *regs, size_t reg_size);
 
-int uhci_destroy( device_t *device );
+int uhci_destroy(device_t *device);
 
 int uhci_transfer(
   device_t *dev,
@@ -100,8 +98,6 @@ int uhci_transfer(
   usbhc_iface_transfer_out_callback_t callback_out,
   usbhc_iface_transfer_in_callback_t callback_in,
   void *arg );
-
-int pci_get_my_registers(device_t *, uintptr_t *, size_t *, int *);
 
 #endif
 /**

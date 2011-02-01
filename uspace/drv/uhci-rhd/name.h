@@ -31,40 +31,10 @@
 /** @file
  * @brief UHCI driver
  */
-#ifndef DRV_UHCI_ROOT_HUB_DEBUG_H
-#define DRV_UHCI_ROOT_HUB_DEBUG_H
+#ifndef DRV_UHCI_RHD_NAME_H
+#define DRV_UHCI_RHD_NAME_H
 
-#include <stdio.h>
-#include <usb/debug.h>
-
-#define NAME "uhci_root_hubd"
-
-enum debug_levels {
-	DEBUG_LEVEL_FATAL_ERROR = 1,
-	DEBUG_LEVEL_ERROR = 2,
-	DEBUG_LEVEL_WARNING = 3,
-	DEBUG_LEVEL_INFO = 4,
-	DEBUG_LEVEL_VERBOSE = 5,
-	DEBUG_LEVEL_MAX = DEBUG_LEVEL_VERBOSE
-};
-
-#define uhci_printf( level, fmt, args...) \
-	usb_dprintf(NAME, level, fmt, ##args)
-
-#define uhci_print_fatal( fmt, args... ) \
-	fprintf(stderr, "[" NAME ":FATAL ERROR]: " fmt, ##args)
-
-#define uhci_print_error( fmt, args... ) \
-	fprintf(stderr, "[" NAME ":ERROR]: " fmt, ##args)
-
-#define uhci_print_warning( fmt, args... ) \
-	usb_dprintf( NAME, DEBUG_LEVEL_WARNING, fmt, ##args )
-
-#define uhci_print_info( fmt, args... ) \
-	usb_dprintf( NAME, DEBUG_LEVEL_INFO, fmt, ##args )
-
-#define uhci_print_verbose( fmt, args... ) \
-	usb_dprintf( NAME, DEBUG_LEVEL_VERBOSE, fmt, ##args )
+#define NAME "uhci-rhd"
 
 #endif
 /**

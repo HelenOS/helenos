@@ -117,6 +117,7 @@ ifeq ($(UARCH),amd64)
 		srv/hw/irc/apic \
 		srv/hw/irc/i8259 \
 		drv/uhci-hcd \
+		drv/uhci-rhd \
 		drv/usbhid \
 		drv/usbhub \
 		drv/vhc
@@ -131,6 +132,7 @@ ifeq ($(UARCH),ia32)
 		srv/hw/irc/apic \
 		srv/hw/irc/i8259 \
 		drv/uhci-hcd \
+		drv/uhci-rhd \
 		drv/usbhid \
 		drv/usbhub \
 		drv/vhc

@@ -10,19 +10,42 @@
 static int uhci_port_new_device(uhci_port_t *port);
 static int uhci_port_remove_device(uhci_port_t *port);
 static int uhci_port_set_enabled(uhci_port_t *port, bool enabled);
+static int uhci_port_check(void *port);
 
+int uhci_port_init(
+  uhci_port_t *port, port_status_t *address, unsigned number,
+  unsigned usec, device_t *rh)
+{
+	assert(port);
+	port->address = address;
+	port->number = number;
+	port->wait_period_usec = usec;
+	port->attached_device = 0;
+	port->rh = rh;
+	port->hc_phone = rh->parent_phone;
+
+	port->checker = fibril_create(uhci_port_check, port);
+	if (port->checker == 0) {
+		uhci_print_error(": failed to launch root hub fibril.");
+		return ENOMEM;
+	}
+	fibril_add_ready(port->checker);
+	uhci_print_verbose(
+	  "Added fibril for port %d: %p.\n", number, port->checker);
+	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+void uhci_port_fini(uhci_port_t *port)
+{
+//	fibril_teardown(port->checker);
+	return;
+}
 /*----------------------------------------------------------------------------*/
 int uhci_port_check(void *port)
 {
 	async_usleep( 1000000 );
 	uhci_port_t *port_instance = port;
 	assert(port_instance);
-	port_instance->hc_phone = devman_device_connect(port_instance->hc->handle, 0);
-	if (port_instance->hc_phone < 0) {
-		uhci_print_fatal("Failed(%d) to connect to the hc(handle=%x.\n",
-			port_instance->hc_phone, (unsigned)port_instance->hc->handle);
-		return port_instance->hc_phone;
-	}
 
 	while (1) {
 		uhci_print_verbose("Port(%d) status address %p:\n",
@@ -118,8 +141,8 @@ static int uhci_port_new_device(uhci_port_t *port)
 	/* communicate and possibly report to devman */
 	assert(port->attached_device == 0);
 
-	ret = usb_drv_register_child_in_devman(port->hc_phone, port->hc, usb_address,
-		&port->attached_device);
+	ret = usb_drv_register_child_in_devman(port->hc_phone, port->rh,
+	  usb_address, &port->attached_device);
 
 	if (ret != EOK) { /* something went wrong */
 		uhci_print_error("Failed(%d) in usb_drv_register_child.\n", ret);

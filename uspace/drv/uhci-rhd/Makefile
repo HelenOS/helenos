@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2010 Vojtech Horky
+# Copyright (c) 2010 Jan Vesely
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -29,16 +29,12 @@
 USPACE_PREFIX = ../..
 LIBS = $(LIBDRV_PREFIX)/libdrv.a $(LIBUSB_PREFIX)/libusb.a
 EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include -I$(LIBUSB_PREFIX)/include -I.
-BINARY = uhci-hcd
+BINARY = uhci-rhd
 
 SOURCES = \
-	callback.c \
-	iface.c \
 	main.c \
-	root_hub.c \
-	transfer_list.c \
-	uhci.c \
-	uhci_struct/transfer_descriptor.c \
-	pci.c
+	port.c \
+	port_status.c \
+	root_hub.c
 
 include $(USPACE_PREFIX)/Makefile.common

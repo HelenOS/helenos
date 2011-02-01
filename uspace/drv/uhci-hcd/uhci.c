@@ -50,20 +50,11 @@ int uhci_init(device_t *device, void *regs, size_t reg_size)
 	CHECK_RET_FREE_INSTANCE("Failed to initialize transfer lists.\n");
 	uhci_print_verbose("Transfer lists initialized.\n");
 
-	/* init root hub */
-	ret = uhci_root_hub_init(&instance->root_hub, device,
-	  (char*)regs + UHCI_ROOT_HUB_PORT_REGISTERS_OFFSET);
-	CHECK_RET_FREE_INSTANCE("Failed to initialize root hub driver.\n");
 
 	uhci_print_verbose("Initializing frame list.\n");
 	instance->frame_list = get_page();
-//	  memalign32(sizeof(link_pointer_t) * UHCI_FRAME_LIST_COUNT, 4096);
-	if (instance->frame_list == NULL) {
-		uhci_print_error("Failed to allocate frame list pointer.\n");
-		uhci_root_hub_fini(&instance->root_hub);
-		free(instance);
-		return ENOMEM;
-	}
+	ret = instance ? EOK : ENOMEM;
+	CHECK_RET_FREE_INSTANCE("Failed to get frame list page.\n");
 
 	/* initialize all frames to point to the first queue head */
 	unsigned i = 0;

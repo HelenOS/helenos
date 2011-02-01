@@ -33,7 +33,7 @@
  * @file
  * PCI related functions needed by the UHCI driver.
  */
-#include "uhci.h"
+#include "pci.h"
 #include <errno.h>
 #include <assert.h>
 #include <devman.h>

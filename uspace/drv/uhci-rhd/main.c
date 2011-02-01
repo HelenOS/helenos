@@ -31,83 +31,55 @@
 #include <usb_iface.h>
 
 #include "debug.h"
-#include "iface.h"
-#include "name.h"
-#include "pci.h"
+//#include "iface.h"
 #include "root_hub.h"
-#include "uhci.h"
 
 static int usb_iface_get_hc_handle(device_t *dev, devman_handle_t *handle)
 {
 	/* This shall be called only for the UHCI itself. */
-	assert(dev->parent == NULL);
+	assert(dev);
+	assert(dev->driver_data);
+	*handle = ((uhci_root_hub_t*)dev->driver_data)->hc_handle;
 
-	*handle = dev->handle;
 	return EOK;
 }
 
-static usb_iface_t hc_usb_iface = {
+static usb_iface_t uhci_rh_usb_iface = {
 	.get_hc_handle = usb_iface_get_hc_handle
 };
 
-static device_ops_t uhci_ops = {
-	.interfaces[USB_DEV_IFACE] = &hc_usb_iface,
-	.interfaces[USBHC_DEV_IFACE] = &uhci_iface
+static device_ops_t uhci_rh_ops = {
+	.interfaces[USB_DEV_IFACE] = &uhci_rh_usb_iface,
 };
 
-static int uhci_add_device(device_t *device)
+static int uhci_rh_add_device(device_t *device)
 {
-	uhci_print_info( "uhci_add_device() called\n" );
-	device->ops = &uhci_ops;
+	if (!device)
+		return ENOTSUP;
 
-	uintptr_t io_reg_base;
-	size_t io_reg_size;
-	int irq;
+	uhci_print_info("%s called device %d\n", __FUNCTION__, device->handle);
+	device->ops = &uhci_rh_ops;
 
-	int rc = pci_get_my_registers(device,
-	    &io_reg_base, &io_reg_size, &irq);
-
-	if (rc != EOK) {
-		uhci_print_fatal("failed to get I/O registers addresses: %s.\n",
-		    str_error(rc));
-		return rc;
+	uhci_root_hub_t *rh = malloc(sizeof(uhci_root_hub_t));
+	if (!rh) {
+		return ENOMEM;
 	}
-
-	uhci_print_info("I/O regs at 0x%X (size %zu), IRQ %d.\n",
-	    io_reg_base, io_reg_size, irq);
-
-	int ret = uhci_init(device, (void*)io_reg_base, io_reg_size);
-
+	int ret = uhci_root_hub_init(rh, (void*)0xc030, 4, device);
 	if (ret != EOK) {
-		uhci_print_error("Failed to init uhci-hcd.\n");
+		free(rh);
 		return ret;
 	}
-	device_t *rh;
-	ret = setup_root_hub(&rh, device);
-
-	if (ret != EOK) {
-		uhci_print_error("Failed to setup uhci root hub.\n");
-		/* TODO: destroy uhci here */
-		return ret;
-	}
-
-	ret = child_device_register(rh, device);
-	if (ret != EOK) {
-		uhci_print_error("Failed to register root hub.\n");
-		/* TODO: destroy uhci here */
-		return ret;
-	}
-
+	device->driver_data = rh;
 	return EOK;
 }
 
-static driver_ops_t uhci_driver_ops = {
-	.add_device = uhci_add_device,
+static driver_ops_t uhci_rh_driver_ops = {
+	.add_device = uhci_rh_add_device,
 };
 
-static driver_t uhci_driver = {
+static driver_t uhci_rh_driver = {
 	.name = NAME,
-	.driver_ops = &uhci_driver_ops
+	.driver_ops = &uhci_rh_driver_ops
 };
 
 int main(int argc, char *argv[])
@@ -115,8 +87,7 @@ int main(int argc, char *argv[])
 	/*
 	 * Do some global initializations.
 	 */
-	sleep(5);
 	usb_dprintf_enable(NAME, DEBUG_LEVEL_INFO);
 
-	return driver_main(&uhci_driver);
+	return driver_main(&uhci_rh_driver);
 }

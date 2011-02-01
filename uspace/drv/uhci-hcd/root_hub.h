@@ -25,16 +25,19 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup usb
+
+/** @addtogroup drvusbuhci
  * @{
  */
 /** @file
  * @brief UHCI driver
  */
-#ifndef DRV_UHCI_NAME_H
-#define DRV_UHCI_NAME_H
+#ifndef DRV_UHCI_ROOT_HUB_H
+#define DRV_UHCI_ROOT_HUB_H
 
-#define NAME "uhci-hcd"
+#include <driver.h>
+
+int setup_root_hub(device_t **device, device_t *hc);
 
 #endif
 /**

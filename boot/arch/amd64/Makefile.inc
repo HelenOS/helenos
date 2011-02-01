@@ -43,6 +43,7 @@ RD_DRVS += \
 	isa \
 	ns8250 \
 	uhci-hcd \
+	uhci-rhd \
 	usbhub \
 	usbhid \
 	vhc
