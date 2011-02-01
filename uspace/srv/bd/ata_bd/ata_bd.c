@@ -55,12 +55,14 @@
 #include <async.h>
 #include <as.h>
 #include <fibril_synch.h>
+#include <stdint.h>
 #include <str.h>
 #include <devmap.h>
 #include <sys/types.h>
 #include <inttypes.h>
 #include <errno.h>
 #include <bool.h>
+#include <byteorder.h>
 #include <task.h>
 #include <macros.h>
 
@@ -367,7 +369,7 @@ static int disk_init(disk_t *d, int disk_id)
 {
 	identify_data_t idata;
 	uint8_t model[40];
-	uint8_t inq_buf[36];
+	ata_inquiry_data_t inq_data;
 	uint16_t w;
 	uint8_t c;
 	size_t pos, len;
@@ -470,7 +472,7 @@ static int disk_init(disk_t *d, int disk_id)
 
 	if (d->dev_type == ata_pkt_dev) {
 		/* Send inquiry. */
-		rc = ata_pcmd_inquiry(0, inq_buf, 36);
+		rc = ata_pcmd_inquiry(0, &inq_data, sizeof(inq_data));
 		if (rc != EOK) {
 			printf("Device inquiry failed.\n");
 			d->present = false;
@@ -478,17 +480,8 @@ static int disk_init(disk_t *d, int disk_id)
 		}
 
 		/* Check device type. */
-		if ((inq_buf[0] & 0x1f) != 0x05)
+		if (INQUIRY_PDEV_TYPE(inq_data.pdev_type) != PDEV_TYPE_CDROM)
 			printf("Warning: Peripheral device type is not CD-ROM.\n");
-
-		/* XXX Test some reading */
-		uint8_t rdbuf[4096];
-		rc = ata_pcmd_read_12(0, 0, 1, rdbuf, 4096);
-		if (rc != EOK) {
-			printf("read(12) failed\n");
-		} else {
-			printf("read(12) succeeded\n");
-		}
 
 		/* Assume 2k block size for now. */
 		d->block_size = 2048;
@@ -713,7 +706,6 @@ static int ata_cmd_packet(int dev_idx, const void *cpkt, size_t cpkt_size,
 	/* Read byte count. */
 	data_size = (uint16_t) pio_read_8(&cmd->cylinder_low) +
 	    ((uint16_t) pio_read_8(&cmd->cylinder_high) << 8);
-	printf("data_size = %u\n", data_size);
 
 	/* Check whether data fits into output buffer. */
 	if (data_size > obuf_size) {
@@ -748,14 +740,15 @@ static int ata_cmd_packet(int dev_idx, const void *cpkt, size_t cpkt_size,
  */
 static int ata_pcmd_inquiry(int dev_idx, void *obuf, size_t obuf_size)
 {
-	uint8_t cp[12];
+	ata_pcmd_inquiry_t cp;
 	int rc;
 
-	memset(cp, 0, 12);
-	cp[0] = 0x12; /* Inquiry */
-	cp[4] = min(obuf_size, 0xff); /* Allocation length */
+	memset(&cp, 0, sizeof(cp));
 
-	rc = ata_cmd_packet(0, cp, 12, obuf, obuf_size);
+	cp.opcode = PCMD_INQUIRY;
+	cp.alloc_len = min(obuf_size, 0xff); /* Allocation length */
+
+	rc = ata_cmd_packet(0, &cp, sizeof(cp), obuf, obuf_size);
 	if (rc != EOK)
 		return rc;
 
@@ -765,25 +758,19 @@ static int ata_pcmd_inquiry(int dev_idx, void *obuf, size_t obuf_size)
 static int ata_pcmd_read_12(int dev_idx, uint64_t ba, size_t cnt,
     void *obuf, size_t obuf_size)
 {
-	uint8_t cp[12];
+	ata_pcmd_read_12_t cp;
 	int rc;
 
-	if (ba > 0xffffffff)
+	if (ba > UINT32_MAX)
 		return EINVAL;
 
-	memset(cp, 0, 12);
-	cp[0] = 0xa8; /* Read(12) */
-	cp[2] = (ba >> 24) & 0xff;
-	cp[3] = (ba >> 16) & 0xff;
-	cp[4] = (ba >> 8) & 0xff;
-	cp[5] = ba & 0xff;
+	memset(&cp, 0, sizeof(cp));
 
-	cp[6] = (cnt >> 24) & 0xff;
-	cp[7] = (cnt >> 16) & 0xff;
-	cp[8] = (cnt >> 8) & 0xff;
-	cp[9] = cnt & 0xff;
+	cp.opcode = PCMD_READ_12;
+	cp.ba = host2uint32_t_be(ba);
+	cp.nblocks = host2uint32_t_be(cnt);
 
-	rc = ata_cmd_packet(0, cp, 12, obuf, obuf_size);
+	rc = ata_cmd_packet(0, &cp, sizeof(cp), obuf, obuf_size);
 	if (rc != EOK)
 		return rc;
 
