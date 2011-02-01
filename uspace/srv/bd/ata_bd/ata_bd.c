@@ -730,7 +730,7 @@ static int ata_cmd_packet(int dev_idx, const void *cpkt, size_t cpkt_size,
 	return EOK;
 }
 
-/** Send ATAPI Inquiry.
+/** Issue ATAPI Inquiry.
  *
  * @param dev_idx	Device index (0 or 1)
  * @param obuf		Buffer for storing inquiry data read from device
@@ -755,6 +755,19 @@ static int ata_pcmd_inquiry(int dev_idx, void *obuf, size_t obuf_size)
 	return EOK;
 }
 
+/** Issue ATAPI read(12) command.
+ *
+ * Output buffer must be large enough to hold the data, otherwise the
+ * function will fail.
+ *
+ * @param dev_idx	Device index (0 or 1)
+ * @param ba		Starting block address
+ * @param cnt		Number of blocks to read
+ * @param obuf		Buffer for storing inquiry data read from device
+ * @param obuf_size	Size of obuf in bytes
+ *
+ * @return EOK on success, EIO on error.
+ */
 static int ata_pcmd_read_12(int dev_idx, uint64_t ba, size_t cnt,
     void *obuf, size_t obuf_size)
 {
