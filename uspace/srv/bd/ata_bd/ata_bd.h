@@ -110,6 +110,7 @@ typedef struct {
 	} geom;
 
 	uint64_t blocks;
+	size_t block_size;
 
 	char model[STR_BOUNDS(40) + 1];
 

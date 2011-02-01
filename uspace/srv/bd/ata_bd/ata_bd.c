@@ -73,8 +73,11 @@
 /** Number of defined legacy controller base addresses. */
 #define LEGACY_CTLS 4
 
-/** Physical block size. Should be always 512. */
-static const size_t block_size = 512;
+/**
+ * Size of data returned from Identify Device or Identify Packet Device
+ * command.
+ */
+static const size_t identify_data_size = 512;
 
 /** Size of the communication area. */
 static size_t comm_size;
@@ -105,9 +108,9 @@ static int ata_bd_read_blocks(int disk_id, uint64_t ba, size_t cnt,
     void *buf);
 static int ata_bd_write_blocks(int disk_id, uint64_t ba, size_t cnt,
     const void *buf);
-static int ata_bd_read_block(int disk_id, uint64_t ba, size_t cnt,
+static int ata_rcmd_read(int disk_id, uint64_t ba, size_t cnt,
     void *buf);
-static int ata_bd_write_block(int disk_id, uint64_t ba, size_t cnt,
+static int ata_rcmd_write(int disk_id, uint64_t ba, size_t cnt,
     const void *buf);
 static int disk_init(disk_t *d, int disk_id);
 static int drive_identify(int drive_id, void *buf);
@@ -115,6 +118,8 @@ static int identify_pkt_dev(int dev_idx, void *buf);
 static int ata_cmd_packet(int dev_idx, const void *cpkt, size_t cpkt_size,
     void *obuf, size_t obuf_size);
 static int ata_pcmd_inquiry(int dev_idx, void *obuf, size_t obuf_size);
+static int ata_pcmd_read_12(int dev_idx, uint64_t ba, size_t cnt,
+    void *obuf, size_t obuf_size);
 static void disk_print_summary(disk_t *d);
 static int coord_calc(disk_t *d, uint64_t ba, block_coord_t *bc);
 static void coord_sc_program(const block_coord_t *bc, uint16_t scnt);
@@ -322,7 +327,7 @@ static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 			ba = MERGE_LOUP32(IPC_GET_ARG1(call),
 			    IPC_GET_ARG2(call));
 			cnt = IPC_GET_ARG3(call);
-			if (cnt * block_size > comm_size) {
+			if (cnt * disk[disk_id].block_size > comm_size) {
 				retval = ELIMIT;
 				break;
 			}
@@ -332,14 +337,14 @@ static void ata_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 			ba = MERGE_LOUP32(IPC_GET_ARG1(call),
 			    IPC_GET_ARG2(call));
 			cnt = IPC_GET_ARG3(call);
-			if (cnt * block_size > comm_size) {
+			if (cnt * disk[disk_id].block_size > comm_size) {
 				retval = ELIMIT;
 				break;
 			}
 			retval = ata_bd_write_blocks(disk_id, ba, cnt, fs_va);
 			break;
 		case BD_GET_BLOCK_SIZE:
-			ipc_answer_1(callid, EOK, block_size);
+			ipc_answer_1(callid, EOK, disk[disk_id].block_size);
 			continue;
 		case BD_GET_NUM_BLOCKS:
 			ipc_answer_2(callid, EOK, LOWER32(disk[disk_id].blocks),
@@ -475,6 +480,21 @@ static int disk_init(disk_t *d, int disk_id)
 		/* Check device type. */
 		if ((inq_buf[0] & 0x1f) != 0x05)
 			printf("Warning: Peripheral device type is not CD-ROM.\n");
+
+		/* XXX Test some reading */
+		uint8_t rdbuf[4096];
+		rc = ata_pcmd_read_12(0, 0, 1, rdbuf, 4096);
+		if (rc != EOK) {
+			printf("read(12) failed\n");
+		} else {
+			printf("read(12) succeeded\n");
+		}
+
+		/* Assume 2k block size for now. */
+		d->block_size = 2048;
+	} else {
+		/* Assume register Read always uses 512-byte blocks. */
+		d->block_size = 512;
 	}
 
 	d->present = true;
@@ -488,13 +508,18 @@ static int ata_bd_read_blocks(int disk_id, uint64_t ba, size_t cnt,
 	int rc;
 
 	while (cnt > 0) {
-		rc = ata_bd_read_block(disk_id, ba, 1, buf);
+		if (disk[disk_id].dev_type == ata_reg_dev)
+			rc = ata_rcmd_read(disk_id, ba, 1, buf);
+		else
+			rc = ata_pcmd_read_12(disk_id, ba, 1, buf,
+			    disk[disk_id].block_size);
+
 		if (rc != EOK)
 			return rc;
 
 		++ba;
 		--cnt;
-		buf += block_size;
+		buf += disk[disk_id].block_size;
 	}
 
 	return EOK;
@@ -506,14 +531,17 @@ static int ata_bd_write_blocks(int disk_id, uint64_t ba, size_t cnt,
 
 	int rc;
 
+	if (disk[disk_id].dev_type != ata_reg_dev)
+		return ENOTSUP;
+
 	while (cnt > 0) {
-		rc = ata_bd_write_block(disk_id, ba, 1, buf);
+		rc = ata_rcmd_write(disk_id, ba, 1, buf);
 		if (rc != EOK)
 			return rc;
 
 		++ba;
 		--cnt;
-		buf += block_size;
+		buf += disk[disk_id].block_size;
 	}
 
 	return EOK;
@@ -559,7 +587,7 @@ static int drive_identify(int disk_id, void *buf)
 	/* Read data from the disk buffer. */
 
 	if ((status & SR_DRQ) != 0) {
-		for (i = 0; i < block_size / 2; i++) {
+		for (i = 0; i < identify_data_size / 2; i++) {
 			data = pio_read_16(&cmd->data_port);
 			((uint16_t *) buf)[i] = data;
 		}
@@ -606,7 +634,7 @@ static int identify_pkt_dev(int dev_idx, void *buf)
 	/* Read data from the device buffer. */
 
 	if ((status & SR_DRQ) != 0) {
-		for (i = 0; i < block_size / 2; i++) {
+		for (i = 0; i < identify_data_size / 2; i++) {
 			data = pio_read_16(&cmd->data_port);
 			((uint16_t *) buf)[i] = data;
 		}
@@ -685,6 +713,7 @@ static int ata_cmd_packet(int dev_idx, const void *cpkt, size_t cpkt_size,
 	/* Read byte count. */
 	data_size = (uint16_t) pio_read_8(&cmd->cylinder_low) +
 	    ((uint16_t) pio_read_8(&cmd->cylinder_high) << 8);
+	printf("data_size = %u\n", data_size);
 
 	/* Check whether data fits into output buffer. */
 	if (data_size > obuf_size) {
@@ -733,6 +762,34 @@ static int ata_pcmd_inquiry(int dev_idx, void *obuf, size_t obuf_size)
 	return EOK;
 }
 
+static int ata_pcmd_read_12(int dev_idx, uint64_t ba, size_t cnt,
+    void *obuf, size_t obuf_size)
+{
+	uint8_t cp[12];
+	int rc;
+
+	if (ba > 0xffffffff)
+		return EINVAL;
+
+	memset(cp, 0, 12);
+	cp[0] = 0xa8; /* Read(12) */
+	cp[2] = (ba >> 24) & 0xff;
+	cp[3] = (ba >> 16) & 0xff;
+	cp[4] = (ba >> 8) & 0xff;
+	cp[5] = ba & 0xff;
+
+	cp[6] = (cnt >> 24) & 0xff;
+	cp[7] = (cnt >> 16) & 0xff;
+	cp[8] = (cnt >> 8) & 0xff;
+	cp[9] = cnt & 0xff;
+
+	rc = ata_cmd_packet(0, cp, 12, obuf, obuf_size);
+	if (rc != EOK)
+		return rc;
+
+	return EOK;
+}
+
 /** Read a physical from the device.
  *
  * @param disk_id	Device index (0 or 1)
@@ -742,7 +799,7 @@ static int ata_pcmd_inquiry(int dev_idx, void *obuf, size_t obuf_size)
  *
  * @return EOK on success, EIO on error.
  */
-static int ata_bd_read_block(int disk_id, uint64_t ba, size_t blk_cnt,
+static int ata_rcmd_read(int disk_id, uint64_t ba, size_t blk_cnt,
     void *buf)
 {
 	size_t i;
@@ -797,7 +854,7 @@ static int ata_bd_read_block(int disk_id, uint64_t ba, size_t blk_cnt,
 	if ((status & SR_DRQ) != 0) {
 		/* Read data from the device buffer. */
 
-		for (i = 0; i < block_size / 2; i++) {
+		for (i = 0; i < disk[disk_id].block_size / 2; i++) {
 			data = pio_read_16(&cmd->data_port);
 			((uint16_t *) buf)[i] = data;
 		}
@@ -819,7 +876,7 @@ static int ata_bd_read_block(int disk_id, uint64_t ba, size_t blk_cnt,
  *
  * @return EOK on success, EIO on error.
  */
-static int ata_bd_write_block(int disk_id, uint64_t ba, size_t cnt,
+static int ata_rcmd_write(int disk_id, uint64_t ba, size_t cnt,
     const void *buf)
 {
 	size_t i;
@@ -873,7 +930,7 @@ static int ata_bd_write_block(int disk_id, uint64_t ba, size_t cnt,
 	if ((status & SR_DRQ) != 0) {
 		/* Write data to the device buffer. */
 
-		for (i = 0; i < block_size / 2; i++) {
+		for (i = 0; i < disk[disk_id].block_size / 2; i++) {
 			pio_write_16(&cmd->data_port, ((uint16_t *) buf)[i]);
 		}
 	}
