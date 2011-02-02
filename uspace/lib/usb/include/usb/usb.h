@@ -65,7 +65,8 @@ const char * usb_str_transfer_type(usb_transfer_type_t t);
 /** USB data transfer direction. */
 typedef enum {
 	USB_DIRECTION_IN,
-	USB_DIRECTION_OUT
+	USB_DIRECTION_OUT,
+	USB_DIRECTION_BOTH
 } usb_direction_t;
 
 /** USB request type target. */

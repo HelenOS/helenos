@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,33 +26,38 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup usbinfo
+/** @addtogroup libusb
  * @{
  */
 /** @file
- * Common header for usbinfo application.
+ * Standard USB requests.
  */
-#ifndef USBINFO_USBINFO_H_
-#define USBINFO_USBINFO_H_
+#ifndef LIBUSB_REQUEST_H_
+#define LIBUSB_REQUEST_H_
 
+#include <sys/types.h>
 #include <usb/usb.h>
+#include <usb/pipes.h>
 #include <usb/descriptor.h>
-#include <usb/debug.h>
-#include <ipc/devman.h>
 
+int usb_control_request_set(usb_endpoint_pipe_t *,
+    usb_request_type_t, usb_request_recipient_t, uint8_t,
+    uint16_t, uint16_t, void *, size_t);
 
-#define NAME "usbinfo"
+int usb_control_request_get(usb_endpoint_pipe_t *,
+    usb_request_type_t, usb_request_recipient_t, uint8_t,
+    uint16_t, uint16_t, void *, size_t, size_t *);
 
-void dump_buffer(const char *, size_t, const uint8_t *, size_t);
-void dump_match_ids(match_id_list_t *matches);
-void dump_usb_descriptor(uint8_t *, size_t);
-int dump_device(devman_handle_t, usb_address_t);
-void dump_descriptor_tree(uint8_t *, size_t);
-
-static inline void internal_error(int err)
-{
-	fprintf(stderr, NAME ": internal error (%s).\n", str_error(err));
-}
+int usb_request_set_address(usb_endpoint_pipe_t *, usb_address_t);
+int usb_request_get_descriptor(usb_endpoint_pipe_t *, usb_request_type_t,
+    uint8_t, uint8_t, uint16_t, void *, size_t, size_t *);
+int usb_request_get_device_descriptor(usb_endpoint_pipe_t *,
+    usb_standard_device_descriptor_t *);
+int usb_request_get_bare_configuration_descriptor(usb_endpoint_pipe_t *, int,
+    usb_standard_configuration_descriptor_t *);
+int usb_request_get_full_configuration_descriptor(usb_endpoint_pipe_t *, int,
+    void *, size_t, size_t *);
+int usb_request_set_configuration(usb_endpoint_pipe_t *, uint8_t);
 
 #endif
 /**

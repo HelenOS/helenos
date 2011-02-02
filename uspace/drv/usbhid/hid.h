@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Lubos Slovak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,35 +26,55 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup usbinfo
+/** @addtogroup drvusbhid
  * @{
  */
 /** @file
- * Common header for usbinfo application.
+ * Common definitions.
  */
-#ifndef USBINFO_USBINFO_H_
-#define USBINFO_USBINFO_H_
 
-#include <usb/usb.h>
-#include <usb/descriptor.h>
-#include <usb/debug.h>
-#include <ipc/devman.h>
+#ifndef USBHID_HID_H_
+#define USBHID_HID_H_
 
+#include <usb/classes/hid.h>
+#include <driver.h>
+#include <usb/pipes.h>
 
-#define NAME "usbinfo"
+/**
+ *
+ */
+typedef struct {
+	usb_standard_interface_descriptor_t iface_desc;
+	usb_standard_endpoint_descriptor_t *endpoints;
+	usb_standard_hid_descriptor_t hid_desc;
+	uint8_t *report_desc;
+	//usb_standard_hid_class_descriptor_info_t *class_desc_info;
+	//uint8_t **class_descs;
+} usb_hid_iface_t;
 
-void dump_buffer(const char *, size_t, const uint8_t *, size_t);
-void dump_match_ids(match_id_list_t *matches);
-void dump_usb_descriptor(uint8_t *, size_t);
-int dump_device(devman_handle_t, usb_address_t);
-void dump_descriptor_tree(uint8_t *, size_t);
+/**
+ *
+ */
+typedef struct {
+	usb_standard_configuration_descriptor_t config_descriptor;
+	usb_hid_iface_t *interfaces;
+} usb_hid_configuration_t;
 
-static inline void internal_error(int err)
-{
-	fprintf(stderr, NAME ": internal error (%s).\n", str_error(err));
-}
+/**
+ * @brief USB/HID keyboard device type.
+ *
+ * Quite dummy right now.
+ */
+typedef struct {
+	device_t *device;
+	usb_hid_configuration_t *conf;
+	usb_hid_report_parser_t *parser;
+
+	usb_device_connection_t wire;
+	usb_endpoint_pipe_t ctrl_pipe;
+	usb_endpoint_pipe_t poll_pipe;
+} usb_hid_dev_kbd_t;
+
+// TODO: more configurations!
 
 #endif
-/**
- * @}
- */

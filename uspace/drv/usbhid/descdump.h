@@ -36,7 +36,7 @@
 #ifndef USBHID_DESCDUMP_H_
 #define USBHID_DESCDUMP_H_
 
-#include <usb/classes/hid.h>
+#include "hid.h"
 
 void dump_standard_configuration_descriptor(
     int index, const usb_standard_configuration_descriptor_t *d);

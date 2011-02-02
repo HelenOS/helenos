@@ -36,7 +36,7 @@
 #ifndef USBHID_DESCPARSER_H_
 #define USBHID_DESCPARSER_H_
 
-#include <usb/classes/hid.h>
+#include "hid.h"
 
 int usbkbd_parse_descriptors(const uint8_t *data, size_t size,
                              usb_hid_configuration_t *config);
