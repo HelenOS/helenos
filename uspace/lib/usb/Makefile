@@ -42,8 +42,10 @@ SOURCES = \
 	src/hcdrv.c \
 	src/hidparser.c \
 	src/localdrv.c \
+	src/pipes.c \
 	src/recognise.c \
 	src/remotedrv.c \
+	src/request.c \
 	src/usb.c \
 	src/usbdrvreq.c \
 	src/usbdrv.c \

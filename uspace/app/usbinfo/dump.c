@@ -95,6 +95,7 @@ void dump_buffer(const char *msg, size_t indent,
 
 void dump_usb_descriptor(uint8_t *descriptor, size_t size)
 {
+	printf("Device descriptor:\n");
 	usb_dump_standard_descriptor(stdout, get_indent(0), "\n",
 	    descriptor, size);
 }
