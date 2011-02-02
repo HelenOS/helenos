@@ -36,48 +36,6 @@
 #include <usb/devreq.h>
 #include <errno.h>
 
-/** Prepare setup packet.
- *
- * @param name Variable name with the setup packet.
- * @param p_direction Data transfer direction.
- * @param p_type Request type (standard/class/vendor)
- * @param p_recipient Recipient of the request.
- * @param p_request Request.
- * @param p_value wValue field of setup packet.
- * @param p_index wIndex field of setup packet.
- * @param p_length Length of extra data.
- */
-#define PREPARE_SETUP_PACKET(name, p_direction, p_type, p_recipient, \
-    p_request, p_value, p_index, p_length) \
-	usb_device_request_setup_packet_t name = { \
-		.request_type = \
-			((p_direction) == USB_DIRECTION_IN ? 128 : 0) \
-			| ((p_type) << 5) \
-			| (p_recipient), \
-		.request = (p_request), \
-		{ .value = (p_value) }, \
-		.index = (p_index), \
-		.length = (p_length) \
-	}
-
-/** Prepare setup packet.
- *
- * @param name Variable name with the setup packet.
- * @param p_direction Data transfer direction.
- * @param p_type Request type (standard/class/vendor)
- * @param p_recipient Recipient of the request.
- * @param p_request Request.
- * @param p_value_low wValue field of setup packet (low byte).
- * @param p_value_high wValue field of setup packet (high byte).
- * @param p_index wIndex field of setup packet.
- * @param p_length Length of extra data.
- */
-#define PREPARE_SETUP_PACKET_LOHI(name, p_direction, p_type, p_recipient, \
-    p_request, p_value_low, p_value_high, p_index, p_length) \
-	PREPARE_SETUP_PACKET(name, p_direction, p_type, p_recipient, \
-	    p_request, (p_value_low) | ((p_value_high) << 8), \
-	    p_index, p_length)
-
 #define MAX_DATA_LENGTH ((size_t)(0xFFFF))
 
 /** Generic wrapper for SET requests using standard control request format.
@@ -197,6 +155,43 @@ int usb_control_request_get(usb_endpoint_pipe_t *pipe,
 	return rc;
 }
 
+/** Change address of connected device.
+ * This function automatically updates the backing connection to point to
+ * the new address.
+ *
+ * @see usb_drv_reserve_default_address
+ * @see usb_drv_release_default_address
+ * @see usb_drv_request_address
+ * @see usb_drv_release_address
+ * @see usb_drv_bind_address
+ *
+ * @param pipe Control endpoint pipe (session must be already started).
+ * @param new_address New USB address to be set.
+ * @return Error code.
+ */
+int usb_request_set_address(usb_endpoint_pipe_t *pipe,
+    usb_address_t new_address)
+{
+	if ((new_address < 0) || (new_address >= USB11_ADDRESS_MAX)) {
+		return EINVAL;
+	}
+
+	int rc = usb_control_request_set(pipe,
+	    USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_DEVICE,
+	    USB_DEVREQ_SET_ADDRESS,
+	    new_address, 0,
+	    NULL, 0);
+
+	if (rc != EOK) {
+		return rc;
+	}
+
+	assert(pipe->wire != NULL);
+	/* TODO: prevent other from accessing wire now. */
+	pipe->wire->address = new_address;
+
+	return EOK;
+}
 
 /** Retrieve USB descriptor of a USB device.
  *
@@ -230,6 +225,128 @@ int usb_request_get_descriptor(usb_endpoint_pipe_t *pipe,
 	    USB_DEVREQ_GET_DESCRIPTOR,
 	    wValue, language,
 	    buffer, size, actual_size);
+}
+
+/** Retrieve standard device descriptor of a USB device.
+ *
+ * @param[in] pipe Control endpoint pipe (session must be already started).
+ * @param[out] descriptor Storage for the device descriptor.
+ * @return Error code.
+ */
+int usb_request_get_device_descriptor(usb_endpoint_pipe_t *pipe,
+    usb_standard_device_descriptor_t *descriptor)
+{
+	if (descriptor == NULL) {
+		return EBADMEM;
+	}
+
+	size_t actually_transferred = 0;
+	usb_standard_device_descriptor_t descriptor_tmp;
+	int rc = usb_request_get_descriptor(pipe,
+	    USB_REQUEST_TYPE_STANDARD, USB_DESCTYPE_DEVICE,
+	    0, 0,
+	    &descriptor_tmp, sizeof(descriptor_tmp),
+	    &actually_transferred);
+
+	if (rc != EOK) {
+		return rc;
+	}
+
+	/* Verify that all data has been transferred. */
+	if (actually_transferred < sizeof(descriptor_tmp)) {
+		return ELIMIT;
+	}
+
+	/* Everything is okay, copy the descriptor. */
+	memcpy(descriptor, &descriptor_tmp,
+	    sizeof(descriptor_tmp));
+
+	return EOK;
+}
+
+/** Retrieve configuration descriptor of a USB device.
+ *
+ * The function does not retrieve additional data binded with configuration
+ * descriptor (such as its interface and endpoint descriptors) - use
+ * usb_request_get_full_configuration_descriptor() instead.
+ *
+ * @param[in] pipe Control endpoint pipe (session must be already started).
+ * @param[in] index Descriptor index.
+ * @param[out] descriptor Storage for the device descriptor.
+ * @return Error code.
+ */
+int usb_request_get_bare_configuration_descriptor(usb_endpoint_pipe_t *pipe,
+    int index, usb_standard_configuration_descriptor_t *descriptor)
+{
+	if (descriptor == NULL) {
+		return EBADMEM;
+	}
+
+	if ((index < 0) || (index > 0xFF)) {
+		return ERANGE;
+	}
+
+	size_t actually_transferred = 0;
+	usb_standard_configuration_descriptor_t descriptor_tmp;
+	int rc = usb_request_get_descriptor(pipe,
+	    USB_REQUEST_TYPE_STANDARD, USB_DESCTYPE_CONFIGURATION,
+	    index, 0,
+	    &descriptor_tmp, sizeof(descriptor_tmp),
+	    &actually_transferred);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	/* Verify that all data has been transferred. */
+	if (actually_transferred < sizeof(descriptor_tmp)) {
+		return ELIMIT;
+	}
+
+	/* Everything is okay, copy the descriptor. */
+	memcpy(descriptor, &descriptor_tmp,
+	    sizeof(descriptor_tmp));
+
+	return EOK;
+}
+
+/** Retrieve full configuration descriptor of a USB device.
+ *
+ * @warning The @p buffer might be touched (i.e. its contents changed)
+ * even when error occurs.
+ *
+ * @param[in] pipe Control endpoint pipe (session must be already started).
+ * @param[in] index Descriptor index.
+ * @param[out] descriptor Storage for the device descriptor.
+ * @param[in] descriptor_size Size of @p descriptor buffer.
+ * @param[out] actual_size Number of bytes actually transferred.
+ * @return Error code.
+ */
+int usb_request_get_full_configuration_descriptor(usb_endpoint_pipe_t *pipe,
+    int index, void *descriptor, size_t descriptor_size, size_t *actual_size)
+{
+	if ((index < 0) || (index > 0xFF)) {
+		return ERANGE;
+	}
+
+	return usb_request_get_descriptor(pipe,
+	    USB_REQUEST_TYPE_STANDARD, USB_DESCTYPE_CONFIGURATION,
+	    index, 0,
+	    descriptor, descriptor_size, actual_size);
+}
+
+/** Set configuration of USB device.
+ *
+ * @param pipe Control endpoint pipe (session must be already started).
+ * @param configuration_value New configuration value.
+ * @return Error code.
+ */
+int usb_request_set_configuration(usb_endpoint_pipe_t *pipe,
+    uint8_t configuration_value)
+{
+	return usb_control_request_set(pipe,
+	    USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_DEVICE,
+	    USB_DEVREQ_SET_CONFIGURATION, configuration_value, 0,
+	    NULL, 0);
 }
 
 /**
