@@ -37,6 +37,7 @@
 
 #include <sys/types.h>
 #include <usb/usb.h>
+#include <usb/descriptor.h>
 #include <ipc/devman.h>
 #include <driver.h>
 
@@ -78,6 +79,36 @@ typedef struct {
 	int hc_phone;
 } usb_endpoint_pipe_t;
 
+/** Flag for default control pipe. */
+#define USB_ENDPOINT_DESCRIPTION_DEFAULT_CONTROL_PIPE 1
+
+/** Description of endpoint characteristics. */
+typedef struct {
+	/** Transfer type (e.g. control or interrupt). */
+	usb_transfer_type_t transfer_type;
+	/** Transfer direction (to or from a device). */
+	usb_direction_t direction;
+	/** Interface class this endpoint belongs to (-1 for any). */
+	int interface_class;
+	/** Interface subclass this endpoint belongs to (-1 for any). */
+	int interface_subclass;
+	/** Interface protocol this endpoint belogs to (-1 for any). */
+	int interface_protocol;
+	/** Extra endpoint flags. */
+	unsigned int flags;
+} usb_endpoint_description_t;
+
+/** Mapping of endpoint pipes and endpoint descriptions. */
+typedef struct {
+	/** Endpoint pipe. */
+	usb_endpoint_pipe_t *pipe;
+	/** Endpoint description. */
+	const usb_endpoint_description_t *description;
+	/** Found descriptor fitting the description. */
+	usb_standard_endpoint_descriptor_t *descriptor;
+	/** Whether the endpoint was actually found. */
+	bool present;
+} usb_endpoint_mapping_t;
 
 int usb_device_connection_initialize_from_device(usb_device_connection_t *,
     device_t *);
@@ -89,6 +120,8 @@ int usb_endpoint_pipe_initialize(usb_endpoint_pipe_t *,
     usb_endpoint_t, usb_transfer_type_t, usb_direction_t);
 int usb_endpoint_pipe_initialize_default_control(usb_endpoint_pipe_t *,
     usb_device_connection_t *);
+int usb_endpoint_pipe_initialize_from_configuration(usb_endpoint_mapping_t *,
+    size_t, uint8_t *, size_t, usb_device_connection_t *);
 
 
 int usb_endpoint_pipe_start_session(usb_endpoint_pipe_t *);
