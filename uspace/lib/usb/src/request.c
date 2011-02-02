@@ -166,7 +166,7 @@ int usb_control_request_get(usb_endpoint_pipe_t *pipe,
  * @see usb_drv_bind_address
  *
  * @param pipe Control endpoint pipe (session must be already started).
- * @param new_address New USB address to be set.
+ * @param new_address New USB address to be set (in native endianness).
  * @return Error code.
  */
 int usb_request_set_address(usb_endpoint_pipe_t *pipe,
@@ -176,10 +176,12 @@ int usb_request_set_address(usb_endpoint_pipe_t *pipe,
 		return EINVAL;
 	}
 
+	uint16_t addr = uint16_host2usb((uint16_t)new_address);
+
 	int rc = usb_control_request_set(pipe,
 	    USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_DEVICE,
 	    USB_DEVREQ_SET_ADDRESS,
-	    new_address, 0,
+	    addr, 0,
 	    NULL, 0);
 
 	if (rc != EOK) {
@@ -343,9 +345,12 @@ int usb_request_get_full_configuration_descriptor(usb_endpoint_pipe_t *pipe,
 int usb_request_set_configuration(usb_endpoint_pipe_t *pipe,
     uint8_t configuration_value)
 {
+	uint16_t config_value
+	    = uint16_host2usb((uint16_t) configuration_value);
+
 	return usb_control_request_set(pipe,
 	    USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_DEVICE,
-	    USB_DEVREQ_SET_CONFIGURATION, configuration_value, 0,
+	    USB_DEVREQ_SET_CONFIGURATION, config_value, 0,
 	    NULL, 0);
 }
 
