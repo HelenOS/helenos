@@ -565,6 +565,7 @@ int block_put(block_t *block)
 
 	assert(devcon);
 	assert(devcon->cache);
+	assert(block->refcnt >= 1);
 
 	cache = devcon->cache;
 
