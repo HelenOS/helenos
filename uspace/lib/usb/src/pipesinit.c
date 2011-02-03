@@ -193,6 +193,7 @@ static int process_endpoint(
 
 	ep_mapping->present = true;
 	ep_mapping->descriptor = endpoint;
+	ep_mapping->interface = interface;
 
 	return EOK;
 }
@@ -241,6 +242,7 @@ static int process_interface(
  * - @c pipe must point to already allocated structure with uninitialized pipe
  * - @c description must point to prepared endpoint description
  * - @c descriptor does not need to be initialized (will be overwritten)
+ * - @c interface does not need to be initialized (will be overwritten)
  * - @c present does not need to be initialized (will be overwritten)
  *
  * After processing the configuration descriptor, the mapping is updated
@@ -250,6 +252,9 @@ static int process_interface(
  * - @c descriptor will point inside the configuration descriptor to endpoint
  *   corresponding to given description (or NULL for not found descriptor or
  *   for default control pipe)
+ * - @c interface will point inside the configuration descriptor to interface
+ *   descriptor the endpoint @c descriptor belongs to (or NULL for not found
+ *   descriptor)
  * - @c pipe will be initialized when found, otherwise left untouched
  * - @c description will be untouched under all circumstances
  *
@@ -285,6 +290,7 @@ int usb_endpoint_pipe_initialize_from_configuration(
 	for (i = 0; i < mapping_count; i++) {
 		mapping[i].present = false;
 		mapping[i].descriptor = NULL;
+		mapping[i].interface = NULL;
 	}
 
 	/*

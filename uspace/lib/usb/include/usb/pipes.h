@@ -106,6 +106,8 @@ typedef struct {
 	const usb_endpoint_description_t *description;
 	/** Found descriptor fitting the description. */
 	usb_standard_endpoint_descriptor_t *descriptor;
+	/** Interface the endpoint belongs to. */
+	usb_standard_interface_descriptor_t *interface;
 	/** Whether the endpoint was actually found. */
 	bool present;
 } usb_endpoint_mapping_t;
