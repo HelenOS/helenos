@@ -79,8 +79,6 @@ typedef struct {
 	int hc_phone;
 } usb_endpoint_pipe_t;
 
-/** Flag for default control pipe. */
-#define USB_ENDPOINT_DESCRIPTION_DEFAULT_CONTROL_PIPE 1
 
 /** Description of endpoint characteristics. */
 typedef struct {
@@ -92,7 +90,7 @@ typedef struct {
 	int interface_class;
 	/** Interface subclass this endpoint belongs to (-1 for any). */
 	int interface_subclass;
-	/** Interface protocol this endpoint belogs to (-1 for any). */
+	/** Interface protocol this endpoint belongs to (-1 for any). */
 	int interface_protocol;
 	/** Extra endpoint flags. */
 	unsigned int flags;

@@ -76,11 +76,6 @@ static inline bool is_endpoint_descriptor(uint8_t *descriptor)
 static bool endpoint_fits_description(const usb_endpoint_description_t *wanted,
     usb_endpoint_description_t *found)
 {
-	/* Default control pipe is never mentioned in endpoint descriptors. */
-	if (wanted->flags & USB_ENDPOINT_DESCRIPTION_DEFAULT_CONTROL_PIPE) {
-		return false;
-	}
-
 #define _SAME(fieldname) ((wanted->fieldname) == (found->fieldname))
 
 	if (!_SAME(direction)) {
@@ -250,8 +245,7 @@ static int process_interface(
  * - @c present will be set to @c true when the endpoint was found in the
  *   configuration
  * - @c descriptor will point inside the configuration descriptor to endpoint
- *   corresponding to given description (or NULL for not found descriptor or
- *   for default control pipe)
+ *   corresponding to given description (or NULL for not found descriptor)
  * - @c interface will point inside the configuration descriptor to interface
  *   descriptor the endpoint @c descriptor belongs to (or NULL for not found
  *   descriptor)
@@ -320,20 +314,6 @@ int usb_endpoint_pipe_initialize_from_configuration(
 		interface = usb_dp_get_sibling_descriptor(&dp_parser, &dp_data,
 		    configuration_descriptor, interface);
 	} while (interface != NULL);
-
-	/*
-	 * Find default control pipe and initialize it as well.
-	 */
-	for (i = 0; i < mapping_count; i++) {
-		if (mapping[i].description->flags
-		    & USB_ENDPOINT_DESCRIPTION_DEFAULT_CONTROL_PIPE) {
-			int rc = usb_endpoint_pipe_initialize_default_control(
-			    mapping[i].pipe, connection);
-			if (rc == EOK) {
-				mapping[i].present = true;
-			}
-		}
-	}
 
 	return EOK;
 }
