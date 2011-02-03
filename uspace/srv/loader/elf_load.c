@@ -108,7 +108,7 @@ int elf_load_file(const char *file_name, size_t so_bias, elf_info_t *info)
 
 	int fd;
 	int rc;
-
+	
 	fd = open(file_name, O_RDONLY);
 	if (fd < 0) {
 		DPRINTF("failed opening file\n");
@@ -343,7 +343,7 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 	seg_addr = entry->p_vaddr + bias;
 	seg_ptr = (void *) seg_addr;
 
-	DPRINTF("Load segment at addr %p, size 0x%x\n", seg_addr,
+	DPRINTF("Load segment at addr %p, size 0x%x\n", (void *) seg_addr,
 		entry->p_memsz);
 
 	if (entry->p_align > 1) {
@@ -371,8 +371,9 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 	base = ALIGN_DOWN(entry->p_vaddr, PAGE_SIZE);
 	mem_sz = entry->p_memsz + (entry->p_vaddr - base);
 
-	DPRINTF("Map to seg_addr=%p-%p.\n", seg_addr,
-	entry->p_vaddr + bias + ALIGN_UP(entry->p_memsz, PAGE_SIZE));
+	DPRINTF("Map to seg_addr=%p-%p.\n", (void *) seg_addr,
+	    (void *) (entry->p_vaddr + bias +
+	    ALIGN_UP(entry->p_memsz, PAGE_SIZE)));
 
 	/*
 	 * For the course of loading, the area needs to be readable
@@ -385,8 +386,8 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 		return EE_MEMORY;
 	}
 
-	DPRINTF("as_area_create(%p, 0x%x, %d) -> 0x%lx\n",
-		base + bias, mem_sz, flags, (uintptr_t)a);
+	DPRINTF("as_area_create(%p, %#zx, %d) -> %p\n",
+	    (void *) (base + bias), mem_sz, flags, (void *) a);
 
 	/*
 	 * Load segment data
@@ -463,7 +464,7 @@ static int section_header(elf_ld_t *elf, elf_section_header_t *entry)
 		elf->info->dynamic =
 		    (void *)((uint8_t *)entry->sh_addr + elf->bias);
 		DPRINTF("Dynamic section found at %p.\n",
-			(uintptr_t)elf->info->dynamic);
+		    (void *) elf->info->dynamic);
 		break;
 	default:
 		break;
