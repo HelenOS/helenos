@@ -1062,9 +1062,9 @@ dev_class_info_t *create_dev_class_info(void)
 	info = (dev_class_info_t *) malloc(sizeof(dev_class_info_t));
 	if (info != NULL) {
 		memset(info, 0, sizeof(dev_class_info_t));
-		list_initialize(&info->dev_classes);
-		list_initialize(&info->devmap_link);
-		list_initialize(&info->link);
+		link_initialize(&info->dev_classes);
+		link_initialize(&info->devmap_link);
+		link_initialize(&info->link);
 	}
 	
 	return info;

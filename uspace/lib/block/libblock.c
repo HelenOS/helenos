@@ -293,8 +293,10 @@ int block_cache_init(devmap_handle_t devmap_handle, size_t size, unsigned blocks
 	cache->mode = mode;
 
 	/* Allow 1:1 or small-to-large block size translation */
-	if (cache->lblock_size % devcon->pblock_size != 0)
+	if (cache->lblock_size % devcon->pblock_size != 0) {
+		free(cache);
 		return ENOTSUP;
+	}
 
 	cache->blocks_cluster = cache->lblock_size / devcon->pblock_size;
 
@@ -435,6 +437,7 @@ retry:
 			b->data = malloc(cache->lblock_size);
 			if (!b->data) {
 				free(b);
+				b = NULL;
 				goto recycle;
 			}
 			cache->blocks_cached++;
@@ -562,6 +565,7 @@ int block_put(block_t *block)
 
 	assert(devcon);
 	assert(devcon->cache);
+	assert(block->refcnt >= 1);
 
 	cache = devcon->cache;
 
@@ -621,8 +625,8 @@ retry:
 			 */
 			unsigned long key = block->lba;
 			hash_table_remove(&cache->block_hash, &key, 1);
-			free(block);
 			free(block->data);
+			free(block);
 			cache->blocks_cached--;
 			fibril_mutex_unlock(&cache->lock);
 			return rc;

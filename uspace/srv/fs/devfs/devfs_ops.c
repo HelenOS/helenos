@@ -129,6 +129,7 @@ static int devfs_root_get(fs_node_t **rfn, devmap_handle_t devmap_handle)
 static int devfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 {
 	devfs_node_t *node = (devfs_node_t *) pfn->data;
+	int ret;
 	
 	if (node->handle == 0) {
 		/* Root directory */
@@ -144,8 +145,9 @@ static int devfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 					continue;
 				
 				if (str_cmp(devs[pos].name, component) == 0) {
+					ret = devfs_node_get_internal(rfn, DEV_HANDLE_NAMESPACE, devs[pos].handle);
 					free(devs);
-					return devfs_node_get_internal(rfn, DEV_HANDLE_NAMESPACE, devs[pos].handle);
+					return ret;
 				}
 			}
 			
@@ -161,8 +163,9 @@ static int devfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 				size_t pos;
 				for (pos = 0; pos < count; pos++) {
 					if (str_cmp(devs[pos].name, component) == 0) {
+						ret = devfs_node_get_internal(rfn, DEV_HANDLE_DEVICE, devs[pos].handle);
 						free(devs);
-						return devfs_node_get_internal(rfn, DEV_HANDLE_DEVICE, devs[pos].handle);
+						return ret;
 					}
 				}
 				
@@ -183,8 +186,9 @@ static int devfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 			size_t pos;
 			for (pos = 0; pos < count; pos++) {
 				if (str_cmp(devs[pos].name, component) == 0) {
+					ret = devfs_node_get_internal(rfn, DEV_HANDLE_DEVICE, devs[pos].handle);
 					free(devs);
-					return devfs_node_get_internal(rfn, DEV_HANDLE_DEVICE, devs[pos].handle);
+					return ret;
 				}
 			}
 			

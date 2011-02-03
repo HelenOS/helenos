@@ -422,7 +422,8 @@ static devmap_driver_t *devmap_driver_register(void)
 	 * Initialize list of asociated devices
 	 */
 	list_initialize(&driver->devices);
-	list_initialize(&(driver->drivers));
+
+	link_initialize(&driver->drivers);
 	
 	fibril_mutex_lock(&drivers_list_mutex);
 	
@@ -537,8 +538,8 @@ static void devmap_device_register(ipc_callid_t iid, ipc_call_t *icall,
 		return;
 	}
 	
-	list_initialize(&(device->devices));
-	list_initialize(&(device->driver_devices));
+	link_initialize(&device->devices);
+	link_initialize(&device->driver_devices);
 	
 	/* Check that device is not already registered */
 	if (devmap_device_find_name(namespace->name, device->name) != NULL) {
@@ -941,8 +942,8 @@ static void devmap_null_create(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 	
-	list_initialize(&(device->devices));
-	list_initialize(&(device->driver_devices));
+	link_initialize(&device->devices);
+	link_initialize(&device->driver_devices);
 	
 	/* Get unique device handle */
 	device->handle = devmap_create_handle();

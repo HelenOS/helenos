@@ -293,17 +293,8 @@ static int conn_compare(unsigned long key[], hash_count_t keys, link_t *item)
 	return (key[0] == conn->in_phone_hash);
 }
 
-/** Connection hash table removal callback function.
- *
- * This function is called whenever a connection is removed from the connection
- * hash table.
- *
- * @param item Connection hash table item being removed.
- *
- */
 static void conn_remove(link_t *item)
 {
-	free(hash_table_get_instance(item, connection_t, link));
 }
 
 /** Operations for the connection hash table. */
@@ -646,6 +637,7 @@ static int connection_fibril(void *arg)
 	if (FIBRIL_connection->close_callid)
 		ipc_answer_0(FIBRIL_connection->close_callid, EOK);
 	
+	free(FIBRIL_connection);
 	return 0;
 }
 
