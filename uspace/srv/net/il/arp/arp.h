@@ -38,10 +38,7 @@
 #define NET_ARP_H_
 
 #include <fibril_synch.h>
-
-#include <ipc/ipc.h>
 #include <ipc/services.h>
-
 #include <net/device.h>
 #include <net/packet.h>
 #include <net_hardware.h>
@@ -123,12 +120,6 @@ struct arp_device {
 struct arp_globals {
 	/** ARP address cache. */
 	arp_cache_t cache;
-	
-	/**
-	 * The client connection processing function.
-	 * The module skeleton propagates its own one.
-	 */
-	async_client_conn_t client_connection;
 	
 	/** Networking module phone. */
 	int net_phone;

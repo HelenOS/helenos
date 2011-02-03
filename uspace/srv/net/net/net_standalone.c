@@ -39,7 +39,6 @@
 #include <str.h>
 #include <adt/measured_strings.h>
 #include <adt/module_map.h>
-#include <ipc/ipc.h>
 #include <ipc/net.h>
 #include <errno.h>
 
@@ -99,12 +98,12 @@ int net_initialize_build(async_client_conn_t client_connection)
  *
  */
 int net_module_message(ipc_callid_t callid, ipc_call_t *call,
-    ipc_call_t *answer, int *answer_count)
+    ipc_call_t *answer, size_t *count)
 {
-	if (IS_NET_PACKET_MESSAGE(call))
-		return packet_server_message(callid, call, answer, answer_count);
+	if (IS_NET_PACKET_MESSAGE(*call))
+		return packet_server_message(callid, call, answer, count);
 	
-	return net_message(callid, call, answer, answer_count);
+	return net_message(callid, call, answer, count);
 }
 
 /** @}

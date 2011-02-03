@@ -30,12 +30,12 @@
  * @{
  */
 /** @file
- */ 
+ */
 
 #ifndef LIBC_IPC_LOADER_H_
 #define LIBC_IPC_LOADER_H_
 
-#include <ipc/ipc.h>
+#include <ipc/common.h>
 
 typedef enum {
 	LOADER_HELLO = IPC_FIRST_USER_METHOD,

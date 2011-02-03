@@ -37,7 +37,6 @@
 #ifndef LIBC_NIL_MESSAGES_H_
 #define LIBC_NIL_MESSAGES_H_
 
-#include <ipc/ipc.h>
 #include <ipc/net.h>
 
 /** Network interface layer module messages. */
@@ -76,11 +75,7 @@ typedef enum {
 /*@{*/
 
 /** Return the protocol service message parameter. */
-#define NIL_GET_PROTO(call) \
-	({ \
-		services_t service = (services_t) IPC_GET_ARG2(*call); \
-		service; \
-	})
+#define NIL_GET_PROTO(call)  ((services_t) IPC_GET_ARG2(call))
 
 /*@}*/
 

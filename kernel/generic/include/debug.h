@@ -54,7 +54,8 @@
 #define ASSERT(expr) \
 	do { \
 		if (!(expr)) \
-			panic_assert("%s", #expr); \
+			panic_assert("%s() at %s:%u:\n%s", \
+			    __func__, __FILE__, __LINE__, #expr); \
 	} while (0)
 
 /** Debugging verbose ASSERT macro
@@ -71,7 +72,8 @@
 #define ASSERT_VERBOSE(expr, msg) \
 	do { \
 		if (!(expr)) \
-			panic_assert("%s, %s", #expr, msg); \
+			panic_assert("%s() at %s:%u:\n%s, %s", \
+			    __func__, __FILE__, __LINE__, #expr, msg); \
 	} while (0)
 
 #else /* CONFIG_DEBUG */

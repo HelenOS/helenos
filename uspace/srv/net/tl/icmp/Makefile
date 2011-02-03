@@ -33,7 +33,6 @@ EXTRA_CFLAGS = -I$(LIBNET_PREFIX)/include
 BINARY = icmp
 
 SOURCES = \
-	icmp.c \
-	icmp_module.c
+	icmp.c
 
 include $(USPACE_PREFIX)/Makefile.common

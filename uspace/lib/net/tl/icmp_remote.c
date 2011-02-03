@@ -32,16 +32,15 @@
 
 /** @file
  * ICMP interface implementation for remote modules.
- * @see icmp_interface.h
+ * @see icmp_remote.h
  */
 
-#include <icmp_interface.h>
+#include <icmp_remote.h>
 #include <net/modules.h>
 #include <packet_client.h>
 
 #include <async.h>
 #include <errno.h>
-#include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <ipc/icmp.h>
 #include <sys/types.h>

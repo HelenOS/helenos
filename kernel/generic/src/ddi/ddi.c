@@ -103,15 +103,19 @@ NO_TRACE static int ddi_physmem_map(uintptr_t pf, uintptr_t vp, size_t pages,
     unsigned int flags)
 {
 	ASSERT(TASK);
-	ASSERT((pf % FRAME_SIZE) == 0);
-	ASSERT((vp % PAGE_SIZE) == 0);
+	
+	if ((pf % FRAME_SIZE) != 0)
+		return EBADMEM;
+	
+	if ((vp % PAGE_SIZE) != 0)
+		return EBADMEM;
 	
 	/*
-	 * Make sure the caller is authorised to make this syscall.
+	 * Unprivileged tasks are only allowed to map pareas
+	 * which are explicitly marked as such.
 	 */
-	cap_t caps = cap_get(TASK);
-	if (!(caps & CAP_MEM_MANAGER))
-		return EPERM;
+	bool priv =
+	    ((cap_get(TASK) & CAP_MEM_MANAGER) == CAP_MEM_MANAGER);
 	
 	mem_backend_data_t backend_data;
 	backend_data.base = pf;
@@ -122,23 +126,36 @@ NO_TRACE static int ddi_physmem_map(uintptr_t pf, uintptr_t vp, size_t pages,
 	size_t znum = find_zone(ADDR2PFN(pf), pages, 0);
 	
 	if (znum == (size_t) -1) {
-		/* Frames not found in any zones
-		 * -> assume it is hardware device and allow mapping
+		/*
+		 * Frames not found in any zone
+		 * -> assume it is a hardware device and allow mapping
+		 *    for privileged tasks.
 		 */
 		irq_spinlock_unlock(&zones.lock, true);
+		
+		if (!priv)
+			return EPERM;
+		
 		goto map;
 	}
 	
 	if (zones.info[znum].flags & ZONE_FIRMWARE) {
-		/* Frames are part of firmware */
+		/*
+		 * Frames are part of firmware
+		 * -> allow mapping for privileged tasks.
+		 */
 		irq_spinlock_unlock(&zones.lock, true);
+		
+		if (!priv)
+			return EPERM;
+		
 		goto map;
 	}
 	
 	if (zone_flags_available(zones.info[znum].flags)) {
 		/*
-		 * Frames are part of physical memory, check if the memory
-		 * region is enabled for mapping.
+		 * Frames are part of physical memory, check
+		 * if the memory region is enabled for mapping.
 		 */
 		irq_spinlock_unlock(&zones.lock, true);
 		
@@ -149,7 +166,14 @@ NO_TRACE static int ddi_physmem_map(uintptr_t pf, uintptr_t vp, size_t pages,
 		
 		if ((!parea) || (parea->frames < pages)) {
 			mutex_unlock(&parea_lock);
-			goto err;
+			return ENOENT;
+		}
+		
+		if (!priv) {
+			if (!parea->unpriv) {
+				mutex_unlock(&parea_lock);
+				return EPERM;
+			}
 		}
 		
 		mutex_unlock(&parea_lock);
@@ -157,8 +181,6 @@ NO_TRACE static int ddi_physmem_map(uintptr_t pf, uintptr_t vp, size_t pages,
 	}
 	
 	irq_spinlock_unlock(&zones.lock, true);
-	
-err:
 	return ENOENT;
 	
 map:
@@ -255,36 +277,6 @@ sysarg_t sys_iospace_enable(ddi_ioarg_t *uspace_io_arg)
 	
 	return (sysarg_t) ddi_iospace_enable((task_id_t) arg.task_id,
 	    (uintptr_t) arg.ioaddr, (size_t) arg.size);
-}
-
-/** Disable or enable specified interrupts.
- * 
- * @param irq the interrupt to be enabled/disabled.
- * @param enable if true enable the interrupt, disable otherwise.
- * 
- * @retutn Zero on success, error code otherwise.
- */
-sysarg_t sys_interrupt_enable(int irq, int enable)
-{
-/* FIXME: this needs to be generic code, or better not be in kernel at all. */
-#if 0
-	cap_t task_cap = cap_get(TASK);
-	if (!(task_cap & CAP_IRQ_REG))
-		return EPERM;
-		
-	if (irq < 0 || irq > 16) {
-		return EINVAL;
-	}
-	
-	uint16_t irq_mask = (uint16_t)(1 << irq);
-	if (enable) {
-		trap_virtual_enable_irqs(irq_mask);
-	} else {
-		trap_virtual_disable_irqs(irq_mask);
-	}
-	
-#endif
-	return 0;
 }
 
 /** @}

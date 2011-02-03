@@ -35,6 +35,7 @@
 #ifndef LIBDRV_DEV_IFACE_H_
 #define LIBDRV_DEV_IFACE_H_
 
+#include <ipc/common.h>
 #include <ipc/dev_iface.h>
 
 /*

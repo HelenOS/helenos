@@ -44,12 +44,13 @@
 #include <malloc.h>
 #include <stdio.h>
 #include <str.h>
+#include <str_error.h>
 
-#include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <ipc/net.h>
 #include <ipc/net_net.h>
 #include <ipc/il.h>
+#include <ipc/nil.h>
 
 #include <net/modules.h>
 #include <net/packet.h>
@@ -61,7 +62,7 @@
 #include <adt/module_map.h>
 
 #include <netif_remote.h>
-#include <nil_interface.h>
+#include <nil_remote.h>
 #include <net_interface.h>
 #include <ip_interface.h>
 
@@ -287,8 +288,8 @@ static int net_initialize(async_client_conn_t client_connection)
 	    (uint8_t *) LO_FILENAME, SERVICE_LO, 0, connect_to_service);
 	if (rc != EOK)
 		return rc;
-	rc = add_module(NULL, &net_globals.modules, (uint8_t *) DP8390_NAME,
-	    (uint8_t *) DP8390_FILENAME, SERVICE_DP8390, 0, connect_to_service);
+	rc = add_module(NULL, &net_globals.modules, (uint8_t *) NE2000_NAME,
+	    (uint8_t *) NE2000_FILENAME, SERVICE_NE2000, 0, connect_to_service);
 	if (rc != EOK)
 		return rc;
 	rc = add_module(NULL, &net_globals.modules, (uint8_t *) ETHERNET_NAME,
@@ -323,7 +324,6 @@ static int net_initialize(async_client_conn_t client_connection)
  */
 static int net_module_start(async_client_conn_t client_connection)
 {
-	sysarg_t phonehash;
 	int rc;
 	
 	async_set_client_connection(client_connection);
@@ -331,12 +331,11 @@ static int net_module_start(async_client_conn_t client_connection)
 	if (rc != EOK)
 		return rc;
 	
-	
 	rc = net_initialize(client_connection);
 	if (rc != EOK)
 		goto out;
 	
-	rc = ipc_connect_to_me(PHONE_NS, SERVICE_NETWORKING, 0, 0, &phonehash);
+	rc = async_connect_to_me(PHONE_NS, SERVICE_NETWORKING, 0, 0, NULL);
 	if (rc != EOK)
 		goto out;
 	
@@ -473,9 +472,9 @@ static int start_device(netif_t *netif)
 	int irq = setting ? strtol((char *) setting->value, NULL, 10) : 0;
 	
 	setting = measured_strings_find(&netif->configuration, (uint8_t *) CONF_IO, 0);
-	int io = setting ? strtol((char *) setting->value, NULL, 16) : 0;
+	uintptr_t io = setting ? strtol((char *) setting->value, NULL, 16) : 0;
 	
-	rc = netif_probe_req_remote(netif->driver->phone, netif->id, irq, io);
+	rc = netif_probe_req(netif->driver->phone, netif->id, irq, (void *) io);
 	if (rc != EOK)
 		return rc;
 	
@@ -510,7 +509,7 @@ static int start_device(netif_t *netif)
 		return ENOENT;
 	}
 	
-	return netif_start_req_remote(netif->driver->phone, netif->id);
+	return netif_start_req(netif->driver->phone, netif->id);
 }
 
 /** Read the configuration and start all network interfaces.
@@ -590,8 +589,11 @@ static int startup(void)
 		
 		rc = start_device(netif);
 		if (rc != EOK) {
+			printf("%s: Error starting interface %s (%s)\n", NAME,
+			    netif->name, str_error(rc));
 			measured_strings_destroy(&netif->configuration);
 			netifs_exclude_index(&net_globals.netifs, index);
+			
 			return rc;
 		}
 		
@@ -612,8 +614,8 @@ static int startup(void)
 
 /** Process the networking message.
  *
- * @param[in] callid        The message identifier.
- * @param[in] call          The message parameters.
+ * @param[in]  callid       The message identifier.
+ * @param[in]  call         The message parameters.
  * @param[out] answer       The message answer parameters.
  * @param[out] answer_count The last parameter for the actual answer
  *                          in the answer parameter.
@@ -626,7 +628,7 @@ static int startup(void)
  *
  */
 int net_message(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *answer,
-    int *answer_count)
+    size_t *answer_count)
 {
 	measured_string_t *strings;
 	uint8_t *data;
@@ -638,29 +640,29 @@ int net_message(ipc_callid_t callid, ipc_call_t *call, ipc_call_t *answer,
 		return EOK;
 	case NET_NET_GET_DEVICE_CONF:
 		rc = measured_strings_receive(&strings, &data,
-		    IPC_GET_COUNT(call));
+		    IPC_GET_COUNT(*call));
 		if (rc != EOK)
 			return rc;
-		net_get_device_conf_req(0, IPC_GET_DEVICE(call), &strings,
-		    IPC_GET_COUNT(call), NULL);
+		net_get_device_conf_req(0, IPC_GET_DEVICE(*call), &strings,
+		    IPC_GET_COUNT(*call), NULL);
 		
 		/* Strings should not contain received data anymore */
 		free(data);
 		
-		rc = measured_strings_reply(strings, IPC_GET_COUNT(call));
+		rc = measured_strings_reply(strings, IPC_GET_COUNT(*call));
 		free(strings);
 		return rc;
 	case NET_NET_GET_CONF:
 		rc = measured_strings_receive(&strings, &data,
-		    IPC_GET_COUNT(call));
+		    IPC_GET_COUNT(*call));
 		if (rc != EOK)
 			return rc;
-		net_get_conf_req(0, &strings, IPC_GET_COUNT(call), NULL);
+		net_get_conf_req(0, &strings, IPC_GET_COUNT(*call), NULL);
 		
 		/* Strings should not contain received data anymore */
 		free(data);
 		
-		rc = measured_strings_reply(strings, IPC_GET_COUNT(call));
+		rc = measured_strings_reply(strings, IPC_GET_COUNT(*call));
 		free(strings);
 		return rc;
 	case NET_NET_STARTUP:
@@ -682,12 +684,12 @@ static void net_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	 * Accept the connection
 	 *  - Answer the first IPC_M_CONNECT_ME_TO call.
 	 */
-	ipc_answer_0(iid, EOK);
+	async_answer_0(iid, EOK);
 	
 	while (true) {
 		/* Clear the answer structure */
 		ipc_call_t answer;
-		int answer_count;
+		size_t answer_count;
 		refresh_answer(&answer, &answer_count);
 		
 		/* Fetch the next message */
@@ -708,15 +710,7 @@ static void net_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 int main(int argc, char *argv[])
 {
-	int rc;
-	
-	rc = net_module_start(net_client_connection);
-	if (rc != EOK) {
-		fprintf(stderr, "%s: net_module_start error %i\n", NAME, rc);
-		return rc;
-	}
-	
-	return EOK;
+	return net_module_start(net_client_connection);
 }
 
 /** @}

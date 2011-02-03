@@ -39,31 +39,15 @@
 #include <malloc.h>
 #include <stacktrace.h>
 
-#define abort() \
-	do { \
-		stacktrace_print(); \
-		_exit(1); \
-	} while (0)
-
-#define core() \
-	*((int *) 0) = 0xbadbad;
-
-#define exit(status)  _exit((status))
-
 #define RAND_MAX  714025
+
+#define rand()       random()
+#define srand(seed)  srandom(seed)
 
 extern long int random(void);
 extern void srandom(unsigned int seed);
 
-static inline int rand(void)
-{
-	return random();
-}
-
-static inline void srand(unsigned int seed)
-{
-	srandom(seed);
-}
+extern void abort(void) __attribute__((noreturn));
 
 #endif
 

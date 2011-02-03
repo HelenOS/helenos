@@ -35,7 +35,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <ipc/ipc.h>
 #include <fibril.h>
 #include <errno.h>
 #include <udebug.h>
@@ -148,7 +147,7 @@ static int connect_task(task_id_t task_id)
 {
 	int rc;
 
-	rc = ipc_connect_kbox(task_id);
+	rc = async_connect_kbox(task_id);
 
 	if (rc == ENOTSUP) {
 		printf("You do not have userspace debugging support "
@@ -744,7 +743,7 @@ static void trace_task(task_id_t task_id)
 	printf("\nTerminate debugging session...\n");
 	abort_trace = true;
 	udebug_end(phoneid);
-	ipc_hangup(phoneid);
+	async_hangup(phoneid);
 
 	ipcp_cleanup();
 

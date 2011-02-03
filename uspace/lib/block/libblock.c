@@ -43,7 +43,6 @@
 #include <errno.h>
 #include <sys/mman.h>
 #include <async.h>
-#include <ipc/ipc.h>
 #include <as.h>
 #include <assert.h>
 #include <fibril_synch.h>
@@ -176,20 +175,20 @@ int block_init(devmap_handle_t devmap_handle, size_t comm_size)
 	    AS_AREA_READ | AS_AREA_WRITE);
 	if (rc != EOK) {
 	    	munmap(comm_area, comm_size);
-		ipc_hangup(dev_phone);
+		async_hangup(dev_phone);
 		return rc;
 	}
 
 	if (get_block_size(dev_phone, &bsize) != EOK) {
 		munmap(comm_area, comm_size);
-		ipc_hangup(dev_phone);
+		async_hangup(dev_phone);
 		return rc;
 	}
 	
 	rc = devcon_add(devmap_handle, dev_phone, bsize, comm_area, comm_size);
 	if (rc != EOK) {
 		munmap(comm_area, comm_size);
-		ipc_hangup(dev_phone);
+		async_hangup(dev_phone);
 		return rc;
 	}
 
@@ -210,7 +209,7 @@ void block_fini(devmap_handle_t devmap_handle)
 		free(devcon->bb_buf);
 
 	munmap(devcon->comm_area, devcon->comm_size);
-	ipc_hangup(devcon->dev_phone);
+	async_hangup(devcon->dev_phone);
 
 	free(devcon);	
 }

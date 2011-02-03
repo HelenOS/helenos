@@ -255,7 +255,7 @@ static void ns8250_dev_cleanup(device_t *dev)
 	}
 	
 	if (dev->parent_phone > 0) {
-		ipc_hangup(dev->parent_phone);
+		async_hangup(dev->parent_phone);
 		dev->parent_phone = 0;
 	}
 }
@@ -430,12 +430,6 @@ static inline void ns8250_port_interrupts_disable(ioport8_t *port)
 static int ns8250_interrupt_enable(device_t *dev)
 {
 	ns8250_dev_data_t *data = (ns8250_dev_data_t *) dev->driver_data;
-	int res;
-	
-	/* Enable interrupt globally. */
-	res = interrupt_enable(data->irq);
-	if (res != EOK)
-		return res;
 	
 	/* Enable interrupt on the serial port. */
 	ns8250_port_interrupts_enable(data->port);
@@ -893,7 +887,7 @@ static void ns8250_default_handler(device_t *dev, ipc_callid_t callid,
 	case SERIAL_GET_COM_PROPS:
 		ns8250_get_props(dev, &baud_rate, &parity, &word_length,
 		    &stop_bits);
-		ipc_answer_4(callid, EOK, baud_rate, parity, word_length,
+		async_answer_4(callid, EOK, baud_rate, parity, word_length,
 		    stop_bits);
 		break;
 		
@@ -904,11 +898,11 @@ static void ns8250_default_handler(device_t *dev, ipc_callid_t callid,
 		stop_bits = IPC_GET_ARG4(*call);
 		ret = ns8250_set_props(dev, baud_rate, parity, word_length,
 		    stop_bits);
-		ipc_answer_0(callid, ret);
+		async_answer_0(callid, ret);
 		break;
 		
 	default:
-		ipc_answer_0(callid, ENOTSUP);
+		async_answer_0(callid, ENOTSUP);
 	}
 }
 

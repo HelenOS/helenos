@@ -29,7 +29,6 @@
 #ifndef LIBC_IPC_DEV_IFACE_H_
 #define LIBC_IPC_DEV_IFACE_H_
 
-#include <ipc/ipc.h>
 #include <malloc.h>
 #include <unistd.h>
 #include <libarch/types.h>

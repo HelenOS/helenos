@@ -36,7 +36,6 @@
 
 #include <stdio.h>
 #include <unistd.h>
-#include <ipc/ipc.h>
 #include <vfs/vfs.h>
 #include <bool.h>
 #include <errno.h>

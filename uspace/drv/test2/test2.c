@@ -102,6 +102,10 @@ static int add_device(device_t *dev)
 
 	if (dev->parent == NULL) {
 		fid_t postpone = fibril_create(postponed_birth, dev);
+		if (postpone == 0) {
+			printf(NAME ": fibril_create() error\n");
+			return ENOMEM;
+		}
 		fibril_add_ready(postpone);
 	} else {
 		register_child_verbose(dev, "child without available driver",

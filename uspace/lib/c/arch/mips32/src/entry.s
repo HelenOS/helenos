@@ -55,9 +55,6 @@ __entry:
 
 	jal __main
 	nop
-	
-	jal __exit
-	nop
 .end
 
 # Alignment of output section data to 0x4000

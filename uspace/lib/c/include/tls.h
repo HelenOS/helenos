@@ -56,6 +56,7 @@ extern void __free_tls_arch(tcb_t *, size_t);
 extern tcb_t *tls_alloc_variant_1(void **, size_t);
 extern void tls_free_variant_1(tcb_t *, size_t);
 #endif
+
 #ifdef CONFIG_TLS_VARIANT_2
 extern tcb_t *tls_alloc_variant_2(void **, size_t);
 extern void tls_free_variant_2(tcb_t *, size_t);

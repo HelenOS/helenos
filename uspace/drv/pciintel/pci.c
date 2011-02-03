@@ -477,7 +477,7 @@ static int pci_add_device(device_t *dev)
 		printf(NAME ": pci_add_device failed to get hw resources for "
 		    "the device.\n");
 		delete_pci_bus_data(bus_data);
-		ipc_hangup(dev->parent_phone);
+		async_hangup(dev->parent_phone);
 		return rc;
 	}	
 	
@@ -495,7 +495,7 @@ static int pci_add_device(device_t *dev)
 	    &bus_data->conf_addr_port)) {
 		printf(NAME ": failed to enable configuration ports.\n");
 		delete_pci_bus_data(bus_data);
-		ipc_hangup(dev->parent_phone);
+		async_hangup(dev->parent_phone);
 		hw_res_clean_resource_list(&hw_resources);
 		return EADDRNOTAVAIL;
 	}

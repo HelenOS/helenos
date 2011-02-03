@@ -27,8 +27,8 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
- 
- /** @addtogroup libc
+
+/** @addtogroup libc
  * @{
  */
 /** @file
@@ -36,11 +36,11 @@
 
 #include <str.h>
 #include <stdio.h>
-#include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <ipc/devman.h>
 #include <devman.h>
 #include <async.h>
+#include <fibril_synch.h>
 #include <errno.h>
 #include <malloc.h>
 #include <bool.h>
@@ -49,12 +49,17 @@
 static int devman_phone_driver = -1;
 static int devman_phone_client = -1;
 
+static FIBRIL_MUTEX_INITIALIZE(devman_phone_mutex);
+
 int devman_get_phone(devman_interface_t iface, unsigned int flags)
 {
 	switch (iface) {
 	case DEVMAN_DRIVER:
-		if (devman_phone_driver >= 0)
+		fibril_mutex_lock(&devman_phone_mutex);
+		if (devman_phone_driver >= 0) {
+			fibril_mutex_unlock(&devman_phone_mutex);
 			return devman_phone_driver;
+		}
 		
 		if (flags & IPC_FLAG_BLOCKING)
 			devman_phone_driver = async_connect_me_to_blocking(
@@ -63,18 +68,24 @@ int devman_get_phone(devman_interface_t iface, unsigned int flags)
 			devman_phone_driver = async_connect_me_to(PHONE_NS,
 			    SERVICE_DEVMAN, DEVMAN_DRIVER, 0);
 		
+		fibril_mutex_unlock(&devman_phone_mutex);
 		return devman_phone_driver;
 	case DEVMAN_CLIENT:
-		if (devman_phone_client >= 0)
+		fibril_mutex_lock(&devman_phone_mutex);
+		if (devman_phone_client >= 0) {
+			fibril_mutex_unlock(&devman_phone_mutex);
 			return devman_phone_client;
+		}
 		
-		if (flags & IPC_FLAG_BLOCKING)
+		if (flags & IPC_FLAG_BLOCKING) {
 			devman_phone_client = async_connect_me_to_blocking(
 			    PHONE_NS, SERVICE_DEVMAN, DEVMAN_CLIENT, 0);
-		else
+		} else {
 			devman_phone_client = async_connect_me_to(PHONE_NS,
 			    SERVICE_DEVMAN, DEVMAN_CLIENT, 0);
+		}
 		
+		fibril_mutex_unlock(&devman_phone_mutex);
 		return devman_phone_client;
 	default:
 		return -1;
@@ -103,8 +114,7 @@ int devman_driver_register(const char *name, async_client_conn_t conn)
 	
 	async_set_client_connection(conn);
 	
-	sysarg_t callback_phonehash;
-	ipc_connect_to_me(phone, 0, 0, 0, &callback_phonehash);
+	async_connect_to_me(phone, 0, 0, 0, NULL);
 	async_wait_for(req, &retval);
 	
 	async_serialize_end();
@@ -209,13 +219,13 @@ void devman_hangup_phone(devman_interface_t iface)
 	switch (iface) {
 	case DEVMAN_DRIVER:
 		if (devman_phone_driver >= 0) {
-			ipc_hangup(devman_phone_driver);
+			async_hangup(devman_phone_driver);
 			devman_phone_driver = -1;
 		}
 		break;
 	case DEVMAN_CLIENT:
 		if (devman_phone_client >= 0) {
-			ipc_hangup(devman_phone_client);
+			async_hangup(devman_phone_client);
 			devman_phone_client = -1;
 		}
 		break;

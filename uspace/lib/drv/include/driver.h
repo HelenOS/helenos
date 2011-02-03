@@ -35,8 +35,8 @@
 #ifndef LIBDRV_DRIVER_H_
 #define LIBDRV_DRIVER_H_
 
+#include <kernel/ddi/irq.h>
 #include <adt/list.h>
-#include <ipc/ipc.h>
 #include <devman.h>
 #include <ipc/devman.h>
 #include <ipc/dev_iface.h>

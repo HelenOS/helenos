@@ -80,8 +80,9 @@ int phys_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 	ASSERT(addr - area->base < area->backend_data.frames * FRAME_SIZE);
 	page_mapping_insert(AS, addr, base + (addr - area->base),
 	    as_area_get_flags(area));
-        if (!used_space_insert(area, ALIGN_DOWN(addr, PAGE_SIZE), 1))
-                panic("Cannot insert used space.");
+	
+	if (!used_space_insert(area, ALIGN_DOWN(addr, PAGE_SIZE), 1))
+		panic("Cannot insert used space.");
 
 	return AS_PF_OK;
 }

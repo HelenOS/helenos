@@ -76,6 +76,7 @@ typedef struct {
 
 typedef struct {
 	fixed_float virtmem;
+	fixed_float resmem;
 	fixed_float ucycles;
 	fixed_float kcycles;
 } perc_task_t;

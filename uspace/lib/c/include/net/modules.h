@@ -42,20 +42,19 @@
 #define LIBC_MODULES_H_
 
 #include <async.h>
-
-#include <ipc/ipc.h>
 #include <ipc/services.h>
-
 #include <sys/time.h>
 
 /** Connect to the needed module function type definition.
  *
- * @param[in] need	The needed module service.
- * @return		The phone of the needed service.
+ * @param[in] need The needed module service.
+ *
+ * @return The phone of the needed service.
+ *
  */
 typedef int connect_module_t(services_t need);
 
-extern void answer_call(ipc_callid_t, int, ipc_call_t *, int);
+extern void answer_call(ipc_callid_t, int, ipc_call_t *, size_t);
 extern int bind_service(services_t, sysarg_t, sysarg_t, sysarg_t,
     async_client_conn_t);
 extern int bind_service_timeout(services_t, sysarg_t, sysarg_t, sysarg_t,
@@ -63,7 +62,7 @@ extern int bind_service_timeout(services_t, sysarg_t, sysarg_t, sysarg_t,
 extern int connect_to_service(services_t);
 extern int connect_to_service_timeout(services_t, suseconds_t);
 extern int data_reply(void *, size_t);
-extern void refresh_answer(ipc_call_t *, int *);
+extern void refresh_answer(ipc_call_t *, size_t *);
 
 #endif
 

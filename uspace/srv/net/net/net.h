@@ -38,8 +38,6 @@
 #ifndef NET_NET_H_
 #define NET_NET_H_
 
-#include <ipc/ipc.h>
-
 #include <net/device.h>
 #include <adt/char_map.h>
 #include <adt/generic_char_map.h>
@@ -51,8 +49,8 @@
  * @{
  */
 
-#define DP8390_FILENAME  "/srv/dp8390"
-#define DP8390_NAME      "dp8390"
+#define NE2000_FILENAME  "/srv/ne2000"
+#define NE2000_NAME      "ne2000"
 
 #define ETHERNET_FILENAME  "/srv/eth"
 #define ETHERNET_NAME      "eth"
@@ -134,9 +132,9 @@ typedef struct {
 
 extern int add_configuration(measured_strings_t *, const uint8_t *,
     const uint8_t *);
-extern int net_module_message(ipc_callid_t, ipc_call_t *, ipc_call_t *, int *);
+extern int net_module_message(ipc_callid_t, ipc_call_t *, ipc_call_t *, size_t *);
 extern int net_initialize_build(async_client_conn_t);
-extern int net_message(ipc_callid_t, ipc_call_t *, ipc_call_t *, int *);
+extern int net_message(ipc_callid_t, ipc_call_t *, ipc_call_t *, size_t *);
 
 #endif
 
