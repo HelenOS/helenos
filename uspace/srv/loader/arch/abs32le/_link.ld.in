@@ -2,6 +2,7 @@
  * The difference from _link.ld.in for regular statically-linked apps
  * is the base address and the special interp section.
  */
+
 STARTUP(LIBC_PREFIX/arch/UARCH/src/entry.o)
 ENTRY(__entry)
 
@@ -52,10 +53,6 @@ SECTIONS {
 		*(COMMON);
 		*(.bss);
 	} :data
-	
-	. = ALIGN(0x1000);
-	
-	_heap = .;
 	
 	/DISCARD/ : {
 		*(*);

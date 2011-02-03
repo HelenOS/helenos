@@ -312,6 +312,7 @@ extern sysarg_t sys_as_area_create(uintptr_t, size_t, unsigned int);
 extern sysarg_t sys_as_area_resize(uintptr_t, size_t, unsigned int);
 extern sysarg_t sys_as_area_change_flags(uintptr_t, unsigned int);
 extern sysarg_t sys_as_area_destroy(uintptr_t);
+extern sysarg_t sys_as_get_unmapped_area(uintptr_t, size_t);
 
 /* Introspection functions. */
 extern void as_get_area_info(as_t *, as_area_info_t **, size_t *);

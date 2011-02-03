@@ -142,6 +142,7 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	(syshandler_t) sys_as_area_resize,
 	(syshandler_t) sys_as_area_change_flags,
 	(syshandler_t) sys_as_area_destroy,
+	(syshandler_t) sys_as_get_unmapped_area,
 	
 	/* IPC related syscalls. */
 	(syshandler_t) sys_ipc_call_sync_fast,

@@ -41,9 +41,6 @@ SECTIONS {
 		*(.bss);
 	} :data
 	
-	. = ALIGN(0x1000);
-	_heap = .;
-	
 #ifdef CONFIG_LINE_DEBUG
 	.comment 0 : { *(.comment); } :debug
 	.debug_abbrev 0 : { *(.debug_abbrev); } :debug
@@ -60,5 +57,4 @@ SECTIONS {
 	/DISCARD/ : {
 		*(*);
 	}
-
 }

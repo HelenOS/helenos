@@ -37,8 +37,6 @@
 
 #include <sys/types.h>
 
-extern uintptr_t get_max_heap_addr(void);
-
 extern void *malloc(const size_t size)
     __attribute__((malloc));
 extern void *calloc(const size_t nmemb, const size_t size)
