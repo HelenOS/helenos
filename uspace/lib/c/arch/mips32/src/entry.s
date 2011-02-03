@@ -28,8 +28,9 @@
 
 .text
 .section .init, "ax"
+
 .global __entry
-.global __entry_driver
+
 .set noreorder
 .option pic2
 
@@ -56,7 +57,3 @@ __entry:
 	jal __main
 	nop
 .end
-
-# Alignment of output section data to 0x4000
-.section .data
-.align 14
