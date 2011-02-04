@@ -46,7 +46,6 @@
 #include <align.h>
 #include <as.h>
 #include <ipc/fb.h>
-#include <ipc/ipc.h>
 #include <ipc/ns.h>
 #include <ipc/services.h>
 #include <kernel/errno.h>
@@ -1088,7 +1087,7 @@ static bool shm_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 		if (IPC_GET_ARG1(*call) == shm_id) {
 			void *dest = as_get_mappable_page(IPC_GET_ARG2(*call));
 			shm_size = IPC_GET_ARG2(*call);
-			if (ipc_answer_1(callid, EOK, (sysarg_t) dest)) {
+			if (async_answer_1(callid, EOK, (sysarg_t) dest)) {
 				shm_id = 0;
 				return false;
 			}
@@ -1165,7 +1164,7 @@ static bool shm_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 	}
 	
 	if (handled)
-		ipc_answer_0(callid, retval);
+		async_answer_0(callid, retval);
 	return handled;
 }
 
@@ -1444,7 +1443,7 @@ static int anim_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 		handled = 0;
 	}
 	if (handled)
-		ipc_answer_0(callid, retval);
+		async_answer_0(callid, retval);
 	return handled;
 }
 
@@ -1497,7 +1496,7 @@ static int pixmap_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 	}
 	
 	if (handled)
-		ipc_answer_0(callid, retval);
+		async_answer_0(callid, retval);
 	return handled;
 	
 }
@@ -1581,13 +1580,13 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	viewport_t *vport = &viewports[vp];
 	
 	if (client_connected) {
-		ipc_answer_0(iid, ELIMIT);
+		async_answer_0(iid, ELIMIT);
 		return;
 	}
 	
 	/* Accept connection */
 	client_connected = true;
-	ipc_answer_0(iid, EOK);
+	async_answer_0(iid, EOK);
 	
 	while (true) {
 		ipc_callid_t callid;
@@ -1640,7 +1639,7 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 				retval = EINVAL;
 				break;
 			}
-			ipc_answer_0(callid, EOK);
+			async_answer_0(callid, EOK);
 			
 			draw_char(vport, ch, col, row);
 			
@@ -1673,10 +1672,10 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			retval = EOK;
 			break;
 		case FB_GET_CSIZE:
-			ipc_answer_2(callid, EOK, vport->cols, vport->rows);
+			async_answer_2(callid, EOK, vport->cols, vport->rows);
 			continue;
 		case FB_GET_COLOR_CAP:
-			ipc_answer_1(callid, EOK, FB_CCAP_RGB);
+			async_answer_1(callid, EOK, FB_CCAP_RGB);
 			continue;
 		case FB_SCROLL:
 			scroll = IPC_GET_ARG1(call);
@@ -1741,7 +1740,7 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			retval = EOK;
 			break;
 		case FB_GET_RESOLUTION:
-			ipc_answer_2(callid, EOK, screen.xres, screen.yres);
+			async_answer_2(callid, EOK, screen.xres, screen.yres);
 			continue;
 		case FB_POINTER_MOVE:
 			pointer_enabled = true;
@@ -1755,7 +1754,7 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		default:
 			retval = ENOENT;
 		}
-		ipc_answer_0(callid, retval);
+		async_answer_0(callid, retval);
 	}
 }
 

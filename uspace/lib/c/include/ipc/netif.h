@@ -37,7 +37,6 @@
 #ifndef LIBC_NETIF_MESSAGES_H_
 #define LIBC_NETIF_MESSAGES_H_
 
-#include <ipc/ipc.h>
 #include <ipc/net.h>
 
 /** Network interface common module messages. */

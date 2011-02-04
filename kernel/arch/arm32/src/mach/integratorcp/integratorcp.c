@@ -299,6 +299,7 @@ void icp_output_init(void)
 		stdout_wire(fbdev);
 		fb_parea.pbase = ICP_FB;
 		fb_parea.frames = 300;
+		fb_parea.unpriv = false;
 		ddi_parea_register(&fb_parea);
 	}
 #endif

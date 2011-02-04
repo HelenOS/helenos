@@ -556,8 +556,9 @@ void tlb_invalidate_pages(asid_t asid, uintptr_t page, size_t cnt)
 	entry_lo_t lo0, lo1;
 	entry_hi_t hi, hi_save;
 	tlb_index_t index;
-
-	ASSERT(asid != ASID_INVALID);
+	
+	if (asid == ASID_INVALID)
+		return;
 
 	hi_save.value = cp0_entry_hi_read();
 	ipl = interrupts_disable();

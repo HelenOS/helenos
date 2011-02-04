@@ -38,7 +38,8 @@
 #ifndef FB_SERIAL_CONSOLE_H_
 #define FB_SERIAL_CONSOLE_H_
 
-#include <ipc/ipc.h>
+#include <sys/types.h>
+#include <ipc/common.h>
 
 typedef void (*putc_function_t)(char);
 

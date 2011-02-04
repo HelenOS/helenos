@@ -140,7 +140,7 @@ int dump_device(devman_handle_t hc_handle, usb_address_t address)
 	rc = EOK;
 leave:
 	/* Ignoring errors here. */
-	ipc_hangup(hc_phone);
+	async_hangup(hc_phone);
 	usb_endpoint_pipe_end_session(&ctrl_pipe);
 
 	return rc;

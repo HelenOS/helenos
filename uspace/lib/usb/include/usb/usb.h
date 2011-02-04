@@ -37,7 +37,6 @@
 
 #include <sys/types.h>
 #include <byteorder.h>
-#include <ipc/ipc.h>
 
 /** Convert 16bit value from native (host) endianness to USB endianness. */
 #define uint16_host2usb(n) host2uint16_t_le((n))

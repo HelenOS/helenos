@@ -44,7 +44,6 @@
 #include <str.h>
 #include <task.h>
 #include <adt/measured_strings.h>
-#include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <ipc/net.h>
 #include <ipc/arp.h>
@@ -427,7 +426,7 @@ static void arp_receiver(ipc_callid_t iid, ipc_call_t *icall)
 		switch (IPC_GET_IMETHOD(*icall)) {
 		case NET_IL_DEVICE_STATE:
 			/* Do nothing - keep the cache */
-			ipc_answer_0(iid, (sysarg_t) EOK);
+			async_answer_0(iid, (sysarg_t) EOK);
 			break;
 		
 		case NET_IL_RECEIVED:
@@ -447,17 +446,17 @@ static void arp_receiver(ipc_callid_t iid, ipc_call_t *icall)
 				} while (packet);
 				fibril_mutex_unlock(&arp_globals.lock);
 			}
-			ipc_answer_0(iid, (sysarg_t) rc);
+			async_answer_0(iid, (sysarg_t) rc);
 			break;
 		
 		case NET_IL_MTU_CHANGED:
 			rc = arp_mtu_changed_message(IPC_GET_DEVICE(*icall),
 			    IPC_GET_MTU(*icall));
-			ipc_answer_0(iid, (sysarg_t) rc);
+			async_answer_0(iid, (sysarg_t) rc);
 			break;
 		
 		default:
-			ipc_answer_0(iid, (sysarg_t) ENOTSUP);
+			async_answer_0(iid, (sysarg_t) ENOTSUP);
 		}
 		
 		iid = async_get_call(icall);

@@ -34,7 +34,6 @@
 #define FAT_FAT_H_
 
 #include "fat_fat.h"
-#include <ipc/ipc.h>
 #include <fibril_synch.h>
 #include <libfs.h>
 #include <atomic.h>

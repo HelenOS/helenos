@@ -116,7 +116,7 @@ int pci_get_my_registers(device_t *dev,
 
 	rc = EOK;
 leave:
-	ipc_hangup(parent_phone);
+	async_hangup(parent_phone);
 
 	return rc;
 }

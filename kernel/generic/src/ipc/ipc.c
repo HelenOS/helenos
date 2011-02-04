@@ -786,7 +786,7 @@ void ipc_print_task(task_id_t taskid)
 		    call->flags, call->sender->taskid, call->sender->name);
 	}
 	
-	printf(" --- outgoing answers ---\n");
+	printf(" --- incoming answers ---\n");
 	for (cur = task->answerbox.answers.next;
 	    cur != &task->answerbox.answers;
 	    cur = cur->next) {

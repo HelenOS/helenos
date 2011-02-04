@@ -33,7 +33,6 @@
  * @brief
  */
 
-#include <ipc/ipc.h>
 #include <ipc/adb.h>
 #include <async.h>
 #include <vfs/vfs.h>
@@ -67,15 +66,11 @@ int adb_dev_init(void)
 	}
 
 	/* NB: The callback connection is slotted for removal */
-	sysarg_t taskhash;
-	sysarg_t phonehash;
-	if (ipc_connect_to_me(dev_phone, 0, 0, 0, &taskhash, &phonehash) != 0) {
+	if (async_connect_to_me(dev_phone, 0, 0, 0, adb_dev_events) != 0) {
 		printf(NAME ": Failed to create callback from device\n");
 		return false;
 	}
-
-	async_new_connection(taskhash, phonehash, 0, NULL, adb_dev_events);
-
+	
 	return 0;
 }
 
@@ -99,7 +94,7 @@ static void adb_dev_events(ipc_callid_t iid, ipc_call_t *icall)
 		default:
 			retval = ENOENT;
 		}
-		ipc_answer_0(callid, retval);
+		async_answer_0(callid, retval);
 	}
 }
 

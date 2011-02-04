@@ -39,7 +39,6 @@
 #include <str.h>
 #include <adt/list.h>
 #include <adt/hash_table.h>
-#include <ipc/ipc.h>
 #include <ipc/devman.h>
 #include <ipc/devmap.h>
 #include <fibril_synch.h>
