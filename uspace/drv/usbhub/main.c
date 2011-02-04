@@ -36,6 +36,7 @@
 
 #include <usb/usbdrv.h>
 
+
 #include "usbhub.h"
 #include "usbhub_private.h"
 
@@ -63,7 +64,7 @@ int usb_hub_control_loop(void * noparam){
 
 int main(int argc, char *argv[])
 {
-	usb_dprintf_enable(NAME, 0);
+	usb_dprintf_enable(NAME, USB_LOG_LEVEL_INFO);
 	
 	fibril_mutex_initialize(&usb_hub_list_lock);
 	fibril_mutex_lock(&usb_hub_list_lock);
