@@ -214,8 +214,10 @@ static int uhci_port_new_device(uhci_port_t *port)
 	usb_log_info("Sucessfully added device on port(%d) address(%d) handle %d.\n",
 		port->number, usb_address, port->attached_device);
 
-	/* TODO: bind the address here */
-	ret = usb_drv_bind_address(port->hc_phone, usb_address, port->attached_device);
+	ret =
+	  usb_drv_bind_address(port->hc_phone, usb_address, port->attached_device);
+	// TODO: proper error check here
+	assert(ret == EOK);
 
 	return EOK;
 }

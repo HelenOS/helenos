@@ -155,6 +155,13 @@ int uhci_transfer(
 		return ENOTSUP;
 	}
 
+	if (transfer_type == USB_TRANSFER_INTERRUPT
+	  && size >= 64) {
+		usb_log_warning("Interrupt transfer too big %zu.\n", size);
+		return ENOTSUP;
+	}
+
+
 	if (size >= 1024) {
 		usb_log_warning("Transfer too big.\n");
 		return ENOTSUP;
@@ -210,9 +217,9 @@ int uhci_clean_finished(void* arg)
 			usb_log_debug("Running cleaning fibril on queue: %p (%s).\n",
 				&instance->transfers[i], it ? "SOMETHING" : "EMPTY");
 
-		if (it)
-			usb_log_debug("First in queue: %p (%x).\n",
-				it, it->status);
+			if (it)
+				usb_log_debug("First in queue: %p (%x).\n",
+					it, it->status);
 
 			while (instance->transfers[i].first &&
 			 !(instance->transfers[i].first->status & TD_STATUS_ERROR_ACTIVE)) {
