@@ -50,6 +50,7 @@
 #include <usb/descriptor.h>
 #include <usb/debug.h>
 #include <io/console.h>
+#include <stdint.h>
 #include "hid.h"
 #include "descparser.h"
 #include "descdump.h"
@@ -60,6 +61,7 @@
 #define NAME "usbhid"
 
 #define GUESSED_POLL_ENDPOINT 1
+#define BOOTP_REPORT_SIZE 6
 
 static void default_connection_handler(device_t *, ipc_callid_t, ipc_call_t *);
 static device_ops_t keyboard_ops = {
@@ -230,7 +232,8 @@ static void kbd_push_ev(int type, unsigned int key)
 
 	usb_log_debug("Sending key %d to the console\n", ev.key);
 	assert(console_callback_phone != -1);
-	async_msg_4(console_callback_phone, KBD_EVENT, ev.type, ev.key, ev.mods, ev.c);
+	async_msg_4(console_callback_phone, KBD_EVENT, ev.type, ev.key, 
+	    ev.mods, ev.c);
 }
 /*
  * End of copy-paste
@@ -238,10 +241,68 @@ static void kbd_push_ev(int type, unsigned int key)
 
 	/*
 	 * TODO:
-	 * 1) key press / key release - how does the keyboard notify about release?
+	 * 1) key press / key release - how does the keyboard notify about 
+	 *    release?
 	 * 2) layouts (use the already defined), not important now
 	 * 3) 
 	 */
+
+static void usbkbd_check_modifier_changes(usb_hid_dev_kbd_t *kbd_dev,
+    uint8_t modifiers)
+{
+	// ignore for now
+	// modifiers should be sent as normal keys to usbkbd_parse_scancode()!!
+	// so it would be better if I received it from report parser in that way
+}
+
+static void usbkbd_check_key_changes(usb_hid_dev_kbd_t *kbd_dev, 
+    const uint8_t *key_codes)
+{
+	// TODO: phantom state!!
+	
+	unsigned int key;
+	int i, j;
+	
+	// TODO: quite dummy right now, think of better implementation
+	
+	// key releases
+	for (j = 0; j < kbd_dev->keycode_count; ++j) {
+		// try to find the old key in the new key list
+		i = 0;
+		while (i < kbd_dev->keycode_count
+		    && key_codes[i] != kbd_dev->keycodes[j]) {
+			++j;
+		}
+		
+		if (j == kbd_dev->keycode_count) {
+			// not found, i.e. the key was released
+			key = usbkbd_parse_scancode(kbd_dev->keycodes[j]);
+			kbd_push_ev(KEY_RELEASE, key);
+		} else {
+			// found, nothing happens
+		}
+	}
+	
+	// key presses
+	for (i = 0; i < kbd_dev->keycode_count; ++i) {
+		// try to find the new key in the old key list
+		j = 0;
+		while (j < kbd_dev->keycode_count 
+		    && kbd_dev->keycodes[j] != key_codes[i]) { 
+			++j;
+		}
+		
+		assert(kbd_dev->keycode_count <= kbd_dev->keycode_count);
+		
+		if (j == kbd_dev->keycode_count) {
+			// not found, i.e. new key pressed
+			key = usbkbd_parse_scancode(key_codes[i]);
+			kbd_push_ev(KEY_PRESS, key);
+		} else {
+			// found, nothing happens
+		}
+	}
+}
 
 /*
  * Callbacks for parser
@@ -249,15 +310,29 @@ static void kbd_push_ev(int type, unsigned int key)
 static void usbkbd_process_keycodes(const uint8_t *key_codes, size_t count,
     uint8_t modifiers, void *arg)
 {
+	if (arg == NULL) {
+		usb_log_warning("Missing argument in callback "
+		    "usbkbd_process_keycodes().\n");
+		return;
+	}
+
 	usb_log_debug2("Got keys from parser: ");
 	unsigned i;
 	for (i = 0; i < count; ++i) {
 		usb_log_debug2("%d ", key_codes[i]);
-		// TODO: Key press / release
-		unsigned int key = usbkbd_parse_scancode(key_codes[i]);
-		kbd_push_ev(KEY_PRESS, key);
 	}
 	usb_log_debug2("\n");
+	
+	usb_hid_dev_kbd_t *kbd_dev = (usb_hid_dev_kbd_t *)arg;
+	
+	if (count != kbd_dev->keycode_count) {
+		usb_log_warning("Number of received keycodes (%d) differs from"
+		    " expected number (%d).\n", count, kbd_dev->keycode_count);
+		return;
+	}
+	
+	usbkbd_check_modifier_changes(kbd_dev, modifiers);
+	usbkbd_check_key_changes(kbd_dev, key_codes);
 }
 
 /*
@@ -270,16 +345,18 @@ static int usbkbd_get_report_descriptor(usb_hid_dev_kbd_t *kbd_dev)
 	unsigned i;
 	for (i = 0; i < kbd_dev->conf->config_descriptor.interface_count; ++i) {
 		// TODO: endianness
-		uint16_t length = 
-		    kbd_dev->conf->interfaces[i].hid_desc.report_desc_info.length;
+		uint16_t length =  kbd_dev->conf->interfaces[i].hid_desc.
+		    report_desc_info.length;
 		size_t actual_size = 0;
 
 		// allocate space for the report descriptor
-		kbd_dev->conf->interfaces[i].report_desc = (uint8_t *)malloc(length);
+		kbd_dev->conf->interfaces[i].report_desc = 
+		    (uint8_t *)malloc(length);
 		
 		// get the descriptor from the device
-		int rc = usb_drv_req_get_descriptor(kbd_dev->device->parent_phone,
-		    kbd_dev->address, USB_REQUEST_TYPE_CLASS, USB_DESCTYPE_HID_REPORT, 
+		int rc = usb_drv_req_get_descriptor(
+		    kbd_dev->device->parent_phone, kbd_dev->address, 
+		    USB_REQUEST_TYPE_CLASS, USB_DESCTYPE_HID_REPORT, 
 		    0, i, kbd_dev->conf->interfaces[i].report_desc, length, 
 		    &actual_size);
 
@@ -354,7 +431,8 @@ static int usbkbd_process_descriptors(usb_hid_dev_kbd_t *kbd_dev)
 	 * TODO: 
 	 * 1) select one configuration (lets say the first)
 	 * 2) how many interfaces?? how to select one??
-	 *    ("The default setting for an interface is always alternate setting zero.")
+	 *    ("The default setting for an interface is always alternate 
+	 *      setting zero.")
 	 * 3) find endpoint which is IN and INTERRUPT (parse), save its number
 	 *    as the endpoint for polling
 	 */
@@ -402,9 +480,24 @@ static usb_hid_dev_kbd_t *usbkbd_init_device(device_t *dev)
 	 * 2) set endpoints from endpoint descriptors
 	 */
 
-	// TODO: get descriptors, parse descriptors and save endpoints
 	usbkbd_process_descriptors(kbd_dev);
-
+	
+	// save the size of the report
+	kbd_dev->keycode_count = BOOTP_REPORT_SIZE;
+	kbd_dev->keycodes = (uint8_t *)calloc(
+	    kbd_dev->keycode_count * sizeof(uint8_t));
+	
+	if (kbd_dev->keycodes == NULL) {
+		usb_log_fatal("No memory!\n");
+		goto error_leave;
+	}
+	
+	// set configuration to the first one
+	// TODO: handle case with no configurations
+	usb_drv_req_set_configuration(kbd_dev->device->parent_phone,
+	    kbd_dev->address, 
+	    kbd_dev->conf->config_descriptor.configuration_number);
+	
 	/*
 	 * Initialize the backing connection to the host controller.
 	 */
@@ -439,7 +532,7 @@ static void usbkbd_process_interrupt_in(usb_hid_dev_kbd_t *kbd_dev,
 {
 	usb_hid_report_in_callbacks_t *callbacks =
 	    (usb_hid_report_in_callbacks_t *)malloc(
-		sizeof(usb_hid_report_in_callbacks_t));
+	        sizeof(usb_hid_report_in_callbacks_t));
 	callbacks->keyboard = usbkbd_process_keycodes;
 
 	//usb_hid_parse_report(kbd_dev->parser, buffer, actual_size, callbacks, 
@@ -448,7 +541,7 @@ static void usbkbd_process_interrupt_in(usb_hid_dev_kbd_t *kbd_dev,
 	    " %zu\n", actual_size);*/
 	//dump_buffer("bufffer: ", buffer, actual_size);
 	int rc = usb_hid_boot_keyboard_input_report(buffer, actual_size,
-	    callbacks, NULL);
+	    callbacks, kbd_dev);
 	
 	if (rc != EOK) {
 		usb_log_warning("Error in usb_hid_boot_keyboard_input_report():"

@@ -36,6 +36,8 @@
 #ifndef USBHID_HID_H_
 #define USBHID_HID_H_
 
+#include <stdint.h>
+
 #include <usb/classes/hid.h>
 #include <driver.h>
 #include <usb/pipes.h>
@@ -73,6 +75,9 @@ typedef struct {
 
 	usb_device_connection_t wire;
 	usb_endpoint_pipe_t poll_pipe;
+	
+	uint8_t *keycodes;
+	size_t keycode_count;
 } usb_hid_dev_kbd_t;
 
 // TODO: more configurations!
