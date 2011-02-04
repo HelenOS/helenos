@@ -147,14 +147,18 @@ int uhci_transfer(
   void *buffer, size_t size,
   usbhc_iface_transfer_out_callback_t callback_out,
   usbhc_iface_transfer_in_callback_t callback_in,
-  void *arg )
+  void *arg)
 {
 	// TODO: Add support for isochronous transfers
-	if (transfer_type == USB_TRANSFER_ISOCHRONOUS)
+	if (transfer_type == USB_TRANSFER_ISOCHRONOUS) {
+		usb_log_warning("ISO transfer not supported.\n");
 		return ENOTSUP;
+	}
 
-	if (size >= 1024)
+	if (size >= 1024) {
+		usb_log_warning("Transfer too big.\n");
 		return ENOTSUP;
+	}
 
 	transfer_descriptor_t *td = NULL;
 	callback_t *job = NULL;

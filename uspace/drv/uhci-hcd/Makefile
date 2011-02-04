@@ -39,6 +39,6 @@ SOURCES = \
 	transfer_list.c \
 	uhci.c \
 	uhci_struct/transfer_descriptor.c \
-	pci.c
+	pci.c 
 
 include $(USPACE_PREFIX)/Makefile.common

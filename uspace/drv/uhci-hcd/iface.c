@@ -34,6 +34,8 @@
 #include <driver.h>
 #include <remote_usbhc.h>
 
+#include <usb/debug.h>
+
 #include <errno.h>
 
 #include "iface.h"
