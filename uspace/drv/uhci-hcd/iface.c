@@ -109,7 +109,7 @@ static int interrupt_out(device_t *dev, usb_target_t target,
 	uhci_t *hc = dev_to_uhci(dev);
 	assert(hc);
 	return uhci_transfer(hc, dev, target, USB_TRANSFER_INTERRUPT, 0, USB_PID_OUT,
-		data, size, callback, NULL, arg);
+		false, data, size, callback, NULL, arg);
 }
 /*----------------------------------------------------------------------------*/
 static int interrupt_in(device_t *dev, usb_target_t target,
@@ -120,7 +120,7 @@ static int interrupt_in(device_t *dev, usb_target_t target,
 	uhci_t *hc = dev_to_uhci(dev);
 	assert(hc);
 	return uhci_transfer(hc, dev, target, USB_TRANSFER_INTERRUPT, 0, USB_PID_IN,
-		data, size, NULL, callback, arg);
+		false, data, size, NULL, callback, arg);
 }
 /*----------------------------------------------------------------------------*/
 static int control_write_setup(device_t *dev, usb_target_t target,
@@ -131,7 +131,7 @@ static int control_write_setup(device_t *dev, usb_target_t target,
 	uhci_t *hc = dev_to_uhci(dev);
 	assert(hc);
 	return uhci_transfer(hc, dev, target, USB_TRANSFER_CONTROL, 0, USB_PID_SETUP,
-		data, size, callback, NULL, arg);
+		false, data, size, callback, NULL, arg);
 }
 /*----------------------------------------------------------------------------*/
 static int control_write_data(device_t *dev, usb_target_t target,
@@ -142,7 +142,7 @@ static int control_write_data(device_t *dev, usb_target_t target,
 	uhci_t *hc = dev_to_uhci(dev);
 	assert(hc);
 	return uhci_transfer(hc, dev, target, USB_TRANSFER_CONTROL, 1, USB_PID_OUT,
-		data, size, callback, NULL, arg);
+		false, data, size, callback, NULL, arg);
 }
 /*----------------------------------------------------------------------------*/
 static int control_write_status(device_t *dev, usb_target_t target,
@@ -152,7 +152,7 @@ static int control_write_status(device_t *dev, usb_target_t target,
 	uhci_t *hc = dev_to_uhci(dev);
 	assert(hc);
 	return uhci_transfer(hc, dev, target, USB_TRANSFER_CONTROL, 0, USB_PID_IN,
-		NULL, 0, NULL, callback, arg);
+		false, NULL, 0, NULL, callback, arg);
 }
 /*----------------------------------------------------------------------------*/
 static int control_read_setup(device_t *dev, usb_target_t target,
@@ -163,7 +163,7 @@ static int control_read_setup(device_t *dev, usb_target_t target,
 	uhci_t *hc = dev_to_uhci(dev);
 	assert(hc);
 	return uhci_transfer(hc, dev, target, USB_TRANSFER_CONTROL, 0, USB_PID_SETUP,
-		data, size, callback, NULL, arg);
+		false, data, size, callback, NULL, arg);
 }
 /*----------------------------------------------------------------------------*/
 static int control_read_data(device_t *dev, usb_target_t target,
@@ -174,7 +174,7 @@ static int control_read_data(device_t *dev, usb_target_t target,
 	uhci_t *hc = dev_to_uhci(dev);
 	assert(hc);
 	return uhci_transfer(hc, dev, target, USB_TRANSFER_CONTROL, 1, USB_PID_IN,
-		data, size, NULL, callback, arg);
+		false, data, size, NULL, callback, arg);
 }
 /*----------------------------------------------------------------------------*/
 static int control_read_status(device_t *dev, usb_target_t target,
@@ -184,7 +184,7 @@ static int control_read_status(device_t *dev, usb_target_t target,
 	uhci_t *hc = dev_to_uhci(dev);
 	assert(hc);
 	return uhci_transfer(hc, dev, target, USB_TRANSFER_CONTROL, 0, USB_PID_OUT,
-		NULL, 0, callback, NULL, arg);
+		false, NULL, 0, callback, NULL, arg);
 }
 
 

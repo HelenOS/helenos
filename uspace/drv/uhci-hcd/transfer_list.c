@@ -37,11 +37,13 @@
 
 #include "transfer_list.h"
 
-int transfer_list_init(transfer_list_t *instance, transfer_list_t *next)
+int transfer_list_init(transfer_list_t *instance, const char *name)
 {
 	assert(instance);
 	instance->first = NULL;
 	instance->last = NULL;
+	instance->next = NULL;
+	instance->name = name;
 	instance->queue_head = queue_head_get();
 	if (!instance->queue_head) {
 		usb_log_error("Failed to allocate queue head.\n");
@@ -49,9 +51,18 @@ int transfer_list_init(transfer_list_t *instance, transfer_list_t *next)
 	}
 	instance->queue_head_pa = (uintptr_t)addr_to_phys(instance->queue_head);
 
-	uint32_t next_pa = next ? next->queue_head_pa : 0;
-	queue_head_init(instance->queue_head, next_pa);
+	queue_head_init(instance->queue_head);
 	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+void transfer_list_set_next(transfer_list_t *instance, transfer_list_t *next)
+{
+	assert(instance);
+	assert(next);
+	instance->next = next;
+	if (!instance->queue_head)
+		return;
+	queue_head_add_next(instance->queue_head, next->queue_head_pa);
 }
 /*----------------------------------------------------------------------------*/
 int transfer_list_append(
@@ -80,8 +91,8 @@ int transfer_list_append(
 	if (instance->queue_head->element & LINK_POINTER_TERMINATE_FLAG) {
 		instance->queue_head->element = (pa & LINK_POINTER_ADDRESS_MASK);
 	}
-	usb_log_debug("Successfully added transfer to the hc queue %p.\n",
-	  instance);
+	usb_log_debug("Successfully added transfer to the hc queue %S.\n",
+	  instance->name);
 	return EOK;
 }
 /**

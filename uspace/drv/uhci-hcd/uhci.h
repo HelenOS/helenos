@@ -78,7 +78,13 @@ typedef struct uhci {
 
 	link_pointer_t *frame_list;
 
-	transfer_list_t transfers[TRANSFER_QUEUES];
+	transfer_list_t transfers_bulk_full;
+	transfer_list_t transfers_control_full;
+	transfer_list_t transfers_control_slow;
+	transfer_list_t transfers_interrupt;
+
+	transfer_list_t *transfers[2][4];
+
 	fid_t cleaner;
 	fid_t debug_checker;
 } uhci_t;
@@ -95,6 +101,7 @@ int uhci_transfer(
   usb_transfer_type_t transfer_type,
 	bool toggle,
   usb_packet_id pid,
+	bool low_speed,
   void *buffer, size_t size,
   usbhc_iface_transfer_out_callback_t callback_out,
   usbhc_iface_transfer_in_callback_t callback_in,

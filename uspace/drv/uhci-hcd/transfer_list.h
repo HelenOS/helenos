@@ -43,9 +43,13 @@ typedef struct transfer_list
 	transfer_descriptor_t *last;
 	queue_head_t *queue_head;
 	uint32_t queue_head_pa;
+	struct transfer_list *next;
+	const char *name;
 } transfer_list_t;
 
-int transfer_list_init(transfer_list_t *instance, transfer_list_t *next);
+int transfer_list_init(transfer_list_t *instance, const char *name);
+
+void transfer_list_set_next(transfer_list_t *instance, transfer_list_t *next);
 
 static inline void transfer_list_fini(transfer_list_t *instance)
 {

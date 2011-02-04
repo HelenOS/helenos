@@ -46,17 +46,19 @@ typedef struct queue_head {
 	link_pointer_t element;
 } __attribute__((packed)) queue_head_t;
 
-static inline void queue_head_init(queue_head_t *instance, uint32_t next_queue_pa)
+static inline void queue_head_init(queue_head_t *instance)
 {
 	assert(instance);
-	assert((next_queue_pa & LINK_POINTER_ADDRESS_MASK) == next_queue_pa);
 
 	instance->element = 0 | LINK_POINTER_TERMINATE_FLAG;
+	instance->next_queue = 0 | LINK_POINTER_TERMINATE_FLAG;
+}
+
+static inline void queue_head_add_next(queue_head_t *instance, uint32_t next_queue_pa)
+{
 	if (next_queue_pa) {
 		instance->next_queue = (next_queue_pa & LINK_POINTER_ADDRESS_MASK)
 		  | LINK_POINTER_QUEUE_HEAD_FLAG;
-	} else {
-		instance->next_queue = 0 | LINK_POINTER_TERMINATE_FLAG;
 	}
 }
 
