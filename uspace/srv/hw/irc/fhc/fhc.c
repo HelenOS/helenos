@@ -136,8 +136,7 @@ static bool fhc_init(void)
 	    fhc_uart_size);
 	
 	async_set_client_connection(fhc_connection);
-	sysarg_t phonead;
-	ipc_connect_to_me(PHONE_NS, SERVICE_FHC, 0, 0, &phonead);
+	ipc_connect_to_me(PHONE_NS, SERVICE_FHC, 0, 0, NULL, NULL);
 	
 	return true;
 }

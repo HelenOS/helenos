@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2010 Vojtech Horky
+# Copyright (c) 2010-2011 Vojtech Horky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,12 +28,26 @@
 
 USPACE_PREFIX = ../..
 LIBS = $(LIBDRV_PREFIX)/libdrv.a $(LIBUSB_PREFIX)/libusb.a
-EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include -I$(LIBUSB_PREFIX)/include
-BINARY = usbkbd
+EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include -I$(LIBUSB_PREFIX)/include -I.
+BINARY = usbhid
+
+STOLEN_LAYOUT_SOURCES = \
+	layout/us_qwerty.c \
+	layout/us_dvorak.c \
+	layout/cz.c
 
 SOURCES = \
 	main.c \
 	descparser.c \
-	descdump.c
+	descdump.c \
+	conv.c \
+	$(STOLEN_LAYOUT_SOURCES)
+
+EXTRA_CLEAN = $(STOLEN_LAYOUT_SOURCES)
+
+SRV_KBD = $(USPACE_PREFIX)/srv/hid/kbd
 
 include $(USPACE_PREFIX)/Makefile.common
+
+layout/%.c: $(SRV_KBD)/layout/%.c
+	ln -sfn ../$< $@

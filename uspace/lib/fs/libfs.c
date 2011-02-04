@@ -101,7 +101,8 @@ int fs_register(int vfs_phone, fs_reg_t *reg, vfs_info_t *info,
 	/*
 	 * Ask VFS for callback connection.
 	 */
-	ipc_connect_to_me(vfs_phone, 0, 0, 0, &reg->vfs_phonehash);
+	sysarg_t taskhash;
+	ipc_connect_to_me(vfs_phone, 0, 0, 0, &taskhash, &reg->vfs_phonehash);
 	
 	/*
 	 * Allocate piece of address space for PLB.
@@ -130,7 +131,7 @@ int fs_register(int vfs_phone, fs_reg_t *reg, vfs_info_t *info,
 	/*
 	 * Create a connection fibril to handle the callback connection.
 	 */
-	async_new_connection(reg->vfs_phonehash, 0, NULL, conn);
+	async_new_connection(taskhash, reg->vfs_phonehash, 0, NULL, conn);
 	
 	/*
 	 * Tell the async framework that other connections are to be handled by

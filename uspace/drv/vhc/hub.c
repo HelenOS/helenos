@@ -62,7 +62,7 @@ void virtual_hub_device_init(device_t *hc_dev)
 	fid_t root_hub_registration
 	    = fibril_create(hub_register_in_devman_fibril, hc_dev);
 	if (root_hub_registration == 0) {
-		printf(NAME ": failed to register root hub\n");
+		usb_log_fatal("Failed to create hub registration fibril.\n");
 		return;
 	}
 
@@ -78,11 +78,11 @@ int hub_register_in_devman_fibril(void *arg)
 {
 	device_t *hc_dev = (device_t *) arg;
 
-	int hc = usb_drv_hc_connect(hc_dev, hc_dev->handle, IPC_FLAG_BLOCKING);
-	if (hc < 0) {
-		printf(NAME ": failed to register root hub\n");
-		return hc;
-	}
+	int hc;
+	do {
+		hc = usb_drv_hc_connect(hc_dev, hc_dev->handle,
+		    IPC_FLAG_BLOCKING);
+	} while (hc < 0);
 
 	usb_drv_reserve_default_address(hc);
 

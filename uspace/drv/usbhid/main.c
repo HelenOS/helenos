@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Lubos Slovak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,9 +26,15 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 /** @addtogroup drvusbhid
  * @{
  */
+/**
+ * @file
+ * Main routines of USB HID driver.
+ */
+
 #include <usb/usbdrv.h>
 #include <driver.h>
 #include <ipc/driver.h>
@@ -35,16 +42,21 @@
 #include <io/keycode.h>
 #include <io/console.h>
 #include <errno.h>
+#include <str_error.h>
 #include <fibril.h>
 #include <usb/classes/hid.h>
 #include <usb/classes/hidparser.h>
-#include <usb/devreq.h>
+#include <usb/request.h>
 #include <usb/descriptor.h>
+#include <io/console.h>
+#include "hid.h"
 #include "descparser.h"
 #include "descdump.h"
+#include "conv.h"
+#include "layout.h"
 
 #define BUFFER_SIZE 32
-#define NAME "usbkbd"
+#define NAME "usbhid"
 
 #define GUESSED_POLL_ENDPOINT 1
 
@@ -90,15 +102,161 @@ static void send_key(int key, int type, wchar_t c) {
 #endif
 
 /*
+ * TODO: Move somewhere else
+ */
+/*
+#define BYTES_PER_LINE 12
+
+static void dump_buffer(const char *msg, const uint8_t *buffer, size_t length)
+{
+	printf("%s\n", msg);
+	
+	size_t i;
+	for (i = 0; i < length; i++) {
+		printf("  0x%02X", buffer[i]);
+		if (((i > 0) && (((i+1) % BYTES_PER_LINE) == 0))
+		    || (i + 1 == length)) {
+			printf("\n");
+		}
+	}
+}
+*/
+/*
+ * Copy-paste from srv/hid/kbd/generic/kbd.c
+ */
+
+/** Currently active modifiers. 
+ *
+ * TODO: put to device?
+ */
+static unsigned mods = KM_NUM_LOCK;
+
+/** Currently pressed lock keys. We track these to tackle autorepeat.  
+ *
+ * TODO: put to device? 
+ */
+static unsigned lock_keys;
+
+#define NUM_LAYOUTS 3
+
+static layout_op_t *layout[NUM_LAYOUTS] = {
+	&us_qwerty_op,
+	&us_dvorak_op,
+	&cz_op
+};
+
+static int active_layout = 0;
+
+static void kbd_push_ev(int type, unsigned int key)
+{
+	console_event_t ev;
+	unsigned mod_mask;
+
+	// TODO: replace by our own parsing?? or are the key codes identical??
+	switch (key) {
+	case KC_LCTRL: mod_mask = KM_LCTRL; break;
+	case KC_RCTRL: mod_mask = KM_RCTRL; break;
+	case KC_LSHIFT: mod_mask = KM_LSHIFT; break;
+	case KC_RSHIFT: mod_mask = KM_RSHIFT; break;
+	case KC_LALT: mod_mask = KM_LALT; break;
+	case KC_RALT: mod_mask = KM_RALT; break;
+	default: mod_mask = 0; break;
+	}
+
+	if (mod_mask != 0) {
+		if (type == KEY_PRESS)
+			mods = mods | mod_mask;
+		else
+			mods = mods & ~mod_mask;
+	}
+
+	switch (key) {
+	case KC_CAPS_LOCK: mod_mask = KM_CAPS_LOCK; break;
+	case KC_NUM_LOCK: mod_mask = KM_NUM_LOCK; break;
+	case KC_SCROLL_LOCK: mod_mask = KM_SCROLL_LOCK; break;
+	default: mod_mask = 0; break;
+	}
+
+	if (mod_mask != 0) {
+		if (type == KEY_PRESS) {
+			/*
+			 * Only change lock state on transition from released
+			 * to pressed. This prevents autorepeat from messing
+			 * up the lock state.
+			 */
+			mods = mods ^ (mod_mask & ~lock_keys);
+			lock_keys = lock_keys | mod_mask;
+
+			/* Update keyboard lock indicator lights. */
+			// TODO
+			//kbd_ctl_set_ind(mods);
+		} else {
+			lock_keys = lock_keys & ~mod_mask;
+		}
+	}
+/*
+	printf("type: %d\n", type);
+	printf("mods: 0x%x\n", mods);
+	printf("keycode: %u\n", key);
+*/
+	
+	if (type == KEY_PRESS && (mods & KM_LCTRL) &&
+		key == KC_F1) {
+		active_layout = 0;
+		layout[active_layout]->reset();
+		return;
+	}
+
+	if (type == KEY_PRESS && (mods & KM_LCTRL) &&
+		key == KC_F2) {
+		active_layout = 1;
+		layout[active_layout]->reset();
+		return;
+	}
+
+	if (type == KEY_PRESS && (mods & KM_LCTRL) &&
+		key == KC_F3) {
+		active_layout = 2;
+		layout[active_layout]->reset();
+		return;
+	}
+	
+	ev.type = type;
+	ev.key = key;
+	ev.mods = mods;
+
+	ev.c = layout[active_layout]->parse_ev(&ev);
+
+	printf("Sending key %d to the console\n", ev.key);
+	assert(console_callback_phone != -1);
+	async_msg_4(console_callback_phone, KBD_EVENT, ev.type, ev.key, ev.mods, ev.c);
+}
+/*
+ * End of copy-paste
+ */
+
+	/*
+	 * TODO:
+	 * 1) key press / key release - how does the keyboard notify about release?
+	 * 2) layouts (use the already defined), not important now
+	 * 3) 
+	 */
+
+/*
  * Callbacks for parser
  */
 static void usbkbd_process_keycodes(const uint8_t *key_codes, size_t count,
-                                    uint8_t modifiers, void *arg)
+    uint8_t modifiers, void *arg)
 {
 	printf("Got keys: ");
 	unsigned i;
 	for (i = 0; i < count; ++i) {
 		printf("%d ", key_codes[i]);
+		// TODO: Key press / release
+
+		// TODO: NOT WORKING
+		unsigned int key = usbkbd_parse_scancode(key_codes[i]);
+		kbd_push_ev(KEY_PRESS, key);
 	}
 	printf("\n");
 }
@@ -121,9 +279,10 @@ static int usbkbd_get_report_descriptor(usb_hid_dev_kbd_t *kbd_dev)
 		kbd_dev->conf->interfaces[i].report_desc = (uint8_t *)malloc(length);
 		
 		// get the descriptor from the device
-		int rc = usb_drv_req_get_descriptor(kbd_dev->device->parent_phone,
-		    kbd_dev->address, USB_REQUEST_TYPE_CLASS, USB_DESCTYPE_HID_REPORT, 
-		    0, i, kbd_dev->conf->interfaces[i].report_desc, length, 
+		int rc = usb_request_get_descriptor(&kbd_dev->ctrl_pipe,
+		    USB_REQUEST_TYPE_CLASS, USB_DESCTYPE_HID_REPORT,
+		    i, 0,
+		    kbd_dev->conf->interfaces[i].report_desc, length,
 		    &actual_size);
 
 		if (rc != EOK) {
@@ -144,8 +303,9 @@ static int usbkbd_process_descriptors(usb_hid_dev_kbd_t *kbd_dev)
 	// get the first configuration descriptor (TODO: parse also other!)
 	usb_standard_configuration_descriptor_t config_desc;
 	
-	int rc = usb_drv_req_get_bare_configuration_descriptor(
-	    kbd_dev->device->parent_phone, kbd_dev->address, 0, &config_desc);
+	int rc;
+	rc = usb_request_get_bare_configuration_descriptor(&kbd_dev->ctrl_pipe,
+	    0, &config_desc);
 	
 	if (rc != EOK) {
 		return rc;
@@ -159,8 +319,8 @@ static int usbkbd_process_descriptors(usb_hid_dev_kbd_t *kbd_dev)
 	
 	size_t transferred = 0;
 	// get full configuration descriptor
-	rc = usb_drv_req_get_full_configuration_descriptor(
-	    kbd_dev->device->parent_phone, kbd_dev->address, 0, descriptors,
+	rc = usb_request_get_full_configuration_descriptor(&kbd_dev->ctrl_pipe,
+	    0, descriptors,
 	    config_desc.total_length, &transferred);
 	
 	if (rc != EOK) {
@@ -207,6 +367,8 @@ static int usbkbd_process_descriptors(usb_hid_dev_kbd_t *kbd_dev)
 
 static usb_hid_dev_kbd_t *usbkbd_init_device(device_t *dev)
 {
+	int rc;
+
 	usb_hid_dev_kbd_t *kbd_dev = (usb_hid_dev_kbd_t *)calloc(1, 
 	    sizeof(usb_hid_dev_kbd_t));
 
@@ -217,43 +379,52 @@ static usb_hid_dev_kbd_t *usbkbd_init_device(device_t *dev)
 
 	kbd_dev->device = dev;
 
-	// get phone to my HC and save it as my parent's phone
-	// TODO: maybe not a good idea if DDF will use parent_phone
-	int rc = kbd_dev->device->parent_phone = usb_drv_hc_connect_auto(dev, 0);
-	if (rc < 0) {
-		printf("Problem setting phone to HC.\n");
-		free(kbd_dev);
-		return NULL;
+	/*
+	 * Initialize the backing connection to the host controller.
+	 */
+	rc = usb_device_connection_initialize_from_device(&kbd_dev->wire, dev);
+	if (rc != EOK) {
+		printf("Problem initializing connection to device: %s.\n",
+		    str_error(rc));
+		goto error_leave;
 	}
 
-	rc = kbd_dev->address = usb_drv_get_my_address(dev->parent_phone, dev);
-	if (rc < 0) {
-		printf("Problem getting address of the device.\n");
-		free(kbd_dev);
-		return NULL;
+	/*
+	 * Initialize device pipes.
+	 */
+	rc = usb_endpoint_pipe_initialize_default_control(&kbd_dev->ctrl_pipe,
+	    &kbd_dev->wire);
+	if (rc != EOK) {
+		printf("Failed to initialize default control pipe: %s.\n",
+		    str_error(rc));
+		goto error_leave;
 	}
 
-	// doesn't matter now that we have no address
-//	if (kbd_dev->address < 0) {
-//		fprintf(stderr, NAME ": No device address!\n");
-//		free(kbd_dev);
-//		return NULL;
-//	}
+	rc = usb_endpoint_pipe_initialize(&kbd_dev->poll_pipe, &kbd_dev->wire,
+	    GUESSED_POLL_ENDPOINT, USB_TRANSFER_INTERRUPT, USB_DIRECTION_IN);
+	if (rc != EOK) {
+		printf("Failed to initialize interrupt in pipe: %s.\n",
+		    str_error(rc));
+		goto error_leave;
+	}
 
-	// default endpoint
-	kbd_dev->poll_endpoint = GUESSED_POLL_ENDPOINT;
-	
 	/*
 	 * will need all descriptors:
-	 * 1) choose one configuration from configuration descriptors 
+	 * 1) choose one configuration from configuration descriptors
 	 *    (set it to the device)
 	 * 2) set endpoints from endpoint descriptors
 	 */
 
 	// TODO: get descriptors, parse descriptors and save endpoints
+	usb_endpoint_pipe_start_session(&kbd_dev->ctrl_pipe);
 	usbkbd_process_descriptors(kbd_dev);
+	usb_endpoint_pipe_end_session(&kbd_dev->ctrl_pipe);
 
 	return kbd_dev;
+
+error_leave:
+	free(kbd_dev);
+	return NULL;
 }
 
 static void usbkbd_process_interrupt_in(usb_hid_dev_kbd_t *kbd_dev,
@@ -266,42 +437,47 @@ static void usbkbd_process_interrupt_in(usb_hid_dev_kbd_t *kbd_dev,
 
 	//usb_hid_parse_report(kbd_dev->parser, buffer, actual_size, callbacks, 
 	//    NULL);
-	printf("Calling usb_hid_boot_keyboard_input_report()...\n)");
-	usb_hid_boot_keyboard_input_report(buffer, actual_size, callbacks, NULL);
+	printf("Calling usb_hid_boot_keyboard_input_report() with size %zu\n",
+	    actual_size);
+	//dump_buffer("bufffer: ", buffer, actual_size);
+	int rc = usb_hid_boot_keyboard_input_report(buffer, actual_size, callbacks, 
+	    NULL);
+	if (rc != EOK) {
+		printf("Error in usb_hid_boot_keyboard_input_report(): %d\n", rc);
+	}
 }
 
 static void usbkbd_poll_keyboard(usb_hid_dev_kbd_t *kbd_dev)
 {
-	return;
-	
-	int rc;
-	usb_handle_t handle;
+	int rc, sess_rc;
 	uint8_t buffer[BUFFER_SIZE];
 	size_t actual_size;
-	//usb_endpoint_t poll_endpoint = 1;
 
-//	usb_address_t my_address = usb_drv_get_my_address(dev->parent_phone,
-//	    dev);
-//	if (my_address < 0) {
-//		return;
-//	}
-
-	usb_target_t poll_target = {
-		.address = kbd_dev->address,
-		.endpoint = kbd_dev->poll_endpoint
-	};
+	printf("Polling keyboard...\n");
 
 	while (true) {
-		async_usleep(1000 * 1000);
-		rc = usb_drv_async_interrupt_in(kbd_dev->device->parent_phone,
-		    poll_target, buffer, BUFFER_SIZE, &actual_size, &handle);
+		async_usleep(1000 * 1000 * 2);
 
-		if (rc != EOK) {
+		sess_rc = usb_endpoint_pipe_start_session(&kbd_dev->poll_pipe);
+		if (sess_rc != EOK) {
+			printf("Failed to start a session: %s.\n",
+			    str_error(sess_rc));
 			continue;
 		}
 
-		rc = usb_drv_async_wait_for(handle);
+		rc = usb_endpoint_pipe_read(&kbd_dev->poll_pipe, buffer,
+		    BUFFER_SIZE, &actual_size);
+		sess_rc = usb_endpoint_pipe_end_session(&kbd_dev->poll_pipe);
+
 		if (rc != EOK) {
+			printf("Error polling the keyboard: %s.\n",
+			    str_error(rc));
+			continue;
+		}
+
+		if (sess_rc != EOK) {
+			printf("Error closing session: %s.\n",
+			    str_error(sess_rc));
 			continue;
 		}
 
@@ -310,12 +486,14 @@ static void usbkbd_poll_keyboard(usb_hid_dev_kbd_t *kbd_dev)
 		 * This implies that no change happened since last query.
 		 */
 		if (actual_size == 0) {
+			printf("Keyboard returned NAK\n");
 			continue;
 		}
 
 		/*
 		 * TODO: Process pressed keys.
 		 */
+		printf("Calling usbkbd_process_interrupt_in()\n");
 		usbkbd_process_interrupt_in(kbd_dev, buffer, actual_size);
 	}
 
@@ -336,6 +514,10 @@ static int usbkbd_fibril_device(void *arg)
 
 	// initialize device (get and process descriptors, get address, etc.)
 	usb_hid_dev_kbd_t *kbd_dev = usbkbd_init_device(dev);
+	if (kbd_dev == NULL) {
+		printf("Error while initializing device.\n");
+		return -1;
+	}
 
 	usbkbd_poll_keyboard(kbd_dev);
 

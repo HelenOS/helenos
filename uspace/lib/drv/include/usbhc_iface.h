@@ -200,6 +200,22 @@ typedef enum {
 	 */
 	IPC_M_USBHC_CONTROL_READ_STATUS,
 
+	/** Issue control WRITE transfer.
+	 * See explanation at usb_iface_funcs_t (OUT transaction) for
+	 * call parameters.
+	 * This call is immediately followed by two IPC data writes
+	 * from the caller (setup packet and actual data).
+	 */
+	IPC_M_USBHC_CONTROL_WRITE,
+
+	/** Issue control WRITE transfer.
+	 * See explanation at usb_iface_funcs_t (IN transaction) for
+	 * call parameters.
+	 * This call is immediately followed by IPC data read from the caller
+	 * (setup packet).
+	 * Actual data are retrieved through IPC_M_USBHC_GET_BUFFER.
+	 */
+	IPC_M_USBHC_CONTROL_READ,
 
 	/* IPC_M_USB_ */
 } usbhc_iface_funcs_t;
@@ -248,6 +264,14 @@ typedef struct {
 	usbhc_iface_transfer_in_t control_read_data;
 	int (*control_read_status)(device_t *, usb_target_t,
 	    usbhc_iface_transfer_out_callback_t, void *);
+
+	int (*control_write)(device_t *, usb_target_t,
+	    void *, size_t, void *, size_t,
+	    usbhc_iface_transfer_out_callback_t, void *);
+
+	int (*control_read)(device_t *, usb_target_t,
+	    void *, size_t, void *, size_t,
+	    usbhc_iface_transfer_in_callback_t, void *);
 } usbhc_iface_t;
 
 

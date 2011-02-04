@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2010 Lubos Slovak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,35 +26,25 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup usbinfo
+/** @addtogroup drvusbhid
  * @{
  */
 /** @file
- * Common header for usbinfo application.
+ * Descriptor parser.
  */
-#ifndef USBINFO_USBINFO_H_
-#define USBINFO_USBINFO_H_
 
-#include <usb/usb.h>
-#include <usb/descriptor.h>
-#include <usb/debug.h>
-#include <ipc/devman.h>
+#ifndef USBHID_DESCPARSER_H_
+#define USBHID_DESCPARSER_H_
 
+#include "hid.h"
 
-#define NAME "usbinfo"
+int usbkbd_parse_descriptors(const uint8_t *data, size_t size,
+                             usb_hid_configuration_t *config);
 
-void dump_buffer(const char *, size_t, const uint8_t *, size_t);
-void dump_match_ids(match_id_list_t *matches);
-void dump_usb_descriptor(uint8_t *, size_t);
-int dump_device(devman_handle_t, usb_address_t);
-void dump_descriptor_tree(uint8_t *, size_t);
-
-static inline void internal_error(int err)
-{
-	fprintf(stderr, NAME ": internal error (%s).\n", str_error(err));
-}
+void usbkbd_print_config(const usb_hid_configuration_t *config);
 
 #endif
+
 /**
  * @}
  */

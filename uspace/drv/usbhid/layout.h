@@ -1,5 +1,7 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2011 Lubos Slovak 
+ * (copied from /uspace/srv/hid/kbd/include/layout.h)
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,35 +28,30 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup usbinfo
+/** @addtogroup drvusbhid
  * @{
  */
 /** @file
- * Common header for usbinfo application.
+ * Keyboard layout.
  */
-#ifndef USBINFO_USBINFO_H_
-#define USBINFO_USBINFO_H_
 
-#include <usb/usb.h>
-#include <usb/descriptor.h>
-#include <usb/debug.h>
-#include <ipc/devman.h>
+#ifndef USBHID_LAYOUT_H_
+#define USBHID_LAYOUT_H_
 
+#include <sys/types.h>
+#include <io/console.h>
 
-#define NAME "usbinfo"
+typedef struct {
+	void (*reset)(void);
+	wchar_t (*parse_ev)(console_event_t *);
+} layout_op_t;
 
-void dump_buffer(const char *, size_t, const uint8_t *, size_t);
-void dump_match_ids(match_id_list_t *matches);
-void dump_usb_descriptor(uint8_t *, size_t);
-int dump_device(devman_handle_t, usb_address_t);
-void dump_descriptor_tree(uint8_t *, size_t);
-
-static inline void internal_error(int err)
-{
-	fprintf(stderr, NAME ": internal error (%s).\n", str_error(err));
-}
+extern layout_op_t us_qwerty_op;
+extern layout_op_t us_dvorak_op;
+extern layout_op_t cz_op;
 
 #endif
+
 /**
  * @}
  */

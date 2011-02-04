@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2010 Lubos Slovak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,29 +26,37 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbvhc
+/** @addtogroup drvusbhid
  * @{
  */
 /** @file
- * @brief Debugging support.
+ * Descriptor dumping.
  */
-#include <stdio.h>
-#include <ipc/ipc.h>
-#include <usb/debug.h>
 
-#include "vhcd.h"
+#ifndef USBHID_DESCDUMP_H_
+#define USBHID_DESCDUMP_H_
 
+#include "hid.h"
 
-/** Debug print informing of invalid call.
- */
-void dprintf_inval_call(int level, ipc_call_t call, sysarg_t phone_hash)
-{
-	dprintf(level, "phone%#x: invalid call [%u (%u, %u, %u, %u, %u)]",
-	    phone_hash,
-	    IPC_GET_IMETHOD(call),
-	    IPC_GET_ARG1(call), IPC_GET_ARG2(call), IPC_GET_ARG3(call),
-	    IPC_GET_ARG4(call), IPC_GET_ARG5(call));
-}
+void dump_standard_configuration_descriptor(
+    int index, const usb_standard_configuration_descriptor_t *d);
+
+void dump_standard_interface_descriptor(
+    const usb_standard_interface_descriptor_t *d);
+
+void dump_standard_endpoint_descriptor(
+    const usb_standard_endpoint_descriptor_t *d);
+
+void dump_standard_hid_descriptor_header(
+    const usb_standard_hid_descriptor_t *d);
+
+void dump_standard_hid_class_descriptor_info(
+    const usb_standard_hid_class_descriptor_info_t *d);
+
+void dump_hid_class_descriptor(int index, uint8_t type, 
+    const uint8_t *d, size_t size);
+
+#endif /* USBHID_DESCDUMP_H_ */
 
 /**
  * @}

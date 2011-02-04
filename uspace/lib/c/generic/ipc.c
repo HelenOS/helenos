@@ -577,7 +577,9 @@ void ipc_poke(void)
  * @param arg1		Service-defined argument.
  * @param arg2		Service-defined argument.
  * @param arg3		Service-defined argument.
- * @param phonehash	Storage where the library will store an opaque
+ * @param taskhash	Storage where the kernel will store an opaque
+ *			identifier of the client task.
+ * @param phonehash	Storage where the kernel will store an opaque
  *			identifier of the phone that will be used for incoming
  *			calls. This identifier can be used for connection
  *			tracking.
@@ -585,10 +587,10 @@ void ipc_poke(void)
  * @return		Zero on success or a negative error code.
  */
 int ipc_connect_to_me(int phoneid, int arg1, int arg2, int arg3, 
-    sysarg_t *phonehash)
+    sysarg_t *taskhash, sysarg_t *phonehash)
 {
 	return ipc_call_sync_3_5(phoneid, IPC_M_CONNECT_TO_ME, arg1, arg2,
-	    arg3, NULL, NULL, NULL, NULL, phonehash);
+	    arg3, NULL, NULL, NULL, taskhash, phonehash);
 }
 
 /** Ask through phone for a new connection to some service.

@@ -26,50 +26,85 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup usb
+/** @addtogroup usbinfo
  * @{
  */
 /**
  * @file
- * @brief
+ * Dumping of generic device properties.
  */
 #include <stdio.h>
 #include <str_error.h>
 #include <errno.h>
 #include <usb/usbdrv.h>
+#include <usb/pipes.h>
+#include <usb/request.h>
 #include "usbinfo.h"
 
-int dump_device(int hc_phone, usb_address_t address)
+int dump_device(devman_handle_t hc_handle, usb_address_t address)
 {
+	int rc;
+	usb_device_connection_t wire;
+	usb_endpoint_pipe_t ctrl_pipe;
+	ctrl_pipe.hc_phone = -1;
+
+	int hc_phone = devman_device_connect(hc_handle, 0);
+	if (hc_phone < 0) {
+		fprintf(stderr,
+		    NAME ": failed to connect to host controller (%zu): %s.\n",
+		        (size_t) hc_handle, str_error(hc_phone));
+		return hc_phone;
+	}
+
 	/*
 	 * Dump information about possible match ids.
 	 */
 	match_id_list_t match_id_list;
 	init_match_ids(&match_id_list);
-	int rc = usb_drv_create_device_match_ids(hc_phone, &match_id_list, address);
+	rc = usb_drv_create_device_match_ids(hc_phone, &match_id_list, address);
 	if (rc != EOK) {
 		fprintf(stderr,
 		    NAME ": failed to fetch match ids of the device: %s.\n",
 		    str_error(rc));
-		return rc;
+		goto leave;
 	}
 	dump_match_ids(&match_id_list);
+
+	/*
+	 * Initialize pipes.
+	 */
+	rc = usb_device_connection_initialize(&wire, hc_handle, address);
+	if (rc != EOK) {
+		fprintf(stderr,
+		    NAME ": failed to create connection to the device: %s.\n",
+		    str_error(rc));
+		goto leave;
+	}
+	rc = usb_endpoint_pipe_initialize_default_control(&ctrl_pipe, &wire);
+	if (rc != EOK) {
+		fprintf(stderr,
+		    NAME ": failed to create default control pipe: %s.\n",
+		    str_error(rc));
+		goto leave;
+	}
+	rc = usb_endpoint_pipe_start_session(&ctrl_pipe);
+	if (rc != EOK) {
+		fprintf(stderr,
+		    NAME ": failed to start session on control pipe: %s.\n",
+		    str_error(rc));
+		goto leave;
+	}
 
 	/*
 	 * Get device descriptor and dump it.
 	 */
 	usb_standard_device_descriptor_t device_descriptor;
-	usb_dprintf(NAME, 1,
-	    "usb_drv_req_get_device_descriptor(%d, %d, %p)\n",
-	    hc_phone, (int) address, &device_descriptor);
-
-	rc = usb_drv_req_get_device_descriptor(hc_phone, address,
-	    &device_descriptor);
+	rc = usb_request_get_device_descriptor(&ctrl_pipe, &device_descriptor);
 	if (rc != EOK) {
 		fprintf(stderr,
 		    NAME ": failed to fetch standard device descriptor: %s.\n",
 		    str_error(rc));
-		return rc;
+		goto leave;
 	}
 	dump_usb_descriptor((uint8_t *)&device_descriptor, sizeof(device_descriptor));
 
@@ -78,40 +113,37 @@ int dump_device(int hc_phone, usb_address_t address)
 	 */
 	usb_standard_configuration_descriptor_t config_descriptor;
 	int config_index = 0;
-	usb_dprintf(NAME, 1,
-	    "usb_drv_req_get_bare_configuration_descriptor(%d, %d, %d, %p)\n",
-	    hc_phone, (int) address, config_index, &config_descriptor);
-
-	rc = usb_drv_req_get_bare_configuration_descriptor(hc_phone, address,
-	    config_index, &config_descriptor );
+	rc = usb_request_get_bare_configuration_descriptor(&ctrl_pipe,
+	    config_index, &config_descriptor);
 	if (rc != EOK) {
 		fprintf(stderr,
 		    NAME ": failed to fetch standard configuration descriptor: %s.\n",
 		    str_error(rc));
-		return rc;
+		goto leave;
 	}
 	//dump_standard_configuration_descriptor(config_index, &config_descriptor);
 
 	void *full_config_descriptor = malloc(config_descriptor.total_length);
-	usb_dprintf(NAME, 1,
-	    "usb_drv_req_get_full_configuration_descriptor(%d, %d, %d, %p, %zu)\n",
-	    hc_phone, (int) address, config_index,
-	    full_config_descriptor, config_descriptor.total_length);
-
-	rc = usb_drv_req_get_full_configuration_descriptor(hc_phone, address,
+	rc = usb_request_get_full_configuration_descriptor(&ctrl_pipe,
 	    config_index,
 	    full_config_descriptor, config_descriptor.total_length, NULL);
 	if (rc != EOK) {
 		fprintf(stderr,
 		    NAME ": failed to fetch full configuration descriptor: %s.\n",
 		    str_error(rc));
-		return rc;
+		goto leave;
 	}
 
 	dump_descriptor_tree(full_config_descriptor,
 	    config_descriptor.total_length);
 
-	return EOK;
+	rc = EOK;
+leave:
+	/* Ignoring errors here. */
+	ipc_hangup(hc_phone);
+	usb_endpoint_pipe_end_session(&ctrl_pipe);
+
+	return rc;
 }
 
 /** @}

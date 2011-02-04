@@ -29,6 +29,7 @@
 #include <usb_iface.h>
 #include <usb/debug.h>
 #include <errno.h>
+#include <str_error.h>
 #include <driver.h>
 #include "uhci.h"
 
@@ -54,6 +55,23 @@ static int uhci_add_device(device_t *device)
 {
 	usb_dprintf(NAME, 1, "uhci_add_device() called\n");
 	device->ops = &uhci_ops;
+
+	uintptr_t io_reg_base;
+	size_t io_reg_size;
+	int irq;
+
+	int rc = pci_get_my_registers(device,
+	    &io_reg_base, &io_reg_size, &irq);
+
+	if (rc != EOK) {
+		fprintf(stderr,
+		    NAME ": failed to get I/O registers addresses: %s.\n",
+		    str_error(rc));
+		return rc;
+	}
+
+	usb_dprintf(NAME, 2, "I/O regs at 0x%X (size %zu), IRQ %d.\n",
+	    io_reg_base, io_reg_size, irq);
 
 	/*
 	 * We need to announce the presence of our root hub.
