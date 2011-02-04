@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Matus Dekanek
+ * Copyright (c) 2011 Matus Dekanek
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,7 +34,7 @@
 /** @addtogroup usb
  * @{
  */
-/** @file definitions of special memory management, used mostly in usb stack
+/** @file definitions of memory management with address translation, used mostly in usb stack
  *
  * USB HCD needs traslation between physical and virtual addresses. These
  * functions implement such functionality. For each allocated virtual address
@@ -58,9 +58,9 @@
 #include <sys/types.h>
 
 extern void * mman_malloc(
-		size_t size,
-		size_t alignment,
-		unsigned long max_physical_address);
+    size_t size,
+    size_t alignment,
+    unsigned long max_physical_address);
 
 extern void * mman_getVA(void * addr);
 

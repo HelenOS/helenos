@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Matus Dekanek
+ * Copyright (c) 2011 Matus Dekanek
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -68,7 +68,7 @@ static int addr_compare(unsigned long key[], hash_count_t keys,
 	return (addr_node->addr == key[0]);
 }
 
-static void addr_remove_callback(link_t *item)
+static void addr_remove_callback(link_t * item)
 {
 	//delete item
 	addr_node_t *addr_node = hash_table_get_instance(item, addr_node_t, link);
