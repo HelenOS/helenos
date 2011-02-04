@@ -205,17 +205,17 @@ static const char *log_level_name(usb_log_level_t level)
  */
 void usb_log_printf(usb_log_level_t level, const char *format, ...)
 {
-	FILE *stream = NULL;
+	FILE *screen_stream = NULL;
 	switch (level) {
 		case USB_LOG_LEVEL_FATAL:
 		case USB_LOG_LEVEL_ERROR:
-			stream = stderr;
+			screen_stream = stderr;
 			break;
 		default:
-			stream = stdout;
+			screen_stream = stdout;
 			break;
 	}
-	assert(stream != NULL);
+	assert(screen_stream != NULL);
 
 	va_list args;
 	va_start(args, format);
@@ -232,11 +232,13 @@ void usb_log_printf(usb_log_level_t level, const char *format, ...)
 	if (log_stream != NULL) {
 		fprintf(log_stream, "[%s]%s: ", log_prefix, level_name);
 		vfprintf(log_stream, format, args);
+		fflush(log_stream);
 	}
 
 	if (level <= log_level) {
-		fprintf(stream, "[%s]%s: ", log_prefix, level_name);
-		vfprintf(stream, format, args);
+		fprintf(screen_stream, "[%s]%s: ", log_prefix, level_name);
+		vfprintf(screen_stream, format, args);
+		fflush(screen_stream);
 	}
 
 	fibril_mutex_unlock(&log_serializer);
