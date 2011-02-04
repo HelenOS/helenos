@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2011 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,15 +32,15 @@
 /** @file
  */
 
-#include <stdio.h>
-#include <stdlib.h>
+#ifndef LIBC_PRIVATE_THREAD_H_
+#define LIBC_PRIVATE_THREAD_H_
 
-/* TODO
-void errx(int __status, __const char *__format, ...)
-{
-	_exit(0);
-}
-*/
+#include <kernel/proc/uarg.h>
+
+extern void __thread_entry(void);
+extern void __thread_main(uspace_arg_t *);
+
+#endif
 
 /** @}
  */

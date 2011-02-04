@@ -40,7 +40,6 @@
 
 #include <async.h>
 #include <fibril_synch.h>
-#include <ipc/ipc.h>
 #include <ipc/services.h>
 
 #include <adt/measured_strings.h>

@@ -39,8 +39,8 @@
  */
 
 #include <stdio.h>
-#include <ipc/ipc.h>
 #include <ipc/services.h>
+#include <ipc/ns.h>
 #include <async.h>
 #include <errno.h>
 #include <task.h>
@@ -61,7 +61,7 @@ fs_reg_t devfs_reg;
 static void devfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
 	if (iid)
-		ipc_answer_0(iid, EOK);
+		async_answer_0(iid, EOK);
 	
 	while (true) {
 		ipc_call_t call;
@@ -110,7 +110,7 @@ static void devfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 			devfs_destroy(callid, &call);
 			break;
 		default:
-			ipc_answer_0(callid, ENOTSUP);
+			async_answer_0(callid, ENOTSUP);
 			break;
 		}
 	}
@@ -125,7 +125,7 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 	
-	int vfs_phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_VFS, 0, 0);
+	int vfs_phone = service_connect_blocking(SERVICE_VFS, 0, 0);
 	if (vfs_phone < EOK) {
 		printf(NAME ": Unable to connect to VFS\n");
 		return -1;

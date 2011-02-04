@@ -32,6 +32,7 @@
 /** @file
  * @brief Functions for recognising kind of attached devices.
  */
+#include <sys/types.h>
 #include <usb_iface.h>
 #include <usb/usbdrv.h>
 #include <usb/classes/classes.h>

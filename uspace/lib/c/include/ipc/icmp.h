@@ -38,11 +38,9 @@
 #ifndef LIBC_ICMP_MESSAGES_
 #define LIBC_ICMP_MESSAGES_
 
-#include <ipc/ipc.h>
 #include <ipc/net.h>
 #include <sys/types.h>
 #include <sys/time.h>
-
 #include <net/icmp_codes.h>
 
 /** ICMP module messages. */

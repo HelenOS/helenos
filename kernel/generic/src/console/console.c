@@ -159,6 +159,7 @@ void klog_init(void)
 	
 	klog_parea.pbase = (uintptr_t) faddr;
 	klog_parea.frames = SIZE2FRAMES(sizeof(klog));
+	klog_parea.unpriv = false;
 	ddi_parea_register(&klog_parea);
 	
 	sysinfo_set_item_val("klog.faddr", NULL, (sysarg_t) faddr);

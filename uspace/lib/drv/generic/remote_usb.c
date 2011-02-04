@@ -32,7 +32,6 @@
 /** @file
  */
 
-#include <ipc/ipc.h>
 #include <async.h>
 #include <errno.h>
 
@@ -63,17 +62,17 @@ void remote_usb_get_hc_handle(device_t *device, void *iface,
 	usb_iface_t *usb_iface = (usb_iface_t *) iface;
 
 	if (usb_iface->get_hc_handle == NULL) {
-		ipc_answer_0(callid, ENOTSUP);
+		async_answer_0(callid, ENOTSUP);
 		return;
 	}
 
 	devman_handle_t handle;
 	int rc = usb_iface->get_hc_handle(device, &handle);
 	if (rc != EOK) {
-		ipc_answer_0(callid, rc);
+		async_answer_0(callid, rc);
 	}
 
-	ipc_answer_1(callid, EOK, (sysarg_t) handle);
+	async_answer_1(callid, EOK, (sysarg_t) handle);
 }
 
 

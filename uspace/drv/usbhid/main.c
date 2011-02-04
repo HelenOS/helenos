@@ -82,16 +82,16 @@ void default_connection_handler(device_t *dev,
 		int callback = IPC_GET_ARG5(*icall);
 
 		if (console_callback_phone != -1) {
-			ipc_answer_0(icallid, ELIMIT);
+			async_answer_0(icallid, ELIMIT);
 			return;
 		}
 
 		console_callback_phone = callback;
-		ipc_answer_0(icallid, EOK);
+		async_answer_0(icallid, EOK);
 		return;
 	}
 
-	ipc_answer_0(icallid, EINVAL);
+	async_answer_0(icallid, EINVAL);
 }
 
 #if 0

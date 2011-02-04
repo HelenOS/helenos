@@ -40,7 +40,7 @@
 typedef context_t jmp_buf;
 
 extern int setjmp(jmp_buf env);
-extern void longjmp(jmp_buf env,int val) __attribute__((__noreturn__));
+extern void longjmp(jmp_buf env, int val) __attribute__((noreturn));
 
 #endif
 

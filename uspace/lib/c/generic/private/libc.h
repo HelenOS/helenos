@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2011 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,54 +32,12 @@
 /** @file
  */
 
-#ifndef LIBC_ASYNC_PRIV_H_
-#define LIBC_ASYNC_PRIV_H_
+#ifndef LIBC_PRIVATE_LIBC_H_
+#define LIBC_PRIVATE_LIBC_H_
 
-#include <adt/list.h>
-#include <fibril.h>
-#include <sys/time.h>
-#include <bool.h>
-
-/** Structures of this type are used to track the timeout events. */
-typedef struct {
-	/** If true, this struct is in the timeout list. */
-	bool inlist;
-	
-	/** Timeout list link. */
-	link_t link;
-	
-	/** If true, we have timed out. */
-	bool occurred;
-
-	/** Expiration time. */
-	struct timeval expires;
-} to_event_t;
-
-/** Structures of this type are used to track the wakeup events. */
-typedef struct {
-	/** If true, this struct is in a synchronization object wait queue. */
-	bool inlist;
-	
-	/** Wait queue linkage. */
-	link_t link;
-} wu_event_t;
-
-
-/** Structures of this type represent a waiting fibril. */
-typedef struct {
-	/** Identification of and link to the waiting fibril. */
-	fid_t fid;
-	
-	/** If true, this fibril is currently active. */
-	bool active;
-
-	/** Timeout wait data. */
-	to_event_t to_event;
-	/** Wakeup wait data. */
-	wu_event_t wu_event;
-} awaiter_t;
-
-extern void async_insert_timeout(awaiter_t *wd);
+extern void __entry(void);
+extern void __main(void *) __attribute__((noreturn));
+extern int main(int, char *[]);
 
 #endif
 

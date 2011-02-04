@@ -41,7 +41,7 @@
  * (read/write port/memory, add information to notification ipc message).
  *
  * The structure of a notification message is as follows:
- * - IMETHOD: interface and method as registered by the SYS_IPC_REGISTER_IRQ
+ * - IMETHOD: interface and method as registered by the SYS_REGISTER_IRQ
  *            syscall
  * - ARG1: payload modified by a 'top-half' handler
  * - ARG2: payload modified by a 'top-half' handler

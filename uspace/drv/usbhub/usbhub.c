@@ -198,7 +198,7 @@ int usb_add_hub_device(device_t *dev) {
 	}
 	//ports powered, hub seems to be enabled
 
-	ipc_hangup(hc);
+	async_hangup(hc);
 
 	//add the hub to list
 	fibril_mutex_lock(&usb_hub_list_lock);
@@ -501,7 +501,7 @@ void usb_hub_check_hub_changes(void) {
 		}
 		free(change_bitmap);
 
-		ipc_hangup(hc);
+		async_hangup(hc);
 		fibril_mutex_lock(&usb_hub_list_lock);
 	}
 	fibril_mutex_unlock(&usb_hub_list_lock);

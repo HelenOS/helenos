@@ -38,8 +38,6 @@
 #ifndef NET_NET_H_
 #define NET_NET_H_
 
-#include <ipc/ipc.h>
-
 #include <net/device.h>
 #include <adt/char_map.h>
 #include <adt/generic_char_map.h>
