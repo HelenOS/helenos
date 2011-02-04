@@ -48,6 +48,7 @@
 #include <usb/classes/hidparser.h>
 #include <usb/devreq.h>
 #include <usb/descriptor.h>
+#include <usb/debug.h>
 #include <io/console.h>
 #include "hid.h"
 #include "descparser.h"
@@ -195,9 +196,9 @@ static void kbd_push_ev(int type, unsigned int key)
 		}
 	}
 /*
-	printf("type: %d\n", type);
-	printf("mods: 0x%x\n", mods);
-	printf("keycode: %u\n", key);
+	usb_log_debug2("type: %d\n", type);
+	usb_log_debug2("mods: 0x%x\n", mods);
+	usb_log_debug2("keycode: %u\n", key);
 */
 	
 	if (type == KEY_PRESS && (mods & KM_LCTRL) &&
@@ -227,7 +228,7 @@ static void kbd_push_ev(int type, unsigned int key)
 
 	ev.c = layout[active_layout]->parse_ev(&ev);
 
-	printf("Sending key %d to the console\n", ev.key);
+	usb_log_debug("Sending key %d to the console\n", ev.key);
 	assert(console_callback_phone != -1);
 	async_msg_4(console_callback_phone, KBD_EVENT, ev.type, ev.key, ev.mods, ev.c);
 }
@@ -248,17 +249,15 @@ static void kbd_push_ev(int type, unsigned int key)
 static void usbkbd_process_keycodes(const uint8_t *key_codes, size_t count,
     uint8_t modifiers, void *arg)
 {
-	printf("Got keys: ");
+	usb_log_debug2("Got keys from parser: ");
 	unsigned i;
 	for (i = 0; i < count; ++i) {
-		printf("%d ", key_codes[i]);
+		usb_log_debug2("%d ", key_codes[i]);
 		// TODO: Key press / release
-
-		// TODO: NOT WORKING
 		unsigned int key = usbkbd_parse_scancode(key_codes[i]);
 		kbd_push_ev(KEY_PRESS, key);
 	}
-	printf("\n");
+	usb_log_debug2("\n");
 }
 
 /*
@@ -338,14 +337,14 @@ static int usbkbd_process_descriptors(usb_hid_dev_kbd_t *kbd_dev)
 	rc = usbkbd_parse_descriptors(descriptors, transferred, kbd_dev->conf);
 	free(descriptors);
 	if (rc != EOK) {
-		printf("Problem with parsing standard descriptors.\n");
+		usb_log_warning("Problem with parsing standard descriptors.\n");
 		return rc;
 	}
 
 	// get and report descriptors
 	rc = usbkbd_get_report_descriptor(kbd_dev);
 	if (rc != EOK) {
-		printf("Problem with parsing HID REPORT descriptor.\n");
+		usb_log_warning("Problem with parsing REPORT descriptor.\n");
 		return rc;
 	}
 	
@@ -355,9 +354,9 @@ static int usbkbd_process_descriptors(usb_hid_dev_kbd_t *kbd_dev)
 	 * TODO: 
 	 * 1) select one configuration (lets say the first)
 	 * 2) how many interfaces?? how to select one??
-     *    ("The default setting for an interface is always alternate setting zero.")
+	 *    ("The default setting for an interface is always alternate setting zero.")
 	 * 3) find endpoint which is IN and INTERRUPT (parse), save its number
-     *    as the endpoint for polling
+	 *    as the endpoint for polling
 	 */
 	
 	return EOK;
@@ -369,7 +368,7 @@ static usb_hid_dev_kbd_t *usbkbd_init_device(device_t *dev)
 	    sizeof(usb_hid_dev_kbd_t));
 
 	if (kbd_dev == NULL) {
-		fprintf(stderr, NAME ": No memory!\n");
+		usb_log_fatal("No memory!\n");
 		return NULL;
 	}
 
@@ -379,19 +378,19 @@ static usb_hid_dev_kbd_t *usbkbd_init_device(device_t *dev)
 	// TODO: maybe not a good idea if DDF will use parent_phone
 	int rc = kbd_dev->device->parent_phone = usb_drv_hc_connect_auto(dev, 0);
 	if (rc < 0) {
-		printf("Problem setting phone to HC.\n");
+		usb_log_error("Problem setting phone to HC.\n");
 		goto error_leave;
 	}
 
 	rc = kbd_dev->address = usb_drv_get_my_address(dev->parent_phone, dev);
 	if (rc < 0) {
-		printf("Problem getting address of the device.\n");
+		usb_log_error("Problem getting address of the device.\n");
 		goto error_leave;
 	}
 
 	// doesn't matter now that we have no address
 //	if (kbd_dev->address < 0) {
-//		fprintf(stderr, NAME ": No device address!\n");
+//		usb_log_error("No device address!\n");
 //		free(kbd_dev);
 //		return NULL;
 //	}
@@ -406,15 +405,13 @@ static usb_hid_dev_kbd_t *usbkbd_init_device(device_t *dev)
 	// TODO: get descriptors, parse descriptors and save endpoints
 	usbkbd_process_descriptors(kbd_dev);
 
-
-
 	/*
 	 * Initialize the backing connection to the host controller.
 	 */
 	rc = usb_device_connection_initialize_from_device(&kbd_dev->wire, dev);
 	if (rc != EOK) {
-		printf("Problem initializing connection to device: %s.\n",
-		    str_error(rc));
+		usb_log_error("Problem initializing connection to device: %s."
+		    "\n", str_error(rc));
 		goto error_leave;
 	}
 
@@ -424,7 +421,7 @@ static usb_hid_dev_kbd_t *usbkbd_init_device(device_t *dev)
 	rc = usb_endpoint_pipe_initialize(&kbd_dev->poll_pipe, &kbd_dev->wire,
 	    GUESSED_POLL_ENDPOINT, USB_TRANSFER_INTERRUPT, USB_DIRECTION_IN);
 	if (rc != EOK) {
-		printf("Failed to initialize interrupt in pipe: %s.\n",
+		usb_log_error("Failed to initialize interrupt in pipe: %s.\n",
 		    str_error(rc));
 		goto error_leave;
 	}
@@ -447,13 +444,15 @@ static void usbkbd_process_interrupt_in(usb_hid_dev_kbd_t *kbd_dev,
 
 	//usb_hid_parse_report(kbd_dev->parser, buffer, actual_size, callbacks, 
 	//    NULL);
-	printf("Calling usb_hid_boot_keyboard_input_report() with size %zu\n",
-	    actual_size);
+	/*usb_log_debug2("Calling usb_hid_boot_keyboard_input_report() with size"
+	    " %zu\n", actual_size);*/
 	//dump_buffer("bufffer: ", buffer, actual_size);
-	int rc = usb_hid_boot_keyboard_input_report(buffer, actual_size, callbacks, 
-	    NULL);
+	int rc = usb_hid_boot_keyboard_input_report(buffer, actual_size,
+	    callbacks, NULL);
+	
 	if (rc != EOK) {
-		printf("Error in usb_hid_boot_keyboard_input_report(): %d\n", rc);
+		usb_log_warning("Error in usb_hid_boot_keyboard_input_report():"
+		    "%s\n", str_error(rc));
 	}
 }
 
@@ -463,14 +462,14 @@ static void usbkbd_poll_keyboard(usb_hid_dev_kbd_t *kbd_dev)
 	uint8_t buffer[BUFFER_SIZE];
 	size_t actual_size;
 
-	printf("Polling keyboard...\n");
+	usb_log_info("Polling keyboard...\n");
 
 	while (true) {
 		async_usleep(1000 * 1000 * 2);
 
 		sess_rc = usb_endpoint_pipe_start_session(&kbd_dev->poll_pipe);
 		if (sess_rc != EOK) {
-			printf("Failed to start a session: %s.\n",
+			usb_log_warning("Failed to start a session: %s.\n",
 			    str_error(sess_rc));
 			continue;
 		}
@@ -480,13 +479,13 @@ static void usbkbd_poll_keyboard(usb_hid_dev_kbd_t *kbd_dev)
 		sess_rc = usb_endpoint_pipe_end_session(&kbd_dev->poll_pipe);
 
 		if (rc != EOK) {
-			printf("Error polling the keyboard: %s.\n",
+			usb_log_warning("Error polling the keyboard: %s.\n",
 			    str_error(rc));
 			continue;
 		}
 
 		if (sess_rc != EOK) {
-			printf("Error closing session: %s.\n",
+			usb_log_warning("Error closing session: %s.\n",
 			    str_error(sess_rc));
 			continue;
 		}
@@ -496,14 +495,14 @@ static void usbkbd_poll_keyboard(usb_hid_dev_kbd_t *kbd_dev)
 		 * This implies that no change happened since last query.
 		 */
 		if (actual_size == 0) {
-			printf("Keyboard returned NAK\n");
+			usb_log_debug("Keyboard returned NAK\n");
 			continue;
 		}
 
 		/*
 		 * TODO: Process pressed keys.
 		 */
-		printf("Calling usbkbd_process_interrupt_in()\n");
+		usb_log_debug("Calling usbkbd_process_interrupt_in()\n");
 		usbkbd_process_interrupt_in(kbd_dev, buffer, actual_size);
 	}
 
@@ -513,10 +512,8 @@ static void usbkbd_poll_keyboard(usb_hid_dev_kbd_t *kbd_dev)
 
 static int usbkbd_fibril_device(void *arg)
 {
-	printf("!!! USB device fibril\n");
-
 	if (arg == NULL) {
-		printf("No device!\n");
+		usb_log_error("No device!\n");
 		return -1;
 	}
 
@@ -525,7 +522,7 @@ static int usbkbd_fibril_device(void *arg)
 	// initialize device (get and process descriptors, get address, etc.)
 	usb_hid_dev_kbd_t *kbd_dev = usbkbd_init_device(dev);
 	if (kbd_dev == NULL) {
-		printf("Error while initializing device.\n");
+		usb_log_error("Error while initializing device.\n");
 		return -1;
 	}
 
@@ -560,7 +557,7 @@ static int usbkbd_add_device(device_t *dev)
 	 */
 	fid_t fid = fibril_create(usbkbd_fibril_device, dev);
 	if (fid == 0) {
-		printf("%s: failed to start fibril for HID device\n", NAME);
+		usb_log_error("Failed to start fibril for HID device\n");
 		return ENOMEM;
 	}
 	fibril_add_ready(fid);
@@ -586,6 +583,7 @@ static driver_t kbd_driver = {
 
 int main(int argc, char *argv[])
 {
+	usb_log_enable(USB_LOG_LEVEL_MAX, NAME);
 	return driver_main(&kbd_driver);
 }
 
