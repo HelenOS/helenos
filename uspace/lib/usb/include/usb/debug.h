@@ -46,12 +46,13 @@ void usb_dump_standard_descriptor(FILE *, const char *, const char *,
 
 /** Logging level. */
 typedef enum {
-    USB_LOG_LEVEL_FATAL,
-    USB_LOG_LEVEL_ERROR,
-    USB_LOG_LEVEL_WARNING,
-    USB_LOG_LEVEL_INFO,
-    USB_LOG_LEVEL_DEBUG,
-    USB_LOG_LEVEL_DEBUG2
+	USB_LOG_LEVEL_FATAL,
+	USB_LOG_LEVEL_ERROR,
+	USB_LOG_LEVEL_WARNING,
+	USB_LOG_LEVEL_INFO,
+	USB_LOG_LEVEL_DEBUG,
+	USB_LOG_LEVEL_DEBUG2,
+	USB_LOG_LEVEL_MAX
 } usb_log_level_t;
 
 
