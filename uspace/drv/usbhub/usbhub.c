@@ -69,13 +69,13 @@ usb_hub_info_t * usb_create_hub_info(device_t * device, int hc) {
 	result->device = device;
 
 
-	//printf("[usb_hub] phone to hc = %d\n", hc);
+	dprintf(USB_LOG_LEVEL_DEBUG, "phone to hc = %d", hc);
 	if (hc < 0) {
 		return result;
 	}
 	//get some hub info
 	usb_address_t addr = usb_drv_get_my_address(hc, device);
-	dprintf(1, "address of newly created hub = %d", addr);
+	dprintf(USB_LOG_LEVEL_DEBUG, "address of newly created hub = %d", addr);
 	/*if(addr<0){
 		//return result;
 
@@ -86,12 +86,12 @@ usb_hub_info_t * usb_create_hub_info(device_t * device, int hc) {
 
 	// get hub descriptor
 
-	//printf("[usb_hub] creating serialized descriptor\n");
+	dprintf(USB_LOG_LEVEL_DEBUG, "creating serialized descripton");
 	void * serialized_descriptor = malloc(USB_HUB_MAX_DESCRIPTOR_SIZE);
 	usb_hub_descriptor_t * descriptor;
 	size_t received_size;
 	int opResult;
-	//printf("[usb_hub] starting control transaction\n");
+	dprintf(USB_LOG_LEVEL_DEBUG, "starting control transaction");
 	
 	opResult = usb_drv_req_get_descriptor(hc, addr,
 			USB_REQUEST_TYPE_CLASS,
@@ -99,18 +99,18 @@ usb_hub_info_t * usb_create_hub_info(device_t * device, int hc) {
 			USB_HUB_MAX_DESCRIPTOR_SIZE, &received_size);
 
 	if (opResult != EOK) {
-		dprintf(1, "failed when receiving hub descriptor, badcode = %d",opResult);
+		dprintf(USB_LOG_LEVEL_ERROR, "failed when receiving hub descriptor, badcode = %d",opResult);
 		free(serialized_descriptor);
 		return result;
 	}
-	//printf("[usb_hub] deserializing descriptor\n");
+	dprintf(USB_LOG_LEVEL_DEBUG2, "deserializing descriptor");
 	descriptor = usb_deserialize_hub_desriptor(serialized_descriptor);
 	if(descriptor==NULL){
-		dprintf(1, "could not deserialize descriptor ");
+		dprintf(USB_LOG_LEVEL_WARNING, "could not deserialize descriptor ");
 		result->port_count = 1;///\TODO this code is only for debug!!!
 		return result;
 	}
-	//printf("[usb_hub] setting port count to %d\n",descriptor->ports_count);
+	dprintf(USB_LOG_LEVEL_INFO, "setting port count to %d",descriptor->ports_count);
 	result->port_count = descriptor->ports_count;
 	result->attached_devs = (usb_hub_attached_device_t*)
 	    malloc((result->port_count+1) * sizeof(usb_hub_attached_device_t));
@@ -119,21 +119,20 @@ usb_hub_info_t * usb_create_hub_info(device_t * device, int hc) {
 		result->attached_devs[i].devman_handle=0;
 		result->attached_devs[i].address=0;
 	}
-	//printf("[usb_hub] freeing data\n");
+	dprintf(USB_LOG_LEVEL_DEBUG2, "freeing data");
 	free(serialized_descriptor);
 	free(descriptor->devices_removable);
 	free(descriptor);
 
 	//finish
 
-	dprintf(1, "hub info created");
+	dprintf(USB_LOG_LEVEL_INFO, "hub info created");
 
 	return result;
 }
 
 int usb_add_hub_device(device_t *dev) {
-	dprintf(1, "add_hub_device(handle=%d)", (int) dev->handle);
-	dprintf(1, "hub device");
+	dprintf(USB_LOG_LEVEL_INFO, "add_hub_device(handle=%d)", (int) dev->handle);
 
 	/*
 	 * We are some (probably deeply nested) hub.
@@ -163,12 +162,12 @@ int usb_add_hub_device(device_t *dev) {
 	opResult = usb_drv_req_get_device_descriptor(hc, target.address,
 	    &std_descriptor);
 	if(opResult!=EOK){
-		dprintf(1, "could not get device descriptor, %d",opResult);
+		dprintf(USB_LOG_LEVEL_ERROR, "could not get device descriptor, %d",opResult);
 		return opResult;
 	}
-	dprintf(1, "hub has %d configurations",std_descriptor.configuration_count);
+	dprintf(USB_LOG_LEVEL_INFO, "hub has %d configurations",std_descriptor.configuration_count);
 	if(std_descriptor.configuration_count<1){
-		dprintf(1, "THERE ARE NO CONFIGURATIONS AVAILABLE");
+		dprintf(USB_LOG_LEVEL_ERROR, "THERE ARE NO CONFIGURATIONS AVAILABLE");
 		//shouldn`t I return?
 	}
 	/// \TODO check other configurations
@@ -177,7 +176,7 @@ int usb_add_hub_device(device_t *dev) {
         target.address, 0,
         &config_descriptor);
 	if(opResult!=EOK){
-		dprintf(1, "could not get configuration descriptor, %d",opResult);
+		dprintf(USB_LOG_LEVEL_ERROR, "could not get configuration descriptor, %d",opResult);
 		return opResult;
 	}
 	//set configuration
@@ -185,16 +184,16 @@ int usb_add_hub_device(device_t *dev) {
     config_descriptor.configuration_number);
 
 	if (opResult != EOK) {
-		dprintf(1, "something went wrong when setting hub`s configuration, %d", opResult);
+		dprintf(USB_LOG_LEVEL_ERROR, "something went wrong when setting hub`s configuration, %d", opResult);
 	}
 
 	usb_device_request_setup_packet_t request;
 	for (port = 1; port < hub_info->port_count+1; ++port) {
 		usb_hub_set_power_port_request(&request, port);
 		opResult = usb_drv_sync_control_write(hc, target, &request, NULL, 0);
-		dprintf(1, "powering port %d",port);
+		dprintf(USB_LOG_LEVEL_INFO, "powering port %d",port);
 		if (opResult != EOK) {
-			dprintf(1, "something went wrong when setting hub`s %dth port", port);
+			dprintf(USB_LOG_LEVEL_WARNING, "something went wrong when setting hub`s %dth port", port);
 		}
 	}
 	//ports powered, hub seems to be enabled
@@ -206,17 +205,17 @@ int usb_add_hub_device(device_t *dev) {
 	usb_lst_append(&usb_hub_list, hub_info);
 	fibril_mutex_unlock(&usb_hub_list_lock);
 
-	dprintf(1, "hub info added to list");
+	dprintf(USB_LOG_LEVEL_DEBUG, "hub info added to list");
 	//(void)hub_info;
 	usb_hub_check_hub_changes();
 
 	
 
-	dprintf(1, "hub dev added");
-	dprintf(1, "\taddress %d, has %d ports ",
+	dprintf(USB_LOG_LEVEL_INFO, "hub dev added");
+	dprintf(USB_LOG_LEVEL_DEBUG, "\taddress %d, has %d ports ",
 			hub_info->usb_device->address,
 			hub_info->port_count);
-	dprintf(1, "\tused configuration %d",config_descriptor.configuration_number);
+	dprintf(USB_LOG_LEVEL_DEBUG, "\tused configuration %d",config_descriptor.configuration_number);
 
 	return EOK;
 	//return ENOTSUP;
@@ -237,10 +236,10 @@ int usb_add_hub_device(device_t *dev) {
  */
 inline static int usb_hub_release_default_address(int hc){
 	int opResult;
-	dprintf(1, "releasing default address");
+	dprintf(USB_LOG_LEVEL_INFO, "releasing default address");
 	opResult = usb_drv_release_default_address(hc);
 	if (opResult != EOK) {
-		dprintf(1, "failed to release default address");
+		dprintf(USB_LOG_LEVEL_WARNING, "failed to release default address");
 	}
 	return opResult;
 }
@@ -254,11 +253,11 @@ inline static int usb_hub_release_default_address(int hc){
 static void usb_hub_init_add_device(int hc, uint16_t port, usb_target_t target) {
 	usb_device_request_setup_packet_t request;
 	int opResult;
-	dprintf(1, "some connection changed");
+	dprintf(USB_LOG_LEVEL_INFO, "some connection changed");
 	//get default address
 	opResult = usb_drv_reserve_default_address(hc);
 	if (opResult != EOK) {
-		dprintf(1, "cannot assign default address, it is probably used");
+		dprintf(USB_LOG_LEVEL_WARNING, "cannot assign default address, it is probably used");
 		return;
 	}
 	//reset port
@@ -269,7 +268,7 @@ static void usb_hub_init_add_device(int hc, uint16_t port, usb_target_t target) 
 			NULL, 0
 			);
 	if (opResult != EOK) {
-		dprintf(1, "something went wrong when reseting a port");
+		dprintf(USB_LOG_LEVEL_ERROR, "something went wrong when reseting a port");
 		usb_hub_release_default_address(hc);
 	}
 }
@@ -284,11 +283,11 @@ static void usb_hub_finalize_add_device( usb_hub_info_t * hub,
 		int hc, uint16_t port, usb_target_t target) {
 
 	int opResult;
-	dprintf(1, "finalizing add device");
+	dprintf(USB_LOG_LEVEL_INFO, "finalizing add device");
 	opResult = usb_hub_clear_port_feature(hc, target.address,
 	    port, USB_HUB_FEATURE_C_PORT_RESET);
 	if (opResult != EOK) {
-		dprintf(1, "failed to clear port reset feature");
+		dprintf(USB_LOG_LEVEL_ERROR, "failed to clear port reset feature");
 		usb_hub_release_default_address(hc);
 		return;
 	}
@@ -296,17 +295,17 @@ static void usb_hub_finalize_add_device( usb_hub_info_t * hub,
 	/* Request address at from host controller. */
 	usb_address_t new_device_address = usb_drv_request_address(hc);
 	if (new_device_address < 0) {
-		dprintf(1, "failed to get free USB address");
+		dprintf(USB_LOG_LEVEL_ERROR, "failed to get free USB address");
 		opResult = new_device_address;
 		usb_hub_release_default_address(hc);
 		return;
 	}
-	dprintf(1, "setting new address");
+	dprintf(USB_LOG_LEVEL_INFO, "setting new address %d",new_device_address);
 	opResult = usb_drv_req_set_address(hc, USB_ADDRESS_DEFAULT,
 	    new_device_address);
 
 	if (opResult != EOK) {
-		dprintf(1, "could not set address for new device");
+		dprintf(USB_LOG_LEVEL_ERROR, "could not set address for new device");
 		usb_hub_release_default_address(hc);
 		return;
 	}
@@ -321,7 +320,7 @@ static void usb_hub_finalize_add_device( usb_hub_info_t * hub,
 	opResult = usb_drv_register_child_in_devman(hc, hub->device,
             new_device_address, &child_handle);
 	if (opResult != EOK) {
-		dprintf(1, "could not start driver for new device");
+		dprintf(USB_LOG_LEVEL_ERROR, "could not start driver for new device");
 		return;
 	}
 	hub->attached_devs[port].devman_handle = child_handle;
@@ -329,10 +328,10 @@ static void usb_hub_finalize_add_device( usb_hub_info_t * hub,
 
 	opResult = usb_drv_bind_address(hc, new_device_address, child_handle);
 	if (opResult != EOK) {
-		dprintf(1, "could not assign address of device in hcd");
+		dprintf(USB_LOG_LEVEL_ERROR, "could not assign address of device in hcd");
 		return;
 	}
-	dprintf(1, "new device address %d, handle %zu",
+	dprintf(USB_LOG_LEVEL_INFO, "new device address %d, handle %zu",
 	    new_device_address, child_handle);
 
 }
@@ -357,12 +356,12 @@ static void usb_hub_removed_device(
 	if(hub->attached_devs[port].address!=0){
 		opResult = usb_drv_release_address(hc,hub->attached_devs[port].address);
 		if(opResult != EOK) {
-			dprintf(1, "could not release address of " \
+			dprintf(USB_LOG_LEVEL_WARNING, "could not release address of " \
 			    "removed device: %d", opResult);
 		}
 		hub->attached_devs[port].address = 0;
 	}else{
-		dprintf(1, "this is strange, disconnected device had no address");
+		dprintf(USB_LOG_LEVEL_WARNING, "this is strange, disconnected device had no address");
 		//device was disconnected before it`s port was reset - return default address
 		usb_drv_release_default_address(hc);
 	}
@@ -376,7 +375,7 @@ static void usb_hub_removed_device(
  */
 static void usb_hub_process_interrupt(usb_hub_info_t * hub, int hc,
         uint16_t port, usb_address_t address) {
-	dprintf(1, "interrupt at port %d", port);
+	dprintf(USB_LOG_LEVEL_DEBUG, "interrupt at port %d", port);
 	//determine type of change
 	usb_target_t target;
 	target.address=address;
@@ -394,11 +393,11 @@ static void usb_hub_process_interrupt(usb_hub_info_t * hub, int hc,
 			&status, 4, &rcvd_size
 			);
 	if (opResult != EOK) {
-		dprintf(1, "ERROR: could not get port status");
+		dprintf(USB_LOG_LEVEL_ERROR, "ERROR: could not get port status");
 		return;
 	}
 	if (rcvd_size != sizeof (usb_port_status_t)) {
-		dprintf(1, "ERROR: received status has incorrect size");
+		dprintf(USB_LOG_LEVEL_ERROR, "ERROR: received status has incorrect size");
 		return;
 	}
 	//something connected/disconnected
@@ -407,7 +406,7 @@ static void usb_hub_process_interrupt(usb_hub_info_t * hub, int hc,
 		    port, USB_HUB_FEATURE_C_PORT_CONNECTION);
 		// TODO: check opResult
 		if (usb_port_dev_connected(&status)) {
-			dprintf(1, "some connection changed");
+			dprintf(USB_LOG_LEVEL_INFO, "some connection changed");
 			usb_hub_init_add_device(hc, port, target);
 		} else {
 			usb_hub_removed_device(hub, hc, port, target);
@@ -415,11 +414,11 @@ static void usb_hub_process_interrupt(usb_hub_info_t * hub, int hc,
 	}
 	//port reset
 	if (usb_port_reset_completed(&status)) {
-		dprintf(1, "port reset complete");
+		dprintf(USB_LOG_LEVEL_INFO, "port reset complete");
 		if (usb_port_enabled(&status)) {
 			usb_hub_finalize_add_device(hub, hc, port, target);
 		} else {
-			dprintf(1, "ERROR: port reset, but port still not enabled");
+			dprintf(USB_LOG_LEVEL_WARNING, "ERROR: port reset, but port still not enabled");
 		}
 	}
 
@@ -428,7 +427,7 @@ static void usb_hub_process_interrupt(usb_hub_info_t * hub, int hc,
 	usb_port_set_reset_completed(&status, false);
 	usb_port_set_dev_connected(&status, false);
 	if (status>>16) {
-		dprintf(1, "there was some unsupported change on port %d: %X",port,status);
+		dprintf(USB_LOG_LEVEL_INFO, "there was some unsupported change on port %d: %X",port,status);
 
 	}
 	/// \TODO handle other changes
@@ -457,7 +456,7 @@ void usb_hub_check_hub_changes(void) {
 		usb_target_t target;
 		target.address = hub_info->usb_device->address;
 		target.endpoint = 1;/// \TODO get from endpoint descriptor
-		dprintf(1, "checking changes for hub at addr %d",
+		dprintf(USB_LOG_LEVEL_INFO, "checking changes for hub at addr %d",
 		    target.address);
 
 		size_t port_count = hub_info->port_count;
@@ -488,7 +487,7 @@ void usb_hub_check_hub_changes(void) {
 
 		if (opResult != EOK) {
 			free(change_bitmap);
-			dprintf(1, "something went wrong while getting status of hub");
+			dprintf(USB_LOG_LEVEL_WARNING, "something went wrong while getting status of hub");
 			continue;
 		}
 		unsigned int port;

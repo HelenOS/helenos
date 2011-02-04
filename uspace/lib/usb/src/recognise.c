@@ -358,6 +358,15 @@ int usb_drv_register_child_in_devman(int hc, device_t *parent,
     usb_address_t address, devman_handle_t *child_handle)
 {
 	static size_t device_name_index = 0;
+	static FIBRIL_MUTEX_INITIALIZE(device_name_index_mutex);
+
+	size_t this_device_name_index;
+
+	fibril_mutex_lock(&device_name_index_mutex);
+	this_device_name_index = device_name_index;
+	device_name_index++;
+	fibril_mutex_unlock(&device_name_index_mutex);
+
 
 	device_t *child = NULL;
 	char *child_name = NULL;
@@ -373,7 +382,7 @@ int usb_drv_register_child_in_devman(int hc, device_t *parent,
 	 * TODO: Once the device driver framework support persistent
 	 * naming etc., something more descriptive could be created.
 	 */
-	rc = asprintf(&child_name, "usbdev%02zu", device_name_index);
+	rc = asprintf(&child_name, "usbdev%02zu", this_device_name_index);
 	if (rc < 0) {
 		goto failure;
 	}
@@ -395,8 +404,6 @@ int usb_drv_register_child_in_devman(int hc, device_t *parent,
 		*child_handle = child->handle;
 	}
 	
-	device_name_index++;
-
 	return EOK;
 
 failure:
