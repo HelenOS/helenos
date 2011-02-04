@@ -143,16 +143,16 @@ int cmd_cat(char **argv)
 			printf("%s\n", CAT_VERSION);
 			return CMD_SUCCESS;
 		case 'H':
-			printf(cat_oops);
+			printf("%s", cat_oops);
 			return CMD_FAILURE;
 		case 't':
-			printf(cat_oops);
+			printf("%s", cat_oops);
 			return CMD_FAILURE;
 		case 'b':
-			printf(cat_oops);
+			printf("%s", cat_oops);
 			break;
 		case 'm':
-			printf(cat_oops);
+			printf("%s", cat_oops);
 			return CMD_FAILURE;
 		}
 	}

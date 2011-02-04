@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2010 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,24 +25,37 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-/** @addtogroup drvusbuhci
+/** @addtogroup usb
  * @{
  */
 /** @file
- * @brief UHCI driver
+ * @brief UHCI port driver
  */
-#ifndef DRV_UHCI_UHCI_H
-#define DRV_UHCI_UHCI_H
+#ifndef DRV_UHCI_PORT_H
+#define DRV_UHCI_PORT_H
 
-#include <usbhc_iface.h>
+#include <assert.h>
+#include <driver.h> /* device_t */
+#include <stdint.h>
 
-#define NAME "uhci"
+#include "port_status.h"
 
-usbhc_iface_t uhci_iface;
+typedef struct uhci_port
+{
+	port_status_t *address;
+	unsigned number;
+	unsigned wait_period_usec;
+	int hc_phone;
+	device_t *rh;
+	devman_handle_t attached_device;
+	fid_t checker;
+} uhci_port_t;
 
-int pci_get_my_registers(device_t *, uintptr_t *, size_t *, int *);
+int uhci_port_init(
+  uhci_port_t *port, port_status_t *address, unsigned number,
+  unsigned usec, device_t *rh, int parent_phone);
 
+void uhci_port_fini(uhci_port_t *port);
 #endif
 /**
  * @}
