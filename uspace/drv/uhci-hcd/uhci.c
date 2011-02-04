@@ -41,6 +41,8 @@
 static int uhci_init_transfer_lists(uhci_t *instance);
 static int uhci_clean_finished(void *arg);
 static int uhci_debug_checker(void *arg);
+static bool allowed_usb_packet(
+	bool low_speed, usb_transfer_type_t, size_t size);
 
 int uhci_init(uhci_t *instance, void *regs, size_t reg_size)
 {
@@ -159,27 +161,20 @@ int uhci_transfer(
   usbhc_iface_transfer_in_callback_t callback_in,
   void *arg)
 {
+	if (!allowed_usb_packet(low_speed, transfer_type, size)) {
+		usb_log_warning("Invalid USB packet specified %s SPEED %d %zu.\n",
+			low_speed ? "LOW" : "FULL" , transfer_type, size);
+		return ENOTSUP;
+	}
+
 	// TODO: Add support for isochronous transfers
 	if (transfer_type == USB_TRANSFER_ISOCHRONOUS) {
 		usb_log_warning("ISO transfer not supported.\n");
 		return ENOTSUP;
 	}
 
-	if (transfer_type == USB_TRANSFER_INTERRUPT
-	  && size >= 64) {
-		usb_log_warning("Interrupt transfer too big %zu.\n", size);
-		return ENOTSUP;
-	}
-
-	if (size >= 1024) {
-		usb_log_warning("Transfer too big.\n");
-		return ENOTSUP;
-	}
 	transfer_list_t *list = instance->transfers[low_speed][transfer_type];
-	if (!list) {
-		usb_log_warning("UNSUPPORTED transfer %d-%d.\n", low_speed, transfer_type);
-		return ENOTSUP;
-	}
+	assert(list);
 
 	transfer_descriptor_t *td = NULL;
 	callback_t *job = NULL;
@@ -205,7 +200,6 @@ int uhci_transfer(
 	CHECK_RET_TRANS_FREE_JOB_TD("Failed to setup transfer descriptor.\n");
 
 	td->callback = job;
-
 
 	usb_log_debug("Appending a new transfer to queue %s.\n", list->name);
 
@@ -309,6 +303,23 @@ int uhci_debug_checker(void *arg)
 		async_usleep(UHCI_DEBUGER_TIMEOUT);
 	}
 	return 0;
+}
+/*----------------------------------------------------------------------------*/
+bool allowed_usb_packet(
+	bool low_speed, usb_transfer_type_t transfer, size_t size)
+{
+	/* see USB specification chapter 5.5-5.8 for magic numbers used here */
+	switch(transfer) {
+		case USB_TRANSFER_ISOCHRONOUS:
+			return (!low_speed && size < 1024);
+		case USB_TRANSFER_INTERRUPT:
+			return size <= (low_speed ? 8 :64);
+		case USB_TRANSFER_CONTROL: /* device specifies its own max size */
+			return (size <= (low_speed ? 8 : 64));
+		case USB_TRANSFER_BULK: /* device specifies its own max size */
+			return (!low_speed && size <= 64);
+	}
+	return false;
 }
 /**
  * @}
