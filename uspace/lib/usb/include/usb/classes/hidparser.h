@@ -69,11 +69,29 @@ typedef struct {
 	void (*keyboard)(const uint8_t *key_codes, size_t count, const uint8_t modifiers, void *arg);
 } usb_hid_report_in_callbacks_t;
 
-#define USB_HID_BOOT_KEYBOARD_NUM_LOCK		0x01
-#define USB_HID_BOOT_KEYBOARD_CAPS_LOCK		0x02
-#define USB_HID_BOOT_KEYBOARD_SCROLL_LOCK	0x04
-#define USB_HID_BOOT_KEYBOARD_COMPOSE		0x08
-#define USB_HID_BOOT_KEYBOARD_KANA			0x10
+
+typedef enum {
+	USB_HID_MOD_BOOT_NUM_LOCK = 0x01,
+	USB_HID_MOD_BOOT_CAPS_LOCK = 0x02,
+	USB_HID_MOD_BOOT_SCROLL_LOCK = 0x04,
+	USB_HID_MOD_BOOT_COMPOSE = 0x08,
+	USB_HID_MOD_BOOT_KANA = 0x10,
+	USB_HID_MOD_BOOT_COUNT = 5
+} usb_hid_modifiers_boot_t;
+
+static const usb_hid_modifiers_boot_t usb_hid_modifiers_boot_consts[5] = {
+	USB_HID_MOD_BOOT_NUM_LOCK,
+	USB_HID_MOD_BOOT_CAPS_LOCK,
+	USB_HID_MOD_BOOT_SCROLL_LOCK,
+	USB_HID_MOD_BOOT_COMPOSE,
+	USB_HID_MOD_BOOT_KANA
+};
+
+//#define USB_HID_BOOT_KEYBOARD_NUM_LOCK		0x01
+//#define USB_HID_BOOT_KEYBOARD_CAPS_LOCK		0x02
+//#define USB_HID_BOOT_KEYBOARD_SCROLL_LOCK	0x04
+//#define USB_HID_BOOT_KEYBOARD_COMPOSE		0x08
+//#define USB_HID_BOOT_KEYBOARD_KANA			0x10
 
 /*
  * modifiers definitions

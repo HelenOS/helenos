@@ -247,12 +247,44 @@ static void kbd_push_ev(int type, unsigned int key)
 	 * 3) 
 	 */
 
+static const keycode_t usb_hid_modifiers_boot_keycodes[5] = {
+	KC_NUM_LOCK,      /* USB_HID_MOD_BOOT_NUM_LOCK */
+	KC_CAPS_LOCK,     /* USB_HID_MOD_BOOT_CAPS_LOCK */
+	KC_SCROLL_LOCK,   /* USB_HID_MOD_BOOT_SCROLL_LOCK */
+	0,                /* USB_HID_MOD_BOOT_COMPOSE */
+	0                 /* USB_HID_MOD_BOOT_KANA */
+};
+
 static void usbkbd_check_modifier_changes(usb_hid_dev_kbd_t *kbd_dev,
     uint8_t modifiers)
 {
-	// ignore for now
-	// modifiers should be sent as normal keys to usbkbd_parse_scancode()!!
-	// so it would be better if I received it from report parser in that way
+	/*
+	 * TODO: why the USB keyboard has NUM_, SCROLL_ and CAPS_LOCK
+	 *       both as modifiers and as keys with their own scancodes???
+	 *
+	 * modifiers should be sent as normal keys to usbkbd_parse_scancode()!!
+	 * so maybe it would be better if I received it from report parser in 
+	 * that way
+	 */
+	
+	int i;
+	for (i = 0; i < USB_HID_MOD_BOOT_COUNT; ++i) {
+		if ((modifiers & usb_hid_modifiers_boot_consts[i]) &&
+		    !(kbd_dev->modifiers & usb_hid_modifiers_boot_consts[i])) {
+			// modifier pressed
+			if (usb_hid_modifiers_boot_keycodes[i] != 0) {
+				kbd_push_ev(KEY_PRESS, 
+				    usb_hid_modifiers_boot_keycodes[i]);
+			}
+		} else if (!(modifiers & usb_hid_modifiers_boot_consts[i]) &&
+		    (kbd_dev->modifiers & usb_hid_modifiers_boot_consts[i])) {
+			// modifier released
+			if (usb_hid_modifiers_boot_keycodes[i] != 0) {
+				kbd_push_ev(KEY_RELEASE, 
+				    usb_hid_modifiers_boot_keycodes[i]);
+			}
+		}	// no change
+	}
 }
 
 static void usbkbd_check_key_changes(usb_hid_dev_kbd_t *kbd_dev, 
@@ -261,7 +293,7 @@ static void usbkbd_check_key_changes(usb_hid_dev_kbd_t *kbd_dev,
 	// TODO: phantom state!!
 	
 	unsigned int key;
-	int i, j;
+	unsigned int i, j;
 	
 	// TODO: quite dummy right now, think of better implementation
 	
@@ -485,7 +517,7 @@ static usb_hid_dev_kbd_t *usbkbd_init_device(device_t *dev)
 	// save the size of the report
 	kbd_dev->keycode_count = BOOTP_REPORT_SIZE;
 	kbd_dev->keycodes = (uint8_t *)calloc(
-	    kbd_dev->keycode_count * sizeof(uint8_t));
+	    kbd_dev->keycode_count, sizeof(uint8_t));
 	
 	if (kbd_dev->keycodes == NULL) {
 		usb_log_fatal("No memory!\n");

@@ -78,6 +78,7 @@ typedef struct {
 	
 	uint8_t *keycodes;
 	size_t keycode_count;
+	uint8_t modifiers;
 } usb_hid_dev_kbd_t;
 
 // TODO: more configurations!
