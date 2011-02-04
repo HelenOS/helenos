@@ -148,6 +148,7 @@ void usb_address_keeping_reserve_default(usb_address_keeping_t *addresses)
 		fibril_condvar_wait(&addresses->default_condvar,
 			&addresses->default_condvar_guard);
 	}
+	addresses->default_available = false;
 	fibril_mutex_unlock(&addresses->default_condvar_guard);
 }
 
