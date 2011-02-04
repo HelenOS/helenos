@@ -63,7 +63,7 @@ void print_port_status(port_status_t value)
 {
 	unsigned i = 0;
 	for (;i < sizeof(flags)/sizeof(struct flag_name); ++i) {
-		usb_log_debug("\t%s status: %s.\n", flags[i].name,
+		usb_log_debug2("\t%s status: %s.\n", flags[i].name,
 		  value & flags[i].flag ? "YES" : "NO");
 	}
 }

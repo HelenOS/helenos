@@ -52,14 +52,6 @@ int uhci_root_hub_init(
 		return ret;
 	}
 
-	/* connect to the parent device (HC) */
-	rh->parent_phone = devman_device_connect(8, 0);
-	//usb_drv_hc_connect(rh, instance->hc_handle, 0);
-	if (rh->parent_phone < 0) {
-		usb_log_error("Failed to connect to the HC device.\n");
-		return rh->parent_phone;
-	}
-
 	/* allow access to root hub registers */
 	assert(sizeof(port_status_t) * UHCI_ROOT_HUB_PORT_COUNT == size);
 	port_status_t *regs;
@@ -74,9 +66,16 @@ int uhci_root_hub_init(
 	/* add fibrils for periodic port checks */
 	unsigned i = 0;
 	for (; i < UHCI_ROOT_HUB_PORT_COUNT; ++i) {
+		/* connect to the parent device (HC) */
+		int parent_phone = devman_device_connect(instance->hc_handle, 0);
+		//usb_drv_hc_connect(rh, instance->hc_handle, 0);
+		if (parent_phone < 0) {
+			usb_log_error("Failed to connect to the HC device port %d.\n", i);
+			return parent_phone;
+		}
 		/* mind pointer arithmetics */
 		int ret = uhci_port_init(
-		  &instance->ports[i], regs + i, i, ROOT_HUB_WAIT_USEC, rh);
+		  &instance->ports[i], regs + i, i, ROOT_HUB_WAIT_USEC, rh, parent_phone);
 		if (ret != EOK) {
 			unsigned j = 0;
 			for (;j < i; ++j)
