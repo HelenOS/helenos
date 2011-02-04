@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Vojtech Horky, Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,13 +25,25 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include <usb/hcdhubd.h>
-#include <usb_iface.h>
-#include <usb/debug.h>
-#include <errno.h>
-#include <str_error.h>
+/** @addtogroup usb
+ * @{
+ */
+/** @file
+ * @brief UHCI driver
+ */
 #include <driver.h>
+#include <usb_iface.h>
+
+#include <errno.h>
+
+#include <usb/debug.h>
+
+#include "iface.h"
+#include "pci.h"
+#include "root_hub.h"
 #include "uhci.h"
+
+#define NAME "uhci-hcd"
 
 static int usb_iface_get_hc_handle(device_t *dev, devman_handle_t *handle)
 {
@@ -53,7 +65,9 @@ static device_ops_t uhci_ops = {
 
 static int uhci_add_device(device_t *device)
 {
-	usb_dprintf(NAME, 1, "uhci_add_device() called\n");
+	assert(device);
+
+	usb_log_info("uhci_add_device() called\n");
 	device->ops = &uhci_ops;
 
 	uintptr_t io_reg_base;
@@ -64,20 +78,42 @@ static int uhci_add_device(device_t *device)
 	    &io_reg_base, &io_reg_size, &irq);
 
 	if (rc != EOK) {
-		fprintf(stderr,
-		    NAME ": failed to get I/O registers addresses: %s.\n",
-		    str_error(rc));
+		usb_log_error("Failed(%d) to get I/O registers addresses for device:.\n",
+		    rc, device->handle);
 		return rc;
 	}
 
-	usb_dprintf(NAME, 2, "I/O regs at 0x%X (size %zu), IRQ %d.\n",
+	usb_log_info("I/O regs at 0x%X (size %zu), IRQ %d.\n",
 	    io_reg_base, io_reg_size, irq);
 
-	/*
-	 * We need to announce the presence of our root hub.
-	 */
-	usb_dprintf(NAME, 2, "adding root hub\n");
-	usb_hcd_add_root_hub(device);
+	uhci_t *uhci_hc = malloc(sizeof(uhci_t));
+	if (!uhci_hc) {
+		usb_log_error("Failed to allocaete memory for uhci hcd driver.\n");
+		return ENOMEM;
+	}
+
+	int ret = uhci_init(uhci_hc, (void*)io_reg_base, io_reg_size);
+	if (ret != EOK) {
+		usb_log_error("Failed to init uhci-hcd.\n");
+		return ret;
+	}
+	device_t *rh;
+	ret = setup_root_hub(&rh, device);
+
+	if (ret != EOK) {
+		usb_log_error("Failed to setup uhci root hub.\n");
+		/* TODO: destroy uhci here */
+		return ret;
+	}
+
+	ret = child_device_register(rh, device);
+	if (ret != EOK) {
+		usb_log_error("Failed to register root hub.\n");
+		/* TODO: destroy uhci here */
+		return ret;
+	}
+
+	device->driver_data = uhci_hc;
 
 	return EOK;
 }
@@ -97,7 +133,10 @@ int main(int argc, char *argv[])
 	 * Do some global initializations.
 	 */
 	sleep(5);
-	usb_dprintf_enable(NAME, 5);
+	usb_log_enable(USB_LOG_LEVEL_INFO, NAME);
 
 	return driver_main(&uhci_driver);
 }
+/**
+ * @}
+ */

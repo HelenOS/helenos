@@ -226,7 +226,7 @@ int cmd_rm(char **argv)
 			break;
 		}
 		memset(buff, 0, sizeof(buff));
-		snprintf(buff, len, argv[i]);
+		snprintf(buff, len, "%s", argv[i]);
 
 		scope = rm_scope(buff);
 		switch (scope) {

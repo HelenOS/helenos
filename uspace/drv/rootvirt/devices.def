@@ -22,7 +22,9 @@
 },
 #endif
 /* Virtual USB host controller. */
+/*
 {
 	.name = "usbhc",
 	.match_id = "usb&hc=vhc"
 },
+*/

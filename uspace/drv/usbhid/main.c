@@ -55,7 +55,7 @@
 #include "conv.h"
 #include "layout.h"
 
-#define BUFFER_SIZE 32
+#define BUFFER_SIZE 8
 #define NAME "usbhid"
 
 #define GUESSED_POLL_ENDPOINT 1
@@ -261,6 +261,7 @@ static void usbkbd_process_keycodes(const uint8_t *key_codes, size_t count,
 	printf("\n");
 }
 
+# if 0
 /*
  * Kbd functions
  */
@@ -296,7 +297,6 @@ static int usbkbd_get_report_descriptor(usb_hid_dev_kbd_t *kbd_dev)
 
 	return EOK;
 }
-
 static int usbkbd_process_descriptors(usb_hid_dev_kbd_t *kbd_dev)
 {
 	// get the first configuration descriptor (TODO: parse also other!)
@@ -362,7 +362,7 @@ static int usbkbd_process_descriptors(usb_hid_dev_kbd_t *kbd_dev)
 	
 	return EOK;
 }
-
+#endif
 static usb_hid_dev_kbd_t *usbkbd_init_device(device_t *dev)
 {
 	usb_hid_dev_kbd_t *kbd_dev = (usb_hid_dev_kbd_t *)calloc(1, 
@@ -403,8 +403,11 @@ static usb_hid_dev_kbd_t *usbkbd_init_device(device_t *dev)
 	 * 2) set endpoints from endpoint descriptors
 	 */
 
+
 	// TODO: get descriptors, parse descriptors and save endpoints
-	usbkbd_process_descriptors(kbd_dev);
+	//usbkbd_process_descriptors(kbd_dev);
+	usb_drv_req_set_configuration(
+	  kbd_dev->device->parent_phone, kbd_dev->address, 1);
 
 
 
@@ -466,7 +469,7 @@ static void usbkbd_poll_keyboard(usb_hid_dev_kbd_t *kbd_dev)
 	printf("Polling keyboard...\n");
 
 	while (true) {
-		async_usleep(1000 * 1000 * 2);
+		async_usleep(1000 * 10);
 
 		sess_rc = usb_endpoint_pipe_start_session(&kbd_dev->poll_pipe);
 		if (sess_rc != EOK) {
