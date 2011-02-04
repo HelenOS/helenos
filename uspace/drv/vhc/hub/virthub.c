@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup usb
+/** @addtogroup drvusbvhc
  * @{
  */
 /** @file
@@ -163,9 +163,15 @@ int virthub_init(usbvirt_device_t *dev)
 	hub_init(hub);
 	dev->device_data = hub;
 
-	usbvirt_connect_local(dev);
+	int rc;
+#ifdef STANDALONE_HUB
+	dev->name = "hub";
+	rc = usbvirt_connect(dev);
+#else
+	rc = usbvirt_connect_local(dev);
+#endif
 
-	return EOK;
+	return rc;
 }
 
 /** Connect a device to a virtual hub.
@@ -202,7 +208,7 @@ int virthub_disconnect_device(usbvirt_device_t *dev, virtdev_connection_t *conn)
 	hub_t *hub = (hub_t *) dev->device_data;
 
 	hub_acquire(hub);
-	/* TODO: implement. */
+	hub_disconnect_device(hub, conn);
 	hub_release(hub);
 
 	return ENOTSUP;

@@ -45,13 +45,13 @@ DIRS = \
 	app/sbi \
 	app/stats \
 	app/taskdump \
-	app/tasks \
 	app/tester \
 	app/tetris \
 	app/trace \
 	app/top \
 	app/usbinfo \
 	app/virtusbkbd \
+	app/virtusbhub \
 	app/netecho \
 	app/nettest1 \
 	app/nettest2 \
@@ -117,8 +117,8 @@ ifeq ($(UARCH),amd64)
 		srv/hw/irc/apic \
 		srv/hw/irc/i8259 \
 		drv/uhci \
+		drv/usbhid \
 		drv/usbhub \
-		drv/usbkbd \
 		drv/vhc
 endif
 
@@ -131,8 +131,8 @@ ifeq ($(UARCH),ia32)
 		srv/hw/irc/apic \
 		srv/hw/irc/i8259 \
 		drv/uhci \
+		drv/usbhid \
 		drv/usbhub \
-		drv/usbkbd \
 		drv/vhc
 endif
 

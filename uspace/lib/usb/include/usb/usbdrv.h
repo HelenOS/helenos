@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusb usb
+/** @addtogroup libusb
  * @{
  */
 /** @file
@@ -69,6 +69,9 @@ int usb_drv_async_control_write_data(int, usb_target_t,
 int usb_drv_async_control_write_status(int, usb_target_t,
     usb_handle_t *);
 
+int usb_drv_async_control_write(int, usb_target_t,
+    void *, size_t, void *, size_t, usb_handle_t *);
+
 int usb_drv_psync_control_write_setup(int, usb_target_t, void *, size_t);
 int usb_drv_psync_control_write_data(int, usb_target_t, void *, size_t);
 int usb_drv_psync_control_write_status(int, usb_target_t);
@@ -76,13 +79,15 @@ int usb_drv_psync_control_write_status(int, usb_target_t);
 int usb_drv_psync_control_write(int, usb_target_t,
     void *, size_t, void *, size_t);
 
-
 int usb_drv_async_control_read_setup(int, usb_target_t,
     void *, size_t, usb_handle_t *);
 int usb_drv_async_control_read_data(int, usb_target_t,
     void *, size_t, size_t *, usb_handle_t *);
 int usb_drv_async_control_read_status(int, usb_target_t,
     usb_handle_t *);
+
+int usb_drv_async_control_read(int, usb_target_t,
+    void *, size_t, void *, size_t, size_t *, usb_handle_t *);
 
 int usb_drv_psync_control_read_setup(int, usb_target_t, void *, size_t);
 int usb_drv_psync_control_read_data(int, usb_target_t, void *, size_t, size_t *);

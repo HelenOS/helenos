@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusb usb
+/** @addtogroup libusb
  * @{
  */
 /** @file
@@ -36,7 +36,6 @@
 #define LIBUSB_HID_H_
 
 #include <usb/usb.h>
-#include <driver.h>
 #include <usb/classes/hidparser.h>
 #include <usb/descriptor.h>
 
@@ -100,40 +99,6 @@ typedef struct {
 	usb_standard_hid_class_descriptor_info_t report_desc_info;
 } __attribute__ ((packed)) usb_standard_hid_descriptor_t;
 
-/**
- *
- */
-typedef struct {
-	usb_standard_interface_descriptor_t iface_desc;
-	usb_standard_endpoint_descriptor_t *endpoints;
-	usb_standard_hid_descriptor_t hid_desc;
-	uint8_t *report_desc;
-	//usb_standard_hid_class_descriptor_info_t *class_desc_info;
-	//uint8_t **class_descs;
-} usb_hid_iface_t;
-
-/**
- *
- */
-typedef struct {
-	usb_standard_configuration_descriptor_t config_descriptor;
-	usb_hid_iface_t *interfaces;
-} usb_hid_configuration_t;
-
-/**
- * @brief USB/HID keyboard device type.
- *
- * Quite dummy right now.
- */
-typedef struct {
-	device_t *device;
-	usb_hid_configuration_t *conf;
-	usb_address_t address;
-	usb_endpoint_t poll_endpoint;
-	usb_hid_report_parser_t *parser;
-} usb_hid_dev_kbd_t;
-
-// TODO: more configurations!
 
 #endif
 /**

@@ -25,6 +25,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
+/** @addtogroup drvusbhid
+ * @{
+ */
+/** @file
+ * Descriptor dumping.
+ */
+
 #include <usb/classes/hid.h>
 
 #include "descdump.h"
@@ -142,3 +150,8 @@ void dump_hid_class_descriptor(int index, uint8_t type,
 	assert(d != NULL);
 	dump_buffer("", d, size);
 }
+
+/**
+ * @}
+ */
+

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusb usb
+/** @addtogroup libusb
  * @{
  */
 /** @file
@@ -187,7 +187,7 @@ int usb_drv_req_set_feature(int hc_phone, usb_address_t address,
  *
  * @param[in] phone Open phone to HC driver.
  * @param[in] old_address Current address.
- * @param[in] address Address to be set.
+ * @param[in] new_address Address to be set.
  * @return Error code.
  */
 int usb_drv_req_set_address(int phone, usb_address_t old_address,

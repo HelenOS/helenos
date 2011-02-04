@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusb usb
+/** @addtogroup libusb
  * @{
  */
 /** @file
@@ -80,5 +80,7 @@ void usb_address_keeping_devman_bind(usb_address_keeping_t *, usb_address_t,
 usb_address_t usb_address_keeping_find(usb_address_keeping_t *,
     devman_handle_t);
 
-
 #endif
+/**
+ * @}
+ */

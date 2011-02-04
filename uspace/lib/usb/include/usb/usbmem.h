@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Lubos Slovak
+ * Copyright (c) 2010 Matus Dekanek
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,16 +26,56 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef USBMEM_H
+#define	USBMEM_H
+
+
+// group should be changed - this is not usb specific
 /** @addtogroup usb
  * @{
  */
-/** @file
- * @brief USB Scancode parser.
+/** @file definitions of special memory management, used mostly in usb stack
+ *
+ * USB HCD needs traslation between physical and virtual addresses. These
+ * functions implement such functionality. For each allocated virtual address
+ * the memory manager gets also it`s physical translation and remembers it.
+ * Addresses allocated byt this manager can be therefore translated from and to
+ * physical addresses.
+ * Typical use:
+ * void * address = mman_malloc(some_size);
+ * void * physical_address = mman_getPA(address);
+ * void * the_same_address = mman_getVA(physical_address);
+ * void * null_address = mman_getPA(non_existing_address);
+ * mman_free(address);
+ * // physical_address, adress and the_same_address are no longer valid here
+ *
+ *
+ * @note Addresses allocated by this memory manager should be as well
+ * deallocated byt it.
+ *
  */
 
-#ifndef USBHID_CONV_H_
-#define USBHID_CONV_H_
+#include <sys/types.h>
 
-unsigned int usbkbd_parse_scancode(int scancode);
+extern void * mman_malloc(
+		size_t size,
+		size_t alignment,
+		unsigned long max_physical_address);
 
-#endif
+extern void * mman_getVA(void * addr);
+
+extern void * mman_getPA(void * addr);
+
+extern void mman_free(void * addr);
+
+
+
+
+
+
+/** @}
+ */
+
+
+#endif	/* USBMEM_H */
+

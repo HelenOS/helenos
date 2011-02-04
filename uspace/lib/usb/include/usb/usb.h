@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusb usb
+/** @addtogroup libusb
  * @{
  */
 /** @file
@@ -36,7 +36,21 @@
 #define LIBUSB_USB_H_
 
 #include <sys/types.h>
+#include <byteorder.h>
 #include <ipc/ipc.h>
+
+/** Convert 16bit value from native (host) endianness to USB endianness. */
+#define uint16_host2usb(n) host2uint16_t_le((n))
+
+/** Convert 32bit value from native (host) endianness to USB endianness. */
+#define uint32_host2usb(n) host2uint32_t_le((n))
+
+/** Convert 16bit value from USB endianness into native (host) one. */
+#define uint16_usb2host(n) uint16_t_le2host((n))
+
+/** Convert 32bit value from USB endianness into native (host) one. */
+#define uint32_usb2host(n) uint32_t_le2host((n))
+
 
 /** USB transfer type. */
 typedef enum {
@@ -51,7 +65,8 @@ const char * usb_str_transfer_type(usb_transfer_type_t t);
 /** USB data transfer direction. */
 typedef enum {
 	USB_DIRECTION_IN,
-	USB_DIRECTION_OUT
+	USB_DIRECTION_OUT,
+	USB_DIRECTION_BOTH
 } usb_direction_t;
 
 /** USB request type target. */

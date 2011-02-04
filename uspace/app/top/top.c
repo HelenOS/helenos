@@ -194,6 +194,7 @@ static void compute_percentages(data_t *old_data, data_t *new_data)
 	/* For all tasks compute sum and differencies of all cycles */
 	
 	uint64_t virtmem_total = 0;
+	uint64_t resmem_total = 0;
 	uint64_t ucycles_total = 0;
 	uint64_t kcycles_total = 0;
 	
@@ -222,6 +223,7 @@ static void compute_percentages(data_t *old_data, data_t *new_data)
 		    new_data->tasks[i].kcycles - old_data->tasks[j].kcycles;
 		
 		virtmem_total += new_data->tasks[i].virtmem;
+		resmem_total += new_data->tasks[i].resmem;
 		ucycles_total += new_data->ucycles_diff[i];
 		kcycles_total += new_data->kcycles_diff[i];
 	}
@@ -231,6 +233,8 @@ static void compute_percentages(data_t *old_data, data_t *new_data)
 	for (i = 0; i < new_data->tasks_count; i++) {
 		FRACTION_TO_FLOAT(new_data->tasks_perc[i].virtmem,
 		    new_data->tasks[i].virtmem * 100, virtmem_total);
+		FRACTION_TO_FLOAT(new_data->tasks_perc[i].resmem,
+		    new_data->tasks[i].resmem * 100, resmem_total);
 		FRACTION_TO_FLOAT(new_data->tasks_perc[i].ucycles,
 		    new_data->ucycles_diff[i] * 100, ucycles_total);
 		FRACTION_TO_FLOAT(new_data->tasks_perc[i].kcycles,

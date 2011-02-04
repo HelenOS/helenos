@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusb usb
+/** @addtogroup libusb
  * @{
  */
 /** @file
@@ -494,6 +494,56 @@ int usb_drv_async_control_write_status(int phone, usb_target_t target,
 	    handle);
 }
 
+/** Issue whole control write transfer. */
+int usb_drv_async_control_write(int phone, usb_target_t target,
+    void *setup_packet, size_t setup_packet_size,
+    void *buffer, size_t buffer_size,
+    usb_handle_t *handle)
+{
+	// FIXME - check input parameters instead of asserting them
+	assert(phone > 0);
+	assert(setup_packet != NULL);
+	assert(setup_packet_size > 0);
+	assert(buffer != NULL);
+	assert(buffer_size > 0);
+	assert(handle != NULL);
+
+	transfer_info_t *transfer
+	    = (transfer_info_t *) malloc(sizeof(transfer_info_t));
+	if (transfer == NULL) {
+		return ENOMEM;
+	}
+
+	transfer->size_transferred = NULL;
+	transfer->buffer = NULL;
+	transfer->size = 0;
+	transfer->phone = phone;
+
+	int rc;
+
+	transfer->request = async_send_3(phone,
+	    DEV_IFACE_ID(USBHC_DEV_IFACE),
+	    IPC_M_USBHC_CONTROL_WRITE,
+	    target.address, target.endpoint,
+	    &transfer->reply);
+
+	rc = async_data_write_start(phone, setup_packet, setup_packet_size);
+	if (rc != EOK) {
+		async_wait_for(transfer->request, NULL);
+		return rc;
+	}
+
+	rc = async_data_write_start(phone, buffer, buffer_size);
+	if (rc != EOK) {
+		async_wait_for(transfer->request, NULL);
+		return rc;
+	}
+
+	*handle = (usb_handle_t) transfer;
+
+	return EOK;
+}
+
 /** Start control read transfer. */
 int usb_drv_async_control_read_setup(int phone, usb_target_t target,
     void *buffer, size_t size,
@@ -527,6 +577,51 @@ int usb_drv_async_control_read_status(int phone, usb_target_t target,
 	    target,
 	    NULL, 0,
 	    handle);
+}
+
+/** Issue whole control read transfer. */
+int usb_drv_async_control_read(int phone, usb_target_t target,
+    void *setup_packet, size_t setup_packet_size,
+    void *buffer, size_t buffer_size, size_t *actual_size,
+    usb_handle_t *handle)
+{
+	// FIXME - check input parameters instead of asserting them
+	assert(phone > 0);
+	assert(setup_packet != NULL);
+	assert(setup_packet_size > 0);
+	assert(buffer != NULL);
+	assert(buffer_size > 0);
+	assert(handle != NULL);
+
+	transfer_info_t *transfer
+	    = (transfer_info_t *) malloc(sizeof(transfer_info_t));
+	if (transfer == NULL) {
+		return ENOMEM;
+	}
+
+	transfer->size_transferred = actual_size;
+	transfer->buffer = buffer;
+	transfer->size = buffer_size;
+	transfer->phone = phone;
+
+	int rc;
+
+	transfer->request = async_send_4(phone,
+	    DEV_IFACE_ID(USBHC_DEV_IFACE),
+	    IPC_M_USBHC_CONTROL_READ,
+	    target.address, target.endpoint,
+	    buffer_size,
+	    &transfer->reply);
+
+	rc = async_data_write_start(phone, setup_packet, setup_packet_size);
+	if (rc != EOK) {
+		async_wait_for(transfer->request, NULL);
+		return rc;
+	}
+
+	*handle = (usb_handle_t) transfer;
+
+	return EOK;
 }
 
 /**

@@ -25,6 +25,9 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+/** @addtogroup drvusbhub
+ * @{
+ */
 
 #ifndef PORT_STATUS_H
 #define	PORT_STATUS_H
@@ -301,3 +304,6 @@ static inline void usb_port_set_reset_completed(usb_port_status_t * status,bool 
 
 #endif	/* PORT_STATUS_H */
 
+/**
+ * @}
+ */

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup usb
+/** @addtogroup drvusbvhc
  * @{
  */
 /** @file
@@ -37,7 +37,9 @@
 
 #include <fibril_synch.h>
 
+#ifndef HUB_PORT_COUNT
 #define HUB_PORT_COUNT 2
+#endif
 #define BITS2BYTES(bits) (bits ? ((((bits)-1)>>3)+1) : 0)
 
 /** Hub port internal state.
@@ -93,6 +95,7 @@ typedef struct {
 
 void hub_init(hub_t *);
 size_t hub_connect_device(hub_t *, void *);
+int hub_disconnect_device(hub_t *, void *);
 size_t hub_find_device(hub_t *, void *);
 void hub_acquire(hub_t *);
 void hub_release(hub_t *);

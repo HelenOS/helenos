@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup usb
+/** @addtogroup drvusbhub
  * @{
  */
 /** @file
@@ -42,7 +42,7 @@
 #include <adt/list.h>
 #include <bool.h>
 #include <driver.h>
-#include <futex.h>
+#include <fibril_synch.h>
 
 #include <usb/usb.h>
 #include <usb/usbdrv.h>
@@ -81,7 +81,7 @@ usb_hub_info_t * usb_create_hub_info(device_t * device, int hc);
 extern usb_general_list_t usb_hub_list;
 
 /** Lock for hub list*/
-extern futex_t usb_hub_list_lock;
+extern fibril_mutex_t usb_hub_list_lock;
 
 
 /**

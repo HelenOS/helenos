@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup usb
+/** @addtogroup drvusbvhc
  * @{
  */
 /** @file
@@ -91,7 +91,7 @@ static inline unsigned int pseudo_random(unsigned int *seed)
 static void process_transaction_with_outcome(transaction_t * transaction,
     usb_transaction_outcome_t outcome)
 {
-	dprintf(3, "transaction " TRANSACTION_FORMAT " done, outcome: %s",
+	usb_log_debug2("Transaction " TRANSACTION_FORMAT " done: %s.\n",
 	    TRANSACTION_PRINTF(*transaction),
 	    usb_str_transaction_outcome(outcome));
 	
@@ -107,7 +107,7 @@ static int hc_manager_fibril(void *arg)
 	
 	static unsigned int seed = 4573;
 	
-	printf("%s: transaction processor ready.\n", NAME);
+	usb_log_info("Transaction processor ready.\n");
 	
 	while (true) {
 		async_usleep(USLEEP_BASE + (pseudo_random(&seed) % USLEEP_VAR));
@@ -124,13 +124,9 @@ static int hc_manager_fibril(void *arg)
 		    = transaction_get_instance(first_transaction_link);
 		list_remove(first_transaction_link);
 		
-
-		dprintf(0, "about to process " TRANSACTION_FORMAT " [%s]",
+		usb_log_debug("Processing " TRANSACTION_FORMAT " [%s].\n",
 		    TRANSACTION_PRINTF(*transaction), ports);
 
-		dprintf(3, "processing transaction " TRANSACTION_FORMAT "",
-		    TRANSACTION_PRINTF(*transaction));
-		
 		usb_transaction_outcome_t outcome;
 		outcome = virtdev_send_to_all(transaction);
 		
@@ -147,7 +143,7 @@ void hc_manager(void)
 {
 	fid_t fid = fibril_create(hc_manager_fibril, NULL);
 	if (fid == 0) {
-		printf(NAME ": failed to start HC manager fibril\n");
+		usb_log_fatal("Failed to start HC manager fibril.\n");
 		return;
 	}
 	fibril_add_ready(fid);
@@ -171,11 +167,15 @@ static transaction_t *transaction_create(usbvirt_transaction_type_t type,
 	transaction->actual_len = len;
 	transaction->callback = callback;
 	transaction->callback_arg = arg;
-	
-	dprintf(3, "creating transaction " TRANSACTION_FORMAT,
-	    TRANSACTION_PRINTF(*transaction));
-	
+
 	return transaction;
+}
+
+static void hc_add_transaction(transaction_t *transaction)
+{
+	usb_log_debug("Adding transaction " TRANSACTION_FORMAT ".\n",
+	    TRANSACTION_PRINTF(*transaction));
+	list_append(&transaction->link, &transaction_list);
 }
 
 /** Add transaction directioned towards the device.
@@ -189,7 +189,7 @@ void hc_add_transaction_to_device(bool setup, usb_target_t target,
 	    setup ? USBVIRT_TRANSACTION_SETUP : USBVIRT_TRANSACTION_OUT,
 	    target, transfer_type,
 	    buffer, len, callback, arg);
-	list_append(&transaction->link, &transaction_list);
+	hc_add_transaction(transaction);
 }
 
 /** Add transaction directioned from the device.
@@ -202,7 +202,7 @@ void hc_add_transaction_from_device(usb_target_t target,
 	transaction_t *transaction = transaction_create(USBVIRT_TRANSACTION_IN,
 	    target, transfer_type,
 	    buffer, len, callback, arg);
-	list_append(&transaction->link, &transaction_list);
+	hc_add_transaction(transaction);
 }
 
 /**

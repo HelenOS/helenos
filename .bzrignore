@@ -66,6 +66,8 @@ _link.ld
 ./uspace/app/usb/usb
 ./uspace/app/usbinfo/usbinfo
 ./uspace/app/virtusbkbd/vuk
+./uspace/app/virtusbhub/vuh
+./uspace/app/virtusbhub/vhc_hub/*
 ./uspace/app/websrv/websrv
 ./uspace/dist/app/*
 ./uspace/dist/cfg/net/general
@@ -83,7 +85,7 @@ _link.ld
 ./uspace/drv/test2/test2
 ./uspace/drv/uhci/uhci
 ./uspace/drv/usbhub/usbhub
-./uspace/drv/usbkbd/usbkbd
+./uspace/drv/usbhid/usbhid
 ./uspace/drv/vhc/vhc
 ./uspace/srv/bd/ata_bd/ata_bd
 ./uspace/srv/bd/file_bd/file_bd

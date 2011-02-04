@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Lubos Slovak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,6 +26,15 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
+/** @addtogroup drvusbhid
+ * @{
+ */
+/**
+ * @file
+ * Main routines of USB HID driver.
+ */
+
 #include <usb/usbdrv.h>
 #include <driver.h>
 #include <ipc/driver.h>
@@ -32,19 +42,21 @@
 #include <io/keycode.h>
 #include <io/console.h>
 #include <errno.h>
+#include <str_error.h>
 #include <fibril.h>
 #include <usb/classes/hid.h>
 #include <usb/classes/hidparser.h>
 #include <usb/devreq.h>
 #include <usb/descriptor.h>
 #include <io/console.h>
+#include "hid.h"
 #include "descparser.h"
 #include "descdump.h"
 #include "conv.h"
 #include "layout.h"
 
 #define BUFFER_SIZE 32
-#define NAME "usbkbd"
+#define NAME "usbhid"
 
 #define GUESSED_POLL_ENDPOINT 1
 
@@ -368,15 +380,13 @@ static usb_hid_dev_kbd_t *usbkbd_init_device(device_t *dev)
 	int rc = kbd_dev->device->parent_phone = usb_drv_hc_connect_auto(dev, 0);
 	if (rc < 0) {
 		printf("Problem setting phone to HC.\n");
-		free(kbd_dev);
-		return NULL;
+		goto error_leave;
 	}
 
 	rc = kbd_dev->address = usb_drv_get_my_address(dev->parent_phone, dev);
 	if (rc < 0) {
 		printf("Problem getting address of the device.\n");
-		free(kbd_dev);
-		return NULL;
+		goto error_leave;
 	}
 
 	// doesn't matter now that we have no address
@@ -386,9 +396,6 @@ static usb_hid_dev_kbd_t *usbkbd_init_device(device_t *dev)
 //		return NULL;
 //	}
 
-	// default endpoint
-	kbd_dev->poll_endpoint = GUESSED_POLL_ENDPOINT;
-	
 	/*
 	 * will need all descriptors:
 	 * 1) choose one configuration from configuration descriptors 
@@ -399,7 +406,35 @@ static usb_hid_dev_kbd_t *usbkbd_init_device(device_t *dev)
 	// TODO: get descriptors, parse descriptors and save endpoints
 	usbkbd_process_descriptors(kbd_dev);
 
+
+
+	/*
+	 * Initialize the backing connection to the host controller.
+	 */
+	rc = usb_device_connection_initialize_from_device(&kbd_dev->wire, dev);
+	if (rc != EOK) {
+		printf("Problem initializing connection to device: %s.\n",
+		    str_error(rc));
+		goto error_leave;
+	}
+
+	/*
+	 * Initialize device pipes.
+	 */
+	rc = usb_endpoint_pipe_initialize(&kbd_dev->poll_pipe, &kbd_dev->wire,
+	    GUESSED_POLL_ENDPOINT, USB_TRANSFER_INTERRUPT, USB_DIRECTION_IN);
+	if (rc != EOK) {
+		printf("Failed to initialize interrupt in pipe: %s.\n",
+		    str_error(rc));
+		goto error_leave;
+	}
+
+
 	return kbd_dev;
+
+error_leave:
+	free(kbd_dev);
+	return NULL;
 }
 
 static void usbkbd_process_interrupt_in(usb_hid_dev_kbd_t *kbd_dev,
@@ -412,7 +447,7 @@ static void usbkbd_process_interrupt_in(usb_hid_dev_kbd_t *kbd_dev,
 
 	//usb_hid_parse_report(kbd_dev->parser, buffer, actual_size, callbacks, 
 	//    NULL);
-	printf("Calling usb_hid_boot_keyboard_input_report() with size %d\n",
+	printf("Calling usb_hid_boot_keyboard_input_report() with size %zu\n",
 	    actual_size);
 	//dump_buffer("bufffer: ", buffer, actual_size);
 	int rc = usb_hid_boot_keyboard_input_report(buffer, actual_size, callbacks, 
@@ -424,38 +459,35 @@ static void usbkbd_process_interrupt_in(usb_hid_dev_kbd_t *kbd_dev,
 
 static void usbkbd_poll_keyboard(usb_hid_dev_kbd_t *kbd_dev)
 {
-	int rc;
-	usb_handle_t handle;
+	int rc, sess_rc;
 	uint8_t buffer[BUFFER_SIZE];
 	size_t actual_size;
-	//usb_endpoint_t poll_endpoint = 1;
-
-//	usb_address_t my_address = usb_drv_get_my_address(dev->parent_phone,
-//	    dev);
-//	if (my_address < 0) {
-//		return;
-//	}
-
-	usb_target_t poll_target = {
-		.address = kbd_dev->address,
-		.endpoint = kbd_dev->poll_endpoint
-	};
 
 	printf("Polling keyboard...\n");
 
 	while (true) {
 		async_usleep(1000 * 1000 * 2);
-		rc = usb_drv_async_interrupt_in(kbd_dev->device->parent_phone,
-		    poll_target, buffer, BUFFER_SIZE, &actual_size, &handle);
 
-		if (rc != EOK) {
-			printf("Error in usb_drv_async_interrupt_in(): %d\n", rc);
+		sess_rc = usb_endpoint_pipe_start_session(&kbd_dev->poll_pipe);
+		if (sess_rc != EOK) {
+			printf("Failed to start a session: %s.\n",
+			    str_error(sess_rc));
 			continue;
 		}
 
-		rc = usb_drv_async_wait_for(handle);
+		rc = usb_endpoint_pipe_read(&kbd_dev->poll_pipe, buffer,
+		    BUFFER_SIZE, &actual_size);
+		sess_rc = usb_endpoint_pipe_end_session(&kbd_dev->poll_pipe);
+
 		if (rc != EOK) {
-			printf("Error in usb_drv_async_wait_for(): %d\n", rc);
+			printf("Error polling the keyboard: %s.\n",
+			    str_error(rc));
+			continue;
+		}
+
+		if (sess_rc != EOK) {
+			printf("Error closing session: %s.\n",
+			    str_error(sess_rc));
 			continue;
 		}
 
@@ -556,3 +588,7 @@ int main(int argc, char *argv[])
 {
 	return driver_main(&kbd_driver);
 }
+
+/**
+ * @}
+ */
