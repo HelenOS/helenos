@@ -69,7 +69,7 @@ typedef struct uhci_regs {
 
 #define TRANSFER_QUEUES 4
 #define UHCI_FRAME_LIST_COUNT 1024
-#define UHCI_CLEANER_TIMEOUT 1000000
+#define UHCI_CLEANER_TIMEOUT 10000
 #define UHCI_DEBUGER_TIMEOUT 500000
 
 typedef struct uhci {

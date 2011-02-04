@@ -237,7 +237,7 @@ int uhci_clean_finished(void* arg)
 				usb_log_debug("First in queue: %p (%x) PA:%x.\n",
 					it, it->status, addr_to_phys((void*)it) );
 				usb_log_debug("First to send: %x\n",
-					(current_list->queue_head->element & (~0xf)) );
+					(current_list->queue_head->element) );
 			}
 
 			while (current_list->first &&
@@ -268,10 +268,12 @@ int uhci_debug_checker(void *arg)
 		usb_log_debug("Command register: %X Status register: %X\n", cmd, sts);
 
 		uintptr_t frame_list = pio_read_32(&instance->registers->flbaseadd);
-		usb_log_debug("Framelist address: %p vs. %p.\n",
-			frame_list, addr_to_phys(instance->frame_list));
+		if (frame_list != (uintptr_t)addr_to_phys(instance->frame_list)) {
+			usb_log_debug("Framelist address: %p vs. %p.\n",
+				frame_list, addr_to_phys(instance->frame_list));
+		}
 		int frnum = pio_read_16(&instance->registers->frnum) & 0x3ff;
-		usb_log_debug("Framelist item: %d \n", frnum );
+		usb_log_debug2("Framelist item: %d \n", frnum );
 
 		queue_head_t* qh = instance->transfers_interrupt.queue_head;
 
