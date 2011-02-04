@@ -91,7 +91,7 @@ int transfer_list_append(
 	if (instance->queue_head->element & LINK_POINTER_TERMINATE_FLAG) {
 		instance->queue_head->element = (pa & LINK_POINTER_ADDRESS_MASK);
 	}
-	usb_log_debug("Successfully added transfer to the hc queue %S.\n",
+	usb_log_debug("Successfully added transfer to the hc queue %s.\n",
 	  instance->name);
 	return EOK;
 }
