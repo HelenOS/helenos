@@ -37,7 +37,6 @@
 
 #include <async.h>
 #include <errno.h>
-#include <ipc/ipc.h>
 #include <ipc/packet.h>
 #include <sys/mman.h>
 

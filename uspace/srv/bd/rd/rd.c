@@ -38,7 +38,6 @@
  * @brief Initial RAM disk for HelenOS.
  */
 
-#include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <ipc/ns.h>
 #include <sysinfo.h>
@@ -97,18 +96,18 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 	/*
 	 * Answer the first IPC_M_CONNECT_ME_TO call.
 	 */
-	ipc_answer_0(iid, EOK);
+	async_answer_0(iid, EOK);
 	
 	/*
 	 * Now we wait for the client to send us its communication as_area.
 	 */
-	int flags;
+	unsigned int flags;
 	if (async_share_out_receive(&callid, &comm_size, &flags)) {
 		fs_va = as_get_mappable_page(comm_size);
 		if (fs_va) {
 			(void) async_share_out_finalize(callid, fs_va);
 		} else {
-			ipc_answer_0(callid, EHANGUP);
+			async_answer_0(callid, EHANGUP);
 			return;
 		}
 	} else {
@@ -117,7 +116,7 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 		 * At this point we can't handle protocol variations.
 		 * Close the connection.
 		 */
-		ipc_answer_0(callid, EHANGUP);
+		async_answer_0(callid, EHANGUP);
 		return;
 	}
 	
@@ -129,7 +128,7 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 			 * The other side has hung up.
 			 * Answer the message and exit the fibril.
 			 */
-			ipc_answer_0(callid, EOK);
+			async_answer_0(callid, EOK);
 			return;
 		case BD_READ_BLOCKS:
 			ba = MERGE_LOUP32(IPC_GET_ARG1(call),
@@ -152,10 +151,10 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 			retval = rd_write_blocks(ba, cnt, fs_va);
 			break;
 		case BD_GET_BLOCK_SIZE:
-			ipc_answer_1(callid, EOK, block_size);
+			async_answer_1(callid, EOK, block_size);
 			continue;
 		case BD_GET_NUM_BLOCKS:
-			ipc_answer_2(callid, EOK, LOWER32(rd_size / block_size),
+			async_answer_2(callid, EOK, LOWER32(rd_size / block_size),
 			    UPPER32(rd_size / block_size));
 			continue;
 		default:
@@ -168,7 +167,7 @@ static void rd_connection(ipc_callid_t iid, ipc_call_t *icall)
 			retval = EINVAL;
 			break;
 		}
-		ipc_answer_0(callid, retval);
+		async_answer_0(callid, retval);
 	}
 }
 

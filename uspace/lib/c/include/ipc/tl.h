@@ -38,7 +38,6 @@
 #ifndef LIBC_TL_MESSAGES_H_
 #define LIBC_TL_MESSAGES_H_
 
-#include <ipc/ipc.h>
 #include <ipc/net.h>
 
 /** Transport layer modules messages. */

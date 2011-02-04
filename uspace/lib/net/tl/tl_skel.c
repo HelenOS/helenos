@@ -53,7 +53,7 @@ static void tl_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	 * Accept the connection by answering
 	 * the initial IPC_M_CONNECT_ME_TO call.
 	 */
-	ipc_answer_0(iid, EOK);
+	async_answer_0(iid, EOK);
 	
 	/* Per-connection initialization */
 	tl_connection();
@@ -116,7 +116,7 @@ int tl_module_start(int service)
 	if (rc != EOK)
 		goto out;
 	
-	rc = ipc_connect_to_me(PHONE_NS, service, 0, 0, NULL, NULL);
+	rc = async_connect_to_me(PHONE_NS, service, 0, 0, NULL);
 	if (rc != EOK)
 		goto out;
 	

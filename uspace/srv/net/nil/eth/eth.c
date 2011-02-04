@@ -42,12 +42,9 @@
 #include <byteorder.h>
 #include <str.h>
 #include <errno.h>
-
-#include <ipc/ipc.h>
 #include <ipc/nil.h>
 #include <ipc/net.h>
 #include <ipc/services.h>
-
 #include <net/modules.h>
 #include <net_checksum.h>
 #include <ethernet_lsap.h>
@@ -241,7 +238,7 @@ static void eth_receiver(ipc_callid_t iid, ipc_call_t *icall)
 		case NET_NIL_DEVICE_STATE:
 			nil_device_state_msg_local(0, IPC_GET_DEVICE(*icall),
 			    IPC_GET_STATE(*icall));
-			ipc_answer_0(iid, EOK);
+			async_answer_0(iid, EOK);
 			break;
 		case NET_NIL_RECEIVED:
 			rc = packet_translate_remote(eth_globals.net_phone,
@@ -250,10 +247,10 @@ static void eth_receiver(ipc_callid_t iid, ipc_call_t *icall)
 				rc = nil_received_msg_local(0,
 				    IPC_GET_DEVICE(*icall), packet, 0);
 			
-			ipc_answer_0(iid, (sysarg_t) rc);
+			async_answer_0(iid, (sysarg_t) rc);
 			break;
 		default:
-			ipc_answer_0(iid, (sysarg_t) ENOTSUP);
+			async_answer_0(iid, (sysarg_t) ENOTSUP);
 		}
 		
 		iid = async_get_call(icall);

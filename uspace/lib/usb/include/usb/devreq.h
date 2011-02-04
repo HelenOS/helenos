@@ -35,7 +35,6 @@
 #ifndef LIBUSB_DEVREQ_H_
 #define LIBUSB_DEVREQ_H_
 
-#include <ipc/ipc.h>
 #include <async.h>
 #include <usb/usb.h>
 #include <usb/descriptor.h>

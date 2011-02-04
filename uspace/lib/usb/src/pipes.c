@@ -89,7 +89,7 @@ int usb_device_connection_initialize_from_device(
 	    hc_handle, my_address);
 
 leave:
-	ipc_hangup(hc_phone);
+	async_hangup(hc_phone);
 	return rc;
 }
 
@@ -210,7 +210,7 @@ int usb_endpoint_pipe_end_session(usb_endpoint_pipe_t *pipe)
 		return ENOENT;
 	}
 
-	int rc = ipc_hangup(pipe->hc_phone);
+	int rc = async_hangup(pipe->hc_phone);
 	if (rc != EOK) {
 		return rc;
 	}

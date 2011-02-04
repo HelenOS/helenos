@@ -44,12 +44,9 @@ __entry:
 	save %sp, -176, %sp
 	flushw
 	add %g0, -0x7ff, %fp
-
+	
 	# Pass pcb_ptr as the first argument to __main()
 	mov %i1, %o0
 	sethi %hi(_gp), %l7
 	call __main
 	or %l7, %lo(_gp), %l7
-
-	call __exit
-	nop

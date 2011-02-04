@@ -185,7 +185,7 @@ register_interrupt_handler(device_t *dev, int irq, interrupt_handler_t *handler,
 	if (pseudocode == NULL)
 		pseudocode = &default_pseudocode;
 	
-	int res = ipc_register_irq(irq, dev->handle, ctx->id, pseudocode);
+	int res = register_irq(irq, dev->handle, ctx->id, pseudocode);
 	if (res != EOK) {
 		remove_interrupt_context(&interrupt_contexts, ctx);
 		delete_interrupt_context(ctx);
@@ -198,7 +198,7 @@ int unregister_interrupt_handler(device_t *dev, int irq)
 {
 	interrupt_context_t *ctx = find_interrupt_context(&interrupt_contexts,
 	    dev, irq);
-	int res = ipc_unregister_irq(irq, dev->handle);
+	int res = unregister_irq(irq, dev->handle);
 	
 	if (ctx != NULL) {
 		remove_interrupt_context(&interrupt_contexts, ctx);
@@ -271,13 +271,13 @@ static void driver_add_device(ipc_callid_t iid, ipc_call_t *icall)
 		delete_device(dev);
 	}
 	
-	ipc_answer_0(iid, res);
+	async_answer_0(iid, res);
 }
 
 static void driver_connection_devman(ipc_callid_t iid, ipc_call_t *icall)
 {
 	/* Accept connection */
-	ipc_answer_0(iid, EOK);
+	async_answer_0(iid, EOK);
 	
 	bool cont = true;
 	while (cont) {
@@ -292,7 +292,7 @@ static void driver_connection_devman(ipc_callid_t iid, ipc_call_t *icall)
 			driver_add_device(callid, &call);
 			break;
 		default:
-			ipc_answer_0(callid, ENOENT);
+			async_answer_0(callid, ENOENT);
 		}
 	}
 }
@@ -315,7 +315,7 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 	if (dev == NULL) {
 		printf("%s: driver_connection_gen error - no device with handle"
 		    " %" PRIun " was found.\n", driver->name, handle);
-		ipc_answer_0(iid, ENOENT);
+		async_answer_0(iid, ENOENT);
 		return;
 	}
 	
@@ -330,7 +330,7 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 	if (dev->ops != NULL && dev->ops->open != NULL)
 		ret = (*dev->ops->open)(dev);
 	
-	ipc_answer_0(iid, ret);
+	async_answer_0(iid, ret);
 	if (ret != EOK)
 		return;
 	
@@ -346,7 +346,7 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 			/* close the device */
 			if (dev->ops != NULL && dev->ops->close != NULL)
 				(*dev->ops->close)(dev);
-			ipc_answer_0(callid, EOK);
+			async_answer_0(callid, EOK);
 			return;
 		default:
 			/* convert ipc interface id to interface index */
@@ -367,7 +367,7 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 				printf("%s: driver_connection_gen error - "
 				    "invalid interface id %d.",
 				    driver->name, iface_idx);
-				ipc_answer_0(callid, ENOTSUP);
+				async_answer_0(callid, ENOTSUP);
 				break;
 			}
 			
@@ -380,7 +380,7 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 				    driver->name);
 				printf("device with handle %" PRIun " has no interface "
 				    "with id %d.\n", handle, iface_idx);
-				ipc_answer_0(callid, ENOTSUP);
+				async_answer_0(callid, ENOTSUP);
 				break;
 			}
 			
@@ -399,7 +399,7 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 				// the interface has not such method
 				printf("%s: driver_connection_gen error - "
 				    "invalid interface method.", driver->name);
-				ipc_answer_0(callid, ENOTSUP);
+				async_answer_0(callid, ENOTSUP);
 				break;
 			}
 			
@@ -445,7 +445,7 @@ static void driver_connection(ipc_callid_t iid, ipc_call_t *icall)
 		break;
 	default:
 		/* No such interface */
-		ipc_answer_0(iid, ENOENT);
+		async_answer_0(iid, ENOENT);
 	}
 }
 

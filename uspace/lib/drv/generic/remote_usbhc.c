@@ -32,7 +32,6 @@
 /** @file
  */
 
-#include <ipc/ipc.h>
 #include <async.h>
 #include <errno.h>
 
@@ -140,7 +139,7 @@ void remote_usbhc_get_address(device_t *device, void *iface,
 	usbhc_iface_t *usb_iface = (usbhc_iface_t *) iface;
 
 	if (!usb_iface->tell_address) {
-		ipc_answer_0(callid, ENOTSUP);
+		async_answer_0(callid, ENOTSUP);
 		return;
 	}
 
@@ -149,9 +148,9 @@ void remote_usbhc_get_address(device_t *device, void *iface,
 	usb_address_t address;
 	int rc = usb_iface->tell_address(device, handle, &address);
 	if (rc != EOK) {
-		ipc_answer_0(callid, rc);
+		async_answer_0(callid, rc);
 	} else {
-		ipc_answer_1(callid, EOK, address);
+		async_answer_1(callid, EOK, address);
 	}
 }
 
@@ -161,11 +160,11 @@ void remote_usbhc_get_buffer(device_t *device, void *iface,
 	sysarg_t buffer_hash = DEV_IPC_GET_ARG1(*call);
 	async_transaction_t * trans = (async_transaction_t *)buffer_hash;
 	if (trans == NULL) {
-		ipc_answer_0(callid, ENOENT);
+		async_answer_0(callid, ENOENT);
 		return;
 	}
 	if (trans->buffer == NULL) {
-		ipc_answer_0(callid, EINVAL);
+		async_answer_0(callid, EINVAL);
 		async_transaction_destroy(trans);
 		return;
 	}
@@ -173,7 +172,7 @@ void remote_usbhc_get_buffer(device_t *device, void *iface,
 	ipc_callid_t cid;
 	size_t accepted_size;
 	if (!async_data_read_receive(&cid, &accepted_size)) {
-		ipc_answer_0(callid, EINVAL);
+		async_answer_0(callid, EINVAL);
 		async_transaction_destroy(trans);
 		return;
 	}
@@ -183,7 +182,7 @@ void remote_usbhc_get_buffer(device_t *device, void *iface,
 	}
 	async_data_read_finalize(cid, trans->buffer, accepted_size);
 
-	ipc_answer_1(callid, EOK, accepted_size);
+	async_answer_1(callid, EOK, accepted_size);
 
 	async_transaction_destroy(trans);
 }
@@ -194,13 +193,13 @@ void remote_usbhc_reserve_default_address(device_t *device, void *iface,
 	usbhc_iface_t *usb_iface = (usbhc_iface_t *) iface;
 
 	if (!usb_iface->reserve_default_address) {
-		ipc_answer_0(callid, ENOTSUP);
+		async_answer_0(callid, ENOTSUP);
 		return;
 	}
 
 	int rc = usb_iface->reserve_default_address(device);
 
-	ipc_answer_0(callid, rc);
+	async_answer_0(callid, rc);
 }
 
 void remote_usbhc_release_default_address(device_t *device, void *iface,
@@ -209,13 +208,13 @@ void remote_usbhc_release_default_address(device_t *device, void *iface,
 	usbhc_iface_t *usb_iface = (usbhc_iface_t *) iface;
 
 	if (!usb_iface->release_default_address) {
-		ipc_answer_0(callid, ENOTSUP);
+		async_answer_0(callid, ENOTSUP);
 		return;
 	}
 
 	int rc = usb_iface->release_default_address(device);
 
-	ipc_answer_0(callid, rc);
+	async_answer_0(callid, rc);
 }
 
 void remote_usbhc_request_address(device_t *device, void *iface,
@@ -224,16 +223,16 @@ void remote_usbhc_request_address(device_t *device, void *iface,
 	usbhc_iface_t *usb_iface = (usbhc_iface_t *) iface;
 
 	if (!usb_iface->request_address) {
-		ipc_answer_0(callid, ENOTSUP);
+		async_answer_0(callid, ENOTSUP);
 		return;
 	}
 
 	usb_address_t address;
 	int rc = usb_iface->request_address(device, &address);
 	if (rc != EOK) {
-		ipc_answer_0(callid, rc);
+		async_answer_0(callid, rc);
 	} else {
-		ipc_answer_1(callid, EOK, (sysarg_t) address);
+		async_answer_1(callid, EOK, (sysarg_t) address);
 	}
 }
 
@@ -243,7 +242,7 @@ void remote_usbhc_bind_address(device_t *device, void *iface,
 	usbhc_iface_t *usb_iface = (usbhc_iface_t *) iface;
 
 	if (!usb_iface->bind_address) {
-		ipc_answer_0(callid, ENOTSUP);
+		async_answer_0(callid, ENOTSUP);
 		return;
 	}
 
@@ -252,7 +251,7 @@ void remote_usbhc_bind_address(device_t *device, void *iface,
 
 	int rc = usb_iface->bind_address(device, address, handle);
 
-	ipc_answer_0(callid, rc);
+	async_answer_0(callid, rc);
 }
 
 void remote_usbhc_release_address(device_t *device, void *iface,
@@ -261,7 +260,7 @@ void remote_usbhc_release_address(device_t *device, void *iface,
 	usbhc_iface_t *usb_iface = (usbhc_iface_t *) iface;
 
 	if (!usb_iface->release_address) {
-		ipc_answer_0(callid, ENOTSUP);
+		async_answer_0(callid, ENOTSUP);
 		return;
 	}
 
@@ -269,7 +268,7 @@ void remote_usbhc_release_address(device_t *device, void *iface,
 
 	int rc = usb_iface->release_address(device, address);
 
-	ipc_answer_0(callid, rc);
+	async_answer_0(callid, rc);
 }
 
 
@@ -278,7 +277,7 @@ static void callback_out(device_t *device,
 {
 	async_transaction_t *trans = (async_transaction_t *)arg;
 
-	ipc_answer_0(trans->caller, outcome);
+	async_answer_0(trans->caller, outcome);
 
 	async_transaction_destroy(trans);
 }
@@ -289,13 +288,13 @@ static void callback_in(device_t *device,
 	async_transaction_t *trans = (async_transaction_t *)arg;
 
 	if (outcome != USB_OUTCOME_OK) {
-		ipc_answer_0(trans->caller, outcome);
+		async_answer_0(trans->caller, outcome);
 		async_transaction_destroy(trans);
 		return;
 	}
 
 	trans->size = actual_size;
-	ipc_answer_1(trans->caller, USB_OUTCOME_OK, (sysarg_t)trans);
+	async_answer_1(trans->caller, USB_OUTCOME_OK, (sysarg_t)trans);
 }
 
 /** Process an outgoing transfer (both OUT and SETUP).
@@ -310,7 +309,7 @@ static void remote_usbhc_out_transfer(device_t *device,
     usbhc_iface_transfer_out_t transfer_func)
 {
 	if (!transfer_func) {
-		ipc_answer_0(callid, ENOTSUP);
+		async_answer_0(callid, ENOTSUP);
 		return;
 	}
 
@@ -328,7 +327,7 @@ static void remote_usbhc_out_transfer(device_t *device,
 		    0, &len);
 
 		if (rc != EOK) {
-			ipc_answer_0(callid, rc);
+			async_answer_0(callid, rc);
 			return;
 		}
 	}
@@ -338,7 +337,7 @@ static void remote_usbhc_out_transfer(device_t *device,
 		if (buffer != NULL) {
 			free(buffer);
 		}
-		ipc_answer_0(callid, ENOMEM);
+		async_answer_0(callid, ENOMEM);
 		return;
 	}
 
@@ -349,7 +348,7 @@ static void remote_usbhc_out_transfer(device_t *device,
 	    callback_out, trans);
 
 	if (rc != EOK) {
-		ipc_answer_0(callid, rc);
+		async_answer_0(callid, rc);
 		async_transaction_destroy(trans);
 	}
 }
@@ -366,7 +365,7 @@ static void remote_usbhc_in_transfer(device_t *device,
     usbhc_iface_transfer_in_t transfer_func)
 {
 	if (!transfer_func) {
-		ipc_answer_0(callid, ENOTSUP);
+		async_answer_0(callid, ENOTSUP);
 		return;
 	}
 
@@ -378,7 +377,7 @@ static void remote_usbhc_in_transfer(device_t *device,
 
 	async_transaction_t *trans = async_transaction_create(callid);
 	if (trans == NULL) {
-		ipc_answer_0(callid, ENOMEM);
+		async_answer_0(callid, ENOMEM);
 		return;
 	}
 	trans->buffer = malloc(len);
@@ -388,7 +387,7 @@ static void remote_usbhc_in_transfer(device_t *device,
 	    callback_in, trans);
 
 	if (rc != EOK) {
-		ipc_answer_0(callid, rc);
+		async_answer_0(callid, rc);
 		async_transaction_destroy(trans);
 	}
 }
@@ -413,13 +412,13 @@ static void remote_usbhc_status_transfer(device_t *device,
 	switch (direction) {
 		case USB_DIRECTION_IN:
 			if (!transfer_in_func) {
-				ipc_answer_0(callid, ENOTSUP);
+				async_answer_0(callid, ENOTSUP);
 				return;
 			}
 			break;
 		case USB_DIRECTION_OUT:
 			if (!transfer_out_func) {
-				ipc_answer_0(callid, ENOTSUP);
+				async_answer_0(callid, ENOTSUP);
 				return;
 			}
 			break;
@@ -435,7 +434,7 @@ static void remote_usbhc_status_transfer(device_t *device,
 
 	async_transaction_t *trans = async_transaction_create(callid);
 	if (trans == NULL) {
-		ipc_answer_0(callid, ENOMEM);
+		async_answer_0(callid, ENOMEM);
 		return;
 	}
 
@@ -455,7 +454,7 @@ static void remote_usbhc_status_transfer(device_t *device,
 	}
 
 	if (rc != EOK) {
-		ipc_answer_0(callid, rc);
+		async_answer_0(callid, rc);
 		async_transaction_destroy(trans);
 	}
 }
@@ -548,7 +547,7 @@ ipc_callid_t callid, ipc_call_t *call)
 	assert(usb_iface != NULL);
 
 	if (!usb_iface->control_write) {
-		ipc_answer_0(callid, ENOTSUP);
+		async_answer_0(callid, ENOTSUP);
 		return;
 	}
 
@@ -567,20 +566,20 @@ ipc_callid_t callid, ipc_call_t *call)
 	rc = async_data_write_accept(&setup_packet, false,
 	    1, USB_MAX_PAYLOAD_SIZE, 0, &setup_packet_len);
 	if (rc != EOK) {
-		ipc_answer_0(callid, rc);
+		async_answer_0(callid, rc);
 		return;
 	}
 	rc = async_data_write_accept(&data_buffer, false,
 	    1, USB_MAX_PAYLOAD_SIZE, 0, &data_buffer_len);
 	if (rc != EOK) {
-		ipc_answer_0(callid, rc);
+		async_answer_0(callid, rc);
 		free(setup_packet);
 		return;
 	}
 
 	async_transaction_t *trans = async_transaction_create(callid);
 	if (trans == NULL) {
-		ipc_answer_0(callid, ENOMEM);
+		async_answer_0(callid, ENOMEM);
 		free(setup_packet);
 		free(data_buffer);
 		return;
@@ -595,7 +594,7 @@ ipc_callid_t callid, ipc_call_t *call)
 	    callback_out, trans);
 
 	if (rc != EOK) {
-		ipc_answer_0(callid, rc);
+		async_answer_0(callid, rc);
 		async_transaction_destroy(trans);
 	}
 }
@@ -608,7 +607,7 @@ ipc_callid_t callid, ipc_call_t *call)
 	assert(usb_iface != NULL);
 
 	if (!usb_iface->control_read) {
-		ipc_answer_0(callid, ENOTSUP);
+		async_answer_0(callid, ENOTSUP);
 		return;
 	}
 
@@ -626,13 +625,13 @@ ipc_callid_t callid, ipc_call_t *call)
 	rc = async_data_write_accept(&setup_packet, false,
 	    1, USB_MAX_PAYLOAD_SIZE, 0, &setup_packet_len);
 	if (rc != EOK) {
-		ipc_answer_0(callid, rc);
+		async_answer_0(callid, rc);
 		return;
 	}
 
 	async_transaction_t *trans = async_transaction_create(callid);
 	if (trans == NULL) {
-		ipc_answer_0(callid, ENOMEM);
+		async_answer_0(callid, ENOMEM);
 		free(setup_packet);
 		return;
 	}
@@ -640,7 +639,7 @@ ipc_callid_t callid, ipc_call_t *call)
 	trans->size = data_len;
 	trans->buffer = malloc(data_len);
 	if (trans->buffer == NULL) {
-		ipc_answer_0(callid, ENOMEM);
+		async_answer_0(callid, ENOMEM);
 		async_transaction_destroy(trans);
 		return;
 	}
@@ -651,7 +650,7 @@ ipc_callid_t callid, ipc_call_t *call)
 	    callback_in, trans);
 
 	if (rc != EOK) {
-		ipc_answer_0(callid, rc);
+		async_answer_0(callid, rc);
 		async_transaction_destroy(trans);
 	}
 }

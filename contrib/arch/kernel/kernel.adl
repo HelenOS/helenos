@@ -202,18 +202,18 @@ interface sys_ddi {
 		sysarg_t sys_device_assign_devno(void);
 		
 		/* Connect an IRQ handler to the current task */
-		sysarg_t sys_ipc_register_irq(inr_t inr, devno_t devno, sysarg_t method, irq_code_t *ucode);
+		sysarg_t sys_register_irq(inr_t inr, devno_t devno, sysarg_t method, irq_code_t *ucode);
 		
 		/* Disconnect an IRQ handler from the current task */
-		sysarg_t sys_ipc_unregister_irq(inr_t inr, devno_t devno);
+		sysarg_t sys_unregister_irq(inr_t inr, devno_t devno);
 	protocol:
 		(
 			?sys_enable_iospace +
 			?sys_physmem_map +
 			?sys_device_assign_devno +
 			?sys_preempt_control +
-			?sys_ipc_register_irq +
-			?sys_ipc_unregister_irq
+			?sys_register_irq +
+			?sys_unregister_irq
 		)*
 };
 

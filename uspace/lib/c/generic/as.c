@@ -40,9 +40,7 @@
 #include <sys/types.h>
 #include <bitops.h>
 #include <malloc.h>
-
-/** Last position allocated by as_get_mappable_page */
-static uintptr_t last_allocated = 0;
+#include "private/libc.h"
 
 /** Create address space area.
  *
@@ -103,29 +101,17 @@ int as_area_change_flags(void *address, int flags)
 	    (sysarg_t) flags);
 }
 
-/** Return pointer to some unmapped area, where fits new as_area
+/** Return pointer to unmapped address space area
  *
  * @param size Requested size of the allocation.
  *
- * @return pointer to the beginning
+ * @return Pointer to the beginning of unmapped address space area.
  *
  */
 void *as_get_mappable_page(size_t size)
 {
-	if (size == 0)
-		return NULL;
-	
-	size_t sz = 1 << (fnzb(size - 1) + 1);
-	if (last_allocated == 0)
-		last_allocated = get_max_heap_addr();
-	
-	/*
-	 * Make sure we allocate from naturally aligned address.
-	 */
-	uintptr_t res = ALIGN_UP(last_allocated, sz);
-	last_allocated = res + ALIGN_UP(size, PAGE_SIZE);
-	
-	return ((void *) res);
+	return (void *) __SYSCALL2(SYS_AS_GET_UNMAPPED_AREA,
+	    (sysarg_t) __entry, (sysarg_t) size);
 }
 
 /** Find mapping to physical address.

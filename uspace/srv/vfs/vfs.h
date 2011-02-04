@@ -34,7 +34,6 @@
 #define VFS_VFS_H_
 
 #include <async.h>
-#include <ipc/ipc.h>
 #include <adt/list.h>
 #include <fibril_synch.h>
 #include <sys/types.h>
