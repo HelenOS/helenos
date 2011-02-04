@@ -218,7 +218,6 @@ void usb_log_printf(usb_log_level_t level, const char *format, ...)
 	assert(screen_stream != NULL);
 
 	va_list args;
-	va_start(args, format);
 
 	/*
 	 * Serialize access to log files.
@@ -230,20 +229,26 @@ void usb_log_printf(usb_log_level_t level, const char *format, ...)
 	const char *level_name = log_level_name(level);
 
 	if (log_stream != NULL) {
+		va_start(args, format);
+
 		fprintf(log_stream, "[%s]%s: ", log_prefix, level_name);
 		vfprintf(log_stream, format, args);
 		fflush(log_stream);
+
+		va_end(args);
 	}
 
 	if (level <= log_level) {
+		va_start(args, format);
+
 		fprintf(screen_stream, "[%s]%s: ", log_prefix, level_name);
 		vfprintf(screen_stream, format, args);
 		fflush(screen_stream);
+
+		va_end(args);
 	}
 
 	fibril_mutex_unlock(&log_serializer);
-
-	va_end(args);
 }
 
 /**
