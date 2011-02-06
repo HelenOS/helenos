@@ -425,7 +425,7 @@ static usb_hid_dev_kbd_t *usbkbd_init_device(device_t *dev)
 	 * Initialize device pipes.
 	 */
 	rc = usb_endpoint_pipe_initialize(&kbd_dev->poll_pipe, &kbd_dev->wire,
-	    GUESSED_POLL_ENDPOINT, USB_TRANSFER_INTERRUPT, USB_DIRECTION_IN);
+	    GUESSED_POLL_ENDPOINT, USB_TRANSFER_INTERRUPT, 8, USB_DIRECTION_IN);
 	if (rc != EOK) {
 		printf("Failed to initialize interrupt in pipe: %s.\n",
 		    str_error(rc));

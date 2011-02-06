@@ -181,7 +181,8 @@ static int process_endpoint(
 	}
 
 	int rc = usb_endpoint_pipe_initialize(ep_mapping->pipe, wire,
-	    ep_no, description.transfer_type, description.direction);
+	    ep_no, description.transfer_type, endpoint->max_packet_size,
+	    description.direction);
 	if (rc != EOK) {
 		return rc;
 	}

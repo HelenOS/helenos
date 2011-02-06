@@ -73,6 +73,9 @@ typedef struct {
 	/** Endpoint direction. */
 	usb_direction_t direction;
 
+	/** Maximum packet size for the endpoint. */
+	size_t max_packet_size;
+
 	/** Phone to the host controller.
 	 * Negative when no session is active.
 	 */
@@ -117,7 +120,7 @@ int usb_device_connection_initialize(usb_device_connection_t *,
 
 int usb_endpoint_pipe_initialize(usb_endpoint_pipe_t *,
     usb_device_connection_t *,
-    usb_endpoint_t, usb_transfer_type_t, usb_direction_t);
+    usb_endpoint_t, usb_transfer_type_t, size_t, usb_direction_t);
 int usb_endpoint_pipe_initialize_default_control(usb_endpoint_pipe_t *,
     usb_device_connection_t *);
 int usb_endpoint_pipe_initialize_from_configuration(usb_endpoint_mapping_t *,
