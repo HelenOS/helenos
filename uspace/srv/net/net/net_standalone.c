@@ -39,7 +39,6 @@
 #include <str.h>
 #include <adt/measured_strings.h>
 #include <adt/module_map.h>
-#include <ipc/ipc.h>
 #include <ipc/net.h>
 #include <errno.h>
 

@@ -215,11 +215,13 @@ static void niagara_init(void)
 	static parea_t outbuf_parea;
 	outbuf_parea.pbase = (uintptr_t) (KA2PA(&output_buffer));
 	outbuf_parea.frames = 1;
+	outbuf_parea.unpriv = false;
 	ddi_parea_register(&outbuf_parea);
 
 	static parea_t inbuf_parea;
 	inbuf_parea.pbase = (uintptr_t) (KA2PA(&input_buffer));
 	inbuf_parea.frames = 1;
+	inbuf_parea.unpriv = false;
 	ddi_parea_register(&inbuf_parea);
 
 	outdev_t *niagara_dev = malloc(sizeof(outdev_t), FRAME_ATOMIC);

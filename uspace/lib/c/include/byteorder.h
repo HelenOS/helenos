@@ -79,10 +79,10 @@
 
 #endif
 
-#define htons(n)	host2uint16_t_be((n))
-#define htonl(n)	host2uint32_t_be((n))
-#define ntohs(n)	uint16_t_be2host((n))
-#define ntohl(n)	uint32_t_be2host((n))
+#define htons(n)  host2uint16_t_be((n))
+#define htonl(n)  host2uint32_t_be((n))
+#define ntohs(n)  uint16_t_be2host((n))
+#define ntohl(n)  uint32_t_be2host((n))
 
 static inline uint64_t uint64_t_byteorder_swap(uint64_t n)
 {

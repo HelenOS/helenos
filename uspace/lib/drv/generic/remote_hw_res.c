@@ -32,7 +32,6 @@
 /** @file
  */
 
-#include <ipc/ipc.h>
 #include <async.h>
 #include <errno.h>
 
@@ -61,11 +60,11 @@ static void remote_hw_res_enable_interrupt(device_t *dev, void *ops,
 	hw_res_ops_t *hw_res_ops = (hw_res_ops_t *) ops;
 	
 	if (hw_res_ops->enable_interrupt == NULL)
-		ipc_answer_0(callid, ENOTSUP);
+		async_answer_0(callid, ENOTSUP);
 	else if (hw_res_ops->enable_interrupt(dev))
-		ipc_answer_0(callid, EOK);
+		async_answer_0(callid, EOK);
 	else
-		ipc_answer_0(callid, EREFUSED);
+		async_answer_0(callid, EREFUSED);
 }
 
 static void remote_hw_res_get_resource_list(device_t *dev, void *ops,
@@ -74,17 +73,17 @@ static void remote_hw_res_get_resource_list(device_t *dev, void *ops,
 	hw_res_ops_t *hw_res_ops = (hw_res_ops_t *) ops;
 
 	if (hw_res_ops->get_resource_list == NULL) {
-		ipc_answer_0(callid, ENOTSUP);
+		async_answer_0(callid, ENOTSUP);
 		return;
 	}
 	
 	hw_resource_list_t *hw_resources = hw_res_ops->get_resource_list(dev);
 	if (hw_resources == NULL){
-		ipc_answer_0(callid, ENOENT);
+		async_answer_0(callid, ENOENT);
 		return;
 	}
 	
-	ipc_answer_1(callid, EOK, hw_resources->count);
+	async_answer_1(callid, EOK, hw_resources->count);
 
 	size_t len;
 	if (!async_data_read_receive(&callid, &len)) {

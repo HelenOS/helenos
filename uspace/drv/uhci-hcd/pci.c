@@ -33,11 +33,12 @@
  * @file
  * PCI related functions needed by the UHCI driver.
  */
-#include "uhci.h"
 #include <errno.h>
 #include <assert.h>
 #include <devman.h>
 #include <device/hw_res.h>
+
+#include "pci.h"
 
 /** Get address of registers and IRQ for given device.
  *
@@ -115,7 +116,7 @@ int pci_get_my_registers(device_t *dev,
 
 	rc = EOK;
 leave:
-	ipc_hangup(parent_phone);
+	async_hangup(parent_phone);
 
 	return rc;
 }
@@ -124,3 +125,6 @@ leave:
  * @}
  */
 
+/**
+ * @}
+ */

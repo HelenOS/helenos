@@ -46,7 +46,7 @@
 #include <fibril.h>
 #include <usb/classes/hid.h>
 #include <usb/classes/hidparser.h>
-#include <usb/request.h>
+#include <usb/devreq.h>
 #include <usb/descriptor.h>
 #include <io/console.h>
 #include "hid.h"
@@ -55,7 +55,7 @@
 #include "conv.h"
 #include "layout.h"
 
-#define BUFFER_SIZE 32
+#define BUFFER_SIZE 8
 #define NAME "usbhid"
 
 #define GUESSED_POLL_ENDPOINT 1
@@ -82,16 +82,16 @@ void default_connection_handler(device_t *dev,
 		int callback = IPC_GET_ARG5(*icall);
 
 		if (console_callback_phone != -1) {
-			ipc_answer_0(icallid, ELIMIT);
+			async_answer_0(icallid, ELIMIT);
 			return;
 		}
 
 		console_callback_phone = callback;
-		ipc_answer_0(icallid, EOK);
+		async_answer_0(icallid, EOK);
 		return;
 	}
 
-	ipc_answer_0(icallid, EINVAL);
+	async_answer_0(icallid, EINVAL);
 }
 
 #if 0
@@ -261,6 +261,7 @@ static void usbkbd_process_keycodes(const uint8_t *key_codes, size_t count,
 	printf("\n");
 }
 
+# if 0
 /*
  * Kbd functions
  */
@@ -279,10 +280,9 @@ static int usbkbd_get_report_descriptor(usb_hid_dev_kbd_t *kbd_dev)
 		kbd_dev->conf->interfaces[i].report_desc = (uint8_t *)malloc(length);
 		
 		// get the descriptor from the device
-		int rc = usb_request_get_descriptor(&kbd_dev->ctrl_pipe,
-		    USB_REQUEST_TYPE_CLASS, USB_DESCTYPE_HID_REPORT,
-		    i, 0,
-		    kbd_dev->conf->interfaces[i].report_desc, length,
+		int rc = usb_drv_req_get_descriptor(kbd_dev->device->parent_phone,
+		    kbd_dev->address, USB_REQUEST_TYPE_CLASS, USB_DESCTYPE_HID_REPORT, 
+		    0, i, kbd_dev->conf->interfaces[i].report_desc, length, 
 		    &actual_size);
 
 		if (rc != EOK) {
@@ -297,15 +297,13 @@ static int usbkbd_get_report_descriptor(usb_hid_dev_kbd_t *kbd_dev)
 
 	return EOK;
 }
-
 static int usbkbd_process_descriptors(usb_hid_dev_kbd_t *kbd_dev)
 {
 	// get the first configuration descriptor (TODO: parse also other!)
 	usb_standard_configuration_descriptor_t config_desc;
 	
-	int rc;
-	rc = usb_request_get_bare_configuration_descriptor(&kbd_dev->ctrl_pipe,
-	    0, &config_desc);
+	int rc = usb_drv_req_get_bare_configuration_descriptor(
+	    kbd_dev->device->parent_phone, kbd_dev->address, 0, &config_desc);
 	
 	if (rc != EOK) {
 		return rc;
@@ -319,8 +317,8 @@ static int usbkbd_process_descriptors(usb_hid_dev_kbd_t *kbd_dev)
 	
 	size_t transferred = 0;
 	// get full configuration descriptor
-	rc = usb_request_get_full_configuration_descriptor(&kbd_dev->ctrl_pipe,
-	    0, descriptors,
+	rc = usb_drv_req_get_full_configuration_descriptor(
+	    kbd_dev->device->parent_phone, kbd_dev->address, 0, descriptors,
 	    config_desc.total_length, &transferred);
 	
 	if (rc != EOK) {
@@ -364,11 +362,9 @@ static int usbkbd_process_descriptors(usb_hid_dev_kbd_t *kbd_dev)
 	
 	return EOK;
 }
-
+#endif
 static usb_hid_dev_kbd_t *usbkbd_init_device(device_t *dev)
 {
-	int rc;
-
 	usb_hid_dev_kbd_t *kbd_dev = (usb_hid_dev_kbd_t *)calloc(1, 
 	    sizeof(usb_hid_dev_kbd_t));
 
@@ -378,6 +374,42 @@ static usb_hid_dev_kbd_t *usbkbd_init_device(device_t *dev)
 	}
 
 	kbd_dev->device = dev;
+
+	// get phone to my HC and save it as my parent's phone
+	// TODO: maybe not a good idea if DDF will use parent_phone
+	int rc = kbd_dev->device->parent_phone = usb_drv_hc_connect_auto(dev, 0);
+	if (rc < 0) {
+		printf("Problem setting phone to HC.\n");
+		goto error_leave;
+	}
+
+	rc = kbd_dev->address = usb_drv_get_my_address(dev->parent_phone, dev);
+	if (rc < 0) {
+		printf("Problem getting address of the device.\n");
+		goto error_leave;
+	}
+
+	// doesn't matter now that we have no address
+//	if (kbd_dev->address < 0) {
+//		fprintf(stderr, NAME ": No device address!\n");
+//		free(kbd_dev);
+//		return NULL;
+//	}
+
+	/*
+	 * will need all descriptors:
+	 * 1) choose one configuration from configuration descriptors 
+	 *    (set it to the device)
+	 * 2) set endpoints from endpoint descriptors
+	 */
+
+
+	// TODO: get descriptors, parse descriptors and save endpoints
+	//usbkbd_process_descriptors(kbd_dev);
+	usb_drv_req_set_configuration(
+	  kbd_dev->device->parent_phone, kbd_dev->address, 1);
+
+
 
 	/*
 	 * Initialize the backing connection to the host controller.
@@ -392,14 +424,6 @@ static usb_hid_dev_kbd_t *usbkbd_init_device(device_t *dev)
 	/*
 	 * Initialize device pipes.
 	 */
-	rc = usb_endpoint_pipe_initialize_default_control(&kbd_dev->ctrl_pipe,
-	    &kbd_dev->wire);
-	if (rc != EOK) {
-		printf("Failed to initialize default control pipe: %s.\n",
-		    str_error(rc));
-		goto error_leave;
-	}
-
 	rc = usb_endpoint_pipe_initialize(&kbd_dev->poll_pipe, &kbd_dev->wire,
 	    GUESSED_POLL_ENDPOINT, USB_TRANSFER_INTERRUPT, USB_DIRECTION_IN);
 	if (rc != EOK) {
@@ -408,17 +432,6 @@ static usb_hid_dev_kbd_t *usbkbd_init_device(device_t *dev)
 		goto error_leave;
 	}
 
-	/*
-	 * will need all descriptors:
-	 * 1) choose one configuration from configuration descriptors
-	 *    (set it to the device)
-	 * 2) set endpoints from endpoint descriptors
-	 */
-
-	// TODO: get descriptors, parse descriptors and save endpoints
-	usb_endpoint_pipe_start_session(&kbd_dev->ctrl_pipe);
-	usbkbd_process_descriptors(kbd_dev);
-	usb_endpoint_pipe_end_session(&kbd_dev->ctrl_pipe);
 
 	return kbd_dev;
 
@@ -456,7 +469,7 @@ static void usbkbd_poll_keyboard(usb_hid_dev_kbd_t *kbd_dev)
 	printf("Polling keyboard...\n");
 
 	while (true) {
-		async_usleep(1000 * 1000 * 2);
+		async_usleep(1000 * 10);
 
 		sess_rc = usb_endpoint_pipe_start_session(&kbd_dev->poll_pipe);
 		if (sess_rc != EOK) {

@@ -159,21 +159,17 @@ static bool avl_count_walker(avltree_node_t *node, void *arg)
  */
 static size_t get_task_virtmem(as_t *as)
 {
-	size_t result = 0;
-
 	/*
-	 * We are holding some spinlocks here and therefore are not allowed to
-	 * block. Only attempt to lock the address space and address space area
-	 * mutexes conditionally. If it is not possible to lock either object,
-	 * allow the statistics to be inexact by skipping the respective object.
-	 *
-	 * Note that it may be infinitely better to let the address space
-	 * management code compute these statistics as it proceeds instead of
-	 * having them calculated over and over again here.
+	 * We are holding spinlocks here and therefore are not allowed to
+	 * block. Only attempt to lock the address space and address space
+	 * area mutexes conditionally. If it is not possible to lock either
+	 * object, return inexact statistics by skipping the respective object.
 	 */
-
+	
 	if (SYNCH_FAILED(mutex_trylock(&as->lock)))
-		return result * PAGE_SIZE;
+		return 0;
+	
+	size_t pages = 0;
 	
 	/* Walk the B+ tree and count pages */
 	link_t *cur;
@@ -188,14 +184,15 @@ static size_t get_task_virtmem(as_t *as)
 			
 			if (SYNCH_FAILED(mutex_trylock(&area->lock)))
 				continue;
-			result += area->pages;
+			
+			pages += area->pages;
 			mutex_unlock(&area->lock);
 		}
 	}
 	
 	mutex_unlock(&as->lock);
 	
-	return result * PAGE_SIZE;
+	return (pages << PAGE_WIDTH);
 }
 
 /** Get the resident (used) size of a virtual address space
@@ -207,23 +204,19 @@ static size_t get_task_virtmem(as_t *as)
  */
 static size_t get_task_resmem(as_t *as)
 {
-	size_t result = 0;
-	
 	/*
-	 * We are holding some spinlocks here and therefore are not allowed to
-	 * block. Only attempt to lock the address space and address space area
-	 * mutexes conditionally. If it is not possible to lock either object,
-	 * allow the statistics to be inexact by skipping the respective object.
-	 *
-	 * Note that it may be infinitely better to let the address space
-	 * management code compute these statistics as it proceeds instead of
-	 * having them calculated over and over again here.
+	 * We are holding spinlocks here and therefore are not allowed to
+	 * block. Only attempt to lock the address space and address space
+	 * area mutexes conditionally. If it is not possible to lock either
+	 * object, return inexact statistics by skipping the respective object.
 	 */
 	
 	if (SYNCH_FAILED(mutex_trylock(&as->lock)))
-		return result * PAGE_SIZE;
+		return 0;
 	
-	/* Walk the B+ tree of AS areas */
+	size_t pages = 0;
+	
+	/* Walk the B+ tree and count pages */
 	link_t *cur;
 	for (cur = as->as_area_btree.leaf_head.next;
 	    cur != &as->as_area_btree.leaf_head; cur = cur->next) {
@@ -237,25 +230,14 @@ static size_t get_task_resmem(as_t *as)
 			if (SYNCH_FAILED(mutex_trylock(&area->lock)))
 				continue;
 			
-			/* Walk the B+ tree of resident pages */
-			link_t *rcur;
-			for (rcur = area->used_space.leaf_head.next;
-			    rcur != &area->used_space.leaf_head; rcur = rcur->next) {
-				btree_node_t *rnode =
-				    list_get_instance(rcur, btree_node_t, leaf_link);
-				
-				unsigned int j;
-				for (j = 0; j < rnode->keys; j++)
-					result += (size_t) rnode->value[i];
-			}
-			
+			pages += area->resident;
 			mutex_unlock(&area->lock);
 		}
 	}
 	
 	mutex_unlock(&as->lock);
 	
-	return result * PAGE_SIZE;
+	return (pages << PAGE_WIDTH);
 }
 
 /* Produce task statistics

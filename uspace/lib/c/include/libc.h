@@ -61,9 +61,6 @@ typedef uint64_t sysarg64_t;
 #define __SYSCALL6(id, p1, p2, p3, p4, p5, p6) \
 	__syscall6(p1, p2, p3, p4, p5, p6, id)
 
-extern void __main(void *pcb_ptr);
-extern void __exit(void);
-
 #endif
 
 /** @}

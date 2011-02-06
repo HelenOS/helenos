@@ -115,16 +115,16 @@ usb_hub_descriptor_t * usb_deserialize_hub_desriptor(void * serialized_descripto
 //control transactions
 
 int usb_drv_sync_control_read(
-		int phone, usb_target_t target,
-		usb_device_request_setup_packet_t * request,
-		void * rcvd_buffer, size_t rcvd_size, size_t * actual_size
-		) {
+    int phone, usb_target_t target,
+    usb_device_request_setup_packet_t * request,
+    void * rcvd_buffer, size_t rcvd_size, size_t * actual_size
+) {
 	usb_handle_t handle;
 	int opResult;
 	//setup
 	opResult = usb_drv_async_control_read_setup(phone, target,
-			request, sizeof (usb_device_request_setup_packet_t),
-			&handle);
+	    request, sizeof (usb_device_request_setup_packet_t),
+	    &handle);
 	if (opResult != EOK) {
 		return opResult;
 	}
@@ -157,16 +157,16 @@ int usb_drv_sync_control_read(
 }
 
 int usb_drv_sync_control_write(
-		int phone, usb_target_t target,
-		usb_device_request_setup_packet_t * request,
-		void * sent_buffer, size_t sent_size
-		) {
+    int phone, usb_target_t target,
+    usb_device_request_setup_packet_t * request,
+    void * sent_buffer, size_t sent_size
+) {
 	usb_handle_t handle;
 	int opResult;
 	//setup
 	opResult = usb_drv_async_control_write_setup(phone, target,
-			request, sizeof (usb_device_request_setup_packet_t),
-			&handle);
+	    request, sizeof (usb_device_request_setup_packet_t),
+	    &handle);
 	if (opResult != EOK) {
 		return opResult;
 	}
@@ -187,7 +187,7 @@ int usb_drv_sync_control_write(
 	}
 	//finalize
 	opResult = usb_drv_async_control_write_status(phone, target,
-			&handle);
+	    &handle);
 	if (opResult != EOK) {
 		return opResult;
 	}

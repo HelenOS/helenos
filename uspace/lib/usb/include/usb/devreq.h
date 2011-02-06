@@ -35,7 +35,6 @@
 #ifndef LIBUSB_DEVREQ_H_
 #define LIBUSB_DEVREQ_H_
 
-#include <ipc/ipc.h>
 #include <async.h>
 #include <usb/usb.h>
 #include <usb/descriptor.h>
@@ -69,12 +68,12 @@ typedef struct {
 	uint8_t request;
 	/** Main parameter to the request. */
 	union {
+		uint16_t value;
 		/* FIXME: add #ifdefs according to host endianess */
 		struct {
 			uint8_t value_low;
 			uint8_t value_high;
 		};
-		uint16_t value;
 	};
 	/** Auxiliary parameter to the request.
 	 * Typically, it is offset to something.

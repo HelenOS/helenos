@@ -35,7 +35,6 @@
  * @brief
  */
 
-#include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <async.h>
 #include <fibril.h>
@@ -121,7 +120,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	if (rc != EOK) {
 		dprintf("Failed to deliver the VFS info into our AS, rc=%d.\n",
 		    rc);
-		ipc_answer_0(rid, rc);
+		async_answer_0(rid, rc);
 		return;
 	}
 	
@@ -131,7 +130,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	fs_info_t *fs_info = (fs_info_t *) malloc(sizeof(fs_info_t));
 	if (!fs_info) {
 		dprintf("Could not allocate memory for FS info.\n");
-		ipc_answer_0(rid, ENOMEM);
+		async_answer_0(rid, ENOMEM);
 		return;
 	}
 	
@@ -143,7 +142,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	
 	if (!vfs_info_sane(&fs_info->vfs_info)) {
 		free(fs_info);
-		ipc_answer_0(rid, EINVAL);
+		async_answer_0(rid, EINVAL);
 		return;
 	}
 	
@@ -159,7 +158,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 		dprintf("FS is already registered.\n");
 		fibril_mutex_unlock(&fs_head_lock);
 		free(fs_info);
-		ipc_answer_0(rid, EEXISTS);
+		async_answer_0(rid, EEXISTS);
 		return;
 	}
 	
@@ -181,14 +180,14 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 		list_remove(&fs_info->fs_link);
 		fibril_mutex_unlock(&fs_head_lock);
 		free(fs_info);
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
+		async_answer_0(callid, EINVAL);
+		async_answer_0(rid, EINVAL);
 		return;
 	}
 	
 	phone = IPC_GET_ARG5(call);
 	async_session_create(&fs_info->session, phone, 0);
-	ipc_answer_0(callid, EOK);
+	async_answer_0(callid, EOK);
 	
 	dprintf("Callback connection to FS created.\n");
 	
@@ -202,10 +201,10 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 		list_remove(&fs_info->fs_link);
 		fibril_mutex_unlock(&fs_head_lock);
 		async_session_destroy(&fs_info->session);
-		ipc_hangup(phone);
+		async_hangup(phone);
 		free(fs_info);
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
+		async_answer_0(callid, EINVAL);
+		async_answer_0(rid, EINVAL);
 		return;
 	}
 	
@@ -217,10 +216,10 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 		list_remove(&fs_info->fs_link);
 		fibril_mutex_unlock(&fs_head_lock);
 		async_session_destroy(&fs_info->session);
-		ipc_hangup(phone);
+		async_hangup(phone);
 		free(fs_info);
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
+		async_answer_0(callid, EINVAL);
+		async_answer_0(rid, EINVAL);
 		return;
 	}
 	
@@ -238,7 +237,7 @@ void vfs_register(ipc_callid_t rid, ipc_call_t *request)
 	 * system a global file system handle.
 	 */
 	fs_info->fs_handle = (fs_handle_t) atomic_postinc(&fs_handle_next);
-	ipc_answer_1(rid, EOK, (sysarg_t) fs_info->fs_handle);
+	async_answer_1(rid, EOK, (sysarg_t) fs_info->fs_handle);
 	
 	fibril_condvar_broadcast(&fs_head_cv);
 	fibril_mutex_unlock(&fs_head_lock);

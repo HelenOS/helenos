@@ -66,6 +66,7 @@ static usb_log_level_t log_level = USB_LOG_LEVEL_WARNING;
 static const char *log_prefix = "usb";
 /** Serialization mutex for logging functions. */
 static FIBRIL_MUTEX_INITIALIZE(log_serializer);
+static FILE *log_stream = NULL;
 
 /** Find or create new tag with given name.
  *
@@ -170,6 +171,14 @@ void usb_log_enable(usb_log_level_t level, const char *message_prefix)
 {
 	log_prefix = message_prefix;
 	log_level = level;
+	if (log_stream == NULL) {
+		char *fname;
+		int rc = asprintf(&fname, "/log/%s", message_prefix);
+		if (rc > 0) {
+			log_stream = fopen(fname, "w");
+			free(fname);
+		}
+	}
 }
 
 
@@ -196,31 +205,50 @@ static const char *log_level_name(usb_log_level_t level)
  */
 void usb_log_printf(usb_log_level_t level, const char *format, ...)
 {
-	if (level > log_level) {
-		return;
-	}
-
-	FILE *stream = NULL;
+	FILE *screen_stream = NULL;
 	switch (level) {
 		case USB_LOG_LEVEL_FATAL:
 		case USB_LOG_LEVEL_ERROR:
-			stream = stderr;
+			screen_stream = stderr;
 			break;
 		default:
-			stream = stdout;
+			screen_stream = stdout;
 			break;
 	}
-	assert(stream != NULL);
+	assert(screen_stream != NULL);
 
 	va_list args;
-	va_start(args, format);
 
+	/*
+	 * Serialize access to log files.
+	 * Always print to log file, to screen print only when the enabled
+	 * log level is high enough.
+	 */
 	fibril_mutex_lock(&log_serializer);
-	fprintf(stream, "[%s]%s: ", log_prefix, log_level_name(level));
-	vfprintf(stream, format, args);
-	fibril_mutex_unlock(&log_serializer);
 
-	va_end(args);
+	const char *level_name = log_level_name(level);
+
+	if (log_stream != NULL) {
+		va_start(args, format);
+
+		fprintf(log_stream, "[%s]%s: ", log_prefix, level_name);
+		vfprintf(log_stream, format, args);
+		fflush(log_stream);
+
+		va_end(args);
+	}
+
+	if (level <= log_level) {
+		va_start(args, format);
+
+		fprintf(screen_stream, "[%s]%s: ", log_prefix, level_name);
+		vfprintf(screen_stream, format, args);
+		fflush(screen_stream);
+
+		va_end(args);
+	}
+
+	fibril_mutex_unlock(&log_serializer);
 }
 
 /**

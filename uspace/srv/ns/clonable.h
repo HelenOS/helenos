@@ -33,16 +33,15 @@
 #ifndef NS_CLONABLE_H__
 #define NS_CLONABLE_H__
 
-#include <ipc/ipc.h>
+#include <ipc/common.h>
+#include <sys/types.h>
 #include <bool.h>
 
 extern int clonable_init(void);
 
-extern bool service_clonable(int service);
-extern void register_clonable(sysarg_t service, sysarg_t phone,
-    ipc_call_t *call, ipc_callid_t callid);
-extern void connect_to_clonable(sysarg_t service, ipc_call_t *call,
-    ipc_callid_t callid);
+extern bool service_clonable(int);
+extern void register_clonable(sysarg_t, sysarg_t, ipc_call_t *, ipc_callid_t);
+extern void connect_to_clonable(sysarg_t, ipc_call_t *, ipc_callid_t);
 
 #endif
 

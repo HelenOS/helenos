@@ -38,10 +38,7 @@
 #define NET_ARP_H_
 
 #include <fibril_synch.h>
-
-#include <ipc/ipc.h>
 #include <ipc/services.h>
-
 #include <net/device.h>
 #include <net/packet.h>
 #include <net_hardware.h>

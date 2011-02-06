@@ -35,11 +35,8 @@
  */
 
 #include <generic.h>
-
 #include <async.h>
-#include <ipc/ipc.h>
 #include <ipc/services.h>
-
 #include <net/device.h>
 #include <adt/measured_strings.h>
 #include <net/packet.h>

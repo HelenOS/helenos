@@ -63,8 +63,6 @@ const sc_desc_t syscall_desc[] = {
     [SYS_IPC_WAIT] = { "ipc_wait_for_call",		3,	V_HASH },
     [SYS_IPC_POKE] = { "ipc_poke",			0,	V_ERRNO },
     [SYS_IPC_HANGUP] = { "ipc_hangup",			1,	V_ERRNO },
-    [SYS_IPC_REGISTER_IRQ] = { "ipc_register_irq",	4,	V_ERRNO },
-    [SYS_IPC_UNREGISTER_IRQ] = { "ipc_unregister_irq",	2,	V_ERRNO },
 
     [SYS_EVENT_SUBSCRIBE] = { "event_subscribe",	2,	V_ERRNO },
 
@@ -72,6 +70,8 @@ const sc_desc_t syscall_desc[] = {
     [SYS_CAP_REVOKE] = { "cap_revoke",			2,	V_ERRNO },
     [SYS_PHYSMEM_MAP] = { "physmem_map",		4,	V_ERRNO },
     [SYS_IOSPACE_ENABLE] = { "iospace_enable",		1,	V_ERRNO },
+    [SYS_REGISTER_IRQ] = { "register_irq",	4,	V_ERRNO },
+    [SYS_UNREGISTER_IRQ] = { "unregister_irq",	2,	V_ERRNO },
 
     [SYS_SYSINFO_GET_TAG] = { "sysinfo_get_tag",		2,	V_INTEGER },
     [SYS_SYSINFO_GET_VALUE] = { "sysinfo_get_value",		3,	V_ERRNO },

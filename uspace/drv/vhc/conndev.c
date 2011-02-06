@@ -89,11 +89,11 @@ void default_connection_handler(device_t *dev,
 		virtdev_connection_t *dev
 		    = virtdev_add_device(callback, (sysarg_t)fibril_get_id());
 		if (!dev) {
-			ipc_answer_0(icallid, EEXISTS);
-			ipc_hangup(callback);
+			async_answer_0(icallid, EEXISTS);
+			async_hangup(callback);
 			return;
 		}
-		ipc_answer_0(icallid, EOK);
+		async_answer_0(icallid, EOK);
 
 		char devname[DEVICE_NAME_MAXLENGTH + 1];
 		int rc = get_device_name(callback, devname, DEVICE_NAME_MAXLENGTH);
@@ -104,7 +104,7 @@ void default_connection_handler(device_t *dev,
 		return;
 	}
 
-	ipc_answer_0(icallid, EINVAL);
+	async_answer_0(icallid, EINVAL);
 }
 
 /** Callback for DDF when client disconnects.

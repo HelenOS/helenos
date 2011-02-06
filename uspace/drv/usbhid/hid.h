@@ -68,10 +68,10 @@ typedef struct {
 typedef struct {
 	device_t *device;
 	usb_hid_configuration_t *conf;
+	usb_address_t address;
 	usb_hid_report_parser_t *parser;
 
 	usb_device_connection_t wire;
-	usb_endpoint_pipe_t ctrl_pipe;
 	usb_endpoint_pipe_t poll_pipe;
 } usb_hid_dev_kbd_t;
 
