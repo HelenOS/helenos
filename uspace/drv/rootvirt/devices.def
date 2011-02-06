@@ -21,10 +21,10 @@
 	.match_id = "virtual&test1"
 },
 #endif
+#ifdef CONFIG_RUN_VIRTUAL_USB_HC
 /* Virtual USB host controller. */
-/*
 {
 	.name = "usbhc",
 	.match_id = "usb&hc=vhc"
 },
-*/
+#endif
