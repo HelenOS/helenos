@@ -35,6 +35,7 @@
 #include <usb/debug.h>
 
 #include "transfer_descriptor.h"
+#include "utils/malloc32.h"
 
 void transfer_descriptor_init(transfer_descriptor_t *instance,
   int error_count, size_t size, bool isochronous, usb_target_t target,
@@ -57,9 +58,6 @@ void transfer_descriptor_init(transfer_descriptor_t *instance,
 		| ((pid & TD_DEVICE_PID_MASK) << TD_DEVICE_PID_POS);
 
 	instance->buffer_ptr = 0;
-
-	instance->next_va = NULL;
-	instance->callback = NULL;
 
 	if (size) {
 		instance->buffer_ptr = (uintptr_t)addr_to_phys(buffer);
@@ -116,15 +114,6 @@ int transfer_descriptor_status(transfer_descriptor_t *instance)
 	if (convert_outcome(instance->status))
 		return EINVAL; //TODO: use sane error value here
 	return EOK;
-}
-/*----------------------------------------------------------------------------*/
-void transfer_descriptor_fini(transfer_descriptor_t *instance)
-{
-	assert(instance);
-	callback_run(instance->callback,
-		convert_outcome(instance->status),
-		((instance->status >> TD_STATUS_ACTLEN_POS) + 1) & TD_STATUS_ACTLEN_MASK
-	);
 }
 /**
  * @}

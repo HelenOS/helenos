@@ -32,7 +32,6 @@ EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include -I$(LIBUSB_PREFIX)/include -I.
 BINARY = uhci-hcd
 
 SOURCES = \
-	callback.c \
 	iface.c \
 	main.c \
 	root_hub.c \

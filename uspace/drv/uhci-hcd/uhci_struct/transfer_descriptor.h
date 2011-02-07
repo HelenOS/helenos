@@ -37,8 +37,6 @@
 #include <mem.h>
 #include <usb/usb.h>
 
-#include "utils/malloc32.h"
-#include "callback.h"
 #include "link_pointer.h"
 
 /** UHCI Transfer Descriptor */
@@ -85,13 +83,10 @@ typedef struct transfer_descriptor {
 
 	volatile uint32_t buffer_ptr;
 
-	/* there is 16 bytes of data available here
-	 * those are used to store callback pointer
-	 * and next pointer. Thus, there is some free space
-	 * on 32bits systems.
+	/* there is 16 bytes of data available here, according to UHCI
+	 * Design guide, according to linux kernel the hardware does not care
+	 * we don't use it anyway
 	 */
-	struct transfer_descriptor *next_va;
-	callback_t *callback;
 } __attribute__((packed)) transfer_descriptor_t;
 
 
@@ -99,27 +94,6 @@ void transfer_descriptor_init(transfer_descriptor_t *instance,
   int error_count, size_t size, bool isochronous, usb_target_t target,
 	int pid, void *buffer);
 
-static inline transfer_descriptor_t * transfer_descriptor_get(
-  int error_count, size_t size, bool isochronous, usb_target_t target,
-  int pid, void *buffer)
-{
-	transfer_descriptor_t * instance =
-	  malloc32(sizeof(transfer_descriptor_t));
-
-	if (instance)
-		transfer_descriptor_init(
-		  instance, error_count, size, isochronous, target, pid, buffer);
-	return instance;
-}
-
-void transfer_descriptor_fini(transfer_descriptor_t *instance);
-
-static inline void transfer_descriptor_dispose(transfer_descriptor_t *instance)
-{
-	assert(instance);
-	transfer_descriptor_fini(instance);
-	free32(instance);
-}
 
 int transfer_descriptor_status(transfer_descriptor_t *instance);
 
@@ -128,14 +102,6 @@ static inline bool transfer_descriptor_is_active(
 {
 	assert(instance);
 	return instance->status & TD_STATUS_ERROR_ACTIVE;
-}
-
-static inline void transfer_descriptor_append(
-  transfer_descriptor_t *instance, transfer_descriptor_t *item)
-{
-	assert(instance);
-	instance->next_va = item;
-	instance->next = (uintptr_t)addr_to_phys(item) & LINK_POINTER_ADDRESS_MASK;
 }
 #endif
 /**

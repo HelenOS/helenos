@@ -95,7 +95,7 @@ int uhci_init(uhci_t *instance, void *regs, size_t reg_size)
 	instance->debug_checker = fibril_create(uhci_debug_checker, instance);
 	fibril_add_ready(instance->debug_checker);
 
-	/* Start the hc with large(64b) packet FSBR */
+	/* Start the hc with large(64B) packet FSBR */
 	pio_write_16(&instance->registers->usbcmd,
 	    UHCI_CMD_RUN_STOP | UHCI_CMD_MAX_PACKET);
 	usb_log_debug("Started UHCI HC.\n");
@@ -149,67 +149,6 @@ int uhci_init_transfer_lists(uhci_t *instance)
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-int uhci_transfer(
-  uhci_t *instance,
-  device_t *dev,
-  usb_target_t target,
-  usb_transfer_type_t transfer_type,
-	bool toggle,
-  usb_packet_id pid,
-	bool low_speed,
-  void *buffer, size_t size,
-  usbhc_iface_transfer_out_callback_t callback_out,
-  usbhc_iface_transfer_in_callback_t callback_in,
-  void *arg)
-{
-	if (!allowed_usb_packet(low_speed, transfer_type, size)) {
-		usb_log_warning("Invalid USB packet specified %s SPEED %d %zu.\n",
-			low_speed ? "LOW" : "FULL" , transfer_type, size);
-		return ENOTSUP;
-	}
-
-	// TODO: Add support for isochronous transfers
-	if (transfer_type == USB_TRANSFER_ISOCHRONOUS) {
-		usb_log_warning("ISO transfer not supported.\n");
-		return ENOTSUP;
-	}
-
-	transfer_list_t *list = instance->transfers[low_speed][transfer_type];
-	assert(list);
-
-	transfer_descriptor_t *td = NULL;
-	callback_t *job = NULL;
-	int ret = EOK;
-	assert(dev);
-
-#define CHECK_RET_TRANS_FREE_JOB_TD(message) \
-	if (ret != EOK) { \
-		usb_log_error(message); \
-		if (job) { \
-			callback_dispose(job); \
-		} \
-		if (td) { free32(td); } \
-		return ret; \
-	} else (void) 0
-
-	job = callback_get(dev, buffer, size, callback_in, callback_out, arg);
-	ret = job ? EOK : ENOMEM;
-	CHECK_RET_TRANS_FREE_JOB_TD("Failed to allocate callback structure.\n");
-
-	td = transfer_descriptor_get(3, size, false, target, pid, job->new_buffer);
-	ret = td ? EOK : ENOMEM;
-	CHECK_RET_TRANS_FREE_JOB_TD("Failed to setup transfer descriptor.\n");
-
-	td->callback = job;
-
-	usb_log_debug("Appending a new transfer to queue %s.\n", list->name);
-
-	ret = transfer_list_append(list, td);
-	CHECK_RET_TRANS_FREE_JOB_TD("Failed to append transfer descriptor.\n");
-
-	return EOK;
-}
-/*----------------------------------------------------------------------------*/
 int uhci_schedule(uhci_t *instance, tracker_t *tracker)
 {
 	assert(instance);
@@ -254,36 +193,6 @@ int uhci_clean_finished(void* arg)
 				tracker->next_step(tracker);
 			}
 			current = next;
-		}
-		/* iterate all transfer queues */
-		transfer_list_t *current_list = &instance->transfers_interrupt;
-		while (current_list) {
-			/* Remove inactive transfers from the top of the queue
-			 * TODO: should I reach queue head or is this enough? */
-			volatile transfer_descriptor_t * it =
-				current_list->first;
-			usb_log_debug("Running cleaning fibril on queue: %s (%s).\n",
-				current_list->name, it ? "SOMETHING" : "EMPTY");
-
-			if (it) {
-				usb_log_debug("First in queue: %p (%x) PA:%x.\n",
-					it, it->status, addr_to_phys((void*)it) );
-				usb_log_debug("First to send: %x\n",
-					(current_list->queue_head->element) );
-			}
-
-			while (current_list->first &&
-			 !(current_list->first->status & TD_STATUS_ERROR_ACTIVE)) {
-				transfer_descriptor_t *transfer = current_list->first;
-				usb_log_info("Inactive transfer calling callback with status %x.\n",
-				  transfer->status);
-				current_list->first = transfer->next_va;
-				transfer_descriptor_dispose(transfer);
-			}
-			if (!current_list->first)
-				current_list->last = current_list->first;
-
-			current_list = current_list->next;
 		}
 		async_usleep(UHCI_CLEANER_TIMEOUT);
 	}
@@ -351,7 +260,7 @@ bool allowed_usb_packet(
 		case USB_TRANSFER_ISOCHRONOUS:
 			return (!low_speed && size < 1024);
 		case USB_TRANSFER_INTERRUPT:
-			return size <= (low_speed ? 8 :64);
+			return size <= (low_speed ? 8 : 64);
 		case USB_TRANSFER_CONTROL: /* device specifies its own max size */
 			return (size <= (low_speed ? 8 : 64));
 		case USB_TRANSFER_BULK: /* device specifies its own max size */
