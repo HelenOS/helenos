@@ -105,22 +105,24 @@ static int interrupt_out(device_t *dev, usb_target_t target,
     void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
-	assert(dev);
-	uhci_t *hc = dev_to_uhci(dev);
-	assert(hc);
-	return uhci_transfer(hc, dev, target, USB_TRANSFER_INTERRUPT, 0, USB_PID_OUT,
-		false, data, size, callback, NULL, arg);
+	tracker_t *tracker = tracker_get(dev, target, USB_TRANSFER_INTERRUPT,
+	    size, FULL_SPEED, data, size, NULL, callback, arg);
+	if (!tracker)
+		return ENOMEM;
+	tracker_control_read_data_old(tracker);
+	return EOK;
 }
 /*----------------------------------------------------------------------------*/
 static int interrupt_in(device_t *dev, usb_target_t target,
     void *data, size_t size,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
-	assert(dev);
-	uhci_t *hc = dev_to_uhci(dev);
-	assert(hc);
-	return uhci_transfer(hc, dev, target, USB_TRANSFER_INTERRUPT, 0, USB_PID_IN,
-		false, data, size, NULL, callback, arg);
+	tracker_t *tracker = tracker_get(dev, target, USB_TRANSFER_INTERRUPT,
+	    size, FULL_SPEED, data, size, callback, NULL, arg);
+	if (!tracker)
+		return ENOMEM;
+	tracker_control_read_data_old(tracker);
+	return EOK;
 }
 /*----------------------------------------------------------------------------*/
 static int control_write_setup(device_t *dev, usb_target_t target,
