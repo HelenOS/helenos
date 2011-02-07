@@ -32,43 +32,58 @@
  * @brief UHCI driver
  */
 #include <errno.h>
-#include <mem.h>
 
 #include <usb/debug.h>
 
 #include "tracker.h"
+#include "uhci.h"
+#include "utils/malloc32.h"
 
 #define SETUP_PACKET_DATA_SIZE 8
 #define DEFAULT_ERROR_COUNT 3
 #define MAX(a,b) ((a > b) ? a : b)
 #define MIN(a,b) ((a < b) ? a : b)
 
+static int tracker_schedule(tracker_t *instance);
+
 static void tracker_control_read_data(tracker_t *instance);
 static void tracker_control_write_data(tracker_t *instance);
 static void tracker_control_read_status(tracker_t *instance);
 static void tracker_control_write_status(tracker_t *instance);
+static void tracker_call_in(tracker_t *instance);
+static void tracker_call_out(tracker_t *instance);
+static void tracker_call_in_and_dispose(tracker_t *instance);
+static void tracker_call_out_and_dispose(tracker_t *instance);
 
 
-int tracker_init(tracker_t *instance, device_t *dev, usb_target_t target,
-    size_t max_packet_size, dev_speed_t speed, char *buffer, size_t size,
+tracker_t * tracker_get(device_t *dev, usb_target_t target,
+    usb_transfer_type_t transfer_type, size_t max_packet_size,
+    dev_speed_t speed, char *buffer, size_t size,
     usbhc_iface_transfer_in_callback_t func_in,
     usbhc_iface_transfer_out_callback_t func_out, void *arg)
 {
-	assert(instance);
 	assert(func_in == NULL || func_out == NULL);
 	assert(func_in != NULL || func_out != NULL);
+
+	tracker_t *instance = malloc(sizeof(tracker_t));
+	if (!instance) {
+		usb_log_error("Failed to allocate tracker isntance.\n");
+		return NULL;
+	}
 
 	instance->td = malloc32(sizeof(transfer_descriptor_t));
 	if (!instance->td) {
 		usb_log_error("Failed to allocate transfer descriptor.\n");
-		return ENOMEM;
+		free(instance);
+		return NULL;
 	}
 
 	instance->packet = max_packet_size ? malloc32(max_packet_size) : NULL;
 	if (max_packet_size && !instance->packet) {
 		usb_log_error("Failed to allocate device acessible buffer.\n");
 		free32(instance->td);
-		return ENOMEM;
+		free(instance);
+		return NULL;
 	}
 	instance->max_packet_size = max_packet_size;
 	instance->packet_size = 0;
@@ -76,6 +91,7 @@ int tracker_init(tracker_t *instance, device_t *dev, usb_target_t target,
 
 	link_initialize(&instance->link);
 	instance->target = target;
+	instance->transfer_type = transfer_type;
 
 	if (func_out)
 		instance->callback_out = func_out;
@@ -86,35 +102,44 @@ int tracker_init(tracker_t *instance, device_t *dev, usb_target_t target,
 	instance->dev = dev;
 	instance->arg = arg;
 	instance->toggle = 0;
-	return EOK;
+
+	return instance;
 }
 /*----------------------------------------------------------------------------*/
 void tracker_control_write(tracker_t *instance)
 {
 	assert(instance);
 	assert(instance->buffer_offset == 0);
+
 	instance->packet_size = SETUP_PACKET_DATA_SIZE;
 	memcpy(instance->packet, instance->buffer, SETUP_PACKET_DATA_SIZE);
+
 	transfer_descriptor_init(instance->td, DEFAULT_ERROR_COUNT,
 	    SETUP_PACKET_DATA_SIZE, false, instance->target, USB_PID_SETUP,
 	    instance->packet);
+
 	instance->buffer_offset += SETUP_PACKET_DATA_SIZE;
 	instance->next_step = tracker_control_write_data;
-	//TODO: add to scheduler
+
+	tracker_schedule(instance);
 }
 /*----------------------------------------------------------------------------*/
 void tracker_control_read(tracker_t *instance)
 {
 	assert(instance);
 	assert(instance->buffer_offset == 0);
+
 	instance->packet_size = SETUP_PACKET_DATA_SIZE;
 	memcpy(instance->packet, instance->buffer, SETUP_PACKET_DATA_SIZE);
+
 	transfer_descriptor_init(instance->td, DEFAULT_ERROR_COUNT,
 	    SETUP_PACKET_DATA_SIZE, false, instance->target, USB_PID_SETUP,
 	    instance->packet);
+
 	instance->buffer_offset += SETUP_PACKET_DATA_SIZE;
 	instance->next_step = tracker_control_read_data;
-	//TODO: add to scheduler
+
+	tracker_schedule(instance);
 }
 /*----------------------------------------------------------------------------*/
 void tracker_control_read_data(tracker_t *instance)
@@ -135,11 +160,13 @@ void tracker_control_read_data(tracker_t *instance)
 
 	/* prepare next packet, no copy, we are receiving data */
 	instance->packet_size =	MIN(instance->max_packet_size,
-			instance->buffer_size - instance->buffer_offset);
+	    instance->buffer_size - instance->buffer_offset);
+
 	transfer_descriptor_init(instance->td, DEFAULT_ERROR_COUNT,
-			instance->packet_size, false, instance->target, USB_PID_IN,
-			instance->packet);
-	// TODO: add to uhci scheduler
+	    instance->packet_size, false, instance->target, USB_PID_IN,
+	    instance->packet);
+
+	tracker_schedule(instance);
 
 	/* set next step */
 	if ((instance->buffer_offset + instance->packet_size)
@@ -165,13 +192,14 @@ void tracker_control_write_data(tracker_t *instance)
 
 	/* prepare next packet, copy data to packet */
 	instance->packet_size =	MIN(instance->max_packet_size,
-			instance->buffer_size - instance->buffer_offset);
+	    instance->buffer_size - instance->buffer_offset);
 	memcpy(instance->packet, instance->buffer + instance->buffer_offset,
 	    instance->packet_size);
 	transfer_descriptor_init(instance->td, DEFAULT_ERROR_COUNT,
-			instance->packet_size, false, instance->target, USB_PID_OUT,
-			instance->packet);
-	// TODO: add to uhci scheduler
+	    instance->packet_size, false, instance->target, USB_PID_OUT,
+	    instance->packet);
+
+	tracker_schedule(instance);
 
 	/* set next step */
 	if ((instance->buffer_offset + instance->packet_size)
@@ -201,8 +229,9 @@ void tracker_control_read_status(tracker_t *instance)
 	/* prepare next packet, no nothing, just an empty packet */
 	instance->packet_size =	0;
 	transfer_descriptor_init(instance->td, DEFAULT_ERROR_COUNT,
-			0, false, instance->target, USB_PID_OUT, NULL);
-	// TODO: add to uhci scheduler
+	    0, false, instance->target, USB_PID_OUT, NULL);
+
+	tracker_schedule(instance);
 
 	/* set next step, callback and cleanup */
 	instance->next_step = tracker_call_in_and_dispose;
@@ -228,8 +257,9 @@ void tracker_control_write_status(tracker_t *instance)
 	/* prepare next packet, no nothing, just an empty packet */
 	instance->packet_size =	0;
 	transfer_descriptor_init(instance->td, DEFAULT_ERROR_COUNT,
-			0, false, instance->target, USB_PID_OUT, NULL);
-	// TODO: add to uhci scheduler
+	    0, false, instance->target, USB_PID_OUT, NULL);
+
+	tracker_schedule(instance);
 
 	/* set next step, callback and cleanup */
 	instance->next_step = tracker_call_out_and_dispose;
@@ -287,42 +317,64 @@ void tracker_call_out_and_dispose(tracker_t *instance)
 	free32(instance->packet);
 	free(instance);
 }
+/*----------------------------------------------------------------------------*/
+int tracker_schedule(tracker_t *instance)
+{
+	assert(instance);
+	uhci_t *hc = dev_to_uhci(instance->dev);
+	assert(hc);
+	return uhci_schedule(hc, instance);
+}
+/*----------------------------------------------------------------------------*/
 /* DEPRECATED FUNCTIONS NEEDED BY THE OLD API */
 void tracker_control_setup_old(tracker_t *instance)
 {
 	assert(instance);
 	assert(instance->buffer_offset == 0);
+
 	instance->packet_size = SETUP_PACKET_DATA_SIZE;
 	memcpy(instance->packet, instance->buffer, SETUP_PACKET_DATA_SIZE);
+
 	transfer_descriptor_init(instance->td, DEFAULT_ERROR_COUNT,
 	    SETUP_PACKET_DATA_SIZE, false, instance->target, USB_PID_SETUP,
 	    instance->packet);
+
 	instance->buffer_offset += SETUP_PACKET_DATA_SIZE;
 	instance->next_step = tracker_call_out_and_dispose;
-	//TODO: add to scheduler
+
+	tracker_schedule(instance);
 }
 
 void tracker_control_write_data_old(tracker_t *instance)
 {
 	assert(instance);
 	assert(instance->max_packet_size == instance->buffer_size);
+
 	memcpy(instance->packet, instance->buffer, instance->max_packet_size);
 	instance->packet_size = instance->max_packet_size;
+
 	transfer_descriptor_init(instance->td, DEFAULT_ERROR_COUNT,
-			instance->packet_size, false, instance->target, USB_PID_OUT,
-			instance->packet);
+	    instance->packet_size, false, instance->target, USB_PID_OUT,
+	    instance->packet);
 	instance->next_step = tracker_call_out_and_dispose;
+
+	tracker_schedule(instance);
 }
 
 void tracker_control_read_data_old(tracker_t *instance)
 {
 	assert(instance);
 	assert(instance->max_packet_size == instance->buffer_size);
+
 	instance->packet_size = instance->max_packet_size;
+
 	transfer_descriptor_init(instance->td, DEFAULT_ERROR_COUNT,
-			instance->packet_size, false, instance->target, USB_PID_IN,
-			instance->packet);
+	    instance->packet_size, false, instance->target, USB_PID_IN,
+	    instance->packet);
+
 	instance->next_step = tracker_call_in_and_dispose;
+
+	tracker_schedule(instance);
 }
 
 void tracker_control_write_status_old(tracker_t *instance)
@@ -333,10 +385,13 @@ void tracker_control_write_status_old(tracker_t *instance)
 	assert(instance->packet == NULL);
 
 	instance->packet_size = instance->max_packet_size;
-	transfer_descriptor_init(instance->td, DEFAULT_ERROR_COUNT,
-			instance->packet_size, false, instance->target, USB_PID_IN,
-			instance->packet);
 	instance->next_step = tracker_call_in_and_dispose;
+
+	transfer_descriptor_init(instance->td, DEFAULT_ERROR_COUNT,
+	    instance->packet_size, false, instance->target, USB_PID_IN,
+	    instance->packet);
+
+	tracker_schedule(instance);
 }
 
 void tracker_control_read_status_old(tracker_t *instance)
@@ -347,10 +402,13 @@ void tracker_control_read_status_old(tracker_t *instance)
 	assert(instance->packet == NULL);
 
 	instance->packet_size = instance->max_packet_size;
-	transfer_descriptor_init(instance->td, DEFAULT_ERROR_COUNT,
-			instance->packet_size, false, instance->target, USB_PID_OUT,
-			instance->packet);
 	instance->next_step = tracker_call_out_and_dispose;
+
+	transfer_descriptor_init(instance->td, DEFAULT_ERROR_COUNT,
+	    instance->packet_size, false, instance->target, USB_PID_OUT,
+	    instance->packet);
+
+	tracker_schedule(instance);
 }
 /**
  * @}

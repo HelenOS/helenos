@@ -85,8 +85,9 @@ int uhci_init(uhci_t *instance, void *regs, size_t reg_size)
 	}
 
 	const uintptr_t pa = (uintptr_t)addr_to_phys(instance->frame_list);
-
 	pio_write_32(&instance->registers->flbaseadd, (uint32_t)pa);
+
+	list_initialize(&instance->tracker_list);
 
 	instance->cleaner = fibril_create(uhci_clean_finished, instance);
 	fibril_add_ready(instance->cleaner);
@@ -208,7 +209,30 @@ int uhci_transfer(
 
 	return EOK;
 }
-/*---------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------*/
+int uhci_schedule(uhci_t *instance, tracker_t *tracker)
+{
+	assert(instance);
+	assert(tracker);
+	const int low_speed = (tracker->speed == LOW_SPEED);
+	if (!allowed_usb_packet(
+	    low_speed, tracker->transfer_type, tracker->packet_size)) {
+		usb_log_warning("Invalid USB packet specified %s SPEED %d %zu.\n",
+			  low_speed ? "LOW" : "FULL" , tracker->transfer_type,
+		    tracker->packet_size);
+		return ENOTSUP;
+	}
+	/* TODO: check available bandwith here */
+
+	transfer_list_t *list =
+	    instance->transfers[low_speed][tracker->transfer_type];
+	assert(list);
+	transfer_list_add_tracker(list, tracker);
+	list_append(&tracker->link, &instance->tracker_list);
+
+	return EOK;
+}
+/*----------------------------------------------------------------------------*/
 int uhci_clean_finished(void* arg)
 {
 	usb_log_debug("Started cleaning fibril.\n");
@@ -216,7 +240,20 @@ int uhci_clean_finished(void* arg)
 	assert(instance);
 
 	while(1) {
-		usb_log_debug("Running cleaning fibril on: %p.\n", instance);
+		/* tracker iteration */
+		link_t *current = instance->tracker_list.next;
+		while (current != &instance->tracker_list)
+		{
+			link_t *next = current->next;
+			tracker_t *tracker = list_get_instance(current, tracker_t, link);
+			assert(current == &tracker->link);
+			if (!transfer_descriptor_is_active(tracker->td)) {
+				usb_log_debug("Found inactive tracker.\n");
+				list_remove(current);
+				tracker->next_step(tracker);
+			}
+			current = next;
+		}
 		/* iterate all transfer queues */
 		transfer_list_t *current_list = &instance->transfers_interrupt;
 		while (current_list) {

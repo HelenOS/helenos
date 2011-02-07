@@ -123,6 +123,13 @@ static inline void transfer_descriptor_dispose(transfer_descriptor_t *instance)
 
 int transfer_descriptor_status(transfer_descriptor_t *instance);
 
+static inline bool transfer_descriptor_is_active(
+    transfer_descriptor_t *instance)
+{
+	assert(instance);
+	return instance->status & TD_STATUS_ERROR_ACTIVE;
+}
+
 static inline void transfer_descriptor_append(
   transfer_descriptor_t *instance, transfer_descriptor_t *item)
 {

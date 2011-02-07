@@ -95,6 +95,30 @@ int transfer_list_append(
 	  instance->name);
 	return EOK;
 }
+/*----------------------------------------------------------------------------*/
+void transfer_list_add_tracker(transfer_list_t *instance, tracker_t *tracker)
+{
+	assert(instance);
+	assert(tracker);
+
+	uint32_t pa = (uintptr_t)addr_to_phys(tracker->td);
+	assert((pa & LINK_POINTER_ADDRESS_MASK) == pa);
+
+	if (instance->queue_head->element & LINK_POINTER_TERMINATE_FLAG) {
+		/* there is nothing scheduled */
+		instance->last_tracker = tracker;
+		instance->queue_head->element = pa;
+		return;
+	}
+	/* now we can be sure that last_tracker is a valid pointer */
+	instance->last_tracker->td->next = pa;
+	instance->last_tracker = tracker;
+
+	/* check again, may be use atomic compare and swap */
+	if (instance->queue_head->element & LINK_POINTER_TERMINATE_FLAG) {
+		instance->queue_head->element = pa;
+	}
+}
 /**
  * @}
  */

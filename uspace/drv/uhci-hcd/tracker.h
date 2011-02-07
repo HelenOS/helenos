@@ -50,6 +50,7 @@ typedef struct tracker
 {
 	link_t link;
 	usb_target_t target;
+	usb_transfer_type_t transfer_type;
 	union {
 		usbhc_iface_transfer_in_callback_t callback_in;
 		usbhc_iface_transfer_out_callback_t callback_out;
@@ -69,8 +70,9 @@ typedef struct tracker
 } tracker_t;
 
 
-int tracker_init(tracker_t *instance, device_t *dev, usb_target_t target,
-    size_t packet_size, dev_speed_t speed, char *buffer, size_t size,
+tracker_t * tracker_get(device_t *dev, usb_target_t target,
+    usb_transfer_type_t transfer_type, size_t max_packet_size,
+    dev_speed_t speed, char *buffer, size_t size,
     usbhc_iface_transfer_in_callback_t func_in,
     usbhc_iface_transfer_out_callback_t func_out, void *arg);
 
@@ -81,14 +83,6 @@ void tracker_control_read(tracker_t *instance);
 void tracker_interrupt_in(tracker_t *instance);
 
 void tracker_interrupt_out(tracker_t *instance);
-
-void tracker_call_in(tracker_t *instance);
-
-void tracker_call_out(tracker_t *instance);
-
-void tracker_call_in_and_dispose(tracker_t *instance);
-
-void tracker_call_out_and_dispose(tracker_t *instance);
 
 /* DEPRECATED FUNCTIONS NEEDED BY THE OLD API */
 void tracker_control_setup_old(tracker_t *instance);

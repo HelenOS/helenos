@@ -36,11 +36,13 @@
 #define DRV_UHCI_UHCI_H
 
 #include <fibril.h>
+#include <adt/list.h>
 
 #include <usb/addrkeep.h>
 #include <usbhc_iface.h>
 
 #include "transfer_list.h"
+#include "tracker.h"
 
 typedef struct uhci_regs {
 	uint16_t usbcmd;
@@ -78,6 +80,8 @@ typedef struct uhci {
 
 	link_pointer_t *frame_list;
 
+	link_t tracker_list;
+
 	transfer_list_t transfers_bulk_full;
 	transfer_list_t transfers_control_full;
 	transfer_list_t transfers_control_slow;
@@ -106,6 +110,8 @@ int uhci_transfer(
   usbhc_iface_transfer_out_callback_t callback_out,
   usbhc_iface_transfer_in_callback_t callback_in,
   void *arg );
+
+int uhci_schedule(uhci_t *instance, tracker_t *tracker);
 
 static inline uhci_t * dev_to_uhci(device_t *dev)
 	{ return (uhci_t*)dev->driver_data; }
