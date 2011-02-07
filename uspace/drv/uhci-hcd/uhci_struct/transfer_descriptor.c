@@ -31,6 +31,7 @@
 /** @file
  * @brief UHCI driver
  */
+#include <errno.h>
 #include <usb/debug.h>
 
 #include "transfer_descriptor.h"
@@ -43,7 +44,6 @@ void transfer_descriptor_init(transfer_descriptor_t *instance,
 
 	instance->next =
 	  0 | LINK_POINTER_TERMINATE_FLAG;
-
 
 	assert(size < 1024);
 	instance->status = 0
@@ -109,7 +109,15 @@ static inline usb_transaction_outcome_t convert_outcome(uint32_t status)
 	| TD_STATUS_ERROR_RESERVED) == TD_STATUS_ERROR_RESERVED);
 	return USB_OUTCOME_OK;
 }
-
+/*----------------------------------------------------------------------------*/
+int transfer_descriptor_status(transfer_descriptor_t *instance)
+{
+	assert(instance);
+	if (convert_outcome(instance->status))
+		return EINVAL; //TODO: use sane error value here
+	return EOK;
+}
+/*----------------------------------------------------------------------------*/
 void transfer_descriptor_fini(transfer_descriptor_t *instance)
 {
 	assert(instance);

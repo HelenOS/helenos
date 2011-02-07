@@ -121,12 +121,14 @@ static inline void transfer_descriptor_dispose(transfer_descriptor_t *instance)
 	free32(instance);
 }
 
+int transfer_descriptor_status(transfer_descriptor_t *instance);
+
 static inline void transfer_descriptor_append(
   transfer_descriptor_t *instance, transfer_descriptor_t *item)
 {
 	assert(instance);
 	instance->next_va = item;
-	instance->next = (uintptr_t)addr_to_phys( item ) & LINK_POINTER_ADDRESS_MASK;
+	instance->next = (uintptr_t)addr_to_phys(item) & LINK_POINTER_ADDRESS_MASK;
 }
 #endif
 /**
