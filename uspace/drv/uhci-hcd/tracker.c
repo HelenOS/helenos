@@ -77,6 +77,7 @@ tracker_t * tracker_get(device_t *dev, usb_target_t target,
 		free(instance);
 		return NULL;
 	}
+	bzero(instance->td, sizeof(transfer_descriptor_t));
 
 	instance->packet = max_packet_size ? malloc32(max_packet_size) : NULL;
 	if (max_packet_size && !instance->packet) {
