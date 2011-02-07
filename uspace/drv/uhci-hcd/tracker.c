@@ -284,6 +284,8 @@ void tracker_call_in(tracker_t *instance)
 		memcpy(instance->buffer + instance->buffer_offset, instance->packet,
 		    instance->packet_size);
 	}
+	instance->buffer_offset += instance->packet_size;
+	usb_log_debug("Callback IN: %d, %zu.\n", err, instance->buffer_offset);
 	instance->callback_in(instance->dev,
 	    err ? USB_OUTCOME_CRCERROR : USB_OUTCOME_OK, instance->buffer_offset,
 	    instance->arg);
@@ -296,6 +298,7 @@ void tracker_call_out(tracker_t *instance)
 
 	/* check for errors */
 	int err = transfer_descriptor_status(instance->td);
+	usb_log_debug("Callback OUT: %d, %zu.\n", err, instance->buffer_offset);
 	instance->callback_out(instance->dev,
 	    err ? USB_OUTCOME_CRCERROR : USB_OUTCOME_OK, instance->arg);
 }

@@ -69,10 +69,9 @@ typedef struct uhci_regs {
 	uint8_t sofmod;
 } regs_t;
 
-#define TRANSFER_QUEUES 4
 #define UHCI_FRAME_LIST_COUNT 1024
 #define UHCI_CLEANER_TIMEOUT 10000
-#define UHCI_DEBUGER_TIMEOUT 500000
+#define UHCI_DEBUGER_TIMEOUT 5000000
 
 typedef struct uhci {
 	usb_address_keeping_t address_manager;
