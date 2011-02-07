@@ -185,7 +185,12 @@ int uhci_clean_finished(void* arg)
 		{
 			link_t *next = current->next;
 			tracker_t *tracker = list_get_instance(current, tracker_t, link);
+
 			assert(current == &tracker->link);
+			assert(tracker);
+			assert(tracker->next_step);
+			assert(tracker->td);
+
 			if (!transfer_descriptor_is_active(tracker->td)) {
 				usb_log_info("Found inactive tracker with status: %x.\n",
 				    tracker->td->status);

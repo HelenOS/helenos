@@ -108,34 +108,36 @@ tracker_t * tracker_get(device_t *dev, usb_target_t target,
 	return instance;
 }
 /*----------------------------------------------------------------------------*/
-void tracker_control_write(tracker_t *instance)
+void tracker_control_write(
+    tracker_t *instance, char* setup_buffer, size_t setup_size)
 {
 	assert(instance);
 	assert(instance->buffer_offset == 0);
+	assert(setup_size == 8);
 
-	instance->packet_size = SETUP_PACKET_DATA_SIZE;
-	memcpy(instance->packet, instance->buffer, SETUP_PACKET_DATA_SIZE);
+	instance->packet_size = 0;
+	memcpy(instance->packet, setup_buffer, setup_size);
 
 	transfer_descriptor_init(instance->td, DEFAULT_ERROR_COUNT,
-	    SETUP_PACKET_DATA_SIZE, instance->toggle++, false, instance->target,
+	    setup_size, instance->toggle++, false, instance->target,
 	    USB_PID_SETUP, instance->packet);
 
-	instance->buffer_offset += SETUP_PACKET_DATA_SIZE;
 	instance->next_step = tracker_control_write_data;
 
 	tracker_schedule(instance);
 }
 /*----------------------------------------------------------------------------*/
-void tracker_control_read(tracker_t *instance)
+void tracker_control_read(
+    tracker_t *instance, char* setup_buffer, size_t setup_size)
 {
 	assert(instance);
 	assert(instance->buffer_offset == 0);
+	assert(setup_size == 8);
 
-	instance->packet_size = SETUP_PACKET_DATA_SIZE;
-	memcpy(instance->packet, instance->buffer, SETUP_PACKET_DATA_SIZE);
+	memcpy(instance->packet, setup_buffer, setup_size);
 
 	transfer_descriptor_init(instance->td, DEFAULT_ERROR_COUNT,
-	    SETUP_PACKET_DATA_SIZE, instance->toggle++, false, instance->target,
+	    setup_size, instance->toggle++, false, instance->target,
 	    USB_PID_SETUP, instance->packet);
 
 	instance->buffer_offset += SETUP_PACKET_DATA_SIZE;
@@ -156,8 +158,10 @@ void tracker_control_read_data(tracker_t *instance)
 	}
 
 	/* we are data in, we want data from our device */
-	memcpy(instance->buffer + instance->buffer_offset, instance->packet,
-	    instance->packet_size);
+	if (instance->packet_size) {
+		memcpy(instance->buffer + instance->buffer_offset, instance->packet,
+		    instance->packet_size);
+	}
 	instance->buffer_offset += instance->packet_size;
 
 	/* prepare next packet, no copy, we are receiving data */
@@ -189,7 +193,7 @@ void tracker_control_write_data(tracker_t *instance)
 		return;
 	}
 
-	/* we are data out, we down't want data from our device */
+	/* we are data out, we don't want data from our device */
 	instance->buffer_offset += instance->packet_size;
 
 	/* prepare next packet, copy data to packet */
@@ -232,7 +236,7 @@ void tracker_control_read_status(tracker_t *instance)
 	/* prepare next packet, no nothing, just an empty packet */
 	instance->packet_size =	0;
 	transfer_descriptor_init(instance->td, DEFAULT_ERROR_COUNT,
-	    0, 1, false, instance->target, USB_PID_OUT, NULL);
+	    instance->packet_size, 1, false, instance->target, USB_PID_OUT, NULL);
 
 	tracker_schedule(instance);
 
@@ -252,6 +256,8 @@ void tracker_control_write_status(tracker_t *instance)
 	}
 
 	/* we are data in, we want data from our device */
+	assert(
+	    instance->buffer_offset + instance->packet_size <= instance->buffer_size);
 	memcpy(instance->buffer + instance->buffer_offset, instance->packet,
 	    instance->packet_size);
 	instance->buffer_offset += instance->packet_size;
@@ -260,7 +266,7 @@ void tracker_control_write_status(tracker_t *instance)
 	/* prepare next packet, no nothing, just an empty packet */
 	instance->packet_size =	0;
 	transfer_descriptor_init(instance->td, DEFAULT_ERROR_COUNT,
-	    0, 1, false, instance->target, USB_PID_OUT, NULL);
+	    instance->packet_size, 1, false, instance->target, USB_PID_IN, NULL);
 
 	tracker_schedule(instance);
 
@@ -289,6 +295,7 @@ void tracker_interrupt_in(tracker_t *instance)
 	/* prepare next packet, no copy, we are receiving data */
 	instance->packet_size =	MIN(instance->max_packet_size,
 			instance->buffer_size - instance->buffer_offset);
+	assert(instance->packet_size <= instance->max_packet_size);
 
 	transfer_descriptor_init(instance->td, DEFAULT_ERROR_COUNT,
 	    instance->packet_size, instance->toggle++, false, instance->target,
@@ -350,7 +357,8 @@ void tracker_call_in(tracker_t *instance)
 		    instance->packet_size);
 	}
 	instance->buffer_offset += instance->packet_size;
-	usb_log_debug("Callback IN: %d, %zu.\n", err, instance->buffer_offset);
+	usb_log_debug("Callback IN(%d): %d, %zu.\n", instance->transfer_type,
+	    err, instance->buffer_offset);
 	instance->callback_in(instance->dev,
 	    err ? USB_OUTCOME_CRCERROR : USB_OUTCOME_OK, instance->buffer_offset,
 	    instance->arg);
@@ -363,7 +371,8 @@ void tracker_call_out(tracker_t *instance)
 
 	/* check for errors */
 	int err = transfer_descriptor_status(instance->td);
-	usb_log_debug("Callback OUT: %d, %zu.\n", err, instance->buffer_offset);
+	usb_log_debug("Callback OUT(%d): %d, %zu.\n", instance->transfer_type,
+	    err, instance->buffer_offset);
 	instance->callback_out(instance->dev,
 	    err ? USB_OUTCOME_CRCERROR : USB_OUTCOME_OK, instance->arg);
 }

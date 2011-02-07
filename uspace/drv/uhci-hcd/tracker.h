@@ -76,9 +76,11 @@ tracker_t * tracker_get(device_t *dev, usb_target_t target,
     usbhc_iface_transfer_in_callback_t func_in,
     usbhc_iface_transfer_out_callback_t func_out, void *arg);
 
-void tracker_control_write(tracker_t *instance);
+void tracker_control_write(
+    tracker_t *instance, char* setup_buffer, size_t setup_size);
 
-void tracker_control_read(tracker_t *instance);
+void tracker_control_read(
+    tracker_t *instance, char* setup_buffer, size_t setup_size);
 
 void tracker_interrupt_in(tracker_t *instance);
 

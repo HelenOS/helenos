@@ -135,14 +135,30 @@ static int control_write(device_t *dev, usb_target_t target,
     void *setup_data, size_t setup_size, void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
-	return ENOTSUP;
+	size_t max_packet_size = size;
+	dev_speed_t speed = FULL_SPEED;
+
+	tracker_t *tracker = tracker_get(dev, target, USB_TRANSFER_CONTROL,
+	    max_packet_size, speed, data, size, NULL, callback, arg);
+	if (!tracker)
+		return ENOMEM;
+	tracker_control_write(tracker, setup_data, setup_size);
+	return EOK;
 }
 /*----------------------------------------------------------------------------*/
 static int control_read(device_t *dev, usb_target_t target,
     void *setup_data, size_t setup_size, void *data, size_t size,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
-	return ENOTSUP;
+	size_t max_packet_size = size;
+	dev_speed_t speed = FULL_SPEED;
+
+	tracker_t *tracker = tracker_get(dev, target, USB_TRANSFER_CONTROL,
+	    max_packet_size, speed, data, size, callback, NULL, arg);
+	if (!tracker)
+		return ENOMEM;
+	tracker_control_read(tracker, setup_data, setup_size);
+	return EOK;
 }
 /*----------------------------------------------------------------------------*/
 static int control_write_setup(device_t *dev, usb_target_t target,

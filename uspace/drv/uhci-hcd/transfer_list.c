@@ -82,9 +82,9 @@ void transfer_list_add_tracker(transfer_list_t *instance, tracker_t *tracker)
 	instance->last_tracker = tracker;
 
 	/* check again, may be use atomic compare and swap */
-	if (instance->queue_head->element & LINK_POINTER_TERMINATE_FLAG) {
-		instance->queue_head->element = pa;
-	}
+//	if (instance->queue_head->element & LINK_POINTER_TERMINATE_FLAG) {
+//		instance->queue_head->element = pa;
+//	}
 }
 /**
  * @}
