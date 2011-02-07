@@ -38,8 +38,8 @@
 #include "utils/malloc32.h"
 
 void transfer_descriptor_init(transfer_descriptor_t *instance,
-  int error_count, size_t size, bool isochronous, usb_target_t target,
-	int pid, void *buffer)
+    int error_count, size_t size, bool toggle, bool isochronous,
+    usb_target_t target, int pid, void *buffer)
 {
 	assert(instance);
 
@@ -103,8 +103,8 @@ static inline usb_transaction_outcome_t convert_outcome(uint32_t status)
 	if (status & TD_STATUS_ERROR_BIT_STUFF)
 		return USB_OUTCOME_CRCERROR;
 
-	assert((((status >> TD_STATUS_ERROR_POS) & TD_STATUS_ERROR_MASK)
-	| TD_STATUS_ERROR_RESERVED) == TD_STATUS_ERROR_RESERVED);
+//	assert((((status >> TD_STATUS_ERROR_POS) & TD_STATUS_ERROR_MASK)
+//	| TD_STATUS_ERROR_RESERVED) == TD_STATUS_ERROR_RESERVED);
 	return USB_OUTCOME_OK;
 }
 /*----------------------------------------------------------------------------*/
