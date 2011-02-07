@@ -50,6 +50,7 @@ static void tracker_control_read_data(tracker_t *instance);
 static void tracker_control_write_data(tracker_t *instance);
 static void tracker_control_read_status(tracker_t *instance);
 static void tracker_control_write_status(tracker_t *instance);
+
 static void tracker_call_in(tracker_t *instance);
 static void tracker_call_out(tracker_t *instance);
 static void tracker_call_in_and_dispose(tracker_t *instance);

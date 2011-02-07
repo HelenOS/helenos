@@ -131,6 +131,20 @@ static int interrupt_in(device_t *dev, usb_target_t target,
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
+static int control_write(device_t *dev, usb_target_t target,
+    void *setup_data, size_t setup_size, void *data, size_t size,
+    usbhc_iface_transfer_out_callback_t callback, void *arg)
+{
+	return ENOTSUP;
+}
+/*----------------------------------------------------------------------------*/
+static int control_read(device_t *dev, usb_target_t target,
+    void *setup_data, size_t setup_size, void *data, size_t size,
+    usbhc_iface_transfer_in_callback_t callback, void *arg)
+{
+	return ENOTSUP;
+}
+/*----------------------------------------------------------------------------*/
 static int control_write_setup(device_t *dev, usb_target_t target,
     void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
@@ -212,6 +226,9 @@ usbhc_iface_t uhci_iface = {
 
 	.interrupt_out = interrupt_out,
 	.interrupt_in = interrupt_in,
+
+	.control_read = control_read,
+	.control_write = control_write,
 
 	.control_write_setup = control_write_setup,
 	.control_write_data = control_write_data,
