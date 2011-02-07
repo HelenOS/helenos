@@ -287,6 +287,71 @@ void tracker_call_out_and_dispose(tracker_t *instance)
 	free32(instance->packet);
 	free(instance);
 }
+/* DEPRECATED FUNCTIONS NEEDED BY THE OLD API */
+void tracker_control_setup_old(tracker_t *instance)
+{
+	assert(instance);
+	assert(instance->buffer_offset == 0);
+	instance->packet_size = SETUP_PACKET_DATA_SIZE;
+	memcpy(instance->packet, instance->buffer, SETUP_PACKET_DATA_SIZE);
+	transfer_descriptor_init(instance->td, DEFAULT_ERROR_COUNT,
+	    SETUP_PACKET_DATA_SIZE, false, instance->target, USB_PID_SETUP,
+	    instance->packet);
+	instance->buffer_offset += SETUP_PACKET_DATA_SIZE;
+	instance->next_step = tracker_call_out_and_dispose;
+	//TODO: add to scheduler
+}
+
+void tracker_control_write_data_old(tracker_t *instance)
+{
+	assert(instance);
+	assert(instance->max_packet_size == instance->buffer_size);
+	memcpy(instance->packet, instance->buffer, instance->max_packet_size);
+	instance->packet_size = instance->max_packet_size;
+	transfer_descriptor_init(instance->td, DEFAULT_ERROR_COUNT,
+			instance->packet_size, false, instance->target, USB_PID_OUT,
+			instance->packet);
+	instance->next_step = tracker_call_out_and_dispose;
+}
+
+void tracker_control_read_data_old(tracker_t *instance)
+{
+	assert(instance);
+	assert(instance->max_packet_size == instance->buffer_size);
+	instance->packet_size = instance->max_packet_size;
+	transfer_descriptor_init(instance->td, DEFAULT_ERROR_COUNT,
+			instance->packet_size, false, instance->target, USB_PID_IN,
+			instance->packet);
+	instance->next_step = tracker_call_in_and_dispose;
+}
+
+void tracker_control_write_status_old(tracker_t *instance)
+{
+	assert(instance);
+	assert(instance->max_packet_size == 0);
+	assert(instance->buffer_size == 0);
+	assert(instance->packet == NULL);
+
+	instance->packet_size = instance->max_packet_size;
+	transfer_descriptor_init(instance->td, DEFAULT_ERROR_COUNT,
+			instance->packet_size, false, instance->target, USB_PID_IN,
+			instance->packet);
+	instance->next_step = tracker_call_in_and_dispose;
+}
+
+void tracker_control_read_status_old(tracker_t *instance)
+{
+	assert(instance);
+	assert(instance->max_packet_size == 0);
+	assert(instance->buffer_size == 0);
+	assert(instance->packet == NULL);
+
+	instance->packet_size = instance->max_packet_size;
+	transfer_descriptor_init(instance->td, DEFAULT_ERROR_COUNT,
+			instance->packet_size, false, instance->target, USB_PID_OUT,
+			instance->packet);
+	instance->next_step = tracker_call_out_and_dispose;
+}
 /**
  * @}
  */

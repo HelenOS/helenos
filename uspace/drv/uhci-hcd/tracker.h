@@ -90,6 +90,16 @@ void tracker_call_in_and_dispose(tracker_t *instance);
 
 void tracker_call_out_and_dispose(tracker_t *instance);
 
+/* DEPRECATED FUNCTIONS NEEDED BY THE OLD API */
+void tracker_control_setup_old(tracker_t *instance);
+
+void tracker_control_write_data_old(tracker_t *instance);
+
+void tracker_control_read_data_old(tracker_t *instance);
+
+void tracker_control_write_status_old(tracker_t *instance);
+
+void tracker_control_read_status_old(tracker_t *instance);
 #endif
 /**
  * @}
