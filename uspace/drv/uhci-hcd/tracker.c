@@ -141,7 +141,6 @@ void tracker_control_read(
 	    setup_size, instance->toggle++, false, instance->target,
 	    USB_PID_SETUP, instance->packet);
 
-	instance->buffer_offset += SETUP_PACKET_DATA_SIZE;
 	instance->next_step = tracker_control_read_data;
 
 	tracker_schedule(instance);
