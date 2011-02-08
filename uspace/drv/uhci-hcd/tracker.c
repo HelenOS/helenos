@@ -104,6 +104,7 @@ tracker_t * tracker_get(device_t *dev, usb_target_t target,
 	instance->dev = dev;
 	instance->arg = arg;
 	instance->toggle = 0;
+	instance->speed = speed;
 
 	return instance;
 }

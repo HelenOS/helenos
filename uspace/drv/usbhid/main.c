@@ -589,6 +589,7 @@ static driver_t kbd_driver = {
 
 int main(int argc, char *argv[])
 {
+	return -1;
 	return driver_main(&kbd_driver);
 }
 
