@@ -122,37 +122,44 @@ int devman_driver_register(const char *name, async_client_conn_t conn)
 	return retval;
 }
 
-static int devman_send_match_id(int phone, match_id_t *match_id) \
+static int devman_send_match_id(int phone, match_id_t *match_id)
 {
 	ipc_call_t answer;
-	aid_t req = async_send_1(phone, DEVMAN_ADD_MATCH_ID, match_id->score, &answer);
-	int retval = async_data_write_start(phone, match_id->id, str_size(match_id->id));
+
+	aid_t req = async_send_1(phone, DEVMAN_ADD_MATCH_ID, match_id->score,
+	    &answer);
+	int retval = async_data_write_start(phone, match_id->id,
+	    str_size(match_id->id));
+
 	async_wait_for(req, NULL);
 	return retval;
 }
 
 
-static int devman_send_match_ids(int phone, match_id_list_t *match_ids) 
+static int devman_send_match_ids(int phone, match_id_list_t *match_ids)
 {
 	link_t *link = match_ids->ids.next;
 	match_id_t *match_id = NULL;
 	int ret = EOK;
-	
+
 	while (link != &match_ids->ids) {
 		match_id = list_get_instance(link, match_id_t, link); 
-		if (EOK != (ret = devman_send_match_id(phone, match_id))) 
-		{
-			printf("Driver failed to send match id, error number = %d\n", ret);
-			return ret;			
+		ret = devman_send_match_id(phone, match_id);
+		if (ret != EOK) {
+			printf("Driver failed to send match id, error %d\n",
+			    ret);
+			return ret;
 		}
+
 		link = link->next;
 	}
-	return ret;	
+
+	return ret;
 }
 
-int devman_child_device_register(
-	const char *name, match_id_list_t *match_ids, devman_handle_t parent_handle, devman_handle_t *handle)
-{		
+int devman_child_device_register(const char *name, match_id_list_t *match_ids,
+    devman_handle_t parent_handle, devman_handle_t *handle)
+{
 	int phone = devman_get_phone(DEVMAN_DRIVER, IPC_FLAG_BLOCKING);
 	
 	if (phone < 0)
@@ -162,7 +169,8 @@ int devman_child_device_register(
 	
 	int match_count = list_count(&match_ids->ids);	
 	ipc_call_t answer;
-	aid_t req = async_send_2(phone, DEVMAN_ADD_CHILD_DEVICE, parent_handle, match_count, &answer);
+	aid_t req = async_send_2(phone, DEVMAN_ADD_CHILD_DEVICE, parent_handle, match_count,
+	    &answer);
 
 	sysarg_t retval = async_data_write_start(phone, name, str_size(name));
 	if (retval != EOK) {
@@ -178,19 +186,20 @@ int devman_child_device_register(
 	async_serialize_end();
 	
 	if (retval != EOK) {
-		if (handle != NULL) {
+		if (handle != NULL)
 			*handle = -1;
-		}
+
 		return retval;
-	}	
+	}
 	
 	if (handle != NULL)
-		*handle = (int) IPC_GET_ARG1(answer);	
+		*handle = (int) IPC_GET_ARG1(answer);
 		
 	return retval;
 }
 
-int devman_add_device_to_class(devman_handle_t devman_handle, const char *class_name)
+int devman_add_device_to_class(devman_handle_t devman_handle,
+    const char *class_name)
 {
 	int phone = devman_get_phone(DEVMAN_DRIVER, IPC_FLAG_BLOCKING);
 	
@@ -199,9 +208,11 @@ int devman_add_device_to_class(devman_handle_t devman_handle, const char *class_
 	
 	async_serialize_start();
 	ipc_call_t answer;
-	aid_t req = async_send_1(phone, DEVMAN_ADD_DEVICE_TO_CLASS, devman_handle, &answer);
+	aid_t req = async_send_1(phone, DEVMAN_ADD_DEVICE_TO_CLASS,
+	    devman_handle, &answer);
 	
-	sysarg_t retval = async_data_write_start(phone, class_name, str_size(class_name));
+	sysarg_t retval = async_data_write_start(phone, class_name,
+	    str_size(class_name));
 	if (retval != EOK) {
 		async_wait_for(req, NULL);
 		async_serialize_end();
@@ -211,7 +222,7 @@ int devman_add_device_to_class(devman_handle_t devman_handle, const char *class_
 	async_wait_for(req, &retval);
 	async_serialize_end();
 	
-	return retval;	
+	return retval;
 }
 
 void devman_hangup_phone(devman_interface_t iface)
@@ -264,7 +275,8 @@ int devman_parent_device_connect(devman_handle_t handle, unsigned int flags)
 	return phone;
 }
 
-int devman_device_get_handle(const char *pathname, devman_handle_t *handle, unsigned int flags)
+int devman_device_get_handle(const char *pathname, devman_handle_t *handle,
+    unsigned int flags)
 {
 	int phone = devman_get_phone(DEVMAN_CLIENT, flags);
 	
@@ -277,7 +289,8 @@ int devman_device_get_handle(const char *pathname, devman_handle_t *handle, unsi
 	aid_t req = async_send_2(phone, DEVMAN_DEVICE_GET_HANDLE, flags, 0,
 	    &answer);
 	
-	sysarg_t retval = async_data_write_start(phone, pathname, str_size(pathname));
+	sysarg_t retval = async_data_write_start(phone, pathname,
+	    str_size(pathname));
 	if (retval != EOK) {
 		async_wait_for(req, NULL);
 		async_serialize_end();
