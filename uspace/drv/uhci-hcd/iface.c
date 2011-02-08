@@ -135,7 +135,7 @@ static int control_write(device_t *dev, usb_target_t target,
     void *setup_data, size_t setup_size, void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
-	size_t max_packet_size = size;
+	size_t max_packet_size = 8;
 	dev_speed_t speed = FULL_SPEED;
 
 	tracker_t *tracker = tracker_get(dev, target, USB_TRANSFER_CONTROL,
@@ -150,7 +150,7 @@ static int control_read(device_t *dev, usb_target_t target,
     void *setup_data, size_t setup_size, void *data, size_t size,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
-	size_t max_packet_size = size;
+	size_t max_packet_size = 8;
 	dev_speed_t speed = FULL_SPEED;
 
 	tracker_t *tracker = tracker_get(dev, target, USB_TRANSFER_CONTROL,
@@ -165,6 +165,7 @@ static int control_write_setup(device_t *dev, usb_target_t target,
     void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
+	usb_log_warning("Using deprecated API control write setup.\n");
 	tracker_t *tracker = tracker_get(dev, target, USB_TRANSFER_CONTROL,
 	    8, FULL_SPEED, data, size, NULL, callback, arg);
 	if (!tracker)
@@ -200,6 +201,7 @@ static int control_read_setup(device_t *dev, usb_target_t target,
     void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
+	usb_log_warning("Using deprecated API control read setup.\n");
 	tracker_t *tracker = tracker_get(dev, target, USB_TRANSFER_CONTROL,
 	    8, FULL_SPEED, data, size, NULL, callback, arg);
 	if (!tracker)

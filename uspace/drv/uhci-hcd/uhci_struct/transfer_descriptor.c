@@ -53,6 +53,7 @@ void transfer_descriptor_init(transfer_descriptor_t *instance,
 
 	instance->device = 0
 		| (((size - 1) & TD_DEVICE_MAXLEN_MASK) << TD_DEVICE_MAXLEN_POS)
+		| (toggle ? TD_DEVICE_DATA_TOGGLE_ONE_FLAG : 0)
 		| ((target.address & TD_DEVICE_ADDRESS_MASK) << TD_DEVICE_ADDRESS_POS)
 		| ((target.endpoint & TD_DEVICE_ENDPOINT_MASK) << TD_DEVICE_ENDPOINT_POS)
 		| ((pid & TD_DEVICE_PID_MASK) << TD_DEVICE_PID_POS);
