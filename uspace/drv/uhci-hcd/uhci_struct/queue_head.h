@@ -42,8 +42,8 @@
 #include "utils/malloc32.h"
 
 typedef struct queue_head {
-	link_pointer_t next_queue;
-	link_pointer_t element;
+	volatile link_pointer_t next_queue;
+	volatile link_pointer_t element;
 } __attribute__((packed)) queue_head_t;
 
 static inline void queue_head_init(queue_head_t *instance)

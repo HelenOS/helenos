@@ -36,6 +36,7 @@
 #define DRV_UHCI_UHCI_H
 
 #include <fibril.h>
+#include <fibril_synch.h>
 #include <adt/list.h>
 
 #include <usb/addrkeep.h>
@@ -80,6 +81,7 @@ typedef struct uhci {
 	link_pointer_t *frame_list;
 
 	link_t tracker_list;
+	fibril_mutex_t tracker_list_mutex;
 
 	transfer_list_t transfers_bulk_full;
 	transfer_list_t transfers_control_full;
