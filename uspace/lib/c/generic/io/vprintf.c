@@ -36,11 +36,11 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <io/printf_core.h>
-#include <futex.h>
+#include <fibril_synch.h>
 #include <async.h>
 #include <str.h>
 
-static atomic_t printf_futex = FUTEX_INITIALIZER;
+static FIBRIL_MUTEX_INITIALIZE(printf_mutex);
 
 static int vprintf_str_write(const char *str, size_t size, void *stream)
 {
@@ -84,18 +84,11 @@ int vfprintf(FILE *stream, const char *fmt, va_list ap)
 	/*
 	 * Prevent other threads to execute printf_core()
 	 */
-	futex_down(&printf_futex);
-	
-	/*
-	 * Prevent other fibrils of the same thread
-	 * to execute printf_core()
-	 */
-	async_serialize_start();
+	fibril_mutex_lock(&printf_mutex);
 	
 	int ret = printf_core(fmt, &ps, ap);
 	
-	async_serialize_end();
-	futex_up(&printf_futex);
+	fibril_mutex_unlock(&printf_mutex);
 	
 	return ret;
 }

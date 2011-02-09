@@ -27,8 +27,8 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
- 
- /** @addtogroup libc
+
+/** @addtogroup libc
  * @{
  */
 /** @file
@@ -36,11 +36,11 @@
 
 #include <str.h>
 #include <stdio.h>
-#include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <ipc/devman.h>
 #include <devman.h>
 #include <async.h>
+#include <fibril_synch.h>
 #include <errno.h>
 #include <malloc.h>
 #include <bool.h>
@@ -49,32 +49,43 @@
 static int devman_phone_driver = -1;
 static int devman_phone_client = -1;
 
+static FIBRIL_MUTEX_INITIALIZE(devman_phone_mutex);
+
 int devman_get_phone(devman_interface_t iface, unsigned int flags)
 {
 	switch (iface) {
 	case DEVMAN_DRIVER:
-		if (devman_phone_driver >= 0)
+		fibril_mutex_lock(&devman_phone_mutex);
+		if (devman_phone_driver >= 0) {
+			fibril_mutex_unlock(&devman_phone_mutex);
 			return devman_phone_driver;
+		}
 		
 		if (flags & IPC_FLAG_BLOCKING)
-			devman_phone_driver = ipc_connect_me_to_blocking(PHONE_NS,
-			    SERVICE_DEVMAN, DEVMAN_DRIVER, 0);
+			devman_phone_driver = async_connect_me_to_blocking(
+			    PHONE_NS, SERVICE_DEVMAN, DEVMAN_DRIVER, 0);
 		else
-			devman_phone_driver = ipc_connect_me_to(PHONE_NS,
+			devman_phone_driver = async_connect_me_to(PHONE_NS,
 			    SERVICE_DEVMAN, DEVMAN_DRIVER, 0);
 		
+		fibril_mutex_unlock(&devman_phone_mutex);
 		return devman_phone_driver;
 	case DEVMAN_CLIENT:
-		if (devman_phone_client >= 0)
+		fibril_mutex_lock(&devman_phone_mutex);
+		if (devman_phone_client >= 0) {
+			fibril_mutex_unlock(&devman_phone_mutex);
 			return devman_phone_client;
+		}
 		
-		if (flags & IPC_FLAG_BLOCKING)
-			devman_phone_client = ipc_connect_me_to_blocking(PHONE_NS,
+		if (flags & IPC_FLAG_BLOCKING) {
+			devman_phone_client = async_connect_me_to_blocking(
+			    PHONE_NS, SERVICE_DEVMAN, DEVMAN_CLIENT, 0);
+		} else {
+			devman_phone_client = async_connect_me_to(PHONE_NS,
 			    SERVICE_DEVMAN, DEVMAN_CLIENT, 0);
-		else
-			devman_phone_client = ipc_connect_me_to(PHONE_NS,
-			    SERVICE_DEVMAN, DEVMAN_CLIENT, 0);
+		}
 		
+		fibril_mutex_unlock(&devman_phone_mutex);
 		return devman_phone_client;
 	default:
 		return -1;
@@ -94,7 +105,7 @@ int devman_driver_register(const char *name, async_client_conn_t conn)
 	ipc_call_t answer;
 	aid_t req = async_send_2(phone, DEVMAN_DRIVER_REGISTER, 0, 0, &answer);
 	
-	ipcarg_t retval = async_data_write_start(phone, name, str_size(name));
+	sysarg_t retval = async_data_write_start(phone, name, str_size(name));
 	if (retval != EOK) {
 		async_wait_for(req, NULL);
 		async_serialize_end();
@@ -103,8 +114,7 @@ int devman_driver_register(const char *name, async_client_conn_t conn)
 	
 	async_set_client_connection(conn);
 	
-	ipcarg_t callback_phonehash;
-	ipc_connect_to_me(phone, 0, 0, 0, &callback_phonehash);
+	async_connect_to_me(phone, 0, 0, 0, NULL);
 	async_wait_for(req, &retval);
 	
 	async_serialize_end();
@@ -115,9 +125,10 @@ int devman_driver_register(const char *name, async_client_conn_t conn)
 static int devman_send_match_id(int phone, match_id_t *match_id) \
 {
 	ipc_call_t answer;
-	async_send_1(phone, DEVMAN_ADD_MATCH_ID, match_id->score, &answer);
+	aid_t req = async_send_1(phone, DEVMAN_ADD_MATCH_ID, match_id->score, &answer);
 	int retval = async_data_write_start(phone, match_id->id, str_size(match_id->id));
-	return retval;	
+	async_wait_for(req, NULL);
+	return retval;
 }
 
 
@@ -153,7 +164,7 @@ int devman_child_device_register(
 	ipc_call_t answer;
 	aid_t req = async_send_2(phone, DEVMAN_ADD_CHILD_DEVICE, parent_handle, match_count, &answer);
 
-	ipcarg_t retval = async_data_write_start(phone, name, str_size(name));
+	sysarg_t retval = async_data_write_start(phone, name, str_size(name));
 	if (retval != EOK) {
 		async_wait_for(req, NULL);
 		async_serialize_end();
@@ -190,7 +201,7 @@ int devman_add_device_to_class(devman_handle_t devman_handle, const char *class_
 	ipc_call_t answer;
 	aid_t req = async_send_1(phone, DEVMAN_ADD_DEVICE_TO_CLASS, devman_handle, &answer);
 	
-	ipcarg_t retval = async_data_write_start(phone, class_name, str_size(class_name));
+	sysarg_t retval = async_data_write_start(phone, class_name, str_size(class_name));
 	if (retval != EOK) {
 		async_wait_for(req, NULL);
 		async_serialize_end();
@@ -208,13 +219,13 @@ void devman_hangup_phone(devman_interface_t iface)
 	switch (iface) {
 	case DEVMAN_DRIVER:
 		if (devman_phone_driver >= 0) {
-			ipc_hangup(devman_phone_driver);
+			async_hangup(devman_phone_driver);
 			devman_phone_driver = -1;
 		}
 		break;
 	case DEVMAN_CLIENT:
 		if (devman_phone_client >= 0) {
-			ipc_hangup(devman_phone_client);
+			async_hangup(devman_phone_client);
 			devman_phone_client = -1;
 		}
 		break;
@@ -228,10 +239,10 @@ int devman_device_connect(devman_handle_t handle, unsigned int flags)
 	int phone;
 	
 	if (flags & IPC_FLAG_BLOCKING) {
-		phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_DEVMAN,
+		phone = async_connect_me_to_blocking(PHONE_NS, SERVICE_DEVMAN,
 		    DEVMAN_CONNECT_TO_DEVICE, handle);
 	} else {
-		phone = ipc_connect_me_to(PHONE_NS, SERVICE_DEVMAN,
+		phone = async_connect_me_to(PHONE_NS, SERVICE_DEVMAN,
 		    DEVMAN_CONNECT_TO_DEVICE, handle);
 	}
 	
@@ -243,10 +254,10 @@ int devman_parent_device_connect(devman_handle_t handle, unsigned int flags)
 	int phone;
 	
 	if (flags & IPC_FLAG_BLOCKING) {
-		phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_DEVMAN,
+		phone = async_connect_me_to_blocking(PHONE_NS, SERVICE_DEVMAN,
 		    DEVMAN_CONNECT_TO_PARENTS_DEVICE, handle);
 	} else {
-		phone = ipc_connect_me_to(PHONE_NS, SERVICE_DEVMAN,
+		phone = async_connect_me_to(PHONE_NS, SERVICE_DEVMAN,
 		    DEVMAN_CONNECT_TO_PARENTS_DEVICE, handle);
 	}
 	
@@ -266,7 +277,7 @@ int devman_device_get_handle(const char *pathname, devman_handle_t *handle, unsi
 	aid_t req = async_send_2(phone, DEVMAN_DEVICE_GET_HANDLE, flags, 0,
 	    &answer);
 	
-	ipcarg_t retval = async_data_write_start(phone, pathname, str_size(pathname));
+	sysarg_t retval = async_data_write_start(phone, pathname, str_size(pathname));
 	if (retval != EOK) {
 		async_wait_for(req, NULL);
 		async_serialize_end();

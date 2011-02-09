@@ -38,7 +38,6 @@
 
 #include <ipc/vfs.h>
 #include <stdint.h>
-#include <ipc/ipc.h>
 #include <async.h>
 #include <devmap.h>
 
@@ -85,7 +84,6 @@ typedef struct {
 
 typedef struct {
 	int fs_handle;           /**< File system handle. */
-	ipcarg_t vfs_phonehash;  /**< Initial VFS phonehash. */
 	uint8_t *plb_ro;         /**< Read-only PLB view. */
 } fs_reg_t;
 

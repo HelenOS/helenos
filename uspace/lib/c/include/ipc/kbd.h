@@ -37,7 +37,7 @@
 #ifndef LIBC_IPC_KBD_H_
 #define LIBC_IPC_KBD_H_
 
-#include <ipc/ipc.h>
+#include <ipc/common.h>
 
 typedef enum {
 	KBD_YIELD = IPC_FIRST_USER_METHOD,

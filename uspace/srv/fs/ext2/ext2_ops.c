@@ -40,7 +40,6 @@
 #include <libfs.h>
 #include <libblock.h>
 #include <libext2.h>
-#include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <ipc/devmap.h>
 #include <macros.h>
@@ -218,7 +217,7 @@ void ext2_mounted(ipc_callid_t rid, ipc_call_t *request)
 {
 //	devmap_handle_t devmap_handle = (devmap_handle_t) IPC_GET_ARG1(*request);
 	// TODO
-	ipc_answer_0(rid, ENOTSUP);
+	async_answer_0(rid, ENOTSUP);
 }
 
 void ext2_mount(ipc_callid_t rid, ipc_call_t *request)
@@ -230,7 +229,7 @@ void ext2_unmounted(ipc_callid_t rid, ipc_call_t *request)
 {
 //	devmap_handle_t devmap_handle = (devmap_handle_t) IPC_GET_ARG1(*request);
 	// TODO
-	ipc_answer_0(rid, ENOTSUP);
+	async_answer_0(rid, ENOTSUP);
 }
 
 void ext2_unmount(ipc_callid_t rid, ipc_call_t *request)
@@ -251,7 +250,7 @@ void ext2_read(ipc_callid_t rid, ipc_call_t *request)
 //	    (aoff64_t) MERGE_LOUP32(IPC_GET_ARG3(*request), IPC_GET_ARG4(*request));
 	
 	// TODO
-	ipc_answer_0(rid, ENOTSUP);
+	async_answer_0(rid, ENOTSUP);
 }
 
 void ext2_write(ipc_callid_t rid, ipc_call_t *request)
@@ -262,7 +261,7 @@ void ext2_write(ipc_callid_t rid, ipc_call_t *request)
 //	    (aoff64_t) MERGE_LOUP32(IPC_GET_ARG3(*request), IPC_GET_ARG4(*request));
 	
 	// TODO
-	ipc_answer_0(rid, ENOTSUP);
+	async_answer_0(rid, ENOTSUP);
 }
 
 void ext2_truncate(ipc_callid_t rid, ipc_call_t *request)
@@ -273,12 +272,12 @@ void ext2_truncate(ipc_callid_t rid, ipc_call_t *request)
 //	    (aoff64_t) MERGE_LOUP32(IPC_GET_ARG3(*request), IPC_GET_ARG4(*request));
 	
 	// TODO
-	ipc_answer_0(rid, ENOTSUP);
+	async_answer_0(rid, ENOTSUP);
 }
 
 void ext2_close(ipc_callid_t rid, ipc_call_t *request)
 {
-	ipc_answer_0(rid, EOK);
+	async_answer_0(rid, EOK);
 }
 
 void ext2_destroy(ipc_callid_t rid, ipc_call_t *request)
@@ -287,7 +286,7 @@ void ext2_destroy(ipc_callid_t rid, ipc_call_t *request)
 //	fs_index_t index = (fs_index_t)IPC_GET_ARG2(*request);
 	
 	// TODO
-	ipc_answer_0(rid, ENOTSUP);
+	async_answer_0(rid, ENOTSUP);
 }
 
 void ext2_open_node(ipc_callid_t rid, ipc_call_t *request)
@@ -306,7 +305,7 @@ void ext2_sync(ipc_callid_t rid, ipc_call_t *request)
 //	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
 	
 	// TODO
-	ipc_answer_0(rid, ENOTSUP);
+	async_answer_0(rid, ENOTSUP);
 }
 
 /**

@@ -46,10 +46,16 @@
 
 task_id_t task_get_id(void)
 {
+#ifdef __32_BITS__
 	task_id_t task_id;
 	(void) __SYSCALL1(SYS_TASK_GET_ID, (sysarg_t) &task_id);
 	
 	return task_id;
+#endif  /* __32_BITS__ */
+	
+#ifdef __64_BITS__
+	return (task_id_t) __SYSCALL0(SYS_TASK_GET_ID);
+#endif  /* __64_BITS__ */
 }
 
 /** Set the task name.
@@ -58,11 +64,22 @@ task_id_t task_get_id(void)
  *             program.
  *
  * @return Zero on success or negative error code.
- *
  */
 int task_set_name(const char *name)
 {
 	return __SYSCALL2(SYS_TASK_SET_NAME, (sysarg_t) name, str_size(name));
+}
+
+/** Kill a task.
+ *
+ * @param task_id ID of task to kill.
+ *
+ * @return Zero on success or negative error code.
+ */
+
+int task_kill(task_id_t task_id)
+{
+	return (int) __SYSCALL1(SYS_TASK_KILL, (sysarg_t) &task_id);
 }
 
 /** Create a new task by running an executable from the filesystem.
@@ -210,7 +227,7 @@ int task_spawnl(task_id_t *task_id, const char *path, ...)
 
 int task_wait(task_id_t id, task_exit_t *texit, int *retval)
 {
-	ipcarg_t te, rv;
+	sysarg_t te, rv;
 	int rc;
 
 	rc = (int) async_req_2_2(PHONE_NS, NS_TASK_WAIT, LOWER32(id),

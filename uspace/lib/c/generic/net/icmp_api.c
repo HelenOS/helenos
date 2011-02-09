@@ -40,13 +40,10 @@
 #include <net/inet.h>
 #include <net/modules.h>
 #include <net/ip_codes.h>
-
 #include <async.h>
 #include <sys/types.h>
 #include <sys/time.h>
 #include <errno.h>
-
-#include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <ipc/icmp.h>
 
@@ -80,15 +77,15 @@ icmp_echo_msg(int icmp_phone, size_t size, mseconds_t timeout, ip_ttl_t ttl,
     socklen_t addrlen)
 {
 	aid_t message_id;
-	ipcarg_t result;
+	sysarg_t result;
 
 	if (addrlen <= 0)
 		return EINVAL;
 
 	message_id = async_send_5(icmp_phone, NET_ICMP_ECHO, size, timeout, ttl,
-	    tos, (ipcarg_t) dont_fragment, NULL);
+	    tos, (sysarg_t) dont_fragment, NULL);
 
-	// send the address
+	/* Send the address */
 	async_data_write_start(icmp_phone, addr, (size_t) addrlen);
 
 	async_wait_for(message_id, &result);

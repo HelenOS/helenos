@@ -37,7 +37,6 @@
 #ifndef LIBC_NETIF_MESSAGES_H_
 #define LIBC_NETIF_MESSAGES_H_
 
-#include <ipc/ipc.h>
 #include <ipc/net.h>
 
 /** Network interface common module messages. */
@@ -46,22 +45,27 @@ typedef enum {
 	 * @see netif_probe_req()
 	 */
 	NET_NETIF_PROBE = NET_NETIF_FIRST,
+	
 	/** Send packet message.
 	 * @see netif_send_msg()
 	 */
 	NET_NETIF_SEND,
+	
 	/** Start device message.
 	 * @see netif_start_req()
 	 */
 	NET_NETIF_START,
+	
 	/** Get device usage statistics message.
 	 * @see netif_stats_req()
 	 */
 	NET_NETIF_STATS,
+	
 	/** Stop device message.
 	 * @see netif_stop_req()
 	 */
 	NET_NETIF_STOP,
+	
 	/** Get device address message.
 	 * @see netif_get_addr_req()
 	 */
@@ -72,22 +76,18 @@ typedef enum {
 /*@{*/
 
 /** Return the interrupt number message parameter.
- * @param[in] call The message call structure.
+ *
+ * @param[in] call Mmessage call structure.
+ *
  */
-#define NETIF_GET_IRQ(call) \
-	({ \
-		int irq = (int) IPC_GET_ARG2(*call); \
-		irq; \
-	})
+#define NETIF_GET_IRQ(call) ((int) IPC_GET_ARG2(call))
 
 /** Return the input/output address message parameter.
- * @param[in] call The message call structure.
+ *
+ * @param[in] call Message call structure.
+ *
  */
-#define NETIF_GET_IO(call) \
-	({ \
-		int io = (int) IPC_GET_ARG3(*call); \
-		io; \
-	})
+#define NETIF_GET_IO(call) ((void *) IPC_GET_ARG3(call))
 
 /*@}*/
 

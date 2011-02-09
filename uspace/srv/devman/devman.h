@@ -39,7 +39,6 @@
 #include <str.h>
 #include <adt/list.h>
 #include <adt/hash_table.h>
-#include <ipc/ipc.h>
 #include <ipc/devman.h>
 #include <ipc/devmap.h>
 #include <fibril_synch.h>
@@ -85,7 +84,7 @@ typedef struct driver {
 	int state;
 	
 	/** Phone asociated with this driver. */
-	ipcarg_t phone;
+	sysarg_t phone;
 	/** Name of the device driver. */
 	char *name;
 	/** Path to the driver's binary. */
@@ -167,6 +166,11 @@ struct node {
 	 * Used by the hash table of devices indexed by devmap device handles.
 	 */
 	link_t devmap_link;
+
+	/**
+	 * Whether this device was already passed to the driver.
+	 */
+	bool passed_to_driver;
 };
 
 /** Represents device tree. */
@@ -296,7 +300,7 @@ extern void add_device(int, driver_t *, node_t *, dev_tree_t *);
 extern bool start_driver(driver_t *);
 
 extern driver_t *find_driver(driver_list_t *, const char *);
-extern void set_driver_phone(driver_t *, ipcarg_t);
+extern void set_driver_phone(driver_t *, sysarg_t);
 extern void initialize_running_driver(driver_t *, dev_tree_t *);
 
 extern void init_driver(driver_t *);

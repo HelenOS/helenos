@@ -43,7 +43,6 @@
 #include <errno.h>
 #include <sys/mman.h>
 #include <async.h>
-#include <ipc/ipc.h>
 #include <as.h>
 #include <assert.h>
 #include <fibril_synch.h>
@@ -176,20 +175,20 @@ int block_init(devmap_handle_t devmap_handle, size_t comm_size)
 	    AS_AREA_READ | AS_AREA_WRITE);
 	if (rc != EOK) {
 	    	munmap(comm_area, comm_size);
-		ipc_hangup(dev_phone);
+		async_hangup(dev_phone);
 		return rc;
 	}
 
 	if (get_block_size(dev_phone, &bsize) != EOK) {
 		munmap(comm_area, comm_size);
-		ipc_hangup(dev_phone);
+		async_hangup(dev_phone);
 		return rc;
 	}
 	
 	rc = devcon_add(devmap_handle, dev_phone, bsize, comm_area, comm_size);
 	if (rc != EOK) {
 		munmap(comm_area, comm_size);
-		ipc_hangup(dev_phone);
+		async_hangup(dev_phone);
 		return rc;
 	}
 
@@ -210,7 +209,7 @@ void block_fini(devmap_handle_t devmap_handle)
 		free(devcon->bb_buf);
 
 	munmap(devcon->comm_area, devcon->comm_size);
-	ipc_hangup(devcon->dev_phone);
+	async_hangup(devcon->dev_phone);
 
 	free(devcon);	
 }
@@ -294,8 +293,10 @@ int block_cache_init(devmap_handle_t devmap_handle, size_t size, unsigned blocks
 	cache->mode = mode;
 
 	/* Allow 1:1 or small-to-large block size translation */
-	if (cache->lblock_size % devcon->pblock_size != 0)
+	if (cache->lblock_size % devcon->pblock_size != 0) {
+		free(cache);
 		return ENOTSUP;
+	}
 
 	cache->blocks_cluster = cache->lblock_size / devcon->pblock_size;
 
@@ -436,6 +437,7 @@ retry:
 			b->data = malloc(cache->lblock_size);
 			if (!b->data) {
 				free(b);
+				b = NULL;
 				goto recycle;
 			}
 			cache->blocks_cached++;
@@ -563,6 +565,7 @@ int block_put(block_t *block)
 
 	assert(devcon);
 	assert(devcon->cache);
+	assert(block->refcnt >= 1);
 
 	cache = devcon->cache;
 
@@ -622,8 +625,8 @@ retry:
 			 */
 			unsigned long key = block->lba;
 			hash_table_remove(&cache->block_hash, &key, 1);
-			free(block);
 			free(block->data);
+			free(block);
 			cache->blocks_cached--;
 			fibril_mutex_unlock(&cache->lock);
 			return rc;
@@ -861,7 +864,7 @@ static int write_blocks(devcon_t *devcon, aoff64_t ba, size_t cnt)
 /** Get block size used by the device. */
 static int get_block_size(int dev_phone, size_t *bsize)
 {
-	ipcarg_t bs;
+	sysarg_t bs;
 	int rc;
 
 	rc = async_req_0_1(dev_phone, BD_GET_BLOCK_SIZE, &bs);
@@ -874,7 +877,7 @@ static int get_block_size(int dev_phone, size_t *bsize)
 /** Get total number of blocks on block device. */
 static int get_num_blocks(int dev_phone, aoff64_t *nblocks)
 {
-	ipcarg_t nb_l, nb_h;
+	sysarg_t nb_l, nb_h;
 	int rc;
 
 	rc = async_req_0_2(dev_phone, BD_GET_NUM_BLOCKS, &nb_l, &nb_h);

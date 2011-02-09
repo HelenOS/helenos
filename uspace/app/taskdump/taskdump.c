@@ -32,10 +32,10 @@
 /** @file
  */
 
+#include <async.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <ipc/ipc.h>
 #include <errno.h>
 #include <udebug.h>
 #include <task.h>
@@ -104,7 +104,7 @@ int main(int argc, char *argv[])
 		printf("Failed dumping address space areas.\n");
 
 	udebug_end(phoneid);
-	ipc_hangup(phoneid);
+	async_hangup(phoneid);
 
 	return 0;
 }
@@ -113,7 +113,7 @@ static int connect_task(task_id_t task_id)
 {
 	int rc;
 
-	rc = ipc_connect_kbox(task_id);
+	rc = async_connect_kbox(task_id);
 
 	if (rc == ENOTSUP) {
 		printf("You do not have userspace debugging support "
@@ -125,7 +125,7 @@ static int connect_task(task_id_t task_id)
 
 	if (rc < 0) {
 		printf("Error connecting\n");
-		printf("ipc_connect_task(%" PRIu64 ") -> %d ", task_id, rc);
+		printf("async_connect_kbox(%" PRIu64 ") -> %d ", task_id, rc);
 		return rc;
 	}
 
@@ -325,7 +325,7 @@ static int thread_dump(uintptr_t thash)
 	fp = istate_get_fp(&istate);
 
 	sym_pc = fmt_sym_address(pc);
-	printf("Thread %p crashed at %s. FP = %p\n", (void *) thash,
+	printf("Thread %p: PC = %s. FP = %p\n", (void *) thash,
 	    sym_pc, (void *) fp);
 	free(sym_pc);
 

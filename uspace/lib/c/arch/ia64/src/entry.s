@@ -39,9 +39,7 @@
 __entry:
 	alloc loc0 = ar.pfs, 0, 1, 2, 0
 	movl gp = _gp
-
+	
 	# Pass PCB pointer as the first argument to __main
 	mov out0 = r2
 	br.call.sptk.many b0 = __main
-0:
-	br.call.sptk.many b0 = __exit

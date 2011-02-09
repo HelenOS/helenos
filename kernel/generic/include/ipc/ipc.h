@@ -42,12 +42,8 @@
  */
 #define IPC_CALL_LEN  6
 
-/** Maximum active async calls per thread */
-#ifdef CONFIG_DEBUG
-	#define IPC_MAX_ASYNC_CALLS  4
-#else
-	#define IPC_MAX_ASYNC_CALLS  4000
-#endif
+/** Maximum active async calls per phone */
+#define IPC_MAX_ASYNC_CALLS  4
 
 /* Flags for calls */
 
@@ -87,15 +83,15 @@
 
 /* Macros for manipulating calling data */
 #define IPC_SET_RETVAL(data, retval)  ((data).args[0] = (retval))
-#define IPC_SET_METHOD(data, val)     ((data).args[0] = (val))
+#define IPC_SET_IMETHOD(data, val)    ((data).args[0] = (val))
 #define IPC_SET_ARG1(data, val)       ((data).args[1] = (val))
 #define IPC_SET_ARG2(data, val)       ((data).args[2] = (val))
 #define IPC_SET_ARG3(data, val)       ((data).args[3] = (val))
 #define IPC_SET_ARG4(data, val)       ((data).args[4] = (val))
 #define IPC_SET_ARG5(data, val)       ((data).args[5] = (val))
 
-#define IPC_GET_METHOD(data)  ((data).args[0])
-#define IPC_GET_RETVAL(data)  ((data).args[0])
+#define IPC_GET_IMETHOD(data)  ((data).args[0])
+#define IPC_GET_RETVAL(data)   ((data).args[0])
 
 #define IPC_GET_ARG1(data)  ((data).args[1])
 #define IPC_GET_ARG2(data)  ((data).args[2])
@@ -119,8 +115,15 @@
  */
 #define IPC_FF_ROUTE_FROM_ME  (1 << 0)
 
+/** Kernel IPC interfaces
+ *
+ */
+#define IPC_IF_KERNEL  0
+
 /** System-specific methods - only through special syscalls
- * These methods have special behaviour
+ *
+ * These methods have special behaviour. These methods also
+ * have the implicit kernel interface 0.
  *
  */
 
@@ -161,7 +164,9 @@
  *                       responds with error, phone is deallocated and
  *                       error is sent back to caller. Otherwise 
  *                       the call is accepted and the response is sent back.
- *                     - the allocated phoneid is passed to userspace 
+ *                     - the hash of the client task is passed to userspace
+ *                       (on the receiving side) as ARG4 of the call.
+ *                     - the hash of the allocated phone is passed to userspace
  *                       (on the receiving side) as ARG5 of the call.
  *
  */
@@ -314,7 +319,10 @@ typedef struct answerbox {
 } answerbox_t;
 
 typedef struct {
-	unative_t args[IPC_CALL_LEN];
+	sysarg_t args[IPC_CALL_LEN];
+	/** Task which made or forwarded the call with IPC_FF_ROUTE_FROM_ME. */
+	struct task *task;
+	/** Phone which made or last masqueraded this call. */
 	phone_t *phone;
 } ipc_data_t;
 
@@ -329,12 +337,11 @@ typedef struct {
 	/*
 	 * The caller box is different from sender->answerbox
 	 * for synchronous calls.
-	 *
 	 */
 	answerbox_t *callerbox;
 	
 	/** Private data to internal IPC. */
-	unative_t priv;
+	sysarg_t priv;
 	
 	/** Data passed from/to userspace. */
 	ipc_data_t data;
@@ -346,7 +353,6 @@ typedef struct {
 	 * The forward operation can masquerade the caller phone. For those
 	 * cases, we must keep it aside so that the answer is processed
 	 * correctly.
-	 *
 	 */
 	phone_t *caller_phone;
 } call_t;
@@ -371,7 +377,7 @@ extern int ipc_phone_hangup(phone_t *);
 extern void ipc_answerbox_init(answerbox_t *, struct task *);
 
 extern void ipc_cleanup(void);
-extern void ipc_backsend_err(phone_t *, call_t *, unative_t);
+extern void ipc_backsend_err(phone_t *, call_t *, sysarg_t);
 extern void ipc_answerbox_slam_phones(answerbox_t *, bool);
 extern void ipc_cleanup_call_list(link_t *);
 

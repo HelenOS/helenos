@@ -722,7 +722,8 @@ static bool _avltree_walk(avltree_node_t *node, avltree_walker_t walker,
  */
 void avltree_walk(avltree_t *t, avltree_walker_t walker, void *arg)
 {
-	_avltree_walk(t->root, walker, arg);
+	if (t->root)
+		_avltree_walk(t->root, walker, arg);
 }
 
 /** @}

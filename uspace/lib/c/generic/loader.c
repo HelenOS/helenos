@@ -32,9 +32,9 @@
 /** @file
  */
 
-#include <ipc/ipc.h>
 #include <ipc/loader.h>
 #include <ipc/services.h>
+#include <ipc/ns.h>
 #include <libc.h>
 #include <task.h>
 #include <str.h>
@@ -62,7 +62,7 @@ int loader_spawn(const char *name)
 
 loader_t *loader_connect(void)
 {
-	int phone_id = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_LOAD, 0, 0);
+	int phone_id = service_connect_blocking(SERVICE_LOAD, 0, 0);
 	if (phone_id < 0)
 		return NULL;
 	
@@ -95,7 +95,7 @@ int loader_get_task_id(loader_t *ldr, task_id_t *task_id)
 		return rc;
 	}
 	
-	ipcarg_t retval;
+	sysarg_t retval;
 	async_wait_for(req, &retval);
 	return (int) retval;
 }
@@ -130,7 +130,7 @@ int loader_set_cwd(loader_t *ldr)
 		return rc;
 	}
 	
-	ipcarg_t retval;
+	sysarg_t retval;
 	async_wait_for(req, &retval);
 	return (int) retval;
 }
@@ -165,7 +165,7 @@ int loader_set_pathname(loader_t *ldr, const char *path)
 	
 	free(pa);
 	
-	ipcarg_t retval;
+	sysarg_t retval;
 	async_wait_for(req, &retval);
 	return (int) retval;
 }
@@ -212,7 +212,7 @@ int loader_set_args(loader_t *ldr, const char *const argv[])
 	/* Send serialized arguments to the loader */
 	ipc_call_t answer;
 	aid_t req = async_send_0(ldr->phone_id, LOADER_SET_ARGS, &answer);
-	ipcarg_t rc = async_data_write_start(ldr->phone_id, (void *) arg_buf, buffer_size);
+	sysarg_t rc = async_data_write_start(ldr->phone_id, (void *) arg_buf, buffer_size);
 	if (rc != EOK) {
 		async_wait_for(req, NULL);
 		return rc;
@@ -266,7 +266,7 @@ int loader_set_files(loader_t *ldr, fdi_node_t *const files[])
 	/* Send serialized files to the loader */
 	ipc_call_t answer;
 	aid_t req = async_send_0(ldr->phone_id, LOADER_SET_FILES, &answer);
-	ipcarg_t rc = async_data_write_start(ldr->phone_id, (void *) files_buf,
+	sysarg_t rc = async_data_write_start(ldr->phone_id, (void *) files_buf,
 	    count * sizeof(fdi_node_t));
 	if (rc != EOK) {
 		async_wait_for(req, NULL);
@@ -318,7 +318,7 @@ int loader_run(loader_t *ldr)
 	if (rc != EOK)
 		return rc;
 	
-	ipc_hangup(ldr->phone_id);
+	async_hangup(ldr->phone_id);
 	ldr->phone_id = 0;
 	return EOK;
 }
@@ -336,7 +336,7 @@ int loader_run(loader_t *ldr)
  */
 void loader_abort(loader_t *ldr)
 {
-	ipc_hangup(ldr->phone_id);
+	async_hangup(ldr->phone_id);
 	ldr->phone_id = 0;
 }
 

@@ -36,7 +36,6 @@
 
 #include <stdio.h>
 #include <unistd.h>
-#include <ipc/ipc.h>
 #include <vfs/vfs.h>
 #include <bool.h>
 #include <errno.h>
@@ -56,11 +55,11 @@
 #define DEVFS_FS_TYPE      "devfs"
 #define DEVFS_MOUNT_POINT  "/dev"
 
-#define SCRATCH_FS_TYPE      "tmpfs"
-#define SCRATCH_MOUNT_POINT  "/scratch"
+#define TMPFS_FS_TYPE      "tmpfs"
+#define TMPFS_MOUNT_POINT  "/tmp"
 
 #define DATA_FS_TYPE      "fat"
-#define DATA_DEVICE       "bd/disk0"
+#define DATA_DEVICE       "bd/ata1disk0"
 #define DATA_MOUNT_POINT  "/data"
 
 #define SRV_CONSOLE  "/srv/console"
@@ -234,11 +233,11 @@ static void getterm(const char *dev, const char *app, bool wmsg)
 	}
 }
 
-static bool mount_scratch(void)
+static bool mount_tmpfs(void)
 {
-	int rc = mount(SCRATCH_FS_TYPE, SCRATCH_MOUNT_POINT, "", "", 0);
-	return mount_report("Scratch filesystem", SCRATCH_MOUNT_POINT,
-	    SCRATCH_FS_TYPE, NULL, rc);
+	int rc = mount(TMPFS_FS_TYPE, TMPFS_MOUNT_POINT, "", "", 0);
+	return mount_report("Temporary filesystem", TMPFS_MOUNT_POINT,
+	    TMPFS_FS_TYPE, NULL, rc);
 }
 
 static bool mount_data(void)
@@ -270,8 +269,10 @@ int main(int argc, char *argv[])
 		return -2;
 	}
 	
-	mount_scratch();
+	mount_tmpfs();
 	
+	spawn("/srv/apic");
+	spawn("/srv/i8259");
 	spawn("/srv/fhc");
 	spawn("/srv/obio");
 	srv_start("/srv/cuda_adb");

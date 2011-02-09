@@ -36,77 +36,14 @@
  */
 
 #include <ipc/ipc.h>
-#include <ipc/services.h>
 #include <ipc/ns.h>
-#include <unistd.h>
 #include <stdio.h>
 #include <errno.h>
-#include <as.h>
-#include <ddi.h>
-#include <event.h>
 #include <macros.h>
-#include <sysinfo.h>
 #include "ns.h"
 #include "service.h"
 #include "clonable.h"
 #include "task.h"
-
-static void *clockaddr = NULL;
-static void *klogaddr = NULL;
-
-static void get_as_area(ipc_callid_t callid, ipc_call_t *call, void *faddr,
-    size_t pages, void **addr)
-{
-	if ((faddr == NULL) || (pages == 0)) {
-		ipc_answer_0(callid, ENOENT);
-		return;
-	}
-	
-	if (*addr == NULL) {
-		*addr = as_get_mappable_page(pages * PAGE_SIZE);
-		
-		if (*addr == NULL) {
-			ipc_answer_0(callid, ENOENT);
-			return;
-		}
-		
-		if (physmem_map(faddr, *addr, pages,
-		    AS_AREA_READ | AS_AREA_CACHEABLE) != 0) {
-			ipc_answer_0(callid, ENOENT);
-			return;
-		}
-	}
-	
-	ipc_answer_2(callid, EOK, (ipcarg_t) *addr, AS_AREA_READ);
-}
-
-static void setup_clock_area(ipc_callid_t callid, ipc_call_t *call, void **addr)
-{
-	uintptr_t faddr;
-	int err = sysinfo_get_value("clock.faddr", &faddr);
-	
-	if (err != EOK)
-		ipc_answer_0(callid, err);
-	
-	get_as_area(callid, call, (void *) faddr, 1, addr);
-}
-
-static void setup_klog_area(ipc_callid_t callid, ipc_call_t *call, void **addr)
-{
-	uintptr_t faddr;
-	int err = sysinfo_get_value("klog.faddr", &faddr);
-	
-	if (err != EOK)
-		ipc_answer_0(callid, err);
-	
-	size_t pages;
-	err = sysinfo_get_value("klog.pages", &pages);
-	
-	if (err != EOK)
-		ipc_answer_0(callid, err);
-	
-	get_as_area(callid, call, (void *) faddr, pages, addr);
-}
 
 int main(int argc, char **argv)
 {
@@ -134,21 +71,9 @@ int main(int argc, char **argv)
 		ipc_callid_t callid = ipc_wait_for_call(&call);
 		
 		task_id_t id;
-		ipcarg_t retval;
+		sysarg_t retval;
 		
-		switch (IPC_GET_METHOD(call)) {
-		case IPC_M_SHARE_IN:
-			switch (IPC_GET_ARG3(call)) {
-			case SERVICE_MEM_REALTIME:
-				setup_clock_area(callid, &call, &clockaddr);
-				break;
-			case SERVICE_MEM_KLOG:
-				setup_klog_area(callid, &call, &klogaddr);
-				break;
-			default:
-				ipc_answer_0(callid, ENOENT);
-			}
-			continue;
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			retval = ns_task_disconnect(&call);
 			break;

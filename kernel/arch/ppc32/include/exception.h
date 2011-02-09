@@ -97,12 +97,12 @@ NO_TRACE static inline int istate_from_uspace(istate_t *istate)
 	return (istate->srr1 & MSR_PR) != 0;
 }
 
-NO_TRACE static inline unative_t istate_get_pc(istate_t *istate)
+NO_TRACE static inline sysarg_t istate_get_pc(istate_t *istate)
 {
 	return istate->pc;
 }
 
-NO_TRACE static inline unative_t istate_get_fp(istate_t *istate)
+NO_TRACE static inline sysarg_t istate_get_fp(istate_t *istate)
 {
 	return istate->sp;
 }

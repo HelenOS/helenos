@@ -61,7 +61,7 @@ typedef struct {
 	efi_memmap_item_t memmap[MEMMAP_ITEMS];
 	unsigned int memmap_items;
 	
-	unative_t *sapic;
+	sysarg_t *sapic;
 	unsigned long sys_freq;
 	unsigned long freq_scale;
 	unsigned int wakeup_intno;

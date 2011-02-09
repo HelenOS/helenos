@@ -72,6 +72,13 @@ typedef volatile uint8_t ioport8_t;
 typedef volatile uint16_t ioport16_t;
 typedef volatile uint32_t ioport32_t;
 
+#ifdef __32_BITS__
+
+/** Explicit 64-bit arguments passed to syscalls. */
+typedef uint64_t sysarg64_t;
+
+#endif /* __32_BITS__ */
+
 #endif
 
 /** @}

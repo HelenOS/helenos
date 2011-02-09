@@ -38,7 +38,6 @@
 
 #include "pipefs.h"
 #include "../../vfs/vfs.h"
-#include <ipc/ipc.h>
 #include <macros.h>
 #include <stdint.h>
 #include <async.h>
@@ -456,7 +455,7 @@ void pipefs_mounted(ipc_callid_t rid, ipc_call_t *request)
 	char *opts;
 	rc = async_data_write_accept((void **) &opts, true, 0, 0, 0, NULL);
 	if (rc != EOK) {
-		ipc_answer_0(rid, rc);
+		async_answer_0(rid, rc);
 		return;
 	}
 
@@ -465,21 +464,21 @@ void pipefs_mounted(ipc_callid_t rid, ipc_call_t *request)
 	if ((rc == EOK) && (rootfn)) {
 		(void) pipefs_node_put(rootfn);
 		free(opts);
-		ipc_answer_0(rid, EEXIST);
+		async_answer_0(rid, EEXIST);
 		return;
 	}
 
 	/* Initialize PIPEFS instance. */
 	if (!pipefs_instance_init(devmap_handle)) {
 		free(opts);
-		ipc_answer_0(rid, ENOMEM);
+		async_answer_0(rid, ENOMEM);
 		return;
 	}
 
 	rc = pipefs_root_get(&rootfn, devmap_handle);
 	assert(rc == EOK);
 	pipefs_node_t *rootp = PIPEFS_NODE(rootfn);
-	ipc_answer_3(rid, EOK, rootp->index, rootp->size, rootp->lnkcnt);
+	async_answer_3(rid, EOK, rootp->index, rootp->size, rootp->lnkcnt);
 	free(opts);
 }
 
@@ -493,7 +492,7 @@ void pipefs_unmounted(ipc_callid_t rid, ipc_call_t *request)
 	devmap_handle_t devmap_handle = (devmap_handle_t) IPC_GET_ARG1(*request);
 
 	pipefs_instance_done(devmap_handle);
-	ipc_answer_0(rid, EOK);
+	async_answer_0(rid, EOK);
 }
 
 void pipefs_unmount(ipc_callid_t rid, ipc_call_t *request)
@@ -523,7 +522,7 @@ void pipefs_read(ipc_callid_t rid, ipc_call_t *request)
 	};
 	hlp = hash_table_find(&nodes, key);
 	if (!hlp) {
-		ipc_answer_0(rid, ENOENT);
+		async_answer_0(rid, ENOENT);
 		return;
 	}
 	pipefs_node_t *nodep = hash_table_get_instance(hlp, pipefs_node_t,
@@ -535,8 +534,8 @@ void pipefs_read(ipc_callid_t rid, ipc_call_t *request)
 	ipc_callid_t callid;
 	size_t size;
 	if (!async_data_read_receive(&callid, &size)) {
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
+		async_answer_0(callid, EINVAL);
+		async_answer_0(rid, EINVAL);
 		return;
 	}
 
@@ -547,8 +546,8 @@ void pipefs_read(ipc_callid_t rid, ipc_call_t *request)
 		 * This may happen if the client seeked backwards
 		 */
 		if (pos < nodep->start) {
-			ipc_answer_0(callid, ENOTSUP);
-			ipc_answer_0(rid, ENOTSUP);
+			async_answer_0(callid, ENOTSUP);
+			async_answer_0(rid, ENOTSUP);
 			return;
 		}
 		
@@ -605,8 +604,8 @@ void pipefs_read(ipc_callid_t rid, ipc_call_t *request)
 			 * TODO implement waiting for the data
 			 * and remove this else clause
 			 */
-			ipc_answer_0(callid, ENOTSUP);
-			ipc_answer_1(rid, ENOTSUP, 0);
+			async_answer_0(callid, ENOTSUP);
+			async_answer_1(rid, ENOTSUP, 0);
 			return;
 		}
 	} else {
@@ -627,8 +626,8 @@ void pipefs_read(ipc_callid_t rid, ipc_call_t *request)
 			;
 
 		if (lnk == &nodep->cs_head) {
-			ipc_answer_0(callid, ENOENT);
-			ipc_answer_1(rid, ENOENT, 0);
+			async_answer_0(callid, ENOENT);
+			async_answer_1(rid, ENOENT, 0);
 			return;
 		}
 
@@ -642,7 +641,7 @@ void pipefs_read(ipc_callid_t rid, ipc_call_t *request)
 	/*
 	 * Answer the VFS_READ call.
 	 */
-	ipc_answer_1(rid, EOK, bytes);
+	async_answer_1(rid, EOK, bytes);
 }
 
 void pipefs_write(ipc_callid_t rid, ipc_call_t *request)
@@ -662,7 +661,7 @@ void pipefs_write(ipc_callid_t rid, ipc_call_t *request)
 	};
 	hlp = hash_table_find(&nodes, key);
 	if (!hlp) {
-		ipc_answer_0(rid, ENOENT);
+		async_answer_0(rid, ENOENT);
 		return;
 	}
 	pipefs_node_t *nodep = hash_table_get_instance(hlp, pipefs_node_t,
@@ -674,8 +673,8 @@ void pipefs_write(ipc_callid_t rid, ipc_call_t *request)
 	ipc_callid_t callid;
 	size_t size;
 	if (!async_data_write_receive(&callid, &size)) {
-		ipc_answer_0(callid, EINVAL);	
-		ipc_answer_0(rid, EINVAL);
+		async_answer_0(callid, EINVAL);	
+		async_answer_0(rid, EINVAL);
 		return;
 	}
 
@@ -683,8 +682,8 @@ void pipefs_write(ipc_callid_t rid, ipc_call_t *request)
 	 * Check whether we are writing to the end
 	 */
 	if (pos != nodep->size) {
-		ipc_answer_0(callid, ENOTSUP);
-		ipc_answer_2(rid, EOK, 0, nodep->size);
+		async_answer_0(callid, ENOTSUP);
+		async_answer_2(rid, EOK, 0, nodep->size);
 		return;
 	}
 	
@@ -695,8 +694,8 @@ void pipefs_write(ipc_callid_t rid, ipc_call_t *request)
 	 */
 	void *newdata = malloc(size);
 	if (!newdata) {
-		ipc_answer_0(callid, ENOMEM);
-		ipc_answer_2(rid, EOK, 0, nodep->size);
+		async_answer_0(callid, ENOMEM);
+		async_answer_2(rid, EOK, 0, nodep->size);
 		return;
 	}
 	
@@ -704,8 +703,8 @@ void pipefs_write(ipc_callid_t rid, ipc_call_t *request)
 	
 	if (!newblock) {
 		free(newdata);
-		ipc_answer_0(callid, ENOMEM);
-		ipc_answer_2(rid, EOK, 0, nodep->size);
+		async_answer_0(callid, ENOMEM);
+		async_answer_2(rid, EOK, 0, nodep->size);
 		return;
 	}
 	
@@ -714,8 +713,8 @@ void pipefs_write(ipc_callid_t rid, ipc_call_t *request)
 	if (rc != EOK) {
 		free(newblock);
 		free(newdata);
-		ipc_answer_0(callid, rc);
-		ipc_answer_2(rid, EOK, 0, nodep->size);
+		async_answer_0(callid, rc);
+		async_answer_2(rid, EOK, 0, nodep->size);
 		return;
 	}
 	
@@ -726,7 +725,7 @@ void pipefs_write(ipc_callid_t rid, ipc_call_t *request)
 	
 	nodep->size += size;
 	
-	ipc_answer_2(rid, EOK, size, nodep->size);
+	async_answer_2(rid, EOK, size, nodep->size);
 }
 
 void pipefs_truncate(ipc_callid_t rid, ipc_call_t *request)
@@ -734,12 +733,12 @@ void pipefs_truncate(ipc_callid_t rid, ipc_call_t *request)
 	/*
 	 * PIPEFS does not support resizing of files
 	 */
-	ipc_answer_0(rid, ENOTSUP);
+	async_answer_0(rid, ENOTSUP);
 }
 
 void pipefs_close(ipc_callid_t rid, ipc_call_t *request)
 {
-	ipc_answer_0(rid, EOK);
+	async_answer_0(rid, EOK);
 }
 
 void pipefs_destroy(ipc_callid_t rid, ipc_call_t *request)
@@ -755,13 +754,13 @@ void pipefs_destroy(ipc_callid_t rid, ipc_call_t *request)
 	};
 	hlp = hash_table_find(&nodes, key);
 	if (!hlp) {
-		ipc_answer_0(rid, ENOENT);
+		async_answer_0(rid, ENOENT);
 		return;
 	}
 	pipefs_node_t *nodep = hash_table_get_instance(hlp, pipefs_node_t,
 	    nh_link);
 	rc = pipefs_destroy_node(FS_NODE(nodep));
-	ipc_answer_0(rid, rc);
+	async_answer_0(rid, rc);
 }
 
 void pipefs_open_node(ipc_callid_t rid, ipc_call_t *request)
@@ -780,7 +779,7 @@ void pipefs_sync(ipc_callid_t rid, ipc_call_t *request)
 	 * PIPEFS keeps its data structures always consistent,
 	 * thus the sync operation is a no-op.
 	 */
-	ipc_answer_0(rid, EOK);
+	async_answer_0(rid, EOK);
 }
 
 /**

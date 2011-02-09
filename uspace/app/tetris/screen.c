@@ -119,7 +119,7 @@ void scr_init(void)
 	scr_clear();
 }
 
-void moveto(ipcarg_t r, ipcarg_t c)
+void moveto(sysarg_t r, sysarg_t c)
 {
 	fflush(stdout);
 	console_set_pos(fphone(stdout), c, r);
@@ -134,7 +134,7 @@ static int get_display_size(winsize_t *ws)
 
 static bool get_display_color_sup(void)
 {
-	ipcarg_t ccap;
+	sysarg_t ccap;
 	int rc = console_get_color_cap(fphone(stdout), &ccap);
 	
 	if (rc != 0)

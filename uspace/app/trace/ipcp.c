@@ -45,7 +45,7 @@
 #define IPCP_CALLID_SYNC 0
 
 typedef struct {
-	ipcarg_t phone_hash;
+	sysarg_t phone_hash;
 	ipc_call_t question;
 	oper_t *oper;
 
@@ -123,7 +123,7 @@ void ipcp_connection_clear(int phone)
 	connections[phone].proto = NULL;
 }
 
-static void ipc_m_print(proto_t *proto, ipcarg_t method)
+static void ipc_m_print(proto_t *proto, sysarg_t method)
 {
 	oper_t *oper;
 
@@ -191,7 +191,7 @@ void ipcp_call_out(int phone, ipc_call_t *call, ipc_callid_t hash)
 	proto_t *proto;
 	unsigned long key[1];
 	oper_t *oper;
-	ipcarg_t *args;
+	sysarg_t *args;
 	int i;
 
 	if (have_conn[phone]) proto = connections[phone].proto;
@@ -203,7 +203,7 @@ void ipcp_call_out(int phone, ipc_call_t *call, ipc_callid_t hash)
 		printf("Call ID: %p, phone: %d, proto: %s, method: ",
 		    (void *) hash, phone,
 		    (proto ? proto->name : "n/a"));
-		ipc_m_print(proto, IPC_GET_METHOD(*call));
+		ipc_m_print(proto, IPC_GET_IMETHOD(*call));
 		printf(" args: (%" PRIun ", %" PRIun ", %" PRIun ", "
 		    "%" PRIun ", %" PRIun ")\n",
 		    args[1], args[2], args[3], args[4], args[5]);
@@ -213,7 +213,7 @@ void ipcp_call_out(int phone, ipc_call_t *call, ipc_callid_t hash)
 	if ((display_mask & DM_USER) != 0) {
 
 		if (proto != NULL) {
-			oper = proto_get_oper(proto, IPC_GET_METHOD(*call));
+			oper = proto_get_oper(proto, IPC_GET_IMETHOD(*call));
 		} else {
 			oper = NULL;
 		}
@@ -261,21 +261,21 @@ void ipcp_call_out(int phone, ipc_call_t *call, ipc_callid_t hash)
 static void parse_answer(ipc_callid_t hash, pending_call_t *pcall,
     ipc_call_t *answer)
 {
-	ipcarg_t phone;
-	ipcarg_t method;
-	ipcarg_t service;
-	ipcarg_t retval;
+	sysarg_t phone;
+	sysarg_t method;
+	sysarg_t service;
+	sysarg_t retval;
 	proto_t *proto;
 	int cphone;
 
-	ipcarg_t *resp;
+	sysarg_t *resp;
 	oper_t *oper;
 	int i;
 
 //	printf("parse_answer\n");
 
 	phone = pcall->phone_hash;
-	method = IPC_GET_METHOD(pcall->question);
+	method = IPC_GET_IMETHOD(pcall->question);
 	retval = IPC_GET_RETVAL(*answer);
 
 	resp = answer->args;

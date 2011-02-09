@@ -170,6 +170,7 @@ int program_create_loader(program_t *prg, char *name)
 	
 	void *loader = program_loader;
 	if (!loader) {
+		as_destroy(as);
 		printf("Cannot spawn loader as none was registered\n");
 		return ENOENT;
 	}
@@ -178,6 +179,7 @@ int program_create_loader(program_t *prg, char *name)
 	    ELD_F_LOADER);
 	if (rc != EE_OK) {
 		as_destroy(as);
+		printf("Cannot spawn loader (%s)\n", elf_error(rc));
 		return ENOENT;
 	}
 	
@@ -209,7 +211,7 @@ void program_ready(program_t *prg)
  * @return EOK on success or an error code from @ref errno.h.
  *
  */
-unative_t sys_program_spawn_loader(char *uspace_name, size_t name_len)
+sysarg_t sys_program_spawn_loader(char *uspace_name, size_t name_len)
 {
 	/* Cap length of name and copy it from userspace. */
 	if (name_len > TASK_NAME_BUFLEN - 1)
@@ -218,7 +220,7 @@ unative_t sys_program_spawn_loader(char *uspace_name, size_t name_len)
 	char namebuf[TASK_NAME_BUFLEN];
 	int rc = copy_from_uspace(namebuf, uspace_name, name_len);
 	if (rc != 0)
-		return (unative_t) rc;
+		return (sysarg_t) rc;
 	
 	namebuf[name_len] = 0;
 	

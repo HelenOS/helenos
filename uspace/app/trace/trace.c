@@ -35,7 +35,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <ipc/ipc.h>
 #include <fibril.h>
 #include <errno.h>
 #include <udebug.h>
@@ -148,7 +147,7 @@ static int connect_task(task_id_t task_id)
 {
 	int rc;
 
-	rc = ipc_connect_kbox(task_id);
+	rc = async_connect_kbox(task_id);
 
 	if (rc == ENOTSUP) {
 		printf("You do not have userspace debugging support "
@@ -286,7 +285,7 @@ static void print_sc_args(sysarg_t *sc_args, int n)
 static void sc_ipc_call_async_fast(sysarg_t *sc_args, sysarg_t sc_rc)
 {
 	ipc_call_t call;
-	ipcarg_t phoneid;
+	sysarg_t phoneid;
 	
 	if (sc_rc == (sysarg_t) IPC_CALLRET_FATAL ||
 	    sc_rc == (sysarg_t) IPC_CALLRET_TEMPORARY)
@@ -294,7 +293,7 @@ static void sc_ipc_call_async_fast(sysarg_t *sc_args, sysarg_t sc_rc)
 
 	phoneid = sc_args[0];
 
-	IPC_SET_METHOD(call, sc_args[1]);
+	IPC_SET_IMETHOD(call, sc_args[1]);
 	IPC_SET_ARG1(call, sc_args[2]);
 	IPC_SET_ARG2(call, sc_args[3]);
 	IPC_SET_ARG3(call, sc_args[4]);
@@ -330,7 +329,7 @@ static void sc_ipc_call_sync_fast(sysarg_t *sc_args)
 //	printf("sc_ipc_call_sync_fast()\n");
 	phoneidx = sc_args[0];
 
-	IPC_SET_METHOD(question, sc_args[1]);
+	IPC_SET_IMETHOD(question, sc_args[1]);
 	IPC_SET_ARG1(question, sc_args[2]);
 	IPC_SET_ARG2(question, sc_args[3]);
 	IPC_SET_ARG3(question, sc_args[4]);
@@ -744,7 +743,7 @@ static void trace_task(task_id_t task_id)
 	printf("\nTerminate debugging session...\n");
 	abort_trace = true;
 	udebug_end(phoneid);
-	ipc_hangup(phoneid);
+	async_hangup(phoneid);
 
 	ipcp_cleanup();
 

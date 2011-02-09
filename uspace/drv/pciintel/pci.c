@@ -48,7 +48,7 @@
 #include <devman.h>
 #include <ipc/devman.h>
 #include <ipc/dev_iface.h>
-#include <resource.h>
+#include <ops/hw_res.h>
 #include <device/hw_res.h>
 #include <ddi.h>
 #include <libarch/ddi.h>
@@ -76,7 +76,7 @@ static bool pciintel_enable_child_interrupt(device_t *dev)
 	return false;
 }
 
-static resource_iface_t pciintel_child_res_iface = {
+static hw_res_ops_t pciintel_child_hw_res_ops = {
 	&pciintel_get_child_resources,
 	&pciintel_enable_child_interrupt
 };
@@ -323,7 +323,7 @@ int pci_read_bar(device_t *dev, int addr)
 	if (range_addr != 0) {
 		printf(NAME ": device %s : ", dev->name);
 		printf("address = %" PRIx64, range_addr);
-		printf(", size = %x\n", range_size);
+		printf(", size = %x\n", (unsigned int) range_size);
 	}
 	
 	pci_add_range(dev, range_addr, range_size, io);
@@ -451,6 +451,8 @@ void pci_bus_scan(device_t *parent, int bus_num)
 
 static int pci_add_device(device_t *dev)
 {
+	int rc;
+
 	printf(NAME ": pci_add_device\n");
 	
 	pci_bus_data_t *bus_data = create_pci_bus_data();
@@ -465,17 +467,18 @@ static int pci_add_device(device_t *dev)
 		printf(NAME ": pci_add_device failed to connect to the "
 		    "parent's driver.\n");
 		delete_pci_bus_data(bus_data);
-		return EPARTY;	/* FIXME: use another EC */
+		return dev->parent_phone;
 	}
 	
 	hw_resource_list_t hw_resources;
 	
-	if (!get_hw_resources(dev->parent_phone, &hw_resources)) {
+	rc = hw_res_get_resource_list(dev->parent_phone, &hw_resources);
+	if (rc != EOK) {
 		printf(NAME ": pci_add_device failed to get hw resources for "
 		    "the device.\n");
 		delete_pci_bus_data(bus_data);
-		ipc_hangup(dev->parent_phone);
-		return EPARTY;	/* FIXME: use another EC */
+		async_hangup(dev->parent_phone);
+		return rc;
 	}	
 	
 	printf(NAME ": conf_addr = %" PRIx64 ".\n",
@@ -488,12 +491,12 @@ static int pci_add_device(device_t *dev)
 	bus_data->conf_io_addr =
 	    (uint32_t) hw_resources.resources[0].res.io_range.address;
 	
-	if (pio_enable((void *)bus_data->conf_io_addr, 8,
+	if (pio_enable((void *)(uintptr_t)bus_data->conf_io_addr, 8,
 	    &bus_data->conf_addr_port)) {
 		printf(NAME ": failed to enable configuration ports.\n");
 		delete_pci_bus_data(bus_data);
-		ipc_hangup(dev->parent_phone);
-		clean_hw_resource_list(&hw_resources);
+		async_hangup(dev->parent_phone);
+		hw_res_clean_resource_list(&hw_resources);
 		return EADDRNOTAVAIL;
 	}
 	bus_data->conf_data_port = (char *) bus_data->conf_addr_port + 4;
@@ -504,14 +507,14 @@ static int pci_add_device(device_t *dev)
 	printf(NAME ": scanning the bus\n");
 	pci_bus_scan(dev, 0);
 	
-	clean_hw_resource_list(&hw_resources);
+	hw_res_clean_resource_list(&hw_resources);
 	
 	return EOK;
 }
 
 static void pciintel_init(void)
 {
-	pci_child_ops.interfaces[HW_RES_DEV_IFACE] = &pciintel_child_res_iface;
+	pci_child_ops.interfaces[HW_RES_DEV_IFACE] = &pciintel_child_hw_res_ops;
 }
 
 pci_dev_data_t *create_pci_dev_data(void)
@@ -533,7 +536,7 @@ void init_pci_dev_data(pci_dev_data_t *dev_data, int bus, int dev, int fn)
 void delete_pci_dev_data(pci_dev_data_t *dev_data)
 {
 	if (dev_data != NULL) {
-		clean_hw_resource_list(&dev_data->hw_resources);
+		hw_res_clean_resource_list(&dev_data->hw_resources);
 		free(dev_data);
 	}
 }

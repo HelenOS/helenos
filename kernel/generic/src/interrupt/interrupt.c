@@ -44,7 +44,6 @@
 #include <console/kconsole.h>
 #include <console/console.h>
 #include <console/cmd.h>
-#include <ipc/event.h>
 #include <synch/mutex.h>
 #include <time/delay.h>
 #include <macros.h>
@@ -187,25 +186,26 @@ NO_TRACE void fault_if_from_uspace(istate_t *istate, const char *fmt, ...)
 	va_end(args);
 	printf("\n");
 	
+	task_kill_self(true);
+}
+
+/** Get istate structure of a thread.
+ *
+ * Get pointer to the istate structure at the bottom of the kernel stack.
+ *
+ * This function can be called in interrupt or user context. In interrupt
+ * context the istate structure is created by the low-level exception
+ * handler. In user context the istate structure is created by the
+ * low-level syscall handler.
+ */
+istate_t *istate_get(thread_t *thread)
+{
 	/*
-	 * Userspace can subscribe for FAULT events to take action
-	 * whenever a thread faults. (E.g. take a dump, run a debugger).
-	 * The notification is always available, but unless Udebug is enabled,
-	 * that's all you get.
+	 * The istate structure should be right at the bottom of the kernel
+	 * stack.
 	 */
-	if (event_is_subscribed(EVENT_FAULT)) {
-		/* Notify the subscriber that a fault occurred. */
-		event_notify_3(EVENT_FAULT, LOWER32(TASK->taskid),
-		    UPPER32(TASK->taskid), (unative_t) THREAD);
-		
-#ifdef CONFIG_UDEBUG
-		/* Wait for a debugging session. */
-		udebug_thread_fault();
-#endif
-	}
-	
-	task_kill(TASK->taskid);
-	thread_exit();
+	return (istate_t *) ((uint8_t *) thread->kstack + THREAD_STACK_SIZE -
+	    sizeof(istate_t));
 }
 
 #ifdef CONFIG_KCONSOLE
@@ -262,7 +262,7 @@ NO_TRACE static int cmd_exc_print(cmd_arg_t *argv)
 		order_suffix(exc_table[i].cycles, &cycles, &cycles_suffix);
 		
 		const char *symbol =
-		    symtab_fmt_name_lookup((unative_t) exc_table[i].handler);
+		    symtab_fmt_name_lookup((sysarg_t) exc_table[i].handler);
 		
 #ifdef __32_BITS__
 		printf("%-8u %-20s %9" PRIu64 "%c %9" PRIu64 "%c %10p %s\n",

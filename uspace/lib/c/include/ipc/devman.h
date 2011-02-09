@@ -29,19 +29,18 @@
 /** @addtogroup devman
  * @{
  */
- 
+
 #ifndef LIBC_IPC_DEVMAN_H_
 #define LIBC_IPC_DEVMAN_H_
 
+#include <ipc/common.h>
 #include <adt/list.h>
-#include <ipc/ipc.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <str.h>
+#include <malloc.h>
+#include <mem.h>
 
-#define DEVMAN_NAME_MAXLEN 256
+#define DEVMAN_NAME_MAXLEN  256
 
-typedef ipcarg_t devman_handle_t;
+typedef sysarg_t devman_handle_t;
 
 /** Ids of device models used for device-to-driver matching.
  */
@@ -66,8 +65,7 @@ typedef struct match_id_list {
 	link_t ids;
 } match_id_list_t;
 
-
-static inline match_id_t * create_match_id()
+static inline match_id_t *create_match_id(void)
 {
 	match_id_t *id = malloc(sizeof(match_id_t));
 	memset(id, 0, sizeof(match_id_t));
@@ -84,10 +82,10 @@ static inline void delete_match_id(match_id_t *id)
 	}
 }
 
-static inline void add_match_id(match_id_list_t *ids, match_id_t *id) 
+static inline void add_match_id(match_id_list_t *ids, match_id_t *id)
 {
 	match_id_t *mid = NULL;
-	link_t *link = ids->ids.next;	
+	link_t *link = ids->ids.next;
 	
 	while (link != &ids->ids) {
 		mid = list_get_instance(link, match_id_t,link);
@@ -97,7 +95,7 @@ static inline void add_match_id(match_id_list_t *ids, match_id_t *id)
 		link = link->next;
 	}
 	
-	list_insert_before(&id->link, link);	
+	list_insert_before(&id->link, link);
 }
 
 static inline void init_match_ids(match_id_list_t *id_list)
@@ -122,6 +120,7 @@ typedef enum {
 	DEVMAN_DRIVER = 1,
 	DEVMAN_CLIENT,
 	DEVMAN_CONNECT_TO_DEVICE,
+	DEVMAN_CONNECT_FROM_DEVMAP,
 	DEVMAN_CONNECT_TO_PARENTS_DEVICE
 } devman_interface_t;
 

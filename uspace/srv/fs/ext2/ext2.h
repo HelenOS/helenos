@@ -34,7 +34,6 @@
 #define EXT2_EXT2_H_
 
 #include <libext2.h>
-#include <ipc/ipc.h>
 #include <fibril_synch.h>
 #include <libfs.h>
 #include <atomic.h>

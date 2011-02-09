@@ -1,19 +1,19 @@
 interface kbd extends service {
 		/* Callback connection */
-		ipcarg_t ipc_m_connect_to_me(void);
+		sysarg_t ipc_m_connect_to_me(void);
 		
 		/* Yield hardware */
-		ipcarg_t yield(void);
+		sysarg_t yield(void);
 		
 		/* Reclaim hardware */
-		ipcarg_t reclaim(void);
+		sysarg_t reclaim(void);
 	protocol:
 		[kbd.bp]
 };
 
 interface event {
 		/* Send keyboard event */
-		ipcarg_t event(in ipcarg_t type, in ipcarg_t key, in ipcarg_t mods, in ipcarg_t char);
+		sysarg_t event(in sysarg_t type, in sysarg_t key, in sysarg_t mods, in sysarg_t char);
 	protocol:
 		[event.bp]
 };

@@ -33,7 +33,6 @@
 #ifndef PIPEFS_PIPEFS_H_
 #define PIPEFS_PIPEFS_H_
 
-#include <ipc/ipc.h>
 #include <libfs.h>
 #include <atomic.h>
 #include <sys/types.h>

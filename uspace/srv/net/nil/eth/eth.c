@@ -42,28 +42,24 @@
 #include <byteorder.h>
 #include <str.h>
 #include <errno.h>
-
-#include <ipc/ipc.h>
+#include <ipc/nil.h>
 #include <ipc/net.h>
 #include <ipc/services.h>
-
 #include <net/modules.h>
 #include <net_checksum.h>
 #include <ethernet_lsap.h>
 #include <ethernet_protocols.h>
 #include <protocol_map.h>
 #include <net/device.h>
-#include <netif_interface.h>
+#include <netif_remote.h>
 #include <net_interface.h>
-#include <nil_interface.h>
-#include <il_interface.h>
+#include <il_remote.h>
 #include <adt/measured_strings.h>
 #include <packet_client.h>
 #include <packet_remote.h>
-#include <nil_local.h>
+#include <nil_skel.h>
 
 #include "eth.h"
-#include "eth_header.h"
 
 /** The module name. */
 #define NAME  "eth"
@@ -71,84 +67,86 @@
 /** Reserved packet prefix length. */
 #define ETH_PREFIX \
 	(sizeof(eth_header_t) + sizeof(eth_header_lsap_t) + \
-	sizeof(eth_header_snap_t))
+	    sizeof(eth_header_snap_t))
 
 /** Reserved packet suffix length. */
-#define ETH_SUFFIX \
-	sizeof(eth_fcs_t)
+#define ETH_SUFFIX  (sizeof(eth_fcs_t))
 
 /** Maximum packet content length. */
-#define ETH_MAX_CONTENT 1500u
+#define ETH_MAX_CONTENT  1500u
 
 /** Minimum packet content length. */
-#define ETH_MIN_CONTENT 46u
+#define ETH_MIN_CONTENT  46u
 
 /** Maximum tagged packet content length. */
 #define ETH_MAX_TAGGED_CONTENT(flags) \
 	(ETH_MAX_CONTENT - \
-	((IS_8023_2_LSAP(flags) || IS_8023_2_SNAP(flags)) ? \
-	sizeof(eth_header_lsap_t) : 0) - \
-	(IS_8023_2_SNAP(flags) ? sizeof(eth_header_snap_t) : 0))
+	    ((IS_8023_2_LSAP(flags) || IS_8023_2_SNAP(flags)) ? \
+	    sizeof(eth_header_lsap_t) : 0) - \
+	    (IS_8023_2_SNAP(flags) ? sizeof(eth_header_snap_t) : 0))
 
 /** Minimum tagged packet content length. */
 #define ETH_MIN_TAGGED_CONTENT(flags) \
 	(ETH_MIN_CONTENT - \
-	((IS_8023_2_LSAP(flags) || IS_8023_2_SNAP(flags)) ? \
-	sizeof(eth_header_lsap_t) : 0) - \
-	(IS_8023_2_SNAP(flags) ? sizeof(eth_header_snap_t) : 0))
+	    ((IS_8023_2_LSAP(flags) || IS_8023_2_SNAP(flags)) ? \
+	    sizeof(eth_header_lsap_t) : 0) - \
+	    (IS_8023_2_SNAP(flags) ? sizeof(eth_header_snap_t) : 0))
 
 /** Dummy flag shift value. */
-#define ETH_DUMMY_SHIFT	0
+#define ETH_DUMMY_SHIFT  0
 
 /** Mode flag shift value. */
-#define ETH_MODE_SHIFT	1
+#define ETH_MODE_SHIFT  1
 
 /** Dummy device flag.
  * Preamble and FCS are mandatory part of the packets.
  */
-#define ETH_DUMMY		(1 << ETH_DUMMY_SHIFT)
+#define ETH_DUMMY  (1 << ETH_DUMMY_SHIFT)
 
 /** Returns the dummy flag.
  * @see ETH_DUMMY
  */
-#define IS_DUMMY(flags)		((flags) & ETH_DUMMY)
+#define IS_DUMMY(flags)  ((flags) & ETH_DUMMY)
 
 /** Device mode flags.
  * @see ETH_DIX
  * @see ETH_8023_2_LSAP
  * @see ETH_8023_2_SNAP
  */
-#define ETH_MODE_MASK		(3 << ETH_MODE_SHIFT)
+#define ETH_MODE_MASK  (3 << ETH_MODE_SHIFT)
 
 /** DIX Ethernet mode flag. */
-#define ETH_DIX			(1 << ETH_MODE_SHIFT)
+#define ETH_DIX  (1 << ETH_MODE_SHIFT)
 
-/** Returns whether the DIX Ethernet mode flag is set.
+/** Return whether the DIX Ethernet mode flag is set.
  *
- * @param[in] flags	The ethernet flags.
+ * @param[in] flags Ethernet flags.
  * @see ETH_DIX
+ *
  */
-#define IS_DIX(flags)		(((flags) & ETH_MODE_MASK) == ETH_DIX)
+#define IS_DIX(flags)  (((flags) & ETH_MODE_MASK) == ETH_DIX)
 
 /** 802.3 + 802.2 + LSAP mode flag. */
-#define ETH_8023_2_LSAP		(2 << ETH_MODE_SHIFT)
+#define ETH_8023_2_LSAP  (2 << ETH_MODE_SHIFT)
 
-/** Returns whether the 802.3 + 802.2 + LSAP mode flag is set.
+/** Return whether the 802.3 + 802.2 + LSAP mode flag is set.
  *
- * @param[in] flags	The ethernet flags.
+ * @param[in] flags Ethernet flags.
  * @see ETH_8023_2_LSAP
+ *
  */
-#define IS_8023_2_LSAP(flags)	(((flags) & ETH_MODE_MASK) == ETH_8023_2_LSAP)
+#define IS_8023_2_LSAP(flags)  (((flags) & ETH_MODE_MASK) == ETH_8023_2_LSAP)
 
 /** 802.3 + 802.2 + LSAP + SNAP mode flag. */
-#define ETH_8023_2_SNAP		(3 << ETH_MODE_SHIFT)
+#define ETH_8023_2_SNAP  (3 << ETH_MODE_SHIFT)
 
-/** Returns whether the 802.3 + 802.2 + LSAP + SNAP mode flag is set.
+/** Return whether the 802.3 + 802.2 + LSAP + SNAP mode flag is set.
  *
- * @param[in] flags	The ethernet flags.
+ * @param[in] flags Ethernet flags.
  * @see ETH_8023_2_SNAP
+ *
  */
-#define IS_8023_2_SNAP(flags)	(((flags) & ETH_MODE_MASK) == ETH_8023_2_SNAP)
+#define IS_8023_2_SNAP(flags)  (((flags) & ETH_MODE_MASK) == ETH_8023_2_SNAP)
 
 /** Type definition of the ethernet address type.
  * @see eth_addr_type
@@ -200,8 +198,7 @@ int nil_initialize(int net_phone)
 	eth_globals.net_phone = net_phone;
 
 	eth_globals.broadcast_addr =
-	    measured_string_create_bulk("\xFF\xFF\xFF\xFF\xFF\xFF",
-	    CONVERT_SIZE(uint8_t, char, ETH_ADDR));
+	    measured_string_create_bulk((uint8_t *) "\xFF\xFF\xFF\xFF\xFF\xFF", ETH_ADDR);
 	if (!eth_globals.broadcast_addr) {
 		rc = ENOMEM;
 		goto out;
@@ -237,23 +234,23 @@ static void eth_receiver(ipc_callid_t iid, ipc_call_t *icall)
 	int rc;
 
 	while (true) {
-		switch (IPC_GET_METHOD(*icall)) {
+		switch (IPC_GET_IMETHOD(*icall)) {
 		case NET_NIL_DEVICE_STATE:
-			nil_device_state_msg_local(0, IPC_GET_DEVICE(icall),
-			    IPC_GET_STATE(icall));
-			ipc_answer_0(iid, EOK);
+			nil_device_state_msg_local(0, IPC_GET_DEVICE(*icall),
+			    IPC_GET_STATE(*icall));
+			async_answer_0(iid, EOK);
 			break;
 		case NET_NIL_RECEIVED:
 			rc = packet_translate_remote(eth_globals.net_phone,
-			    &packet, IPC_GET_PACKET(icall));
-			if (rc == EOK) {
+			    &packet, IPC_GET_PACKET(*icall));
+			if (rc == EOK)
 				rc = nil_received_msg_local(0,
-				    IPC_GET_DEVICE(icall), packet, 0);
-			}
-			ipc_answer_0(iid, (ipcarg_t) rc);
+				    IPC_GET_DEVICE(*icall), packet, 0);
+			
+			async_answer_0(iid, (sysarg_t) rc);
 			break;
 		default:
-			ipc_answer_0(iid, (ipcarg_t) ENOTSUP);
+			async_answer_0(iid, (sysarg_t) ENOTSUP);
 		}
 		
 		iid = async_get_call(icall);
@@ -284,17 +281,17 @@ static int eth_device_message(device_id_t device_id, services_t service,
 	int index;
 	measured_string_t names[2] = {
 		{
-			(char *) "ETH_MODE",
+			(uint8_t *) "ETH_MODE",
 			8
 		},
 		{
-			(char *) "ETH_DUMMY",
+			(uint8_t *) "ETH_DUMMY",
 			9
 		}
 	};
 	measured_string_t *configuration;
 	size_t count = sizeof(names) / sizeof(measured_string_t);
-	char *data;
+	uint8_t *data;
 	eth_proto_t *proto;
 	int rc;
 
@@ -358,10 +355,10 @@ static int eth_device_message(device_id_t device_id, services_t service,
 	}
 
 	if (configuration) {
-		if (!str_lcmp(configuration[0].value, "DIX",
+		if (!str_lcmp((char *) configuration[0].value, "DIX",
 		    configuration[0].length)) {
 			device->flags |= ETH_DIX;
-		} else if(!str_lcmp(configuration[0].value, "8023_2_LSAP",
+		} else if(!str_lcmp((char *) configuration[0].value, "8023_2_LSAP",
 		    configuration[0].length)) {
 			device->flags |= ETH_8023_2_LSAP;
 		} else {
@@ -407,7 +404,7 @@ static int eth_device_message(device_id_t device_id, services_t service,
 	}
 	
 	printf("%s: Device registered (id: %d, service: %d: mtu: %zu, "
-	    "mac: %x:%x:%x:%x:%x:%x, flags: 0x%x)\n",
+	    "mac: %02x:%02x:%02x:%02x:%02x:%02x, flags: 0x%x)\n",
 	    NAME, device->device_id, device->service, device->mtu,
 	    device->addr_data[0], device->addr_data[1],
 	    device->addr_data[2], device->addr_data[3],
@@ -836,8 +833,8 @@ static int eth_send_message(device_id_t device_id, packet_t *packet,
 	return EOK;
 }
 
-int nil_message_standalone(const char *name, ipc_callid_t callid,
-    ipc_call_t *call, ipc_call_t *answer, int *answer_count)
+int nil_module_message(ipc_callid_t callid, ipc_call_t *call,
+    ipc_call_t *answer, size_t *answer_count)
 {
 	measured_string_t *address;
 	packet_t *packet;
@@ -848,99 +845,55 @@ int nil_message_standalone(const char *name, ipc_callid_t callid,
 	int rc;
 	
 	*answer_count = 0;
-	switch (IPC_GET_METHOD(*call)) {
+	switch (IPC_GET_IMETHOD(*call)) {
 	case IPC_M_PHONE_HUNGUP:
 		return EOK;
 	
 	case NET_NIL_DEVICE:
-		return eth_device_message(IPC_GET_DEVICE(call),
-		    IPC_GET_SERVICE(call), IPC_GET_MTU(call));
+		return eth_device_message(IPC_GET_DEVICE(*call),
+		    IPC_GET_SERVICE(*call), IPC_GET_MTU(*call));
 	case NET_NIL_SEND:
 		rc = packet_translate_remote(eth_globals.net_phone, &packet,
-		    IPC_GET_PACKET(call));
+		    IPC_GET_PACKET(*call));
 		if (rc != EOK)
 			return rc;
-		return eth_send_message(IPC_GET_DEVICE(call), packet,
-		    IPC_GET_SERVICE(call));
+		return eth_send_message(IPC_GET_DEVICE(*call), packet,
+		    IPC_GET_SERVICE(*call));
 	case NET_NIL_PACKET_SPACE:
-		rc = eth_packet_space_message(IPC_GET_DEVICE(call), &addrlen,
+		rc = eth_packet_space_message(IPC_GET_DEVICE(*call), &addrlen,
 		    &prefix, &content, &suffix);
 		if (rc != EOK)
 			return rc;
-		IPC_SET_ADDR(answer, addrlen);
-		IPC_SET_PREFIX(answer, prefix);
-		IPC_SET_CONTENT(answer, content);
-		IPC_SET_SUFFIX(answer, suffix);
+		IPC_SET_ADDR(*answer, addrlen);
+		IPC_SET_PREFIX(*answer, prefix);
+		IPC_SET_CONTENT(*answer, content);
+		IPC_SET_SUFFIX(*answer, suffix);
 		*answer_count = 4;
 		return EOK;
 	case NET_NIL_ADDR:
-		rc = eth_addr_message(IPC_GET_DEVICE(call), ETH_LOCAL_ADDR,
+		rc = eth_addr_message(IPC_GET_DEVICE(*call), ETH_LOCAL_ADDR,
 		    &address);
 		if (rc != EOK)
 			return rc;
 		return measured_strings_reply(address, 1);
 	case NET_NIL_BROADCAST_ADDR:
-		rc = eth_addr_message(IPC_GET_DEVICE(call), ETH_BROADCAST_ADDR,
+		rc = eth_addr_message(IPC_GET_DEVICE(*call), ETH_BROADCAST_ADDR,
 		    &address);
 		if (rc != EOK)
 			return EOK;
 		return measured_strings_reply(address, 1);
 	case IPC_M_CONNECT_TO_ME:
-		return eth_register_message(NIL_GET_PROTO(call),
-		    IPC_GET_PHONE(call));
+		return eth_register_message(NIL_GET_PROTO(*call),
+		    IPC_GET_PHONE(*call));
 	}
 	
 	return ENOTSUP;
 }
 
-/** Default thread for new connections.
- *
- * @param[in] iid	The initial message identifier.
- * @param[in] icall	The initial message call structure.
- */
-static void nil_client_connection(ipc_callid_t iid, ipc_call_t *icall)
-{
-	/*
-	 * Accept the connection
-	 *  - Answer the first IPC_M_CONNECT_ME_TO call.
-	 */
-	ipc_answer_0(iid, EOK);
-	
-	while (true) {
-		ipc_call_t answer;
-		int answer_count;
-		
-		/* Clear the answer structure */
-		refresh_answer(&answer, &answer_count);
-		
-		/* Fetch the next message */
-		ipc_call_t call;
-		ipc_callid_t callid = async_get_call(&call);
-		
-		/* Process the message */
-		int res = nil_module_message_standalone(NAME, callid, &call,
-		    &answer, &answer_count);
-		
-		/*
-		 * End if told to either by the message or the processing
-		 * result.
-		 */
-		if ((IPC_GET_METHOD(call) == IPC_M_PHONE_HUNGUP) ||
-		    (res == EHANGUP))
-			return;
-		
-		/* Answer the message */
-		answer_call(callid, res, &answer, answer_count);
-	}
-}
-
 int main(int argc, char *argv[])
 {
-	int rc;
-	
 	/* Start the module */
-	rc = nil_module_start_standalone(nil_client_connection);
-	return rc;
+	return nil_module_start(SERVICE_ETHERNET);
 }
 
 /** @}

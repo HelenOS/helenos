@@ -34,7 +34,6 @@
  * @brief Chardev keyboard port driver.
  */
 
-#include <ipc/ipc.h>
 #include <ipc/char.h>
 #include <async.h>
 #include <kbd_port.h>
@@ -90,13 +89,10 @@ int kbd_port_init(void)
 	}
 
 	/* NB: The callback connection is slotted for removal */
-	ipcarg_t phonehash;
-	if (ipc_connect_to_me(dev_phone, 0, 0, 0, &phonehash) != 0) {
+	if (async_connect_to_me(dev_phone, 0, 0, 0, kbd_port_events) != 0) {
 		printf(NAME ": Failed to create callback from device\n");
 		return -1;
 	}
-
-	async_new_connection(phonehash, 0, NULL, kbd_port_events);
 
 	return 0;
 }
@@ -124,7 +120,7 @@ static void kbd_port_events(ipc_callid_t iid, ipc_call_t *icall)
 
 		int retval;
 
-		switch (IPC_GET_METHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			/* TODO: Handle hangup */
 			return;
@@ -134,7 +130,7 @@ static void kbd_port_events(ipc_callid_t iid, ipc_call_t *icall)
 		default:
 			retval = ENOENT;
 		}
-		ipc_answer_0(callid, retval);
+		async_answer_0(callid, retval);
 	}
 }
 

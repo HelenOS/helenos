@@ -59,8 +59,8 @@
 static void futex_initialize(futex_t *futex);
 
 static futex_t *futex_find(uintptr_t paddr);
-static size_t futex_ht_hash(unative_t *key);
-static bool futex_ht_compare(unative_t *key, size_t keys, link_t *item);
+static size_t futex_ht_hash(sysarg_t *key);
+static bool futex_ht_compare(sysarg_t *key, size_t keys, link_t *item);
 static void futex_ht_remove_callback(link_t *item);
 
 /**
@@ -107,7 +107,7 @@ void futex_initialize(futex_t *futex)
  *			returned. Otherwise returns a wait result as defined in
  *			synch.h.
  */
-unative_t sys_futex_sleep(uintptr_t uaddr)
+sysarg_t sys_futex_sleep(uintptr_t uaddr)
 {
 	futex_t *futex;
 	uintptr_t paddr;
@@ -121,7 +121,7 @@ unative_t sys_futex_sleep(uintptr_t uaddr)
 	t = page_mapping_find(AS, ALIGN_DOWN(uaddr, PAGE_SIZE));
 	if (!t || !PTE_VALID(t) || !PTE_PRESENT(t)) {
 		page_table_unlock(AS, true);
-		return (unative_t) ENOENT;
+		return (sysarg_t) ENOENT;
 	}
 	paddr = PTE_GET_FRAME(t) + (uaddr - ALIGN_DOWN(uaddr, PAGE_SIZE));
 	page_table_unlock(AS, true);
@@ -135,7 +135,7 @@ unative_t sys_futex_sleep(uintptr_t uaddr)
 #ifdef CONFIG_UDEBUG
 	udebug_stoppable_end();
 #endif
-	return (unative_t) rc;
+	return (sysarg_t) rc;
 }
 
 /** Wakeup one thread waiting in futex wait queue.
@@ -144,7 +144,7 @@ unative_t sys_futex_sleep(uintptr_t uaddr)
  *
  * @return		ENOENT if there is no physical mapping for uaddr.
  */
-unative_t sys_futex_wakeup(uintptr_t uaddr)
+sysarg_t sys_futex_wakeup(uintptr_t uaddr)
 {
 	futex_t *futex;
 	uintptr_t paddr;
@@ -157,7 +157,7 @@ unative_t sys_futex_wakeup(uintptr_t uaddr)
 	t = page_mapping_find(AS, ALIGN_DOWN(uaddr, PAGE_SIZE));
 	if (!t || !PTE_VALID(t) || !PTE_PRESENT(t)) {
 		page_table_unlock(AS, true);
-		return (unative_t) ENOENT;
+		return (sysarg_t) ENOENT;
 	}
 	paddr = PTE_GET_FRAME(t) + (uaddr - ALIGN_DOWN(uaddr, PAGE_SIZE));
 	page_table_unlock(AS, true);
@@ -234,7 +234,7 @@ futex_t *futex_find(uintptr_t paddr)
  *
  * @return		Index into futex hash table.
  */
-size_t futex_ht_hash(unative_t *key)
+size_t futex_ht_hash(sysarg_t *key)
 {
 	return (*key & (FUTEX_HT_SIZE - 1));
 }
@@ -246,7 +246,7 @@ size_t futex_ht_hash(unative_t *key)
  *
  * @return		True if the item matches the key. False otherwise.
  */
-bool futex_ht_compare(unative_t *key, size_t keys, link_t *item)
+bool futex_ht_compare(sysarg_t *key, size_t keys, link_t *item)
 {
 	futex_t *futex;
 

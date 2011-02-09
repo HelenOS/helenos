@@ -33,7 +33,6 @@
  * @brief
  */
 
-#include <ipc/ipc.h>
 #include <ipc/char.h>
 #include <async.h>
 #include <vfs/vfs.h>
@@ -69,13 +68,10 @@ int mouse_port_init(void)
 	}
 
 	/* NB: The callback connection is slotted for removal */
-	ipcarg_t phonehash;
-	if (ipc_connect_to_me(dev_phone, 0, 0, 0, &phonehash) != 0) {
+	if (async_connect_to_me(dev_phone, 0, 0, 0, chardev_events) != 0) {
 		printf(NAME ": Failed to create callback from device\n");
 		return false;
 	}
-
-	async_new_connection(phonehash, 0, NULL, chardev_events);
 
 	return 0;
 }
@@ -103,7 +99,7 @@ static void chardev_events(ipc_callid_t iid, ipc_call_t *icall)
 
 		int retval;
 
-		switch (IPC_GET_METHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			/* TODO: Handle hangup */
 			return;
@@ -113,7 +109,7 @@ static void chardev_events(ipc_callid_t iid, ipc_call_t *icall)
 		default:
 			retval = ENOENT;
 		}
-		ipc_answer_0(callid, retval);
+		async_answer_0(callid, retval);
 	}
 }
 

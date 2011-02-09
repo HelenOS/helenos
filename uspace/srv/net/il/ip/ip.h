@@ -38,9 +38,7 @@
 #define NET_IP_H_
 
 #include <fibril_synch.h>
-#include <ipc/ipc.h>
 #include <ipc/services.h>
-
 #include <net/device.h>
 #include <net/inet.h>
 #include <ip_interface.h>
@@ -137,8 +135,6 @@ struct ip_route {
 
 /** IP global data. */
 struct ip_globals {
-	/** Default client connection function for support modules. */
-	async_client_conn_t client_connection;
 	/** Default gateway. */
 	ip_route_t gateway;
 	/** Safety lock. */
