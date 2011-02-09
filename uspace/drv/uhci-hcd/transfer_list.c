@@ -71,20 +71,33 @@ void transfer_list_add_tracker(transfer_list_t *instance, tracker_t *tracker)
 	uint32_t pa = (uintptr_t)addr_to_phys(tracker->td);
 	assert((pa & LINK_POINTER_ADDRESS_MASK) == pa);
 
+
 	if (instance->queue_head->element & LINK_POINTER_TERMINATE_FLAG) {
+		usb_log_debug2("Adding td(%X:%X) to queue %s first.\n",
+			tracker->td->status, tracker->td->device, instance->name);
 		/* there is nothing scheduled */
 		instance->last_tracker = tracker;
 		instance->queue_head->element = pa;
+		usb_log_debug2("Added td(%X:%X) to queue %s first.\n",
+			tracker->td->status, tracker->td->device, instance->name);
 		return;
 	}
+	usb_log_debug2("Adding td(%X:%X) to queue %s last.%p\n",
+	    tracker->td->status, tracker->td->device, instance->name,
+	    instance->last_tracker);
 	/* now we can be sure that last_tracker is a valid pointer */
 	instance->last_tracker->td->next = pa;
 	instance->last_tracker = tracker;
 
+	usb_log_debug2("Added td(%X:%X) to queue %s last.\n",
+		tracker->td->status, tracker->td->device, instance->name);
+
 	/* check again, may be use atomic compare and swap */
-//	if (instance->queue_head->element & LINK_POINTER_TERMINATE_FLAG) {
-//		instance->queue_head->element = pa;
-//	}
+	if (instance->queue_head->element & LINK_POINTER_TERMINATE_FLAG) {
+		instance->queue_head->element = pa;
+		usb_log_debug2("Added td(%X:%X) to queue first2 %s.\n",
+			tracker->td->status, tracker->td->device, instance->name);
+	}
 }
 /**
  * @}
