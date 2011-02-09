@@ -285,6 +285,7 @@ void tracker_interrupt_in(tracker_t *instance)
 		return;
 	}
 
+	assert(instance->packet_size <= instance->max_packet_size);
 	if (instance->packet_size) {
 		/* we are data in, we want data from our device. if there is data */
 		memcpy(instance->buffer + instance->buffer_offset, instance->packet,
@@ -308,6 +309,8 @@ void tracker_interrupt_in(tracker_t *instance)
 	    >= instance->buffer_size) {
 		/* that's all, end coomunication */
 		instance->next_step = tracker_call_in_and_dispose;
+	} else {
+		instance->next_step = tracker_interrupt_in;
 	}
 }
 /*----------------------------------------------------------------------------*/
@@ -322,7 +325,7 @@ void tracker_interrupt_out(tracker_t *instance)
 		return;
 	}
 
-	/* we are data out, we down't want data from our device */
+	/* we are data out, we don't want data from our device */
 	instance->buffer_offset += instance->packet_size;
 
 	/* prepare next packet, copy data to packet */
@@ -342,6 +345,8 @@ void tracker_interrupt_out(tracker_t *instance)
 	    >= instance->buffer_size) {
 		/* that's all, end coomunication */
 		instance->next_step = tracker_call_out_and_dispose;
+	} else {
+		instance->next_step = tracker_interrupt_out;
 	}
 }
 /*----------------------------------------------------------------------------*/
@@ -355,8 +360,8 @@ void tracker_call_in(tracker_t *instance)
 	if (err == EOK && instance->packet_size) {
 		memcpy(instance->buffer + instance->buffer_offset, instance->packet,
 		    instance->packet_size);
+		instance->buffer_offset += instance->packet_size;
 	}
-	instance->buffer_offset += instance->packet_size;
 	usb_log_debug("Callback IN(%d): %d, %zu.\n", instance->transfer_type,
 	    err, instance->buffer_offset);
 	instance->callback_in(instance->dev,

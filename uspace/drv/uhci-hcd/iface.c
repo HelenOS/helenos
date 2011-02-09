@@ -112,7 +112,7 @@ static int interrupt_out(device_t *dev, usb_target_t target,
 	    max_packet_size, speed, data, size, NULL, callback, arg);
 	if (!tracker)
 		return ENOMEM;
-	tracker_control_read_data_old(tracker);
+	tracker_interrupt_out(tracker);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -120,14 +120,14 @@ static int interrupt_in(device_t *dev, usb_target_t target,
     void *data, size_t size,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
-	size_t max_packet_size = 8;
+	size_t max_packet_size = 4;
 	dev_speed_t speed = FULL_SPEED;
 
 	tracker_t *tracker = tracker_get(dev, target, USB_TRANSFER_INTERRUPT,
 	    max_packet_size, speed, data, size, callback, NULL, arg);
 	if (!tracker)
 		return ENOMEM;
-	tracker_control_read_data_old(tracker);
+	tracker_interrupt_in(tracker);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
