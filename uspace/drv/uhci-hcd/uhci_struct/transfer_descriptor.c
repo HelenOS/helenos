@@ -43,14 +43,13 @@ void transfer_descriptor_init(transfer_descriptor_t *instance,
 {
 	assert(instance);
 
-	instance->next =
-	  0 | LINK_POINTER_TERMINATE_FLAG;
+	instance->next = 0 | LINK_POINTER_TERMINATE_FLAG;
 
-	assert(size < 1024);
 	instance->status = 0
 	  | ((error_count & TD_STATUS_ERROR_COUNT_MASK) << TD_STATUS_ERROR_COUNT_POS)
 	  | TD_STATUS_ERROR_ACTIVE;
 
+	assert(size < 1024);
 	instance->device = 0
 		| (((size - 1) & TD_DEVICE_MAXLEN_MASK) << TD_DEVICE_MAXLEN_POS)
 		| (toggle ? TD_DEVICE_DATA_TOGGLE_ONE_FLAG : 0)

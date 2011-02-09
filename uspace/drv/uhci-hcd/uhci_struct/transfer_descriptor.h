@@ -100,7 +100,7 @@ static inline bool transfer_descriptor_is_active(
     transfer_descriptor_t *instance)
 {
 	assert(instance);
-	return instance->status & TD_STATUS_ERROR_ACTIVE;
+	return (instance->status & TD_STATUS_ERROR_ACTIVE) != 0;
 }
 #endif
 /**
