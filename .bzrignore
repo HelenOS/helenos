@@ -27,6 +27,8 @@ uspace/app/bdsh/bdsh
 uspace/app/edit/edit
 uspace/app/getterm/getterm
 uspace/app/init/init
+uspace/app/kill/kill
+uspace/app/killall/killall
 uspace/app/klog/klog
 uspace/app/mkfat/mkfat
 uspace/app/netecho/netecho
@@ -36,6 +38,7 @@ uspace/app/ping/ping
 uspace/app/redir/redir
 uspace/app/sbi/sbi
 uspace/app/stats/stats
+uspace/app/sysinfo/sysinfo
 uspace/app/taskdump/taskdump
 uspace/app/tasks/tasks
 uspace/app/test_serial/test_serial
@@ -43,9 +46,12 @@ uspace/app/tester/tester
 uspace/app/tetris/tetris
 uspace/app/top/top
 uspace/app/trace/trace
+uspace/app/websrv/websrv
 uspace/dist/app/bdsh
 uspace/dist/app/edit
 uspace/dist/app/getterm
+uspace/dist/app/kill
+uspace/dist/app/killall
 uspace/dist/app/klog
 uspace/dist/app/mkfat
 uspace/dist/app/netecho
@@ -55,6 +61,7 @@ uspace/dist/app/ping
 uspace/dist/app/redir
 uspace/dist/app/sbi
 uspace/dist/app/stats
+uspace/dist/app/sysinfo
 uspace/dist/app/taskdump
 uspace/dist/app/tasks
 uspace/dist/app/test_serial
@@ -62,6 +69,7 @@ uspace/dist/app/tester
 uspace/dist/app/tetris
 uspace/dist/app/top
 uspace/dist/app/trace
+uspace/dist/app/websrv
 uspace/dist/cfg/net/general
 uspace/dist/cfg/net/lo
 uspace/dist/cfg/net/ne2k
@@ -70,6 +78,11 @@ uspace/dist/drv/ns8250/
 uspace/dist/drv/pciintel/
 uspace/dist/drv/root/
 uspace/dist/drv/rootia32/
+uspace/dist/drv/rootpc/
+uspace/dist/drv/rootvirt/
+uspace/dist/drv/test1/
+uspace/dist/drv/test2/
+uspace/dist/srv/apic
 uspace/dist/srv/arp
 uspace/dist/srv/ata_bd
 uspace/dist/srv/char_ms
@@ -85,11 +98,13 @@ uspace/dist/srv/fb
 uspace/dist/srv/file_bd
 uspace/dist/srv/g_part
 uspace/dist/srv/i8042
+uspace/dist/srv/i8259
 uspace/dist/srv/icmp
 uspace/dist/srv/ip
 uspace/dist/srv/kbd
 uspace/dist/srv/lo
 uspace/dist/srv/mbr_part
+uspace/dist/srv/ne2000
 uspace/dist/srv/net
 uspace/dist/srv/nildummy
 uspace/dist/srv/pipefs
@@ -102,6 +117,10 @@ uspace/drv/isa/isa
 uspace/drv/ns8250/ns8250
 uspace/drv/pciintel/pciintel
 uspace/drv/rootia32/rootia32
+uspace/drv/rootpc/rootpc
+uspace/drv/rootvirt/rootvirt
+uspace/drv/test1/test1
+uspace/drv/test2/test2
 uspace/lib/c/arch/amd64/_link.ld
 uspace/lib/c/arch/amd64/include/common.h
 uspace/lib/c/arch/ia32/_link.ld
@@ -130,7 +149,10 @@ uspace/srv/hid/kbd/kbd
 uspace/srv/hid/s3c24xx_ts/s3c24ts
 uspace/srv/hw/char/i8042/i8042
 uspace/srv/hw/char/s3c24xx_uart/s3c24ser
+uspace/srv/hw/irc/apic/apic
+uspace/srv/hw/irc/i8259/i8259
 uspace/srv/hw/netif/dp8390/dp8390
+uspace/srv/hw/netif/ne2000/ne2000
 uspace/srv/loader/loader
 uspace/srv/loader/arch/amd64/_link.ld
 uspace/srv/loader/arch/ia32/_link.ld
