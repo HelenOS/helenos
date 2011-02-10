@@ -48,6 +48,7 @@ uspace/app/top/top
 uspace/app/trace/trace
 uspace/app/websrv/websrv
 uspace/dist/app/bdsh
+uspace/dist/app/blkdump
 uspace/dist/app/edit
 uspace/dist/app/getterm
 uspace/dist/app/kill

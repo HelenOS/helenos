@@ -34,6 +34,7 @@
 
 DIRS = \
 	app/bdsh \
+	app/blkdump \
 	app/edit \
 	app/getterm \
 	app/init \
