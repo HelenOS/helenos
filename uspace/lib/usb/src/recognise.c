@@ -35,9 +35,15 @@
 #include <sys/types.h>
 #include <usb_iface.h>
 #include <usb/usbdrv.h>
+#include <usb/pipes.h>
+#include <usb/recognise.h>
+#include <usb/request.h>
 #include <usb/classes/classes.h>
 #include <stdio.h>
 #include <errno.h>
+
+static size_t device_name_index = 0;
+static FIBRIL_MUTEX_INITIALIZE(device_name_index_mutex);
 
 /** Callback for getting host controller handle.
  *
@@ -240,15 +246,13 @@ int usb_drv_create_match_ids_from_configuration_descriptor(
 
 /** Add match ids based on configuration descriptor.
  *
- * @param hc Open phone to host controller.
+ * @param pipe Control pipe to the device.
  * @param matches Match ids list to add matches to.
- * @param address USB address of the attached device.
  * @param config_count Number of configurations the device has.
  * @return Error code.
  */
-static int usb_add_config_descriptor_match_ids(int hc,
-    match_id_list_t *matches, usb_address_t address,
-    int config_count)
+static int usb_add_config_descriptor_match_ids(usb_endpoint_pipe_t *pipe,
+    match_id_list_t *matches, int config_count)
 {
 	int final_rc = EOK;
 	
@@ -256,8 +260,8 @@ static int usb_add_config_descriptor_match_ids(int hc,
 	for (config_index = 0; config_index < config_count; config_index++) {
 		int rc;
 		usb_standard_configuration_descriptor_t config_descriptor;
-		rc = usb_drv_req_get_bare_configuration_descriptor(hc,
-		    address,  config_index, &config_descriptor);
+		rc = usb_request_get_bare_configuration_descriptor(pipe,
+		    config_index, &config_descriptor);
 		if (rc != EOK) {
 			final_rc = rc;
 			continue;
@@ -266,8 +270,8 @@ static int usb_add_config_descriptor_match_ids(int hc,
 		size_t full_config_descriptor_size;
 		void *full_config_descriptor
 		    = malloc(config_descriptor.total_length);
-		rc = usb_drv_req_get_full_configuration_descriptor(hc,
-		    address, config_index,
+		rc = usb_request_get_full_configuration_descriptor(pipe,
+		    config_index,
 		    full_config_descriptor, config_descriptor.total_length,
 		    &full_config_descriptor_size);
 		if (rc != EOK) {
@@ -298,39 +302,37 @@ static int usb_add_config_descriptor_match_ids(int hc,
  * @warning The list of match ids @p matches may change even when
  * function exits with error.
  *
- * @param hc Open phone to host controller.
+ * @param ctrl_pipe Control pipe to given device (session must be already
+ *	started).
  * @param matches Initialized list of match ids.
- * @param address USB address of the attached device.
  * @return Error code.
  */
-int usb_drv_create_device_match_ids(int hc, match_id_list_t *matches,
-    usb_address_t address)
+int usb_device_create_match_ids(usb_endpoint_pipe_t *ctrl_pipe,
+    match_id_list_t *matches)
 {
 	int rc;
-	
 	/*
 	 * Retrieve device descriptor and add matches from it.
 	 */
 	usb_standard_device_descriptor_t device_descriptor;
 
-	rc = usb_drv_req_get_device_descriptor(hc, address,
-	    &device_descriptor);
+	rc = usb_request_get_device_descriptor(ctrl_pipe, &device_descriptor);
 	if (rc != EOK) {
 		return rc;
 	}
-	
+
 	rc = usb_drv_create_match_ids_from_device_descriptor(matches,
 	    &device_descriptor);
 	if (rc != EOK) {
 		return rc;
 	}
-	
+
 	/*
 	 * Go through all configurations and add matches
 	 * based on interface class.
 	 */
-	rc = usb_add_config_descriptor_match_ids(hc, matches,
-	    address, device_descriptor.configuration_count);
+	rc = usb_add_config_descriptor_match_ids(ctrl_pipe, matches,
+	    device_descriptor.configuration_count);
 	if (rc != EOK) {
 		return rc;
 	}
@@ -346,21 +348,18 @@ int usb_drv_create_device_match_ids(int hc, match_id_list_t *matches,
 	return EOK;
 }
 
-
 /** Probe for device kind and register it in devman.
  *
- * @param[in] hc Open phone to the host controller.
- * @param[in] parent Parent device.
  * @param[in] address Address of the (unknown) attached device.
+ * @param[in] hc_handle Handle of the host controller.
+ * @param[in] parent Parent device.
  * @param[out] child_handle Handle of the child device.
  * @return Error code.
  */
-int usb_drv_register_child_in_devman(int hc, device_t *parent,
-    usb_address_t address, devman_handle_t *child_handle)
+int usb_device_register_child_in_devman(usb_address_t address,
+    devman_handle_t hc_handle,
+    device_t *parent, devman_handle_t *child_handle)
 {
-	static size_t device_name_index = 0;
-	static FIBRIL_MUTEX_INITIALIZE(device_name_index_mutex);
-
 	size_t this_device_name_index;
 
 	fibril_mutex_lock(&device_name_index_mutex);
@@ -368,10 +367,22 @@ int usb_drv_register_child_in_devman(int hc, device_t *parent,
 	device_name_index++;
 	fibril_mutex_unlock(&device_name_index_mutex);
 
-
 	device_t *child = NULL;
 	char *child_name = NULL;
 	int rc;
+	usb_device_connection_t dev_connection;
+	usb_endpoint_pipe_t ctrl_pipe;
+
+	rc = usb_device_connection_initialize(&dev_connection, hc_handle, address);
+	if (rc != EOK) {
+		goto failure;
+	}
+
+	rc = usb_endpoint_pipe_initialize_default_control(&ctrl_pipe,
+	    &dev_connection);
+	if (rc != EOK) {
+		goto failure;
+	}
 
 	child = create_device();
 	if (child == NULL) {
@@ -390,8 +401,18 @@ int usb_drv_register_child_in_devman(int hc, device_t *parent,
 	child->parent = parent;
 	child->name = child_name;
 	child->ops = &child_ops;
-	
-	rc = usb_drv_create_device_match_ids(hc, &child->match_ids, address);
+
+	rc = usb_endpoint_pipe_start_session(&ctrl_pipe);
+	if (rc != EOK) {
+		goto failure;
+	}
+
+	rc = usb_device_create_match_ids(&ctrl_pipe, &child->match_ids);
+	if (rc != EOK) {
+		goto failure;
+	}
+
+	rc = usb_endpoint_pipe_end_session(&ctrl_pipe);
 	if (rc != EOK) {
 		goto failure;
 	}
@@ -404,7 +425,7 @@ int usb_drv_register_child_in_devman(int hc, device_t *parent,
 	if (child_handle != NULL) {
 		*child_handle = child->handle;
 	}
-	
+
 	return EOK;
 
 failure:
@@ -418,7 +439,6 @@ failure:
 	}
 
 	return rc;
-
 }
 
 

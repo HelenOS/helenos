@@ -38,6 +38,7 @@
 #include <errno.h>
 #include <usb/usbdrv.h>
 #include <usb/pipes.h>
+#include <usb/recognise.h>
 #include <usb/request.h>
 #include "usbinfo.h"
 
@@ -46,29 +47,6 @@ int dump_device(devman_handle_t hc_handle, usb_address_t address)
 	int rc;
 	usb_device_connection_t wire;
 	usb_endpoint_pipe_t ctrl_pipe;
-	ctrl_pipe.hc_phone = -1;
-
-	int hc_phone = devman_device_connect(hc_handle, 0);
-	if (hc_phone < 0) {
-		fprintf(stderr,
-		    NAME ": failed to connect to host controller (%zu): %s.\n",
-		        (size_t) hc_handle, str_error(hc_phone));
-		return hc_phone;
-	}
-
-	/*
-	 * Dump information about possible match ids.
-	 */
-	match_id_list_t match_id_list;
-	init_match_ids(&match_id_list);
-	rc = usb_drv_create_device_match_ids(hc_phone, &match_id_list, address);
-	if (rc != EOK) {
-		fprintf(stderr,
-		    NAME ": failed to fetch match ids of the device: %s.\n",
-		    str_error(rc));
-		goto leave;
-	}
-	dump_match_ids(&match_id_list);
 
 	/*
 	 * Initialize pipes.
@@ -94,6 +72,20 @@ int dump_device(devman_handle_t hc_handle, usb_address_t address)
 		    str_error(rc));
 		goto leave;
 	}
+
+	/*
+	 * Dump information about possible match ids.
+	 */
+	match_id_list_t match_id_list;
+	init_match_ids(&match_id_list);
+	rc = usb_device_create_match_ids(&ctrl_pipe, &match_id_list);
+	if (rc != EOK) {
+		fprintf(stderr,
+		    NAME ": failed to fetch match ids of the device: %s.\n",
+		    str_error(rc));
+		goto leave;
+	}
+	dump_match_ids(&match_id_list);
 
 	/*
 	 * Get device descriptor and dump it.
@@ -140,7 +132,6 @@ int dump_device(devman_handle_t hc_handle, usb_address_t address)
 	rc = EOK;
 leave:
 	/* Ignoring errors here. */
-	async_hangup(hc_phone);
 	usb_endpoint_pipe_end_session(&ctrl_pipe);
 
 	return rc;
