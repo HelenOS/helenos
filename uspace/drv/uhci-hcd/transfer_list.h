@@ -35,6 +35,7 @@
 #define DRV_UHCI_TRANSFER_LIST_H
 
 #include "uhci_struct/queue_head.h"
+
 #include "tracker.h"
 
 typedef struct transfer_list
@@ -51,14 +52,16 @@ int transfer_list_init(transfer_list_t *instance, const char *name);
 
 void transfer_list_set_next(transfer_list_t *instance, transfer_list_t *next);
 
+
 static inline void transfer_list_fini(transfer_list_t *instance)
 {
 	assert(instance);
 	queue_head_dispose(instance->queue_head);
 }
 
-
 void transfer_list_add_tracker(transfer_list_t *instance, tracker_t *tracker);
+
+void transfer_list_remove_tracker(transfer_list_t *instance, tracker_t *track);
 
 #endif
 /**

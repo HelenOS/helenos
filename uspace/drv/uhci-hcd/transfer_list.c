@@ -99,6 +99,19 @@ void transfer_list_add_tracker(transfer_list_t *instance, tracker_t *tracker)
 			tracker->td->status, tracker->td->device, instance->name);
 	}
 }
+/*----------------------------------------------------------------------------*/
+void transfer_list_remove_tracker(transfer_list_t *instance, tracker_t *tracker)
+{
+	assert(instance);
+	assert(tracker);
+	assert(instance->queue_head);
+	assert(tracker->td);
+
+	uint32_t pa = (uintptr_t)addr_to_phys(tracker->td);
+	if ((instance->queue_head->element & LINK_POINTER_ADDRESS_MASK) == pa) {
+		instance->queue_head->element = tracker->td->next;
+	}
+}
 /**
  * @}
  */

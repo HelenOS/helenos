@@ -46,6 +46,8 @@ typedef enum {
 	FULL_SPEED,
 } dev_speed_t;
 
+struct transfer_list;
+
 typedef struct tracker
 {
 	link_t link;
@@ -67,6 +69,8 @@ typedef struct tracker
 	transfer_descriptor_t *td;
 	void (*next_step)(struct tracker*);
 	unsigned toggle:1;
+
+	struct transfer_list *scheduled_list;
 } tracker_t;
 
 

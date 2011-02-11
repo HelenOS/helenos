@@ -177,6 +177,8 @@ int uhci_schedule(uhci_t *instance, tracker_t *tracker)
 	transfer_list_add_tracker(list, tracker);
 	list_append(&tracker->link, &instance->tracker_list);
 
+	tracker->scheduled_list = list;
+
 	usb_log_debug2("Scheduler(%d) releasing tracker list mutex.\n",
 	    fibril_get_id());
 	fibril_mutex_unlock(&instance->tracker_list_mutex);
