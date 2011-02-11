@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jan Vesely
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,64 +31,71 @@
 /** @file
  * @brief UHCI driver
  */
-#ifndef DRV_UHCI_CALLBACK_H
-#define DRV_UHCI_CALLBACK_H
+#ifndef DRV_UHCI_TRACKER_H
+#define DRV_UHCI_TRACKER_H
+
+#include <adt/list.h>
 
 #include <usbhc_iface.h>
 #include <usb/usb.h>
 
-#include "utils/malloc32.h"
+#include "uhci_struct/transfer_descriptor.h"
 
-typedef struct callback
+typedef enum {
+	LOW_SPEED,
+	FULL_SPEED,
+} dev_speed_t;
+
+typedef struct tracker
 {
-	usbhc_iface_transfer_in_callback_t callback_in;
-	usbhc_iface_transfer_out_callback_t callback_out;
-	void *old_buffer;
-	void *new_buffer;
+	link_t link;
+	usb_target_t target;
+	usb_transfer_type_t transfer_type;
+	union {
+		usbhc_iface_transfer_in_callback_t callback_in;
+		usbhc_iface_transfer_out_callback_t callback_out;
+	};
 	void *arg;
+	char *buffer;
+	char *packet;
 	size_t buffer_size;
-	size_t actual_size;
+	size_t max_packet_size;
+	size_t packet_size;
+	size_t buffer_offset;
+	dev_speed_t speed;
 	device_t *dev;
-} callback_t;
+	transfer_descriptor_t *td;
+	void (*next_step)(struct tracker*);
+	unsigned toggle:1;
+} tracker_t;
 
 
-int callback_init(callback_t *instance, device_t *dev,
-  void *buffer, size_t size, usbhc_iface_transfer_in_callback_t func_in,
-  usbhc_iface_transfer_out_callback_t func_out, void *arg);
+tracker_t * tracker_get(device_t *dev, usb_target_t target,
+    usb_transfer_type_t transfer_type, size_t max_packet_size,
+    dev_speed_t speed, char *buffer, size_t size,
+    usbhc_iface_transfer_in_callback_t func_in,
+    usbhc_iface_transfer_out_callback_t func_out, void *arg);
 
-#define callback_in_init(instance, dev, buffer, size, func, arg) \
-	callback_init(instance, dev, buffer, size, func, NULL, arg)
+void tracker_control_write(
+    tracker_t *instance, char* setup_buffer, size_t setup_size);
 
-#define callback_out_init(instance, dev, buffer, size, func, arg) \
-	callback_init(instance, dev, buffer, size, func, NULL, arg)
+void tracker_control_read(
+    tracker_t *instance, char* setup_buffer, size_t setup_size);
 
-static inline callback_t *callback_get(device_t *dev,
-  void *buffer, size_t size, usbhc_iface_transfer_in_callback_t func_in,
-  usbhc_iface_transfer_out_callback_t func_out, void *arg)
-{
-	callback_t *instance = malloc(sizeof(callback_t));
-	if (callback_init(instance, dev, buffer, size, func_in, func_out, arg)) {
-		free(instance);
-		instance = NULL;
-	}
-	return instance;
-}
+void tracker_interrupt_in(tracker_t *instance);
 
-static inline void callback_fini(callback_t *instance)
-{
-	assert(instance);
-	if (instance->new_buffer)
-		free32(instance->new_buffer);
-}
+void tracker_interrupt_out(tracker_t *instance);
 
-static inline void callback_dispose(callback_t *instance)
-{
-	callback_fini(instance);
-	free(instance);
-}
+/* DEPRECATED FUNCTIONS NEEDED BY THE OLD API */
+void tracker_control_setup_old(tracker_t *instance);
 
-void callback_run(
-  callback_t *instance, usb_transaction_outcome_t outcome, size_t act_size);
+void tracker_control_write_data_old(tracker_t *instance);
+
+void tracker_control_read_data_old(tracker_t *instance);
+
+void tracker_control_write_status_old(tracker_t *instance);
+
+void tracker_control_read_status_old(tracker_t *instance);
 #endif
 /**
  * @}

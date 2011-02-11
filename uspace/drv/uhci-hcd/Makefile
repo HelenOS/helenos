@@ -32,13 +32,13 @@ EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include -I$(LIBUSB_PREFIX)/include -I.
 BINARY = uhci-hcd
 
 SOURCES = \
-	callback.c \
 	iface.c \
 	main.c \
 	root_hub.c \
 	transfer_list.c \
 	uhci.c \
 	uhci_struct/transfer_descriptor.c \
-	pci.c 
+	pci.c \
+	tracker.c
 
 include $(USPACE_PREFIX)/Makefile.common

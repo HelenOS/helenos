@@ -31,35 +31,33 @@
 /** @file
  * @brief UHCI driver
  */
+#include <errno.h>
 #include <usb/debug.h>
 
 #include "transfer_descriptor.h"
+#include "utils/malloc32.h"
 
 void transfer_descriptor_init(transfer_descriptor_t *instance,
-  int error_count, size_t size, bool isochronous, usb_target_t target,
-	int pid, void *buffer)
+    int error_count, size_t size, bool toggle, bool isochronous,
+    usb_target_t target, int pid, void *buffer)
 {
 	assert(instance);
 
-	instance->next =
-	  0 | LINK_POINTER_TERMINATE_FLAG;
+	instance->next = 0 | LINK_POINTER_TERMINATE_FLAG;
 
-
-	assert(size < 1024);
 	instance->status = 0
 	  | ((error_count & TD_STATUS_ERROR_COUNT_MASK) << TD_STATUS_ERROR_COUNT_POS)
 	  | TD_STATUS_ERROR_ACTIVE;
 
+	assert(size < 1024);
 	instance->device = 0
 		| (((size - 1) & TD_DEVICE_MAXLEN_MASK) << TD_DEVICE_MAXLEN_POS)
+		| (toggle ? TD_DEVICE_DATA_TOGGLE_ONE_FLAG : 0)
 		| ((target.address & TD_DEVICE_ADDRESS_MASK) << TD_DEVICE_ADDRESS_POS)
 		| ((target.endpoint & TD_DEVICE_ENDPOINT_MASK) << TD_DEVICE_ENDPOINT_POS)
 		| ((pid & TD_DEVICE_PID_MASK) << TD_DEVICE_PID_POS);
 
 	instance->buffer_ptr = 0;
-
-	instance->next_va = NULL;
-	instance->callback = NULL;
 
 	if (size) {
 		instance->buffer_ptr = (uintptr_t)addr_to_phys(buffer);
@@ -105,18 +103,17 @@ static inline usb_transaction_outcome_t convert_outcome(uint32_t status)
 	if (status & TD_STATUS_ERROR_BIT_STUFF)
 		return USB_OUTCOME_CRCERROR;
 
-	assert((((status >> TD_STATUS_ERROR_POS) & TD_STATUS_ERROR_MASK)
-	| TD_STATUS_ERROR_RESERVED) == TD_STATUS_ERROR_RESERVED);
+//	assert((((status >> TD_STATUS_ERROR_POS) & TD_STATUS_ERROR_MASK)
+//	| TD_STATUS_ERROR_RESERVED) == TD_STATUS_ERROR_RESERVED);
 	return USB_OUTCOME_OK;
 }
-
-void transfer_descriptor_fini(transfer_descriptor_t *instance)
+/*----------------------------------------------------------------------------*/
+int transfer_descriptor_status(transfer_descriptor_t *instance)
 {
 	assert(instance);
-	callback_run(instance->callback,
-		convert_outcome(instance->status),
-		((instance->status >> TD_STATUS_ACTLEN_POS) + 1) & TD_STATUS_ACTLEN_MASK
-	);
+	if (convert_outcome(instance->status))
+		return EINVAL; //TODO: use sane error value here
+	return EOK;
 }
 /**
  * @}
