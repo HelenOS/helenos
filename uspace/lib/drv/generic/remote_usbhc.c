@@ -41,7 +41,6 @@
 #define USB_MAX_PAYLOAD_SIZE 1020
 
 static void remote_usbhc_get_address(device_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_usbhc_get_buffer(device_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbhc_interrupt_out(device_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbhc_interrupt_in(device_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbhc_control_write_setup(device_t *, void *, ipc_callid_t, ipc_call_t *);
@@ -62,8 +61,6 @@ static void remote_usbhc_release_address(device_t *, void *, ipc_callid_t, ipc_c
 /** Remote USB host controller interface operations. */
 static remote_iface_func_ptr_t remote_usbhc_iface_ops [] = {
 	remote_usbhc_get_address,
-
-	remote_usbhc_get_buffer,
 
 	remote_usbhc_reserve_default_address,
 	remote_usbhc_release_default_address,
@@ -154,39 +151,6 @@ void remote_usbhc_get_address(device_t *device, void *iface,
 	} else {
 		async_answer_1(callid, EOK, address);
 	}
-}
-
-void remote_usbhc_get_buffer(device_t *device, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
-{
-	sysarg_t buffer_hash = DEV_IPC_GET_ARG1(*call);
-	async_transaction_t * trans = (async_transaction_t *)buffer_hash;
-	if (trans == NULL) {
-		async_answer_0(callid, ENOENT);
-		return;
-	}
-	if (trans->buffer == NULL) {
-		async_answer_0(callid, EINVAL);
-		async_transaction_destroy(trans);
-		return;
-	}
-
-	ipc_callid_t cid;
-	size_t accepted_size;
-	if (!async_data_read_receive(&cid, &accepted_size)) {
-		async_answer_0(callid, EINVAL);
-		async_transaction_destroy(trans);
-		return;
-	}
-
-	if (accepted_size > trans->size) {
-		accepted_size = trans->size;
-	}
-	async_data_read_finalize(cid, trans->buffer, accepted_size);
-
-	async_answer_1(callid, EOK, accepted_size);
-
-	async_transaction_destroy(trans);
 }
 
 void remote_usbhc_reserve_default_address(device_t *device, void *iface,
@@ -303,6 +267,8 @@ static void callback_in(device_t *device,
 	}
 
 	async_answer_0(trans->caller, USB_OUTCOME_OK);
+
+	async_transaction_destroy(trans);
 }
 
 /** Process an outgoing transfer (both OUT and SETUP).
