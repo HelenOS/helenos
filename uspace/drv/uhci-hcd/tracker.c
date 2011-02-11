@@ -36,6 +36,7 @@
 #include <usb/debug.h>
 
 #include "tracker.h"
+#include "transfer_list.h"
 #include "uhci.h"
 #include "utils/malloc32.h"
 
@@ -386,6 +387,7 @@ void tracker_call_in_and_dispose(tracker_t *instance)
 {
 	assert(instance);
 	tracker_call_in(instance);
+	transfer_list_remove_tracker(instance->scheduled_list, instance);
 	free32(instance->td);
 	free32(instance->packet);
 	free(instance);
@@ -395,6 +397,8 @@ void tracker_call_out_and_dispose(tracker_t *instance)
 {
 	assert(instance);
 	tracker_call_out(instance);
+	assert(instance->scheduled_list);
+	transfer_list_remove_tracker(instance->scheduled_list, instance);
 	free32(instance->td);
 	free32(instance->packet);
 	free(instance);
