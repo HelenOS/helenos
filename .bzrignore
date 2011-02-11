@@ -24,6 +24,7 @@ kernel/generic/include/arch
 kernel/generic/include/genarch
 kernel/generic/src/debug/real_map.bin
 uspace/app/bdsh/bdsh
+uspace/app/blkdump/blkdump
 uspace/app/edit/edit
 uspace/app/getterm/getterm
 uspace/app/init/init
