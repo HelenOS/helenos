@@ -50,6 +50,12 @@ typedef enum {
 	USB_HIDREQ_SET_PROTOCOL = 11
 } usb_hid_request_t;
 
+/** USB/HID subclass constants. */
+typedef enum {
+	USB_HID_SUBCLASS_NONE = 0,
+	USB_HID_SUBCLASS_BOOT = 1
+} usb_hid_subclass_t;
+
 /** USB/HID interface protocols. */
 typedef enum {
 	USB_HID_PROTOCOL_NONE = 0,
