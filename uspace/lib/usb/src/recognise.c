@@ -160,7 +160,7 @@ int usb_drv_create_match_ids_from_device_descriptor(
 	if (device_descriptor->vendor_id != 0) {
 		/* First, with release number. */
 		rc = usb_add_match_id(matches, 100,
-		    "usb&vendor=%d&product=%d&release=" BCD_FMT,
+		    "usb&vendor=0x%04x&product=0x%04x&release=" BCD_FMT,
 		    (int) device_descriptor->vendor_id,
 		    (int) device_descriptor->product_id,
 		    BCD_ARGS(device_descriptor->device_version));
@@ -169,7 +169,8 @@ int usb_drv_create_match_ids_from_device_descriptor(
 		}
 		
 		/* Next, without release number. */
-		rc = usb_add_match_id(matches, 90, "usb&vendor=%d&product=%d",
+		rc = usb_add_match_id(matches, 90,
+		    "usb&vendor=0x%04x&product=0x%04x",
 		    (int) device_descriptor->vendor_id,
 		    (int) device_descriptor->product_id);
 		if (rc != EOK) {
