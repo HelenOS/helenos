@@ -69,7 +69,7 @@ static usb_iface_t usb_iface = {
 	.get_hc_handle = usb_iface_get_hc_handle
 };
 
-static device_ops_t child_ops = {
+device_ops_t child_ops = {
 	.interfaces[USB_DEV_IFACE] = &usb_iface
 };
 
