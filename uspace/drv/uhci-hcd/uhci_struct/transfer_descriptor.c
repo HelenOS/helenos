@@ -79,40 +79,29 @@ void transfer_descriptor_init(transfer_descriptor_t *instance,
 	}
 #endif
 }
-
-static inline usb_transaction_outcome_t convert_outcome(uint32_t status)
-{
-	/*TODO: refactor into something sane */
-	/*TODO: add additional usb_errors to usb_outcome_t */
-
-	if (status & TD_STATUS_ERROR_STALLED)
-		return USB_OUTCOME_CRCERROR;
-
-	if (status & TD_STATUS_ERROR_BUFFER)
-		return USB_OUTCOME_CRCERROR;
-
-	if (status & TD_STATUS_ERROR_BABBLE)
-		return USB_OUTCOME_BABBLE;
-
-	if (status & TD_STATUS_ERROR_NAK)
-		return USB_OUTCOME_CRCERROR;
-
-  if (status & TD_STATUS_ERROR_CRC)
-		return USB_OUTCOME_CRCERROR;
-
-	if (status & TD_STATUS_ERROR_BIT_STUFF)
-		return USB_OUTCOME_CRCERROR;
-
-//	assert((((status >> TD_STATUS_ERROR_POS) & TD_STATUS_ERROR_MASK)
-//	| TD_STATUS_ERROR_RESERVED) == TD_STATUS_ERROR_RESERVED);
-	return USB_OUTCOME_OK;
-}
 /*----------------------------------------------------------------------------*/
 int transfer_descriptor_status(transfer_descriptor_t *instance)
 {
 	assert(instance);
-	if (convert_outcome(instance->status))
-		return EINVAL; //TODO: use sane error value here
+
+	if ((instance->status & TD_STATUS_ERROR_STALLED) != 0)
+		return EIO;
+
+	if ((instance->status & TD_STATUS_ERROR_CRC) != 0)
+		return EAGAIN;
+
+	if ((instance->status & TD_STATUS_ERROR_BUFFER) != 0)
+		return EAGAIN;
+
+	if ((instance->status & TD_STATUS_ERROR_BABBLE) != 0)
+		return EIO;
+
+	if ((instance->status & TD_STATUS_ERROR_NAK) != 0)
+		return EAGAIN;
+
+	if ((instance->status & TD_STATUS_ERROR_BIT_STUFF) != 0)
+		return EAGAIN;
+
 	return EOK;
 }
 /**
