@@ -60,13 +60,13 @@ static void register_child_verbose(device_t *parent, const char *message,
 	printf(NAME ": registering child device `%s': %s.\n",
 	   name, message);
 
-	int rc = child_device_register_wrapper(parent, name,
+	int rc = register_function_wrapper(parent, name,
 	    match_id, match_score);
 
 	if (rc == EOK) {
-		printf(NAME ": registered child device `%s'.\n", name);
+		printf(NAME ": registered function `%s'.\n", name);
 	} else {
-		printf(NAME ": failed to register child `%s' (%s).\n",
+		printf(NAME ": failed to register function `%s' (%s).\n",
 		    name, str_error(rc));
 	}
 }
@@ -90,15 +90,23 @@ static void register_child_verbose(device_t *parent, const char *message,
  */
 static int add_device(device_t *dev)
 {
+	function_t *fun_a;
+
 	printf(NAME ": add_device(name=\"%s\", handle=%d)\n",
 	    dev->name, (int) dev->handle);
 
-	add_device_to_class(dev, "virtual");
+	fun_a = create_function();
+	fun_a->ftype = fun_exposed;
+	fun_a->name = "a";
+
+	register_function(fun_a, dev);
+
+	add_function_to_class(fun_a, "virtual");
 
 	if (str_cmp(dev->name, "null") == 0) {
-		dev->ops = &char_device_ops;
-		add_device_to_class(dev, "virt-null");
-	} else if (dev->parent == NULL) {
+		fun_a->ops = &char_device_ops;
+		add_function_to_class(fun_a, "virt-null");
+	} else if (str_cmp(dev->name, "test1") == 0) {
 		register_child_verbose(dev, "cloning myself ;-)", "clone",
 		    "virtual&test1", 10);
 	} else if (str_cmp(dev->name, "clone") == 0) {

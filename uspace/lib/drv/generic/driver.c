@@ -58,8 +58,8 @@
 static driver_t *driver;
 
 /** Devices */
-LIST_INITIALIZE(devices);
-FIBRIL_MUTEX_INITIALIZE(devices_mutex);
+LIST_INITIALIZE(functions);
+FIBRIL_MUTEX_INITIALIZE(functions_mutex);
 
 /** Interrupts */
 static interrupt_context_list_t interrupt_contexts;
@@ -208,37 +208,40 @@ int unregister_interrupt_handler(device_t *dev, int irq)
 	return res;
 }
 
-static void add_to_devices_list(device_t *dev)
+static void add_to_functions_list(function_t *fun)
 {
-	fibril_mutex_lock(&devices_mutex);
-	list_append(&dev->link, &devices);
-	fibril_mutex_unlock(&devices_mutex);
+	fibril_mutex_lock(&functions_mutex);
+	list_append(&fun->link, &functions);
+	fibril_mutex_unlock(&functions_mutex);
 }
 
-static void remove_from_devices_list(device_t *dev)
+static void remove_from_functions_list(function_t *fun)
 {
-	fibril_mutex_lock(&devices_mutex);
-	list_remove(&dev->link);
-	fibril_mutex_unlock(&devices_mutex);
+	fibril_mutex_lock(&functions_mutex);
+	list_remove(&fun->link);
+	fibril_mutex_unlock(&functions_mutex);
 }
 
-static device_t *driver_get_device(link_t *devices, devman_handle_t handle)
+static function_t *driver_get_function(link_t *functions, devman_handle_t handle)
 {
-	device_t *dev = NULL;
+	function_t *fun = NULL;
+	printf("driver_get_function handle=%" PRIun "\n", handle);
 	
-	fibril_mutex_lock(&devices_mutex);
-	link_t *link = devices->next;
+	fibril_mutex_lock(&functions_mutex);
+	link_t *link = functions->next;
 	
-	while (link != devices) {
-		dev = list_get_instance(link, device_t, link);
-		if (dev->handle == handle) {
-			fibril_mutex_unlock(&devices_mutex);
-			return dev;
+	while (link != functions) {
+		fun = list_get_instance(link, function_t, link);
+		printf(" - fun handle %" PRIun "\n", fun->handle);
+		if (fun->handle == handle) {
+			fibril_mutex_unlock(&functions_mutex);
+			return fun;
 		}
+		
 		link = link->next;
 	}
 	
-	fibril_mutex_unlock(&devices_mutex);
+	fibril_mutex_unlock(&functions_mutex);
 	
 	return NULL;
 }
@@ -249,16 +252,19 @@ static void driver_add_device(ipc_callid_t iid, ipc_call_t *icall)
 	int res;
 	
 	devman_handle_t dev_handle = IPC_GET_ARG1(*icall);
-    	devman_handle_t parent_dev_handle = IPC_GET_ARG2(*icall);
+    	devman_handle_t parent_fun_handle = IPC_GET_ARG2(*icall);
 	
 	device_t *dev = create_device();
 	dev->handle = dev_handle;
-	
+
 	async_data_write_accept((void **) &dev_name, true, 0, 0, 0, 0);
 	dev->name = dev_name;
-	
-	add_to_devices_list(dev);
-	dev->parent = driver_get_device(&devices, parent_dev_handle);
+
+	/*
+	 * Currently not used, parent fun handle is stored in context
+	 * of the connection to the parent device driver.
+	 */
+	(void) parent_fun_handle;
 	
 	res = driver->driver_ops->add_device(dev);
 	if (res == EOK) {
@@ -267,7 +273,6 @@ static void driver_add_device(ipc_callid_t iid, ipc_call_t *icall)
 	} else {
 		printf("%s: failed to add a new device with handle = %" PRIun ".\n",
 		    driver->name, dev_handle);
-		remove_from_devices_list(dev);
 		delete_device(dev);
 	}
 	
@@ -310,10 +315,10 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 	 * the device to which the client connected.
 	 */
 	devman_handle_t handle = IPC_GET_ARG2(*icall);
-	device_t *dev = driver_get_device(&devices, handle);
+	function_t *fun = driver_get_function(&functions, handle);
 
-	if (dev == NULL) {
-		printf("%s: driver_connection_gen error - no device with handle"
+	if (fun == NULL) {
+		printf("%s: driver_connection_gen error - no function with handle"
 		    " %" PRIun " was found.\n", driver->name, handle);
 		async_answer_0(iid, ENOENT);
 		return;
@@ -326,9 +331,9 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 	 */
 	
 	int ret = EOK;
-	/* open the device */
-	if (dev->ops != NULL && dev->ops->open != NULL)
-		ret = (*dev->ops->open)(dev);
+	/* Open device function */
+	if (fun->ops != NULL && fun->ops->open != NULL)
+		ret = (*fun->ops->open)(fun);
 	
 	async_answer_0(iid, ret);
 	if (ret != EOK)
@@ -343,9 +348,9 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 		
 		switch  (method) {
 		case IPC_M_PHONE_HUNGUP:
-			/* close the device */
-			if (dev->ops != NULL && dev->ops->close != NULL)
-				(*dev->ops->close)(dev);
+			/* Close device function */
+			if (fun->ops != NULL && fun->ops->close != NULL)
+				(*fun->ops->close)(fun);
 			async_answer_0(callid, EOK);
 			return;
 		default:
@@ -355,13 +360,14 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 			
 			if (!is_valid_iface_idx(iface_idx)) {
 				remote_handler_t *default_handler =
-				    device_get_default_handler(dev);
+				    function_get_default_handler(fun);
 				if (default_handler != NULL) {
-					(*default_handler)(dev, callid, &call);
+					(*default_handler)(fun, callid, &call);
 					break;
 				}
+				
 				/*
-				 * This is not device's interface and the
+				 * Function has no such interface and
 				 * default handler is not provided.
 				 */
 				printf("%s: driver_connection_gen error - "
@@ -371,14 +377,14 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 				break;
 			}
 			
-			/* calling one of the device's interfaces */
+			/* calling one of the function's interfaces */
 			
 			/* Get the interface ops structure. */
-			void *ops = device_get_ops(dev, iface_idx);
+			void *ops = function_get_ops(fun, iface_idx);
 			if (ops == NULL) {
 				printf("%s: driver_connection_gen error - ",
 				    driver->name);
-				printf("device with handle %" PRIun " has no interface "
+				printf("Function with handle %" PRIun " has no interface "
 				    "with id %d.\n", handle, iface_idx);
 				async_answer_0(callid, ENOTSUP);
 				break;
@@ -407,9 +413,9 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 			 * Call the remote interface's method, which will
 			 * receive parameters from the remote client and it will
 			 * pass it to the corresponding local interface method
-			 * associated with the device by its driver.
+			 * associated with the function by its driver.
 			 */
-			(*iface_method_ptr)(dev, ops, callid, &call);
+			(*iface_method_ptr)(fun, ops, callid, &call);
 			break;
 		}
 	}
@@ -424,7 +430,6 @@ static void driver_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 {
 	driver_connection_gen(iid, icall, false);
 }
-
 
 /** Function for handling connections to device driver. */
 static void driver_connection(ipc_callid_t iid, ipc_call_t *icall)
@@ -455,14 +460,34 @@ static void driver_connection(ipc_callid_t iid, ipc_call_t *icall)
  */
 device_t *create_device(void)
 {
-	device_t *dev = malloc(sizeof(device_t));
+	device_t *dev;
 
-	if (dev != NULL) {
-		memset(dev, 0, sizeof(device_t));
-		init_match_ids(&dev->match_ids);
-	}
+	dev = malloc(sizeof(device_t));
+	if (dev == NULL)
+		return NULL;
 
+	memset(dev, 0, sizeof(device_t));
 	return dev;
+}
+
+/** Create new function structure.
+ *
+ * @return		The device structure.
+ */
+function_t *create_function(void)
+{
+	function_t *fun;
+
+	fun = malloc(sizeof(function_t));
+	if (fun == NULL)
+		return NULL;
+
+	memset(fun, 0, sizeof(device_t));
+
+	init_match_ids(&fun->match_ids);
+	link_initialize(&fun->link);
+
+	return fun;
 }
 
 /** Delete device structure.
@@ -471,31 +496,42 @@ device_t *create_device(void)
  */
 void delete_device(device_t *dev)
 {
-	clean_match_ids(&dev->match_ids);
-	if (dev->name != NULL)
-		free(dev->name);
 	free(dev);
 }
 
-void *device_get_ops(device_t *dev, dev_inferface_idx_t idx)
+/** Delete device structure.
+ *
+ * @param dev		The device structure.
+ */
+void delete_function(function_t *fun)
 {
-	assert(is_valid_iface_idx(idx));
-	if (dev->ops == NULL)
-		return NULL;
-	return dev->ops->interfaces[idx];
+	clean_match_ids(&fun->match_ids);
+	if (fun->name != NULL)
+		free(fun->name);
+	free(fun);
 }
 
-int child_device_register(device_t *child, device_t *parent)
+void *function_get_ops(function_t *fun, dev_inferface_idx_t idx)
 {
-	assert(child->name != NULL);
+	assert(is_valid_iface_idx(idx));
+	if (fun->ops == NULL)
+		return NULL;
+	return fun->ops->interfaces[idx];
+}
+
+int register_function(function_t *fun, device_t *dev)
+{
+	assert(fun->name != NULL);
 	
 	int res;
 	
-	add_to_devices_list(child);
-	res = devman_child_device_register(child->name, &child->match_ids,
-	    parent->handle, &child->handle);
+	fun->dev = dev;
+	
+	add_to_functions_list(fun);
+	res = devman_add_function(fun->name, fun->ftype, &fun->match_ids,
+	    dev->handle, &fun->handle);
 	if (res != EOK) {
-		remove_from_devices_list(child);
+		remove_from_functions_list(fun);
 		return res;
 	}
 	
@@ -510,62 +546,64 @@ int child_device_register(device_t *child, device_t *parent)
  * @param child_match_score Child device match score.
  * @return Error code.
  */
-int child_device_register_wrapper(device_t *parent, const char *child_name,
-    const char *child_match_id, int child_match_score)
+int register_function_wrapper(device_t *dev, const char *fun_name,
+    const char *match_id, int match_score)
 {
-	device_t *child = NULL;
-	match_id_t *match_id = NULL;
+	function_t *fun = NULL;
+	match_id_t *m_id = NULL;
 	int rc;
 	
-	child = create_device();
-	if (child == NULL) {
+	fun = create_function();
+	if (fun == NULL) {
 		rc = ENOMEM;
 		goto failure;
 	}
 	
-	child->name = child_name;
+	fun->dev = dev;
+	fun->name = fun_name;
+	fun->ftype = fun_inner;
 	
-	match_id = create_match_id();
-	if (match_id == NULL) {
+	m_id = create_match_id();
+	if (m_id == NULL) {
 		rc = ENOMEM;
 		goto failure;
 	}
 	
-	match_id->id = child_match_id;
-	match_id->score = child_match_score;
-	add_match_id(&child->match_ids, match_id);
+	m_id->id = match_id;
+	m_id->score = match_score;
+	add_match_id(&fun->match_ids, m_id);
 	
-	rc = child_device_register(child, parent);
+	rc = register_function(fun, dev);
 	if (rc != EOK)
 		goto failure;
 	
 	return EOK;
 	
 failure:
-	if (match_id != NULL) {
-		match_id->id = NULL;
-		delete_match_id(match_id);
+	if (m_id != NULL) {
+		m_id->id = NULL;
+		delete_match_id(m_id);
 	}
 	
-	if (child != NULL) {
-		child->name = NULL;
-		delete_device(child);
+	if (fun != NULL) {
+		fun->name = NULL;
+		delete_function(fun);
 	}
 	
 	return rc;
 }
 
 /** Get default handler for client requests */
-remote_handler_t *device_get_default_handler(device_t *dev)
+remote_handler_t *function_get_default_handler(function_t *fun)
 {
-	if (dev->ops == NULL)
+	if (fun->ops == NULL)
 		return NULL;
-	return dev->ops->default_handler;
+	return fun->ops->default_handler;
 }
 
-int add_device_to_class(device_t *dev, const char *class_name)
+int add_function_to_class(function_t *fun, const char *class_name)
 {
-	return devman_add_device_to_class(dev->handle, class_name);
+	return devman_add_device_to_class(fun->handle, class_name);
 }
 
 int driver_main(driver_t *drv)

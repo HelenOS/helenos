@@ -1,4 +1,4 @@
-/*
+/*                        
  * Copyright (c) 2010 Lenka Trochtova
  * All rights reserved.
  *
@@ -177,10 +177,10 @@ static void ns8250_write_8(ioport8_t *port, uint8_t c)
  * @return		The number of bytes actually read on success, negative
  *			error number otherwise.
  */
-static int ns8250_read(device_t *dev, char *buf, size_t count)
+static int ns8250_read(function_t *fun, char *buf, size_t count)
 {
 	int ret = EOK;
-	ns8250_dev_data_t *data = (ns8250_dev_data_t *) dev->driver_data;
+	ns8250_dev_data_t *data = (ns8250_dev_data_t *) fun->dev->driver_data;
 	
 	fibril_mutex_lock(&data->mutex);
 	while (!buf_is_empty(&data->input_buffer) && (size_t)ret < count) {
@@ -211,9 +211,9 @@ static inline void ns8250_putchar(ns8250_dev_data_t *data, uint8_t c)
  * @param count		The number of bytes to be written.
  * @return		Zero on success.
  */
-static int ns8250_write(device_t *dev, char *buf, size_t count) 
+static int ns8250_write(function_t *fun, char *buf, size_t count)
 {
-	ns8250_dev_data_t *data = (ns8250_dev_data_t *) dev->driver_data;
+	ns8250_dev_data_t *data = (ns8250_dev_data_t *) fun->dev->driver_data;
 	size_t idx;
 	
 	for (idx = 0; idx < count; idx++)
@@ -718,6 +718,8 @@ static inline int ns8250_unregister_interrupt_handler(device_t *dev)
  */
 static int ns8250_add_device(device_t *dev)
 {
+	function_t *fun;
+
 	printf(NAME ": ns8250_add_device %s (handle = %d)\n",
 	    dev->name, (int) dev->handle);
 	
@@ -755,11 +757,16 @@ static int ns8250_add_device(device_t *dev)
 		ns8250_unregister_interrupt_handler(dev);
 		return res;
 	}
+
+	fun = create_function();
+	fun->ftype = fun_exposed;
+	fun->name = "a";
 	
 	/* Set device operations. */
-	dev->ops = &ns8250_dev_ops;
+	fun->ops = &ns8250_dev_ops;
+	register_function(fun, dev);
 	
-	add_device_to_class(dev, "serial");
+	add_function_to_class(fun, "serial");
 	
 	printf(NAME ": the %s device has been successfully initialized.\n",
 	    dev->name);
@@ -774,9 +781,9 @@ static int ns8250_add_device(device_t *dev)
  *
  * @param dev		The device.
  */
-static int ns8250_open(device_t *dev)
+static int ns8250_open(function_t *fun)
 {
-	ns8250_dev_data_t *data = (ns8250_dev_data_t *) dev->driver_data;
+	ns8250_dev_data_t *data = (ns8250_dev_data_t *) fun->dev->driver_data;
 	int res;
 	
 	fibril_mutex_lock(&data->mutex);
@@ -798,9 +805,9 @@ static int ns8250_open(device_t *dev)
  *
  * @param dev		The device.
  */
-static void ns8250_close(device_t *dev)
+static void ns8250_close(function_t *fun)
 {
-	ns8250_dev_data_t *data = (ns8250_dev_data_t *) dev->driver_data;
+	ns8250_dev_data_t *data = (ns8250_dev_data_t *) fun->dev->driver_data;
 	
 	fibril_mutex_lock(&data->mutex);
 	
@@ -876,7 +883,7 @@ static int ns8250_set_props(device_t *dev, unsigned int baud_rate,
  *
  * Configure the parameters of the serial communication.
  */
-static void ns8250_default_handler(device_t *dev, ipc_callid_t callid,
+static void ns8250_default_handler(function_t *fun, ipc_callid_t callid,
     ipc_call_t *call)
 {
 	sysarg_t method = IPC_GET_IMETHOD(*call);
@@ -885,7 +892,7 @@ static void ns8250_default_handler(device_t *dev, ipc_callid_t callid,
 	
 	switch (method) {
 	case SERIAL_GET_COM_PROPS:
-		ns8250_get_props(dev, &baud_rate, &parity, &word_length,
+		ns8250_get_props(fun->dev, &baud_rate, &parity, &word_length,
 		    &stop_bits);
 		async_answer_4(callid, EOK, baud_rate, parity, word_length,
 		    stop_bits);
@@ -896,7 +903,7 @@ static void ns8250_default_handler(device_t *dev, ipc_callid_t callid,
 		parity = IPC_GET_ARG2(*call);
 		word_length = IPC_GET_ARG3(*call);
 		stop_bits = IPC_GET_ARG4(*call);
-		ret = ns8250_set_props(dev, baud_rate, parity, word_length,
+		ret = ns8250_set_props(fun->dev, baud_rate, parity, word_length,
 		    stop_bits);
 		async_answer_0(callid, ret);
 		break;

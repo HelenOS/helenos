@@ -43,40 +43,40 @@
 
 #define PCI_MAX_HW_RES 8
 
-typedef struct pci_dev_data {
+typedef struct pci_fun_data {
 	int bus;
 	int dev;
 	int fn;
 	int vendor_id;
 	int device_id;
 	hw_resource_list_t hw_resources;
-} pci_dev_data_t;
+} pci_fun_data_t;
 
-extern void create_pci_match_ids(device_t *);
+extern void create_pci_match_ids(function_t *);
 
-extern uint8_t pci_conf_read_8(device_t *, int);
-extern uint16_t pci_conf_read_16(device_t *, int);
-extern uint32_t pci_conf_read_32(device_t *, int);
-extern void pci_conf_write_8(device_t *, int, uint8_t);
-extern void pci_conf_write_16(device_t *, int, uint16_t);
-extern void pci_conf_write_32(device_t *, int, uint32_t);
+extern uint8_t pci_conf_read_8(function_t *, int);
+extern uint16_t pci_conf_read_16(function_t *, int);
+extern uint32_t pci_conf_read_32(function_t *, int);
+extern void pci_conf_write_8(function_t *, int, uint8_t);
+extern void pci_conf_write_16(function_t *, int, uint16_t);
+extern void pci_conf_write_32(function_t *, int, uint32_t);
 
-extern void pci_add_range(device_t *, uint64_t, size_t, bool);
-extern int pci_read_bar(device_t *, int);
-extern void pci_read_interrupt(device_t *);
-extern void pci_add_interrupt(device_t *, int);
+extern void pci_add_range(function_t *, uint64_t, size_t, bool);
+extern int pci_read_bar(function_t *, int);
+extern void pci_read_interrupt(function_t *);
+extern void pci_add_interrupt(function_t *, int);
 
 extern void pci_bus_scan(device_t *, int);
 
-extern pci_dev_data_t *create_pci_dev_data(void);
-extern void init_pci_dev_data(pci_dev_data_t *, int, int, int);
-extern void delete_pci_dev_data(pci_dev_data_t *);
-extern void create_pci_dev_name(device_t *);
+extern pci_fun_data_t *create_pci_fun_data(void);
+extern void init_pci_fun_data(pci_fun_data_t *, int, int, int);
+extern void delete_pci_fun_data(pci_fun_data_t *);
+extern void create_pci_fun_name(function_t *);
 
-extern bool pci_alloc_resource_list(device_t *);
-extern void pci_clean_resource_list(device_t *);
+extern bool pci_alloc_resource_list(function_t *);
+extern void pci_clean_resource_list(function_t *);
 
-extern void pci_read_bars(device_t *);
+extern void pci_read_bars(function_t *);
 extern size_t pci_bar_mask_to_size(uint32_t);
 
 #endif

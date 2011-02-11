@@ -86,7 +86,7 @@ static int add_virtual_root_child(device_t *parent)
 	printf(NAME ":   device node is `%s' (%d %s)\n", VIRTUAL_DEVICE_NAME,
 	    VIRTUAL_DEVICE_MATCH_SCORE, VIRTUAL_DEVICE_MATCH_ID);
 
-	int res = child_device_register_wrapper(parent, VIRTUAL_DEVICE_NAME,
+	int res = register_function_wrapper(parent, VIRTUAL_DEVICE_NAME,
 	    VIRTUAL_DEVICE_MATCH_ID, VIRTUAL_DEVICE_MATCH_SCORE);
 
 	return res;
@@ -134,7 +134,7 @@ static int add_platform_child(device_t *parent)
 	printf(NAME ":   device node is `%s' (%d %s)\n", PLATFORM_DEVICE_NAME,
 	    PLATFORM_DEVICE_MATCH_SCORE, match_id);
 
-	res = child_device_register_wrapper(parent, PLATFORM_DEVICE_NAME,
+	res = register_function_wrapper(parent, PLATFORM_DEVICE_NAME,
 	    match_id, PLATFORM_DEVICE_MATCH_SCORE);
 
 	return res;

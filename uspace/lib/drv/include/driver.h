@@ -51,6 +51,9 @@
 struct device;
 typedef struct device device_t;
 
+struct function;
+typedef struct function function_t;
+
 /*
  * Device class
  */
@@ -61,13 +64,13 @@ typedef struct device_ops {
 	 * Optional callback function called when a client is connecting to the
 	 * device.
 	 */
-	int (*open)(device_t *);
+	int (*open)(function_t *);
 	
 	/**
 	 * Optional callback function called when a client is disconnecting from
 	 * the device.
 	 */
-	void (*close)(device_t *);
+	void (*close)(function_t *);
 	
 	/** The table of standard interfaces implemented by the device. */
 	void *interfaces[DEV_IFACE_COUNT];
@@ -99,18 +102,36 @@ struct device {
 	 */
 	int parent_phone;
 	
-	/** Parent device if handled by this driver, NULL otherwise */
-	device_t *parent;
 	/** Device name */
 	const char *name;
-	/** List of device ids for device-to-driver matching */
-	match_id_list_t match_ids;
+	
 	/** Driver-specific data associated with this device */
 	void *driver_data;
-	/** The implementation of operations provided by this device */
-	device_ops_t *ops;
 	
 	/** Link in the list of devices handled by the driver */
+	link_t link;
+};
+
+/** Function structure */
+struct function {
+	/** Function indentifier (asigned by device manager) */
+	devman_handle_t handle;
+	
+	/** Device which this function belogs to */
+	device_t *dev;
+	
+	/** Function type */
+	fun_type_t ftype;
+	/** Function name */
+	const char *name;
+	/** List of device ids for driver matching */
+	match_id_list_t match_ids;
+	/** Driver-specific data associated with this function */
+	void *driver_data;
+	/** Implementation of operations provided by this function */
+	device_ops_t *ops;
+	
+	/** Link in the list of functions handled by the driver */
 	link_t link;
 };
 
@@ -141,10 +162,12 @@ int driver_main(driver_t *);
  */
 extern device_t *create_device(void);
 extern void delete_device(device_t *);
-extern void *device_get_ops(device_t *, dev_inferface_idx_t);
+extern function_t *create_function(void);
+extern void delete_function(function_t *);
+extern void *function_get_ops(function_t *, dev_inferface_idx_t);
 
-extern int child_device_register(device_t *, device_t *);
-extern int child_device_register_wrapper(device_t *, const char *, const char *,
+extern int register_function(function_t *, device_t *);
+extern int register_function_wrapper(device_t *, const char *, const char *,
     int);
 
 /*
@@ -183,8 +206,8 @@ extern int register_interrupt_handler(device_t *, int, interrupt_handler_t *,
     irq_code_t *);
 extern int unregister_interrupt_handler(device_t *, int);
 
-extern remote_handler_t *device_get_default_handler(device_t *);
-extern int add_device_to_class(device_t *, const char *);
+extern remote_handler_t *function_get_default_handler(function_t *);
+extern int add_function_to_class(function_t *fun, const char *class_name);
 
 #endif
 

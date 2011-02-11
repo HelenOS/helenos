@@ -203,22 +203,34 @@ static int assign_driver_fibril(void *arg)
 	return EOK;
 }
 
-/** Handle child device registration.
+/** Handle function registration.
  *
  * Child devices are registered by their parent's device driver.
  */
-static void devman_add_child(ipc_callid_t callid, ipc_call_t *call)
+static void devman_add_function(ipc_callid_t callid, ipc_call_t *call)
 {
-	devman_handle_t parent_handle = IPC_GET_ARG1(*call);
-	sysarg_t match_count = IPC_GET_ARG2(*call);
+	fun_type_t ftype = (fun_type_t) IPC_GET_ARG1(*call);
+	devman_handle_t dev_handle = IPC_GET_ARG2(*call);
+	sysarg_t match_count = IPC_GET_ARG3(*call);
 	dev_tree_t *tree = &device_tree;
 	
 	fibril_rwlock_write_lock(&tree->rwlock);
-	dev_node_t *pdev = find_dev_node_no_lock(&device_tree, parent_handle);
+
+	dev_node_t *dev = NULL;
+	dev_node_t *pdev = find_dev_node_no_lock(&device_tree, dev_handle);
 	
 	if (pdev == NULL) {
 		fibril_rwlock_write_unlock(&tree->rwlock);
 		async_answer_0(callid, ENOENT);
+		return;
+	}
+	
+	if (ftype != fun_inner && ftype != fun_exposed) {
+		/* Unknown function type */
+		printf(NAME ": Error, unknown function type provided by driver!\n");
+
+		fibril_rwlock_write_unlock(&tree->rwlock);
+		async_answer_0(callid, EINVAL);
 		return;
 	}
 	
@@ -238,42 +250,47 @@ static void devman_add_child(ipc_callid_t callid, ipc_call_t *call)
 		return;
 	}
 
-	dev_node_t *dev;
+	if (ftype == fun_inner) {
+		dev = create_dev_node();
+		if (dev == NULL) {
+			fibril_rwlock_write_unlock(&tree->rwlock);
+			delete_fun_node(fun);
+			async_answer_0(callid, ENOMEM);
+			return;
+		}
 
-	dev = create_dev_node();
-	if (dev == NULL) {
-		fibril_rwlock_write_unlock(&tree->rwlock);
-		delete_fun_node(fun);
-		async_answer_0(callid, ENOMEM);
-		return;
+		insert_dev_node(tree, dev, fun);
 	}
-
-	insert_dev_node(tree, dev, fun);
 
 	fibril_rwlock_write_unlock(&tree->rwlock);
 	
-	printf(NAME ": devman_add_child %s\n", fun->pathname);
+	printf(NAME ": devman_add_function %s\n", fun->pathname);
 	
 	devman_receive_match_ids(match_count, &fun->match_ids);
 
-	/*
-	 * Try to find a suitable driver and assign it to the device.  We do
-	 * not want to block the current fibril that is used for processing
-	 * incoming calls: we will launch a separate fibril to handle the
-	 * driver assigning. That is because assign_driver can actually include
-	 * task spawning which could take some time.
-	 */
-	fid_t assign_fibril = fibril_create(assign_driver_fibril, dev);
-	if (assign_fibril == 0) {
+	if (ftype == fun_inner) {
+		assert(dev != NULL);
 		/*
-		 * Fallback in case we are out of memory.
-		 * Probably not needed as we will die soon anyway ;-).
+		 * Try to find a suitable driver and assign it to the device.  We do
+		 * not want to block the current fibril that is used for processing
+		 * incoming calls: we will launch a separate fibril to handle the
+		 * driver assigning. That is because assign_driver can actually include
+		 * task spawning which could take some time.
 		 */
-		(void) assign_driver_fibril(fun);
+		fid_t assign_fibril = fibril_create(assign_driver_fibril, dev);
+		if (assign_fibril == 0) {
+			/*
+			 * Fallback in case we are out of memory.
+			 * Probably not needed as we will die soon anyway ;-).
+			 */
+			(void) assign_driver_fibril(fun);
+		} else {
+			fibril_add_ready(assign_fibril);
+		}
 	} else {
-		fibril_add_ready(assign_fibril);
+		devmap_register_tree_function(fun, tree);
 	}
-
+	
 	/* Return device handle to parent's driver. */
 	async_answer_1(callid, EOK, fun->handle);
 }
@@ -383,8 +400,8 @@ static void devman_connection_driver(ipc_callid_t iid, ipc_call_t *icall)
 		case IPC_M_PHONE_HUNGUP:
 			cont = false;
 			continue;
-		case DEVMAN_ADD_CHILD_DEVICE:
-			devman_add_child(callid, &call);
+		case DEVMAN_ADD_FUNCTION:
+			devman_add_function(callid, &call);
 			break;
 		case DEVMAN_ADD_DEVICE_TO_CLASS:
 			devman_add_function_to_class(callid, &call);
@@ -408,7 +425,7 @@ static void devman_function_get_handle(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 	
-	fun_node_t * fun = find_fun_node_by_path(&device_tree, pathname);
+	fun_node_t *fun = find_fun_node_by_path(&device_tree, pathname);
 	
 	free(pathname);
 
@@ -416,7 +433,7 @@ static void devman_function_get_handle(ipc_callid_t iid, ipc_call_t *icall)
 		async_answer_0(iid, ENOENT);
 		return;
 	}
-	
+
 	async_answer_1(iid, EOK, fun->handle);
 }
 
@@ -449,11 +466,26 @@ static void devman_forward(ipc_callid_t iid, ipc_call_t *icall,
     bool drv_to_parent)
 {
 	devman_handle_t handle = IPC_GET_ARG2(*icall);
+	devman_handle_t fwd_h;
+	fun_node_t *fun = NULL;
+	dev_node_t *dev = NULL;
 	
-	fun_node_t *fun = find_fun_node(&device_tree, handle);
-	if (fun == NULL) {
-		printf(NAME ": devman_forward error - no device function with "
+	fun = find_fun_node(&device_tree, handle);
+	if (fun == NULL)
+		dev = find_dev_node(&device_tree, handle);
+	else
+		dev = fun->dev;
+
+	if (fun == NULL && dev == NULL) {
+		printf(NAME ": devman_forward error - no device or function with "
 		    "handle %" PRIun " was found.\n", handle);
+		async_answer_0(iid, ENOENT);
+		return;
+	}
+
+	if (fun == NULL && !drv_to_parent) {
+		printf(NAME ": devman_forward error - cannot connect to "
+		    "handle %d, refers to a device.\n", handle);
 		async_answer_0(iid, ENOENT);
 		return;
 	}
@@ -461,11 +493,16 @@ static void devman_forward(ipc_callid_t iid, ipc_call_t *icall,
 	driver_t *driver = NULL;
 	
 	if (drv_to_parent) {
-		if (fun->dev->pfun != NULL)
-			driver = fun->dev->pfun->dev->drv;
-	} else if (fun->dev->state == DEVICE_USABLE) {
-		driver = fun->dev->drv;
+		/* Connect to parent function of a device (or device function). */
+		if (dev->pfun->dev != NULL)
+			driver = dev->pfun->dev->drv;
+		fwd_h = dev->pfun->handle;
+	} else if (dev->state == DEVICE_USABLE) {
+		/* Connect to the specified function */
+		driver = dev->drv;
 		assert(driver != NULL);
+
+		fwd_h = handle;
 	}
 	
 	if (driver == NULL) {
@@ -489,9 +526,15 @@ static void devman_forward(ipc_callid_t iid, ipc_call_t *icall,
 		return;
 	}
 
-	printf(NAME ": devman_forward: forward connection to function %s to "
-	    "driver %s.\n", fun->pathname, driver->name);
-	async_forward_fast(iid, driver->phone, method, fun->handle, 0, IPC_FF_NONE);
+	if (fun != NULL) {
+		printf(NAME ": devman_forward: forward connection to function %s to "
+		    "driver %s.\n", fun->pathname, driver->name);
+	} else {
+		printf(NAME ": devman_forward: forward connection to device %s to "
+		    "driver %s.\n", dev->pfun->pathname, driver->name);
+	}
+
+	async_forward_fast(iid, driver->phone, method, fwd_h, 0, IPC_FF_NONE);
 }
 
 /** Function for handling connections from a client forwarded by the device

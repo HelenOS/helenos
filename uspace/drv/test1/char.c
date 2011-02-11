@@ -36,12 +36,12 @@
 
 #include "test1.h"
 
-static int impl_char_read(device_t *dev, char *buf, size_t count) {
+static int impl_char_read(function_t *fun, char *buf, size_t count) {
 	memset(buf, 0, count);
 	return count;
 }
 
-static int imp_char_write(device_t *dev, char *buf, size_t count) {
+static int imp_char_write(function_t *fun, char *buf, size_t count) {
 	return count;
 }
 

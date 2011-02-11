@@ -62,7 +62,7 @@ static void register_child_verbose(device_t *parent, const char *message,
 	printf(NAME ": registering child device `%s': %s.\n",
 	   name, message);
 
-	int rc = child_device_register_wrapper(parent, name,
+	int rc = register_function_wrapper(parent, name,
 	    match_id, match_score);
 
 	if (rc == EOK) {
@@ -81,6 +81,7 @@ static void register_child_verbose(device_t *parent, const char *message,
 static int postponed_birth(void *arg)
 {
 	device_t *dev = (device_t *) arg;
+	function_t *fun;
 
 	async_usleep(1000);
 
@@ -89,18 +90,23 @@ static int postponed_birth(void *arg)
 	register_child_verbose(dev, "child driven by test1",
 	    "test1", "virtual&test1", 10);
 
-	add_device_to_class(dev, "virtual");
+	fun = create_function();
+	fun->ftype = fun_exposed;
+	fun->name = "a";
+
+	register_function(fun, dev);
+
+	add_function_to_class(fun, "virtual");
 
 	return EOK;
 }
-
 
 static int add_device(device_t *dev)
 {
 	printf(NAME ": add_device(name=\"%s\", handle=%d)\n",
 	    dev->name, (int) dev->handle);
 
-	if (dev->parent == NULL) {
+	if (str_cmp(dev->name, "child") != 0) {
 		fid_t postpone = fibril_create(postponed_birth, dev);
 		if (postpone == 0) {
 			printf(NAME ": fibril_create() error\n");

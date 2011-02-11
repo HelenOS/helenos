@@ -73,7 +73,7 @@ const char *test_serial1(void)
 	int res = devman_get_phone(DEVMAN_CLIENT, IPC_FLAG_BLOCKING);
 	
 	devman_handle_t handle;
-	res = devman_device_get_handle("/hw/pci0/00:01.0/com1", &handle,
+	res = devman_device_get_handle("/hw/pci0/00:01.0/com1/a", &handle,
 	    IPC_FLAG_BLOCKING);
 	if (res != EOK)
 		return "Could not get serial device handle";

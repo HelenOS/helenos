@@ -362,6 +362,8 @@ extern void add_dev_class_no_lock(class_list_t *, dev_class_t *);
 
 /* Devmap devices */
 
+extern void devmap_register_tree_function(fun_node_t *, dev_tree_t *);
+
 extern fun_node_t *find_devmap_tree_function(dev_tree_t *, devmap_handle_t);
 extern fun_node_t *find_devmap_class_function(class_list_t *, devmap_handle_t);
 

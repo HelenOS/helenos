@@ -708,7 +708,7 @@ void delete_driver(driver_t *drv)
 }
 
 /** Create devmap path and name for the function. */
-static void devmap_register_tree_function(fun_node_t *fun, dev_tree_t *tree)
+void devmap_register_tree_function(fun_node_t *fun, dev_tree_t *tree)
 {
 	char *devmap_pathname = NULL;
 	char *devmap_name = NULL;
@@ -776,9 +776,6 @@ void add_device(int phone, driver_t *drv, dev_node_t *dev, dev_tree_t *tree)
 	switch(rc) {
 	case EOK:
 		dev->state = DEVICE_USABLE;
-		// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		if (0) devmap_register_tree_function(NULL, tree);
-		// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		break;
 	case ENOENT:
 		dev->state = DEVICE_NOT_PRESENT;

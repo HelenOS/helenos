@@ -57,38 +57,38 @@
 #include <device/hw_res.h>
 
 #define NAME "isa"
-#define CHILD_DEV_CONF_PATH "/drv/isa/isa.dev"
+#define CHILD_FUN_CONF_PATH "/drv/isa/isa.dev"
 
 #define ISA_MAX_HW_RES 4
 
-typedef struct isa_child_data {
+typedef struct isa_fun_data {
 	hw_resource_list_t hw_resources;
-} isa_child_data_t;
+} isa_fun_data_t;
 
-static hw_resource_list_t *isa_get_child_resources(device_t *dev)
+static hw_resource_list_t *isa_get_fun_resources(function_t *fun)
 {
-	isa_child_data_t *dev_data;
+	isa_fun_data_t *fun_data;
 
-	dev_data = (isa_child_data_t *)dev->driver_data;
-	if (dev_data == NULL)
+	fun_data = (isa_fun_data_t *)fun->driver_data;
+	if (fun_data == NULL)
 		return NULL;
 
-	return &dev_data->hw_resources;
+	return &fun_data->hw_resources;
 }
 
-static bool isa_enable_child_interrupt(device_t *dev)
+static bool isa_enable_fun_interrupt(function_t *fun)
 {
 	// TODO
 
 	return false;
 }
 
-static hw_res_ops_t isa_child_hw_res_ops = {
-	&isa_get_child_resources,
-	&isa_enable_child_interrupt
+static hw_res_ops_t isa_fun_hw_res_ops = {
+	&isa_get_fun_resources,
+	&isa_enable_fun_interrupt
 };
 
-static device_ops_t isa_child_dev_ops;
+static device_ops_t isa_fun_dev_ops;
 
 static int isa_add_device(device_t *dev);
 
@@ -104,34 +104,34 @@ static driver_t isa_driver = {
 };
 
 
-static isa_child_data_t *create_isa_child_data() 
+static isa_fun_data_t *create_isa_fun_data() 
 {
-	isa_child_data_t *data;
+	isa_fun_data_t *data;
 
-	data = (isa_child_data_t *) malloc(sizeof(isa_child_data_t));
+	data = (isa_fun_data_t *) malloc(sizeof(isa_fun_data_t));
 	if (data != NULL)
-		memset(data, 0, sizeof(isa_child_data_t));
+		memset(data, 0, sizeof(isa_fun_data_t));
 
 	return data;
 }
 
-static device_t *create_isa_child_dev()
+static function_t *create_isa_fun()
 {
-	device_t *dev = create_device();
-	if (dev == NULL)
+	function_t *fun = create_function();
+	if (fun == NULL)
 		return NULL;
 
-	isa_child_data_t *data = create_isa_child_data();
+	isa_fun_data_t *data = create_isa_fun_data();
 	if (data == NULL) {
-		delete_device(dev);
+		delete_function(fun);
 		return NULL;
 	}
 
-	dev->driver_data = data;
-	return dev;
+	fun->driver_data = data;
+	return fun;
 }
 
-static char *read_dev_conf(const char *conf_path)
+static char *read_fun_conf(const char *conf_path)
 {
 	bool suc = false;
 	char *buf = NULL;
@@ -150,19 +150,19 @@ static char *read_dev_conf(const char *conf_path)
 	len = lseek(fd, 0, SEEK_END);
 	lseek(fd, 0, SEEK_SET);	
 	if (len == 0) {
-		printf(NAME ": read_dev_conf error: configuration file '%s' "
+		printf(NAME ": read_fun_conf error: configuration file '%s' "
 		    "is empty.\n", conf_path);
 		goto cleanup;
 	}
 
 	buf = malloc(len + 1);
 	if (buf == NULL) {
-		printf(NAME ": read_dev_conf error: memory allocation failed.\n");
+		printf(NAME ": read_fun_conf error: memory allocation failed.\n");
 		goto cleanup;
 	}
 
 	if (0 >= read(fd, buf, len)) {
-		printf(NAME ": read_dev_conf error: unable to read file '%s'.\n",
+		printf(NAME ": read_fun_conf error: unable to read file '%s'.\n",
 		    conf_path);
 		goto cleanup;
 	}
@@ -248,9 +248,9 @@ static inline char *skip_spaces(char *line)
 	return line;
 }
 
-static void isa_child_set_irq(device_t *dev, int irq)
+static void isa_fun_set_irq(function_t *fun, int irq)
 {
-	isa_child_data_t *data = (isa_child_data_t *)dev->driver_data;
+	isa_fun_data_t *data = (isa_fun_data_t *)fun->driver_data;
 
 	size_t count = data->hw_resources.count;
 	hw_resource_t *resources = data->hw_resources.resources;
@@ -261,13 +261,13 @@ static void isa_child_set_irq(device_t *dev, int irq)
 
 		data->hw_resources.count++;
 
-		printf(NAME ": added irq 0x%x to device %s\n", irq, dev->name);
+		printf(NAME ": added irq 0x%x to function %s\n", irq, fun->name);
 	}
 }
 
-static void isa_child_set_io_range(device_t *dev, size_t addr, size_t len)
+static void isa_fun_set_io_range(function_t *fun, size_t addr, size_t len)
 {
-	isa_child_data_t *data = (isa_child_data_t *)dev->driver_data;
+	isa_fun_data_t *data = (isa_fun_data_t *)fun->driver_data;
 
 	size_t count = data->hw_resources.count;
 	hw_resource_t *resources = data->hw_resources.resources;
@@ -281,41 +281,41 @@ static void isa_child_set_io_range(device_t *dev, size_t addr, size_t len)
 		data->hw_resources.count++;
 
 		printf(NAME ": added io range (addr=0x%x, size=0x%x) to "
-		    "device %s\n", (unsigned int) addr, (unsigned int) len,
-		    dev->name);
+		    "function %s\n", (unsigned int) addr, (unsigned int) len,
+		    fun->name);
 	}
 }
 
-static void get_dev_irq(device_t *dev, char *val)
+static void get_dev_irq(function_t *fun, char *val)
 {
 	int irq = 0;
 	char *end = NULL;
 
-	val = skip_spaces(val);	
+	val = skip_spaces(val);
 	irq = (int)strtol(val, &end, 0x10);
 
 	if (val != end)
-		isa_child_set_irq(dev, irq);
+		isa_fun_set_irq(fun, irq);
 }
 
-static void get_dev_io_range(device_t *dev, char *val)
+static void get_dev_io_range(function_t *fun, char *val)
 {
 	size_t addr, len;
 	char *end = NULL;
 
-	val = skip_spaces(val);	
+	val = skip_spaces(val);
 	addr = strtol(val, &end, 0x10);
 
 	if (val == end)
 		return;
 
-	val = skip_spaces(end);	
+	val = skip_spaces(end);
 	len = strtol(val, &end, 0x10);
 
 	if (val == end)
 		return;
 
-	isa_child_set_io_range(dev, addr, len);
+	isa_fun_set_io_range(fun, addr, len);
 }
 
 static void get_match_id(char **id, char *val)
@@ -330,7 +330,7 @@ static void get_match_id(char **id, char *val)
 	str_cpy(*id, size, val);
 }
 
-static void get_dev_match_id(device_t *dev, char *val)
+static void get_fun_match_id(function_t *fun, char *val)
 {
 	char *id = NULL;
 	int score = 0;
@@ -341,14 +341,14 @@ static void get_dev_match_id(device_t *dev, char *val)
 	score = (int)strtol(val, &end, 10);
 	if (val == end) {
 		printf(NAME " : error - could not read match score for "
-		    "device %s.\n", dev->name);
+		    "function %s.\n", fun->name);
 		return;
 	}
 
 	match_id_t *match_id = create_match_id();
 	if (match_id == NULL) {
-		printf(NAME " : failed to allocate match id for device %s.\n",
-		    dev->name);
+		printf(NAME " : failed to allocate match id for function %s.\n",
+		    fun->name);
 		return;
 	}
 
@@ -356,7 +356,7 @@ static void get_dev_match_id(device_t *dev, char *val)
 	get_match_id(&id, val);
 	if (id == NULL) {
 		printf(NAME " : error - could not read match id for "
-		    "device %s.\n", dev->name);
+		    "function %s.\n", fun->name);
 		delete_match_id(match_id);
 		return;
 	}
@@ -364,20 +364,20 @@ static void get_dev_match_id(device_t *dev, char *val)
 	match_id->id = id;
 	match_id->score = score;
 
-	printf(NAME ": adding match id '%s' with score %d to device %s\n", id,
-	    score, dev->name);
-	add_match_id(&dev->match_ids, match_id);
+	printf(NAME ": adding match id '%s' with score %d to function %s\n", id,
+	    score, fun->name);
+	add_match_id(&fun->match_ids, match_id);
 }
 
-static bool read_dev_prop(device_t *dev, char *line, const char *prop,
-    void (*read_fn)(device_t *, char *))
+static bool read_fun_prop(function_t *fun, char *line, const char *prop,
+    void (*read_fn)(function_t *, char *))
 {
 	size_t proplen = str_size(prop);
 
 	if (str_lcmp(line, prop, proplen) == 0) {
 		line += proplen;
 		line = skip_spaces(line);
-		(*read_fn)(dev, line);
+		(*read_fn)(fun, line);
 
 		return true;
 	}
@@ -385,35 +385,35 @@ static bool read_dev_prop(device_t *dev, char *line, const char *prop,
 	return false;
 }
 
-static void get_dev_prop(device_t *dev, char *line)
+static void get_fun_prop(function_t *fun, char *line)
 {
 	/* Skip leading spaces. */
 	line = skip_spaces(line);
 
-	if (!read_dev_prop(dev, line, "io_range", &get_dev_io_range) &&
-	    !read_dev_prop(dev, line, "irq", &get_dev_irq) &&
-	    !read_dev_prop(dev, line, "match", &get_dev_match_id))
+	if (!read_fun_prop(fun, line, "io_range", &get_dev_io_range) &&
+	    !read_fun_prop(fun, line, "irq", &get_dev_irq) &&
+	    !read_fun_prop(fun, line, "match", &get_fun_match_id))
 	{
 	    printf(NAME " error undefined device property at line '%s'\n",
 		line);
 	}
 }
 
-static void child_alloc_hw_res(device_t *dev)
+static void child_alloc_hw_res(function_t *fun)
 {
-	isa_child_data_t *data = (isa_child_data_t *)dev->driver_data;
+	isa_fun_data_t *data = (isa_fun_data_t *)fun->driver_data;
 	data->hw_resources.resources = 
 	    (hw_resource_t *)malloc(sizeof(hw_resource_t) * ISA_MAX_HW_RES);
 }
 
-static char *read_isa_dev_info(char *dev_conf, device_t *parent)
+static char *read_isa_fun_info(char *fun_conf, device_t *dev)
 {
 	char *line;
-	char *dev_name = NULL;
+	char *fun_name = NULL;
 
 	/* Skip empty lines. */
 	while (true) {
-		line = str_get_line(dev_conf, &dev_conf);
+		line = str_get_line(fun_conf, &fun_conf);
 
 		if (line == NULL) {
 			/* no more lines */
@@ -425,24 +425,25 @@ static char *read_isa_dev_info(char *dev_conf, device_t *parent)
 	}
 
 	/* Get device name. */
-	dev_name = get_device_name(line);
-	if (dev_name == NULL)
+	fun_name = get_device_name(line);
+	if (fun_name == NULL)
 		return NULL;
 
-	device_t *dev = create_isa_child_dev();
-	if (dev == NULL) {
-		free(dev_name);
+	function_t *fun = create_isa_fun();
+	if (fun == NULL) {
+		free(fun_name);
 		return NULL;
 	}
 
-	dev->name = dev_name;
+	fun->name = fun_name;
+	fun->ftype = fun_inner;
 
 	/* Allocate buffer for the list of hardware resources of the device. */
-	child_alloc_hw_res(dev);
+	child_alloc_hw_res(fun);
 
 	/* Get properties of the device (match ids, irq and io range). */
 	while (true) {
-		line = str_get_line(dev_conf, &dev_conf);
+		line = str_get_line(fun_conf, &fun_conf);
 
 		if (line_empty(line)) {
 			/* no more device properties */
@@ -453,37 +454,37 @@ static char *read_isa_dev_info(char *dev_conf, device_t *parent)
 		 * Get the device's property from the configuration line
 		 * and store it in the device structure.
 		 */
-		get_dev_prop(dev, line);
+		get_fun_prop(fun, line);
 
-		//printf(NAME ": next line ='%s'\n", dev_conf);
+		//printf(NAME ": next line ='%s'\n", fun_conf);
 		//printf(NAME ": current line ='%s'\n", line);
 	}
 
 	/* Set device operations to the device. */
-	dev->ops = &isa_child_dev_ops;
+	fun->ops = &isa_fun_dev_ops;
 
-	printf(NAME ": child_device_register(dev, parent); device is %s.\n",
-	    dev->name);
-	child_device_register(dev, parent);
+	printf(NAME ": register_function(fun, dev); function is %s.\n",
+	    fun->name);
+	register_function(fun, dev);
 
-	return dev_conf;
+	return fun_conf;
 }
 
-static void parse_dev_conf(char *conf, device_t *parent)
+static void parse_fun_conf(char *conf, device_t *dev)
 {
 	while (conf != NULL && *conf != '\0') {
-		conf = read_isa_dev_info(conf, parent);
+		conf = read_isa_fun_info(conf, dev);
 	}
 }
 
-static void add_legacy_children(device_t *parent)
+static void add_legacy_children(device_t *dev)
 {
-	char *dev_conf;
+	char *fun_conf;
 
-	dev_conf = read_dev_conf(CHILD_DEV_CONF_PATH);
-	if (dev_conf != NULL) {
-		parse_dev_conf(dev_conf, parent);
-		free(dev_conf);
+	fun_conf = read_fun_conf(CHILD_FUN_CONF_PATH);
+	if (fun_conf != NULL) {
+		parse_fun_conf(fun_conf, dev);
+		free(fun_conf);
 	}
 }
 
@@ -491,6 +492,14 @@ static int isa_add_device(device_t *dev)
 {
 	printf(NAME ": isa_add_device, device handle = %d\n",
 	    (int) dev->handle);
+
+	/* Make the bus device more visible. Does not do anything. */
+	printf(NAME ": adding a 'ctl' function\n");
+
+	function_t *ctl = create_function();
+	ctl->ftype = fun_exposed;
+	ctl->name = "ctl";
+	register_function(ctl, dev);
 
 	/* Add child devices. */
 	add_legacy_children(dev);
@@ -501,7 +510,7 @@ static int isa_add_device(device_t *dev)
 
 static void isa_init() 
 {
-	isa_child_dev_ops.interfaces[HW_RES_DEV_IFACE] = &isa_child_hw_res_ops;
+	isa_fun_dev_ops.interfaces[HW_RES_DEV_IFACE] = &isa_fun_hw_res_ops;
 }
 
 int main(int argc, char *argv[])

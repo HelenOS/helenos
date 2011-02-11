@@ -42,18 +42,18 @@
 
 #define NAME "rootvirt"
 
-/** Virtual device entry. */
+/** Virtual function entry */
 typedef struct {
-	/** Device name. */
+	/** Function name */
 	const char *name;
-	/** Device match id. */
+	/** Function match ID */
 	const char *match_id;
-} virtual_device_t;
+} virtual_function_t;
 
-/** List of existing virtual devices. */
-virtual_device_t virtual_devices[] = {
+/** List of existing virtual functions */
+virtual_function_t virtual_functions[] = {
 #include "devices.def"
-	/* Terminating item. */
+	/* Terminating item */
 	{
 		.name = NULL,
 		.match_id = NULL
@@ -71,26 +71,26 @@ static driver_t rootvirt_driver = {
 	.driver_ops = &rootvirt_ops
 };
 
-/** Add child device.
+/** Add function to the virtual device.
  *
- * @param parent Parent device.
- * @param virt_dev Virtual device to add.
- * @return Error code.
+ * @param vdev		The virtual device
+ * @param vfun		Virtual function description
+ * @return		EOK on success or negative error code.
  */
-static int add_child(device_t *parent, virtual_device_t *virt_dev)
+static int add_child(device_t *vdev, virtual_function_t *vfun)
 {
-	printf(NAME ": registering child device `%s' (match \"%s\")\n",
-	    virt_dev->name, virt_dev->match_id);
+	printf(NAME ": registering function `%s' (match \"%s\")\n",
+	    vfun->name, vfun->match_id);
 
-	int rc = child_device_register_wrapper(parent, virt_dev->name,
-	    virt_dev->match_id, 10);
+	int rc = register_function_wrapper(vdev, vfun->name,
+	    vfun->match_id, 10);
 
 	if (rc == EOK) {
 		printf(NAME ": registered child device `%s'\n",
-		    virt_dev->name);
+		    vfun->name);
 	} else {
 		printf(NAME ": failed to register child device `%s': %s\n",
-		    virt_dev->name, str_error(rc));
+		    vfun->name, str_error(rc));
 	}
 
 	return rc;
@@ -108,17 +108,16 @@ static int add_device(device_t *dev)
 		return ELIMIT;
 	}
 
-	printf(NAME ": add_device(name=\"%s\", handle=%d)\n",
-	    dev->name, (int)dev->handle);
+	printf(NAME ": add_device(handle=%d)\n", (int)dev->handle);
 	
 	/*
-	 * Go through all virtual devices and try to add them.
+	 * Go through all virtual functions and try to add them.
 	 * We silently ignore failures.
 	 */
-	virtual_device_t *virt_dev = virtual_devices;
-	while (virt_dev->name != NULL) {
-		(void) add_child(dev, virt_dev);
-		virt_dev++;
+	virtual_function_t *vfun = virtual_functions;
+	while (vfun->name != NULL) {
+		(void) add_child(dev, vfun);
+		vfun++;
 	}
 
 	return EOK;

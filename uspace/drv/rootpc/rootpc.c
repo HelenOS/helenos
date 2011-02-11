@@ -54,9 +54,9 @@
 
 #define NAME "rootpc"
 
-typedef struct rootpc_child_dev_data {
+typedef struct rootpc_fun_data {
 	hw_resource_list_t hw_resources;
-} rootpc_child_dev_data_t;
+} rootpc_fun_data_t;
 
 static int rootpc_add_device(device_t *dev);
 static void root_pc_init(void);
@@ -81,55 +81,56 @@ static hw_resource_t pci_conf_regs = {
 	}
 };
 
-static rootpc_child_dev_data_t pci_data = {
+static rootpc_fun_data_t pci_data = {
 	.hw_resources = {
 		1,
 		&pci_conf_regs
 	}
 };
 
-static hw_resource_list_t *rootpc_get_child_resources(device_t *dev)
+static hw_resource_list_t *rootpc_get_fun_resources(function_t *fun)
 {
-	rootpc_child_dev_data_t *data;
+	rootpc_fun_data_t *data;
 	
-	data = (rootpc_child_dev_data_t *) dev->driver_data;
+	data = (rootpc_fun_data_t *) fun->driver_data;
 	if (NULL == data)
 		return NULL;
 	
 	return &data->hw_resources;
 }
 
-static bool rootpc_enable_child_interrupt(device_t *dev)
+static bool rootpc_enable_fun_interrupt(function_t *fun)
 {
 	/* TODO */
 	
 	return false;
 }
 
-static hw_res_ops_t child_hw_res_ops = {
-	&rootpc_get_child_resources,
-	&rootpc_enable_child_interrupt
+static hw_res_ops_t fun_hw_res_ops = {
+	&rootpc_get_fun_resources,
+	&rootpc_enable_fun_interrupt
 };
 
 /* Initialized in root_pc_init() function. */
-static device_ops_t rootpc_child_ops;
+static device_ops_t rootpc_fun_ops;
 
 static bool
-rootpc_add_child(device_t *parent, const char *name, const char *str_match_id,
-    rootpc_child_dev_data_t *drv_data)
+rootpc_add_fun(device_t *parent, const char *name, const char *str_match_id,
+    rootpc_fun_data_t *drv_data)
 {
-	printf(NAME ": adding new child device '%s'.\n", name);
+	printf(NAME ": adding new function '%s'.\n", name);
 	
-	device_t *child = NULL;
+	function_t *fun = NULL;
 	match_id_t *match_id = NULL;
 	
 	/* Create new device. */
-	child = create_device();
-	if (NULL == child)
+	fun = create_function();
+	if (fun == NULL)
 		goto failure;
 	
-	child->name = name;
-	child->driver_data = drv_data;
+	fun->name = name;
+	fun->driver_data = drv_data;
+	fun->ftype = fun_inner;
 	
 	/* Initialize match id list */
 	match_id = create_match_id();
@@ -138,14 +139,15 @@ rootpc_add_child(device_t *parent, const char *name, const char *str_match_id,
 	
 	match_id->id = str_match_id;
 	match_id->score = 100;
-	add_match_id(&child->match_ids, match_id);
+	add_match_id(&fun->match_ids, match_id);
 	
 	/* Set provided operations to the device. */
-	child->ops = &rootpc_child_ops;
+	fun->ops = &rootpc_fun_ops;
 	
-	/* Register child device. */
-	if (EOK != child_device_register(child, parent))
+	/* Register function. */
+	if (EOK != register_function(fun, parent))
 		goto failure;
+	printf(NAME ": registered function handle = %u\n", fun->handle);
 	
 	return true;
 	
@@ -153,19 +155,19 @@ failure:
 	if (NULL != match_id)
 		match_id->id = NULL;
 	
-	if (NULL != child) {
-		child->name = NULL;
-		delete_device(child);
+	if (NULL != fun) {
+		fun->name = NULL;
+		delete_function(fun);
 	}
 	
-	printf(NAME ": failed to add child device '%s'.\n", name);
+	printf(NAME ": failed to add function '%s'.\n", name);
 	
 	return false;
 }
 
-static bool rootpc_add_children(device_t *dev)
+static bool rootpc_add_functions(device_t *dev)
 {
-	return rootpc_add_child(dev, "pci0", "intel_pci", &pci_data);
+	return rootpc_add_fun(dev, "pci0", "intel_pci", &pci_data);
 }
 
 /** Get the root device.
@@ -179,9 +181,9 @@ static int rootpc_add_device(device_t *dev)
 	printf(NAME ": rootpc_add_device, device handle = %d\n",
 	    (int)dev->handle);
 	
-	/* Register child devices. */
-	if (!rootpc_add_children(dev)) {
-		printf(NAME ": failed to add child devices for PC platform.\n");
+	/* Register functions. */
+	if (!rootpc_add_functions(dev)) {
+		printf(NAME ": failed to add functions for PC platform.\n");
 	}
 	
 	return EOK;
@@ -189,7 +191,7 @@ static int rootpc_add_device(device_t *dev)
 
 static void root_pc_init(void)
 {
-	rootpc_child_ops.interfaces[HW_RES_DEV_IFACE] = &child_hw_res_ops;
+	rootpc_fun_ops.interfaces[HW_RES_DEV_IFACE] = &fun_hw_res_ops;
 }
 
 int main(int argc, char *argv[])

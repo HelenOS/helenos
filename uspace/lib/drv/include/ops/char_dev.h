@@ -38,8 +38,8 @@
 #include "../driver.h"
 
 typedef struct {
-	int (*read)(device_t *, char *, size_t);
-	int (*write)(device_t *, char *, size_t);
+	int (*read)(function_t *, char *, size_t);
+	int (*write)(function_t *, char *, size_t);
 } char_dev_ops_t;
 
 #endif

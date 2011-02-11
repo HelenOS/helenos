@@ -157,20 +157,35 @@ static int devman_send_match_ids(int phone, match_id_list_t *match_ids)
 	return ret;
 }
 
-int devman_child_device_register(const char *name, match_id_list_t *match_ids,
-    devman_handle_t parent_handle, devman_handle_t *handle)
+/** Add function to a device.
+ *
+ * Request devman to add a new function to the specified device owned by
+ * this driver task.
+ *
+ * @param name		Name of the new function
+ * @param ftype		Function type, fun_inner or fun_exposed
+ * @param match_ids	Match IDs (should be empty for fun_exposed)
+ * @param devh		Devman handle of the device
+ * @param funh		Place to store handle of the new function
+ *
+ * @return		EOK on success or negative error code.
+ */
+int devman_add_function(const char *name, fun_type_t ftype,
+    match_id_list_t *match_ids, devman_handle_t devh, devman_handle_t *funh)
 {
 	int phone = devman_get_phone(DEVMAN_DRIVER, IPC_FLAG_BLOCKING);
+	int fun_handle;
 	
 	if (phone < 0)
 		return phone;
 	
 	async_serialize_start();
 	
-	int match_count = list_count(&match_ids->ids);	
+	int match_count = list_count(&match_ids->ids);
 	ipc_call_t answer;
-	aid_t req = async_send_2(phone, DEVMAN_ADD_CHILD_DEVICE, parent_handle, match_count,
-	    &answer);
+
+	aid_t req = async_send_3(phone, DEVMAN_ADD_FUNCTION, (sysarg_t) ftype,
+	    devh, match_count, &answer);
 
 	sysarg_t retval = async_data_write_start(phone, name, str_size(name));
 	if (retval != EOK) {
@@ -185,16 +200,13 @@ int devman_child_device_register(const char *name, match_id_list_t *match_ids,
 	
 	async_serialize_end();
 	
-	if (retval != EOK) {
-		if (handle != NULL)
-			*handle = -1;
-
-		return retval;
-	}
+	if (retval == EOK)
+		fun_handle = (int) IPC_GET_ARG1(answer);
+	else
+		fun_handle = -1;
 	
-	if (handle != NULL)
-		*handle = (int) IPC_GET_ARG1(answer);
-		
+	*funh = fun_handle;
+
 	return retval;
 }
 
