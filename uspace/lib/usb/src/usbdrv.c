@@ -79,7 +79,7 @@ int usb_drv_find_hc(device_t *dev, devman_handle_t *handle)
 	int rc = async_req_1_1(parent_phone, DEV_IFACE_ID(USB_DEV_IFACE),
 	    IPC_M_USB_GET_HOST_CONTROLLER_HANDLE, &h);
 
-	ipc_hangup(parent_phone);
+	async_hangup(parent_phone);
 
 	if (rc != EOK) {
 		return rc;

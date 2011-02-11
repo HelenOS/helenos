@@ -88,7 +88,7 @@ static const char *test_virtchar1_internal(const char *path)
 	
 	/* Clean-up. */
 	TPRINTF(" Closing phones and file descriptors\n");
-	ipc_hangup(phone);
+	async_hangup(phone);
 	close(fd);
 	
 	return NULL;

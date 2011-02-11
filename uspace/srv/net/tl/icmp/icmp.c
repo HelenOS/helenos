@@ -40,7 +40,6 @@
 #include <fibril_synch.h>
 #include <stdint.h>
 #include <str.h>
-#include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <ipc/net.h>
 #include <ipc/tl.h>
@@ -627,13 +626,13 @@ static void icmp_receiver(ipc_callid_t iid, ipc_call_t *icall)
 					icmp_release(packet);
 			}
 			
-			ipc_answer_0(iid, (sysarg_t) rc);
+			async_answer_0(iid, (sysarg_t) rc);
 			break;
 		case IPC_M_PHONE_HUNGUP:
 			loop = false;
 			continue;
 		default:
-			ipc_answer_0(iid, (sysarg_t) ENOTSUP);
+			async_answer_0(iid, (sysarg_t) ENOTSUP);
 		}
 		
 		iid = async_get_call(icall);

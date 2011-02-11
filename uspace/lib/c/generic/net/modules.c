@@ -42,10 +42,7 @@
 #include <malloc.h>
 #include <errno.h>
 #include <sys/time.h>
-
-#include <ipc/ipc.h>
 #include <ipc/services.h>
-
 #include <net/modules.h>
 
 /** The time between connect requests in microseconds. */
@@ -66,29 +63,29 @@ void answer_call(ipc_callid_t callid, int result, ipc_call_t *answer,
 	if ((answer != NULL) || (count == 0)) {
 		switch (count) {
 		case 0:
-			ipc_answer_0(callid, (sysarg_t) result);
+			async_answer_0(callid, (sysarg_t) result);
 			break;
 		case 1:
-			ipc_answer_1(callid, (sysarg_t) result,
+			async_answer_1(callid, (sysarg_t) result,
 			    IPC_GET_ARG1(*answer));
 			break;
 		case 2:
-			ipc_answer_2(callid, (sysarg_t) result,
+			async_answer_2(callid, (sysarg_t) result,
 			    IPC_GET_ARG1(*answer), IPC_GET_ARG2(*answer));
 			break;
 		case 3:
-			ipc_answer_3(callid, (sysarg_t) result,
+			async_answer_3(callid, (sysarg_t) result,
 			    IPC_GET_ARG1(*answer), IPC_GET_ARG2(*answer),
 			    IPC_GET_ARG3(*answer));
 			break;
 		case 4:
-			ipc_answer_4(callid, (sysarg_t) result,
+			async_answer_4(callid, (sysarg_t) result,
 			    IPC_GET_ARG1(*answer), IPC_GET_ARG2(*answer),
 			    IPC_GET_ARG3(*answer), IPC_GET_ARG4(*answer));
 			break;
 		case 5:
 		default:
-			ipc_answer_5(callid, (sysarg_t) result,
+			async_answer_5(callid, (sysarg_t) result,
 			    IPC_GET_ARG1(*answer), IPC_GET_ARG2(*answer),
 			    IPC_GET_ARG3(*answer), IPC_GET_ARG4(*answer),
 			    IPC_GET_ARG5(*answer));
@@ -136,23 +133,15 @@ int bind_service(services_t need, sysarg_t arg1, sysarg_t arg2, sysarg_t arg3,
 int bind_service_timeout(services_t need, sysarg_t arg1, sysarg_t arg2,
     sysarg_t arg3, async_client_conn_t client_receiver, suseconds_t timeout)
 {
-	int rc;
-	
 	/* Connect to the needed service */
 	int phone = connect_to_service_timeout(need, timeout);
 	if (phone >= 0) {
 		/* Request the bidirectional connection */
-		sysarg_t taskhash;
-		sysarg_t phonehash;
-		
-		rc = ipc_connect_to_me(phone, arg1, arg2, arg3, &taskhash,
-		    &phonehash);
+		int rc = async_connect_to_me(phone, arg1, arg2, arg3, client_receiver);
 		if (rc != EOK) {
-			ipc_hangup(phone);
+			async_hangup(phone);
 			return rc;
 		}
-		async_new_connection(taskhash, phonehash, 0, NULL,
-		    client_receiver);
 	}
 	
 	return phone;

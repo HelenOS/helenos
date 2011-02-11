@@ -64,7 +64,7 @@
 //
 //************
 #define dprintf(level, format, ...) \
-	usb_dprintf(NAME, (level), format "\n", ##__VA_ARGS__)
+	usb_log_printf((level), format "\n", ##__VA_ARGS__)
 
 
 /**

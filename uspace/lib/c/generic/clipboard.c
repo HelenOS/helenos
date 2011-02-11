@@ -38,6 +38,7 @@
  */
 
 #include <clipboard.h>
+#include <ipc/ns.h>
 #include <ipc/services.h>
 #include <ipc/clipboard.h>
 #include <async.h>
@@ -53,7 +54,7 @@ static int clip_phone = -1;
 static void clip_connect(void)
 {
 	while (clip_phone < 0)
-		clip_phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_CLIPBOARD, 0, 0);
+		clip_phone = service_connect_blocking(SERVICE_CLIPBOARD, 0, 0);
 }
 
 /** Copy string to clipboard.

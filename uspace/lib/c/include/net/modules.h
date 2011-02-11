@@ -42,10 +42,7 @@
 #define LIBC_MODULES_H_
 
 #include <async.h>
-
-#include <ipc/ipc.h>
 #include <ipc/services.h>
-
 #include <sys/time.h>
 
 /** Connect to the needed module function type definition.

@@ -91,7 +91,7 @@ void register_clonable(sysarg_t service, sysarg_t phone, ipc_call_t *call,
 	ipc_answer_0(callid, EOK);
 	
 	ipc_forward_fast(csr->callid, phone, IPC_GET_ARG2(csr->call),
-		IPC_GET_ARG3(csr->call), 0, IPC_FF_NONE);
+	    IPC_GET_ARG3(csr->call), 0, IPC_FF_NONE);
 	
 	free(csr);
 	ipc_hangup(phone);
@@ -126,6 +126,7 @@ void connect_to_clonable(sysarg_t service, ipc_call_t *call,
 		return;
 	}
 	
+	link_initialize(&csr->link);
 	csr->service = service;
 	csr->call = *call;
 	csr->callid = callid;

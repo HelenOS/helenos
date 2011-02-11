@@ -41,7 +41,7 @@ __entry:
 	# Store the RAS page address into the ras_page variable
 	ldr r0, =ras_page
 	str r2, [r0]
-
+	
 	#
 	# Create the first stack frame.
 	#
@@ -49,16 +49,13 @@ __entry:
 	mov ip, sp
 	push {fp, ip, lr, pc}
 	sub fp, ip, #4
-
+	
 	# Pass pcb_ptr to __main as the first argument (in r0)
 	mov r0, r1
 	bl __main
-
-	bl __exit
 
 .data
 
 .global ras_page
 ras_page:
 	.long 0
-

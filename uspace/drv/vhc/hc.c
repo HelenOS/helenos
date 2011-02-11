@@ -33,7 +33,6 @@
  * @brief Virtual HC (implementation).
  */
 
-#include <ipc/ipc.h>
 #include <adt/list.h>
 #include <bool.h>
 #include <async.h>

@@ -39,7 +39,6 @@
 #include <fibril_synch.h>
 #include <malloc.h>
 #include <stdio.h>
-#include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <ipc/net.h>
 #include <ipc/tl.h>
@@ -353,10 +352,10 @@ static void udp_receiver(ipc_callid_t iid, ipc_call_t *icall)
 				rc = udp_received_msg(IPC_GET_DEVICE(*icall), packet,
 				    SERVICE_UDP, IPC_GET_ERROR(*icall));
 			
-			ipc_answer_0(iid, (sysarg_t) rc);
+			async_answer_0(iid, (sysarg_t) rc);
 			break;
 		default:
-			ipc_answer_0(iid, (sysarg_t) ENOTSUP);
+			async_answer_0(iid, (sysarg_t) ENOTSUP);
 		}
 		
 		iid = async_get_call(icall);
@@ -867,7 +866,7 @@ static int udp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 	}
 
 	/* Release the application phone */
-	ipc_hangup(app_phone);
+	async_hangup(app_phone);
 
 	/* Release all local sockets */
 	socket_cores_release(udp_globals.net_phone, &local_sockets,

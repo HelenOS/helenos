@@ -36,7 +36,7 @@
 #ifndef LIBC_IPC_MOUSE_H_
 #define LIBC_IPC_MOUSE_H_
 
-#include <ipc/ipc.h>
+#include <ipc/common.h>
 
 typedef enum {
 	MEVENT_BUTTON = IPC_FIRST_USER_METHOD,

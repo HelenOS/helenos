@@ -30,12 +30,12 @@
  * @{
  */
 /** @file
- */ 
+ */
 
 #ifndef LIBC_FB_H_
 #define LIBC_FB_H_
 
-#include <ipc/ipc.h>
+#include <ipc/common.h>
 
 typedef enum {
 	FB_PUTCHAR = IPC_FIRST_USER_METHOD,
