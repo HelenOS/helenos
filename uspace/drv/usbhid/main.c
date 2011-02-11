@@ -44,6 +44,8 @@
 #include <errno.h>
 #include <str_error.h>
 #include <fibril.h>
+#include <usb/debug.h>
+#include <usb/classes/classes.h>
 #include <usb/classes/hid.h>
 #include <usb/classes/hidparser.h>
 #include <usb/request.h>
@@ -59,6 +61,16 @@
 #define NAME "usbhid"
 
 #define GUESSED_POLL_ENDPOINT 1
+
+/** Keyboard polling endpoint description for boot protocol class. */
+static usb_endpoint_description_t poll_endpoint_description = {
+	.transfer_type = USB_TRANSFER_INTERRUPT,
+	.direction = USB_DIRECTION_IN,
+	.interface_class = USB_CLASS_HID,
+	.interface_subclass = USB_HID_SUBCLASS_BOOT,
+	.interface_protocol = USB_HID_PROTOCOL_KEYBOARD,
+	.flags = 0
+};
 
 static void default_connection_handler(device_t *, ipc_callid_t, ipc_call_t *);
 static device_ops_t keyboard_ops = {
@@ -329,6 +341,33 @@ static int usbkbd_process_descriptors(usb_hid_dev_kbd_t *kbd_dev)
 		return ELIMIT;
 	}
 	
+	/*
+	 * Initialize the interrupt in endpoint.
+	 */
+	usb_endpoint_mapping_t endpoint_mapping[1] = {
+		{
+			.pipe = &kbd_dev->poll_pipe,
+			.description = &poll_endpoint_description
+		}
+	};
+	rc = usb_endpoint_pipe_initialize_from_configuration(
+	    endpoint_mapping, 1,
+	    descriptors, config_desc.total_length,
+	    &kbd_dev->wire);
+	if (rc != EOK) {
+		usb_log_error("Failed to initialize poll pipe: %s.\n",
+		    str_error(rc));
+		return rc;
+	}
+	if (!endpoint_mapping[0].present) {
+		usb_log_warning("Not accepting device, " \
+		    "not boot-protocol keyboard.\n");
+		return EREFUSED;
+	}
+
+
+
+
 	kbd_dev->conf = (usb_hid_configuration_t *)calloc(1, 
 	    sizeof(usb_hid_configuration_t));
 	if (kbd_dev->conf == NULL) {
@@ -336,14 +375,14 @@ static int usbkbd_process_descriptors(usb_hid_dev_kbd_t *kbd_dev)
 		return ENOMEM;
 	}
 	
-	rc = usbkbd_parse_descriptors(descriptors, transferred, kbd_dev->conf);
+	/*rc = usbkbd_parse_descriptors(descriptors, transferred, kbd_dev->conf);
 	free(descriptors);
 	if (rc != EOK) {
 		printf("Problem with parsing standard descriptors.\n");
 		return rc;
 	}
 
-	// get and report descriptors
+	// get and report descriptors*/
 	rc = usbkbd_get_report_descriptor(kbd_dev);
 	if (rc != EOK) {
 		printf("Problem with parsing HID REPORT descriptor.\n");
@@ -360,7 +399,7 @@ static int usbkbd_process_descriptors(usb_hid_dev_kbd_t *kbd_dev)
 	 * 3) find endpoint which is IN and INTERRUPT (parse), save its number
      *    as the endpoint for polling
 	 */
-	
+
 	return EOK;
 }
 
@@ -399,14 +438,6 @@ static usb_hid_dev_kbd_t *usbkbd_init_device(device_t *dev)
 		goto error_leave;
 	}
 
-	rc = usb_endpoint_pipe_initialize(&kbd_dev->poll_pipe, &kbd_dev->wire,
-	    GUESSED_POLL_ENDPOINT, USB_TRANSFER_INTERRUPT, 8, USB_DIRECTION_IN);
-	if (rc != EOK) {
-		printf("Failed to initialize interrupt in pipe: %s.\n",
-		    str_error(rc));
-		goto error_leave;
-	}
-
 	/*
 	 * will need all descriptors:
 	 * 1) choose one configuration from configuration descriptors
@@ -417,8 +448,11 @@ static usb_hid_dev_kbd_t *usbkbd_init_device(device_t *dev)
 	// TODO: get descriptors, parse descriptors and save endpoints
 	usb_endpoint_pipe_start_session(&kbd_dev->ctrl_pipe);
 	//usb_request_set_configuration(&kbd_dev->ctrl_pipe, 1);
-	usbkbd_process_descriptors(kbd_dev);
+	rc = usbkbd_process_descriptors(kbd_dev);
 	usb_endpoint_pipe_end_session(&kbd_dev->ctrl_pipe);
+	if (rc != EOK) {
+		goto error_leave;
+	}
 
 	return kbd_dev;
 
@@ -576,6 +610,7 @@ static driver_t kbd_driver = {
 
 int main(int argc, char *argv[])
 {
+	usb_log_enable(USB_LOG_LEVEL_INFO, "usbhid");
 	return driver_main(&kbd_driver);
 }
 
