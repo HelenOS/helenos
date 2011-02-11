@@ -105,10 +105,6 @@ int usb_drv_create_match_ids_from_device_descriptor(match_id_list_t *,
 int usb_drv_create_match_ids_from_configuration_descriptor(match_id_list_t *,
     const void *, size_t);
 
-int usb_drv_create_device_match_ids(int, match_id_list_t *, usb_address_t);
-int usb_drv_register_child_in_devman(int, device_t *, usb_address_t,
-    devman_handle_t *);
-
 
 #endif
 /**
