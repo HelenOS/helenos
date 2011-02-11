@@ -105,89 +105,134 @@ static int interrupt_out(device_t *dev, usb_target_t target,
     void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
-	assert(dev);
-	uhci_t *hc = dev_to_uhci(dev);
-	assert(hc);
-	return uhci_transfer(hc, dev, target, USB_TRANSFER_INTERRUPT, 0, USB_PID_OUT,
-		false, data, size, callback, NULL, arg);
+	size_t max_packet_size = 8;
+	dev_speed_t speed = FULL_SPEED;
+
+	tracker_t *tracker = tracker_get(dev, target, USB_TRANSFER_INTERRUPT,
+	    max_packet_size, speed, data, size, NULL, callback, arg);
+	if (!tracker)
+		return ENOMEM;
+	tracker_interrupt_out(tracker);
+	return EOK;
 }
 /*----------------------------------------------------------------------------*/
 static int interrupt_in(device_t *dev, usb_target_t target,
     void *data, size_t size,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
-	assert(dev);
-	uhci_t *hc = dev_to_uhci(dev);
-	assert(hc);
-	return uhci_transfer(hc, dev, target, USB_TRANSFER_INTERRUPT, 0, USB_PID_IN,
-		false, data, size, NULL, callback, arg);
+	size_t max_packet_size = 4;
+	dev_speed_t speed = FULL_SPEED;
+
+	tracker_t *tracker = tracker_get(dev, target, USB_TRANSFER_INTERRUPT,
+	    max_packet_size, speed, data, size, callback, NULL, arg);
+	if (!tracker)
+		return ENOMEM;
+	tracker_interrupt_in(tracker);
+	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+static int control_write(device_t *dev, usb_target_t target,
+    void *setup_data, size_t setup_size, void *data, size_t size,
+    usbhc_iface_transfer_out_callback_t callback, void *arg)
+{
+	size_t max_packet_size = 8;
+	dev_speed_t speed = FULL_SPEED;
+
+	tracker_t *tracker = tracker_get(dev, target, USB_TRANSFER_CONTROL,
+	    max_packet_size, speed, data, size, NULL, callback, arg);
+	if (!tracker)
+		return ENOMEM;
+	tracker_control_write(tracker, setup_data, setup_size);
+	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+static int control_read(device_t *dev, usb_target_t target,
+    void *setup_data, size_t setup_size, void *data, size_t size,
+    usbhc_iface_transfer_in_callback_t callback, void *arg)
+{
+	size_t max_packet_size = 8;
+	dev_speed_t speed = FULL_SPEED;
+
+	tracker_t *tracker = tracker_get(dev, target, USB_TRANSFER_CONTROL,
+	    max_packet_size, speed, data, size, callback, NULL, arg);
+	if (!tracker)
+		return ENOMEM;
+	tracker_control_read(tracker, setup_data, setup_size);
+	return EOK;
 }
 /*----------------------------------------------------------------------------*/
 static int control_write_setup(device_t *dev, usb_target_t target,
     void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
-	assert(dev);
-	uhci_t *hc = dev_to_uhci(dev);
-	assert(hc);
-	return uhci_transfer(hc, dev, target, USB_TRANSFER_CONTROL, 0, USB_PID_SETUP,
-		false, data, size, callback, NULL, arg);
+	usb_log_warning("Using deprecated API control write setup.\n");
+	tracker_t *tracker = tracker_get(dev, target, USB_TRANSFER_CONTROL,
+	    8, FULL_SPEED, data, size, NULL, callback, arg);
+	if (!tracker)
+		return ENOMEM;
+	tracker_control_setup_old(tracker);
+	return EOK;
 }
 /*----------------------------------------------------------------------------*/
 static int control_write_data(device_t *dev, usb_target_t target,
     void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
-	assert(dev);
-	uhci_t *hc = dev_to_uhci(dev);
-	assert(hc);
-	return uhci_transfer(hc, dev, target, USB_TRANSFER_CONTROL, 1, USB_PID_OUT,
-		false, data, size, callback, NULL, arg);
+	tracker_t *tracker = tracker_get(dev, target, USB_TRANSFER_CONTROL,
+	    size, FULL_SPEED, data, size, NULL, callback, arg);
+	if (!tracker)
+		return ENOMEM;
+	tracker_control_write_data_old(tracker);
+	return EOK;
 }
 /*----------------------------------------------------------------------------*/
 static int control_write_status(device_t *dev, usb_target_t target,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
-	assert(dev);
-	uhci_t *hc = dev_to_uhci(dev);
-	assert(hc);
-	return uhci_transfer(hc, dev, target, USB_TRANSFER_CONTROL, 0, USB_PID_IN,
-		false, NULL, 0, NULL, callback, arg);
+	tracker_t *tracker = tracker_get(dev, target, USB_TRANSFER_CONTROL,
+	    0, FULL_SPEED, NULL, 0, callback, NULL, arg);
+	if (!tracker)
+		return ENOMEM;
+	tracker_control_write_status_old(tracker);
+	return EOK;
 }
 /*----------------------------------------------------------------------------*/
 static int control_read_setup(device_t *dev, usb_target_t target,
     void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
-	assert(dev);
-	uhci_t *hc = dev_to_uhci(dev);
-	assert(hc);
-	return uhci_transfer(hc, dev, target, USB_TRANSFER_CONTROL, 0, USB_PID_SETUP,
-		false, data, size, callback, NULL, arg);
+	usb_log_warning("Using deprecated API control read setup.\n");
+	tracker_t *tracker = tracker_get(dev, target, USB_TRANSFER_CONTROL,
+	    8, FULL_SPEED, data, size, NULL, callback, arg);
+	if (!tracker)
+		return ENOMEM;
+	tracker_control_setup_old(tracker);
+	return EOK;
 }
 /*----------------------------------------------------------------------------*/
 static int control_read_data(device_t *dev, usb_target_t target,
     void *data, size_t size,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
-	assert(dev);
-	uhci_t *hc = dev_to_uhci(dev);
-	assert(hc);
-	return uhci_transfer(hc, dev, target, USB_TRANSFER_CONTROL, 1, USB_PID_IN,
-		false, data, size, NULL, callback, arg);
+	tracker_t *tracker = tracker_get(dev, target, USB_TRANSFER_CONTROL,
+	    size, FULL_SPEED, data, size, callback, NULL, arg);
+	if (!tracker)
+		return ENOMEM;
+	tracker_control_read_data_old(tracker);
+	return EOK;
 }
 /*----------------------------------------------------------------------------*/
 static int control_read_status(device_t *dev, usb_target_t target,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
-	assert(dev);
-	uhci_t *hc = dev_to_uhci(dev);
-	assert(hc);
-	return uhci_transfer(hc, dev, target, USB_TRANSFER_CONTROL, 0, USB_PID_OUT,
-		false, NULL, 0, callback, NULL, arg);
+	tracker_t *tracker = tracker_get(dev, target, USB_TRANSFER_CONTROL,
+	    0, FULL_SPEED, NULL, 0, NULL, callback, arg);
+	if (!tracker)
+		return ENOMEM;
+	tracker_control_read_status_old(tracker);
+	return EOK;
 }
-
-
+/*----------------------------------------------------------------------------*/
 usbhc_iface_t uhci_iface = {
 	.tell_address = get_address,
 
@@ -199,6 +244,9 @@ usbhc_iface_t uhci_iface = {
 
 	.interrupt_out = interrupt_out,
 	.interrupt_in = interrupt_in,
+
+	.control_read = control_read,
+	.control_write = control_write,
 
 	.control_write_setup = control_write_setup,
 	.control_write_data = control_write_data,

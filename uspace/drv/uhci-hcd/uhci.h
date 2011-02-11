@@ -36,11 +36,14 @@
 #define DRV_UHCI_UHCI_H
 
 #include <fibril.h>
+#include <fibril_synch.h>
+#include <adt/list.h>
 
 #include <usb/addrkeep.h>
 #include <usbhc_iface.h>
 
 #include "transfer_list.h"
+#include "tracker.h"
 
 typedef struct uhci_regs {
 	uint16_t usbcmd;
@@ -67,16 +70,18 @@ typedef struct uhci_regs {
 	uint8_t sofmod;
 } regs_t;
 
-#define TRANSFER_QUEUES 4
 #define UHCI_FRAME_LIST_COUNT 1024
 #define UHCI_CLEANER_TIMEOUT 10000
-#define UHCI_DEBUGER_TIMEOUT 500000
+#define UHCI_DEBUGER_TIMEOUT 5000000
 
 typedef struct uhci {
 	usb_address_keeping_t address_manager;
 	volatile regs_t *registers;
 
 	link_pointer_t *frame_list;
+
+	link_t tracker_list;
+	fibril_mutex_t tracker_list_mutex;
 
 	transfer_list_t transfers_bulk_full;
 	transfer_list_t transfers_control_full;
@@ -106,6 +111,8 @@ int uhci_transfer(
   usbhc_iface_transfer_out_callback_t callback_out,
   usbhc_iface_transfer_in_callback_t callback_in,
   void *arg );
+
+int uhci_schedule(uhci_t *instance, tracker_t *tracker);
 
 static inline uhci_t * dev_to_uhci(device_t *dev)
 	{ return (uhci_t*)dev->driver_data; }
