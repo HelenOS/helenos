@@ -255,6 +255,9 @@ static void callback_in(device_t *device,
 
 	if (outcome != USB_OUTCOME_OK) {
 		async_answer_0(trans->caller, outcome);
+		if (trans->data_caller) {
+			async_answer_0(trans->data_caller, EINTR);
+		}
 		async_transaction_destroy(trans);
 		return;
 	}
