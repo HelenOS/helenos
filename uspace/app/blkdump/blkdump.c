@@ -144,11 +144,11 @@ int main(int argc, char **argv)
 		printf(NAME ": Warning, failed to obtain block device size.\n");
 	}
 
-	printf("Device %s has %" PRIuOFF64 " blocks, %u bytes each\n", dev_path, dev_nblocks, block_size);
+	printf("Device %s has %" PRIuOFF64 " blocks, %" PRIuOFF64 " bytes each\n", dev_path, dev_nblocks, (aoff64_t) block_size);
 
 	data = malloc(block_size);
 	if (data == NULL) {
-		printf(NAME ": Error allocating data buffer of %u bytes", block_size);
+		printf(NAME ": Error allocating data buffer of %" PRIuOFF64 " bytes", (aoff64_t) block_size);
 		block_fini(handle);
 		return 3;
 	}
