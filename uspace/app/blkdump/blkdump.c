@@ -165,7 +165,7 @@ int main(int argc, char **argv)
 		printf("---- Block %" PRIuOFF64 " (at %" PRIuOFF64 ") ----\n", current, current*block_size);
 		
 		for (data_offset = 0; data_offset < block_size; data_offset += 16) {
-			printf("%8" PRIxOFF64 ": ", current+data_offset);
+			printf("%8" PRIxOFF64 ": ", current*block_size + data_offset);
 			print_hex_row(data+data_offset, block_size-data_offset, 16);
 			printf("\n");
 		}
@@ -192,22 +192,25 @@ static void print_hex_row(uint8_t *data, size_t length, size_t bytes_per_row) {
 	
 	// Print hexadecimal values
 	for (pos = 0; pos < length; pos++) {
-		printf("%02hhX ", data[pos]);
 		if (pos == length/2) {
 			printf(" ");
 		}
+		printf("%02hhX ", data[pos]);
 	}
 	
 	// pad with spaces if we have less than 16 bytes
 	for (pos = length; pos < bytes_per_row; pos++) {
-		printf("   ");
 		if (pos == length/2) {
 			printf(" ");
 		}
+		printf("   ");
 	}
 	
 	// Print printable characters
 	for (pos = 0; pos < length; pos++) {
+		if (pos == length/2) {
+			printf(" ");
+		}
 		b = data[pos];
 		if (b >= 32 && b < 128) {
 			putchar(b);
