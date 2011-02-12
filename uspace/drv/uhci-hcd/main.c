@@ -133,7 +133,7 @@ int main(int argc, char *argv[])
 	 * Do some global initializations.
 	 */
 	sleep(5);
-	usb_log_enable(USB_LOG_LEVEL_DEBUG2, NAME);
+	usb_log_enable(USB_LOG_LEVEL_INFO, NAME);
 
 	return driver_main(&uhci_driver);
 }

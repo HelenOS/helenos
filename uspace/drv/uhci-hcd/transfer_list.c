@@ -51,6 +51,7 @@ int transfer_list_init(transfer_list_t *instance, const char *name)
 
 	queue_head_init(instance->queue_head);
 	list_initialize(&instance->batch_list);
+	fibril_mutex_initialize(&instance->guard);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -75,12 +76,15 @@ void transfer_list_add_batch(transfer_list_t *instance, batch_t *batch)
 
 	batch->qh->next_queue = instance->queue_head->next_queue;
 
+	fibril_mutex_lock(&instance->guard);
+
 	if (instance->queue_head->element == instance->queue_head->next_queue) {
 		/* there is nothing scheduled */
 		list_append(&batch->link, &instance->batch_list);
 		instance->queue_head->element = pa;
 		usb_log_debug2("Added batch(%p) to queue %s first.\n",
 			batch, instance->name);
+		fibril_mutex_unlock(&instance->guard);
 		return;
 	}
 	/* now we can be sure that there is someting scheduled */
@@ -93,6 +97,7 @@ void transfer_list_add_batch(transfer_list_t *instance, batch_t *batch)
 	list_append(&batch->link, &instance->batch_list);
 	usb_log_debug2("Added batch(%p) to queue %s last, first is %p.\n",
 		batch, instance->name, first );
+	fibril_mutex_unlock(&instance->guard);
 }
 /*----------------------------------------------------------------------------*/
 static void transfer_list_remove_batch(
@@ -104,7 +109,7 @@ static void transfer_list_remove_batch(
 	assert(batch->qh);
 
 	/* I'm the first one here */
-	if (batch->link.next == &instance->batch_list) {
+	if (batch->link.prev == &instance->batch_list) {
 		usb_log_debug("Removing tracer %p was first, next element %x.\n",
 			batch, batch->qh->next_queue);
 		instance->queue_head->element = batch->qh->next_queue;
@@ -120,6 +125,7 @@ static void transfer_list_remove_batch(
 void transfer_list_check(transfer_list_t *instance)
 {
 	assert(instance);
+	fibril_mutex_lock(&instance->guard);
 	link_t *current = instance->batch_list.next;
 	while (current != &instance->batch_list) {
 		link_t *next = current->next;
@@ -131,6 +137,7 @@ void transfer_list_check(transfer_list_t *instance)
 		}
 		current = next;
 	}
+	fibril_mutex_unlock(&instance->guard);
 }
 /**
  * @}

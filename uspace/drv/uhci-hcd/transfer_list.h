@@ -34,12 +34,15 @@
 #ifndef DRV_UHCI_TRANSFER_LIST_H
 #define DRV_UHCI_TRANSFER_LIST_H
 
+#include <fibril_synch.h>
+
 #include "uhci_struct/queue_head.h"
 
 #include "batch.h"
 
 typedef struct transfer_list
 {
+	fibril_mutex_t guard;
 	queue_head_t *queue_head;
 	uint32_t queue_head_pa;
 	struct transfer_list *next;
@@ -50,7 +53,6 @@ typedef struct transfer_list
 int transfer_list_init(transfer_list_t *instance, const char *name);
 
 void transfer_list_set_next(transfer_list_t *instance, transfer_list_t *next);
-
 
 static inline void transfer_list_fini(transfer_list_t *instance)
 {
