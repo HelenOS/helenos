@@ -44,13 +44,13 @@
 #define UHCI_STRCUTURES_ALIGNMENT 16
 #define UHCI_REQUIRED_PAGE_SIZE 4096
 
-static inline void * addr_to_phys(void *addr)
+static inline uintptr_t addr_to_phys(void *addr)
 {
 	uintptr_t result;
 	int ret = as_get_physical_mapping(addr, &result);
 
 	assert(ret == 0);
-	return (void*)(result | ((uintptr_t)addr & 0xfff));
+	return (result | ((uintptr_t)addr & 0xfff));
 }
 
 static inline void * malloc32(size_t size)

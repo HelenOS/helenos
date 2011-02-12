@@ -40,17 +40,17 @@
 #include <usb/usb.h>
 
 #include "uhci_struct/transfer_descriptor.h"
+#include "uhci_struct/queue_head.h"
 
 typedef enum {
 	LOW_SPEED,
 	FULL_SPEED,
 } dev_speed_t;
 
-struct transfer_list;
-
 typedef struct tracker
 {
 	link_t link;
+	dev_speed_t speed;
 	usb_target_t target;
 	usb_transfer_type_t transfer_type;
 	union {
@@ -58,33 +58,33 @@ typedef struct tracker
 		usbhc_iface_transfer_out_callback_t callback_out;
 	};
 	void *arg;
+	char *transport_buffer;
+	char *setup_buffer;
+	size_t setup_size;
 	char *buffer;
-	char *packet;
 	size_t buffer_size;
 	size_t max_packet_size;
-	size_t packet_size;
-	size_t buffer_offset;
-	dev_speed_t speed;
+	size_t packets;
+	size_t transfered_size;
+	int error;
 	device_t *dev;
-	transfer_descriptor_t *td;
+	queue_head_t *qh;
+	transfer_descriptor_t *tds;
 	void (*next_step)(struct tracker*);
-	unsigned toggle:1;
-
-	struct transfer_list *scheduled_list;
 } tracker_t;
-
 
 tracker_t * tracker_get(device_t *dev, usb_target_t target,
     usb_transfer_type_t transfer_type, size_t max_packet_size,
     dev_speed_t speed, char *buffer, size_t size,
+		char *setup_buffer, size_t setup_size,
     usbhc_iface_transfer_in_callback_t func_in,
     usbhc_iface_transfer_out_callback_t func_out, void *arg);
 
-void tracker_control_write(
-    tracker_t *instance, char* setup_buffer, size_t setup_size);
+bool tracker_is_complete(tracker_t *instance);
 
-void tracker_control_read(
-    tracker_t *instance, char* setup_buffer, size_t setup_size);
+void tracker_control_write(tracker_t *instance);
+
+void tracker_control_read(tracker_t *instance);
 
 void tracker_interrupt_in(tracker_t *instance);
 

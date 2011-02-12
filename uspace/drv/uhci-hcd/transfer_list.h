@@ -40,12 +40,11 @@
 
 typedef struct transfer_list
 {
-	tracker_t *last_tracker;
-
 	queue_head_t *queue_head;
 	uint32_t queue_head_pa;
 	struct transfer_list *next;
 	const char *name;
+	link_t tracker_list;
 } transfer_list_t;
 
 int transfer_list_init(transfer_list_t *instance, const char *name);
@@ -58,11 +57,9 @@ static inline void transfer_list_fini(transfer_list_t *instance)
 	assert(instance);
 	queue_head_dispose(instance->queue_head);
 }
+void transfer_list_check(transfer_list_t *instance);
 
 void transfer_list_add_tracker(transfer_list_t *instance, tracker_t *tracker);
-
-void transfer_list_remove_tracker(transfer_list_t *instance, tracker_t *track);
-
 #endif
 /**
  * @}

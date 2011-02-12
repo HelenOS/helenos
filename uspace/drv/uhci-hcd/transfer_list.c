@@ -50,6 +50,7 @@ int transfer_list_init(transfer_list_t *instance, const char *name)
 	instance->queue_head_pa = (uintptr_t)addr_to_phys(instance->queue_head);
 
 	queue_head_init(instance->queue_head);
+	list_initialize(&instance->tracker_list);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -57,10 +58,9 @@ void transfer_list_set_next(transfer_list_t *instance, transfer_list_t *next)
 {
 	assert(instance);
 	assert(next);
-	instance->next = next;
 	if (!instance->queue_head)
 		return;
-	queue_head_add_next(instance->queue_head, next->queue_head_pa);
+	queue_head_append_qh(instance->queue_head, next->queue_head_pa);
 }
 /*----------------------------------------------------------------------------*/
 void transfer_list_add_tracker(transfer_list_t *instance, tracker_t *tracker)
@@ -68,48 +68,66 @@ void transfer_list_add_tracker(transfer_list_t *instance, tracker_t *tracker)
 	assert(instance);
 	assert(tracker);
 
-	uint32_t pa = (uintptr_t)addr_to_phys(tracker->td);
+	uint32_t pa = (uintptr_t)addr_to_phys(tracker->qh);
 	assert((pa & LINK_POINTER_ADDRESS_MASK) == pa);
+	pa |= LINK_POINTER_QUEUE_HEAD_FLAG;
 
 
-	if (instance->queue_head->element & LINK_POINTER_TERMINATE_FLAG) {
-		usb_log_debug2("Adding td(%X:%X) to queue %s first.\n",
-			tracker->td->status, tracker->td->device, instance->name);
+	if ((instance->queue_head->element & LINK_POINTER_TERMINATE_FLAG) != 0) {
 		/* there is nothing scheduled */
-		instance->last_tracker = tracker;
+		list_append(&tracker->link, &instance->tracker_list);
 		instance->queue_head->element = pa;
-		usb_log_debug2("Added td(%X:%X) to queue %s first.\n",
-			tracker->td->status, tracker->td->device, instance->name);
+		usb_log_debug2("Added tracker(%p) to queue %s first.\n",
+			tracker, instance->name);
 		return;
 	}
-	usb_log_debug2("Adding td(%X:%X) to queue %s last.%p\n",
-	    tracker->td->status, tracker->td->device, instance->name,
-	    instance->last_tracker);
-	/* now we can be sure that last_tracker is a valid pointer */
-	instance->last_tracker->td->next = pa;
-	instance->last_tracker = tracker;
-
-	usb_log_debug2("Added td(%X:%X) to queue %s last.\n",
-		tracker->td->status, tracker->td->device, instance->name);
-
-	/* check again, may be use atomic compare and swap */
-	if (instance->queue_head->element & LINK_POINTER_TERMINATE_FLAG) {
-		instance->queue_head->element = pa;
-		usb_log_debug2("Added td(%X:%X) to queue first2 %s.\n",
-			tracker->td->status, tracker->td->device, instance->name);
-	}
+	/* now we can be sure that there is someting scheduled */
+	assert(!list_empty(&instance->tracker_list));
+	tracker_t *first = list_get_instance(
+	          instance->tracker_list.next, tracker_t, link);
+	tracker_t *last = list_get_instance(
+	    instance->tracker_list.prev, tracker_t, link);
+	queue_head_append_qh(last->qh, pa);
+	list_append(&tracker->link, &instance->tracker_list);
+	usb_log_debug2("Added tracker(%p) to queue %s last, first is %p.\n",
+		tracker, instance->name, first );
 }
 /*----------------------------------------------------------------------------*/
-void transfer_list_remove_tracker(transfer_list_t *instance, tracker_t *tracker)
+static void transfer_list_remove_tracker(
+    transfer_list_t *instance, tracker_t *tracker)
 {
 	assert(instance);
 	assert(tracker);
 	assert(instance->queue_head);
-	assert(tracker->td);
+	assert(tracker->qh);
 
-	uint32_t pa = (uintptr_t)addr_to_phys(tracker->td);
-	if ((instance->queue_head->element & LINK_POINTER_ADDRESS_MASK) == pa) {
-		instance->queue_head->element = tracker->td->next;
+	/* I'm the first one here */
+	if (tracker->link.next == &instance->tracker_list) {
+		usb_log_debug("Removing tracer %p was first, next element %x.\n",
+			tracker, tracker->qh->next_queue);
+		instance->queue_head->element = tracker->qh->next_queue;
+	} else {
+		usb_log_debug("Removing tracer %p was NOT first, next element %x.\n",
+			tracker, tracker->qh->next_queue);
+		tracker_t *prev = list_get_instance(tracker->link.prev, tracker_t, link);
+		prev->qh->next_queue = tracker->qh->next_queue;
+	}
+	list_remove(&tracker->link);
+}
+/*----------------------------------------------------------------------------*/
+void transfer_list_check(transfer_list_t *instance)
+{
+	assert(instance);
+	link_t *current = instance->tracker_list.next;
+	while (current != &instance->tracker_list) {
+		link_t *next = current->next;
+		tracker_t *tracker = list_get_instance(current, tracker_t, link);
+
+		if (tracker_is_complete(tracker)) {
+			transfer_list_remove_tracker(instance, tracker);
+			tracker->next_step(tracker);
+		}
+		current = next;
 	}
 }
 /**
