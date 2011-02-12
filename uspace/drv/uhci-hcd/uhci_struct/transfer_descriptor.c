@@ -43,8 +43,9 @@ void transfer_descriptor_init(transfer_descriptor_t *instance,
 {
 	assert(instance);
 
-	instance->next =
-	    (next != NULL) ? addr_to_phys(next) : LINK_POINTER_TERMINATE_FLAG;
+	instance->next = 0
+	    | LINK_POINTER_VERTICAL_FLAG
+	    | ((next != NULL) ? addr_to_phys(next) : LINK_POINTER_TERMINATE_FLAG);
 
 	instance->status = 0
 	  | ((error_count & TD_STATUS_ERROR_COUNT_MASK) << TD_STATUS_ERROR_COUNT_POS)
