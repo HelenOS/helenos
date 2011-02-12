@@ -68,6 +68,7 @@ int main(int argc, char **argv)
 	size_t data_offset;
 	aoff64_t current;
 	aoff64_t limit;
+	bool relative = false;
 	
 	if (argc < 2) {
 		printf(NAME ": Error, argument missing.\n");
@@ -77,6 +78,11 @@ int main(int argc, char **argv)
 
 	--argc; ++argv;
 
+	if (str_cmp(*argv, "--relative") == 0) {
+		--argc; ++argv;
+		relative = true;
+	}
+	
 	if (str_cmp(*argv, "--offset") == 0) {
 		--argc; ++argv;
 		if (*argv == NULL) {
@@ -165,7 +171,12 @@ int main(int argc, char **argv)
 		printf("---- Block %" PRIuOFF64 " (at %" PRIuOFF64 ") ----\n", current, current*block_size);
 		
 		for (data_offset = 0; data_offset < block_size; data_offset += 16) {
-			printf("%8" PRIxOFF64 ": ", current*block_size + data_offset);
+			if (relative) {
+				printf("%8" PRIxOFF64 ": ", (aoff64_t) data_offset);
+			}
+			else {
+				printf("%8" PRIxOFF64 ": ", current*block_size + data_offset);
+			}
 			print_hex_row(data+data_offset, block_size-data_offset, 16);
 			printf("\n");
 		}
@@ -223,7 +234,7 @@ static void print_hex_row(uint8_t *data, size_t length, size_t bytes_per_row) {
 
 static void syntax_print(void)
 {
-	printf("syntax: blkdump [--offset <num_blocks>] [--count <num_blocks>] <device_name>\n");
+	printf("syntax: blkdump [--relative] [--offset <num_blocks>] [--count <num_blocks>] <device_name>\n");
 }
 
 /**
