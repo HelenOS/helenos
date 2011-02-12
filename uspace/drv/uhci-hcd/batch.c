@@ -141,18 +141,22 @@ bool batch_is_complete(batch_t *instance)
 	usb_log_debug("Checking(%p) %d packet for completion.\n",
 	    instance, instance->packets);
 	/* This is just an ugly trick to support the old API */
-	instance->transfered_size = -instance->setup_size;
+	instance->transfered_size = 0;
 	size_t i = 0;
 	for (;i < instance->packets; ++i) {
-		if (transfer_descriptor_is_active(&instance->tds[i]))
+		if (transfer_descriptor_is_active(&instance->tds[i])) {
 			return false;
+		}
 		instance->error = transfer_descriptor_status(&instance->tds[i]);
 		if (instance->error != EOK) {
+			if (i > 0)
+				instance->transfered_size -= instance->setup_size;
 			return true;
 		}
 		instance->transfered_size +=
 		    transfer_descriptor_actual_size(&instance->tds[i]);
 	}
+	instance->transfered_size -= instance->setup_size;
 	return true;
 }
 /*----------------------------------------------------------------------------*/
