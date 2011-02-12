@@ -61,6 +61,7 @@ void transfer_list_set_next(transfer_list_t *instance, transfer_list_t *next)
 	if (!instance->queue_head)
 		return;
 	queue_head_append_qh(instance->queue_head, next->queue_head_pa);
+	instance->queue_head->element = instance->queue_head->next_queue;
 }
 /*----------------------------------------------------------------------------*/
 void transfer_list_add_batch(transfer_list_t *instance, batch_t *batch)
@@ -72,8 +73,9 @@ void transfer_list_add_batch(transfer_list_t *instance, batch_t *batch)
 	assert((pa & LINK_POINTER_ADDRESS_MASK) == pa);
 	pa |= LINK_POINTER_QUEUE_HEAD_FLAG;
 
+	batch->qh->next_queue = instance->queue_head->next_queue;
 
-	if ((instance->queue_head->element & LINK_POINTER_TERMINATE_FLAG) != 0) {
+	if (instance->queue_head->element == instance->queue_head->next_queue) {
 		/* there is nothing scheduled */
 		list_append(&batch->link, &instance->batch_list);
 		instance->queue_head->element = pa;
