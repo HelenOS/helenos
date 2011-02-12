@@ -32,8 +32,8 @@
 /** @file
  * @brief HC driver.
  */
-#ifndef LIBUSB_HCD_H_
-#define LIBUSB_HCD_H_
+#ifndef LIBUSB_ADDRKEEP_H_
+#define LIBUSB_ADDRKEEP_H_
 
 #include <usb/usb.h>
 #include <fibril_synch.h>
