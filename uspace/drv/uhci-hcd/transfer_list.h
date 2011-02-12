@@ -34,35 +34,34 @@
 #ifndef DRV_UHCI_TRANSFER_LIST_H
 #define DRV_UHCI_TRANSFER_LIST_H
 
+#include <fibril_synch.h>
+
 #include "uhci_struct/queue_head.h"
 
-#include "tracker.h"
+#include "batch.h"
 
 typedef struct transfer_list
 {
-	tracker_t *last_tracker;
-
+	fibril_mutex_t guard;
 	queue_head_t *queue_head;
 	uint32_t queue_head_pa;
 	struct transfer_list *next;
 	const char *name;
+	link_t batch_list;
 } transfer_list_t;
 
 int transfer_list_init(transfer_list_t *instance, const char *name);
 
 void transfer_list_set_next(transfer_list_t *instance, transfer_list_t *next);
 
-
 static inline void transfer_list_fini(transfer_list_t *instance)
 {
 	assert(instance);
 	queue_head_dispose(instance->queue_head);
 }
+void transfer_list_check(transfer_list_t *instance);
 
-void transfer_list_add_tracker(transfer_list_t *instance, tracker_t *tracker);
-
-void transfer_list_remove_tracker(transfer_list_t *instance, tracker_t *track);
-
+void transfer_list_add_batch(transfer_list_t *instance, batch_t *batch);
 #endif
 /**
  * @}

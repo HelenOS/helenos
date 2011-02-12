@@ -92,9 +92,17 @@ typedef struct transfer_descriptor {
 
 void transfer_descriptor_init(transfer_descriptor_t *instance,
     int error_count, size_t size, bool toggle, bool isochronous,
-    usb_target_t target, int pid, void *buffer);
+    usb_target_t target, int pid, void *buffer, transfer_descriptor_t * next);
 
 int transfer_descriptor_status(transfer_descriptor_t *instance);
+
+static inline size_t transfer_descriptor_actual_size(
+    transfer_descriptor_t *instance)
+{
+	assert(instance);
+	return
+	    ((instance->status >> TD_STATUS_ACTLEN_POS) + 1) & TD_STATUS_ACTLEN_MASK;
+}
 
 static inline bool transfer_descriptor_is_active(
     transfer_descriptor_t *instance)

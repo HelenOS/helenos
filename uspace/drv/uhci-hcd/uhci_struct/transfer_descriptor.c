@@ -39,11 +39,13 @@
 
 void transfer_descriptor_init(transfer_descriptor_t *instance,
     int error_count, size_t size, bool toggle, bool isochronous,
-    usb_target_t target, int pid, void *buffer)
+    usb_target_t target, int pid, void *buffer, transfer_descriptor_t *next)
 {
 	assert(instance);
 
-	instance->next = 0 | LINK_POINTER_TERMINATE_FLAG;
+	instance->next = 0
+	    | LINK_POINTER_VERTICAL_FLAG
+	    | ((next != NULL) ? addr_to_phys(next) : LINK_POINTER_TERMINATE_FLAG);
 
 	instance->status = 0
 	  | ((error_count & TD_STATUS_ERROR_COUNT_MASK) << TD_STATUS_ERROR_COUNT_POS)
