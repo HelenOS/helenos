@@ -108,11 +108,11 @@ static int interrupt_out(device_t *dev, usb_target_t target,
 	size_t max_packet_size = 8;
 	dev_speed_t speed = FULL_SPEED;
 
-	tracker_t *tracker = tracker_get(dev, target, USB_TRANSFER_INTERRUPT,
+	batch_t *batch = batch_get(dev, target, USB_TRANSFER_INTERRUPT,
 	    max_packet_size, speed, data, size, NULL, 0, NULL, callback, arg);
-	if (!tracker)
+	if (!batch)
 		return ENOMEM;
-	tracker_interrupt_out(tracker);
+	batch_interrupt_out(batch);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -123,11 +123,11 @@ static int interrupt_in(device_t *dev, usb_target_t target,
 	size_t max_packet_size = 4;
 	dev_speed_t speed = FULL_SPEED;
 
-	tracker_t *tracker = tracker_get(dev, target, USB_TRANSFER_INTERRUPT,
+	batch_t *batch = batch_get(dev, target, USB_TRANSFER_INTERRUPT,
 	    max_packet_size, speed, data, size, NULL, 0, callback, NULL, arg);
-	if (!tracker)
+	if (!batch)
 		return ENOMEM;
-	tracker_interrupt_in(tracker);
+	batch_interrupt_in(batch);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -138,12 +138,12 @@ static int control_write(device_t *dev, usb_target_t target,
 	size_t max_packet_size = 8;
 	dev_speed_t speed = FULL_SPEED;
 
-	tracker_t *tracker = tracker_get(dev, target, USB_TRANSFER_CONTROL,
+	batch_t *batch = batch_get(dev, target, USB_TRANSFER_CONTROL,
 	    max_packet_size, speed, data, size, setup_data, setup_size,
 	    NULL, callback, arg);
-	if (!tracker)
+	if (!batch)
 		return ENOMEM;
-	tracker_control_write(tracker);
+	batch_control_write(batch);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -154,12 +154,12 @@ static int control_read(device_t *dev, usb_target_t target,
 	size_t max_packet_size = 8;
 	dev_speed_t speed = FULL_SPEED;
 
-	tracker_t *tracker = tracker_get(dev, target, USB_TRANSFER_CONTROL,
+	batch_t *batch = batch_get(dev, target, USB_TRANSFER_CONTROL,
 	    max_packet_size, speed, data, size, setup_data, setup_size, callback,
 	    NULL, arg);
-	if (!tracker)
+	if (!batch)
 		return ENOMEM;
-	tracker_control_read(tracker);
+	batch_control_read(batch);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -171,11 +171,11 @@ static int control_write_setup(device_t *dev, usb_target_t target,
 	dev_speed_t speed = FULL_SPEED;
 
 	usb_log_warning("Using deprecated API %s.\n", __FUNCTION__);
-	tracker_t *tracker = tracker_get(dev, target, USB_TRANSFER_CONTROL,
+	batch_t *batch = batch_get(dev, target, USB_TRANSFER_CONTROL,
 	    max_packet_size, speed, NULL, 0, data, size, NULL, callback, arg);
-	if (!tracker)
+	if (!batch)
 		return ENOMEM;
-	tracker_control_setup_old(tracker);
+	batch_control_setup_old(batch);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -187,11 +187,11 @@ static int control_write_data(device_t *dev, usb_target_t target,
 	dev_speed_t speed = FULL_SPEED;
 
 	usb_log_warning("Using deprecated API %s.\n", __FUNCTION__);
-	tracker_t *tracker = tracker_get(dev, target, USB_TRANSFER_CONTROL,
+	batch_t *batch = batch_get(dev, target, USB_TRANSFER_CONTROL,
 	    max_packet_size, speed, data, size, NULL, 0, NULL, callback, arg);
-	if (!tracker)
+	if (!batch)
 		return ENOMEM;
-	tracker_control_write_data_old(tracker);
+	batch_control_write_data_old(batch);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -202,11 +202,11 @@ static int control_write_status(device_t *dev, usb_target_t target,
 	dev_speed_t speed = FULL_SPEED;
 
 	usb_log_warning("Using deprecated API %s.\n", __FUNCTION__);
-	tracker_t *tracker = tracker_get(dev, target, USB_TRANSFER_CONTROL,
+	batch_t *batch = batch_get(dev, target, USB_TRANSFER_CONTROL,
 	    max_packet_size, speed, NULL, 0, NULL, 0, callback, NULL, arg);
-	if (!tracker)
+	if (!batch)
 		return ENOMEM;
-	tracker_control_write_status_old(tracker);
+	batch_control_write_status_old(batch);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -218,11 +218,11 @@ static int control_read_setup(device_t *dev, usb_target_t target,
 	dev_speed_t speed = FULL_SPEED;
 
 	usb_log_warning("Using deprecated API %s.\n", __FUNCTION__);
-	tracker_t *tracker = tracker_get(dev, target, USB_TRANSFER_CONTROL,
+	batch_t *batch = batch_get(dev, target, USB_TRANSFER_CONTROL,
 	    max_packet_size, speed, NULL, 0, data, size, NULL, callback, arg);
-	if (!tracker)
+	if (!batch)
 		return ENOMEM;
-	tracker_control_setup_old(tracker);
+	batch_control_setup_old(batch);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -234,11 +234,11 @@ static int control_read_data(device_t *dev, usb_target_t target,
 	dev_speed_t speed = FULL_SPEED;
 
 	usb_log_warning("Using deprecated API %s.\n", __FUNCTION__);
-	tracker_t *tracker = tracker_get(dev, target, USB_TRANSFER_CONTROL,
+	batch_t *batch = batch_get(dev, target, USB_TRANSFER_CONTROL,
 	    max_packet_size, speed, data, size, NULL, 0, callback, NULL, arg);
-	if (!tracker)
+	if (!batch)
 		return ENOMEM;
-	tracker_control_read_data_old(tracker);
+	batch_control_read_data_old(batch);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -249,11 +249,11 @@ static int control_read_status(device_t *dev, usb_target_t target,
 	dev_speed_t speed = FULL_SPEED;
 
 	usb_log_warning("Using deprecated API %s.\n", __FUNCTION__);
-	tracker_t *tracker = tracker_get(dev, target, USB_TRANSFER_CONTROL,
+	batch_t *batch = batch_get(dev, target, USB_TRANSFER_CONTROL,
 	    max_packet_size, speed, NULL, 0, NULL, 0, NULL, callback, arg);
-	if (!tracker)
+	if (!batch)
 		return ENOMEM;
-	tracker_control_read_status_old(tracker);
+	batch_control_read_status_old(batch);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/

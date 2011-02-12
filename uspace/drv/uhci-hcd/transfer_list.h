@@ -36,7 +36,7 @@
 
 #include "uhci_struct/queue_head.h"
 
-#include "tracker.h"
+#include "batch.h"
 
 typedef struct transfer_list
 {
@@ -44,7 +44,7 @@ typedef struct transfer_list
 	uint32_t queue_head_pa;
 	struct transfer_list *next;
 	const char *name;
-	link_t tracker_list;
+	link_t batch_list;
 } transfer_list_t;
 
 int transfer_list_init(transfer_list_t *instance, const char *name);
@@ -59,7 +59,7 @@ static inline void transfer_list_fini(transfer_list_t *instance)
 }
 void transfer_list_check(transfer_list_t *instance);
 
-void transfer_list_add_tracker(transfer_list_t *instance, tracker_t *tracker);
+void transfer_list_add_batch(transfer_list_t *instance, batch_t *batch);
 #endif
 /**
  * @}

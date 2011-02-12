@@ -88,8 +88,8 @@ int uhci_init(uhci_t *instance, void *regs, size_t reg_size)
 	const uintptr_t pa = (uintptr_t)addr_to_phys(instance->frame_list);
 	pio_write_32(&instance->registers->flbaseadd, (uint32_t)pa);
 
-	list_initialize(&instance->tracker_list);
-	fibril_mutex_initialize(&instance->tracker_list_mutex);
+	list_initialize(&instance->batch_list);
+	fibril_mutex_initialize(&instance->batch_list_mutex);
 
 	instance->cleaner = fibril_create(uhci_clean_finished, instance);
 	fibril_add_ready(instance->cleaner);
@@ -151,24 +151,24 @@ int uhci_init_transfer_lists(uhci_t *instance)
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-int uhci_schedule(uhci_t *instance, tracker_t *tracker)
+int uhci_schedule(uhci_t *instance, batch_t *batch)
 {
 	assert(instance);
-	assert(tracker);
-	const int low_speed = (tracker->speed == LOW_SPEED);
+	assert(batch);
+	const int low_speed = (batch->speed == LOW_SPEED);
 	if (!allowed_usb_packet(
-	    low_speed, tracker->transfer_type, tracker->max_packet_size)) {
+	    low_speed, batch->transfer_type, batch->max_packet_size)) {
 		usb_log_warning("Invalid USB packet specified %s SPEED %d %zu.\n",
-			  low_speed ? "LOW" : "FULL" , tracker->transfer_type,
-		    tracker->max_packet_size);
+			  low_speed ? "LOW" : "FULL" , batch->transfer_type,
+		    batch->max_packet_size);
 		return ENOTSUP;
 	}
 	/* TODO: check available bandwith here */
 
 	transfer_list_t *list =
-	    instance->transfers[low_speed][tracker->transfer_type];
+	    instance->transfers[low_speed][batch->transfer_type];
 	assert(list);
-	transfer_list_add_tracker(list, tracker);
+	transfer_list_add_batch(list, batch);
 
 	return EOK;
 }

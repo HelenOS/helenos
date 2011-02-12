@@ -35,22 +35,22 @@
 
 #include <usb/debug.h>
 
-#include "tracker.h"
+#include "batch.h"
 #include "transfer_list.h"
 #include "uhci.h"
 #include "utils/malloc32.h"
 
 #define DEFAULT_ERROR_COUNT 3
 
-static int tracker_schedule(tracker_t *instance);
+static int batch_schedule(batch_t *instance);
 
-static void tracker_call_in(tracker_t *instance);
-static void tracker_call_out(tracker_t *instance);
-static void tracker_call_in_and_dispose(tracker_t *instance);
-static void tracker_call_out_and_dispose(tracker_t *instance);
+static void batch_call_in(batch_t *instance);
+static void batch_call_out(batch_t *instance);
+static void batch_call_in_and_dispose(batch_t *instance);
+static void batch_call_out_and_dispose(batch_t *instance);
 
 
-tracker_t * tracker_get(device_t *dev, usb_target_t target,
+batch_t * batch_get(device_t *dev, usb_target_t target,
     usb_transfer_type_t transfer_type, size_t max_packet_size,
     dev_speed_t speed, char *buffer, size_t size,
     char* setup_buffer, size_t setup_size,
@@ -60,9 +60,9 @@ tracker_t * tracker_get(device_t *dev, usb_target_t target,
 	assert(func_in == NULL || func_out == NULL);
 	assert(func_in != NULL || func_out != NULL);
 
-	tracker_t *instance = malloc(sizeof(tracker_t));
+	batch_t *instance = malloc(sizeof(batch_t));
 	if (instance == NULL) {
-		usb_log_error("Failed to allocate tracker instance.\n");
+		usb_log_error("Failed to allocate batch instance.\n");
 		return NULL;
 	}
 
@@ -135,7 +135,7 @@ tracker_t * tracker_get(device_t *dev, usb_target_t target,
 	return instance;
 }
 /*----------------------------------------------------------------------------*/
-bool tracker_is_complete(tracker_t *instance)
+bool batch_is_complete(batch_t *instance)
 {
 	assert(instance);
 	usb_log_debug("Checking(%p) %d packet for completion.\n",
@@ -156,7 +156,7 @@ bool tracker_is_complete(tracker_t *instance)
 	return true;
 }
 /*----------------------------------------------------------------------------*/
-void tracker_control_write(tracker_t *instance)
+void batch_control_write(batch_t *instance)
 {
 	assert(instance);
 
@@ -186,11 +186,11 @@ void tracker_control_write(tracker_t *instance)
 	transfer_descriptor_init(&instance->tds[i], DEFAULT_ERROR_COUNT,
 	    0, 1, false, instance->target, USB_PID_IN, NULL, NULL);
 
-	instance->next_step = tracker_call_out_and_dispose;
-	tracker_schedule(instance);
+	instance->next_step = batch_call_out_and_dispose;
+	batch_schedule(instance);
 }
 /*----------------------------------------------------------------------------*/
-void tracker_control_read(tracker_t *instance)
+void batch_control_read(batch_t *instance)
 {
 	assert(instance);
 
@@ -217,11 +217,11 @@ void tracker_control_read(tracker_t *instance)
 	transfer_descriptor_init(&instance->tds[i], DEFAULT_ERROR_COUNT,
 	    0, 1, false, instance->target, USB_PID_OUT, NULL, NULL);
 
-	instance->next_step = tracker_call_in_and_dispose;
-	tracker_schedule(instance);
+	instance->next_step = batch_call_in_and_dispose;
+	batch_schedule(instance);
 }
 /*----------------------------------------------------------------------------*/
-void tracker_interrupt_in(tracker_t *instance)
+void batch_interrupt_in(batch_t *instance)
 {
 	assert(instance);
 
@@ -239,11 +239,11 @@ void tracker_interrupt_in(tracker_t *instance)
 		    USB_PID_IN, data, next);
 	}
 
-	instance->next_step = tracker_call_in_and_dispose;
-	tracker_schedule(instance);
+	instance->next_step = batch_call_in_and_dispose;
+	batch_schedule(instance);
 }
 /*----------------------------------------------------------------------------*/
-void tracker_interrupt_out(tracker_t *instance)
+void batch_interrupt_out(batch_t *instance)
 {
 	assert(instance);
 
@@ -263,11 +263,11 @@ void tracker_interrupt_out(tracker_t *instance)
 		    USB_PID_OUT, data, next);
 	}
 
-	instance->next_step = tracker_call_out_and_dispose;
-	tracker_schedule(instance);
+	instance->next_step = batch_call_out_and_dispose;
+	batch_schedule(instance);
 }
 /*----------------------------------------------------------------------------*/
-void tracker_call_in(tracker_t *instance)
+void batch_call_in(batch_t *instance)
 {
 	assert(instance);
 	assert(instance->callback_in);
@@ -283,7 +283,7 @@ void tracker_call_in(tracker_t *instance)
 	    instance->arg);
 }
 /*----------------------------------------------------------------------------*/
-void tracker_call_out(tracker_t *instance)
+void batch_call_out(batch_t *instance)
 {
 	assert(instance);
 	assert(instance->callback_out);
@@ -294,11 +294,11 @@ void tracker_call_out(tracker_t *instance)
 	    err, instance->arg);
 }
 /*----------------------------------------------------------------------------*/
-void tracker_call_in_and_dispose(tracker_t *instance)
+void batch_call_in_and_dispose(batch_t *instance)
 {
 	assert(instance);
-	tracker_call_in(instance);
-	usb_log_debug("Disposing tracker: %p.\n", instance);
+	batch_call_in(instance);
+	usb_log_debug("Disposing batch: %p.\n", instance);
 	free32(instance->tds);
 	free32(instance->qh);
 	free32(instance->setup_buffer);
@@ -306,11 +306,11 @@ void tracker_call_in_and_dispose(tracker_t *instance)
 	free(instance);
 }
 /*----------------------------------------------------------------------------*/
-void tracker_call_out_and_dispose(tracker_t *instance)
+void batch_call_out_and_dispose(batch_t *instance)
 {
 	assert(instance);
-	tracker_call_out(instance);
-	usb_log_debug("Disposing tracker: %p.\n", instance);
+	batch_call_out(instance);
+	usb_log_debug("Disposing batch: %p.\n", instance);
 	free32(instance->tds);
 	free32(instance->qh);
 	free32(instance->setup_buffer);
@@ -318,7 +318,7 @@ void tracker_call_out_and_dispose(tracker_t *instance)
 	free(instance);
 }
 /*----------------------------------------------------------------------------*/
-int tracker_schedule(tracker_t *instance)
+int batch_schedule(batch_t *instance)
 {
 	assert(instance);
 	uhci_t *hc = dev_to_uhci(instance->dev);
@@ -327,7 +327,7 @@ int tracker_schedule(tracker_t *instance)
 }
 /*----------------------------------------------------------------------------*/
 /* DEPRECATED FUNCTIONS NEEDED BY THE OLD API */
-void tracker_control_setup_old(tracker_t *instance)
+void batch_control_setup_old(batch_t *instance)
 {
 	assert(instance);
 	instance->packets = 1;
@@ -337,42 +337,42 @@ void tracker_control_setup_old(tracker_t *instance)
 	    instance->setup_size, 0, false, instance->target,
 	    USB_PID_SETUP, instance->setup_buffer, NULL);
 
-	instance->next_step = tracker_call_out_and_dispose;
-	tracker_schedule(instance);
+	instance->next_step = batch_call_out_and_dispose;
+	batch_schedule(instance);
 }
 /*----------------------------------------------------------------------------*/
-void tracker_control_write_data_old(tracker_t *instance)
+void batch_control_write_data_old(batch_t *instance)
 {
 	assert(instance);
 	instance->packets -= 2;
-	tracker_interrupt_out(instance);
+	batch_interrupt_out(instance);
 }
 /*----------------------------------------------------------------------------*/
-void tracker_control_read_data_old(tracker_t *instance)
+void batch_control_read_data_old(batch_t *instance)
 {
 	assert(instance);
 	instance->packets -= 2;
-	tracker_interrupt_in(instance);
+	batch_interrupt_in(instance);
 }
 /*----------------------------------------------------------------------------*/
-void tracker_control_write_status_old(tracker_t *instance)
+void batch_control_write_status_old(batch_t *instance)
 {
 	assert(instance);
 	instance->packets = 1;
 	transfer_descriptor_init(instance->tds, DEFAULT_ERROR_COUNT,
 	    0, 1, false, instance->target, USB_PID_IN, NULL, NULL);
-	instance->next_step = tracker_call_in_and_dispose;
-	tracker_schedule(instance);
+	instance->next_step = batch_call_in_and_dispose;
+	batch_schedule(instance);
 }
 /*----------------------------------------------------------------------------*/
-void tracker_control_read_status_old(tracker_t *instance)
+void batch_control_read_status_old(batch_t *instance)
 {
 	assert(instance);
 	instance->packets = 1;
 	transfer_descriptor_init(instance->tds, DEFAULT_ERROR_COUNT,
 	    0, 1, false, instance->target, USB_PID_OUT, NULL, NULL);
-	instance->next_step = tracker_call_out_and_dispose;
-	tracker_schedule(instance);
+	instance->next_step = batch_call_out_and_dispose;
+	batch_schedule(instance);
 }
 /**
  * @}
