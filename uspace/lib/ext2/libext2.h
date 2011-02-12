@@ -36,7 +36,16 @@
 #ifndef LIBEXT2_LIBEXT2_H_
 #define LIBEXT2_LIBEXT2_H_
 
+#include <byteorder.h>
 
+typedef struct ext2_superblock {
+	uint8_t unused[56];
+	uint16_t magic;
+} ext2_superblock_t;
+
+#define EXT2_SUPERBLOCK_MAGIC 0xEF53
+
+inline uint16_t ext2_superblock_get_magic(ext2_superblock_t *superblock);
 
 #endif
 

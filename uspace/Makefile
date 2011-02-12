@@ -36,6 +36,7 @@ DIRS = \
 	app/bdsh \
 	app/blkdump \
 	app/edit \
+	app/ext2info \
 	app/getterm \
 	app/init \
 	app/kill \

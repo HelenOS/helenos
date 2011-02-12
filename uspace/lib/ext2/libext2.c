@@ -37,5 +37,9 @@
 #include <macros.h>
 #include <errno.h>
 
+inline uint16_t ext2_superblock_get_magic(ext2_superblock_t *superblock) {
+	return uint16_t_le2host(superblock->magic);
+}
+
 /** @}
  */
