@@ -35,10 +35,12 @@
 #include <driver.h>
 #include <bool.h>
 #include <errno.h>
+#include <str_error.h>
 
 #include <usb_iface.h>
 #include <usb/usbdrv.h>
 #include <usb/descriptor.h>
+#include <usb/recognise.h>
 #include <usb/devreq.h>
 #include <usb/classes/hub.h>
 
@@ -316,9 +318,17 @@ static void usb_hub_finalize_add_device( usb_hub_info_t * hub,
 		return;
 	}
 
+	devman_handle_t hc_handle;
+	opResult = usb_drv_find_hc(hub->device, &hc_handle);
+	if (opResult != EOK) {
+		usb_log_error("Failed to get handle of host controller: %s.\n",
+		    str_error(opResult));
+		return;
+	}
+
 	devman_handle_t child_handle;
-	opResult = usb_drv_register_child_in_devman(hc, hub->device,
-            new_device_address, &child_handle);
+        opResult = usb_device_register_child_in_devman(new_device_address,
+            hc_handle, hub->device, &child_handle);
 	if (opResult != EOK) {
 		dprintf(USB_LOG_LEVEL_ERROR, "could not start driver for new device");
 		return;
