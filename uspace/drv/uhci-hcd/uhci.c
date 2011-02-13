@@ -88,8 +88,8 @@ int uhci_init(uhci_t *instance, void *regs, size_t reg_size)
 	const uintptr_t pa = (uintptr_t)addr_to_phys(instance->frame_list);
 	pio_write_32(&instance->registers->flbaseadd, (uint32_t)pa);
 
-	list_initialize(&instance->tracker_list);
-	fibril_mutex_initialize(&instance->tracker_list_mutex);
+	list_initialize(&instance->batch_list);
+	fibril_mutex_initialize(&instance->batch_list_mutex);
 
 	instance->cleaner = fibril_create(uhci_clean_finished, instance);
 	fibril_add_ready(instance->cleaner);
@@ -151,39 +151,24 @@ int uhci_init_transfer_lists(uhci_t *instance)
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-int uhci_schedule(uhci_t *instance, tracker_t *tracker)
+int uhci_schedule(uhci_t *instance, batch_t *batch)
 {
 	assert(instance);
-	assert(tracker);
-	const int low_speed = (tracker->speed == LOW_SPEED);
+	assert(batch);
+	const int low_speed = (batch->speed == LOW_SPEED);
 	if (!allowed_usb_packet(
-	    low_speed, tracker->transfer_type, tracker->packet_size)) {
+	    low_speed, batch->transfer_type, batch->max_packet_size)) {
 		usb_log_warning("Invalid USB packet specified %s SPEED %d %zu.\n",
-			  low_speed ? "LOW" : "FULL" , tracker->transfer_type,
-		    tracker->packet_size);
+			  low_speed ? "LOW" : "FULL" , batch->transfer_type,
+		    batch->max_packet_size);
 		return ENOTSUP;
 	}
 	/* TODO: check available bandwith here */
 
-	usb_log_debug2("Scheduler(%d) acquiring tracker list mutex.\n",
-	    fibril_get_id());
-	fibril_mutex_lock(&instance->tracker_list_mutex);
-	usb_log_debug2("Scheduler(%d) acquired tracker list mutex.\n",
-	    fibril_get_id());
-
 	transfer_list_t *list =
-	    instance->transfers[low_speed][tracker->transfer_type];
+	    instance->transfers[low_speed][batch->transfer_type];
 	assert(list);
-	transfer_list_add_tracker(list, tracker);
-	list_append(&tracker->link, &instance->tracker_list);
-
-	tracker->scheduled_list = list;
-
-	usb_log_debug2("Scheduler(%d) releasing tracker list mutex.\n",
-	    fibril_get_id());
-	fibril_mutex_unlock(&instance->tracker_list_mutex);
-	usb_log_debug2("Scheduler(%d) released tracker list mutex.\n",
-	    fibril_get_id());
+	transfer_list_add_batch(list, batch);
 
 	return EOK;
 }
@@ -195,48 +180,10 @@ int uhci_clean_finished(void* arg)
 	assert(instance);
 
 	while(1) {
-		LIST_INITIALIZE(done_trackers);
-		/* tracker iteration */
-
-		usb_log_debug2("Cleaner(%d) acquiring tracker list mutex.\n",
-		    fibril_get_id());
-		fibril_mutex_lock(&instance->tracker_list_mutex);
-		usb_log_debug2("Cleaner(%d) acquired tracker list mutex.\n",
-		    fibril_get_id());
-
-		link_t *current = instance->tracker_list.next;
-		while (current != &instance->tracker_list)
-		{
-
-			link_t *next = current->next;
-			tracker_t *tracker = list_get_instance(current, tracker_t, link);
-
-			assert(current == &tracker->link);
-			assert(tracker);
-			assert(tracker->next_step);
-			assert(tracker->td);
-
-			if (!transfer_descriptor_is_active(tracker->td)) {
-				usb_log_info("Found inactive tracker with status: %x:%x.\n",
-				    tracker->td->status, tracker->td->device);
-				list_remove(current);
-				list_append(current, &done_trackers);
-			}
-			current = next;
-		}
-
-		usb_log_debug2("Cleaner(%d) releasing tracker list mutex.\n",
-		    fibril_get_id());
-		fibril_mutex_unlock(&instance->tracker_list_mutex);
-		usb_log_debug2("Cleaner(%d) released tracker list mutex.\n",
-		    fibril_get_id());
-
-		while (!list_empty(&done_trackers)) {
-			tracker_t *tracker = list_get_instance(
-			  done_trackers.next, tracker_t, link);
-			list_remove(&tracker->link);
-			tracker->next_step(tracker);
-		}
+		transfer_list_check(&instance->transfers_interrupt);
+		transfer_list_check(&instance->transfers_control_slow);
+		transfer_list_check(&instance->transfers_control_full);
+		transfer_list_check(&instance->transfers_bulk_full);
 		async_usleep(UHCI_CLEANER_TIMEOUT);
 	}
 	return EOK;

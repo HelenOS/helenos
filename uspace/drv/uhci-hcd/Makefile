@@ -39,6 +39,6 @@ SOURCES = \
 	uhci.c \
 	uhci_struct/transfer_descriptor.c \
 	pci.c \
-	tracker.c
+	batch.c
 
 include $(USPACE_PREFIX)/Makefile.common
