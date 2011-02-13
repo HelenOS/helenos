@@ -44,6 +44,7 @@ SOURCES = \
 	src/localdrv.c \
 	src/pipes.c \
 	src/pipesinit.c \
+	src/pipesio.c \
 	src/recognise.c \
 	src/remotedrv.c \
 	src/request.c \
