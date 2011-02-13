@@ -37,15 +37,48 @@
 #define LIBEXT2_LIBEXT2_H_
 
 #include <byteorder.h>
+#include <libblock.h>
 
 typedef struct ext2_superblock {
-	uint8_t unused[56];
-	uint16_t magic;
-} ext2_superblock_t;
+	uint8_t		unused[20];
+	uint32_t	first_block; // Block containing the superblock (either 0 or 1)
+	uint32_t	block_size_log2; // log_2(block_size)
+	int32_t		fragment_size_log2; // log_2(fragment size)
+	uint32_t	blocks_per_group; // Number of blocks in one block group
+	uint32_t	fragments_per_group; // Number of fragments per block group
+	uint32_t	inodes_per_group; // Number of inodes per block group
+	uint8_t		unused2[12];
+	uint16_t	magic; // Magic value
+} __attribute__ ((packed)) ext2_superblock_t;
+// TODO: add __attribute__((aligned(...)) for better performance?
+//       (it is necessary to ensure the superblock is correctly aligned then
+//        though)
 
-#define EXT2_SUPERBLOCK_MAGIC 0xEF53
+typedef struct ext2_filesystem {
+	devmap_handle_t		device;
+	ext2_superblock_t *	superblock;
+} ext2_filesystem_t;
 
-inline uint16_t ext2_superblock_get_magic(ext2_superblock_t *superblock);
+#define EXT2_SUPERBLOCK_MAGIC		0xEF53
+#define EXT2_SUPERBLOCK_SIZE		1024
+#define EXT2_SUPERBLOCK_OFFSET		1024
+#define EXT2_SUPERBLOCK_LAST_BYTE	(EXT2_SUPERBLOCK_OFFSET + \
+									 EXT2_SUPERBLOCK_SIZE -1)
+
+inline uint16_t	ext2_superblock_get_magic(ext2_superblock_t *sb);
+inline uint32_t	ext2_superblock_get_first_block(ext2_superblock_t *sb);
+inline uint32_t	ext2_superblock_get_block_size_log2(ext2_superblock_t *sb);
+inline uint32_t	ext2_superblock_get_block_size(ext2_superblock_t *sb);
+inline int32_t	ext2_superblock_get_fragment_size_log2(ext2_superblock_t *sb);
+inline uint32_t	ext2_superblock_get_fragment_size(ext2_superblock_t *sb);
+inline uint32_t	ext2_superblock_get_blocks_per_group(ext2_superblock_t *sb);
+inline uint32_t	ext2_superblock_get_fragments_per_group(ext2_superblock_t *sb);
+
+int ext2_superblock_read_direct(ext2_superblock_t **superblock,
+								devmap_handle_t dev);
+
+int ext2_filesystem_init(ext2_filesystem_t *fs, devmap_handle_t dev);
+void ext2_filesystem_fini(ext2_filesystem_t *fs);
 
 #endif
 

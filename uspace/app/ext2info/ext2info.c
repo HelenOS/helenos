@@ -59,9 +59,6 @@ int main(int argc, char **argv)
 	int rc;
 	char *dev_path;
 	devmap_handle_t handle;
-	size_t block_size;
-	aoff64_t dev_nblocks;
-	uint8_t *data;
 	ext2_superblock_t *superblock;
 	
 	uint16_t magic;
@@ -94,33 +91,11 @@ int main(int argc, char **argv)
 		return 2;
 	}
 
-	rc = block_get_bsize(handle, &block_size);
-	if (rc != EOK) {
-		printf(NAME ": Error determining device block size.\n");
-		return 2;
-	}
-
-	rc = block_get_nblocks(handle, &dev_nblocks);
-	if (rc != EOK) {
-		printf(NAME ": Warning, failed to obtain block device size.\n");
-	}
-
-	data = malloc(block_size);
-	if (data == NULL) {
-		printf(NAME ": Error allocating data buffer of %" PRIuOFF64 " bytes", (aoff64_t) block_size);
-		block_fini(handle);
+	rc = ext2_superblock_read_direct(&superblock, handle);
+	if (rc != EOK)  {
+		printf(NAME ": Error reading superblock.\n");
 		return 3;
 	}
-	
-	// TODO: don't assume device block size of 512 bytes
-	rc = block_read_direct(handle, 2, 1, data);
-	if (rc != EOK) {
-		printf(NAME ": Error reading block");
-		free(data);
-		return 3;
-	}
-	
-	superblock = (ext2_superblock_t *) data;
 	
 	printf("Superblock:\n");
 	magic = ext2_superblock_get_magic(superblock);
@@ -132,7 +107,7 @@ int main(int argc, char **argv)
 	}
 	
 	
-	free(data);
+	free(superblock);
 
 	block_fini(handle);
 

@@ -30,8 +30,10 @@
 
 USPACE_PREFIX = ../..
 LIBRARY = libext2
+EXTRA_CFLAGS = -I$(LIBBLOCK_PREFIX)
 
 SOURCES = \
-	libext2.c
+	libext2_filesystem.c \
+	libext2_superblock.c
 
 include $(USPACE_PREFIX)/Makefile.common
