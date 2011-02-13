@@ -52,6 +52,7 @@
 #define NAME	"ext2info"
 
 static void syntax_print(void);
+static void print_superblock(ext2_superblock_t *sb);
 
 int main(int argc, char **argv)
 {
@@ -60,8 +61,6 @@ int main(int argc, char **argv)
 	char *dev_path;
 	devmap_handle_t handle;
 	ext2_filesystem_t filesystem;
-	
-	uint16_t magic;
 	
 	if (argc < 2) {
 		printf(NAME ": Error, argument missing.\n");
@@ -91,14 +90,7 @@ int main(int argc, char **argv)
 		return 3;
 	}
 	
-	printf("Superblock:\n");
-	magic = ext2_superblock_get_magic(filesystem.superblock);
-	if (magic == EXT2_SUPERBLOCK_MAGIC) {
-		printf("  Magic value: %X (correct)\n", magic);
-	}
-	else {
-		printf("  Magic value: %X (incorrect)\n", magic);
-	}
+	print_superblock(filesystem.superblock);
 
 	ext2_filesystem_fini(&filesystem);
 
@@ -108,7 +100,76 @@ int main(int argc, char **argv)
 
 static void syntax_print(void)
 {
-	printf("syntax: blkdump [--offset <num_blocks>] [--count <num_blocks>] <device_name>\n");
+	printf("syntax: ext2info <device_name>\n");
+}
+
+static void print_superblock(ext2_superblock_t *superblock)
+{
+	uint16_t magic;
+	uint32_t first_block;
+	uint32_t block_size;
+	uint32_t fragment_size;
+	uint32_t blocks_per_group;
+	uint32_t fragments_per_group;
+	uint32_t rev_major;
+	uint16_t rev_minor;
+	uint16_t state;
+	uint32_t first_inode;
+	uint16_t inode_size;
+	
+	int pos;
+	unsigned char c;
+	
+	magic = ext2_superblock_get_magic(superblock);
+	first_block = ext2_superblock_get_first_block(superblock);
+	block_size = ext2_superblock_get_block_size(superblock);
+	fragment_size = ext2_superblock_get_fragment_size(superblock);
+	blocks_per_group = ext2_superblock_get_blocks_per_group(superblock);
+	fragments_per_group = ext2_superblock_get_fragments_per_group(superblock);
+	rev_major = ext2_superblock_get_rev_major(superblock);
+	rev_minor = ext2_superblock_get_rev_minor(superblock);
+	state = ext2_superblock_get_state(superblock);
+	first_inode = ext2_superblock_get_first_inode(superblock);
+	inode_size = ext2_superblock_get_inode_size(superblock);
+	
+	printf("Superblock:\n");
+	
+	if (magic == EXT2_SUPERBLOCK_MAGIC) {
+		printf("  Magic value: %X (correct)\n", magic);
+	}
+	else {
+		printf("  Magic value: %X (incorrect)\n", magic);
+	}
+	
+	printf("  Revision: %u.%hu\n", rev_major, rev_minor);
+	printf("  State: %hu\n", state);
+	printf("  First block: %u\n", first_block);
+	printf("  Block size: %u bytes (%u KiB)\n", block_size, block_size/1024);
+	printf("  Blocks per group: %u\n", blocks_per_group);
+	printf("  Fragment size: %u bytes (%u KiB)\n", fragment_size,
+	    fragment_size/1024);
+	printf("  Fragments per group: %u\n", fragments_per_group);
+	printf("  First inode: %u\n", first_inode);
+	printf("  Inode size: %hu bytes\n", inode_size);
+	
+	printf("  UUID: ");
+	for (pos = 0; pos < 16; pos++) {
+		printf("%02x", superblock->uuid[pos]);
+	}
+	printf("\n");
+	
+	printf("  Volume label: ");
+	for (pos = 0; pos < 16; pos++) {
+		c = superblock->volume_name[pos];
+		if (c >= 32 && c < 128) {
+			putchar(c);
+		}
+		else {
+			putchar(' ');
+		}
+	}
+	printf("\n");
+	
 }
 
 /**

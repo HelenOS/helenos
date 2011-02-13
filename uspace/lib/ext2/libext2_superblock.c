@@ -129,6 +129,62 @@ inline uint32_t ext2_superblock_get_fragments_per_group(ext2_superblock_t *sb)
 	return uint32_t_le2host(sb->fragments_per_group);
 }
 
+/**
+ * Get filesystem state
+ * 
+ * @param sb pointer to superblock
+ */
+inline uint16_t ext2_superblock_get_state(ext2_superblock_t *sb)
+{
+	return uint16_t_le2host(sb->state);
+}
+
+/**
+ * Get minor revision number
+ * 
+ * @param sb pointer to superblock
+ */
+inline uint16_t ext2_superblock_get_rev_minor(ext2_superblock_t *sb)
+{
+	return uint16_t_le2host(sb->rev_minor);
+}
+
+/**
+ * Get major revision number
+ * 
+ * @param sb pointer to superblock
+ */
+inline uint32_t ext2_superblock_get_rev_major(ext2_superblock_t *sb)
+{
+	return uint32_t_le2host(sb->rev_major);
+}
+
+/**
+ * Get index of first regular inode
+ * 
+ * @param sb pointer to superblock
+ */
+inline uint32_t ext2_superblock_get_first_inode(ext2_superblock_t *sb)
+{
+	if (ext2_superblock_get_rev_major(sb) == 0) {
+		return EXT2_REV0_FIRST_INODE;
+	}
+	return uint32_t_le2host(sb->first_inode);
+}
+
+/**
+ * Get size of inode
+ * 
+ * @param sb pointer to superblock
+ */
+inline uint16_t ext2_superblock_get_inode_size(ext2_superblock_t *sb)
+{
+	if (ext2_superblock_get_rev_major(sb) == 0) {
+		return EXT2_REV0_INODE_SIZE;
+	}
+	return uint32_t_le2host(sb->inode_size);
+}
+
 
 /** Read a superblock directly from device (i.e. no libblock cache)
  * 

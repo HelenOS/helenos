@@ -49,6 +49,19 @@ typedef struct ext2_superblock {
 	uint32_t	inodes_per_group; // Number of inodes per block group
 	uint8_t		unused2[12];
 	uint16_t	magic; // Magic value
+	uint16_t	state; // State (mounted/unmounted)
+	uint16_t	rev_minor; // Minor revision level
+	uint8_t		unused3[12];
+	uint32_t	creator_os;
+	uint32_t	rev_major; // Major revision level
+	uint8_t		unused4[8];
+	
+	// Following is for ext2 revision 1 only
+	uint32_t	first_inode;
+	uint16_t	inode_size;
+	uint8_t		unused5[14];
+	uint8_t		uuid[16]; // UUID TODO: Create a library for UUIDs
+	uint8_t		volume_name[16];
 
 // TODO: add __attribute__((aligned(...)) for better performance?
 //       (it is necessary to ensure the superblock is correctly aligned then
@@ -68,6 +81,8 @@ typedef struct ext2_filesystem {
 									 EXT2_SUPERBLOCK_SIZE -1)
 // allow maximum this block size
 #define EXT2_MAX_BLOCK_SIZE			8096
+#define EXT2_REV0_FIRST_INODE		11
+#define EXT2_REV0_INODE_SIZE		128
 
 inline uint16_t	ext2_superblock_get_magic(ext2_superblock_t *);
 inline uint32_t	ext2_superblock_get_first_block(ext2_superblock_t *);
@@ -77,6 +92,12 @@ inline int32_t	ext2_superblock_get_fragment_size_log2(ext2_superblock_t *);
 inline uint32_t	ext2_superblock_get_fragment_size(ext2_superblock_t *);
 inline uint32_t	ext2_superblock_get_blocks_per_group(ext2_superblock_t *);
 inline uint32_t	ext2_superblock_get_fragments_per_group(ext2_superblock_t *);
+inline uint16_t	ext2_superblock_get_state(ext2_superblock_t *);
+inline uint16_t	ext2_superblock_get_rev_minor(ext2_superblock_t *);
+inline uint32_t	ext2_superblock_get_rev_major(ext2_superblock_t *);
+inline uint32_t	ext2_superblock_get_creator_os(ext2_superblock_t *);
+inline uint32_t	ext2_superblock_get_first_inode(ext2_superblock_t *);
+inline uint16_t	ext2_superblock_get_inode_size(ext2_superblock_t *);
 
 extern int ext2_superblock_read_direct(devmap_handle_t, ext2_superblock_t **);
 
