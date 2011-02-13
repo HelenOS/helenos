@@ -59,7 +59,7 @@ int main(int argc, char **argv)
 	int rc;
 	char *dev_path;
 	devmap_handle_t handle;
-	ext2_superblock_t *superblock;
+	ext2_filesystem_t filesystem;
 	
 	uint16_t magic;
 	
@@ -85,31 +85,22 @@ int main(int argc, char **argv)
 		return 2;
 	}
 
-	rc = block_init(handle, 2048);
+	rc = ext2_filesystem_init(&filesystem, handle);
 	if (rc != EOK)  {
-		printf(NAME ": Error initializing libblock.\n");
-		return 2;
-	}
-
-	rc = ext2_superblock_read_direct(handle, &superblock);
-	if (rc != EOK)  {
-		printf(NAME ": Error reading superblock.\n");
+		printf(NAME ": Error initializing libext2.\n");
 		return 3;
 	}
 	
 	printf("Superblock:\n");
-	magic = ext2_superblock_get_magic(superblock);
+	magic = ext2_superblock_get_magic(filesystem.superblock);
 	if (magic == EXT2_SUPERBLOCK_MAGIC) {
 		printf("  Magic value: %X (correct)\n", magic);
 	}
 	else {
 		printf("  Magic value: %X (incorrect)\n", magic);
 	}
-	
-	
-	free(superblock);
 
-	block_fini(handle);
+	ext2_filesystem_fini(&filesystem);
 
 	return 0;
 }

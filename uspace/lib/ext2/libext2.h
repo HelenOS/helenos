@@ -66,6 +66,8 @@ typedef struct ext2_filesystem {
 #define EXT2_SUPERBLOCK_OFFSET		1024
 #define EXT2_SUPERBLOCK_LAST_BYTE	(EXT2_SUPERBLOCK_OFFSET + \
 									 EXT2_SUPERBLOCK_SIZE -1)
+// allow maximum this block size
+#define EXT2_MAX_BLOCK_SIZE			8096
 
 inline uint16_t	ext2_superblock_get_magic(ext2_superblock_t *);
 inline uint32_t	ext2_superblock_get_first_block(ext2_superblock_t *);

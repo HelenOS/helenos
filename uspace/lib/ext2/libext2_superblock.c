@@ -78,7 +78,7 @@ inline uint32_t ext2_superblock_get_block_size_log2(ext2_superblock_t *sb)
  */
 inline uint32_t ext2_superblock_get_block_size(ext2_superblock_t *sb)
 {
-	return 1024 << ext2_superblock_get_block_size(sb);
+	return 1024 << ext2_superblock_get_block_size_log2(sb);
 }
 
 /**

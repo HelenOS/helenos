@@ -43,13 +43,14 @@
  * This function reads superblock from the device and
  * initializes libblock cache with appropriate logical block size.
  * 
- * @param fs Pointer to ext2_filesystem_t to initialize
- * @param devmap_handle Device handle of the block device
+ * @param fs			Pointer to ext2_filesystem_t to initialize
+ * @param devmap_handle	Device handle of the block device
  */
 int ext2_filesystem_init(ext2_filesystem_t *fs, devmap_handle_t devmap_handle)
 {
 	int rc;
 	ext2_superblock_t *temp_superblock;
+	size_t block_size;
 	
 	fs->device = devmap_handle;
 	
@@ -64,7 +65,20 @@ int ext2_filesystem_init(ext2_filesystem_t *fs, devmap_handle_t devmap_handle)
 		return rc;
 	}
 	
-	free(temp_superblock);
+	block_size = ext2_superblock_get_block_size(temp_superblock);
+	
+	if (block_size > EXT2_MAX_BLOCK_SIZE) {
+		block_fini(fs->device);
+		return ENOTSUP;
+	}
+	
+	rc = block_cache_init(devmap_handle, block_size, 0, CACHE_MODE_WT);
+	if (rc != EOK) {
+		block_fini(fs->device);
+		return rc;
+	}
+	
+	fs->superblock = temp_superblock;
 	
 	return EOK; 
 }
@@ -76,6 +90,7 @@ int ext2_filesystem_init(ext2_filesystem_t *fs, devmap_handle_t devmap_handle)
  */
 void ext2_filesystem_fini(ext2_filesystem_t *fs)
 {
+	free(fs->superblock);
 	block_fini(fs->device);
 }
 

@@ -31,6 +31,7 @@
 USPACE_PREFIX = ../..
 LIBRARY = libext2
 EXTRA_CFLAGS = -I$(LIBBLOCK_PREFIX)
+LIBS = $(LIBBLOCK_PREFIX)/libblock.a
 
 SOURCES = \
 	libext2_filesystem.c \
