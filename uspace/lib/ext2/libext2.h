@@ -74,8 +74,7 @@ inline uint32_t	ext2_superblock_get_fragment_size(ext2_superblock_t *sb);
 inline uint32_t	ext2_superblock_get_blocks_per_group(ext2_superblock_t *sb);
 inline uint32_t	ext2_superblock_get_fragments_per_group(ext2_superblock_t *sb);
 
-int ext2_superblock_read_direct(ext2_superblock_t **superblock,
-								devmap_handle_t dev);
+int ext2_superblock_read_direct(devmap_handle_t, ext2_superblock_t **);
 
 int ext2_filesystem_init(ext2_filesystem_t *fs, devmap_handle_t dev);
 void ext2_filesystem_fini(ext2_filesystem_t *fs);

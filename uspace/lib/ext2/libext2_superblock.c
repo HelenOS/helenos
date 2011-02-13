@@ -34,6 +34,9 @@
  */
 
 #include "libext2.h"
+#include <errno.h>
+#include <malloc.h>
+#include <libblock.h>
 
 /**
  * Return a magic number from ext2 superblock, this should be equal to
@@ -100,6 +103,36 @@ inline uint32_t ext2_superblock_get_blocks_per_group(ext2_superblock_t *sb) {
  */
 inline uint32_t ext2_superblock_get_fragments_per_group(ext2_superblock_t *sb) {
 	return uint32_t_le2host(sb->fragments_per_group);
+}
+
+
+/** Read a superblock directly from device (i.e. no libblock cache)
+ * 
+ * @param devmap_handle	Device handle of the block device.
+ * @param superblock	Pointer where to store pointer to new superblock
+ * 
+ * @return		EOK on success or negative error code on failure.
+ */
+int ext2_superblock_read_direct(devmap_handle_t devmap_handle,
+    ext2_superblock_t **superblock)
+{
+	void *data;
+	int rc;
+	
+	data = malloc(EXT2_SUPERBLOCK_SIZE);
+	if (data == NULL) {
+		return ENOMEM;
+	}
+	
+	rc = block_read_bytes_direct(devmap_handle, EXT2_SUPERBLOCK_OFFSET,
+	    EXT2_SUPERBLOCK_SIZE, data);
+	if (rc != EOK) {
+		free(data);
+		return rc;
+	}
+	
+	(*superblock) = data;
+	return EOK;
 }
 
 

@@ -91,7 +91,7 @@ int main(int argc, char **argv)
 		return 2;
 	}
 
-	rc = ext2_superblock_read_direct(&superblock, handle);
+	rc = ext2_superblock_read_direct(handle, &superblock);
 	if (rc != EOK)  {
 		printf(NAME ": Error reading superblock.\n");
 		return 3;

@@ -36,60 +36,7 @@
 #include "libext2.h"
 #include <errno.h>
 #include <libblock.h>
-#include <mem.h>
 #include <malloc.h>
-
-int ext2_superblock_read_direct(ext2_superblock_t **superblock,
-								devmap_handle_t dev) {
-	int rc;
-	size_t phys_block_size;
-	size_t buf_size;
-	uint8_t *buffer;
-	size_t first_block;
-	size_t last_block;
-	size_t blocks;
-	size_t offset;
-	ext2_superblock_t *tmp_superblock;
-	
-	rc = block_get_bsize(dev, &phys_block_size);
-	if (rc != EOK) {
-		return rc;
-	}
-	
-	// calculate superblock position and required space
-	first_block = EXT2_SUPERBLOCK_OFFSET / phys_block_size;
-	offset = EXT2_SUPERBLOCK_OFFSET % phys_block_size;
-	last_block = EXT2_SUPERBLOCK_LAST_BYTE / phys_block_size;
-	blocks = last_block - first_block + 1;
-	buf_size = blocks * phys_block_size;
-	
-	// read the superblock into memory
-	buffer = malloc(buf_size);
-	if (buffer == NULL) {
-		return ENOMEM;
-	}
-	
-	rc = block_read_direct(dev, first_block, blocks, buffer);
-	if (rc != EOK) {
-		free(buffer);
-		return rc;
-	}
-	
-	// copy the superblock from the buffer
-	// as it may not be at the start of the block
-	// (i.e. blocks larger than 1K)
-	tmp_superblock = malloc(EXT2_SUPERBLOCK_SIZE);
-	if (tmp_superblock == NULL) {
-		free(buffer);
-		return ENOMEM;
-	}
-	
-	memcpy(tmp_superblock, buffer + offset, EXT2_SUPERBLOCK_SIZE);
-	free(buffer);
-	(*superblock) = tmp_superblock;
-	
-	return EOK;
-}
 
 /**
  * Initialize an instance of filesystem on the device.
@@ -107,7 +54,7 @@ int ext2_filesystem_init(ext2_filesystem_t *fs, devmap_handle_t dev) {
 		return rc;
 	}
 	
-	rc = ext2_superblock_read_direct(&temp_superblock, dev);
+	rc = ext2_superblock_read_direct(dev, &temp_superblock);
 	if (rc != EOK) {
 		block_fini(dev);
 		return rc;

@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2008 Jakub Jermar
  * Copyright (c) 2008 Martin Decky 
+ * Copyright (c) 2011 Martin Sucha 
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -112,6 +113,7 @@ extern int block_seqread(devmap_handle_t, size_t *, size_t *, aoff64_t *, void *
 extern int block_get_bsize(devmap_handle_t, size_t *);
 extern int block_get_nblocks(devmap_handle_t, aoff64_t *);
 extern int block_read_direct(devmap_handle_t, aoff64_t, size_t, void *);
+extern int block_read_bytes_direct(devmap_handle_t, aoff64_t, size_t, void *);
 extern int block_write_direct(devmap_handle_t, aoff64_t, size_t, const void *);
 
 #endif
