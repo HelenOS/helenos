@@ -132,6 +132,7 @@ static ns8250_t *ns8250_new(void)
  */
 static void ns8250_delete(ns8250_t *ns)
 {
+	assert(ns != NULL);
 	free(ns);
 }
 
@@ -404,7 +405,7 @@ failed:
  * @param port		The base address of the serial port device's ports.
  */
 static inline void ns8250_port_interrupts_enable(ioport8_t *port)
-{	
+{
 	pio_write_8(port + 1, 0x1);	/* Interrupt when data received. */
 	pio_write_8(port + 4, 0xB);
 }
@@ -802,7 +803,7 @@ static int ns8250_open(function_t *fun)
 		data->client_connected = true;
 	}
 	fibril_mutex_unlock(&data->mutex);
-
+	
 	return res;
 }
 

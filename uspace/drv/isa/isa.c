@@ -340,7 +340,7 @@ static void fun_parse_match_id(isa_fun_t *fun, char *val)
 		return;
 	}
 
-	val = skip_spaces(end);	
+	val = skip_spaces(end);
 	get_match_id(&id, val);
 	if (id == NULL) {
 		printf(NAME " : error - could not read match id for "

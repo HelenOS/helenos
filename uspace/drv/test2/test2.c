@@ -37,13 +37,13 @@
 
 #define NAME "test2"
 
-static int add_device(device_t *dev);
+static int test2_add_device(device_t *dev);
 
 static driver_ops_t driver_ops = {
-	.add_device = &add_device
+	.add_device = &test2_add_device
 };
 
-static driver_t the_driver = {
+static driver_t test2_driver = {
 	.name = NAME,
 	.driver_ops = &driver_ops
 };
@@ -101,9 +101,9 @@ static int postponed_birth(void *arg)
 	return EOK;
 }
 
-static int add_device(device_t *dev)
+static int test2_add_device(device_t *dev)
 {
-	printf(NAME ": add_device(name=\"%s\", handle=%d)\n",
+	printf(NAME ": test2_add_device(name=\"%s\", handle=%d)\n",
 	    dev->name, (int) dev->handle);
 
 	if (str_cmp(dev->name, "child") != 0) {
@@ -124,7 +124,7 @@ static int add_device(device_t *dev)
 int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS test2 virtual device driver\n");
-	return driver_main(&the_driver);
+	return driver_main(&test2_driver);
 }
 
 

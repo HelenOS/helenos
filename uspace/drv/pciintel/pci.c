@@ -110,17 +110,17 @@ static pci_bus_t *pci_bus_new(void)
 {
 	pci_bus_t *bus;
 	
-	bus = (pci_bus_t *) malloc(sizeof(pci_bus_t));
-	if (bus != NULL) {
-		memset(bus, 0, sizeof(pci_bus_t));
-		fibril_mutex_initialize(&bus->conf_mutex);
-	}
-
+	bus = (pci_bus_t *) calloc(1, sizeof(pci_bus_t));
+	if (bus == NULL)
+		return NULL;
+	
+	fibril_mutex_initialize(&bus->conf_mutex);
 	return bus;
 }
 
 static void pci_bus_delete(pci_bus_t *bus)
 {
+	assert(bus != NULL);
 	free(bus);
 }
 
@@ -227,7 +227,7 @@ void pci_fun_create_match_ids(pci_fun_t *fun)
 		match_id->score = 90;
 		add_match_id(&fun->fnode->match_ids, match_id);
 	}
-
+	
 	/* TODO add more ids (with subsys ids, using class id etc.) */
 }
 
@@ -265,7 +265,7 @@ void pci_add_range(pci_fun_t *fun, uint64_t range_addr, size_t range_size,
  * @return	The addr the address of the BAR which should be read next
  */
 int pci_read_bar(pci_fun_t *fun, int addr)
-{	
+{
 	/* Value of the BAR */
 	uint32_t val, mask;
 	/* IO space address */
@@ -368,7 +368,7 @@ void pci_bus_scan(pci_bus_t *bus, int bus_num)
 	int dnum, fnum;
 	bool multi;
 	uint8_t header_type;
-
+	
 	/* We need this early, before registering. */
 	fun->fnode = fnode;
 	fnode->dev = bus->dnode;
@@ -484,7 +484,7 @@ static int pci_add_device(device_t *dnode)
 		pci_bus_delete(bus);
 		async_hangup(dnode->parent_phone);
 		return rc;
-	}	
+	}
 	
 	printf(NAME ": conf_addr = %" PRIx64 ".\n",
 	    hw_resources.resources[0].res.io_range.address);
@@ -530,10 +530,9 @@ static void pciintel_init(void)
 
 pci_fun_t *pci_fun_new(void)
 {
-	pci_fun_t *res = (pci_fun_t *) malloc(sizeof(pci_fun_t));
+	pci_fun_t *res;
 	
-	if (res != NULL)
-		memset(res, 0, sizeof(pci_fun_t));
+	res = (pci_fun_t *) calloc(1, sizeof(pci_fun_t));
 	return res;
 }
 
@@ -546,10 +545,9 @@ void pci_fun_init(pci_fun_t *fun, int bus, int dev, int fn)
 
 void pci_fun_delete(pci_fun_t *fun)
 {
-	if (fun != NULL) {
-		hw_res_clean_resource_list(&fun->hw_resources);
-		free(fun);
-	}
+	assert(fun != NULL);
+	hw_res_clean_resource_list(&fun->hw_resources);
+	free(fun);
 }
 
 void pci_fun_create_name(pci_fun_t *fun)

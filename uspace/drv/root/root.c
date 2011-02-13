@@ -147,7 +147,7 @@ static int root_add_device(device_t *dev)
 {
 	printf(NAME ": root_add_device, device handle=%" PRIun "\n",
 	    dev->handle);
-	
+
 	/*
 	 * Register virtual devices root.
 	 * We ignore error occurrence because virtual devices shall not be
@@ -159,7 +159,7 @@ static int root_add_device(device_t *dev)
 	int res = add_platform_fun(dev);
 	if (EOK != res)
 		printf(NAME ": failed to add child device for platform.\n");
-	
+
 	return res;
 }
 

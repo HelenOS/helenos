@@ -35,13 +35,13 @@
 #include <str_error.h>
 #include "test1.h"
 
-static int add_device(device_t *dev);
+static int test1_add_device(device_t *dev);
 
 static driver_ops_t driver_ops = {
-	.add_device = &add_device
+	.add_device = &test1_add_device
 };
 
-static driver_t the_driver = {
+static driver_t test1_driver = {
 	.name = NAME,
 	.driver_ops = &driver_ops
 };
@@ -54,7 +54,7 @@ static driver_t the_driver = {
  * @param match_id Device match id.
  * @param score Device match score.
  */
-static void register_child_verbose(device_t *parent, const char *message,
+static void register_fun_verbose(device_t *parent, const char *message,
     const char *name, const char *match_id, int match_score)
 {
 	printf(NAME ": registering child device `%s': %s.\n",
@@ -88,7 +88,7 @@ static void register_child_verbose(device_t *parent, const char *message,
  * @param dev New device.
  * @return Error code reporting success of the operation.
  */
-static int add_device(device_t *dev)
+static int test1_add_device(device_t *dev)
 {
 	function_t *fun_a;
 
@@ -107,10 +107,10 @@ static int add_device(device_t *dev)
 		fun_a->ops = &char_device_ops;
 		add_function_to_class(fun_a, "virt-null");
 	} else if (str_cmp(dev->name, "test1") == 0) {
-		register_child_verbose(dev, "cloning myself ;-)", "clone",
+		register_fun_verbose(dev, "cloning myself ;-)", "clone",
 		    "virtual&test1", 10);
 	} else if (str_cmp(dev->name, "clone") == 0) {
-		register_child_verbose(dev, "run by the same task", "child",
+		register_fun_verbose(dev, "run by the same task", "child",
 		    "virtual&test1&child", 10);
 	}
 
@@ -122,6 +122,6 @@ static int add_device(device_t *dev)
 int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS test1 virtual device driver\n");
-	return driver_main(&the_driver);
+	return driver_main(&test1_driver);
 }
 

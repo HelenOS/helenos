@@ -109,7 +109,7 @@ static int rootvirt_add_device(device_t *dev)
 	}
 
 	printf(NAME ": add_device(handle=%d)\n", (int)dev->handle);
-	
+
 	/*
 	 * Go through all virtual functions and try to add them.
 	 * We silently ignore failures.
