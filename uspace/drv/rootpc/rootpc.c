@@ -54,9 +54,12 @@
 
 #define NAME "rootpc"
 
-typedef struct rootpc_fun_data {
+/** Obtain function soft-state from DDF function node */
+#define ROOTPC_FUN(fnode) ((rootpc_fun_t *) (fnode)->driver_data)
+
+typedef struct rootpc_fun {
 	hw_resource_list_t hw_resources;
-} rootpc_fun_data_t;
+} rootpc_fun_t;
 
 static int rootpc_add_device(device_t *dev);
 static void root_pc_init(void);
@@ -81,25 +84,22 @@ static hw_resource_t pci_conf_regs = {
 	}
 };
 
-static rootpc_fun_data_t pci_data = {
+static rootpc_fun_t pci_data = {
 	.hw_resources = {
 		1,
 		&pci_conf_regs
 	}
 };
 
-static hw_resource_list_t *rootpc_get_fun_resources(function_t *fun)
+static hw_resource_list_t *rootpc_get_resources(function_t *fnode)
 {
-	rootpc_fun_data_t *data;
+	rootpc_fun_t *fun = ROOTPC_FUN(fnode);
 	
-	data = (rootpc_fun_data_t *) fun->driver_data;
-	if (NULL == data)
-		return NULL;
-	
-	return &data->hw_resources;
+	assert(fun != NULL);
+	return &fun->hw_resources;
 }
 
-static bool rootpc_enable_fun_interrupt(function_t *fun)
+static bool rootpc_enable_interrupt(function_t *fun)
 {
 	/* TODO */
 	
@@ -107,57 +107,57 @@ static bool rootpc_enable_fun_interrupt(function_t *fun)
 }
 
 static hw_res_ops_t fun_hw_res_ops = {
-	&rootpc_get_fun_resources,
-	&rootpc_enable_fun_interrupt
+	&rootpc_get_resources,
+	&rootpc_enable_interrupt
 };
 
 /* Initialized in root_pc_init() function. */
 static device_ops_t rootpc_fun_ops;
 
 static bool
-rootpc_add_fun(device_t *parent, const char *name, const char *str_match_id,
-    rootpc_fun_data_t *drv_data)
+rootpc_add_fun(device_t *dev, const char *name, const char *str_match_id,
+    rootpc_fun_t *fun)
 {
 	printf(NAME ": adding new function '%s'.\n", name);
 	
-	function_t *fun = NULL;
+	function_t *fnode = NULL;
 	match_id_t *match_id = NULL;
 	
 	/* Create new device. */
-	fun = create_function();
-	if (fun == NULL)
+	fnode = create_function();
+	if (fnode == NULL)
 		goto failure;
 	
-	fun->name = name;
-	fun->driver_data = drv_data;
-	fun->ftype = fun_inner;
+	fnode->name = name;
+	fnode->driver_data = fun;
+	fnode->ftype = fun_inner;
 	
 	/* Initialize match id list */
 	match_id = create_match_id();
-	if (NULL == match_id)
+	if (match_id == NULL)
 		goto failure;
 	
 	match_id->id = str_match_id;
 	match_id->score = 100;
-	add_match_id(&fun->match_ids, match_id);
+	add_match_id(&fnode->match_ids, match_id);
 	
 	/* Set provided operations to the device. */
-	fun->ops = &rootpc_fun_ops;
+	fnode->ops = &rootpc_fun_ops;
 	
 	/* Register function. */
-	if (EOK != register_function(fun, parent))
+	if (register_function(fnode, dev) != EOK)
 		goto failure;
-	printf(NAME ": registered function handle = %u\n", fun->handle);
+	printf(NAME ": registered function handle = %u\n", fnode->handle);
 	
 	return true;
 	
 failure:
-	if (NULL != match_id)
+	if (match_id != NULL)
 		match_id->id = NULL;
 	
-	if (NULL != fun) {
-		fun->name = NULL;
-		delete_function(fun);
+	if (fnode != NULL) {
+		fnode->name = NULL;
+		delete_function(fnode);
 	}
 	
 	printf(NAME ": failed to add function '%s'.\n", name);

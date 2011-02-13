@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -44,39 +45,50 @@
 #define PCI_MAX_HW_RES 8
 
 typedef struct pci_fun_data {
+	function_t *fnode;
+
 	int bus;
 	int dev;
 	int fn;
 	int vendor_id;
 	int device_id;
 	hw_resource_list_t hw_resources;
-} pci_fun_data_t;
+} pci_fun_t;
 
-extern void create_pci_match_ids(function_t *);
+typedef struct pciintel_bus {
+	/** DDF device node */
+	device_t *dnode;
+	uint32_t conf_io_addr;
+	void *conf_data_port;
+	void *conf_addr_port;
+	fibril_mutex_t conf_mutex;
+} pci_bus_t;
 
-extern uint8_t pci_conf_read_8(function_t *, int);
-extern uint16_t pci_conf_read_16(function_t *, int);
-extern uint32_t pci_conf_read_32(function_t *, int);
-extern void pci_conf_write_8(function_t *, int, uint8_t);
-extern void pci_conf_write_16(function_t *, int, uint16_t);
-extern void pci_conf_write_32(function_t *, int, uint32_t);
+extern void pci_fun_create_match_ids(pci_fun_t *);
 
-extern void pci_add_range(function_t *, uint64_t, size_t, bool);
-extern int pci_read_bar(function_t *, int);
-extern void pci_read_interrupt(function_t *);
-extern void pci_add_interrupt(function_t *, int);
+extern uint8_t pci_conf_read_8(pci_fun_t *, int);
+extern uint16_t pci_conf_read_16(pci_fun_t *, int);
+extern uint32_t pci_conf_read_32(pci_fun_t *, int);
+extern void pci_conf_write_8(pci_fun_t *, int, uint8_t);
+extern void pci_conf_write_16(pci_fun_t *, int, uint16_t);
+extern void pci_conf_write_32(pci_fun_t *, int, uint32_t);
 
-extern void pci_bus_scan(device_t *, int);
+extern void pci_add_range(pci_fun_t *, uint64_t, size_t, bool);
+extern int pci_read_bar(pci_fun_t *, int);
+extern void pci_read_interrupt(pci_fun_t *);
+extern void pci_add_interrupt(pci_fun_t *, int);
 
-extern pci_fun_data_t *create_pci_fun_data(void);
-extern void init_pci_fun_data(pci_fun_data_t *, int, int, int);
-extern void delete_pci_fun_data(pci_fun_data_t *);
-extern void create_pci_fun_name(function_t *);
+extern pci_fun_t *pci_fun_new(void);
+extern void pci_fun_init(pci_fun_t *, int, int, int);
+extern void pci_fun_delete(pci_fun_t *);
+extern void pci_fun_create_name(pci_fun_t *);
 
-extern bool pci_alloc_resource_list(function_t *);
-extern void pci_clean_resource_list(function_t *);
+extern void pci_bus_scan(pci_bus_t *, int);
 
-extern void pci_read_bars(function_t *);
+extern bool pci_alloc_resource_list(pci_fun_t *);
+extern void pci_clean_resource_list(pci_fun_t *);
+
+extern void pci_read_bars(pci_fun_t *);
 extern size_t pci_bar_mask_to_size(uint32_t);
 
 #endif

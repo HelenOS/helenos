@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -59,24 +60,25 @@
 #define NAME "isa"
 #define CHILD_FUN_CONF_PATH "/drv/isa/isa.dev"
 
+/** Obtain soft-state pointer from function node pointer */
+#define ISA_FUN(fnode) ((isa_fun_t *) ((fnode)->driver_data))
+
 #define ISA_MAX_HW_RES 4
 
-typedef struct isa_fun_data {
+typedef struct isa_fun {
+	function_t *fnode;
 	hw_resource_list_t hw_resources;
-} isa_fun_data_t;
+} isa_fun_t;
 
-static hw_resource_list_t *isa_get_fun_resources(function_t *fun)
+static hw_resource_list_t *isa_get_fun_resources(function_t *fnode)
 {
-	isa_fun_data_t *fun_data;
+	isa_fun_t *fun = ISA_FUN(fnode);
+	assert(fun != NULL);
 
-	fun_data = (isa_fun_data_t *)fun->driver_data;
-	if (fun_data == NULL)
-		return NULL;
-
-	return &fun_data->hw_resources;
+	return &fun->hw_resources;
 }
 
-static bool isa_enable_fun_interrupt(function_t *fun)
+static bool isa_enable_fun_interrupt(function_t *fnode)
 {
 	// TODO
 
@@ -88,7 +90,7 @@ static hw_res_ops_t isa_fun_hw_res_ops = {
 	&isa_enable_fun_interrupt
 };
 
-static device_ops_t isa_fun_dev_ops;
+static device_ops_t isa_fun_ops;
 
 static int isa_add_device(device_t *dev);
 
@@ -103,35 +105,24 @@ static driver_t isa_driver = {
 	.driver_ops = &isa_ops
 };
 
-
-static isa_fun_data_t *create_isa_fun_data() 
+static isa_fun_t *isa_fun_create()
 {
-	isa_fun_data_t *data;
-
-	data = (isa_fun_data_t *) malloc(sizeof(isa_fun_data_t));
-	if (data != NULL)
-		memset(data, 0, sizeof(isa_fun_data_t));
-
-	return data;
-}
-
-static function_t *create_isa_fun()
-{
-	function_t *fun = create_function();
+	isa_fun_t *fun = calloc(1, sizeof(isa_fun_t));
 	if (fun == NULL)
 		return NULL;
 
-	isa_fun_data_t *data = create_isa_fun_data();
-	if (data == NULL) {
-		delete_function(fun);
+	function_t *fnode = create_function();
+	if (fnode == NULL) {
+		free(fun);
 		return NULL;
 	}
 
-	fun->driver_data = data;
+	fun->fnode = fnode;
+	fnode->driver_data = fun;
 	return fun;
 }
 
-static char *read_fun_conf(const char *conf_path)
+static char *fun_conf_read(const char *conf_path)
 {
 	bool suc = false;
 	char *buf = NULL;
@@ -150,19 +141,19 @@ static char *read_fun_conf(const char *conf_path)
 	len = lseek(fd, 0, SEEK_END);
 	lseek(fd, 0, SEEK_SET);	
 	if (len == 0) {
-		printf(NAME ": read_fun_conf error: configuration file '%s' "
+		printf(NAME ": fun_conf_read error: configuration file '%s' "
 		    "is empty.\n", conf_path);
 		goto cleanup;
 	}
 
 	buf = malloc(len + 1);
 	if (buf == NULL) {
-		printf(NAME ": read_fun_conf error: memory allocation failed.\n");
+		printf(NAME ": fun_conf_read error: memory allocation failed.\n");
 		goto cleanup;
 	}
 
 	if (0 >= read(fd, buf, len)) {
-		printf(NAME ": read_fun_conf error: unable to read file '%s'.\n",
+		printf(NAME ": fun_conf_read error: unable to read file '%s'.\n",
 		    conf_path);
 		goto cleanup;
 	}
@@ -248,29 +239,26 @@ static inline char *skip_spaces(char *line)
 	return line;
 }
 
-static void isa_fun_set_irq(function_t *fun, int irq)
+static void isa_fun_set_irq(isa_fun_t *fun, int irq)
 {
-	isa_fun_data_t *data = (isa_fun_data_t *)fun->driver_data;
-
-	size_t count = data->hw_resources.count;
-	hw_resource_t *resources = data->hw_resources.resources;
+	size_t count = fun->hw_resources.count;
+	hw_resource_t *resources = fun->hw_resources.resources;
 
 	if (count < ISA_MAX_HW_RES) {
 		resources[count].type = INTERRUPT;
 		resources[count].res.interrupt.irq = irq;
 
-		data->hw_resources.count++;
+		fun->hw_resources.count++;
 
-		printf(NAME ": added irq 0x%x to function %s\n", irq, fun->name);
+		printf(NAME ": added irq 0x%x to function %s\n", irq,
+		    fun->fnode->name);
 	}
 }
 
-static void isa_fun_set_io_range(function_t *fun, size_t addr, size_t len)
+static void isa_fun_set_io_range(isa_fun_t *fun, size_t addr, size_t len)
 {
-	isa_fun_data_t *data = (isa_fun_data_t *)fun->driver_data;
-
-	size_t count = data->hw_resources.count;
-	hw_resource_t *resources = data->hw_resources.resources;
+	size_t count = fun->hw_resources.count;
+	hw_resource_t *resources = fun->hw_resources.resources;
 
 	if (count < ISA_MAX_HW_RES) {
 		resources[count].type = IO_RANGE;
@@ -278,15 +266,15 @@ static void isa_fun_set_io_range(function_t *fun, size_t addr, size_t len)
 		resources[count].res.io_range.size = len;
 		resources[count].res.io_range.endianness = LITTLE_ENDIAN;
 
-		data->hw_resources.count++;
+		fun->hw_resources.count++;
 
 		printf(NAME ": added io range (addr=0x%x, size=0x%x) to "
 		    "function %s\n", (unsigned int) addr, (unsigned int) len,
-		    fun->name);
+		    fun->fnode->name);
 	}
 }
 
-static void get_dev_irq(function_t *fun, char *val)
+static void fun_parse_irq(isa_fun_t *fun, char *val)
 {
 	int irq = 0;
 	char *end = NULL;
@@ -298,7 +286,7 @@ static void get_dev_irq(function_t *fun, char *val)
 		isa_fun_set_irq(fun, irq);
 }
 
-static void get_dev_io_range(function_t *fun, char *val)
+static void fun_parse_io_range(isa_fun_t *fun, char *val)
 {
 	size_t addr, len;
 	char *end = NULL;
@@ -330,25 +318,25 @@ static void get_match_id(char **id, char *val)
 	str_cpy(*id, size, val);
 }
 
-static void get_fun_match_id(function_t *fun, char *val)
+static void fun_parse_match_id(isa_fun_t *fun, char *val)
 {
 	char *id = NULL;
 	int score = 0;
 	char *end = NULL;
 
-	val = skip_spaces(val);	
+	val = skip_spaces(val);
 
 	score = (int)strtol(val, &end, 10);
 	if (val == end) {
 		printf(NAME " : error - could not read match score for "
-		    "function %s.\n", fun->name);
+		    "function %s.\n", fun->fnode->name);
 		return;
 	}
 
 	match_id_t *match_id = create_match_id();
 	if (match_id == NULL) {
 		printf(NAME " : failed to allocate match id for function %s.\n",
-		    fun->name);
+		    fun->fnode->name);
 		return;
 	}
 
@@ -356,7 +344,7 @@ static void get_fun_match_id(function_t *fun, char *val)
 	get_match_id(&id, val);
 	if (id == NULL) {
 		printf(NAME " : error - could not read match id for "
-		    "function %s.\n", fun->name);
+		    "function %s.\n", fun->fnode->name);
 		delete_match_id(match_id);
 		return;
 	}
@@ -365,12 +353,12 @@ static void get_fun_match_id(function_t *fun, char *val)
 	match_id->score = score;
 
 	printf(NAME ": adding match id '%s' with score %d to function %s\n", id,
-	    score, fun->name);
-	add_match_id(&fun->match_ids, match_id);
+	    score, fun->fnode->name);
+	add_match_id(&fun->fnode->match_ids, match_id);
 }
 
-static bool read_fun_prop(function_t *fun, char *line, const char *prop,
-    void (*read_fn)(function_t *, char *))
+static bool prop_parse(isa_fun_t *fun, char *line, const char *prop,
+    void (*read_fn)(isa_fun_t *, char *))
 {
 	size_t proplen = str_size(prop);
 
@@ -385,28 +373,27 @@ static bool read_fun_prop(function_t *fun, char *line, const char *prop,
 	return false;
 }
 
-static void get_fun_prop(function_t *fun, char *line)
+static void fun_prop_parse(isa_fun_t *fun, char *line)
 {
 	/* Skip leading spaces. */
 	line = skip_spaces(line);
 
-	if (!read_fun_prop(fun, line, "io_range", &get_dev_io_range) &&
-	    !read_fun_prop(fun, line, "irq", &get_dev_irq) &&
-	    !read_fun_prop(fun, line, "match", &get_fun_match_id))
+	if (!prop_parse(fun, line, "io_range", &fun_parse_io_range) &&
+	    !prop_parse(fun, line, "irq", &fun_parse_irq) &&
+	    !prop_parse(fun, line, "match", &fun_parse_match_id))
 	{
 	    printf(NAME " error undefined device property at line '%s'\n",
 		line);
 	}
 }
 
-static void child_alloc_hw_res(function_t *fun)
+static void fun_hw_res_alloc(isa_fun_t *fun)
 {
-	isa_fun_data_t *data = (isa_fun_data_t *)fun->driver_data;
-	data->hw_resources.resources = 
+	fun->hw_resources.resources = 
 	    (hw_resource_t *)malloc(sizeof(hw_resource_t) * ISA_MAX_HW_RES);
 }
 
-static char *read_isa_fun_info(char *fun_conf, device_t *dev)
+static char *isa_fun_read_info(char *fun_conf, device_t *dev)
 {
 	char *line;
 	char *fun_name = NULL;
@@ -429,17 +416,18 @@ static char *read_isa_fun_info(char *fun_conf, device_t *dev)
 	if (fun_name == NULL)
 		return NULL;
 
-	function_t *fun = create_isa_fun();
+	isa_fun_t *fun = isa_fun_create();
 	if (fun == NULL) {
 		free(fun_name);
 		return NULL;
 	}
 
-	fun->name = fun_name;
-	fun->ftype = fun_inner;
+	function_t *fnode = fun->fnode;
+	fnode->name = fun_name;
+	fnode->ftype = fun_inner;
 
 	/* Allocate buffer for the list of hardware resources of the device. */
-	child_alloc_hw_res(fun);
+	fun_hw_res_alloc(fun);
 
 	/* Get properties of the device (match ids, irq and io range). */
 	while (true) {
@@ -454,36 +442,33 @@ static char *read_isa_fun_info(char *fun_conf, device_t *dev)
 		 * Get the device's property from the configuration line
 		 * and store it in the device structure.
 		 */
-		get_fun_prop(fun, line);
-
-		//printf(NAME ": next line ='%s'\n", fun_conf);
-		//printf(NAME ": current line ='%s'\n", line);
+		fun_prop_parse(fun, line);
 	}
 
 	/* Set device operations to the device. */
-	fun->ops = &isa_fun_dev_ops;
+	fnode->ops = &isa_fun_ops;
 
 	printf(NAME ": register_function(fun, dev); function is %s.\n",
-	    fun->name);
-	register_function(fun, dev);
+	    fnode->name);
+	register_function(fnode, dev);
 
 	return fun_conf;
 }
 
-static void parse_fun_conf(char *conf, device_t *dev)
+static void fun_conf_parse(char *conf, device_t *dev)
 {
 	while (conf != NULL && *conf != '\0') {
-		conf = read_isa_fun_info(conf, dev);
+		conf = isa_fun_read_info(conf, dev);
 	}
 }
 
-static void add_legacy_children(device_t *dev)
+static void isa_functions_add(device_t *dev)
 {
 	char *fun_conf;
 
-	fun_conf = read_fun_conf(CHILD_FUN_CONF_PATH);
+	fun_conf = fun_conf_read(CHILD_FUN_CONF_PATH);
 	if (fun_conf != NULL) {
-		parse_fun_conf(fun_conf, dev);
+		fun_conf_parse(fun_conf, dev);
 		free(fun_conf);
 	}
 }
@@ -501,16 +486,16 @@ static int isa_add_device(device_t *dev)
 	ctl->name = "ctl";
 	register_function(ctl, dev);
 
-	/* Add child devices. */
-	add_legacy_children(dev);
-	printf(NAME ": finished the enumeration of legacy devices\n");
+	/* Add functions as specified in the configuration file. */
+	isa_functions_add(dev);
+	printf(NAME ": finished the enumeration of legacy functions\n");
 
 	return EOK;
 }
 
 static void isa_init() 
 {
-	isa_fun_dev_ops.interfaces[HW_RES_DEV_IFACE] = &isa_fun_hw_res_ops;
+	isa_fun_ops.interfaces[HW_RES_DEV_IFACE] = &isa_fun_hw_res_ops;
 }
 
 int main(int argc, char *argv[])
@@ -523,4 +508,3 @@ int main(int argc, char *argv[])
 /**
  * @}
  */
- 

@@ -60,10 +60,10 @@ virtual_function_t virtual_functions[] = {
 	}
 };
 
-static int add_device(device_t *dev);
+static int rootvirt_add_device(device_t *dev);
 
 static driver_ops_t rootvirt_ops = {
-	.add_device = &add_device
+	.add_device = &rootvirt_add_device
 };
 
 static driver_t rootvirt_driver = {
@@ -77,7 +77,7 @@ static driver_t rootvirt_driver = {
  * @param vfun		Virtual function description
  * @return		EOK on success or negative error code.
  */
-static int add_child(device_t *vdev, virtual_function_t *vfun)
+static int rootvirt_add_fun(device_t *vdev, virtual_function_t *vfun)
 {
 	printf(NAME ": registering function `%s' (match \"%s\")\n",
 	    vfun->name, vfun->match_id);
@@ -96,7 +96,7 @@ static int add_child(device_t *vdev, virtual_function_t *vfun)
 	return rc;
 }
 
-static int add_device(device_t *dev)
+static int rootvirt_add_device(device_t *dev)
 {
 	static int instances = 0;
 
@@ -116,7 +116,7 @@ static int add_device(device_t *dev)
 	 */
 	virtual_function_t *vfun = virtual_functions;
 	while (vfun->name != NULL) {
-		(void) add_child(dev, vfun);
+		(void) rootvirt_add_fun(dev, vfun);
 		vfun++;
 	}
 

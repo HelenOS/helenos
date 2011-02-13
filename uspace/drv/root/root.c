@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2010 Lenka Trochtova
  * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -54,13 +55,13 @@
 
 #define NAME "root"
 
-#define PLATFORM_DEVICE_NAME "hw"
-#define PLATFORM_DEVICE_MATCH_ID_FMT "platform/%s"
-#define PLATFORM_DEVICE_MATCH_SCORE 100
+#define PLATFORM_FUN_NAME "hw"
+#define PLATFORM_FUN_MATCH_ID_FMT "platform/%s"
+#define PLATFORM_FUN_MATCH_SCORE 100
 
-#define VIRTUAL_DEVICE_NAME "virt"
-#define VIRTUAL_DEVICE_MATCH_ID "rootvirt"
-#define VIRTUAL_DEVICE_MATCH_SCORE 100
+#define VIRTUAL_FUN_NAME "virt"
+#define VIRTUAL_FUN_MATCH_ID "rootvirt"
+#define VIRTUAL_FUN_MATCH_SCORE 100
 
 static int root_add_device(device_t *dev);
 
@@ -75,29 +76,29 @@ static driver_t root_driver = {
 	.driver_ops = &root_ops
 };
 
-/** Create the device which represents the root of virtual device tree.
+/** Create the function which represents the root of virtual device tree.
  *
- * @param parent Parent of the newly created device.
- * @return Error code.
+ * @param dev	Device
+ * @return	EOK on success or negative error code
  */
-static int add_virtual_root_child(device_t *parent)
+static int add_virtual_root_fun(device_t *dev)
 {
-	printf(NAME ": adding new child for virtual devices.\n");
-	printf(NAME ":   device node is `%s' (%d %s)\n", VIRTUAL_DEVICE_NAME,
-	    VIRTUAL_DEVICE_MATCH_SCORE, VIRTUAL_DEVICE_MATCH_ID);
+	printf(NAME ": adding new function for virtual devices.\n");
+	printf(NAME ":   function node is `%s' (%d %s)\n", VIRTUAL_FUN_NAME,
+	    VIRTUAL_FUN_MATCH_SCORE, VIRTUAL_FUN_MATCH_ID);
 
-	int res = register_function_wrapper(parent, VIRTUAL_DEVICE_NAME,
-	    VIRTUAL_DEVICE_MATCH_ID, VIRTUAL_DEVICE_MATCH_SCORE);
+	int res = register_function_wrapper(dev, VIRTUAL_FUN_NAME,
+	    VIRTUAL_FUN_MATCH_ID, VIRTUAL_FUN_MATCH_SCORE);
 
 	return res;
 }
 
-/** Create the device which represents the root of HW device tree.
+/** Create the function which represents the root of HW device tree.
  *
- * @param parent	Parent of the newly created device.
- * @return 0 on success, negative error number otherwise.
+ * @param dev	Device
+ * @return	EOK on success or negative error code
  */
-static int add_platform_child(device_t *parent)
+static int add_platform_fun(device_t *dev)
 {
 	char *match_id;
 	char *platform;
@@ -105,7 +106,6 @@ static int add_platform_child(device_t *parent)
 	int res;
 
 	/* Get platform name from sysinfo. */
-
 	platform = sysinfo_get_data("platform", &platform_size);
 	if (platform == NULL) {
 		printf(NAME ": Failed to obtain platform name.\n");
@@ -122,20 +122,18 @@ static int add_platform_child(device_t *parent)
 	platform[platform_size] = '\0';
 
 	/* Construct match ID. */
-
-	if (asprintf(&match_id, PLATFORM_DEVICE_MATCH_ID_FMT, platform) == -1) {
+	if (asprintf(&match_id, PLATFORM_FUN_MATCH_ID_FMT, platform) == -1) {
 		printf(NAME ": Memory allocation failed.\n");
 		return ENOMEM;
 	}
 
-	/* Add child. */
+	/* Add function. */
+	printf(NAME ": adding platform function\n");
+	printf(NAME ":   function node is `%s' (%d %s)\n", PLATFORM_FUN_NAME,
+	    PLATFORM_FUN_MATCH_SCORE, match_id);
 
-	printf(NAME ": adding new child for platform device.\n");
-	printf(NAME ":   device node is `%s' (%d %s)\n", PLATFORM_DEVICE_NAME,
-	    PLATFORM_DEVICE_MATCH_SCORE, match_id);
-
-	res = register_function_wrapper(parent, PLATFORM_DEVICE_NAME,
-	    match_id, PLATFORM_DEVICE_MATCH_SCORE);
+	res = register_function_wrapper(dev, PLATFORM_FUN_NAME,
+	    match_id, PLATFORM_FUN_MATCH_SCORE);
 
 	return res;
 }
@@ -155,10 +153,10 @@ static int root_add_device(device_t *dev)
 	 * We ignore error occurrence because virtual devices shall not be
 	 * vital for the system.
 	 */
-	add_virtual_root_child(dev);
+	add_virtual_root_fun(dev);
 
 	/* Register root device's children. */
-	int res = add_platform_child(dev);
+	int res = add_platform_fun(dev);
 	if (EOK != res)
 		printf(NAME ": failed to add child device for platform.\n");
 	
