@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Martin Sucha
+ * Copyright (c) 2011 Martin Sucha
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -49,10 +49,12 @@ typedef struct ext2_superblock {
 	uint32_t	inodes_per_group; // Number of inodes per block group
 	uint8_t		unused2[12];
 	uint16_t	magic; // Magic value
-} __attribute__ ((packed)) ext2_superblock_t;
+
 // TODO: add __attribute__((aligned(...)) for better performance?
 //       (it is necessary to ensure the superblock is correctly aligned then
 //        though)
+} __attribute__ ((packed)) ext2_superblock_t;
+
 
 typedef struct ext2_filesystem {
 	devmap_handle_t		device;
@@ -65,19 +67,19 @@ typedef struct ext2_filesystem {
 #define EXT2_SUPERBLOCK_LAST_BYTE	(EXT2_SUPERBLOCK_OFFSET + \
 									 EXT2_SUPERBLOCK_SIZE -1)
 
-inline uint16_t	ext2_superblock_get_magic(ext2_superblock_t *sb);
-inline uint32_t	ext2_superblock_get_first_block(ext2_superblock_t *sb);
-inline uint32_t	ext2_superblock_get_block_size_log2(ext2_superblock_t *sb);
-inline uint32_t	ext2_superblock_get_block_size(ext2_superblock_t *sb);
-inline int32_t	ext2_superblock_get_fragment_size_log2(ext2_superblock_t *sb);
-inline uint32_t	ext2_superblock_get_fragment_size(ext2_superblock_t *sb);
-inline uint32_t	ext2_superblock_get_blocks_per_group(ext2_superblock_t *sb);
-inline uint32_t	ext2_superblock_get_fragments_per_group(ext2_superblock_t *sb);
+inline uint16_t	ext2_superblock_get_magic(ext2_superblock_t *);
+inline uint32_t	ext2_superblock_get_first_block(ext2_superblock_t *);
+inline uint32_t	ext2_superblock_get_block_size_log2(ext2_superblock_t *);
+inline uint32_t	ext2_superblock_get_block_size(ext2_superblock_t *);
+inline int32_t	ext2_superblock_get_fragment_size_log2(ext2_superblock_t *);
+inline uint32_t	ext2_superblock_get_fragment_size(ext2_superblock_t *);
+inline uint32_t	ext2_superblock_get_blocks_per_group(ext2_superblock_t *);
+inline uint32_t	ext2_superblock_get_fragments_per_group(ext2_superblock_t *);
 
-int ext2_superblock_read_direct(devmap_handle_t, ext2_superblock_t **);
+extern int ext2_superblock_read_direct(devmap_handle_t, ext2_superblock_t **);
 
-int ext2_filesystem_init(ext2_filesystem_t *fs, devmap_handle_t dev);
-void ext2_filesystem_fini(ext2_filesystem_t *fs);
+extern int ext2_filesystem_init(ext2_filesystem_t *, devmap_handle_t);
+extern void ext2_filesystem_fini(ext2_filesystem_t *);
 
 #endif
 
