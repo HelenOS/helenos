@@ -160,8 +160,6 @@ int driver_main(driver_t *);
  *
  * @return		The device structure.
  */
-extern device_t *create_device(void);
-extern void delete_device(device_t *);
 extern function_t *create_function(void);
 extern void delete_function(function_t *);
 extern void *function_get_ops(function_t *, dev_inferface_idx_t);

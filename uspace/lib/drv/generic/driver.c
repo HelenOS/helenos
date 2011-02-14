@@ -75,6 +75,8 @@ static irq_code_t default_pseudocode = {
 	default_cmds
 };
 
+static device_t *create_device(void);
+static void delete_device(device_t *);
 
 static void driver_irq_handler(ipc_callid_t iid, ipc_call_t *icall)
 {
@@ -458,7 +460,7 @@ static void driver_connection(ipc_callid_t iid, ipc_call_t *icall)
  *
  * @return		The device structure.
  */
-device_t *create_device(void)
+static device_t *create_device(void)
 {
 	device_t *dev;
 
@@ -494,7 +496,7 @@ function_t *create_function(void)
  *
  * @param dev		The device structure.
  */
-void delete_device(device_t *dev)
+static void delete_device(device_t *dev)
 {
 	free(dev);
 }
