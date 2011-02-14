@@ -606,9 +606,10 @@ int ddf_fun_bind(function_t *fun)
 	return res;
 }
 
-/** Add single match ID to function.
+/** Add single match ID to inner function.
  *
  * Construct and add a single match ID to the specified function.
+ * Cannot be called when the function node is bound.
  *
  * @param fun			Function
  * @param match_id_str		Match string
@@ -619,6 +620,9 @@ int ddf_fun_add_match_id(function_t *fun, const char *match_id_str,
     int match_score)
 {
 	match_id_t *match_id;
+	
+	assert(fun->bound == false);
+	assert(fun->ftype == fun_inner);
 	
 	match_id = create_match_id();
 	if (match_id == NULL)
@@ -639,8 +643,15 @@ remote_handler_t *function_get_default_handler(function_t *fun)
 	return fun->ops->default_handler;
 }
 
+/** Add exposed function to class.
+ *
+ * Must only be called when the function is bound.
+ */
 int add_function_to_class(function_t *fun, const char *class_name)
 {
+	assert(fun->bound == true);
+	assert(fun->ftype == fun_exposed);
+	
 	return devman_add_device_to_class(fun->handle, class_name);
 }
 
