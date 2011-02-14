@@ -41,6 +41,7 @@ SOURCES = \
 	src/hidparser.c \
 	src/pipes.c \
 	src/pipesinit.c \
+	src/pipesio.c \
 	src/recognise.c \
 	src/request.c \
 	src/usb.c \

@@ -539,13 +539,13 @@ ipc_callid_t callid, ipc_call_t *call)
 		.address = DEV_IPC_GET_ARG1(*call),
 		.endpoint = DEV_IPC_GET_ARG2(*call)
 	};
+	size_t data_buffer_len = DEV_IPC_GET_ARG3(*call);
 
 	int rc;
 
 	void *setup_packet = NULL;
 	void *data_buffer = NULL;
 	size_t setup_packet_len = 0;
-	size_t data_buffer_len = 0;
 
 	rc = async_data_write_accept(&setup_packet, false,
 	    1, USB_MAX_PAYLOAD_SIZE, 0, &setup_packet_len);
@@ -553,12 +553,15 @@ ipc_callid_t callid, ipc_call_t *call)
 		async_answer_0(callid, rc);
 		return;
 	}
-	rc = async_data_write_accept(&data_buffer, false,
-	    1, USB_MAX_PAYLOAD_SIZE, 0, &data_buffer_len);
-	if (rc != EOK) {
-		async_answer_0(callid, rc);
-		free(setup_packet);
-		return;
+
+	if (data_buffer_len > 0) {
+		rc = async_data_write_accept(&data_buffer, false,
+		    1, USB_MAX_PAYLOAD_SIZE, 0, &data_buffer_len);
+		if (rc != EOK) {
+			async_answer_0(callid, rc);
+			free(setup_packet);
+			return;
+		}
 	}
 
 	async_transaction_t *trans = async_transaction_create(callid);
@@ -595,7 +598,6 @@ ipc_callid_t callid, ipc_call_t *call)
 		return;
 	}
 
-	size_t data_len = DEV_IPC_GET_ARG3(*call);
 	usb_target_t target = {
 		.address = DEV_IPC_GET_ARG1(*call),
 		.endpoint = DEV_IPC_GET_ARG2(*call)
@@ -605,6 +607,7 @@ ipc_callid_t callid, ipc_call_t *call)
 
 	void *setup_packet = NULL;
 	size_t setup_packet_len = 0;
+	size_t data_len = 0;
 
 	rc = async_data_write_accept(&setup_packet, false,
 	    1, USB_MAX_PAYLOAD_SIZE, 0, &setup_packet_len);

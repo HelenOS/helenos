@@ -38,6 +38,7 @@
 #include <sys/types.h>
 #include <usb/usb.h>
 #include <usb/pipes.h>
+#include <ipc/devman.h>
 
 int usb_device_create_match_ids(usb_endpoint_pipe_t *, match_id_list_t *);
 

@@ -463,8 +463,8 @@ int usb_drv_async_control_write(int phone, usb_target_t target,
 	assert(phone > 0);
 	assert(setup_packet != NULL);
 	assert(setup_packet_size > 0);
-	assert(buffer != NULL);
-	assert(buffer_size > 0);
+	assert(((buffer != NULL) && (buffer_size > 0))
+	    || ((buffer == NULL) && (buffer_size == 0)));
 	assert(handle != NULL);
 
 	transfer_info_t *transfer
@@ -493,10 +493,12 @@ int usb_drv_async_control_write(int phone, usb_target_t target,
 		return rc;
 	}
 
-	rc = async_data_write_start(phone, buffer, buffer_size);
-	if (rc != EOK) {
-		async_wait_for(transfer->request, NULL);
-		return rc;
+	if (buffer_size > 0) {
+		rc = async_data_write_start(phone, buffer, buffer_size);
+		if (rc != EOK) {
+			async_wait_for(transfer->request, NULL);
+			return rc;
+		}
 	}
 
 	*handle = (usb_handle_t) transfer;
