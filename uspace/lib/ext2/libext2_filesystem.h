@@ -33,11 +33,24 @@
  * @file
  */
 
-#ifndef LIBEXT2_LIBEXT2_H_
-#define LIBEXT2_LIBEXT2_H_
+#ifndef LIBEXT2_LIBEXT2_FILESYSTEM_H_
+#define LIBEXT2_LIBEXT2_FILESYSTEM_H_
 
+#include <libblock.h>
 #include "libext2_superblock.h"
-#include "libext2_filesystem.h"
+
+typedef struct ext2_filesystem {
+	devmap_handle_t		device;
+	ext2_superblock_t *	superblock;
+} ext2_filesystem_t;
+
+// allow maximum this block size
+#define EXT2_MAX_BLOCK_SIZE			8096
+#define EXT2_REV0_FIRST_INODE		11
+#define EXT2_REV0_INODE_SIZE		128
+
+extern int ext2_filesystem_init(ext2_filesystem_t *, devmap_handle_t);
+extern void ext2_filesystem_fini(ext2_filesystem_t *);
 
 #endif
 

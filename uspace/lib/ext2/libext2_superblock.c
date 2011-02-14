@@ -37,6 +37,7 @@
 #include <errno.h>
 #include <malloc.h>
 #include <libblock.h>
+#include <byteorder.h>
 
 /**
  * Return a magic number from ext2 superblock, this should be equal to
