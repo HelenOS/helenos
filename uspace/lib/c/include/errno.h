@@ -55,6 +55,9 @@ extern int _errno;
 #define EIO           (-265)
 #define EMLINK        (-266)
 
+/** Bad checksum. */
+#define EBADCHECKSUM  (-300)
+
 /** An API function is called while another blocking function is in progress. */
 #define EINPROGRESS  (-10036)
 
