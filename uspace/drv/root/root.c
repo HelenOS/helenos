@@ -44,6 +44,7 @@
 #include <fibril_synch.h>
 #include <stdlib.h>
 #include <str.h>
+#include <str_error.h>
 #include <ctype.h>
 #include <macros.h>
 #include <inttypes.h>
@@ -83,14 +84,37 @@ static driver_t root_driver = {
  */
 static int add_virtual_root_fun(device_t *dev)
 {
+	const char *name = VIRTUAL_FUN_NAME;
+	function_t *fun;
+	int rc;
+
 	printf(NAME ": adding new function for virtual devices.\n");
-	printf(NAME ":   function node is `%s' (%d %s)\n", VIRTUAL_FUN_NAME,
+	printf(NAME ":   function node is `%s' (%d %s)\n", name,
 	    VIRTUAL_FUN_MATCH_SCORE, VIRTUAL_FUN_MATCH_ID);
 
-	int res = register_function_wrapper(dev, VIRTUAL_FUN_NAME,
-	    VIRTUAL_FUN_MATCH_ID, VIRTUAL_FUN_MATCH_SCORE);
+	fun = ddf_fun_create(dev, fun_inner, name);
+	if (fun == NULL) {
+		printf(NAME ": error creating function %s\n", name);
+		return ENOMEM;
+	}
 
-	return res;
+	rc = ddf_fun_add_match_id(fun, VIRTUAL_FUN_MATCH_ID,
+	    VIRTUAL_FUN_MATCH_SCORE);
+	if (rc != EOK) {
+		printf(NAME ": error adding match IDs to function %s\n", name);
+		ddf_fun_destroy(fun);
+		return rc;
+	}
+
+	rc = ddf_fun_bind(fun);
+	if (rc != EOK) {
+		printf(NAME ": error binding function %s: %s\n", name,
+		    str_error(rc));
+		ddf_fun_destroy(fun);
+		return rc;
+	}
+
+	return EOK;
 }
 
 /** Create the function which represents the root of HW device tree.
@@ -103,7 +127,10 @@ static int add_platform_fun(device_t *dev)
 	char *match_id;
 	char *platform;
 	size_t platform_size;
-	int res;
+
+	const char *name = PLATFORM_FUN_NAME;
+	function_t *fun;
+	int rc;
 
 	/* Get platform name from sysinfo. */
 	platform = sysinfo_get_data("platform", &platform_size);
@@ -132,10 +159,28 @@ static int add_platform_fun(device_t *dev)
 	printf(NAME ":   function node is `%s' (%d %s)\n", PLATFORM_FUN_NAME,
 	    PLATFORM_FUN_MATCH_SCORE, match_id);
 
-	res = register_function_wrapper(dev, PLATFORM_FUN_NAME,
-	    match_id, PLATFORM_FUN_MATCH_SCORE);
+	fun = ddf_fun_create(dev, fun_inner, name);
+	if (fun == NULL) {
+		printf(NAME ": error creating function %s\n", name);
+		return ENOMEM;
+	}
 
-	return res;
+	rc = ddf_fun_add_match_id(fun, match_id, PLATFORM_FUN_MATCH_SCORE);
+	if (rc != EOK) {
+		printf(NAME ": error adding match IDs to function %s\n", name);
+		ddf_fun_destroy(fun);
+		return rc;
+	}
+
+	rc = ddf_fun_bind(fun);
+	if (rc != EOK) {
+		printf(NAME ": error binding function %s: %s\n", name,
+		    str_error(rc));
+		ddf_fun_destroy(fun);
+		return rc;
+	}
+
+	return EOK;
 }
 
 /** Get the root device.

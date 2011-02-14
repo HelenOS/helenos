@@ -165,9 +165,6 @@ extern int ddf_fun_add_match_id(function_t *, const char *, int);
 
 extern void *function_get_ops(function_t *, dev_inferface_idx_t);
 
-extern int register_function_wrapper(device_t *, const char *, const char *,
-    int);
-
 /*
  * Interrupts
  */

@@ -631,58 +631,6 @@ int ddf_fun_add_match_id(function_t *fun, const char *match_id_str,
 	return EOK;
 }
 
-
-/** Wrapper for child_device_register for devices with single match id.
- *
- * @param parent Parent device.
- * @param child_name Child device name.
- * @param child_match_id Child device match id.
- * @param child_match_score Child device match score.
- * @return Error code.
- */
-int register_function_wrapper(device_t *dev, const char *fun_name,
-    const char *match_id, int match_score)
-{
-	function_t *fun = NULL;
-	match_id_t *m_id = NULL;
-	int rc;
-	
-	fun = ddf_fun_create(dev, fun_inner, fun_name);
-	if (fun == NULL) {
-		rc = ENOMEM;
-		goto failure;
-	}
-	
-	m_id = create_match_id();
-	if (m_id == NULL) {
-		rc = ENOMEM;
-		goto failure;
-	}
-	
-	m_id->id = match_id;
-	m_id->score = match_score;
-	add_match_id(&fun->match_ids, m_id);
-	
-	rc = ddf_fun_bind(fun);
-	if (rc != EOK)
-		goto failure;
-	
-	return EOK;
-	
-failure:
-	if (m_id != NULL) {
-		m_id->id = NULL;
-		delete_match_id(m_id);
-	}
-	
-	if (fun != NULL) {
-		fun->name = NULL;
-		delete_function(fun);
-	}
-	
-	return rc;
-}
-
 /** Get default handler for client requests */
 remote_handler_t *function_get_default_handler(function_t *fun)
 {
