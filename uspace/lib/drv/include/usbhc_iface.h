@@ -206,11 +206,11 @@ typedef enum {
 
 /** Callback for outgoing transfer. */
 typedef void (*usbhc_iface_transfer_out_callback_t)(device_t *,
-    usb_transaction_outcome_t, void *);
+    int, void *);
 
 /** Callback for incoming transfer. */
 typedef void (*usbhc_iface_transfer_in_callback_t)(device_t *,
-    usb_transaction_outcome_t, size_t, void *);
+    int, size_t, void *);
 
 
 /** Out transfer processing function prototype. */
