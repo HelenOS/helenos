@@ -98,8 +98,11 @@ inline uint32_t	ext2_superblock_get_total_block_count(ext2_superblock_t *);
 inline uint32_t	ext2_superblock_get_reserved_block_count(ext2_superblock_t *);
 inline uint32_t	ext2_superblock_get_free_block_count(ext2_superblock_t *);
 inline uint32_t	ext2_superblock_get_free_inode_count(ext2_superblock_t *);
+inline uint32_t	ext2_superblock_get_block_group_count(ext2_superblock_t *);
+inline uint32_t	ext2_superblock_get_inodes_per_group(ext2_superblock_t *);
 
 extern int ext2_superblock_read_direct(devmap_handle_t, ext2_superblock_t **);
+extern int ext2_superblock_check_sanity(ext2_superblock_t *);
 
 #endif
 

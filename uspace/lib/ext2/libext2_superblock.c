@@ -246,6 +246,27 @@ inline uint32_t	ext2_superblock_get_os(ext2_superblock_t *sb)
 	return uint32_t_le2host(sb->os);
 }
 
+/**
+ * Get count of inodes per block group
+ * 
+ * @param sb pointer to superblock
+ */
+inline uint32_t	ext2_superblock_get_inodes_per_group(ext2_superblock_t *sb)
+{
+	return uint32_t_le2host(sb->inodes_per_group);
+}
+
+/**
+ * Compute count of block groups present in the filesystem
+ * 
+ * @param sb pointer to superblock
+ */
+inline uint32_t ext2_superblock_get_block_group_count(ext2_superblock_t *sb)
+{
+	return ext2_superblock_get_total_block_count(sb) / 
+	    ext2_superblock_get_blocks_per_group(sb);
+}
+
 /** Read a superblock directly from device (i.e. no libblock cache)
  * 
  * @param devmap_handle	Device handle of the block device.
@@ -272,6 +293,63 @@ int ext2_superblock_read_direct(devmap_handle_t devmap_handle,
 	}
 	
 	(*superblock) = data;
+	return EOK;
+}
+
+/** Check a superblock for sanity
+ * 
+ * @param sb	Pointer to superblock
+ * 
+ * @return		EOK on success or negative error code on failure.
+ */
+int ext2_superblock_check_sanity(ext2_superblock_t *sb)
+{
+	if (ext2_superblock_get_magic(sb) != EXT2_SUPERBLOCK_MAGIC) {
+		return ENOTSUP;
+	}
+	
+	if (ext2_superblock_get_rev_major(sb) > 1) {
+		return ENOTSUP;
+	}
+	
+	if (ext2_superblock_get_total_inode_count(sb) == 0) {
+		return ENOTSUP;
+	}
+	
+	if (ext2_superblock_get_total_block_count(sb) == 0) {
+		return ENOTSUP;
+	}
+	
+	if (ext2_superblock_get_blocks_per_group(sb) == 0) {
+		return ENOTSUP;
+	}
+	
+	if (ext2_superblock_get_fragments_per_group(sb) == 0) {
+		return ENOTSUP;
+	}
+	
+	// We don't support fragments smaller than block
+	if (ext2_superblock_get_block_size(sb) != 
+		    ext2_superblock_get_fragment_size(sb)) {
+		return ENOTSUP;
+	}
+	if (ext2_superblock_get_blocks_per_group(sb) !=
+		    ext2_superblock_get_fragments_per_group(sb)) {
+		return ENOTSUP;
+	}
+	
+	if (ext2_superblock_get_inodes_per_group(sb) == 0) {
+		return ENOTSUP;
+	}
+	
+	if (ext2_superblock_get_inode_size(sb) < 128) {
+		return ENOTSUP;
+	}
+	
+	if (ext2_superblock_get_first_inode(sb) < 11) {
+		return ENOTSUP;
+	}
+	
 	return EOK;
 }
 

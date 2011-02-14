@@ -45,6 +45,8 @@
  * 
  * @param fs			Pointer to ext2_filesystem_t to initialize
  * @param devmap_handle	Device handle of the block device
+ * 
+ * @return 		EOK on success or negative error code on failure
  */
 int ext2_filesystem_init(ext2_filesystem_t *fs, devmap_handle_t devmap_handle)
 {
@@ -81,6 +83,24 @@ int ext2_filesystem_init(ext2_filesystem_t *fs, devmap_handle_t devmap_handle)
 	fs->superblock = temp_superblock;
 	
 	return EOK; 
+}
+
+/**
+ * Check filesystem for sanity
+ * 
+ * @param fs			Pointer to ext2_filesystem_t to check
+ * @return 		EOK on success or negative error code on failure
+ */
+int ext2_filesystem_check_sanity(ext2_filesystem_t *fs)
+{
+	int rc;
+	
+	rc = ext2_superblock_check_sanity(fs->superblock);
+	if (rc != EOK) {
+		return rc;
+	}
+	
+	return EOK;
 }
 
 /**

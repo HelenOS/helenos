@@ -50,6 +50,7 @@ typedef struct ext2_filesystem {
 #define EXT2_REV0_INODE_SIZE		128
 
 extern int ext2_filesystem_init(ext2_filesystem_t *, devmap_handle_t);
+extern int ext2_filesystem_check_sanity(ext2_filesystem_t *);
 extern void ext2_filesystem_fini(ext2_filesystem_t *);
 
 #endif

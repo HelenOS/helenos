@@ -90,6 +90,12 @@ int main(int argc, char **argv)
 		return 3;
 	}
 	
+	rc = ext2_filesystem_check_sanity(&filesystem);
+	if (rc != EOK) {
+		printf(NAME ": Filesystem did not pass sanity check.\n");
+		return 3;
+	}
+	
 	print_superblock(filesystem.superblock);
 
 	ext2_filesystem_fini(&filesystem);
