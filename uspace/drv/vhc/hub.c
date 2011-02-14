@@ -40,6 +40,7 @@
 #include <stdlib.h>
 #include <driver.h>
 #include <usb/usbdrv.h>
+#include <usb/recognise.h>
 
 #include "hub.h"
 #include "hub/virthub.h"
@@ -92,7 +93,9 @@ int hub_register_in_devman_fibril(void *arg)
 	usb_drv_release_default_address(hc);
 
 	devman_handle_t hub_handle;
-	usb_drv_register_child_in_devman(hc, hc_dev, hub_address, &hub_handle);
+	usb_device_register_child_in_devman(hub_address, hc_dev->handle,
+	    hc_dev, &hub_handle);
+	//usb_drv_register_child_in_devman(hc, hc_dev, hub_address, &hub_handle);
 	usb_drv_bind_address(hc, hub_address, hub_handle);
 
 	return EOK;

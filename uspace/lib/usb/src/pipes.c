@@ -122,12 +122,14 @@ int usb_device_connection_initialize(usb_device_connection_t *connection,
  * @param connection Connection to the USB device backing this pipe (the wire).
  * @param endpoint_no Endpoint number (in USB 1.1 in range 0 to 15).
  * @param transfer_type Transfer type (e.g. interrupt or bulk).
+ * @param max_packet_size Maximum packet size in bytes.
  * @param direction Endpoint direction (in/out).
  * @return Error code.
  */
 int usb_endpoint_pipe_initialize(usb_endpoint_pipe_t *pipe,
     usb_device_connection_t *connection, usb_endpoint_t endpoint_no,
-    usb_transfer_type_t transfer_type, usb_direction_t direction)
+    usb_transfer_type_t transfer_type, size_t max_packet_size,
+    usb_direction_t direction)
 {
 	assert(pipe);
 	assert(connection);
@@ -136,6 +138,7 @@ int usb_endpoint_pipe_initialize(usb_endpoint_pipe_t *pipe,
 	pipe->hc_phone = -1;
 	pipe->endpoint_no = endpoint_no;
 	pipe->transfer_type = transfer_type;
+	pipe->max_packet_size = max_packet_size;
 	pipe->direction = direction;
 
 	return EOK;
@@ -155,7 +158,7 @@ int usb_endpoint_pipe_initialize_default_control(usb_endpoint_pipe_t *pipe,
 	assert(connection);
 
 	int rc = usb_endpoint_pipe_initialize(pipe, connection,
-	    0, USB_TRANSFER_CONTROL, USB_DIRECTION_BOTH);
+	    0, USB_TRANSFER_CONTROL, 8, USB_DIRECTION_BOTH);
 
 	return rc;
 }

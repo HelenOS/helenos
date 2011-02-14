@@ -32,10 +32,12 @@
  * @brief UHCI driver
  */
 #include <errno.h>
+#include <str_error.h>
 
 #include <usb/usb.h>    /* usb_address_t */
 #include <usb/usbdrv.h> /* usb_drv_*     */
 #include <usb/debug.h>
+#include <usb/recognise.h>
 
 #include "port.h"
 #include "port_status.h"
@@ -203,9 +205,17 @@ static int uhci_port_new_device(uhci_port_t *port)
 	/* communicate and possibly report to devman */
 	assert(port->attached_device == 0);
 
-	ret = usb_drv_register_child_in_devman(port->hc_phone, port->rh,
-	  usb_address, &port->attached_device);
+	devman_handle_t hc_handle;
+	ret = usb_drv_find_hc(port->rh, &hc_handle);
+	if (ret != EOK) {
+		usb_log_error("Failed to get handle of host controller: %s.\n",
+		    str_error(ret));
+		uhci_port_set_enabled(port, false);
+		return ENOMEM;
+	}
 
+	ret = usb_device_register_child_in_devman(usb_address, hc_handle,
+	    port->rh, &port->attached_device);
 	if (ret != EOK) { /* something went wrong */
 		usb_log_error("Failed(%d) in usb_drv_register_child.\n", ret);
 		uhci_port_set_enabled(port, false);

@@ -34,41 +34,13 @@
 #include <assert.h>
 #include <errno.h>
 #include <stdio.h>
-
 #include <usb_iface.h>
-
 #include <usb/debug.h>
 
 #include "root_hub.h"
+
+extern device_ops_t child_ops;
 /*----------------------------------------------------------------------------*/
-static int usb_iface_get_hc_handle(device_t *dev, devman_handle_t *handle)
-{
-  assert(dev);
-  assert(dev->parent != NULL);
-
-  device_t *parent = dev->parent;
-
-  if (parent->ops && parent->ops->interfaces[USB_DEV_IFACE]) {
-    usb_iface_t *usb_iface
-        = (usb_iface_t *) parent->ops->interfaces[USB_DEV_IFACE];
-    assert(usb_iface != NULL);
-    if (usb_iface->get_hc_handle) {
-      int rc = usb_iface->get_hc_handle(parent, handle);
-      return rc;
-    }
-  }
-
-  return ENOTSUP;
-}
-/*----------------------------------------------------------------------------*/
-static usb_iface_t usb_iface = {
-  .get_hc_handle = usb_iface_get_hc_handle
-};
-
-static device_ops_t rh_ops = {
-	.interfaces[USB_DEV_IFACE] = &usb_iface
-};
-
 int setup_root_hub(device_t **device, device_t *hc)
 {
 	assert(device);
@@ -107,7 +79,7 @@ int setup_root_hub(device_t **device, device_t *hc)
 	add_match_id(&hub->match_ids, match_id);
 	hub->name = name;
 	hub->parent = hc;
-	hub->ops = &rh_ops;
+	hub->ops = &child_ops;
 
 	*device = hub;
 	return EOK;

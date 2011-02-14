@@ -31,8 +31,8 @@
 /** @file
  * @brief UHCI driver
  */
-#ifndef DRV_UHCI_TRACKER_H
-#define DRV_UHCI_TRACKER_H
+#ifndef DRV_UHCI_BATCH_H
+#define DRV_UHCI_BATCH_H
 
 #include <adt/list.h>
 
@@ -40,15 +40,17 @@
 #include <usb/usb.h>
 
 #include "uhci_struct/transfer_descriptor.h"
+#include "uhci_struct/queue_head.h"
 
 typedef enum {
 	LOW_SPEED,
 	FULL_SPEED,
 } dev_speed_t;
 
-typedef struct tracker
+typedef struct batch
 {
 	link_t link;
+	dev_speed_t speed;
 	usb_target_t target;
 	usb_transfer_type_t transfer_type;
 	union {
@@ -56,46 +58,48 @@ typedef struct tracker
 		usbhc_iface_transfer_out_callback_t callback_out;
 	};
 	void *arg;
+	char *transport_buffer;
+	char *setup_buffer;
+	size_t setup_size;
 	char *buffer;
-	char *packet;
 	size_t buffer_size;
 	size_t max_packet_size;
-	size_t packet_size;
-	size_t buffer_offset;
-	dev_speed_t speed;
+	size_t packets;
+	size_t transfered_size;
+	int error;
 	device_t *dev;
-	transfer_descriptor_t *td;
-	void (*next_step)(struct tracker*);
-	unsigned toggle:1;
-} tracker_t;
+	queue_head_t *qh;
+	transfer_descriptor_t *tds;
+	void (*next_step)(struct batch*);
+} batch_t;
 
-
-tracker_t * tracker_get(device_t *dev, usb_target_t target,
+batch_t * batch_get(device_t *dev, usb_target_t target,
     usb_transfer_type_t transfer_type, size_t max_packet_size,
     dev_speed_t speed, char *buffer, size_t size,
+		char *setup_buffer, size_t setup_size,
     usbhc_iface_transfer_in_callback_t func_in,
     usbhc_iface_transfer_out_callback_t func_out, void *arg);
 
-void tracker_control_write(
-    tracker_t *instance, char* setup_buffer, size_t setup_size);
+bool batch_is_complete(batch_t *instance);
 
-void tracker_control_read(
-    tracker_t *instance, char* setup_buffer, size_t setup_size);
+void batch_control_write(batch_t *instance);
 
-void tracker_interrupt_in(tracker_t *instance);
+void batch_control_read(batch_t *instance);
 
-void tracker_interrupt_out(tracker_t *instance);
+void batch_interrupt_in(batch_t *instance);
+
+void batch_interrupt_out(batch_t *instance);
 
 /* DEPRECATED FUNCTIONS NEEDED BY THE OLD API */
-void tracker_control_setup_old(tracker_t *instance);
+void batch_control_setup_old(batch_t *instance);
 
-void tracker_control_write_data_old(tracker_t *instance);
+void batch_control_write_data_old(batch_t *instance);
 
-void tracker_control_read_data_old(tracker_t *instance);
+void batch_control_read_data_old(batch_t *instance);
 
-void tracker_control_write_status_old(tracker_t *instance);
+void batch_control_write_status_old(batch_t *instance);
 
-void tracker_control_read_status_old(tracker_t *instance);
+void batch_control_read_status_old(batch_t *instance);
 #endif
 /**
  * @}
