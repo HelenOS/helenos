@@ -88,11 +88,11 @@ static inline unsigned int pseudo_random(unsigned int *seed)
  * Calling this callback informs the backend that transaction was processed.
  */
 static void process_transaction_with_outcome(transaction_t * transaction,
-    usb_transaction_outcome_t outcome)
+    int outcome)
 {
 	usb_log_debug2("Transaction " TRANSACTION_FORMAT " done: %s.\n",
 	    TRANSACTION_PRINTF(*transaction),
-	    usb_str_transaction_outcome(outcome));
+	    str_error(outcome));
 	
 	transaction->callback(transaction->buffer, transaction->actual_len,
 	    outcome, transaction->callback_arg);
@@ -126,7 +126,7 @@ static int hc_manager_fibril(void *arg)
 		usb_log_debug("Processing " TRANSACTION_FORMAT " [%s].\n",
 		    TRANSACTION_PRINTF(*transaction), ports);
 
-		usb_transaction_outcome_t outcome;
+		int outcome;
 		outcome = virtdev_send_to_all(transaction);
 		
 		process_transaction_with_outcome(transaction, outcome);

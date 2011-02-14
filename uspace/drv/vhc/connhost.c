@@ -63,7 +63,7 @@ typedef struct {
 } control_transfer_info_t;
 
 static void universal_callback(void *buffer, size_t size,
-    usb_transaction_outcome_t outcome, void *arg)
+    int outcome, void *arg)
 {
 	transfer_info_t *transfer = (transfer_info_t *) arg;
 
@@ -106,7 +106,7 @@ static transfer_info_t *create_transfer_info(device_t *dev,
 }
 
 static void control_abort_prematurely(control_transfer_info_t *transfer,
-    size_t size, usb_transaction_outcome_t outcome)
+    size_t size, int outcome)
 {
 	switch (transfer->direction) {
 		case USB_DIRECTION_IN:
@@ -126,11 +126,11 @@ static void control_abort_prematurely(control_transfer_info_t *transfer,
 }
 
 static void control_callback_two(void *buffer, size_t size,
-    usb_transaction_outcome_t outcome, void *arg)
+    int outcome, void *arg)
 {
 	control_transfer_info_t *ctrl_transfer = (control_transfer_info_t *) arg;
 
-	if (outcome != USB_OUTCOME_OK) {
+	if (outcome != EOK) {
 		control_abort_prematurely(ctrl_transfer, outcome, size);
 		free(ctrl_transfer);
 		return;
@@ -164,11 +164,11 @@ static void control_callback_two(void *buffer, size_t size,
 }
 
 static void control_callback_one(void *buffer, size_t size,
-    usb_transaction_outcome_t outcome, void *arg)
+    int outcome, void *arg)
 {
 	control_transfer_info_t *transfer = (control_transfer_info_t *) arg;
 
-	if (outcome != USB_OUTCOME_OK) {
+	if (outcome != EOK) {
 		control_abort_prematurely(transfer, outcome, size);
 		free(transfer);
 		return;

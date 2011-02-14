@@ -46,7 +46,7 @@
  * @param arg Custom argument.
  */
 typedef void (*hc_transaction_done_callback_t)(void *buffer, size_t size,
-    usb_transaction_outcome_t outcome, void *arg);
+    int outcome, void *arg);
 
 /** Pending transaction details. */
 typedef struct {
