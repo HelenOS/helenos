@@ -138,20 +138,6 @@ int usb_endpoint_pipe_control_read(usb_endpoint_pipe_t *, void *, size_t,
 int usb_endpoint_pipe_control_write(usb_endpoint_pipe_t *, void *, size_t,
     void *, size_t);
 
-
-
-int usb_endpoint_pipe_async_read(usb_endpoint_pipe_t *, void *, size_t,
-    size_t *, usb_handle_t *);
-int usb_endpoint_pipe_async_write(usb_endpoint_pipe_t *, void *, size_t,
-    usb_handle_t *);
-
-int usb_endpoint_pipe_async_control_read(usb_endpoint_pipe_t *, void *, size_t,
-    void *, size_t, size_t *, usb_handle_t *);
-int usb_endpoint_pipe_async_control_write(usb_endpoint_pipe_t *, void *, size_t,
-    void *, size_t, usb_handle_t *);
-
-int usb_endpoint_pipe_wait_for(usb_endpoint_pipe_t *, usb_handle_t);
-
 #endif
 /**
  * @}
