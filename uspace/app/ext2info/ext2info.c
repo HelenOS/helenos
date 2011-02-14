@@ -116,6 +116,12 @@ static void print_superblock(ext2_superblock_t *superblock)
 	uint16_t state;
 	uint32_t first_inode;
 	uint16_t inode_size;
+	uint32_t total_blocks;
+	uint32_t reserved_blocks;
+	uint32_t free_blocks;
+	uint32_t total_inodes;
+	uint32_t free_inodes;	
+	uint32_t os;
 	
 	int pos;
 	unsigned char c;
@@ -131,6 +137,12 @@ static void print_superblock(ext2_superblock_t *superblock)
 	state = ext2_superblock_get_state(superblock);
 	first_inode = ext2_superblock_get_first_inode(superblock);
 	inode_size = ext2_superblock_get_inode_size(superblock);
+	total_blocks = ext2_superblock_get_total_block_count(superblock);
+	reserved_blocks = ext2_superblock_get_reserved_block_count(superblock);
+	free_blocks = ext2_superblock_get_free_block_count(superblock);
+	total_inodes = ext2_superblock_get_total_inode_count(superblock);
+	free_inodes = ext2_superblock_get_free_inode_count(superblock);
+	os = ext2_superblock_get_os(superblock);
 	
 	printf("Superblock:\n");
 	
@@ -143,32 +155,41 @@ static void print_superblock(ext2_superblock_t *superblock)
 	
 	printf("  Revision: %u.%hu\n", rev_major, rev_minor);
 	printf("  State: %hu\n", state);
+	printf("  Creator OS: %u\n", os);
 	printf("  First block: %u\n", first_block);
 	printf("  Block size: %u bytes (%u KiB)\n", block_size, block_size/1024);
 	printf("  Blocks per group: %u\n", blocks_per_group);
+	printf("  Total blocks: %u\n", total_blocks);
+	printf("  Reserved blocks: %u\n", reserved_blocks);
+	printf("  Free blocks: %u\n", free_blocks);
 	printf("  Fragment size: %u bytes (%u KiB)\n", fragment_size,
 	    fragment_size/1024);
 	printf("  Fragments per group: %u\n", fragments_per_group);
 	printf("  First inode: %u\n", first_inode);
 	printf("  Inode size: %hu bytes\n", inode_size);
+	printf("  Total inodes: %u\n", total_inodes);
+	printf("  Free inodes: %u\n", free_inodes);
 	
-	printf("  UUID: ");
-	for (pos = 0; pos < 16; pos++) {
-		printf("%02x", superblock->uuid[pos]);
-	}
-	printf("\n");
 	
-	printf("  Volume label: ");
-	for (pos = 0; pos < 16; pos++) {
-		c = superblock->volume_name[pos];
-		if (c >= 32 && c < 128) {
-			putchar(c);
+	if (rev_major == 1) {
+		printf("  UUID: ");
+		for (pos = 0; pos < 16; pos++) {
+			printf("%02x", superblock->uuid[pos]);
 		}
-		else {
-			putchar(' ');
+		printf("\n");
+		
+		printf("  Volume label: ");
+		for (pos = 0; pos < 16; pos++) {
+			c = superblock->volume_name[pos];
+			if (c >= 32 && c < 128) {
+				putchar(c);
+			}
+			else {
+				putchar(' ');
+			}
 		}
+		printf("\n");
 	}
-	printf("\n");
 	
 }
 

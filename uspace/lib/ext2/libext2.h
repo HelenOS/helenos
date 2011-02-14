@@ -40,7 +40,11 @@
 #include <libblock.h>
 
 typedef struct ext2_superblock {
-	uint8_t		unused[20];
+	uint32_t	total_inode_count; // Total number of inodes
+	uint32_t	total_block_count; // Total number of blocks
+	uint32_t	reserved_block_count; // Total number of reserved blocks
+	uint32_t	free_block_count; // Total number of free blocks
+	uint32_t	free_inode_count; // Total number of free inodes
 	uint32_t	first_block; // Block containing the superblock (either 0 or 1)
 	uint32_t	block_size_log2; // log_2(block_size)
 	int32_t		fragment_size_log2; // log_2(fragment size)
@@ -50,11 +54,12 @@ typedef struct ext2_superblock {
 	uint8_t		unused2[12];
 	uint16_t	magic; // Magic value
 	uint16_t	state; // State (mounted/unmounted)
+	uint16_t	error_behavior; // What to do when errors are encountered
 	uint16_t	rev_minor; // Minor revision level
-	uint8_t		unused3[12];
-	uint32_t	creator_os;
+	uint8_t		unused3[8];
+	uint32_t	os; // OS that created the filesystem
 	uint32_t	rev_major; // Major revision level
-	uint8_t		unused4[8];
+	uint8_t		unused4[4];
 	
 	// Following is for ext2 revision 1 only
 	uint32_t	first_inode;
@@ -95,9 +100,14 @@ inline uint32_t	ext2_superblock_get_fragments_per_group(ext2_superblock_t *);
 inline uint16_t	ext2_superblock_get_state(ext2_superblock_t *);
 inline uint16_t	ext2_superblock_get_rev_minor(ext2_superblock_t *);
 inline uint32_t	ext2_superblock_get_rev_major(ext2_superblock_t *);
-inline uint32_t	ext2_superblock_get_creator_os(ext2_superblock_t *);
+inline uint32_t	ext2_superblock_get_os(ext2_superblock_t *);
 inline uint32_t	ext2_superblock_get_first_inode(ext2_superblock_t *);
 inline uint16_t	ext2_superblock_get_inode_size(ext2_superblock_t *);
+inline uint32_t	ext2_superblock_get_total_inode_count(ext2_superblock_t *);
+inline uint32_t	ext2_superblock_get_total_block_count(ext2_superblock_t *);
+inline uint32_t	ext2_superblock_get_reserved_block_count(ext2_superblock_t *);
+inline uint32_t	ext2_superblock_get_free_block_count(ext2_superblock_t *);
+inline uint32_t	ext2_superblock_get_free_inode_count(ext2_superblock_t *);
 
 extern int ext2_superblock_read_direct(devmap_handle_t, ext2_superblock_t **);
 

@@ -185,6 +185,65 @@ inline uint16_t ext2_superblock_get_inode_size(ext2_superblock_t *sb)
 	return uint32_t_le2host(sb->inode_size);
 }
 
+/**
+ * Get total inode count
+ * 
+ * @param sb pointer to superblock
+ */
+inline uint32_t	ext2_superblock_get_total_inode_count(ext2_superblock_t *sb)
+{
+	return uint32_t_le2host(sb->total_inode_count);
+}
+
+/**
+ * Get total block count
+ * 
+ * @param sb pointer to superblock
+ */
+inline uint32_t	ext2_superblock_get_total_block_count(ext2_superblock_t *sb)
+{
+	return uint32_t_le2host(sb->total_block_count);
+}
+
+/**
+ * Get amount of blocks reserved for the superuser
+ * 
+ * @param sb pointer to superblock
+ */
+inline uint32_t	ext2_superblock_get_reserved_block_count(ext2_superblock_t *sb)
+{
+	return uint32_t_le2host(sb->reserved_block_count);
+}
+
+/**
+ * Get amount of free blocks
+ * 
+ * @param sb pointer to superblock
+ */
+inline uint32_t	ext2_superblock_get_free_block_count(ext2_superblock_t *sb)
+{
+	return uint32_t_le2host(sb->free_block_count);
+}
+
+/**
+ * Get amount of free inodes
+ * 
+ * @param sb pointer to superblock
+ */
+inline uint32_t	ext2_superblock_get_free_inode_count(ext2_superblock_t *sb)
+{
+	return uint32_t_le2host(sb->free_inode_count);
+}
+
+/**
+ * Get id of operating system that created the filesystem
+ * 
+ * @param sb pointer to superblock
+ */
+inline uint32_t	ext2_superblock_get_os(ext2_superblock_t *sb)
+{
+	return uint32_t_le2host(sb->os);
+}
 
 /** Read a superblock directly from device (i.e. no libblock cache)
  * 
