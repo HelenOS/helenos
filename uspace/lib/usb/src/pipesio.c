@@ -35,23 +35,91 @@
  * Note on synchronousness of the operations: there is ABSOLUTELY NO
  * guarantee that a call to particular function will not trigger a fibril
  * switch.
- * The initialization functions may actually involve contacting some other
- * task, starting/ending a session might involve asynchronous IPC and since
- * the transfer functions uses IPC, asynchronous nature of them is obvious.
- * The pseudo synchronous versions for the transfers internally call the
- * asynchronous ones and so fibril switch is possible in them as well.
+ *
+ * Note about the implementation: the transfer requests are always divided
+ * into two functions.
+ * The outer one does checking of input parameters (e.g. that session was
+ * already started, buffers are not NULL etc), while the inner one
+ * (with _no_checks suffix) does the actual IPC (it checks for IPC errors,
+ * obviously).
  */
 #include <usb/usb.h>
 #include <usb/pipes.h>
 #include <errno.h>
 #include <assert.h>
-#include <usb/usbdrv.h>
+#include <usbhc_iface.h>
 
-#define _PREPARE_TARGET(varname, pipe) \
-	usb_target_t varname = { \
-		.address = (pipe)->wire->address, \
-		.endpoint = (pipe)->endpoint_no \
+/** Request an in transfer, no checking of input parameters.
+ *
+ * @param[in] pipe Pipe used for the transfer.
+ * @param[out] buffer Buffer where to store the data.
+ * @param[in] size Size of the buffer (in bytes).
+ * @param[out] size_transfered Number of bytes that were actually transfered.
+ * @return Error code.
+ */
+static int usb_endpoint_pipe_read_no_checks(usb_endpoint_pipe_t *pipe,
+    void *buffer, size_t size, size_t *size_transfered)
+{
+	/*
+	 * Get corresponding IPC method.
+	 * In future, replace with static array of mappings
+	 * transfer type -> method.
+	 */
+	usbhc_iface_funcs_t ipc_method;
+	switch (pipe->transfer_type) {
+		case USB_TRANSFER_INTERRUPT:
+			ipc_method = IPC_M_USBHC_INTERRUPT_IN;
+			break;
+		default:
+			return ENOTSUP;
 	}
+
+	/*
+	 * Make call identifying target USB device and type of transfer.
+	 */
+	aid_t opening_request = async_send_3(pipe->hc_phone,
+	    DEV_IFACE_ID(USBHC_DEV_IFACE), ipc_method,
+	    pipe->wire->address, pipe->endpoint_no,
+	    NULL);
+	if (opening_request == 0) {
+		return ENOMEM;
+	}
+
+	/*
+	 * Retrieve the data.
+	 */
+	ipc_call_t data_request_call;
+	aid_t data_request = async_data_read(pipe->hc_phone, buffer, size,
+	    &data_request_call);
+
+	if (data_request == 0) {
+		/*
+		 * FIXME:
+		 * How to let the other side know that we want to abort?
+		 */
+		async_wait_for(opening_request, NULL);
+		return ENOMEM;
+	}
+
+	/*
+	 * Wait for the answer.
+	 */
+	sysarg_t data_request_rc;
+	sysarg_t opening_request_rc;
+	async_wait_for(data_request, &data_request_rc);
+	async_wait_for(opening_request, &opening_request_rc);
+
+	if (data_request_rc != EOK) {
+		return (int) data_request_rc;
+	}
+	if (opening_request_rc != EOK) {
+		return (int) opening_request_rc;
+	}
+
+	*size_transfered = IPC_GET_ARG2(data_request_call);
+
+	return EOK;
+}
 
 
 /** Request a read (in) transfer on an endpoint pipe.
@@ -67,6 +135,14 @@ int usb_endpoint_pipe_read(usb_endpoint_pipe_t *pipe,
 {
 	assert(pipe);
 
+	if (buffer == NULL) {
+			return EINVAL;
+	}
+
+	if (size == 0) {
+		return EINVAL;
+	}
+
 	if (pipe->hc_phone < 0) {
 		return EBADF;
 	}
@@ -75,30 +151,79 @@ int usb_endpoint_pipe_read(usb_endpoint_pipe_t *pipe,
 		return EBADF;
 	}
 
-	int rc;
-	_PREPARE_TARGET(target, pipe);
-	usb_handle_t handle;
-
-	switch (pipe->transfer_type) {
-		case USB_TRANSFER_INTERRUPT:
-			rc = usb_drv_async_interrupt_in(pipe->hc_phone, target,
-			    buffer, size, size_transfered, &handle);
-			break;
-		case USB_TRANSFER_CONTROL:
-			rc = EBADF;
-			break;
-		default:
-			rc = ENOTSUP;
-			break;
+	if (pipe->transfer_type == USB_TRANSFER_CONTROL) {
+		return EBADF;
 	}
 
+	size_t act_size = 0;
+	int rc;
+
+	rc = usb_endpoint_pipe_read_no_checks(pipe, buffer, size, &act_size);
 	if (rc != EOK) {
 		return rc;
 	}
 
-	rc = usb_drv_async_wait_for(handle);
+	if (size_transfered != NULL) {
+		*size_transfered = act_size;
+	}
 
-	return rc;
+	return EOK;
+}
+
+
+
+
+/** Request an out transfer, no checking of input parameters.
+ *
+ * @param[in] pipe Pipe used for the transfer.
+ * @param[in] buffer Buffer with data to transfer.
+ * @param[in] size Size of the buffer (in bytes).
+ * @return Error code.
+ */
+static int usb_endpoint_pipe_write_no_check(usb_endpoint_pipe_t *pipe,
+    void *buffer, size_t size)
+{
+	/*
+	 * Get corresponding IPC method.
+	 * In future, replace with static array of mappings
+	 * transfer type -> method.
+	 */
+	usbhc_iface_funcs_t ipc_method;
+	switch (pipe->transfer_type) {
+		case USB_TRANSFER_INTERRUPT:
+			ipc_method = IPC_M_USBHC_INTERRUPT_OUT;
+			break;
+		default:
+			return ENOTSUP;
+	}
+
+	/*
+	 * Make call identifying target USB device and type of transfer.
+	 */
+	aid_t opening_request = async_send_3(pipe->hc_phone,
+	    DEV_IFACE_ID(USBHC_DEV_IFACE), ipc_method,
+	    pipe->wire->address, pipe->endpoint_no,
+	    NULL);
+	if (opening_request == 0) {
+		return ENOMEM;
+	}
+
+	/*
+	 * Send the data.
+	 */
+	int rc = async_data_write_start(pipe->hc_phone, buffer, size);
+	if (rc != EOK) {
+		async_wait_for(opening_request, NULL);
+		return rc;
+	}
+
+	/*
+	 * Wait for the answer.
+	 */
+	sysarg_t opening_request_rc;
+	async_wait_for(opening_request, &opening_request_rc);
+
+	return (int) opening_request_rc;
 }
 
 /** Request a write (out) transfer on an endpoint pipe.
@@ -113,6 +238,14 @@ int usb_endpoint_pipe_write(usb_endpoint_pipe_t *pipe,
 {
 	assert(pipe);
 
+	if (buffer == NULL) {
+		return EINVAL;
+	}
+
+	if (size == 0) {
+		return EINVAL;
+	}
+
 	if (pipe->hc_phone < 0) {
 		return EBADF;
 	}
@@ -121,32 +254,83 @@ int usb_endpoint_pipe_write(usb_endpoint_pipe_t *pipe,
 		return EBADF;
 	}
 
-	int rc;
-	_PREPARE_TARGET(target, pipe);
-	usb_handle_t handle;
-
-	switch (pipe->transfer_type) {
-		case USB_TRANSFER_INTERRUPT:
-			rc = usb_drv_async_interrupt_out(pipe->hc_phone, target,
-			    buffer, size, &handle);
-			break;
-		case USB_TRANSFER_CONTROL:
-			rc = EBADF;
-			break;
-		default:
-			rc = ENOTSUP;
-			break;
+	if (pipe->transfer_type == USB_TRANSFER_CONTROL) {
+		return EBADF;
 	}
 
-	if (rc != EOK) {
-		return rc;
-	}
-
-	rc = usb_drv_async_wait_for(handle);
+	int rc = usb_endpoint_pipe_write_no_check(pipe, buffer, size);
 
 	return rc;
 }
 
+
+/** Request a control read transfer, no checking of input parameters.
+ *
+ * @param[in] pipe Pipe used for the transfer.
+ * @param[in] setup_buffer Buffer with the setup packet.
+ * @param[in] setup_buffer_size Size of the setup packet (in bytes).
+ * @param[out] data_buffer Buffer for incoming data.
+ * @param[in] data_buffer_size Size of the buffer for incoming data (in bytes).
+ * @param[out] data_transfered_size Number of bytes that were actually
+ *                                  transfered during the DATA stage.
+ * @return Error code.
+ */
+static int usb_endpoint_pipe_control_read_no_check(usb_endpoint_pipe_t *pipe,
+    void *setup_buffer, size_t setup_buffer_size,
+    void *data_buffer, size_t data_buffer_size, size_t *data_transfered_size)
+{
+	/*
+	 * Make call identifying target USB device and control transfer type.
+	 */
+	aid_t opening_request = async_send_3(pipe->hc_phone,
+	    DEV_IFACE_ID(USBHC_DEV_IFACE), IPC_M_USBHC_CONTROL_READ,
+	    pipe->wire->address, pipe->endpoint_no,
+	    NULL);
+	if (opening_request == 0) {
+		return ENOMEM;
+	}
+
+	/*
+	 * Send the setup packet.
+	 */
+	int rc = async_data_write_start(pipe->hc_phone,
+	    setup_buffer, setup_buffer_size);
+	if (rc != EOK) {
+		async_wait_for(opening_request, NULL);
+		return rc;
+	}
+
+	/*
+	 * Retrieve the data.
+	 */
+	ipc_call_t data_request_call;
+	aid_t data_request = async_data_read(pipe->hc_phone,
+	    data_buffer, data_buffer_size,
+	    &data_request_call);
+	if (data_request == 0) {
+		async_wait_for(opening_request, NULL);
+		return ENOMEM;
+	}
+
+	/*
+	 * Wait for the answer.
+	 */
+	sysarg_t data_request_rc;
+	sysarg_t opening_request_rc;
+	async_wait_for(data_request, &data_request_rc);
+	async_wait_for(opening_request, &opening_request_rc);
+
+	if (data_request_rc != EOK) {
+		return (int) data_request_rc;
+	}
+	if (opening_request_rc != EOK) {
+		return (int) opening_request_rc;
+	}
+
+	*data_transfered_size = IPC_GET_ARG2(data_request_call);
+
+	return EOK;
+}
 
 /** Request a control read transfer on an endpoint pipe.
  *
@@ -167,6 +351,14 @@ int usb_endpoint_pipe_control_read(usb_endpoint_pipe_t *pipe,
 {
 	assert(pipe);
 
+	if ((setup_buffer == NULL) || (setup_buffer_size == 0)) {
+		return EINVAL;
+	}
+
+	if ((data_buffer == NULL) || (data_buffer_size == 0)) {
+		return EINVAL;
+	}
+
 	if (pipe->hc_phone < 0) {
 		return EBADF;
 	}
@@ -176,24 +368,78 @@ int usb_endpoint_pipe_control_read(usb_endpoint_pipe_t *pipe,
 		return EBADF;
 	}
 
-	int rc;
-	_PREPARE_TARGET(target, pipe);
-	usb_handle_t handle;
-
-	rc = usb_drv_async_control_read(pipe->hc_phone, target,
+	size_t act_size = 0;
+	int rc = usb_endpoint_pipe_control_read_no_check(pipe,
 	    setup_buffer, setup_buffer_size,
-	    data_buffer, data_buffer_size, data_transfered_size,
-	    &handle);
+	    data_buffer, data_buffer_size, &act_size);
 
 	if (rc != EOK) {
 		return rc;
 	}
 
-	rc = usb_drv_async_wait_for(handle);
+	if (data_transfered_size != NULL) {
+		*data_transfered_size = act_size;
+	}
 
-	return rc;
+	return EOK;
 }
 
+
+/** Request a control write transfer, no checking of input parameters.
+ *
+ * @param[in] pipe Pipe used for the transfer.
+ * @param[in] setup_buffer Buffer with the setup packet.
+ * @param[in] setup_buffer_size Size of the setup packet (in bytes).
+ * @param[in] data_buffer Buffer with data to be sent.
+ * @param[in] data_buffer_size Size of the buffer with outgoing data (in bytes).
+ * @return Error code.
+ */
+static int usb_endpoint_pipe_control_write_no_check(usb_endpoint_pipe_t *pipe,
+    void *setup_buffer, size_t setup_buffer_size,
+    void *data_buffer, size_t data_buffer_size)
+{
+	/*
+	 * Make call identifying target USB device and control transfer type.
+	 */
+	aid_t opening_request = async_send_4(pipe->hc_phone,
+	    DEV_IFACE_ID(USBHC_DEV_IFACE), IPC_M_USBHC_CONTROL_WRITE,
+	    pipe->wire->address, pipe->endpoint_no,
+	    data_buffer_size,
+	    NULL);
+	if (opening_request == 0) {
+		return ENOMEM;
+	}
+
+	/*
+	 * Send the setup packet.
+	 */
+	int rc = async_data_write_start(pipe->hc_phone,
+	    setup_buffer, setup_buffer_size);
+	if (rc != EOK) {
+		async_wait_for(opening_request, NULL);
+		return rc;
+	}
+
+	/*
+	 * Send the data (if any).
+	 */
+	if (data_buffer_size > 0) {
+		rc = async_data_write_start(pipe->hc_phone,
+		    data_buffer, data_buffer_size);
+		if (rc != EOK) {
+			async_wait_for(opening_request, NULL);
+			return rc;
+		}
+	}
+
+	/*
+	 * Wait for the answer.
+	 */
+	sysarg_t opening_request_rc;
+	async_wait_for(opening_request, &opening_request_rc);
+
+	return (int) opening_request_rc;
+}
 
 /** Request a control write transfer on an endpoint pipe.
  *
@@ -212,6 +458,18 @@ int usb_endpoint_pipe_control_write(usb_endpoint_pipe_t *pipe,
 {
 	assert(pipe);
 
+	if ((setup_buffer == NULL) || (setup_buffer_size == 0)) {
+		return EINVAL;
+	}
+
+	if ((data_buffer == NULL) && (data_buffer_size > 0)) {
+		return EINVAL;
+	}
+
+	if ((data_buffer != NULL) && (data_buffer_size == 0)) {
+		return EINVAL;
+	}
+
 	if (pipe->hc_phone < 0) {
 		return EBADF;
 	}
@@ -221,20 +479,8 @@ int usb_endpoint_pipe_control_write(usb_endpoint_pipe_t *pipe,
 		return EBADF;
 	}
 
-	int rc;
-	_PREPARE_TARGET(target, pipe);
-	usb_handle_t handle;
-
-	rc = usb_drv_async_control_write(pipe->hc_phone, target,
-	    setup_buffer, setup_buffer_size,
-	    data_buffer, data_buffer_size,
-	    &handle);
-
-	if (rc != EOK) {
-		return rc;
-	}
-
-	rc = usb_drv_async_wait_for(handle);
+	int rc = usb_endpoint_pipe_control_write_no_check(pipe,
+	    setup_buffer, setup_buffer_size, data_buffer, data_buffer_size);
 
 	return rc;
 }
