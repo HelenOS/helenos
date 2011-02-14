@@ -161,6 +161,7 @@ int driver_main(driver_t *);
 extern function_t *ddf_fun_create(device_t *, fun_type_t, const char *);
 extern void ddf_fun_destroy(function_t *);
 extern int ddf_fun_bind(function_t *);
+extern int ddf_fun_add_match_id(function_t *, const char *, int);
 
 extern void *function_get_ops(function_t *, dev_inferface_idx_t);
 

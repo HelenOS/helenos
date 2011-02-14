@@ -56,21 +56,37 @@ static driver_t test2_driver = {
  * @param match_id Device match id.
  * @param score Device match score.
  */
-static void register_child_verbose(device_t *parent, const char *message,
+static int register_fun_verbose(device_t *parent, const char *message,
     const char *name, const char *match_id, int match_score)
 {
-	printf(NAME ": registering child device `%s': %s.\n",
-	   name, message);
+	function_t *fun;
+	int rc;
 
-	int rc = register_function_wrapper(parent, name,
-	    match_id, match_score);
+	printf(NAME ": registering function `%s': %s.\n", name, message);
 
-	if (rc == EOK) {
-		printf(NAME ": registered child device `%s'.\n", name);
-	} else {
-		printf(NAME ": failed to register child `%s' (%s).\n",
-		    name, str_error(rc));
+	fun = ddf_fun_create(parent, fun_inner, name);
+	if (fun == NULL) {
+		printf(NAME ": error creating function %s\n", name);
+		return ENOMEM;
 	}
+
+	rc = ddf_fun_add_match_id(fun, match_id, match_score);
+	if (rc != EOK) {
+		printf(NAME ": error adding match IDs to function %s\n", name);
+		ddf_fun_destroy(fun);
+		return rc;
+	}
+
+	rc = ddf_fun_bind(fun);
+	if (rc != EOK) {
+		printf(NAME ": error binding function %s: %s\n", name,
+		    str_error(rc));
+		ddf_fun_destroy(fun);
+		return rc;
+	}
+
+	printf(NAME ": registered child device `%s'\n", name);
+	return EOK;
 }
 
 /** Add child devices after some sleep.
@@ -86,9 +102,9 @@ static int postponed_birth(void *arg)
 
 	async_usleep(1000);
 
-	register_child_verbose(dev, "child driven by the same task",
+	(void) register_fun_verbose(dev, "child driven by the same task",
 	    "child", "virtual&test2", 10);
-	register_child_verbose(dev, "child driven by test1",
+	(void) register_fun_verbose(dev, "child driven by test1",
 	    "test1", "virtual&test1", 10);
 
 	fun_a = ddf_fun_create(dev, fun_exposed, "a");
@@ -121,7 +137,7 @@ static int test2_add_device(device_t *dev)
 		}
 		fibril_add_ready(postpone);
 	} else {
-		register_child_verbose(dev, "child without available driver",
+		(void) register_fun_verbose(dev, "child without available driver",
 		    "ERROR", "non-existent.match.id", 10);
 	}
 

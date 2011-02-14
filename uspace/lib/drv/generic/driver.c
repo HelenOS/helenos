@@ -606,6 +606,32 @@ int ddf_fun_bind(function_t *fun)
 	return res;
 }
 
+/** Add single match ID to function.
+ *
+ * Construct and add a single match ID to the specified function.
+ *
+ * @param fun			Function
+ * @param match_id_str		Match string
+ * @param match_score		Match score
+ * @return			EOK on success, ENOMEM if out of memory.
+ */
+int ddf_fun_add_match_id(function_t *fun, const char *match_id_str,
+    int match_score)
+{
+	match_id_t *match_id;
+	
+	match_id = create_match_id();
+	if (match_id == NULL)
+		return ENOMEM;
+	
+	match_id->id = match_id_str;
+	match_id->score = 90;
+	
+	add_match_id(&fun->match_ids, match_id);
+	return EOK;
+}
+
+
 /** Wrapper for child_device_register for devices with single match id.
  *
  * @param parent Parent device.

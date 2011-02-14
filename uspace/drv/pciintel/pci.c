@@ -44,6 +44,7 @@
 #include <str.h>
 #include <ctype.h>
 #include <macros.h>
+#include <str_error.h>
 
 #include <driver.h>
 #include <devman.h>
@@ -216,16 +217,21 @@ void pci_conf_write_32(pci_fun_t *fun, int reg, uint32_t val)
 
 void pci_fun_create_match_ids(pci_fun_t *fun)
 {
-	match_id_t *match_id = NULL;
 	char *match_id_str;
+	int rc;
 	
-	match_id = create_match_id();
-	if (match_id != NULL) {
-		asprintf(&match_id_str, "pci/ven=%04x&dev=%04x",
-		    fun->vendor_id, fun->device_id);
-		match_id->id = match_id_str;
-		match_id->score = 90;
-		add_match_id(&fun->fnode->match_ids, match_id);
+	asprintf(&match_id_str, "pci/ven=%04x&dev=%04x",
+	    fun->vendor_id, fun->device_id);
+
+	if (match_id_str == NULL) {
+		printf(NAME ": out of memory creating match ID.\n");
+		return;
+	}
+
+	rc = ddf_fun_add_match_id(fun->fnode, match_id_str, 90);
+	if (rc != EOK) {
+		printf(NAME ": error adding match ID: %s\n",
+		    str_error(rc));
 	}
 	
 	/* TODO add more ids (with subsys ids, using class id etc.) */

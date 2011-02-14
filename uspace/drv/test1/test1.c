@@ -54,21 +54,37 @@ static driver_t test1_driver = {
  * @param match_id Device match id.
  * @param score Device match score.
  */
-static void register_fun_verbose(device_t *parent, const char *message,
+static int register_fun_verbose(device_t *parent, const char *message,
     const char *name, const char *match_id, int match_score)
 {
-	printf(NAME ": registering child device `%s': %s.\n",
-	   name, message);
+	function_t *fun;
+	int rc;
 
-	int rc = register_function_wrapper(parent, name,
-	    match_id, match_score);
+	printf(NAME ": registering function `%s': %s.\n", name, message);
 
-	if (rc == EOK) {
-		printf(NAME ": registered function `%s'.\n", name);
-	} else {
-		printf(NAME ": failed to register function `%s' (%s).\n",
-		    name, str_error(rc));
+	fun = ddf_fun_create(parent, fun_inner, name);
+	if (fun == NULL) {
+		printf(NAME ": error creating function %s\n", name);
+		return ENOMEM;
 	}
+
+	rc = ddf_fun_add_match_id(fun, match_id, match_score);
+	if (rc != EOK) {
+		printf(NAME ": error adding match IDs to function %s\n", name);
+		ddf_fun_destroy(fun);
+		return rc;
+	}
+
+	rc = ddf_fun_bind(fun);
+	if (rc != EOK) {
+		printf(NAME ": error binding function %s: %s\n", name,
+		    str_error(rc));
+		ddf_fun_destroy(fun);
+		return rc;
+	}
+
+	printf(NAME ": registered child device `%s'\n", name);
+	return EOK;
 }
 
 /** Callback when new device is passed to this driver.
@@ -114,10 +130,10 @@ static int test1_add_device(device_t *dev)
 		fun_a->ops = &char_device_ops;
 		add_function_to_class(fun_a, "virt-null");
 	} else if (str_cmp(dev->name, "test1") == 0) {
-		register_fun_verbose(dev, "cloning myself ;-)", "clone",
+		(void) register_fun_verbose(dev, "cloning myself ;-)", "clone",
 		    "virtual&test1", 10);
 	} else if (str_cmp(dev->name, "clone") == 0) {
-		register_fun_verbose(dev, "run by the same task", "child",
+		(void) register_fun_verbose(dev, "run by the same task", "child",
 		    "virtual&test1&child", 10);
 	}
 

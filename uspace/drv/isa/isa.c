@@ -43,6 +43,7 @@
 #include <fibril_synch.h>
 #include <stdlib.h>
 #include <str.h>
+#include <str_error.h>
 #include <ctype.h>
 #include <macros.h>
 #include <malloc.h>
@@ -323,6 +324,7 @@ static void fun_parse_match_id(isa_fun_t *fun, char *val)
 	char *id = NULL;
 	int score = 0;
 	char *end = NULL;
+	int rc;
 
 	val = skip_spaces(val);
 
@@ -333,28 +335,20 @@ static void fun_parse_match_id(isa_fun_t *fun, char *val)
 		return;
 	}
 
-	match_id_t *match_id = create_match_id();
-	if (match_id == NULL) {
-		printf(NAME " : failed to allocate match id for function %s.\n",
-		    fun->fnode->name);
-		return;
-	}
-
 	val = skip_spaces(end);
 	get_match_id(&id, val);
 	if (id == NULL) {
 		printf(NAME " : error - could not read match id for "
 		    "function %s.\n", fun->fnode->name);
-		delete_match_id(match_id);
 		return;
 	}
 
-	match_id->id = id;
-	match_id->score = score;
-
 	printf(NAME ": adding match id '%s' with score %d to function %s\n", id,
 	    score, fun->fnode->name);
-	add_match_id(&fun->fnode->match_ids, match_id);
+
+	rc = ddf_fun_add_match_id(fun->fnode, id, score);
+	if (rc != EOK)
+		printf(NAME ": error adding match ID: %s\n", str_error(rc));
 }
 
 static bool prop_parse(isa_fun_t *fun, char *line, const char *prop,

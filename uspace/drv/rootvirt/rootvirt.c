@@ -79,21 +79,36 @@ static driver_t rootvirt_driver = {
  */
 static int rootvirt_add_fun(device_t *vdev, virtual_function_t *vfun)
 {
+	function_t *fun;
+	int rc;
+
 	printf(NAME ": registering function `%s' (match \"%s\")\n",
 	    vfun->name, vfun->match_id);
 
-	int rc = register_function_wrapper(vdev, vfun->name,
-	    vfun->match_id, 10);
-
-	if (rc == EOK) {
-		printf(NAME ": registered child device `%s'\n",
-		    vfun->name);
-	} else {
-		printf(NAME ": failed to register child device `%s': %s\n",
-		    vfun->name, str_error(rc));
+	fun = ddf_fun_create(vdev, fun_inner, vfun->name);
+	if (fun == NULL) {
+		printf(NAME ": error creating function %s\n", vfun->name);
+		return ENOMEM;
 	}
 
-	return rc;
+	rc = ddf_fun_add_match_id(fun, vfun->match_id, 10);
+	if (rc != EOK) {
+		printf(NAME ": error adding match IDs to function %s\n",
+		    vfun->name);
+		ddf_fun_destroy(fun);
+		return rc;
+	}
+
+	rc = ddf_fun_bind(fun);
+	if (rc != EOK) {
+		printf(NAME ": error binding function %s: %s\n", vfun->name,
+		    str_error(rc));
+		ddf_fun_destroy(fun);
+		return rc;
+	}
+
+	printf(NAME ": registered child device `%s'\n", vfun->name);
+	return EOK;
 }
 
 static int rootvirt_add_device(device_t *dev)
