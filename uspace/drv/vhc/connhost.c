@@ -35,7 +35,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <usb/usb.h>
-#include <usb/hcd.h>
+#include <usb/addrkeep.h>
 
 #include "vhcd.h"
 #include "conn.h"
