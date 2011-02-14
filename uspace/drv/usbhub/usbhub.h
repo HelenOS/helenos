@@ -35,9 +35,11 @@
 #ifndef DRV_USBHUB_USBHUB_H
 #define DRV_USBHUB_USBHUB_H
 
-#define NAME "usbhub"
+#include <ipc/devman.h>
+#include <usb/usb.h>
+#include <driver.h>
 
-#include "usb/hcdhubd.h"
+#define NAME "usbhub"
 
 /** basic information about device attached to hub */
 typedef struct{
@@ -51,11 +53,10 @@ typedef struct {
 	int port_count;
 	/** attached device handles */
 	usb_hub_attached_device_t * attached_devs;
-	/** General usb device info. */
-	usb_hcd_attached_device_info_t * usb_device;
+	/** USB address of the hub. */
+	usb_address_t address;
 	/** General device info*/
 	device_t * device;
-
 } usb_hub_info_t;
 
 /**

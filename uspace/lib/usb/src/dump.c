@@ -146,8 +146,8 @@ static void usb_dump_descriptor_device(FILE *output,
 	PRINTLINE("bDeviceSubClass = 0x%02x", d->device_subclass);
 	PRINTLINE("bDeviceProtocol = 0x%02x", d->device_protocol);
 	PRINTLINE("bMaxPacketSize0 = %d", d->max_packet_size);
-	PRINTLINE("idVendor = %d", d->vendor_id);
-	PRINTLINE("idProduct = %d", d->product_id);
+	PRINTLINE("idVendor = 0x%04x", d->vendor_id);
+	PRINTLINE("idProduct = 0x%04x", d->product_id);
 	PRINTLINE("bcdDevice = %d", d->device_version);
 	PRINTLINE("iManufacturer = %d", d->str_manufacturer);
 	PRINTLINE("iProduct = %d", d->str_product);

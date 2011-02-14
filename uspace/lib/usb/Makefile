@@ -38,15 +38,11 @@ SOURCES = \
 	src/dp.c \
 	src/drvpsync.c \
 	src/dump.c \
-	src/hcdhubd.c \
-	src/hcdrv.c \
 	src/hidparser.c \
-	src/localdrv.c \
 	src/pipes.c \
 	src/pipesinit.c \
 	src/pipesio.c \
 	src/recognise.c \
-	src/remotedrv.c \
 	src/request.c \
 	src/usb.c \
 	src/usbdrvreq.c \

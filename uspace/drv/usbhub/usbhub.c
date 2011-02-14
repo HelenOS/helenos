@@ -83,8 +83,7 @@ usb_hub_info_t * usb_create_hub_info(device_t * device, int hc) {
 
 	}*/
 
-	result->usb_device = usb_new(usb_hcd_attached_device_info_t);
-	result->usb_device->address = addr;
+	result->address = addr;
 
 	// get hub descriptor
 
@@ -154,7 +153,7 @@ int usb_add_hub_device(device_t *dev) {
 	int port;
 	int opResult;
 	usb_target_t target;
-	target.address = hub_info->usb_device->address;
+	target.address = hub_info->address;
 	target.endpoint = 0;
 
 	//get configuration descriptor
@@ -215,7 +214,7 @@ int usb_add_hub_device(device_t *dev) {
 
 	dprintf(USB_LOG_LEVEL_INFO, "hub dev added");
 	dprintf(USB_LOG_LEVEL_DEBUG, "\taddress %d, has %d ports ",
-			hub_info->usb_device->address,
+			hub_info->address,
 			hub_info->port_count);
 	dprintf(USB_LOG_LEVEL_DEBUG, "\tused configuration %d",config_descriptor.configuration_number);
 
@@ -464,7 +463,7 @@ void usb_hub_check_hub_changes(void) {
 		 */
 
 		usb_target_t target;
-		target.address = hub_info->usb_device->address;
+		target.address = hub_info->address;
 		target.endpoint = 1;/// \TODO get from endpoint descriptor
 		dprintf(USB_LOG_LEVEL_INFO, "checking changes for hub at addr %d",
 		    target.address);
@@ -506,7 +505,7 @@ void usb_hub_check_hub_changes(void) {
 					(((uint8_t*) change_bitmap)[port / 8] >> (port % 8)) % 2;
 			if (interrupt) {
 				usb_hub_process_interrupt(
-				        hub_info, hc, port, hub_info->usb_device->address);
+				        hub_info, hc, port, hub_info->address);
 			}
 		}
 		free(change_bitmap);
