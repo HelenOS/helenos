@@ -68,7 +68,7 @@
 #define PCI_BUS(dnode) ((pci_bus_t *) (dnode)->driver_data)
 
 /** Obtain PCI bus soft-state from function soft-state */
-#define PCI_BUS_FROM_FUN(fun) (PCI_BUS(fun->fnode->dev))
+#define PCI_BUS_FROM_FUN(fun) ((fun)->busptr)
 
 static hw_resource_list_t *pciintel_get_resources(function_t *fnode)
 {
@@ -360,19 +360,15 @@ void pci_read_interrupt(pci_fun_t *fun)
  */
 void pci_bus_scan(pci_bus_t *bus, int bus_num) 
 {
-	function_t *fnode = create_function();
-	pci_fun_t *fun = pci_fun_new();
-	fnode->driver_data = fun;
+	function_t *fnode;
+	pci_fun_t *fun;
 	
 	int child_bus = 0;
 	int dnum, fnum;
 	bool multi;
 	uint8_t header_type;
 	
-	/* We need this early, before registering. */
-	fun->fnode = fnode;
-	fnode->dev = bus->dnode;
-	fnode->driver_data = fun;
+	fun = pci_fun_new(bus);
 	
 	for (dnum = 0; dnum < 32; dnum++) {
 		multi = true;
@@ -401,21 +397,34 @@ void pci_bus_scan(pci_bus_t *bus, int bus_num)
 			/* Clear the multifunction bit. */
 			header_type = header_type & 0x7F;
 			
-			pci_fun_create_name(fun);
+			char *fun_name = pci_fun_create_name(fun);
+			if (fun_name == NULL) {
+				printf(NAME ": out of memory.\n");
+				return;
+			}
+			
+			fnode = ddf_fun_create(bus->dnode, fun_inner, fun_name);
+			if (fnode == NULL) {
+				printf(NAME ": error creating function.\n");
+				return;
+			}
+			
+			free(fun_name);
+			fun->fnode = fnode;
 			
 			pci_alloc_resource_list(fun);
 			pci_read_bars(fun);
 			pci_read_interrupt(fun);
 			
-			fnode->ftype = fun_inner;
 			fnode->ops = &pci_fun_ops;
+			fnode->driver_data = fun;
 			
 			printf(NAME ": adding new function %s.\n",
 			    fnode->name);
 			
 			pci_fun_create_match_ids(fun);
 			
-			if (register_function(fnode, bus->dnode) != EOK) {
+			if (ddf_fun_bind(fnode) != EOK) {
 				pci_clean_resource_list(fun);
 				clean_match_ids(&fnode->match_ids);
 				free((char *) fnode->name);
@@ -433,20 +442,11 @@ void pci_bus_scan(pci_bus_t *bus, int bus_num)
 					pci_bus_scan(bus, child_bus);
 			}
 			
-			/* Alloc new aux. fun. structure. */
-			fnode = create_function();
-
-			/* We need this early, before registering. */
-		    	fnode->dev = bus->dnode;
-
-			fun = pci_fun_new();
-			fun->fnode = fnode;
-			fnode->driver_data = fun;
+			fun = pci_fun_new(bus);
 		}
 	}
 	
 	if (fun->vendor_id == 0xffff) {
-		delete_function(fnode);
 		/* Free the auxiliary function structure. */
 		pci_fun_delete(fun);
 	}
@@ -454,14 +454,19 @@ void pci_bus_scan(pci_bus_t *bus, int bus_num)
 
 static int pci_add_device(device_t *dnode)
 {
+	pci_bus_t *bus = NULL;
+	function_t *ctl = NULL;
+	bool got_res = false;
 	int rc;
 	
 	printf(NAME ": pci_add_device\n");
+	dnode->parent_phone = -1;
 	
-	pci_bus_t *bus = pci_bus_new();
+	bus = pci_bus_new();
 	if (bus == NULL) {
 		printf(NAME ": pci_add_device allocation failed.\n");
-		return ENOMEM;
+		rc = ENOMEM;
+		goto fail;
 	}
 	bus->dnode = dnode;
 	dnode->driver_data = bus;
@@ -471,8 +476,8 @@ static int pci_add_device(device_t *dnode)
 	if (dnode->parent_phone < 0) {
 		printf(NAME ": pci_add_device failed to connect to the "
 		    "parent's driver.\n");
-		pci_bus_delete(bus);
-		return dnode->parent_phone;
+		rc = dnode->parent_phone;
+		goto fail;
 	}
 	
 	hw_resource_list_t hw_resources;
@@ -481,10 +486,9 @@ static int pci_add_device(device_t *dnode)
 	if (rc != EOK) {
 		printf(NAME ": pci_add_device failed to get hw resources for "
 		    "the device.\n");
-		pci_bus_delete(bus);
-		async_hangup(dnode->parent_phone);
-		return rc;
+		goto fail;
 	}
+	got_res = true;
 	
 	printf(NAME ": conf_addr = %" PRIx64 ".\n",
 	    hw_resources.resources[0].res.io_range.address);
@@ -499,20 +503,26 @@ static int pci_add_device(device_t *dnode)
 	if (pio_enable((void *)(uintptr_t)bus->conf_io_addr, 8,
 	    &bus->conf_addr_port)) {
 		printf(NAME ": failed to enable configuration ports.\n");
-		pci_bus_delete(bus);
-		async_hangup(dnode->parent_phone);
-		hw_res_clean_resource_list(&hw_resources);
-		return EADDRNOTAVAIL;
+		rc = EADDRNOTAVAIL;
+		goto fail;
 	}
 	bus->conf_data_port = (char *) bus->conf_addr_port + 4;
 	
 	/* Make the bus device more visible. It has no use yet. */
 	printf(NAME ": adding a 'ctl' function\n");
 	
-	function_t *ctl = create_function();
-	ctl->ftype = fun_exposed;
-	ctl->name = "ctl";
-	register_function(ctl, dnode);
+	ctl = ddf_fun_create(bus->dnode, fun_exposed, "ctl");
+	if (ctl == NULL) {
+		printf(NAME ": error creating control function.\n");
+		rc = ENOMEM;
+		goto fail;
+	}
+	
+	rc = ddf_fun_bind(ctl);
+	if (rc != EOK) {
+		printf(NAME ": error binding control function.\n");
+		goto fail;
+	}
 	
 	/* Enumerate functions. */
 	printf(NAME ": scanning the bus\n");
@@ -521,6 +531,18 @@ static int pci_add_device(device_t *dnode)
 	hw_res_clean_resource_list(&hw_resources);
 	
 	return EOK;
+	
+fail:
+	if (bus != NULL)
+		pci_bus_delete(bus);
+	if (dnode->parent_phone >= 0)
+		async_hangup(dnode->parent_phone);
+	if (got_res)
+		hw_res_clean_resource_list(&hw_resources);
+	if (ctl != NULL)
+		ddf_fun_destroy(ctl);
+
+	return rc;
 }
 
 static void pciintel_init(void)
@@ -528,12 +550,16 @@ static void pciintel_init(void)
 	pci_fun_ops.interfaces[HW_RES_DEV_IFACE] = &pciintel_hw_res_ops;
 }
 
-pci_fun_t *pci_fun_new(void)
+pci_fun_t *pci_fun_new(pci_bus_t *bus)
 {
-	pci_fun_t *res;
+	pci_fun_t *fun;
 	
-	res = (pci_fun_t *) calloc(1, sizeof(pci_fun_t));
-	return res;
+	fun = (pci_fun_t *) calloc(1, sizeof(pci_fun_t));
+	if (fun == NULL)
+		return NULL;
+
+	fun->busptr = bus;
+	return fun;
 }
 
 void pci_fun_init(pci_fun_t *fun, int bus, int dev, int fn)
@@ -550,13 +576,13 @@ void pci_fun_delete(pci_fun_t *fun)
 	free(fun);
 }
 
-void pci_fun_create_name(pci_fun_t *fun)
+char *pci_fun_create_name(pci_fun_t *fun)
 {
 	char *name = NULL;
 	
 	asprintf(&name, "%02x:%02x.%01x", fun->bus, fun->dev,
 	    fun->fn);
-	fun->fnode->name = name;
+	return name;
 }
 
 bool pci_alloc_resource_list(pci_fun_t *fun)

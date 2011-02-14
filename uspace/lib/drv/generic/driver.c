@@ -476,15 +476,13 @@ static device_t *create_device(void)
  *
  * @return		The device structure.
  */
-function_t *create_function(void)
+static function_t *create_function(void)
 {
 	function_t *fun;
 
-	fun = malloc(sizeof(function_t));
+	fun = calloc(1, sizeof(function_t));
 	if (fun == NULL)
 		return NULL;
-
-	memset(fun, 0, sizeof(device_t));
 
 	init_match_ids(&fun->match_ids);
 	link_initialize(&fun->link);
@@ -505,12 +503,69 @@ static void delete_device(device_t *dev)
  *
  * @param dev		The device structure.
  */
-void delete_function(function_t *fun)
+static void delete_function(function_t *fun)
 {
 	clean_match_ids(&fun->match_ids);
 	if (fun->name != NULL)
 		free(fun->name);
 	free(fun);
+}
+
+/** Create a DDF function node.
+ *
+ * Create a DDF function (in memory). Both child devices and external clients
+ * communicate with a device via its functions.
+ *
+ * The created function node is fully formed, but only exists in the memory
+ * of the client task. In order to be visible to the system, the function
+ * must be bound using ddf_fun_bind().
+ *
+ * This function should only fail if there is not enough free memory.
+ * Specifically, this function succeeds even if @a dev already has
+ * a (bound) function with the same name.
+ *
+ * Type: A function of type fun_inner indicates that DDF should attempt
+ * to attach child devices to the function. fun_exposed means that
+ * the function should be exported to external clients (applications).
+ *
+ * @param dev		Device to which we are adding function
+ * @param ftype		Type of function (fun_inner or fun_exposed)
+ * @param name		Name of function
+ *
+ * @return		New function or @c NULL if memory is not available
+ */
+function_t *ddf_fun_create(device_t *dev, fun_type_t ftype, const char *name)
+{
+	function_t *fun;
+
+	fun = create_function();
+	if (fun == NULL)
+		return NULL;
+
+	fun->bound = false;
+	fun->dev = dev;
+	fun->ftype = ftype;
+
+	fun->name = str_dup(name);
+	if (fun->name == NULL) {
+		delete_function(fun);
+		return NULL;
+	}
+
+	return fun;
+}
+
+/** Destroy DDF function node.
+ *
+ * Destroy a function previously created with ddf_fun_create(). The function
+ * must not be bound.
+ *
+ * @param fun		Function to destroy
+ */
+void ddf_fun_destroy(function_t *fun)
+{
+	assert(fun->bound == false);
+	delete_function(fun);
 }
 
 void *function_get_ops(function_t *fun, dev_inferface_idx_t idx)
@@ -521,22 +576,33 @@ void *function_get_ops(function_t *fun, dev_inferface_idx_t idx)
 	return fun->ops->interfaces[idx];
 }
 
-int register_function(function_t *fun, device_t *dev)
+/** Bind a function node.
+ *
+ * Bind the specified function to the system. This effectively makes
+ * the function visible to the system (uploads it to the server).
+ *
+ * This function can fail for several reasons. Specifically,
+ * it will fail if the device already has a bound function of
+ * the same name.
+ *
+ * @param fun		Function to bind
+ * @return		EOK on success or negative error code
+ */
+int ddf_fun_bind(function_t *fun)
 {
 	assert(fun->name != NULL);
 	
 	int res;
 	
-	fun->dev = dev;
-	
 	add_to_functions_list(fun);
 	res = devman_add_function(fun->name, fun->ftype, &fun->match_ids,
-	    dev->handle, &fun->handle);
+	    fun->dev->handle, &fun->handle);
 	if (res != EOK) {
 		remove_from_functions_list(fun);
 		return res;
 	}
 	
+	fun->bound = true;
 	return res;
 }
 
@@ -555,15 +621,11 @@ int register_function_wrapper(device_t *dev, const char *fun_name,
 	match_id_t *m_id = NULL;
 	int rc;
 	
-	fun = create_function();
+	fun = ddf_fun_create(dev, fun_inner, fun_name);
 	if (fun == NULL) {
 		rc = ENOMEM;
 		goto failure;
 	}
-	
-	fun->dev = dev;
-	fun->name = fun_name;
-	fun->ftype = fun_inner;
 	
 	m_id = create_match_id();
 	if (m_id == NULL) {
@@ -575,7 +637,7 @@ int register_function_wrapper(device_t *dev, const char *fun_name,
 	m_id->score = match_score;
 	add_match_id(&fun->match_ids, m_id);
 	
-	rc = register_function(fun, dev);
+	rc = ddf_fun_bind(fun);
 	if (rc != EOK)
 		goto failure;
 	

@@ -760,13 +760,20 @@ static int ns8250_add_device(device_t *dev)
 		goto fail;
 	}
 	
-	fun = create_function();
-	fun->ftype = fun_exposed;
-	fun->name = "a";
+	fun = ddf_fun_create(dev, fun_exposed, "a");
+	if (fun == NULL) {
+		printf(NAME ": error creating function.\n");
+		goto fail;
+	}
 	
 	/* Set device operations. */
 	fun->ops = &ns8250_dev_ops;
-	register_function(fun, dev);
+	rc = ddf_fun_bind(fun);
+	if (rc != EOK) {
+		printf(NAME ": error binding function.\n");
+		goto fail;
+	}
+
 	ns->fun = fun;
 	
 	add_function_to_class(fun, "serial");
@@ -776,6 +783,8 @@ static int ns8250_add_device(device_t *dev)
 	
 	return EOK;
 fail:
+	if (fun != NULL)
+		ddf_fun_destroy(fun);
 	if (need_cleanup)
 		ns8250_dev_cleanup(ns);
 	if (ns != NULL)

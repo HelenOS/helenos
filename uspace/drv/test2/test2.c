@@ -81,7 +81,8 @@ static void register_child_verbose(device_t *parent, const char *message,
 static int postponed_birth(void *arg)
 {
 	device_t *dev = (device_t *) arg;
-	function_t *fun;
+	function_t *fun_a;
+	int rc;
 
 	async_usleep(1000);
 
@@ -90,13 +91,19 @@ static int postponed_birth(void *arg)
 	register_child_verbose(dev, "child driven by test1",
 	    "test1", "virtual&test1", 10);
 
-	fun = create_function();
-	fun->ftype = fun_exposed;
-	fun->name = "a";
+	fun_a = ddf_fun_create(dev, fun_exposed, "a");
+	if (fun_a == NULL) {
+		printf(NAME ": error creating function 'a'.\n");
+		return ENOMEM;
+	}
 
-	register_function(fun, dev);
+	rc = ddf_fun_bind(fun_a);
+	if (rc != EOK) {
+		printf(NAME ": error binding function 'a'.\n");
+		return rc;
+	}
 
-	add_function_to_class(fun, "virtual");
+	add_function_to_class(fun_a, "virtual");
 
 	return EOK;
 }

@@ -44,7 +44,17 @@
 
 #define PCI_MAX_HW_RES 8
 
+typedef struct pciintel_bus {
+	/** DDF device node */
+	device_t *dnode;
+	uint32_t conf_io_addr;
+	void *conf_data_port;
+	void *conf_addr_port;
+	fibril_mutex_t conf_mutex;
+} pci_bus_t;
+
 typedef struct pci_fun_data {
+	pci_bus_t *busptr;
 	function_t *fnode;
 
 	int bus;
@@ -54,15 +64,6 @@ typedef struct pci_fun_data {
 	int device_id;
 	hw_resource_list_t hw_resources;
 } pci_fun_t;
-
-typedef struct pciintel_bus {
-	/** DDF device node */
-	device_t *dnode;
-	uint32_t conf_io_addr;
-	void *conf_data_port;
-	void *conf_addr_port;
-	fibril_mutex_t conf_mutex;
-} pci_bus_t;
 
 extern void pci_fun_create_match_ids(pci_fun_t *);
 
@@ -78,10 +79,10 @@ extern int pci_read_bar(pci_fun_t *, int);
 extern void pci_read_interrupt(pci_fun_t *);
 extern void pci_add_interrupt(pci_fun_t *, int);
 
-extern pci_fun_t *pci_fun_new(void);
+extern pci_fun_t *pci_fun_new(pci_bus_t *);
 extern void pci_fun_init(pci_fun_t *, int, int, int);
 extern void pci_fun_delete(pci_fun_t *);
-extern void pci_fun_create_name(pci_fun_t *);
+extern char *pci_fun_create_name(pci_fun_t *);
 
 extern void pci_bus_scan(pci_bus_t *, int);
 

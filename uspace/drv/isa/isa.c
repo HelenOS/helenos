@@ -105,13 +105,13 @@ static driver_t isa_driver = {
 	.driver_ops = &isa_ops
 };
 
-static isa_fun_t *isa_fun_create()
+static isa_fun_t *isa_fun_create(device_t *dev, const char *name)
 {
 	isa_fun_t *fun = calloc(1, sizeof(isa_fun_t));
 	if (fun == NULL)
 		return NULL;
 
-	function_t *fnode = create_function();
+	function_t *fnode = ddf_fun_create(dev, fun_inner, name);
 	if (fnode == NULL) {
 		free(fun);
 		return NULL;
@@ -416,15 +416,11 @@ static char *isa_fun_read_info(char *fun_conf, device_t *dev)
 	if (fun_name == NULL)
 		return NULL;
 
-	isa_fun_t *fun = isa_fun_create();
+	isa_fun_t *fun = isa_fun_create(dev, fun_name);
 	if (fun == NULL) {
 		free(fun_name);
 		return NULL;
 	}
-
-	function_t *fnode = fun->fnode;
-	fnode->name = fun_name;
-	fnode->ftype = fun_inner;
 
 	/* Allocate buffer for the list of hardware resources of the device. */
 	fun_hw_res_alloc(fun);
@@ -446,11 +442,12 @@ static char *isa_fun_read_info(char *fun_conf, device_t *dev)
 	}
 
 	/* Set device operations to the device. */
-	fnode->ops = &isa_fun_ops;
+	fun->fnode->ops = &isa_fun_ops;
 
-	printf(NAME ": register_function(fun, dev); function is %s.\n",
-	    fnode->name);
-	register_function(fnode, dev);
+	printf(NAME ": Binding function %s.\n", fun->fnode->name);
+
+	/* XXX Handle error */
+	(void) ddf_fun_bind(fun->fnode);
 
 	return fun_conf;
 }
@@ -481,10 +478,16 @@ static int isa_add_device(device_t *dev)
 	/* Make the bus device more visible. Does not do anything. */
 	printf(NAME ": adding a 'ctl' function\n");
 
-	function_t *ctl = create_function();
-	ctl->ftype = fun_exposed;
-	ctl->name = "ctl";
-	register_function(ctl, dev);
+	function_t *ctl = ddf_fun_create(dev, fun_exposed, "ctl");
+	if (ctl == NULL) {
+		printf(NAME ": Error creating control function.\n");
+		return EXDEV;
+	}
+
+	if (ddf_fun_bind(ctl) != EOK) {
+		printf(NAME ": Error binding control function.\n");
+		return EXDEV;
+	}
 
 	/* Add functions as specified in the configuration file. */
 	isa_functions_add(dev);

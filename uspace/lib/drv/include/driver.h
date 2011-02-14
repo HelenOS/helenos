@@ -114,6 +114,8 @@ struct device {
 
 /** Function structure */
 struct function {
+	/** True if bound to the device manager */
+	bool bound;
 	/** Function indentifier (asigned by device manager) */
 	devman_handle_t handle;
 	
@@ -156,15 +158,12 @@ typedef struct driver {
 
 int driver_main(driver_t *);
 
-/** Create new device structure.
- *
- * @return		The device structure.
- */
-extern function_t *create_function(void);
-extern void delete_function(function_t *);
+extern function_t *ddf_fun_create(device_t *, fun_type_t, const char *);
+extern void ddf_fun_destroy(function_t *);
+extern int ddf_fun_bind(function_t *);
+
 extern void *function_get_ops(function_t *, dev_inferface_idx_t);
 
-extern int register_function(function_t *, device_t *);
 extern int register_function_wrapper(device_t *, const char *, const char *,
     int);
 

@@ -124,13 +124,11 @@ rootpc_add_fun(device_t *dev, const char *name, const char *str_match_id,
 	match_id_t *match_id = NULL;
 	
 	/* Create new device. */
-	fnode = create_function();
+	fnode = ddf_fun_create(dev, fun_inner, name);
 	if (fnode == NULL)
 		goto failure;
 	
-	fnode->name = name;
 	fnode->driver_data = fun;
-	fnode->ftype = fun_inner;
 	
 	/* Initialize match id list */
 	match_id = create_match_id();
@@ -145,8 +143,10 @@ rootpc_add_fun(device_t *dev, const char *name, const char *str_match_id,
 	fnode->ops = &rootpc_fun_ops;
 	
 	/* Register function. */
-	if (register_function(fnode, dev) != EOK)
+	if (ddf_fun_bind(fnode) != EOK) {
+		printf(NAME ": error binding function %s.\n", name);
 		goto failure;
+	}
 	printf(NAME ": registered function handle = %u\n", fnode->handle);
 	
 	return true;
@@ -155,10 +155,8 @@ failure:
 	if (match_id != NULL)
 		match_id->id = NULL;
 	
-	if (fnode != NULL) {
-		fnode->name = NULL;
-		delete_function(fnode);
-	}
+	if (fnode != NULL)
+		ddf_fun_destroy(fnode);
 	
 	printf(NAME ": failed to add function '%s'.\n", name);
 	

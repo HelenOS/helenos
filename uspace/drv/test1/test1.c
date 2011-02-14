@@ -91,15 +91,22 @@ static void register_fun_verbose(device_t *parent, const char *message,
 static int test1_add_device(device_t *dev)
 {
 	function_t *fun_a;
+	int rc;
 
 	printf(NAME ": add_device(name=\"%s\", handle=%d)\n",
 	    dev->name, (int) dev->handle);
 
-	fun_a = create_function();
-	fun_a->ftype = fun_exposed;
-	fun_a->name = "a";
+	fun_a = ddf_fun_create(dev, fun_exposed, "a");
+	if (fun_a == NULL) {
+		printf(NAME ": error creating function 'a'.\n");
+		return ENOMEM;
+	}
 
-	register_function(fun_a, dev);
+	rc = ddf_fun_bind(fun_a);
+	if (rc != EOK) {
+		printf(NAME ": error binding function 'a'.\n");
+		return rc;
+	}
 
 	add_function_to_class(fun_a, "virtual");
 
