@@ -30,20 +30,21 @@
  */
 
 #include <assert.h>
+#include <async.h>
 #include <stdio.h>
 #include <errno.h>
 #include <str_error.h>
-#include <driver.h>
+#include <ddf/driver.h>
 
 #define NAME "test2"
 
-static int add_device(device_t *dev);
+static int test2_add_device(ddf_dev_t *dev);
 
 static driver_ops_t driver_ops = {
-	.add_device = &add_device
+	.add_device = &test2_add_device
 };
 
-static driver_t the_driver = {
+static driver_t test2_driver = {
 	.name = NAME,
 	.driver_ops = &driver_ops
 };
@@ -56,51 +57,80 @@ static driver_t the_driver = {
  * @param match_id Device match id.
  * @param score Device match score.
  */
-static void register_child_verbose(device_t *parent, const char *message,
+static int register_fun_verbose(ddf_dev_t *parent, const char *message,
     const char *name, const char *match_id, int match_score)
 {
-	printf(NAME ": registering child device `%s': %s.\n",
-	   name, message);
+	ddf_fun_t *fun;
+	int rc;
 
-	int rc = child_device_register_wrapper(parent, name,
-	    match_id, match_score);
+	printf(NAME ": registering function `%s': %s.\n", name, message);
 
-	if (rc == EOK) {
-		printf(NAME ": registered child device `%s'.\n", name);
-	} else {
-		printf(NAME ": failed to register child `%s' (%s).\n",
-		    name, str_error(rc));
+	fun = ddf_fun_create(parent, fun_inner, name);
+	if (fun == NULL) {
+		printf(NAME ": error creating function %s\n", name);
+		return ENOMEM;
 	}
+
+	rc = ddf_fun_add_match_id(fun, match_id, match_score);
+	if (rc != EOK) {
+		printf(NAME ": error adding match IDs to function %s\n", name);
+		ddf_fun_destroy(fun);
+		return rc;
+	}
+
+	rc = ddf_fun_bind(fun);
+	if (rc != EOK) {
+		printf(NAME ": error binding function %s: %s\n", name,
+		    str_error(rc));
+		ddf_fun_destroy(fun);
+		return rc;
+	}
+
+	printf(NAME ": registered child device `%s'\n", name);
+	return EOK;
 }
 
 /** Add child devices after some sleep.
  *
- * @param arg Parent device structure (device_t *).
+ * @param arg Parent device structure (ddf_dev_t *).
  * @return Always EOK.
  */
 static int postponed_birth(void *arg)
 {
-	device_t *dev = (device_t *) arg;
+	ddf_dev_t *dev = (ddf_dev_t *) arg;
+	ddf_fun_t *fun_a;
+	int rc;
 
 	async_usleep(1000);
 
-	register_child_verbose(dev, "child driven by the same task",
+	(void) register_fun_verbose(dev, "child driven by the same task",
 	    "child", "virtual&test2", 10);
-	register_child_verbose(dev, "child driven by test1",
+	(void) register_fun_verbose(dev, "child driven by test1",
 	    "test1", "virtual&test1", 10);
 
-	add_device_to_class(dev, "virtual");
+	fun_a = ddf_fun_create(dev, fun_exposed, "a");
+	if (fun_a == NULL) {
+		printf(NAME ": error creating function 'a'.\n");
+		return ENOMEM;
+	}
+
+	rc = ddf_fun_bind(fun_a);
+	if (rc != EOK) {
+		printf(NAME ": error binding function 'a'.\n");
+		return rc;
+	}
+
+	ddf_fun_add_to_class(fun_a, "virtual");
 
 	return EOK;
 }
 
-
-static int add_device(device_t *dev)
+static int test2_add_device(ddf_dev_t *dev)
 {
-	printf(NAME ": add_device(name=\"%s\", handle=%d)\n",
+	printf(NAME ": test2_add_device(name=\"%s\", handle=%d)\n",
 	    dev->name, (int) dev->handle);
 
-	if (dev->parent == NULL) {
+	if (str_cmp(dev->name, "child") != 0) {
 		fid_t postpone = fibril_create(postponed_birth, dev);
 		if (postpone == 0) {
 			printf(NAME ": fibril_create() error\n");
@@ -108,7 +138,7 @@ static int add_device(device_t *dev)
 		}
 		fibril_add_ready(postpone);
 	} else {
-		register_child_verbose(dev, "child without available driver",
+		(void) register_fun_verbose(dev, "child without available driver",
 		    "ERROR", "non-existent.match.id", 10);
 	}
 
@@ -118,7 +148,7 @@ static int add_device(device_t *dev)
 int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS test2 virtual device driver\n");
-	return driver_main(&the_driver);
+	return ddf_driver_main(&test2_driver);
 }
 
 

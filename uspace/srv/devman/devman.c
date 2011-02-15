@@ -40,6 +40,8 @@
 
 #include "devman.h"
 
+fun_node_t *find_node_child(fun_node_t *parent, const char *name);
+
 /* hash table operations */
 
 static hash_index_t devices_hash(unsigned long key[])
@@ -50,15 +52,22 @@ static hash_index_t devices_hash(unsigned long key[])
 static int devman_devices_compare(unsigned long key[], hash_count_t keys,
     link_t *item)
 {
-	node_t *dev = hash_table_get_instance(item, node_t, devman_link);
+	dev_node_t *dev = hash_table_get_instance(item, dev_node_t, devman_dev);
 	return (dev->handle == (devman_handle_t) key[0]);
 }
 
-static int devmap_devices_compare(unsigned long key[], hash_count_t keys,
+static int devman_functions_compare(unsigned long key[], hash_count_t keys,
     link_t *item)
 {
-	node_t *dev = hash_table_get_instance(item, node_t, devmap_link);
-	return (dev->devmap_handle == (devmap_handle_t) key[0]);
+	fun_node_t *fun = hash_table_get_instance(item, fun_node_t, devman_fun);
+	return (fun->handle == (devman_handle_t) key[0]);
+}
+
+static int devmap_functions_compare(unsigned long key[], hash_count_t keys,
+    link_t *item)
+{
+	fun_node_t *fun = hash_table_get_instance(item, fun_node_t, devmap_fun);
+	return (fun->devmap_handle == (devmap_handle_t) key[0]);
 }
 
 static int devmap_devices_class_compare(unsigned long key[], hash_count_t keys,
@@ -81,9 +90,15 @@ static hash_table_operations_t devman_devices_ops = {
 	.remove_callback = devices_remove_callback
 };
 
+static hash_table_operations_t devman_functions_ops = {
+	.hash = devices_hash,
+	.compare = devman_functions_compare,
+	.remove_callback = devices_remove_callback
+};
+
 static hash_table_operations_t devmap_devices_ops = {
 	.hash = devices_hash,
-	.compare = devmap_devices_compare,
+	.compare = devmap_functions_compare,
 	.remove_callback = devices_remove_callback
 };
 
@@ -372,30 +387,54 @@ int lookup_available_drivers(driver_list_t *drivers_list, const char *dir_path)
 	return drv_cnt;
 }
 
-/** Create root device node in the device tree.
+/** Create root device and function node in the device tree.
  *
  * @param tree	The device tree.
  * @return	True on success, false otherwise.
  */
-bool create_root_node(dev_tree_t *tree)
+bool create_root_nodes(dev_tree_t *tree)
 {
-	node_t *node;
-
-	printf(NAME ": create_root_node\n");
-
+	fun_node_t *fun;
+	dev_node_t *dev;
+	
+	printf(NAME ": create_root_nodes\n");
+	
 	fibril_rwlock_write_lock(&tree->rwlock);
-	node = create_dev_node();
-	if (node != NULL) {
-		insert_dev_node(tree, node, clone_string(""), NULL);
-		match_id_t *id = create_match_id();
-		id->id = clone_string("root");
-		id->score = 100;
-		add_match_id(&node->match_ids, id);
-		tree->root_node = node;
+	
+	/*
+	 * Create root function. This is a pseudo function to which
+	 * the root device node is attached. It allows us to match
+	 * the root device driver in a standard manner, i.e. against
+	 * the parent function.
+	 */
+	
+	fun = create_fun_node();
+	if (fun == NULL) {
+		fibril_rwlock_write_unlock(&tree->rwlock);
+		return false;
 	}
+	
+	insert_fun_node(tree, fun, clone_string(""), NULL);
+	match_id_t *id = create_match_id();
+	id->id = clone_string("root");
+	id->score = 100;
+	add_match_id(&fun->match_ids, id);
+	tree->root_node = fun;
+	
+	/*
+	 * Create root device node.
+	 */
+	dev = create_dev_node();
+	if (dev == NULL) {
+		fibril_rwlock_write_unlock(&tree->rwlock);
+		return false;
+	}
+	
+	insert_dev_node(tree, dev, fun);
+	
 	fibril_rwlock_write_unlock(&tree->rwlock);
-
-	return node != NULL;
+	
+	return dev != NULL;
 }
 
 /** Lookup the best matching driver for the specified device in the list of
@@ -413,7 +452,7 @@ bool create_root_node(dev_tree_t *tree)
  * @return		The best matching driver or NULL if no matching driver
  *			is found.
  */
-driver_t *find_best_match_driver(driver_list_t *drivers_list, node_t *node)
+driver_t *find_best_match_driver(driver_list_t *drivers_list, dev_node_t *node)
 {
 	driver_t *best_drv = NULL, *drv = NULL;
 	int best_score = 0, score = 0;
@@ -441,15 +480,15 @@ driver_t *find_best_match_driver(driver_list_t *drivers_list, node_t *node)
  * @param node		The device's node in the device tree.
  * @param drv		The driver.
  */
-void attach_driver(node_t *node, driver_t *drv)
+void attach_driver(dev_node_t *dev, driver_t *drv)
 {
 	printf(NAME ": attach_driver %s to device %s\n",
-	    drv->name, node->pathname);
+	    drv->name, dev->pfun->pathname);
 	
 	fibril_mutex_lock(&drv->driver_mutex);
 	
-	node->drv = drv;
-	list_append(&node->driver_devices, &drv->devices);
+	dev->drv = drv;
+	list_append(&dev->driver_devices, &drv->devices);
 	
 	fibril_mutex_unlock(&drv->driver_mutex);
 }
@@ -529,7 +568,7 @@ void set_driver_phone(driver_t *driver, sysarg_t phone)
  */
 static void pass_devices_to_driver(driver_t *driver, dev_tree_t *tree)
 {
-	node_t *dev;
+	dev_node_t *dev;
 	link_t *link;
 	int phone;
 
@@ -550,7 +589,7 @@ static void pass_devices_to_driver(driver_t *driver, dev_tree_t *tree)
 	 */
 	link = driver->devices.next;
 	while (link != &driver->devices) {
-		dev = list_get_instance(link, node_t, driver_devices);
+		dev = list_get_instance(link, dev_node_t, driver_devices);
 		if (dev->passed_to_driver) {
 			link = link->next;
 			continue;
@@ -668,13 +707,13 @@ void delete_driver(driver_t *drv)
 	free(drv);
 }
 
-/** Create devmap path and name for the device. */
-static void devmap_register_tree_device(node_t *node, dev_tree_t *tree)
+/** Create devmap path and name for the function. */
+void devmap_register_tree_function(fun_node_t *fun, dev_tree_t *tree)
 {
 	char *devmap_pathname = NULL;
 	char *devmap_name = NULL;
 	
-	asprintf(&devmap_name, "%s", node->pathname);
+	asprintf(&devmap_name, "%s", fun->pathname);
 	if (devmap_name == NULL)
 		return;
 	
@@ -688,9 +727,9 @@ static void devmap_register_tree_device(node_t *node, dev_tree_t *tree)
 	}
 	
 	devmap_device_register_with_iface(devmap_pathname,
-	    &node->devmap_handle, DEVMAN_CONNECT_FROM_DEVMAP);
+	    &fun->devmap_handle, DEVMAN_CONNECT_FROM_DEVMAP);
 	
-	tree_add_devmap_device(tree, node);
+	tree_add_devmap_function(tree, fun);
 	
 	free(devmap_name);
 	free(devmap_pathname);
@@ -701,32 +740,32 @@ static void devmap_register_tree_device(node_t *node, dev_tree_t *tree)
  * @param drv		The driver's structure.
  * @param node		The device's node in the device tree.
  */
-void add_device(int phone, driver_t *drv, node_t *node, dev_tree_t *tree)
+void add_device(int phone, driver_t *drv, dev_node_t *dev, dev_tree_t *tree)
 {
 	/*
 	 * We do not expect to have driver's mutex locked as we do not
 	 * access any structures that would affect driver_t.
 	 */
 	printf(NAME ": add_device (driver `%s', device `%s')\n", drv->name,
-	    node->name);
+	    dev->pfun->name);
 	
 	sysarg_t rc;
 	ipc_call_t answer;
 	
 	/* Send the device to the driver. */
 	devman_handle_t parent_handle;
-	if (node->parent) {
-		parent_handle = node->parent->handle;
+	if (dev->pfun) {
+		parent_handle = dev->pfun->handle;
 	} else {
 		parent_handle = 0;
 	}
 
-	aid_t req = async_send_2(phone, DRIVER_ADD_DEVICE, node->handle,
+	aid_t req = async_send_2(phone, DRIVER_ADD_DEVICE, dev->handle,
 	    parent_handle, &answer);
 	
 	/* Send the device's name to the driver. */
-	rc = async_data_write_start(phone, node->name,
-	    str_size(node->name) + 1);
+	rc = async_data_write_start(phone, dev->pfun->name,
+	    str_size(dev->pfun->name) + 1);
 	if (rc != EOK) {
 		/* TODO handle error */
 	}
@@ -736,17 +775,16 @@ void add_device(int phone, driver_t *drv, node_t *node, dev_tree_t *tree)
 
 	switch(rc) {
 	case EOK:
-		node->state = DEVICE_USABLE;
-		devmap_register_tree_device(node, tree);
+		dev->state = DEVICE_USABLE;
 		break;
 	case ENOENT:
-		node->state = DEVICE_NOT_PRESENT;
+		dev->state = DEVICE_NOT_PRESENT;
 		break;
 	default:
-		node->state = DEVICE_INVALID;
+		dev->state = DEVICE_INVALID;
 	}
 	
-	node->passed_to_driver = true;
+	dev->passed_to_driver = true;
 
 	return;
 }
@@ -758,20 +796,25 @@ void add_device(int phone, driver_t *drv, node_t *node, dev_tree_t *tree)
  * @return		True if the suitable driver is found and
  *			successfully assigned to the device, false otherwise.
  */
-bool assign_driver(node_t *node, driver_list_t *drivers_list, dev_tree_t *tree)
+bool assign_driver(dev_node_t *dev, driver_list_t *drivers_list,
+    dev_tree_t *tree)
 {
+	assert(dev != NULL);
+	assert(drivers_list != NULL);
+	assert(tree != NULL);
+	
 	/*
 	 * Find the driver which is the most suitable for handling this device.
 	 */
-	driver_t *drv = find_best_match_driver(drivers_list, node);
+	driver_t *drv = find_best_match_driver(drivers_list, dev);
 	if (drv == NULL) {
 		printf(NAME ": no driver found for device '%s'.\n",
-		    node->pathname);
+		    dev->pfun->pathname);
 		return false;
 	}
 	
 	/* Attach the driver to the device. */
-	attach_driver(node, drv);
+	attach_driver(dev, drv);
 	
 	fibril_mutex_lock(&drv->driver_mutex);
 	if (drv->state == DRIVER_NOT_STARTED) {
@@ -785,7 +828,7 @@ bool assign_driver(node_t *node, driver_list_t *drivers_list, dev_tree_t *tree)
 		/* Notify the driver about the new device. */
 		int phone = async_connect_me_to(drv->phone, DRIVER_DEVMAN, 0, 0);
 		if (phone >= 0) {
-			add_device(phone, drv, node, tree);
+			add_device(phone, drv, dev, tree);
 			async_hangup(phone);
 		}
 	}
@@ -809,17 +852,19 @@ bool init_device_tree(dev_tree_t *tree, driver_list_t *drivers_list)
 	
 	hash_table_create(&tree->devman_devices, DEVICE_BUCKETS, 1,
 	    &devman_devices_ops);
-	hash_table_create(&tree->devmap_devices, DEVICE_BUCKETS, 1,
+	hash_table_create(&tree->devman_functions, DEVICE_BUCKETS, 1,
+	    &devman_functions_ops);
+	hash_table_create(&tree->devmap_functions, DEVICE_BUCKETS, 1,
 	    &devmap_devices_ops);
 	
 	fibril_rwlock_initialize(&tree->rwlock);
 	
-	/* Create root node and add it to the device tree. */
-	if (!create_root_node(tree))
+	/* Create root function and root device and add them to the device tree. */
+	if (!create_root_nodes(tree))
 		return false;
 
 	/* Find suitable driver and start it. */
-	return assign_driver(tree->root_node, drivers_list, tree);
+	return assign_driver(tree->root_node->child, drivers_list, tree);
 }
 
 /* Device nodes */
@@ -828,15 +873,15 @@ bool init_device_tree(dev_tree_t *tree, driver_list_t *drivers_list)
  *
  * @return		A device node structure.
  */
-node_t *create_dev_node(void)
+dev_node_t *create_dev_node(void)
 {
-	node_t *res = malloc(sizeof(node_t));
+	dev_node_t *res = malloc(sizeof(dev_node_t));
 	
 	if (res != NULL) {
-		memset(res, 0, sizeof(node_t));
-		list_initialize(&res->children);
-		list_initialize(&res->match_ids.ids);
-		list_initialize(&res->classes);
+		memset(res, 0, sizeof(dev_node_t));
+		list_initialize(&res->functions);
+		link_initialize(&res->driver_devices);
+		link_initialize(&res->devman_dev);
 	}
 	
 	return res;
@@ -846,16 +891,13 @@ node_t *create_dev_node(void)
  *
  * @param node		The device node structure.
  */
-void delete_dev_node(node_t *node)
+void delete_dev_node(dev_node_t *dev)
 {
-	assert(list_empty(&node->children));
-	assert(node->parent == NULL);
-	assert(node->drv == NULL);
+	assert(list_empty(&dev->functions));
+	assert(dev->pfun == NULL);
+	assert(dev->drv == NULL);
 	
-	clean_match_ids(&node->match_ids);
-	free_not_null(node->name);
-	free_not_null(node->pathname);
-	free(node);
+	free(dev);
 }
 
 /** Find the device node structure of the device witch has the specified handle.
@@ -864,7 +906,7 @@ void delete_dev_node(node_t *node)
  * @param handle	The handle of the device.
  * @return		The device node.
  */
-node_t *find_dev_node_no_lock(dev_tree_t *tree, devman_handle_t handle)
+dev_node_t *find_dev_node_no_lock(dev_tree_t *tree, devman_handle_t handle)
 {
 	unsigned long key = handle;
 	link_t *link;
@@ -872,7 +914,7 @@ node_t *find_dev_node_no_lock(dev_tree_t *tree, devman_handle_t handle)
 	assert(fibril_rwlock_is_locked(&tree->rwlock));
 	
 	link = hash_table_find(&tree->devman_devices, &key);
-	return hash_table_get_instance(link, node_t, devman_link);
+	return hash_table_get_instance(link, dev_node_t, devman_dev);
 }
 
 /** Find the device node structure of the device witch has the specified handle.
@@ -881,17 +923,90 @@ node_t *find_dev_node_no_lock(dev_tree_t *tree, devman_handle_t handle)
  * @param handle	The handle of the device.
  * @return		The device node.
  */
-node_t *find_dev_node(dev_tree_t *tree, devman_handle_t handle)
+dev_node_t *find_dev_node(dev_tree_t *tree, devman_handle_t handle)
 {
-	node_t *node = NULL;
+	dev_node_t *dev = NULL;
 	
 	fibril_rwlock_read_lock(&tree->rwlock);
-	node = find_dev_node_no_lock(tree, handle);
+	dev = find_dev_node_no_lock(tree, handle);
 	fibril_rwlock_read_unlock(&tree->rwlock);
 	
-	return node;
+	return dev;
 }
 
+/* Function nodes */
+
+/** Create a new function node.
+ *
+ * @return		A function node structure.
+ */
+fun_node_t *create_fun_node(void)
+{
+	fun_node_t *res = malloc(sizeof(fun_node_t));
+	
+	if (res != NULL) {
+		memset(res, 0, sizeof(fun_node_t));
+		link_initialize(&res->dev_functions);
+		list_initialize(&res->match_ids.ids);
+		list_initialize(&res->classes);
+		link_initialize(&res->devman_fun);
+		link_initialize(&res->devmap_fun);
+	}
+	
+	return res;
+}
+
+/** Delete a function node.
+ *
+ * @param fun		The device node structure.
+ */
+void delete_fun_node(fun_node_t *fun)
+{
+	assert(fun->dev == NULL);
+	assert(fun->child == NULL);
+	
+	clean_match_ids(&fun->match_ids);
+	free_not_null(fun->name);
+	free_not_null(fun->pathname);
+	free(fun);
+}
+
+/** Find the function node with the specified handle.
+ *
+ * @param tree		The device tree where we look for the device node.
+ * @param handle	The handle of the function.
+ * @return		The function node.
+ */
+fun_node_t *find_fun_node_no_lock(dev_tree_t *tree, devman_handle_t handle)
+{
+	unsigned long key = handle;
+	link_t *link;
+	
+	assert(fibril_rwlock_is_locked(&tree->rwlock));
+	
+	link = hash_table_find(&tree->devman_functions, &key);
+	if (link == NULL)
+		return NULL;
+	
+	return hash_table_get_instance(link, fun_node_t, devman_fun);
+}
+
+/** Find the function node with the specified handle.
+ *
+ * @param tree		The device tree where we look for the device node.
+ * @param handle	The handle of the function.
+ * @return		The function node.
+ */
+fun_node_t *find_fun_node(dev_tree_t *tree, devman_handle_t handle)
+{
+	fun_node_t *fun = NULL;
+	
+	fibril_rwlock_read_lock(&tree->rwlock);
+	fun = find_fun_node_no_lock(tree, handle);
+	fibril_rwlock_read_unlock(&tree->rwlock);
+	
+	return fun;
+}
 
 /** Create and set device's full path in device tree.
  *
@@ -900,26 +1015,26 @@ node_t *find_dev_node(dev_tree_t *tree, devman_handle_t handle)
  * @return		True on success, false otherwise (insufficient
  *			resources etc.).
  */
-static bool set_dev_path(node_t *node, node_t *parent)
+static bool set_fun_path(fun_node_t *fun, fun_node_t *parent)
 {
-	assert(node->name != NULL);
+	assert(fun->name != NULL);
 	
-	size_t pathsize = (str_size(node->name) + 1);
+	size_t pathsize = (str_size(fun->name) + 1);
 	if (parent != NULL)
 		pathsize += str_size(parent->pathname) + 1;
 	
-	node->pathname = (char *) malloc(pathsize);
-	if (node->pathname == NULL) {
+	fun->pathname = (char *) malloc(pathsize);
+	if (fun->pathname == NULL) {
 		printf(NAME ": failed to allocate device path.\n");
 		return false;
 	}
 	
 	if (parent != NULL) {
-		str_cpy(node->pathname, pathsize, parent->pathname);
-		str_append(node->pathname, pathsize, "/");
-		str_append(node->pathname, pathsize, node->name);
+		str_cpy(fun->pathname, pathsize, parent->pathname);
+		str_append(fun->pathname, pathsize, "/");
+		str_append(fun->pathname, pathsize, fun->name);
 	} else {
-		str_cpy(node->pathname, pathsize, node->name);
+		str_cpy(fun->pathname, pathsize, fun->name);
 	}
 	
 	return true;
@@ -935,53 +1050,90 @@ static bool set_dev_path(node_t *node, node_t *parent)
  * @return		True on success, false otherwise (insufficient resources
  *			etc.).
  */
-bool insert_dev_node(dev_tree_t *tree, node_t *node, char *dev_name,
-    node_t *parent)
+bool insert_dev_node(dev_tree_t *tree, dev_node_t *dev, fun_node_t *pfun)
 {
-	assert(node != NULL);
+	assert(dev != NULL);
 	assert(tree != NULL);
-	assert(dev_name != NULL);
 	assert(fibril_rwlock_is_write_locked(&tree->rwlock));
 	
-	node->name = dev_name;
-	if (!set_dev_path(node, parent)) {
-		return false;
-	}
-	
 	/* Add the node to the handle-to-node map. */
-	node->handle = ++tree->current_handle;
-	unsigned long key = node->handle;
-	hash_table_insert(&tree->devman_devices, &key, &node->devman_link);
+	dev->handle = ++tree->current_handle;
+	unsigned long key = dev->handle;
+	hash_table_insert(&tree->devman_devices, &key, &dev->devman_dev);
 
 	/* Add the node to the list of its parent's children. */
-	node->parent = parent;
-	if (parent != NULL)
-		list_append(&node->sibling, &parent->children);
+	printf("insert_dev_node: dev=%p, dev->pfun := %p\n", dev, pfun);
+	dev->pfun = pfun;
+	pfun->child = dev;
 	
 	return true;
 }
 
-/** Find device node with a specified path in the device tree.
- * 
- * @param path		The path of the device node in the device tree.
+/** Insert new function into device tree.
+ *
  * @param tree		The device tree.
- * @return		The device node if it is present in the tree, NULL
+ * @param node		The newly added function node. 
+ * @param dev_name	The name of the newly added function.
+ * @param parent	Owning device node.
+ *
+ * @return		True on success, false otherwise (insufficient resources
+ *			etc.).
+ */
+bool insert_fun_node(dev_tree_t *tree, fun_node_t *fun, char *fun_name,
+    dev_node_t *dev)
+{
+	fun_node_t *pfun;
+	
+	assert(fun != NULL);
+	assert(tree != NULL);
+	assert(fun_name != NULL);
+	assert(fibril_rwlock_is_write_locked(&tree->rwlock));
+	
+	/*
+	 * The root function is a special case, it does not belong to any
+	 * device so for the root function dev == NULL.
+	 */
+	pfun = (dev != NULL) ? dev->pfun : NULL;
+	
+	fun->name = fun_name;
+	if (!set_fun_path(fun, pfun)) {
+		return false;
+	}
+	
+	/* Add the node to the handle-to-node map. */
+	fun->handle = ++tree->current_handle;
+	unsigned long key = fun->handle;
+	hash_table_insert(&tree->devman_functions, &key, &fun->devman_fun);
+
+	/* Add the node to the list of its parent's children. */
+	fun->dev = dev;
+	if (dev != NULL)
+		list_append(&fun->dev_functions, &dev->functions);
+	
+	return true;
+}
+
+/** Find function node with a specified path in the device tree.
+ * 
+ * @param path		The path of the function node in the device tree.
+ * @param tree		The device tree.
+ * @return		The function node if it is present in the tree, NULL
  *			otherwise.
  */
-node_t *find_dev_node_by_path(dev_tree_t *tree, char *path)
+fun_node_t *find_fun_node_by_path(dev_tree_t *tree, char *path)
 {
 	fibril_rwlock_read_lock(&tree->rwlock);
 	
-	node_t *dev = tree->root_node;
+	fun_node_t *fun = tree->root_node;
 	/*
-	 * Relative path to the device from its parent (but with '/' at the
+	 * Relative path to the function from its parent (but with '/' at the
 	 * beginning)
 	 */
 	char *rel_path = path;
 	char *next_path_elem = NULL;
 	bool cont = (rel_path[0] == '/');
 	
-	while (cont && dev != NULL) {
+	while (cont && fun != NULL) {
 		next_path_elem  = get_path_elem_end(rel_path + 1);
 		if (next_path_elem[0] == '/') {
 			cont = true;
@@ -990,7 +1142,7 @@ node_t *find_dev_node_by_path(dev_tree_t *tree, char *path)
 			cont = false;
 		}
 		
-		dev = find_node_child(dev, rel_path + 1);
+		fun = find_node_child(fun, rel_path + 1);
 		
 		if (cont) {
 			/* Restore the original path. */
@@ -1001,29 +1153,29 @@ node_t *find_dev_node_by_path(dev_tree_t *tree, char *path)
 	
 	fibril_rwlock_read_unlock(&tree->rwlock);
 	
-	return dev;
+	return fun;
 }
 
-/** Find child device node with a specified name.
+/** Find child function node with a specified name.
  *
  * Device tree rwlock should be held at least for reading.
  *
- * @param parent	The parent device node.
- * @param name		The name of the child device node.
- * @return		The child device node.
+ * @param parent	The parent function node.
+ * @param name		The name of the child function.
+ * @return		The child function node.
  */
-node_t *find_node_child(node_t *parent, const char *name)
+fun_node_t *find_node_child(fun_node_t *pfun, const char *name)
 {
-	node_t *dev;
+	fun_node_t *fun;
 	link_t *link;
 	
-	link = parent->children.next;
+	link = pfun->child->functions.next;
 	
-	while (link != &parent->children) {
-		dev = list_get_instance(link, node_t, sibling);
+	while (link != &pfun->child->functions) {
+		fun = list_get_instance(link, fun_node_t, dev_functions);
 		
-		if (str_cmp(name, dev->name) == 0)
-			return dev;
+		if (str_cmp(name, fun->name) == 0)
+			return fun;
 		
 		link = link->next;
 	}
@@ -1106,7 +1258,7 @@ char *create_dev_name_for_class(dev_class_t *cl, const char *base_dev_name)
 	return dev_name;
 }
 
-/** Add the device to the class.
+/** Add the device function to the class.
  *
  * The device may be added to multiple classes and a class may contain multiple
  * devices. The class and the device are associated with each other by the
@@ -1119,14 +1271,20 @@ char *create_dev_name_for_class(dev_class_t *cl, const char *base_dev_name)
  * @return		dev_class_info_t structure which associates the device
  *			with the class.
  */
-dev_class_info_t *add_device_to_class(node_t *dev, dev_class_t *cl,
+dev_class_info_t *add_function_to_class(fun_node_t *fun, dev_class_t *cl,
     const char *base_dev_name)
 {
-	dev_class_info_t *info = create_dev_class_info();
+	dev_class_info_t *info;
+
+	assert(fun != NULL);
+	assert(cl != NULL);
+
+	info = create_dev_class_info();
+
 	
 	if (info != NULL) {
 		info->dev_class = cl;
-		info->dev = dev;
+		info->fun = fun;
 		
 		/* Add the device to the class. */
 		fibril_mutex_lock(&cl->mutex);
@@ -1134,7 +1292,7 @@ dev_class_info_t *add_device_to_class(node_t *dev, dev_class_t *cl,
 		fibril_mutex_unlock(&cl->mutex);
 		
 		/* Add the class to the device. */
-		list_append(&info->dev_classes, &dev->classes);
+		list_append(&info->dev_classes, &fun->classes);
 		
 		/* Create unique name for the device within the class. */
 		info->dev_name = create_dev_name_for_class(cl, base_dev_name);
@@ -1188,64 +1346,64 @@ void init_class_list(class_list_t *class_list)
 {
 	list_initialize(&class_list->classes);
 	fibril_rwlock_initialize(&class_list->rwlock);
-	hash_table_create(&class_list->devmap_devices, DEVICE_BUCKETS, 1,
+	hash_table_create(&class_list->devmap_functions, DEVICE_BUCKETS, 1,
 	    &devmap_devices_class_ops);
 }
 
 
 /* Devmap devices */
 
-node_t *find_devmap_tree_device(dev_tree_t *tree, devmap_handle_t devmap_handle)
+fun_node_t *find_devmap_tree_function(dev_tree_t *tree, devmap_handle_t devmap_handle)
 {
-	node_t *dev = NULL;
+	fun_node_t *fun = NULL;
 	link_t *link;
 	unsigned long key = (unsigned long) devmap_handle;
 	
 	fibril_rwlock_read_lock(&tree->rwlock);
-	link = hash_table_find(&tree->devmap_devices, &key);
+	link = hash_table_find(&tree->devmap_functions, &key);
 	if (link != NULL)
-		dev = hash_table_get_instance(link, node_t, devmap_link);
+		fun = hash_table_get_instance(link, fun_node_t, devmap_fun);
 	fibril_rwlock_read_unlock(&tree->rwlock);
 	
-	return dev;
+	return fun;
 }
 
-node_t *find_devmap_class_device(class_list_t *classes,
+fun_node_t *find_devmap_class_function(class_list_t *classes,
     devmap_handle_t devmap_handle)
 {
-	node_t *dev = NULL;
+	fun_node_t *fun = NULL;
 	dev_class_info_t *cli;
 	link_t *link;
 	unsigned long key = (unsigned long)devmap_handle;
 	
 	fibril_rwlock_read_lock(&classes->rwlock);
-	link = hash_table_find(&classes->devmap_devices, &key);
+	link = hash_table_find(&classes->devmap_functions, &key);
 	if (link != NULL) {
 		cli = hash_table_get_instance(link, dev_class_info_t,
 		    devmap_link);
-		dev = cli->dev;
+		fun = cli->fun;
 	}
 	fibril_rwlock_read_unlock(&classes->rwlock);
 	
-	return dev;
+	return fun;
 }
 
-void class_add_devmap_device(class_list_t *class_list, dev_class_info_t *cli)
+void class_add_devmap_function(class_list_t *class_list, dev_class_info_t *cli)
 {
 	unsigned long key = (unsigned long) cli->devmap_handle;
 	
 	fibril_rwlock_write_lock(&class_list->rwlock);
-	hash_table_insert(&class_list->devmap_devices, &key, &cli->devmap_link);
+	hash_table_insert(&class_list->devmap_functions, &key, &cli->devmap_link);
 	fibril_rwlock_write_unlock(&class_list->rwlock);
 
-	assert(find_devmap_class_device(class_list, cli->devmap_handle) != NULL);
+	assert(find_devmap_class_function(class_list, cli->devmap_handle) != NULL);
 }
 
-void tree_add_devmap_device(dev_tree_t *tree, node_t *node)
+void tree_add_devmap_function(dev_tree_t *tree, fun_node_t *fun)
 {
-	unsigned long key = (unsigned long) node->devmap_handle;
+	unsigned long key = (unsigned long) fun->devmap_handle;
 	fibril_rwlock_write_lock(&tree->rwlock);
-	hash_table_insert(&tree->devmap_devices, &key, &node->devmap_link);
+	hash_table_insert(&tree->devmap_functions, &key, &fun->devmap_fun);
 	fibril_rwlock_write_unlock(&tree->rwlock);
 }
 
