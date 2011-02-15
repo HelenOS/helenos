@@ -38,6 +38,7 @@
 
 #include <libblock.h>
 #include "libext2_superblock.h"
+#include "libext2_block_group.h"
 
 typedef struct ext2_filesystem {
 	devmap_handle_t		device;
@@ -51,6 +52,9 @@ typedef struct ext2_filesystem {
 
 extern int ext2_filesystem_init(ext2_filesystem_t *, devmap_handle_t);
 extern int ext2_filesystem_check_sanity(ext2_filesystem_t *);
+extern int ext2_filesystem_get_block_group_ref(ext2_filesystem_t *, uint32_t, 
+    ext2_block_group_ref_t **);
+extern int ext2_filesystem_put_block_group_ref(ext2_block_group_ref_t *);
 extern void ext2_filesystem_fini(ext2_filesystem_t *);
 
 #endif

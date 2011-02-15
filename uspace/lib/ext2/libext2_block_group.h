@@ -33,12 +33,33 @@
  * @file
  */
 
-#ifndef LIBEXT2_LIBEXT2_H_
-#define LIBEXT2_LIBEXT2_H_
+#ifndef LIBEXT2_LIBEXT2_BLOCK_GROUP_H_
+#define LIBEXT2_LIBEXT2_BLOCK_GROUP_H_
 
-#include "libext2_superblock.h"
-#include "libext2_block_group.h"
-#include "libext2_filesystem.h"
+#include <libblock.h>
+
+typedef struct ext2_block_group {
+	uint32_t block_bitmap_block; // Block ID for block bitmap
+	uint32_t inode_bitmap_block; // Block ID for inode bitmap
+	uint32_t inode_table_first_block; // Block ID of first block of inode table 
+	uint16_t free_block_count; // Count of free blocks
+	uint16_t free_inode_count; // Count of free inodes
+	uint16_t directory_inode_count; // Number of inodes allocated to directories
+} ext2_block_group_t;
+
+typedef struct ext2_block_group_ref {
+	block_t *block; // Reference to a block containing this block group descr
+	ext2_block_group_t *block_group;
+} ext2_block_group_ref_t;
+
+#define EXT2_BLOCK_GROUP_DESCRIPTOR_SIZE 32
+
+inline uint32_t	ext2_block_group_get_block_bitmap_block(ext2_block_group_t *);
+inline uint32_t	ext2_block_group_get_inode_bitmap_block(ext2_block_group_t *);
+inline uint32_t	ext2_block_group_get_inode_table_first_block(ext2_block_group_t *);
+inline uint16_t	ext2_block_group_get_free_block_count(ext2_block_group_t *);
+inline uint16_t	ext2_block_group_get_free_inode_count(ext2_block_group_t *);
+inline uint16_t	ext2_block_group_get_directory_inode_count(ext2_block_group_t *);
 
 #endif
 

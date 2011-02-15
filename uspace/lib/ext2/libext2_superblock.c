@@ -259,12 +259,33 @@ inline uint32_t	ext2_superblock_get_inodes_per_group(ext2_superblock_t *sb)
 /**
  * Compute count of block groups present in the filesystem
  * 
+ * Note: This function works only for correct filesystem,
+ *       i.e. it assumes that total block count > 0 and
+ *       blocks per group > 0
+ * 
+ * Example:
+ *   If there are 3 blocks per group, the result should be as follows:
+ *   Total blocks	Result
+ *   1				1
+ *   2				1
+ *   3				1
+ *   4				2
+ * 
+ * 
  * @param sb pointer to superblock
  */
 inline uint32_t ext2_superblock_get_block_group_count(ext2_superblock_t *sb)
 {
-	return ext2_superblock_get_total_block_count(sb) / 
-	    ext2_superblock_get_blocks_per_group(sb);
+	/* We add one to the result because e.g. 2/3 = 0, while to store
+	 *  2 blocks in 3-block group we need one (1) block group
+	 * 
+	 * We subtract one first because of special case that to store e.g.
+	 *  3 blocks in a 3-block group we need only one group
+	 *  (and 3/3 yields one - this is one more that we want as we
+	 *   already add one at the end)
+	 */ 
+	return ((ext2_superblock_get_total_block_count(sb)-1) / 
+	    ext2_superblock_get_blocks_per_group(sb))+1;
 }
 
 /** Read a superblock directly from device (i.e. no libblock cache)

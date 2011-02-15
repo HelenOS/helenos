@@ -33,14 +33,70 @@
  * @file
  */
 
-#ifndef LIBEXT2_LIBEXT2_H_
-#define LIBEXT2_LIBEXT2_H_
-
-#include "libext2_superblock.h"
+#include "libext2.h"
 #include "libext2_block_group.h"
-#include "libext2_filesystem.h"
+#include <byteorder.h>
 
-#endif
+/**
+ * Get block ID corresponding to the block bitmap of this block group
+ * 
+ * @param bg pointer to block group descriptor
+ */
+inline uint32_t	ext2_block_group_get_block_bitmap_block(ext2_block_group_t *bg)
+{
+	return uint32_t_le2host(bg->block_bitmap_block);
+}
+
+/**
+ * Get block ID corresponding to the inode bitmap of this block group
+ * 
+ * @param bg pointer to block group descriptor
+ */
+inline uint32_t	ext2_block_group_get_inode_bitmap_block(ext2_block_group_t *bg)
+{
+	return uint32_t_le2host(bg->inode_bitmap_block);
+}
+
+/**
+ * Get block ID of first block in inode table
+ * 
+ * @param bg pointer to block group descriptor
+ */
+inline uint32_t	ext2_block_group_get_inode_table_first_block(ext2_block_group_t *bg)
+{
+	return uint32_t_le2host(bg->inode_table_first_block);
+}
+
+/**
+ * Get amount of free blocks in this block group
+ * 
+ * @param bg pointer to block group descriptor
+ */
+inline uint16_t	ext2_block_group_get_free_block_count(ext2_block_group_t *bg)
+{
+	return uint16_t_le2host(bg->free_block_count);
+}
+
+/**
+ * Get amount of free inodes in this block group
+ * 
+ * @param bg pointer to block group descriptor
+ */
+inline uint16_t	ext2_block_group_get_free_inode_count(ext2_block_group_t *bg)
+{
+	return uint16_t_le2host(bg->free_inode_count);
+}
+
+/**
+ * Get amount of inodes allocated for directories
+ * 
+ * @param bg pointer to block group descriptor
+ */
+inline uint16_t	ext2_block_group_get_directory_inode_count(ext2_block_group_t *bg)
+{
+	return uint16_t_le2host(bg->directory_inode_count);
+}
+
 
 /** @}
  */

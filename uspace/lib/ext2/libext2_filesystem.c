@@ -33,7 +33,9 @@
  * @file
  */
 
-#include "libext2.h"
+#include "libext2_filesystem.h"
+#include "libext2_superblock.h"
+#include "libext2_block_group.h"
 #include <errno.h>
 #include <libblock.h>
 #include <malloc.h>
@@ -101,6 +103,69 @@ int ext2_filesystem_check_sanity(ext2_filesystem_t *fs)
 	}
 	
 	return EOK;
+}
+
+/**
+ * Get a reference to block descriptor
+ * 
+ * @param fs Pointer to filesystem information
+ * @param bgid Index of block group to find
+ * @param ref Pointer where to store pointer to block group reference
+ * 
+ * @return 		EOK on success or negative error code on failure
+ */
+int ext2_filesystem_get_block_group_ref(ext2_filesystem_t *fs, uint32_t bgid,
+    ext2_block_group_ref_t **ref)
+{
+	int rc;
+	aoff64_t block_id;
+	uint32_t descriptors_per_block;
+	size_t offset;
+	ext2_block_group_ref_t *newref;
+	
+	newref = malloc(sizeof(ext2_block_group_ref_t));
+	if (newref == NULL) {
+		return ENOMEM;
+	}
+	
+	descriptors_per_block = ext2_superblock_get_block_size(fs->superblock)
+	    / EXT2_BLOCK_GROUP_DESCRIPTOR_SIZE;
+	
+	// Block group descriptor table starts at the next block after superblock
+	block_id = ext2_superblock_get_first_block(fs->superblock) + 1;
+	
+	// Find the block containing the descriptor we are looking for
+	block_id += bgid / descriptors_per_block;
+	offset = (bgid % descriptors_per_block) * EXT2_BLOCK_GROUP_DESCRIPTOR_SIZE;
+	
+	rc = block_get(&newref->block, fs->device, block_id, 0);
+	if (rc != EOK) {
+		free(newref);
+		return rc;
+	}
+	
+	newref->block_group = newref->block->data + offset;
+	
+	*ref = newref;
+	
+	return EOK;
+}
+
+/**
+ * Free a reference to block group
+ * 
+ * @param ref Pointer to block group reference to free
+ * 
+ * @return 		EOK on success or negative error code on failure
+ */
+int ext2_filesystem_put_block_group_ref(ext2_block_group_ref_t *ref)
+{
+	int rc;
+	
+	rc = block_put(ref->block);
+	free(ref);
+	
+	return rc;
 }
 
 /**

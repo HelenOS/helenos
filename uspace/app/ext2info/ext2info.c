@@ -52,7 +52,9 @@
 #define NAME	"ext2info"
 
 static void syntax_print(void);
-static void print_superblock(ext2_superblock_t *sb);
+static void print_superblock(ext2_superblock_t *);
+static void print_block_groups(ext2_filesystem_t *);
+static void print_block_group(ext2_block_group_t *);
 
 int main(int argc, char **argv)
 {
@@ -61,11 +63,18 @@ int main(int argc, char **argv)
 	char *dev_path;
 	devmap_handle_t handle;
 	ext2_filesystem_t filesystem;
+	bool strict_check;
 	
 	if (argc < 2) {
 		printf(NAME ": Error, argument missing.\n");
 		syntax_print();
 		return 1;
+	}
+	
+	strict_check = false;
+	if (str_cmp(*argv, "--strict-check") == 0) {
+		--argc; ++argv;
+		strict_check = true;
 	}
 
 	--argc; ++argv;
@@ -93,10 +102,13 @@ int main(int argc, char **argv)
 	rc = ext2_filesystem_check_sanity(&filesystem);
 	if (rc != EOK) {
 		printf(NAME ": Filesystem did not pass sanity check.\n");
-		return 3;
+		if (strict_check) {
+			return 3;
+		}
 	}
 	
 	print_superblock(filesystem.superblock);
+	print_block_groups(&filesystem);
 
 	ext2_filesystem_fini(&filesystem);
 
@@ -197,6 +209,58 @@ static void print_superblock(ext2_superblock_t *superblock)
 		printf("\n");
 	}
 	
+}
+
+void print_block_groups(ext2_filesystem_t *filesystem) {
+	uint32_t block_group_count;
+	uint32_t i;
+	ext2_block_group_ref_t *block_group_ref;
+	int rc;
+	
+	printf("Block groups:\n");
+	
+	block_group_count = ext2_superblock_get_block_group_count(
+	    filesystem->superblock);
+	
+	for (i = 0; i < block_group_count; i++) {
+		printf("  Block group %u\n", i);
+		rc = ext2_filesystem_get_block_group_ref(filesystem, i, &block_group_ref);
+		if (rc != EOK) {
+			printf("    Failed reading block group\n");
+			continue;
+		}
+		
+		print_block_group(block_group_ref->block_group);
+		
+		rc = ext2_filesystem_put_block_group_ref(block_group_ref);
+		if (rc != EOK) {
+			printf("    Failed freeing block group\n");
+		}
+	}
+	
+}
+
+void print_block_group(ext2_block_group_t *bg) {
+	uint32_t block_bitmap_block;
+	uint32_t inode_bitmap_block;
+	uint32_t inode_table_first_block;
+	uint16_t free_block_count;
+	uint16_t free_inode_count;
+	uint16_t directory_inode_count;
+	
+	block_bitmap_block = ext2_block_group_get_block_bitmap_block(bg);
+	inode_bitmap_block = ext2_block_group_get_inode_bitmap_block(bg);
+	inode_table_first_block = ext2_block_group_get_inode_table_first_block(bg);
+	free_block_count = ext2_block_group_get_free_block_count(bg);
+	free_inode_count = ext2_block_group_get_free_inode_count(bg);
+	directory_inode_count = ext2_block_group_get_directory_inode_count(bg);
+	
+	printf("    Block bitmap block: %u\n", block_bitmap_block);
+	printf("    Inode bitmap block: %u\n", inode_bitmap_block);
+	printf("    Inode table's first block: %u\n", inode_table_first_block);
+	printf("    Free blocks: %u\n", free_block_count);
+	printf("    Free inodes: %u\n", free_inode_count);
+	printf("    Directory inodes: %u\n", directory_inode_count);
 }
 
 /**
