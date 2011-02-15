@@ -101,6 +101,26 @@ int usb_device_connection_initialize(usb_device_connection_t *connection,
 	return EOK;
 }
 
+/** Initialize connection to USB device on default address.
+ *
+ * @param dev_connection Device connection structure to be initialized.
+ * @param hc_connection Initialized connection to host controller.
+ * @return Error code.
+ */
+int usb_device_connection_initialize_on_default_address(
+    usb_device_connection_t *dev_connection,
+    usb_hc_connection_t *hc_connection)
+{
+	assert(dev_connection);
+
+	if (hc_connection == NULL) {
+		return EBADMEM;
+	}
+
+	return usb_device_connection_initialize(dev_connection,
+	    hc_connection->hc_handle, (usb_address_t) 0);
+}
+
 
 /** Start a session on the endpoint pipe.
  *

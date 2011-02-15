@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jan Vesely
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,38 +25,40 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup usb
+
+/** @addtogroup libusb
  * @{
  */
 /** @file
- * @brief UHCI port driver
+ * Functions needed by hub drivers.
  */
-#ifndef DRV_UHCI_PORT_H
-#define DRV_UHCI_PORT_H
+#ifndef LIBUSB_HUB_H_
+#define LIBUSB_HUB_H_
 
-#include <assert.h>
-#include <driver.h> /* device_t */
-#include <stdint.h>
+#include <sys/types.h>
 #include <usb/usbdevice.h>
 
-#include "port_status.h"
+/** Info about device attached to host controller.
+ *
+ * This structure exists only to keep the same signature of
+ * usb_hc_register_device() when more properties of the device
+ * would have to be passed to the host controller.
+ */
+typedef struct {
+	/** Device address. */
+	usb_address_t address;
+	/** Devman handle of the device. */
+	devman_handle_t handle;
+} usb_hc_attached_device_t;
 
-typedef struct uhci_port
-{
-	port_status_t *address;
-	unsigned number;
-	unsigned wait_period_usec;
-	usb_hc_connection_t hc_connection;
-	device_t *rh;
-	devman_handle_t attached_device;
-	fid_t checker;
-} uhci_port_t;
+int usb_hc_reserve_default_address(usb_hc_connection_t *);
+int usb_hc_release_default_address(usb_hc_connection_t *);
 
-int uhci_port_init(
-  uhci_port_t *port, port_status_t *address, unsigned number,
-  unsigned usec, device_t *rh, int parent_phone);
+usb_address_t usb_hc_request_address(usb_hc_connection_t *);
+int usb_hc_register_device(usb_hc_connection_t *,
+    const usb_hc_attached_device_t *);
+int usb_hc_unregister_device(usb_hc_connection_t *, usb_address_t);
 
-void uhci_port_fini(uhci_port_t *port);
 #endif
 /**
  * @}
