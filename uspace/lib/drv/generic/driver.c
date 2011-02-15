@@ -232,14 +232,12 @@ static void remove_from_functions_list(ddf_fun_t *fun)
 static ddf_fun_t *driver_get_function(link_t *functions, devman_handle_t handle)
 {
 	ddf_fun_t *fun = NULL;
-	printf("driver_get_function handle=%" PRIun "\n", handle);
 	
 	fibril_mutex_lock(&functions_mutex);
 	link_t *link = functions->next;
 	
 	while (link != functions) {
 		fun = list_get_instance(link, ddf_fun_t, link);
-		printf(" - fun handle %" PRIun "\n", fun->handle);
 		if (fun->handle == handle) {
 			fibril_mutex_unlock(&functions_mutex);
 			return fun;
