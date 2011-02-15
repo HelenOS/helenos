@@ -39,12 +39,14 @@ SOURCES = \
 	src/drvpsync.c \
 	src/dump.c \
 	src/hidparser.c \
+	src/hub.c \
 	src/pipes.c \
 	src/pipesinit.c \
 	src/pipesio.c \
 	src/recognise.c \
 	src/request.c \
 	src/usb.c \
+	src/usbdevice.c \
 	src/usbdrvreq.c \
 	src/usbdrv.c \
 	src/usbmem.c

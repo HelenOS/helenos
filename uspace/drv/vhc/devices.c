@@ -111,7 +111,7 @@ void virtdev_destroy_device(virtdev_connection_t *dev)
  *
  * @param transaction Transaction to be sent over the bus.
  */
-usb_transaction_outcome_t virtdev_send_to_all(transaction_t *transaction)
+int virtdev_send_to_all(transaction_t *transaction)
 {
 	/* For easier debugging. */
 	switch (transaction->type) {
@@ -125,7 +125,7 @@ usb_transaction_outcome_t virtdev_send_to_all(transaction_t *transaction)
 		default:
 			assert(false && "unreachable branch in switch()");
 	}
-	usb_transaction_outcome_t outcome = USB_OUTCOME_BABBLE;
+	int outcome = EBADCHECKSUM;
 
 	link_t *pos;
 	list_foreach(pos, &devices) {
@@ -184,7 +184,7 @@ usb_transaction_outcome_t virtdev_send_to_all(transaction_t *transaction)
 		 * transaction and process it, we can announce success.
 		 */
 		if (rc == EOK) {
-			outcome = USB_OUTCOME_OK;
+			outcome = EOK;
 		}
 	}
 	
@@ -220,7 +220,7 @@ usb_transaction_outcome_t virtdev_send_to_all(transaction_t *transaction)
 				    transaction->buffer, transaction->len);
 				break;
 		}
-		outcome = USB_OUTCOME_OK;
+		outcome = EOK;
 	}
 	
 	/*

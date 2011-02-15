@@ -37,6 +37,7 @@
 #include <assert.h>
 #include <driver.h> /* device_t */
 #include <stdint.h>
+#include <usb/usbdevice.h>
 
 #include "port_status.h"
 
@@ -45,7 +46,7 @@ typedef struct uhci_port
 	port_status_t *address;
 	unsigned number;
 	unsigned wait_period_usec;
-	int hc_phone;
+	usb_hc_connection_t hc_connection;
 	device_t *rh;
 	devman_handle_t attached_device;
 	fid_t checker;

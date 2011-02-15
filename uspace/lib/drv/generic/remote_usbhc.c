@@ -239,7 +239,7 @@ void remote_usbhc_release_address(device_t *device, void *iface,
 
 
 static void callback_out(device_t *device,
-    usb_transaction_outcome_t outcome, void *arg)
+    int outcome, void *arg)
 {
 	async_transaction_t *trans = (async_transaction_t *)arg;
 
@@ -249,11 +249,11 @@ static void callback_out(device_t *device,
 }
 
 static void callback_in(device_t *device,
-    usb_transaction_outcome_t outcome, size_t actual_size, void *arg)
+    int outcome, size_t actual_size, void *arg)
 {
 	async_transaction_t *trans = (async_transaction_t *)arg;
 
-	if (outcome != USB_OUTCOME_OK) {
+	if (outcome != EOK) {
 		async_answer_0(trans->caller, outcome);
 		if (trans->data_caller) {
 			async_answer_0(trans->data_caller, EINTR);
@@ -269,7 +269,7 @@ static void callback_in(device_t *device,
 		    trans->buffer, actual_size);
 	}
 
-	async_answer_0(trans->caller, USB_OUTCOME_OK);
+	async_answer_0(trans->caller, EOK);
 
 	async_transaction_destroy(trans);
 }

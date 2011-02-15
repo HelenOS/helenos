@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Martin Decky
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,61 +26,40 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libusb
  * @{
  */
 /** @file
+ * Functions needed by hub drivers.
  */
+#ifndef LIBUSB_HUB_H_
+#define LIBUSB_HUB_H_
 
-#include <errno.h>
-#include <str_error.h>
-#include <stdio.h>
-#include <fibril.h>
+#include <sys/types.h>
+#include <usb/usbdevice.h>
 
-#define MIN_ERRNO  -17
-#define NOERR_LEN  64
+/** Info about device attached to host controller.
+ *
+ * This structure exists only to keep the same signature of
+ * usb_hc_register_device() when more properties of the device
+ * would have to be passed to the host controller.
+ */
+typedef struct {
+	/** Device address. */
+	usb_address_t address;
+	/** Devman handle of the device. */
+	devman_handle_t handle;
+} usb_hc_attached_device_t;
 
-static const char* err_desc[] = {
-	"No error",
-	"No such entry",
-	"Not enough memory",
-	"Limit exceeded", 
-	"Connection refused",
-	"Forwarding error",
-	"Permission denied",
-	"Answerbox closed connection",
-	"Other party error",
-	"Entry already exists",
-	"Bad memory pointer",
-	"Not supported",
-	"Address not available",
-	"Timeout expired",
-	"Invalid value",
-	"Resource is busy",
-	"Result does not fit its size",
-	"Operation interrupted"
-};
+int usb_hc_reserve_default_address(usb_hc_connection_t *);
+int usb_hc_release_default_address(usb_hc_connection_t *);
 
-static fibril_local char noerr[NOERR_LEN];
+usb_address_t usb_hc_request_address(usb_hc_connection_t *);
+int usb_hc_register_device(usb_hc_connection_t *,
+    const usb_hc_attached_device_t *);
+int usb_hc_unregister_device(usb_hc_connection_t *, usb_address_t);
 
-const char *str_error(const int e)
-{
-	if ((e <= 0) && (e >= MIN_ERRNO))
-		return err_desc[-e];
-	
-	/* Ad hoc descriptions of error codes interesting for USB. */
-	switch (e) {
-		case EBADCHECKSUM:
-			return "Bad checksum";
-		case EAGAIN:
-			return "Resource temporarily unavailable";
-		default:
-			break;
-	}
-
-	snprintf(noerr, NOERR_LEN, "Unkown error code %d", e);
-	return noerr;
-}
-
-/** @}
+#endif
+/**
+ * @}
  */

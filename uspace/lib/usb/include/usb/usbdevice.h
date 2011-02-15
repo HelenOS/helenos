@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Martin Decky
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,61 +26,42 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libusb
  * @{
  */
 /** @file
+ * General communication between device drivers and host controller driver.
  */
+#ifndef LIBUSB_USBDEVICE_H_
+#define LIBUSB_USBDEVICE_H_
 
-#include <errno.h>
-#include <str_error.h>
-#include <stdio.h>
-#include <fibril.h>
+#include <sys/types.h>
+#include <ipc/devman.h>
+#include <driver.h>
+#include <bool.h>
+#include <usb/usb.h>
 
-#define MIN_ERRNO  -17
-#define NOERR_LEN  64
+/** Connection to the host controller driver. */
+typedef struct {
+	/** Devman handle of the host controller. */
+	devman_handle_t hc_handle;
+	/** Phone to the host controller. */
+	int hc_phone;
+} usb_hc_connection_t;
 
-static const char* err_desc[] = {
-	"No error",
-	"No such entry",
-	"Not enough memory",
-	"Limit exceeded", 
-	"Connection refused",
-	"Forwarding error",
-	"Permission denied",
-	"Answerbox closed connection",
-	"Other party error",
-	"Entry already exists",
-	"Bad memory pointer",
-	"Not supported",
-	"Address not available",
-	"Timeout expired",
-	"Invalid value",
-	"Resource is busy",
-	"Result does not fit its size",
-	"Operation interrupted"
-};
+int usb_hc_find(devman_handle_t, devman_handle_t *);
 
-static fibril_local char noerr[NOERR_LEN];
+int usb_hc_connection_initialize_from_device(usb_hc_connection_t *,
+    device_t *);
+int usb_hc_connection_initialize(usb_hc_connection_t *, devman_handle_t);
 
-const char *str_error(const int e)
-{
-	if ((e <= 0) && (e >= MIN_ERRNO))
-		return err_desc[-e];
-	
-	/* Ad hoc descriptions of error codes interesting for USB. */
-	switch (e) {
-		case EBADCHECKSUM:
-			return "Bad checksum";
-		case EAGAIN:
-			return "Resource temporarily unavailable";
-		default:
-			break;
-	}
+int usb_hc_connection_open(usb_hc_connection_t *);
+bool usb_hc_connection_is_opened(const usb_hc_connection_t *);
+int usb_hc_connection_close(usb_hc_connection_t *);
 
-	snprintf(noerr, NOERR_LEN, "Unkown error code %d", e);
-	return noerr;
-}
 
-/** @}
+
+#endif
+/**
+ * @}
  */
