@@ -46,7 +46,7 @@
 #include <macros.h>
 #include <str_error.h>
 
-#include <driver.h>
+#include <ddf/driver.h>
 #include <devman.h>
 #include <ipc/devman.h>
 #include <ipc/dev_iface.h>

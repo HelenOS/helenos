@@ -51,7 +51,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 
-#include <driver.h>
+#include <ddf/driver.h>
 #include <ops/hw_res.h>
 
 #include <devman.h>

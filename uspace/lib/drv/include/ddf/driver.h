@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,27 +33,19 @@
 /** @file
  */
 
-#ifndef LIBDRV_DRIVER_H_
-#define LIBDRV_DRIVER_H_
+#ifndef DDF_DRIVER_H_
+#define DDF_DRIVER_H_
 
-#include <kernel/ddi/irq.h>
-#include <adt/list.h>
-#include <devman.h>
 #include <ipc/devman.h>
 #include <ipc/dev_iface.h>
-#include <assert.h>
-#include <ddi.h>
-#include <libarch/ddi.h>
-#include <fibril_synch.h>
-#include <malloc.h>
 
-#include "dev_iface.h"
+#include "../dev_iface.h"
 
 typedef struct ddf_dev ddf_dev_t;
 typedef struct ddf_fun ddf_fun_t;
 
 /*
- * Device class
+ * Device
  */
 
 /** Devices operations */
@@ -79,10 +72,6 @@ typedef struct ddf_dev_ops {
 	 */
 	remote_handler_t *default_handler;
 } ddf_dev_ops_t;
-
-/*
- * Device
- */
 
 /** Device structure */
 struct ddf_dev {
@@ -159,45 +148,6 @@ extern void ddf_fun_destroy(ddf_fun_t *);
 extern int ddf_fun_bind(ddf_fun_t *);
 extern int ddf_fun_add_match_id(ddf_fun_t *, const char *, int);
 
-extern void *function_get_ops(ddf_fun_t *, dev_inferface_idx_t);
-
-/*
- * Interrupts
- */
-
-typedef void interrupt_handler_t(ddf_dev_t *, ipc_callid_t, ipc_call_t *);
-
-typedef struct interrupt_context {
-	int id;
-	ddf_dev_t *dev;
-	int irq;
-	interrupt_handler_t *handler;
-	link_t link;
-} interrupt_context_t;
-
-typedef struct interrupt_context_list {
-	int curr_id;
-	link_t contexts;
-	fibril_mutex_t mutex;
-} interrupt_context_list_t;
-
-extern interrupt_context_t *create_interrupt_context(void);
-extern void delete_interrupt_context(interrupt_context_t *);
-extern void init_interrupt_context_list(interrupt_context_list_t *);
-extern void add_interrupt_context(interrupt_context_list_t *,
-    interrupt_context_t *);
-extern void remove_interrupt_context(interrupt_context_list_t *,
-    interrupt_context_t *);
-extern interrupt_context_t *find_interrupt_context_by_id(
-    interrupt_context_list_t *, int);
-extern interrupt_context_t *find_interrupt_context(
-    interrupt_context_list_t *, ddf_dev_t *, int);
-
-extern int register_interrupt_handler(ddf_dev_t *, int, interrupt_handler_t *,
-    irq_code_t *);
-extern int unregister_interrupt_handler(ddf_dev_t *, int);
-
-extern remote_handler_t *function_get_default_handler(ddf_fun_t *);
 extern int ddf_fun_add_to_class(ddf_fun_t *fun, const char *class_name);
 
 #endif

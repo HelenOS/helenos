@@ -38,7 +38,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <str_error.h>
-#include <driver.h>
+#include <ddf/driver.h>
 
 #define NAME "rootvirt"
 

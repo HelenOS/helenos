@@ -49,11 +49,13 @@
 #include <ctype.h>
 #include <errno.h>
 #include <inttypes.h>
+#include <devman.h>
 
 #include <ipc/driver.h>
 
 #include "dev_iface.h"
-#include "driver.h"
+#include "ddf/driver.h"
+#include "ddf/interrupt.h"
 
 /** Driver structure */
 static driver_t *driver;
@@ -78,6 +80,8 @@ static irq_code_t default_pseudocode = {
 
 static ddf_dev_t *create_device(void);
 static void delete_device(ddf_dev_t *);
+static remote_handler_t *function_get_default_handler(ddf_fun_t *);
+static void *function_get_ops(ddf_fun_t *, dev_inferface_idx_t);
 
 static void driver_irq_handler(ipc_callid_t iid, ipc_call_t *icall)
 {
@@ -569,7 +573,7 @@ void ddf_fun_destroy(ddf_fun_t *fun)
 	delete_function(fun);
 }
 
-void *function_get_ops(ddf_fun_t *fun, dev_inferface_idx_t idx)
+static void *function_get_ops(ddf_fun_t *fun, dev_inferface_idx_t idx)
 {
 	assert(is_valid_iface_idx(idx));
 	if (fun->ops == NULL)
@@ -637,7 +641,7 @@ int ddf_fun_add_match_id(ddf_fun_t *fun, const char *match_id_str,
 }
 
 /** Get default handler for client requests */
-remote_handler_t *function_get_default_handler(ddf_fun_t *fun)
+static remote_handler_t *function_get_default_handler(ddf_fun_t *fun)
 {
 	if (fun->ops == NULL)
 		return NULL;

@@ -33,6 +33,8 @@
 #include <stdio.h>
 #include <errno.h>
 #include <str_error.h>
+#include <ddf/driver.h>
+
 #include "test1.h"
 
 static int test1_add_device(ddf_dev_t *dev);

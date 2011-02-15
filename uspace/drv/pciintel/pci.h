@@ -36,10 +36,7 @@
 #ifndef PCI_H_
 #define PCI_H_
 
-#include <stdlib.h>
-#include <driver.h>
-#include <malloc.h>
-
+#include <ddf/driver.h>
 #include "pci_regs.h"
 
 #define PCI_MAX_HW_RES 8

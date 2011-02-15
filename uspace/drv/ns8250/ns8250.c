@@ -52,7 +52,8 @@
 #include <ddi.h>
 #include <libarch/ddi.h>
 
-#include <driver.h>
+#include <ddf/driver.h>
+#include <ddf/interrupt.h>
 #include <ops/char_dev.h>
 
 #include <devman.h>

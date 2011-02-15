@@ -30,10 +30,11 @@
  */
 
 #include <assert.h>
+#include <async.h>
 #include <stdio.h>
 #include <errno.h>
 #include <str_error.h>
-#include <driver.h>
+#include <ddf/driver.h>
 
 #define NAME "test2"
 

@@ -38,7 +38,7 @@
 #include <device/hw_res.h>
 #include <sys/types.h>
 
-#include "../driver.h"
+#include "../ddf/driver.h"
 
 typedef struct {
 	 hw_resource_list_t *(*get_resource_list)(ddf_fun_t *);

@@ -45,7 +45,7 @@
 #include <ctype.h>
 #include <macros.h>
 
-#include <driver.h>
+#include <ddf/driver.h>
 #include <devman.h>
 #include <ipc/devman.h>
 #include <ipc/dev_iface.h>

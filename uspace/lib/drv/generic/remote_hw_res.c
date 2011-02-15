@@ -36,7 +36,7 @@
 #include <errno.h>
 
 #include "ops/hw_res.h"
-#include "driver.h"
+#include "ddf/driver.h"
 
 static void remote_hw_res_get_resource_list(ddf_fun_t *, void *, ipc_callid_t,
     ipc_call_t *);

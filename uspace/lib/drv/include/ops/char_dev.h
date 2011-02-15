@@ -35,7 +35,7 @@
 #ifndef LIBDRV_OPS_CHAR_DEV_H_
 #define LIBDRV_OPS_CHAR_DEV_H_
 
-#include "../driver.h"
+#include "../ddf/driver.h"
 
 typedef struct {
 	int (*read)(ddf_fun_t *, char *, size_t);

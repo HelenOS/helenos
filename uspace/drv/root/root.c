@@ -50,7 +50,7 @@
 #include <inttypes.h>
 #include <sysinfo.h>
 
-#include <driver.h>
+#include <ddf/driver.h>
 #include <devman.h>
 #include <ipc/devman.h>
 

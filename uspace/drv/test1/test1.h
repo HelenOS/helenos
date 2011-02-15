@@ -31,7 +31,7 @@
 #ifndef DRV_TEST1_TEST1_H_
 #define DRV_TEST1_TEST1_H_
 
-#include <driver.h>
+#include <ddf/driver.h>
 
 #define NAME "test1"
 

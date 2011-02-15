@@ -36,7 +36,7 @@
 #include <errno.h>
 
 #include "ops/char_dev.h"
-#include "driver.h"
+#include "ddf/driver.h"
 
 #define MAX_CHAR_RW_COUNT 256
 
