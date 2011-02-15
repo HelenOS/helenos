@@ -39,6 +39,7 @@ SOURCES = \
 	src/drvpsync.c \
 	src/dump.c \
 	src/hidparser.c \
+	src/hub.c \
 	src/pipes.c \
 	src/pipesinit.c \
 	src/pipesio.c \
