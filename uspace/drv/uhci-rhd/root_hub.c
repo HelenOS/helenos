@@ -46,7 +46,7 @@ int uhci_root_hub_init(
 	assert(instance);
 	assert(rh);
 	int ret;
-	ret = usb_drv_find_hc(rh, &instance->hc_handle);
+	ret = usb_hc_find(rh->handle, &instance->hc_handle);
 	usb_log_info("rh found(%d) hc handle: %d.\n", ret, instance->hc_handle);
 	if (ret != EOK) {
 		return ret;
