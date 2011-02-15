@@ -41,8 +41,8 @@
 #include "../driver.h"
 
 typedef struct {
-	 hw_resource_list_t *(*get_resource_list)(function_t *);
-	 bool (*enable_interrupt)(function_t *);
+	 hw_resource_list_t *(*get_resource_list)(ddf_fun_t *);
+	 bool (*enable_interrupt)(ddf_fun_t *);
 } hw_res_ops_t;
 
 #endif

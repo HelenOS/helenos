@@ -40,8 +40,8 @@
 
 #define MAX_CHAR_RW_COUNT 256
 
-static void remote_char_read(function_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_char_write(function_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_char_read(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_char_write(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 
 /** Remote character interface operations. */
 static remote_iface_func_ptr_t remote_char_dev_iface_ops[] = {
@@ -70,7 +70,7 @@ remote_iface_t remote_char_dev_iface = {
  * @param ops		The local ops structure.
  */
 static void
-remote_char_read(function_t *fun, void *ops, ipc_callid_t callid,
+remote_char_read(ddf_fun_t *fun, void *ops, ipc_callid_t callid,
     ipc_call_t *call)
 {
 	char_dev_ops_t *char_dev_ops = (char_dev_ops_t *) ops;
@@ -117,7 +117,7 @@ remote_char_read(function_t *fun, void *ops, ipc_callid_t callid,
  * @param ops		The local ops structure.
  */
 static void
-remote_char_write(function_t *fun, void *ops, ipc_callid_t callid,
+remote_char_write(ddf_fun_t *fun, void *ops, ipc_callid_t callid,
     ipc_call_t *call)
 {
 	char_dev_ops_t *char_dev_ops = (char_dev_ops_t *) ops;

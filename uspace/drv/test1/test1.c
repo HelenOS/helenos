@@ -35,7 +35,7 @@
 #include <str_error.h>
 #include "test1.h"
 
-static int test1_add_device(device_t *dev);
+static int test1_add_device(ddf_dev_t *dev);
 
 static driver_ops_t driver_ops = {
 	.add_device = &test1_add_device
@@ -54,10 +54,10 @@ static driver_t test1_driver = {
  * @param match_id Device match id.
  * @param score Device match score.
  */
-static int register_fun_verbose(device_t *parent, const char *message,
+static int register_fun_verbose(ddf_dev_t *parent, const char *message,
     const char *name, const char *match_id, int match_score)
 {
-	function_t *fun;
+	ddf_fun_t *fun;
 	int rc;
 
 	printf(NAME ": registering function `%s': %s.\n", name, message);
@@ -104,9 +104,9 @@ static int register_fun_verbose(device_t *parent, const char *message,
  * @param dev New device.
  * @return Error code reporting success of the operation.
  */
-static int test1_add_device(device_t *dev)
+static int test1_add_device(ddf_dev_t *dev)
 {
-	function_t *fun_a;
+	ddf_fun_t *fun_a;
 	int rc;
 
 	printf(NAME ": add_device(name=\"%s\", handle=%d)\n",
@@ -124,11 +124,11 @@ static int test1_add_device(device_t *dev)
 		return rc;
 	}
 
-	add_function_to_class(fun_a, "virtual");
+	ddf_fun_add_to_class(fun_a, "virtual");
 
 	if (str_cmp(dev->name, "null") == 0) {
 		fun_a->ops = &char_device_ops;
-		add_function_to_class(fun_a, "virt-null");
+		ddf_fun_add_to_class(fun_a, "virt-null");
 	} else if (str_cmp(dev->name, "test1") == 0) {
 		(void) register_fun_verbose(dev, "cloning myself ;-)", "clone",
 		    "virtual&test1", 10);
@@ -145,6 +145,6 @@ static int test1_add_device(device_t *dev)
 int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS test1 virtual device driver\n");
-	return driver_main(&test1_driver);
+	return ddf_driver_main(&test1_driver);
 }
 

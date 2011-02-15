@@ -37,7 +37,7 @@
 
 #define NAME "test2"
 
-static int test2_add_device(device_t *dev);
+static int test2_add_device(ddf_dev_t *dev);
 
 static driver_ops_t driver_ops = {
 	.add_device = &test2_add_device
@@ -56,10 +56,10 @@ static driver_t test2_driver = {
  * @param match_id Device match id.
  * @param score Device match score.
  */
-static int register_fun_verbose(device_t *parent, const char *message,
+static int register_fun_verbose(ddf_dev_t *parent, const char *message,
     const char *name, const char *match_id, int match_score)
 {
-	function_t *fun;
+	ddf_fun_t *fun;
 	int rc;
 
 	printf(NAME ": registering function `%s': %s.\n", name, message);
@@ -91,13 +91,13 @@ static int register_fun_verbose(device_t *parent, const char *message,
 
 /** Add child devices after some sleep.
  *
- * @param arg Parent device structure (device_t *).
+ * @param arg Parent device structure (ddf_dev_t *).
  * @return Always EOK.
  */
 static int postponed_birth(void *arg)
 {
-	device_t *dev = (device_t *) arg;
-	function_t *fun_a;
+	ddf_dev_t *dev = (ddf_dev_t *) arg;
+	ddf_fun_t *fun_a;
 	int rc;
 
 	async_usleep(1000);
@@ -119,12 +119,12 @@ static int postponed_birth(void *arg)
 		return rc;
 	}
 
-	add_function_to_class(fun_a, "virtual");
+	ddf_fun_add_to_class(fun_a, "virtual");
 
 	return EOK;
 }
 
-static int test2_add_device(device_t *dev)
+static int test2_add_device(ddf_dev_t *dev)
 {
 	printf(NAME ": test2_add_device(name=\"%s\", handle=%d)\n",
 	    dev->name, (int) dev->handle);
@@ -147,7 +147,7 @@ static int test2_add_device(device_t *dev)
 int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS test2 virtual device driver\n");
-	return driver_main(&test2_driver);
+	return ddf_driver_main(&test2_driver);
 }
 
 

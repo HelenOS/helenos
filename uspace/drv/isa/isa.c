@@ -67,11 +67,11 @@
 #define ISA_MAX_HW_RES 4
 
 typedef struct isa_fun {
-	function_t *fnode;
+	ddf_fun_t *fnode;
 	hw_resource_list_t hw_resources;
 } isa_fun_t;
 
-static hw_resource_list_t *isa_get_fun_resources(function_t *fnode)
+static hw_resource_list_t *isa_get_fun_resources(ddf_fun_t *fnode)
 {
 	isa_fun_t *fun = ISA_FUN(fnode);
 	assert(fun != NULL);
@@ -79,7 +79,7 @@ static hw_resource_list_t *isa_get_fun_resources(function_t *fnode)
 	return &fun->hw_resources;
 }
 
-static bool isa_enable_fun_interrupt(function_t *fnode)
+static bool isa_enable_fun_interrupt(ddf_fun_t *fnode)
 {
 	// TODO
 
@@ -91,9 +91,9 @@ static hw_res_ops_t isa_fun_hw_res_ops = {
 	&isa_enable_fun_interrupt
 };
 
-static device_ops_t isa_fun_ops;
+static ddf_dev_ops_t isa_fun_ops;
 
-static int isa_add_device(device_t *dev);
+static int isa_add_device(ddf_dev_t *dev);
 
 /** The isa device driver's standard operations */
 static driver_ops_t isa_ops = {
@@ -106,13 +106,13 @@ static driver_t isa_driver = {
 	.driver_ops = &isa_ops
 };
 
-static isa_fun_t *isa_fun_create(device_t *dev, const char *name)
+static isa_fun_t *isa_fun_create(ddf_dev_t *dev, const char *name)
 {
 	isa_fun_t *fun = calloc(1, sizeof(isa_fun_t));
 	if (fun == NULL)
 		return NULL;
 
-	function_t *fnode = ddf_fun_create(dev, fun_inner, name);
+	ddf_fun_t *fnode = ddf_fun_create(dev, fun_inner, name);
 	if (fnode == NULL) {
 		free(fun);
 		return NULL;
@@ -387,7 +387,7 @@ static void fun_hw_res_alloc(isa_fun_t *fun)
 	    (hw_resource_t *)malloc(sizeof(hw_resource_t) * ISA_MAX_HW_RES);
 }
 
-static char *isa_fun_read_info(char *fun_conf, device_t *dev)
+static char *isa_fun_read_info(char *fun_conf, ddf_dev_t *dev)
 {
 	char *line;
 	char *fun_name = NULL;
@@ -446,14 +446,14 @@ static char *isa_fun_read_info(char *fun_conf, device_t *dev)
 	return fun_conf;
 }
 
-static void fun_conf_parse(char *conf, device_t *dev)
+static void fun_conf_parse(char *conf, ddf_dev_t *dev)
 {
 	while (conf != NULL && *conf != '\0') {
 		conf = isa_fun_read_info(conf, dev);
 	}
 }
 
-static void isa_functions_add(device_t *dev)
+static void isa_functions_add(ddf_dev_t *dev)
 {
 	char *fun_conf;
 
@@ -464,7 +464,7 @@ static void isa_functions_add(device_t *dev)
 	}
 }
 
-static int isa_add_device(device_t *dev)
+static int isa_add_device(ddf_dev_t *dev)
 {
 	printf(NAME ": isa_add_device, device handle = %d\n",
 	    (int) dev->handle);
@@ -472,7 +472,7 @@ static int isa_add_device(device_t *dev)
 	/* Make the bus device more visible. Does not do anything. */
 	printf(NAME ": adding a 'ctl' function\n");
 
-	function_t *ctl = ddf_fun_create(dev, fun_exposed, "ctl");
+	ddf_fun_t *ctl = ddf_fun_create(dev, fun_exposed, "ctl");
 	if (ctl == NULL) {
 		printf(NAME ": Error creating control function.\n");
 		return EXDEV;
@@ -499,7 +499,7 @@ int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS ISA bus driver\n");
 	isa_init();
-	return driver_main(&isa_driver);
+	return ddf_driver_main(&isa_driver);
 }
 
 /**

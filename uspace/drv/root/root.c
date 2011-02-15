@@ -64,7 +64,7 @@
 #define VIRTUAL_FUN_MATCH_ID "rootvirt"
 #define VIRTUAL_FUN_MATCH_SCORE 100
 
-static int root_add_device(device_t *dev);
+static int root_add_device(ddf_dev_t *dev);
 
 /** The root device driver's standard operations. */
 static driver_ops_t root_ops = {
@@ -82,10 +82,10 @@ static driver_t root_driver = {
  * @param dev	Device
  * @return	EOK on success or negative error code
  */
-static int add_virtual_root_fun(device_t *dev)
+static int add_virtual_root_fun(ddf_dev_t *dev)
 {
 	const char *name = VIRTUAL_FUN_NAME;
-	function_t *fun;
+	ddf_fun_t *fun;
 	int rc;
 
 	printf(NAME ": adding new function for virtual devices.\n");
@@ -122,14 +122,14 @@ static int add_virtual_root_fun(device_t *dev)
  * @param dev	Device
  * @return	EOK on success or negative error code
  */
-static int add_platform_fun(device_t *dev)
+static int add_platform_fun(ddf_dev_t *dev)
 {
 	char *match_id;
 	char *platform;
 	size_t platform_size;
 
 	const char *name = PLATFORM_FUN_NAME;
-	function_t *fun;
+	ddf_fun_t *fun;
 	int rc;
 
 	/* Get platform name from sysinfo. */
@@ -188,7 +188,7 @@ static int add_platform_fun(device_t *dev)
  * @param dev		The device which is root of the whole device tree (both
  *			of HW and pseudo devices).
  */
-static int root_add_device(device_t *dev)
+static int root_add_device(ddf_dev_t *dev)
 {
 	printf(NAME ": root_add_device, device handle=%" PRIun "\n",
 	    dev->handle);
@@ -211,7 +211,7 @@ static int root_add_device(device_t *dev)
 int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS root device driver\n");
-	return driver_main(&root_driver);
+	return ddf_driver_main(&root_driver);
 }
 
 /**

@@ -160,7 +160,7 @@ struct fun_node {
 	/** Device which this function belongs to */
 	dev_node_t *dev;
 	
-	/** Link to list of functions in the device (device_t.functions) */
+	/** Link to list of functions in the device (ddf_dev_t.functions) */
 	link_t dev_functions;
 	
 	/** Child device node (if any attached). */

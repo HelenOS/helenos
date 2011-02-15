@@ -46,7 +46,7 @@
 
 typedef struct pciintel_bus {
 	/** DDF device node */
-	device_t *dnode;
+	ddf_dev_t *dnode;
 	uint32_t conf_io_addr;
 	void *conf_data_port;
 	void *conf_addr_port;
@@ -55,7 +55,7 @@ typedef struct pciintel_bus {
 
 typedef struct pci_fun_data {
 	pci_bus_t *busptr;
-	function_t *fnode;
+	ddf_fun_t *fnode;
 
 	int bus;
 	int dev;

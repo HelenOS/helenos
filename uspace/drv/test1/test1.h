@@ -35,6 +35,6 @@
 
 #define NAME "test1"
 
-extern device_ops_t char_device_ops;
+extern ddf_dev_ops_t char_device_ops;
 
 #endif

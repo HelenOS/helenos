@@ -71,7 +71,7 @@
 /** Obtain PCI bus soft-state from function soft-state */
 #define PCI_BUS_FROM_FUN(fun) ((fun)->busptr)
 
-static hw_resource_list_t *pciintel_get_resources(function_t *fnode)
+static hw_resource_list_t *pciintel_get_resources(ddf_fun_t *fnode)
 {
 	pci_fun_t *fun = PCI_FUN(fnode);
 	
@@ -80,7 +80,7 @@ static hw_resource_list_t *pciintel_get_resources(function_t *fnode)
 	return &fun->hw_resources;
 }
 
-static bool pciintel_enable_interrupt(function_t *fnode)
+static bool pciintel_enable_interrupt(ddf_fun_t *fnode)
 {
 	/* TODO */
 	
@@ -92,9 +92,9 @@ static hw_res_ops_t pciintel_hw_res_ops = {
 	&pciintel_enable_interrupt
 };
 
-static device_ops_t pci_fun_ops;
+static ddf_dev_ops_t pci_fun_ops;
 
-static int pci_add_device(device_t *);
+static int pci_add_device(ddf_dev_t *);
 
 /** PCI bus driver standard operations */
 static driver_ops_t pci_ops = {
@@ -366,7 +366,7 @@ void pci_read_interrupt(pci_fun_t *fun)
  */
 void pci_bus_scan(pci_bus_t *bus, int bus_num) 
 {
-	function_t *fnode;
+	ddf_fun_t *fnode;
 	pci_fun_t *fun;
 	
 	int child_bus = 0;
@@ -458,10 +458,10 @@ void pci_bus_scan(pci_bus_t *bus, int bus_num)
 	}
 }
 
-static int pci_add_device(device_t *dnode)
+static int pci_add_device(ddf_dev_t *dnode)
 {
 	pci_bus_t *bus = NULL;
-	function_t *ctl = NULL;
+	ddf_fun_t *ctl = NULL;
 	bool got_res = false;
 	int rc;
 	
@@ -632,7 +632,7 @@ int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS pci bus driver (intel method 1).\n");
 	pciintel_init();
-	return driver_main(&pci_driver);
+	return ddf_driver_main(&pci_driver);
 }
 
 /**

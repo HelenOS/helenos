@@ -60,7 +60,7 @@ virtual_function_t virtual_functions[] = {
 	}
 };
 
-static int rootvirt_add_device(device_t *dev);
+static int rootvirt_add_device(ddf_dev_t *dev);
 
 static driver_ops_t rootvirt_ops = {
 	.add_device = &rootvirt_add_device
@@ -77,9 +77,9 @@ static driver_t rootvirt_driver = {
  * @param vfun		Virtual function description
  * @return		EOK on success or negative error code.
  */
-static int rootvirt_add_fun(device_t *vdev, virtual_function_t *vfun)
+static int rootvirt_add_fun(ddf_dev_t *vdev, virtual_function_t *vfun)
 {
-	function_t *fun;
+	ddf_fun_t *fun;
 	int rc;
 
 	printf(NAME ": registering function `%s' (match \"%s\")\n",
@@ -111,7 +111,7 @@ static int rootvirt_add_fun(device_t *vdev, virtual_function_t *vfun)
 	return EOK;
 }
 
-static int rootvirt_add_device(device_t *dev)
+static int rootvirt_add_device(ddf_dev_t *dev)
 {
 	static int instances = 0;
 
@@ -141,7 +141,7 @@ static int rootvirt_add_device(device_t *dev)
 int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS virtual devices root driver\n");
-	return driver_main(&rootvirt_driver);
+	return ddf_driver_main(&rootvirt_driver);
 }
 
 /**

@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -75,8 +76,8 @@ static irq_code_t default_pseudocode = {
 	default_cmds
 };
 
-static device_t *create_device(void);
-static void delete_device(device_t *);
+static ddf_dev_t *create_device(void);
+static void delete_device(ddf_dev_t *);
 
 static void driver_irq_handler(ipc_callid_t iid, ipc_call_t *icall)
 {
@@ -151,7 +152,7 @@ find_interrupt_context_by_id(interrupt_context_list_t *list, int id)
 }
 
 interrupt_context_t *
-find_interrupt_context(interrupt_context_list_t *list, device_t *dev, int irq)
+find_interrupt_context(interrupt_context_list_t *list, ddf_dev_t *dev, int irq)
 {
 	fibril_mutex_lock(&list->mutex);
 	
@@ -173,7 +174,7 @@ find_interrupt_context(interrupt_context_list_t *list, device_t *dev, int irq)
 
 
 int
-register_interrupt_handler(device_t *dev, int irq, interrupt_handler_t *handler,
+register_interrupt_handler(ddf_dev_t *dev, int irq, interrupt_handler_t *handler,
     irq_code_t *pseudocode)
 {
 	interrupt_context_t *ctx = create_interrupt_context();
@@ -196,7 +197,7 @@ register_interrupt_handler(device_t *dev, int irq, interrupt_handler_t *handler,
 	return res;
 }
 
-int unregister_interrupt_handler(device_t *dev, int irq)
+int unregister_interrupt_handler(ddf_dev_t *dev, int irq)
 {
 	interrupt_context_t *ctx = find_interrupt_context(&interrupt_contexts,
 	    dev, irq);
@@ -210,30 +211,30 @@ int unregister_interrupt_handler(device_t *dev, int irq)
 	return res;
 }
 
-static void add_to_functions_list(function_t *fun)
+static void add_to_functions_list(ddf_fun_t *fun)
 {
 	fibril_mutex_lock(&functions_mutex);
 	list_append(&fun->link, &functions);
 	fibril_mutex_unlock(&functions_mutex);
 }
 
-static void remove_from_functions_list(function_t *fun)
+static void remove_from_functions_list(ddf_fun_t *fun)
 {
 	fibril_mutex_lock(&functions_mutex);
 	list_remove(&fun->link);
 	fibril_mutex_unlock(&functions_mutex);
 }
 
-static function_t *driver_get_function(link_t *functions, devman_handle_t handle)
+static ddf_fun_t *driver_get_function(link_t *functions, devman_handle_t handle)
 {
-	function_t *fun = NULL;
+	ddf_fun_t *fun = NULL;
 	printf("driver_get_function handle=%" PRIun "\n", handle);
 	
 	fibril_mutex_lock(&functions_mutex);
 	link_t *link = functions->next;
 	
 	while (link != functions) {
-		fun = list_get_instance(link, function_t, link);
+		fun = list_get_instance(link, ddf_fun_t, link);
 		printf(" - fun handle %" PRIun "\n", fun->handle);
 		if (fun->handle == handle) {
 			fibril_mutex_unlock(&functions_mutex);
@@ -256,7 +257,7 @@ static void driver_add_device(ipc_callid_t iid, ipc_call_t *icall)
 	devman_handle_t dev_handle = IPC_GET_ARG1(*icall);
     	devman_handle_t parent_fun_handle = IPC_GET_ARG2(*icall);
 	
-	device_t *dev = create_device();
+	ddf_dev_t *dev = create_device();
 	dev->handle = dev_handle;
 
 	async_data_write_accept((void **) &dev_name, true, 0, 0, 0, 0);
@@ -317,7 +318,7 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 	 * the device to which the client connected.
 	 */
 	devman_handle_t handle = IPC_GET_ARG2(*icall);
-	function_t *fun = driver_get_function(&functions, handle);
+	ddf_fun_t *fun = driver_get_function(&functions, handle);
 
 	if (fun == NULL) {
 		printf("%s: driver_connection_gen error - no function with handle"
@@ -460,15 +461,15 @@ static void driver_connection(ipc_callid_t iid, ipc_call_t *icall)
  *
  * @return		The device structure.
  */
-static device_t *create_device(void)
+static ddf_dev_t *create_device(void)
 {
-	device_t *dev;
+	ddf_dev_t *dev;
 
-	dev = malloc(sizeof(device_t));
+	dev = malloc(sizeof(ddf_dev_t));
 	if (dev == NULL)
 		return NULL;
 
-	memset(dev, 0, sizeof(device_t));
+	memset(dev, 0, sizeof(ddf_dev_t));
 	return dev;
 }
 
@@ -476,11 +477,11 @@ static device_t *create_device(void)
  *
  * @return		The device structure.
  */
-static function_t *create_function(void)
+static ddf_fun_t *create_function(void)
 {
-	function_t *fun;
+	ddf_fun_t *fun;
 
-	fun = calloc(1, sizeof(function_t));
+	fun = calloc(1, sizeof(ddf_fun_t));
 	if (fun == NULL)
 		return NULL;
 
@@ -494,7 +495,7 @@ static function_t *create_function(void)
  *
  * @param dev		The device structure.
  */
-static void delete_device(device_t *dev)
+static void delete_device(ddf_dev_t *dev)
 {
 	free(dev);
 }
@@ -503,7 +504,7 @@ static void delete_device(device_t *dev)
  *
  * @param dev		The device structure.
  */
-static void delete_function(function_t *fun)
+static void delete_function(ddf_fun_t *fun)
 {
 	clean_match_ids(&fun->match_ids);
 	if (fun->name != NULL)
@@ -534,9 +535,9 @@ static void delete_function(function_t *fun)
  *
  * @return		New function or @c NULL if memory is not available
  */
-function_t *ddf_fun_create(device_t *dev, fun_type_t ftype, const char *name)
+ddf_fun_t *ddf_fun_create(ddf_dev_t *dev, fun_type_t ftype, const char *name)
 {
-	function_t *fun;
+	ddf_fun_t *fun;
 
 	fun = create_function();
 	if (fun == NULL)
@@ -562,13 +563,13 @@ function_t *ddf_fun_create(device_t *dev, fun_type_t ftype, const char *name)
  *
  * @param fun		Function to destroy
  */
-void ddf_fun_destroy(function_t *fun)
+void ddf_fun_destroy(ddf_fun_t *fun)
 {
 	assert(fun->bound == false);
 	delete_function(fun);
 }
 
-void *function_get_ops(function_t *fun, dev_inferface_idx_t idx)
+void *function_get_ops(ddf_fun_t *fun, dev_inferface_idx_t idx)
 {
 	assert(is_valid_iface_idx(idx));
 	if (fun->ops == NULL)
@@ -588,7 +589,7 @@ void *function_get_ops(function_t *fun, dev_inferface_idx_t idx)
  * @param fun		Function to bind
  * @return		EOK on success or negative error code
  */
-int ddf_fun_bind(function_t *fun)
+int ddf_fun_bind(ddf_fun_t *fun)
 {
 	assert(fun->name != NULL);
 	
@@ -616,7 +617,7 @@ int ddf_fun_bind(function_t *fun)
  * @param match_score		Match score
  * @return			EOK on success, ENOMEM if out of memory.
  */
-int ddf_fun_add_match_id(function_t *fun, const char *match_id_str,
+int ddf_fun_add_match_id(ddf_fun_t *fun, const char *match_id_str,
     int match_score)
 {
 	match_id_t *match_id;
@@ -636,7 +637,7 @@ int ddf_fun_add_match_id(function_t *fun, const char *match_id_str,
 }
 
 /** Get default handler for client requests */
-remote_handler_t *function_get_default_handler(function_t *fun)
+remote_handler_t *function_get_default_handler(ddf_fun_t *fun)
 {
 	if (fun->ops == NULL)
 		return NULL;
@@ -647,7 +648,7 @@ remote_handler_t *function_get_default_handler(function_t *fun)
  *
  * Must only be called when the function is bound.
  */
-int add_function_to_class(function_t *fun, const char *class_name)
+int ddf_fun_add_to_class(ddf_fun_t *fun, const char *class_name)
 {
 	assert(fun->bound == true);
 	assert(fun->ftype == fun_exposed);
@@ -655,7 +656,7 @@ int add_function_to_class(function_t *fun, const char *class_name)
 	return devman_add_device_to_class(fun->handle, class_name);
 }
 
-int driver_main(driver_t *drv)
+int ddf_driver_main(driver_t *drv)
 {
 	/*
 	 * Remember the driver structure - driver_ops will be called by generic

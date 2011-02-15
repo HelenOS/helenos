@@ -61,7 +61,7 @@ typedef struct rootpc_fun {
 	hw_resource_list_t hw_resources;
 } rootpc_fun_t;
 
-static int rootpc_add_device(device_t *dev);
+static int rootpc_add_device(ddf_dev_t *dev);
 static void root_pc_init(void);
 
 /** The root device driver's standard operations. */
@@ -91,7 +91,7 @@ static rootpc_fun_t pci_data = {
 	}
 };
 
-static hw_resource_list_t *rootpc_get_resources(function_t *fnode)
+static hw_resource_list_t *rootpc_get_resources(ddf_fun_t *fnode)
 {
 	rootpc_fun_t *fun = ROOTPC_FUN(fnode);
 	
@@ -99,7 +99,7 @@ static hw_resource_list_t *rootpc_get_resources(function_t *fnode)
 	return &fun->hw_resources;
 }
 
-static bool rootpc_enable_interrupt(function_t *fun)
+static bool rootpc_enable_interrupt(ddf_fun_t *fun)
 {
 	/* TODO */
 	
@@ -112,15 +112,15 @@ static hw_res_ops_t fun_hw_res_ops = {
 };
 
 /* Initialized in root_pc_init() function. */
-static device_ops_t rootpc_fun_ops;
+static ddf_dev_ops_t rootpc_fun_ops;
 
 static bool
-rootpc_add_fun(device_t *dev, const char *name, const char *str_match_id,
+rootpc_add_fun(ddf_dev_t *dev, const char *name, const char *str_match_id,
     rootpc_fun_t *fun)
 {
 	printf(NAME ": adding new function '%s'.\n", name);
 	
-	function_t *fnode = NULL;
+	ddf_fun_t *fnode = NULL;
 	match_id_t *match_id = NULL;
 	
 	/* Create new device. */
@@ -163,7 +163,7 @@ failure:
 	return false;
 }
 
-static bool rootpc_add_functions(device_t *dev)
+static bool rootpc_add_functions(ddf_dev_t *dev)
 {
 	return rootpc_add_fun(dev, "pci0", "intel_pci", &pci_data);
 }
@@ -174,7 +174,7 @@ static bool rootpc_add_functions(device_t *dev)
  *			of HW and pseudo devices).
  * @return		Zero on success, negative error number otherwise.
  */
-static int rootpc_add_device(device_t *dev)
+static int rootpc_add_device(ddf_dev_t *dev)
 {
 	printf(NAME ": rootpc_add_device, device handle = %d\n",
 	    (int)dev->handle);
@@ -196,7 +196,7 @@ int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS PC platform driver\n");
 	root_pc_init();
-	return driver_main(&rootpc_driver);
+	return ddf_driver_main(&rootpc_driver);
 }
 
 /**

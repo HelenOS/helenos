@@ -93,9 +93,9 @@ typedef enum {
 /** The driver data for the serial port devices. */
 typedef struct ns8250 {
 	/** DDF device node */
-	device_t *dev;
+	ddf_dev_t *dev;
 	/** DDF function node */
-	function_t *fun;
+	ddf_fun_t *fun;
 	/** Is there any client conntected to the device? */
 	bool client_connected;
 	/** The irq assigned to this device. */
@@ -188,7 +188,7 @@ static void ns8250_write_8(ioport8_t *port, uint8_t c)
  * @return		The number of bytes actually read on success, negative
  *			error number otherwise.
  */
-static int ns8250_read(function_t *fun, char *buf, size_t count)
+static int ns8250_read(ddf_fun_t *fun, char *buf, size_t count)
 {
 	ns8250_t *ns = NS8250(fun);
 	int ret = EOK;
@@ -222,7 +222,7 @@ static inline void ns8250_putchar(ns8250_t *ns, uint8_t c)
  * @param count		The number of bytes to be written
  * @return		Zero on success
  */
-static int ns8250_write(function_t *fun, char *buf, size_t count)
+static int ns8250_write(ddf_fun_t *fun, char *buf, size_t count)
 {
 	ns8250_t *ns = NS8250(fun);
 	size_t idx;
@@ -233,7 +233,7 @@ static int ns8250_write(function_t *fun, char *buf, size_t count)
 	return 0;
 }
 
-static device_ops_t ns8250_dev_ops;
+static ddf_dev_ops_t ns8250_dev_ops;
 
 /** The character interface's callbacks. */
 static char_dev_ops_t ns8250_char_dev_ops = {
@@ -241,7 +241,7 @@ static char_dev_ops_t ns8250_char_dev_ops = {
 	.write = &ns8250_write
 };
 
-static int ns8250_add_device(device_t *dev);
+static int ns8250_add_device(ddf_dev_t *dev);
 
 /** The serial port device driver's standard operations. */
 static driver_ops_t ns8250_ops = {
@@ -674,7 +674,7 @@ static void ns8250_read_from_device(ns8250_t *ns)
  *
  * @param dev		The serial port device.
  */
-static inline void ns8250_interrupt_handler(device_t *dev, ipc_callid_t iid,
+static inline void ns8250_interrupt_handler(ddf_dev_t *dev, ipc_callid_t iid,
     ipc_call_t *icall)
 {
 	ns8250_read_from_device(NS8250_FROM_DEV(dev));
@@ -705,10 +705,10 @@ static inline int ns8250_unregister_interrupt_handler(ns8250_t *ns)
  *
  * @param dev		The serial port device.
  */
-static int ns8250_add_device(device_t *dev)
+static int ns8250_add_device(ddf_dev_t *dev)
 {
 	ns8250_t *ns = NULL;
-	function_t *fun = NULL;
+	ddf_fun_t *fun = NULL;
 	bool need_cleanup = false;
 	int rc;
 	
@@ -776,7 +776,7 @@ static int ns8250_add_device(device_t *dev)
 
 	ns->fun = fun;
 	
-	add_function_to_class(fun, "serial");
+	ddf_fun_add_to_class(fun, "serial");
 	
 	printf(NAME ": the %s device has been successfully initialized.\n",
 	    dev->name);
@@ -799,7 +799,7 @@ fail:
  *
  * @param dev		The device.
  */
-static int ns8250_open(function_t *fun)
+static int ns8250_open(ddf_fun_t *fun)
 {
 	ns8250_t *data = (ns8250_t *) fun->dev->driver_data;
 	int res;
@@ -823,7 +823,7 @@ static int ns8250_open(function_t *fun)
  *
  * @param dev		The device.
  */
-static void ns8250_close(function_t *fun)
+static void ns8250_close(ddf_fun_t *fun)
 {
 	ns8250_t *data = (ns8250_t *) fun->dev->driver_data;
 	
@@ -847,7 +847,7 @@ static void ns8250_close(function_t *fun)
  * @param stop_bits	The number of stop bits used.
  */
 static void
-ns8250_get_props(device_t *dev, unsigned int *baud_rate, unsigned int *parity,
+ns8250_get_props(ddf_dev_t *dev, unsigned int *baud_rate, unsigned int *parity,
     unsigned int *word_length, unsigned int* stop_bits)
 {
 	ns8250_t *data = (ns8250_t *) dev->driver_data;
@@ -874,7 +874,7 @@ ns8250_get_props(device_t *dev, unsigned int *baud_rate, unsigned int *parity,
  * @param word_length	The size of one data unit in bits.
  * @param stop_bits	The number of stop bits to be used.
  */
-static int ns8250_set_props(device_t *dev, unsigned int baud_rate,
+static int ns8250_set_props(ddf_dev_t *dev, unsigned int baud_rate,
     unsigned int parity, unsigned int word_length, unsigned int stop_bits)
 {
 	printf(NAME ": ns8250_set_props: baud rate %d, parity 0x%x, word "
@@ -901,7 +901,7 @@ static int ns8250_set_props(device_t *dev, unsigned int baud_rate,
  *
  * Configure the parameters of the serial communication.
  */
-static void ns8250_default_handler(function_t *fun, ipc_callid_t callid,
+static void ns8250_default_handler(ddf_fun_t *fun, ipc_callid_t callid,
     ipc_call_t *call)
 {
 	sysarg_t method = IPC_GET_IMETHOD(*call);
@@ -949,7 +949,7 @@ int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS serial port driver\n");
 	ns8250_init();
-	return driver_main(&ns8250_driver);
+	return ddf_driver_main(&ns8250_driver);
 }
 
 /**

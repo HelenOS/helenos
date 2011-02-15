@@ -38,9 +38,9 @@
 #include "ops/hw_res.h"
 #include "driver.h"
 
-static void remote_hw_res_get_resource_list(function_t *, void *, ipc_callid_t,
+static void remote_hw_res_get_resource_list(ddf_fun_t *, void *, ipc_callid_t,
     ipc_call_t *);
-static void remote_hw_res_enable_interrupt(function_t *, void *, ipc_callid_t,
+static void remote_hw_res_enable_interrupt(ddf_fun_t *, void *, ipc_callid_t,
     ipc_call_t *);
 
 static remote_iface_func_ptr_t remote_hw_res_iface_ops [] = {
@@ -54,7 +54,7 @@ remote_iface_t remote_hw_res_iface = {
 	.methods = remote_hw_res_iface_ops
 };
 
-static void remote_hw_res_enable_interrupt(function_t *fun, void *ops,
+static void remote_hw_res_enable_interrupt(ddf_fun_t *fun, void *ops,
     ipc_callid_t callid, ipc_call_t *call)
 {
 	hw_res_ops_t *hw_res_ops = (hw_res_ops_t *) ops;
@@ -67,7 +67,7 @@ static void remote_hw_res_enable_interrupt(function_t *fun, void *ops,
 		async_answer_0(callid, EREFUSED);
 }
 
-static void remote_hw_res_get_resource_list(function_t *fun, void *ops,
+static void remote_hw_res_get_resource_list(ddf_fun_t *fun, void *ops,
     ipc_callid_t callid, ipc_call_t *call)
 {
 	hw_res_ops_t *hw_res_ops = (hw_res_ops_t *) ops;
