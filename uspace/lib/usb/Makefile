@@ -45,6 +45,7 @@ SOURCES = \
 	src/recognise.c \
 	src/request.c \
 	src/usb.c \
+	src/usbdevice.c \
 	src/usbdrvreq.c \
 	src/usbdrv.c \
 	src/usbmem.c
