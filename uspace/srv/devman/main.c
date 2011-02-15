@@ -485,7 +485,7 @@ static void devman_forward(ipc_callid_t iid, ipc_call_t *icall,
 
 	if (fun == NULL && !drv_to_parent) {
 		printf(NAME ": devman_forward error - cannot connect to "
-		    "handle %d, refers to a device.\n", handle);
+		    "handle %" PRIun ", refers to a device.\n", handle);
 		async_answer_0(iid, ENOENT);
 		return;
 	}

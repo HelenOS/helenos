@@ -147,7 +147,6 @@ rootpc_add_fun(ddf_dev_t *dev, const char *name, const char *str_match_id,
 		printf(NAME ": error binding function %s.\n", name);
 		goto failure;
 	}
-	printf(NAME ": registered function handle = %u\n", fnode->handle);
 	
 	return true;
 	
