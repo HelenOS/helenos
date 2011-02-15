@@ -35,7 +35,9 @@
 #include <str_error.h>
 
 #include <usb/usb.h>    /* usb_address_t */
-#include <usb/usbdrv.h> /* usb_drv_*     */
+#include <usb/usbdevice.h>
+#include <usb/hub.h>
+#include <usb/request.h>
 #include <usb/debug.h>
 #include <usb/recognise.h>
 
@@ -57,7 +59,12 @@ int uhci_port_init(
 	port->wait_period_usec = usec;
 	port->attached_device = 0;
 	port->rh = rh;
-	port->hc_phone = parent_phone;
+	int rc = usb_hc_connection_initialize_from_device(
+	    &port->hc_connection, rh);
+	if (rc != EOK) {
+		usb_log_error("Failed to initialize connection to HC.");
+		return rc;
+	}
 
 	port->checker = fibril_create(uhci_port_check, port);
 	if (port->checker == 0) {
@@ -97,13 +104,28 @@ int uhci_port_check(void *port)
 		print_port_status(port_status);
 
 		if (port_status & STATUS_CONNECTED_CHANGED) {
+			int rc = usb_hc_connection_open(
+			    &port_instance->hc_connection);
+			if (rc != EOK) {
+				usb_log_error("Failed to connect to HC.");
+				goto next;
+			}
+
 			if (port_status & STATUS_CONNECTED) {
 				/* new device */
 				uhci_port_new_device(port_instance);
 			} else {
 				uhci_port_remove_device(port_instance);
 			}
+
+			rc = usb_hc_connection_close(
+			    &port_instance->hc_connection);
+			if (rc != EOK) {
+				usb_log_error("Failed to disconnect from HC.");
+				goto next;
+			}
 		}
+	next:
 		async_usleep(port_instance->wait_period_usec);
 	}
 	return EOK;
@@ -112,12 +134,12 @@ int uhci_port_check(void *port)
 static int uhci_port_new_device(uhci_port_t *port)
 {
 	assert(port);
-	assert(port->hc_phone);
+	assert(usb_hc_connection_is_opened(&port->hc_connection));
 
 	usb_log_info("Adding new device on port %d.\n", port->number);
 
 	/* get address of the future device */
-	const usb_address_t usb_address = usb_drv_request_address(port->hc_phone);
+	const usb_address_t usb_address = usb_hc_request_address(&port->hc_connection);
 
 	if (usb_address <= 0) {
 		usb_log_error("Recieved invalid address(%d).\n", usb_address);
@@ -127,12 +149,12 @@ static int uhci_port_new_device(uhci_port_t *port)
 	    usb_address, port->number);
 
 	/* get default address */
-	int ret = usb_drv_reserve_default_address(port->hc_phone);
+	int ret = usb_hc_reserve_default_address(&port->hc_connection);
 	if (ret != EOK) {
 		usb_log_error("Failed to reserve default address on port %d.\n",
 		    port->number);
-		int ret2 =
-		  usb_drv_release_address(port->hc_phone, usb_address);
+		int ret2 = usb_hc_unregister_device(&port->hc_connection,
+		    usb_address);
 		if (ret2 != EOK) {
 			usb_log_fatal("Failed to return requested address on port %d.\n",
 			   port->number);
@@ -173,13 +195,30 @@ static int uhci_port_new_device(uhci_port_t *port)
 		    port->number);
 	}
 
-	/* assign address to device */
-	ret = usb_drv_req_set_address(port->hc_phone, 0, usb_address);
+	/*
+	 * Initialize connection to the device.
+	 */
+	/* FIXME: check for errors. */
+	usb_device_connection_t new_dev_connection;
+	usb_endpoint_pipe_t new_dev_ctrl_pipe;
+	usb_device_connection_initialize_on_default_address(
+	    &new_dev_connection, &port->hc_connection);
+	usb_endpoint_pipe_initialize_default_control(&new_dev_ctrl_pipe,
+	    &new_dev_connection);
+
+	/*
+	 * Assign new address to the device. This function updates
+	 * the backing connection to still point to the same device.
+	 */
+	/* FIXME: check for errors. */
+	usb_endpoint_pipe_start_session(&new_dev_ctrl_pipe);
+	ret = usb_request_set_address(&new_dev_ctrl_pipe, usb_address);
+	usb_endpoint_pipe_end_session(&new_dev_ctrl_pipe);
 
 	if (ret != EOK) { /* address assigning went wrong */
 		usb_log_error("Failed(%d) to assign address to the device.\n", ret);
 		uhci_port_set_enabled(port, false);
-		int release = usb_drv_release_default_address(port->hc_phone);
+		int release = usb_hc_release_default_address(&port->hc_connection);
 		if (release != EOK) {
 			usb_log_error("Failed to release default address on port %d.\n",
 			    port->number);
@@ -193,7 +232,7 @@ static int uhci_port_new_device(uhci_port_t *port)
 	    usb_address, port->number);
 
 	/* release default address */
-	ret = usb_drv_release_default_address(port->hc_phone);
+	ret = usb_hc_release_default_address(&port->hc_connection);
 	if (ret != EOK) {
 		usb_log_error("Failed to release default address on port %d.\n",
 		    port->number);
@@ -205,17 +244,9 @@ static int uhci_port_new_device(uhci_port_t *port)
 	/* communicate and possibly report to devman */
 	assert(port->attached_device == 0);
 
-	devman_handle_t hc_handle;
-	ret = usb_drv_find_hc(port->rh, &hc_handle);
-	if (ret != EOK) {
-		usb_log_error("Failed to get handle of host controller: %s.\n",
-		    str_error(ret));
-		uhci_port_set_enabled(port, false);
-		return ENOMEM;
-	}
+	ret = usb_device_register_child_in_devman(new_dev_connection.address,
+	    new_dev_connection.hc_handle, port->rh, &port->attached_device);
 
-	ret = usb_device_register_child_in_devman(usb_address, hc_handle,
-	    port->rh, &port->attached_device);
 	if (ret != EOK) { /* something went wrong */
 		usb_log_error("Failed(%d) in usb_drv_register_child.\n", ret);
 		uhci_port_set_enabled(port, false);
@@ -224,8 +255,15 @@ static int uhci_port_new_device(uhci_port_t *port)
 	usb_log_info("Sucessfully added device on port(%d) address(%d) handle %d.\n",
 		port->number, usb_address, port->attached_device);
 
-	ret =
-	  usb_drv_bind_address(port->hc_phone, usb_address, port->attached_device);
+	/*
+	 * Register the device in the host controller.
+	 */
+	usb_hc_attached_device_t new_device = {
+		.address = new_dev_connection.address,
+		.handle = port->attached_device
+	};
+
+	ret = usb_hc_register_device(&port->hc_connection, &new_device);
 	// TODO: proper error check here
 	assert(ret == EOK);
 
