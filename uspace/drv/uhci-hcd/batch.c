@@ -247,6 +247,8 @@ void batch_interrupt_in(batch_t *instance)
 		    USB_PID_IN, data, next);
 	}
 
+	instance->tds[i - 1].status |= TD_STATUS_COMPLETE_INTERRUPT_FLAG;
+
 	instance->next_step = batch_call_in_and_dispose;
 	batch_schedule(instance);
 }
@@ -270,6 +272,8 @@ void batch_interrupt_out(batch_t *instance)
 		    instance->max_packet_size, toggle++, false, instance->target,
 		    USB_PID_OUT, data, next);
 	}
+
+	instance->tds[i - 1].status |= TD_STATUS_COMPLETE_INTERRUPT_FLAG;
 
 	instance->next_step = batch_call_out_and_dispose;
 	batch_schedule(instance);

@@ -116,6 +116,8 @@ int uhci_transfer(
 
 int uhci_schedule(uhci_t *instance, batch_t *batch);
 
+void uhci_interrupt(uhci_t *instance);
+
 static inline uhci_t * dev_to_uhci(device_t *dev)
 	{ return (uhci_t*)dev->driver_data; }
 

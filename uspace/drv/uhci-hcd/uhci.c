@@ -43,7 +43,7 @@ static int uhci_init_transfer_lists(uhci_t *instance);
 static int uhci_init_mem_structures(uhci_t *instance);
 static void uhci_init_hw(uhci_t *instance);
 
-static int uhci_clean_finished(void *arg);
+static int uhci_interrupt_emulator(void *arg);
 static int uhci_debug_checker(void *arg);
 
 static bool allowed_usb_packet(
@@ -68,7 +68,7 @@ int uhci_init(uhci_t *instance, void *regs, size_t reg_size)
 	instance->registers = io;
 	usb_log_debug("Device registers accessible.\n");
 
-	instance->cleaner = fibril_create(uhci_clean_finished, instance);
+	instance->cleaner = fibril_create(uhci_interrupt_emulator, instance);
 	fibril_add_ready(instance->cleaner);
 
 	instance->debug_checker = fibril_create(uhci_debug_checker, instance);
@@ -188,17 +188,28 @@ int uhci_schedule(uhci_t *instance, batch_t *batch)
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-int uhci_clean_finished(void* arg)
+void uhci_interrupt(uhci_t *instance)
 {
-	usb_log_debug("Started cleaning fibril.\n");
+	assert(instance);
+	const uint16_t sts = pio_read_16(&instance->registers->usbsts);
+	if ((sts & (UHCI_STATUS_INTERRUPT | UHCI_STATUS_ERROR_INTERRUPT)) == 0)
+		return;
+	usb_log_debug("UHCI interrupt: %X.\n", sts);
+	transfer_list_check(&instance->transfers_interrupt);
+	transfer_list_check(&instance->transfers_control_slow);
+	transfer_list_check(&instance->transfers_control_full);
+	transfer_list_check(&instance->transfers_bulk_full);
+	pio_write_16(&instance->registers->usbsts, 0xf);
+}
+/*----------------------------------------------------------------------------*/
+int uhci_interrupt_emulator(void* arg)
+{
+	usb_log_debug("Started interrupt emulator.\n");
 	uhci_t *instance = (uhci_t*)arg;
 	assert(instance);
 
 	while(1) {
-		transfer_list_check(&instance->transfers_interrupt);
-		transfer_list_check(&instance->transfers_control_slow);
-		transfer_list_check(&instance->transfers_control_full);
-		transfer_list_check(&instance->transfers_bulk_full);
+		uhci_interrupt(instance);
 		async_usleep(UHCI_CLEANER_TIMEOUT);
 	}
 	return EOK;
