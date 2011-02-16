@@ -36,6 +36,7 @@ LIBS = $(LIBBLOCK_PREFIX)/libblock.a
 SOURCES = \
 	libext2_filesystem.c \
 	libext2_superblock.c \
-	libext2_block_group.c
+	libext2_block_group.c \
+	libext2_inode.c
 
 include $(USPACE_PREFIX)/Makefile.common

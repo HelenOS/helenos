@@ -33,13 +33,33 @@
  * @file
  */
 
-#ifndef LIBEXT2_LIBEXT2_H_
-#define LIBEXT2_LIBEXT2_H_
+#ifndef LIBEXT2_LIBEXT2_INODE_H_
+#define LIBEXT2_LIBEXT2_INODE_H_
 
-#include "libext2_superblock.h"
-#include "libext2_block_group.h"
-#include "libext2_inode.h"
-#include "libext2_filesystem.h"
+#include <libblock.h>
+
+typedef struct ext2_inode {
+	uint16_t mode;
+	uint16_t user_id;
+	uint32_t size;
+	uint8_t unused[16];
+	uint16_t group_id;
+	uint16_t usage_count; // Hard link count, when 0 the inode is to be freed
+	uint32_t reserved_512_blocks; // Size of this inode in 512-byte blocks
+	uint32_t flags;
+	uint8_t unused2[4];
+	uint32_t direct_blocks[12]; // Direct block ids stored in this inode
+	uint32_t single_indirect_block;
+	uint32_t double_indirect_block;
+	uint32_t triple_indirect_block;
+} ext2_inode_t;
+
+typedef struct ext2_inode_ref {
+	block_t *block; // Reference to a block containing this inode
+	ext2_inode_t *inode;
+} ext2_inode_ref_t;
+
+
 
 #endif
 

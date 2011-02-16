@@ -33,15 +33,12 @@
  * @file
  */
 
-#ifndef LIBEXT2_LIBEXT2_H_
-#define LIBEXT2_LIBEXT2_H_
-
-#include "libext2_superblock.h"
-#include "libext2_block_group.h"
+#include "libext2.h"
 #include "libext2_inode.h"
-#include "libext2_filesystem.h"
+#include <byteorder.h>
 
-#endif
+
+
 
 /** @}
  */

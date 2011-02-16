@@ -36,6 +36,7 @@
 #include "libext2_filesystem.h"
 #include "libext2_superblock.h"
 #include "libext2_block_group.h"
+#include "libext2_inode.h"
 #include <errno.h>
 #include <libblock.h>
 #include <malloc.h>
@@ -159,6 +160,85 @@ int ext2_filesystem_get_block_group_ref(ext2_filesystem_t *fs, uint32_t bgid,
  * @return 		EOK on success or negative error code on failure
  */
 int ext2_filesystem_put_block_group_ref(ext2_block_group_ref_t *ref)
+{
+	int rc;
+	
+	rc = block_put(ref->block);
+	free(ref);
+	
+	return rc;
+}
+
+/**
+ * Get a reference to inode
+ * 
+ * @param fs Pointer to filesystem information
+ * @param index The index number of the inode
+ * @param ref Pointer where to store pointer to inode reference
+ * 
+ * @return 		EOK on success or negative error code on failure
+ */
+int ext2_filesystem_get_inode_ref(ext2_filesystem_t *fs, uint32_t index,
+    ext2_inode_ref_t **ref)
+{
+	int rc;
+	aoff64_t block_id;
+	uint32_t block_group;
+	uint32_t offset_in_group;
+	uint32_t inodes_per_group;
+	uint32_t inode_table_start;
+	uint16_t inode_size;
+	uint32_t block_size;
+	ext2_block_group_ref_t *bg_ref;
+	ext2_inode_ref_t *newref;
+	
+	newref = malloc(sizeof(ext2_inode_ref_t));
+	if (newref == NULL) {
+		return ENOMEM;
+	}
+	
+	inodes_per_group = ext2_superblock_get_inodes_per_group(fs->superblock);
+	
+	// inode numbers are 1-based
+	index -= 1;
+	block_group = index / inodes_per_group;
+	offset_in_group = index % inodes_per_group;
+	
+	rc = ext2_filesystem_get_block_group_ref(fs, block_group, &bg_ref);
+	if (rc != EOK) {
+		free(newref);
+		return rc;
+	}
+	
+	inode_table_start = ext2_block_group_get_inode_table_first_block(
+	    bg_ref->block_group);
+	
+	inode_size = ext2_superblock_get_inode_size(fs->superblock);
+	block_size = ext2_superblock_get_block_size(fs->superblock);
+	
+	block_id = inode_table_start + ((index * inode_size) / block_size);
+	
+	rc = block_get(&newref->block, fs->device, block_id, 0);
+	if (rc != EOK) {
+		free(newref);
+		return rc;
+	}
+	
+	newref->inode = newref->block->data + offset_in_group;
+	
+	*ref = newref;
+	
+	return EOK;
+}
+
+/**
+ * Free a reference to inode
+ * 
+ * @param ref Pointer to inode reference to free
+ * 
+ * @return 		EOK on success or negative error code on failure
+ */
+int ext2_filesystem_put_inode_ref(ext2_inode_ref_t *ref)
 {
 	int rc;
 	
