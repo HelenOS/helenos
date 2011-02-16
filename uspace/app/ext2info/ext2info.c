@@ -55,15 +55,29 @@ static void syntax_print(void);
 static void print_superblock(ext2_superblock_t *);
 static void print_block_groups(ext2_filesystem_t *);
 static void print_block_group(ext2_block_group_t *);
+static void print_inode_by_number(ext2_filesystem_t *, uint32_t);
+static void print_inode(ext2_inode_t *);
+
+#define ARG_SUPERBLOCK 1
+#define ARG_BLOCK_GROUPS 2
+#define ARG_INODE 4
+#define ARG_STRICT_CHECK 8
+#define ARG_COMMON (ARG_SUPERBLOCK | ARG_BLOCK_GROUPS)
+#define ARG_ALL (ARG_COMMON | ARG_INODE)
+
 
 int main(int argc, char **argv)
 {
 
 	int rc;
+	char *endptr;
 	char *dev_path;
 	devmap_handle_t handle;
 	ext2_filesystem_t filesystem;
-	bool strict_check;
+	int arg_flags;
+	uint32_t inode = 0;
+	
+	arg_flags = 0;
 	
 	if (argc < 2) {
 		printf(NAME ": Error, argument missing.\n");
@@ -71,18 +85,51 @@ int main(int argc, char **argv)
 		return 1;
 	}
 	
-	strict_check = false;
+	// Skip program name
+	--argc; ++argv;
+	
 	if (str_cmp(*argv, "--strict-check") == 0) {
 		--argc; ++argv;
-		strict_check = true;
+		arg_flags |= ARG_STRICT_CHECK;
 	}
-
-	--argc; ++argv;
+	
+	if (str_cmp(*argv, "--superblock") == 0) {
+		--argc; ++argv;
+		arg_flags |= ARG_SUPERBLOCK;
+	}
+	
+	if (str_cmp(*argv, "--block-groups") == 0) {
+		--argc; ++argv;
+		arg_flags |= ARG_BLOCK_GROUPS;
+	}
+	
+	if (str_cmp(*argv, "--inode") == 0) {
+		--argc; ++argv;
+		if (argc == 0) {
+			printf(NAME ": Argument expected for --inode\n");
+			return 2;
+		}
+		
+		inode = strtol(*argv, &endptr, 10);
+		if (*endptr != '\0') {
+			printf(NAME ": Error, invalid argument for --inode.\n");
+			syntax_print();
+			return 1;
+		}
+		
+		arg_flags |= ARG_INODE;
+		--argc; ++argv;
+	}
 
 	if (argc != 1) {
 		printf(NAME ": Error, unexpected argument.\n");
 		syntax_print();
 		return 1;
+	}
+	
+	// Display common things by default
+	if ((arg_flags & ARG_ALL) == 0) {
+		arg_flags = ARG_COMMON;
 	}
 
 	dev_path = *argv;
@@ -102,13 +149,22 @@ int main(int argc, char **argv)
 	rc = ext2_filesystem_check_sanity(&filesystem);
 	if (rc != EOK) {
 		printf(NAME ": Filesystem did not pass sanity check.\n");
-		if (strict_check) {
+		if (arg_flags & ARG_STRICT_CHECK) {
 			return 3;
 		}
 	}
 	
-	print_superblock(filesystem.superblock);
-	print_block_groups(&filesystem);
+	if (arg_flags & ARG_SUPERBLOCK) {
+		print_superblock(filesystem.superblock);
+	}
+	
+	if (arg_flags & ARG_BLOCK_GROUPS) {
+		print_block_groups(&filesystem);
+	}
+	
+	if (arg_flags & ARG_INODE) {
+		print_inode_by_number(&filesystem, inode);
+	}
 
 	ext2_filesystem_fini(&filesystem);
 
@@ -118,7 +174,7 @@ int main(int argc, char **argv)
 
 static void syntax_print(void)
 {
-	printf("syntax: ext2info <device_name>\n");
+	printf("syntax: ext2info --strict-check --superblock --block-groups --inode <i-number> <device_name>\n");
 }
 
 static void print_superblock(ext2_superblock_t *superblock)
@@ -211,7 +267,8 @@ static void print_superblock(ext2_superblock_t *superblock)
 	
 }
 
-void print_block_groups(ext2_filesystem_t *filesystem) {
+void print_block_groups(ext2_filesystem_t *filesystem)
+{
 	uint32_t block_group_count;
 	uint32_t i;
 	ext2_block_group_ref_t *block_group_ref;
@@ -240,7 +297,8 @@ void print_block_groups(ext2_filesystem_t *filesystem) {
 	
 }
 
-void print_block_group(ext2_block_group_t *bg) {
+void print_block_group(ext2_block_group_t *bg)
+{
 	uint32_t block_bitmap_block;
 	uint32_t inode_bitmap_block;
 	uint32_t inode_table_first_block;
@@ -261,6 +319,94 @@ void print_block_group(ext2_block_group_t *bg) {
 	printf("    Free blocks: %u\n", free_block_count);
 	printf("    Free inodes: %u\n", free_inode_count);
 	printf("    Directory inodes: %u\n", directory_inode_count);
+}
+
+void print_inode_by_number(ext2_filesystem_t *fs, uint32_t inode)
+{
+	int rc;
+	ext2_inode_ref_t *inode_ref;
+	
+	printf("Inode %u\n", inode);
+	
+	rc = ext2_filesystem_get_inode_ref(fs, inode, &inode_ref);
+	if (rc != EOK) {
+		printf("  Failed getting inode ref\n");
+		return;
+	}
+	
+	print_inode(inode_ref->inode);
+	
+	rc = ext2_filesystem_put_inode_ref(inode_ref);
+	if (rc != EOK) {
+		printf("  Failed putting inode ref\n");
+	}
+}
+
+void print_inode(ext2_inode_t *inode)
+{
+	uint16_t mode;
+	uint32_t user_id;
+	uint32_t group_id;
+	uint32_t size;
+	uint16_t usage_count;
+	uint32_t flags;
+	uint16_t access;
+	const char *type;
+	uint32_t block;
+	int i;
+	bool all_blocks = false;
+	
+	mode = ext2_inode_get_mode(inode);
+	user_id = ext2_inode_get_user_id(inode);
+	group_id = ext2_inode_get_group_id(inode);
+	size = ext2_inode_get_size(inode);
+	usage_count = ext2_inode_get_usage_count(inode);
+	flags = ext2_inode_get_flags(inode);
+	
+	type = "Unknown";
+	if ((mode & EXT2_INODE_MODE_BLOCKDEV) == EXT2_INODE_MODE_BLOCKDEV) {
+		type = "Block device";
+	}
+	else if (mode & EXT2_INODE_MODE_FIFO) {
+		type = "Fifo (pipe)";
+	}
+	else if (mode & EXT2_INODE_MODE_CHARDEV) {
+		type = "Character device";
+	}
+	else if (mode & EXT2_INODE_MODE_DIRECTORY) {
+		type = "Directory";
+	}
+	else if (mode & EXT2_INODE_MODE_FILE) {
+		type = "File";
+	}
+	else if (mode & EXT2_INODE_MODE_SOFTLINK) {
+		type = "Soft link";
+	}
+	else if (mode & EXT2_INODE_MODE_SOCKET) {
+		type = "Socket";
+	}
+	
+	access = mode & EXT2_INODE_MODE_ACCESS_MASK;
+	
+	printf("  Mode: %04x (Type: %s, Access bits: %04ho)\n", mode, type, access);
+	printf("  User ID: %u\n", user_id);
+	printf("  Group ID: %u\n", group_id);
+	printf("  Size: %u\n", size);
+	printf("  Usage (link) count: %u\n", usage_count);
+	printf("  Flags: %u\n", flags);
+	printf("  Block list: ");
+	for (i = 0; i < 12; i++) {
+		block = ext2_inode_get_direct_block(inode, i);
+		if (block == 0) {
+			all_blocks = true;
+			break;
+		}
+		printf("%u ", block);
+	}
+	if (!all_blocks) {
+		printf(" and more...");
+	}
+	printf("\n");
 }
 
 /**

@@ -54,10 +54,31 @@ typedef struct ext2_inode {
 	uint32_t triple_indirect_block;
 } ext2_inode_t;
 
+#define EXT2_INODE_MODE_FIFO		0x1000
+#define EXT2_INODE_MODE_CHARDEV		0x2000
+#define EXT2_INODE_MODE_DIRECTORY	0x4000
+#define EXT2_INODE_MODE_BLOCKDEV	0x6000
+#define EXT2_INODE_MODE_FILE		0x8000
+#define EXT2_INODE_MODE_SOFTLINK	0xA000
+#define EXT2_INODE_MODE_SOCKET		0xC000
+#define EXT2_INODE_MODE_ACCESS_MASK	0x0FFF
+
 typedef struct ext2_inode_ref {
 	block_t *block; // Reference to a block containing this inode
 	ext2_inode_t *inode;
 } ext2_inode_ref_t;
+
+inline uint16_t ext2_inode_get_mode(ext2_inode_t *);
+inline uint32_t ext2_inode_get_user_id(ext2_inode_t *);
+inline uint32_t ext2_inode_get_size(ext2_inode_t *);
+inline uint32_t ext2_inode_get_group_id(ext2_inode_t *);
+inline uint16_t ext2_inode_get_usage_count(ext2_inode_t *);
+inline uint32_t ext2_inode_get_reserved_512_blocks(ext2_inode_t *);
+inline uint32_t ext2_inode_get_flags(ext2_inode_t *);
+inline uint32_t ext2_inode_get_direct_block(ext2_inode_t *, uint8_t);
+inline uint32_t ext2_inode_get_single_indirect_block(ext2_inode_t *);
+inline uint32_t ext2_inode_get_double_indirect_block(ext2_inode_t *);
+inline uint32_t ext2_inode_get_triple_indirect_block(ext2_inode_t *);
 
 
 

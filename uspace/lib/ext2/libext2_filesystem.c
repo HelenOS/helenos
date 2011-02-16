@@ -224,7 +224,7 @@ int ext2_filesystem_get_inode_ref(ext2_filesystem_t *fs, uint32_t index,
 		return rc;
 	}
 	
-	newref->inode = newref->block->data + offset_in_group;
+	newref->inode = newref->block->data + (offset_in_group*inode_size);
 	
 	*ref = newref;
 	
