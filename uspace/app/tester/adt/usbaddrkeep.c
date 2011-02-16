@@ -28,7 +28,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <usb/hcd.h>
+#include <usb/addrkeep.h>
 #include <errno.h>
 #include "../tester.h"
 

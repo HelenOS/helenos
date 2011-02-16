@@ -39,6 +39,8 @@
 #include "driver.h"
 
 #define USB_MAX_PAYLOAD_SIZE 1020
+#define HACK_MAX_PACKET_SIZE 8
+#define HACK_MAX_PACKET_SIZE_INTERRUPT_IN 4
 
 static void remote_usbhc_get_address(device_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbhc_interrupt_out(device_t *, void *, ipc_callid_t, ipc_call_t *);
@@ -239,7 +241,7 @@ void remote_usbhc_release_address(device_t *device, void *iface,
 
 
 static void callback_out(device_t *device,
-    usb_transaction_outcome_t outcome, void *arg)
+    int outcome, void *arg)
 {
 	async_transaction_t *trans = (async_transaction_t *)arg;
 
@@ -249,11 +251,11 @@ static void callback_out(device_t *device,
 }
 
 static void callback_in(device_t *device,
-    usb_transaction_outcome_t outcome, size_t actual_size, void *arg)
+    int outcome, size_t actual_size, void *arg)
 {
 	async_transaction_t *trans = (async_transaction_t *)arg;
 
-	if (outcome != USB_OUTCOME_OK) {
+	if (outcome != EOK) {
 		async_answer_0(trans->caller, outcome);
 		if (trans->data_caller) {
 			async_answer_0(trans->data_caller, EINTR);
@@ -269,7 +271,7 @@ static void callback_in(device_t *device,
 		    trans->buffer, actual_size);
 	}
 
-	async_answer_0(trans->caller, USB_OUTCOME_OK);
+	async_answer_0(trans->caller, EOK);
 
 	async_transaction_destroy(trans);
 }
@@ -321,7 +323,8 @@ static void remote_usbhc_out_transfer(device_t *device,
 	trans->buffer = buffer;
 	trans->size = len;
 
-	int rc = transfer_func(device, target, buffer, len,
+	int rc = transfer_func(device, target, HACK_MAX_PACKET_SIZE,
+	    buffer, len,
 	    callback_out, trans);
 
 	if (rc != EOK) {
@@ -367,7 +370,8 @@ static void remote_usbhc_in_transfer(device_t *device,
 	trans->buffer = malloc(len);
 	trans->size = len;
 
-	int rc = transfer_func(device, target, trans->buffer, len,
+	int rc = transfer_func(device, target, HACK_MAX_PACKET_SIZE_INTERRUPT_IN,
+	    trans->buffer, len,
 	    callback_in, trans);
 
 	if (rc != EOK) {
@@ -539,13 +543,13 @@ ipc_callid_t callid, ipc_call_t *call)
 		.address = DEV_IPC_GET_ARG1(*call),
 		.endpoint = DEV_IPC_GET_ARG2(*call)
 	};
+	size_t data_buffer_len = DEV_IPC_GET_ARG3(*call);
 
 	int rc;
 
 	void *setup_packet = NULL;
 	void *data_buffer = NULL;
 	size_t setup_packet_len = 0;
-	size_t data_buffer_len = 0;
 
 	rc = async_data_write_accept(&setup_packet, false,
 	    1, USB_MAX_PAYLOAD_SIZE, 0, &setup_packet_len);
@@ -553,12 +557,15 @@ ipc_callid_t callid, ipc_call_t *call)
 		async_answer_0(callid, rc);
 		return;
 	}
-	rc = async_data_write_accept(&data_buffer, false,
-	    1, USB_MAX_PAYLOAD_SIZE, 0, &data_buffer_len);
-	if (rc != EOK) {
-		async_answer_0(callid, rc);
-		free(setup_packet);
-		return;
+
+	if (data_buffer_len > 0) {
+		rc = async_data_write_accept(&data_buffer, false,
+		    1, USB_MAX_PAYLOAD_SIZE, 0, &data_buffer_len);
+		if (rc != EOK) {
+			async_answer_0(callid, rc);
+			free(setup_packet);
+			return;
+		}
 	}
 
 	async_transaction_t *trans = async_transaction_create(callid);
@@ -572,7 +579,7 @@ ipc_callid_t callid, ipc_call_t *call)
 	trans->buffer = data_buffer;
 	trans->size = data_buffer_len;
 
-	rc = usb_iface->control_write(device, target,
+	rc = usb_iface->control_write(device, target, HACK_MAX_PACKET_SIZE,
 	    setup_packet, setup_packet_len,
 	    data_buffer, data_buffer_len,
 	    callback_out, trans);
@@ -595,7 +602,6 @@ ipc_callid_t callid, ipc_call_t *call)
 		return;
 	}
 
-	size_t data_len = DEV_IPC_GET_ARG3(*call);
 	usb_target_t target = {
 		.address = DEV_IPC_GET_ARG1(*call),
 		.endpoint = DEV_IPC_GET_ARG2(*call)
@@ -605,6 +611,7 @@ ipc_callid_t callid, ipc_call_t *call)
 
 	void *setup_packet = NULL;
 	size_t setup_packet_len = 0;
+	size_t data_len = 0;
 
 	rc = async_data_write_accept(&setup_packet, false,
 	    1, USB_MAX_PAYLOAD_SIZE, 0, &setup_packet_len);
@@ -636,7 +643,7 @@ ipc_callid_t callid, ipc_call_t *call)
 		return;
 	}
 
-	rc = usb_iface->control_read(device, target,
+	rc = usb_iface->control_read(device, target, HACK_MAX_PACKET_SIZE,
 	    setup_packet, setup_packet_len,
 	    trans->buffer, trans->size,
 	    callback_in, trans);

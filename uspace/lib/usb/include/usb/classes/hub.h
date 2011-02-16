@@ -36,8 +36,6 @@
 #define LIBUSB_HUB_H_
 
 #include <sys/types.h>
-#include <usb/hcdhubd.h>
-
 
 /** Hub class feature selector.
  * @warning The constants are not unique (feature selectors are used
@@ -79,7 +77,7 @@ typedef struct usb_hub_descriptor_type {
 
     /**
             D1...D0: Logical Power Switching Mode
-            00: Ganged power switching (all ports’ power at
+            00: Ganged power switching (all ports power at
             once)
             01: Individual port power switching
             1X: Reserved. Used only on 1.0 compliant hubs
@@ -90,7 +88,7 @@ typedef struct usb_hub_descriptor_type {
             D4...D3: Over-current Protection Mode
             00: Global Over-current Protection. The hub
             reports over-current as a summation of all
-            ports’ current draw, without a breakdown of
+            ports current draw, without a breakdown of
             individual port over-current status.
             01: Individual Port Over-current Protection. The
             hub reports over-current on a per-port basis.

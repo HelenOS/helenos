@@ -36,14 +36,12 @@
 #define VHCD_CONN_H_
 
 #include <usb/usb.h>
-#include <usb/hcdhubd.h>
 #include <usbhc_iface.h>
 #include "vhcd.h"
 #include "devices.h"
 
 void connection_handler_host(sysarg_t);
 
-usb_hcd_transfer_ops_t vhc_transfer_ops;
 usbhc_iface_t vhc_iface;
 
 void address_init(void);

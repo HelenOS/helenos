@@ -35,7 +35,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <usb/usb.h>
-#include <usb/hcd.h>
+#include <usb/addrkeep.h>
 
 #include "vhcd.h"
 #include "conn.h"
@@ -63,7 +63,7 @@ typedef struct {
 } control_transfer_info_t;
 
 static void universal_callback(void *buffer, size_t size,
-    usb_transaction_outcome_t outcome, void *arg)
+    int outcome, void *arg)
 {
 	transfer_info_t *transfer = (transfer_info_t *) arg;
 
@@ -106,7 +106,7 @@ static transfer_info_t *create_transfer_info(device_t *dev,
 }
 
 static void control_abort_prematurely(control_transfer_info_t *transfer,
-    size_t size, usb_transaction_outcome_t outcome)
+    size_t size, int outcome)
 {
 	switch (transfer->direction) {
 		case USB_DIRECTION_IN:
@@ -126,11 +126,11 @@ static void control_abort_prematurely(control_transfer_info_t *transfer,
 }
 
 static void control_callback_two(void *buffer, size_t size,
-    usb_transaction_outcome_t outcome, void *arg)
+    int outcome, void *arg)
 {
 	control_transfer_info_t *ctrl_transfer = (control_transfer_info_t *) arg;
 
-	if (outcome != USB_OUTCOME_OK) {
+	if (outcome != EOK) {
 		control_abort_prematurely(ctrl_transfer, outcome, size);
 		free(ctrl_transfer);
 		return;
@@ -164,11 +164,11 @@ static void control_callback_two(void *buffer, size_t size,
 }
 
 static void control_callback_one(void *buffer, size_t size,
-    usb_transaction_outcome_t outcome, void *arg)
+    int outcome, void *arg)
 {
 	control_transfer_info_t *transfer = (control_transfer_info_t *) arg;
 
-	if (outcome != USB_OUTCOME_OK) {
+	if (outcome != EOK) {
 		control_abort_prematurely(transfer, outcome, size);
 		free(transfer);
 		return;
@@ -275,6 +275,7 @@ static int enqueue_transfer_in(device_t *dev,
 
 
 static int interrupt_out(device_t *dev, usb_target_t target,
+    size_t max_packet_size,
     void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
@@ -284,6 +285,7 @@ static int interrupt_out(device_t *dev, usb_target_t target,
 }
 
 static int interrupt_in(device_t *dev, usb_target_t target,
+    size_t max_packet_size,
     void *data, size_t size,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
@@ -293,6 +295,7 @@ static int interrupt_in(device_t *dev, usb_target_t target,
 }
 
 static int control_write_setup(device_t *dev, usb_target_t target,
+    size_t max_packet_size,
     void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
@@ -302,6 +305,7 @@ static int control_write_setup(device_t *dev, usb_target_t target,
 }
 
 static int control_write_data(device_t *dev, usb_target_t target,
+    size_t max_packet_size,
     void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
@@ -319,6 +323,7 @@ static int control_write_status(device_t *dev, usb_target_t target,
 }
 
 static int control_write(device_t *dev, usb_target_t target,
+    size_t max_packet_size,
     void *setup_packet, size_t setup_packet_size,
     void *data, size_t data_size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
@@ -336,6 +341,7 @@ static int control_write(device_t *dev, usb_target_t target,
 }
 
 static int control_read_setup(device_t *dev, usb_target_t target,
+    size_t max_packet_size,
     void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
@@ -345,6 +351,7 @@ static int control_read_setup(device_t *dev, usb_target_t target,
 }
 
 static int control_read_data(device_t *dev, usb_target_t target,
+    size_t max_packet_size,
     void *data, size_t size,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
@@ -362,6 +369,7 @@ static int control_read_status(device_t *dev, usb_target_t target,
 }
 
 static int control_read(device_t *dev, usb_target_t target,
+    size_t max_packet_size,
     void *setup_packet, size_t setup_packet_size,
     void *data, size_t data_size,
     usbhc_iface_transfer_in_callback_t callback, void *arg)

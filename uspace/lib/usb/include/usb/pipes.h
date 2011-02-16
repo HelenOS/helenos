@@ -30,13 +30,14 @@
  * @{
  */
 /** @file
- * Communication between device drivers and host controller driver.
+ * USB pipes representation.
  */
 #ifndef LIBUSB_PIPES_H_
 #define LIBUSB_PIPES_H_
 
 #include <sys/types.h>
 #include <usb/usb.h>
+#include <usb/usbdevice.h>
 #include <usb/descriptor.h>
 #include <ipc/devman.h>
 #include <driver.h>
@@ -113,6 +114,8 @@ typedef struct {
 	bool present;
 } usb_endpoint_mapping_t;
 
+int usb_device_connection_initialize_on_default_address(
+    usb_device_connection_t *, usb_hc_connection_t *);
 int usb_device_connection_initialize_from_device(usb_device_connection_t *,
     device_t *);
 int usb_device_connection_initialize(usb_device_connection_t *,
@@ -137,20 +140,6 @@ int usb_endpoint_pipe_control_read(usb_endpoint_pipe_t *, void *, size_t,
     void *, size_t, size_t *);
 int usb_endpoint_pipe_control_write(usb_endpoint_pipe_t *, void *, size_t,
     void *, size_t);
-
-
-
-int usb_endpoint_pipe_async_read(usb_endpoint_pipe_t *, void *, size_t,
-    size_t *, usb_handle_t *);
-int usb_endpoint_pipe_async_write(usb_endpoint_pipe_t *, void *, size_t,
-    usb_handle_t *);
-
-int usb_endpoint_pipe_async_control_read(usb_endpoint_pipe_t *, void *, size_t,
-    void *, size_t, size_t *, usb_handle_t *);
-int usb_endpoint_pipe_async_control_write(usb_endpoint_pipe_t *, void *, size_t,
-    void *, size_t, usb_handle_t *);
-
-int usb_endpoint_pipe_wait_for(usb_endpoint_pipe_t *, usb_handle_t);
 
 #endif
 /**
