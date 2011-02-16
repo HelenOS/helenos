@@ -81,8 +81,12 @@ int uhci_init(uhci_t *instance, void *regs, size_t reg_size)
 /*----------------------------------------------------------------------------*/
 void uhci_init_hw(uhci_t *instance)
 {
-	const uintptr_t pa = (uintptr_t)addr_to_phys(instance->frame_list);
-	pio_write_32(&instance->registers->flbaseadd, (uint32_t)pa);
+	const uint32_t pa = addr_to_phys(instance->frame_list);
+	pio_write_32(&instance->registers->flbaseadd, pa);
+
+	/* enable all interrupts */
+	pio_write_16(&instance->registers->usbintr,
+		  UHCI_INTR_CRC | UHCI_INTR_COMPLETE | UHCI_INTR_SHORT_PACKET);
 
 	/* Start the hc with large(64B) packet FSBR */
 	pio_write_16(&instance->registers->usbcmd,
@@ -205,9 +209,11 @@ int uhci_debug_checker(void *arg)
 	uhci_t *instance = (uhci_t*)arg;
 	assert(instance);
 	while (1) {
-		uint16_t cmd = pio_read_16(&instance->registers->usbcmd);
-		uint16_t sts = pio_read_16(&instance->registers->usbsts);
-		usb_log_debug("Command register: %X Status register: %X\n", cmd, sts);
+		const uint16_t cmd = pio_read_16(&instance->registers->usbcmd);
+		const uint16_t sts = pio_read_16(&instance->registers->usbsts);
+		const uint16_t intr = pio_read_16(&instance->registers->usbintr);
+		usb_log_debug("Command: %X Status: %X Interrupts: %x\n",
+		    cmd, sts, intr);
 
 		uintptr_t frame_list = pio_read_32(&instance->registers->flbaseadd);
 		if (frame_list != (uintptr_t)addr_to_phys(instance->frame_list)) {

@@ -45,6 +45,9 @@
 
 #define NAME "uhci-hcd"
 
+static int uhci_add_device(device_t *device);
+static int usb_iface_get_hc_handle(device_t *dev, devman_handle_t *handle);
+/*----------------------------------------------------------------------------*/
 static int usb_iface_get_hc_handle(device_t *dev, devman_handle_t *handle)
 {
 	/* This shall be called only for the UHCI itself. */
@@ -53,16 +56,30 @@ static int usb_iface_get_hc_handle(device_t *dev, devman_handle_t *handle)
 	*handle = dev->handle;
 	return EOK;
 }
-
+/*----------------------------------------------------------------------------*/
 static usb_iface_t hc_usb_iface = {
 	.get_hc_handle = usb_iface_get_hc_handle
 };
-
+/*----------------------------------------------------------------------------*/
 static device_ops_t uhci_ops = {
 	.interfaces[USB_DEV_IFACE] = &hc_usb_iface,
 	.interfaces[USBHC_DEV_IFACE] = &uhci_iface
 };
-
+/*----------------------------------------------------------------------------*/
+static driver_ops_t uhci_driver_ops = {
+	.add_device = uhci_add_device,
+};
+/*----------------------------------------------------------------------------*/
+static driver_t uhci_driver = {
+	.name = NAME,
+	.driver_ops = &uhci_driver_ops
+};
+/*----------------------------------------------------------------------------*/
+static void irq_handler(device_t *dev, ipc_callid_t iid, ipc_call_t *call)
+{
+	usb_log_error("LOL interrupt %x %x.\n", iid, call);
+}
+/*----------------------------------------------------------------------------*/
 static int uhci_add_device(device_t *device)
 {
 	assert(device);
@@ -74,13 +91,13 @@ static int uhci_add_device(device_t *device)
 	size_t io_reg_size;
 	int irq;
 
-	int rc = pci_get_my_registers(device,
+	int ret = pci_get_my_registers(device,
 	    &io_reg_base, &io_reg_size, &irq);
 
-	if (rc != EOK) {
+	if (ret != EOK) {
 		usb_log_error("Failed(%d) to get I/O registers addresses for device:.\n",
-		    rc, device->handle);
-		return rc;
+		    ret, device->handle);
+		return ret;
 	}
 
 	usb_log_info("I/O regs at 0x%X (size %zu), IRQ %d.\n",
@@ -88,18 +105,17 @@ static int uhci_add_device(device_t *device)
 
 	uhci_t *uhci_hc = malloc(sizeof(uhci_t));
 	if (!uhci_hc) {
-		usb_log_error("Failed to allocaete memory for uhci hcd driver.\n");
+		usb_log_error("Failed to allocate memory for uhci hcd driver.\n");
 		return ENOMEM;
 	}
 
-	int ret = uhci_init(uhci_hc, (void*)io_reg_base, io_reg_size);
+	ret = uhci_init(uhci_hc, (void*)io_reg_base, io_reg_size);
 	if (ret != EOK) {
 		usb_log_error("Failed to init uhci-hcd.\n");
 		return ret;
 	}
 	device_t *rh;
 	ret = setup_root_hub(&rh, device);
-
 	if (ret != EOK) {
 		usb_log_error("Failed to setup uhci root hub.\n");
 		/* TODO: destroy uhci here */
@@ -115,25 +131,16 @@ static int uhci_add_device(device_t *device)
 
 	device->driver_data = uhci_hc;
 
+	ret = register_interrupt_handler(device, irq, irq_handler, NULL);
+	usb_log_error("registered interrupt handler %d.\n", ret);
+
 	return EOK;
 }
-
-static driver_ops_t uhci_driver_ops = {
-	.add_device = uhci_add_device,
-};
-
-static driver_t uhci_driver = {
-	.name = NAME,
-	.driver_ops = &uhci_driver_ops
-};
-
+/*----------------------------------------------------------------------------*/
 int main(int argc, char *argv[])
 {
-	/*
-	 * Do some global initializations.
-	 */
-	sleep(5);
-	usb_log_enable(USB_LOG_LEVEL_INFO, NAME);
+	sleep(3);
+	usb_log_enable(USB_LOG_LEVEL_DEBUG, NAME);
 
 	return driver_main(&uhci_driver);
 }

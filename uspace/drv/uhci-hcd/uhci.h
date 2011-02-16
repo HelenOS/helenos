@@ -65,6 +65,11 @@ typedef struct uhci_regs {
 #define UHCI_STATUS_INTERRUPT (1 << 0)
 
 	uint16_t usbintr;
+#define UHCI_INTR_SHORT_PACKET (1 << 3)
+#define UHCI_INTR_COMPLETE (1 << 2)
+#define UHCI_INTR_RESUME (1 << 1)
+#define UHCI_INTR_CRC (1 << 0)
+
 	uint16_t frnum;
 	uint32_t flbaseadd;
 	uint8_t sofmod;
