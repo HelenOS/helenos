@@ -185,6 +185,8 @@ int ext2_filesystem_get_inode_ref(ext2_filesystem_t *fs, uint32_t index,
 	aoff64_t block_id;
 	uint32_t block_group;
 	uint32_t offset_in_group;
+	uint32_t byte_offset_in_group;
+	size_t offset_in_block;
 	uint32_t inodes_per_group;
 	uint32_t inode_table_start;
 	uint16_t inode_size;
@@ -216,7 +218,10 @@ int ext2_filesystem_get_inode_ref(ext2_filesystem_t *fs, uint32_t index,
 	inode_size = ext2_superblock_get_inode_size(fs->superblock);
 	block_size = ext2_superblock_get_block_size(fs->superblock);
 	
-	block_id = inode_table_start + ((index * inode_size) / block_size);
+	byte_offset_in_group = offset_in_group * inode_size;
+	
+	block_id = inode_table_start + (byte_offset_in_group / block_size);
+	offset_in_block = byte_offset_in_group % block_size;
 	
 	rc = block_get(&newref->block, fs->device, block_id, 0);
 	if (rc != EOK) {
@@ -224,7 +229,7 @@ int ext2_filesystem_get_inode_ref(ext2_filesystem_t *fs, uint32_t index,
 		return rc;
 	}
 	
-	newref->inode = newref->block->data + (offset_in_group*inode_size);
+	newref->inode = newref->block->data + offset_in_block;
 	
 	*ref = newref;
 	
