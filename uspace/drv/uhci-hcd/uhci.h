@@ -80,9 +80,6 @@ typedef struct uhci {
 
 	link_pointer_t *frame_list;
 
-	link_t batch_list;
-	fibril_mutex_t batch_list_mutex;
-
 	transfer_list_t transfers_bulk_full;
 	transfer_list_t transfers_control_full;
 	transfer_list_t transfers_control_slow;
