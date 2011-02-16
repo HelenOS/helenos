@@ -79,7 +79,7 @@ static void irq_handler(device_t *device, ipc_callid_t iid, ipc_call_t *call)
 {
 	assert(device);
 	uhci_t *hc = dev_to_uhci(device);
-//	usb_log_info("LOL HARDWARE INTERRUPT: %p.\n", hc);
+	usb_log_info("LOL HARDWARE INTERRUPT: %p.\n", hc);
 	assert(hc);
 	uhci_interrupt(hc);
 }
@@ -95,14 +95,18 @@ static int uhci_add_device(device_t *device)
 	size_t io_reg_size;
 	int irq;
 
-	int ret = pci_get_my_registers(device,
-	    &io_reg_base, &io_reg_size, &irq);
+	int ret =
+	    pci_get_my_registers(device, &io_reg_base, &io_reg_size, &irq);
 
 	if (ret != EOK) {
-		usb_log_error("Failed(%d) to get I/O registers addresses for device:.\n",
+		usb_log_error(
+		    "Failed(%d) to get I/O registers addresses for device:.\n",
 		    ret, device->handle);
 		return ret;
 	}
+
+	ret = register_interrupt_handler(device, irq, irq_handler, NULL);
+	usb_log_error("registered interrupt handler %d.\n", ret);
 
 	usb_log_info("I/O regs at 0x%X (size %zu), IRQ %d.\n",
 	    io_reg_base, io_reg_size, irq);
@@ -134,9 +138,6 @@ static int uhci_add_device(device_t *device)
 	}
 
 	device->driver_data = uhci_hc;
-
-	ret = register_interrupt_handler(device, irq, irq_handler, NULL);
-	usb_log_error("registered interrupt handler %d.\n", ret);
 
 	return EOK;
 }
