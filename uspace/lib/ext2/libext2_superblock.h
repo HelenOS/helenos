@@ -77,6 +77,8 @@ typedef struct ext2_superblock {
 #define EXT2_SUPERBLOCK_OFFSET		1024
 #define EXT2_SUPERBLOCK_LAST_BYTE	(EXT2_SUPERBLOCK_OFFSET + \
 									 EXT2_SUPERBLOCK_SIZE -1)
+#define EXT2_SUPERBLOCK_OS_LINUX	0
+#define EXT2_SUPERBLOCK_OS_HURD		1
 
 
 inline uint16_t	ext2_superblock_get_magic(ext2_superblock_t *);

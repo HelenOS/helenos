@@ -35,6 +35,7 @@
 
 #include "libext2.h"
 #include "libext2_inode.h"
+#include "libext2_superblock.h"
 #include <byteorder.h>
 
 /**
@@ -42,8 +43,12 @@
  * 
  * @param inode pointer to inode
  */
-inline uint16_t ext2_inode_get_mode(ext2_inode_t *inode)
+inline uint32_t ext2_inode_get_mode(ext2_superblock_t *sb, ext2_inode_t *inode)
 {
+	if (ext2_superblock_get_os(sb) == EXT2_SUPERBLOCK_OS_HURD) {
+		return ((uint32_t)uint16_t_le2host(inode->mode_high)) << 16 |
+		    ((uint32_t)uint16_t_le2host(inode->mode));
+	}
 	return uint16_t_le2host(inode->mode);
 }
 
@@ -52,31 +57,51 @@ inline uint16_t ext2_inode_get_mode(ext2_inode_t *inode)
  * 
  * @param inode pointer to inode
  */
-inline uint32_t ext2_inode_get_user_id(ext2_inode_t *inode)
+inline uint32_t ext2_inode_get_user_id(ext2_superblock_t *sb, ext2_inode_t *inode)
 {
-	// TODO: use additional OS specific bits
+	uint32_t os = ext2_superblock_get_os(sb);
+	if (os == EXT2_SUPERBLOCK_OS_LINUX || os == EXT2_SUPERBLOCK_OS_HURD) {
+		return ((uint32_t)uint16_t_le2host(inode->user_id_high)) << 16 |
+		    ((uint32_t)uint16_t_le2host(inode->user_id));
+	}
 	return uint16_t_le2host(inode->user_id);
 }
 
 /**
  * Get size of file
  * 
+ * For regular files in revision 1 and later, the high 32 bits of
+ * file size are stored in inode->size_high and are 0 otherwise
+ * 
  * @param inode pointer to inode
  */
-inline uint32_t ext2_inode_get_size(ext2_inode_t *inode)
+inline uint64_t ext2_inode_get_size(ext2_superblock_t *sb, ext2_inode_t *inode)
 {
-	// TODO: Directory ACLS!
-	return uint16_t_le2host(inode->size);
+	uint32_t major_rev = ext2_superblock_get_rev_major(sb);
+	uint32_t mode = ext2_inode_get_mode(sb, inode);
+	
+	if (major_rev > 0 && mode & EXT2_INODE_MODE_FILE) {
+		return ((uint64_t)uint32_t_le2host(inode->size_high)) << 32 |
+		    ((uint64_t)uint32_t_le2host(inode->size));
+	}
+	return uint32_t_le2host(inode->size);
 }
 
 /**
  * Get gid this inode belongs to
  * 
+ * For Linux and Hurd, the high 16 bits are stored in OS dependent part
+ * of inode structure
+ * 
  * @param inode pointer to inode
  */
-inline uint32_t ext2_inode_get_group_id(ext2_inode_t *inode)
+inline uint32_t ext2_inode_get_group_id(ext2_superblock_t *sb, ext2_inode_t *inode)
 {
-	// TODO: use additional OS specific bits
+	uint32_t os = ext2_superblock_get_os(sb);
+	if (os == EXT2_SUPERBLOCK_OS_LINUX || os == EXT2_SUPERBLOCK_OS_HURD) {
+		return ((uint32_t)uint16_t_le2host(inode->group_id_high)) << 16 |
+		    ((uint32_t)uint16_t_le2host(inode->group_id));
+	}
 	return uint16_t_le2host(inode->group_id);
 }
 
@@ -92,8 +117,9 @@ inline uint16_t ext2_inode_get_usage_count(ext2_inode_t *inode)
 }
 
 /**
- * Get size of inode in 512 byte blocks
- * TODO: clarify this
+ * Get number of 512-byte data blocks allocated for contents of the file
+ * represented by this inode.
+ * This should be multiple of block size unless fragments are used.
  * 
  * @param inode pointer to inode
  */
@@ -107,7 +133,6 @@ inline uint32_t ext2_inode_get_reserved_512_blocks(ext2_inode_t *inode)
  * 
  * @param inode pointer to inode
  */
-
 inline uint32_t ext2_inode_get_flags(ext2_inode_t *inode) {
 	return uint32_t_le2host(inode->flags);
 }

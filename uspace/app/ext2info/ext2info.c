@@ -56,7 +56,7 @@ static void print_superblock(ext2_superblock_t *);
 static void print_block_groups(ext2_filesystem_t *);
 static void print_block_group(ext2_block_group_t *);
 static void print_inode_by_number(ext2_filesystem_t *, uint32_t);
-static void print_inode(ext2_inode_t *);
+static void print_inode(ext2_filesystem_t *, ext2_inode_t *);
 
 #define ARG_SUPERBLOCK 1
 #define ARG_BLOCK_GROUPS 2
@@ -334,7 +334,7 @@ void print_inode_by_number(ext2_filesystem_t *fs, uint32_t inode)
 		return;
 	}
 	
-	print_inode(inode_ref->inode);
+	print_inode(fs, inode_ref->inode);
 	
 	rc = ext2_filesystem_put_inode_ref(inode_ref);
 	if (rc != EOK) {
@@ -342,12 +342,12 @@ void print_inode_by_number(ext2_filesystem_t *fs, uint32_t inode)
 	}
 }
 
-void print_inode(ext2_inode_t *inode)
+void print_inode(ext2_filesystem_t *fs, ext2_inode_t *inode)
 {
-	uint16_t mode;
+	uint32_t mode;
 	uint32_t user_id;
 	uint32_t group_id;
-	uint32_t size;
+	uint64_t size;
 	uint16_t usage_count;
 	uint32_t flags;
 	uint16_t access;
@@ -356,10 +356,10 @@ void print_inode(ext2_inode_t *inode)
 	int i;
 	bool all_blocks = false;
 	
-	mode = ext2_inode_get_mode(inode);
-	user_id = ext2_inode_get_user_id(inode);
-	group_id = ext2_inode_get_group_id(inode);
-	size = ext2_inode_get_size(inode);
+	mode = ext2_inode_get_mode(fs->superblock, inode);
+	user_id = ext2_inode_get_user_id(fs->superblock, inode);
+	group_id = ext2_inode_get_group_id(fs->superblock, inode);
+	size = ext2_inode_get_size(fs->superblock, inode);
 	usage_count = ext2_inode_get_usage_count(inode);
 	flags = ext2_inode_get_flags(inode);
 	
@@ -388,10 +388,10 @@ void print_inode(ext2_inode_t *inode)
 	
 	access = mode & EXT2_INODE_MODE_ACCESS_MASK;
 	
-	printf("  Mode: %04x (Type: %s, Access bits: %04ho)\n", mode, type, access);
+	printf("  Mode: %08x (Type: %s, Access bits: %04ho)\n", mode, type, access);
 	printf("  User ID: %u\n", user_id);
 	printf("  Group ID: %u\n", group_id);
-	printf("  Size: %u\n", size);
+	printf("  Size: %" PRIu64 "\n", size);
 	printf("  Usage (link) count: %u\n", usage_count);
 	printf("  Flags: %u\n", flags);
 	printf("  Block list: ");

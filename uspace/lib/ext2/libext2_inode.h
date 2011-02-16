@@ -37,6 +37,7 @@
 #define LIBEXT2_LIBEXT2_INODE_H_
 
 #include <libblock.h>
+#include "libext2_superblock.h"
 
 typedef struct ext2_inode {
 	uint16_t mode;
@@ -52,7 +53,17 @@ typedef struct ext2_inode {
 	uint32_t single_indirect_block;
 	uint32_t double_indirect_block;
 	uint32_t triple_indirect_block;
-} ext2_inode_t;
+	uint32_t version;
+	uint32_t file_acl;
+	union {
+		uint32_t dir_acl;
+		uint32_t size_high; // For regular files in version >= 1
+	} __attribute__ ((packed));
+	uint8_t unused3[6];
+	uint16_t mode_high; // Hurd only
+	uint16_t user_id_high; // Linux/Hurd only
+	uint16_t group_id_high; // Linux/Hurd only
+} __attribute__ ((packed)) ext2_inode_t;
 
 #define EXT2_INODE_MODE_FIFO		0x1000
 #define EXT2_INODE_MODE_CHARDEV		0x2000
@@ -68,10 +79,10 @@ typedef struct ext2_inode_ref {
 	ext2_inode_t *inode;
 } ext2_inode_ref_t;
 
-inline uint16_t ext2_inode_get_mode(ext2_inode_t *);
-inline uint32_t ext2_inode_get_user_id(ext2_inode_t *);
-inline uint32_t ext2_inode_get_size(ext2_inode_t *);
-inline uint32_t ext2_inode_get_group_id(ext2_inode_t *);
+inline uint32_t ext2_inode_get_mode(ext2_superblock_t *, ext2_inode_t *);
+inline uint32_t ext2_inode_get_user_id(ext2_superblock_t *, ext2_inode_t *);
+inline uint64_t ext2_inode_get_size(ext2_superblock_t *, ext2_inode_t *);
+inline uint32_t ext2_inode_get_group_id(ext2_superblock_t *, ext2_inode_t *);
 inline uint16_t ext2_inode_get_usage_count(ext2_inode_t *);
 inline uint32_t ext2_inode_get_reserved_512_blocks(ext2_inode_t *);
 inline uint32_t ext2_inode_get_flags(ext2_inode_t *);
