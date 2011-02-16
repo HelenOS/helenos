@@ -140,7 +140,6 @@ bool batch_is_complete(batch_t *instance)
 	assert(instance);
 	usb_log_debug("Checking(%p) %d packet for completion.\n",
 	    instance, instance->packets);
-	/* This is just an ugly trick to support the old API */
 	instance->transfered_size = 0;
 	size_t i = 0;
 	for (;i < instance->packets; ++i) {
@@ -156,6 +155,7 @@ bool batch_is_complete(batch_t *instance)
 		instance->transfered_size +=
 		    transfer_descriptor_actual_size(&instance->tds[i]);
 	}
+	/* This is just an ugly trick to support the old API */
 	instance->transfered_size -= instance->setup_size;
 	return true;
 }
@@ -190,6 +190,8 @@ void batch_control_write(batch_t *instance)
 	transfer_descriptor_init(&instance->tds[i], DEFAULT_ERROR_COUNT,
 	    0, 1, false, instance->target, USB_PID_IN, NULL, NULL);
 
+	instance->tds[i].status |= TD_STATUS_COMPLETE_INTERRUPT_FLAG;
+
 	instance->next_step = batch_call_out_and_dispose;
 	batch_schedule(instance);
 }
@@ -220,6 +222,8 @@ void batch_control_read(batch_t *instance)
 	i = instance->packets - 1;
 	transfer_descriptor_init(&instance->tds[i], DEFAULT_ERROR_COUNT,
 	    0, 1, false, instance->target, USB_PID_OUT, NULL, NULL);
+
+	instance->tds[i].status |= TD_STATUS_COMPLETE_INTERRUPT_FLAG;
 
 	instance->next_step = batch_call_in_and_dispose;
 	batch_schedule(instance);
