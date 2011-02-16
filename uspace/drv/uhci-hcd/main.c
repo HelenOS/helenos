@@ -75,9 +75,13 @@ static driver_t uhci_driver = {
 	.driver_ops = &uhci_driver_ops
 };
 /*----------------------------------------------------------------------------*/
-static void irq_handler(device_t *dev, ipc_callid_t iid, ipc_call_t *call)
+static void irq_handler(device_t *device, ipc_callid_t iid, ipc_call_t *call)
 {
-	usb_log_error("LOL interrupt %x %x.\n", iid, call);
+	assert(device);
+	uhci_t *hc = dev_to_uhci(device);
+//	usb_log_info("LOL HARDWARE INTERRUPT: %p.\n", hc);
+	assert(hc);
+	uhci_interrupt(hc);
 }
 /*----------------------------------------------------------------------------*/
 static int uhci_add_device(device_t *device)
