@@ -58,6 +58,9 @@ extern int _errno;
 /** Bad checksum. */
 #define EBADCHECKSUM  (-300)
 
+/** USB: stalled operation. */
+#define ESTALL (-301)
+
 /** An API function is called while another blocking function is in progress. */
 #define EINPROGRESS  (-10036)
 
