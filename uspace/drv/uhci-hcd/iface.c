@@ -103,10 +103,10 @@ static int release_address(device_t *dev, usb_address_t address)
 }
 /*----------------------------------------------------------------------------*/
 static int interrupt_out(device_t *dev, usb_target_t target,
+    size_t max_packet_size,
     void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
-	size_t max_packet_size = 8;
 	dev_speed_t speed = FULL_SPEED;
 
 	batch_t *batch = batch_get(dev, target, USB_TRANSFER_INTERRUPT,
@@ -118,10 +118,10 @@ static int interrupt_out(device_t *dev, usb_target_t target,
 }
 /*----------------------------------------------------------------------------*/
 static int interrupt_in(device_t *dev, usb_target_t target,
+    size_t max_packet_size,
     void *data, size_t size,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
-	size_t max_packet_size = 4;
 	dev_speed_t speed = FULL_SPEED;
 
 	batch_t *batch = batch_get(dev, target, USB_TRANSFER_INTERRUPT,
@@ -133,10 +133,10 @@ static int interrupt_in(device_t *dev, usb_target_t target,
 }
 /*----------------------------------------------------------------------------*/
 static int control_write(device_t *dev, usb_target_t target,
+    size_t max_packet_size,
     void *setup_data, size_t setup_size, void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
-	size_t max_packet_size = 8;
 	dev_speed_t speed = FULL_SPEED;
 
 	batch_t *batch = batch_get(dev, target, USB_TRANSFER_CONTROL,
@@ -149,10 +149,10 @@ static int control_write(device_t *dev, usb_target_t target,
 }
 /*----------------------------------------------------------------------------*/
 static int control_read(device_t *dev, usb_target_t target,
+    size_t max_packet_size,
     void *setup_data, size_t setup_size, void *data, size_t size,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
-	size_t max_packet_size = 8;
 	dev_speed_t speed = FULL_SPEED;
 
 	batch_t *batch = batch_get(dev, target, USB_TRANSFER_CONTROL,
@@ -165,10 +165,10 @@ static int control_read(device_t *dev, usb_target_t target,
 }
 /*----------------------------------------------------------------------------*/
 static int control_write_setup(device_t *dev, usb_target_t target,
+    size_t max_packet_size,
     void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
-	size_t max_packet_size = 8;
 	dev_speed_t speed = FULL_SPEED;
 
 	usb_log_warning("Using deprecated API %s.\n", __FUNCTION__);
@@ -181,10 +181,10 @@ static int control_write_setup(device_t *dev, usb_target_t target,
 }
 /*----------------------------------------------------------------------------*/
 static int control_write_data(device_t *dev, usb_target_t target,
+    size_t max_packet_size,
     void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
-	size_t max_packet_size = 8;
 	dev_speed_t speed = FULL_SPEED;
 
 	usb_log_warning("Using deprecated API %s.\n", __FUNCTION__);
@@ -212,10 +212,10 @@ static int control_write_status(device_t *dev, usb_target_t target,
 }
 /*----------------------------------------------------------------------------*/
 static int control_read_setup(device_t *dev, usb_target_t target,
+    size_t max_packet_size,
     void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
-	size_t max_packet_size = 8;
 	dev_speed_t speed = FULL_SPEED;
 
 	usb_log_warning("Using deprecated API %s.\n", __FUNCTION__);
@@ -228,10 +228,10 @@ static int control_read_setup(device_t *dev, usb_target_t target,
 }
 /*----------------------------------------------------------------------------*/
 static int control_read_data(device_t *dev, usb_target_t target,
+    size_t max_packet_size,
     void *data, size_t size,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
-	size_t max_packet_size = 8;
 	dev_speed_t speed = FULL_SPEED;
 
 	usb_log_warning("Using deprecated API %s.\n", __FUNCTION__);
