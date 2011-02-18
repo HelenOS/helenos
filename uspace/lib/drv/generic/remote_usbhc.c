@@ -164,8 +164,10 @@ void remote_usbhc_reserve_default_address(device_t *device, void *iface,
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
-
-	int rc = usb_iface->reserve_default_address(device);
+	
+	bool full_speed = DEV_IPC_GET_ARG1(*call);
+	
+	int rc = usb_iface->reserve_default_address(device, full_speed);
 
 	async_answer_0(callid, rc);
 }
@@ -194,9 +196,11 @@ void remote_usbhc_request_address(device_t *device, void *iface,
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
+	
+	bool full_speed = DEV_IPC_GET_ARG1(*call);
 
 	usb_address_t address;
-	int rc = usb_iface->request_address(device, &address);
+	int rc = usb_iface->request_address(device, full_speed, &address);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
 	} else {

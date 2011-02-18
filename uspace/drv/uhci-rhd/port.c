@@ -139,7 +139,8 @@ static int uhci_port_new_device(uhci_port_t *port)
 	usb_log_info("Adding new device on port %d.\n", port->number);
 
 	/* get address of the future device */
-	const usb_address_t usb_address = usb_hc_request_address(&port->hc_connection);
+	const usb_address_t usb_address = usb_hc_request_address(
+	    &port->hc_connection, true);
 
 	if (usb_address <= 0) {
 		usb_log_error("Recieved invalid address(%d).\n", usb_address);
@@ -149,7 +150,7 @@ static int uhci_port_new_device(uhci_port_t *port)
 	    usb_address, port->number);
 
 	/* get default address */
-	int ret = usb_hc_reserve_default_address(&port->hc_connection);
+	int ret = usb_hc_reserve_default_address(&port->hc_connection, true);
 	if (ret != EOK) {
 		usb_log_error("Failed to reserve default address on port %d.\n",
 		    port->number);
