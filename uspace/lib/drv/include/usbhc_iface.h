@@ -52,7 +52,7 @@
  * - first, IPC call with given method is made
  *   - argument #1 is target address
  *   - argument #2 is target endpoint
- *   - argument #3 is buffer size
+ *   - argument #3 is max packet size of the endpoint
  * - this call is immediately followed by IPC data write (from caller)
  * - the initial call (and the whole transaction) is answer after the
  *   transaction is scheduled by the HC and acknowledged by the device
@@ -65,7 +65,7 @@
  * - first, IPC call with given method is made
  *   - argument #1 is target address
  *   - argument #2 is target endpoint
- *   - argument #3 is buffer size
+ *   - argument #3 is max packet size of the endpoint
  * - this call is immediately followed by IPC data read (async version)
  * - the call is not answered until the device returns some data (or until
  *   error occurs)
@@ -193,12 +193,11 @@ typedef enum {
 	 */
 	IPC_M_USBHC_CONTROL_WRITE,
 
-	/** Issue control WRITE transfer.
+	/** Issue control READ transfer.
 	 * See explanation at usb_iface_funcs_t (IN transaction) for
 	 * call parameters.
-	 * This call is immediately followed by IPC data read from the caller
-	 * (setup packet).
-	 * Actual data are retrieved through IPC_M_USBHC_GET_BUFFER.
+	 * This call is immediately followed by IPC data write from the caller
+	 * (setup packet) and IPC data read (buffer that was read).
 	 */
 	IPC_M_USBHC_CONTROL_READ,
 

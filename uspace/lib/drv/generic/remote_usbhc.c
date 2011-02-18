@@ -296,7 +296,7 @@ static void remote_usbhc_out_transfer(device_t *device,
 		return;
 	}
 
-	size_t expected_len = DEV_IPC_GET_ARG3(*call);
+	size_t max_packet_size = DEV_IPC_GET_ARG3(*call);
 	usb_target_t target = {
 		.address = DEV_IPC_GET_ARG1(*call),
 		.endpoint = DEV_IPC_GET_ARG2(*call)
@@ -304,15 +304,14 @@ static void remote_usbhc_out_transfer(device_t *device,
 
 	size_t len = 0;
 	void *buffer = NULL;
-	if (expected_len > 0) {
-		int rc = async_data_write_accept(&buffer, false,
-		    1, USB_MAX_PAYLOAD_SIZE,
-		    0, &len);
 
-		if (rc != EOK) {
-			async_answer_0(callid, rc);
-			return;
-		}
+	int rc = async_data_write_accept(&buffer, false,
+	    1, USB_MAX_PAYLOAD_SIZE,
+	    0, &len);
+
+	if (rc != EOK) {
+		async_answer_0(callid, rc);
+		return;
 	}
 
 	async_transaction_t *trans = async_transaction_create(callid);
@@ -327,7 +326,7 @@ static void remote_usbhc_out_transfer(device_t *device,
 	trans->buffer = buffer;
 	trans->size = len;
 
-	int rc = transfer_func(device, target, HACK_MAX_PACKET_SIZE,
+	rc = transfer_func(device, target, max_packet_size,
 	    buffer, len,
 	    callback_out, trans);
 
@@ -353,12 +352,13 @@ static void remote_usbhc_in_transfer(device_t *device,
 		return;
 	}
 
-	size_t len = DEV_IPC_GET_ARG3(*call);
+	size_t max_packet_size = DEV_IPC_GET_ARG3(*call);
 	usb_target_t target = {
 		.address = DEV_IPC_GET_ARG1(*call),
 		.endpoint = DEV_IPC_GET_ARG2(*call)
 	};
 
+	size_t len;
 	ipc_callid_t data_callid;
 	if (!async_data_read_receive(&data_callid, &len)) {
 		async_answer_0(callid, EPARTY);
@@ -374,7 +374,7 @@ static void remote_usbhc_in_transfer(device_t *device,
 	trans->buffer = malloc(len);
 	trans->size = len;
 
-	int rc = transfer_func(device, target, HACK_MAX_PACKET_SIZE_INTERRUPT_IN,
+	int rc = transfer_func(device, target, max_packet_size,
 	    trans->buffer, len,
 	    callback_in, trans);
 
@@ -548,6 +548,7 @@ ipc_callid_t callid, ipc_call_t *call)
 		.endpoint = DEV_IPC_GET_ARG2(*call)
 	};
 	size_t data_buffer_len = DEV_IPC_GET_ARG3(*call);
+	size_t max_packet_size = DEV_IPC_GET_ARG4(*call);
 
 	int rc;
 
@@ -583,7 +584,7 @@ ipc_callid_t callid, ipc_call_t *call)
 	trans->buffer = data_buffer;
 	trans->size = data_buffer_len;
 
-	rc = usb_iface->control_write(device, target, HACK_MAX_PACKET_SIZE,
+	rc = usb_iface->control_write(device, target, max_packet_size,
 	    setup_packet, setup_packet_len,
 	    data_buffer, data_buffer_len,
 	    callback_out, trans);
@@ -610,6 +611,7 @@ ipc_callid_t callid, ipc_call_t *call)
 		.address = DEV_IPC_GET_ARG1(*call),
 		.endpoint = DEV_IPC_GET_ARG2(*call)
 	};
+	size_t max_packet_size = DEV_IPC_GET_ARG3(*call);
 
 	int rc;
 
@@ -647,7 +649,7 @@ ipc_callid_t callid, ipc_call_t *call)
 		return;
 	}
 
-	rc = usb_iface->control_read(device, target, HACK_MAX_PACKET_SIZE,
+	rc = usb_iface->control_read(device, target, max_packet_size,
 	    setup_packet, setup_packet_len,
 	    trans->buffer, trans->size,
 	    callback_in, trans);
