@@ -45,6 +45,8 @@
 static void remote_usbhc_get_address(device_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbhc_interrupt_out(device_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbhc_interrupt_in(device_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usbhc_bulk_out(device_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usbhc_bulk_in(device_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbhc_control_write(device_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbhc_control_read(device_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbhc_reserve_default_address(device_t *, void *, ipc_callid_t, ipc_call_t *);
@@ -67,6 +69,9 @@ static remote_iface_func_ptr_t remote_usbhc_iface_ops [] = {
 
 	remote_usbhc_interrupt_out,
 	remote_usbhc_interrupt_in,
+
+	remote_usbhc_bulk_out,
+	remote_usbhc_bulk_in,
 
 	remote_usbhc_control_write,
 	remote_usbhc_control_read
@@ -388,6 +393,26 @@ void remote_usbhc_interrupt_in(device_t *device, void *iface,
 
 	return remote_usbhc_in_transfer(device, callid, call,
 	    usb_iface->interrupt_in);
+}
+
+void remote_usbhc_bulk_out(device_t *device, void *iface,
+    ipc_callid_t callid, ipc_call_t *call)
+{
+	usbhc_iface_t *usb_iface = (usbhc_iface_t *) iface;
+	assert(usb_iface != NULL);
+
+	return remote_usbhc_out_transfer(device, callid, call,
+	    usb_iface->bulk_out);
+}
+
+void remote_usbhc_bulk_in(device_t *device, void *iface,
+    ipc_callid_t callid, ipc_call_t *call)
+{
+	usbhc_iface_t *usb_iface = (usbhc_iface_t *) iface;
+	assert(usb_iface != NULL);
+
+	return remote_usbhc_in_transfer(device, callid, call,
+	    usb_iface->bulk_in);
 }
 
 void remote_usbhc_control_write(device_t *device, void *iface,

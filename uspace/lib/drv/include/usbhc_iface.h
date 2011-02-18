@@ -152,6 +152,16 @@ typedef enum {
 	 */
 	IPC_M_USBHC_INTERRUPT_IN,
 
+	/** Send bulk data to device.
+	 * See explanation at usb_iface_funcs_t (OUT transaction).
+	 */
+	IPC_M_USBHC_BULK_OUT,
+
+	/** Get bulk data from device.
+	 * See explanation at usb_iface_funcs_t (IN transaction).
+	 */
+	IPC_M_USBHC_BULK_IN,
+
 	/** Issue control WRITE transfer.
 	 * See explanation at usb_iface_funcs_t (OUT transaction) for
 	 * call parameters.
@@ -205,6 +215,9 @@ typedef struct {
 
 	usbhc_iface_transfer_out_t interrupt_out;
 	usbhc_iface_transfer_in_t interrupt_in;
+
+	usbhc_iface_transfer_out_t bulk_out;
+	usbhc_iface_transfer_in_t bulk_in;
 
 	int (*control_write)(device_t *, usb_target_t,
 	    size_t,
