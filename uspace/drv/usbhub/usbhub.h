@@ -39,22 +39,36 @@
 
 #include "usb/hcdhubd.h"
 
+#include <usb/pipes.h>
+
 /** basic information about device attached to hub */
 typedef struct{
 	usb_address_t address;
 	devman_handle_t devman_handle;
 }usb_hub_attached_device_t;
 
+/* Hub endpoints. */
+typedef struct {
+        usb_endpoint_pipe_t control;
+        usb_endpoint_pipe_t status_change;
+} usb_hub_endpoints_t;
+
+
+
 /** Information about attached hub. */
 typedef struct {
 	/** Number of ports. */
 	int port_count;
-	/** attached device handles */
+	/** attached device handles, for each port one */
 	usb_hub_attached_device_t * attached_devs;
 	/** General usb device info. */
 	usb_hcd_attached_device_info_t * usb_device;
 	/** General device info*/
 	device_t * device;
+	/** connection to hcd */
+	usb_device_connection_t connection;
+	/** hub endpoints */
+	usb_hub_endpoints_t endpoints;
 
 } usb_hub_info_t;
 
