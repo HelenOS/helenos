@@ -45,12 +45,6 @@
 static void remote_usbhc_get_address(device_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbhc_interrupt_out(device_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbhc_interrupt_in(device_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_usbhc_control_write_setup(device_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_usbhc_control_write_data(device_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_usbhc_control_write_status(device_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_usbhc_control_read_setup(device_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_usbhc_control_read_data(device_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_usbhc_control_read_status(device_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbhc_control_write(device_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbhc_control_read(device_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbhc_reserve_default_address(device_t *, void *, ipc_callid_t, ipc_call_t *);
@@ -73,14 +67,6 @@ static remote_iface_func_ptr_t remote_usbhc_iface_ops [] = {
 
 	remote_usbhc_interrupt_out,
 	remote_usbhc_interrupt_in,
-
-	remote_usbhc_control_write_setup,
-	remote_usbhc_control_write_data,
-	remote_usbhc_control_write_status,
-
-	remote_usbhc_control_read_setup,
-	remote_usbhc_control_read_data,
-	remote_usbhc_control_read_status,
 
 	remote_usbhc_control_write,
 	remote_usbhc_control_read
@@ -384,74 +370,6 @@ static void remote_usbhc_in_transfer(device_t *device,
 	}
 }
 
-/** Process status part of control transfer.
- *
- * @param device Target device.
- * @param callid Initiating caller.
- * @param call Initiating call.
- * @param direction Transfer direction (read ~ in, write ~ out).
- * @param transfer_in_func Transfer function for control read (might be NULL).
- * @param transfer_out_func Transfer function for control write (might be NULL).
- */
-static void remote_usbhc_status_transfer(device_t *device,
-    ipc_callid_t callid, ipc_call_t *call,
-    usb_direction_t direction,
-    int (*transfer_in_func)(device_t *, usb_target_t,
-        usbhc_iface_transfer_in_callback_t, void *),
-    int (*transfer_out_func)(device_t *, usb_target_t,
-        usbhc_iface_transfer_out_callback_t, void *))
-{
-	switch (direction) {
-		case USB_DIRECTION_IN:
-			if (!transfer_in_func) {
-				async_answer_0(callid, ENOTSUP);
-				return;
-			}
-			break;
-		case USB_DIRECTION_OUT:
-			if (!transfer_out_func) {
-				async_answer_0(callid, ENOTSUP);
-				return;
-			}
-			break;
-		default:
-			assert(false && "unreachable code");
-			break;
-	}
-
-	usb_target_t target = {
-		.address = DEV_IPC_GET_ARG1(*call),
-		.endpoint = DEV_IPC_GET_ARG2(*call)
-	};
-
-	async_transaction_t *trans = async_transaction_create(callid);
-	if (trans == NULL) {
-		async_answer_0(callid, ENOMEM);
-		return;
-	}
-
-	int rc;
-	switch (direction) {
-		case USB_DIRECTION_IN:
-			rc = transfer_in_func(device, target,
-			    callback_in, trans);
-			break;
-		case USB_DIRECTION_OUT:
-			rc = transfer_out_func(device, target,
-			    callback_out, trans);
-			break;
-		default:
-			assert(false && "unreachable code");
-			break;
-	}
-
-	if (rc != EOK) {
-		async_answer_0(callid, rc);
-		async_transaction_destroy(trans);
-	}
-}
-
-
 void remote_usbhc_interrupt_out(device_t *device, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
@@ -470,66 +388,6 @@ void remote_usbhc_interrupt_in(device_t *device, void *iface,
 
 	return remote_usbhc_in_transfer(device, callid, call,
 	    usb_iface->interrupt_in);
-}
-
-void remote_usbhc_control_write_setup(device_t *device, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
-{
-	usbhc_iface_t *usb_iface = (usbhc_iface_t *) iface;
-	assert(usb_iface != NULL);
-
-	return remote_usbhc_out_transfer(device, callid, call,
-	    usb_iface->control_write_setup);
-}
-
-void remote_usbhc_control_write_data(device_t *device, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
-{
-	usbhc_iface_t *usb_iface = (usbhc_iface_t *) iface;
-	assert(usb_iface != NULL);
-
-	return remote_usbhc_out_transfer(device, callid, call,
-	    usb_iface->control_write_data);
-}
-
-void remote_usbhc_control_write_status(device_t *device, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
-{
-	usbhc_iface_t *usb_iface = (usbhc_iface_t *) iface;
-	assert(usb_iface != NULL);
-
-	return remote_usbhc_status_transfer(device, callid, call,
-	    USB_DIRECTION_IN, usb_iface->control_write_status, NULL);
-}
-
-void remote_usbhc_control_read_setup(device_t *device, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
-{
-	usbhc_iface_t *usb_iface = (usbhc_iface_t *) iface;
-	assert(usb_iface != NULL);
-
-	return remote_usbhc_out_transfer(device, callid, call,
-	    usb_iface->control_read_setup);
-}
-
-void remote_usbhc_control_read_data(device_t *device, void *iface,
-	    ipc_callid_t callid, ipc_call_t *call)
-{
-	usbhc_iface_t *usb_iface = (usbhc_iface_t *) iface;
-	assert(usb_iface != NULL);
-
-	return remote_usbhc_in_transfer(device, callid, call,
-	    usb_iface->control_read_data);
-}
-
-void remote_usbhc_control_read_status(device_t *device, void *iface,
-	    ipc_callid_t callid, ipc_call_t *call)
-{
-	usbhc_iface_t *usb_iface = (usbhc_iface_t *) iface;
-	assert(usb_iface != NULL);
-
-	return remote_usbhc_status_transfer(device, callid, call,
-	    USB_DIRECTION_OUT, NULL, usb_iface->control_read_status);
 }
 
 void remote_usbhc_control_write(device_t *device, void *iface,
