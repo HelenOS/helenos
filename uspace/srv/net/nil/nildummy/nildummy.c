@@ -40,7 +40,6 @@
 #include <mem.h>
 #include <stdio.h>
 #include <str.h>
-#include <ipc/ipc.h>
 #include <ipc/nil.h>
 #include <ipc/net.h>
 #include <ipc/services.h>
@@ -111,7 +110,7 @@ static void nildummy_receiver(ipc_callid_t iid, ipc_call_t *icall)
 		case NET_NIL_DEVICE_STATE:
 			rc = nil_device_state_msg_local(0,
 			    IPC_GET_DEVICE(*icall), IPC_GET_STATE(*icall));
-			ipc_answer_0(iid, (sysarg_t) rc);
+			async_answer_0(iid, (sysarg_t) rc);
 			break;
 		
 		case NET_NIL_RECEIVED:
@@ -121,11 +120,11 @@ static void nildummy_receiver(ipc_callid_t iid, ipc_call_t *icall)
 				rc = nil_received_msg_local(0,
 				    IPC_GET_DEVICE(*icall), packet, 0);
 			
-			ipc_answer_0(iid, (sysarg_t) rc);
+			async_answer_0(iid, (sysarg_t) rc);
 			break;
 		
 		default:
-			ipc_answer_0(iid, (sysarg_t) ENOTSUP);
+			async_answer_0(iid, (sysarg_t) ENOTSUP);
 		}
 		
 		iid = async_get_call(icall);

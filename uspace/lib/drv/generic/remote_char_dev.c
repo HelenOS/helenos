@@ -32,17 +32,16 @@
 /** @file
  */
 
-#include <ipc/ipc.h>
 #include <async.h>
 #include <errno.h>
 
 #include "ops/char_dev.h"
-#include "driver.h"
+#include "ddf/driver.h"
 
 #define MAX_CHAR_RW_COUNT 256
 
-static void remote_char_read(device_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_char_write(device_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_char_read(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_char_write(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 
 /** Remote character interface operations. */
 static remote_iface_func_ptr_t remote_char_dev_iface_ops[] = {
@@ -67,11 +66,11 @@ remote_iface_t remote_char_dev_iface = {
  * to the local interface. Return the result of the operation processed by the
  * local interface to the remote client.
  *
- * @param dev		The device from which the data are read.
+ * @param fun		The function from which the data are read.
  * @param ops		The local ops structure.
  */
 static void
-remote_char_read(device_t *dev, void *ops, ipc_callid_t callid,
+remote_char_read(ddf_fun_t *fun, void *ops, ipc_callid_t callid,
     ipc_call_t *call)
 {
 	char_dev_ops_t *char_dev_ops = (char_dev_ops_t *) ops;
@@ -80,13 +79,13 @@ remote_char_read(device_t *dev, void *ops, ipc_callid_t callid,
 	size_t len;
 	if (!async_data_read_receive(&cid, &len)) {
 		/* TODO handle protocol error. */
-		ipc_answer_0(callid, EINVAL);
+		async_answer_0(callid, EINVAL);
 		return;
 	}
 	
 	if (!char_dev_ops->read) {
 		async_data_read_finalize(cid, NULL, 0);
-		ipc_answer_0(callid, ENOTSUP);
+		async_answer_0(callid, ENOTSUP);
 		return;
 	}
 	
@@ -94,18 +93,18 @@ remote_char_read(device_t *dev, void *ops, ipc_callid_t callid,
 		len = MAX_CHAR_RW_COUNT;
 	
 	char buf[MAX_CHAR_RW_COUNT];
-	int ret = (*char_dev_ops->read)(dev, buf, len);
+	int ret = (*char_dev_ops->read)(fun, buf, len);
 	
 	if (ret < 0) {
 		/* Some error occured. */
 		async_data_read_finalize(cid, buf, 0);
-		ipc_answer_0(callid, ret);
+		async_answer_0(callid, ret);
 		return;
 	}
 	
 	/* The operation was successful, return the number of data read. */
 	async_data_read_finalize(cid, buf, ret);
-	ipc_answer_1(callid, EOK, ret);
+	async_answer_1(callid, EOK, ret);
 }
 
 /** Process the write request from the remote client.
@@ -114,11 +113,11 @@ remote_char_read(device_t *dev, void *ops, ipc_callid_t callid,
  * to the local interface. Return the result of the operation processed by the
  * local interface to the remote client.
  *
- * @param dev		The device to which the data are written.
+ * @param fun		The function to which the data are written.
  * @param ops		The local ops structure.
  */
 static void
-remote_char_write(device_t *dev, void *ops, ipc_callid_t callid,
+remote_char_write(ddf_fun_t *fun, void *ops, ipc_callid_t callid,
     ipc_call_t *call)
 {
 	char_dev_ops_t *char_dev_ops = (char_dev_ops_t *) ops;
@@ -127,13 +126,13 @@ remote_char_write(device_t *dev, void *ops, ipc_callid_t callid,
 	
 	if (!async_data_write_receive(&cid, &len)) {
 		/* TODO handle protocol error. */
-		ipc_answer_0(callid, EINVAL);
+		async_answer_0(callid, EINVAL);
 		return;
 	}
 	
 	if (!char_dev_ops->write) {
 		async_data_write_finalize(cid, NULL, 0);
-		ipc_answer_0(callid, ENOTSUP);
+		async_answer_0(callid, ENOTSUP);
 		return;
 	}
 	
@@ -144,16 +143,16 @@ remote_char_write(device_t *dev, void *ops, ipc_callid_t callid,
 	
 	async_data_write_finalize(cid, buf, len);
 	
-	int ret = (*char_dev_ops->write)(dev, buf, len);
+	int ret = (*char_dev_ops->write)(fun, buf, len);
 	if (ret < 0) {
 		/* Some error occured. */
-		ipc_answer_0(callid, ret);
+		async_answer_0(callid, ret);
 	} else {
 		/*
 		 * The operation was successful, return the number of data
 		 * written.
 		 */
-		ipc_answer_1(callid, EOK, ret);
+		async_answer_1(callid, EOK, ret);
 	}
 }
 

@@ -35,7 +35,6 @@
 /** @file
  */
 
-#include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <ipc/kbd.h>
 #include <sysinfo.h>
@@ -172,18 +171,18 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	ipc_call_t call;
 	int retval;
 
-	ipc_answer_0(iid, EOK);
+	async_answer_0(iid, EOK);
 
 	while (1) {
 		callid = async_get_call(&call);
 		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			if (client_phone != -1) {
-				ipc_hangup(client_phone);
+				async_hangup(client_phone);
 				client_phone = -1;
 			}
 			
-			ipc_answer_0(callid, EOK);
+			async_answer_0(callid, EOK);
 			return;
 		case IPC_M_CONNECT_TO_ME:
 			if (client_phone != -1) {
@@ -204,7 +203,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		default:
 			retval = EINVAL;
 		}
-		ipc_answer_0(callid, retval);
+		async_answer_0(callid, retval);
 	}	
 }
 
@@ -222,10 +221,8 @@ int main(int argc, char **argv)
 		cir_service = SERVICE_OBIO;
 	
 	if (cir_service) {
-		while (cir_phone < 0) {
-			cir_phone = ipc_connect_me_to_blocking(PHONE_NS, cir_service,
-			    0, 0);
-		}
+		while (cir_phone < 0)
+			cir_phone = service_connect_blocking(cir_service, 0, 0);
 	}
 	
 	/* Initialize port driver. */

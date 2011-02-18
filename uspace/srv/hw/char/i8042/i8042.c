@@ -39,7 +39,6 @@
 #include <ddi.h>
 #include <libarch/ddi.h>
 #include <devmap.h>
-#include <ipc/ipc.h>
 #include <async.h>
 #include <unistd.h>
 #include <sysinfo.h>
@@ -198,8 +197,8 @@ static int i8042_init(void)
 
 	i8042_kbd.cmds[0].addr = (void *) &((i8042_t *) i8042_kernel)->status;
 	i8042_kbd.cmds[3].addr = (void *) &((i8042_t *) i8042_kernel)->data;
-	ipc_register_irq(inr_a, device_assign_devno(), 0, &i8042_kbd);
-	ipc_register_irq(inr_b, device_assign_devno(), 0, &i8042_kbd);
+	register_irq(inr_a, device_assign_devno(), 0, &i8042_kbd);
+	register_irq(inr_b, device_assign_devno(), 0, &i8042_kbd);
 	printf("%s: registered for interrupts %" PRIun " and %" PRIun "\n",
 	    NAME, inr_a, inr_b);
 
@@ -235,12 +234,12 @@ static void i8042_connection(ipc_callid_t iid, ipc_call_t *icall)
 	}
 
 	if (dev_id < 0) {
-		ipc_answer_0(iid, EINVAL);
+		async_answer_0(iid, EINVAL);
 		return;
 	}
 
 	/* Answer the IPC_M_CONNECT_ME_TO call. */
-	ipc_answer_0(iid, EOK);
+	async_answer_0(iid, EOK);
 
 	printf(NAME ": accepted connection\n");
 
@@ -250,7 +249,7 @@ static void i8042_connection(ipc_callid_t iid, ipc_call_t *icall)
 		switch (method) {
 		case IPC_M_PHONE_HUNGUP:
 			/* The other side has hung up. */
-			ipc_answer_0(callid, EOK);
+			async_answer_0(callid, EOK);
 			return;
 		case IPC_M_CONNECT_TO_ME:
 			printf(NAME ": creating callback connection\n");
@@ -271,7 +270,7 @@ static void i8042_connection(ipc_callid_t iid, ipc_call_t *icall)
 			retval = EINVAL;
 			break;
 		}
-		ipc_answer_0(callid, retval);
+		async_answer_0(callid, retval);
 	}
 }
 

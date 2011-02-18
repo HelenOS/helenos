@@ -46,7 +46,6 @@
 #include <str.h>
 #include <str_error.h>
 
-#include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <ipc/net.h>
 #include <ipc/net_net.h>
@@ -325,7 +324,6 @@ static int net_initialize(async_client_conn_t client_connection)
  */
 static int net_module_start(async_client_conn_t client_connection)
 {
-	sysarg_t phonehash;
 	int rc;
 	
 	async_set_client_connection(client_connection);
@@ -337,7 +335,7 @@ static int net_module_start(async_client_conn_t client_connection)
 	if (rc != EOK)
 		goto out;
 	
-	rc = ipc_connect_to_me(PHONE_NS, SERVICE_NETWORKING, 0, 0, &phonehash);
+	rc = async_connect_to_me(PHONE_NS, SERVICE_NETWORKING, 0, 0, NULL);
 	if (rc != EOK)
 		goto out;
 	
@@ -686,7 +684,7 @@ static void net_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	 * Accept the connection
 	 *  - Answer the first IPC_M_CONNECT_ME_TO call.
 	 */
-	ipc_answer_0(iid, EOK);
+	async_answer_0(iid, EOK);
 	
 	while (true) {
 		/* Clear the answer structure */

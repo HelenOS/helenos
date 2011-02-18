@@ -32,10 +32,10 @@
 /** @file
  */
 
+#include <async.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <ipc/ipc.h>
 #include <errno.h>
 #include <udebug.h>
 #include <task.h>
@@ -104,7 +104,7 @@ int main(int argc, char *argv[])
 		printf("Failed dumping address space areas.\n");
 
 	udebug_end(phoneid);
-	ipc_hangup(phoneid);
+	async_hangup(phoneid);
 
 	return 0;
 }
@@ -113,7 +113,7 @@ static int connect_task(task_id_t task_id)
 {
 	int rc;
 
-	rc = ipc_connect_kbox(task_id);
+	rc = async_connect_kbox(task_id);
 
 	if (rc == ENOTSUP) {
 		printf("You do not have userspace debugging support "
@@ -125,7 +125,7 @@ static int connect_task(task_id_t task_id)
 
 	if (rc < 0) {
 		printf("Error connecting\n");
-		printf("ipc_connect_task(%" PRIu64 ") -> %d ", task_id, rc);
+		printf("async_connect_kbox(%" PRIu64 ") -> %d ", task_id, rc);
 		return rc;
 	}
 
@@ -393,6 +393,19 @@ static void autoload_syms(void)
 	free(file_name);
 
 	rc = asprintf(&file_name, "/srv/%s", app_name);
+	if (rc < 0) {
+		printf("Memory allocation failure.\n");
+		exit(1);
+	}
+
+	rc = symtab_load(file_name, &app_symtab);
+	if (rc == EOK) {
+		printf("Loaded symbol table from %s\n", file_name);
+		free(file_name);
+		return;
+	}
+
+	rc = asprintf(&file_name, "/drv/%s/%s", app_name, app_name);
 	if (rc < 0) {
 		printf("Memory allocation failure.\n");
 		exit(1);

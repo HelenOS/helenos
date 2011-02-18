@@ -43,10 +43,6 @@ SECTIONS {
 		*(.bss);
 	} :data
 	
-	. = ALIGN(0x1000);
-	
-	_heap = .;
-	
 	/DISCARD/ : {
 		*(*);
 	}

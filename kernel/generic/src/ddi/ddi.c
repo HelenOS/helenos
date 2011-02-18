@@ -103,15 +103,19 @@ NO_TRACE static int ddi_physmem_map(uintptr_t pf, uintptr_t vp, size_t pages,
     unsigned int flags)
 {
 	ASSERT(TASK);
-	ASSERT((pf % FRAME_SIZE) == 0);
-	ASSERT((vp % PAGE_SIZE) == 0);
+	
+	if ((pf % FRAME_SIZE) != 0)
+		return EBADMEM;
+	
+	if ((vp % PAGE_SIZE) != 0)
+		return EBADMEM;
 	
 	/*
-	 * Make sure the caller is authorised to make this syscall.
+	 * Unprivileged tasks are only allowed to map pareas
+	 * which are explicitly marked as such.
 	 */
-	cap_t caps = cap_get(TASK);
-	if (!(caps & CAP_MEM_MANAGER))
-		return EPERM;
+	bool priv =
+	    ((cap_get(TASK) & CAP_MEM_MANAGER) == CAP_MEM_MANAGER);
 	
 	mem_backend_data_t backend_data;
 	backend_data.base = pf;
@@ -122,23 +126,36 @@ NO_TRACE static int ddi_physmem_map(uintptr_t pf, uintptr_t vp, size_t pages,
 	size_t znum = find_zone(ADDR2PFN(pf), pages, 0);
 	
 	if (znum == (size_t) -1) {
-		/* Frames not found in any zones
-		 * -> assume it is hardware device and allow mapping
+		/*
+		 * Frames not found in any zone
+		 * -> assume it is a hardware device and allow mapping
+		 *    for privileged tasks.
 		 */
 		irq_spinlock_unlock(&zones.lock, true);
+		
+		if (!priv)
+			return EPERM;
+		
 		goto map;
 	}
 	
 	if (zones.info[znum].flags & ZONE_FIRMWARE) {
-		/* Frames are part of firmware */
+		/*
+		 * Frames are part of firmware
+		 * -> allow mapping for privileged tasks.
+		 */
 		irq_spinlock_unlock(&zones.lock, true);
+		
+		if (!priv)
+			return EPERM;
+		
 		goto map;
 	}
 	
 	if (zone_flags_available(zones.info[znum].flags)) {
 		/*
-		 * Frames are part of physical memory, check if the memory
-		 * region is enabled for mapping.
+		 * Frames are part of physical memory, check
+		 * if the memory region is enabled for mapping.
 		 */
 		irq_spinlock_unlock(&zones.lock, true);
 		
@@ -149,7 +166,14 @@ NO_TRACE static int ddi_physmem_map(uintptr_t pf, uintptr_t vp, size_t pages,
 		
 		if ((!parea) || (parea->frames < pages)) {
 			mutex_unlock(&parea_lock);
-			goto err;
+			return ENOENT;
+		}
+		
+		if (!priv) {
+			if (!parea->unpriv) {
+				mutex_unlock(&parea_lock);
+				return EPERM;
+			}
 		}
 		
 		mutex_unlock(&parea_lock);
@@ -157,8 +181,6 @@ NO_TRACE static int ddi_physmem_map(uintptr_t pf, uintptr_t vp, size_t pages,
 	}
 	
 	irq_spinlock_unlock(&zones.lock, true);
-	
-err:
 	return ENOENT;
 	
 map:

@@ -90,23 +90,25 @@ typedef struct thread {
 	char name[THREAD_NAME_BUFLEN];
 	
 	/** Function implementing the thread. */
-	void (* thread_code)(void *);
+	void (*thread_code)(void *);
 	/** Argument passed to thread_code() function. */
 	void *thread_arg;
 	
 	/**
-	 * From here, the stored context is restored when the thread is
-	 * scheduled.
+	 * From here, the stored context is restored
+	 * when the thread is scheduled.
 	 */
 	context_t saved_context;
+	
 	/**
-	 * From here, the stored timeout context is restored when sleep times
-	 * out.
+	 * From here, the stored timeout context
+	 * is restored when sleep times out.
 	 */
 	context_t sleep_timeout_context;
+	
 	/**
-	 * From here, the stored interruption context is restored when sleep is
-	 * interrupted.
+	 * From here, the stored interruption context
+	 * is restored when sleep is interrupted.
 	 */
 	context_t sleep_interruption_context;
 	
@@ -124,6 +126,7 @@ typedef struct thread {
 	 * False otherwise.
 	 */
 	bool in_copy_from_uspace;
+	
 	/**
 	 * True if this thread is executing copy_to_uspace().
 	 * False otherwise.
@@ -186,6 +189,12 @@ typedef struct thread {
 	uint8_t *kstack;
 	
 #ifdef CONFIG_UDEBUG
+	/**
+	 * If true, the scheduler will print a stack trace
+	 * to the kernel console upon scheduling this thread.
+	 */
+	bool btrace;
+	
 	/** Debugging stuff */
 	udebug_thread_t udebug;
 #endif /* CONFIG_UDEBUG */
@@ -235,6 +244,10 @@ extern void thread_destroy(thread_t *, bool);
 extern thread_t *thread_find_by_id(thread_id_t);
 extern void thread_update_accounting(bool);
 extern bool thread_exists(thread_t *);
+
+#ifdef CONFIG_UDEBUG
+extern void thread_stack_trace(thread_id_t);
+#endif
 
 /** Fpu context slab cache. */
 extern slab_cache_t *fpu_context_slab;

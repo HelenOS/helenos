@@ -44,7 +44,6 @@ typedef struct {
 	link_t sess_link;	/**< Link in global list of open sessions. */
 } async_sess_t;
 
-extern void _async_sess_init(void);
 extern void async_session_create(async_sess_t *, int, sysarg_t);
 extern void async_session_destroy(async_sess_t *);
 extern int async_exchange_begin(async_sess_t *);

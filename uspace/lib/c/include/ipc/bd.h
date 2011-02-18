@@ -30,12 +30,12 @@
  * @{
  */
 /** @file
- */ 
+ */
 
 #ifndef LIBC_IPC_BD_H_
 #define LIBC_IPC_BD_H_
 
-#include <ipc/ipc.h>
+#include <ipc/common.h>
 
 typedef enum {
 	BD_GET_BLOCK_SIZE = IPC_FIRST_USER_METHOD,

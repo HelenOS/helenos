@@ -36,7 +36,6 @@
  */
 
 #include "vfs.h"
-#include <ipc/ipc.h>
 #include <macros.h>
 #include <stdint.h>
 #include <async.h>
@@ -90,7 +89,7 @@ static void vfs_mount_internal(ipc_callid_t rid, devmap_handle_t devmap_handle,
 		if (str_cmp(mp, "/") == 0) {
 			/* Trying to mount root FS over root FS */
 			fibril_rwlock_write_unlock(&namespace_rwlock);
-			ipc_answer_0(rid, EBUSY);
+			async_answer_0(rid, EBUSY);
 			return;
 		}
 		
@@ -98,14 +97,14 @@ static void vfs_mount_internal(ipc_callid_t rid, devmap_handle_t devmap_handle,
 		if (rc != EOK) {
 			/* The lookup failed for some reason. */
 			fibril_rwlock_write_unlock(&namespace_rwlock);
-			ipc_answer_0(rid, rc);
+			async_answer_0(rid, rc);
 			return;
 		}
 		
 		mp_node = vfs_node_get(&mp_res);
 		if (!mp_node) {
 			fibril_rwlock_write_unlock(&namespace_rwlock);
-			ipc_answer_0(rid, ENOMEM);
+			async_answer_0(rid, ENOMEM);
 			return;
 		}
 		
@@ -133,7 +132,7 @@ static void vfs_mount_internal(ipc_callid_t rid, devmap_handle_t devmap_handle,
 				async_wait_for(msg, NULL);
 				vfs_release_phone(fs_handle, phone);
 				fibril_rwlock_write_unlock(&namespace_rwlock);
-				ipc_answer_0(rid, rc);
+				async_answer_0(rid, rc);
 				return;
 			}
 			async_wait_for(msg, &rc);
@@ -141,7 +140,7 @@ static void vfs_mount_internal(ipc_callid_t rid, devmap_handle_t devmap_handle,
 			
 			if (rc != EOK) {
 				fibril_rwlock_write_unlock(&namespace_rwlock);
-				ipc_answer_0(rid, rc);
+				async_answer_0(rid, rc);
 				return;
 			}
 
@@ -164,7 +163,7 @@ static void vfs_mount_internal(ipc_callid_t rid, devmap_handle_t devmap_handle,
 			assert(mr_node);
 			
 			fibril_rwlock_write_unlock(&namespace_rwlock);
-			ipc_answer_0(rid, rc);
+			async_answer_0(rid, rc);
 			return;
 		} else {
 			/*
@@ -172,7 +171,7 @@ static void vfs_mount_internal(ipc_callid_t rid, devmap_handle_t devmap_handle,
 			 * being mounted first.
 			 */
 			fibril_rwlock_write_unlock(&namespace_rwlock);
-			ipc_answer_0(rid, ENOENT);
+			async_answer_0(rid, ENOENT);
 			return;
 		}
 	}
@@ -201,7 +200,7 @@ static void vfs_mount_internal(ipc_callid_t rid, devmap_handle_t devmap_handle,
 		/* Mount failed, drop reference to mp_node. */
 		if (mp_node)
 			vfs_node_put(mp_node);
-		ipc_answer_0(rid, rc);
+		async_answer_0(rid, rc);
 		fibril_rwlock_write_unlock(&namespace_rwlock);
 		return;
 	}
@@ -217,7 +216,7 @@ static void vfs_mount_internal(ipc_callid_t rid, devmap_handle_t devmap_handle,
 		if (mp_node)
 			vfs_node_put(mp_node);
 		fibril_rwlock_write_unlock(&namespace_rwlock);
-		ipc_answer_0(rid, rc);
+		async_answer_0(rid, rc);
 		return;
 	}
 	async_wait_for(msg, &rc);
@@ -244,7 +243,7 @@ static void vfs_mount_internal(ipc_callid_t rid, devmap_handle_t devmap_handle,
 			vfs_node_put(mp_node);
 	}
 
-	ipc_answer_0(rid, rc);
+	async_answer_0(rid, rc);
 	fibril_rwlock_write_unlock(&namespace_rwlock);
 }
 
@@ -274,7 +273,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	int rc = async_data_write_accept((void **) &mp, true, 0, MAX_PATH_LEN,
 	    0, NULL);
 	if (rc != EOK) {
-		ipc_answer_0(rid, rc);
+		async_answer_0(rid, rc);
 		return;
 	}
 	
@@ -284,7 +283,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	    0, NULL);
 	if (rc != EOK) {
 		free(mp);
-		ipc_answer_0(rid, rc);
+		async_answer_0(rid, rc);
 		return;
 	}
 	
@@ -298,7 +297,7 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	if (rc != EOK) {
 		free(mp);
 		free(opts);
-		ipc_answer_0(rid, rc);
+		async_answer_0(rid, rc);
 		return;
 	}
 	
@@ -309,8 +308,8 @@ void vfs_mount(ipc_callid_t rid, ipc_call_t *request)
 	ipc_call_t data;
 	ipc_callid_t callid = async_get_call(&data);
 	if (IPC_GET_IMETHOD(data) != IPC_M_PING) {
-		ipc_answer_0(callid, ENOTSUP);
-		ipc_answer_0(rid, ENOTSUP);
+		async_answer_0(callid, ENOTSUP);
+		async_answer_0(rid, ENOTSUP);
 		free(mp);
 		free(opts);
 		free(fs_name);
@@ -332,8 +331,8 @@ recheck:
 		}
 		
 		fibril_mutex_unlock(&fs_head_lock);
-		ipc_answer_0(callid, ENOENT);
-		ipc_answer_0(rid, ENOENT);
+		async_answer_0(callid, ENOENT);
+		async_answer_0(rid, ENOENT);
 		free(mp);
 		free(fs_name);
 		free(opts);
@@ -342,7 +341,7 @@ recheck:
 	fibril_mutex_unlock(&fs_head_lock);
 	
 	/* Acknowledge that we know fs_name. */
-	ipc_answer_0(callid, EOK);
+	async_answer_0(callid, EOK);
 	
 	/* Do the mount */
 	vfs_mount_internal(rid, devmap_handle, fs_handle, mp, opts);
@@ -366,7 +365,7 @@ void vfs_unmount(ipc_callid_t rid, ipc_call_t *request)
 	rc = async_data_write_accept((void **) &mp, true, 0, MAX_PATH_LEN,
 	    0, NULL);
 	if (rc != EOK)
-		ipc_answer_0(rid, rc);
+		async_answer_0(rid, rc);
 
 	/*
 	 * Taking the namespace lock will do two things for us. First, it will
@@ -385,14 +384,14 @@ void vfs_unmount(ipc_callid_t rid, ipc_call_t *request)
 	if (rc != EOK) {
 		fibril_rwlock_write_unlock(&namespace_rwlock);
 		free(mp);
-		ipc_answer_0(rid, rc);
+		async_answer_0(rid, rc);
 		return;
 	}
 	mr_node = vfs_node_get(&mr_res);
 	if (!mr_node) {
 		fibril_rwlock_write_unlock(&namespace_rwlock);
 		free(mp);
-		ipc_answer_0(rid, ENOMEM);
+		async_answer_0(rid, ENOMEM);
 		return;
 	}
 
@@ -408,7 +407,7 @@ void vfs_unmount(ipc_callid_t rid, ipc_call_t *request)
 		fibril_rwlock_write_unlock(&namespace_rwlock);
 		vfs_node_put(mr_node);
 		free(mp);
-		ipc_answer_0(rid, EBUSY);
+		async_answer_0(rid, EBUSY);
 		return;
 	}
 
@@ -429,7 +428,7 @@ void vfs_unmount(ipc_callid_t rid, ipc_call_t *request)
 		if (rc != EOK) {
 			fibril_rwlock_write_unlock(&namespace_rwlock);
 			vfs_node_put(mr_node);
-			ipc_answer_0(rid, rc);
+			async_answer_0(rid, rc);
 			return;
 		}
 		rootfs.fs_handle = 0;
@@ -448,14 +447,14 @@ void vfs_unmount(ipc_callid_t rid, ipc_call_t *request)
 		if (rc != EOK) {
 			fibril_rwlock_write_unlock(&namespace_rwlock);
 			vfs_node_put(mr_node);
-			ipc_answer_0(rid, rc);
+			async_answer_0(rid, rc);
 			return;
 		}
 		vfs_node_t *mp_node = vfs_node_get(&mp_res);
 		if (!mp_node) {
 			fibril_rwlock_write_unlock(&namespace_rwlock);
 			vfs_node_put(mr_node);
-			ipc_answer_0(rid, ENOMEM);
+			async_answer_0(rid, ENOMEM);
 			return;
 		}
 
@@ -467,7 +466,7 @@ void vfs_unmount(ipc_callid_t rid, ipc_call_t *request)
 			fibril_rwlock_write_unlock(&namespace_rwlock);
 			vfs_node_put(mp_node);
 			vfs_node_put(mr_node);
-			ipc_answer_0(rid, rc);
+			async_answer_0(rid, rc);
 			return;
 		}
 
@@ -485,16 +484,11 @@ void vfs_unmount(ipc_callid_t rid, ipc_call_t *request)
 	vfs_node_forget(mr_node);
 
 	fibril_rwlock_write_unlock(&namespace_rwlock);
-	ipc_answer_0(rid, EOK);
+	async_answer_0(rid, EOK);
 }
 
 void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 {
-	if (!vfs_files_init()) {
-		ipc_answer_0(rid, ENOMEM);
-		return;
-	}
-	
 	/*
 	 * The POSIX interface is open(path, oflag, mode).
 	 * We can receive oflags and mode along with the VFS_IN_OPEN call;
@@ -518,7 +512,7 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	if (((lflag & (L_FILE | L_DIRECTORY)) == 0) ||
 	    ((lflag & (L_FILE | L_DIRECTORY)) == (L_FILE | L_DIRECTORY)) ||
 	    (lflag & (L_OPEN | L_ROOT | L_MP))) {
-		ipc_answer_0(rid, EINVAL);
+		async_answer_0(rid, EINVAL);
 		return;
 	}
 	
@@ -530,7 +524,7 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	char *path;
 	int rc = async_data_write_accept((void **) &path, true, 0, 0, 0, NULL);
 	if (rc != EOK) {
-		ipc_answer_0(rid, rc);
+		async_answer_0(rid, rc);
 		return;
 	}
 	
@@ -552,7 +546,7 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 			fibril_rwlock_write_unlock(&namespace_rwlock);
 		else
 			fibril_rwlock_read_unlock(&namespace_rwlock);
-		ipc_answer_0(rid, rc);
+		async_answer_0(rid, rc);
 		free(path);
 		return;
 	}
@@ -575,7 +569,7 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 			if (rc) {
 				fibril_rwlock_write_unlock(&node->contents_rwlock);
 				vfs_node_put(node);
-				ipc_answer_0(rid, rc);
+				async_answer_0(rid, rc);
 				return;
 			}
 			node->size = 0;
@@ -590,7 +584,7 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	int fd = vfs_fd_alloc((oflag & O_DESC) != 0);
 	if (fd < 0) {
 		vfs_node_put(node);
-		ipc_answer_0(rid, fd);
+		async_answer_0(rid, fd);
 		return;
 	}
 	vfs_file_t *file = vfs_file_get(fd);
@@ -608,19 +602,15 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 	 */
 	vfs_node_addref(node);
 	vfs_node_put(node);
+	vfs_file_put(file);
 	
 	/* Success! Return the new file descriptor to the client. */
-	ipc_answer_1(rid, EOK, fd);
+	async_answer_1(rid, EOK, fd);
 }
 
 void vfs_open_node(ipc_callid_t rid, ipc_call_t *request)
 {
 	// FIXME: check for sanity of the supplied fs, dev and index
-	
-	if (!vfs_files_init()) {
-		ipc_answer_0(rid, ENOMEM);
-		return;
-	}
 	
 	/*
 	 * The interface is open_node(fs, dev, index, oflag).
@@ -637,7 +627,7 @@ void vfs_open_node(ipc_callid_t rid, ipc_call_t *request)
 	int rc = vfs_open_node_internal(&lr);
 	if (rc != EOK) {
 		fibril_rwlock_read_unlock(&namespace_rwlock);
-		ipc_answer_0(rid, rc);
+		async_answer_0(rid, rc);
 		return;
 	}
 	
@@ -653,7 +643,7 @@ void vfs_open_node(ipc_callid_t rid, ipc_call_t *request)
 			if (rc) {
 				fibril_rwlock_write_unlock(&node->contents_rwlock);
 				vfs_node_put(node);
-				ipc_answer_0(rid, rc);
+				async_answer_0(rid, rc);
 				return;
 			}
 			node->size = 0;
@@ -668,7 +658,7 @@ void vfs_open_node(ipc_callid_t rid, ipc_call_t *request)
 	int fd = vfs_fd_alloc((oflag & O_DESC) != 0);
 	if (fd < 0) {
 		vfs_node_put(node);
-		ipc_answer_0(rid, fd);
+		async_answer_0(rid, fd);
 		return;
 	}
 	vfs_file_t *file = vfs_file_get(fd);
@@ -685,9 +675,10 @@ void vfs_open_node(ipc_callid_t rid, ipc_call_t *request)
 	 */
 	vfs_node_addref(node);
 	vfs_node_put(node);
+	vfs_file_put(file);
 	
 	/* Success! Return the new file descriptor to the client. */
-	ipc_answer_1(rid, EOK, fd);
+	async_answer_1(rid, EOK, fd);
 }
 
 void vfs_sync(ipc_callid_t rid, ipc_call_t *request)
@@ -697,7 +688,7 @@ void vfs_sync(ipc_callid_t rid, ipc_call_t *request)
 	/* Lookup the file structure corresponding to the file descriptor. */
 	vfs_file_t *file = vfs_file_get(fd);
 	if (!file) {
-		ipc_answer_0(rid, ENOENT);
+		async_answer_0(rid, ENOENT);
 		return;
 	}
 	
@@ -720,8 +711,9 @@ void vfs_sync(ipc_callid_t rid, ipc_call_t *request)
 	
 	vfs_release_phone(file->node->fs_handle, fs_phone);
 	fibril_mutex_unlock(&file->lock);
-	
-	ipc_answer_0(rid, rc);
+
+	vfs_file_put(file);
+	async_answer_0(rid, rc);
 }
 
 int vfs_close_internal(vfs_file_t *file)
@@ -766,16 +758,17 @@ void vfs_close(ipc_callid_t rid, ipc_call_t *request)
 	/* Lookup the file structure corresponding to the file descriptor. */
 	vfs_file_t *file = vfs_file_get(fd);
 	if (!file) {
-		ipc_answer_0(rid, ENOENT);
+		async_answer_0(rid, ENOENT);
 		return;
 	}
 	
 	int ret = vfs_close_internal(file);
 	if (ret != EOK)
-		ipc_answer_0(rid, ret);
+		async_answer_0(rid, ret);
 	
+	vfs_file_put(file);
 	ret = vfs_fd_free(fd);
-	ipc_answer_0(rid, ret);
+	async_answer_0(rid, ret);
 }
 
 static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
@@ -797,7 +790,7 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 	/* Lookup the file structure corresponding to the file descriptor. */
 	vfs_file_t *file = vfs_file_get(fd);
 	if (!file) {
-		ipc_answer_0(rid, ENOENT);
+		async_answer_0(rid, ENOENT);
 		return;
 	}
 	
@@ -874,12 +867,13 @@ static void vfs_rdwr(ipc_callid_t rid, ipc_call_t *request, bool read)
 	if (rc == EOK)
 		file->pos += bytes;
 	fibril_mutex_unlock(&file->lock);
-	
+	vfs_file_put(file);	
+
 	/*
 	 * FS server's reply is the final result of the whole operation we
 	 * return to the client.
 	 */
-	ipc_answer_1(rid, rc, bytes);
+	async_answer_1(rid, rc, bytes);
 }
 
 void vfs_read(ipc_callid_t rid, ipc_call_t *request)
@@ -902,7 +896,7 @@ void vfs_seek(ipc_callid_t rid, ipc_call_t *request)
 	/* Lookup the file structure corresponding to the file descriptor. */
 	vfs_file_t *file = vfs_file_get(fd);
 	if (!file) {
-		ipc_answer_0(rid, ENOENT);
+		async_answer_0(rid, ENOENT);
 		return;
 	}
 	
@@ -914,20 +908,23 @@ void vfs_seek(ipc_callid_t rid, ipc_call_t *request)
 		if (off >= 0) {
 			file->pos = (aoff64_t) off;
 			fibril_mutex_unlock(&file->lock);
-			ipc_answer_1(rid, EOK, off);
+			vfs_file_put(file);
+			async_answer_1(rid, EOK, off);
 			return;
 		}
 		break;
 	case SEEK_CUR:
 		if ((off >= 0) && (file->pos + off < file->pos)) {
 			fibril_mutex_unlock(&file->lock);
-			ipc_answer_0(rid, EOVERFLOW);
+			vfs_file_put(file);
+			async_answer_0(rid, EOVERFLOW);
 			return;
 		}
 		
 		if ((off < 0) && (file->pos < (aoff64_t) -off)) {
 			fibril_mutex_unlock(&file->lock);
-			ipc_answer_0(rid, EOVERFLOW);
+			vfs_file_put(file);
+			async_answer_0(rid, EOVERFLOW);
 			return;
 		}
 		
@@ -935,7 +932,8 @@ void vfs_seek(ipc_callid_t rid, ipc_call_t *request)
 		newoff = (file->pos > OFF64_MAX) ?  OFF64_MAX : file->pos;
 		
 		fibril_mutex_unlock(&file->lock);
-		ipc_answer_2(rid, EOK, LOWER32(newoff),
+		vfs_file_put(file);
+		async_answer_2(rid, EOK, LOWER32(newoff),
 		    UPPER32(newoff));
 		return;
 	case SEEK_END:
@@ -945,14 +943,16 @@ void vfs_seek(ipc_callid_t rid, ipc_call_t *request)
 		if ((off >= 0) && (size + off < size)) {
 			fibril_rwlock_read_unlock(&file->node->contents_rwlock);
 			fibril_mutex_unlock(&file->lock);
-			ipc_answer_0(rid, EOVERFLOW);
+			vfs_file_put(file);
+			async_answer_0(rid, EOVERFLOW);
 			return;
 		}
 		
 		if ((off < 0) && (size < (aoff64_t) -off)) {
 			fibril_rwlock_read_unlock(&file->node->contents_rwlock);
 			fibril_mutex_unlock(&file->lock);
-			ipc_answer_0(rid, EOVERFLOW);
+			vfs_file_put(file);
+			async_answer_0(rid, EOVERFLOW);
 			return;
 		}
 		
@@ -961,12 +961,14 @@ void vfs_seek(ipc_callid_t rid, ipc_call_t *request)
 		
 		fibril_rwlock_read_unlock(&file->node->contents_rwlock);
 		fibril_mutex_unlock(&file->lock);
-		ipc_answer_2(rid, EOK, LOWER32(newoff), UPPER32(newoff));
+		vfs_file_put(file);
+		async_answer_2(rid, EOK, LOWER32(newoff), UPPER32(newoff));
 		return;
 	}
 	
 	fibril_mutex_unlock(&file->lock);
-	ipc_answer_0(rid, EINVAL);
+	vfs_file_put(file);
+	async_answer_0(rid, EINVAL);
 }
 
 int vfs_truncate_internal(fs_handle_t fs_handle, devmap_handle_t devmap_handle,
@@ -991,7 +993,7 @@ void vfs_truncate(ipc_callid_t rid, ipc_call_t *request)
 
 	vfs_file_t *file = vfs_file_get(fd);
 	if (!file) {
-		ipc_answer_0(rid, ENOENT);
+		async_answer_0(rid, ENOENT);
 		return;
 	}
 	fibril_mutex_lock(&file->lock);
@@ -1004,7 +1006,8 @@ void vfs_truncate(ipc_callid_t rid, ipc_call_t *request)
 	fibril_rwlock_write_unlock(&file->node->contents_rwlock);
 
 	fibril_mutex_unlock(&file->lock);
-	ipc_answer_0(rid, (sysarg_t)rc);
+	vfs_file_put(file);
+	async_answer_0(rid, (sysarg_t)rc);
 }
 
 void vfs_fstat(ipc_callid_t rid, ipc_call_t *request)
@@ -1014,14 +1017,15 @@ void vfs_fstat(ipc_callid_t rid, ipc_call_t *request)
 
 	vfs_file_t *file = vfs_file_get(fd);
 	if (!file) {
-		ipc_answer_0(rid, ENOENT);
+		async_answer_0(rid, ENOENT);
 		return;
 	}
 
 	ipc_callid_t callid;
 	if (!async_data_read_receive(&callid, NULL)) {
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
+		vfs_file_put(file);
+		async_answer_0(callid, EINVAL);
+		async_answer_0(rid, EINVAL);
 		return;
 	}
 
@@ -1032,12 +1036,13 @@ void vfs_fstat(ipc_callid_t rid, ipc_call_t *request)
 	aid_t msg;
 	msg = async_send_3(fs_phone, VFS_OUT_STAT, file->node->devmap_handle,
 	    file->node->index, true, NULL);
-	ipc_forward_fast(callid, fs_phone, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
+	async_forward_fast(callid, fs_phone, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
 	async_wait_for(msg, &rc);
 	vfs_release_phone(file->node->fs_handle, fs_phone);
 
 	fibril_mutex_unlock(&file->lock);
-	ipc_answer_0(rid, rc);
+	vfs_file_put(file);
+	async_answer_0(rid, rc);
 }
 
 void vfs_stat(ipc_callid_t rid, ipc_call_t *request)
@@ -1045,15 +1050,15 @@ void vfs_stat(ipc_callid_t rid, ipc_call_t *request)
 	char *path;
 	int rc = async_data_write_accept((void **) &path, true, 0, 0, 0, NULL);
 	if (rc != EOK) {
-		ipc_answer_0(rid, rc);
+		async_answer_0(rid, rc);
 		return;
 	}
 	
 	ipc_callid_t callid;
 	if (!async_data_read_receive(&callid, NULL)) {
 		free(path);
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
+		async_answer_0(callid, EINVAL);
+		async_answer_0(rid, EINVAL);
 		return;
 	}
 
@@ -1063,15 +1068,15 @@ void vfs_stat(ipc_callid_t rid, ipc_call_t *request)
 	free(path);
 	if (rc != EOK) {
 		fibril_rwlock_read_unlock(&namespace_rwlock);
-		ipc_answer_0(callid, rc);
-		ipc_answer_0(rid, rc);
+		async_answer_0(callid, rc);
+		async_answer_0(rid, rc);
 		return;
 	}
 	vfs_node_t *node = vfs_node_get(&lr);
 	if (!node) {
 		fibril_rwlock_read_unlock(&namespace_rwlock);
-		ipc_answer_0(callid, ENOMEM);
-		ipc_answer_0(rid, ENOMEM);
+		async_answer_0(callid, ENOMEM);
+		async_answer_0(rid, ENOMEM);
 		return;
 	}
 
@@ -1081,13 +1086,13 @@ void vfs_stat(ipc_callid_t rid, ipc_call_t *request)
 	aid_t msg;
 	msg = async_send_3(fs_phone, VFS_OUT_STAT, node->devmap_handle,
 	    node->index, false, NULL);
-	ipc_forward_fast(callid, fs_phone, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
+	async_forward_fast(callid, fs_phone, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
 	
 	sysarg_t rv;
 	async_wait_for(msg, &rv);
 	vfs_release_phone(node->fs_handle, fs_phone);
 
-	ipc_answer_0(rid, rv);
+	async_answer_0(rid, rv);
 
 	vfs_node_put(node);
 }
@@ -1099,7 +1104,7 @@ void vfs_mkdir(ipc_callid_t rid, ipc_call_t *request)
 	char *path;
 	int rc = async_data_write_accept((void **) &path, true, 0, 0, 0, NULL);
 	if (rc != EOK) {
-		ipc_answer_0(rid, rc);
+		async_answer_0(rid, rc);
 		return;
 	}
 	
@@ -1111,7 +1116,7 @@ void vfs_mkdir(ipc_callid_t rid, ipc_call_t *request)
 	rc = vfs_lookup_internal(path, lflag, NULL, NULL);
 	fibril_rwlock_write_unlock(&namespace_rwlock);
 	free(path);
-	ipc_answer_0(rid, rc);
+	async_answer_0(rid, rc);
 }
 
 void vfs_unlink(ipc_callid_t rid, ipc_call_t *request)
@@ -1121,7 +1126,7 @@ void vfs_unlink(ipc_callid_t rid, ipc_call_t *request)
 	char *path;
 	int rc = async_data_write_accept((void **) &path, true, 0, 0, 0, NULL);
 	if (rc != EOK) {
-		ipc_answer_0(rid, rc);
+		async_answer_0(rid, rc);
 		return;
 	}
 	
@@ -1132,7 +1137,7 @@ void vfs_unlink(ipc_callid_t rid, ipc_call_t *request)
 	free(path);
 	if (rc != EOK) {
 		fibril_rwlock_write_unlock(&namespace_rwlock);
-		ipc_answer_0(rid, rc);
+		async_answer_0(rid, rc);
 		return;
 	}
 
@@ -1147,7 +1152,7 @@ void vfs_unlink(ipc_callid_t rid, ipc_call_t *request)
 	fibril_mutex_unlock(&nodes_mutex);
 	fibril_rwlock_write_unlock(&namespace_rwlock);
 	vfs_node_put(node);
-	ipc_answer_0(rid, EOK);
+	async_answer_0(rid, EOK);
 }
 
 void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
@@ -1156,7 +1161,7 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 	char *old;
 	int rc = async_data_write_accept((void **) &old, true, 0, 0, 0, NULL);
 	if (rc != EOK) {
-		ipc_answer_0(rid, rc);
+		async_answer_0(rid, rc);
 		return;
 	}
 	
@@ -1165,7 +1170,7 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 	rc = async_data_write_accept((void **) &new, true, 0, 0, 0, NULL);
 	if (rc != EOK) {
 		free(old);
-		ipc_answer_0(rid, rc);
+		async_answer_0(rid, rc);
 		return;
 	}
 	
@@ -1175,7 +1180,7 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 	char *newc = canonify(new, &nlen);
 	
 	if ((!oldc) || (!newc)) {
-		ipc_answer_0(rid, EINVAL);
+		async_answer_0(rid, EINVAL);
 		free(old);
 		free(new);
 		return;
@@ -1194,7 +1199,7 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 		 * - oldc was / itself, or
 		 * - oldc and newc are equal.
 		 */
-		ipc_answer_0(rid, EINVAL);
+		async_answer_0(rid, EINVAL);
 		free(old);
 		free(new);
 		return;
@@ -1209,7 +1214,7 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 	rc = vfs_lookup_internal(oldc, L_NONE, &old_lr, NULL);
 	if (rc != EOK) {
 		fibril_rwlock_write_unlock(&namespace_rwlock);
-		ipc_answer_0(rid, rc);
+		async_answer_0(rid, rc);
 		free(old);
 		free(new);
 		return;
@@ -1218,7 +1223,7 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 	vfs_node_t *old_node = vfs_node_get(&old_lr);
 	if (!old_node) {
 		fibril_rwlock_write_unlock(&namespace_rwlock);
-		ipc_answer_0(rid, ENOMEM);
+		async_answer_0(rid, ENOMEM);
 		free(old);
 		free(new);
 		return;
@@ -1228,7 +1233,7 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 	char *parentc = str_dup(newc);
 	if (!parentc) {
 		fibril_rwlock_write_unlock(&namespace_rwlock);
-		ipc_answer_0(rid, rc);
+		async_answer_0(rid, rc);
 		free(old);
 		free(new);
 		return;
@@ -1245,7 +1250,7 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 	free(parentc);	/* not needed anymore */
 	if (rc != EOK) {
 		fibril_rwlock_write_unlock(&namespace_rwlock);
-		ipc_answer_0(rid, rc);
+		async_answer_0(rid, rc);
 		free(old);
 		free(new);
 		return;
@@ -1255,7 +1260,7 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 	if ((old_node->fs_handle != new_par_lr.triplet.fs_handle) ||
 	    (old_node->devmap_handle != new_par_lr.triplet.devmap_handle)) {
 		fibril_rwlock_write_unlock(&namespace_rwlock);
-		ipc_answer_0(rid, EXDEV);	/* different file systems */
+		async_answer_0(rid, EXDEV);	/* different file systems */
 		free(old);
 		free(new);
 		return;
@@ -1273,7 +1278,7 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 		new_node = vfs_node_get(&new_lr);
 		if (!new_node) {
 			fibril_rwlock_write_unlock(&namespace_rwlock);
-			ipc_answer_0(rid, ENOMEM);
+			async_answer_0(rid, ENOMEM);
 			free(old);
 			free(new);
 			return;
@@ -1284,7 +1289,7 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 		break;
 	default:
 		fibril_rwlock_write_unlock(&namespace_rwlock);
-		ipc_answer_0(rid, ENOTEMPTY);
+		async_answer_0(rid, ENOTEMPTY);
 		free(old);
 		free(new);
 		return;
@@ -1296,7 +1301,7 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 		fibril_rwlock_write_unlock(&namespace_rwlock);
 		if (new_node)
 			vfs_node_put(new_node);
-		ipc_answer_0(rid, rc);
+		async_answer_0(rid, rc);
 		free(old);
 		free(new);
 		return;
@@ -1313,7 +1318,7 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 		vfs_node_put(old_node);
 		if (new_node)
 			vfs_node_put(new_node);
-		ipc_answer_0(rid, rc);
+		async_answer_0(rid, rc);
 		free(old);
 		free(new);
 		return;
@@ -1330,7 +1335,7 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 	
 	free(old);
 	free(new);
-	ipc_answer_0(rid, EOK);
+	async_answer_0(rid, EOK);
 }
 
 void vfs_dup(ipc_callid_t rid, ipc_call_t *request)
@@ -1338,16 +1343,16 @@ void vfs_dup(ipc_callid_t rid, ipc_call_t *request)
 	int oldfd = IPC_GET_ARG1(*request);
 	int newfd = IPC_GET_ARG2(*request);
 	
-	/* Lookup the file structure corresponding to oldfd. */
-	vfs_file_t *oldfile = vfs_file_get(oldfd);
-	if (!oldfile) {
-		ipc_answer_0(rid, EBADF);
+	/* If the file descriptors are the same, do nothing. */
+	if (oldfd == newfd) {
+		async_answer_1(rid, EOK, newfd);
 		return;
 	}
 	
-	/* If the file descriptors are the same, do nothing. */
-	if (oldfd == newfd) {
-		ipc_answer_1(rid, EOK, newfd);
+	/* Lookup the file structure corresponding to oldfd. */
+	vfs_file_t *oldfile = vfs_file_get(oldfd);
+	if (!oldfile) {
+		async_answer_0(rid, EBADF);
 		return;
 	}
 	
@@ -1364,26 +1369,32 @@ void vfs_dup(ipc_callid_t rid, ipc_call_t *request)
 		int ret = vfs_close_internal(newfile);
 		if (ret != EOK) {
 			fibril_mutex_unlock(&oldfile->lock);
-			ipc_answer_0(rid, ret);
+			vfs_file_put(oldfile);
+			vfs_file_put(newfile);
+			async_answer_0(rid, ret);
 			return;
 		}
 		
 		ret = vfs_fd_free(newfd);
 		if (ret != EOK) {
 			fibril_mutex_unlock(&oldfile->lock);
-			ipc_answer_0(rid, ret);
+			vfs_file_put(oldfile);
+			vfs_file_put(newfile);
+			async_answer_0(rid, ret);
 			return;
 		}
+		vfs_file_put(newfile);
 	}
 	
 	/* Assign the old file to newfd. */
 	int ret = vfs_fd_assign(oldfile, newfd);
 	fibril_mutex_unlock(&oldfile->lock);
+	vfs_file_put(oldfile);
 	
 	if (ret != EOK)
-		ipc_answer_0(rid, ret);
+		async_answer_0(rid, ret);
 	else
-		ipc_answer_1(rid, EOK, newfd);
+		async_answer_1(rid, EOK, newfd);
 }
 
 /**

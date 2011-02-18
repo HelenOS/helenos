@@ -33,7 +33,6 @@
 #ifndef TMPFS_TMPFS_H_
 #define TMPFS_TMPFS_H_
 
-#include <ipc/ipc.h>
 #include <libfs.h>
 #include <atomic.h>
 #include <sys/types.h>

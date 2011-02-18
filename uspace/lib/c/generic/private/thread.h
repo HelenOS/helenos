@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009 Lukas Mejdrech
+ * Copyright (c) 2011 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,36 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libnet 
- *  @{
+/** @addtogroup libc
+ * @{
+ */
+/** @file
  */
 
-#ifndef LIBNET_ICMP_INTERFACE_H_
-#define LIBNET_ICMP_INTERFACE_H_
+#ifndef LIBC_PRIVATE_THREAD_H_
+#define LIBC_PRIVATE_THREAD_H_
 
-#include <net/socket_codes.h>
-#include <sys/types.h>
+#include <kernel/proc/uarg.h>
 
-#include <net/device.h>
-#include <adt/measured_strings.h>
-#include <net/packet.h>
-#include <net/inet.h>
-#include <net/ip_codes.h>
-#include <net/icmp_codes.h>
-#include <net/icmp_common.h>
-
-/** @name ICMP module interface
- * This interface is used by other modules.
- */
-/*@{*/
-
-extern int icmp_destination_unreachable_msg(int, icmp_code_t, icmp_param_t,
-    packet_t *);
-extern int icmp_source_quench_msg(int, packet_t *);
-extern int icmp_time_exceeded_msg(int, icmp_code_t, packet_t *);
-extern int icmp_parameter_problem_msg(int, icmp_code_t, icmp_param_t, packet_t *);
-
-/*@}*/
+extern void __thread_entry(void);
+extern void __thread_main(uspace_arg_t *);
 
 #endif
 

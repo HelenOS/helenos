@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -43,8 +44,9 @@
 #include <str.h>
 #include <ctype.h>
 #include <macros.h>
+#include <str_error.h>
 
-#include <driver.h>
+#include <ddf/driver.h>
 #include <devman.h>
 #include <ipc/devman.h>
 #include <ipc/dev_iface.h>
@@ -60,81 +62,80 @@
 #define CONF_ADDR(bus, dev, fn, reg) \
 	((1 << 31) | (bus << 16) | (dev << 11) | (fn << 8) | (reg & ~3))
 
-static hw_resource_list_t *pciintel_get_child_resources(device_t *dev)
+/** Obtain PCI function soft-state from DDF function node */
+#define PCI_FUN(fnode) ((pci_fun_t *) (fnode)->driver_data)
+
+/** Obtain PCI bus soft-state from DDF device node */
+#define PCI_BUS(dnode) ((pci_bus_t *) (dnode)->driver_data)
+
+/** Obtain PCI bus soft-state from function soft-state */
+#define PCI_BUS_FROM_FUN(fun) ((fun)->busptr)
+
+static hw_resource_list_t *pciintel_get_resources(ddf_fun_t *fnode)
 {
-	pci_dev_data_t *dev_data = (pci_dev_data_t *) dev->driver_data;
+	pci_fun_t *fun = PCI_FUN(fnode);
 	
-	if (dev_data == NULL)
+	if (fun == NULL)
 		return NULL;
-	return &dev_data->hw_resources;
+	return &fun->hw_resources;
 }
 
-static bool pciintel_enable_child_interrupt(device_t *dev)
+static bool pciintel_enable_interrupt(ddf_fun_t *fnode)
 {
 	/* TODO */
 	
 	return false;
 }
 
-static hw_res_ops_t pciintel_child_hw_res_ops = {
-	&pciintel_get_child_resources,
-	&pciintel_enable_child_interrupt
+static hw_res_ops_t pciintel_hw_res_ops = {
+	&pciintel_get_resources,
+	&pciintel_enable_interrupt
 };
 
-static device_ops_t pci_child_ops;
+static ddf_dev_ops_t pci_fun_ops;
 
-static int pci_add_device(device_t *);
+static int pci_add_device(ddf_dev_t *);
 
-/** The pci bus driver's standard operations. */
+/** PCI bus driver standard operations */
 static driver_ops_t pci_ops = {
 	.add_device = &pci_add_device
 };
 
-/** The pci bus driver structure. */
+/** PCI bus driver structure */
 static driver_t pci_driver = {
 	.name = NAME,
 	.driver_ops = &pci_ops
 };
 
-typedef struct pciintel_bus_data {
-	uint32_t conf_io_addr;
-	void *conf_data_port;
-	void *conf_addr_port;
-	fibril_mutex_t conf_mutex;
-} pci_bus_data_t;
-
-static pci_bus_data_t *create_pci_bus_data(void)
+static pci_bus_t *pci_bus_new(void)
 {
-	pci_bus_data_t *bus_data;
+	pci_bus_t *bus;
 	
-	bus_data = (pci_bus_data_t *) malloc(sizeof(pci_bus_data_t));
-	if (bus_data != NULL) {
-		memset(bus_data, 0, sizeof(pci_bus_data_t));
-		fibril_mutex_initialize(&bus_data->conf_mutex);
-	}
-
-	return bus_data;
+	bus = (pci_bus_t *) calloc(1, sizeof(pci_bus_t));
+	if (bus == NULL)
+		return NULL;
+	
+	fibril_mutex_initialize(&bus->conf_mutex);
+	return bus;
 }
 
-static void delete_pci_bus_data(pci_bus_data_t *bus_data)
+static void pci_bus_delete(pci_bus_t *bus)
 {
-	free(bus_data);
+	assert(bus != NULL);
+	free(bus);
 }
 
-static void pci_conf_read(device_t *dev, int reg, uint8_t *buf, size_t len)
+static void pci_conf_read(pci_fun_t *fun, int reg, uint8_t *buf, size_t len)
 {
-	assert(dev->parent != NULL);
+	pci_bus_t *bus = PCI_BUS_FROM_FUN(fun);
 	
-	pci_dev_data_t *dev_data = (pci_dev_data_t *) dev->driver_data;
-	pci_bus_data_t *bus_data = (pci_bus_data_t *) dev->parent->driver_data;
-	
-	fibril_mutex_lock(&bus_data->conf_mutex);
+	fibril_mutex_lock(&bus->conf_mutex);
 	
 	uint32_t conf_addr;
-	conf_addr = CONF_ADDR(dev_data->bus, dev_data->dev, dev_data->fn, reg);
-	void *addr = bus_data->conf_data_port + (reg & 3);
+	conf_addr = CONF_ADDR(fun->bus, fun->dev, fun->fn, reg);
+	void *addr = bus->conf_data_port + (reg & 3);
 	
-	pio_write_32(bus_data->conf_addr_port, conf_addr);
+	pio_write_32(bus->conf_addr_port, conf_addr);
 	
 	switch (len) {
 	case 1:
@@ -148,23 +149,20 @@ static void pci_conf_read(device_t *dev, int reg, uint8_t *buf, size_t len)
 		break;
 	}
 	
-	fibril_mutex_unlock(&bus_data->conf_mutex);
+	fibril_mutex_unlock(&bus->conf_mutex);
 }
 
-static void pci_conf_write(device_t *dev, int reg, uint8_t *buf, size_t len)
+static void pci_conf_write(pci_fun_t *fun, int reg, uint8_t *buf, size_t len)
 {
-	assert(dev->parent != NULL);
+	pci_bus_t *bus = PCI_BUS_FROM_FUN(fun);
 	
-	pci_dev_data_t *dev_data = (pci_dev_data_t *) dev->driver_data;
-	pci_bus_data_t *bus_data = (pci_bus_data_t *) dev->parent->driver_data;
-	
-	fibril_mutex_lock(&bus_data->conf_mutex);
+	fibril_mutex_lock(&bus->conf_mutex);
 	
 	uint32_t conf_addr;
-	conf_addr = CONF_ADDR(dev_data->bus, dev_data->dev, dev_data->fn, reg);
-	void *addr = bus_data->conf_data_port + (reg & 3);
+	conf_addr = CONF_ADDR(fun->bus, fun->dev, fun->fn, reg);
+	void *addr = bus->conf_data_port + (reg & 3);
 	
-	pio_write_32(bus_data->conf_addr_port, conf_addr);
+	pio_write_32(bus->conf_addr_port, conf_addr);
 	
 	switch (len) {
 	case 1:
@@ -178,68 +176,71 @@ static void pci_conf_write(device_t *dev, int reg, uint8_t *buf, size_t len)
 		break;
 	}
 	
-	fibril_mutex_unlock(&bus_data->conf_mutex);
+	fibril_mutex_unlock(&bus->conf_mutex);
 }
 
-uint8_t pci_conf_read_8(device_t *dev, int reg)
+uint8_t pci_conf_read_8(pci_fun_t *fun, int reg)
 {
 	uint8_t res;
-	pci_conf_read(dev, reg, &res, 1);
+	pci_conf_read(fun, reg, &res, 1);
 	return res;
 }
 
-uint16_t pci_conf_read_16(device_t *dev, int reg)
+uint16_t pci_conf_read_16(pci_fun_t *fun, int reg)
 {
 	uint16_t res;
-	pci_conf_read(dev, reg, (uint8_t *) &res, 2);
+	pci_conf_read(fun, reg, (uint8_t *) &res, 2);
 	return res;
 }
 
-uint32_t pci_conf_read_32(device_t *dev, int reg)
+uint32_t pci_conf_read_32(pci_fun_t *fun, int reg)
 {
 	uint32_t res;
-	pci_conf_read(dev, reg, (uint8_t *) &res, 4);
+	pci_conf_read(fun, reg, (uint8_t *) &res, 4);
 	return res;
 }
 
-void pci_conf_write_8(device_t *dev, int reg, uint8_t val)
+void pci_conf_write_8(pci_fun_t *fun, int reg, uint8_t val)
 {
-	pci_conf_write(dev, reg, (uint8_t *) &val, 1);
+	pci_conf_write(fun, reg, (uint8_t *) &val, 1);
 }
 
-void pci_conf_write_16(device_t *dev, int reg, uint16_t val)
+void pci_conf_write_16(pci_fun_t *fun, int reg, uint16_t val)
 {
-	pci_conf_write(dev, reg, (uint8_t *) &val, 2);
+	pci_conf_write(fun, reg, (uint8_t *) &val, 2);
 }
 
-void pci_conf_write_32(device_t *dev, int reg, uint32_t val)
+void pci_conf_write_32(pci_fun_t *fun, int reg, uint32_t val)
 {
-	pci_conf_write(dev, reg, (uint8_t *) &val, 4);
+	pci_conf_write(fun, reg, (uint8_t *) &val, 4);
 }
 
-void create_pci_match_ids(device_t *dev)
+void pci_fun_create_match_ids(pci_fun_t *fun)
 {
-	pci_dev_data_t *dev_data = (pci_dev_data_t *) dev->driver_data;
-	match_id_t *match_id = NULL;
 	char *match_id_str;
+	int rc;
 	
-	match_id = create_match_id();
-	if (match_id != NULL) {
-		asprintf(&match_id_str, "pci/ven=%04x&dev=%04x",
-		    dev_data->vendor_id, dev_data->device_id);
-		match_id->id = match_id_str;
-		match_id->score = 90;
-		add_match_id(&dev->match_ids, match_id);
+	asprintf(&match_id_str, "pci/ven=%04x&dev=%04x",
+	    fun->vendor_id, fun->device_id);
+
+	if (match_id_str == NULL) {
+		printf(NAME ": out of memory creating match ID.\n");
+		return;
 	}
 
+	rc = ddf_fun_add_match_id(fun->fnode, match_id_str, 90);
+	if (rc != EOK) {
+		printf(NAME ": error adding match ID: %s\n",
+		    str_error(rc));
+	}
+	
 	/* TODO add more ids (with subsys ids, using class id etc.) */
 }
 
-void
-pci_add_range(device_t *dev, uint64_t range_addr, size_t range_size, bool io)
+void pci_add_range(pci_fun_t *fun, uint64_t range_addr, size_t range_size,
+    bool io)
 {
-	pci_dev_data_t *dev_data = (pci_dev_data_t *) dev->driver_data;
-	hw_resource_list_t *hw_res_list = &dev_data->hw_resources;
+	hw_resource_list_t *hw_res_list = &fun->hw_resources;
 	hw_resource_t *hw_resources =  hw_res_list->resources;
 	size_t count = hw_res_list->count;
 	
@@ -264,13 +265,13 @@ pci_add_range(device_t *dev, uint64_t range_addr, size_t range_size, bool io)
 /** Read the base address register (BAR) of the device and if it contains valid
  * address add it to the devices hw resource list.
  *
- * @param dev	The pci device.
+ * @param fun	PCI function
  * @param addr	The address of the BAR in the PCI configuration address space of
- *		the device.
- * @return	The addr the address of the BAR which should be read next.
+ *		the device
+ * @return	The addr the address of the BAR which should be read next
  */
-int pci_read_bar(device_t *dev, int addr)
-{	
+int pci_read_bar(pci_fun_t *fun, int addr)
+{
 	/* Value of the BAR */
 	uint32_t val, mask;
 	/* IO space address */
@@ -284,7 +285,7 @@ int pci_read_bar(device_t *dev, int addr)
 	uint64_t range_addr;
 	
 	/* Get the value of the BAR. */
-	val = pci_conf_read_32(dev, addr);
+	val = pci_conf_read_32(fun, addr);
 	
 	io = (bool) (val & 1);
 	if (io) {
@@ -304,29 +305,29 @@ int pci_read_bar(device_t *dev, int addr)
 	}
 	
 	/* Get the address mask. */
-	pci_conf_write_32(dev, addr, 0xffffffff);
-	mask = pci_conf_read_32(dev, addr);
+	pci_conf_write_32(fun, addr, 0xffffffff);
+	mask = pci_conf_read_32(fun, addr);
 	
 	/* Restore the original value. */
-	pci_conf_write_32(dev, addr, val);
-	val = pci_conf_read_32(dev, addr);
+	pci_conf_write_32(fun, addr, val);
+	val = pci_conf_read_32(fun, addr);
 	
 	range_size = pci_bar_mask_to_size(mask);
 	
 	if (addrw64) {
-		range_addr = ((uint64_t)pci_conf_read_32(dev, addr + 4) << 32) |
+		range_addr = ((uint64_t)pci_conf_read_32(fun, addr + 4) << 32) |
 		    (val & 0xfffffff0);
 	} else {
 		range_addr = (val & 0xfffffff0);
 	}
 	
 	if (range_addr != 0) {
-		printf(NAME ": device %s : ", dev->name);
+		printf(NAME ": function %s : ", fun->fnode->name);
 		printf("address = %" PRIx64, range_addr);
 		printf(", size = %x\n", (unsigned int) range_size);
 	}
 	
-	pci_add_range(dev, range_addr, range_size, io);
+	pci_add_range(fun, range_addr, range_size, io);
 	
 	if (addrw64)
 		return addr + 8;
@@ -334,10 +335,9 @@ int pci_read_bar(device_t *dev, int addr)
 	return addr + 4;
 }
 
-void pci_add_interrupt(device_t *dev, int irq)
+void pci_add_interrupt(pci_fun_t *fun, int irq)
 {
-	pci_dev_data_t *dev_data = (pci_dev_data_t *) dev->driver_data;
-	hw_resource_list_t *hw_res_list = &dev_data->hw_resources;
+	hw_resource_list_t *hw_res_list = &fun->hw_resources;
 	hw_resource_t *hw_resources = hw_res_list->resources;
 	size_t count = hw_res_list->count;
 	
@@ -349,42 +349,42 @@ void pci_add_interrupt(device_t *dev, int irq)
 	
 	hw_res_list->count++;
 	
-	printf(NAME ": device %s uses irq %x.\n", dev->name, irq);
+	printf(NAME ": function %s uses irq %x.\n", fun->fnode->name, irq);
 }
 
-void pci_read_interrupt(device_t *dev)
+void pci_read_interrupt(pci_fun_t *fun)
 {
-	uint8_t irq = pci_conf_read_8(dev, PCI_BRIDGE_INT_LINE);
+	uint8_t irq = pci_conf_read_8(fun, PCI_BRIDGE_INT_LINE);
 	if (irq != 0xff)
-		pci_add_interrupt(dev, irq);
+		pci_add_interrupt(fun, irq);
 }
 
 /** Enumerate (recursively) and register the devices connected to a pci bus.
  *
- * @param parent	The host-to-pci bridge device.
- * @param bus_num	The bus number.
+ * @param bus		Host-to-PCI bridge
+ * @param bus_num	Bus number
  */
-void pci_bus_scan(device_t *parent, int bus_num) 
+void pci_bus_scan(pci_bus_t *bus, int bus_num) 
 {
-	device_t *dev = create_device();
-	pci_dev_data_t *dev_data = create_pci_dev_data();
-	dev->driver_data = dev_data;
-	dev->parent = parent;
+	ddf_fun_t *fnode;
+	pci_fun_t *fun;
 	
 	int child_bus = 0;
 	int dnum, fnum;
 	bool multi;
-	uint8_t header_type; 
+	uint8_t header_type;
+	
+	fun = pci_fun_new(bus);
 	
 	for (dnum = 0; dnum < 32; dnum++) {
 		multi = true;
 		for (fnum = 0; multi && fnum < 8; fnum++) {
-			init_pci_dev_data(dev_data, bus_num, dnum, fnum);
-			dev_data->vendor_id = pci_conf_read_16(dev,
+			pci_fun_init(fun, bus_num, dnum, fnum);
+			fun->vendor_id = pci_conf_read_16(fun,
 			    PCI_VENDOR_ID);
-			dev_data->device_id = pci_conf_read_16(dev,
+			fun->device_id = pci_conf_read_16(fun,
 			    PCI_DEVICE_ID);
-			if (dev_data->vendor_id == 0xffff) {
+			if (fun->vendor_id == 0xffff) {
 				/*
 				 * The device is not present, go on scanning the
 				 * bus.
@@ -395,7 +395,7 @@ void pci_bus_scan(device_t *parent, int bus_num)
 					continue;
 			}
 			
-			header_type = pci_conf_read_8(dev, PCI_HEADER_TYPE);
+			header_type = pci_conf_read_8(fun, PCI_HEADER_TYPE);
 			if (fnum == 0) {
 				/* Is the device multifunction? */
 				multi = header_type >> 7;
@@ -403,83 +403,98 @@ void pci_bus_scan(device_t *parent, int bus_num)
 			/* Clear the multifunction bit. */
 			header_type = header_type & 0x7F;
 			
-			create_pci_dev_name(dev);
+			char *fun_name = pci_fun_create_name(fun);
+			if (fun_name == NULL) {
+				printf(NAME ": out of memory.\n");
+				return;
+			}
 			
-			pci_alloc_resource_list(dev);
-			pci_read_bars(dev);
-			pci_read_interrupt(dev);
+			fnode = ddf_fun_create(bus->dnode, fun_inner, fun_name);
+			if (fnode == NULL) {
+				printf(NAME ": error creating function.\n");
+				return;
+			}
 			
-			dev->ops = &pci_child_ops;
+			free(fun_name);
+			fun->fnode = fnode;
 			
-			printf(NAME ": adding new child device %s.\n",
-			    dev->name);
+			pci_alloc_resource_list(fun);
+			pci_read_bars(fun);
+			pci_read_interrupt(fun);
 			
-			create_pci_match_ids(dev);
+			fnode->ops = &pci_fun_ops;
+			fnode->driver_data = fun;
 			
-			if (child_device_register(dev, parent) != EOK) {
-				pci_clean_resource_list(dev);
-				clean_match_ids(&dev->match_ids);
-				free((char *) dev->name);
-				dev->name = NULL;
+			printf(NAME ": adding new function %s.\n",
+			    fnode->name);
+			
+			pci_fun_create_match_ids(fun);
+			
+			if (ddf_fun_bind(fnode) != EOK) {
+				pci_clean_resource_list(fun);
+				clean_match_ids(&fnode->match_ids);
+				free((char *) fnode->name);
+				fnode->name = NULL;
 				continue;
 			}
 			
 			if (header_type == PCI_HEADER_TYPE_BRIDGE ||
 			    header_type == PCI_HEADER_TYPE_CARDBUS) {
-				child_bus = pci_conf_read_8(dev,
+				child_bus = pci_conf_read_8(fun,
 				    PCI_BRIDGE_SEC_BUS_NUM);
 				printf(NAME ": device is pci-to-pci bridge, "
 				    "secondary bus number = %d.\n", bus_num);
 				if (child_bus > bus_num)
-					pci_bus_scan(parent, child_bus);
+					pci_bus_scan(bus, child_bus);
 			}
 			
-			/* Alloc new aux. dev. structure. */
-			dev = create_device();
-			dev_data = create_pci_dev_data();
-			dev->driver_data = dev_data;
-			dev->parent = parent;
+			fun = pci_fun_new(bus);
 		}
 	}
 	
-	if (dev_data->vendor_id == 0xffff) {
-		delete_device(dev);
-		/* Free the auxiliary device structure. */
-		delete_pci_dev_data(dev_data);
+	if (fun->vendor_id == 0xffff) {
+		/* Free the auxiliary function structure. */
+		pci_fun_delete(fun);
 	}
 }
 
-static int pci_add_device(device_t *dev)
+static int pci_add_device(ddf_dev_t *dnode)
 {
+	pci_bus_t *bus = NULL;
+	ddf_fun_t *ctl = NULL;
+	bool got_res = false;
 	int rc;
-
+	
 	printf(NAME ": pci_add_device\n");
+	dnode->parent_phone = -1;
 	
-	pci_bus_data_t *bus_data = create_pci_bus_data();
-	if (bus_data == NULL) {
+	bus = pci_bus_new();
+	if (bus == NULL) {
 		printf(NAME ": pci_add_device allocation failed.\n");
-		return ENOMEM;
+		rc = ENOMEM;
+		goto fail;
 	}
+	bus->dnode = dnode;
+	dnode->driver_data = bus;
 	
-	dev->parent_phone = devman_parent_device_connect(dev->handle,
+	dnode->parent_phone = devman_parent_device_connect(dnode->handle,
 	    IPC_FLAG_BLOCKING);
-	if (dev->parent_phone < 0) {
+	if (dnode->parent_phone < 0) {
 		printf(NAME ": pci_add_device failed to connect to the "
 		    "parent's driver.\n");
-		delete_pci_bus_data(bus_data);
-		return dev->parent_phone;
+		rc = dnode->parent_phone;
+		goto fail;
 	}
 	
 	hw_resource_list_t hw_resources;
 	
-	rc = hw_res_get_resource_list(dev->parent_phone, &hw_resources);
+	rc = hw_res_get_resource_list(dnode->parent_phone, &hw_resources);
 	if (rc != EOK) {
 		printf(NAME ": pci_add_device failed to get hw resources for "
 		    "the device.\n");
-		delete_pci_bus_data(bus_data);
-		ipc_hangup(dev->parent_phone);
-		return rc;
-	}	
+		goto fail;
+	}
+	got_res = true;
 	
 	printf(NAME ": conf_addr = %" PRIx64 ".\n",
 	    hw_resources.resources[0].res.io_range.address);
@@ -488,94 +503,115 @@ static int pci_add_device(device_t *dev)
 	assert(hw_resources.resources[0].type == IO_RANGE);
 	assert(hw_resources.resources[0].res.io_range.size == 8);
 	
-	bus_data->conf_io_addr =
+	bus->conf_io_addr =
 	    (uint32_t) hw_resources.resources[0].res.io_range.address;
 	
-	if (pio_enable((void *)(uintptr_t)bus_data->conf_io_addr, 8,
-	    &bus_data->conf_addr_port)) {
+	if (pio_enable((void *)(uintptr_t)bus->conf_io_addr, 8,
+	    &bus->conf_addr_port)) {
 		printf(NAME ": failed to enable configuration ports.\n");
-		delete_pci_bus_data(bus_data);
-		ipc_hangup(dev->parent_phone);
-		hw_res_clean_resource_list(&hw_resources);
-		return EADDRNOTAVAIL;
+		rc = EADDRNOTAVAIL;
+		goto fail;
 	}
-	bus_data->conf_data_port = (char *) bus_data->conf_addr_port + 4;
+	bus->conf_data_port = (char *) bus->conf_addr_port + 4;
 	
-	dev->driver_data = bus_data;
+	/* Make the bus device more visible. It has no use yet. */
+	printf(NAME ": adding a 'ctl' function\n");
 	
-	/* Enumerate child devices. */
+	ctl = ddf_fun_create(bus->dnode, fun_exposed, "ctl");
+	if (ctl == NULL) {
+		printf(NAME ": error creating control function.\n");
+		rc = ENOMEM;
+		goto fail;
+	}
+	
+	rc = ddf_fun_bind(ctl);
+	if (rc != EOK) {
+		printf(NAME ": error binding control function.\n");
+		goto fail;
+	}
+	
+	/* Enumerate functions. */
 	printf(NAME ": scanning the bus\n");
-	pci_bus_scan(dev, 0);
+	pci_bus_scan(bus, 0);
 	
 	hw_res_clean_resource_list(&hw_resources);
 	
 	return EOK;
+	
+fail:
+	if (bus != NULL)
+		pci_bus_delete(bus);
+	if (dnode->parent_phone >= 0)
+		async_hangup(dnode->parent_phone);
+	if (got_res)
+		hw_res_clean_resource_list(&hw_resources);
+	if (ctl != NULL)
+		ddf_fun_destroy(ctl);
+
+	return rc;
 }
 
 static void pciintel_init(void)
 {
-	pci_child_ops.interfaces[HW_RES_DEV_IFACE] = &pciintel_child_hw_res_ops;
+	pci_fun_ops.interfaces[HW_RES_DEV_IFACE] = &pciintel_hw_res_ops;
 }
 
-pci_dev_data_t *create_pci_dev_data(void)
+pci_fun_t *pci_fun_new(pci_bus_t *bus)
 {
-	pci_dev_data_t *res = (pci_dev_data_t *) malloc(sizeof(pci_dev_data_t));
+	pci_fun_t *fun;
 	
-	if (res != NULL)
-		memset(res, 0, sizeof(pci_dev_data_t));
-	return res;
+	fun = (pci_fun_t *) calloc(1, sizeof(pci_fun_t));
+	if (fun == NULL)
+		return NULL;
+
+	fun->busptr = bus;
+	return fun;
 }
 
-void init_pci_dev_data(pci_dev_data_t *dev_data, int bus, int dev, int fn)
+void pci_fun_init(pci_fun_t *fun, int bus, int dev, int fn)
 {
-	dev_data->bus = bus;
-	dev_data->dev = dev;
-	dev_data->fn = fn;
+	fun->bus = bus;
+	fun->dev = dev;
+	fun->fn = fn;
 }
 
-void delete_pci_dev_data(pci_dev_data_t *dev_data)
+void pci_fun_delete(pci_fun_t *fun)
 {
-	if (dev_data != NULL) {
-		hw_res_clean_resource_list(&dev_data->hw_resources);
-		free(dev_data);
-	}
+	assert(fun != NULL);
+	hw_res_clean_resource_list(&fun->hw_resources);
+	free(fun);
 }
 
-void create_pci_dev_name(device_t *dev)
+char *pci_fun_create_name(pci_fun_t *fun)
 {
-	pci_dev_data_t *dev_data = (pci_dev_data_t *) dev->driver_data;
 	char *name = NULL;
 	
-	asprintf(&name, "%02x:%02x.%01x", dev_data->bus, dev_data->dev,
-	    dev_data->fn);
-	dev->name = name;
+	asprintf(&name, "%02x:%02x.%01x", fun->bus, fun->dev,
+	    fun->fn);
+	return name;
 }
 
-bool pci_alloc_resource_list(device_t *dev)
+bool pci_alloc_resource_list(pci_fun_t *fun)
 {
-	pci_dev_data_t *dev_data = (pci_dev_data_t *)dev->driver_data;
-	
-	dev_data->hw_resources.resources =
+	fun->hw_resources.resources =
 	    (hw_resource_t *) malloc(PCI_MAX_HW_RES * sizeof(hw_resource_t));
-	return dev_data->hw_resources.resources != NULL;
+	return fun->hw_resources.resources != NULL;
 }
 
-void pci_clean_resource_list(device_t *dev)
+void pci_clean_resource_list(pci_fun_t *fun)
 {
-	pci_dev_data_t *dev_data = (pci_dev_data_t *) dev->driver_data;
-	
-	if (dev_data->hw_resources.resources != NULL) {
-		free(dev_data->hw_resources.resources);
-		dev_data->hw_resources.resources = NULL;
+	if (fun->hw_resources.resources != NULL) {
+		free(fun->hw_resources.resources);
+		fun->hw_resources.resources = NULL;
 	}
 }
 
-/** Read the base address registers (BARs) of the device and adds the addresses
- * to its hw resource list.
+/** Read the base address registers (BARs) of the function and add the addresses
+ * to its HW resource list.
  *
- * @param dev the pci device.
+ * @param fun	PCI function
  */
-void pci_read_bars(device_t *dev)
+void pci_read_bars(pci_fun_t *fun)
 {
 	/*
 	 * Position of the BAR in the PCI configuration address space of the
@@ -584,7 +620,7 @@ void pci_read_bars(device_t *dev)
 	int addr = PCI_BASE_ADDR_0;
 	
 	while (addr <= PCI_BASE_ADDR_5)
-		addr = pci_read_bar(dev, addr);
+		addr = pci_read_bar(fun, addr);
 }
 
 size_t pci_bar_mask_to_size(uint32_t mask)
@@ -596,7 +632,7 @@ int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS pci bus driver (intel method 1).\n");
 	pciintel_init();
-	return driver_main(&pci_driver);
+	return ddf_driver_main(&pci_driver);
 }
 
 /**

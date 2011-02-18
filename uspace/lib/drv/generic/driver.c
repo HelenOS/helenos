@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -48,18 +49,20 @@
 #include <ctype.h>
 #include <errno.h>
 #include <inttypes.h>
+#include <devman.h>
 
 #include <ipc/driver.h>
 
 #include "dev_iface.h"
-#include "driver.h"
+#include "ddf/driver.h"
+#include "ddf/interrupt.h"
 
 /** Driver structure */
 static driver_t *driver;
 
 /** Devices */
-LIST_INITIALIZE(devices);
-FIBRIL_MUTEX_INITIALIZE(devices_mutex);
+LIST_INITIALIZE(functions);
+FIBRIL_MUTEX_INITIALIZE(functions_mutex);
 
 /** Interrupts */
 static interrupt_context_list_t interrupt_contexts;
@@ -75,6 +78,10 @@ static irq_code_t default_pseudocode = {
 	default_cmds
 };
 
+static ddf_dev_t *create_device(void);
+static void delete_device(ddf_dev_t *);
+static remote_handler_t *function_get_default_handler(ddf_fun_t *);
+static void *function_get_ops(ddf_fun_t *, dev_inferface_idx_t);
 
 static void driver_irq_handler(ipc_callid_t iid, ipc_call_t *icall)
 {
@@ -149,7 +156,7 @@ find_interrupt_context_by_id(interrupt_context_list_t *list, int id)
 }
 
 interrupt_context_t *
-find_interrupt_context(interrupt_context_list_t *list, device_t *dev, int irq)
+find_interrupt_context(interrupt_context_list_t *list, ddf_dev_t *dev, int irq)
 {
 	fibril_mutex_lock(&list->mutex);
 	
@@ -171,7 +178,7 @@ find_interrupt_context(interrupt_context_list_t *list, device_t *dev, int irq)
 
 
 int
-register_interrupt_handler(device_t *dev, int irq, interrupt_handler_t *handler,
+register_interrupt_handler(ddf_dev_t *dev, int irq, interrupt_handler_t *handler,
     irq_code_t *pseudocode)
 {
 	interrupt_context_t *ctx = create_interrupt_context();
@@ -185,7 +192,7 @@ register_interrupt_handler(device_t *dev, int irq, interrupt_handler_t *handler,
 	if (pseudocode == NULL)
 		pseudocode = &default_pseudocode;
 	
-	int res = ipc_register_irq(irq, dev->handle, ctx->id, pseudocode);
+	int res = register_irq(irq, dev->handle, ctx->id, pseudocode);
 	if (res != EOK) {
 		remove_interrupt_context(&interrupt_contexts, ctx);
 		delete_interrupt_context(ctx);
@@ -194,11 +201,11 @@ register_interrupt_handler(device_t *dev, int irq, interrupt_handler_t *handler,
 	return res;
 }
 
-int unregister_interrupt_handler(device_t *dev, int irq)
+int unregister_interrupt_handler(ddf_dev_t *dev, int irq)
 {
 	interrupt_context_t *ctx = find_interrupt_context(&interrupt_contexts,
 	    dev, irq);
-	int res = ipc_unregister_irq(irq, dev->handle);
+	int res = unregister_irq(irq, dev->handle);
 	
 	if (ctx != NULL) {
 		remove_interrupt_context(&interrupt_contexts, ctx);
@@ -208,37 +215,38 @@ int unregister_interrupt_handler(device_t *dev, int irq)
 	return res;
 }
 
-static void add_to_devices_list(device_t *dev)
+static void add_to_functions_list(ddf_fun_t *fun)
 {
-	fibril_mutex_lock(&devices_mutex);
-	list_append(&dev->link, &devices);
-	fibril_mutex_unlock(&devices_mutex);
+	fibril_mutex_lock(&functions_mutex);
+	list_append(&fun->link, &functions);
+	fibril_mutex_unlock(&functions_mutex);
 }
 
-static void remove_from_devices_list(device_t *dev)
+static void remove_from_functions_list(ddf_fun_t *fun)
 {
-	fibril_mutex_lock(&devices_mutex);
-	list_remove(&dev->link);
-	fibril_mutex_unlock(&devices_mutex);
+	fibril_mutex_lock(&functions_mutex);
+	list_remove(&fun->link);
+	fibril_mutex_unlock(&functions_mutex);
 }
 
-static device_t *driver_get_device(link_t *devices, devman_handle_t handle)
+static ddf_fun_t *driver_get_function(link_t *functions, devman_handle_t handle)
 {
-	device_t *dev = NULL;
+	ddf_fun_t *fun = NULL;
 	
-	fibril_mutex_lock(&devices_mutex);
-	link_t *link = devices->next;
+	fibril_mutex_lock(&functions_mutex);
+	link_t *link = functions->next;
 	
-	while (link != devices) {
-		dev = list_get_instance(link, device_t, link);
-		if (dev->handle == handle) {
-			fibril_mutex_unlock(&devices_mutex);
-			return dev;
+	while (link != functions) {
+		fun = list_get_instance(link, ddf_fun_t, link);
+		if (fun->handle == handle) {
+			fibril_mutex_unlock(&functions_mutex);
+			return fun;
 		}
+		
 		link = link->next;
 	}
 	
-	fibril_mutex_unlock(&devices_mutex);
+	fibril_mutex_unlock(&functions_mutex);
 	
 	return NULL;
 }
@@ -249,16 +257,19 @@ static void driver_add_device(ipc_callid_t iid, ipc_call_t *icall)
 	int res;
 	
 	devman_handle_t dev_handle = IPC_GET_ARG1(*icall);
-    	devman_handle_t parent_dev_handle = IPC_GET_ARG2(*icall);
+    	devman_handle_t parent_fun_handle = IPC_GET_ARG2(*icall);
 	
-	device_t *dev = create_device();
+	ddf_dev_t *dev = create_device();
 	dev->handle = dev_handle;
-	
+
 	async_data_write_accept((void **) &dev_name, true, 0, 0, 0, 0);
 	dev->name = dev_name;
-	
-	add_to_devices_list(dev);
-	dev->parent = driver_get_device(&devices, parent_dev_handle);
+
+	/*
+	 * Currently not used, parent fun handle is stored in context
+	 * of the connection to the parent device driver.
+	 */
+	(void) parent_fun_handle;
 	
 	res = driver->driver_ops->add_device(dev);
 	if (res == EOK) {
@@ -267,17 +278,16 @@ static void driver_add_device(ipc_callid_t iid, ipc_call_t *icall)
 	} else {
 		printf("%s: failed to add a new device with handle = %" PRIun ".\n",
 		    driver->name, dev_handle);
-		remove_from_devices_list(dev);
 		delete_device(dev);
 	}
 	
-	ipc_answer_0(iid, res);
+	async_answer_0(iid, res);
 }
 
 static void driver_connection_devman(ipc_callid_t iid, ipc_call_t *icall)
 {
 	/* Accept connection */
-	ipc_answer_0(iid, EOK);
+	async_answer_0(iid, EOK);
 	
 	bool cont = true;
 	while (cont) {
@@ -292,7 +302,7 @@ static void driver_connection_devman(ipc_callid_t iid, ipc_call_t *icall)
 			driver_add_device(callid, &call);
 			break;
 		default:
-			ipc_answer_0(callid, ENOENT);
+			async_answer_0(callid, ENOENT);
 		}
 	}
 }
@@ -310,12 +320,12 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 	 * the device to which the client connected.
 	 */
 	devman_handle_t handle = IPC_GET_ARG2(*icall);
-	device_t *dev = driver_get_device(&devices, handle);
+	ddf_fun_t *fun = driver_get_function(&functions, handle);
 
-	if (dev == NULL) {
-		printf("%s: driver_connection_gen error - no device with handle"
+	if (fun == NULL) {
+		printf("%s: driver_connection_gen error - no function with handle"
 		    " %" PRIun " was found.\n", driver->name, handle);
-		ipc_answer_0(iid, ENOENT);
+		async_answer_0(iid, ENOENT);
 		return;
 	}
 	
@@ -326,11 +336,11 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 	 */
 	
 	int ret = EOK;
-	/* open the device */
-	if (dev->ops != NULL && dev->ops->open != NULL)
-		ret = (*dev->ops->open)(dev);
+	/* Open device function */
+	if (fun->ops != NULL && fun->ops->open != NULL)
+		ret = (*fun->ops->open)(fun);
 	
-	ipc_answer_0(iid, ret);
+	async_answer_0(iid, ret);
 	if (ret != EOK)
 		return;
 	
@@ -343,10 +353,10 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 		
 		switch  (method) {
 		case IPC_M_PHONE_HUNGUP:
-			/* close the device */
-			if (dev->ops != NULL && dev->ops->close != NULL)
-				(*dev->ops->close)(dev);
-			ipc_answer_0(callid, EOK);
+			/* Close device function */
+			if (fun->ops != NULL && fun->ops->close != NULL)
+				(*fun->ops->close)(fun);
+			async_answer_0(callid, EOK);
 			return;
 		default:
 			/* convert ipc interface id to interface index */
@@ -355,32 +365,33 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 			
 			if (!is_valid_iface_idx(iface_idx)) {
 				remote_handler_t *default_handler =
-				    device_get_default_handler(dev);
+				    function_get_default_handler(fun);
 				if (default_handler != NULL) {
-					(*default_handler)(dev, callid, &call);
+					(*default_handler)(fun, callid, &call);
 					break;
 				}
+				
 				/*
-				 * This is not device's interface and the
+				 * Function has no such interface and
 				 * default handler is not provided.
 				 */
 				printf("%s: driver_connection_gen error - "
 				    "invalid interface id %d.",
 				    driver->name, iface_idx);
-				ipc_answer_0(callid, ENOTSUP);
+				async_answer_0(callid, ENOTSUP);
 				break;
 			}
 			
-			/* calling one of the device's interfaces */
+			/* calling one of the function's interfaces */
 			
 			/* Get the interface ops structure. */
-			void *ops = device_get_ops(dev, iface_idx);
+			void *ops = function_get_ops(fun, iface_idx);
 			if (ops == NULL) {
 				printf("%s: driver_connection_gen error - ",
 				    driver->name);
-				printf("device with handle %" PRIun " has no interface "
+				printf("Function with handle %" PRIun " has no interface "
 				    "with id %d.\n", handle, iface_idx);
-				ipc_answer_0(callid, ENOTSUP);
+				async_answer_0(callid, ENOTSUP);
 				break;
 			}
 			
@@ -399,7 +410,7 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 				// the interface has not such method
 				printf("%s: driver_connection_gen error - "
 				    "invalid interface method.", driver->name);
-				ipc_answer_0(callid, ENOTSUP);
+				async_answer_0(callid, ENOTSUP);
 				break;
 			}
 			
@@ -407,9 +418,9 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 			 * Call the remote interface's method, which will
 			 * receive parameters from the remote client and it will
 			 * pass it to the corresponding local interface method
-			 * associated with the device by its driver.
+			 * associated with the function by its driver.
 			 */
-			(*iface_method_ptr)(dev, ops, callid, &call);
+			(*iface_method_ptr)(fun, ops, callid, &call);
 			break;
 		}
 	}
@@ -424,7 +435,6 @@ static void driver_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 {
 	driver_connection_gen(iid, icall, false);
 }
-
 
 /** Function for handling connections to device driver. */
 static void driver_connection(ipc_callid_t iid, ipc_call_t *icall)
@@ -445,7 +455,7 @@ static void driver_connection(ipc_callid_t iid, ipc_call_t *icall)
 		break;
 	default:
 		/* No such interface */
-		ipc_answer_0(iid, ENOENT);
+		async_answer_0(iid, ENOENT);
 	}
 }
 
@@ -453,122 +463,202 @@ static void driver_connection(ipc_callid_t iid, ipc_call_t *icall)
  *
  * @return		The device structure.
  */
-device_t *create_device(void)
+static ddf_dev_t *create_device(void)
 {
-	device_t *dev = malloc(sizeof(device_t));
+	ddf_dev_t *dev;
 
-	if (dev != NULL) {
-		memset(dev, 0, sizeof(device_t));
-		init_match_ids(&dev->match_ids);
-	}
+	dev = malloc(sizeof(ddf_dev_t));
+	if (dev == NULL)
+		return NULL;
 
+	memset(dev, 0, sizeof(ddf_dev_t));
 	return dev;
+}
+
+/** Create new function structure.
+ *
+ * @return		The device structure.
+ */
+static ddf_fun_t *create_function(void)
+{
+	ddf_fun_t *fun;
+
+	fun = calloc(1, sizeof(ddf_fun_t));
+	if (fun == NULL)
+		return NULL;
+
+	init_match_ids(&fun->match_ids);
+	link_initialize(&fun->link);
+
+	return fun;
 }
 
 /** Delete device structure.
  *
  * @param dev		The device structure.
  */
-void delete_device(device_t *dev)
+static void delete_device(ddf_dev_t *dev)
 {
-	clean_match_ids(&dev->match_ids);
-	if (dev->name != NULL)
-		free(dev->name);
 	free(dev);
 }
 
-void *device_get_ops(device_t *dev, dev_inferface_idx_t idx)
+/** Delete device structure.
+ *
+ * @param dev		The device structure.
+ */
+static void delete_function(ddf_fun_t *fun)
 {
-	assert(is_valid_iface_idx(idx));
-	if (dev->ops == NULL)
-		return NULL;
-	return dev->ops->interfaces[idx];
+	clean_match_ids(&fun->match_ids);
+	if (fun->name != NULL)
+		free(fun->name);
+	free(fun);
 }
 
-int child_device_register(device_t *child, device_t *parent)
+/** Create a DDF function node.
+ *
+ * Create a DDF function (in memory). Both child devices and external clients
+ * communicate with a device via its functions.
+ *
+ * The created function node is fully formed, but only exists in the memory
+ * of the client task. In order to be visible to the system, the function
+ * must be bound using ddf_fun_bind().
+ *
+ * This function should only fail if there is not enough free memory.
+ * Specifically, this function succeeds even if @a dev already has
+ * a (bound) function with the same name.
+ *
+ * Type: A function of type fun_inner indicates that DDF should attempt
+ * to attach child devices to the function. fun_exposed means that
+ * the function should be exported to external clients (applications).
+ *
+ * @param dev		Device to which we are adding function
+ * @param ftype		Type of function (fun_inner or fun_exposed)
+ * @param name		Name of function
+ *
+ * @return		New function or @c NULL if memory is not available
+ */
+ddf_fun_t *ddf_fun_create(ddf_dev_t *dev, fun_type_t ftype, const char *name)
 {
-	assert(child->name != NULL);
+	ddf_fun_t *fun;
+
+	fun = create_function();
+	if (fun == NULL)
+		return NULL;
+
+	fun->bound = false;
+	fun->dev = dev;
+	fun->ftype = ftype;
+
+	fun->name = str_dup(name);
+	if (fun->name == NULL) {
+		delete_function(fun);
+		return NULL;
+	}
+
+	return fun;
+}
+
+/** Destroy DDF function node.
+ *
+ * Destroy a function previously created with ddf_fun_create(). The function
+ * must not be bound.
+ *
+ * @param fun		Function to destroy
+ */
+void ddf_fun_destroy(ddf_fun_t *fun)
+{
+	assert(fun->bound == false);
+	delete_function(fun);
+}
+
+static void *function_get_ops(ddf_fun_t *fun, dev_inferface_idx_t idx)
+{
+	assert(is_valid_iface_idx(idx));
+	if (fun->ops == NULL)
+		return NULL;
+	return fun->ops->interfaces[idx];
+}
+
+/** Bind a function node.
+ *
+ * Bind the specified function to the system. This effectively makes
+ * the function visible to the system (uploads it to the server).
+ *
+ * This function can fail for several reasons. Specifically,
+ * it will fail if the device already has a bound function of
+ * the same name.
+ *
+ * @param fun		Function to bind
+ * @return		EOK on success or negative error code
+ */
+int ddf_fun_bind(ddf_fun_t *fun)
+{
+	assert(fun->name != NULL);
 	
 	int res;
 	
-	add_to_devices_list(child);
-	res = devman_child_device_register(child->name, &child->match_ids,
-	    parent->handle, &child->handle);
+	add_to_functions_list(fun);
+	res = devman_add_function(fun->name, fun->ftype, &fun->match_ids,
+	    fun->dev->handle, &fun->handle);
 	if (res != EOK) {
-		remove_from_devices_list(child);
+		remove_from_functions_list(fun);
 		return res;
 	}
 	
+	fun->bound = true;
 	return res;
 }
 
-/** Wrapper for child_device_register for devices with single match id.
+/** Add single match ID to inner function.
  *
- * @param parent Parent device.
- * @param child_name Child device name.
- * @param child_match_id Child device match id.
- * @param child_match_score Child device match score.
- * @return Error code.
+ * Construct and add a single match ID to the specified function.
+ * Cannot be called when the function node is bound.
+ *
+ * @param fun			Function
+ * @param match_id_str		Match string
+ * @param match_score		Match score
+ * @return			EOK on success, ENOMEM if out of memory.
  */
-int child_device_register_wrapper(device_t *parent, const char *child_name,
-    const char *child_match_id, int child_match_score)
+int ddf_fun_add_match_id(ddf_fun_t *fun, const char *match_id_str,
+    int match_score)
 {
-	device_t *child = NULL;
-	match_id_t *match_id = NULL;
-	int rc;
+	match_id_t *match_id;
 	
-	child = create_device();
-	if (child == NULL) {
-		rc = ENOMEM;
-		goto failure;
-	}
-	
-	child->name = child_name;
+	assert(fun->bound == false);
+	assert(fun->ftype == fun_inner);
 	
 	match_id = create_match_id();
-	if (match_id == NULL) {
-		rc = ENOMEM;
-		goto failure;
-	}
+	if (match_id == NULL)
+		return ENOMEM;
 	
-	match_id->id = child_match_id;
-	match_id->score = child_match_score;
-	add_match_id(&child->match_ids, match_id);
+	match_id->id = match_id_str;
+	match_id->score = 90;
 	
-	rc = child_device_register(child, parent);
-	if (rc != EOK)
-		goto failure;
-	
+	add_match_id(&fun->match_ids, match_id);
 	return EOK;
-	
-failure:
-	if (match_id != NULL) {
-		match_id->id = NULL;
-		delete_match_id(match_id);
-	}
-	
-	if (child != NULL) {
-		child->name = NULL;
-		delete_device(child);
-	}
-	
-	return rc;
 }
 
 /** Get default handler for client requests */
-remote_handler_t *device_get_default_handler(device_t *dev)
+static remote_handler_t *function_get_default_handler(ddf_fun_t *fun)
 {
-	if (dev->ops == NULL)
+	if (fun->ops == NULL)
 		return NULL;
-	return dev->ops->default_handler;
+	return fun->ops->default_handler;
 }
 
-int add_device_to_class(device_t *dev, const char *class_name)
+/** Add exposed function to class.
+ *
+ * Must only be called when the function is bound.
+ */
+int ddf_fun_add_to_class(ddf_fun_t *fun, const char *class_name)
 {
-	return devman_add_device_to_class(dev->handle, class_name);
+	assert(fun->bound == true);
+	assert(fun->ftype == fun_exposed);
+	
+	return devman_add_device_to_class(fun->handle, class_name);
 }
 
-int driver_main(driver_t *drv)
+int ddf_driver_main(driver_t *drv)
 {
 	/*
 	 * Remember the driver structure - driver_ops will be called by generic

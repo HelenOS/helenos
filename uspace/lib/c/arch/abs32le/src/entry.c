@@ -29,14 +29,13 @@
 /** @file
  */
 
-#include <libc.h>
 #include <unistd.h>
 #include <libarch/entry.h>
+#include "../../../generic/private/libc.h"
 
 void __entry(void)
 {
 	__main(NULL);
-	__exit();
 }
 
 /** @}

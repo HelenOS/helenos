@@ -33,7 +33,6 @@
  */
 
 #include <ipc/fb.h>
-#include <ipc/ipc.h>
 #include <async.h>
 #include <stdio.h>
 #include <sys/mman.h>
