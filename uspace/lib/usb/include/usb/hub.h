@@ -38,6 +38,9 @@
 #include <sys/types.h>
 #include <usb/usbdevice.h>
 
+int usb_hc_new_device_wrapper(device_t *, usb_hc_connection_t *, usb_speed_t,
+    int (*)(int, void *), int, void *, usb_address_t *, devman_handle_t *);
+
 /** Info about device attached to host controller.
  *
  * This structure exists only to keep the same signature of
