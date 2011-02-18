@@ -53,7 +53,7 @@ static int get_address(device_t *dev, devman_handle_t handle,
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-static int reserve_default_address(device_t *dev)
+static int reserve_default_address(device_t *dev, bool full_speed)
 {
 	assert(dev);
 	uhci_t *hc = dev_to_uhci(dev);
@@ -71,7 +71,8 @@ static int release_default_address(device_t *dev)
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-static int request_address(device_t *dev, usb_address_t *address)
+static int request_address(device_t *dev, bool full_speed,
+    usb_address_t *address)
 {
 	assert(dev);
 	uhci_t *hc = dev_to_uhci(dev);

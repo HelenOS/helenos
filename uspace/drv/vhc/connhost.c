@@ -381,7 +381,7 @@ static int control_read(device_t *dev, usb_target_t target,
 static usb_address_keeping_t addresses;
 
 
-static int reserve_default_address(device_t *dev)
+static int reserve_default_address(device_t *dev, bool ignored)
 {
 	usb_address_keeping_reserve_default(&addresses);
 	return EOK;
@@ -393,7 +393,7 @@ static int release_default_address(device_t *dev)
 	return EOK;
 }
 
-static int request_address(device_t *dev, usb_address_t *address)
+static int request_address(device_t *dev, bool ignored, usb_address_t *address)
 {
 	usb_address_t addr = usb_address_keeping_request(&addresses);
 	if (addr < 0) {

@@ -39,6 +39,7 @@
 
 #include "driver.h"
 #include <usb/usb.h>
+#include <bool.h>
 
 
 /** IPC methods for communication with HC through DDF interface.
@@ -230,9 +231,9 @@ typedef int (*usbhc_iface_transfer_in_t)(device_t *, usb_target_t,
 typedef struct {
 	int (*tell_address)(device_t *, devman_handle_t, usb_address_t *);
 
-	int (*reserve_default_address)(device_t *);
+	int (*reserve_default_address)(device_t *, bool);
 	int (*release_default_address)(device_t *);
-	int (*request_address)(device_t *, usb_address_t *);
+	int (*request_address)(device_t *, bool, usb_address_t *);
 	int (*bind_address)(device_t *, usb_address_t, devman_handle_t);
 	int (*release_address)(device_t *, usb_address_t);
 
