@@ -72,6 +72,8 @@ const char *str_error(const int e)
 	switch (e) {
 		case EBADCHECKSUM:
 			return "Bad checksum";
+		case ESTALL:
+			return "Operation stalled";
 		case EAGAIN:
 			return "Resource temporarily unavailable";
 		default:
