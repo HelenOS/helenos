@@ -100,13 +100,13 @@ int uhci_init_mem_structures(uhci_t *instance)
 	/* init transfer lists */
 	int ret = uhci_init_transfer_lists(instance);
 	CHECK_RET_RETURN(ret, "Failed to initialize transfer lists.\n");
-	usb_log_debug("Transfer lists initialized.\n");
+	usb_log_debug("Initialized transfer lists.\n");
 
 	/* frame list initialization */
-	usb_log_debug("Initializing frame list.\n");
 	instance->frame_list = get_page();
 	ret = instance ? EOK : ENOMEM;
 	CHECK_RET_RETURN(ret, "Failed to get frame list page.\n");
+	usb_log_debug("Initialized frame list.\n");
 
 	/* initialize all frames to point to the first queue head */
 	const uint32_t queue =
@@ -204,6 +204,7 @@ void uhci_interrupt(uhci_t *instance)
 /*----------------------------------------------------------------------------*/
 int uhci_interrupt_emulator(void* arg)
 {
+	return EOK;
 	usb_log_debug("Started interrupt emulator.\n");
 	uhci_t *instance = (uhci_t*)arg;
 	assert(instance);

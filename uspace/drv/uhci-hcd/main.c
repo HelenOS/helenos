@@ -105,11 +105,11 @@ static int uhci_add_device(device_t *device)
 		return ret;
 	}
 
-	ret = register_interrupt_handler(device, irq, irq_handler, NULL);
-	usb_log_error("registered interrupt handler %d.\n", ret);
-
 	usb_log_info("I/O regs at 0x%X (size %zu), IRQ %d.\n",
 	    io_reg_base, io_reg_size, irq);
+
+	ret = register_interrupt_handler(device, irq, irq_handler, NULL);
+	usb_log_debug("Registered interrupt handler %d.\n", ret);
 
 	uhci_t *uhci_hc = malloc(sizeof(uhci_t));
 	if (!uhci_hc) {
