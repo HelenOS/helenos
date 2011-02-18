@@ -39,6 +39,7 @@
 
 #include "driver.h"
 #include <usb/usb.h>
+#include <bool.h>
 
 
 /** IPC methods for communication with HC through DDF interface.
@@ -214,15 +215,15 @@ typedef void (*usbhc_iface_transfer_in_callback_t)(device_t *,
 
 
 /** Out transfer processing function prototype. */
-typedef int (*usbhc_iface_transfer_out_t)(device_t *, usb_target_t,
+typedef int (*usbhc_iface_transfer_out_t)(device_t *, usb_target_t, size_t,
     void *, size_t,
     usbhc_iface_transfer_out_callback_t, void *);
 
-/** Setup transfer processing function prototype. */
+/** Setup transfer processing function prototype. @deprecated */
 typedef usbhc_iface_transfer_out_t usbhc_iface_transfer_setup_t;
 
 /** In transfer processing function prototype. */
-typedef int (*usbhc_iface_transfer_in_t)(device_t *, usb_target_t,
+typedef int (*usbhc_iface_transfer_in_t)(device_t *, usb_target_t, size_t,
     void *, size_t,
     usbhc_iface_transfer_in_callback_t, void *);
 
@@ -230,9 +231,9 @@ typedef int (*usbhc_iface_transfer_in_t)(device_t *, usb_target_t,
 typedef struct {
 	int (*tell_address)(device_t *, devman_handle_t, usb_address_t *);
 
-	int (*reserve_default_address)(device_t *);
+	int (*reserve_default_address)(device_t *, usb_speed_t);
 	int (*release_default_address)(device_t *);
-	int (*request_address)(device_t *, usb_address_t *);
+	int (*request_address)(device_t *, usb_speed_t, usb_address_t *);
 	int (*bind_address)(device_t *, usb_address_t, devman_handle_t);
 	int (*release_address)(device_t *, usb_address_t);
 
@@ -250,10 +251,12 @@ typedef struct {
 	    usbhc_iface_transfer_out_callback_t, void *);
 
 	int (*control_write)(device_t *, usb_target_t,
+	    size_t,
 	    void *, size_t, void *, size_t,
 	    usbhc_iface_transfer_out_callback_t, void *);
 
 	int (*control_read)(device_t *, usb_target_t,
+	    size_t,
 	    void *, size_t, void *, size_t,
 	    usbhc_iface_transfer_in_callback_t, void *);
 } usbhc_iface_t;

@@ -275,6 +275,7 @@ static int enqueue_transfer_in(device_t *dev,
 
 
 static int interrupt_out(device_t *dev, usb_target_t target,
+    size_t max_packet_size,
     void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
@@ -284,6 +285,7 @@ static int interrupt_out(device_t *dev, usb_target_t target,
 }
 
 static int interrupt_in(device_t *dev, usb_target_t target,
+    size_t max_packet_size,
     void *data, size_t size,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
@@ -293,6 +295,7 @@ static int interrupt_in(device_t *dev, usb_target_t target,
 }
 
 static int control_write_setup(device_t *dev, usb_target_t target,
+    size_t max_packet_size,
     void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
@@ -302,6 +305,7 @@ static int control_write_setup(device_t *dev, usb_target_t target,
 }
 
 static int control_write_data(device_t *dev, usb_target_t target,
+    size_t max_packet_size,
     void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
@@ -319,6 +323,7 @@ static int control_write_status(device_t *dev, usb_target_t target,
 }
 
 static int control_write(device_t *dev, usb_target_t target,
+    size_t max_packet_size,
     void *setup_packet, size_t setup_packet_size,
     void *data, size_t data_size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
@@ -336,6 +341,7 @@ static int control_write(device_t *dev, usb_target_t target,
 }
 
 static int control_read_setup(device_t *dev, usb_target_t target,
+    size_t max_packet_size,
     void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
@@ -345,6 +351,7 @@ static int control_read_setup(device_t *dev, usb_target_t target,
 }
 
 static int control_read_data(device_t *dev, usb_target_t target,
+    size_t max_packet_size,
     void *data, size_t size,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
@@ -362,6 +369,7 @@ static int control_read_status(device_t *dev, usb_target_t target,
 }
 
 static int control_read(device_t *dev, usb_target_t target,
+    size_t max_packet_size,
     void *setup_packet, size_t setup_packet_size,
     void *data, size_t data_size,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
@@ -381,7 +389,7 @@ static int control_read(device_t *dev, usb_target_t target,
 static usb_address_keeping_t addresses;
 
 
-static int reserve_default_address(device_t *dev)
+static int reserve_default_address(device_t *dev, usb_speed_t ignored)
 {
 	usb_address_keeping_reserve_default(&addresses);
 	return EOK;
@@ -393,7 +401,8 @@ static int release_default_address(device_t *dev)
 	return EOK;
 }
 
-static int request_address(device_t *dev, usb_address_t *address)
+static int request_address(device_t *dev, usb_speed_t ignored,
+    usb_address_t *address)
 {
 	usb_address_t addr = usb_address_keeping_request(&addresses);
 	if (addr < 0) {

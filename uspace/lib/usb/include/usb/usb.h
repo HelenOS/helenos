@@ -68,6 +68,16 @@ typedef enum {
 	USB_DIRECTION_BOTH
 } usb_direction_t;
 
+/** USB speeds. */
+typedef enum {
+	/** USB 1.1 low speed (1.5Mbits/s). */
+	USB_SPEED_LOW,
+	/** USB 1.1 full speed (12Mbits/s). */
+	USB_SPEED_FULL,
+	/** USB 2.0 high speed (480Mbits/s). */
+	USB_SPEED_HIGH
+} usb_speed_t;
+
 /** USB request type target. */
 typedef enum {
 	USB_REQUEST_TYPE_STANDARD = 0,

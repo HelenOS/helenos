@@ -39,6 +39,8 @@
 #include "driver.h"
 
 #define USB_MAX_PAYLOAD_SIZE 1020
+#define HACK_MAX_PACKET_SIZE 8
+#define HACK_MAX_PACKET_SIZE_INTERRUPT_IN 4
 
 static void remote_usbhc_get_address(device_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbhc_interrupt_out(device_t *, void *, ipc_callid_t, ipc_call_t *);
@@ -162,8 +164,10 @@ void remote_usbhc_reserve_default_address(device_t *device, void *iface,
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
-
-	int rc = usb_iface->reserve_default_address(device);
+	
+	usb_speed_t speed = DEV_IPC_GET_ARG1(*call);
+	
+	int rc = usb_iface->reserve_default_address(device, speed);
 
 	async_answer_0(callid, rc);
 }
@@ -192,9 +196,11 @@ void remote_usbhc_request_address(device_t *device, void *iface,
 		async_answer_0(callid, ENOTSUP);
 		return;
 	}
+	
+	usb_speed_t speed = DEV_IPC_GET_ARG1(*call);
 
 	usb_address_t address;
-	int rc = usb_iface->request_address(device, &address);
+	int rc = usb_iface->request_address(device, speed, &address);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
 	} else {
@@ -321,7 +327,8 @@ static void remote_usbhc_out_transfer(device_t *device,
 	trans->buffer = buffer;
 	trans->size = len;
 
-	int rc = transfer_func(device, target, buffer, len,
+	int rc = transfer_func(device, target, HACK_MAX_PACKET_SIZE,
+	    buffer, len,
 	    callback_out, trans);
 
 	if (rc != EOK) {
@@ -367,7 +374,8 @@ static void remote_usbhc_in_transfer(device_t *device,
 	trans->buffer = malloc(len);
 	trans->size = len;
 
-	int rc = transfer_func(device, target, trans->buffer, len,
+	int rc = transfer_func(device, target, HACK_MAX_PACKET_SIZE_INTERRUPT_IN,
+	    trans->buffer, len,
 	    callback_in, trans);
 
 	if (rc != EOK) {
@@ -575,7 +583,7 @@ ipc_callid_t callid, ipc_call_t *call)
 	trans->buffer = data_buffer;
 	trans->size = data_buffer_len;
 
-	rc = usb_iface->control_write(device, target,
+	rc = usb_iface->control_write(device, target, HACK_MAX_PACKET_SIZE,
 	    setup_packet, setup_packet_len,
 	    data_buffer, data_buffer_len,
 	    callback_out, trans);
@@ -639,7 +647,7 @@ ipc_callid_t callid, ipc_call_t *call)
 		return;
 	}
 
-	rc = usb_iface->control_read(device, target,
+	rc = usb_iface->control_read(device, target, HACK_MAX_PACKET_SIZE,
 	    setup_packet, setup_packet_len,
 	    trans->buffer, trans->size,
 	    callback_in, trans);
