@@ -55,13 +55,13 @@
  * @return Error code.
  */
 int usb_hc_reserve_default_address(usb_hc_connection_t *connection,
-    bool full_speed)
+    usb_speed_t speed)
 {
 	CHECK_CONNECTION(connection);
 
 	return async_req_2_0(connection->hc_phone,
 	    DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_RESERVE_DEFAULT_ADDRESS, full_speed);
+	    IPC_M_USBHC_RESERVE_DEFAULT_ADDRESS, speed);
 }
 
 /** Tell host controller to release default address.
@@ -84,14 +84,14 @@ int usb_hc_release_default_address(usb_hc_connection_t *connection)
  * @return Assigned USB address or negative error code.
  */
 usb_address_t usb_hc_request_address(usb_hc_connection_t *connection,
-    bool full_speed)
+    usb_speed_t speed)
 {
 	CHECK_CONNECTION(connection);
 
 	sysarg_t address;
 	int rc = async_req_2_1(connection->hc_phone,
 	    DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_REQUEST_ADDRESS, full_speed,
+	    IPC_M_USBHC_REQUEST_ADDRESS, speed,
 	    &address);
 	if (rc != EOK) {
 		return (usb_address_t) rc;
