@@ -561,7 +561,7 @@ static void devman_connection_devmapper(ipc_callid_t iid, ipc_call_t *icall)
 		return;
 	}
 	
-	async_forward_fast(iid, dev->drv->phone, DRIVER_CLIENT, dev->handle, 0,
+	async_forward_fast(iid, dev->drv->phone, DRIVER_CLIENT, fun->handle, 0,
 	    IPC_FF_NONE);
 	printf(NAME ": devman_connection_devmapper: forwarded connection to "
 	    "device %s to driver %s.\n", fun->pathname, dev->drv->name);
