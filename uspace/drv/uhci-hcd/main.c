@@ -155,7 +155,7 @@ static int uhci_add_device(device_t *device)
 	usb_log_debug("Interrupt conttroller phone: %d\n", irc_phone);
 
 	async_msg_1(irc_phone, IRC_ENABLE_INTERRUPT, irq);
-//	async_hangup(irc_phone);
+	async_hangup(irc_phone);
 
 	ret = register_interrupt_handler(device, irq, irq_handler, &uhci_code);
 	usb_log_debug("Registered interrupt handler %d.\n", ret);
