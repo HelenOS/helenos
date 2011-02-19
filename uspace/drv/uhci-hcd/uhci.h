@@ -103,19 +103,6 @@ int uhci_init(uhci_t *instance, void *regs, size_t reg_size);
 
 static inline void uhci_fini(uhci_t *instance) {};
 
-int uhci_transfer(
-  uhci_t *instance,
-  device_t *dev,
-  usb_target_t target,
-  usb_transfer_type_t transfer_type,
-	bool toggle,
-  usb_packet_id pid,
-	bool low_speed,
-  void *buffer, size_t size,
-  usbhc_iface_transfer_out_callback_t callback_out,
-  usbhc_iface_transfer_in_callback_t callback_in,
-  void *arg );
-
 int uhci_schedule(uhci_t *instance, batch_t *batch);
 
 void uhci_interrupt(uhci_t *instance, uint16_t status);

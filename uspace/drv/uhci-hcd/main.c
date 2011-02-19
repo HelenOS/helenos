@@ -33,10 +33,7 @@
  */
 #include <driver.h>
 #include <usb_iface.h>
-#include <ipc/irc.h>
-#include <ipc/ns.h>
-#include <ipc/services.h>
-#include <sysinfo.h>
+#include <device/hw_res.h>
 
 #include <errno.h>
 
@@ -83,7 +80,6 @@ static void irq_handler(device_t *device, ipc_callid_t iid, ipc_call_t *call)
 {
 	assert(device);
 	uhci_t *hc = dev_to_uhci(device);
-	usb_log_info("LOL HARDWARE INTERRUPT: %p.\n", hc);
 	uint16_t status = IPC_GET_ARG1(*call);
 	assert(hc);
 	uhci_interrupt(hc, status);
@@ -110,34 +106,12 @@ static int uhci_add_device(device_t *device)
 	    pci_get_my_registers(device, &io_reg_base, &io_reg_size, &irq);
 
 	CHECK_RET_RETURN(ret,
-	    "Failed(%d) to get I/O registers addresses for device:.\n",
-	    ret, device->handle);
+	    "Failed(%d) to get I/O addresses:.\n", ret, device->handle);
 	usb_log_info("I/O regs at 0x%X (size %zu), IRQ %d.\n",
 	    io_reg_base, io_reg_size, irq);
 
-
-  sysarg_t apic;
-  sysarg_t i8259;
-	int irc_phone = -1;
-	int irc_service = 0;
-
-  if ((sysinfo_get_value("apic", &apic) == EOK) && (apic)) {
-    irc_service = SERVICE_APIC;
-		usb_log_debug("SERVICE_APIC\n");
-	} else if ((sysinfo_get_value("i8259", &i8259) == EOK) && (i8259)) {
-    irc_service = SERVICE_I8259;
-		usb_log_debug("SERVICE_I8259\n");
-	}
-
-  if (irc_service) {
-    while (irc_phone < 0)
-      irc_phone = service_connect_blocking(irc_service, 0, 0);
-  }
-	usb_log_debug("Interrupt conttroller phone: %d\n", irc_phone);
-
-	async_msg_1(irc_phone, IRC_ENABLE_INTERRUPT, irq);
-	async_hangup(irc_phone);
-
+	ret = pci_enable_interrupts(device);
+	CHECK_RET_RETURN(ret, "Failed(%d) to get enable interrupts:\n", ret);
 
 	uhci_t *uhci_hc = malloc(sizeof(uhci_t));
 	ret = (uhci_hc != NULL) ? EOK : ENOMEM;

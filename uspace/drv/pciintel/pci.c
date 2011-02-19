@@ -48,6 +48,10 @@
 #include <devman.h>
 #include <ipc/devman.h>
 #include <ipc/dev_iface.h>
+#include <ipc/irc.h>
+#include <ipc/ns.h>
+#include <ipc/services.h>
+#include <sysinfo.h>
 #include <ops/hw_res.h>
 #include <device/hw_res.h>
 #include <ddi.h>
@@ -71,9 +75,38 @@ static hw_resource_list_t *pciintel_get_child_resources(device_t *dev)
 
 static bool pciintel_enable_child_interrupt(device_t *dev)
 {
-	/* TODO */
-	
-	return false;
+	/* This is an old ugly way, copied from ne2000 driver */
+	assert(dev);
+	pci_dev_data_t *dev_data = (pci_dev_data_t *) dev->driver_data;
+
+  sysarg_t apic;
+  sysarg_t i8259;
+	int irc_phone = -1;
+	int irc_service = 0;
+
+  if ((sysinfo_get_value("apic", &apic) == EOK) && (apic)) {
+    irc_service = SERVICE_APIC;
+	} else if ((sysinfo_get_value("i8259", &i8259) == EOK) && (i8259)) {
+    irc_service = SERVICE_I8259;
+	}
+
+  if (irc_service) {
+    while (irc_phone < 0)
+      irc_phone = service_connect_blocking(irc_service, 0, 0);
+  } else {
+		return false;
+	}
+
+	size_t i;
+  for (i = 0; i < dev_data->hw_resources.count; i++) {
+		if (dev_data->hw_resources.resources[i].type == INTERRUPT) {
+			int irq = dev_data->hw_resources.resources[i].res.interrupt.irq;
+			async_msg_1(irc_phone, IRC_ENABLE_INTERRUPT, irq);
+		}
+	}
+
+	async_hangup(irc_phone);
+	return true;
 }
 
 static hw_res_ops_t pciintel_child_hw_res_ops = {
