@@ -49,8 +49,13 @@
 #include "port_status.h"
 #include "usb/usb.h"
 
+static int iface_get_hc_handle(device_t *device, devman_handle_t *handle)
+{
+	return usb_hc_find(device->handle, handle);
+}
+
 static usb_iface_t hub_usb_iface = {
-	.get_hc_handle = usb_drv_find_hc
+	.get_hc_handle = iface_get_hc_handle
 };
 
 static device_ops_t hub_device_ops = {

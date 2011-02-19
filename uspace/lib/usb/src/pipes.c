@@ -34,9 +34,29 @@
  */
 #include <usb/usb.h>
 #include <usb/pipes.h>
+#include <usbhc_iface.h>
 #include <errno.h>
 #include <assert.h>
-#include <usb/usbdrv.h>
+
+/** Tell USB address assigned to given device.
+ *
+ * @param phone Phone to my HC.
+ * @param dev Device in question.
+ * @return USB address or error code.
+ */
+static usb_address_t get_my_address(int phone, device_t *dev)
+{
+	sysarg_t address;
+	int rc = async_req_2_1(phone, DEV_IFACE_ID(USBHC_DEV_IFACE),
+	    IPC_M_USBHC_GET_ADDRESS,
+	    dev->handle, &address);
+
+	if (rc != EOK) {
+		return rc;
+	}
+
+	return (usb_address_t) address;
+}
 
 /** Initialize connection to USB device.
  *
@@ -54,7 +74,7 @@ int usb_device_connection_initialize_from_device(
 	devman_handle_t hc_handle;
 	usb_address_t my_address;
 
-	rc = usb_drv_find_hc(device, &hc_handle);
+	rc = usb_hc_find(device->handle, &hc_handle);
 	if (rc != EOK) {
 		return rc;
 	}
@@ -64,7 +84,7 @@ int usb_device_connection_initialize_from_device(
 		return hc_phone;
 	}
 
-	my_address = usb_drv_get_my_address(hc_phone, device);
+	my_address = get_my_address(hc_phone, device);
 	if (my_address < 0) {
 		rc = my_address;
 		goto leave;
