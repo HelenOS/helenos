@@ -110,11 +110,11 @@ static void transfer_list_remove_batch(
 
 	/* I'm the first one here */
 	if (batch->link.prev == &instance->batch_list) {
-		usb_log_debug("Removing tracer %p was first, next element %x.\n",
+		usb_log_debug("Removing batch %p was first, next element %x.\n",
 			batch, batch->qh->next_queue);
 		instance->queue_head->element = batch->qh->next_queue;
 	} else {
-		usb_log_debug("Removing tracer %p was NOT first, next element %x.\n",
+		usb_log_debug("Removing batch %p was NOT first, next element %x.\n",
 			batch, batch->qh->next_queue);
 		batch_t *prev = list_get_instance(batch->link.prev, batch_t, link);
 		prev->qh->next_queue = batch->qh->next_queue;

@@ -38,6 +38,7 @@
 #include <driver.h>
 
 int pci_get_my_registers(device_t *, uintptr_t *, size_t *, int *);
+int pci_enable_interrupts(device_t *device);
 
 #endif
 /**
