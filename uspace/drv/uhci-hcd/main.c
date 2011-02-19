@@ -79,27 +79,6 @@ static driver_t uhci_driver = {
 	.driver_ops = &uhci_driver_ops
 };
 /*----------------------------------------------------------------------------*/
-static irq_cmd_t uhci_cmds[] = {
-	{
-		.cmd = CMD_PIO_READ_16,
-		.addr = (void*)0xc022,
-		.dstarg = 1
-	},
-	{
-		.cmd = CMD_PIO_WRITE_16,
-		.addr = (void*)0xc022,
-		.value = 0x1f
-	},
-	{
-		.cmd = CMD_ACCEPT
-	}
-};
-/*----------------------------------------------------------------------------*/
-static irq_code_t uhci_code = {
-	sizeof(uhci_cmds) / sizeof(irq_cmd_t),
-	uhci_cmds
-};
-/*----------------------------------------------------------------------------*/
 static void irq_handler(device_t *device, ipc_callid_t iid, ipc_call_t *call)
 {
 	assert(device);
@@ -110,6 +89,12 @@ static void irq_handler(device_t *device, ipc_callid_t iid, ipc_call_t *call)
 	uhci_interrupt(hc, status);
 }
 /*----------------------------------------------------------------------------*/
+#define CHECK_RET_RETURN(ret, message...) \
+if (ret != EOK) { \
+	usb_log_error(message); \
+	return ret; \
+}
+
 static int uhci_add_device(device_t *device)
 {
 	assert(device);
@@ -124,13 +109,9 @@ static int uhci_add_device(device_t *device)
 	int ret =
 	    pci_get_my_registers(device, &io_reg_base, &io_reg_size, &irq);
 
-	if (ret != EOK) {
-		usb_log_error(
-		    "Failed(%d) to get I/O registers addresses for device:.\n",
-		    ret, device->handle);
-		return ret;
-	}
-
+	CHECK_RET_RETURN(ret,
+	    "Failed(%d) to get I/O registers addresses for device:.\n",
+	    ret, device->handle);
 	usb_log_info("I/O regs at 0x%X (size %zu), IRQ %d.\n",
 	    io_reg_base, io_reg_size, irq);
 
@@ -157,37 +138,46 @@ static int uhci_add_device(device_t *device)
 	async_msg_1(irc_phone, IRC_ENABLE_INTERRUPT, irq);
 	async_hangup(irc_phone);
 
-	ret = register_interrupt_handler(device, irq, irq_handler, &uhci_code);
-	usb_log_debug("Registered interrupt handler %d.\n", ret);
 
 	uhci_t *uhci_hc = malloc(sizeof(uhci_t));
-	if (!uhci_hc) {
-		usb_log_error("Failed to allocate memory for uhci hcd driver.\n");
-		return ENOMEM;
-	}
+	ret = (uhci_hc != NULL) ? EOK : ENOMEM;
+	CHECK_RET_RETURN(ret, "Failed to allocate memory for uhci hcd driver.\n");
 
 	ret = uhci_init(uhci_hc, (void*)io_reg_base, io_reg_size);
 	if (ret != EOK) {
 		usb_log_error("Failed to init uhci-hcd.\n");
+		free(uhci_hc);
 		return ret;
 	}
+
+	ret = register_interrupt_handler(device, irq, irq_handler,
+	    &uhci_hc->interrupt_code);
+	if (ret != EOK) {
+		usb_log_error("Failed to register interrupt handler.\n");
+		uhci_fini(uhci_hc);
+		free(uhci_hc);
+		return ret;
+	}
+
 	device_t *rh;
 	ret = setup_root_hub(&rh, device);
 	if (ret != EOK) {
 		usb_log_error("Failed to setup uhci root hub.\n");
-		/* TODO: destroy uhci here */
+		uhci_fini(uhci_hc);
+		free(uhci_hc);
 		return ret;
 	}
 
 	ret = child_device_register(rh, device);
 	if (ret != EOK) {
 		usb_log_error("Failed to register root hub.\n");
-		/* TODO: destroy uhci here */
+		uhci_fini(uhci_hc);
+		free(uhci_hc);
+		free(rh);
 		return ret;
 	}
 
 	device->driver_data = uhci_hc;
-
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/

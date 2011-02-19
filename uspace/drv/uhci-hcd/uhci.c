@@ -38,6 +38,21 @@
 #include <usb/usb.h>
 
 #include "uhci.h"
+static irq_cmd_t uhci_cmds[] = {
+	{
+		.cmd = CMD_PIO_READ_16,
+		.addr = (void*)0xc022,
+		.dstarg = 1
+	},
+	{
+		.cmd = CMD_PIO_WRITE_16,
+		.addr = (void*)0xc022,
+		.value = 0x1f
+	},
+	{
+		.cmd = CMD_ACCEPT
+	}
+};
 
 static int uhci_init_transfer_lists(uhci_t *instance);
 static int uhci_init_mem_structures(uhci_t *instance);
@@ -100,6 +115,19 @@ void uhci_init_hw(uhci_t *instance)
 int uhci_init_mem_structures(uhci_t *instance)
 {
 	assert(instance);
+
+	/* init interrupt code */
+	irq_cmd_t *interrupt_commands = malloc(sizeof(uhci_cmds));
+	if (interrupt_commands == NULL) {
+		return ENOMEM;
+	}
+	memcpy(interrupt_commands, uhci_cmds, sizeof(uhci_cmds));
+	interrupt_commands[0].addr = (void*)&instance->registers->usbsts;
+	interrupt_commands[1].addr = (void*)&instance->registers->usbsts;
+	instance->interrupt_code.cmds = interrupt_commands;
+	instance->interrupt_code.cmdcount =
+	    sizeof(uhci_cmds) / sizeof(irq_cmd_t);
+
 	/* init transfer lists */
 	int ret = uhci_init_transfer_lists(instance);
 	CHECK_RET_RETURN(ret, "Failed to initialize transfer lists.\n");

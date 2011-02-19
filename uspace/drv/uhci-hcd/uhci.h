@@ -92,6 +92,8 @@ typedef struct uhci {
 
 	transfer_list_t *transfers[2][4];
 
+	irq_code_t interrupt_code;
+
 	fid_t cleaner;
 	fid_t debug_checker;
 } uhci_t;
@@ -99,7 +101,7 @@ typedef struct uhci {
 /* init uhci specifics in device.driver_data */
 int uhci_init(uhci_t *instance, void *regs, size_t reg_size);
 
-int uhci_fini(uhci_t *device);
+static inline void uhci_fini(uhci_t *instance) {};
 
 int uhci_transfer(
   uhci_t *instance,
@@ -120,6 +122,7 @@ void uhci_interrupt(uhci_t *instance, uint16_t status);
 
 static inline uhci_t * dev_to_uhci(device_t *dev)
 	{ return (uhci_t*)dev->driver_data; }
+
 
 #endif
 /**
