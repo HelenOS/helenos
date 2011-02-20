@@ -347,7 +347,9 @@ static int usbkbd_process_descriptors(usb_hid_dev_kbd_t *kbd_dev)
 	usb_endpoint_mapping_t endpoint_mapping[1] = {
 		{
 			.pipe = &kbd_dev->poll_pipe,
-			.description = &poll_endpoint_description
+			.description = &poll_endpoint_description,
+			.interface_no =
+			    usb_device_get_assigned_interface(kbd_dev->device)
 		}
 	};
 	rc = usb_endpoint_pipe_initialize_from_configuration(
