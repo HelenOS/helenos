@@ -53,7 +53,7 @@ static int get_address(device_t *dev, devman_handle_t handle,
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-static int reserve_default_address(device_t *dev, bool full_speed)
+static int reserve_default_address(device_t *dev, usb_speed_t speed)
 {
 	assert(dev);
 	uhci_t *hc = dev_to_uhci(dev);
@@ -71,7 +71,7 @@ static int release_default_address(device_t *dev)
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-static int request_address(device_t *dev, bool full_speed,
+static int request_address(device_t *dev, usb_speed_t speed,
     usb_address_t *address)
 {
 	assert(dev);
@@ -163,100 +163,8 @@ static int control_read(device_t *dev, usb_target_t target,
 	batch_control_read(batch);
 	return EOK;
 }
-/*----------------------------------------------------------------------------*/
-static int control_write_setup(device_t *dev, usb_target_t target,
-    size_t max_packet_size,
-    void *data, size_t size,
-    usbhc_iface_transfer_out_callback_t callback, void *arg)
-{
-	dev_speed_t speed = FULL_SPEED;
 
-	usb_log_warning("Using deprecated API %s.\n", __FUNCTION__);
-	batch_t *batch = batch_get(dev, target, USB_TRANSFER_CONTROL,
-	    max_packet_size, speed, NULL, 0, data, size, NULL, callback, arg);
-	if (!batch)
-		return ENOMEM;
-	batch_control_setup_old(batch);
-	return EOK;
-}
-/*----------------------------------------------------------------------------*/
-static int control_write_data(device_t *dev, usb_target_t target,
-    size_t max_packet_size,
-    void *data, size_t size,
-    usbhc_iface_transfer_out_callback_t callback, void *arg)
-{
-	dev_speed_t speed = FULL_SPEED;
 
-	usb_log_warning("Using deprecated API %s.\n", __FUNCTION__);
-	batch_t *batch = batch_get(dev, target, USB_TRANSFER_CONTROL,
-	    max_packet_size, speed, data, size, NULL, 0, NULL, callback, arg);
-	if (!batch)
-		return ENOMEM;
-	batch_control_write_data_old(batch);
-	return EOK;
-}
-/*----------------------------------------------------------------------------*/
-static int control_write_status(device_t *dev, usb_target_t target,
-    usbhc_iface_transfer_in_callback_t callback, void *arg)
-{
-	size_t max_packet_size = 8;
-	dev_speed_t speed = FULL_SPEED;
-
-	usb_log_warning("Using deprecated API %s.\n", __FUNCTION__);
-	batch_t *batch = batch_get(dev, target, USB_TRANSFER_CONTROL,
-	    max_packet_size, speed, NULL, 0, NULL, 0, callback, NULL, arg);
-	if (!batch)
-		return ENOMEM;
-	batch_control_write_status_old(batch);
-	return EOK;
-}
-/*----------------------------------------------------------------------------*/
-static int control_read_setup(device_t *dev, usb_target_t target,
-    size_t max_packet_size,
-    void *data, size_t size,
-    usbhc_iface_transfer_out_callback_t callback, void *arg)
-{
-	dev_speed_t speed = FULL_SPEED;
-
-	usb_log_warning("Using deprecated API %s.\n", __FUNCTION__);
-	batch_t *batch = batch_get(dev, target, USB_TRANSFER_CONTROL,
-	    max_packet_size, speed, NULL, 0, data, size, NULL, callback, arg);
-	if (!batch)
-		return ENOMEM;
-	batch_control_setup_old(batch);
-	return EOK;
-}
-/*----------------------------------------------------------------------------*/
-static int control_read_data(device_t *dev, usb_target_t target,
-    size_t max_packet_size,
-    void *data, size_t size,
-    usbhc_iface_transfer_in_callback_t callback, void *arg)
-{
-	dev_speed_t speed = FULL_SPEED;
-
-	usb_log_warning("Using deprecated API %s.\n", __FUNCTION__);
-	batch_t *batch = batch_get(dev, target, USB_TRANSFER_CONTROL,
-	    max_packet_size, speed, data, size, NULL, 0, callback, NULL, arg);
-	if (!batch)
-		return ENOMEM;
-	batch_control_read_data_old(batch);
-	return EOK;
-}
-/*----------------------------------------------------------------------------*/
-static int control_read_status(device_t *dev, usb_target_t target,
-    usbhc_iface_transfer_out_callback_t callback, void *arg)
-{
-	size_t max_packet_size = 8;
-	dev_speed_t speed = FULL_SPEED;
-
-	usb_log_warning("Using deprecated API %s.\n", __FUNCTION__);
-	batch_t *batch = batch_get(dev, target, USB_TRANSFER_CONTROL,
-	    max_packet_size, speed, NULL, 0, NULL, 0, NULL, callback, arg);
-	if (!batch)
-		return ENOMEM;
-	batch_control_read_status_old(batch);
-	return EOK;
-}
 /*----------------------------------------------------------------------------*/
 usbhc_iface_t uhci_iface = {
 	.tell_address = get_address,
@@ -272,14 +180,6 @@ usbhc_iface_t uhci_iface = {
 
 	.control_read = control_read,
 	.control_write = control_write,
-
-	.control_write_setup = control_write_setup,
-	.control_write_data = control_write_data,
-	.control_write_status = control_write_status,
-
-	.control_read_setup = control_read_setup,
-	.control_read_data = control_read_data,
-	.control_read_status = control_read_status
 };
 /**
  * @}

@@ -33,30 +33,8 @@
  * @brief USB driver (implementation).
  */
 #include <usb/usbdrv.h>
-#include <usbhc_iface.h>
-#include <usb_iface.h>
 #include <errno.h>
-#include <str_error.h>
 
-/** Information about pending transaction on HC. */
-typedef struct {
-	/** Phone to host controller driver. */
-	int phone;
-	/** Data buffer. */
-	void *buffer;
-	/** Buffer size. */
-	size_t size;
-	/** Storage for actual number of bytes transferred. */
-	size_t *size_transferred;
-	/** Initial call reply data. */
-	ipc_call_t reply;
-	/** Initial call identifier. */
-	aid_t request;
-	/** Reply data for data read call. */
-	ipc_call_t read_reply;
-	/** Data read call identifier. */
-	aid_t read_request;
-} transfer_info_t;
 
 /** Find handle of host controller the device is physically attached to.
  *
@@ -66,32 +44,7 @@ typedef struct {
  */
 int usb_drv_find_hc(device_t *dev, devman_handle_t *handle)
 {
-	if (dev == NULL) {
-		return EBADMEM;
-	}
-	if (handle == NULL) {
-		return EBADMEM;
-	}
-
-	int parent_phone = devman_parent_device_connect(dev->handle,
-	    IPC_FLAG_BLOCKING);
-	if (parent_phone < 0) {
-		return parent_phone;
-	}
-
-	devman_handle_t h;
-	int rc = async_req_1_1(parent_phone, DEV_IFACE_ID(USB_DEV_IFACE),
-	    IPC_M_USB_GET_HOST_CONTROLLER_HANDLE, &h);
-
-	async_hangup(parent_phone);
-
-	if (rc != EOK) {
-		return rc;
-	}
-
-	*handle = h;
-
-	return EOK;
+	return ENOTSUP;
 }
 
 /** Connect to host controller the device is physically attached to.
@@ -104,7 +57,7 @@ int usb_drv_find_hc(device_t *dev, devman_handle_t *handle)
 int usb_drv_hc_connect(device_t *dev, devman_handle_t hc_handle,
     unsigned int flags)
 {
-	return devman_device_connect(hc_handle, flags);
+	return ENOTSUP;
 }
 
 /** Connect to host controller the device is physically attached to.
@@ -115,18 +68,7 @@ int usb_drv_hc_connect(device_t *dev, devman_handle_t hc_handle,
  */
 int usb_drv_hc_connect_auto(device_t *dev, unsigned int flags)
 {
-	int rc;
-	devman_handle_t hc_handle;
-
-	/*
-	 * Call parent hub to obtain device handle of respective HC.
-	 */
-	rc = usb_drv_find_hc(dev, &hc_handle);
-	if (rc != EOK) {
-		return rc;
-	}
-	
-	return usb_drv_hc_connect(dev, hc_handle, flags);
+	return ENOTSUP;
 }
 
 /** Tell USB address assigned to given device.
@@ -137,16 +79,7 @@ int usb_drv_hc_connect_auto(device_t *dev, unsigned int flags)
  */
 usb_address_t usb_drv_get_my_address(int phone, device_t *dev)
 {
-	sysarg_t address;
-	int rc = async_req_2_1(phone, DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_GET_ADDRESS,
-	    dev->handle, &address);
-
-	if (rc != EOK) {
-		return rc;
-	}
-
-	return (usb_address_t) address;
+	return ENOTSUP;
 }
 
 /** Tell HC to reserve default address.
@@ -156,8 +89,7 @@ usb_address_t usb_drv_get_my_address(int phone, device_t *dev)
  */
 int usb_drv_reserve_default_address(int phone)
 {
-	return async_req_1_0(phone, DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_RESERVE_DEFAULT_ADDRESS);
+	return ENOTSUP;
 }
 
 /** Tell HC to release default address.
@@ -167,8 +99,7 @@ int usb_drv_reserve_default_address(int phone)
  */
 int usb_drv_release_default_address(int phone)
 {
-	return async_req_1_0(phone, DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_RELEASE_DEFAULT_ADDRESS);
+	return ENOTSUP;
 }
 
 /** Ask HC for free address assignment.
@@ -178,14 +109,7 @@ int usb_drv_release_default_address(int phone)
  */
 usb_address_t usb_drv_request_address(int phone)
 {
-	sysarg_t address;
-	int rc = async_req_1_1(phone, DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_REQUEST_ADDRESS, &address);
-	if (rc != EOK) {
-		return rc;
-	} else {
-		return (usb_address_t) address;
-	}
+	return ENOTSUP;
 }
 
 /** Inform HC about binding address with devman handle.
@@ -198,11 +122,7 @@ usb_address_t usb_drv_request_address(int phone)
 int usb_drv_bind_address(int phone, usb_address_t address,
     devman_handle_t handle)
 {
-	int rc = async_req_3_0(phone, DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_BIND_ADDRESS,
-	    address, handle);
-
-	return rc;
+	return ENOTSUP;
 }
 
 /** Inform HC about address release.
@@ -213,134 +133,8 @@ int usb_drv_bind_address(int phone, usb_address_t address,
  */
 int usb_drv_release_address(int phone, usb_address_t address)
 {
-	return async_req_2_0(phone, DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_RELEASE_ADDRESS, address);
+	return ENOTSUP;
 }
-
-/** Send data to HCD.
- *
- * @param phone Phone to HC.
- * @param method Method used for calling.
- * @param target Targeted device.
- * @param buffer Data buffer (NULL to skip data transfer phase).
- * @param size Buffer size (must be zero when @p buffer is NULL).
- * @param handle Storage for transaction handle (cannot be NULL).
- * @return Error status.
- * @retval EINVAL Invalid parameter.
- * @retval ENOMEM Not enough memory to complete the operation.
- */
-static int async_send_buffer(int phone, int method,
-    usb_target_t target,
-    void *buffer, size_t size,
-    usb_handle_t *handle)
-{
-	if (phone < 0) {
-		return EINVAL;
-	}
-
-	if ((buffer == NULL) && (size > 0)) {
-		return EINVAL;
-	}
-
-	if (handle == NULL) {
-		return EINVAL;
-	}
-
-	transfer_info_t *transfer
-	    = (transfer_info_t *) malloc(sizeof(transfer_info_t));
-	if (transfer == NULL) {
-		return ENOMEM;
-	}
-
-	transfer->read_request = 0;
-	transfer->size_transferred = NULL;
-	transfer->buffer = NULL;
-	transfer->size = 0;
-	transfer->phone = phone;
-
-	int rc;
-
-	transfer->request = async_send_4(phone,
-	    DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    method,
-	    target.address, target.endpoint,
-	    size,
-	    &transfer->reply);
-
-	if (size > 0) {
-		rc = async_data_write_start(phone, buffer, size);
-		if (rc != EOK) {
-			async_wait_for(transfer->request, NULL);
-			return rc;
-		}
-	}
-
-	*handle = (usb_handle_t) transfer;
-
-	return EOK;
-}
-
-/** Prepare data retrieval.
- *
- * @param phone Opened phone to HCD.
- * @param method Method used for calling.
- * @param target Targeted device.
- * @param buffer Buffer where to store retrieved data
- * 	(NULL to skip data transfer phase).
- * @param size Buffer size (must be zero when @p buffer is NULL).
- * @param actual_size Storage where actual number of bytes transferred will
- * 	be stored.
- * @param handle Storage for transaction handle (cannot be NULL).
- * @return Error status.
- * @retval EINVAL Invalid parameter.
- * @retval ENOMEM Not enough memory to complete the operation.
- */
-static int async_recv_buffer(int phone, int method,
-    usb_target_t target,
-    void *buffer, size_t size, size_t *actual_size,
-    usb_handle_t *handle)
-{
-	if (phone < 0) {
-		return EINVAL;
-	}
-
-	if ((buffer == NULL) && (size > 0)) {
-		return EINVAL;
-	}
-
-	if (handle == NULL) {
-		return EINVAL;
-	}
-
-	transfer_info_t *transfer
-	    = (transfer_info_t *) malloc(sizeof(transfer_info_t));
-	if (transfer == NULL) {
-		return ENOMEM;
-	}
-
-	transfer->read_request = 0;
-	transfer->size_transferred = actual_size;
-	transfer->buffer = buffer;
-	transfer->size = size;
-	transfer->phone = phone;
-
-	transfer->request = async_send_4(phone,
-	    DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    method,
-	    target.address, target.endpoint,
-	    size,
-	    &transfer->reply);
-
-	if (buffer != NULL) {
-		transfer->read_request = async_data_read(phone, buffer, size,
-		    &transfer->read_reply);
-	}
-
-	*handle = (usb_handle_t) transfer;
-
-	return EOK;
-}
-
 
 /** Blocks caller until given USB transaction is finished.
  * After the transaction is finished, the user can access all output data
@@ -354,44 +148,7 @@ static int async_recv_buffer(int phone, int method,
  */
 int usb_drv_async_wait_for(usb_handle_t handle)
 {
-	if (handle == 0) {
-		return EBADMEM;
-	}
-
-	int rc = EOK;
-
-	transfer_info_t *transfer = (transfer_info_t *) handle;
-
-	sysarg_t answer_rc;
-
-	/*
-	 * If the buffer is not NULL, we must accept some data.
-	 */
-	if ((transfer->buffer != NULL) && (transfer->size > 0)) {
-		async_wait_for(transfer->read_request, &answer_rc);
-
-		if (answer_rc != EOK) {
-			rc = (int) answer_rc;
-			goto leave;
-		}
-
-		if (transfer->size_transferred != NULL) {
-			*(transfer->size_transferred)
-			    = IPC_GET_ARG2(transfer->read_reply);
-		}
-	}
-
-	async_wait_for(transfer->request, &answer_rc);
-
-	if (answer_rc != EOK) {
-		rc = (int) answer_rc;
-		goto leave;
-	}
-
-leave:
-	free(transfer);
-
-	return rc;
+	return ENOTSUP;
 }
 
 /** Send interrupt data to device. */
@@ -399,11 +156,7 @@ int usb_drv_async_interrupt_out(int phone, usb_target_t target,
     void *buffer, size_t size,
     usb_handle_t *handle)
 {
-	return async_send_buffer(phone,
-	    IPC_M_USBHC_INTERRUPT_OUT,
-	    target,
-	    buffer, size,
-	    handle);
+	return ENOTSUP;
 }
 
 /** Request interrupt data from device. */
@@ -411,11 +164,7 @@ int usb_drv_async_interrupt_in(int phone, usb_target_t target,
     void *buffer, size_t size, size_t *actual_size,
     usb_handle_t *handle)
 {
-	return async_recv_buffer(phone,
-	    IPC_M_USBHC_INTERRUPT_IN,
-	    target,
-	    buffer, size, actual_size,
-	    handle);
+	return ENOTSUP;
 }
 
 /** Start control write transfer. */
@@ -423,11 +172,7 @@ int usb_drv_async_control_write_setup(int phone, usb_target_t target,
     void *buffer, size_t size,
     usb_handle_t *handle)
 {
-	return async_send_buffer(phone,
-	    IPC_M_USBHC_CONTROL_WRITE_SETUP,
-	    target,
-	    buffer, size,
-	    handle);
+	return ENOTSUP;
 }
 
 /** Send data during control write transfer. */
@@ -435,22 +180,14 @@ int usb_drv_async_control_write_data(int phone, usb_target_t target,
     void *buffer, size_t size,
     usb_handle_t *handle)
 {
-	return async_send_buffer(phone,
-	    IPC_M_USBHC_CONTROL_WRITE_DATA,
-	    target,
-	    buffer, size,
-	    handle);
+	return ENOTSUP;
 }
 
 /** Finalize control write transfer. */
 int usb_drv_async_control_write_status(int phone, usb_target_t target,
     usb_handle_t *handle)
 {
-	return async_recv_buffer(phone,
-	    IPC_M_USBHC_CONTROL_WRITE_STATUS,
-	    target,
-	    NULL, 0, NULL,
-	    handle);
+	return ENOTSUP;
 }
 
 /** Issue whole control write transfer. */
@@ -459,51 +196,7 @@ int usb_drv_async_control_write(int phone, usb_target_t target,
     void *buffer, size_t buffer_size,
     usb_handle_t *handle)
 {
-	// FIXME - check input parameters instead of asserting them
-	assert(phone > 0);
-	assert(setup_packet != NULL);
-	assert(setup_packet_size > 0);
-	assert(((buffer != NULL) && (buffer_size > 0))
-	    || ((buffer == NULL) && (buffer_size == 0)));
-	assert(handle != NULL);
-
-	transfer_info_t *transfer
-	    = (transfer_info_t *) malloc(sizeof(transfer_info_t));
-	if (transfer == NULL) {
-		return ENOMEM;
-	}
-
-	transfer->read_request = 0;
-	transfer->size_transferred = NULL;
-	transfer->buffer = NULL;
-	transfer->size = 0;
-	transfer->phone = phone;
-
-	int rc;
-
-	transfer->request = async_send_3(phone,
-	    DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_CONTROL_WRITE,
-	    target.address, target.endpoint,
-	    &transfer->reply);
-
-	rc = async_data_write_start(phone, setup_packet, setup_packet_size);
-	if (rc != EOK) {
-		async_wait_for(transfer->request, NULL);
-		return rc;
-	}
-
-	if (buffer_size > 0) {
-		rc = async_data_write_start(phone, buffer, buffer_size);
-		if (rc != EOK) {
-			async_wait_for(transfer->request, NULL);
-			return rc;
-		}
-	}
-
-	*handle = (usb_handle_t) transfer;
-
-	return EOK;
+	return ENOTSUP;
 }
 
 /** Start control read transfer. */
@@ -511,11 +204,7 @@ int usb_drv_async_control_read_setup(int phone, usb_target_t target,
     void *buffer, size_t size,
     usb_handle_t *handle)
 {
-	return async_send_buffer(phone,
-	    IPC_M_USBHC_CONTROL_READ_SETUP,
-	    target,
-	    buffer, size,
-	    handle);
+	return ENOTSUP;
 }
 
 /** Read data during control read transfer. */
@@ -523,22 +212,14 @@ int usb_drv_async_control_read_data(int phone, usb_target_t target,
     void *buffer, size_t size, size_t *actual_size,
     usb_handle_t *handle)
 {
-	return async_recv_buffer(phone,
-	    IPC_M_USBHC_CONTROL_READ_DATA,
-	    target,
-	    buffer, size, actual_size,
-	    handle);
+	return ENOTSUP;
 }
 
 /** Finalize control read transfer. */
 int usb_drv_async_control_read_status(int phone, usb_target_t target,
     usb_handle_t *handle)
 {
-	return async_send_buffer(phone,
-	    IPC_M_USBHC_CONTROL_READ_STATUS,
-	    target,
-	    NULL, 0,
-	    handle);
+	return ENOTSUP;
 }
 
 /** Issue whole control read transfer. */
@@ -547,46 +228,7 @@ int usb_drv_async_control_read(int phone, usb_target_t target,
     void *buffer, size_t buffer_size, size_t *actual_size,
     usb_handle_t *handle)
 {
-	// FIXME - check input parameters instead of asserting them
-	assert(phone > 0);
-	assert(setup_packet != NULL);
-	assert(setup_packet_size > 0);
-	assert(buffer != NULL);
-	assert(buffer_size > 0);
-	assert(handle != NULL);
-
-	transfer_info_t *transfer
-	    = (transfer_info_t *) malloc(sizeof(transfer_info_t));
-	if (transfer == NULL) {
-		return ENOMEM;
-	}
-
-	transfer->size_transferred = actual_size;
-	transfer->buffer = buffer;
-	transfer->size = buffer_size;
-	transfer->phone = phone;
-
-	int rc;
-
-	transfer->request = async_send_4(phone,
-	    DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_CONTROL_READ,
-	    target.address, target.endpoint,
-	    buffer_size,
-	    &transfer->reply);
-
-	rc = async_data_write_start(phone, setup_packet, setup_packet_size);
-	if (rc != EOK) {
-		async_wait_for(transfer->request, NULL);
-		return rc;
-	}
-
-	transfer->read_request = async_data_read(phone, buffer, buffer_size,
-	    &transfer->read_reply);
-
-	*handle = (usb_handle_t) transfer;
-
-	return EOK;
+	return ENOTSUP;
 }
 
 /**

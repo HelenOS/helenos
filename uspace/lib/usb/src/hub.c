@@ -33,6 +33,9 @@
  * Functions needed by hub drivers.
  */
 #include <usb/hub.h>
+#include <usb/pipes.h>
+#include <usb/request.h>
+#include <usb/recognise.h>
 #include <usbhc_iface.h>
 #include <errno.h>
 
@@ -55,13 +58,13 @@
  * @return Error code.
  */
 int usb_hc_reserve_default_address(usb_hc_connection_t *connection,
-    bool full_speed)
+    usb_speed_t speed)
 {
 	CHECK_CONNECTION(connection);
 
 	return async_req_2_0(connection->hc_phone,
 	    DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_RESERVE_DEFAULT_ADDRESS, full_speed);
+	    IPC_M_USBHC_RESERVE_DEFAULT_ADDRESS, speed);
 }
 
 /** Tell host controller to release default address.
@@ -84,14 +87,14 @@ int usb_hc_release_default_address(usb_hc_connection_t *connection)
  * @return Assigned USB address or negative error code.
  */
 usb_address_t usb_hc_request_address(usb_hc_connection_t *connection,
-    bool full_speed)
+    usb_speed_t speed)
 {
 	CHECK_CONNECTION(connection);
 
 	sysarg_t address;
 	int rc = async_req_2_1(connection->hc_phone,
 	    DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_REQUEST_ADDRESS, full_speed,
+	    IPC_M_USBHC_REQUEST_ADDRESS, speed,
 	    &address);
 	if (rc != EOK) {
 		return (usb_address_t) rc;
@@ -134,6 +137,167 @@ int usb_hc_unregister_device(usb_hc_connection_t *connection,
 	return async_req_2_0(connection->hc_phone,
 	    DEV_IFACE_ID(USBHC_DEV_IFACE),
 	    IPC_M_USBHC_RELEASE_ADDRESS, address);
+}
+
+
+/** Wrapper for registering attached device to the hub.
+ *
+ * The @p enable_port function is expected to enable singalling on given
+ * port.
+ * The two arguments to it can have arbitrary meaning
+ * (the @p port_no is only a suggestion)
+ * and are not touched at all by this function
+ * (they are passed as is to the @p enable_port function).
+ *
+ * If the @p enable_port fails (i.e. does not return EOK), the device
+ * addition is cancelled.
+ * The return value is then returned (it is good idea to use different
+ * error codes than those listed as return codes by this function itself).
+ *
+ * @param parent Parent device (i.e. the hub device).
+ * @param connection Opened connection to host controller.
+ * @param dev_speed New device speed.
+ * @param enable_port Function for enabling signalling through the port the
+ *	device is attached to.
+ * @param port_no Port number (passed through to @p enable_port).
+ * @param arg Any data argument to @p enable_port.
+ * @param[out] assigned_address USB address of the device.
+ * @param[out] assigned_handle Devman handle of the new device.
+ * @return Error code.
+ * @retval ENOENT Connection to HC not opened.
+ * @retval EADDRNOTAVAIL Failed retrieving free address from host controller.
+ * @retval EBUSY Failed reserving default USB address.
+ * @retval ENOTCONN Problem connecting to the host controller via USB pipe.
+ * @retval ESTALL Problem communication with device (either SET_ADDRESS
+ *	request or requests for descriptors when creating match ids).
+ */
+int usb_hc_new_device_wrapper(device_t *parent, usb_hc_connection_t *connection,
+    usb_speed_t dev_speed,
+    int (*enable_port)(int port_no, void *arg), int port_no, void *arg,
+    usb_address_t *assigned_address, devman_handle_t *assigned_handle)
+{
+	CHECK_CONNECTION(connection);
+
+	/*
+	 * Request new address.
+	 */
+	usb_address_t dev_addr = usb_hc_request_address(connection, dev_speed);
+	if (dev_addr < 0) {
+		return EADDRNOTAVAIL;
+	}
+
+	int rc;
+
+	/*
+	 * Reserve the default address.
+	 */
+	rc = usb_hc_reserve_default_address(connection, dev_speed);
+	if (rc != EOK) {
+		rc = EBUSY;
+		goto leave_release_free_address;
+	}
+
+	/*
+	 * Enable the port (i.e. allow signalling through this port).
+	 */
+	rc = enable_port(port_no, arg);
+	if (rc != EOK) {
+		goto leave_release_default_address;
+	}
+
+	/*
+	 * Change the address from default to the free one.
+	 * We need to create a new control pipe for that.
+	 */
+	usb_device_connection_t dev_conn;
+	rc = usb_device_connection_initialize_on_default_address(&dev_conn,
+	    connection);
+	if (rc != EOK) {
+		rc = ENOTCONN;
+		goto leave_release_default_address;
+	}
+
+	usb_endpoint_pipe_t ctrl_pipe;
+	rc = usb_endpoint_pipe_initialize_default_control(&ctrl_pipe,
+	    &dev_conn);
+	if (rc != EOK) {
+		rc = ENOTCONN;
+		goto leave_release_default_address;
+	}
+
+	rc = usb_endpoint_pipe_start_session(&ctrl_pipe);
+	if (rc != EOK) {
+		rc = ENOTCONN;
+		goto leave_release_default_address;
+	}
+
+	rc = usb_request_set_address(&ctrl_pipe, dev_addr);
+	if (rc != EOK) {
+		rc = ESTALL;
+		goto leave_stop_session;
+	}
+
+	usb_endpoint_pipe_end_session(&ctrl_pipe);
+
+	/*
+	 * Once the address is changed, we can return the default address.
+	 */
+	usb_hc_release_default_address(connection);
+
+	/*
+	 * It is time to register the device with devman.
+	 */
+	/* FIXME: create device_register that will get opened ctrl pipe. */
+	devman_handle_t child_handle;
+	rc = usb_device_register_child_in_devman(dev_addr, dev_conn.hc_handle,
+	    parent, &child_handle);
+	if (rc != EOK) {
+		rc = ESTALL;
+		goto leave_release_free_address;
+	}
+
+	/*
+	 * And now inform the host controller about the handle.
+	 */
+	usb_hc_attached_device_t new_device = {
+		.address = dev_addr,
+		.handle = child_handle
+	};
+	rc = usb_hc_register_device(connection, &new_device);
+	if (rc != EOK) {
+		rc = EDESTADDRREQ;
+		goto leave_release_free_address;
+	}
+
+	/*
+	 * And we are done.
+	 */
+	if (assigned_address != NULL) {
+		*assigned_address = dev_addr;
+	}
+	if (assigned_handle != NULL) {
+		*assigned_handle = child_handle;
+	}
+
+	return EOK;
+
+
+
+	/*
+	 * Error handling (like nested exceptions) starts here.
+	 * Completely ignoring errors here.
+	 */
+
+leave_stop_session:
+	usb_endpoint_pipe_end_session(&ctrl_pipe);
+
+leave_release_default_address:
+	usb_hc_release_default_address(connection);
+
+leave_release_free_address:
+	usb_hc_unregister_device(connection, dev_addr);
+
+	return rc;
 }
 
 

@@ -120,7 +120,14 @@ leave:
 
 	return rc;
 }
-
+/*----------------------------------------------------------------------------*/
+int pci_enable_interrupts(device_t *device)
+{
+	int parent_phone = devman_parent_device_connect(device->handle,
+	    IPC_FLAG_BLOCKING);
+	bool enabled = hw_res_enable_interrupt(parent_phone);
+	return enabled ? EOK : EIO;
+}
 /**
  * @}
  */

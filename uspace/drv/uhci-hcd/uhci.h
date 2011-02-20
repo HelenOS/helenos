@@ -65,6 +65,11 @@ typedef struct uhci_regs {
 #define UHCI_STATUS_INTERRUPT (1 << 0)
 
 	uint16_t usbintr;
+#define UHCI_INTR_SHORT_PACKET (1 << 3)
+#define UHCI_INTR_COMPLETE (1 << 2)
+#define UHCI_INTR_RESUME (1 << 1)
+#define UHCI_INTR_CRC (1 << 0)
+
 	uint16_t frnum;
 	uint32_t flbaseadd;
 	uint8_t sofmod;
@@ -80,15 +85,14 @@ typedef struct uhci {
 
 	link_pointer_t *frame_list;
 
-	link_t batch_list;
-	fibril_mutex_t batch_list_mutex;
-
 	transfer_list_t transfers_bulk_full;
 	transfer_list_t transfers_control_full;
 	transfer_list_t transfers_control_slow;
 	transfer_list_t transfers_interrupt;
 
 	transfer_list_t *transfers[2][4];
+
+	irq_code_t interrupt_code;
 
 	fid_t cleaner;
 	fid_t debug_checker;
@@ -97,25 +101,15 @@ typedef struct uhci {
 /* init uhci specifics in device.driver_data */
 int uhci_init(uhci_t *instance, void *regs, size_t reg_size);
 
-int uhci_fini(uhci_t *device);
-
-int uhci_transfer(
-  uhci_t *instance,
-  device_t *dev,
-  usb_target_t target,
-  usb_transfer_type_t transfer_type,
-	bool toggle,
-  usb_packet_id pid,
-	bool low_speed,
-  void *buffer, size_t size,
-  usbhc_iface_transfer_out_callback_t callback_out,
-  usbhc_iface_transfer_in_callback_t callback_in,
-  void *arg );
+static inline void uhci_fini(uhci_t *instance) {};
 
 int uhci_schedule(uhci_t *instance, batch_t *batch);
 
+void uhci_interrupt(uhci_t *instance, uint16_t status);
+
 static inline uhci_t * dev_to_uhci(device_t *dev)
 	{ return (uhci_t*)dev->driver_data; }
+
 
 #endif
 /**

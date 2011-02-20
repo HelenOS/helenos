@@ -233,26 +233,6 @@ static int enqueue_transfer_out(device_t *dev,
 	return EOK;
 }
 
-static int enqueue_transfer_setup(device_t *dev,
-    usb_target_t target, usb_transfer_type_t transfer_type,
-    void *buffer, size_t size,
-    usbhc_iface_transfer_out_callback_t callback, void *arg)
-{
-	usb_log_debug2("Transfer SETUP [%d.%d (%s); %zu].\n",
-	    target.address, target.endpoint,
-	    usb_str_transfer_type(transfer_type),
-	    size);
-
-	transfer_info_t *transfer
-	    = create_transfer_info(dev, USB_DIRECTION_OUT, arg);
-	transfer->out_callback = callback;
-
-	hc_add_transaction_to_device(true, target, transfer_type, buffer, size,
-	    universal_callback, transfer);
-
-	return EOK;
-}
-
 static int enqueue_transfer_in(device_t *dev,
     usb_target_t target, usb_transfer_type_t transfer_type,
     void *buffer, size_t size,
@@ -294,34 +274,6 @@ static int interrupt_in(device_t *dev, usb_target_t target,
 	    callback, arg);
 }
 
-static int control_write_setup(device_t *dev, usb_target_t target,
-    size_t max_packet_size,
-    void *data, size_t size,
-    usbhc_iface_transfer_out_callback_t callback, void *arg)
-{
-	return enqueue_transfer_setup(dev, target, USB_TRANSFER_CONTROL,
-	    data, size,
-	    callback, arg);
-}
-
-static int control_write_data(device_t *dev, usb_target_t target,
-    size_t max_packet_size,
-    void *data, size_t size,
-    usbhc_iface_transfer_out_callback_t callback, void *arg)
-{
-	return enqueue_transfer_out(dev, target, USB_TRANSFER_CONTROL,
-	    data, size,
-	    callback, arg);
-}
-
-static int control_write_status(device_t *dev, usb_target_t target,
-    usbhc_iface_transfer_in_callback_t callback, void *arg)
-{
-	return enqueue_transfer_in(dev, target, USB_TRANSFER_CONTROL,
-	    NULL, 0,
-	    callback, arg);
-}
-
 static int control_write(device_t *dev, usb_target_t target,
     size_t max_packet_size,
     void *setup_packet, size_t setup_packet_size,
@@ -338,34 +290,6 @@ static int control_write(device_t *dev, usb_target_t target,
 	    control_callback_one, transfer);
 
 	return EOK;
-}
-
-static int control_read_setup(device_t *dev, usb_target_t target,
-    size_t max_packet_size,
-    void *data, size_t size,
-    usbhc_iface_transfer_out_callback_t callback, void *arg)
-{
-	return enqueue_transfer_setup(dev, target, USB_TRANSFER_CONTROL,
-	    data, size,
-	    callback, arg);
-}
-
-static int control_read_data(device_t *dev, usb_target_t target,
-    size_t max_packet_size,
-    void *data, size_t size,
-    usbhc_iface_transfer_in_callback_t callback, void *arg)
-{
-	return enqueue_transfer_in(dev, target, USB_TRANSFER_CONTROL,
-	    data, size,
-	    callback, arg);
-}
-
-static int control_read_status(device_t *dev, usb_target_t target,
-    usbhc_iface_transfer_out_callback_t callback, void *arg)
-{
-	return enqueue_transfer_out(dev, target, USB_TRANSFER_CONTROL,
-	    NULL, 0,
-	    callback, arg);
 }
 
 static int control_read(device_t *dev, usb_target_t target,
@@ -389,7 +313,7 @@ static int control_read(device_t *dev, usb_target_t target,
 static usb_address_keeping_t addresses;
 
 
-static int reserve_default_address(device_t *dev, bool ignored)
+static int reserve_default_address(device_t *dev, usb_speed_t ignored)
 {
 	usb_address_keeping_reserve_default(&addresses);
 	return EOK;
@@ -401,7 +325,8 @@ static int release_default_address(device_t *dev)
 	return EOK;
 }
 
-static int request_address(device_t *dev, bool ignored, usb_address_t *address)
+static int request_address(device_t *dev, usb_speed_t ignored,
+    usb_address_t *address)
 {
 	usb_address_t addr = usb_address_keeping_request(&addresses);
 	if (addr < 0) {
@@ -453,16 +378,7 @@ usbhc_iface_t vhc_iface = {
 	.interrupt_out = interrupt_out,
 	.interrupt_in = interrupt_in,
 
-	.control_write_setup = control_write_setup,
-	.control_write_data = control_write_data,
-	.control_write_status = control_write_status,
-
 	.control_write = control_write,
-
-	.control_read_setup = control_read_setup,
-	.control_read_data = control_read_data,
-	.control_read_status = control_read_status,
-
 	.control_read = control_read
 };
 

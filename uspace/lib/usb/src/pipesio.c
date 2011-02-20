@@ -77,9 +77,10 @@ static int usb_endpoint_pipe_read_no_checks(usb_endpoint_pipe_t *pipe,
 	/*
 	 * Make call identifying target USB device and type of transfer.
 	 */
-	aid_t opening_request = async_send_3(pipe->hc_phone,
+	aid_t opening_request = async_send_4(pipe->hc_phone,
 	    DEV_IFACE_ID(USBHC_DEV_IFACE), ipc_method,
 	    pipe->wire->address, pipe->endpoint_no,
+	    pipe->max_packet_size,
 	    NULL);
 	if (opening_request == 0) {
 		return ENOMEM;
@@ -200,9 +201,10 @@ static int usb_endpoint_pipe_write_no_check(usb_endpoint_pipe_t *pipe,
 	/*
 	 * Make call identifying target USB device and type of transfer.
 	 */
-	aid_t opening_request = async_send_3(pipe->hc_phone,
+	aid_t opening_request = async_send_4(pipe->hc_phone,
 	    DEV_IFACE_ID(USBHC_DEV_IFACE), ipc_method,
 	    pipe->wire->address, pipe->endpoint_no,
+	    pipe->max_packet_size,
 	    NULL);
 	if (opening_request == 0) {
 		return ENOMEM;
@@ -282,9 +284,10 @@ static int usb_endpoint_pipe_control_read_no_check(usb_endpoint_pipe_t *pipe,
 	/*
 	 * Make call identifying target USB device and control transfer type.
 	 */
-	aid_t opening_request = async_send_3(pipe->hc_phone,
+	aid_t opening_request = async_send_4(pipe->hc_phone,
 	    DEV_IFACE_ID(USBHC_DEV_IFACE), IPC_M_USBHC_CONTROL_READ,
 	    pipe->wire->address, pipe->endpoint_no,
+	    pipe->max_packet_size,
 	    NULL);
 	if (opening_request == 0) {
 		return ENOMEM;
@@ -401,10 +404,11 @@ static int usb_endpoint_pipe_control_write_no_check(usb_endpoint_pipe_t *pipe,
 	/*
 	 * Make call identifying target USB device and control transfer type.
 	 */
-	aid_t opening_request = async_send_4(pipe->hc_phone,
+	aid_t opening_request = async_send_5(pipe->hc_phone,
 	    DEV_IFACE_ID(USBHC_DEV_IFACE), IPC_M_USBHC_CONTROL_WRITE,
 	    pipe->wire->address, pipe->endpoint_no,
 	    data_buffer_size,
+	    pipe->max_packet_size,
 	    NULL);
 	if (opening_request == 0) {
 		return ENOMEM;

@@ -52,7 +52,7 @@
  * - first, IPC call with given method is made
  *   - argument #1 is target address
  *   - argument #2 is target endpoint
- *   - argument #3 is buffer size
+ *   - argument #3 is max packet size of the endpoint
  * - this call is immediately followed by IPC data write (from caller)
  * - the initial call (and the whole transaction) is answer after the
  *   transaction is scheduled by the HC and acknowledged by the device
@@ -65,7 +65,7 @@
  * - first, IPC call with given method is made
  *   - argument #1 is target address
  *   - argument #2 is target endpoint
- *   - argument #3 is buffer size
+ *   - argument #3 is max packet size of the endpoint
  * - this call is immediately followed by IPC data read (async version)
  * - the call is not answered until the device returns some data (or until
  *   error occurs)
@@ -152,39 +152,6 @@ typedef enum {
 	 */
 	IPC_M_USBHC_INTERRUPT_IN,
 
-
-	/** Start WRITE control transfer.
-	 * See explanation at usb_iface_funcs_t (OUT transaction).
-	 */
-	IPC_M_USBHC_CONTROL_WRITE_SETUP,
-
-	/** Send control-transfer data to device.
-	 * See explanation at usb_iface_funcs_t (OUT transaction).
-	 */
-	IPC_M_USBHC_CONTROL_WRITE_DATA,
-
-	/** Terminate WRITE control transfer.
-	 * See explanation at usb_iface_funcs_t (NO-DATA transaction).
-	 */
-	IPC_M_USBHC_CONTROL_WRITE_STATUS,
-
-
-
-	/** Start READ control transfer.
-	 * See explanation at usb_iface_funcs_t (OUT transaction).
-	 */
-	IPC_M_USBHC_CONTROL_READ_SETUP,
-
-	/** Get control-transfer data from device.
-	 * See explanation at usb_iface_funcs_t (IN transaction).
-	 */
-	IPC_M_USBHC_CONTROL_READ_DATA,
-
-	/** Terminate READ control transfer.
-	 * See explanation at usb_iface_funcs_t (NO-DATA transaction).
-	 */
-	IPC_M_USBHC_CONTROL_READ_STATUS,
-
 	/** Issue control WRITE transfer.
 	 * See explanation at usb_iface_funcs_t (OUT transaction) for
 	 * call parameters.
@@ -193,12 +160,11 @@ typedef enum {
 	 */
 	IPC_M_USBHC_CONTROL_WRITE,
 
-	/** Issue control WRITE transfer.
+	/** Issue control READ transfer.
 	 * See explanation at usb_iface_funcs_t (IN transaction) for
 	 * call parameters.
-	 * This call is immediately followed by IPC data read from the caller
-	 * (setup packet).
-	 * Actual data are retrieved through IPC_M_USBHC_GET_BUFFER.
+	 * This call is immediately followed by IPC data write from the caller
+	 * (setup packet) and IPC data read (buffer that was read).
 	 */
 	IPC_M_USBHC_CONTROL_READ,
 
@@ -231,24 +197,14 @@ typedef int (*usbhc_iface_transfer_in_t)(device_t *, usb_target_t, size_t,
 typedef struct {
 	int (*tell_address)(device_t *, devman_handle_t, usb_address_t *);
 
-	int (*reserve_default_address)(device_t *, bool);
+	int (*reserve_default_address)(device_t *, usb_speed_t);
 	int (*release_default_address)(device_t *);
-	int (*request_address)(device_t *, bool, usb_address_t *);
+	int (*request_address)(device_t *, usb_speed_t, usb_address_t *);
 	int (*bind_address)(device_t *, usb_address_t, devman_handle_t);
 	int (*release_address)(device_t *, usb_address_t);
 
 	usbhc_iface_transfer_out_t interrupt_out;
 	usbhc_iface_transfer_in_t interrupt_in;
-
-	usbhc_iface_transfer_setup_t control_write_setup;
-	usbhc_iface_transfer_out_t control_write_data;
-	int (*control_write_status)(device_t *, usb_target_t,
-	    usbhc_iface_transfer_in_callback_t, void *);
-
-	usbhc_iface_transfer_setup_t control_read_setup;
-	usbhc_iface_transfer_in_t control_read_data;
-	int (*control_read_status)(device_t *, usb_target_t,
-	    usbhc_iface_transfer_out_callback_t, void *);
 
 	int (*control_write)(device_t *, usb_target_t,
 	    size_t,
