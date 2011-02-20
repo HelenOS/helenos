@@ -206,14 +206,12 @@ bool usbmid_explore_device(usbmid_device_t *dev)
 		return false;
 	}
 
-	usbmid_dump_descriptors(config_descriptor_raw, config_descriptor_size);
-
 	size_t i;
 	for (i = 0; i < interface_descriptors_count; i++) {
 		usb_standard_interface_descriptor_t *interface
 		    = (usb_standard_interface_descriptor_t *)
 		    (config_descriptor_raw + interface_descriptors[i]);
-		usb_log_debug("Interface descriptor at index %zu (type %d).\n",
+		usb_log_debug2("Interface descriptor at index %zu (type %d).\n",
 		    interface_descriptors[i], (int) interface->descriptor_type);
 		usb_log_info("Creating child for interface %d (%s).\n",
 		    (int) interface->interface_number,
