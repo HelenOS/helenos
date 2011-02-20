@@ -129,33 +129,107 @@ failure:
  * @retval ENOENT Interface does not specify class.
  */
 int usb_device_create_match_ids_from_interface(
-    const usb_standard_interface_descriptor_t *descriptor,
+    const usb_standard_device_descriptor_t *desc_device,
+    const usb_standard_interface_descriptor_t *desc_interface,
     match_id_list_t *matches)
 {
-	if (descriptor == NULL) {
+	if (desc_interface == NULL) {
 		return EINVAL;
 	}
 	if (matches == NULL) {
 		return EINVAL;
 	}
 
-	if (descriptor->interface_class == USB_CLASS_USE_INTERFACE) {
+	if (desc_interface->interface_class == USB_CLASS_USE_INTERFACE) {
 		return ENOENT;
 	}
 
-	const char *classname = usb_str_class(descriptor->interface_class);
+	const char *classname = usb_str_class(desc_interface->interface_class);
 	assert(classname != NULL);
 
-	ADD_MATCHID_OR_RETURN(matches, 50,
-	    "usb&interface&class=%s",
-	    classname);
-	ADD_MATCHID_OR_RETURN(matches, 70,
-	    "usb&interface&class=%s&subclass=0x%02x",
-	    classname, descriptor->interface_subclass);
-	ADD_MATCHID_OR_RETURN(matches, 100,
-	    "usb&interface&class=%s&subclass=0x%02x&protocol=0x%02x",
-	    classname, descriptor->interface_subclass,
-	    descriptor->interface_protocol);
+#define IFACE_PROTOCOL_FMT "interface&class=%s&subclass=0x%02x&protocol=0x%02x"
+#define IFACE_PROTOCOL_ARGS classname, desc_interface->interface_subclass, \
+    desc_interface->interface_protocol
+
+#define IFACE_SUBCLASS_FMT "interface&class=%s&subclass=0x%02x"
+#define IFACE_SUBCLASS_ARGS classname, desc_interface->interface_subclass
+
+#define IFACE_CLASS_FMT "interface&class=%s"
+#define IFACE_CLASS_ARGS classname
+
+#define VENDOR_RELEASE_FMT "vendor=0x%04x&product=0x%04x&release=" BCD_FMT
+#define VENDOR_RELEASE_ARGS desc_device->vendor_id, desc_device->product_id, \
+    BCD_ARGS(desc_device->device_version)
+
+#define VENDOR_PRODUCT_FMT "vendor=0x%04x&product=0x%04x"
+#define VENDOR_PRODUCT_ARGS desc_device->vendor_id, desc_device->product_id
+
+#define VENDOR_ONLY_FMT "vendor=0x%04x"
+#define VENDOR_ONLY_ARGS desc_device->vendor_id
+
+	/*
+	 * If the vendor is specified, create match ids with vendor with
+	 * higher score.
+	 * Then the same ones without the vendor part.
+	 */
+	if ((desc_device != NULL) && (desc_device->vendor_id != 0)) {
+		/* First, interface matches with device release number. */
+		ADD_MATCHID_OR_RETURN(matches, 250,
+		    "usb&" VENDOR_RELEASE_FMT "&" IFACE_PROTOCOL_FMT,
+		    VENDOR_RELEASE_ARGS, IFACE_PROTOCOL_ARGS);
+		ADD_MATCHID_OR_RETURN(matches, 240,
+		    "usb&" VENDOR_RELEASE_FMT "&" IFACE_SUBCLASS_FMT,
+		    VENDOR_RELEASE_ARGS, IFACE_SUBCLASS_ARGS);
+		ADD_MATCHID_OR_RETURN(matches, 230,
+		    "usb&" VENDOR_RELEASE_FMT "&" IFACE_CLASS_FMT,
+		    VENDOR_RELEASE_ARGS, IFACE_CLASS_ARGS);
+
+		/* Next, interface matches without release number. */
+		ADD_MATCHID_OR_RETURN(matches, 220,
+		    "usb&" VENDOR_PRODUCT_FMT "&" IFACE_PROTOCOL_FMT,
+		    VENDOR_PRODUCT_ARGS, IFACE_PROTOCOL_ARGS);
+		ADD_MATCHID_OR_RETURN(matches, 210,
+		    "usb&" VENDOR_PRODUCT_FMT "&" IFACE_SUBCLASS_FMT,
+		    VENDOR_PRODUCT_ARGS, IFACE_SUBCLASS_ARGS);
+		ADD_MATCHID_OR_RETURN(matches, 200,
+		    "usb&" VENDOR_PRODUCT_FMT "&" IFACE_CLASS_FMT,
+		    VENDOR_PRODUCT_ARGS, IFACE_CLASS_ARGS);
+
+		/* Finally, interface matches with only vendor. */
+		ADD_MATCHID_OR_RETURN(matches, 190,
+		    "usb&" VENDOR_ONLY_FMT "&" IFACE_PROTOCOL_FMT,
+		    VENDOR_ONLY_ARGS, IFACE_PROTOCOL_ARGS);
+		ADD_MATCHID_OR_RETURN(matches, 180,
+		    "usb&" VENDOR_ONLY_FMT "&" IFACE_SUBCLASS_FMT,
+		    VENDOR_ONLY_ARGS, IFACE_SUBCLASS_ARGS);
+		ADD_MATCHID_OR_RETURN(matches, 170,
+		    "usb&" VENDOR_ONLY_FMT "&" IFACE_CLASS_FMT,
+		    VENDOR_ONLY_ARGS, IFACE_CLASS_ARGS);
+	}
+
+	/* Now, the same but without any vendor specification. */
+	ADD_MATCHID_OR_RETURN(matches, 160,
+	    "usb&" IFACE_PROTOCOL_FMT,
+	    IFACE_PROTOCOL_ARGS);
+	ADD_MATCHID_OR_RETURN(matches, 150,
+	    "usb&" IFACE_SUBCLASS_FMT,
+	    IFACE_SUBCLASS_ARGS);
+	ADD_MATCHID_OR_RETURN(matches, 140,
+	    "usb&" IFACE_CLASS_FMT,
+	    IFACE_CLASS_ARGS);
+
+#undef IFACE_PROTOCOL_FMT
+#undef IFACE_PROTOCOL_ARGS
+#undef IFACE_SUBCLASS_FMT
+#undef IFACE_SUBCLASS_ARGS
+#undef IFACE_CLASS_FMT
+#undef IFACE_CLASS_ARGS
+#undef VENDOR_RELEASE_FMT
+#undef VENDOR_RELEASE_ARGS
+#undef VENDOR_PRODUCT_FMT
+#undef VENDOR_PRODUCT_ARGS
+#undef VENDOR_ONLY_FMT
+#undef VENDOR_ONLY_ARGS
 
 	return EOK;
 }
@@ -230,25 +304,25 @@ int usb_drv_create_match_ids_from_configuration_descriptor(
 		if (cur_descr_len == 0) {
 			return ENOENT;
 		}
-		
+
 		position += cur_descr_len;
-		
+
 		if (cur_descr_type != USB_DESCTYPE_INTERFACE) {
 			continue;
 		}
-		
+
 		/*
 		 * Finally, we found an interface descriptor.
 		 */
 		usb_standard_interface_descriptor_t *interface
 		    = (usb_standard_interface_descriptor_t *)
 		    current_descriptor;
-		
+
 		ADD_MATCHID_OR_RETURN(matches, 50,
 		    "usb&interface&class=%s",
 		    usb_str_class(interface->interface_class));
 	}
-	
+
 	return EOK;
 }
 
@@ -263,7 +337,7 @@ static int usb_add_config_descriptor_match_ids(usb_endpoint_pipe_t *pipe,
     match_id_list_t *matches, int config_count)
 {
 	int final_rc = EOK;
-	
+
 	int config_index;
 	for (config_index = 0; config_index < config_count; config_index++) {
 		int rc;
@@ -291,7 +365,7 @@ static int usb_add_config_descriptor_match_ids(usb_endpoint_pipe_t *pipe,
 			final_rc = ERANGE;
 			continue;
 		}
-		
+
 		rc = usb_drv_create_match_ids_from_configuration_descriptor(
 		    matches,
 		    full_config_descriptor, full_config_descriptor_size);
@@ -299,9 +373,9 @@ static int usb_add_config_descriptor_match_ids(usb_endpoint_pipe_t *pipe,
 			final_rc = rc;
 			continue;
 		}
-		
+
 	}
-	
+
 	return final_rc;
 }
 

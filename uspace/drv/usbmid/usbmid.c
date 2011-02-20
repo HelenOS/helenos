@@ -207,7 +207,8 @@ int usbmid_spawn_interface_child(usbmid_device_t *parent,
 	child->name = child_name;
 	child->ops = &child_device_ops;
 
-	rc = usb_device_create_match_ids_from_interface(interface_descriptor,
+	rc = usb_device_create_match_ids_from_interface(device_descriptor,
+	    interface_descriptor,
 	    &child->match_ids);
 	if (rc != EOK) {
 		goto error_leave;
