@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,34 +26,82 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbvhc
+/** @addtogroup drvusbmid
  * @{
  */
-/** @file
- * @brief Connection handling of incoming calls.
+/**
+ * @file
+ * Main routines of USB multi interface device driver.
  */
-#ifndef VHCD_CONN_H_
-#define VHCD_CONN_H_
+#include <errno.h>
+#include <str_error.h>
+#include <usb/debug.h>
+#include <usb/classes/classes.h>
+#include <usb/request.h>
+#include <usb/descriptor.h>
+#include <usb/pipes.h>
 
-#include <usb/usb.h>
-#include <usbhc_iface.h>
-#include <usb_iface.h>
-#include "vhcd.h"
-#include "devices.h"
+#include "usbmid.h"
 
-void connection_handler_host(sysarg_t);
+static int usbmid_add_device(device_t *gen_dev)
+{
+	usbmid_device_t *dev = usbmid_device_create(gen_dev);
+	if (dev == NULL) {
+		return ENOMEM;
+	}
 
-extern usbhc_iface_t vhc_iface;
-extern usb_iface_t vhc_usb_iface;
+	usb_log_info("Taking care of new MID: addr %d (HC %zu)\n",
+	    dev->wire.address, dev->wire.hc_handle);
 
-void address_init(void);
+	int rc;
+
+	rc = usb_endpoint_pipe_start_session(&dev->ctrl_pipe);
+	if (rc != EOK) {
+		usb_log_error("Failed to start session on control pipe: %s.\n",
+		    str_error(rc));
+		goto error_leave;
+	}
+
+	bool accept = usbmid_explore_device(dev);
+
+	rc = usb_endpoint_pipe_end_session(&dev->ctrl_pipe);
+	if (rc != EOK) {
+		usb_log_warning("Failed to end session on control pipe: %s.\n",
+		    str_error(rc));
+	}
+
+	if (!accept) {
+		rc = ENOTSUP;
+		goto error_leave;
+	}
+
+	gen_dev->driver_data = dev;
+
+	return EOK;
 
 
-void default_connection_handler(device_t *, ipc_callid_t, ipc_call_t *);
-void on_client_close(device_t *);
+error_leave:
+	free(dev);
+	return rc;
+}
 
+static driver_ops_t mid_driver_ops = {
+	.add_device = usbmid_add_device,
+};
 
-#endif
+static driver_t mid_driver = {
+	.name = NAME,
+	.driver_ops = &mid_driver_ops
+};
+
+int main(int argc, char *argv[])
+{
+	printf(NAME ": USB multi interface device driver.\n");
+
+	usb_log_enable(USB_LOG_LEVEL_DEBUG, NAME);
+	return driver_main(&mid_driver);
+}
+
 /**
  * @}
  */

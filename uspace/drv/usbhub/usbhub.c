@@ -38,6 +38,7 @@
 #include <str_error.h>
 
 #include <usb_iface.h>
+#include <usb/ddfiface.h>
 #include <usb/usbdrv.h>
 #include <usb/descriptor.h>
 #include <usb/recognise.h>
@@ -51,17 +52,8 @@
 #include "usb/usb.h"
 #include "usb/pipes.h"
 
-static int iface_get_hc_handle(device_t *device, devman_handle_t *handle)
-{
-	return usb_hc_find(device->handle, handle);
-}
-
-static usb_iface_t hub_usb_iface = {
-	.get_hc_handle = iface_get_hc_handle
-};
-
 static device_ops_t hub_device_ops = {
-	.interfaces[USB_DEV_IFACE] = &hub_usb_iface
+	.interfaces[USB_DEV_IFACE] = &usb_iface_hub_impl
 };
 
 //*********************************************

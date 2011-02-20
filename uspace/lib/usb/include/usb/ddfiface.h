@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,31 +26,30 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbvhc
+/** @addtogroup libusb
  * @{
  */
 /** @file
- * @brief Connection handling of incoming calls.
+ * Implementations of DDF interfaces functions.
  */
-#ifndef VHCD_CONN_H_
-#define VHCD_CONN_H_
+#ifndef LIBUSB_DDFIFACE_H_
+#define LIBUSB_DDFIFACE_H_
 
-#include <usb/usb.h>
-#include <usbhc_iface.h>
+#include <sys/types.h>
+#include <usb/usbdevice.h>
 #include <usb_iface.h>
-#include "vhcd.h"
-#include "devices.h"
 
-void connection_handler_host(sysarg_t);
+int usb_iface_get_hc_handle_hub_impl(device_t *, devman_handle_t *);
+int usb_iface_get_address_hub_impl(device_t *, devman_handle_t,
+    usb_address_t *);
+extern usb_iface_t usb_iface_hub_impl;
 
-extern usbhc_iface_t vhc_iface;
-extern usb_iface_t vhc_usb_iface;
+int usb_iface_get_hc_handle_hub_child_impl(device_t *, devman_handle_t *);
+int usb_iface_get_address_hub_child_impl(device_t *, devman_handle_t,
+    usb_address_t *);
+extern usb_iface_t usb_iface_hub_child_impl;
 
-void address_init(void);
-
-
-void default_connection_handler(device_t *, ipc_callid_t, ipc_call_t *);
-void on_client_close(device_t *);
+int usb_iface_get_hc_handle_hc_impl(device_t *, devman_handle_t *);
 
 
 #endif

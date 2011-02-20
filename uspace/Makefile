@@ -120,6 +120,7 @@ ifeq ($(UARCH),amd64)
 		drv/uhci-rhd \
 		drv/usbhid \
 		drv/usbhub \
+		drv/usbmid \
 		drv/vhc
 endif
 
@@ -135,6 +136,7 @@ ifeq ($(UARCH),ia32)
 		drv/uhci-rhd \
 		drv/usbhid \
 		drv/usbhub \
+		drv/usbmid \
 		drv/vhc
 endif
 

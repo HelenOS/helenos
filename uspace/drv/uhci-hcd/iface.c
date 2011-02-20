@@ -41,17 +41,6 @@
 #include "iface.h"
 #include "uhci.h"
 
-static int get_address(device_t *dev, devman_handle_t handle,
-    usb_address_t *address)
-{
-	assert(dev);
-	uhci_t *hc = dev_to_uhci(dev);
-	assert(hc);
-	*address = usb_address_keeping_find(&hc->address_manager, handle);
-	if (*address <= 0)
-	  return *address;
-	return EOK;
-}
 /*----------------------------------------------------------------------------*/
 static int reserve_default_address(device_t *dev, usb_speed_t speed)
 {
@@ -167,8 +156,6 @@ static int control_read(device_t *dev, usb_target_t target,
 
 /*----------------------------------------------------------------------------*/
 usbhc_iface_t uhci_iface = {
-	.tell_address = get_address,
-
 	.reserve_default_address = reserve_default_address,
 	.release_default_address = release_default_address,
 	.request_address = request_address,
