@@ -264,10 +264,18 @@ static void usbkbd_process_keycodes(const uint8_t *key_codes, size_t count,
 	unsigned i;
 	for (i = 0; i < count; ++i) {
 		printf("%d ", key_codes[i]);
+	}
+	printf("\n");
+
+	for (i = 0; i < count; ++i) {
 		// TODO: Key press / release
 
 		// TODO: NOT WORKING
 		unsigned int key = usbkbd_parse_scancode(key_codes[i]);
+
+		if (key == 0) {
+			continue;
+		}
 		kbd_push_ev(KEY_PRESS, key);
 	}
 	printf("\n");
