@@ -106,6 +106,8 @@ typedef struct {
 	usb_endpoint_pipe_t *pipe;
 	/** Endpoint description. */
 	const usb_endpoint_description_t *description;
+	/** Interface number the endpoint must belong to (-1 for any). */
+	const int interface_no;
 	/** Found descriptor fitting the description. */
 	usb_standard_endpoint_descriptor_t *descriptor;
 	/** Interface the endpoint belongs to. */
