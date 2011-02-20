@@ -35,12 +35,19 @@
 #ifndef DRV_USBHUB_USBHUB_H
 #define DRV_USBHUB_USBHUB_H
 
+#include <ipc/devman.h>
+#include <usb/usb.h>
+#include <driver.h>
+
 #define NAME "usbhub"
 
+<<<<<<< TREE
 #include "usb/hcdhubd.h"
 
 #include <usb/pipes.h>
 
+=======
+>>>>>>> MERGE-SOURCE
 /** basic information about device attached to hub */
 typedef struct{
 	usb_address_t address;
@@ -61,15 +68,18 @@ typedef struct {
 	int port_count;
 	/** attached device handles, for each port one */
 	usb_hub_attached_device_t * attached_devs;
-	/** General usb device info. */
-	usb_hcd_attached_device_info_t * usb_device;
+	/** USB address of the hub. */
+	usb_address_t address;
 	/** General device info*/
 	device_t * device;
+<<<<<<< TREE
 	/** connection to hcd */
 	usb_device_connection_t connection;
 	/** hub endpoints */
 	usb_hub_endpoints_t endpoints;
 
+=======
+>>>>>>> MERGE-SOURCE
 } usb_hub_info_t;
 
 /**

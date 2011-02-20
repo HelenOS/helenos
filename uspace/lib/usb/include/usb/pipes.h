@@ -30,13 +30,15 @@
  * @{
  */
 /** @file
- * Communication between device drivers and host controller driver.
+ * USB pipes representation.
  */
 #ifndef LIBUSB_PIPES_H_
 #define LIBUSB_PIPES_H_
 
 #include <sys/types.h>
 #include <usb/usb.h>
+#include <usb/usbdevice.h>
+#include <usb/descriptor.h>
 #include <ipc/devman.h>
 #include <driver.h>
 
@@ -72,6 +74,9 @@ typedef struct {
 	/** Endpoint direction. */
 	usb_direction_t direction;
 
+	/** Maximum packet size for the endpoint. */
+	size_t max_packet_size;
+
 	/** Phone to the host controller.
 	 * Negative when no session is active.
 	 */
@@ -79,6 +84,38 @@ typedef struct {
 } usb_endpoint_pipe_t;
 
 
+/** Description of endpoint characteristics. */
+typedef struct {
+	/** Transfer type (e.g. control or interrupt). */
+	usb_transfer_type_t transfer_type;
+	/** Transfer direction (to or from a device). */
+	usb_direction_t direction;
+	/** Interface class this endpoint belongs to (-1 for any). */
+	int interface_class;
+	/** Interface subclass this endpoint belongs to (-1 for any). */
+	int interface_subclass;
+	/** Interface protocol this endpoint belongs to (-1 for any). */
+	int interface_protocol;
+	/** Extra endpoint flags. */
+	unsigned int flags;
+} usb_endpoint_description_t;
+
+/** Mapping of endpoint pipes and endpoint descriptions. */
+typedef struct {
+	/** Endpoint pipe. */
+	usb_endpoint_pipe_t *pipe;
+	/** Endpoint description. */
+	const usb_endpoint_description_t *description;
+	/** Found descriptor fitting the description. */
+	usb_standard_endpoint_descriptor_t *descriptor;
+	/** Interface the endpoint belongs to. */
+	usb_standard_interface_descriptor_t *interface;
+	/** Whether the endpoint was actually found. */
+	bool present;
+} usb_endpoint_mapping_t;
+
+int usb_device_connection_initialize_on_default_address(
+    usb_device_connection_t *, usb_hc_connection_t *);
 int usb_device_connection_initialize_from_device(usb_device_connection_t *,
     device_t *);
 int usb_device_connection_initialize(usb_device_connection_t *,
@@ -86,9 +123,11 @@ int usb_device_connection_initialize(usb_device_connection_t *,
 
 int usb_endpoint_pipe_initialize(usb_endpoint_pipe_t *,
     usb_device_connection_t *,
-    usb_endpoint_t, usb_transfer_type_t, usb_direction_t);
+    usb_endpoint_t, usb_transfer_type_t, size_t, usb_direction_t);
 int usb_endpoint_pipe_initialize_default_control(usb_endpoint_pipe_t *,
     usb_device_connection_t *);
+int usb_endpoint_pipe_initialize_from_configuration(usb_endpoint_mapping_t *,
+    size_t, uint8_t *, size_t, usb_device_connection_t *);
 
 
 int usb_endpoint_pipe_start_session(usb_endpoint_pipe_t *);
@@ -101,20 +140,6 @@ int usb_endpoint_pipe_control_read(usb_endpoint_pipe_t *, void *, size_t,
     void *, size_t, size_t *);
 int usb_endpoint_pipe_control_write(usb_endpoint_pipe_t *, void *, size_t,
     void *, size_t);
-
-
-
-int usb_endpoint_pipe_async_read(usb_endpoint_pipe_t *, void *, size_t,
-    size_t *, usb_handle_t *);
-int usb_endpoint_pipe_async_write(usb_endpoint_pipe_t *, void *, size_t,
-    usb_handle_t *);
-
-int usb_endpoint_pipe_async_control_read(usb_endpoint_pipe_t *, void *, size_t,
-    void *, size_t, size_t *, usb_handle_t *);
-int usb_endpoint_pipe_async_control_write(usb_endpoint_pipe_t *, void *, size_t,
-    void *, size_t, usb_handle_t *);
-
-int usb_endpoint_pipe_wait_for(usb_endpoint_pipe_t *, usb_handle_t);
 
 #endif
 /**

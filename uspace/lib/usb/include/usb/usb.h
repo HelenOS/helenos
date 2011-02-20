@@ -82,15 +82,6 @@ typedef enum {
 	USB_REQUEST_RECIPIENT_ENDPOINT = 2
 } usb_request_recipient_t;
 
-/** USB transaction outcome. */
-typedef enum {
-	USB_OUTCOME_OK,
-	USB_OUTCOME_CRCERROR,
-	USB_OUTCOME_BABBLE
-} usb_transaction_outcome_t;
-
-const char * usb_str_transaction_outcome(usb_transaction_outcome_t o);
-
 /** USB address type.
  * Negative values could be used to indicate error.
  */

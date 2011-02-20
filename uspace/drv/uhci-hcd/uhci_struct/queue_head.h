@@ -54,16 +54,35 @@ static inline void queue_head_init(queue_head_t *instance)
 	instance->next_queue = 0 | LINK_POINTER_TERMINATE_FLAG;
 }
 
-static inline void queue_head_add_next(queue_head_t *instance, uint32_t next_queue_pa)
+static inline void queue_head_append_qh(queue_head_t *instance, uint32_t pa)
 {
-	if (next_queue_pa) {
-		instance->next_queue = (next_queue_pa & LINK_POINTER_ADDRESS_MASK)
-		  | LINK_POINTER_QUEUE_HEAD_FLAG;
+	if (pa) {
+		instance->next_queue = (pa & LINK_POINTER_ADDRESS_MASK)
+		    | LINK_POINTER_QUEUE_HEAD_FLAG;
 	}
 }
 
-static inline queue_head_t * queue_head_get()
-	{ return malloc32(sizeof(queue_head_t)); }
+static inline void queue_head_element_qh(queue_head_t *instance, uint32_t pa)
+{
+	if (pa) {
+		instance->next_queue = (pa & LINK_POINTER_ADDRESS_MASK)
+		    | LINK_POINTER_QUEUE_HEAD_FLAG;
+	}
+}
+
+static inline void queue_head_element_td(queue_head_t *instance, uint32_t pa)
+{
+	if (pa) {
+		instance->element = (pa & LINK_POINTER_ADDRESS_MASK);
+	}
+}
+
+static inline queue_head_t * queue_head_get() {
+	queue_head_t *ret = malloc32(sizeof(queue_head_t));
+	if (ret)
+		queue_head_init(ret);
+	return ret;
+}
 
 static inline void queue_head_dispose(queue_head_t *head)
 	{ free32(head); }

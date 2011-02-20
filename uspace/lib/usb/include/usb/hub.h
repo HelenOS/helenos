@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jan Vesely
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,53 +25,39 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup usb
+
+/** @addtogroup libusb
  * @{
  */
 /** @file
- * @brief UHCI driver
+ * Functions needed by hub drivers.
  */
-#ifndef DRV_UHCI_TRANSLATOR_H
-#define DRV_UHCI_TRANSLATOR_H
+#ifndef LIBUSB_HUB_H_
+#define LIBUSB_HUB_H_
 
-#include <usb/usbmem.h>
+#include <sys/types.h>
+#include <usb/usbdevice.h>
 
-#include <assert.h>
-#include <malloc.h>
-#include <mem.h>
-#include <as.h>
+/** Info about device attached to host controller.
+ *
+ * This structure exists only to keep the same signature of
+ * usb_hc_register_device() when more properties of the device
+ * would have to be passed to the host controller.
+ */
+typedef struct {
+	/** Device address. */
+	usb_address_t address;
+	/** Devman handle of the device. */
+	devman_handle_t handle;
+} usb_hc_attached_device_t;
 
-#define UHCI_STRCUTURES_ALIGNMENT 16
-#define UHCI_REQUIRED_PAGE_SIZE 4096
+int usb_hc_reserve_default_address(usb_hc_connection_t *, bool);
+int usb_hc_release_default_address(usb_hc_connection_t *);
 
-static inline uintptr_t addr_to_phys(void *addr)
-{
-	uintptr_t result;
-	int ret = as_get_physical_mapping(addr, &result);
-
-	assert(ret == 0);
-	return (result | ((uintptr_t)addr & 0xfff));
-}
-
-static inline void * malloc32(size_t size)
-	{ return memalign(UHCI_STRCUTURES_ALIGNMENT, size); }
-
-static inline void * get_page()
-{
-	void * free_address = as_get_mappable_page(UHCI_REQUIRED_PAGE_SIZE);
-	assert(free_address);
-	if (free_address == 0)
-		return 0;
-	void* ret =
-	  as_area_create(free_address, UHCI_REQUIRED_PAGE_SIZE,
-		  AS_AREA_READ | AS_AREA_WRITE);
-	if (ret != free_address)
-		return 0;
-	return ret;
-}
-
-static inline void free32(void *addr)
-	{ if (addr) free(addr); }
+usb_address_t usb_hc_request_address(usb_hc_connection_t *, bool);
+int usb_hc_register_device(usb_hc_connection_t *,
+    const usb_hc_attached_device_t *);
+int usb_hc_unregister_device(usb_hc_connection_t *, usb_address_t);
 
 #endif
 /**

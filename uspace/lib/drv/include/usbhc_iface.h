@@ -39,6 +39,7 @@
 
 #include "driver.h"
 #include <usb/usb.h>
+#include <bool.h>
 
 
 /** IPC methods for communication with HC through DDF interface.
@@ -65,23 +66,14 @@
  *   - argument #1 is target address
  *   - argument #2 is target endpoint
  *   - argument #3 is buffer size
+ * - this call is immediately followed by IPC data read (async version)
  * - the call is not answered until the device returns some data (or until
  *   error occurs)
- * - if the call is answered with EOK, first argument of the answer is buffer
- *   hash that could be used to retrieve the actual data
  *
  * Some special methods (NO-DATA transactions) do not send any data. These
  * might behave as both OUT or IN transactions because communication parts
  * where actual buffers are exchanged are omitted.
- *
- * The mentioned data retrieval can be done any time after receiving EOK
- * answer to IN method.
- * This retrieval is done using the IPC_M_USBHC_GET_BUFFER where
- * the first argument is buffer hash from call answer.
- * This call must be immediately followed by data read-in and after the
- * data are transferred, the initial call (IPC_M_USBHC_GET_BUFFER)
- * is answered. Each buffer can be retrieved only once.
- *
+ **
  * For all these methods, wrap functions exists. Important rule: functions
  * for IN transactions have (as parameters) buffers where retrieved data
  * will be stored. These buffers must be already allocated and shall not be
@@ -102,13 +94,6 @@ typedef enum {
 	 * - EOK - handle found, first parameter contains the USB address
 	 */
 	IPC_M_USBHC_GET_ADDRESS,
-
-	/** Asks for data buffer.
-	 * See explanation at usb_iface_funcs_t.
-	 * This function does not have counter part in functional interface
-	 * as it is handled by the remote part itself.
-	 */
-	IPC_M_USBHC_GET_BUFFER,
 
 
 	/** Reserve usage of default address.
@@ -222,23 +207,23 @@ typedef enum {
 
 /** Callback for outgoing transfer. */
 typedef void (*usbhc_iface_transfer_out_callback_t)(device_t *,
-    usb_transaction_outcome_t, void *);
+    int, void *);
 
 /** Callback for incoming transfer. */
 typedef void (*usbhc_iface_transfer_in_callback_t)(device_t *,
-    usb_transaction_outcome_t, size_t, void *);
+    int, size_t, void *);
 
 
 /** Out transfer processing function prototype. */
-typedef int (*usbhc_iface_transfer_out_t)(device_t *, usb_target_t,
+typedef int (*usbhc_iface_transfer_out_t)(device_t *, usb_target_t, size_t,
     void *, size_t,
     usbhc_iface_transfer_out_callback_t, void *);
 
-/** Setup transfer processing function prototype. */
+/** Setup transfer processing function prototype. @deprecated */
 typedef usbhc_iface_transfer_out_t usbhc_iface_transfer_setup_t;
 
 /** In transfer processing function prototype. */
-typedef int (*usbhc_iface_transfer_in_t)(device_t *, usb_target_t,
+typedef int (*usbhc_iface_transfer_in_t)(device_t *, usb_target_t, size_t,
     void *, size_t,
     usbhc_iface_transfer_in_callback_t, void *);
 
@@ -246,9 +231,9 @@ typedef int (*usbhc_iface_transfer_in_t)(device_t *, usb_target_t,
 typedef struct {
 	int (*tell_address)(device_t *, devman_handle_t, usb_address_t *);
 
-	int (*reserve_default_address)(device_t *);
+	int (*reserve_default_address)(device_t *, bool);
 	int (*release_default_address)(device_t *);
-	int (*request_address)(device_t *, usb_address_t *);
+	int (*request_address)(device_t *, bool, usb_address_t *);
 	int (*bind_address)(device_t *, usb_address_t, devman_handle_t);
 	int (*release_address)(device_t *, usb_address_t);
 
@@ -266,10 +251,12 @@ typedef struct {
 	    usbhc_iface_transfer_out_callback_t, void *);
 
 	int (*control_write)(device_t *, usb_target_t,
+	    size_t,
 	    void *, size_t, void *, size_t,
 	    usbhc_iface_transfer_out_callback_t, void *);
 
 	int (*control_read)(device_t *, usb_target_t,
+	    size_t,
 	    void *, size_t, void *, size_t,
 	    usbhc_iface_transfer_in_callback_t, void *);
 } usbhc_iface_t;

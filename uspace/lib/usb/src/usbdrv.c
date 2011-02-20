@@ -48,10 +48,14 @@ typedef struct {
 	size_t size;
 	/** Storage for actual number of bytes transferred. */
 	size_t *size_transferred;
-	/** Initial call replay data. */
+	/** Initial call reply data. */
 	ipc_call_t reply;
 	/** Initial call identifier. */
 	aid_t request;
+	/** Reply data for data read call. */
+	ipc_call_t read_reply;
+	/** Data read call identifier. */
+	aid_t read_request;
 } transfer_info_t;
 
 /** Find handle of host controller the device is physically attached to.
@@ -139,7 +143,6 @@ usb_address_t usb_drv_get_my_address(int phone, device_t *dev)
 	    dev->handle, &address);
 
 	if (rc != EOK) {
-		printf("usb_drv_get_my_address over %d failed: %s\n", phone, str_error(rc));
 		return rc;
 	}
 
@@ -249,6 +252,7 @@ static int async_send_buffer(int phone, int method,
 		return ENOMEM;
 	}
 
+	transfer->read_request = 0;
 	transfer->size_transferred = NULL;
 	transfer->buffer = NULL;
 	transfer->size = 0;
@@ -314,6 +318,7 @@ static int async_recv_buffer(int phone, int method,
 		return ENOMEM;
 	}
 
+	transfer->read_request = 0;
 	transfer->size_transferred = actual_size;
 	transfer->buffer = buffer;
 	transfer->size = size;
@@ -326,52 +331,16 @@ static int async_recv_buffer(int phone, int method,
 	    size,
 	    &transfer->reply);
 
+	if (buffer != NULL) {
+		transfer->read_request = async_data_read(phone, buffer, size,
+		    &transfer->read_reply);
+	}
+
 	*handle = (usb_handle_t) transfer;
 
 	return EOK;
 }
 
-/** Read buffer from HCD.
- *
- * @param phone Opened phone to HCD.
- * @param hash Buffer hash (obtained after completing IN transaction).
- * @param buffer Buffer where to store data data.
- * @param size Buffer size.
- * @param actual_size Storage where actual number of bytes transferred will
- * 	be stored.
- * @return Error status.
- */
-static int read_buffer_in(int phone, sysarg_t hash,
-    void *buffer, size_t size, size_t *actual_size)
-{
-	ipc_call_t answer_data;
-	sysarg_t answer_rc;
-	aid_t req;
-	int rc;
-
-	req = async_send_2(phone,
-	    DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_GET_BUFFER,
-	    hash,
-	    &answer_data);
-
-	rc = async_data_read_start(phone, buffer, size);
-	if (rc != EOK) {
-		async_wait_for(req, NULL);
-		return EINVAL;
-	}
-
-	async_wait_for(req, &answer_rc);
-	rc = (int)answer_rc;
-
-	if (rc != EOK) {
-		return rc;
-	}
-
-	*actual_size = IPC_GET_ARG1(answer_data);
-
-	return EOK;
-}
 
 /** Blocks caller until given USB transaction is finished.
  * After the transaction is finished, the user can access all output data
@@ -394,39 +363,29 @@ int usb_drv_async_wait_for(usb_handle_t handle)
 	transfer_info_t *transfer = (transfer_info_t *) handle;
 
 	sysarg_t answer_rc;
-	async_wait_for(transfer->request, &answer_rc);
-
-	if (answer_rc != EOK) {
-		rc = (int) answer_rc;
-		goto leave;
-	}
 
 	/*
 	 * If the buffer is not NULL, we must accept some data.
 	 */
 	if ((transfer->buffer != NULL) && (transfer->size > 0)) {
-		/*
-		 * The buffer hash identifies the data on the server
-		 * side.
-		 * We will use it when actually reading-in the data.
-		 */
-		sysarg_t buffer_hash = IPC_GET_ARG1(transfer->reply);
-		if (buffer_hash == 0) {
-			rc = ENOENT;
+		async_wait_for(transfer->read_request, &answer_rc);
+
+		if (answer_rc != EOK) {
+			rc = (int) answer_rc;
 			goto leave;
 		}
 
-		size_t actual_size;
-		rc = read_buffer_in(transfer->phone, buffer_hash,
-		    transfer->buffer, transfer->size, &actual_size);
-
-		if (rc != EOK) {
-			goto leave;
+		if (transfer->size_transferred != NULL) {
+			*(transfer->size_transferred)
+			    = IPC_GET_ARG2(transfer->read_reply);
 		}
+	}
 
-		if (transfer->size_transferred) {
-			*(transfer->size_transferred) = actual_size;
-		}
+	async_wait_for(transfer->request, &answer_rc);
+
+	if (answer_rc != EOK) {
+		rc = (int) answer_rc;
+		goto leave;
 	}
 
 leave:
@@ -504,8 +463,8 @@ int usb_drv_async_control_write(int phone, usb_target_t target,
 	assert(phone > 0);
 	assert(setup_packet != NULL);
 	assert(setup_packet_size > 0);
-	assert(buffer != NULL);
-	assert(buffer_size > 0);
+	assert(((buffer != NULL) && (buffer_size > 0))
+	    || ((buffer == NULL) && (buffer_size == 0)));
 	assert(handle != NULL);
 
 	transfer_info_t *transfer
@@ -514,6 +473,7 @@ int usb_drv_async_control_write(int phone, usb_target_t target,
 		return ENOMEM;
 	}
 
+	transfer->read_request = 0;
 	transfer->size_transferred = NULL;
 	transfer->buffer = NULL;
 	transfer->size = 0;
@@ -533,10 +493,12 @@ int usb_drv_async_control_write(int phone, usb_target_t target,
 		return rc;
 	}
 
-	rc = async_data_write_start(phone, buffer, buffer_size);
-	if (rc != EOK) {
-		async_wait_for(transfer->request, NULL);
-		return rc;
+	if (buffer_size > 0) {
+		rc = async_data_write_start(phone, buffer, buffer_size);
+		if (rc != EOK) {
+			async_wait_for(transfer->request, NULL);
+			return rc;
+		}
 	}
 
 	*handle = (usb_handle_t) transfer;
@@ -618,6 +580,9 @@ int usb_drv_async_control_read(int phone, usb_target_t target,
 		async_wait_for(transfer->request, NULL);
 		return rc;
 	}
+
+	transfer->read_request = async_data_read(phone, buffer, buffer_size,
+	    &transfer->read_reply);
 
 	*handle = (usb_handle_t) transfer;
 

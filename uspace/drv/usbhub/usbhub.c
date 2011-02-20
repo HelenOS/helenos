@@ -35,10 +35,12 @@
 #include <driver.h>
 #include <bool.h>
 #include <errno.h>
+#include <str_error.h>
 
 #include <usb_iface.h>
 #include <usb/usbdrv.h>
 #include <usb/descriptor.h>
+#include <usb/recognise.h>
 #include <usb/devreq.h>
 #include <usb/request.h>
 #include <usb/classes/hub.h>
@@ -75,8 +77,26 @@ usb_hub_info_t * usb_create_hub_info(device_t * device) {
 	/// \TODO is this correct? is the device stored?
 	result->device = device;
 
+<<<<<<< TREE
 	result->usb_device = usb_new(usb_hcd_attached_device_info_t);
 	
+=======
+
+	dprintf(USB_LOG_LEVEL_DEBUG, "phone to hc = %d", hc);
+	if (hc < 0) {
+		return result;
+	}
+	//get some hub info
+	usb_address_t addr = usb_drv_get_my_address(hc, device);
+	dprintf(USB_LOG_LEVEL_DEBUG, "address of newly created hub = %d", addr);
+	/*if(addr<0){
+		//return result;
+
+	}*/
+
+	result->address = addr;
+
+>>>>>>> MERGE-SOURCE
 	// get hub descriptor
 
 	dprintf(USB_LOG_LEVEL_DEBUG, "creating serialized descripton");
@@ -147,9 +167,15 @@ int usb_add_hub_device(device_t *dev) {
 	usb_endpoint_pipe_start_session(&hub_info->endpoints.control);
 	int port;
 	int opResult;
+<<<<<<< TREE
 	//usb_target_t target;
 	//target.address = hub_info->usb_device->address;
 	//target.endpoint = 0;
+=======
+	usb_target_t target;
+	target.address = hub_info->address;
+	target.endpoint = 0;
+>>>>>>> MERGE-SOURCE
 
 	//get configuration descriptor
 	// this is not fully correct - there are more configurations
@@ -211,7 +237,7 @@ int usb_add_hub_device(device_t *dev) {
 
 	dprintf(USB_LOG_LEVEL_INFO, "hub dev added");
 	dprintf(USB_LOG_LEVEL_DEBUG, "\taddress %d, has %d ports ",
-			hub_info->usb_device->address,
+			hub_info->address,
 			hub_info->port_count);
 	dprintf(USB_LOG_LEVEL_DEBUG, "\tused configuration %d",config_descriptor.configuration_number);
 
@@ -316,9 +342,17 @@ static void usb_hub_finalize_add_device( usb_hub_info_t * hub,
 		return;
 	}
 
+	devman_handle_t hc_handle;
+	opResult = usb_drv_find_hc(hub->device, &hc_handle);
+	if (opResult != EOK) {
+		usb_log_error("Failed to get handle of host controller: %s.\n",
+		    str_error(opResult));
+		return;
+	}
+
 	devman_handle_t child_handle;
-	opResult = usb_drv_register_child_in_devman(hc, hub->device,
-            new_device_address, &child_handle);
+        opResult = usb_device_register_child_in_devman(new_device_address,
+            hc_handle, hub->device, &child_handle);
 	if (opResult != EOK) {
 		dprintf(USB_LOG_LEVEL_ERROR, "could not start driver for new device");
 		return;
@@ -471,7 +505,7 @@ void usb_hub_check_hub_changes(void) {
 		 */
 		/*
 		usb_target_t target;
-		target.address = hub_info->usb_device->address;
+		target.address = hub_info->address;
 		target.endpoint = 1;/// \TODO get from endpoint descriptor
 		dprintf(USB_LOG_LEVEL_INFO, "checking changes for hub at addr %d",
 		    target.address);
@@ -514,7 +548,11 @@ void usb_hub_check_hub_changes(void) {
 					(((uint8_t*) change_bitmap)[port / 8] >> (port % 8)) % 2;
 			if (interrupt) {
 				usb_hub_process_interrupt(
+<<<<<<< TREE
 				        hub_info, port);
+=======
+				        hub_info, hc, port, hub_info->address);
+>>>>>>> MERGE-SOURCE
 			}
 		}
 		usb_endpoint_pipe_end_session(&hub_info->endpoints.status_change);
