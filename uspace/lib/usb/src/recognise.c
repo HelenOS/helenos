@@ -230,11 +230,16 @@ int usb_drv_create_match_ids_from_device_descriptor(
 
 	/*
 	 * If the device class points to interface we skip adding
-	 * class directly.
+	 * class directly but we add a multi interface device.
 	 */
 	if (device_descriptor->device_class != USB_CLASS_USE_INTERFACE) {
 		rc = usb_add_match_id(matches, 50, "usb&class=%s",
 		    usb_str_class(device_descriptor->device_class));
+		if (rc != EOK) {
+			return rc;
+		}
+	} else {
+		rc = usb_add_match_id(matches, 50, "usb&mid");
 		if (rc != EOK) {
 			return rc;
 		}

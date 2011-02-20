@@ -219,6 +219,19 @@
 	 */
 
 	/**
+	 * @defgroup drvusbmid USB multi interface device driver
+	 * @ingroup usb
+	 * @brief USB multi interface device driver
+	 * @details
+	 * This driver serves as a mini hub (or bus) driver for devices
+	 * that have the class defined at interface level (those devices
+	 * usually have several interfaces).
+	 *
+	 * The term multi interface device driver (MID) was borrowed
+	 * Solaris operating system.
+	 */
+
+	/**
 	 * @defgroup drvusbhub USB hub driver
 	 * @ingroup usb
 	 * @brief USB hub driver.

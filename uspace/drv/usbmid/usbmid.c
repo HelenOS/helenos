@@ -1,0 +1,173 @@
+/*
+ * Copyright (c) 2011 Vojtech Horky
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * - Redistributions of source code must retain the above copyright
+ *   notice, this list of conditions and the following disclaimer.
+ * - Redistributions in binary form must reproduce the above copyright
+ *   notice, this list of conditions and the following disclaimer in the
+ *   documentation and/or other materials provided with the distribution.
+ * - The name of the author may not be used to endorse or promote products
+ *   derived from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+ * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+/** @addtogroup drvusbmid
+ * @{
+ */
+/**
+ * @file
+ * Helper functions.
+ */
+#include <errno.h>
+#include <str_error.h>
+#include <stdlib.h>
+#include <usb_iface.h>
+#include <usb/pipes.h>
+#include <usb/classes/classes.h>
+#include <usb/recognise.h>
+#include "usbmid.h"
+
+/** Callback for DDF USB interface. */
+static int iface_get_hc_handle(device_t *dev, devman_handle_t *handle)
+{
+	device_t *parent = dev->parent;
+
+	usb_log_debug("iface_get_hc_handle(dev=%zu)\n", (size_t) dev->handle);
+
+	if (parent && parent->ops && parent->ops->interfaces[USB_DEV_IFACE]) {
+		usb_iface_t *usb_iface
+		    = (usb_iface_t *) parent->ops->interfaces[USB_DEV_IFACE];
+		assert(usb_iface != NULL);
+		if (usb_iface->get_hc_handle) {
+			int rc = usb_iface->get_hc_handle(parent, handle);
+			return rc;
+		}
+		return ENOTSUP;
+	} else {
+		return usb_hc_find(dev->handle, handle);
+	}
+}
+
+static usb_iface_t usb_iface = {
+	.get_hc_handle = iface_get_hc_handle
+};
+
+static device_ops_t device_ops = {
+	.interfaces[USB_DEV_IFACE] = &usb_iface
+};
+
+/** Create new USB multi interface device.
+ *
+ * @param dev Backing generic DDF device.
+ * @return New USB MID device.
+ * @retval NULL Error occured.
+ */
+usbmid_device_t *usbmid_device_create(device_t *dev)
+{
+	usbmid_device_t *mid = malloc(sizeof(usbmid_device_t));
+	if (mid == NULL) {
+		return NULL;
+	}
+
+	int rc;
+	rc = usb_device_connection_initialize_from_device(&mid->wire, dev);
+	if (rc != EOK) {
+		free(mid);
+		return NULL;
+	}
+
+	rc = usb_endpoint_pipe_initialize_default_control(&mid->ctrl_pipe,
+	    &mid->wire);
+	if (rc != EOK) {
+		free(mid);
+		return NULL;
+	}
+
+	mid->dev = dev;
+	dev->ops = &device_ops;
+
+	return mid;
+}
+
+
+/** Spawn new child device from one interface.
+ *
+ * @param parent Parent MID device.
+ * @param device_descriptor Device descriptor.
+ * @param interface_descriptor Interface descriptor.
+ * @return Error code.
+ */
+int usbmid_spawn_interface_child(usbmid_device_t *parent,
+    const usb_standard_device_descriptor_t *device_descriptor,
+    const usb_standard_interface_descriptor_t *interface_descriptor)
+{
+	device_t *child = NULL;
+	char *child_name = NULL;
+	int rc;
+
+	/* Create the device. */
+	child = create_device();
+	if (child == NULL) {
+		rc = ENOMEM;
+		goto error_leave;
+	}
+
+	/*
+	 * Name is class name followed by interface number.
+	 * The interface number shall provide uniqueness while the
+	 * class name something humanly understandable.
+	 */
+	rc = asprintf(&child_name, "%s%d",
+	    usb_str_class(interface_descriptor->interface_class),
+	    (int) interface_descriptor->interface_number);
+	if (rc < 0) {
+		goto error_leave;
+	}
+	child->parent = parent->dev;
+	child->name = child_name;
+	child->ops = &device_ops;
+
+	rc = usb_device_create_match_ids_from_interface(interface_descriptor,
+	    &child->match_ids);
+	if (rc != EOK) {
+		goto error_leave;
+	}
+
+	rc = child_device_register(child, parent->dev);
+	if (rc != EOK) {
+		goto error_leave;
+	}
+
+	return EOK;
+
+error_leave:
+	if (child != NULL) {
+		child->name = NULL;
+		/* This takes care of match_id deallocation as well. */
+		delete_device(child);
+	}
+	if (child_name != NULL) {
+		free(child_name);
+	}
+
+	return rc;
+}
+
+/**
+ * @}
+ */
