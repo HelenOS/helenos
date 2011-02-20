@@ -38,6 +38,7 @@
 #include <sys/types.h>
 #include <usb/usbdevice.h>
 
+
 /** Info about device attached to host controller.
  *
  * This structure exists only to keep the same signature of

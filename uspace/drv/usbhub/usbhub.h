@@ -41,18 +41,11 @@
 
 #define NAME "usbhub"
 
-<<<<<<< TREE
-#include "usb/hcdhubd.h"
+//#include "usb/hcdhubd.h"
+#include <usb/usbdrv.h>
+#include <usb/hub.h>
 
 #include <usb/pipes.h>
-
-=======
->>>>>>> MERGE-SOURCE
-/** basic information about device attached to hub */
-typedef struct{
-	usb_address_t address;
-	devman_handle_t devman_handle;
-}usb_hub_attached_device_t;
 
 /* Hub endpoints. */
 typedef struct {
@@ -67,19 +60,18 @@ typedef struct {
 	/** Number of ports. */
 	int port_count;
 	/** attached device handles, for each port one */
-	usb_hub_attached_device_t * attached_devs;
-	/** USB address of the hub. */
-	usb_address_t address;
+	usb_hc_attached_device_t * attached_devs;
+	/** General usb device info. */
+	//usb_hcd_attached_device_info_t * usb_device;
 	/** General device info*/
 	device_t * device;
-<<<<<<< TREE
 	/** connection to hcd */
-	usb_device_connection_t connection;
+	//usb_device_connection_t connection;
+	usb_hc_connection_t connection;
+	/** */
+	usb_device_connection_t device_connection;
 	/** hub endpoints */
 	usb_hub_endpoints_t endpoints;
-
-=======
->>>>>>> MERGE-SOURCE
 } usb_hub_info_t;
 
 /**

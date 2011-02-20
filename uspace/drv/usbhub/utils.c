@@ -113,7 +113,7 @@ usb_hub_descriptor_t * usb_deserialize_hub_desriptor(void * serialized_descripto
 }
 
 //control transactions
-
+/*
 int usb_drv_sync_control_read(
     int phone, usb_target_t target,
     usb_device_request_setup_packet_t * request,
@@ -198,7 +198,7 @@ int usb_drv_sync_control_write(
 	return EOK;
 }
 
-
+*/
 
 
 

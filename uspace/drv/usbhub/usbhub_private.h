@@ -44,10 +44,11 @@
 #include <driver.h>
 #include <fibril_synch.h>
 
+#include <usb/classes/hub.h>
 #include <usb/usb.h>
 #include <usb/usbdrv.h>
-#include <usb/classes/hub.h>
-#include <usb/devreq.h>
+
+//#include <usb/devreq.h>
 #include <usb/debug.h>
 
 //************
