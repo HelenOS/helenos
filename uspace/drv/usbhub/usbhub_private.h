@@ -46,10 +46,8 @@
 
 #include <usb/classes/hub.h>
 #include <usb/usb.h>
-#include <usb/usbdrv.h>
-
-//#include <usb/devreq.h>
 #include <usb/debug.h>
+#include <usb/request.h>
 
 //************
 //

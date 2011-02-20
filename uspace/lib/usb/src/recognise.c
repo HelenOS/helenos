@@ -33,7 +33,6 @@
  * @brief Functions for recognising kind of attached devices.
  */
 #include <sys/types.h>
-#include <usb/usbdrv.h>
 #include <usb/pipes.h>
 #include <usb/recognise.h>
 #include <usb/ddfiface.h>
@@ -240,9 +239,9 @@ int usb_device_create_match_ids_from_interface(
  * @param device_descriptor Device descriptor returned by given device.
  * @return Error code.
  */
-int usb_drv_create_match_ids_from_device_descriptor(
-    match_id_list_t *matches,
-    const usb_standard_device_descriptor_t *device_descriptor)
+int usb_device_create_match_ids_from_device_descriptor(
+    const usb_standard_device_descriptor_t *device_descriptor,
+    match_id_list_t *matches)
 {
 	/*
 	 * Unless the vendor id is 0, the pair idVendor-idProduct
@@ -302,8 +301,8 @@ int usb_device_create_match_ids(usb_endpoint_pipe_t *ctrl_pipe,
 		return rc;
 	}
 
-	rc = usb_drv_create_match_ids_from_device_descriptor(matches,
-	    &device_descriptor);
+	rc = usb_device_create_match_ids_from_device_descriptor(
+	    &device_descriptor, matches);
 	if (rc != EOK) {
 		return rc;
 	}

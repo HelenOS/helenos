@@ -40,7 +40,6 @@
 #include <str_error.h>
 #include <stdlib.h>
 #include <driver.h>
-#include <usb/usbdrv.h>
 
 #include "virthub.h"
 #include "hub.h"

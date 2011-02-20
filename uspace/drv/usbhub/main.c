@@ -34,9 +34,6 @@
 #include <errno.h>
 #include <async.h>
 
-#include <usb/usbdrv.h>
-
-
 #include "usbhub.h"
 #include "usbhub_private.h"
 
