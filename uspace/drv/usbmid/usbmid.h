@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,59 +26,48 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libdrv
- * @addtogroup usb
+/** @addtogroup drvusbmid
  * @{
  */
 /** @file
- * @brief USB interface definition.
+ * Common definitions.
  */
 
-#ifndef LIBDRV_USB_IFACE_H_
-#define LIBDRV_USB_IFACE_H_
+#ifndef USBMID_H_
+#define USBMID_H_
 
-#include "driver.h"
+#include <driver.h>
 #include <usb/usb.h>
-typedef enum {
-	/** Tell USB address assigned to device.
-	 * Parameters:
-	 * - devman handle id
-	 * Answer:
-	 * - EINVAL - unknown handle or handle not managed by this driver
-	 * - ENOTSUP - operation not supported (shall not happen)
-	 * - arbitrary error code if returned by remote implementation
-	 * - EOK - handle found, first parameter contains the USB address
-	 */
-	IPC_M_USB_GET_ADDRESS,
+#include <usb/pipes.h>
+#include <usb/debug.h>
 
-	/** Tell interface number given device can use.
-	 * Parameters
-	 * - devman handle id of the device
-	 * Answer:
-	 * - ENOTSUP - operation not supported (can also mean any interface)
-	 * - EOK - operation okay, first parameter contains interface number
-	 */
-	IPC_M_USB_GET_INTERFACE,
+#define NAME "usbmid"
 
-	/** Tell devman handle of device host controller.
-	 * Parameters:
-	 * - none
-	 * Answer:
-	 * - EOK - request processed without errors
-	 * - ENOTSUP - this indicates invalid USB driver
-	 * Parameters of the answer:
-	 * - devman handle of HC caller is physically connected to
-	 */
-	IPC_M_USB_GET_HOST_CONTROLLER_HANDLE
-} usb_iface_funcs_t;
-
-/** USB device communication interface. */
 typedef struct {
-	int (*get_address)(device_t *, devman_handle_t, usb_address_t *);
-	int (*get_interface)(device_t *, devman_handle_t, int *);
-	int (*get_hc_handle)(device_t *, devman_handle_t *);
-} usb_iface_t;
+	/** Device container. */
+	device_t *dev;
 
+	/** Representation of USB wire. */
+	usb_device_connection_t wire;
+	/** Default control pipe. */
+	usb_endpoint_pipe_t ctrl_pipe;
+} usbmid_device_t;
+
+typedef struct {
+	/** Device container. */
+	device_t *dev;
+
+	/** Interface number. */
+	int interface_no;
+} usbmid_interface_t;
+
+usbmid_device_t *usbmid_device_create(device_t *);
+usbmid_interface_t *usbmid_interface_create(device_t *, int);
+bool usbmid_explore_device(usbmid_device_t *);
+int usbmid_spawn_interface_child(usbmid_device_t *,
+    const usb_standard_device_descriptor_t *,
+    const usb_standard_interface_descriptor_t *);
+void usbmid_dump_descriptors(uint8_t *, size_t);
 
 #endif
 /**

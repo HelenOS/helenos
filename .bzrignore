@@ -87,6 +87,7 @@ _link.ld
 ./uspace/drv/uhci-rhd/uhci-rhd
 ./uspace/drv/usbhub/usbhub
 ./uspace/drv/usbhid/usbhid
+./uspace/drv/usbmid/usbmid
 ./uspace/drv/vhc/vhc
 ./uspace/srv/bd/ata_bd/ata_bd
 ./uspace/srv/bd/file_bd/file_bd

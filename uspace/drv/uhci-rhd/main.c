@@ -33,6 +33,7 @@
  */
 #include <driver.h>
 #include <usb_iface.h>
+#include <usb/ddfiface.h>
 
 #include <errno.h>
 
@@ -55,7 +56,8 @@ static int usb_iface_get_hc_handle(device_t *dev, devman_handle_t *handle)
 }
 
 static usb_iface_t uhci_rh_usb_iface = {
-	.get_hc_handle = usb_iface_get_hc_handle
+	.get_hc_handle = usb_iface_get_hc_handle,
+	.get_address = usb_iface_get_address_hub_impl
 };
 
 static device_ops_t uhci_rh_ops = {

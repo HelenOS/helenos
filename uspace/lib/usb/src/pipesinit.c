@@ -108,16 +108,23 @@ static bool endpoint_fits_description(const usb_endpoint_description_t *wanted,
  * @param mapping Endpoint mapping list.
  * @param mapping_count Number of endpoint mappings in @p mapping.
  * @param found_endpoint Description of found endpoint.
+ * @param interface_number Number of currently processed interface.
  * @return Endpoint mapping corresponding to @p found_endpoint.
  * @retval NULL No corresponding endpoint found.
  */
 static usb_endpoint_mapping_t *find_endpoint_mapping(
     usb_endpoint_mapping_t *mapping, size_t mapping_count,
-    usb_endpoint_description_t *found_endpoint)
+    usb_endpoint_description_t *found_endpoint,
+    int interface_number)
 {
 	while (mapping_count > 0) {
-		if (endpoint_fits_description(mapping->description,
-		    found_endpoint)) {
+		bool interface_number_fits = (mapping->interface_no < 0)
+		    || (mapping->interface_no == interface_number);
+
+		bool endpoint_descriptions_fits = endpoint_fits_description(
+		    mapping->description, found_endpoint);
+
+		if (interface_number_fits && endpoint_descriptions_fits) {
 			return mapping;
 		}
 
@@ -168,7 +175,7 @@ static int process_endpoint(
 	 * Find the most fitting mapping and initialize the pipe.
 	 */
 	usb_endpoint_mapping_t *ep_mapping = find_endpoint_mapping(mapping,
-	    mapping_count, &description);
+	    mapping_count, &description, interface->interface_number);
 	if (ep_mapping == NULL) {
 		return ENOENT;
 	}
