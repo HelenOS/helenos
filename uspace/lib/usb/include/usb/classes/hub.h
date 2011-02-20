@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2010 Matus Dekanek
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,8 +32,8 @@
 /** @file
  * @brief USB hub related structures.
  */
-#ifndef LIBUSB_HUB_H_
-#define LIBUSB_HUB_H_
+#ifndef LIBUSB_CLASS_HUB_H_
+#define LIBUSB_CLASS_HUB_H_
 
 #include <sys/types.h>
 

@@ -44,10 +44,11 @@
 #include <driver.h>
 #include <fibril_synch.h>
 
+#include <usb/classes/hub.h>
 #include <usb/usb.h>
 #include <usb/usbdrv.h>
-#include <usb/classes/hub.h>
-#include <usb/devreq.h>
+
+//#include <usb/devreq.h>
 #include <usb/debug.h>
 
 //************
@@ -76,7 +77,7 @@
  * @param hc host controller phone
  * @return
  */
-usb_hub_info_t * usb_create_hub_info(device_t * device, int hc);
+usb_hub_info_t * usb_create_hub_info(device_t * device);
 
 /** List of hubs maanged by this driver */
 extern usb_general_list_t usb_hub_list;
@@ -97,11 +98,12 @@ extern fibril_mutex_t usb_hub_list_lock;
  * @param actual_size Actual size of received data
  * @return error code
  */
+/*
 int usb_drv_sync_control_read(
-    int phone, usb_target_t target,
+    usb_endpoint_pipe_t *pipe,
     usb_device_request_setup_packet_t * request,
     void * rcvd_buffer, size_t rcvd_size, size_t * actual_size
-);
+);*/
 
 /**
  * Perform complete control write transaction
@@ -114,11 +116,11 @@ int usb_drv_sync_control_read(
  * @param sent_size
  * @return error code
  */
-int usb_drv_sync_control_write(
-    int phone, usb_target_t target,
+/*int usb_drv_sync_control_write(
+    usb_endpoint_pipe_t *pipe,
     usb_device_request_setup_packet_t * request,
     void * sent_buffer, size_t sent_size
-);
+);*/
 
 /**
  * Set the device request to be a get hub descriptor request.
@@ -146,13 +148,10 @@ usb_device_request_setup_packet_t * request
  * @param feature Feature selector
  * @return Operation result
  */
-static inline int usb_hub_clear_port_feature(int hc, usb_address_t address,
+static inline int usb_hub_clear_port_feature(usb_endpoint_pipe_t *pipe,
     int port_index,
     usb_hub_class_feature_t feature) {
-	usb_target_t target = {
-		.address = address,
-		.endpoint = 0
-	};
+	
 	usb_device_request_setup_packet_t clear_request = {
 		.request_type = USB_HUB_REQ_TYPE_CLEAR_PORT_FEATURE,
 		.request = USB_DEVREQ_CLEAR_FEATURE,
@@ -160,7 +159,7 @@ static inline int usb_hub_clear_port_feature(int hc, usb_address_t address,
 		.index = port_index
 	};
 	clear_request.value = feature;
-	return usb_drv_psync_control_write(hc, target, &clear_request,
+	return usb_endpoint_pipe_control_write(pipe, &clear_request,
 	    sizeof(clear_request), NULL, 0);
 }
 
