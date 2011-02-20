@@ -141,6 +141,56 @@ failure:
 	return rc;
 }
 
+/** Create device match ids based on its interface.
+ *
+ * @param[in] descriptor Interface descriptor.
+ * @param[out] matches Initialized list of match ids.
+ * @return Error code (the two mentioned are not the only ones).
+ * @retval EINVAL Invalid input parameters (expects non NULL pointers).
+ * @retval ENOENT Interface does not specify class.
+ */
+int usb_device_create_match_ids_from_interface(
+    const usb_standard_interface_descriptor_t *descriptor,
+    match_id_list_t *matches)
+{
+	if (descriptor == NULL) {
+		return EINVAL;
+	}
+	if (matches == NULL) {
+		return EINVAL;
+	}
+
+	int rc;
+
+	if (descriptor->interface_class == USB_CLASS_USE_INTERFACE) {
+		return ENOENT;
+	}
+
+	const char *classname = usb_str_class(descriptor->interface_class);
+	assert(classname != NULL);
+
+	rc = usb_add_match_id(matches, 50,
+	    "usb&interface&class=%s",
+	    classname);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	rc = usb_add_match_id(matches, 70,
+	    "usb&interface&class=%s&subclass=0x%02x",
+	    classname, descriptor->interface_subclass);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	rc = usb_add_match_id(matches, 100,
+	    "usb&interface&class=%s&subclass=0x%02x&protocol=0x%02x",
+	    classname, descriptor->interface_subclass,
+	    descriptor->interface_protocol);
+
+	return rc;
+}
+
 /** Create DDF match ids from USB device descriptor.
  *
  * @param matches List of match ids to extend.
