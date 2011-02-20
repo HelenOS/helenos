@@ -259,7 +259,8 @@ static void usb_hub_init_add_device(usb_hub_info_t * hub, uint16_t port) {
 	assert(hub->endpoints.control.hc_phone);
 	//get default address
 	//opResult = usb_drv_reserve_default_address(hc);
-	opResult = usb_hc_reserve_default_address(&hub->connection, false);
+	opResult = usb_hc_reserve_default_address(&hub->connection, USB_SPEED_LOW);
+
 	if (opResult != EOK) {
 		dprintf(USB_LOG_LEVEL_WARNING, "cannot assign default address, it is probably used");
 		return;
@@ -316,7 +317,7 @@ static void usb_hub_finalize_add_device( usb_hub_info_t * hub,
 	/* Request address from host controller. */
 	usb_address_t new_device_address = usb_hc_request_address(
 			&hub->connection,
-			false/// \TODO fullspeed??
+			USB_SPEED_LOW/// \TODO fullspeed??
 			);
 	if (new_device_address < 0) {
 		dprintf(USB_LOG_LEVEL_ERROR, "failed to get free USB address");
