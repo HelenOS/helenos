@@ -111,6 +111,15 @@ failure:
 	return rc;
 }
 
+#define ADD_MATCHID_OR_RETURN(match_ids, score, format, ...) \
+	do { \
+		int __rc = usb_add_match_id((match_ids), (score), \
+		    format, ##__VA_ARGS__); \
+		if (__rc != EOK) { \
+			return __rc; \
+		} \
+	} while (0)
+
 /** Create device match ids based on its interface.
  *
  * @param[in] descriptor Interface descriptor.
@@ -130,8 +139,6 @@ int usb_device_create_match_ids_from_interface(
 		return EINVAL;
 	}
 
-	int rc;
-
 	if (descriptor->interface_class == USB_CLASS_USE_INTERFACE) {
 		return ENOENT;
 	}
@@ -139,26 +146,18 @@ int usb_device_create_match_ids_from_interface(
 	const char *classname = usb_str_class(descriptor->interface_class);
 	assert(classname != NULL);
 
-	rc = usb_add_match_id(matches, 50,
+	ADD_MATCHID_OR_RETURN(matches, 50,
 	    "usb&interface&class=%s",
 	    classname);
-	if (rc != EOK) {
-		return rc;
-	}
-
-	rc = usb_add_match_id(matches, 70,
+	ADD_MATCHID_OR_RETURN(matches, 70,
 	    "usb&interface&class=%s&subclass=0x%02x",
 	    classname, descriptor->interface_subclass);
-	if (rc != EOK) {
-		return rc;
-	}
-
-	rc = usb_add_match_id(matches, 100,
+	ADD_MATCHID_OR_RETURN(matches, 100,
 	    "usb&interface&class=%s&subclass=0x%02x&protocol=0x%02x",
 	    classname, descriptor->interface_subclass,
 	    descriptor->interface_protocol);
 
-	return rc;
+	return EOK;
 }
 
 /** Create DDF match ids from USB device descriptor.
@@ -171,31 +170,23 @@ int usb_drv_create_match_ids_from_device_descriptor(
     match_id_list_t *matches,
     const usb_standard_device_descriptor_t *device_descriptor)
 {
-	int rc;
-	
 	/*
 	 * Unless the vendor id is 0, the pair idVendor-idProduct
 	 * quite uniquely describes the device.
 	 */
 	if (device_descriptor->vendor_id != 0) {
 		/* First, with release number. */
-		rc = usb_add_match_id(matches, 100,
+		ADD_MATCHID_OR_RETURN(matches, 100,
 		    "usb&vendor=0x%04x&product=0x%04x&release=" BCD_FMT,
 		    (int) device_descriptor->vendor_id,
 		    (int) device_descriptor->product_id,
 		    BCD_ARGS(device_descriptor->device_version));
-		if (rc != EOK) {
-			return rc;
-		}
 		
 		/* Next, without release number. */
-		rc = usb_add_match_id(matches, 90,
+		ADD_MATCHID_OR_RETURN(matches, 90,
 		    "usb&vendor=0x%04x&product=0x%04x",
 		    (int) device_descriptor->vendor_id,
 		    (int) device_descriptor->product_id);
-		if (rc != EOK) {
-			return rc;
-		}
 	}	
 
 	/*
@@ -203,16 +194,10 @@ int usb_drv_create_match_ids_from_device_descriptor(
 	 * class directly but we add a multi interface device.
 	 */
 	if (device_descriptor->device_class != USB_CLASS_USE_INTERFACE) {
-		rc = usb_add_match_id(matches, 50, "usb&class=%s",
+		ADD_MATCHID_OR_RETURN(matches, 50, "usb&class=%s",
 		    usb_str_class(device_descriptor->device_class));
-		if (rc != EOK) {
-			return rc;
-		}
 	} else {
-		rc = usb_add_match_id(matches, 50, "usb&mid");
-		if (rc != EOK) {
-			return rc;
-		}
+		ADD_MATCHID_OR_RETURN(matches, 50, "usb&mid");
 	}
 	
 	return EOK;
@@ -259,12 +244,9 @@ int usb_drv_create_match_ids_from_configuration_descriptor(
 		    = (usb_standard_interface_descriptor_t *)
 		    current_descriptor;
 		
-		int rc = usb_add_match_id(matches, 50,
+		ADD_MATCHID_OR_RETURN(matches, 50,
 		    "usb&interface&class=%s",
 		    usb_str_class(interface->interface_class));
-		if (rc != EOK) {
-			return rc;
-		}
 	}
 	
 	return EOK;
@@ -366,10 +348,7 @@ int usb_device_create_match_ids(usb_endpoint_pipe_t *ctrl_pipe,
 	/*
 	 * As a fallback, provide the simplest match id possible.
 	 */
-	rc = usb_add_match_id(matches, 1, "usb&fallback");
-	if (rc != EOK) {
-		return rc;
-	}
+	ADD_MATCHID_OR_RETURN(matches, 1, "usb&fallback");
 
 	return EOK;
 }
