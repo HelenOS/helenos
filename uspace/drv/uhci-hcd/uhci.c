@@ -38,43 +38,106 @@
 #include <usb/usb.h>
 
 #include "uhci.h"
+static irq_cmd_t uhci_cmds[] = {
+	{
+		.cmd = CMD_PIO_READ_16,
+		.addr = (void*)0xc022,
+		.dstarg = 1
+	},
+	{
+		.cmd = CMD_PIO_WRITE_16,
+		.addr = (void*)0xc022,
+		.value = 0x1f
+	},
+	{
+		.cmd = CMD_ACCEPT
+	}
+};
 
 static int uhci_init_transfer_lists(uhci_t *instance);
-static int uhci_clean_finished(void *arg);
+static int uhci_init_mem_structures(uhci_t *instance);
+static void uhci_init_hw(uhci_t *instance);
+
+static int uhci_interrupt_emulator(void *arg);
 static int uhci_debug_checker(void *arg);
+
 static bool allowed_usb_packet(
 	bool low_speed, usb_transfer_type_t, size_t size);
 
-int uhci_init(uhci_t *instance, void *regs, size_t reg_size)
-{
-#define CHECK_RET_RETURN(message...) \
+#define CHECK_RET_RETURN(ret, message...) \
 	if (ret != EOK) { \
 		usb_log_error(message); \
 		return ret; \
 	} else (void) 0
 
-	/* init address keeper(libusb) */
-	usb_address_keeping_init(&instance->address_manager, USB11_ADDRESS_MAX);
-	usb_log_debug("Initialized address manager.\n");
+int uhci_init(uhci_t *instance, void *regs, size_t reg_size)
+{
+	assert(reg_size >= sizeof(regs_t));
 
 	/* allow access to hc control registers */
 	regs_t *io;
-	assert(reg_size >= sizeof(regs_t));
 	int ret = pio_enable(regs, reg_size, (void**)&io);
-	CHECK_RET_RETURN("Failed to gain access to registers at %p.\n", io);
+	CHECK_RET_RETURN(ret, "Failed to gain access to registers at %p.\n", io);
 	instance->registers = io;
 	usb_log_debug("Device registers accessible.\n");
 
+	ret = uhci_init_mem_structures(instance);
+	CHECK_RET_RETURN(ret, "Failed to initialize memory structures.\n");
+
+	uhci_init_hw(instance);
+
+	instance->cleaner = fibril_create(uhci_interrupt_emulator, instance);
+//	fibril_add_ready(instance->cleaner);
+
+	instance->debug_checker = fibril_create(uhci_debug_checker, instance);
+	fibril_add_ready(instance->debug_checker);
+
+	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+void uhci_init_hw(uhci_t *instance)
+{
+
+	/* set framelist pointer */
+	const uint32_t pa = addr_to_phys(instance->frame_list);
+	pio_write_32(&instance->registers->flbaseadd, pa);
+
+	/* enable all interrupts, but resume interrupt */
+	pio_write_16(&instance->registers->usbintr,
+		  UHCI_INTR_CRC | UHCI_INTR_COMPLETE | UHCI_INTR_SHORT_PACKET);
+
+	/* Start the hc with large(64B) packet FSBR */
+	pio_write_16(&instance->registers->usbcmd,
+	    UHCI_CMD_RUN_STOP | UHCI_CMD_MAX_PACKET | UHCI_CMD_CONFIGURE);
+	usb_log_debug("Started UHCI HC.\n");
+}
+/*----------------------------------------------------------------------------*/
+int uhci_init_mem_structures(uhci_t *instance)
+{
+	assert(instance);
+
+	/* init interrupt code */
+	irq_cmd_t *interrupt_commands = malloc(sizeof(uhci_cmds));
+	if (interrupt_commands == NULL) {
+		return ENOMEM;
+	}
+	memcpy(interrupt_commands, uhci_cmds, sizeof(uhci_cmds));
+	interrupt_commands[0].addr = (void*)&instance->registers->usbsts;
+	interrupt_commands[1].addr = (void*)&instance->registers->usbsts;
+	instance->interrupt_code.cmds = interrupt_commands;
+	instance->interrupt_code.cmdcount =
+	    sizeof(uhci_cmds) / sizeof(irq_cmd_t);
+
 	/* init transfer lists */
-	ret = uhci_init_transfer_lists(instance);
-	CHECK_RET_RETURN("Failed to initialize transfer lists.\n");
-	usb_log_debug("Transfer lists initialized.\n");
+	int ret = uhci_init_transfer_lists(instance);
+	CHECK_RET_RETURN(ret, "Failed to initialize transfer lists.\n");
+	usb_log_debug("Initialized transfer lists.\n");
 
-
-	usb_log_debug("Initializing frame list.\n");
+	/* frame list initialization */
 	instance->frame_list = get_page();
 	ret = instance ? EOK : ENOMEM;
-	CHECK_RET_RETURN("Failed to get frame list page.\n");
+	CHECK_RET_RETURN(ret, "Failed to get frame list page.\n");
+	usb_log_debug("Initialized frame list.\n");
 
 	/* initialize all frames to point to the first queue head */
 	const uint32_t queue =
@@ -85,26 +148,9 @@ int uhci_init(uhci_t *instance, void *regs, size_t reg_size)
 		instance->frame_list[i] = queue;
 	}
 
-	const uintptr_t pa = (uintptr_t)addr_to_phys(instance->frame_list);
-	pio_write_32(&instance->registers->flbaseadd, (uint32_t)pa);
-
-	list_initialize(&instance->batch_list);
-	fibril_mutex_initialize(&instance->batch_list_mutex);
-
-	instance->cleaner = fibril_create(uhci_clean_finished, instance);
-	fibril_add_ready(instance->cleaner);
-
-	instance->debug_checker = fibril_create(uhci_debug_checker, instance);
-	fibril_add_ready(instance->debug_checker);
-
-	/* Start the hc with large(64B) packet FSBR */
-	pio_write_16(&instance->registers->usbcmd,
-	    UHCI_CMD_RUN_STOP | UHCI_CMD_MAX_PACKET);
-	usb_log_debug("Started UHCI HC.\n");
-
-	uint16_t cmd = pio_read_16(&instance->registers->usbcmd);
-	cmd |= UHCI_CMD_DEBUG;
-	pio_write_16(&instance->registers->usbcmd, cmd);
+	/* init address keeper(libusb) */
+	usb_address_keeping_init(&instance->address_manager, USB11_ADDRESS_MAX);
+	usb_log_debug("Initialized address manager.\n");
 
 	return EOK;
 }
@@ -113,7 +159,7 @@ int uhci_init_transfer_lists(uhci_t *instance)
 {
 	assert(instance);
 
-	/* initialize */
+	/* initialize TODO: check errors */
 	int ret;
 	ret = transfer_list_init(&instance->transfers_bulk_full, "BULK_FULL");
 	assert(ret == EOK);
@@ -145,8 +191,8 @@ int uhci_init_transfer_lists(uhci_t *instance)
 	  &instance->transfers_control_full;
 	instance->transfers[1][USB_TRANSFER_CONTROL] =
 	  &instance->transfers_control_slow;
-	instance->transfers[0][USB_TRANSFER_CONTROL] =
-	  &instance->transfers_control_full;
+	instance->transfers[0][USB_TRANSFER_BULK] =
+	  &instance->transfers_bulk_full;
 
 	return EOK;
 }
@@ -173,17 +219,27 @@ int uhci_schedule(uhci_t *instance, batch_t *batch)
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-int uhci_clean_finished(void* arg)
+void uhci_interrupt(uhci_t *instance, uint16_t status)
 {
-	usb_log_debug("Started cleaning fibril.\n");
+	assert(instance);
+	if ((status & (UHCI_STATUS_INTERRUPT | UHCI_STATUS_ERROR_INTERRUPT)) == 0)
+		return;
+	usb_log_debug("UHCI interrupt: %X.\n", status);
+	transfer_list_check(&instance->transfers_interrupt);
+	transfer_list_check(&instance->transfers_control_slow);
+	transfer_list_check(&instance->transfers_control_full);
+	transfer_list_check(&instance->transfers_bulk_full);
+}
+/*----------------------------------------------------------------------------*/
+int uhci_interrupt_emulator(void* arg)
+{
+	usb_log_debug("Started interrupt emulator.\n");
 	uhci_t *instance = (uhci_t*)arg;
 	assert(instance);
 
 	while(1) {
-		transfer_list_check(&instance->transfers_interrupt);
-		transfer_list_check(&instance->transfers_control_slow);
-		transfer_list_check(&instance->transfers_control_full);
-		transfer_list_check(&instance->transfers_bulk_full);
+		uint16_t status = pio_read_16(&instance->registers->usbsts);
+		uhci_interrupt(instance, status);
 		async_usleep(UHCI_CLEANER_TIMEOUT);
 	}
 	return EOK;
@@ -194,12 +250,14 @@ int uhci_debug_checker(void *arg)
 	uhci_t *instance = (uhci_t*)arg;
 	assert(instance);
 	while (1) {
-		uint16_t cmd = pio_read_16(&instance->registers->usbcmd);
-		uint16_t sts = pio_read_16(&instance->registers->usbsts);
-		usb_log_debug("Command register: %X Status register: %X\n", cmd, sts);
+		const uint16_t cmd = pio_read_16(&instance->registers->usbcmd);
+		const uint16_t sts = pio_read_16(&instance->registers->usbsts);
+		const uint16_t intr = pio_read_16(&instance->registers->usbintr);
+		usb_log_debug("Command: %X Status: %X Interrupts: %x\n",
+		    cmd, sts, intr);
 
 		uintptr_t frame_list = pio_read_32(&instance->registers->flbaseadd);
-		if (frame_list != (uintptr_t)addr_to_phys(instance->frame_list)) {
+		if (frame_list != addr_to_phys(instance->frame_list)) {
 			usb_log_debug("Framelist address: %p vs. %p.\n",
 				frame_list, addr_to_phys(instance->frame_list));
 		}
