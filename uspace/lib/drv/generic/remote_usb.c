@@ -40,10 +40,12 @@
 
 
 static void remote_usb_get_hc_handle(device_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usb_get_address(device_t *, void *, ipc_callid_t, ipc_call_t *);
 //static void remote_usb(device_t *, void *, ipc_callid_t, ipc_call_t *);
 
 /** Remote USB interface operations. */
 static remote_iface_func_ptr_t remote_usb_iface_ops [] = {
+	remote_usb_get_address,
 	remote_usb_get_hc_handle
 };
 
@@ -54,6 +56,28 @@ remote_iface_t remote_usb_iface = {
 	    sizeof(remote_usb_iface_ops[0]),
 	.methods = remote_usb_iface_ops
 };
+
+
+void remote_usb_get_address(device_t *device, void *iface,
+    ipc_callid_t callid, ipc_call_t *call)
+{
+	usb_iface_t *usb_iface = (usb_iface_t *) iface;
+
+	if (usb_iface->get_address == NULL) {
+		async_answer_0(callid, ENOTSUP);
+		return;
+	}
+
+	devman_handle_t handle = DEV_IPC_GET_ARG1(*call);
+
+	usb_address_t address;
+	int rc = usb_iface->get_address(device, handle, &address);
+	if (rc != EOK) {
+		async_answer_0(callid, rc);
+	} else {
+		async_answer_1(callid, EOK, address);
+	}
+}
 
 
 void remote_usb_get_hc_handle(device_t *device, void *iface,

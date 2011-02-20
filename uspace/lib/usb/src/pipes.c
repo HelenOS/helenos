@@ -35,20 +35,21 @@
 #include <usb/usb.h>
 #include <usb/pipes.h>
 #include <usbhc_iface.h>
+#include <usb_iface.h>
 #include <errno.h>
 #include <assert.h>
 
 /** Tell USB address assigned to given device.
  *
- * @param phone Phone to my HC.
+ * @param phone Phone to parent device.
  * @param dev Device in question.
  * @return USB address or error code.
  */
 static usb_address_t get_my_address(int phone, device_t *dev)
 {
 	sysarg_t address;
-	int rc = async_req_2_1(phone, DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_GET_ADDRESS,
+	int rc = async_req_2_1(phone, DEV_IFACE_ID(USB_DEV_IFACE),
+	    IPC_M_USB_GET_ADDRESS,
 	    dev->handle, &address);
 
 	if (rc != EOK) {
@@ -79,12 +80,13 @@ int usb_device_connection_initialize_from_device(
 		return rc;
 	}
 
-	int hc_phone = devman_device_connect(hc_handle, 0);
-	if (hc_phone < 0) {
-		return hc_phone;
+	int parent_phone = devman_parent_device_connect(device->handle,
+	    IPC_FLAG_BLOCKING);
+	if (parent_phone < 0) {
+		return parent_phone;
 	}
 
-	my_address = get_my_address(hc_phone, device);
+	my_address = get_my_address(parent_phone, device);
 	if (my_address < 0) {
 		rc = my_address;
 		goto leave;
@@ -94,7 +96,7 @@ int usb_device_connection_initialize_from_device(
 	    hc_handle, my_address);
 
 leave:
-	async_hangup(hc_phone);
+	async_hangup(parent_phone);
 	return rc;
 }
 

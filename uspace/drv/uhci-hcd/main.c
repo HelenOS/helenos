@@ -54,8 +54,29 @@ static int usb_iface_get_hc_handle(device_t *dev, devman_handle_t *handle)
 	return EOK;
 }
 
+static int usb_iface_get_address(device_t *dev, devman_handle_t handle,
+    usb_address_t *address)
+{
+	assert(dev);
+	uhci_t *hc = dev_to_uhci(dev);
+	assert(hc);
+
+	usb_address_t addr = usb_address_keeping_find(&hc->address_manager,
+	    handle);
+	if (addr < 0) {
+		return addr;
+	}
+
+	if (address != NULL) {
+		*address = addr;
+	}
+
+	return EOK;
+}
+
 static usb_iface_t hc_usb_iface = {
-	.get_hc_handle = usb_iface_get_hc_handle
+	.get_hc_handle = usb_iface_get_hc_handle,
+	.get_address = usb_iface_get_address
 };
 
 static device_ops_t uhci_ops = {

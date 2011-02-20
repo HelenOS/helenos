@@ -33,10 +33,10 @@
  * @brief Functions for recognising kind of attached devices.
  */
 #include <sys/types.h>
-#include <usb_iface.h>
 #include <usb/usbdrv.h>
 #include <usb/pipes.h>
 #include <usb/recognise.h>
+#include <usb/ddfiface.h>
 #include <usb/request.h>
 #include <usb/classes/classes.h>
 #include <stdio.h>
@@ -45,38 +45,8 @@
 static size_t device_name_index = 0;
 static FIBRIL_MUTEX_INITIALIZE(device_name_index_mutex);
 
-/** Callback for getting host controller handle.
- *
- * @param dev Device in question.
- * @param[out] handle Devman handle of the host controller.
- * @return Error code.
- */
-static int usb_iface_get_hc_handle(device_t *dev, devman_handle_t *handle)
-{
-	assert(dev);
-	assert(dev->parent != NULL);
-
-	device_t *parent = dev->parent;
-
-	if (parent->ops && parent->ops->interfaces[USB_DEV_IFACE]) {
-		usb_iface_t *usb_iface
-		    = (usb_iface_t *) parent->ops->interfaces[USB_DEV_IFACE];
-		assert(usb_iface != NULL);
-		if (usb_iface->get_hc_handle) {
-			int rc = usb_iface->get_hc_handle(parent, handle);
-			return rc;
-		}
-	}
-
-	return ENOTSUP;
-}
-
-static usb_iface_t usb_iface = {
-	.get_hc_handle = usb_iface_get_hc_handle
-};
-
 device_ops_t child_ops = {
-	.interfaces[USB_DEV_IFACE] = &usb_iface
+	.interfaces[USB_DEV_IFACE] = &usb_iface_hub_child_impl
 };
 
 #define BCD_INT(a) (((unsigned int)(a)) / 256)

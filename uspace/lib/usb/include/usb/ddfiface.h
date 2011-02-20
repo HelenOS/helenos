@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,48 +26,30 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libdrv
- * @addtogroup usb
+/** @addtogroup libusb
  * @{
  */
 /** @file
- * @brief USB interface definition.
+ * Implementations of DDF interfaces functions.
  */
+#ifndef LIBUSB_DDFIFACE_H_
+#define LIBUSB_DDFIFACE_H_
 
-#ifndef LIBDRV_USB_IFACE_H_
-#define LIBDRV_USB_IFACE_H_
+#include <sys/types.h>
+#include <usb/usbdevice.h>
+#include <usb_iface.h>
 
-#include "driver.h"
-#include <usb/usb.h>
-typedef enum {
-	/** Tell USB address assigned to device.
-	 * Parameters:
-	 * - devman handle id
-	 * Answer:
-	 * - EINVAL - unknown handle or handle not managed by this driver
-	 * - ENOTSUP - operation not supported (shall not happen)
-	 * - arbitrary error code if returned by remote implementation
-	 * - EOK - handle found, first parameter contains the USB address
-	 */
-	IPC_M_USB_GET_ADDRESS,
+int usb_iface_get_hc_handle_hub_impl(device_t *, devman_handle_t *);
+int usb_iface_get_address_hub_impl(device_t *, devman_handle_t,
+    usb_address_t *);
+extern usb_iface_t usb_iface_hub_impl;
 
-	/** Tell devman handle of device host controller.
-	 * Parameters:
-	 * - none
-	 * Answer:
-	 * - EOK - request processed without errors
-	 * - ENOTSUP - this indicates invalid USB driver
-	 * Parameters of the answer:
-	 * - devman handle of HC caller is physically connected to
-	 */
-	IPC_M_USB_GET_HOST_CONTROLLER_HANDLE
-} usb_iface_funcs_t;
+int usb_iface_get_hc_handle_hub_child_impl(device_t *, devman_handle_t *);
+int usb_iface_get_address_hub_child_impl(device_t *, devman_handle_t,
+    usb_address_t *);
+extern usb_iface_t usb_iface_hub_child_impl;
 
-/** USB device communication interface. */
-typedef struct {
-	int (*get_address)(device_t *, devman_handle_t, usb_address_t *);
-	int (*get_hc_handle)(device_t *, devman_handle_t *);
-} usb_iface_t;
+int usb_iface_get_hc_handle_hc_impl(device_t *, devman_handle_t *);
 
 
 #endif

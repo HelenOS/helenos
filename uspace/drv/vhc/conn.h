@@ -37,12 +37,14 @@
 
 #include <usb/usb.h>
 #include <usbhc_iface.h>
+#include <usb_iface.h>
 #include "vhcd.h"
 #include "devices.h"
 
 void connection_handler_host(sysarg_t);
 
-usbhc_iface_t vhc_iface;
+extern usbhc_iface_t vhc_iface;
+extern usb_iface_t vhc_usb_iface;
 
 void address_init(void);
 
