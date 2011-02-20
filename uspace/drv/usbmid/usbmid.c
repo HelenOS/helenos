@@ -67,9 +67,26 @@ static int usb_iface_get_address_impl(device_t *device, devman_handle_t handle,
 	return rc;
 }
 
+/** Callback for DDF USB interface. */
+static int usb_iface_get_interface_impl(device_t *device, devman_handle_t handle,
+    int *iface_no)
+{
+	assert(device);
+
+	usbmid_interface_t *iface = device->driver_data;
+	assert(iface);
+
+	if (iface_no != NULL) {
+		*iface_no = iface->interface_no;
+	}
+
+	return EOK;
+}
+
 static usb_iface_t child_usb_iface = {
 	.get_hc_handle = usb_iface_get_hc_handle_hub_child_impl,
-	.get_address = usb_iface_get_address_impl
+	.get_address = usb_iface_get_address_impl,
+	.get_interface = usb_iface_get_interface_impl
 };
 
 
@@ -120,6 +137,28 @@ usbmid_device_t *usbmid_device_create(device_t *dev)
 	return mid;
 }
 
+/** Create new interface for USB MID device.
+ *
+ * @param dev Backing generic DDF child device (representing interface).
+ * @param iface_no Interface number.
+ * @return New interface.
+ * @retval NULL Error occured.
+ */
+usbmid_interface_t *usbmid_interface_create(device_t *dev, int iface_no)
+{
+	usbmid_interface_t *iface = malloc(sizeof(usbmid_interface_t));
+	if (iface == NULL) {
+		usb_log_error("Out of memory (wanted %zuB).\n",
+		    sizeof(usbmid_interface_t));
+		return NULL;
+	}
+
+	iface->dev = dev;
+	iface->interface_no = iface_no;
+
+	return iface;
+}
+
 
 /** Spawn new child device from one interface.
  *
@@ -134,6 +173,7 @@ int usbmid_spawn_interface_child(usbmid_device_t *parent,
 {
 	device_t *child = NULL;
 	char *child_name = NULL;
+	usbmid_interface_t *child_as_interface = NULL;
 	int rc;
 
 	/* Create the device. */
@@ -154,6 +194,15 @@ int usbmid_spawn_interface_child(usbmid_device_t *parent,
 	if (rc < 0) {
 		goto error_leave;
 	}
+
+	child_as_interface = usbmid_interface_create(child,
+	    (int) interface_descriptor->interface_number);
+	if (child_as_interface == NULL) {
+		rc = ENOMEM;
+		goto error_leave;
+	}
+
+	child->driver_data = child_as_interface;
 	child->parent = parent->dev;
 	child->name = child_name;
 	child->ops = &child_device_ops;
@@ -179,6 +228,9 @@ error_leave:
 	}
 	if (child_name != NULL) {
 		free(child_name);
+	}
+	if (child_as_interface != NULL) {
+		free(child_as_interface);
 	}
 
 	return rc;

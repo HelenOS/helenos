@@ -53,7 +53,16 @@ typedef struct {
 	usb_endpoint_pipe_t ctrl_pipe;
 } usbmid_device_t;
 
+typedef struct {
+	/** Device container. */
+	device_t *dev;
+
+	/** Interface number. */
+	int interface_no;
+} usbmid_interface_t;
+
 usbmid_device_t *usbmid_device_create(device_t *);
+usbmid_interface_t *usbmid_interface_create(device_t *, int);
 bool usbmid_explore_device(usbmid_device_t *);
 int usbmid_spawn_interface_child(usbmid_device_t *,
     const usb_standard_device_descriptor_t *,
