@@ -277,107 +277,6 @@ int usb_drv_create_match_ids_from_device_descriptor(
 	return EOK;
 }
 
-/** Create DDF match ids from USB configuration descriptor.
- * The configuration descriptor is expected to be in the complete form,
- * i.e. including interface, endpoint etc. descriptors.
- *
- * @param matches List of match ids to extend.
- * @param config_descriptor Configuration descriptor returned by given device.
- * @param total_size Size of the @p config_descriptor.
- * @return Error code.
- */
-int usb_drv_create_match_ids_from_configuration_descriptor(
-    match_id_list_t *matches,
-    const void *config_descriptor, size_t total_size)
-{
-	/*
-	 * Iterate through config descriptor to find the interface
-	 * descriptors.
-	 */
-	size_t position = sizeof(usb_standard_configuration_descriptor_t);
-	while (position + 1 < total_size) {
-		uint8_t *current_descriptor
-		    = ((uint8_t *) config_descriptor) + position;
-		uint8_t cur_descr_len = current_descriptor[0];
-		uint8_t cur_descr_type = current_descriptor[1];
-
-		if (cur_descr_len == 0) {
-			return ENOENT;
-		}
-
-		position += cur_descr_len;
-
-		if (cur_descr_type != USB_DESCTYPE_INTERFACE) {
-			continue;
-		}
-
-		/*
-		 * Finally, we found an interface descriptor.
-		 */
-		usb_standard_interface_descriptor_t *interface
-		    = (usb_standard_interface_descriptor_t *)
-		    current_descriptor;
-
-		ADD_MATCHID_OR_RETURN(matches, 50,
-		    "usb&interface&class=%s",
-		    usb_str_class(interface->interface_class));
-	}
-
-	return EOK;
-}
-
-/** Add match ids based on configuration descriptor.
- *
- * @param pipe Control pipe to the device.
- * @param matches Match ids list to add matches to.
- * @param config_count Number of configurations the device has.
- * @return Error code.
- */
-static int usb_add_config_descriptor_match_ids(usb_endpoint_pipe_t *pipe,
-    match_id_list_t *matches, int config_count)
-{
-	int final_rc = EOK;
-
-	int config_index;
-	for (config_index = 0; config_index < config_count; config_index++) {
-		int rc;
-		usb_standard_configuration_descriptor_t config_descriptor;
-		rc = usb_request_get_bare_configuration_descriptor(pipe,
-		    config_index, &config_descriptor);
-		if (rc != EOK) {
-			final_rc = rc;
-			continue;
-		}
-
-		size_t full_config_descriptor_size;
-		void *full_config_descriptor
-		    = malloc(config_descriptor.total_length);
-		rc = usb_request_get_full_configuration_descriptor(pipe,
-		    config_index,
-		    full_config_descriptor, config_descriptor.total_length,
-		    &full_config_descriptor_size);
-		if (rc != EOK) {
-			final_rc = rc;
-			continue;
-		}
-		if (full_config_descriptor_size
-		    != config_descriptor.total_length) {
-			final_rc = ERANGE;
-			continue;
-		}
-
-		rc = usb_drv_create_match_ids_from_configuration_descriptor(
-		    matches,
-		    full_config_descriptor, full_config_descriptor_size);
-		if (rc != EOK) {
-			final_rc = rc;
-			continue;
-		}
-
-	}
-
-	return final_rc;
-}
 
 /** Create match ids describing attached device.
  *
@@ -405,16 +304,6 @@ int usb_device_create_match_ids(usb_endpoint_pipe_t *ctrl_pipe,
 
 	rc = usb_drv_create_match_ids_from_device_descriptor(matches,
 	    &device_descriptor);
-	if (rc != EOK) {
-		return rc;
-	}
-
-	/*
-	 * Go through all configurations and add matches
-	 * based on interface class.
-	 */
-	rc = usb_add_config_descriptor_match_ids(ctrl_pipe, matches,
-	    device_descriptor.configuration_count);
 	if (rc != EOK) {
 		return rc;
 	}
