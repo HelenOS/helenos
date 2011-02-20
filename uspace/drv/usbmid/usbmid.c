@@ -37,38 +37,48 @@
 #include <str_error.h>
 #include <stdlib.h>
 #include <usb_iface.h>
+#include <usb/ddfiface.h>
 #include <usb/pipes.h>
 #include <usb/classes/classes.h>
 #include <usb/recognise.h>
 #include "usbmid.h"
 
 /** Callback for DDF USB interface. */
-static int iface_get_hc_handle(device_t *dev, devman_handle_t *handle)
+static int usb_iface_get_address_impl(device_t *device, devman_handle_t handle,
+    usb_address_t *address)
 {
-	device_t *parent = dev->parent;
+	assert(device);
+	device_t *parent = device->parent;
 
-	usb_log_debug("iface_get_hc_handle(dev=%zu)\n", (size_t) dev->handle);
+	/* Default error, device does not support this operation. */
+	int rc = ENOTSUP;
 
 	if (parent && parent->ops && parent->ops->interfaces[USB_DEV_IFACE]) {
 		usb_iface_t *usb_iface
 		    = (usb_iface_t *) parent->ops->interfaces[USB_DEV_IFACE];
 		assert(usb_iface != NULL);
-		if (usb_iface->get_hc_handle) {
-			int rc = usb_iface->get_hc_handle(parent, handle);
-			return rc;
+
+		if (usb_iface->get_address) {
+			rc = usb_iface->get_address(parent, parent->handle,
+			    address);
 		}
-		return ENOTSUP;
-	} else {
-		return usb_hc_find(dev->handle, handle);
 	}
+
+	return rc;
 }
 
-static usb_iface_t usb_iface = {
-	.get_hc_handle = iface_get_hc_handle
+static usb_iface_t child_usb_iface = {
+	.get_hc_handle = usb_iface_get_hc_handle_hub_child_impl,
+	.get_address = usb_iface_get_address_impl
 };
 
-static device_ops_t device_ops = {
-	.interfaces[USB_DEV_IFACE] = &usb_iface
+
+static device_ops_t child_device_ops = {
+	.interfaces[USB_DEV_IFACE] = &child_usb_iface
+};
+
+static device_ops_t mid_device_ops = {
+	.interfaces[USB_DEV_IFACE] = &usb_iface_hub_impl
 };
 
 /** Create new USB multi interface device.
@@ -81,12 +91,16 @@ usbmid_device_t *usbmid_device_create(device_t *dev)
 {
 	usbmid_device_t *mid = malloc(sizeof(usbmid_device_t));
 	if (mid == NULL) {
+		usb_log_error("Out of memory (wanted %zu bytes).\n",
+		    sizeof(usbmid_device_t));
 		return NULL;
 	}
 
 	int rc;
 	rc = usb_device_connection_initialize_from_device(&mid->wire, dev);
 	if (rc != EOK) {
+		usb_log_error("Failed to initialize `USB wire': %s.\n",
+		    str_error(rc));
 		free(mid);
 		return NULL;
 	}
@@ -94,12 +108,14 @@ usbmid_device_t *usbmid_device_create(device_t *dev)
 	rc = usb_endpoint_pipe_initialize_default_control(&mid->ctrl_pipe,
 	    &mid->wire);
 	if (rc != EOK) {
+		usb_log_error("Failed to initialize control pipe: %s.\n",
+		    str_error(rc));
 		free(mid);
 		return NULL;
 	}
 
 	mid->dev = dev;
-	dev->ops = &device_ops;
+	dev->ops = &mid_device_ops;
 
 	return mid;
 }
@@ -140,7 +156,7 @@ int usbmid_spawn_interface_child(usbmid_device_t *parent,
 	}
 	child->parent = parent->dev;
 	child->name = child_name;
-	child->ops = &device_ops;
+	child->ops = &child_device_ops;
 
 	rc = usb_device_create_match_ids_from_interface(interface_descriptor,
 	    &child->match_ids);

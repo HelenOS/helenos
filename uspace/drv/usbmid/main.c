@@ -47,7 +47,6 @@ static int usbmid_add_device(device_t *gen_dev)
 {
 	usbmid_device_t *dev = usbmid_device_create(gen_dev);
 	if (dev == NULL) {
-		usb_log_error("Initialization of new USB MID device failed.\n");
 		return ENOMEM;
 	}
 
