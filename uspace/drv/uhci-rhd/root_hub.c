@@ -34,7 +34,6 @@
 #include <errno.h>
 #include <stdint.h>
 
-#include <usb/usbdrv.h>
 #include <usb/debug.h>
 
 #include "root_hub.h"

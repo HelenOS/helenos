@@ -40,6 +40,9 @@
 #include <usb/pipes.h>
 #include <ipc/devman.h>
 
+int usb_device_create_match_ids_from_device_descriptor(
+    const usb_standard_device_descriptor_t *, match_id_list_t *);
+
 int usb_device_create_match_ids_from_interface(
     const usb_standard_device_descriptor_t *,
     const usb_standard_interface_descriptor_t *, match_id_list_t *);

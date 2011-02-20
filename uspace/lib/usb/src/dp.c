@@ -36,7 +36,7 @@
 #include <stdio.h>
 #include <str_error.h>
 #include <errno.h>
-#include <usb/usbdrv.h>
+#include <assert.h>
 #include <bool.h>
 #include <usb/dp.h>
 #include <usb/descriptor.h>

@@ -39,10 +39,8 @@
 
 #include <usb_iface.h>
 #include <usb/ddfiface.h>
-#include <usb/usbdrv.h>
 #include <usb/descriptor.h>
 #include <usb/recognise.h>
-#include <usb/devreq.h>
 #include <usb/request.h>
 #include <usb/classes/hub.h>
 

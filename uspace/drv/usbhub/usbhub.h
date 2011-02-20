@@ -41,8 +41,6 @@
 
 #define NAME "usbhub"
 
-//#include "usb/hcdhubd.h"
-#include <usb/usbdrv.h>
 #include <usb/hub.h>
 
 #include <usb/pipes.h>
