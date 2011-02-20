@@ -59,6 +59,33 @@ static usb_address_t get_my_address(int phone, device_t *dev)
 	return (usb_address_t) address;
 }
 
+/** Tell USB interface assigned to given device.
+ *
+ * @param device Device in question.
+ * @return Interface number (negative code means any).
+ */
+int usb_device_get_assigned_interface(device_t *device)
+{
+	int parent_phone = devman_parent_device_connect(device->handle,
+	    IPC_FLAG_BLOCKING);
+	if (parent_phone < 0) {
+		return -1;
+	}
+
+	sysarg_t iface_no;
+	int rc = async_req_2_1(parent_phone, DEV_IFACE_ID(USB_DEV_IFACE),
+	    IPC_M_USB_GET_INTERFACE,
+	    device->handle, &iface_no);
+
+	async_hangup(parent_phone);
+
+	if (rc != EOK) {
+		return -1;
+	}
+
+	return (int) iface_no;
+}
+
 /** Initialize connection to USB device.
  *
  * @param connection Connection structure to be initialized.
