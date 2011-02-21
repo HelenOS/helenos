@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,76 +26,82 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbhub
+/** @addtogroup drvusbmid
  * @{
  */
-/** @file
- * @brief Hub driver.
+/**
+ * @file
+ * Main routines of USB multi interface device driver.
  */
-#ifndef DRV_USBHUB_USBHUB_H
-#define DRV_USBHUB_USBHUB_H
-
-#include <ipc/devman.h>
-#include <usb/usb.h>
-#include <driver.h>
-
-#define NAME "usbhub"
-
-#include <usb/hub.h>
-
+#include <errno.h>
+#include <str_error.h>
+#include <usb/debug.h>
+#include <usb/classes/classes.h>
+#include <usb/request.h>
+#include <usb/descriptor.h>
 #include <usb/pipes.h>
 
-/* Hub endpoints. */
-typedef struct {
-        usb_endpoint_pipe_t control;
-        usb_endpoint_pipe_t status_change;
-} usb_hub_endpoints_t;
+#include "usbmid.h"
+
+static int usbmid_add_device(device_t *gen_dev)
+{
+	usbmid_device_t *dev = usbmid_device_create(gen_dev);
+	if (dev == NULL) {
+		return ENOMEM;
+	}
+
+	usb_log_info("Taking care of new MID: addr %d (HC %zu)\n",
+	    dev->wire.address, dev->wire.hc_handle);
+
+	int rc;
+
+	rc = usb_endpoint_pipe_start_session(&dev->ctrl_pipe);
+	if (rc != EOK) {
+		usb_log_error("Failed to start session on control pipe: %s.\n",
+		    str_error(rc));
+		goto error_leave;
+	}
+
+	bool accept = usbmid_explore_device(dev);
+
+	rc = usb_endpoint_pipe_end_session(&dev->ctrl_pipe);
+	if (rc != EOK) {
+		usb_log_warning("Failed to end session on control pipe: %s.\n",
+		    str_error(rc));
+	}
+
+	if (!accept) {
+		rc = ENOTSUP;
+		goto error_leave;
+	}
+
+	gen_dev->driver_data = dev;
+
+	return EOK;
 
 
+error_leave:
+	free(dev);
+	return rc;
+}
 
-/** Information about attached hub. */
-typedef struct {
-	/** Number of ports. */
-	int port_count;
-	/** attached device handles, for each port one */
-	usb_hc_attached_device_t * attached_devs;
-	/** General usb device info. */
-	//usb_hcd_attached_device_info_t * usb_device;
-	/** General device info*/
-	device_t * device;
-	/** connection to hcd */
-	//usb_device_connection_t connection;
-	usb_hc_connection_t connection;
-	/** */
-	usb_device_connection_t device_connection;
-	/** hub endpoints */
-	usb_hub_endpoints_t endpoints;
-} usb_hub_info_t;
+static driver_ops_t mid_driver_ops = {
+	.add_device = usbmid_add_device,
+};
 
-/**
- * function running the hub-controlling loop.
- * @param noparam fundtion does not need any parameters
- */
-int usb_hub_control_loop(void * noparam);
+static driver_t mid_driver = {
+	.name = NAME,
+	.driver_ops = &mid_driver_ops
+};
 
-/** Callback when new hub device is detected.
- *
- * @param dev New device.
- * @return Error code.
- */
-int usb_add_hub_device(device_t *dev);
+int main(int argc, char *argv[])
+{
+	printf(NAME ": USB multi interface device driver.\n");
 
-/**
- * check changes on all registered hubs
- */
-void usb_hub_check_hub_changes(void);
+	usb_log_enable(USB_LOG_LEVEL_DEBUG, NAME);
+	return driver_main(&mid_driver);
+}
 
-
-//int usb_add_hub_device(device_t *);
-
-
-
-#endif
 /**
  * @}
  */

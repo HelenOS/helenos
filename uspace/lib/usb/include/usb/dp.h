@@ -44,6 +44,8 @@ typedef struct {
 	int parent;
 } usb_dp_descriptor_nesting_t;
 
+extern usb_dp_descriptor_nesting_t usb_dp_standard_descriptor_nesting[];
+
 typedef struct {
 	usb_dp_descriptor_nesting_t *nesting;
 } usb_dp_parser_t;

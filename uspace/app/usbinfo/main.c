@@ -42,7 +42,6 @@
 #include <getopt.h>
 #include <devman.h>
 #include <devmap.h>
-#include <usb/usbdrv.h>
 #include "usbinfo.h"
 
 enum {

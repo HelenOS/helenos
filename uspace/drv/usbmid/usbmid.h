@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,74 +26,48 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbhub
+/** @addtogroup drvusbmid
  * @{
  */
 /** @file
- * @brief Hub driver.
+ * Common definitions.
  */
-#ifndef DRV_USBHUB_USBHUB_H
-#define DRV_USBHUB_USBHUB_H
 
-#include <ipc/devman.h>
-#include <usb/usb.h>
+#ifndef USBMID_H_
+#define USBMID_H_
+
 #include <driver.h>
-
-#define NAME "usbhub"
-
-#include <usb/hub.h>
-
+#include <usb/usb.h>
 #include <usb/pipes.h>
+#include <usb/debug.h>
 
-/* Hub endpoints. */
+#define NAME "usbmid"
+
 typedef struct {
-        usb_endpoint_pipe_t control;
-        usb_endpoint_pipe_t status_change;
-} usb_hub_endpoints_t;
+	/** Device container. */
+	device_t *dev;
 
+	/** Representation of USB wire. */
+	usb_device_connection_t wire;
+	/** Default control pipe. */
+	usb_endpoint_pipe_t ctrl_pipe;
+} usbmid_device_t;
 
-
-/** Information about attached hub. */
 typedef struct {
-	/** Number of ports. */
-	int port_count;
-	/** attached device handles, for each port one */
-	usb_hc_attached_device_t * attached_devs;
-	/** General usb device info. */
-	//usb_hcd_attached_device_info_t * usb_device;
-	/** General device info*/
-	device_t * device;
-	/** connection to hcd */
-	//usb_device_connection_t connection;
-	usb_hc_connection_t connection;
-	/** */
-	usb_device_connection_t device_connection;
-	/** hub endpoints */
-	usb_hub_endpoints_t endpoints;
-} usb_hub_info_t;
+	/** Device container. */
+	device_t *dev;
 
-/**
- * function running the hub-controlling loop.
- * @param noparam fundtion does not need any parameters
- */
-int usb_hub_control_loop(void * noparam);
+	/** Interface number. */
+	int interface_no;
+} usbmid_interface_t;
 
-/** Callback when new hub device is detected.
- *
- * @param dev New device.
- * @return Error code.
- */
-int usb_add_hub_device(device_t *dev);
-
-/**
- * check changes on all registered hubs
- */
-void usb_hub_check_hub_changes(void);
-
-
-//int usb_add_hub_device(device_t *);
-
-
+usbmid_device_t *usbmid_device_create(device_t *);
+usbmid_interface_t *usbmid_interface_create(device_t *, int);
+bool usbmid_explore_device(usbmid_device_t *);
+int usbmid_spawn_interface_child(usbmid_device_t *,
+    const usb_standard_device_descriptor_t *,
+    const usb_standard_interface_descriptor_t *);
+void usbmid_dump_descriptors(uint8_t *, size_t);
 
 #endif
 /**

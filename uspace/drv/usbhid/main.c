@@ -35,7 +35,6 @@
  * Main routines of USB HID driver.
  */
 
-#include <usb/usbdrv.h>
 #include <driver.h>
 #include <ipc/driver.h>
 #include <ipc/kbd.h>
@@ -264,10 +263,18 @@ static void usbkbd_process_keycodes(const uint8_t *key_codes, size_t count,
 	unsigned i;
 	for (i = 0; i < count; ++i) {
 		printf("%d ", key_codes[i]);
+	}
+	printf("\n");
+
+	for (i = 0; i < count; ++i) {
 		// TODO: Key press / release
 
 		// TODO: NOT WORKING
 		unsigned int key = usbkbd_parse_scancode(key_codes[i]);
+
+		if (key == 0) {
+			continue;
+		}
 		kbd_push_ev(KEY_PRESS, key);
 	}
 	printf("\n");
@@ -347,7 +354,9 @@ static int usbkbd_process_descriptors(usb_hid_dev_kbd_t *kbd_dev)
 	usb_endpoint_mapping_t endpoint_mapping[1] = {
 		{
 			.pipe = &kbd_dev->poll_pipe,
-			.description = &poll_endpoint_description
+			.description = &poll_endpoint_description,
+			.interface_no =
+			    usb_device_get_assigned_interface(kbd_dev->device)
 		}
 	};
 	rc = usb_endpoint_pipe_initialize_from_configuration(

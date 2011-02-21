@@ -36,7 +36,6 @@
 #include <stdio.h>
 #include <str_error.h>
 #include <errno.h>
-#include <usb/usbdrv.h>
 #include <usb/pipes.h>
 #include <usb/recognise.h>
 #include <usb/request.h>

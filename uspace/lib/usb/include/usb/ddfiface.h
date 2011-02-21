@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,73 +26,30 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbhub
+/** @addtogroup libusb
  * @{
  */
 /** @file
- * @brief Hub driver.
+ * Implementations of DDF interfaces functions.
  */
-#ifndef DRV_USBHUB_USBHUB_H
-#define DRV_USBHUB_USBHUB_H
+#ifndef LIBUSB_DDFIFACE_H_
+#define LIBUSB_DDFIFACE_H_
 
-#include <ipc/devman.h>
-#include <usb/usb.h>
-#include <driver.h>
+#include <sys/types.h>
+#include <usb/usbdevice.h>
+#include <usb_iface.h>
 
-#define NAME "usbhub"
+int usb_iface_get_hc_handle_hub_impl(device_t *, devman_handle_t *);
+int usb_iface_get_address_hub_impl(device_t *, devman_handle_t,
+    usb_address_t *);
+extern usb_iface_t usb_iface_hub_impl;
 
-#include <usb/hub.h>
+int usb_iface_get_hc_handle_hub_child_impl(device_t *, devman_handle_t *);
+int usb_iface_get_address_hub_child_impl(device_t *, devman_handle_t,
+    usb_address_t *);
+extern usb_iface_t usb_iface_hub_child_impl;
 
-#include <usb/pipes.h>
-
-/* Hub endpoints. */
-typedef struct {
-        usb_endpoint_pipe_t control;
-        usb_endpoint_pipe_t status_change;
-} usb_hub_endpoints_t;
-
-
-
-/** Information about attached hub. */
-typedef struct {
-	/** Number of ports. */
-	int port_count;
-	/** attached device handles, for each port one */
-	usb_hc_attached_device_t * attached_devs;
-	/** General usb device info. */
-	//usb_hcd_attached_device_info_t * usb_device;
-	/** General device info*/
-	device_t * device;
-	/** connection to hcd */
-	//usb_device_connection_t connection;
-	usb_hc_connection_t connection;
-	/** */
-	usb_device_connection_t device_connection;
-	/** hub endpoints */
-	usb_hub_endpoints_t endpoints;
-} usb_hub_info_t;
-
-/**
- * function running the hub-controlling loop.
- * @param noparam fundtion does not need any parameters
- */
-int usb_hub_control_loop(void * noparam);
-
-/** Callback when new hub device is detected.
- *
- * @param dev New device.
- * @return Error code.
- */
-int usb_add_hub_device(device_t *dev);
-
-/**
- * check changes on all registered hubs
- */
-void usb_hub_check_hub_changes(void);
-
-
-//int usb_add_hub_device(device_t *);
-
+int usb_iface_get_hc_handle_hc_impl(device_t *, devman_handle_t *);
 
 
 #endif
