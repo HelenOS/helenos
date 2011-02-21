@@ -35,7 +35,6 @@
  * Main routines of USB HID driver.
  */
 
-#include <usb/usbdrv.h>
 #include <driver.h>
 #include <ipc/driver.h>
 #include <ipc/kbd.h>

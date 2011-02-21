@@ -39,10 +39,8 @@
 
 #include <usb_iface.h>
 #include <usb/ddfiface.h>
-#include <usb/usbdrv.h>
 #include <usb/descriptor.h>
 #include <usb/recognise.h>
-#include <usb/devreq.h>
 #include <usb/request.h>
 #include <usb/classes/hub.h>
 
@@ -231,22 +229,6 @@ int usb_add_hub_device(device_t *dev) {
 //*********************************************
 
 /**
- * Convenience function for releasing default address and writing debug info
- * (these few lines are used too often to be written again and again).
- * @param hc
- * @return
- */
-inline static int usb_hub_release_default_address(int hc){
-	int opResult;
-	dprintf(USB_LOG_LEVEL_INFO, "releasing default address");
-	opResult = usb_drv_release_default_address(hc);
-	if (opResult != EOK) {
-		dprintf(USB_LOG_LEVEL_WARNING, "failed to release default address");
-	}
-	return opResult;
-}
-
-/**
  * Reset the port with new device and reserve the default address.
  * @param hc
  * @param port
@@ -260,6 +242,7 @@ static void usb_hub_init_add_device(usb_hub_info_t * hub, uint16_t port) {
 	//get default address
 	//opResult = usb_drv_reserve_default_address(hc);
 	opResult = usb_hc_reserve_default_address(&hub->connection, USB_SPEED_LOW);
+
 	if (opResult != EOK) {
 		dprintf(USB_LOG_LEVEL_WARNING, "cannot assign default address, it is probably used");
 		return;

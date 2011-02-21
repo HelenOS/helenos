@@ -37,9 +37,7 @@
 #include <errno.h>
 
 #include <usbhc_iface.h>
-#include <usb/usbdrv.h>
 #include <usb/descriptor.h>
-#include <usb/devreq.h>
 #include <usb/classes/hub.h>
 
 #include "usbhub.h"
