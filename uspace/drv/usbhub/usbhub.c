@@ -49,10 +49,20 @@
 #include "port_status.h"
 #include "usb/usb.h"
 #include "usb/pipes.h"
+#include "usb/classes/classes.h"
 
 static device_ops_t hub_device_ops = {
 	.interfaces[USB_DEV_IFACE] = &usb_iface_hub_impl
 };
+
+/** Hub status-change endpoint description */
+static usb_endpoint_description_t status_change_endpoint_description = {
+	.transfer_type = USB_TRANSFER_INTERRUPT,
+	.direction = USB_DIRECTION_IN,
+	.interface_class = USB_CLASS_HUB,
+	.flags = 0
+};
+
 
 //*********************************************
 //
@@ -60,30 +70,178 @@ static device_ops_t hub_device_ops = {
 //
 //*********************************************
 
+/**
+ * Initialize connnections to host controller, device, and device
+ * control endpoint
+ * @param hub
+ * @param device
+ * @return
+ */
+static int usb_hub_init_communication(usb_hub_info_t * hub){
+	int opResult;
+	opResult = usb_device_connection_initialize_from_device(
+			&hub->device_connection,
+			hub->device);
+	if(opResult != EOK){
+		dprintf(USB_LOG_LEVEL_ERROR,
+				"could not initialize connection to hc, errno %d",opResult);
+		return opResult;
+	}
+	opResult = usb_hc_connection_initialize_from_device(&hub->connection,
+			hub->device);
+	if(opResult != EOK){
+		dprintf(USB_LOG_LEVEL_ERROR,
+				"could not initialize connection to device, errno %d",opResult);
+		return opResult;
+	}
+	opResult = usb_endpoint_pipe_initialize_default_control(&hub->endpoints.control,
+            &hub->device_connection);
+	if(opResult != EOK){
+		dprintf(USB_LOG_LEVEL_ERROR,
+				"could not initialize connection to device endpoint, errno %d",opResult);
+	}
+	return opResult;
+}
+
+/**
+ * When entering this function, hub->endpoints.control should be active.
+ * @param hub
+ * @return
+ */
+static int usb_hub_process_configuration_descriptors(
+	usb_hub_info_t * hub){
+	if(hub==NULL) {
+		return EINVAL;
+	}
+	int opResult;
+	
+	//device descriptor
+	usb_standard_device_descriptor_t std_descriptor;
+	opResult = usb_request_get_device_descriptor(&hub->endpoints.control,
+	    &std_descriptor);
+	if(opResult!=EOK){
+		dprintf(USB_LOG_LEVEL_ERROR, "could not get device descriptor, %d",opResult);
+		return opResult;
+	}
+	dprintf(USB_LOG_LEVEL_INFO, "hub has %d configurations",
+			std_descriptor.configuration_count);
+	if(std_descriptor.configuration_count<1){
+		dprintf(USB_LOG_LEVEL_ERROR, "THERE ARE NO CONFIGURATIONS AVAILABLE");
+		//shouldn`t I return?
+	}
+
+	//configuration descriptor
+	/// \TODO check other configurations
+	usb_standard_configuration_descriptor_t config_descriptor;
+	opResult = usb_request_get_bare_configuration_descriptor(
+	    &hub->endpoints.control, 0,
+        &config_descriptor);
+	if(opResult!=EOK){
+		dprintf(USB_LOG_LEVEL_ERROR, "could not get configuration descriptor, %d",opResult);
+		return opResult;
+	}
+	//set configuration
+	opResult = usb_request_set_configuration(&hub->endpoints.control,
+		config_descriptor.configuration_number);
+
+	if (opResult != EOK) {
+		dprintf(USB_LOG_LEVEL_ERROR,
+				"something went wrong when setting hub`s configuration, %d",
+				opResult);
+		return opResult;
+	}
+	dprintf(USB_LOG_LEVEL_DEBUG, "\tused configuration %d",
+			config_descriptor.configuration_number);
+
+	//full configuration descriptor
+	size_t transferred = 0;
+	uint8_t * descriptors = (uint8_t *)malloc(config_descriptor.total_length);
+	if (descriptors == NULL) {
+		dprintf(USB_LOG_LEVEL_ERROR, "insufficient memory");
+		return ENOMEM;
+	}
+	opResult = usb_request_get_full_configuration_descriptor(&hub->endpoints.control,
+	    0, descriptors,
+	    config_descriptor.total_length, &transferred);
+	if(opResult!=EOK){
+		free(descriptors);
+		dprintf(USB_LOG_LEVEL_ERROR,
+				"could not get full configuration descriptor, %d",opResult);
+		return opResult;
+	}
+	if (transferred != config_descriptor.total_length) {
+		dprintf(USB_LOG_LEVEL_ERROR,
+				"received incorrect full configuration descriptor");
+		return ELIMIT;
+	}
+
+	/**
+	 * Initialize the interrupt in endpoint.
+	 * \TODO this code should be checked...
+	 */
+	usb_endpoint_mapping_t endpoint_mapping[1] = {
+		{
+			.pipe = &hub->endpoints.status_change,
+			.description = &status_change_endpoint_description,
+			.interface_no =
+			    usb_device_get_assigned_interface(hub->device)
+		}
+	};
+	opResult = usb_endpoint_pipe_initialize_from_configuration(
+	    endpoint_mapping, 1,
+	    descriptors, config_descriptor.total_length,
+	    &hub->device_connection);
+	if (opResult != EOK) {
+		dprintf(USB_LOG_LEVEL_ERROR,
+				"Failed to initialize status change pipe: %s",
+		    str_error(opResult));
+		return opResult;
+	}
+	if (!endpoint_mapping[0].present) {
+		dprintf(USB_LOG_LEVEL_ERROR,"Not accepting device, " \
+		    "cannot understand what is happenning");
+		return EREFUSED;
+	}
+
+	free(descriptors);
+	return EOK;
+	
+
+	// Initialize the interrupt(=status change) endpoint.
+	/*usb_endpoint_pipe_initialize(
+		&result->endpoints->status_change,
+		&result->device_connection, );USB_TRANSFER_INTERRUPT
+	USB_DIRECTION_IN*/
+
+}
+
+
+/**
+ * Create hub representation from device information.
+ * @param device
+ * @return pointer to created structure or NULL in case of error
+ */
 usb_hub_info_t * usb_create_hub_info(device_t * device) {
 	usb_hub_info_t* result = usb_new(usb_hub_info_t);
-	usb_device_connection_initialize_from_device(&result->device_connection,
-			device);
-	usb_hc_connection_initialize_from_device(&result->connection,
-			device);
-	usb_endpoint_pipe_initialize_default_control(&result->endpoints.control,
-            &result->device_connection);
-	
+	result->device = device;
+	int opResult;
+	opResult = usb_hub_init_communication(result);
+	if(opResult != EOK){
+		free(result);
+		return NULL;
+	}
 
 	//result->device = device;
 	result->port_count = -1;
-	/// \TODO is this correct? is the device stored?
 	result->device = device;
 
 	//result->usb_device = usb_new(usb_hcd_attached_device_info_t);
-	
-	// get hub descriptor
+	size_t received_size;
 
+	// get hub descriptor
 	dprintf(USB_LOG_LEVEL_DEBUG, "creating serialized descripton");
 	void * serialized_descriptor = malloc(USB_HUB_MAX_DESCRIPTOR_SIZE);
 	usb_hub_descriptor_t * descriptor;
-	size_t received_size;
-	int opResult;
 	dprintf(USB_LOG_LEVEL_DEBUG, "starting control transaction");
 	usb_endpoint_pipe_start_session(&result->endpoints.control);
 	opResult = usb_request_get_descriptor(&result->endpoints.control,
@@ -91,13 +249,6 @@ usb_hub_info_t * usb_create_hub_info(device_t * device) {
 			USB_DESCTYPE_HUB, 0, 0, serialized_descriptor,
 			USB_HUB_MAX_DESCRIPTOR_SIZE, &received_size);
 	usb_endpoint_pipe_end_session(&result->endpoints.control);
-
-	/* Initialize the interrupt endpoint. 
-	usb_endpoint_pipe_initalize(
-		&hub_data->endpoints->status_change,
-		&endpiont_descriptor, &hub_data->connection);
-
-	 */ /// \TODO add this call
 
 	if (opResult != EOK) {
 		dprintf(USB_LOG_LEVEL_ERROR, "failed when receiving hub descriptor, badcode = %d",opResult);
@@ -111,6 +262,8 @@ usb_hub_info_t * usb_create_hub_info(device_t * device) {
 		result->port_count = 1;///\TODO this code is only for debug!!!
 		return result;
 	}
+
+	
 	dprintf(USB_LOG_LEVEL_INFO, "setting port count to %d",descriptor->ports_count);
 	result->port_count = descriptor->ports_count;
 	result->attached_devs = (usb_hc_attached_device_t*)
@@ -132,59 +285,32 @@ usb_hub_info_t * usb_create_hub_info(device_t * device) {
 	return result;
 }
 
+/**
+ * Create hub representation and add it into hub list
+ * @param dev
+ * @return
+ */
 int usb_add_hub_device(device_t *dev) {
 	dprintf(USB_LOG_LEVEL_INFO, "add_hub_device(handle=%d)", (int) dev->handle);
 
-	/*
-	 * We are some (probably deeply nested) hub.
-	 * Thus, assign our own operations and explore already
-	 * connected devices.
-	 */
 	dev->ops = &hub_device_ops;
 
-
 	usb_hub_info_t * hub_info = usb_create_hub_info(dev);
-	usb_endpoint_pipe_start_session(&hub_info->endpoints.control);
 
-	int port;
 	int opResult;
-	//usb_target_t target;
-	//target.address = hub_info->usb_device->address;
-	//target.endpoint = 0;
 
-	//get configuration descriptor
-	// this is not fully correct - there are more configurations
-	// and all should be checked
-	usb_standard_device_descriptor_t std_descriptor;
-	opResult = usb_request_get_device_descriptor(&hub_info->endpoints.control,
-	    &std_descriptor);
-	if(opResult!=EOK){
-		dprintf(USB_LOG_LEVEL_ERROR, "could not get device descriptor, %d",opResult);
+	//perform final configurations
+	usb_endpoint_pipe_start_session(&hub_info->endpoints.control);
+	// process descriptors
+	opResult = usb_hub_process_configuration_descriptors(hub_info);
+	if(opResult != EOK){
+		dprintf(USB_LOG_LEVEL_ERROR,"could not get condiguration descriptors, %d",
+				opResult);
 		return opResult;
 	}
-	dprintf(USB_LOG_LEVEL_INFO, "hub has %d configurations",std_descriptor.configuration_count);
-	if(std_descriptor.configuration_count<1){
-		dprintf(USB_LOG_LEVEL_ERROR, "THERE ARE NO CONFIGURATIONS AVAILABLE");
-		//shouldn`t I return?
-	}
-	/// \TODO check other configurations
-	usb_standard_configuration_descriptor_t config_descriptor;
-	opResult = usb_request_get_bare_configuration_descriptor(
-	    &hub_info->endpoints.control, 0,
-        &config_descriptor);
-	if(opResult!=EOK){
-		dprintf(USB_LOG_LEVEL_ERROR, "could not get configuration descriptor, %d",opResult);
-		return opResult;
-	}
-	//set configuration
-	opResult = usb_request_set_configuration(&hub_info->endpoints.control,
-    config_descriptor.configuration_number);
-
-	if (opResult != EOK) {
-		dprintf(USB_LOG_LEVEL_ERROR, "something went wrong when setting hub`s configuration, %d", opResult);
-	}
-
+	//power ports
 	usb_device_request_setup_packet_t request;
+	int port;
 	for (port = 1; port < hub_info->port_count+1; ++port) {
 		usb_hub_set_power_port_request(&request, port);
 		opResult = usb_endpoint_pipe_control_write(&hub_info->endpoints.control,
@@ -195,9 +321,7 @@ int usb_add_hub_device(device_t *dev) {
 		}
 	}
 	//ports powered, hub seems to be enabled
-
 	usb_endpoint_pipe_end_session(&hub_info->endpoints.control);
-	//async_hangup(hc);
 
 	//add the hub to list
 	fibril_mutex_lock(&usb_hub_list_lock);
@@ -207,15 +331,12 @@ int usb_add_hub_device(device_t *dev) {
 	dprintf(USB_LOG_LEVEL_DEBUG, "hub info added to list");
 	//(void)hub_info;
 	usb_hub_check_hub_changes();
-
 	
-
 	dprintf(USB_LOG_LEVEL_INFO, "hub dev added");
 	//address is lost...
 	dprintf(USB_LOG_LEVEL_DEBUG, "\taddress %d, has %d ports ",
 			//hub_info->endpoints.control.,
 			hub_info->port_count);
-	dprintf(USB_LOG_LEVEL_DEBUG, "\tused configuration %d",config_descriptor.configuration_number);
 
 	return EOK;
 	//return ENOTSUP;
