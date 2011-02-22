@@ -31,10 +31,10 @@
 #ifndef DRV_TEST1_TEST1_H_
 #define DRV_TEST1_TEST1_H_
 
-#include <driver.h>
+#include <ddf/driver.h>
 
 #define NAME "test1"
 
-extern device_ops_t char_device_ops;
+extern ddf_dev_ops_t char_device_ops;
 
 #endif

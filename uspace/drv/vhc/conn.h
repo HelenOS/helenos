@@ -45,12 +45,13 @@ void connection_handler_host(sysarg_t);
 
 extern usbhc_iface_t vhc_iface;
 extern usb_iface_t vhc_usb_iface;
+extern usb_iface_t rh_usb_iface;
 
 void address_init(void);
 
 
-void default_connection_handler(device_t *, ipc_callid_t, ipc_call_t *);
-void on_client_close(device_t *);
+void default_connection_handler(ddf_fun_t *, ipc_callid_t, ipc_call_t *);
+void on_client_close(ddf_fun_t *);
 
 
 #endif

@@ -35,6 +35,7 @@
 
 #include <errno.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <usb/usb.h>
 #include <usb/classes/hid.h>
 #include <usb/descriptor.h>

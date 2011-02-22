@@ -48,7 +48,7 @@
  * @param[out] irq_no IRQ assigned to the device.
  * @return Error code.
  */
-int pci_get_my_registers(device_t *dev,
+int pci_get_my_registers(ddf_dev_t *dev,
     uintptr_t *io_reg_address, size_t *io_reg_size,
     int *irq_no)
 {
@@ -121,7 +121,7 @@ leave:
 	return rc;
 }
 /*----------------------------------------------------------------------------*/
-int pci_enable_interrupts(device_t *device)
+int pci_enable_interrupts(ddf_dev_t *device)
 {
 	int parent_phone = devman_parent_device_connect(device->handle,
 	    IPC_FLAG_BLOCKING);

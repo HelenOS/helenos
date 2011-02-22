@@ -277,7 +277,6 @@ restart:
 				hash_table_remove(&devices, key, DEVICES_KEYS);
 				fibril_mutex_unlock(&devices_mutex);
 
-				free(dev);
 				return ENOENT;
 			}
 			

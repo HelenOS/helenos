@@ -46,7 +46,7 @@
 #include <fcntl.h>
 #include "../../tester.h"
 
-#define DEVICE_PATH_NORMAL "/dev/devices/\\virt\\null"
+#define DEVICE_PATH_NORMAL "/dev/devices/\\virt\\null\\a"
 #define DEVICE_PATH_CLASSES "/dev/class/virt-null\\1"
 #define BUFFER_SIZE 64
 

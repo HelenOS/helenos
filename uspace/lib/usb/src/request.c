@@ -34,6 +34,7 @@
  */
 #include <usb/request.h>
 #include <errno.h>
+#include <assert.h>
 
 #define MAX_DATA_LENGTH ((size_t)(0xFFFF))
 

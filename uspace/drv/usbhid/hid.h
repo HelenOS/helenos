@@ -37,7 +37,7 @@
 #define USBHID_HID_H_
 
 #include <usb/classes/hid.h>
-#include <driver.h>
+#include <ddf/driver.h>
 #include <usb/pipes.h>
 
 /**
@@ -66,7 +66,7 @@ typedef struct {
  * Quite dummy right now.
  */
 typedef struct {
-	device_t *device;
+	ddf_dev_t *device;
 	usb_hid_configuration_t *conf;
 	usb_hid_report_parser_t *parser;
 

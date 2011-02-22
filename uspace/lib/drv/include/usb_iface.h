@@ -37,7 +37,7 @@
 #ifndef LIBDRV_USB_IFACE_H_
 #define LIBDRV_USB_IFACE_H_
 
-#include "driver.h"
+#include "ddf/driver.h"
 #include <usb/usb.h>
 typedef enum {
 	/** Tell USB address assigned to device.
@@ -74,9 +74,9 @@ typedef enum {
 
 /** USB device communication interface. */
 typedef struct {
-	int (*get_address)(device_t *, devman_handle_t, usb_address_t *);
-	int (*get_interface)(device_t *, devman_handle_t, int *);
-	int (*get_hc_handle)(device_t *, devman_handle_t *);
+	int (*get_address)(ddf_fun_t *, devman_handle_t, usb_address_t *);
+	int (*get_interface)(ddf_fun_t *, devman_handle_t, int *);
+	int (*get_hc_handle)(ddf_fun_t *, devman_handle_t *);
 } usb_iface_t;
 
 

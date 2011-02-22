@@ -39,17 +39,17 @@
 #include <usb/usbdevice.h>
 #include <usb_iface.h>
 
-int usb_iface_get_hc_handle_hub_impl(device_t *, devman_handle_t *);
-int usb_iface_get_address_hub_impl(device_t *, devman_handle_t,
+int usb_iface_get_hc_handle_hub_impl(ddf_fun_t *, devman_handle_t *);
+int usb_iface_get_address_hub_impl(ddf_fun_t *, devman_handle_t,
     usb_address_t *);
 extern usb_iface_t usb_iface_hub_impl;
 
-int usb_iface_get_hc_handle_hub_child_impl(device_t *, devman_handle_t *);
-int usb_iface_get_address_hub_child_impl(device_t *, devman_handle_t,
+int usb_iface_get_hc_handle_hub_child_impl(ddf_fun_t *, devman_handle_t *);
+int usb_iface_get_address_hub_child_impl(ddf_fun_t *, devman_handle_t,
     usb_address_t *);
 extern usb_iface_t usb_iface_hub_child_impl;
 
-int usb_iface_get_hc_handle_hc_impl(device_t *, devman_handle_t *);
+int usb_iface_get_hc_handle_hc_impl(ddf_fun_t *, devman_handle_t *);
 
 
 #endif

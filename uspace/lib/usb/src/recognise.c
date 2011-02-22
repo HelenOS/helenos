@@ -33,6 +33,7 @@
  * @brief Functions for recognising kind of attached devices.
  */
 #include <sys/types.h>
+#include <fibril_synch.h>
 #include <usb/pipes.h>
 #include <usb/recognise.h>
 #include <usb/ddfiface.h>
@@ -40,11 +41,12 @@
 #include <usb/classes/classes.h>
 #include <stdio.h>
 #include <errno.h>
+#include <assert.h>
 
 static size_t device_name_index = 0;
 static FIBRIL_MUTEX_INITIALIZE(device_name_index_mutex);
 
-device_ops_t child_ops = {
+ddf_dev_ops_t child_ops = {
 	.interfaces[USB_DEV_IFACE] = &usb_iface_hub_child_impl
 };
 
@@ -325,7 +327,8 @@ int usb_device_create_match_ids(usb_endpoint_pipe_t *ctrl_pipe,
  */
 int usb_device_register_child_in_devman(usb_address_t address,
     devman_handle_t hc_handle,
-    device_t *parent, devman_handle_t *child_handle)
+    ddf_dev_t *parent, devman_handle_t *child_handle,
+    ddf_dev_ops_t *dev_ops, void *dev_data, ddf_fun_t **child_fun)
 {
 	size_t this_device_name_index;
 
@@ -334,7 +337,7 @@ int usb_device_register_child_in_devman(usb_address_t address,
 	device_name_index++;
 	fibril_mutex_unlock(&device_name_index_mutex);
 
-	device_t *child = NULL;
+	ddf_fun_t *child = NULL;
 	char *child_name = NULL;
 	int rc;
 	usb_device_connection_t dev_connection;
@@ -351,12 +354,6 @@ int usb_device_register_child_in_devman(usb_address_t address,
 		goto failure;
 	}
 
-	child = create_device();
-	if (child == NULL) {
-		rc = ENOMEM;
-		goto failure;
-	}
-
 	/*
 	 * TODO: Once the device driver framework support persistent
 	 * naming etc., something more descriptive could be created.
@@ -365,9 +362,20 @@ int usb_device_register_child_in_devman(usb_address_t address,
 	if (rc < 0) {
 		goto failure;
 	}
-	child->parent = parent;
-	child->name = child_name;
-	child->ops = &child_ops;
+
+	child = ddf_fun_create(parent, fun_inner, child_name);
+	if (child == NULL) {
+		rc = ENOMEM;
+		goto failure;
+	}
+
+	if (dev_ops != NULL) {
+		child->ops = dev_ops;
+	} else {
+		child->ops = &child_ops;
+	}
+
+	child->driver_data = dev_data;
 
 	rc = usb_endpoint_pipe_start_session(&ctrl_pipe);
 	if (rc != EOK) {
@@ -384,7 +392,7 @@ int usb_device_register_child_in_devman(usb_address_t address,
 		goto failure;
 	}
 
-	rc = child_device_register(child, parent);
+	rc = ddf_fun_bind(child);
 	if (rc != EOK) {
 		goto failure;
 	}
@@ -393,13 +401,17 @@ int usb_device_register_child_in_devman(usb_address_t address,
 		*child_handle = child->handle;
 	}
 
+	if (child_fun != NULL) {
+		*child_fun = child;
+	}
+
 	return EOK;
 
 failure:
 	if (child != NULL) {
 		child->name = NULL;
 		/* This takes care of match_id deallocation as well. */
-		delete_device(child);
+		ddf_fun_destroy(child);
 	}
 	if (child_name != NULL) {
 		free(child_name);

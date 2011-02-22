@@ -35,9 +35,9 @@
 #ifndef DRV_UHCI_ROOT_HUB_H
 #define DRV_UHCI_ROOT_HUB_H
 
-#include <driver.h>
+#include <ddf/driver.h>
 
-int setup_root_hub(device_t **device, device_t *hc);
+int setup_root_hub(ddf_fun_t **device, ddf_dev_t *hc);
 
 #endif
 /**

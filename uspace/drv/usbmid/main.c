@@ -43,7 +43,7 @@
 
 #include "usbmid.h"
 
-static int usbmid_add_device(device_t *gen_dev)
+static int usbmid_add_device(ddf_dev_t *gen_dev)
 {
 	usbmid_device_t *dev = usbmid_device_create(gen_dev);
 	if (dev == NULL) {
@@ -98,8 +98,8 @@ int main(int argc, char *argv[])
 {
 	printf(NAME ": USB multi interface device driver.\n");
 
-	usb_log_enable(USB_LOG_LEVEL_DEBUG, NAME);
-	return driver_main(&mid_driver);
+	usb_log_enable(USB_LOG_LEVEL_INFO, NAME);
+	return ddf_driver_main(&mid_driver);
 }
 
 /**

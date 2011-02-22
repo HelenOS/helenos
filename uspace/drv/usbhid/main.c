@@ -35,7 +35,7 @@
  * Main routines of USB HID driver.
  */
 
-#include <driver.h>
+#include <ddf/driver.h>
 #include <ipc/driver.h>
 #include <ipc/kbd.h>
 #include <io/keycode.h>
@@ -71,8 +71,8 @@ static usb_endpoint_description_t poll_endpoint_description = {
 	.flags = 0
 };
 
-static void default_connection_handler(device_t *, ipc_callid_t, ipc_call_t *);
-static device_ops_t keyboard_ops = {
+static void default_connection_handler(ddf_fun_t *, ipc_callid_t, ipc_call_t *);
+static ddf_dev_ops_t keyboard_ops = {
 	.default_handler = default_connection_handler
 };
 
@@ -84,7 +84,7 @@ static int console_callback_phone = -1;
  * @param icallid Call id.
  * @param icall Call data.
  */
-void default_connection_handler(device_t *dev,
+void default_connection_handler(ddf_fun_t *fun,
     ipc_callid_t icallid, ipc_call_t *icall)
 {
 	sysarg_t method = IPC_GET_IMETHOD(*icall);
@@ -412,7 +412,7 @@ static int usbkbd_process_descriptors(usb_hid_dev_kbd_t *kbd_dev)
 	return EOK;
 }
 
-static usb_hid_dev_kbd_t *usbkbd_init_device(device_t *dev)
+static usb_hid_dev_kbd_t *usbkbd_init_device(ddf_dev_t *dev)
 {
 	int rc;
 
@@ -553,7 +553,7 @@ static int usbkbd_fibril_device(void *arg)
 		return -1;
 	}
 
-	device_t *dev = (device_t *)arg;
+	ddf_dev_t *dev = (ddf_dev_t *)arg;
 
 	// initialize device (get and process descriptors, get address, etc.)
 	usb_hid_dev_kbd_t *kbd_dev = usbkbd_init_device(dev);
@@ -567,7 +567,7 @@ static int usbkbd_fibril_device(void *arg)
 	return EOK;
 }
 
-static int usbkbd_add_device(device_t *dev)
+static int usbkbd_add_device(ddf_dev_t *dev)
 {
 	/* For now, fail immediately. */
 	//return ENOTSUP;
@@ -589,6 +589,19 @@ static int usbkbd_add_device(device_t *dev)
 //	dev->parent_phone = phone;
 
 	/*
+	 * Create default function.
+	 */
+	// FIXME - check for errors
+	ddf_fun_t *kbd_fun = ddf_fun_create(dev, fun_exposed, "keyboard");
+	assert(kbd_fun != NULL);
+	kbd_fun->ops = &keyboard_ops;
+
+	int rc = ddf_fun_bind(kbd_fun);
+	assert(rc == EOK);
+	rc = ddf_fun_add_to_class(kbd_fun, "keyboard");
+	assert(rc == EOK);
+
+	/*
 	 * Create new fibril for handling this keyboard
 	 */
 	fid_t fid = fibril_create(usbkbd_fibril_device, dev);
@@ -598,9 +611,10 @@ static int usbkbd_add_device(device_t *dev)
 	}
 	fibril_add_ready(fid);
 
-	dev->ops = &keyboard_ops;
+	//dev->ops = &keyboard_ops;
+	(void)keyboard_ops;
 
-	add_device_to_class(dev, "keyboard");
+	//add_device_to_class(dev, "keyboard");
 
 	/*
 	 * Hurrah, device is initialized.
@@ -620,7 +634,7 @@ static driver_t kbd_driver = {
 int main(int argc, char *argv[])
 {
 	usb_log_enable(USB_LOG_LEVEL_INFO, "usbhid");
-	return driver_main(&kbd_driver);
+	return ddf_driver_main(&kbd_driver);
 }
 
 /**

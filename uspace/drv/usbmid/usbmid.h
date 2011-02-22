@@ -36,7 +36,7 @@
 #ifndef USBMID_H_
 #define USBMID_H_
 
-#include <driver.h>
+#include <ddf/driver.h>
 #include <usb/usb.h>
 #include <usb/pipes.h>
 #include <usb/debug.h>
@@ -45,7 +45,7 @@
 
 typedef struct {
 	/** Device container. */
-	device_t *dev;
+	ddf_dev_t *dev;
 
 	/** Representation of USB wire. */
 	usb_device_connection_t wire;
@@ -54,15 +54,15 @@ typedef struct {
 } usbmid_device_t;
 
 typedef struct {
-	/** Device container. */
-	device_t *dev;
+	/** Function container. */
+	ddf_fun_t *fun;
 
 	/** Interface number. */
 	int interface_no;
 } usbmid_interface_t;
 
-usbmid_device_t *usbmid_device_create(device_t *);
-usbmid_interface_t *usbmid_interface_create(device_t *, int);
+usbmid_device_t *usbmid_device_create(ddf_dev_t *);
+usbmid_interface_t *usbmid_interface_create(ddf_fun_t *, int);
 bool usbmid_explore_device(usbmid_device_t *);
 int usbmid_spawn_interface_child(usbmid_device_t *,
     const usb_standard_device_descriptor_t *,

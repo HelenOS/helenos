@@ -36,12 +36,12 @@
 #include <errno.h>
 
 #include "usb_iface.h"
-#include "driver.h"
+#include "ddf/driver.h"
 
 
-static void remote_usb_get_address(device_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_usb_get_interface(device_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_usb_get_hc_handle(device_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usb_get_address(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usb_get_interface(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usb_get_hc_handle(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 //static void remote_usb(device_t *, void *, ipc_callid_t, ipc_call_t *);
 
 /** Remote USB interface operations. */
@@ -60,7 +60,7 @@ remote_iface_t remote_usb_iface = {
 };
 
 
-void remote_usb_get_address(device_t *device, void *iface,
+void remote_usb_get_address(ddf_fun_t *fun, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
 	usb_iface_t *usb_iface = (usb_iface_t *) iface;
@@ -73,7 +73,7 @@ void remote_usb_get_address(device_t *device, void *iface,
 	devman_handle_t handle = DEV_IPC_GET_ARG1(*call);
 
 	usb_address_t address;
-	int rc = usb_iface->get_address(device, handle, &address);
+	int rc = usb_iface->get_address(fun, handle, &address);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
 	} else {
@@ -81,7 +81,7 @@ void remote_usb_get_address(device_t *device, void *iface,
 	}
 }
 
-void remote_usb_get_interface(device_t *device, void *iface,
+void remote_usb_get_interface(ddf_fun_t *fun, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
 	usb_iface_t *usb_iface = (usb_iface_t *) iface;
@@ -94,7 +94,7 @@ void remote_usb_get_interface(device_t *device, void *iface,
 	devman_handle_t handle = DEV_IPC_GET_ARG1(*call);
 
 	int iface_no;
-	int rc = usb_iface->get_interface(device, handle, &iface_no);
+	int rc = usb_iface->get_interface(fun, handle, &iface_no);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
 	} else {
@@ -102,7 +102,7 @@ void remote_usb_get_interface(device_t *device, void *iface,
 	}
 }
 
-void remote_usb_get_hc_handle(device_t *device, void *iface,
+void remote_usb_get_hc_handle(ddf_fun_t *fun, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
 	usb_iface_t *usb_iface = (usb_iface_t *) iface;
@@ -113,7 +113,7 @@ void remote_usb_get_hc_handle(device_t *device, void *iface,
 	}
 
 	devman_handle_t handle;
-	int rc = usb_iface->get_hc_handle(device, &handle);
+	int rc = usb_iface->get_hc_handle(fun, &handle);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
 	}

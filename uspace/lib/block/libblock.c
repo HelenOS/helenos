@@ -625,6 +625,7 @@ retry:
 			 */
 			unsigned long key = block->lba;
 			hash_table_remove(&cache->block_hash, &key, 1);
+			fibril_mutex_unlock(&block->lock);
 			free(block->data);
 			free(block);
 			cache->blocks_cached--;

@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,43 +33,34 @@
 /** @file
  */
 
-#ifndef LIBDRV_DRIVER_H_
-#define LIBDRV_DRIVER_H_
+#ifndef DDF_DRIVER_H_
+#define DDF_DRIVER_H_
 
-#include <sys/types.h>
-#include <kernel/ddi/irq.h>
-#include <adt/list.h>
-#include <devman.h>
 #include <ipc/devman.h>
 #include <ipc/dev_iface.h>
-#include <assert.h>
-#include <ddi.h>
-#include <libarch/ddi.h>
-#include <fibril_synch.h>
-#include <malloc.h>
 
-#include "dev_iface.h"
+#include "../dev_iface.h"
 
-struct device;
-typedef struct device device_t;
+typedef struct ddf_dev ddf_dev_t;
+typedef struct ddf_fun ddf_fun_t;
 
 /*
- * Device class
+ * Device
  */
 
 /** Devices operations */
-typedef struct device_ops {
+typedef struct ddf_dev_ops {
 	/**
 	 * Optional callback function called when a client is connecting to the
 	 * device.
 	 */
-	int (*open)(device_t *);
+	int (*open)(ddf_fun_t *);
 	
 	/**
 	 * Optional callback function called when a client is disconnecting from
 	 * the device.
 	 */
-	void (*close)(device_t *);
+	void (*close)(ddf_fun_t *);
 	
 	/** The table of standard interfaces implemented by the device. */
 	void *interfaces[DEV_IFACE_COUNT];
@@ -79,15 +71,10 @@ typedef struct device_ops {
 	 * default handler is used.
 	 */
 	remote_handler_t *default_handler;
-} device_ops_t;
-
-
-/*
- * Device
- */
+} ddf_dev_ops_t;
 
 /** Device structure */
-struct device {
+struct ddf_dev {
 	/**
 	 * Globally unique device identifier (assigned to the device by the
 	 * device manager).
@@ -100,18 +87,38 @@ struct device {
 	 */
 	int parent_phone;
 	
-	/** Parent device if handled by this driver, NULL otherwise */
-	device_t *parent;
 	/** Device name */
 	const char *name;
-	/** List of device ids for device-to-driver matching */
-	match_id_list_t match_ids;
+	
 	/** Driver-specific data associated with this device */
 	void *driver_data;
-	/** The implementation of operations provided by this device */
-	device_ops_t *ops;
 	
 	/** Link in the list of devices handled by the driver */
+	link_t link;
+};
+
+/** Function structure */
+struct ddf_fun {
+	/** True if bound to the device manager */
+	bool bound;
+	/** Function indentifier (asigned by device manager) */
+	devman_handle_t handle;
+	
+	/** Device which this function belogs to */
+	ddf_dev_t *dev;
+	
+	/** Function type */
+	fun_type_t ftype;
+	/** Function name */
+	const char *name;
+	/** List of device ids for driver matching */
+	match_id_list_t match_ids;
+	/** Driver-specific data associated with this function */
+	void *driver_data;
+	/** Implementation of operations provided by this function */
+	ddf_dev_ops_t *ops;
+	
+	/** Link in the list of functions handled by the driver */
 	link_t link;
 };
 
@@ -122,7 +129,7 @@ struct device {
 /** Generic device driver operations */
 typedef struct driver_ops {
 	/** Callback method for passing a new device to the device driver */
-	int (*add_device)(device_t *dev);
+	int (*add_device)(ddf_dev_t *dev);
 	/* TODO: add other generic driver operations */
 } driver_ops_t;
 
@@ -134,58 +141,14 @@ typedef struct driver {
 	driver_ops_t *driver_ops;
 } driver_t;
 
-int driver_main(driver_t *);
+extern int ddf_driver_main(driver_t *);
 
-/** Create new device structure.
- *
- * @return		The device structure.
- */
-extern device_t *create_device(void);
-extern void delete_device(device_t *);
-extern void *device_get_ops(device_t *, dev_inferface_idx_t);
+extern ddf_fun_t *ddf_fun_create(ddf_dev_t *, fun_type_t, const char *);
+extern void ddf_fun_destroy(ddf_fun_t *);
+extern int ddf_fun_bind(ddf_fun_t *);
+extern int ddf_fun_add_match_id(ddf_fun_t *, const char *, int);
 
-extern int child_device_register(device_t *, device_t *);
-extern int child_device_register_wrapper(device_t *, const char *, const char *,
-    int, devman_handle_t *);
-
-/*
- * Interrupts
- */
-
-typedef void interrupt_handler_t(device_t *, ipc_callid_t, ipc_call_t *);
-
-typedef struct interrupt_context {
-	int id;
-	device_t *dev;
-	int irq;
-	interrupt_handler_t *handler;
-	link_t link;
-} interrupt_context_t;
-
-typedef struct interrupt_context_list {
-	int curr_id;
-	link_t contexts;
-	fibril_mutex_t mutex;
-} interrupt_context_list_t;
-
-extern interrupt_context_t *create_interrupt_context(void);
-extern void delete_interrupt_context(interrupt_context_t *);
-extern void init_interrupt_context_list(interrupt_context_list_t *);
-extern void add_interrupt_context(interrupt_context_list_t *,
-    interrupt_context_t *);
-extern void remove_interrupt_context(interrupt_context_list_t *,
-    interrupt_context_t *);
-extern interrupt_context_t *find_interrupt_context_by_id(
-    interrupt_context_list_t *, int);
-extern interrupt_context_t *find_interrupt_context(
-    interrupt_context_list_t *, device_t *, int);
-
-extern int register_interrupt_handler(device_t *, int, interrupt_handler_t *,
-    irq_code_t *);
-extern int unregister_interrupt_handler(device_t *, int);
-
-extern remote_handler_t *device_get_default_handler(device_t *);
-extern int add_device_to_class(device_t *, const char *);
+extern int ddf_fun_add_to_class(ddf_fun_t *, const char *);
 
 #endif
 

@@ -37,7 +37,7 @@
 
 #include <ipc/devman.h>
 #include <usb/usb.h>
-#include <driver.h>
+#include <ddf/driver.h>
 
 #define NAME "usbhub"
 
@@ -62,7 +62,7 @@ typedef struct {
 	/** General usb device info. */
 	//usb_hcd_attached_device_info_t * usb_device;
 	/** General device info*/
-	device_t * device;
+	ddf_dev_t * device;
 	/** connection to hcd */
 	//usb_device_connection_t connection;
 	usb_hc_connection_t connection;
@@ -83,7 +83,7 @@ int usb_hub_control_loop(void * noparam);
  * @param dev New device.
  * @return Error code.
  */
-int usb_add_hub_device(device_t *dev);
+int usb_add_hub_device(ddf_dev_t *dev);
 
 /**
  * check changes on all registered hubs

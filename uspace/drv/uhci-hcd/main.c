@@ -31,7 +31,8 @@
 /** @file
  * @brief UHCI driver
  */
-#include <driver.h>
+#include <ddf/driver.h>
+#include <ddf/interrupt.h>
 #include <usb_iface.h>
 #include <usb/ddfiface.h>
 #include <device/hw_res.h>
@@ -47,38 +48,8 @@
 
 #define NAME "uhci-hcd"
 
-static int uhci_add_device(device_t *device);
+static int uhci_add_device(ddf_dev_t *device);
 
-static int usb_iface_get_address(device_t *dev, devman_handle_t handle,
-    usb_address_t *address)
-{
-	assert(dev);
-	uhci_t *hc = dev_to_uhci(dev);
-	assert(hc);
-
-	usb_address_t addr = usb_address_keeping_find(&hc->address_manager,
-	    handle);
-	if (addr < 0) {
-		return addr;
-	}
-
-	if (address != NULL) {
-		*address = addr;
-	}
-
-	return EOK;
-}
-
-
-static usb_iface_t hc_usb_iface = {
-	.get_hc_handle = usb_iface_get_hc_handle_hc_impl,
-	.get_address = usb_iface_get_address
-};
-/*----------------------------------------------------------------------------*/
-static device_ops_t uhci_ops = {
-	.interfaces[USB_DEV_IFACE] = &hc_usb_iface,
-	.interfaces[USBHC_DEV_IFACE] = &uhci_iface
-};
 /*----------------------------------------------------------------------------*/
 static driver_ops_t uhci_driver_ops = {
 	.add_device = uhci_add_device,
@@ -89,10 +60,10 @@ static driver_t uhci_driver = {
 	.driver_ops = &uhci_driver_ops
 };
 /*----------------------------------------------------------------------------*/
-static void irq_handler(device_t *device, ipc_callid_t iid, ipc_call_t *call)
+static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
 {
-	assert(device);
-	uhci_t *hc = dev_to_uhci(device);
+	assert(dev);
+	uhci_t *hc = dev_to_uhci(dev);
 	uint16_t status = IPC_GET_ARG1(*call);
 	assert(hc);
 	uhci_interrupt(hc, status);
@@ -104,12 +75,12 @@ if (ret != EOK) { \
 	return ret; \
 }
 
-static int uhci_add_device(device_t *device)
+static int uhci_add_device(ddf_dev_t *device)
 {
 	assert(device);
 
 	usb_log_info("uhci_add_device() called\n");
-	device->ops = &uhci_ops;
+
 
 	uintptr_t io_reg_base;
 	size_t io_reg_size;
@@ -130,12 +101,18 @@ static int uhci_add_device(device_t *device)
 	ret = (uhci_hc != NULL) ? EOK : ENOMEM;
 	CHECK_RET_RETURN(ret, "Failed to allocate memory for uhci hcd driver.\n");
 
-	ret = uhci_init(uhci_hc, (void*)io_reg_base, io_reg_size);
+	ret = uhci_init(uhci_hc, device, (void*)io_reg_base, io_reg_size);
 	if (ret != EOK) {
 		usb_log_error("Failed to init uhci-hcd.\n");
 		free(uhci_hc);
 		return ret;
 	}
+
+	/*
+	 * We might free uhci_hc, but that does not matter since no one
+	 * else would access driver_data anyway.
+	 */
+	device->driver_data = uhci_hc;
 
 	ret = register_interrupt_handler(device, irq, irq_handler,
 	    &uhci_hc->interrupt_code);
@@ -146,7 +123,7 @@ static int uhci_add_device(device_t *device)
 		return ret;
 	}
 
-	device_t *rh;
+	ddf_fun_t *rh;
 	ret = setup_root_hub(&rh, device);
 	if (ret != EOK) {
 		usb_log_error("Failed to setup uhci root hub.\n");
@@ -154,8 +131,9 @@ static int uhci_add_device(device_t *device)
 		free(uhci_hc);
 		return ret;
 	}
+	rh->driver_data = uhci_hc->ddf_instance;
 
-	ret = child_device_register(rh, device);
+	ret = ddf_fun_bind(rh);
 	if (ret != EOK) {
 		usb_log_error("Failed to register root hub.\n");
 		uhci_fini(uhci_hc);
@@ -164,16 +142,15 @@ static int uhci_add_device(device_t *device)
 		return ret;
 	}
 
-	device->driver_data = uhci_hc;
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
 int main(int argc, char *argv[])
 {
 	sleep(3);
-	usb_log_enable(USB_LOG_LEVEL_DEBUG, NAME);
+	usb_log_enable(USB_LOG_LEVEL_INFO, NAME);
 
-	return driver_main(&uhci_driver);
+	return ddf_driver_main(&uhci_driver);
 }
 /**
  * @}
