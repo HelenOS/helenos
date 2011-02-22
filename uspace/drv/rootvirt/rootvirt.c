@@ -38,32 +38,32 @@
 #include <stdio.h>
 #include <errno.h>
 #include <str_error.h>
-#include <driver.h>
+#include <ddf/driver.h>
 
 #define NAME "rootvirt"
 
-/** Virtual device entry. */
+/** Virtual function entry */
 typedef struct {
-	/** Device name. */
+	/** Function name */
 	const char *name;
-	/** Device match id. */
+	/** Function match ID */
 	const char *match_id;
-} virtual_device_t;
+} virtual_function_t;
 
-/** List of existing virtual devices. */
-virtual_device_t virtual_devices[] = {
+/** List of existing virtual functions */
+virtual_function_t virtual_functions[] = {
 #include "devices.def"
-	/* Terminating item. */
+	/* Terminating item */
 	{
 		.name = NULL,
 		.match_id = NULL
 	}
 };
 
-static int add_device(device_t *dev);
+static int rootvirt_add_device(ddf_dev_t *dev);
 
 static driver_ops_t rootvirt_ops = {
-	.add_device = &add_device
+	.add_device = &rootvirt_add_device
 };
 
 static driver_t rootvirt_driver = {
@@ -71,32 +71,47 @@ static driver_t rootvirt_driver = {
 	.driver_ops = &rootvirt_ops
 };
 
-/** Add child device.
+/** Add function to the virtual device.
  *
- * @param parent Parent device.
- * @param virt_dev Virtual device to add.
- * @return Error code.
+ * @param vdev		The virtual device
+ * @param vfun		Virtual function description
+ * @return		EOK on success or negative error code.
  */
-static int add_child(device_t *parent, virtual_device_t *virt_dev)
+static int rootvirt_add_fun(ddf_dev_t *vdev, virtual_function_t *vfun)
 {
-	printf(NAME ": registering child device `%s' (match \"%s\")\n",
-	    virt_dev->name, virt_dev->match_id);
+	ddf_fun_t *fun;
+	int rc;
 
-	int rc = child_device_register_wrapper(parent, virt_dev->name,
-	    virt_dev->match_id, 10);
+	printf(NAME ": registering function `%s' (match \"%s\")\n",
+	    vfun->name, vfun->match_id);
 
-	if (rc == EOK) {
-		printf(NAME ": registered child device `%s'\n",
-		    virt_dev->name);
-	} else {
-		printf(NAME ": failed to register child device `%s': %s\n",
-		    virt_dev->name, str_error(rc));
+	fun = ddf_fun_create(vdev, fun_inner, vfun->name);
+	if (fun == NULL) {
+		printf(NAME ": error creating function %s\n", vfun->name);
+		return ENOMEM;
 	}
 
-	return rc;
+	rc = ddf_fun_add_match_id(fun, vfun->match_id, 10);
+	if (rc != EOK) {
+		printf(NAME ": error adding match IDs to function %s\n",
+		    vfun->name);
+		ddf_fun_destroy(fun);
+		return rc;
+	}
+
+	rc = ddf_fun_bind(fun);
+	if (rc != EOK) {
+		printf(NAME ": error binding function %s: %s\n", vfun->name,
+		    str_error(rc));
+		ddf_fun_destroy(fun);
+		return rc;
+	}
+
+	printf(NAME ": registered child device `%s'\n", vfun->name);
+	return EOK;
 }
 
-static int add_device(device_t *dev)
+static int rootvirt_add_device(ddf_dev_t *dev)
 {
 	static int instances = 0;
 
@@ -108,17 +123,16 @@ static int add_device(device_t *dev)
 		return ELIMIT;
 	}
 
-	printf(NAME ": add_device(name=\"%s\", handle=%d)\n",
-	    dev->name, (int)dev->handle);
-	
+	printf(NAME ": add_device(handle=%d)\n", (int)dev->handle);
+
 	/*
-	 * Go through all virtual devices and try to add them.
+	 * Go through all virtual functions and try to add them.
 	 * We silently ignore failures.
 	 */
-	virtual_device_t *virt_dev = virtual_devices;
-	while (virt_dev->name != NULL) {
-		(void) add_child(dev, virt_dev);
-		virt_dev++;
+	virtual_function_t *vfun = virtual_functions;
+	while (vfun->name != NULL) {
+		(void) rootvirt_add_fun(dev, vfun);
+		vfun++;
 	}
 
 	return EOK;
@@ -127,7 +141,7 @@ static int add_device(device_t *dev)
 int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS virtual devices root driver\n");
-	return driver_main(&rootvirt_driver);
+	return ddf_driver_main(&rootvirt_driver);
 }
 
 /**

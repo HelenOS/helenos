@@ -36,12 +36,12 @@
 
 #include "test1.h"
 
-static int impl_char_read(device_t *dev, char *buf, size_t count) {
+static int impl_char_read(ddf_fun_t *fun, char *buf, size_t count) {
 	memset(buf, 0, count);
 	return count;
 }
 
-static int imp_char_write(device_t *dev, char *buf, size_t count) {
+static int imp_char_write(ddf_fun_t *fun, char *buf, size_t count) {
 	return count;
 }
 
@@ -50,7 +50,7 @@ static char_dev_ops_t char_dev_ops = {
 	.write = &imp_char_write
 };
 
-device_ops_t char_device_ops = {
+ddf_dev_ops_t char_device_ops = {
 	.interfaces[CHAR_DEV_IFACE] = &char_dev_ops
 };
 

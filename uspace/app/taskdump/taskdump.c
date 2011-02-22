@@ -405,6 +405,19 @@ static void autoload_syms(void)
 		return;
 	}
 
+	rc = asprintf(&file_name, "/drv/%s/%s", app_name, app_name);
+	if (rc < 0) {
+		printf("Memory allocation failure.\n");
+		exit(1);
+	}
+
+	rc = symtab_load(file_name, &app_symtab);
+	if (rc == EOK) {
+		printf("Loaded symbol table from %s\n", file_name);
+		free(file_name);
+		return;
+	}
+
 	free(file_name);
 	printf("Failed autoloading symbol table.\n");
 }

@@ -35,11 +35,11 @@
 #ifndef LIBDRV_OPS_CHAR_DEV_H_
 #define LIBDRV_OPS_CHAR_DEV_H_
 
-#include "../driver.h"
+#include "../ddf/driver.h"
 
 typedef struct {
-	int (*read)(device_t *, char *, size_t);
-	int (*write)(device_t *, char *, size_t);
+	int (*read)(ddf_fun_t *, char *, size_t);
+	int (*write)(ddf_fun_t *, char *, size_t);
 } char_dev_ops_t;
 
 #endif
