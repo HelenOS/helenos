@@ -136,6 +136,7 @@ int usb_endpoint_pipe_initialize_from_configuration(usb_endpoint_mapping_t *,
 
 int usb_endpoint_pipe_start_session(usb_endpoint_pipe_t *);
 int usb_endpoint_pipe_end_session(usb_endpoint_pipe_t *);
+bool usb_endpoint_pipe_is_session_started(usb_endpoint_pipe_t *);
 
 int usb_endpoint_pipe_read(usb_endpoint_pipe_t *, void *, size_t, size_t *);
 int usb_endpoint_pipe_write(usb_endpoint_pipe_t *, void *, size_t);

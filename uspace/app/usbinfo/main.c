@@ -81,7 +81,7 @@ static int get_host_controller_handle(const char *path,
 	int rc;
 
 	if (str_cmp(path, "uhci") == 0) {
-		path = "/hw/pci0/00:01.2";
+		path = "/hw/pci0/00:01.2/uhci";
 	}
 
 	devman_handle_t handle;

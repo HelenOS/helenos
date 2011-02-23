@@ -199,7 +199,7 @@ int usb_endpoint_pipe_start_session(usb_endpoint_pipe_t *pipe)
 {
 	assert(pipe);
 
-	if (pipe->hc_phone >= 0) {
+	if (usb_endpoint_pipe_is_session_started(pipe)) {
 		return EBUSY;
 	}
 
@@ -225,7 +225,7 @@ int usb_endpoint_pipe_end_session(usb_endpoint_pipe_t *pipe)
 {
 	assert(pipe);
 
-	if (pipe->hc_phone < 0) {
+	if (!usb_endpoint_pipe_is_session_started(pipe)) {
 		return ENOENT;
 	}
 
@@ -237,6 +237,19 @@ int usb_endpoint_pipe_end_session(usb_endpoint_pipe_t *pipe)
 	pipe->hc_phone = -1;
 
 	return EOK;
+}
+
+/** Tell whether a session is started (open) on the endpoint pipe.
+ *
+ * The expected usage of this function is in assertions for some
+ * nested functions.
+ *
+ * @param pipe Endpoint pipe in question.
+ * @return Whether @p pipe has opened a session.
+ */
+bool usb_endpoint_pipe_is_session_started(usb_endpoint_pipe_t *pipe)
+{
+	return (pipe->hc_phone >= 0);
 }
 
 /**
