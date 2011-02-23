@@ -44,36 +44,19 @@
 #include "usbmid.h"
 
 /** Callback for DDF USB interface. */
-static int usb_iface_get_address_impl(device_t *device, devman_handle_t handle,
+static int usb_iface_get_address_impl(ddf_fun_t *fun, devman_handle_t handle,
     usb_address_t *address)
 {
-	assert(device);
-	device_t *parent = device->parent;
-
-	/* Default error, device does not support this operation. */
-	int rc = ENOTSUP;
-
-	if (parent && parent->ops && parent->ops->interfaces[USB_DEV_IFACE]) {
-		usb_iface_t *usb_iface
-		    = (usb_iface_t *) parent->ops->interfaces[USB_DEV_IFACE];
-		assert(usb_iface != NULL);
-
-		if (usb_iface->get_address) {
-			rc = usb_iface->get_address(parent, parent->handle,
-			    address);
-		}
-	}
-
-	return rc;
+	return usb_iface_get_address_hub_impl(fun, handle, address);
 }
 
 /** Callback for DDF USB interface. */
-static int usb_iface_get_interface_impl(device_t *device, devman_handle_t handle,
+static int usb_iface_get_interface_impl(ddf_fun_t *fun, devman_handle_t handle,
     int *iface_no)
 {
-	assert(device);
+	assert(fun);
 
-	usbmid_interface_t *iface = device->driver_data;
+	usbmid_interface_t *iface = fun->driver_data;
 	assert(iface);
 
 	if (iface_no != NULL) {
@@ -90,11 +73,11 @@ static usb_iface_t child_usb_iface = {
 };
 
 
-static device_ops_t child_device_ops = {
+static ddf_dev_ops_t child_device_ops = {
 	.interfaces[USB_DEV_IFACE] = &child_usb_iface
 };
 
-static device_ops_t mid_device_ops = {
+static ddf_dev_ops_t mid_device_ops = {
 	.interfaces[USB_DEV_IFACE] = &usb_iface_hub_impl
 };
 
@@ -104,7 +87,7 @@ static device_ops_t mid_device_ops = {
  * @return New USB MID device.
  * @retval NULL Error occured.
  */
-usbmid_device_t *usbmid_device_create(device_t *dev)
+usbmid_device_t *usbmid_device_create(ddf_dev_t *dev)
 {
 	usbmid_device_t *mid = malloc(sizeof(usbmid_device_t));
 	if (mid == NULL) {
@@ -132,7 +115,7 @@ usbmid_device_t *usbmid_device_create(device_t *dev)
 	}
 
 	mid->dev = dev;
-	dev->ops = &mid_device_ops;
+	(void) &mid_device_ops;
 
 	return mid;
 }
@@ -144,7 +127,7 @@ usbmid_device_t *usbmid_device_create(device_t *dev)
  * @return New interface.
  * @retval NULL Error occured.
  */
-usbmid_interface_t *usbmid_interface_create(device_t *dev, int iface_no)
+usbmid_interface_t *usbmid_interface_create(ddf_fun_t *fun, int iface_no)
 {
 	usbmid_interface_t *iface = malloc(sizeof(usbmid_interface_t));
 	if (iface == NULL) {
@@ -153,7 +136,7 @@ usbmid_interface_t *usbmid_interface_create(device_t *dev, int iface_no)
 		return NULL;
 	}
 
-	iface->dev = dev;
+	iface->fun = fun;
 	iface->interface_no = iface_no;
 
 	return iface;
@@ -171,17 +154,10 @@ int usbmid_spawn_interface_child(usbmid_device_t *parent,
     const usb_standard_device_descriptor_t *device_descriptor,
     const usb_standard_interface_descriptor_t *interface_descriptor)
 {
-	device_t *child = NULL;
+	ddf_fun_t *child = NULL;
 	char *child_name = NULL;
 	usbmid_interface_t *child_as_interface = NULL;
 	int rc;
-
-	/* Create the device. */
-	child = create_device();
-	if (child == NULL) {
-		rc = ENOMEM;
-		goto error_leave;
-	}
 
 	/*
 	 * Name is class name followed by interface number.
@@ -195,6 +171,15 @@ int usbmid_spawn_interface_child(usbmid_device_t *parent,
 		goto error_leave;
 	}
 
+	/* Create the device. */
+	child = ddf_fun_create(parent->dev, fun_inner, child_name);
+	if (child == NULL) {
+		rc = ENOMEM;
+		goto error_leave;
+	}
+
+
+
 	child_as_interface = usbmid_interface_create(child,
 	    (int) interface_descriptor->interface_number);
 	if (child_as_interface == NULL) {
@@ -203,8 +188,6 @@ int usbmid_spawn_interface_child(usbmid_device_t *parent,
 	}
 
 	child->driver_data = child_as_interface;
-	child->parent = parent->dev;
-	child->name = child_name;
 	child->ops = &child_device_ops;
 
 	rc = usb_device_create_match_ids_from_interface(device_descriptor,
@@ -214,7 +197,7 @@ int usbmid_spawn_interface_child(usbmid_device_t *parent,
 		goto error_leave;
 	}
 
-	rc = child_device_register(child, parent->dev);
+	rc = ddf_fun_bind(child);
 	if (rc != EOK) {
 		goto error_leave;
 	}
@@ -225,7 +208,7 @@ error_leave:
 	if (child != NULL) {
 		child->name = NULL;
 		/* This takes care of match_id deallocation as well. */
-		delete_device(child);
+		ddf_fun_destroy(child);
 	}
 	if (child_name != NULL) {
 		free(child_name);

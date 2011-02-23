@@ -35,7 +35,7 @@
 #define DRV_UHCI_ROOT_HUB_H
 
 #include <fibril.h>
-#include <driver.h> /* for device_t */
+#include <ddf/driver.h>
 
 #include "port.h"
 
@@ -49,7 +49,7 @@ typedef struct root_hub {
 } uhci_root_hub_t;
 
 int uhci_root_hub_init(
-  uhci_root_hub_t *instance, void *addr, size_t size, device_t *rh);
+  uhci_root_hub_t *instance, void *addr, size_t size, ddf_dev_t *rh);
 
 int uhci_root_hub_fini(uhci_root_hub_t *instance);
 #endif

@@ -30,7 +30,7 @@
  * @{
  */
 
-#include <driver.h>
+#include <ddf/driver.h>
 #include <errno.h>
 #include <async.h>
 
@@ -61,7 +61,7 @@ int usb_hub_control_loop(void * noparam){
 
 int main(int argc, char *argv[])
 {
-	usb_log_enable(USB_LOG_LEVEL_INFO, NAME);
+	usb_log_enable(USB_LOG_LEVEL_DEBUG, NAME);
 	
 	fibril_mutex_initialize(&usb_hub_list_lock);
 	fibril_mutex_lock(&usb_hub_list_lock);
@@ -76,7 +76,7 @@ int main(int argc, char *argv[])
 	}
 	fibril_add_ready(fid);
 
-	return driver_main(&hub_driver);
+	return ddf_driver_main(&hub_driver);
 }
 
 /**

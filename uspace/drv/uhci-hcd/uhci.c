@@ -32,12 +32,18 @@
  * @brief UHCI driver
  */
 #include <errno.h>
+#include <str_error.h>
 #include <adt/list.h>
+#include <libarch/ddi.h>
 
 #include <usb/debug.h>
 #include <usb/usb.h>
+#include <usb/ddfiface.h>
+#include <usb_iface.h>
 
 #include "uhci.h"
+#include "iface.h"
+
 static irq_cmd_t uhci_cmds[] = {
 	{
 		.cmd = CMD_PIO_READ_16,
@@ -52,6 +58,37 @@ static irq_cmd_t uhci_cmds[] = {
 	{
 		.cmd = CMD_ACCEPT
 	}
+};
+
+static int usb_iface_get_address(ddf_fun_t *fun, devman_handle_t handle,
+    usb_address_t *address)
+{
+	assert(fun);
+	uhci_t *hc = fun_to_uhci(fun);
+	assert(hc);
+
+	usb_address_t addr = usb_address_keeping_find(&hc->address_manager,
+	    handle);
+	if (addr < 0) {
+		return addr;
+	}
+
+	if (address != NULL) {
+		*address = addr;
+	}
+
+	return EOK;
+}
+
+
+static usb_iface_t hc_usb_iface = {
+	.get_hc_handle = usb_iface_get_hc_handle_hc_impl,
+	.get_address = usb_iface_get_address
+};
+/*----------------------------------------------------------------------------*/
+static ddf_dev_ops_t uhci_ops = {
+	.interfaces[USB_DEV_IFACE] = &hc_usb_iface,
+	.interfaces[USBHC_DEV_IFACE] = &uhci_iface
 };
 
 static int uhci_init_transfer_lists(uhci_t *instance);
@@ -70,13 +107,29 @@ static bool allowed_usb_packet(
 		return ret; \
 	} else (void) 0
 
-int uhci_init(uhci_t *instance, void *regs, size_t reg_size)
+int uhci_init(uhci_t *instance, ddf_dev_t *dev, void *regs, size_t reg_size)
 {
 	assert(reg_size >= sizeof(regs_t));
+	int ret;
+
+	/*
+	 * Create UHCI function.
+	 */
+	instance->ddf_instance = ddf_fun_create(dev, fun_exposed, "uhci");
+	if (instance->ddf_instance == NULL) {
+		usb_log_error("Failed to create UHCI device function.\n");
+		return ENOMEM;
+	}
+	instance->ddf_instance->ops = &uhci_ops;
+	instance->ddf_instance->driver_data = instance;
+
+	ret = ddf_fun_bind(instance->ddf_instance);
+	CHECK_RET_RETURN(ret, "Failed to bind UHCI device function: %s.\n",
+	    str_error(ret));
 
 	/* allow access to hc control registers */
 	regs_t *io;
-	int ret = pio_enable(regs, reg_size, (void**)&io);
+	ret = pio_enable(regs, reg_size, (void**)&io);
 	CHECK_RET_RETURN(ret, "Failed to gain access to registers at %p.\n", io);
 	instance->registers = io;
 	usb_log_debug("Device registers accessible.\n");

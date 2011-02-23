@@ -51,7 +51,7 @@ static int uhci_port_check(void *port);
 
 int uhci_port_init(
   uhci_port_t *port, port_status_t *address, unsigned number,
-  unsigned usec, device_t *rh, int parent_phone)
+  unsigned usec, ddf_dev_t *rh, int parent_phone)
 {
 	assert(port);
 	port->address = address;
@@ -186,7 +186,7 @@ static int uhci_port_new_device(uhci_port_t *port)
 	int rc = usb_hc_new_device_wrapper(port->rh, &port->hc_connection,
 	    USB_SPEED_FULL,
 	    new_device_enable_port, port->number, port,
-	    &dev_addr, &port->attached_device);
+	    &dev_addr, &port->attached_device, NULL, NULL, NULL);
 	if (rc != EOK) {
 		usb_log_error("Failed adding new device on port %u: %s.\n",
 		    port->number, str_error(rc));

@@ -40,7 +40,7 @@
 #include <usb/usbdevice.h>
 #include <usb/descriptor.h>
 #include <ipc/devman.h>
-#include <driver.h>
+#include <ddf/driver.h>
 
 /**
  * Abstraction of a physical connection to the device.
@@ -119,11 +119,11 @@ typedef struct {
 int usb_device_connection_initialize_on_default_address(
     usb_device_connection_t *, usb_hc_connection_t *);
 int usb_device_connection_initialize_from_device(usb_device_connection_t *,
-    device_t *);
+    ddf_dev_t *);
 int usb_device_connection_initialize(usb_device_connection_t *,
     devman_handle_t, usb_address_t);
 
-int usb_device_get_assigned_interface(device_t *);
+int usb_device_get_assigned_interface(ddf_dev_t *);
 
 int usb_endpoint_pipe_initialize(usb_endpoint_pipe_t *,
     usb_device_connection_t *,

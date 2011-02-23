@@ -31,7 +31,7 @@
 /** @file
  * @brief UHCI driver
  */
-#include <driver.h>
+#include <ddf/driver.h>
 #include <usb_iface.h>
 #include <usb/ddfiface.h>
 
@@ -43,14 +43,13 @@
 
 #define NAME "uhci-rhd"
 
-static int usb_iface_get_hc_handle(device_t *dev, devman_handle_t *handle)
+static int usb_iface_get_hc_handle(ddf_fun_t *fun, devman_handle_t *handle)
 {
-	assert(dev);
-	assert(dev->driver_data);
+	assert(fun);
+	assert(fun->driver_data);
 	assert(handle);
 
-	*handle = ((uhci_root_hub_t*)dev->driver_data)->hc_handle;
-	usb_log_debug("Answering HC handle: %d.\n", *handle);
+	*handle = ((uhci_root_hub_t*)fun->driver_data)->hc_handle;
 
 	return EOK;
 }
@@ -60,17 +59,19 @@ static usb_iface_t uhci_rh_usb_iface = {
 	.get_address = usb_iface_get_address_hub_impl
 };
 
-static device_ops_t uhci_rh_ops = {
+static ddf_dev_ops_t uhci_rh_ops = {
 	.interfaces[USB_DEV_IFACE] = &uhci_rh_usb_iface,
 };
 
-static int uhci_rh_add_device(device_t *device)
+static int uhci_rh_add_device(ddf_dev_t *device)
 {
 	if (!device)
 		return ENOTSUP;
 
 	usb_log_debug2("%s called device %d\n", __FUNCTION__, device->handle);
-	device->ops = &uhci_rh_ops;
+
+	//device->ops = &uhci_rh_ops;
+	(void) uhci_rh_ops;
 
 	uhci_root_hub_t *rh = malloc(sizeof(uhci_root_hub_t));
 	if (!rh) {
@@ -103,8 +104,8 @@ static driver_t uhci_rh_driver = {
 
 int main(int argc, char *argv[])
 {
-	usb_log_enable(USB_LOG_LEVEL_ERROR, NAME);
-	return driver_main(&uhci_rh_driver);
+	usb_log_enable(USB_LOG_LEVEL_INFO, NAME);
+	return ddf_driver_main(&uhci_rh_driver);
 }
 /**
  * @}

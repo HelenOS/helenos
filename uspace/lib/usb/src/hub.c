@@ -38,6 +38,7 @@
 #include <usb/recognise.h>
 #include <usbhc_iface.h>
 #include <errno.h>
+#include <assert.h>
 
 /** Check that HC connection is alright.
  *
@@ -171,10 +172,11 @@ int usb_hc_unregister_device(usb_hc_connection_t *connection,
  * @retval ESTALL Problem communication with device (either SET_ADDRESS
  *	request or requests for descriptors when creating match ids).
  */
-int usb_hc_new_device_wrapper(device_t *parent, usb_hc_connection_t *connection,
+int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection,
     usb_speed_t dev_speed,
     int (*enable_port)(int port_no, void *arg), int port_no, void *arg,
-    usb_address_t *assigned_address, devman_handle_t *assigned_handle)
+    usb_address_t *assigned_address, devman_handle_t *assigned_handle,
+    ddf_dev_ops_t *dev_ops, void *new_dev_data, ddf_fun_t **new_fun)
 {
 	CHECK_CONNECTION(connection);
 
@@ -250,7 +252,8 @@ int usb_hc_new_device_wrapper(device_t *parent, usb_hc_connection_t *connection,
 	/* FIXME: create device_register that will get opened ctrl pipe. */
 	devman_handle_t child_handle;
 	rc = usb_device_register_child_in_devman(dev_addr, dev_conn.hc_handle,
-	    parent, &child_handle);
+	    parent, &child_handle,
+	    dev_ops, new_dev_data, new_fun);
 	if (rc != EOK) {
 		rc = ESTALL;
 		goto leave_release_free_address;

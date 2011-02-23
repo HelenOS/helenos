@@ -31,7 +31,7 @@
 /** @file
  * @brief UHCI driver
  */
-#include <driver.h>
+#include <ddf/driver.h>
 #include <remote_usbhc.h>
 
 #include <usb/debug.h>
@@ -42,29 +42,29 @@
 #include "uhci.h"
 
 /*----------------------------------------------------------------------------*/
-static int reserve_default_address(device_t *dev, usb_speed_t speed)
+static int reserve_default_address(ddf_fun_t *fun, usb_speed_t speed)
 {
-	assert(dev);
-	uhci_t *hc = dev_to_uhci(dev);
+	assert(fun);
+	uhci_t *hc = fun_to_uhci(fun);
 	assert(hc);
 	usb_address_keeping_reserve_default(&hc->address_manager);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-static int release_default_address(device_t *dev)
+static int release_default_address(ddf_fun_t *fun)
 {
-	assert(dev);
-	uhci_t *hc = dev_to_uhci(dev);
+	assert(fun);
+	uhci_t *hc = fun_to_uhci(fun);
 	assert(hc);
 	usb_address_keeping_release_default(&hc->address_manager);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-static int request_address(device_t *dev, usb_speed_t speed,
+static int request_address(ddf_fun_t *fun, usb_speed_t speed,
     usb_address_t *address)
 {
-	assert(dev);
-	uhci_t *hc = dev_to_uhci(dev);
+	assert(fun);
+	uhci_t *hc = fun_to_uhci(fun);
 	assert(hc);
 	*address = usb_address_keeping_request(&hc->address_manager);
 	if (*address <= 0)
@@ -73,32 +73,32 @@ static int request_address(device_t *dev, usb_speed_t speed,
 }
 /*----------------------------------------------------------------------------*/
 static int bind_address(
-  device_t *dev, usb_address_t address, devman_handle_t handle)
+  ddf_fun_t *fun, usb_address_t address, devman_handle_t handle)
 {
-	assert(dev);
-	uhci_t *hc = dev_to_uhci(dev);
+	assert(fun);
+	uhci_t *hc = fun_to_uhci(fun);
 	assert(hc);
 	usb_address_keeping_devman_bind(&hc->address_manager, address, handle);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-static int release_address(device_t *dev, usb_address_t address)
+static int release_address(ddf_fun_t *fun, usb_address_t address)
 {
-	assert(dev);
-	uhci_t *hc = dev_to_uhci(dev);
+	assert(fun);
+	uhci_t *hc = fun_to_uhci(fun);
 	assert(hc);
 	usb_address_keeping_release_default(&hc->address_manager);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-static int interrupt_out(device_t *dev, usb_target_t target,
+static int interrupt_out(ddf_fun_t *fun, usb_target_t target,
     size_t max_packet_size,
     void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
 	dev_speed_t speed = FULL_SPEED;
 
-	batch_t *batch = batch_get(dev, target, USB_TRANSFER_INTERRUPT,
+	batch_t *batch = batch_get(fun, target, USB_TRANSFER_INTERRUPT,
 	    max_packet_size, speed, data, size, NULL, 0, NULL, callback, arg);
 	if (!batch)
 		return ENOMEM;
@@ -106,14 +106,14 @@ static int interrupt_out(device_t *dev, usb_target_t target,
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-static int interrupt_in(device_t *dev, usb_target_t target,
+static int interrupt_in(ddf_fun_t *fun, usb_target_t target,
     size_t max_packet_size,
     void *data, size_t size,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
 	dev_speed_t speed = FULL_SPEED;
 
-	batch_t *batch = batch_get(dev, target, USB_TRANSFER_INTERRUPT,
+	batch_t *batch = batch_get(fun, target, USB_TRANSFER_INTERRUPT,
 	    max_packet_size, speed, data, size, NULL, 0, callback, NULL, arg);
 	if (!batch)
 		return ENOMEM;
@@ -121,14 +121,14 @@ static int interrupt_in(device_t *dev, usb_target_t target,
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-static int control_write(device_t *dev, usb_target_t target,
+static int control_write(ddf_fun_t *fun, usb_target_t target,
     size_t max_packet_size,
     void *setup_data, size_t setup_size, void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
 	dev_speed_t speed = FULL_SPEED;
 
-	batch_t *batch = batch_get(dev, target, USB_TRANSFER_CONTROL,
+	batch_t *batch = batch_get(fun, target, USB_TRANSFER_CONTROL,
 	    max_packet_size, speed, data, size, setup_data, setup_size,
 	    NULL, callback, arg);
 	if (!batch)
@@ -137,14 +137,14 @@ static int control_write(device_t *dev, usb_target_t target,
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-static int control_read(device_t *dev, usb_target_t target,
+static int control_read(ddf_fun_t *fun, usb_target_t target,
     size_t max_packet_size,
     void *setup_data, size_t setup_size, void *data, size_t size,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
 	dev_speed_t speed = FULL_SPEED;
 
-	batch_t *batch = batch_get(dev, target, USB_TRANSFER_CONTROL,
+	batch_t *batch = batch_get(fun, target, USB_TRANSFER_CONTROL,
 	    max_packet_size, speed, data, size, setup_data, setup_size, callback,
 	    NULL, arg);
 	if (!batch)

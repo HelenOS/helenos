@@ -34,8 +34,10 @@
  */
 #include <usb/usb.h>
 #include <usb/pipes.h>
+#include <usb/debug.h>
 #include <usbhc_iface.h>
 #include <usb_iface.h>
+#include <devman.h>
 #include <errno.h>
 #include <assert.h>
 
@@ -45,12 +47,19 @@
  * @param dev Device in question.
  * @return USB address or error code.
  */
-static usb_address_t get_my_address(int phone, device_t *dev)
+static usb_address_t get_my_address(int phone, ddf_dev_t *dev)
 {
 	sysarg_t address;
+
+
+	/*
+	 * We are sending special value as a handle - zero - to get
+	 * handle of the parent function (that handle was used
+	 * when registering our device @p dev.
+	 */
 	int rc = async_req_2_1(phone, DEV_IFACE_ID(USB_DEV_IFACE),
 	    IPC_M_USB_GET_ADDRESS,
-	    dev->handle, &address);
+	    0, &address);
 
 	if (rc != EOK) {
 		return rc;
@@ -64,7 +73,7 @@ static usb_address_t get_my_address(int phone, device_t *dev)
  * @param device Device in question.
  * @return Interface number (negative code means any).
  */
-int usb_device_get_assigned_interface(device_t *device)
+int usb_device_get_assigned_interface(ddf_dev_t *device)
 {
 	int parent_phone = devman_parent_device_connect(device->handle,
 	    IPC_FLAG_BLOCKING);
@@ -93,27 +102,27 @@ int usb_device_get_assigned_interface(device_t *device)
  * @return Error code.
  */
 int usb_device_connection_initialize_from_device(
-    usb_device_connection_t *connection, device_t *device)
+    usb_device_connection_t *connection, ddf_dev_t *dev)
 {
 	assert(connection);
-	assert(device);
+	assert(dev);
 
 	int rc;
 	devman_handle_t hc_handle;
 	usb_address_t my_address;
 
-	rc = usb_hc_find(device->handle, &hc_handle);
+	rc = usb_hc_find(dev->handle, &hc_handle);
 	if (rc != EOK) {
 		return rc;
 	}
 
-	int parent_phone = devman_parent_device_connect(device->handle,
+	int parent_phone = devman_parent_device_connect(dev->handle,
 	    IPC_FLAG_BLOCKING);
 	if (parent_phone < 0) {
 		return parent_phone;
 	}
 
-	my_address = get_my_address(parent_phone, device);
+	my_address = get_my_address(parent_phone, dev);
 	if (my_address < 0) {
 		rc = my_address;
 		goto leave;
