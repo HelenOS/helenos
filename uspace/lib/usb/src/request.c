@@ -229,6 +229,80 @@ int usb_request_get_descriptor(usb_endpoint_pipe_t *pipe,
 	    buffer, size, actual_size);
 }
 
+/** Retrieve USB descriptor, allocate space for it.
+ *
+ * @param[in] pipe Control endpoint pipe (session must be already started).
+ * @param[in] request_type Request type (standard/class/vendor).
+ * @param[in] descriptor_type Descriptor type (device/configuration/HID/...).
+ * @param[in] descriptor_index Descriptor index.
+ * @param[in] language Language index.
+ * @param[out] buffer_ptr Where to store pointer to allocated buffer.
+ * @param[out] buffer_size Where to store the size of the descriptor.
+ * @return
+ */
+int usb_request_get_descriptor_alloc(usb_endpoint_pipe_t * pipe,
+    usb_request_type_t request_type,
+    uint8_t descriptor_type, uint8_t descriptor_index,
+    uint16_t language,
+    void **buffer_ptr, size_t *buffer_size)
+{
+	if (buffer_ptr == NULL) {
+		return EBADMEM;
+	}
+
+	int rc;
+
+	/*
+	 * Get only first byte to retrieve descriptor length.
+	 */
+	uint8_t tmp_buffer[1];
+	size_t bytes_transfered;
+	rc = usb_request_get_descriptor(pipe, request_type,
+	    descriptor_type, descriptor_index, language,
+	    &tmp_buffer, 1, &bytes_transfered);
+	if (rc != EOK) {
+		return rc;
+	}
+	if (bytes_transfered != 1) {
+		/* FIXME: some better error code? */
+		return ESTALL;
+	}
+
+	size_t size = tmp_buffer[0];
+	if (size == 0) {
+		/* FIXME: some better error code? */
+		return ESTALL;
+	}
+
+	/*
+	 * Allocate buffer and get the descriptor again.
+	 */
+	void *buffer = malloc(size);
+	if (buffer == NULL) {
+		return ENOMEM;
+	}
+
+	rc = usb_request_get_descriptor(pipe, request_type,
+	    descriptor_type, descriptor_index, language,
+	    buffer, size, &bytes_transfered);
+	if (rc != EOK) {
+		free(buffer);
+		return rc;
+	}
+	if (bytes_transfered != size) {
+		free(buffer);
+		/* FIXME: some better error code? */
+		return ESTALL;
+	}
+
+	*buffer_ptr = buffer;
+	if (buffer_size != NULL) {
+		*buffer_size = size;
+	}
+
+	return EOK;
+}
+
 /** Retrieve standard device descriptor of a USB device.
  *
  * @param[in] pipe Control endpoint pipe (session must be already started).
@@ -352,6 +426,171 @@ int usb_request_set_configuration(usb_endpoint_pipe_t *pipe,
 	    USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_DEVICE,
 	    USB_DEVREQ_SET_CONFIGURATION, config_value, 0,
 	    NULL, 0);
+}
+
+/** Get list of supported languages by USB device.
+ *
+ * @param[in] pipe Control endpoint pipe (session must be already started).
+ * @param[out] languages_ptr Where to store pointer to allocated array of
+ *	supported languages.
+ * @param[out] languages_count Number of supported languages.
+ * @return Error code.
+ */
+int usb_request_get_supported_languages(usb_endpoint_pipe_t *pipe,
+    l18_win_locales_t **languages_ptr, size_t *languages_count)
+{
+	int rc;
+
+	if (languages_ptr == NULL) {
+		return EBADMEM;
+	}
+	if (languages_count == NULL) {
+		return EBADMEM;
+	}
+
+	uint8_t *string_descriptor = NULL;
+	size_t string_descriptor_size = 0;
+	rc = usb_request_get_descriptor_alloc(pipe,
+	    USB_REQUEST_TYPE_STANDARD, USB_DESCTYPE_STRING, 0, 0,
+	    (void **) &string_descriptor, &string_descriptor_size);
+	if (rc != EOK) {
+		return rc;
+	}
+	if (string_descriptor_size <= 2) {
+		free(string_descriptor);
+		return EEMPTY;
+	}
+	/* Substract first 2 bytes (length and descriptor type). */
+	string_descriptor_size -= 2;
+
+	/* Odd number of bytes - descriptor is broken? */
+	if ((string_descriptor_size % 2) != 0) {
+		/* FIXME: shall we return with error or silently ignore? */
+		free(string_descriptor);
+		return ESTALL;
+	}
+
+	size_t langs_count = string_descriptor_size / 2;
+	l18_win_locales_t *langs
+	    = malloc(sizeof(l18_win_locales_t) * langs_count);
+	if (langs == NULL) {
+		free(string_descriptor);
+		return ENOMEM;
+	}
+
+	size_t i;
+	for (i = 0; i < langs_count; i++) {
+		/* Language code from the descriptor is in USB endianess. */
+		/* FIXME: is this really correct? */
+		uint16_t lang_code = (string_descriptor[2 + 2 * i + 1] << 8)
+		    + string_descriptor[2 + 2 * i];
+		langs[i] = uint16_usb2host(lang_code);
+	}
+
+	free(string_descriptor);
+
+	*languages_ptr = langs;
+	*languages_count =langs_count;
+
+	return EOK;
+}
+
+/** Get string (descriptor) from USB device.
+ *
+ * The string is returned in native encoding of the operating system.
+ * For HelenOS, that is UTF-8.
+ *
+ * @param[in] pipe Control endpoint pipe (session must be already started).
+ * @param[in] index String index (in native endianess).
+ * @param[in] lang String language (in native endianess).
+ * @param[out] string_ptr Where to store allocated string in native encoding.
+ * @return Error code.
+ */
+int usb_request_get_string(usb_endpoint_pipe_t *pipe,
+    size_t index, l18_win_locales_t lang, char **string_ptr)
+{
+	if (string_ptr == NULL) {
+		return EBADMEM;
+	}
+	/* Index is actually one byte value. */
+	if (index > 0xFF) {
+		return ERANGE;
+	}
+	/* Language is actually two byte value. */
+	if (lang > 0xFFFF) {
+		return ERANGE;
+	}
+
+	int rc;
+
+	/* Prepare dynamically allocated variables. */
+	uint8_t *string = NULL;
+	wchar_t *string_chars = NULL;
+
+	/* Get the actual descriptor. */
+	size_t string_size;
+	rc = usb_request_get_descriptor_alloc(pipe,
+	    USB_REQUEST_TYPE_STANDARD, USB_DESCTYPE_STRING,
+	    index, uint16_host2usb(lang),
+	    (void **) &string, &string_size);
+	if (rc != EOK) {
+		goto leave;
+	}
+
+	if (string_size <= 2) {
+		rc =  EEMPTY;
+		goto leave;
+	}
+	/* Substract first 2 bytes (length and descriptor type). */
+	string_size -= 2;
+
+	/* Odd number of bytes - descriptor is broken? */
+	if ((string_size % 2) != 0) {
+		/* FIXME: shall we return with error or silently ignore? */
+		rc = ESTALL;
+		goto leave;
+	}
+
+	size_t string_char_count = string_size / 2;
+	string_chars = malloc(sizeof(wchar_t) * (string_char_count + 1));
+	if (string_chars == NULL) {
+		rc = ENOMEM;
+		goto leave;
+	}
+
+	/*
+	 * Build a wide string.
+	 * And do not forget to set NULL terminator (string descriptors
+	 * do not have them).
+	 */
+	size_t i;
+	for (i = 0; i < string_char_count; i++) {
+		uint16_t uni_char = (string[2 + 2 * i + 1] << 8)
+		    + string[2 + 2 * i];
+		string_chars[i] = uni_char;
+	}
+	string_chars[string_char_count] = 0;
+
+
+	/* Convert to normal string. */
+	char *str = wstr_to_astr(string_chars);
+	if (str == NULL) {
+		rc = ENOMEM;
+		goto leave;
+	}
+
+	*string_ptr = str;
+	rc = EOK;
+
+leave:
+	if (string != NULL) {
+		free(string);
+	}
+	if (string_chars != NULL) {
+		free(string_chars);
+	}
+
+	return rc;
 }
 
 /**

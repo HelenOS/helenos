@@ -309,11 +309,6 @@ int usb_device_create_match_ids(usb_endpoint_pipe_t *ctrl_pipe,
 		return rc;
 	}
 
-	/*
-	 * As a fallback, provide the simplest match id possible.
-	 */
-	ADD_MATCHID_OR_RETURN(matches, 1, "usb&fallback");
-
 	return EOK;
 }
 

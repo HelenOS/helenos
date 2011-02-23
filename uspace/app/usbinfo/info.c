@@ -128,7 +128,67 @@ int dump_device(devman_handle_t hc_handle, usb_address_t address)
 	dump_descriptor_tree(full_config_descriptor,
 	    config_descriptor.total_length);
 
+	/*
+	 * Get supported languages of STRING descriptors.
+	 */
+	l18_win_locales_t *langs;
+	size_t langs_count;
+	rc = usb_request_get_supported_languages(&ctrl_pipe,
+	    &langs, &langs_count);
+	if (rc != EOK) {
+		fprintf(stderr,
+		    NAME ": failed to get list of supported languages: %s.\n",
+		    str_error(rc));
+		goto skip_strings;
+	}
+
+	printf("String languages (%zu):", langs_count);
+	size_t i;
+	for (i = 0; i < langs_count; i++) {
+		printf(" 0x%04x", (int) langs[i]);
+	}
+	printf(".\n");
+
+	/*
+	 * Dump all strings in all available langages;
+	 */
+	for (i = 0; i < langs_count; i++) {
+		l18_win_locales_t lang = langs[i];
+
+		printf("%sStrings for language 0x%04x:\n", get_indent(0),
+		    (int) lang);
+
+		/*
+		 * Try all indexes - we will see what pops-up ;-).
+		 * However, to speed things up, we will stop after
+		 * encountering several broken (or nonexistent ones)
+		 * descriptors in line.
+		 */
+		size_t idx;
+		size_t failed_count = 0;
+		for (idx = 1; idx < 0xFF; idx++) {
+			char *string;
+			rc = usb_request_get_string(&ctrl_pipe, idx, lang,
+			    &string);
+			if (rc != EOK) {
+				failed_count++;
+				if (failed_count > 3) {
+					break;
+				}
+				continue;
+			}
+			printf("%sString #%zu: \"%s\"\n", get_indent(1),
+			    idx, string);
+			free(string);
+			failed_count = 0; /* Reset failed counter. */
+		}
+	}
+
+
+skip_strings:
+
 	rc = EOK;
+
 leave:
 	/* Ignoring errors here. */
 	usb_endpoint_pipe_end_session(&ctrl_pipe);
