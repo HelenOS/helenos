@@ -229,6 +229,80 @@ int usb_request_get_descriptor(usb_endpoint_pipe_t *pipe,
 	    buffer, size, actual_size);
 }
 
+/** Retrieve USB descriptor, allocate space for it.
+ *
+ * @param[in] pipe Control endpoint pipe (session must be already started).
+ * @param[in] request_type Request type (standard/class/vendor).
+ * @param[in] descriptor_type Descriptor type (device/configuration/HID/...).
+ * @param[in] descriptor_index Descriptor index.
+ * @param[in] language Language index.
+ * @param[out] buffer_ptr Where to store pointer to allocated buffer.
+ * @param[out] buffer_size Where to store the size of the descriptor.
+ * @return
+ */
+int usb_request_get_descriptor_alloc(usb_endpoint_pipe_t * pipe,
+    usb_request_type_t request_type,
+    uint8_t descriptor_type, uint8_t descriptor_index,
+    uint16_t language,
+    void **buffer_ptr, size_t *buffer_size)
+{
+	if (buffer_ptr == NULL) {
+		return EBADMEM;
+	}
+
+	int rc;
+
+	/*
+	 * Get only first byte to retrieve descriptor length.
+	 */
+	uint8_t tmp_buffer[1];
+	size_t bytes_transfered;
+	rc = usb_request_get_descriptor(pipe, request_type,
+	    descriptor_type, descriptor_index, language,
+	    &tmp_buffer, 1, &bytes_transfered);
+	if (rc != EOK) {
+		return rc;
+	}
+	if (bytes_transfered != 1) {
+		/* FIXME: some better error code? */
+		return ESTALL;
+	}
+
+	size_t size = tmp_buffer[0];
+	if (size == 0) {
+		/* FIXME: some better error code? */
+		return ESTALL;
+	}
+
+	/*
+	 * Allocate buffer and get the descriptor again.
+	 */
+	void *buffer = malloc(size);
+	if (buffer == NULL) {
+		return ENOMEM;
+	}
+
+	rc = usb_request_get_descriptor(pipe, request_type,
+	    descriptor_type, descriptor_index, language,
+	    buffer, size, &bytes_transfered);
+	if (rc != EOK) {
+		free(buffer);
+		return rc;
+	}
+	if (bytes_transfered != size) {
+		free(buffer);
+		/* FIXME: some better error code? */
+		return ESTALL;
+	}
+
+	*buffer_ptr = buffer;
+	if (buffer_size != NULL) {
+		*buffer_size = size;
+	}
+
+	return EOK;
+}
+
 /** Retrieve standard device descriptor of a USB device.
  *
  * @param[in] pipe Control endpoint pipe (session must be already started).
