@@ -34,6 +34,8 @@
  */
 
 #include <usb/classes/hid.h>
+#include <stdio.h>
+#include <assert.h>
 
 #include "descdump.h"
 

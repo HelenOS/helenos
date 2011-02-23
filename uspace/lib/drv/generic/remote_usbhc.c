@@ -34,26 +34,27 @@
 
 #include <async.h>
 #include <errno.h>
+#include <assert.h>
 
 #include "usbhc_iface.h"
-#include "driver.h"
+#include "ddf/driver.h"
 
 #define USB_MAX_PAYLOAD_SIZE 1020
 #define HACK_MAX_PACKET_SIZE 8
 #define HACK_MAX_PACKET_SIZE_INTERRUPT_IN 4
 
-static void remote_usbhc_interrupt_out(device_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_usbhc_interrupt_in(device_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_usbhc_bulk_out(device_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_usbhc_bulk_in(device_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_usbhc_control_write(device_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_usbhc_control_read(device_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_usbhc_reserve_default_address(device_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_usbhc_release_default_address(device_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_usbhc_request_address(device_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_usbhc_bind_address(device_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_usbhc_release_address(device_t *, void *, ipc_callid_t, ipc_call_t *);
-//static void remote_usbhc(device_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usbhc_interrupt_out(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usbhc_interrupt_in(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usbhc_bulk_out(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usbhc_bulk_in(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usbhc_control_write(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usbhc_control_read(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usbhc_reserve_default_address(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usbhc_release_default_address(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usbhc_request_address(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usbhc_bind_address(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usbhc_release_address(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+//static void remote_usbhc(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 
 /** Remote USB host controller interface operations. */
 static remote_iface_func_ptr_t remote_usbhc_iface_ops [] = {
@@ -122,7 +123,7 @@ static async_transaction_t *async_transaction_create(ipc_callid_t caller)
 	return trans;
 }
 
-void remote_usbhc_reserve_default_address(device_t *device, void *iface,
+void remote_usbhc_reserve_default_address(ddf_fun_t *fun, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
 	usbhc_iface_t *usb_iface = (usbhc_iface_t *) iface;
@@ -134,12 +135,12 @@ void remote_usbhc_reserve_default_address(device_t *device, void *iface,
 	
 	usb_speed_t speed = DEV_IPC_GET_ARG1(*call);
 	
-	int rc = usb_iface->reserve_default_address(device, speed);
+	int rc = usb_iface->reserve_default_address(fun, speed);
 
 	async_answer_0(callid, rc);
 }
 
-void remote_usbhc_release_default_address(device_t *device, void *iface,
+void remote_usbhc_release_default_address(ddf_fun_t *fun, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
 	usbhc_iface_t *usb_iface = (usbhc_iface_t *) iface;
@@ -149,12 +150,12 @@ void remote_usbhc_release_default_address(device_t *device, void *iface,
 		return;
 	}
 
-	int rc = usb_iface->release_default_address(device);
+	int rc = usb_iface->release_default_address(fun);
 
 	async_answer_0(callid, rc);
 }
 
-void remote_usbhc_request_address(device_t *device, void *iface,
+void remote_usbhc_request_address(ddf_fun_t *fun, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
 	usbhc_iface_t *usb_iface = (usbhc_iface_t *) iface;
@@ -167,7 +168,7 @@ void remote_usbhc_request_address(device_t *device, void *iface,
 	usb_speed_t speed = DEV_IPC_GET_ARG1(*call);
 
 	usb_address_t address;
-	int rc = usb_iface->request_address(device, speed, &address);
+	int rc = usb_iface->request_address(fun, speed, &address);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
 	} else {
@@ -175,7 +176,7 @@ void remote_usbhc_request_address(device_t *device, void *iface,
 	}
 }
 
-void remote_usbhc_bind_address(device_t *device, void *iface,
+void remote_usbhc_bind_address(ddf_fun_t *fun, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
 	usbhc_iface_t *usb_iface = (usbhc_iface_t *) iface;
@@ -188,12 +189,12 @@ void remote_usbhc_bind_address(device_t *device, void *iface,
 	usb_address_t address = (usb_address_t) DEV_IPC_GET_ARG1(*call);
 	devman_handle_t handle = (devman_handle_t) DEV_IPC_GET_ARG2(*call);
 
-	int rc = usb_iface->bind_address(device, address, handle);
+	int rc = usb_iface->bind_address(fun, address, handle);
 
 	async_answer_0(callid, rc);
 }
 
-void remote_usbhc_release_address(device_t *device, void *iface,
+void remote_usbhc_release_address(ddf_fun_t *fun, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
 	usbhc_iface_t *usb_iface = (usbhc_iface_t *) iface;
@@ -205,13 +206,13 @@ void remote_usbhc_release_address(device_t *device, void *iface,
 
 	usb_address_t address = (usb_address_t) DEV_IPC_GET_ARG1(*call);
 
-	int rc = usb_iface->release_address(device, address);
+	int rc = usb_iface->release_address(fun, address);
 
 	async_answer_0(callid, rc);
 }
 
 
-static void callback_out(device_t *device,
+static void callback_out(ddf_fun_t *fun,
     int outcome, void *arg)
 {
 	async_transaction_t *trans = (async_transaction_t *)arg;
@@ -221,7 +222,7 @@ static void callback_out(device_t *device,
 	async_transaction_destroy(trans);
 }
 
-static void callback_in(device_t *device,
+static void callback_in(ddf_fun_t *fun,
     int outcome, size_t actual_size, void *arg)
 {
 	async_transaction_t *trans = (async_transaction_t *)arg;
@@ -254,7 +255,7 @@ static void callback_in(device_t *device,
  * @param call Initiating call.
  * @param transfer_func Transfer function (might be NULL).
  */
-static void remote_usbhc_out_transfer(device_t *device,
+static void remote_usbhc_out_transfer(ddf_fun_t *fun,
     ipc_callid_t callid, ipc_call_t *call,
     usbhc_iface_transfer_out_t transfer_func)
 {
@@ -293,7 +294,7 @@ static void remote_usbhc_out_transfer(device_t *device,
 	trans->buffer = buffer;
 	trans->size = len;
 
-	rc = transfer_func(device, target, max_packet_size,
+	rc = transfer_func(fun, target, max_packet_size,
 	    buffer, len,
 	    callback_out, trans);
 
@@ -310,7 +311,7 @@ static void remote_usbhc_out_transfer(device_t *device,
  * @param call Initiating call.
  * @param transfer_func Transfer function (might be NULL).
  */
-static void remote_usbhc_in_transfer(device_t *device,
+static void remote_usbhc_in_transfer(ddf_fun_t *fun,
     ipc_callid_t callid, ipc_call_t *call,
     usbhc_iface_transfer_in_t transfer_func)
 {
@@ -341,7 +342,7 @@ static void remote_usbhc_in_transfer(device_t *device,
 	trans->buffer = malloc(len);
 	trans->size = len;
 
-	int rc = transfer_func(device, target, max_packet_size,
+	int rc = transfer_func(fun, target, max_packet_size,
 	    trans->buffer, len,
 	    callback_in, trans);
 
@@ -351,47 +352,47 @@ static void remote_usbhc_in_transfer(device_t *device,
 	}
 }
 
-void remote_usbhc_interrupt_out(device_t *device, void *iface,
+void remote_usbhc_interrupt_out(ddf_fun_t *fun, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
 	usbhc_iface_t *usb_iface = (usbhc_iface_t *) iface;
 	assert(usb_iface != NULL);
 
-	return remote_usbhc_out_transfer(device, callid, call,
+	return remote_usbhc_out_transfer(fun, callid, call,
 	    usb_iface->interrupt_out);
 }
 
-void remote_usbhc_interrupt_in(device_t *device, void *iface,
+void remote_usbhc_interrupt_in(ddf_fun_t *fun, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
 	usbhc_iface_t *usb_iface = (usbhc_iface_t *) iface;
 	assert(usb_iface != NULL);
 
-	return remote_usbhc_in_transfer(device, callid, call,
+	return remote_usbhc_in_transfer(fun, callid, call,
 	    usb_iface->interrupt_in);
 }
 
-void remote_usbhc_bulk_out(device_t *device, void *iface,
+void remote_usbhc_bulk_out(ddf_fun_t *fun, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
 	usbhc_iface_t *usb_iface = (usbhc_iface_t *) iface;
 	assert(usb_iface != NULL);
 
-	return remote_usbhc_out_transfer(device, callid, call,
+	return remote_usbhc_out_transfer(fun, callid, call,
 	    usb_iface->bulk_out);
 }
 
-void remote_usbhc_bulk_in(device_t *device, void *iface,
+void remote_usbhc_bulk_in(ddf_fun_t *fun, void *iface,
     ipc_callid_t callid, ipc_call_t *call)
 {
 	usbhc_iface_t *usb_iface = (usbhc_iface_t *) iface;
 	assert(usb_iface != NULL);
 
-	return remote_usbhc_in_transfer(device, callid, call,
+	return remote_usbhc_in_transfer(fun, callid, call,
 	    usb_iface->bulk_in);
 }
 
-void remote_usbhc_control_write(device_t *device, void *iface,
+void remote_usbhc_control_write(ddf_fun_t *fun, void *iface,
 ipc_callid_t callid, ipc_call_t *call)
 {
 	usbhc_iface_t *usb_iface = (usbhc_iface_t *) iface;
@@ -443,7 +444,7 @@ ipc_callid_t callid, ipc_call_t *call)
 	trans->buffer = data_buffer;
 	trans->size = data_buffer_len;
 
-	rc = usb_iface->control_write(device, target, max_packet_size,
+	rc = usb_iface->control_write(fun, target, max_packet_size,
 	    setup_packet, setup_packet_len,
 	    data_buffer, data_buffer_len,
 	    callback_out, trans);
@@ -455,7 +456,7 @@ ipc_callid_t callid, ipc_call_t *call)
 }
 
 
-void remote_usbhc_control_read(device_t *device, void *iface,
+void remote_usbhc_control_read(ddf_fun_t *fun, void *iface,
 ipc_callid_t callid, ipc_call_t *call)
 {
 	usbhc_iface_t *usb_iface = (usbhc_iface_t *) iface;
@@ -508,7 +509,7 @@ ipc_callid_t callid, ipc_call_t *call)
 		return;
 	}
 
-	rc = usb_iface->control_read(device, target, max_packet_size,
+	rc = usb_iface->control_read(fun, target, max_packet_size,
 	    setup_packet, setup_packet_len,
 	    trans->buffer, trans->size,
 	    callback_in, trans);

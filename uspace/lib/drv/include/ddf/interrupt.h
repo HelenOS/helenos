@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Vojtech Horky
+ * Copyright (c) 2010 Lenka Trochtova
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,42 +26,61 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusb
+/** @addtogroup libdrv
  * @{
  */
 /** @file
- * General communication between device drivers and host controller driver.
  */
-#ifndef LIBUSB_USBDEVICE_H_
-#define LIBUSB_USBDEVICE_H_
 
-#include <sys/types.h>
-#include <ipc/devman.h>
-#include <ddf/driver.h>
-#include <bool.h>
-#include <usb/usb.h>
+#ifndef DDF_INTERRUPT_H_
+#define DDF_INTERRUPT_H_
 
-/** Connection to the host controller driver. */
-typedef struct {
-	/** Devman handle of the host controller. */
-	devman_handle_t hc_handle;
-	/** Phone to the host controller. */
-	int hc_phone;
-} usb_hc_connection_t;
+#include <kernel/ddi/irq.h>
+#include <adt/list.h>
+#include <ddi.h>
+#include <fibril_synch.h>
 
-int usb_hc_find(devman_handle_t, devman_handle_t *);
+#include "driver.h"
+#include "../dev_iface.h"
 
-int usb_hc_connection_initialize_from_device(usb_hc_connection_t *,
-    ddf_dev_t *);
-int usb_hc_connection_initialize(usb_hc_connection_t *, devman_handle_t);
+/*
+ * Interrupts
+ */
 
-int usb_hc_connection_open(usb_hc_connection_t *);
-bool usb_hc_connection_is_opened(const usb_hc_connection_t *);
-int usb_hc_connection_close(usb_hc_connection_t *);
+typedef void interrupt_handler_t(ddf_dev_t *, ipc_callid_t, ipc_call_t *);
 
+typedef struct interrupt_context {
+	int id;
+	ddf_dev_t *dev;
+	int irq;
+	interrupt_handler_t *handler;
+	link_t link;
+} interrupt_context_t;
 
+typedef struct interrupt_context_list {
+	int curr_id;
+	link_t contexts;
+	fibril_mutex_t mutex;
+} interrupt_context_list_t;
+
+extern interrupt_context_t *create_interrupt_context(void);
+extern void delete_interrupt_context(interrupt_context_t *);
+extern void init_interrupt_context_list(interrupt_context_list_t *);
+extern void add_interrupt_context(interrupt_context_list_t *,
+    interrupt_context_t *);
+extern void remove_interrupt_context(interrupt_context_list_t *,
+    interrupt_context_t *);
+extern interrupt_context_t *find_interrupt_context_by_id(
+    interrupt_context_list_t *, int);
+extern interrupt_context_t *find_interrupt_context(
+    interrupt_context_list_t *, ddf_dev_t *, int);
+
+extern int register_interrupt_handler(ddf_dev_t *, int, interrupt_handler_t *,
+    irq_code_t *);
+extern int unregister_interrupt_handler(ddf_dev_t *, int);
 
 #endif
+
 /**
  * @}
  */

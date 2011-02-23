@@ -50,7 +50,7 @@ static void batch_call_in_and_dispose(batch_t *instance);
 static void batch_call_out_and_dispose(batch_t *instance);
 
 
-batch_t * batch_get(device_t *dev, usb_target_t target,
+batch_t * batch_get(ddf_fun_t *fun, usb_target_t target,
     usb_transfer_type_t transfer_type, size_t max_packet_size,
     dev_speed_t speed, char *buffer, size_t size,
     char* setup_buffer, size_t setup_size,
@@ -127,7 +127,7 @@ batch_t * batch_get(device_t *dev, usb_target_t target,
 	instance->buffer = buffer;
 	instance->buffer_size = size;
 	instance->setup_size = setup_size;
-	instance->dev = dev;
+	instance->fun = fun;
 	instance->arg = arg;
 	instance->speed = speed;
 
@@ -290,7 +290,7 @@ void batch_call_in(batch_t *instance)
 	usb_log_info("Callback IN(%d): %d, %zu.\n", instance->transfer_type,
 	    err, instance->transfered_size);
 
-	instance->callback_in(instance->dev,
+	instance->callback_in(instance->fun,
 	    err, instance->transfered_size,
 	    instance->arg);
 }
@@ -302,7 +302,7 @@ void batch_call_out(batch_t *instance)
 
 	int err = instance->error;
 	usb_log_info("Callback OUT(%d): %d.\n", instance->transfer_type, err);
-	instance->callback_out(instance->dev,
+	instance->callback_out(instance->fun,
 	    err, instance->arg);
 }
 /*----------------------------------------------------------------------------*/
@@ -333,7 +333,7 @@ void batch_call_out_and_dispose(batch_t *instance)
 int batch_schedule(batch_t *instance)
 {
 	assert(instance);
-	uhci_t *hc = dev_to_uhci(instance->dev);
+	uhci_t *hc = fun_to_uhci(instance->fun);
 	assert(hc);
 	return uhci_schedule(hc, instance);
 }
