@@ -155,7 +155,8 @@ int dump_device(devman_handle_t hc_handle, usb_address_t address)
 	for (i = 0; i < langs_count; i++) {
 		l18_win_locales_t lang = langs[i];
 
-		printf("  String for language 0x%04x:\n", (int) lang);
+		printf("%sStrings for language 0x%04x:\n", get_indent(0),
+		    (int) lang);
 
 		/*
 		 * Try all indexes - we will see what pops-up ;-).
@@ -176,7 +177,8 @@ int dump_device(devman_handle_t hc_handle, usb_address_t address)
 				}
 				continue;
 			}
-			printf("    String #%zu: \"%s\"\n", idx, string);
+			printf("%sString #%zu: \"%s\"\n", get_indent(1),
+			    idx, string);
 			free(string);
 			failed_count = 0; /* Reset failed counter. */
 		}
