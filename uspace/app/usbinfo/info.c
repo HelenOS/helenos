@@ -129,41 +129,25 @@ int dump_device(devman_handle_t hc_handle, usb_address_t address)
 	    config_descriptor.total_length);
 
 	/*
-	 * Dump STRING languages.
+	 * Get supported languages of STRING descriptors.
 	 */
-	uint8_t *string_descriptor = NULL;
-	size_t string_descriptor_size = 0;
-	rc = usb_request_get_descriptor_alloc(&ctrl_pipe,
-	    USB_REQUEST_TYPE_STANDARD, USB_DESCTYPE_STRING, 0, 0,
-	    (void **) &string_descriptor, &string_descriptor_size);
+	l18_win_locales_t *langs;
+	size_t langs_count;
+	rc = usb_request_get_supported_languages(&ctrl_pipe,
+	    &langs, &langs_count);
 	if (rc != EOK) {
 		fprintf(stderr,
-		    NAME ": failed to fetch language table: %s.\n",
+		    NAME ": failed to get list of supported languages: %s.\n",
 		    str_error(rc));
-		goto leave;
-	}
-	if ((string_descriptor_size <= 2)
-	    || ((string_descriptor_size % 2) != 0)) {
-		fprintf(stderr, NAME ": No supported languages.\n");
-		goto leave;
+		goto skip_strings;
 	}
 
-	size_t lang_count = (string_descriptor_size - 2) / 2;
-	int *lang_codes = malloc(sizeof(int) * lang_count);
+	printf("String languages (%zu):", langs_count);
 	size_t i;
-	for (i = 0; i < lang_count; i++) {
-		lang_codes[i] = (string_descriptor[2 + 2 * i + 1] << 8)
-		    + string_descriptor[2 + 2 * i];
-	}
-
-	printf("String languages:");
-	for (i = 0; i < lang_count; i++) {
-		printf(" 0x%04x", lang_codes[i]);
+	for (i = 0; i < langs_count; i++) {
+		printf(" 0x%04x", (int) langs[i]);
 	}
 	printf(".\n");
-
-	free(string_descriptor);
-	free(lang_codes);
 
 	/*
 	 * Dump all strings in English (0x0409).
@@ -225,6 +209,8 @@ int dump_device(devman_handle_t hc_handle, usb_address_t address)
 		    idx, (int) lang, str);
 		free(str);
 	}
+
+skip_strings:
 
 	rc = EOK;
 
