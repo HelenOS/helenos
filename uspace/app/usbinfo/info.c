@@ -150,65 +150,38 @@ int dump_device(devman_handle_t hc_handle, usb_address_t address)
 	printf(".\n");
 
 	/*
-	 * Dump all strings in English (0x0409).
+	 * Dump all strings in all available langages;
 	 */
-	uint16_t lang = 0x0409;
-	/*
-	 * Up to 3 string in device descriptor, 1 for configuration and
-	 * one for each interface.
-	 */
-	size_t max_idx = 3 + 1 + config_descriptor.interface_count;
-	size_t idx;
-	for (idx = 1; idx <= max_idx; idx++) {
-		uint8_t *string;
-		size_t string_size;
-		rc = usb_request_get_descriptor_alloc(&ctrl_pipe,
-		    USB_REQUEST_TYPE_STANDARD, USB_DESCTYPE_STRING,
-		    idx, uint16_host2usb(lang),
-		    (void **) &string, &string_size);
-		if (rc == EINTR) {
-			/* Invalid index, skip silently. */
-			continue;
-		}
-		if (rc != EOK) {
-			fprintf(stderr,
-			    NAME ": failed to fetch string #%zu " \
-			    "(lang 0x%04x): %s.\n",
-			    idx, (int) lang, str_error(rc));
-			continue;
-		}
+	for (i = 0; i < langs_count; i++) {
+		l18_win_locales_t lang = langs[i];
+
+		printf("  String for language 0x%04x:\n", (int) lang);
+
 		/*
-		printf("String #%zu (language 0x%04x):\n", idx, (int) lang);
-		dump_buffer(NULL, 0,
-		    string, string_size);
-		*/
-		if (string_size <= 2) {
-			fprintf(stderr,
-			    NAME ": no string for index #%zu.\n", idx);
+		 * Try all indexes - we will see what pops-up ;-).
+		 * However, to speed things up, we will stop after
+		 * encountering several broken (or nonexistent ones)
+		 * descriptors in line.
+		 */
+		size_t idx;
+		size_t failed_count = 0;
+		for (idx = 1; idx < 0xFF; idx++) {
+			char *string;
+			rc = usb_request_get_string(&ctrl_pipe, idx, lang,
+			    &string);
+			if (rc != EOK) {
+				failed_count++;
+				if (failed_count > 3) {
+					break;
+				}
+				continue;
+			}
+			printf("    String #%zu: \"%s\"\n", idx, string);
 			free(string);
-			continue;
+			failed_count = 0; /* Reset failed counter. */
 		}
-		string_size -= 2;
-
-		size_t string_char_count = string_size / 2;
-		wchar_t *string_chars = malloc(sizeof(wchar_t) * (string_char_count + 1));
-		assert(string_chars != NULL);
-		for (i = 0; i < string_char_count; i++) {
-			uint16_t uni_char = (string[2 + 2 * i + 1] << 8)
-			    + string[2 + 2 * i];
-			string_chars[i] = uni_char;
-		}
-		string_chars[string_char_count] = 0;
-		free(string);
-
-		char *str = wstr_to_astr(string_chars);
-		assert(str != NULL);
-		free(string_chars);
-
-		printf("String #%zu (language 0x%04x): \"%s\"\n",
-		    idx, (int) lang, str);
-		free(str);
 	}
+
 
 skip_strings:
 
