@@ -37,6 +37,7 @@
 #include "libext2_inode.h"
 #include "libext2_superblock.h"
 #include <byteorder.h>
+#include <assert.h>
 
 /**
  * Get mode stored in the inode
@@ -141,6 +142,19 @@ inline uint32_t ext2_inode_get_reserved_512_blocks(ext2_inode_t *inode)
 }
 
 /**
+ * Get number of blocks allocated for contents of the file
+ * represented by this inode.
+ * 
+ * @param inode pointer to inode
+ */
+inline uint32_t ext2_inode_get_reserved_blocks(ext2_superblock_t *sb,
+    ext2_inode_t *inode)
+{
+	return ext2_inode_get_reserved_512_blocks(inode) /
+	    (ext2_superblock_get_block_size(sb) / 512);
+}
+
+/**
  * Get inode flags
  * 
  * @param inode pointer to inode
@@ -157,6 +171,7 @@ inline uint32_t ext2_inode_get_flags(ext2_inode_t *inode) {
  */
 inline uint32_t ext2_inode_get_direct_block(ext2_inode_t *inode, uint8_t idx)
 {
+	assert(idx < EXT2_INODE_DIRECT_BLOCKS);
 	return uint32_t_le2host(inode->direct_blocks[idx]);
 }
 
@@ -164,33 +179,14 @@ inline uint32_t ext2_inode_get_direct_block(ext2_inode_t *inode, uint8_t idx)
  * Get indirect block ID
  * 
  * @param inode pointer to inode
+ * @param idx Indirection level. Valid values are 0 <= idx < 3, where 0 is
+ *            singly-indirect block and 2 is triply-indirect-block
  */
-inline uint32_t ext2_inode_get_single_indirect_block(ext2_inode_t *inode)
+inline uint32_t ext2_inode_get_indirect_block(ext2_inode_t *inode, uint8_t idx)
 {
-	return uint32_t_le2host(inode->single_indirect_block);
+	assert(idx < 3);
+	return uint32_t_le2host(inode->indirect_blocks[idx]);
 }
-
-/**
- * Get double indirect block ID
- * 
- * @param inode pointer to inode
- */
-inline uint32_t ext2_inode_get_double_indirect_block(ext2_inode_t *inode)
-{
-	return uint32_t_le2host(inode->double_indirect_block);
-}
-
-/**
- * Get triple indirect block ID
- * 
- * @param inode pointer to inode
- */
-inline uint32_t ext2_inode_get_triple_indirect_block(ext2_inode_t *inode)
-{
-	return uint32_t_le2host(inode->triple_indirect_block);
-}
-
-
 
 /** @}
  */

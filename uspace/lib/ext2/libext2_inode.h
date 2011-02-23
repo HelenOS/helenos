@@ -50,9 +50,7 @@ typedef struct ext2_inode {
 	uint32_t flags;
 	uint8_t unused2[4];
 	uint32_t direct_blocks[12]; // Direct block ids stored in this inode
-	uint32_t single_indirect_block;
-	uint32_t double_indirect_block;
-	uint32_t triple_indirect_block;
+	uint32_t indirect_blocks[3];
 	uint32_t version;
 	uint32_t file_acl;
 	union {
@@ -74,6 +72,7 @@ typedef struct ext2_inode {
 #define EXT2_INODE_MODE_SOCKET		0xC000
 #define EXT2_INODE_MODE_ACCESS_MASK	0x0FFF
 #define EXT2_INODE_MODE_TYPE_MASK	0xF000
+#define EXT2_INODE_DIRECT_BLOCKS	12
 
 typedef struct ext2_inode_ref {
 	block_t *block; // Reference to a block containing this inode
@@ -87,11 +86,11 @@ inline uint64_t ext2_inode_get_size(ext2_superblock_t *, ext2_inode_t *);
 inline uint32_t ext2_inode_get_group_id(ext2_superblock_t *, ext2_inode_t *);
 inline uint16_t ext2_inode_get_usage_count(ext2_inode_t *);
 inline uint32_t ext2_inode_get_reserved_512_blocks(ext2_inode_t *);
+inline uint32_t ext2_inode_get_reserved_blocks(ext2_superblock_t *, 
+    ext2_inode_t *);
 inline uint32_t ext2_inode_get_flags(ext2_inode_t *);
 inline uint32_t ext2_inode_get_direct_block(ext2_inode_t *, uint8_t);
-inline uint32_t ext2_inode_get_single_indirect_block(ext2_inode_t *);
-inline uint32_t ext2_inode_get_double_indirect_block(ext2_inode_t *);
-inline uint32_t ext2_inode_get_triple_indirect_block(ext2_inode_t *);
+inline uint32_t ext2_inode_get_indirect_block(ext2_inode_t *, uint8_t level);
 
 
 

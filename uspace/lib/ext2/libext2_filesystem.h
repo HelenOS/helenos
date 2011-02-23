@@ -59,6 +59,8 @@ extern int ext2_filesystem_put_block_group_ref(ext2_block_group_ref_t *);
 extern int ext2_filesystem_get_inode_ref(ext2_filesystem_t *, uint32_t,
     ext2_inode_ref_t **);
 extern int ext2_filesystem_put_inode_ref(ext2_inode_ref_t *);
+extern int ext2_filesystem_get_inode_data_block_index(ext2_filesystem_t *, ext2_inode_t*,
+    aoff64_t, uint32_t*);
 extern void ext2_filesystem_fini(ext2_filesystem_t *);
 
 #endif

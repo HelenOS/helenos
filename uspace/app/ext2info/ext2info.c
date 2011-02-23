@@ -55,13 +55,15 @@ static void syntax_print(void);
 static void print_superblock(ext2_superblock_t *);
 static void print_block_groups(ext2_filesystem_t *);
 static void print_block_group(ext2_block_group_t *);
-static void print_inode_by_number(ext2_filesystem_t *, uint32_t);
+static void print_inode_by_number(ext2_filesystem_t *, uint32_t, bool, uint32_t);
 static void print_inode(ext2_filesystem_t *, ext2_inode_t *);
+static void print_inode_data(ext2_filesystem_t *, ext2_inode_t *, uint32_t);
 
 #define ARG_SUPERBLOCK 1
 #define ARG_BLOCK_GROUPS 2
 #define ARG_INODE 4
 #define ARG_STRICT_CHECK 8
+#define ARG_INODE_DATA 16
 #define ARG_COMMON (ARG_SUPERBLOCK | ARG_BLOCK_GROUPS)
 #define ARG_ALL (ARG_COMMON | ARG_INODE)
 
@@ -76,6 +78,7 @@ int main(int argc, char **argv)
 	ext2_filesystem_t filesystem;
 	int arg_flags;
 	uint32_t inode = 0;
+	uint32_t inode_data = 0;
 	
 	arg_flags = 0;
 	
@@ -119,6 +122,24 @@ int main(int argc, char **argv)
 		
 		arg_flags |= ARG_INODE;
 		--argc; ++argv;
+		
+		if (str_cmp(*argv, "--inode-data") == 0) {
+			--argc; ++argv;
+			if (argc == 0) {
+				printf(NAME ": Argument expected for --inode-data\n");
+				return 2;
+			}
+			
+			inode_data = strtol(*argv, &endptr, 10);
+			if (*endptr != '\0') {
+				printf(NAME ": Error, invalid argument for --inode-data.\n");
+				syntax_print();
+				return 1;
+			}
+			
+			arg_flags |= ARG_INODE_DATA;
+			--argc; ++argv;
+		}
 	}
 
 	if (argc != 1) {
@@ -163,7 +184,8 @@ int main(int argc, char **argv)
 	}
 	
 	if (arg_flags & ARG_INODE) {
-		print_inode_by_number(&filesystem, inode);
+		print_inode_by_number(&filesystem, inode, arg_flags & ARG_INODE_DATA,
+		    inode_data);
 	}
 
 	ext2_filesystem_fini(&filesystem);
@@ -174,7 +196,8 @@ int main(int argc, char **argv)
 
 static void syntax_print(void)
 {
-	printf("syntax: ext2info --strict-check --superblock --block-groups --inode <i-number> <device_name>\n");
+	printf("syntax: ext2info [--strict-check] [--superblock] [--block-groups] "
+	    "[--inode <i-number> [--inode-data <block-number>]] <device_name>\n");
 }
 
 static void print_superblock(ext2_superblock_t *superblock)
@@ -321,7 +344,8 @@ void print_block_group(ext2_block_group_t *bg)
 	printf("    Directory inodes: %u\n", directory_inode_count);
 }
 
-void print_inode_by_number(ext2_filesystem_t *fs, uint32_t inode)
+void print_inode_by_number(ext2_filesystem_t *fs, uint32_t inode, 
+    bool print_data, uint32_t data)
 {
 	int rc;
 	ext2_inode_ref_t *inode_ref;
@@ -335,6 +359,9 @@ void print_inode_by_number(ext2_filesystem_t *fs, uint32_t inode)
 	}
 	
 	print_inode(fs, inode_ref->inode);
+	if (print_data) {
+		print_inode_data(fs, inode_ref->inode, data);
+	}
 	
 	rc = ext2_filesystem_put_inode_ref(inode_ref);
 	if (rc != EOK) {
@@ -354,6 +381,7 @@ void print_inode(ext2_filesystem_t *fs, ext2_inode_t *inode)
 	uint16_t access;
 	const char *type;
 	uint32_t block;
+	uint32_t total_blocks;
 	int i;
 	bool all_blocks = false;
 	
@@ -364,6 +392,7 @@ void print_inode(ext2_filesystem_t *fs, ext2_inode_t *inode)
 	size = ext2_inode_get_size(fs->superblock, inode);
 	usage_count = ext2_inode_get_usage_count(inode);
 	flags = ext2_inode_get_flags(inode);
+	total_blocks = ext2_inode_get_reserved_blocks(fs->superblock, inode);
 	
 	type = "Unknown";
 	if (mode_type == EXT2_INODE_MODE_BLOCKDEV) {
@@ -390,12 +419,14 @@ void print_inode(ext2_filesystem_t *fs, ext2_inode_t *inode)
 	
 	access = mode & EXT2_INODE_MODE_ACCESS_MASK;
 	
+	
 	printf("  Mode: %08x (Type: %s, Access bits: %04ho)\n", mode, type, access);
 	printf("  User ID: %u\n", user_id);
 	printf("  Group ID: %u\n", group_id);
 	printf("  Size: %" PRIu64 "\n", size);
 	printf("  Usage (link) count: %u\n", usage_count);
 	printf("  Flags: %u\n", flags);
+	printf("  Total allocated blocks: %u\n", total_blocks);
 	printf("  Block list: ");
 	for (i = 0; i < 12; i++) {
 		block = ext2_inode_get_direct_block(inode, i);
@@ -405,10 +436,57 @@ void print_inode(ext2_filesystem_t *fs, ext2_inode_t *inode)
 		}
 		printf("%u ", block);
 	}
+	all_blocks = all_blocks || ext2_inode_get_indirect_block(inode, 0) == 0;
 	if (!all_blocks) {
 		printf(" and more...");
 	}
 	printf("\n");
+}
+
+void print_inode_data(ext2_filesystem_t *fs, ext2_inode_t *inode, uint32_t data)
+{
+	int rc;
+	uint32_t data_block_index;
+	block_t *block;
+	size_t i;
+	unsigned char c;
+	
+	rc = ext2_filesystem_get_inode_data_block_index(fs, inode, data,
+	    &data_block_index);
+	
+	if (rc != EOK) {
+		printf("Failed getting data block #%u\n", data);
+		return;
+	}
+	
+	printf("Data for inode contents block #%u is located in filesystem "
+	    "block %u\n", data, data_block_index);
+	
+	printf("Data preview (only printable characters):\n");
+	
+	rc = block_get(&block, fs->device, data_block_index, 0);
+	if (rc != EOK) {
+		printf("Failed reading filesystem block %u\n", data_block_index);
+		return;
+	}
+	
+	for (i = 0; i < block->size; i++) {
+		c = ((unsigned char *)block->data)[i];
+		if (c >= 32 && c < 127) {
+			putchar(c);
+		}
+		else {
+			putchar('.');
+		}
+	}
+	
+	printf("\n");	
+	
+	rc = block_put(block);
+	if (rc != EOK) {
+		printf("Failed putting filesystem block\n");
+	}
+	
 }
 
 /**

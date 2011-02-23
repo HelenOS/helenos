@@ -40,6 +40,7 @@
 #include <errno.h>
 #include <libblock.h>
 #include <malloc.h>
+#include <assert.h>
 
 /**
  * Initialize an instance of filesystem on the device.
@@ -251,6 +252,96 @@ int ext2_filesystem_put_inode_ref(ext2_inode_ref_t *ref)
 	free(ref);
 	
 	return rc;
+}
+
+/**
+ * Find a filesystem block number where iblock-th data block
+ * of the given inode is located.
+ * 
+ * @return 		EOK on success or negative error code on failure
+ */
+int ext2_filesystem_get_inode_data_block_index(ext2_filesystem_t *fs, ext2_inode_t* inode,
+    aoff64_t iblock, uint32_t* fblock)
+{
+	int rc;
+	aoff64_t limits[4];
+	uint32_t block_ids_per_block;
+	aoff64_t blocks_per_level[4];
+	uint32_t offset_in_block;
+	uint32_t current_block;
+	aoff64_t block_offset_in_level;
+	int i;
+	int level;
+	block_t *block;
+	
+	if (iblock < EXT2_INODE_DIRECT_BLOCKS) {
+		current_block = ext2_inode_get_direct_block(inode, (uint32_t)iblock);
+		if (current_block == 0) {
+			return EIO;
+		}
+		*fblock = current_block;
+		return EOK;
+	}
+	
+	// Compute limits for indirect block levels
+	// TODO: compute this once when loading filesystem and store in ext2_filesystem_t
+	block_ids_per_block = ext2_superblock_get_block_size(fs->superblock) / sizeof(uint32_t);
+	limits[0] = EXT2_INODE_DIRECT_BLOCKS;
+	blocks_per_level[0] = 1;
+	for (i = 1; i < 4; i++) {
+		blocks_per_level[i]  = blocks_per_level[i-1] *
+		    block_ids_per_block;
+		limits[i] = limits[i-1] + blocks_per_level[i];
+	}
+	
+	// Determine the indirection level needed to get the desired block
+	level = -1;
+	for (i = 1; i < 4; i++) {
+		if (iblock < limits[i]) {
+			level = i;
+			break;
+		}
+	}
+	
+	if (level == -1) {
+		return EIO;
+	}
+	
+	block_offset_in_level = iblock - limits[level-1];
+	current_block = ext2_inode_get_indirect_block(inode, level-1);
+	offset_in_block = block_offset_in_level / blocks_per_level[level-1];
+	
+	while (level > 0) {
+		rc = block_get(&block, fs->device, current_block, 0);
+		if (rc != EOK) {
+			return rc;
+		}
+		
+		assert(offset_in_block < block_ids_per_block);
+		current_block = ((uint32_t*)block->data)[offset_in_block];
+		
+		rc = block_put(block);
+		if (rc != EOK) {
+			return rc;
+		}
+		
+		if (current_block == 0) {
+			return EIO;
+		}
+		
+		level -= 1;
+		
+		if (level == 0) {
+			break;
+		}
+		
+		offset_in_block = block_offset_in_level / blocks_per_level[level-1];
+		block_offset_in_level %= blocks_per_level[level-1];
+	}
+	
+	*fblock = current_block;
+	
+	return EOK;
 }
 
 /**
