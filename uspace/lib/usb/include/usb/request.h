@@ -108,6 +108,8 @@ int usb_request_set_configuration(usb_endpoint_pipe_t *, uint8_t);
 
 int usb_request_get_supported_languages(usb_endpoint_pipe_t *,
     l18_win_locales_t **, size_t *);
+int usb_request_get_string(usb_endpoint_pipe_t *, size_t, l18_win_locales_t,
+    char **);
 
 #endif
 /**

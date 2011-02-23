@@ -495,6 +495,104 @@ int usb_request_get_supported_languages(usb_endpoint_pipe_t *pipe,
 	return EOK;
 }
 
+/** Get string (descriptor) from USB device.
+ *
+ * The string is returned in native encoding of the operating system.
+ * For HelenOS, that is UTF-8.
+ *
+ * @param[in] pipe Control endpoint pipe (session must be already started).
+ * @param[in] index String index (in native endianess).
+ * @param[in] lang String language (in native endianess).
+ * @param[out] string_ptr Where to store allocated string in native encoding.
+ * @return Error code.
+ */
+int usb_request_get_string(usb_endpoint_pipe_t *pipe,
+    size_t index, l18_win_locales_t lang, char **string_ptr)
+{
+	if (string_ptr == NULL) {
+		return EBADMEM;
+	}
+	/* Index is actually one byte value. */
+	if (index > 0xFF) {
+		return ERANGE;
+	}
+	/* Language is actually two byte value. */
+	if (lang > 0xFFFF) {
+		return ERANGE;
+	}
+
+	int rc;
+
+	/* Prepare dynamically allocated variables. */
+	uint8_t *string = NULL;
+	wchar_t *string_chars = NULL;
+
+	/* Get the actual descriptor. */
+	size_t string_size;
+	rc = usb_request_get_descriptor_alloc(pipe,
+	    USB_REQUEST_TYPE_STANDARD, USB_DESCTYPE_STRING,
+	    index, uint16_host2usb(lang),
+	    (void **) &string, &string_size);
+	if (rc != EOK) {
+		goto leave;
+	}
+
+	if (string_size <= 2) {
+		rc =  EEMPTY;
+		goto leave;
+	}
+	/* Substract first 2 bytes (length and descriptor type). */
+	string_size -= 2;
+
+	/* Odd number of bytes - descriptor is broken? */
+	if ((string_size % 2) != 0) {
+		/* FIXME: shall we return with error or silently ignore? */
+		rc = ESTALL;
+		goto leave;
+	}
+
+	size_t string_char_count = string_size / 2;
+	string_chars = malloc(sizeof(wchar_t) * (string_char_count + 1));
+	if (string_chars == NULL) {
+		rc = ENOMEM;
+		goto leave;
+	}
+
+	/*
+	 * Build a wide string.
+	 * And do not forget to set NULL terminator (string descriptors
+	 * do not have them).
+	 */
+	size_t i;
+	for (i = 0; i < string_char_count; i++) {
+		uint16_t uni_char = (string[2 + 2 * i + 1] << 8)
+		    + string[2 + 2 * i];
+		string_chars[i] = uni_char;
+	}
+	string_chars[string_char_count] = 0;
+
+
+	/* Convert to normal string. */
+	char *str = wstr_to_astr(string_chars);
+	if (str == NULL) {
+		rc = ENOMEM;
+		goto leave;
+	}
+
+	*string_ptr = str;
+	rc = EOK;
+
+leave:
+	if (string != NULL) {
+		free(string);
+	}
+	if (string_chars != NULL) {
+		free(string_chars);
+	}
+
+	return rc;
+}
+
 /**
  * @}
  */
