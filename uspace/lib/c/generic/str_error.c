@@ -76,6 +76,8 @@ const char *str_error(const int e)
 			return "Operation stalled";
 		case EAGAIN:
 			return "Resource temporarily unavailable";
+		case EEMPTY:
+			return "Resource is empty";
 		default:
 			break;
 	}
