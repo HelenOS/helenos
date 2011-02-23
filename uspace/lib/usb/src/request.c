@@ -428,6 +428,73 @@ int usb_request_set_configuration(usb_endpoint_pipe_t *pipe,
 	    NULL, 0);
 }
 
+/** Get list of supported languages by USB device.
+ *
+ * @param[in] pipe Control endpoint pipe (session must be already started).
+ * @param[out] languages_ptr Where to store pointer to allocated array of
+ *	supported languages.
+ * @param[out] languages_count Number of supported languages.
+ * @return Error code.
+ */
+int usb_request_get_supported_languages(usb_endpoint_pipe_t *pipe,
+    l18_win_locales_t **languages_ptr, size_t *languages_count)
+{
+	int rc;
+
+	if (languages_ptr == NULL) {
+		return EBADMEM;
+	}
+	if (languages_count == NULL) {
+		return EBADMEM;
+	}
+
+	uint8_t *string_descriptor = NULL;
+	size_t string_descriptor_size = 0;
+	rc = usb_request_get_descriptor_alloc(pipe,
+	    USB_REQUEST_TYPE_STANDARD, USB_DESCTYPE_STRING, 0, 0,
+	    (void **) &string_descriptor, &string_descriptor_size);
+	if (rc != EOK) {
+		return rc;
+	}
+	if (string_descriptor_size <= 2) {
+		free(string_descriptor);
+		return EEMPTY;
+	}
+	/* Substract first 2 bytes (length and descriptor type). */
+	string_descriptor_size -= 2;
+
+	/* Odd number of bytes - descriptor is broken? */
+	if ((string_descriptor_size % 2) != 0) {
+		/* FIXME: shall we return with error or silently ignore? */
+		free(string_descriptor);
+		return ESTALL;
+	}
+
+	size_t langs_count = string_descriptor_size / 2;
+	l18_win_locales_t *langs
+	    = malloc(sizeof(l18_win_locales_t) * langs_count);
+	if (langs == NULL) {
+		free(string_descriptor);
+		return ENOMEM;
+	}
+
+	size_t i;
+	for (i = 0; i < langs_count; i++) {
+		/* Language code from the descriptor is in USB endianess. */
+		/* FIXME: is this really correct? */
+		uint16_t lang_code = (string_descriptor[2 + 2 * i + 1] << 8)
+		    + string_descriptor[2 + 2 * i];
+		langs[i] = uint16_usb2host(lang_code);
+	}
+
+	free(string_descriptor);
+
+	*languages_ptr = langs;
+	*languages_count =langs_count;
+
+	return EOK;
+}
+
 /**
  * @}
  */

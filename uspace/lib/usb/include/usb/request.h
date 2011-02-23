@@ -36,6 +36,7 @@
 #define LIBUSB_REQUEST_H_
 
 #include <sys/types.h>
+#include <l18n/langs.h>
 #include <usb/usb.h>
 #include <usb/pipes.h>
 #include <usb/descriptor.h>
@@ -104,6 +105,9 @@ int usb_request_get_bare_configuration_descriptor(usb_endpoint_pipe_t *, int,
 int usb_request_get_full_configuration_descriptor(usb_endpoint_pipe_t *, int,
     void *, size_t, size_t *);
 int usb_request_set_configuration(usb_endpoint_pipe_t *, uint8_t);
+
+int usb_request_get_supported_languages(usb_endpoint_pipe_t *,
+    l18_win_locales_t **, size_t *);
 
 #endif
 /**
