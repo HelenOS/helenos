@@ -128,7 +128,106 @@ int dump_device(devman_handle_t hc_handle, usb_address_t address)
 	dump_descriptor_tree(full_config_descriptor,
 	    config_descriptor.total_length);
 
+	/*
+	 * Dump STRING languages.
+	 */
+	uint8_t *string_descriptor = NULL;
+	size_t string_descriptor_size = 0;
+	rc = usb_request_get_descriptor_alloc(&ctrl_pipe,
+	    USB_REQUEST_TYPE_STANDARD, USB_DESCTYPE_STRING, 0, 0,
+	    (void **) &string_descriptor, &string_descriptor_size);
+	if (rc != EOK) {
+		fprintf(stderr,
+		    NAME ": failed to fetch language table: %s.\n",
+		    str_error(rc));
+		goto leave;
+	}
+	if ((string_descriptor_size <= 2)
+	    || ((string_descriptor_size % 2) != 0)) {
+		fprintf(stderr, NAME ": No supported languages.\n");
+		goto leave;
+	}
+
+	size_t lang_count = (string_descriptor_size - 2) / 2;
+	int *lang_codes = malloc(sizeof(int) * lang_count);
+	size_t i;
+	for (i = 0; i < lang_count; i++) {
+		lang_codes[i] = (string_descriptor[2 + 2 * i + 1] << 8)
+		    + string_descriptor[2 + 2 * i];
+	}
+
+	printf("String languages:");
+	for (i = 0; i < lang_count; i++) {
+		printf(" 0x%04x", lang_codes[i]);
+	}
+	printf(".\n");
+
+	free(string_descriptor);
+	free(lang_codes);
+
+	/*
+	 * Dump all strings in English (0x0409).
+	 */
+	uint16_t lang = 0x0409;
+	/*
+	 * Up to 3 string in device descriptor, 1 for configuration and
+	 * one for each interface.
+	 */
+	size_t max_idx = 3 + 1 + config_descriptor.interface_count;
+	size_t idx;
+	for (idx = 1; idx <= max_idx; idx++) {
+		uint8_t *string;
+		size_t string_size;
+		rc = usb_request_get_descriptor_alloc(&ctrl_pipe,
+		    USB_REQUEST_TYPE_STANDARD, USB_DESCTYPE_STRING,
+		    idx, uint16_host2usb(lang),
+		    (void **) &string, &string_size);
+		if (rc == EINTR) {
+			/* Invalid index, skip silently. */
+			continue;
+		}
+		if (rc != EOK) {
+			fprintf(stderr,
+			    NAME ": failed to fetch string #%zu " \
+			    "(lang 0x%04x): %s.\n",
+			    idx, (int) lang, str_error(rc));
+			continue;
+		}
+		/*
+		printf("String #%zu (language 0x%04x):\n", idx, (int) lang);
+		dump_buffer(NULL, 0,
+		    string, string_size);
+		*/
+		if (string_size <= 2) {
+			fprintf(stderr,
+			    NAME ": no string for index #%zu.\n", idx);
+			free(string);
+			continue;
+		}
+		string_size -= 2;
+
+		size_t string_char_count = string_size / 2;
+		wchar_t *string_chars = malloc(sizeof(wchar_t) * (string_char_count + 1));
+		assert(string_chars != NULL);
+		for (i = 0; i < string_char_count; i++) {
+			uint16_t uni_char = (string[2 + 2 * i + 1] << 8)
+			    + string[2 + 2 * i];
+			string_chars[i] = uni_char;
+		}
+		string_chars[string_char_count] = 0;
+		free(string);
+
+		char *str = wstr_to_astr(string_chars);
+		assert(str != NULL);
+		free(string_chars);
+
+		printf("String #%zu (language 0x%04x): \"%s\"\n",
+		    idx, (int) lang, str);
+		free(str);
+	}
+
 	rc = EOK;
+
 leave:
 	/* Ignoring errors here. */
 	usb_endpoint_pipe_end_session(&ctrl_pipe);
