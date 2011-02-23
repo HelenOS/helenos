@@ -345,6 +345,7 @@ void print_inode_by_number(ext2_filesystem_t *fs, uint32_t inode)
 void print_inode(ext2_filesystem_t *fs, ext2_inode_t *inode)
 {
 	uint32_t mode;
+	uint32_t mode_type;
 	uint32_t user_id;
 	uint32_t group_id;
 	uint64_t size;
@@ -357,6 +358,7 @@ void print_inode(ext2_filesystem_t *fs, ext2_inode_t *inode)
 	bool all_blocks = false;
 	
 	mode = ext2_inode_get_mode(fs->superblock, inode);
+	mode_type = mode & EXT2_INODE_MODE_TYPE_MASK;
 	user_id = ext2_inode_get_user_id(fs->superblock, inode);
 	group_id = ext2_inode_get_group_id(fs->superblock, inode);
 	size = ext2_inode_get_size(fs->superblock, inode);
@@ -364,25 +366,25 @@ void print_inode(ext2_filesystem_t *fs, ext2_inode_t *inode)
 	flags = ext2_inode_get_flags(inode);
 	
 	type = "Unknown";
-	if ((mode & EXT2_INODE_MODE_BLOCKDEV) == EXT2_INODE_MODE_BLOCKDEV) {
+	if (mode_type == EXT2_INODE_MODE_BLOCKDEV) {
 		type = "Block device";
 	}
-	else if (mode & EXT2_INODE_MODE_FIFO) {
+	else if (mode_type == EXT2_INODE_MODE_FIFO) {
 		type = "Fifo (pipe)";
 	}
-	else if (mode & EXT2_INODE_MODE_CHARDEV) {
+	else if (mode_type == EXT2_INODE_MODE_CHARDEV) {
 		type = "Character device";
 	}
-	else if (mode & EXT2_INODE_MODE_DIRECTORY) {
+	else if (mode_type == EXT2_INODE_MODE_DIRECTORY) {
 		type = "Directory";
 	}
-	else if (mode & EXT2_INODE_MODE_FILE) {
+	else if (mode_type == EXT2_INODE_MODE_FILE) {
 		type = "File";
 	}
-	else if (mode & EXT2_INODE_MODE_SOFTLINK) {
+	else if (mode_type == EXT2_INODE_MODE_SOFTLINK) {
 		type = "Soft link";
 	}
-	else if (mode & EXT2_INODE_MODE_SOCKET) {
+	else if (mode_type == EXT2_INODE_MODE_SOCKET) {
 		type = "Socket";
 	}
 	

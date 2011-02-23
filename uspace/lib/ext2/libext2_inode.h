@@ -73,6 +73,7 @@ typedef struct ext2_inode {
 #define EXT2_INODE_MODE_SOFTLINK	0xA000
 #define EXT2_INODE_MODE_SOCKET		0xC000
 #define EXT2_INODE_MODE_ACCESS_MASK	0x0FFF
+#define EXT2_INODE_MODE_TYPE_MASK	0xF000
 
 typedef struct ext2_inode_ref {
 	block_t *block; // Reference to a block containing this inode
@@ -80,6 +81,7 @@ typedef struct ext2_inode_ref {
 } ext2_inode_ref_t;
 
 inline uint32_t ext2_inode_get_mode(ext2_superblock_t *, ext2_inode_t *);
+inline bool ext2_inode_is_type(ext2_superblock_t *, ext2_inode_t *, uint32_t);
 inline uint32_t ext2_inode_get_user_id(ext2_superblock_t *, ext2_inode_t *);
 inline uint64_t ext2_inode_get_size(ext2_superblock_t *, ext2_inode_t *);
 inline uint32_t ext2_inode_get_group_id(ext2_superblock_t *, ext2_inode_t *);

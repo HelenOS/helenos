@@ -53,6 +53,19 @@ inline uint32_t ext2_inode_get_mode(ext2_superblock_t *sb, ext2_inode_t *inode)
 }
 
 /**
+ * Check whether inode is of given type
+ * 
+ * @param sb pointer to superblock structure
+ * @param inode pointer to inode
+ * @param type EXT2_INODE_MODE_TYPE_* constant to check
+ */
+inline bool ext2_inode_is_type(ext2_superblock_t *sb, ext2_inode_t *inode, uint32_t type)
+{
+	uint32_t mode = ext2_inode_get_mode(sb, inode);
+	return (mode & EXT2_INODE_MODE_TYPE_MASK) == type;
+}
+
+/**
  * Get uid this inode is belonging to
  * 
  * @param inode pointer to inode
@@ -78,9 +91,8 @@ inline uint32_t ext2_inode_get_user_id(ext2_superblock_t *sb, ext2_inode_t *inod
 inline uint64_t ext2_inode_get_size(ext2_superblock_t *sb, ext2_inode_t *inode)
 {
 	uint32_t major_rev = ext2_superblock_get_rev_major(sb);
-	uint32_t mode = ext2_inode_get_mode(sb, inode);
 	
-	if (major_rev > 0 && mode & EXT2_INODE_MODE_FILE) {
+	if (major_rev > 0 && ext2_inode_is_type(sb, inode, EXT2_INODE_MODE_FILE)) {
 		return ((uint64_t)uint32_t_le2host(inode->size_high)) << 32 |
 		    ((uint64_t)uint32_t_le2host(inode->size));
 	}
