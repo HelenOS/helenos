@@ -138,7 +138,7 @@ static void dump_buffer(const char *msg, const uint8_t *buffer, size_t length)
  * Copy-paste from srv/hid/kbd/generic/kbd.c
  */
 
-/** Currently active modifiers. 
+/** Currently active modifiers (locks is probably better word).
  *
  * TODO: put to device?
  */
@@ -257,12 +257,15 @@ static void kbd_push_ev(int type, unsigned int key)
 	 * 3) 
 	 */
 
-static const keycode_t usb_hid_modifiers_boot_keycodes[5] = {
-	KC_NUM_LOCK,      /* USB_HID_MOD_BOOT_NUM_LOCK */
-	KC_CAPS_LOCK,     /* USB_HID_MOD_BOOT_CAPS_LOCK */
-	KC_SCROLL_LOCK,   /* USB_HID_MOD_BOOT_SCROLL_LOCK */
-	0,                /* USB_HID_MOD_BOOT_COMPOSE */
-	0                 /* USB_HID_MOD_BOOT_KANA */
+static const keycode_t usb_hid_modifiers_keycodes[USB_HID_MOD_COUNT] = {
+	KC_LCTRL,         /* USB_HID_MOD_LCTRL */
+	KC_LSHIFT,        /* USB_HID_MOD_LSHIFT */
+	KC_LALT,          /* USB_HID_MOD_LALT */
+	0,                /* USB_HID_MOD_LGUI */
+	KC_RCTRL,         /* USB_HID_MOD_RCTRL */
+	KC_RSHIFT,        /* USB_HID_MOD_RSHIFT */
+	KC_RALT,          /* USB_HID_MOD_RALT */
+	0,                /* USB_HID_MOD_RGUI */
 };
 
 static void usbkbd_check_modifier_changes(usb_hid_dev_kbd_t *kbd_dev,
@@ -278,20 +281,20 @@ static void usbkbd_check_modifier_changes(usb_hid_dev_kbd_t *kbd_dev,
 	 */
 	
 	int i;
-	for (i = 0; i < USB_HID_MOD_BOOT_COUNT; ++i) {
-		if ((modifiers & usb_hid_modifiers_boot_consts[i]) &&
-		    !(kbd_dev->modifiers & usb_hid_modifiers_boot_consts[i])) {
+	for (i = 0; i < USB_HID_MOD_COUNT; ++i) {
+		if ((modifiers & usb_hid_modifiers_consts[i]) &&
+		    !(kbd_dev->modifiers & usb_hid_modifiers_consts[i])) {
 			// modifier pressed
-			if (usb_hid_modifiers_boot_keycodes[i] != 0) {
+			if (usb_hid_modifiers_keycodes[i] != 0) {
 				kbd_push_ev(KEY_PRESS, 
-				    usb_hid_modifiers_boot_keycodes[i]);
+				    usb_hid_modifiers_keycodes[i]);
 			}
-		} else if (!(modifiers & usb_hid_modifiers_boot_consts[i]) &&
-		    (kbd_dev->modifiers & usb_hid_modifiers_boot_consts[i])) {
+		} else if (!(modifiers & usb_hid_modifiers_consts[i]) &&
+		    (kbd_dev->modifiers & usb_hid_modifiers_consts[i])) {
 			// modifier released
-			if (usb_hid_modifiers_boot_keycodes[i] != 0) {
+			if (usb_hid_modifiers_keycodes[i] != 0) {
 				kbd_push_ev(KEY_RELEASE, 
-				    usb_hid_modifiers_boot_keycodes[i]);
+				    usb_hid_modifiers_keycodes[i]);
 			}
 		}	// no change
 	}

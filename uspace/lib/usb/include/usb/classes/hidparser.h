@@ -71,20 +71,27 @@ typedef struct {
 
 
 typedef enum {
-	USB_HID_MOD_BOOT_NUM_LOCK = 0x01,
-	USB_HID_MOD_BOOT_CAPS_LOCK = 0x02,
-	USB_HID_MOD_BOOT_SCROLL_LOCK = 0x04,
-	USB_HID_MOD_BOOT_COMPOSE = 0x08,
-	USB_HID_MOD_BOOT_KANA = 0x10,
-	USB_HID_MOD_BOOT_COUNT = 5
-} usb_hid_modifiers_boot_t;
+	USB_HID_MOD_LCTRL = 0x01,
+	USB_HID_MOD_LSHIFT = 0x02,
+	USB_HID_MOD_LALT = 0x04,
+	USB_HID_MOD_LGUI = 0x08,
+	USB_HID_MOD_RCTRL = 0x10,
+	USB_HID_MOD_RSHIFT = 0x20,
+	USB_HID_MOD_RALT = 0x40,
+	USB_HID_MOD_RGUI = 0x80,
+	USB_HID_MOD_COUNT = 8
+} usb_hid_modifiers_t;
 
-static const usb_hid_modifiers_boot_t usb_hid_modifiers_boot_consts[5] = {
-	USB_HID_MOD_BOOT_NUM_LOCK,
-	USB_HID_MOD_BOOT_CAPS_LOCK,
-	USB_HID_MOD_BOOT_SCROLL_LOCK,
-	USB_HID_MOD_BOOT_COMPOSE,
-	USB_HID_MOD_BOOT_KANA
+static const usb_hid_modifiers_t 
+    usb_hid_modifiers_consts[USB_HID_MOD_COUNT] = {
+	USB_HID_MOD_LCTRL,
+	USB_HID_MOD_LSHIFT,
+	USB_HID_MOD_LALT,
+	USB_HID_MOD_LGUI,
+	USB_HID_MOD_RCTRL,
+	USB_HID_MOD_RSHIFT,
+	USB_HID_MOD_RALT,
+	USB_HID_MOD_RGUI
 };
 
 //#define USB_HID_BOOT_KEYBOARD_NUM_LOCK		0x01
