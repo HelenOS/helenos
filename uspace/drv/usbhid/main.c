@@ -556,13 +556,29 @@ static usb_hid_dev_kbd_t *usbkbd_init_device(ddf_dev_t *dev)
 
 	// TODO: get descriptors, parse descriptors and save endpoints
 	usb_endpoint_pipe_start_session(&kbd_dev->ctrl_pipe);
-	//usb_request_set_configuration(&kbd_dev->ctrl_pipe, 1);
 	rc = usbkbd_process_descriptors(kbd_dev);
 	usb_endpoint_pipe_end_session(&kbd_dev->ctrl_pipe);
 	if (rc != EOK) {
 		goto error_leave;
 	}
-
+	
+	// save the size of the report
+	kbd_dev->keycode_count = BOOTP_REPORT_SIZE;
+	kbd_dev->keycodes = (uint8_t *)calloc(
+	    kbd_dev->keycode_count, sizeof(uint8_t));
+	
+	if (kbd_dev->keycodes == NULL) {
+		usb_log_fatal("No memory!\n");
+		goto error_leave;
+	}
+	
+	// set configuration to the first one
+	// TODO: handle case with no configurations
+	usb_endpoint_pipe_start_session(&kbd_dev->ctrl_pipe);
+	usb_request_set_configuration(&kbd_dev->ctrl_pipe, 
+	    kbd_dev->conf->config_descriptor.configuration_number);
+	usb_endpoint_pipe_end_session(&kbd_dev->ctrl_pipe);
+	
 	return kbd_dev;
 
 error_leave:
