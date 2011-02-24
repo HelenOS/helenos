@@ -55,15 +55,19 @@ static void syntax_print(void);
 static void print_superblock(ext2_superblock_t *);
 static void print_block_groups(ext2_filesystem_t *);
 static void print_block_group(ext2_block_group_t *);
-static void print_inode_by_number(ext2_filesystem_t *, uint32_t, bool, uint32_t);
+static void print_inode_by_number(ext2_filesystem_t *, uint32_t, bool, uint32_t,
+    bool);
+static void print_data(unsigned char *, size_t);
 static void print_inode(ext2_filesystem_t *, ext2_inode_t *);
 static void print_inode_data(ext2_filesystem_t *, ext2_inode_t *, uint32_t);
+static void print_directory_contents(ext2_filesystem_t *, ext2_inode_ref_t *);
 
 #define ARG_SUPERBLOCK 1
 #define ARG_BLOCK_GROUPS 2
 #define ARG_INODE 4
 #define ARG_STRICT_CHECK 8
 #define ARG_INODE_DATA 16
+#define ARG_INODE_LIST 32
 #define ARG_COMMON (ARG_SUPERBLOCK | ARG_BLOCK_GROUPS)
 #define ARG_ALL (ARG_COMMON | ARG_INODE)
 
@@ -140,6 +144,11 @@ int main(int argc, char **argv)
 			arg_flags |= ARG_INODE_DATA;
 			--argc; ++argv;
 		}
+		
+		if (str_cmp(*argv, "--list") == 0) {
+			--argc; ++argv;
+			arg_flags |= ARG_INODE_LIST;
+		}
 	}
 
 	if (argc != 1) {
@@ -185,7 +194,7 @@ int main(int argc, char **argv)
 	
 	if (arg_flags & ARG_INODE) {
 		print_inode_by_number(&filesystem, inode, arg_flags & ARG_INODE_DATA,
-		    inode_data);
+		    inode_data, arg_flags & ARG_INODE_LIST);
 	}
 
 	ext2_filesystem_fini(&filesystem);
@@ -197,7 +206,7 @@ int main(int argc, char **argv)
 static void syntax_print(void)
 {
 	printf("syntax: ext2info [--strict-check] [--superblock] [--block-groups] "
-	    "[--inode <i-number> [--inode-data <block-number>]] <device_name>\n");
+	    "[--inode <i-number> [--inode-data <block-number>] [--list]] <device_name>\n");
 }
 
 static void print_superblock(ext2_superblock_t *superblock)
@@ -345,7 +354,7 @@ void print_block_group(ext2_block_group_t *bg)
 }
 
 void print_inode_by_number(ext2_filesystem_t *fs, uint32_t inode, 
-    bool print_data, uint32_t data)
+    bool print_data, uint32_t data, bool list)
 {
 	int rc;
 	ext2_inode_ref_t *inode_ref;
@@ -361,6 +370,11 @@ void print_inode_by_number(ext2_filesystem_t *fs, uint32_t inode,
 	print_inode(fs, inode_ref->inode);
 	if (print_data) {
 		print_inode_data(fs, inode_ref->inode, data);
+	}
+	
+	if (list && ext2_inode_is_type(fs->superblock, inode_ref->inode,
+	    EXT2_INODE_MODE_DIRECTORY)) {
+		print_directory_contents(fs, inode_ref);
 	}
 	
 	rc = ext2_filesystem_put_inode_ref(inode_ref);
@@ -443,13 +457,27 @@ void print_inode(ext2_filesystem_t *fs, ext2_inode_t *inode)
 	printf("\n");
 }
 
+void print_data(unsigned char *data, size_t size)
+{
+	unsigned char c;
+	size_t i;
+	
+	for (i = 0; i < size; i++) {
+		c = data[i];
+		if (c >= 32 && c < 127) {
+			putchar(c);
+		}
+		else {
+			putchar('.');
+		}
+	}
+}
+
 void print_inode_data(ext2_filesystem_t *fs, ext2_inode_t *inode, uint32_t data)
 {
 	int rc;
 	uint32_t data_block_index;
 	block_t *block;
-	size_t i;
-	unsigned char c;
 	
 	rc = ext2_filesystem_get_inode_data_block_index(fs, inode, data,
 	    &data_block_index);
@@ -470,21 +498,49 @@ void print_inode_data(ext2_filesystem_t *fs, ext2_inode_t *inode, uint32_t data)
 		return;
 	}
 	
-	for (i = 0; i < block->size; i++) {
-		c = ((unsigned char *)block->data)[i];
-		if (c >= 32 && c < 127) {
-			putchar(c);
-		}
-		else {
-			putchar('.');
-		}
-	}
-	
+	print_data(block->data, block->size);
 	printf("\n");	
 	
 	rc = block_put(block);
 	if (rc != EOK) {
 		printf("Failed putting filesystem block\n");
+	}
+	
+}
+
+void print_directory_contents(ext2_filesystem_t *fs,
+    ext2_inode_ref_t *inode_ref)
+{
+	int rc;
+	ext2_directory_iterator_t it;
+	size_t name_size;
+	
+	printf("  Directory contents:\n");
+	
+	rc = ext2_directory_iterator_init(&it, fs, inode_ref);
+	if (rc != EOK) {
+		printf("Failed initializing directory iterator\n");
+		return;
+	}
+	
+	while (it.current != NULL) {
+		name_size = ext2_directory_entry_ll_get_name_length(fs->superblock,
+		    it.current);
+		printf("    ");
+		print_data(&it.current->name, name_size);
+		printf(" --> %u\n", it.current->inode);
+		
+		rc = ext2_directory_iterator_next(&it);
+		if (rc != EOK) {
+			printf("Failed reading directory contents\n");
+			goto cleanup;
+		}
+	}
+
+cleanup:
+	rc = ext2_directory_iterator_fini(&it);
+	if (rc != EOK) {
+		printf("Failed cleaning-up directory iterator\n");
 	}
 	
 }
