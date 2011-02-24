@@ -39,7 +39,6 @@
 #include <macros.h>
 #include <errno.h>
 #include <async.h>
-#include <ipc/ipc.h>
 #include <as.h>
 #include <assert.h>
 #include <dirent.h>
@@ -57,7 +56,7 @@
 
 #define answer_and_return(rid, rc) \
 	do { \
-		ipc_answer_0((rid), (rc)); \
+		async_answer_0((rid), (rc)); \
 		return; \
 	} while (0)
 
@@ -101,8 +100,7 @@ int fs_register(int vfs_phone, fs_reg_t *reg, vfs_info_t *info,
 	/*
 	 * Ask VFS for callback connection.
 	 */
-	sysarg_t taskhash;
-	ipc_connect_to_me(vfs_phone, 0, 0, 0, &taskhash, &reg->vfs_phonehash);
+	async_connect_to_me(vfs_phone, 0, 0, 0, conn);
 	
 	/*
 	 * Allocate piece of address space for PLB.
@@ -127,11 +125,6 @@ int fs_register(int vfs_phone, fs_reg_t *reg, vfs_info_t *info,
 	 */
 	async_wait_for(req, NULL);
 	reg->fs_handle = (int) IPC_GET_ARG1(answer);
-	
-	/*
-	 * Create a connection fibril to handle the callback connection.
-	 */
-	async_new_connection(taskhash, reg->vfs_phonehash, 0, NULL, conn);
 	
 	/*
 	 * Tell the async framework that other connections are to be handled by
@@ -165,37 +158,37 @@ void libfs_mount(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	int mountee_phone = (int) IPC_GET_ARG1(call);
 	if ((IPC_GET_IMETHOD(call) != IPC_M_CONNECTION_CLONE) ||
 	    (mountee_phone < 0)) {
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
+		async_answer_0(callid, EINVAL);
+		async_answer_0(rid, EINVAL);
 		return;
 	}
 	
 	/* Acknowledge the mountee_phone */
-	ipc_answer_0(callid, EOK);
+	async_answer_0(callid, EOK);
 	
 	fs_node_t *fn;
 	res = ops->node_get(&fn, mp_devmap_handle, mp_fs_index);
 	if ((res != EOK) || (!fn)) {
-		ipc_hangup(mountee_phone);
+		async_hangup(mountee_phone);
 		async_data_write_void(combine_rc(res, ENOENT));
-		ipc_answer_0(rid, combine_rc(res, ENOENT));
+		async_answer_0(rid, combine_rc(res, ENOENT));
 		return;
 	}
 	
 	if (fn->mp_data.mp_active) {
-		ipc_hangup(mountee_phone);
+		async_hangup(mountee_phone);
 		(void) ops->node_put(fn);
 		async_data_write_void(EBUSY);
-		ipc_answer_0(rid, EBUSY);
+		async_answer_0(rid, EBUSY);
 		return;
 	}
 	
 	rc = async_req_0_0(mountee_phone, IPC_M_CONNECT_ME);
 	if (rc != EOK) {
-		ipc_hangup(mountee_phone);
+		async_hangup(mountee_phone);
 		(void) ops->node_put(fn);
 		async_data_write_void(rc);
-		ipc_answer_0(rid, rc);
+		async_answer_0(rid, rc);
 		return;
 	}
 	
@@ -213,7 +206,7 @@ void libfs_mount(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	/*
 	 * Do not release the FS node so that it stays in memory.
 	 */
-	ipc_answer_3(rid, rc, IPC_GET_ARG1(answer), IPC_GET_ARG2(answer),
+	async_answer_3(rid, rc, IPC_GET_ARG1(answer), IPC_GET_ARG2(answer),
 	    IPC_GET_ARG3(answer));
 }
 
@@ -226,7 +219,7 @@ void libfs_unmount(libfs_ops_t *ops, ipc_callid_t rid, ipc_call_t *request)
 
 	res = ops->node_get(&fn, mp_devmap_handle, mp_fs_index);
 	if ((res != EOK) || (!fn)) {
-		ipc_answer_0(rid, combine_rc(res, ENOENT));
+		async_answer_0(rid, combine_rc(res, ENOENT));
 		return;
 	}
 
@@ -235,7 +228,7 @@ void libfs_unmount(libfs_ops_t *ops, ipc_callid_t rid, ipc_call_t *request)
 	 */
 	if (!fn->mp_data.mp_active) {
 		(void) ops->node_put(fn);
-		ipc_answer_0(rid, EINVAL);
+		async_answer_0(rid, EINVAL);
 		return;
 	}
 
@@ -249,7 +242,7 @@ void libfs_unmount(libfs_ops_t *ops, ipc_callid_t rid, ipc_call_t *request)
 	 * If everything went well, perform the clean-up on our side.
 	 */
 	if (res == EOK) {
-		ipc_hangup(fn->mp_data.phone);
+		async_hangup(fn->mp_data.phone);
 		fn->mp_data.mp_active = false;
 		fn->mp_data.fs_handle = 0;
 		fn->mp_data.devmap_handle = 0;
@@ -259,7 +252,7 @@ void libfs_unmount(libfs_ops_t *ops, ipc_callid_t rid, ipc_call_t *request)
 	}
 
 	(void) ops->node_put(fn);
-	ipc_answer_0(rid, res);
+	async_answer_0(rid, res);
 }
 
 /** Lookup VFS triplet by name in the file system name space.
@@ -299,7 +292,7 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	on_error(rc, goto out_with_answer);
 	
 	if (cur->mp_data.mp_active) {
-		ipc_forward_slow(rid, cur->mp_data.phone, VFS_OUT_LOOKUP,
+		async_forward_slow(rid, cur->mp_data.phone, VFS_OUT_LOOKUP,
 		    next, last, cur->mp_data.devmap_handle, lflag, index,
 		    IPC_FF_ROUTE_FROM_ME);
 		(void) ops->node_put(cur);
@@ -323,7 +316,7 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 		while ((next <= last) && (ops->plb_get_char(next) != '/')) {
 			if (len + 1 == NAME_MAX) {
 				/* Component length overflow */
-				ipc_answer_0(rid, ENAMETOOLONG);
+				async_answer_0(rid, ENAMETOOLONG);
 				goto out;
 			}
 			component[len++] = ops->plb_get_char(next);
@@ -357,7 +350,7 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 			else
 				next--;
 			
-			ipc_forward_slow(rid, tmp->mp_data.phone,
+			async_forward_slow(rid, tmp->mp_data.phone,
 			    VFS_OUT_LOOKUP, next, last, tmp->mp_data.devmap_handle,
 			    lflag, index, IPC_FF_ROUTE_FROM_ME);
 			(void) ops->node_put(cur);
@@ -371,7 +364,7 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 		if (!tmp) {
 			if (next <= last) {
 				/* There are unprocessed components */
-				ipc_answer_0(rid, ENOENT);
+				async_answer_0(rid, ENOENT);
 				goto out;
 			}
 			
@@ -379,7 +372,7 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 			if (lflag & (L_CREATE | L_LINK)) {
 				/* Request to create a new link */
 				if (!ops->is_directory(cur)) {
-					ipc_answer_0(rid, ENOTDIR);
+					async_answer_0(rid, ENOTDIR);
 					goto out;
 				}
 				
@@ -397,10 +390,10 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 					if (rc != EOK) {
 						if (lflag & L_CREATE)
 							(void) ops->destroy(fn);
-						ipc_answer_0(rid, rc);
+						async_answer_0(rid, rc);
 					} else {
 						aoff64_t size = ops->size_get(fn);
-						ipc_answer_5(rid, fs_handle,
+						async_answer_5(rid, fs_handle,
 						    devmap_handle,
 						    ops->index_get(fn),
 						    LOWER32(size),
@@ -409,12 +402,12 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 						(void) ops->node_put(fn);
 					}
 				} else
-					ipc_answer_0(rid, ENOSPC);
+					async_answer_0(rid, ENOSPC);
 				
 				goto out;
 			}
 			
-			ipc_answer_0(rid, ENOENT);
+			async_answer_0(rid, ENOENT);
 			goto out;
 		}
 		
@@ -440,7 +433,7 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 		
 		if (lflag & (L_CREATE | L_LINK)) {
 			if (!ops->is_directory(cur)) {
-				ipc_answer_0(rid, ENOTDIR);
+				async_answer_0(rid, ENOTDIR);
 				goto out;
 			}
 			
@@ -449,13 +442,13 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 			while (next <= last) {
 				if (ops->plb_get_char(next) == '/') {
 					/* More than one component */
-					ipc_answer_0(rid, ENOENT);
+					async_answer_0(rid, ENOENT);
 					goto out;
 				}
 				
 				if (len + 1 == NAME_MAX) {
 					/* Component length overflow */
-					ipc_answer_0(rid, ENAMETOOLONG);
+					async_answer_0(rid, ENAMETOOLONG);
 					goto out;
 				}
 				
@@ -479,10 +472,10 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 				if (rc != EOK) {
 					if (lflag & L_CREATE)
 						(void) ops->destroy(fn);
-					ipc_answer_0(rid, rc);
+					async_answer_0(rid, rc);
 				} else {
 					aoff64_t size = ops->size_get(fn);
-					ipc_answer_5(rid, fs_handle,
+					async_answer_5(rid, fs_handle,
 					    devmap_handle,
 					    ops->index_get(fn),
 					    LOWER32(size),
@@ -491,12 +484,12 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 					(void) ops->node_put(fn);
 				}
 			} else
-				ipc_answer_0(rid, ENOSPC);
+				async_answer_0(rid, ENOSPC);
 			
 			goto out;
 		}
 		
-		ipc_answer_0(rid, ENOENT);
+		async_answer_0(rid, ENOENT);
 		goto out;
 	}
 	
@@ -509,33 +502,33 @@ skip_miss:
 		
 		if (rc == EOK) {
 			aoff64_t size = ops->size_get(cur);
-			ipc_answer_5(rid, fs_handle, devmap_handle,
+			async_answer_5(rid, fs_handle, devmap_handle,
 			    ops->index_get(cur), LOWER32(size), UPPER32(size),
 			    old_lnkcnt);
 		} else
-			ipc_answer_0(rid, rc);
+			async_answer_0(rid, rc);
 		
 		goto out;
 	}
 	
 	if (((lflag & (L_CREATE | L_EXCLUSIVE)) == (L_CREATE | L_EXCLUSIVE)) ||
 	    (lflag & L_LINK)) {
-		ipc_answer_0(rid, EEXIST);
+		async_answer_0(rid, EEXIST);
 		goto out;
 	}
 	
 	if ((lflag & L_FILE) && (ops->is_directory(cur))) {
-		ipc_answer_0(rid, EISDIR);
+		async_answer_0(rid, EISDIR);
 		goto out;
 	}
 	
 	if ((lflag & L_DIRECTORY) && (ops->is_file(cur))) {
-		ipc_answer_0(rid, ENOTDIR);
+		async_answer_0(rid, ENOTDIR);
 		goto out;
 	}
 
 	if ((lflag & L_ROOT) && par) {
-		ipc_answer_0(rid, EINVAL);
+		async_answer_0(rid, EINVAL);
 		goto out;
 	}
 	
@@ -547,14 +540,14 @@ out_with_answer:
 		
 		if (rc == EOK) {
 			aoff64_t size = ops->size_get(cur);
-			ipc_answer_5(rid, fs_handle, devmap_handle,
+			async_answer_5(rid, fs_handle, devmap_handle,
 			    ops->index_get(cur), LOWER32(size), UPPER32(size),
 			    ops->lnkcnt_get(cur));
 		} else
-			ipc_answer_0(rid, rc);
+			async_answer_0(rid, rc);
 		
 	} else
-		ipc_answer_0(rid, rc);
+		async_answer_0(rid, rc);
 	
 out:
 	
@@ -583,8 +576,8 @@ void libfs_stat(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	if ((!async_data_read_receive(&callid, &size)) ||
 	    (size != sizeof(struct stat))) {
 		ops->node_put(fn);
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
+		async_answer_0(callid, EINVAL);
+		async_answer_0(rid, EINVAL);
 		return;
 	}
 	
@@ -603,7 +596,7 @@ void libfs_stat(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	ops->node_put(fn);
 	
 	async_data_read_finalize(callid, &stat, sizeof(struct stat));
-	ipc_answer_0(rid, EOK);
+	async_answer_0(rid, EOK);
 }
 
 /** Open VFS triplet.
@@ -625,13 +618,13 @@ void libfs_open_node(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 	on_error(rc, answer_and_return(rid, rc));
 	
 	if (fn == NULL) {
-		ipc_answer_0(rid, ENOENT);
+		async_answer_0(rid, ENOENT);
 		return;
 	}
 	
 	rc = ops->node_open(fn);
 	aoff64_t size = ops->size_get(fn);
-	ipc_answer_4(rid, rc, LOWER32(size), UPPER32(size), ops->lnkcnt_get(fn),
+	async_answer_4(rid, rc, LOWER32(size), UPPER32(size), ops->lnkcnt_get(fn),
 	    (ops->is_file(fn) ? L_FILE : 0) | (ops->is_directory(fn) ? L_DIRECTORY : 0));
 	
 	(void) ops->node_put(fn);

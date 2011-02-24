@@ -38,18 +38,24 @@
 #include <errno.h>
 #include <str_error.h>
 #include <stdlib.h>
-#include <driver.h>
-#include <usb/usbdrv.h>
+#include <ddf/driver.h>
+#include <devman.h>
+#include <usb/hub.h>
+#include <usb/recognise.h>
 
 #include "hub.h"
 #include "hub/virthub.h"
 #include "vhcd.h"
+#include "conn.h"
 
 usbvirt_device_t virtual_hub_device;
+static ddf_dev_ops_t rh_ops = {
+	.interfaces[USB_DEV_IFACE] = &rh_usb_iface,
+};
 
 static int hub_register_in_devman_fibril(void *arg);
 
-void virtual_hub_device_init(device_t *hc_dev)
+void virtual_hub_device_init(ddf_fun_t *hc_dev)
 {
 	virthub_init(&virtual_hub_device);
 
@@ -69,6 +75,11 @@ void virtual_hub_device_init(device_t *hc_dev)
 	fibril_add_ready(root_hub_registration);
 }
 
+static int pretend_port_rest(int unused, void *unused2)
+{
+	return EOK;
+}
+
 /** Register root hub in devman.
  *
  * @param arg Host controller device (type <code>device_t *</code>).
@@ -76,26 +87,42 @@ void virtual_hub_device_init(device_t *hc_dev)
  */
 int hub_register_in_devman_fibril(void *arg)
 {
-	device_t *hc_dev = (device_t *) arg;
+	ddf_fun_t *hc_dev = (ddf_fun_t *) arg;
 
-	int hc;
+	/*
+	 * Wait until parent device is properly initialized.
+	 */
+	int phone;
 	do {
-		hc = usb_drv_hc_connect(hc_dev, hc_dev->handle,
-		    IPC_FLAG_BLOCKING);
-	} while (hc < 0);
+		phone = devman_device_connect(hc_dev->handle, 0);
+	} while (phone < 0);
+	async_hangup(phone);
 
-	usb_drv_reserve_default_address(hc);
+	int rc;
 
-	usb_address_t hub_address = usb_drv_request_address(hc);
-	usb_drv_req_set_address(hc, USB_ADDRESS_DEFAULT, hub_address);
+	usb_hc_connection_t hc_conn;
+	rc = usb_hc_connection_initialize(&hc_conn, hc_dev->handle);
+	assert(rc == EOK);
 
-	usb_drv_release_default_address(hc);
+	rc = usb_hc_connection_open(&hc_conn);
+	assert(rc == EOK);
 
-	devman_handle_t hub_handle;
-	usb_drv_register_child_in_devman(hc, hc_dev, hub_address, &hub_handle);
-	usb_drv_bind_address(hc, hub_address, hub_handle);
+	ddf_fun_t *hub_dev;
+	rc = usb_hc_new_device_wrapper(hc_dev->dev, &hc_conn,
+	    USB_SPEED_FULL,
+	    pretend_port_rest, 0, NULL,
+	    NULL, NULL, &rh_ops, hc_dev, &hub_dev);
+	if (rc != EOK) {
+		usb_log_fatal("Failed to create root hub: %s.\n",
+		    str_error(rc));
+	}
 
-	return EOK;
+	usb_hc_connection_close(&hc_conn);
+
+	usb_log_info("Created root hub function (handle %zu).\n",
+	    (size_t) hub_dev->handle);
+
+	return 0;
 }
 	
 

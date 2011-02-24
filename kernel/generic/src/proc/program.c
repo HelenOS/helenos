@@ -170,6 +170,7 @@ int program_create_loader(program_t *prg, char *name)
 	
 	void *loader = program_loader;
 	if (!loader) {
+		as_destroy(as);
 		printf("Cannot spawn loader as none was registered\n");
 		return ENOENT;
 	}
@@ -178,6 +179,7 @@ int program_create_loader(program_t *prg, char *name)
 	    ELD_F_LOADER);
 	if (rc != EE_OK) {
 		as_destroy(as);
+		printf("Cannot spawn loader (%s)\n", elf_error(rc));
 		return ENOENT;
 	}
 	

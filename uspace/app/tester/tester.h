@@ -37,7 +37,6 @@
 
 #include <sys/types.h>
 #include <bool.h>
-#include <ipc/ipc.h>
 
 #define IPC_TEST_SERVICE  10240
 #define IPC_TEST_METHOD   2000

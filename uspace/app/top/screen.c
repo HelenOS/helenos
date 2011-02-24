@@ -36,7 +36,6 @@
  */
 
 #include <stdio.h>
-#include <ipc/ipc.h>
 #include <io/console.h>
 #include <io/style.h>
 #include <vfs/vfs.h>

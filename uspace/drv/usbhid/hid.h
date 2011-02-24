@@ -39,7 +39,7 @@
 #include <stdint.h>
 
 #include <usb/classes/hid.h>
-#include <driver.h>
+#include <ddf/driver.h>
 #include <usb/pipes.h>
 
 /**
@@ -68,12 +68,12 @@ typedef struct {
  * Quite dummy right now.
  */
 typedef struct {
-	device_t *device;
+	ddf_dev_t *device;
 	usb_hid_configuration_t *conf;
-	usb_address_t address;
 	usb_hid_report_parser_t *parser;
 
 	usb_device_connection_t wire;
+	usb_endpoint_pipe_t ctrl_pipe;
 	usb_endpoint_pipe_t poll_pipe;
 	
 	uint8_t *keycodes;

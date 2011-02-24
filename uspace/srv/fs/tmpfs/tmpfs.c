@@ -41,8 +41,8 @@
  */
 
 #include "tmpfs.h"
-#include <ipc/ipc.h>
 #include <ipc/services.h>
+#include <ipc/ns.h>
 #include <async.h>
 #include <errno.h>
 #include <unistd.h>
@@ -89,7 +89,7 @@ static void tmpfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 		 * IPC_M_CONNECT_ME_TO calls as opposed to callback connections
 		 * created by IPC_M_CONNECT_TO_ME.
 		 */
-		ipc_answer_0(iid, EOK);
+		async_answer_0(iid, EOK);
 	}
 	
 	dprintf(NAME ": connection opened\n");
@@ -141,7 +141,7 @@ static void tmpfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 			tmpfs_sync(callid, &call);
 			break;
 		default:
-			ipc_answer_0(callid, ENOTSUP);
+			async_answer_0(callid, ENOTSUP);
 			break;
 		}
 	}
@@ -156,7 +156,7 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	int vfs_phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_VFS, 0, 0);
+	int vfs_phone = service_connect_blocking(SERVICE_VFS, 0, 0);
 	if (vfs_phone < EOK) {
 		printf(NAME ": Unable to connect to VFS\n");
 		return -1;

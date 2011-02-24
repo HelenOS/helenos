@@ -28,8 +28,8 @@
 
 #include <stdio.h>
 #include <bool.h>
-#include <ipc/ipc.h>
 #include <async.h>
+#include <ipc/ns.h>
 #include <ipc/services.h>
 #include <ipc/clipboard.h>
 #include <malloc.h>
@@ -61,12 +61,12 @@ static void clip_put_data(ipc_callid_t rid, ipc_call_t *request)
 		clip_tag = CLIPBOARD_TAG_NONE;
 		
 		fibril_mutex_unlock(&clip_mtx);
-		ipc_answer_0(rid, EOK);
+		async_answer_0(rid, EOK);
 		break;
 	case CLIPBOARD_TAG_DATA:
 		rc = async_data_write_accept((void **) &data, false, 0, 0, 0, &size);
 		if (rc != EOK) {
-			ipc_answer_0(rid, rc);
+			async_answer_0(rid, rc);
 			break;
 		}
 		
@@ -80,10 +80,10 @@ static void clip_put_data(ipc_callid_t rid, ipc_call_t *request)
 		clip_tag = CLIPBOARD_TAG_DATA;
 		
 		fibril_mutex_unlock(&clip_mtx);
-		ipc_answer_0(rid, EOK);
+		async_answer_0(rid, EOK);
 		break;
 	default:
-		ipc_answer_0(rid, EINVAL);
+		async_answer_0(rid, EINVAL);
 	}
 }
 
@@ -98,38 +98,38 @@ static void clip_get_data(ipc_callid_t rid, ipc_call_t *request)
 	switch (IPC_GET_ARG1(*request)) {
 	case CLIPBOARD_TAG_DATA:
 		if (!async_data_read_receive(&callid, &size)) {
-			ipc_answer_0(callid, EINVAL);
-			ipc_answer_0(rid, EINVAL);
+			async_answer_0(callid, EINVAL);
+			async_answer_0(rid, EINVAL);
 			break;
 		}
 		
 		if (clip_tag != CLIPBOARD_TAG_DATA) {
 			/* So far we only understand binary data */
-			ipc_answer_0(callid, EOVERFLOW);
-			ipc_answer_0(rid, EOVERFLOW);
+			async_answer_0(callid, EOVERFLOW);
+			async_answer_0(rid, EOVERFLOW);
 			break;
 		}
 		
 		if (clip_size != size) {
 			/* The client expects different size of data */
-			ipc_answer_0(callid, EOVERFLOW);
-			ipc_answer_0(rid, EOVERFLOW);
+			async_answer_0(callid, EOVERFLOW);
+			async_answer_0(rid, EOVERFLOW);
 			break;
 		}
 		
 		sysarg_t retval = async_data_read_finalize(callid, clip_data, size);
 		if (retval != EOK) {
-			ipc_answer_0(rid, retval);
+			async_answer_0(rid, retval);
 			break;
 		}
 		
-		ipc_answer_0(rid, EOK);
+		async_answer_0(rid, EOK);
 	default:
 		/*
 		 * Sorry, we don't know how to get unknown or NONE
 		 * data from the clipbard
 		 */
-		ipc_answer_0(rid, EINVAL);
+		async_answer_0(rid, EINVAL);
 		break;
 	}
 	
@@ -144,13 +144,13 @@ static void clip_content(ipc_callid_t rid, ipc_call_t *request)
 	clipboard_tag_t tag = clip_tag;
 	
 	fibril_mutex_unlock(&clip_mtx);
-	ipc_answer_2(rid, EOK, (sysarg_t) size, (sysarg_t) tag);
+	async_answer_2(rid, EOK, (sysarg_t) size, (sysarg_t) tag);
 }
 
 static void clip_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
 	/* Accept connection */
-	ipc_answer_0(iid, EOK);
+	async_answer_0(iid, EOK);
 	
 	bool cont = true;
 	while (cont) {
@@ -171,7 +171,7 @@ static void clip_connection(ipc_callid_t iid, ipc_call_t *icall)
 			clip_content(callid, &call);
 			break;
 		default:
-			ipc_answer_0(callid, ENOENT);
+			async_answer_0(callid, ENOENT);
 		}
 	}
 }
@@ -182,7 +182,7 @@ int main(int argc, char *argv[])
 	
 	async_set_client_connection(clip_connection);
 	
-	if (ipc_connect_to_me(PHONE_NS, SERVICE_CLIPBOARD, 0, 0, NULL, NULL)) 
+	if (service_register(SERVICE_CLIPBOARD) != EOK)
 		return -1;
 	
 	printf(NAME ": Accepting connections\n");

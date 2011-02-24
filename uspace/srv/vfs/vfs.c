@@ -35,8 +35,8 @@
  * @brief VFS service for HelenOS.
  */
 
-#include <ipc/ipc.h>
 #include <ipc/services.h>
+#include <ipc/ns.h>
 #include <async.h>
 #include <errno.h>
 #include <stdio.h>
@@ -46,7 +46,7 @@
 #include <atomic.h>
 #include "vfs.h"
 
-#define NAME "vfs"
+#define NAME  "vfs"
 
 static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
@@ -56,7 +56,7 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 	 * The connection was opened via the IPC_CONNECT_ME_TO call.
 	 * This call needs to be answered.
 	 */
-	ipc_answer_0(iid, EOK);
+	async_answer_0(iid, EOK);
 	
 	while (keep_on_going) {
 		ipc_call_t call;
@@ -118,7 +118,7 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case VFS_IN_DUP:
 			vfs_dup(callid, &call);
 		default:
-			ipc_answer_0(callid, ENOTSUP);
+			async_answer_0(callid, ENOTSUP);
 			break;
 		}
 	}
@@ -171,7 +171,10 @@ int main(int argc, char **argv)
 	/*
 	 * Register at the naming service.
 	 */
-	ipc_connect_to_me(PHONE_NS, SERVICE_VFS, 0, 0, NULL, NULL);
+	if (service_register(SERVICE_VFS) != EOK) {
+		printf("%s: Cannot register VFS service\n", NAME);
+		return EINVAL;
+	}
 	
 	/*
 	 * Start accepting connections.

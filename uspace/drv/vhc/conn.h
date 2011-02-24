@@ -36,21 +36,22 @@
 #define VHCD_CONN_H_
 
 #include <usb/usb.h>
-#include <usb/hcdhubd.h>
 #include <usbhc_iface.h>
+#include <usb_iface.h>
 #include "vhcd.h"
 #include "devices.h"
 
 void connection_handler_host(sysarg_t);
 
-usb_hcd_transfer_ops_t vhc_transfer_ops;
-usbhc_iface_t vhc_iface;
+extern usbhc_iface_t vhc_iface;
+extern usb_iface_t vhc_usb_iface;
+extern usb_iface_t rh_usb_iface;
 
 void address_init(void);
 
 
-void default_connection_handler(device_t *, ipc_callid_t, ipc_call_t *);
-void on_client_close(device_t *);
+void default_connection_handler(ddf_fun_t *, ipc_callid_t, ipc_call_t *);
+void on_client_close(ddf_fun_t *);
 
 
 #endif

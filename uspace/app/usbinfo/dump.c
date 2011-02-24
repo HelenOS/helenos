@@ -52,7 +52,7 @@
 #define BYTES_PER_LINE 12
 
 
-static const char *get_indent(size_t level)
+const char *get_indent(size_t level)
 {
 	static const char *indents[] = {
 		INDENT,

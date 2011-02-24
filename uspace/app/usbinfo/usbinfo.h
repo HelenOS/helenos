@@ -44,6 +44,7 @@
 #define NAME "usbinfo"
 
 void dump_buffer(const char *, size_t, const uint8_t *, size_t);
+const char *get_indent(size_t);
 void dump_match_ids(match_id_list_t *matches);
 void dump_usb_descriptor(uint8_t *, size_t);
 int dump_device(devman_handle_t, usb_address_t);

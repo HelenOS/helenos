@@ -43,11 +43,8 @@
 #include <fibril_synch.h>
 #include <unistd.h>
 #include <sys/mman.h>
-
-#include <ipc/ipc.h>
 #include <ipc/packet.h>
 #include <ipc/net.h>
-
 #include <net/packet.h>
 #include <net/packet_header.h>
 
@@ -291,12 +288,12 @@ static int packet_reply(packet_t *packet)
 		return EINVAL;
 
 	if (!async_share_in_receive(&callid, &size)) {
-		ipc_answer_0(callid, EINVAL);
+		async_answer_0(callid, EINVAL);
 		return EINVAL;
 	}
 
 	if (size != packet->length) {
-		ipc_answer_0(callid, ENOMEM);
+		async_answer_0(callid, ENOMEM);
 		return ENOMEM;
 	}
 	

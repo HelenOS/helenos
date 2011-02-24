@@ -42,7 +42,6 @@
 #include <getopt.h>
 #include <devman.h>
 #include <devmap.h>
-#include <usb/usbdrv.h>
 #include "usbinfo.h"
 
 enum {
@@ -80,6 +79,10 @@ static int get_host_controller_handle(const char *path,
     devman_handle_t *hc_handle)
 {
 	int rc;
+
+	if (str_cmp(path, "uhci") == 0) {
+		path = "/hw/pci0/00:01.2/uhci";
+	}
 
 	devman_handle_t handle;
 	rc = devman_device_get_handle(path, &handle, 0);

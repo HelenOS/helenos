@@ -35,7 +35,6 @@
 #ifndef LIBUSB_DESCRIPTOR_H_
 #define LIBUSB_DESCRIPTOR_H_
 
-#include <ipc/ipc.h>
 #include <async.h>
 
 /** Descriptor type. */

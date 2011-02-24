@@ -37,7 +37,6 @@
 
 #include <sys/types.h>
 #include <byteorder.h>
-#include <ipc/ipc.h>
 
 /** Convert 16bit value from native (host) endianness to USB endianness. */
 #define uint16_host2usb(n) host2uint16_t_le((n))
@@ -69,6 +68,16 @@ typedef enum {
 	USB_DIRECTION_BOTH
 } usb_direction_t;
 
+/** USB speeds. */
+typedef enum {
+	/** USB 1.1 low speed (1.5Mbits/s). */
+	USB_SPEED_LOW,
+	/** USB 1.1 full speed (12Mbits/s). */
+	USB_SPEED_FULL,
+	/** USB 2.0 high speed (480Mbits/s). */
+	USB_SPEED_HIGH
+} usb_speed_t;
+
 /** USB request type target. */
 typedef enum {
 	USB_REQUEST_TYPE_STANDARD = 0,
@@ -82,15 +91,6 @@ typedef enum {
 	USB_REQUEST_RECIPIENT_INTERFACE = 1,
 	USB_REQUEST_RECIPIENT_ENDPOINT = 2
 } usb_request_recipient_t;
-
-/** USB transaction outcome. */
-typedef enum {
-	USB_OUTCOME_OK,
-	USB_OUTCOME_CRCERROR,
-	USB_OUTCOME_BABBLE
-} usb_transaction_outcome_t;
-
-const char * usb_str_transaction_outcome(usb_transaction_outcome_t o);
 
 /** USB address type.
  * Negative values could be used to indicate error.

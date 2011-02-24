@@ -33,9 +33,7 @@
 #ifndef DEVMAP_DEVMAP_H_
 #define DEVMAP_DEVMAP_H_
 
-#include <atomic.h>
-#include <ipc/ipc.h>
-#include <adt/list.h>
+#include <ipc/common.h>
 
 #define DEVMAP_NAME_MAXLEN  255
 

@@ -30,28 +30,70 @@
  * @{
  */
 /** @file
- * Communication between device drivers and host controller driver.
- *
- * Note on synchronousness of the operations: there is ABSOLUTELY NO
- * guarantee that a call to particular function will not trigger a fibril
- * switch.
- * The initialization functions may actually involve contacting some other
- * task, starting/ending a session might involve asynchronous IPC and since
- * the transfer functions uses IPC, asynchronous nature of them is obvious.
- * The pseudo synchronous versions for the transfers internally call the
- * asynchronous ones and so fibril switch is possible in them as well.
+ * USB endpoint pipes miscellaneous functions.
  */
 #include <usb/usb.h>
 #include <usb/pipes.h>
+#include <usb/debug.h>
+#include <usbhc_iface.h>
+#include <usb_iface.h>
+#include <devman.h>
 #include <errno.h>
 #include <assert.h>
-#include <usb/usbdrv.h>
 
-#define _PREPARE_TARGET(varname, pipe) \
-	usb_target_t varname = { \
-		.address = (pipe)->wire->address, \
-		.endpoint = (pipe)->endpoint_no \
+/** Tell USB address assigned to given device.
+ *
+ * @param phone Phone to parent device.
+ * @param dev Device in question.
+ * @return USB address or error code.
+ */
+static usb_address_t get_my_address(int phone, ddf_dev_t *dev)
+{
+	sysarg_t address;
+
+
+	/*
+	 * We are sending special value as a handle - zero - to get
+	 * handle of the parent function (that handle was used
+	 * when registering our device @p dev.
+	 */
+	int rc = async_req_2_1(phone, DEV_IFACE_ID(USB_DEV_IFACE),
+	    IPC_M_USB_GET_ADDRESS,
+	    0, &address);
+
+	if (rc != EOK) {
+		return rc;
 	}
+
+	return (usb_address_t) address;
+}
+
+/** Tell USB interface assigned to given device.
+ *
+ * @param device Device in question.
+ * @return Interface number (negative code means any).
+ */
+int usb_device_get_assigned_interface(ddf_dev_t *device)
+{
+	int parent_phone = devman_parent_device_connect(device->handle,
+	    IPC_FLAG_BLOCKING);
+	if (parent_phone < 0) {
+		return -1;
+	}
+
+	sysarg_t iface_no;
+	int rc = async_req_2_1(parent_phone, DEV_IFACE_ID(USB_DEV_IFACE),
+	    IPC_M_USB_GET_INTERFACE,
+	    device->handle, &iface_no);
+
+	async_hangup(parent_phone);
+
+	if (rc != EOK) {
+		return -1;
+	}
+
+	return (int) iface_no;
+}
 
 /** Initialize connection to USB device.
  *
@@ -60,26 +102,27 @@
  * @return Error code.
  */
 int usb_device_connection_initialize_from_device(
-    usb_device_connection_t *connection, device_t *device)
+    usb_device_connection_t *connection, ddf_dev_t *dev)
 {
 	assert(connection);
-	assert(device);
+	assert(dev);
 
 	int rc;
 	devman_handle_t hc_handle;
 	usb_address_t my_address;
 
-	rc = usb_drv_find_hc(device, &hc_handle);
+	rc = usb_hc_find(dev->handle, &hc_handle);
 	if (rc != EOK) {
 		return rc;
 	}
 
-	int hc_phone = devman_device_connect(hc_handle, 0);
-	if (hc_phone < 0) {
-		return hc_phone;
+	int parent_phone = devman_parent_device_connect(dev->handle,
+	    IPC_FLAG_BLOCKING);
+	if (parent_phone < 0) {
+		return parent_phone;
 	}
 
-	my_address = usb_drv_get_my_address(hc_phone, device);
+	my_address = get_my_address(parent_phone, dev);
 	if (my_address < 0) {
 		rc = my_address;
 		goto leave;
@@ -89,7 +132,7 @@ int usb_device_connection_initialize_from_device(
 	    hc_handle, my_address);
 
 leave:
-	ipc_hangup(hc_phone);
+	async_hangup(parent_phone);
 	return rc;
 }
 
@@ -116,48 +159,24 @@ int usb_device_connection_initialize(usb_device_connection_t *connection,
 	return EOK;
 }
 
-/** Initialize USB endpoint pipe.
+/** Initialize connection to USB device on default address.
  *
- * @param pipe Endpoint pipe to be initialized.
- * @param connection Connection to the USB device backing this pipe (the wire).
- * @param endpoint_no Endpoint number (in USB 1.1 in range 0 to 15).
- * @param transfer_type Transfer type (e.g. interrupt or bulk).
- * @param direction Endpoint direction (in/out).
+ * @param dev_connection Device connection structure to be initialized.
+ * @param hc_connection Initialized connection to host controller.
  * @return Error code.
  */
-int usb_endpoint_pipe_initialize(usb_endpoint_pipe_t *pipe,
-    usb_device_connection_t *connection, usb_endpoint_t endpoint_no,
-    usb_transfer_type_t transfer_type, usb_direction_t direction)
+int usb_device_connection_initialize_on_default_address(
+    usb_device_connection_t *dev_connection,
+    usb_hc_connection_t *hc_connection)
 {
-	assert(pipe);
-	assert(connection);
+	assert(dev_connection);
 
-	pipe->wire = connection;
-	pipe->hc_phone = -1;
-	pipe->endpoint_no = endpoint_no;
-	pipe->transfer_type = transfer_type;
-	pipe->direction = direction;
+	if (hc_connection == NULL) {
+		return EBADMEM;
+	}
 
-	return EOK;
-}
-
-
-/** Initialize USB endpoint pipe as the default zero control pipe.
- *
- * @param pipe Endpoint pipe to be initialized.
- * @param connection Connection to the USB device backing this pipe (the wire).
- * @return Error code.
- */
-int usb_endpoint_pipe_initialize_default_control(usb_endpoint_pipe_t *pipe,
-    usb_device_connection_t *connection)
-{
-	assert(pipe);
-	assert(connection);
-
-	int rc = usb_endpoint_pipe_initialize(pipe, connection,
-	    0, USB_TRANSFER_CONTROL, USB_DIRECTION_BOTH);
-
-	return rc;
+	return usb_device_connection_initialize(dev_connection,
+	    hc_connection->hc_handle, (usb_address_t) 0);
 }
 
 
@@ -180,7 +199,7 @@ int usb_endpoint_pipe_start_session(usb_endpoint_pipe_t *pipe)
 {
 	assert(pipe);
 
-	if (pipe->hc_phone >= 0) {
+	if (usb_endpoint_pipe_is_session_started(pipe)) {
 		return EBUSY;
 	}
 
@@ -206,11 +225,11 @@ int usb_endpoint_pipe_end_session(usb_endpoint_pipe_t *pipe)
 {
 	assert(pipe);
 
-	if (pipe->hc_phone < 0) {
+	if (!usb_endpoint_pipe_is_session_started(pipe)) {
 		return ENOENT;
 	}
 
-	int rc = ipc_hangup(pipe->hc_phone);
+	int rc = async_hangup(pipe->hc_phone);
 	if (rc != EOK) {
 		return rc;
 	}
@@ -220,306 +239,18 @@ int usb_endpoint_pipe_end_session(usb_endpoint_pipe_t *pipe)
 	return EOK;
 }
 
-
-/** Request a read (in) transfer on an endpoint pipe.
+/** Tell whether a session is started (open) on the endpoint pipe.
  *
- * @param[in] pipe Pipe used for the transfer.
- * @param[out] buffer Buffer where to store the data.
- * @param[in] size Size of the buffer (in bytes).
- * @param[out] size_transfered Number of bytes that were actually transfered.
- * @return Error code.
+ * The expected usage of this function is in assertions for some
+ * nested functions.
+ *
+ * @param pipe Endpoint pipe in question.
+ * @return Whether @p pipe has opened a session.
  */
-int usb_endpoint_pipe_read(usb_endpoint_pipe_t *pipe,
-    void *buffer, size_t size, size_t *size_transfered)
+bool usb_endpoint_pipe_is_session_started(usb_endpoint_pipe_t *pipe)
 {
-	assert(pipe);
-
-	int rc;
-	usb_handle_t handle;
-
-	rc = usb_endpoint_pipe_async_read(pipe, buffer, size, size_transfered,
-	    &handle);
-	if (rc != EOK) {
-		return rc;
-	}
-
-	rc = usb_endpoint_pipe_wait_for(pipe, handle);
-	return rc;
+	return (pipe->hc_phone >= 0);
 }
-
-/** Request a write (out) transfer on an endpoint pipe.
- *
- * @param[in] pipe Pipe used for the transfer.
- * @param[in] buffer Buffer with data to transfer.
- * @param[in] size Size of the buffer (in bytes).
- * @return Error code.
- */
-int usb_endpoint_pipe_write(usb_endpoint_pipe_t *pipe,
-    void *buffer, size_t size)
-{
-	assert(pipe);
-
-	int rc;
-	usb_handle_t handle;
-
-	rc = usb_endpoint_pipe_async_write(pipe, buffer, size, &handle);
-	if (rc != EOK) {
-		return rc;
-	}
-
-	rc = usb_endpoint_pipe_wait_for(pipe, handle);
-	return rc;
-}
-
-
-/** Request a control read transfer on an endpoint pipe.
- *
- * This function encapsulates all three stages of a control transfer.
- *
- * @param[in] pipe Pipe used for the transfer.
- * @param[in] setup_buffer Buffer with the setup packet.
- * @param[in] setup_buffer_size Size of the setup packet (in bytes).
- * @param[out] data_buffer Buffer for incoming data.
- * @param[in] data_buffer_size Size of the buffer for incoming data (in bytes).
- * @param[out] data_transfered_size Number of bytes that were actually
- *                                  transfered during the DATA stage.
- * @return Error code.
- */
-int usb_endpoint_pipe_control_read(usb_endpoint_pipe_t *pipe,
-    void *setup_buffer, size_t setup_buffer_size,
-    void *data_buffer, size_t data_buffer_size, size_t *data_transfered_size)
-{
-	assert(pipe);
-
-	int rc;
-	usb_handle_t handle;
-
-	rc = usb_endpoint_pipe_async_control_read(pipe,
-	    setup_buffer, setup_buffer_size,
-	    data_buffer, data_buffer_size, data_transfered_size,
-	    &handle);
-	if (rc != EOK) {
-		return rc;
-	}
-
-	rc = usb_endpoint_pipe_wait_for(pipe, handle);
-	return rc;
-}
-
-
-/** Request a control write transfer on an endpoint pipe.
- *
- * This function encapsulates all three stages of a control transfer.
- *
- * @param[in] pipe Pipe used for the transfer.
- * @param[in] setup_buffer Buffer with the setup packet.
- * @param[in] setup_buffer_size Size of the setup packet (in bytes).
- * @param[in] data_buffer Buffer with data to be sent.
- * @param[in] data_buffer_size Size of the buffer with outgoing data (in bytes).
- * @return Error code.
- */
-int usb_endpoint_pipe_control_write(usb_endpoint_pipe_t *pipe,
-    void *setup_buffer, size_t setup_buffer_size,
-    void *data_buffer, size_t data_buffer_size)
-{
-	assert(pipe);
-
-	int rc;
-	usb_handle_t handle;
-
-	rc = usb_endpoint_pipe_async_control_write(pipe,
-	    setup_buffer, setup_buffer_size,
-	    data_buffer, data_buffer_size,
-	    &handle);
-	if (rc != EOK) {
-		return rc;
-	}
-
-	rc = usb_endpoint_pipe_wait_for(pipe, handle);
-	return rc;
-}
-
-
-/** Request a read (in) transfer on an endpoint pipe (asynchronous version).
- *
- * @param[in] pipe Pipe used for the transfer.
- * @param[out] buffer Buffer where to store the data.
- * @param[in] size Size of the buffer (in bytes).
- * @param[out] size_transfered Number of bytes that were actually transfered.
- * @param[out] handle Handle of the transfer.
- * @return Error code.
- */
-int usb_endpoint_pipe_async_read(usb_endpoint_pipe_t *pipe,
-    void *buffer, size_t size, size_t *size_transfered,
-    usb_handle_t *handle)
-{
-	assert(pipe);
-
-	if (pipe->hc_phone < 0) {
-		return EBADF;
-	}
-
-	if (pipe->direction != USB_DIRECTION_IN) {
-		return EBADF;
-	}
-
-	int rc;
-	_PREPARE_TARGET(target, pipe);
-
-	switch (pipe->transfer_type) {
-		case USB_TRANSFER_INTERRUPT:
-			rc = usb_drv_async_interrupt_in(pipe->hc_phone, target,
-			    buffer, size, size_transfered, handle);
-			break;
-		case USB_TRANSFER_CONTROL:
-			rc = EBADF;
-			break;
-		default:
-			rc = ENOTSUP;
-			break;
-	}
-
-	return rc;
-}
-
-
-/** Request a write (out) transfer on an endpoint pipe (asynchronous version).
- *
- * @param[in] pipe Pipe used for the transfer.
- * @param[in] buffer Buffer with data to transfer.
- * @param[in] size Size of the buffer (in bytes).
- * @param[out] handle Handle of the transfer.
- * @return Error code.
- */
-int usb_endpoint_pipe_async_write(usb_endpoint_pipe_t *pipe,
-    void *buffer, size_t size,
-    usb_handle_t *handle)
-{
-	assert(pipe);
-
-	if (pipe->hc_phone < 0) {
-		return EBADF;
-	}
-
-	if (pipe->direction != USB_DIRECTION_OUT) {
-		return EBADF;
-	}
-
-	int rc;
-	_PREPARE_TARGET(target, pipe);
-
-	switch (pipe->transfer_type) {
-		case USB_TRANSFER_INTERRUPT:
-			rc = usb_drv_async_interrupt_out(pipe->hc_phone, target,
-			    buffer, size, handle);
-			break;
-		case USB_TRANSFER_CONTROL:
-			rc = EBADF;
-			break;
-		default:
-			rc = ENOTSUP;
-			break;
-	}
-
-	return rc;
-}
-
-
-/** Request a control read transfer on an endpoint pipe (asynchronous version).
- *
- * This function encapsulates all three stages of a control transfer.
- *
- * @param[in] pipe Pipe used for the transfer.
- * @param[in] setup_buffer Buffer with the setup packet.
- * @param[in] setup_buffer_size Size of the setup packet (in bytes).
- * @param[out] data_buffer Buffer for incoming data.
- * @param[in] data_buffer_size Size of the buffer for incoming data (in bytes).
- * @param[out] data_transfered_size Number of bytes that were actually
- *                                  transfered during the DATA stage.
- * @param[out] handle Handle of the transfer.
- * @return Error code.
- */
-int usb_endpoint_pipe_async_control_read(usb_endpoint_pipe_t *pipe,
-    void *setup_buffer, size_t setup_buffer_size,
-    void *data_buffer, size_t data_buffer_size, size_t *data_transfered_size,
-    usb_handle_t *handle)
-{
-	assert(pipe);
-
-	if (pipe->hc_phone < 0) {
-		return EBADF;
-	}
-
-	if ((pipe->direction != USB_DIRECTION_BOTH)
-	    || (pipe->transfer_type != USB_TRANSFER_CONTROL)) {
-		return EBADF;
-	}
-
-	int rc;
-	_PREPARE_TARGET(target, pipe);
-
-	rc = usb_drv_async_control_read(pipe->hc_phone, target,
-	    setup_buffer, setup_buffer_size,
-	    data_buffer, data_buffer_size, data_transfered_size,
-	    handle);
-
-	return rc;
-}
-
-
-/** Request a control write transfer on an endpoint pipe (asynchronous version).
- *
- * This function encapsulates all three stages of a control transfer.
- *
- * @param[in] pipe Pipe used for the transfer.
- * @param[in] setup_buffer Buffer with the setup packet.
- * @param[in] setup_buffer_size Size of the setup packet (in bytes).
- * @param[in] data_buffer Buffer with data to be sent.
- * @param[in] data_buffer_size Size of the buffer with outgoing data (in bytes).
- * @param[out] handle Handle of the transfer.
- * @return Error code.
- */
-int usb_endpoint_pipe_async_control_write(usb_endpoint_pipe_t *pipe,
-    void *setup_buffer, size_t setup_buffer_size,
-    void *data_buffer, size_t data_buffer_size,
-    usb_handle_t *handle)
-{
-	assert(pipe);
-
-	if (pipe->hc_phone < 0) {
-		return EBADF;
-	}
-
-	if ((pipe->direction != USB_DIRECTION_BOTH)
-	    || (pipe->transfer_type != USB_TRANSFER_CONTROL)) {
-		return EBADF;
-	}
-
-	int rc;
-	_PREPARE_TARGET(target, pipe);
-
-	rc = usb_drv_async_control_write(pipe->hc_phone, target,
-	    setup_buffer, setup_buffer_size,
-	    data_buffer, data_buffer_size,
-	    handle);
-
-	return rc;
-}
-
-/** Wait for transfer completion.
- *
- * The function blocks the caller fibril until the transfer associated
- * with given @p handle is completed.
- *
- * @param[in] pipe Pipe the transfer executed on.
- * @param[in] handle Transfer handle.
- * @return Error code.
- */
-int usb_endpoint_pipe_wait_for(usb_endpoint_pipe_t *pipe, usb_handle_t handle)
-{
-	return usb_drv_async_wait_for(handle);
-}
-
 
 /**
  * @}

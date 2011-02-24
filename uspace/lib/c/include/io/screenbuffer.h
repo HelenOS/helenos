@@ -37,7 +37,6 @@
 
 #include <stdint.h>
 #include <sys/types.h>
-#include <ipc/ipc.h>
 #include <bool.h>
 
 typedef enum {

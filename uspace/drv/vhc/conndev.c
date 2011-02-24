@@ -75,11 +75,11 @@ static int get_device_name(int phone, char *buffer, size_t len)
 
 /** Default handler for IPC methods not handled by DDF.
  *
- * @param dev Device handling the call.
+ * @param fun Device handling the call.
  * @param icallid Call id.
  * @param icall Call data.
  */
-void default_connection_handler(device_t *dev,
+void default_connection_handler(ddf_fun_t *fun,
     ipc_callid_t icallid, ipc_call_t *icall)
 {
 	sysarg_t method = IPC_GET_IMETHOD(*icall);
@@ -89,11 +89,11 @@ void default_connection_handler(device_t *dev,
 		virtdev_connection_t *dev
 		    = virtdev_add_device(callback, (sysarg_t)fibril_get_id());
 		if (!dev) {
-			ipc_answer_0(icallid, EEXISTS);
-			ipc_hangup(callback);
+			async_answer_0(icallid, EEXISTS);
+			async_hangup(callback);
 			return;
 		}
-		ipc_answer_0(icallid, EOK);
+		async_answer_0(icallid, EOK);
 
 		char devname[DEVICE_NAME_MAXLENGTH + 1];
 		int rc = get_device_name(callback, devname, DEVICE_NAME_MAXLENGTH);
@@ -104,14 +104,14 @@ void default_connection_handler(device_t *dev,
 		return;
 	}
 
-	ipc_answer_0(icallid, EINVAL);
+	async_answer_0(icallid, EINVAL);
 }
 
 /** Callback for DDF when client disconnects.
  *
  * @param d Device the client was connected to.
  */
-void on_client_close(device_t *d)
+void on_client_close(ddf_fun_t *fun)
 {
 	/*
 	 * Maybe a virtual device is being unplugged.

@@ -115,6 +115,8 @@ fibril_t *fibril_setup(void)
 	fibril->retval = 0;
 	fibril->flags = 0;
 	
+	fibril->waits_for = NULL;
+	
 	return fibril;
 }
 
@@ -275,8 +277,6 @@ fid_t fibril_create(int (*func)(void *), void *arg)
 	fibril->func = func;
 	fibril->arg = arg;
 
-	fibril->waits_for = NULL;
-	
 	context_save(&fibril->ctx);
 	context_set(&fibril->ctx, FADDR(fibril_main), fibril->stack,
 	    FIBRIL_INITIAL_STACK_PAGES_NO * getpagesize(), fibril->tcb);

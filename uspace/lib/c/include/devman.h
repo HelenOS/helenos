@@ -40,12 +40,11 @@
 #include <async.h>
 #include <bool.h>
 
-
 extern int devman_get_phone(devman_interface_t, unsigned int);
 extern void devman_hangup_phone(devman_interface_t);
 
 extern int devman_driver_register(const char *, async_client_conn_t);
-extern int devman_child_device_register(const char *, match_id_list_t *,
+extern int devman_add_function(const char *, fun_type_t, match_id_list_t *,
     devman_handle_t, devman_handle_t *);
 
 extern int devman_device_connect(devman_handle_t, unsigned int);

@@ -35,7 +35,6 @@
 #ifndef LIBC_IO_CONSOLE_H_
 #define LIBC_IO_CONSOLE_H_
 
-#include <ipc/ipc.h>
 #include <bool.h>
 
 typedef enum {

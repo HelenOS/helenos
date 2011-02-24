@@ -40,13 +40,10 @@
 #include <net/inet.h>
 #include <net/modules.h>
 #include <net/ip_codes.h>
-
 #include <async.h>
 #include <sys/types.h>
 #include <sys/time.h>
 #include <errno.h>
-
-#include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <ipc/icmp.h>
 

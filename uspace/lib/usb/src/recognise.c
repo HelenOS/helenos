@@ -32,44 +32,22 @@
 /** @file
  * @brief Functions for recognising kind of attached devices.
  */
-#include <usb_iface.h>
-#include <usb/usbdrv.h>
+#include <sys/types.h>
+#include <fibril_synch.h>
+#include <usb/pipes.h>
+#include <usb/recognise.h>
+#include <usb/ddfiface.h>
+#include <usb/request.h>
 #include <usb/classes/classes.h>
 #include <stdio.h>
 #include <errno.h>
+#include <assert.h>
 
-/** Callback for getting host controller handle.
- *
- * @param dev Device in question.
- * @param[out] handle Devman handle of the host controller.
- * @return Error code.
- */
-static int usb_iface_get_hc_handle(device_t *dev, devman_handle_t *handle)
-{
-	assert(dev);
-	assert(dev->parent != NULL);
+static size_t device_name_index = 0;
+static FIBRIL_MUTEX_INITIALIZE(device_name_index_mutex);
 
-	device_t *parent = dev->parent;
-
-	if (parent->ops && parent->ops->interfaces[USB_DEV_IFACE]) {
-		usb_iface_t *usb_iface
-		    = (usb_iface_t *) parent->ops->interfaces[USB_DEV_IFACE];
-		assert(usb_iface != NULL);
-		if (usb_iface->get_hc_handle) {
-			int rc = usb_iface->get_hc_handle(parent, handle);
-			return rc;
-		}
-	}
-
-	return ENOTSUP;
-}
-
-static usb_iface_t usb_iface = {
-	.get_hc_handle = usb_iface_get_hc_handle
-};
-
-static device_ops_t child_ops = {
-	.interfaces[USB_DEV_IFACE] = &usb_iface
+ddf_dev_ops_t child_ops = {
+	.interfaces[USB_DEV_IFACE] = &usb_iface_hub_child_impl
 };
 
 #define BCD_INT(a) (((unsigned int)(a)) / 256)
@@ -134,210 +112,199 @@ failure:
 	return rc;
 }
 
+#define ADD_MATCHID_OR_RETURN(match_ids, score, format, ...) \
+	do { \
+		int __rc = usb_add_match_id((match_ids), (score), \
+		    format, ##__VA_ARGS__); \
+		if (__rc != EOK) { \
+			return __rc; \
+		} \
+	} while (0)
+
+/** Create device match ids based on its interface.
+ *
+ * @param[in] descriptor Interface descriptor.
+ * @param[out] matches Initialized list of match ids.
+ * @return Error code (the two mentioned are not the only ones).
+ * @retval EINVAL Invalid input parameters (expects non NULL pointers).
+ * @retval ENOENT Interface does not specify class.
+ */
+int usb_device_create_match_ids_from_interface(
+    const usb_standard_device_descriptor_t *desc_device,
+    const usb_standard_interface_descriptor_t *desc_interface,
+    match_id_list_t *matches)
+{
+	if (desc_interface == NULL) {
+		return EINVAL;
+	}
+	if (matches == NULL) {
+		return EINVAL;
+	}
+
+	if (desc_interface->interface_class == USB_CLASS_USE_INTERFACE) {
+		return ENOENT;
+	}
+
+	const char *classname = usb_str_class(desc_interface->interface_class);
+	assert(classname != NULL);
+
+#define IFACE_PROTOCOL_FMT "interface&class=%s&subclass=0x%02x&protocol=0x%02x"
+#define IFACE_PROTOCOL_ARGS classname, desc_interface->interface_subclass, \
+    desc_interface->interface_protocol
+
+#define IFACE_SUBCLASS_FMT "interface&class=%s&subclass=0x%02x"
+#define IFACE_SUBCLASS_ARGS classname, desc_interface->interface_subclass
+
+#define IFACE_CLASS_FMT "interface&class=%s"
+#define IFACE_CLASS_ARGS classname
+
+#define VENDOR_RELEASE_FMT "vendor=0x%04x&product=0x%04x&release=" BCD_FMT
+#define VENDOR_RELEASE_ARGS desc_device->vendor_id, desc_device->product_id, \
+    BCD_ARGS(desc_device->device_version)
+
+#define VENDOR_PRODUCT_FMT "vendor=0x%04x&product=0x%04x"
+#define VENDOR_PRODUCT_ARGS desc_device->vendor_id, desc_device->product_id
+
+#define VENDOR_ONLY_FMT "vendor=0x%04x"
+#define VENDOR_ONLY_ARGS desc_device->vendor_id
+
+	/*
+	 * If the vendor is specified, create match ids with vendor with
+	 * higher score.
+	 * Then the same ones without the vendor part.
+	 */
+	if ((desc_device != NULL) && (desc_device->vendor_id != 0)) {
+		/* First, interface matches with device release number. */
+		ADD_MATCHID_OR_RETURN(matches, 250,
+		    "usb&" VENDOR_RELEASE_FMT "&" IFACE_PROTOCOL_FMT,
+		    VENDOR_RELEASE_ARGS, IFACE_PROTOCOL_ARGS);
+		ADD_MATCHID_OR_RETURN(matches, 240,
+		    "usb&" VENDOR_RELEASE_FMT "&" IFACE_SUBCLASS_FMT,
+		    VENDOR_RELEASE_ARGS, IFACE_SUBCLASS_ARGS);
+		ADD_MATCHID_OR_RETURN(matches, 230,
+		    "usb&" VENDOR_RELEASE_FMT "&" IFACE_CLASS_FMT,
+		    VENDOR_RELEASE_ARGS, IFACE_CLASS_ARGS);
+
+		/* Next, interface matches without release number. */
+		ADD_MATCHID_OR_RETURN(matches, 220,
+		    "usb&" VENDOR_PRODUCT_FMT "&" IFACE_PROTOCOL_FMT,
+		    VENDOR_PRODUCT_ARGS, IFACE_PROTOCOL_ARGS);
+		ADD_MATCHID_OR_RETURN(matches, 210,
+		    "usb&" VENDOR_PRODUCT_FMT "&" IFACE_SUBCLASS_FMT,
+		    VENDOR_PRODUCT_ARGS, IFACE_SUBCLASS_ARGS);
+		ADD_MATCHID_OR_RETURN(matches, 200,
+		    "usb&" VENDOR_PRODUCT_FMT "&" IFACE_CLASS_FMT,
+		    VENDOR_PRODUCT_ARGS, IFACE_CLASS_ARGS);
+
+		/* Finally, interface matches with only vendor. */
+		ADD_MATCHID_OR_RETURN(matches, 190,
+		    "usb&" VENDOR_ONLY_FMT "&" IFACE_PROTOCOL_FMT,
+		    VENDOR_ONLY_ARGS, IFACE_PROTOCOL_ARGS);
+		ADD_MATCHID_OR_RETURN(matches, 180,
+		    "usb&" VENDOR_ONLY_FMT "&" IFACE_SUBCLASS_FMT,
+		    VENDOR_ONLY_ARGS, IFACE_SUBCLASS_ARGS);
+		ADD_MATCHID_OR_RETURN(matches, 170,
+		    "usb&" VENDOR_ONLY_FMT "&" IFACE_CLASS_FMT,
+		    VENDOR_ONLY_ARGS, IFACE_CLASS_ARGS);
+	}
+
+	/* Now, the same but without any vendor specification. */
+	ADD_MATCHID_OR_RETURN(matches, 160,
+	    "usb&" IFACE_PROTOCOL_FMT,
+	    IFACE_PROTOCOL_ARGS);
+	ADD_MATCHID_OR_RETURN(matches, 150,
+	    "usb&" IFACE_SUBCLASS_FMT,
+	    IFACE_SUBCLASS_ARGS);
+	ADD_MATCHID_OR_RETURN(matches, 140,
+	    "usb&" IFACE_CLASS_FMT,
+	    IFACE_CLASS_ARGS);
+
+#undef IFACE_PROTOCOL_FMT
+#undef IFACE_PROTOCOL_ARGS
+#undef IFACE_SUBCLASS_FMT
+#undef IFACE_SUBCLASS_ARGS
+#undef IFACE_CLASS_FMT
+#undef IFACE_CLASS_ARGS
+#undef VENDOR_RELEASE_FMT
+#undef VENDOR_RELEASE_ARGS
+#undef VENDOR_PRODUCT_FMT
+#undef VENDOR_PRODUCT_ARGS
+#undef VENDOR_ONLY_FMT
+#undef VENDOR_ONLY_ARGS
+
+	return EOK;
+}
+
 /** Create DDF match ids from USB device descriptor.
  *
  * @param matches List of match ids to extend.
  * @param device_descriptor Device descriptor returned by given device.
  * @return Error code.
  */
-int usb_drv_create_match_ids_from_device_descriptor(
-    match_id_list_t *matches,
-    const usb_standard_device_descriptor_t *device_descriptor)
+int usb_device_create_match_ids_from_device_descriptor(
+    const usb_standard_device_descriptor_t *device_descriptor,
+    match_id_list_t *matches)
 {
-	int rc;
-	
 	/*
 	 * Unless the vendor id is 0, the pair idVendor-idProduct
 	 * quite uniquely describes the device.
 	 */
 	if (device_descriptor->vendor_id != 0) {
 		/* First, with release number. */
-		rc = usb_add_match_id(matches, 100,
-		    "usb&vendor=%d&product=%d&release=" BCD_FMT,
+		ADD_MATCHID_OR_RETURN(matches, 100,
+		    "usb&vendor=0x%04x&product=0x%04x&release=" BCD_FMT,
 		    (int) device_descriptor->vendor_id,
 		    (int) device_descriptor->product_id,
 		    BCD_ARGS(device_descriptor->device_version));
-		if (rc != EOK) {
-			return rc;
-		}
 		
 		/* Next, without release number. */
-		rc = usb_add_match_id(matches, 90, "usb&vendor=%d&product=%d",
+		ADD_MATCHID_OR_RETURN(matches, 90,
+		    "usb&vendor=0x%04x&product=0x%04x",
 		    (int) device_descriptor->vendor_id,
 		    (int) device_descriptor->product_id);
-		if (rc != EOK) {
-			return rc;
-		}
 	}	
 
 	/*
 	 * If the device class points to interface we skip adding
-	 * class directly.
+	 * class directly but we add a multi interface device.
 	 */
 	if (device_descriptor->device_class != USB_CLASS_USE_INTERFACE) {
-		rc = usb_add_match_id(matches, 50, "usb&class=%s",
+		ADD_MATCHID_OR_RETURN(matches, 50, "usb&class=%s",
 		    usb_str_class(device_descriptor->device_class));
-		if (rc != EOK) {
-			return rc;
-		}
+	} else {
+		ADD_MATCHID_OR_RETURN(matches, 50, "usb&mid");
 	}
 	
 	return EOK;
 }
 
-/** Create DDF match ids from USB configuration descriptor.
- * The configuration descriptor is expected to be in the complete form,
- * i.e. including interface, endpoint etc. descriptors.
- *
- * @param matches List of match ids to extend.
- * @param config_descriptor Configuration descriptor returned by given device.
- * @param total_size Size of the @p config_descriptor.
- * @return Error code.
- */
-int usb_drv_create_match_ids_from_configuration_descriptor(
-    match_id_list_t *matches,
-    const void *config_descriptor, size_t total_size)
-{
-	/*
-	 * Iterate through config descriptor to find the interface
-	 * descriptors.
-	 */
-	size_t position = sizeof(usb_standard_configuration_descriptor_t);
-	while (position + 1 < total_size) {
-		uint8_t *current_descriptor
-		    = ((uint8_t *) config_descriptor) + position;
-		uint8_t cur_descr_len = current_descriptor[0];
-		uint8_t cur_descr_type = current_descriptor[1];
-
-		if (cur_descr_len == 0) {
-			return ENOENT;
-		}
-		
-		position += cur_descr_len;
-		
-		if (cur_descr_type != USB_DESCTYPE_INTERFACE) {
-			continue;
-		}
-		
-		/*
-		 * Finally, we found an interface descriptor.
-		 */
-		usb_standard_interface_descriptor_t *interface
-		    = (usb_standard_interface_descriptor_t *)
-		    current_descriptor;
-		
-		int rc = usb_add_match_id(matches, 50,
-		    "usb&interface&class=%s",
-		    usb_str_class(interface->interface_class));
-		if (rc != EOK) {
-			return rc;
-		}
-	}
-	
-	return EOK;
-}
-
-/** Add match ids based on configuration descriptor.
- *
- * @param hc Open phone to host controller.
- * @param matches Match ids list to add matches to.
- * @param address USB address of the attached device.
- * @param config_count Number of configurations the device has.
- * @return Error code.
- */
-static int usb_add_config_descriptor_match_ids(int hc,
-    match_id_list_t *matches, usb_address_t address,
-    int config_count)
-{
-	int final_rc = EOK;
-	
-	int config_index;
-	for (config_index = 0; config_index < config_count; config_index++) {
-		int rc;
-		usb_standard_configuration_descriptor_t config_descriptor;
-		rc = usb_drv_req_get_bare_configuration_descriptor(hc,
-		    address,  config_index, &config_descriptor);
-		if (rc != EOK) {
-			final_rc = rc;
-			continue;
-		}
-
-		size_t full_config_descriptor_size;
-		void *full_config_descriptor
-		    = malloc(config_descriptor.total_length);
-		rc = usb_drv_req_get_full_configuration_descriptor(hc,
-		    address, config_index,
-		    full_config_descriptor, config_descriptor.total_length,
-		    &full_config_descriptor_size);
-		if (rc != EOK) {
-			final_rc = rc;
-			continue;
-		}
-		if (full_config_descriptor_size
-		    != config_descriptor.total_length) {
-			final_rc = ERANGE;
-			continue;
-		}
-		
-		rc = usb_drv_create_match_ids_from_configuration_descriptor(
-		    matches,
-		    full_config_descriptor, full_config_descriptor_size);
-		if (rc != EOK) {
-			final_rc = rc;
-			continue;
-		}
-		
-	}
-	
-	return final_rc;
-}
 
 /** Create match ids describing attached device.
  *
  * @warning The list of match ids @p matches may change even when
  * function exits with error.
  *
- * @param hc Open phone to host controller.
+ * @param ctrl_pipe Control pipe to given device (session must be already
+ *	started).
  * @param matches Initialized list of match ids.
- * @param address USB address of the attached device.
  * @return Error code.
  */
-int usb_drv_create_device_match_ids(int hc, match_id_list_t *matches,
-    usb_address_t address)
+int usb_device_create_match_ids(usb_endpoint_pipe_t *ctrl_pipe,
+    match_id_list_t *matches)
 {
 	int rc;
-	
 	/*
 	 * Retrieve device descriptor and add matches from it.
 	 */
 	usb_standard_device_descriptor_t device_descriptor;
 
-	rc = usb_drv_req_get_device_descriptor(hc, address,
-	    &device_descriptor);
-	if (rc != EOK) {
-		return rc;
-	}
-	
-	rc = usb_drv_create_match_ids_from_device_descriptor(matches,
-	    &device_descriptor);
-	if (rc != EOK) {
-		return rc;
-	}
-	
-	/*
-	 * Go through all configurations and add matches
-	 * based on interface class.
-	 */
-	rc = usb_add_config_descriptor_match_ids(hc, matches,
-	    address, device_descriptor.configuration_count);
+	rc = usb_request_get_device_descriptor(ctrl_pipe, &device_descriptor);
 	if (rc != EOK) {
 		return rc;
 	}
 
-	/*
-	 * As a fallback, provide the simplest match id possible.
-	 */
-	rc = usb_add_match_id(matches, 1, "usb&fallback");
+	rc = usb_device_create_match_ids_from_device_descriptor(
+	    &device_descriptor, matches);
 	if (rc != EOK) {
 		return rc;
 	}
@@ -345,27 +312,40 @@ int usb_drv_create_device_match_ids(int hc, match_id_list_t *matches,
 	return EOK;
 }
 
-
 /** Probe for device kind and register it in devman.
  *
- * @param[in] hc Open phone to the host controller.
- * @param[in] parent Parent device.
  * @param[in] address Address of the (unknown) attached device.
+ * @param[in] hc_handle Handle of the host controller.
+ * @param[in] parent Parent device.
  * @param[out] child_handle Handle of the child device.
  * @return Error code.
  */
-int usb_drv_register_child_in_devman(int hc, device_t *parent,
-    usb_address_t address, devman_handle_t *child_handle)
+int usb_device_register_child_in_devman(usb_address_t address,
+    devman_handle_t hc_handle,
+    ddf_dev_t *parent, devman_handle_t *child_handle,
+    ddf_dev_ops_t *dev_ops, void *dev_data, ddf_fun_t **child_fun)
 {
-	static size_t device_name_index = 0;
+	size_t this_device_name_index;
 
-	device_t *child = NULL;
+	fibril_mutex_lock(&device_name_index_mutex);
+	this_device_name_index = device_name_index;
+	device_name_index++;
+	fibril_mutex_unlock(&device_name_index_mutex);
+
+	ddf_fun_t *child = NULL;
 	char *child_name = NULL;
 	int rc;
+	usb_device_connection_t dev_connection;
+	usb_endpoint_pipe_t ctrl_pipe;
 
-	child = create_device();
-	if (child == NULL) {
-		rc = ENOMEM;
+	rc = usb_device_connection_initialize(&dev_connection, hc_handle, address);
+	if (rc != EOK) {
+		goto failure;
+	}
+
+	rc = usb_endpoint_pipe_initialize_default_control(&ctrl_pipe,
+	    &dev_connection);
+	if (rc != EOK) {
 		goto failure;
 	}
 
@@ -373,20 +353,41 @@ int usb_drv_register_child_in_devman(int hc, device_t *parent,
 	 * TODO: Once the device driver framework support persistent
 	 * naming etc., something more descriptive could be created.
 	 */
-	rc = asprintf(&child_name, "usbdev%02zu", device_name_index);
+	rc = asprintf(&child_name, "usbdev%02zu", this_device_name_index);
 	if (rc < 0) {
 		goto failure;
 	}
-	child->parent = parent;
-	child->name = child_name;
-	child->ops = &child_ops;
-	
-	rc = usb_drv_create_device_match_ids(hc, &child->match_ids, address);
+
+	child = ddf_fun_create(parent, fun_inner, child_name);
+	if (child == NULL) {
+		rc = ENOMEM;
+		goto failure;
+	}
+
+	if (dev_ops != NULL) {
+		child->ops = dev_ops;
+	} else {
+		child->ops = &child_ops;
+	}
+
+	child->driver_data = dev_data;
+
+	rc = usb_endpoint_pipe_start_session(&ctrl_pipe);
 	if (rc != EOK) {
 		goto failure;
 	}
 
-	rc = child_device_register(child, parent);
+	rc = usb_device_create_match_ids(&ctrl_pipe, &child->match_ids);
+	if (rc != EOK) {
+		goto failure;
+	}
+
+	rc = usb_endpoint_pipe_end_session(&ctrl_pipe);
+	if (rc != EOK) {
+		goto failure;
+	}
+
+	rc = ddf_fun_bind(child);
 	if (rc != EOK) {
 		goto failure;
 	}
@@ -394,8 +395,10 @@ int usb_drv_register_child_in_devman(int hc, device_t *parent,
 	if (child_handle != NULL) {
 		*child_handle = child->handle;
 	}
-	
-	device_name_index++;
+
+	if (child_fun != NULL) {
+		*child_fun = child;
+	}
 
 	return EOK;
 
@@ -403,14 +406,13 @@ failure:
 	if (child != NULL) {
 		child->name = NULL;
 		/* This takes care of match_id deallocation as well. */
-		delete_device(child);
+		ddf_fun_destroy(child);
 	}
 	if (child_name != NULL) {
 		free(child_name);
 	}
 
 	return rc;
-
 }
 
 

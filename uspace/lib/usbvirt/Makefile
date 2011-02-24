@@ -29,8 +29,7 @@
 USPACE_PREFIX = ../..
 LIBRARY = libusbvirt
 
-LIBS = $(LIBUSB_PREFIX)/libusb.a
-EXTRA_CFLAGS = -I$(LIBUSB_PREFIX)/include -Iinclude
+EXTRA_CFLAGS = -I$(LIBUSB_PREFIX)/include -I$(LIBDRV_PREFIX)/include -Iinclude
 
 SOURCES = \
 	src/callback.c \

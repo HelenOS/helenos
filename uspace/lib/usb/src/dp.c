@@ -36,9 +36,30 @@
 #include <stdio.h>
 #include <str_error.h>
 #include <errno.h>
-#include <usb/usbdrv.h>
+#include <assert.h>
 #include <bool.h>
 #include <usb/dp.h>
+#include <usb/descriptor.h>
+
+#define NESTING(parentname, childname) \
+	{ \
+		.child = USB_DESCTYPE_##childname, \
+		.parent = USB_DESCTYPE_##parentname, \
+	}
+#define LAST_NESTING { -1, -1 }
+
+/** Nesting of standard USB descriptors. */
+usb_dp_descriptor_nesting_t usb_dp_standard_descriptor_nesting[] = {
+	NESTING(CONFIGURATION, INTERFACE),
+	NESTING(INTERFACE, ENDPOINT),
+	NESTING(INTERFACE, HUB),
+	NESTING(INTERFACE, HID),
+	NESTING(HID, HID_REPORT),
+	LAST_NESTING
+};
+
+#undef NESTING
+#undef LAST_NESTING
 
 /** Tells whether pointer points inside descriptor data.
  *
