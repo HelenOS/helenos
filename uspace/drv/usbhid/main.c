@@ -58,6 +58,7 @@
 #include "layout.h"
 
 #define BUFFER_SIZE 8
+#define BUFFER_OUT_SIZE 1
 #define NAME "usbhid"
 
 #define GUESSED_POLL_ENDPOINT 1
@@ -121,7 +122,7 @@ static void send_key(int key, int type, wchar_t c) {
 #define BYTES_PER_LINE 12
 
 static void dump_buffer(const char *msg, const uint8_t *buffer, size_t length)
-{
+{uint8_t buffer[BUFFER_SIZE];
 	printf("%s\n", msg);
 	
 	size_t i;
@@ -160,7 +161,73 @@ static layout_op_t *layout[NUM_LAYOUTS] = {
 
 static int active_layout = 0;
 
-static void kbd_push_ev(int type, unsigned int key)
+static void usbkbd_req_set_report(usb_hid_dev_kbd_t *kbd_dev, uint8_t *buffer,
+    size_t buf_size)
+{
+	int rc, sess_rc;
+	
+	sess_rc = usb_endpoint_pipe_start_session(&kbd_dev->ctrl_pipe);
+	if (sess_rc != EOK) {
+		usb_log_warning("Failed to start a session: %s.\n",
+		    str_error(sess_rc));
+		return;
+	}
+
+	usb_log_debug("Sending Set_Report request to the device.\n");
+	// TODO: determine what interface to use!! (now set to 1)
+	rc = usb_control_request_set(&kbd_dev->ctrl_pipe, 
+	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_INTERFACE, 
+	    USB_HIDREQ_SET_REPORT, USB_HID_REPORT_TYPE_OUTPUT,
+	    1, buffer, buf_size);
+
+	sess_rc = usb_endpoint_pipe_end_session(&kbd_dev->ctrl_pipe);
+
+	if (rc != EOK) {
+		usb_log_warning("Error sending output report to the keyboard: "
+		    "%s.\n", str_error(rc));
+		return;
+	}
+
+	if (sess_rc != EOK) {
+		usb_log_warning("Error closing session: %s.\n",
+		    str_error(sess_rc));
+		return;
+	}
+}
+
+static void usbkbd_set_led(unsigned mods, usb_hid_dev_kbd_t *kbd_dev) 
+{
+	uint8_t buffer[BUFFER_SIZE];
+	int rc= 0;
+	
+	uint8_t leds = 0;
+
+	if (mods & KM_NUM_LOCK) {
+		leds |= USB_HID_LED_NUM_LOCK;
+	}
+	
+	if (mods & KM_CAPS_LOCK) {
+		leds |= USB_HID_LED_CAPS_LOCK;
+	}
+	
+	if (mods & KM_SCROLL_LOCK) {
+		leds |= USB_HID_LED_SCROLL_LOCK;
+	}
+
+	// TODO: COMPOSE and KANA
+	
+	usb_log_debug("Creating output report.\n");
+	if ((rc = usb_hid_boot_keyboard_output_report(
+	    leds, buffer, BUFFER_SIZE)) != EOK) {
+		usb_log_warning("Error composing output report to the keyboard:"
+		    "%s.\n", str_error(rc));
+		return;
+	}
+	
+	usbkbd_req_set_report(kbd_dev, buffer, BUFFER_SIZE);
+}
+
+static void kbd_push_ev(int type, unsigned int key, usb_hid_dev_kbd_t *kbd_dev)
 {
 	console_event_t ev;
 	unsigned mod_mask;
@@ -184,13 +251,17 @@ static void kbd_push_ev(int type, unsigned int key)
 	}
 
 	switch (key) {
-	case KC_CAPS_LOCK: mod_mask = KM_CAPS_LOCK; break;
-	case KC_NUM_LOCK: mod_mask = KM_NUM_LOCK; break;
-	case KC_SCROLL_LOCK: mod_mask = KM_SCROLL_LOCK; break;
+	case KC_CAPS_LOCK: mod_mask = KM_CAPS_LOCK; usb_log_debug("\n\nPushing CAPS LOCK! (mask: %u)\n\n", mod_mask); break;
+	case KC_NUM_LOCK: mod_mask = KM_NUM_LOCK; usb_log_debug("\n\nPushing NUM LOCK! (mask: %u)\n\n", mod_mask); break;
+	case KC_SCROLL_LOCK: mod_mask = KM_SCROLL_LOCK; usb_log_debug("\n\nPushing SCROLL LOCK! (mask: %u)\n\n", mod_mask); break;
 	default: mod_mask = 0; break;
 	}
 
 	if (mod_mask != 0) {
+		usb_log_debug("\n\nChanging mods and lock keys\n\n");
+		usb_log_debug("\n\nmods before: 0x%x\n\n", mods);
+		usb_log_debug("\n\nLock keys before:0x%x\n\n", lock_keys);
+		
 		if (type == KEY_PRESS) {
 			/*
 			 * Only change lock state on transition from released
@@ -201,8 +272,7 @@ static void kbd_push_ev(int type, unsigned int key)
 			lock_keys = lock_keys | mod_mask;
 
 			/* Update keyboard lock indicator lights. */
-			// TODO
-			//kbd_ctl_set_ind(mods);
+ 			usbkbd_set_led(mods, kbd_dev);
 		} else {
 			lock_keys = lock_keys & ~mod_mask;
 		}
@@ -212,6 +282,8 @@ static void kbd_push_ev(int type, unsigned int key)
 	usb_log_debug2("mods: 0x%x\n", mods);
 	usb_log_debug2("keycode: %u\n", key);
 */
+	usb_log_debug("\n\nmods after: 0x%x\n\n", mods);
+	usb_log_debug("\n\nLock keys after: 0x%x\n\n", lock_keys);
 	
 	if (type == KEY_PRESS && (mods & KM_LCTRL) &&
 		key == KC_F1) {
@@ -237,6 +309,10 @@ static void kbd_push_ev(int type, unsigned int key)
 	ev.type = type;
 	ev.key = key;
 	ev.mods = mods;
+	
+	if (ev.mods & KM_NUM_LOCK) {
+		usb_log_debug("\n\nNum Lock turned on.\n\n");
+	}
 
 	ev.c = layout[active_layout]->parse_ev(&ev);
 
@@ -287,14 +363,14 @@ static void usbkbd_check_modifier_changes(usb_hid_dev_kbd_t *kbd_dev,
 			// modifier pressed
 			if (usb_hid_modifiers_keycodes[i] != 0) {
 				kbd_push_ev(KEY_PRESS, 
-				    usb_hid_modifiers_keycodes[i]);
+				    usb_hid_modifiers_keycodes[i], kbd_dev);
 			}
 		} else if (!(modifiers & usb_hid_modifiers_consts[i]) &&
 		    (kbd_dev->modifiers & usb_hid_modifiers_consts[i])) {
 			// modifier released
 			if (usb_hid_modifiers_keycodes[i] != 0) {
 				kbd_push_ev(KEY_RELEASE, 
-				    usb_hid_modifiers_keycodes[i]);
+				    usb_hid_modifiers_keycodes[i], kbd_dev);
 			}
 		}	// no change
 	}
@@ -322,7 +398,7 @@ static void usbkbd_check_key_changes(usb_hid_dev_kbd_t *kbd_dev,
 		if (j == kbd_dev->keycode_count) {
 			// not found, i.e. the key was released
 			key = usbkbd_parse_scancode(kbd_dev->keycodes[j]);
-			kbd_push_ev(KEY_RELEASE, key);
+			kbd_push_ev(KEY_RELEASE, key, kbd_dev);
 		} else {
 			// found, nothing happens
 		}
@@ -342,7 +418,7 @@ static void usbkbd_check_key_changes(usb_hid_dev_kbd_t *kbd_dev,
 		if (j == kbd_dev->keycode_count) {
 			// not found, i.e. new key pressed
 			key = usbkbd_parse_scancode(key_codes[i]);
-			kbd_push_ev(KEY_PRESS, key);
+			kbd_push_ev(KEY_PRESS, key, kbd_dev);
 		} else {
 			// found, nothing happens
 		}
@@ -620,7 +696,7 @@ static void usbkbd_poll_keyboard(usb_hid_dev_kbd_t *kbd_dev)
 	usb_log_info("Polling keyboard...\n");
 
 	while (true) {
-		async_usleep(1000 * 10);
+		async_usleep(1000 * 1000);
 
 		sess_rc = usb_endpoint_pipe_start_session(&kbd_dev->poll_pipe);
 		if (sess_rc != EOK) {

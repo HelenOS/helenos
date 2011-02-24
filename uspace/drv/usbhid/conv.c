@@ -35,6 +35,8 @@
 
 #include <io/keycode.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <usb/debug.h>
 #include "conv.h"
 
 static int scanmap_simple[255] = {
@@ -206,6 +208,19 @@ unsigned int usbkbd_parse_scancode(int scancode)
 		return -1;
 
 	key = map[scancode];
+	
+	if (scancode == 0x53) {
+		usb_log_debug("\n\nWe have a NUM LOCK!, sending key %u\n\n", key);
+	}
+	
+	if (scancode == 0x47) {
+		usb_log_debug("\n\nWe have a SCROLL LOCK!, sending key %u\n\n", key);
+	}
+	
+	if (scancode == 0x39) {
+		usb_log_debug("\n\nWe have a CAPS LOCK!, sending key %u\n\n", key);
+	}
+	
 //	if (key != 0)
 //		kbd_push_ev(type, key);
 	return key;

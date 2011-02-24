@@ -82,6 +82,15 @@ typedef enum {
 	USB_HID_MOD_COUNT = 8
 } usb_hid_modifiers_t;
 
+typedef enum {
+	USB_HID_LED_NUM_LOCK = 0x1,
+	USB_HID_LED_CAPS_LOCK = 0x2,
+	USB_HID_LED_SCROLL_LOCK = 0x4,
+	USB_HID_LED_COMPOSE = 0x8,
+	USB_HID_LED_KANA = 0x10,
+	USB_HID_LED_COUNT = 5
+} usb_hid_led_t;
+
 static const usb_hid_modifiers_t 
     usb_hid_modifiers_consts[USB_HID_MOD_COUNT] = {
 	USB_HID_MOD_LCTRL,
@@ -93,6 +102,14 @@ static const usb_hid_modifiers_t
 	USB_HID_MOD_RALT,
 	USB_HID_MOD_RGUI
 };
+
+//static const usb_hid_led_t usb_hid_led_consts[USB_HID_LED_COUNT] = {
+//	USB_HID_LED_NUM_LOCK,
+//	USB_HID_LED_CAPS_LOCK,
+//	USB_HID_LED_SCROLL_LOCK,
+//	USB_HID_LED_COMPOSE,
+//	USB_HID_LED_KANA
+//};
 
 //#define USB_HID_BOOT_KEYBOARD_NUM_LOCK		0x01
 //#define USB_HID_BOOT_KEYBOARD_CAPS_LOCK		0x02
