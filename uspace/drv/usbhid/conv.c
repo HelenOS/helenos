@@ -140,6 +140,24 @@ static int scanmap_simple[255] = {
 	[0xe6] = KC_RALT,
 	//[0xe7] = KC_R	// TODO: right GUI
 	
+	[0x53] = KC_NUM_LOCK,
+	[0x54] = KC_NSLASH,
+	[0x55] = KC_NTIMES,
+	[0x56] = KC_NMINUS,
+	[0x57] = KC_NPLUS,
+	[0x58] = KC_NENTER,
+	[0x59] = KC_N1,
+	[0x5a] = KC_N2,
+	[0x5b] = KC_N3,
+	[0x5c] = KC_N4,
+	[0x5d] = KC_N5,
+	[0x5e] = KC_N6,
+	[0x5f] = KC_N7,
+	[0x60] = KC_N8,
+	[0x61] = KC_N9,
+	[0x62] = KC_N0,
+	[0x63] = KC_NPERIOD
+	
 };
 
 unsigned int usbkbd_parse_scancode(int scancode)
