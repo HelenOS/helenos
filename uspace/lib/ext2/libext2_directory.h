@@ -33,14 +33,31 @@
  * @file
  */
 
-#ifndef LIBEXT2_LIBEXT2_H_
-#define LIBEXT2_LIBEXT2_H_
+#ifndef LIBEXT2_LIBEXT2_DIRECTORY_H_
+#define LIBEXT2_LIBEXT2_DIRECTORY_H_
 
-#include "libext2_superblock.h"
-#include "libext2_block_group.h"
-#include "libext2_inode.h"
-#include "libext2_filesystem.h"
-#include "libext2_directory.h"
+#include <libblock.h>
+
+/**
+ * Linked list directory entry structure
+ */
+typedef struct ext2_directory_entry_ll {
+	uint32_t inode; // Inode for the entry
+	uint16_t entry_length; // Distance to the next directory entry
+	uint8_t name_length; // Lower 8 bits of name length
+	union {
+		uint8_t name_length_high; // Higher 8 bits of name length
+		uint8_t inode_type; // Type of referenced inode (in rev >= 0.5)
+	} __attribute__ ((packed));
+	uint8_t name; // First byte of name, if present
+} __attribute__ ((packed)) ext2_directory_entry_ll_t;
+
+
+inline uint32_t	ext2_directory_entry_ll_get_inode(ext2_directory_entry_ll_t *);
+inline uint16_t	ext2_directory_entry_ll_get_entry_length(
+    ext2_directory_entry_ll_t *);
+inline uint16_t	ext2_directory_entry_ll_get_name_length(
+    ext2_superblock_t *, ext2_directory_entry_ll_t *);
 
 #endif
 

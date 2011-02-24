@@ -33,16 +33,46 @@
  * @file
  */
 
-#ifndef LIBEXT2_LIBEXT2_H_
-#define LIBEXT2_LIBEXT2_H_
-
-#include "libext2_superblock.h"
-#include "libext2_block_group.h"
-#include "libext2_inode.h"
-#include "libext2_filesystem.h"
+#include "libext2.h"
 #include "libext2_directory.h"
+#include <byteorder.h>
 
-#endif
+/**
+ * Get inode number for the directory entry
+ * 
+ * @param de pointer to linked list directory entry
+ */
+inline uint32_t	ext2_directory_entry_ll_get_inode(ext2_directory_entry_ll_t *de)
+{
+	return uint32_t_le2host(de->inode);
+}
+
+/**
+ * Get length of the directory entry
+ * 
+ * @param de pointer to linked list directory entry
+ */
+inline uint16_t	ext2_directory_entry_ll_get_entry_length(
+    ext2_directory_entry_ll_t *de)
+{
+	return uint16_t_le2host(de->entry_length);
+}
+
+/**
+ * Get length of the name stored in the directory entry
+ * 
+ * @param de pointer to linked list directory entry
+ */
+inline uint16_t	ext2_directory_entry_ll_get_name_length(
+    ext2_superblock_t *sb, ext2_directory_entry_ll_t *de)
+{
+	if (ext2_superblock_get_rev_major(sb) == 0 &&
+	    ext2_superblock_get_rev_minor(sb) < 5) {
+		return ((uint16_t)de->name_length_high) << 8 | 
+		    ((uint16_t)de->name_length);
+	}
+	return de->name_length;
+}
 
 /** @}
  */

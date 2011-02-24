@@ -37,6 +37,7 @@ SOURCES = \
 	libext2_filesystem.c \
 	libext2_superblock.c \
 	libext2_block_group.c \
-	libext2_inode.c
+	libext2_inode.c \
+	libext2_directory.c
 
 include $(USPACE_PREFIX)/Makefile.common
