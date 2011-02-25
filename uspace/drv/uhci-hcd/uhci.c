@@ -68,7 +68,9 @@ static int usb_iface_get_address(ddf_fun_t *fun, devman_handle_t handle,
 	uhci_t *hc = fun_to_uhci(fun);
 	assert(hc);
 
-	usb_address_t addr = usb_address_keeping_find(&hc->address_manager,
+//	usb_address_t addr = usb_address_keeping_find(&hc->address_manager,
+//	    handle);
+	usb_address_t addr = device_keeper_find(&hc->device_manager,
 	    handle);
 	if (addr < 0) {
 		return addr;
@@ -140,7 +142,7 @@ int uhci_init(uhci_t *instance, ddf_dev_t *dev, void *regs, size_t reg_size)
 	uhci_init_hw(instance);
 
 	instance->cleaner = fibril_create(uhci_interrupt_emulator, instance);
-	fibril_add_ready(instance->cleaner);
+//	fibril_add_ready(instance->cleaner);
 
 	instance->debug_checker = fibril_create(uhci_debug_checker, instance);
 	fibril_add_ready(instance->debug_checker);
@@ -160,8 +162,8 @@ void uhci_init_hw(uhci_t *instance)
 	pio_write_32(&instance->registers->flbaseadd, pa);
 
 	/* enable all interrupts, but resume interrupt */
-//	pio_write_16(&instance->registers->usbintr,
-//		  UHCI_INTR_CRC | UHCI_INTR_COMPLETE | UHCI_INTR_SHORT_PACKET);
+	pio_write_16(&instance->registers->usbintr,
+		  UHCI_INTR_CRC | UHCI_INTR_COMPLETE | UHCI_INTR_SHORT_PACKET);
 
 	/* Start the hc with large(64B) packet FSBR */
 	pio_write_16(&instance->registers->usbcmd,
@@ -206,8 +208,8 @@ int uhci_init_mem_structures(uhci_t *instance)
 	}
 
 	/* init address keeper(libusb) */
-	usb_address_keeping_init(&instance->address_manager, USB11_ADDRESS_MAX);
-	usb_log_debug("Initialized address manager.\n");
+	device_keeper_init(&instance->device_manager);
+	usb_log_debug("Initialized device manager.\n");
 
 	return EOK;
 }
@@ -258,7 +260,7 @@ int uhci_schedule(uhci_t *instance, batch_t *batch)
 {
 	assert(instance);
 	assert(batch);
-	const int low_speed = (batch->speed == LOW_SPEED);
+	const int low_speed = (batch->speed == USB_SPEED_LOW);
 	if (!allowed_usb_packet(
 	    low_speed, batch->transfer_type, batch->max_packet_size)) {
 		usb_log_warning("Invalid USB packet specified %s SPEED %d %zu.\n",

@@ -63,7 +63,7 @@ static int usb_iface_get_address_rh_impl(ddf_fun_t *fun, devman_handle_t handle,
 	uhci_t *hc = fun_to_uhci(hc_fun);
 	assert(hc);
 
-	usb_address_t addr = usb_address_keeping_find(&hc->address_manager,
+	usb_address_t addr = device_keeper_find(&hc->device_manager,
 	    handle);
 	if (addr < 0) {
 		return addr;

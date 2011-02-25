@@ -52,7 +52,7 @@ static void batch_call_out_and_dispose(batch_t *instance);
 
 batch_t * batch_get(ddf_fun_t *fun, usb_target_t target,
     usb_transfer_type_t transfer_type, size_t max_packet_size,
-    dev_speed_t speed, char *buffer, size_t size,
+    usb_speed_t speed, char *buffer, size_t size,
     char* setup_buffer, size_t setup_size,
     usbhc_iface_transfer_in_callback_t func_in,
     usbhc_iface_transfer_out_callback_t func_out, void *arg)
