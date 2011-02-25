@@ -51,16 +51,6 @@ static driver_t hub_driver = {
 	.driver_ops = &hub_driver_ops
 };
 
-/*
-int usb_hub_control_loop(void * noparam){
-	while(true){
-		usb_hub_check_hub_changes();
-		async_usleep(1000 * 1000 );/// \TODO proper number once
-	}
-	return 0;
-}
-*/
-
 int main(int argc, char *argv[])
 {
 	usb_log_enable(USB_LOG_LEVEL_DEBUG, NAME);
@@ -72,15 +62,6 @@ int main(int argc, char *argv[])
 	usb_lst_init(&usb_hub_list);
 	fibril_mutex_unlock(&usb_hub_list_lock);
 	
-/*
-	fid_t fid = fibril_create(usb_hub_control_loop, NULL);
-	if (fid == 0) {
-		fprintf(stderr, NAME ": failed to start monitoring fibril," \
-		    " driver aborting.\n");
-		return ENOMEM;
-	}
-	fibril_add_ready(fid);
-*/
 	return ddf_driver_main(&hub_driver);
 }
 

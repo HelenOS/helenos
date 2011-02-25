@@ -149,7 +149,7 @@ static int usb_hub_process_configuration_descriptors(
 	}
 
 	//configuration descriptor
-	/// \TODO check other configurations
+	/// \TODO check other configurations?
 	usb_standard_configuration_descriptor_t config_descriptor;
 	opResult = usb_request_get_bare_configuration_descriptor(
 	    &hub->endpoints.control, 0,
@@ -193,10 +193,6 @@ static int usb_hub_process_configuration_descriptors(
 		return ELIMIT;
 	}
 
-	/**
-	 * Initialize the interrupt in endpoint.
-	 * \TODO this code should be checked...
-	 */
 	usb_endpoint_mapping_t endpoint_mapping[1] = {
 		{
 			.pipe = &hub->endpoints.status_change,
@@ -224,13 +220,6 @@ static int usb_hub_process_configuration_descriptors(
 	free(descriptors);
 	return EOK;
 	
-
-	// Initialize the interrupt(=status change) endpoint.
-	/*usb_endpoint_pipe_initialize(
-		&result->endpoints->status_change,
-		&result->device_connection, );USB_TRANSFER_INTERRUPT
-	USB_DIRECTION_IN*/
-
 }
 
 
@@ -281,7 +270,6 @@ usb_hub_info_t * usb_create_hub_info(ddf_dev_t * device) {
 		return result;
 	}
 
-	
 	dprintf(USB_LOG_LEVEL_INFO, "setting port count to %d",descriptor->ports_count);
 	result->port_count = descriptor->ports_count;
 	result->attached_devs = (usb_hc_attached_device_t*)
@@ -580,18 +568,8 @@ static void usb_hub_process_interrupt(usb_hub_info_t * hub,
 	dprintf(USB_LOG_LEVEL_DEBUG, "interrupt at port %d", port);
 	//determine type of change
 	usb_endpoint_pipe_t *pipe = &hub->endpoints.control;
-	//int opResult = usb_endpoint_pipe_start_session(pipe);
 	
-	/*if(opResult != EOK){
-		dprintf(USB_LOG_LEVEL_ERROR, "cannot open pipe %d", opResult);
-	}*/
 	int opResult;
-
-	/*
-	usb_target_t target;
-	target.address=address;
-	target.endpoint=0;
-	*/
 
 	usb_port_status_t status;
 	size_t rcvd_size;
@@ -654,10 +632,6 @@ static void usb_hub_process_interrupt(usb_hub_info_t * hub,
 
 	}
 	/// \TODO handle other changes
-	/// \TODO debug log for various situations
-	//usb_endpoint_pipe_end_session(pipe);
-
-
 }
 
 /**
@@ -673,32 +647,13 @@ void usb_hub_check_hub_changes(usb_hub_info_t * hub_info){
 		return;
 	}
 
-	/*
-	 * Check status change pipe of this hub.
-	 */
-	/*
-	usb_target_t target;
-	target.address = hub_info->address;
-	target.endpoint = 1;/// \TODO get from endpoint descriptor
-	dprintf(USB_LOG_LEVEL_INFO, "checking changes for hub at addr %d",
-	    target.address);
-	*/
 	size_t port_count = hub_info->port_count;
-
-	/*
-	 * Connect to respective HC.
-	 *
-	int hc = usb_drv_hc_connect_auto(hub_info->device, 0);
-	if (hc < 0) {
-	continue;
-	}*/
 
 	/// FIXME: count properly
 	size_t byte_length = ((port_count+1) / 8) + 1;
 		void *change_bitmap = malloc(byte_length);
 	size_t actual_size;
 
-	//usb_handle_t handle;
 	/*
 	 * Send the request.
 	 */
@@ -707,16 +662,28 @@ void usb_hub_check_hub_changes(usb_hub_info_t * hub_info){
 			change_bitmap, byte_length, &actual_size
 			);
 
-	//usb_drv_async_wait_for(handle);
-
 	if (opResult != EOK) {
 		free(change_bitmap);
 		dprintf(USB_LOG_LEVEL_WARNING, "something went wrong while getting status of hub");
+		usb_endpoint_pipe_end_session(&hub_info->endpoints.status_change);
 		return;
 	}
 	unsigned int port;
 	opResult = usb_endpoint_pipe_start_session(&hub_info->endpoints.control);
-	usb_hc_connection_open(&hub_info->connection);
+	if(opResult!=EOK){
+		dprintf(USB_LOG_LEVEL_ERROR, "could not start control pipe session %d",
+				opResult);
+		usb_endpoint_pipe_end_session(&hub_info->endpoints.status_change);
+		return;
+	}
+	opResult = usb_hc_connection_open(&hub_info->connection);
+	if(opResult!=EOK){
+		dprintf(USB_LOG_LEVEL_ERROR, "could not start host controller session %d",
+				opResult);
+		usb_endpoint_pipe_end_session(&hub_info->endpoints.control);
+		usb_endpoint_pipe_end_session(&hub_info->endpoints.status_change);
+		return;
+	}
 
 	///todo, opresult check, pre obe konekce
 	for (port = 1; port < port_count+1; ++port) {
@@ -732,28 +699,6 @@ void usb_hub_check_hub_changes(usb_hub_info_t * hub_info){
 	usb_endpoint_pipe_end_session(&hub_info->endpoints.status_change);
 	free(change_bitmap);
 }
-
-/**
- * Check changes on all known hubs.
- */
-/*
-void usb_hub_check_hub_changes(void) {
-	// Iterate through all hubs.
-	 
-	usb_general_list_t * lst_item;
-	fibril_mutex_lock(&usb_hub_list_lock);
-	for (lst_item = usb_hub_list.next;
-			lst_item != &usb_hub_list;
-			lst_item = lst_item->next) {
-		fibril_mutex_unlock(&usb_hub_list_lock);
-		usb_hub_info_t * hub_info = ((usb_hub_info_t*)lst_item->data);
-		usb_hub_check_hub_changes(hub_info);
-		fibril_mutex_lock(&usb_hub_list_lock);
-	}
-	fibril_mutex_unlock(&usb_hub_list_lock);
-}
-*/
-
 
 
 
