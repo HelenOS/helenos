@@ -41,6 +41,8 @@
 #include "iface.h"
 #include "uhci.h"
 
+#define DEFAULT_SPEED FULL_SPEED
+
 /*----------------------------------------------------------------------------*/
 static int reserve_default_address(ddf_fun_t *fun, usb_speed_t speed)
 {
@@ -96,7 +98,7 @@ static int interrupt_out(ddf_fun_t *fun, usb_target_t target,
     void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
-	dev_speed_t speed = FULL_SPEED;
+	dev_speed_t speed = DEFAULT_SPEED;
 
 	batch_t *batch = batch_get(fun, target, USB_TRANSFER_INTERRUPT,
 	    max_packet_size, speed, data, size, NULL, 0, NULL, callback, arg);
@@ -111,7 +113,7 @@ static int interrupt_in(ddf_fun_t *fun, usb_target_t target,
     void *data, size_t size,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
-	dev_speed_t speed = FULL_SPEED;
+	dev_speed_t speed = DEFAULT_SPEED;
 
 	batch_t *batch = batch_get(fun, target, USB_TRANSFER_INTERRUPT,
 	    max_packet_size, speed, data, size, NULL, 0, callback, NULL, arg);
@@ -126,7 +128,7 @@ static int control_write(ddf_fun_t *fun, usb_target_t target,
     void *setup_data, size_t setup_size, void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
-	dev_speed_t speed = FULL_SPEED;
+	dev_speed_t speed = DEFAULT_SPEED;
 
 	batch_t *batch = batch_get(fun, target, USB_TRANSFER_CONTROL,
 	    max_packet_size, speed, data, size, setup_data, setup_size,
@@ -142,7 +144,7 @@ static int control_read(ddf_fun_t *fun, usb_target_t target,
     void *setup_data, size_t setup_size, void *data, size_t size,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
-	dev_speed_t speed = FULL_SPEED;
+	dev_speed_t speed = DEFAULT_SPEED;
 
 	batch_t *batch = batch_get(fun, target, USB_TRANSFER_CONTROL,
 	    max_packet_size, speed, data, size, setup_data, setup_size, callback,
