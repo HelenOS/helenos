@@ -324,6 +324,7 @@ static int fat_node_get_core(fat_node_t **nodepp, fat_idx_t *idxp)
 		rc = fat_clusters_get(&clusters, bs, idxp->devmap_handle,
 		    uint16_t_le2host(d->firstc));
 		if (rc != EOK) {
+			(void) block_put(b);
 			(void) fat_node_put(FS_NODE(nodep));
 			return rc;
 		}
