@@ -38,7 +38,7 @@
 #include "utils/malloc32.h"
 
 void transfer_descriptor_init(transfer_descriptor_t *instance,
-    int error_count, size_t size, bool toggle, bool isochronous,
+    int error_count, size_t size, bool toggle, bool isochronous, bool low_speed,
     usb_target_t target, int pid, void *buffer, transfer_descriptor_t *next)
 {
 	assert(instance);
@@ -49,6 +49,7 @@ void transfer_descriptor_init(transfer_descriptor_t *instance,
 
 	instance->status = 0
 	  | ((error_count & TD_STATUS_ERROR_COUNT_MASK) << TD_STATUS_ERROR_COUNT_POS)
+		| (low_speed ? TD_STATUS_LOW_SPEED_FLAG : 0)
 	  | TD_STATUS_ERROR_ACTIVE;
 
 	assert(size < 1024);

@@ -167,11 +167,13 @@ void batch_control_write(batch_t *instance)
 	/* we are data out, we are supposed to provide data */
 	memcpy(instance->transport_buffer, instance->buffer, instance->buffer_size);
 
+	const bool low_speed = instance->speed == USB_SPEED_LOW;
 	int toggle = 0;
 	/* setup stage */
 	transfer_descriptor_init(instance->tds, DEFAULT_ERROR_COUNT,
-	    instance->setup_size, toggle, false, instance->target,
-	    USB_PID_SETUP, instance->setup_buffer, &instance->tds[1]);
+	    instance->setup_size, toggle, false, low_speed,
+	    instance->target, USB_PID_SETUP, instance->setup_buffer,
+	    &instance->tds[1]);
 
 	/* data stage */
 	size_t i = 1;
@@ -181,14 +183,14 @@ void batch_control_write(batch_t *instance)
 		toggle = 1 - toggle;
 
 		transfer_descriptor_init(&instance->tds[i], DEFAULT_ERROR_COUNT,
-		    instance->max_packet_size, toggle++, false, instance->target,
-		    USB_PID_OUT, data, &instance->tds[i + 1]);
+		    instance->max_packet_size, toggle++, false, low_speed,
+		    instance->target, USB_PID_OUT, data, &instance->tds[i + 1]);
 	}
 
 	/* status stage */
 	i = instance->packets - 1;
 	transfer_descriptor_init(&instance->tds[i], DEFAULT_ERROR_COUNT,
-	    0, 1, false, instance->target, USB_PID_IN, NULL, NULL);
+	    0, 1, false, low_speed, instance->target, USB_PID_IN, NULL, NULL);
 
 	instance->tds[i].status |= TD_STATUS_COMPLETE_INTERRUPT_FLAG;
 
@@ -200,10 +202,11 @@ void batch_control_read(batch_t *instance)
 {
 	assert(instance);
 
+	const bool low_speed = instance->speed == USB_SPEED_LOW;
 	int toggle = 0;
 	/* setup stage */
 	transfer_descriptor_init(instance->tds, DEFAULT_ERROR_COUNT,
-	    instance->setup_size, toggle, false, instance->target,
+	    instance->setup_size, toggle, false, low_speed, instance->target,
 	    USB_PID_SETUP, instance->setup_buffer, &instance->tds[1]);
 
 	/* data stage */
@@ -214,14 +217,14 @@ void batch_control_read(batch_t *instance)
 		toggle = 1 - toggle;
 
 		transfer_descriptor_init(&instance->tds[i], DEFAULT_ERROR_COUNT,
-		    instance->max_packet_size, toggle, false, instance->target,
-		    USB_PID_IN, data, &instance->tds[i + 1]);
+		    instance->max_packet_size, toggle, false, low_speed,
+				instance->target, USB_PID_IN, data, &instance->tds[i + 1]);
 	}
 
 	/* status stage */
 	i = instance->packets - 1;
 	transfer_descriptor_init(&instance->tds[i], DEFAULT_ERROR_COUNT,
-	    0, 1, false, instance->target, USB_PID_OUT, NULL, NULL);
+	    0, 1, false, low_speed, instance->target, USB_PID_OUT, NULL, NULL);
 
 	instance->tds[i].status |= TD_STATUS_COMPLETE_INTERRUPT_FLAG;
 
@@ -233,6 +236,7 @@ void batch_interrupt_in(batch_t *instance)
 {
 	assert(instance);
 
+	const bool low_speed = instance->speed == USB_SPEED_LOW;
 	int toggle = 1;
 	size_t i = 0;
 	for (;i < instance->packets; ++i) {
@@ -243,8 +247,8 @@ void batch_interrupt_in(batch_t *instance)
 		toggle = 1 - toggle;
 
 		transfer_descriptor_init(&instance->tds[i], DEFAULT_ERROR_COUNT,
-		    instance->max_packet_size, toggle, false, instance->target,
-		    USB_PID_IN, data, next);
+		    instance->max_packet_size, toggle, false, low_speed,
+		    instance->target, USB_PID_IN, data, next);
 	}
 
 	instance->tds[i - 1].status |= TD_STATUS_COMPLETE_INTERRUPT_FLAG;
@@ -259,6 +263,7 @@ void batch_interrupt_out(batch_t *instance)
 
 	memcpy(instance->transport_buffer, instance->buffer, instance->buffer_size);
 
+	const bool low_speed = instance->speed == USB_SPEED_LOW;
 	int toggle = 1;
 	size_t i = 0;
 	for (;i < instance->packets; ++i) {
@@ -269,8 +274,8 @@ void batch_interrupt_out(batch_t *instance)
 		toggle = 1 - toggle;
 
 		transfer_descriptor_init(&instance->tds[i], DEFAULT_ERROR_COUNT,
-		    instance->max_packet_size, toggle++, false, instance->target,
-		    USB_PID_OUT, data, next);
+		    instance->max_packet_size, toggle++, false, low_speed,
+		    instance->target, USB_PID_OUT, data, next);
 	}
 
 	instance->tds[i - 1].status |= TD_STATUS_COMPLETE_INTERRUPT_FLAG;
@@ -336,55 +341,6 @@ int batch_schedule(batch_t *instance)
 	uhci_t *hc = fun_to_uhci(instance->fun);
 	assert(hc);
 	return uhci_schedule(hc, instance);
-}
-/*----------------------------------------------------------------------------*/
-/* DEPRECATED FUNCTIONS NEEDED BY THE OLD API */
-void batch_control_setup_old(batch_t *instance)
-{
-	assert(instance);
-	instance->packets = 1;
-
-	/* setup stage */
-	transfer_descriptor_init(instance->tds, DEFAULT_ERROR_COUNT,
-	    instance->setup_size, 0, false, instance->target,
-	    USB_PID_SETUP, instance->setup_buffer, NULL);
-
-	instance->next_step = batch_call_out_and_dispose;
-	batch_schedule(instance);
-}
-/*----------------------------------------------------------------------------*/
-void batch_control_write_data_old(batch_t *instance)
-{
-	assert(instance);
-	instance->packets -= 2;
-	batch_interrupt_out(instance);
-}
-/*----------------------------------------------------------------------------*/
-void batch_control_read_data_old(batch_t *instance)
-{
-	assert(instance);
-	instance->packets -= 2;
-	batch_interrupt_in(instance);
-}
-/*----------------------------------------------------------------------------*/
-void batch_control_write_status_old(batch_t *instance)
-{
-	assert(instance);
-	instance->packets = 1;
-	transfer_descriptor_init(instance->tds, DEFAULT_ERROR_COUNT,
-	    0, 1, false, instance->target, USB_PID_IN, NULL, NULL);
-	instance->next_step = batch_call_in_and_dispose;
-	batch_schedule(instance);
-}
-/*----------------------------------------------------------------------------*/
-void batch_control_read_status_old(batch_t *instance)
-{
-	assert(instance);
-	instance->packets = 1;
-	transfer_descriptor_init(instance->tds, DEFAULT_ERROR_COUNT,
-	    0, 1, false, instance->target, USB_PID_OUT, NULL, NULL);
-	instance->next_step = batch_call_out_and_dispose;
-	batch_schedule(instance);
 }
 /**
  * @}
