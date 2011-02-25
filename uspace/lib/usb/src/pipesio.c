@@ -147,7 +147,7 @@ int usb_endpoint_pipe_read(usb_endpoint_pipe_t *pipe,
 		return EINVAL;
 	}
 
-	if (pipe->hc_phone < 0) {
+	if (!usb_endpoint_pipe_is_session_started(pipe)) {
 		return EBADF;
 	}
 
@@ -254,7 +254,7 @@ int usb_endpoint_pipe_write(usb_endpoint_pipe_t *pipe,
 		return EINVAL;
 	}
 
-	if (pipe->hc_phone < 0) {
+	if (!usb_endpoint_pipe_is_session_started(pipe)) {
 		return EBADF;
 	}
 
@@ -368,7 +368,7 @@ int usb_endpoint_pipe_control_read(usb_endpoint_pipe_t *pipe,
 		return EINVAL;
 	}
 
-	if (pipe->hc_phone < 0) {
+	if (!usb_endpoint_pipe_is_session_started(pipe)) {
 		return EBADF;
 	}
 
@@ -480,7 +480,7 @@ int usb_endpoint_pipe_control_write(usb_endpoint_pipe_t *pipe,
 		return EINVAL;
 	}
 
-	if (pipe->hc_phone < 0) {
+	if (!usb_endpoint_pipe_is_session_started(pipe)) {
 		return EBADF;
 	}
 

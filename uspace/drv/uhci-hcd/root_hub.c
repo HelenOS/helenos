@@ -38,22 +38,59 @@
 #include <usb/debug.h>
 
 #include "root_hub.h"
+#include "uhci.h"
 
-extern device_ops_t child_ops;
-/*----------------------------------------------------------------------------*/
-int setup_root_hub(device_t **device, device_t *hc)
+static int usb_iface_get_hc_handle_rh_impl(ddf_fun_t *root_hub_fun,
+    devman_handle_t *handle)
 {
-	assert(device);
-	device_t *hub = create_device();
+	ddf_fun_t *hc_fun = root_hub_fun->driver_data;
+	assert(hc_fun != NULL);
+
+	*handle = hc_fun->handle;
+
+	return EOK;
+}
+
+static int usb_iface_get_address_rh_impl(ddf_fun_t *fun, devman_handle_t handle,
+    usb_address_t *address)
+{
+	assert(fun);
+	ddf_fun_t *hc_fun = fun->driver_data;
+	assert(hc_fun);
+	uhci_t *hc = fun_to_uhci(hc_fun);
+	assert(hc);
+
+	usb_address_t addr = usb_address_keeping_find(&hc->address_manager,
+	    handle);
+	if (addr < 0) {
+		return addr;
+	}
+
+	if (address != NULL) {
+		*address = addr;
+	}
+
+	return EOK;
+}
+
+usb_iface_t usb_iface_root_hub_fun_impl = {
+	.get_hc_handle = usb_iface_get_hc_handle_rh_impl,
+	.get_address = usb_iface_get_address_rh_impl
+};
+
+static ddf_dev_ops_t root_hub_ops = {
+	.interfaces[USB_DEV_IFACE] = &usb_iface_root_hub_fun_impl
+};
+
+/*----------------------------------------------------------------------------*/
+int setup_root_hub(ddf_fun_t **fun, ddf_dev_t *hc)
+{
+	assert(fun);
+	int ret;
+
+	ddf_fun_t *hub = ddf_fun_create(hc, fun_inner, "root-hub");
 	if (!hub) {
 		usb_log_error("Failed to create root hub device structure.\n");
-		return ENOMEM;
-	}
-	char *name;
-	int ret = asprintf(&name, "UHCI Root Hub");
-	if (ret < 0) {
-		usb_log_error("Failed to create root hub name.\n");
-		free(hub);
 		return ENOMEM;
 	}
 
@@ -61,27 +98,20 @@ int setup_root_hub(device_t **device, device_t *hc)
 	ret = asprintf(&match_str, "usb&uhci&root-hub");
 	if (ret < 0) {
 		usb_log_error("Failed to create root hub match string.\n");
-		free(hub);
-		free(name);
+		ddf_fun_destroy(hub);
 		return ENOMEM;
 	}
 
-	match_id_t *match_id = create_match_id();
-	if (!match_id) {
-		usb_log_error("Failed to create root hub match id.\n");
-		free(hub);
-		free(match_str);
+	ret = ddf_fun_add_match_id(hub, match_str, 100);
+	if (ret != EOK) {
+		usb_log_error("Failed to add root hub match id.\n");
+		ddf_fun_destroy(hub);
 		return ENOMEM;
 	}
-	match_id->id = match_str;
-	match_id->score = 90;
 
-	add_match_id(&hub->match_ids, match_id);
-	hub->name = name;
-	hub->parent = hc;
-	hub->ops = &child_ops;
+	hub->ops = &root_hub_ops;
 
-	*device = hub;
+	*fun = hub;
 	return EOK;
 }
 /**

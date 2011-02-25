@@ -37,7 +37,7 @@
 
 #include <sys/types.h>
 #include <ipc/devman.h>
-#include <driver.h>
+#include <ddf/driver.h>
 #include <bool.h>
 #include <usb/usb.h>
 
@@ -52,7 +52,7 @@ typedef struct {
 int usb_hc_find(devman_handle_t, devman_handle_t *);
 
 int usb_hc_connection_initialize_from_device(usb_hc_connection_t *,
-    device_t *);
+    ddf_dev_t *);
 int usb_hc_connection_initialize(usb_hc_connection_t *, devman_handle_t);
 
 int usb_hc_connection_open(usb_hc_connection_t *);

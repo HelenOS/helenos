@@ -41,7 +41,7 @@
 
 #include <adt/list.h>
 #include <bool.h>
-#include <driver.h>
+#include <ddf/driver.h>
 #include <fibril_synch.h>
 
 #include <usb/classes/hub.h>
@@ -75,7 +75,7 @@
  * @param hc host controller phone
  * @return
  */
-usb_hub_info_t * usb_create_hub_info(device_t * device);
+usb_hub_info_t * usb_create_hub_info(ddf_dev_t * device);
 
 /** List of hubs maanged by this driver */
 extern usb_general_list_t usb_hub_list;

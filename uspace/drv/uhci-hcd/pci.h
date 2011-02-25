@@ -35,10 +35,10 @@
 #ifndef DRV_UHCI_PCI_H
 #define DRV_UHCI_PCI_H
 
-#include <driver.h>
+#include <ddf/driver.h>
 
-int pci_get_my_registers(device_t *, uintptr_t *, size_t *, int *);
-int pci_enable_interrupts(device_t *device);
+int pci_get_my_registers(ddf_dev_t *, uintptr_t *, size_t *, int *);
+int pci_enable_interrupts(ddf_dev_t *);
 
 #endif
 /**

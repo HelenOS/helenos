@@ -202,7 +202,7 @@ int usbvirt_connect(usbvirt_device_t *dev)
 		return EEXISTS;
 	}
 	
-	const char *vhc_path = "/virt/usbhc";
+	const char *vhc_path = "/virt/usbhc/hc";
 	int rc;
 	devman_handle_t handle;
 

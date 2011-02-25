@@ -33,8 +33,12 @@
  * Implementations of DDF interfaces functions (actual implementation).
  */
 #include <ipc/devman.h>
+#include <devman.h>
+#include <async.h>
 #include <usb/ddfiface.h>
+#include <usb/debug.h>
 #include <errno.h>
+#include <assert.h>
 
 /** DDF interface for USB device, implementation for typical hub. */
 usb_iface_t  usb_iface_hub_impl = {
@@ -55,10 +59,10 @@ usb_iface_t  usb_iface_hub_child_impl = {
  * @param[out] handle Storage for the host controller handle.
  * @return Error code.
  */
-int usb_iface_get_hc_handle_hub_impl(device_t *device, devman_handle_t *handle)
+int usb_iface_get_hc_handle_hub_impl(ddf_fun_t *fun, devman_handle_t *handle)
 {
-	assert(device);
-	return usb_hc_find(device->handle, handle);
+	assert(fun);
+	return usb_hc_find(fun->handle, handle);
 }
 
 /** Get host controller handle, interface implementation for child of
@@ -68,26 +72,28 @@ int usb_iface_get_hc_handle_hub_impl(device_t *device, devman_handle_t *handle)
  * @param[out] handle Storage for the host controller handle.
  * @return Error code.
  */
-int usb_iface_get_hc_handle_hub_child_impl(device_t *device,
+int usb_iface_get_hc_handle_hub_child_impl(ddf_fun_t *fun,
     devman_handle_t *handle)
 {
-	assert(device);
-	device_t *parent = device->parent;
+	assert(fun != NULL);
 
-	/* Default error, device does not support this operation. */
-	int rc = ENOTSUP;
-
-	if (parent && parent->ops && parent->ops->interfaces[USB_DEV_IFACE]) {
-		usb_iface_t *usb_iface
-		    = (usb_iface_t *) parent->ops->interfaces[USB_DEV_IFACE];
-		assert(usb_iface != NULL);
-
-		if (usb_iface->get_hc_handle) {
-			rc = usb_iface->get_hc_handle(parent, handle);
-		}
+	int parent_phone = devman_parent_device_connect(fun->handle,
+	    IPC_FLAG_BLOCKING);
+	if (parent_phone < 0) {
+		return parent_phone;
 	}
 
-	return rc;
+	sysarg_t hc_handle;
+	int rc = async_req_1_1(parent_phone, DEV_IFACE_ID(USB_DEV_IFACE),
+	    IPC_M_USB_GET_HOST_CONTROLLER_HANDLE, &hc_handle);
+
+	if (rc != EOK) {
+		return rc;
+	}
+
+	*handle = hc_handle;
+
+	return EOK;
 }
 
 /** Get host controller handle, interface implementation for HC driver.
@@ -96,12 +102,12 @@ int usb_iface_get_hc_handle_hub_child_impl(device_t *device,
  * @param[out] handle Storage for the host controller handle.
  * @return Always EOK.
  */
-int usb_iface_get_hc_handle_hc_impl(device_t *device, devman_handle_t *handle)
+int usb_iface_get_hc_handle_hc_impl(ddf_fun_t *fun, devman_handle_t *handle)
 {
-	assert(device);
+	assert(fun);
 
 	if (handle != NULL) {
-		*handle = device->handle;
+		*handle = fun->handle;
 	}
 
 	return EOK;
@@ -114,11 +120,11 @@ int usb_iface_get_hc_handle_hc_impl(device_t *device, devman_handle_t *handle)
  * @param[out] address Storage for USB address of device with handle @p handle.
  * @return Error code.
  */
-int usb_iface_get_address_hub_impl(device_t *device, devman_handle_t handle,
+int usb_iface_get_address_hub_impl(ddf_fun_t *fun, devman_handle_t handle,
     usb_address_t *address)
 {
-	assert(device);
-	int parent_phone = devman_parent_device_connect(device->handle,
+	assert(fun);
+	int parent_phone = devman_parent_device_connect(fun->handle,
 	    IPC_FLAG_BLOCKING);
 	if (parent_phone < 0) {
 		return parent_phone;
@@ -149,26 +155,13 @@ int usb_iface_get_address_hub_impl(device_t *device, devman_handle_t handle,
  * @param[out] address Storage for USB address of device with handle @p handle.
  * @return Error code.
  */
-int usb_iface_get_address_hub_child_impl(device_t *device,
+int usb_iface_get_address_hub_child_impl(ddf_fun_t *fun,
     devman_handle_t handle, usb_address_t *address)
 {
-	assert(device);
-	device_t *parent = device->parent;
-
-	/* Default error, device does not support this operation. */
-	int rc = ENOTSUP;
-
-	if (parent && parent->ops && parent->ops->interfaces[USB_DEV_IFACE]) {
-		usb_iface_t *usb_iface
-		    = (usb_iface_t *) parent->ops->interfaces[USB_DEV_IFACE];
-		assert(usb_iface != NULL);
-
-		if (usb_iface->get_address) {
-			rc = usb_iface->get_address(parent, handle, address);
-		}
+	if (handle == 0) {
+		handle = fun->handle;
 	}
-
-	return rc;
+	return usb_iface_get_address_hub_impl(fun, handle, address);
 }
 
 /**

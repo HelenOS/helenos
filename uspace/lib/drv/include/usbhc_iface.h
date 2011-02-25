@@ -37,7 +37,7 @@
 #ifndef LIBDRV_USBHC_IFACE_H_
 #define LIBDRV_USBHC_IFACE_H_
 
-#include "driver.h"
+#include "ddf/driver.h"
 #include <usb/usb.h>
 #include <bool.h>
 
@@ -170,16 +170,16 @@ typedef enum {
 } usbhc_iface_funcs_t;
 
 /** Callback for outgoing transfer. */
-typedef void (*usbhc_iface_transfer_out_callback_t)(device_t *,
+typedef void (*usbhc_iface_transfer_out_callback_t)(ddf_fun_t *,
     int, void *);
 
 /** Callback for incoming transfer. */
-typedef void (*usbhc_iface_transfer_in_callback_t)(device_t *,
+typedef void (*usbhc_iface_transfer_in_callback_t)(ddf_fun_t *,
     int, size_t, void *);
 
 
 /** Out transfer processing function prototype. */
-typedef int (*usbhc_iface_transfer_out_t)(device_t *, usb_target_t, size_t,
+typedef int (*usbhc_iface_transfer_out_t)(ddf_fun_t *, usb_target_t, size_t,
     void *, size_t,
     usbhc_iface_transfer_out_callback_t, void *);
 
@@ -187,17 +187,17 @@ typedef int (*usbhc_iface_transfer_out_t)(device_t *, usb_target_t, size_t,
 typedef usbhc_iface_transfer_out_t usbhc_iface_transfer_setup_t;
 
 /** In transfer processing function prototype. */
-typedef int (*usbhc_iface_transfer_in_t)(device_t *, usb_target_t, size_t,
+typedef int (*usbhc_iface_transfer_in_t)(ddf_fun_t *, usb_target_t, size_t,
     void *, size_t,
     usbhc_iface_transfer_in_callback_t, void *);
 
 /** USB host controller communication interface. */
 typedef struct {
-	int (*reserve_default_address)(device_t *, usb_speed_t);
-	int (*release_default_address)(device_t *);
-	int (*request_address)(device_t *, usb_speed_t, usb_address_t *);
-	int (*bind_address)(device_t *, usb_address_t, devman_handle_t);
-	int (*release_address)(device_t *, usb_address_t);
+	int (*reserve_default_address)(ddf_fun_t *, usb_speed_t);
+	int (*release_default_address)(ddf_fun_t *);
+	int (*request_address)(ddf_fun_t *, usb_speed_t, usb_address_t *);
+	int (*bind_address)(ddf_fun_t *, usb_address_t, devman_handle_t);
+	int (*release_address)(ddf_fun_t *, usb_address_t);
 
 	usbhc_iface_transfer_out_t interrupt_out;
 	usbhc_iface_transfer_in_t interrupt_in;
@@ -205,12 +205,12 @@ typedef struct {
 	usbhc_iface_transfer_out_t bulk_out;
 	usbhc_iface_transfer_in_t bulk_in;
 
-	int (*control_write)(device_t *, usb_target_t,
+	int (*control_write)(ddf_fun_t *, usb_target_t,
 	    size_t,
 	    void *, size_t, void *, size_t,
 	    usbhc_iface_transfer_out_callback_t, void *);
 
-	int (*control_read)(device_t *, usb_target_t,
+	int (*control_read)(ddf_fun_t *, usb_target_t,
 	    size_t,
 	    void *, size_t, void *, size_t,
 	    usbhc_iface_transfer_in_callback_t, void *);

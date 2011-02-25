@@ -35,7 +35,7 @@
 #define DRV_UHCI_PORT_H
 
 #include <assert.h>
-#include <driver.h> /* device_t */
+#include <ddf/driver.h>
 #include <stdint.h>
 #include <usb/usbdevice.h>
 
@@ -47,14 +47,14 @@ typedef struct uhci_port
 	unsigned number;
 	unsigned wait_period_usec;
 	usb_hc_connection_t hc_connection;
-	device_t *rh;
+	ddf_dev_t *rh;
 	devman_handle_t attached_device;
 	fid_t checker;
 } uhci_port_t;
 
 int uhci_port_init(
   uhci_port_t *port, port_status_t *address, unsigned number,
-  unsigned usec, device_t *rh, int parent_phone);
+  unsigned usec, ddf_dev_t *rh, int parent_phone);
 
 void uhci_port_fini(uhci_port_t *port);
 #endif

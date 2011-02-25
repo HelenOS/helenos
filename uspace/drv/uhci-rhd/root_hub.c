@@ -33,14 +33,15 @@
  */
 #include <errno.h>
 #include <stdint.h>
-
+#include <ddi.h>
+#include <devman.h>
 #include <usb/debug.h>
 
 #include "root_hub.h"
 
 
 int uhci_root_hub_init(
-  uhci_root_hub_t *instance, void *addr, size_t size, device_t *rh)
+  uhci_root_hub_t *instance, void *addr, size_t size, ddf_dev_t *rh)
 {
 	assert(instance);
 	assert(rh);

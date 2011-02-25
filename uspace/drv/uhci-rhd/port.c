@@ -51,7 +51,7 @@ static int uhci_port_check(void *port);
 
 int uhci_port_init(
   uhci_port_t *port, port_status_t *address, unsigned number,
-  unsigned usec, device_t *rh, int parent_phone)
+  unsigned usec, ddf_dev_t *rh, int parent_phone)
 {
 	assert(port);
 	port->address = address;
@@ -91,16 +91,13 @@ int uhci_port_check(void *port)
 	assert(port_instance);
 
 	while (1) {
-		usb_log_debug("Port(%d) status address %p:\n",
-		  port_instance->number, port_instance->address);
-
 		/* read register value */
 		port_status_t port_status =
 			port_status_read(port_instance->address);
 
 		/* debug print */
-		usb_log_info("Port(%d) status %#.4x\n",
-		  port_instance->number, port_status);
+		usb_log_debug("Port %d status at %p: 0x%04x.\n",
+		  port_instance->number, port_instance->address, port_status);
 		print_port_status(port_status);
 
 		if (port_status & STATUS_CONNECTED_CHANGED) {
@@ -186,7 +183,7 @@ static int uhci_port_new_device(uhci_port_t *port)
 	int rc = usb_hc_new_device_wrapper(port->rh, &port->hc_connection,
 	    USB_SPEED_FULL,
 	    new_device_enable_port, port->number, port,
-	    &dev_addr, &port->attached_device);
+	    &dev_addr, &port->attached_device, NULL, NULL, NULL);
 	if (rc != EOK) {
 		usb_log_error("Failed adding new device on port %u: %s.\n",
 		    port->number, str_error(rc));

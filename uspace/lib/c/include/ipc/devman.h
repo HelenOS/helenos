@@ -42,6 +42,15 @@
 
 typedef sysarg_t devman_handle_t;
 
+typedef enum {
+	/** Invalid value for debugging purposes */
+	fun_invalid = 0,
+	/** Function to which child devices attach */
+	fun_inner,
+	/** Fuction exported to external clients (leaf function) */
+	fun_exposed
+} fun_type_t;
+
 /** Ids of device models used for device-to-driver matching.
  */
 typedef struct match_id {
@@ -126,7 +135,7 @@ typedef enum {
 
 typedef enum {
 	DEVMAN_DRIVER_REGISTER = IPC_FIRST_USER_METHOD,
-	DEVMAN_ADD_CHILD_DEVICE,
+	DEVMAN_ADD_FUNCTION,
 	DEVMAN_ADD_MATCH_ID,
 	DEVMAN_ADD_DEVICE_TO_CLASS
 

@@ -32,7 +32,7 @@
  * @brief usb hub main functionality
  */
 
-#include <driver.h>
+#include <ddf/driver.h>
 #include <bool.h>
 #include <errno.h>
 #include <str_error.h>
@@ -51,7 +51,7 @@
 #include "usb/pipes.h"
 #include "usb/classes/classes.h"
 
-static device_ops_t hub_device_ops = {
+static ddf_dev_ops_t hub_device_ops = {
 	.interfaces[USB_DEV_IFACE] = &usb_iface_hub_impl
 };
 
@@ -78,6 +78,7 @@ static usb_endpoint_description_t status_change_endpoint_description = {
  * @return
  */
 static int usb_hub_init_communication(usb_hub_info_t * hub){
+	usb_log_debug("Initializing hub USB communication (hub->device->handle=%zu).\n", hub->device->handle);
 	int opResult;
 	opResult = usb_device_connection_initialize_from_device(
 			&hub->device_connection,
@@ -87,6 +88,7 @@ static int usb_hub_init_communication(usb_hub_info_t * hub){
 				"could not initialize connection to hc, errno %d",opResult);
 		return opResult;
 	}
+	usb_log_debug("Initializing USB wire abstraction.\n");
 	opResult = usb_hc_connection_initialize_from_device(&hub->connection,
 			hub->device);
 	if(opResult != EOK){
@@ -94,6 +96,7 @@ static int usb_hub_init_communication(usb_hub_info_t * hub){
 				"could not initialize connection to device, errno %d",opResult);
 		return opResult;
 	}
+	usb_log_debug("Initializing default control pipe.\n");
 	opResult = usb_endpoint_pipe_initialize_default_control(&hub->endpoints.control,
             &hub->device_connection);
 	if(opResult != EOK){
@@ -221,7 +224,7 @@ static int usb_hub_process_configuration_descriptors(
  * @param device
  * @return pointer to created structure or NULL in case of error
  */
-usb_hub_info_t * usb_create_hub_info(device_t * device) {
+usb_hub_info_t * usb_create_hub_info(ddf_dev_t * device) {
 	usb_hub_info_t* result = usb_new(usb_hub_info_t);
 	result->device = device;
 	int opResult;
@@ -290,10 +293,11 @@ usb_hub_info_t * usb_create_hub_info(device_t * device) {
  * @param dev
  * @return
  */
-int usb_add_hub_device(device_t *dev) {
+int usb_add_hub_device(ddf_dev_t *dev) {
 	dprintf(USB_LOG_LEVEL_INFO, "add_hub_device(handle=%d)", (int) dev->handle);
 
-	dev->ops = &hub_device_ops;
+	//dev->ops = &hub_device_ops;
+	(void) hub_device_ops;
 
 	usb_hub_info_t * hub_info = usb_create_hub_info(dev);
 
@@ -449,7 +453,8 @@ static void usb_hub_finalize_add_device( usb_hub_info_t * hub,
 	devman_handle_t child_handle;
 	//??
     opResult = usb_device_register_child_in_devman(new_device_address,
-            hub->connection.hc_handle, hub->device, &child_handle);
+            hub->connection.hc_handle, hub->device, &child_handle,
+            NULL, NULL, NULL);
 
 	if (opResult != EOK) {
 		dprintf(USB_LOG_LEVEL_ERROR, "could not start driver for new device");

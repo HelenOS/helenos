@@ -41,7 +41,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <str_error.h>
-#include <driver.h>
+#include <ddf/driver.h>
 
 #include <usb/usb.h>
 #include <usb/ddfiface.h>
@@ -52,16 +52,18 @@
 #include "hub.h"
 #include "conn.h"
 
-static device_ops_t vhc_ops = {
+static ddf_dev_ops_t vhc_ops = {
 	.interfaces[USBHC_DEV_IFACE] = &vhc_iface,
 	.interfaces[USB_DEV_IFACE] = &vhc_usb_iface,
 	.close = on_client_close,
 	.default_handler = default_connection_handler
 };
 
-static int vhc_count = 0;
-static int vhc_add_device(device_t *dev)
+static int vhc_add_device(ddf_dev_t *dev)
 {
+	static int vhc_count = 0;
+	int rc;
+
 	/*
 	 * Currently, we know how to simulate only single HC.
 	 */
@@ -69,19 +71,34 @@ static int vhc_add_device(device_t *dev)
 		return ELIMIT;
 	}
 
-	vhc_count++;
+	/*
+	 * Create exposed function representing the host controller
+	 * itself.
+	 */
+	ddf_fun_t *hc = ddf_fun_create(dev, fun_exposed, "hc");
+	if (hc == NULL) {
+		usb_log_fatal("Failed to create device function.\n");
+		return ENOMEM;
+	}
 
-	dev->ops = &vhc_ops;
+	hc->ops = &vhc_ops;
 
-	devman_add_device_to_class(dev->handle, "usbhc");
+	rc = ddf_fun_bind(hc);
+	if (rc != EOK) {
+		usb_log_fatal("Failed to bind HC function: %s.\n",
+		    str_error(rc));
+		return rc;
+	}
+
+	ddf_fun_add_to_class(hc, "usbhc");
 
 	/*
 	 * Initialize our hub and announce its presence.
 	 */
-	virtual_hub_device_init(dev);
+	virtual_hub_device_init(hc);
 
-	usb_log_info("Virtual USB host controller ready (id = %zu).\n",
-	    (size_t) dev->handle);
+	usb_log_info("Virtual USB host controller ready (dev %zu, hc %zu).\n",
+	    (size_t) dev->handle, (size_t) hc->handle);
 
 	return EOK;
 }
@@ -102,9 +119,9 @@ int main(int argc, char * argv[])
 	 * Temporary workaround. Wait a little bit to be the last driver
 	 * in devman output.
 	 */
-	sleep(5);
+	//sleep(5);
 
-	usb_log_enable(USB_LOG_LEVEL_INFO, NAME);
+	usb_log_enable(USB_LOG_LEVEL_DEBUG, NAME);
 
 	printf(NAME ": virtual USB host controller driver.\n");
 
@@ -121,7 +138,7 @@ int main(int argc, char * argv[])
 	/*
 	 * We are also a driver within devman framework.
 	 */
-	return driver_main(&vhc_driver);
+	return ddf_driver_main(&vhc_driver);
 }
 
 

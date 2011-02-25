@@ -67,13 +67,13 @@ typedef struct batch
 	size_t packets;
 	size_t transfered_size;
 	int error;
-	device_t *dev;
+	ddf_fun_t *fun;
 	queue_head_t *qh;
 	transfer_descriptor_t *tds;
 	void (*next_step)(struct batch*);
 } batch_t;
 
-batch_t * batch_get(device_t *dev, usb_target_t target,
+batch_t * batch_get(ddf_fun_t *fun, usb_target_t target,
     usb_transfer_type_t transfer_type, size_t max_packet_size,
     dev_speed_t speed, char *buffer, size_t size,
 		char *setup_buffer, size_t setup_size,

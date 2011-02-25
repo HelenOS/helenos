@@ -219,3 +219,9 @@ endif
 $(DEPEND): $(PRE_DEPEND)
 	makedepend -f - -- $(DEPEND_DEFS) $(CFLAGS) -- $(SOURCES) > $@ 2> /dev/null
 	-[ -f $(DEPEND_PREV) ] && diff -q $(DEPEND_PREV) $@ && mv -f $(DEPEND_PREV) $@
+
+##
+# This explicit dependecy of the output binary on the object files seems to be
+# necessary to prevent parallel build failures (GNU make bug #26893 ???).
+$(OUTPUT): $(OBJECTS)
+

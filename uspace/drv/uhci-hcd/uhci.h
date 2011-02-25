@@ -38,6 +38,7 @@
 #include <fibril.h>
 #include <fibril_synch.h>
 #include <adt/list.h>
+#include <ddi.h>
 
 #include <usb/addrkeep.h>
 #include <usbhc_iface.h>
@@ -96,10 +97,12 @@ typedef struct uhci {
 
 	fid_t cleaner;
 	fid_t debug_checker;
+
+	ddf_fun_t *ddf_instance;
 } uhci_t;
 
 /* init uhci specifics in device.driver_data */
-int uhci_init(uhci_t *instance, void *regs, size_t reg_size);
+int uhci_init(uhci_t *instance, ddf_dev_t *dev, void *regs, size_t reg_size);
 
 static inline void uhci_fini(uhci_t *instance) {};
 
@@ -107,8 +110,11 @@ int uhci_schedule(uhci_t *instance, batch_t *batch);
 
 void uhci_interrupt(uhci_t *instance, uint16_t status);
 
-static inline uhci_t * dev_to_uhci(device_t *dev)
+static inline uhci_t * dev_to_uhci(ddf_dev_t *dev)
 	{ return (uhci_t*)dev->driver_data; }
+
+static inline uhci_t * fun_to_uhci(ddf_fun_t *fun)
+	{ return (uhci_t*)fun->driver_data; }
 
 
 #endif

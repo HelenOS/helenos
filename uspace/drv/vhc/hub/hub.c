@@ -37,8 +37,9 @@
 #include <usbvirt/device.h>
 #include <errno.h>
 #include <str_error.h>
+#include <assert.h>
 #include <stdlib.h>
-#include <driver.h>
+#include <ddf/driver.h>
 
 #include "hub.h"
 

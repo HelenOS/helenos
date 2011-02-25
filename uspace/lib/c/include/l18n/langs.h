@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2005 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,36 +26,37 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup usbinfo
+/** @addtogroup libc
  * @{
  */
 /** @file
- * Common header for usbinfo application.
+ * Language and locale ids.
  */
-#ifndef USBINFO_USBINFO_H_
-#define USBINFO_USBINFO_H_
 
-#include <usb/usb.h>
-#include <usb/descriptor.h>
-#include <usb/debug.h>
-#include <ipc/devman.h>
+#ifndef LIBC_L18N_LANGS_H_
+#define LIBC_L18N_LANGS_H_
 
-
-#define NAME "usbinfo"
-
-void dump_buffer(const char *, size_t, const uint8_t *, size_t);
-const char *get_indent(size_t);
-void dump_match_ids(match_id_list_t *matches);
-void dump_usb_descriptor(uint8_t *, size_t);
-int dump_device(devman_handle_t, usb_address_t);
-void dump_descriptor_tree(uint8_t *, size_t);
-
-static inline void internal_error(int err)
-{
-	fprintf(stderr, NAME ": internal error (%s).\n", str_error(err));
-}
+/** Windows locale IDs.
+ * Codes taken from
+ * Developing International Software For Windows 95 and Windows NT
+ * by Nadine Kano (Microsoft Press).
+ * FIXME: add missing codes.
+ */
+typedef enum {
+	L18N_WIN_LOCALE_AFRIKAANS = 0x0436,
+	/* ... */
+	L18N_WIN_LOCALE_CZECH = 0x0405,
+	/* ... */
+	L18N_WIN_LOCALE_ENGLISH_UNITED_STATES = 0x0409,
+	/* ... */
+	L18N_WIN_LOCALE_SLOVAK = 0x041B,
+	/* ... */
+	L18N_WIN_LOCALE_SPANISH_TRADITIONAL = 0x040A,
+	/* ... */
+	L18N_WIN_LOCALE_ZULU = 0x0435
+} l18_win_locales_t;
 
 #endif
-/**
- * @}
+
+/** @}
  */

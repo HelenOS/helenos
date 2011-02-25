@@ -206,6 +206,22 @@ bool usbmid_explore_device(usbmid_device_t *dev)
 		return false;
 	}
 
+	ddf_fun_t *ctl_fun = ddf_fun_create(dev->dev, fun_exposed, "ctl");
+	if (ctl_fun == NULL) {
+		usb_log_error("Failed to create control function.\n");
+		free(config_descriptor_raw);
+		free(interface_descriptors);
+		return false;
+	}
+	rc = ddf_fun_bind(ctl_fun);
+	if (rc != EOK) {
+		usb_log_error("Failed to bind control function: %s.\n",
+		    str_error(rc));
+		free(config_descriptor_raw);
+		free(interface_descriptors);
+		return false;
+	}
+
 	size_t i;
 	for (i = 0; i < interface_descriptors_count; i++) {
 		usb_standard_interface_descriptor_t *interface
