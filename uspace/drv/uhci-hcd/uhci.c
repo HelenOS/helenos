@@ -140,7 +140,9 @@ int uhci_init(uhci_t *instance, ddf_dev_t *dev, void *regs, size_t reg_size)
 	uhci_init_hw(instance);
 
 	instance->cleaner = fibril_create(uhci_interrupt_emulator, instance);
-//	fibril_add_ready(instance->cleaner);
+#ifndef USE_INTERRUTPS
+	fibril_add_ready(instance->cleaner);
+#endif
 
 	instance->debug_checker = fibril_create(uhci_debug_checker, instance);
 	fibril_add_ready(instance->debug_checker);
@@ -293,6 +295,7 @@ int uhci_interrupt_emulator(void* arg)
 	while(1) {
 		uint16_t status = pio_read_16(&instance->registers->usbsts);
 		uhci_interrupt(instance, status);
+		pio_write_16(&instance->registers->usbsts, 0x1f);
 		async_usleep(UHCI_CLEANER_TIMEOUT);
 	}
 	return EOK;

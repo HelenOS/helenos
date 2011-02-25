@@ -60,6 +60,7 @@ static driver_t uhci_driver = {
 	.driver_ops = &uhci_driver_ops
 };
 /*----------------------------------------------------------------------------*/
+#ifdef USE_INTERRUPTS
 static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
 {
 	assert(dev);
@@ -68,6 +69,7 @@ static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
 	assert(hc);
 	uhci_interrupt(hc, status);
 }
+#endif
 /*----------------------------------------------------------------------------*/
 #define CHECK_RET_RETURN(ret, message...) \
 if (ret != EOK) { \
@@ -94,8 +96,10 @@ static int uhci_add_device(ddf_dev_t *device)
 	usb_log_info("I/O regs at 0x%X (size %zu), IRQ %d.\n",
 	    io_reg_base, io_reg_size, irq);
 
+#ifdef USE_INTERRUPTS
 	ret = pci_enable_interrupts(device);
 	CHECK_RET_RETURN(ret, "Failed(%d) to get enable interrupts:\n", ret);
+#endif
 
 	uhci_t *uhci_hc = malloc(sizeof(uhci_t));
 	ret = (uhci_hc != NULL) ? EOK : ENOMEM;
@@ -113,7 +117,7 @@ static int uhci_add_device(ddf_dev_t *device)
 	 * else would access driver_data anyway.
 	 */
 	device->driver_data = uhci_hc;
-
+#ifdef USE_INTERRUPTS
 	ret = register_interrupt_handler(device, irq, irq_handler,
 	    &uhci_hc->interrupt_code);
 	if (ret != EOK) {
@@ -122,6 +126,7 @@ static int uhci_add_device(ddf_dev_t *device)
 		free(uhci_hc);
 		return ret;
 	}
+#endif
 
 	ddf_fun_t *rh;
 	ret = setup_root_hub(&rh, device);
