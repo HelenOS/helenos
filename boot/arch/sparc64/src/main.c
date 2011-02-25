@@ -189,6 +189,7 @@ static void sun4v_fixups(void)
 	bootinfo.physmem_start += OBP_BIAS;
 	bootinfo.memmap.zones[0].start += OBP_BIAS;
 	bootinfo.memmap.zones[0].size -= OBP_BIAS;
+	bootinfo.memmap.total -= OBP_BIAS;
 }
 
 void bootstrap(void)
@@ -203,6 +204,9 @@ void bootstrap(void)
 	
 	bootinfo.physmem_start = ofw_get_physmem_start();
 	ofw_memmap(&bootinfo.memmap);
+
+	if (arch == ARCH_SUN4V)
+		sun4v_fixups();
 	
 	void *bootinfo_pa = ofw_translate(&bootinfo);
 	void *kernel_address_pa = ofw_translate((void *) KERNEL_ADDRESS);
@@ -302,9 +306,6 @@ void bootstrap(void)
 	
 	if (arch == ARCH_SUN4U)
 		sun4u_smp();
-	
-	if (arch == ARCH_SUN4V)
-		sun4v_fixups();
 	
 	printf("Booting the kernel ...\n");
 	jump_to_kernel(bootinfo.physmem_start | BSP_PROCESSOR, &bootinfo, subarch,
