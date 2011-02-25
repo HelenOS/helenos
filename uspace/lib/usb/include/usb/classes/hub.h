@@ -195,21 +195,6 @@ typedef enum {
  */
 extern size_t USB_HUB_MAX_DESCRIPTOR_SIZE;
 
-/**
- * @brief create uint8_t array with serialized descriptor
- *
- * @param descriptor
- */
-void * usb_serialize_hub_descriptor(usb_hub_descriptor_t * descriptor);
-
-/**
- * @brief create deserialized desriptor structure out of serialized descriptor
- *
- * The serialized descriptor must be proper usb hub descriptor, otherwise an eerror might occur.
- *
- * @param sdescriptor serialized descriptor
- */
-usb_hub_descriptor_t * usb_deserialize_hub_desriptor(void * sdescriptor);
 
 
 

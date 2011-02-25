@@ -61,6 +61,9 @@ extern int _errno;
 /** USB: stalled operation. */
 #define ESTALL (-301)
 
+/** Empty resource (no data). */
+#define EEMPTY (-302)
+
 /** An API function is called while another blocking function is in progress. */
 #define EINPROGRESS  (-10036)
 
