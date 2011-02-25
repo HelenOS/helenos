@@ -60,7 +60,6 @@ static driver_t uhci_driver = {
 	.driver_ops = &uhci_driver_ops
 };
 /*----------------------------------------------------------------------------*/
-#ifdef USE_INTERRUPTS
 static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
 {
 	assert(dev);
@@ -69,7 +68,6 @@ static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
 	assert(hc);
 	uhci_interrupt(hc, status);
 }
-#endif
 /*----------------------------------------------------------------------------*/
 #define CHECK_RET_RETURN(ret, message...) \
 if (ret != EOK) { \
@@ -84,23 +82,21 @@ static int uhci_add_device(ddf_dev_t *device)
 	usb_log_info("uhci_add_device() called\n");
 
 
-	uintptr_t io_reg_base;
-	size_t io_reg_size;
-	int irq;
+	uintptr_t io_reg_base = 0;
+	size_t io_reg_size = 0;
+	int irq = 0;
 
 	int ret =
 	    pci_get_my_registers(device, &io_reg_base, &io_reg_size, &irq);
-	io_reg_size = sizeof(regs_t);
 
 	CHECK_RET_RETURN(ret,
 	    "Failed(%d) to get I/O addresses:.\n", ret, device->handle);
 	usb_log_info("I/O regs at 0x%X (size %zu), IRQ %d.\n",
 	    io_reg_base, io_reg_size, irq);
+	io_reg_size = 32;
 
-#ifdef USE_INTERRUPTS
-	ret = pci_enable_interrupts(device);
-	CHECK_RET_RETURN(ret, "Failed(%d) to get enable interrupts:\n", ret);
-#endif
+//	ret = pci_enable_interrupts(device);
+//	CHECK_RET_RETURN(ret, "Failed(%d) to get enable interrupts:\n", ret);
 
 	uhci_t *uhci_hc = malloc(sizeof(uhci_t));
 	ret = (uhci_hc != NULL) ? EOK : ENOMEM;
@@ -118,7 +114,6 @@ static int uhci_add_device(ddf_dev_t *device)
 	 * else would access driver_data anyway.
 	 */
 	device->driver_data = uhci_hc;
-#ifdef USE_INTERRUPTS
 	ret = register_interrupt_handler(device, irq, irq_handler,
 	    &uhci_hc->interrupt_code);
 	if (ret != EOK) {
@@ -127,7 +122,6 @@ static int uhci_add_device(ddf_dev_t *device)
 		free(uhci_hc);
 		return ret;
 	}
-#endif
 
 	ddf_fun_t *rh;
 	ret = setup_root_hub(&rh, device);
@@ -154,7 +148,7 @@ static int uhci_add_device(ddf_dev_t *device)
 int main(int argc, char *argv[])
 {
 	sleep(3);
-	usb_log_enable(USB_LOG_LEVEL_INFO, NAME);
+	usb_log_enable(USB_LOG_LEVEL_DEBUG, NAME);
 
 	return ddf_driver_main(&uhci_driver);
 }

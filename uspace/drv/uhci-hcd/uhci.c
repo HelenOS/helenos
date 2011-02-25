@@ -140,9 +140,7 @@ int uhci_init(uhci_t *instance, ddf_dev_t *dev, void *regs, size_t reg_size)
 	uhci_init_hw(instance);
 
 	instance->cleaner = fibril_create(uhci_interrupt_emulator, instance);
-#ifndef USE_INTERRUTPS
 	fibril_add_ready(instance->cleaner);
-#endif
 
 	instance->debug_checker = fibril_create(uhci_debug_checker, instance);
 	fibril_add_ready(instance->debug_checker);
@@ -152,14 +150,18 @@ int uhci_init(uhci_t *instance, ddf_dev_t *dev, void *regs, size_t reg_size)
 /*----------------------------------------------------------------------------*/
 void uhci_init_hw(uhci_t *instance)
 {
+	/* reset hc, who knows what touched it before us */
+	pio_write_16(&instance->registers->usbcmd, UHCI_CMD_GLOBAL_RESET);
+	async_usleep(10000); /* 10ms according to USB spec */
+	pio_write_16(&instance->registers->usbcmd, 0);
 
 	/* set framelist pointer */
 	const uint32_t pa = addr_to_phys(instance->frame_list);
 	pio_write_32(&instance->registers->flbaseadd, pa);
 
 	/* enable all interrupts, but resume interrupt */
-	pio_write_16(&instance->registers->usbintr,
-		  UHCI_INTR_CRC | UHCI_INTR_COMPLETE | UHCI_INTR_SHORT_PACKET);
+//	pio_write_16(&instance->registers->usbintr,
+//		  UHCI_INTR_CRC | UHCI_INTR_COMPLETE | UHCI_INTR_SHORT_PACKET);
 
 	/* Start the hc with large(64B) packet FSBR */
 	pio_write_16(&instance->registers->usbcmd,
@@ -294,9 +296,11 @@ int uhci_interrupt_emulator(void* arg)
 
 	while(1) {
 		uint16_t status = pio_read_16(&instance->registers->usbsts);
+		usb_log_debug("UHCI status: %x.\n", status);
+		status |= 1;
 		uhci_interrupt(instance, status);
 		pio_write_16(&instance->registers->usbsts, 0x1f);
-		async_usleep(UHCI_CLEANER_TIMEOUT);
+		async_usleep(UHCI_CLEANER_TIMEOUT * 1000);
 	}
 	return EOK;
 }
@@ -312,7 +316,8 @@ int uhci_debug_checker(void *arg)
 		usb_log_debug("Command: %X Status: %X Interrupts: %x\n",
 		    cmd, sts, intr);
 
-		uintptr_t frame_list = pio_read_32(&instance->registers->flbaseadd);
+		uintptr_t frame_list =
+		    pio_read_32(&instance->registers->flbaseadd) & ~0xfff;
 		if (frame_list != addr_to_phys(instance->frame_list)) {
 			usb_log_debug("Framelist address: %p vs. %p.\n",
 				frame_list, addr_to_phys(instance->frame_list));

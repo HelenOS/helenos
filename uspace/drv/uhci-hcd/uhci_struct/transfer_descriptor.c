@@ -68,18 +68,6 @@ void transfer_descriptor_init(transfer_descriptor_t *instance,
 	usb_log_info("Created TD: %X:%X:%X:%X(%p).\n",
 		instance->next, instance->status, instance->device,
 	  instance->buffer_ptr, buffer);
-#if 0
-	if (size) {
-		unsigned char * buff = buffer;
-		uhci_print_verbose("TD Buffer dump(%p-%dB): ", buffer, size);
-		unsigned i = 0;
-		/* TODO: Verbose? */
-		for (; i < size; ++i) {
-			printf((i & 1) ? "%x " : "%x", buff[i]);
-		}
-		printf("\n");
-	}
-#endif
 }
 /*----------------------------------------------------------------------------*/
 int transfer_descriptor_status(transfer_descriptor_t *instance)
