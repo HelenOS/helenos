@@ -45,7 +45,7 @@
 #include "port.h"
 #include "port_status.h"
 
-static int uhci_port_new_device(uhci_port_t *port);
+static int uhci_port_new_device(uhci_port_t *port, uint16_t status);
 static int uhci_port_remove_device(uhci_port_t *port);
 static int uhci_port_set_enabled(uhci_port_t *port, bool enabled);
 static int uhci_port_check(void *port);
@@ -121,13 +121,13 @@ int uhci_port_check(void *port)
 				uhci_port_remove_device(port_instance);
 			}
 
+			port_status_write(port_instance->address, STATUS_CONNECTED_CHANGED);
 			usb_log_debug("Change status erased on port %d.\n",
 			    port_instance->number);
-			port_status_write(port_instance->address, STATUS_CONNECTED_CHANGED);
 
 			if (port_status & STATUS_CONNECTED) {
 				/* new device */
-				uhci_port_new_device(port_instance);
+				uhci_port_new_device(port_instance, port_status);
 			}
 
 			rc = usb_hc_connection_close(
@@ -188,7 +188,7 @@ static int new_device_enable_port(int portno, void *arg)
 }
 
 /*----------------------------------------------------------------------------*/
-static int uhci_port_new_device(uhci_port_t *port)
+static int uhci_port_new_device(uhci_port_t *port, uint16_t status)
 {
 	assert(port);
 	assert(usb_hc_connection_is_opened(&port->hc_connection));
@@ -197,7 +197,7 @@ static int uhci_port_new_device(uhci_port_t *port)
 
 	usb_address_t dev_addr;
 	int rc = usb_hc_new_device_wrapper(port->rh, &port->hc_connection,
-	    USB_SPEED_FULL,
+	    ((status & STATUS_LOW_SPEED) != 0) ? USB_SPEED_LOW : USB_SPEED_FULL,
 	    new_device_enable_port, port->number, port,
 	    &dev_addr, &port->attached_device, NULL, NULL, NULL);
 	if (rc != EOK) {
