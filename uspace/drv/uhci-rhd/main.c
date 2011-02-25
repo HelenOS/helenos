@@ -115,7 +115,7 @@ static driver_t uhci_rh_driver = {
 /*----------------------------------------------------------------------------*/
 int main(int argc, char *argv[])
 {
-	usb_log_enable(USB_LOG_LEVEL_INFO, NAME);
+	usb_log_enable(USB_LOG_LEVEL_DEBUG, NAME);
 	return ddf_driver_main(&uhci_rh_driver);
 }
 /*----------------------------------------------------------------------------*/

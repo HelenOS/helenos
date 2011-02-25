@@ -49,6 +49,7 @@ static int uhci_port_new_device(uhci_port_t *port);
 static int uhci_port_remove_device(uhci_port_t *port);
 static int uhci_port_set_enabled(uhci_port_t *port, bool enabled);
 static int uhci_port_check(void *port);
+static int new_device_enable_port(int portno, void *arg);
 
 int uhci_port_init(
   uhci_port_t *port, port_status_t *address, unsigned number,
@@ -91,9 +92,6 @@ int uhci_port_check(void *port)
 	uhci_port_t *port_instance = port;
 	assert(port_instance);
 
-	/* disable port, to avoid device confusion */
-	uhci_port_set_enabled(port, false);
-
 	while (1) {
 		/* read register value */
 		port_status_t port_status =
@@ -108,6 +106,7 @@ int uhci_port_check(void *port)
 		fibril_mutex_unlock(&dbg_mtx);
 
 		if (port_status & STATUS_CONNECTED_CHANGED) {
+			usb_log_debug("Change detected on port %d.\n", port_instance->number);
 			int rc = usb_hc_connection_open(
 			    &port_instance->hc_connection);
 			if (rc != EOK) {
@@ -117,14 +116,18 @@ int uhci_port_check(void *port)
 
 			/* remove any old device */
 			if (port_instance->attached_device) {
+				usb_log_debug("Removing device on port %d.\n",
+				    port_instance->number);
 				uhci_port_remove_device(port_instance);
 			}
+
+			usb_log_debug("Change status erased on port %d.\n",
+			    port_instance->number);
+			port_status_write(port_instance->address, STATUS_CONNECTED_CHANGED);
 
 			if (port_status & STATUS_CONNECTED) {
 				/* new device */
 				uhci_port_new_device(port_instance);
-			} else {
-				port_status_write(port_instance->address, STATUS_CONNECTED_CHANGED);
 			}
 
 			rc = usb_hc_connection_close(
@@ -158,8 +161,6 @@ static int new_device_enable_port(int portno, void *arg)
 	 */
 	async_usleep(100000);
 
-	/* Enable the port. */
-	uhci_port_set_enabled(port, true);
 
 	/* The hub maintains the reset signal to that port for 10 ms
 	 * (See Section 11.5.1.5)
@@ -179,6 +180,9 @@ static int new_device_enable_port(int portno, void *arg)
 		usb_log_debug("Reset Signal stop on port %d.\n",
 		    port->number);
 	}
+
+	/* Enable the port. */
+	uhci_port_set_enabled(port, true);
 
 	return EOK;
 }
