@@ -90,6 +90,9 @@ int uhci_port_check(void *port)
 	uhci_port_t *port_instance = port;
 	assert(port_instance);
 
+	/* disable port, to avoid device confusion */
+	uhci_port_set_enabled(port, false);
+
 	while (1) {
 		/* read register value */
 		port_status_t port_status =
@@ -108,11 +111,14 @@ int uhci_port_check(void *port)
 				goto next;
 			}
 
+			/* remove any old device */
+			if (port_instance->attached_device) {
+				uhci_port_remove_device(port_instance);
+			}
+
 			if (port_status & STATUS_CONNECTED) {
 				/* new device */
 				uhci_port_new_device(port_instance);
-			} else {
-				uhci_port_remove_device(port_instance);
 			}
 
 			rc = usb_hc_connection_close(

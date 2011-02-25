@@ -90,6 +90,7 @@ static int uhci_add_device(ddf_dev_t *device)
 
 	int ret =
 	    pci_get_my_registers(device, &io_reg_base, &io_reg_size, &irq);
+	io_reg_size = sizeof(regs_t);
 
 	CHECK_RET_RETURN(ret,
 	    "Failed(%d) to get I/O addresses:.\n", ret, device->handle);
