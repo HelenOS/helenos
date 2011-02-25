@@ -256,23 +256,18 @@ void bootstrap(void)
 		printf("%s ", components[i - 1].name);
 		
 		/*
-		 * At this point, we claim the physical memory that we are
-		 * going to use. We should be safe in case of the virtual
+		 * At this point, we claim and map the physical memory that we
+		 * are going to use. We should be safe in case of the virtual
 		 * address space because the OpenFirmware, according to its
-		 * SPARC binding, should restrict its use of virtual memory
-		 * to addresses from [0xffd00000; 0xffefffff] and
-		 * [0xfe000000; 0xfeffffff].
-		 *
-		 * We don't map this piece of memory. We simply rely on
-		 * SILO to have it done for us already in this case.
-		 *
-		 * XXX SILO only maps 8 MB for us here. We should improve
-		 *     this code to be totally independent on the behavior
-		 *     of SILO.
-		 *
+		 * SPARC binding, should restrict its use of virtual memory to
+		 * addresses from [0xffd00000; 0xffefffff] and [0xfe000000;
+		 * 0xfeffffff].
 		 */
 		ofw_claim_phys(bootinfo.physmem_start + dest[i - 1],
 		    ALIGN_UP(components[i - 1].inflated, PAGE_SIZE));
+		
+		ofw_map(bootinfo.physmem_start + dest[i - 1], dest[i - 1],
+		    ALIGN_UP(components[i - 1].inflated, PAGE_SIZE), -1);
 		
 		int err = inflate(components[i - 1].start, components[i - 1].size,
 		    dest[i - 1], components[i - 1].inflated);
