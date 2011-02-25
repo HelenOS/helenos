@@ -56,6 +56,11 @@ typedef enum {
 	USB_HID_REPORT_TYPE_FEATURE = 3
 } usb_hid_report_type_t;
 
+typedef enum {
+	USB_HID_PROTOCOL_BOOT = 0,
+	USB_HID_PROTOCOL_REPORT = 1
+} usb_hid_protocol_t;
+
 /** USB/HID subclass constants. */
 typedef enum {
 	USB_HID_SUBCLASS_NONE = 0,
@@ -67,7 +72,7 @@ typedef enum {
 	USB_HID_PROTOCOL_NONE = 0,
 	USB_HID_PROTOCOL_KEYBOARD = 1,
 	USB_HID_PROTOCOL_MOUSE = 2
-} usb_hid_protocol_t;
+} usb_hid_iface_protocol_t;
 
 /** Part of standard USB HID descriptor specifying one class descriptor.
  *

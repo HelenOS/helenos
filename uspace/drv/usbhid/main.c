@@ -161,8 +161,8 @@ static layout_op_t *layout[NUM_LAYOUTS] = {
 
 static int active_layout = 0;
 
-static void usbkbd_req_set_report(usb_hid_dev_kbd_t *kbd_dev, uint8_t *buffer,
-    size_t buf_size)
+static void usbkbd_req_set_report(usb_hid_dev_kbd_t *kbd_dev, uint16_t iface,
+    usb_hid_report_type_t type, uint8_t *buffer, size_t buf_size)
 {
 	int rc, sess_rc;
 	
@@ -174,11 +174,43 @@ static void usbkbd_req_set_report(usb_hid_dev_kbd_t *kbd_dev, uint8_t *buffer,
 	}
 
 	usb_log_debug("Sending Set_Report request to the device.\n");
-	// TODO: determine what interface to use!! (now set to 1)
+	
 	rc = usb_control_request_set(&kbd_dev->ctrl_pipe, 
 	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_INTERFACE, 
-	    USB_HIDREQ_SET_REPORT, USB_HID_REPORT_TYPE_OUTPUT,
-	    1, buffer, buf_size);
+	    USB_HIDREQ_SET_REPORT, type, iface, buffer, buf_size);
+
+	sess_rc = usb_endpoint_pipe_end_session(&kbd_dev->ctrl_pipe);
+
+	if (rc != EOK) {
+		usb_log_warning("Error sending output report to the keyboard: "
+		    "%s.\n", str_error(rc));
+		return;
+	}
+
+	if (sess_rc != EOK) {
+		usb_log_warning("Error closing session: %s.\n",
+		    str_error(sess_rc));
+		return;
+	}
+}
+
+static void usbkbd_req_set_protocol(usb_hid_dev_kbd_t *kbd_dev, uint16_t iface,
+    usb_hid_protocol_t protocol)
+{
+	int rc, sess_rc;
+	
+	sess_rc = usb_endpoint_pipe_start_session(&kbd_dev->ctrl_pipe);
+	if (sess_rc != EOK) {
+		usb_log_warning("Failed to start a session: %s.\n",
+		    str_error(sess_rc));
+		return;
+	}
+
+	usb_log_debug("Sending Set_Protocol request to the device.\n");
+	
+	rc = usb_control_request_set(&kbd_dev->ctrl_pipe, 
+	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_INTERFACE, 
+	    USB_HIDREQ_SET_PROTOCOL, protocol, iface, NULL, 0);
 
 	sess_rc = usb_endpoint_pipe_end_session(&kbd_dev->ctrl_pipe);
 
@@ -224,7 +256,9 @@ static void usbkbd_set_led(unsigned mods, usb_hid_dev_kbd_t *kbd_dev)
 		return;
 	}
 	
-	usbkbd_req_set_report(kbd_dev, buffer, BUFFER_SIZE);
+	// TODO: determine what interface to use!! (now set to 1)
+	usbkbd_req_set_report(kbd_dev, 1, USB_HID_REPORT_TYPE_OUTPUT, buffer, 
+	    BUFFER_SIZE);
 }
 
 static void kbd_push_ev(int type, unsigned int key, usb_hid_dev_kbd_t *kbd_dev)
@@ -564,9 +598,6 @@ static int usbkbd_process_descriptors(usb_hid_dev_kbd_t *kbd_dev)
 		return EREFUSED;
 	}
 
-
-
-
 	kbd_dev->conf = (usb_hid_configuration_t *)calloc(1, 
 	    sizeof(usb_hid_configuration_t));
 	if (kbd_dev->conf == NULL) {
@@ -670,6 +701,9 @@ static usb_hid_dev_kbd_t *usbkbd_init_device(ddf_dev_t *dev)
 	    kbd_dev->conf->config_descriptor.configuration_number);
 	usb_endpoint_pipe_end_session(&kbd_dev->ctrl_pipe);
 	
+	// set boot protocol
+	usbkbd_req_set_protocol(kbd_dev, 1, USB_HID_PROTOCOL_BOOT);
+	
 	return kbd_dev;
 
 error_leave:
@@ -759,15 +793,8 @@ static int usbkbd_fibril_device(void *arg)
 		usb_log_error("No device!\n");
 		return -1;
 	}
-
-	ddf_dev_t *dev = (ddf_dev_t *)arg;
-
-	// initialize device (get and process descriptors, get address, etc.)
-	usb_hid_dev_kbd_t *kbd_dev = usbkbd_init_device(dev);
-	if (kbd_dev == NULL) {
-		usb_log_error("Error while initializing device.\n");
-		return -1;
-	}
+	
+	usb_hid_dev_kbd_t *kbd_dev = (usb_hid_dev_kbd_t *)arg;
 
 	usbkbd_poll_keyboard(kbd_dev);
 
@@ -776,25 +803,6 @@ static int usbkbd_fibril_device(void *arg)
 
 static int usbkbd_add_device(ddf_dev_t *dev)
 {
-	/* For now, fail immediately. */
-	//return ENOTSUP;
-
-	/*
-	 * When everything is okay, connect to "our" HC.
-	 *
-	 * Not supported yet, skip..
-	 */
-//	int phone = usb_drv_hc_connect_auto(dev, 0);
-//	if (phone < 0) {
-//		/*
-//		 * Connecting to HC failed, roll-back and announce
-//		 * failure.
-//		 */
-//		return phone;
-//	}
-
-//	dev->parent_phone = phone;
-
 	/*
 	 * Create default function.
 	 */
@@ -807,11 +815,20 @@ static int usbkbd_add_device(ddf_dev_t *dev)
 	assert(rc == EOK);
 	rc = ddf_fun_add_to_class(kbd_fun, "keyboard");
 	assert(rc == EOK);
+	
+	/* 
+	 * Initialize device (get and process descriptors, get address, etc.)
+	 */
+	usb_hid_dev_kbd_t *kbd_dev = usbkbd_init_device(dev);
+	if (kbd_dev == NULL) {
+		usb_log_error("Error while initializing device.\n");
+		return -1;
+	}
 
 	/*
 	 * Create new fibril for handling this keyboard
 	 */
-	fid_t fid = fibril_create(usbkbd_fibril_device, dev);
+	fid_t fid = fibril_create(usbkbd_fibril_device, kbd_dev);
 	if (fid == 0) {
 		usb_log_error("Failed to start fibril for HID device\n");
 		return ENOMEM;
