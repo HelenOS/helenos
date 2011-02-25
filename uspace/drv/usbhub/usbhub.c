@@ -43,6 +43,7 @@
 #include <usb/recognise.h>
 #include <usb/request.h>
 #include <usb/classes/hub.h>
+#include <stdio.h>
 
 #include "usbhub.h"
 #include "usbhub_private.h"
@@ -55,13 +56,27 @@ static ddf_dev_ops_t hub_device_ops = {
 	.interfaces[USB_DEV_IFACE] = &usb_iface_hub_impl
 };
 
-/** Hub status-change endpoint description */
+/** Hub status-change endpoint description
+ *
+ * For more see usb hub specification in 11.15.1 of
+ */
 static usb_endpoint_description_t status_change_endpoint_description = {
 	.transfer_type = USB_TRANSFER_INTERRUPT,
 	.direction = USB_DIRECTION_IN,
 	.interface_class = USB_CLASS_HUB,
+	.interface_subclass = 0,
+	.interface_protocol = 0,
 	.flags = 0
 };
+
+int usb_hub_control_loop(void * hub_info_param){
+	usb_hub_info_t * hub_info = (usb_hub_info_t*)hub_info_param;
+	while(true){
+		usb_hub_check_hub_changes(hub_info);
+		async_usleep(1000 * 1000 );/// \TODO proper number once
+	}
+	return 0;
+}
 
 
 //*********************************************
@@ -328,13 +343,23 @@ int usb_add_hub_device(ddf_dev_t *dev) {
 	usb_endpoint_pipe_end_session(&hub_info->endpoints.control);
 
 	//add the hub to list
+	//is this needed now?
 	fibril_mutex_lock(&usb_hub_list_lock);
 	usb_lst_append(&usb_hub_list, hub_info);
 	fibril_mutex_unlock(&usb_hub_list_lock);
-
 	dprintf(USB_LOG_LEVEL_DEBUG, "hub info added to list");
+
+	fid_t fid = fibril_create(usb_hub_control_loop, hub_info);
+	if (fid == 0) {
+		dprintf(USB_LOG_LEVEL_ERROR, 
+				": failed to start monitoring fibril for new hub");
+		return ENOMEM;
+	}
+	fibril_add_ready(fid);
+
+	dprintf(USB_LOG_LEVEL_DEBUG, "hub fibril created");
 	//(void)hub_info;
-	usb_hub_check_hub_changes();
+	//usb_hub_check_hub_changes();
 	
 	dprintf(USB_LOG_LEVEL_INFO, "hub dev added");
 	//address is lost...
@@ -367,9 +392,10 @@ static void usb_hub_init_add_device(usb_hub_info_t * hub, uint16_t port) {
 	//get default address
 	//opResult = usb_drv_reserve_default_address(hc);
 	opResult = usb_hc_reserve_default_address(&hub->connection, USB_SPEED_LOW);
-
+	
 	if (opResult != EOK) {
-		dprintf(USB_LOG_LEVEL_WARNING, "cannot assign default address, it is probably used");
+		dprintf(USB_LOG_LEVEL_WARNING, 
+				"cannot assign default address, it is probably used %d",opResult);
 		return;
 	}
 	//reset port
@@ -380,7 +406,8 @@ static void usb_hub_init_add_device(usb_hub_info_t * hub, uint16_t port) {
 			NULL, 0
 			);
 	if (opResult != EOK) {
-		dprintf(USB_LOG_LEVEL_ERROR, "something went wrong when reseting a port");
+		dprintf(USB_LOG_LEVEL_ERROR, 
+				"something went wrong when reseting a port %d",opResult);
 		//usb_hub_release_default_address(hc);
 		usb_hc_release_default_address(&hub->connection);
 	}
@@ -418,9 +445,6 @@ static void usb_hub_finalize_add_device( usb_hub_info_t * hub,
 	/// \TODO get highspeed info
 
 
-
-
-
 	/* Request address from host controller. */
 	usb_address_t new_device_address = usb_hc_request_address(
 			&hub->connection,
@@ -435,10 +459,12 @@ static void usb_hub_finalize_add_device( usb_hub_info_t * hub,
 	dprintf(USB_LOG_LEVEL_INFO, "setting new address %d",new_device_address);
 	//opResult = usb_drv_req_set_address(hc, USB_ADDRESS_DEFAULT,
 	//    new_device_address);
+	usb_endpoint_pipe_start_session(&new_device_pipe);
 	opResult = usb_request_set_address(&new_device_pipe,new_device_address);
-
+	usb_endpoint_pipe_end_session(&new_device_pipe);
 	if (opResult != EOK) {
-		dprintf(USB_LOG_LEVEL_ERROR, "could not set address for new device");
+		dprintf(USB_LOG_LEVEL_ERROR, 
+				"could not set address for new device %d",opResult);
 		usb_hc_release_default_address(&hub->connection);
 		return;
 	}
@@ -457,7 +483,8 @@ static void usb_hub_finalize_add_device( usb_hub_info_t * hub,
             NULL, NULL, NULL);
 
 	if (opResult != EOK) {
-		dprintf(USB_LOG_LEVEL_ERROR, "could not start driver for new device");
+		dprintf(USB_LOG_LEVEL_ERROR, 
+				"could not start driver for new device %d",opResult);
 		return;
 	}
 	hub->attached_devs[port].handle = child_handle;
@@ -468,7 +495,8 @@ static void usb_hub_finalize_add_device( usb_hub_info_t * hub,
 			&hub->connection,
 			&hub->attached_devs[port]);
 	if (opResult != EOK) {
-		dprintf(USB_LOG_LEVEL_ERROR, "could not assign address of device in hcd");
+		dprintf(USB_LOG_LEVEL_ERROR, 
+				"could not assign address of device in hcd %d",opResult);
 		return;
 	}
 	dprintf(USB_LOG_LEVEL_INFO, "new device address %d, handle %zu",
@@ -510,6 +538,26 @@ static void usb_hub_removed_device(
 	}
 }
 
+
+/**
+ *Process over current condition on port.
+ * 
+ * Turn off the power on the port.
+ *
+ * @param hub
+ * @param port
+ */
+static void usb_hub_over_current( usb_hub_info_t * hub,
+		uint16_t port){
+	int opResult;
+	opResult = usb_hub_clear_port_feature(&hub->endpoints.control,
+	    port, USB_HUB_FEATURE_PORT_POWER);
+	if(opResult!=EOK){
+		dprintf(USB_LOG_LEVEL_ERROR, "cannot power off port %d;  %d",
+				port, opResult);
+	}
+}
+
 /**
  * Process interrupts on given hub port
  * @param hc
@@ -521,11 +569,12 @@ static void usb_hub_process_interrupt(usb_hub_info_t * hub,
 	dprintf(USB_LOG_LEVEL_DEBUG, "interrupt at port %d", port);
 	//determine type of change
 	usb_endpoint_pipe_t *pipe = &hub->endpoints.control;
-	int opResult = usb_endpoint_pipe_start_session(pipe);
+	//int opResult = usb_endpoint_pipe_start_session(pipe);
 	
-	if(opResult != EOK){
+	/*if(opResult != EOK){
 		dprintf(USB_LOG_LEVEL_ERROR, "cannot open pipe %d", opResult);
-	}
+	}*/
+	int opResult;
 
 	/*
 	usb_target_t target;
@@ -546,11 +595,11 @@ static void usb_hub_process_interrupt(usb_hub_info_t * hub,
 			&status, 4, &rcvd_size
 			);
 	if (opResult != EOK) {
-		dprintf(USB_LOG_LEVEL_ERROR, "ERROR: could not get port status");
+		dprintf(USB_LOG_LEVEL_ERROR, "could not get port status");
 		return;
 	}
 	if (rcvd_size != sizeof (usb_port_status_t)) {
-		dprintf(USB_LOG_LEVEL_ERROR, "ERROR: received status has incorrect size");
+		dprintf(USB_LOG_LEVEL_ERROR, "received status has incorrect size");
 		return;
 	}
 	//something connected/disconnected
@@ -565,13 +614,23 @@ static void usb_hub_process_interrupt(usb_hub_info_t * hub,
 			usb_hub_removed_device(hub, port);
 		}
 	}
+	//over current
+	if (usb_port_overcurrent_change(&status)) {
+		//check if it was not auto-resolved
+		if(usb_port_over_current(&status)){
+			usb_hub_over_current(hub,port);
+		}else{
+			dprintf(USB_LOG_LEVEL_INFO,
+				"over current condition was auto-resolved on port %d",port);
+		}
+	}
 	//port reset
 	if (usb_port_reset_completed(&status)) {
 		dprintf(USB_LOG_LEVEL_INFO, "port reset complete");
 		if (usb_port_enabled(&status)) {
 			usb_hub_finalize_add_device(hub, port);
 		} else {
-			dprintf(USB_LOG_LEVEL_WARNING, "ERROR: port reset, but port still not enabled");
+			dprintf(USB_LOG_LEVEL_WARNING, "port reset, but port still not enabled");
 		}
 	}
 
@@ -585,18 +644,91 @@ static void usb_hub_process_interrupt(usb_hub_info_t * hub,
 	}
 	/// \TODO handle other changes
 	/// \TODO debug log for various situations
-	usb_endpoint_pipe_end_session(pipe);
+	//usb_endpoint_pipe_end_session(pipe);
 
 
 }
 
 /**
+ * Check changes on particular hub
+ * @param hub_info_param
+ */
+void usb_hub_check_hub_changes(usb_hub_info_t * hub_info){
+	int opResult;
+	opResult = usb_endpoint_pipe_start_session(&hub_info->endpoints.status_change);
+	if(opResult != EOK){
+		dprintf(USB_LOG_LEVEL_ERROR,
+				"could not initialize communication for hub; %d", opResult);
+		return;
+	}
+
+	/*
+	 * Check status change pipe of this hub.
+	 */
+	/*
+	usb_target_t target;
+	target.address = hub_info->address;
+	target.endpoint = 1;/// \TODO get from endpoint descriptor
+	dprintf(USB_LOG_LEVEL_INFO, "checking changes for hub at addr %d",
+	    target.address);
+	*/
+	size_t port_count = hub_info->port_count;
+
+	/*
+	 * Connect to respective HC.
+	 *
+	int hc = usb_drv_hc_connect_auto(hub_info->device, 0);
+	if (hc < 0) {
+	continue;
+	}*/
+
+	/// FIXME: count properly
+	size_t byte_length = ((port_count+1) / 8) + 1;
+		void *change_bitmap = malloc(byte_length);
+	size_t actual_size;
+
+	//usb_handle_t handle;
+	/*
+	 * Send the request.
+	 */
+	opResult = usb_endpoint_pipe_read(
+			&hub_info->endpoints.status_change,
+			change_bitmap, byte_length, &actual_size
+			);
+
+	//usb_drv_async_wait_for(handle);
+
+	if (opResult != EOK) {
+		free(change_bitmap);
+		dprintf(USB_LOG_LEVEL_WARNING, "something went wrong while getting status of hub");
+		return;
+	}
+	unsigned int port;
+	opResult = usb_endpoint_pipe_start_session(&hub_info->endpoints.control);
+	usb_hc_connection_open(&hub_info->connection);
+
+	///todo, opresult check, pre obe konekce
+	for (port = 1; port < port_count+1; ++port) {
+		bool interrupt =
+				(((uint8_t*) change_bitmap)[port / 8] >> (port % 8)) % 2;
+		if (interrupt) {
+			usb_hub_process_interrupt(
+			        hub_info, port);
+		}
+	}
+	usb_hc_connection_close(&hub_info->connection);
+	usb_endpoint_pipe_end_session(&hub_info->endpoints.control);
+	usb_endpoint_pipe_end_session(&hub_info->endpoints.status_change);
+	free(change_bitmap);
+}
+
+/**
  * Check changes on all known hubs.
  */
+/*
 void usb_hub_check_hub_changes(void) {
-	/*
-	 * Iterate through all hubs.
-	 */
+	// Iterate through all hubs.
+	 
 	usb_general_list_t * lst_item;
 	fibril_mutex_lock(&usb_hub_list_lock);
 	for (lst_item = usb_hub_list.next;
@@ -604,73 +736,12 @@ void usb_hub_check_hub_changes(void) {
 			lst_item = lst_item->next) {
 		fibril_mutex_unlock(&usb_hub_list_lock);
 		usb_hub_info_t * hub_info = ((usb_hub_info_t*)lst_item->data);
-		int opResult;
-
-		opResult = usb_endpoint_pipe_start_session(&hub_info->endpoints.status_change);
-		if(opResult != EOK){
-			continue;
-		}
-		/*
-		 * Check status change pipe of this hub.
-		 */
-		/*
-		usb_target_t target;
-		target.address = hub_info->address;
-		target.endpoint = 1;/// \TODO get from endpoint descriptor
-		dprintf(USB_LOG_LEVEL_INFO, "checking changes for hub at addr %d",
-		    target.address);
-		*/
-		size_t port_count = hub_info->port_count;
-
-		/*
-		 * Connect to respective HC.
-		 *
-		int hc = usb_drv_hc_connect_auto(hub_info->device, 0);
-		if (hc < 0) {
-			continue;
-		}*/
-
-		/// FIXME: count properly
-		size_t byte_length = ((port_count+1) / 8) + 1;
-
-		void *change_bitmap = malloc(byte_length);
-		size_t actual_size;
-		//usb_handle_t handle;
-
-		/*
-		 * Send the request.
-		 */
-		opResult = usb_endpoint_pipe_read(
-				&hub_info->endpoints.status_change,
-				change_bitmap, byte_length, &actual_size
-				);
-
-		//usb_drv_async_wait_for(handle);
-
-		if (opResult != EOK) {
-			free(change_bitmap);
-			dprintf(USB_LOG_LEVEL_WARNING, "something went wrong while getting status of hub");
-			continue;
-		}
-		unsigned int port;
-		for (port = 1; port < port_count+1; ++port) {
-			bool interrupt =
-					(((uint8_t*) change_bitmap)[port / 8] >> (port % 8)) % 2;
-			if (interrupt) {
-				usb_hub_process_interrupt(
-				        hub_info, port);
-			}
-		}
-		usb_endpoint_pipe_end_session(&hub_info->endpoints.status_change);
-		free(change_bitmap);
-		
-
-		//async_hangup(hc);
+		usb_hub_check_hub_changes(hub_info);
 		fibril_mutex_lock(&usb_hub_list_lock);
 	}
 	fibril_mutex_unlock(&usb_hub_list_lock);
 }
-
+*/
 
 
 

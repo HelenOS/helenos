@@ -176,6 +176,21 @@ usb_device_request_setup_packet_t * request, uint16_t port
 	request->length = 0;
 }
 
+/**
+ * set the device request to be a port disable request
+ * @param request
+ * @param port
+ */
+static inline void usb_hub_unset_power_port_request(
+usb_device_request_setup_packet_t * request, uint16_t port
+){
+	request->index = port;
+	request->request_type = USB_HUB_REQ_TYPE_SET_PORT_FEATURE;
+	request->request = USB_HUB_REQUEST_CLEAR_FEATURE;
+	request->value = USB_HUB_FEATURE_PORT_POWER;
+	request->length = 0;
+}
+
 /** get i`th bit of port status */
 static inline bool usb_port_get_bit(usb_port_status_t * status, int idx)
 {

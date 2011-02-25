@@ -74,9 +74,9 @@ typedef struct {
 
 /**
  * function running the hub-controlling loop.
- * @param noparam fundtion does not need any parameters
+ * @param hub_info_param hub info pointer
  */
-int usb_hub_control_loop(void * noparam);
+int usb_hub_control_loop(void * hub_info_param);
 
 /** Callback when new hub device is detected.
  *
@@ -88,7 +88,13 @@ int usb_add_hub_device(ddf_dev_t *dev);
 /**
  * check changes on all registered hubs
  */
-void usb_hub_check_hub_changes(void);
+//void usb_hub_check_hub_changes(void);
+
+/**
+ * check changes on specified hub
+ * @param hub_info_param pointer to usb_hub_info_t structure
+ */
+void usb_hub_check_hub_changes(usb_hub_info_t * hub_info_param);
 
 
 //int usb_add_hub_device(device_t *);
