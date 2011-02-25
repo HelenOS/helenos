@@ -33,6 +33,7 @@
  */
 #include <errno.h>
 #include <str_error.h>
+#include <fibril_synch.h>
 
 #include <usb/usb.h>    /* usb_address_t */
 #include <usb/usbdevice.h>
@@ -99,9 +100,12 @@ int uhci_port_check(void *port)
 			port_status_read(port_instance->address);
 
 		/* debug print */
+		static fibril_mutex_t dbg_mtx = FIBRIL_MUTEX_INITIALIZER(dbg_mtx);
+		fibril_mutex_lock(&dbg_mtx);
 		usb_log_debug("Port %d status at %p: 0x%04x.\n",
 		  port_instance->number, port_instance->address, port_status);
 		print_port_status(port_status);
+		fibril_mutex_unlock(&dbg_mtx);
 
 		if (port_status & STATUS_CONNECTED_CHANGED) {
 			int rc = usb_hc_connection_open(
@@ -119,6 +123,8 @@ int uhci_port_check(void *port)
 			if (port_status & STATUS_CONNECTED) {
 				/* new device */
 				uhci_port_new_device(port_instance);
+			} else {
+				port_status_write(port_instance->address, STATUS_CONNECTED_CHANGED);
 			}
 
 			rc = usb_hc_connection_close(
