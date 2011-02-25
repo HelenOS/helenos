@@ -39,7 +39,6 @@
 
 #include "root_hub.h"
 
-
 int uhci_root_hub_init(
   uhci_root_hub_t *instance, void *addr, size_t size, ddf_dev_t *rh)
 {

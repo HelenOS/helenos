@@ -60,6 +60,7 @@ static irq_cmd_t uhci_cmds[] = {
 	}
 };
 
+
 static int usb_iface_get_address(ddf_fun_t *fun, devman_handle_t handle,
     usb_address_t *address)
 {
@@ -79,8 +80,7 @@ static int usb_iface_get_address(ddf_fun_t *fun, devman_handle_t handle,
 
 	return EOK;
 }
-
-
+/*----------------------------------------------------------------------------*/
 static usb_iface_t hc_usb_iface = {
 	.get_hc_handle = usb_iface_get_hc_handle_hc_impl,
 	.get_address = usb_iface_get_address
@@ -88,7 +88,7 @@ static usb_iface_t hc_usb_iface = {
 /*----------------------------------------------------------------------------*/
 static ddf_dev_ops_t uhci_ops = {
 	.interfaces[USB_DEV_IFACE] = &hc_usb_iface,
-	.interfaces[USBHC_DEV_IFACE] = &uhci_iface
+	.interfaces[USBHC_DEV_IFACE] = &uhci_iface,
 };
 
 static int uhci_init_transfer_lists(uhci_t *instance);
