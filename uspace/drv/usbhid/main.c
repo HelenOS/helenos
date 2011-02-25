@@ -251,18 +251,19 @@ static void kbd_push_ev(int type, unsigned int key, usb_hid_dev_kbd_t *kbd_dev)
 	}
 
 	switch (key) {
-	case KC_CAPS_LOCK: mod_mask = KM_CAPS_LOCK; usb_log_debug("\n\nPushing CAPS LOCK! (mask: %u)\n\n", mod_mask); break;
-	case KC_NUM_LOCK: mod_mask = KM_NUM_LOCK; usb_log_debug("\n\nPushing NUM LOCK! (mask: %u)\n\n", mod_mask); break;
-	case KC_SCROLL_LOCK: mod_mask = KM_SCROLL_LOCK; usb_log_debug("\n\nPushing SCROLL LOCK! (mask: %u)\n\n", mod_mask); break;
+	case KC_CAPS_LOCK: mod_mask = KM_CAPS_LOCK; usb_log_debug2("\n\nPushing CAPS LOCK! (mask: %u)\n\n", mod_mask); break;
+	case KC_NUM_LOCK: mod_mask = KM_NUM_LOCK; usb_log_debug2("\n\nPushing NUM LOCK! (mask: %u)\n\n", mod_mask); break;
+	case KC_SCROLL_LOCK: mod_mask = KM_SCROLL_LOCK; usb_log_debug2("\n\nPushing SCROLL LOCK! (mask: %u)\n\n", mod_mask); break;
 	default: mod_mask = 0; break;
 	}
 
 	if (mod_mask != 0) {
-		usb_log_debug("\n\nChanging mods and lock keys\n\n");
-		usb_log_debug("\n\nmods before: 0x%x\n\n", mods);
-		usb_log_debug("\n\nLock keys before:0x%x\n\n", lock_keys);
+		usb_log_debug2("\n\nChanging mods and lock keys\n");
+		usb_log_debug2("\nmods before: 0x%x\n", mods);
+		usb_log_debug2("\nLock keys before:0x%x\n\n", lock_keys);
 		
 		if (type == KEY_PRESS) {
+			usb_log_debug2("\nKey pressed.\n");
 			/*
 			 * Only change lock state on transition from released
 			 * to pressed. This prevents autorepeat from messing
@@ -274,6 +275,7 @@ static void kbd_push_ev(int type, unsigned int key, usb_hid_dev_kbd_t *kbd_dev)
 			/* Update keyboard lock indicator lights. */
  			usbkbd_set_led(mods, kbd_dev);
 		} else {
+			usb_log_debug2("\nKey released.\n");
 			lock_keys = lock_keys & ~mod_mask;
 		}
 	}
@@ -282,8 +284,8 @@ static void kbd_push_ev(int type, unsigned int key, usb_hid_dev_kbd_t *kbd_dev)
 	usb_log_debug2("mods: 0x%x\n", mods);
 	usb_log_debug2("keycode: %u\n", key);
 */
-	usb_log_debug("\n\nmods after: 0x%x\n\n", mods);
-	usb_log_debug("\n\nLock keys after: 0x%x\n\n", lock_keys);
+	usb_log_debug2("\n\nmods after: 0x%x\n", mods);
+	usb_log_debug2("\nLock keys after: 0x%x\n\n", lock_keys);
 	
 	if (type == KEY_PRESS && (mods & KM_LCTRL) &&
 		key == KC_F1) {
@@ -316,7 +318,7 @@ static void kbd_push_ev(int type, unsigned int key, usb_hid_dev_kbd_t *kbd_dev)
 
 	ev.c = layout[active_layout]->parse_ev(&ev);
 
-	usb_log_debug("Sending key %d to the console\n", ev.key);
+	usb_log_debug2("Sending key %d to the console\n", ev.key);
 	assert(console_callback_phone != -1);
 	async_msg_4(console_callback_phone, KBD_EVENT, ev.type, ev.key, 
 	    ev.mods, ev.c);
@@ -374,6 +376,8 @@ static void usbkbd_check_modifier_changes(usb_hid_dev_kbd_t *kbd_dev,
 			}
 		}	// no change
 	}
+	
+	kbd_dev->modifiers = modifiers;
 }
 
 static void usbkbd_check_key_changes(usb_hid_dev_kbd_t *kbd_dev, 
@@ -392,13 +396,14 @@ static void usbkbd_check_key_changes(usb_hid_dev_kbd_t *kbd_dev,
 		i = 0;
 		while (i < kbd_dev->keycode_count
 		    && key_codes[i] != kbd_dev->keycodes[j]) {
-			++j;
+			++i;
 		}
 		
-		if (j == kbd_dev->keycode_count) {
+		if (i == kbd_dev->keycode_count) {
 			// not found, i.e. the key was released
 			key = usbkbd_parse_scancode(kbd_dev->keycodes[j]);
 			kbd_push_ev(KEY_RELEASE, key, kbd_dev);
+			usb_log_debug2("\nKey released: %d\n", key);
 		} else {
 			// found, nothing happens
 		}
@@ -413,15 +418,22 @@ static void usbkbd_check_key_changes(usb_hid_dev_kbd_t *kbd_dev,
 			++j;
 		}
 		
-		assert(kbd_dev->keycode_count <= kbd_dev->keycode_count);
-		
 		if (j == kbd_dev->keycode_count) {
 			// not found, i.e. new key pressed
 			key = usbkbd_parse_scancode(key_codes[i]);
+			usb_log_debug2("\nKey pressed: %d (keycode: %d)\n", key,
+			    key_codes[i]);
 			kbd_push_ev(KEY_PRESS, key, kbd_dev);
 		} else {
 			// found, nothing happens
 		}
+	}
+	
+	memcpy(kbd_dev->keycodes, key_codes, kbd_dev->keycode_count);
+	
+	usb_log_debug2("\nNew stored keycodes: ");
+	for (i = 0; i < kbd_dev->keycode_count; ++i) {
+		usb_log_debug2("%d ", kbd_dev->keycodes[i]);
 	}
 }
 
