@@ -349,6 +349,16 @@ int usb_add_hub_device(ddf_dev_t *dev) {
 	fibril_mutex_unlock(&usb_hub_list_lock);
 	dprintf(USB_LOG_LEVEL_DEBUG, "hub info added to list");
 
+	dprintf(USB_LOG_LEVEL_DEBUG, "adding to ddf");
+	ddf_fun_t *hub_fun = ddf_fun_create(dev, fun_exposed, "hub");
+	assert(hub_fun != NULL);
+	hub_fun->ops = NULL;
+
+	int rc = ddf_fun_bind(hub_fun);
+	assert(rc == EOK);
+	rc = ddf_fun_add_to_class(hub_fun, "hub");
+	assert(rc == EOK);
+
 	fid_t fid = fibril_create(usb_hub_control_loop, hub_info);
 	if (fid == 0) {
 		dprintf(USB_LOG_LEVEL_ERROR, 
@@ -420,7 +430,7 @@ static void usb_hub_init_add_device(usb_hub_info_t * hub, uint16_t port) {
  * @param target
  */
 static void usb_hub_finalize_add_device( usb_hub_info_t * hub,
-		uint16_t port) {
+		uint16_t port, bool isLowSpeed) {
 
 	int opResult;
 	dprintf(USB_LOG_LEVEL_INFO, "finalizing add device");
@@ -443,12 +453,13 @@ static void usb_hub_finalize_add_device( usb_hub_info_t * hub,
 			&new_device_pipe,
 			&new_device_connection);
 	/// \TODO get highspeed info
+	usb_speed_t speed = isLowSpeed?USB_SPEED_LOW:USB_SPEED_FULL;
 
 
 	/* Request address from host controller. */
 	usb_address_t new_device_address = usb_hc_request_address(
 			&hub->connection,
-			USB_SPEED_LOW/// \TODO fullspeed??
+			speed/// \TODO fullspeed??
 			);
 	if (new_device_address < 0) {
 		dprintf(USB_LOG_LEVEL_ERROR, "failed to get free USB address");
@@ -628,7 +639,7 @@ static void usb_hub_process_interrupt(usb_hub_info_t * hub,
 	if (usb_port_reset_completed(&status)) {
 		dprintf(USB_LOG_LEVEL_INFO, "port reset complete");
 		if (usb_port_enabled(&status)) {
-			usb_hub_finalize_add_device(hub, port);
+			usb_hub_finalize_add_device(hub, port, usb_port_low_speed(&status));
 		} else {
 			dprintf(USB_LOG_LEVEL_WARNING, "port reset, but port still not enabled");
 		}
