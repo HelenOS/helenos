@@ -69,6 +69,10 @@ show_usage() {
 	echo " sparc64    SPARC V9"
 	echo " all        build all targets"
 	echo
+	echo "The toolchain will be installed to the directory specified by"
+	echo "the CROSS_PREFIX environment variable. If the variable is not"
+	echo "defined, /usr/local will be used by default."
+	echo
 	
 	exit 3
 }
