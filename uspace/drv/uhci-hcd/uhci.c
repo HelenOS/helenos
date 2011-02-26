@@ -152,10 +152,15 @@ int uhci_init(uhci_t *instance, ddf_dev_t *dev, void *regs, size_t reg_size)
 /*----------------------------------------------------------------------------*/
 void uhci_init_hw(uhci_t *instance)
 {
-	/* reset hc, who knows what touched it before us */
+	/* reset everything, who knows what touched it before us */
 	pio_write_16(&instance->registers->usbcmd, UHCI_CMD_GLOBAL_RESET);
 	async_usleep(10000); /* 10ms according to USB spec */
 	pio_write_16(&instance->registers->usbcmd, 0);
+
+	/* reset hc, all states and counters */
+	pio_write_16(&instance->registers->usbcmd, UHCI_CMD_HCRESET);
+	while ((pio_read_16(&instance->registers->usbcmd) & UHCI_CMD_HCRESET) != 0)
+		{ async_usleep(10); }
 
 	/* set framelist pointer */
 	const uint32_t pa = addr_to_phys(instance->frame_list);
@@ -283,7 +288,7 @@ void uhci_interrupt(uhci_t *instance, uint16_t status)
 	assert(instance);
 	if ((status & (UHCI_STATUS_INTERRUPT | UHCI_STATUS_ERROR_INTERRUPT)) == 0)
 		return;
-	usb_log_debug("UHCI interrupt: %X.\n", status);
+	usb_log_debug2("UHCI interrupt: %X.\n", status);
 	transfer_list_remove_finished(&instance->transfers_interrupt);
 	transfer_list_remove_finished(&instance->transfers_control_slow);
 	transfer_list_remove_finished(&instance->transfers_control_full);
@@ -298,7 +303,7 @@ int uhci_interrupt_emulator(void* arg)
 
 	while (1) {
 		uint16_t status = pio_read_16(&instance->registers->usbsts);
-		usb_log_debug("UHCI status: %x.\n", status);
+		usb_log_debug2("UHCI status: %x.\n", status);
 		status |= 1;
 		uhci_interrupt(instance, status);
 		pio_write_16(&instance->registers->usbsts, 0x1f);

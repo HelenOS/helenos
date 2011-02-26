@@ -76,10 +76,10 @@ int transfer_descriptor_status(transfer_descriptor_t *instance)
 	assert(instance);
 
 	if ((instance->status & TD_STATUS_ERROR_STALLED) != 0)
-		return EIO;
+		return ESTALL;
 
 	if ((instance->status & TD_STATUS_ERROR_CRC) != 0)
-		return EAGAIN;
+		return EBADCHECKSUM;
 
 	if ((instance->status & TD_STATUS_ERROR_BUFFER) != 0)
 		return EAGAIN;
