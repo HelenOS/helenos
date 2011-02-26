@@ -53,7 +53,7 @@ static int new_device_enable_port(int portno, void *arg);
 
 int uhci_port_init(
   uhci_port_t *port, port_status_t *address, unsigned number,
-  unsigned usec, ddf_dev_t *rh, int parent_phone)
+  unsigned usec, ddf_dev_t *rh)
 {
 	assert(port);
 	port->address = address;
