@@ -142,7 +142,7 @@ int uhci_init(uhci_t *instance, ddf_dev_t *dev, void *regs, size_t reg_size)
 	uhci_init_hw(instance);
 
 	instance->cleaner = fibril_create(uhci_interrupt_emulator, instance);
-//	fibril_add_ready(instance->cleaner);
+	fibril_add_ready(instance->cleaner);
 
 	instance->debug_checker = fibril_create(uhci_debug_checker, instance);
 	fibril_add_ready(instance->debug_checker);
@@ -286,9 +286,9 @@ int uhci_schedule(uhci_t *instance, batch_t *batch)
 void uhci_interrupt(uhci_t *instance, uint16_t status)
 {
 	assert(instance);
-	if ((status & (UHCI_STATUS_INTERRUPT | UHCI_STATUS_ERROR_INTERRUPT)) == 0)
-		return;
-	usb_log_debug2("UHCI interrupt: %X.\n", status);
+//	if ((status & (UHCI_STATUS_INTERRUPT | UHCI_STATUS_ERROR_INTERRUPT)) == 0)
+//		return;
+//	usb_log_debug2("UHCI interrupt: %X.\n", status);
 	transfer_list_remove_finished(&instance->transfers_interrupt);
 	transfer_list_remove_finished(&instance->transfers_control_slow);
 	transfer_list_remove_finished(&instance->transfers_control_full);
@@ -303,7 +303,7 @@ int uhci_interrupt_emulator(void* arg)
 
 	while (1) {
 		uint16_t status = pio_read_16(&instance->registers->usbsts);
-		usb_log_debug2("UHCI status: %x.\n", status);
+//		usb_log_debug2("UHCI status: %x.\n", status);
 		status |= 1;
 		uhci_interrupt(instance, status);
 		pio_write_16(&instance->registers->usbsts, 0x1f);
@@ -320,8 +320,10 @@ int uhci_debug_checker(void *arg)
 		const uint16_t cmd = pio_read_16(&instance->registers->usbcmd);
 		const uint16_t sts = pio_read_16(&instance->registers->usbsts);
 		const uint16_t intr = pio_read_16(&instance->registers->usbintr);
-		usb_log_debug("Command: %X Status: %X Interrupts: %x\n",
-		    cmd, sts, intr);
+		if (((cmd & UHCI_CMD_RUN_STOP) != 1) || (sts != 0)) {
+			usb_log_debug2("Command: %X Status: %X Intr: %x\n",
+			    cmd, sts, intr);
+		}
 
 		uintptr_t frame_list =
 		    pio_read_32(&instance->registers->flbaseadd) & ~0xfff;

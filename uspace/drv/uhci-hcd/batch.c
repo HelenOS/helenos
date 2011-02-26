@@ -139,7 +139,7 @@ batch_t * batch_get(ddf_fun_t *fun, usb_target_t target,
 bool batch_is_complete(batch_t *instance)
 {
 	assert(instance);
-	usb_log_debug("Checking(%p) %d packet for completion.\n",
+	usb_log_debug2("Checking(%p) %d packet for completion.\n",
 	    instance, instance->packets);
 	instance->transfered_size = 0;
 	size_t i = 0;
@@ -156,7 +156,6 @@ bool batch_is_complete(batch_t *instance)
 		instance->transfered_size +=
 		    transfer_descriptor_actual_size(&instance->tds[i]);
 	}
-	/* This is just an ugly trick to support the old API */
 	instance->transfered_size -= instance->setup_size;
 	return true;
 }

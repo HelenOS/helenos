@@ -91,6 +91,7 @@ int uhci_port_check(void *port)
 {
 	uhci_port_t *port_instance = port;
 	assert(port_instance);
+//	port_status_write(port_instance->address, 0);
 
 	while (1) {
 		/* read register value */
@@ -102,7 +103,7 @@ int uhci_port_check(void *port)
 		fibril_mutex_lock(&dbg_mtx);
 		usb_log_debug("Port %d status at %p: 0x%04x.\n",
 		  port_instance->number, port_instance->address, port_status);
-		print_port_status(port_status);
+//		print_port_status(port_status);
 		fibril_mutex_unlock(&dbg_mtx);
 
 		if (port_status & STATUS_CONNECTED_CHANGED) {
@@ -114,16 +115,16 @@ int uhci_port_check(void *port)
 				goto next;
 			}
 
+			port_status_write(port_instance->address, port_status);
+			usb_log_debug("Change status ack on port %d.\n",
+			    port_instance->number);
+
 			/* remove any old device */
 			if (port_instance->attached_device) {
 				usb_log_debug("Removing device on port %d.\n",
 				    port_instance->number);
 				uhci_port_remove_device(port_instance);
 			}
-
-			port_status_write(port_instance->address, STATUS_CONNECTED_CHANGED);
-			usb_log_debug("Change status erased on port %d.\n",
-			    port_instance->number);
 
 			if (port_status & STATUS_CONNECTED) {
 				/* new device */

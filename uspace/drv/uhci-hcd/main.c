@@ -94,8 +94,8 @@ static int uhci_add_device(ddf_dev_t *device)
 	    io_reg_base, io_reg_size, irq);
 	io_reg_size = 32;
 
-	ret = pci_enable_interrupts(device);
-	CHECK_RET_RETURN(ret, "Failed(%d) to get enable interrupts:\n", ret);
+//	ret = pci_enable_interrupts(device);
+//	CHECK_RET_RETURN(ret, "Failed(%d) to get enable interrupts:\n", ret);
 
 	uhci_t *uhci_hc = malloc(sizeof(uhci_t));
 	ret = (uhci_hc != NULL) ? EOK : ENOMEM;
