@@ -109,6 +109,9 @@ static int interrupt_out(ddf_fun_t *fun, usb_target_t target,
 	assert(hc);
 	usb_speed_t speed = device_keeper_speed(&hc->device_manager, target.address);
 
+	usb_log_debug("Interrupt OUT %d:%d %zu(%zu).\n",
+	    target.address, target.endpoint, size, max_packet_size);
+
 	batch_t *batch = batch_get(fun, target, USB_TRANSFER_INTERRUPT,
 	    max_packet_size, speed, data, size, NULL, 0, NULL, callback, arg);
 	if (!batch)
@@ -118,14 +121,15 @@ static int interrupt_out(ddf_fun_t *fun, usb_target_t target,
 }
 /*----------------------------------------------------------------------------*/
 static int interrupt_in(ddf_fun_t *fun, usb_target_t target,
-    size_t max_packet_size,
-    void *data, size_t size,
+    size_t max_packet_size, void *data, size_t size,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
 	assert(fun);
 	uhci_t *hc = fun_to_uhci(fun);
 	assert(hc);
 	usb_speed_t speed = device_keeper_speed(&hc->device_manager, target.address);
+	usb_log_debug("Interrupt IN %d:%d %zu(%zu).\n",
+	    target.address, target.endpoint, size, max_packet_size);
 
 	batch_t *batch = batch_get(fun, target, USB_TRANSFER_INTERRUPT,
 	    max_packet_size, speed, data, size, NULL, 0, callback, NULL, arg);

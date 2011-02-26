@@ -303,7 +303,8 @@ int uhci_interrupt_emulator(void* arg)
 
 	while (1) {
 		uint16_t status = pio_read_16(&instance->registers->usbsts);
-//		usb_log_debug2("UHCI status: %x.\n", status);
+		if (status != 0)
+			usb_log_debug2("UHCI status: %x.\n", status);
 		status |= 1;
 		uhci_interrupt(instance, status);
 		pio_write_16(&instance->registers->usbsts, 0x1f);

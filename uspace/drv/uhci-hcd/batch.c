@@ -139,7 +139,7 @@ batch_t * batch_get(ddf_fun_t *fun, usb_target_t target,
 bool batch_is_complete(batch_t *instance)
 {
 	assert(instance);
-	usb_log_debug2("Checking(%p) %d packet for completion.\n",
+	usb_log_debug2("Batch(%p) checking %d packet(s) for completion.\n",
 	    instance, instance->packets);
 	instance->transfered_size = 0;
 	size_t i = 0;
@@ -151,6 +151,8 @@ bool batch_is_complete(batch_t *instance)
 		if (instance->error != EOK) {
 			if (i > 0)
 				instance->transfered_size -= instance->setup_size;
+			usb_log_debug("Batch(%p) found error TD(%d):%x.\n",
+			  instance, i, instance->tds[i].status);
 			return true;
 		}
 		instance->transfered_size +=
@@ -296,8 +298,9 @@ void batch_call_in(batch_t *instance)
 	memcpy(instance->buffer, instance->transport_buffer, instance->buffer_size);
 
 	int err = instance->error;
-	usb_log_info("Callback IN(%d): %s(%d), %zu.\n", instance->transfer_type,
-	    str_error(err), err, instance->transfered_size);
+	usb_log_info("Batch(%p) callback IN(type:%d): %s(%d), %zu.\n",
+	    instance, instance->transfer_type, str_error(err), err,
+	    instance->transfered_size);
 
 	instance->callback_in(instance->fun,
 	    err, instance->transfered_size,
@@ -310,7 +313,8 @@ void batch_call_out(batch_t *instance)
 	assert(instance->callback_out);
 
 	int err = instance->error;
-	usb_log_info("Callback OUT(%d): %d.\n", instance->transfer_type, err);
+	usb_log_info("Batch(%p) callback OUT(type:%d): %s(%d).\n",
+	    instance, instance->transfer_type, str_error(err), err);
 	instance->callback_out(instance->fun,
 	    err, instance->arg);
 }
@@ -319,7 +323,7 @@ void batch_call_in_and_dispose(batch_t *instance)
 {
 	assert(instance);
 	batch_call_in(instance);
-	usb_log_debug("Disposing batch: %p.\n", instance);
+	usb_log_debug("Batch(%p) disposing.\n", instance);
 	free32(instance->tds);
 	free32(instance->qh);
 	free32(instance->setup_buffer);
@@ -331,7 +335,7 @@ void batch_call_out_and_dispose(batch_t *instance)
 {
 	assert(instance);
 	batch_call_out(instance);
-	usb_log_debug("Disposing batch: %p.\n", instance);
+	usb_log_debug("Batch(%p) disposing.\n", instance);
 	free32(instance->tds);
 	free32(instance->qh);
 	free32(instance->setup_buffer);
