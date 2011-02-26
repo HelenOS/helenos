@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Martin Decky
+ * Copyright (c) 2011 Martin Sucha
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,56 +32,28 @@
 /** @file
  */
 
-#ifndef TESTER_H_
-#define TESTER_H_
+#ifndef UTIL_H_
+#define UTIL_H_
 
-#include <sys/types.h>
-#include <bool.h>
+#include <stdio.h>
+#include "tester.h"
 
-#define IPC_TEST_SERVICE  10240
-#define IPC_TEST_METHOD   2000
+#define ASSERT_EQ_FN_DEF(type, fmt, fmtx) \
+extern bool assert_eq_fn_##type(type, type, const char *);
 
-extern bool test_quiet;
-extern int test_argc;
-extern char **test_argv;
+#include "util_functions.def"
 
-#define TPRINTF(format, ...) \
-	{ \
-		if (!test_quiet) { \
-			fprintf(stderr, format, ##__VA_ARGS__); \
-		} \
-	}
+#define ASSERT_EQ_64(exp, act, msg) \
+{if (assert_eq_fn_uint64_t(exp, act, #act)) {return msg;}}
 
-typedef const char *(*test_entry_t)(void);
+#define ASSERT_EQ_32(exp, act, msg) \
+{if (assert_eq_fn_uint32_t(exp, act, #act)) {return msg;}}
 
-typedef struct {
-	const char *name;
-	const char *desc;
-	test_entry_t entry;
-	bool safe;
-} test_t;
+#define ASSERT_EQ_16(exp, act, msg) \
+{if (assert_eq_fn_uint16_t(exp, act, #act)) {return msg;}}
 
-extern const char *test_thread1(void);
-extern const char *test_print1(void);
-extern const char *test_print2(void);
-extern const char *test_print3(void);
-extern const char *test_print4(void);
-extern const char *test_print5(void);
-extern const char *test_console1(void);
-extern const char *test_stdio1(void);
-extern const char *test_stdio2(void);
-extern const char *test_fault1(void);
-extern const char *test_fault2(void);
-extern const char *test_fault3(void);
-extern const char *test_vfs1(void);
-extern const char *test_ping_pong(void);
-extern const char *test_loop1(void);
-extern const char *test_malloc1(void);
-extern const char *test_serial1(void);
-extern const char *test_virtchar1(void);
-extern const char *test_libext2_1(void);
-
-extern test_t tests[];
+#define ASSERT_EQ_8(exp, act, msg) \
+{if (assert_eq_fn_uint8_t(exp, act, #act)) {return msg;}}
 
 #endif
 
