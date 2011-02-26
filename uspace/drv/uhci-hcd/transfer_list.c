@@ -69,6 +69,7 @@ void transfer_list_add_batch(transfer_list_t *instance, batch_t *batch)
 {
 	assert(instance);
 	assert(batch);
+	usb_log_debug("Adding batch(%p) to queue %s.\n", batch, instance->name);
 
 	uint32_t pa = (uintptr_t)addr_to_phys(batch->qh);
 	assert((pa & LINK_POINTER_ADDRESS_MASK) == pa);
@@ -122,9 +123,12 @@ static void transfer_list_remove_batch(
 	list_remove(&batch->link);
 }
 /*----------------------------------------------------------------------------*/
-void transfer_list_check(transfer_list_t *instance)
+void transfer_list_remove_finished(transfer_list_t *instance)
 {
 	assert(instance);
+
+	LIST_INITIALIZE(done);
+
 	fibril_mutex_lock(&instance->guard);
 	link_t *current = instance->batch_list.next;
 	while (current != &instance->batch_list) {
@@ -133,11 +137,18 @@ void transfer_list_check(transfer_list_t *instance)
 
 		if (batch_is_complete(batch)) {
 			transfer_list_remove_batch(instance, batch);
-			batch->next_step(batch);
+			list_append(current, &done);
 		}
 		current = next;
 	}
 	fibril_mutex_unlock(&instance->guard);
+
+	while (!list_empty(&done)) {
+		link_t *item = done.next;
+		list_remove(item);
+		batch_t *batch = list_get_instance(item, batch_t, link);
+		batch->next_step(batch);
+	}
 }
 /**
  * @}

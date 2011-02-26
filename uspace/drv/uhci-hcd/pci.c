@@ -89,8 +89,8 @@ int pci_get_my_registers(ddf_dev_t *dev,
 			case IO_RANGE:
 				io_address = res->res.io_range.address;
 				io_size = res->res.io_range.size;
-				usb_log_debug("Found io: %x %d.\n",
-				    res->res.io_range.address, res->res.io_range.size);
+				usb_log_debug("Found io: %llx %zu %zu.\n",
+				    res->res.io_range.address, res->res.io_range.size, io_size);
 				io_found = true;
 				break;
 			default:
@@ -124,6 +124,7 @@ int pci_enable_interrupts(ddf_dev_t *device)
 	int parent_phone = devman_parent_device_connect(device->handle,
 	    IPC_FLAG_BLOCKING);
 	bool enabled = hw_res_enable_interrupt(parent_phone);
+	async_hangup(parent_phone);
 	return enabled ? EOK : EIO;
 }
 /**

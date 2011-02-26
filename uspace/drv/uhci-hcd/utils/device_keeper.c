@@ -135,6 +135,7 @@ usb_address_t device_keeper_find(
 			fibril_mutex_unlock(&instance->guard);
 			return address;
 		}
+		++address;
 	}
 	fibril_mutex_unlock(&instance->guard);
 	return ENOENT;
@@ -146,7 +147,6 @@ usb_speed_t device_keeper_speed(
 	assert(instance);
 	assert(address >= 0);
 	assert(address <= USB11_ADDRESS_MAX);
-	assert(instance->devices[address].occupied);
 	return instance->devices[address].speed;
 }
 /**

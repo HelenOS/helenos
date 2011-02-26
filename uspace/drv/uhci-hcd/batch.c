@@ -32,6 +32,7 @@
  * @brief UHCI driver
  */
 #include <errno.h>
+#include <str_error.h>
 
 #include <usb/debug.h>
 
@@ -193,6 +194,8 @@ void batch_control_write(batch_t *instance)
 	    0, 1, false, low_speed, instance->target, USB_PID_IN, NULL, NULL);
 
 	instance->tds[i].status |= TD_STATUS_COMPLETE_INTERRUPT_FLAG;
+	usb_log_debug("Control write last TD status: %x.\n",
+		instance->tds[i].status);
 
 	instance->next_step = batch_call_out_and_dispose;
 	batch_schedule(instance);
@@ -227,6 +230,8 @@ void batch_control_read(batch_t *instance)
 	    0, 1, false, low_speed, instance->target, USB_PID_OUT, NULL, NULL);
 
 	instance->tds[i].status |= TD_STATUS_COMPLETE_INTERRUPT_FLAG;
+	usb_log_debug("Control read last TD status: %x.\n",
+		instance->tds[i].status);
 
 	instance->next_step = batch_call_in_and_dispose;
 	batch_schedule(instance);
@@ -292,8 +297,8 @@ void batch_call_in(batch_t *instance)
 	memcpy(instance->buffer, instance->transport_buffer, instance->buffer_size);
 
 	int err = instance->error;
-	usb_log_info("Callback IN(%d): %d, %zu.\n", instance->transfer_type,
-	    err, instance->transfered_size);
+	usb_log_info("Callback IN(%d): %s(%d), %zu.\n", instance->transfer_type,
+	    str_error(err), err, instance->transfered_size);
 
 	instance->callback_in(instance->fun,
 	    err, instance->transfered_size,

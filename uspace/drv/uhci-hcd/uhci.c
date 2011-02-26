@@ -284,10 +284,10 @@ void uhci_interrupt(uhci_t *instance, uint16_t status)
 	if ((status & (UHCI_STATUS_INTERRUPT | UHCI_STATUS_ERROR_INTERRUPT)) == 0)
 		return;
 	usb_log_debug("UHCI interrupt: %X.\n", status);
-	transfer_list_check(&instance->transfers_interrupt);
-	transfer_list_check(&instance->transfers_control_slow);
-	transfer_list_check(&instance->transfers_control_full);
-	transfer_list_check(&instance->transfers_bulk_full);
+	transfer_list_remove_finished(&instance->transfers_interrupt);
+	transfer_list_remove_finished(&instance->transfers_control_slow);
+	transfer_list_remove_finished(&instance->transfers_control_full);
+	transfer_list_remove_finished(&instance->transfers_bulk_full);
 }
 /*----------------------------------------------------------------------------*/
 int uhci_interrupt_emulator(void* arg)
@@ -296,13 +296,13 @@ int uhci_interrupt_emulator(void* arg)
 	uhci_t *instance = (uhci_t*)arg;
 	assert(instance);
 
-	while(1) {
+	while (1) {
 		uint16_t status = pio_read_16(&instance->registers->usbsts);
 		usb_log_debug("UHCI status: %x.\n", status);
 		status |= 1;
 		uhci_interrupt(instance, status);
 		pio_write_16(&instance->registers->usbsts, 0x1f);
-		async_usleep(UHCI_CLEANER_TIMEOUT * 1000);
+		async_usleep(UHCI_CLEANER_TIMEOUT * 5);
 	}
 	return EOK;
 }
