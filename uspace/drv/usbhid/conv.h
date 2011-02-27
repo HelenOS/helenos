@@ -36,9 +36,9 @@
 #ifndef USBHID_CONV_H_
 #define USBHID_CONV_H_
 
-unsigned int usbkbd_parse_scancode(int scancode);
+unsigned int usbhid_parse_scancode(int scancode);
 
-#endif
+#endif /* USBHID_CONV_H_ */
 
 /**
  * @}

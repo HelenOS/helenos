@@ -1,5 +1,4 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
  * Copyright (c) 2011 Lubos Slovak
  * All rights reserved.
  *
@@ -30,71 +29,51 @@
 /** @addtogroup drvusbhid
  * @{
  */
-/**
- * @file
- * Main routines of USB HID driver.
+/** @file
+ * Generic USB HID device structure and API.
  */
 
+#ifndef USBHID_HIDDEV_H_
+#define USBHID_HIDDEV_H_
+
+#include <stdint.h>
+
 #include <ddf/driver.h>
-#include <usb/debug.h>
-#include <errno.h>
 
-//#include <ipc/driver.h>
-//#include <ipc/kbd.h>
-//#include <io/keycode.h>
-//#include <io/console.h>
-//#include <str_error.h>
-
-//#include <usb/classes/classes.h>
-//#include <usb/classes/hid.h>
-//#include <usb/classes/hidparser.h>
-//#include <usb/request.h>
-//#include <usb/descriptor.h>
-//#include <io/console.h>
-//#include <stdint.h>
-//#include <usb/dp.h>
-
-#include "kbddev.h"
+#include <usb/classes/hid.h>
+#include <usb/pipes.h>
+#include <usb/classes/hidparser.h>
 
 /*----------------------------------------------------------------------------*/
 
-#define NAME "usbhid"
+/**
+ * @brief USB/HID device type.
+ */
+typedef struct {
+	ddf_dev_t *device;
 
-/*----------------------------------------------------------------------------*/
-
-static int usbhid_add_device(ddf_dev_t *dev)
-{
-	int rc = usbhid_kbd_try_add_device(dev);
+	usb_device_connection_t wire;
+	usb_endpoint_pipe_t ctrl_pipe;
+	usb_endpoint_pipe_t poll_pipe;
 	
-	if (rc != EOK) {
-		usb_log_info("Device is not a supported keyboard.\n");
-		usb_log_error("Failed to add HID device.\n");
-		return EREFUSED;
-	}
+	uint16_t iface;
 	
-	return EOK;
-}
+	uint8_t *report_desc;
+	usb_hid_report_parser_t *parser;
+	
+	int initialized;
+} usbhid_dev_t;
 
 /*----------------------------------------------------------------------------*/
 
-static driver_ops_t kbd_driver_ops = {
-	.add_device = usbhid_add_device,
-};
+usbhid_dev_t *usbhid_dev_new();
+
+int usbhid_dev_init(usbhid_dev_t *hid_dev, ddf_dev_t *dev,
+    usb_endpoint_description_t *poll_ep_desc);
 
 /*----------------------------------------------------------------------------*/
 
-static driver_t kbd_driver = {
-	.name = NAME,
-	.driver_ops = &kbd_driver_ops
-};
-
-/*----------------------------------------------------------------------------*/
-
-int main(int argc, char *argv[])
-{
-	usb_log_enable(USB_LOG_LEVEL_INFO, NAME);
-	return ddf_driver_main(&kbd_driver);
-}
+#endif /* USBHID_HIDDEV_H_ */
 
 /**
  * @}

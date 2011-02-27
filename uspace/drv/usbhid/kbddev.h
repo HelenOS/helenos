@@ -1,5 +1,4 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
  * Copyright (c) 2011 Lubos Slovak
  * All rights reserved.
  *
@@ -30,71 +29,46 @@
 /** @addtogroup drvusbhid
  * @{
  */
-/**
- * @file
- * Main routines of USB HID driver.
+/** @file
+ * USB HID keyboard device structure and API.
  */
 
+#ifndef USBHID_KBDDEV_H_
+#define USBHID_KBDDEV_H_
+
+#include <stdint.h>
+
+#include <usb/classes/hid.h>
 #include <ddf/driver.h>
-#include <usb/debug.h>
-#include <errno.h>
+#include <usb/pipes.h>
 
-//#include <ipc/driver.h>
-//#include <ipc/kbd.h>
-//#include <io/keycode.h>
-//#include <io/console.h>
-//#include <str_error.h>
-
-//#include <usb/classes/classes.h>
-//#include <usb/classes/hid.h>
-//#include <usb/classes/hidparser.h>
-//#include <usb/request.h>
-//#include <usb/descriptor.h>
-//#include <io/console.h>
-//#include <stdint.h>
-//#include <usb/dp.h>
-
-#include "kbddev.h"
+#include "hiddev.h"
 
 /*----------------------------------------------------------------------------*/
 
-#define NAME "usbhid"
-
-/*----------------------------------------------------------------------------*/
-
-static int usbhid_add_device(ddf_dev_t *dev)
-{
-	int rc = usbhid_kbd_try_add_device(dev);
+/**
+ * @brief USB/HID keyboard device type.
+ */
+typedef struct {
+	usbhid_dev_t *hid_dev;
 	
-	if (rc != EOK) {
-		usb_log_info("Device is not a supported keyboard.\n");
-		usb_log_error("Failed to add HID device.\n");
-		return EREFUSED;
-	}
+	uint8_t *keycodes;
+	size_t keycode_count;
+	uint8_t modifiers;
 	
-	return EOK;
-}
+	unsigned mods;
+	unsigned lock_keys;
+	
+	int console_phone;
+	
+	int initialized;
+} usbhid_kbd_t;
 
 /*----------------------------------------------------------------------------*/
 
-static driver_ops_t kbd_driver_ops = {
-	.add_device = usbhid_add_device,
-};
+int usbhid_kbd_try_add_device(ddf_dev_t *dev);
 
-/*----------------------------------------------------------------------------*/
-
-static driver_t kbd_driver = {
-	.name = NAME,
-	.driver_ops = &kbd_driver_ops
-};
-
-/*----------------------------------------------------------------------------*/
-
-int main(int argc, char *argv[])
-{
-	usb_log_enable(USB_LOG_LEVEL_INFO, NAME);
-	return ddf_driver_main(&kbd_driver);
-}
+#endif /* USBHID_KBDDEV_H_ */
 
 /**
  * @}
