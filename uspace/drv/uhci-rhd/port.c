@@ -91,9 +91,13 @@ int uhci_port_check(void *port)
 {
 	uhci_port_t *port_instance = port;
 	assert(port_instance);
-//	port_status_write(port_instance->address, 0);
+	port_status_write(port_instance->address, 0);
+
+	uint64_t count = 0;
 
 	while (1) {
+		async_usleep(port_instance->wait_period_usec);
+
 		/* read register value */
 		port_status_t port_status =
 			port_status_read(port_instance->address);
@@ -101,23 +105,22 @@ int uhci_port_check(void *port)
 		/* debug print */
 		static fibril_mutex_t dbg_mtx = FIBRIL_MUTEX_INITIALIZER(dbg_mtx);
 		fibril_mutex_lock(&dbg_mtx);
-		usb_log_debug("Port %d status at %p: 0x%04x.\n",
-		  port_instance->number, port_instance->address, port_status);
+		usb_log_debug("Port %d status at %p: 0x%04x. === %llu\n",
+		  port_instance->number, port_instance->address, port_status, count++);
 //		print_port_status(port_status);
 		fibril_mutex_unlock(&dbg_mtx);
 
-		if (port_status & STATUS_CONNECTED_CHANGED) {
-			usb_log_debug("Change detected on port %d.\n", port_instance->number);
+		if ((port_status & STATUS_CONNECTED_CHANGED) != 0) {
+			usb_log_debug("Change detected on port %d: %x.\n",
+			    port_instance->number, port_status);
+
+
 			int rc = usb_hc_connection_open(
 			    &port_instance->hc_connection);
 			if (rc != EOK) {
 				usb_log_error("Failed to connect to HC.");
-				goto next;
+				continue;
 			}
-
-			port_status_write(port_instance->address, port_status);
-			usb_log_debug("Change status ack on port %d.\n",
-			    port_instance->number);
 
 			/* remove any old device */
 			if (port_instance->attached_device) {
@@ -126,20 +129,22 @@ int uhci_port_check(void *port)
 				uhci_port_remove_device(port_instance);
 			}
 
-			if (port_status & STATUS_CONNECTED) {
+			if ((port_status & STATUS_CONNECTED) != 0) {
 				/* new device */
 				uhci_port_new_device(port_instance, port_status);
+			} else {
+				/* ack changes by writing one to WC bits */
+				port_status_write(port_instance->address, port_status);
+				usb_log_debug("Change status ack on port %d.\n",
+						port_instance->number);
 			}
 
 			rc = usb_hc_connection_close(
 			    &port_instance->hc_connection);
 			if (rc != EOK) {
 				usb_log_error("Failed to disconnect from HC.");
-				goto next;
 			}
 		}
-	next:
-		async_usleep(port_instance->wait_period_usec);
 	}
 	return EOK;
 }
@@ -201,6 +206,7 @@ static int uhci_port_new_device(uhci_port_t *port, uint16_t status)
 	    ((status & STATUS_LOW_SPEED) != 0) ? USB_SPEED_LOW : USB_SPEED_FULL,
 	    new_device_enable_port, port->number, port,
 	    &dev_addr, &port->attached_device, NULL, NULL, NULL);
+
 	if (rc != EOK) {
 		usb_log_error("Failed adding new device on port %u: %s.\n",
 		    port->number, str_error(rc));

@@ -47,19 +47,18 @@
 static irq_cmd_t uhci_cmds[] = {
 	{
 		.cmd = CMD_PIO_READ_16,
-		.addr = (void*)0xc022,
+		.addr = NULL, /* patched for every instance */
 		.dstarg = 1
 	},
 	{
 		.cmd = CMD_PIO_WRITE_16,
-		.addr = (void*)0xc022,
+		.addr = NULL, /* pathed for every instance */
 		.value = 0x1f
 	},
 	{
 		.cmd = CMD_ACCEPT
 	}
 };
-
 
 static int usb_iface_get_address(ddf_fun_t *fun, devman_handle_t handle,
     usb_address_t *address)
@@ -68,8 +67,6 @@ static int usb_iface_get_address(ddf_fun_t *fun, devman_handle_t handle,
 	uhci_t *hc = fun_to_uhci(fun);
 	assert(hc);
 
-//	usb_address_t addr = usb_address_keeping_find(&hc->address_manager,
-//	    handle);
 	usb_address_t addr = device_keeper_find(&hc->device_manager,
 	    handle);
 	if (addr < 0) {
