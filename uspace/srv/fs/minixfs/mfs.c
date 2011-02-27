@@ -1,4 +1,6 @@
 /*
+ * Copyright (c) 2006 Martin Decky
+ * Copyright (c) 2008 Jakub Jermar
  * Copyright (c) 2011 Maurizio Lombardi
  * All rights reserved.
  *
@@ -28,18 +30,40 @@
 
 /** @addtogroup fs
  * @{
- */ 
+ */
+
+/**
+ * @file	mfs.c
+ * @brief	Minix file system driver for HelenOS.
+ */
 
 
-#ifndef _CONST_H_
-#define _CONST_H_
+#include "mfs_const.h"
+#include <ipc/services.h>
+#include <ipc/ns.h>
+#include <async.h>
+#include <errno.h>
+#include <unistd.h>
+#include <task.h>
+#include <stdio.h>
+#include <libfs.h>
+#include "../../vfs/vfs.h"
 
-#include <sys/types.h>
+#define NAME	"mfs"
 
-#define V2_NR_TZONES	10
+vfs_info_t mfs_vfs_info = {
+	.name = NAME,
+	.concurrent_read_write = false,
+	.write_retains_size = false,	
+};
 
-#endif
+fs_reg_t mfs_reg;
 
+int main(int argc, char **argv)
+{
+	printf(NAME ": HelenOS Minix file system server\n");
+	return 0;
+}
 
 /**
  * @}

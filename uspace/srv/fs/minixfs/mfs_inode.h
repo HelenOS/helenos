@@ -1,7 +1,7 @@
 #ifndef _INODE_H_
 #define _INODE_H_
 
-#include "const.h"
+#include "mfs_const.h"
 
 /*Declaration of the V2 inode as it is on disk.*/
 

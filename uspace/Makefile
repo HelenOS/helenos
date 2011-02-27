@@ -71,6 +71,7 @@ DIRS = \
 	srv/fs/fat \
 	srv/fs/tmpfs \
 	srv/fs/devfs \
+	srv/fs/minixfs \
 	srv/hid/adb_mouse \
 	srv/hid/char_mouse \
 	srv/hid/s3c24xx_ts \
