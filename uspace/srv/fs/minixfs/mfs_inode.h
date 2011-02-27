@@ -1,5 +1,5 @@
-#ifndef _INODE_H_
-#define _INODE_H_
+#ifndef _MFS_INODE_H_
+#define _MFS_INODE_H_
 
 #include "mfs_const.h"
 
@@ -16,7 +16,7 @@ struct mfs_v2_inode {
 	int32_t		ctime;		/*When was inode data last changed.*/
 	/*Block nums for direct, indirect, and double indirect zones.*/
 	uint32_t	zone[V2_NR_TZONES];
-};
+} __attribute__ ((packed));
 
 #endif
 

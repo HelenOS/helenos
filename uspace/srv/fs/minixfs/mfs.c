@@ -37,8 +37,6 @@
  * @brief	Minix file system driver for HelenOS.
  */
 
-
-#include "mfs_const.h"
 #include <ipc/services.h>
 #include <ipc/ns.h>
 #include <async.h>
@@ -48,6 +46,8 @@
 #include <stdio.h>
 #include <libfs.h>
 #include "../../vfs/vfs.h"
+#include "mfs_const.h"
+#include "mfs_super.h"
 
 #define NAME	"mfs"
 

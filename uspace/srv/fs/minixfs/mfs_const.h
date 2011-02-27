@@ -31,8 +31,8 @@
  */ 
 
 
-#ifndef _CONST_H_
-#define _CONST_H_
+#ifndef _MFS_CONST_H_
+#define _MFS_CONST_H_
 
 #include <sys/types.h>
 
