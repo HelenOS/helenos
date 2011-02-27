@@ -95,9 +95,10 @@ int usb_control_request_get(usb_endpoint_pipe_t *,
 
 int usb_request_set_address(usb_endpoint_pipe_t *, usb_address_t);
 int usb_request_get_descriptor(usb_endpoint_pipe_t *, usb_request_type_t,
-    uint8_t, uint8_t, uint16_t, void *, size_t, size_t *);
+    usb_request_recipient_t, uint8_t, uint8_t, uint16_t, void *, size_t, 
+    size_t *);
 int usb_request_get_descriptor_alloc(usb_endpoint_pipe_t *, usb_request_type_t,
-    uint8_t, uint8_t, uint16_t, void **, size_t *);
+    usb_request_recipient_t, uint8_t, uint8_t, uint16_t, void **, size_t *);
 int usb_request_get_device_descriptor(usb_endpoint_pipe_t *,
     usb_standard_device_descriptor_t *);
 int usb_request_get_bare_configuration_descriptor(usb_endpoint_pipe_t *, int,
