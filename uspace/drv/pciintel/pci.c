@@ -319,11 +319,16 @@ int pci_read_bar(pci_fun_t *fun, int addr)
 	
 	/* Get the value of the BAR. */
 	val = pci_conf_read_32(fun, addr);
+
+#define IO_MASK  (~0x3)
+#define MEM_MASK (~0xf)
 	
 	io = (bool) (val & 1);
 	if (io) {
 		addrw64 = false;
+		mask = IO_MASK;
 	} else {
+		mask = MEM_MASK;
 		switch ((val >> 1) & 3) {
 		case 0:
 			addrw64 = false;
@@ -339,7 +344,7 @@ int pci_read_bar(pci_fun_t *fun, int addr)
 	
 	/* Get the address mask. */
 	pci_conf_write_32(fun, addr, 0xffffffff);
-	mask = pci_conf_read_32(fun, addr);
+	mask &= pci_conf_read_32(fun, addr);
 	
 	/* Restore the original value. */
 	pci_conf_write_32(fun, addr, val);
@@ -658,7 +663,8 @@ void pci_read_bars(pci_fun_t *fun)
 
 size_t pci_bar_mask_to_size(uint32_t mask)
 {
-	return ((mask & 0xfffffff0) ^ 0xffffffff) + 1;
+	size_t size = mask & ~(mask - 1);
+	return size;
 }
 
 int main(int argc, char *argv[])
