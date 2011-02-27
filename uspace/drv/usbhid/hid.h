@@ -69,16 +69,22 @@ typedef struct {
  */
 typedef struct {
 	ddf_dev_t *device;
-	usb_hid_configuration_t *conf;
-	usb_hid_report_parser_t *parser;
 
 	usb_device_connection_t wire;
 	usb_endpoint_pipe_t ctrl_pipe;
 	usb_endpoint_pipe_t poll_pipe;
 	
+	uint16_t iface;
+	
+	uint8_t *report_desc;
+	usb_hid_report_parser_t *parser;
+	
 	uint8_t *keycodes;
 	size_t keycode_count;
 	uint8_t modifiers;
+	
+	unsigned mods;
+	unsigned lock_keys;
 } usb_hid_dev_kbd_t;
 
 // TODO: more configurations!
