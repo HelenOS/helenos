@@ -92,7 +92,6 @@ static int uhci_add_device(ddf_dev_t *device)
 	    "Failed(%d) to get I/O addresses:.\n", ret, device->handle);
 	usb_log_info("I/O regs at 0x%X (size %zu), IRQ %d.\n",
 	    io_reg_base, io_reg_size, irq);
-	io_reg_size = 32;
 
 //	ret = pci_enable_interrupts(device);
 //	CHECK_RET_RETURN(ret, "Failed(%d) to get enable interrupts:\n", ret);
