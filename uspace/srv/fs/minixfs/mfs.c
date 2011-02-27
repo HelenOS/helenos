@@ -123,7 +123,10 @@ int main(int argc, char **argv)
 	rc = fs_register(vfs_phone, &mfs_reg, &mfs_vfs_info, mfs_connection);
 	if (rc != EOK)
 		goto err;
-
+	
+	printf(NAME ": Accepting connections\n");
+	task_retval(0);
+	async_manager();
 	/* not reached */
 	return 0;
 
