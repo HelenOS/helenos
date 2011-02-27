@@ -811,6 +811,7 @@ int fat_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 	childp->idx->pdi = 0;
 	fibril_mutex_unlock(&childp->idx->lock);
 	childp->lnkcnt = 0;
+	childp->refcnt++;	/* keep the node in memory until destroyed */
 	childp->dirty = true;
 	fibril_mutex_unlock(&childp->lock);
 	fibril_mutex_unlock(&parentp->lock);
@@ -1488,6 +1489,7 @@ void fat_destroy(ipc_callid_t rid, ipc_call_t *request)
 	devmap_handle_t devmap_handle = (devmap_handle_t)IPC_GET_ARG1(*request);
 	fs_index_t index = (fs_index_t)IPC_GET_ARG2(*request);
 	fs_node_t *fn;
+	fat_node_t *nodep;
 	int rc;
 
 	rc = fat_node_get(&fn, devmap_handle, index);
@@ -1499,6 +1501,13 @@ void fat_destroy(ipc_callid_t rid, ipc_call_t *request)
 		async_answer_0(rid, ENOENT);
 		return;
 	}
+
+	nodep = FAT_NODE(fn);
+	/*
+	 * We should have exactly two references. One for the above
+	 * call to fat_node_get() and one from fat_unlink().
+	 */
+	assert(nodep->refcnt == 2);
 
 	rc = fat_destroy_node(fn);
 	async_answer_0(rid, rc);
