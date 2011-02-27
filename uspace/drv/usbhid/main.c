@@ -53,8 +53,6 @@
 #include <stdint.h>
 #include <usb/dp.h>
 #include "hid.h"
-//#include "descparser.h"
-//#include "descdump.h"
 #include "conv.h"
 #include "layout.h"
 
@@ -915,6 +913,8 @@ static int usbkbd_add_device(ddf_dev_t *dev)
 		return -1;
 	}
 
+	usb_log_info("Device initialized.\n");
+	
 	/*
 	 * Create new fibril for handling this keyboard
 	 */
@@ -947,7 +947,7 @@ static driver_t kbd_driver = {
 
 int main(int argc, char *argv[])
 {
-	usb_log_enable(USB_LOG_LEVEL_MAX, NAME);
+	usb_log_enable(USB_LOG_LEVEL_INFO, NAME);
 	return ddf_driver_main(&kbd_driver);
 }
 
