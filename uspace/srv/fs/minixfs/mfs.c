@@ -59,10 +59,76 @@ vfs_info_t mfs_vfs_info = {
 
 fs_reg_t mfs_reg;
 
+
+
+/**
+ * This connection fibril processes VFS requests from VFS.
+ *
+ * In order to support simultaneous VFS requests, our design is as follows.
+ * The connection fibril accepts VFS requests from VFS. If there is only one
+ * instance of the fibril, VFS will need to serialize all VFS requests it sends
+ * to FAT. To overcome this bottleneck, VFS can send FAT the IPC_M_CONNECT_ME_TO
+ * call. In that case, a new connection fibril will be created, which in turn
+ * will accept the call. Thus, a new phone will be opened for VFS.
+ *
+ * There are few issues with this arrangement. First, VFS can run out of
+ * available phones. In that case, VFS can close some other phones or use one
+ * phone for more serialized requests. Similarily, FAT can refuse to duplicate
+ * the connection. VFS should then just make use of already existing phones and
+ * route its requests through them. To avoid paying the fibril creation price 
+ * upon each request, FAT might want to keep the connections open after the
+ * request has been completed.
+ */
+
+static void mfs_connection(ipc_callid_t iid, ipc_call_t *icall)
+{
+	if (iid) {
+		/*
+		 * This only happens for connections opened by
+		 * IPC_M_CONNECT_ME_TO calls as opposed to callback connections
+		 * created by IPC_M_CONNECT_TO_ME.
+		 */
+		async_answer_0(iid, EOK);
+	}
+	
+	printf(NAME ": connection opened\n");
+	while (1) {
+		ipc_callid_t callid;
+		ipc_call_t call;
+	
+		callid = async_get_call(&call);
+		switch  (IPC_GET_IMETHOD(call)) {
+		default:
+		case IPC_M_PHONE_HUNGUP:
+			return;		
+		}
+	}
+}
+
+
 int main(int argc, char **argv)
 {
+	int vfs_phone;
+	int rc;
+
 	printf(NAME ": HelenOS Minix file system server\n");
+
+	vfs_phone = service_connect_blocking(SERVICE_VFS, 0, 0);
+
+	if (vfs_phone < EOK) {
+		printf(NAME ": failed to connect to VFS\n");
+		return -1;
+	}
+
+	rc = fs_register(vfs_phone, &mfs_reg, &mfs_vfs_info, mfs_connection);
+	if (rc != EOK)
+		goto err;
+
 	return 0;
+
+err:
+	printf(NAME ": Failed to register file system (%d)\n", rc);
+	return rc;
 }
 
 /**
