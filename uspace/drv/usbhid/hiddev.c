@@ -250,7 +250,7 @@ static int usbhid_dev_process_descriptors(usbhid_dev_t *hid_dev,
 /* API functions                                                              */
 /*----------------------------------------------------------------------------*/
 
-usbhid_dev_t *usbhid_dev_new()
+usbhid_dev_t *usbhid_dev_new(void)
 {
 	usbhid_dev_t *dev = 
 	    (usbhid_dev_t *)malloc(sizeof(usbhid_dev_t));
