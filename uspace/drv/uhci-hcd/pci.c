@@ -39,6 +39,7 @@
 #include <device/hw_res.h>
 
 #include <usb/debug.h>
+#include <pci_dev_iface.h>
 
 #include "pci.h"
 
@@ -127,6 +128,29 @@ int pci_enable_interrupts(ddf_dev_t *device)
 	async_hangup(parent_phone);
 	return enabled ? EOK : EIO;
 }
+/*----------------------------------------------------------------------------*/
+int pci_disable_legacy(ddf_dev_t *device)
+{
+	assert(device);
+	int parent_phone = devman_parent_device_connect(device->handle,
+		IPC_FLAG_BLOCKING);
+	if (parent_phone < 0) {
+		return parent_phone;
+	}
+
+  sysarg_t address = 0xc0;
+	sysarg_t value = 0xb0;
+
+	usb_log_warning("phone %d, iface %d(%d), method %d, address %#x, value %#x.\n",
+	    parent_phone,DEV_IFACE_ID(PCI_DEV_IFACE), PCI_DEV_IFACE, IPC_M_CONFIG_SPACE_WRITE_16, address, value);
+
+  int rc = async_req_3_0(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE),
+	    IPC_M_CONFIG_SPACE_WRITE_16, address, value);
+	async_hangup(parent_phone);
+
+  return rc;
+}
+/*----------------------------------------------------------------------------*/
 /**
  * @}
  */

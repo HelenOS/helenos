@@ -33,12 +33,12 @@
  */
 #include <ddf/driver.h>
 #include <ddf/interrupt.h>
+#include <device/hw_res.h>
+#include <errno.h>
+#include <str_error.h>
+
 #include <usb_iface.h>
 #include <usb/ddfiface.h>
-#include <device/hw_res.h>
-
-#include <errno.h>
-
 #include <usb/debug.h>
 
 #include "iface.h"
@@ -93,6 +93,10 @@ if (ret != EOK) { \
 	    "Failed(%d) to get I/O addresses:.\n", ret, device->handle);
 	usb_log_info("I/O regs at 0x%X (size %zu), IRQ %d.\n",
 	    io_reg_base, io_reg_size, irq);
+
+	ret = pci_disable_legacy(device);
+	CHECK_RET_FREE_HC_RETURN(ret,
+	    "Failed(%d) disable legacy USB: %s.\n", ret, str_error(ret));
 
 //	ret = pci_enable_interrupts(device);
 //	CHECK_RET_FREE_HC_RETURN(ret, "Failed(%d) to get enable interrupts:\n", ret);
