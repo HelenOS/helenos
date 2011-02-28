@@ -139,10 +139,7 @@ int pci_disable_legacy(ddf_dev_t *device)
 	}
 
   sysarg_t address = 0xc0;
-	sysarg_t value = 0xb0;
-
-	usb_log_warning("phone %d, iface %d(%d), method %d, address %#x, value %#x.\n",
-	    parent_phone,DEV_IFACE_ID(PCI_DEV_IFACE), PCI_DEV_IFACE, IPC_M_CONFIG_SPACE_WRITE_16, address, value);
+	sysarg_t value = 0x8f00;
 
   int rc = async_req_3_0(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE),
 	    IPC_M_CONFIG_SPACE_WRITE_16, address, value);
