@@ -59,7 +59,7 @@ static inline void transfer_list_fini(transfer_list_t *instance)
 	assert(instance);
 	queue_head_dispose(instance->queue_head);
 }
-void transfer_list_check(transfer_list_t *instance);
+void transfer_list_remove_finished(transfer_list_t *instance);
 
 void transfer_list_add_batch(transfer_list_t *instance, batch_t *batch);
 #endif

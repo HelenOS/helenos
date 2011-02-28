@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jan Vesely
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,38 +25,49 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup usb
+
+/** @addtogroup drvusbuhci
  * @{
  */
 /** @file
- * @brief UHCI port driver
+ * @brief UHCI driver
  */
-#ifndef DRV_UHCI_PORT_H
-#define DRV_UHCI_PORT_H
+#ifndef UTILS_DEVICE_KEEPER_H
+#define UTILS_DEVICE_KEEPER_H
+#include <devman.h>
+#include <fibril_synch.h>
+#include <usb/usb.h>
 
-#include <assert.h>
-#include <ddf/driver.h>
-#include <stdint.h>
-#include <usb/usbdevice.h>
+#define USB_ADDRESS_COUNT (USB11_ADDRESS_MAX + 1)
 
-#include "port_status.h"
+struct usb_device_info {
+	usb_speed_t speed;
+	bool occupied;
+	devman_handle_t handle;
+};
 
-typedef struct uhci_port
-{
-	port_status_t *address;
-	unsigned number;
-	unsigned wait_period_usec;
-	usb_hc_connection_t hc_connection;
-	ddf_dev_t *rh;
-	devman_handle_t attached_device;
-	fid_t checker;
-} uhci_port_t;
+typedef struct device_keeper {
+	struct usb_device_info devices[USB_ADDRESS_COUNT];
+	fibril_mutex_t guard;
+	fibril_condvar_t default_address_occupied;
+	usb_address_t last_address;
+} device_keeper_t;
 
-int uhci_port_init(
-  uhci_port_t *port, port_status_t *address, unsigned number,
-  unsigned usec, ddf_dev_t *rh);
+void device_keeper_init(device_keeper_t *instance);
+void device_keeper_reserve_default(
+    device_keeper_t *instance, usb_speed_t speed);
+void device_keeper_release_default(device_keeper_t *instance);
 
-void uhci_port_fini(uhci_port_t *port);
+usb_address_t device_keeper_request(
+    device_keeper_t *instance, usb_speed_t speed);
+void device_keeper_bind(
+    device_keeper_t *instance, usb_address_t address, devman_handle_t handle);
+void device_keeper_release(device_keeper_t *instance, usb_address_t address);
+usb_address_t device_keeper_find(
+    device_keeper_t *instance, devman_handle_t handle);
+
+usb_speed_t device_keeper_speed(
+    device_keeper_t *instance, usb_address_t address);
 #endif
 /**
  * @}

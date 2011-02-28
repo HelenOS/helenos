@@ -38,7 +38,7 @@
 #include "utils/malloc32.h"
 
 void transfer_descriptor_init(transfer_descriptor_t *instance,
-    int error_count, size_t size, bool toggle, bool isochronous,
+    int error_count, size_t size, bool toggle, bool isochronous, bool low_speed,
     usb_target_t target, int pid, void *buffer, transfer_descriptor_t *next)
 {
 	assert(instance);
@@ -49,6 +49,7 @@ void transfer_descriptor_init(transfer_descriptor_t *instance,
 
 	instance->status = 0
 	  | ((error_count & TD_STATUS_ERROR_COUNT_MASK) << TD_STATUS_ERROR_COUNT_POS)
+		| (low_speed ? TD_STATUS_LOW_SPEED_FLAG : 0)
 	  | TD_STATUS_ERROR_ACTIVE;
 
 	assert(size < 1024);
@@ -65,21 +66,9 @@ void transfer_descriptor_init(transfer_descriptor_t *instance,
 		instance->buffer_ptr = (uintptr_t)addr_to_phys(buffer);
 	}
 
-	usb_log_info("Created TD: %X:%X:%X:%X(%p).\n",
+	usb_log_debug2("Created TD: %X:%X:%X:%X(%p).\n",
 		instance->next, instance->status, instance->device,
 	  instance->buffer_ptr, buffer);
-#if 0
-	if (size) {
-		unsigned char * buff = buffer;
-		uhci_print_verbose("TD Buffer dump(%p-%dB): ", buffer, size);
-		unsigned i = 0;
-		/* TODO: Verbose? */
-		for (; i < size; ++i) {
-			printf((i & 1) ? "%x " : "%x", buff[i]);
-		}
-		printf("\n");
-	}
-#endif
 }
 /*----------------------------------------------------------------------------*/
 int transfer_descriptor_status(transfer_descriptor_t *instance)
@@ -87,10 +76,10 @@ int transfer_descriptor_status(transfer_descriptor_t *instance)
 	assert(instance);
 
 	if ((instance->status & TD_STATUS_ERROR_STALLED) != 0)
-		return EIO;
+		return ESTALL;
 
 	if ((instance->status & TD_STATUS_ERROR_CRC) != 0)
-		return EAGAIN;
+		return EBADCHECKSUM;
 
 	if ((instance->status & TD_STATUS_ERROR_BUFFER) != 0)
 		return EAGAIN;

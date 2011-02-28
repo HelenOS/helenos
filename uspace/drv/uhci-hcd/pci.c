@@ -38,6 +38,8 @@
 #include <devman.h>
 #include <device/hw_res.h>
 
+#include <usb/debug.h>
+
 #include "pci.h"
 
 /** Get address of registers and IRQ for given device.
@@ -82,11 +84,13 @@ int pci_get_my_registers(ddf_dev_t *dev,
 			case INTERRUPT:
 				irq = res->res.interrupt.irq;
 				irq_found = true;
+				usb_log_debug2("Found interrupt: %d.\n", irq);
 				break;
 			case IO_RANGE:
-				io_address = (uintptr_t)
-				    res->res.io_range.address;
+				io_address = res->res.io_range.address;
 				io_size = res->res.io_range.size;
+				usb_log_debug2("Found io: %llx %zu.\n",
+				    res->res.io_range.address, res->res.io_range.size);
 				io_found = true;
 				break;
 			default:
@@ -104,15 +108,9 @@ int pci_get_my_registers(ddf_dev_t *dev,
 		goto leave;
 	}
 
-	if (io_reg_address != NULL) {
-		*io_reg_address = io_address;
-	}
-	if (io_reg_size != NULL) {
-		*io_reg_size = io_size;
-	}
-	if (irq_no != NULL) {
-		*irq_no = irq;
-	}
+	*io_reg_address = io_address;
+	*io_reg_size = io_size;
+	*irq_no = irq;
 
 	rc = EOK;
 leave:
@@ -126,6 +124,7 @@ int pci_enable_interrupts(ddf_dev_t *device)
 	int parent_phone = devman_parent_device_connect(device->handle,
 	    IPC_FLAG_BLOCKING);
 	bool enabled = hw_res_enable_interrupt(parent_phone);
+	async_hangup(parent_phone);
 	return enabled ? EOK : EIO;
 }
 /**

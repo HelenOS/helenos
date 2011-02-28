@@ -42,15 +42,10 @@
 #include "uhci_struct/transfer_descriptor.h"
 #include "uhci_struct/queue_head.h"
 
-typedef enum {
-	LOW_SPEED,
-	FULL_SPEED,
-} dev_speed_t;
-
 typedef struct batch
 {
 	link_t link;
-	dev_speed_t speed;
+	usb_speed_t speed;
 	usb_target_t target;
 	usb_transfer_type_t transfer_type;
 	union {
@@ -75,7 +70,7 @@ typedef struct batch
 
 batch_t * batch_get(ddf_fun_t *fun, usb_target_t target,
     usb_transfer_type_t transfer_type, size_t max_packet_size,
-    dev_speed_t speed, char *buffer, size_t size,
+    usb_speed_t speed, char *buffer, size_t size,
 		char *setup_buffer, size_t setup_size,
     usbhc_iface_transfer_in_callback_t func_in,
     usbhc_iface_transfer_out_callback_t func_out, void *arg);

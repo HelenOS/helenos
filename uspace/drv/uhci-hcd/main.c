@@ -81,10 +81,9 @@ static int uhci_add_device(ddf_dev_t *device)
 
 	usb_log_info("uhci_add_device() called\n");
 
-
-	uintptr_t io_reg_base;
-	size_t io_reg_size;
-	int irq;
+	uintptr_t io_reg_base = 0;
+	size_t io_reg_size = 0;
+	int irq = 0;
 
 	int ret =
 	    pci_get_my_registers(device, &io_reg_base, &io_reg_size, &irq);
@@ -94,8 +93,8 @@ static int uhci_add_device(ddf_dev_t *device)
 	usb_log_info("I/O regs at 0x%X (size %zu), IRQ %d.\n",
 	    io_reg_base, io_reg_size, irq);
 
-	ret = pci_enable_interrupts(device);
-	CHECK_RET_RETURN(ret, "Failed(%d) to get enable interrupts:\n", ret);
+//	ret = pci_enable_interrupts(device);
+//	CHECK_RET_RETURN(ret, "Failed(%d) to get enable interrupts:\n", ret);
 
 	uhci_t *uhci_hc = malloc(sizeof(uhci_t));
 	ret = (uhci_hc != NULL) ? EOK : ENOMEM;
@@ -113,7 +112,6 @@ static int uhci_add_device(ddf_dev_t *device)
 	 * else would access driver_data anyway.
 	 */
 	device->driver_data = uhci_hc;
-
 	ret = register_interrupt_handler(device, irq, irq_handler,
 	    &uhci_hc->interrupt_code);
 	if (ret != EOK) {
@@ -148,7 +146,7 @@ static int uhci_add_device(ddf_dev_t *device)
 int main(int argc, char *argv[])
 {
 	sleep(3);
-	usb_log_enable(USB_LOG_LEVEL_INFO, NAME);
+	usb_log_enable(USB_LOG_LEVEL_DEBUG, NAME);
 
 	return ddf_driver_main(&uhci_driver);
 }

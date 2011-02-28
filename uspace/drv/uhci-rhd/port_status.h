@@ -40,20 +40,18 @@
 
 typedef uint16_t port_status_t;
 
-enum {
-	STATUS_CONNECTED         = 1 << 0,
-	STATUS_CONNECTED_CHANGED = 1 << 1,
-	STATUS_ENABLED           = 1 << 2,
-	STATUS_ENABLED_CHANGED   = 1 << 3,
-	STATUS_LINE_D_PLUS       = 1 << 4,
-	STATUS_LINE_D_MINUS      = 1 << 5,
-	STATUS_RESUME            = 1 << 6,
-	STATUS_ALWAYS_ONE        = 1 << 7,
+#define STATUS_CONNECTED         (1 << 0)
+#define STATUS_CONNECTED_CHANGED (1 << 1)
+#define STATUS_ENABLED           (1 << 2)
+#define STATUS_ENABLED_CHANGED   (1 << 3)
+#define STATUS_LINE_D_PLUS       (1 << 4)
+#define STATUS_LINE_D_MINUS      (1 << 5)
+#define STATUS_RESUME            (1 << 6)
+#define STATUS_ALWAYS_ONE        (1 << 7)
 
-	STATUS_LOW_SPEED = 1 <<  8,
-	STATUS_IN_RESET  = 1 <<  9,
-	STATUS_SUSPEND   = 1 << 12,
-};
+#define STATUS_LOW_SPEED (1 <<  8)
+#define STATUS_IN_RESET  (1 <<  9)
+#define STATUS_SUSPEND   (1 << 12)
 
 static inline port_status_t port_status_read(port_status_t * address)
 	{ return pio_read_16(address); }
