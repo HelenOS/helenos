@@ -100,41 +100,44 @@ static int uhci_debug_checker(void *arg);
 static bool allowed_usb_packet(
 	bool low_speed, usb_transfer_type_t, size_t size);
 
-#define CHECK_RET_RETURN(ret, message...) \
-	if (ret != EOK) { \
-		usb_log_error(message); \
-		return ret; \
-	} else (void) 0
 
 int uhci_init(uhci_t *instance, ddf_dev_t *dev, void *regs, size_t reg_size)
 {
 	assert(reg_size >= sizeof(regs_t));
 	int ret;
 
+#define CHECK_RET_DEST_FUN_RETURN(ret, message...) \
+	if (ret != EOK) { \
+		usb_log_error(message); \
+		if (instance->ddf_instance) \
+			ddf_fun_destroy(instance->ddf_instance); \
+		return ret; \
+	} else (void) 0
+
 	/*
 	 * Create UHCI function.
 	 */
 	instance->ddf_instance = ddf_fun_create(dev, fun_exposed, "uhci");
-	if (instance->ddf_instance == NULL) {
-		usb_log_error("Failed to create UHCI device function.\n");
-		return ENOMEM;
-	}
+	ret = (instance->ddf_instance == NULL) ? ENOMEM : EOK;
+	CHECK_RET_DEST_FUN_RETURN(ret, "Failed to create UHCI device function.\n");
+
 	instance->ddf_instance->ops = &uhci_ops;
 	instance->ddf_instance->driver_data = instance;
 
 	ret = ddf_fun_bind(instance->ddf_instance);
-	CHECK_RET_RETURN(ret, "Failed to bind UHCI device function: %s.\n",
-	    str_error(ret));
+	CHECK_RET_DEST_FUN_RETURN(ret, "Failed(%d) to bind UHCI device function: %s.\n",
+	    ret, str_error(ret));
 
 	/* allow access to hc control registers */
 	regs_t *io;
 	ret = pio_enable(regs, reg_size, (void**)&io);
-	CHECK_RET_RETURN(ret, "Failed to gain access to registers at %p.\n", io);
+	CHECK_RET_DEST_FUN_RETURN(ret, "Failed(%d) to gain access to registers at %p: %s.\n",
+	    ret, str_error(ret), io);
 	instance->registers = io;
-	usb_log_debug("Device registers accessible.\n");
+	usb_log_debug("Device registers at %p(%u) accessible.\n", io, reg_size);
 
 	ret = uhci_init_mem_structures(instance);
-	CHECK_RET_RETURN(ret, "Failed to initialize memory structures.\n");
+	CHECK_RET_DEST_FUN_RETURN(ret, "Failed to initialize UHCI memory structures.\n");
 
 	uhci_init_hw(instance);
 
@@ -144,7 +147,9 @@ int uhci_init(uhci_t *instance, ddf_dev_t *dev, void *regs, size_t reg_size)
 	instance->debug_checker = fibril_create(uhci_debug_checker, instance);
 	fibril_add_ready(instance->debug_checker);
 
+	usb_log_info("Started UHCI driver.\n");
 	return EOK;
+#undef CHECK_RET_DEST_FUN_RETURN
 }
 /*----------------------------------------------------------------------------*/
 void uhci_init_hw(uhci_t *instance)
@@ -170,40 +175,49 @@ void uhci_init_hw(uhci_t *instance)
 	/* Start the hc with large(64B) packet FSBR */
 	pio_write_16(&instance->registers->usbcmd,
 	    UHCI_CMD_RUN_STOP | UHCI_CMD_MAX_PACKET | UHCI_CMD_CONFIGURE);
-	usb_log_debug("Started UHCI HC.\n");
 }
 /*----------------------------------------------------------------------------*/
 int uhci_init_mem_structures(uhci_t *instance)
 {
 	assert(instance);
+#define CHECK_RET_DEST_CMDS_RETURN(ret, message...) \
+	if (ret != EOK) { \
+		usb_log_error(message); \
+		if (instance->interrupt_code.cmds != NULL) \
+			free(instance->interrupt_code.cmds); \
+		return ret; \
+	} else (void) 0
 
 	/* init interrupt code */
-	irq_cmd_t *interrupt_commands = malloc(sizeof(uhci_cmds));
-	if (interrupt_commands == NULL) {
-		return ENOMEM;
+	instance->interrupt_code.cmds = malloc(sizeof(uhci_cmds));
+	int ret = (instance->interrupt_code.cmds == NULL) ? ENOMEM : EOK;
+	CHECK_RET_DEST_CMDS_RETURN(ret, "Failed to allocate interrupt cmds space.\n");
+
+	{
+		irq_cmd_t *interrupt_commands = instance->interrupt_code.cmds;
+		memcpy(interrupt_commands, uhci_cmds, sizeof(uhci_cmds));
+		interrupt_commands[0].addr = (void*)&instance->registers->usbsts;
+		interrupt_commands[1].addr = (void*)&instance->registers->usbsts;
+		instance->interrupt_code.cmdcount =
+				sizeof(uhci_cmds) / sizeof(irq_cmd_t);
 	}
-	memcpy(interrupt_commands, uhci_cmds, sizeof(uhci_cmds));
-	interrupt_commands[0].addr = (void*)&instance->registers->usbsts;
-	interrupt_commands[1].addr = (void*)&instance->registers->usbsts;
-	instance->interrupt_code.cmds = interrupt_commands;
-	instance->interrupt_code.cmdcount =
-	    sizeof(uhci_cmds) / sizeof(irq_cmd_t);
 
 	/* init transfer lists */
-	int ret = uhci_init_transfer_lists(instance);
-	CHECK_RET_RETURN(ret, "Failed to initialize transfer lists.\n");
+	ret = uhci_init_transfer_lists(instance);
+	CHECK_RET_DEST_CMDS_RETURN(ret, "Failed to initialize transfer lists.\n");
 	usb_log_debug("Initialized transfer lists.\n");
 
 	/* frame list initialization */
 	instance->frame_list = get_page();
 	ret = instance ? EOK : ENOMEM;
-	CHECK_RET_RETURN(ret, "Failed to get frame list page.\n");
+	CHECK_RET_DEST_CMDS_RETURN(ret, "Failed to get frame list page.\n");
 	usb_log_debug("Initialized frame list.\n");
 
 	/* initialize all frames to point to the first queue head */
 	const uint32_t queue =
 	  instance->transfers_interrupt.queue_head_pa
 	  | LINK_POINTER_QUEUE_HEAD_FLAG;
+
 	unsigned i = 0;
 	for(; i < UHCI_FRAME_LIST_COUNT; ++i) {
 		instance->frame_list[i] = queue;
@@ -214,22 +228,32 @@ int uhci_init_mem_structures(uhci_t *instance)
 	usb_log_debug("Initialized device manager.\n");
 
 	return EOK;
+#undef CHECK_RET_DEST_CMDS_RETURN
 }
 /*----------------------------------------------------------------------------*/
 int uhci_init_transfer_lists(uhci_t *instance)
 {
 	assert(instance);
+#define CHECK_RET_CLEAR_RETURN(ret, message...) \
+	if (ret != EOK) { \
+		usb_log_error(message); \
+		transfer_list_fini(&instance->transfers_bulk_full); \
+		transfer_list_fini(&instance->transfers_control_full); \
+		transfer_list_fini(&instance->transfers_control_slow); \
+		transfer_list_fini(&instance->transfers_interrupt); \
+		return ret; \
+	} else (void) 0
 
 	/* initialize TODO: check errors */
 	int ret;
 	ret = transfer_list_init(&instance->transfers_bulk_full, "BULK_FULL");
-	assert(ret == EOK);
+	CHECK_RET_CLEAR_RETURN(ret, "Failed to init BULK list.");
 	ret = transfer_list_init(&instance->transfers_control_full, "CONTROL_FULL");
-	assert(ret == EOK);
+	CHECK_RET_CLEAR_RETURN(ret, "Failed to init CONTROL FULL list.");
 	ret = transfer_list_init(&instance->transfers_control_slow, "CONTROL_SLOW");
-	assert(ret == EOK);
+	CHECK_RET_CLEAR_RETURN(ret, "Failed to init CONTROL SLOW list.");
 	ret = transfer_list_init(&instance->transfers_interrupt, "INTERRUPT");
-	assert(ret == EOK);
+	CHECK_RET_CLEAR_RETURN(ret, "Failed to init INTERRUPT list.");
 
 	transfer_list_set_next(&instance->transfers_control_full,
 		&instance->transfers_bulk_full);
@@ -256,6 +280,7 @@ int uhci_init_transfer_lists(uhci_t *instance)
 	  &instance->transfers_bulk_full;
 
 	return EOK;
+#undef CHECK_RET_CLEAR_RETURN
 }
 /*----------------------------------------------------------------------------*/
 int uhci_schedule(uhci_t *instance, batch_t *batch)

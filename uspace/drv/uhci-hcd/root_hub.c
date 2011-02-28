@@ -33,6 +33,7 @@
  */
 #include <assert.h>
 #include <errno.h>
+#include <str_error.h>
 #include <stdio.h>
 #include <ops/hw_res.h>
 
@@ -117,6 +118,7 @@ static ddf_dev_ops_t root_hub_ops = {
 int setup_root_hub(ddf_fun_t **fun, ddf_dev_t *hc)
 {
 	assert(fun);
+	assert(hc);
 	int ret;
 
 	ddf_fun_t *hub = ddf_fun_create(hc, fun_inner, "root-hub");
@@ -135,9 +137,10 @@ int setup_root_hub(ddf_fun_t **fun, ddf_dev_t *hc)
 
 	ret = ddf_fun_add_match_id(hub, match_str, 100);
 	if (ret != EOK) {
-		usb_log_error("Failed to add root hub match id.\n");
+		usb_log_error("Failed(%d) to add root hub match id: %s\n",
+		    ret, str_error(ret));
 		ddf_fun_destroy(hub);
-		return ENOMEM;
+		return ret;
 	}
 
 	hub->ops = &root_hub_ops;

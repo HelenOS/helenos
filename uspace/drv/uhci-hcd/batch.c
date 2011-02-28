@@ -133,6 +133,8 @@ batch_t * batch_get(ddf_fun_t *fun, usb_target_t target,
 	instance->speed = speed;
 
 	queue_head_element_td(instance->qh, addr_to_phys(instance->tds));
+	usb_log_debug("Batch(%p) %d:%d memory structures ready.\n",
+	    instance, target.address, target.endpoint);
 	return instance;
 }
 /*----------------------------------------------------------------------------*/
@@ -195,10 +197,11 @@ void batch_control_write(batch_t *instance)
 	    0, 1, false, low_speed, instance->target, USB_PID_IN, NULL, NULL);
 
 	instance->tds[i].status |= TD_STATUS_COMPLETE_INTERRUPT_FLAG;
-	usb_log_debug("Control write last TD status: %x.\n",
+	usb_log_debug2("Control write last TD status: %x.\n",
 		instance->tds[i].status);
 
 	instance->next_step = batch_call_out_and_dispose;
+	usb_log_debug("Batch(%p) CONTROL WRITE initialized.\n", instance);
 	batch_schedule(instance);
 }
 /*----------------------------------------------------------------------------*/
@@ -231,10 +234,11 @@ void batch_control_read(batch_t *instance)
 	    0, 1, false, low_speed, instance->target, USB_PID_OUT, NULL, NULL);
 
 	instance->tds[i].status |= TD_STATUS_COMPLETE_INTERRUPT_FLAG;
-	usb_log_debug("Control read last TD status: %x.\n",
+	usb_log_debug2("Control read last TD status: %x.\n",
 		instance->tds[i].status);
 
 	instance->next_step = batch_call_in_and_dispose;
+	usb_log_debug("Batch(%p) CONTROL READ initialized.\n", instance);
 	batch_schedule(instance);
 }
 /*----------------------------------------------------------------------------*/
@@ -260,6 +264,7 @@ void batch_interrupt_in(batch_t *instance)
 	instance->tds[i - 1].status |= TD_STATUS_COMPLETE_INTERRUPT_FLAG;
 
 	instance->next_step = batch_call_in_and_dispose;
+	usb_log_debug("Batch(%p) INTERRUPT IN initialized.\n", instance);
 	batch_schedule(instance);
 }
 /*----------------------------------------------------------------------------*/
@@ -287,6 +292,7 @@ void batch_interrupt_out(batch_t *instance)
 	instance->tds[i - 1].status |= TD_STATUS_COMPLETE_INTERRUPT_FLAG;
 
 	instance->next_step = batch_call_out_and_dispose;
+	usb_log_debug("Batch(%p) INTERRUPT OUT initialized.\n", instance);
 	batch_schedule(instance);
 }
 /*----------------------------------------------------------------------------*/
@@ -298,7 +304,7 @@ void batch_call_in(batch_t *instance)
 	memcpy(instance->buffer, instance->transport_buffer, instance->buffer_size);
 
 	int err = instance->error;
-	usb_log_info("Batch(%p) callback IN(type:%d): %s(%d), %zu.\n",
+	usb_log_debug("Batch(%p) callback IN(type:%d): %s(%d), %zu.\n",
 	    instance, instance->transfer_type, str_error(err), err,
 	    instance->transfered_size);
 
@@ -313,7 +319,7 @@ void batch_call_out(batch_t *instance)
 	assert(instance->callback_out);
 
 	int err = instance->error;
-	usb_log_info("Batch(%p) callback OUT(type:%d): %s(%d).\n",
+	usb_log_debug("Batch(%p) callback OUT(type:%d): %s(%d).\n",
 	    instance, instance->transfer_type, str_error(err), err);
 	instance->callback_out(instance->fun,
 	    err, instance->arg);

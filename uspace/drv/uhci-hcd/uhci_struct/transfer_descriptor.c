@@ -66,7 +66,7 @@ void transfer_descriptor_init(transfer_descriptor_t *instance,
 		instance->buffer_ptr = (uintptr_t)addr_to_phys(buffer);
 	}
 
-	usb_log_info("Created TD: %X:%X:%X:%X(%p).\n",
+	usb_log_debug2("Created TD: %X:%X:%X:%X(%p).\n",
 		instance->next, instance->status, instance->device,
 	  instance->buffer_ptr, buffer);
 }
