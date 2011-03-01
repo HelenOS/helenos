@@ -34,7 +34,7 @@
 #define _MFS_SUPER_H_
 
 #include "mfs_const.h"
-
+#include "../../vfs/vfs.h"
 
 struct mfs_superblock {
 	/*Total number of inodes on the device*/
@@ -65,6 +65,8 @@ struct mfs_superblock {
 	/*Filesystem disk format version*/
 	int8_t		s_disk_version;
 } __attribute__ ((packed));
+
+void mfs_mounted(ipc_callid_t rid, ipc_call_t *request);
 
 #endif
 

@@ -28,32 +28,51 @@
 
 /** @addtogroup fs
  * @{
- */ 
+ */
 
+#include "mfs_super.h"
 
-#ifndef _MFS_CONST_H_
-#define _MFS_CONST_H_
+void mfs_mounted(ipc_callid_t rid, ipc_call_t *request)
+{
+	devmap_handle_t devmap_handle = (devmap_handle_t) IPC_GET_ARG1(*request);
+	enum cache_mode cmode;	
+	struct mfs_superblock *sp;
 
-#include <sys/types.h>
+	/* Accept the mount options */
+	char *opts;
+	int rc = async_data_write_accept((void **) &opts, true, 0, 0, 0, NULL);
+	
+	if (rc != EOK) {
+		async_answer_0(rid, rc);
+		return;
+	}
 
-#define MFS_MAGIC_V1		0x137F
-#define MFS_MAGIC_V2		0x2468
-#define MFS_MAGIC_V3		0x4D5A
+	/* Check for option enabling write through. */
+	if (str_cmp(opts, "wtcache") == 0)
+		cmode = CACHE_MODE_WT;
+	else
+		cmode = CACHE_MODE_WB;
 
-#define MFS_ROOT_INO		1
-#define MFS_SUPER_BLOCK		0
-#define MFS_SUPER_BLOCK_SIZE	1024
+	free(opts);
 
-#define V2_NR_DIRECT_ZONES	7
-#define V2_NR_INDIRECT_ZONES	3
+	/* initialize libblock */
+	rc = block_init(devmap_handle, MFS_SUPER_BLOCK_SIZE);
+	if (rc != EOK) {
+		async_answer_0(rid, rc);
+		return;
+	}
 
-#define V1_NR_DIRECT_ZONES	7
-#define V1_NR_INDIRECT_ZONES	2
+	/* prepare the superblock */
+	rc = block_bb_read(devmap_handle, MFS_SUPER_BLOCK);
+	if (rc != EOK) {
+		block_fini(devmap_handle);
+		async_answer_0(rid, rc);
+		return;
+	}
 
-#define V1_MAX_NAME_LEN		14
-#define V2_MAX_NAME_LEN		60
-
-#endif
+	/* get the buffer with the superblock */
+	sp = block_bb_get(devmap_handle);
+}
 
 
 /**
