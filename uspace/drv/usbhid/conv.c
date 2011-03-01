@@ -162,67 +162,17 @@ static int scanmap_simple[255] = {
 	
 };
 
-unsigned int usbkbd_parse_scancode(int scancode)
+unsigned int usbhid_parse_scancode(int scancode)
 {
-//	console_ev_type_t type;
 	unsigned int key;
 	int *map = scanmap_simple;
 	size_t map_length = sizeof(scanmap_simple) / sizeof(int);
-
-	/*
-	 * ACK/NAK are returned as response to us sending a command.
-	 * We are not interested in them.
-	 */
-//	if (scancode == SC_ACK || scancode == SC_NAK)
-//		return;
-
-//	if (scancode == 0xe0) {
-//		ds = ds_e;
-//		return;
-//	}
-
-//	switch (ds) {
-//	case ds_s:
-//		map = scanmap_simple;
-//		map_length = sizeof(scanmap_simple) / sizeof(int);
-//		break;
-//	case ds_e:
-//		map = scanmap_e0;
-//		map_length = sizeof(scanmap_e0) / sizeof(int);
-//		break;
-//	default:
-//		map = NULL;
-//		map_length = 0;
-//	}
-
-//	ds = ds_s;
-
-//	if (scancode & 0x80) {
-//		scancode &= ~0x80;
-//		type = KEY_RELEASE;
-//	} else {
-//		type = KEY_PRESS;
-//	}
 
 	if ((scancode < 0) || ((size_t) scancode >= map_length))
 		return -1;
 
 	key = map[scancode];
 	
-	if (scancode == 0x53) {
-		usb_log_debug("\n\nWe have a NUM LOCK!, sending key %u\n\n", key);
-	}
-	
-	if (scancode == 0x47) {
-		usb_log_debug("\n\nWe have a SCROLL LOCK!, sending key %u\n\n", key);
-	}
-	
-	if (scancode == 0x39) {
-		usb_log_debug("\n\nWe have a CAPS LOCK!, sending key %u\n\n", key);
-	}
-	
-//	if (key != 0)
-//		kbd_push_ev(type, key);
 	return key;
 }
 

@@ -30,15 +30,45 @@
  * @{
  */
 /** @file
- * USB scancode parser.
+ * USB HID keyboard device structure and API.
  */
 
-#ifndef USBHID_CONV_H_
-#define USBHID_CONV_H_
+#ifndef USBHID_KBDDEV_H_
+#define USBHID_KBDDEV_H_
 
-unsigned int usbhid_parse_scancode(int scancode);
+#include <stdint.h>
 
-#endif /* USBHID_CONV_H_ */
+#include <usb/classes/hid.h>
+#include <ddf/driver.h>
+#include <usb/pipes.h>
+
+#include "hiddev.h"
+
+/*----------------------------------------------------------------------------*/
+
+/**
+ * @brief USB/HID keyboard device type.
+ */
+typedef struct {
+	usbhid_dev_t *hid_dev;
+	
+	uint8_t *keycodes;
+	size_t keycode_count;
+	uint8_t modifiers;
+	
+	unsigned mods;
+	unsigned lock_keys;
+	
+	int console_phone;
+	
+	int initialized;
+} usbhid_kbd_t;
+
+/*----------------------------------------------------------------------------*/
+
+int usbhid_kbd_try_add_device(ddf_dev_t *dev);
+
+#endif /* USBHID_KBDDEV_H_ */
 
 /**
  * @}
