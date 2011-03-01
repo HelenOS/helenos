@@ -138,7 +138,9 @@ int pci_disable_legacy(ddf_dev_t *device)
 		return parent_phone;
 	}
 
-  sysarg_t address = 0xc0;
+	/* See UHCI design guide for these values,
+	 * write all WC bits in USB legacy register */
+	sysarg_t address = 0xc0;
 	sysarg_t value = 0x8f00;
 
   int rc = async_req_3_0(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE),

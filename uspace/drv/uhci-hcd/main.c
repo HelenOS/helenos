@@ -49,7 +49,6 @@
 #define NAME "uhci-hcd"
 
 static int uhci_add_device(ddf_dev_t *device);
-
 /*----------------------------------------------------------------------------*/
 static driver_ops_t uhci_driver_ops = {
 	.add_device = uhci_add_device,
@@ -98,13 +97,19 @@ if (ret != EOK) { \
 	CHECK_RET_FREE_HC_RETURN(ret,
 	    "Failed(%d) disable legacy USB: %s.\n", ret, str_error(ret));
 
-//	ret = pci_enable_interrupts(device);
-//	CHECK_RET_FREE_HC_RETURN(ret, "Failed(%d) to get enable interrupts:\n", ret);
+#if 0
+	ret = pci_enable_interrupts(device);
+	if (ret != EOK) {
+		usb_log_warning(
+		    "Failed(%d) to enable interrupts, fall back to polling.\n",
+		    ret);
+	}
+#endif
 
 	hcd = malloc(sizeof(uhci_t));
 	ret = (hcd != NULL) ? EOK : ENOMEM;
-	CHECK_RET_FREE_HC_RETURN(ret, "Failed(%d) to allocate memory for uhci hcd.\n",
-	    ret);
+	CHECK_RET_FREE_HC_RETURN(ret,
+	    "Failed(%d) to allocate memory for uhci hcd.\n", ret);
 
 	ret = uhci_init(hcd, device, (void*)io_reg_base, io_reg_size);
 	CHECK_RET_FREE_HC_RETURN(ret, "Failed(%d) to init uhci-hcd.\n",
@@ -130,19 +135,20 @@ if (ret != EOK) { \
 	return ret; \
 }
 
+	/* It does no harm if we register this on polling */
 	ret = register_interrupt_handler(device, irq, irq_handler,
 	    &hcd->interrupt_code);
-	CHECK_RET_FINI_FREE_RETURN(ret, "Failed(%d) to register interrupt handler.\n",
-	    ret);
+	CHECK_RET_FINI_FREE_RETURN(ret,
+	    "Failed(%d) to register interrupt handler.\n", ret);
 
 	ret = setup_root_hub(&rh, device);
-	CHECK_RET_FINI_FREE_RETURN(ret, "Failed(%d) to setup UHCI root hub.\n",
-	    ret);
+	CHECK_RET_FINI_FREE_RETURN(ret,
+	    "Failed(%d) to setup UHCI root hub.\n", ret);
 	rh->driver_data = hcd->ddf_instance;
 
 	ret = ddf_fun_bind(rh);
-	CHECK_RET_FINI_FREE_RETURN(ret, "Failed(%d) to register UHCI root hub.\n",
-	    ret);
+	CHECK_RET_FINI_FREE_RETURN(ret,
+	    "Failed(%d) to register UHCI root hub.\n", ret);
 
 	return EOK;
 #undef CHECK_RET_FINI_FREE_RETURN
