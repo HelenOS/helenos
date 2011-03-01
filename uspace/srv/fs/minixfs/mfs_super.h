@@ -35,42 +35,35 @@
 
 #include "mfs_const.h"
 
-/* Super block table.  The root file system and every mounted file system
- * has an entry here.  The entry holds information about the sizes of the bit
- * maps and inodes.  The s_ninodes field gives the number of inodes available
- * for files and directories, including the root directory.  Inode 0 is 
- * on the disk, but not used.  Thus s_ninodes = 4 means that 5 bits will be
- * used in the bit map, bit 0, which is always 1 and not used, and bits 1-4
- * for files and directories.  The disk layout is:
- *
- *    Item        # blocks
- *    boot block      1
- *    super block     1    (offset 1kB)
- *    inode map     s_imap_blocks
- *    zone map      s_zmap_blocks
- *    inodes        (s_ninodes + 'inodes per block' - 1)/'inodes per block'
- *    unused        whatever is needed to fill out the current zone
- *    data zones    (s_zones - s_firstdatazone) << s_log_zone_size
- *
- */
 
-struct mfs_v3_superblock {
-	uint32_t	s_ninodes;		/*# usable inodes on the device*/
-	uint16_t	s_nzones;		/*total device size including bitmaps etc*/
-	int16_t		s_imap_blocks;		/*# of blocks used by inode bitmap*/
-	int16_t		s_zmap_blocks;		/*# of blocks used by zone bitmap*/
-	uint16_t	s_firstdatazone_old;	/*# of first data zone (small)*/
-	int16_t		s_log_zone_size;	/*log2 of blocks / zone*/
-	int16_t		s_pad;			/*try to avoid compiler dependent padding*/
-	int32_t		s_max_size;		/*maximum file size*/
-	uint32_t	s_zones;		/*number of zones*/
-	int16_t		s_magic;		/*magic number to recognize superblocks*/
+struct mfs_superblock {
+	/*Total number of inodes on the device*/
+	uint32_t	s_ninodes;
+	/*Device size expressed as number of zones (unused)*/
+	uint16_t	s_nzones;
+	/*Number of inode bitmap blocks*/
+	int16_t		s_ibmap_blocks;
+	/*Number of zone bitmap blocks*/
+	int16_t		s_zbmap_blocks;
+	/*First data zone on device*/
+	uint16_t	s_first_data_zone;
+	/*Base 2 logarithm of the zone to block ratio*/
+	int16_t		s_log2_zone_size;
+	int16_t		s_pad;
+	/*Maximum file size expressed in bytes*/
+	int32_t		s_max_file_size;
+	/*Total number of zones on the device*/
+	uint32_t	s_total_zones;
+	/*Magic number used to recognize MinixFS and to detect on-disk endianness*/
+	int16_t		s_magic;
 
-	/* The following items are valid on disk only for V3 and above */
-	
+	/* The following fields are valid only for MinixFS V3 */
+
 	int16_t		s_pad2;
-	uint16_t	s_block_size;		/*block size in bytes*/
-	int8_t		s_disk_version;		/*filesystem format sub-version*/
+	/*Filesystem block size expressed in bytes*/
+	uint16_t	s_block_size;
+	/*Filesystem disk format version*/
+	int8_t		s_disk_version;
 } __attribute__ ((packed));
 
 #endif

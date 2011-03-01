@@ -36,7 +36,8 @@
 
 #include <sys/types.h>
 
-#define V2_NR_TZONES	10
+#define V2_NR_DIRECT_ZONES	7
+#define V2_NR_INDIRECT_ZONES	3
 
 #endif
 
