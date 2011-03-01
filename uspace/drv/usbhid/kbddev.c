@@ -120,11 +120,8 @@ void default_connection_handler(ddf_fun_t *fun,
 {
 	sysarg_t method = IPC_GET_IMETHOD(*icall);
 	
-	usb_log_debug("default_connection_handler()\n");
-	usb_log_debug("kbd_dev: %p\n", fun->driver_data);
-	
 	usbhid_kbd_t *kbd_dev = (usbhid_kbd_t *)fun->driver_data;
-	assert(kbd_dev != NULL);	
+	assert(kbd_dev != NULL);
 
 	if (method == IPC_M_CONNECT_TO_ME) {
 		int callback = IPC_GET_ARG5(*icall);
@@ -138,7 +135,7 @@ void default_connection_handler(ddf_fun_t *fun,
 		async_answer_0(icallid, EOK);
 		return;
 	}
-
+	
 	async_answer_0(icallid, EINVAL);
 }
 
@@ -473,6 +470,7 @@ static usbhid_kbd_t *usbhid_kbd_new()
 		return NULL;
 	}
 	
+	kbd_dev->console_phone = -1;
 	kbd_dev->initialized = 0;
 	
 	return kbd_dev;

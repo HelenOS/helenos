@@ -213,7 +213,7 @@ static int usbhid_dev_process_descriptors(usbhid_dev_t *hid_dev,
 	if (!endpoint_mapping[0].present) {
 		usb_log_warning("Not accepting device.\n");
 		free(descriptors);
-		return EREFUSED;
+		return EREFUSED;  // probably not very good return value
 	}
 	
 	usb_log_debug("Accepted device. Saving interface, and getting Report"
