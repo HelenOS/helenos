@@ -254,7 +254,7 @@ static void usbhid_kbd_push_ev(usbhid_kbd_t *kbd_dev, int type,
 	usb_log_debug2("\n\nmods after: 0x%x\n", kbd_dev->mods);
 	usb_log_debug2("\nLock keys after: 0x%x\n\n", kbd_dev->lock_keys);
 	
-	if (key = KC_CAPS_LOCK || key == KC_NUM_LOCK || key == KC_SCROLL_LOCK) {
+	if (key == KC_CAPS_LOCK || key == KC_NUM_LOCK || key == KC_SCROLL_LOCK) {
 		// do not send anything to the console, this is our business
 		return;
 	}
