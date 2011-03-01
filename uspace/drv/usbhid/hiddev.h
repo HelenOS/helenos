@@ -30,15 +30,52 @@
  * @{
  */
 /** @file
- * USB scancode parser.
+ * Generic USB HID device structure and API.
  */
 
-#ifndef USBHID_CONV_H_
-#define USBHID_CONV_H_
+#ifndef USBHID_HIDDEV_H_
+#define USBHID_HIDDEV_H_
 
-unsigned int usbhid_parse_scancode(int scancode);
+#include <stdint.h>
 
-#endif /* USBHID_CONV_H_ */
+#include <ddf/driver.h>
+
+#include <usb/classes/hid.h>
+#include <usb/pipes.h>
+#include <usb/classes/hidparser.h>
+
+/*----------------------------------------------------------------------------*/
+
+/**
+ * @brief USB/HID device type.
+ */
+typedef struct {
+	ddf_dev_t *device;
+
+	usb_device_connection_t wire;
+	usb_endpoint_pipe_t ctrl_pipe;
+	usb_endpoint_pipe_t poll_pipe;
+	
+	uint16_t iface;
+	
+	uint8_t *report_desc;
+	usb_hid_report_parser_t *parser;
+	
+	int initialized;
+} usbhid_dev_t;
+
+/*----------------------------------------------------------------------------*/
+
+usbhid_dev_t *usbhid_dev_new(void);
+
+void usbhid_dev_free(usbhid_dev_t **hid_dev);
+
+int usbhid_dev_init(usbhid_dev_t *hid_dev, ddf_dev_t *dev,
+    usb_endpoint_description_t *poll_ep_desc);
+
+/*----------------------------------------------------------------------------*/
+
+#endif /* USBHID_HIDDEV_H_ */
 
 /**
  * @}
