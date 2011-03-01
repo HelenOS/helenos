@@ -40,6 +40,7 @@
 
 #include <io/keycode.h>
 #include <ipc/kbd.h>
+#include <async.h>
 
 #include <usb/usb.h>
 #include <usb/classes/hid.h>
@@ -253,6 +254,11 @@ static void usbhid_kbd_push_ev(usbhid_kbd_t *kbd_dev, int type,
 	usb_log_debug2("\n\nmods after: 0x%x\n", kbd_dev->mods);
 	usb_log_debug2("\nLock keys after: 0x%x\n\n", kbd_dev->lock_keys);
 	
+	if (key = KC_CAPS_LOCK || key == KC_NUM_LOCK || key == KC_SCROLL_LOCK) {
+		// do not send anything to the console, this is our business
+		return;
+	}
+	
 	if (type == KEY_PRESS && (kbd_dev->mods & KM_LCTRL) && key == KC_F1) {
 		active_layout = 0;
 		layout[active_layout]->reset();
@@ -452,7 +458,7 @@ static void usbhid_kbd_process_data(usbhid_kbd_t *kbd_dev,
 /* HID/KBD structure manipulation                                             */
 /*----------------------------------------------------------------------------*/
 
-static usbhid_kbd_t *usbhid_kbd_new()
+static usbhid_kbd_t *usbhid_kbd_new(void)
 {
 	usbhid_kbd_t *kbd_dev = 
 	    (usbhid_kbd_t *)malloc(sizeof(usbhid_kbd_t));
@@ -474,6 +480,26 @@ static usbhid_kbd_t *usbhid_kbd_new()
 	kbd_dev->initialized = 0;
 	
 	return kbd_dev;
+}
+
+/*----------------------------------------------------------------------------*/
+
+static void usbhid_kbd_free(usbhid_kbd_t **kbd_dev)
+{
+	if (kbd_dev == NULL || *kbd_dev == NULL) {
+		return;
+	}
+	
+	// hangup phone to the console
+	async_hangup((*kbd_dev)->console_phone);
+	
+	if ((*kbd_dev)->hid_dev != NULL) {
+		usbhid_dev_free(&(*kbd_dev)->hid_dev);
+		assert((*kbd_dev)->hid_dev == NULL);
+	}
+	
+	free(*kbd_dev);
+	*kbd_dev = NULL;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -622,6 +648,10 @@ static int usbhid_kbd_fibril(void *arg)
 	usbhid_kbd_t *kbd_dev = (usbhid_kbd_t *)arg;
 
 	usbhid_kbd_poll(kbd_dev);
+	
+	// at the end, properly destroy the KBD structure
+	usbhid_kbd_free(&kbd_dev);
+	assert(kbd_dev == NULL);
 
 	return EOK;
 }
@@ -644,11 +674,11 @@ int usbhid_kbd_try_add_device(ddf_dev_t *dev)
 	/* 
 	 * Initialize device (get and process descriptors, get address, etc.)
 	 */
-	usb_log_info("Initializing USB HID/KBD device...\n");
+	usb_log_info("Initializing USB/HID KBD device...\n");
 	
 	usbhid_kbd_t *kbd_dev = usbhid_kbd_new();
 	if (kbd_dev == NULL) {
-		usb_log_error("Error while creating USB HID/KBD device "
+		usb_log_error("Error while creating USB/HID KBD device "
 		    "structure.\n");
 		ddf_fun_destroy(kbd_fun);
 		return EINVAL;  // TODO: some other code??
@@ -657,12 +687,13 @@ int usbhid_kbd_try_add_device(ddf_dev_t *dev)
 	int rc = usbhid_kbd_init(kbd_dev, dev);
 	
 	if (rc != EOK) {
-		usb_log_error("Failed to initialize USB HID/KBD device.\n");
+		usb_log_error("Failed to initialize USB/HID KBD device.\n");
 		ddf_fun_destroy(kbd_fun);
+		usbhid_kbd_free(&kbd_dev);
 		return rc;
 	}	
 	
-	usb_log_info("USB/KBD device structure initialized.\n");
+	usb_log_info("USB/HID KBD device structure initialized.\n");
 	
 	/*
 	 * Store the initialized keyboard device and keyboard ops
@@ -674,6 +705,9 @@ int usbhid_kbd_try_add_device(ddf_dev_t *dev)
 	rc = ddf_fun_bind(kbd_fun);
 	if (rc != EOK) {
 		usb_log_error("Could not bind DDF function.\n");
+		// TODO: Can / should I destroy the DDF function?
+		ddf_fun_destroy(kbd_fun);
+		usbhid_kbd_free(&kbd_dev);
 		return rc;
 	}
 	
@@ -681,6 +715,9 @@ int usbhid_kbd_try_add_device(ddf_dev_t *dev)
 	if (rc != EOK) {
 		usb_log_error("Could not add DDF function to class 'keyboard'"
 		    "\n");
+		// TODO: Can / should I destroy the DDF function?
+		ddf_fun_destroy(kbd_fun);
+		usbhid_kbd_free(&kbd_dev);
 		return rc;
 	}
 	
@@ -689,7 +726,7 @@ int usbhid_kbd_try_add_device(ddf_dev_t *dev)
 	 */
 	fid_t fid = fibril_create(usbhid_kbd_fibril, kbd_dev);
 	if (fid == 0) {
-		usb_log_error("Failed to start fibril for HID device\n");
+		usb_log_error("Failed to start fibril for KBD device\n");
 		return ENOMEM;
 	}
 	fibril_add_ready(fid);

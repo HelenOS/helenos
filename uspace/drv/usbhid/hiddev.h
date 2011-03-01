@@ -68,6 +68,8 @@ typedef struct {
 
 usbhid_dev_t *usbhid_dev_new(void);
 
+void usbhid_dev_free(usbhid_dev_t **hid_dev);
+
 int usbhid_dev_init(usbhid_dev_t *hid_dev, ddf_dev_t *dev,
     usb_endpoint_description_t *poll_ep_desc);
 

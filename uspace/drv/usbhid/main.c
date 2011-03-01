@@ -39,21 +39,6 @@
 #include <usb/debug.h>
 #include <errno.h>
 
-//#include <ipc/driver.h>
-//#include <ipc/kbd.h>
-//#include <io/keycode.h>
-//#include <io/console.h>
-//#include <str_error.h>
-
-//#include <usb/classes/classes.h>
-//#include <usb/classes/hid.h>
-//#include <usb/classes/hidparser.h>
-//#include <usb/request.h>
-//#include <usb/descriptor.h>
-//#include <io/console.h>
-//#include <stdint.h>
-//#include <usb/dp.h>
-
 #include "kbddev.h"
 
 /*----------------------------------------------------------------------------*/
@@ -64,6 +49,8 @@
 
 static int usbhid_add_device(ddf_dev_t *dev)
 {
+	usb_log_debug("usbhid_add_device()\n");
+	
 	int rc = usbhid_kbd_try_add_device(dev);
 	
 	if (rc != EOK) {

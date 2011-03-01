@@ -269,6 +269,29 @@ usbhid_dev_t *usbhid_dev_new(void)
 
 /*----------------------------------------------------------------------------*/
 
+void usbhid_dev_free(usbhid_dev_t **hid_dev)
+{
+	if (hid_dev == NULL || *hid_dev == NULL) {
+		return;
+	}
+	
+	// free the report descriptor
+	if ((*hid_dev)->report_desc != NULL) {
+		free((*hid_dev)->report_desc);
+	}
+	// destroy the parser
+	if ((*hid_dev)->parser != NULL) {
+		usb_hid_free_report_parser((*hid_dev)->parser);
+	}
+	
+	// TODO: cleanup pipes
+	
+	free(*hid_dev);
+	*hid_dev = NULL;
+}
+
+/*----------------------------------------------------------------------------*/
+
 int usbhid_dev_init(usbhid_dev_t *hid_dev, ddf_dev_t *dev, 
     usb_endpoint_description_t *poll_ep_desc)
 {
