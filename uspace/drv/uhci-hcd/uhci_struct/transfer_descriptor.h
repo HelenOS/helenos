@@ -91,7 +91,7 @@ typedef struct transfer_descriptor {
 
 
 void transfer_descriptor_init(transfer_descriptor_t *instance,
-    int error_count, size_t size, bool toggle, bool isochronous,
+    int error_count, size_t size, bool toggle, bool isochronous, bool low_speed,
     usb_target_t target, int pid, void *buffer, transfer_descriptor_t * next);
 
 int transfer_descriptor_status(transfer_descriptor_t *instance);
