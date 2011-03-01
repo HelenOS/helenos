@@ -33,6 +33,8 @@ EXTRA_CFLAGS += -I$(LIBBLOCK_PREFIX) -I$(LIBFS_PREFIX)
 BINARY = mfs
 
 SOURCES = \
-	mfs.c
+	mfs.c \
+	mfs_super.c \
+	mfs_utils.c
 
 include $(USPACE_PREFIX)/Makefile.common

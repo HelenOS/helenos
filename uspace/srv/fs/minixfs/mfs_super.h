@@ -36,6 +36,10 @@
 #include "mfs_const.h"
 #include "../../vfs/vfs.h"
 
+#define MFS_MAGIC_V1		0x137F
+#define MFS_MAGIC_V2		0x2468
+#define MFS_MAGIC_V3		0x4D5A
+
 struct mfs_superblock {
 	/*Total number of inodes on the device*/
 	uint32_t	s_ninodes;
@@ -65,6 +69,12 @@ struct mfs_superblock {
 	/*Filesystem disk format version*/
 	int8_t		s_disk_version;
 } __attribute__ ((packed));
+
+typedef enum {
+	MFS_VERSION_V1 = 1,
+	MFS_VERSION_V2,
+	MFS_VERSION_V3
+} mfs_version_t;
 
 void mfs_mounted(ipc_callid_t rid, ipc_call_t *request);
 

@@ -37,10 +37,6 @@
 #include <sys/types.h>
 #include <bool.h>
 
-#define MFS_MAGIC_V1		0x137F
-#define MFS_MAGIC_V2		0x2468
-#define MFS_MAGIC_V3		0x4D5A
-
 #define MFS_ROOT_INO		1
 #define MFS_SUPER_BLOCK		0
 #define MFS_SUPER_BLOCK_SIZE	1024

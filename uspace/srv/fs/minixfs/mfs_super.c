@@ -30,13 +30,24 @@
  * @{
  */
 
+#include <libfs.h>
+#include <stdlib.h>
+#include <libblock.h>
+#include <errno.h>
+#include <str.h>
 #include "mfs_super.h"
+#include "mfs_utils.h"
+#include "../../vfs/vfs.h"
+
+static bool check_magic_number(int16_t magic, bool *native, mfs_version_t *version);
 
 void mfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 {
 	devmap_handle_t devmap_handle = (devmap_handle_t) IPC_GET_ARG1(*request);
 	enum cache_mode cmode;	
 	struct mfs_superblock *sp;
+	bool native;
+	mfs_version_t version;
 
 	/* Accept the mount options */
 	char *opts;
@@ -72,6 +83,44 @@ void mfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 
 	/* get the buffer with the superblock */
 	sp = block_bb_get(devmap_handle);
+
+	if (!check_magic_number(sp->s_magic, &native, &version)) {
+		/*Magic number is invalid!*/
+		block_fini(devmap_handle);
+		async_answer_0(rid, ENOTSUP);
+		return;
+	}
+}
+
+static bool check_magic_number(int16_t magic, bool *native, mfs_version_t *version)
+{
+	*native = true;
+
+repeat_check:
+
+	switch (*native ? magic : conv16(false, magic)) {
+	case MFS_MAGIC_V1:
+		*version = MFS_VERSION_V1;
+		return true;
+	case MFS_MAGIC_V2:
+		*version = MFS_VERSION_V2;
+		return true;
+	case MFS_MAGIC_V3:
+		*version = MFS_VERSION_V3;
+		return true;
+	default:
+		;
+	}
+
+	if (*native) {
+		*native = false;
+		goto repeat_check;
+	} else {
+		return false;
+	}
+
+	/*Should never happens*/
+	return false;
 }
 
 

@@ -37,7 +37,7 @@ uint16_t conv16(bool native, uint16_t n)
 	if (native)
 		return n;
 
-	return r = (n << 8) | (n >> 8);
+	return (n << 8) | (n >> 8);
 }
 
 uint32_t conv32(bool native, uint32_t n)
