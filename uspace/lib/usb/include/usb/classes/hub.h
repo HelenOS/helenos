@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2010 Matus Dekanek
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,18 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusb usb
+/** @addtogroup libusb
  * @{
  */
 /** @file
  * @brief USB hub related structures.
  */
-#ifndef LIBUSB_HUB_H_
-#define LIBUSB_HUB_H_
+#ifndef LIBUSB_CLASS_HUB_H_
+#define LIBUSB_CLASS_HUB_H_
 
 #include <sys/types.h>
-#include <usb/hcdhubd.h>
-
 
 /** Hub class feature selector.
  * @warning The constants are not unique (feature selectors are used
@@ -67,7 +65,7 @@ typedef enum {
  *
  *	For more information see Universal Serial Bus Specification Revision 1.1 chapter 11.16.2
  */
-typedef struct hub_descriptor_type{
+typedef struct usb_hub_descriptor_type {
     /** Number of bytes in this descriptor, including this byte */
     //uint8_t bDescLength;
 
@@ -79,7 +77,7 @@ typedef struct hub_descriptor_type{
 
     /**
             D1...D0: Logical Power Switching Mode
-            00: Ganged power switching (all ports’ power at
+            00: Ganged power switching (all ports power at
             once)
             01: Individual port power switching
             1X: Reserved. Used only on 1.0 compliant hubs
@@ -90,7 +88,7 @@ typedef struct hub_descriptor_type{
             D4...D3: Over-current Protection Mode
             00: Global Over-current Protection. The hub
             reports over-current as a summation of all
-            ports’ current draw, without a breakdown of
+            ports current draw, without a breakdown of
             individual port over-current status.
             01: Individual Port Over-current Protection. The
             hub reports over-current on a per-port basis.
@@ -197,21 +195,6 @@ typedef enum {
  */
 extern size_t USB_HUB_MAX_DESCRIPTOR_SIZE;
 
-/**
- * @brief create uint8_t array with serialized descriptor
- *
- * @param descriptor
- */
-void * usb_serialize_hub_descriptor(usb_hub_descriptor_t * descriptor);
-
-/**
- * @brief create deserialized desriptor structure out of serialized descriptor
- *
- * The serialized descriptor must be proper usb hub descriptor, otherwise an eerror might occur.
- *
- * @param sdescriptor serialized descriptor
- */
-usb_hub_descriptor_t * usb_deserialize_hub_desriptor(void * sdescriptor);
 
 
 

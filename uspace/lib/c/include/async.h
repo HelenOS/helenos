@@ -32,35 +32,37 @@
 /** @file
  */
 
+#if ((defined(LIBC_IPC_H_)) && (!defined(LIBC_ASYNC_C_)))
+	#error Do not intermix low-level IPC interface and async framework
+#endif
+
 #ifndef LIBC_ASYNC_H_
 #define LIBC_ASYNC_H_
 
-#include <ipc/ipc.h>
+#include <ipc/common.h>
 #include <async_sess.h>
 #include <fibril.h>
 #include <sys/time.h>
 #include <atomic.h>
 #include <bool.h>
+#include <task.h>
 
 typedef ipc_callid_t aid_t;
-typedef void (*async_client_conn_t)(ipc_callid_t callid, ipc_call_t *call);
 
-extern atomic_t async_futex;
+typedef void *(*async_client_data_ctor_t)(void);
+typedef void (*async_client_data_dtor_t)(void *);
+
+typedef void (*async_client_conn_t)(ipc_callid_t, ipc_call_t *);
 
 extern atomic_t threads_in_ipc_wait;
 
-extern int __async_init(void);
-extern ipc_callid_t async_get_call_timeout(ipc_call_t *call, suseconds_t usecs);
+#define async_manager() \
+	fibril_switch(FIBRIL_TO_MANAGER)
 
-static inline ipc_callid_t async_get_call(ipc_call_t *data)
-{
-	return async_get_call_timeout(data, 0);
-}
+#define async_get_call(data) \
+	async_get_call_timeout(data, 0)
 
-static inline void async_manager(void)
-{
-	fibril_switch(FIBRIL_TO_MANAGER);
-}
+extern ipc_callid_t async_get_call_timeout(ipc_call_t *, suseconds_t);
 
 /*
  * User-friendly wrappers for async_send_fast() and async_send_slow(). The
@@ -84,42 +86,61 @@ static inline void async_manager(void)
 	async_send_slow((phoneid), (method), (arg1), (arg2), (arg3), (arg4), \
 	    (arg5), (dataptr))
 
-extern aid_t async_send_fast(int phoneid, sysarg_t method, sysarg_t arg1,
-    sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, ipc_call_t *dataptr);
-extern aid_t async_send_slow(int phoneid, sysarg_t method, sysarg_t arg1,
-    sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t arg5,
-    ipc_call_t *dataptr);
-extern void async_wait_for(aid_t amsgid, sysarg_t *result);
-extern int async_wait_timeout(aid_t amsgid, sysarg_t *retval,
-    suseconds_t timeout);
+extern aid_t async_send_fast(int, sysarg_t, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t, ipc_call_t *);
+extern aid_t async_send_slow(int, sysarg_t, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t, ipc_call_t *);
+extern void async_wait_for(aid_t, sysarg_t *);
+extern int async_wait_timeout(aid_t, sysarg_t *, suseconds_t);
 
-extern fid_t async_new_connection(sysarg_t in_phone_hash, ipc_callid_t callid,
-    ipc_call_t *call, void (*cthread)(ipc_callid_t, ipc_call_t *));
-extern void async_usleep(suseconds_t timeout);
+extern fid_t async_new_connection(sysarg_t, sysarg_t, ipc_callid_t,
+    ipc_call_t *, void (*)(ipc_callid_t, ipc_call_t *));
+extern void async_usleep(suseconds_t);
 extern void async_create_manager(void);
 extern void async_destroy_manager(void);
 
-extern void async_set_client_connection(async_client_conn_t conn);
-extern void async_set_interrupt_received(async_client_conn_t conn);
+extern void async_set_client_data_constructor(async_client_data_ctor_t);
+extern void async_set_client_data_destructor(async_client_data_dtor_t);
 
-/* Wrappers for simple communication */
-#define async_msg_0(phone, method) \
-	ipc_call_async_0((phone), (method), NULL, NULL, true)
-#define async_msg_1(phone, method, arg1) \
-	ipc_call_async_1((phone), (method), (arg1), NULL, NULL, \
-	    true)
-#define async_msg_2(phone, method, arg1, arg2) \
-	ipc_call_async_2((phone), (method), (arg1), (arg2), NULL, NULL, \
-	    true)
-#define async_msg_3(phone, method, arg1, arg2, arg3) \
-	ipc_call_async_3((phone), (method), (arg1), (arg2), (arg3), NULL, NULL, \
-	    true)
-#define async_msg_4(phone, method, arg1, arg2, arg3, arg4) \
-	ipc_call_async_4((phone), (method), (arg1), (arg2), (arg3), (arg4), NULL, \
-	    NULL, true)
-#define async_msg_5(phone, method, arg1, arg2, arg3, arg4, arg5) \
-	ipc_call_async_5((phone), (method), (arg1), (arg2), (arg3), (arg4), \
-	    (arg5), NULL, NULL, true)
+extern void *async_client_data_get(void);
+
+extern void async_set_client_connection(async_client_conn_t);
+extern void async_set_interrupt_received(async_client_conn_t);
+
+/*
+ * Wrappers for simple communication.
+ */
+
+extern void async_msg_0(int, sysarg_t);
+extern void async_msg_1(int, sysarg_t, sysarg_t);
+extern void async_msg_2(int, sysarg_t, sysarg_t, sysarg_t);
+extern void async_msg_3(int, sysarg_t, sysarg_t, sysarg_t, sysarg_t);
+extern void async_msg_4(int, sysarg_t, sysarg_t, sysarg_t, sysarg_t, sysarg_t);
+extern void async_msg_5(int, sysarg_t, sysarg_t, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t);
+
+/*
+ * Wrappers for answer routines.
+ */
+
+extern sysarg_t async_answer_0(ipc_callid_t, sysarg_t);
+extern sysarg_t async_answer_1(ipc_callid_t, sysarg_t, sysarg_t);
+extern sysarg_t async_answer_2(ipc_callid_t, sysarg_t, sysarg_t, sysarg_t);
+extern sysarg_t async_answer_3(ipc_callid_t, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t);
+extern sysarg_t async_answer_4(ipc_callid_t, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t);
+extern sysarg_t async_answer_5(ipc_callid_t, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t, sysarg_t);
+
+/*
+ * Wrappers for forwarding routines.
+ */
+
+extern int async_forward_fast(ipc_callid_t, int, sysarg_t, sysarg_t, sysarg_t,
+    unsigned int);
+extern int async_forward_slow(ipc_callid_t, int, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t, sysarg_t, unsigned int);
 
 /*
  * User-friendly wrappers for async_req_fast() and async_req_slow(). The macros
@@ -127,6 +148,7 @@ extern void async_set_interrupt_received(async_client_conn_t conn);
  * and n is the number of return arguments. The macros decide between the fast
  * and slow verion based on m.
  */
+
 #define async_req_0_0(phoneid, method) \
 	async_req_fast((phoneid), (method), 0, 0, 0, 0, NULL, NULL, NULL, NULL, \
 	    NULL)
@@ -242,12 +264,11 @@ extern void async_set_interrupt_received(async_client_conn_t conn);
 	async_req_slow((phoneid), (method), (arg1), (arg2), (arg3), (arg4), \
 	    (arg5), (rc1), (rc2), (rc3), (rc4), (rc5))
 
-extern sysarg_t async_req_fast(int phoneid, sysarg_t method, sysarg_t arg1,
-    sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t *r1, sysarg_t *r2,
-    sysarg_t *r3, sysarg_t *r4, sysarg_t *r5);
-extern sysarg_t async_req_slow(int phoneid, sysarg_t method, sysarg_t arg1,
-    sysarg_t arg2, sysarg_t arg3, sysarg_t arg4, sysarg_t arg5, sysarg_t *r1,
-    sysarg_t *r2, sysarg_t *r3, sysarg_t *r4, sysarg_t *r5);
+extern sysarg_t async_req_fast(int, sysarg_t, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t *, sysarg_t *, sysarg_t *, sysarg_t *, sysarg_t *);
+extern sysarg_t async_req_slow(int, sysarg_t, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t, sysarg_t *, sysarg_t *, sysarg_t *, sysarg_t *,
+    sysarg_t *);
 
 static inline void async_serialize_start(void)
 {
@@ -259,12 +280,18 @@ static inline void async_serialize_end(void)
 	fibril_dec_sercount();
 }
 
+extern int async_connect_to_me(int, sysarg_t, sysarg_t, sysarg_t,
+    async_client_conn_t);
 extern int async_connect_me_to(int, sysarg_t, sysarg_t, sysarg_t);
 extern int async_connect_me_to_blocking(int, sysarg_t, sysarg_t, sysarg_t);
+extern int async_connect_kbox(task_id_t);
+extern int async_hangup(int);
+extern void async_poke(void);
 
 /*
  * User-friendly wrappers for async_share_in_start().
  */
+
 #define async_share_in_start_0_0(phoneid, dst, size) \
 	async_share_in_start((phoneid), (dst), (size), 0, NULL)
 #define async_share_in_start_0_1(phoneid, dst, size, flags) \
@@ -274,16 +301,18 @@ extern int async_connect_me_to_blocking(int, sysarg_t, sysarg_t, sysarg_t);
 #define async_share_in_start_1_1(phoneid, dst, size, arg, flags) \
 	async_share_in_start((phoneid), (dst), (size), (arg), (flags))
 
-extern int async_share_in_start(int, void *, size_t, sysarg_t, int *);
-extern int async_share_in_receive(ipc_callid_t *, size_t *);
-extern int async_share_in_finalize(ipc_callid_t, void *, int );
-extern int async_share_out_start(int, void *, int);
-extern int async_share_out_receive(ipc_callid_t *, size_t *, int *);
+extern int async_share_in_start(int, void *, size_t, sysarg_t, unsigned int *);
+extern bool async_share_in_receive(ipc_callid_t *, size_t *);
+extern int async_share_in_finalize(ipc_callid_t, void *, unsigned int);
+
+extern int async_share_out_start(int, void *, unsigned int);
+extern bool async_share_out_receive(ipc_callid_t *, size_t *, unsigned int *);
 extern int async_share_out_finalize(ipc_callid_t, void *);
 
 /*
  * User-friendly wrappers for async_data_read_forward_fast().
  */
+
 #define async_data_read_forward_0_0(phoneid, method, answer) \
 	async_data_read_forward_fast((phoneid), (method), 0, 0, 0, 0, NULL)
 #define async_data_read_forward_0_1(phoneid, method, answer) \
@@ -310,8 +339,9 @@ extern int async_share_out_finalize(ipc_callid_t, void *);
 	async_data_read_forward_fast((phoneid), (method), (arg1), (arg2), (arg3), \
 	    (arg4), (answer))
 
+extern aid_t async_data_read(int, void *, size_t, ipc_call_t *);
 extern int async_data_read_start(int, void *, size_t);
-extern int async_data_read_receive(ipc_callid_t *, size_t *);
+extern bool async_data_read_receive(ipc_callid_t *, size_t *);
 extern int async_data_read_finalize(ipc_callid_t, const void *, size_t);
 
 extern int async_data_read_forward_fast(int, sysarg_t, sysarg_t, sysarg_t,
@@ -320,6 +350,7 @@ extern int async_data_read_forward_fast(int, sysarg_t, sysarg_t, sysarg_t,
 /*
  * User-friendly wrappers for async_data_write_forward_fast().
  */
+
 #define async_data_write_forward_0_0(phoneid, method, answer) \
 	async_data_write_forward_fast((phoneid), (method), 0, 0, 0, 0, NULL)
 #define async_data_write_forward_0_1(phoneid, method, answer) \
@@ -349,12 +380,12 @@ extern int async_data_read_forward_fast(int, sysarg_t, sysarg_t, sysarg_t,
 	    (arg4), (answer))
 
 extern int async_data_write_start(int, const void *, size_t);
-extern int async_data_write_receive(ipc_callid_t *, size_t *);
+extern bool async_data_write_receive(ipc_callid_t *, size_t *);
 extern int async_data_write_finalize(ipc_callid_t, void *, size_t);
 
 extern int async_data_write_accept(void **, const bool, const size_t,
     const size_t, const size_t, size_t *);
-extern void async_data_write_void(const int);
+extern void async_data_write_void(sysarg_t);
 
 extern int async_data_write_forward_fast(int, sysarg_t, sysarg_t, sysarg_t,
     sysarg_t, sysarg_t, ipc_call_t *);

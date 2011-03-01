@@ -195,17 +195,6 @@ int usb_hid_parse_report(const usb_hid_report_parser_t *parser,
 	return EOK;
 }
 
-/** Free the HID report parser structure 
- *
- * @param parser Opaque HID report parser structure
- * @return Error code
- */
-int usb_hid_free_report_parser(usb_hid_report_parser_t *parser)
-{
-
-	return EOK;
-}
-
 
 /**
  * Parse input report.
@@ -236,7 +225,7 @@ int usb_hid_boot_keyboard_input_report(const uint8_t *data, size_t size,
 	item.logical_maximum = 255;
 
 	if (size != 8) {
-		return -1;//ERANGE;
+		return ERANGE;
 	}
 
 	uint8_t keys[6];
@@ -539,10 +528,9 @@ void usb_hid_free_report_list(link_t *list)
 	}
 }
 
-/**
- * Frees complete structure of report parser
- * 
- * @param Parser to free
+/** Free the HID report parser structure 
+ *
+ * @param parser Opaque HID report parser structure
  * @return Error code
  */
 void usb_hid_free_report_parser(usb_hid_report_parser_t *parser)
@@ -557,11 +545,6 @@ void usb_hid_free_report_parser(usb_hid_report_parser_t *parser)
 
 	return;
 }
-/**
- * @}
- */
-
-
 /**
  * @}
  */

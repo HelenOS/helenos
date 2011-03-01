@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup usb
+/** @addtogroup drvusbvhc
  * @{
  */
 /** @file
@@ -46,7 +46,7 @@
  * @param arg Custom argument.
  */
 typedef void (*hc_transaction_done_callback_t)(void *buffer, size_t size,
-    usb_transaction_outcome_t outcome, void *arg);
+    int outcome, void *arg);
 
 /** Pending transaction details. */
 typedef struct {
@@ -64,6 +64,8 @@ typedef struct {
 	void * buffer;
 	/** Transaction data length. */
 	size_t len;
+	/** Data length actually transfered. */
+	size_t actual_len;
 	/** Callback after transaction is done. */
 	hc_transaction_done_callback_t callback;
 	/** Argument to the callback. */

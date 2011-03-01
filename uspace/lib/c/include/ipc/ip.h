@@ -38,9 +38,7 @@
 #ifndef LIBC_IP_MESSAGES_H_
 #define LIBC_IP_MESSAGES_H_
 
-#include <ipc/ipc.h>
 #include <ipc/net.h>
-
 #include <net/in.h>
 #include <net/ip_codes.h>
 

@@ -159,21 +159,17 @@ static bool avl_count_walker(avltree_node_t *node, void *arg)
  */
 static size_t get_task_virtmem(as_t *as)
 {
-	size_t result = 0;
-
 	/*
-	 * We are holding some spinlocks here and therefore are not allowed to
-	 * block. Only attempt to lock the address space and address space area
-	 * mutexes conditionally. If it is not possible to lock either object,
-	 * allow the statistics to be inexact by skipping the respective object.
-	 *
-	 * Note that it may be infinitely better to let the address space
-	 * management code compute these statistics as it proceeds instead of
-	 * having them calculated here over and over again here.
+	 * We are holding spinlocks here and therefore are not allowed to
+	 * block. Only attempt to lock the address space and address space
+	 * area mutexes conditionally. If it is not possible to lock either
+	 * object, return inexact statistics by skipping the respective object.
 	 */
-
+	
 	if (SYNCH_FAILED(mutex_trylock(&as->lock)))
-		return result * PAGE_SIZE;
+		return 0;
+	
+	size_t pages = 0;
 	
 	/* Walk the B+ tree and count pages */
 	link_t *cur;
@@ -188,14 +184,60 @@ static size_t get_task_virtmem(as_t *as)
 			
 			if (SYNCH_FAILED(mutex_trylock(&area->lock)))
 				continue;
-			result += area->pages;
+			
+			pages += area->pages;
 			mutex_unlock(&area->lock);
 		}
 	}
 	
 	mutex_unlock(&as->lock);
 	
-	return result * PAGE_SIZE;
+	return (pages << PAGE_WIDTH);
+}
+
+/** Get the resident (used) size of a virtual address space
+ *
+ * @param as Address space.
+ *
+ * @return Size of the resident (used) virtual address space (bytes).
+ *
+ */
+static size_t get_task_resmem(as_t *as)
+{
+	/*
+	 * We are holding spinlocks here and therefore are not allowed to
+	 * block. Only attempt to lock the address space and address space
+	 * area mutexes conditionally. If it is not possible to lock either
+	 * object, return inexact statistics by skipping the respective object.
+	 */
+	
+	if (SYNCH_FAILED(mutex_trylock(&as->lock)))
+		return 0;
+	
+	size_t pages = 0;
+	
+	/* Walk the B+ tree and count pages */
+	link_t *cur;
+	for (cur = as->as_area_btree.leaf_head.next;
+	    cur != &as->as_area_btree.leaf_head; cur = cur->next) {
+		btree_node_t *node =
+		    list_get_instance(cur, btree_node_t, leaf_link);
+		
+		unsigned int i;
+		for (i = 0; i < node->keys; i++) {
+			as_area_t *area = node->value[i];
+			
+			if (SYNCH_FAILED(mutex_trylock(&area->lock)))
+				continue;
+			
+			pages += area->resident;
+			mutex_unlock(&area->lock);
+		}
+	}
+	
+	mutex_unlock(&as->lock);
+	
+	return (pages << PAGE_WIDTH);
 }
 
 /* Produce task statistics
@@ -214,6 +256,7 @@ static void produce_stats_task(task_t *task, stats_task_t *stats_task)
 	stats_task->task_id = task->taskid;
 	str_cpy(stats_task->name, TASK_NAME_BUFLEN, task->name);
 	stats_task->virtmem = get_task_virtmem(task->as);
+	stats_task->resmem = get_task_resmem(task->as);
 	stats_task->threads = atomic_get(&task->refcount);
 	task_get_accounting(task, &(stats_task->ucycles),
 	    &(stats_task->kcycles));

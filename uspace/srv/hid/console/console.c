@@ -33,12 +33,12 @@
  */
 
 #include <libc.h>
-#include <ipc/ipc.h>
 #include <ipc/kbd.h>
 #include <io/keycode.h>
 #include <ipc/mouse.h>
 #include <ipc/fb.h>
 #include <ipc/services.h>
+#include <ipc/ns.h>
 #include <errno.h>
 #include <ipc/console.h>
 #include <unistd.h>
@@ -115,7 +115,7 @@ static void curs_visibility(bool visible)
 
 static void curs_hide_sync(void)
 {
-	ipc_call_sync_1_0(fb_info.phone, FB_CURSOR_VISIBILITY, false); 
+	async_req_1_0(fb_info.phone, FB_CURSOR_VISIBILITY, false); 
 }
 
 static void curs_goto(sysarg_t x, sysarg_t y)
@@ -130,22 +130,22 @@ static void screen_clear(void)
 
 static void screen_yield(void)
 {
-	ipc_call_sync_0_0(fb_info.phone, FB_SCREEN_YIELD);
+	async_req_0_0(fb_info.phone, FB_SCREEN_YIELD);
 }
 
 static void screen_reclaim(void)
 {
-	ipc_call_sync_0_0(fb_info.phone, FB_SCREEN_RECLAIM);
+	async_req_0_0(fb_info.phone, FB_SCREEN_RECLAIM);
 }
 
 static void kbd_yield(void)
 {
-	ipc_call_sync_0_0(kbd_phone, KBD_YIELD);
+	async_req_0_0(kbd_phone, KBD_YIELD);
 }
 
 static void kbd_reclaim(void)
 {
-	ipc_call_sync_0_0(kbd_phone, KBD_RECLAIM);
+	async_req_0_0(kbd_phone, KBD_RECLAIM);
 }
 
 static void set_style(uint8_t style)
@@ -437,7 +437,7 @@ static void keyboard_events(ipc_callid_t iid, ipc_call_t *icall)
 		default:
 			retval = ENOENT;
 		}
-		ipc_answer_0(callid, retval);
+		async_answer_0(callid, retval);
 	}
 }
 
@@ -473,7 +473,7 @@ static void mouse_events(ipc_callid_t iid, ipc_call_t *icall)
 			retval = ENOENT;
 		}
 
-		ipc_answer_0(callid, retval);
+		async_answer_0(callid, retval);
 	}
 }
 
@@ -484,7 +484,7 @@ static void cons_write(console_t *cons, ipc_callid_t rid, ipc_call_t *request)
 	int rc = async_data_write_accept(&buf, false, 0, 0, 0, &size);
 	
 	if (rc != EOK) {
-		ipc_answer_0(rid, rc);
+		async_answer_0(rid, rc);
 		return;
 	}
 	
@@ -499,7 +499,7 @@ static void cons_write(console_t *cons, ipc_callid_t rid, ipc_call_t *request)
 	async_serialize_end();
 	
 	gcons_notify_char(cons->index);
-	ipc_answer_1(rid, EOK, size);
+	async_answer_1(rid, EOK, size);
 	
 	free(buf);
 }
@@ -509,15 +509,15 @@ static void cons_read(console_t *cons, ipc_callid_t rid, ipc_call_t *request)
 	ipc_callid_t callid;
 	size_t size;
 	if (!async_data_read_receive(&callid, &size)) {
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
+		async_answer_0(callid, EINVAL);
+		async_answer_0(rid, EINVAL);
 		return;
 	}
 	
 	char *buf = (char *) malloc(size);
 	if (buf == NULL) {
-		ipc_answer_0(callid, ENOMEM);
-		ipc_answer_0(rid, ENOMEM);
+		async_answer_0(callid, ENOMEM);
+		async_answer_0(rid, ENOMEM);
 		return;
 	}
 	
@@ -535,7 +535,7 @@ recheck:
 	
 	if (pos == size) {
 		(void) async_data_read_finalize(callid, buf, size);
-		ipc_answer_1(rid, EOK, size);
+		async_answer_1(rid, EOK, size);
 		free(buf);
 	} else {
 		fibril_condvar_wait(&input_cv, &input_mutex);
@@ -553,7 +553,7 @@ static void cons_get_event(console_t *cons, ipc_callid_t rid, ipc_call_t *reques
 	
 recheck:
 	if (keybuffer_pop(&cons->keybuffer, &ev)) {
-		ipc_answer_4(rid, EOK, ev.type, ev.key, ev.mods, ev.c);
+		async_answer_4(rid, EOK, ev.type, ev.key, ev.mods, ev.c);
 	} else {
 		fibril_condvar_wait(&input_cv, &input_mutex);
 		goto recheck;
@@ -579,7 +579,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	}
 	
 	if (cons == NULL) {
-		ipc_answer_0(iid, ENOENT);
+		async_answer_0(iid, ENOENT);
 		return;
 	}
 	
@@ -598,7 +598,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	cons->refcount++;
 	
 	/* Accept the connection */
-	ipc_answer_0(iid, EOK);
+	async_answer_0(iid, EOK);
 	
 	while (true) {
 		async_serialize_end();
@@ -658,7 +658,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case CONSOLE_GET_COLOR_CAP:
 			rc = ccap_fb_to_con(fb_info.color_cap, &arg1);
 			if (rc != EOK) {
-				ipc_answer_0(callid, rc);
+				async_answer_0(callid, rc);
 				continue;
 			}
 			break;
@@ -702,7 +702,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			change_console(kernel_console);
 			break;
 		}
-		ipc_answer_3(callid, EOK, arg1, arg2, arg3);
+		async_answer_3(callid, EOK, arg1, arg2, arg3);
 	}
 }
 
@@ -726,14 +726,15 @@ static int connect_keyboard(char *path)
 	
 	/* NB: The callback connection is slotted for removal */
 	sysarg_t phonehash;
+	sysarg_t taskhash;
 	int rc = async_req_3_5(phone, IPC_M_CONNECT_TO_ME, SERVICE_CONSOLE,
-	    0, 0, NULL, NULL, NULL, NULL, &phonehash);
+	    0, 0, NULL, NULL, NULL, &taskhash, &phonehash);
 	if (rc != EOK) {
 		printf(NAME ": Failed to create callback from input device\n");
 		return rc;
 	}
 	
-	async_new_connection(phonehash, 0, NULL, keyboard_events);
+	async_new_connection(taskhash, phonehash, 0, NULL, keyboard_events);
 
 	printf(NAME ": we got a hit (new keyboard \"%s\").\n", path);
 
@@ -760,20 +761,20 @@ static int connect_keyboard_bypass(char *devmap_path)
 	    devmap_path, str_size(devmap_path));
 	if (retval != EOK) {
 		async_wait_for(req, NULL);
-		ipc_hangup(devmap_phone);
+		async_hangup(devmap_phone);
 		return retval;
 	}
 
 	async_wait_for(req, &retval);
 
 	if (retval != EOK) {
-		ipc_hangup(devmap_phone);
+		async_hangup(devmap_phone);
 		return retval;
 	}
 
 	devmap_handle_t handle = (devmap_handle_t) IPC_GET_ARG1(answer);
 
-	ipc_hangup(devmap_phone);
+	async_hangup(devmap_phone);
 
 	int phone = async_connect_me_to(PHONE_NS,
 	    SERVICE_DEVMAP, DEVMAP_CONNECT_TO_DEVICE, handle);
@@ -783,14 +784,15 @@ static int connect_keyboard_bypass(char *devmap_path)
 
 	/* NB: The callback connection is slotted for removal */
 	sysarg_t phonehash;
+	sysarg_t taskhash;
 	int rc = async_req_3_5(phone, IPC_M_CONNECT_TO_ME, SERVICE_CONSOLE,
-	    0, 0, NULL, NULL, NULL, NULL, &phonehash);
+	    0, 0, NULL, NULL, NULL, &taskhash, &phonehash);
 	if (rc != EOK) {
 		printf(NAME ": Failed to create callback from input device\n");
 		return rc;
 	}
 
-	async_new_connection(phonehash, 0, NULL, keyboard_events);
+	async_new_connection(taskhash, phonehash, 0, NULL, keyboard_events);
 
 	printf(NAME ": we got a hit (new keyboard \"/dev/%s\").\n",
 	    devmap_path);
@@ -861,18 +863,17 @@ static bool console_init(char *input)
 		goto skip_mouse;
 	}
 	
-	sysarg_t phonehash;
-	if (ipc_connect_to_me(mouse_phone, SERVICE_CONSOLE, 0, 0, &phonehash) != 0) {
+	if (async_connect_to_me(mouse_phone, SERVICE_CONSOLE, 0, 0, mouse_events)
+	    != 0) {
 		printf(NAME ": Failed to create callback from mouse device\n");
 		mouse_phone = -1;
 		goto skip_mouse;
 	}
 	
-	async_new_connection(phonehash, 0, NULL, mouse_events);
 skip_mouse:
 	
 	/* Connect to framebuffer driver */
-	fb_info.phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_VIDEO, 0, 0);
+	fb_info.phone = service_connect_blocking(SERVICE_VIDEO, 0, 0);
 	if (fb_info.phone < 0) {
 		printf(NAME ": Failed to connect to video service\n");
 		return -1;
@@ -948,10 +949,9 @@ skip_mouse:
 	async_serialize_end();
 	
 	/* Receive kernel notifications */
+	async_set_interrupt_received(interrupt_received);
 	if (event_subscribe(EVENT_KCONSOLE, 0) != EOK)
 		printf(NAME ": Error registering kconsole notifications\n");
-	
-	async_set_interrupt_received(interrupt_received);
 	
 	/* Start fibril for checking on hot-plugged keyboards. */
 	check_new_keyboards_in_background();

@@ -44,7 +44,6 @@
 #include <console/kconsole.h>
 #include <console/console.h>
 #include <console/cmd.h>
-#include <ipc/event.h>
 #include <synch/mutex.h>
 #include <time/delay.h>
 #include <macros.h>
@@ -187,25 +186,7 @@ NO_TRACE void fault_if_from_uspace(istate_t *istate, const char *fmt, ...)
 	va_end(args);
 	printf("\n");
 	
-	/*
-	 * Userspace can subscribe for FAULT events to take action
-	 * whenever a thread faults. (E.g. take a dump, run a debugger).
-	 * The notification is always available, but unless Udebug is enabled,
-	 * that's all you get.
-	 */
-	if (event_is_subscribed(EVENT_FAULT)) {
-		/* Notify the subscriber that a fault occurred. */
-		event_notify_3(EVENT_FAULT, LOWER32(TASK->taskid),
-		    UPPER32(TASK->taskid), (sysarg_t) THREAD);
-		
-#ifdef CONFIG_UDEBUG
-		/* Wait for a debugging session. */
-		udebug_thread_fault();
-#endif
-	}
-	
-	task_kill(TASK->taskid);
-	thread_exit();
+	task_kill_self(true);
 }
 
 /** Get istate structure of a thread.

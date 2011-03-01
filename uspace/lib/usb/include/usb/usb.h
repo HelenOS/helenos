@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusb usb
+/** @addtogroup libusb
  * @{
  */
 /** @file
@@ -36,7 +36,20 @@
 #define LIBUSB_USB_H_
 
 #include <sys/types.h>
-#include <ipc/ipc.h>
+#include <byteorder.h>
+
+/** Convert 16bit value from native (host) endianness to USB endianness. */
+#define uint16_host2usb(n) host2uint16_t_le((n))
+
+/** Convert 32bit value from native (host) endianness to USB endianness. */
+#define uint32_host2usb(n) host2uint32_t_le((n))
+
+/** Convert 16bit value from USB endianness into native (host) one. */
+#define uint16_usb2host(n) uint16_t_le2host((n))
+
+/** Convert 32bit value from USB endianness into native (host) one. */
+#define uint32_usb2host(n) uint32_t_le2host((n))
+
 
 /** USB transfer type. */
 typedef enum {
@@ -51,8 +64,19 @@ const char * usb_str_transfer_type(usb_transfer_type_t t);
 /** USB data transfer direction. */
 typedef enum {
 	USB_DIRECTION_IN,
-	USB_DIRECTION_OUT
+	USB_DIRECTION_OUT,
+	USB_DIRECTION_BOTH
 } usb_direction_t;
+
+/** USB speeds. */
+typedef enum {
+	/** USB 1.1 low speed (1.5Mbits/s). */
+	USB_SPEED_LOW,
+	/** USB 1.1 full speed (12Mbits/s). */
+	USB_SPEED_FULL,
+	/** USB 2.0 high speed (480Mbits/s). */
+	USB_SPEED_HIGH
+} usb_speed_t;
 
 /** USB request type target. */
 typedef enum {
@@ -67,15 +91,6 @@ typedef enum {
 	USB_REQUEST_RECIPIENT_INTERFACE = 1,
 	USB_REQUEST_RECIPIENT_ENDPOINT = 2
 } usb_request_recipient_t;
-
-/** USB transaction outcome. */
-typedef enum {
-	USB_OUTCOME_OK,
-	USB_OUTCOME_CRCERROR,
-	USB_OUTCOME_BABBLE
-} usb_transaction_outcome_t;
-
-const char * usb_str_transaction_outcome(usb_transaction_outcome_t o);
 
 /** USB address type.
  * Negative values could be used to indicate error.

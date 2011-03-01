@@ -26,12 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup usb
+/** @addtogroup usbinfo
  * @{
  */
 /**
  * @file
- * @brief USB querying.
+ * USB querying.
  */
 
 #include <stdio.h>
@@ -42,7 +42,6 @@
 #include <getopt.h>
 #include <devman.h>
 #include <devmap.h>
-#include <usb/usbdrv.h>
 #include "usbinfo.h"
 
 enum {
@@ -76,80 +75,45 @@ static void print_usage(char *app_name)
 #undef INDENT
 }
 
-static int set_new_host_controller(int *phone, const char *path)
+static int get_host_controller_handle(const char *path,
+    devman_handle_t *hc_handle)
 {
 	int rc;
-	int tmp_phone;
 
-	if (path[0] != '/') {
-		int hc_class_index = (int) strtol(path, NULL, 10);
-		char *dev_path;
-		rc = asprintf(&dev_path, "class/usbhc\\%d", hc_class_index);
-		if (rc < 0) {
-			internal_error(rc);
-			return rc;
-		}
-		devmap_handle_t handle;
-		rc = devmap_device_get_handle(dev_path, &handle, 0);
-		if (rc < 0) {
-			fprintf(stderr,
-			    NAME ": failed getting handle of `devman://%s'.\n",
-			    dev_path);
-			free(dev_path);
-			return rc;
-		}
-		tmp_phone = devmap_device_connect(handle, 0);
-		if (tmp_phone < 0) {
-			fprintf(stderr,
-			    NAME ": could not connect to `%s'.\n",
-			    dev_path);
-			free(dev_path);
-			return tmp_phone;
-		}
-		free(dev_path);
-	} else {
-		devman_handle_t handle;
-		rc = devman_device_get_handle(path, &handle, 0);
-		if (rc != EOK) {
-			fprintf(stderr,
-			    NAME ": failed getting handle of `devmap::/%s'.\n",
-			    path);
-			return rc;
-		}
-		tmp_phone = devman_device_connect(handle, 0);
-		if (tmp_phone < 0) {
-			fprintf(stderr,
-			    NAME ": could not connect to `%s'.\n",
-			    path);
-			return tmp_phone;
-		}
+	if (str_cmp(path, "uhci") == 0) {
+		path = "/hw/pci0/00:01.2/uhci";
 	}
 
-	*phone = tmp_phone;
+	devman_handle_t handle;
+	rc = devman_device_get_handle(path, &handle, 0);
+	if (rc != EOK) {
+		fprintf(stderr,
+		    NAME ": failed getting handle of `devman::/%s'.\n",
+		    path);
+		return rc;
+	}
+	*hc_handle = handle;
 
 	return EOK;
 }
 
-static int connect_with_address(int hc_phone, const char *str_address)
+static int get_device_address(const char *str_address, usb_address_t *address)
 {
-	usb_address_t address = (usb_address_t) strtol(str_address, NULL, 0);
-	if ((address < 0) || (address >= USB11_ADDRESS_MAX)) {
+	usb_address_t addr = (usb_address_t) strtol(str_address, NULL, 0);
+	if ((addr < 0) || (addr >= USB11_ADDRESS_MAX)) {
 		fprintf(stderr, NAME ": USB address out of range.\n");
 		return ERANGE;
 	}
 
-	if (hc_phone < 0) {
-		fprintf(stderr, NAME ": no active host controller.\n");
-		return ENOENT;
-	}
-
-	return dump_device(hc_phone, address);
+	*address = addr;
+	return EOK;
 }
 
 
 int main(int argc, char *argv[])
 {
-	int hc_phone = -1;
+	devman_handle_t hc_handle = (devman_handle_t) -1;
+	usb_address_t device_address = (usb_address_t) -1;
 
 	if (argc <= 1) {
 		print_usage(argv[0]);
@@ -174,7 +138,8 @@ int main(int argc, char *argv[])
 
 			case 'a':
 			case ACTION_DEVICE_ADDRESS: {
-				int rc = connect_with_address(hc_phone, optarg);
+				int rc = get_device_address(optarg,
+				    &device_address);
 				if (rc != EOK) {
 					return rc;
 				}
@@ -183,8 +148,8 @@ int main(int argc, char *argv[])
 
 			case 't':
 			case ACTION_HOST_CONTROLLER: {
-				int rc = set_new_host_controller(&hc_phone,
-				    optarg);
+				int rc = get_host_controller_handle(optarg,
+				   &hc_handle);
 				if (rc != EOK) {
 					return rc;
 				}
@@ -200,6 +165,14 @@ int main(int argc, char *argv[])
 		}
 
 	} while (i != -1);
+
+	if ((hc_handle == (devman_handle_t) -1)
+	    || (device_address == (usb_address_t) -1)) {
+		fprintf(stderr, NAME ": no target specified.\n");
+		return EINVAL;
+	}
+
+	dump_device(hc_handle, device_address);
 
 	return 0;
 }

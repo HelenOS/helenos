@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup usb
+/** @addtogroup drvusbvhc
  * @{
  */
 /** @file
@@ -44,9 +44,9 @@
 #define DEVMAP_PATH_HC NAMESPACE "/" NAME
 #define DEVMAP_PATH_DEV NAMESPACE "/" NAME_DEV
 
-#define dprintf(level, format, ...) \
-	usb_dprintf(NAME, (level), format "\n", ##__VA_ARGS__)
-void dprintf_inval_call(int, ipc_call_t, sysarg_t);
+//#define dprintf(level, format, ...)
+//	usb_dprintf(NAME, (level), format "\n", ##__VA_ARGS__)
+//void dprintf_inval_call(int, ipc_call_t, sysarg_t);
 
 #endif
 /**

@@ -37,7 +37,6 @@
 #ifndef LIBC_SOCKET_MESSAGES_H_
 #define LIBC_SOCKET_MESSAGES_H_
 
-#include <ipc/ipc.h>
 #include <ipc/net.h>
 
 /** Socket client messages. */

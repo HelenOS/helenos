@@ -66,6 +66,8 @@ _link.ld
 ./uspace/app/usb/usb
 ./uspace/app/usbinfo/usbinfo
 ./uspace/app/virtusbkbd/vuk
+./uspace/app/virtusbhub/vuh
+./uspace/app/virtusbhub/vhc_hub/*
 ./uspace/app/websrv/websrv
 ./uspace/dist/app/*
 ./uspace/dist/cfg/net/general
@@ -81,9 +83,11 @@ _link.ld
 ./uspace/drv/rootvirt/rootvirt
 ./uspace/drv/test1/test1
 ./uspace/drv/test2/test2
-./uspace/drv/uhci/uhci
+./uspace/drv/uhci-hcd/uhci-hcd
+./uspace/drv/uhci-rhd/uhci-rhd
 ./uspace/drv/usbhub/usbhub
-./uspace/drv/usbkbd/usbkbd
+./uspace/drv/usbhid/usbhid
+./uspace/drv/usbmid/usbmid
 ./uspace/drv/vhc/vhc
 ./uspace/srv/bd/ata_bd/ata_bd
 ./uspace/srv/bd/file_bd/file_bd
@@ -108,7 +112,8 @@ _link.ld
 ./uspace/srv/hw/char/s3c24xx_uart/s3c24ser
 ./uspace/srv/hw/irc/apic/apic
 ./uspace/srv/hw/irc/i8259/i8259
-./uspace/srv/hw/netif/dp8390/dp8390
+./uspace/srv/hw/netif/ne2000/dp8390
+./uspace/srv/hw/netif/ne2000/ne2000
 ./uspace/srv/loader/loader
 ./uspace/srv/net/cfg/lo
 ./uspace/srv/net/cfg/ne2k

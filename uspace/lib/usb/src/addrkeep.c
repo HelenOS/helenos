@@ -26,13 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusb usb
+/** @addtogroup libusb
  * @{
  */
 /** @file
  * @brief Address keeping.
  */
-#include <usb/hcd.h>
+#include <usb/addrkeep.h>
 #include <errno.h>
 #include <assert.h>
 
@@ -148,6 +148,7 @@ void usb_address_keeping_reserve_default(usb_address_keeping_t *addresses)
 		fibril_condvar_wait(&addresses->default_condvar,
 			&addresses->default_condvar_guard);
 	}
+	addresses->default_available = false;
 	fibril_mutex_unlock(&addresses->default_condvar_guard);
 }
 

@@ -35,7 +35,7 @@
 #ifndef LIBC_IRC_H_
 #define LIBC_IRC_H_
 
-#include <ipc/ipc.h>
+#include <ipc/common.h>
 
 typedef enum {
 	IRC_ENABLE_INTERRUPT = IPC_FIRST_USER_METHOD,

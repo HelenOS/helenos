@@ -26,11 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup usb
+/** @addtogroup usbinfo
  * @{
  */
 /** @file
- * @brief Common header for usbinfo application.
+ * Common header for usbinfo application.
  */
 #ifndef USBINFO_USBINFO_H_
 #define USBINFO_USBINFO_H_
@@ -43,12 +43,11 @@
 
 #define NAME "usbinfo"
 
-void dump_buffer(const char *, const uint8_t *, size_t);
+void dump_buffer(const char *, size_t, const uint8_t *, size_t);
+const char *get_indent(size_t);
 void dump_match_ids(match_id_list_t *matches);
-void dump_standard_device_descriptor(usb_standard_device_descriptor_t *);
-void dump_standard_configuration_descriptor(int, 
-    usb_standard_configuration_descriptor_t *);
-int dump_device(int, usb_address_t);
+void dump_usb_descriptor(uint8_t *, size_t);
+int dump_device(devman_handle_t, usb_address_t);
 void dump_descriptor_tree(uint8_t *, size_t);
 
 static inline void internal_error(int err)

@@ -38,7 +38,6 @@
 #ifndef LIBC_NET_NET_MESSAGES_H_
 #define LIBC_NET_NET_MESSAGES_H_
 
-#include <ipc/ipc.h>
 #include <ipc/net.h>
 
 /** Networking subsystem central module messages. */

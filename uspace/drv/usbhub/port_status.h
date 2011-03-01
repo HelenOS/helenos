@@ -25,13 +25,16 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+/** @addtogroup drvusbhub
+ * @{
+ */
 
 #ifndef PORT_STATUS_H
 #define	PORT_STATUS_H
 
 #include <bool.h>
 #include <sys/types.h>
-#include <usb/devreq.h>
+#include <usb/request.h>
 #include "usbhub_private.h"
 
 /**
@@ -173,6 +176,21 @@ usb_device_request_setup_packet_t * request, uint16_t port
 	request->length = 0;
 }
 
+/**
+ * set the device request to be a port disable request
+ * @param request
+ * @param port
+ */
+static inline void usb_hub_unset_power_port_request(
+usb_device_request_setup_packet_t * request, uint16_t port
+){
+	request->index = port;
+	request->request_type = USB_HUB_REQ_TYPE_SET_PORT_FEATURE;
+	request->request = USB_HUB_REQUEST_CLEAR_FEATURE;
+	request->value = USB_HUB_FEATURE_PORT_POWER;
+	request->length = 0;
+}
+
 /** get i`th bit of port status */
 static inline bool usb_port_get_bit(usb_port_status_t * status, int idx)
 {
@@ -301,3 +319,6 @@ static inline void usb_port_set_reset_completed(usb_port_status_t * status,bool 
 
 #endif	/* PORT_STATUS_H */
 
+/**
+ * @}
+ */

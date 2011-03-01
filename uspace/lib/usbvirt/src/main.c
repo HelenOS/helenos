@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusbvirt usb
+/** @addtogroup libusbvirt
  * @{
  */
 /** @file
@@ -158,7 +158,7 @@ static virtual_device_t *add_device(usbvirt_device_t *dev)
 static void destroy_device(virtual_device_t *dev)
 {
 	if (dev->vhcd_phone > 0) {
-		ipc_hangup(dev->vhcd_phone);
+		async_hangup(dev->vhcd_phone);
 	}
 	
 	list_remove(&dev->link);
@@ -172,7 +172,7 @@ static void callback_connection(ipc_callid_t iid, ipc_call_t *icall)
 	// FIXME - determine which device just called back
 	virtual_device_t *dev = find_device_by_id(0);
 	if (dev == NULL) {
-		ipc_answer_0(iid, EINVAL);
+		async_answer_0(iid, EINVAL);
 		printf("Ooops\n");
 		return;
 	}
@@ -182,7 +182,7 @@ static void callback_connection(ipc_callid_t iid, ipc_call_t *icall)
 
 /** Create necessary phones for communication with virtual HCD.
  * This function wraps following calls:
- * -# open <code>/dev/devices/\\virt\\usbhc for reading
+ * -# open <code>/dev/devices/\\virt\\usbhc</code> for reading
  * -# access phone of file opened in previous step
  * -# create callback through just opened phone
  * -# create handler for calling on data from host to function
@@ -202,7 +202,7 @@ int usbvirt_connect(usbvirt_device_t *dev)
 		return EEXISTS;
 	}
 	
-	const char *vhc_path = "/virt/usbhc";
+	const char *vhc_path = "/virt/usbhc/hc";
 	int rc;
 	devman_handle_t handle;
 
@@ -219,8 +219,7 @@ int usbvirt_connect(usbvirt_device_t *dev)
 		return hcd_phone;
 	}
 	
-	sysarg_t phonehash;
-	rc = ipc_connect_to_me(hcd_phone, 0, 0, 0, &phonehash);
+	rc = async_connect_to_me(hcd_phone, 0, 0, 0, callback_connection);
 	if (rc != EOK) {
 		printf("ipc_connect_to_me() failed\n");
 		return rc;
@@ -231,8 +230,6 @@ int usbvirt_connect(usbvirt_device_t *dev)
 	virtual_device = add_device(dev);
 	virtual_device->vhcd_phone = hcd_phone;
 	virtual_device->id = 0;
-	
-	async_new_connection(phonehash, 0, NULL, callback_connection);
 	
 	return EOK;
 }

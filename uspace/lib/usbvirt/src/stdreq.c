@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusbvirt usb
+/** @addtogroup libusbvirt
  * @{
  */
 /** @file
@@ -35,7 +35,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <mem.h>
-#include <usb/devreq.h>
+#include <usb/request.h>
 
 #include "private.h"
 

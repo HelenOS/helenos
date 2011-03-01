@@ -38,10 +38,10 @@
 #include <stdio.h>
 
 #define errx(status, fmt, ...) \
-	{ \
+	do { \
 		printf((fmt), ##__VA_ARGS__); \
-		_exit(status); \
-	}
+		exit(status); \
+	} while (0)
 
 #endif
 

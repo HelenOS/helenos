@@ -56,10 +56,10 @@ static int compute_match_score(match_id_t *driver, match_id_t *device)
 	}
 }
 
-int get_match_score(driver_t *drv, node_t *dev)
+int get_match_score(driver_t *drv, dev_node_t *dev)
 {
 	link_t *drv_head = &drv->match_ids.ids;
-	link_t *dev_head = &dev->match_ids.ids;
+	link_t *dev_head = &dev->pfun->match_ids.ids;
 	
 	if (list_empty(drv_head) || list_empty(dev_head))
 		return 0;

@@ -341,20 +341,34 @@ sysarg_t sys_task_get_id(void)
  */
 sysarg_t sys_task_set_name(const char *uspace_name, size_t name_len)
 {
-	int rc;
 	char namebuf[TASK_NAME_BUFLEN];
 	
 	/* Cap length of name and copy it from userspace. */
-	
 	if (name_len > TASK_NAME_BUFLEN - 1)
 		name_len = TASK_NAME_BUFLEN - 1;
 	
-	rc = copy_from_uspace(namebuf, uspace_name, name_len);
+	int rc = copy_from_uspace(namebuf, uspace_name, name_len);
 	if (rc != 0)
 		return (sysarg_t) rc;
 	
 	namebuf[name_len] = '\0';
+	
+	/*
+	 * As the task name is referenced also from the
+	 * threads, lock the threads' lock for the course
+	 * of the update.
+	 */
+	
+	irq_spinlock_lock(&tasks_lock, true);
+	irq_spinlock_lock(&TASK->lock, false);
+	irq_spinlock_lock(&threads_lock, false);
+	
+	/* Set task name */
 	str_cpy(TASK->name, TASK_NAME_BUFLEN, namebuf);
+	
+	irq_spinlock_unlock(&threads_lock, false);
+	irq_spinlock_unlock(&TASK->lock, false);
+	irq_spinlock_unlock(&tasks_lock, true);
 	
 	return EOK;
 }
@@ -369,12 +383,10 @@ sysarg_t sys_task_set_name(const char *uspace_name, size_t name_len)
 sysarg_t sys_task_kill(task_id_t *uspace_taskid)
 {
 	task_id_t taskid;
-	int rc;
-
-	rc = copy_from_uspace(&taskid, uspace_taskid, sizeof(taskid));
+	int rc = copy_from_uspace(&taskid, uspace_taskid, sizeof(taskid));
 	if (rc != 0)
 		return (sysarg_t) rc;
-
+	
 	return (sysarg_t) task_kill(taskid);
 }
 
@@ -448,12 +460,14 @@ void task_get_accounting(task_t *task, uint64_t *ucycles, uint64_t *kcycles)
 
 static void task_kill_internal(task_t *task)
 {
-	link_t *cur;
+	irq_spinlock_lock(&task->lock, false);
+	irq_spinlock_lock(&threads_lock, false);
 	
 	/*
 	 * Interrupt all threads.
 	 */
-	irq_spinlock_lock(&task->lock, false);
+	
+	link_t *cur;
 	for (cur = task->th_head.next; cur != &task->th_head; cur = cur->next) {
 		thread_t *thread = list_get_instance(cur, thread_t, th_link);
 		bool sleeping = false;
@@ -470,6 +484,7 @@ static void task_kill_internal(task_t *task)
 			waitq_interrupt_sleep(thread);
 	}
 	
+	irq_spinlock_unlock(&threads_lock, false);
 	irq_spinlock_unlock(&task->lock, false);
 }
 
@@ -499,6 +514,54 @@ int task_kill(task_id_t id)
 	task_kill_internal(task);
 	irq_spinlock_unlock(&tasks_lock, true);
 	
+	return EOK;
+}
+
+/** Kill the currently running task.
+ *
+ * @param notify Send out fault notifications.
+ *
+ * @return Zero on success or an error code from errno.h.
+ *
+ */
+void task_kill_self(bool notify)
+{
+	/*
+	 * User space can subscribe for FAULT events to take action
+	 * whenever a task faults (to take a dump, run a debugger, etc.).
+	 * The notification is always available, but unless udebug is enabled,
+	 * that's all you get.
+	*/
+	if (notify) {
+		if (event_is_subscribed(EVENT_FAULT)) {
+			/* Notify the subscriber that a fault occurred. */
+			event_notify_3(EVENT_FAULT, LOWER32(TASK->taskid),
+			    UPPER32(TASK->taskid), (sysarg_t) THREAD);
+		
+#ifdef CONFIG_UDEBUG
+			/* Wait for a debugging session. */
+			udebug_thread_fault();
+#endif
+		}
+	}
+	
+	irq_spinlock_lock(&tasks_lock, true);
+	task_kill_internal(TASK);
+	irq_spinlock_unlock(&tasks_lock, true);
+	
+	thread_exit();
+}
+
+/** Process syscall to terminate the current task.
+ *
+ * @param notify Send out fault notifications.
+ *
+ */
+sysarg_t sys_task_exit(sysarg_t notify)
+{
+	task_kill_self(notify);
+	
+	/* Unreachable */
 	return EOK;
 }
 

@@ -34,7 +34,6 @@
 #define VFS_VFS_H_
 
 #include <async.h>
-#include <ipc/ipc.h>
 #include <adt/list.h>
 #include <fibril_synch.h>
 #include <sys/types.h>
@@ -187,15 +186,14 @@ extern unsigned vfs_nodes_refcount_sum_get(fs_handle_t, devmap_handle_t);
 
 #define MAX_OPEN_FILES	128
 
-extern bool vfs_files_init(void);
-extern void vfs_files_done(void);
+extern void *vfs_client_data_create(void);
+extern void vfs_client_data_destroy(void *);
+
 extern vfs_file_t *vfs_file_get(int);
-extern int vfs_fd_assign(vfs_file_t *file, int fd);
+extern void vfs_file_put(vfs_file_t *);
+extern int vfs_fd_assign(vfs_file_t *, int);
 extern int vfs_fd_alloc(bool desc);
 extern int vfs_fd_free(int);
-
-extern void vfs_file_addref(vfs_file_t *);
-extern void vfs_file_delref(vfs_file_t *);
 
 extern void vfs_node_addref(vfs_node_t *);
 extern void vfs_node_delref(vfs_node_t *);

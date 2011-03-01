@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusb usb
+/** @addtogroup libusb
  * @{
  */
 /** @file
@@ -35,7 +35,6 @@
 #ifndef LIBUSB_DESCRIPTOR_H_
 #define LIBUSB_DESCRIPTOR_H_
 
-#include <ipc/ipc.h>
 #include <async.h>
 
 /** Descriptor type. */

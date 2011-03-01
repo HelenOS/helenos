@@ -32,51 +32,46 @@
 
 /** @file
  * ICMP module messages.
- * @see icmp_interface.h
+ * @see icmp_remote.h
  */
 
 #ifndef LIBC_ICMP_MESSAGES_
 #define LIBC_ICMP_MESSAGES_
 
-#include <ipc/ipc.h>
 #include <ipc/net.h>
 #include <sys/types.h>
 #include <sys/time.h>
-
 #include <net/icmp_codes.h>
 
 /** ICMP module messages. */
 typedef enum {
-	/** Sends echo request. @see icmp_echo() */
+	/** Send echo request. @see icmp_echo() */
 	NET_ICMP_ECHO = NET_ICMP_FIRST,
 	
 	/**
-	 * Sends destination unreachable error message.
+	 * Send destination unreachable error message.
 	 * @see icmp_destination_unreachable_msg()
 	 */
 	NET_ICMP_DEST_UNREACH,
 	
 	/**
-	 * Sends source quench error message.
+	 * Send source quench error message.
 	 * @see icmp_source_quench_msg()
 	 */
 	NET_ICMP_SOURCE_QUENCH,
 	
 	/**
-	 * Sends time exceeded error message.
+	 * Send time exceeded error message.
 	 * @see icmp_time_exceeded_msg()
 	 */
 	NET_ICMP_TIME_EXCEEDED,
 	
 	/**
-	 * Sends parameter problem error message.
+	 * Send parameter problem error message.
 	 * @see icmp_parameter_problem_msg()
 	 */
-	NET_ICMP_PARAMETERPROB,
-	
-	/** Initializes new connection. */
-	NET_ICMP_INIT
-} icmp_messages;
+	NET_ICMP_PARAMETERPROB
+} icmp_messages_t;
 
 /** @name ICMP specific message parameters definitions */
 /*@{*/

@@ -133,10 +133,12 @@ enum ata_command {
 	CMD_READ_SECTORS_EXT	= 0x24,
 	CMD_WRITE_SECTORS	= 0x30,
 	CMD_WRITE_SECTORS_EXT	= 0x34,
+	CMD_PACKET		= 0xA0,
+	CMD_IDENTIFY_PKT_DEV	= 0xA1,
 	CMD_IDENTIFY_DRIVE	= 0xEC
 };
 
-/** Data returned from @c identify command. */
+/** Data returned from identify device and identify packet device command. */
 typedef struct {
 	uint16_t gen_conf;
 	uint16_t cylinders;
@@ -158,7 +160,7 @@ typedef struct {
 
 	uint16_t max_rw_multiple;
 	uint16_t _res48;
-	uint16_t caps;
+	uint16_t caps;		/* Different meaning for packet device */
 	uint16_t _res50;
 	uint16_t pio_timing;
 	uint16_t dma_timing;
@@ -213,16 +215,81 @@ typedef struct {
 	uint16_t _res160[1 + 255 - 160];
 } identify_data_t;
 
-enum ata_caps {
-	cap_iordy	= 0x0800,
-	cap_iordy_cbd	= 0x0400,
-	cap_lba		= 0x0200,
-	cap_dma		= 0x0100
+/** Capability bits for register device. */
+enum ata_regdev_caps {
+	rd_cap_iordy		= 0x0800,
+	rd_cap_iordy_cbd	= 0x0400,
+	rd_cap_lba		= 0x0200,
+	rd_cap_dma		= 0x0100
+};
+
+/** Capability bits for packet device. */
+enum ata_pktdev_caps {
+	pd_cap_ildma		= 0x8000,
+	pd_cap_cmdqueue		= 0x4000,
+	pd_cap_overlap		= 0x2000,
+	pd_cap_need_softreset	= 0x1000,	/* Obsolete (ATAPI-6) */
+	pd_cap_iordy		= 0x0800,
+	pd_cap_iordy_dis	= 0x0400,
+	pd_cap_lba		= 0x0200,	/* Must be on */
+	pd_cap_dma		= 0x0100
 };
 
 /** Bits of @c identify_data_t.cmd_set1 */
 enum ata_cs1 {
 	cs1_addr48	= 0x0400	/**< 48-bit address feature set */
+};
+
+/** ATA packet command codes. */
+enum ata_pkt_command {
+	PCMD_INQUIRY		= 0x12,
+	PCMD_READ_12		= 0xa8
+};
+
+/** ATAPI Inquiry command */
+typedef struct {
+	uint8_t opcode;		/**< Operation code (PCMD_INQUIRY) */
+	uint8_t _res0;
+	uint8_t _res1;
+	uint8_t _res2;
+	uint8_t alloc_len;	/**< Allocation length */
+	uint8_t _res3;
+	uint8_t _res4;
+	uint8_t _res5;
+	uint32_t _res6;
+} __attribute__ ((packed)) ata_pcmd_inquiry_t;
+
+/** ATAPI Read(12) command */
+typedef struct {
+	uint8_t opcode;		/**< Operation code (PCMD_READ_12) */
+	uint8_t _res0;
+	uint32_t ba;		/**< Starting block address */
+	uint32_t nblocks;	/**< Number of blocks to transfer */
+	uint8_t _res1;
+	uint8_t _res2;
+} __attribute__ ((packed)) ata_pcmd_read_12_t;
+
+/** Data returned from Inquiry command (mandatory part) */
+typedef struct {
+	uint8_t pdev_type;	/** Reserved, Peripheral device type */
+	uint8_t rmb;		/** RMB, Reserved */
+	uint8_t std_version;	/** ISO version, ECMA version, ANSI version */
+	uint8_t atapi_ver_rdf;	/** ATAPI version, Response data format */
+	uint8_t additional_len;	/** Additional length */
+	uint8_t _res0;
+	uint8_t _res1;
+	uint8_t _res2;
+	uint8_t vendor_id[8];	/** Vendor ID */
+	uint8_t product_id[8];	/** Product ID */
+	uint8_t product_rev[4];	/** Product revision level */
+} ata_inquiry_data_t;
+
+/** Extract value of ata_inquiry_data_t.pdev_type */
+#define INQUIRY_PDEV_TYPE(val) ((val) & 0x1f)
+
+/** Values for ata_inquiry_data_t.pdev_type */
+enum ata_pdev_type {
+	PDEV_TYPE_CDROM		= 0x05
 };
 
 #endif

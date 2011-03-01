@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup usb
+/** @addtogroup usbvirtkbd
  * @{
  */
 /**
@@ -270,10 +270,10 @@ int main(int argc, char * argv[])
 	
 	printf("%s: Simulating keyboard events...\n", NAME);
 	fibril_sleep(10);
-	while (1) {
+	//while (1) {
 		kb_process_events(&status, keyboard_events, keyboard_events_count,
 			on_keyboard_change);
-	}
+	//}
 	
 	printf("%s: Terminating...\n", NAME);
 	

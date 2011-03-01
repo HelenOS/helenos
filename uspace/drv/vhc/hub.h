@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup usb
+/** @addtogroup drvusbvhc
  * @{
  */
 /** @file
@@ -36,7 +36,7 @@
 #define VHCD_HUB_H_
 
 #include <usbvirt/device.h>
-#include <driver.h>
+#include <ddf/driver.h>
 
 #include "devices.h"
 #include "hub/hub.h"
@@ -44,7 +44,7 @@
 
 extern usbvirt_device_t virtual_hub_device;
 
-void virtual_hub_device_init(device_t *);
+void virtual_hub_device_init(ddf_fun_t *);
 
 #endif
 /**

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup usb
+/** @addtogroup usbvirtkbd
  * @{
  */
 /**
@@ -60,7 +60,7 @@ usb_standard_interface_descriptor_t std_interface_descriptor = {
 	.alternate_setting = 0,
 	.endpoint_count = 1,
 	.interface_class = USB_CLASS_HID,
-	.interface_subclass = 0,
+	.interface_subclass = USB_HID_SUBCLASS_BOOT,
 	.interface_protocol = USB_HID_PROTOCOL_KEYBOARD,
 	.str_interface = 0
 };

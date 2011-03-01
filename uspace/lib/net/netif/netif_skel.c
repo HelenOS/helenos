@@ -39,7 +39,6 @@
 #include <mem.h>
 #include <fibril_synch.h>
 #include <stdio.h>
-#include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <ipc/netif.h>
 #include <errno.h>
@@ -368,7 +367,7 @@ static void netif_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	 * Accept the connection by answering
 	 * the initial IPC_M_CONNECT_ME_TO call.
 	 */
-	ipc_answer_0(iid, EOK);
+	async_answer_0(iid, EOK);
 	
 	while (true) {
 		ipc_call_t answer;

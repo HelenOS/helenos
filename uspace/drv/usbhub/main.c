@@ -26,18 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <driver.h>
+/** @addtogroup drvusbhub
+ * @{
+ */
+
+#include <ddf/driver.h>
 #include <errno.h>
 #include <async.h>
-
-#include <usb/usbdrv.h>
+#include <stdio.h>
 
 #include "usbhub.h"
 #include "usbhub_private.h"
 
 
 usb_general_list_t usb_hub_list;
-futex_t usb_hub_list_lock;
+fibril_mutex_t usb_hub_list_lock;
 
 static driver_ops_t hub_driver_ops = {
 	.add_device = usb_add_hub_device,
@@ -48,28 +51,21 @@ static driver_t hub_driver = {
 	.driver_ops = &hub_driver_ops
 };
 
-int usb_hub_control_loop(void * noparam){
-	while(true){
-		usb_hub_check_hub_changes();
-		async_usleep(1000 * 1000);
-	}
-	return 0;
-}
-
-
 int main(int argc, char *argv[])
 {
-	usb_dprintf_enable(NAME,1);
-	futex_initialize(&usb_hub_list_lock, 0);
-	usb_lst_init(&usb_hub_list);
-	futex_up(&usb_hub_list_lock);
-	fid_t fid = fibril_create(usb_hub_control_loop, NULL);
-	if (fid == 0) {
-		dprintf(1, "failed to start fibril for HUB devices");
-		//printf("%s: failed to start fibril for HUB devices\n", NAME);
-		return ENOMEM;
-	}
-	fibril_add_ready(fid);
+	usb_log_enable(USB_LOG_LEVEL_DEBUG, NAME);
+	dprintf(USB_LOG_LEVEL_INFO, "starting hub driver");
 
-	return driver_main(&hub_driver);
+	//this is probably not needed anymore
+	fibril_mutex_initialize(&usb_hub_list_lock);
+	fibril_mutex_lock(&usb_hub_list_lock);
+	usb_lst_init(&usb_hub_list);
+	fibril_mutex_unlock(&usb_hub_list_lock);
+	
+	return ddf_driver_main(&hub_driver);
 }
+
+/**
+ * @}
+ */
+

@@ -36,12 +36,9 @@
 #define LIBUSB_HIDPARSER_H_
 
 #include <stdint.h>
-#include <adt/list.h>
-
-#include <hid_report_items.h>
 
 /**
- * Items prefix
+ * Item prefix
  */
 #define USB_HID_ITEM_SIZE(data) 	((uint8_t)(data & 0x3))
 #define USB_HID_ITEM_TAG(data) 		((uint8_t)((data & 0xF0) >> 4))
@@ -61,26 +58,6 @@
 #define USB_HID_ITEM_FLAG_POSITION(flags)	(flags & 0x40)
 #define USB_HID_ITEM_FLAG_VOLATILE(flags)	(flags & 0x80)
 #define USB_HID_ITEM_FLAG_BUFFERED(flags)	(flags & 0x100)
-
-
-/**
- * Collection Item Types
- */
-#define USB_HID_COLLECTION_TYPE_PHYSICAL		0x00
-#define USB_HID_COLLECTION_TYPE_APPLICATION		0x01
-#define USB_HID_COLLECTION_TYPE_LOGICAL			0x02
-#define USB_HID_COLLECTION_TYPE_REPORT			0x03
-#define USB_HID_COLLECTION_TYPE_NAMED_ARRAY		0x04
-#define USB_HID_COLLECTION_TYPE_USAGE_SWITCH	0x05
-
-/*
- * modifiers definitions
- */
-#define USB_HID_BOOT_KEYBOARD_NUM_LOCK		0x01
-#define USB_HID_BOOT_KEYBOARD_CAPS_LOCK		0x02
-#define USB_HID_BOOT_KEYBOARD_SCROLL_LOCK	0x04
-#define USB_HID_BOOT_KEYBOARD_COMPOSE		0x08
-#define USB_HID_BOOT_KEYBOARD_KANA			0x10
 
 
 /**
@@ -127,6 +104,7 @@ typedef struct {
 } usb_hid_report_parser_t;	
 
 
+
 /** HID parser callbacks for IN items. */
 typedef struct {
 	/** Callback for keyboard.
@@ -138,11 +116,62 @@ typedef struct {
 	void (*keyboard)(const uint8_t *key_codes, size_t count, const uint8_t modifiers, void *arg);
 } usb_hid_report_in_callbacks_t;
 
+
+typedef enum {
+	USB_HID_MOD_LCTRL = 0x01,
+	USB_HID_MOD_LSHIFT = 0x02,
+	USB_HID_MOD_LALT = 0x04,
+	USB_HID_MOD_LGUI = 0x08,
+	USB_HID_MOD_RCTRL = 0x10,
+	USB_HID_MOD_RSHIFT = 0x20,
+	USB_HID_MOD_RALT = 0x40,
+	USB_HID_MOD_RGUI = 0x80,
+	USB_HID_MOD_COUNT = 8
+} usb_hid_modifiers_t;
+
+typedef enum {
+	USB_HID_LED_NUM_LOCK = 0x1,
+	USB_HID_LED_CAPS_LOCK = 0x2,
+	USB_HID_LED_SCROLL_LOCK = 0x4,
+	USB_HID_LED_COMPOSE = 0x8,
+	USB_HID_LED_KANA = 0x10,
+	USB_HID_LED_COUNT = 5
+} usb_hid_led_t;
+
+static const usb_hid_modifiers_t 
+    usb_hid_modifiers_consts[USB_HID_MOD_COUNT] = {
+	USB_HID_MOD_LCTRL,
+	USB_HID_MOD_LSHIFT,
+	USB_HID_MOD_LALT,
+	USB_HID_MOD_LGUI,
+	USB_HID_MOD_RCTRL,
+	USB_HID_MOD_RSHIFT,
+	USB_HID_MOD_RALT,
+	USB_HID_MOD_RGUI
+};
+
+//static const usb_hid_led_t usb_hid_led_consts[USB_HID_LED_COUNT] = {
+//	USB_HID_LED_NUM_LOCK,
+//	USB_HID_LED_CAPS_LOCK,
+//	USB_HID_LED_SCROLL_LOCK,
+//	USB_HID_LED_COMPOSE,
+//	USB_HID_LED_KANA
+//};
+
+//#define USB_HID_BOOT_KEYBOARD_NUM_LOCK		0x01
+//#define USB_HID_BOOT_KEYBOARD_CAPS_LOCK		0x02
+//#define USB_HID_BOOT_KEYBOARD_SCROLL_LOCK	0x04
+//#define USB_HID_BOOT_KEYBOARD_COMPOSE		0x08
+//#define USB_HID_BOOT_KEYBOARD_KANA			0x10
+
+/*
+ * modifiers definitions
+ */
+
 int usb_hid_boot_keyboard_input_report(const uint8_t *data, size_t size,
 	const usb_hid_report_in_callbacks_t *callbacks, void *arg);
 
 int usb_hid_boot_keyboard_output_report(uint8_t leds, uint8_t *data, size_t size);
-
 
 int usb_hid_parser_init(usb_hid_report_parser_t *parser);
 int usb_hid_parse_report_descriptor(usb_hid_report_parser_t *parser, 
@@ -156,6 +185,7 @@ int usb_hid_parse_report(const usb_hid_report_parser_t *parser,
 void usb_hid_free_report_parser(usb_hid_report_parser_t *parser);
 
 void usb_hid_descriptor_print(usb_hid_report_parser_t *parser);
+
 #endif
 /**
  * @}

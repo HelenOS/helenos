@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusb usb
+/** @addtogroup libusb
  * @{
  */
 /** @file
@@ -52,22 +52,6 @@ const char * usb_str_transfer_type(usb_transfer_type_t t)
 			return "unknown";
 	}
 }
-
-/** String representation of USB transaction outcome. */
-const char * usb_str_transaction_outcome(usb_transaction_outcome_t o)
-{
-	switch (o) {
-		case USB_OUTCOME_OK:
-			return "ok";
-		case USB_OUTCOME_CRCERROR:
-			return "CRC error";
-		case USB_OUTCOME_BABBLE:
-			return "babble";
-		default:
-			return "unknown";
-	}
-}
-
 
 /**
  * @}

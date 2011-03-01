@@ -34,17 +34,19 @@ EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include -Iinclude
 SOURCES = \
 	src/addrkeep.c \
 	src/class.c \
+	src/ddfiface.c \
 	src/debug.c \
 	src/dp.c \
-	src/drvpsync.c \
-	src/hcdhubd.c \
-	src/hcdrv.c \
+	src/dump.c \
 	src/hidparser.c \
-	src/localdrv.c \
+	src/hub.c \
+	src/pipes.c \
+	src/pipesinit.c \
+	src/pipesio.c \
 	src/recognise.c \
-	src/remotedrv.c \
+	src/request.c \
 	src/usb.c \
-	src/usbdrvreq.c \
-	src/usbdrv.c
+	src/usbdevice.c \
+	src/usbmem.c
 
 include $(USPACE_PREFIX)/Makefile.common

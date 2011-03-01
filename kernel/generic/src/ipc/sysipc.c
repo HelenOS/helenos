@@ -247,6 +247,8 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 		} else {
 			/* The connection was accepted */
 			phone_connect(phoneid, &answer->sender->answerbox);
+			/* Set 'task hash' as arg4 of response */
+			IPC_SET_ARG4(answer->data, (sysarg_t) TASK);
 			/* Set 'phone hash' as arg5 of response */
 			IPC_SET_ARG5(answer->data,
 			    (sysarg_t) &TASK->phones[phoneid]);
@@ -1102,7 +1104,7 @@ sysarg_t sys_ipc_poke(void)
  * @return EPERM or a return code returned by ipc_irq_register().
  *
  */
-sysarg_t sys_ipc_register_irq(inr_t inr, devno_t devno, sysarg_t imethod,
+sysarg_t sys_register_irq(inr_t inr, devno_t devno, sysarg_t imethod,
     irq_code_t *ucode)
 {
 	if (!(cap_get(TASK) & CAP_IRQ_REG))
@@ -1119,7 +1121,7 @@ sysarg_t sys_ipc_register_irq(inr_t inr, devno_t devno, sysarg_t imethod,
  * @return Zero on success or EPERM on error.
  *
  */
-sysarg_t sys_ipc_unregister_irq(inr_t inr, devno_t devno)
+sysarg_t sys_unregister_irq(inr_t inr, devno_t devno)
 {
 	if (!(cap_get(TASK) & CAP_IRQ_REG))
 		return EPERM;

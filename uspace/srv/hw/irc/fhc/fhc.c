@@ -28,14 +28,13 @@
 
 /** @addtogroup fhc
  * @{
- */ 
-
-/**
- * @file	fhc.c
- * @brief	FHC bus controller driver.
  */
 
-#include <ipc/ipc.h>
+/**
+ * @file fhc.c
+ * @brief FHC bus controller driver.
+ */
+
 #include <ipc/services.h>
 #include <ipc/irc.h>
 #include <ipc/ns.h>
@@ -75,7 +74,7 @@ static void fhc_connection(ipc_callid_t iid, ipc_call_t *icall)
 	/*
 	 * Answer the first IPC_M_CONNECT_ME_TO call.
 	 */
-	ipc_answer_0(iid, EOK);
+	async_answer_0(iid, EOK);
 
 	while (1) {
 		int inr;
@@ -84,22 +83,22 @@ static void fhc_connection(ipc_callid_t iid, ipc_call_t *icall)
 		switch (IPC_GET_IMETHOD(call)) {
 		case IRC_ENABLE_INTERRUPT:
 			/* Noop */
-			ipc_answer_0(callid, EOK);
+			async_answer_0(callid, EOK);
 			break;
 		case IRC_CLEAR_INTERRUPT:
 			inr = IPC_GET_ARG1(call);
 			switch (inr) {
 			case FHC_UART_INR:
 				fhc_uart_virt[FHC_UART_ICLR] = 0;
-				ipc_answer_0(callid, EOK);
+				async_answer_0(callid, EOK);
 				break;
 			default:
-				ipc_answer_0(callid, ENOTSUP);
+				async_answer_0(callid, ENOTSUP);
 				break;
 			}
 			break;
 		default:
-			ipc_answer_0(callid, EINVAL);
+			async_answer_0(callid, EINVAL);
 			break;
 		}
 	}
@@ -136,8 +135,7 @@ static bool fhc_init(void)
 	    fhc_uart_size);
 	
 	async_set_client_connection(fhc_connection);
-	sysarg_t phonead;
-	ipc_connect_to_me(PHONE_NS, SERVICE_FHC, 0, 0, &phonead);
+	service_register(SERVICE_FHC);
 	
 	return true;
 }

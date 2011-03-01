@@ -35,7 +35,6 @@
 #ifndef IPCP_H_
 #define IPCP_H_
 
-#include <ipc/ipc.h>
 #include "proto.h"
 
 void ipcp_init(void);

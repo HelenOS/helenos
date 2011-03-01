@@ -175,3 +175,77 @@
 	 * @ingroup usb
 	 * @brief Library for creating USB devices drivers.
 	 */
+
+	/**
+	 * @defgroup usbvirt USB virtualization
+	 * @ingroup usb
+	 * @brief Support for virtual USB devices.
+	 */
+
+		/**
+		 * @defgroup libusbvirt USB virtualization library
+		 * @ingroup usbvirt
+		 * @brief Library for creating virtual USB devices.
+		 */
+
+		/**
+		 * @defgroup drvusbvhc Virtual USB host controller
+		 * @ingroup usbvirt
+		 * @brief Driver simulating work of USB host controller.
+		 */
+
+		/**
+		 * @defgroup usbvirthub Virtual USB hub
+		 * @ingroup usbvirt
+		 * @brief Extra virtual USB hub for virtual host controller.
+		 * @details
+		 * Some of the sources are shared with virtual host controller,
+		 * see @ref drvusbvhc for the rest of the files.
+		 */
+
+		/**
+		 * @defgroup usbvirtkbd Virtual USB keybaord
+		 * @ingroup usbvirt
+		 * @brief Virtual USB keyboard for virtual host controller.
+		 */
+
+	/**
+	 * @defgroup usbinfo USB info application
+	 * @ingroup usb
+	 * @brief Application for querying USB devices.
+	 * @details
+	 * The intended usage of this application is to query new USB devices
+	 * for their descriptors etc. to simplify driver writing.
+	 */
+
+	/**
+	 * @defgroup drvusbmid USB multi interface device driver
+	 * @ingroup usb
+	 * @brief USB multi interface device driver
+	 * @details
+	 * This driver serves as a mini hub (or bus) driver for devices
+	 * that have the class defined at interface level (those devices
+	 * usually have several interfaces).
+	 *
+	 * The term multi interface device driver (MID) was borrowed
+	 * Solaris operating system.
+	 */
+
+	/**
+	 * @defgroup drvusbhub USB hub driver
+	 * @ingroup usb
+	 * @brief USB hub driver.
+	 */
+
+	/**
+	 * @defgroup drvusbhid USB HID driver
+	 * @ingroup usb
+	 * @brief USB driver for HID devices.
+	 */
+
+	/**
+	 * @defgroup drvusbuhci UHCI driver
+	 * @ingroup usb
+	 * @brief Driver for USB host controller UHCI.
+	 */
+

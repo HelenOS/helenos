@@ -26,11 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup usb
+/** @addtogroup drvusbhub
  * @{
  */
 /** @file
- * @brief Hub driver.
+ * @brief Hub driver private definitions
  */
 
 #ifndef USBHUB_PRIVATE_H
@@ -41,14 +41,13 @@
 
 #include <adt/list.h>
 #include <bool.h>
-#include <driver.h>
-#include <futex.h>
+#include <ddf/driver.h>
+#include <fibril_synch.h>
 
-#include <usb/usb.h>
-#include <usb/usbdrv.h>
 #include <usb/classes/hub.h>
-#include <usb/devreq.h>
+#include <usb/usb.h>
 #include <usb/debug.h>
+#include <usb/request.h>
 
 //************
 //
@@ -60,14 +59,15 @@
 
 //************
 //
-// convenience debug printf
+// convenience debug printf for usb hub
 //
 //************
 #define dprintf(level, format, ...) \
-	usb_dprintf(NAME, (level), format "\n", ##__VA_ARGS__)
+	usb_log_printf((level), format "\n", ##__VA_ARGS__)
+
 
 /**
- * create hub structure instance
+ * Create hub structure instance
  *
  * Set the address and port count information most importantly.
  *
@@ -75,52 +75,53 @@
  * @param hc host controller phone
  * @return
  */
-usb_hub_info_t * usb_create_hub_info(device_t * device, int hc);
+usb_hub_info_t * usb_create_hub_info(ddf_dev_t * device);
 
-/** list of hubs maanged by this driver */
+/** List of hubs maanged by this driver */
 extern usb_general_list_t usb_hub_list;
 
-/** lock for hub list*/
-extern futex_t usb_hub_list_lock;
+/** Lock for hub list*/
+extern fibril_mutex_t usb_hub_list_lock;
 
 
 /**
- * perform complete control read transaction
+ * Perform complete control read transaction
  *
- * manages all three steps of transaction: setup, read and finalize
+ * Manages all three steps of transaction: setup, read and finalize
  * @param phone
  * @param target
- * @param request request for data
- * @param rcvd_buffer received data
+ * @param request Request packet
+ * @param rcvd_buffer Received data
  * @param rcvd_size
- * @param actual_size actual size of received data
+ * @param actual_size Actual size of received data
  * @return error code
  */
+/*
 int usb_drv_sync_control_read(
-    int phone, usb_target_t target,
+    usb_endpoint_pipe_t *pipe,
     usb_device_request_setup_packet_t * request,
     void * rcvd_buffer, size_t rcvd_size, size_t * actual_size
-);
+);*/
 
 /**
- * perform complete control write transaction
+ * Perform complete control write transaction
  *
- * manages all three steps of transaction: setup, write and finalize
+ * Manages all three steps of transaction: setup, write and finalize
  * @param phone
  * @param target
- * @param request request to send data
+ * @param request Request packet to send data
  * @param sent_buffer
  * @param sent_size
  * @return error code
  */
-int usb_drv_sync_control_write(
-    int phone, usb_target_t target,
+/*int usb_drv_sync_control_write(
+    usb_endpoint_pipe_t *pipe,
     usb_device_request_setup_packet_t * request,
     void * sent_buffer, size_t sent_size
-);
+);*/
 
 /**
- * set the device request to be a get hub descriptor request.
+ * Set the device request to be a get hub descriptor request.
  * @warning the size is allways set to USB_HUB_MAX_DESCRIPTOR_SIZE
  * @param request
  * @param addr
@@ -136,13 +137,19 @@ usb_device_request_setup_packet_t * request
 	request->length = USB_HUB_MAX_DESCRIPTOR_SIZE;
 }
 
-static inline int usb_hub_clear_port_feature(int hc, usb_address_t address,
+/**
+ * Clear feature on hub port.
+ *
+ * @param hc Host controller telephone
+ * @param address Hub address
+ * @param port_index Port
+ * @param feature Feature selector
+ * @return Operation result
+ */
+static inline int usb_hub_clear_port_feature(usb_endpoint_pipe_t *pipe,
     int port_index,
     usb_hub_class_feature_t feature) {
-	usb_target_t target = {
-		.address = address,
-		.endpoint = 0
-	};
+	
 	usb_device_request_setup_packet_t clear_request = {
 		.request_type = USB_HUB_REQ_TYPE_CLEAR_PORT_FEATURE,
 		.request = USB_DEVREQ_CLEAR_FEATURE,
@@ -150,10 +157,28 @@ static inline int usb_hub_clear_port_feature(int hc, usb_address_t address,
 		.index = port_index
 	};
 	clear_request.value = feature;
-	return usb_drv_psync_control_write(hc, target, &clear_request,
+	return usb_endpoint_pipe_control_write(pipe, &clear_request,
 	    sizeof(clear_request), NULL, 0);
 }
 
+/**
+ * @brief create uint8_t array with serialized descriptor
+ *
+ * @param descriptor
+ * @return newly created serializd descriptor pointer
+ */
+void * usb_serialize_hub_descriptor(usb_hub_descriptor_t * descriptor);
+
+/**
+ * @brief create deserialized desriptor structure out of serialized descriptor
+ *
+ * The serialized descriptor must be proper usb hub descriptor,
+ * otherwise an eerror might occur.
+ *
+ * @param sdescriptor serialized descriptor
+ * @return newly created deserialized descriptor pointer
+ */
+usb_hub_descriptor_t * usb_deserialize_hub_desriptor(void * sdescriptor);
 
 
 #endif	/* USBHUB_PRIVATE_H */

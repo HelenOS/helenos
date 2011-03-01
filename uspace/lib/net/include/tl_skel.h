@@ -40,7 +40,6 @@
 
 #include <async.h>
 #include <fibril_synch.h>
-#include <ipc/ipc.h>
 #include <ipc/services.h>
 
 #include <adt/measured_strings.h>
@@ -60,6 +59,13 @@
  */
 extern int tl_initialize(int net_phone);
 
+/** Per-connection module initialization.
+ *
+ * This has to be implemented in user code.
+ *
+ */
+extern void tl_connection(void);
+
 /** Process the transport layer module message.
  *
  * This has to be implemented in user code.
@@ -73,7 +79,7 @@ extern int tl_initialize(int net_phone);
  * @return Other error codes as defined for each specific module.
  *
  */
-extern int tl_module_message(ipc_callid_t, ipc_call_t *,
+extern int tl_message(ipc_callid_t, ipc_call_t *,
     ipc_call_t *, size_t *);
 
 extern int tl_module_start(int);

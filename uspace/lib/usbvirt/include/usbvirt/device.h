@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusbvirt usb
+/** @addtogroup libusbvirt
  * @{
  */
 /** @file
@@ -36,8 +36,8 @@
 #define LIBUSBVIRT_DEVICE_H_
 
 #include <usb/usb.h>
+#include <usb/request.h>
 #include <usb/descriptor.h>
-#include <usb/devreq.h>
 
 /** Request type of a control transfer. */
 typedef enum {

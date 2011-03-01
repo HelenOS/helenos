@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusbvirt usb
+/** @addtogroup libusbvirt
  * @{
  */
 /** @file
@@ -53,17 +53,17 @@ static void handle_setup_transaction(usbvirt_device_t *device,
 	size_t expected_len = IPC_GET_ARG3(icall);
 	
 	if (address != device->address) {
-		ipc_answer_0(iid, EADDRNOTAVAIL);
+		async_answer_0(iid, EADDRNOTAVAIL);
 		return;
 	}
 	
 	if ((endpoint < 0) || (endpoint >= USB11_ENDPOINT_MAX)) {
-		ipc_answer_0(iid, EINVAL);
+		async_answer_0(iid, EINVAL);
 		return;
 	}
 	
 	if (expected_len == 0) {
-		ipc_answer_0(iid, EINVAL);
+		async_answer_0(iid, EINVAL);
 		return;
 	}
 	
@@ -73,13 +73,13 @@ static void handle_setup_transaction(usbvirt_device_t *device,
 	    1, USB_MAX_PAYLOAD_SIZE, 0, &len);
 		
 	if (rc != EOK) {
-		ipc_answer_0(iid, rc);
+		async_answer_0(iid, rc);
 		return;
 	}
 	
 	rc = device->transaction_setup(device, endpoint, buffer, len);
 	
-	ipc_answer_0(iid, rc);
+	async_answer_0(iid, rc);
 }
 
 /** Wrapper for OUT transaction over telephone. */
@@ -91,12 +91,12 @@ static void handle_out_transaction(usbvirt_device_t *device,
 	size_t expected_len = IPC_GET_ARG3(icall);
 	
 	if (address != device->address) {
-		ipc_answer_0(iid, EADDRNOTAVAIL);
+		async_answer_0(iid, EADDRNOTAVAIL);
 		return;
 	}
 	
 	if ((endpoint < 0) || (endpoint >= USB11_ENDPOINT_MAX)) {
-		ipc_answer_0(iid, EINVAL);
+		async_answer_0(iid, EINVAL);
 		return;
 	}
 	
@@ -110,7 +110,7 @@ static void handle_out_transaction(usbvirt_device_t *device,
 		    1, USB_MAX_PAYLOAD_SIZE, 0, &len);
 			
 		if (rc != EOK) {
-			ipc_answer_0(iid, rc);
+			async_answer_0(iid, rc);
 			return;
 		}
 	}
@@ -121,7 +121,7 @@ static void handle_out_transaction(usbvirt_device_t *device,
 		free(buffer);
 	}
 	
-	ipc_answer_0(iid, rc);
+	async_answer_0(iid, rc);
 }
 
 
@@ -134,12 +134,12 @@ static void handle_in_transaction(usbvirt_device_t *device,
 	size_t expected_len = IPC_GET_ARG3(icall);
 	
 	if (address != device->address) {
-		ipc_answer_0(iid, EADDRNOTAVAIL);
+		async_answer_0(iid, EADDRNOTAVAIL);
 		return;
 	}
 	
 	if ((endpoint < 0) || (endpoint >= USB11_ENDPOINT_MAX)) {
-		ipc_answer_0(iid, EINVAL);
+		async_answer_0(iid, EINVAL);
 		return;
 	}
 	
@@ -156,13 +156,16 @@ static void handle_in_transaction(usbvirt_device_t *device,
 		size_t receive_len;
 		ipc_callid_t callid;
 		if (!async_data_read_receive(&callid, &receive_len)) {
-			ipc_answer_0(iid, EINVAL);
+			async_answer_0(iid, EINVAL);
 			return;
 		}
-		async_data_read_finalize(callid, buffer, receive_len);
+		if (len > receive_len) {
+			len = receive_len;
+		}
+		async_data_read_finalize(callid, buffer, len);
 	}
 	
-	ipc_answer_0(iid, rc);
+	async_answer_1(iid, rc, len);
 }
 
 /** Wrapper for getting device name. */
@@ -170,7 +173,7 @@ static void handle_get_name(usbvirt_device_t *device,
     ipc_callid_t iid, ipc_call_t icall)
 {
 	if (device->name == NULL) {
-		ipc_answer_0(iid, ENOENT);
+		async_answer_0(iid, ENOENT);
 	}
 	
 	size_t size = str_size(device->name);
@@ -178,7 +181,7 @@ static void handle_get_name(usbvirt_device_t *device,
 	ipc_callid_t callid;
 	size_t accepted_size;
 	if (!async_data_read_receive(&callid, &accepted_size)) {
-		ipc_answer_0(iid, EINVAL);
+		async_answer_0(iid, EINVAL);
 		return;
 	}
 	
@@ -187,13 +190,13 @@ static void handle_get_name(usbvirt_device_t *device,
 	}
 	async_data_read_finalize(callid, device->name, accepted_size);
 	
-	ipc_answer_1(iid, EOK, accepted_size);
+	async_answer_1(iid, EOK, accepted_size);
 }
 
 /** Callback connection for a given device. */
 void device_callback_connection(usbvirt_device_t *device, ipc_callid_t iid, ipc_call_t *icall)
 {
-	ipc_answer_0(iid, EOK);
+	async_answer_0(iid, EOK);
 	
 	while (true) {
 		ipc_callid_t callid; 
@@ -202,7 +205,7 @@ void device_callback_connection(usbvirt_device_t *device, ipc_callid_t iid, ipc_
 		callid = async_get_call(&call);
 		switch (IPC_GET_IMETHOD(call)) {
 			case IPC_M_PHONE_HUNGUP:
-				ipc_answer_0(callid, EOK);
+				async_answer_0(callid, EOK);
 				return;
 			
 			case IPC_M_USBVIRT_GET_NAME:
@@ -222,7 +225,7 @@ void device_callback_connection(usbvirt_device_t *device, ipc_callid_t iid, ipc_
 				break;
 			
 			default:
-				ipc_answer_0(callid, EINVAL);
+				async_answer_0(callid, EINVAL);
 				break;
 		}
 	}
