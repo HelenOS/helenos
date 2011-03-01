@@ -36,8 +36,13 @@
 
 #include <sys/types.h>
 
+#define MFS_ROOT_INO		1
+
 #define V2_NR_DIRECT_ZONES	7
 #define V2_NR_INDIRECT_ZONES	3
+
+#define V1_NR_DIRECT_ZONES	7
+#define V1_NR_INDIRECT_ZONES	2
 
 #endif
 

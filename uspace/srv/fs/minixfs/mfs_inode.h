@@ -36,8 +36,21 @@
 
 #include "mfs_const.h"
 
-/*Declaration of the MinixFS V2 inode as it is on disk.*/
+/*MinixFS V1 inode structure as it is on disk*/
+struct mfs_v1_inode {
+	uint16_t	i_mode;
+	int16_t		i_uid;
+	int32_t		i_size;
+	int32_t		i_mtime;
+	uint8_t		i_gid;
+	uint8_t		i_nlinks;
+	/*Block numbers for direct zones*/
+	uint16_t	i_dzone[V1_NR_DIRECT_ZONES];
+	/*Block numbers for indirect zones*/
+	uint16_t	i_izone[V1_NR_INDIRECT_ZONES];
+} __attribute__ ((packed));
 
+/*MinixFS V2 inode structure as it is on disk.*/
 struct mfs_v2_inode {
 	uint16_t 	i_mode;
 	uint16_t 	i_nlinks;
@@ -48,9 +61,9 @@ struct mfs_v2_inode {
 	int32_t		i_mtime;
 	int32_t		i_ctime;
 	/*Block numbers for direct zones*/
-	uint32_t	dzone[V2_NR_DIRECT_ZONES];
+	uint32_t	i_dzone[V2_NR_DIRECT_ZONES];
 	/*Block numbers for indirect zones*/
-	uint32_t	izone[V2_NR_INDIRECT_ZONES];
+	uint32_t	i_izone[V2_NR_INDIRECT_ZONES];
 } __attribute__ ((packed));
 
 #endif
