@@ -69,11 +69,53 @@ typedef struct {
 	void (*keyboard)(const uint8_t *key_codes, size_t count, const uint8_t modifiers, void *arg);
 } usb_hid_report_in_callbacks_t;
 
-#define USB_HID_BOOT_KEYBOARD_NUM_LOCK		0x01
-#define USB_HID_BOOT_KEYBOARD_CAPS_LOCK		0x02
-#define USB_HID_BOOT_KEYBOARD_SCROLL_LOCK	0x04
-#define USB_HID_BOOT_KEYBOARD_COMPOSE		0x08
-#define USB_HID_BOOT_KEYBOARD_KANA			0x10
+
+typedef enum {
+	USB_HID_MOD_LCTRL = 0x01,
+	USB_HID_MOD_LSHIFT = 0x02,
+	USB_HID_MOD_LALT = 0x04,
+	USB_HID_MOD_LGUI = 0x08,
+	USB_HID_MOD_RCTRL = 0x10,
+	USB_HID_MOD_RSHIFT = 0x20,
+	USB_HID_MOD_RALT = 0x40,
+	USB_HID_MOD_RGUI = 0x80,
+	USB_HID_MOD_COUNT = 8
+} usb_hid_modifiers_t;
+
+typedef enum {
+	USB_HID_LED_NUM_LOCK = 0x1,
+	USB_HID_LED_CAPS_LOCK = 0x2,
+	USB_HID_LED_SCROLL_LOCK = 0x4,
+	USB_HID_LED_COMPOSE = 0x8,
+	USB_HID_LED_KANA = 0x10,
+	USB_HID_LED_COUNT = 5
+} usb_hid_led_t;
+
+static const usb_hid_modifiers_t 
+    usb_hid_modifiers_consts[USB_HID_MOD_COUNT] = {
+	USB_HID_MOD_LCTRL,
+	USB_HID_MOD_LSHIFT,
+	USB_HID_MOD_LALT,
+	USB_HID_MOD_LGUI,
+	USB_HID_MOD_RCTRL,
+	USB_HID_MOD_RSHIFT,
+	USB_HID_MOD_RALT,
+	USB_HID_MOD_RGUI
+};
+
+//static const usb_hid_led_t usb_hid_led_consts[USB_HID_LED_COUNT] = {
+//	USB_HID_LED_NUM_LOCK,
+//	USB_HID_LED_CAPS_LOCK,
+//	USB_HID_LED_SCROLL_LOCK,
+//	USB_HID_LED_COMPOSE,
+//	USB_HID_LED_KANA
+//};
+
+//#define USB_HID_BOOT_KEYBOARD_NUM_LOCK		0x01
+//#define USB_HID_BOOT_KEYBOARD_CAPS_LOCK		0x02
+//#define USB_HID_BOOT_KEYBOARD_SCROLL_LOCK	0x04
+//#define USB_HID_BOOT_KEYBOARD_COMPOSE		0x08
+//#define USB_HID_BOOT_KEYBOARD_KANA			0x10
 
 /*
  * modifiers definitions

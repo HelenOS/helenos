@@ -32,6 +32,7 @@
  * @brief UHCI driver
  */
 #include <errno.h>
+#include <str_error.h>
 
 #include <usb/debug.h>
 
@@ -52,7 +53,7 @@ static void batch_call_out_and_dispose(batch_t *instance);
 
 batch_t * batch_get(ddf_fun_t *fun, usb_target_t target,
     usb_transfer_type_t transfer_type, size_t max_packet_size,
-    dev_speed_t speed, char *buffer, size_t size,
+    usb_speed_t speed, char *buffer, size_t size,
     char* setup_buffer, size_t setup_size,
     usbhc_iface_transfer_in_callback_t func_in,
     usbhc_iface_transfer_out_callback_t func_out, void *arg)
@@ -132,13 +133,15 @@ batch_t * batch_get(ddf_fun_t *fun, usb_target_t target,
 	instance->speed = speed;
 
 	queue_head_element_td(instance->qh, addr_to_phys(instance->tds));
+	usb_log_debug("Batch(%p) %d:%d memory structures ready.\n",
+	    instance, target.address, target.endpoint);
 	return instance;
 }
 /*----------------------------------------------------------------------------*/
 bool batch_is_complete(batch_t *instance)
 {
 	assert(instance);
-	usb_log_debug("Checking(%p) %d packet for completion.\n",
+	usb_log_debug2("Batch(%p) checking %d packet(s) for completion.\n",
 	    instance, instance->packets);
 	instance->transfered_size = 0;
 	size_t i = 0;
@@ -150,12 +153,13 @@ bool batch_is_complete(batch_t *instance)
 		if (instance->error != EOK) {
 			if (i > 0)
 				instance->transfered_size -= instance->setup_size;
+			usb_log_debug("Batch(%p) found error TD(%d):%x.\n",
+			  instance, i, instance->tds[i].status);
 			return true;
 		}
 		instance->transfered_size +=
 		    transfer_descriptor_actual_size(&instance->tds[i]);
 	}
-	/* This is just an ugly trick to support the old API */
 	instance->transfered_size -= instance->setup_size;
 	return true;
 }
@@ -167,11 +171,13 @@ void batch_control_write(batch_t *instance)
 	/* we are data out, we are supposed to provide data */
 	memcpy(instance->transport_buffer, instance->buffer, instance->buffer_size);
 
+	const bool low_speed = instance->speed == USB_SPEED_LOW;
 	int toggle = 0;
 	/* setup stage */
 	transfer_descriptor_init(instance->tds, DEFAULT_ERROR_COUNT,
-	    instance->setup_size, toggle, false, instance->target,
-	    USB_PID_SETUP, instance->setup_buffer, &instance->tds[1]);
+	    instance->setup_size, toggle, false, low_speed,
+	    instance->target, USB_PID_SETUP, instance->setup_buffer,
+	    &instance->tds[1]);
 
 	/* data stage */
 	size_t i = 1;
@@ -181,18 +187,21 @@ void batch_control_write(batch_t *instance)
 		toggle = 1 - toggle;
 
 		transfer_descriptor_init(&instance->tds[i], DEFAULT_ERROR_COUNT,
-		    instance->max_packet_size, toggle++, false, instance->target,
-		    USB_PID_OUT, data, &instance->tds[i + 1]);
+		    instance->max_packet_size, toggle++, false, low_speed,
+		    instance->target, USB_PID_OUT, data, &instance->tds[i + 1]);
 	}
 
 	/* status stage */
 	i = instance->packets - 1;
 	transfer_descriptor_init(&instance->tds[i], DEFAULT_ERROR_COUNT,
-	    0, 1, false, instance->target, USB_PID_IN, NULL, NULL);
+	    0, 1, false, low_speed, instance->target, USB_PID_IN, NULL, NULL);
 
 	instance->tds[i].status |= TD_STATUS_COMPLETE_INTERRUPT_FLAG;
+	usb_log_debug2("Control write last TD status: %x.\n",
+		instance->tds[i].status);
 
 	instance->next_step = batch_call_out_and_dispose;
+	usb_log_debug("Batch(%p) CONTROL WRITE initialized.\n", instance);
 	batch_schedule(instance);
 }
 /*----------------------------------------------------------------------------*/
@@ -200,10 +209,11 @@ void batch_control_read(batch_t *instance)
 {
 	assert(instance);
 
+	const bool low_speed = instance->speed == USB_SPEED_LOW;
 	int toggle = 0;
 	/* setup stage */
 	transfer_descriptor_init(instance->tds, DEFAULT_ERROR_COUNT,
-	    instance->setup_size, toggle, false, instance->target,
+	    instance->setup_size, toggle, false, low_speed, instance->target,
 	    USB_PID_SETUP, instance->setup_buffer, &instance->tds[1]);
 
 	/* data stage */
@@ -214,18 +224,21 @@ void batch_control_read(batch_t *instance)
 		toggle = 1 - toggle;
 
 		transfer_descriptor_init(&instance->tds[i], DEFAULT_ERROR_COUNT,
-		    instance->max_packet_size, toggle, false, instance->target,
-		    USB_PID_IN, data, &instance->tds[i + 1]);
+		    instance->max_packet_size, toggle, false, low_speed,
+				instance->target, USB_PID_IN, data, &instance->tds[i + 1]);
 	}
 
 	/* status stage */
 	i = instance->packets - 1;
 	transfer_descriptor_init(&instance->tds[i], DEFAULT_ERROR_COUNT,
-	    0, 1, false, instance->target, USB_PID_OUT, NULL, NULL);
+	    0, 1, false, low_speed, instance->target, USB_PID_OUT, NULL, NULL);
 
 	instance->tds[i].status |= TD_STATUS_COMPLETE_INTERRUPT_FLAG;
+	usb_log_debug2("Control read last TD status: %x.\n",
+		instance->tds[i].status);
 
 	instance->next_step = batch_call_in_and_dispose;
+	usb_log_debug("Batch(%p) CONTROL READ initialized.\n", instance);
 	batch_schedule(instance);
 }
 /*----------------------------------------------------------------------------*/
@@ -233,6 +246,7 @@ void batch_interrupt_in(batch_t *instance)
 {
 	assert(instance);
 
+	const bool low_speed = instance->speed == USB_SPEED_LOW;
 	int toggle = 1;
 	size_t i = 0;
 	for (;i < instance->packets; ++i) {
@@ -243,13 +257,14 @@ void batch_interrupt_in(batch_t *instance)
 		toggle = 1 - toggle;
 
 		transfer_descriptor_init(&instance->tds[i], DEFAULT_ERROR_COUNT,
-		    instance->max_packet_size, toggle, false, instance->target,
-		    USB_PID_IN, data, next);
+		    instance->max_packet_size, toggle, false, low_speed,
+		    instance->target, USB_PID_IN, data, next);
 	}
 
 	instance->tds[i - 1].status |= TD_STATUS_COMPLETE_INTERRUPT_FLAG;
 
 	instance->next_step = batch_call_in_and_dispose;
+	usb_log_debug("Batch(%p) INTERRUPT IN initialized.\n", instance);
 	batch_schedule(instance);
 }
 /*----------------------------------------------------------------------------*/
@@ -259,6 +274,7 @@ void batch_interrupt_out(batch_t *instance)
 
 	memcpy(instance->transport_buffer, instance->buffer, instance->buffer_size);
 
+	const bool low_speed = instance->speed == USB_SPEED_LOW;
 	int toggle = 1;
 	size_t i = 0;
 	for (;i < instance->packets; ++i) {
@@ -269,13 +285,14 @@ void batch_interrupt_out(batch_t *instance)
 		toggle = 1 - toggle;
 
 		transfer_descriptor_init(&instance->tds[i], DEFAULT_ERROR_COUNT,
-		    instance->max_packet_size, toggle++, false, instance->target,
-		    USB_PID_OUT, data, next);
+		    instance->max_packet_size, toggle++, false, low_speed,
+		    instance->target, USB_PID_OUT, data, next);
 	}
 
 	instance->tds[i - 1].status |= TD_STATUS_COMPLETE_INTERRUPT_FLAG;
 
 	instance->next_step = batch_call_out_and_dispose;
+	usb_log_debug("Batch(%p) INTERRUPT OUT initialized.\n", instance);
 	batch_schedule(instance);
 }
 /*----------------------------------------------------------------------------*/
@@ -287,8 +304,9 @@ void batch_call_in(batch_t *instance)
 	memcpy(instance->buffer, instance->transport_buffer, instance->buffer_size);
 
 	int err = instance->error;
-	usb_log_info("Callback IN(%d): %d, %zu.\n", instance->transfer_type,
-	    err, instance->transfered_size);
+	usb_log_debug("Batch(%p) callback IN(type:%d): %s(%d), %zu.\n",
+	    instance, instance->transfer_type, str_error(err), err,
+	    instance->transfered_size);
 
 	instance->callback_in(instance->fun,
 	    err, instance->transfered_size,
@@ -301,7 +319,8 @@ void batch_call_out(batch_t *instance)
 	assert(instance->callback_out);
 
 	int err = instance->error;
-	usb_log_info("Callback OUT(%d): %d.\n", instance->transfer_type, err);
+	usb_log_debug("Batch(%p) callback OUT(type:%d): %s(%d).\n",
+	    instance, instance->transfer_type, str_error(err), err);
 	instance->callback_out(instance->fun,
 	    err, instance->arg);
 }
@@ -310,7 +329,7 @@ void batch_call_in_and_dispose(batch_t *instance)
 {
 	assert(instance);
 	batch_call_in(instance);
-	usb_log_debug("Disposing batch: %p.\n", instance);
+	usb_log_debug("Batch(%p) disposing.\n", instance);
 	free32(instance->tds);
 	free32(instance->qh);
 	free32(instance->setup_buffer);
@@ -322,7 +341,7 @@ void batch_call_out_and_dispose(batch_t *instance)
 {
 	assert(instance);
 	batch_call_out(instance);
-	usb_log_debug("Disposing batch: %p.\n", instance);
+	usb_log_debug("Batch(%p) disposing.\n", instance);
 	free32(instance->tds);
 	free32(instance->qh);
 	free32(instance->setup_buffer);
@@ -336,55 +355,6 @@ int batch_schedule(batch_t *instance)
 	uhci_t *hc = fun_to_uhci(instance->fun);
 	assert(hc);
 	return uhci_schedule(hc, instance);
-}
-/*----------------------------------------------------------------------------*/
-/* DEPRECATED FUNCTIONS NEEDED BY THE OLD API */
-void batch_control_setup_old(batch_t *instance)
-{
-	assert(instance);
-	instance->packets = 1;
-
-	/* setup stage */
-	transfer_descriptor_init(instance->tds, DEFAULT_ERROR_COUNT,
-	    instance->setup_size, 0, false, instance->target,
-	    USB_PID_SETUP, instance->setup_buffer, NULL);
-
-	instance->next_step = batch_call_out_and_dispose;
-	batch_schedule(instance);
-}
-/*----------------------------------------------------------------------------*/
-void batch_control_write_data_old(batch_t *instance)
-{
-	assert(instance);
-	instance->packets -= 2;
-	batch_interrupt_out(instance);
-}
-/*----------------------------------------------------------------------------*/
-void batch_control_read_data_old(batch_t *instance)
-{
-	assert(instance);
-	instance->packets -= 2;
-	batch_interrupt_in(instance);
-}
-/*----------------------------------------------------------------------------*/
-void batch_control_write_status_old(batch_t *instance)
-{
-	assert(instance);
-	instance->packets = 1;
-	transfer_descriptor_init(instance->tds, DEFAULT_ERROR_COUNT,
-	    0, 1, false, instance->target, USB_PID_IN, NULL, NULL);
-	instance->next_step = batch_call_in_and_dispose;
-	batch_schedule(instance);
-}
-/*----------------------------------------------------------------------------*/
-void batch_control_read_status_old(batch_t *instance)
-{
-	assert(instance);
-	instance->packets = 1;
-	transfer_descriptor_init(instance->tds, DEFAULT_ERROR_COUNT,
-	    0, 1, false, instance->target, USB_PID_OUT, NULL, NULL);
-	instance->next_step = batch_call_out_and_dispose;
-	batch_schedule(instance);
 }
 /**
  * @}

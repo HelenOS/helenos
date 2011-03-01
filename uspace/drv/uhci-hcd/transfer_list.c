@@ -69,6 +69,7 @@ void transfer_list_add_batch(transfer_list_t *instance, batch_t *batch)
 {
 	assert(instance);
 	assert(batch);
+	usb_log_debug2("Adding batch(%p) to queue %s.\n", batch, instance->name);
 
 	uint32_t pa = (uintptr_t)addr_to_phys(batch->qh);
 	assert((pa & LINK_POINTER_ADDRESS_MASK) == pa);
@@ -82,7 +83,7 @@ void transfer_list_add_batch(transfer_list_t *instance, batch_t *batch)
 		/* there is nothing scheduled */
 		list_append(&batch->link, &instance->batch_list);
 		instance->queue_head->element = pa;
-		usb_log_debug2("Added batch(%p) to queue %s first.\n",
+		usb_log_debug("Batch(%p) added to queue %s first.\n",
 			batch, instance->name);
 		fibril_mutex_unlock(&instance->guard);
 		return;
@@ -95,7 +96,7 @@ void transfer_list_add_batch(transfer_list_t *instance, batch_t *batch)
 	    instance->batch_list.prev, batch_t, link);
 	queue_head_append_qh(last->qh, pa);
 	list_append(&batch->link, &instance->batch_list);
-	usb_log_debug2("Added batch(%p) to queue %s last, first is %p.\n",
+	usb_log_debug("Batch(%p) added to queue %s last, first is %p.\n",
 		batch, instance->name, first );
 	fibril_mutex_unlock(&instance->guard);
 }
@@ -107,24 +108,28 @@ static void transfer_list_remove_batch(
 	assert(batch);
 	assert(instance->queue_head);
 	assert(batch->qh);
+	usb_log_debug2("Removing batch(%p) from queue %s.\n", batch, instance->name);
 
 	/* I'm the first one here */
 	if (batch->link.prev == &instance->batch_list) {
-		usb_log_debug("Removing batch %p was first, next element %x.\n",
-			batch, batch->qh->next_queue);
+		usb_log_debug("Batch(%p) removed (FIRST) from queue %s, next element %x.\n",
+			batch, instance->name, batch->qh->next_queue);
 		instance->queue_head->element = batch->qh->next_queue;
 	} else {
-		usb_log_debug("Removing batch %p was NOT first, next element %x.\n",
-			batch, batch->qh->next_queue);
+		usb_log_debug("Batch(%p) removed (NOT FIRST) from queue, next element %x.\n",
+			batch, instance->name, batch->qh->next_queue);
 		batch_t *prev = list_get_instance(batch->link.prev, batch_t, link);
 		prev->qh->next_queue = batch->qh->next_queue;
 	}
 	list_remove(&batch->link);
 }
 /*----------------------------------------------------------------------------*/
-void transfer_list_check(transfer_list_t *instance)
+void transfer_list_remove_finished(transfer_list_t *instance)
 {
 	assert(instance);
+
+	LIST_INITIALIZE(done);
+
 	fibril_mutex_lock(&instance->guard);
 	link_t *current = instance->batch_list.next;
 	while (current != &instance->batch_list) {
@@ -133,11 +138,18 @@ void transfer_list_check(transfer_list_t *instance)
 
 		if (batch_is_complete(batch)) {
 			transfer_list_remove_batch(instance, batch);
-			batch->next_step(batch);
+			list_append(current, &done);
 		}
 		current = next;
 	}
 	fibril_mutex_unlock(&instance->guard);
+
+	while (!list_empty(&done)) {
+		link_t *item = done.next;
+		list_remove(item);
+		batch_t *batch = list_get_instance(item, batch_t, link);
+		batch->next_step(batch);
+	}
 }
 /**
  * @}

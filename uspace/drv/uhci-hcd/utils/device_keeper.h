@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Lubos Slovak
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,25 +26,49 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbhid
+/** @addtogroup drvusbuhci
  * @{
  */
 /** @file
- * Descriptor parser.
+ * @brief UHCI driver
  */
+#ifndef UTILS_DEVICE_KEEPER_H
+#define UTILS_DEVICE_KEEPER_H
+#include <devman.h>
+#include <fibril_synch.h>
+#include <usb/usb.h>
 
-#ifndef USBHID_DESCPARSER_H_
-#define USBHID_DESCPARSER_H_
+#define USB_ADDRESS_COUNT (USB11_ADDRESS_MAX + 1)
 
-#include "hid.h"
+struct usb_device_info {
+	usb_speed_t speed;
+	bool occupied;
+	devman_handle_t handle;
+};
 
-int usbkbd_parse_descriptors(const uint8_t *data, size_t size,
-                             usb_hid_configuration_t *config);
+typedef struct device_keeper {
+	struct usb_device_info devices[USB_ADDRESS_COUNT];
+	fibril_mutex_t guard;
+	fibril_condvar_t default_address_occupied;
+	usb_address_t last_address;
+} device_keeper_t;
 
-void usbkbd_print_config(const usb_hid_configuration_t *config);
+void device_keeper_init(device_keeper_t *instance);
+void device_keeper_reserve_default(
+    device_keeper_t *instance, usb_speed_t speed);
+void device_keeper_release_default(device_keeper_t *instance);
 
+usb_address_t device_keeper_request(
+    device_keeper_t *instance, usb_speed_t speed);
+void device_keeper_bind(
+    device_keeper_t *instance, usb_address_t address, devman_handle_t handle);
+void device_keeper_release(device_keeper_t *instance, usb_address_t address);
+usb_address_t device_keeper_find(
+    device_keeper_t *instance, devman_handle_t handle);
+
+usb_speed_t device_keeper_speed(
+    device_keeper_t *instance, usb_address_t address);
 #endif
-
 /**
  * @}
  */

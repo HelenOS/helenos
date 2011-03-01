@@ -38,8 +38,6 @@ STOLEN_LAYOUT_SOURCES = \
 
 SOURCES = \
 	main.c \
-	descparser.c \
-	descdump.c \
 	conv.c \
 	$(STOLEN_LAYOUT_SOURCES)
 
