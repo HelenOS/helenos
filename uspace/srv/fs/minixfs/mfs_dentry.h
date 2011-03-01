@@ -30,25 +30,22 @@
  * @{
  */ 
 
+#ifndef _MFS_DENTRY_H_
+#define _MFS_DENTRY_H_
 
-#ifndef _MFS_CONST_H_
-#define _MFS_CONST_H_
+#include "mfs_const.h"
 
-#include <sys/types.h>
+struct mfs_v1_dentry {
+	uint16_t d_inum;
+	char d_name[V1_MAX_NAME_LEN];
+} __attribute__ ((packed));
 
-#define MFS_ROOT_INO		1
-
-#define V2_NR_DIRECT_ZONES	7
-#define V2_NR_INDIRECT_ZONES	3
-
-#define V1_NR_DIRECT_ZONES	7
-#define V1_NR_INDIRECT_ZONES	2
-
-#define V1_MAX_NAME_LEN		14
-#define V2_MAX_NAME_LEN		60
+struct mfs_v2_dentry {
+	uint32_t d_inum;
+	char d_name[V2_MAX_NAME_LEN];
+} __attribute__ ((packed));
 
 #endif
-
 
 /**
  * @}
