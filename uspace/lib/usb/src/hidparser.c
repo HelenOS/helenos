@@ -54,7 +54,7 @@ int usb_hid_report_parse_local_tag(uint8_t tag, uint8_t *data, size_t item_size,
 void usb_hid_descriptor_print_list(link_t *head);
 int usb_hid_report_reset_local_items();
 void usb_hid_free_report_list(link_t *head);
-
+int32_t usb_hid_report_tag_data_int32(uint8_t *data, size_t size);
 /**
  *
  */
@@ -67,7 +67,8 @@ int usb_hid_parser_init(usb_hid_report_parser_t *parser)
     list_initialize(&(parser->input));
     list_initialize(&(parser->output));
     list_initialize(&(parser->feature));
-   
+
+    return EOK;   
 }
 
 
@@ -383,6 +384,8 @@ int usb_hid_report_parse_global_tag(uint8_t tag, uint8_t *data, size_t item_size
 		default:
 			return -1; //TODO ERROR CODE INVALID GLOBAL TAG
 	}
+	
+	return EOK;
 }
 
 /**
@@ -434,6 +437,8 @@ int usb_hid_report_parse_local_tag(uint8_t tag, uint8_t *data, size_t item_size,
 		default:
 			return -1; //TODO ERROR CODE INVALID LOCAL TAG NOW IS ONLY UNSUPPORTED
 	}
+	
+	return EOK;
 }
 
 /**
@@ -445,7 +450,7 @@ int usb_hid_report_parse_local_tag(uint8_t tag, uint8_t *data, size_t item_size,
  */
 int32_t usb_hid_report_tag_data_int32(uint8_t *data, size_t size)
 {
-	int i;
+	unsigned int i;
 	int32_t result;
 
 	result = 0;

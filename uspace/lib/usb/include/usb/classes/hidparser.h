@@ -36,6 +36,8 @@
 #define LIBUSB_HIDPARSER_H_
 
 #include <stdint.h>
+#include <adt/list.h>
+#include <usb/classes/hid_report_items.h>
 
 /**
  * Item prefix
