@@ -28,34 +28,25 @@
 
 /** @addtogroup fs
  * @{
- */ 
+ */
 
+#include "mfs_utils.h"
 
-#ifndef _MFS_CONST_H_
-#define _MFS_CONST_H_
+uint16_t conv16(bool native, uint16_t n)
+{
+	if (native)
+		return n;
 
-#include <sys/types.h>
-#include <bool.h>
+	return r = (n << 8) | (n >> 8);
+}
 
-#define MFS_MAGIC_V1		0x137F
-#define MFS_MAGIC_V2		0x2468
-#define MFS_MAGIC_V3		0x4D5A
+uint32_t conv32(bool native, uint32_t n)
+{
+	if (native)
+		return n;
 
-#define MFS_ROOT_INO		1
-#define MFS_SUPER_BLOCK		0
-#define MFS_SUPER_BLOCK_SIZE	1024
-
-#define V2_NR_DIRECT_ZONES	7
-#define V2_NR_INDIRECT_ZONES	3
-
-#define V1_NR_DIRECT_ZONES	7
-#define V1_NR_INDIRECT_ZONES	2
-
-#define V1_MAX_NAME_LEN		14
-#define V2_MAX_NAME_LEN		60
-
-#endif
-
+	return conv16(native, n << 16) | conv16(native, n >> 16);
+}
 
 /**
  * @}
