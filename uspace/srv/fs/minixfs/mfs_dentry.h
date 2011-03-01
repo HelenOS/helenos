@@ -35,11 +35,13 @@
 
 #include "mfs_const.h"
 
+/*MinixFS V1 directory entry on-disk structure*/
 struct mfs_v1_dentry {
 	uint16_t d_inum;
 	char d_name[V1_MAX_NAME_LEN];
 } __attribute__ ((packed));
 
+/*MinixFS V2 directory entry on-disk structure*/
 struct mfs_v2_dentry {
 	uint32_t d_inum;
 	char d_name[V2_MAX_NAME_LEN];
