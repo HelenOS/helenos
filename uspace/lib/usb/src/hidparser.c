@@ -36,6 +36,8 @@
 #include <errno.h>
 #include <stdio.h>
 #include <adt/list.h>
+#include <malloc.h>
+#include <mem.h>
 
 #define USB_HID_NEW_REPORT_ITEM 0
 
@@ -49,9 +51,9 @@ int usb_hid_report_parse_global_tag(uint8_t tag, uint8_t *data, size_t item_size
 int usb_hid_report_parse_local_tag(uint8_t tag, uint8_t *data, size_t item_size,
                              usb_hid_report_item_t *report_item);
 
-void usb_hid_descriptor_print_list(link_t *head)
+void usb_hid_descriptor_print_list(link_t *head);
 int usb_hid_report_reset_local_items();
-void usb_hid_free_report_list(link_t *list);
+void usb_hid_free_report_list(link_t *head);
 
 /**
  *
@@ -225,7 +227,7 @@ int usb_hid_boot_keyboard_input_report(const uint8_t *data, size_t size,
 	item.logical_maximum = 255;
 
 	if (size != 8) {
-		return ERANGE;
+		return -1; //ERANGE;
 	}
 
 	uint8_t keys[6];
@@ -424,10 +426,11 @@ int usb_hid_report_parse_local_tag(uint8_t tag, uint8_t *data, size_t item_size,
 		case USB_HID_REPORT_TAG_STRING_MAXIMUM:
 			report_item->string_maximum = usb_hid_report_tag_data_int32(data,item_size);
 			break;
+/*			
 		case USB_HID_REPORT_TAG_DELIMITER:
 			report_item->delimiter = usb_hid_report_tag_data_int32(data,item_size);
 			break;
-		
+*/		
 		default:
 			return -1; //TODO ERROR CODE INVALID LOCAL TAG NOW IS ONLY UNSUPPORTED
 	}
@@ -513,19 +516,24 @@ void usb_hid_descriptor_print(usb_hid_report_parser_t *parser)
  *
  * 
  */
-void usb_hid_free_report_list(link_t *list)
+void usb_hid_free_report_list(link_t *head)
 {
+	return; 
+	/*
 	usb_hid_report_item_t *report_item;
 	link_t *item;
 	
 	if(head == NULL || list_empty(head)) {		
-	    return EOK;
+	    return;
 	}
 	    
 	for(item = head->next; item != head; item = item->next) {
 		list_remove(item);
 		free(list_get_instance(item,usb_hid_report_item_t, link));
 	}
+
+	return;
+	*/
 }
 
 /** Free the HID report parser structure 
