@@ -58,6 +58,7 @@
 #include <device/hw_res.h>
 #include <ddi.h>
 #include <libarch/ddi.h>
+#include <pci_dev_iface.h>
 
 #include "pci.h"
 
@@ -120,12 +121,33 @@ static bool pciintel_enable_interrupt(ddf_fun_t *fnode)
 	return true;
 }
 
+static int pci_config_space_write_16(ddf_fun_t *fun, uint32_t address, uint16_t data)
+{
+	if (address > 254)
+		return EINVAL;
+	pci_conf_write_16(PCI_FUN(fun), address, data);
+	return EOK;
+}
+
+
 static hw_res_ops_t pciintel_hw_res_ops = {
 	&pciintel_get_resources,
 	&pciintel_enable_interrupt
 };
 
-static ddf_dev_ops_t pci_fun_ops;
+static pci_dev_iface_t pci_dev_ops = {
+	.config_space_read_8 = NULL,
+	.config_space_read_16 = NULL,
+	.config_space_read_32 = NULL,
+	.config_space_write_8 = NULL,
+	.config_space_write_16 = &pci_config_space_write_16,
+	.config_space_write_32 = NULL
+};
+
+static ddf_dev_ops_t pci_fun_ops = {
+	.interfaces[HW_RES_DEV_IFACE] = &pciintel_hw_res_ops,
+	.interfaces[PCI_DEV_IFACE] = &pci_dev_ops
+};
 
 static int pci_add_device(ddf_dev_t *);
 
@@ -592,6 +614,7 @@ fail:
 static void pciintel_init(void)
 {
 	pci_fun_ops.interfaces[HW_RES_DEV_IFACE] = &pciintel_hw_res_ops;
+	pci_fun_ops.interfaces[PCI_DEV_IFACE] = &pci_dev_ops;
 }
 
 pci_fun_t *pci_fun_new(pci_bus_t *bus)
