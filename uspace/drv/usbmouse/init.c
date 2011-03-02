@@ -91,6 +91,11 @@ static int intialize_poll_pipe(usb_mouse_t *mouse, int my_interface)
 		return ENOENT;
 	}
 
+	mouse->poll_interval_us = 1000 * endpoint_mapping[0].descriptor->poll_interval;
+
+	usb_log_debug("prepared polling endpoint %d (interval %zu).\n",
+	    mouse->poll_pipe.endpoint_no, mouse->poll_interval_us);
+
 	return EOK;
 }
 

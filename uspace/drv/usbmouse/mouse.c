@@ -59,7 +59,7 @@ int usb_mouse_polling_fibril(void *arg)
 	}
 
 	while (true) {
-		async_usleep(10 * 1000);
+		async_usleep(mouse->poll_interval_us);
 
 		size_t actual_size;
 

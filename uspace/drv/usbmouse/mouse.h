@@ -38,6 +38,7 @@
 
 #include <ddf/driver.h>
 #include <usb/pipes.h>
+#include <time.h>
 
 #define NAME "usbmouse"
 
@@ -47,6 +48,7 @@ typedef struct {
 	usb_device_connection_t wire;
 	usb_endpoint_pipe_t ctrl_pipe;
 	usb_endpoint_pipe_t poll_pipe;
+	suseconds_t poll_interval_us;
 } usb_mouse_t;
 
 int usb_mouse_create(ddf_dev_t *);
