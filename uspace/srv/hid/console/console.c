@@ -40,6 +40,7 @@
 #include <ipc/services.h>
 #include <ipc/ns.h>
 #include <errno.h>
+#include <str_error.h>
 #include <ipc/console.h>
 #include <unistd.h>
 #include <async.h>
@@ -63,6 +64,8 @@
 
 #define NAME       "console"
 #define NAMESPACE  "term"
+/** Interval for checking for new keyboard (1/4s). */
+#define HOTPLUG_WATCH_INTERVAL (1000 * 250)
 
 /** Phone to the keyboard driver. */
 static int kbd_phone;
@@ -724,98 +727,42 @@ static int connect_keyboard(char *path)
 		return phone;
 	}
 	
-	/* NB: The callback connection is slotted for removal */
-	sysarg_t phonehash;
-	sysarg_t taskhash;
-	int rc = async_req_3_5(phone, IPC_M_CONNECT_TO_ME, SERVICE_CONSOLE,
-	    0, 0, NULL, NULL, NULL, &taskhash, &phonehash);
+	int rc = async_connect_to_me(phone, SERVICE_CONSOLE, 0, 0,
+	    keyboard_events);
 	if (rc != EOK) {
-		printf(NAME ": Failed to create callback from input device\n");
+		printf(NAME ": " \
+		    "Failed to create callback from input device: %s.\n",
+		    str_error(rc));
 		return rc;
 	}
 	
-	async_new_connection(taskhash, phonehash, 0, NULL, keyboard_events);
-
-	printf(NAME ": we got a hit (new keyboard \"%s\").\n", path);
+	printf(NAME ": found keyboard \"%s\".\n", path);
 
 	return phone;
 }
 
-/** Try to connect to given keyboard, bypassing provided libc routines.
+
+/** Periodically check for new keyboards in /dev/class/.
  *
- * @param devmap_path Path to keyboard without /dev prefix.
- * @return Phone or error code.
+ * @param arg Class name.
+ * @return This function should never exit.
  */
-static int connect_keyboard_bypass(char *devmap_path)
-{
-	int devmap_phone = async_connect_me_to_blocking(PHONE_NS,
-	    SERVICE_DEVMAP, DEVMAP_CLIENT, 0);
-	if (devmap_phone < 0) {
-		return devmap_phone;
-	}
-	ipc_call_t answer;
-	aid_t req = async_send_2(devmap_phone, DEVMAP_DEVICE_GET_HANDLE,
-	    0, 0,  &answer);
-
-	sysarg_t retval = async_data_write_start(devmap_phone,
-	    devmap_path, str_size(devmap_path));
-	if (retval != EOK) {
-		async_wait_for(req, NULL);
-		async_hangup(devmap_phone);
-		return retval;
-	}
-
-	async_wait_for(req, &retval);
-
-	if (retval != EOK) {
-		async_hangup(devmap_phone);
-		return retval;
-	}
-
-	devmap_handle_t handle = (devmap_handle_t) IPC_GET_ARG1(answer);
-
-	async_hangup(devmap_phone);
-
-	int phone = async_connect_me_to(PHONE_NS,
-	    SERVICE_DEVMAP, DEVMAP_CONNECT_TO_DEVICE, handle);
-	if (phone < 0) {
-		return phone;
-	}
-
-	/* NB: The callback connection is slotted for removal */
-	sysarg_t phonehash;
-	sysarg_t taskhash;
-	int rc = async_req_3_5(phone, IPC_M_CONNECT_TO_ME, SERVICE_CONSOLE,
-	    0, 0, NULL, NULL, NULL, &taskhash, &phonehash);
-	if (rc != EOK) {
-		printf(NAME ": Failed to create callback from input device\n");
-		return rc;
-	}
-
-	async_new_connection(taskhash, phonehash, 0, NULL, keyboard_events);
-
-	printf(NAME ": we got a hit (new keyboard \"/dev/%s\").\n",
-	    devmap_path);
-
-	return phone;
-}
-
-
 static int check_new_keyboards(void *arg)
 {
 	char *class_name = (char *) arg;
 
-	int index = 1;
+	size_t index = 1;
 
 	while (true) {
-		async_usleep(1 * 500 * 1000);
+		async_usleep(HOTPLUG_WATCH_INTERVAL);
 		char *path;
-		int rc = asprintf(&path, "class/%s\\%d", class_name, index);
+		int rc = asprintf(&path, "/dev/class/%s\\%zu",
+		    class_name, index);
 		if (rc < 0) {
 			continue;
 		}
 		rc = 0;
-		rc = connect_keyboard_bypass(path);
+		rc = connect_keyboard(path);
 		if (rc > 0) {
 			/* We do not allow unplug. */
 			index++;
