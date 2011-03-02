@@ -503,7 +503,8 @@ int usb_request_get_supported_languages(usb_endpoint_pipe_t *pipe,
  * For HelenOS, that is UTF-8.
  *
  * @param[in] pipe Control endpoint pipe (session must be already started).
- * @param[in] index String index (in native endianess).
+ * @param[in] index String index (in native endianess),
+ *	first index has number 1 (index from descriptors can be used directly).
  * @param[in] lang String language (in native endianess).
  * @param[out] string_ptr Where to store allocated string in native encoding.
  * @return Error code.
@@ -514,8 +515,11 @@ int usb_request_get_string(usb_endpoint_pipe_t *pipe,
 	if (string_ptr == NULL) {
 		return EBADMEM;
 	}
-	/* Index is actually one byte value. */
-	if (index > 0xFF) {
+	/*
+	 * Index is actually one byte value and zero index is used
+	 * to retrieve list of supported languages.
+	 */
+	if ((index < 1) || (index > 0xFF)) {
 		return ERANGE;
 	}
 	/* Language is actually two byte value. */
