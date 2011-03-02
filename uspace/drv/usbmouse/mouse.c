@@ -45,16 +45,29 @@ int usb_mouse_polling_fibril(void *arg)
 
 	assert(mouse);
 
+	size_t buffer_size = mouse->poll_pipe.max_packet_size;
+
+	if (buffer_size < 4) {
+		usb_log_error("Weird mouse, results will be skewed.\n");
+		buffer_size = 4;
+	}
+
+	uint8_t *buffer = malloc(buffer_size);
+	if (buffer == NULL) {
+		usb_log_error("Out of memory, poll fibril aborted.\n");
+		return ENOMEM;
+	}
+
 	while (true) {
 		async_usleep(10 * 1000);
 
-		uint8_t buffer[8];
 		size_t actual_size;
 
 		/* FIXME: check for errors. */
 		usb_endpoint_pipe_start_session(&mouse->poll_pipe);
 
-		usb_endpoint_pipe_read(&mouse->poll_pipe, buffer, 8, &actual_size);
+		usb_endpoint_pipe_read(&mouse->poll_pipe,
+		    buffer, buffer_size, &actual_size);
 
 		usb_endpoint_pipe_end_session(&mouse->poll_pipe);
 

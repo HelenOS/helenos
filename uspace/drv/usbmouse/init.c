@@ -35,11 +35,11 @@
  */
 #include "mouse.h"
 #include <usb/debug.h>
+#include <usb/classes/classes.h>
 #include <usb/classes/hid.h>
 #include <usb/request.h>
 #include <errno.h>
 
-#if 0
 /** Mouse polling endpoint description for boot protocol subclass. */
 static usb_endpoint_description_t poll_endpoint_description = {
 	.transfer_type = USB_TRANSFER_INTERRUPT,
@@ -49,7 +49,50 @@ static usb_endpoint_description_t poll_endpoint_description = {
 	.interface_protocol = USB_HID_PROTOCOL_MOUSE,
 	.flags = 0
 };
-#endif
+
+/** Initialize poll pipe.
+ *
+ * Expects that session is already started on control pipe zero.
+ *
+ * @param mouse Mouse device.
+ * @param my_interface Interface number.
+ * @return Error code.
+ */
+static int intialize_poll_pipe(usb_mouse_t *mouse, int my_interface)
+{
+	assert(usb_endpoint_pipe_is_session_started(&mouse->ctrl_pipe));
+
+	int rc;
+
+	void *config_descriptor;
+	size_t config_descriptor_size;
+
+	rc = usb_request_get_full_configuration_descriptor_alloc(
+	    &mouse->ctrl_pipe, 0, &config_descriptor, &config_descriptor_size);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	usb_endpoint_mapping_t endpoint_mapping[1] = {
+		{
+			.pipe = &mouse->poll_pipe,
+			.description = &poll_endpoint_description,
+			.interface_no = my_interface
+		}
+	};
+
+	rc = usb_endpoint_pipe_initialize_from_configuration(endpoint_mapping,
+	    1, config_descriptor, config_descriptor_size, &mouse->wire);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	if (!endpoint_mapping[0].present) {
+		return ENOENT;
+	}
+
+	return EOK;
+}
 
 
 int usb_mouse_create(ddf_dev_t *dev)
@@ -75,9 +118,16 @@ int usb_mouse_create(ddf_dev_t *dev)
 		goto leave;
 	}
 
-	/* FIXME: initialize to the proper endpoint. */
-	rc = usb_endpoint_pipe_initialize(&mouse->poll_pipe, &mouse->wire,
-	    1, USB_TRANSFER_INTERRUPT, 8, USB_DIRECTION_IN);
+	rc = usb_endpoint_pipe_start_session(&mouse->ctrl_pipe);
+	if (rc != EOK) {
+		goto leave;
+	}
+
+	rc = intialize_poll_pipe(mouse, usb_device_get_assigned_interface(dev));
+
+	/* We can ignore error here. */
+	usb_endpoint_pipe_end_session(&mouse->ctrl_pipe);
+
 	if (rc != EOK) {
 		goto leave;
 	}
