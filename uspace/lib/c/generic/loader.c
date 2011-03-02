@@ -159,6 +159,7 @@ int loader_set_pathname(loader_t *ldr, const char *path)
 	aid_t req = async_send_0(ldr->phone_id, LOADER_SET_PATHNAME, &answer);
 	int rc = async_data_write_start(ldr->phone_id, (void *) pa, pa_len);
 	if (rc != EOK) {
+		free(pa);
 		async_wait_for(req, NULL);
 		return rc;
 	}

@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2006 Martin Decky
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,40 +26,43 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef BOOT_sparc64_ARCH_H_
-#define BOOT_sparc64_ARCH_H_
+/** @addtogroup libdrv
+ * @addtogroup usb
+ * @{
+ */
+/** @file
+ * @brief PCI device interface definition.
+ */
 
-#define PAGE_WIDTH  14
-#define PAGE_SIZE   (1 << PAGE_WIDTH)
+#ifndef LIBDRV_PCI_DEV_IFACE_H_
+#define LIBDRV_PCI_DEV_IFACE_H_
 
-#define LOADER_ADDRESS  0x004000
-#define KERNEL_ADDRESS  0x400000
+#include "ddf/driver.h"
 
-#define STACK_SIZE                   8192
-#define STACK_ALIGNMENT              16
-#define STACK_BIAS                   2047
-#define STACK_WINDOW_SAVE_AREA_SIZE  (16 * 8)
-#define STACK_ARG_SAVE_AREA_SIZE     (6 * 8)
+typedef enum {
+	IPC_M_CONFIG_SPACE_READ_8,
+	IPC_M_CONFIG_SPACE_READ_16,
+	IPC_M_CONFIG_SPACE_READ_32,
 
-#define NWINDOWS  8
+	IPC_M_CONFIG_SPACE_WRITE_8,
+	IPC_M_CONFIG_SPACE_WRITE_16,
+	IPC_M_CONFIG_SPACE_WRITE_32
+} pci_dev_iface_funcs_t;
 
-#define PSTATE_IE_BIT    2
-#define PSTATE_PRIV_BIT  4
-#define PSTATE_AM_BIT    8
+/** PCI device communication interface. */
+typedef struct {
+	int (*config_space_read_8)(ddf_fun_t *, uint32_t address, uint8_t *data);
+	int (*config_space_read_16)(ddf_fun_t *, uint32_t address, uint16_t *data);
+	int (*config_space_read_32)(ddf_fun_t *, uint32_t address, uint32_t *data);
 
-#define ASI_ICBUS_CONFIG        0x4a
-#define ICBUS_CONFIG_MID_SHIFT  17
+	int (*config_space_write_8)(ddf_fun_t *, uint32_t address, uint8_t data);
+	int (*config_space_write_16)(ddf_fun_t *, uint32_t address, uint16_t data);
+	int (*config_space_write_32)(ddf_fun_t *, uint32_t address, uint32_t data);
+} pci_dev_iface_t;
 
-/** Constants to distinguish particular UltraSPARC architecture */
-#define ARCH_SUN4U  10
-#define ARCH_SUN4V  20
-
-/** Constants to distinguish particular UltraSPARC subarchitecture */
-#define SUBARCH_UNKNOWN  0
-#define SUBARCH_US       1
-#define SUBARCH_US3      3
-
-#define BSP_PROCESSOR  1
-#define AP_PROCESSOR   0
 
 #endif
+/**
+ * @}
+ */
+

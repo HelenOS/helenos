@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2006 Martin Decky
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2011 Lubos Slovak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,40 +26,50 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef BOOT_sparc64_ARCH_H_
-#define BOOT_sparc64_ARCH_H_
+/** @addtogroup drvusbhid
+ * @{
+ */
+/** @file
+ * USB HID keyboard device structure and API.
+ */
 
-#define PAGE_WIDTH  14
-#define PAGE_SIZE   (1 << PAGE_WIDTH)
+#ifndef USBHID_KBDDEV_H_
+#define USBHID_KBDDEV_H_
 
-#define LOADER_ADDRESS  0x004000
-#define KERNEL_ADDRESS  0x400000
+#include <stdint.h>
 
-#define STACK_SIZE                   8192
-#define STACK_ALIGNMENT              16
-#define STACK_BIAS                   2047
-#define STACK_WINDOW_SAVE_AREA_SIZE  (16 * 8)
-#define STACK_ARG_SAVE_AREA_SIZE     (6 * 8)
+#include <usb/classes/hid.h>
+#include <ddf/driver.h>
+#include <usb/pipes.h>
 
-#define NWINDOWS  8
+#include "hiddev.h"
 
-#define PSTATE_IE_BIT    2
-#define PSTATE_PRIV_BIT  4
-#define PSTATE_AM_BIT    8
+/*----------------------------------------------------------------------------*/
 
-#define ASI_ICBUS_CONFIG        0x4a
-#define ICBUS_CONFIG_MID_SHIFT  17
+/**
+ * @brief USB/HID keyboard device type.
+ */
+typedef struct {
+	usbhid_dev_t *hid_dev;
+	
+	uint8_t *keycodes;
+	size_t keycode_count;
+	uint8_t modifiers;
+	
+	unsigned mods;
+	unsigned lock_keys;
+	
+	int console_phone;
+	
+	int initialized;
+} usbhid_kbd_t;
 
-/** Constants to distinguish particular UltraSPARC architecture */
-#define ARCH_SUN4U  10
-#define ARCH_SUN4V  20
+/*----------------------------------------------------------------------------*/
 
-/** Constants to distinguish particular UltraSPARC subarchitecture */
-#define SUBARCH_UNKNOWN  0
-#define SUBARCH_US       1
-#define SUBARCH_US3      3
+int usbhid_kbd_try_add_device(ddf_dev_t *dev);
 
-#define BSP_PROCESSOR  1
-#define AP_PROCESSOR   0
+#endif /* USBHID_KBDDEV_H_ */
 
-#endif
+/**
+ * @}
+ */

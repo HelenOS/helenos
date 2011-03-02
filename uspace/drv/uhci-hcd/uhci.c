@@ -89,7 +89,7 @@ static ddf_dev_ops_t uhci_ops = {
 	.interfaces[USB_DEV_IFACE] = &hc_usb_iface,
 	.interfaces[USBHC_DEV_IFACE] = &uhci_iface,
 };
-
+/*----------------------------------------------------------------------------*/
 static int uhci_init_transfer_lists(uhci_t *instance);
 static int uhci_init_mem_structures(uhci_t *instance);
 static void uhci_init_hw(uhci_t *instance);
@@ -114,34 +114,37 @@ int uhci_init(uhci_t *instance, ddf_dev_t *dev, void *regs, size_t reg_size)
 		return ret; \
 	} else (void) 0
 
-	/*
-	 * Create UHCI function.
-	 */
+	/* Create UHCI function. */
 	instance->ddf_instance = ddf_fun_create(dev, fun_exposed, "uhci");
 	ret = (instance->ddf_instance == NULL) ? ENOMEM : EOK;
-	CHECK_RET_DEST_FUN_RETURN(ret, "Failed to create UHCI device function.\n");
+	CHECK_RET_DEST_FUN_RETURN(ret,
+	    "Failed to create UHCI device function.\n");
 
 	instance->ddf_instance->ops = &uhci_ops;
 	instance->ddf_instance->driver_data = instance;
 
 	ret = ddf_fun_bind(instance->ddf_instance);
-	CHECK_RET_DEST_FUN_RETURN(ret, "Failed(%d) to bind UHCI device function: %s.\n",
+	CHECK_RET_DEST_FUN_RETURN(ret,
+	    "Failed(%d) to bind UHCI device function: %s.\n",
 	    ret, str_error(ret));
 
 	/* allow access to hc control registers */
 	regs_t *io;
 	ret = pio_enable(regs, reg_size, (void**)&io);
-	CHECK_RET_DEST_FUN_RETURN(ret, "Failed(%d) to gain access to registers at %p: %s.\n",
+	CHECK_RET_DEST_FUN_RETURN(ret,
+	    "Failed(%d) to gain access to registers at %p: %s.\n",
 	    ret, str_error(ret), io);
 	instance->registers = io;
-	usb_log_debug("Device registers at %p(%u) accessible.\n", io, reg_size);
+	usb_log_debug("Device registers at %p(%u) accessible.\n",
+	    io, reg_size);
 
 	ret = uhci_init_mem_structures(instance);
-	CHECK_RET_DEST_FUN_RETURN(ret, "Failed to initialize UHCI memory structures.\n");
+	CHECK_RET_DEST_FUN_RETURN(ret,
+	    "Failed to initialize UHCI memory structures.\n");
 
 	uhci_init_hw(instance);
-
-	instance->cleaner = fibril_create(uhci_interrupt_emulator, instance);
+	instance->cleaner =
+	    fibril_create(uhci_interrupt_emulator, instance);
 	fibril_add_ready(instance->cleaner);
 
 	instance->debug_checker = fibril_create(uhci_debug_checker, instance);
@@ -154,6 +157,8 @@ int uhci_init(uhci_t *instance, ddf_dev_t *dev, void *regs, size_t reg_size)
 /*----------------------------------------------------------------------------*/
 void uhci_init_hw(uhci_t *instance)
 {
+	assert(instance);
+
 	/* reset everything, who knows what touched it before us */
 	pio_write_16(&instance->registers->usbcmd, UHCI_CMD_GLOBAL_RESET);
 	async_usleep(10000); /* 10ms according to USB spec */
@@ -170,7 +175,7 @@ void uhci_init_hw(uhci_t *instance)
 
 	/* enable all interrupts, but resume interrupt */
 	pio_write_16(&instance->registers->usbintr,
-		  UHCI_INTR_CRC | UHCI_INTR_COMPLETE | UHCI_INTR_SHORT_PACKET);
+	    UHCI_INTR_CRC | UHCI_INTR_COMPLETE | UHCI_INTR_SHORT_PACKET);
 
 	/* Start the hc with large(64B) packet FSBR */
 	pio_write_16(&instance->registers->usbcmd,
@@ -199,7 +204,7 @@ int uhci_init_mem_structures(uhci_t *instance)
 		interrupt_commands[0].addr = (void*)&instance->registers->usbsts;
 		interrupt_commands[1].addr = (void*)&instance->registers->usbsts;
 		instance->interrupt_code.cmdcount =
-				sizeof(uhci_cmds) / sizeof(irq_cmd_t);
+		    sizeof(uhci_cmds) / sizeof(irq_cmd_t);
 	}
 
 	/* init transfer lists */
@@ -248,10 +253,13 @@ int uhci_init_transfer_lists(uhci_t *instance)
 	int ret;
 	ret = transfer_list_init(&instance->transfers_bulk_full, "BULK_FULL");
 	CHECK_RET_CLEAR_RETURN(ret, "Failed to init BULK list.");
+
 	ret = transfer_list_init(&instance->transfers_control_full, "CONTROL_FULL");
 	CHECK_RET_CLEAR_RETURN(ret, "Failed to init CONTROL FULL list.");
+
 	ret = transfer_list_init(&instance->transfers_control_slow, "CONTROL_SLOW");
 	CHECK_RET_CLEAR_RETURN(ret, "Failed to init CONTROL SLOW list.");
+
 	ret = transfer_list_init(&instance->transfers_interrupt, "INTERRUPT");
 	CHECK_RET_CLEAR_RETURN(ret, "Failed to init INTERRUPT list.");
 
@@ -291,7 +299,7 @@ int uhci_schedule(uhci_t *instance, batch_t *batch)
 	if (!allowed_usb_packet(
 	    low_speed, batch->transfer_type, batch->max_packet_size)) {
 		usb_log_warning("Invalid USB packet specified %s SPEED %d %zu.\n",
-			  low_speed ? "LOW" : "FULL" , batch->transfer_type,
+		    low_speed ? "LOW" : "FULL" , batch->transfer_type,
 		    batch->max_packet_size);
 		return ENOTSUP;
 	}
@@ -308,9 +316,6 @@ int uhci_schedule(uhci_t *instance, batch_t *batch)
 void uhci_interrupt(uhci_t *instance, uint16_t status)
 {
 	assert(instance);
-//	if ((status & (UHCI_STATUS_INTERRUPT | UHCI_STATUS_ERROR_INTERRUPT)) == 0)
-//		return;
-//	usb_log_debug2("UHCI interrupt: %X.\n", status);
 	transfer_list_remove_finished(&instance->transfers_interrupt);
 	transfer_list_remove_finished(&instance->transfers_control_slow);
 	transfer_list_remove_finished(&instance->transfers_control_full);
@@ -339,10 +344,16 @@ int uhci_debug_checker(void *arg)
 {
 	uhci_t *instance = (uhci_t*)arg;
 	assert(instance);
+
+#define QH(queue) \
+	instance->transfers_##queue.queue_head
+
 	while (1) {
 		const uint16_t cmd = pio_read_16(&instance->registers->usbcmd);
 		const uint16_t sts = pio_read_16(&instance->registers->usbsts);
-		const uint16_t intr = pio_read_16(&instance->registers->usbintr);
+		const uint16_t intr =
+		    pio_read_16(&instance->registers->usbintr);
+
 		if (((cmd & UHCI_CMD_RUN_STOP) != 1) || (sts != 0)) {
 			usb_log_debug2("Command: %X Status: %X Intr: %x\n",
 			    cmd, sts, intr);
@@ -352,60 +363,59 @@ int uhci_debug_checker(void *arg)
 		    pio_read_32(&instance->registers->flbaseadd) & ~0xfff;
 		if (frame_list != addr_to_phys(instance->frame_list)) {
 			usb_log_debug("Framelist address: %p vs. %p.\n",
-				frame_list, addr_to_phys(instance->frame_list));
+			    frame_list, addr_to_phys(instance->frame_list));
 		}
+
 		int frnum = pio_read_16(&instance->registers->frnum) & 0x3ff;
 		usb_log_debug2("Framelist item: %d \n", frnum );
 
-		queue_head_t* qh = instance->transfers_interrupt.queue_head;
-
-		if ((instance->frame_list[frnum] & (~0xf)) != (uintptr_t)addr_to_phys(qh)) {
+		uintptr_t expected_pa = instance->frame_list[frnum] & (~0xf);
+		uintptr_t real_pa = addr_to_phys(QH(interrupt));
+		if (expected_pa != real_pa) {
 			usb_log_debug("Interrupt QH: %p vs. %p.\n",
-				instance->frame_list[frnum] & (~0xf), addr_to_phys(qh));
+			    expected_pa, real_pa);
 		}
 
-		if ((qh->next_queue & (~0xf))
-		  != (uintptr_t)addr_to_phys(instance->transfers_control_slow.queue_head)) {
-			usb_log_debug("Control Slow QH: %p vs. %p.\n", qh->next_queue & (~0xf),
-				addr_to_phys(instance->transfers_control_slow.queue_head));
+		expected_pa = QH(interrupt)->next_queue & (~0xf);
+		real_pa = addr_to_phys(QH(control_slow));
+		if (expected_pa != real_pa) {
+			usb_log_debug("Control Slow QH: %p vs. %p.\n",
+			    expected_pa, real_pa);
 		}
-		qh = instance->transfers_control_slow.queue_head;
 
-		if ((qh->next_queue & (~0xf))
-		  != (uintptr_t)addr_to_phys(instance->transfers_control_full.queue_head)) {
-			usb_log_debug("Control Full QH: %p vs. %p.\n", qh->next_queue & (~0xf),
-				addr_to_phys(instance->transfers_control_full.queue_head));\
+		expected_pa = QH(control_slow)->next_queue & (~0xf);
+		real_pa = addr_to_phys(QH(control_full));
+		if (expected_pa != real_pa) {
+			usb_log_debug("Control Full QH: %p vs. %p.\n",
+			    expected_pa, real_pa);
 		}
-		qh = instance->transfers_control_full.queue_head;
 
-		if ((qh->next_queue & (~0xf))
-		  != (uintptr_t)addr_to_phys(instance->transfers_bulk_full.queue_head)) {
-			usb_log_debug("Bulk QH: %p vs. %p.\n", qh->next_queue & (~0xf),
-				addr_to_phys(instance->transfers_bulk_full.queue_head));
+		expected_pa = QH(control_full)->next_queue & (~0xf);
+		real_pa = addr_to_phys(QH(bulk_full));
+		if (expected_pa != real_pa ) {
+			usb_log_debug("Bulk QH: %p vs. %p.\n",
+			    expected_pa, real_pa);
 		}
-/*
-	uint16_t cmd = pio_read_16(&instance->registers->usbcmd);
-	cmd |= UHCI_CMD_RUN_STOP;
-	pio_write_16(&instance->registers->usbcmd, cmd);
-*/
 		async_usleep(UHCI_DEBUGER_TIMEOUT);
 	}
 	return 0;
+#undef QH
 }
 /*----------------------------------------------------------------------------*/
 bool allowed_usb_packet(
-	bool low_speed, usb_transfer_type_t transfer, size_t size)
+    bool low_speed, usb_transfer_type_t transfer, size_t size)
 {
 	/* see USB specification chapter 5.5-5.8 for magic numbers used here */
-	switch(transfer) {
-		case USB_TRANSFER_ISOCHRONOUS:
-			return (!low_speed && size < 1024);
-		case USB_TRANSFER_INTERRUPT:
-			return size <= (low_speed ? 8 : 64);
-		case USB_TRANSFER_CONTROL: /* device specifies its own max size */
-			return (size <= (low_speed ? 8 : 64));
-		case USB_TRANSFER_BULK: /* device specifies its own max size */
-			return (!low_speed && size <= 64);
+	switch(transfer)
+	{
+	case USB_TRANSFER_ISOCHRONOUS:
+		return (!low_speed && size < 1024);
+	case USB_TRANSFER_INTERRUPT:
+		return size <= (low_speed ? 8 : 64);
+	case USB_TRANSFER_CONTROL: /* device specifies its own max size */
+		return (size <= (low_speed ? 8 : 64));
+	case USB_TRANSFER_BULK: /* device specifies its own max size */
+		return (!low_speed && size <= 64);
 	}
 	return false;
 }

@@ -1,6 +1,5 @@
 #
-# Copyright (c) 2005 Martin Decky
-# Copyright (c) 2007 Jakub Jermar
+# Copyright (c) 2011 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,17 +26,37 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-USPACE_PREFIX = ../..
-EXTRA_CFLAGS = -Iinclude -I$(LIBUSB_PREFIX)/include
-LIBRARY = libdrv
+-include ../version
+-include ../Makefile.config
+-include ../boot/arch/$(BARCH)/Makefile.inc
+-include ../boot/Makefile.common
 
-SOURCES = \
-	generic/driver.c \
-	generic/dev_iface.c \
-	generic/remote_char_dev.c \
-	generic/remote_hw_res.c \
-	generic/remote_usb.c \
-	generic/remote_pci.c \
-	generic/remote_usbhc.c
+PROFILES = amd64 arm32/GXemul arm32/integratorcp arm32/gta02 ia32 \
+    ia64/i460GX ia64/ski mips32/GXemul mips32/msim sparc64/niagara \
+    sparc64/serengeti sparc64/ultra
 
-include $(USPACE_PREFIX)/Makefile.common
+ifdef POST_OUTPUT
+	IMGFILE = $(POST_OUTPUT)
+else
+	IMGFILE = $(BOOT_OUTPUT)
+endif
+
+SUFFIX = $(suffix $(IMGFILE))
+DISTFILE = HelenOS-$(RELEASE)-$(PLATFORM)-$(MACHINE)-$(PROCESSOR)$(SUFFIX)
+
+.PHONY: all clean dist distfile
+
+all: distfile
+distfile: $(DISTFILE)
+
+$(DISTFILE): $(IMGFILE)
+	cp $< $@
+
+dist:
+	for profile in $(PROFILES); do \
+		$(MAKE) -C .. clean ; \
+		$(MAKE) -C .. PROFILE=$$profile distfile ; \
+	done
+
+clean:
+	rm -f $(DISTFILE)

@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2006 Martin Decky
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2011 Lubos Slovak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,40 +26,57 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef BOOT_sparc64_ARCH_H_
-#define BOOT_sparc64_ARCH_H_
+/** @addtogroup drvusbhid
+ * @{
+ */
+/** @file
+ * Generic USB HID device structure and API.
+ */
 
-#define PAGE_WIDTH  14
-#define PAGE_SIZE   (1 << PAGE_WIDTH)
+#ifndef USBHID_HIDDEV_H_
+#define USBHID_HIDDEV_H_
 
-#define LOADER_ADDRESS  0x004000
-#define KERNEL_ADDRESS  0x400000
+#include <stdint.h>
 
-#define STACK_SIZE                   8192
-#define STACK_ALIGNMENT              16
-#define STACK_BIAS                   2047
-#define STACK_WINDOW_SAVE_AREA_SIZE  (16 * 8)
-#define STACK_ARG_SAVE_AREA_SIZE     (6 * 8)
+#include <ddf/driver.h>
 
-#define NWINDOWS  8
+#include <usb/classes/hid.h>
+#include <usb/pipes.h>
+#include <usb/classes/hidparser.h>
 
-#define PSTATE_IE_BIT    2
-#define PSTATE_PRIV_BIT  4
-#define PSTATE_AM_BIT    8
+/*----------------------------------------------------------------------------*/
 
-#define ASI_ICBUS_CONFIG        0x4a
-#define ICBUS_CONFIG_MID_SHIFT  17
+/**
+ * @brief USB/HID device type.
+ */
+typedef struct {
+	ddf_dev_t *device;
 
-/** Constants to distinguish particular UltraSPARC architecture */
-#define ARCH_SUN4U  10
-#define ARCH_SUN4V  20
+	usb_device_connection_t wire;
+	usb_endpoint_pipe_t ctrl_pipe;
+	usb_endpoint_pipe_t poll_pipe;
+	
+	uint16_t iface;
+	
+	uint8_t *report_desc;
+	usb_hid_report_parser_t *parser;
+	
+	int initialized;
+} usbhid_dev_t;
 
-/** Constants to distinguish particular UltraSPARC subarchitecture */
-#define SUBARCH_UNKNOWN  0
-#define SUBARCH_US       1
-#define SUBARCH_US3      3
+/*----------------------------------------------------------------------------*/
 
-#define BSP_PROCESSOR  1
-#define AP_PROCESSOR   0
+usbhid_dev_t *usbhid_dev_new(void);
 
-#endif
+void usbhid_dev_free(usbhid_dev_t **hid_dev);
+
+int usbhid_dev_init(usbhid_dev_t *hid_dev, ddf_dev_t *dev,
+    usb_endpoint_description_t *poll_ep_desc);
+
+/*----------------------------------------------------------------------------*/
+
+#endif /* USBHID_HIDDEV_H_ */
+
+/**
+ * @}
+ */
