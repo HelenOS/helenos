@@ -244,6 +244,12 @@
 	 */
 
 	/**
+	 * @defgroup drvusbmouse USB mouse driver
+	 * @ingroup usb
+	 * @brief USB driver for mouse with boot protocol.
+	 */
+
+	/**
 	 * @defgroup drvusbuhci UHCI driver
 	 * @ingroup usb
 	 * @brief Driver for USB host controller UHCI.

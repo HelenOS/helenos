@@ -714,7 +714,8 @@ static void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
 	change_console(prev_console);
 }
 
-static int connect_keyboard(char *path)
+static int connect_keyboard_or_mouse(const char *devname,
+    async_client_conn_t handler, const char *path)
 {
 	int fd = open(path, O_RDONLY);
 	if (fd < 0) {
@@ -727,8 +728,7 @@ static int connect_keyboard(char *path)
 		return phone;
 	}
 	
-	int rc = async_connect_to_me(phone, SERVICE_CONSOLE, 0, 0,
-	    keyboard_events);
+	int rc = async_connect_to_me(phone, SERVICE_CONSOLE, 0, 0, handler);
 	if (rc != EOK) {
 		printf(NAME ": " \
 		    "Failed to create callback from input device: %s.\n",
@@ -736,20 +736,34 @@ static int connect_keyboard(char *path)
 		return rc;
 	}
 	
-	printf(NAME ": found keyboard \"%s\".\n", path);
+	printf(NAME ": found %s \"%s\".\n", devname, path);
 
 	return phone;
 }
 
+static int connect_keyboard(const char *path)
+{
+	return connect_keyboard_or_mouse("keyboard", keyboard_events, path);
+}
+
+static int connect_mouse(const char *path)
+{
+	return connect_keyboard_or_mouse("mouse", mouse_events, path);
+}
+
+struct hid_class_info {
+	char *classname;
+	int (*connection_func)(const char *);
+};
 
 /** Periodically check for new keyboards in /dev/class/.
  *
  * @param arg Class name.
  * @return This function should never exit.
  */
-static int check_new_keyboards(void *arg)
+static int check_new_device_fibril(void *arg)
 {
-	char *class_name = (char *) arg;
+	struct hid_class_info *dev_info = arg;
 
 	size_t index = 1;
 
@@ -757,12 +771,12 @@ static int check_new_keyboards(void *arg)
 		async_usleep(HOTPLUG_WATCH_INTERVAL);
 		char *path;
 		int rc = asprintf(&path, "/dev/class/%s\\%zu",
-		    class_name, index);
+		    dev_info->classname, index);
 		if (rc < 0) {
 			continue;
 		}
 		rc = 0;
-		rc = connect_keyboard(path);
+		rc = dev_info->connection_func(path);
 		if (rc > 0) {
 			/* We do not allow unplug. */
 			index++;
@@ -777,11 +791,30 @@ static int check_new_keyboards(void *arg)
 
 /** Start a fibril monitoring hot-plugged keyboards.
  */
-static void check_new_keyboards_in_background()
+static void check_new_devices_in_background(int (*connection_func)(const char *),
+    const char *classname)
 {
-	fid_t fid = fibril_create(check_new_keyboards, (void *)"keyboard");
+	struct hid_class_info *dev_info = malloc(sizeof(struct hid_class_info));
+	if (dev_info == NULL) {
+		printf(NAME ": " \
+		    "out of memory, will not start hot-plug-watch fibril.\n");
+		return;
+	}
+	int rc;
+
+	rc = asprintf(&dev_info->classname, "%s", classname);
+	if (rc < 0) {
+		printf(NAME ": failed to format classname: %s.\n",
+		    str_error(rc));
+		return;
+	}
+	dev_info->connection_func = connection_func;
+
+	fid_t fid = fibril_create(check_new_device_fibril, (void *)dev_info);
 	if (!fid) {
-		printf(NAME ": failed to create hot-plug-watch fibril.\n");
+		printf(NAME
+		    ": failed to create hot-plug-watch fibril for %s.\n",
+		    classname);
 		return;
 	}
 	fibril_add_ready(fid);
@@ -795,29 +828,11 @@ static bool console_init(char *input)
 		return false;
 	}
 
-	/* Connect to mouse device */
-	mouse_phone = -1;
-	int mouse_fd = open("/dev/hid_in/mouse", O_RDONLY);
-	
-	if (mouse_fd < 0) {
-		printf(NAME ": Notice - failed opening %s\n", "/dev/hid_in/mouse");
-		goto skip_mouse;
-	}
-	
-	mouse_phone = fd_phone(mouse_fd);
+	mouse_phone = connect_mouse("/dev/hid_in/mouse");
 	if (mouse_phone < 0) {
-		printf(NAME ": Failed to connect to mouse device\n");
-		goto skip_mouse;
+		printf(NAME ": Failed to connect to mouse device: %s.\n",
+		    str_error(mouse_phone));
 	}
-	
-	if (async_connect_to_me(mouse_phone, SERVICE_CONSOLE, 0, 0, mouse_events)
-	    != 0) {
-		printf(NAME ": Failed to create callback from mouse device\n");
-		mouse_phone = -1;
-		goto skip_mouse;
-	}
-	
-skip_mouse:
 	
 	/* Connect to framebuffer driver */
 	fb_info.phone = service_connect_blocking(SERVICE_VIDEO, 0, 0);
@@ -901,7 +916,8 @@ skip_mouse:
 		printf(NAME ": Error registering kconsole notifications\n");
 	
 	/* Start fibril for checking on hot-plugged keyboards. */
-	check_new_keyboards_in_background();
+	check_new_devices_in_background(connect_keyboard, "keyboard");
+	check_new_devices_in_background(connect_mouse, "mouse");
 
 	return true;
 }

@@ -105,6 +105,8 @@ int usb_request_get_bare_configuration_descriptor(usb_endpoint_pipe_t *, int,
     usb_standard_configuration_descriptor_t *);
 int usb_request_get_full_configuration_descriptor(usb_endpoint_pipe_t *, int,
     void *, size_t, size_t *);
+int usb_request_get_full_configuration_descriptor_alloc(usb_endpoint_pipe_t *,
+    int, void **, size_t *);
 int usb_request_set_configuration(usb_endpoint_pipe_t *, uint8_t);
 
 int usb_request_get_supported_languages(usb_endpoint_pipe_t *,
