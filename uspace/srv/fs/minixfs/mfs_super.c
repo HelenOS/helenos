@@ -94,32 +94,20 @@ void mfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 
 static bool check_magic_number(int16_t magic, bool *native, mfs_version_t *version)
 {
-	*native = true;
-
-repeat_check:
-
-	switch (*native ? magic : conv16(false, magic)) {
-	case MFS_MAGIC_V1:
+	if (magic == MFS_MAGIC_V1 || magic == MFS_MAGIC_V1R) {
+		*native = magic == MFS_MAGIC_V1;
 		*version = MFS_VERSION_V1;
 		return true;
-	case MFS_MAGIC_V2:
+	} else if (magic == MFS_MAGIC_V2 || magic == MFS_MAGIC_V2R) {
+		*native = magic == MFS_MAGIC_V2;
 		*version = MFS_VERSION_V2;
 		return true;
-	case MFS_MAGIC_V3:
+	} else if (magic == MFS_MAGIC_V3 || magic == MFS_MAGIC_V3R) {
+		*native = magic == MFS_MAGIC_V3;
 		*version = MFS_VERSION_V3;
 		return true;
-	default:
-		;
 	}
 
-	if (*native) {
-		*native = false;
-		goto repeat_check;
-	} else {
-		return false;
-	}
-
-	/*Should never happens*/
 	return false;
 }
 

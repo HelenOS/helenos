@@ -37,8 +37,13 @@
 #include "../../vfs/vfs.h"
 
 #define MFS_MAGIC_V1		0x137F
+#define MFS_MAGIC_V1R		0x7F13
+
 #define MFS_MAGIC_V2		0x2468
+#define MFS_MAGIC_V2R		0x6824
+
 #define MFS_MAGIC_V3		0x4D5A
+#define MFS_MAGIC_V3R		0x5A4D
 
 struct mfs_superblock {
 	/*Total number of inodes on the device*/
