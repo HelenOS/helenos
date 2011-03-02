@@ -40,8 +40,6 @@
 
 static int usbmouse_add_device(ddf_dev_t *dev)
 {
-	usb_log_info("Detected USB mouse to control.\n");
-
 	int rc = usb_mouse_create(dev);
 	if (rc != EOK) {
 		usb_log_error("Failed to initialize device driver: %s.\n",
@@ -57,6 +55,9 @@ static int usbmouse_add_device(ddf_dev_t *dev)
 	}
 
 	fibril_add_ready(poll_fibril);
+
+	usb_log_info("controlling new mouse (handle %llu).\n",
+	    dev->handle);
 
 	return EOK;
 }
