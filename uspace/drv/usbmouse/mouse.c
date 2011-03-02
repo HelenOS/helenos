@@ -36,6 +36,7 @@
 #include "mouse.h"
 #include <usb/debug.h>
 #include <errno.h>
+#include <ipc/mouse.h>
 
 int usb_mouse_polling_fibril(void *arg)
 {
@@ -91,6 +92,22 @@ int usb_mouse_polling_fibril(void *arg)
 		}
 		if (buffer[3] == 0) {
 			wheel = 0;
+		}
+
+		if (mouse->console_phone >= 0) {
+			if ((shift_x != 0) || (shift_y != 0)) {
+				/* FIXME: guessed for QEMU */
+				async_req_2_0(mouse->console_phone,
+				    MEVENT_MOVE,
+				    - shift_x / 10,  - shift_y / 10);
+			}
+			if (butt) {
+				/* FIXME: proper button clicking. */
+				async_req_2_0(mouse->console_phone,
+				    MEVENT_BUTTON, 1, 1);
+				async_req_2_0(mouse->console_phone,
+				    MEVENT_BUTTON, 1, 0);
+			}
 		}
 
 		usb_log_debug("buttons=%s  dX=%+3d  dY=%+3d  wheel=%+3d\n",

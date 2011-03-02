@@ -99,6 +99,41 @@ static int intialize_poll_pipe(usb_mouse_t *mouse, int my_interface)
 	return EOK;
 }
 
+static void default_connection_handler(ddf_fun_t *, ipc_callid_t, ipc_call_t *);
+static ddf_dev_ops_t mouse_ops = {
+	.default_handler = default_connection_handler
+};
+
+/** Default handler for IPC methods not handled by DDF.
+ *
+ * @param dev Device handling the call.
+ * @param icallid Call id.
+ * @param icall Call data.
+ */
+void default_connection_handler(ddf_fun_t *fun,
+    ipc_callid_t icallid, ipc_call_t *icall)
+{
+	sysarg_t method = IPC_GET_IMETHOD(*icall);
+
+	usb_mouse_t *mouse = (usb_mouse_t *) fun->driver_data;
+	assert(mouse != NULL);
+
+	if (method == IPC_M_CONNECT_TO_ME) {
+		int callback = IPC_GET_ARG5(*icall);
+
+		if (mouse->console_phone != -1) {
+			async_answer_0(icallid, ELIMIT);
+			return;
+		}
+
+		mouse->console_phone = callback;
+		async_answer_0(icallid, EOK);
+		return;
+	}
+
+	async_answer_0(icallid, EINVAL);
+}
+
 
 int usb_mouse_create(ddf_dev_t *dev)
 {
@@ -107,6 +142,7 @@ int usb_mouse_create(ddf_dev_t *dev)
 		return ENOMEM;
 	}
 	mouse->device = dev;
+	mouse->console_phone = -1;
 
 	int rc;
 
@@ -143,6 +179,9 @@ int usb_mouse_create(ddf_dev_t *dev)
 		rc = ENOMEM;
 		goto leave;
 	}
+
+	mouse->mouse_fun->ops = &mouse_ops;
+
 	rc = ddf_fun_bind(mouse->mouse_fun);
 	if (rc != EOK) {
 		goto leave;
@@ -156,6 +195,7 @@ int usb_mouse_create(ddf_dev_t *dev)
 
 	/* Everything allright. */
 	dev->driver_data = mouse;
+	mouse->mouse_fun->driver_data = mouse;
 
 	return EOK;
 

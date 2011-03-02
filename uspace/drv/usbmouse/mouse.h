@@ -49,6 +49,7 @@ typedef struct {
 	usb_endpoint_pipe_t ctrl_pipe;
 	usb_endpoint_pipe_t poll_pipe;
 	suseconds_t poll_interval_us;
+	int console_phone;
 } usb_mouse_t;
 
 int usb_mouse_create(ddf_dev_t *);
