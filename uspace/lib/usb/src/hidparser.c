@@ -524,21 +524,25 @@ void usb_hid_descriptor_print(usb_hid_report_parser_t *parser)
 void usb_hid_free_report_list(link_t *head)
 {
 	return; 
-	/*
+	
 	usb_hid_report_item_t *report_item;
-	link_t *item;
+	link_t *next;
 	
 	if(head == NULL || list_empty(head)) {		
 	    return;
 	}
+	
+	next = head->next;
+	while(next != head) {
+	
+	    report_item = list_get_instance(next, usb_hid_report_item_t, link);
+	    next = next->next;
 	    
-	for(item = head->next; item != head; item = item->next) {
-		list_remove(item);
-		free(list_get_instance(item,usb_hid_report_item_t, link));
+	    free(report_item);
 	}
-
+	
 	return;
-	*/
+	
 }
 
 /** Free the HID report parser structure 
