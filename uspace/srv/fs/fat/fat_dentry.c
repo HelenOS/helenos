@@ -41,7 +41,7 @@
 
 static bool is_d_char(const char ch)
 {
-	if (isalnum(ch) || ch == '_')
+	if (isalnum(ch) || ch == '_' || ch == '-')
 		return true;
 	else
 		return false;
