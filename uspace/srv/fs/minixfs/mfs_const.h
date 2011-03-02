@@ -48,7 +48,8 @@
 #define V1_NR_INDIRECT_ZONES	2
 
 #define V1_MAX_NAME_LEN		14
-#define V2_MAX_NAME_LEN		60
+#define V2_MAX_NAME_LEN		14
+#define V3_MAX_NAME_LEN		60
 
 #endif
 
