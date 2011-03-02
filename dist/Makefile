@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2008 Pavel Rimsky
+# Copyright (c) 2011 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,51 +26,37 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-#include <arch/mm/mmu.h>
-#include <arch/regdef.h>
-#include <arch/stack.h>
+-include ../version
+-include ../Makefile.config
+-include ../boot/arch/$(BARCH)/Makefile.inc
+-include ../boot/Makefile.common
 
-.text
+PROFILES = amd64 arm32/GXemul arm32/integratorcp arm32/gta02 ia32 \
+    ia64/i460GX ia64/ski mips32/GXemul mips32/msim sparc64/niagara \
+    sparc64/serengeti sparc64/ultra
 
-/** Switch to userspace.
- *
- * %o0	Userspace entry address.
- * %o1	Userspace stack pointer address.
- * %o2  Userspace address of uarg structure.
- */
-.global switch_to_userspace
-switch_to_userspace:
-	save %o1, -(STACK_WINDOW_SAVE_AREA_SIZE + STACK_ARG_SAVE_AREA_SIZE), %sp
-	flushw
-	wrpr %g0, 0, %cleanwin		! avoid information leak
+ifdef POST_OUTPUT
+	IMGFILE = $(POST_OUTPUT)
+else
+	IMGFILE = $(BOOT_OUTPUT)
+endif
 
-	mov %i2, %o0			! uarg
-	xor %o1, %o1, %o1		! %o1 is defined to hold pcb_ptr
-					! set it to 0
-	clr %i2
-	clr %i3
-	clr %i4
-	clr %i5
-	clr %i6
-	wrpr %g0, 1, %tl		! enforce mapping via nucleus
+SUFFIX = $(suffix $(IMGFILE))
+DISTFILE = HelenOS-$(RELEASE)-$(PLATFORM)-$(MACHINE)-$(PROCESSOR)$(SUFFIX)
 
-	rdpr %cwp, %g1
-	wrpr %g1, TSTATE_IE_BIT, %tstate
-	wrpr %i0, 0, %tnpc
-	
-	/*
-	 * Set primary context according to secondary context.
-	 * Secondary context has been already installed by
-	 * higher-level functions.
-	 */
-	wr %g0, ASI_SECONDARY_CONTEXT_REG, %asi
-	ldxa [VA_SECONDARY_CONTEXT_REG] %asi, %g1
-	wr %g0, ASI_PRIMARY_CONTEXT_REG, %asi
-	stxa %g1, [VA_PRIMARY_CONTEXT_REG] %asi
-	flush %i7
+.PHONY: all clean dist distfile
 
-	/*
-	 * Spills and fills will be handled by the userspace handlers.
-	 */
-	wrpr %g0, WSTATE_OTHER(0) | WSTATE_NORMAL(1), %wstate
-	done				! jump to userspace
+all: distfile
+distfile: $(DISTFILE)
+
+$(DISTFILE): $(IMGFILE)
+	cp $< $@
+
+dist:
+	for profile in $(PROFILES); do \
+		$(MAKE) -C .. clean ; \
+		$(MAKE) -C .. PROFILE=$$profile distfile ; \
+	done
+
+clean:
+	rm -f $(DISTFILE)

@@ -28,6 +28,76 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+GMP_MAIN=<<EOF
+#define GCC_GMP_VERSION_NUM(a, b, c) \
+	(((a) << 16L) | ((b) << 8) | (c))
+
+#define GCC_GMP_VERSION \
+	GCC_GMP_VERSION_NUM(__GNU_MP_VERSION, __GNU_MP_VERSION_MINOR, __GNU_MP_VERSION_PATCHLEVEL)
+
+#if GCC_GMP_VERSION < GCC_GMP_VERSION_NUM(4,3,2)
+	choke me
+#endif
+EOF
+
+MPFR_MAIN=<<EOF
+#if MPFR_VERSION < MPFR_VERSION_NUM(2, 4, 2)
+choke me
+	#endif
+EOF
+
+MPC_MAIN=<<EOF
+#if MPC_VERSION < MPC_VERSION_NUM(0, 8, 1)
+	choke me
+#endif
+EOF
+
+#
+# Check if the library described in the argument
+# exists and has acceptable version.
+#
+check_dependency() {
+	DEPENDENCY="$1"
+	HEADER="$2"
+	BODY="$3"
+	
+	FNAME="/tmp/conftest-$$"
+	
+	echo "#include ${HEADER}" > "${FNAME}.c"
+	echo >> "${FNAME}.c"
+	echo "int main()" >> "${FNAME}.c"
+	echo "{" >> "${FNAME}.c"
+	echo "${BODY}" >> "${FNAME}.c"
+	echo "	return 0;" >> "${FNAME}.c"
+	echo "}" >> "${FNAME}.c"
+	
+	cc -c -o "${FNAME}.o" "${FNAME}.c" 2> "${FNAME}.log"
+	RC="$?"
+	
+	if [ "$RC" -ne "0" ] ; then
+		echo " ${DEPENDENCY} not found, too old or compiler error."
+		echo " Please recheck manually the source file \"${FNAME}.c\"."
+		echo " The compilation of the toolchain is probably going to fail,"
+		echo " you have been warned."
+		echo
+		echo " ===== Compiler output ====="
+		cat "${FNAME}.log"
+		echo " ==========================="
+		echo
+	else
+		echo " ${DEPENDENCY} found"
+		rm -f "${FNAME}.log" "${FNAME}.o" "${FNAME}.c"
+	fi
+}
+
+check_dependecies() {
+	echo ">>> Basic dependency check"
+	check_dependency "GMP" "<gmp.h>" "${GMP_MAIN}"
+	check_dependency "MPFR" "<mpfr.h>" "${MPFR_MAIN}"
+	check_dependency "MPC" "<mpc.h>" "${MPC_MAIN}"
+	echo
+}
+
 check_error() {
 	if [ "$1" -ne "0" ]; then
 		echo
@@ -68,6 +138,10 @@ show_usage() {
 	echo " ppc64      64-bit PowerPC"
 	echo " sparc64    SPARC V9"
 	echo " all        build all targets"
+	echo
+	echo "The toolchain will be installed to the directory specified by"
+	echo "the CROSS_PREFIX environment variable. If the variable is not"
+	echo "defined, /usr/local will be used by default."
 	echo
 	
 	exit 3
@@ -117,8 +191,6 @@ show_dependencies() {
 	echo " - native C compiler, assembler and linker"
 	echo " - native C library with headers"
 	echo
-	
-	show_countdown 10
 }
 
 download_check() {
@@ -280,6 +352,8 @@ if [ "$#" -lt "1" ]; then
 fi
 
 show_dependencies
+check_dependecies
+show_countdown 10
 
 case "$1" in
 	"amd64")
