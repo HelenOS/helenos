@@ -148,6 +148,12 @@ int usb_mouse_create(ddf_dev_t *dev)
 		goto leave;
 	}
 
+	/* Add the function to mouse class. */
+	rc = ddf_fun_add_to_class(mouse->mouse_fun, "mouse");
+	if (rc != EOK) {
+		goto leave;
+	}
+
 	/* Everything allright. */
 	dev->driver_data = mouse;
 
