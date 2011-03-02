@@ -41,6 +41,7 @@ DIRS = \
 	app/killall \
 	app/klog \
 	app/mkfat \
+	app/mkminix \
 	app/redir \
 	app/sbi \
 	app/stats \

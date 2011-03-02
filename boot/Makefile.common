@@ -127,6 +127,7 @@ RD_APPS_NON_ESSENTIAL = \
 	$(USPACE_PATH)/app/kill/kill \
 	$(USPACE_PATH)/app/killall/killall \
 	$(USPACE_PATH)/app/mkfat/mkfat \
+	$(USPACE_PATH)/app/mkminix/mkminix \
 	$(USPACE_PATH)/app/sbi/sbi \
 	$(USPACE_PATH)/app/redir/redir \
 	$(USPACE_PATH)/app/taskdump/taskdump \
