@@ -288,7 +288,11 @@ static void usbhid_kbd_push_ev(usbhid_kbd_t *kbd_dev, int type,
 	ev.c = layout[active_layout]->parse_ev(&ev);
 
 	usb_log_debug2("Sending key %d to the console\n", ev.key);
-	assert(kbd_dev->console_phone != -1);
+	if (kbd_dev->console_phone < 0) {
+		usb_log_warning(
+		    "Connection to console not ready, key discarded.\n");
+		return;
+	}
 	
 	async_msg_4(kbd_dev->console_phone, KBD_EVENT, ev.type, ev.key, 
 	    ev.mods, ev.c);

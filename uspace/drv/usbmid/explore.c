@@ -41,58 +41,6 @@
 #include <usb/dp.h>
 #include "usbmid.h"
 
-/** Allocate and retrieve full configuration descriptor.
- *
- * @param[in] dev USB device.
- * @param[in] config_index Configuration index.
- * @param[out] size Pointer where to store size of the allocated buffer.
- * @return Allocated full configuration descriptor.
- * @retval NULL Error occured.
- */
-static void *get_configuration_descriptor(usbmid_device_t *dev,
-    size_t config_index, size_t *size)
-{
-	usb_standard_configuration_descriptor_t config_descriptor;
-	int rc = usb_request_get_bare_configuration_descriptor(&dev->ctrl_pipe,
-	    config_index, &config_descriptor);
-	if (rc != EOK) {
-		usb_log_error("Failed getting configuration descriptor: %s.\n",
-		    str_error(rc));
-		return NULL;
-	}
-
-	void *full_config_descriptor = malloc(config_descriptor.total_length);
-	if (full_config_descriptor == NULL) {
-		usb_log_fatal("Out of memory (wanted: %zuB).\n",
-		    (size_t) config_descriptor.total_length);
-		return NULL;
-	}
-
-	size_t full_config_descriptor_size;
-	rc = usb_request_get_full_configuration_descriptor(&dev->ctrl_pipe,
-	    config_index,
-	    full_config_descriptor, config_descriptor.total_length,
-	    &full_config_descriptor_size);
-	if (rc != EOK) {
-		usb_log_error("Failed getting configuration descriptor: %s.\n",
-		    str_error(rc));
-		free(full_config_descriptor);
-		return NULL;
-	}
-
-	if (full_config_descriptor_size != config_descriptor.total_length) {
-		usb_log_error("Failed getting full configuration descriptor.\n");
-		free(full_config_descriptor);
-		return NULL;
-	}
-
-	if (size != NULL) {
-		*size = full_config_descriptor_size;
-	}
-
-	return full_config_descriptor;
-}
-
 /** Find starting indexes of all interface descriptors in a configuration.
  *
  * @param config_descriptor Full configuration descriptor.
@@ -177,9 +125,13 @@ bool usbmid_explore_device(usbmid_device_t *dev)
 	}
 
 	size_t config_descriptor_size;
-	uint8_t *config_descriptor_raw = get_configuration_descriptor(dev, 0,
-	    &config_descriptor_size);
-	if (config_descriptor_raw == NULL) {
+	uint8_t *config_descriptor_raw = NULL;
+	rc = usb_request_get_full_configuration_descriptor_alloc(
+	    &dev->ctrl_pipe, 0,
+	    (void **) &config_descriptor_raw, &config_descriptor_size);
+	if (rc != EOK) {
+		usb_log_error("Failed getting full config descriptor: %s.\n",
+		    str_error(rc));
 		return false;
 	}
 
@@ -206,6 +158,19 @@ bool usbmid_explore_device(usbmid_device_t *dev)
 		return false;
 	}
 
+	/* Select the first configuration */
+	rc = usb_request_set_configuration(&dev->ctrl_pipe,
+	    config_descriptor->configuration_number);
+	if (rc != EOK) {
+		usb_log_error("Failed to set device configuration: %s.\n",
+		    str_error(rc));
+		free(config_descriptor_raw);
+		free(interface_descriptors);
+		return false;
+	}
+
+
+	/* Create control function */
 	ddf_fun_t *ctl_fun = ddf_fun_create(dev->dev, fun_exposed, "ctl");
 	if (ctl_fun == NULL) {
 		usb_log_error("Failed to create control function.\n");
@@ -222,6 +187,7 @@ bool usbmid_explore_device(usbmid_device_t *dev)
 		return false;
 	}
 
+	/* Spawn interface children */
 	size_t i;
 	for (i = 0; i < interface_descriptors_count; i++) {
 		usb_standard_interface_descriptor_t *interface

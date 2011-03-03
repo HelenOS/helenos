@@ -41,7 +41,7 @@ COMMON_HEADER_PREV = $(COMMON_HEADER).prev
 CONFIG_MAKEFILE = Makefile.config
 CONFIG_HEADER = config.h
 
-.PHONY: all precheck cscope autotool config_auto config_default config distclean clean check
+.PHONY: all precheck cscope autotool config_auto config_default config distclean clean check distfile dist
 
 all: $(COMMON_MAKEFILE) $(COMMON_HEADER) $(CONFIG_MAKEFILE) $(CONFIG_HEADER)
 	cp -a $(COMMON_HEADER) $(COMMON_HEADER_PREV)
@@ -63,12 +63,16 @@ else
 	$(CHECK)
 endif
 
+# Autotool (detects compiler features)
+
 $(COMMON_MAKEFILE): autotool
 $(COMMON_HEADER): autotool
 
 autotool: $(CONFIG_MAKEFILE)
 	$(AUTOTOOL)
 	-[ -f $(COMMON_HEADER_PREV) ] && diff -q $(COMMON_HEADER_PREV) $(COMMON_HEADER) && mv -f $(COMMON_HEADER_PREV) $(COMMON_HEADER)
+
+# Build-time configuration
 
 $(CONFIG_MAKEFILE): config_default
 $(CONFIG_HEADER): config_default
@@ -83,8 +87,18 @@ endif
 config: $(CONFIG_RULES)
 	$(CONFIG) $<
 
+# Distribution files
+
+distfile: all
+	$(MAKE) -C dist distfile
+
+dist:
+	$(MAKE) -C dist dist
+
+# Cleaning
+
 distclean: clean
-	rm -f $(CSCOPE).out $(COMMON_MAKEFILE) $(COMMON_HEADER) $(COMMON_HEADER_PREV) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) tools/*.pyc tools/checkers/*.pyc
+	rm -f $(CSCOPE).out $(COMMON_MAKEFILE) $(COMMON_HEADER) $(COMMON_HEADER_PREV) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) tools/*.pyc tools/checkers/*.pyc dist/HelenOS-*
 
 clean:
 	rm -fr $(SANDBOX)
