@@ -31,10 +31,10 @@
 USPACE_PREFIX = ../../..
 LIBS = $(LIBBLOCK_PREFIX)/libblock.a $(LIBFS_PREFIX)/libfs.a $(LIBEXT2_PREFIX)/libext2.a
 EXTRA_CFLAGS += -I$(LIBBLOCK_PREFIX) -I$(LIBFS_PREFIX) -I$(LIBEXT2_PREFIX)
-BINARY = ext2
+BINARY = ext2fs
 
 SOURCES = \
-	ext2.c \
-	ext2_ops.c
+	ext2fs.c \
+	ext2fs_ops.c
 
 include $(USPACE_PREFIX)/Makefile.common

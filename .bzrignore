@@ -96,7 +96,7 @@ uspace/dist/srv/devfs
 uspace/dist/srv/devman
 uspace/dist/srv/dp8390
 uspace/dist/srv/eth
-uspace/dist/srv/ext2
+uspace/dist/srv/ext2fs
 uspace/dist/srv/fat
 uspace/dist/srv/fb
 uspace/dist/srv/file_bd
@@ -141,7 +141,7 @@ uspace/srv/clip/clip
 uspace/srv/devman/devman
 uspace/srv/devmap/devmap
 uspace/srv/fs/devfs/devfs
-uspace/srv/fs/ext2/ext2
+uspace/srv/fs/ext2fs/ext2fs
 uspace/srv/fs/fat/fat
 uspace/srv/fs/tmpfs/tmpfs
 uspace/srv/fs/pipefs/pipefs

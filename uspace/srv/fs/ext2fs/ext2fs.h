@@ -30,8 +30,8 @@
  * @{
  */ 
 
-#ifndef EXT2_EXT2_H_
-#define EXT2_EXT2_H_
+#ifndef EXT2FS_EXT2FS_H_
+#define EXT2FS_EXT2FS_H_
 
 #include <libext2.h>
 #include <fibril_synch.h>
@@ -47,22 +47,23 @@
 
 #define min(a, b)		((a) < (b) ? (a) : (b))
 
-extern fs_reg_t ext2_reg;
+extern fs_reg_t ext2fs_reg;
 
-extern void ext2_mounted(ipc_callid_t, ipc_call_t *);
-extern void ext2_mount(ipc_callid_t, ipc_call_t *);
-extern void ext2_unmounted(ipc_callid_t, ipc_call_t *);
-extern void ext2_unmount(ipc_callid_t, ipc_call_t *);
-extern void ext2_lookup(ipc_callid_t, ipc_call_t *);
-extern void ext2_read(ipc_callid_t, ipc_call_t *);
-extern void ext2_write(ipc_callid_t, ipc_call_t *);
-extern void ext2_truncate(ipc_callid_t, ipc_call_t *);
-extern void ext2_stat(ipc_callid_t, ipc_call_t *);
-extern void ext2_close(ipc_callid_t, ipc_call_t *);
-extern void ext2_destroy(ipc_callid_t, ipc_call_t *);
-extern void ext2_open_node(ipc_callid_t, ipc_call_t *);
-extern void ext2_stat(ipc_callid_t, ipc_call_t *);
-extern void ext2_sync(ipc_callid_t, ipc_call_t *);
+extern int ext2fs_global_init(void);
+extern void ext2fs_mounted(ipc_callid_t, ipc_call_t *);
+extern void ext2fs_mount(ipc_callid_t, ipc_call_t *);
+extern void ext2fs_unmounted(ipc_callid_t, ipc_call_t *);
+extern void ext2fs_unmount(ipc_callid_t, ipc_call_t *);
+extern void ext2fs_lookup(ipc_callid_t, ipc_call_t *);
+extern void ext2fs_read(ipc_callid_t, ipc_call_t *);
+extern void ext2fs_write(ipc_callid_t, ipc_call_t *);
+extern void ext2fs_truncate(ipc_callid_t, ipc_call_t *);
+extern void ext2fs_stat(ipc_callid_t, ipc_call_t *);
+extern void ext2fs_close(ipc_callid_t, ipc_call_t *);
+extern void ext2fs_destroy(ipc_callid_t, ipc_call_t *);
+extern void ext2fs_open_node(ipc_callid_t, ipc_call_t *);
+extern void ext2fs_stat(ipc_callid_t, ipc_call_t *);
+extern void ext2fs_sync(ipc_callid_t, ipc_call_t *);
 
 #endif
 

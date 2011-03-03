@@ -36,7 +36,7 @@
  * @brief	EXT2 file system driver for HelenOS.
  */
 
-#include "ext2.h"
+#include "ext2fs.h"
 #include <ipc/services.h>
 #include <ipc/ns.h>
 #include <async.h>
@@ -47,13 +47,13 @@
 #include <libfs.h>
 #include "../../vfs/vfs.h"
 
-#define NAME	"ext2"
+#define NAME	"ext2fs"
 
-vfs_info_t ext2_vfs_info = {
+vfs_info_t ext2fs\_vfs_info = {
 	.name = NAME,
 };
 
-fs_reg_t ext2_reg;
+fs_reg_t ext2fs_reg;
 
 /**
  * This connection fibril processes VFS requests from VFS.
@@ -61,16 +61,16 @@ fs_reg_t ext2_reg;
  * In order to support simultaneous VFS requests, our design is as follows.
  * The connection fibril accepts VFS requests from VFS. If there is only one
  * instance of the fibril, VFS will need to serialize all VFS requests it sends
- * to EXT2. To overcome this bottleneck, VFS can send EXT2 the IPC_M_CONNECT_ME_TO
+ * to EXT2FS. To overcome this bottleneck, VFS can send EXT2FS the IPC_M_CONNECT_ME_TO
  * call. In that case, a new connection fibril will be created, which in turn
  * will accept the call. Thus, a new phone will be opened for VFS.
  *
  * There are few issues with this arrangement. First, VFS can run out of
  * available phones. In that case, VFS can close some other phones or use one
- * phone for more serialized requests. Similarily, EXT2 can refuse to duplicate
+ * phone for more serialized requests. Similarily, EXT2FS can refuse to duplicate
  * the connection. VFS should then just make use of already existing phones and
  * route its requests through them. To avoid paying the fibril creation price 
- * upon each request, EXT2 might want to keep the connections open after the
+ * upon each request, EXT2FS might want to keep the connections open after the
  * request has been completed.
  */
 static void ext2_connection(ipc_callid_t iid, ipc_call_t *icall)
@@ -94,43 +94,43 @@ static void ext2_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case IPC_M_PHONE_HUNGUP:
 			return;
 		case VFS_OUT_MOUNTED:
-			ext2_mounted(callid, &call);
+			ext2fs_mounted(callid, &call);
 			break;
 		case VFS_OUT_MOUNT:
-			ext2_mount(callid, &call);
+			ext2fs_mount(callid, &call);
 			break;
 		case VFS_OUT_UNMOUNTED:
-			ext2_unmounted(callid, &call);
+			ext2fs_unmounted(callid, &call);
 			break;
 		case VFS_OUT_UNMOUNT:
-			ext2_unmount(callid, &call);
+			ext2fs_unmount(callid, &call);
 			break;
 		case VFS_OUT_LOOKUP:
-			ext2_lookup(callid, &call);
+			ext2fs_lookup(callid, &call);
 			break;
 		case VFS_OUT_READ:
-			ext2_read(callid, &call);
+			ext2fs_read(callid, &call);
 			break;
 		case VFS_OUT_WRITE:
-			ext2_write(callid, &call);
+			ext2fs_write(callid, &call);
 			break;
 		case VFS_OUT_TRUNCATE:
-			ext2_truncate(callid, &call);
+			ext2fs_truncate(callid, &call);
 			break;
 		case VFS_OUT_STAT:
-			ext2_stat(callid, &call);
+			ext2fs_stat(callid, &call);
 			break;
 		case VFS_OUT_CLOSE:
-			ext2_close(callid, &call);
+			ext2fs_close(callid, &call);
 			break;
 		case VFS_OUT_DESTROY:
-			ext2_destroy(callid, &call);
+			ext2fs_destroy(callid, &call);
 			break;
 		case VFS_OUT_OPEN_NODE:
-			ext2_open_node(callid, &call);
+			ext2fs_open_node(callid, &call);
 			break;
 		case VFS_OUT_SYNC:
-			ext2_sync(callid, &call);
+			ext2fs_sync(callid, &call);
 			break;
 		default:
 			async_answer_0(callid, ENOTSUP);
@@ -152,7 +152,7 @@ int main(int argc, char **argv)
 		return -1;
 	}
 	
-	rc = fs_register(vfs_phone, &ext2_reg, &ext2_vfs_info, ext2_connection);
+	rc = fs_register(vfs_phone, &ext2fs_reg, &ext2fs_vfs_info, ext2_connection);
 	
 	printf(NAME ": Accepting connections\n");
 	task_retval(0);
