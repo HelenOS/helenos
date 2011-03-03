@@ -158,6 +158,19 @@ bool usbmid_explore_device(usbmid_device_t *dev)
 		return false;
 	}
 
+	/* Select the first configuration */
+	rc = usb_request_set_configuration(&dev->ctrl_pipe,
+	    config_descriptor->configuration_number);
+	if (rc != EOK) {
+		usb_log_error("Failed to set device configuration: %s.\n",
+		    str_error(rc));
+		free(config_descriptor_raw);
+		free(interface_descriptors);
+		return false;
+	}
+
+
+	/* Create control function */
 	ddf_fun_t *ctl_fun = ddf_fun_create(dev->dev, fun_exposed, "ctl");
 	if (ctl_fun == NULL) {
 		usb_log_error("Failed to create control function.\n");
@@ -174,6 +187,7 @@ bool usbmid_explore_device(usbmid_device_t *dev)
 		return false;
 	}
 
+	/* Spawn interface children */
 	size_t i;
 	for (i = 0; i < interface_descriptors_count; i++) {
 		usb_standard_interface_descriptor_t *interface
