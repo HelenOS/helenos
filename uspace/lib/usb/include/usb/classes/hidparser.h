@@ -75,7 +75,7 @@ typedef struct {
 	int32_t logical_maximum;
 	int32_t size;
 	int32_t count;
-	int32_t offset;
+	size_t offset;
 
 	int32_t unit_exponent;
 	int32_t unit;
