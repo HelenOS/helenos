@@ -82,7 +82,10 @@ int main (int argc, char **argv)
 	/*Default block size is 4096 bytes*/
 	uint32_t block_size = MFS_MAX_BLOCK_SIZE;
 	size_t devblock_size;
-	unsigned long total_inodes = 0;
+	unsigned long n_inodes = 0;
+
+	struct mfs_superblock *sb;
+	sb = (struct mfs_superblock *) malloc(sizeof(struct mfs_superblock));
 
 	if (argc == 1) {
 		help_cmd_mkminix(HELP_SHORT);
@@ -108,10 +111,10 @@ int main (int argc, char **argv)
 			fs_version = MFS_VERSION_V3;
 			break;
 		case 'b':
-			block_size = (unsigned long) strtol(optarg, NULL, 10);
+			block_size = (uint32_t) strtol(optarg, NULL, 10);
 			break;
 		case 'i':
-			total_inodes = (unsigned long) strtol(optarg, NULL, 10);
+			n_inodes = (unsigned long) strtol(optarg, NULL, 10);
 			break;
 		}
 	}
@@ -119,7 +122,8 @@ int main (int argc, char **argv)
 	if (block_size < MFS_MIN_BLOCK_SIZE || block_size > MFS_MAX_BLOCK_SIZE) {
 		printf(NAME ":Error! Invalid block size.\n");
 		exit(0);
-	} else if (num_of_set_bits((uint32_t) block_size) != 1) {
+	} else if (num_of_set_bits(block_size) != 1) {
+		/*Block size must be a power of 2.*/
 		printf(NAME ":Error! Invalid block size.\n");
 		exit(0);
 	} else if (block_size > MFS_MIN_BLOCK_SIZE && 
@@ -128,7 +132,6 @@ int main (int argc, char **argv)
 		exit(0);
 	}
 
-	argc -= optind;
 	argv += optind;
 
 	device_name = argv[0];
@@ -171,6 +174,8 @@ int main (int argc, char **argv)
 
 	printf("Creating Minix file system on device\n");
 
+	/*Prepare superblock*/
+
 	return 0;
 }
 
@@ -184,7 +189,7 @@ static void help_cmd_mkminix(help_level_t level)
 		"-2         Make a Minix version 2 filesystem\n"
 		"-3         Make a Minix version 3 filesystem\n"
 		"-b ##      Specify the block size in bytes (V3 only),\n"
-		"           valid block size are 1024, 2048 and 4096 bytes per block\n"
+		"           valid block size values are 1024, 2048 and 4096 bytes per block\n"
 		"-i ##      Specify the number of inodes for the filesystem\n");
 	}
 }

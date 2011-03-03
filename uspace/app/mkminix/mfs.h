@@ -62,6 +62,9 @@
 #define MFS_MAGIC_V3		0x4D5A
 #define MFS_MAGIC_V3R		0x5A4D
 
+#define MFS_VALID_FS		0x0001
+#define MFS_ERROR_FS		0x0002
+
 struct mfs_superblock {
 	/*Total number of inodes on the device*/
 	uint32_t	s_ninodes;
