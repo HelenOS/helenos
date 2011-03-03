@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2006 Martin Decky
+# Copyright (c) 2011 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,33 +26,37 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-PAGE_SIZE = 4096
+-include ../version
+-include ../Makefile.config
+-include ../boot/arch/$(BARCH)/Makefile.inc
+-include ../boot/Makefile.common
 
-RD_SRVS_ESSENTIAL += \
-	$(USPACE_PATH)/srv/hw/char/i8042/i8042 \
-	$(USPACE_PATH)/srv/hw/irc/apic/apic \
-	$(USPACE_PATH)/srv/hw/irc/i8259/i8259
+PROFILES = amd64 arm32/GXemul arm32/integratorcp arm32/gta02 ia32 \
+    ia64/i460GX ia64/ski mips32/GXemul mips32/msim sparc64/niagara \
+    sparc64/serengeti sparc64/ultra
 
-RD_SRVS_NON_ESSENTIAL += \
-	$(USPACE_PATH)/srv/bd/ata_bd/ata_bd \
-	$(USPACE_PATH)/srv/hid/char_mouse/char_ms
+ifdef POST_OUTPUT
+	IMGFILE = $(POST_OUTPUT)
+else
+	IMGFILE = $(BOOT_OUTPUT)
+endif
 
-RD_DRVS += \
-	rootpc \
-	pciintel \
-	isa \
-	ns8250 \
-	uhci-hcd \
-	uhci-rhd \
-	usbhub \
-	usbhid \
-	usbmid \
-	usbmouse \
-	vhc
+SUFFIX = $(suffix $(IMGFILE))
+DISTFILE = HelenOS-$(RELEASE)-$(PLATFORM)-$(MACHINE)-$(PROCESSOR)$(SUFFIX)
 
-RD_DRV_CFG += \
-	isa/isa.dev
+.PHONY: all clean dist distfile
 
-BOOT_OUTPUT = $(ROOT_PATH)/image.iso
-PREBUILD = $(INITRD).img
-BUILD = Makefile.grub
+all: distfile
+distfile: $(DISTFILE)
+
+$(DISTFILE): $(IMGFILE)
+	cp $< $@
+
+dist:
+	for profile in $(PROFILES); do \
+		$(MAKE) -C .. clean ; \
+		$(MAKE) -C .. PROFILE=$$profile distfile ; \
+	done
+
+clean:
+	rm -f $(DISTFILE)

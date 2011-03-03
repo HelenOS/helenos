@@ -123,6 +123,12 @@ static FIBRIL_MUTEX_INITIALIZE(null_devices_mutex);
 static devmap_handle_t last_handle = 0;
 static devmap_device_t *null_devices[NULL_DEVICES];
 
+/*
+ * Dummy list for null devices. This is necessary so that null devices can
+ * be used just as any other devices, e.g. in devmap_device_unregister_core().
+ */
+static LIST_INITIALIZE(dummy_null_driver_devices);
+
 static devmap_handle_t devmap_create_handle(void)
 {
 	/* TODO: allow reusing old handles after their unregistration
@@ -952,9 +958,13 @@ static void devmap_null_create(ipc_callid_t iid, ipc_call_t *icall)
 	devmap_namespace_addref(namespace, device);
 	device->name = dev_name;
 	
-	/* Insert device into list of all devices
-	   and into null devices array */
+	/*
+	 * Insert device into list of all devices and into null devices array.
+	 * Insert device into a dummy list of null driver's devices so that it
+	 * can be safely removed later.
+	 */
 	list_append(&device->devices, &devices_list);
+	list_append(&device->driver_devices, &dummy_null_driver_devices);
 	null_devices[i] = device;
 	
 	fibril_mutex_unlock(&devices_list_mutex);

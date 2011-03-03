@@ -33,12 +33,12 @@
  */
 #include <ddf/driver.h>
 #include <ddf/interrupt.h>
+#include <device/hw_res.h>
+#include <errno.h>
+#include <str_error.h>
+
 #include <usb_iface.h>
 #include <usb/ddfiface.h>
-#include <device/hw_res.h>
-
-#include <errno.h>
-
 #include <usb/debug.h>
 
 #include "iface.h"
@@ -49,7 +49,6 @@
 #define NAME "uhci-hcd"
 
 static int uhci_add_device(ddf_dev_t *device);
-
 /*----------------------------------------------------------------------------*/
 static driver_ops_t uhci_driver_ops = {
 	.add_device = uhci_add_device,
@@ -69,15 +68,17 @@ static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
 	uhci_interrupt(hc, status);
 }
 /*----------------------------------------------------------------------------*/
-#define CHECK_RET_RETURN(ret, message...) \
-if (ret != EOK) { \
-	usb_log_error(message); \
-	return ret; \
-}
-
 static int uhci_add_device(ddf_dev_t *device)
 {
 	assert(device);
+	uhci_t *hcd = NULL;
+#define CHECK_RET_FREE_HC_RETURN(ret, message...) \
+if (ret != EOK) { \
+	usb_log_error(message); \
+	if (hcd != NULL) \
+		free(hcd); \
+	return ret; \
+}
 
 	usb_log_info("uhci_add_device() called\n");
 
@@ -87,60 +88,70 @@ static int uhci_add_device(ddf_dev_t *device)
 
 	int ret =
 	    pci_get_my_registers(device, &io_reg_base, &io_reg_size, &irq);
-
-	CHECK_RET_RETURN(ret,
+	CHECK_RET_FREE_HC_RETURN(ret,
 	    "Failed(%d) to get I/O addresses:.\n", ret, device->handle);
 	usb_log_info("I/O regs at 0x%X (size %zu), IRQ %d.\n",
 	    io_reg_base, io_reg_size, irq);
 
-//	ret = pci_enable_interrupts(device);
-//	CHECK_RET_RETURN(ret, "Failed(%d) to get enable interrupts:\n", ret);
+	ret = pci_disable_legacy(device);
+	CHECK_RET_FREE_HC_RETURN(ret,
+	    "Failed(%d) disable legacy USB: %s.\n", ret, str_error(ret));
 
-	uhci_t *uhci_hc = malloc(sizeof(uhci_t));
-	ret = (uhci_hc != NULL) ? EOK : ENOMEM;
-	CHECK_RET_RETURN(ret, "Failed to allocate memory for uhci hcd driver.\n");
-
-	ret = uhci_init(uhci_hc, device, (void*)io_reg_base, io_reg_size);
+#if 0
+	ret = pci_enable_interrupts(device);
 	if (ret != EOK) {
-		usb_log_error("Failed to init uhci-hcd.\n");
-		free(uhci_hc);
-		return ret;
+		usb_log_warning(
+		    "Failed(%d) to enable interrupts, fall back to polling.\n",
+		    ret);
 	}
+#endif
+
+	hcd = malloc(sizeof(uhci_t));
+	ret = (hcd != NULL) ? EOK : ENOMEM;
+	CHECK_RET_FREE_HC_RETURN(ret,
+	    "Failed(%d) to allocate memory for uhci hcd.\n", ret);
+
+	ret = uhci_init(hcd, device, (void*)io_reg_base, io_reg_size);
+	CHECK_RET_FREE_HC_RETURN(ret, "Failed(%d) to init uhci-hcd.\n",
+	    ret);
+#undef CHECK_RET_FREE_HC_RETURN
 
 	/*
-	 * We might free uhci_hc, but that does not matter since no one
+	 * We might free hcd, but that does not matter since no one
 	 * else would access driver_data anyway.
 	 */
-	device->driver_data = uhci_hc;
-	ret = register_interrupt_handler(device, irq, irq_handler,
-	    &uhci_hc->interrupt_code);
-	if (ret != EOK) {
-		usb_log_error("Failed to register interrupt handler.\n");
-		uhci_fini(uhci_hc);
-		free(uhci_hc);
-		return ret;
-	}
+	device->driver_data = hcd;
 
-	ddf_fun_t *rh;
+	ddf_fun_t *rh = NULL;
+#define CHECK_RET_FINI_FREE_RETURN(ret, message...) \
+if (ret != EOK) { \
+	usb_log_error(message); \
+	if (hcd != NULL) {\
+		uhci_fini(hcd); \
+		free(hcd); \
+	} \
+	if (rh != NULL) \
+		free(rh); \
+	return ret; \
+}
+
+	/* It does no harm if we register this on polling */
+	ret = register_interrupt_handler(device, irq, irq_handler,
+	    &hcd->interrupt_code);
+	CHECK_RET_FINI_FREE_RETURN(ret,
+	    "Failed(%d) to register interrupt handler.\n", ret);
+
 	ret = setup_root_hub(&rh, device);
-	if (ret != EOK) {
-		usb_log_error("Failed to setup uhci root hub.\n");
-		uhci_fini(uhci_hc);
-		free(uhci_hc);
-		return ret;
-	}
-	rh->driver_data = uhci_hc->ddf_instance;
+	CHECK_RET_FINI_FREE_RETURN(ret,
+	    "Failed(%d) to setup UHCI root hub.\n", ret);
+	rh->driver_data = hcd->ddf_instance;
 
 	ret = ddf_fun_bind(rh);
-	if (ret != EOK) {
-		usb_log_error("Failed to register root hub.\n");
-		uhci_fini(uhci_hc);
-		free(uhci_hc);
-		free(rh);
-		return ret;
-	}
+	CHECK_RET_FINI_FREE_RETURN(ret,
+	    "Failed(%d) to register UHCI root hub.\n", ret);
 
 	return EOK;
+#undef CHECK_RET_FINI_FREE_RETURN
 }
 /*----------------------------------------------------------------------------*/
 int main(int argc, char *argv[])

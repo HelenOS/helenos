@@ -64,5 +64,5 @@ void *balloc(size_t size, size_t alignment)
 
 void *balloc_rebase(void *ptr)
 {
-	return (void *) ((uintptr_t) ptr - phys_base + ballocs->base);
+	return (void *) (((uintptr_t) ptr - phys_base) + ballocs->base);
 }

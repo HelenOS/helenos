@@ -148,43 +148,16 @@ static int usbhid_dev_process_descriptors(usbhid_dev_t *hid_dev,
 	
 	usb_log_info("Processing descriptors...\n");
 	
-	// get the first configuration descriptor
-	usb_standard_configuration_descriptor_t config_desc;
-	
 	int rc;
-	rc = usb_request_get_bare_configuration_descriptor(&hid_dev->ctrl_pipe,
-	    0, &config_desc);
-	
+
+	uint8_t *descriptors = NULL;
+	size_t descriptors_size;
+	rc = usb_request_get_full_configuration_descriptor_alloc(
+	    &hid_dev->ctrl_pipe, 0, (void **) &descriptors, &descriptors_size);
 	if (rc != EOK) {
-		usb_log_error("Failed to get bare config descriptor: %s.\n",
+		usb_log_error("Failed to retrieve config descriptor: %s.\n",
 		    str_error(rc));
 		return rc;
-	}
-	
-	// prepare space for all underlying descriptors
-	uint8_t *descriptors = (uint8_t *)malloc(config_desc.total_length);
-	if (descriptors == NULL) {
-		usb_log_error("No memory!.\n");
-		return ENOMEM;
-	}
-	
-	size_t transferred = 0;
-	// get full configuration descriptor
-	rc = usb_request_get_full_configuration_descriptor(&hid_dev->ctrl_pipe,
-	    0, descriptors, config_desc.total_length, &transferred);
-	
-	if (rc != EOK) {
-		usb_log_error("Failed to get full config descriptor: %s.\n",
-		    str_error(rc));
-		free(descriptors);
-		return rc;
-	}
-	
-	if (transferred != config_desc.total_length) {
-		usb_log_error("Configuration descriptor has wrong size (%u, "
-		    "expected %u).\n", transferred, config_desc.total_length);
-		free(descriptors);
-		return ELIMIT;
 	}
 	
 	/*
@@ -200,7 +173,7 @@ static int usbhid_dev_process_descriptors(usbhid_dev_t *hid_dev,
 	};
 	
 	rc = usb_endpoint_pipe_initialize_from_configuration(
-	    endpoint_mapping, 1, descriptors, config_desc.total_length,
+	    endpoint_mapping, 1, descriptors, descriptors_size,
 	    &hid_dev->wire);
 	
 	if (rc != EOK) {
@@ -232,7 +205,8 @@ static int usbhid_dev_process_descriptors(usbhid_dev_t *hid_dev,
 	
 	assert(endpoint_mapping[0].interface != NULL);
 	
-	rc = usbhid_dev_get_report_descriptor(hid_dev, descriptors, transferred,
+	rc = usbhid_dev_get_report_descriptor(hid_dev,
+	    descriptors, descriptors_size,
 	    (uint8_t *)endpoint_mapping[0].interface);
 	
 	free(descriptors);

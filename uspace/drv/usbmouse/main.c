@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2006 Martin Decky
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,40 +26,58 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef BOOT_sparc64_ARCH_H_
-#define BOOT_sparc64_ARCH_H_
+/** @addtogroup drvusbmouse
+ * @{
+ */
+/**
+ * @file
+ * Main routines of USB boot protocol mouse driver.
+ */
+#include "mouse.h"
+#include <usb/debug.h>
+#include <errno.h>
+#include <str_error.h>
 
-#define PAGE_WIDTH  14
-#define PAGE_SIZE   (1 << PAGE_WIDTH)
+static int usbmouse_add_device(ddf_dev_t *dev)
+{
+	int rc = usb_mouse_create(dev);
+	if (rc != EOK) {
+		usb_log_error("Failed to initialize device driver: %s.\n",
+		    str_error(rc));
+		return rc;
+	}
 
-#define LOADER_ADDRESS  0x004000
-#define KERNEL_ADDRESS  0x400000
+	fid_t poll_fibril = fibril_create(usb_mouse_polling_fibril, dev);
+	if (poll_fibril == 0) {
+		usb_log_error("Failed to initialize polling fibril.\n");
+		/* FIXME: free allocated resources. */
+		return ENOMEM;
+	}
 
-#define STACK_SIZE                   8192
-#define STACK_ALIGNMENT              16
-#define STACK_BIAS                   2047
-#define STACK_WINDOW_SAVE_AREA_SIZE  (16 * 8)
-#define STACK_ARG_SAVE_AREA_SIZE     (6 * 8)
+	fibril_add_ready(poll_fibril);
 
-#define NWINDOWS  8
+	usb_log_info("controlling new mouse (handle %llu).\n",
+	    dev->handle);
 
-#define PSTATE_IE_BIT    2
-#define PSTATE_PRIV_BIT  4
-#define PSTATE_AM_BIT    8
+	return EOK;
+}
 
-#define ASI_ICBUS_CONFIG        0x4a
-#define ICBUS_CONFIG_MID_SHIFT  17
+static driver_ops_t mouse_driver_ops = {
+	.add_device = usbmouse_add_device,
+};
 
-/** Constants to distinguish particular UltraSPARC architecture */
-#define ARCH_SUN4U  10
-#define ARCH_SUN4V  20
+static driver_t mouse_driver = {
+	.name = NAME,
+	.driver_ops = &mouse_driver_ops
+};
 
-/** Constants to distinguish particular UltraSPARC subarchitecture */
-#define SUBARCH_UNKNOWN  0
-#define SUBARCH_US       1
-#define SUBARCH_US3      3
+int main(int argc, char *argv[])
+{
+	usb_log_enable(USB_LOG_LEVEL_DEBUG, NAME);
 
-#define BSP_PROCESSOR  1
-#define AP_PROCESSOR   0
+	return ddf_driver_main(&mouse_driver);
+}
 
-#endif
+/**
+ * @}
+ */
