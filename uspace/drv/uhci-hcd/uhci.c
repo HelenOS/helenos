@@ -335,7 +335,7 @@ int uhci_interrupt_emulator(void* arg)
 		status |= 1;
 		uhci_interrupt(instance, status);
 		pio_write_16(&instance->registers->usbsts, 0x1f);
-		async_usleep(UHCI_CLEANER_TIMEOUT * 5);
+		async_usleep(UHCI_CLEANER_TIMEOUT);
 	}
 	return EOK;
 }
