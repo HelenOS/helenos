@@ -252,7 +252,11 @@ void usb_log_printf(usb_log_level_t level, const char *format, ...)
 }
 
 
-#define BUFFER_DUMP_LEN 512
+#define REMAINDER_STR_FMT " (%zu)..."
+/* string + terminator + number width (enough for 4GB)*/
+#define REMAINDER_STR_LEN (5 + 1 + 10)
+#define BUFFER_DUMP_GROUP_SIZE 4
+#define BUFFER_DUMP_LEN 240 /* Ought to be enough for everybody ;-). */
 static fibril_local char buffer_dump[BUFFER_DUMP_LEN];
 
 /** Dump buffer into string.
@@ -279,6 +283,12 @@ static fibril_local char buffer_dump[BUFFER_DUMP_LEN];
 const char *usb_debug_str_buffer(uint8_t *buffer, size_t size,
     size_t dumped_size)
 {
+	/*
+	 * Remove previous string (that might also reveal double usage of
+	 * this function).
+	 */
+	bzero(buffer_dump, BUFFER_DUMP_LEN);
+
 	if (buffer == NULL) {
 		return "(null)";
 	}
@@ -289,23 +299,58 @@ const char *usb_debug_str_buffer(uint8_t *buffer, size_t size,
 		dumped_size = size;
 	}
 
+	/* How many bytes are available in the output buffer. */
+	size_t buffer_remaining_size = BUFFER_DUMP_LEN - 1 - REMAINDER_STR_LEN;
 	char *it = buffer_dump;
 
 	size_t index = 0;
 
-	while (1) {
-		/* FIXME: add range checking of the buffer size. */
-		snprintf(it, 4, "%02X ", (int) buffer[index]);
-		it += 3;
+	while (index < size) {
+		/* Determine space before the number. */
+		const char *space_before;
+		if (index == 0) {
+			space_before = "";
+		} else if ((index % BUFFER_DUMP_GROUP_SIZE) == 0) {
+			space_before = "  ";
+		} else {
+			space_before = " ";
+		}
+
+		/*
+		 * Add the byte as a hexadecimal number plus the space.
+		 * We do it into temporary buffer to ensure that always
+		 * the whole byte is printed.
+		 */
+		int val = buffer[index];
+		char current_byte[16];
+		int printed = snprintf(current_byte, 16,
+		    "%s%02x", space_before, val);
+		if (printed < 0) {
+			break;
+		}
+
+		if ((size_t) printed > buffer_remaining_size) {
+			break;
+		}
+
+		/* We can safely add 1, because space for end 0 is reserved. */
+		str_append(it, buffer_remaining_size + 1, current_byte);
+
+		buffer_remaining_size -= printed;
+		/* Point at the terminator 0. */
+		it += printed;
 		index++;
+
 		if (index >= dumped_size) {
 			break;
 		}
 	}
 
-	/* Remove the last space */
-	it--;
-	*it = 0;
+	/* Add how many bytes were not printed. */
+	if (index < size) {
+		snprintf(it, REMAINDER_STR_LEN,
+		    REMAINDER_STR_FMT, size - index);
+	}
 
 	return buffer_dump;
 }
