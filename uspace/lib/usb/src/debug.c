@@ -251,6 +251,111 @@ void usb_log_printf(usb_log_level_t level, const char *format, ...)
 	fibril_mutex_unlock(&log_serializer);
 }
 
+
+#define REMAINDER_STR_FMT " (%zu)..."
+/* string + terminator + number width (enough for 4GB)*/
+#define REMAINDER_STR_LEN (5 + 1 + 10)
+#define BUFFER_DUMP_GROUP_SIZE 4
+#define BUFFER_DUMP_LEN 240 /* Ought to be enough for everybody ;-). */
+static fibril_local char buffer_dump[BUFFER_DUMP_LEN];
+
+/** Dump buffer into string.
+ *
+ * The function dumps given buffer into hexadecimal format and stores it
+ * in a static fibril local string.
+ * That means that you do not have to deallocate the string (actually, you
+ * can not do that) and you do not have to save it agains concurrent
+ * calls to it.
+ * The only limitation is that each call rewrites the buffer again.
+ * Thus, it is necessary to copy the buffer elsewhere (that includes printing
+ * to screen or writing to file).
+ * Since this function is expected to be used for debugging prints only,
+ * that is not a big limitation.
+ *
+ * @warning You cannot use this function twice in the same printf
+ * (see detailed explanation).
+ *
+ * @param buffer Buffer to be printed (can be NULL).
+ * @param size Size of the buffer in bytes (can be zero).
+ * @param dumped_size How many bytes to actually dump (zero means all).
+ * @return Dumped buffer as a static (but fibril local) string.
+ */
+const char *usb_debug_str_buffer(uint8_t *buffer, size_t size,
+    size_t dumped_size)
+{
+	/*
+	 * Remove previous string (that might also reveal double usage of
+	 * this function).
+	 */
+	bzero(buffer_dump, BUFFER_DUMP_LEN);
+
+	if (buffer == NULL) {
+		return "(null)";
+	}
+	if (size == 0) {
+		return "(empty)";
+	}
+	if ((dumped_size == 0) || (dumped_size > size)) {
+		dumped_size = size;
+	}
+
+	/* How many bytes are available in the output buffer. */
+	size_t buffer_remaining_size = BUFFER_DUMP_LEN - 1 - REMAINDER_STR_LEN;
+	char *it = buffer_dump;
+
+	size_t index = 0;
+
+	while (index < size) {
+		/* Determine space before the number. */
+		const char *space_before;
+		if (index == 0) {
+			space_before = "";
+		} else if ((index % BUFFER_DUMP_GROUP_SIZE) == 0) {
+			space_before = "  ";
+		} else {
+			space_before = " ";
+		}
+
+		/*
+		 * Add the byte as a hexadecimal number plus the space.
+		 * We do it into temporary buffer to ensure that always
+		 * the whole byte is printed.
+		 */
+		int val = buffer[index];
+		char current_byte[16];
+		int printed = snprintf(current_byte, 16,
+		    "%s%02x", space_before, val);
+		if (printed < 0) {
+			break;
+		}
+
+		if ((size_t) printed > buffer_remaining_size) {
+			break;
+		}
+
+		/* We can safely add 1, because space for end 0 is reserved. */
+		str_append(it, buffer_remaining_size + 1, current_byte);
+
+		buffer_remaining_size -= printed;
+		/* Point at the terminator 0. */
+		it += printed;
+		index++;
+
+		if (index >= dumped_size) {
+			break;
+		}
+	}
+
+	/* Add how many bytes were not printed. */
+	if (index < size) {
+		snprintf(it, REMAINDER_STR_LEN,
+		    REMAINDER_STR_FMT, size - index);
+	}
+
+	return buffer_dump;
+}
+
+
 /**
  * @}
  */
