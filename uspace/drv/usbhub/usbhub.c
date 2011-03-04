@@ -232,6 +232,9 @@ usb_hub_info_t * usb_create_hub_info(ddf_dev_t * device) {
 	usb_hub_descriptor_t * descriptor;
 	dprintf(USB_LOG_LEVEL_DEBUG, "starting control transaction");
 	usb_endpoint_pipe_start_session(&result->endpoints.control);
+	opResult = usb_request_set_configuration(&result->endpoints.control, 1);
+	assert(opResult == EOK);
+
 	opResult = usb_request_get_descriptor(&result->endpoints.control,
 			USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_DEVICE,
 			USB_DESCTYPE_HUB,
