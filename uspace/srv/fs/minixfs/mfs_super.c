@@ -35,6 +35,7 @@
 #include <libblock.h>
 #include <errno.h>
 #include <str.h>
+#include "mfs.h"
 #include "mfs_super.h"
 #include "mfs_utils.h"
 #include "../../vfs/vfs.h"

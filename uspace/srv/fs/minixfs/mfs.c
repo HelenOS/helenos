@@ -45,8 +45,7 @@
 #include <task.h>
 #include <stdio.h>
 #include <libfs.h>
-#include "../../vfs/vfs.h"
-#include "mfs_const.h"
+#include "mfs.h"
 #include "mfs_super.h"
 
 #define NAME	"mfs"

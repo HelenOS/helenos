@@ -47,7 +47,9 @@
 #include <str.h>
 #include <getopt.h>
 #include <mem.h>
-#include "mfs.h"
+#include "mfs_const.h"
+#include "mfs_inode.h"
+#include "mfs_super.h"
 
 #define NAME	"mkminix"
 
@@ -83,9 +85,6 @@ int main (int argc, char **argv)
 	uint32_t block_size = MFS_MAX_BLOCK_SIZE;
 	size_t devblock_size;
 	unsigned long n_inodes = 0;
-
-	struct mfs_superblock *sb;
-	sb = (struct mfs_superblock *) malloc(sizeof(struct mfs_superblock));
 
 	if (argc == 1) {
 		help_cmd_mkminix(HELP_SHORT);

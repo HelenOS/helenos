@@ -34,7 +34,6 @@
 #define _MFS_SUPER_H_
 
 #include "mfs_const.h"
-#include "../../vfs/vfs.h"
 
 #define MFS_MAGIC_V1		0x137F
 #define MFS_MAGIC_V1R		0x7F13
@@ -45,6 +44,7 @@
 #define MFS_MAGIC_V3		0x4D5A
 #define MFS_MAGIC_V3R		0x5A4D
 
+/*V3 superblock data on disk*/
 struct mfs_superblock {
 	/*Total number of inodes on the device*/
 	uint32_t	s_ninodes;
@@ -65,9 +65,6 @@ struct mfs_superblock {
 	uint32_t	s_total_zones;
 	/*Magic number used to recognize MinixFS and to detect on-disk endianness*/
 	int16_t		s_magic;
-
-	/* The following fields are valid only for MinixFS V3 */
-
 	int16_t		s_pad2;
 	/*Filesystem block size expressed in bytes*/
 	uint16_t	s_block_size;
@@ -80,8 +77,6 @@ typedef enum {
 	MFS_VERSION_V2,
 	MFS_VERSION_V3
 } mfs_version_t;
-
-void mfs_mounted(ipc_callid_t rid, ipc_call_t *request);
 
 #endif
 
