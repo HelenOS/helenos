@@ -30,7 +30,7 @@
  * @{
  */
 /** @file
- * @brief Base USB types.
+ * Common USB types and functions.
  */
 #ifndef LIBUSB_USB_H_
 #define LIBUSB_USB_H_
@@ -120,6 +120,12 @@ typedef struct {
 	usb_endpoint_t endpoint;
 } usb_target_t;
 
+/** Compare USB targets (addresses and endpoints).
+ *
+ * @param a First target.
+ * @param b Second target.
+ * @return Whether @p a and @p b points to the same pipe on the same device.
+ */
 static inline int usb_target_same(usb_target_t a, usb_target_t b)
 {
 	return (a.address == b.address)

@@ -39,6 +39,14 @@
 #include <str_error.h>
 #include <ipc/mouse.h>
 
+/** Fibril function for polling the mouse device.
+ *
+ * This function shall not terminate unless the device breaks and fails
+ * to send data (e.g. stalls on data request).
+ *
+ * @param arg ddf_dev_t type representing the mouse device.
+ * @return EOK Always.
+ */
 int usb_mouse_polling_fibril(void *arg)
 {
 	assert(arg != NULL);

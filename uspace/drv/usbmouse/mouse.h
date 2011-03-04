@@ -42,13 +42,21 @@
 
 #define NAME "usbmouse"
 
+/** Container for USB mouse device. */
 typedef struct {
+	/** Generic device container. */
 	ddf_dev_t *device;
+	/** Function representing the device. */
 	ddf_fun_t *mouse_fun;
+	/** Representation of connection to the device. */
 	usb_device_connection_t wire;
+	/** Default (zero) control pipe. */
 	usb_endpoint_pipe_t ctrl_pipe;
+	/** Polling (in) pipe. */
 	usb_endpoint_pipe_t poll_pipe;
+	/** Polling interval in microseconds. */
 	suseconds_t poll_interval_us;
+	/** IPC phone to console (consumer). */
 	int console_phone;
 } usb_mouse_t;
 

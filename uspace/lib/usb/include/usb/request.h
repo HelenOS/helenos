@@ -71,7 +71,7 @@ typedef struct {
 	/** Main parameter to the request. */
 	union {
 		uint16_t value;
-		/* FIXME: add #ifdefs according to host endianess */
+		/* FIXME: add #ifdefs according to host endianness */
 		struct {
 			uint8_t value_low;
 			uint8_t value_high;
