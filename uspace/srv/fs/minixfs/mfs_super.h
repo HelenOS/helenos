@@ -44,12 +44,38 @@
 #define MFS_MAGIC_V3		0x4D5A
 #define MFS_MAGIC_V3R		0x5A4D
 
-/*V3 superblock data on disk*/
+/*MFS V1/V2 superblock data on disk*/
 struct mfs_superblock {
 	/*Total number of inodes on the device*/
-	uint32_t	s_ninodes;
-	/*Device size expressed as number of zones (unused)*/
+	uint16_t	s_ninodes;
+	/*Total number of zones on the device*/
 	uint16_t	s_nzones;
+	/*Number of inode bitmap blocks*/
+	uint16_t	s_ibmap_blocks;
+	/*Number of zone bitmap blocks*/
+	uint16_t	s_zbmap_blocks;
+	/*First data zone on device*/
+	uint16_t	s_first_data_zone;
+	/*Base 2 logarithm of the zone to block ratio*/
+	uint16_t	s_log2_zone_size;
+	/*Maximum file size expressed in bytes*/
+	uint32_t	s_max_file_size;
+	/*
+	 *Magic number used to recognize MinixFS
+	 *and to detect on-disk endianness
+	 */
+	uint16_t	s_magic;
+	/*Flag used to detect FS errors*/
+	uint16_t	s_state;
+	/*Total number of zones on the device (V2 only)*/
+	uint32_t	s_nzones2;
+} __attribute__ ((packed));
+
+
+/*MFS V3 superblock data on disk*/
+struct mfs3_superblock {
+	/*Total number of inodes on the device*/
+	uint32_t	s_ninodes;
 	/*Number of inode bitmap blocks*/
 	int16_t		s_ibmap_blocks;
 	/*Number of zone bitmap blocks*/
@@ -63,7 +89,10 @@ struct mfs_superblock {
 	int32_t		s_max_file_size;
 	/*Total number of zones on the device*/
 	uint32_t	s_total_zones;
-	/*Magic number used to recognize MinixFS and to detect on-disk endianness*/
+	/*
+	 *Magic number used to recognize MinixFS
+	 *and to detect on-disk endianness
+	 */
 	int16_t		s_magic;
 	int16_t		s_pad2;
 	/*Filesystem block size expressed in bytes*/

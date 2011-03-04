@@ -46,7 +46,7 @@ void mfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 {
 	devmap_handle_t devmap_handle = (devmap_handle_t) IPC_GET_ARG1(*request);
 	enum cache_mode cmode;	
-	struct mfs_superblock *sp;
+	struct mfs3_superblock *sp;
 	bool native;
 	mfs_version_t version;
 
