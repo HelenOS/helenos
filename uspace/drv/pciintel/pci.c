@@ -93,6 +93,7 @@ static bool pciintel_enable_interrupt(ddf_fun_t *fnode)
 
   sysarg_t apic;
   sysarg_t i8259;
+
 	int irc_phone = -1;
 	int irc_service = 0;
 
@@ -102,18 +103,22 @@ static bool pciintel_enable_interrupt(ddf_fun_t *fnode)
     irc_service = SERVICE_I8259;
 	}
 
-  if (irc_service) {
-    while (irc_phone < 0)
-      irc_phone = service_connect_blocking(irc_service, 0, 0);
-  } else {
+  if (irc_service == 0)
 		return false;
-	}
+
+	irc_phone = service_connect_blocking(irc_service, 0, 0);
+	if (irc_phone < 0)
+		return false;
 
 	size_t i;
   for (i = 0; i < dev_data->hw_resources.count; i++) {
 		if (dev_data->hw_resources.resources[i].type == INTERRUPT) {
 			int irq = dev_data->hw_resources.resources[i].res.interrupt.irq;
-			async_msg_1(irc_phone, IRC_ENABLE_INTERRUPT, irq);
+			int rc = async_req_1_0(irc_phone, IRC_ENABLE_INTERRUPT, irq);
+			if (rc != EOK) {
+				async_hangup(irc_phone);
+				return false;
+			}
 		}
 	}
 
