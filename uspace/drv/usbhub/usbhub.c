@@ -242,14 +242,15 @@ usb_hub_info_t * usb_create_hub_info(ddf_dev_t * device) {
 	if (opResult != EOK) {
 		dprintf(USB_LOG_LEVEL_ERROR, "failed when receiving hub descriptor, badcode = %d",opResult);
 		free(serialized_descriptor);
-		return result;
+		free(result);
+		return NULL;
 	}
 	dprintf(USB_LOG_LEVEL_DEBUG2, "deserializing descriptor");
 	descriptor = usb_deserialize_hub_desriptor(serialized_descriptor);
 	if(descriptor==NULL){
 		dprintf(USB_LOG_LEVEL_WARNING, "could not deserialize descriptor ");
-		result->port_count = 1;///\TODO this code is only for debug!!!
-		return result;
+		free(result);
+		return NULL;
 	}
 
 	dprintf(USB_LOG_LEVEL_INFO, "setting port count to %d",descriptor->ports_count);
@@ -285,6 +286,9 @@ int usb_add_hub_device(ddf_dev_t *dev) {
 	(void) hub_device_ops;
 
 	usb_hub_info_t * hub_info = usb_create_hub_info(dev);
+	if(!hub_info){
+		return EINTR;
+	}
 
 	int opResult;
 
@@ -293,7 +297,7 @@ int usb_add_hub_device(ddf_dev_t *dev) {
 	// process descriptors
 	opResult = usb_hub_process_configuration_descriptors(hub_info);
 	if(opResult != EOK){
-		dprintf(USB_LOG_LEVEL_ERROR,"could not get condiguration descriptors, %d",
+		dprintf(USB_LOG_LEVEL_ERROR,"could not get configuration descriptors, %d",
 				opResult);
 		return opResult;
 	}
