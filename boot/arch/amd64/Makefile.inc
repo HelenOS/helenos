@@ -47,6 +47,7 @@ RD_DRVS += \
 	usbhub \
 	usbhid \
 	usbmid \
+	usbmouse \
 	vhc
 
 RD_DRV_CFG += \

@@ -40,11 +40,11 @@
 #include <adt/list.h>
 #include <ddi.h>
 
-#include <usb/addrkeep.h>
 #include <usbhc_iface.h>
 
-#include "transfer_list.h"
 #include "batch.h"
+#include "transfer_list.h"
+#include "utils/device_keeper.h"
 
 typedef struct uhci_regs {
 	uint16_t usbcmd;
@@ -81,7 +81,8 @@ typedef struct uhci_regs {
 #define UHCI_DEBUGER_TIMEOUT 5000000
 
 typedef struct uhci {
-	usb_address_keeping_t address_manager;
+	device_keeper_t device_manager;
+
 	volatile regs_t *registers;
 
 	link_pointer_t *frame_list;

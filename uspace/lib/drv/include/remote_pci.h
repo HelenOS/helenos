@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Lubos Slovak
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,25 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbhid
+/** @addtogroup libdrv
  * @{
  */
 /** @file
- * Descriptor parser.
  */
 
-#ifndef USBHID_DESCPARSER_H_
-#define USBHID_DESCPARSER_H_
+#ifndef LIBDRV_REMOTE_PCI_H_
+#define LIBDRV_REMOTE_PCI_H_
 
-#include "hid.h"
-
-int usbkbd_parse_descriptors(const uint8_t *data, size_t size,
-                             usb_hid_configuration_t *config);
-
-void usbkbd_print_config(const usb_hid_configuration_t *config);
+remote_iface_t remote_pci_iface;
 
 #endif
 
 /**
  * @}
  */
+

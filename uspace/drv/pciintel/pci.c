@@ -58,6 +58,7 @@
 #include <device/hw_res.h>
 #include <ddi.h>
 #include <libarch/ddi.h>
+#include <pci_dev_iface.h>
 
 #include "pci.h"
 
@@ -92,6 +93,7 @@ static bool pciintel_enable_interrupt(ddf_fun_t *fnode)
 
   sysarg_t apic;
   sysarg_t i8259;
+
 	int irc_phone = -1;
 	int irc_service = 0;
 
@@ -101,18 +103,22 @@ static bool pciintel_enable_interrupt(ddf_fun_t *fnode)
     irc_service = SERVICE_I8259;
 	}
 
-  if (irc_service) {
-    while (irc_phone < 0)
-      irc_phone = service_connect_blocking(irc_service, 0, 0);
-  } else {
+  if (irc_service == 0)
 		return false;
-	}
+
+	irc_phone = service_connect_blocking(irc_service, 0, 0);
+	if (irc_phone < 0)
+		return false;
 
 	size_t i;
   for (i = 0; i < dev_data->hw_resources.count; i++) {
 		if (dev_data->hw_resources.resources[i].type == INTERRUPT) {
 			int irq = dev_data->hw_resources.resources[i].res.interrupt.irq;
-			async_msg_1(irc_phone, IRC_ENABLE_INTERRUPT, irq);
+			int rc = async_req_1_0(irc_phone, IRC_ENABLE_INTERRUPT, irq);
+			if (rc != EOK) {
+				async_hangup(irc_phone);
+				return false;
+			}
 		}
 	}
 
@@ -120,12 +126,33 @@ static bool pciintel_enable_interrupt(ddf_fun_t *fnode)
 	return true;
 }
 
+static int pci_config_space_write_16(ddf_fun_t *fun, uint32_t address, uint16_t data)
+{
+	if (address > 254)
+		return EINVAL;
+	pci_conf_write_16(PCI_FUN(fun), address, data);
+	return EOK;
+}
+
+
 static hw_res_ops_t pciintel_hw_res_ops = {
 	&pciintel_get_resources,
 	&pciintel_enable_interrupt
 };
 
-static ddf_dev_ops_t pci_fun_ops;
+static pci_dev_iface_t pci_dev_ops = {
+	.config_space_read_8 = NULL,
+	.config_space_read_16 = NULL,
+	.config_space_read_32 = NULL,
+	.config_space_write_8 = NULL,
+	.config_space_write_16 = &pci_config_space_write_16,
+	.config_space_write_32 = NULL
+};
+
+static ddf_dev_ops_t pci_fun_ops = {
+	.interfaces[HW_RES_DEV_IFACE] = &pciintel_hw_res_ops,
+	.interfaces[PCI_DEV_IFACE] = &pci_dev_ops
+};
 
 static int pci_add_device(ddf_dev_t *);
 
@@ -319,11 +346,16 @@ int pci_read_bar(pci_fun_t *fun, int addr)
 	
 	/* Get the value of the BAR. */
 	val = pci_conf_read_32(fun, addr);
+
+#define IO_MASK  (~0x3)
+#define MEM_MASK (~0xf)
 	
 	io = (bool) (val & 1);
 	if (io) {
 		addrw64 = false;
+		mask = IO_MASK;
 	} else {
+		mask = MEM_MASK;
 		switch ((val >> 1) & 3) {
 		case 0:
 			addrw64 = false;
@@ -339,7 +371,7 @@ int pci_read_bar(pci_fun_t *fun, int addr)
 	
 	/* Get the address mask. */
 	pci_conf_write_32(fun, addr, 0xffffffff);
-	mask = pci_conf_read_32(fun, addr);
+	mask &= pci_conf_read_32(fun, addr);
 	
 	/* Restore the original value. */
 	pci_conf_write_32(fun, addr, val);
@@ -587,6 +619,7 @@ fail:
 static void pciintel_init(void)
 {
 	pci_fun_ops.interfaces[HW_RES_DEV_IFACE] = &pciintel_hw_res_ops;
+	pci_fun_ops.interfaces[PCI_DEV_IFACE] = &pci_dev_ops;
 }
 
 pci_fun_t *pci_fun_new(pci_bus_t *bus)
@@ -658,7 +691,8 @@ void pci_read_bars(pci_fun_t *fun)
 
 size_t pci_bar_mask_to_size(uint32_t mask)
 {
-	return ((mask & 0xfffffff0) ^ 0xffffffff) + 1;
+	size_t size = mask & ~(mask - 1);
+	return size;
 }
 
 int main(int argc, char *argv[])

@@ -30,51 +30,29 @@
  * @{
  */
 /** @file
- * Common definitions.
+ * HID class-specific requests.
  */
 
-#ifndef USBHID_HID_H_
-#define USBHID_HID_H_
+#ifndef USBHID_HIDREQ_H_
+#define USBHID_HIDREQ_H_
+
+#include <stdint.h>
 
 #include <usb/classes/hid.h>
-#include <ddf/driver.h>
-#include <usb/pipes.h>
+
+#include "hiddev.h"
+
+/*----------------------------------------------------------------------------*/
+
+int usbhid_req_set_report(usbhid_dev_t *hid_dev,
+    usb_hid_report_type_t type, uint8_t *buffer, size_t buf_size);
+
+int usbhid_req_set_protocol(usbhid_dev_t *hid_dev, usb_hid_protocol_t protocol);
+
+/*----------------------------------------------------------------------------*/
+
+#endif /* USBHID_HIDREQ_H_ */
 
 /**
- *
+ * @}
  */
-typedef struct {
-	usb_standard_interface_descriptor_t iface_desc;
-	usb_standard_endpoint_descriptor_t *endpoints;
-	usb_standard_hid_descriptor_t hid_desc;
-	uint8_t *report_desc;
-	//usb_standard_hid_class_descriptor_info_t *class_desc_info;
-	//uint8_t **class_descs;
-} usb_hid_iface_t;
-
-/**
- *
- */
-typedef struct {
-	usb_standard_configuration_descriptor_t config_descriptor;
-	usb_hid_iface_t *interfaces;
-} usb_hid_configuration_t;
-
-/**
- * @brief USB/HID keyboard device type.
- *
- * Quite dummy right now.
- */
-typedef struct {
-	ddf_dev_t *device;
-	usb_hid_configuration_t *conf;
-	usb_hid_report_parser_t *parser;
-
-	usb_device_connection_t wire;
-	usb_endpoint_pipe_t ctrl_pipe;
-	usb_endpoint_pipe_t poll_pipe;
-} usb_hid_dev_kbd_t;
-
-// TODO: more configurations!
-
-#endif

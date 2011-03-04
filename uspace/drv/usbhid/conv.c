@@ -35,6 +35,8 @@
 
 #include <io/keycode.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <usb/debug.h>
 #include "conv.h"
 
 static int scanmap_simple[255] = {
@@ -140,56 +142,37 @@ static int scanmap_simple[255] = {
 	[0xe6] = KC_RALT,
 	//[0xe7] = KC_R	// TODO: right GUI
 	
+	[0x53] = KC_NUM_LOCK,
+	[0x54] = KC_NSLASH,
+	[0x55] = KC_NTIMES,
+	[0x56] = KC_NMINUS,
+	[0x57] = KC_NPLUS,
+	[0x58] = KC_NENTER,
+	[0x59] = KC_N1,
+	[0x5a] = KC_N2,
+	[0x5b] = KC_N3,
+	[0x5c] = KC_N4,
+	[0x5d] = KC_N5,
+	[0x5e] = KC_N6,
+	[0x5f] = KC_N7,
+	[0x60] = KC_N8,
+	[0x61] = KC_N9,
+	[0x62] = KC_N0,
+	[0x63] = KC_NPERIOD
+	
 };
 
-unsigned int usbkbd_parse_scancode(int scancode)
+unsigned int usbhid_parse_scancode(int scancode)
 {
-//	console_ev_type_t type;
 	unsigned int key;
 	int *map = scanmap_simple;
 	size_t map_length = sizeof(scanmap_simple) / sizeof(int);
-
-	/*
-	 * ACK/NAK are returned as response to us sending a command.
-	 * We are not interested in them.
-	 */
-//	if (scancode == SC_ACK || scancode == SC_NAK)
-//		return;
-
-//	if (scancode == 0xe0) {
-//		ds = ds_e;
-//		return;
-//	}
-
-//	switch (ds) {
-//	case ds_s:
-//		map = scanmap_simple;
-//		map_length = sizeof(scanmap_simple) / sizeof(int);
-//		break;
-//	case ds_e:
-//		map = scanmap_e0;
-//		map_length = sizeof(scanmap_e0) / sizeof(int);
-//		break;
-//	default:
-//		map = NULL;
-//		map_length = 0;
-//	}
-
-//	ds = ds_s;
-
-//	if (scancode & 0x80) {
-//		scancode &= ~0x80;
-//		type = KEY_RELEASE;
-//	} else {
-//		type = KEY_PRESS;
-//	}
 
 	if ((scancode < 0) || ((size_t) scancode >= map_length))
 		return -1;
 
 	key = map[scancode];
-//	if (key != 0)
-//		kbd_push_ev(type, key);
+	
 	return key;
 }
 

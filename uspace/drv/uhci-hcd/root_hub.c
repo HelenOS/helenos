@@ -33,13 +33,17 @@
  */
 #include <assert.h>
 #include <errno.h>
+#include <str_error.h>
 #include <stdio.h>
+#include <ops/hw_res.h>
+
 #include <usb_iface.h>
 #include <usb/debug.h>
 
 #include "root_hub.h"
 #include "uhci.h"
 
+/*----------------------------------------------------------------------------*/
 static int usb_iface_get_hc_handle_rh_impl(ddf_fun_t *root_hub_fun,
     devman_handle_t *handle)
 {
@@ -50,7 +54,7 @@ static int usb_iface_get_hc_handle_rh_impl(ddf_fun_t *root_hub_fun,
 
 	return EOK;
 }
-
+/*----------------------------------------------------------------------------*/
 static int usb_iface_get_address_rh_impl(ddf_fun_t *fun, devman_handle_t handle,
     usb_address_t *address)
 {
@@ -60,7 +64,7 @@ static int usb_iface_get_address_rh_impl(ddf_fun_t *fun, devman_handle_t handle,
 	uhci_t *hc = fun_to_uhci(hc_fun);
 	assert(hc);
 
-	usb_address_t addr = usb_address_keeping_find(&hc->address_manager,
+	usb_address_t addr = device_keeper_find(&hc->device_manager,
 	    handle);
 	if (addr < 0) {
 		return addr;
@@ -72,20 +76,49 @@ static int usb_iface_get_address_rh_impl(ddf_fun_t *fun, devman_handle_t handle,
 
 	return EOK;
 }
-
+/*----------------------------------------------------------------------------*/
 usb_iface_t usb_iface_root_hub_fun_impl = {
 	.get_hc_handle = usb_iface_get_hc_handle_rh_impl,
 	.get_address = usb_iface_get_address_rh_impl
 };
+/*----------------------------------------------------------------------------*/
+static hw_resource_list_t *get_resource_list(ddf_fun_t *dev)
+{
+	assert(dev);
+	ddf_fun_t *hc_ddf_instance = dev->driver_data;
+	assert(hc_ddf_instance);
+	uhci_t *hc = hc_ddf_instance->driver_data;
+	assert(hc);
 
-static ddf_dev_ops_t root_hub_ops = {
-	.interfaces[USB_DEV_IFACE] = &usb_iface_root_hub_fun_impl
+	//TODO: fix memory leak
+	hw_resource_list_t *resource_list = malloc(sizeof(hw_resource_list_t));
+	assert(resource_list);
+	resource_list->count = 1;
+	resource_list->resources = malloc(sizeof(hw_resource_t));
+	assert(resource_list->resources);
+	resource_list->resources[0].type = IO_RANGE;
+	resource_list->resources[0].res.io_range.address =
+	    ((uintptr_t)hc->registers) + 0x10; // see UHCI design guide
+	resource_list->resources[0].res.io_range.size = 4;
+	resource_list->resources[0].res.io_range.endianness = LITTLE_ENDIAN;
+
+	return resource_list;
+}
+/*----------------------------------------------------------------------------*/
+static hw_res_ops_t hw_res_iface = {
+	.get_resource_list = get_resource_list,
+	.enable_interrupt = NULL
 };
-
+/*----------------------------------------------------------------------------*/
+static ddf_dev_ops_t root_hub_ops = {
+	.interfaces[USB_DEV_IFACE] = &usb_iface_root_hub_fun_impl,
+	.interfaces[HW_RES_DEV_IFACE] = &hw_res_iface
+};
 /*----------------------------------------------------------------------------*/
 int setup_root_hub(ddf_fun_t **fun, ddf_dev_t *hc)
 {
 	assert(fun);
+	assert(hc);
 	int ret;
 
 	ddf_fun_t *hub = ddf_fun_create(hc, fun_inner, "root-hub");
@@ -104,9 +137,10 @@ int setup_root_hub(ddf_fun_t **fun, ddf_dev_t *hc)
 
 	ret = ddf_fun_add_match_id(hub, match_str, 100);
 	if (ret != EOK) {
-		usb_log_error("Failed to add root hub match id.\n");
+		usb_log_error("Failed(%d) to add root hub match id: %s\n",
+		    ret, str_error(ret));
 		ddf_fun_destroy(hub);
-		return ENOMEM;
+		return ret;
 	}
 
 	hub->ops = &root_hub_ops;

@@ -40,6 +40,7 @@
 #include <ipc/services.h>
 #include <ipc/ns.h>
 #include <errno.h>
+#include <str_error.h>
 #include <ipc/console.h>
 #include <unistd.h>
 #include <async.h>
@@ -63,6 +64,8 @@
 
 #define NAME       "console"
 #define NAMESPACE  "term"
+/** Interval for checking for new keyboard (1/4s). */
+#define HOTPLUG_WATCH_INTERVAL (1000 * 250)
 
 /** Phone to the keyboard driver. */
 static int kbd_phone;
@@ -711,7 +714,8 @@ static void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
 	change_console(prev_console);
 }
 
-static int connect_keyboard(char *path)
+static int connect_keyboard_or_mouse(const char *devname,
+    async_client_conn_t handler, const char *path)
 {
 	int fd = open(path, O_RDONLY);
 	if (fd < 0) {
@@ -724,98 +728,55 @@ static int connect_keyboard(char *path)
 		return phone;
 	}
 	
-	/* NB: The callback connection is slotted for removal */
-	sysarg_t phonehash;
-	sysarg_t taskhash;
-	int rc = async_req_3_5(phone, IPC_M_CONNECT_TO_ME, SERVICE_CONSOLE,
-	    0, 0, NULL, NULL, NULL, &taskhash, &phonehash);
+	int rc = async_connect_to_me(phone, SERVICE_CONSOLE, 0, 0, handler);
 	if (rc != EOK) {
-		printf(NAME ": Failed to create callback from input device\n");
+		printf(NAME ": " \
+		    "Failed to create callback from input device: %s.\n",
+		    str_error(rc));
 		return rc;
 	}
 	
-	async_new_connection(taskhash, phonehash, 0, NULL, keyboard_events);
-
-	printf(NAME ": we got a hit (new keyboard \"%s\").\n", path);
+	printf(NAME ": found %s \"%s\".\n", devname, path);
 
 	return phone;
 }
 
-/** Try to connect to given keyboard, bypassing provided libc routines.
+static int connect_keyboard(const char *path)
+{
+	return connect_keyboard_or_mouse("keyboard", keyboard_events, path);
+}
+
+static int connect_mouse(const char *path)
+{
+	return connect_keyboard_or_mouse("mouse", mouse_events, path);
+}
+
+struct hid_class_info {
+	char *classname;
+	int (*connection_func)(const char *);
+};
+
+/** Periodically check for new keyboards in /dev/class/.
  *
- * @param devmap_path Path to keyboard without /dev prefix.
- * @return Phone or error code.
+ * @param arg Class name.
+ * @return This function should never exit.
  */
-static int connect_keyboard_bypass(char *devmap_path)
+static int check_new_device_fibril(void *arg)
 {
-	int devmap_phone = async_connect_me_to_blocking(PHONE_NS,
-	    SERVICE_DEVMAP, DEVMAP_CLIENT, 0);
-	if (devmap_phone < 0) {
-		return devmap_phone;
-	}
-	ipc_call_t answer;
-	aid_t req = async_send_2(devmap_phone, DEVMAP_DEVICE_GET_HANDLE,
-	    0, 0,  &answer);
+	struct hid_class_info *dev_info = arg;
 
-	sysarg_t retval = async_data_write_start(devmap_phone,
-	    devmap_path, str_size(devmap_path));
-	if (retval != EOK) {
-		async_wait_for(req, NULL);
-		async_hangup(devmap_phone);
-		return retval;
-	}
-
-	async_wait_for(req, &retval);
-
-	if (retval != EOK) {
-		async_hangup(devmap_phone);
-		return retval;
-	}
-
-	devmap_handle_t handle = (devmap_handle_t) IPC_GET_ARG1(answer);
-
-	async_hangup(devmap_phone);
-
-	int phone = async_connect_me_to(PHONE_NS,
-	    SERVICE_DEVMAP, DEVMAP_CONNECT_TO_DEVICE, handle);
-	if (phone < 0) {
-		return phone;
-	}
-
-	/* NB: The callback connection is slotted for removal */
-	sysarg_t phonehash;
-	sysarg_t taskhash;
-	int rc = async_req_3_5(phone, IPC_M_CONNECT_TO_ME, SERVICE_CONSOLE,
-	    0, 0, NULL, NULL, NULL, &taskhash, &phonehash);
-	if (rc != EOK) {
-		printf(NAME ": Failed to create callback from input device\n");
-		return rc;
-	}
-
-	async_new_connection(taskhash, phonehash, 0, NULL, keyboard_events);
-
-	printf(NAME ": we got a hit (new keyboard \"/dev/%s\").\n",
-	    devmap_path);
-
-	return phone;
-}
-
-
-static int check_new_keyboards(void *arg)
-{
-	char *class_name = (char *) arg;
-
-	int index = 1;
+	size_t index = 1;
 
 	while (true) {
-		async_usleep(1 * 500 * 1000);
+		async_usleep(HOTPLUG_WATCH_INTERVAL);
 		char *path;
-		int rc = asprintf(&path, "class/%s\\%d", class_name, index);
+		int rc = asprintf(&path, "/dev/class/%s\\%zu",
+		    dev_info->classname, index);
 		if (rc < 0) {
 			continue;
 		}
 		rc = 0;
-		rc = connect_keyboard_bypass(path);
+		rc = dev_info->connection_func(path);
 		if (rc > 0) {
 			/* We do not allow unplug. */
 			index++;
@@ -830,11 +791,30 @@ static int check_new_keyboards(void *arg)
 
 /** Start a fibril monitoring hot-plugged keyboards.
  */
-static void check_new_keyboards_in_background()
+static void check_new_devices_in_background(int (*connection_func)(const char *),
+    const char *classname)
 {
-	fid_t fid = fibril_create(check_new_keyboards, (void *)"keyboard");
+	struct hid_class_info *dev_info = malloc(sizeof(struct hid_class_info));
+	if (dev_info == NULL) {
+		printf(NAME ": " \
+		    "out of memory, will not start hot-plug-watch fibril.\n");
+		return;
+	}
+	int rc;
+
+	rc = asprintf(&dev_info->classname, "%s", classname);
+	if (rc < 0) {
+		printf(NAME ": failed to format classname: %s.\n",
+		    str_error(rc));
+		return;
+	}
+	dev_info->connection_func = connection_func;
+
+	fid_t fid = fibril_create(check_new_device_fibril, (void *)dev_info);
 	if (!fid) {
-		printf(NAME ": failed to create hot-plug-watch fibril.\n");
+		printf(NAME
+		    ": failed to create hot-plug-watch fibril for %s.\n",
+		    classname);
 		return;
 	}
 	fibril_add_ready(fid);
@@ -848,29 +828,11 @@ static bool console_init(char *input)
 		return false;
 	}
 
-	/* Connect to mouse device */
-	mouse_phone = -1;
-	int mouse_fd = open("/dev/hid_in/mouse", O_RDONLY);
-	
-	if (mouse_fd < 0) {
-		printf(NAME ": Notice - failed opening %s\n", "/dev/hid_in/mouse");
-		goto skip_mouse;
-	}
-	
-	mouse_phone = fd_phone(mouse_fd);
+	mouse_phone = connect_mouse("/dev/hid_in/mouse");
 	if (mouse_phone < 0) {
-		printf(NAME ": Failed to connect to mouse device\n");
-		goto skip_mouse;
+		printf(NAME ": Failed to connect to mouse device: %s.\n",
+		    str_error(mouse_phone));
 	}
-	
-	if (async_connect_to_me(mouse_phone, SERVICE_CONSOLE, 0, 0, mouse_events)
-	    != 0) {
-		printf(NAME ": Failed to create callback from mouse device\n");
-		mouse_phone = -1;
-		goto skip_mouse;
-	}
-	
-skip_mouse:
 	
 	/* Connect to framebuffer driver */
 	fb_info.phone = service_connect_blocking(SERVICE_VIDEO, 0, 0);
@@ -954,7 +916,8 @@ skip_mouse:
 		printf(NAME ": Error registering kconsole notifications\n");
 	
 	/* Start fibril for checking on hot-plugged keyboards. */
-	check_new_keyboards_in_background();
+	check_new_devices_in_background(connect_keyboard, "keyboard");
+	check_new_devices_in_background(connect_mouse, "mouse");
 
 	return true;
 }

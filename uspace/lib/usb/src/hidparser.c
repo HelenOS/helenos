@@ -143,12 +143,11 @@ int usb_hid_boot_keyboard_input_report(const uint8_t *data, size_t size,
  */
 int usb_hid_boot_keyboard_output_report(uint8_t leds, uint8_t *data, size_t size)
 {
-	if(size != 1){
+	if (size < 1){
 		return -1;
 	}
 
-	/* used only first five bits, others are only padding*/
-	*data = leds;
+	data[0] = leds;
 	return EOK;
 }
 

@@ -35,6 +35,7 @@
 #include <usb/request.h>
 #include <errno.h>
 #include <assert.h>
+#include <usb/debug.h>
 
 #define MAX_DATA_LENGTH ((size_t)(0xFFFF))
 
@@ -208,7 +209,7 @@ int usb_request_set_address(usb_endpoint_pipe_t *pipe,
  * @return Error code.
  */
 int usb_request_get_descriptor(usb_endpoint_pipe_t *pipe,
-    usb_request_type_t request_type,
+    usb_request_type_t request_type, usb_request_recipient_t recipient,
     uint8_t descriptor_type, uint8_t descriptor_index,
     uint16_t language,
     void *buffer, size_t size, size_t *actual_size)
@@ -223,7 +224,7 @@ int usb_request_get_descriptor(usb_endpoint_pipe_t *pipe,
 	uint16_t wValue = descriptor_index | (descriptor_type << 8);
 
 	return usb_control_request_get(pipe,
-	    request_type, USB_REQUEST_RECIPIENT_DEVICE,
+	    request_type, recipient,
 	    USB_DEVREQ_GET_DESCRIPTOR,
 	    wValue, language,
 	    buffer, size, actual_size);
@@ -241,7 +242,7 @@ int usb_request_get_descriptor(usb_endpoint_pipe_t *pipe,
  * @return
  */
 int usb_request_get_descriptor_alloc(usb_endpoint_pipe_t * pipe,
-    usb_request_type_t request_type,
+    usb_request_type_t request_type, usb_request_recipient_t recipient,
     uint8_t descriptor_type, uint8_t descriptor_index,
     uint16_t language,
     void **buffer_ptr, size_t *buffer_size)
@@ -257,7 +258,7 @@ int usb_request_get_descriptor_alloc(usb_endpoint_pipe_t * pipe,
 	 */
 	uint8_t tmp_buffer[1];
 	size_t bytes_transfered;
-	rc = usb_request_get_descriptor(pipe, request_type,
+	rc = usb_request_get_descriptor(pipe, request_type, recipient,
 	    descriptor_type, descriptor_index, language,
 	    &tmp_buffer, 1, &bytes_transfered);
 	if (rc != EOK) {
@@ -282,7 +283,7 @@ int usb_request_get_descriptor_alloc(usb_endpoint_pipe_t * pipe,
 		return ENOMEM;
 	}
 
-	rc = usb_request_get_descriptor(pipe, request_type,
+	rc = usb_request_get_descriptor(pipe, request_type, recipient,
 	    descriptor_type, descriptor_index, language,
 	    buffer, size, &bytes_transfered);
 	if (rc != EOK) {
@@ -319,8 +320,8 @@ int usb_request_get_device_descriptor(usb_endpoint_pipe_t *pipe,
 	size_t actually_transferred = 0;
 	usb_standard_device_descriptor_t descriptor_tmp;
 	int rc = usb_request_get_descriptor(pipe,
-	    USB_REQUEST_TYPE_STANDARD, USB_DESCTYPE_DEVICE,
-	    0, 0,
+	    USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_DEVICE, 
+	    USB_DESCTYPE_DEVICE, 0, 0,
 	    &descriptor_tmp, sizeof(descriptor_tmp),
 	    &actually_transferred);
 
@@ -365,8 +366,8 @@ int usb_request_get_bare_configuration_descriptor(usb_endpoint_pipe_t *pipe,
 	size_t actually_transferred = 0;
 	usb_standard_configuration_descriptor_t descriptor_tmp;
 	int rc = usb_request_get_descriptor(pipe,
-	    USB_REQUEST_TYPE_STANDARD, USB_DESCTYPE_CONFIGURATION,
-	    index, 0,
+	    USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_DEVICE,
+	    USB_DESCTYPE_CONFIGURATION, index, 0,
 	    &descriptor_tmp, sizeof(descriptor_tmp),
 	    &actually_transferred);
 	if (rc != EOK) {
@@ -405,9 +406,74 @@ int usb_request_get_full_configuration_descriptor(usb_endpoint_pipe_t *pipe,
 	}
 
 	return usb_request_get_descriptor(pipe,
-	    USB_REQUEST_TYPE_STANDARD, USB_DESCTYPE_CONFIGURATION,
-	    index, 0,
+	    USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_DEVICE,
+	    USB_DESCTYPE_CONFIGURATION, index, 0,
 	    descriptor, descriptor_size, actual_size);
+}
+
+/** Retrieve full configuration descriptor, allocate space for it.
+ *
+ * The function takes care that full configuration descriptor is returned
+ * (i.e. the function will fail when less data then descriptor.totalLength
+ * is returned).
+ *
+ * @param[in] pipe Control endpoint pipe (session must be already started).
+ * @param[in] index Configuration index.
+ * @param[out] descriptor_ptr Where to store pointer to allocated buffer.
+ * @param[out] descriptor_size Where to store the size of the descriptor.
+ * @return Error code.
+ */
+int usb_request_get_full_configuration_descriptor_alloc(
+    usb_endpoint_pipe_t *pipe, int index,
+    void **descriptor_ptr, size_t *descriptor_size)
+{
+	int rc;
+
+	if (descriptor_ptr == NULL) {
+		return EBADMEM;
+	}
+
+	usb_standard_configuration_descriptor_t bare_config;
+	rc = usb_request_get_bare_configuration_descriptor(pipe, index,
+	    &bare_config);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	if (bare_config.descriptor_type != USB_DESCTYPE_CONFIGURATION) {
+		return ENOENT;
+	}
+	if (bare_config.total_length < sizeof(bare_config)) {
+		return ELIMIT;
+	}
+
+	void *buffer = malloc(bare_config.total_length);
+	if (buffer == NULL) {
+		return ENOMEM;
+	}
+
+	size_t transferred = 0;
+	rc = usb_request_get_full_configuration_descriptor(pipe, index,
+	    buffer, bare_config.total_length, &transferred);
+	if (rc != EOK) {
+		free(buffer);
+		return rc;
+	}
+
+	if (transferred != bare_config.total_length) {
+		free(buffer);
+		return ELIMIT;
+	}
+
+	/* Everything looks okay, copy the pointers. */
+
+	*descriptor_ptr = buffer;
+
+	if (descriptor_size != NULL) {
+		*descriptor_size = bare_config.total_length;
+	}
+
+	return EOK;
 }
 
 /** Set configuration of USB device.
@@ -451,7 +517,8 @@ int usb_request_get_supported_languages(usb_endpoint_pipe_t *pipe,
 	uint8_t *string_descriptor = NULL;
 	size_t string_descriptor_size = 0;
 	rc = usb_request_get_descriptor_alloc(pipe,
-	    USB_REQUEST_TYPE_STANDARD, USB_DESCTYPE_STRING, 0, 0,
+	    USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_DEVICE,
+	    USB_DESCTYPE_STRING, 0, 0,
 	    (void **) &string_descriptor, &string_descriptor_size);
 	if (rc != EOK) {
 		return rc;
@@ -501,7 +568,8 @@ int usb_request_get_supported_languages(usb_endpoint_pipe_t *pipe,
  * For HelenOS, that is UTF-8.
  *
  * @param[in] pipe Control endpoint pipe (session must be already started).
- * @param[in] index String index (in native endianess).
+ * @param[in] index String index (in native endianess),
+ *	first index has number 1 (index from descriptors can be used directly).
  * @param[in] lang String language (in native endianess).
  * @param[out] string_ptr Where to store allocated string in native encoding.
  * @return Error code.
@@ -512,8 +580,11 @@ int usb_request_get_string(usb_endpoint_pipe_t *pipe,
 	if (string_ptr == NULL) {
 		return EBADMEM;
 	}
-	/* Index is actually one byte value. */
-	if (index > 0xFF) {
+	/*
+	 * Index is actually one byte value and zero index is used
+	 * to retrieve list of supported languages.
+	 */
+	if ((index < 1) || (index > 0xFF)) {
 		return ERANGE;
 	}
 	/* Language is actually two byte value. */
@@ -530,8 +601,8 @@ int usb_request_get_string(usb_endpoint_pipe_t *pipe,
 	/* Get the actual descriptor. */
 	size_t string_size;
 	rc = usb_request_get_descriptor_alloc(pipe,
-	    USB_REQUEST_TYPE_STANDARD, USB_DESCTYPE_STRING,
-	    index, uint16_host2usb(lang),
+	    USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_DEVICE,
+	    USB_DESCTYPE_STRING, index, uint16_host2usb(lang),
 	    (void **) &string, &string_size);
 	if (rc != EOK) {
 		goto leave;

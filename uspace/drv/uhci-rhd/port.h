@@ -54,7 +54,7 @@ typedef struct uhci_port
 
 int uhci_port_init(
   uhci_port_t *port, port_status_t *address, unsigned number,
-  unsigned usec, ddf_dev_t *rh, int parent_phone);
+  unsigned usec, ddf_dev_t *rh);
 
 void uhci_port_fini(uhci_port_t *port);
 #endif

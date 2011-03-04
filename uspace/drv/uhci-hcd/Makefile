@@ -38,6 +38,7 @@ SOURCES = \
 	transfer_list.c \
 	uhci.c \
 	uhci_struct/transfer_descriptor.c \
+	utils/device_keeper.c \
 	pci.c \
 	batch.c
 

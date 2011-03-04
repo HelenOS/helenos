@@ -121,6 +121,7 @@ ifeq ($(UARCH),amd64)
 		drv/usbhid \
 		drv/usbhub \
 		drv/usbmid \
+		drv/usbmouse \
 		drv/vhc
 endif
 
@@ -137,6 +138,7 @@ ifeq ($(UARCH),ia32)
 		drv/usbhid \
 		drv/usbhub \
 		drv/usbmid \
+		drv/usbmouse \
 		drv/vhc
 endif
 

@@ -38,9 +38,10 @@ STOLEN_LAYOUT_SOURCES = \
 
 SOURCES = \
 	main.c \
-	descparser.c \
-	descdump.c \
 	conv.c \
+	hidreq.c \
+	kbddev.c \
+	hiddev.c \
 	$(STOLEN_LAYOUT_SOURCES)
 
 EXTRA_CLEAN = $(STOLEN_LAYOUT_SOURCES)
