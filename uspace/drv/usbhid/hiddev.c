@@ -205,6 +205,12 @@ static int usbhid_dev_process_descriptors(usbhid_dev_t *hid_dev,
 	
 	assert(endpoint_mapping[0].interface != NULL);
 	
+	/*
+	 * Save polling interval
+	 */
+	hid_dev->poll_interval = endpoint_mapping[0].descriptor->poll_interval;
+	assert(hid_dev->poll_interval > 0);
+	
 	rc = usbhid_dev_get_report_descriptor(hid_dev,
 	    descriptors, descriptors_size,
 	    (uint8_t *)endpoint_mapping[0].interface);

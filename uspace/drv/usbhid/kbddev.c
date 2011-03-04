@@ -592,8 +592,6 @@ static void usbhid_kbd_poll(usbhid_kbd_t *kbd_dev)
 	assert(kbd_dev->hid_dev->initialized);
 
 	while (true) {
-		async_usleep(1000 * 10);
-
 		sess_rc = usb_endpoint_pipe_start_session(
 		    &kbd_dev->hid_dev->poll_pipe);
 		if (sess_rc != EOK) {
@@ -634,6 +632,8 @@ static void usbhid_kbd_poll(usbhid_kbd_t *kbd_dev)
 		 */
 		usb_log_debug("Calling usbhid_kbd_process_data()\n");
 		usbhid_kbd_process_data(kbd_dev, buffer, actual_size);
+		
+		async_usleep(kbd_dev->hid_dev->poll_interval);
 	}
 
 	// not reached

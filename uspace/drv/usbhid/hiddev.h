@@ -56,6 +56,8 @@ typedef struct {
 	usb_endpoint_pipe_t ctrl_pipe;
 	usb_endpoint_pipe_t poll_pipe;
 	
+	short poll_interval;
+	
 	uint16_t iface;
 	
 	uint8_t *report_desc;
