@@ -48,6 +48,7 @@ static int batch_schedule(batch_t *instance);
 
 static void batch_control(
     batch_t *instance, int data_stage, int status_stage);
+static void batch_data(batch_t *instance, int pid);
 static void batch_call_in(batch_t *instance);
 static void batch_call_out(batch_t *instance);
 static void batch_call_in_and_dispose(batch_t *instance);
@@ -191,24 +192,7 @@ void batch_control_read(batch_t *instance)
 void batch_interrupt_in(batch_t *instance)
 {
 	assert(instance);
-
-	const bool low_speed = instance->speed == USB_SPEED_LOW;
-	int toggle = 1;
-	size_t i = 0;
-	for (;i < instance->packets; ++i) {
-		char *data =
-		    instance->transport_buffer + (i  * instance->max_packet_size);
-		transfer_descriptor_t *next = (i + 1) < instance->packets ?
-		    &instance->tds[i + 1] : NULL;
-		toggle = 1 - toggle;
-
-		transfer_descriptor_init(&instance->tds[i], DEFAULT_ERROR_COUNT,
-		    instance->max_packet_size, toggle, false, low_speed,
-		    instance->target, USB_PID_IN, data, next);
-	}
-
-	instance->tds[i - 1].status |= TD_STATUS_COMPLETE_INTERRUPT_FLAG;
-
+	batch_data(instance, USB_PID_IN);
 	instance->next_step = batch_call_in_and_dispose;
 	usb_log_debug("Batch(%p) INTERRUPT IN initialized.\n", instance);
 	batch_schedule(instance);
@@ -218,27 +202,63 @@ void batch_interrupt_out(batch_t *instance)
 {
 	assert(instance);
 	memcpy(instance->transport_buffer, instance->buffer, instance->buffer_size);
-
-	const bool low_speed = instance->speed == USB_SPEED_LOW;
-	int toggle = 1;
-	size_t i = 0;
-	for (;i < instance->packets; ++i) {
-		char *data =
-		    instance->transport_buffer + (i  * instance->max_packet_size);
-		transfer_descriptor_t *next = (i + 1) < instance->packets ?
-		    &instance->tds[i + 1] : NULL;
-		toggle = 1 - toggle;
-
-		transfer_descriptor_init(&instance->tds[i], DEFAULT_ERROR_COUNT,
-		    instance->max_packet_size, toggle++, false, low_speed,
-		    instance->target, USB_PID_OUT, data, next);
-	}
-
-	instance->tds[i - 1].status |= TD_STATUS_COMPLETE_INTERRUPT_FLAG;
-
+	batch_data(instance, USB_PID_OUT);
 	instance->next_step = batch_call_out_and_dispose;
 	usb_log_debug("Batch(%p) INTERRUPT OUT initialized.\n", instance);
 	batch_schedule(instance);
+}
+/*----------------------------------------------------------------------------*/
+void batch_bulk_in(batch_t *instance)
+{
+	assert(instance);
+	batch_data(instance, USB_PID_IN);
+	instance->next_step = batch_call_in_and_dispose;
+	usb_log_debug("Batch(%p) BULK IN initialized.\n", instance);
+	batch_schedule(instance);
+}
+/*----------------------------------------------------------------------------*/
+void batch_bulk_out(batch_t *instance)
+{
+	assert(instance);
+	memcpy(instance->transport_buffer, instance->buffer, instance->buffer_size);
+	batch_data(instance, USB_PID_OUT);
+	instance->next_step = batch_call_out_and_dispose;
+	usb_log_debug("Batch(%p) BULK OUT initialized.\n", instance);
+	batch_schedule(instance);
+}
+/*----------------------------------------------------------------------------*/
+static void batch_data(batch_t *instance, int pid)
+{
+	assert(instance);
+	const bool low_speed = instance->speed == USB_SPEED_LOW;
+	int toggle = 1;
+
+	size_t packet = 0;
+	size_t remain_size = instance->buffer_size;
+	while (remain_size > 0) {
+		char *data =
+		    instance->transport_buffer + instance->buffer_size
+		    - remain_size;
+
+		toggle = 1 - toggle;
+
+		const size_t packet_size =
+		    (instance->max_packet_size > remain_size) ?
+		    remain_size : instance->max_packet_size;
+
+		transfer_descriptor_init(&instance->tds[packet],
+		    DEFAULT_ERROR_COUNT, packet_size, toggle, false, low_speed,
+		    instance->target, pid, data,
+		    &instance->tds[packet + 1]);
+
+		++packet;
+		assert(packet <= instance->packets);
+		assert(packet_size <= remain_size);
+		remain_size -= packet_size;
+	}
+
+	instance->tds[packet - 1].status |= TD_STATUS_COMPLETE_INTERRUPT_FLAG;
+	instance->tds[packet - 1].next = 0 | LINK_POINTER_TERMINATE_FLAG;
 }
 /*----------------------------------------------------------------------------*/
 static void batch_control(

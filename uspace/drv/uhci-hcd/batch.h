@@ -85,16 +85,9 @@ void batch_interrupt_in(batch_t *instance);
 
 void batch_interrupt_out(batch_t *instance);
 
-/* DEPRECATED FUNCTIONS NEEDED BY THE OLD API */
-void batch_control_setup_old(batch_t *instance);
+void batch_bulk_in(batch_t *instance);
 
-void batch_control_write_data_old(batch_t *instance);
-
-void batch_control_read_data_old(batch_t *instance);
-
-void batch_control_write_status_old(batch_t *instance);
-
-void batch_control_read_status_old(batch_t *instance);
+void batch_bulk_out(batch_t *instance);
 #endif
 /**
  * @}
