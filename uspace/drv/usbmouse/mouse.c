@@ -93,6 +93,9 @@ int usb_mouse_polling_fibril(void *arg)
 			break;
 		}
 
+		usb_log_debug2("got buffer: %s.\n",
+		    usb_debug_str_buffer(buffer, buffer_size, 0));
+
 		uint8_t butt = buffer[0];
 		char str_buttons[4] = {
 			butt & 1 ? '#' : '.',

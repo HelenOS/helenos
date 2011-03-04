@@ -251,6 +251,66 @@ void usb_log_printf(usb_log_level_t level, const char *format, ...)
 	fibril_mutex_unlock(&log_serializer);
 }
 
+
+#define BUFFER_DUMP_LEN 512
+static fibril_local char buffer_dump[BUFFER_DUMP_LEN];
+
+/** Dump buffer into string.
+ *
+ * The function dumps given buffer into hexadecimal format and stores it
+ * in a static fibril local string.
+ * That means that you do not have to deallocate the string (actually, you
+ * can not do that) and you do not have to save it agains concurrent
+ * calls to it.
+ * The only limitation is that each call rewrites the buffer again.
+ * Thus, it is necessary to copy the buffer elsewhere (that includes printing
+ * to screen or writing to file).
+ * Since this function is expected to be used for debugging prints only,
+ * that is not a big limitation.
+ *
+ * @warning You cannot use this function twice in the same printf
+ * (see detailed explanation).
+ *
+ * @param buffer Buffer to be printed (can be NULL).
+ * @param size Size of the buffer in bytes (can be zero).
+ * @param dumped_size How many bytes to actually dump (zero means all).
+ * @return Dumped buffer as a static (but fibril local) string.
+ */
+const char *usb_debug_str_buffer(uint8_t *buffer, size_t size,
+    size_t dumped_size)
+{
+	if (buffer == NULL) {
+		return "(null)";
+	}
+	if (size == 0) {
+		return "(empty)";
+	}
+	if ((dumped_size == 0) || (dumped_size > size)) {
+		dumped_size = size;
+	}
+
+	char *it = buffer_dump;
+
+	size_t index = 0;
+
+	while (1) {
+		/* FIXME: add range checking of the buffer size. */
+		snprintf(it, 4, "%02X ", (int) buffer[index]);
+		it += 3;
+		index++;
+		if (index >= dumped_size) {
+			break;
+		}
+	}
+
+	/* Remove the last space */
+	it--;
+	*it = 0;
+
+	return buffer_dump;
+}
+
+
 /**
  * @}
  */
