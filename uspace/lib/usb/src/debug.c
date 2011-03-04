@@ -264,7 +264,7 @@ static fibril_local char buffer_dump[BUFFER_DUMP_LEN];
  * The function dumps given buffer into hexadecimal format and stores it
  * in a static fibril local string.
  * That means that you do not have to deallocate the string (actually, you
- * can not do that) and you do not have to save it agains concurrent
+ * can not do that) and you do not have to guard it against concurrent
  * calls to it.
  * The only limitation is that each call rewrites the buffer again.
  * Thus, it is necessary to copy the buffer elsewhere (that includes printing
