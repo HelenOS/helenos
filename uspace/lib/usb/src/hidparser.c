@@ -35,14 +35,17 @@
 #include <usb/classes/hidparser.h>
 #include <errno.h>
 #include <stdio.h>
-#include <adt/list.h>
 #include <malloc.h>
 #include <mem.h>
+#include <assert.h>
+#include <usb/debug.h>
 
-#define USB_HID_NEW_REPORT_ITEM 0
+#define USB_HID_NEW_REPORT_ITEM 1
+#define USB_HID_NO_ACTION		2
+#define USB_HID_UNKNOWN_TAG		-99
 
 
-int usb_hid_report_parse_tag(uint8_t tag, uint8_t class, const const uint8_t *data, size_t item_size,
+int usb_hid_report_parse_tag(uint8_t tag, uint8_t class, const uint8_t *data, size_t item_size,
                              usb_hid_report_item_t *report_item);
 int usb_hid_report_parse_main_tag(uint8_t tag, const uint8_t *data, size_t item_size,
                              usb_hid_report_item_t *report_item);
@@ -55,7 +58,7 @@ void usb_hid_descriptor_print_list(link_t *head);
 int usb_hid_report_reset_local_items();
 void usb_hid_free_report_list(link_t *head);
 int32_t usb_hid_report_tag_data_int32(const uint8_t *data, size_t size);
-size_t usb_hid_count_item_offset(usb_hid_report_item_t * report_item, size_t offset);
+inline size_t usb_hid_count_item_offset(usb_hid_report_item_t * report_item, size_t offset);
 /**
  *
  */
@@ -80,7 +83,7 @@ int usb_hid_parser_init(usb_hid_report_parser_t *parser)
  * @return Error code.
  */
 int usb_hid_parse_report_descriptor(usb_hid_report_parser_t *parser, 
-    const const uint8_t *data, size_t size)
+    const uint8_t *data, size_t size)
 {
 	size_t i=0;
 	uint8_t tag=0;
@@ -98,38 +101,48 @@ int usb_hid_parse_report_descriptor(usb_hid_report_parser_t *parser,
 	}
 	link_initialize(&(report_item->link));	
 	
-	while(i<size){
-		
+	while(i<size){	
 		if(!USB_HID_ITEM_IS_LONG(data[i])){
+
+			if((i+1) >= size){
+				return -1; // TODO ERROR CODE
+			}
+			
 			tag = USB_HID_ITEM_TAG(data[i]);
 			item_size = USB_HID_ITEM_SIZE(data[i]);
 			class = USB_HID_ITEM_TAG_CLASS(data[i]);
-						
-			ret = usb_hid_report_parse_tag(tag,class,(data + (i+1)),
+
+			usb_log_debug2(
+				"i(%u) data(%X) value(%X): TAG %u, class %u, size %u - ", i, 
+			    data[i], usb_hid_report_tag_data_int32(data+i+1,item_size), 
+			    tag, class, item_size);
+			
+			ret = usb_hid_report_parse_tag(tag,class,data+i+1,
 			                         item_size,report_item);
+			printf("ret: %u\n", ret);
 			switch(ret){
 				case USB_HID_NEW_REPORT_ITEM:
 					// store report item to report and create the new one
-					printf("\nNEW REPORT ITEM: %X",tag);
+					usb_log_debug("\nNEW REPORT ITEM: %X",tag);
 
-					offset = usb_hid_count_item_offset(report_item, offset);
 					report_item->offset = offset;
+					offset = usb_hid_count_item_offset(report_item, offset);
 					switch(tag) {
 						case USB_HID_REPORT_TAG_INPUT:
-							printf(" - INPUT\n");
+							usb_log_debug(" - INPUT\n");
 							list_append(&(report_item->link), &(parser->input));
 							break;
 						case USB_HID_REPORT_TAG_OUTPUT:
-							printf(" - OUTPUT\n");
+							usb_log_debug(" - OUTPUT\n");
 								list_append(&(report_item->link), &(parser->output));
 
 							break;
 						case USB_HID_REPORT_TAG_FEATURE:
-							printf(" - FEATURE\n");
+							usb_log_debug(" - FEATURE\n");
 								list_append(&(report_item->link), &(parser->feature));
 							break;
 						default:
-						    printf("\tjump over tag: %X\n", tag	q);
+						    usb_log_debug("\tjump over - tag %X\n", tag);
 						    break;
 					}
 
@@ -152,7 +165,7 @@ int usb_hid_parse_report_descriptor(usb_hid_report_parser_t *parser,
 					break;
 					
 				default:
-					// nothing special to do
+					// nothing special to do					
 					break;
 			}
 
@@ -182,7 +195,7 @@ int usb_hid_parse_report_descriptor(usb_hid_report_parser_t *parser,
  * @return Error code.
  */
 int usb_hid_parse_report(const usb_hid_report_parser_t *parser,  
-    const const uint8_t *data, size_t size,
+    const uint8_t *data, size_t size,
     const usb_hid_report_in_callbacks_t *callbacks, void *arg)
 {
 	int i;
@@ -214,7 +227,7 @@ int usb_hid_parse_report(const usb_hid_report_parser_t *parser,
  *
  * @return Error code
  */
-int usb_hid_boot_keyboard_input_report(const const uint8_t *data, size_t size,
+int usb_hid_boot_keyboard_input_report(const uint8_t *data, size_t size,
 	const usb_hid_report_in_callbacks_t *callbacks, void *arg)
 {
 	int i;
@@ -272,18 +285,20 @@ int usb_hid_boot_keyboard_output_report(uint8_t leds, uint8_t *data, size_t size
  * @param Current report item structe
  * @return Code of action to be done next
  */
-int usb_hid_report_parse_tag(uint8_t tag, uint8_t class, const const uint8_t *data, size_t item_size,
+int usb_hid_report_parse_tag(uint8_t tag, uint8_t class, const uint8_t *data, size_t item_size,
                              usb_hid_report_item_t *report_item)
 {	
+	int ret;
+	
 	switch(class){
 		case USB_HID_TAG_CLASS_MAIN:
 
-			if(usb_hid_report_parse_main_tag(tag,data,item_size,report_item) == EOK) {
+			if((ret=usb_hid_report_parse_main_tag(tag,data,item_size,report_item)) == EOK) {
 				return USB_HID_NEW_REPORT_ITEM;
 			}
 			else {
 				/*TODO process the error */
-				return -1;
+				return ret;
 			   }
 			break;
 
@@ -295,7 +310,7 @@ int usb_hid_report_parse_tag(uint8_t tag, uint8_t class, const const uint8_t *da
 			return usb_hid_report_parse_local_tag(tag,data,item_size,report_item);
 			break;
 		default:
-			return -1; /* TODO ERROR CODE - UNKNOWN TAG CODE */
+			return USB_HID_NO_ACTION;
 	}
 }
 
@@ -317,8 +332,8 @@ int usb_hid_report_parse_main_tag(uint8_t tag, const uint8_t *data, size_t item_
 		case USB_HID_REPORT_TAG_INPUT:
 		case USB_HID_REPORT_TAG_OUTPUT:
 		case USB_HID_REPORT_TAG_FEATURE:
-			report_item->item_flags = *data;
-			return USB_HID_NEW_REPORT_ITEM;
+			report_item->item_flags = *data;			
+			return EOK;			
 			break;
 			
 		case USB_HID_REPORT_TAG_COLLECTION:
@@ -329,10 +344,10 @@ int usb_hid_report_parse_main_tag(uint8_t tag, const uint8_t *data, size_t item_
 			/* should be ignored */
 			break;
 		default:
-			return -1; //TODO ERROR CODE
+			return USB_HID_NO_ACTION;
 	}
 
-	return EOK;
+	return USB_HID_NO_ACTION;
 }
 
 /**
@@ -387,7 +402,7 @@ int usb_hid_report_parse_global_tag(uint8_t tag, const uint8_t *data, size_t ite
 			break;
 			
 		default:
-			return -1; //TODO ERROR CODE INVALID GLOBAL TAG
+			return USB_HID_NO_ACTION;
 	}
 	
 	return EOK;
@@ -440,7 +455,7 @@ int usb_hid_report_parse_local_tag(uint8_t tag, const uint8_t *data, size_t item
 			break;
 */		
 		default:
-			return -1; //TODO ERROR CODE INVALID LOCAL TAG NOW IS ONLY UNSUPPORTED
+			return USB_HID_NO_ACTION;
 	}
 	
 	return EOK;
@@ -483,9 +498,7 @@ void usb_hid_descriptor_print_list(link_t *head)
 	    printf("\tempty\n");
 	    return;
 	}
-
-	
-        printf("\tHEAD %p\n",head);
+        
 	for(item = head->next; item != head; item = item->next) {
                 
 		report_item = list_get_instance(item, usb_hid_report_item_t, link);
