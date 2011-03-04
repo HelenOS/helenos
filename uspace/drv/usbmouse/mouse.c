@@ -36,6 +36,7 @@
 #include "mouse.h"
 #include <usb/debug.h>
 #include <errno.h>
+#include <str_error.h>
 #include <ipc/mouse.h>
 
 int usb_mouse_polling_fibril(void *arg)
@@ -63,14 +64,34 @@ int usb_mouse_polling_fibril(void *arg)
 		async_usleep(mouse->poll_interval_us);
 
 		size_t actual_size;
+		int rc;
 
-		/* FIXME: check for errors. */
-		usb_endpoint_pipe_start_session(&mouse->poll_pipe);
+		/*
+		 * Error checking note:
+		 * - failure when starting a session is considered
+		 *   temporary (e.g. out of phones, next try might succeed)
+		 * - failure of transfer considered fatal (probably the
+		 *   device was unplugged)
+		 * - session closing not checked (shall not fail anyway)
+		 */
 
-		usb_endpoint_pipe_read(&mouse->poll_pipe,
+		rc = usb_endpoint_pipe_start_session(&mouse->poll_pipe);
+		if (rc != EOK) {
+			usb_log_warning("Failed to start session, will try again: %s.\n",
+			    str_error(rc));
+			continue;
+		}
+
+		rc = usb_endpoint_pipe_read(&mouse->poll_pipe,
 		    buffer, buffer_size, &actual_size);
 
 		usb_endpoint_pipe_end_session(&mouse->poll_pipe);
+
+		if (rc != EOK) {
+			usb_log_error("Failed reading mouse input: %s.\n",
+			    str_error(rc));
+			break;
+		}
 
 		uint8_t butt = buffer[0];
 		char str_buttons[4] = {
@@ -113,6 +134,16 @@ int usb_mouse_polling_fibril(void *arg)
 		usb_log_debug("buttons=%s  dX=%+3d  dY=%+3d  wheel=%+3d\n",
 		   str_buttons, shift_x, shift_y, wheel);
 	}
+
+	/*
+	 * Device was probably unplugged.
+	 * Hang-up the phone to the console.
+	 * FIXME: release allocated memory.
+	 */
+	async_hangup(mouse->console_phone);
+	mouse->console_phone = -1;
+
+	usb_log_error("Mouse polling fibril terminated.\n");
 
 	return EOK;
 }
