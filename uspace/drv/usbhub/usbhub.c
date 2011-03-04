@@ -233,7 +233,7 @@ usb_hub_info_t * usb_create_hub_info(ddf_dev_t * device) {
 	dprintf(USB_LOG_LEVEL_DEBUG, "starting control transaction");
 	usb_endpoint_pipe_start_session(&result->endpoints.control);
 	opResult = usb_request_get_descriptor(&result->endpoints.control,
-			USB_REQUEST_TYPE_STANDARD, USB_REQUEST_RECIPIENT_DEVICE,
+			USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_DEVICE,
 			USB_DESCTYPE_HUB,
 			0, 0, serialized_descriptor,
 			USB_HUB_MAX_DESCRIPTOR_SIZE, &received_size);
