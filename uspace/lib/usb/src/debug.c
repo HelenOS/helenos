@@ -280,7 +280,7 @@ static fibril_local char buffer_dump[BUFFER_DUMP_LEN];
  * @param dumped_size How many bytes to actually dump (zero means all).
  * @return Dumped buffer as a static (but fibril local) string.
  */
-const char *usb_debug_str_buffer(uint8_t *buffer, size_t size,
+const char *usb_debug_str_buffer(const uint8_t *buffer, size_t size,
     size_t dumped_size)
 {
 	/*
