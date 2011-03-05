@@ -38,8 +38,14 @@
 #define MFS_MAGIC_V1		0x137F
 #define MFS_MAGIC_V1R		0x7F13
 
+#define MFS_MAGIC_V1L		0x138F
+#define MFS_MAGIC_V1LR		0x8F13
+
 #define MFS_MAGIC_V2		0x2468
 #define MFS_MAGIC_V2R		0x6824
+
+#define MFS_MAGIC_V2L		0x2478
+#define MFS_MAGIC_V2LR		0x7824
 
 #define MFS_MAGIC_V3		0x4D5A
 #define MFS_MAGIC_V3R		0x5A4D
@@ -103,7 +109,9 @@ struct mfs3_superblock {
 
 typedef enum {
 	MFS_VERSION_V1 = 1,
+	MFS_VERSION_V1L,
 	MFS_VERSION_V2,
+	MFS_VERSION_V2L,
 	MFS_VERSION_V3
 } mfs_version_t;
 

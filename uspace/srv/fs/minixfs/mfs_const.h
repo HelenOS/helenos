@@ -52,6 +52,7 @@
 
 #define V1_MAX_NAME_LEN		14
 #define V2_MAX_NAME_LEN		14
+#define V2E_MAX_NAME_LEN	30
 #define V3_MAX_NAME_LEN		60
 
 #endif

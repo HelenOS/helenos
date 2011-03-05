@@ -58,11 +58,14 @@ typedef enum {
 	HELP_LONG
 } help_level_t;
 
-static void help_cmd_mkminix(help_level_t level);
-static int num_of_set_bits(uint32_t n);
+static void	help_cmd_mkminix(help_level_t level);
+static int	num_of_set_bits(uint32_t n);
+static void	prepare_superblock(struct mfs_superblock *sb);
+static void	prepare_superblock_v3(struct mfs3_superblock *sb);
 
 static struct option const long_options[] = {
 	{ "help", no_argument, 0, 'h' },
+	{ "long-names", no_argument, 0, 'l' },
 	{ "blocks", required_argument, 0, 'b' },
 	{ "inodes", required_argument, 0, 'i' },
 	{ NULL, no_argument, 0, '1' },
@@ -71,20 +74,33 @@ static struct option const long_options[] = {
 	{ 0, 0, 0, 0 }
 };
 
+typedef struct mfs_params {
+	mfs_version_t fs_version;
+	uint32_t block_size;
+	size_t devblock_size;
+	unsigned long n_inodes;
+	aoff64_t dev_nblocks;
+	bool fs_longnames;
+} mfs_params_t;
+
 int main (int argc, char **argv)
 {
 	int rc, c, opt_ind;
 	char *device_name;
 	devmap_handle_t handle;
-	aoff64_t dev_nblocks;
+	
+	struct mfs_superblock *sp;
+	struct mfs3_superblock *sp3;
 
-	/*Default is MinixFS version 3*/
-	mfs_version_t fs_version = MFS_VERSION_V3;
+	mfs_params_t opt;
 
-	/*Default block size is 4096 bytes*/
-	uint32_t block_size = MFS_MAX_BLOCK_SIZE;
-	size_t devblock_size;
-	unsigned long n_inodes = 0;
+	/*Default is MinixFS V3*/
+	opt.fs_version = MFS_VERSION_V3;
+
+	/*Default block size is 4Kb*/
+	opt.block_size = 4096;
+	opt.n_inodes = 0;
+	opt.fs_longnames = false;
 
 	if (argc == 1) {
 		help_cmd_mkminix(HELP_SHORT);
@@ -93,41 +109,48 @@ int main (int argc, char **argv)
 	}
 
 	for (c = 0, optind = 0, opt_ind = 0; c != -1;) {
-		c = getopt_long(argc, argv, "h123b:i:", long_options, &opt_ind);
+		c = getopt_long(argc, argv, "eh123b:i:", long_options, &opt_ind);
 		switch (c) {
 		case 'h':
 			help_cmd_mkminix(HELP_LONG);
 			exit(0);
 		case '1':
-			fs_version = MFS_VERSION_V1;
-			block_size = MFS_MIN_BLOCK_SIZE;
+			opt.fs_version = MFS_VERSION_V1;
+			opt.block_size = MFS_MIN_BLOCK_SIZE;
 			break;
 		case '2':
-			fs_version = MFS_VERSION_V2;
-			block_size = MFS_MIN_BLOCK_SIZE;
+			opt.fs_version = MFS_VERSION_V2;
+			opt.block_size = MFS_MIN_BLOCK_SIZE;
 			break;
 		case '3':
-			fs_version = MFS_VERSION_V3;
+			opt.fs_version = MFS_VERSION_V3;
 			break;
 		case 'b':
-			block_size = (uint32_t) strtol(optarg, NULL, 10);
+			opt.block_size = (uint32_t) strtol(optarg, NULL, 10);
 			break;
 		case 'i':
-			n_inodes = (unsigned long) strtol(optarg, NULL, 10);
+			opt.n_inodes = (unsigned long) strtol(optarg, NULL, 10);
+			break;
+		case 'l':
+			opt.fs_longnames = true;
 			break;
 		}
 	}
 
-	if (block_size < MFS_MIN_BLOCK_SIZE || block_size > MFS_MAX_BLOCK_SIZE) {
+	if (opt.block_size < MFS_MIN_BLOCK_SIZE || 
+				opt.block_size > MFS_MAX_BLOCK_SIZE) {
 		printf(NAME ":Error! Invalid block size.\n");
 		exit(0);
-	} else if (num_of_set_bits(block_size) != 1) {
+	} else if (num_of_set_bits(opt.block_size) != 1) {
 		/*Block size must be a power of 2.*/
 		printf(NAME ":Error! Invalid block size.\n");
 		exit(0);
-	} else if (block_size > MFS_MIN_BLOCK_SIZE && 
-			fs_version != MFS_VERSION_V3) {
-		printf(NAME ":Error! Block size > 1024 is supported from V3 filesystem only.\n");
+	} else if (opt.block_size > MFS_MIN_BLOCK_SIZE && 
+			opt.fs_version != MFS_VERSION_V3) {
+		printf(NAME ":Error! Block size > 1024 is supported by V3 filesystem only.\n");
+		exit(0);
+	} else if (opt.fs_version == MFS_VERSION_V3 && opt.fs_longnames) {
+		printf(NAME ":Error! Long filenames are supported by V1/V2 filesystem only.\n");
 		exit(0);
 	}
 
@@ -152,21 +175,21 @@ int main (int argc, char **argv)
 		return 2;
 	}
 
-	rc = block_get_bsize(handle, &devblock_size);
+	rc = block_get_bsize(handle, &opt.devblock_size);
 	if (rc != EOK) {
 		printf(NAME ": Error determining device block size.\n");
 		return 2;
 	}
 
-	rc = block_get_nblocks(handle, &dev_nblocks);
+	rc = block_get_nblocks(handle, &opt.dev_nblocks);
 	if (rc != EOK) {
 		printf(NAME ": Warning, failed to obtain block device size.\n");
 	} else {
 		printf(NAME ": Block device has %" PRIuOFF64 " blocks.\n",
-		    dev_nblocks);
+		    opt.dev_nblocks);
 	}
 
-	if (devblock_size != 512) {
+	if (opt.devblock_size != 512) {
 		printf(NAME ": Error. Device block size is not 512 bytes.\n");
 		return 2;
 	}
@@ -175,7 +198,21 @@ int main (int argc, char **argv)
 
 	/*Prepare superblock*/
 
+	if (opt.fs_version == MFS_VERSION_V3) {
+		prepare_superblock_v3(sp3);
+	} else {
+		prepare_superblock(sp);
+	}
+
 	return 0;
+}
+
+static void prepare_superblock(struct mfs_superblock *sp)
+{
+}
+
+static void prepare_superblock_v3(struct mfs3_superblock *sp)
+{
 }
 
 static void help_cmd_mkminix(help_level_t level)
@@ -189,7 +226,8 @@ static void help_cmd_mkminix(help_level_t level)
 		"-3         Make a Minix version 3 filesystem\n"
 		"-b ##      Specify the block size in bytes (V3 only),\n"
 		"           valid block size values are 1024, 2048 and 4096 bytes per block\n"
-		"-i ##      Specify the number of inodes for the filesystem\n");
+		"-i ##      Specify the number of inodes for the filesystem\n"
+		"-l         Use 30-char long filenames (V1/V2 only)");
 	}
 }
 

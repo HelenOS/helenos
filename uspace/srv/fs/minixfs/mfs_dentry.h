@@ -36,11 +36,18 @@
 #include "mfs_const.h"
 
 #define mfs_v2_dentry	mfs_v1_dentry
+#define mfs_v1l_dentry	mfs_v2l_dentry
 
 /*MinixFS V1 directory entry on-disk structure*/
 struct mfs_v1_dentry {
 	uint16_t d_inum;
 	char d_name[V1_MAX_NAME_LEN];
+} __attribute__ ((packed));
+
+/*MinixFS V2 with 30-char filenames (Linux variant)*/
+struct mfs_v2l_dentry {
+	uint16_t d_inum;
+	char d_name[V2E_MAX_NAME_LEN];
 } __attribute__ ((packed));
 
 /*MinixFS V3 directory entry on-disk structure*/
