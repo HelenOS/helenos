@@ -78,7 +78,7 @@ void usb_log_printf(usb_log_level_t, const char *, ...);
 #define usb_log_debug2(format, ...) \
 	usb_log_printf(USB_LOG_LEVEL_DEBUG2, format, ##__VA_ARGS__)
 
-const char *usb_debug_str_buffer(uint8_t *, size_t, size_t);
+const char *usb_debug_str_buffer(const uint8_t *, size_t, size_t);
 
 
 #endif
