@@ -49,6 +49,8 @@ int usbhid_req_set_report(usbhid_dev_t *hid_dev,
 
 int usbhid_req_set_protocol(usbhid_dev_t *hid_dev, usb_hid_protocol_t protocol);
 
+int usbhid_req_set_idle(usbhid_dev_t *hid_dev, uint8_t duration);
+
 /*----------------------------------------------------------------------------*/
 
 #endif /* USBHID_HIDREQ_H_ */
