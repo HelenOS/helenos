@@ -59,7 +59,7 @@ typedef enum {
 } help_level_t;
 
 typedef struct mfs_params {
-	mfs_version_t fs_version;
+	uint16_t fs_magic;
 	uint32_t block_size;
 	size_t devblock_size;
 	unsigned long n_inodes;
@@ -95,7 +95,7 @@ int main (int argc, char **argv)
 	mfs_params_t opt;
 
 	/*Default is MinixFS V3*/
-	opt.fs_version = MFS_VERSION_V3;
+	opt.fs_magic = MFS_MAGIC_V3;
 
 	/*Default block size is 4Kb*/
 	opt.block_size = 4096;
@@ -115,15 +115,15 @@ int main (int argc, char **argv)
 			help_cmd_mkminix(HELP_LONG);
 			exit(0);
 		case '1':
-			opt.fs_version = MFS_VERSION_V1;
+			opt.fs_magic = MFS_MAGIC_V1;
 			opt.block_size = MFS_MIN_BLOCK_SIZE;
 			break;
 		case '2':
-			opt.fs_version = MFS_VERSION_V2;
+			opt.fs_magic = MFS_MAGIC_V2;
 			opt.block_size = MFS_MIN_BLOCK_SIZE;
 			break;
 		case '3':
-			opt.fs_version = MFS_VERSION_V3;
+			opt.fs_magic = MFS_MAGIC_V3;
 			break;
 		case 'b':
 			opt.block_size = (uint32_t) strtol(optarg, NULL, 10);
@@ -146,10 +146,10 @@ int main (int argc, char **argv)
 		printf(NAME ":Error! Invalid block size.\n");
 		exit(0);
 	} else if (opt.block_size > MFS_MIN_BLOCK_SIZE && 
-			opt.fs_version != MFS_VERSION_V3) {
+			opt.fs_magic != MFS_MAGIC_V3) {
 		printf(NAME ":Error! Block size > 1024 is supported by V3 filesystem only.\n");
 		exit(0);
-	} else if (opt.fs_version == MFS_VERSION_V3 && opt.fs_longnames) {
+	} else if (opt.fs_magic == MFS_MAGIC_V3 && opt.fs_longnames) {
 		printf(NAME ":Error! Long filenames are supported by V1/V2 filesystem only.\n");
 		exit(0);
 	}
@@ -198,7 +198,7 @@ int main (int argc, char **argv)
 
 	/*Prepare superblock*/
 
-	if (opt.fs_version == MFS_VERSION_V3) {
+	if (opt.fs_magic == MFS_MAGIC_V3) {
 		sb3 = (struct mfs3_superblock *) malloc(sizeof(struct mfs3_superblock));
 		if (!sb3) {
 			printf(NAME ": Error, not enough memory");
@@ -219,22 +219,14 @@ int main (int argc, char **argv)
 
 static void prepare_superblock(struct mfs_superblock *sb, mfs_params_t *opt)
 {
-	switch (opt->fs_version) {
-	case MFS_VERSION_V1L:
-		sb->s_magic = MFS_MAGIC_V1L;
-		break;
-	case MFS_VERSION_V1:
-		sb->s_magic = MFS_MAGIC_V1;
-		break;
-	case MFS_VERSION_V2:
-		sb->s_magic = MFS_MAGIC_V2;
-		break;
-	case MFS_VERSION_V2L:
-		sb->s_magic = MFS_MAGIC_V2L;
-		break;
-	default:
-		break;
+	if (opt->fs_longnames) {
+		if (opt->fs_magic == MFS_MAGIC_V1)
+			opt->fs_magic = MFS_MAGIC_V1L;
+		else
+			opt->fs_magic = MFS_MAGIC_V2L;
 	}
+
+	sb->s_magic = opt->fs_magic;
 
 	/*Valid only for MFS V1*/
 	sb->s_nzones = opt->dev_nblocks > UINT16_MAX ? 
