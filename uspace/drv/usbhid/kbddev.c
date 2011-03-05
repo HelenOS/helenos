@@ -62,7 +62,7 @@ static const unsigned DEFAULT_ACTIVE_MODS = KM_NUM_LOCK;
 static const size_t BOOTP_REPORT_SIZE = 6;
 static const size_t BOOTP_BUFFER_SIZE = 8;
 static const size_t BOOTP_BUFFER_OUT_SIZE = 1;
-static const uint8_t IDLE_RATE = 125;
+static const uint8_t IDLE_RATE = 0;
 
 /** Keyboard polling endpoint description for boot protocol class. */
 static usb_endpoint_description_t poll_endpoint_description = {
@@ -150,7 +150,6 @@ static void usbhid_kbd_set_led(usbhid_kbd_t *kbd_dev)
 {
 	uint8_t buffer[BOOTP_BUFFER_OUT_SIZE];
 	int rc= 0;
-	unsigned i;
 	
 	memset(buffer, 0, BOOTP_BUFFER_OUT_SIZE);
 	uint8_t leds = 0;
@@ -178,13 +177,8 @@ static void usbhid_kbd_set_led(usbhid_kbd_t *kbd_dev)
 		return;
 	}
 	
-	// TODO: REFACTOR!!!
-	
-	usb_log_debug("Output report buffer: ");
-	for (i = 0; i < BOOTP_BUFFER_OUT_SIZE; ++i) {
-		usb_log_debug("0x%x ", buffer[i]);
-	}
-	usb_log_debug("\n");
+	usb_log_debug("Output report buffer: %s\n", 
+	    usb_debug_str_buffer(buffer, BOOTP_BUFFER_OUT_SIZE, 0));
 	
 	uint16_t value = 0;
 	value |= (USB_HID_REPORT_TYPE_OUTPUT << 8);
@@ -387,12 +381,9 @@ static void usbhid_kbd_check_key_changes(usbhid_kbd_t *kbd_dev,
 //	}
 	
 	memcpy(kbd_dev->keycodes, key_codes, kbd_dev->keycode_count);
-	
-	char *kc = (char *)malloc(kbd_dev->keycode_count * 4 + 1);
-	for (i = 0; i < kbd_dev->keycode_count; ++i) {
-		snprintf(kc + (i * 4), 5, "%4d", key_codes[i]);
-	}
-	usb_log_debug("New stored keycodes: %s\n", kc);
+
+	usb_log_debug("New stored keycodes: %s\n", 
+	    usb_debug_str_buffer(kbd_dev->keycodes, kbd_dev->keycode_count, 0));
 }
 
 /*----------------------------------------------------------------------------*/
@@ -411,12 +402,8 @@ static void usbhid_kbd_process_keycodes(const uint8_t *key_codes, size_t count,
 	usbhid_kbd_t *kbd_dev = (usbhid_kbd_t *)arg;
 	assert(kbd_dev != NULL);
 
-	unsigned i;
-	char *kc = (char *)malloc(kbd_dev->keycode_count * 4 + 1);
-	for (i = 0; i < kbd_dev->keycode_count; ++i) {
-		snprintf(kc + (i * 4), 5, "%4d", key_codes[i]);
-	}
-	usb_log_debug("Got keys from parser: %s\n", kc);
+	usb_log_debug("Got keys from parser: %s\n", 
+	    usb_debug_str_buffer(key_codes, kbd_dev->keycode_count, 0));
 	
 	if (count != kbd_dev->keycode_count) {
 		usb_log_warning("Number of received keycodes (%d) differs from"
@@ -441,11 +428,8 @@ static void usbhid_kbd_process_data(usbhid_kbd_t *kbd_dev,
 	
 	callbacks->keyboard = usbhid_kbd_process_keycodes;
 
-	//usb_hid_parse_report(kbd_dev->parser, buffer, actual_size, callbacks, 
-	//    NULL);
-	/*//usb_log_debug2("Calling usb_hid_boot_keyboard_input_report() with size"
-	    " %zu\n", actual_size);*/
-	//dump_buffer("bufffer: ", buffer, actual_size);
+	usb_log_debug("Calling usb_hid_boot_keyboard_input_report() with "
+	    "buffer %s\n", usb_debug_str_buffer(buffer, actual_size, 0));
 	
 	int rc = usb_hid_boot_keyboard_input_report(buffer, actual_size,
 	    callbacks, kbd_dev);
@@ -634,7 +618,8 @@ static void usbhid_kbd_poll(usbhid_kbd_t *kbd_dev)
 		usb_log_debug("Calling usbhid_kbd_process_data()\n");
 		usbhid_kbd_process_data(kbd_dev, buffer, actual_size);
 		
-		async_usleep(kbd_dev->hid_dev->poll_interval);
+		// disabled for now, no reason to sleep
+		//async_usleep(kbd_dev->hid_dev->poll_interval);
 	}
 
 	// not reached
