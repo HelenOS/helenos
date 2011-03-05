@@ -49,7 +49,7 @@
 
 #define NAME	"ext2fs"
 
-vfs_info_t ext2fs\_vfs_info = {
+vfs_info_t ext2fs_vfs_info = {
 	.name = NAME,
 };
 
