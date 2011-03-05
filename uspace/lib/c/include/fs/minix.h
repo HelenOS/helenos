@@ -34,7 +34,6 @@
 #define _MINIX_FS_H_
 
 #include <sys/types.h>
-#include <bool.h>
 
 #define MFS_MAX_BLOCK_SIZE	4096
 #define MFS_MIN_BLOCK_SIZE	1024
