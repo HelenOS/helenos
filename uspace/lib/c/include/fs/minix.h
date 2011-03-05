@@ -49,11 +49,9 @@
 #define V1_NR_DIRECT_ZONES	7
 #define V1_NR_INDIRECT_ZONES	2
 
-#define V1_MAX_NAME_LEN		14
-#define V1L_MAX_NAME_LEN	30
-#define V2_MAX_NAME_LEN		14
-#define V2L_MAX_NAME_LEN	30
-#define V3_MAX_NAME_LEN		60
+#define MFS_MAX_NAME_LEN	14
+#define MFS_L_MAX_NAME_LEN	30
+#define MFS3_MAX_NAME_LEN	60
 
 #define MFS_MAGIC_V1		0x137F
 #define MFS_MAGIC_V1R		0x7F13
@@ -157,25 +155,22 @@ struct mfs_v2_inode {
 	uint32_t	i_izone[V2_NR_INDIRECT_ZONES];
 } __attribute__ ((packed));
 
-#define mfs_v2_dentry	mfs_v1_dentry
-#define mfs_v1l_dentry	mfs_v2l_dentry
-
-/*MinixFS V1 directory entry on-disk structure*/
-struct mfs_v1_dentry {
+/*MinixFS V1/V2 directory entry on-disk structure*/
+struct mfs_dentry {
 	uint16_t d_inum;
-	char d_name[V1_MAX_NAME_LEN];
+	char d_name[MFS_MAX_NAME_LEN];
 } __attribute__ ((packed));
 
-/*MinixFS V2 with 30-char filenames (Linux variant)*/
+/*MinixFS V1/V2 with 30-char filenames (Linux variant)*/
 struct mfs_v2l_dentry {
 	uint16_t d_inum;
-	char d_name[V2L_MAX_NAME_LEN];
+	char d_name[MFS_L_MAX_NAME_LEN];
 } __attribute__ ((packed));
 
 /*MinixFS V3 directory entry on-disk structure*/
-struct mfs_v3_dentry {
+struct mfs3_dentry {
 	uint32_t d_inum;
-	char d_name[V3_MAX_NAME_LEN];
+	char d_name[MFS3_MAX_NAME_LEN];
 } __attribute__ ((packed));
 
 
