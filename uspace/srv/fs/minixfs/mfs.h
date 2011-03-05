@@ -33,8 +33,16 @@
 #ifndef _MFS_H_
 #define _MFS_H_
 
-#include "mfs_const.h"
+#include <fs/minix.h>
 #include "../../vfs/vfs.h"
+
+typedef enum {
+	MFS_VERSION_V1 = 1,
+	MFS_VERSION_V1L,
+	MFS_VERSION_V2,
+	MFS_VERSION_V2L,
+	MFS_VERSION_V3
+} mfs_version_t;
 
 extern void mfs_mounted(ipc_callid_t rid, ipc_call_t *request);
 

@@ -46,7 +46,6 @@
 #include <stdio.h>
 #include <libfs.h>
 #include "mfs.h"
-#include "mfs_super.h"
 
 #define NAME	"mfs"
 

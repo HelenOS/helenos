@@ -47,9 +47,7 @@
 #include <str.h>
 #include <getopt.h>
 #include <mem.h>
-#include "mfs_const.h"
-#include "mfs_inode.h"
-#include "mfs_super.h"
+#include <fs/minix.h>
 
 #define NAME	"mkminix"
 
@@ -263,7 +261,7 @@ static void help_cmd_mkminix(help_level_t level)
 		"-b ##      Specify the block size in bytes (V3 only),\n"
 		"           valid block size values are 1024, 2048 and 4096 bytes per block\n"
 		"-i ##      Specify the number of inodes for the filesystem\n"
-		"-l         Use 30-char long filenames (V1/V2 only)");
+		"-l         Use 30-char long filenames (V1/V2 only)\n");
 	}
 }
 

@@ -28,12 +28,32 @@
 
 /** @addtogroup fs
  * @{
- */ 
+ */
 
-#ifndef _MFS_SUPER_H_
-#define _MFS_SUPER_H_
+#ifndef _MINIX_FS_H_
+#define _MINIX_FS_H_
 
-#include "mfs_const.h"
+#include <sys/types.h>
+#include <bool.h>
+
+#define MFS_MAX_BLOCK_SIZE	4096
+#define MFS_MIN_BLOCK_SIZE	1024
+
+#define MFS_ROOT_INO		1
+#define MFS_SUPER_BLOCK		0
+#define MFS_SUPER_BLOCK_SIZE	1024
+
+#define V2_NR_DIRECT_ZONES	7
+#define V2_NR_INDIRECT_ZONES	3
+
+#define V1_NR_DIRECT_ZONES	7
+#define V1_NR_INDIRECT_ZONES	2
+
+#define V1_MAX_NAME_LEN		14
+#define V1L_MAX_NAME_LEN	30
+#define V2_MAX_NAME_LEN		14
+#define V2L_MAX_NAME_LEN	30
+#define V3_MAX_NAME_LEN		60
 
 #define MFS_MAGIC_V1		0x137F
 #define MFS_MAGIC_V1R		0x7F13
@@ -107,16 +127,61 @@ struct mfs3_superblock {
 	int8_t		s_disk_version;
 } __attribute__ ((packed));
 
-typedef enum {
-	MFS_VERSION_V1 = 1,
-	MFS_VERSION_V1L,
-	MFS_VERSION_V2,
-	MFS_VERSION_V2L,
-	MFS_VERSION_V3
-} mfs_version_t;
+/*MinixFS V1 inode structure as it is on disk*/
+struct mfs_v1_inode {
+	uint16_t	i_mode;
+	int16_t		i_uid;
+	int32_t		i_size;
+	int32_t		i_mtime;
+	uint8_t		i_gid;
+	uint8_t		i_nlinks;
+	/*Block numbers for direct zones*/
+	uint16_t	i_dzone[V1_NR_DIRECT_ZONES];
+	/*Block numbers for indirect zones*/
+	uint16_t	i_izone[V1_NR_INDIRECT_ZONES];
+} __attribute__ ((packed));
+
+/*MinixFS V2 inode structure as it is on disk.*/
+struct mfs_v2_inode {
+	uint16_t 	i_mode;
+	uint16_t 	i_nlinks;
+	int16_t 	i_uid;
+	uint16_t 	i_gid;
+	int32_t 	i_size;
+	int32_t		i_atime;
+	int32_t		i_mtime;
+	int32_t		i_ctime;
+	/*Block numbers for direct zones*/
+	uint32_t	i_dzone[V2_NR_DIRECT_ZONES];
+	/*Block numbers for indirect zones*/
+	uint32_t	i_izone[V2_NR_INDIRECT_ZONES];
+} __attribute__ ((packed));
+
+#define mfs_v2_dentry	mfs_v1_dentry
+#define mfs_v1l_dentry	mfs_v2l_dentry
+
+/*MinixFS V1 directory entry on-disk structure*/
+struct mfs_v1_dentry {
+	uint16_t d_inum;
+	char d_name[V1_MAX_NAME_LEN];
+} __attribute__ ((packed));
+
+/*MinixFS V2 with 30-char filenames (Linux variant)*/
+struct mfs_v2l_dentry {
+	uint16_t d_inum;
+	char d_name[V2L_MAX_NAME_LEN];
+} __attribute__ ((packed));
+
+/*MinixFS V3 directory entry on-disk structure*/
+struct mfs_v3_dentry {
+	uint32_t d_inum;
+	char d_name[V3_MAX_NAME_LEN];
+} __attribute__ ((packed));
+
 
 #endif
 
 /**
  * @}
- */ 
+ */
+

@@ -30,10 +30,16 @@
  * @{
  */
 
-#include "mfs_const.h"
+#ifndef _MFS_UTILS_H_
+#define _MFS_UTILS_H_
+
+#include <sys/types.h>
+#include <bool.h>
 
 uint16_t conv16(bool native, uint16_t n);
 uint32_t conv32(bool native, uint32_t n);
+
+#endif
 
 /**
  * @}
