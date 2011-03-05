@@ -40,6 +40,17 @@
 .section BOOTSTRAP
 
 start:
+	/*
+	 * Setup the CP0 configuration
+	 *  - Disable 64-bit kernel addressing mode
+	 *  - DIsable 64-bit supervisor adressing mode
+	 *  - Disable 64-bit user addressing mode
+	 */
+	mfc0 $a0, $status
+	la $a1, 0xffffff1f
+	and $a0, $a1, $a0
+	mtc0 $a0, $status
+	
 	/* Setup CPU map (on msim this code
 	   is executed in parallel on all CPUs,
 	   but it not an issue) */
