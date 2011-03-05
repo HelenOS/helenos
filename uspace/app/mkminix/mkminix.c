@@ -58,10 +58,19 @@ typedef enum {
 	HELP_LONG
 } help_level_t;
 
+typedef struct mfs_params {
+	mfs_version_t fs_version;
+	uint32_t block_size;
+	size_t devblock_size;
+	unsigned long n_inodes;
+	aoff64_t dev_nblocks;
+	bool fs_longnames;
+} mfs_params_t;
+
 static void	help_cmd_mkminix(help_level_t level);
 static int	num_of_set_bits(uint32_t n);
-static void	prepare_superblock(struct mfs_superblock *sb);
-static void	prepare_superblock_v3(struct mfs3_superblock *sb);
+static void	prepare_superblock(struct mfs_superblock *sb, mfs_params_t *opt);
+static void	prepare_superblock_v3(struct mfs3_superblock *sb, mfs_params_t *opt);
 
 static struct option const long_options[] = {
 	{ "help", no_argument, 0, 'h' },
@@ -74,23 +83,14 @@ static struct option const long_options[] = {
 	{ 0, 0, 0, 0 }
 };
 
-typedef struct mfs_params {
-	mfs_version_t fs_version;
-	uint32_t block_size;
-	size_t devblock_size;
-	unsigned long n_inodes;
-	aoff64_t dev_nblocks;
-	bool fs_longnames;
-} mfs_params_t;
-
 int main (int argc, char **argv)
 {
 	int rc, c, opt_ind;
 	char *device_name;
 	devmap_handle_t handle;
 	
-	struct mfs_superblock *sp;
-	struct mfs3_superblock *sp3;
+	struct mfs_superblock *sb;
+	struct mfs3_superblock *sb3;
 
 	mfs_params_t opt;
 
@@ -199,19 +199,63 @@ int main (int argc, char **argv)
 	/*Prepare superblock*/
 
 	if (opt.fs_version == MFS_VERSION_V3) {
-		prepare_superblock_v3(sp3);
+		sb3 = (struct mfs3_superblock *) malloc(sizeof(struct mfs3_superblock));
+		if (!sb3) {
+			printf(NAME ": Error, not enough memory");
+			return 2;
+		}
+		prepare_superblock_v3(sb3, &opt);
 	} else {
-		prepare_superblock(sp);
+		sb = (struct mfs_superblock *) malloc(sizeof(struct mfs_superblock));
+		if (!sb) {
+			printf(NAME ": Error, not enough memory");
+			return 2;
+		}
+		prepare_superblock(sb, &opt);
 	}
 
 	return 0;
 }
 
-static void prepare_superblock(struct mfs_superblock *sp)
+static void prepare_superblock(struct mfs_superblock *sb, mfs_params_t *opt)
 {
+	switch (opt->fs_version) {
+	case MFS_VERSION_V1L:
+		sb->s_magic = MFS_MAGIC_V1L;
+		break;
+	case MFS_VERSION_V1:
+		sb->s_magic = MFS_MAGIC_V1;
+		break;
+	case MFS_VERSION_V2:
+		sb->s_magic = MFS_MAGIC_V2;
+		break;
+	case MFS_VERSION_V2L:
+		sb->s_magic = MFS_MAGIC_V2L;
+		break;
+	default:
+		break;
+	}
+
+	/*Valid only for MFS V1*/
+	sb->s_nzones = opt->dev_nblocks > UINT16_MAX ? 
+			UINT16_MAX : opt->dev_nblocks;
+
+	/*Valid only for MFS V2*/
+	sb->s_nzones2 = opt->dev_nblocks > UINT32_MAX ?
+			UINT32_MAX : opt->dev_nblocks;
+
+	if (opt->n_inodes == 0) {
+		aoff64_t tmp = opt->dev_nblocks / 3;		
+		sb->s_ninodes = tmp > UINT16_MAX ? UINT16_MAX : tmp;
+	} else {
+		sb->s_ninodes = opt->n_inodes;
+	}
+
+	sb->s_log2_zone_size = 0;
+
 }
 
-static void prepare_superblock_v3(struct mfs3_superblock *sp)
+static void prepare_superblock_v3(struct mfs3_superblock *sb, mfs_params_t *opt)
 {
 }
 
