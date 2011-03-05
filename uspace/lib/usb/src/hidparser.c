@@ -33,7 +33,6 @@
  * @brief HID parser implementation.
  */
 
-
 #include <usb/classes/hidparser.h>
 #include <errno.h>
 #include <stdio.h>
@@ -499,6 +498,10 @@ void usb_hid_descriptor_print_list(link_t *head)
 		printf("\tCONSTANT: %X\n", USB_HID_ITEM_FLAG_CONSTANT(report_item->item_flags));
 		printf("\tUSAGE: %X\n", report_item->usage);
 		printf("\tUSAGE PAGE: %X\n", report_item->usage_page);
+		printf("\tLOGMIN: %X\n", report_item->logical_minimum);
+		printf("\tLOGMAX: %X\n", report_item->logical_maximum);		
+		printf("\tPHYMIN: %X\n", report_item->physical_minimum);		
+		printf("\tPHYMAX: %X\n", report_item->physical_maximum);				
 		printf("\n");		
 
 	}
@@ -699,7 +702,7 @@ int usb_hid_translate_data(usb_hid_report_item_t *item, const uint8_t *data, siz
 
 	usb_log_debug2("---\n\n");
 
-	return (int)(((value - item->physical_minimum) / resolution) + item->logical_minimum);
+	return (int)(((value - item->logical_minimum) / resolution) + item->physical_minimum);
 	
 }
 /**
