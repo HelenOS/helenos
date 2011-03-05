@@ -46,9 +46,9 @@
 
 static int batch_schedule(batch_t *instance);
 
-static void batch_control(
-    batch_t *instance, int data_stage, int status_stage);
-static void batch_data(batch_t *instance, int pid);
+static void batch_control(batch_t *instance,
+    usb_packet_id data_stage, usb_packet_id status_stage);
+static void batch_data(batch_t *instance, usb_packet_id pid);
 static void batch_call_in(batch_t *instance);
 static void batch_call_out(batch_t *instance);
 static void batch_call_in_and_dispose(batch_t *instance);
@@ -231,7 +231,7 @@ void batch_bulk_out(batch_t *instance)
 	batch_schedule(instance);
 }
 /*----------------------------------------------------------------------------*/
-static void batch_data(batch_t *instance, int pid)
+static void batch_data(batch_t *instance, usb_packet_id pid)
 {
 	assert(instance);
 	const bool low_speed = instance->speed == USB_SPEED_LOW;
@@ -265,8 +265,8 @@ static void batch_data(batch_t *instance, int pid)
 	instance->tds[packet - 1].next = 0 | LINK_POINTER_TERMINATE_FLAG;
 }
 /*----------------------------------------------------------------------------*/
-static void batch_control(
-    batch_t *instance, int data_stage, int status_stage)
+static void batch_control(batch_t *instance,
+   usb_packet_id data_stage, usb_packet_id status_stage)
 {
 	assert(instance);
 
