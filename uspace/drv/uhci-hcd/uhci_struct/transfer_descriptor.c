@@ -37,28 +37,33 @@
 #include "transfer_descriptor.h"
 #include "utils/malloc32.h"
 
-void transfer_descriptor_init(transfer_descriptor_t *instance,
-    int error_count, size_t size, bool toggle, bool isochronous, bool low_speed,
-    usb_target_t target, int pid, void *buffer, transfer_descriptor_t *next)
+void td_init(td_t *instance, int err_count, size_t size, bool toggle, bool iso,
+    bool low_speed, usb_target_t target, usb_packet_id pid, void *buffer, td_t *next)
 {
 	assert(instance);
+	assert(size < 1024);
+	assert((pid == USB_PID_SETUP) || (pid == USB_PID_IN) || (pid == USB_PID_OUT));
 
 	instance->next = 0
 	    | LINK_POINTER_VERTICAL_FLAG
 	    | ((next != NULL) ? addr_to_phys(next) : LINK_POINTER_TERMINATE_FLAG);
 
 	instance->status = 0
-	  | ((error_count & TD_STATUS_ERROR_COUNT_MASK) << TD_STATUS_ERROR_COUNT_POS)
-		| (low_speed ? TD_STATUS_LOW_SPEED_FLAG : 0)
-	  | TD_STATUS_ERROR_ACTIVE;
+	    | ((err_count & TD_STATUS_ERROR_COUNT_MASK) << TD_STATUS_ERROR_COUNT_POS)
+	    | (low_speed ? TD_STATUS_LOW_SPEED_FLAG : 0)
+	    | (iso ? TD_STATUS_ISOCHRONOUS_FLAG : 0)
+	    | TD_STATUS_ERROR_ACTIVE;
 
-	assert(size < 1024);
+	if (pid == USB_PID_IN && !iso) {
+		instance->status |= TD_STATUS_SPD_FLAG;
+	}
+
 	instance->device = 0
-		| (((size - 1) & TD_DEVICE_MAXLEN_MASK) << TD_DEVICE_MAXLEN_POS)
-		| (toggle ? TD_DEVICE_DATA_TOGGLE_ONE_FLAG : 0)
-		| ((target.address & TD_DEVICE_ADDRESS_MASK) << TD_DEVICE_ADDRESS_POS)
-		| ((target.endpoint & TD_DEVICE_ENDPOINT_MASK) << TD_DEVICE_ENDPOINT_POS)
-		| ((pid & TD_DEVICE_PID_MASK) << TD_DEVICE_PID_POS);
+	    | (((size - 1) & TD_DEVICE_MAXLEN_MASK) << TD_DEVICE_MAXLEN_POS)
+	    | (toggle ? TD_DEVICE_DATA_TOGGLE_ONE_FLAG : 0)
+	    | ((target.address & TD_DEVICE_ADDRESS_MASK) << TD_DEVICE_ADDRESS_POS)
+	    | ((target.endpoint & TD_DEVICE_ENDPOINT_MASK) << TD_DEVICE_ENDPOINT_POS)
+	    | ((pid & TD_DEVICE_PID_MASK) << TD_DEVICE_PID_POS);
 
 	instance->buffer_ptr = 0;
 
@@ -67,11 +72,11 @@ void transfer_descriptor_init(transfer_descriptor_t *instance,
 	}
 
 	usb_log_debug2("Created TD: %X:%X:%X:%X(%p).\n",
-		instance->next, instance->status, instance->device,
-	  instance->buffer_ptr, buffer);
+	    instance->next, instance->status, instance->device,
+	    instance->buffer_ptr, buffer);
 }
 /*----------------------------------------------------------------------------*/
-int transfer_descriptor_status(transfer_descriptor_t *instance)
+int td_status(td_t *instance)
 {
 	assert(instance);
 

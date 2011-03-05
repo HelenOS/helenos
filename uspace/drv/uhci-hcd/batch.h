@@ -64,7 +64,7 @@ typedef struct batch
 	int error;
 	ddf_fun_t *fun;
 	queue_head_t *qh;
-	transfer_descriptor_t *tds;
+	td_t *tds;
 	void (*next_step)(struct batch*);
 } batch_t;
 
@@ -85,16 +85,9 @@ void batch_interrupt_in(batch_t *instance);
 
 void batch_interrupt_out(batch_t *instance);
 
-/* DEPRECATED FUNCTIONS NEEDED BY THE OLD API */
-void batch_control_setup_old(batch_t *instance);
+void batch_bulk_in(batch_t *instance);
 
-void batch_control_write_data_old(batch_t *instance);
-
-void batch_control_read_data_old(batch_t *instance);
-
-void batch_control_write_status_old(batch_t *instance);
-
-void batch_control_read_status_old(batch_t *instance);
+void batch_bulk_out(batch_t *instance);
 #endif
 /**
  * @}
