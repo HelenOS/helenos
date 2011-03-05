@@ -83,14 +83,14 @@ batch_t * batch_get(ddf_fun_t *fun, usb_target_t target,
 		instance->packets += 2;
 	}
 
-	instance->tds = malloc32(sizeof(transfer_descriptor_t) * instance->packets);
+	instance->tds = malloc32(sizeof(td_t) * instance->packets);
 	if (instance->tds == NULL) {
 		usb_log_error("Failed to allocate transfer descriptors.\n");
 		queue_head_dispose(instance->qh);
 		free(instance);
 		return NULL;
 	}
-	bzero(instance->tds, sizeof(transfer_descriptor_t) * instance->packets);
+	bzero(instance->tds, sizeof(td_t) * instance->packets);
 
 	const size_t transport_size = max_packet_size * instance->packets;
 
@@ -151,20 +151,24 @@ bool batch_is_complete(batch_t *instance)
 	instance->transfered_size = 0;
 	size_t i = 0;
 	for (;i < instance->packets; ++i) {
-		if (transfer_descriptor_is_active(&instance->tds[i])) {
+		if (td_is_active(&instance->tds[i])) {
 			return false;
 		}
-		instance->error = transfer_descriptor_status(&instance->tds[i]);
+
+		instance->error = td_status(&instance->tds[i]);
 		if (instance->error != EOK) {
-			if (i > 0)
-				instance->transfered_size -= instance->setup_size;
 			usb_log_debug("Batch(%p) found error TD(%d):%x.\n",
-			  instance, i, instance->tds[i].status);
+			    instance, i, instance->tds[i].status);
+			if (i > 0)
+				goto substract_ret;
 			return true;
 		}
-		instance->transfered_size +=
-		    transfer_descriptor_actual_size(&instance->tds[i]);
+
+		instance->transfered_size += td_act_size(&instance->tds[i]);
+		if (td_is_short(&instance->tds[i]))
+			goto substract_ret;
 	}
+substract_ret:
 	instance->transfered_size -= instance->setup_size;
 	return true;
 }
@@ -246,7 +250,7 @@ static void batch_data(batch_t *instance, int pid)
 		    (instance->max_packet_size > remain_size) ?
 		    remain_size : instance->max_packet_size;
 
-		transfer_descriptor_init(&instance->tds[packet],
+		td_init(&instance->tds[packet],
 		    DEFAULT_ERROR_COUNT, packet_size, toggle, false, low_speed,
 		    instance->target, pid, data,
 		    &instance->tds[packet + 1]);
@@ -269,7 +273,7 @@ static void batch_control(
 	const bool low_speed = instance->speed == USB_SPEED_LOW;
 	int toggle = 0;
 	/* setup stage */
-	transfer_descriptor_init(instance->tds, DEFAULT_ERROR_COUNT,
+	td_init(instance->tds, DEFAULT_ERROR_COUNT,
 	    instance->setup_size, toggle, false, low_speed, instance->target,
 	    USB_PID_SETUP, instance->setup_buffer, &instance->tds[1]);
 
@@ -287,7 +291,7 @@ static void batch_control(
 		    (instance->max_packet_size > remain_size) ?
 		    remain_size : instance->max_packet_size;
 
-		transfer_descriptor_init(&instance->tds[packet],
+		td_init(&instance->tds[packet],
 		    DEFAULT_ERROR_COUNT, packet_size, toggle, false, low_speed,
 		    instance->target, data_stage, data,
 		    &instance->tds[packet + 1]);
@@ -300,7 +304,7 @@ static void batch_control(
 
 	/* status stage */
 	assert(packet == instance->packets - 1);
-	transfer_descriptor_init(&instance->tds[packet], DEFAULT_ERROR_COUNT,
+	td_init(&instance->tds[packet], DEFAULT_ERROR_COUNT,
 	    0, 1, false, low_speed, instance->target, status_stage, NULL, NULL);
 
 

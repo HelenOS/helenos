@@ -64,7 +64,7 @@ typedef struct batch
 	int error;
 	ddf_fun_t *fun;
 	queue_head_t *qh;
-	transfer_descriptor_t *tds;
+	td_t *tds;
 	void (*next_step)(struct batch*);
 } batch_t;
 
