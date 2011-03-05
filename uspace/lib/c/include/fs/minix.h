@@ -161,7 +161,7 @@ struct mfs_dentry {
 } __attribute__ ((packed));
 
 /*MinixFS V1/V2 with 30-char filenames (Linux variant)*/
-struct mfs_v2l_dentry {
+struct mfs_l_dentry {
 	uint16_t d_inum;
 	char d_name[MFS_L_MAX_NAME_LEN];
 } __attribute__ ((packed));
