@@ -32,18 +32,21 @@
 /** @file
  * @brief HID parser implementation.
  */
+
+
 #include <usb/classes/hidparser.h>
 #include <errno.h>
 #include <stdio.h>
 #include <malloc.h>
 #include <mem.h>
-#include <assert.h>
 #include <usb/debug.h>
+
 
 #define USB_HID_NEW_REPORT_ITEM 1
 #define USB_HID_NO_ACTION		2
 #define USB_HID_UNKNOWN_TAG		-99
 
+#define BAD_HACK_USAGE_PAGE		0x07
 
 int usb_hid_report_parse_tag(uint8_t tag, uint8_t class, const uint8_t *data, size_t item_size,
                              usb_hid_report_item_t *report_item);
@@ -59,6 +62,24 @@ int usb_hid_report_reset_local_items();
 void usb_hid_free_report_list(link_t *head);
 int32_t usb_hid_report_tag_data_int32(const uint8_t *data, size_t size);
 inline size_t usb_hid_count_item_offset(usb_hid_report_item_t * report_item, size_t offset);
+int usb_hid_translate_data(usb_hid_report_item_t *item, const uint8_t *data, size_t j);
+int usb_pow(int a, int b);
+
+int usb_pow(int a, int b)
+{
+	switch(b) {
+		case 0:
+			return 1;
+			break;
+		case 1:
+			return a;
+			break;
+		default:
+			return a * usb_pow(a, b-1);
+			break;
+	}
+}
+
 /**
  *
  */
@@ -119,14 +140,15 @@ int usb_hid_parse_report_descriptor(usb_hid_report_parser_t *parser,
 			
 			ret = usb_hid_report_parse_tag(tag,class,data+i+1,
 			                         item_size,report_item);
-			printf("ret: %u\n", ret);
+			usb_log_debug2("ret: %u\n", ret);
 			switch(ret){
 				case USB_HID_NEW_REPORT_ITEM:
 					// store report item to report and create the new one
 					usb_log_debug("\nNEW REPORT ITEM: %X",tag);
 
 					report_item->offset = offset;
-					offset = usb_hid_count_item_offset(report_item, offset);
+					offset += report_item->count * report_item->size;
+					
 					switch(tag) {
 						case USB_HID_REPORT_TAG_INPUT:
 							usb_log_debug(" - INPUT\n");
@@ -180,38 +202,6 @@ int usb_hid_parse_report_descriptor(usb_hid_report_parser_t *parser,
 
 	}
 	
-
-	return EOK;
-}
-
-/** Parse and act upon a HID report.
- *
- * @see usb_hid_parse_report_descriptor
- *
- * @param parser Opaque HID report parser structure.
- * @param data Data for the report.
- * @param callbacks Callbacks for report actions.
- * @param arg Custom argument (passed through to the callbacks).
- * @return Error code.
- */
-int usb_hid_parse_report(const usb_hid_report_parser_t *parser,  
-    const uint8_t *data, size_t size,
-    const usb_hid_report_in_callbacks_t *callbacks, void *arg)
-{
-	int i;
-	
-	/* main parsing loop */
-	while(0){
-	}
-	
-	
-	uint8_t keys[6];
-	
-	for (i = 0; i < 6; ++i) {
-		keys[i] = data[i];
-	}
-	
-	callbacks->keyboard(keys, 6, 0, arg);
 
 	return EOK;
 }
@@ -581,9 +571,136 @@ void usb_hid_free_report_parser(usb_hid_report_parser_t *parser)
 	return;
 }
 
-inline size_t usb_hid_count_item_offset(usb_hid_report_item_t * report_item, size_t offset)
+/** Parse and act upon a HID report.
+ *
+ * @see usb_hid_parse_report_descriptor
+ *
+ * @param parser Opaque HID report parser structure.
+ * @param data Data for the report.
+ * @param callbacks Callbacks for report actions.
+ * @param arg Custom argument (passed through to the callbacks).
+ * @return Error code.
+ */ 
+int usb_hid_parse_report(const usb_hid_report_parser_t *parser,  
+    const uint8_t *data, size_t size,
+    const usb_hid_report_in_callbacks_t *callbacks, void *arg)
 {
-	return offset += (report_item->count * report_item->size);
+	/*
+	 *
+	 * only key codes (usage page 0x07) will be processed
+	 * other usages will be ignored 
+	 */
+	link_t *list_item;
+	usb_hid_report_item_t *item;
+	uint8_t *keys;
+	size_t key_count=0;
+	size_t i=0;
+	size_t j=0;
+
+	// get the size of result keycodes array
+	list_item = parser->input.next;	   
+	while(list_item != &(parser->input)) {
+
+		item = list_get_instance(list_item, usb_hid_report_item_t, link);
+		if(item->usage_page == BAD_HACK_USAGE_PAGE) {
+			key_count += item->count;
+		}
+
+		list_item = list_item->next;
+	}
+
+	
+	if(!(keys = malloc(sizeof(uint8_t) * key_count))){
+		return ENOMEM;
+	}
+
+	// read data		
+	list_item = parser->input.next;	   
+	while(list_item != &(parser->input)) {
+
+		item = list_get_instance(list_item, usb_hid_report_item_t, link);
+		if(item->usage_page == BAD_HACK_USAGE_PAGE) {
+			for(j=0; j<(size_t)(item->count); j++) {
+				keys[i++] = usb_hid_translate_data(item, data,j);
+			}
+		}
+		list_item = list_item->next;
+	}
+
+	callbacks->keyboard(keys, key_count, 0, arg);
+	   
+	free(keys);	
+	return EOK;
+	
+}
+
+
+int usb_hid_translate_data(usb_hid_report_item_t *item, const uint8_t *data, size_t j)
+{
+	int resolution;
+	int offset;
+	int part_size;
+	
+	int32_t value;
+	int32_t mask;
+	const uint8_t *foo;
+	
+	// now only common numbers llowed
+	if(item->size > 32) {
+		return 0;
+	}
+
+	if((item->physical_minimum == 0) && (item->physical_maximum ==0)) {
+		item->physical_minimum = item->logical_minimum;
+		item->physical_maximum = item->logical_maximum;		
+	}
+
+	resolution = (item->logical_maximum - item->logical_minimum) / ((item->physical_maximum - item->physical_minimum) * (usb_pow(10,(item->unit_exponent))));
+	offset = item->offset + (j * item->size);
+	
+	// FIXME
+	if((offset/8) != ((offset+item->size)/8)) {
+		usb_log_debug2("offset %d\n", offset);
+		
+		part_size = ((offset+item->size)%8);
+		usb_log_debug2("part size %d\n",part_size);
+
+		// the higher one
+		foo = data+(offset/8);
+		mask =  ((1 << (item->size-part_size))-1);
+		value = (*foo & mask) << part_size;
+
+		usb_log_debug2("hfoo %x\n", *foo);
+		usb_log_debug2("hmaska %x\n",  mask);
+		usb_log_debug2("hval %d\n", value);		
+
+		// the lower one
+		foo = data+((offset+item->size)/8);
+		mask =  ((1 << part_size)-1) << (8-part_size);
+		value += ((*foo & mask) >> (8-part_size));
+
+		usb_log_debug2("lfoo %x\n", *foo);
+		usb_log_debug2("lmaska %x\n",  mask);
+		usb_log_debug2("lval %d\n", ((*foo & mask) >> (8-(item->size-part_size))));		
+		usb_log_debug2("val %d\n", value);
+		
+		
+	}
+	else {		
+		foo = data+(offset/8);
+		mask =  ((1 << item->size)-1) << (8-((offset%8)+item->size));
+		value = (*foo & mask) >> (8-((offset%8)+item->size));
+
+		usb_log_debug2("offset %d\n", offset);
+		usb_log_debug2("foo %x\n", *foo);
+		usb_log_debug2("maska %x\n",  mask);
+		usb_log_debug2("val %d\n", value);				
+	}
+
+	usb_log_debug2("---\n\n");
+
+	return (int)(((value - item->physical_minimum) / resolution) + item->logical_minimum);
+	
 }
 /**
  * @}
