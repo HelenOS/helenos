@@ -51,9 +51,11 @@ start:
 	and $a0, $a1, $a0
 	mtc0 $a0, $status
 	
-	/* Setup CPU map (on msim this code
-	   is executed in parallel on all CPUs,
-	   but it not an issue) */
+	/*
+	 * Setup CPU map (on msim this code
+	 * is executed in parallel on all CPUs,
+	 * but it not an issue).
+	 */
 	la $a0, PA2KA(CPUMAP_OFFSET)
 	
 	sw $zero, 0($a0)
@@ -104,8 +106,10 @@ start:
 	la $k0, MSIM_DORDER_ADDRESS
 	lw $k1, ($k0)
 	
-	/* If we are not running on BSP
-	   then end in an infinite loop  */
+	/*
+	 * If we are not running on BSP
+	 * then end in an infinite loop.
+	 */
 	beq $k1, $zero, bsp
 	nop
 	
@@ -137,10 +141,11 @@ halt:
 	nop
 
 jump_to_kernel:
-	#
-	# TODO:
-	# Make sure that the I-cache, D-cache and memory are mutually coherent
-	# before passing control to the copied code.
-	#
+	/*
+	 * TODO:
+	 *
+	 * Make sure that the I-cache, D-cache and memory are mutually
+	 * coherent before passing control to the copied code.
+	 */
 	j $a0
 	nop
