@@ -37,6 +37,7 @@
 #include <errno.h>
 #include <str_error.h>
 #include <fibril.h>
+#include <stdio.h>
 
 #include <io/keycode.h>
 #include <ipc/kbd.h>
@@ -61,6 +62,7 @@ static const unsigned DEFAULT_ACTIVE_MODS = KM_NUM_LOCK;
 static const size_t BOOTP_REPORT_SIZE = 6;
 static const size_t BOOTP_BUFFER_SIZE = 8;
 static const size_t BOOTP_BUFFER_OUT_SIZE = 1;
+static const uint8_t IDLE_RATE = 125;
 
 /** Keyboard polling endpoint description for boot protocol class. */
 static usb_endpoint_description_t poll_endpoint_description = {
@@ -227,13 +229,7 @@ static void usbhid_kbd_push_ev(usbhid_kbd_t *kbd_dev, int type,
 	}
 
 	if (mod_mask != 0) {
-		usb_log_debug2("\n\nChanging mods and lock keys\n");
-		usb_log_debug2("\nmods before: 0x%x\n", kbd_dev->mods);
-		usb_log_debug2("\nLock keys before:0x%x\n\n", 
-		    kbd_dev->lock_keys);
-		
 		if (type == KEY_PRESS) {
-			usb_log_debug2("\nKey pressed.\n");
 			/*
 			 * Only change lock state on transition from released
 			 * to pressed. This prevents autorepeat from messing
@@ -246,14 +242,10 @@ static void usbhid_kbd_push_ev(usbhid_kbd_t *kbd_dev, int type,
 			/* Update keyboard lock indicator lights. */
  			usbhid_kbd_set_led(kbd_dev);
 		} else {
-			usb_log_debug2("\nKey released.\n");
 			kbd_dev->lock_keys = kbd_dev->lock_keys & ~mod_mask;
 		}
 	}
 
-	usb_log_debug2("\n\nmods after: 0x%x\n", kbd_dev->mods);
-	usb_log_debug2("\nLock keys after: 0x%x\n\n", kbd_dev->lock_keys);
-	
 	if (key == KC_CAPS_LOCK || key == KC_NUM_LOCK || key == KC_SCROLL_LOCK) {
 		// do not send anything to the console, this is our business
 		return;
@@ -280,10 +272,6 @@ static void usbhid_kbd_push_ev(usbhid_kbd_t *kbd_dev, int type,
 	ev.type = type;
 	ev.key = key;
 	ev.mods = kbd_dev->mods;
-	
-	if (ev.mods & KM_NUM_LOCK) {
-		usb_log_debug("\n\nNum Lock turned on.\n\n");
-	}
 
 	ev.c = layout[active_layout]->parse_ev(&ev);
 
@@ -388,13 +376,23 @@ static void usbhid_kbd_check_key_changes(usbhid_kbd_t *kbd_dev,
 			// found, nothing happens
 		}
 	}
+//	// report all currently pressed keys
+//	for (i = 0; i < kbd_dev->keycode_count; ++i) {
+//		if (key_codes[i] != 0) {
+//			key = usbhid_parse_scancode(key_codes[i]);
+//			usb_log_debug2("\nKey pressed: %d (keycode: %d)\n", key,
+//			    key_codes[i]);
+//			usbhid_kbd_push_ev(kbd_dev, KEY_PRESS, key);
+//		}
+//	}
 	
 	memcpy(kbd_dev->keycodes, key_codes, kbd_dev->keycode_count);
 	
-	usb_log_debug2("\nNew stored keycodes: ");
+	char *kc = (char *)malloc(kbd_dev->keycode_count * 4 + 1);
 	for (i = 0; i < kbd_dev->keycode_count; ++i) {
-		usb_log_debug2("%d ", kbd_dev->keycodes[i]);
+		snprintf(kc + (i * 4), 5, "%4d", key_codes[i]);
 	}
+	usb_log_debug("New stored keycodes: %s\n", kc);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -409,16 +407,16 @@ static void usbhid_kbd_process_keycodes(const uint8_t *key_codes, size_t count,
 		    "usbhid_process_keycodes().\n");
 		return;
 	}
-
-	usb_log_debug2("Got keys from parser: ");
-	unsigned i;
-	for (i = 0; i < count; ++i) {
-		usb_log_debug2("%d ", key_codes[i]);
-	}
-	usb_log_debug2("\n");
 	
 	usbhid_kbd_t *kbd_dev = (usbhid_kbd_t *)arg;
 	assert(kbd_dev != NULL);
+
+	unsigned i;
+	char *kc = (char *)malloc(kbd_dev->keycode_count * 4 + 1);
+	for (i = 0; i < kbd_dev->keycode_count; ++i) {
+		snprintf(kc + (i * 4), 5, "%4d", key_codes[i]);
+	}
+	usb_log_debug("Got keys from parser: %s\n", kc);
 	
 	if (count != kbd_dev->keycode_count) {
 		usb_log_warning("Number of received keycodes (%d) differs from"
@@ -445,7 +443,7 @@ static void usbhid_kbd_process_data(usbhid_kbd_t *kbd_dev,
 
 	//usb_hid_parse_report(kbd_dev->parser, buffer, actual_size, callbacks, 
 	//    NULL);
-	/*usb_log_debug2("Calling usb_hid_boot_keyboard_input_report() with size"
+	/*//usb_log_debug2("Calling usb_hid_boot_keyboard_input_report() with size"
 	    " %zu\n", actual_size);*/
 	//dump_buffer("bufffer: ", buffer, actual_size);
 	
@@ -558,12 +556,15 @@ static int usbhid_kbd_init(usbhid_kbd_t *kbd_dev, ddf_dev_t *dev)
 	/*
 	 * Set boot protocol.
 	 * Set LEDs according to initial setup.
+	 * Set Idle rate
 	 */
 	assert(kbd_dev->hid_dev != NULL);
 	assert(kbd_dev->hid_dev->initialized);
 	usbhid_req_set_protocol(kbd_dev->hid_dev, USB_HID_PROTOCOL_BOOT);
 	
 	usbhid_kbd_set_led(kbd_dev);
+	
+	usbhid_req_set_idle(kbd_dev->hid_dev, IDLE_RATE);
 	
 	kbd_dev->initialized = 1;
 	usb_log_info("HID/KBD device structure initialized.\n");
