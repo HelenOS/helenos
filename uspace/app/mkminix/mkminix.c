@@ -67,8 +67,8 @@ typedef struct mfs_params {
 
 static void	help_cmd_mkminix(help_level_t level);
 static int	num_of_set_bits(uint32_t n);
-static void	prepare_superblock(struct mfs_superblock *sb, mfs_params_t *opt);
-static void	prepare_superblock_v3(struct mfs3_superblock *sb, mfs_params_t *opt);
+static void	setup_superblock(struct mfs_superblock *sb, mfs_params_t *opt);
+static void	setup_superblock_v3(struct mfs3_superblock *sb, mfs_params_t *opt);
 
 static struct option const long_options[] = {
 	{ "help", no_argument, 0, 'h' },
@@ -197,7 +197,7 @@ int main (int argc, char **argv)
 
 	printf(NAME ": Creating Minix file system on device\n");
 
-	/*Prepare superblock*/
+	/*Setting up superblock*/
 
 	if (opt.fs_magic == MFS_MAGIC_V3) {
 		sb3 = (struct mfs3_superblock *) malloc(sizeof(struct mfs3_superblock));
@@ -205,21 +205,21 @@ int main (int argc, char **argv)
 			printf(NAME ": Error, not enough memory");
 			return 2;
 		}
-		prepare_superblock_v3(sb3, &opt);
+		setup_superblock_v3(sb3, &opt);
 	} else {
 		sb = (struct mfs_superblock *) malloc(sizeof(struct mfs_superblock));
 		if (!sb) {
 			printf(NAME ": Error, not enough memory");
 			return 2;
 		}
-		prepare_superblock(sb, &opt);
+		setup_superblock(sb, &opt);
 		block_write_direct(handle, MFS_SUPERBLOCK, 1, sb);
 	}
 
 	return 0;
 }
 
-static void prepare_superblock(struct mfs_superblock *sb, mfs_params_t *opt)
+static void setup_superblock(struct mfs_superblock *sb, mfs_params_t *opt)
 {
 	int ino_per_block = 0;
 	int fs_version;
@@ -279,7 +279,7 @@ static void prepare_superblock(struct mfs_superblock *sb, mfs_params_t *opt)
 	printf(NAME ": %d first data zone\n", sb->s_first_data_zone);
 }
 
-static void prepare_superblock_v3(struct mfs3_superblock *sb, mfs_params_t *opt)
+static void setup_superblock_v3(struct mfs3_superblock *sb, mfs_params_t *opt)
 {
 }
 
