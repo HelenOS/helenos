@@ -142,6 +142,56 @@ int usbhid_req_set_protocol(usbhid_dev_t *hid_dev, usb_hid_protocol_t protocol)
 
 /*----------------------------------------------------------------------------*/
 
+int usbhid_req_set_idle(usbhid_dev_t *hid_dev, uint8_t duration)
+{
+	if (hid_dev == NULL) {
+		usb_log_error("usbhid_req_set_idle(): no HID device "
+		    "structure given.\n");
+		return EINVAL;
+	}
+	
+	/*
+	 * No need for checking other parameters, as they are checked in
+	 * the called function (usb_control_request_set()).
+	 */
+	
+	int rc, sess_rc;
+	
+	sess_rc = usb_endpoint_pipe_start_session(&hid_dev->ctrl_pipe);
+	if (sess_rc != EOK) {
+		usb_log_warning("Failed to start a session: %s.\n",
+		    str_error(sess_rc));
+		return sess_rc;
+	}
+
+	usb_log_debug("Sending Set_Idle request to the device ("
+	    "duration: %u, iface: %d).\n", duration, hid_dev->iface);
+	
+	uint16_t value = duration << 8;
+	
+	rc = usb_control_request_set(&hid_dev->ctrl_pipe, 
+	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_INTERFACE, 
+	    USB_HIDREQ_SET_IDLE, value, hid_dev->iface, NULL, 0);
+
+	sess_rc = usb_endpoint_pipe_end_session(&hid_dev->ctrl_pipe);
+
+	if (rc != EOK) {
+		usb_log_warning("Error sending output report to the keyboard: "
+		    "%s.\n", str_error(rc));
+		return rc;
+	}
+
+	if (sess_rc != EOK) {
+		usb_log_warning("Error closing session: %s.\n",
+		    str_error(sess_rc));
+		return sess_rc;
+	}
+	
+	return EOK;
+}
+
+/*----------------------------------------------------------------------------*/
+
 /**
  * @}
  */
