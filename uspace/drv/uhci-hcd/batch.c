@@ -53,6 +53,7 @@ static void batch_call_in(batch_t *instance);
 static void batch_call_out(batch_t *instance);
 static void batch_call_in_and_dispose(batch_t *instance);
 static void batch_call_out_and_dispose(batch_t *instance);
+static void batch_dispose(batch_t *instance);
 
 
 batch_t * batch_get(ddf_fun_t *fun, usb_target_t target,
@@ -60,7 +61,9 @@ batch_t * batch_get(ddf_fun_t *fun, usb_target_t target,
     usb_speed_t speed, char *buffer, size_t size,
     char* setup_buffer, size_t setup_size,
     usbhc_iface_transfer_in_callback_t func_in,
-    usbhc_iface_transfer_out_callback_t func_out, void *arg)
+    usbhc_iface_transfer_out_callback_t func_out, void *arg,
+    device_keeper_t *manager
+    )
 {
 	assert(func_in == NULL || func_out == NULL);
 	assert(func_in != NULL || func_out != NULL);
@@ -136,6 +139,7 @@ batch_t * batch_get(ddf_fun_t *fun, usb_target_t target,
 	instance->fun = fun;
 	instance->arg = arg;
 	instance->speed = speed;
+	instance->manager = manager;
 
 	queue_head_element_td(instance->qh, addr_to_phys(instance->tds));
 	usb_log_debug("Batch(%p) %d:%d memory structures ready.\n",
@@ -159,6 +163,9 @@ bool batch_is_complete(batch_t *instance)
 		if (instance->error != EOK) {
 			usb_log_debug("Batch(%p) found error TD(%d):%x.\n",
 			    instance, i, instance->tds[i].status);
+
+			device_keeper_set_toggle(instance->manager, instance->target,
+			    td_toggle(&instance->tds[i]));
 			if (i > 0)
 				goto substract_ret;
 			return true;
@@ -231,11 +238,12 @@ void batch_bulk_out(batch_t *instance)
 	batch_schedule(instance);
 }
 /*----------------------------------------------------------------------------*/
-static void batch_data(batch_t *instance, usb_packet_id pid)
+void batch_data(batch_t *instance, usb_packet_id pid)
 {
 	assert(instance);
 	const bool low_speed = instance->speed == USB_SPEED_LOW;
-	int toggle = 1;
+	int toggle = device_keeper_get_toggle(instance->manager, instance->target);
+	assert(toggle == 0 || toggle == 1);
 
 	size_t packet = 0;
 	size_t remain_size = instance->buffer_size;
@@ -244,7 +252,6 @@ static void batch_data(batch_t *instance, usb_packet_id pid)
 		    instance->transport_buffer + instance->buffer_size
 		    - remain_size;
 
-		toggle = 1 - toggle;
 
 		const size_t packet_size =
 		    (instance->max_packet_size > remain_size) ?
@@ -255,17 +262,19 @@ static void batch_data(batch_t *instance, usb_packet_id pid)
 		    instance->target, pid, data,
 		    &instance->tds[packet + 1]);
 
+		toggle = 1 - toggle;
 		++packet;
 		assert(packet <= instance->packets);
 		assert(packet_size <= remain_size);
 		remain_size -= packet_size;
 	}
+	device_keeper_set_toggle(instance->manager, instance->target, toggle);
 
 	instance->tds[packet - 1].status |= TD_STATUS_COMPLETE_INTERRUPT_FLAG;
 	instance->tds[packet - 1].next = 0 | LINK_POINTER_TERMINATE_FLAG;
 }
 /*----------------------------------------------------------------------------*/
-static void batch_control(batch_t *instance,
+void batch_control(batch_t *instance,
    usb_packet_id data_stage, usb_packet_id status_stage)
 {
 	assert(instance);
@@ -346,18 +355,19 @@ void batch_call_in_and_dispose(batch_t *instance)
 {
 	assert(instance);
 	batch_call_in(instance);
-	usb_log_debug("Batch(%p) disposing.\n", instance);
-	free32(instance->tds);
-	free32(instance->qh);
-	free32(instance->setup_buffer);
-	free32(instance->transport_buffer);
-	free(instance);
+	batch_dispose(instance);
 }
 /*----------------------------------------------------------------------------*/
 void batch_call_out_and_dispose(batch_t *instance)
 {
 	assert(instance);
 	batch_call_out(instance);
+	batch_dispose(instance);
+}
+/*----------------------------------------------------------------------------*/
+void batch_dispose(batch_t *instance)
+{
+	assert(instance);
 	usb_log_debug("Batch(%p) disposing.\n", instance);
 	free32(instance->tds);
 	free32(instance->qh);

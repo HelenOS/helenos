@@ -74,6 +74,10 @@ void td_init(td_t *instance, int err_count, size_t size, bool toggle, bool iso,
 	usb_log_debug2("Created TD: %X:%X:%X:%X(%p).\n",
 	    instance->next, instance->status, instance->device,
 	    instance->buffer_ptr, buffer);
+	if (pid == USB_PID_SETUP) {
+		usb_log_debug("SETUP BUFFER: %s\n",
+			usb_debug_str_buffer(buffer, 8, 8));
+	}
 }
 /*----------------------------------------------------------------------------*/
 int td_status(td_t *instance)

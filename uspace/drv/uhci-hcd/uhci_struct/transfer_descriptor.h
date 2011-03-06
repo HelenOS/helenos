@@ -114,6 +114,13 @@ static inline bool td_is_short(td_t *instance)
 	    (instance->status | TD_STATUS_SPD_FLAG) && act_size < max_size;
 }
 
+static inline int td_toggle(td_t *instance)
+{
+	assert(instance);
+	return ((instance->device & TD_DEVICE_DATA_TOGGLE_ONE_FLAG) != 0)
+	    ? 1 : 0;
+}
+
 static inline bool td_is_active(td_t *instance)
 {
 	assert(instance);
