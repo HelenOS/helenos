@@ -235,7 +235,7 @@ static void setup_superblock(struct mfs_superblock *sb, mfs_params_t *opt)
 {
 	int ino_per_block = 0;
 	int fs_version;
-	aoff64_t tmp;
+	aoff64_t inodes;
 
 	if (opt->fs_magic == MFS_MAGIC_V1) {
 		fs_version = 1;
@@ -263,13 +263,13 @@ static void setup_superblock(struct mfs_superblock *sb, mfs_params_t *opt)
 
 	/*Round up the number of inodes to fill block size*/
 	if (opt->n_inodes == 0)
-		tmp = opt->dev_nblocks / 3;		
+		inodes = opt->dev_nblocks / 3;		
 	else
-		tmp = opt->n_inodes;
+		inodes = opt->n_inodes;
 
-	if (tmp % ino_per_block)
-		tmp = ((tmp / ino_per_block) + 1) * ino_per_block;
-	sb->s_ninodes = tmp > UINT16_MAX ? UINT16_MAX : tmp;
+	if (inodes % ino_per_block)
+		inodes = ((inodes / ino_per_block) + 1) * ino_per_block;
+	sb->s_ninodes = inodes > UINT16_MAX ? UINT16_MAX : inodes;
 
 	/*Compute inode bitmap size in blocks*/
 	sb->s_ibmap_blocks = UPPER(sb->s_ninodes, MFS_BLOCKSIZE * 8);
@@ -302,26 +302,26 @@ static void setup_superblock_v3(struct mfs3_superblock *sb, mfs_params_t *opt)
 {
 	int ino_per_block;
 	int bs;
-	aoff64_t tmp;
+	aoff64_t inodes;
 
 	sb->s_magic = opt->fs_magic;
 	bs = opt->block_size;
 
 	if (opt->n_inodes == 0)
-		tmp = opt->dev_nblocks / 3;		
+		inodes = opt->dev_nblocks / 3;		
 	else
-		tmp = opt->n_inodes;
+		inodes = opt->n_inodes;
+
+	/*Round up the number of inodes to fill block size*/
+	ino_per_block = V3_INODES_PER_BLOCK(bs);
+	if (inodes % ino_per_block)
+		inodes = ((inodes / ino_per_block) + 1) * ino_per_block;
+	sb->s_ninodes = inodes > UINT32_MAX ? UINT32_MAX : inodes;
 
 	/*Compute the number of zones on disk*/
 	sb->s_nzones = opt->dev_nblocks > UINT32_MAX ?
 			UINT32_MAX : opt->dev_nblocks;
 	sb->s_nzones /= (bs / MFS_MIN_BLOCKSIZE);
-
-	/*Round up the number of inodes to fill block size*/
-	ino_per_block = V3_INODES_PER_BLOCK(bs);
-	if (tmp % ino_per_block)
-		tmp = ((tmp / ino_per_block) + 1) * ino_per_block;
-	sb->s_ninodes = tmp > UINT32_MAX ? UINT32_MAX : tmp;
 
 	/*Compute inode bitmap size in blocks*/
 	sb->s_ibmap_blocks = UPPER(sb->s_ninodes, bs * 8);
