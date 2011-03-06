@@ -51,6 +51,9 @@
 
 #define NAME	"mkminix"
 
+#define FREE	0
+#define USED	1
+
 typedef enum {
 	HELP_SHORT,
 	HELP_LONG
@@ -69,6 +72,8 @@ static void	help_cmd_mkminix(help_level_t level);
 static int	num_of_set_bits(uint32_t n);
 static void	setup_superblock(struct mfs_superblock *sb, mfs_params_t *opt);
 static void	setup_superblock_v3(struct mfs3_superblock *sb, mfs_params_t *opt);
+static void	setup_bitmaps(devmap_handle_t handle, uint32_t ninodes, uint32_t nzones);
+static void	mark_bmap(uint8_t *bmap, int idx, int v);
 
 static struct option const long_options[] = {
 	{ "help", no_argument, 0, 'h' },
@@ -107,7 +112,7 @@ int main (int argc, char **argv)
 	}
 
 	for (c = 0, optind = 0, opt_ind = 0; c != -1;) {
-		c = getopt_long(argc, argv, "eh123b:i:", long_options, &opt_ind);
+		c = getopt_long(argc, argv, "lh123b:i:", long_options, &opt_ind);
 		switch (c) {
 		case 'h':
 			help_cmd_mkminix(HELP_LONG);
@@ -206,6 +211,7 @@ int main (int argc, char **argv)
 			return 2;
 		}
 		setup_superblock_v3(sb3, &opt);
+		setup_bitmaps(handle, sb3->s_ninodes, sb3->s_total_zones);
 	} else {
 		sb = (struct mfs_superblock *) malloc(sizeof(struct mfs_superblock));
 		if (!sb) {
@@ -214,6 +220,7 @@ int main (int argc, char **argv)
 		}
 		setup_superblock(sb, &opt);
 		block_write_direct(handle, MFS_SUPERBLOCK, 1, sb);
+		setup_bitmaps(handle, sb->s_ninodes, sb->s_nzones);
 	}
 
 	return 0;
@@ -281,6 +288,36 @@ static void setup_superblock(struct mfs_superblock *sb, mfs_params_t *opt)
 
 static void setup_superblock_v3(struct mfs3_superblock *sb, mfs_params_t *opt)
 {
+}
+
+static void setup_bitmaps(devmap_handle_t handle, uint32_t ninodes, uint32_t nzones)
+{
+	uint8_t *ibmap_buf, *zbmap_buf;
+	int ibmap_nblocks = 1 + (ninodes / 8) / MFS_BLOCKSIZE;
+	int zbmap_nblocks = 1 + (nzones / 8) / MFS_BLOCKSIZE;
+	unsigned int i;
+
+	ibmap_buf = (uint8_t *) malloc(ibmap_nblocks * MFS_BLOCKSIZE);
+	zbmap_buf = (uint8_t *) malloc(zbmap_nblocks * MFS_BLOCKSIZE);
+
+	memset(ibmap_buf, 0xFF, ibmap_nblocks * MFS_BLOCKSIZE);
+	memset(zbmap_buf, 0xFF, zbmap_nblocks * MFS_BLOCKSIZE);
+
+	for (i = 2; i < ninodes; ++i) {
+		mark_bmap(ibmap_buf, i, FREE);
+		mark_bmap(zbmap_buf, i, FREE);
+	}
+
+	block_write_direct(handle, 2, ibmap_nblocks, ibmap_buf);
+	block_write_direct(handle, 2 + ibmap_nblocks, zbmap_nblocks, zbmap_buf);
+}
+
+static void mark_bmap(uint8_t *bmap, int idx, int v)
+{
+	if (v == FREE)
+		bmap[idx / 8] &= ~(1 << (idx % 8));
+	else
+		bmap[idx / 8] |= 1 << (idx % 8);
 }
 
 static void help_cmd_mkminix(help_level_t level)
