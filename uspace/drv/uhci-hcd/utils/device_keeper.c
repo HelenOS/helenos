@@ -48,6 +48,7 @@ void device_keeper_init(device_keeper_t *instance)
 	for (; i < USB_ADDRESS_COUNT; ++i) {
 		instance->devices[i].occupied = false;
 		instance->devices[i].handle = 0;
+		instance->devices[i].toggle_status = 0;
 	}
 }
 /*----------------------------------------------------------------------------*/
@@ -74,6 +75,44 @@ void device_keeper_release_default(device_keeper_t *instance)
 	fibril_condvar_signal(&instance->default_address_occupied);
 }
 /*----------------------------------------------------------------------------*/
+int device_keeper_get_toggle(device_keeper_t *instance, usb_target_t target)
+{
+	assert(instance);
+	int ret;
+	fibril_mutex_lock(&instance->guard);
+	if (target.endpoint > 15 || target.endpoint < 0
+	    || target.address >= USB_ADDRESS_COUNT || target.address < 0
+	    || !instance->devices[target.address].occupied) {
+		ret = EINVAL;
+	} else {
+		ret = (instance->devices[target.address].toggle_status >> target.endpoint) & 1;
+	}
+	fibril_mutex_unlock(&instance->guard);
+	return ret;
+}
+/*----------------------------------------------------------------------------*/
+int device_keeper_set_toggle(
+    device_keeper_t *instance, usb_target_t target, bool toggle)
+{
+	assert(instance);
+	int ret;
+	fibril_mutex_lock(&instance->guard);
+	if (target.endpoint > 15 || target.endpoint < 0
+	    || target.address >= USB_ADDRESS_COUNT || target.address < 0
+	    || !instance->devices[target.address].occupied) {
+		ret = EINVAL;
+	} else {
+		if (toggle) {
+			instance->devices[target.address].toggle_status |= (1 << target.endpoint);
+		} else {
+			instance->devices[target.address].toggle_status &= ~(1 << target.endpoint);
+		}
+		ret = EOK;
+	}
+	fibril_mutex_unlock(&instance->guard);
+	return ret;
+}
+/*----------------------------------------------------------------------------*/
 usb_address_t device_keeper_request(
     device_keeper_t *instance, usb_speed_t speed)
 {
@@ -95,6 +134,7 @@ usb_address_t device_keeper_request(
 	assert(instance->devices[new_address].occupied == false);
 	instance->devices[new_address].occupied = true;
 	instance->devices[new_address].speed = speed;
+	instance->devices[new_address].toggle_status = 0;
 	instance->last_address = new_address;
 	fibril_mutex_unlock(&instance->guard);
 	return new_address;
