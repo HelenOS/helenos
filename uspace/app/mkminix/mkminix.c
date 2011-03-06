@@ -47,7 +47,7 @@
 #include <str.h>
 #include <getopt.h>
 #include <mem.h>
-#include <fs/minix.h>
+#include <minix.h>
 
 #define NAME	"mkminix"
 

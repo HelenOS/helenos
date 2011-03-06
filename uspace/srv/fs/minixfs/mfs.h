@@ -33,7 +33,7 @@
 #ifndef _MFS_H_
 #define _MFS_H_
 
-#include <fs/minix.h>
+#include <minix.h>
 #include "../../vfs/vfs.h"
 
 typedef enum {
