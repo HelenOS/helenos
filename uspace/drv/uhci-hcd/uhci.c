@@ -166,17 +166,19 @@ void uhci_init_hw(uhci_t *instance)
 
 	/* reset hc, all states and counters */
 	pio_write_16(&instance->registers->usbcmd, UHCI_CMD_HCRESET);
-	while ((pio_read_16(&instance->registers->usbcmd) & UHCI_CMD_HCRESET) != 0)
-		{ async_usleep(10); }
+	do { async_usleep(10); }
+	while ((pio_read_16(&instance->registers->usbcmd) & UHCI_CMD_HCRESET) != 0);
 
 	/* set framelist pointer */
 	const uint32_t pa = addr_to_phys(instance->frame_list);
 	pio_write_32(&instance->registers->flbaseadd, pa);
 
 	/* enable all interrupts, but resume interrupt */
-	pio_write_16(&instance->registers->usbintr,
-	    UHCI_INTR_CRC | UHCI_INTR_COMPLETE | UHCI_INTR_SHORT_PACKET);
+//	pio_write_16(&instance->registers->usbintr,
+//	    UHCI_INTR_CRC | UHCI_INTR_COMPLETE | UHCI_INTR_SHORT_PACKET);
 
+	uint16_t status = pio_read_16(&instance->registers->usbcmd);
+	usb_log_warning("Previous command value: %x.\n", status);
 	/* Start the hc with large(64B) packet FSBR */
 	pio_write_16(&instance->registers->usbcmd,
 	    UHCI_CMD_RUN_STOP | UHCI_CMD_MAX_PACKET | UHCI_CMD_CONFIGURE);
