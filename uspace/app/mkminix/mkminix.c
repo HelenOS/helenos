@@ -258,17 +258,13 @@ static void prepare_superblock(struct mfs_superblock *sb, mfs_params_t *opt)
 	sb->s_ninodes = tmp > UINT16_MAX ? UINT16_MAX : tmp;
 
 	/*Compute inode bitmap size in blocks*/
-	sb->s_ibmap_blocks = sb->s_ninodes / (MFS_BLOCKSIZE * 8);
-	if (sb->s_ibmap_blocks == 0)
-		sb->s_ibmap_blocks = 1;
+	sb->s_ibmap_blocks = 1 + (sb->s_ninodes / (MFS_BLOCKSIZE * 8));
 
 	/*Compute zone bitmap size in blocks*/
 	if (fs_version == 1)
-		sb->s_zbmap_blocks = sb->s_nzones / (MFS_BLOCKSIZE * 8);
+		sb->s_zbmap_blocks = 1 + (sb->s_nzones / (MFS_BLOCKSIZE * 8));
 	else
-		sb->s_zbmap_blocks = sb->s_nzones2 / (MFS_BLOCKSIZE * 8);
-	if (sb->s_zbmap_blocks == 0)
-		sb->s_zbmap_blocks = 1;
+		sb->s_zbmap_blocks = 1 + (sb->s_nzones2 / (MFS_BLOCKSIZE * 8));
 
 	/*Compute first data zone position*/
 	sb->s_first_data_zone = 2 + sb->s_zbmap_blocks + sb->s_ibmap_blocks;
