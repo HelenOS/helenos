@@ -214,8 +214,9 @@ int main (int argc, char **argv)
 			return 2;
 		}
 		setup_superblock_v3(sb3, &opt);
+		block_write_direct(handle, MFS_SUPERBLOCK, 1, sb3);
 		setup_bitmaps(handle, sb3->s_ninodes,
-				sb3->s_total_zones, sb3->s_block_size);
+				sb3->s_nzones, sb3->s_block_size);
 	} else {
 		sb = (struct mfs_superblock *) malloc(sizeof(struct mfs_superblock));
 		if (!sb) {
@@ -243,12 +244,14 @@ static void setup_superblock(struct mfs_superblock *sb, mfs_params_t *opt)
 			opt->fs_magic = MFS_MAGIC_V1L;
 	} else {
 		fs_version = 2;
-		ino_per_block = V1_INODES_PER_BLOCK;
+		ino_per_block = V2_INODES_PER_BLOCK;
 		if (opt->fs_longnames)
 			opt->fs_magic = MFS_MAGIC_V2L;
 	}
 
 	sb->s_magic = opt->fs_magic;
+
+	/*Compute the number of zones on disk*/
 
 	/*Valid only for MFS V1*/
 	sb->s_nzones = opt->dev_nblocks > UINT16_MAX ? 
@@ -258,12 +261,12 @@ static void setup_superblock(struct mfs_superblock *sb, mfs_params_t *opt)
 	sb->s_nzones2 = opt->dev_nblocks > UINT32_MAX ?
 			UINT32_MAX : opt->dev_nblocks;
 
+	/*Round up the number of inodes to fill block size*/
 	if (opt->n_inodes == 0)
 		tmp = opt->dev_nblocks / 3;		
 	else
 		tmp = opt->n_inodes;
 
-	/*Round up the number of inodes to fill block size*/
 	if (tmp % ino_per_block)
 		tmp = ((tmp / ino_per_block) + 1) * ino_per_block;
 	sb->s_ninodes = tmp > UINT16_MAX ? UINT16_MAX : tmp;
@@ -277,10 +280,10 @@ static void setup_superblock(struct mfs_superblock *sb, mfs_params_t *opt)
 	else
 		sb->s_zbmap_blocks = UPPER(sb->s_nzones2, MFS_BLOCKSIZE * 8);
 
+	/*Compute inode table size*/
+	unsigned long ninodes_blocks = sb->s_ninodes / ino_per_block;
+
 	/*Compute first data zone position*/
-	unsigned long ninodes_blocks = sb->s_ninodes / (fs_version == 1 ?
-							V1_INODES_PER_BLOCK :
-							V2_INODES_PER_BLOCK);
 	sb->s_first_data_zone = 2 + ninodes_blocks + 
 				sb->s_zbmap_blocks + sb->s_ibmap_blocks;
 
@@ -292,10 +295,58 @@ static void setup_superblock(struct mfs_superblock *sb, mfs_params_t *opt)
 	printf(NAME ": %d zones\n", sb->s_nzones2);
 	printf(NAME ": inode table blocks = %ld\n", ninodes_blocks);
 	printf(NAME ": first data zone = %d\n", sb->s_first_data_zone);
+	printf(NAME ": long fnames = %s\n", opt->fs_longnames ? "Yes" : "No");
 }
 
 static void setup_superblock_v3(struct mfs3_superblock *sb, mfs_params_t *opt)
 {
+	int ino_per_block;
+	int bs;
+	aoff64_t tmp;
+
+	sb->s_magic = opt->fs_magic;
+	bs = opt->block_size;
+
+	if (opt->n_inodes == 0)
+		tmp = opt->dev_nblocks / 3;		
+	else
+		tmp = opt->n_inodes;
+
+	/*Compute the number of zones on disk*/
+	sb->s_nzones = opt->dev_nblocks > UINT32_MAX ?
+			UINT32_MAX : opt->dev_nblocks;
+	sb->s_nzones /= (bs / MFS_MIN_BLOCKSIZE);
+
+	/*Round up the number of inodes to fill block size*/
+	ino_per_block = V3_INODES_PER_BLOCK(bs);
+	if (tmp % ino_per_block)
+		tmp = ((tmp / ino_per_block) + 1) * ino_per_block;
+	sb->s_ninodes = tmp > UINT32_MAX ? UINT32_MAX : tmp;
+
+	/*Compute inode bitmap size in blocks*/
+	sb->s_ibmap_blocks = UPPER(sb->s_ninodes, bs * 8);
+
+	/*Compute zone bitmap size in blocks*/
+	sb->s_zbmap_blocks = UPPER(sb->s_nzones, bs * 8);
+
+	/*Compute inode table size*/
+	unsigned long ninodes_blocks = sb->s_ninodes / ino_per_block;
+
+	/*Compute first data zone position*/
+	sb->s_first_data_zone = 2 + ninodes_blocks + 
+				sb->s_zbmap_blocks + sb->s_ibmap_blocks;
+
+	/*Set log2 of zone to block ratio to zero*/
+	sb->s_log2_zone_size = 0;
+	sb->s_disk_version = 3;
+	sb->s_block_size = bs;
+
+	/*Superblock is now ready to be written on disk*/
+	printf(NAME ": %d inodes\n", sb->s_ninodes);
+	printf(NAME ": %d zones\n", sb->s_nzones);
+	printf(NAME ": block size = %d\n", sb->s_block_size);
+	printf(NAME ": inode table blocks = %ld\n", ninodes_blocks);
+	printf(NAME ": first data zone = %d\n", sb->s_first_data_zone);
 }
 
 static void setup_bitmaps(devmap_handle_t handle, uint32_t ninodes,

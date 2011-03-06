@@ -118,7 +118,7 @@ struct mfs3_superblock {
 	/*Maximum file size expressed in bytes*/
 	int32_t		s_max_file_size;
 	/*Total number of zones on the device*/
-	uint32_t	s_total_zones;
+	uint32_t	s_nzones;
 	/*
 	 *Magic number used to recognize MinixFS
 	 *and to detect on-disk endianness
