@@ -48,7 +48,7 @@ static int batch_schedule(batch_t *instance);
 
 static void batch_control(batch_t *instance,
     usb_packet_id data_stage, usb_packet_id status_stage);
-static void batch_data(batch_t *instance, usb_packet_id pid, device_keeper_t *keeper);
+static void batch_data(batch_t *instance, usb_packet_id pid);
 static void batch_call_in(batch_t *instance);
 static void batch_call_out(batch_t *instance);
 static void batch_call_in_and_dispose(batch_t *instance);
@@ -60,7 +60,9 @@ batch_t * batch_get(ddf_fun_t *fun, usb_target_t target,
     usb_speed_t speed, char *buffer, size_t size,
     char* setup_buffer, size_t setup_size,
     usbhc_iface_transfer_in_callback_t func_in,
-    usbhc_iface_transfer_out_callback_t func_out, void *arg)
+    usbhc_iface_transfer_out_callback_t func_out, void *arg,
+    device_keeper_t *manager
+    )
 {
 	assert(func_in == NULL || func_out == NULL);
 	assert(func_in != NULL || func_out != NULL);
@@ -136,6 +138,7 @@ batch_t * batch_get(ddf_fun_t *fun, usb_target_t target,
 	instance->fun = fun;
 	instance->arg = arg;
 	instance->speed = speed;
+	instance->manager = manager;
 
 	queue_head_element_td(instance->qh, addr_to_phys(instance->tds));
 	usb_log_debug("Batch(%p) %d:%d memory structures ready.\n",
@@ -193,49 +196,49 @@ void batch_control_read(batch_t *instance)
 	batch_schedule(instance);
 }
 /*----------------------------------------------------------------------------*/
-void batch_interrupt_in(batch_t *instance, device_keeper_t *keeper)
+void batch_interrupt_in(batch_t *instance)
 {
 	assert(instance);
-	batch_data(instance, USB_PID_IN, keeper);
+	batch_data(instance, USB_PID_IN);
 	instance->next_step = batch_call_in_and_dispose;
 	usb_log_debug("Batch(%p) INTERRUPT IN initialized.\n", instance);
 	batch_schedule(instance);
 }
 /*----------------------------------------------------------------------------*/
-void batch_interrupt_out(batch_t *instance, device_keeper_t *keeper)
+void batch_interrupt_out(batch_t *instance)
 {
 	assert(instance);
 	memcpy(instance->transport_buffer, instance->buffer, instance->buffer_size);
-	batch_data(instance, USB_PID_OUT, keeper);
+	batch_data(instance, USB_PID_OUT);
 	instance->next_step = batch_call_out_and_dispose;
 	usb_log_debug("Batch(%p) INTERRUPT OUT initialized.\n", instance);
 	batch_schedule(instance);
 }
 /*----------------------------------------------------------------------------*/
-void batch_bulk_in(batch_t *instance, device_keeper_t *keeper)
+void batch_bulk_in(batch_t *instance)
 {
 	assert(instance);
-	batch_data(instance, USB_PID_IN, keeper);
+	batch_data(instance, USB_PID_IN);
 	instance->next_step = batch_call_in_and_dispose;
 	usb_log_debug("Batch(%p) BULK IN initialized.\n", instance);
 	batch_schedule(instance);
 }
 /*----------------------------------------------------------------------------*/
-void batch_bulk_out(batch_t *instance, device_keeper_t *keeper)
+void batch_bulk_out(batch_t *instance)
 {
 	assert(instance);
 	memcpy(instance->transport_buffer, instance->buffer, instance->buffer_size);
-	batch_data(instance, USB_PID_OUT, keeper);
+	batch_data(instance, USB_PID_OUT);
 	instance->next_step = batch_call_out_and_dispose;
 	usb_log_debug("Batch(%p) BULK OUT initialized.\n", instance);
 	batch_schedule(instance);
 }
 /*----------------------------------------------------------------------------*/
-void batch_data(batch_t *instance, usb_packet_id pid, device_keeper_t *keeper)
+void batch_data(batch_t *instance, usb_packet_id pid)
 {
 	assert(instance);
 	const bool low_speed = instance->speed == USB_SPEED_LOW;
-	int toggle = device_keeper_get_toggle(keeper, instance->target);
+	int toggle = device_keeper_get_toggle(instance->manager, instance->target);
 	assert(toggle == 0 || toggle == 1);
 
 	size_t packet = 0;
@@ -261,7 +264,7 @@ void batch_data(batch_t *instance, usb_packet_id pid, device_keeper_t *keeper)
 		assert(packet_size <= remain_size);
 		remain_size -= packet_size;
 	}
-	device_keeper_set_toggle(keeper, instance->target, toggle);
+	device_keeper_set_toggle(instance->manager, instance->target, toggle);
 
 	instance->tds[packet - 1].status |= TD_STATUS_COMPLETE_INTERRUPT_FLAG;
 	instance->tds[packet - 1].next = 0 | LINK_POINTER_TERMINATE_FLAG;

@@ -113,10 +113,11 @@ static int interrupt_out(ddf_fun_t *fun, usb_target_t target,
 	    target.address, target.endpoint, size, max_packet_size);
 
 	batch_t *batch = batch_get(fun, target, USB_TRANSFER_INTERRUPT,
-	    max_packet_size, speed, data, size, NULL, 0, NULL, callback, arg);
+	    max_packet_size, speed, data, size, NULL, 0, NULL, callback, arg,
+	    &hc->device_manager);
 	if (!batch)
 		return ENOMEM;
-	batch_interrupt_out(batch, &hc->device_manager);
+	batch_interrupt_out(batch);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -132,10 +133,11 @@ static int interrupt_in(ddf_fun_t *fun, usb_target_t target,
 	    target.address, target.endpoint, size, max_packet_size);
 
 	batch_t *batch = batch_get(fun, target, USB_TRANSFER_INTERRUPT,
-	    max_packet_size, speed, data, size, NULL, 0, callback, NULL, arg);
+	    max_packet_size, speed, data, size, NULL, 0, callback, NULL, arg,
+			&hc->device_manager);
 	if (!batch)
 		return ENOMEM;
-	batch_interrupt_in(batch, &hc->device_manager);
+	batch_interrupt_in(batch);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -152,10 +154,11 @@ static int bulk_out(ddf_fun_t *fun, usb_target_t target,
 	    target.address, target.endpoint, size, max_packet_size);
 
 	batch_t *batch = batch_get(fun, target, USB_TRANSFER_BULK,
-	    max_packet_size, speed, data, size, NULL, 0, NULL, callback, arg);
+	    max_packet_size, speed, data, size, NULL, 0, NULL, callback, arg,
+	    &hc->device_manager);
 	if (!batch)
 		return ENOMEM;
-	batch_bulk_out(batch, &hc->device_manager);
+	batch_bulk_out(batch);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -171,10 +174,11 @@ static int bulk_in(ddf_fun_t *fun, usb_target_t target,
 	    target.address, target.endpoint, size, max_packet_size);
 
 	batch_t *batch = batch_get(fun, target, USB_TRANSFER_BULK,
-	    max_packet_size, speed, data, size, NULL, 0, callback, NULL, arg);
+	    max_packet_size, speed, data, size, NULL, 0, callback, NULL, arg,
+	    &hc->device_manager);
 	if (!batch)
 		return ENOMEM;
-	batch_bulk_in(batch, &hc->device_manager);
+	batch_bulk_in(batch);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -190,11 +194,15 @@ static int control_write(ddf_fun_t *fun, usb_target_t target,
 	usb_log_debug("Control WRITE %d:%d %zu(%zu).\n",
 	    target.address, target.endpoint, size, max_packet_size);
 
+	if (setup_size != 8)
+		return EINVAL;
+
 	batch_t *batch = batch_get(fun, target, USB_TRANSFER_CONTROL,
 	    max_packet_size, speed, data, size, setup_data, setup_size,
-	    NULL, callback, arg);
+	    NULL, callback, arg, &hc->device_manager);
 	if (!batch)
 		return ENOMEM;
+	device_keeper_reset_if_need(&hc->device_manager, target, setup_data);
 	batch_control_write(batch);
 	return EOK;
 }
@@ -213,7 +221,7 @@ static int control_read(ddf_fun_t *fun, usb_target_t target,
 	    target.address, target.endpoint, size, max_packet_size);
 	batch_t *batch = batch_get(fun, target, USB_TRANSFER_CONTROL,
 	    max_packet_size, speed, data, size, setup_data, setup_size, callback,
-	    NULL, arg);
+	    NULL, arg, &hc->device_manager);
 	if (!batch)
 		return ENOMEM;
 	batch_control_read(batch);
