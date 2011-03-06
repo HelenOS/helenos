@@ -72,7 +72,8 @@ static void	help_cmd_mkminix(help_level_t level);
 static int	num_of_set_bits(uint32_t n);
 static void	setup_superblock(struct mfs_superblock *sb, mfs_params_t *opt);
 static void	setup_superblock_v3(struct mfs3_superblock *sb, mfs_params_t *opt);
-static void	setup_bitmaps(devmap_handle_t handle, uint32_t ninodes, uint32_t nzones);
+static void	setup_bitmaps(devmap_handle_t handle, uint32_t ninodes,
+				uint32_t nzones, int bsize);
 static void	mark_bmap(uint8_t *bmap, int idx, int v);
 
 static struct option const long_options[] = {
@@ -211,7 +212,8 @@ int main (int argc, char **argv)
 			return 2;
 		}
 		setup_superblock_v3(sb3, &opt);
-		setup_bitmaps(handle, sb3->s_ninodes, sb3->s_total_zones);
+		setup_bitmaps(handle, sb3->s_ninodes,
+				sb3->s_total_zones, sb3->s_block_size);
 	} else {
 		sb = (struct mfs_superblock *) malloc(sizeof(struct mfs_superblock));
 		if (!sb) {
@@ -220,7 +222,7 @@ int main (int argc, char **argv)
 		}
 		setup_superblock(sb, &opt);
 		block_write_direct(handle, MFS_SUPERBLOCK, 1, sb);
-		setup_bitmaps(handle, sb->s_ninodes, sb->s_nzones);
+		setup_bitmaps(handle, sb->s_ninodes, sb->s_nzones, MFS_BLOCKSIZE);
 	}
 
 	return 0;
@@ -290,23 +292,27 @@ static void setup_superblock_v3(struct mfs3_superblock *sb, mfs_params_t *opt)
 {
 }
 
-static void setup_bitmaps(devmap_handle_t handle, uint32_t ninodes, uint32_t nzones)
+static void setup_bitmaps(devmap_handle_t handle, uint32_t ninodes,
+				uint32_t nzones, int bsize)
 {
 	uint8_t *ibmap_buf, *zbmap_buf;
-	int ibmap_nblocks = 1 + (ninodes / 8) / MFS_BLOCKSIZE;
-	int zbmap_nblocks = 1 + (nzones / 8) / MFS_BLOCKSIZE;
+	int ibmap_nblocks = 1 + (ninodes / 8) / bsize;
+	int zbmap_nblocks = 1 + (nzones / 8) / bsize;
 	unsigned int i;
 
-	ibmap_buf = (uint8_t *) malloc(ibmap_nblocks * MFS_BLOCKSIZE);
-	zbmap_buf = (uint8_t *) malloc(zbmap_nblocks * MFS_BLOCKSIZE);
+	ibmap_buf = (uint8_t *) malloc(ibmap_nblocks * bsize);
+	zbmap_buf = (uint8_t *) malloc(zbmap_nblocks * bsize);
 
-	memset(ibmap_buf, 0xFF, ibmap_nblocks * MFS_BLOCKSIZE);
-	memset(zbmap_buf, 0xFF, zbmap_nblocks * MFS_BLOCKSIZE);
+	memset(ibmap_buf, 0xFF, ibmap_nblocks * bsize);
+	memset(zbmap_buf, 0xFF, zbmap_nblocks * bsize);
 
 	for (i = 2; i < ninodes; ++i) {
 		mark_bmap(ibmap_buf, i, FREE);
 		mark_bmap(zbmap_buf, i, FREE);
 	}
+
+	ibmap_nblocks *= bsize / MFS_BLOCKSIZE;
+	zbmap_nblocks *= bsize / MFS_BLOCKSIZE;
 
 	block_write_direct(handle, 2, ibmap_nblocks, ibmap_buf);
 	block_write_direct(handle, 2 + ibmap_nblocks, zbmap_nblocks, zbmap_buf);
