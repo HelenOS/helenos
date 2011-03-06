@@ -180,13 +180,10 @@ static void usbhid_kbd_set_led(usbhid_kbd_t *kbd_dev)
 	usb_log_debug("Output report buffer: %s\n", 
 	    usb_debug_str_buffer(buffer, BOOTP_BUFFER_OUT_SIZE, 0));
 	
-	uint16_t value = 0;
-	value |= (USB_HID_REPORT_TYPE_OUTPUT << 8);
-
 	assert(kbd_dev->hid_dev != NULL);
 	assert(kbd_dev->hid_dev->initialized);
-	usbhid_req_set_report(kbd_dev->hid_dev, value, buffer, 
-	    BOOTP_BUFFER_OUT_SIZE);
+	usbhid_req_set_report(kbd_dev->hid_dev, USB_HID_REPORT_TYPE_OUTPUT, 
+	    buffer, BOOTP_BUFFER_OUT_SIZE);
 }
 
 /*----------------------------------------------------------------------------*/
