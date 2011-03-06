@@ -35,18 +35,25 @@
 
 #include <sys/types.h>
 
-#define MFS_MAX_BLOCK_SIZE	4096
-#define MFS_MIN_BLOCK_SIZE	1024
+#define MFS_BLOCKSIZE		1024
+
+/*The following block sizes are valid only on V3 filesystem*/
+#define MFS_MIN_BLOCKSIZE	1024
+#define MFS_MAX_BLOCKSIZE	4096
 
 #define MFS_ROOT_INO		1
-#define MFS_SUPER_BLOCK		0
-#define MFS_SUPER_BLOCK_SIZE	1024
+#define MFS_SUPERBLOCK		1
+#define MFS_SUPERBLOCK_SIZE	1024
 
 #define V2_NR_DIRECT_ZONES	7
 #define V2_NR_INDIRECT_ZONES	3
 
 #define V1_NR_DIRECT_ZONES	7
 #define V1_NR_INDIRECT_ZONES	2
+
+#define V1_INODES_PER_BLOCK	(MFS_BLOCKSIZE / sizeof(struct mfs_inode))
+#define V2_INODES_PER_BLOCK	(MFS_BLOCKSIZE / sizeof(struct mfs2_inode))
+#define V3_INODES_PER_BLOCK(bs)	((bs) / sizeof(struct mfs2_inode))
 
 #define MFS_MAX_NAME_LEN	14
 #define MFS_L_MAX_NAME_LEN	30
@@ -125,7 +132,7 @@ struct mfs3_superblock {
 } __attribute__ ((packed));
 
 /*MinixFS V1 inode structure as it is on disk*/
-struct mfs_v1_inode {
+struct mfs_inode {
 	uint16_t	i_mode;
 	int16_t		i_uid;
 	int32_t		i_size;
@@ -138,8 +145,8 @@ struct mfs_v1_inode {
 	uint16_t	i_izone[V1_NR_INDIRECT_ZONES];
 } __attribute__ ((packed));
 
-/*MinixFS V2 inode structure as it is on disk.*/
-struct mfs_v2_inode {
+/*MinixFS V2 inode structure as it is on disk (also valid for V3).*/
+struct mfs2_inode {
 	uint16_t 	i_mode;
 	uint16_t 	i_nlinks;
 	int16_t 	i_uid;

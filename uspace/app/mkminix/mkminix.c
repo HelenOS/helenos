@@ -96,7 +96,7 @@ int main (int argc, char **argv)
 	opt.fs_magic = MFS_MAGIC_V3;
 
 	/*Default block size is 4Kb*/
-	opt.block_size = 4096;
+	opt.block_size = MFS_MAX_BLOCKSIZE;
 	opt.n_inodes = 0;
 	opt.fs_longnames = false;
 
@@ -114,11 +114,11 @@ int main (int argc, char **argv)
 			exit(0);
 		case '1':
 			opt.fs_magic = MFS_MAGIC_V1;
-			opt.block_size = MFS_MIN_BLOCK_SIZE;
+			opt.block_size = MFS_BLOCKSIZE;
 			break;
 		case '2':
 			opt.fs_magic = MFS_MAGIC_V2;
-			opt.block_size = MFS_MIN_BLOCK_SIZE;
+			opt.block_size = MFS_BLOCKSIZE;
 			break;
 		case '3':
 			opt.fs_magic = MFS_MAGIC_V3;
@@ -135,15 +135,15 @@ int main (int argc, char **argv)
 		}
 	}
 
-	if (opt.block_size < MFS_MIN_BLOCK_SIZE || 
-				opt.block_size > MFS_MAX_BLOCK_SIZE) {
+	if (opt.block_size < MFS_MIN_BLOCKSIZE || 
+				opt.block_size > MFS_MAX_BLOCKSIZE) {
 		printf(NAME ":Error! Invalid block size.\n");
 		exit(0);
 	} else if (num_of_set_bits(opt.block_size) != 1) {
 		/*Block size must be a power of 2.*/
 		printf(NAME ":Error! Invalid block size.\n");
 		exit(0);
-	} else if (opt.block_size > MFS_MIN_BLOCK_SIZE && 
+	} else if (opt.block_size > MFS_BLOCKSIZE && 
 			opt.fs_magic != MFS_MAGIC_V3) {
 		printf(NAME ":Error! Block size > 1024 is supported by V3 filesystem only.\n");
 		exit(0);
@@ -167,7 +167,7 @@ int main (int argc, char **argv)
 		return 2;
 	}
 
-	rc = block_init(handle, MFS_MIN_BLOCK_SIZE);
+	rc = block_init(handle, MFS_MIN_BLOCKSIZE);
 	if (rc != EOK)  {
 		printf(NAME ": Error initializing libblock.\n");
 		return 2;
@@ -192,7 +192,10 @@ int main (int argc, char **argv)
 		return 2;
 	}
 
-	printf("Creating Minix file system on device\n");
+	/*Minimum block size is 1 Kb*/
+	opt.dev_nblocks /= 2;
+
+	printf(NAME ": Creating Minix file system on device\n");
 
 	/*Prepare superblock*/
 
@@ -210,6 +213,7 @@ int main (int argc, char **argv)
 			return 2;
 		}
 		prepare_superblock(sb, &opt);
+		block_write_direct(handle, MFS_SUPERBLOCK, 1, sb);
 	}
 
 	return 0;
@@ -217,10 +221,19 @@ int main (int argc, char **argv)
 
 static void prepare_superblock(struct mfs_superblock *sb, mfs_params_t *opt)
 {
-	if (opt->fs_longnames) {
-		if (opt->fs_magic == MFS_MAGIC_V1)
+	int ino_per_block = 0;
+	int fs_version;
+	aoff64_t tmp;
+
+	if (opt->fs_magic == MFS_MAGIC_V1) {
+		fs_version = 1;
+		ino_per_block = V1_INODES_PER_BLOCK;
+		if (opt->fs_longnames)
 			opt->fs_magic = MFS_MAGIC_V1L;
-		else
+	} else {
+		fs_version = 2;
+		ino_per_block = V1_INODES_PER_BLOCK;
+		if (opt->fs_longnames)
 			opt->fs_magic = MFS_MAGIC_V2L;
 	}
 
@@ -234,15 +247,40 @@ static void prepare_superblock(struct mfs_superblock *sb, mfs_params_t *opt)
 	sb->s_nzones2 = opt->dev_nblocks > UINT32_MAX ?
 			UINT32_MAX : opt->dev_nblocks;
 
-	if (opt->n_inodes == 0) {
-		aoff64_t tmp = opt->dev_nblocks / 3;		
-		sb->s_ninodes = tmp > UINT16_MAX ? UINT16_MAX : tmp;
-	} else {
-		sb->s_ninodes = opt->n_inodes;
-	}
+	if (opt->n_inodes == 0)
+		tmp = opt->dev_nblocks / 3;		
+	else
+		tmp = opt->n_inodes;
 
+	/*Round up the number of inodes to fill block size*/
+	if (tmp % ino_per_block)
+		tmp = ((tmp / ino_per_block) + 1) * ino_per_block;
+	sb->s_ninodes = tmp > UINT16_MAX ? UINT16_MAX : tmp;
+
+	/*Compute inode bitmap size in blocks*/
+	sb->s_ibmap_blocks = sb->s_ninodes / (MFS_BLOCKSIZE * 8);
+	if (sb->s_ibmap_blocks == 0)
+		sb->s_ibmap_blocks = 1;
+
+	/*Compute zone bitmap size in blocks*/
+	if (fs_version == 1)
+		sb->s_zbmap_blocks = sb->s_nzones / (MFS_BLOCKSIZE * 8);
+	else
+		sb->s_zbmap_blocks = sb->s_nzones2 / (MFS_BLOCKSIZE * 8);
+	if (sb->s_zbmap_blocks == 0)
+		sb->s_zbmap_blocks = 1;
+
+	/*Compute first data zone position*/
+	sb->s_first_data_zone = 2 + sb->s_zbmap_blocks + sb->s_ibmap_blocks;
+	unsigned long ninodes_blocks = 1 + (sb->s_ninodes / (fs_version == 1 ?
+							V1_INODES_PER_BLOCK :
+							V2_INODES_PER_BLOCK));
+	sb->s_first_data_zone += ninodes_blocks;
 	sb->s_log2_zone_size = 0;
-
+	/*Superblock is now ready to be written on disk*/
+	printf(NAME ": %d inodes\n", sb->s_ninodes);
+	printf(NAME ": %d zones\n", sb->s_nzones2);
+	printf(NAME ": %d first data zone\n", sb->s_first_data_zone);
 }
 
 static void prepare_superblock_v3(struct mfs3_superblock *sb, mfs_params_t *opt)

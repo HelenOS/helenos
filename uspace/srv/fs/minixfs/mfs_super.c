@@ -67,14 +67,14 @@ void mfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 	free(opts);
 
 	/* initialize libblock */
-	rc = block_init(devmap_handle, MFS_SUPER_BLOCK_SIZE);
+	rc = block_init(devmap_handle, MFS_SUPERBLOCK_SIZE);
 	if (rc != EOK) {
 		async_answer_0(rid, rc);
 		return;
 	}
 
 	/* prepare the superblock */
-	rc = block_bb_read(devmap_handle, MFS_SUPER_BLOCK);
+	rc = block_bb_read(devmap_handle, MFS_SUPERBLOCK);
 	if (rc != EOK) {
 		block_fini(devmap_handle);
 		async_answer_0(rid, rc);
