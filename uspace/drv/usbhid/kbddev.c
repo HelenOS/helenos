@@ -62,6 +62,7 @@ static const unsigned DEFAULT_ACTIVE_MODS = KM_NUM_LOCK;
 static const size_t BOOTP_REPORT_SIZE = 6;
 static const size_t BOOTP_BUFFER_SIZE = 8;
 static const size_t BOOTP_BUFFER_OUT_SIZE = 1;
+static const uint8_t BOOTP_ERROR_ROLLOVER = 1;
 static const uint8_t IDLE_RATE = 0;
 
 /** Keyboard polling endpoint description for boot protocol class. */
@@ -180,13 +181,10 @@ static void usbhid_kbd_set_led(usbhid_kbd_t *kbd_dev)
 	usb_log_debug("Output report buffer: %s\n", 
 	    usb_debug_str_buffer(buffer, BOOTP_BUFFER_OUT_SIZE, 0));
 	
-	uint16_t value = 0;
-	value |= (USB_HID_REPORT_TYPE_OUTPUT << 8);
-
 	assert(kbd_dev->hid_dev != NULL);
 	assert(kbd_dev->hid_dev->initialized);
-	usbhid_req_set_report(kbd_dev->hid_dev, value, buffer, 
-	    BOOTP_BUFFER_OUT_SIZE);
+	usbhid_req_set_report(kbd_dev->hid_dev, USB_HID_REPORT_TYPE_OUTPUT, 
+	    buffer, BOOTP_BUFFER_OUT_SIZE);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -321,10 +319,23 @@ static void usbhid_kbd_check_modifier_changes(usbhid_kbd_t *kbd_dev,
 static void usbhid_kbd_check_key_changes(usbhid_kbd_t *kbd_dev, 
     const uint8_t *key_codes)
 {
-	// TODO: phantom state!!
-	
 	unsigned int key;
 	unsigned int i, j;
+	
+	/*
+	 * First of all, check if the kbd have reported phantom state.
+	 */
+	i = 0;
+	// all fields should report Error Rollover
+	while (i < kbd_dev->keycode_count &&
+	    key_codes[i] == BOOTP_ERROR_ROLLOVER) {
+		++i;
+	}
+	if (i == kbd_dev->keycode_count) {
+		usb_log_debug("Phantom state occured.\n");
+		// phantom state, do nothing
+		return;
+	}
 	
 	// TODO: quite dummy right now, think of better implementation
 	
@@ -343,7 +354,7 @@ static void usbhid_kbd_check_key_changes(usbhid_kbd_t *kbd_dev,
 			// not found, i.e. the key was released
 			key = usbhid_parse_scancode(kbd_dev->keycodes[j]);
 			usbhid_kbd_push_ev(kbd_dev, KEY_RELEASE, key);
-			usb_log_debug2("\nKey released: %d\n", key);
+			usb_log_debug2("Key released: %d\n", key);
 		} else {
 			// found, nothing happens
 		}
@@ -363,7 +374,7 @@ static void usbhid_kbd_check_key_changes(usbhid_kbd_t *kbd_dev,
 		if (j == kbd_dev->keycode_count) {
 			// not found, i.e. new key pressed
 			key = usbhid_parse_scancode(key_codes[i]);
-			usb_log_debug2("\nKey pressed: %d (keycode: %d)\n", key,
+			usb_log_debug2("Key pressed: %d (keycode: %d)\n", key,
 			    key_codes[i]);
 			usbhid_kbd_push_ev(kbd_dev, KEY_PRESS, key);
 		} else {
@@ -374,7 +385,7 @@ static void usbhid_kbd_check_key_changes(usbhid_kbd_t *kbd_dev,
 //	for (i = 0; i < kbd_dev->keycode_count; ++i) {
 //		if (key_codes[i] != 0) {
 //			key = usbhid_parse_scancode(key_codes[i]);
-//			usb_log_debug2("\nKey pressed: %d (keycode: %d)\n", key,
+//			usb_log_debug2("Key pressed: %d (keycode: %d)\n", key,
 //			    key_codes[i]);
 //			usbhid_kbd_push_ev(kbd_dev, KEY_PRESS, key);
 //		}
