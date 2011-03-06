@@ -41,6 +41,7 @@
 
 #include "uhci_struct/transfer_descriptor.h"
 #include "uhci_struct/queue_head.h"
+#include "utils/device_keeper.h"
 
 typedef struct batch
 {
@@ -81,13 +82,13 @@ void batch_control_write(batch_t *instance);
 
 void batch_control_read(batch_t *instance);
 
-void batch_interrupt_in(batch_t *instance);
+void batch_interrupt_in(batch_t *instance, device_keeper_t *keeper);
 
-void batch_interrupt_out(batch_t *instance);
+void batch_interrupt_out(batch_t *instance, device_keeper_t *keeper);
 
-void batch_bulk_in(batch_t *instance);
+void batch_bulk_in(batch_t *instance, device_keeper_t *keeper);
 
-void batch_bulk_out(batch_t *instance);
+void batch_bulk_out(batch_t *instance, device_keeper_t *keeper);
 #endif
 /**
  * @}

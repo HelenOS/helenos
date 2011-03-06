@@ -116,7 +116,7 @@ static int interrupt_out(ddf_fun_t *fun, usb_target_t target,
 	    max_packet_size, speed, data, size, NULL, 0, NULL, callback, arg);
 	if (!batch)
 		return ENOMEM;
-	batch_interrupt_out(batch);
+	batch_interrupt_out(batch, &hc->device_manager);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -135,7 +135,7 @@ static int interrupt_in(ddf_fun_t *fun, usb_target_t target,
 	    max_packet_size, speed, data, size, NULL, 0, callback, NULL, arg);
 	if (!batch)
 		return ENOMEM;
-	batch_interrupt_in(batch);
+	batch_interrupt_in(batch, &hc->device_manager);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -155,7 +155,7 @@ static int bulk_out(ddf_fun_t *fun, usb_target_t target,
 	    max_packet_size, speed, data, size, NULL, 0, NULL, callback, arg);
 	if (!batch)
 		return ENOMEM;
-	batch_bulk_out(batch);
+	batch_bulk_out(batch, &hc->device_manager);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -174,7 +174,7 @@ static int bulk_in(ddf_fun_t *fun, usb_target_t target,
 	    max_packet_size, speed, data, size, NULL, 0, callback, NULL, arg);
 	if (!batch)
 		return ENOMEM;
-	batch_bulk_in(batch);
+	batch_bulk_in(batch, &hc->device_manager);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
