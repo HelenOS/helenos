@@ -86,7 +86,8 @@ int pci_get_my_registers(ddf_dev_t *dev,
 	hw_resource_list_t hw_resources;
 	rc = hw_res_get_resource_list(parent_phone, &hw_resources);
 	if (rc != EOK) {
-		goto leave;
+		async_hangup(parent_phone);
+		return rc;
 	}
 
 	uintptr_t mem_address = 0;
@@ -99,52 +100,48 @@ int pci_get_my_registers(ddf_dev_t *dev,
 	size_t i;
 	for (i = 0; i < hw_resources.count; i++) {
 		hw_resource_t *res = &hw_resources.resources[i];
-		switch (res->type) {
-			case INTERRUPT:
-				irq = res->res.interrupt.irq;
-				irq_found = true;
-				usb_log_debug2("Found interrupt: %d.\n", irq);
-				break;
-			case MEM_RANGE:
-				if (res->res.mem_range.address != 0
-				    && res->res.mem_range.size != 0 ) {
-					mem_address = res->res.mem_range.address;
-					mem_size = res->res.mem_range.size;
-					usb_log_debug2("Found mem: %llx %zu.\n",
-							res->res.mem_range.address, res->res.mem_range.size);
-					mem_found = true;
+		switch (res->type)
+		{
+		case INTERRUPT:
+			irq = res->res.interrupt.irq;
+			irq_found = true;
+			usb_log_debug2("Found interrupt: %d.\n", irq);
+			break;
+
+		case MEM_RANGE:
+			if (res->res.mem_range.address != 0
+			    && res->res.mem_range.size != 0 ) {
+				mem_address = res->res.mem_range.address;
+				mem_size = res->res.mem_range.size;
+				usb_log_debug2("Found mem: %llx %zu.\n",
+				    mem_address, mem_size);
+				mem_found = true;
 				}
-				break;
-			default:
-				break;
+		default:
+			break;
 		}
 	}
 
-	if (!mem_found) {
+	if (mem_found && irq_found) {
+		*mem_reg_address = mem_address;
+		*mem_reg_size = mem_size;
+		*irq_no = irq;
+		rc = EOK;
+	} else {
 		rc = ENOENT;
-		goto leave;
 	}
 
-	if (!irq_found) {
-		rc = ENOENT;
-		goto leave;
-	}
-
-	*mem_reg_address = mem_address;
-	*mem_reg_size = mem_size;
-	*irq_no = irq;
-
-	rc = EOK;
-leave:
 	async_hangup(parent_phone);
-
 	return rc;
 }
 /*----------------------------------------------------------------------------*/
 int pci_enable_interrupts(ddf_dev_t *device)
 {
-	int parent_phone = devman_parent_device_connect(device->handle,
-	    IPC_FLAG_BLOCKING);
+	int parent_phone =
+	    devman_parent_device_connect(device->handle, IPC_FLAG_BLOCKING);
+	if (parent_phone < 0) {
+		return parent_phone;
+	}
 	bool enabled = hw_res_enable_interrupt(parent_phone);
 	async_hangup(parent_phone);
 	return enabled ? EOK : EIO;
@@ -159,112 +156,102 @@ int pci_disable_legacy(ddf_dev_t *device)
 		return parent_phone;
 	}
 
+#define CHECK_RET_HANGUP_RETURN(ret, message...) \
+	if (ret != EOK) { \
+		usb_log_error(message); \
+		async_hangup(parent_phone); \
+		return ret; \
+	} else (void)0
+
+
 	/* read register space BAR */
 	sysarg_t address = 0x10;
 	sysarg_t value;
 
-  int ret = async_req_2_1(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE),
+	int ret = async_req_2_1(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE),
 	    IPC_M_CONFIG_SPACE_READ_32, address, &value);
+	CHECK_RET_HANGUP_RETURN(ret, "Failed(%d) to read PCI config space.\n",
+	    ret);
 	usb_log_info("Register space BAR at %p:%x.\n", address, value);
 
 	/* clear lower byte, it's not part of the address */
 	uintptr_t registers = (value & 0xffffff00);
-	usb_log_info("Mem register address:%p.\n", registers);
+	usb_log_info("Memory registers address:%p.\n", registers);
 
 	/* if nothing setup the hc, the we don't need to to turn it off */
 	if (registers == 0)
 		return ENOTSUP;
 
-	/* EHCI registers need 20 bytes*/
+	/* map EHCI registers */
 	void *regs = as_get_mappable_page(4096);
 	ret = physmem_map((void*)(registers & PAGE_SIZE_MASK), regs, 1,
 	    AS_AREA_READ | AS_AREA_WRITE);
-	if (ret != EOK) {
-		usb_log_error("Failed(%d) to map registers %p:%p.\n",
-		    ret, regs, registers);
-	}
+	CHECK_RET_HANGUP_RETURN(ret, "Failed(%d) to map registers %p:%p.\n",
+	    ret, regs, registers);
+
 	/* calculate value of BASE */
 	registers = (registers & 0xf00) | (uintptr_t)regs;
 
-	uint32_t hcc_params = *(uint32_t*)(registers + HCC_PARAMS_OFFSET);
+	const uint32_t hcc_params =
+	    *(uint32_t*)(registers + HCC_PARAMS_OFFSET);
 
 	usb_log_debug("Value of hcc params register: %x.\n", hcc_params);
-	uint32_t eecp = (hcc_params >> HCC_PARAMS_EECP_OFFSET) & HCC_PARAMS_EECP_MASK;
+	uint32_t eecp =
+	    (hcc_params >> HCC_PARAMS_EECP_OFFSET) & HCC_PARAMS_EECP_MASK;
 	usb_log_debug("Value of EECP: %x.\n", eecp);
 
 	ret = async_req_2_1(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE),
 	    IPC_M_CONFIG_SPACE_READ_32, eecp + USBLEGCTLSTS_OFFSET, &value);
-	if (ret != EOK) {
-		usb_log_error("Failed(%d) to read USBLEGCTLSTS.\n", ret);
-		return ret;
-	}
-	usb_log_debug2("USBLEGCTLSTS: %x.\n", value);
+	CHECK_RET_HANGUP_RETURN(ret, "Failed(%d) to read USBLEGCTLSTS.\n", ret);
+	usb_log_debug("USBLEGCTLSTS: %x.\n", value);
 
 	ret = async_req_2_1(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE),
 	    IPC_M_CONFIG_SPACE_READ_32, eecp + USBLEGSUP_OFFSET, &value);
-	if (ret != EOK) {
-		usb_log_error("Failed(%d) to read USBLEGSUP.\n", ret);
-		return ret;
-	}
+	CHECK_RET_HANGUP_RETURN(ret, "Failed(%d) to read USBLEGSUP.\n", ret);
 	usb_log_debug2("USBLEGSUP: %x.\n", value);
 
 	/* request control from firmware/BIOS, by writing 1 to highest byte */
 	ret = async_req_3_0(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE),
 	   IPC_M_CONFIG_SPACE_WRITE_8, eecp + USBLEGSUP_OFFSET + 3, 1);
-	if (ret != EOK) {
-		usb_log_error("Failed(%d) request OS EHCI control.\n", ret);
-		return ret;
-	}
+	CHECK_RET_HANGUP_RETURN(ret, "Failed(%d) request OS EHCI control.\n",
+	    ret);
 
-	size_t wait = 0; /* might be anything */
+	size_t wait = 0;
 	/* wait for BIOS to release control */
 	while ((wait < DEFAULT_WAIT) && (value & USBLEGSUP_BIOS_CONTROL)) {
 		async_usleep(WAIT_STEP);
 		ret = async_req_2_1(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE),
-				IPC_M_CONFIG_SPACE_READ_32, eecp + USBLEGSUP_OFFSET, &value);
+		    IPC_M_CONFIG_SPACE_READ_32, eecp + USBLEGSUP_OFFSET, &value);
 		wait += WAIT_STEP;
 	}
 
 	if ((value & USBLEGSUP_BIOS_CONTROL) != 0) {
-		usb_log_warning(
-		    "BIOS failed to release control after %d usecs, force it.\n",
-		    wait);
-		ret = async_req_3_0(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE),
-			  IPC_M_CONFIG_SPACE_WRITE_32, eecp + USBLEGSUP_OFFSET,
-		    USBLEGSUP_OS_CONTROL);
-		if (ret != EOK) {
-			usb_log_error("Failed(%d) to force OS EHCI control.\n", ret);
-			return ret;
-		}
+		usb_log_info("BIOS released control after %d usec.\n", wait);
 	} else {
-		usb_log_info("BIOS released control after %d usec.\n",
-		    wait);
+		usb_log_warning( "BIOS failed to release control after"
+		    "%d usecs, force it.\n", wait);
+		ret = async_req_3_0(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE),
+		    IPC_M_CONFIG_SPACE_WRITE_32, eecp + USBLEGSUP_OFFSET,
+		    USBLEGSUP_OS_CONTROL);
+		CHECK_RET_HANGUP_RETURN(ret,
+		    "Failed(%d) to force OS EHCI control.\n", ret);
 	}
 
 
 	/* zero SMI enables in legacy control register */
 	ret = async_req_3_0(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE),
 	   IPC_M_CONFIG_SPACE_WRITE_32, eecp + USBLEGCTLSTS_OFFSET, 0);
-	if (ret != EOK) {
-		usb_log_error("Failed(%d) zero USBLEGCTLSTS.\n", ret);
-		return ret;
-	}
+	CHECK_RET_HANGUP_RETURN(ret, "Failed(%d) zero USBLEGCTLSTS.\n", ret);
 	usb_log_debug("Zeroed USBLEGCTLSTS register.\n");
 
 	ret = async_req_2_1(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE),
 	    IPC_M_CONFIG_SPACE_READ_32, eecp + USBLEGCTLSTS_OFFSET, &value);
-	if (ret != EOK) {
-		usb_log_error("Failed(%d) to read USBLEGCTLSTS.\n", ret);
-		return ret;
-	}
+	CHECK_RET_HANGUP_RETURN(ret, "Failed(%d) to read USBLEGCTLSTS.\n", ret);
 	usb_log_debug2("USBLEGCTLSTS: %x.\n", value);
 
 	ret = async_req_2_1(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE),
 	    IPC_M_CONFIG_SPACE_READ_32, eecp + USBLEGSUP_OFFSET, &value);
-	if (ret != EOK) {
-		usb_log_error("Failed(%d) to read USBLEGSUP.\n", ret);
-		return ret;
-	}
+	CHECK_RET_HANGUP_RETURN(ret, "Failed(%d) to read USBLEGSUP.\n", ret);
 	usb_log_debug2("USBLEGSUP: %x.\n", value);
 
 /*
@@ -287,8 +274,8 @@ int pci_disable_legacy(ddf_dev_t *device)
 
 
 	async_hangup(parent_phone);
-
-  return ret;
+	return ret;
+#undef CHECK_RET_HANGUP_RETURN
 }
 /*----------------------------------------------------------------------------*/
 /**
