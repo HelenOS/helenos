@@ -53,6 +53,7 @@ static void batch_call_in(batch_t *instance);
 static void batch_call_out(batch_t *instance);
 static void batch_call_in_and_dispose(batch_t *instance);
 static void batch_call_out_and_dispose(batch_t *instance);
+static void batch_dispose(batch_t *instance);
 
 
 batch_t * batch_get(ddf_fun_t *fun, usb_target_t target,
@@ -162,6 +163,9 @@ bool batch_is_complete(batch_t *instance)
 		if (instance->error != EOK) {
 			usb_log_debug("Batch(%p) found error TD(%d):%x.\n",
 			    instance, i, instance->tds[i].status);
+
+			device_keeper_set_toggle(instance->manager, instance->target,
+			    td_toggle(&instance->tds[i]));
 			if (i > 0)
 				goto substract_ret;
 			return true;
@@ -351,18 +355,19 @@ void batch_call_in_and_dispose(batch_t *instance)
 {
 	assert(instance);
 	batch_call_in(instance);
-	usb_log_debug("Batch(%p) disposing.\n", instance);
-	free32(instance->tds);
-	free32(instance->qh);
-	free32(instance->setup_buffer);
-	free32(instance->transport_buffer);
-	free(instance);
+	batch_dispose(instance);
 }
 /*----------------------------------------------------------------------------*/
 void batch_call_out_and_dispose(batch_t *instance)
 {
 	assert(instance);
 	batch_call_out(instance);
+	batch_dispose(instance);
+}
+/*----------------------------------------------------------------------------*/
+void batch_dispose(batch_t *instance)
+{
+	assert(instance);
 	usb_log_debug("Batch(%p) disposing.\n", instance);
 	free32(instance->tds);
 	free32(instance->qh);
