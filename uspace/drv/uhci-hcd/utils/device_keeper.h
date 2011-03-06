@@ -61,9 +61,13 @@ void device_keeper_reserve_default(
 
 void device_keeper_release_default(device_keeper_t *instance);
 
+void device_keeper_reset_if_need(
+    device_keeper_t *instance, usb_target_t target, const unsigned char *setup_data);
+
 int device_keeper_get_toggle(device_keeper_t *instance, usb_target_t target);
 
-int device_keeper_set_toggle(device_keeper_t *instance, usb_target_t target, bool toggle);
+int device_keeper_set_toggle(
+    device_keeper_t *instance, usb_target_t target, bool toggle);
 
 usb_address_t device_keeper_request(
     device_keeper_t *instance, usb_speed_t speed);

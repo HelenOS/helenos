@@ -75,6 +75,36 @@ void device_keeper_release_default(device_keeper_t *instance)
 	fibril_condvar_signal(&instance->default_address_occupied);
 }
 /*----------------------------------------------------------------------------*/
+void device_keeper_reset_if_need(
+    device_keeper_t *instance, usb_target_t target, const unsigned char *data)
+{
+	assert(instance);
+	fibril_mutex_lock(&instance->guard);
+	if (target.endpoint > 15 || target.endpoint < 0
+	    || target.address >= USB_ADDRESS_COUNT || target.address < 0
+	    || !instance->devices[target.address].occupied) {
+		goto the_end;
+	}
+
+	switch (data[1])
+	{
+	case 0x01: /*clear feature*/
+		/* recipient is enpoint, value is zero (ENDPOINT_STALL) */
+		if (((data[0] & 0xf) == 1) && ((data[2] | data[3]) == 0)) {
+			/* enpoint number is < 16, thus first byte is enough */
+			instance->devices[target.address].toggle_status &= ~(1 << data[4]);
+		}
+	break;
+
+	case 0x9: /* set configuration */
+	case 0x11: /* set interface */
+		instance->devices[target.address].toggle_status = 0;
+	break;
+	}
+the_end:
+	fibril_mutex_unlock(&instance->guard);
+}
+/*----------------------------------------------------------------------------*/
 int device_keeper_get_toggle(device_keeper_t *instance, usb_target_t target)
 {
 	assert(instance);
