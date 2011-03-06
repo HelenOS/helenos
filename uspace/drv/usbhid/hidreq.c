@@ -268,7 +268,7 @@ int usbhid_req_get_protocol(usbhid_dev_t *hid_dev, usb_hid_protocol_t *protocol)
 	}
 
 	usb_log_debug("Sending Get_Protocol request to the device ("
-	    "protocol: %d, iface: %d).\n", protocol, hid_dev->iface);
+	    "iface: %d).\n", hid_dev->iface);
 	
 	uint8_t buffer[1];
 	size_t actual_size = 0;
@@ -325,7 +325,7 @@ int usbhid_req_get_idle(usbhid_dev_t *hid_dev, uint8_t *duration)
 	}
 
 	usb_log_debug("Sending Get_Idle request to the device ("
-	    "duration: %u, iface: %d).\n", duration, hid_dev->iface);
+	    "iface: %d).\n", hid_dev->iface);
 	
 	uint16_t value = 0;
 	uint8_t buffer[1];
