@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2010 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,74 +25,24 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup usb
+
+/** @addtogroup drvusbuhci
  * @{
  */
 /** @file
  * @brief UHCI driver
  */
-#ifndef DRV_UHCI_BATCH_H
-#define DRV_UHCI_BATCH_H
+#ifndef DRV_UHCI_PCI_H
+#define DRV_UHCI_PCI_H
 
-#include <adt/list.h>
+#include <ddf/driver.h>
 
-#include <usbhc_iface.h>
-#include <usb/usb.h>
+int pci_get_my_registers(ddf_dev_t *, uintptr_t *, size_t *, int *);
+int pci_enable_interrupts(ddf_dev_t *);
+int pci_disable_legacy(ddf_dev_t *);
 
-#include "uhci_struct/transfer_descriptor.h"
-#include "uhci_struct/queue_head.h"
-#include "utils/device_keeper.h"
-
-typedef struct batch
-{
-	link_t link;
-	usb_speed_t speed;
-	usb_target_t target;
-	usb_transfer_type_t transfer_type;
-	union {
-		usbhc_iface_transfer_in_callback_t callback_in;
-		usbhc_iface_transfer_out_callback_t callback_out;
-	};
-	void *arg;
-	char *transport_buffer;
-	char *setup_buffer;
-	size_t setup_size;
-	char *buffer;
-	size_t buffer_size;
-	size_t max_packet_size;
-	size_t packets;
-	size_t transfered_size;
-	int error;
-	ddf_fun_t *fun;
-	queue_head_t *qh;
-	td_t *tds;
-	void (*next_step)(struct batch*);
-	device_keeper_t *manager;
-} batch_t;
-
-batch_t * batch_get(ddf_fun_t *fun, usb_target_t target,
-    usb_transfer_type_t transfer_type, size_t max_packet_size,
-    usb_speed_t speed, char *buffer, size_t size,
-		char *setup_buffer, size_t setup_size,
-    usbhc_iface_transfer_in_callback_t func_in,
-    usbhc_iface_transfer_out_callback_t func_out, void *arg,
-		device_keeper_t *manager
-		);
-
-bool batch_is_complete(batch_t *instance);
-
-void batch_control_write(batch_t *instance);
-
-void batch_control_read(batch_t *instance);
-
-void batch_interrupt_in(batch_t *instance);
-
-void batch_interrupt_out(batch_t *instance);
-
-void batch_bulk_in(batch_t *instance);
-
-void batch_bulk_out(batch_t *instance);
 #endif
 /**
  * @}
  */
+
