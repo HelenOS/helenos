@@ -31,7 +31,14 @@
  */
 /**
  * @file
- * @brief USB descriptor parser (implementation).
+ * USB descriptor parser (implementation).
+ *
+ * The descriptor parser is a generic parser for structure, where individual
+ * items are stored in single buffer and each item begins with length followed
+ * by type. These types are organized into tree hierarchy.
+ *
+ * The parser is able of only two actions: find first child and find next
+ * sibling.
  */
 #include <stdio.h>
 #include <str_error.h>

@@ -87,6 +87,8 @@ int usb_iface_get_hc_handle_hub_child_impl(ddf_fun_t *fun,
 	int rc = async_req_1_1(parent_phone, DEV_IFACE_ID(USB_DEV_IFACE),
 	    IPC_M_USB_GET_HOST_CONTROLLER_HANDLE, &hc_handle);
 
+	async_hangup(parent_phone);
+
 	if (rc != EOK) {
 		return rc;
 	}

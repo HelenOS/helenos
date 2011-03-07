@@ -143,7 +143,7 @@ int usb_hc_unregister_device(usb_hc_connection_t *connection,
 
 /** Wrapper for registering attached device to the hub.
  *
- * The @p enable_port function is expected to enable singalling on given
+ * The @p enable_port function is expected to enable signaling on given
  * port.
  * The two arguments to it can have arbitrary meaning
  * (the @p port_no is only a suggestion)
@@ -151,14 +151,14 @@ int usb_hc_unregister_device(usb_hc_connection_t *connection,
  * (they are passed as is to the @p enable_port function).
  *
  * If the @p enable_port fails (i.e. does not return EOK), the device
- * addition is cancelled.
+ * addition is canceled.
  * The return value is then returned (it is good idea to use different
  * error codes than those listed as return codes by this function itself).
  *
  * @param parent Parent device (i.e. the hub device).
  * @param connection Opened connection to host controller.
  * @param dev_speed New device speed.
- * @param enable_port Function for enabling signalling through the port the
+ * @param enable_port Function for enabling signaling through the port the
  *	device is attached to.
  * @param port_no Port number (passed through to @p enable_port).
  * @param arg Any data argument to @p enable_port.
@@ -200,7 +200,7 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 	}
 
 	/*
-	 * Enable the port (i.e. allow signalling through this port).
+	 * Enable the port (i.e. allow signaling through this port).
 	 */
 	rc = enable_port(port_no, arg);
 	if (rc != EOK) {
