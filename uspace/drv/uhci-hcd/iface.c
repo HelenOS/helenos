@@ -42,6 +42,12 @@
 #include "uhci.h"
 #include "utils/device_keeper.h"
 
+/** Reserve default address interface function
+ *
+ * @param[in] fun DDF function that was called.
+ * @param[in] speed Speed to associate with the new default address.
+ * @return Error code.
+ */
 /*----------------------------------------------------------------------------*/
 static int reserve_default_address(ddf_fun_t *fun, usb_speed_t speed)
 {
@@ -53,6 +59,11 @@ static int reserve_default_address(ddf_fun_t *fun, usb_speed_t speed)
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
+/** Release default address interface function
+ *
+ * @param[in] fun DDF function that was called.
+ * @return Error code.
+ */
 static int release_default_address(ddf_fun_t *fun)
 {
 	assert(fun);
@@ -63,6 +74,13 @@ static int release_default_address(ddf_fun_t *fun)
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
+/** Request address interface function
+ *
+ * @param[in] fun DDF function that was called.
+ * @param[in] speed Speed to associate with the new default address.
+ * @param[out] address Place to write a new address.
+ * @return Error code.
+ */
 static int request_address(ddf_fun_t *fun, usb_speed_t speed,
     usb_address_t *address)
 {
@@ -79,6 +97,13 @@ static int request_address(ddf_fun_t *fun, usb_speed_t speed,
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
+/** Bind address interface function
+ *
+ * @param[in] fun DDF function that was called.
+ * @param[in] address Address of the device
+ * @param[in] handle Devman handle of the device driver.
+ * @return Error code.
+ */
 static int bind_address(
   ddf_fun_t *fun, usb_address_t address, devman_handle_t handle)
 {
@@ -90,6 +115,12 @@ static int bind_address(
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
+/** Release address interface function
+ *
+ * @param[in] fun DDF function that was called.
+ * @param[in] address USB address to be released.
+ * @return Error code.
+ */
 static int release_address(ddf_fun_t *fun, usb_address_t address)
 {
 	assert(fun);
@@ -100,6 +131,17 @@ static int release_address(ddf_fun_t *fun, usb_address_t address)
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
+/** Interrupt out transaction interface function
+ *
+ * @param[in] fun DDF function that was called.
+ * @param[in] target USB device to write to.
+ * @param[in] max_packet_size maximum size of data packet the device accepts
+ * @param[in] data Source of data.
+ * @param[in] size Size of data source.
+ * @param[in] callback Function to call on transaction completion
+ * @param[in] arg Additional for callback function.
+ * @return Error code.
+ */
 static int interrupt_out(ddf_fun_t *fun, usb_target_t target,
     size_t max_packet_size, void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
@@ -121,6 +163,17 @@ static int interrupt_out(ddf_fun_t *fun, usb_target_t target,
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
+/** Interrupt in transaction interface function
+ *
+ * @param[in] fun DDF function that was called.
+ * @param[in] target USB device to write to.
+ * @param[in] max_packet_size maximum size of data packet the device accepts
+ * @param[out] data Data destination.
+ * @param[in] size Size of data source.
+ * @param[in] callback Function to call on transaction completion
+ * @param[in] arg Additional for callback function.
+ * @return Error code.
+ */
 static int interrupt_in(ddf_fun_t *fun, usb_target_t target,
     size_t max_packet_size, void *data, size_t size,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
@@ -141,6 +194,17 @@ static int interrupt_in(ddf_fun_t *fun, usb_target_t target,
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
+/** Bulk out transaction interface function
+ *
+ * @param[in] fun DDF function that was called.
+ * @param[in] target USB device to write to.
+ * @param[in] max_packet_size maximum size of data packet the device accepts
+ * @param[in] data Source of data.
+ * @param[in] size Size of data source.
+ * @param[in] callback Function to call on transaction completion
+ * @param[in] arg Additional for callback function.
+ * @return Error code.
+ */
 static int bulk_out(ddf_fun_t *fun, usb_target_t target,
     size_t max_packet_size, void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
@@ -162,6 +226,17 @@ static int bulk_out(ddf_fun_t *fun, usb_target_t target,
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
+/** Bulk in transaction interface function
+ *
+ * @param[in] fun DDF function that was called.
+ * @param[in] target USB device to write to.
+ * @param[in] max_packet_size maximum size of data packet the device accepts
+ * @param[out] data Data destination.
+ * @param[in] size Size of data source.
+ * @param[in] callback Function to call on transaction completion
+ * @param[in] arg Additional for callback function.
+ * @return Error code.
+ */
 static int bulk_in(ddf_fun_t *fun, usb_target_t target,
     size_t max_packet_size, void *data, size_t size,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
@@ -182,6 +257,19 @@ static int bulk_in(ddf_fun_t *fun, usb_target_t target,
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
+/** Control write transaction interface function
+ *
+ * @param[in] fun DDF function that was called.
+ * @param[in] target USB device to write to.
+ * @param[in] max_packet_size maximum size of data packet the device accepts.
+ * @param[in] setup_data Data to send with SETUP packet.
+ * @param[in] setup_size Size of data to send with SETUP packet (should be 8B).
+ * @param[in] data Source of data.
+ * @param[in] size Size of data source.
+ * @param[in] callback Function to call on transaction completion.
+ * @param[in] arg Additional for callback function.
+ * @return Error code.
+ */
 static int control_write(ddf_fun_t *fun, usb_target_t target,
     size_t max_packet_size,
     void *setup_data, size_t setup_size, void *data, size_t size,
@@ -207,6 +295,19 @@ static int control_write(ddf_fun_t *fun, usb_target_t target,
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
+/** Control read transaction interface function
+ *
+ * @param[in] fun DDF function that was called.
+ * @param[in] target USB device to write to.
+ * @param[in] max_packet_size maximum size of data packet the device accepts.
+ * @param[in] setup_data Data to send with SETUP packet.
+ * @param[in] setup_size Size of data to send with SETUP packet (should be 8B).
+ * @param[out] data Source of data.
+ * @param[in] size Size of data source.
+ * @param[in] callback Function to call on transaction completion.
+ * @param[in] arg Additional for callback function.
+ * @return Error code.
+ */
 static int control_read(ddf_fun_t *fun, usb_target_t target,
     size_t max_packet_size,
     void *setup_data, size_t setup_size, void *data, size_t size,

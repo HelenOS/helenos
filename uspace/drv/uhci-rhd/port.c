@@ -45,22 +45,34 @@
 #include "port.h"
 #include "port_status.h"
 
-static int uhci_port_new_device(uhci_port_t *port, uint16_t status);
+static int uhci_port_new_device(uhci_port_t *port, usb_speed_t speed);
 static int uhci_port_remove_device(uhci_port_t *port);
 static int uhci_port_set_enabled(uhci_port_t *port, bool enabled);
 static int uhci_port_check(void *port);
-static int new_device_enable_port(int portno, void *arg);
-
-int uhci_port_init(
-  uhci_port_t *port, port_status_t *address, unsigned number,
-  unsigned usec, ddf_dev_t *rh)
+static int uhci_port_reset_enable(int portno, void *arg);
+/*----------------------------------------------------------------------------*/
+/** Initializes UHCI root hub port instance.
+ *
+ * @param[in] port Memory structure to use.
+ * @param[in] addr Address of I/O register.
+ * @param[in] number Port number.
+ * @param[in] usec Polling interval.
+ * @param[in] rh Pointer to ddf instance fo the root hub driver.
+ * @return Error code.
+ *
+ * Starts the polling fibril.
+ */
+int uhci_port_init(uhci_port_t *port,
+    port_status_t *address, unsigned number, unsigned usec, ddf_dev_t *rh)
 {
 	assert(port);
+
 	port->address = address;
 	port->number = number;
 	port->wait_period_usec = usec;
 	port->attached_device = 0;
 	port->rh = rh;
+
 	int rc = usb_hc_connection_initialize_from_device(
 	    &port->hc_connection, rh);
 	if (rc != EOK) {
@@ -74,91 +86,103 @@ int uhci_port_init(
 		    port->address, port->number);
 		return ENOMEM;
 	}
+
 	fibril_add_ready(port->checker);
 	usb_log_debug("Port(%p - %d): Added fibril. %x\n",
 	    port->address, port->number, port->checker);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
+/** Finishes UHCI root hub port instance.
+ *
+ * @param[in] port Memory structure to use.
+ *
+ * Stops the polling fibril.
+ */
 void uhci_port_fini(uhci_port_t *port)
 {
-// TODO: destroy fibril
-// TODO: hangup phone
-//	fibril_teardown(port->checker);
+	/* TODO: Kill fibril here */
 	return;
 }
 /*----------------------------------------------------------------------------*/
+/** Periodically checks port status and reports new devices.
+ *
+ * @param[in] port Memory structure to use.
+ * @return Error code.
+ */
 int uhci_port_check(void *port)
 {
-	uhci_port_t *port_instance = port;
-	assert(port_instance);
-//	port_status_write(port_instance->address, 0);
+	uhci_port_t *instance = port;
+	assert(instance);
 
+	/* Iteration count, for debug purposes only */
 	unsigned count = 0;
 
 	while (1) {
-		async_usleep(port_instance->wait_period_usec);
+		async_usleep(instance->wait_period_usec);
 
 		/* read register value */
-		port_status_t port_status =
-			port_status_read(port_instance->address);
+		port_status_t port_status = port_status_read(instance->address);
 
-		/* debug print */
-		static fibril_mutex_t dbg_mtx = FIBRIL_MUTEX_INITIALIZER(dbg_mtx);
+		/* debug print mutex */
+		static fibril_mutex_t dbg_mtx =
+		    FIBRIL_MUTEX_INITIALIZER(dbg_mtx);
 		fibril_mutex_lock(&dbg_mtx);
 		usb_log_debug2("Port(%p - %d): Status: %#04x. === %u\n",
-		  port_instance->address, port_instance->number, port_status, count++);
+		  instance->address, instance->number, port_status, count++);
 //		print_port_status(port_status);
 		fibril_mutex_unlock(&dbg_mtx);
 
-		if ((port_status & STATUS_CONNECTED_CHANGED) != 0) {
-			usb_log_debug("Port(%p - %d): Connected change detected: %x.\n",
-			    port_instance->address, port_instance->number, port_status);
+		if ((port_status & STATUS_CONNECTED_CHANGED) == 0)
+			continue;
 
+		usb_log_debug("Port(%p - %d): Connected change detected: %x.\n",
+		    instance->address, instance->number, port_status);
 
-			int rc = usb_hc_connection_open(
-			    &port_instance->hc_connection);
-			if (rc != EOK) {
-				usb_log_error("Port(%p - %d): Failed to connect to HC.",
-				    port_instance->address, port_instance->number);
-				continue;
-			}
+		int rc =
+		    usb_hc_connection_open(&instance->hc_connection);
+		if (rc != EOK) {
+			usb_log_error("Port(%p - %d): Failed to connect to HC.",
+			    instance->address, instance->number);
+			continue;
+		}
 
-			/* remove any old device */
-			if (port_instance->attached_device) {
-				usb_log_debug("Port(%p - %d): Removing device.\n",
-				    port_instance->address, port_instance->number);
-				uhci_port_remove_device(port_instance);
-			}
+		/* Remove any old device */
+		if (instance->attached_device) {
+			usb_log_debug2("Port(%p - %d): Removing device.\n",
+			    instance->address, instance->number);
+			uhci_port_remove_device(instance);
+		}
 
-			if ((port_status & STATUS_CONNECTED) != 0) {
-				/* new device */
-				uhci_port_new_device(port_instance, port_status);
-			} else {
-				/* ack changes by writing one to WC bits */
-				port_status_write(port_instance->address, port_status);
-				usb_log_debug("Port(%p - %d): Change status ACK.\n",
-						port_instance->address, port_instance->number);
-			}
+		if ((port_status & STATUS_CONNECTED) != 0) {
+			/* New device */
+			const usb_speed_t speed =
+			    ((port_status & STATUS_LOW_SPEED) != 0) ?
+			    USB_SPEED_LOW : USB_SPEED_FULL;
+			uhci_port_new_device(instance, speed);
+		} else {
+			/* Write one to WC bits, to ack changes */
+			port_status_write(instance->address, port_status);
+			usb_log_debug("Port(%p - %d): Change status ACK.\n",
+			    instance->address, instance->number);
+		}
 
-			rc = usb_hc_connection_close(
-			    &port_instance->hc_connection);
-			if (rc != EOK) {
-				usb_log_error("Port(%p - %d): Failed to disconnect from HC.",
-				    port_instance->address, port_instance->number);
-			}
+		rc = usb_hc_connection_close(&instance->hc_connection);
+		if (rc != EOK) {
+			usb_log_error("Port(%p - %d): Failed to disconnect.",
+			    instance->address, instance->number);
 		}
 	}
 	return EOK;
 }
-
+/*----------------------------------------------------------------------------*/
 /** Callback for enabling port during adding a new device.
  *
  * @param portno Port number (unused).
  * @param arg Pointer to uhci_port_t of port with the new device.
  * @return Error code.
  */
-static int new_device_enable_port(int portno, void *arg)
+int uhci_port_reset_enable(int portno, void *arg)
 {
 	uhci_port_t *port = (uhci_port_t *) arg;
 
@@ -183,8 +207,7 @@ static int new_device_enable_port(int portno, void *arg)
 		port_status |= STATUS_IN_RESET;
 		port_status_write(port->address, port_status);
 		async_usleep(10000);
-		port_status =
-			port_status_read(port->address);
+		port_status = port_status_read(port->address);
 		port_status &= ~STATUS_IN_RESET;
 		port_status_write(port->address, port_status);
 		usb_log_debug("Port(%p - %d): Reset Signal stop.\n",
@@ -193,12 +216,18 @@ static int new_device_enable_port(int portno, void *arg)
 
 	/* Enable the port. */
 	uhci_port_set_enabled(port, true);
-
 	return EOK;
 }
-
 /*----------------------------------------------------------------------------*/
-static int uhci_port_new_device(uhci_port_t *port, uint16_t status)
+/** Initializes and reports connected device.
+ *
+ * @param[in] port Memory structure to use.
+ * @param[in] speed Detected speed.
+ * @return Error code.
+ *
+ * Uses libUSB function to do the actual work.
+ */
+int uhci_port_new_device(uhci_port_t *port, usb_speed_t speed)
 {
 	assert(port);
 	assert(usb_hc_connection_is_opened(&port->hc_connection));
@@ -208,12 +237,11 @@ static int uhci_port_new_device(uhci_port_t *port, uint16_t status)
 
 	usb_address_t dev_addr;
 	int rc = usb_hc_new_device_wrapper(port->rh, &port->hc_connection,
-	    ((status & STATUS_LOW_SPEED) != 0) ? USB_SPEED_LOW : USB_SPEED_FULL,
-	    new_device_enable_port, port->number, port,
+	    speed, uhci_port_reset_enable, port->number, port,
 	    &dev_addr, &port->attached_device, NULL, NULL, NULL);
 
 	if (rc != EOK) {
-		usb_log_error("Port(%p-%d): Failed(%d) adding new device: %s.\n",
+		usb_log_error("Port(%p-%d): Failed(%d) to add device: %s.\n",
 		    port->address, port->number, rc, str_error(rc));
 		uhci_port_set_enabled(port, false);
 		return rc;
@@ -224,30 +252,41 @@ static int uhci_port_new_device(uhci_port_t *port, uint16_t status)
 
 	return EOK;
 }
-
 /*----------------------------------------------------------------------------*/
-static int uhci_port_remove_device(uhci_port_t *port)
+/** Removes device.
+ *
+ * @param[in] port Memory structure to use.
+ * @return Error code.
+ *
+ * Does not work DDF does not support device removal.
+ */
+int uhci_port_remove_device(uhci_port_t *port)
 {
 	usb_log_error("Port(%p-%d): Don't know how to remove device %#x.\n",
-		port->address, port->number, (unsigned int)port->attached_device);
-//	uhci_port_set_enabled(port, false);
+	    port->address, port->number, (unsigned int)port->attached_device);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-static int uhci_port_set_enabled(uhci_port_t *port, bool enabled)
+/** Enables and disables port.
+ *
+ * @param[in] port Memory structure to use.
+ * @return Error code. (Always EOK)
+ */
+int uhci_port_set_enabled(uhci_port_t *port, bool enabled)
 {
 	assert(port);
 
-	/* read register value */
-	port_status_t port_status
-		= port_status_read(port->address);
+	/* Read register value */
+	port_status_t port_status = port_status_read(port->address);
 
-	/* enable port: register write */
+	/* Set enabled bit */
 	if (enabled) {
 		port_status |= STATUS_ENABLED;
 	} else {
 		port_status &= ~STATUS_ENABLED;
 	}
+
+	/* Write new value. */
 	port_status_write(port->address, port_status);
 
 	usb_log_info("Port(%p-%d): %sabled port.\n",

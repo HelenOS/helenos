@@ -57,6 +57,11 @@ static driver_t ehci_driver = {
 	.driver_ops = &ehci_driver_ops
 };
 /*----------------------------------------------------------------------------*/
+/** Initializes a new ddf driver instance of EHCI hcd.
+ *
+ * @param[in] device DDF instance of the device to initialize.
+ * @return Error code.
+ */
 static int ehci_add_device(ddf_dev_t *device)
 {
 	assert(device);
@@ -87,6 +92,14 @@ if (ret != EOK) { \
 #undef CHECK_RET_RETURN
 }
 /*----------------------------------------------------------------------------*/
+/** Initializes global driver structures (NONE).
+ *
+ * @param[in] argc Nmber of arguments in argv vector (ignored).
+ * @param[in] argv Cmdline argument vector (ignored).
+ * @return Error code.
+ *
+ * Driver debug level is set here.
+ */
 int main(int argc, char *argv[])
 {
 	usb_log_enable(USB_LOG_LEVEL_ERROR, NAME);

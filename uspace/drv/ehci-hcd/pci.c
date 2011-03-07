@@ -47,9 +47,13 @@
 #include "pci.h"
 
 #define PAGE_SIZE_MASK 0xfffff000
+
 #define HCC_PARAMS_OFFSET 0x8
 #define HCC_PARAMS_EECP_MASK 0xff
 #define HCC_PARAMS_EECP_OFFSET 8
+
+#define CMD_OFFSET 0x0
+#define CONFIGFLAG_OFFSET 0x40
 
 #define USBCMD_RUN 1
 
@@ -61,12 +65,11 @@
 #define DEFAULT_WAIT 10000
 #define WAIT_STEP 10
 
-
 /** Get address of registers and IRQ for given device.
  *
  * @param[in] dev Device asking for the addresses.
- * @param[out] io_reg_address Base address of the I/O range.
- * @param[out] io_reg_size Size of the I/O range.
+ * @param[out] mem_reg_address Base address of the memory range.
+ * @param[out] mem_reg_size Size of the memory range.
  * @param[out] irq_no IRQ assigned to the device.
  * @return Error code.
  */
@@ -86,7 +89,8 @@ int pci_get_my_registers(ddf_dev_t *dev,
 	hw_resource_list_t hw_resources;
 	rc = hw_res_get_resource_list(parent_phone, &hw_resources);
 	if (rc != EOK) {
-		goto leave;
+		async_hangup(parent_phone);
+		return rc;
 	}
 
 	uintptr_t mem_address = 0;
@@ -99,57 +103,63 @@ int pci_get_my_registers(ddf_dev_t *dev,
 	size_t i;
 	for (i = 0; i < hw_resources.count; i++) {
 		hw_resource_t *res = &hw_resources.resources[i];
-		switch (res->type) {
-			case INTERRUPT:
-				irq = res->res.interrupt.irq;
-				irq_found = true;
-				usb_log_debug2("Found interrupt: %d.\n", irq);
-				break;
-			case MEM_RANGE:
-				if (res->res.mem_range.address != 0
-				    && res->res.mem_range.size != 0 ) {
-					mem_address = res->res.mem_range.address;
-					mem_size = res->res.mem_range.size;
-					usb_log_debug2("Found mem: %llx %zu.\n",
-							res->res.mem_range.address, res->res.mem_range.size);
-					mem_found = true;
+		switch (res->type)
+		{
+		case INTERRUPT:
+			irq = res->res.interrupt.irq;
+			irq_found = true;
+			usb_log_debug2("Found interrupt: %d.\n", irq);
+			break;
+
+		case MEM_RANGE:
+			if (res->res.mem_range.address != 0
+			    && res->res.mem_range.size != 0 ) {
+				mem_address = res->res.mem_range.address;
+				mem_size = res->res.mem_range.size;
+				usb_log_debug2("Found mem: %llx %zu.\n",
+				    mem_address, mem_size);
+				mem_found = true;
 				}
-				break;
-			default:
-				break;
+		default:
+			break;
 		}
 	}
 
-	if (!mem_found) {
+	if (mem_found && irq_found) {
+		*mem_reg_address = mem_address;
+		*mem_reg_size = mem_size;
+		*irq_no = irq;
+		rc = EOK;
+	} else {
 		rc = ENOENT;
-		goto leave;
 	}
 
-	if (!irq_found) {
-		rc = ENOENT;
-		goto leave;
-	}
-
-	*mem_reg_address = mem_address;
-	*mem_reg_size = mem_size;
-	*irq_no = irq;
-
-	rc = EOK;
-leave:
 	async_hangup(parent_phone);
-
 	return rc;
 }
 /*----------------------------------------------------------------------------*/
+/** Calls the PCI driver with a request to enable interrupts
+ *
+ * @param[in] device Device asking for interrupts
+ * @return Error code.
+ */
 int pci_enable_interrupts(ddf_dev_t *device)
 {
-	int parent_phone = devman_parent_device_connect(device->handle,
-	    IPC_FLAG_BLOCKING);
+	int parent_phone =
+	    devman_parent_device_connect(device->handle, IPC_FLAG_BLOCKING);
+	if (parent_phone < 0) {
+		return parent_phone;
+	}
 	bool enabled = hw_res_enable_interrupt(parent_phone);
 	async_hangup(parent_phone);
 	return enabled ? EOK : EIO;
 }
 /*----------------------------------------------------------------------------*/
+/** Implements BIOS handoff routine as decribed in EHCI spec
+ *
+ * @param[in] device Device asking for interrupts
+ * @return Error code.
+ */
 int pci_disable_legacy(ddf_dev_t *device)
 {
 	assert(device);
@@ -159,136 +169,142 @@ int pci_disable_legacy(ddf_dev_t *device)
 		return parent_phone;
 	}
 
-	/* read register space BAR */
+#define CHECK_RET_HANGUP_RETURN(ret, message...) \
+	if (ret != EOK) { \
+		usb_log_error(message); \
+		async_hangup(parent_phone); \
+		return ret; \
+	} else (void)0
+
+
+	/* read register space BASE BAR */
 	sysarg_t address = 0x10;
 	sysarg_t value;
 
-  int ret = async_req_2_1(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE),
+	int ret = async_req_2_1(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE),
 	    IPC_M_CONFIG_SPACE_READ_32, address, &value);
+	CHECK_RET_HANGUP_RETURN(ret, "Failed(%d) to read PCI config space.\n",
+	    ret);
 	usb_log_info("Register space BAR at %p:%x.\n", address, value);
 
-	/* clear lower byte, it's not part of the address */
+	/* clear lower byte, it's not part of the BASE address */
 	uintptr_t registers = (value & 0xffffff00);
-	usb_log_info("Mem register address:%p.\n", registers);
+	usb_log_info("Memory registers BASE address:%p.\n", registers);
 
-	/* if nothing setup the hc, the we don't need to to turn it off */
+	/* if nothing setup the hc, we don't need to turn it off */
 	if (registers == 0)
 		return ENOTSUP;
 
-	/* EHCI registers need 20 bytes*/
+	/* map EHCI registers */
 	void *regs = as_get_mappable_page(4096);
 	ret = physmem_map((void*)(registers & PAGE_SIZE_MASK), regs, 1,
 	    AS_AREA_READ | AS_AREA_WRITE);
-	if (ret != EOK) {
-		usb_log_error("Failed(%d) to map registers %p:%p.\n",
-		    ret, regs, registers);
-	}
+	CHECK_RET_HANGUP_RETURN(ret, "Failed(%d) to map registers %p:%p.\n",
+	    ret, regs, registers);
+
 	/* calculate value of BASE */
 	registers = (registers & 0xf00) | (uintptr_t)regs;
 
-	uint32_t hcc_params = *(uint32_t*)(registers + HCC_PARAMS_OFFSET);
-
+	const uint32_t hcc_params =
+	    *(uint32_t*)(registers + HCC_PARAMS_OFFSET);
 	usb_log_debug("Value of hcc params register: %x.\n", hcc_params);
-	uint32_t eecp = (hcc_params >> HCC_PARAMS_EECP_OFFSET) & HCC_PARAMS_EECP_MASK;
+
+	/* Read value of EHCI Extended Capabilities Pointer
+	 * (points to PCI config space) */
+	uint32_t eecp =
+	    (hcc_params >> HCC_PARAMS_EECP_OFFSET) & HCC_PARAMS_EECP_MASK;
 	usb_log_debug("Value of EECP: %x.\n", eecp);
 
+	/* Read the second EEC. i.e. Legacy Support and Control register */
+	/* TODO: Check capability type here */
 	ret = async_req_2_1(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE),
 	    IPC_M_CONFIG_SPACE_READ_32, eecp + USBLEGCTLSTS_OFFSET, &value);
-	if (ret != EOK) {
-		usb_log_error("Failed(%d) to read USBLEGCTLSTS.\n", ret);
-		return ret;
-	}
-	usb_log_debug2("USBLEGCTLSTS: %x.\n", value);
+	CHECK_RET_HANGUP_RETURN(ret, "Failed(%d) to read USBLEGCTLSTS.\n", ret);
+	usb_log_debug("USBLEGCTLSTS: %x.\n", value);
 
+	/* Read the first EEC. i.e. Legacy Support register */
+	/* TODO: Check capability type here */
 	ret = async_req_2_1(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE),
 	    IPC_M_CONFIG_SPACE_READ_32, eecp + USBLEGSUP_OFFSET, &value);
-	if (ret != EOK) {
-		usb_log_error("Failed(%d) to read USBLEGSUP.\n", ret);
-		return ret;
-	}
+	CHECK_RET_HANGUP_RETURN(ret, "Failed(%d) to read USBLEGSUP.\n", ret);
 	usb_log_debug2("USBLEGSUP: %x.\n", value);
 
-	/* request control from firmware/BIOS, by writing 1 to highest byte */
+	/* Request control from firmware/BIOS, by writing 1 to highest byte.
+	 * (OS Control semaphore)*/
 	ret = async_req_3_0(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE),
 	   IPC_M_CONFIG_SPACE_WRITE_8, eecp + USBLEGSUP_OFFSET + 3, 1);
-	if (ret != EOK) {
-		usb_log_error("Failed(%d) request OS EHCI control.\n", ret);
-		return ret;
-	}
+	CHECK_RET_HANGUP_RETURN(ret, "Failed(%d) to request OS EHCI control.\n",
+	    ret);
 
-	size_t wait = 0; /* might be anything */
-	/* wait for BIOS to release control */
+	size_t wait = 0;
+	/* Wait for BIOS to release control. */
 	while ((wait < DEFAULT_WAIT) && (value & USBLEGSUP_BIOS_CONTROL)) {
 		async_usleep(WAIT_STEP);
 		ret = async_req_2_1(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE),
-				IPC_M_CONFIG_SPACE_READ_32, eecp + USBLEGSUP_OFFSET, &value);
+		    IPC_M_CONFIG_SPACE_READ_32, eecp + USBLEGSUP_OFFSET, &value);
 		wait += WAIT_STEP;
 	}
 
+
 	if ((value & USBLEGSUP_BIOS_CONTROL) != 0) {
-		usb_log_warning(
-		    "BIOS failed to release control after %d usecs, force it.\n",
-		    wait);
-		ret = async_req_3_0(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE),
-			  IPC_M_CONFIG_SPACE_WRITE_32, eecp + USBLEGSUP_OFFSET,
-		    USBLEGSUP_OS_CONTROL);
-		if (ret != EOK) {
-			usb_log_error("Failed(%d) to force OS EHCI control.\n", ret);
-			return ret;
-		}
+		usb_log_info("BIOS released control after %d usec.\n", wait);
 	} else {
-		usb_log_info("BIOS released control after %d usec.\n",
-		    wait);
+		/* BIOS failed to hand over control, this should not happen. */
+		usb_log_warning( "BIOS failed to release control after"
+		    "%d usecs, force it.\n", wait);
+		ret = async_req_3_0(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE),
+		    IPC_M_CONFIG_SPACE_WRITE_32, eecp + USBLEGSUP_OFFSET,
+		    USBLEGSUP_OS_CONTROL);
+		CHECK_RET_HANGUP_RETURN(ret,
+		    "Failed(%d) to force OS EHCI control.\n", ret);
+		/* TODO: This does not seem to work on my machine */
 	}
 
-
-	/* zero SMI enables in legacy control register */
+	/* Zero SMI enables in legacy control register.
+	 * It would prevent pre-OS code from interfering. */
 	ret = async_req_3_0(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE),
 	   IPC_M_CONFIG_SPACE_WRITE_32, eecp + USBLEGCTLSTS_OFFSET, 0);
-	if (ret != EOK) {
-		usb_log_error("Failed(%d) zero USBLEGCTLSTS.\n", ret);
-		return ret;
-	}
+	CHECK_RET_HANGUP_RETURN(ret, "Failed(%d) zero USBLEGCTLSTS.\n", ret);
 	usb_log_debug("Zeroed USBLEGCTLSTS register.\n");
 
+	/* Read again Legacy Support and Control register */
 	ret = async_req_2_1(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE),
 	    IPC_M_CONFIG_SPACE_READ_32, eecp + USBLEGCTLSTS_OFFSET, &value);
-	if (ret != EOK) {
-		usb_log_error("Failed(%d) to read USBLEGCTLSTS.\n", ret);
-		return ret;
-	}
+	CHECK_RET_HANGUP_RETURN(ret, "Failed(%d) to read USBLEGCTLSTS.\n", ret);
 	usb_log_debug2("USBLEGCTLSTS: %x.\n", value);
 
+	/* Read again Legacy Support register */
 	ret = async_req_2_1(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE),
 	    IPC_M_CONFIG_SPACE_READ_32, eecp + USBLEGSUP_OFFSET, &value);
-	if (ret != EOK) {
-		usb_log_error("Failed(%d) to read USBLEGSUP.\n", ret);
-		return ret;
-	}
+	CHECK_RET_HANGUP_RETURN(ret, "Failed(%d) to read USBLEGSUP.\n", ret);
 	usb_log_debug2("USBLEGSUP: %x.\n", value);
 
 /*
  * TURN OFF EHCI FOR NOW, REMOVE IF THE DRIVER IS IMPLEMENTED
  */
 
-	/* size of capability registers in memory space */
+	/* Get size of capability registers in memory space. */
 	uint8_t operation_offset = *(uint8_t*)registers;
 	usb_log_debug("USBCMD offset: %d.\n", operation_offset);
-	/* zero USBCMD register */
+
+	/* Zero USBCMD register. */
 	volatile uint32_t *usbcmd =
-	 (uint32_t*)((uint8_t*)registers + operation_offset);
+	    (uint32_t*)((uint8_t*)registers + operation_offset + CMD_OFFSET);
+	volatile uint32_t *usbconfigured =
+	    (uint32_t*)((uint8_t*)registers + operation_offset
+	    + CONFIGFLAG_OFFSET);
 	usb_log_debug("USBCMD value: %x.\n", *usbcmd);
 	if (*usbcmd & USBCMD_RUN) {
 		*usbcmd = 0;
+		*usbconfigured = 0;
 		usb_log_info("EHCI turned off.\n");
 	} else {
 		usb_log_info("EHCI was not running.\n");
 	}
 
-
 	async_hangup(parent_phone);
-
-  return ret;
+	return ret;
+#undef CHECK_RET_HANGUP_RETURN
 }
 /*----------------------------------------------------------------------------*/
 /**
