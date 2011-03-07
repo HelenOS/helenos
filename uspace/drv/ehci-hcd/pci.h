@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbuhci
+/** @addtogroup drvusbehci
  * @{
  */
 /** @file
- * @brief UHCI driver
+ * PCI related functions needed by EHCI driver.
  */
-#ifndef DRV_UHCI_PCI_H
-#define DRV_UHCI_PCI_H
+#ifndef DRV_EHCI_PCI_H
+#define DRV_EHCI_PCI_H
 
 #include <ddf/driver.h>
 

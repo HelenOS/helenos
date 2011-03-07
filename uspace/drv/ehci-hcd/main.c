@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2011 Vojtech Horky, Jan Vesely
+ * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,11 +26,11 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup usb
+/** @addtogroup usbdrvehci
  * @{
  */
 /** @file
- * @brief UHCI driver
+ * Main routines of EHCI driver.
  */
 #include <ddf/driver.h>
 #include <ddf/interrupt.h>
