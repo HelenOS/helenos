@@ -62,20 +62,20 @@ typedef enum {
 } help_level_t;
 
 typedef struct mfs_params {
-	uint16_t fs_magic;
-	uint32_t block_size;
-	size_t devblock_size;
-	unsigned long n_inodes;
-	aoff64_t dev_nblocks;
-	bool fs_longnames;
+	devmap_handle_t	handle;
+	uint16_t	fs_magic;
+	uint32_t	block_size;
+	size_t		devblock_size;
+	unsigned long	n_inodes;
+	aoff64_t	dev_nblocks;
+	bool		fs_longnames;
 } mfs_params_t;
 
 static void	help_cmd_mkminix(help_level_t level);
 static int	num_of_set_bits(uint32_t n);
-static void	setup_superblock(struct mfs_superblock *sb, mfs_params_t *opt);
-static void	setup_superblock_v3(struct mfs3_superblock *sb, mfs_params_t *opt);
-static void	setup_bitmaps(devmap_handle_t handle, uint32_t ninodes,
-				uint32_t nzones, int bsize);
+static void	init_superblock(struct mfs_superblock *sb, mfs_params_t *opt);
+static void	init_superblock_v3(struct mfs3_superblock *sb, mfs_params_t *opt);
+static void	init_bitmaps(uint32_t ninodes,	uint32_t nzones, int bsize, mfs_params_t *opt);
 static void	mark_bmap(uint8_t *bmap, int idx, int v);
 
 static struct option const long_options[] = {
@@ -93,7 +93,6 @@ int main (int argc, char **argv)
 {
 	int rc, c, opt_ind;
 	char *device_name;
-	devmap_handle_t handle;
 	
 	struct mfs_superblock *sb;
 	struct mfs3_superblock *sb3;
@@ -169,25 +168,25 @@ int main (int argc, char **argv)
 		exit(0);
 	}
 
-	rc = devmap_device_get_handle(device_name, &handle, 0);
+	rc = devmap_device_get_handle(device_name, &opt.handle, 0);
 	if (rc != EOK) {
 		printf(NAME ": Error resolving device `%s'.\n", device_name);
 		return 2;
 	}
 
-	rc = block_init(handle, MFS_MIN_BLOCKSIZE);
+	rc = block_init(opt.handle, MFS_MIN_BLOCKSIZE);
 	if (rc != EOK)  {
 		printf(NAME ": Error initializing libblock.\n");
 		return 2;
 	}
 
-	rc = block_get_bsize(handle, &opt.devblock_size);
+	rc = block_get_bsize(opt.handle, &opt.devblock_size);
 	if (rc != EOK) {
 		printf(NAME ": Error determining device block size.\n");
 		return 2;
 	}
 
-	rc = block_get_nblocks(handle, &opt.dev_nblocks);
+	rc = block_get_nblocks(opt.handle, &opt.dev_nblocks);
 	if (rc != EOK) {
 		printf(NAME ": Warning, failed to obtain block device size.\n");
 	} else {
@@ -213,25 +212,22 @@ int main (int argc, char **argv)
 			printf(NAME ": Error, not enough memory");
 			return 2;
 		}
-		setup_superblock_v3(sb3, &opt);
-		block_write_direct(handle, MFS_SUPERBLOCK, 1, sb3);
-		setup_bitmaps(handle, sb3->s_ninodes,
-				sb3->s_nzones, sb3->s_block_size);
+		init_superblock_v3(sb3, &opt);
+		init_bitmaps(sb3->s_ninodes, sb3->s_nzones, sb3->s_block_size, &opt);
 	} else {
 		sb = (struct mfs_superblock *) malloc(sizeof(struct mfs_superblock));
 		if (!sb) {
 			printf(NAME ": Error, not enough memory");
 			return 2;
 		}
-		setup_superblock(sb, &opt);
-		block_write_direct(handle, MFS_SUPERBLOCK, 1, sb);
-		setup_bitmaps(handle, sb->s_ninodes, sb->s_nzones, MFS_BLOCKSIZE);
+		init_superblock(sb, &opt);
+		init_bitmaps(sb->s_ninodes, sb->s_nzones, MFS_BLOCKSIZE, &opt);
 	}
 
 	return 0;
 }
 
-static void setup_superblock(struct mfs_superblock *sb, mfs_params_t *opt)
+static void init_superblock(struct mfs_superblock *sb, mfs_params_t *opt)
 {
 	int ino_per_block = 0;
 	int fs_version;
@@ -296,9 +292,11 @@ static void setup_superblock(struct mfs_superblock *sb, mfs_params_t *opt)
 	printf(NAME ": inode table blocks = %ld\n", ninodes_blocks);
 	printf(NAME ": first data zone = %d\n", sb->s_first_data_zone);
 	printf(NAME ": long fnames = %s\n", opt->fs_longnames ? "Yes" : "No");
+
+	block_write_direct(opt->handle, MFS_SUPERBLOCK, 1, sb);
 }
 
-static void setup_superblock_v3(struct mfs3_superblock *sb, mfs_params_t *opt)
+static void init_superblock_v3(struct mfs3_superblock *sb, mfs_params_t *opt)
 {
 	int ino_per_block;
 	int bs;
@@ -347,10 +345,12 @@ static void setup_superblock_v3(struct mfs3_superblock *sb, mfs_params_t *opt)
 	printf(NAME ": block size = %d\n", sb->s_block_size);
 	printf(NAME ": inode table blocks = %ld\n", ninodes_blocks);
 	printf(NAME ": first data zone = %d\n", sb->s_first_data_zone);
+
+	block_write_direct(opt->handle, MFS_SUPERBLOCK, 1, sb);
 }
 
-static void setup_bitmaps(devmap_handle_t handle, uint32_t ninodes,
-				uint32_t nzones, int bsize)
+static void init_bitmaps(uint32_t ninodes, uint32_t nzones,
+				int bsize, mfs_params_t *opt)
 {
 	uint8_t *ibmap_buf, *zbmap_buf;
 	int ibmap_nblocks = 1 + (ninodes / 8) / bsize;
@@ -371,8 +371,8 @@ static void setup_bitmaps(devmap_handle_t handle, uint32_t ninodes,
 	ibmap_nblocks *= bsize / MFS_BLOCKSIZE;
 	zbmap_nblocks *= bsize / MFS_BLOCKSIZE;
 
-	block_write_direct(handle, 2, ibmap_nblocks, ibmap_buf);
-	block_write_direct(handle, 2 + ibmap_nblocks, zbmap_nblocks, zbmap_buf);
+	block_write_direct(opt->handle, 2, ibmap_nblocks, ibmap_buf);
+	block_write_direct(opt->handle, 2 + ibmap_nblocks, zbmap_nblocks, zbmap_buf);
 }
 
 static void mark_bmap(uint8_t *bmap, int idx, int v)
