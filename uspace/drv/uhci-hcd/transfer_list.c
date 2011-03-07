@@ -42,12 +42,13 @@ int transfer_list_init(transfer_list_t *instance, const char *name)
 	assert(instance);
 	instance->next = NULL;
 	instance->name = name;
-	instance->queue_head = queue_head_get();
+	instance->queue_head = malloc32(sizeof(queue_head_t));
 	if (!instance->queue_head) {
 		usb_log_error("Failed to allocate queue head.\n");
 		return ENOMEM;
 	}
-	instance->queue_head_pa = (uintptr_t)addr_to_phys(instance->queue_head);
+	queue_head_init(instance->queue_head);
+	instance->queue_head_pa = addr_to_phys(instance->queue_head);
 
 	queue_head_init(instance->queue_head);
 	list_initialize(&instance->batch_list);

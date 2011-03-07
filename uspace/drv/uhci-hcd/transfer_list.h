@@ -57,7 +57,7 @@ void transfer_list_set_next(transfer_list_t *instance, transfer_list_t *next);
 static inline void transfer_list_fini(transfer_list_t *instance)
 {
 	assert(instance);
-	queue_head_dispose(instance->queue_head);
+	free32(instance->queue_head);
 }
 void transfer_list_remove_finished(transfer_list_t *instance);
 

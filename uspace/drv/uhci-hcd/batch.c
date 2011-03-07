@@ -68,18 +68,24 @@ batch_t * batch_get(ddf_fun_t *fun, usb_target_t target,
 	assert(func_in == NULL || func_out == NULL);
 	assert(func_in != NULL || func_out != NULL);
 
-	batch_t *instance = malloc(sizeof(batch_t));
-	if (instance == NULL) {
-		usb_log_error("Failed to allocate batch instance.\n");
-		return NULL;
-	}
+#define CHECK_NULL_DISPOSE_RETURN(ptr, message...) \
+	if (ptr == NULL) { \
+		usb_log_error(message); \
+		if (instance) { \
+			batch_dispose(instance); \
+		} \
+		return NULL; \
+	} else (void)0
 
-	instance->qh = queue_head_get();
-	if (instance->qh == NULL) {
-		usb_log_error("Failed to allocate queue head.\n");
-		free(instance);
-		return NULL;
-	}
+	batch_t *instance = malloc(sizeof(batch_t));
+	CHECK_NULL_DISPOSE_RETURN(instance,
+	    "Failed to allocate batch instance.\n");
+	bzero(instance, sizeof(batch_t));
+
+	instance->qh = malloc32(sizeof(queue_head_t));
+	CHECK_NULL_DISPOSE_RETURN(instance->qh,
+	    "Failed to allocate batch queue head.\n");
+	queue_head_init(instance->qh);
 
 	instance->packets = (size + max_packet_size - 1) / max_packet_size;
 	if (transfer_type == USB_TRANSFER_CONTROL) {
@@ -87,52 +93,31 @@ batch_t * batch_get(ddf_fun_t *fun, usb_target_t target,
 	}
 
 	instance->tds = malloc32(sizeof(td_t) * instance->packets);
-	if (instance->tds == NULL) {
-		usb_log_error("Failed to allocate transfer descriptors.\n");
-		queue_head_dispose(instance->qh);
-		free(instance);
-		return NULL;
-	}
+	CHECK_NULL_DISPOSE_RETURN(
+	    instance->tds, "Failed to allocate transfer descriptors.\n");
 	bzero(instance->tds, sizeof(td_t) * instance->packets);
 
 	const size_t transport_size = max_packet_size * instance->packets;
 
-	instance->transport_buffer =
-	   (size > 0) ? malloc32(transport_size) : NULL;
-
-	if ((size > 0) && (instance->transport_buffer == NULL)) {
-		usb_log_error("Failed to allocate device accessible buffer.\n");
-		queue_head_dispose(instance->qh);
-		free32(instance->tds);
-		free(instance);
-		return NULL;
+	if (size > 0) {
+		instance->transport_buffer = malloc32(transport_size);
+		CHECK_NULL_DISPOSE_RETURN(instance->transport_buffer,
+		    "Failed to allocate device accessible buffer.\n");
 	}
 
-	instance->setup_buffer = setup_buffer ? malloc32(setup_size) : NULL;
-	if ((setup_size > 0) && (instance->setup_buffer == NULL)) {
-		usb_log_error("Failed to allocate device accessible setup buffer.\n");
-		queue_head_dispose(instance->qh);
-		free32(instance->tds);
-		free32(instance->transport_buffer);
-		free(instance);
-		return NULL;
-	}
-	if (instance->setup_buffer) {
+	if (setup_size > 0) {
+		instance->setup_buffer = malloc32(setup_size);
+		CHECK_NULL_DISPOSE_RETURN(instance->setup_buffer,
+		    "Failed to allocate device accessible setup buffer.\n");
 		memcpy(instance->setup_buffer, setup_buffer, setup_size);
 	}
 
-	instance->max_packet_size = max_packet_size;
 
 	link_initialize(&instance->link);
 
+	instance->max_packet_size = max_packet_size;
 	instance->target = target;
 	instance->transfer_type = transfer_type;
-
-	if (func_out)
-		instance->callback_out = func_out;
-	if (func_in)
-		instance->callback_in = func_in;
-
 	instance->buffer = buffer;
 	instance->buffer_size = size;
 	instance->setup_size = setup_size;
@@ -141,7 +126,13 @@ batch_t * batch_get(ddf_fun_t *fun, usb_target_t target,
 	instance->speed = speed;
 	instance->manager = manager;
 
-	queue_head_element_td(instance->qh, addr_to_phys(instance->tds));
+	if (func_out)
+		instance->callback_out = func_out;
+	if (func_in)
+		instance->callback_in = func_in;
+
+	queue_head_set_element_td(instance->qh, addr_to_phys(instance->tds));
+
 	usb_log_debug("Batch(%p) %d:%d memory structures ready.\n",
 	    instance, target.address, target.endpoint);
 	return instance;

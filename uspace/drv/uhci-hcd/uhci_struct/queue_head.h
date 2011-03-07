@@ -70,23 +70,12 @@ static inline void queue_head_element_qh(queue_head_t *instance, uint32_t pa)
 	}
 }
 
-static inline void queue_head_element_td(queue_head_t *instance, uint32_t pa)
+static inline void queue_head_set_element_td(queue_head_t *instance, uint32_t pa)
 {
 	if (pa) {
 		instance->element = (pa & LINK_POINTER_ADDRESS_MASK);
 	}
 }
-
-static inline queue_head_t * queue_head_get() {
-	queue_head_t *ret = malloc32(sizeof(queue_head_t));
-	if (ret)
-		queue_head_init(ret);
-	return ret;
-}
-
-static inline void queue_head_dispose(queue_head_t *head)
-	{ free32(head); }
-
 
 #endif
 /**
