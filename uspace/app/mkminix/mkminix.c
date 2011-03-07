@@ -62,6 +62,7 @@ typedef enum {
 } help_level_t;
 
 typedef struct mfs_params {
+	int		fs_version;
 	devmap_handle_t	handle;
 	uint16_t	fs_magic;
 	uint32_t	block_size;
@@ -74,8 +75,10 @@ typedef struct mfs_params {
 static void	help_cmd_mkminix(help_level_t level);
 static int	num_of_set_bits(uint32_t n);
 static void	init_superblock(struct mfs_superblock *sb, mfs_params_t *opt);
-static void	init_superblock_v3(struct mfs3_superblock *sb, mfs_params_t *opt);
-static void	init_bitmaps(uint32_t ninodes,	uint32_t nzones, int bsize, mfs_params_t *opt);
+static void	init_superblock_v3(struct mfs3_superblock *sb,
+					mfs_params_t *opt);
+static void	init_bitmaps(uint32_t ninodes,	uint32_t nzones,
+				int bsize, mfs_params_t *opt);
 static void	mark_bmap(uint8_t *bmap, int idx, int v);
 
 static struct option const long_options[] = {
@@ -122,13 +125,16 @@ int main (int argc, char **argv)
 		case '1':
 			opt.fs_magic = MFS_MAGIC_V1;
 			opt.block_size = MFS_BLOCKSIZE;
+			opt.fs_version = 1;
 			break;
 		case '2':
 			opt.fs_magic = MFS_MAGIC_V2;
 			opt.block_size = MFS_BLOCKSIZE;
+			opt.fs_version = 2;
 			break;
 		case '3':
 			opt.fs_magic = MFS_MAGIC_V3;
+			opt.fs_version = 3;
 			break;
 		case 'b':
 			opt.block_size = (uint32_t) strtol(optarg, NULL, 10);
@@ -230,16 +236,13 @@ int main (int argc, char **argv)
 static void init_superblock(struct mfs_superblock *sb, mfs_params_t *opt)
 {
 	int ino_per_block = 0;
-	int fs_version;
 	aoff64_t inodes;
 
-	if (opt->fs_magic == MFS_MAGIC_V1) {
-		fs_version = 1;
+	if (opt->fs_version == 1) {
 		ino_per_block = V1_INODES_PER_BLOCK;
 		if (opt->fs_longnames)
 			opt->fs_magic = MFS_MAGIC_V1L;
 	} else {
-		fs_version = 2;
 		ino_per_block = V2_INODES_PER_BLOCK;
 		if (opt->fs_longnames)
 			opt->fs_magic = MFS_MAGIC_V2L;
@@ -271,7 +274,7 @@ static void init_superblock(struct mfs_superblock *sb, mfs_params_t *opt)
 	sb->s_ibmap_blocks = UPPER(sb->s_ninodes, MFS_BLOCKSIZE * 8);
 
 	/*Compute zone bitmap size in blocks*/
-	if (fs_version == 1)
+	if (opt->fs_version == 1)
 		sb->s_zbmap_blocks = UPPER(sb->s_nzones, MFS_BLOCKSIZE * 8);
 	else
 		sb->s_zbmap_blocks = UPPER(sb->s_nzones2, MFS_BLOCKSIZE * 8);
@@ -363,10 +366,11 @@ static void init_bitmaps(uint32_t ninodes, uint32_t nzones,
 	memset(ibmap_buf, 0xFF, ibmap_nblocks * bsize);
 	memset(zbmap_buf, 0xFF, zbmap_nblocks * bsize);
 
-	for (i = 2; i < ninodes; ++i) {
+	for (i = 2; i < ninodes; ++i)
 		mark_bmap(ibmap_buf, i, FREE);
+
+	for (i = 2; i < nzones; ++i)
 		mark_bmap(zbmap_buf, i, FREE);
-	}
 
 	ibmap_nblocks *= bsize / MFS_BLOCKSIZE;
 	zbmap_nblocks *= bsize / MFS_BLOCKSIZE;
