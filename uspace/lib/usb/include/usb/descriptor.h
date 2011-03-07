@@ -30,7 +30,7 @@
  * @{
  */
 /** @file
- * @brief Standard USB descriptors.
+ * Standard USB descriptors.
  */
 #ifndef LIBUSB_DESCRIPTOR_H_
 #define LIBUSB_DESCRIPTOR_H_
@@ -82,7 +82,7 @@ typedef struct {
 	uint8_t str_manufacturer;
 	/** Product descriptor index. */
 	uint8_t str_product;
-	/** Device serial number desriptor index. */
+	/** Device serial number descriptor index. */
 	uint8_t str_serial_number;
 	/** Number of possible configurations. */
 	uint8_t configuration_count;
@@ -165,9 +165,6 @@ typedef struct {
 	 */
 	uint8_t poll_interval;
 } __attribute__ ((packed)) usb_standard_endpoint_descriptor_t;
-
-
-/* TODO: string descriptors. */
 
 #endif
 /**

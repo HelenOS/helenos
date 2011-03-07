@@ -100,6 +100,7 @@ static int intialize_poll_pipe(usb_mouse_t *mouse, int my_interface)
 }
 
 static void default_connection_handler(ddf_fun_t *, ipc_callid_t, ipc_call_t *);
+/** Device ops for USB mouse. */
 static ddf_dev_ops_t mouse_ops = {
 	.default_handler = default_connection_handler
 };
@@ -134,7 +135,13 @@ void default_connection_handler(ddf_fun_t *fun,
 	async_answer_0(icallid, EINVAL);
 }
 
-
+/** Create USB mouse device.
+ *
+ * The mouse device is stored into <code>dev-&gt;driver_data</code>.
+ *
+ * @param dev Generic device.
+ * @return Error code.
+ */
 int usb_mouse_create(ddf_dev_t *dev)
 {
 	usb_mouse_t *mouse = malloc(sizeof(usb_mouse_t));

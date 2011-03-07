@@ -38,6 +38,11 @@
 #include <errno.h>
 #include <str_error.h>
 
+/** Callback when new mouse device is attached and recognised by DDF.
+ *
+ * @param dev Representation of a generic DDF device.
+ * @return Error code.
+ */
 static int usbmouse_add_device(ddf_dev_t *dev)
 {
 	int rc = usb_mouse_create(dev);
@@ -62,10 +67,12 @@ static int usbmouse_add_device(ddf_dev_t *dev)
 	return EOK;
 }
 
+/** USB mouse driver ops. */
 static driver_ops_t mouse_driver_ops = {
 	.add_device = usbmouse_add_device,
 };
 
+/** USB mouse driver. */
 static driver_t mouse_driver = {
 	.name = NAME,
 	.driver_ops = &mouse_driver_ops
@@ -73,7 +80,7 @@ static driver_t mouse_driver = {
 
 int main(int argc, char *argv[])
 {
-	usb_log_enable(USB_LOG_LEVEL_DEBUG2, NAME);
+	usb_log_enable(USB_LOG_LEVEL_DEBUG, NAME);
 
 	return ddf_driver_main(&mouse_driver);
 }

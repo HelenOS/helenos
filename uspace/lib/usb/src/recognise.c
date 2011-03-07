@@ -30,7 +30,7 @@
  * @{
  */
 /** @file
- * @brief Functions for recognising kind of attached devices.
+ * Functions for recognition of attached devices.
  */
 #include <sys/types.h>
 #include <fibril_synch.h>
@@ -43,17 +43,24 @@
 #include <errno.h>
 #include <assert.h>
 
+/** Index to append after device name for uniqueness. */
 static size_t device_name_index = 0;
+/** Mutex guard for device_name_index. */
 static FIBRIL_MUTEX_INITIALIZE(device_name_index_mutex);
 
+/** DDF operations of child devices. */
 ddf_dev_ops_t child_ops = {
 	.interfaces[USB_DEV_IFACE] = &usb_iface_hub_child_impl
 };
 
+/** Get integer part from BCD coded number. */
 #define BCD_INT(a) (((unsigned int)(a)) / 256)
+/** Get fraction part from BCD coded number (as an integer, no less). */
 #define BCD_FRAC(a) (((unsigned int)(a)) % 256)
 
+/** Format for BCD coded number to be used in printf. */
 #define BCD_FMT "%x.%x"
+/** Arguments to printf for BCD coded number. */
 #define BCD_ARGS(a) BCD_INT((a)), BCD_FRAC((a))
 
 /* FIXME: make this dynamic */
@@ -112,6 +119,13 @@ failure:
 	return rc;
 }
 
+/** Add match id to list or return with error code.
+ *
+ * @param match_ids List of match ids.
+ * @param score Match id score.
+ * @param format Format of the matching string
+ * @param ... Arguments for the format.
+ */
 #define ADD_MATCHID_OR_RETURN(match_ids, score, format, ...) \
 	do { \
 		int __rc = usb_add_match_id((match_ids), (score), \

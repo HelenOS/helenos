@@ -30,7 +30,7 @@
  * @{
  */
 /** @file
- * @brief Debugging related functions.
+ * Debugging related functions.
  */
 #ifndef LIBUSB_DEBUG_H_
 #define LIBUSB_DEBUG_H_
@@ -38,20 +38,43 @@
 #include <usb/usb.h>
 #include <assert.h>
 
-void usb_dprintf(const char *tag, int level, const char *format, ...);
-void usb_dprintf_enable(const char *tag, int level);
-
 void usb_dump_standard_descriptor(FILE *, const char *, const char *,
     const uint8_t *, size_t);
 
 /** Logging level. */
 typedef enum {
+	/** Fatal, unrecoverable, error.
+	 * Such error prevents the driver from working at all.
+	 */
 	USB_LOG_LEVEL_FATAL,
+
+	/** Serious but recoverable error
+	 * Shall be used for errors fatal for single device but not for
+	 * driver itself.
+	 */
 	USB_LOG_LEVEL_ERROR,
+
+	/** Warning.
+	 * Problems from which the driver is able to recover gracefully.
+	 */
 	USB_LOG_LEVEL_WARNING,
+
+	/** Information message.
+	 * This should be the last level that is printed by default to
+	 * the screen.
+	 * Typical usage is to inform that new device was found and what
+	 * are its capabilities.
+	 * Do not use for repetitive actions (such as device polling).
+	 */
 	USB_LOG_LEVEL_INFO,
+
+	/** Debugging message. */
 	USB_LOG_LEVEL_DEBUG,
+
+	/** More detailed debugging message. */
 	USB_LOG_LEVEL_DEBUG2,
+
+	/** Terminating constant for logging levels. */
 	USB_LOG_LEVEL_MAX
 } usb_log_level_t;
 
@@ -60,21 +83,27 @@ void usb_log_enable(usb_log_level_t, const char *);
 
 void usb_log_printf(usb_log_level_t, const char *, ...);
 
+/** Log fatal error. */
 #define usb_log_fatal(format, ...) \
 	usb_log_printf(USB_LOG_LEVEL_FATAL, format, ##__VA_ARGS__)
 
+/** Log normal (recoverable) error. */
 #define usb_log_error(format, ...) \
 	usb_log_printf(USB_LOG_LEVEL_ERROR, format, ##__VA_ARGS__)
 
+/** Log warning. */
 #define usb_log_warning(format, ...) \
 	usb_log_printf(USB_LOG_LEVEL_WARNING, format, ##__VA_ARGS__)
 
+/** Log informational message. */
 #define usb_log_info(format, ...) \
 	usb_log_printf(USB_LOG_LEVEL_INFO, format, ##__VA_ARGS__)
 
+/** Log debugging message. */
 #define usb_log_debug(format, ...) \
 	usb_log_printf(USB_LOG_LEVEL_DEBUG, format, ##__VA_ARGS__)
 
+/** Log verbose debugging message. */
 #define usb_log_debug2(format, ...) \
 	usb_log_printf(USB_LOG_LEVEL_DEBUG2, format, ##__VA_ARGS__)
 
