@@ -106,6 +106,7 @@ struct mfs_superblock {
 struct mfs3_superblock {
 	/*Total number of inodes on the device*/
 	uint32_t	s_ninodes;
+	uint16_t	s_pad0;
 	/*Number of inode bitmap blocks*/
 	int16_t		s_ibmap_blocks;
 	/*Number of zone bitmap blocks*/
@@ -114,7 +115,7 @@ struct mfs3_superblock {
 	uint16_t	s_first_data_zone;
 	/*Base 2 logarithm of the zone to block ratio*/
 	int16_t		s_log2_zone_size;
-	int16_t		s_pad;
+	int16_t		s_pad1;
 	/*Maximum file size expressed in bytes*/
 	int32_t		s_max_file_size;
 	/*Total number of zones on the device*/
