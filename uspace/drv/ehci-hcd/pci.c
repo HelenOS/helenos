@@ -52,6 +52,9 @@
 #define HCC_PARAMS_EECP_MASK 0xff
 #define HCC_PARAMS_EECP_OFFSET 8
 
+#define CMD_OFFSET 0x0
+#define CONFIGFLAG_OFFSET 0x40
+
 #define USBCMD_RUN 1
 
 #define USBLEGSUP_OFFSET 0
@@ -257,7 +260,6 @@ int pci_disable_legacy(ddf_dev_t *device)
 		/* TODO: This does not seem to work on my machine */
 	}
 
-
 	/* Zero SMI enables in legacy control register.
 	 * It would prevent pre-OS code from interfering. */
 	ret = async_req_3_0(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE),
@@ -287,10 +289,14 @@ int pci_disable_legacy(ddf_dev_t *device)
 
 	/* Zero USBCMD register. */
 	volatile uint32_t *usbcmd =
-	 (uint32_t*)((uint8_t*)registers + operation_offset);
+	    (uint32_t*)((uint8_t*)registers + operation_offset + CMD_OFFSET);
+	volatile uint32_t *usbconfigured =
+	    (uint32_t*)((uint8_t*)registers + operation_offset
+	    + CONFIGFLAG_OFFSET);
 	usb_log_debug("USBCMD value: %x.\n", *usbcmd);
 	if (*usbcmd & USBCMD_RUN) {
 		*usbcmd = 0;
+		*usbconfigured = 0;
 		usb_log_info("EHCI turned off.\n");
 	} else {
 		usb_log_info("EHCI was not running.\n");

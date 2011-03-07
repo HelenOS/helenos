@@ -96,6 +96,8 @@ if (ret != EOK) { \
  * @param[in] argc Nmber of arguments in argv vector (ignored).
  * @param[in] argv Cmdline argument vector (ignored).
  * @return Error code.
+ *
+ * Driver debug level is set here.
  */
 int main(int argc, char *argv[])
 {
