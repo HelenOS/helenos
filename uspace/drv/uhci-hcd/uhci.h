@@ -83,7 +83,7 @@ typedef struct uhci_regs {
 typedef struct uhci {
 	device_keeper_t device_manager;
 
-	volatile regs_t *registers;
+	regs_t *registers;
 
 	link_pointer_t *frame_list;
 
