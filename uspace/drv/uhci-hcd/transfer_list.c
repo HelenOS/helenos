@@ -37,6 +37,17 @@
 
 #include "transfer_list.h"
 
+static void transfer_list_remove_batch(
+    transfer_list_t *instance, batch_t *batch);
+/*----------------------------------------------------------------------------*/
+/** Initializes transfer list structures.
+ *
+ * @param[in] instance Memory place to use.
+ * @param[in] name Name of te new list.
+ * @return Error code
+ *
+ * Allocates memory for internat queue_head_t structure.
+ */
 int transfer_list_init(transfer_list_t *instance, const char *name)
 {
 	assert(instance);
@@ -47,7 +58,6 @@ int transfer_list_init(transfer_list_t *instance, const char *name)
 		usb_log_error("Failed to allocate queue head.\n");
 		return ENOMEM;
 	}
-	queue_head_init(instance->queue_head);
 	instance->queue_head_pa = addr_to_phys(instance->queue_head);
 
 	queue_head_init(instance->queue_head);
@@ -56,6 +66,12 @@ int transfer_list_init(transfer_list_t *instance, const char *name)
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
+/** Set the next list in chain.
+ *
+ * @param[in] instance List to lead.
+ * @param[in] next List to append.
+ * @return Error code
+ */
 void transfer_list_set_next(transfer_list_t *instance, transfer_list_t *next)
 {
 	assert(instance);
@@ -66,11 +82,18 @@ void transfer_list_set_next(transfer_list_t *instance, transfer_list_t *next)
 	instance->queue_head->element = instance->queue_head->next_queue;
 }
 /*----------------------------------------------------------------------------*/
+/** Submits a new transfer batch to list and queue.
+ *
+ * @param[in] instance List to use.
+ * @param[in] batch Transfer batch to submit.
+ * @return Error code
+ */
 void transfer_list_add_batch(transfer_list_t *instance, batch_t *batch)
 {
 	assert(instance);
 	assert(batch);
-	usb_log_debug2("Adding batch(%p) to queue %s.\n", batch, instance->name);
+	usb_log_debug2(
+	    "Adding batch(%p) to queue %s.\n", batch, instance->name);
 
 	uint32_t pa = (uintptr_t)addr_to_phys(batch->qh);
 	assert((pa & LINK_POINTER_ADDRESS_MASK) == pa);
@@ -97,34 +120,49 @@ void transfer_list_add_batch(transfer_list_t *instance, batch_t *batch)
 	    instance->batch_list.prev, batch_t, link);
 	queue_head_append_qh(last->qh, pa);
 	list_append(&batch->link, &instance->batch_list);
+
 	usb_log_debug("Batch(%p) added to queue %s last, first is %p.\n",
-		batch, instance->name, first );
+		batch, instance->name, first);
 	fibril_mutex_unlock(&instance->guard);
 }
 /*----------------------------------------------------------------------------*/
-static void transfer_list_remove_batch(
-    transfer_list_t *instance, batch_t *batch)
+/** Removes a transfer batch from list and queue.
+ *
+ * @param[in] instance List to use.
+ * @param[in] batch Transfer batch to remove.
+ * @return Error code
+ */
+void transfer_list_remove_batch(transfer_list_t *instance, batch_t *batch)
 {
 	assert(instance);
 	assert(batch);
 	assert(instance->queue_head);
 	assert(batch->qh);
-	usb_log_debug2("Removing batch(%p) from queue %s.\n", batch, instance->name);
+	usb_log_debug2(
+	    "Removing batch(%p) from queue %s.\n", batch, instance->name);
 
-	/* I'm the first one here */
 	if (batch->link.prev == &instance->batch_list) {
-		usb_log_debug("Batch(%p) removed (FIRST) from queue %s, next element %x.\n",
-			batch, instance->name, batch->qh->next_queue);
+		/* I'm the first one here */
+		usb_log_debug(
+		    "Batch(%p) removed (FIRST) from %s, next element %x.\n",
+		    batch, instance->name, batch->qh->next_queue);
 		instance->queue_head->element = batch->qh->next_queue;
 	} else {
-		usb_log_debug("Batch(%p) removed (NOT FIRST) from queue, next element %x.\n",
-			batch, instance->name, batch->qh->next_queue);
-		batch_t *prev = list_get_instance(batch->link.prev, batch_t, link);
+		usb_log_debug(
+		    "Batch(%p) removed (FIRST:NO) from %s, next element %x.\n",
+		    batch, instance->name, batch->qh->next_queue);
+		batch_t *prev =
+		    list_get_instance(batch->link.prev, batch_t, link);
 		prev->qh->next_queue = batch->qh->next_queue;
 	}
 	list_remove(&batch->link);
 }
 /*----------------------------------------------------------------------------*/
+/** Checks list for finished transfers.
+ *
+ * @param[in] instance List to use.
+ * @return Error code
+ */
 void transfer_list_remove_finished(transfer_list_t *instance)
 {
 	assert(instance);

@@ -64,7 +64,6 @@ int pci_get_my_registers(ddf_dev_t *dev,
 	}
 
 	int rc;
-
 	hw_resource_list_t hw_resources;
 	rc = hw_res_get_resource_list(parent_phone, &hw_resources);
 	if (rc != EOK) {
@@ -117,6 +116,11 @@ leave:
 	return rc;
 }
 /*----------------------------------------------------------------------------*/
+/** Calls the PCI driver with a request to enable interrupts
+ *
+ * @param[in] device Device asking for interrupts
+ * @return Error code.
+ */
 int pci_enable_interrupts(ddf_dev_t *device)
 {
 	int parent_phone = devman_parent_device_connect(device->handle,
@@ -126,6 +130,11 @@ int pci_enable_interrupts(ddf_dev_t *device)
 	return enabled ? EOK : EIO;
 }
 /*----------------------------------------------------------------------------*/
+/** Calls the PCI driver with a request to clear legacy support register
+ *
+ * @param[in] device Device asking to disable interrupts
+ * @return Error code.
+ */
 int pci_disable_legacy(ddf_dev_t *device)
 {
 	assert(device);

@@ -44,9 +44,16 @@
 #include "uhci.h"
 
 /*----------------------------------------------------------------------------*/
-static int usb_iface_get_hc_handle_rh_impl(ddf_fun_t *root_hub_fun,
-    devman_handle_t *handle)
+/** Gets handle of the respective hc (parent device).
+ *
+ * @param[in] root_hub_fun Root hub function seeking hc handle.
+ * @param[out] handle Place to write the handle.
+ * @return Error code.
+ */
+static int usb_iface_get_hc_handle_rh_impl(
+    ddf_fun_t *root_hub_fun, devman_handle_t *handle)
 {
+	/* TODO: Can't this use parent pointer? */
 	ddf_fun_t *hc_fun = root_hub_fun->driver_data;
 	assert(hc_fun != NULL);
 
@@ -55,17 +62,25 @@ static int usb_iface_get_hc_handle_rh_impl(ddf_fun_t *root_hub_fun,
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-static int usb_iface_get_address_rh_impl(ddf_fun_t *fun, devman_handle_t handle,
-    usb_address_t *address)
+/** Gets USB address of the calling device.
+ *
+ * @param[in] fun Root hub function.
+ * @param[in] handle Handle of the device seeking address.
+ * @param[out] address Place to store found address.
+ * @return Error code.
+ */
+static int usb_iface_get_address_rh_impl(
+    ddf_fun_t *fun, devman_handle_t handle, usb_address_t *address)
 {
+	/* TODO: What does this do? Is it neccessary? Can't it use implemented
+	 * hc function?*/
 	assert(fun);
 	ddf_fun_t *hc_fun = fun->driver_data;
 	assert(hc_fun);
 	uhci_t *hc = fun_to_uhci(hc_fun);
 	assert(hc);
 
-	usb_address_t addr = device_keeper_find(&hc->device_manager,
-	    handle);
+	usb_address_t addr = device_keeper_find(&hc->device_manager, handle);
 	if (addr < 0) {
 		return addr;
 	}
@@ -82,6 +97,11 @@ usb_iface_t usb_iface_root_hub_fun_impl = {
 	.get_address = usb_iface_get_address_rh_impl
 };
 /*----------------------------------------------------------------------------*/
+/** Gets root hub hw resources.
+ *
+ * @param[in] fun Root hub function.
+ * @return Pointer to the resource list used by the root hub.
+ */
 static hw_resource_list_t *get_resource_list(ddf_fun_t *dev)
 {
 	assert(dev);
@@ -90,7 +110,7 @@ static hw_resource_list_t *get_resource_list(ddf_fun_t *dev)
 	uhci_t *hc = hc_ddf_instance->driver_data;
 	assert(hc);
 
-	//TODO: fix memory leak
+	/* TODO: fix memory leak */
 	hw_resource_list_t *resource_list = malloc(sizeof(hw_resource_list_t));
 	assert(resource_list);
 	resource_list->count = 1;
