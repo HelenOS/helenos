@@ -59,6 +59,11 @@ static const struct flag_name flags[] =
 	{ STATUS_CONNECTED, "connected" }
 };
 
+/** Prints portr status in a human readable way.
+ *
+ * @param[in] value Port value to print.
+ * @return Error code.
+ */
 void print_port_status(port_status_t value)
 {
 	unsigned i = 0;
