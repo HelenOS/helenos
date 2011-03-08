@@ -48,6 +48,7 @@
 #include <getopt.h>
 #include <mem.h>
 #include <str.h>
+#include <time.h>
 #include <minix.h>
 
 #define NAME	"mkminix"
@@ -298,7 +299,7 @@ static void init_inode_table(struct mfs_sb_info *sb)
 
 	const int chunks = sb->block_size / MFS_BLOCKSIZE;
 
-	for (i = 0; i < sb->itable_size; ++i, ++itable_pos)
+	for (i = 0; i < sb->itable_size; ++i, itable_pos += chunks)
 		block_write_direct(sb->handle, itable_pos, chunks, itable_buf);
 
 	free(itable_buf);
@@ -307,17 +308,18 @@ static void init_inode_table(struct mfs_sb_info *sb)
 static void make_root_ino(struct mfs_sb_info *sb)
 {
 	struct mfs_inode *ino_buf;
-	const size_t bufsize = MFS_BLOCKSIZE;
 	const long itable_pos = 2 + sb->zbmap_blocks + sb->ibmap_blocks;
 
-	ino_buf = (struct mfs_inode *) malloc(bufsize);
-	memset(ino_buf, 0x00, bufsize);
+	const time_t sec = time(NULL);
+
+	ino_buf = (struct mfs_inode *) malloc(MFS_BLOCKSIZE);
+	memset(ino_buf, 0x00, MFS_BLOCKSIZE);
 
 	ino_buf[MFS_ROOT_INO].i_mode = S_IFDIR;
 	ino_buf[MFS_ROOT_INO].i_uid = 0;
 	ino_buf[MFS_ROOT_INO].i_gid = 0;
 	ino_buf[MFS_ROOT_INO].i_size = (sb->longnames ? MFSL_DIRSIZE : MFS_DIRSIZE) * 2;
-	ino_buf[MFS_ROOT_INO].i_mtime = 0;
+	ino_buf[MFS_ROOT_INO].i_mtime = sec;
 	ino_buf[MFS_ROOT_INO].i_nlinks = 2;
 	ino_buf[MFS_ROOT_INO].i_dzone[0] = sb->first_data_zone;
 
@@ -332,6 +334,8 @@ static void make_root_ino3(struct mfs_sb_info *sb)
 	const size_t bufsize = MFS_MIN_BLOCKSIZE;
 	const long itable_pos = 2 + sb->zbmap_blocks + sb->ibmap_blocks;
 
+	const time_t sec = time(NULL);
+
 	ino_buf = (struct mfs2_inode *) malloc(bufsize);
 	memset(ino_buf, 0x00, bufsize);
 
@@ -339,9 +343,9 @@ static void make_root_ino3(struct mfs_sb_info *sb)
 	ino_buf[MFS_ROOT_INO].i_uid = 0;
 	ino_buf[MFS_ROOT_INO].i_gid = 0;
 	ino_buf[MFS_ROOT_INO].i_size = MFS3_DIRSIZE * 2;
-	ino_buf[MFS_ROOT_INO].i_mtime = 0;
-	ino_buf[MFS_ROOT_INO].i_atime = 0;
-	ino_buf[MFS_ROOT_INO].i_ctime = 0;
+	ino_buf[MFS_ROOT_INO].i_mtime = sec;
+	ino_buf[MFS_ROOT_INO].i_atime = sec;
+	ino_buf[MFS_ROOT_INO].i_ctime = sec;
 	ino_buf[MFS_ROOT_INO].i_nlinks = 2;
 	ino_buf[MFS_ROOT_INO].i_dzone[0] = sb->first_data_zone;
 
