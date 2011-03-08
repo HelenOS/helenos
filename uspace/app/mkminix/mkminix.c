@@ -117,6 +117,7 @@ int main (int argc, char **argv)
 
 	/*Default is MinixFS V3*/
 	sb.magic = MFS_MAGIC_V3;
+	sb.fs_version = 3;
 
 	/*Default block size is 4Kb*/
 	sb.block_size = MFS_MAX_BLOCKSIZE;
