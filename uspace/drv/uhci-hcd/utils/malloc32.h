@@ -34,8 +34,6 @@
 #ifndef DRV_UHCI_TRANSLATOR_H
 #define DRV_UHCI_TRANSLATOR_H
 
-#include <usb/usbmem.h>
-
 #include <assert.h>
 #include <malloc.h>
 #include <mem.h>
