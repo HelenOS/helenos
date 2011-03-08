@@ -95,7 +95,7 @@ static void	mark_bmap(uint32_t *bmap, int idx, int v);
 static struct option const long_options[] = {
 	{ "help", no_argument, 0, 'h' },
 	{ "long-names", no_argument, 0, 'l' },
-	{ "blocks", required_argument, 0, 'b' },
+	{ "block-size", required_argument, 0, 'b' },
 	{ "inodes", required_argument, 0, 'i' },
 	{ NULL, no_argument, 0, '1' },
 	{ NULL, no_argument, 0, '2' },

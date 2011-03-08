@@ -175,20 +175,14 @@ struct mfs2_inode {
 /*MinixFS V1/V2 directory entry on-disk structure*/
 struct mfs_dentry {
 	uint16_t d_inum;
-	char d_name[MFS_MAX_NAME_LEN];
-} __attribute__ ((packed));
-
-/*MinixFS V1/V2 with 30-char filenames (Linux variant)*/
-struct mfs_l_dentry {
-	uint16_t d_inum;
-	char d_name[MFS_L_MAX_NAME_LEN];
-} __attribute__ ((packed));
+	char d_name[0];
+};
 
 /*MinixFS V3 directory entry on-disk structure*/
 struct mfs3_dentry {
 	uint32_t d_inum;
-	char d_name[MFS3_MAX_NAME_LEN];
-} __attribute__ ((packed));
+	char d_name[0];
+};
 
 
 #endif
