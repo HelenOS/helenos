@@ -87,15 +87,15 @@ struct mfs_sb_info {
 
 static void	help_cmd_mkminix(help_level_t level);
 static int	num_of_set_bits(uint32_t n);
-static void	init_superblock(struct mfs_sb_info *sb);
-static void	write_superblock(struct mfs_sb_info *sbi);
-static void	write_superblock3(struct mfs_sb_info *sbi);
-static void	init_bitmaps(struct mfs_sb_info *sb);
-static void	init_inode_table(struct mfs_sb_info *sb);
-static void	make_root_ino(struct mfs_sb_info *sb);
-static void	make_root_ino3(struct mfs_sb_info *sb);
+static int	init_superblock(struct mfs_sb_info *sb);
+static int	write_superblock(struct mfs_sb_info *sbi);
+static int	write_superblock3(struct mfs_sb_info *sbi);
+static int	init_bitmaps(struct mfs_sb_info *sb);
+static int	init_inode_table(struct mfs_sb_info *sb);
+static int	make_root_ino(struct mfs_sb_info *sb);
+static int	make_root_ino3(struct mfs_sb_info *sb);
 static void	mark_bmap(uint32_t *bmap, int idx, int v);
-static void	insert_dentries(struct mfs_sb_info *sb);
+static int	insert_dentries(struct mfs_sb_info *sb);
 
 static struct option const long_options[] = {
 	{ "help", no_argument, 0, 'h' },
@@ -232,32 +232,53 @@ int main (int argc, char **argv)
 	printf(NAME ": Creating Minix file system on device\n");
 
 	/*Initialize superblock*/
-	init_superblock(&sb);
+	if (init_superblock(&sb) != EOK) {
+		printf(NAME ": Error. Superblock initialization failed\n");
+		return 2;
+	}
 
 	/*Initialize bitmaps*/
-	init_bitmaps(&sb);
+	if (init_bitmaps(&sb) != EOK) {
+		printf(NAME ": Error. Bitmaps initialization failed\n");
+		return 2;
+	}
 
 	/*Init inode table*/
-	init_inode_table(&sb);
+	if (init_inode_table(&sb) != EOK) {
+		printf(NAME ": Error. Inode table initialization failed\n");
+		return 2;
+	}
 
 	/*Make the root inode*/
 	if (sb.fs_version == 3)
-		make_root_ino3(&sb);		
+		rc = make_root_ino3(&sb);		
 	else
-		make_root_ino(&sb);
+		rc = make_root_ino(&sb);
+
+	if (rc != EOK) {
+		printf(NAME ": Error. Root inode initialization failed\n");
+		return 2;
+	}
 
 	/*Insert directory entries . and ..*/
-	insert_dentries(&sb);
+	if (insert_dentries(&sb) != EOK) {
+		printf(NAME ": Error. Root directory initialization failed\n");
+		return 2;
+	}
 
 	return 0;
 }
 
-static void insert_dentries(struct mfs_sb_info *sb)
+static int insert_dentries(struct mfs_sb_info *sb)
 {
 	void *root_block;
+	int rc;
 	const long root_dblock = sb->first_data_zone * (sb->block_size / MFS_MIN_BLOCKSIZE);
 
 	root_block = (void *) malloc(MFS_MIN_BLOCKSIZE);
+
+	if (!root_block)
+		return ENOMEM;
 	
 	if (sb->fs_version != 3) {
 		/*Directory entries for V1/V2 filesystem*/
@@ -283,36 +304,52 @@ static void insert_dentries(struct mfs_sb_info *sb)
 		str_cpy(dentry->d_name, 2, "..");
 	}
 
-	block_write_direct(sb->handle, root_dblock, 1, root_block);
+	rc = block_write_direct(sb->handle, root_dblock, 1, root_block);
 
 	free(root_block);
+	return rc;
 }
 
-static void init_inode_table(struct mfs_sb_info *sb)
+static int init_inode_table(struct mfs_sb_info *sb)
 {
 	unsigned int i;
 	uint8_t *itable_buf;
+	int rc;
 	long itable_pos = 2 + sb->zbmap_blocks + sb->ibmap_blocks;
 
 	itable_buf = malloc(sb->block_size);
+
+	if (!itable_buf)
+		return ENOMEM;
+
 	memset(itable_buf, 0x00, sb->block_size);
 
 	const int chunks = sb->block_size / MFS_BLOCKSIZE;
 
-	for (i = 0; i < sb->itable_size; ++i, itable_pos += chunks)
-		block_write_direct(sb->handle, itable_pos, chunks, itable_buf);
+	for (i = 0; i < sb->itable_size; ++i, itable_pos += chunks) {
+		rc = block_write_direct(sb->handle, itable_pos, chunks, itable_buf);
+
+		if (rc != EOK)
+			break;
+	}
 
 	free(itable_buf);
+	return rc;
 }
 
-static void make_root_ino(struct mfs_sb_info *sb)
+static int make_root_ino(struct mfs_sb_info *sb)
 {
 	struct mfs_inode *ino_buf;
 	const long itable_pos = 2 + sb->zbmap_blocks + sb->ibmap_blocks;
+	int rc;
 
 	const time_t sec = time(NULL);
 
 	ino_buf = (struct mfs_inode *) malloc(MFS_BLOCKSIZE);
+
+	if (!ino_buf)
+		return ENOMEM;
+
 	memset(ino_buf, 0x00, MFS_BLOCKSIZE);
 
 	ino_buf[MFS_ROOT_INO].i_mode = S_IFDIR;
@@ -323,20 +360,26 @@ static void make_root_ino(struct mfs_sb_info *sb)
 	ino_buf[MFS_ROOT_INO].i_nlinks = 2;
 	ino_buf[MFS_ROOT_INO].i_dzone[0] = sb->first_data_zone;
 
-	block_write_direct(sb->handle, itable_pos, 1, ino_buf);
+	rc = block_write_direct(sb->handle, itable_pos, 1, ino_buf);
 
 	free(ino_buf);
+	return rc;
 }
 
-static void make_root_ino3(struct mfs_sb_info *sb)
+static int make_root_ino3(struct mfs_sb_info *sb)
 {
 	struct mfs2_inode *ino_buf;
 	const size_t bufsize = MFS_MIN_BLOCKSIZE;
 	const long itable_pos = 2 + sb->zbmap_blocks + sb->ibmap_blocks;
+	int rc;
 
 	const time_t sec = time(NULL);
 
 	ino_buf = (struct mfs2_inode *) malloc(bufsize);
+
+	if (!ino_buf)
+		return ENOMEM;
+
 	memset(ino_buf, 0x00, bufsize);
 
 	ino_buf[MFS_ROOT_INO].i_mode = S_IFDIR;
@@ -349,14 +392,16 @@ static void make_root_ino3(struct mfs_sb_info *sb)
 	ino_buf[MFS_ROOT_INO].i_nlinks = 2;
 	ino_buf[MFS_ROOT_INO].i_dzone[0] = sb->first_data_zone;
 
-	block_write_direct(sb->handle, itable_pos * (sb->block_size / MFS_MIN_BLOCKSIZE), 1, ino_buf);
+	rc = block_write_direct(sb->handle, itable_pos * (sb->block_size / MFS_MIN_BLOCKSIZE), 1, ino_buf);
 
 	free(ino_buf);
+	return rc;
 }
 
-static void init_superblock(struct mfs_sb_info *sb)
+static int init_superblock(struct mfs_sb_info *sb)
 {
 	aoff64_t inodes;
+	int rc;
 
 	if (sb->longnames)
 		sb->magic = sb->fs_version == 1 ? MFS_MAGIC_V1L : MFS_MAGIC_V2L;
@@ -408,6 +453,12 @@ static void init_superblock(struct mfs_sb_info *sb)
 	/*Set log2 of zone to block ratio to zero*/
 	sb->log2_zone_size = 0;
 
+	/*Check for errors*/
+	if (sb->first_data_zone >= sb->n_zones) {
+		printf(NAME ": Error! Insufficient disk space");
+		return ENOMEM;
+	}
+
 	/*Superblock is now ready to be written on disk*/
 	printf(NAME ": %d inodes\n", (uint32_t) sb->n_inodes);
 	printf(NAME ": %d zones\n", (uint32_t) sb->n_zones);
@@ -418,16 +469,22 @@ static void init_superblock(struct mfs_sb_info *sb)
 	printf(NAME ": long fnames = %s\n", sb->longnames ? "Yes" : "No");
 
 	if (sb->fs_version == 3)
-		write_superblock3(sb);
+		rc = write_superblock3(sb);
 	else
-		write_superblock(sb);
+		rc = write_superblock(sb);
+
+	return rc;
 }
 
-static void write_superblock(struct mfs_sb_info *sbi)
+static int write_superblock(struct mfs_sb_info *sbi)
 {
 	struct mfs_superblock *sb;
+	int rc;
 
 	sb = (struct mfs_superblock *) malloc(MFS_SUPERBLOCK_SIZE);;
+
+	if (!sb)
+		return ENOMEM;
 
 	sb->s_ninodes = (uint16_t) sbi->n_inodes;
 	sb->s_nzones = (uint16_t) sbi->n_zones;
@@ -440,15 +497,21 @@ static void write_superblock(struct mfs_sb_info *sbi)
 	sb->s_magic = sbi->magic;
 	sb->s_state = MFS_VALID_FS;
 
-	block_write_direct(sbi->handle, MFS_SUPERBLOCK, 1, sb);
+	rc = block_write_direct(sbi->handle, MFS_SUPERBLOCK, 1, sb);
 	free(sb);
+
+	return rc;
 }
 
-static void write_superblock3(struct mfs_sb_info *sbi)
+static int write_superblock3(struct mfs_sb_info *sbi)
 {
 	struct mfs3_superblock *sb;
+	int rc;
 
 	sb = (struct mfs3_superblock *) malloc(MFS_SUPERBLOCK_SIZE);
+
+	if (!sb)
+		return ENOMEM;
 
 	sb->s_ninodes = (uint32_t) sbi->n_inodes;
 	sb->s_nzones = (uint32_t) sbi->n_zones;
@@ -461,19 +524,25 @@ static void write_superblock3(struct mfs_sb_info *sbi)
 	sb->s_block_size = sbi->block_size;
 	sb->s_disk_version = 3;
 
-	block_write_direct(sbi->handle, MFS_SUPERBLOCK, 1, sb);
+	rc = block_write_direct(sbi->handle, MFS_SUPERBLOCK, 1, sb);
 	free(sb);
+
+	return rc;
 }
 
-static void init_bitmaps(struct mfs_sb_info *sb)
+static int init_bitmaps(struct mfs_sb_info *sb)
 {
 	uint32_t *ibmap_buf, *zbmap_buf;
 	int ibmap_nblocks = 1 + (sb->n_inodes / 8) / sb->block_size;
 	int zbmap_nblocks = 1 + (sb->n_zones / 8) / sb->block_size;
 	unsigned int i;
+	int rc;
 
 	ibmap_buf = (uint32_t *) malloc(ibmap_nblocks * sb->block_size);
 	zbmap_buf = (uint32_t *) malloc(zbmap_nblocks * sb->block_size);
+
+	if (!ibmap_buf || !zbmap_buf)
+		return ENOMEM;
 
 	memset(ibmap_buf, 0xFF, ibmap_nblocks * sb->block_size);
 	memset(zbmap_buf, 0xFF, zbmap_nblocks * sb->block_size);
@@ -487,11 +556,12 @@ static void init_bitmaps(struct mfs_sb_info *sb)
 	ibmap_nblocks *= sb->block_size / MFS_BLOCKSIZE;
 	zbmap_nblocks *= sb->block_size / MFS_BLOCKSIZE;
 
-	block_write_direct(sb->handle, 2, ibmap_nblocks, ibmap_buf);
-	block_write_direct(sb->handle, 2 + ibmap_nblocks, zbmap_nblocks, zbmap_buf);
+	if ((rc = block_write_direct(sb->handle, 2, ibmap_nblocks, ibmap_buf)) != EOK)
+		return rc;
+	if ((rc = block_write_direct(sb->handle, 2 + ibmap_nblocks, zbmap_nblocks, zbmap_buf)) != EOK)
+		return rc;
 
-	free(ibmap_buf);
-	free(zbmap_buf);
+	return rc;
 }
 
 static void mark_bmap(uint32_t *bmap, int idx, int v)
