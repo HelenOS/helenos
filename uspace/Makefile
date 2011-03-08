@@ -116,6 +116,7 @@ ifeq ($(UARCH),amd64)
 		drv/ns8250 \
 		srv/hw/irc/apic \
 		srv/hw/irc/i8259 \
+		drv/ehci-hcd \
 		drv/uhci-hcd \
 		drv/uhci-rhd \
 		drv/usbhid \
@@ -133,6 +134,7 @@ ifeq ($(UARCH),ia32)
 		drv/ns8250 \
 		srv/hw/irc/apic \
 		srv/hw/irc/i8259 \
+		drv/ehci-hcd \
 		drv/uhci-hcd \
 		drv/uhci-rhd \
 		drv/usbhid \

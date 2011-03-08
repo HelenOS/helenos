@@ -64,7 +64,6 @@ int pci_get_my_registers(ddf_dev_t *dev,
 	}
 
 	int rc;
-
 	hw_resource_list_t hw_resources;
 	rc = hw_res_get_resource_list(parent_phone, &hw_resources);
 	if (rc != EOK) {
@@ -81,30 +80,27 @@ int pci_get_my_registers(ddf_dev_t *dev,
 	size_t i;
 	for (i = 0; i < hw_resources.count; i++) {
 		hw_resource_t *res = &hw_resources.resources[i];
-		switch (res->type) {
-			case INTERRUPT:
-				irq = res->res.interrupt.irq;
-				irq_found = true;
-				usb_log_debug2("Found interrupt: %d.\n", irq);
-				break;
-			case IO_RANGE:
-				io_address = res->res.io_range.address;
-				io_size = res->res.io_range.size;
-				usb_log_debug2("Found io: %llx %zu.\n",
-				    res->res.io_range.address, res->res.io_range.size);
-				io_found = true;
-				break;
-			default:
-				break;
+		switch (res->type)
+		{
+		case INTERRUPT:
+			irq = res->res.interrupt.irq;
+			irq_found = true;
+			usb_log_debug2("Found interrupt: %d.\n", irq);
+			break;
+
+		case IO_RANGE:
+			io_address = res->res.io_range.address;
+			io_size = res->res.io_range.size;
+			usb_log_debug2("Found io: %llx %zu.\n",
+			    res->res.io_range.address, res->res.io_range.size);
+			io_found = true;
+
+		default:
+			break;
 		}
 	}
 
-	if (!io_found) {
-		rc = ENOENT;
-		goto leave;
-	}
-
-	if (!irq_found) {
+	if (!io_found || !irq_found) {
 		rc = ENOENT;
 		goto leave;
 	}
@@ -120,6 +116,11 @@ leave:
 	return rc;
 }
 /*----------------------------------------------------------------------------*/
+/** Calls the PCI driver with a request to enable interrupts
+ *
+ * @param[in] device Device asking for interrupts
+ * @return Error code.
+ */
 int pci_enable_interrupts(ddf_dev_t *device)
 {
 	int parent_phone = devman_parent_device_connect(device->handle,
@@ -129,11 +130,16 @@ int pci_enable_interrupts(ddf_dev_t *device)
 	return enabled ? EOK : EIO;
 }
 /*----------------------------------------------------------------------------*/
+/** Calls the PCI driver with a request to clear legacy support register
+ *
+ * @param[in] device Device asking to disable interrupts
+ * @return Error code.
+ */
 int pci_disable_legacy(ddf_dev_t *device)
 {
 	assert(device);
-	int parent_phone = devman_parent_device_connect(device->handle,
-		IPC_FLAG_BLOCKING);
+	int parent_phone =
+	    devman_parent_device_connect(device->handle, IPC_FLAG_BLOCKING);
 	if (parent_phone < 0) {
 		return parent_phone;
 	}
@@ -143,11 +149,11 @@ int pci_disable_legacy(ddf_dev_t *device)
 	sysarg_t address = 0xc0;
 	sysarg_t value = 0x8f00;
 
-  int rc = async_req_3_0(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE),
+	int rc = async_req_3_0(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE),
 	    IPC_M_CONFIG_SPACE_WRITE_16, address, value);
 	async_hangup(parent_phone);
 
-  return rc;
+	return rc;
 }
 /*----------------------------------------------------------------------------*/
 /**

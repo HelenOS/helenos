@@ -93,6 +93,7 @@ static bool pciintel_enable_interrupt(ddf_fun_t *fnode)
 
   sysarg_t apic;
   sysarg_t i8259;
+
 	int irc_phone = -1;
 	int irc_service = 0;
 
@@ -102,18 +103,22 @@ static bool pciintel_enable_interrupt(ddf_fun_t *fnode)
     irc_service = SERVICE_I8259;
 	}
 
-  if (irc_service) {
-    while (irc_phone < 0)
-      irc_phone = service_connect_blocking(irc_service, 0, 0);
-  } else {
+  if (irc_service == 0)
 		return false;
-	}
+
+	irc_phone = service_connect_blocking(irc_service, 0, 0);
+	if (irc_phone < 0)
+		return false;
 
 	size_t i;
   for (i = 0; i < dev_data->hw_resources.count; i++) {
 		if (dev_data->hw_resources.resources[i].type == INTERRUPT) {
 			int irq = dev_data->hw_resources.resources[i].res.interrupt.irq;
-			async_msg_1(irc_phone, IRC_ENABLE_INTERRUPT, irq);
+			int rc = async_req_1_0(irc_phone, IRC_ENABLE_INTERRUPT, irq);
+			if (rc != EOK) {
+				async_hangup(irc_phone);
+				return false;
+			}
 		}
 	}
 
@@ -121,7 +126,17 @@ static bool pciintel_enable_interrupt(ddf_fun_t *fnode)
 	return true;
 }
 
-static int pci_config_space_write_16(ddf_fun_t *fun, uint32_t address, uint16_t data)
+static int pci_config_space_write_32(
+    ddf_fun_t *fun, uint32_t address, uint32_t data)
+{
+	if (address > 252)
+		return EINVAL;
+	pci_conf_write_32(PCI_FUN(fun), address, data);
+	return EOK;
+}
+
+static int pci_config_space_write_16(
+    ddf_fun_t *fun, uint32_t address, uint16_t data)
 {
 	if (address > 254)
 		return EINVAL;
@@ -129,6 +144,41 @@ static int pci_config_space_write_16(ddf_fun_t *fun, uint32_t address, uint16_t 
 	return EOK;
 }
 
+static int pci_config_space_write_8(
+    ddf_fun_t *fun, uint32_t address, uint8_t data)
+{
+	if (address > 255)
+		return EINVAL;
+	pci_conf_write_8(PCI_FUN(fun), address, data);
+	return EOK;
+}
+
+static int pci_config_space_read_32(
+    ddf_fun_t *fun, uint32_t address, uint32_t *data)
+{
+	if (address > 252)
+		return EINVAL;
+	*data = pci_conf_read_32(PCI_FUN(fun), address);
+	return EOK;
+}
+
+static int pci_config_space_read_16(
+    ddf_fun_t *fun, uint32_t address, uint16_t *data)
+{
+	if (address > 254)
+		return EINVAL;
+	*data = pci_conf_read_16(PCI_FUN(fun), address);
+	return EOK;
+}
+
+static int pci_config_space_read_8(
+    ddf_fun_t *fun, uint32_t address, uint8_t *data)
+{
+	if (address > 255)
+		return EINVAL;
+	*data = pci_conf_read_8(PCI_FUN(fun), address);
+	return EOK;
+}
 
 static hw_res_ops_t pciintel_hw_res_ops = {
 	&pciintel_get_resources,
@@ -136,12 +186,12 @@ static hw_res_ops_t pciintel_hw_res_ops = {
 };
 
 static pci_dev_iface_t pci_dev_ops = {
-	.config_space_read_8 = NULL,
-	.config_space_read_16 = NULL,
-	.config_space_read_32 = NULL,
-	.config_space_write_8 = NULL,
+	.config_space_read_8 = &pci_config_space_read_8,
+	.config_space_read_16 = &pci_config_space_read_16,
+	.config_space_read_32 = &pci_config_space_read_32,
+	.config_space_write_8 = &pci_config_space_write_8,
 	.config_space_write_16 = &pci_config_space_write_16,
-	.config_space_write_32 = NULL
+	.config_space_write_32 = &pci_config_space_write_32
 };
 
 static ddf_dev_ops_t pci_fun_ops = {

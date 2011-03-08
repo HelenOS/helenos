@@ -43,6 +43,7 @@
 
 #define NAME "usbmid"
 
+/** USB MID device container. */
 typedef struct {
 	/** Device container. */
 	ddf_dev_t *dev;
@@ -53,6 +54,8 @@ typedef struct {
 	usb_endpoint_pipe_t ctrl_pipe;
 } usbmid_device_t;
 
+
+/** Container for single interface in a MID device. */
 typedef struct {
 	/** Function container. */
 	ddf_fun_t *fun;

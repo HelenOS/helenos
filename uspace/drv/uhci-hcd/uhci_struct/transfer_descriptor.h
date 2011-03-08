@@ -87,25 +87,41 @@ typedef struct transfer_descriptor {
 	 * Design guide, according to linux kernel the hardware does not care
 	 * we don't use it anyway
 	 */
-} __attribute__((packed)) transfer_descriptor_t;
+} __attribute__((packed)) td_t;
 
 
-void transfer_descriptor_init(transfer_descriptor_t *instance,
-    int error_count, size_t size, bool toggle, bool isochronous, bool low_speed,
-    usb_target_t target, int pid, void *buffer, transfer_descriptor_t * next);
+void td_init(td_t *instance, int error_count, size_t size, bool toggle, bool iso,
+    bool low_speed, usb_target_t target, usb_packet_id pid, void *buffer,
+    td_t *next);
 
-int transfer_descriptor_status(transfer_descriptor_t *instance);
+int td_status(td_t *instance);
 
-static inline size_t transfer_descriptor_actual_size(
-    transfer_descriptor_t *instance)
+static inline size_t td_act_size(td_t *instance)
 {
 	assert(instance);
 	return
-	    ((instance->status >> TD_STATUS_ACTLEN_POS) + 1) & TD_STATUS_ACTLEN_MASK;
+	    ((instance->status >> TD_STATUS_ACTLEN_POS) + 1)
+	    & TD_STATUS_ACTLEN_MASK;
 }
 
-static inline bool transfer_descriptor_is_active(
-    transfer_descriptor_t *instance)
+static inline bool td_is_short(td_t *instance)
+{
+	const size_t act_size = td_act_size(instance);
+	const size_t max_size =
+	    ((instance->device >> TD_DEVICE_MAXLEN_POS) + 1)
+	    & TD_DEVICE_MAXLEN_MASK;
+	return
+	    (instance->status | TD_STATUS_SPD_FLAG) && act_size < max_size;
+}
+
+static inline int td_toggle(td_t *instance)
+{
+	assert(instance);
+	return ((instance->device & TD_DEVICE_DATA_TOGGLE_ONE_FLAG) != 0)
+	    ? 1 : 0;
+}
+
+static inline bool td_is_active(td_t *instance)
 {
 	assert(instance);
 	return (instance->status & TD_STATUS_ERROR_ACTIVE) != 0;

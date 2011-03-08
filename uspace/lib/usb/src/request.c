@@ -109,7 +109,7 @@ int usb_control_request_set(usb_endpoint_pipe_t *pipe,
   * @param index Value of @c wIndex field of setup packet
   *	(must be in USB endianness).
   * @param data Buffer where to store data accepted during the DATA stage.
-  *	(they will come in USB endianess).
+  *	(they will come in USB endianness).
   * @param data_size Size of the @p data buffer
   * 	(in native endianness).
   * @param actual_data_size Actual size of transfered data
@@ -160,12 +160,6 @@ int usb_control_request_get(usb_endpoint_pipe_t *pipe,
  * This function automatically updates the backing connection to point to
  * the new address.
  *
- * @see usb_drv_reserve_default_address
- * @see usb_drv_release_default_address
- * @see usb_drv_request_address
- * @see usb_drv_release_address
- * @see usb_drv_bind_address
- *
  * @param pipe Control endpoint pipe (session must be already started).
  * @param new_address New USB address to be set (in native endianness).
  * @return Error code.
@@ -200,6 +194,7 @@ int usb_request_set_address(usb_endpoint_pipe_t *pipe,
  *
  * @param[in] pipe Control endpoint pipe (session must be already started).
  * @param[in] request_type Request type (standard/class/vendor).
+ * @param[in] recipient Request recipient (device/interface/endpoint).
  * @param[in] descriptor_type Descriptor type (device/configuration/HID/...).
  * @param[in] descriptor_index Descriptor index.
  * @param[in] language Language index.
@@ -234,6 +229,7 @@ int usb_request_get_descriptor(usb_endpoint_pipe_t *pipe,
  *
  * @param[in] pipe Control endpoint pipe (session must be already started).
  * @param[in] request_type Request type (standard/class/vendor).
+ * @param[in] recipient Request recipient (device/interface/endpoint).
  * @param[in] descriptor_type Descriptor type (device/configuration/HID/...).
  * @param[in] descriptor_index Descriptor index.
  * @param[in] language Language index.
@@ -527,7 +523,7 @@ int usb_request_get_supported_languages(usb_endpoint_pipe_t *pipe,
 		free(string_descriptor);
 		return EEMPTY;
 	}
-	/* Substract first 2 bytes (length and descriptor type). */
+	/* Subtract first 2 bytes (length and descriptor type). */
 	string_descriptor_size -= 2;
 
 	/* Odd number of bytes - descriptor is broken? */
@@ -547,7 +543,7 @@ int usb_request_get_supported_languages(usb_endpoint_pipe_t *pipe,
 
 	size_t i;
 	for (i = 0; i < langs_count; i++) {
-		/* Language code from the descriptor is in USB endianess. */
+		/* Language code from the descriptor is in USB endianness. */
 		/* FIXME: is this really correct? */
 		uint16_t lang_code = (string_descriptor[2 + 2 * i + 1] << 8)
 		    + string_descriptor[2 + 2 * i];
@@ -568,9 +564,9 @@ int usb_request_get_supported_languages(usb_endpoint_pipe_t *pipe,
  * For HelenOS, that is UTF-8.
  *
  * @param[in] pipe Control endpoint pipe (session must be already started).
- * @param[in] index String index (in native endianess),
+ * @param[in] index String index (in native endianness),
  *	first index has number 1 (index from descriptors can be used directly).
- * @param[in] lang String language (in native endianess).
+ * @param[in] lang String language (in native endianness).
  * @param[out] string_ptr Where to store allocated string in native encoding.
  * @return Error code.
  */
@@ -612,7 +608,7 @@ int usb_request_get_string(usb_endpoint_pipe_t *pipe,
 		rc =  EEMPTY;
 		goto leave;
 	}
-	/* Substract first 2 bytes (length and descriptor type). */
+	/* Subtract first 2 bytes (length and descriptor type). */
 	string_size -= 2;
 
 	/* Odd number of bytes - descriptor is broken? */

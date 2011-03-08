@@ -43,6 +43,11 @@
 
 #include "usbmid.h"
 
+/** Callback when new MID device is attached to the host.
+ *
+ * @param gen_dev Generic DDF device representing the new device.
+ * @return Error code.
+ */
 static int usbmid_add_device(ddf_dev_t *gen_dev)
 {
 	usbmid_device_t *dev = usbmid_device_create(gen_dev);
@@ -85,10 +90,12 @@ error_leave:
 	return rc;
 }
 
+/** USB MID driver ops. */
 static driver_ops_t mid_driver_ops = {
 	.add_device = usbmid_add_device,
 };
 
+/** USB MID driver. */
 static driver_t mid_driver = {
 	.name = NAME,
 	.driver_ops = &mid_driver_ops

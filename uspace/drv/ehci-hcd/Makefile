@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2010 Vojtech Horky
+# Copyright (c) 2011 Jan Vesely
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,25 +27,12 @@
 #
 
 USPACE_PREFIX = ../..
-LIBRARY = libusb
-LIBS = $(LIBDRV_PREFIX)/libdrv.a
-EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include -Iinclude
+LIBS = $(LIBDRV_PREFIX)/libdrv.a $(LIBUSB_PREFIX)/libusb.a
+EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include -I$(LIBUSB_PREFIX)/include -I.
+BINARY = ehci-hcd
 
 SOURCES = \
-	src/addrkeep.c \
-	src/class.c \
-	src/ddfiface.c \
-	src/debug.c \
-	src/dp.c \
-	src/dump.c \
-	src/hidparser.c \
-	src/hub.c \
-	src/pipes.c \
-	src/pipesinit.c \
-	src/pipesio.c \
-	src/recognise.c \
-	src/request.c \
-	src/usb.c \
-	src/usbdevice.c
+	main.c \
+	pci.c
 
 include $(USPACE_PREFIX)/Makefile.common
