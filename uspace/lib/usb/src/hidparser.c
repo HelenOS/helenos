@@ -32,14 +32,12 @@
 /** @file
  * @brief HID parser implementation.
  */
-
 #include <usb/classes/hidparser.h>
 #include <errno.h>
 #include <stdio.h>
 #include <malloc.h>
 #include <mem.h>
 #include <usb/debug.h>
-
 
 #define USB_HID_NEW_REPORT_ITEM 1
 #define USB_HID_NO_ACTION		2
@@ -437,12 +435,11 @@ int usb_hid_report_parse_local_tag(uint8_t tag, const uint8_t *data, size_t item
 			break;
 		case USB_HID_REPORT_TAG_STRING_MAXIMUM:
 			report_item->string_maximum = usb_hid_report_tag_data_int32(data,item_size);
-			break;
-/*			
+			break;			
 		case USB_HID_REPORT_TAG_DELIMITER:
 			report_item->delimiter = usb_hid_report_tag_data_int32(data,item_size);
 			break;
-*/		
+		
 		default:
 			return USB_HID_NO_ACTION;
 	}

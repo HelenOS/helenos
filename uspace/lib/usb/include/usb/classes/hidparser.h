@@ -76,6 +76,7 @@ typedef struct {
 	int32_t size;
 	int32_t count;
 	size_t offset;
+	int32_t delimiter;
 
 	int32_t unit_exponent;
 	int32_t unit;
