@@ -118,11 +118,11 @@ int usb_hid_parse_report_descriptor(usb_hid_report_parser_t *parser,
 		return ENOMEM;
 	}
 	link_initialize(&(report_item->link));	
-	
+
 	while(i<size){	
 		if(!USB_HID_ITEM_IS_LONG(data[i])){
 
-			if((i+1) >= size){
+			if((i+USB_HID_ITEM_SIZE(data[i]))>= size){
 				return -1; // TODO ERROR CODE
 			}
 			
@@ -199,7 +199,6 @@ int usb_hid_parse_report_descriptor(usb_hid_report_parser_t *parser,
 
 	}
 	
-
 	return EOK;
 }
 
@@ -325,16 +324,18 @@ int usb_hid_report_parse_main_tag(uint8_t tag, const uint8_t *data, size_t item_
 			
 		case USB_HID_REPORT_TAG_COLLECTION:
 			// TODO
+			return USB_HID_NO_ACTION;
 			break;
 			
 		case USB_HID_REPORT_TAG_END_COLLECTION:
 			/* should be ignored */
+			return USB_HID_NO_ACTION;
 			break;
 		default:
 			return USB_HID_NO_ACTION;
 	}
 
-	return USB_HID_NO_ACTION;
+	return EOK;
 }
 
 /**
