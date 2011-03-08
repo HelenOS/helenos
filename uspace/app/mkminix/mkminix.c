@@ -47,6 +47,7 @@
 #include <str.h>
 #include <getopt.h>
 #include <mem.h>
+#include <str.h>
 #include <minix.h>
 
 #define NAME	"mkminix"
@@ -55,6 +56,7 @@
 #define USED	1
 
 #define UPPER(n, size) (((n) / (size)) + (((n) % (size)) != 0))
+#define NEXT_DENTRY(p, dirsize)	(p += dirsize)
 
 typedef enum {
 	HELP_SHORT,
@@ -74,6 +76,7 @@ struct mfs_sb_info {
 	unsigned long itable_size;
 	int log2_zone_size;
 	int ino_per_block;
+	int dirsize;
 	uint32_t max_file_size;
 	uint16_t magic;
 	uint32_t block_size;
@@ -91,6 +94,7 @@ static void	init_inode_table(struct mfs_sb_info *sb);
 static void	make_root_ino(struct mfs_sb_info *sb);
 static void	make_root_ino3(struct mfs_sb_info *sb);
 static void	mark_bmap(uint32_t *bmap, int idx, int v);
+static void	insert_dentries(struct mfs_sb_info *sb);
 
 static struct option const long_options[] = {
 	{ "help", no_argument, 0, 'h' },
@@ -136,17 +140,20 @@ int main (int argc, char **argv)
 			sb.block_size = MFS_BLOCKSIZE;
 			sb.fs_version = 1;
 			sb.ino_per_block = V1_INODES_PER_BLOCK;
+			sb.dirsize = MFS_DIRSIZE;
 			break;
 		case '2':
 			sb.magic = MFS_MAGIC_V2;
 			sb.block_size = MFS_BLOCKSIZE;
 			sb.fs_version = 2;
 			sb.ino_per_block = V2_INODES_PER_BLOCK;
+			sb.dirsize = MFS_DIRSIZE;
 			break;
 		case '3':
 			sb.magic = MFS_MAGIC_V3;
 			sb.fs_version = 3;
 			sb.block_size = MFS_MAX_BLOCKSIZE;
+			sb.dirsize = MFS3_DIRSIZE;
 			break;
 		case 'b':
 			sb.block_size = (uint32_t) strtol(optarg, NULL, 10);
@@ -156,6 +163,7 @@ int main (int argc, char **argv)
 			break;
 		case 'l':
 			sb.longnames = true;
+			sb.dirsize = MFSL_DIRSIZE;
 			break;
 		}
 	}
@@ -231,7 +239,46 @@ int main (int argc, char **argv)
 	/*Init inode table*/
 	init_inode_table(&sb);
 
+	/*Insert directory entries . and ..*/
+	insert_dentries(&sb);
+
 	return 0;
+}
+
+static void insert_dentries(struct mfs_sb_info *sb)
+{
+	void *root_block;
+	const long root_dblock = sb->first_data_zone * (sb->block_size / MFS_MIN_BLOCKSIZE);
+
+	root_block = (void *) malloc(MFS_MIN_BLOCKSIZE);
+	
+	if (sb->fs_version != 3) {
+		/*Directories entry for V1/V2 filesystem*/
+		struct mfs_dentry *dentry = root_block;
+
+		dentry->d_inum = MFS_ROOT_INO;
+		str_cpy(dentry->d_name, 1, ".");
+
+		NEXT_DENTRY(dentry, sb->dirsize);
+
+		dentry->d_inum = MFS_ROOT_INO;
+		str_cpy(dentry->d_name, 2, "..");
+	} else {
+		/*Directories entry for V1/V2 filesystem*/
+		struct mfs3_dentry *dentry = root_block;
+
+		dentry->d_inum = MFS_ROOT_INO;
+		str_cpy(dentry->d_name, 1, ".");
+
+		NEXT_DENTRY(dentry, sb->dirsize);
+
+		dentry->d_inum = MFS_ROOT_INO;
+		str_cpy(dentry->d_name, 2, "..");
+	}
+
+	block_write_direct(sb->handle, root_dblock, 1, root_block);
+
+	free(root_block);
 }
 
 static void init_inode_table(struct mfs_sb_info *sb)
