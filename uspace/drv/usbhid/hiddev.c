@@ -134,6 +134,8 @@ static int usbhid_dev_get_report_descriptor(usbhid_dev_t *hid_dev,
 		return EINVAL;
 	}
 	
+	hid_dev->report_desc_size = length;
+	
 	usb_log_debug("Done.\n");
 	
 	return EOK;
@@ -218,7 +220,15 @@ static int usbhid_dev_process_descriptors(usbhid_dev_t *hid_dev,
 	free(descriptors);
 	
 	if (rc != EOK) {
-		usb_log_warning("Problem with parsing Report descriptor: %s.\n",
+		usb_log_warning("Problem with getting Report descriptor: %s.\n",
+		    str_error(rc));
+		return rc;
+	}
+	
+	rc = usb_hid_parse_report_descriptor(hid_dev->parser, 
+	    hid_dev->report_desc, hid_dev->report_desc_size);
+	if (rc != EOK) {
+		usb_log_warning("Problem parsing Report descriptor: %s.\n",
 		    str_error(rc));
 		return rc;
 	}
@@ -241,6 +251,14 @@ usbhid_dev_t *usbhid_dev_new(void)
 	}
 	
 	memset(dev, 0, sizeof(usbhid_dev_t));
+	
+	dev->parser = (usb_hid_report_parser_t *)(malloc(sizeof(
+	    usb_hid_report_parser_t)));
+	if (dev->parser == NULL) {
+		usb_log_fatal("No memory!\n");
+		free(dev);
+		return NULL;
+	}
 	
 	dev->initialized = 0;
 	
@@ -316,6 +334,15 @@ int usbhid_dev_init(usbhid_dev_t *hid_dev, ddf_dev_t *dev,
 	if (rc != EOK) {
 		usb_log_error("Failed to initialize default control pipe: %s."
 		    "\n", str_error(rc));
+		return rc;
+	}
+	
+	/*
+	 * Initialize the report parser.
+	 */
+	rc = usb_hid_parser_init(hid_dev->parser);
+	if (rc != EOK) {
+		usb_log_error("Failed to initialize report parser.\n");
 		return rc;
 	}
 

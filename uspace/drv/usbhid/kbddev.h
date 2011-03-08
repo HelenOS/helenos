@@ -39,6 +39,7 @@
 #include <stdint.h>
 
 #include <usb/classes/hid.h>
+#include <usb/classes/hidparser.h>
 #include <ddf/driver.h>
 #include <usb/pipes.h>
 
@@ -60,6 +61,8 @@ typedef struct {
 	unsigned lock_keys;
 	
 	int console_phone;
+	
+	usb_hid_report_parser_t *parser;
 	
 	int initialized;
 } usbhid_kbd_t;

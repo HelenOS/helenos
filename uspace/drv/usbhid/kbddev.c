@@ -495,6 +495,8 @@ static void usbhid_kbd_free(usbhid_kbd_t **kbd_dev)
 		assert((*kbd_dev)->hid_dev == NULL);
 	}
 	
+	usb_hid_free_report_parser((*kbd_dev)->parser);
+	
 	free(*kbd_dev);
 	*kbd_dev = NULL;
 }

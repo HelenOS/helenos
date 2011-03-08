@@ -61,6 +61,7 @@ typedef struct {
 	uint16_t iface;
 	
 	uint8_t *report_desc;
+	size_t report_desc_size;
 	usb_hid_report_parser_t *parser;
 	
 	int initialized;
