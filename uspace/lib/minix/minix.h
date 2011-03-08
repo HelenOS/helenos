@@ -74,6 +74,9 @@
 #define MFS_MAGIC_V3		0x4D5A
 #define MFS_MAGIC_V3R		0x5A4D
 
+#define MFS_VALID_FS		0x0001
+#define MFS_ERROR_FS		0x0002
+
 /*MFS V1/V2 superblock data on disk*/
 struct mfs_superblock {
 	/*Total number of inodes on the device*/
@@ -117,7 +120,7 @@ struct mfs3_superblock {
 	int16_t		s_log2_zone_size;
 	int16_t		s_pad1;
 	/*Maximum file size expressed in bytes*/
-	int32_t		s_max_file_size;
+	uint32_t	s_max_file_size;
 	/*Total number of zones on the device*/
 	uint32_t	s_nzones;
 	/*

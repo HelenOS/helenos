@@ -61,25 +61,32 @@ typedef enum {
 	HELP_LONG
 } help_level_t;
 
-typedef struct mfs_params {
-	int		fs_version;
-	devmap_handle_t	handle;
-	uint16_t	fs_magic;
-	uint32_t	block_size;
-	size_t		devblock_size;
-	unsigned long	n_inodes;
-	aoff64_t	dev_nblocks;
-	bool		fs_longnames;
-} mfs_params_t;
+/*Generic MFS superblock*/
+struct mfs_sb_info {
+	devmap_handle_t handle;
+	uint64_t n_inodes;
+	uint64_t n_zones;
+	aoff64_t dev_nblocks;
+	aoff64_t devblock_size;
+	unsigned long ibmap_blocks;
+	unsigned long zbmap_blocks;
+	unsigned long first_data_zone;
+	int log2_zone_size;
+	int ino_per_block;
+	uint32_t max_file_size;
+	uint16_t magic;
+	uint32_t block_size;
+	int fs_version;
+	bool longnames;
+};
 
 static void	help_cmd_mkminix(help_level_t level);
 static int	num_of_set_bits(uint32_t n);
-static void	init_superblock(struct mfs_superblock *sb, mfs_params_t *opt);
-static void	init_superblock_v3(struct mfs3_superblock *sb,
-					mfs_params_t *opt);
-static void	init_bitmaps(uint32_t ninodes,	uint32_t nzones,
-				int bsize, mfs_params_t *opt);
-static void	mark_bmap(uint8_t *bmap, int idx, int v);
+static void	init_superblock(struct mfs_sb_info *sb);
+static void	write_superblock(struct mfs_sb_info *sbi);
+static void	write_superblock3(struct mfs_sb_info *sbi);
+static void	init_bitmaps(struct mfs_sb_info *sb);
+static void	mark_bmap(uint32_t *bmap, int idx, int v);
 
 static struct option const long_options[] = {
 	{ "help", no_argument, 0, 'h' },
@@ -96,19 +103,17 @@ int main (int argc, char **argv)
 {
 	int rc, c, opt_ind;
 	char *device_name;
-	
-	struct mfs_superblock *sb;
-	struct mfs3_superblock *sb3;
 
-	mfs_params_t opt;
+	struct mfs_sb_info sb;
 
 	/*Default is MinixFS V3*/
-	opt.fs_magic = MFS_MAGIC_V3;
+	sb.magic = MFS_MAGIC_V3;
 
 	/*Default block size is 4Kb*/
-	opt.block_size = MFS_MAX_BLOCKSIZE;
-	opt.n_inodes = 0;
-	opt.fs_longnames = false;
+	sb.block_size = MFS_MAX_BLOCKSIZE;
+	sb.n_inodes = 0;
+	sb.longnames = false;
+	sb.ino_per_block = V3_INODES_PER_BLOCK(MFS_MAX_BLOCKSIZE);
 
 	if (argc == 1) {
 		help_cmd_mkminix(HELP_SHORT);
@@ -123,44 +128,47 @@ int main (int argc, char **argv)
 			help_cmd_mkminix(HELP_LONG);
 			exit(0);
 		case '1':
-			opt.fs_magic = MFS_MAGIC_V1;
-			opt.block_size = MFS_BLOCKSIZE;
-			opt.fs_version = 1;
+			sb.magic = MFS_MAGIC_V1;
+			sb.block_size = MFS_BLOCKSIZE;
+			sb.fs_version = 1;
+			sb.ino_per_block = V1_INODES_PER_BLOCK;
 			break;
 		case '2':
-			opt.fs_magic = MFS_MAGIC_V2;
-			opt.block_size = MFS_BLOCKSIZE;
-			opt.fs_version = 2;
+			sb.magic = MFS_MAGIC_V2;
+			sb.block_size = MFS_BLOCKSIZE;
+			sb.fs_version = 2;
+			sb.ino_per_block = V2_INODES_PER_BLOCK;
 			break;
 		case '3':
-			opt.fs_magic = MFS_MAGIC_V3;
-			opt.fs_version = 3;
+			sb.magic = MFS_MAGIC_V3;
+			sb.fs_version = 3;
+			sb.block_size = MFS_MAX_BLOCKSIZE;
 			break;
 		case 'b':
-			opt.block_size = (uint32_t) strtol(optarg, NULL, 10);
+			sb.block_size = (uint32_t) strtol(optarg, NULL, 10);
 			break;
 		case 'i':
-			opt.n_inodes = (unsigned long) strtol(optarg, NULL, 10);
+			sb.n_inodes = (unsigned long) strtol(optarg, NULL, 10);
 			break;
 		case 'l':
-			opt.fs_longnames = true;
+			sb.longnames = true;
 			break;
 		}
 	}
 
-	if (opt.block_size < MFS_MIN_BLOCKSIZE || 
-				opt.block_size > MFS_MAX_BLOCKSIZE) {
+	if (sb.block_size < MFS_MIN_BLOCKSIZE || 
+				sb.block_size > MFS_MAX_BLOCKSIZE) {
 		printf(NAME ":Error! Invalid block size.\n");
 		exit(0);
-	} else if (num_of_set_bits(opt.block_size) != 1) {
+	} else if (num_of_set_bits(sb.block_size) != 1) {
 		/*Block size must be a power of 2.*/
 		printf(NAME ":Error! Invalid block size.\n");
 		exit(0);
-	} else if (opt.block_size > MFS_BLOCKSIZE && 
-			opt.fs_magic != MFS_MAGIC_V3) {
+	} else if (sb.block_size > MFS_BLOCKSIZE && 
+			sb.fs_version != 3) {
 		printf(NAME ":Error! Block size > 1024 is supported by V3 filesystem only.\n");
 		exit(0);
-	} else if (opt.fs_magic == MFS_MAGIC_V3 && opt.fs_longnames) {
+	} else if (sb.fs_version == 3 && sb.longnames) {
 		printf(NAME ":Error! Long filenames are supported by V1/V2 filesystem only.\n");
 		exit(0);
 	}
@@ -174,217 +182,196 @@ int main (int argc, char **argv)
 		exit(0);
 	}
 
-	rc = devmap_device_get_handle(device_name, &opt.handle, 0);
+	rc = devmap_device_get_handle(device_name, &sb.handle, 0);
 	if (rc != EOK) {
 		printf(NAME ": Error resolving device `%s'.\n", device_name);
 		return 2;
 	}
 
-	rc = block_init(opt.handle, MFS_MIN_BLOCKSIZE);
+	rc = block_init(sb.handle, MFS_MIN_BLOCKSIZE);
 	if (rc != EOK)  {
 		printf(NAME ": Error initializing libblock.\n");
 		return 2;
 	}
 
-	rc = block_get_bsize(opt.handle, &opt.devblock_size);
+	rc = block_get_bsize(sb.handle, &sb.devblock_size);
 	if (rc != EOK) {
 		printf(NAME ": Error determining device block size.\n");
 		return 2;
 	}
 
-	rc = block_get_nblocks(opt.handle, &opt.dev_nblocks);
+	rc = block_get_nblocks(sb.handle, &sb.dev_nblocks);
 	if (rc != EOK) {
 		printf(NAME ": Warning, failed to obtain block device size.\n");
 	} else {
 		printf(NAME ": Block device has %" PRIuOFF64 " blocks.\n",
-		    opt.dev_nblocks);
+		    sb.dev_nblocks);
 	}
 
-	if (opt.devblock_size != 512) {
+	if (sb.devblock_size != 512) {
 		printf(NAME ": Error. Device block size is not 512 bytes.\n");
 		return 2;
 	}
 
 	/*Minimum block size is 1 Kb*/
-	opt.dev_nblocks /= 2;
+	sb.dev_nblocks /= 2;
 
 	printf(NAME ": Creating Minix file system on device\n");
 
-	/*Setting up superblock*/
+	/*Initialize superblock*/
+	init_superblock(&sb);
 
-	if (opt.fs_magic == MFS_MAGIC_V3) {
-		sb3 = (struct mfs3_superblock *) malloc(sizeof(struct mfs3_superblock));
-		if (!sb3) {
-			printf(NAME ": Error, not enough memory");
-			return 2;
-		}
-		init_superblock_v3(sb3, &opt);
-		init_bitmaps(sb3->s_ninodes, sb3->s_nzones, sb3->s_block_size, &opt);
-	} else {
-		sb = (struct mfs_superblock *) malloc(sizeof(struct mfs_superblock));
-		if (!sb) {
-			printf(NAME ": Error, not enough memory");
-			return 2;
-		}
-		init_superblock(sb, &opt);
-		init_bitmaps(sb->s_ninodes, sb->s_nzones, MFS_BLOCKSIZE, &opt);
-	}
+	/*Initialize bitmaps*/
+	init_bitmaps(&sb);
 
 	return 0;
 }
 
-static void init_superblock(struct mfs_superblock *sb, mfs_params_t *opt)
+static void init_superblock(struct mfs_sb_info *sb)
 {
-	int ino_per_block = 0;
 	aoff64_t inodes;
 
-	if (opt->fs_version == 1) {
-		ino_per_block = V1_INODES_PER_BLOCK;
-		if (opt->fs_longnames)
-			opt->fs_magic = MFS_MAGIC_V1L;
+	if (sb->longnames)
+		sb->magic = sb->fs_version == 1 ? MFS_MAGIC_V1L : MFS_MAGIC_V2L;
+
+	/*Compute the number of zones on disk*/
+
+	if (sb->fs_version == 1) {
+		/*Valid only for MFS V1*/
+		sb->n_zones = sb->dev_nblocks > UINT16_MAX ? 
+			UINT16_MAX : sb->dev_nblocks;
 	} else {
-		ino_per_block = V2_INODES_PER_BLOCK;
-		if (opt->fs_longnames)
-			opt->fs_magic = MFS_MAGIC_V2L;
+		/*Valid for MFS V2/V3*/
+		sb->n_zones = sb->dev_nblocks > UINT32_MAX ?
+			UINT32_MAX : sb->dev_nblocks;
+
+		if (sb->fs_version == 3) {
+			sb->ino_per_block = V3_INODES_PER_BLOCK(sb->block_size);
+			sb->n_zones /= (sb->block_size / MFS_MIN_BLOCKSIZE);
+		}
 	}
 
-	sb->s_magic = opt->fs_magic;
-
-	/*Compute the number of zones on disk*/
-
-	/*Valid only for MFS V1*/
-	sb->s_nzones = opt->dev_nblocks > UINT16_MAX ? 
-			UINT16_MAX : opt->dev_nblocks;
-
-	/*Valid only for MFS V2*/
-	sb->s_nzones2 = opt->dev_nblocks > UINT32_MAX ?
-			UINT32_MAX : opt->dev_nblocks;
-
 	/*Round up the number of inodes to fill block size*/
-	if (opt->n_inodes == 0)
-		inodes = opt->dev_nblocks / 3;		
-	else
-		inodes = opt->n_inodes;
+	if (sb->n_inodes == 0)
+		inodes = sb->dev_nblocks / 3;
 
-	if (inodes % ino_per_block)
-		inodes = ((inodes / ino_per_block) + 1) * ino_per_block;
-	sb->s_ninodes = inodes > UINT16_MAX ? UINT16_MAX : inodes;
+	if (inodes % sb->ino_per_block)
+		inodes = ((inodes / sb->ino_per_block) + 1) * sb->ino_per_block;
+	
+	if (sb->fs_version < 3)
+		sb->n_inodes = inodes > UINT16_MAX ? UINT16_MAX : inodes;
+	else
+		sb->n_inodes = inodes > UINT32_MAX ? UINT32_MAX : inodes;
 
 	/*Compute inode bitmap size in blocks*/
-	sb->s_ibmap_blocks = UPPER(sb->s_ninodes, MFS_BLOCKSIZE * 8);
+	sb->ibmap_blocks = UPPER(sb->n_inodes, sb->block_size * 8);
 
 	/*Compute zone bitmap size in blocks*/
-	if (opt->fs_version == 1)
-		sb->s_zbmap_blocks = UPPER(sb->s_nzones, MFS_BLOCKSIZE * 8);
-	else
-		sb->s_zbmap_blocks = UPPER(sb->s_nzones2, MFS_BLOCKSIZE * 8);
+	sb->zbmap_blocks = UPPER(sb->n_zones, sb->block_size * 8);
 
 	/*Compute inode table size*/
-	unsigned long ninodes_blocks = sb->s_ninodes / ino_per_block;
+	unsigned long ninodes_blocks = sb->n_inodes / sb->ino_per_block;
 
 	/*Compute first data zone position*/
-	sb->s_first_data_zone = 2 + ninodes_blocks + 
-				sb->s_zbmap_blocks + sb->s_ibmap_blocks;
+	sb->first_data_zone = 2 + ninodes_blocks + 
+				sb->zbmap_blocks + sb->ibmap_blocks;
 
 	/*Set log2 of zone to block ratio to zero*/
-	sb->s_log2_zone_size = 0;
+	sb->log2_zone_size = 0;
 
 	/*Superblock is now ready to be written on disk*/
-	printf(NAME ": %d inodes\n", sb->s_ninodes);
-	printf(NAME ": %d zones\n", sb->s_nzones2);
+	printf(NAME ": %d inodes\n", (uint32_t) sb->n_inodes);
+	printf(NAME ": %d zones\n", (uint32_t) sb->n_zones);
 	printf(NAME ": inode table blocks = %ld\n", ninodes_blocks);
-	printf(NAME ": first data zone = %d\n", sb->s_first_data_zone);
-	printf(NAME ": long fnames = %s\n", opt->fs_longnames ? "Yes" : "No");
+	printf(NAME ": first data zone = %d\n", (uint32_t) sb->first_data_zone);
+	printf(NAME ": long fnames = %s\n", sb->longnames ? "Yes" : "No");
 
-	block_write_direct(opt->handle, MFS_SUPERBLOCK, 1, sb);
+	if (sb->fs_version == 3)
+		write_superblock3(sb);
+	else
+		write_superblock(sb);
 }
 
-static void init_superblock_v3(struct mfs3_superblock *sb, mfs_params_t *opt)
+static void write_superblock(struct mfs_sb_info *sbi)
 {
-	int ino_per_block;
-	int bs;
-	aoff64_t inodes;
+	struct mfs_superblock *sb;
+	uint8_t *superblock_buf;
 
-	sb->s_magic = opt->fs_magic;
-	bs = opt->block_size;
+	superblock_buf = malloc(1024);
 
-	if (opt->n_inodes == 0)
-		inodes = opt->dev_nblocks / 3;		
-	else
-		inodes = opt->n_inodes;
+	sb = (struct mfs_superblock *) superblock_buf;
 
-	/*Round up the number of inodes to fill block size*/
-	ino_per_block = V3_INODES_PER_BLOCK(bs);
-	if (inodes % ino_per_block)
-		inodes = ((inodes / ino_per_block) + 1) * ino_per_block;
-	sb->s_ninodes = inodes > UINT32_MAX ? UINT32_MAX : inodes;
+	sb->s_ninodes = (uint16_t) sbi->n_inodes;
+	sb->s_nzones = (uint16_t) sbi->n_zones;
+	sb->s_nzones2 = (uint32_t) sbi->n_zones;
+	sb->s_ibmap_blocks = (uint16_t) sbi->ibmap_blocks;
+	sb->s_zbmap_blocks = (uint16_t) sbi->zbmap_blocks;
+	sb->s_first_data_zone = (uint16_t) sbi->first_data_zone;
+	sb->s_log2_zone_size = sbi->log2_zone_size;
+	sb->s_max_file_size = UINT32_MAX;
+	sb->s_magic = sbi->magic;
+	sb->s_state = MFS_VALID_FS;
 
-	/*Compute the number of zones on disk*/
-	sb->s_nzones = opt->dev_nblocks > UINT32_MAX ?
-			UINT32_MAX : opt->dev_nblocks;
-	sb->s_nzones /= (bs / MFS_MIN_BLOCKSIZE);
+	block_write_direct(sbi->handle, MFS_SUPERBLOCK, 1, sb);
+	free(superblock_buf);
+}
 
-	/*Compute inode bitmap size in blocks*/
-	sb->s_ibmap_blocks = UPPER(sb->s_ninodes, bs * 8);
+static void write_superblock3(struct mfs_sb_info *sbi)
+{
+	struct mfs3_superblock *sb;
+	uint8_t *superblock_buf;
 
-	/*Compute zone bitmap size in blocks*/
-	sb->s_zbmap_blocks = UPPER(sb->s_nzones, bs * 8);
+	superblock_buf = malloc(1024);
 
-	/*Compute inode table size*/
-	unsigned long ninodes_blocks = sb->s_ninodes / ino_per_block;
+	sb = (struct mfs3_superblock *) superblock_buf;
 
-	/*Compute first data zone position*/
-	sb->s_first_data_zone = 2 + ninodes_blocks + 
-				sb->s_zbmap_blocks + sb->s_ibmap_blocks;
-
-	/*Set log2 of zone to block ratio to zero*/
-	sb->s_log2_zone_size = 0;
+	sb->s_ninodes = (uint32_t) sbi->n_inodes;
+	sb->s_nzones = (uint32_t) sbi->n_zones;
+	sb->s_ibmap_blocks = (uint16_t) sbi->ibmap_blocks;
+	sb->s_zbmap_blocks = (uint16_t) sbi->zbmap_blocks;
+	sb->s_first_data_zone = (uint16_t) sbi->first_data_zone;
+	sb->s_log2_zone_size = sbi->log2_zone_size;
+	sb->s_max_file_size = UINT32_MAX;
+	sb->s_magic = sbi->magic;
+	sb->s_block_size = sbi->block_size;
 	sb->s_disk_version = 3;
-	sb->s_block_size = bs;
 
-	/*Superblock is now ready to be written on disk*/
-	printf(NAME ": %d inodes\n", sb->s_ninodes);
-	printf(NAME ": %d zones\n", sb->s_nzones);
-	printf(NAME ": block size = %d\n", sb->s_block_size);
-	printf(NAME ": inode table blocks = %ld\n", ninodes_blocks);
-	printf(NAME ": first data zone = %d\n", sb->s_first_data_zone);
-
-	block_write_direct(opt->handle, MFS_SUPERBLOCK, 1, sb);
+	block_write_direct(sbi->handle, MFS_SUPERBLOCK, 1, sb);
+	free(superblock_buf);
 }
 
-static void init_bitmaps(uint32_t ninodes, uint32_t nzones,
-				int bsize, mfs_params_t *opt)
+static void init_bitmaps(struct mfs_sb_info *sb)
 {
-	uint8_t *ibmap_buf, *zbmap_buf;
-	int ibmap_nblocks = 1 + (ninodes / 8) / bsize;
-	int zbmap_nblocks = 1 + (nzones / 8) / bsize;
+	uint32_t *ibmap_buf, *zbmap_buf;
+	int ibmap_nblocks = 1 + (sb->n_inodes / 8) / sb->block_size;
+	int zbmap_nblocks = 1 + (sb->n_zones / 8) / sb->block_size;
 	unsigned int i;
 
-	ibmap_buf = (uint8_t *) malloc(ibmap_nblocks * bsize);
-	zbmap_buf = (uint8_t *) malloc(zbmap_nblocks * bsize);
+	ibmap_buf = (uint32_t *) malloc(ibmap_nblocks * sb->block_size);
+	zbmap_buf = (uint32_t *) malloc(zbmap_nblocks * sb->block_size);
 
-	memset(ibmap_buf, 0xFF, ibmap_nblocks * bsize);
-	memset(zbmap_buf, 0xFF, zbmap_nblocks * bsize);
+	memset(ibmap_buf, 0xFF, ibmap_nblocks * sb->block_size);
+	memset(zbmap_buf, 0xFF, zbmap_nblocks * sb->block_size);
 
-	for (i = 2; i < ninodes; ++i)
+	for (i = 2; i < sb->n_inodes; ++i)
 		mark_bmap(ibmap_buf, i, FREE);
 
-	for (i = 2; i < nzones; ++i)
+	for (i = 2; i < sb->n_zones; ++i)
 		mark_bmap(zbmap_buf, i, FREE);
 
-	ibmap_nblocks *= bsize / MFS_BLOCKSIZE;
-	zbmap_nblocks *= bsize / MFS_BLOCKSIZE;
+	ibmap_nblocks *= sb->block_size / MFS_BLOCKSIZE;
+	zbmap_nblocks *= sb->block_size / MFS_BLOCKSIZE;
 
-	block_write_direct(opt->handle, 2, ibmap_nblocks, ibmap_buf);
-	block_write_direct(opt->handle, 2 + ibmap_nblocks, zbmap_nblocks, zbmap_buf);
+	block_write_direct(sb->handle, 2, ibmap_nblocks, ibmap_buf);
+	block_write_direct(sb->handle, 2 + ibmap_nblocks, zbmap_nblocks, zbmap_buf);
 }
 
-static void mark_bmap(uint8_t *bmap, int idx, int v)
+static void mark_bmap(uint32_t *bmap, int idx, int v)
 {
 	if (v == FREE)
-		bmap[idx / 8] &= ~(1 << (idx % 8));
+		bmap[idx / 32] &= ~(1 << (idx % 32));
 	else
-		bmap[idx / 8] |= 1 << (idx % 8);
+		bmap[idx / 32] |= 1 << (idx % 32);
 }
 
 static void help_cmd_mkminix(help_level_t level)
