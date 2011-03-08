@@ -159,7 +159,7 @@ int main (int argc, char **argv)
 			sb.block_size = (uint32_t) strtol(optarg, NULL, 10);
 			break;
 		case 'i':
-			sb.n_inodes = (unsigned long) strtol(optarg, NULL, 10);
+			sb.n_inodes = (uint64_t) strtol(optarg, NULL, 10);
 			break;
 		case 'l':
 			sb.longnames = true;
@@ -377,6 +377,8 @@ static void init_superblock(struct mfs_sb_info *sb)
 	/*Round up the number of inodes to fill block size*/
 	if (sb->n_inodes == 0)
 		inodes = sb->dev_nblocks / 3;
+	else
+		inodes = sb->n_inodes;
 
 	if (inodes % sb->ino_per_block)
 		inodes = ((inodes / sb->ino_per_block) + 1) * sb->ino_per_block;
