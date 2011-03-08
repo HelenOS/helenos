@@ -34,6 +34,7 @@
  */
 #include <assert.h>
 #include <errno.h>
+#include <usb/debug.h>
 
 #include "device_keeper.h"
 
@@ -119,7 +120,10 @@ void device_keeper_reset_if_need(
 
 	case 0x9: /* set configuration */
 	case 0x11: /* set interface */
-		instance->devices[target.address].toggle_status = 0;
+		/* target must be device */
+		if ((data[0] & 0xf) == 0) {
+			instance->devices[target.address].toggle_status = 0;
+		}
 	break;
 	}
 	fibril_mutex_unlock(&instance->guard);
