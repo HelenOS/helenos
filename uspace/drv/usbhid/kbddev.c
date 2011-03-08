@@ -439,11 +439,13 @@ static void usbhid_kbd_process_data(usbhid_kbd_t *kbd_dev,
 	
 	callbacks->keyboard = usbhid_kbd_process_keycodes;
 
-	usb_log_debug("Calling usb_hid_boot_keyboard_input_report() with "
+	usb_log_debug("Calling usb_hid_parse_report() with "
 	    "buffer %s\n", usb_debug_str_buffer(buffer, actual_size, 0));
 	
-	int rc = usb_hid_boot_keyboard_input_report(buffer, actual_size,
-	    callbacks, kbd_dev);
+//	int rc = usb_hid_boot_keyboard_input_report(buffer, actual_size,
+//	    callbacks, kbd_dev);
+	int rc = usb_hid_parse_report(kbd_dev->hid_dev->parser, buffer,
+	    actual_size, callbacks, kbd_dev);
 	
 	if (rc != EOK) {
 		usb_log_warning("Error in usb_hid_boot_keyboard_input_report():"
@@ -557,7 +559,7 @@ static int usbhid_kbd_init(usbhid_kbd_t *kbd_dev, ddf_dev_t *dev)
 	 */
 	assert(kbd_dev->hid_dev != NULL);
 	assert(kbd_dev->hid_dev->initialized);
-	usbhid_req_set_protocol(kbd_dev->hid_dev, USB_HID_PROTOCOL_BOOT);
+	//usbhid_req_set_protocol(kbd_dev->hid_dev, USB_HID_PROTOCOL_BOOT);
 	
 	usbhid_kbd_set_led(kbd_dev);
 	

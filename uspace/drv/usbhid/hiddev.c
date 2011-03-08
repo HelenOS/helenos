@@ -233,6 +233,8 @@ static int usbhid_dev_process_descriptors(usbhid_dev_t *hid_dev,
 		return rc;
 	}
 	
+	usb_hid_descriptor_print(hid_dev->parser);
+	
 	return EOK;
 }
 
