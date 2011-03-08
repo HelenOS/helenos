@@ -194,6 +194,7 @@ int usb_request_set_address(usb_endpoint_pipe_t *pipe,
  *
  * @param[in] pipe Control endpoint pipe (session must be already started).
  * @param[in] request_type Request type (standard/class/vendor).
+ * @param[in] recipient Request recipient (device/interface/endpoint).
  * @param[in] descriptor_type Descriptor type (device/configuration/HID/...).
  * @param[in] descriptor_index Descriptor index.
  * @param[in] language Language index.
@@ -228,6 +229,7 @@ int usb_request_get_descriptor(usb_endpoint_pipe_t *pipe,
  *
  * @param[in] pipe Control endpoint pipe (session must be already started).
  * @param[in] request_type Request type (standard/class/vendor).
+ * @param[in] recipient Request recipient (device/interface/endpoint).
  * @param[in] descriptor_type Descriptor type (device/configuration/HID/...).
  * @param[in] descriptor_index Descriptor index.
  * @param[in] language Language index.

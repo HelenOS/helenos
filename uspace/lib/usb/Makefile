@@ -46,7 +46,6 @@ SOURCES = \
 	src/recognise.c \
 	src/request.c \
 	src/usb.c \
-	src/usbdevice.c \
-	src/usbmem.c
+	src/usbdevice.c
 
 include $(USPACE_PREFIX)/Makefile.common

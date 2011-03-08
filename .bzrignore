@@ -76,7 +76,6 @@ _link.ld
 ./uspace/dist/drv/*
 ./uspace/dist/srv/*
 ./uspace/drv/root/root
-./uspace/drv/ehci-hcd/ehci-hcd
 ./uspace/drv/isa/isa
 ./uspace/drv/ns8250/ns8250
 ./uspace/drv/pciintel/pciintel

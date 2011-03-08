@@ -255,3 +255,10 @@
 	 * @brief Driver for USB host controller UHCI.
 	 */
 
+	/**
+	 * @defgroup drvusbehci EHCI driver
+	 * @ingroup usb
+	 * @brief Driver for EHCI host controller.
+	 */
+
+

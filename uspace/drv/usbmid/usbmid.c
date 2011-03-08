@@ -124,7 +124,7 @@ usbmid_device_t *usbmid_device_create(ddf_dev_t *dev)
 
 /** Create new interface for USB MID device.
  *
- * @param dev Backing generic DDF child device (representing interface).
+ * @param fun Backing generic DDF device function (representing interface).
  * @param iface_no Interface number.
  * @return New interface.
  * @retval NULL Error occured.

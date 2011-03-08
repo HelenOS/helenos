@@ -56,6 +56,7 @@
 /** Tell host controller to reserve default address.
  *
  * @param connection Opened connection to host controller.
+ * @param speed Speed of the device that will respond on the default address.
  * @return Error code.
  */
 int usb_hc_reserve_default_address(usb_hc_connection_t *connection,
@@ -85,6 +86,8 @@ int usb_hc_release_default_address(usb_hc_connection_t *connection)
 /** Ask host controller for free address assignment.
  *
  * @param connection Opened connection to host controller.
+ * @param speed Speed of the new device (device that will be assigned
+ *    the returned address).
  * @return Assigned USB address or negative error code.
  */
 usb_address_t usb_hc_request_address(usb_hc_connection_t *connection,
@@ -155,15 +158,20 @@ int usb_hc_unregister_device(usb_hc_connection_t *connection,
  * The return value is then returned (it is good idea to use different
  * error codes than those listed as return codes by this function itself).
  *
- * @param parent Parent device (i.e. the hub device).
- * @param connection Opened connection to host controller.
- * @param dev_speed New device speed.
- * @param enable_port Function for enabling signaling through the port the
+ * @param[in] parent Parent device (i.e. the hub device).
+ * @param[in] connection Opened connection to host controller.
+ * @param[in] dev_speed New device speed.
+ * @param[in] enable_port Function for enabling signaling through the port the
  *	device is attached to.
- * @param port_no Port number (passed through to @p enable_port).
- * @param arg Any data argument to @p enable_port.
+ * @param[in] port_no Port number (passed through to @p enable_port).
+ * @param[in] arg Any data argument to @p enable_port.
  * @param[out] assigned_address USB address of the device.
  * @param[out] assigned_handle Devman handle of the new device.
+ * @param[in] dev_ops Child device ops.
+ * @param[in] new_dev_data Arbitrary pointer to be stored in the child
+ *	as @c driver_data.
+ * @param[out] new_fun Storage where pointer to allocated child function
+ *	will be written.
  * @return Error code.
  * @retval ENOENT Connection to HC not opened.
  * @retval EADDRNOTAVAIL Failed retrieving free address from host controller.
