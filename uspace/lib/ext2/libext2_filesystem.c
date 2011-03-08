@@ -231,6 +231,7 @@ int ext2_filesystem_get_inode_ref(ext2_filesystem_t *fs, uint32_t index,
 	}
 	
 	newref->inode = newref->block->data + offset_in_block;
+	newref->index = index+1; // we decremented index above
 	
 	*ref = newref;
 	

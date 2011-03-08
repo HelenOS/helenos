@@ -73,7 +73,7 @@ fs_reg_t ext2fs_reg;
  * upon each request, EXT2FS might want to keep the connections open after the
  * request has been completed.
  */
-static void ext2_connection(ipc_callid_t iid, ipc_call_t *icall)
+static void ext2fs_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
 	if (iid) {
 		/*
@@ -151,8 +151,14 @@ int main(int argc, char **argv)
 		printf(NAME ": failed to connect to VFS\n");
 		return -1;
 	}
-	
-	rc = fs_register(vfs_phone, &ext2fs_reg, &ext2fs_vfs_info, ext2_connection);
+
+	rc = ext2fs_global_init();
+	if (rc != EOK) {
+		printf(NAME ": Failed global initialization\n");
+		return 1;
+	}	
+		
+	rc = fs_register(vfs_phone, &ext2fs_reg, &ext2fs_vfs_info, ext2fs_connection);
 	
 	printf(NAME ": Accepting connections\n");
 	task_retval(0);

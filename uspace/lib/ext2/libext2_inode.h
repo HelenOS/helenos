@@ -74,9 +74,12 @@ typedef struct ext2_inode {
 #define EXT2_INODE_MODE_TYPE_MASK	0xF000
 #define EXT2_INODE_DIRECT_BLOCKS	12
 
+#define EXT2_INODE_ROOT_INDEX		2
+
 typedef struct ext2_inode_ref {
 	block_t *block; // Reference to a block containing this inode
 	ext2_inode_t *inode;
+	uint32_t index; // Index number of this inode
 } ext2_inode_ref_t;
 
 inline uint32_t ext2_inode_get_mode(ext2_superblock_t *, ext2_inode_t *);

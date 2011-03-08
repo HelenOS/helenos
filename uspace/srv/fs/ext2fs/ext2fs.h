@@ -50,6 +50,7 @@
 extern fs_reg_t ext2fs_reg;
 
 extern int ext2fs_global_init(void);
+extern int ext2fs_global_fini(void);
 extern void ext2fs_mounted(ipc_callid_t, ipc_call_t *);
 extern void ext2fs_mount(ipc_callid_t, ipc_call_t *);
 extern void ext2fs_unmounted(ipc_callid_t, ipc_call_t *);
