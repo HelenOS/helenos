@@ -373,11 +373,8 @@ static void init_superblock(struct mfs_sb_info *sb)
 static void write_superblock(struct mfs_sb_info *sbi)
 {
 	struct mfs_superblock *sb;
-	uint8_t *superblock_buf;
 
-	superblock_buf = malloc(1024);
-
-	sb = (struct mfs_superblock *) superblock_buf;
+	sb = (struct mfs_superblock *) malloc(MFS_SUPERBLOCK_SIZE);;
 
 	sb->s_ninodes = (uint16_t) sbi->n_inodes;
 	sb->s_nzones = (uint16_t) sbi->n_zones;
@@ -391,7 +388,7 @@ static void write_superblock(struct mfs_sb_info *sbi)
 	sb->s_state = MFS_VALID_FS;
 
 	block_write_direct(sbi->handle, MFS_SUPERBLOCK, 1, sb);
-	free(superblock_buf);
+	free(sb);
 }
 
 static void write_superblock3(struct mfs_sb_info *sbi)
