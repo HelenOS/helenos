@@ -551,7 +551,7 @@ static int init_bitmaps(struct mfs_sb_info *sb)
 	for (i = 2; i < sb->n_inodes; ++i)
 		mark_bmap(ibmap_buf, i, FREE);
 
-	for (i = 2; i < sb->n_zones; ++i)
+	for (i = sb->first_data_zone + 1; i < sb->n_zones; ++i)
 		mark_bmap(zbmap_buf, i, FREE);
 
 	ibmap_nblocks *= sb->block_size / MFS_BLOCKSIZE;
