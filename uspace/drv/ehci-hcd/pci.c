@@ -26,12 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 /**
- * @addtogroup drvusbuhci
+ * @addtogroup drvusbehci
  * @{
  */
 /**
  * @file
- * PCI related functions needed by the UHCI driver.
+ * PCI related functions needed by the EHCI driver.
  */
 #include <errno.h>
 #include <assert.h>

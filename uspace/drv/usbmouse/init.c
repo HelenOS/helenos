@@ -107,7 +107,7 @@ static ddf_dev_ops_t mouse_ops = {
 
 /** Default handler for IPC methods not handled by DDF.
  *
- * @param dev Device handling the call.
+ * @param fun Device function handling the call.
  * @param icallid Call id.
  * @param icall Call data.
  */
