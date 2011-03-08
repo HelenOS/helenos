@@ -55,7 +55,7 @@ usb_iface_t  usb_iface_hub_child_impl = {
 
 /** Get host controller handle, interface implementation for hub driver.
  *
- * @param[in] device Device the operation is running on.
+ * @param[in] fun Device function the operation is running on.
  * @param[out] handle Storage for the host controller handle.
  * @return Error code.
  */
@@ -68,7 +68,7 @@ int usb_iface_get_hc_handle_hub_impl(ddf_fun_t *fun, devman_handle_t *handle)
 /** Get host controller handle, interface implementation for child of
  * a hub driver.
  *
- * @param[in] device Device the operation is running on.
+ * @param[in] fun Device function the operation is running on.
  * @param[out] handle Storage for the host controller handle.
  * @return Error code.
  */
@@ -100,7 +100,7 @@ int usb_iface_get_hc_handle_hub_child_impl(ddf_fun_t *fun,
 
 /** Get host controller handle, interface implementation for HC driver.
  *
- * @param[in] device Device the operation is running on.
+ * @param[in] fun Device function the operation is running on.
  * @param[out] handle Storage for the host controller handle.
  * @return Always EOK.
  */
@@ -117,7 +117,7 @@ int usb_iface_get_hc_handle_hc_impl(ddf_fun_t *fun, devman_handle_t *handle)
 
 /** Get USB device address, interface implementation for hub driver.
  *
- * @param[in] device Device the operation is running on.
+ * @param[in] fun Device function the operation is running on.
  * @param[in] handle Devman handle of USB device we want address of.
  * @param[out] address Storage for USB address of device with handle @p handle.
  * @return Error code.
@@ -152,7 +152,7 @@ int usb_iface_get_address_hub_impl(ddf_fun_t *fun, devman_handle_t handle,
 /** Get USB device address, interface implementation for child of
  * a hub driver.
  *
- * @param[in] device Device the operation is running on.
+ * @param[in] fun Device function the operation is running on.
  * @param[in] handle Devman handle of USB device we want address of.
  * @param[out] address Storage for USB address of device with handle @p handle.
  * @return Error code.

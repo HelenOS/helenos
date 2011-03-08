@@ -137,11 +137,12 @@ failure:
 
 /** Create device match ids based on its interface.
  *
- * @param[in] descriptor Interface descriptor.
+ * @param[in] desc_device Device descriptor.
+ * @param[in] desc_interface Interface descriptor.
  * @param[out] matches Initialized list of match ids.
  * @return Error code (the two mentioned are not the only ones).
  * @retval EINVAL Invalid input parameters (expects non NULL pointers).
- * @retval ENOENT Interface does not specify class.
+ * @retval ENOENT Device class is not "use interface".
  */
 int usb_device_create_match_ids_from_interface(
     const usb_standard_device_descriptor_t *desc_device,
@@ -332,6 +333,11 @@ int usb_device_create_match_ids(usb_endpoint_pipe_t *ctrl_pipe,
  * @param[in] hc_handle Handle of the host controller.
  * @param[in] parent Parent device.
  * @param[out] child_handle Handle of the child device.
+ * @param[in] dev_ops Child device ops.
+ * @param[in] dev_data Arbitrary pointer to be stored in the child
+ *	as @c driver_data.
+ * @param[out] child_fun Storage where pointer to allocated child function
+ *	will be written.
  * @return Error code.
  */
 int usb_device_register_child_in_devman(usb_address_t address,
