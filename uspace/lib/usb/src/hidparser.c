@@ -482,7 +482,7 @@ void usb_hid_descriptor_print_list(link_t *head)
 	link_t *item;
 	
 	if(head == NULL || list_empty(head)) {
-	    printf("\tempty\n");
+	    usb_log_debug("\tempty\n");
 	    return;
 	}
         
@@ -490,17 +490,17 @@ void usb_hid_descriptor_print_list(link_t *head)
                 
 		report_item = list_get_instance(item, usb_hid_report_item_t, link);
 
-		printf("\tOFFSET: %X\n", report_item->offset);
-		printf("\tCOUNT: %X\n", report_item->count);
-		printf("\tSIZE: %X\n", report_item->size);
-		printf("\tCONSTANT: %X\n", USB_HID_ITEM_FLAG_CONSTANT(report_item->item_flags));
-		printf("\tUSAGE: %X\n", report_item->usage);
-		printf("\tUSAGE PAGE: %X\n", report_item->usage_page);
-		printf("\tLOGMIN: %X\n", report_item->logical_minimum);
-		printf("\tLOGMAX: %X\n", report_item->logical_maximum);		
-		printf("\tPHYMIN: %X\n", report_item->physical_minimum);		
-		printf("\tPHYMAX: %X\n", report_item->physical_maximum);				
-		printf("\n");		
+		usb_log_debug("\tOFFSET: %X\n", report_item->offset);
+		usb_log_debug("\tCOUNT: %X\n", report_item->count);
+		usb_log_debug("\tSIZE: %X\n", report_item->size);
+		usb_log_debug("\tCONSTANT: %X\n", USB_HID_ITEM_FLAG_CONSTANT(report_item->item_flags));
+		usb_log_debug("\tUSAGE: %X\n", report_item->usage);
+		usb_log_debug("\tUSAGE PAGE: %X\n", report_item->usage_page);
+		usb_log_debug("\tLOGMIN: %X\n", report_item->logical_minimum);
+		usb_log_debug("\tLOGMAX: %X\n", report_item->logical_maximum);		
+		usb_log_debug("\tPHYMIN: %X\n", report_item->physical_minimum);		
+		usb_log_debug("\tPHYMAX: %X\n", report_item->physical_maximum);				
+		usb_log_debug("\n");		
 
 	}
 
@@ -514,13 +514,13 @@ void usb_hid_descriptor_print_list(link_t *head)
  */
 void usb_hid_descriptor_print(usb_hid_report_parser_t *parser)
 {
-	printf("INPUT:\n");
+	usb_log_debug("INPUT:\n");
 	usb_hid_descriptor_print_list(&parser->input);
 	
-	printf("OUTPUT: \n");
+	usb_log_debug("OUTPUT: \n");
 	usb_hid_descriptor_print_list(&parser->output);
 	
-	printf("FEATURE:\n");	
+	usb_log_debug("FEATURE:\n");	
 	usb_hid_descriptor_print_list(&parser->feature);
 
 }
