@@ -485,6 +485,9 @@ static void init_bitmaps(struct mfs_sb_info *sb)
 
 	block_write_direct(sb->handle, 2, ibmap_nblocks, ibmap_buf);
 	block_write_direct(sb->handle, 2 + ibmap_nblocks, zbmap_nblocks, zbmap_buf);
+
+	free(ibmap_buf);
+	free(zbmap_buf);
 }
 
 static void mark_bmap(uint32_t *bmap, int idx, int v)
