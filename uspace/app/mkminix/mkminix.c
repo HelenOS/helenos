@@ -239,6 +239,12 @@ int main (int argc, char **argv)
 	/*Init inode table*/
 	init_inode_table(&sb);
 
+	/*Make the root inode*/
+	if (sb.fs_version == 3)
+		make_root_ino3(&sb);		
+	else
+		make_root_ino(&sb);
+
 	/*Insert directory entries . and ..*/
 	insert_dentries(&sb);
 
@@ -253,7 +259,7 @@ static void insert_dentries(struct mfs_sb_info *sb)
 	root_block = (void *) malloc(MFS_MIN_BLOCKSIZE);
 	
 	if (sb->fs_version != 3) {
-		/*Directories entry for V1/V2 filesystem*/
+		/*Directory entries for V1/V2 filesystem*/
 		struct mfs_dentry *dentry = root_block;
 
 		dentry->d_inum = MFS_ROOT_INO;
@@ -264,7 +270,7 @@ static void insert_dentries(struct mfs_sb_info *sb)
 		dentry->d_inum = MFS_ROOT_INO;
 		str_cpy(dentry->d_name, 2, "..");
 	} else {
-		/*Directories entry for V3 filesystem*/
+		/*Directory entries for V3 filesystem*/
 		struct mfs3_dentry *dentry = root_block;
 
 		dentry->d_inum = MFS_ROOT_INO;
@@ -296,12 +302,6 @@ static void init_inode_table(struct mfs_sb_info *sb)
 		block_write_direct(sb->handle, itable_pos, chunks, itable_buf);
 
 	free(itable_buf);
-
-	/*Make the root inode*/
-	if (sb->fs_version != 3)
-		make_root_ino(sb);		
-	else
-		make_root_ino3(sb);
 }
 
 static void make_root_ino(struct mfs_sb_info *sb)
