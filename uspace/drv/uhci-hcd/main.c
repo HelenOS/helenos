@@ -59,6 +59,12 @@ static driver_t uhci_driver = {
 	.driver_ops = &uhci_driver_ops
 };
 /*----------------------------------------------------------------------------*/
+/** IRQ handling callback, identifies devic
+ *
+ * @param[in] dev DDF instance of the device to use.
+ * @param[in] iid (Unused).
+ * @param[in] call Pointer to the call that represents interrupt.
+ */
 static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
 {
 	assert(dev);
@@ -68,7 +74,15 @@ static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
 	uhci_interrupt(hc, status);
 }
 /*----------------------------------------------------------------------------*/
-static int uhci_add_device(ddf_dev_t *device)
+/** Initializes a new ddf driver instance of UHCI hcd.
+ *
+ * @param[in] device DDF instance of the device to initialize.
+ * @return Error code.
+ *
+ * Gets and initialies hardware resources, disables any legacy support,
+ * and reports root hub device.
+ */
+int uhci_add_device(ddf_dev_t *device)
 {
 	assert(device);
 	uhci_t *hcd = NULL;
@@ -95,7 +109,7 @@ if (ret != EOK) { \
 
 	ret = pci_disable_legacy(device);
 	CHECK_RET_FREE_HC_RETURN(ret,
-	    "Failed(%d) disable legacy USB: %s.\n", ret, str_error(ret));
+	    "Failed(%d) to disable legacy USB: %s.\n", ret, str_error(ret));
 
 #if 0
 	ret = pci_enable_interrupts(device);
@@ -112,8 +126,7 @@ if (ret != EOK) { \
 	    "Failed(%d) to allocate memory for uhci hcd.\n", ret);
 
 	ret = uhci_init(hcd, device, (void*)io_reg_base, io_reg_size);
-	CHECK_RET_FREE_HC_RETURN(ret, "Failed(%d) to init uhci-hcd.\n",
-	    ret);
+	CHECK_RET_FREE_HC_RETURN(ret, "Failed(%d) to init uhci-hcd.\n", ret);
 #undef CHECK_RET_FREE_HC_RETURN
 
 	/*
@@ -154,6 +167,14 @@ if (ret != EOK) { \
 #undef CHECK_RET_FINI_FREE_RETURN
 }
 /*----------------------------------------------------------------------------*/
+/** Initializes global driver structures (NONE).
+ *
+ * @param[in] argc Nmber of arguments in argv vector (ignored).
+ * @param[in] argv Cmdline argument vector (ignored).
+ * @return Error code.
+ *
+ * Driver debug level is set here.
+ */
 int main(int argc, char *argv[])
 {
 	sleep(3);

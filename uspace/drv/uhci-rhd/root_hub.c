@@ -39,6 +39,14 @@
 
 #include "root_hub.h"
 
+/** Initializes UHCI root hub instance.
+ *
+ * @param[in] instance Driver memory structure to use.
+ * @param[in] addr Address of I/O registers.
+ * @param[in] size Size of available I/O space.
+ * @param[in] rh Pointer to ddf instance fo the root hub driver.
+ * @return Error code.
+ */
 int uhci_root_hub_init(
   uhci_root_hub_t *instance, void *addr, size_t size, ddf_dev_t *rh)
 {
@@ -46,22 +54,22 @@ int uhci_root_hub_init(
 	assert(rh);
 	int ret;
 
-	/* allow access to root hub registers */
-	assert(sizeof(port_status_t) * UHCI_ROOT_HUB_PORT_COUNT == size);
+	/* Allow access to root hub port registers */
+	assert(sizeof(port_status_t) * UHCI_ROOT_HUB_PORT_COUNT <= size);
 	port_status_t *regs;
 	ret = pio_enable(addr, size, (void**)&regs);
-
 	if (ret < 0) {
-		usb_log_error("Failed to gain access to port registers at %p\n", regs);
+		usb_log_error(
+		    "Failed to gain access to port registers at %p\n", regs);
 		return ret;
 	}
 
 	/* add fibrils for periodic port checks */
 	unsigned i = 0;
 	for (; i < UHCI_ROOT_HUB_PORT_COUNT; ++i) {
-		/* mind pointer arithmetics */
+		/* NOTE: mind pointer arithmetics here */
 		ret = uhci_port_init(
-		  &instance->ports[i], regs + i, i, ROOT_HUB_WAIT_USEC, rh);
+		    &instance->ports[i], regs + i, i, ROOT_HUB_WAIT_USEC, rh);
 		if (ret != EOK) {
 			unsigned j = 0;
 			for (;j < i; ++j)
@@ -73,12 +81,18 @@ int uhci_root_hub_init(
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-int uhci_root_hub_fini( uhci_root_hub_t* instance )
+/** Finishes UHCI root hub instance.
+ *
+ * @param[in] instance Driver memory structure to use.
+ * @return Error code.
+ */
+int uhci_root_hub_fini(uhci_root_hub_t* instance)
 {
-	assert( instance );
-	// TODO:
-	//destroy fibril here
-	//disable access to registers
+	assert(instance);
+	unsigned i = 0;
+	for (; i < UHCI_ROOT_HUB_PORT_COUNT; ++i) {
+		uhci_port_fini(&instance->ports[i]);
+	}
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/

@@ -41,6 +41,7 @@
 
 #include "uhci_struct/transfer_descriptor.h"
 #include "uhci_struct/queue_head.h"
+#include "utils/device_keeper.h"
 
 typedef struct batch
 {
@@ -66,6 +67,7 @@ typedef struct batch
 	queue_head_t *qh;
 	td_t *tds;
 	void (*next_step)(struct batch*);
+	device_keeper_t *manager;
 } batch_t;
 
 batch_t * batch_get(ddf_fun_t *fun, usb_target_t target,
@@ -73,7 +75,9 @@ batch_t * batch_get(ddf_fun_t *fun, usb_target_t target,
     usb_speed_t speed, char *buffer, size_t size,
 		char *setup_buffer, size_t setup_size,
     usbhc_iface_transfer_in_callback_t func_in,
-    usbhc_iface_transfer_out_callback_t func_out, void *arg);
+    usbhc_iface_transfer_out_callback_t func_out, void *arg,
+		device_keeper_t *manager
+		);
 
 bool batch_is_complete(batch_t *instance);
 

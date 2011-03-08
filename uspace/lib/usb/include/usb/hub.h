@@ -31,6 +31,8 @@
  */
 /** @file
  * Functions needed by hub drivers.
+ *
+ * For class specific requests, see usb/classes/hub.h.
  */
 #ifndef LIBUSB_HUB_H_
 #define LIBUSB_HUB_H_

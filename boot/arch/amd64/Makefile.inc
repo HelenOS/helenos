@@ -42,6 +42,7 @@ RD_DRVS += \
 	pciintel \
 	isa \
 	ns8250 \
+	ehci-hcd \
 	uhci-hcd \
 	uhci-rhd \
 	usbhub \

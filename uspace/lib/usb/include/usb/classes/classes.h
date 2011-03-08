@@ -30,7 +30,7 @@
  * @{
  */
 /** @file
- * @brief USB device classes and subclasses.
+ * USB device classes (generic constants and functions).
  */
 #ifndef LIBUSB_CLASSES_H_
 #define LIBUSB_CLASSES_H_

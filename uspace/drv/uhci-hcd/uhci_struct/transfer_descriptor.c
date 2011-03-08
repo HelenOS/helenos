@@ -37,12 +37,28 @@
 #include "transfer_descriptor.h"
 #include "utils/malloc32.h"
 
+/** Initializes Transfer Descriptor
+ *
+ * @param[in] instance Memory place to initialize.
+ * @param[in] err_count Number of retries hc should attempt.
+ * @param[in] size Size of data source.
+ * @param[in] toggle Value of toggle bit.
+ * @param[in] iso True if TD is for Isochronous transfer.
+ * @param[in] low_speed Target device's speed.
+ * @param[in] target Address and endpoint receiving the transfer.
+ * @param[in] pid Packet identification (SETUP, IN or OUT).
+ * @param[in] buffer Source of data.
+ * @param[in] next Net TD in transaction.
+ * @return Error code.
+ */
 void td_init(td_t *instance, int err_count, size_t size, bool toggle, bool iso,
-    bool low_speed, usb_target_t target, usb_packet_id pid, void *buffer, td_t *next)
+    bool low_speed, usb_target_t target, usb_packet_id pid, void *buffer,
+    td_t *next)
 {
 	assert(instance);
 	assert(size < 1024);
-	assert((pid == USB_PID_SETUP) || (pid == USB_PID_IN) || (pid == USB_PID_OUT));
+	assert((pid == USB_PID_SETUP) || (pid == USB_PID_IN)
+	    || (pid == USB_PID_OUT));
 
 	instance->next = 0
 	    | LINK_POINTER_VERTICAL_FLAG
@@ -74,8 +90,17 @@ void td_init(td_t *instance, int err_count, size_t size, bool toggle, bool iso,
 	usb_log_debug2("Created TD: %X:%X:%X:%X(%p).\n",
 	    instance->next, instance->status, instance->device,
 	    instance->buffer_ptr, buffer);
+	if (pid == USB_PID_SETUP) {
+		usb_log_debug("SETUP BUFFER: %s\n",
+			usb_debug_str_buffer(buffer, 8, 8));
+	}
 }
 /*----------------------------------------------------------------------------*/
+/** Converts TD status into standard error code
+ *
+ * @param[in] instance TD structure to use.
+ * @return Error code.
+ */
 int td_status(td_t *instance)
 {
 	assert(instance);

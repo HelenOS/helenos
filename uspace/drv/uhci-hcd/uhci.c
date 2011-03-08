@@ -60,8 +60,15 @@ static irq_cmd_t uhci_cmds[] = {
 	}
 };
 
-static int usb_iface_get_address(ddf_fun_t *fun, devman_handle_t handle,
-    usb_address_t *address)
+/** Gets USB address of the calling device.
+ *
+ * @param[in] fun UHCI hc function.
+ * @param[in] handle Handle of the device seeking address.
+ * @param[out] address Place to store found address.
+ * @return Error code.
+ */
+static int usb_iface_get_address(
+    ddf_fun_t *fun, devman_handle_t handle, usb_address_t *address)
 {
 	assert(fun);
 	uhci_t *hc = fun_to_uhci(fun);
@@ -98,9 +105,17 @@ static int uhci_interrupt_emulator(void *arg);
 static int uhci_debug_checker(void *arg);
 
 static bool allowed_usb_packet(
-	bool low_speed, usb_transfer_type_t, size_t size);
-
-
+    bool low_speed, usb_transfer_type_t transfer, size_t size);
+/*----------------------------------------------------------------------------*/
+/** Initializes UHCI hcd driver structure
+ *
+ * @param[in] instance Memory place to initialize.
+ * @param[in] dev DDF device.
+ * @param[in] regs Address of I/O control registers.
+ * @param[in] size Size of I/O control registers.
+ * @return Error code.
+ * @note Should be called only once on any structure.
+ */
 int uhci_init(uhci_t *instance, ddf_dev_t *dev, void *regs, size_t reg_size)
 {
 	assert(reg_size >= sizeof(regs_t));
@@ -155,33 +170,48 @@ int uhci_init(uhci_t *instance, ddf_dev_t *dev, void *regs, size_t reg_size)
 #undef CHECK_RET_DEST_FUN_RETURN
 }
 /*----------------------------------------------------------------------------*/
+/** Initializes UHCI hcd hw resources.
+ *
+ * @param[in] instance UHCI structure to use.
+ */
 void uhci_init_hw(uhci_t *instance)
 {
 	assert(instance);
+	regs_t *registers = instance->registers;
 
-	/* reset everything, who knows what touched it before us */
-	pio_write_16(&instance->registers->usbcmd, UHCI_CMD_GLOBAL_RESET);
+	/* Reset everything, who knows what touched it before us */
+	pio_write_16(&registers->usbcmd, UHCI_CMD_GLOBAL_RESET);
 	async_usleep(10000); /* 10ms according to USB spec */
-	pio_write_16(&instance->registers->usbcmd, 0);
+	pio_write_16(&registers->usbcmd, 0);
 
-	/* reset hc, all states and counters */
-	pio_write_16(&instance->registers->usbcmd, UHCI_CMD_HCRESET);
-	while ((pio_read_16(&instance->registers->usbcmd) & UHCI_CMD_HCRESET) != 0)
-		{ async_usleep(10); }
+	/* Reset hc, all states and counters */
+	pio_write_16(&registers->usbcmd, UHCI_CMD_HCRESET);
+	do { async_usleep(10); }
+	while ((pio_read_16(&registers->usbcmd) & UHCI_CMD_HCRESET) != 0);
 
-	/* set framelist pointer */
+	/* Set framelist pointer */
 	const uint32_t pa = addr_to_phys(instance->frame_list);
-	pio_write_32(&instance->registers->flbaseadd, pa);
+	pio_write_32(&registers->flbaseadd, pa);
 
-	/* enable all interrupts, but resume interrupt */
-	pio_write_16(&instance->registers->usbintr,
-	    UHCI_INTR_CRC | UHCI_INTR_COMPLETE | UHCI_INTR_SHORT_PACKET);
+	/* Enable all interrupts, but resume interrupt */
+//	pio_write_16(&instance->registers->usbintr,
+//	    UHCI_INTR_CRC | UHCI_INTR_COMPLETE | UHCI_INTR_SHORT_PACKET);
+
+	uint16_t status = pio_read_16(&registers->usbcmd);
+	if (status != 0)
+		usb_log_warning("Previous command value: %x.\n", status);
 
 	/* Start the hc with large(64B) packet FSBR */
-	pio_write_16(&instance->registers->usbcmd,
+	pio_write_16(&registers->usbcmd,
 	    UHCI_CMD_RUN_STOP | UHCI_CMD_MAX_PACKET | UHCI_CMD_CONFIGURE);
 }
 /*----------------------------------------------------------------------------*/
+/** Initializes UHCI hcd memory structures.
+ *
+ * @param[in] instance UHCI structure to use.
+ * @return Error code
+ * @note Should be called only once on any structure.
+ */
 int uhci_init_mem_structures(uhci_t *instance)
 {
 	assert(instance);
@@ -193,32 +223,35 @@ int uhci_init_mem_structures(uhci_t *instance)
 		return ret; \
 	} else (void) 0
 
-	/* init interrupt code */
+	/* Init interrupt code */
 	instance->interrupt_code.cmds = malloc(sizeof(uhci_cmds));
 	int ret = (instance->interrupt_code.cmds == NULL) ? ENOMEM : EOK;
-	CHECK_RET_DEST_CMDS_RETURN(ret, "Failed to allocate interrupt cmds space.\n");
+	CHECK_RET_DEST_CMDS_RETURN(ret,
+	    "Failed to allocate interrupt cmds space.\n");
 
 	{
 		irq_cmd_t *interrupt_commands = instance->interrupt_code.cmds;
 		memcpy(interrupt_commands, uhci_cmds, sizeof(uhci_cmds));
-		interrupt_commands[0].addr = (void*)&instance->registers->usbsts;
-		interrupt_commands[1].addr = (void*)&instance->registers->usbsts;
+		interrupt_commands[0].addr =
+		    (void*)&instance->registers->usbsts;
+		interrupt_commands[1].addr =
+		    (void*)&instance->registers->usbsts;
 		instance->interrupt_code.cmdcount =
 		    sizeof(uhci_cmds) / sizeof(irq_cmd_t);
 	}
 
-	/* init transfer lists */
+	/* Init transfer lists */
 	ret = uhci_init_transfer_lists(instance);
-	CHECK_RET_DEST_CMDS_RETURN(ret, "Failed to initialize transfer lists.\n");
+	CHECK_RET_DEST_CMDS_RETURN(ret, "Failed to init transfer lists.\n");
 	usb_log_debug("Initialized transfer lists.\n");
 
-	/* frame list initialization */
+	/* Init USB frame list page*/
 	instance->frame_list = get_page();
 	ret = instance ? EOK : ENOMEM;
 	CHECK_RET_DEST_CMDS_RETURN(ret, "Failed to get frame list page.\n");
 	usb_log_debug("Initialized frame list.\n");
 
-	/* initialize all frames to point to the first queue head */
+	/* Set all frames to point to the first queue head */
 	const uint32_t queue =
 	  instance->transfers_interrupt.queue_head_pa
 	  | LINK_POINTER_QUEUE_HEAD_FLAG;
@@ -228,7 +261,7 @@ int uhci_init_mem_structures(uhci_t *instance)
 		instance->frame_list[i] = queue;
 	}
 
-	/* init address keeper(libusb) */
+	/* Init device keeper*/
 	device_keeper_init(&instance->device_manager);
 	usb_log_debug("Initialized device manager.\n");
 
@@ -236,6 +269,12 @@ int uhci_init_mem_structures(uhci_t *instance)
 #undef CHECK_RET_DEST_CMDS_RETURN
 }
 /*----------------------------------------------------------------------------*/
+/** Initializes UHCI hcd transfer lists.
+ *
+ * @param[in] instance UHCI structure to use.
+ * @return Error code
+ * @note Should be called only once on any structure.
+ */
 int uhci_init_transfer_lists(uhci_t *instance)
 {
 	assert(instance);
@@ -254,10 +293,12 @@ int uhci_init_transfer_lists(uhci_t *instance)
 	ret = transfer_list_init(&instance->transfers_bulk_full, "BULK_FULL");
 	CHECK_RET_CLEAR_RETURN(ret, "Failed to init BULK list.");
 
-	ret = transfer_list_init(&instance->transfers_control_full, "CONTROL_FULL");
+	ret = transfer_list_init(
+	    &instance->transfers_control_full, "CONTROL_FULL");
 	CHECK_RET_CLEAR_RETURN(ret, "Failed to init CONTROL FULL list.");
 
-	ret = transfer_list_init(&instance->transfers_control_slow, "CONTROL_SLOW");
+	ret = transfer_list_init(
+	    &instance->transfers_control_slow, "CONTROL_SLOW");
 	CHECK_RET_CLEAR_RETURN(ret, "Failed to init CONTROL SLOW list.");
 
 	ret = transfer_list_init(&instance->transfers_interrupt, "INTERRUPT");
@@ -276,21 +317,28 @@ int uhci_init_transfer_lists(uhci_t *instance)
 		&instance->transfers_control_full);
 #endif
 
-	instance->transfers[0][USB_TRANSFER_INTERRUPT] =
+	/* Assign pointers to be used during scheduling */
+	instance->transfers[USB_SPEED_FULL][USB_TRANSFER_INTERRUPT] =
 	  &instance->transfers_interrupt;
-	instance->transfers[1][USB_TRANSFER_INTERRUPT] =
+	instance->transfers[USB_SPEED_LOW][USB_TRANSFER_INTERRUPT] =
 	  &instance->transfers_interrupt;
-	instance->transfers[0][USB_TRANSFER_CONTROL] =
+	instance->transfers[USB_SPEED_FULL][USB_TRANSFER_CONTROL] =
 	  &instance->transfers_control_full;
-	instance->transfers[1][USB_TRANSFER_CONTROL] =
+	instance->transfers[USB_SPEED_LOW][USB_TRANSFER_CONTROL] =
 	  &instance->transfers_control_slow;
-	instance->transfers[0][USB_TRANSFER_BULK] =
+	instance->transfers[USB_SPEED_FULL][USB_TRANSFER_BULK] =
 	  &instance->transfers_bulk_full;
 
 	return EOK;
 #undef CHECK_RET_CLEAR_RETURN
 }
 /*----------------------------------------------------------------------------*/
+/** Schedules batch for execution.
+ *
+ * @param[in] instance UHCI structure to use.
+ * @param[in] batch Transfer batch to schedule.
+ * @return Error code
+ */
 int uhci_schedule(uhci_t *instance, batch_t *batch)
 {
 	assert(instance);
@@ -298,7 +346,8 @@ int uhci_schedule(uhci_t *instance, batch_t *batch)
 	const int low_speed = (batch->speed == USB_SPEED_LOW);
 	if (!allowed_usb_packet(
 	    low_speed, batch->transfer_type, batch->max_packet_size)) {
-		usb_log_warning("Invalid USB packet specified %s SPEED %d %zu.\n",
+		usb_log_warning(
+		    "Invalid USB packet specified %s SPEED %d %zu.\n",
 		    low_speed ? "LOW" : "FULL" , batch->transfer_type,
 		    batch->max_packet_size);
 		return ENOTSUP;
@@ -313,15 +362,26 @@ int uhci_schedule(uhci_t *instance, batch_t *batch)
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
+/** Takes action based on the interrupt cause.
+ *
+ * @param[in] instance UHCI structure to use.
+ * @param[in] status Value of the stsatus regiser at the time of interrupt.
+ */
 void uhci_interrupt(uhci_t *instance, uint16_t status)
 {
 	assert(instance);
+	/* TODO: Check interrupt cause here */
 	transfer_list_remove_finished(&instance->transfers_interrupt);
 	transfer_list_remove_finished(&instance->transfers_control_slow);
 	transfer_list_remove_finished(&instance->transfers_control_full);
 	transfer_list_remove_finished(&instance->transfers_bulk_full);
 }
 /*----------------------------------------------------------------------------*/
+/** Polling function, emulates interrupts.
+ *
+ * @param[in] arg UHCI structure to use.
+ * @return EOK
+ */
 int uhci_interrupt_emulator(void* arg)
 {
 	usb_log_debug("Started interrupt emulator.\n");
@@ -340,6 +400,11 @@ int uhci_interrupt_emulator(void* arg)
 	return EOK;
 }
 /*---------------------------------------------------------------------------*/
+/** Debug function, checks consistency of memory structures.
+ *
+ * @param[in] arg UHCI structure to use.
+ * @return EOK
+ */
 int uhci_debug_checker(void *arg)
 {
 	uhci_t *instance = (uhci_t*)arg;
@@ -398,10 +463,17 @@ int uhci_debug_checker(void *arg)
 		}
 		async_usleep(UHCI_DEBUGER_TIMEOUT);
 	}
-	return 0;
+	return EOK;
 #undef QH
 }
 /*----------------------------------------------------------------------------*/
+/** Checks transfer packets, for USB validity
+ *
+ * @param[in] low_speed Transfer speed.
+ * @param[in] transfer Transer type
+ * @param[in] size Maximum size of used packets
+ * @return EOK
+ */
 bool allowed_usb_packet(
     bool low_speed, usb_transfer_type_t transfer, size_t size)
 {

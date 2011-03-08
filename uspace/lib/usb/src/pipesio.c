@@ -114,7 +114,12 @@ static int usb_endpoint_pipe_read_no_checks(usb_endpoint_pipe_t *pipe,
 	async_wait_for(opening_request, &opening_request_rc);
 
 	if (data_request_rc != EOK) {
-		return (int) data_request_rc;
+		/* Prefer the return code of the opening request. */
+		if (opening_request_rc != EOK) {
+			return (int) opening_request_rc;
+		} else {
+			return (int) data_request_rc;
+		}
 	}
 	if (opening_request_rc != EOK) {
 		return (int) opening_request_rc;
@@ -330,7 +335,12 @@ static int usb_endpoint_pipe_control_read_no_check(usb_endpoint_pipe_t *pipe,
 	async_wait_for(opening_request, &opening_request_rc);
 
 	if (data_request_rc != EOK) {
-		return (int) data_request_rc;
+		/* Prefer the return code of the opening request. */
+		if (opening_request_rc != EOK) {
+			return (int) opening_request_rc;
+		} else {
+			return (int) data_request_rc;
+		}
 	}
 	if (opening_request_rc != EOK) {
 		return (int) opening_request_rc;
