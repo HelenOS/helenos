@@ -264,7 +264,7 @@ static void insert_dentries(struct mfs_sb_info *sb)
 		dentry->d_inum = MFS_ROOT_INO;
 		str_cpy(dentry->d_name, 2, "..");
 	} else {
-		/*Directories entry for V1/V2 filesystem*/
+		/*Directories entry for V3 filesystem*/
 		struct mfs3_dentry *dentry = root_block;
 
 		dentry->d_inum = MFS_ROOT_INO;
