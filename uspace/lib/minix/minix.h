@@ -36,6 +36,9 @@
 #include <sys/types.h>
 
 #define MFS_BLOCKSIZE		1024
+#define S_ISDIR(m)		(((m) & S_IFMT) == S_IFDIR)
+#define S_IFDIR			0040000
+#define S_IFMT			00170000
 
 /*The following block sizes are valid only on V3 filesystem*/
 #define MFS_MIN_BLOCKSIZE	1024
@@ -54,6 +57,10 @@
 #define V1_INODES_PER_BLOCK	(MFS_BLOCKSIZE / sizeof(struct mfs_inode))
 #define V2_INODES_PER_BLOCK	(MFS_BLOCKSIZE / sizeof(struct mfs2_inode))
 #define V3_INODES_PER_BLOCK(bs)	((bs) / sizeof(struct mfs2_inode))
+
+#define MFS_DIRSIZE		16
+#define MFSL_DIRSIZE		32
+#define MFS3_DIRSIZE		64
 
 #define MFS_MAX_NAME_LEN	14
 #define MFS_L_MAX_NAME_LEN	30
