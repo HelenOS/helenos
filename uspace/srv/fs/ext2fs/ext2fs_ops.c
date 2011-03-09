@@ -483,6 +483,7 @@ void ext2fs_mounted(ipc_callid_t rid, ipc_call_t *request)
 	devmap_handle_t devmap_handle = (devmap_handle_t) IPC_GET_ARG1(*request);
 	ext2_filesystem_t *fs;
 	ext2fs_instance_t *inst;
+	bool read_only;
 	
 	/* Accept the mount options */
 	char *opts;
@@ -521,6 +522,16 @@ void ext2fs_mounted(ipc_callid_t rid, ipc_call_t *request)
 	
 	/* Do some sanity checking */
 	rc = ext2_filesystem_check_sanity(fs);
+	if (rc != EOK) {
+		ext2_filesystem_fini(fs);
+		free(fs);
+		free(inst);
+		async_answer_0(rid, rc);
+		return;
+	}
+	
+	/* Check flags */
+	rc = ext2_filesystem_check_flags(fs, &read_only);
 	if (rc != EOK) {
 		ext2_filesystem_fini(fs);
 		free(fs);

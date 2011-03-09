@@ -51,8 +51,16 @@ typedef struct ext2_filesystem {
 #define EXT2_REV0_FIRST_INODE		11
 #define EXT2_REV0_INODE_SIZE		128
 
+#define EXT2_FEATURE_RO_SPARSE_SUPERBLOCK	1
+#define EXT2_FEATURE_RO_LARGE_FILE			2
+#define EXT2_FEATURE_I_TYPE_IN_DIR			2
+
+#define EXT2_SUPPORTED_INCOMPATIBLE_FEATURES EXT2_FEATURE_I_TYPE_IN_DIR
+#define EXT2_SUPPORTED_READ_ONLY_FEATURES 0
+
 extern int ext2_filesystem_init(ext2_filesystem_t *, devmap_handle_t);
 extern int ext2_filesystem_check_sanity(ext2_filesystem_t *);
+extern int ext2_filesystem_check_flags(ext2_filesystem_t *, bool *);
 extern int ext2_filesystem_get_block_group_ref(ext2_filesystem_t *, uint32_t, 
     ext2_block_group_ref_t **);
 extern int ext2_filesystem_put_block_group_ref(ext2_block_group_ref_t *);

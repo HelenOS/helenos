@@ -108,6 +108,43 @@ int ext2_filesystem_check_sanity(ext2_filesystem_t *fs)
 }
 
 /**
+ * Check feature flags
+ * 
+ * @param fs Pointer to ext2_filesystem_t to check
+ * @param read_only bool to set to true if the fs needs to be read-only
+ * @return EOK on success or negative error code on failure
+ */
+int ext2_filesystem_check_flags(ext2_filesystem_t *fs, bool *o_read_only)
+{
+	// feature flags are present in rev 1 and later
+	if (ext2_superblock_get_rev_major(fs->superblock) == 0) {
+		*o_read_only = false;
+		return 0;
+	}
+	
+	uint32_t incompatible;
+	uint32_t read_only;
+	
+	incompatible = ext2_superblock_get_features_incompatible(fs->superblock);
+	read_only = ext2_superblock_get_features_read_only(fs->superblock);
+	
+	// unset any supported features
+	incompatible &= ~EXT2_SUPPORTED_INCOMPATIBLE_FEATURES;
+	read_only &= ~EXT2_SUPPORTED_READ_ONLY_FEATURES;
+	
+	if (incompatible > 0) {
+		*o_read_only = true;
+		return ENOTSUP;
+	}
+	
+	if (read_only > 0) {
+		*o_read_only = true;
+	}
+	
+	return EOK;
+}
+
+/**
  * Get a reference to block descriptor
  * 
  * @param fs Pointer to filesystem information

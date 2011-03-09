@@ -63,7 +63,10 @@ typedef struct ext2_superblock {
 	// Following is for ext2 revision 1 only
 	uint32_t	first_inode;
 	uint16_t	inode_size;
-	uint8_t		unused5[14];
+	uint16_t	unused5;
+	uint32_t	features_compatible;
+	uint32_t	features_incompatible;
+	uint32_t	features_read_only;
 	uint8_t		uuid[16]; // UUID TODO: Create a library for UUIDs
 	uint8_t		volume_name[16];
 
@@ -102,6 +105,9 @@ inline uint32_t	ext2_superblock_get_free_block_count(ext2_superblock_t *);
 inline uint32_t	ext2_superblock_get_free_inode_count(ext2_superblock_t *);
 inline uint32_t	ext2_superblock_get_block_group_count(ext2_superblock_t *);
 inline uint32_t	ext2_superblock_get_inodes_per_group(ext2_superblock_t *);
+inline uint32_t	ext2_superblock_get_features_compatible(ext2_superblock_t *);
+inline uint32_t	ext2_superblock_get_features_incompatible(ext2_superblock_t *);
+inline uint32_t	ext2_superblock_get_features_read_only(ext2_superblock_t *);
 
 extern int ext2_superblock_read_direct(devmap_handle_t, ext2_superblock_t **);
 extern int ext2_superblock_check_sanity(ext2_superblock_t *);

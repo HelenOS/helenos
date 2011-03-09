@@ -257,6 +257,36 @@ inline uint32_t	ext2_superblock_get_inodes_per_group(ext2_superblock_t *sb)
 }
 
 /**
+ * Get compatible features flags
+ * 
+ * @param sb pointer to superblock
+ */
+inline uint32_t	ext2_superblock_get_features_compatible(ext2_superblock_t *sb)
+{
+	return uint32_t_le2host(sb->features_compatible);
+}
+
+/**
+ * Get incompatible features flags
+ * 
+ * @param sb pointer to superblock
+ */
+inline uint32_t	ext2_superblock_get_features_incompatible(ext2_superblock_t *sb)
+{
+	return uint32_t_le2host(sb->features_incompatible);
+}
+
+/**
+ * Get read-only compatible features flags
+ * 
+ * @param sb pointer to superblock
+ */
+inline uint32_t	ext2_superblock_get_features_read_only(ext2_superblock_t *sb)
+{
+	return uint32_t_le2host(sb->features_read_only);
+}
+
+/**
  * Compute count of block groups present in the filesystem
  * 
  * Note: This function works only for correct filesystem,
