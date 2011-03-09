@@ -546,16 +546,15 @@ static int write_superblock3(struct mfs_sb_info *sbi)
 
 static int init_bitmaps(struct mfs_sb_info *sb)
 {
-	uint8_t *ibmap_buf, *zbmap_buf;
+	uint32_t *ibmap_buf, *zbmap_buf;
+	uint8_t *ibmap_buf8, *zbmap_buf8;
 	unsigned int ibmap_nblocks = sb->ibmap_blocks;
 	unsigned int zbmap_nblocks = sb->zbmap_blocks;
 	unsigned int i;
 	int rc;
 
-	printf("Initializing bitmaps...");
-
-	ibmap_buf = (uint8_t *) malloc(ibmap_nblocks * sb->block_size);
-	zbmap_buf = (uint8_t *) malloc(zbmap_nblocks * sb->block_size);
+	ibmap_buf = (uint32_t *) malloc(ibmap_nblocks * sb->block_size);
+	zbmap_buf = (uint32_t *) malloc(zbmap_nblocks * sb->block_size);
 
 	if (!ibmap_buf || !zbmap_buf)
 		return ENOMEM;
@@ -564,27 +563,29 @@ static int init_bitmaps(struct mfs_sb_info *sb)
 	memset(zbmap_buf, 0xFF, zbmap_nblocks * sb->block_size);
 
 	for (i = 2; i < sb->n_inodes; ++i)
-		mark_bmap((uint32_t*) ibmap_buf, i, FREE);
+		mark_bmap(ibmap_buf, i, FREE);
 
 	for (i = sb->first_data_zone + 1; i < sb->n_zones; ++i)
-		mark_bmap((uint32_t *) zbmap_buf, i, FREE);
+		mark_bmap(zbmap_buf, i, FREE);
 
+	/*Convert to 1K block offsets*/
 	ibmap_nblocks *= sb->block_size / MFS_BLOCKSIZE;
 	zbmap_nblocks *= sb->block_size / MFS_BLOCKSIZE;
 
+	ibmap_buf8 = (uint8_t *) ibmap_buf;
+	zbmap_buf8 = (uint8_t *) zbmap_buf;
+
 	for (i = 0; i < ibmap_nblocks; ++i) {
 		if ((rc = block_write_direct(sb->handle, 2 + i,
-				1, (ibmap_buf + i * MFS_BLOCKSIZE))) != EOK)
+				1, (ibmap_buf8 + i * MFS_BLOCKSIZE))) != EOK)
 			return rc;
 	}
 
 	for (i = 0; i < zbmap_nblocks; ++i) {
 		if ((rc = block_write_direct(sb->handle, 2 + ibmap_nblocks + i,
-				1, (zbmap_buf + i * MFS_BLOCKSIZE))) != EOK)
+				1, (zbmap_buf8 + i * MFS_BLOCKSIZE))) != EOK)
 			return rc;
 	}
-
-	printf("Done.\n");
 
 	return rc;
 }
