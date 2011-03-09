@@ -123,6 +123,7 @@ int main (int argc, char **argv)
 
 	/*Default block size is 4Kb*/
 	sb.block_size = MFS_MAX_BLOCKSIZE;
+	sb.dirsize = MFS3_DIRSIZE;
 	sb.n_inodes = 0;
 	sb.longnames = false;
 	sb.ino_per_block = V3_INODES_PER_BLOCK(MFS_MAX_BLOCKSIZE);
@@ -384,6 +385,7 @@ static int make_root_ino3(struct mfs_sb_info *sb)
 	long itable_off;
 	int rc;
 
+	/*Compute offset of the first inode table block*/
 	itable_off = FIRST_ZONE(sb->block_size);
 	itable_off += sb->zbmap_blocks + sb->ibmap_blocks;
 
@@ -593,6 +595,9 @@ static int init_bitmaps(struct mfs_sb_info *sb)
 				1, (zbmap_buf8 + i * MFS_BLOCKSIZE))) != EOK)
 			return rc;
 	}
+
+	free(ibmap_buf);
+	free(zbmap_buf);
 
 	return rc;
 }
