@@ -58,6 +58,7 @@
 
 #define UPPER(n, size) (((n) / (size)) + (((n) % (size)) != 0))
 #define NEXT_DENTRY(p, dirsize)	(p += dirsize)
+#define FIRST_ZONE(bs)		((MFS_BOOTBLOCK_SIZE + MFS_SUPERBLOCK_SIZE) / (bs))
 
 typedef enum {
 	HELP_SHORT,
@@ -316,7 +317,13 @@ static int init_inode_table(struct mfs_sb_info *sb)
 	unsigned int i;
 	uint8_t *itable_buf;
 	int rc;
-	long itable_pos = 2 + sb->zbmap_blocks + sb->ibmap_blocks;
+	long itable_off;
+
+	itable_off = FIRST_ZONE(sb->block_size);
+	itable_off += sb->zbmap_blocks + sb->ibmap_blocks;
+
+	/*Convert to 1K offset*/
+	itable_off *= sb->block_size / MFS_MIN_BLOCKSIZE;
 
 	itable_buf = malloc(sb->block_size);
 
@@ -325,10 +332,8 @@ static int init_inode_table(struct mfs_sb_info *sb)
 
 	memset(itable_buf, 0x00, sb->block_size);
 
-	const int chunks = sb->block_size / MFS_BLOCKSIZE;
-
-	for (i = 0; i < sb->itable_size; ++i, itable_pos += chunks) {
-		rc = block_write_direct(sb->handle, itable_pos, chunks, itable_buf);
+	for (i = 0; i < sb->itable_size * (sb->block_size / MFS_MIN_BLOCKSIZE); ++i, ++itable_off) {
+		rc = block_write_direct(sb->handle, itable_off, 1, itable_buf);
 
 		if (rc != EOK)
 			break;
@@ -341,8 +346,11 @@ static int init_inode_table(struct mfs_sb_info *sb)
 static int make_root_ino(struct mfs_sb_info *sb)
 {
 	struct mfs_inode *ino_buf;
-	const long itable_pos = 2 + sb->zbmap_blocks + sb->ibmap_blocks;
+	long itable_off;
 	int rc;
+
+	itable_off = FIRST_ZONE(MFS_BLOCKSIZE);
+	itable_off += sb->zbmap_blocks + sb->ibmap_blocks;
 
 	const time_t sec = time(NULL);
 
@@ -361,7 +369,7 @@ static int make_root_ino(struct mfs_sb_info *sb)
 	ino_buf[MFS_ROOT_INO].i_nlinks = 2;
 	ino_buf[MFS_ROOT_INO].i_dzone[0] = sb->first_data_zone;
 
-	rc = block_write_direct(sb->handle, itable_pos, 1, ino_buf);
+	rc = block_write_direct(sb->handle, itable_off, 1, ino_buf);
 
 	free(ino_buf);
 	return rc;
@@ -370,18 +378,23 @@ static int make_root_ino(struct mfs_sb_info *sb)
 static int make_root_ino3(struct mfs_sb_info *sb)
 {
 	struct mfs2_inode *ino_buf;
-	const size_t bufsize = MFS_MIN_BLOCKSIZE;
-	const long itable_pos = 2 + sb->zbmap_blocks + sb->ibmap_blocks;
+	long itable_off;
 	int rc;
+
+	itable_off = FIRST_ZONE(sb->block_size);
+	itable_off += sb->zbmap_blocks + sb->ibmap_blocks;
+
+	/*Convert to 1K block offset*/
+	itable_off *= sb->block_size / MFS_MIN_BLOCKSIZE;
 
 	const time_t sec = time(NULL);
 
-	ino_buf = (struct mfs2_inode *) malloc(bufsize);
+	ino_buf = (struct mfs2_inode *) malloc(MFS_MIN_BLOCKSIZE);
 
 	if (!ino_buf)
 		return ENOMEM;
 
-	memset(ino_buf, 0x00, bufsize);
+	memset(ino_buf, 0x00, MFS_MIN_BLOCKSIZE);
 
 	ino_buf[MFS_ROOT_INO].i_mode = S_IFDIR;
 	ino_buf[MFS_ROOT_INO].i_uid = 0;
@@ -393,7 +406,7 @@ static int make_root_ino3(struct mfs_sb_info *sb)
 	ino_buf[MFS_ROOT_INO].i_nlinks = 2;
 	ino_buf[MFS_ROOT_INO].i_dzone[0] = sb->first_data_zone;
 
-	rc = block_write_direct(sb->handle, itable_pos * (sb->block_size / MFS_MIN_BLOCKSIZE), 1, ino_buf);
+	rc = block_write_direct(sb->handle, itable_off, 1, ino_buf);
 
 	free(ino_buf);
 	return rc;
@@ -441,14 +454,14 @@ static int init_superblock(struct mfs_sb_info *sb)
 	/*Compute inode bitmap size in blocks*/
 	sb->ibmap_blocks = UPPER(sb->n_inodes, sb->block_size * 8);
 
-	/*Compute zone bitmap size in blocks*/
-	sb->zbmap_blocks = UPPER(sb->n_zones, sb->block_size * 8);
-
 	/*Compute inode table size*/
 	sb->itable_size = sb->n_inodes / sb->ino_per_block;
 
+	/*Compute zone bitmap size in blocks*/
+	sb->zbmap_blocks = UPPER(sb->n_zones, sb->block_size * 8);
+
 	/*Compute first data zone position*/
-	sb->first_data_zone = 2 + sb->itable_size + 
+	sb->first_data_zone = FIRST_ZONE(sb->block_size) + sb->itable_size + 
 				sb->zbmap_blocks + sb->ibmap_blocks;
 
 	/*Set log2 of zone to block ratio to zero*/
