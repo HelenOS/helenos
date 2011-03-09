@@ -78,6 +78,18 @@ inline uint16_t	ext2_block_group_get_free_block_count(ext2_block_group_t *bg)
 }
 
 /**
+ * Set amount of free blocks in this block group
+ * 
+ * @param bg pointer to block group descriptor
+ * @param val new value
+ */
+inline void ext2_block_group_set_free_block_count(ext2_block_group_t *bg,
+	uint16_t val)
+{
+	bg->free_block_count = host2uint16_t_le(val);
+}
+
+/**
  * Get amount of free inodes in this block group
  * 
  * @param bg pointer to block group descriptor

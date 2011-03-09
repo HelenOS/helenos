@@ -383,6 +383,112 @@ int ext2_filesystem_get_inode_data_block_index(ext2_filesystem_t *fs, ext2_inode
 }
 
 /**
+ * Allocate a given number of blocks and store their ids in blocks
+ * 
+ * @param fs pointer to filesystem
+ * @param blocks array of count uint32_t values where store block ids
+ * @param count number of blocks to allocate and elements in blocks array
+ * @param preferred_bg preferred block group number
+ * 
+ * @return 		EOK on success or negative error code on failure
+ */
+int ext2_filesystem_allocate_blocks(ext2_filesystem_t *fs, uint32_t *blocks,
+    size_t count, uint32_t preferred_bg)
+{
+	uint32_t bg_count = ext2_superblock_get_block_group_count(fs->superblock);
+	uint32_t bpg = ext2_superblock_get_blocks_per_group(fs->superblock);
+	uint32_t block_size = ext2_superblock_get_block_size(fs->superblock);
+	uint32_t block_group = preferred_bg;
+	uint32_t free_blocks_sb;
+	uint32_t block_groups_left;
+	size_t idx;
+	ext2_block_group_ref_t *bg;
+	int rc;
+	uint32_t bb_block;
+	block_t *block;
+	size_t bb_idx;
+	size_t bb_bit;
+	
+	free_blocks_sb = ext2_superblock_get_free_block_count(fs->superblock);
+	
+	if (count > free_blocks_sb) {
+		return EIO;
+	}
+	
+	block_groups_left = bg_count;
+	
+	idx = 0;
+	
+	// Read the block group descriptor
+	rc = ext2_filesystem_get_block_group_ref(fs, block_group, &bg);
+	if (rc != EOK) {
+		goto failed;
+	}
+	
+	while (idx < count && block_groups_left > 0) {
+		uint16_t fb = ext2_block_group_get_free_block_count(bg->block_group);
+		if (fb == 0) {
+			block_group = (block_group + 1) % bg_count;
+			block_groups_left -= 1;
+			
+			rc = ext2_filesystem_put_block_group_ref(bg);
+			if (rc != EOK) {
+				goto failed;
+			}
+			
+			rc = ext2_filesystem_get_block_group_ref(fs, block_group, &bg);
+			if (rc != EOK) {
+				goto failed;
+			}
+			continue;
+		}
+		
+		// We found a block group with free block, let's look at the block bitmap
+		bb_block = ext2_block_group_get_block_bitmap_block(bg->block_group);
+		
+		rc = block_get(&block, fs->device, bb_block, BLOCK_FLAGS_NONE);
+		if (rc != EOK) {
+			goto failed;
+		}
+		
+		// Use all blocks from this block group
+		for (bb_idx = 0; bb_idx < block_size && idx < count; bb_idx++) {
+			uint8_t *data = (uint8_t *) block->data;
+			if (data[bb_idx] == 0xff) {
+				continue;
+			}
+			// find an empty bit
+			uint8_t mask;
+			for (mask = 1, bb_bit = 0;
+				 bb_bit < 8 && idx < count; 
+				 bb_bit++, mask = mask << 1) {
+				if ((data[bb_idx] & mask) == 0) {
+					// free block found
+					blocks[idx] = block_group * bpg + bb_idx*8 + bb_bit;
+					data[bb_idx] |= mask;
+					idx += 1;
+					fb -= 1;
+					ext2_block_group_set_free_block_count(bg->block_group, fb);
+				}
+			}
+		}
+	}
+	
+	rc = ext2_filesystem_put_block_group_ref(bg);
+	if (rc != EOK) {
+		goto failed;
+	}
+	
+	// TODO update superblock
+	
+	return EOK;
+failed:
+	// TODO deallocate already allocated blocks, if possible
+	
+	return rc;
+}
+
+/**
  * Finalize an instance of filesystem
  * 
  * @param fs Pointer to ext2_filesystem_t to finalize

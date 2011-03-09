@@ -61,6 +61,8 @@ inline uint16_t	ext2_block_group_get_free_block_count(ext2_block_group_t *);
 inline uint16_t	ext2_block_group_get_free_inode_count(ext2_block_group_t *);
 inline uint16_t	ext2_block_group_get_directory_inode_count(ext2_block_group_t *);
 
+inline void	ext2_block_group_set_free_block_count(ext2_block_group_t *, uint16_t);
+
 #endif
 
 /** @}
