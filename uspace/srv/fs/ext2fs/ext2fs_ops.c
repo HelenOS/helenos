@@ -73,6 +73,8 @@ typedef struct ext2fs_node {
 static int ext2fs_instance_get(devmap_handle_t, ext2fs_instance_t **);
 static void ext2fs_read_directory(ipc_callid_t, ipc_callid_t, aoff64_t,
 	size_t, ext2fs_instance_t *, ext2_inode_ref_t *);
+static void ext2fs_read_file(ipc_callid_t, ipc_callid_t, aoff64_t,
+	size_t, ext2fs_instance_t *, ext2_inode_ref_t *);
 
 /*
  * Forward declarations of EXT2 libfs operations.
@@ -595,8 +597,7 @@ void ext2fs_read(ipc_callid_t rid, ipc_call_t *request)
 	
 	if (ext2_inode_is_type(inst->filesystem->superblock, inode_ref->inode,
 		    EXT2_INODE_MODE_FILE)) {
-		async_answer_0(callid, ENOTSUP);
-		async_answer_0(rid, ENOTSUP);
+		ext2fs_read_file(rid, callid, pos, size, inst, inode_ref);
 	}
 	else if (ext2_inode_is_type(inst->filesystem->superblock, inode_ref->inode,
 		    EXT2_INODE_MODE_DIRECTORY)) {
@@ -697,6 +698,60 @@ skip:
 		async_answer_0(callid, ENOENT);
 		async_answer_0(rid, ENOENT);
 	}
+}
+
+void ext2fs_read_file(ipc_callid_t rid, ipc_callid_t callid, aoff64_t pos,
+	size_t size, ext2fs_instance_t *inst, ext2_inode_ref_t *inode_ref)
+{
+	int rc;
+	uint32_t block_size;
+	aoff64_t file_block;
+	uint64_t file_size;
+	uint32_t fs_block;
+	size_t offset_in_block;
+	size_t bytes;
+	block_t *block;
+	
+	file_size = ext2_inode_get_size(inst->filesystem->superblock,
+		inode_ref->inode);
+	
+	if (pos >= file_size) {
+		// TODO: is this OK? return EIO?
+		async_data_read_finalize(callid, NULL, 0);
+		async_answer_1(rid, EOK, 0);
+		return;
+	}
+	
+	// For now, we only read data from one block at a time
+	block_size = ext2_superblock_get_block_size(inst->filesystem->superblock);
+	file_block = pos / block_size;
+	offset_in_block = pos % block_size;
+	bytes = min(block_size - offset_in_block, size);
+	
+	rc = ext2_filesystem_get_inode_data_block_index(inst->filesystem,
+		inode_ref->inode, file_block, &fs_block);
+	if (rc != EOK) {
+		async_answer_0(callid, rc);
+		async_answer_0(rid, rc);
+		return;
+	}
+	
+	rc = block_get(&block, inst->devmap_handle, fs_block, BLOCK_FLAGS_NONE);
+	if (rc != EOK) {
+		async_answer_0(callid, rc);
+		async_answer_0(rid, rc);
+		return;
+	}
+	
+	async_data_read_finalize(callid, block->data, bytes);
+	
+	rc = block_put(block);
+	if (rc != EOK) {
+		async_answer_0(rid, rc);
+		return;
+	}
+		
+	async_answer_1(rid, EOK, bytes);
 }
 
 void ext2fs_write(ipc_callid_t rid, ipc_call_t *request)
