@@ -277,7 +277,7 @@ static int insert_dentries(struct mfs_sb_info *sb)
 {
 	void *root_block;
 	int rc;
-	const long root_dblock = sb->first_data_zone * (sb->block_size / MFS_MIN_BLOCKSIZE);
+	const long root_dblock = CONVERT_1K_OFF(sb->first_data_zone, sb->block_size);
 
 	root_block = (void *) malloc(MFS_MIN_BLOCKSIZE);
 
