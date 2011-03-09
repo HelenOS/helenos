@@ -98,7 +98,10 @@ static void mfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 		switch  (IPC_GET_IMETHOD(call)) {
 		default:
 		case IPC_M_PHONE_HUNGUP:
-			return;		
+			return;
+		case VFS_OUT_MOUNTED:
+			mfs_mounted(callid, &call);
+			break;
 		}
 	}
 }

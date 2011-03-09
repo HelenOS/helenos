@@ -56,9 +56,10 @@
 #define FREE	0
 #define USED	1
 
-#define UPPER(n, size) (((n) / (size)) + (((n) % (size)) != 0))
-#define NEXT_DENTRY(p, dirsize)	(p += dirsize)
-#define FIRST_ZONE(bs)		((MFS_BOOTBLOCK_SIZE + MFS_SUPERBLOCK_SIZE) / (bs))
+#define UPPER(n, size) 			(((n) / (size)) + (((n) % (size)) != 0))
+#define NEXT_DENTRY(p, dirsize)		(p += dirsize)
+#define FIRST_ZONE(bs)			((MFS_BOOTBLOCK_SIZE + MFS_SUPERBLOCK_SIZE) / (bs))
+#define CONVERT_1K_OFF(off, bs)		((off) * ((bs) / MFS_MIN_BLOCKSIZE))
 
 typedef enum {
 	HELP_SHORT,
@@ -318,12 +319,14 @@ static int init_inode_table(struct mfs_sb_info *sb)
 	uint8_t *itable_buf;
 	int rc;
 	long itable_off;
+	unsigned long itable_size;
 
 	itable_off = FIRST_ZONE(sb->block_size);
 	itable_off += sb->zbmap_blocks + sb->ibmap_blocks;
 
 	/*Convert to 1K offset*/
-	itable_off *= sb->block_size / MFS_MIN_BLOCKSIZE;
+	itable_off = CONVERT_1K_OFF(itable_off, sb->block_size);
+	itable_size = CONVERT_1K_OFF(sb->itable_size, sb->block_size);
 
 	itable_buf = malloc(sb->block_size);
 
@@ -332,7 +335,7 @@ static int init_inode_table(struct mfs_sb_info *sb)
 
 	memset(itable_buf, 0x00, sb->block_size);
 
-	for (i = 0; i < sb->itable_size * (sb->block_size / MFS_MIN_BLOCKSIZE); ++i, ++itable_off) {
+	for (i = 0; i < itable_size; ++i, ++itable_off) {
 		rc = block_write_direct(sb->handle, itable_off, 1, itable_buf);
 
 		if (rc != EOK)
@@ -385,7 +388,7 @@ static int make_root_ino3(struct mfs_sb_info *sb)
 	itable_off += sb->zbmap_blocks + sb->ibmap_blocks;
 
 	/*Convert to 1K block offset*/
-	itable_off *= sb->block_size / MFS_MIN_BLOCKSIZE;
+	itable_off = CONVERT_1K_OFF(itable_off, sb->block_size);
 
 	const time_t sec = time(NULL);
 
@@ -569,20 +572,24 @@ static int init_bitmaps(struct mfs_sb_info *sb)
 		mark_bmap(zbmap_buf, i, FREE);
 
 	/*Convert to 1K block offsets*/
-	ibmap_nblocks *= sb->block_size / MFS_BLOCKSIZE;
-	zbmap_nblocks *= sb->block_size / MFS_BLOCKSIZE;
+	ibmap_nblocks = CONVERT_1K_OFF(ibmap_nblocks, sb->block_size);
+	zbmap_nblocks = CONVERT_1K_OFF(zbmap_nblocks, sb->block_size);
 
 	ibmap_buf8 = (uint8_t *) ibmap_buf;
 	zbmap_buf8 = (uint8_t *) zbmap_buf;
 
+	int start_block = FIRST_ZONE(sb->block_size);
+
 	for (i = 0; i < ibmap_nblocks; ++i) {
-		if ((rc = block_write_direct(sb->handle, 2 + i,
+		if ((rc = block_write_direct(sb->handle, start_block + i,
 				1, (ibmap_buf8 + i * MFS_BLOCKSIZE))) != EOK)
 			return rc;
 	}
 
+	start_block = FIRST_ZONE(sb->block_size) + ibmap_nblocks;
+
 	for (i = 0; i < zbmap_nblocks; ++i) {
-		if ((rc = block_write_direct(sb->handle, 2 + ibmap_nblocks + i,
+		if ((rc = block_write_direct(sb->handle, start_block + i,
 				1, (zbmap_buf8 + i * MFS_BLOCKSIZE))) != EOK)
 			return rc;
 	}

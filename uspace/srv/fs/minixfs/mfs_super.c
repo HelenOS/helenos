@@ -39,14 +39,15 @@
 #include "mfs_utils.h"
 #include "../../vfs/vfs.h"
 
-static bool check_magic_number(int16_t magic, bool *native, mfs_version_t *version);
+static bool check_magic_number(uint16_t magic, bool *native,
+				mfs_version_t *version, bool *longfilenames);
 
 void mfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 {
 	devmap_handle_t devmap_handle = (devmap_handle_t) IPC_GET_ARG1(*request);
 	enum cache_mode cmode;	
 	struct mfs3_superblock *sp;
-	bool native;
+	bool native, longnames;
 	mfs_version_t version;
 
 	/* Accept the mount options */
@@ -84,7 +85,7 @@ void mfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 	/* get the buffer with the superblock */
 	sp = block_bb_get(devmap_handle);
 
-	if (!check_magic_number(sp->s_magic, &native, &version)) {
+	if (!check_magic_number(sp->s_magic, &native, &version, &longnames)) {
 		/*Magic number is invalid!*/
 		block_fini(devmap_handle);
 		async_answer_0(rid, ENOTSUP);
@@ -92,15 +93,28 @@ void mfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 	}
 }
 
-static bool check_magic_number(int16_t magic, bool *native, mfs_version_t *version)
+static bool check_magic_number(uint16_t magic, bool *native,
+				mfs_version_t *version, bool *longfilenames)
 {
+	*longfilenames = false;
+
 	if (magic == MFS_MAGIC_V1 || magic == MFS_MAGIC_V1R) {
 		*native = magic == MFS_MAGIC_V1;
 		*version = MFS_VERSION_V1;
 		return true;
+	} else if (magic == MFS_MAGIC_V1L || magic == MFS_MAGIC_V1LR) {
+		*native = magic == MFS_MAGIC_V1L;
+		*version = MFS_VERSION_V1;
+		*longfilenames = true;
+		return true;
 	} else if (magic == MFS_MAGIC_V2 || magic == MFS_MAGIC_V2R) {
 		*native = magic == MFS_MAGIC_V2;
 		*version = MFS_VERSION_V2;
+		return true;
+	} else if (magic == MFS_MAGIC_V2L || magic == MFS_MAGIC_V2LR) {
+		*native = magic == MFS_MAGIC_V2L;
+		*version = MFS_VERSION_V2;
+		*longfilenames = true;
 		return true;
 	} else if (magic == MFS_MAGIC_V3 || magic == MFS_MAGIC_V3R) {
 		*native = magic == MFS_MAGIC_V3;
