@@ -38,6 +38,7 @@
 #include <sys/types.h>
 #include <bool.h>
 #include <adt/hash_table.h>
+#include <fibril_synch.h>
 
 #define PIPEFS_NODE(node)	((node) ? (pipefs_node_t *)(node)->data : NULL)
 #define FS_NODE(node)		((node) ? (node)->bp : NULL)
@@ -65,18 +66,15 @@ typedef struct pipefs_node {
 	pipefs_dentry_type_t type;
 	unsigned lnkcnt;	/**< Link count. */
 	/* Following is for nodes of type PIPEFS_FILE */
+	fibril_mutex_t data_lock;
+	fibril_condvar_t data_available;
+	fibril_condvar_t data_consumed;
 	aoff64_t start;		/**< File offset where first data block resides */
-	size_t size;		/**< File size if type is PIPEFS_FILE. */
-	link_t data_head;	/**< Head of data blocks list for PIPEFS_FILE. */
+	uint8_t *data;		/**< Pointer to data buffer */
+	size_t data_size;	/**< Number of remaining bytes in the data buffer */
 	/* This is for directory */
-	link_t cs_head;		/**< Head of child's siblings list. */	
+	link_t cs_head;		/**< Head of child's siblings list. */
 } pipefs_node_t;
-
-typedef struct pipefs_data_block {
-	link_t link;		/**< Linkage for the list of data blocks */
-	size_t size;		/**< Size of this block */
-	void *data;			/**< Data for this block */
-} pipefs_data_block_t;
 
 extern fs_reg_t pipefs_reg;
 

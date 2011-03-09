@@ -95,7 +95,7 @@ static fs_index_t pipefs_index_get(fs_node_t *fn)
 
 static aoff64_t pipefs_size_get(fs_node_t *fn)
 {
-	return PIPEFS_NODE(fn)->size;
+	return 0;
 }
 
 static unsigned pipefs_lnkcnt_get(fs_node_t *fn)
@@ -188,16 +188,6 @@ static void nodes_remove_callback(link_t *item)
 		free(dentryp);
 	}
 
-	while (!list_empty(&nodep->data_head)) {
-		assert(nodep->type == PIPEFS_FILE);
-		
-		pipefs_data_block_t *data_block = list_get_instance(nodep->data_head.next,
-		    pipefs_data_block_t, link);
-		
-		list_remove(&data_block->link);
-		free(data_block->data);
-		free(data_block);
-	}
 	free(nodep->bp);
 	free(nodep);
 }
@@ -217,8 +207,11 @@ static void pipefs_node_initialize(pipefs_node_t *nodep)
 	nodep->type = PIPEFS_NONE;
 	nodep->lnkcnt = 0;
 	nodep->start = 0;
-	nodep->size = 0;
-	list_initialize(&nodep->data_head);
+	nodep->data = NULL;
+	nodep->data_size = 0;
+	fibril_mutex_initialize(&nodep->data_lock);
+	fibril_condvar_initialize(&nodep->data_available);
+	fibril_condvar_initialize(&nodep->data_consumed);
 	link_initialize(&nodep->nh_link);
 	list_initialize(&nodep->cs_head);
 }
@@ -478,7 +471,7 @@ void pipefs_mounted(ipc_callid_t rid, ipc_call_t *request)
 	rc = pipefs_root_get(&rootfn, devmap_handle);
 	assert(rc == EOK);
 	pipefs_node_t *rootp = PIPEFS_NODE(rootfn);
-	async_answer_3(rid, EOK, rootp->index, rootp->size, rootp->lnkcnt);
+	async_answer_3(rid, EOK, rootp->index, 0, rootp->lnkcnt);
 	free(opts);
 }
 
@@ -541,73 +534,40 @@ void pipefs_read(ipc_callid_t rid, ipc_call_t *request)
 
 	size_t bytes;
 	if (nodep->type == PIPEFS_FILE) {
+		fibril_mutex_lock(&nodep->data_lock);
+		
 		/*
-		 * Check if we still have the requested data.
-		 * This may happen if the client seeked backwards
+		 * Check if the client didn't seek somewhere else
 		 */
-		if (pos < nodep->start) {
+		if (pos != nodep->start) {
 			async_answer_0(callid, ENOTSUP);
 			async_answer_0(rid, ENOTSUP);
+			fibril_mutex_unlock(&nodep->data_lock);
 			return;
 		}
 		
-		/*
-		 * Free all data blocks that end before pos.
-		 * This is in case the client seeked forward 
-		 */
-		while (!list_empty(&nodep->data_head)) {
-			pipefs_data_block_t *data_block =
-			    list_get_instance(nodep->data_head.next,
-			        pipefs_data_block_t, link);
-		
-			aoff64_t block_end = nodep->start + data_block->size;
-			
-			if (block_end > pos) {
-				break;
-			}
-			
-			list_remove(&data_block->link);
-			free(data_block->data);
-			free(data_block);
-			nodep->start = block_end;
+		if (nodep->data == NULL || nodep->data_size > 0) {
+			// Wait for the data
+			fibril_condvar_wait(&nodep->data_available, &nodep->data_lock);
 		}
 		
-		if (!list_empty(&nodep->data_head)) {
-			/* We have data block, so let's return its portion after pos */
-			pipefs_data_block_t *data_block =
-			    list_get_instance(nodep->data_head.next,
-			        pipefs_data_block_t, link);
-			
-			assert(nodep->start <= pos);
-			
-			aoff64_t block_end = nodep->start + data_block->size;
-			size_t block_offset = pos - nodep->start;
-			
-			assert(block_end > pos);
-			
-			bytes = min(block_end - pos, size);
-			(void) async_data_read_finalize(callid,
-			    data_block->data + block_offset,
-			    bytes);
-			
-			if (nodep->start + block_offset + bytes == block_end) {
-				/* Free the data block - it was fully read */
-				list_remove(&data_block->link);
-				free(data_block->data);
-				free(data_block);
-				nodep->start = block_end;
-			}
+		assert(nodep->data != NULL);
+		assert(nodep->data_size > 0);
+		
+		bytes = min(size, nodep->data_size);
+		
+		(void) async_data_read_finalize(callid, nodep->data, bytes);
+		
+		nodep->data += bytes;
+		nodep->data_size -= bytes;
+		nodep->start += bytes;
+		
+		if (nodep->data_size == 0) {
+			nodep->data = NULL;
+			fibril_condvar_broadcast(&nodep->data_consumed);
 		}
-		else {
-			/*
-			 * there is no data
-			 * TODO implement waiting for the data
-			 * and remove this else clause
-			 */
-			async_answer_0(callid, ENOTSUP);
-			async_answer_1(rid, ENOTSUP, 0);
-			return;
-		}
+		
+		fibril_mutex_unlock(&nodep->data_lock);
 	} else {
 		pipefs_dentry_t *dentryp;
 		link_t *lnk;
@@ -677,55 +637,67 @@ void pipefs_write(ipc_callid_t rid, ipc_call_t *request)
 		async_answer_0(rid, EINVAL);
 		return;
 	}
+	
+	if (size == 0) {
+		async_data_write_finalize(callid, NULL, 0);
+		async_answer_2(rid, EOK, 0, 0);
+		return;
+	}
+	
+	fibril_mutex_lock(&nodep->data_lock);
 
 	/*
 	 * Check whether we are writing to the end
 	 */
-	if (pos != nodep->size) {
+	if (pos != nodep->start+nodep->data_size) {
+		fibril_mutex_unlock(&nodep->data_lock);
 		async_answer_0(callid, ENOTSUP);
-		async_answer_2(rid, EOK, 0, nodep->size);
+		async_answer_0(rid, ENOTSUP);
 		return;
 	}
 	
 	/*
+	 * Wait until there is no data buffer
+	 */
+	if (nodep->data != NULL) {
+		fibril_condvar_wait(&nodep->data_consumed, &nodep->data_lock);
+	}
+	
+	assert(nodep->data == NULL);
+	
+	/*
 	 * Allocate a buffer for the new data.
-	 * Currently we accept any size, create a data block from this
-	 * and append it to the end of a file
+	 * Currently we accept any size
 	 */
 	void *newdata = malloc(size);
 	if (!newdata) {
+		fibril_mutex_unlock(&nodep->data_lock);
 		async_answer_0(callid, ENOMEM);
-		async_answer_2(rid, EOK, 0, nodep->size);
+		async_answer_0(rid, ENOMEM);
 		return;
 	}
 	
-	pipefs_data_block_t *newblock = malloc(sizeof(pipefs_data_block_t));
+	(void) async_data_write_finalize(callid, newdata, size);
 	
-	if (!newblock) {
-		free(newdata);
-		async_answer_0(callid, ENOMEM);
-		async_answer_2(rid, EOK, 0, nodep->size);
-		return;
-	}
+	nodep->data = newdata;
+	nodep->data_size = size;
 	
-	int rc = async_data_write_finalize(callid, newdata, size);
+	fibril_mutex_unlock(&nodep->data_lock);
 	
-	if (rc != EOK) {
-		free(newblock);
-		free(newdata);
-		async_answer_0(callid, rc);
-		async_answer_2(rid, EOK, 0, nodep->size);
-		return;
-	}
+	// Signal that the data is ready
+	fibril_condvar_signal(&nodep->data_available);
 	
-	link_initialize(&newblock->link);
-	newblock->size = size;
-	newblock->data = newdata;
-	list_append(&newblock->link, &nodep->data_head);
+	fibril_mutex_lock(&nodep->data_lock);
 	
-	nodep->size += size;
+	// Wait until all data is consumed
+	fibril_condvar_wait(&nodep->data_consumed, &nodep->data_lock);
 	
-	async_answer_2(rid, EOK, size, nodep->size);
+	assert(nodep->data == NULL);
+	
+	fibril_mutex_unlock(&nodep->data_lock);
+	free(newdata);
+	
+	async_answer_2(rid, EOK, size, 0);
 }
 
 void pipefs_truncate(ipc_callid_t rid, ipc_call_t *request)

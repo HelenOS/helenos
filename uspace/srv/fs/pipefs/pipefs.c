@@ -56,6 +56,8 @@
 
 vfs_info_t pipefs_vfs_info = {
 	.name = NAME,
+	.concurrent_read_write = true,
+	.write_retains_size = true,
 };
 
 fs_reg_t pipefs_reg;
