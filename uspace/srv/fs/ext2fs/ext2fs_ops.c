@@ -101,6 +101,7 @@ static devmap_handle_t ext2fs_device_get(fs_node_t *node);
  * Static variables
  */
 static LIST_INITIALIZE(instance_list);
+static FIBRIL_MUTEX_INITIALIZE(instance_list_mutex);
 
 /**
  * 
@@ -129,9 +130,12 @@ int ext2fs_instance_get(devmap_handle_t devmap_handle, ext2fs_instance_t **inst)
 	EXT2FS_DBG("(%u, -)", devmap_handle);
 	link_t *link;
 	ext2fs_instance_t *tmp;
+	
+	fibril_mutex_lock(&instance_list_mutex);
 
 	if (list_empty(&instance_list)) {
 		EXT2FS_DBG("list empty");
+		fibril_mutex_unlock(&instance_list_mutex);
 		return EINVAL;
 	}
 
@@ -140,11 +144,14 @@ int ext2fs_instance_get(devmap_handle_t devmap_handle, ext2fs_instance_t **inst)
 		
 		if (tmp->devmap_handle == devmap_handle) {
 			*inst = tmp;
+			fibril_mutex_unlock(&instance_list_mutex);
 			return EOK;
 		}
 	}
 	
 	EXT2FS_DBG("not found");
+	
+	fibril_mutex_unlock(&instance_list_mutex);
 	return EINVAL;
 }
 
@@ -461,8 +468,6 @@ void ext2fs_mounted(ipc_callid_t rid, ipc_call_t *request)
 	ext2_filesystem_t *fs;
 	ext2fs_instance_t *inst;
 	
-	
-	
 	/* Accept the mount options */
 	char *opts;
 	rc = async_data_write_accept((void **) &opts, true, 0, 0, 0, NULL);
@@ -512,7 +517,10 @@ void ext2fs_mounted(ipc_callid_t rid, ipc_call_t *request)
 	link_initialize(&inst->link);
 	inst->devmap_handle = devmap_handle;
 	inst->filesystem = fs;
+	
+	fibril_mutex_lock(&instance_list_mutex);
 	list_append(&inst->link, &instance_list);
+	fibril_mutex_unlock(&instance_list_mutex);
 	
 	async_answer_0(rid, EOK);
 }
@@ -540,7 +548,10 @@ void ext2fs_unmounted(ipc_callid_t rid, ipc_call_t *request)
 	// TODO: check if the fs is busy
 	
 	// Remove the instance from list
+	fibril_mutex_lock(&instance_list_mutex);
 	list_remove(&inst->link);
+	fibril_mutex_unlock(&instance_list_mutex);
+	
 	ext2_filesystem_fini(inst->filesystem);
 	
 	async_answer_0(rid, EOK);
