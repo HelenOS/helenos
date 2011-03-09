@@ -75,6 +75,7 @@ static void ext2fs_read_directory(ipc_callid_t, ipc_callid_t, aoff64_t,
 	size_t, ext2fs_instance_t *, ext2_inode_ref_t *);
 static void ext2fs_read_file(ipc_callid_t, ipc_callid_t, aoff64_t,
 	size_t, ext2fs_instance_t *, ext2_inode_ref_t *);
+static bool ext2fs_is_dots(const uint8_t *, size_t);
 
 /*
  * Forward declarations of EXT2 libfs operations.
@@ -336,6 +337,7 @@ int ext2fs_has_children(bool *has_children, fs_node_t *fn)
 	ext2_filesystem_t *fs;
 	int rc;
 	bool found = false;
+	size_t name_size;
 
 	fs = enode->instance->filesystem;
 
@@ -355,8 +357,12 @@ int ext2fs_has_children(bool *has_children, fs_node_t *fn)
 	// Find a non-empty directory entry
 	while (it.current != NULL) {
 		if (it.current->inode != 0) {
-			found = true;
-			break;
+			name_size = ext2_directory_entry_ll_get_name_length(fs->superblock,
+				it.current);
+			if (!ext2fs_is_dots(&it.current->name, name_size)) {
+				found = true;
+				break;
+			}
 		}
 		
 		rc = ext2_directory_iterator_next(&it);
@@ -624,6 +630,21 @@ void ext2fs_read(ipc_callid_t rid, ipc_call_t *request)
 	
 }
 
+/**
+ * Determine whether given directory entry name is . or ..
+ */
+bool ext2fs_is_dots(const uint8_t *name, size_t name_size) {
+	if (name_size == 1 && name[0] == '.') {
+		return true;
+	}
+	
+	if (name_size == 2 && name[0] == '.' && name[1] == '.') {
+		return true;
+	}
+	
+	return false;
+}
+
 void ext2fs_read_directory(ipc_callid_t rid, ipc_callid_t callid, aoff64_t pos,
 	size_t size, ext2fs_instance_t *inst, ext2_inode_ref_t *inode_ref)
 {
@@ -656,13 +677,8 @@ void ext2fs_read_directory(ipc_callid_t rid, ipc_callid_t callid, aoff64_t pos,
 			inst->filesystem->superblock, it.current);
 		
 		// skip . and ..
-		if ((name_size == 1 || name_size == 2) && it.current->name == '.') {
-			if (name_size == 1) {
-				goto skip;
-			}
-			else if (name_size == 2 && *(&it.current->name+1) == '.') {
-				goto skip;
-			}
+		if (ext2fs_is_dots(&it.current->name, name_size)) {
+			goto skip;
 		}
 		
 		// Is this the dir entry we want to read?
