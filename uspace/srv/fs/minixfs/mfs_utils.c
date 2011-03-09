@@ -30,6 +30,7 @@
  * @{
  */
 
+#include <byteorder.h>
 #include "mfs_utils.h"
 
 uint16_t conv16(bool native, uint16_t n)
@@ -37,7 +38,7 @@ uint16_t conv16(bool native, uint16_t n)
 	if (native)
 		return n;
 
-	return (n << 8) | (n >> 8);
+	return uint16_t_byteorder_swap(n);
 }
 
 uint32_t conv32(bool native, uint32_t n)
@@ -45,7 +46,15 @@ uint32_t conv32(bool native, uint32_t n)
 	if (native)
 		return n;
 
-	return conv16(native, n << 16) | conv16(native, n >> 16);
+	return uint32_t_byteorder_swap(n);
+}
+
+uint64_t conv64(bool native, uint64_t n)
+{
+	if (native)
+		return n;
+
+	return uint64_t_byteorder_swap(n);
 }
 
 /**

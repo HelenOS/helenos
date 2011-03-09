@@ -38,6 +38,7 @@
 
 uint16_t conv16(bool native, uint16_t n);
 uint32_t conv32(bool native, uint32_t n);
+uint64_t conv64(bool native, uint64_t n);
 
 #endif
 
