@@ -716,7 +716,7 @@ void ext2fs_read_file(ipc_callid_t rid, ipc_callid_t callid, aoff64_t pos,
 		inode_ref->inode);
 	
 	if (pos >= file_size) {
-		// TODO: is this OK? return EIO?
+		// Read 0 bytes successfully
 		async_data_read_finalize(callid, NULL, 0);
 		async_answer_1(rid, EOK, 0);
 		return;
