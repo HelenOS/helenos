@@ -70,12 +70,16 @@ typedef struct ext2fs_node {
 	ext2_inode_ref_t *inode_ref;
 } ext2fs_node_t;
 
+/*
+ * Forward declarations of auxiliary functions
+ */
 static int ext2fs_instance_get(devmap_handle_t, ext2fs_instance_t **);
 static void ext2fs_read_directory(ipc_callid_t, ipc_callid_t, aoff64_t,
 	size_t, ext2fs_instance_t *, ext2_inode_ref_t *);
 static void ext2fs_read_file(ipc_callid_t, ipc_callid_t, aoff64_t,
 	size_t, ext2fs_instance_t *, ext2_inode_ref_t *);
 static bool ext2fs_is_dots(const uint8_t *, size_t);
+static int ext2fs_node_get_core(fs_node_t **, ext2fs_instance_t *, fs_index_t);
 
 /*
  * Forward declarations of EXT2 libfs operations.
@@ -202,8 +206,7 @@ int ext2fs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 
 			if (name_size == component_size && bcmp(component, &it.current->name,
 				    name_size) == 0) {
-				// FIXME: this may be done better (give instance as param)
-				rc = ext2fs_node_get(rfn, eparent->instance->devmap_handle,
+				rc = ext2fs_node_get_core(rfn, eparent->instance,
 					it.current->inode);
 				if (rc != EOK) {
 					ext2_directory_iterator_fini(&it);
@@ -234,10 +237,25 @@ int ext2fs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 int ext2fs_node_get(fs_node_t **rfn, devmap_handle_t devmap_handle, fs_index_t index)
 {
 	EXT2FS_DBG("(-,%u,%u)", devmap_handle, index);
+	
+	ext2fs_instance_t *inst = NULL;
+	int rc;
+	
+	rc = ext2fs_instance_get(devmap_handle, &inst);
+	if (rc != EOK) {
+		return rc;
+	}
+	
+	return ext2fs_node_get_core(rfn, inst, index);
+}
+
+int ext2fs_node_get_core(fs_node_t **rfn, ext2fs_instance_t *inst,
+		fs_index_t index)
+{
 	int rc;
 	fs_node_t *node = NULL;
 	ext2fs_node_t *enode = NULL;
-	ext2fs_instance_t *inst = NULL;
+	
 	ext2_inode_ref_t *inode_ref = NULL;
 
 	enode = malloc(sizeof(ext2fs_node_t));
@@ -249,17 +267,9 @@ int ext2fs_node_get(fs_node_t **rfn, devmap_handle_t devmap_handle, fs_index_t i
 	if (node == NULL) {
 		free(enode);
 		return ENOMEM;
-	}
-	
+	}	
 	fs_node_initialize(node);
 
-	rc = ext2fs_instance_get(devmap_handle, &inst);
-	if (rc != EOK) {
-		free(enode);
-		free(node);
-		return rc;
-	}
-		
 	rc = ext2_filesystem_get_inode_ref(inst->filesystem, index, &inode_ref);
 	if (rc != EOK) {
 		free(enode);
