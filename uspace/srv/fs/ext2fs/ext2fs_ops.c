@@ -71,6 +71,8 @@ typedef struct ext2fs_node {
 } ext2fs_node_t;
 
 static int ext2fs_instance_get(devmap_handle_t, ext2fs_instance_t **);
+static void ext2fs_read_directory(ipc_callid_t, ipc_callid_t, aoff64_t,
+	size_t, ext2fs_instance_t *, ext2_inode_ref_t *);
 
 /*
  * Forward declarations of EXT2 libfs operations.
@@ -565,11 +567,7 @@ void ext2fs_read(ipc_callid_t rid, ipc_call_t *request)
 	ext2fs_instance_t *inst;
 	ext2_inode_ref_t *inode_ref;
 	int rc;
-	ext2_directory_iterator_t it;
-	aoff64_t cur;
-	uint8_t *buf;
-	size_t name_size;
-
+	
 	/*
 	 * Receive the read request.
 	 */
@@ -602,59 +600,71 @@ void ext2fs_read(ipc_callid_t rid, ipc_call_t *request)
 	}
 	else if (ext2_inode_is_type(inst->filesystem->superblock, inode_ref->inode,
 		    EXT2_INODE_MODE_DIRECTORY)) {
-		rc = ext2_directory_iterator_init(&it, inst->filesystem, inode_ref);
-		if (rc != EOK) {
-			async_answer_0(callid, rc);
-			async_answer_0(rid, rc);
-			return;
-		}
-		
-		cur = 0;
-		while (it.current != NULL) {
-			if (it.current->inode != 0) {
-				if (cur == pos) {
-					// This is the dir entry we want to read
-					name_size = ext2_directory_entry_ll_get_name_length(
-					    inst->filesystem->superblock, it.current);
-					// The on-disk entry does not contain \0 at the end
-					// end of entry name, so we copy it to new buffer
-					// and the \0 at the end
-					buf = malloc(name_size+1);
-					if (buf == NULL) {
-						ext2_directory_iterator_fini(&it);
-						async_answer_0(callid, ENOMEM);
-						async_answer_0(rid, ENOMEM);
-						return;
-					}
-					memcpy(buf, &it.current->name, name_size);
-					*(buf+name_size) = 0;
-					(void) async_data_read_finalize(callid, buf, name_size+1);
-					break;
-				}
-				cur++;
-			}
-			
-			rc = ext2_directory_iterator_next(&it);
-			if (rc != EOK) {
-				ext2_directory_iterator_fini(&it);
-				async_answer_0(callid, rc);
-				async_answer_0(rid, rc);
-				return;
-			}
-		}
-		
-		rc = ext2_directory_iterator_fini(&it);
-		if (rc != EOK) {
-			async_answer_0(rid, ENOMEM);
-			return;
-		}
-		
-		async_answer_1(rid, EOK, 1);		
+		ext2fs_read_directory(rid, callid, pos, size, inst, inode_ref);
 	}
 	
 	// Other inode types not supported
 	async_answer_0(callid, ENOTSUP);
 	async_answer_0(rid, ENOTSUP);
+}
+
+void ext2fs_read_directory(ipc_callid_t rid, ipc_callid_t callid, aoff64_t pos,
+	size_t size, ext2fs_instance_t *inst, ext2_inode_ref_t *inode_ref)
+{
+	ext2_directory_iterator_t it;
+	aoff64_t cur;
+	uint8_t *buf;
+	size_t name_size;
+	int rc;
+	
+	rc = ext2_directory_iterator_init(&it, inst->filesystem, inode_ref);
+	if (rc != EOK) {
+		async_answer_0(callid, rc);
+		async_answer_0(rid, rc);
+		return;
+	}
+	
+	cur = 0;
+	while (it.current != NULL) {
+		if (it.current->inode != 0) {
+			if (cur == pos) {
+				// This is the dir entry we want to read
+				name_size = ext2_directory_entry_ll_get_name_length(
+					inst->filesystem->superblock, it.current);
+				// The on-disk entry does not contain \0 at the end
+				// end of entry name, so we copy it to new buffer
+				// and the \0 at the end
+				buf = malloc(name_size+1);
+				if (buf == NULL) {
+					ext2_directory_iterator_fini(&it);
+					async_answer_0(callid, ENOMEM);
+					async_answer_0(rid, ENOMEM);
+					return;
+				}
+				memcpy(buf, &it.current->name, name_size);
+				*(buf+name_size) = 0;
+				(void) async_data_read_finalize(callid, buf, name_size+1);
+				break;
+			}
+			cur++;
+		}
+		
+		rc = ext2_directory_iterator_next(&it);
+		if (rc != EOK) {
+			ext2_directory_iterator_fini(&it);
+			async_answer_0(callid, rc);
+			async_answer_0(rid, rc);
+			return;
+		}
+	}
+	
+	rc = ext2_directory_iterator_fini(&it);
+	if (rc != EOK) {
+		async_answer_0(rid, ENOMEM);
+		return;
+	}
+	
+	async_answer_1(rid, EOK, 1);
 }
 
 void ext2fs_write(ipc_callid_t rid, ipc_call_t *request)
