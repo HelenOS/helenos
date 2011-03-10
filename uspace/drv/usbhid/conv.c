@@ -39,6 +39,10 @@
 #include <usb/debug.h>
 #include "conv.h"
 
+/**
+ * Mapping between USB HID key codes (from HID Usage Tables) and corresponding
+ * HelenOS key codes.
+ */
 static int scanmap_simple[255] = {
 
 //	[0x29] = KC_BACKTICK,
@@ -162,6 +166,14 @@ static int scanmap_simple[255] = {
 	
 };
 
+/**
+ * Translate USB HID key codes (from HID Usage Tables) to generic key codes
+ * recognized by HelenOS.
+ *
+ * @param scancode USB HID key code (from HID Usage Tables).
+ * 
+ * @retval HelenOS key code corresponding to the given USB HID key code.
+ */
 unsigned int usbhid_parse_scancode(int scancode)
 {
 	unsigned int key;

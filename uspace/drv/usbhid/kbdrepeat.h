@@ -1,5 +1,4 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
  * Copyright (c) 2011 Lubos Slovak
  * All rights reserved.
  *
@@ -30,67 +29,24 @@
 /** @addtogroup drvusbhid
  * @{
  */
-/**
- * @file
- * Main routines of USB HID driver.
+/** @file
+ * USB HID keyboard autorepeat facilities
  */
 
-#include <ddf/driver.h>
-#include <usb/debug.h>
-#include <errno.h>
+#ifndef USBHID_KBDREPEAT_H_
+#define USBHID_KBDREPEAT_H_
 
 #include "kbddev.h"
 
 /*----------------------------------------------------------------------------*/
 
-#define NAME "usbhid"
+int usbhid_kbd_repeat_fibril(void *arg);
 
-/*----------------------------------------------------------------------------*/
-/**
- * Callback for passing a new device to the driver.
- *
- * @note Currently, only boot-protocol keyboards are supported by this driver.
- *
- * @param dev Structure representing the new device.
- *
- * @retval EOK if successful. 
- * @retval EREFUSED if the device is not supported.
- */
-static int usbhid_add_device(ddf_dev_t *dev)
-{
-	usb_log_debug("usbhid_add_device()\n");
-	
-	int rc = usbhid_kbd_try_add_device(dev);
-	
-	if (rc != EOK) {
-		usb_log_info("Device is not a supported keyboard.\n");
-		usb_log_error("Failed to add HID device.\n");
-		return EREFUSED;
-	}
-	
-	return EOK;
-}
+void usbhid_kbd_repeat_start(usbhid_kbd_t *kbd, unsigned int key);
 
-/*----------------------------------------------------------------------------*/
+void usbhid_kbd_repeat_stop(usbhid_kbd_t *kbd, unsigned int key);
 
-static driver_ops_t kbd_driver_ops = {
-	.add_device = usbhid_add_device,
-};
-
-/*----------------------------------------------------------------------------*/
-
-static driver_t kbd_driver = {
-	.name = NAME,
-	.driver_ops = &kbd_driver_ops
-};
-
-/*----------------------------------------------------------------------------*/
-
-int main(int argc, char *argv[])
-{
-	usb_log_enable(USB_LOG_LEVEL_DEBUG, NAME);
-	return ddf_driver_main(&kbd_driver);
-}
+#endif /* USBHID_KBDREPEAT_H_ */
 
 /**
  * @}

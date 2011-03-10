@@ -43,6 +43,13 @@
 
 #define BYTES_PER_LINE 12
 
+/**
+ * Dumps the given buffer in hexadecimal format to standard output.
+ *
+ * @param msg Message to print before the buffer.
+ * @param buffer Buffer to print.
+ * @param length Size of the buffer in bytes.
+ */
 static void dump_buffer(const char *msg, const uint8_t *buffer, size_t length)
 {
 	printf("%s\n", msg);
@@ -61,6 +68,12 @@ static void dump_buffer(const char *msg, const uint8_t *buffer, size_t length)
 
 #define INDENT "  "
 
+/**
+ * Print standard configuration descriptor to standard output.
+ *
+ * @param index Index of the descriptor.
+ * @param d Standard configuration descriptor to print.
+ */
 void dump_standard_configuration_descriptor(
     int index, const usb_standard_configuration_descriptor_t *d)
 {
@@ -83,6 +96,11 @@ void dump_standard_configuration_descriptor(
 	// printf(INDENT " = %d\n", d->);
 }
 
+/**
+ * Print standard interface descriptor to standard output.
+ *
+ * @param d Standard interface descriptor to print.
+ */
 void dump_standard_interface_descriptor(
     const usb_standard_interface_descriptor_t *d)
 {
@@ -98,6 +116,11 @@ void dump_standard_interface_descriptor(
 	printf(INDENT "iInterface = %d\n", d->str_interface);
 }
 
+/**
+ * Print standard endpoint descriptor to standard output.
+ *
+ * @param d Standard endpoint descriptor to print.
+ */
 void dump_standard_endpoint_descriptor(
     const usb_standard_endpoint_descriptor_t *d)
 {
@@ -125,6 +148,11 @@ void dump_standard_endpoint_descriptor(
 	printf(INDENT "bInterval = %d\n", d->poll_interval);
 }
 
+/**
+ * Print standard HID descriptor to standard output.
+ *
+ * @param d Standard HID descriptor to print.
+ */
 void dump_standard_hid_descriptor_header(
     const usb_standard_hid_descriptor_t *d)
 {
@@ -138,6 +166,12 @@ void dump_standard_hid_descriptor_header(
 	printf(INDENT "wDescriptorLength = %d\n", d->report_desc_info.length);
 }
 
+/**
+ * Print HID class-specific descriptor header (type and length) to standard 
+ * output.
+ * 
+ * @param d HID class-specific descriptor header to print.
+ */
 void dump_standard_hid_class_descriptor_info(
     const usb_standard_hid_class_descriptor_info_t *d)
 {
@@ -145,6 +179,14 @@ void dump_standard_hid_class_descriptor_info(
 	printf(INDENT "wDescriptorLength = %d\n", d->length);
 }
 
+/**
+ * Print HID class-specific descriptor (without the header) to standard output.
+ *
+ * @param index Index of the descriptor.
+ * @param type Type of the HID class-specific descriptor (Report or Physical).
+ * @param d HID class descriptor to print.
+ * @param size Size of the descriptor in bytes.
+ */
 void dump_hid_class_descriptor(int index, uint8_t type, 
     const uint8_t *d, size_t size )
 {

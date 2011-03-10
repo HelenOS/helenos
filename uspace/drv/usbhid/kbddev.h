@@ -38,6 +38,8 @@
 
 #include <stdint.h>
 
+#include <fibril_synch.h>
+
 #include <usb/classes/hid.h>
 #include <usb/classes/hidparser.h>
 #include <ddf/driver.h>
@@ -46,30 +48,69 @@
 #include "hiddev.h"
 
 /*----------------------------------------------------------------------------*/
-
 /**
- * @brief USB/HID keyboard device type.
+ * Structure for keeping information needed for auto-repeat of keys.
  */
 typedef struct {
+	/** Last pressed key. */
+	unsigned int key_new;
+	/** Key to be repeated. */
+	unsigned int key_repeated;
+	/** Delay before first repeat in microseconds. */
+	unsigned int delay_before;
+	/** Delay between repeats in microseconds. */
+	unsigned int delay_between;
+} usbhid_kbd_repeat_t;
+
+/**
+ * USB/HID keyboard device type.
+ *
+ * Holds a reference to generic USB/HID device structure and keyboard-specific
+ * data, such as currently pressed keys, modifiers and lock keys.
+ *
+ * Also holds a IPC phone to the console (since there is now no other way to 
+ * communicate with it).
+ *
+ * @note Storing active lock keys in this structure results in their setting
+ *       being device-specific.
+ */
+typedef struct {
+	/** Structure holding generic USB/HID device information. */
 	usbhid_dev_t *hid_dev;
 	
-	uint8_t *keycodes;
-	size_t keycode_count;
+	/** Currently pressed keys (not translated to key codes). */
+	uint8_t *keys;
+	/** Count of stored keys (i.e. number of keys in the report). */
+	size_t key_count;
+	/** Currently pressed modifiers (bitmap). */
 	uint8_t modifiers;
 	
+	/** Currently active modifiers including locks. Sent to the console. */
 	unsigned mods;
+	
+	/** Currently active lock keys. */
 	unsigned lock_keys;
 	
+	/** IPC phone to the console device (for sending key events). */
 	int console_phone;
 	
+	/** Information for auto-repeat of keys. */
+	usbhid_kbd_repeat_t repeat;
+	
+	/** Mutex for accessing the information about auto-repeat. */
+	fibril_mutex_t *repeat_mtx;
+
 	usb_hid_report_parser_t *parser;
 	
+	/** State of the structure (for checking before use). */
 	int initialized;
 } usbhid_kbd_t;
 
 /*----------------------------------------------------------------------------*/
 
 int usbhid_kbd_try_add_device(ddf_dev_t *dev);
+
+void usbhid_kbd_push_ev(usbhid_kbd_t *kbd_dev, int type, unsigned int key);
 
 #endif /* USBHID_KBDDEV_H_ */
 
