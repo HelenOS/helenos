@@ -44,7 +44,7 @@
 #include "kbdrepeat.h"
 #include "kbddev.h"
 
-static unsigned int CHECK_DELAY = 1000;
+static unsigned int CHECK_DELAY = 10000;
 
 /*----------------------------------------------------------------------------*/
 
