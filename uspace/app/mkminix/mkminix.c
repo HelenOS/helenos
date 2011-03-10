@@ -68,11 +68,9 @@ typedef enum {
 
 /*Generic MFS superblock*/
 struct mfs_sb_info {
-	devmap_handle_t handle;
 	uint64_t n_inodes;
 	uint64_t n_zones;
 	aoff64_t dev_nblocks;
-	aoff64_t devblock_size;
 	unsigned long ibmap_blocks;
 	unsigned long zbmap_blocks;
 	unsigned long first_data_zone;
@@ -90,14 +88,16 @@ struct mfs_sb_info {
 static void	help_cmd_mkminix(help_level_t level);
 static int	num_of_set_bits(uint32_t n);
 static int	init_superblock(struct mfs_sb_info *sb);
-static int	write_superblock(struct mfs_sb_info *sbi);
-static int	write_superblock3(struct mfs_sb_info *sbi);
-static int	init_bitmaps(struct mfs_sb_info *sb);
-static int	init_inode_table(struct mfs_sb_info *sb);
-static int	make_root_ino(struct mfs_sb_info *sb);
-static int	make_root_ino3(struct mfs_sb_info *sb);
+static int	write_superblock(const struct mfs_sb_info *sbi);
+static int	write_superblock3(const struct mfs_sb_info *sbi);
+static int	init_bitmaps(const struct mfs_sb_info *sb);
+static int	init_inode_table(const struct mfs_sb_info *sb);
+static int	make_root_ino(const struct mfs_sb_info *sb);
+static int	make_root_ino3(const struct mfs_sb_info *sb);
 static void	mark_bmap(uint32_t *bmap, int idx, int v);
-static int	insert_dentries(struct mfs_sb_info *sb);
+static int	insert_dentries(const struct mfs_sb_info *sb);
+
+static devmap_handle_t handle;
 
 static struct option const long_options[] = {
 	{ "help", no_argument, 0, 'h' },
@@ -114,6 +114,7 @@ int main (int argc, char **argv)
 {
 	int rc, c, opt_ind;
 	char *device_name;
+	aoff64_t devblock_size;
 
 	struct mfs_sb_info sb;
 
@@ -199,25 +200,25 @@ int main (int argc, char **argv)
 		exit(0);
 	}
 
-	rc = devmap_device_get_handle(device_name, &sb.handle, 0);
+	rc = devmap_device_get_handle(device_name, &handle, 0);
 	if (rc != EOK) {
 		printf(NAME ": Error resolving device `%s'.\n", device_name);
 		return 2;
 	}
 
-	rc = block_init(sb.handle, MFS_MIN_BLOCKSIZE);
+	rc = block_init(handle, MFS_MIN_BLOCKSIZE);
 	if (rc != EOK)  {
 		printf(NAME ": Error initializing libblock.\n");
 		return 2;
 	}
 
-	rc = block_get_bsize(sb.handle, &sb.devblock_size);
+	rc = block_get_bsize(handle, &devblock_size);
 	if (rc != EOK) {
 		printf(NAME ": Error determining device block size.\n");
 		return 2;
 	}
 
-	rc = block_get_nblocks(sb.handle, &sb.dev_nblocks);
+	rc = block_get_nblocks(handle, &sb.dev_nblocks);
 	if (rc != EOK) {
 		printf(NAME ": Warning, failed to obtain block device size.\n");
 	} else {
@@ -225,7 +226,7 @@ int main (int argc, char **argv)
 		    sb.dev_nblocks);
 	}
 
-	if (sb.devblock_size != 512) {
+	if (devblock_size != 512) {
 		printf(NAME ": Error. Device block size is not 512 bytes.\n");
 		return 2;
 	}
@@ -273,7 +274,7 @@ int main (int argc, char **argv)
 	return 0;
 }
 
-static int insert_dentries(struct mfs_sb_info *sb)
+static int insert_dentries(const struct mfs_sb_info *sb)
 {
 	void *root_block;
 	int rc;
@@ -308,13 +309,13 @@ static int insert_dentries(struct mfs_sb_info *sb)
 		str_cpy(dentry->d_name, 2, "..");
 	}
 
-	rc = block_write_direct(sb->handle, root_dblock, 1, root_block);
+	rc = block_write_direct(handle, root_dblock, 1, root_block);
 
 	free(root_block);
 	return rc;
 }
 
-static int init_inode_table(struct mfs_sb_info *sb)
+static int init_inode_table(const struct mfs_sb_info *sb)
 {
 	unsigned int i;
 	uint8_t *itable_buf;
@@ -337,7 +338,7 @@ static int init_inode_table(struct mfs_sb_info *sb)
 	memset(itable_buf, 0x00, sb->block_size);
 
 	for (i = 0; i < itable_size; ++i, ++itable_off) {
-		rc = block_write_direct(sb->handle, itable_off, 1, itable_buf);
+		rc = block_write_direct(handle, itable_off, 1, itable_buf);
 
 		if (rc != EOK)
 			break;
@@ -347,7 +348,7 @@ static int init_inode_table(struct mfs_sb_info *sb)
 	return rc;
 }
 
-static int make_root_ino(struct mfs_sb_info *sb)
+static int make_root_ino(const struct mfs_sb_info *sb)
 {
 	struct mfs_inode *ino_buf;
 	long itable_off;
@@ -373,13 +374,13 @@ static int make_root_ino(struct mfs_sb_info *sb)
 	ino_buf[MFS_ROOT_INO].i_nlinks = 2;
 	ino_buf[MFS_ROOT_INO].i_dzone[0] = sb->first_data_zone;
 
-	rc = block_write_direct(sb->handle, itable_off, 1, ino_buf);
+	rc = block_write_direct(handle, itable_off, 1, ino_buf);
 
 	free(ino_buf);
 	return rc;
 }
 
-static int make_root_ino3(struct mfs_sb_info *sb)
+static int make_root_ino3(const struct mfs_sb_info *sb)
 {
 	struct mfs2_inode *ino_buf;
 	long itable_off;
@@ -411,7 +412,7 @@ static int make_root_ino3(struct mfs_sb_info *sb)
 	ino_buf[MFS_ROOT_INO].i_nlinks = 2;
 	ino_buf[MFS_ROOT_INO].i_dzone[0] = sb->first_data_zone;
 
-	rc = block_write_direct(sb->handle, itable_off, 1, ino_buf);
+	rc = block_write_direct(handle, itable_off, 1, ino_buf);
 
 	free(ino_buf);
 	return rc;
@@ -495,7 +496,7 @@ static int init_superblock(struct mfs_sb_info *sb)
 	return rc;
 }
 
-static int write_superblock(struct mfs_sb_info *sbi)
+static int write_superblock(const struct mfs_sb_info *sbi)
 {
 	struct mfs_superblock *sb;
 	int rc;
@@ -516,13 +517,13 @@ static int write_superblock(struct mfs_sb_info *sbi)
 	sb->s_magic = sbi->magic;
 	sb->s_state = MFS_VALID_FS;
 
-	rc = block_write_direct(sbi->handle, MFS_SUPERBLOCK, 1, sb);
+	rc = block_write_direct(handle, MFS_SUPERBLOCK, 1, sb);
 	free(sb);
 
 	return rc;
 }
 
-static int write_superblock3(struct mfs_sb_info *sbi)
+static int write_superblock3(const struct mfs_sb_info *sbi)
 {
 	struct mfs3_superblock *sb;
 	int rc;
@@ -543,13 +544,13 @@ static int write_superblock3(struct mfs_sb_info *sbi)
 	sb->s_block_size = sbi->block_size;
 	sb->s_disk_version = 3;
 
-	rc = block_write_direct(sbi->handle, MFS_SUPERBLOCK, 1, sb);
+	rc = block_write_direct(handle, MFS_SUPERBLOCK, 1, sb);
 	free(sb);
 
 	return rc;
 }
 
-static int init_bitmaps(struct mfs_sb_info *sb)
+static int init_bitmaps(const struct mfs_sb_info *sb)
 {
 	uint32_t *ibmap_buf, *zbmap_buf;
 	uint8_t *ibmap_buf8, *zbmap_buf8;
@@ -583,7 +584,7 @@ static int init_bitmaps(struct mfs_sb_info *sb)
 	int start_block = FIRST_ZONE(sb->block_size);
 
 	for (i = 0; i < ibmap_nblocks; ++i) {
-		if ((rc = block_write_direct(sb->handle, start_block + i,
+		if ((rc = block_write_direct(handle, start_block + i,
 				1, (ibmap_buf8 + i * MFS_BLOCKSIZE))) != EOK)
 			return rc;
 	}
@@ -591,7 +592,7 @@ static int init_bitmaps(struct mfs_sb_info *sb)
 	start_block = FIRST_ZONE(sb->block_size) + ibmap_nblocks;
 
 	for (i = 0; i < zbmap_nblocks; ++i) {
-		if ((rc = block_write_direct(sb->handle, start_block + i,
+		if ((rc = block_write_direct(handle, start_block + i,
 				1, (zbmap_buf8 + i * MFS_BLOCKSIZE))) != EOK)
 			return rc;
 	}
