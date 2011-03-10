@@ -758,7 +758,7 @@ static void usbhid_kbd_poll(usbhid_kbd_t *kbd_dev)
 		if (sess_rc != EOK) {
 			usb_log_warning("Failed to start a session: %s.\n",
 			    str_error(sess_rc));
-			continue;
+			break;
 		}
 
 		rc = usb_endpoint_pipe_read(&kbd_dev->hid_dev->poll_pipe, 
@@ -770,13 +770,13 @@ static void usbhid_kbd_poll(usbhid_kbd_t *kbd_dev)
 		if (rc != EOK) {
 			usb_log_warning("Error polling the keyboard: %s.\n",
 			    str_error(rc));
-			continue;
+			break;
 		}
 
 		if (sess_rc != EOK) {
 			usb_log_warning("Error closing session: %s.\n",
 			    str_error(sess_rc));
-			continue;
+			break;
 		}
 
 		/*
@@ -797,9 +797,6 @@ static void usbhid_kbd_poll(usbhid_kbd_t *kbd_dev)
 		// disabled for now, no reason to sleep
 		//async_usleep(kbd_dev->hid_dev->poll_interval);
 	}
-
-	// not reached
-	assert(0);
 }
 
 /*----------------------------------------------------------------------------*/
