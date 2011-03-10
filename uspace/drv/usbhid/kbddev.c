@@ -59,14 +59,28 @@
 #include "kbdrepeat.h"
 
 /*----------------------------------------------------------------------------*/
-
+/** Default modifiers when the keyboard is initialized. */
 static const unsigned DEFAULT_ACTIVE_MODS = KM_NUM_LOCK;
+
+/** Boot protocol report size (key part). */
 static const size_t BOOTP_REPORT_SIZE = 6;
+
+/** Boot protocol total report size. */
 static const size_t BOOTP_BUFFER_SIZE = 8;
+
+/** Boot protocol output report size. */
 static const size_t BOOTP_BUFFER_OUT_SIZE = 1;
+
+/** Boot protocol error key code. */
 static const uint8_t BOOTP_ERROR_ROLLOVER = 1;
+
+/** Default idle rate for keyboards. */
 static const uint8_t IDLE_RATE = 0;
+
+/** Delay before a pressed key starts auto-repeating. */
 static const unsigned int DEFAULT_DELAY_BEFORE_FIRST_REPEAT = 500 * 1000;
+
+/** Delay between two repeats of a pressed key when auto-repeating. */
 static const unsigned int DEFAULT_REPEAT_DELAY = 50 * 1000;
 
 /** Keyboard polling endpoint description for boot protocol class. */
@@ -85,6 +99,7 @@ static usb_endpoint_description_t poll_endpoint_description = {
 
 #define NUM_LAYOUTS 3
 
+/** Keyboard layout map. */
 static layout_op_t *layout[NUM_LAYOUTS] = {
 	&us_qwerty_op,
 	&us_dvorak_op,
@@ -96,7 +111,7 @@ static int active_layout = 0;
 /*----------------------------------------------------------------------------*/
 /* Modifier constants                                                         */
 /*----------------------------------------------------------------------------*/
-
+/** Mapping of USB modifier key codes to generic modifier key codes. */
 static const keycode_t usbhid_modifiers_keycodes[USB_HID_MOD_COUNT] = {
 	KC_LCTRL,         /* USB_HID_MOD_LCTRL */
 	KC_LSHIFT,        /* USB_HID_MOD_LSHIFT */
@@ -117,9 +132,14 @@ static ddf_dev_ops_t keyboard_ops = {
 	.default_handler = default_connection_handler
 };
 
-/** Default handler for IPC methods not handled by DDF.
+/** 
+ * Default handler for IPC methods not handled by DDF.
  *
- * @param dev Device handling the call.
+ * Currently recognizes only one method (IPC_M_CONNECT_TO_ME), in which case it
+ * assumes the caller is the console and thus it stores IPC phone to it for 
+ * later use by the driver to notify about key events.
+ *
+ * @param fun Device function handling the call.
  * @param icallid Call id.
  * @param icall Call data.
  */
@@ -150,7 +170,18 @@ void default_connection_handler(ddf_fun_t *fun,
 /*----------------------------------------------------------------------------*/
 /* Key processing functions                                                   */
 /*----------------------------------------------------------------------------*/
-
+/**
+ * Handles turning of LED lights on and off.
+ *
+ * In case of USB keyboards, the LEDs are handled in the driver, not in the 
+ * device. When there should be a change (lock key was pressed), the driver
+ * uses a Set_Report request sent to the device to set the state of the LEDs.
+ *
+ * This functions sets the LED lights according to current settings of modifiers
+ * kept in the keyboard device structure.
+ *
+ * @param kbd_dev Keyboard device structure.
+ */
 static void usbhid_kbd_set_led(usbhid_kbd_t *kbd_dev) 
 {
 	uint8_t buffer[BOOTP_BUFFER_OUT_SIZE];
@@ -192,7 +223,22 @@ static void usbhid_kbd_set_led(usbhid_kbd_t *kbd_dev)
 }
 
 /*----------------------------------------------------------------------------*/
-
+/**
+ * Processes key events.
+ *
+ * @note This function was copied from AT keyboard driver and modified to suit
+ *       USB keyboard.
+ *
+ * @note Lock keys are not sent to the console, as they are completely handled
+ *       in the driver. It may, however, be required later that the driver
+ *       sends also these keys to application (otherwise it cannot use those
+ *       keys at all).
+ * 
+ * @param kbd_dev Keyboard device structure.
+ * @param type Type of the event (press / release). Recognized values: 
+ *             KEY_PRESS, KEY_RELEASE
+ * @param key Key code of the key according to HID Usage Tables.
+ */
 void usbhid_kbd_push_ev(usbhid_kbd_t *kbd_dev, int type, unsigned int key)
 {
 	console_event_t ev;
@@ -291,7 +337,14 @@ void usbhid_kbd_push_ev(usbhid_kbd_t *kbd_dev, int type, unsigned int key)
 }
 
 /*----------------------------------------------------------------------------*/
-
+/**
+ * Checks if modifiers were pressed or released and generates key events.
+ *
+ * @param kbd_dev Keyboard device structure.
+ * @param modifiers Bitmap of modifiers.
+ *
+ * @sa usbhid_kbd_push_ev()
+ */
 static void usbhid_kbd_check_modifier_changes(usbhid_kbd_t *kbd_dev,
     uint8_t modifiers)
 {
@@ -327,9 +380,23 @@ static void usbhid_kbd_check_modifier_changes(usbhid_kbd_t *kbd_dev,
 }
 
 /*----------------------------------------------------------------------------*/
-
+/**
+ * Checks if some keys were pressed or released and generates key events.
+ *
+ * An event is created only when key is pressed or released. Besides handling
+ * the events (usbhid_kbd_push_ev()), the auto-repeat fibril is notified about
+ * key presses and releases (see usbhid_kbd_repeat_start() and 
+ * usbhid_kbd_repeat_stop()).
+ *
+ * @param kbd_dev Keyboard device structure.
+ * @param key_codes Parsed keyboard report - codes of currently pressed keys 
+ *                  according to HID Usage Tables.
+ * @param count Number of key codes in report (size of the report).
+ *
+ * @sa usbhid_kbd_push_ev(), usbhid_kbd_repeat_start(), usbhid_kbd_repeat_stop()
+ */
 static void usbhid_kbd_check_key_changes(usbhid_kbd_t *kbd_dev, 
-    const uint8_t *key_codes)
+    const uint8_t *key_codes, size_t count)
 {
 	unsigned int key;
 	unsigned int i, j;
@@ -339,22 +406,23 @@ static void usbhid_kbd_check_key_changes(usbhid_kbd_t *kbd_dev,
 	 */
 	i = 0;
 	// all fields should report Error Rollover
-	while (i < kbd_dev->key_count &&
+	while (i < count &&
 	    key_codes[i] == BOOTP_ERROR_ROLLOVER) {
 		++i;
 	}
-	if (i == kbd_dev->key_count) {
+	if (i == count) {
 		usb_log_debug("Phantom state occured.\n");
 		// phantom state, do nothing
 		return;
 	}
 	
-	// TODO: quite dummy right now, think of better implementation
+	/* TODO: quite dummy right now, think of better implementation */
+	assert(count == kbd_dev->key_count);
 	
 	/*
 	 * 1) Key releases
 	 */
-	for (j = 0; j < kbd_dev->key_count; ++j) {
+	for (j = 0; j < count; ++j) {
 		// try to find the old key in the new key list
 		i = 0;
 		while (i < kbd_dev->key_count
@@ -362,7 +430,7 @@ static void usbhid_kbd_check_key_changes(usbhid_kbd_t *kbd_dev,
 			++i;
 		}
 		
-		if (i == kbd_dev->key_count) {
+		if (i == count) {
 			// not found, i.e. the key was released
 			key = usbhid_parse_scancode(kbd_dev->keys[j]);
 			usbhid_kbd_repeat_stop(kbd_dev, key);
@@ -379,33 +447,23 @@ static void usbhid_kbd_check_key_changes(usbhid_kbd_t *kbd_dev,
 	for (i = 0; i < kbd_dev->key_count; ++i) {
 		// try to find the new key in the old key list
 		j = 0;
-		while (j < kbd_dev->key_count 
-		    && kbd_dev->keys[j] != key_codes[i]) { 
+		while (j < count && kbd_dev->keys[j] != key_codes[i]) { 
 			++j;
 		}
 		
-		if (j == kbd_dev->key_count) {
+		if (j == count) {
 			// not found, i.e. new key pressed
 			key = usbhid_parse_scancode(key_codes[i]);
 			usb_log_debug2("Key pressed: %d (keycode: %d)\n", key,
 			    key_codes[i]);
 			usbhid_kbd_push_ev(kbd_dev, KEY_PRESS, key);
 			usbhid_kbd_repeat_start(kbd_dev, key);
-		} else {
+		} else {size_t
 			// found, nothing happens
 		}
 	}
-//	// report all currently pressed keys
-//	for (i = 0; i < kbd_dev->keycode_count; ++i) {
-//		if (key_codes[i] != 0) {
-//			key = usbhid_parse_scancode(key_codes[i]);
-//			usb_log_debug2("Key pressed: %d (keycode: %d)\n", key,
-//			    key_codes[i]);
-//			usbhid_kbd_push_ev(kbd_dev, KEY_PRESS, key);
-//		}
-//	}
 	
-	memcpy(kbd_dev->keys, key_codes, kbd_dev->key_count);
+	memcpy(kbd_dev->keys, key_codes, count);
 
 	usb_log_debug("New stored keycodes: %s\n", 
 	    usb_debug_str_buffer(kbd_dev->keys, kbd_dev->key_count, 0));
@@ -414,7 +472,22 @@ static void usbhid_kbd_check_key_changes(usbhid_kbd_t *kbd_dev,
 /*----------------------------------------------------------------------------*/
 /* Callbacks for parser                                                       */
 /*----------------------------------------------------------------------------*/
-
+/**
+ * Callback function for the HID report parser.
+ *
+ * This function is called by the HID report parser with the parsed report.
+ * The parsed report is used to check if any events occured (key was pressed or
+ * released, modifier was pressed or released).
+ *
+ * @param key_codes Parsed keyboard report - codes of currently pressed keys 
+ *                  according to HID Usage Tables.
+ * @param count Number of key codes in report (size of the report).
+ * @param modifiers Bitmap of modifiers (Ctrl, Alt, Shift, GUI).
+ * @param arg User-specified argument. Expects pointer to the keyboard device
+ *            structure representing the keyboard.
+ *
+ * @sa usbhid_kbd_check_key_changes(), usbhid_kbd_check_modifier_changes()
+ */
 static void usbhid_kbd_process_keycodes(const uint8_t *key_codes, size_t count,
     uint8_t modifiers, void *arg)
 {
@@ -437,7 +510,7 @@ static void usbhid_kbd_process_keycodes(const uint8_t *key_codes, size_t count,
 	}
 	
 	usbhid_kbd_check_modifier_changes(kbd_dev, modifiers);
-	usbhid_kbd_check_key_changes(kbd_dev, key_codes);
+	usbhid_kbd_check_key_changes(kbd_dev, key_codes, count);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -685,7 +758,7 @@ static void usbhid_kbd_poll(usbhid_kbd_t *kbd_dev)
 		if (sess_rc != EOK) {
 			usb_log_warning("Failed to start a session: %s.\n",
 			    str_error(sess_rc));
-			continue;
+			break;
 		}
 
 		rc = usb_endpoint_pipe_read(&kbd_dev->hid_dev->poll_pipe, 
@@ -697,13 +770,13 @@ static void usbhid_kbd_poll(usbhid_kbd_t *kbd_dev)
 		if (rc != EOK) {
 			usb_log_warning("Error polling the keyboard: %s.\n",
 			    str_error(rc));
-			continue;
+			break;
 		}
 
 		if (sess_rc != EOK) {
 			usb_log_warning("Error closing session: %s.\n",
 			    str_error(sess_rc));
-			continue;
+			break;
 		}
 
 		/*
@@ -724,9 +797,6 @@ static void usbhid_kbd_poll(usbhid_kbd_t *kbd_dev)
 		// disabled for now, no reason to sleep
 		//async_usleep(kbd_dev->hid_dev->poll_interval);
 	}
-
-	// not reached
-	assert(0);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -772,7 +842,8 @@ static int usbhid_kbd_fibril(void *arg)
  * Function for adding a new device of type USB/HID/keyboard.
  *
  * This functions initializes required structures from the device's descriptors
- * and starts a new fibril for polling the keyboard for events.
+ * and starts new fibril for polling the keyboard for events and another one for
+ * handling auto-repeat of keys.
  *
  * During initialization, the keyboard is switched into boot protocol, the idle
  * rate is set to 0 (infinity), resulting in the keyboard only reporting event
@@ -790,7 +861,7 @@ static int usbhid_kbd_fibril(void *arg)
  * @return Other error code inherited from one of functions usbhid_kbd_init(),
  *         ddf_fun_bind() and ddf_fun_add_to_class().
  *
- * @sa usbhid_kbd_fibril()
+ * @sa usbhid_kbd_fibril(), usbhid_kbd_repeat_fibril()
  */
 int usbhid_kbd_try_add_device(ddf_dev_t *dev)
 {
