@@ -458,7 +458,7 @@ static void usbhid_kbd_check_key_changes(usbhid_kbd_t *kbd_dev,
 			    key_codes[i]);
 			usbhid_kbd_push_ev(kbd_dev, KEY_PRESS, key);
 			usbhid_kbd_repeat_start(kbd_dev, key);
-		} else {size_t
+		} else {
 			// found, nothing happens
 		}
 	}
@@ -501,7 +501,7 @@ static void usbhid_kbd_process_keycodes(const uint8_t *key_codes, size_t count,
 	assert(kbd_dev != NULL);
 
 	usb_log_debug("Got keys from parser: %s\n", 
-	    usb_debug_str_buffer(key_codes, kbd_dev->key_count, 0));
+	    usb_debug_str_buffer(key_codes, count, 0));
 	
 	if (count != kbd_dev->key_count) {
 		usb_log_warning("Number of received keycodes (%d) differs from"
@@ -534,6 +534,9 @@ static void usbhid_kbd_process_keycodes(const uint8_t *key_codes, size_t count,
 static void usbhid_kbd_process_data(usbhid_kbd_t *kbd_dev,
                                     uint8_t *buffer, size_t actual_size)
 {
+	assert(kbd_dev->initialized);
+	assert(kbd_dev->hid_dev->parser != NULL);
+	
 	usb_hid_report_in_callbacks_t *callbacks =
 	    (usb_hid_report_in_callbacks_t *)malloc(
 	        sizeof(usb_hid_report_in_callbacks_t));
@@ -616,8 +619,6 @@ static void usbhid_kbd_free(usbhid_kbd_t **kbd_dev)
 		free((*kbd_dev)->repeat_mtx);
 	}
 
-	usb_hid_free_report_parser((*kbd_dev)->parser);
-	
 	free(*kbd_dev);
 	*kbd_dev = NULL;
 }

@@ -99,8 +99,6 @@ typedef struct {
 	
 	/** Mutex for accessing the information about auto-repeat. */
 	fibril_mutex_t *repeat_mtx;
-
-	usb_hid_report_parser_t *parser;
 	
 	/** State of the structure (for checking before use). */
 	int initialized;
