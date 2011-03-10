@@ -36,12 +36,13 @@
 
 #include <errno.h>
 #include <str_error.h>
-#include <fibril.h>
 #include <stdio.h>
 
 #include <io/keycode.h>
 #include <ipc/kbd.h>
 #include <async.h>
+#include <fibril.h>
+#include <fibril_synch.h>
 
 #include <usb/usb.h>
 #include <usb/classes/hid.h>
@@ -55,6 +56,7 @@
 #include "hidreq.h"
 #include "layout.h"
 #include "conv.h"
+#include "kbdrepeat.h"
 
 /*----------------------------------------------------------------------------*/
 
@@ -64,6 +66,8 @@ static const size_t BOOTP_BUFFER_SIZE = 8;
 static const size_t BOOTP_BUFFER_OUT_SIZE = 1;
 static const uint8_t BOOTP_ERROR_ROLLOVER = 1;
 static const uint8_t IDLE_RATE = 0;
+static const unsigned int DEFAULT_DELAY_BEFORE_FIRST_REPEAT = 500 * 1000;
+static const unsigned int DEFAULT_REPEAT_DELAY = 50 * 1000;
 
 /** Keyboard polling endpoint description for boot protocol class. */
 static usb_endpoint_description_t poll_endpoint_description = {
@@ -189,8 +193,7 @@ static void usbhid_kbd_set_led(usbhid_kbd_t *kbd_dev)
 
 /*----------------------------------------------------------------------------*/
 
-static void usbhid_kbd_push_ev(usbhid_kbd_t *kbd_dev, int type, 
-    unsigned int key)
+void usbhid_kbd_push_ev(usbhid_kbd_t *kbd_dev, int type, unsigned int key)
 {
 	console_event_t ev;
 	unsigned mod_mask;
@@ -232,12 +235,16 @@ static void usbhid_kbd_push_ev(usbhid_kbd_t *kbd_dev, int type,
 			 * to pressed. This prevents autorepeat from messing
 			 * up the lock state.
 			 */
+			unsigned int locks_old = kbd_dev->lock_keys;
+			
 			kbd_dev->mods = 
 			    kbd_dev->mods ^ (mod_mask & ~kbd_dev->lock_keys);
 			kbd_dev->lock_keys = kbd_dev->lock_keys | mod_mask;
 
 			/* Update keyboard lock indicator lights. */
- 			usbhid_kbd_set_led(kbd_dev);
+			if (kbd_dev->lock_keys != locks_old) {
+				usbhid_kbd_set_led(kbd_dev);
+			}
 		} else {
 			kbd_dev->lock_keys = kbd_dev->lock_keys & ~mod_mask;
 		}
@@ -358,6 +365,7 @@ static void usbhid_kbd_check_key_changes(usbhid_kbd_t *kbd_dev,
 		if (i == kbd_dev->key_count) {
 			// not found, i.e. the key was released
 			key = usbhid_parse_scancode(kbd_dev->keys[j]);
+			usbhid_kbd_repeat_stop(kbd_dev, key);
 			usbhid_kbd_push_ev(kbd_dev, KEY_RELEASE, key);
 			usb_log_debug2("Key released: %d\n", key);
 		} else {
@@ -382,6 +390,7 @@ static void usbhid_kbd_check_key_changes(usbhid_kbd_t *kbd_dev,
 			usb_log_debug2("Key pressed: %d (keycode: %d)\n", key,
 			    key_codes[i]);
 			usbhid_kbd_push_ev(kbd_dev, KEY_PRESS, key);
+			usbhid_kbd_repeat_start(kbd_dev, key);
 		} else {
 			// found, nothing happens
 		}
@@ -526,6 +535,12 @@ static void usbhid_kbd_free(usbhid_kbd_t **kbd_dev)
 		assert((*kbd_dev)->hid_dev == NULL);
 	}
 	
+	if ((*kbd_dev)->repeat_mtx != NULL) {
+		/* TODO: replace by some check and wait */
+		assert(!fibril_mutex_is_locked((*kbd_dev)->repeat_mtx));
+		free((*kbd_dev)->repeat_mtx);
+	}
+	
 	free(*kbd_dev);
 	*kbd_dev = NULL;
 }
@@ -597,6 +612,21 @@ static int usbhid_kbd_init(usbhid_kbd_t *kbd_dev, ddf_dev_t *dev)
 	kbd_dev->modifiers = 0;
 	kbd_dev->mods = DEFAULT_ACTIVE_MODS;
 	kbd_dev->lock_keys = 0;
+	
+	kbd_dev->repeat.key_new = 0;
+	kbd_dev->repeat.key_repeated = 0;
+	kbd_dev->repeat.delay_before = DEFAULT_DELAY_BEFORE_FIRST_REPEAT;
+	kbd_dev->repeat.delay_between = DEFAULT_REPEAT_DELAY;
+	
+	kbd_dev->repeat_mtx = (fibril_mutex_t *)(
+	    malloc(sizeof(fibril_mutex_t)));
+	if (kbd_dev->repeat_mtx == NULL) {
+		usb_log_fatal("No memory!\n");
+		free(kbd_dev->keys);
+		return ENOMEM;
+	}
+	
+	fibril_mutex_initialize(kbd_dev->repeat_mtx);
 	
 	/*
 	 * Set boot protocol.
@@ -829,6 +859,16 @@ int usbhid_kbd_try_add_device(ddf_dev_t *dev)
 	fid_t fid = fibril_create(usbhid_kbd_fibril, kbd_dev);
 	if (fid == 0) {
 		usb_log_error("Failed to start fibril for KBD device\n");
+		return ENOMEM;
+	}
+	fibril_add_ready(fid);
+	
+	/*
+	 * Create new fibril for auto-repeat
+	 */
+	fid = fibril_create(usbhid_kbd_repeat_fibril, kbd_dev);
+	if (fid == 0) {
+		usb_log_error("Failed to start fibril for KBD auto-repeat");
 		return ENOMEM;
 	}
 	fibril_add_ready(fid);

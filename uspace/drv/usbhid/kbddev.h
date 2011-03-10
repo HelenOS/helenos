@@ -38,6 +38,8 @@
 
 #include <stdint.h>
 
+#include <fibril_synch.h>
+
 #include <usb/classes/hid.h>
 #include <ddf/driver.h>
 #include <usb/pipes.h>
@@ -45,6 +47,20 @@
 #include "hiddev.h"
 
 /*----------------------------------------------------------------------------*/
+/**
+ * Structure for keeping information needed for auto-repeat of keys.
+ */
+typedef struct {
+	/** Last pressed key. */
+	unsigned int key_new;
+	/** Key to be repeated. */
+	unsigned int key_repeated;
+	/** Delay before first repeat in microseconds. */
+	unsigned int delay_before;
+	/** Delay between repeats in microseconds. */
+	unsigned int delay_between;
+} usbhid_kbd_repeat_t;
+
 /**
  * USB/HID keyboard device type.
  *
@@ -77,6 +93,12 @@ typedef struct {
 	/** IPC phone to the console device (for sending key events). */
 	int console_phone;
 	
+	/** Information for auto-repeat of keys. */
+	usbhid_kbd_repeat_t repeat;
+	
+	/** Mutex for accessing the information about auto-repeat. */
+	fibril_mutex_t *repeat_mtx;
+	
 	/** State of the structure (for checking before use). */
 	int initialized;
 } usbhid_kbd_t;
@@ -84,6 +106,8 @@ typedef struct {
 /*----------------------------------------------------------------------------*/
 
 int usbhid_kbd_try_add_device(ddf_dev_t *dev);
+
+void usbhid_kbd_push_ev(usbhid_kbd_t *kbd_dev, int type, unsigned int key);
 
 #endif /* USBHID_KBDDEV_H_ */
 

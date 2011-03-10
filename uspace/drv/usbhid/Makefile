@@ -41,6 +41,7 @@ SOURCES = \
 	conv.c \
 	hidreq.c \
 	kbddev.c \
+	kbdrepeat.c \
 	hiddev.c \
 	$(STOLEN_LAYOUT_SOURCES)
 
