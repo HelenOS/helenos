@@ -483,7 +483,8 @@ static void usbhid_kbd_check_key_changes(usbhid_kbd_t *kbd_dev,
  *                  according to HID Usage Tables.
  * @param count Number of key codes in report (size of the report).
  * @param modifiers Bitmap of modifiers (Ctrl, Alt, Shift, GUI).
- * @param arg User-specified argument.
+ * @param arg User-specified argument. Expects pointer to the keyboard device
+ *            structure representing the keyboard.
  *
  * @sa usbhid_kbd_check_key_changes(), usbhid_kbd_check_modifier_changes()
  */
