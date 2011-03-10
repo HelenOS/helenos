@@ -111,12 +111,16 @@ int usb_hid_parse_report_descriptor(usb_hid_report_parser_t *parser,
 	usb_hid_report_item_t *report_item=0;
 	usb_hid_report_item_t *new_report_item;
 
-	size_t offset=0;
+	size_t offset_input=0;
+	size_t offset_output=0;
+	size_t offset_feature=0;
 	
 
 	if(!(report_item=malloc(sizeof(usb_hid_report_item_t)))){
 		return ENOMEM;
 	}
+	memset(report_item, 0, sizeof(usb_hid_report_item_t));
+	
 	link_initialize(&(report_item->link));	
 
 	while(i<size){	
@@ -142,21 +146,24 @@ int usb_hid_parse_report_descriptor(usb_hid_report_parser_t *parser,
 				case USB_HID_NEW_REPORT_ITEM:
 					// store report item to report and create the new one
 					usb_log_debug("\nNEW REPORT ITEM: %X",tag);
-
-					report_item->offset = offset;
-					offset += report_item->count * report_item->size;
 					
 					switch(tag) {
 						case USB_HID_REPORT_TAG_INPUT:
+							report_item->offset = offset_input;
+							offset_input += report_item->count * report_item->size;
 							usb_log_debug(" - INPUT\n");
 							list_append(&(report_item->link), &(parser->input));
 							break;
 						case USB_HID_REPORT_TAG_OUTPUT:
+							report_item->offset = offset_output;
+							offset_output += report_item->count * report_item->size;
 							usb_log_debug(" - OUTPUT\n");
 								list_append(&(report_item->link), &(parser->output));
 
 							break;
 						case USB_HID_REPORT_TAG_FEATURE:
+							report_item->offset = offset_feature;
+							offset_feature += report_item->count * report_item->size;
 							usb_log_debug(" - FEATURE\n");
 								list_append(&(report_item->link), &(parser->feature));
 							break;
@@ -482,7 +489,7 @@ void usb_hid_descriptor_print_list(link_t *head)
 	link_t *item;
 	
 	if(head == NULL || list_empty(head)) {
-	    printf("\tempty\n");
+	    usb_log_debug("\tempty\n");
 	    return;
 	}
         
@@ -490,17 +497,17 @@ void usb_hid_descriptor_print_list(link_t *head)
                 
 		report_item = list_get_instance(item, usb_hid_report_item_t, link);
 
-		printf("\tOFFSET: %X\n", report_item->offset);
-		printf("\tCOUNT: %X\n", report_item->count);
-		printf("\tSIZE: %X\n", report_item->size);
-		printf("\tCONSTANT: %X\n", USB_HID_ITEM_FLAG_CONSTANT(report_item->item_flags));
-		printf("\tUSAGE: %X\n", report_item->usage);
-		printf("\tUSAGE PAGE: %X\n", report_item->usage_page);
-		printf("\tLOGMIN: %X\n", report_item->logical_minimum);
-		printf("\tLOGMAX: %X\n", report_item->logical_maximum);		
-		printf("\tPHYMIN: %X\n", report_item->physical_minimum);		
-		printf("\tPHYMAX: %X\n", report_item->physical_maximum);				
-		printf("\n");		
+		usb_log_debug("\tOFFSET: %X\n", report_item->offset);
+		usb_log_debug("\tCOUNT: %X\n", report_item->count);
+		usb_log_debug("\tSIZE: %X\n", report_item->size);
+		usb_log_debug("\tCONSTANT: %X\n", USB_HID_ITEM_FLAG_CONSTANT(report_item->item_flags));
+		usb_log_debug("\tUSAGE: %X\n", report_item->usage);
+		usb_log_debug("\tUSAGE PAGE: %X\n", report_item->usage_page);
+		usb_log_debug("\tLOGMIN: %X\n", report_item->logical_minimum);
+		usb_log_debug("\tLOGMAX: %X\n", report_item->logical_maximum);		
+		usb_log_debug("\tPHYMIN: %X\n", report_item->physical_minimum);		
+		usb_log_debug("\tPHYMAX: %X\n", report_item->physical_maximum);				
+		usb_log_debug("\n");		
 
 	}
 
@@ -514,13 +521,13 @@ void usb_hid_descriptor_print_list(link_t *head)
  */
 void usb_hid_descriptor_print(usb_hid_report_parser_t *parser)
 {
-	printf("INPUT:\n");
+	usb_log_debug("INPUT:\n");
 	usb_hid_descriptor_print_list(&parser->input);
 	
-	printf("OUTPUT: \n");
+	usb_log_debug("OUTPUT: \n");
 	usb_hid_descriptor_print_list(&parser->output);
 	
-	printf("FEATURE:\n");	
+	usb_log_debug("FEATURE:\n");	
 	usb_hid_descriptor_print_list(&parser->feature);
 
 }
@@ -651,12 +658,19 @@ int usb_hid_translate_data(usb_hid_report_item_t *item, const uint8_t *data, siz
 		return 0;
 	}
 
-	if((item->physical_minimum == 0) && (item->physical_maximum ==0)) {
+	if((item->physical_minimum == 0) && (item->physical_maximum == 0)) {
 		item->physical_minimum = item->logical_minimum;
 		item->physical_maximum = item->logical_maximum;		
 	}
 
-	resolution = (item->logical_maximum - item->logical_minimum) / ((item->physical_maximum - item->physical_minimum) * (usb_pow(10,(item->unit_exponent))));
+	if(item->physical_maximum == item->physical_minimum){
+	    resolution = 1;
+	}
+	else {
+	    resolution = (item->logical_maximum - item->logical_minimum) / 
+		((item->physical_maximum - item->physical_minimum) * 
+		(usb_pow(10,(item->unit_exponent))));
+	}
 	offset = item->offset + (j * item->size);
 	
 	// FIXME
@@ -693,12 +707,13 @@ int usb_hid_translate_data(usb_hid_report_item_t *item, const uint8_t *data, siz
 		value = (*foo & mask) >> (8-((offset%8)+item->size));
 
 		usb_log_debug2("offset %d\n", offset);
+	
 		usb_log_debug2("foo %x\n", *foo);
 		usb_log_debug2("maska %x\n",  mask);
 		usb_log_debug2("val %d\n", value);				
 	}
 
-	usb_log_debug2("---\n\n");
+	usb_log_debug2("---\n\n"); 
 
 	return (int)(((value - item->logical_minimum) / resolution) + item->physical_minimum);
 	
