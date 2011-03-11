@@ -42,7 +42,12 @@ else
 endif
 
 SUFFIX = $(suffix $(IMGFILE))
-DISTFILE = HelenOS-$(RELEASE)-$(PLATFORM)-$(MACHINE)-$(PROCESSOR)$(SUFFIX)
+
+ifdef PROFILE
+	DISTFILE = Helenos-$(shell echo $(PROFILE) | tr '/' '-')$(SUFFIX)
+else
+	DISTFILE = HelenOS-$(RELEASE)-$(PLATFORM)-$(MACHINE)-$(PROCESSOR)$(SUFFIX)
+endif
 
 .PHONY: all clean dist distfile
 
@@ -51,6 +56,9 @@ distfile: $(DISTFILE)
 
 $(DISTFILE): $(IMGFILE)
 	cp $< $@
+
+$(IMGFILE):
+	$(MAKE) -C ..
 
 dist:
 	for profile in $(PROFILES); do \
