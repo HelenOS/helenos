@@ -44,7 +44,6 @@
 #include <errno.h>
 #include <sys/typefmt.h>
 #include <inttypes.h>
-#include <str.h>
 #include <getopt.h>
 #include <mem.h>
 #include <str.h>
@@ -283,6 +282,7 @@ static int insert_dentries(const struct mfs_sb_info *sb)
 	const long root_dblock = CONVERT_1K_OFF(sb->first_data_zone, sb->block_size);
 
 	root_block = (void *) malloc(MFS_MIN_BLOCKSIZE);
+	memset(root_block, 0x00, MFS_MIN_BLOCKSIZE);
 
 	if (!root_block)
 		return ENOMEM;
@@ -292,23 +292,23 @@ static int insert_dentries(const struct mfs_sb_info *sb)
 		struct mfs_dentry *dentry = root_block;
 
 		dentry->d_inum = MFS_ROOT_INO;
-		str_cpy(dentry->d_name, 1, ".");
+		memcpy(dentry->d_name, ".\0", 2);
 
 		NEXT_DENTRY(dentry, sb->dirsize);
 
 		dentry->d_inum = MFS_ROOT_INO;
-		str_cpy(dentry->d_name, 2, "..");
+		memcpy(dentry->d_name, "..\0", 3);
 	} else {
 		/*Directory entries for V3 filesystem*/
 		struct mfs3_dentry *dentry = root_block;
 
 		dentry->d_inum = MFS_ROOT_INO;
-		str_cpy(dentry->d_name, 1, ".");
+		memcpy(dentry->d_name, ".\0", 2);
 
 		NEXT_DENTRY(dentry, sb->dirsize);
 
 		dentry->d_inum = MFS_ROOT_INO;
-		str_cpy(dentry->d_name, 2, "..");
+		memcpy(dentry->d_name, "..\0", 3);
 	}
 
 	rc = write_1k_block(root_dblock, 1, root_block);
