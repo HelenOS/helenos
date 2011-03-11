@@ -45,7 +45,20 @@
 #include "hiddev.h"
 
 /*----------------------------------------------------------------------------*/
-
+/**
+ * Send Set Report request to the HID device.
+ *
+ * @param hid_dev HID device to send the request to.
+ * @param type Type of the report.
+ * @param buffer Report data.
+ * @param buf_size Report data size (in bytes).
+ *
+ * @retval EOK if successful.
+ * @retval EINVAL if no HID device is given.
+ * @return Other value inherited from one of functions 
+ *         usb_endpoint_pipe_start_session(), usb_endpoint_pipe_end_session(),
+ *         usb_control_request_set().
+ */
 int usbhid_req_set_report(usbhid_dev_t *hid_dev,
     usb_hid_report_type_t type, uint8_t *buffer, size_t buf_size)
 {
@@ -96,7 +109,18 @@ int usbhid_req_set_report(usbhid_dev_t *hid_dev,
 }
 
 /*----------------------------------------------------------------------------*/
-
+/**
+ * Send Set Protocol request to the HID device.
+ *
+ * @param hid_dev HID device to send the request to.
+ * @param protocol Protocol to set.
+ *
+ * @retval EOK if successful.
+ * @retval EINVAL if no HID device is given.
+ * @return Other value inherited from one of functions 
+ *         usb_endpoint_pipe_start_session(), usb_endpoint_pipe_end_session(),
+ *         usb_control_request_set().
+ */
 int usbhid_req_set_protocol(usbhid_dev_t *hid_dev, usb_hid_protocol_t protocol)
 {
 	if (hid_dev == NULL) {
@@ -144,7 +168,19 @@ int usbhid_req_set_protocol(usbhid_dev_t *hid_dev, usb_hid_protocol_t protocol)
 }
 
 /*----------------------------------------------------------------------------*/
-
+/**
+ * Send Set Idle request to the HID device.
+ *
+ * @param hid_dev HID device to send the request to.
+ * @param duration Duration value (is multiplicated by 4 by the device to
+ *                 get real duration in miliseconds).
+ *
+ * @retval EOK if successful.
+ * @retval EINVAL if no HID device is given.
+ * @return Other value inherited from one of functions 
+ *         usb_endpoint_pipe_start_session(), usb_endpoint_pipe_end_session(),
+ *         usb_control_request_set().
+ */
 int usbhid_req_set_idle(usbhid_dev_t *hid_dev, uint8_t duration)
 {
 	if (hid_dev == NULL) {
@@ -194,7 +230,22 @@ int usbhid_req_set_idle(usbhid_dev_t *hid_dev, uint8_t duration)
 }
 
 /*----------------------------------------------------------------------------*/
-
+/**
+ * Send Get Report request to the HID device.
+ *
+ * @param[in] hid_dev HID device to send the request to.
+ * @param[in] type Type of the report.
+ * @param[in][out] buffer Buffer for the report data.
+ * @param[in] buf_size Size of the buffer (in bytes).
+ * @param[out] actual_size Actual size of report received from the device 
+ *                         (in bytes).
+ *
+ * @retval EOK if successful.
+ * @retval EINVAL if no HID device is given.
+ * @return Other value inherited from one of functions 
+ *         usb_endpoint_pipe_start_session(), usb_endpoint_pipe_end_session(),
+ *         usb_control_request_set().
+ */
 int usbhid_req_get_report(usbhid_dev_t *hid_dev, usb_hid_report_type_t type, 
     uint8_t *buffer, size_t buf_size, size_t *actual_size)
 {
@@ -245,6 +296,19 @@ int usbhid_req_get_report(usbhid_dev_t *hid_dev, usb_hid_report_type_t type,
 	return EOK;
 }
 
+/*----------------------------------------------------------------------------*/
+/**
+ * Send Get Protocol request to the HID device.
+ *
+ * @param[in] hid_dev HID device to send the request to.
+ * @param[out] protocol Current protocol of the device.
+ *
+ * @retval EOK if successful.
+ * @retval EINVAL if no HID device is given.
+ * @return Other value inherited from one of functions 
+ *         usb_endpoint_pipe_start_session(), usb_endpoint_pipe_end_session(),
+ *         usb_control_request_set().
+ */
 int usbhid_req_get_protocol(usbhid_dev_t *hid_dev, usb_hid_protocol_t *protocol)
 {
 	if (hid_dev == NULL) {
@@ -302,6 +366,20 @@ int usbhid_req_get_protocol(usbhid_dev_t *hid_dev, usb_hid_protocol_t *protocol)
 	return EOK;
 }
 
+/*----------------------------------------------------------------------------*/
+/**
+ * Send Get Idle request to the HID device.
+ *
+ * @param[in] hid_dev HID device to send the request to.
+ * @param[out] duration Duration value (multiplicate by 4 to get real duration
+ *                      in miliseconds).
+ *
+ * @retval EOK if successful.
+ * @retval EINVAL if no HID device is given.
+ * @return Other value inherited from one of functions 
+ *         usb_endpoint_pipe_start_session(), usb_endpoint_pipe_end_session(),
+ *         usb_control_request_set().
+ */
 int usbhid_req_get_idle(usbhid_dev_t *hid_dev, uint8_t *duration)
 {
 	if (hid_dev == NULL) {

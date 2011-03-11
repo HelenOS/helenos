@@ -47,22 +47,37 @@
 /*----------------------------------------------------------------------------*/
 
 /**
- * @brief USB/HID device type.
+ * USB/HID device type.
+ *
+ * Holds a reference to DDF device structure, and HID-specific data, such 
+ * as information about used pipes (one Control pipe and one Interrupt In pipe),
+ * polling interval, assigned interface number, Report descriptor and a
+ * reference to the Report parser used to parse incoming reports and composing
+ * outgoing reports.
  */
 typedef struct {
+	/** DDF device representing the controlled HID device. */
 	ddf_dev_t *device;
 
+	/** Physical connection to the device. */
 	usb_device_connection_t wire;
+	/** USB pipe corresponding to the default Control endpoint. */
 	usb_endpoint_pipe_t ctrl_pipe;
+	/** USB pipe corresponding to the Interrupt In (polling) pipe. */
 	usb_endpoint_pipe_t poll_pipe;
 	
+	/** Polling interval retreived from the Interface descriptor. */
 	short poll_interval;
 	
+	/** Interface number assigned to this device. */
 	uint16_t iface;
 	
+	/** Report descriptor. */
 	uint8_t *report_desc;
+	/** HID Report parser. */
 	usb_hid_report_parser_t *parser;
 	
+	/** State of the structure (for checking before use). */
 	int initialized;
 } usbhid_dev_t;
 
