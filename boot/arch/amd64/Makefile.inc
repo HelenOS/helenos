@@ -42,11 +42,13 @@ RD_DRVS += \
 	pciintel \
 	isa \
 	ns8250 \
+	ehci-hcd \
 	uhci-hcd \
 	uhci-rhd \
 	usbhub \
 	usbhid \
 	usbmid \
+	usbmouse \
 	vhc
 
 RD_DRV_CFG += \

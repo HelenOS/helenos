@@ -98,7 +98,7 @@ int usb_device_get_assigned_interface(ddf_dev_t *device)
 /** Initialize connection to USB device.
  *
  * @param connection Connection structure to be initialized.
- * @param device Generic device backing the USB device.
+ * @param dev Generic device backing the USB device.
  * @return Error code.
  */
 int usb_device_connection_initialize_from_device(

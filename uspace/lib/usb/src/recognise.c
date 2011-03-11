@@ -30,7 +30,7 @@
  * @{
  */
 /** @file
- * @brief Functions for recognising kind of attached devices.
+ * Functions for recognition of attached devices.
  */
 #include <sys/types.h>
 #include <fibril_synch.h>
@@ -43,17 +43,24 @@
 #include <errno.h>
 #include <assert.h>
 
+/** Index to append after device name for uniqueness. */
 static size_t device_name_index = 0;
+/** Mutex guard for device_name_index. */
 static FIBRIL_MUTEX_INITIALIZE(device_name_index_mutex);
 
+/** DDF operations of child devices. */
 ddf_dev_ops_t child_ops = {
 	.interfaces[USB_DEV_IFACE] = &usb_iface_hub_child_impl
 };
 
+/** Get integer part from BCD coded number. */
 #define BCD_INT(a) (((unsigned int)(a)) / 256)
+/** Get fraction part from BCD coded number (as an integer, no less). */
 #define BCD_FRAC(a) (((unsigned int)(a)) % 256)
 
+/** Format for BCD coded number to be used in printf. */
 #define BCD_FMT "%x.%x"
+/** Arguments to printf for BCD coded number. */
 #define BCD_ARGS(a) BCD_INT((a)), BCD_FRAC((a))
 
 /* FIXME: make this dynamic */
@@ -112,6 +119,13 @@ failure:
 	return rc;
 }
 
+/** Add match id to list or return with error code.
+ *
+ * @param match_ids List of match ids.
+ * @param score Match id score.
+ * @param format Format of the matching string
+ * @param ... Arguments for the format.
+ */
 #define ADD_MATCHID_OR_RETURN(match_ids, score, format, ...) \
 	do { \
 		int __rc = usb_add_match_id((match_ids), (score), \
@@ -123,11 +137,12 @@ failure:
 
 /** Create device match ids based on its interface.
  *
- * @param[in] descriptor Interface descriptor.
+ * @param[in] desc_device Device descriptor.
+ * @param[in] desc_interface Interface descriptor.
  * @param[out] matches Initialized list of match ids.
  * @return Error code (the two mentioned are not the only ones).
  * @retval EINVAL Invalid input parameters (expects non NULL pointers).
- * @retval ENOENT Interface does not specify class.
+ * @retval ENOENT Device class is not "use interface".
  */
 int usb_device_create_match_ids_from_interface(
     const usb_standard_device_descriptor_t *desc_device,
@@ -318,6 +333,11 @@ int usb_device_create_match_ids(usb_endpoint_pipe_t *ctrl_pipe,
  * @param[in] hc_handle Handle of the host controller.
  * @param[in] parent Parent device.
  * @param[out] child_handle Handle of the child device.
+ * @param[in] dev_ops Child device ops.
+ * @param[in] dev_data Arbitrary pointer to be stored in the child
+ *	as @c driver_data.
+ * @param[out] child_fun Storage where pointer to allocated child function
+ *	will be written.
  * @return Error code.
  */
 int usb_device_register_child_in_devman(usb_address_t address,

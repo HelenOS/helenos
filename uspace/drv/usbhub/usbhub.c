@@ -148,50 +148,31 @@ static int usb_hub_process_configuration_descriptors(
 		//shouldn`t I return?
 	}
 
-	//configuration descriptor
-	/// \TODO check other configurations?
-	usb_standard_configuration_descriptor_t config_descriptor;
-	opResult = usb_request_get_bare_configuration_descriptor(
+	/* Retrieve full configuration descriptor. */
+	uint8_t *descriptors = NULL;
+	size_t descriptors_size = 0;
+	opResult = usb_request_get_full_configuration_descriptor_alloc(
 	    &hub->endpoints.control, 0,
-        &config_descriptor);
-	if(opResult!=EOK){
-		dprintf(USB_LOG_LEVEL_ERROR, "could not get configuration descriptor, %d",opResult);
+	    (void **) &descriptors, &descriptors_size);
+	if (opResult != EOK) {
+		usb_log_error("Could not get configuration descriptor: %s.\n",
+		    str_error(opResult));
 		return opResult;
 	}
-	//set configuration
+	usb_standard_configuration_descriptor_t *config_descriptor
+	    = (usb_standard_configuration_descriptor_t *) descriptors;
+
+	/* Set configuration. */
 	opResult = usb_request_set_configuration(&hub->endpoints.control,
-		config_descriptor.configuration_number);
+	    config_descriptor->configuration_number);
 
 	if (opResult != EOK) {
-		dprintf(USB_LOG_LEVEL_ERROR,
-				"something went wrong when setting hub`s configuration, %d",
-				opResult);
+		usb_log_error("Failed to set hub configuration: %s.\n",
+		    str_error(opResult));
 		return opResult;
 	}
 	dprintf(USB_LOG_LEVEL_DEBUG, "\tused configuration %d",
-			config_descriptor.configuration_number);
-
-	//full configuration descriptor
-	size_t transferred = 0;
-	uint8_t * descriptors = (uint8_t *)malloc(config_descriptor.total_length);
-	if (descriptors == NULL) {
-		dprintf(USB_LOG_LEVEL_ERROR, "insufficient memory");
-		return ENOMEM;
-	}
-	opResult = usb_request_get_full_configuration_descriptor(&hub->endpoints.control,
-	    0, descriptors,
-	    config_descriptor.total_length, &transferred);
-	if(opResult!=EOK){
-		free(descriptors);
-		dprintf(USB_LOG_LEVEL_ERROR,
-				"could not get full configuration descriptor, %d",opResult);
-		return opResult;
-	}
-	if (transferred != config_descriptor.total_length) {
-		dprintf(USB_LOG_LEVEL_ERROR,
-				"received incorrect full configuration descriptor");
-		return ELIMIT;
-	}
+			config_descriptor->configuration_number);
 
 	usb_endpoint_mapping_t endpoint_mapping[1] = {
 		{
@@ -203,7 +184,7 @@ static int usb_hub_process_configuration_descriptors(
 	};
 	opResult = usb_endpoint_pipe_initialize_from_configuration(
 	    endpoint_mapping, 1,
-	    descriptors, config_descriptor.total_length,
+	    descriptors, descriptors_size,
 	    &hub->device_connection);
 	if (opResult != EOK) {
 		dprintf(USB_LOG_LEVEL_ERROR,
@@ -251,6 +232,9 @@ usb_hub_info_t * usb_create_hub_info(ddf_dev_t * device) {
 	usb_hub_descriptor_t * descriptor;
 	dprintf(USB_LOG_LEVEL_DEBUG, "starting control transaction");
 	usb_endpoint_pipe_start_session(&result->endpoints.control);
+	opResult = usb_request_set_configuration(&result->endpoints.control, 1);
+	assert(opResult == EOK);
+
 	opResult = usb_request_get_descriptor(&result->endpoints.control,
 			USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_DEVICE,
 			USB_DESCTYPE_HUB,
@@ -261,14 +245,15 @@ usb_hub_info_t * usb_create_hub_info(ddf_dev_t * device) {
 	if (opResult != EOK) {
 		dprintf(USB_LOG_LEVEL_ERROR, "failed when receiving hub descriptor, badcode = %d",opResult);
 		free(serialized_descriptor);
-		return result;
+		free(result);
+		return NULL;
 	}
 	dprintf(USB_LOG_LEVEL_DEBUG2, "deserializing descriptor");
 	descriptor = usb_deserialize_hub_desriptor(serialized_descriptor);
 	if(descriptor==NULL){
 		dprintf(USB_LOG_LEVEL_WARNING, "could not deserialize descriptor ");
-		result->port_count = 1;///\TODO this code is only for debug!!!
-		return result;
+		free(result);
+		return NULL;
 	}
 
 	dprintf(USB_LOG_LEVEL_INFO, "setting port count to %d",descriptor->ports_count);
@@ -304,6 +289,9 @@ int usb_add_hub_device(ddf_dev_t *dev) {
 	(void) hub_device_ops;
 
 	usb_hub_info_t * hub_info = usb_create_hub_info(dev);
+	if(!hub_info){
+		return EINTR;
+	}
 
 	int opResult;
 
@@ -312,7 +300,7 @@ int usb_add_hub_device(ddf_dev_t *dev) {
 	// process descriptors
 	opResult = usb_hub_process_configuration_descriptors(hub_info);
 	if(opResult != EOK){
-		dprintf(USB_LOG_LEVEL_ERROR,"could not get condiguration descriptors, %d",
+		dprintf(USB_LOG_LEVEL_ERROR,"could not get configuration descriptors, %d",
 				opResult);
 		return opResult;
 	}

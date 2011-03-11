@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,52 +26,65 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusb
+/** @addtogroup drvusbmouse
  * @{
  */
-/** @file
- * @brief Common definitions for both HC driver and hub driver.
- */
-#ifndef LIBUSB_HCDHUBD_PRIVATE_H_
-#define LIBUSB_HCDHUBD_PRIVATE_H_
-
-#define USB_HUB_DEVICE_NAME "usbhub"
-#define USB_KBD_DEVICE_NAME "hid"
-
-extern link_t hc_list;
-extern usb_hc_driver_t *hc_driver;
-
-extern usbhc_iface_t usbhc_interface;
-
-usb_address_t usb_get_address_by_handle(devman_handle_t);
-int usb_add_hc_device(device_t *);
-
-/** lowest allowed usb address */
-extern int usb_lowest_address;
-
-/** highest allowed usb address */
-extern int usb_highest_address;
-
 /**
- * @brief initialize address list of given hcd
- *
- * This function should be used only for hcd initialization.
- * It creates interval list of free addresses, thus it is initialized as
- * list with one interval with whole address space. Using an address shrinks
- * the interval, freeing an address extends an interval or creates a
- * new one. 
- *
- * @param hcd
- * @return
+ * @file
+ * Main routines of USB boot protocol mouse driver.
  */
-void  usb_create_address_list(usb_hc_device_t * hcd);
+#include "mouse.h"
+#include <usb/debug.h>
+#include <errno.h>
+#include <str_error.h>
 
+/** Callback when new mouse device is attached and recognised by DDF.
+ *
+ * @param dev Representation of a generic DDF device.
+ * @return Error code.
+ */
+static int usbmouse_add_device(ddf_dev_t *dev)
+{
+	int rc = usb_mouse_create(dev);
+	if (rc != EOK) {
+		usb_log_error("Failed to initialize device driver: %s.\n",
+		    str_error(rc));
+		return rc;
+	}
 
+	fid_t poll_fibril = fibril_create(usb_mouse_polling_fibril, dev);
+	if (poll_fibril == 0) {
+		usb_log_error("Failed to initialize polling fibril.\n");
+		/* FIXME: free allocated resources. */
+		return ENOMEM;
+	}
 
+	fibril_add_ready(poll_fibril);
 
+	usb_log_info("controlling new mouse (handle %llu).\n",
+	    dev->handle);
 
+	return EOK;
+}
 
-#endif
+/** USB mouse driver ops. */
+static driver_ops_t mouse_driver_ops = {
+	.add_device = usbmouse_add_device,
+};
+
+/** USB mouse driver. */
+static driver_t mouse_driver = {
+	.name = NAME,
+	.driver_ops = &mouse_driver_ops
+};
+
+int main(int argc, char *argv[])
+{
+	usb_log_enable(USB_LOG_LEVEL_DEBUG, NAME);
+
+	return ddf_driver_main(&mouse_driver);
+}
+
 /**
  * @}
  */

@@ -46,7 +46,16 @@
 #define NAME "usbhid"
 
 /*----------------------------------------------------------------------------*/
-
+/**
+ * Callback for passing a new device to the driver.
+ *
+ * @note Currently, only boot-protocol keyboards are supported by this driver.
+ *
+ * @param dev Structure representing the new device.
+ *
+ * @retval EOK if successful. 
+ * @retval EREFUSED if the device is not supported.
+ */
 static int usbhid_add_device(ddf_dev_t *dev)
 {
 	usb_log_debug("usbhid_add_device()\n");
@@ -79,7 +88,7 @@ static driver_t kbd_driver = {
 
 int main(int argc, char *argv[])
 {
-	usb_log_enable(USB_LOG_LEVEL_INFO, NAME);
+	usb_log_enable(USB_LOG_LEVEL_DEBUG, NAME);
 	return ddf_driver_main(&kbd_driver);
 }
 

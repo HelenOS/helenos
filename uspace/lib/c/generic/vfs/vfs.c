@@ -68,6 +68,7 @@ char *absolutize(const char *path, size_t *retlen)
 {
 	char *ncwd_path;
 	char *ncwd_path_nc;
+	size_t total_size; 
 
 	fibril_mutex_lock(&cwd_mutex);
 	size_t size = str_size(path);
@@ -76,23 +77,25 @@ char *absolutize(const char *path, size_t *retlen)
 			fibril_mutex_unlock(&cwd_mutex);
 			return NULL;
 		}
-		ncwd_path_nc = malloc(cwd_size + 1 + size + 1);
+		total_size = cwd_size + 1 + size + 1;
+		ncwd_path_nc = malloc(total_size);
 		if (!ncwd_path_nc) {
 			fibril_mutex_unlock(&cwd_mutex);
 			return NULL;
 		}
-		str_cpy(ncwd_path_nc, cwd_size + 1 + size + 1, cwd_path);
+		str_cpy(ncwd_path_nc, total_size, cwd_path);
 		ncwd_path_nc[cwd_size] = '/';
 		ncwd_path_nc[cwd_size + 1] = '\0';
 	} else {
-		ncwd_path_nc = malloc(size + 1);
+		total_size = size + 1;
+		ncwd_path_nc = malloc(total_size);
 		if (!ncwd_path_nc) {
 			fibril_mutex_unlock(&cwd_mutex);
 			return NULL;
 		}
 		ncwd_path_nc[0] = '\0';
 	}
-	str_append(ncwd_path_nc, cwd_size + 1 + size + 1, path);
+	str_append(ncwd_path_nc, total_size, path);
 	ncwd_path = canonify(ncwd_path_nc, retlen);
 	if (!ncwd_path) {
 		fibril_mutex_unlock(&cwd_mutex);

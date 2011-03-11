@@ -39,6 +39,7 @@
 
 int pci_get_my_registers(ddf_dev_t *, uintptr_t *, size_t *, int *);
 int pci_enable_interrupts(ddf_dev_t *);
+int pci_disable_legacy(ddf_dev_t *);
 
 #endif
 /**
