@@ -606,18 +606,10 @@ int usb_hid_parse_report(const usb_hid_report_parser_t *parser,
 	size_t j=0;
 
 	// get the size of result keycodes array
-	list_item = parser->input.next;	   
-	while(list_item != &(parser->input)) {
+	usb_hid_report_path_t path;
+	path.usage_page = BAD_HACK_USAGE_PAGE;
+	key_count = usb_hid_report_input_length(parser, &path);
 
-		item = list_get_instance(list_item, usb_hid_report_item_t, link);
-		if(item->usage_page == BAD_HACK_USAGE_PAGE) {
-			key_count += item->count;
-		}
-
-		list_item = list_item->next;
-	}
-
-	
 	if(!(keys = malloc(sizeof(uint8_t) * key_count))){
 		return ENOMEM;
 	}
@@ -627,7 +619,8 @@ int usb_hid_parse_report(const usb_hid_report_parser_t *parser,
 	while(list_item != &(parser->input)) {
 
 		item = list_get_instance(list_item, usb_hid_report_item_t, link);
-		if(item->usage_page == BAD_HACK_USAGE_PAGE) {
+		if(!USB_HID_ITEM_FLAG_CONSTANT(item->item_flags) &&
+		   (item->usage_page == BAD_HACK_USAGE_PAGE)) {
 			for(j=0; j<(size_t)(item->count); j++) {
 				keys[i++] = usb_hid_translate_data(item, data,j);
 			}
@@ -729,7 +722,8 @@ int usb_hid_report_input_length(const usb_hid_report_parser_t *parser,
 	item = (&parser->input)->next;
 	while(&parser->input != item) {
 		report_item = list_get_instance(item, usb_hid_report_item_t, link);
-		if(report_item->usage_page == path->usage_page) {
+		if(!USB_HID_ITEM_FLAG_CONSTANT(report_item->item_flags) &&
+		   (report_item->usage_page == path->usage_page)) {
 			ret += report_item->count;
 		}
 
