@@ -57,6 +57,19 @@ int uhci_port_init(
   unsigned usec, ddf_dev_t *rh);
 
 void uhci_port_fini(uhci_port_t *port);
+
+static inline port_status_t uhci_port_read_status(uhci_port_t *port)
+{
+	assert(port);
+	return pio_read_16(port->address);
+}
+
+static inline void uhci_port_write_status(
+    uhci_port_t *port, port_status_t value)
+{
+	assert(port);
+	pio_write_16(port->address, value);
+}
 #endif
 /**
  * @}

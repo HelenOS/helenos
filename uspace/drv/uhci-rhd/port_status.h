@@ -53,14 +53,22 @@ typedef uint16_t port_status_t;
 #define STATUS_IN_RESET  (1 <<  9)
 #define STATUS_SUSPEND   (1 << 12)
 
-static inline port_status_t port_status_read(port_status_t * address)
-	{ return pio_read_16(address); }
 
-static inline void port_status_write(
-  port_status_t *address, port_status_t value)
-	{ pio_write_16(address, value); }
-
-void print_port_status(const port_status_t status);
+static inline void print_port_status(
+    const char* prefix, const port_status_t value)
+{
+	usb_log_debug2("%s Port status:%s%s%s%s%s%s%s%s.\n",
+	    prefix,
+	    (value & STATUS_SUSPEND) ? " SUSPENDED," : "",
+	    (value & STATUS_IN_RESET) ? " IN RESET," : "",
+	    (value & STATUS_LOW_SPEED) ? " LOWSPEED," : "",
+	    (value & STATUS_ENABLED_CHANGED) ? " ENABLED-CHANGE," : "",
+	    (value & STATUS_ENABLED) ? " ENABLED," : "",
+	    (value & STATUS_CONNECTED_CHANGED) ? " CONNECTED-CHANGE," : "",
+	    (value & STATUS_CONNECTED) ? " CONNECTED," : "",
+	    (value & STATUS_ALWAYS_ONE) ? " ALWAYS ONE" : " ERROR: NO ALWAYS ONE"
+	);
+}
 #endif
 /**
  * @}

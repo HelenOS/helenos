@@ -122,7 +122,7 @@ int uhci_port_check(void *port)
 		async_usleep(instance->wait_period_usec);
 
 		/* read register value */
-		port_status_t port_status = port_status_read(instance->address);
+		port_status_t port_status = uhci_port_read_status(instance);
 
 		/* debug print mutex */
 		static fibril_mutex_t dbg_mtx =
@@ -130,7 +130,7 @@ int uhci_port_check(void *port)
 		fibril_mutex_lock(&dbg_mtx);
 		usb_log_debug2("Port(%p - %d): Status: %#04x. === %u\n",
 		  instance->address, instance->number, port_status, count++);
-//		print_port_status(port_status);
+		print_port_status("Port", port_status);
 		fibril_mutex_unlock(&dbg_mtx);
 
 		if ((port_status & STATUS_CONNECTED_CHANGED) == 0)
@@ -162,7 +162,7 @@ int uhci_port_check(void *port)
 			uhci_port_new_device(instance, speed);
 		} else {
 			/* Write one to WC bits, to ack changes */
-			port_status_write(instance->address, port_status);
+			uhci_port_write_status(instance, port_status);
 			usb_log_debug("Port(%p - %d): Change status ACK.\n",
 			    instance->address, instance->number);
 		}
@@ -202,14 +202,13 @@ int uhci_port_reset_enable(int portno, void *arg)
 	{
 		usb_log_debug("Port(%p - %d): Reset Signal start.\n",
 		    port->address, port->number);
-		port_status_t port_status =
-			port_status_read(port->address);
+		port_status_t port_status = uhci_port_read_status(port);
 		port_status |= STATUS_IN_RESET;
-		port_status_write(port->address, port_status);
+		uhci_port_write_status(port, port_status);
 		async_usleep(10000);
-		port_status = port_status_read(port->address);
+		port_status = uhci_port_read_status(port);
 		port_status &= ~STATUS_IN_RESET;
-		port_status_write(port->address, port_status);
+		uhci_port_write_status(port, port_status);
 		usb_log_debug("Port(%p - %d): Reset Signal stop.\n",
 		    port->address, port->number);
 	}
@@ -277,7 +276,7 @@ int uhci_port_set_enabled(uhci_port_t *port, bool enabled)
 	assert(port);
 
 	/* Read register value */
-	port_status_t port_status = port_status_read(port->address);
+	port_status_t port_status = uhci_port_read_status(port);
 
 	/* Set enabled bit */
 	if (enabled) {
@@ -287,7 +286,7 @@ int uhci_port_set_enabled(uhci_port_t *port, bool enabled)
 	}
 
 	/* Write new value. */
-	port_status_write(port->address, port_status);
+	uhci_port_write_status(port, port_status);
 
 	usb_log_info("Port(%p-%d): %sabled port.\n",
 		port->address, port->number, enabled ? "En" : "Dis");
