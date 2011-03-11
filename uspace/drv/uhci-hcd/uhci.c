@@ -355,7 +355,7 @@ int uhci_schedule(uhci_t *instance, batch_t *batch)
 	/* TODO: check available bandwith here */
 
 	transfer_list_t *list =
-	    instance->transfers[low_speed][batch->transfer_type];
+	    instance->transfers[batch->speed][batch->transfer_type];
 	assert(list);
 	transfer_list_add_batch(list, batch);
 

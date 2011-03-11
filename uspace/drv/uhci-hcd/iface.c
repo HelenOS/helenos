@@ -279,8 +279,8 @@ static int control_write(ddf_fun_t *fun, usb_target_t target,
 	uhci_t *hc = fun_to_uhci(fun);
 	assert(hc);
 	usb_speed_t speed = device_keeper_speed(&hc->device_manager, target.address);
-	usb_log_debug("Control WRITE %d:%d %zu(%zu).\n",
-	    target.address, target.endpoint, size, max_packet_size);
+	usb_log_debug("Control WRITE (%d) %d:%d %zu(%zu).\n",
+	    speed, target.address, target.endpoint, size, max_packet_size);
 
 	if (setup_size != 8)
 		return EINVAL;
@@ -318,8 +318,8 @@ static int control_read(ddf_fun_t *fun, usb_target_t target,
 	assert(hc);
 	usb_speed_t speed = device_keeper_speed(&hc->device_manager, target.address);
 
-	usb_log_debug("Control READ %d:%d %zu(%zu).\n",
-	    target.address, target.endpoint, size, max_packet_size);
+	usb_log_debug("Control READ(%d) %d:%d %zu(%zu).\n",
+	    speed, target.address, target.endpoint, size, max_packet_size);
 	batch_t *batch = batch_get(fun, target, USB_TRANSFER_CONTROL,
 	    max_packet_size, speed, data, size, setup_data, setup_size, callback,
 	    NULL, arg, &hc->device_manager);
