@@ -718,6 +718,29 @@ int usb_hid_translate_data(usb_hid_report_item_t *item, const uint8_t *data, siz
 	return (int)(((value - item->logical_minimum) / resolution) + item->physical_minimum);
 	
 }
+
+int usb_hid_report_input_length(const usb_hid_report_parser_t *parser,
+	const usb_hid_report_path_t *path)
+{
+	int ret = 0;
+	link_t *item;
+	usb_hid_report_item_t *report_item;
+
+	item = (&parser->input)->next;
+	while(&parser->input != item) {
+		report_item = list_get_instance(item, usb_hid_report_item_t, link);
+		if(report_item->usage_page == path->usage_page) {
+			ret += report_item->count;
+		}
+
+		item = item->next;
+	} 
+
+	return ret;
+}
+
+
+
 /**
  * @}
  */

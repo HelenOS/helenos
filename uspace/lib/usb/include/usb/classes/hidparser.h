@@ -63,6 +63,13 @@
 
 
 /**
+ * Description of path of usage pages and usages in report descriptor
+ */
+typedef struct {
+	int32_t usage_page;
+} usb_hid_report_path_t;
+
+/**
  * Description of report items
  */
 typedef struct {
@@ -183,6 +190,9 @@ int usb_hid_parse_report_descriptor(usb_hid_report_parser_t *parser,
 int usb_hid_parse_report(const usb_hid_report_parser_t *parser,  
     const uint8_t *data, size_t size,
     const usb_hid_report_in_callbacks_t *callbacks, void *arg);
+
+int usb_hid_report_input_length(const usb_hid_report_parser_t *parser,
+	const usb_hid_report_path_t *path);
 
 
 void usb_hid_free_report_parser(usb_hid_report_parser_t *parser);
