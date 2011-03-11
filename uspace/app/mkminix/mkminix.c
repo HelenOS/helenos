@@ -323,11 +323,10 @@ static int init_inode_table(const struct mfs_sb_info *sb)
 	long itable_off;
 	unsigned long itable_size;
 
-	itable_off = FIRST_ZONE(sb->block_size);
-	itable_off += sb->zbmap_blocks + sb->ibmap_blocks;
+	itable_off = sb->zbmap_blocks + sb->ibmap_blocks;
 
 	/*Convert to 1K offset*/
-	itable_off = CONVERT_1K_OFF(itable_off, sb->block_size);
+	itable_off = CONVERT_1K_OFF(itable_off, sb->block_size) + 2;
 	itable_size = CONVERT_1K_OFF(sb->itable_size, sb->block_size);
 
 	itable_buf = malloc(MFS_MIN_BLOCKSIZE);
@@ -387,11 +386,10 @@ static int make_root_ino3(const struct mfs_sb_info *sb)
 	int rc;
 
 	/*Compute offset of the first inode table block*/
-	itable_off = FIRST_ZONE(sb->block_size);
-	itable_off += sb->zbmap_blocks + sb->ibmap_blocks;
+	itable_off = sb->zbmap_blocks + sb->ibmap_blocks;
 
 	/*Convert to 1K block offset*/
-	itable_off = CONVERT_1K_OFF(itable_off, sb->block_size);
+	itable_off = CONVERT_1K_OFF(itable_off, sb->block_size) + 2;
 
 	const time_t sec = time(NULL);
 
@@ -581,7 +579,7 @@ static int init_bitmaps(const struct mfs_sb_info *sb)
 	ibmap_buf8 = (uint8_t *) ibmap_buf;
 	zbmap_buf8 = (uint8_t *) zbmap_buf;
 
-	int start_block = FIRST_ZONE(sb->block_size);
+	int start_block = 2;
 
 	for (i = 0; i < ibmap_nblocks; ++i) {
 		if ((rc = block_write_direct(handle, start_block + i,
@@ -589,7 +587,7 @@ static int init_bitmaps(const struct mfs_sb_info *sb)
 			return rc;
 	}
 
-	start_block = FIRST_ZONE(sb->block_size) + ibmap_nblocks;
+	start_block = 2 + ibmap_nblocks;
 
 	for (i = 0; i < zbmap_nblocks; ++i) {
 		if ((rc = block_write_direct(handle, start_block + i,
