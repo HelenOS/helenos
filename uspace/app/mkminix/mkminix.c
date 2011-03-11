@@ -330,12 +330,12 @@ static int init_inode_table(const struct mfs_sb_info *sb)
 	itable_off = CONVERT_1K_OFF(itable_off, sb->block_size);
 	itable_size = CONVERT_1K_OFF(sb->itable_size, sb->block_size);
 
-	itable_buf = malloc(sb->block_size);
+	itable_buf = malloc(MFS_MIN_BLOCKSIZE);
 
 	if (!itable_buf)
 		return ENOMEM;
 
-	memset(itable_buf, 0x00, sb->block_size);
+	memset(itable_buf, 0x00, MFS_MIN_BLOCKSIZE);
 
 	for (i = 0; i < itable_size; ++i, ++itable_off) {
 		rc = block_write_direct(handle, itable_off, 1, itable_buf);
