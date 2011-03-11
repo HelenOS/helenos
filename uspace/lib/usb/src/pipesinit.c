@@ -36,6 +36,7 @@
 #include <usb/usb.h>
 #include <usb/pipes.h>
 #include <usb/dp.h>
+#include <usb/request.h>
 #include <errno.h>
 #include <assert.h>
 
@@ -369,7 +370,25 @@ int usb_endpoint_pipe_initialize_default_control(usb_endpoint_pipe_t *pipe,
 
 	int rc = usb_endpoint_pipe_initialize(pipe, connection,
 	    0, USB_TRANSFER_CONTROL, 8, USB_DIRECTION_BOTH);
+	if (rc != EOK) {
+		return rc;
+	}
+	rc = usb_endpoint_pipe_start_session(pipe);
+	if (rc != EOK) {
+		return rc;
+	}
 
+	uint8_t first[8];
+	size_t size = 0;
+	rc = usb_control_request_get(pipe, USB_REQUEST_TYPE_STANDARD,
+	    USB_REQUEST_RECIPIENT_DEVICE, USB_DEVREQ_GET_DESCRIPTOR, 1 << 8,
+			0, first, 8, &size);
+	usb_endpoint_pipe_end_session(pipe);
+	if (rc != EOK || size  != 8) {
+		return rc;
+	}
+
+	pipe->max_packet_size = first[7];
 	return rc;
 }
 
