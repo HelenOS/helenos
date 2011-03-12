@@ -36,6 +36,7 @@ SOURCES = \
 	src/class.c \
 	src/ddfiface.c \
 	src/debug.c \
+	src/devdrv.c \
 	src/dp.c \
 	src/dump.c \
 	src/hidparser.c \
