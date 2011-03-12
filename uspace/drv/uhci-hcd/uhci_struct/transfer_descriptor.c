@@ -87,9 +87,10 @@ void td_init(td_t *instance, int err_count, size_t size, bool toggle, bool iso,
 		instance->buffer_ptr = (uintptr_t)addr_to_phys(buffer);
 	}
 
-	usb_log_debug2("Created TD: %X:%X:%X:%X(%p).\n",
-	    instance->next, instance->status, instance->device,
+	usb_log_debug2("Created TD(%p): %X:%X:%X:%X(%p).\n",
+	    instance, instance->next, instance->status, instance->device,
 	    instance->buffer_ptr, buffer);
+	td_print_status(instance);
 	if (pid == USB_PID_SETUP) {
 		usb_log_debug("SETUP BUFFER: %s\n",
 			usb_debug_str_buffer(buffer, 8, 8));
@@ -124,6 +125,29 @@ int td_status(td_t *instance)
 		return EAGAIN;
 
 	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+void td_print_status(td_t *instance)
+{
+	assert(instance);
+	const uint32_t s = instance->status;
+	usb_log_debug2("TD(%p) status(%#x):%s %d,%s%s%s%s%s%s%s%s%s%s%s %d.\n",
+	    instance, instance->status,
+	    (s & TD_STATUS_SPD_FLAG) ? " SPD," : "",
+	    (s >> TD_STATUS_ERROR_COUNT_POS) & TD_STATUS_ERROR_COUNT_MASK,
+	    (s & TD_STATUS_LOW_SPEED_FLAG) ? " LOW SPEED," : "",
+	    (s & TD_STATUS_ISOCHRONOUS_FLAG) ? " ISOCHRONOUS," : "",
+	    (s & TD_STATUS_IOC_FLAG) ? " IOC," : "",
+	    (s & TD_STATUS_ERROR_ACTIVE) ? " ACTIVE," : "",
+	    (s & TD_STATUS_ERROR_STALLED) ? " STALLED," : "",
+	    (s & TD_STATUS_ERROR_BUFFER) ? " BUFFER," : "",
+	    (s & TD_STATUS_ERROR_BABBLE) ? " BABBLE," : "",
+	    (s & TD_STATUS_ERROR_NAK) ? " NAK," : "",
+	    (s & TD_STATUS_ERROR_CRC) ? " CRC/TIMEOUT," : "",
+	    (s & TD_STATUS_ERROR_BIT_STUFF) ? " BIT_STUFF," : "",
+	    (s & TD_STATUS_ERROR_RESERVED) ? " RESERVED," : "",
+	    (s >> TD_STATUS_ACTLEN_POS) & TD_STATUS_ACTLEN_MASK
+	);
 }
 /**
  * @}

@@ -124,7 +124,9 @@ int uhci_port_check(void *port)
 		/* read register value */
 		port_status_t port_status = uhci_port_read_status(instance);
 
-		uhci_port_print_status(instance, port_status);
+		/* print the value if it's interesting */
+		if (port_status & ~STATUS_ALWAYS_ONE)
+			uhci_port_print_status(instance, port_status);
 
 		if ((port_status & STATUS_CONNECTED_CHANGED) == 0)
 			continue;

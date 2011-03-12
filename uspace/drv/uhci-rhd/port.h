@@ -90,10 +90,13 @@ static inline void uhci_port_print_status(
     uhci_port_t *port, const port_status_t value)
 {
 	assert(port);
-	usb_log_debug2("%s Port status:%s%s%s%s%s%s%s%s.\n",
-	    port->id_string,
+	usb_log_debug2("%s Port status(%#x):%s%s%s%s%s%s%s%s%s%s%s.\n",
+	    port->id_string, value,
 	    (value & STATUS_SUSPEND) ? " SUSPENDED," : "",
+	    (value & STATUS_RESUME) ? " IN RESUME," : "",
 	    (value & STATUS_IN_RESET) ? " IN RESET," : "",
+	    (value & STATUS_LINE_D_MINUS) ? " VD-," : "",
+	    (value & STATUS_LINE_D_PLUS) ? " VD+," : "",
 	    (value & STATUS_LOW_SPEED) ? " LOWSPEED," : "",
 	    (value & STATUS_ENABLED_CHANGED) ? " ENABLED-CHANGE," : "",
 	    (value & STATUS_ENABLED) ? " ENABLED," : "",
