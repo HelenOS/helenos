@@ -50,12 +50,12 @@
 int usb_mouse_polling_fibril(void *arg)
 {
 	assert(arg != NULL);
-	ddf_dev_t *dev = (ddf_dev_t *) arg;
+	usb_device_t *dev = (usb_device_t *) arg;
 	usb_mouse_t *mouse = (usb_mouse_t *) dev->driver_data;
 
 	assert(mouse);
 
-	size_t buffer_size = mouse->poll_pipe.max_packet_size;
+	size_t buffer_size = POLL_PIPE(dev)->max_packet_size;
 
 	if (buffer_size < 4) {
 		usb_log_error("Weird mouse, results will be skewed.\n");
@@ -83,17 +83,17 @@ int usb_mouse_polling_fibril(void *arg)
 		 * - session closing not checked (shall not fail anyway)
 		 */
 
-		rc = usb_endpoint_pipe_start_session(&mouse->poll_pipe);
+		rc = usb_endpoint_pipe_start_session(POLL_PIPE(dev));
 		if (rc != EOK) {
 			usb_log_warning("Failed to start session, will try again: %s.\n",
 			    str_error(rc));
 			continue;
 		}
 
-		rc = usb_endpoint_pipe_read(&mouse->poll_pipe,
+		rc = usb_endpoint_pipe_read(POLL_PIPE(dev),
 		    buffer, buffer_size, &actual_size);
 
-		usb_endpoint_pipe_end_session(&mouse->poll_pipe);
+		usb_endpoint_pipe_end_session(POLL_PIPE(dev));
 
 		if (rc != EOK) {
 			usb_log_error("Failed reading mouse input: %s.\n",

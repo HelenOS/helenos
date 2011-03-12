@@ -43,7 +43,7 @@
  * @param dev Representation of a generic DDF device.
  * @return Error code.
  */
-static int usbmouse_add_device(ddf_dev_t *dev)
+static int usbmouse_add_device(usb_device_t *dev)
 {
 	int rc = usb_mouse_create(dev);
 	if (rc != EOK) {
@@ -51,6 +51,8 @@ static int usbmouse_add_device(ddf_dev_t *dev)
 		    str_error(rc));
 		return rc;
 	}
+
+	usb_log_debug("Polling pipe at endpoint %d.\n", dev->pipes[0].pipe->endpoint_no);
 
 	fid_t poll_fibril = fibril_create(usb_mouse_polling_fibril, dev);
 	if (poll_fibril == 0) {
@@ -62,27 +64,33 @@ static int usbmouse_add_device(ddf_dev_t *dev)
 	fibril_add_ready(poll_fibril);
 
 	usb_log_info("controlling new mouse (handle %llu).\n",
-	    dev->handle);
+	    dev->ddf_dev->handle);
 
 	return EOK;
 }
 
 /** USB mouse driver ops. */
-static driver_ops_t mouse_driver_ops = {
+static usb_driver_ops_t mouse_driver_ops = {
 	.add_device = usbmouse_add_device,
 };
 
+static usb_endpoint_description_t *endpoints[] = {
+	&poll_endpoint_description,
+	NULL
+};
+
 /** USB mouse driver. */
-static driver_t mouse_driver = {
+static usb_driver_t mouse_driver = {
 	.name = NAME,
-	.driver_ops = &mouse_driver_ops
+	.ops = &mouse_driver_ops,
+	.endpoints = endpoints
 };
 
 int main(int argc, char *argv[])
 {
 	usb_log_enable(USB_LOG_LEVEL_DEBUG, NAME);
 
-	return ddf_driver_main(&mouse_driver);
+	return usb_driver_main(&mouse_driver);
 }
 
 /**

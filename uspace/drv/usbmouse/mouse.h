@@ -36,7 +36,7 @@
 #ifndef USBMOUSE_MOUSE_H_
 #define USBMOUSE_MOUSE_H_
 
-#include <ddf/driver.h>
+#include <usb/devdrv.h>
 #include <usb/pipes.h>
 #include <time.h>
 
@@ -45,22 +45,20 @@
 /** Container for USB mouse device. */
 typedef struct {
 	/** Generic device container. */
-	ddf_dev_t *device;
+	usb_device_t *dev;
 	/** Function representing the device. */
 	ddf_fun_t *mouse_fun;
-	/** Representation of connection to the device. */
-	usb_device_connection_t wire;
-	/** Default (zero) control pipe. */
-	usb_endpoint_pipe_t ctrl_pipe;
-	/** Polling (in) pipe. */
-	usb_endpoint_pipe_t poll_pipe;
 	/** Polling interval in microseconds. */
 	suseconds_t poll_interval_us;
 	/** IPC phone to console (consumer). */
 	int console_phone;
 } usb_mouse_t;
 
-int usb_mouse_create(ddf_dev_t *);
+#define POLL_PIPE(dev) ((dev)->pipes[0].pipe)
+
+extern usb_endpoint_description_t poll_endpoint_description;
+
+int usb_mouse_create(usb_device_t *);
 
 int usb_mouse_polling_fibril(void *);
 
