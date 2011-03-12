@@ -246,18 +246,17 @@ int pci_disable_legacy(ddf_dev_t *device)
 	}
 
 
-	if ((value & USBLEGSUP_BIOS_CONTROL) != 0) {
+	if ((value & USBLEGSUP_BIOS_CONTROL) == 0) {
 		usb_log_info("BIOS released control after %d usec.\n", wait);
 	} else {
 		/* BIOS failed to hand over control, this should not happen. */
-		usb_log_warning( "BIOS failed to release control after"
+		usb_log_warning( "BIOS failed to release control after "
 		    "%d usecs, force it.\n", wait);
 		ret = async_req_3_0(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE),
 		    IPC_M_CONFIG_SPACE_WRITE_32, eecp + USBLEGSUP_OFFSET,
 		    USBLEGSUP_OS_CONTROL);
 		CHECK_RET_HANGUP_RETURN(ret,
 		    "Failed(%d) to force OS EHCI control.\n", ret);
-		/* TODO: This does not seem to work on my machine */
 	}
 
 	/* Zero SMI enables in legacy control register.
@@ -279,9 +278,9 @@ int pci_disable_legacy(ddf_dev_t *device)
 	CHECK_RET_HANGUP_RETURN(ret, "Failed(%d) to read USBLEGSUP.\n", ret);
 	usb_log_debug2("USBLEGSUP: %x.\n", value);
 
-/*
- * TURN OFF EHCI FOR NOW, REMOVE IF THE DRIVER IS IMPLEMENTED
- */
+	/*
+	 * TURN OFF EHCI FOR NOW, DRIVER WILL REINITIALIZE IT
+	 */
 
 	/* Get size of capability registers in memory space. */
 	uint8_t operation_offset = *(uint8_t*)registers;

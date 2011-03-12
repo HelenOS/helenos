@@ -43,7 +43,6 @@
 #include <usb/recognise.h>
 
 #include "port.h"
-#include "port_status.h"
 
 static int uhci_port_new_device(uhci_port_t *port, usb_speed_t speed);
 static int uhci_port_remove_device(uhci_port_t *port);
@@ -125,7 +124,9 @@ int uhci_port_check(void *port)
 		/* read register value */
 		port_status_t port_status = uhci_port_read_status(instance);
 
-		print_port_status(instance->id_string, port_status);
+		/* print the value if it's interesting */
+		if (port_status & ~STATUS_ALWAYS_ONE)
+			uhci_port_print_status(instance, port_status);
 
 		if ((port_status & STATUS_CONNECTED_CHANGED) == 0)
 			continue;
@@ -157,7 +158,7 @@ int uhci_port_check(void *port)
 		} else {
 			/* Write one to WC bits, to ack changes */
 			uhci_port_write_status(instance, port_status);
-			usb_log_debug("%s: Change status ACK.\n",
+			usb_log_debug("%s: status change ACK.\n",
 			    instance->id_string);
 		}
 

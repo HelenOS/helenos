@@ -435,13 +435,12 @@ int uhci_debug_checker(void *arg)
 		}
 
 		int frnum = pio_read_16(&instance->registers->frnum) & 0x3ff;
-		usb_log_debug2("Framelist item: %d \n", frnum );
 
 		uintptr_t expected_pa = instance->frame_list[frnum] & (~0xf);
 		uintptr_t real_pa = addr_to_phys(QH(interrupt));
 		if (expected_pa != real_pa) {
-			usb_log_debug("Interrupt QH: %p vs. %p.\n",
-			    expected_pa, real_pa);
+			usb_log_debug("Interrupt QH: %p(frame: %d) vs. %p.\n",
+			    expected_pa, frnum, real_pa);
 		}
 
 		expected_pa = QH(interrupt)->next_queue & (~0xf);

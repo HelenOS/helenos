@@ -52,7 +52,7 @@ typedef struct transfer_descriptor {
 #define TD_STATUS_ERROR_COUNT_DEFAULT 3
 #define TD_STATUS_LOW_SPEED_FLAG ( 1 << 26 )
 #define TD_STATUS_ISOCHRONOUS_FLAG ( 1 << 25 )
-#define TD_STATUS_COMPLETE_INTERRUPT_FLAG ( 1 << 24 )
+#define TD_STATUS_IOC_FLAG ( 1 << 24 )
 
 #define TD_STATUS_ERROR_ACTIVE ( 1 << 23 )
 #define TD_STATUS_ERROR_STALLED ( 1 << 22 )
@@ -126,6 +126,8 @@ static inline bool td_is_active(td_t *instance)
 	assert(instance);
 	return (instance->status & TD_STATUS_ERROR_ACTIVE) != 0;
 }
+
+void td_print_status(td_t *instance);
 #endif
 /**
  * @}
