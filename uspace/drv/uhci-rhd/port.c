@@ -180,8 +180,7 @@ int uhci_port_reset_enable(int portno, void *arg)
 {
 	uhci_port_t *port = (uhci_port_t *) arg;
 
-	usb_log_debug2("%s: new_device_enable_port.\n",
-	    port->id_string);
+	usb_log_debug2("%s: new_device_enable_port.\n", port->id_string);
 
 	/*
 	 * The host then waits for at least 100 ms to allow completion of
@@ -189,26 +188,27 @@ int uhci_port_reset_enable(int portno, void *arg)
 	 */
 	async_usleep(100000);
 
-
-	/* The hub maintains the reset signal to that port for 10 ms
-	 * (See Section 11.5.1.5)
+	/*
+	 * Resets from root ports should be nominally 50ms
 	 */
 	{
-		usb_log_debug("%s: Reset Signal start.\n",
-		    port->id_string);
+		usb_log_debug("%s: Reset Signal start.\n", port->id_string);
 		port_status_t port_status = uhci_port_read_status(port);
 		port_status |= STATUS_IN_RESET;
 		uhci_port_write_status(port, port_status);
-		async_usleep(10000);
+		async_usleep(50000);
 		port_status = uhci_port_read_status(port);
 		port_status &= ~STATUS_IN_RESET;
 		uhci_port_write_status(port, port_status);
-		usb_log_debug("%s: Reset Signal stop.\n",
-		    port->id_string);
+		usb_log_debug("%s: Reset Signal stop.\n", port->id_string);
 	}
+
+	/* the reset recovery time 10ms */
+	async_usleep(10000);
 
 	/* Enable the port. */
 	uhci_port_set_enabled(port, true);
+
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -225,8 +225,7 @@ int uhci_port_new_device(uhci_port_t *port, usb_speed_t speed)
 	assert(port);
 	assert(usb_hc_connection_is_opened(&port->hc_connection));
 
-	usb_log_info("%s: Detected new device.\n",
-	    port->id_string);
+	usb_log_info("%s: Detected new device.\n", port->id_string);
 
 	usb_address_t dev_addr;
 	int rc = usb_hc_new_device_wrapper(port->rh, &port->hc_connection,

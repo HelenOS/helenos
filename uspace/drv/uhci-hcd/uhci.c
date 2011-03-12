@@ -371,10 +371,13 @@ void uhci_interrupt(uhci_t *instance, uint16_t status)
 {
 	assert(instance);
 	/* TODO: Check interrupt cause here */
-	transfer_list_remove_finished(&instance->transfers_interrupt);
-	transfer_list_remove_finished(&instance->transfers_control_slow);
-	transfer_list_remove_finished(&instance->transfers_control_full);
-	transfer_list_remove_finished(&instance->transfers_bulk_full);
+	/* Lower 2 bits are transaction error and transaction complete */
+	if (status & 0x3) {
+		transfer_list_remove_finished(&instance->transfers_interrupt);
+		transfer_list_remove_finished(&instance->transfers_control_slow);
+		transfer_list_remove_finished(&instance->transfers_control_full);
+		transfer_list_remove_finished(&instance->transfers_bulk_full);
+	}
 }
 /*----------------------------------------------------------------------------*/
 /** Polling function, emulates interrupts.
@@ -389,12 +392,12 @@ int uhci_interrupt_emulator(void* arg)
 	assert(instance);
 
 	while (1) {
+		/* read and ack interrupts */
 		uint16_t status = pio_read_16(&instance->registers->usbsts);
+		pio_write_16(&instance->registers->usbsts, 0x1f);
 		if (status != 0)
 			usb_log_debug2("UHCI status: %x.\n", status);
-		status |= 1;
 		uhci_interrupt(instance, status);
-		pio_write_16(&instance->registers->usbsts, 0x1f);
 		async_usleep(UHCI_CLEANER_TIMEOUT);
 	}
 	return EOK;
