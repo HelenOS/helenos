@@ -51,15 +51,19 @@
 /**
  * Input/Output/Feature Item flags
  */
-#define USB_HID_ITEM_FLAG_CONSTANT(flags) 	(flags & 0x1)
-#define USB_HID_ITEM_FLAG_VARIABLE(flags) 	(flags & 0x2)
-#define USB_HID_ITEM_FLAG_RELATIVE(flags) 	(flags & 0x4)
-#define USB_HID_ITEM_FLAG_WRAP(flags)		(flags & 0x8)
-#define USB_HID_ITEM_FLAG_LINEAR(flags)		(flags & 0x10)
-#define USB_HID_ITEM_FLAG_PREFERRED(flags)	(flags & 0x20)
-#define USB_HID_ITEM_FLAG_POSITION(flags)	(flags & 0x40)
-#define USB_HID_ITEM_FLAG_VOLATILE(flags)	(flags & 0x80)
-#define USB_HID_ITEM_FLAG_BUFFERED(flags)	(flags & 0x100)
+/** Constant (1) / Variable (0) */
+#define USB_HID_ITEM_FLAG_CONSTANT(flags) 	((flags & 0x1) == 0x1)
+/** Variable (1) / Array (0) */
+#define USB_HID_ITEM_FLAG_VARIABLE(flags) 	((flags & 0x2) == 0x2)
+/** Absolute / Relative*/
+#define USB_HID_ITEM_FLAG_RELATIVE(flags) 	((flags & 0x4) == 0x4)
+/** Wrap / No Wrap */
+#define USB_HID_ITEM_FLAG_WRAP(flags)		((flags & 0x8) == 0x8)
+#define USB_HID_ITEM_FLAG_LINEAR(flags)		((flags & 0x10) == 0x10)
+#define USB_HID_ITEM_FLAG_PREFERRED(flags)	((flags & 0x20) == 0x20)
+#define USB_HID_ITEM_FLAG_POSITION(flags)	((flags & 0x40) == 0x40)
+#define USB_HID_ITEM_FLAG_VOLATILE(flags)	((flags & 0x80) == 0x80)
+#define USB_HID_ITEM_FLAG_BUFFERED(flags)	((flags & 0x100) == 0x100)
 
 
 /**

@@ -177,6 +177,10 @@ int usb_hid_parse_report_descriptor(usb_hid_report_parser_t *parser,
 						return ENOMEM;
 					}
 					memcpy(new_report_item,report_item, sizeof(usb_hid_report_item_t));
+					/* reset local items */
+					new_report_item->usage_minimum = 0;
+					new_report_item->usage_maximum = 0;
+					
 					link_initialize(&(new_report_item->link));
 					report_item = new_report_item;
 					
@@ -500,13 +504,17 @@ void usb_hid_descriptor_print_list(link_t *head)
 		usb_log_debug("\tOFFSET: %X\n", report_item->offset);
 		usb_log_debug("\tCOUNT: %X\n", report_item->count);
 		usb_log_debug("\tSIZE: %X\n", report_item->size);
-		usb_log_debug("\tCONSTANT: %X\n", USB_HID_ITEM_FLAG_CONSTANT(report_item->item_flags));
+		usb_log_debug("\tCONSTANT/VAR: %X\n", USB_HID_ITEM_FLAG_CONSTANT(report_item->item_flags));
+		usb_log_debug("\tVARIABLE/ARRAY: %X\n", USB_HID_ITEM_FLAG_VARIABLE(report_item->item_flags));
 		usb_log_debug("\tUSAGE: %X\n", report_item->usage);
 		usb_log_debug("\tUSAGE PAGE: %X\n", report_item->usage_page);
 		usb_log_debug("\tLOGMIN: %X\n", report_item->logical_minimum);
 		usb_log_debug("\tLOGMAX: %X\n", report_item->logical_maximum);		
 		usb_log_debug("\tPHYMIN: %X\n", report_item->physical_minimum);		
 		usb_log_debug("\tPHYMAX: %X\n", report_item->physical_maximum);				
+		usb_log_debug("\tUSAGEMIN: %X\n", report_item->usage_minimum);
+		usb_log_debug("\tUSAGEMAX: %X\n", report_item->usage_maximum);
+		
 		usb_log_debug("\n");		
 
 	}
@@ -601,6 +609,7 @@ int usb_hid_parse_report(const usb_hid_report_parser_t *parser,
 	link_t *list_item;
 	usb_hid_report_item_t *item;
 	uint8_t *keys;
+	uint8_t item_value;
 	size_t key_count=0;
 	size_t i=0;
 	size_t j=0;
@@ -620,9 +629,22 @@ int usb_hid_parse_report(const usb_hid_report_parser_t *parser,
 
 		item = list_get_instance(list_item, usb_hid_report_item_t, link);
 		if(!USB_HID_ITEM_FLAG_CONSTANT(item->item_flags) &&
-		   (item->usage_page == BAD_HACK_USAGE_PAGE)) {
+		   (item->usage_page == path.usage_page)) {
 			for(j=0; j<(size_t)(item->count); j++) {
-				keys[i++] = usb_hid_translate_data(item, data,j);
+				if((USB_HID_ITEM_FLAG_VARIABLE(item->item_flags) == 0) ||
+				   ((item->usage_minimum == 0) && (item->usage_maximum == 0))) {
+					// variable item
+					keys[i++] = usb_hid_translate_data(item, data,j);
+				}
+				else {
+					// bitmapa
+					if((item_value = usb_hid_translate_data(item, data, j)) != 0) {
+						keys[i++] = j + item->usage_minimum;
+					}
+					else {
+						keys[i++] = 0;
+					}
+				}
 			}
 		}
 		list_item = list_item->next;
