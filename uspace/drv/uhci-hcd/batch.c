@@ -317,6 +317,7 @@ void batch_data(batch_t *instance, usb_packet_id pid)
 		remain_size -= packet_size;
 		++packet;
 	}
+	instance->tds[packet - 1].status |= TD_STATUS_COMPLETE_INTERRUPT_FLAG;
 	device_keeper_set_toggle(instance->manager, instance->target, toggle);
 }
 /*----------------------------------------------------------------------------*/
