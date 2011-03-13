@@ -67,12 +67,12 @@ static irq_cmd_t uhci_cmds[] = {
  * @return Error code.
  */
 /*----------------------------------------------------------------------------*/
-static int uhci_init_transfer_lists(uhci_hc_t *instance);
-static int uhci_init_mem_structures(uhci_hc_t *instance);
-static void uhci_init_hw(uhci_hc_t *instance);
+static int uhci_hc_init_transfer_lists(uhci_hc_t *instance);
+static int uhci_hc_init_mem_structures(uhci_hc_t *instance);
+static void uhci_hc_init_hw(uhci_hc_t *instance);
 
-static int uhci_interrupt_emulator(void *arg);
-static int uhci_debug_checker(void *arg);
+static int uhci_hc_interrupt_emulator(void *arg);
+static int uhci_hc_debug_checker(void *arg);
 
 static bool allowed_usb_packet(
     bool low_speed, usb_transfer_type_t transfer, size_t size);
@@ -112,16 +112,16 @@ int uhci_hc_init(uhci_hc_t *instance, ddf_fun_t *fun, void *regs, size_t reg_siz
 	usb_log_debug("Device registers at %p(%u) accessible.\n",
 	    io, reg_size);
 
-	ret = uhci_init_mem_structures(instance);
+	ret = uhci_hc_init_mem_structures(instance);
 	CHECK_RET_DEST_FUN_RETURN(ret,
 	    "Failed to initialize UHCI memory structures.\n");
 
-	uhci_init_hw(instance);
+	uhci_hc_init_hw(instance);
 	instance->cleaner =
-	    fibril_create(uhci_interrupt_emulator, instance);
+	    fibril_create(uhci_hc_interrupt_emulator, instance);
 	fibril_add_ready(instance->cleaner);
 
-	instance->debug_checker = fibril_create(uhci_debug_checker, instance);
+	instance->debug_checker = fibril_create(uhci_hc_debug_checker, instance);
 	fibril_add_ready(instance->debug_checker);
 
 	usb_log_info("Started UHCI driver.\n");
@@ -133,7 +133,7 @@ int uhci_hc_init(uhci_hc_t *instance, ddf_fun_t *fun, void *regs, size_t reg_siz
  *
  * @param[in] instance UHCI structure to use.
  */
-void uhci_init_hw(uhci_hc_t *instance)
+void uhci_hc_init_hw(uhci_hc_t *instance)
 {
 	assert(instance);
 	regs_t *registers = instance->registers;
@@ -171,7 +171,7 @@ void uhci_init_hw(uhci_hc_t *instance)
  * @return Error code
  * @note Should be called only once on any structure.
  */
-int uhci_init_mem_structures(uhci_hc_t *instance)
+int uhci_hc_init_mem_structures(uhci_hc_t *instance)
 {
 	assert(instance);
 #define CHECK_RET_DEST_CMDS_RETURN(ret, message...) \
@@ -200,7 +200,7 @@ int uhci_init_mem_structures(uhci_hc_t *instance)
 	}
 
 	/* Init transfer lists */
-	ret = uhci_init_transfer_lists(instance);
+	ret = uhci_hc_init_transfer_lists(instance);
 	CHECK_RET_DEST_CMDS_RETURN(ret, "Failed to init transfer lists.\n");
 	usb_log_debug("Initialized transfer lists.\n");
 
@@ -234,7 +234,7 @@ int uhci_init_mem_structures(uhci_hc_t *instance)
  * @return Error code
  * @note Should be called only once on any structure.
  */
-int uhci_init_transfer_lists(uhci_hc_t *instance)
+int uhci_hc_init_transfer_lists(uhci_hc_t *instance)
 {
 	assert(instance);
 #define CHECK_RET_CLEAR_RETURN(ret, message...) \
@@ -298,7 +298,7 @@ int uhci_init_transfer_lists(uhci_hc_t *instance)
  * @param[in] batch Transfer batch to schedule.
  * @return Error code
  */
-int uhci_schedule(uhci_hc_t *instance, batch_t *batch)
+int uhci_hc_schedule(uhci_hc_t *instance, batch_t *batch)
 {
 	assert(instance);
 	assert(batch);
@@ -326,7 +326,7 @@ int uhci_schedule(uhci_hc_t *instance, batch_t *batch)
  * @param[in] instance UHCI structure to use.
  * @param[in] status Value of the stsatus regiser at the time of interrupt.
  */
-void uhci_interrupt(uhci_hc_t *instance, uint16_t status)
+void uhci_hc_interrupt(uhci_hc_t *instance, uint16_t status)
 {
 	assert(instance);
 	/* TODO: Check interrupt cause here */
@@ -344,7 +344,7 @@ void uhci_interrupt(uhci_hc_t *instance, uint16_t status)
  * @param[in] arg UHCI structure to use.
  * @return EOK
  */
-int uhci_interrupt_emulator(void* arg)
+int uhci_hc_interrupt_emulator(void* arg)
 {
 	usb_log_debug("Started interrupt emulator.\n");
 	uhci_hc_t *instance = (uhci_hc_t*)arg;
@@ -356,7 +356,7 @@ int uhci_interrupt_emulator(void* arg)
 		pio_write_16(&instance->registers->usbsts, 0x1f);
 		if (status != 0)
 			usb_log_debug2("UHCI status: %x.\n", status);
-		uhci_interrupt(instance, status);
+		uhci_hc_interrupt(instance, status);
 		async_usleep(UHCI_CLEANER_TIMEOUT);
 	}
 	return EOK;
@@ -367,7 +367,7 @@ int uhci_interrupt_emulator(void* arg)
  * @param[in] arg UHCI structure to use.
  * @return EOK
  */
-int uhci_debug_checker(void *arg)
+int uhci_hc_debug_checker(void *arg)
 {
 	uhci_hc_t *instance = (uhci_hc_t*)arg;
 	assert(instance);

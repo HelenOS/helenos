@@ -449,9 +449,9 @@ void batch_dispose(batch_t *instance)
 int batch_schedule(batch_t *instance)
 {
 	assert(instance);
-	uhci_hc_t *hc = fun_to_uhci(instance->fun);
+	uhci_hc_t *hc = fun_to_uhci_hc(instance->fun);
 	assert(hc);
-	return uhci_schedule(hc, instance);
+	return uhci_hc_schedule(hc, instance);
 }
 /**
  * @}

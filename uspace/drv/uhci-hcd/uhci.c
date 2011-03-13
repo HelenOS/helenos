@@ -53,10 +53,10 @@
 static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
 {
 	assert(dev);
-	uhci_hc_t *hc = dev_to_uhci(dev);
+	uhci_hc_t *hc = &((uhci_t*)dev->driver_data)->hc;
 	uint16_t status = IPC_GET_ARG1(*call);
 	assert(hc);
-	uhci_interrupt(hc, status);
+	uhci_hc_interrupt(hc, status);
 }
 /*----------------------------------------------------------------------------*/
 static int usb_iface_get_address(
@@ -187,7 +187,7 @@ if (ret != EOK) { \
 		ddf_fun_destroy(instance->hc_fun); \
 	if (instance->rh_fun) \
 		ddf_fun_destroy(instance->rh_fun); \
-	uhci_fini(&instance->hc); \
+	uhci_hc_fini(&instance->hc); \
 	return ret; \
 }
 

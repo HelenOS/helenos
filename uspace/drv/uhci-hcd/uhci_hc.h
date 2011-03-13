@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jan Vesely
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -105,19 +105,14 @@ typedef struct uhci_hc {
 /* init uhci specifics in device.driver_data */
 int uhci_hc_init(uhci_hc_t *instance, ddf_fun_t *fun, void *regs, size_t reg_size);
 
-static inline void uhci_fini(uhci_hc_t *instance) {};
+static inline void uhci_hc_fini(uhci_hc_t *instance) { /* TODO: implement*/ };
 
-int uhci_schedule(uhci_hc_t *instance, batch_t *batch);
+int uhci_hc_schedule(uhci_hc_t *instance, batch_t *batch);
 
-void uhci_interrupt(uhci_hc_t *instance, uint16_t status);
+void uhci_hc_interrupt(uhci_hc_t *instance, uint16_t status);
 
-static inline uhci_hc_t * dev_to_uhci(ddf_dev_t *dev)
-	{ return (uhci_hc_t*)dev->driver_data; }
-
-static inline uhci_hc_t * fun_to_uhci(ddf_fun_t *fun)
+static inline uhci_hc_t * fun_to_uhci_hc(ddf_fun_t *fun)
 	{ return (uhci_hc_t*)fun->driver_data; }
-
-
 #endif
 /**
  * @}
