@@ -43,8 +43,8 @@
 
 #include "iface.h"
 #include "pci.h"
-#include "root_hub.h"
-#include "uhci.h"
+#include "uhci_hc.h"
+#include "uhci_rh.h"
 
 #define NAME "uhci-hcd"
 
@@ -68,7 +68,7 @@ static driver_t uhci_driver = {
 static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
 {
 	assert(dev);
-	uhci_t *hc = dev_to_uhci(dev);
+	uhci_hc_t *hc = dev_to_uhci(dev);
 	uint16_t status = IPC_GET_ARG1(*call);
 	assert(hc);
 	uhci_interrupt(hc, status);
@@ -85,7 +85,7 @@ static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
 int uhci_add_device(ddf_dev_t *device)
 {
 	assert(device);
-	uhci_t *hcd = NULL;
+	uhci_hc_t *hcd = NULL;
 #define CHECK_RET_FREE_HC_RETURN(ret, message...) \
 if (ret != EOK) { \
 	usb_log_error(message); \
@@ -120,7 +120,7 @@ if (ret != EOK) { \
 	}
 #endif
 
-	hcd = malloc(sizeof(uhci_t));
+	hcd = malloc(sizeof(uhci_hc_t));
 	ret = (hcd != NULL) ? EOK : ENOMEM;
 	CHECK_RET_FREE_HC_RETURN(ret,
 	    "Failed(%d) to allocate memory for uhci hcd.\n", ret);

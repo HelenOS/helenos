@@ -34,9 +34,9 @@ BINARY = uhci-hcd
 SOURCES = \
 	iface.c \
 	main.c \
-	root_hub.c \
 	transfer_list.c \
-	uhci.c \
+	uhci_hc.c \
+	uhci_rh.c \
 	uhci_struct/transfer_descriptor.c \
 	utils/device_keeper.c \
 	pci.c \

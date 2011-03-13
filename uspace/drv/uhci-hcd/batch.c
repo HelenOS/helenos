@@ -39,7 +39,7 @@
 
 #include "batch.h"
 #include "transfer_list.h"
-#include "uhci.h"
+#include "uhci_hc.h"
 #include "utils/malloc32.h"
 
 #define DEFAULT_ERROR_COUNT 3
@@ -449,7 +449,7 @@ void batch_dispose(batch_t *instance)
 int batch_schedule(batch_t *instance)
 {
 	assert(instance);
-	uhci_t *hc = fun_to_uhci(instance->fun);
+	uhci_hc_t *hc = fun_to_uhci(instance->fun);
 	assert(hc);
 	return uhci_schedule(hc, instance);
 }
