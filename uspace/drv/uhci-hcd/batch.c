@@ -44,8 +44,6 @@
 
 #define DEFAULT_ERROR_COUNT 3
 
-static int batch_schedule(batch_t *instance);
-
 static void batch_control(batch_t *instance,
     usb_packet_id data_stage, usb_packet_id status_stage);
 static void batch_data(batch_t *instance, usb_packet_id pid);
@@ -53,7 +51,6 @@ static void batch_call_in(batch_t *instance);
 static void batch_call_out(batch_t *instance);
 static void batch_call_in_and_dispose(batch_t *instance);
 static void batch_call_out_and_dispose(batch_t *instance);
-static void batch_dispose(batch_t *instance);
 
 
 /** Allocates memory and initializes internal data structures.
@@ -202,7 +199,6 @@ void batch_control_write(batch_t *instance)
 	batch_control(instance, USB_PID_OUT, USB_PID_IN);
 	instance->next_step = batch_call_out_and_dispose;
 	usb_log_debug("Batch(%p) CONTROL WRITE initialized.\n", instance);
-	batch_schedule(instance);
 }
 /*----------------------------------------------------------------------------*/
 /** Prepares control read transaction.
@@ -215,7 +211,6 @@ void batch_control_read(batch_t *instance)
 	batch_control(instance, USB_PID_IN, USB_PID_OUT);
 	instance->next_step = batch_call_in_and_dispose;
 	usb_log_debug("Batch(%p) CONTROL READ initialized.\n", instance);
-	batch_schedule(instance);
 }
 /*----------------------------------------------------------------------------*/
 /** Prepares interrupt in transaction.
@@ -228,7 +223,6 @@ void batch_interrupt_in(batch_t *instance)
 	batch_data(instance, USB_PID_IN);
 	instance->next_step = batch_call_in_and_dispose;
 	usb_log_debug("Batch(%p) INTERRUPT IN initialized.\n", instance);
-	batch_schedule(instance);
 }
 /*----------------------------------------------------------------------------*/
 /** Prepares interrupt out transaction.
@@ -243,7 +237,6 @@ void batch_interrupt_out(batch_t *instance)
 	batch_data(instance, USB_PID_OUT);
 	instance->next_step = batch_call_out_and_dispose;
 	usb_log_debug("Batch(%p) INTERRUPT OUT initialized.\n", instance);
-	batch_schedule(instance);
 }
 /*----------------------------------------------------------------------------*/
 /** Prepares bulk in transaction.
@@ -256,7 +249,6 @@ void batch_bulk_in(batch_t *instance)
 	batch_data(instance, USB_PID_IN);
 	instance->next_step = batch_call_in_and_dispose;
 	usb_log_debug("Batch(%p) BULK IN initialized.\n", instance);
-	batch_schedule(instance);
 }
 /*----------------------------------------------------------------------------*/
 /** Prepares bulk out transaction.
@@ -270,7 +262,6 @@ void batch_bulk_out(batch_t *instance)
 	batch_data(instance, USB_PID_OUT);
 	instance->next_step = batch_call_out_and_dispose;
 	usb_log_debug("Batch(%p) BULK OUT initialized.\n", instance);
-	batch_schedule(instance);
 }
 /*----------------------------------------------------------------------------*/
 /** Prepares generic data transaction
@@ -444,14 +435,6 @@ void batch_dispose(batch_t *instance)
 	free32(instance->setup_buffer);
 	free32(instance->transport_buffer);
 	free(instance);
-}
-/*----------------------------------------------------------------------------*/
-int batch_schedule(batch_t *instance)
-{
-	assert(instance);
-	uhci_hc_t *hc = fun_to_uhci_hc(instance->fun);
-	assert(hc);
-	return uhci_hc_schedule(hc, instance);
 }
 /**
  * @}

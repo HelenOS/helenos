@@ -160,6 +160,11 @@ static int interrupt_out(ddf_fun_t *fun, usb_target_t target,
 	if (!batch)
 		return ENOMEM;
 	batch_interrupt_out(batch);
+	const int ret = uhci_hc_schedule(hc, batch);
+	if (ret != EOK) {
+		batch_dispose(batch);
+		return ret;
+	}
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -191,6 +196,11 @@ static int interrupt_in(ddf_fun_t *fun, usb_target_t target,
 	if (!batch)
 		return ENOMEM;
 	batch_interrupt_in(batch);
+	const int ret = uhci_hc_schedule(hc, batch);
+	if (ret != EOK) {
+		batch_dispose(batch);
+		return ret;
+	}
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -223,6 +233,11 @@ static int bulk_out(ddf_fun_t *fun, usb_target_t target,
 	if (!batch)
 		return ENOMEM;
 	batch_bulk_out(batch);
+	const int ret = uhci_hc_schedule(hc, batch);
+	if (ret != EOK) {
+		batch_dispose(batch);
+		return ret;
+	}
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -254,6 +269,11 @@ static int bulk_in(ddf_fun_t *fun, usb_target_t target,
 	if (!batch)
 		return ENOMEM;
 	batch_bulk_in(batch);
+	const int ret = uhci_hc_schedule(hc, batch);
+	if (ret != EOK) {
+		batch_dispose(batch);
+		return ret;
+	}
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -292,6 +312,11 @@ static int control_write(ddf_fun_t *fun, usb_target_t target,
 		return ENOMEM;
 	device_keeper_reset_if_need(&hc->device_manager, target, setup_data);
 	batch_control_write(batch);
+	const int ret = uhci_hc_schedule(hc, batch);
+	if (ret != EOK) {
+		batch_dispose(batch);
+		return ret;
+	}
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -326,6 +351,11 @@ static int control_read(ddf_fun_t *fun, usb_target_t target,
 	if (!batch)
 		return ENOMEM;
 	batch_control_read(batch);
+	const int ret = uhci_hc_schedule(hc, batch);
+	if (ret != EOK) {
+		batch_dispose(batch);
+		return ret;
+	}
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/

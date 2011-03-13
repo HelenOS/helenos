@@ -77,6 +77,8 @@ batch_t * batch_get(ddf_fun_t *fun, usb_target_t target,
 		device_keeper_t *manager
 		);
 
+void batch_dispose(batch_t *instance);
+
 bool batch_is_complete(batch_t *instance);
 
 void batch_control_write(batch_t *instance);
