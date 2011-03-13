@@ -32,45 +32,46 @@
  * @brief UHCI driver
  */
 #include <assert.h>
+#include <errno.h>
+#include <str_error.h>
 #include <stdio.h>
 
 #include <usb/debug.h>
 
-#include "port_status.h"
+#include "uhci_rh.h"
+#include "uhci_hc.h"
 
-struct flag_name
+/*----------------------------------------------------------------------------*/
+int uhci_rh_init(
+    uhci_rh_t *instance, ddf_fun_t *fun, uintptr_t reg_addr, size_t reg_size)
 {
-	uint16_t flag;
-	const char *name;
-};
+	assert(fun);
 
-static const struct flag_name flags[] =
-{
-	{ STATUS_SUSPEND, "suspended" },
-	{ STATUS_IN_RESET, "in reset" },
-	{ STATUS_LOW_SPEED, "low speed device" },
-	{ STATUS_ALWAYS_ONE, "always 1 bit" },
-	{ STATUS_RESUME, "resume" },
-	{ STATUS_LINE_D_MINUS, "line D- value" },
-	{ STATUS_LINE_D_PLUS, "line D+ value" },
-	{ STATUS_ENABLED_CHANGED, "enabled changed" },
-	{ STATUS_ENABLED, "enabled" },
-	{ STATUS_CONNECTED_CHANGED, "connected changed" },
-	{ STATUS_CONNECTED, "connected" }
-};
-
-/** Prints portr status in a human readable way.
- *
- * @param[in] value Port value to print.
- * @return Error code.
- */
-void print_port_status(port_status_t value)
-{
-	unsigned i = 0;
-	for (;i < sizeof(flags)/sizeof(struct flag_name); ++i) {
-		usb_log_debug2("\t%s status: %s.\n", flags[i].name,
-		  ((value & flags[i].flag) != 0) ? "YES" : "NO");
+	char *match_str = NULL;
+	int ret = asprintf(&match_str, "usb&uhci&root-hub");
+	if (ret < 0) {
+		usb_log_error("Failed to create root hub match string.\n");
+		return ENOMEM;
 	}
+
+	ret = ddf_fun_add_match_id(fun, match_str, 100);
+	if (ret != EOK) {
+		usb_log_error("Failed(%d) to add root hub match id: %s\n",
+		    ret, str_error(ret));
+		return ret;
+	}
+
+	hw_resource_list_t *resource_list = &instance->resource_list;
+	resource_list->count = 1;
+	resource_list->resources = &instance->io_regs;
+	assert(resource_list->resources);
+	instance->io_regs.type = IO_RANGE;
+	instance->io_regs.res.io_range.address = reg_addr;
+//	    ((uintptr_t)hc->registers) + 0x10; // see UHCI design guide
+	instance->io_regs.res.io_range.size = reg_size;
+	instance->io_regs.res.io_range.endianness = LITTLE_ENDIAN;
+
+	return EOK;
 }
 /**
  * @}

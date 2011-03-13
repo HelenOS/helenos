@@ -25,7 +25,8 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup usb
+
+/** @addtogroup drvusbuhci
  * @{
  */
 /** @file
@@ -33,49 +34,38 @@
  */
 #include <errno.h>
 #include <str_error.h>
-#include <adt/list.h>
-#include <libarch/ddi.h>
-
-#include <usb/debug.h>
-#include <usb/usb.h>
-#include <usb/ddfiface.h>
+#include <ddf/interrupt.h>
 #include <usb_iface.h>
+#include <usb/ddfiface.h>
+#include <usb/debug.h>
 
 #include "uhci.h"
 #include "iface.h"
+#include "pci.h"
 
-static irq_cmd_t uhci_cmds[] = {
-	{
-		.cmd = CMD_PIO_READ_16,
-		.addr = NULL, /* patched for every instance */
-		.dstarg = 1
-	},
-	{
-		.cmd = CMD_PIO_WRITE_16,
-		.addr = NULL, /* pathed for every instance */
-		.value = 0x1f
-	},
-	{
-		.cmd = CMD_ACCEPT
-	}
-};
 
-/** Gets USB address of the calling device.
+/** IRQ handling callback, identifies device
  *
- * @param[in] fun UHCI hc function.
- * @param[in] handle Handle of the device seeking address.
- * @param[out] address Place to store found address.
- * @return Error code.
+ * @param[in] dev DDF instance of the device to use.
+ * @param[in] iid (Unused).
+ * @param[in] call Pointer to the call that represents interrupt.
  */
+static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
+{
+	assert(dev);
+	uhci_hc_t *hc = &((uhci_t*)dev->driver_data)->hc;
+	uint16_t status = IPC_GET_ARG1(*call);
+	assert(hc);
+	uhci_hc_interrupt(hc, status);
+}
+/*----------------------------------------------------------------------------*/
 static int usb_iface_get_address(
     ddf_fun_t *fun, devman_handle_t handle, usb_address_t *address)
 {
 	assert(fun);
-	uhci_t *hc = fun_to_uhci(fun);
-	assert(hc);
+	device_keeper_t *manager = &((uhci_t*)fun->dev->driver_data)->hc.device_manager;
 
-	usb_address_t addr = device_keeper_find(&hc->device_manager,
-	    handle);
+	usb_address_t addr = device_keeper_find(manager, handle);
 	if (addr < 0) {
 		return addr;
 	}
@@ -87,410 +77,146 @@ static int usb_iface_get_address(
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-static usb_iface_t hc_usb_iface = {
-	.get_hc_handle = usb_iface_get_hc_handle_hc_impl,
+/** Gets handle of the respective hc (this or parent device).
+ *
+ * @param[in] root_hub_fun Root hub function seeking hc handle.
+ * @param[out] handle Place to write the handle.
+ * @return Error code.
+ */
+static int usb_iface_get_hc_handle(
+    ddf_fun_t *fun, devman_handle_t *handle)
+{
+	assert(handle);
+	ddf_fun_t *hc_fun = ((uhci_t*)fun->dev->driver_data)->hc_fun;
+	assert(hc_fun != NULL);
+
+	*handle = hc_fun->handle;
+	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+/** This iface is generic for both RH and HC. */
+static usb_iface_t usb_iface = {
+	.get_hc_handle = usb_iface_get_hc_handle,
 	.get_address = usb_iface_get_address
 };
 /*----------------------------------------------------------------------------*/
-static ddf_dev_ops_t uhci_ops = {
-	.interfaces[USB_DEV_IFACE] = &hc_usb_iface,
-	.interfaces[USBHC_DEV_IFACE] = &uhci_iface,
+static ddf_dev_ops_t uhci_hc_ops = {
+	.interfaces[USB_DEV_IFACE] = &usb_iface,
+	.interfaces[USBHC_DEV_IFACE] = &uhci_hc_iface, /* see iface.h/c */
 };
 /*----------------------------------------------------------------------------*/
-static int uhci_init_transfer_lists(uhci_t *instance);
-static int uhci_init_mem_structures(uhci_t *instance);
-static void uhci_init_hw(uhci_t *instance);
-
-static int uhci_interrupt_emulator(void *arg);
-static int uhci_debug_checker(void *arg);
-
-static bool allowed_usb_packet(
-    bool low_speed, usb_transfer_type_t transfer, size_t size);
-/*----------------------------------------------------------------------------*/
-/** Initializes UHCI hcd driver structure
+/** Gets root hub hw resources.
  *
- * @param[in] instance Memory place to initialize.
- * @param[in] dev DDF device.
- * @param[in] regs Address of I/O control registers.
- * @param[in] size Size of I/O control registers.
- * @return Error code.
- * @note Should be called only once on any structure.
+ * @param[in] fun Root hub function.
+ * @return Pointer to the resource list used by the root hub.
  */
-int uhci_init(uhci_t *instance, ddf_dev_t *dev, void *regs, size_t reg_size)
+static hw_resource_list_t *get_resource_list(ddf_fun_t *fun)
 {
-	assert(reg_size >= sizeof(regs_t));
-	int ret;
-
+	assert(fun);
+	return &((uhci_rh_t*)fun->driver_data)->resource_list;
+}
+/*----------------------------------------------------------------------------*/
+static hw_res_ops_t hw_res_iface = {
+	.get_resource_list = get_resource_list,
+	.enable_interrupt = NULL
+};
+/*----------------------------------------------------------------------------*/
+static ddf_dev_ops_t uhci_rh_ops = {
+	.interfaces[USB_DEV_IFACE] = &usb_iface,
+	.interfaces[HW_RES_DEV_IFACE] = &hw_res_iface
+};
+/*----------------------------------------------------------------------------*/
+int uhci_init(uhci_t *instance, ddf_dev_t *device)
+{
+	assert(instance);
+	instance->hc_fun = NULL;
+	instance->rh_fun = NULL;
 #define CHECK_RET_DEST_FUN_RETURN(ret, message...) \
-	if (ret != EOK) { \
-		usb_log_error(message); \
-		if (instance->ddf_instance) \
-			ddf_fun_destroy(instance->ddf_instance); \
-		return ret; \
-	} else (void) 0
+if (ret != EOK) { \
+	usb_log_error(message); \
+	if (instance->hc_fun) \
+		ddf_fun_destroy(instance->hc_fun); \
+	if (instance->rh_fun) \
+		ddf_fun_destroy(instance->rh_fun); \
+	return ret; \
+}
 
-	/* Create UHCI function. */
-	instance->ddf_instance = ddf_fun_create(dev, fun_exposed, "uhci");
-	ret = (instance->ddf_instance == NULL) ? ENOMEM : EOK;
+	uintptr_t io_reg_base = 0;
+	size_t io_reg_size = 0;
+	int irq = 0;
+
+	int ret =
+	    pci_get_my_registers(device, &io_reg_base, &io_reg_size, &irq);
 	CHECK_RET_DEST_FUN_RETURN(ret,
-	    "Failed to create UHCI device function.\n");
+	    "Failed(%d) to get I/O addresses:.\n", ret, device->handle);
+	usb_log_info("I/O regs at 0x%X (size %zu), IRQ %d.\n",
+	    io_reg_base, io_reg_size, irq);
 
-	instance->ddf_instance->ops = &uhci_ops;
-	instance->ddf_instance->driver_data = instance;
+	ret = pci_disable_legacy(device);
+	CHECK_RET_DEST_FUN_RETURN(ret,
+	    "Failed(%d) to disable legacy USB: %s.\n", ret, str_error(ret));
 
-	ret = ddf_fun_bind(instance->ddf_instance);
+#if 0
+	ret = pci_enable_interrupts(device);
+	if (ret != EOK) {
+		usb_log_warning(
+		    "Failed(%d) to enable interrupts, fall back to polling.\n",
+		    ret);
+	}
+#endif
+
+	instance->hc_fun = ddf_fun_create(device, fun_exposed, "uhci-hc");
+	ret = (instance->hc_fun == NULL) ? ENOMEM : EOK;
+	CHECK_RET_DEST_FUN_RETURN(ret, "Failed(%d) to create HC function.\n", ret);
+
+	ret = uhci_hc_init(
+	    &instance->hc, instance->hc_fun, (void*)io_reg_base, io_reg_size);
+	CHECK_RET_DEST_FUN_RETURN(ret, "Failed(%d) to init uhci-hcd.\n", ret);
+	instance->hc_fun->ops = &uhci_hc_ops;
+	instance->hc_fun->driver_data = &instance->hc;
+	ret = ddf_fun_bind(instance->hc_fun);
 	CHECK_RET_DEST_FUN_RETURN(ret,
 	    "Failed(%d) to bind UHCI device function: %s.\n",
 	    ret, str_error(ret));
+#undef CHECK_RET_HC_RETURN
 
-	/* allow access to hc control registers */
-	regs_t *io;
-	ret = pio_enable(regs, reg_size, (void**)&io);
-	CHECK_RET_DEST_FUN_RETURN(ret,
-	    "Failed(%d) to gain access to registers at %p: %s.\n",
-	    ret, str_error(ret), io);
-	instance->registers = io;
-	usb_log_debug("Device registers at %p(%u) accessible.\n",
-	    io, reg_size);
-
-	ret = uhci_init_mem_structures(instance);
-	CHECK_RET_DEST_FUN_RETURN(ret,
-	    "Failed to initialize UHCI memory structures.\n");
-
-	uhci_init_hw(instance);
-	instance->cleaner =
-	    fibril_create(uhci_interrupt_emulator, instance);
-	fibril_add_ready(instance->cleaner);
-
-	instance->debug_checker = fibril_create(uhci_debug_checker, instance);
-	fibril_add_ready(instance->debug_checker);
-
-	usb_log_info("Started UHCI driver.\n");
-	return EOK;
-#undef CHECK_RET_DEST_FUN_RETURN
+#define CHECK_RET_FINI_RETURN(ret, message...) \
+if (ret != EOK) { \
+	usb_log_error(message); \
+	if (instance->hc_fun) \
+		ddf_fun_destroy(instance->hc_fun); \
+	if (instance->rh_fun) \
+		ddf_fun_destroy(instance->rh_fun); \
+	uhci_hc_fini(&instance->hc); \
+	return ret; \
 }
-/*----------------------------------------------------------------------------*/
-/** Initializes UHCI hcd hw resources.
- *
- * @param[in] instance UHCI structure to use.
- */
-void uhci_init_hw(uhci_t *instance)
-{
-	assert(instance);
-	regs_t *registers = instance->registers;
 
-	/* Reset everything, who knows what touched it before us */
-	pio_write_16(&registers->usbcmd, UHCI_CMD_GLOBAL_RESET);
-	async_usleep(10000); /* 10ms according to USB spec */
-	pio_write_16(&registers->usbcmd, 0);
+	/* It does no harm if we register this on polling */
+	ret = register_interrupt_handler(device, irq, irq_handler,
+	    &instance->hc.interrupt_code);
+	CHECK_RET_FINI_RETURN(ret,
+	    "Failed(%d) to register interrupt handler.\n", ret);
 
-	/* Reset hc, all states and counters */
-	pio_write_16(&registers->usbcmd, UHCI_CMD_HCRESET);
-	do { async_usleep(10); }
-	while ((pio_read_16(&registers->usbcmd) & UHCI_CMD_HCRESET) != 0);
+	instance->rh_fun = ddf_fun_create(device, fun_inner, "uhci-rh");
+	ret = (instance->rh_fun == NULL) ? ENOMEM : EOK;
+	CHECK_RET_FINI_RETURN(ret,
+	    "Failed(%d) to create root hub function.\n", ret);
 
-	/* Set framelist pointer */
-	const uint32_t pa = addr_to_phys(instance->frame_list);
-	pio_write_32(&registers->flbaseadd, pa);
+	ret = uhci_rh_init(&instance->rh, instance->rh_fun,
+	    (uintptr_t)instance->hc.registers + 0x10, 4);
+	CHECK_RET_FINI_RETURN(ret,
+	    "Failed(%d) to setup UHCI root hub.\n", ret);
 
-	/* Enable all interrupts, but resume interrupt */
-//	pio_write_16(&instance->registers->usbintr,
-//	    UHCI_INTR_CRC | UHCI_INTR_COMPLETE | UHCI_INTR_SHORT_PACKET);
-
-	uint16_t status = pio_read_16(&registers->usbcmd);
-	if (status != 0)
-		usb_log_warning("Previous command value: %x.\n", status);
-
-	/* Start the hc with large(64B) packet FSBR */
-	pio_write_16(&registers->usbcmd,
-	    UHCI_CMD_RUN_STOP | UHCI_CMD_MAX_PACKET | UHCI_CMD_CONFIGURE);
-}
-/*----------------------------------------------------------------------------*/
-/** Initializes UHCI hcd memory structures.
- *
- * @param[in] instance UHCI structure to use.
- * @return Error code
- * @note Should be called only once on any structure.
- */
-int uhci_init_mem_structures(uhci_t *instance)
-{
-	assert(instance);
-#define CHECK_RET_DEST_CMDS_RETURN(ret, message...) \
-	if (ret != EOK) { \
-		usb_log_error(message); \
-		if (instance->interrupt_code.cmds != NULL) \
-			free(instance->interrupt_code.cmds); \
-		return ret; \
-	} else (void) 0
-
-	/* Init interrupt code */
-	instance->interrupt_code.cmds = malloc(sizeof(uhci_cmds));
-	int ret = (instance->interrupt_code.cmds == NULL) ? ENOMEM : EOK;
-	CHECK_RET_DEST_CMDS_RETURN(ret,
-	    "Failed to allocate interrupt cmds space.\n");
-
-	{
-		irq_cmd_t *interrupt_commands = instance->interrupt_code.cmds;
-		memcpy(interrupt_commands, uhci_cmds, sizeof(uhci_cmds));
-		interrupt_commands[0].addr =
-		    (void*)&instance->registers->usbsts;
-		interrupt_commands[1].addr =
-		    (void*)&instance->registers->usbsts;
-		instance->interrupt_code.cmdcount =
-		    sizeof(uhci_cmds) / sizeof(irq_cmd_t);
-	}
-
-	/* Init transfer lists */
-	ret = uhci_init_transfer_lists(instance);
-	CHECK_RET_DEST_CMDS_RETURN(ret, "Failed to init transfer lists.\n");
-	usb_log_debug("Initialized transfer lists.\n");
-
-	/* Init USB frame list page*/
-	instance->frame_list = get_page();
-	ret = instance ? EOK : ENOMEM;
-	CHECK_RET_DEST_CMDS_RETURN(ret, "Failed to get frame list page.\n");
-	usb_log_debug("Initialized frame list.\n");
-
-	/* Set all frames to point to the first queue head */
-	const uint32_t queue =
-	  instance->transfers_interrupt.queue_head_pa
-	  | LINK_POINTER_QUEUE_HEAD_FLAG;
-
-	unsigned i = 0;
-	for(; i < UHCI_FRAME_LIST_COUNT; ++i) {
-		instance->frame_list[i] = queue;
-	}
-
-	/* Init device keeper*/
-	device_keeper_init(&instance->device_manager);
-	usb_log_debug("Initialized device manager.\n");
+	instance->rh_fun->ops = &uhci_rh_ops;
+	instance->rh_fun->driver_data = &instance->rh;
+	ret = ddf_fun_bind(instance->rh_fun);
+	CHECK_RET_FINI_RETURN(ret,
+	    "Failed(%d) to register UHCI root hub.\n", ret);
 
 	return EOK;
-#undef CHECK_RET_DEST_CMDS_RETURN
+#undef CHECK_RET_FINI_RETURN
 }
-/*----------------------------------------------------------------------------*/
-/** Initializes UHCI hcd transfer lists.
- *
- * @param[in] instance UHCI structure to use.
- * @return Error code
- * @note Should be called only once on any structure.
- */
-int uhci_init_transfer_lists(uhci_t *instance)
-{
-	assert(instance);
-#define CHECK_RET_CLEAR_RETURN(ret, message...) \
-	if (ret != EOK) { \
-		usb_log_error(message); \
-		transfer_list_fini(&instance->transfers_bulk_full); \
-		transfer_list_fini(&instance->transfers_control_full); \
-		transfer_list_fini(&instance->transfers_control_slow); \
-		transfer_list_fini(&instance->transfers_interrupt); \
-		return ret; \
-	} else (void) 0
 
-	/* initialize TODO: check errors */
-	int ret;
-	ret = transfer_list_init(&instance->transfers_bulk_full, "BULK_FULL");
-	CHECK_RET_CLEAR_RETURN(ret, "Failed to init BULK list.");
-
-	ret = transfer_list_init(
-	    &instance->transfers_control_full, "CONTROL_FULL");
-	CHECK_RET_CLEAR_RETURN(ret, "Failed to init CONTROL FULL list.");
-
-	ret = transfer_list_init(
-	    &instance->transfers_control_slow, "CONTROL_SLOW");
-	CHECK_RET_CLEAR_RETURN(ret, "Failed to init CONTROL SLOW list.");
-
-	ret = transfer_list_init(&instance->transfers_interrupt, "INTERRUPT");
-	CHECK_RET_CLEAR_RETURN(ret, "Failed to init INTERRUPT list.");
-
-	transfer_list_set_next(&instance->transfers_control_full,
-		&instance->transfers_bulk_full);
-	transfer_list_set_next(&instance->transfers_control_slow,
-		&instance->transfers_control_full);
-	transfer_list_set_next(&instance->transfers_interrupt,
-		&instance->transfers_control_slow);
-
-	/*FSBR*/
-#ifdef FSBR
-	transfer_list_set_next(&instance->transfers_bulk_full,
-		&instance->transfers_control_full);
-#endif
-
-	/* Assign pointers to be used during scheduling */
-	instance->transfers[USB_SPEED_FULL][USB_TRANSFER_INTERRUPT] =
-	  &instance->transfers_interrupt;
-	instance->transfers[USB_SPEED_LOW][USB_TRANSFER_INTERRUPT] =
-	  &instance->transfers_interrupt;
-	instance->transfers[USB_SPEED_FULL][USB_TRANSFER_CONTROL] =
-	  &instance->transfers_control_full;
-	instance->transfers[USB_SPEED_LOW][USB_TRANSFER_CONTROL] =
-	  &instance->transfers_control_slow;
-	instance->transfers[USB_SPEED_FULL][USB_TRANSFER_BULK] =
-	  &instance->transfers_bulk_full;
-
-	return EOK;
-#undef CHECK_RET_CLEAR_RETURN
-}
-/*----------------------------------------------------------------------------*/
-/** Schedules batch for execution.
- *
- * @param[in] instance UHCI structure to use.
- * @param[in] batch Transfer batch to schedule.
- * @return Error code
- */
-int uhci_schedule(uhci_t *instance, batch_t *batch)
-{
-	assert(instance);
-	assert(batch);
-	const int low_speed = (batch->speed == USB_SPEED_LOW);
-	if (!allowed_usb_packet(
-	    low_speed, batch->transfer_type, batch->max_packet_size)) {
-		usb_log_warning(
-		    "Invalid USB packet specified %s SPEED %d %zu.\n",
-		    low_speed ? "LOW" : "FULL" , batch->transfer_type,
-		    batch->max_packet_size);
-		return ENOTSUP;
-	}
-	/* TODO: check available bandwith here */
-
-	transfer_list_t *list =
-	    instance->transfers[low_speed][batch->transfer_type];
-	assert(list);
-	transfer_list_add_batch(list, batch);
-
-	return EOK;
-}
-/*----------------------------------------------------------------------------*/
-/** Takes action based on the interrupt cause.
- *
- * @param[in] instance UHCI structure to use.
- * @param[in] status Value of the stsatus regiser at the time of interrupt.
- */
-void uhci_interrupt(uhci_t *instance, uint16_t status)
-{
-	assert(instance);
-	/* TODO: Check interrupt cause here */
-	transfer_list_remove_finished(&instance->transfers_interrupt);
-	transfer_list_remove_finished(&instance->transfers_control_slow);
-	transfer_list_remove_finished(&instance->transfers_control_full);
-	transfer_list_remove_finished(&instance->transfers_bulk_full);
-}
-/*----------------------------------------------------------------------------*/
-/** Polling function, emulates interrupts.
- *
- * @param[in] arg UHCI structure to use.
- * @return EOK
- */
-int uhci_interrupt_emulator(void* arg)
-{
-	usb_log_debug("Started interrupt emulator.\n");
-	uhci_t *instance = (uhci_t*)arg;
-	assert(instance);
-
-	while (1) {
-		uint16_t status = pio_read_16(&instance->registers->usbsts);
-		if (status != 0)
-			usb_log_debug2("UHCI status: %x.\n", status);
-		status |= 1;
-		uhci_interrupt(instance, status);
-		pio_write_16(&instance->registers->usbsts, 0x1f);
-		async_usleep(UHCI_CLEANER_TIMEOUT);
-	}
-	return EOK;
-}
-/*---------------------------------------------------------------------------*/
-/** Debug function, checks consistency of memory structures.
- *
- * @param[in] arg UHCI structure to use.
- * @return EOK
- */
-int uhci_debug_checker(void *arg)
-{
-	uhci_t *instance = (uhci_t*)arg;
-	assert(instance);
-
-#define QH(queue) \
-	instance->transfers_##queue.queue_head
-
-	while (1) {
-		const uint16_t cmd = pio_read_16(&instance->registers->usbcmd);
-		const uint16_t sts = pio_read_16(&instance->registers->usbsts);
-		const uint16_t intr =
-		    pio_read_16(&instance->registers->usbintr);
-
-		if (((cmd & UHCI_CMD_RUN_STOP) != 1) || (sts != 0)) {
-			usb_log_debug2("Command: %X Status: %X Intr: %x\n",
-			    cmd, sts, intr);
-		}
-
-		uintptr_t frame_list =
-		    pio_read_32(&instance->registers->flbaseadd) & ~0xfff;
-		if (frame_list != addr_to_phys(instance->frame_list)) {
-			usb_log_debug("Framelist address: %p vs. %p.\n",
-			    frame_list, addr_to_phys(instance->frame_list));
-		}
-
-		int frnum = pio_read_16(&instance->registers->frnum) & 0x3ff;
-		usb_log_debug2("Framelist item: %d \n", frnum );
-
-		uintptr_t expected_pa = instance->frame_list[frnum] & (~0xf);
-		uintptr_t real_pa = addr_to_phys(QH(interrupt));
-		if (expected_pa != real_pa) {
-			usb_log_debug("Interrupt QH: %p vs. %p.\n",
-			    expected_pa, real_pa);
-		}
-
-		expected_pa = QH(interrupt)->next_queue & (~0xf);
-		real_pa = addr_to_phys(QH(control_slow));
-		if (expected_pa != real_pa) {
-			usb_log_debug("Control Slow QH: %p vs. %p.\n",
-			    expected_pa, real_pa);
-		}
-
-		expected_pa = QH(control_slow)->next_queue & (~0xf);
-		real_pa = addr_to_phys(QH(control_full));
-		if (expected_pa != real_pa) {
-			usb_log_debug("Control Full QH: %p vs. %p.\n",
-			    expected_pa, real_pa);
-		}
-
-		expected_pa = QH(control_full)->next_queue & (~0xf);
-		real_pa = addr_to_phys(QH(bulk_full));
-		if (expected_pa != real_pa ) {
-			usb_log_debug("Bulk QH: %p vs. %p.\n",
-			    expected_pa, real_pa);
-		}
-		async_usleep(UHCI_DEBUGER_TIMEOUT);
-	}
-	return EOK;
-#undef QH
-}
-/*----------------------------------------------------------------------------*/
-/** Checks transfer packets, for USB validity
- *
- * @param[in] low_speed Transfer speed.
- * @param[in] transfer Transer type
- * @param[in] size Maximum size of used packets
- * @return EOK
- */
-bool allowed_usb_packet(
-    bool low_speed, usb_transfer_type_t transfer, size_t size)
-{
-	/* see USB specification chapter 5.5-5.8 for magic numbers used here */
-	switch(transfer)
-	{
-	case USB_TRANSFER_ISOCHRONOUS:
-		return (!low_speed && size < 1024);
-	case USB_TRANSFER_INTERRUPT:
-		return size <= (low_speed ? 8 : 64);
-	case USB_TRANSFER_CONTROL: /* device specifies its own max size */
-		return (size <= (low_speed ? 8 : 64));
-	case USB_TRANSFER_BULK: /* device specifies its own max size */
-		return (!low_speed && size <= 64);
-	}
-	return false;
-}
 /**
  * @}
  */

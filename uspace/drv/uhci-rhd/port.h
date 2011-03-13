@@ -35,14 +35,29 @@
 #define DRV_UHCI_PORT_H
 
 #include <assert.h>
-#include <ddf/driver.h>
 #include <stdint.h>
+#include <ddf/driver.h>
+#include <libarch/ddi.h> /* pio_read and pio_write */
 #include <usb/usbdevice.h>
 
-#include "port_status.h"
+typedef uint16_t port_status_t;
+
+#define STATUS_CONNECTED         (1 << 0)
+#define STATUS_CONNECTED_CHANGED (1 << 1)
+#define STATUS_ENABLED           (1 << 2)
+#define STATUS_ENABLED_CHANGED   (1 << 3)
+#define STATUS_LINE_D_PLUS       (1 << 4)
+#define STATUS_LINE_D_MINUS      (1 << 5)
+#define STATUS_RESUME            (1 << 6)
+#define STATUS_ALWAYS_ONE        (1 << 7)
+
+#define STATUS_LOW_SPEED (1 <<  8)
+#define STATUS_IN_RESET  (1 <<  9)
+#define STATUS_SUSPEND   (1 << 12)
 
 typedef struct uhci_port
 {
+	char *id_string;
 	port_status_t *address;
 	unsigned number;
 	unsigned wait_period_usec;
@@ -57,6 +72,39 @@ int uhci_port_init(
   unsigned usec, ddf_dev_t *rh);
 
 void uhci_port_fini(uhci_port_t *port);
+
+static inline port_status_t uhci_port_read_status(uhci_port_t *port)
+{
+	assert(port);
+	return pio_read_16(port->address);
+}
+
+static inline void uhci_port_write_status(
+    uhci_port_t *port, port_status_t value)
+{
+	assert(port);
+	pio_write_16(port->address, value);
+}
+
+static inline void uhci_port_print_status(
+    uhci_port_t *port, const port_status_t value)
+{
+	assert(port);
+	usb_log_debug2("%s Port status(%#x):%s%s%s%s%s%s%s%s%s%s%s.\n",
+	    port->id_string, value,
+	    (value & STATUS_SUSPEND) ? " SUSPENDED," : "",
+	    (value & STATUS_RESUME) ? " IN RESUME," : "",
+	    (value & STATUS_IN_RESET) ? " IN RESET," : "",
+	    (value & STATUS_LINE_D_MINUS) ? " VD-," : "",
+	    (value & STATUS_LINE_D_PLUS) ? " VD+," : "",
+	    (value & STATUS_LOW_SPEED) ? " LOWSPEED," : "",
+	    (value & STATUS_ENABLED_CHANGED) ? " ENABLED-CHANGE," : "",
+	    (value & STATUS_ENABLED) ? " ENABLED," : "",
+	    (value & STATUS_CONNECTED_CHANGED) ? " CONNECTED-CHANGE," : "",
+	    (value & STATUS_CONNECTED) ? " CONNECTED," : "",
+	    (value & STATUS_ALWAYS_ONE) ? " ALWAYS ONE" : " ERROR: NO ALWAYS ONE"
+	);
+}
 #endif
 /**
  * @}
