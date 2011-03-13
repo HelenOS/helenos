@@ -31,6 +31,7 @@
  */
 
 #include <libfs.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <libblock.h>
 #include <errno.h>
@@ -46,7 +47,7 @@ void mfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 {
 	devmap_handle_t devmap_handle = (devmap_handle_t) IPC_GET_ARG1(*request);
 	enum cache_mode cmode;	
-	struct mfs3_superblock *sp;
+	struct mfs_superblock *sp;
 	bool native, longnames;
 	mfs_version_t version;
 
@@ -55,6 +56,7 @@ void mfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 	int rc = async_data_write_accept((void **) &opts, true, 0, 0, 0, NULL);
 	
 	if (rc != EOK) {
+		mfsdebug("Can't accept async data write\n");
 		async_answer_0(rid, rc);
 		return;
 	}
@@ -68,35 +70,41 @@ void mfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 	free(opts);
 
 	/* initialize libblock */
-	rc = block_init(devmap_handle, MFS_SUPERBLOCK_SIZE);
+	rc = block_init(devmap_handle, 1024);
 	if (rc != EOK) {
+		mfsdebug("libblock initialization failed\n");
 		async_answer_0(rid, rc);
 		return;
 	}
 
-	/* prepare the superblock */
-	rc = block_bb_read(devmap_handle, MFS_SUPERBLOCK);
+	sp = malloc(MFS_SUPERBLOCK_SIZE);
+
+	/* Read the superblock */
+	rc = block_read_direct(devmap_handle, MFS_SUPERBLOCK << 1, 1, sp);
 	if (rc != EOK) {
 		block_fini(devmap_handle);
 		async_answer_0(rid, rc);
 		return;
 	}
 
-	/* get the buffer with the superblock */
-	sp = block_bb_get(devmap_handle);
-
 	if (!check_magic_number(sp->s_magic, &native, &version, &longnames)) {
 		/*Magic number is invalid!*/
+		mfsdebug("magic number not recognized\n");
 		block_fini(devmap_handle);
 		async_answer_0(rid, ENOTSUP);
 		return;
 	}
+
+	mfsdebug("magic number recognized\n");
+	free(sp);
 }
 
 static bool check_magic_number(uint16_t magic, bool *native,
 				mfs_version_t *version, bool *longfilenames)
 {
 	*longfilenames = false;
+
+	mfsdebug("magic = %d\n", magic);
 
 	if (magic == MFS_MAGIC_V1 || magic == MFS_MAGIC_V1R) {
 		*native = magic == MFS_MAGIC_V1;

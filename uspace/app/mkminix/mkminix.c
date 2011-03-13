@@ -57,7 +57,7 @@
 
 #define UPPER(n, size) 			(((n) / (size)) + (((n) % (size)) != 0))
 #define NEXT_DENTRY(p, dirsize)		(p += dirsize)
-#define FIRST_ZONE(bs)			((MFS_BOOTBLOCK_SIZE + MFS_SUPERBLOCK_SIZE) / (bs))
+#define FIRST_ZONE(bs)			(1 + (bs) / MFS_MIN_BLOCKSIZE)
 #define CONVERT_1K_OFF(off, bs)		((off) * ((bs) / MFS_MIN_BLOCKSIZE))
 
 typedef enum {
@@ -328,7 +328,8 @@ static int init_inode_table(const struct mfs_sb_info *sb)
 	itable_off = sb->zbmap_blocks + sb->ibmap_blocks;
 
 	/*Convert to 1K offset*/
-	itable_off = CONVERT_1K_OFF(itable_off, sb->block_size) + 2;
+	itable_off = CONVERT_1K_OFF(itable_off, sb->block_size) +
+					FIRST_ZONE(sb->block_size);
 	itable_size = CONVERT_1K_OFF(sb->itable_size, sb->block_size);
 
 	itable_buf = malloc(MFS_MIN_BLOCKSIZE);
@@ -391,7 +392,8 @@ static int make_root_ino3(const struct mfs_sb_info *sb)
 	itable_off = sb->zbmap_blocks + sb->ibmap_blocks;
 
 	/*Convert to 1K block offset*/
-	itable_off = CONVERT_1K_OFF(itable_off, sb->block_size) + 2;
+	itable_off = CONVERT_1K_OFF(itable_off, sb->block_size) +
+					FIRST_ZONE(sb->block_size);
 
 	const time_t sec = time(NULL);
 
@@ -467,7 +469,7 @@ static int init_superblock(struct mfs_sb_info *sb)
 	sb->zbmap_blocks = UPPER(sb->n_zones, sb->block_size * 8);
 
 	/*Compute first data zone position*/
-	sb->first_data_zone = FIRST_ZONE(sb->block_size) + sb->itable_size + 
+	sb->first_data_zone = 2 + sb->itable_size + 
 				sb->zbmap_blocks + sb->ibmap_blocks;
 
 	/*Set log2 of zone to block ratio to zero*/
@@ -581,7 +583,7 @@ static int init_bitmaps(const struct mfs_sb_info *sb)
 	ibmap_buf8 = (uint8_t *) ibmap_buf;
 	zbmap_buf8 = (uint8_t *) zbmap_buf;
 
-	int start_block = 2;
+	int start_block = FIRST_ZONE(sb->block_size);
 
 	for (i = 0; i < ibmap_nblocks; ++i) {
 		if ((rc = write_1k_block(start_block + i,
@@ -589,7 +591,7 @@ static int init_bitmaps(const struct mfs_sb_info *sb)
 			return rc;
 	}
 
-	start_block = 2 + ibmap_nblocks;
+	start_block = FIRST_ZONE(sb->block_size) + ibmap_nblocks;
 
 	for (i = 0; i < zbmap_nblocks; ++i) {
 		if ((rc = write_1k_block(start_block + i,

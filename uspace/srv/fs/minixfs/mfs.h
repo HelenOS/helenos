@@ -36,6 +36,14 @@
 #include <minix.h>
 #include "../../vfs/vfs.h"
 
+#define DEBUG_MODE
+
+#ifdef DEBUG_MODE
+#define mfsdebug(...)	printf(__VA_ARGS__)
+#else
+#define mfsdebug(...)
+#endif
+
 typedef enum {
 	MFS_VERSION_V1 = 1,
 	MFS_VERSION_V1L,
