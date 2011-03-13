@@ -81,6 +81,14 @@ typedef struct {
 
 int usb_driver_main(usb_driver_t *);
 
+typedef bool (*usb_polling_callback_t)(usb_device_t *,
+    uint8_t *, size_t, void *);
+typedef void (*usb_polling_terminted_callback_t)(usb_device_t *, bool, void *);
+
+
+int usb_device_auto_poll(usb_device_t *, size_t,
+    usb_polling_callback_t, size_t, usb_polling_terminted_callback_t, void *);
+
 #endif
 /**
  * @}
