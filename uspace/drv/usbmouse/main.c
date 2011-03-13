@@ -54,14 +54,15 @@ static int usbmouse_add_device(usb_device_t *dev)
 
 	usb_log_debug("Polling pipe at endpoint %d.\n", dev->pipes[0].pipe->endpoint_no);
 
-	fid_t poll_fibril = fibril_create(usb_mouse_polling_fibril, dev);
-	if (poll_fibril == 0) {
-		usb_log_error("Failed to initialize polling fibril.\n");
-		/* FIXME: free allocated resources. */
-		return ENOMEM;
-	}
+	rc = usb_device_auto_poll(dev, 0,
+	    usb_mouse_polling_callback, dev->pipes[0].pipe->max_packet_size,
+	    usb_mouse_polling_ended_callback, dev->driver_data);
 
-	fibril_add_ready(poll_fibril);
+	if (rc != EOK) {
+		usb_log_error("Failed to start polling fibril: %s.\n",
+		    str_error(rc));
+		return rc;
+	}
 
 	usb_log_info("controlling new mouse (handle %llu).\n",
 	    dev->ddf_dev->handle);

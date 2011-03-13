@@ -60,7 +60,8 @@ extern usb_endpoint_description_t poll_endpoint_description;
 
 int usb_mouse_create(usb_device_t *);
 
-int usb_mouse_polling_fibril(void *);
+bool usb_mouse_polling_callback(usb_device_t *, uint8_t *, size_t, void *);
+void usb_mouse_polling_ended_callback(usb_device_t *, bool, void *);
 
 #endif
 /**
