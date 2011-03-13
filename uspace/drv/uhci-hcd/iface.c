@@ -39,7 +39,7 @@
 #include <errno.h>
 
 #include "iface.h"
-#include "uhci.h"
+#include "uhci_hc.h"
 #include "utils/device_keeper.h"
 
 /** Reserve default address interface function
@@ -52,7 +52,7 @@
 static int reserve_default_address(ddf_fun_t *fun, usb_speed_t speed)
 {
 	assert(fun);
-	uhci_t *hc = fun_to_uhci(fun);
+	uhci_hc_t *hc = fun_to_uhci_hc(fun);
 	assert(hc);
 	usb_log_debug("Default address request with speed %d.\n", speed);
 	device_keeper_reserve_default(&hc->device_manager, speed);
@@ -67,7 +67,7 @@ static int reserve_default_address(ddf_fun_t *fun, usb_speed_t speed)
 static int release_default_address(ddf_fun_t *fun)
 {
 	assert(fun);
-	uhci_t *hc = fun_to_uhci(fun);
+	uhci_hc_t *hc = fun_to_uhci_hc(fun);
 	assert(hc);
 	usb_log_debug("Default address release.\n");
 	device_keeper_release_default(&hc->device_manager);
@@ -85,7 +85,7 @@ static int request_address(ddf_fun_t *fun, usb_speed_t speed,
     usb_address_t *address)
 {
 	assert(fun);
-	uhci_t *hc = fun_to_uhci(fun);
+	uhci_hc_t *hc = fun_to_uhci_hc(fun);
 	assert(hc);
 	assert(address);
 
@@ -108,7 +108,7 @@ static int bind_address(
   ddf_fun_t *fun, usb_address_t address, devman_handle_t handle)
 {
 	assert(fun);
-	uhci_t *hc = fun_to_uhci(fun);
+	uhci_hc_t *hc = fun_to_uhci_hc(fun);
 	assert(hc);
 	usb_log_debug("Address bind %d-%d.\n", address, handle);
 	device_keeper_bind(&hc->device_manager, address, handle);
@@ -124,7 +124,7 @@ static int bind_address(
 static int release_address(ddf_fun_t *fun, usb_address_t address)
 {
 	assert(fun);
-	uhci_t *hc = fun_to_uhci(fun);
+	uhci_hc_t *hc = fun_to_uhci_hc(fun);
 	assert(hc);
 	usb_log_debug("Address release %d.\n", address);
 	device_keeper_release(&hc->device_manager, address);
@@ -147,7 +147,7 @@ static int interrupt_out(ddf_fun_t *fun, usb_target_t target,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
 	assert(fun);
-	uhci_t *hc = fun_to_uhci(fun);
+	uhci_hc_t *hc = fun_to_uhci_hc(fun);
 	assert(hc);
 	usb_speed_t speed = device_keeper_speed(&hc->device_manager, target.address);
 
@@ -179,7 +179,7 @@ static int interrupt_in(ddf_fun_t *fun, usb_target_t target,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
 	assert(fun);
-	uhci_t *hc = fun_to_uhci(fun);
+	uhci_hc_t *hc = fun_to_uhci_hc(fun);
 	assert(hc);
 	usb_speed_t speed = device_keeper_speed(&hc->device_manager, target.address);
 	usb_log_debug("Interrupt IN %d:%d %zu(%zu).\n",
@@ -210,7 +210,7 @@ static int bulk_out(ddf_fun_t *fun, usb_target_t target,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
 	assert(fun);
-	uhci_t *hc = fun_to_uhci(fun);
+	uhci_hc_t *hc = fun_to_uhci_hc(fun);
 	assert(hc);
 	usb_speed_t speed = device_keeper_speed(&hc->device_manager, target.address);
 
@@ -242,7 +242,7 @@ static int bulk_in(ddf_fun_t *fun, usb_target_t target,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
 	assert(fun);
-	uhci_t *hc = fun_to_uhci(fun);
+	uhci_hc_t *hc = fun_to_uhci_hc(fun);
 	assert(hc);
 	usb_speed_t speed = device_keeper_speed(&hc->device_manager, target.address);
 	usb_log_debug("Bulk IN %d:%d %zu(%zu).\n",
@@ -276,7 +276,7 @@ static int control_write(ddf_fun_t *fun, usb_target_t target,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
 	assert(fun);
-	uhci_t *hc = fun_to_uhci(fun);
+	uhci_hc_t *hc = fun_to_uhci_hc(fun);
 	assert(hc);
 	usb_speed_t speed = device_keeper_speed(&hc->device_manager, target.address);
 	usb_log_debug("Control WRITE (%d) %d:%d %zu(%zu).\n",
@@ -314,7 +314,7 @@ static int control_read(ddf_fun_t *fun, usb_target_t target,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
 	assert(fun);
-	uhci_t *hc = fun_to_uhci(fun);
+	uhci_hc_t *hc = fun_to_uhci_hc(fun);
 	assert(hc);
 	usb_speed_t speed = device_keeper_speed(&hc->device_manager, target.address);
 
@@ -329,7 +329,7 @@ static int control_read(ddf_fun_t *fun, usb_target_t target,
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-usbhc_iface_t uhci_iface = {
+usbhc_iface_t uhci_hc_iface = {
 	.reserve_default_address = reserve_default_address,
 	.release_default_address = release_default_address,
 	.request_address = request_address,

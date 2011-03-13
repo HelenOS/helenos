@@ -49,10 +49,8 @@ typedef struct batch
 	usb_speed_t speed;
 	usb_target_t target;
 	usb_transfer_type_t transfer_type;
-	union {
-		usbhc_iface_transfer_in_callback_t callback_in;
-		usbhc_iface_transfer_out_callback_t callback_out;
-	};
+	usbhc_iface_transfer_in_callback_t callback_in;
+	usbhc_iface_transfer_out_callback_t callback_out;
 	void *arg;
 	char *transport_buffer;
 	char *setup_buffer;
@@ -64,7 +62,7 @@ typedef struct batch
 	size_t transfered_size;
 	int error;
 	ddf_fun_t *fun;
-	queue_head_t *qh;
+	qh_t *qh;
 	td_t *tds;
 	void (*next_step)(struct batch*);
 	device_keeper_t *manager;

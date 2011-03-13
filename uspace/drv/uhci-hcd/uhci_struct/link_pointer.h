@@ -45,6 +45,9 @@ typedef uint32_t link_pointer_t;
 
 #define LINK_POINTER_ADDRESS_MASK 0xfffffff0 /* upper 28 bits */
 
+#define LINK_POINTER_QH(address) \
+	((address & LINK_POINTER_ADDRESS_MASK) | LINK_POINTER_QUEUE_HEAD_FLAG)
+
 #endif
 /**
  * @}

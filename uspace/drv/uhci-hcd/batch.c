@@ -39,7 +39,7 @@
 
 #include "batch.h"
 #include "transfer_list.h"
-#include "uhci.h"
+#include "uhci_hc.h"
 #include "utils/malloc32.h"
 
 #define DEFAULT_ERROR_COUNT 3
@@ -99,10 +99,10 @@ batch_t * batch_get(ddf_fun_t *fun, usb_target_t target,
 	    "Failed to allocate batch instance.\n");
 	bzero(instance, sizeof(batch_t));
 
-	instance->qh = malloc32(sizeof(queue_head_t));
+	instance->qh = malloc32(sizeof(qh_t));
 	CHECK_NULL_DISPOSE_RETURN(instance->qh,
 	    "Failed to allocate batch queue head.\n");
-	queue_head_init(instance->qh);
+	qh_init(instance->qh);
 
 	instance->packets = (size + max_packet_size - 1) / max_packet_size;
 	if (transfer_type == USB_TRANSFER_CONTROL) {
@@ -113,8 +113,6 @@ batch_t * batch_get(ddf_fun_t *fun, usb_target_t target,
 	CHECK_NULL_DISPOSE_RETURN(
 	    instance->tds, "Failed to allocate transfer descriptors.\n");
 	bzero(instance->tds, sizeof(td_t) * instance->packets);
-
-//	const size_t transport_size = max_packet_size * instance->packets;
 
 	if (size > 0) {
 		instance->transport_buffer = malloc32(size);
@@ -142,13 +140,10 @@ batch_t * batch_get(ddf_fun_t *fun, usb_target_t target,
 	instance->arg = arg;
 	instance->speed = speed;
 	instance->manager = manager;
+	instance->callback_out = func_out;
+	instance->callback_in = func_in;
 
-	if (func_out)
-		instance->callback_out = func_out;
-	if (func_in)
-		instance->callback_in = func_in;
-
-	queue_head_set_element_td(instance->qh, addr_to_phys(instance->tds));
+	qh_set_element_td(instance->qh, addr_to_phys(instance->tds));
 
 	usb_log_debug("Batch(%p) %d:%d memory structures ready.\n",
 	    instance, target.address, target.endpoint);
@@ -318,7 +313,7 @@ void batch_data(batch_t *instance, usb_packet_id pid)
 		remain_size -= packet_size;
 		++packet;
 	}
-	instance->tds[packet - 1].status |= TD_STATUS_IOC_FLAG;
+	td_set_ioc(&instance->tds[packet - 1]);
 	device_keeper_set_toggle(instance->manager, instance->target, toggle);
 }
 /*----------------------------------------------------------------------------*/
@@ -370,8 +365,7 @@ void batch_control(batch_t *instance,
 	td_init(&instance->tds[packet], DEFAULT_ERROR_COUNT,
 	    0, 1, false, low_speed, instance->target, status_stage, NULL, NULL);
 
-
-	instance->tds[packet].status |= TD_STATUS_IOC_FLAG;
+	td_set_ioc(&instance->tds[packet]);
 	usb_log_debug2("Control last TD status: %x.\n",
 	    instance->tds[packet].status);
 }
@@ -455,9 +449,9 @@ void batch_dispose(batch_t *instance)
 int batch_schedule(batch_t *instance)
 {
 	assert(instance);
-	uhci_t *hc = fun_to_uhci(instance->fun);
+	uhci_hc_t *hc = fun_to_uhci_hc(instance->fun);
 	assert(hc);
-	return uhci_schedule(hc, instance);
+	return uhci_hc_schedule(hc, instance);
 }
 /**
  * @}
