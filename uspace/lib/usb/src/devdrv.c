@@ -154,6 +154,38 @@ static int initialize_other_pipes(usb_driver_t *drv, usb_device_t *dev)
 		goto rollback;
 	}
 
+	/* Register the endpoints. */
+	usb_hc_connection_t hc_conn;
+	rc = usb_hc_connection_initialize_from_device(&hc_conn, dev->ddf_dev);
+	if (rc != EOK) {
+		usb_log_error(
+		    "Failed initializing connection to host controller: %s.\n",
+		    str_error(rc));
+		goto rollback;
+	}
+	rc = usb_hc_connection_open(&hc_conn);
+	if (rc != EOK) {
+		usb_log_error("Failed to connect to host controller: %s.\n",
+		    str_error(rc));
+		goto rollback;
+	}
+	for (i = 0; i < pipe_count; i++) {
+		if (dev->pipes[i].present) {
+			rc = usb_endpoint_pipe_register(dev->pipes[i].pipe,
+			    dev->pipes[i].descriptor->poll_interval,
+			    &hc_conn);
+			/* Ignore error when operation not supported by HC. */
+			if ((rc != EOK) && (rc != ENOTSUP)) {
+				/* FIXME: what shall we do? */
+				dev->pipes[i].present = false;
+				free(dev->pipes[i].pipe);
+				dev->pipes[i].pipe = NULL;
+			}
+		}
+	}
+	/* Ignoring errors here. */
+	usb_hc_connection_close(&hc_conn);
+
 	return EOK;
 
 rollback:

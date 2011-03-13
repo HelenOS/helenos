@@ -37,6 +37,7 @@
 #include <usb/pipes.h>
 #include <usb/dp.h>
 #include <usb/request.h>
+#include <usbhc_iface.h>
 #include <errno.h>
 #include <assert.h>
 
@@ -390,6 +391,56 @@ int usb_endpoint_pipe_initialize_default_control(usb_endpoint_pipe_t *pipe,
 
 	pipe->max_packet_size = first[7];
 	return rc;
+}
+
+/** Register endpoint with the host controller.
+ *
+ * @param pipe Pipe to be registered.
+ * @param interval Polling interval.
+ * @param hc_connection Connection to the host controller (must be opened).
+ * @return Error code.
+ */
+int usb_endpoint_pipe_register(usb_endpoint_pipe_t *pipe,
+    unsigned int interval,
+    usb_hc_connection_t *hc_connection)
+{
+	assert(pipe);
+	assert(hc_connection);
+
+	if (!usb_hc_connection_is_opened(hc_connection)) {
+		return EBADF;
+	}
+
+#define _PACK(high, low) ((high) * 256 + (low))
+
+	return async_req_5_0(hc_connection->hc_phone,
+	    DEV_IFACE_ID(USBHC_DEV_IFACE), IPC_M_USBHC_REGISTER_ENDPOINT,
+	    _PACK(pipe->wire->address, pipe->endpoint_no),
+	    _PACK(pipe->transfer_type, pipe->direction),
+	    pipe->max_packet_size, interval);
+
+#undef _PACK
+}
+
+/** Revert endpoint registration with the host controller.
+ *
+ * @param pipe Pipe to be unregistered.
+ * @param hc_connection Connection to the host controller (must be opened).
+ * @return Error code.
+ */
+int usb_endpoint_pipe_unregister(usb_endpoint_pipe_t *pipe,
+    usb_hc_connection_t *hc_connection)
+{
+	assert(pipe);
+	assert(hc_connection);
+
+	if (!usb_hc_connection_is_opened(hc_connection)) {
+		return EBADF;
+	}
+
+	return async_req_4_0(hc_connection->hc_phone,
+	    DEV_IFACE_ID(USBHC_DEV_IFACE), IPC_M_USBHC_UNREGISTER_ENDPOINT,
+	    pipe->wire->address, pipe->endpoint_no, pipe->direction);
 }
 
 /**
