@@ -44,7 +44,6 @@ typedef struct transfer_descriptor {
 	link_pointer_t next;
 
 	volatile uint32_t status;
-
 #define TD_STATUS_RESERVED_MASK 0xc000f800
 #define TD_STATUS_SPD_FLAG ( 1 << 29 )
 #define TD_STATUS_ERROR_COUNT_POS ( 27 )
@@ -69,7 +68,6 @@ typedef struct transfer_descriptor {
 #define TD_STATUS_ACTLEN_MASK 0x7ff
 
 	volatile uint32_t device;
-
 #define TD_DEVICE_MAXLEN_POS 21
 #define TD_DEVICE_MAXLEN_MASK ( 0x7ff )
 #define TD_DEVICE_RESERVED_FLAG ( 1 << 20 )
@@ -84,8 +82,8 @@ typedef struct transfer_descriptor {
 	volatile uint32_t buffer_ptr;
 
 	/* there is 16 bytes of data available here, according to UHCI
-	 * Design guide, according to linux kernel the hardware does not care
-	 * we don't use it anyway
+	 * Design guide, according to linux kernel the hardware does not care,
+	 * it just needs to be aligned, we don't use it anyway
 	 */
 } __attribute__((packed)) td_t;
 
@@ -96,14 +94,26 @@ void td_init(td_t *instance, int error_count, size_t size, bool toggle,
 
 int td_status(td_t *instance);
 
+void td_print_status(td_t *instance);
+/*----------------------------------------------------------------------------*/
+/** Helper function for parsing actual size out of TD.
+ *
+ * @param[in] instance TD structure to use.
+ * @return Parsed actual size.
+ */
 static inline size_t td_act_size(td_t *instance)
 {
 	assert(instance);
-	return
-	    ((instance->status >> TD_STATUS_ACTLEN_POS) + 1)
-	    & TD_STATUS_ACTLEN_MASK;
+	const uint32_t s = instance->status;
+	return ((s >> TD_STATUS_ACTLEN_POS) + 1) & TD_STATUS_ACTLEN_MASK;
 }
-
+/*----------------------------------------------------------------------------*/
+/** Checks whether less than max data were recieved and packet is marked as SPD.
+ *
+ * @param[in] instance TD structure to use.
+ * @return True if packet is short (less than max bytes and SPD set), false
+ *     otherwise.
+ */
 static inline bool td_is_short(td_t *instance)
 {
 	const size_t act_size = td_act_size(instance);
@@ -113,21 +123,39 @@ static inline bool td_is_short(td_t *instance)
 	return
 	    (instance->status | TD_STATUS_SPD_FLAG) && act_size < max_size;
 }
-
+/*----------------------------------------------------------------------------*/
+/** Helper function for parsing value of toggle bit.
+ *
+ * @param[in] instance TD structure to use.
+ * @return Toggle bit value.
+ */
 static inline int td_toggle(td_t *instance)
 {
 	assert(instance);
-	return ((instance->device & TD_DEVICE_DATA_TOGGLE_ONE_FLAG) != 0)
-	    ? 1 : 0;
+	return (instance->device & TD_DEVICE_DATA_TOGGLE_ONE_FLAG) ? 1 : 0;
 }
-
+/*----------------------------------------------------------------------------*/
+/** Helper function for parsing value of active bit
+ *
+ * @param[in] instance TD structure to use.
+ * @return Active bit value.
+ */
 static inline bool td_is_active(td_t *instance)
 {
 	assert(instance);
 	return (instance->status & TD_STATUS_ERROR_ACTIVE) != 0;
 }
-
-void td_print_status(td_t *instance);
+/*----------------------------------------------------------------------------*/
+/** Helper function for setting IOC bit.
+ *
+ * @param[in] instance TD structure to use.
+ */
+static inline void td_set_ioc(td_t *instance)
+{
+	assert(instance);
+	instance->status |= TD_STATUS_IOC_FLAG;
+}
+/*----------------------------------------------------------------------------*/
 #endif
 /**
  * @}

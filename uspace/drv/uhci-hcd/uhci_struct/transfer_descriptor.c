@@ -43,13 +43,21 @@
  * @param[in] err_count Number of retries hc should attempt.
  * @param[in] size Size of data source.
  * @param[in] toggle Value of toggle bit.
- * @param[in] iso True if TD is for Isochronous transfer.
+ * @param[in] iso True if TD represents Isochronous transfer.
  * @param[in] low_speed Target device's speed.
  * @param[in] target Address and endpoint receiving the transfer.
  * @param[in] pid Packet identification (SETUP, IN or OUT).
  * @param[in] buffer Source of data.
  * @param[in] next Net TD in transaction.
  * @return Error code.
+ *
+ * Uses a mix of supplied and default values.
+ * Implicit values:
+ *  - all TDs have vertical flag set (makes transfers to endpoints atomic)
+ *  - in the error field only active it is set
+ *  - if the packet uses PID_IN and is not isochronous SPD is set
+ *
+ * Dumps 8 bytes of buffer if PID_SETUP is used.
  */
 void td_init(td_t *instance, int err_count, size_t size, bool toggle, bool iso,
     bool low_speed, usb_target_t target, usb_packet_id pid, void *buffer,
@@ -93,7 +101,7 @@ void td_init(td_t *instance, int err_count, size_t size, bool toggle, bool iso,
 	td_print_status(instance);
 	if (pid == USB_PID_SETUP) {
 		usb_log_debug("SETUP BUFFER: %s\n",
-			usb_debug_str_buffer(buffer, 8, 8));
+		    usb_debug_str_buffer(buffer, 8, 8));
 	}
 }
 /*----------------------------------------------------------------------------*/
@@ -127,6 +135,10 @@ int td_status(td_t *instance)
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
+/** Print values in status field (dw1) in a human readable way.
+ *
+ * @param[in] instance TD structure to use.
+ */
 void td_print_status(td_t *instance)
 {
 	assert(instance);

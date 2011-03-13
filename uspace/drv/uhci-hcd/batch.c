@@ -318,7 +318,7 @@ void batch_data(batch_t *instance, usb_packet_id pid)
 		remain_size -= packet_size;
 		++packet;
 	}
-	instance->tds[packet - 1].status |= TD_STATUS_IOC_FLAG;
+	td_set_ioc(&instance->tds[packet - 1]);
 	device_keeper_set_toggle(instance->manager, instance->target, toggle);
 }
 /*----------------------------------------------------------------------------*/
@@ -370,8 +370,7 @@ void batch_control(batch_t *instance,
 	td_init(&instance->tds[packet], DEFAULT_ERROR_COUNT,
 	    0, 1, false, low_speed, instance->target, status_stage, NULL, NULL);
 
-
-	instance->tds[packet].status |= TD_STATUS_IOC_FLAG;
+	td_set_ioc(&instance->tds[packet]);
 	usb_log_debug2("Control last TD status: %x.\n",
 	    instance->tds[packet].status);
 }
