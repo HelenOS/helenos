@@ -91,27 +91,29 @@ static bool pciintel_enable_interrupt(ddf_fun_t *fnode)
 	assert(fnode);
 	pci_fun_t *dev_data = (pci_fun_t *) fnode->driver_data;
 
-  sysarg_t apic;
-  sysarg_t i8259;
+	sysarg_t apic;
+	sysarg_t i8259;
 
 	int irc_phone = -1;
-	int irc_service = 0;
+	int irc_service = -1;
 
-  if ((sysinfo_get_value("apic", &apic) == EOK) && (apic)) {
-    irc_service = SERVICE_APIC;
+	if ((sysinfo_get_value("apic", &apic) == EOK) && (apic)) {
+		irc_service = SERVICE_APIC;
 	} else if ((sysinfo_get_value("i8259", &i8259) == EOK) && (i8259)) {
-    irc_service = SERVICE_I8259;
+		irc_service = SERVICE_I8259;
 	}
 
-  if (irc_service == 0)
+	if (irc_service == -1) {
 		return false;
+	}
 
 	irc_phone = service_connect_blocking(irc_service, 0, 0);
-	if (irc_phone < 0)
+	if (irc_phone < 0) {
 		return false;
+	}
 
 	size_t i;
-  for (i = 0; i < dev_data->hw_resources.count; i++) {
+	for (i = 0; i < dev_data->hw_resources.count; i++) {
 		if (dev_data->hw_resources.resources[i].type == INTERRUPT) {
 			int irq = dev_data->hw_resources.resources[i].res.interrupt.irq;
 			int rc = async_req_1_0(irc_phone, IRC_ENABLE_INTERRUPT, irq);
