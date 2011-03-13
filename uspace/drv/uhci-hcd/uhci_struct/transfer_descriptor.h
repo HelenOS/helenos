@@ -48,7 +48,6 @@ typedef struct transfer_descriptor {
 #define TD_STATUS_SPD_FLAG ( 1 << 29 )
 #define TD_STATUS_ERROR_COUNT_POS ( 27 )
 #define TD_STATUS_ERROR_COUNT_MASK ( 0x3 )
-#define TD_STATUS_ERROR_COUNT_DEFAULT 3
 #define TD_STATUS_LOW_SPEED_FLAG ( 1 << 26 )
 #define TD_STATUS_ISOCHRONOUS_FLAG ( 1 << 25 )
 #define TD_STATUS_IOC_FLAG ( 1 << 24 )

@@ -43,9 +43,8 @@
 typedef struct transfer_list
 {
 	fibril_mutex_t guard;
-	queue_head_t *queue_head;
+	qh_t *queue_head;
 	uint32_t queue_head_pa;
-	struct transfer_list *next;
 	const char *name;
 	link_t batch_list;
 } transfer_list_t;
