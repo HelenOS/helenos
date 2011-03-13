@@ -124,7 +124,7 @@ int cmd_mkfile(char **argv)
 	argc = cli_count_args(argv);
 
 	for (c = 0, optind = 0, opt_ind = 0; c != -1;) {
-		c = getopt_long(argc, argv, "pvhVfm:", long_options, &opt_ind);
+		c = getopt_long(argc, argv, "s:h", long_options, &opt_ind);
 		switch (c) {
 		case 'h':
 			help_cmd_mkfile(HELP_LONG);
