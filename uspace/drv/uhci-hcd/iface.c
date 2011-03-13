@@ -329,7 +329,7 @@ static int control_read(ddf_fun_t *fun, usb_target_t target,
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-usbhc_iface_t uhci_iface = {
+usbhc_iface_t uhci_hc_iface = {
 	.reserve_default_address = reserve_default_address,
 	.release_default_address = release_default_address,
 	.request_address = request_address,

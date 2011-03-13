@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Vojtech Horky, Jan Vesely
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,70 +31,47 @@
 /** @file
  * @brief UHCI driver
  */
-#include <ddf/driver.h>
+#include <assert.h>
 #include <errno.h>
 #include <str_error.h>
+#include <stdio.h>
 
-#include <usb/ddfiface.h>
 #include <usb/debug.h>
 
-#include "iface.h"
-#include "uhci.h"
+#include "uhci_rh.h"
+#include "uhci_hc.h"
 
-#define NAME "uhci-hcd"
-
-static int uhci_add_device(ddf_dev_t *device);
 /*----------------------------------------------------------------------------*/
-static driver_ops_t uhci_driver_ops = {
-	.add_device = uhci_add_device,
-};
-/*----------------------------------------------------------------------------*/
-static driver_t uhci_driver = {
-	.name = NAME,
-	.driver_ops = &uhci_driver_ops
-};
-/*----------------------------------------------------------------------------*/
-/** Initializes a new ddf driver instance for uhci hc and hub.
- *
- * @param[in] device DDF instance of the device to initialize.
- * @return Error code.
- *
- * Gets and initialies hardware resources, disables any legacy support,
- * and reports root hub device.
- */
-int uhci_add_device(ddf_dev_t *device)
+int uhci_rh_init(
+    uhci_rh_t *instance, ddf_fun_t *fun, uintptr_t reg_addr, size_t reg_size)
 {
-	usb_log_info("uhci_add_device() called\n");
-	assert(device);
-	uhci_t *uhci = malloc(sizeof(uhci_t));
-	if (uhci == NULL) {
-		usb_log_error("Failed to allocate UHCI driver.\n");
+	assert(fun);
+
+	char *match_str = NULL;
+	int ret = asprintf(&match_str, "usb&uhci&root-hub");
+	if (ret < 0) {
+		usb_log_error("Failed to create root hub match string.\n");
 		return ENOMEM;
 	}
 
-	int ret = uhci_init(uhci, device);
+	ret = ddf_fun_add_match_id(fun, match_str, 100);
 	if (ret != EOK) {
-		usb_log_error("Failed to initialzie UHCI driver.\n");
+		usb_log_error("Failed(%d) to add root hub match id: %s\n",
+		    ret, str_error(ret));
 		return ret;
 	}
-	device->driver_data = uhci;
-	return EOK;
-}
-/*----------------------------------------------------------------------------*/
-/** Initializes global driver structures (NONE).
- *
- * @param[in] argc Nmber of arguments in argv vector (ignored).
- * @param[in] argv Cmdline argument vector (ignored).
- * @return Error code.
- *
- * Driver debug level is set here.
- */
-int main(int argc, char *argv[])
-{
-	sleep(3);
-	usb_log_enable(USB_LOG_LEVEL_DEBUG, NAME);
 
-	return ddf_driver_main(&uhci_driver);
+	hw_resource_list_t *resource_list = &instance->resource_list;
+	resource_list->count = 1;
+	resource_list->resources = &instance->io_regs;
+	assert(resource_list->resources);
+	instance->io_regs.type = IO_RANGE;
+	instance->io_regs.res.io_range.address = reg_addr;
+//	    ((uintptr_t)hc->registers) + 0x10; // see UHCI design guide
+	instance->io_regs.res.io_range.size = reg_size;
+	instance->io_regs.res.io_range.endianness = LITTLE_ENDIAN;
+
+	return EOK;
 }
 /**
  * @}

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,18 +26,25 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup usb
+/** @addtogroup drvusbuhci
  * @{
  */
 /** @file
  * @brief UHCI driver
  */
-#ifndef DRV_UHCI_IFACE_H
-#define DRV_UHCI_IFACE_H
+#ifndef DRV_UHCI_UHCI_RH_H
+#define DRV_UHCI_UHCI_RH_H
 
-#include <usbhc_iface.h>
+#include <ddf/driver.h>
+#include <ops/hw_res.h>
 
-extern usbhc_iface_t uhci_hc_iface;
+typedef struct uhci_rh {
+	hw_resource_list_t resource_list;
+	hw_resource_t io_regs;
+} uhci_rh_t;
+
+int uhci_rh_init(
+    uhci_rh_t *instance, ddf_fun_t *fun, uintptr_t reg_addr, size_t reg_size);
 
 #endif
 /**
