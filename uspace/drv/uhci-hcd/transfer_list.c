@@ -25,14 +25,13 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup usb
+/** @addtogroup drvusbuhcihc
  * @{
  */
 /** @file
- * @brief UHCI driver
+ * @brief UHCI driver transfer list implementation
  */
 #include <errno.h>
-
 #include <usb/debug.h>
 
 #include "transfer_list.h"
@@ -40,10 +39,10 @@
 static void transfer_list_remove_batch(
     transfer_list_t *instance, batch_t *batch);
 /*----------------------------------------------------------------------------*/
-/** Initializes transfer list structures.
+/** Initialize transfer list structures.
  *
  * @param[in] instance Memory place to use.
- * @param[in] name Name of te new list.
+ * @param[in] name Name of the new list.
  * @return Error code
  *
  * Allocates memory for internal qh_t structure.
@@ -65,13 +64,13 @@ int transfer_list_init(transfer_list_t *instance, const char *name)
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-/** Set the next list in chain.
+/** Set the next list in transfer list chain.
  *
  * @param[in] instance List to lead.
  * @param[in] next List to append.
  * @return Error code
  *
- * Does not check whether there was a next list already.
+ * Does not check whether this replaces an existing list .
  */
 void transfer_list_set_next(transfer_list_t *instance, transfer_list_t *next)
 {
@@ -79,16 +78,18 @@ void transfer_list_set_next(transfer_list_t *instance, transfer_list_t *next)
 	assert(next);
 	if (!instance->queue_head)
 		return;
-	/* set both next and element to point to the same QH */
+	/* Set both next and element to point to the same QH */
 	qh_set_next_qh(instance->queue_head, next->queue_head_pa);
 	qh_set_element_qh(instance->queue_head, next->queue_head_pa);
 }
 /*----------------------------------------------------------------------------*/
-/** Submits a new transfer batch to list and queue.
+/** Submit transfer batch to the list and queue.
  *
  * @param[in] instance List to use.
  * @param[in] batch Transfer batch to submit.
  * @return Error code
+ *
+ * The batch is added to the end of the list and queue.
  */
 void transfer_list_add_batch(transfer_list_t *instance, batch_t *batch)
 {
@@ -105,6 +106,7 @@ void transfer_list_add_batch(transfer_list_t *instance, batch_t *batch)
 
 	fibril_mutex_lock(&instance->guard);
 
+	/* Add to the hardware queue. */
 	if (list_empty(&instance->batch_list)) {
 		/* There is nothing scheduled */
 		qh_t *qh = instance->queue_head;
@@ -116,6 +118,7 @@ void transfer_list_add_batch(transfer_list_t *instance, batch_t *batch)
 		    instance->batch_list.prev, batch_t, link);
 		qh_set_next_qh(last->qh, pa);
 	}
+	/* Add to the driver list */
 	list_append(&batch->link, &instance->batch_list);
 
 	batch_t *first = list_get_instance(
@@ -125,7 +128,7 @@ void transfer_list_add_batch(transfer_list_t *instance, batch_t *batch)
 	fibril_mutex_unlock(&instance->guard);
 }
 /*----------------------------------------------------------------------------*/
-/** Removes a transfer batch from the list and queue.
+/** Remove a transfer batch from the list and queue.
  *
  * @param[in] instance List to use.
  * @param[in] batch Transfer batch to remove.
@@ -143,6 +146,7 @@ void transfer_list_remove_batch(transfer_list_t *instance, batch_t *batch)
 	    "Queue %s: removing batch(%p).\n", instance->name, batch);
 
 	const char * pos = NULL;
+	/* Remove from the hardware queue */
 	if (batch->link.prev == &instance->batch_list) {
 		/* I'm the first one here */
 		qh_set_element_qh(instance->queue_head, batch->qh->next);
@@ -153,15 +157,20 @@ void transfer_list_remove_batch(transfer_list_t *instance, batch_t *batch)
 		qh_set_next_qh(prev->qh, batch->qh->next);
 		pos = "NOT FIRST";
 	}
+	/* Remove from the driver list */
 	list_remove(&batch->link);
 	usb_log_debug("Batch(%p) removed (%s) from %s, next element %x.\n",
 	    batch, pos, instance->name, batch->qh->next);
 }
 /*----------------------------------------------------------------------------*/
-/** Checks list for finished batches.
+/** Check list for finished batches.
  *
  * @param[in] instance List to use.
  * @return Error code
+ *
+ * Creates a local list of finished batches and calls next_step on each and
+ * every one. This is safer because next_step may theoretically access
+ * this transfer list leading to the deadlock if its done inline.
  */
 void transfer_list_remove_finished(transfer_list_t *instance)
 {
@@ -176,6 +185,7 @@ void transfer_list_remove_finished(transfer_list_t *instance)
 		batch_t *batch = list_get_instance(current, batch_t, link);
 
 		if (batch_is_complete(batch)) {
+			/* Save for post-processing */
 			transfer_list_remove_batch(instance, batch);
 			list_append(current, &done);
 		}

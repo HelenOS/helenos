@@ -25,7 +25,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup usb
+/** @addtogroup drvusbuhci
  * @{
  */
 /** @file
@@ -41,7 +41,13 @@
 #include "uhci_rh.h"
 #include "uhci_hc.h"
 
-/*----------------------------------------------------------------------------*/
+/** Root hub initialization
+ * @param[in] instance RH structure to initialize
+ * @param[in] fun DDF function representing UHCI root hub
+ * @param[in] reg_addr Address of root hub status and control registers.
+ * @param[in] reg_size Size of accessible address space.
+ * @return Error code.
+ */
 int uhci_rh_init(
     uhci_rh_t *instance, ddf_fun_t *fun, uintptr_t reg_addr, size_t reg_size)
 {
@@ -67,7 +73,6 @@ int uhci_rh_init(
 	assert(resource_list->resources);
 	instance->io_regs.type = IO_RANGE;
 	instance->io_regs.res.io_range.address = reg_addr;
-//	    ((uintptr_t)hc->registers) + 0x10; // see UHCI design guide
 	instance->io_regs.res.io_range.size = reg_size;
 	instance->io_regs.res.io_range.endianness = LITTLE_ENDIAN;
 

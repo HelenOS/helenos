@@ -26,11 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbuhci
+/** @addtogroup drvusbuhcihc
  * @{
  */
 /** @file
- * @brief UHCI driver
+ * @brief UHCI host controller driver structure
  */
 #ifndef DRV_UHCI_UHCI_HC_H
 #define DRV_UHCI_UHCI_HC_H
@@ -102,15 +102,23 @@ typedef struct uhci_hc {
 	ddf_fun_t *ddf_instance;
 } uhci_hc_t;
 
-/* init uhci specifics in device.driver_data */
 int uhci_hc_init(uhci_hc_t *instance, ddf_fun_t *fun, void *regs, size_t reg_size);
-
-static inline void uhci_hc_fini(uhci_hc_t *instance) { /* TODO: implement*/ };
 
 int uhci_hc_schedule(uhci_hc_t *instance, batch_t *batch);
 
 void uhci_hc_interrupt(uhci_hc_t *instance, uint16_t status);
 
+/** Safely dispose host controller internal structures
+ *
+ * @param[in] instance Host controller structure to use.
+ */
+static inline void uhci_hc_fini(uhci_hc_t *instance) { /* TODO: implement*/ };
+
+/** Get and cast pointer to the driver data
+ *
+ * @param[in] fun DDF function pointer
+ * @return cast pointer to driver_data
+ */
 static inline uhci_hc_t * fun_to_uhci_hc(ddf_fun_t *fun)
 	{ return (uhci_hc_t*)fun->driver_data; }
 #endif

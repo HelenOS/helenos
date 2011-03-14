@@ -262,6 +262,12 @@
 	 */
 
 	/**
+	 * @defgroup drvusbuhcirh UHCI host controller driver
+	 * @ingroup drvusbuhci
+	 * @brief Driver for UHCI complaint USB host controller.
+	 */
+
+	/**
 	 * @defgroup drvusbehci EHCI driver
 	 * @ingroup usb
 	 * @brief Driver for EHCI host controller.

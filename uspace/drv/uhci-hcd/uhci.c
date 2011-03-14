@@ -59,6 +59,12 @@ static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
 	uhci_hc_interrupt(hc, status);
 }
 /*----------------------------------------------------------------------------*/
+/** Get address of the device identified by handle.
+ *
+ * @param[in] dev DDF instance of the device to use.
+ * @param[in] iid (Unused).
+ * @param[in] call Pointer to the call that represents interrupt.
+ */
 static int usb_iface_get_address(
     ddf_fun_t *fun, devman_handle_t handle, usb_address_t *address)
 {
@@ -105,7 +111,7 @@ static ddf_dev_ops_t uhci_hc_ops = {
 	.interfaces[USBHC_DEV_IFACE] = &uhci_hc_iface, /* see iface.h/c */
 };
 /*----------------------------------------------------------------------------*/
-/** Gets root hub hw resources.
+/** Get root hub hw resources (I/O registers).
  *
  * @param[in] fun Root hub function.
  * @return Pointer to the resource list used by the root hub.
@@ -126,6 +132,17 @@ static ddf_dev_ops_t uhci_rh_ops = {
 	.interfaces[HW_RES_DEV_IFACE] = &hw_res_iface
 };
 /*----------------------------------------------------------------------------*/
+/** Initialize hc and rh ddf structures and their respective drivers.
+ *
+ * @param[in] instance UHCI structure to use.
+ * @param[in] device DDF instance of the device to use.
+ *
+ * This function does all the preparatory work for hc and rh drivers:
+ *  - gets device hw resources
+ *  - disables UHCI legacy support
+ *  - asks for interrupt
+ *  - registers interrupt handler
+ */
 int uhci_init(uhci_t *instance, ddf_dev_t *device)
 {
 	assert(instance);

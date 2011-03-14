@@ -25,11 +25,11 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup usb
+/** @addtogroup drvusbuhcihc
  * @{
  */
 /** @file
- * @brief UHCI driver
+ * @brief UHCI driver initialization
  */
 #include <ddf/driver.h>
 #include <errno.h>
@@ -54,13 +54,10 @@ static driver_t uhci_driver = {
 	.driver_ops = &uhci_driver_ops
 };
 /*----------------------------------------------------------------------------*/
-/** Initializes a new ddf driver instance for uhci hc and hub.
+/** Initialize a new ddf driver instance for uhci hc and hub.
  *
  * @param[in] device DDF instance of the device to initialize.
  * @return Error code.
- *
- * Gets and initialies hardware resources, disables any legacy support,
- * and reports root hub device.
  */
 int uhci_add_device(ddf_dev_t *device)
 {
@@ -81,7 +78,7 @@ int uhci_add_device(ddf_dev_t *device)
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-/** Initializes global driver structures (NONE).
+/** Initialize global driver structures (NONE).
  *
  * @param[in] argc Nmber of arguments in argv vector (ignored).
  * @param[in] argv Cmdline argument vector (ignored).
@@ -91,7 +88,7 @@ int uhci_add_device(ddf_dev_t *device)
  */
 int main(int argc, char *argv[])
 {
-	sleep(3);
+	sleep(3); /* TODO: remove in final version */
 	usb_log_enable(USB_LOG_LEVEL_DEBUG, NAME);
 
 	return ddf_driver_main(&uhci_driver);

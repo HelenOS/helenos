@@ -25,7 +25,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup usb
+/** @addtogroup drvusbuhcihc
  * @{
  */
 /** @file
@@ -37,7 +37,7 @@
 #include "transfer_descriptor.h"
 #include "utils/malloc32.h"
 
-/** Initializes Transfer Descriptor
+/** Initialize Transfer Descriptor
  *
  * @param[in] instance Memory place to initialize.
  * @param[in] err_count Number of retries hc should attempt.
@@ -105,7 +105,7 @@ void td_init(td_t *instance, int err_count, size_t size, bool toggle, bool iso,
 	}
 }
 /*----------------------------------------------------------------------------*/
-/** Converts TD status into standard error code
+/** Convert TD status into standard error code
  *
  * @param[in] instance TD structure to use.
  * @return Error code.
