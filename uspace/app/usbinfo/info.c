@@ -106,6 +106,9 @@ int dump_device(devman_handle_t hc_handle, usb_address_t address)
 	}
 	dump_usb_descriptor((uint8_t *)&device_descriptor, sizeof(device_descriptor));
 
+	rc = EOK;
+	goto leave;
+
 	/*
 	 * Get first configuration descriptor and dump it.
 	 */

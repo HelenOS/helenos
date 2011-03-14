@@ -42,137 +42,125 @@
 #include <getopt.h>
 #include <devman.h>
 #include <devmap.h>
+#include <usb/usbdevice.h>
+#include <usb/pipes.h>
 #include "usbinfo.h"
-
-enum {
-	ACTION_HELP = 256,
-	ACTION_DEVICE_ADDRESS,
-	ACTION_HOST_CONTROLLER,
-	ACTION_DEVICE,
-};
-
-static struct option long_options[] = {
-	{"help", no_argument, NULL, ACTION_HELP},
-	{"address", required_argument, NULL, ACTION_DEVICE_ADDRESS},
-	{"host-controller", required_argument, NULL, ACTION_HOST_CONTROLLER},
-	{"device", required_argument, NULL, ACTION_DEVICE},
-	{0, 0, NULL, 0}
-};
-static const char *short_options = "ha:t:d:";
 
 static void print_usage(char *app_name)
 {
 #define INDENT "      "
 	printf(NAME ": query USB devices for descriptors\n\n");
-	printf("Usage: %s [options]\n", app_name);
-	printf(" -h --help\n" INDENT \
-	    "Display this help.\n");
-	printf(" -tID --host-controller ID\n" INDENT \
-	    "Set host controller (ID can be path or class number)\n");
-	printf(" -aADDR --address ADDR\n" INDENT \
-	    "Set device address\n");
+	printf("Usage: %s [options] device [device [device [ ... ]]]\n",
+	    app_name);
+	printf(INDENT "The device is a devman path to the device.\n");
 	printf("\n");
 #undef INDENT
 }
 
-static int get_host_controller_handle(const char *path,
-    devman_handle_t *hc_handle)
+static bool resolve_hc_handle_and_dev_addr(const char *devpath,
+    devman_handle_t *out_hc_handle, usb_address_t *out_device_address)
 {
 	int rc;
 
-	if (str_cmp(path, "uhci") == 0) {
-		path = "/hw/pci0/00:01.2/uhci-hc";
+	char *path = str_dup(devpath);
+	if (path == NULL) {
+		return ENOMEM;
 	}
 
-	devman_handle_t handle;
-	rc = devman_device_get_handle(path, &handle, 0);
-	if (rc != EOK) {
-		fprintf(stderr,
-		    NAME ": failed getting handle of `devman::/%s'.\n",
-		    path);
-		return rc;
-	}
-	*hc_handle = handle;
+	devman_handle_t hc = 0;
+	bool hc_found = false;
+	usb_address_t addr = 0;
+	bool addr_found = false;
 
-	return EOK;
+	/* Remove suffixes and hope that we will encounter device node. */
+	while (str_length(path) > 0) {
+		/* Get device handle first. */
+		devman_handle_t dev_handle;
+		rc = devman_device_get_handle(path, &dev_handle, 0);
+		if (rc != EOK) {
+			free(path);
+			return false;
+		}
+
+		/* Try to find its host controller. */
+		if (!hc_found) {
+			rc = usb_hc_find(dev_handle, &hc);
+			if (rc == EOK) {
+				hc_found = true;
+			}
+		}
+		/* Try to get its address. */
+		if (!addr_found) {
+			addr = usb_device_get_assigned_address(dev_handle);
+			if (addr >= 0) {
+				addr_found = true;
+			}
+		}
+
+		/* Speed-up. */
+		if (hc_found && addr_found) {
+			break;
+		}
+
+		/* Remove the last suffix. */
+		char *slash_pos = str_rchr(path, '/');
+		if (slash_pos != NULL) {
+			*slash_pos = 0;
+		}
+	}
+
+	free(path);
+
+	if (hc_found && addr_found) {
+		if (out_hc_handle != NULL) {
+			*out_hc_handle = hc;
+		}
+		if (out_device_address != NULL) {
+			*out_device_address = addr;
+		}
+		return true;
+	} else {
+		return false;
+	}
 }
-
-static int get_device_address(const char *str_address, usb_address_t *address)
-{
-	usb_address_t addr = (usb_address_t) strtol(str_address, NULL, 0);
-	if ((addr < 0) || (addr >= USB11_ADDRESS_MAX)) {
-		fprintf(stderr, NAME ": USB address out of range.\n");
-		return ERANGE;
-	}
-
-	*address = addr;
-	return EOK;
-}
-
 
 int main(int argc, char *argv[])
 {
-	devman_handle_t hc_handle = (devman_handle_t) -1;
-	usb_address_t device_address = (usb_address_t) -1;
-
 	if (argc <= 1) {
 		print_usage(argv[0]);
 		return -1;
 	}
 
+	/*
+	 * Process command-line options. They determine what shall be
+	 * done with the device.
+	 */
+
+	/* TODO */
+
+	/*
+	 * Go through all devices given on the command line and run the
+	 * specified actions.
+	 */
 	int i;
-	do {
-		i = getopt_long(argc, argv, short_options, long_options, NULL);
-		switch (i) {
-			case -1:
-				break;
+	for (i = 1; i < argc; i++) {
+		char *devpath = argv[i];
 
-			case '?':
-				print_usage(argv[0]);
-				return -1;
-
-			case 'h':
-			case ACTION_HELP:
-				print_usage(argv[0]);
-				return 0;
-
-			case 'a':
-			case ACTION_DEVICE_ADDRESS: {
-				int rc = get_device_address(optarg,
-				    &device_address);
-				if (rc != EOK) {
-					return rc;
-				}
-				break;
-			}
-
-			case 't':
-			case ACTION_HOST_CONTROLLER: {
-				int rc = get_host_controller_handle(optarg,
-				   &hc_handle);
-				if (rc != EOK) {
-					return rc;
-				}
-				break;
-			}
-
-			case 'd':
-			case ACTION_DEVICE:
-				break;
-
-			default:
-				break;
+		/* The initialization is here only to make compiler happy. */
+		devman_handle_t hc_handle = 0;
+		usb_address_t dev_addr = 0;
+		bool found = resolve_hc_handle_and_dev_addr(devpath,
+		    &hc_handle, &dev_addr);
+		if (!found) {
+			fprintf(stderr, NAME ": device `%s' not found "
+			    "or not of USB kind, skipping.\n",
+			    devpath);
+			continue;
 		}
 
-	} while (i != -1);
-
-	if ((hc_handle == (devman_handle_t) -1)
-	    || (device_address == (usb_address_t) -1)) {
-		fprintf(stderr, NAME ": no target specified.\n");
-		return EINVAL;
+		printf("Device `%s':\n------------\n", devpath);
+		dump_device(hc_handle, dev_addr);
 	}
-
-	dump_device(hc_handle, device_address);
 
 	return 0;
 }
