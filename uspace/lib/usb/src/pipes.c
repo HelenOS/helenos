@@ -51,7 +51,6 @@ static usb_address_t get_my_address(int phone, ddf_dev_t *dev)
 {
 	sysarg_t address;
 
-
 	/*
 	 * We are sending special value as a handle - zero - to get
 	 * handle of the parent function (that handle was used
@@ -93,6 +92,34 @@ int usb_device_get_assigned_interface(ddf_dev_t *device)
 	}
 
 	return (int) iface_no;
+}
+
+/** Tell USB address assigned to given device.
+ *
+ * @param dev_handle Devman handle of the USB device in question.
+ * @return USB address or negative error code.
+ */
+usb_address_t usb_device_get_assigned_address(devman_handle_t dev_handle)
+{
+	int parent_phone = devman_parent_device_connect(dev_handle,
+	    IPC_FLAG_BLOCKING);
+	if (parent_phone < 0) {
+		return parent_phone;
+	}
+
+	sysarg_t address;
+
+	int rc = async_req_2_1(parent_phone, DEV_IFACE_ID(USB_DEV_IFACE),
+	    IPC_M_USB_GET_ADDRESS,
+	    dev_handle, &address);
+
+	if (rc != EOK) {
+		return rc;
+	}
+
+	async_hangup(parent_phone);
+
+	return (usb_address_t) address;
 }
 
 /** Initialize connection to USB device.
