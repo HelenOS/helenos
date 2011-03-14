@@ -373,7 +373,8 @@ int usb_device_register_child_in_devman(usb_address_t address,
 	 * TODO: Once the device driver framework support persistent
 	 * naming etc., something more descriptive could be created.
 	 */
-	rc = asprintf(&child_name, "usbdev%02zu", this_device_name_index);
+	rc = asprintf(&child_name, "usb%02zu_a%d",
+	    this_device_name_index, address);
 	if (rc < 0) {
 		goto failure;
 	}
