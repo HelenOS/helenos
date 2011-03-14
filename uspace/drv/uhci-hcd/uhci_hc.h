@@ -98,11 +98,13 @@ typedef struct uhci_hc {
 
 	fid_t cleaner;
 	fid_t debug_checker;
+	bool hw_interrupts;
 
 	ddf_fun_t *ddf_instance;
 } uhci_hc_t;
 
-int uhci_hc_init(uhci_hc_t *instance, ddf_fun_t *fun, void *regs, size_t reg_size);
+int uhci_hc_init(uhci_hc_t *instance, ddf_fun_t *fun,
+    void *regs, size_t reg_size, bool interupts);
 
 int uhci_hc_schedule(uhci_hc_t *instance, batch_t *batch);
 

@@ -81,7 +81,8 @@ static bool allowed_usb_packet(
  * Initializes memory structures, starts up hw, and launches debugger and
  * interrupt fibrils.
  */
-int uhci_hc_init(uhci_hc_t *instance, ddf_fun_t *fun, void *regs, size_t reg_size)
+int uhci_hc_init(uhci_hc_t *instance, ddf_fun_t *fun,
+    void *regs, size_t reg_size, bool interrupts)
 {
 	assert(reg_size >= sizeof(regs_t));
 	int ret;
@@ -94,6 +95,7 @@ int uhci_hc_init(uhci_hc_t *instance, ddf_fun_t *fun, void *regs, size_t reg_siz
 		return ret; \
 	} else (void) 0
 
+	instance->hw_interrupts = interrupts;
 	/* Setup UHCI function. */
 	instance->ddf_instance = fun;
 
@@ -112,9 +114,11 @@ int uhci_hc_init(uhci_hc_t *instance, ddf_fun_t *fun, void *regs, size_t reg_siz
 	    "Failed to initialize UHCI memory structures.\n");
 
 	uhci_hc_init_hw(instance);
-	instance->cleaner =
-	    fibril_create(uhci_hc_interrupt_emulator, instance);
-	fibril_add_ready(instance->cleaner);
+	if (!interrupts) {
+		instance->cleaner =
+		    fibril_create(uhci_hc_interrupt_emulator, instance);
+		fibril_add_ready(instance->cleaner);
+	}
 
 	instance->debug_checker = fibril_create(uhci_hc_debug_checker, instance);
 	fibril_add_ready(instance->debug_checker);
@@ -148,9 +152,11 @@ void uhci_hc_init_hw(uhci_hc_t *instance)
 	const uint32_t pa = addr_to_phys(instance->frame_list);
 	pio_write_32(&registers->flbaseadd, pa);
 
-	/* Enable all interrupts, but resume interrupt */
-	pio_write_16(&instance->registers->usbintr,
-	    UHCI_INTR_CRC | UHCI_INTR_COMPLETE | UHCI_INTR_SHORT_PACKET);
+	if (instance->hw_interrupts) {
+		/* Enable all interrupts, but resume interrupt */
+		pio_write_16(&instance->registers->usbintr,
+		    UHCI_INTR_CRC | UHCI_INTR_COMPLETE | UHCI_INTR_SHORT_PACKET);
+	}
 
 	uint16_t status = pio_read_16(&registers->usbcmd);
 	if (status != 0)

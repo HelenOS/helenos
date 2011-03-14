@@ -173,21 +173,24 @@ if (ret != EOK) { \
 	CHECK_RET_DEST_FUN_RETURN(ret,
 	    "Failed(%d) to disable legacy USB: %s.\n", ret, str_error(ret));
 
-#if 0
+	bool interrupts = false;
 	ret = pci_enable_interrupts(device);
 	if (ret != EOK) {
 		usb_log_warning(
 		    "Failed(%d) to enable interrupts, fall back to polling.\n",
 		    ret);
+	} else {
+		usb_log_debug("Hw interrupts enabled.\n");
+		interrupts = true;
 	}
-#endif
 
 	instance->hc_fun = ddf_fun_create(device, fun_exposed, "uhci-hc");
 	ret = (instance->hc_fun == NULL) ? ENOMEM : EOK;
-	CHECK_RET_DEST_FUN_RETURN(ret, "Failed(%d) to create HC function.\n", ret);
+	CHECK_RET_DEST_FUN_RETURN(ret,
+	    "Failed(%d) to create HC function.\n", ret);
 
-	ret = uhci_hc_init(
-	    &instance->hc, instance->hc_fun, (void*)io_reg_base, io_reg_size);
+	ret = uhci_hc_init(&instance->hc, instance->hc_fun,
+	    (void*)io_reg_base, io_reg_size, interrupts);
 	CHECK_RET_DEST_FUN_RETURN(ret, "Failed(%d) to init uhci-hcd.\n", ret);
 	instance->hc_fun->ops = &uhci_hc_ops;
 	instance->hc_fun->driver_data = &instance->hc;
@@ -233,7 +236,6 @@ if (ret != EOK) { \
 	return EOK;
 #undef CHECK_RET_FINI_RETURN
 }
-
 /**
  * @}
  */
