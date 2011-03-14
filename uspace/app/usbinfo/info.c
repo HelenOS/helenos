@@ -64,6 +64,13 @@ int dump_device(devman_handle_t hc_handle, usb_address_t address)
 		    str_error(rc));
 		goto leave;
 	}
+	rc = usb_endpoint_pipe_probe_default_control(&ctrl_pipe);
+	if (rc != EOK) {
+		fprintf(stderr,
+		    NAME ": probing default control pipe failed: %s.\n",
+		    str_error(rc));
+		goto leave;
+	}
 	rc = usb_endpoint_pipe_start_session(&ctrl_pipe);
 	if (rc != EOK) {
 		fprintf(stderr,

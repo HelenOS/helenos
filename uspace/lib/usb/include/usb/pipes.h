@@ -128,6 +128,7 @@ int usb_endpoint_pipe_initialize(usb_endpoint_pipe_t *,
     usb_endpoint_t, usb_transfer_type_t, size_t, usb_direction_t);
 int usb_endpoint_pipe_initialize_default_control(usb_endpoint_pipe_t *,
     usb_device_connection_t *);
+int usb_endpoint_pipe_probe_default_control(usb_endpoint_pipe_t *);
 int usb_endpoint_pipe_initialize_from_configuration(usb_endpoint_mapping_t *,
     size_t, uint8_t *, size_t, usb_device_connection_t *);
 int usb_endpoint_pipe_register(usb_endpoint_pipe_t *, unsigned int,
