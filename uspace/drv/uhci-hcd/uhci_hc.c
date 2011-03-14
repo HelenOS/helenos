@@ -25,11 +25,11 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup usb
+/** @addtogroup drvusbuhcihc
  * @{
  */
 /** @file
- * @brief UHCI driver
+ * @brief UHCI Host controller driver routines
  */
 #include <errno.h>
 #include <str_error.h>
@@ -58,14 +58,6 @@ static irq_cmd_t uhci_cmds[] = {
 		.cmd = CMD_ACCEPT
 	}
 };
-
-/** Gets USB address of the calling device.
- *
- * @param[in] fun UHCI hc function.
- * @param[in] handle Handle of the device seeking address.
- * @param[out] address Place to store found address.
- * @return Error code.
- */
 /*----------------------------------------------------------------------------*/
 static int uhci_hc_init_transfer_lists(uhci_hc_t *instance);
 static int uhci_hc_init_mem_structures(uhci_hc_t *instance);
@@ -77,7 +69,7 @@ static int uhci_hc_debug_checker(void *arg);
 static bool allowed_usb_packet(
     bool low_speed, usb_transfer_type_t transfer, size_t size);
 /*----------------------------------------------------------------------------*/
-/** Initializes UHCI hcd driver structure
+/** Initialize UHCI hcd driver structure
  *
  * @param[in] instance Memory place to initialize.
  * @param[in] fun DDF function.
@@ -85,8 +77,12 @@ static bool allowed_usb_packet(
  * @param[in] size Size of I/O control registers.
  * @return Error code.
  * @note Should be called only once on any structure.
+ *
+ * Initializes memory structures, starts up hw, and launches debugger and
+ * interrupt fibrils.
  */
-int uhci_hc_init(uhci_hc_t *instance, ddf_fun_t *fun, void *regs, size_t reg_size)
+int uhci_hc_init(uhci_hc_t *instance, ddf_fun_t *fun,
+    void *regs, size_t reg_size, bool interrupts)
 {
 	assert(reg_size >= sizeof(regs_t));
 	int ret;
@@ -99,6 +95,7 @@ int uhci_hc_init(uhci_hc_t *instance, ddf_fun_t *fun, void *regs, size_t reg_siz
 		return ret; \
 	} else (void) 0
 
+	instance->hw_interrupts = interrupts;
 	/* Setup UHCI function. */
 	instance->ddf_instance = fun;
 
@@ -117,9 +114,11 @@ int uhci_hc_init(uhci_hc_t *instance, ddf_fun_t *fun, void *regs, size_t reg_siz
 	    "Failed to initialize UHCI memory structures.\n");
 
 	uhci_hc_init_hw(instance);
-	instance->cleaner =
-	    fibril_create(uhci_hc_interrupt_emulator, instance);
-	fibril_add_ready(instance->cleaner);
+	if (!interrupts) {
+		instance->cleaner =
+		    fibril_create(uhci_hc_interrupt_emulator, instance);
+		fibril_add_ready(instance->cleaner);
+	}
 
 	instance->debug_checker = fibril_create(uhci_hc_debug_checker, instance);
 	fibril_add_ready(instance->debug_checker);
@@ -129,9 +128,10 @@ int uhci_hc_init(uhci_hc_t *instance, ddf_fun_t *fun, void *regs, size_t reg_siz
 #undef CHECK_RET_DEST_FUN_RETURN
 }
 /*----------------------------------------------------------------------------*/
-/** Initializes UHCI hcd hw resources.
+/** Initialize UHCI hc hw resources.
  *
  * @param[in] instance UHCI structure to use.
+ * For magic values see UHCI Design Guide
  */
 void uhci_hc_init_hw(uhci_hc_t *instance)
 {
@@ -152,9 +152,11 @@ void uhci_hc_init_hw(uhci_hc_t *instance)
 	const uint32_t pa = addr_to_phys(instance->frame_list);
 	pio_write_32(&registers->flbaseadd, pa);
 
-	/* Enable all interrupts, but resume interrupt */
-//	pio_write_16(&instance->registers->usbintr,
-//	    UHCI_INTR_CRC | UHCI_INTR_COMPLETE | UHCI_INTR_SHORT_PACKET);
+	if (instance->hw_interrupts) {
+		/* Enable all interrupts, but resume interrupt */
+		pio_write_16(&instance->registers->usbintr,
+		    UHCI_INTR_CRC | UHCI_INTR_COMPLETE | UHCI_INTR_SHORT_PACKET);
+	}
 
 	uint16_t status = pio_read_16(&registers->usbcmd);
 	if (status != 0)
@@ -165,11 +167,16 @@ void uhci_hc_init_hw(uhci_hc_t *instance)
 	    UHCI_CMD_RUN_STOP | UHCI_CMD_MAX_PACKET | UHCI_CMD_CONFIGURE);
 }
 /*----------------------------------------------------------------------------*/
-/** Initializes UHCI hcd memory structures.
+/** Initialize UHCI hc memory structures.
  *
  * @param[in] instance UHCI structure to use.
  * @return Error code
  * @note Should be called only once on any structure.
+ *
+ * Structures:
+ *  - interrupt code (I/O addressses are customized per instance)
+ *  - transfer lists (queue heads need to be accessible by the hw)
+ *  - frame list page (needs to be one UHCI hw accessible 4K page)
  */
 int uhci_hc_init_mem_structures(uhci_hc_t *instance)
 {
@@ -228,11 +235,14 @@ int uhci_hc_init_mem_structures(uhci_hc_t *instance)
 #undef CHECK_RET_DEST_CMDS_RETURN
 }
 /*----------------------------------------------------------------------------*/
-/** Initializes UHCI hcd transfer lists.
+/** Initialize UHCI hc transfer lists.
  *
  * @param[in] instance UHCI structure to use.
  * @return Error code
  * @note Should be called only once on any structure.
+ *
+ * Initializes transfer lists and sets them in one chain to support proper
+ * USB scheduling. Sets pointer table for quick access.
  */
 int uhci_hc_init_transfer_lists(uhci_hc_t *instance)
 {
@@ -292,11 +302,13 @@ int uhci_hc_init_transfer_lists(uhci_hc_t *instance)
 #undef CHECK_RET_CLEAR_RETURN
 }
 /*----------------------------------------------------------------------------*/
-/** Schedules batch for execution.
+/** Schedule batch for execution.
  *
  * @param[in] instance UHCI structure to use.
  * @param[in] batch Transfer batch to schedule.
  * @return Error code
+ *
+ * Checks for bandwidth availability and appends the batch to the proper queue.
  */
 int uhci_hc_schedule(uhci_hc_t *instance, batch_t *batch)
 {
@@ -311,7 +323,7 @@ int uhci_hc_schedule(uhci_hc_t *instance, batch_t *batch)
 		    batch->max_packet_size);
 		return ENOTSUP;
 	}
-	/* TODO: check available bandwith here */
+	/* TODO: check available bandwidth here */
 
 	transfer_list_t *list =
 	    instance->transfers[batch->speed][batch->transfer_type];
@@ -321,10 +333,15 @@ int uhci_hc_schedule(uhci_hc_t *instance, batch_t *batch)
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-/** Takes action based on the interrupt cause.
+/** Take action based on the interrupt cause.
  *
  * @param[in] instance UHCI structure to use.
- * @param[in] status Value of the stsatus regiser at the time of interrupt.
+ * @param[in] status Value of the status register at the time of interrupt.
+ *
+ * Interrupt might indicate:
+ * - transaction completed, either by triggering IOC, SPD, or an error
+ * - some kind of device error
+ * - resume from suspend state (not implemented)
  */
 void uhci_hc_interrupt(uhci_hc_t *instance, uint16_t status)
 {
@@ -341,8 +358,8 @@ void uhci_hc_interrupt(uhci_hc_t *instance, uint16_t status)
 /*----------------------------------------------------------------------------*/
 /** Polling function, emulates interrupts.
  *
- * @param[in] arg UHCI structure to use.
- * @return EOK
+ * @param[in] arg UHCI hc structure to use.
+ * @return EOK (should never return)
  */
 int uhci_hc_interrupt_emulator(void* arg)
 {
@@ -365,7 +382,7 @@ int uhci_hc_interrupt_emulator(void* arg)
 /** Debug function, checks consistency of memory structures.
  *
  * @param[in] arg UHCI structure to use.
- * @return EOK
+ * @return EOK (should never return)
  */
 int uhci_hc_debug_checker(void *arg)
 {
@@ -429,12 +446,12 @@ int uhci_hc_debug_checker(void *arg)
 #undef QH
 }
 /*----------------------------------------------------------------------------*/
-/** Checks transfer packets, for USB validity
+/** Check transfer packets, for USB validity
  *
  * @param[in] low_speed Transfer speed.
  * @param[in] transfer Transer type
  * @param[in] size Maximum size of used packets
- * @return EOK
+ * @return True if transaction is allowed by USB specs, false otherwise
  */
 bool allowed_usb_packet(
     bool low_speed, usb_transfer_type_t transfer, size_t size)

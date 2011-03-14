@@ -26,11 +26,11 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbuhci
+/** @addtogroup drvusbuhcihc
  * @{
  */
 /** @file
- * @brief UHCI driver
+ * @brief UHCI driver PCI helper functions
  */
 #ifndef DRV_UHCI_PCI_H
 #define DRV_UHCI_PCI_H

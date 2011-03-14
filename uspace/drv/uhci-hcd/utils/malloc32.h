@@ -42,34 +42,53 @@
 #define UHCI_STRCUTURES_ALIGNMENT 16
 #define UHCI_REQUIRED_PAGE_SIZE 4096
 
+/** Get physical address translation
+ *
+ * @param[in] addr Virtual address to translate
+ * @return Physical address if exists, NULL otherwise.
+ */
 static inline uintptr_t addr_to_phys(void *addr)
 {
 	uintptr_t result;
 	int ret = as_get_physical_mapping(addr, &result);
 
-	assert(ret == 0);
+	if (ret != EOK)
+		return 0;
 	return (result | ((uintptr_t)addr & 0xfff));
 }
-
+/*----------------------------------------------------------------------------*/
+/** Physical mallocator simulator
+ *
+ * @param[in] size Size of the required memory space
+ * @return Address of the alligned and big enough memory place, NULL on failure.
+ */
 static inline void * malloc32(size_t size)
 	{ return memalign(UHCI_STRCUTURES_ALIGNMENT, size); }
-
-static inline void * get_page()
+/*----------------------------------------------------------------------------*/
+/** Physical mallocator simulator
+ *
+ * @param[in] addr Address of the place allocated by malloc32
+ */
+static inline void free32(void *addr)
+	{ if (addr) free(addr); }
+/*----------------------------------------------------------------------------*/
+/** Create 4KB page mapping
+ *
+ * @return Address of the mapped page, NULL on failure.
+ */
+static inline void * get_page(void)
 {
 	void * free_address = as_get_mappable_page(UHCI_REQUIRED_PAGE_SIZE);
 	assert(free_address);
 	if (free_address == 0)
-		return 0;
+		return NULL;
 	void* ret =
 	  as_area_create(free_address, UHCI_REQUIRED_PAGE_SIZE,
 		  AS_AREA_READ | AS_AREA_WRITE);
 	if (ret != free_address)
-		return 0;
+		return NULL;
 	return ret;
 }
-
-static inline void free32(void *addr)
-	{ if (addr) free(addr); }
 
 #endif
 /**

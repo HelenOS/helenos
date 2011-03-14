@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jan Vesely
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,7 +25,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup usb
+/** @addtogroup drvusbuhcirh
  * @{
  */
 /** @file
@@ -34,7 +34,6 @@
 #ifndef DRV_UHCI_ROOT_HUB_H
 #define DRV_UHCI_ROOT_HUB_H
 
-#include <fibril.h>
 #include <ddf/driver.h>
 
 #include "port.h"

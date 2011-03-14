@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jan Vesely
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,7 +25,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup usb
+/** @addtogroup drvusbuhcihc
  * @{
  */
 /** @file
@@ -107,7 +107,7 @@ static inline size_t td_act_size(td_t *instance)
 	return ((s >> TD_STATUS_ACTLEN_POS) + 1) & TD_STATUS_ACTLEN_MASK;
 }
 /*----------------------------------------------------------------------------*/
-/** Checks whether less than max data were recieved and packet is marked as SPD.
+/** Check whether less than max data were recieved and packet is marked as SPD.
  *
  * @param[in] instance TD structure to use.
  * @return True if packet is short (less than max bytes and SPD set), false
