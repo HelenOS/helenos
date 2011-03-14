@@ -25,11 +25,11 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup usb
+/** @addtogroup drvusbuhcihc
  * @{
  */
 /** @file
- * @brief UHCI driver
+ * @brief UHCI driver transfer list structure
  */
 #ifndef DRV_UHCI_TRANSFER_LIST_H
 #define DRV_UHCI_TRANSFER_LIST_H
@@ -49,15 +49,22 @@ typedef struct transfer_list
 	link_t batch_list;
 } transfer_list_t;
 
-int transfer_list_init(transfer_list_t *instance, const char *name);
-
-void transfer_list_set_next(transfer_list_t *instance, transfer_list_t *next);
-
+/** Dispose transfer list structures.
+ *
+ * @param[in] instance Memory place to use.
+ *
+ * Frees memory for internal qh_t structure.
+ */
 static inline void transfer_list_fini(transfer_list_t *instance)
 {
 	assert(instance);
 	free32(instance->queue_head);
 }
+
+int transfer_list_init(transfer_list_t *instance, const char *name);
+
+void transfer_list_set_next(transfer_list_t *instance, transfer_list_t *next);
+
 void transfer_list_remove_finished(transfer_list_t *instance);
 
 void transfer_list_add_batch(transfer_list_t *instance, batch_t *batch);

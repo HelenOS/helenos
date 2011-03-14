@@ -25,11 +25,11 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup usb
+/** @addtogroup drvusbuhcihc
  * @{
  */
 /** @file
- * @brief UHCI driver
+ * @brief UHCI driver USB transaction structure
  */
 #include <errno.h>
 #include <str_error.h>
@@ -44,8 +44,6 @@
 
 #define DEFAULT_ERROR_COUNT 3
 
-static int batch_schedule(batch_t *instance);
-
 static void batch_control(batch_t *instance,
     usb_packet_id data_stage, usb_packet_id status_stage);
 static void batch_data(batch_t *instance, usb_packet_id pid);
@@ -53,10 +51,9 @@ static void batch_call_in(batch_t *instance);
 static void batch_call_out(batch_t *instance);
 static void batch_call_in_and_dispose(batch_t *instance);
 static void batch_call_out_and_dispose(batch_t *instance);
-static void batch_dispose(batch_t *instance);
 
 
-/** Allocates memory and initializes internal data structures.
+/** Allocate memory and initialize internal data structure.
  *
  * @param[in] fun DDF function to pass to callback.
  * @param[in] target Device and endpoint target of the transaction.
@@ -71,7 +68,12 @@ static void batch_dispose(batch_t *instance);
  * @param[in] func_out function to call on outbound transaction completion
  * @param[in] arg additional parameter to func_in or func_out
  * @param[in] manager Pointer to toggle management structure.
- * @return False, if there is an active TD, true otherwise.
+ * @return Valid pointer if all substructures were successfully created,
+ * NULL otherwise.
+ *
+ * Determines the number of needed packets (TDs). Prepares a transport buffer
+ * (that is accessible by the hardware). Initializes parameters needed for the
+ * transaction and callback.
  */
 batch_t * batch_get(ddf_fun_t *fun, usb_target_t target,
     usb_transfer_type_t transfer_type, size_t max_packet_size,
@@ -150,10 +152,14 @@ batch_t * batch_get(ddf_fun_t *fun, usb_target_t target,
 	return instance;
 }
 /*----------------------------------------------------------------------------*/
-/** Checks batch TDs for activity.
+/** Check batch TDs for activity.
  *
  * @param[in] instance Batch structure to use.
  * @return False, if there is an active TD, true otherwise.
+ *
+ * Walk all TDs. Stop with false if there is an active one (it is to be
+ * processed). Stop with true if an error is found. Return true if the last TS
+ * is reached.
  */
 bool batch_is_complete(batch_t *instance)
 {
@@ -192,22 +198,25 @@ substract_ret:
 /** Prepares control write transaction.
  *
  * @param[in] instance Batch structure to use.
+ *
+ * Uses genercir control function with pids OUT and IN.
  */
 void batch_control_write(batch_t *instance)
 {
 	assert(instance);
-	/* we are data out, we are supposed to provide data */
+	/* We are data out, we are supposed to provide data */
 	memcpy(instance->transport_buffer, instance->buffer,
 	    instance->buffer_size);
 	batch_control(instance, USB_PID_OUT, USB_PID_IN);
 	instance->next_step = batch_call_out_and_dispose;
 	usb_log_debug("Batch(%p) CONTROL WRITE initialized.\n", instance);
-	batch_schedule(instance);
 }
 /*----------------------------------------------------------------------------*/
 /** Prepares control read transaction.
  *
  * @param[in] instance Batch structure to use.
+ *
+ * Uses generic control with pids IN and OUT.
  */
 void batch_control_read(batch_t *instance)
 {
@@ -215,12 +224,13 @@ void batch_control_read(batch_t *instance)
 	batch_control(instance, USB_PID_IN, USB_PID_OUT);
 	instance->next_step = batch_call_in_and_dispose;
 	usb_log_debug("Batch(%p) CONTROL READ initialized.\n", instance);
-	batch_schedule(instance);
 }
 /*----------------------------------------------------------------------------*/
-/** Prepares interrupt in transaction.
+/** Prepare interrupt in transaction.
  *
  * @param[in] instance Batch structure to use.
+ *
+ * Data transaction with PID_IN.
  */
 void batch_interrupt_in(batch_t *instance)
 {
@@ -228,27 +238,29 @@ void batch_interrupt_in(batch_t *instance)
 	batch_data(instance, USB_PID_IN);
 	instance->next_step = batch_call_in_and_dispose;
 	usb_log_debug("Batch(%p) INTERRUPT IN initialized.\n", instance);
-	batch_schedule(instance);
 }
 /*----------------------------------------------------------------------------*/
-/** Prepares interrupt out transaction.
+/** Prepare interrupt out transaction.
  *
  * @param[in] instance Batch structure to use.
+ *
+ * Data transaction with PID_OUT.
  */
 void batch_interrupt_out(batch_t *instance)
 {
 	assert(instance);
-	/* we are data out, we are supposed to provide data */
+	/* We are data out, we are supposed to provide data */
 	memcpy(instance->transport_buffer, instance->buffer, instance->buffer_size);
 	batch_data(instance, USB_PID_OUT);
 	instance->next_step = batch_call_out_and_dispose;
 	usb_log_debug("Batch(%p) INTERRUPT OUT initialized.\n", instance);
-	batch_schedule(instance);
 }
 /*----------------------------------------------------------------------------*/
-/** Prepares bulk in transaction.
+/** Prepare bulk in transaction.
  *
  * @param[in] instance Batch structure to use.
+ *
+ * Data transaction with PID_IN.
  */
 void batch_bulk_in(batch_t *instance)
 {
@@ -256,27 +268,31 @@ void batch_bulk_in(batch_t *instance)
 	batch_data(instance, USB_PID_IN);
 	instance->next_step = batch_call_in_and_dispose;
 	usb_log_debug("Batch(%p) BULK IN initialized.\n", instance);
-	batch_schedule(instance);
 }
 /*----------------------------------------------------------------------------*/
-/** Prepares bulk out transaction.
+/** Prepare bulk out transaction.
  *
  * @param[in] instance Batch structure to use.
+ *
+ * Data transaction with PID_OUT.
  */
 void batch_bulk_out(batch_t *instance)
 {
 	assert(instance);
+	/* We are data out, we are supposed to provide data */
 	memcpy(instance->transport_buffer, instance->buffer, instance->buffer_size);
 	batch_data(instance, USB_PID_OUT);
 	instance->next_step = batch_call_out_and_dispose;
 	usb_log_debug("Batch(%p) BULK OUT initialized.\n", instance);
-	batch_schedule(instance);
 }
 /*----------------------------------------------------------------------------*/
-/** Prepares generic data transaction
+/** Prepare generic data transaction
  *
  * @param[in] instance Batch structure to use.
  * @param[in] pid to use for data packets.
+ *
+ * Packets with alternating toggle bit and supplied pid value.
+ * The last packet is marked with IOC flag.
  */
 void batch_data(batch_t *instance, usb_packet_id pid)
 {
@@ -317,11 +333,16 @@ void batch_data(batch_t *instance, usb_packet_id pid)
 	device_keeper_set_toggle(instance->manager, instance->target, toggle);
 }
 /*----------------------------------------------------------------------------*/
-/** Prepares generic control transaction
+/** Prepare generic control transaction
  *
  * @param[in] instance Batch structure to use.
  * @param[in] data_stage to use for data packets.
  * @param[in] status_stage to use for data packets.
+ *
+ * Setup stage with toggle 0 and USB_PID_SETUP.
+ * Data stage with alternating toggle and pid supplied by parameter.
+ * Status stage with toggle 1 and pid supplied by parameter.
+ * The last packet is marked with IOC.
  */
 void batch_control(batch_t *instance,
    usb_packet_id data_stage, usb_packet_id status_stage)
@@ -370,16 +391,18 @@ void batch_control(batch_t *instance,
 	    instance->tds[packet].status);
 }
 /*----------------------------------------------------------------------------*/
-/** Prepares data, gets error status and calls callback in.
+/** Prepare data, get error status and call callback in.
  *
  * @param[in] instance Batch structure to use.
+ * Copies data from transport buffer, and calls callback with appropriate
+ * parameters.
  */
 void batch_call_in(batch_t *instance)
 {
 	assert(instance);
 	assert(instance->callback_in);
 
-	/* we are data in, we need data */
+	/* We are data in, we need data */
 	memcpy(instance->buffer, instance->transport_buffer,
 	    instance->buffer_size);
 
@@ -392,7 +415,7 @@ void batch_call_in(batch_t *instance)
 	    instance->fun, err, instance->transfered_size, instance->arg);
 }
 /*----------------------------------------------------------------------------*/
-/** Gets error status and calls callback out.
+/** Get error status and call callback out.
  *
  * @param[in] instance Batch structure to use.
  */
@@ -408,7 +431,7 @@ void batch_call_out(batch_t *instance)
 	    err, instance->arg);
 }
 /*----------------------------------------------------------------------------*/
-/** Prepares data, gets error status, calls callback in and dispose.
+/** Helper function calls callback and correctly disposes of batch structure.
  *
  * @param[in] instance Batch structure to use.
  */
@@ -419,7 +442,7 @@ void batch_call_in_and_dispose(batch_t *instance)
 	batch_dispose(instance);
 }
 /*----------------------------------------------------------------------------*/
-/** Gets error status, calls callback out and dispose.
+/** Helper function calls callback and correctly disposes of batch structure.
  *
  * @param[in] instance Batch structure to use.
  */
@@ -430,7 +453,7 @@ void batch_call_out_and_dispose(batch_t *instance)
 	batch_dispose(instance);
 }
 /*----------------------------------------------------------------------------*/
-/** Correctly disposes all used data structures.
+/** Correctly dispose all used data structures.
  *
  * @param[in] instance Batch structure to use.
  */
@@ -444,14 +467,6 @@ void batch_dispose(batch_t *instance)
 	free32(instance->setup_buffer);
 	free32(instance->transport_buffer);
 	free(instance);
-}
-/*----------------------------------------------------------------------------*/
-int batch_schedule(batch_t *instance)
-{
-	assert(instance);
-	uhci_hc_t *hc = fun_to_uhci_hc(instance->fun);
-	assert(hc);
-	return uhci_hc_schedule(hc, instance);
 }
 /**
  * @}

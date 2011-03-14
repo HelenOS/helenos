@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jan Vesely
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,23 +25,21 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup usb
+/** @addtogroup drvusbuhcirh
  * @{
  */
 /** @file
- * @brief UHCI port driver
+ * @brief UHCI root hub port routines
  */
 #ifndef DRV_UHCI_PORT_H
 #define DRV_UHCI_PORT_H
 
-#include <assert.h>
 #include <stdint.h>
+#include <fibril.h>
 #include <ddf/driver.h>
-#include <libarch/ddi.h> /* pio_read and pio_write */
-#include <usb/usbdevice.h>
+#include <usb/usbdevice.h> /* usb_hc_connection_t */
 
 typedef uint16_t port_status_t;
-
 #define STATUS_CONNECTED         (1 << 0)
 #define STATUS_CONNECTED_CHANGED (1 << 1)
 #define STATUS_ENABLED           (1 << 2)
@@ -73,38 +71,6 @@ int uhci_port_init(
 
 void uhci_port_fini(uhci_port_t *port);
 
-static inline port_status_t uhci_port_read_status(uhci_port_t *port)
-{
-	assert(port);
-	return pio_read_16(port->address);
-}
-
-static inline void uhci_port_write_status(
-    uhci_port_t *port, port_status_t value)
-{
-	assert(port);
-	pio_write_16(port->address, value);
-}
-
-static inline void uhci_port_print_status(
-    uhci_port_t *port, const port_status_t value)
-{
-	assert(port);
-	usb_log_debug2("%s Port status(%#x):%s%s%s%s%s%s%s%s%s%s%s.\n",
-	    port->id_string, value,
-	    (value & STATUS_SUSPEND) ? " SUSPENDED," : "",
-	    (value & STATUS_RESUME) ? " IN RESUME," : "",
-	    (value & STATUS_IN_RESET) ? " IN RESET," : "",
-	    (value & STATUS_LINE_D_MINUS) ? " VD-," : "",
-	    (value & STATUS_LINE_D_PLUS) ? " VD+," : "",
-	    (value & STATUS_LOW_SPEED) ? " LOWSPEED," : "",
-	    (value & STATUS_ENABLED_CHANGED) ? " ENABLED-CHANGE," : "",
-	    (value & STATUS_ENABLED) ? " ENABLED," : "",
-	    (value & STATUS_CONNECTED_CHANGED) ? " CONNECTED-CHANGE," : "",
-	    (value & STATUS_CONNECTED) ? " CONNECTED," : "",
-	    (value & STATUS_ALWAYS_ONE) ? " ALWAYS ONE" : " ERROR: NO ALWAYS ONE"
-	);
-}
 #endif
 /**
  * @}

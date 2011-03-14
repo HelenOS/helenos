@@ -25,11 +25,11 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup usb
+/** @addtogroup drvusbuhcihc
  * @{
  */
 /** @file
- * @brief UHCI driver
+ * @brief UHCI driver USB transaction structure
  */
 #ifndef DRV_UHCI_BATCH_H
 #define DRV_UHCI_BATCH_H
@@ -76,6 +76,8 @@ batch_t * batch_get(ddf_fun_t *fun, usb_target_t target,
     usbhc_iface_transfer_out_callback_t func_out, void *arg,
 		device_keeper_t *manager
 		);
+
+void batch_dispose(batch_t *instance);
 
 bool batch_is_complete(batch_t *instance);
 

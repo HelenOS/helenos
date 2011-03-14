@@ -25,22 +25,20 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup usb
+/** @addtogroup drvusbuhcirh
  * @{
  */
 /** @file
- * @brief UHCI driver
+ * @brief UHCI root hub port routines
  */
+#include <libarch/ddi.h> /* pio_read and pio_write */
 #include <errno.h>
 #include <str_error.h>
 #include <fibril_synch.h>
 
 #include <usb/usb.h>    /* usb_address_t */
-#include <usb/usbdevice.h>
 #include <usb/hub.h>
-#include <usb/request.h>
 #include <usb/debug.h>
-#include <usb/recognise.h>
 
 #include "port.h"
 
@@ -49,8 +47,35 @@ static int uhci_port_remove_device(uhci_port_t *port);
 static int uhci_port_set_enabled(uhci_port_t *port, bool enabled);
 static int uhci_port_check(void *port);
 static int uhci_port_reset_enable(int portno, void *arg);
+static void uhci_port_print_status(
+    uhci_port_t *port, const port_status_t value);
+
+/** Register reading helper function.
+ *
+ * @param[in] port Structure to use.
+ * @return Error code. (Always EOK)
+ */
+static inline port_status_t uhci_port_read_status(uhci_port_t *port)
+{
+	assert(port);
+	return pio_read_16(port->address);
+}
 /*----------------------------------------------------------------------------*/
-/** Initializes UHCI root hub port instance.
+/** Register writing helper function.
+ *
+ * @param[in] port Structure to use.
+ * @param[in] value New register value.
+ * @return Error code. (Always EOK)
+ */
+static inline void uhci_port_write_status(
+    uhci_port_t *port, port_status_t value)
+{
+	assert(port);
+	pio_write_16(port->address, value);
+}
+
+/*----------------------------------------------------------------------------*/
+/** Initialize UHCI root hub port instance.
  *
  * @param[in] port Memory structure to use.
  * @param[in] addr Address of I/O register.
@@ -59,7 +84,7 @@ static int uhci_port_reset_enable(int portno, void *arg);
  * @param[in] rh Pointer to ddf instance fo the root hub driver.
  * @return Error code.
  *
- * Starts the polling fibril.
+ * Creates and starts the polling fibril.
  */
 int uhci_port_init(uhci_port_t *port,
     port_status_t *address, unsigned number, unsigned usec, ddf_dev_t *rh)
@@ -85,18 +110,18 @@ int uhci_port_init(uhci_port_t *port,
 
 	port->checker = fibril_create(uhci_port_check, port);
 	if (port->checker == 0) {
-		usb_log_error("Port(%p - %d): failed to launch root hub fibril.",
-		    port->address, port->number);
+		usb_log_error("%s: failed to create polling fibril.",
+		    port->id_string);
 		return ENOMEM;
 	}
 
 	fibril_add_ready(port->checker);
-	usb_log_debug("Port(%p - %d): Added fibril. %x\n",
-	    port->address, port->number, port->checker);
+	usb_log_debug("%s: Started polling fibril(%x).\n",
+	    port->id_string, port->checker);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-/** Finishes UHCI root hub port instance.
+/** Cleanup UHCI root hub port instance.
  *
  * @param[in] port Memory structure to use.
  *
@@ -104,13 +129,15 @@ int uhci_port_init(uhci_port_t *port,
  */
 void uhci_port_fini(uhci_port_t *port)
 {
+	assert(port);
+	free(port->id_string);
 	/* TODO: Kill fibril here */
 	return;
 }
 /*----------------------------------------------------------------------------*/
 /** Periodically checks port status and reports new devices.
  *
- * @param[in] port Memory structure to use.
+ * @param[in] port Port structure to use.
  * @return Error code.
  */
 int uhci_port_check(void *port)
@@ -121,10 +148,10 @@ int uhci_port_check(void *port)
 	while (1) {
 		async_usleep(instance->wait_period_usec);
 
-		/* read register value */
+		/* Read register value */
 		port_status_t port_status = uhci_port_read_status(instance);
 
-		/* print the value if it's interesting */
+		/* Print the value if it's interesting */
 		if (port_status & ~STATUS_ALWAYS_ONE)
 			uhci_port_print_status(instance, port_status);
 
@@ -176,6 +203,8 @@ int uhci_port_check(void *port)
  * @param portno Port number (unused).
  * @param arg Pointer to uhci_port_t of port with the new device.
  * @return Error code.
+ *
+ * Resets and enables the ub port.
  */
 int uhci_port_reset_enable(int portno, void *arg)
 {
@@ -213,9 +242,9 @@ int uhci_port_reset_enable(int portno, void *arg)
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-/** Initializes and reports connected device.
+/** Initialize and report connected device.
  *
- * @param[in] port Memory structure to use.
+ * @param[in] port Port structure to use.
  * @param[in] speed Detected speed.
  * @return Error code.
  *
@@ -246,12 +275,14 @@ int uhci_port_new_device(uhci_port_t *port, usb_speed_t speed)
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-/** Removes device.
+/** Remove device.
  *
  * @param[in] port Memory structure to use.
  * @return Error code.
  *
- * Does not work DDF does not support device removal.
+ * Does not work, DDF does not support device removal.
+ * Does not even free used USB address (it would be dangerous if tis driver
+ * is still running).
  */
 int uhci_port_remove_device(uhci_port_t *port)
 {
@@ -260,9 +291,10 @@ int uhci_port_remove_device(uhci_port_t *port)
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-/** Enables and disables port.
+/** Enable or disable root hub port.
  *
- * @param[in] port Memory structure to use.
+ * @param[in] port Port structure to use.
+ * @param[in] enabled Port status to set.
  * @return Error code. (Always EOK)
  */
 int uhci_port_set_enabled(uhci_port_t *port, bool enabled)
@@ -287,6 +319,30 @@ int uhci_port_set_enabled(uhci_port_t *port, bool enabled)
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
+/** Print the port status value in a human friendly way
+ *
+ * @param[in] port Port structure to use.
+ * @param[in] value Port register value to print.
+ * @return Error code. (Always EOK)
+ */
+void uhci_port_print_status(uhci_port_t *port, const port_status_t value)
+{
+	assert(port);
+	usb_log_debug2("%s Port status(%#x):%s%s%s%s%s%s%s%s%s%s%s.\n",
+	    port->id_string, value,
+	    (value & STATUS_SUSPEND) ? " SUSPENDED," : "",
+	    (value & STATUS_RESUME) ? " IN RESUME," : "",
+	    (value & STATUS_IN_RESET) ? " IN RESET," : "",
+	    (value & STATUS_LINE_D_MINUS) ? " VD-," : "",
+	    (value & STATUS_LINE_D_PLUS) ? " VD+," : "",
+	    (value & STATUS_LOW_SPEED) ? " LOWSPEED," : "",
+	    (value & STATUS_ENABLED_CHANGED) ? " ENABLED-CHANGE," : "",
+	    (value & STATUS_ENABLED) ? " ENABLED," : "",
+	    (value & STATUS_CONNECTED_CHANGED) ? " CONNECTED-CHANGE," : "",
+	    (value & STATUS_CONNECTED) ? " CONNECTED," : "",
+	    (value & STATUS_ALWAYS_ONE) ? " ALWAYS ONE" : " ERROR: NO ALWAYS ONE"
+	);
+}
 /**
  * @}
  */

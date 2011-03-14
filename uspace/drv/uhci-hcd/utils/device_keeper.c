@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbuhci
+/** @addtogroup drvusbuhcihc
  * @{
  */
 /** @file
@@ -39,9 +39,11 @@
 #include "device_keeper.h"
 
 /*----------------------------------------------------------------------------*/
-/** Initializes device keeper structure.
+/** Initialize device keeper structure.
  *
  * @param[in] instance Memory place to initialize.
+ *
+ * Set all values to false/0.
  */
 void device_keeper_init(device_keeper_t *instance)
 {
@@ -57,7 +59,7 @@ void device_keeper_init(device_keeper_t *instance)
 	}
 }
 /*----------------------------------------------------------------------------*/
-/** Attempts to obtain address 0, blocks.
+/** Attempt to obtain address 0, blocks.
  *
  * @param[in] instance Device keeper structure to use.
  * @param[in] speed Speed of the device requesting default address.
@@ -75,7 +77,7 @@ void device_keeper_reserve_default(device_keeper_t *instance, usb_speed_t speed)
 	fibril_mutex_unlock(&instance->guard);
 }
 /*----------------------------------------------------------------------------*/
-/** Attempts to obtain address 0, blocks.
+/** Attempt to obtain address 0, blocks.
  *
  * @param[in] instance Device keeper structure to use.
  * @param[in] speed Speed of the device requesting default address.
@@ -89,11 +91,13 @@ void device_keeper_release_default(device_keeper_t *instance)
 	fibril_condvar_signal(&instance->default_address_occupied);
 }
 /*----------------------------------------------------------------------------*/
-/** Checks setup data for signs of toggle reset.
+/** Check setup packet data for signs of toggle reset.
  *
  * @param[in] instance Device keeper structure to use.
  * @param[in] target Device to receive setup packet.
  * @param[in] data Setup packet data.
+ *
+ * Really ugly one.
  */
 void device_keeper_reset_if_need(
     device_keeper_t *instance, usb_target_t target, const unsigned char *data)
@@ -104,6 +108,7 @@ void device_keeper_reset_if_need(
 	    || target.address >= USB_ADDRESS_COUNT || target.address < 0
 	    || !instance->devices[target.address].occupied) {
 		fibril_mutex_unlock(&instance->guard);
+		usb_log_error("Invalid data when checking for toggle reset.\n");
 		return;
 	}
 
@@ -129,7 +134,7 @@ void device_keeper_reset_if_need(
 	fibril_mutex_unlock(&instance->guard);
 }
 /*----------------------------------------------------------------------------*/
-/** Gets current value of endpoint toggle.
+/** Get current value of endpoint toggle.
  *
  * @param[in] instance Device keeper structure to use.
  * @param[in] target Device and endpoint used.
@@ -143,21 +148,21 @@ int device_keeper_get_toggle(device_keeper_t *instance, usb_target_t target)
 	if (target.endpoint > 15 || target.endpoint < 0
 	    || target.address >= USB_ADDRESS_COUNT || target.address < 0
 	    || !instance->devices[target.address].occupied) {
+		usb_log_error("Invalid data when asking for toggle value.\n");
 		ret = EINVAL;
 	} else {
-		ret =
-		    (instance->devices[target.address].toggle_status
+		ret = (instance->devices[target.address].toggle_status
 		        >> target.endpoint) & 1;
 	}
 	fibril_mutex_unlock(&instance->guard);
 	return ret;
 }
 /*----------------------------------------------------------------------------*/
-/** Sets current value of endpoint toggle.
+/** Set current value of endpoint toggle.
  *
  * @param[in] instance Device keeper structure to use.
  * @param[in] target Device and endpoint used.
- * @param[in] toggle Current toggle value.
+ * @param[in] toggle Toggle value.
  * @return Error code.
  */
 int device_keeper_set_toggle(
@@ -169,6 +174,7 @@ int device_keeper_set_toggle(
 	if (target.endpoint > 15 || target.endpoint < 0
 	    || target.address >= USB_ADDRESS_COUNT || target.address < 0
 	    || !instance->devices[target.address].occupied) {
+		usb_log_error("Invalid data when setting toggle value.\n");
 		ret = EINVAL;
 	} else {
 		if (toggle) {
@@ -182,7 +188,7 @@ int device_keeper_set_toggle(
 	return ret;
 }
 /*----------------------------------------------------------------------------*/
-/** Gets a free USB address
+/** Get a free USB address
  *
  * @param[in] instance Device keeper structure to use.
  * @param[in] speed Speed of the device requiring address.
@@ -215,7 +221,7 @@ usb_address_t device_keeper_request(
 	return new_address;
 }
 /*----------------------------------------------------------------------------*/
-/** Binds USB address to devman handle.
+/** Bind USB address to devman handle.
  *
  * @param[in] instance Device keeper structure to use.
  * @param[in] address Device address
@@ -233,7 +239,7 @@ void device_keeper_bind(
 	fibril_mutex_unlock(&instance->guard);
 }
 /*----------------------------------------------------------------------------*/
-/** Releases used USB address.
+/** Release used USB address.
  *
  * @param[in] instance Device keeper structure to use.
  * @param[in] address Device address
@@ -250,7 +256,7 @@ void device_keeper_release(device_keeper_t *instance, usb_address_t address)
 	fibril_mutex_unlock(&instance->guard);
 }
 /*----------------------------------------------------------------------------*/
-/** Finds USB address associated with the device
+/** Find USB address associated with the device
  *
  * @param[in] instance Device keeper structure to use.
  * @param[in] handle Devman handle of the device seeking its address.
@@ -273,7 +279,7 @@ usb_address_t device_keeper_find(
 	return ENOENT;
 }
 /*----------------------------------------------------------------------------*/
-/** Gets speed associated with the address
+/** Get speed associated with the address
  *
  * @param[in] instance Device keeper structure to use.
  * @param[in] address Address of the device.

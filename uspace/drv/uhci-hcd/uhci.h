@@ -30,7 +30,7 @@
  * @{
  */
 /** @file
- * @brief UHCI driver
+ * @brief UHCI driver main structure for both host controller and root-hub.
  */
 #ifndef DRV_UHCI_UHCI_H
 #define DRV_UHCI_UHCI_H
