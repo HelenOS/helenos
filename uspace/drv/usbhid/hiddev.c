@@ -390,6 +390,12 @@ int usbhid_dev_init(usbhid_dev_t *hid_dev, ddf_dev_t *dev,
 		    "\n", str_error(rc));
 		return rc;
 	}
+	rc = usb_endpoint_pipe_probe_default_control(&hid_dev->ctrl_pipe);
+	if (rc != EOK) {
+		usb_log_error("Probing default control pipe failed: %s.\n",
+		    str_error(rc));
+		return rc;
+	}
 
 	/*
 	 * Get descriptors, parse descriptors and save endpoints.

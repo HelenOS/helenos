@@ -115,6 +115,13 @@ usbmid_device_t *usbmid_device_create(ddf_dev_t *dev)
 		free(mid);
 		return NULL;
 	}
+	rc = usb_endpoint_pipe_probe_default_control(&mid->ctrl_pipe);
+	if (rc != EOK) {
+		usb_log_error("Probing default control pipe failed: %s.\n",
+		    str_error(rc));
+		free(mid);
+		return NULL;
+	}
 
 	mid->dev = dev;
 	(void) &mid_device_ops;

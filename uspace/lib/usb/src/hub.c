@@ -234,6 +234,11 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 		rc = ENOTCONN;
 		goto leave_release_default_address;
 	}
+	rc = usb_endpoint_pipe_probe_default_control(&ctrl_pipe);
+	if (rc != EOK) {
+		rc = ENOTCONN;
+		goto leave_release_default_address;
+	}
 
 	rc = usb_endpoint_pipe_start_session(&ctrl_pipe);
 	if (rc != EOK) {

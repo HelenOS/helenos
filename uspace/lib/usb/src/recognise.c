@@ -368,6 +368,10 @@ int usb_device_register_child_in_devman(usb_address_t address,
 	if (rc != EOK) {
 		goto failure;
 	}
+	rc = usb_endpoint_pipe_probe_default_control(&ctrl_pipe);
+	if (rc != EOK) {
+		goto failure;
+	}
 
 	/*
 	 * TODO: Once the device driver framework support persistent

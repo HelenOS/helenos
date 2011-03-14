@@ -227,6 +227,14 @@ static int initialize_pipes(usb_driver_t *drv, usb_device_t *dev)
 		return rc;
 	}
 
+	rc = usb_endpoint_pipe_probe_default_control(&dev->ctrl_pipe);
+	if (rc != EOK) {
+		usb_log_error(
+		    "Probing default control pipe on device `%s' failed: %s.\n",
+		    dev->ddf_dev->name, str_error(rc));
+		return rc;
+	}
+
 	/*
 	 * Initialization of other pipes requires open session on
 	 * default control pipe.
