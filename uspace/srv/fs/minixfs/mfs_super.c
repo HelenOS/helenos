@@ -48,8 +48,10 @@ void mfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 	devmap_handle_t devmap_handle = (devmap_handle_t) IPC_GET_ARG1(*request);
 	enum cache_mode cmode;	
 	struct mfs_superblock *sp;
+	struct mfs3_superblock *sp3;
 	bool native, longnames;
 	mfs_version_t version;
+	uint16_t magic;
 
 	/* Accept the mount options */
 	char *opts;
@@ -77,7 +79,7 @@ void mfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 
-	sp = malloc(MFS_SUPERBLOCK_SIZE);
+	sp = (struct mfs_superblock *) malloc(MFS_SUPERBLOCK_SIZE);
 
 	/* Read the superblock */
 	rc = block_read_direct(devmap_handle, MFS_SUPERBLOCK << 1, 1, sp);
@@ -87,15 +89,25 @@ void mfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 
-	if (!check_magic_number(sp->s_magic, &native, &version, &longnames)) {
-		/*Magic number is invalid!*/
+	if (check_magic_number(sp->s_magic, &native, &version, &longnames)) {
+		magic = sp->s_magic;
+		goto recognized;
+	}
+
+	sp3 = (struct mfs3_superblock *) sp;
+
+	if (!check_magic_number(sp3->s_magic, &native, &version, &longnames)) {
 		mfsdebug("magic number not recognized\n");
 		block_fini(devmap_handle);
 		async_answer_0(rid, ENOTSUP);
 		return;
 	}
 
-	mfsdebug("magic number recognized\n");
+	magic = sp3->s_magic;
+
+recognized:
+
+	mfsdebug("magic number recognized = %04x\n", magic);
 	free(sp);
 }
 
@@ -103,8 +115,6 @@ static bool check_magic_number(uint16_t magic, bool *native,
 				mfs_version_t *version, bool *longfilenames)
 {
 	*longfilenames = false;
-
-	mfsdebug("magic = %d\n", magic);
 
 	if (magic == MFS_MAGIC_V1 || magic == MFS_MAGIC_V1R) {
 		*native = magic == MFS_MAGIC_V1;
