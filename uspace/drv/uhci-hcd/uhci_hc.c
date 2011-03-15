@@ -346,13 +346,22 @@ int uhci_hc_schedule(uhci_hc_t *instance, batch_t *batch)
 void uhci_hc_interrupt(uhci_hc_t *instance, uint16_t status)
 {
 	assert(instance);
-	/* TODO: Check interrupt cause here */
+	/* TODO: Resume interrupts are not supported */
 	/* Lower 2 bits are transaction error and transaction complete */
 	if (status & 0x3) {
 		transfer_list_remove_finished(&instance->transfers_interrupt);
 		transfer_list_remove_finished(&instance->transfers_control_slow);
 		transfer_list_remove_finished(&instance->transfers_control_full);
 		transfer_list_remove_finished(&instance->transfers_bulk_full);
+	}
+	/* bits 4 and 5 indicate hc error */
+	if (status & 0x18) {
+		transfer_list_abort_all(&instance->transfers_interrupt);
+		transfer_list_abort_all(&instance->transfers_control_slow);
+		transfer_list_abort_all(&instance->transfers_control_full);
+		transfer_list_abort_all(&instance->transfers_bulk_full);
+		/* reinitialize hw, this triggers virtual disconnect*/
+		uhci_hc_init_hw(instance);
 	}
 }
 /*----------------------------------------------------------------------------*/
