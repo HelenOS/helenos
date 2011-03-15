@@ -62,6 +62,11 @@ static bool resolve_hc_handle_and_dev_addr(const char *devpath,
 {
 	int rc;
 
+	/* Hack for QEMU to save-up on typing ;-). */
+	if (str_cmp(devpath, "qemu") == 0) {
+		devpath = "/hw/pci0/00:01.2/uhci-rh/usb00_a1";
+	}
+
 	char *path = str_dup(devpath);
 	if (path == NULL) {
 		return ENOMEM;
