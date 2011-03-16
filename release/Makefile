@@ -38,41 +38,41 @@ PROFILES = amd64 arm32/GXemul arm32/integratorcp arm32/gta02 ia32 \
 BZR = bzr
 TAR = tar
 
-# To determine IMGFILE
+# To determine IMG_FILE
 -include $(EXPORT_DIR)/Makefile.config
 -include $(EXPORT_DIR)/boot/arch/$(BARCH)/Makefile.inc
 -include $(EXPORT_DIR)/boot/Makefile.common
 
 ifdef POST_OUTPUT
-	IMGFILE = $(EXPORT_DIR)/boot/$(POST_OUTPUT)
+	IMG_FILE = $(EXPORT_DIR)/boot/$(POST_OUTPUT)
 else
-	IMGFILE = $(EXPORT_DIR)/boot/$(BOOT_OUTPUT)
+	IMG_FILE = $(EXPORT_DIR)/boot/$(BOOT_OUTPUT)
 endif
 
-SUFFIX = $(suffix $(IMGFILE))
+SUFFIX = $(suffix $(IMG_FILE))
 
 ifdef PROFILE
-	DISTFILE = HelenOS-$(RELEASE)-$(shell echo $(PROFILE) | tr '/' '-')$(SUFFIX)
+	RELEASE_FILE = HelenOS-$(RELEASE)-$(shell echo $(PROFILE) | tr '/' '-')$(SUFFIX)
 else
-	DISTFILE = HelenOS-$(RELEASE)-$(PLATFORM)-$(MACHINE)-$(PROCESSOR)$(SUFFIX)
+	RELEASE_FILE = HelenOS-$(RELEASE)-$(PLATFORM)-$(MACHINE)-$(PROCESSOR)$(SUFFIX)
 endif
 
-.PHONY: all clean dist distfile export srcdist
+.PHONY: all clean release releasefile export srcrel
 
-all: distfile
-distfile: $(DISTFILE)
+all: releasefile
+releasefile: $(RELEASE_FILE)
 
-$(DISTFILE): $(IMGFILE)
+$(RELEASE_FILE): $(IMG_FILE)
 	cp $< $@
 
-$(IMGFILE):
+$(IMG_FILE):
 	$(MAKE) -C $(EXPORT_DIR)
 
-dist: src_dist
+release: src_rel
 	for profile in $(PROFILES); do \
 		$(MAKE) -C $(EXPORT_DIR) clean ; \
 		$(MAKE) -C $(EXPORT_DIR) PROFILE=$$profile ; \
-		$(MAKE) PROFILE=$$profile distfile ; \
+		$(MAKE) PROFILE=$$profile releasefile ; \
 	done
 
 $(EXPORT_DIR) export:
@@ -80,9 +80,9 @@ $(EXPORT_DIR) export:
 	mkdir -p $(EXPORT_DIR)
 	$(BZR) export $(EXPORT_DIR)
 
-src_dist $(SRC_ARCHIVE): export
+src_rel $(SRC_ARCHIVE): export
 	$(TAR) -C $(shell dirname $(EXPORT_DIR)) \
 	    -cjf $(SRC_ARCHIVE) $(shell basename $(EXPORT_DIR))
 
 clean:
-	rm -f $(DISTFILE)
+	rm -f $(RELEASE_FILE)
