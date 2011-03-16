@@ -27,29 +27,37 @@
 #
 
 -include ../version
--include ../Makefile.config
--include ../boot/arch/$(BARCH)/Makefile.inc
--include ../boot/Makefile.common
+
+EXPORT_DIR = /var/tmp/helenos/HelenOS-$(RELEASE)
+SRC_ARCHIVE = HelenOS-$(RELEASE).tar.bz2
 
 PROFILES = amd64 arm32/GXemul arm32/integratorcp arm32/gta02 ia32 \
     ia64/i460GX ia64/ski mips32/GXemul mips32/msim sparc64/niagara \
     sparc64/serengeti sparc64/ultra
 
+BZR = bzr
+TAR = tar
+
+# To determine IMGFILE
+-include $(EXPORT_DIR)/Makefile.config
+-include $(EXPORT_DIR)/boot/arch/$(BARCH)/Makefile.inc
+-include $(EXPORT_DIR)/boot/Makefile.common
+
 ifdef POST_OUTPUT
-	IMGFILE = $(POST_OUTPUT)
+	IMGFILE = $(EXPORT_DIR)/boot/$(POST_OUTPUT)
 else
-	IMGFILE = $(BOOT_OUTPUT)
+	IMGFILE = $(EXPORT_DIR)/boot/$(BOOT_OUTPUT)
 endif
 
 SUFFIX = $(suffix $(IMGFILE))
 
 ifdef PROFILE
-	DISTFILE = Helenos-$(shell echo $(PROFILE) | tr '/' '-')$(SUFFIX)
+	DISTFILE = HelenOS-$(RELEASE)-$(shell echo $(PROFILE) | tr '/' '-')$(SUFFIX)
 else
 	DISTFILE = HelenOS-$(RELEASE)-$(PLATFORM)-$(MACHINE)-$(PROCESSOR)$(SUFFIX)
 endif
 
-.PHONY: all clean dist distfile
+.PHONY: all clean dist distfile export srcdist
 
 all: distfile
 distfile: $(DISTFILE)
@@ -58,13 +66,23 @@ $(DISTFILE): $(IMGFILE)
 	cp $< $@
 
 $(IMGFILE):
-	$(MAKE) -C ..
+	$(MAKE) -C $(EXPORT_DIR)
 
-dist:
+dist: src_dist
 	for profile in $(PROFILES); do \
-		$(MAKE) -C .. clean ; \
-		$(MAKE) -C .. PROFILE=$$profile distfile ; \
+		$(MAKE) -C $(EXPORT_DIR) clean ; \
+		$(MAKE) -C $(EXPORT_DIR) PROFILE=$$profile ; \
+		$(MAKE) PROFILE=$$profile distfile ; \
 	done
+
+$(EXPORT_DIR) export:
+	rm -rf $(EXPORT_DIR)
+	mkdir -p $(EXPORT_DIR)
+	$(BZR) export $(EXPORT_DIR)
+
+src_dist $(SRC_ARCHIVE): export
+	$(TAR) -C $(shell dirname $(EXPORT_DIR)) \
+	    -cjf $(SRC_ARCHIVE) $(shell basename $(EXPORT_DIR))
 
 clean:
 	rm -f $(DISTFILE)
