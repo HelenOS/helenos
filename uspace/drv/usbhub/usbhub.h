@@ -86,10 +86,12 @@ int usb_hub_control_loop(void * hub_info_param);
 int usb_add_hub_device(ddf_dev_t *dev);
 
 /**
- * check changes on specified hub
+ * Check changes on specified hub
  * @param hub_info_param pointer to usb_hub_info_t structure
+ * @return error code if there is problem when initializing communication with
+ * hub, EOK otherwise
  */
-void usb_hub_check_hub_changes(usb_hub_info_t * hub_info_param);
+int usb_hub_check_hub_changes(usb_hub_info_t * hub_info_param);
 
 
 
