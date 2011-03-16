@@ -129,6 +129,14 @@ static bool resolve_hc_handle_and_dev_addr(const char *devpath,
 	}
 }
 
+static struct option long_options[] = {
+	{"help", no_argument, NULL, 'h'},
+	{"identification", no_argument, NULL, 'i'},
+	{"match-ids", no_argument, NULL, 'm'},
+	{0, 0, NULL, 0}
+};
+static const char *short_options = "him";
+
 int main(int argc, char *argv[])
 {
 	if (argc <= 1) {
@@ -136,19 +144,48 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
+	bool action_print_short_identification = false;
+	bool action_print_match_ids = false;
+
 	/*
 	 * Process command-line options. They determine what shall be
 	 * done with the device.
 	 */
+	int opt;
+	do {
+		opt = getopt_long(argc, argv,
+		    short_options, long_options, NULL);
+		switch (opt) {
+			case -1:
+				break;
+			case '?':
+				print_usage(argv[0]);
+				return 1;
+			case 'h':
+				print_usage(argv[0]);
+				return 0;
+			case 'i':
+				action_print_short_identification = true;
+				break;
+			case 'm':
+				action_print_match_ids = true;
+				break;
+			default:
+				break;
+		}
+	} while (opt > 0);
 
-	/* TODO */
+	/* Set the default action. */
+	if (!action_print_match_ids && !action_print_short_identification) {
+		action_print_short_identification = true;
+	}
 
 	/*
 	 * Go through all devices given on the command line and run the
 	 * specified actions.
 	 */
 	int i;
-	for (i = 1; i < argc; i++) {
+	for (i = optind; i < argc; i++) {
 		char *devpath = argv[i];
 
 		/* The initialization is here only to make compiler happy. */
@@ -169,12 +206,14 @@ int main(int argc, char *argv[])
 		}
 
 		/* Run actions the user specified. */
-		/* TODO */
-
-
 		printf("%s\n", devpath);
-		dump_short_device_identification(dev);
-		dump_device_match_ids(dev);
+
+		if (action_print_short_identification) {
+			dump_short_device_identification(dev);
+		}
+		if (action_print_match_ids) {
+			dump_device_match_ids(dev);
+		}
 
 		/* Destroy the control pipe (close the session etc.). */
 		destroy_device(dev);
