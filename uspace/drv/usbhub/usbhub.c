@@ -433,7 +433,7 @@ static void usb_hub_finalize_add_device( usb_hub_info_t * hub,
 	/* Request address from host controller. */
 	usb_address_t new_device_address = usb_hc_request_address(
 			&hub->connection,
-			speed/// \TODO fullspeed??
+			speed
 			);
 	if (new_device_address < 0) {
 		dprintf(USB_LOG_LEVEL_ERROR, "failed to get free USB address");
