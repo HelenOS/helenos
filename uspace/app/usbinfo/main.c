@@ -163,8 +163,21 @@ int main(int argc, char *argv[])
 			continue;
 		}
 
-		printf("Device `%s':\n------------\n", devpath);
-		dump_device(hc_handle, dev_addr);
+		usbinfo_device_t *dev = prepare_device(hc_handle, dev_addr);
+		if (dev == NULL) {
+			continue;
+		}
+
+		/* Run actions the user specified. */
+		/* TODO */
+
+
+		printf("%s\n", devpath);
+		dump_short_device_identification(dev);
+		dump_device_match_ids(dev);
+
+		/* Destroy the control pipe (close the session etc.). */
+		destroy_device(dev);
 	}
 
 	return 0;

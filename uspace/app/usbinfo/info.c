@@ -41,6 +41,22 @@
 #include <usb/request.h>
 #include "usbinfo.h"
 
+void dump_short_device_identification(usbinfo_device_t *dev)
+{
+	printf("%sDevice 0x%04x by vendor 0x%04x\n", get_indent(0),
+	    (int) dev->device_descriptor.product_id,
+	    (int) dev->device_descriptor.vendor_id);
+}
+
+void dump_device_match_ids(usbinfo_device_t *dev)
+{
+	match_id_list_t matches;
+	init_match_ids(&matches);
+	usb_device_create_match_ids_from_device_descriptor(
+	    &dev->device_descriptor, &matches);
+	dump_match_ids(&matches, get_indent(0));
+}
+
 int dump_device(devman_handle_t hc_handle, usb_address_t address)
 {
 	int rc;
@@ -91,7 +107,7 @@ int dump_device(devman_handle_t hc_handle, usb_address_t address)
 		    str_error(rc));
 		goto leave;
 	}
-	dump_match_ids(&match_id_list);
+	dump_match_ids(&match_id_list, get_indent(0));
 
 	/*
 	 * Get device descriptor and dump it.

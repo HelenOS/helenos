@@ -100,16 +100,15 @@ void dump_usb_descriptor(uint8_t *descriptor, size_t size)
 	    descriptor, size);
 }
 
-void dump_match_ids(match_id_list_t *matches)
+void dump_match_ids(match_id_list_t *matches, const char *line_prefix)
 {
-	printf("Match ids:\n");
 	link_t *link;
 	for (link = matches->ids.next;
 	    link != &matches->ids;
 	    link = link->next) {
 		match_id_t *match = list_get_instance(link, match_id_t, link);
 
-		printf(INDENT "%d %s\n", match->score, match->id);
+		printf("%s%d %s\n", line_prefix, match->score, match->id);
 	}
 }
 

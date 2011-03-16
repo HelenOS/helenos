@@ -33,6 +33,7 @@ LIBS = $(LIBUSB_PREFIX)/libusb.a $(LIBDRV_PREFIX)/libdrv.a
 EXTRA_CFLAGS = -I$(LIBUSB_PREFIX)/include -I$(LIBDRV_PREFIX)/include
 
 SOURCES = \
+	dev.c \
 	dump.c \
 	info.c \
 	main.c
