@@ -38,7 +38,12 @@
 #include <errno.h>
 #include <str_error.h>
 
-static int usbmouse_add_device(ddf_dev_t *dev)
+/** Callback when new mouse device is attached and recognised by DDF.
+ *
+ * @param dev Representation of a generic DDF device.
+ * @return Error code.
+ */
+static int usbmouse_add_device(usb_device_t *dev)
 {
 	int rc = usb_mouse_create(dev);
 	if (rc != EOK) {
@@ -47,35 +52,46 @@ static int usbmouse_add_device(ddf_dev_t *dev)
 		return rc;
 	}
 
-	fid_t poll_fibril = fibril_create(usb_mouse_polling_fibril, dev);
-	if (poll_fibril == 0) {
-		usb_log_error("Failed to initialize polling fibril.\n");
-		/* FIXME: free allocated resources. */
-		return ENOMEM;
+	usb_log_debug("Polling pipe at endpoint %d.\n", dev->pipes[0].pipe->endpoint_no);
+
+	rc = usb_device_auto_poll(dev, 0,
+	    usb_mouse_polling_callback, dev->pipes[0].pipe->max_packet_size,
+	    usb_mouse_polling_ended_callback, dev->driver_data);
+
+	if (rc != EOK) {
+		usb_log_error("Failed to start polling fibril: %s.\n",
+		    str_error(rc));
+		return rc;
 	}
 
-	fibril_add_ready(poll_fibril);
-
 	usb_log_info("controlling new mouse (handle %llu).\n",
-	    dev->handle);
+	    dev->ddf_dev->handle);
 
 	return EOK;
 }
 
-static driver_ops_t mouse_driver_ops = {
+/** USB mouse driver ops. */
+static usb_driver_ops_t mouse_driver_ops = {
 	.add_device = usbmouse_add_device,
 };
 
-static driver_t mouse_driver = {
+static usb_endpoint_description_t *endpoints[] = {
+	&poll_endpoint_description,
+	NULL
+};
+
+/** USB mouse driver. */
+static usb_driver_t mouse_driver = {
 	.name = NAME,
-	.driver_ops = &mouse_driver_ops
+	.ops = &mouse_driver_ops,
+	.endpoints = endpoints
 };
 
 int main(int argc, char *argv[])
 {
 	usb_log_enable(USB_LOG_LEVEL_DEBUG, NAME);
 
-	return ddf_driver_main(&mouse_driver);
+	return usb_driver_main(&mouse_driver);
 }
 
 /**

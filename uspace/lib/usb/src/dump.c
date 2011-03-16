@@ -30,7 +30,7 @@
  * @{
  */
 /** @file
- * @brief Descriptor dumping.
+ * Descriptor dumping.
  */
 #include <adt/list.h>
 #include <fibril_synch.h>
@@ -42,8 +42,11 @@
 #include <usb/classes/classes.h>
 #include <usb/classes/hid.h>
 
+/** Mapping between descriptor id and dumping function. */
 typedef struct {
+	/** Descriptor id. */
 	int id;
+	/** Dumping function. */
 	void (*dump)(FILE *, const char *, const char *,
 	    const uint8_t *, size_t);
 } descriptor_dump_t;
@@ -65,6 +68,7 @@ static void usb_dump_descriptor_hub(FILE *, const char *, const char *,
 static void usb_dump_descriptor_generic(FILE *, const char *, const char *,
     const uint8_t *, size_t);
 
+/** Descriptor dumpers mapping. */
 static descriptor_dump_t descriptor_dumpers[] = {
 	{ USB_DESCTYPE_DEVICE, usb_dump_descriptor_device },
 	{ USB_DESCTYPE_CONFIGURATION, usb_dump_descriptor_configuration },
@@ -272,12 +276,14 @@ static void usb_dump_descriptor_hub(FILE *output,
     const char *line_prefix, const char *line_suffix,
     const uint8_t *descriptor, size_t descriptor_length)
 {
+	/* TODO */
 }
 
 static void usb_dump_descriptor_generic(FILE *output,
     const char *line_prefix, const char *line_suffix,
     const uint8_t *descriptor, size_t descriptor_length)
 {
+	/* TODO */
 }
 
 

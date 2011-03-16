@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jan Vesely
+ * Copyright (c) 2011 Lubos Slovak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,43 +25,29 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup usb
+
+/** @addtogroup drvusbhid
  * @{
  */
 /** @file
- * @brief UHCI driver
+ * USB HID keyboard autorepeat facilities
  */
-#ifndef DRV_UHCI_TD_PORT_STATUS_H
-#define DRV_UHCI_TD_PORT_STATUS_H
 
-#include <libarch/ddi.h> /* pio_read and pio_write */
+#ifndef USBHID_KBDREPEAT_H_
+#define USBHID_KBDREPEAT_H_
 
-#include <stdint.h>
+#include "kbddev.h"
 
-typedef uint16_t port_status_t;
+/*----------------------------------------------------------------------------*/
 
-#define STATUS_CONNECTED         (1 << 0)
-#define STATUS_CONNECTED_CHANGED (1 << 1)
-#define STATUS_ENABLED           (1 << 2)
-#define STATUS_ENABLED_CHANGED   (1 << 3)
-#define STATUS_LINE_D_PLUS       (1 << 4)
-#define STATUS_LINE_D_MINUS      (1 << 5)
-#define STATUS_RESUME            (1 << 6)
-#define STATUS_ALWAYS_ONE        (1 << 7)
+int usbhid_kbd_repeat_fibril(void *arg);
 
-#define STATUS_LOW_SPEED (1 <<  8)
-#define STATUS_IN_RESET  (1 <<  9)
-#define STATUS_SUSPEND   (1 << 12)
+void usbhid_kbd_repeat_start(usbhid_kbd_t *kbd, unsigned int key);
 
-static inline port_status_t port_status_read(port_status_t * address)
-	{ return pio_read_16(address); }
+void usbhid_kbd_repeat_stop(usbhid_kbd_t *kbd, unsigned int key);
 
-static inline void port_status_write(
-  port_status_t *address, port_status_t value)
-	{ pio_write_16(address, value); }
+#endif /* USBHID_KBDREPEAT_H_ */
 
-void print_port_status(const port_status_t status);
-#endif
 /**
  * @}
  */

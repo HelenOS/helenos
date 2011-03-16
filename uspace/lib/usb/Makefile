@@ -36,6 +36,8 @@ SOURCES = \
 	src/class.c \
 	src/ddfiface.c \
 	src/debug.c \
+	src/devdrv.c \
+	src/devpoll.c \
 	src/dp.c \
 	src/dump.c \
 	src/hidparser.c \
@@ -46,7 +48,6 @@ SOURCES = \
 	src/recognise.c \
 	src/request.c \
 	src/usb.c \
-	src/usbdevice.c \
-	src/usbmem.c
+	src/usbdevice.c
 
 include $(USPACE_PREFIX)/Makefile.common

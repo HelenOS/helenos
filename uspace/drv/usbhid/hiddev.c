@@ -52,7 +52,30 @@
 /*----------------------------------------------------------------------------*/
 /* Non-API functions                                                          */
 /*----------------------------------------------------------------------------*/
-
+/**
+ * Retreives HID Report descriptor from the device.
+ *
+ * This function first parses the HID descriptor from the Interface descriptor
+ * to get the size of the Report descriptor and then requests the Report 
+ * descriptor from the device.
+ *
+ * @param hid_dev HID device structure.
+ * @param config_desc Full configuration descriptor (including all nested
+ *                    descriptors).
+ * @param config_desc_size Size of the full configuration descriptor (in bytes).
+ * @param iface_desc Pointer to the interface descriptor inside the full
+ *                   configuration descriptor (@a config_desc) for the interface
+ *                   assigned with this device (@a hid_dev).
+ *
+ * @retval EOK if successful.
+ * @retval ENOENT if no HID descriptor could be found.
+ * @retval EINVAL if the HID descriptor  or HID report descriptor have different
+ *                size than expected.
+ * @retval ENOMEM if some allocation failed.
+ * @return Other value inherited from function usb_request_get_descriptor().
+ *
+ * @sa usb_request_get_descriptor()
+ */
 static int usbhid_dev_get_report_descriptor(usbhid_dev_t *hid_dev, 
     uint8_t *config_desc, size_t config_desc_size, uint8_t *iface_desc)
 {
@@ -140,7 +163,27 @@ static int usbhid_dev_get_report_descriptor(usbhid_dev_t *hid_dev,
 }
 
 /*----------------------------------------------------------------------------*/
-
+/**
+ * Retreives descriptors from the device, initializes pipes and stores 
+ * important information from descriptors.
+ *
+ * Initializes the polling pipe described by the given endpoint description
+ * (@a poll_ep_desc).
+ * 
+ * Information retreived from descriptors and stored in the HID device structure:
+ *    - Assigned interface number (the interface controlled by this instance of
+ *                                 the driver)
+ *    - Polling interval (from the interface descriptor)
+ *    - Report descriptor
+ *
+ * @param hid_dev HID device structure to be initialized.
+ * @param poll_ep_desc Description of the polling (Interrupt In) endpoint
+ *                     that has to be present in the device in order to
+ *                     successfuly initialize the structure.
+ *
+ * @sa usb_endpoint_pipe_initialize_from_configuration(), 
+ *     usbhid_dev_get_report_descriptor()
+ */
 static int usbhid_dev_process_descriptors(usbhid_dev_t *hid_dev, 
     usb_endpoint_description_t *poll_ep_desc) 
 {
@@ -229,7 +272,11 @@ static int usbhid_dev_process_descriptors(usbhid_dev_t *hid_dev,
 /*----------------------------------------------------------------------------*/
 /* API functions                                                              */
 /*----------------------------------------------------------------------------*/
-
+/**
+ * Creates new uninitialized HID device structure.
+ *
+ * @return Pointer to the new HID device structure, or NULL if an error occured.
+ */
 usbhid_dev_t *usbhid_dev_new(void)
 {
 	usbhid_dev_t *dev = 
@@ -248,7 +295,14 @@ usbhid_dev_t *usbhid_dev_new(void)
 }
 
 /*----------------------------------------------------------------------------*/
-
+/**
+ * Properly destroys the HID device structure.
+ *
+ * @note Currently does not clean-up the used pipes, as there are no functions
+ *       offering such functionality.
+ * 
+ * @param hid_dev Pointer to the structure to be destroyed.
+ */
 void usbhid_dev_free(usbhid_dev_t **hid_dev)
 {
 	if (hid_dev == NULL || *hid_dev == NULL) {
@@ -271,7 +325,25 @@ void usbhid_dev_free(usbhid_dev_t **hid_dev)
 }
 
 /*----------------------------------------------------------------------------*/
-
+/**
+ * Initializes HID device structure.
+ *
+ * @param hid_dev HID device structure to be initialized.
+ * @param dev DDF device representing the HID device.
+ * @param poll_ep_desc Description of the polling (Interrupt In) endpoint
+ *                     that has to be present in the device in order to
+ *                     successfuly initialize the structure.
+ *
+ * @retval EOK if successful.
+ * @retval EINVAL if some argument is missing.
+ * @return Other value inherited from one of functions 
+ *         usb_device_connection_initialize_from_device(),
+ *         usb_endpoint_pipe_initialize_default_control(),
+ *         usb_endpoint_pipe_start_session(), usb_endpoint_pipe_end_session(),
+ *         usbhid_dev_process_descriptors().
+ *
+ * @sa usbhid_dev_process_descriptors()
+ */
 int usbhid_dev_init(usbhid_dev_t *hid_dev, ddf_dev_t *dev, 
     usb_endpoint_description_t *poll_ep_desc)
 {
@@ -318,18 +390,35 @@ int usbhid_dev_init(usbhid_dev_t *hid_dev, ddf_dev_t *dev,
 		    "\n", str_error(rc));
 		return rc;
 	}
+	rc = usb_endpoint_pipe_probe_default_control(&hid_dev->ctrl_pipe);
+	if (rc != EOK) {
+		usb_log_error("Probing default control pipe failed: %s.\n",
+		    str_error(rc));
+		return rc;
+	}
 
 	/*
 	 * Get descriptors, parse descriptors and save endpoints.
 	 */
-	usb_endpoint_pipe_start_session(&hid_dev->ctrl_pipe);
+	rc = usb_endpoint_pipe_start_session(&hid_dev->ctrl_pipe);
+	if (rc != EOK) {
+		usb_log_error("Failed to start session on the control pipe: %s"
+		    ".\n", str_error(rc));
+		return rc;
+	}
 	
 	rc = usbhid_dev_process_descriptors(hid_dev, poll_ep_desc);
-	
-	usb_endpoint_pipe_end_session(&hid_dev->ctrl_pipe);
 	if (rc != EOK) {
+		/* TODO: end session?? */
 		usb_log_error("Failed to process descriptors: %s.\n",
 		    str_error(rc));
+		return rc;
+	}
+	
+	rc = usb_endpoint_pipe_end_session(&hid_dev->ctrl_pipe);
+	if (rc != EOK) {
+		usb_log_warning("Failed to start session on the control pipe: "
+		    "%s.\n", str_error(rc));
 		return rc;
 	}
 	

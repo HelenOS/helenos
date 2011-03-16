@@ -30,13 +30,17 @@
  * @{
  */
 /** @file
- * @brief Base USB types.
+ * Common USB functions.
  */
 #include <usb/usb.h>
 #include <errno.h>
 
 
-/** String representation for USB transfer type. */
+/** String representation for USB transfer type.
+ *
+ * @param t Transfer type.
+ * @return Transfer type as a string (in English).
+ */
 const char * usb_str_transfer_type(usb_transfer_type_t t)
 {
 	switch (t) {

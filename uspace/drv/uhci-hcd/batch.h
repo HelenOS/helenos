@@ -25,11 +25,11 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup usb
+/** @addtogroup drvusbuhcihc
  * @{
  */
 /** @file
- * @brief UHCI driver
+ * @brief UHCI driver USB transaction structure
  */
 #ifndef DRV_UHCI_BATCH_H
 #define DRV_UHCI_BATCH_H
@@ -41,6 +41,7 @@
 
 #include "uhci_struct/transfer_descriptor.h"
 #include "uhci_struct/queue_head.h"
+#include "utils/device_keeper.h"
 
 typedef struct batch
 {
@@ -48,10 +49,8 @@ typedef struct batch
 	usb_speed_t speed;
 	usb_target_t target;
 	usb_transfer_type_t transfer_type;
-	union {
-		usbhc_iface_transfer_in_callback_t callback_in;
-		usbhc_iface_transfer_out_callback_t callback_out;
-	};
+	usbhc_iface_transfer_in_callback_t callback_in;
+	usbhc_iface_transfer_out_callback_t callback_out;
 	void *arg;
 	char *transport_buffer;
 	char *setup_buffer;
@@ -63,9 +62,10 @@ typedef struct batch
 	size_t transfered_size;
 	int error;
 	ddf_fun_t *fun;
-	queue_head_t *qh;
-	transfer_descriptor_t *tds;
+	qh_t *qh;
+	td_t *tds;
 	void (*next_step)(struct batch*);
+	device_keeper_t *manager;
 } batch_t;
 
 batch_t * batch_get(ddf_fun_t *fun, usb_target_t target,
@@ -73,7 +73,11 @@ batch_t * batch_get(ddf_fun_t *fun, usb_target_t target,
     usb_speed_t speed, char *buffer, size_t size,
 		char *setup_buffer, size_t setup_size,
     usbhc_iface_transfer_in_callback_t func_in,
-    usbhc_iface_transfer_out_callback_t func_out, void *arg);
+    usbhc_iface_transfer_out_callback_t func_out, void *arg,
+		device_keeper_t *manager
+		);
+
+void batch_dispose(batch_t *instance);
 
 bool batch_is_complete(batch_t *instance);
 
@@ -85,16 +89,9 @@ void batch_interrupt_in(batch_t *instance);
 
 void batch_interrupt_out(batch_t *instance);
 
-/* DEPRECATED FUNCTIONS NEEDED BY THE OLD API */
-void batch_control_setup_old(batch_t *instance);
+void batch_bulk_in(batch_t *instance);
 
-void batch_control_write_data_old(batch_t *instance);
-
-void batch_control_read_data_old(batch_t *instance);
-
-void batch_control_write_status_old(batch_t *instance);
-
-void batch_control_read_status_old(batch_t *instance);
+void batch_bulk_out(batch_t *instance);
 #endif
 /**
  * @}

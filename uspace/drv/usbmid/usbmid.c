@@ -66,17 +66,19 @@ static int usb_iface_get_interface_impl(ddf_fun_t *fun, devman_handle_t handle,
 	return EOK;
 }
 
+/** DDF interface of the child - interface function. */
 static usb_iface_t child_usb_iface = {
 	.get_hc_handle = usb_iface_get_hc_handle_hub_child_impl,
 	.get_address = usb_iface_get_address_impl,
 	.get_interface = usb_iface_get_interface_impl
 };
 
-
+/** Operations for children - interface functions. */
 static ddf_dev_ops_t child_device_ops = {
 	.interfaces[USB_DEV_IFACE] = &child_usb_iface
 };
 
+/** Operations of the device itself. */
 static ddf_dev_ops_t mid_device_ops = {
 	.interfaces[USB_DEV_IFACE] = &usb_iface_hub_impl
 };
@@ -113,6 +115,13 @@ usbmid_device_t *usbmid_device_create(ddf_dev_t *dev)
 		free(mid);
 		return NULL;
 	}
+	rc = usb_endpoint_pipe_probe_default_control(&mid->ctrl_pipe);
+	if (rc != EOK) {
+		usb_log_error("Probing default control pipe failed: %s.\n",
+		    str_error(rc));
+		free(mid);
+		return NULL;
+	}
 
 	mid->dev = dev;
 	(void) &mid_device_ops;
@@ -122,7 +131,7 @@ usbmid_device_t *usbmid_device_create(ddf_dev_t *dev)
 
 /** Create new interface for USB MID device.
  *
- * @param dev Backing generic DDF child device (representing interface).
+ * @param fun Backing generic DDF device function (representing interface).
  * @param iface_no Interface number.
  * @return New interface.
  * @retval NULL Error occured.

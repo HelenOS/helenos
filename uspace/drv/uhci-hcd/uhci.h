@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jan Vesely
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,93 +30,25 @@
  * @{
  */
 /** @file
- * @brief UHCI driver
+ * @brief UHCI driver main structure for both host controller and root-hub.
  */
 #ifndef DRV_UHCI_UHCI_H
 #define DRV_UHCI_UHCI_H
-
-#include <fibril.h>
-#include <fibril_synch.h>
-#include <adt/list.h>
 #include <ddi.h>
+#include <ddf/driver.h>
 
-#include <usbhc_iface.h>
-
-#include "batch.h"
-#include "transfer_list.h"
-#include "utils/device_keeper.h"
-
-typedef struct uhci_regs {
-	uint16_t usbcmd;
-#define UHCI_CMD_MAX_PACKET (1 << 7)
-#define UHCI_CMD_CONFIGURE  (1 << 6)
-#define UHCI_CMD_DEBUG  (1 << 5)
-#define UHCI_CMD_FORCE_GLOBAL_RESUME  (1 << 4)
-#define UHCI_CMD_FORCE_GLOBAL_SUSPEND  (1 << 3)
-#define UHCI_CMD_GLOBAL_RESET  (1 << 2)
-#define UHCI_CMD_HCRESET  (1 << 1)
-#define UHCI_CMD_RUN_STOP  (1 << 0)
-
-	uint16_t usbsts;
-#define UHCI_STATUS_HALTED (1 << 5)
-#define UHCI_STATUS_PROCESS_ERROR (1 << 4)
-#define UHCI_STATUS_SYSTEM_ERROR (1 << 3)
-#define UHCI_STATUS_RESUME (1 << 2)
-#define UHCI_STATUS_ERROR_INTERRUPT (1 << 1)
-#define UHCI_STATUS_INTERRUPT (1 << 0)
-
-	uint16_t usbintr;
-#define UHCI_INTR_SHORT_PACKET (1 << 3)
-#define UHCI_INTR_COMPLETE (1 << 2)
-#define UHCI_INTR_RESUME (1 << 1)
-#define UHCI_INTR_CRC (1 << 0)
-
-	uint16_t frnum;
-	uint32_t flbaseadd;
-	uint8_t sofmod;
-} regs_t;
-
-#define UHCI_FRAME_LIST_COUNT 1024
-#define UHCI_CLEANER_TIMEOUT 10000
-#define UHCI_DEBUGER_TIMEOUT 5000000
+#include "uhci_hc.h"
+#include "uhci_rh.h"
 
 typedef struct uhci {
-	device_keeper_t device_manager;
+	ddf_fun_t *hc_fun;
+	ddf_fun_t *rh_fun;
 
-	volatile regs_t *registers;
-
-	link_pointer_t *frame_list;
-
-	transfer_list_t transfers_bulk_full;
-	transfer_list_t transfers_control_full;
-	transfer_list_t transfers_control_slow;
-	transfer_list_t transfers_interrupt;
-
-	transfer_list_t *transfers[2][4];
-
-	irq_code_t interrupt_code;
-
-	fid_t cleaner;
-	fid_t debug_checker;
-
-	ddf_fun_t *ddf_instance;
+	uhci_hc_t hc;
+	uhci_rh_t rh;
 } uhci_t;
 
-/* init uhci specifics in device.driver_data */
-int uhci_init(uhci_t *instance, ddf_dev_t *dev, void *regs, size_t reg_size);
-
-static inline void uhci_fini(uhci_t *instance) {};
-
-int uhci_schedule(uhci_t *instance, batch_t *batch);
-
-void uhci_interrupt(uhci_t *instance, uint16_t status);
-
-static inline uhci_t * dev_to_uhci(ddf_dev_t *dev)
-	{ return (uhci_t*)dev->driver_data; }
-
-static inline uhci_t * fun_to_uhci(ddf_fun_t *fun)
-	{ return (uhci_t*)fun->driver_data; }
-
+int uhci_init(uhci_t *instance, ddf_dev_t *device);
 
 #endif
 /**

@@ -25,20 +25,18 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup usb
+/** @addtogroup drvusbuhcirh
  * @{
  */
 /** @file
- * @brief UHCI driver
+ * @brief UHCI root hub initialization routines
  */
 #include <ddf/driver.h>
 #include <devman.h>
 #include <device/hw_res.h>
+#include <errno.h>
 #include <usb_iface.h>
 #include <usb/ddfiface.h>
-
-#include <errno.h>
-
 #include <usb/debug.h>
 
 #include "root_hub.h"
@@ -46,7 +44,8 @@
 #define NAME "uhci-rhd"
 static int hc_get_my_registers(ddf_dev_t *dev,
     uintptr_t *io_reg_address, size_t *io_reg_size);
-
+#if 0
+/*----------------------------------------------------------------------------*/
 static int usb_iface_get_hc_handle(ddf_fun_t *fun, devman_handle_t *handle)
 {
 	assert(fun);
@@ -57,16 +56,22 @@ static int usb_iface_get_hc_handle(ddf_fun_t *fun, devman_handle_t *handle)
 
 	return EOK;
 }
-
+/*----------------------------------------------------------------------------*/
 static usb_iface_t uhci_rh_usb_iface = {
 	.get_hc_handle = usb_iface_get_hc_handle,
 	.get_address = usb_iface_get_address_hub_impl
 };
-
+/*----------------------------------------------------------------------------*/
 static ddf_dev_ops_t uhci_rh_ops = {
 	.interfaces[USB_DEV_IFACE] = &uhci_rh_usb_iface,
 };
-
+#endif
+/*----------------------------------------------------------------------------*/
+/** Initialize a new ddf driver instance of UHCI root hub.
+ *
+ * @param[in] device DDF instance of the device to initialize.
+ * @return Error code.
+ */
 static int uhci_rh_add_device(ddf_dev_t *device)
 {
 	if (!device)
@@ -75,22 +80,22 @@ static int uhci_rh_add_device(ddf_dev_t *device)
 	usb_log_debug2("%s called device %d\n", __FUNCTION__, device->handle);
 
 	//device->ops = &uhci_rh_ops;
-	(void) uhci_rh_ops;
-
-	uhci_root_hub_t *rh = malloc(sizeof(uhci_root_hub_t));
-	if (!rh) {
-		usb_log_error("Failed to allocate memory for driver instance.\n");
-		return ENOMEM;
-	}
-
 	uintptr_t io_regs = 0;
 	size_t io_size = 0;
 
 	int ret = hc_get_my_registers(device, &io_regs, &io_size);
-	assert(ret == EOK);
+	if (ret != EOK) {
+		usb_log_error("Failed(%d) to get registers from parent hc.",
+		    ret);
+	}
+	usb_log_info("I/O regs at %#X (size %zu).\n", io_regs, io_size);
 
-	/* TODO: verify values from hc */
-	usb_log_info("I/O regs at 0x%X (size %zu).\n", io_regs, io_size);
+	uhci_root_hub_t *rh = malloc(sizeof(uhci_root_hub_t));
+	if (!rh) {
+		usb_log_error("Failed to allocate driver instance.\n");
+		return ENOMEM;
+	}
+
 	ret = uhci_root_hub_init(rh, (void*)io_regs, io_size, device);
 	if (ret != EOK) {
 		usb_log_error("Failed(%d) to initialize driver instance.\n", ret);
@@ -103,24 +108,39 @@ static int uhci_rh_add_device(ddf_dev_t *device)
 	    device->handle);
 	return EOK;
 }
-
+/*----------------------------------------------------------------------------*/
 static driver_ops_t uhci_rh_driver_ops = {
 	.add_device = uhci_rh_add_device,
 };
-
+/*----------------------------------------------------------------------------*/
 static driver_t uhci_rh_driver = {
 	.name = NAME,
 	.driver_ops = &uhci_rh_driver_ops
 };
 /*----------------------------------------------------------------------------*/
+/** Initialize global driver structures (NONE).
+ *
+ * @param[in] argc Nmber of arguments in argv vector (ignored).
+ * @param[in] argv Cmdline argument vector (ignored).
+ * @return Error code.
+ *
+ * Driver debug level is set here.
+ */
 int main(int argc, char *argv[])
 {
 	usb_log_enable(USB_LOG_LEVEL_DEBUG, NAME);
 	return ddf_driver_main(&uhci_rh_driver);
 }
 /*----------------------------------------------------------------------------*/
-int hc_get_my_registers(ddf_dev_t *dev,
-    uintptr_t *io_reg_address, size_t *io_reg_size)
+/** Get address of I/O registers.
+ *
+ * @param[in] dev Device asking for the addresses.
+ * @param[out] io_reg_address Base address of the memory range.
+ * @param[out] io_reg_size Size of the memory range.
+ * @return Error code.
+ */
+int hc_get_my_registers(
+    ddf_dev_t *dev, uintptr_t *io_reg_address, size_t *io_reg_size)
 {
 	assert(dev != NULL);
 
@@ -145,15 +165,15 @@ int hc_get_my_registers(ddf_dev_t *dev,
 	size_t i;
 	for (i = 0; i < hw_resources.count; i++) {
 		hw_resource_t *res = &hw_resources.resources[i];
-		switch (res->type) {
-			case IO_RANGE:
-				io_address = (uintptr_t)
-				    res->res.io_range.address;
-				io_size = res->res.io_range.size;
-				io_found = true;
-				break;
-			default:
-				break;
+		switch (res->type)
+		{
+		case IO_RANGE:
+			io_address = (uintptr_t) res->res.io_range.address;
+			io_size = res->res.io_range.size;
+			io_found = true;
+
+		default:
+			break;
 		}
 	}
 
@@ -169,9 +189,9 @@ int hc_get_my_registers(ddf_dev_t *dev,
 		*io_reg_size = io_size;
 	}
 	rc = EOK;
+
 leave:
 	async_hangup(parent_phone);
-
 	return rc;
 }
 /**

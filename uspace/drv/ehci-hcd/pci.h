@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,48 +25,24 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup usb
+
+/** @addtogroup drvusbehci
  * @{
  */
 /** @file
- * @brief UHCI driver
+ * PCI related functions needed by EHCI driver.
  */
-#include <assert.h>
-#include <stdio.h>
+#ifndef DRV_EHCI_PCI_H
+#define DRV_EHCI_PCI_H
 
-#include <usb/debug.h>
+#include <ddf/driver.h>
 
-#include "port_status.h"
+int pci_get_my_registers(ddf_dev_t *, uintptr_t *, size_t *, int *);
+int pci_enable_interrupts(ddf_dev_t *);
+int pci_disable_legacy(ddf_dev_t *);
 
-struct flag_name
-{
-	uint16_t flag;
-	const char *name;
-};
-
-static const struct flag_name flags[] =
-{
-	{ STATUS_SUSPEND, "suspended" },
-	{ STATUS_IN_RESET, "in reset" },
-	{ STATUS_LOW_SPEED, "low speed device" },
-	{ STATUS_ALWAYS_ONE, "always 1 bit" },
-	{ STATUS_RESUME, "resume" },
-	{ STATUS_LINE_D_MINUS, "line D- value" },
-	{ STATUS_LINE_D_PLUS, "line D+ value" },
-	{ STATUS_ENABLED_CHANGED, "enabled changed" },
-	{ STATUS_ENABLED, "enabled" },
-	{ STATUS_CONNECTED_CHANGED, "connected changed" },
-	{ STATUS_CONNECTED, "connected" }
-};
-
-void print_port_status(port_status_t value)
-{
-	unsigned i = 0;
-	for (;i < sizeof(flags)/sizeof(struct flag_name); ++i) {
-		usb_log_debug2("\t%s status: %s.\n", flags[i].name,
-		  ((value & flags[i].flag) != 0) ? "YES" : "NO");
-	}
-}
+#endif
 /**
  * @}
  */
+

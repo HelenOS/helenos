@@ -41,7 +41,7 @@
 #include <errno.h>
 
 /** Mouse polling endpoint description for boot protocol subclass. */
-static usb_endpoint_description_t poll_endpoint_description = {
+usb_endpoint_description_t poll_endpoint_description = {
 	.transfer_type = USB_TRANSFER_INTERRUPT,
 	.direction = USB_DIRECTION_IN,
 	.interface_class = USB_CLASS_HID,
@@ -50,63 +50,15 @@ static usb_endpoint_description_t poll_endpoint_description = {
 	.flags = 0
 };
 
-/** Initialize poll pipe.
- *
- * Expects that session is already started on control pipe zero.
- *
- * @param mouse Mouse device.
- * @param my_interface Interface number.
- * @return Error code.
- */
-static int intialize_poll_pipe(usb_mouse_t *mouse, int my_interface)
-{
-	assert(usb_endpoint_pipe_is_session_started(&mouse->ctrl_pipe));
-
-	int rc;
-
-	void *config_descriptor;
-	size_t config_descriptor_size;
-
-	rc = usb_request_get_full_configuration_descriptor_alloc(
-	    &mouse->ctrl_pipe, 0, &config_descriptor, &config_descriptor_size);
-	if (rc != EOK) {
-		return rc;
-	}
-
-	usb_endpoint_mapping_t endpoint_mapping[1] = {
-		{
-			.pipe = &mouse->poll_pipe,
-			.description = &poll_endpoint_description,
-			.interface_no = my_interface
-		}
-	};
-
-	rc = usb_endpoint_pipe_initialize_from_configuration(endpoint_mapping,
-	    1, config_descriptor, config_descriptor_size, &mouse->wire);
-	if (rc != EOK) {
-		return rc;
-	}
-
-	if (!endpoint_mapping[0].present) {
-		return ENOENT;
-	}
-
-	mouse->poll_interval_us = 1000 * endpoint_mapping[0].descriptor->poll_interval;
-
-	usb_log_debug("prepared polling endpoint %d (interval %zu).\n",
-	    mouse->poll_pipe.endpoint_no, mouse->poll_interval_us);
-
-	return EOK;
-}
-
 static void default_connection_handler(ddf_fun_t *, ipc_callid_t, ipc_call_t *);
+/** Device ops for USB mouse. */
 static ddf_dev_ops_t mouse_ops = {
 	.default_handler = default_connection_handler
 };
 
 /** Default handler for IPC methods not handled by DDF.
  *
- * @param dev Device handling the call.
+ * @param fun Device function handling the call.
  * @param icallid Call id.
  * @param icall Call data.
  */
@@ -134,47 +86,26 @@ void default_connection_handler(ddf_fun_t *fun,
 	async_answer_0(icallid, EINVAL);
 }
 
-
-int usb_mouse_create(ddf_dev_t *dev)
+/** Create USB mouse device.
+ *
+ * The mouse device is stored into <code>dev-&gt;driver_data</code>.
+ *
+ * @param dev Generic device.
+ * @return Error code.
+ */
+int usb_mouse_create(usb_device_t *dev)
 {
 	usb_mouse_t *mouse = malloc(sizeof(usb_mouse_t));
 	if (mouse == NULL) {
 		return ENOMEM;
 	}
-	mouse->device = dev;
+	mouse->dev = dev;
 	mouse->console_phone = -1;
 
 	int rc;
 
-	/* Initialize the backing connection. */
-	rc = usb_device_connection_initialize_from_device(&mouse->wire, dev);
-	if (rc != EOK) {
-		goto leave;
-	}
-
-	/* Initialize the default control pipe. */
-	rc = usb_endpoint_pipe_initialize_default_control(&mouse->ctrl_pipe,
-	    &mouse->wire);
-	if (rc != EOK) {
-		goto leave;
-	}
-
-	rc = usb_endpoint_pipe_start_session(&mouse->ctrl_pipe);
-	if (rc != EOK) {
-		goto leave;
-	}
-
-	rc = intialize_poll_pipe(mouse, usb_device_get_assigned_interface(dev));
-
-	/* We can ignore error here. */
-	usb_endpoint_pipe_end_session(&mouse->ctrl_pipe);
-
-	if (rc != EOK) {
-		goto leave;
-	}
-
 	/* Create DDF function. */
-	mouse->mouse_fun = ddf_fun_create(dev, fun_exposed, "mouse");
+	mouse->mouse_fun = ddf_fun_create(dev->ddf_dev, fun_exposed, "mouse");
 	if (mouse->mouse_fun == NULL) {
 		rc = ENOMEM;
 		goto leave;

@@ -25,7 +25,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup usb
+/** @addtogroup drvusbuhcihc
  * @{
  */
 /** @file
@@ -37,28 +37,57 @@
 #include "transfer_descriptor.h"
 #include "utils/malloc32.h"
 
-void transfer_descriptor_init(transfer_descriptor_t *instance,
-    int error_count, size_t size, bool toggle, bool isochronous, bool low_speed,
-    usb_target_t target, int pid, void *buffer, transfer_descriptor_t *next)
+/** Initialize Transfer Descriptor
+ *
+ * @param[in] instance Memory place to initialize.
+ * @param[in] err_count Number of retries hc should attempt.
+ * @param[in] size Size of data source.
+ * @param[in] toggle Value of toggle bit.
+ * @param[in] iso True if TD represents Isochronous transfer.
+ * @param[in] low_speed Target device's speed.
+ * @param[in] target Address and endpoint receiving the transfer.
+ * @param[in] pid Packet identification (SETUP, IN or OUT).
+ * @param[in] buffer Source of data.
+ * @param[in] next Net TD in transaction.
+ * @return Error code.
+ *
+ * Uses a mix of supplied and default values.
+ * Implicit values:
+ *  - all TDs have vertical flag set (makes transfers to endpoints atomic)
+ *  - in the error field only active it is set
+ *  - if the packet uses PID_IN and is not isochronous SPD is set
+ *
+ * Dumps 8 bytes of buffer if PID_SETUP is used.
+ */
+void td_init(td_t *instance, int err_count, size_t size, bool toggle, bool iso,
+    bool low_speed, usb_target_t target, usb_packet_id pid, void *buffer,
+    td_t *next)
 {
 	assert(instance);
+	assert(size < 1024);
+	assert((pid == USB_PID_SETUP) || (pid == USB_PID_IN)
+	    || (pid == USB_PID_OUT));
 
 	instance->next = 0
 	    | LINK_POINTER_VERTICAL_FLAG
 	    | ((next != NULL) ? addr_to_phys(next) : LINK_POINTER_TERMINATE_FLAG);
 
 	instance->status = 0
-	  | ((error_count & TD_STATUS_ERROR_COUNT_MASK) << TD_STATUS_ERROR_COUNT_POS)
-		| (low_speed ? TD_STATUS_LOW_SPEED_FLAG : 0)
-	  | TD_STATUS_ERROR_ACTIVE;
+	    | ((err_count & TD_STATUS_ERROR_COUNT_MASK) << TD_STATUS_ERROR_COUNT_POS)
+	    | (low_speed ? TD_STATUS_LOW_SPEED_FLAG : 0)
+	    | (iso ? TD_STATUS_ISOCHRONOUS_FLAG : 0)
+	    | TD_STATUS_ERROR_ACTIVE;
 
-	assert(size < 1024);
+	if (pid == USB_PID_IN && !iso) {
+		instance->status |= TD_STATUS_SPD_FLAG;
+	}
+
 	instance->device = 0
-		| (((size - 1) & TD_DEVICE_MAXLEN_MASK) << TD_DEVICE_MAXLEN_POS)
-		| (toggle ? TD_DEVICE_DATA_TOGGLE_ONE_FLAG : 0)
-		| ((target.address & TD_DEVICE_ADDRESS_MASK) << TD_DEVICE_ADDRESS_POS)
-		| ((target.endpoint & TD_DEVICE_ENDPOINT_MASK) << TD_DEVICE_ENDPOINT_POS)
-		| ((pid & TD_DEVICE_PID_MASK) << TD_DEVICE_PID_POS);
+	    | (((size - 1) & TD_DEVICE_MAXLEN_MASK) << TD_DEVICE_MAXLEN_POS)
+	    | (toggle ? TD_DEVICE_DATA_TOGGLE_ONE_FLAG : 0)
+	    | ((target.address & TD_DEVICE_ADDRESS_MASK) << TD_DEVICE_ADDRESS_POS)
+	    | ((target.endpoint & TD_DEVICE_ENDPOINT_MASK) << TD_DEVICE_ENDPOINT_POS)
+	    | ((pid & TD_DEVICE_PID_MASK) << TD_DEVICE_PID_POS);
 
 	instance->buffer_ptr = 0;
 
@@ -66,12 +95,22 @@ void transfer_descriptor_init(transfer_descriptor_t *instance,
 		instance->buffer_ptr = (uintptr_t)addr_to_phys(buffer);
 	}
 
-	usb_log_debug2("Created TD: %X:%X:%X:%X(%p).\n",
-		instance->next, instance->status, instance->device,
-	  instance->buffer_ptr, buffer);
+	usb_log_debug2("Created TD(%p): %X:%X:%X:%X(%p).\n",
+	    instance, instance->next, instance->status, instance->device,
+	    instance->buffer_ptr, buffer);
+	td_print_status(instance);
+	if (pid == USB_PID_SETUP) {
+		usb_log_debug("SETUP BUFFER: %s\n",
+		    usb_debug_str_buffer(buffer, 8, 8));
+	}
 }
 /*----------------------------------------------------------------------------*/
-int transfer_descriptor_status(transfer_descriptor_t *instance)
+/** Convert TD status into standard error code
+ *
+ * @param[in] instance TD structure to use.
+ * @return Error code.
+ */
+int td_status(td_t *instance)
 {
 	assert(instance);
 
@@ -94,6 +133,33 @@ int transfer_descriptor_status(transfer_descriptor_t *instance)
 		return EAGAIN;
 
 	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+/** Print values in status field (dw1) in a human readable way.
+ *
+ * @param[in] instance TD structure to use.
+ */
+void td_print_status(td_t *instance)
+{
+	assert(instance);
+	const uint32_t s = instance->status;
+	usb_log_debug2("TD(%p) status(%#x):%s %d,%s%s%s%s%s%s%s%s%s%s%s %d.\n",
+	    instance, instance->status,
+	    (s & TD_STATUS_SPD_FLAG) ? " SPD," : "",
+	    (s >> TD_STATUS_ERROR_COUNT_POS) & TD_STATUS_ERROR_COUNT_MASK,
+	    (s & TD_STATUS_LOW_SPEED_FLAG) ? " LOW SPEED," : "",
+	    (s & TD_STATUS_ISOCHRONOUS_FLAG) ? " ISOCHRONOUS," : "",
+	    (s & TD_STATUS_IOC_FLAG) ? " IOC," : "",
+	    (s & TD_STATUS_ERROR_ACTIVE) ? " ACTIVE," : "",
+	    (s & TD_STATUS_ERROR_STALLED) ? " STALLED," : "",
+	    (s & TD_STATUS_ERROR_BUFFER) ? " BUFFER," : "",
+	    (s & TD_STATUS_ERROR_BABBLE) ? " BABBLE," : "",
+	    (s & TD_STATUS_ERROR_NAK) ? " NAK," : "",
+	    (s & TD_STATUS_ERROR_CRC) ? " CRC/TIMEOUT," : "",
+	    (s & TD_STATUS_ERROR_BIT_STUFF) ? " BIT_STUFF," : "",
+	    (s & TD_STATUS_ERROR_RESERVED) ? " RESERVED," : "",
+	    (s >> TD_STATUS_ACTLEN_POS) & TD_STATUS_ACTLEN_MASK
+	);
 }
 /**
  * @}

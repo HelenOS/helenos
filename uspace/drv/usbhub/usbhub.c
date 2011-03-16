@@ -117,8 +117,16 @@ static int usb_hub_init_communication(usb_hub_info_t * hub){
 	if(opResult != EOK){
 		dprintf(USB_LOG_LEVEL_ERROR,
 				"could not initialize connection to device endpoint, errno %d",opResult);
+		return opResult;
 	}
-	return opResult;
+
+	opResult = usb_endpoint_pipe_probe_default_control(&hub->endpoints.control);
+	if (opResult != EOK) {
+		dprintf(USB_LOG_LEVEL_ERROR, "failed probing endpoint 0, %d", opResult);
+		return opResult;
+	}
+
+	return EOK;
 }
 
 /**
@@ -232,6 +240,9 @@ usb_hub_info_t * usb_create_hub_info(ddf_dev_t * device) {
 	usb_hub_descriptor_t * descriptor;
 	dprintf(USB_LOG_LEVEL_DEBUG, "starting control transaction");
 	usb_endpoint_pipe_start_session(&result->endpoints.control);
+	opResult = usb_request_set_configuration(&result->endpoints.control, 1);
+	assert(opResult == EOK);
+
 	opResult = usb_request_get_descriptor(&result->endpoints.control,
 			USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_DEVICE,
 			USB_DESCTYPE_HUB,
@@ -426,6 +437,7 @@ static void usb_hub_finalize_add_device( usb_hub_info_t * hub,
 	usb_endpoint_pipe_initialize_default_control(
 			&new_device_pipe,
 			&new_device_connection);
+	usb_endpoint_pipe_probe_default_control(&new_device_pipe);
 	/// \TODO get highspeed info
 	usb_speed_t speed = isLowSpeed?USB_SPEED_LOW:USB_SPEED_FULL;
 

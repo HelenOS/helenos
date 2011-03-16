@@ -42,8 +42,7 @@
 #include <ipc/devman.h>
 #include <ddf/driver.h>
 
-/**
- * Abstraction of a physical connection to the device.
+/** Abstraction of a physical connection to the device.
  * This type is an abstraction of the USB wire that connects the host and
  * the function (device).
  */
@@ -54,8 +53,7 @@ typedef struct {
 	usb_address_t address;
 } usb_device_connection_t;
 
-/**
- * Abstraction of a logical connection to USB device endpoint.
+/** Abstraction of a logical connection to USB device endpoint.
  * It encapsulates endpoint attributes (transfer type etc.) as well
  * as information about currently running sessions.
  * This endpoint must be bound with existing usb_device_connection_t
@@ -107,10 +105,10 @@ typedef struct {
 	/** Endpoint description. */
 	const usb_endpoint_description_t *description;
 	/** Interface number the endpoint must belong to (-1 for any). */
-	const int interface_no;
+	int interface_no;
 	/** Found descriptor fitting the description. */
 	usb_standard_endpoint_descriptor_t *descriptor;
-	/** Interface the endpoint belongs to. */
+	/** Interface descriptor the endpoint belongs to. */
 	usb_standard_interface_descriptor_t *interface;
 	/** Whether the endpoint was actually found. */
 	bool present;
@@ -130,9 +128,12 @@ int usb_endpoint_pipe_initialize(usb_endpoint_pipe_t *,
     usb_endpoint_t, usb_transfer_type_t, size_t, usb_direction_t);
 int usb_endpoint_pipe_initialize_default_control(usb_endpoint_pipe_t *,
     usb_device_connection_t *);
+int usb_endpoint_pipe_probe_default_control(usb_endpoint_pipe_t *);
 int usb_endpoint_pipe_initialize_from_configuration(usb_endpoint_mapping_t *,
     size_t, uint8_t *, size_t, usb_device_connection_t *);
-
+int usb_endpoint_pipe_register(usb_endpoint_pipe_t *, unsigned int,
+    usb_hc_connection_t *);
+int usb_endpoint_pipe_unregister(usb_endpoint_pipe_t *, usb_hc_connection_t *);
 
 int usb_endpoint_pipe_start_session(usb_endpoint_pipe_t *);
 int usb_endpoint_pipe_end_session(usb_endpoint_pipe_t *);

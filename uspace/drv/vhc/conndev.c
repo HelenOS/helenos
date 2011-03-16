@@ -109,7 +109,7 @@ void default_connection_handler(ddf_fun_t *fun,
 
 /** Callback for DDF when client disconnects.
  *
- * @param d Device the client was connected to.
+ * @param fun Device function the client was connected to.
  */
 void on_client_close(ddf_fun_t *fun)
 {

@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2011 Vojtech Horky, Jan Vesely
+ * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,60 +26,73 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup drvusbuhcihc
+/** @addtogroup drvusbehci
  * @{
  */
 /** @file
- * @brief UHCI driver initialization
+ * Main routines of EHCI driver.
  */
 #include <ddf/driver.h>
+#include <ddf/interrupt.h>
+#include <device/hw_res.h>
 #include <errno.h>
 #include <str_error.h>
 
+#include <usb_iface.h>
 #include <usb/ddfiface.h>
 #include <usb/debug.h>
 
-#include "iface.h"
-#include "uhci.h"
+#include "pci.h"
 
-#define NAME "uhci-hcd"
+#define NAME "ehci-hcd"
 
-static int uhci_add_device(ddf_dev_t *device);
+static int ehci_add_device(ddf_dev_t *device);
 /*----------------------------------------------------------------------------*/
-static driver_ops_t uhci_driver_ops = {
-	.add_device = uhci_add_device,
+static driver_ops_t ehci_driver_ops = {
+	.add_device = ehci_add_device,
 };
 /*----------------------------------------------------------------------------*/
-static driver_t uhci_driver = {
+static driver_t ehci_driver = {
 	.name = NAME,
-	.driver_ops = &uhci_driver_ops
+	.driver_ops = &ehci_driver_ops
 };
 /*----------------------------------------------------------------------------*/
-/** Initialize a new ddf driver instance for uhci hc and hub.
+/** Initializes a new ddf driver instance of EHCI hcd.
  *
  * @param[in] device DDF instance of the device to initialize.
  * @return Error code.
  */
-int uhci_add_device(ddf_dev_t *device)
+static int ehci_add_device(ddf_dev_t *device)
 {
-	usb_log_info("uhci_add_device() called\n");
 	assert(device);
-	uhci_t *uhci = malloc(sizeof(uhci_t));
-	if (uhci == NULL) {
-		usb_log_error("Failed to allocate UHCI driver.\n");
-		return ENOMEM;
-	}
+#define CHECK_RET_RETURN(ret, message...) \
+if (ret != EOK) { \
+	usb_log_error(message); \
+	return ret; \
+}
 
-	int ret = uhci_init(uhci, device);
-	if (ret != EOK) {
-		usb_log_error("Failed to initialzie UHCI driver.\n");
-		return ret;
-	}
-	device->driver_data = uhci;
+	usb_log_info("uhci_add_device() called\n");
+
+	uintptr_t mem_reg_base = 0;
+	size_t mem_reg_size = 0;
+	int irq = 0;
+
+	int ret =
+	    pci_get_my_registers(device, &mem_reg_base, &mem_reg_size, &irq);
+	CHECK_RET_RETURN(ret,
+	    "Failed(%d) to get memory addresses:.\n", ret, device->handle);
+	usb_log_info("Memory mapped regs at 0x%X (size %zu), IRQ %d.\n",
+	    mem_reg_base, mem_reg_size, irq);
+
+	ret = pci_disable_legacy(device);
+	CHECK_RET_RETURN(ret,
+	    "Failed(%d) disable legacy USB: %s.\n", ret, str_error(ret));
+
 	return EOK;
+#undef CHECK_RET_RETURN
 }
 /*----------------------------------------------------------------------------*/
-/** Initialize global driver structures (NONE).
+/** Initializes global driver structures (NONE).
  *
  * @param[in] argc Nmber of arguments in argv vector (ignored).
  * @param[in] argv Cmdline argument vector (ignored).
@@ -88,10 +102,8 @@ int uhci_add_device(ddf_dev_t *device)
  */
 int main(int argc, char *argv[])
 {
-	sleep(3); /* TODO: remove in final version */
-	usb_log_enable(USB_LOG_LEVEL_DEBUG, NAME);
-
-	return ddf_driver_main(&uhci_driver);
+	usb_log_enable(USB_LOG_LEVEL_ERROR, NAME);
+	return ddf_driver_main(&ehci_driver);
 }
 /**
  * @}

@@ -55,7 +55,7 @@ usb_iface_t  usb_iface_hub_child_impl = {
 
 /** Get host controller handle, interface implementation for hub driver.
  *
- * @param[in] device Device the operation is running on.
+ * @param[in] fun Device function the operation is running on.
  * @param[out] handle Storage for the host controller handle.
  * @return Error code.
  */
@@ -68,7 +68,7 @@ int usb_iface_get_hc_handle_hub_impl(ddf_fun_t *fun, devman_handle_t *handle)
 /** Get host controller handle, interface implementation for child of
  * a hub driver.
  *
- * @param[in] device Device the operation is running on.
+ * @param[in] fun Device function the operation is running on.
  * @param[out] handle Storage for the host controller handle.
  * @return Error code.
  */
@@ -87,6 +87,8 @@ int usb_iface_get_hc_handle_hub_child_impl(ddf_fun_t *fun,
 	int rc = async_req_1_1(parent_phone, DEV_IFACE_ID(USB_DEV_IFACE),
 	    IPC_M_USB_GET_HOST_CONTROLLER_HANDLE, &hc_handle);
 
+	async_hangup(parent_phone);
+
 	if (rc != EOK) {
 		return rc;
 	}
@@ -98,7 +100,7 @@ int usb_iface_get_hc_handle_hub_child_impl(ddf_fun_t *fun,
 
 /** Get host controller handle, interface implementation for HC driver.
  *
- * @param[in] device Device the operation is running on.
+ * @param[in] fun Device function the operation is running on.
  * @param[out] handle Storage for the host controller handle.
  * @return Always EOK.
  */
@@ -115,7 +117,7 @@ int usb_iface_get_hc_handle_hc_impl(ddf_fun_t *fun, devman_handle_t *handle)
 
 /** Get USB device address, interface implementation for hub driver.
  *
- * @param[in] device Device the operation is running on.
+ * @param[in] fun Device function the operation is running on.
  * @param[in] handle Devman handle of USB device we want address of.
  * @param[out] address Storage for USB address of device with handle @p handle.
  * @return Error code.
@@ -150,7 +152,7 @@ int usb_iface_get_address_hub_impl(ddf_fun_t *fun, devman_handle_t handle,
 /** Get USB device address, interface implementation for child of
  * a hub driver.
  *
- * @param[in] device Device the operation is running on.
+ * @param[in] fun Device function the operation is running on.
  * @param[in] handle Devman handle of USB device we want address of.
  * @param[out] address Storage for USB address of device with handle @p handle.
  * @return Error code.

@@ -26,51 +26,68 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbmid
+/** @addtogroup libusb
  * @{
  */
 /** @file
- * Common definitions.
+ * USB device driver framework.
  */
+#ifndef LIBUSB_DEVDRV_H_
+#define LIBUSB_DEVDRV_H_
 
-#ifndef USBMID_H_
-#define USBMID_H_
-
-#include <ddf/driver.h>
-#include <usb/usb.h>
 #include <usb/pipes.h>
-#include <usb/debug.h>
 
-#define NAME "usbmid"
-
-/** USB MID device container. */
+/** USB device structure. */
 typedef struct {
-	/** Device container. */
-	ddf_dev_t *dev;
-
-	/** Representation of USB wire. */
-	usb_device_connection_t wire;
-	/** Default control pipe. */
+	/** The default control pipe. */
 	usb_endpoint_pipe_t ctrl_pipe;
-} usbmid_device_t;
+	/** Other endpoint pipes.
+	 * This is an array of other endpoint pipes in the same order as
+	 * in usb_driver_t.
+	 */
+	usb_endpoint_mapping_t *pipes;
+	/** Generic DDF device backing this one. */
+	ddf_dev_t *ddf_dev;
+	/** Custom driver data.
+	 * Do not use the entry in generic device, that is already used
+	 * by the framework.
+	 */
+	void *driver_data;
 
+	/** Connection backing the pipes.
+	 * Typically, you will not need to use this attribute at all.
+	 */
+	usb_device_connection_t wire;
+} usb_device_t;
 
-/** Container for single interface in a MID device. */
+/** USB driver ops. */
 typedef struct {
-	/** Function container. */
-	ddf_fun_t *fun;
+	/** Callback when new device is about to be controlled by the driver. */
+	int (*add_device)(usb_device_t *);
+} usb_driver_ops_t;
 
-	/** Interface number. */
-	int interface_no;
-} usbmid_interface_t;
+/** USB driver structure. */
+typedef struct {
+	/** Driver name.
+	 * This name is copied to the generic driver name and must be exactly
+	 * the same as the directory name where the driver executable resides.
+	 */
+	const char *name;
+	/** Expected endpoints description. */
+	usb_endpoint_description_t **endpoints;
+	/** Driver ops. */
+	usb_driver_ops_t *ops;
+} usb_driver_t;
 
-usbmid_device_t *usbmid_device_create(ddf_dev_t *);
-usbmid_interface_t *usbmid_interface_create(ddf_fun_t *, int);
-bool usbmid_explore_device(usbmid_device_t *);
-int usbmid_spawn_interface_child(usbmid_device_t *,
-    const usb_standard_device_descriptor_t *,
-    const usb_standard_interface_descriptor_t *);
-void usbmid_dump_descriptors(uint8_t *, size_t);
+int usb_driver_main(usb_driver_t *);
+
+typedef bool (*usb_polling_callback_t)(usb_device_t *,
+    uint8_t *, size_t, void *);
+typedef void (*usb_polling_terminted_callback_t)(usb_device_t *, bool, void *);
+
+
+int usb_device_auto_poll(usb_device_t *, size_t,
+    usb_polling_callback_t, size_t, usb_polling_terminted_callback_t, void *);
 
 #endif
 /**
