@@ -44,7 +44,7 @@ class TextFileDemo is
 
 		while not in_file.EOF do
 			line = in_file.ReadLine();
-			Builtin.WriteLine(name + ": " + line);
+			Console.WriteLine(name + ": " + line);
 			out_file.WriteLine(name + ": " + line);
 		end
 

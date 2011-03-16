@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jiri Svoboda
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -52,6 +52,7 @@ static void run_block(run_t *run, stree_block_t *block);
 static void run_exps(run_t *run, stree_exps_t *exps, rdata_item_t **res);
 static void run_vdecl(run_t *run, stree_vdecl_t *vdecl);
 static void run_if(run_t *run, stree_if_t *if_s);
+static void run_switch(run_t *run, stree_switch_t *switch_s);
 static void run_while(run_t *run, stree_while_t *while_s);
 static void run_raise(run_t *run, stree_raise_t *raise_s);
 static void run_break(run_t *run, stree_break_t *break_s);
@@ -141,6 +142,7 @@ void run_program(run_t *run, stree_program_t *prog)
 	run_proc_ar_create(run, main_obj, main_fun->proc, &proc_ar);
 	run_proc_ar_set_args(run, proc_ar, &main_args);
 	run_proc(run, proc_ar, &res);
+	run_proc_ar_destroy(run, proc_ar);
 
 	run_exc_check_unhandled(run);
 }
@@ -271,6 +273,9 @@ static void run_block(run_t *run, stree_block_t *block)
 	node = list_last(&proc_ar->block_ar);
 	assert(list_node_data(node, run_block_ar_t *) == block_ar);
 	list_remove(&proc_ar->block_ar, node);
+
+	/* Deallocate block activation record. */
+	run_block_ar_destroy(run, block_ar);
 }
 
 /** Run statement.
@@ -301,6 +306,9 @@ void run_stat(run_t *run, stree_stat_t *stat, rdata_item_t **res)
 		break;
 	case st_if:
 		run_if(run, stat->u.if_s);
+		break;
+	case st_switch:
+		run_switch(run, stat->u.switch_s);
 		break;
 	case st_while:
 		run_while(run, stat->u.while_s);
@@ -341,6 +349,11 @@ static void run_exps(run_t *run, stree_exps_t *exps, rdata_item_t **res)
 #endif
 	run_expr(run, exps->expr, &rexpr);
 
+	/*
+	 * If the expression has a value, the caller should have asked for it.
+	 */
+	assert(res != NULL || rexpr == NULL);
+
 	if (res != NULL)
 		*res = rexpr;
 }
@@ -354,17 +367,12 @@ static void run_vdecl(run_t *run, stree_vdecl_t *vdecl)
 {
 	run_block_ar_t *block_ar;
 	rdata_var_t *var, *old_var;
-	tdata_item_t *var_ti;
 
 #ifdef DEBUG_RUN_TRACE
 	printf("Executing variable declaration statement.\n");
 #endif
-	/* Compute variable type. XXX Memoize. */
-	run_texpr(run->program, run_get_current_csi(run), vdecl->type,
-	    &var_ti);
-
 	/* Create variable and initialize with default value. */
-	run_var_new(run, var_ti, &var);
+	run_var_new(run, vdecl->titem, &var);
 
 	block_ar = run_get_current_block_ar(run);
 	old_var = (rdata_var_t *) intmap_get(&block_ar->vars, vdecl->name->sid);
@@ -392,7 +400,7 @@ static void run_if(run_t *run, stree_if_t *if_s)
 	rdata_item_t *rcond;
 	list_node_t *ifc_node;
 	stree_if_clause_t *ifc;
-	bool_t clause_fired;
+	bool_t rcond_b, clause_fired;
 
 #ifdef DEBUG_RUN_TRACE
 	printf("Executing if statement.\n");
@@ -410,7 +418,10 @@ static void run_if(run_t *run, stree_if_t *if_s)
 		if (run_is_bo(run))
 			return;
 
-		if (run_item_boolean_value(run, rcond) == b_true) {
+		rcond_b = run_item_boolean_value(run, rcond);
+		rdata_item_destroy(rcond);
+
+		if (rcond_b == b_true) {
 #ifdef DEBUG_RUN_TRACE
 			printf("Taking non-default path.\n");
 #endif
@@ -435,6 +446,108 @@ static void run_if(run_t *run, stree_if_t *if_s)
 #endif
 }
 
+/** Run @c switch statement.
+ *
+ * @param run		Runner object
+ * @param switch_s	Switch statement to run
+ */
+static void run_switch(run_t *run, stree_switch_t *switch_s)
+{
+	rdata_item_t *rsexpr, *rsexpr_vi;
+	rdata_item_t *rwexpr, *rwexpr_vi;
+	list_node_t *whenc_node;
+	stree_when_t *whenc;
+	list_node_t *expr_node;
+	stree_expr_t *expr;
+	bool_t clause_fired;
+	bool_t equal;
+
+#ifdef DEBUG_RUN_TRACE
+	printf("Executing switch statement.\n");
+#endif
+	rsexpr_vi = NULL;
+
+	/* Evaluate switch expression */
+	run_expr(run, switch_s->expr, &rsexpr);
+	if (run_is_bo(run))
+		goto cleanup;
+
+	/* Convert to value item */
+	run_cvt_value_item(run, rsexpr, &rsexpr_vi);
+	rdata_item_destroy(rsexpr);
+	if (run_is_bo(run))
+		goto cleanup;
+
+	clause_fired = b_false;
+	whenc_node = list_first(&switch_s->when_clauses);
+
+	/* Walk through all when clauses and see if they fire. */
+
+	while (whenc_node != NULL) {
+		/* Get when clause */
+		whenc = list_node_data(whenc_node, stree_when_t *);
+
+		expr_node = list_first(&whenc->exprs);
+
+		/* Walk through all expressions in the when clause */
+		while (expr_node != NULL) {
+			/* Get expression */
+			expr = list_node_data(expr_node, stree_expr_t *);
+
+			/* Evaluate expression */
+			run_expr(run, expr, &rwexpr);
+			if (run_is_bo(run))
+				goto cleanup;
+
+			/* Convert to value item */
+			run_cvt_value_item(run, rwexpr, &rwexpr_vi);
+			rdata_item_destroy(rwexpr);
+			if (run_is_bo(run)) {
+				rdata_item_destroy(rwexpr_vi);
+				goto cleanup;
+			}
+
+			/* Check if values are equal ('==') */
+			run_equal(run, rsexpr_vi->u.value,
+			    rwexpr_vi->u.value, &equal);
+			rdata_item_destroy(rwexpr_vi);
+			if (run_is_bo(run))
+				goto cleanup;
+
+			if (equal) {
+#ifdef DEBUG_RUN_TRACE
+				printf("Taking non-default path.\n");
+#endif
+				run_block(run, whenc->block);
+				clause_fired = b_true;
+				break;
+			}
+
+			expr_node = list_next(&whenc->exprs, expr_node);
+		}
+
+		if (clause_fired)
+			break;
+
+		whenc_node = list_next(&switch_s->when_clauses, whenc_node);
+	}
+
+	/* If no when clause fired, invoke the else clause. */
+	if (clause_fired == b_false && switch_s->else_block != NULL) {
+#ifdef DEBUG_RUN_TRACE
+		printf("Taking default path.\n");
+#endif
+		run_block(run, switch_s->else_block);
+	}
+cleanup:
+	if (rsexpr_vi != NULL)
+		rdata_item_destroy(rsexpr_vi);
+
+#ifdef DEBUG_RUN_TRACE
+	printf("Switch statement terminated.\n");
+#endif
+}
+
 /** Run @c while statement.
  *
  * @param run		Runner object
@@ -452,11 +565,15 @@ static void run_while(run_t *run, stree_while_t *while_s)
 		return;
 
 	while (run_item_boolean_value(run, rcond) == b_true) {
+		rdata_item_destroy(rcond);
 		run_block(run, while_s->body);
 		run_expr(run, while_s->cond, &rcond);
 		if (run_is_bo(run))
 			break;
 	}
+
+	if (rcond != NULL)
+		rdata_item_destroy(rcond);
 
 	if (run->thread_ar->bo_mode == bm_stat) {
 		/* Bailout due to break statement */
@@ -486,11 +603,15 @@ static void run_raise(run_t *run, stree_raise_t *raise_s)
 		return;
 
 	run_cvt_value_item(run, rexpr, &rexpr_vi);
+	rdata_item_destroy(rexpr);
+	if (run_is_bo(run))
+		return;
 
 	/* Store expression cspan in thread AR. */
 	run->thread_ar->exc_cspan = raise_s->expr->cspan;
 
 	/* Store expression result in thread AR. */
+	/* XXX rexpr_vi is leaked here, we only return ->u.value */
 	run->thread_ar->exc_payload = rexpr_vi->u.value;
 
 	/* Start exception bailout. */
@@ -540,6 +661,9 @@ static void run_return(run_t *run, stree_return_t *return_s)
 			return;
 
 		run_cvt_value_item(run, rexpr, &rexpr_vi);
+		rdata_item_destroy(rexpr);
+		if (run_is_bo(run))
+			return;
 
 		/* Store expression result in procedure AR. */
 		proc_ar = run_get_current_proc_ar(run);
@@ -631,18 +755,13 @@ static void run_wef(run_t *run, stree_wef_t *wef_s)
 static bool_t run_exc_match(run_t *run, stree_except_t *except_c)
 {
 	stree_csi_t *exc_csi;
-	tdata_item_t *etype;
 
 	/* Get CSI of active exception. */
 	exc_csi = run_exc_payload_get_csi(run);
 
-	/* Evaluate type expression in except clause. */
-	run_texpr(run->program, run_get_current_csi(run), except_c->etype,
-	    &etype);
-
 	/* Determine if active exc. is derived from type in exc. clause. */
 	/* XXX This is wrong, it does not work with generics. */
-	return tdata_is_csi_derived_from_ti(exc_csi, etype);
+	return tdata_is_csi_derived_from_ti(exc_csi, except_c->titem);
 }
 
 /** Return CSI of the active exception.
@@ -1008,7 +1127,7 @@ void run_proc_ar_create(run_t *run, rdata_var_t *obj, stree_proc_t *proc,
 
 	(void) run;
 
-	/* Create function activation record. */
+	/* Create procedure activation record. */
 	proc_ar = run_proc_ar_new();
 	proc_ar->obj = obj;
 	proc_ar->proc = proc;
@@ -1023,6 +1142,33 @@ void run_proc_ar_create(run_t *run, rdata_var_t *obj, stree_proc_t *proc,
 
 	*rproc_ar = proc_ar;
 }
+
+/** Destroy a procedure AR.
+ *
+ * @param run		Runner object
+ * @param proc_ar	Pointer to procedure activation record
+ */
+void run_proc_ar_destroy(run_t *run, run_proc_ar_t *proc_ar)
+{
+	list_node_t *ar_node;
+	run_block_ar_t *block_ar;
+
+	(void) run;
+
+	/* Destroy special block activation record. */
+	ar_node = list_first(&proc_ar->block_ar);
+	block_ar = list_node_data(ar_node, run_block_ar_t *);
+	list_remove(&proc_ar->block_ar, ar_node);
+	run_block_ar_destroy(run, block_ar);
+
+	/* Destroy procedure activation record. */
+	proc_ar->obj = NULL;
+	proc_ar->proc = NULL;
+	list_fini(&proc_ar->block_ar);
+	proc_ar->retval = NULL;
+	run_proc_ar_delete(proc_ar);
+}
+
 
 /** Fill arguments in a procedure AR.
  *
@@ -1054,6 +1200,7 @@ void run_proc_ar_set_args(run_t *run, run_proc_ar_t *proc_ar, list_t *arg_vals)
 	rdata_var_t *ref_var;
 	rdata_ref_t *ref;
 	rdata_array_t *array;
+	rdata_var_t *elem_var;
 	int n_vargs, idx;
 
 	(void) run;
@@ -1146,7 +1293,8 @@ void run_proc_ar_set_args(run_t *run, run_proc_ar_t *proc_ar, list_t *arg_vals)
 			rarg = list_node_data(rarg_n, rdata_item_t *);
 			assert(rarg->ic == ic_value);
 
-			rdata_var_write(array->element[idx], rarg->u.value);
+			run_value_item_to_var(rarg, &elem_var);
+			array->element[idx] = elem_var;
 
 			rarg_n = list_next(arg_vals, rarg_n);
 			idx += 1;
@@ -1240,6 +1388,36 @@ void run_print_fun_bt(run_t *run)
 	}
 }
 
+/** Destroy a block AR.
+ *
+ * @param run		Runner object
+ * @param proc_ar	Pointer to block activation record
+ */
+void run_block_ar_destroy(run_t *run, run_block_ar_t *block_ar)
+{
+	map_elem_t *elem;
+	rdata_var_t *var;
+	int key;
+
+	(void) run;
+
+	elem = intmap_first(&block_ar->vars);
+	while (elem != NULL) {
+		/* Destroy the variable */
+		var = intmap_elem_get_value(elem);
+		rdata_var_destroy(var);
+
+		/* Remove the map element */
+		key = intmap_elem_get_key(elem);
+		intmap_set(&block_ar->vars, key, NULL);
+
+		elem = intmap_first(&block_ar->vars);
+	}
+
+	intmap_fini(&block_ar->vars);
+	run_block_ar_delete(block_ar);
+}
+
 /** Convert item to value item.
  *
  * If @a item is a value, we just return a copy. If @a item is an address,
@@ -1268,9 +1446,9 @@ void run_cvt_value_item(run_t *run, rdata_item_t *item, rdata_item_t **ritem)
 		return;
 	}
 
-	/* It already is a value, we can share the @c var. */
+	/* Make a copy of the var node within. */
 	value = rdata_value_new();
-	value->var = item->u.value->var;
+	rdata_var_copy(item->u.value->var, &value->var);
 	*ritem = rdata_item_new(ic_value);
 	(*ritem)->u.value = value;
 }
@@ -1357,6 +1535,7 @@ void run_address_read(run_t *run, rdata_address_t *address,
     rdata_item_t **ritem)
 {
 	(void) run;
+	assert(ritem != NULL);
 
 	switch (address->ac) {
 	case ac_var:
@@ -1367,7 +1546,7 @@ void run_address_read(run_t *run, rdata_address_t *address,
 		break;
 	}
 
-	assert((*ritem)->ic == ic_value);
+	assert(*ritem == NULL || (*ritem)->ic == ic_value);
 }
 
 /** Write data to an address.
@@ -1456,6 +1635,9 @@ static void run_aprop_read(run_t *run, rdata_addr_prop_t *addr_prop,
 	/* Run getter. */
 	run_proc(run, proc_ar, ritem);
 
+	/* Destroy procedure activation record. */
+	run_proc_ar_destroy(run, proc_ar);
+
 #ifdef DEBUG_RUN_TRACE
 	printf("Getter returns ");
 	rdata_item_print(*ritem);
@@ -1529,6 +1711,9 @@ static void run_aprop_write(run_t *run, rdata_addr_prop_t *addr_prop,
 	/* Setter should not return a value. */
 	assert(ritem == NULL);
 
+	/* Destroy procedure activation record. */
+	run_proc_ar_destroy(run, proc_ar);
+
 #ifdef DEBUG_RUN_TRACE
 	printf("Done writing to property.\n");
 #endif
@@ -1589,6 +1774,11 @@ void run_dereference(run_t *run, rdata_item_t *ref, cspan_t *cspan,
 	printf("run_dereference()\n");
 #endif
 	run_cvt_value_item(run, ref, &ref_val);
+	if (run_is_bo(run)) {
+		*ritem = run_recovery_item(run);
+		return;
+	}
+
 	assert(ref_val->u.value->var->vc == vc_ref);
 
 	item = rdata_item_new(ic_address);
@@ -1597,6 +1787,8 @@ void run_dereference(run_t *run, rdata_item_t *ref, cspan_t *cspan,
 	item->u.address = address;
 	address->u.var_a = addr_var;
 	addr_var->vref = ref_val->u.value->var->u.ref_v->vref;
+
+	rdata_item_destroy(ref_val);
 
 	if (addr_var->vref == NULL) {
 #ifdef DEBUG_RUN_TRACE
@@ -1839,9 +2031,8 @@ run_thread_ar_t *run_thread_ar_new(void)
 	return thread_ar;
 }
 
-/** Construct a new procedure activation record.
+/** Allocate a new procedure activation record.
  *
- * @param run	Runner object
  * @return	New procedure AR.
  */
 run_proc_ar_t *run_proc_ar_new(void)
@@ -1857,7 +2048,17 @@ run_proc_ar_t *run_proc_ar_new(void)
 	return proc_ar;
 }
 
-/** Construct a new block activation record.
+/** Deallocate a procedure activation record.
+ *
+ * @return	New procedure AR.
+ */
+void run_proc_ar_delete(run_proc_ar_t *proc_ar)
+{
+	assert(proc_ar != NULL);
+	free(proc_ar);
+}
+
+/** Allocate a new block activation record.
  *
  * @param run	Runner object
  * @return	New block AR.
@@ -1873,4 +2074,15 @@ run_block_ar_t *run_block_ar_new(void)
 	}
 
 	return block_ar;
+}
+
+/** Deallocate a new block activation record.
+ *
+ * @param run	Runner object
+ * @return	New block AR.
+ */
+void run_block_ar_delete(run_block_ar_t *block_ar)
+{
+	assert(block_ar != NULL);
+	free(block_ar);
 }
