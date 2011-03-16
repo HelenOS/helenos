@@ -148,7 +148,10 @@ void uhci_hc_init_hw(uhci_hc_t *instance)
 	do { async_usleep(10); }
 	while ((pio_read_16(&registers->usbcmd) & UHCI_CMD_HCRESET) != 0);
 
-	/* Set framelist pointer */
+	/* Set frame to exactly 1ms */
+	pio_write_8(&registers->sofmod, 64);
+
+	/* Set frame list pointer */
 	const uint32_t pa = addr_to_phys(instance->frame_list);
 	pio_write_32(&registers->flbaseadd, pa);
 
