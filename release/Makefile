@@ -57,7 +57,7 @@ else
 	RELEASE_FILE = HelenOS-$(RELEASE)-$(PLATFORM)-$(MACHINE)-$(PROCESSOR)$(SUFFIX)
 endif
 
-.PHONY: all clean release releasefile export srcrel
+.PHONY: all clean release releasefile export src_rel
 
 all: releasefile
 releasefile: $(RELEASE_FILE)
