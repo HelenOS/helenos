@@ -44,7 +44,8 @@ static LIST_INITIALIZE(inst_list);
 static FIBRIL_MUTEX_INITIALIZE(inst_list_mutex);
 
 libfs_ops_t mfs_libfs_ops = {
-	.device_get = mfs_device_get
+	.device_get = mfs_device_get,
+	.is_directory = mfs_is_directory
 };
 
 void mfs_mounted(ipc_callid_t rid, ipc_call_t *request)
@@ -199,6 +200,17 @@ devmap_handle_t mfs_device_get(fs_node_t *fsnode)
 {
 	struct mfs_node *node = fsnode->data;
 	return node->instance->handle;
+}
+
+bool mfs_is_directory(fs_node_t *fsnode)
+{
+	struct mfs_node *node = fsnode->data;
+	struct mfs_sb_info *sbi = node->instance->sbi;
+
+	if (sbi->fs_version == MFS_VERSION_V1)
+		return S_ISDIR(node->ino->i_mode);
+	else
+		return S_ISDIR(node->ino2->i_mode);
 }
 
 /*
