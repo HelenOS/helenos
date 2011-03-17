@@ -107,8 +107,13 @@ extern int  mfs_get_instance(devmap_handle_t handle,
 				struct mfs_instance **instance);
 
 /*mfs_inode.c*/
+extern
 struct mfs_inode *mfs_read_inode_raw(const struct mfs_instance *instance, 
+					uint16_t inum);
+extern
+struct mfs2_inode *mfs2_read_inode_raw(const struct mfs_instance *instance,
 					uint32_t inum);
+
 
 #endif
 
