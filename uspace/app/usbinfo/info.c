@@ -40,6 +40,7 @@
 #include <usb/recognise.h>
 #include <usb/request.h>
 #include <usb/classes/classes.h>
+#include <usb/classes/hid.h>
 #include "usbinfo.h"
 
 void dump_short_device_identification(usbinfo_device_t *dev)
@@ -143,6 +144,14 @@ static void dump_descriptor_tree_brief_endpoint(const char *prefix,
 	    (size_t) descriptor->max_packet_size);
 }
 
+static void dump_descriptor_tree_brief_hid(const char *prefix,
+    usb_standard_hid_descriptor_t *descriptor)
+{
+	printf("%sHID (country %d, %d descriptors)\n", prefix,
+	    (int) descriptor->country_code,
+	    (int) descriptor->class_desc_count);
+}
+
 
 static void dump_descriptor_tree_brief_callback(uint8_t *descriptor,
     size_t depth, void *arg)
@@ -178,6 +187,9 @@ static void dump_descriptor_tree_brief_callback(uint8_t *descriptor,
 		_BRANCH(USB_DESCTYPE_ENDPOINT,
 		    usb_standard_endpoint_descriptor_t,
 		    dump_descriptor_tree_brief_endpoint);
+		_BRANCH(USB_DESCTYPE_HID,
+		    usb_standard_hid_descriptor_t,
+		    dump_descriptor_tree_brief_hid);
 
 		default:
 			break;
