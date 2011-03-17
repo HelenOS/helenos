@@ -46,17 +46,6 @@
 #include <usb/pipes.h>
 #include "usbinfo.h"
 
-static void print_usage(char *app_name)
-{
-#define INDENT "      "
-	printf(NAME ": query USB devices for descriptors\n\n");
-	printf("Usage: %s [options] device [device [device [ ... ]]]\n",
-	    app_name);
-	printf(INDENT "The device is a devman path to the device.\n");
-	printf("\n");
-#undef INDENT
-}
-
 static bool resolve_hc_handle_and_dev_addr(const char *devpath,
     devman_handle_t *out_hc_handle, usb_address_t *out_device_address)
 {
@@ -129,13 +118,38 @@ static bool resolve_hc_handle_and_dev_addr(const char *devpath,
 	}
 }
 
+static void print_usage(char *app_name)
+{
+#define _INDENT "      "
+#define _OPTION(opt, description) \
+	printf(_INDENT opt "\n" _INDENT _INDENT description "\n")
+
+	printf(NAME ": query USB devices for descriptors\n\n");
+	printf("Usage: %s [options] device [device [device [ ... ]]]\n",
+	    app_name);
+	printf(_INDENT "The device is a devman path to the device.\n");
+
+	_OPTION("-h --help", "Print this help and exit.");
+	_OPTION("-i --identification", "Brief device identification.");
+	_OPTION("-m --match-ids", "Print match ids generated for the device.");
+	_OPTION("-t --descriptor-tree", "Print descriptor tree.");
+
+	printf("\n");
+	printf("If no option is specified, `-i' is considered default.\n");
+	printf("\n");
+
+#undef _OPTION
+#undef _INDENT
+}
+
 static struct option long_options[] = {
 	{"help", no_argument, NULL, 'h'},
 	{"identification", no_argument, NULL, 'i'},
 	{"match-ids", no_argument, NULL, 'm'},
+	{"descriptor-tree", no_argument, NULL, 't'},
 	{0, 0, NULL, 0}
 };
-static const char *short_options = "him";
+static const char *short_options = "himt";
 
 int main(int argc, char *argv[])
 {
@@ -146,6 +160,7 @@ int main(int argc, char *argv[])
 
 	bool action_print_short_identification = false;
 	bool action_print_match_ids = false;
+	bool action_print_descriptor_tree = false;
 
 	/*
 	 * Process command-line options. They determine what shall be
@@ -170,13 +185,19 @@ int main(int argc, char *argv[])
 			case 'm':
 				action_print_match_ids = true;
 				break;
+			case 't':
+				action_print_descriptor_tree = true;
+				break;
 			default:
+				assert(false && "unreachable code");
 				break;
 		}
 	} while (opt > 0);
 
 	/* Set the default action. */
-	if (!action_print_match_ids && !action_print_short_identification) {
+	if (!action_print_match_ids
+	    && !action_print_short_identification
+	    && !action_print_descriptor_tree) {
 		action_print_short_identification = true;
 	}
 
@@ -213,6 +234,9 @@ int main(int argc, char *argv[])
 		}
 		if (action_print_match_ids) {
 			dump_device_match_ids(dev);
+		}
+		if (action_print_descriptor_tree) {
+			dump_descriptor_tree_brief(dev);
 		}
 
 		/* Destroy the control pipe (close the session etc.). */

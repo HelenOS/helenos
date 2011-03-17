@@ -39,6 +39,7 @@
 #include <usb/pipes.h>
 #include <usb/recognise.h>
 #include <usb/request.h>
+#include <usb/classes/classes.h>
 #include "usbinfo.h"
 
 void dump_short_device_identification(usbinfo_device_t *dev)
@@ -55,6 +56,102 @@ void dump_device_match_ids(usbinfo_device_t *dev)
 	usb_device_create_match_ids_from_device_descriptor(
 	    &dev->device_descriptor, &matches);
 	dump_match_ids(&matches, get_indent(0));
+}
+
+static void dump_descriptor_tree_brief_device(const char *prefix,
+    usb_standard_device_descriptor_t *descriptor)
+{
+	printf("%sDevice (0x%04x by 0x%04x, %s)\n", prefix,
+	    (int) descriptor->product_id,
+	    (int) descriptor->vendor_id,
+	    usb_str_class(descriptor->device_class));
+}
+
+static void dump_descriptor_tree_brief_configuration(const char *prefix,
+    usb_standard_configuration_descriptor_t *descriptor)
+{
+	printf("%sConfiguration #%d\n", prefix,
+	    (int) descriptor->configuration_number);
+}
+
+static void dump_descriptor_tree_brief_interface(const char *prefix,
+    usb_standard_interface_descriptor_t *descriptor)
+{
+	printf("%sInterface #%d (%s, 0x%02x, 0x%02x)\n", prefix,
+	    (int) descriptor->interface_number,
+	    usb_str_class(descriptor->interface_class),
+	    (int) descriptor->interface_subclass,
+	    (int) descriptor->interface_protocol);
+}
+
+static void dump_descriptor_tree_brief_endpoint(const char *prefix,
+    usb_standard_endpoint_descriptor_t *descriptor)
+{
+	usb_endpoint_t endpoint_no = descriptor->endpoint_address & 0xF;
+	usb_transfer_type_t transfer = descriptor->attributes & 0x3;
+	usb_direction_t direction = descriptor->endpoint_address & 0x80
+	    ? USB_DIRECTION_IN : USB_DIRECTION_OUT;
+	printf("%sEndpoint #%d (%s %s, %zu)\n", prefix,
+	    endpoint_no, usb_str_transfer_type(transfer),
+	    direction == USB_DIRECTION_IN ? "in" : "out",
+	    (size_t) descriptor->max_packet_size);
+}
+
+
+static void dump_descriptor_tree_brief_callback(uint8_t *descriptor,
+    size_t depth, void *arg)
+{
+	const char *indent = get_indent(depth);
+
+	int descr_type = -1;
+	size_t descr_size = descriptor[0];
+	if (descr_size > 0) {
+		descr_type = descriptor[1];
+	}
+
+	switch (descr_type) {
+
+#define _BRANCH(type_enum, descriptor_type, callback) \
+	case type_enum: \
+		if (descr_size >= sizeof(descriptor_type)) { \
+			callback(indent, (descriptor_type *) descriptor); \
+		} else { \
+			descr_type = -1; \
+		} \
+		break;
+
+		_BRANCH(USB_DESCTYPE_DEVICE,
+		    usb_standard_device_descriptor_t,
+		    dump_descriptor_tree_brief_device);
+		_BRANCH(USB_DESCTYPE_CONFIGURATION,
+		    usb_standard_configuration_descriptor_t,
+		    dump_descriptor_tree_brief_configuration);
+		_BRANCH(USB_DESCTYPE_INTERFACE,
+		    usb_standard_interface_descriptor_t,
+		    dump_descriptor_tree_brief_interface);
+		_BRANCH(USB_DESCTYPE_ENDPOINT,
+		    usb_standard_endpoint_descriptor_t,
+		    dump_descriptor_tree_brief_endpoint);
+
+		default:
+			break;
+	}
+
+	if (descr_type == -1) {
+		printf("%sInvalid descriptor.\n", indent);
+	}
+}
+
+void dump_descriptor_tree_brief(usbinfo_device_t *dev)
+{
+	dump_descriptor_tree_brief_callback((uint8_t *)&dev->device_descriptor,
+	    0, NULL);
+	browse_descriptor_tree(dev->full_configuration_descriptor,
+	    dev->full_configuration_descriptor_size,
+	    usb_dp_standard_descriptor_nesting,
+	    dump_descriptor_tree_brief_callback,
+	    1,
+	    NULL);
 }
 
 int dump_device(devman_handle_t hc_handle, usb_address_t address)

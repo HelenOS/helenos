@@ -92,6 +92,16 @@ usbinfo_device_t *prepare_device(devman_handle_t hc_handle,
 		goto leave;
 	}
 
+	rc = usb_request_get_full_configuration_descriptor_alloc(
+	    &dev->ctrl_pipe, 0, (void **)&dev->full_configuration_descriptor,
+	    &dev->full_configuration_descriptor_size);
+	if (rc != EOK) {
+		fprintf(stderr,
+		    NAME ": failed to retrieve configuration descriptor: %s.\n",
+		    str_error(rc));
+		goto leave;
+	}
+
 	return dev;
 
 
