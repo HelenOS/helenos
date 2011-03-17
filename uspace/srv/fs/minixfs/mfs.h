@@ -35,6 +35,7 @@
 
 #include <minix.h>
 #include <libblock.h>
+#include <libfs.h>
 #include <adt/list.h>
 #include "../../vfs/vfs.h"
 
@@ -45,6 +46,14 @@
 #else
 #define mfsdebug(...)
 #endif
+
+#ifdef _MAIN
+#define GLOBAL
+#else
+#define GLOBAL extern
+#endif
+
+GLOBAL fs_reg_t mfs_reg;
 
 typedef enum {
 	MFS_VERSION_V1 = 1,
@@ -79,6 +88,9 @@ struct mfs_instance {
 };
 
 extern void mfs_mounted(ipc_callid_t rid, ipc_call_t *request);
+extern void mfs_mount(ipc_callid_t rid, ipc_call_t *request);
+extern int  mfs_get_instance(devmap_handle_t handle,
+				struct mfs_instance **instance);
 
 #endif
 

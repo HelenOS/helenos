@@ -37,6 +37,8 @@
  * @brief	Minix file system driver for HelenOS.
  */
 
+#define _MAIN
+
 #include <ipc/services.h>
 #include <ipc/ns.h>
 #include <async.h>
@@ -44,7 +46,6 @@
 #include <unistd.h>
 #include <task.h>
 #include <stdio.h>
-#include <libfs.h>
 #include "mfs.h"
 
 #define NAME	"mfs"
@@ -54,9 +55,6 @@ vfs_info_t mfs_vfs_info = {
 	.concurrent_read_write = false,
 	.write_retains_size = false,	
 };
-
-fs_reg_t mfs_reg;
-
 
 
 /**
@@ -103,7 +101,7 @@ static void mfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 			mfs_mounted(callid, &call);
 			break;
 		case VFS_OUT_MOUNT:
-			mfsdebug("Mounting...\n");
+			mfs_mount(callid, &call);
 			break;
 		default:
 			async_answer_0(callid, ENOTSUP);

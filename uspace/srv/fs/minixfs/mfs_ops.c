@@ -30,13 +30,10 @@
  * @{
  */
 
-#include <libfs.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <libblock.h>
 #include <fibril_synch.h>
 #include <errno.h>
-#include <adt/list.h>
 #include "mfs.h"
 #include "mfs_utils.h"
 #include "../../vfs/vfs.h"
@@ -46,6 +43,8 @@ static bool check_magic_number(uint16_t magic, bool *native,
 
 static LIST_INITIALIZE(inst_list);
 static FIBRIL_MUTEX_INITIALIZE(inst_list_mutex);
+
+libfs_ops_t mfs_libfs_ops;
 
 void mfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 {
@@ -160,11 +159,21 @@ recognized:
 		sbi->log2_zone_size = conv16(native, sb->s_log2_zone_size);
 		sbi->max_file_size = conv32(native, sb->s_max_file_size);
 		sbi->nzones = conv16(native, sb->s_nzones);
+		sbi->block_size = MFS_BLOCKSIZE;
 		if (version == MFS_VERSION_V2)
 			sbi->nzones = conv32(native, sb->s_nzones2);
 	}
  
 	free(sb);
+
+	rc = block_cache_init(devmap_handle, sbi->block_size, 0, CACHE_MODE_WT);
+
+	if (rc != EOK) {
+		block_fini(devmap_handle);
+		async_answer_0(rid, EINVAL);
+		mfsdebug("block cache initialization failed\n");
+		return;
+	}
 
 	/*Initialize the instance structure and add it to the list*/
 	link_initialize(&instance->link);
@@ -178,6 +187,37 @@ recognized:
 	mfsdebug("mount successful\n");
 
 	async_answer_0(rid, EOK);
+}
+
+void mfs_mount(ipc_callid_t rid, ipc_call_t *request)
+{
+	libfs_mount(&mfs_libfs_ops, mfs_reg.fs_handle, rid, request);
+}
+
+/*
+ * Find a filesystem instance given the devmap handle
+ */
+int mfs_get_instance(devmap_handle_t handle, struct mfs_instance **instance)
+{
+	link_t *link;
+	struct mfs_instance *instance_ptr;
+
+	fibril_mutex_lock(&inst_list_mutex);
+
+	for (link = inst_list.next; link != &inst_list; link = link->next) {
+		instance_ptr = list_get_instance(link, struct mfs_instance, link);
+		
+		if (instance_ptr->handle == handle) {
+			*instance = instance_ptr;
+			fibril_mutex_unlock(&inst_list_mutex);
+			return EOK;
+		}
+	}
+
+	mfsdebug("Instance not found\n");
+
+	fibril_mutex_unlock(&inst_list_mutex);
+	return EINVAL;
 }
 
 static bool check_magic_number(uint16_t magic, bool *native,
@@ -211,7 +251,6 @@ static bool check_magic_number(uint16_t magic, bool *native,
 
 	return false;
 }
-
 
 /**
  * @}
