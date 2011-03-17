@@ -34,6 +34,8 @@
 #define _MFS_H_
 
 #include <minix.h>
+#include <libblock.h>
+#include <adt/list.h>
 #include "../../vfs/vfs.h"
 
 #define DEBUG_MODE
@@ -46,11 +48,35 @@
 
 typedef enum {
 	MFS_VERSION_V1 = 1,
-	MFS_VERSION_V1L,
 	MFS_VERSION_V2,
-	MFS_VERSION_V2L,
 	MFS_VERSION_V3
 } mfs_version_t;
+
+/*Generic MinixFS superblock*/
+struct mfs_sb_info {
+	uint32_t ninodes;
+	uint32_t nzones;
+	unsigned long ibmap_blocks;
+	unsigned long zbmap_blocks;
+	unsigned long firstdatazone;
+	unsigned long itable_size;
+	int log2_zone_size;
+	int ino_per_block;
+	int dirsize;
+	int block_size;
+	int fs_version;
+	uint32_t max_file_size;
+	uint16_t magic;
+	uint16_t state;
+	bool long_names;
+	bool native;
+};
+
+struct mfs_instance {
+	link_t link;
+	devmap_handle_t handle;
+	struct mfs_sb_info *sbi;
+};
 
 extern void mfs_mounted(ipc_callid_t rid, ipc_call_t *request);
 

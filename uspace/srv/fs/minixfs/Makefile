@@ -34,7 +34,7 @@ BINARY = mfs
 
 SOURCES = \
 	mfs.c \
-	mfs_super.c \
+	mfs_ops.c \
 	mfs_utils.c
 
 include $(USPACE_PREFIX)/Makefile.common

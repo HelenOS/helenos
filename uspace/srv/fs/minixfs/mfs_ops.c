@@ -34,8 +34,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <libblock.h>
+#include <fibril_synch.h>
 #include <errno.h>
-#include <str.h>
+#include <adt/list.h>
 #include "mfs.h"
 #include "mfs_utils.h"
 #include "../../vfs/vfs.h"
@@ -43,12 +44,17 @@
 static bool check_magic_number(uint16_t magic, bool *native,
 				mfs_version_t *version, bool *longfilenames);
 
+static LIST_INITIALIZE(inst_list);
+static FIBRIL_MUTEX_INITIALIZE(inst_list_mutex);
+
 void mfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 {
 	devmap_handle_t devmap_handle = (devmap_handle_t) IPC_GET_ARG1(*request);
 	enum cache_mode cmode;	
-	struct mfs_superblock *sp;
-	struct mfs3_superblock *sp3;
+	struct mfs_superblock *sb;
+	struct mfs3_superblock *sb3;
+	struct mfs_sb_info *sbi;
+	struct mfs_instance *instance;
 	bool native, longnames;
 	mfs_version_t version;
 	uint16_t magic;
@@ -79,36 +85,99 @@ void mfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 
-	sp = (struct mfs_superblock *) malloc(MFS_SUPERBLOCK_SIZE);
+	/*Allocate space for generic MFS superblock*/
+	sbi = (struct mfs_sb_info *) malloc(sizeof(struct mfs_sb_info));
+
+	if (!sbi) {
+		async_answer_0(rid, ENOMEM);
+		return;
+	}
+
+	/*Allocate space for filesystem instance*/
+	instance = (struct mfs_instance *) malloc(sizeof(struct mfs_instance));
+
+	if (!instance) {
+		async_answer_0(rid, ENOMEM);
+		return;
+	}
+
+	sb = (struct mfs_superblock *) malloc(MFS_SUPERBLOCK_SIZE);
+
+	if (!sb) {
+		async_answer_0(rid, ENOMEM);
+		return;
+	}
 
 	/* Read the superblock */
-	rc = block_read_direct(devmap_handle, MFS_SUPERBLOCK << 1, 1, sp);
+	rc = block_read_direct(devmap_handle, MFS_SUPERBLOCK << 1, 1, sb);
 	if (rc != EOK) {
 		block_fini(devmap_handle);
 		async_answer_0(rid, rc);
 		return;
 	}
 
-	if (check_magic_number(sp->s_magic, &native, &version, &longnames)) {
-		magic = sp->s_magic;
+	sb3 = (struct mfs3_superblock *) sb;
+
+	if (check_magic_number(sb->s_magic, &native, &version, &longnames)) {
+		magic = sb->s_magic;
 		goto recognized;
 	}
 
-	sp3 = (struct mfs3_superblock *) sp;
-
-	if (!check_magic_number(sp3->s_magic, &native, &version, &longnames)) {
+	if (!check_magic_number(sb3->s_magic, &native, &version, &longnames)) {
 		mfsdebug("magic number not recognized\n");
 		block_fini(devmap_handle);
 		async_answer_0(rid, ENOTSUP);
 		return;
 	}
 
-	magic = sp3->s_magic;
+	magic = sb3->s_magic;
 
 recognized:
 
 	mfsdebug("magic number recognized = %04x\n", magic);
-	free(sp);
+
+	/*Fill superblock info structure*/
+
+	sbi->fs_version = version;
+	sbi->long_names = longnames;
+	sbi->native = native;
+	sbi->magic = magic;
+
+	if (version == MFS_VERSION_V3) {
+		sbi->ninodes = conv32(native, sb3->s_ninodes);
+		sbi->ibmap_blocks = conv16(native, sb3->s_ibmap_blocks);
+		sbi->zbmap_blocks = conv16(native, sb3->s_zbmap_blocks);
+		sbi->firstdatazone = conv16(native, sb3->s_first_data_zone);
+		sbi->log2_zone_size = conv16(native, sb3->s_log2_zone_size);
+		sbi->max_file_size = conv32(native, sb3->s_max_file_size);
+		sbi->nzones = conv32(native, sb3->s_nzones);
+		sbi->block_size = conv16(native, sb3->s_block_size);
+	} else {
+		sbi->ninodes = conv16(native, sb->s_ninodes);
+		sbi->ibmap_blocks = conv16(native, sb->s_ibmap_blocks);
+		sbi->zbmap_blocks = conv16(native, sb->s_zbmap_blocks);
+		sbi->firstdatazone = conv16(native, sb->s_first_data_zone);
+		sbi->log2_zone_size = conv16(native, sb->s_log2_zone_size);
+		sbi->max_file_size = conv32(native, sb->s_max_file_size);
+		sbi->nzones = conv16(native, sb->s_nzones);
+		if (version == MFS_VERSION_V2)
+			sbi->nzones = conv32(native, sb->s_nzones2);
+	}
+ 
+	free(sb);
+
+	/*Initialize the instance structure and add it to the list*/
+	link_initialize(&instance->link);
+	instance->handle = devmap_handle;
+	instance->sbi = sbi;
+
+	fibril_mutex_lock(&inst_list_mutex);
+	list_append(&instance->link, &inst_list);
+	fibril_mutex_unlock(&inst_list_mutex);
+
+	mfsdebug("mount successful\n");
+
+	async_answer_0(rid, EOK);
 }
 
 static bool check_magic_number(uint16_t magic, bool *native,
