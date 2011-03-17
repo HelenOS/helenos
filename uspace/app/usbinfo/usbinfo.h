@@ -50,6 +50,13 @@ typedef struct {
 	size_t full_configuration_descriptor_size;
 } usbinfo_device_t;
 
+typedef struct {
+	int opt;
+	void (*action)(usbinfo_device_t *dev);
+	bool active;
+} usbinfo_action_t;
+
+
 #define NAME "usbinfo"
 
 void dump_buffer(const char *, size_t, const uint8_t *, size_t);

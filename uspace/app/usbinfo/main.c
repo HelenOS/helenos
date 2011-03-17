@@ -153,17 +153,38 @@ static struct option long_options[] = {
 };
 static const char *short_options = "himts";
 
+static usbinfo_action_t actions[] = {
+	{
+		.opt = 'i',
+		.action = dump_short_device_identification,
+		.active = false
+	},
+	{
+		.opt = 'm',
+		.action = dump_device_match_ids,
+		.active = false
+	},
+	{
+		.opt = 't',
+		.action = dump_descriptor_tree_brief,
+		.active = false
+	},
+	{
+		.opt = 's',
+		.action = dump_strings,
+		.active = false
+	},
+	{
+		.opt = 0
+	}
+};
+
 int main(int argc, char *argv[])
 {
 	if (argc <= 1) {
 		print_usage(argv[0]);
 		return -1;
 	}
-
-	bool action_print_short_identification = false;
-	bool action_print_match_ids = false;
-	bool action_print_descriptor_tree = false;
-	bool action_print_strings = false;
 
 	/*
 	 * Process command-line options. They determine what shall be
@@ -182,30 +203,32 @@ int main(int argc, char *argv[])
 			case 'h':
 				print_usage(argv[0]);
 				return 0;
-			case 'i':
-				action_print_short_identification = true;
+			default: {
+				int idx = 0;
+				while (actions[idx].opt != 0) {
+					if (actions[idx].opt == opt) {
+						actions[idx].active = true;
+						break;
+					}
+					idx++;
+				}
 				break;
-			case 'm':
-				action_print_match_ids = true;
-				break;
-			case 't':
-				action_print_descriptor_tree = true;
-				break;
-			case 's':
-				action_print_strings = true;
-				break;
-			default:
-				assert(false && "unreachable code");
-				break;
+			}
 		}
 	} while (opt > 0);
 
 	/* Set the default action. */
-	if (!action_print_match_ids
-	    && !action_print_short_identification
-	    && !action_print_strings
-	    && !action_print_descriptor_tree) {
-		action_print_short_identification = true;
+	int idx = 0;
+	bool something_active = false;
+	while (actions[idx].opt != 0) {
+		if (actions[idx].active) {
+			something_active = true;
+			break;
+		}
+		idx++;
+	}
+	if (!something_active) {
+		actions[0].active = true;
 	}
 
 	/*
@@ -236,17 +259,12 @@ int main(int argc, char *argv[])
 		/* Run actions the user specified. */
 		printf("%s\n", devpath);
 
-		if (action_print_short_identification) {
-			dump_short_device_identification(dev);
-		}
-		if (action_print_match_ids) {
-			dump_device_match_ids(dev);
-		}
-		if (action_print_descriptor_tree) {
-			dump_descriptor_tree_brief(dev);
-		}
-		if (action_print_strings) {
-			dump_strings(dev);
+		int action = 0;
+		while (actions[action].opt != 0) {
+			if (actions[action].active) {
+				actions[action].action(dev);
+			}
+			action++;
 		}
 
 		/* Destroy the control pipe (close the session etc.). */
