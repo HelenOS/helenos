@@ -133,6 +133,7 @@ static void print_usage(char *app_name)
 	_OPTION("-i --identification", "Brief device identification.");
 	_OPTION("-m --match-ids", "Print match ids generated for the device.");
 	_OPTION("-t --descriptor-tree", "Print descriptor tree.");
+	_OPTION("-s --strings", "Try to print all string descriptors.");
 
 	printf("\n");
 	printf("If no option is specified, `-i' is considered default.\n");
@@ -147,9 +148,10 @@ static struct option long_options[] = {
 	{"identification", no_argument, NULL, 'i'},
 	{"match-ids", no_argument, NULL, 'm'},
 	{"descriptor-tree", no_argument, NULL, 't'},
+	{"strings", no_argument, NULL, 's'},
 	{0, 0, NULL, 0}
 };
-static const char *short_options = "himt";
+static const char *short_options = "himts";
 
 int main(int argc, char *argv[])
 {
@@ -161,6 +163,7 @@ int main(int argc, char *argv[])
 	bool action_print_short_identification = false;
 	bool action_print_match_ids = false;
 	bool action_print_descriptor_tree = false;
+	bool action_print_strings = false;
 
 	/*
 	 * Process command-line options. They determine what shall be
@@ -188,6 +191,9 @@ int main(int argc, char *argv[])
 			case 't':
 				action_print_descriptor_tree = true;
 				break;
+			case 's':
+				action_print_strings = true;
+				break;
 			default:
 				assert(false && "unreachable code");
 				break;
@@ -197,6 +203,7 @@ int main(int argc, char *argv[])
 	/* Set the default action. */
 	if (!action_print_match_ids
 	    && !action_print_short_identification
+	    && !action_print_strings
 	    && !action_print_descriptor_tree) {
 		action_print_short_identification = true;
 	}
@@ -237,6 +244,9 @@ int main(int argc, char *argv[])
 		}
 		if (action_print_descriptor_tree) {
 			dump_descriptor_tree_brief(dev);
+		}
+		if (action_print_strings) {
+			dump_strings(dev);
 		}
 
 		/* Destroy the control pipe (close the session etc.). */

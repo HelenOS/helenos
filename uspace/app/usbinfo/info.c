@@ -199,6 +199,52 @@ void dump_descriptor_tree_brief(usbinfo_device_t *dev)
 	    NULL);
 }
 
+void dump_strings(usbinfo_device_t *dev)
+{
+	/* Get supported languages. */
+	l18_win_locales_t *langs;
+	size_t langs_count;
+	int rc = usb_request_get_supported_languages(&dev->ctrl_pipe,
+	    &langs, &langs_count);
+	if (rc != EOK) {
+		fprintf(stderr,
+		    NAME ": failed to get list of supported languages: %s.\n",
+		    str_error(rc));
+		return;
+	}
+
+	printf("%sString languages (%zu):", get_indent(0), langs_count);
+	size_t i;
+	for (i = 0; i < langs_count; i++) {
+		printf(" 0x%04x", (int) langs[i]);
+	}
+	printf(".\n");
+
+	/* Get all strings and dump them. */
+	for (i = 0; i < langs_count; i++) {
+		l18_win_locales_t lang = langs[i];
+
+		printf("%sStrings for language 0x%04x:\n", get_indent(0),
+		    (int) lang);
+		/*
+		 * Try only the first 15 strings
+		 * (typically, device will not have much more anyway).
+		 */
+		size_t idx;
+		for (idx = 1; idx < 0x0F; idx++) {
+			char *string;
+			rc = usb_request_get_string(&dev->ctrl_pipe, idx, lang,
+			    &string);
+			if (rc != EOK) {
+				continue;
+			}
+			printf("%sString #%zu: \"%s\"\n", get_indent(1),
+			    idx, string);
+			free(string);
+		}
+	}
+}
+
 int dump_device(devman_handle_t hc_handle, usb_address_t address)
 {
 	int rc;
