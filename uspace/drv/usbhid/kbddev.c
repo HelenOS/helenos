@@ -458,7 +458,7 @@ static void usbhid_kbd_check_key_changes(usbhid_kbd_t *kbd_dev,
 			    key_codes[i]);
 			usbhid_kbd_push_ev(kbd_dev, KEY_PRESS, key);
 			usbhid_kbd_repeat_start(kbd_dev, key);
-		} else {size_t
+		} else {
 			// found, nothing happens
 		}
 	}

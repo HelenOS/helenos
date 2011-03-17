@@ -25,11 +25,11 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup usb
+/** @addtogroup drvusbuhcihc
  * @{
  */
 /** @file
- * @brief UHCI driver
+ * @brief UHCI driver USB transaction structure
  */
 #ifndef DRV_UHCI_BATCH_H
 #define DRV_UHCI_BATCH_H
@@ -49,10 +49,8 @@ typedef struct batch
 	usb_speed_t speed;
 	usb_target_t target;
 	usb_transfer_type_t transfer_type;
-	union {
-		usbhc_iface_transfer_in_callback_t callback_in;
-		usbhc_iface_transfer_out_callback_t callback_out;
-	};
+	usbhc_iface_transfer_in_callback_t callback_in;
+	usbhc_iface_transfer_out_callback_t callback_out;
 	void *arg;
 	char *transport_buffer;
 	char *setup_buffer;
@@ -64,7 +62,7 @@ typedef struct batch
 	size_t transfered_size;
 	int error;
 	ddf_fun_t *fun;
-	queue_head_t *qh;
+	qh_t *qh;
 	td_t *tds;
 	void (*next_step)(struct batch*);
 	device_keeper_t *manager;
@@ -78,6 +76,8 @@ batch_t * batch_get(ddf_fun_t *fun, usb_target_t target,
     usbhc_iface_transfer_out_callback_t func_out, void *arg,
 		device_keeper_t *manager
 		);
+
+void batch_dispose(batch_t *instance);
 
 bool batch_is_complete(batch_t *instance);
 

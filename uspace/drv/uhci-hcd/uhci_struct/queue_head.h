@@ -1,4 +1,3 @@
-
 /*
  * Copyright (c) 2010 Jan Vesely
  * All rights reserved.
@@ -26,7 +25,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup usb
+/** @addtogroup drv usbuhcihc
  * @{
  */
 /** @file
@@ -42,38 +41,76 @@
 #include "utils/malloc32.h"
 
 typedef struct queue_head {
-	volatile link_pointer_t next_queue;
+	volatile link_pointer_t next;
 	volatile link_pointer_t element;
-} __attribute__((packed)) queue_head_t;
-
-static inline void queue_head_init(queue_head_t *instance)
+} __attribute__((packed)) qh_t;
+/*----------------------------------------------------------------------------*/
+/** Initialize queue head structure
+ *
+ * @param[in] instance qh_t structure to initialize.
+ *
+ * Sets both pointer to terminal NULL.
+ */
+static inline void qh_init(qh_t *instance)
 {
 	assert(instance);
 
 	instance->element = 0 | LINK_POINTER_TERMINATE_FLAG;
-	instance->next_queue = 0 | LINK_POINTER_TERMINATE_FLAG;
+	instance->next = 0 | LINK_POINTER_TERMINATE_FLAG;
 }
-
-static inline void queue_head_append_qh(queue_head_t *instance, uint32_t pa)
+/*----------------------------------------------------------------------------*/
+/** Set queue head next pointer
+ *
+ * @param[in] instance qh_t structure to use.
+ * @param[in] pa Physical address of the next queue head.
+ *
+ * Adds proper flag. If the pointer is NULL or terminal, sets next to terminal
+ * NULL.
+ */
+static inline void qh_set_next_qh(qh_t *instance, uint32_t pa)
 {
-	if (pa) {
-		instance->next_queue = (pa & LINK_POINTER_ADDRESS_MASK)
+	/* Address is valid and not terminal */
+	if (pa && ((pa & LINK_POINTER_TERMINATE_FLAG) == 0)) {
+		instance->next = (pa & LINK_POINTER_ADDRESS_MASK)
 		    | LINK_POINTER_QUEUE_HEAD_FLAG;
+	} else {
+		instance->next = 0 | LINK_POINTER_TERMINATE_FLAG;
 	}
 }
-
-static inline void queue_head_element_qh(queue_head_t *instance, uint32_t pa)
+/*----------------------------------------------------------------------------*/
+/** Set queue head element pointer
+ *
+ * @param[in] instance qh_t structure to initialize.
+ * @param[in] pa Physical address of the next queue head.
+ *
+ * Adds proper flag. If the pointer is NULL or terminal, sets element
+ * to terminal NULL.
+ */
+static inline void qh_set_element_qh(qh_t *instance, uint32_t pa)
 {
-	if (pa) {
-		instance->next_queue = (pa & LINK_POINTER_ADDRESS_MASK)
+	/* Address is valid and not terminal */
+	if (pa && ((pa & LINK_POINTER_TERMINATE_FLAG) == 0)) {
+		instance->element = (pa & LINK_POINTER_ADDRESS_MASK)
 		    | LINK_POINTER_QUEUE_HEAD_FLAG;
+	} else {
+		instance->element = 0 | LINK_POINTER_TERMINATE_FLAG;
 	}
 }
-
-static inline void queue_head_set_element_td(queue_head_t *instance, uint32_t pa)
+/*----------------------------------------------------------------------------*/
+/** Set queue head element pointer
+ *
+ * @param[in] instance qh_t structure to initialize.
+ * @param[in] pa Physical address of the TD structure.
+ *
+ * Adds proper flag. If the pointer is NULL or terminal, sets element
+ * to terminal NULL.
+ */
+static inline void qh_set_element_td(qh_t *instance, uint32_t pa)
 {
-	if (pa) {
+	if (pa && ((pa & LINK_POINTER_TERMINATE_FLAG) == 0)) {
 		instance->element = (pa & LINK_POINTER_ADDRESS_MASK);
+	} else {
+		instance->element = 0 | LINK_POINTER_TERMINATE_FLAG;
 	}
 }
 

@@ -166,7 +166,29 @@ typedef enum {
 	 */
 	IPC_M_USBHC_CONTROL_READ,
 
-	/* IPC_M_USB_ */
+	/** Register endpoint attributes at host controller.
+	 * This is used to reserve portion of USB bandwidth.
+	 * Parameters:
+	 * - USB address + endpoint number (ADDR * 256 + EP)
+	 * - transfer type + direction (TYPE * 256 + DIR)
+	 * - maximum packet size
+	 * - interval (in milliseconds)
+	 * Answer:
+	 * - EOK - reservation successful
+	 * - ELIMIT - not enough bandwidth to satisfy the request
+	 */
+	IPC_M_USBHC_REGISTER_ENDPOINT,
+
+	/** Revert endpoint registration.
+	 * Parameters:
+	 * - USB address
+	 * - endpoint number
+	 * - data direction
+	 * Answer:
+	 * - EOK - endpoint unregistered
+	 * - ENOENT - unknown endpoint
+	 */
+	IPC_M_USBHC_UNREGISTER_ENDPOINT
 } usbhc_iface_funcs_t;
 
 /** Callback for outgoing transfer. */
@@ -198,6 +220,11 @@ typedef struct {
 	int (*request_address)(ddf_fun_t *, usb_speed_t, usb_address_t *);
 	int (*bind_address)(ddf_fun_t *, usb_address_t, devman_handle_t);
 	int (*release_address)(ddf_fun_t *, usb_address_t);
+
+	int (*register_endpoint)(ddf_fun_t *, usb_address_t, usb_endpoint_t,
+	    usb_transfer_type_t, usb_direction_t, size_t, unsigned int);
+	int (*unregister_endpoint)(ddf_fun_t *, usb_address_t, usb_endpoint_t,
+	    usb_direction_t);
 
 	usbhc_iface_transfer_out_t interrupt_out;
 	usbhc_iface_transfer_in_t interrupt_in;

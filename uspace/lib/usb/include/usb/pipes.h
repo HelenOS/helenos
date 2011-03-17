@@ -105,7 +105,7 @@ typedef struct {
 	/** Endpoint description. */
 	const usb_endpoint_description_t *description;
 	/** Interface number the endpoint must belong to (-1 for any). */
-	const int interface_no;
+	int interface_no;
 	/** Found descriptor fitting the description. */
 	usb_standard_endpoint_descriptor_t *descriptor;
 	/** Interface descriptor the endpoint belongs to. */
@@ -128,9 +128,12 @@ int usb_endpoint_pipe_initialize(usb_endpoint_pipe_t *,
     usb_endpoint_t, usb_transfer_type_t, size_t, usb_direction_t);
 int usb_endpoint_pipe_initialize_default_control(usb_endpoint_pipe_t *,
     usb_device_connection_t *);
+int usb_endpoint_pipe_probe_default_control(usb_endpoint_pipe_t *);
 int usb_endpoint_pipe_initialize_from_configuration(usb_endpoint_mapping_t *,
     size_t, uint8_t *, size_t, usb_device_connection_t *);
-
+int usb_endpoint_pipe_register(usb_endpoint_pipe_t *, unsigned int,
+    usb_hc_connection_t *);
+int usb_endpoint_pipe_unregister(usb_endpoint_pipe_t *, usb_hc_connection_t *);
 
 int usb_endpoint_pipe_start_session(usb_endpoint_pipe_t *);
 int usb_endpoint_pipe_end_session(usb_endpoint_pipe_t *);

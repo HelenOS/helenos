@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jan Vesely
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,12 +32,19 @@
 /** @file
  * @brief UHCI driver
  */
-#ifndef DRV_UHCI_ROOT_HUB_H
-#define DRV_UHCI_ROOT_HUB_H
+#ifndef DRV_UHCI_UHCI_RH_H
+#define DRV_UHCI_UHCI_RH_H
 
 #include <ddf/driver.h>
+#include <ops/hw_res.h>
 
-int setup_root_hub(ddf_fun_t **device, ddf_dev_t *hc);
+typedef struct uhci_rh {
+	hw_resource_list_t resource_list;
+	hw_resource_t io_regs;
+} uhci_rh_t;
+
+int uhci_rh_init(
+    uhci_rh_t *instance, ddf_fun_t *fun, uintptr_t reg_addr, size_t reg_size);
 
 #endif
 /**

@@ -54,6 +54,8 @@ static void remote_usbhc_release_default_address(ddf_fun_t *, void *, ipc_callid
 static void remote_usbhc_request_address(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbhc_bind_address(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbhc_release_address(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usbhc_register_endpoint(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
+static void remote_usbhc_unregister_endpoint(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 //static void remote_usbhc(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 
 /** Remote USB host controller interface operations. */
@@ -72,7 +74,10 @@ static remote_iface_func_ptr_t remote_usbhc_iface_ops [] = {
 	remote_usbhc_bulk_in,
 
 	remote_usbhc_control_write,
-	remote_usbhc_control_read
+	remote_usbhc_control_read,
+
+	remote_usbhc_register_endpoint,
+	remote_usbhc_unregister_endpoint
 };
 
 /** Remote USB host controller interface structure.
@@ -520,6 +525,59 @@ ipc_callid_t callid, ipc_call_t *call)
 	}
 }
 
+
+void remote_usbhc_register_endpoint(ddf_fun_t *fun, void *iface,
+    ipc_callid_t callid, ipc_call_t *call)
+{
+	usbhc_iface_t *usb_iface = (usbhc_iface_t *) iface;
+
+	if (!usb_iface->register_endpoint) {
+		async_answer_0(callid, ENOTSUP);
+		return;
+	}
+
+#define INIT_FROM_HIGH_DATA(type, var, arg_no) \
+	type var = (type) DEV_IPC_GET_ARG##arg_no(*call) / 256
+#define INIT_FROM_LOW_DATA(type, var, arg_no) \
+	type var = (type) DEV_IPC_GET_ARG##arg_no(*call) % 256
+
+	INIT_FROM_HIGH_DATA(usb_address_t, address, 1);
+	INIT_FROM_LOW_DATA(usb_endpoint_t, endpoint, 1);
+	INIT_FROM_HIGH_DATA(usb_transfer_type_t, transfer_type, 2);
+	INIT_FROM_LOW_DATA(usb_direction_t, direction, 2);
+
+#undef INIT_FROM_HIGH_DATA
+#undef INIT_FROM_LOW_DATA
+
+	size_t max_packet_size = (size_t) DEV_IPC_GET_ARG3(*call);
+	unsigned int interval  = (unsigned int) DEV_IPC_GET_ARG4(*call);
+
+	int rc = usb_iface->register_endpoint(fun, address, endpoint,
+	    transfer_type, direction, max_packet_size, interval);
+
+	async_answer_0(callid, rc);
+}
+
+
+void remote_usbhc_unregister_endpoint(ddf_fun_t *fun, void *iface,
+    ipc_callid_t callid, ipc_call_t *call)
+{
+	usbhc_iface_t *usb_iface = (usbhc_iface_t *) iface;
+
+	if (!usb_iface->unregister_endpoint) {
+		async_answer_0(callid, ENOTSUP);
+		return;
+	}
+
+	usb_address_t address = (usb_address_t) DEV_IPC_GET_ARG1(*call);
+	usb_endpoint_t endpoint = (usb_endpoint_t) DEV_IPC_GET_ARG2(*call);
+	usb_direction_t direction = (usb_direction_t) DEV_IPC_GET_ARG3(*call);
+
+	int rc = usb_iface->unregister_endpoint(fun,
+	    address, endpoint, direction);
+
+	async_answer_0(callid, rc);
+}
 
 
 /**
