@@ -49,13 +49,59 @@ void dump_short_device_identification(usbinfo_device_t *dev)
 	    (int) dev->device_descriptor.vendor_id);
 }
 
+static void dump_match_ids_from_interface(uint8_t *descriptor, size_t depth,
+    void *arg)
+{
+	if (depth != 1) {
+		return;
+	}
+	size_t descr_size = descriptor[0];
+	if (descr_size < sizeof(usb_standard_interface_descriptor_t)) {
+		return;
+	}
+	int descr_type = descriptor[1];
+	if (descr_type != USB_DESCTYPE_INTERFACE) {
+		return;
+	}
+
+	usbinfo_device_t *dev = (usbinfo_device_t *) arg;
+
+	usb_standard_interface_descriptor_t *iface
+	    = (usb_standard_interface_descriptor_t *) descriptor;
+
+	printf("%sInterface #%d match ids (%s, 0x%02x, 0x%02x)\n",
+	    get_indent(0),
+	    (int) iface->interface_number,
+	    usb_str_class(iface->interface_class),
+	    (int) iface->interface_subclass,
+	    (int) iface->interface_protocol);
+
+	match_id_list_t matches;
+	init_match_ids(&matches);
+	usb_device_create_match_ids_from_interface(&dev->device_descriptor,
+	    iface, &matches);
+	dump_match_ids(&matches, get_indent(1));
+	clean_match_ids(&matches);
+}
+
 void dump_device_match_ids(usbinfo_device_t *dev)
 {
 	match_id_list_t matches;
 	init_match_ids(&matches);
 	usb_device_create_match_ids_from_device_descriptor(
 	    &dev->device_descriptor, &matches);
-	dump_match_ids(&matches, get_indent(0));
+	printf("%sDevice match ids (0x%04x by 0x%04x, %s)\n", get_indent(0),
+	    (int) dev->device_descriptor.product_id,
+	    (int) dev->device_descriptor.vendor_id,
+	    usb_str_class(dev->device_descriptor.device_class));
+	dump_match_ids(&matches, get_indent(1));
+	clean_match_ids(&matches);
+
+	usb_dp_walk_simple(dev->full_configuration_descriptor,
+	    dev->full_configuration_descriptor_size,
+	    usb_dp_standard_descriptor_nesting,
+	    dump_match_ids_from_interface,
+	    dev);
 }
 
 static void dump_descriptor_tree_brief_device(const char *prefix,

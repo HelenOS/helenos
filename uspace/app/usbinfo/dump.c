@@ -108,7 +108,7 @@ void dump_match_ids(match_id_list_t *matches, const char *line_prefix)
 	    link = link->next) {
 		match_id_t *match = list_get_instance(link, match_id_t, link);
 
-		printf("%s%d %s\n", line_prefix, match->score, match->id);
+		printf("%s%3d %s\n", line_prefix, match->score, match->id);
 	}
 }
 
