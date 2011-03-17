@@ -236,8 +236,8 @@ void dump_strings(usbinfo_device_t *dev)
 	for (i = 0; i < langs_count; i++) {
 		l18_win_locales_t lang = langs[i];
 
-		printf("%sStrings for language 0x%04x:\n", get_indent(0),
-		    (int) lang);
+		printf("%sStrings in %s:\n", get_indent(0),
+		    str_l18_win_locale(lang));
 		/*
 		 * Try only the first 15 strings
 		 * (typically, device will not have much more anyway).
