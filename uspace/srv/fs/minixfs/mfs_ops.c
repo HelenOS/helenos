@@ -36,7 +36,6 @@
 #include <errno.h>
 #include "mfs.h"
 #include "mfs_utils.h"
-#include "../../vfs/vfs.h"
 
 static bool check_magic_number(uint16_t magic, bool *native,
 				mfs_version_t *version, bool *longfilenames);
@@ -44,7 +43,9 @@ static bool check_magic_number(uint16_t magic, bool *native,
 static LIST_INITIALIZE(inst_list);
 static FIBRIL_MUTEX_INITIALIZE(inst_list_mutex);
 
-libfs_ops_t mfs_libfs_ops;
+libfs_ops_t mfs_libfs_ops = {
+	.device_get = mfs_device_get
+};
 
 void mfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 {
@@ -192,6 +193,12 @@ recognized:
 void mfs_mount(ipc_callid_t rid, ipc_call_t *request)
 {
 	libfs_mount(&mfs_libfs_ops, mfs_reg.fs_handle, rid, request);
+}
+
+devmap_handle_t mfs_device_get(fs_node_t *fsnode)
+{
+	struct mfs_node *node = fsnode->data;
+	return node->instance->handle;
 }
 
 /*
