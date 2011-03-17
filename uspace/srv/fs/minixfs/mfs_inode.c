@@ -10,7 +10,8 @@ struct mfs_inode *mfs_read_inode_raw(const struct mfs_instance *instance,
 	struct mfs_sb_info *sbi;
 	block_t *b;
 	int i;
-
+	
+	const int ino_off = inum % V1_INODES_PER_BLOCK;
 	const size_t ino_size = sizeof(struct mfs_inode);
 
 	ino = (struct mfs_inode *) malloc(ino_size);
@@ -23,7 +24,7 @@ struct mfs_inode *mfs_read_inode_raw(const struct mfs_instance *instance,
 	block_get(&b, instance->handle, 2 + inum / V1_INODES_PER_BLOCK,
 			BLOCK_FLAGS_NONE);
 
-	memcpy(ino, ((uint8_t *) b->data) + inum * ino_size, ino_size);
+	memcpy(ino, ((uint8_t *) b->data) + ino_off * ino_size, ino_size);
 
 	ino->i_mode = conv16(sbi->native, ino->i_mode);
 	ino->i_uid = conv16(sbi->native, ino->i_uid);
@@ -58,11 +59,13 @@ struct mfs2_inode *mfs2_read_inode_raw(const struct mfs_instance *instance,
 
 	sbi = instance->sbi;
 
+	const int ino_off = inum % V3_INODES_PER_BLOCK(sbi->block_size);
+
 	block_get(&b, instance->handle, 
 			2 + inum / V3_INODES_PER_BLOCK(sbi->block_size),
 			BLOCK_FLAGS_NONE);
 
-	memcpy(ino, ((uint8_t *)b->data) + inum * ino_size, ino_size);
+	memcpy(ino, ((uint8_t *)b->data) + ino_off * ino_size, ino_size);
 
 	ino->i_mode = conv16(sbi->native, ino->i_mode);
 	ino->i_nlinks = conv16(sbi->native, ino->i_nlinks);
