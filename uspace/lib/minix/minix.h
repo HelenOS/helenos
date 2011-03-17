@@ -37,7 +37,9 @@
 
 #define MFS_BLOCKSIZE		1024
 #define S_ISDIR(m)		(((m) & S_IFMT) == S_IFDIR)
-#define S_IFDIR			0040000
+#define S_ISREG(m)		(((m) & S_IFMT) == S_IFREG)
+#define S_IFDIR			0040000		/*Directory*/
+#define S_IFREG			0100000		/*Regular file*/
 #define S_IFMT			00170000
 
 /*The following block sizes are valid only on V3 filesystem*/
