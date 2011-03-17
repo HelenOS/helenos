@@ -79,6 +79,7 @@ typedef struct uhci_regs {
 #define UHCI_FRAME_LIST_COUNT 1024
 #define UHCI_CLEANER_TIMEOUT 10000
 #define UHCI_DEBUGER_TIMEOUT 5000000
+#define UHCI_ALLOWED_HW_FAIL 5
 
 typedef struct uhci_hc {
 	device_keeper_t device_manager;
@@ -99,6 +100,7 @@ typedef struct uhci_hc {
 	fid_t cleaner;
 	fid_t debug_checker;
 	bool hw_interrupts;
+	unsigned hw_failures;
 
 	ddf_fun_t *ddf_instance;
 } uhci_hc_t;

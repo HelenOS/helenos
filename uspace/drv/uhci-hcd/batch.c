@@ -152,6 +152,18 @@ batch_t * batch_get(ddf_fun_t *fun, usb_target_t target,
 	return instance;
 }
 /*----------------------------------------------------------------------------*/
+/** Mark batch as failed and continue with next step.
+ *
+ * @param[in] instance Batch structure to use.
+ *
+ */
+void batch_abort(batch_t *instance)
+{
+	assert(instance);
+	instance->error = EIO;
+	instance->next_step(instance);
+}
+/*----------------------------------------------------------------------------*/
 /** Check batch TDs for activity.
  *
  * @param[in] instance Batch structure to use.
@@ -250,7 +262,8 @@ void batch_interrupt_out(batch_t *instance)
 {
 	assert(instance);
 	/* We are data out, we are supposed to provide data */
-	memcpy(instance->transport_buffer, instance->buffer, instance->buffer_size);
+	memcpy(instance->transport_buffer, instance->buffer,
+	    instance->buffer_size);
 	batch_data(instance, USB_PID_OUT);
 	instance->next_step = batch_call_out_and_dispose;
 	usb_log_debug("Batch(%p) INTERRUPT OUT initialized.\n", instance);
@@ -280,7 +293,8 @@ void batch_bulk_out(batch_t *instance)
 {
 	assert(instance);
 	/* We are data out, we are supposed to provide data */
-	memcpy(instance->transport_buffer, instance->buffer, instance->buffer_size);
+	memcpy(instance->transport_buffer, instance->buffer,
+	    instance->buffer_size);
 	batch_data(instance, USB_PID_OUT);
 	instance->next_step = batch_call_out_and_dispose;
 	usb_log_debug("Batch(%p) BULK OUT initialized.\n", instance);
