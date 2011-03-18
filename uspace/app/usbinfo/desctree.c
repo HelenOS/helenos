@@ -29,62 +29,59 @@
 /** @addtogroup usbinfo
  * @{
  */
-/** @file
- * Common header for usbinfo application.
+/**
+ * @file
+ * Descriptor tree dump.
  */
-#ifndef USBINFO_USBINFO_H_
-#define USBINFO_USBINFO_H_
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <str_error.h>
+#include <bool.h>
 
 #include <usb/usb.h>
 #include <usb/descriptor.h>
-#include <usb/pipes.h>
 #include <usb/debug.h>
+#include <usb/classes/classes.h>
+
+#include "usbinfo.h"
 #include <usb/dp.h>
-#include <ipc/devman.h>
 
-typedef struct {
-	usb_endpoint_pipe_t ctrl_pipe;
-	usb_device_connection_t wire;
-	usb_standard_device_descriptor_t device_descriptor;
-	uint8_t *full_configuration_descriptor;
-	size_t full_configuration_descriptor_size;
-} usbinfo_device_t;
-
-typedef struct {
-	int opt;
-	void (*action)(usbinfo_device_t *dev);
-	bool active;
-} usbinfo_action_t;
-
-
-#define NAME "usbinfo"
-
-void dump_buffer(const char *, size_t, const uint8_t *, size_t);
-const char *get_indent(size_t);
-void dump_match_ids(match_id_list_t *, const char *);
-void dump_usb_descriptor(uint8_t *, size_t);
-void dump_descriptor_tree(uint8_t *, size_t);
-
-static inline void internal_error(int err)
+static void browse_descriptor_tree_internal(usb_dp_parser_t *parser,
+    usb_dp_parser_data_t *data, uint8_t *root, size_t depth,
+    dump_descriptor_in_tree_t callback, void *arg)
 {
-	fprintf(stderr, NAME ": internal error (%s).\n", str_error(err));
+	if (root == NULL) {
+		return;
+	}
+	callback(root, depth, arg);
+	uint8_t *child = usb_dp_get_nested_descriptor(parser, data, root);
+	do {
+		browse_descriptor_tree_internal(parser, data, child, depth + 1,
+		    callback, arg);
+		child = usb_dp_get_sibling_descriptor(parser, data,
+		    root, child);
+	} while (child != NULL);
 }
 
-usbinfo_device_t *prepare_device(devman_handle_t, usb_address_t);
-void destroy_device(usbinfo_device_t *);
+void browse_descriptor_tree(uint8_t *descriptors, size_t descriptors_size,
+    usb_dp_descriptor_nesting_t *descriptor_nesting,
+    dump_descriptor_in_tree_t callback, size_t initial_depth, void *arg)
+{
+	usb_dp_parser_data_t data = {
+		.data = descriptors,
+		.size = descriptors_size,
+		.arg = NULL
+	};
 
-typedef void (*dump_descriptor_in_tree_t)(uint8_t *, size_t, void *);
-void browse_descriptor_tree(uint8_t *, size_t, usb_dp_descriptor_nesting_t *,
-    dump_descriptor_in_tree_t, size_t, void *);
+	usb_dp_parser_t parser = {
+		.nesting = descriptor_nesting
+	};
 
+	browse_descriptor_tree_internal(&parser, &data, descriptors,
+	    initial_depth, callback, arg);
+}
 
-void dump_short_device_identification(usbinfo_device_t *);
-void dump_device_match_ids(usbinfo_device_t *);
-void dump_descriptor_tree_brief(usbinfo_device_t *);
-void dump_strings(usbinfo_device_t *);
-
-
-#endif
-/**
- * @}
+/** @}
  */

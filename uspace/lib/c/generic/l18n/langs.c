@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Jakub Jermar
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,32 +33,44 @@
  * Language and locale ids.
  */
 
-#ifndef LIBC_L18N_LANGS_H_
-#define LIBC_L18N_LANGS_H_
+#include <l18n/langs.h>
+#include <stdio.h>
+#include <fibril.h>
 
-/** Windows locale IDs.
- * Codes taken from
- * Developing International Software For Windows 95 and Windows NT
- * by Nadine Kano (Microsoft Press).
- * FIXME: add missing codes.
+#define UNKNOWN_LOCALE_LEN 64
+
+static fibril_local char unknown_locale[UNKNOWN_LOCALE_LEN];
+
+/** Get string representation of a given locale.
+ *
+ * @param locale The locale.
+ * @return Name of the locale.
  */
-typedef enum {
-	L18N_WIN_LOCALE_AFRIKAANS = 0x0436,
-	/* ... */
-	L18N_WIN_LOCALE_CZECH = 0x0405,
-	/* ... */
-	L18N_WIN_LOCALE_ENGLISH_UNITED_STATES = 0x0409,
-	/* ... */
-	L18N_WIN_LOCALE_SLOVAK = 0x041B,
-	/* ... */
-	L18N_WIN_LOCALE_SPANISH_TRADITIONAL = 0x040A,
-	/* ... */
-	L18N_WIN_LOCALE_ZULU = 0x0435
-} l18_win_locales_t;
+const char *str_l18_win_locale(l18_win_locales_t locale)
+{
+	/*
+	 * Static array with names might be better but it would be
+	 * way too big.
+	 */
+	switch (locale) {
+		case L18N_WIN_LOCALE_AFRIKAANS:
+			return "Afrikaans";
+		case L18N_WIN_LOCALE_CZECH:
+			return "Czech";
+		case L18N_WIN_LOCALE_ENGLISH_UNITED_STATES:
+			return "English (US)";
+		case L18N_WIN_LOCALE_SLOVAK:
+			return "Slovak";
+		case L18N_WIN_LOCALE_SPANISH_TRADITIONAL:
+			return "Spanish (traditional)";
+		case L18N_WIN_LOCALE_ZULU:
+			return "Zulu";
+	}
 
-const char *str_l18_win_locale(l18_win_locales_t);
-
-#endif
+	snprintf(unknown_locale, UNKNOWN_LOCALE_LEN, "Unknown locale 0x%04d",
+	    (int) locale);
+	return unknown_locale;
+}
 
 /** @}
  */
