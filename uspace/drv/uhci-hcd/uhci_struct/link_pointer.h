@@ -25,7 +25,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup usb
+/** @addtogroup drvusbuhcihc
  * @{
  */
 /** @file
@@ -44,6 +44,9 @@ typedef uint32_t link_pointer_t;
 #define LINK_POINTER_RESERVED_FLAG (1 << 3)
 
 #define LINK_POINTER_ADDRESS_MASK 0xfffffff0 /* upper 28 bits */
+
+#define LINK_POINTER_QH(address) \
+	((address & LINK_POINTER_ADDRESS_MASK) | LINK_POINTER_QUEUE_HEAD_FLAG)
 
 #endif
 /**

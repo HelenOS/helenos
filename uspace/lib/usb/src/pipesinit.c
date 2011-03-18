@@ -36,8 +36,13 @@
 #include <usb/usb.h>
 #include <usb/pipes.h>
 #include <usb/dp.h>
+#include <usb/request.h>
+#include <usbhc_iface.h>
 #include <errno.h>
 #include <assert.h>
+
+#define CTRL_PIPE_MIN_PACKET_SIZE 8
+#define DEV_DESCR_MAX_PACKET_SIZE_OFFSET 7
 
 
 #define NESTING(parentname, childname) \
@@ -368,9 +373,124 @@ int usb_endpoint_pipe_initialize_default_control(usb_endpoint_pipe_t *pipe,
 	assert(connection);
 
 	int rc = usb_endpoint_pipe_initialize(pipe, connection,
-	    0, USB_TRANSFER_CONTROL, 8, USB_DIRECTION_BOTH);
+	    0, USB_TRANSFER_CONTROL, CTRL_PIPE_MIN_PACKET_SIZE,
+	    USB_DIRECTION_BOTH);
 
 	return rc;
+}
+
+/** Probe default control pipe for max packet size.
+ *
+ * The function tries to get the correct value of max packet size several
+ * time before giving up.
+ *
+ * The session on the pipe shall not be started.
+ *
+ * @param pipe Default control pipe.
+ * @return Error code.
+ */
+int usb_endpoint_pipe_probe_default_control(usb_endpoint_pipe_t *pipe)
+{
+	assert(pipe);
+	assert(DEV_DESCR_MAX_PACKET_SIZE_OFFSET < CTRL_PIPE_MIN_PACKET_SIZE);
+
+	if ((pipe->direction != USB_DIRECTION_BOTH) ||
+	    (pipe->transfer_type != USB_TRANSFER_CONTROL) ||
+	    (pipe->endpoint_no != 0)) {
+		return EINVAL;
+	}
+
+#define TRY_LOOP(attempt_var) \
+	for (attempt_var = 0; attempt_var < 3; attempt_var++)
+
+	size_t failed_attempts;
+	int rc;
+
+	TRY_LOOP(failed_attempts) {
+		rc = usb_endpoint_pipe_start_session(pipe);
+		if (rc == EOK) {
+			break;
+		}
+	}
+	if (rc != EOK) {
+		return rc;
+	}
+
+
+	uint8_t dev_descr_start[CTRL_PIPE_MIN_PACKET_SIZE];
+	size_t transferred_size;
+	TRY_LOOP(failed_attempts) {
+		rc = usb_request_get_descriptor(pipe, USB_REQUEST_TYPE_STANDARD,
+		    USB_REQUEST_RECIPIENT_DEVICE, USB_DESCTYPE_DEVICE,
+		    0, 0, dev_descr_start, CTRL_PIPE_MIN_PACKET_SIZE,
+		    &transferred_size);
+		if (rc == EOK) {
+			if (transferred_size != CTRL_PIPE_MIN_PACKET_SIZE) {
+				rc = ELIMIT;
+				continue;
+			}
+			break;
+		}
+	}
+	usb_endpoint_pipe_end_session(pipe);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	pipe->max_packet_size
+	    = dev_descr_start[DEV_DESCR_MAX_PACKET_SIZE_OFFSET];
+
+	return EOK;
+}
+
+/** Register endpoint with the host controller.
+ *
+ * @param pipe Pipe to be registered.
+ * @param interval Polling interval.
+ * @param hc_connection Connection to the host controller (must be opened).
+ * @return Error code.
+ */
+int usb_endpoint_pipe_register(usb_endpoint_pipe_t *pipe,
+    unsigned int interval,
+    usb_hc_connection_t *hc_connection)
+{
+	assert(pipe);
+	assert(hc_connection);
+
+	if (!usb_hc_connection_is_opened(hc_connection)) {
+		return EBADF;
+	}
+
+#define _PACK(high, low) ((high) * 256 + (low))
+
+	return async_req_5_0(hc_connection->hc_phone,
+	    DEV_IFACE_ID(USBHC_DEV_IFACE), IPC_M_USBHC_REGISTER_ENDPOINT,
+	    _PACK(pipe->wire->address, pipe->endpoint_no),
+	    _PACK(pipe->transfer_type, pipe->direction),
+	    pipe->max_packet_size, interval);
+
+#undef _PACK
+}
+
+/** Revert endpoint registration with the host controller.
+ *
+ * @param pipe Pipe to be unregistered.
+ * @param hc_connection Connection to the host controller (must be opened).
+ * @return Error code.
+ */
+int usb_endpoint_pipe_unregister(usb_endpoint_pipe_t *pipe,
+    usb_hc_connection_t *hc_connection)
+{
+	assert(pipe);
+	assert(hc_connection);
+
+	if (!usb_hc_connection_is_opened(hc_connection)) {
+		return EBADF;
+	}
+
+	return async_req_4_0(hc_connection->hc_phone,
+	    DEV_IFACE_ID(USBHC_DEV_IFACE), IPC_M_USBHC_UNREGISTER_ENDPOINT,
+	    pipe->wire->address, pipe->endpoint_no, pipe->direction);
 }
 
 /**

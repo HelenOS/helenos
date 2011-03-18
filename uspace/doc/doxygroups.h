@@ -252,8 +252,20 @@
 	/**
 	 * @defgroup drvusbuhci UHCI driver
 	 * @ingroup usb
-	 * @brief Driver for USB host controller UHCI.
+	 * @brief Drivers for USB UHCI host controller and root hub.
 	 */
+
+		/**
+		 * @defgroup drvusbuhcirh UHCI root hub driver
+		 * @ingroup drvusbuhci
+		 * @brief Driver for UHCI complaint root hub.
+		 */
+
+		/**
+		 * @defgroup drvusbuhcihc UHCI host controller driver
+		 * @ingroup drvusbuhci
+		 * @brief Driver for UHCI complaint USB host controller.
+		 */
 
 	/**
 	 * @defgroup drvusbehci EHCI driver

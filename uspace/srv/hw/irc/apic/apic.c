@@ -53,6 +53,8 @@
 
 #define NAME  "apic"
 
+static bool apic_found = false;
+
 static int apic_enable_irq(sysarg_t irq)
 {
 	// FIXME: TODO
@@ -78,7 +80,17 @@ static void apic_connection(ipc_callid_t iid, ipc_call_t *icall)
 	while (true) {
 		callid = async_get_call(&call);
 		
-		switch (IPC_GET_IMETHOD(call)) {
+		sysarg_t method = IPC_GET_IMETHOD(call);
+		if (method == IPC_M_PHONE_HUNGUP) {
+			return;
+		}
+
+		if (!apic_found) {
+			async_answer_0(callid, ENOTSUP);
+			break;
+		}
+
+		switch (method) {
 		case IRC_ENABLE_INTERRUPT:
 			async_answer_0(callid, apic_enable_irq(IPC_GET_ARG1(call)));
 			break;
@@ -96,28 +108,25 @@ static void apic_connection(ipc_callid_t iid, ipc_call_t *icall)
 /** Initialize the APIC driver.
  *
  */
-static bool apic_init(void)
+static void apic_init(void)
 {
 	sysarg_t apic;
 	
-	if ((sysinfo_get_value("apic", &apic) != EOK) || (!apic)) {
-		printf(NAME ": No APIC found\n");
-		return false;
+	apic_found = sysinfo_get_value("apic", &apic) && apic;
+	if (!apic_found) {
+		printf(NAME ": Warning: no APIC found\n");
 	}
 	
 	async_set_client_connection(apic_connection);
 	service_register(SERVICE_APIC);
-	
-	return true;
 }
 
 int main(int argc, char **argv)
 {
 	printf(NAME ": HelenOS APIC driver\n");
 	
-	if (!apic_init())
-		return -1;
-	
+	apic_init();
+
 	printf(NAME ": Accepting connections\n");
 	async_manager();
 	
