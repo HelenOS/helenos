@@ -41,6 +41,7 @@
 #include <fibril_synch.h>
 
 #include <usb/classes/hid.h>
+#include <usb/classes/hidparser.h>
 #include <ddf/driver.h>
 #include <usb/pipes.h>
 
