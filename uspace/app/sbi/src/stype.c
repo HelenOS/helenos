@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jiri Svoboda
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -75,6 +75,7 @@ static void stype_class_impl_check_prop(stype_t *stype,
 
 static void stype_vdecl(stype_t *stype, stree_vdecl_t *vdecl_s);
 static void stype_if(stype_t *stype, stree_if_t *if_s);
+static void stype_switch(stype_t *stype, stree_switch_t *switch_s);
 static void stype_while(stype_t *stype, stree_while_t *while_s);
 static void stype_for(stype_t *stype, stree_for_t *for_s);
 static void stype_raise(stype_t *stype, stree_raise_t *raise_s);
@@ -888,6 +889,7 @@ void stype_stat(stype_t *stype, stree_stat_t *stat, bool_t want_value)
 	switch (stat->sc) {
 	case st_vdecl: stype_vdecl(stype, stat->u.vdecl_s); break;
 	case st_if: stype_if(stype, stat->u.if_s); break;
+	case st_switch: stype_switch(stype, stat->u.switch_s); break;
 	case st_while: stype_while(stype, stat->u.while_s); break;
 	case st_for: stype_for(stype, stat->u.for_s); break;
 	case st_raise: stype_raise(stype, stat->u.raise_s); break;
@@ -929,6 +931,9 @@ static void stype_vdecl(stype_t *stype, stree_vdecl_t *vdecl_s)
 		stype_note_error(stype);
 		return;
 	}
+
+	/* Annotate with variable type */
+	vdecl_s->titem = titem;
 
 	intmap_set(&block_vr->vdecls, vdecl_s->name->sid, vdecl_s);
 }
@@ -972,6 +977,73 @@ static void stype_if(stype_t *stype, stree_if_t *if_s)
 	/* Type the @c else block */
 	if (if_s->else_block != NULL)
 		stype_block(stype, if_s->else_block);
+}
+
+/** Type @c switch statement.
+ *
+ * @param stype		Static typing object
+ * @param switch_s	@c switch statement
+ */
+static void stype_switch(stype_t *stype, stree_switch_t *switch_s)
+{
+	stree_expr_t *expr, *cexpr;
+	list_node_t *whenc_node;
+	stree_when_t *whenc;
+	list_node_t *expr_node;
+	tdata_item_t *titem1, *titem2;
+
+#ifdef DEBUG_TYPE_TRACE
+	printf("Type 'switch' statement.\n");
+#endif
+	stype_expr(stype, switch_s->expr);
+
+	titem1 = switch_s->expr->titem;
+	if (titem1 == NULL) {
+		cspan_print(switch_s->expr->cspan);
+		printf(" Error: Switch expression has no value.\n");
+		stype_note_error(stype);
+		return;
+	}
+
+	/* Walk through all when clauses. */
+	whenc_node = list_first(&switch_s->when_clauses);
+
+	while (whenc_node != NULL) {
+		/* Get when clause */
+		whenc = list_node_data(whenc_node, stree_when_t *);
+
+		/* Walk through all expressions of the when clause */
+		expr_node = list_first(&whenc->exprs);
+		while (expr_node != NULL) {
+			expr = list_node_data(expr_node, stree_expr_t *);
+
+			stype_expr(stype, expr);
+			titem2 = expr->titem;
+			if (titem2 == NULL) {
+				cspan_print(expr->cspan);
+				printf(" Error: When expression has no value.\n");
+				stype_note_error(stype);
+				return;
+			}
+
+			/* Convert expression to same type as switch expr. */
+			cexpr = stype_convert(stype, expr, titem1);
+
+			/* Patch code with augmented expression. */
+			list_node_setdata(expr_node, cexpr);
+
+			expr_node = list_next(&whenc->exprs, expr_node);
+		}
+
+		/* Type the @c when block */
+		stype_block(stype, whenc->block);
+
+		whenc_node = list_next(&switch_s->when_clauses, whenc_node);
+	}
+
+	/* Type the @c else block */
+	if (switch_s->else_block != NULL)
+		stype_block(stype, switch_s->else_block);
 }
 
 /** Type @c while statement
@@ -1167,6 +1239,8 @@ static void stype_wef(stype_t *stype, stree_wef_t *wef_s)
 	ec_n = list_first(&wef_s->except_clauses);
 	while (ec_n != NULL) {
 		ec = list_node_data(ec_n, stree_except_t *);
+		run_texpr(stype->program, stype->current_csi, ec->etype,
+		    &ec->titem);
 		stype_block(stype, ec->block);
 
 		ec_n = list_next(&wef_s->except_clauses, ec_n);

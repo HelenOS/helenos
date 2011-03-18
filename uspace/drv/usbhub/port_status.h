@@ -269,6 +269,23 @@ static inline void usb_port_set_low_speed(usb_port_status_t * status,bool low_sp
 	usb_port_set_bit(status,9,low_speed);
 }
 
+//low speed device attached
+static inline bool usb_port_high_speed(usb_port_status_t * status){
+	return usb_port_get_bit(status,10);
+}
+
+static inline void usb_port_set_high_speed(usb_port_status_t * status,bool high_speed){
+	usb_port_set_bit(status,10,high_speed);
+}
+
+static inline usb_speed_t usb_port_speed(usb_port_status_t * status){
+	if(usb_port_low_speed(status))
+		return USB_SPEED_LOW;
+	if(usb_port_high_speed(status))
+		return USB_SPEED_HIGH;
+	return USB_SPEED_FULL;
+}
+
 
 //connect change
 static inline bool usb_port_connect_change(usb_port_status_t * status){

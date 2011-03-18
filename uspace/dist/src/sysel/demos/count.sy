@@ -32,7 +32,7 @@ class CountDemo is
 
 		i = a;
 		while i < b do
-			Builtin.WriteLine(i);
+			Console.WriteLine(i);
 			i = i + 1;
 		end
 

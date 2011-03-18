@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jiri Svoboda
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -177,14 +177,31 @@ void imode_run(void)
 		if (rexpr != NULL) {
 			/* Convert expression result to value item. */
 			run_cvt_value_item(&run, rexpr, &rexpr_vi);
+			rdata_item_destroy(rexpr);
+
+			/* Check for unhandled exceptions. */
+			run_exc_check_unhandled(&run);
+		} else {
+			rexpr_vi = NULL;
+		}
+
+		/*
+		 * rexpr_vi can be NULL if either repxr was null or
+		 * if the conversion to value item raised an exception.
+		 */
+		if (rexpr_vi != NULL) {
 			assert(rexpr_vi->ic == ic_value);
 
 			/* Print result. */
 			printf("Result: ");
 			rdata_value_print(rexpr_vi->u.value);
 			printf("\n");
+
+			rdata_item_destroy(rexpr_vi);
 		}
 	}
+
+	run_proc_ar_destroy(&run, proc_ar);
 
 	/* Remove block visit record from the stack, */
 	bvr_n = list_last(&stype.proc_vr->block_vr);
