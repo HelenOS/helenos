@@ -50,6 +50,7 @@
 #include <usb/debug.h>
 #include <usb/classes/hidparser.h>
 #include <usb/classes/classes.h>
+#include <usb/classes/hidut.h>
 
 #include "kbddev.h"
 #include "hiddev.h"
@@ -121,6 +122,19 @@ static const keycode_t usbhid_modifiers_keycodes[USB_HID_MOD_COUNT] = {
 	KC_RSHIFT,        /* USB_HID_MOD_RSHIFT */
 	KC_RALT,          /* USB_HID_MOD_RALT */
 	0,                /* USB_HID_MOD_RGUI */
+};
+
+typedef enum usbhid_lock_code {
+	USBHID_LOCK_NUM = 0x53,
+	USBHID_LOCK_CAPS = 0x39,
+	USBHID_LOCK_SCROLL = 0x47,
+	USBHID_LOCK_COUNT = 3
+} usbhid_lock_code;
+
+static const usbhid_lock_code usbhid_lock_codes[USBHID_LOCK_COUNT] = {
+	USBHID_LOCK_NUM,
+	USBHID_LOCK_CAPS,
+	USBHID_LOCK_SCROLL
 };
 
 /*----------------------------------------------------------------------------*/
@@ -345,38 +359,47 @@ void usbhid_kbd_push_ev(usbhid_kbd_t *kbd_dev, int type, unsigned int key)
  *
  * @sa usbhid_kbd_push_ev()
  */
-static void usbhid_kbd_check_modifier_changes(usbhid_kbd_t *kbd_dev,
-    uint8_t modifiers)
+//static void usbhid_kbd_check_modifier_changes(usbhid_kbd_t *kbd_dev, 
+//    const uint8_t *key_codes, size_t count)
+//{
+//	/*
+//	 * TODO: why the USB keyboard has NUM_, SCROLL_ and CAPS_LOCK
+//	 *       both as modifiers and as keyUSB_HID_LOCK_COUNTs with their own scancodes???
+//	 *
+//	 * modifiers should be sent as normal keys to usbhid_parse_scancode()!!
+//	 * so maybe it would be better if I received it from report parser in 
+//	 * that way
+//	 */
+	
+//	int i;
+//	for (i = 0; i < count; ++i) {
+//		if ((modifiers & usb_hid_modifiers_consts[i]) &&
+//		    !(kbd_dev->modifiers & usb_hid_modifiers_consts[i])) {
+//			// modifier pressed
+//			if (usbhid_modifiers_keycodes[i] != 0) {
+//				usbhid_kbd_push_ev(kbd_dev, KEY_PRESS, 
+//				    usbhid_modifiers_keycodes[i]);
+//			}
+//		} else if (!(modifiers & usb_hid_modifiers_consts[i]) &&
+//		    (kbd_dev->modifiers & usb_hid_modifiers_consts[i])) {
+//			// modifier released
+//			if (usbhid_modifiers_keycodes[i] != 0) {
+//				usbhid_kbd_push_ev(kbd_dev, KEY_RELEASE, 
+//				    usbhid_modifiers_keycodes[i]);
+//			}
+//		}	// no change
+//	}
+	
+//	kbd_dev->modifiers = modifiers;
+//}
+
+/*----------------------------------------------------------------------------*/
+
+static inline int usbhid_kbd_is_lock(unsigned int key_code) 
 {
-	/*
-	 * TODO: why the USB keyboard has NUM_, SCROLL_ and CAPS_LOCK
-	 *       both as modifiers and as keys with their own scancodes???
-	 *
-	 * modifiers should be sent as normal keys to usbhid_parse_scancode()!!
-	 * so maybe it would be better if I received it from report parser in 
-	 * that way
-	 */
-	
-	int i;
-	for (i = 0; i < USB_HID_MOD_COUNT; ++i) {
-		if ((modifiers & usb_hid_modifiers_consts[i]) &&
-		    !(kbd_dev->modifiers & usb_hid_modifiers_consts[i])) {
-			// modifier pressed
-			if (usbhid_modifiers_keycodes[i] != 0) {
-				usbhid_kbd_push_ev(kbd_dev, KEY_PRESS, 
-				    usbhid_modifiers_keycodes[i]);
-			}
-		} else if (!(modifiers & usb_hid_modifiers_consts[i]) &&
-		    (kbd_dev->modifiers & usb_hid_modifiers_consts[i])) {
-			// modifier released
-			if (usbhid_modifiers_keycodes[i] != 0) {
-				usbhid_kbd_push_ev(kbd_dev, KEY_RELEASE, 
-				    usbhid_modifiers_keycodes[i]);
-			}
-		}	// no change
-	}
-	
-	kbd_dev->modifiers = modifiers;
+	return (key_code == KC_NUM_LOCK
+	    || key_code == KC_SCROLL_LOCK
+	    || key_code == KC_CAPS_LOCK);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -403,6 +426,9 @@ static void usbhid_kbd_check_key_changes(usbhid_kbd_t *kbd_dev,
 	
 	/*
 	 * First of all, check if the kbd have reported phantom state.
+	 *
+	 * TODO: this must be changed as we don't know which keys are modifiers
+	 *       and which are regular keys.
 	 */
 	i = 0;
 	// all fields should report Error Rollover
@@ -433,7 +459,9 @@ static void usbhid_kbd_check_key_changes(usbhid_kbd_t *kbd_dev,
 		if (i == count) {
 			// not found, i.e. the key was released
 			key = usbhid_parse_scancode(kbd_dev->keys[j]);
-			usbhid_kbd_repeat_stop(kbd_dev, key);
+			if (!usbhid_kbd_is_lock(key)) {
+				usbhid_kbd_repeat_stop(kbd_dev, key);
+			}
 			usbhid_kbd_push_ev(kbd_dev, KEY_RELEASE, key);
 			usb_log_debug2("Key released: %d\n", key);
 		} else {
@@ -457,7 +485,9 @@ static void usbhid_kbd_check_key_changes(usbhid_kbd_t *kbd_dev,
 			usb_log_debug2("Key pressed: %d (keycode: %d)\n", key,
 			    key_codes[i]);
 			usbhid_kbd_push_ev(kbd_dev, KEY_PRESS, key);
-			usbhid_kbd_repeat_start(kbd_dev, key);
+			if (!usbhid_kbd_is_lock(key)) {
+				usbhid_kbd_repeat_start(kbd_dev, key);
+			}
 		} else {
 			// found, nothing happens
 		}
@@ -509,7 +539,7 @@ static void usbhid_kbd_process_keycodes(const uint8_t *key_codes, size_t count,
 		return;
 	}
 	
-	usbhid_kbd_check_modifier_changes(kbd_dev, modifiers);
+	///usbhid_kbd_check_modifier_changes(kbd_dev, key_codes, count);
 	usbhid_kbd_check_key_changes(kbd_dev, key_codes, count);
 }
 
@@ -678,7 +708,15 @@ static int usbhid_kbd_init(usbhid_kbd_t *kbd_dev, ddf_dev_t *dev)
 	assert(kbd_dev->hid_dev->initialized);
 	
 	// save the size of the report (boot protocol report by default)
-	kbd_dev->key_count = BOOTP_REPORT_SIZE;
+//	kbd_dev->key_count = BOOTP_REPORT_SIZE;
+	
+	usb_hid_report_path_t path;
+	path.usage_page = USB_HIDUT_PAGE_KEYBOARD;
+	kbd_dev->key_count = usb_hid_report_input_length(
+	    kbd_dev->hid_dev->parser, &path);
+	
+	usb_log_debug("Size of the input report: %zu\n", kbd_dev->key_count);
+	
 	kbd_dev->keys = (uint8_t *)calloc(
 	    kbd_dev->key_count, sizeof(uint8_t));
 	
