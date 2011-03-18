@@ -46,6 +46,11 @@ typedef struct {
 	 * in usb_driver_t.
 	 */
 	usb_endpoint_mapping_t *pipes;
+	/** Current interface.
+	 * Usually, drivers operate on single interface only.
+	 * This item contains the value of the interface or -1 for any.
+	 */
+	int interface_no;
 	/** Generic DDF device backing this one. */
 	ddf_dev_t *ddf_dev;
 	/** Custom driver data.
