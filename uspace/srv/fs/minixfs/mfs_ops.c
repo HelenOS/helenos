@@ -32,6 +32,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 #include <fibril_synch.h>
 #include <errno.h>
 #include "mfs.h"
@@ -46,6 +47,7 @@ static LIST_INITIALIZE(inst_list);
 static FIBRIL_MUTEX_INITIALIZE(inst_list_mutex);
 
 libfs_ops_t mfs_libfs_ops = {
+	.size_get = mfs_size_get,
 	.root_get = mfs_root_get,
 	.device_get = mfs_device_get,
 	.is_directory = mfs_is_directory,
@@ -205,6 +207,41 @@ devmap_handle_t mfs_device_get(fs_node_t *fsnode)
 {
 	struct mfs_node *node = fsnode->data;
 	return node->instance->handle;
+}
+
+aoff64_t mfs_size_get(fs_node_t *node)
+{
+	aoff64_t size;
+
+	mfsdebug("request for inode size\n");
+	assert(node);
+
+	const struct mfs_node *mnode = node->data;
+	assert(mnode);
+
+	const struct mfs_instance *inst = mnode->instance;
+	assert(inst);
+
+	const struct mfs_sb_info *sbi = inst->sbi;
+	assert(sbi);
+
+	if (sbi->fs_version == MFS_VERSION_V1) {
+		struct mfs_inode *ino;
+		ino = mnode->ino;
+		size = ino->i_size;
+	} else {
+		struct mfs2_inode *ino2;
+		ino2 = mnode->ino2;
+		size = ino2->i_size;
+	}
+
+	return size;
+}
+
+void mfs_stat(ipc_callid_t rid, ipc_call_t *request)
+{
+	mfsdebug("mfs_stat called\n");
+	libfs_stat(&mfs_libfs_ops, mfs_reg.fs_handle, rid, request);
 }
 
 int mfs_node_get(fs_node_t **rfn, devmap_handle_t devmap_handle,
