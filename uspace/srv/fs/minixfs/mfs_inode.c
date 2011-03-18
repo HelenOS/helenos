@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <assert.h>
 #include <mem.h>
 #include "mfs.h"
 #include "mfs_utils.h"
@@ -20,8 +21,11 @@ struct mfs_inode *mfs_read_inode_raw(const struct mfs_instance *instance,
 		return NULL;
 
 	sbi = instance->sbi;
+	assert(sbi);
 
-	block_get(&b, instance->handle, 2 + inum / V1_INODES_PER_BLOCK,
+	const int itable_off = 2 + sbi->ibmap_blocks + sbi->zbmap_blocks;
+
+	block_get(&b, instance->handle, itable_off + inum / V1_INODES_PER_BLOCK,
 			BLOCK_FLAGS_NONE);
 
 	memcpy(ino, ((uint8_t *) b->data) + ino_off * ino_size, ino_size);
@@ -58,12 +62,14 @@ struct mfs2_inode *mfs2_read_inode_raw(const struct mfs_instance *instance,
 		return NULL;
 
 	sbi = instance->sbi;
+	assert(sbi);
 
+	const int itable_off = 2 + sbi->ibmap_blocks + sbi->zbmap_blocks;
 	const int ino_off = inum % V3_INODES_PER_BLOCK(sbi->block_size);
 
 	block_get(&b, instance->handle, 
-			2 + inum / V3_INODES_PER_BLOCK(sbi->block_size),
-			BLOCK_FLAGS_NONE);
+		itable_off + inum / V3_INODES_PER_BLOCK(sbi->block_size),
+		BLOCK_FLAGS_NONE);
 
 	memcpy(ino, ((uint8_t *)b->data) + ino_off * ino_size, ino_size);
 
