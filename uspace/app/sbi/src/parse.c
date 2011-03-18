@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jiri Svoboda
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -81,6 +81,7 @@ static stree_block_t *parse_block(parse_t *parse);
 
 static stree_vdecl_t *parse_vdecl(parse_t *parse);
 static stree_if_t *parse_if(parse_t *parse);
+static stree_switch_t *parse_switch(parse_t *parse);
 static stree_while_t *parse_while(parse_t *parse);
 static stree_for_t *parse_for(parse_t *parse);
 static stree_raise_t *parse_raise(parse_t *parse);
@@ -666,7 +667,6 @@ static stree_prop_t *parse_prop(parse_t *parse, stree_csi_t *outer_csi)
 {
 	stree_prop_t *prop;
 	stree_symbol_t *symbol;
-	bool_t body_expected;
 
 	stree_ident_t *ident;
 	stree_proc_arg_t *arg;
@@ -719,8 +719,6 @@ static stree_prop_t *parse_prop(parse_t *parse, stree_csi_t *outer_csi)
 
 	/* Parse attributes. */
 	parse_symbol_attrs(parse, symbol);
-
-	body_expected = (outer_csi->cc != csi_interface);
 
 	lmatch(parse, lc_is);
 
@@ -1069,6 +1067,7 @@ stree_stat_t *parse_stat(parse_t *parse)
 
 	stree_vdecl_t *vdecl_s;
 	stree_if_t *if_s;
+	stree_switch_t *switch_s;
 	stree_while_t *while_s;
 	stree_for_t *for_s;
 	stree_raise_t *raise_s;
@@ -1090,6 +1089,11 @@ stree_stat_t *parse_stat(parse_t *parse)
 		if_s = parse_if(parse);
 		stat = stree_stat_new(st_if);
 		stat->u.if_s = if_s;
+		break;
+	case lc_switch:
+		switch_s = parse_switch(parse);
+		stat = stree_stat_new(st_switch);
+		stat->u.switch_s = switch_s;
 		break;
 	case lc_while:
 		while_s = parse_while(parse);
@@ -1213,6 +1217,60 @@ static stree_if_t *parse_if(parse_t *parse)
 
 	lmatch(parse, lc_end);
 	return if_s;
+}
+
+/** Parse @c switch statement.
+ *
+ * @param parse		Parser object.
+ * @return		New syntax tree node.
+ */
+static stree_switch_t *parse_switch(parse_t *parse)
+{
+	stree_switch_t *switch_s;
+	stree_when_t *when_c;
+	stree_expr_t *expr;
+
+#ifdef DEBUG_PARSE_TRACE
+	printf("Parse 'switch' statement.\n");
+#endif
+	lmatch(parse, lc_switch);
+
+	switch_s = stree_switch_new();
+	list_init(&switch_s->when_clauses);
+
+	switch_s->expr = parse_expr(parse);
+	lmatch(parse, lc_is);
+
+	/* Parse @c when clauses. */
+	while (lcur_lc(parse) == lc_when) {
+		lskip(parse);
+		when_c = stree_when_new();
+		list_init(&when_c->exprs);
+		while (b_true) {
+			expr = parse_expr(parse);
+			list_append(&when_c->exprs, expr);
+			if (lcur_lc(parse) != lc_comma)
+				break;
+			lskip(parse);
+		}
+
+		lmatch(parse, lc_do);
+		when_c->block = parse_block(parse);
+
+		list_append(&switch_s->when_clauses, when_c);
+	}
+
+	/* Parse @c else clause. */
+	if (lcur_lc(parse) == lc_else) {
+		lskip(parse);
+		lmatch(parse, lc_do);
+		switch_s->else_block = parse_block(parse);
+	} else {
+		switch_s->else_block = NULL;
+	}
+
+	lmatch(parse, lc_end);
+	return switch_s;
 }
 
 /** Parse @c while statement.
@@ -1653,6 +1711,7 @@ bool_t terminates_block(lclass_t lclass)
 	case lc_end:
 	case lc_except:
 	case lc_finally:
+	case lc_when:
 		return b_true;
 	default:
 		return b_false;

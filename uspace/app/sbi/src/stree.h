@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jiri Svoboda
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -54,6 +54,7 @@ stree_arg_attr_t *stree_arg_attr_new(arg_attr_class_t aac);
 stree_stat_t *stree_stat_new(stat_class_t sc);
 stree_vdecl_t *stree_vdecl_new(void);
 stree_if_t *stree_if_new(void);
+stree_switch_t *stree_switch_new(void);
 stree_while_t *stree_while_new(void);
 stree_for_t *stree_for_new(void);
 stree_raise_t *stree_raise_new(void);
@@ -64,6 +65,7 @@ stree_exps_t *stree_exps_new(void);
 
 stree_except_t *stree_except_new(void);
 stree_if_clause_t *stree_if_clause_new(void);
+stree_when_t *stree_when_new(void);
 stree_block_t *stree_block_new(void);
 
 stree_expr_t *stree_expr_new(expr_class_t ec);

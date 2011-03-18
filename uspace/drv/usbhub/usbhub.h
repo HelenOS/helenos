@@ -70,6 +70,8 @@ typedef struct {
 	usb_device_connection_t device_connection;
 	/** hub endpoints */
 	usb_hub_endpoints_t endpoints;
+
+	bool is_default_address_used;
 } usb_hub_info_t;
 
 /**

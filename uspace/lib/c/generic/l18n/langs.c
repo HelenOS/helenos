@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jiri Svoboda
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,20 +26,51 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef RUN_EXPR_H_
-#define RUN_EXPR_H_
+/** @addtogroup libc
+ * @{
+ */
+/** @file
+ * Language and locale ids.
+ */
 
-#include "mytypes.h"
+#include <l18n/langs.h>
+#include <stdio.h>
+#include <fibril.h>
 
-void run_expr(run_t *run, stree_expr_t *expr, rdata_item_t **res);
+#define UNKNOWN_LOCALE_LEN 64
 
-void run_new_csi_inst_ref(run_t *run, stree_csi_t *csi, statns_t sn,
-    rdata_item_t **res);
-void run_new_csi_inst(run_t *run, stree_csi_t *csi, statns_t sn,
-    rdata_var_t **res);
+static fibril_local char unknown_locale[UNKNOWN_LOCALE_LEN];
 
-void run_equal(run_t *run, rdata_value_t *v1, rdata_value_t *v2, bool_t *res);
-bool_t run_item_boolean_value(run_t *run, rdata_item_t *item);
+/** Get string representation of a given locale.
+ *
+ * @param locale The locale.
+ * @return Name of the locale.
+ */
+const char *str_l18_win_locale(l18_win_locales_t locale)
+{
+	/*
+	 * Static array with names might be better but it would be
+	 * way too big.
+	 */
+	switch (locale) {
+		case L18N_WIN_LOCALE_AFRIKAANS:
+			return "Afrikaans";
+		case L18N_WIN_LOCALE_CZECH:
+			return "Czech";
+		case L18N_WIN_LOCALE_ENGLISH_UNITED_STATES:
+			return "English (US)";
+		case L18N_WIN_LOCALE_SLOVAK:
+			return "Slovak";
+		case L18N_WIN_LOCALE_SPANISH_TRADITIONAL:
+			return "Spanish (traditional)";
+		case L18N_WIN_LOCALE_ZULU:
+			return "Zulu";
+	}
 
+	snprintf(unknown_locale, UNKNOWN_LOCALE_LEN, "Unknown locale 0x%04d",
+	    (int) locale);
+	return unknown_locale;
+}
 
-#endif
+/** @}
+ */
