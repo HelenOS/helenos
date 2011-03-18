@@ -96,6 +96,8 @@ int uhci_hc_init(uhci_hc_t *instance, ddf_fun_t *fun,
 	} else (void) 0
 
 	instance->hw_interrupts = interrupts;
+	instance->hw_failures = 0;
+
 	/* Setup UHCI function. */
 	instance->ddf_instance = fun;
 
@@ -148,7 +150,10 @@ void uhci_hc_init_hw(uhci_hc_t *instance)
 	do { async_usleep(10); }
 	while ((pio_read_16(&registers->usbcmd) & UHCI_CMD_HCRESET) != 0);
 
-	/* Set framelist pointer */
+	/* Set frame to exactly 1ms */
+	pio_write_8(&registers->sofmod, 64);
+
+	/* Set frame list pointer */
 	const uint32_t pa = addr_to_phys(instance->frame_list);
 	pio_write_32(&registers->flbaseadd, pa);
 
@@ -346,13 +351,30 @@ int uhci_hc_schedule(uhci_hc_t *instance, batch_t *batch)
 void uhci_hc_interrupt(uhci_hc_t *instance, uint16_t status)
 {
 	assert(instance);
-	/* TODO: Check interrupt cause here */
+	/* TODO: Resume interrupts are not supported */
 	/* Lower 2 bits are transaction error and transaction complete */
 	if (status & 0x3) {
 		transfer_list_remove_finished(&instance->transfers_interrupt);
 		transfer_list_remove_finished(&instance->transfers_control_slow);
 		transfer_list_remove_finished(&instance->transfers_control_full);
 		transfer_list_remove_finished(&instance->transfers_bulk_full);
+	}
+	/* bits 4 and 5 indicate hc error */
+	if (status & 0x18) {
+		usb_log_error("UHCI hardware failure!.\n");
+		++instance->hw_failures;
+		transfer_list_abort_all(&instance->transfers_interrupt);
+		transfer_list_abort_all(&instance->transfers_control_slow);
+		transfer_list_abort_all(&instance->transfers_control_full);
+		transfer_list_abort_all(&instance->transfers_bulk_full);
+
+		if (instance->hw_failures < UHCI_ALLOWED_HW_FAIL) {
+			/* reinitialize hw, this triggers virtual disconnect*/
+			uhci_hc_init_hw(instance);
+		} else {
+			usb_log_fatal("Too many UHCI hardware failures!.\n");
+			uhci_hc_fini(instance);
+		}
 	}
 }
 /*----------------------------------------------------------------------------*/

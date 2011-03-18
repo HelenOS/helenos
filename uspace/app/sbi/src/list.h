@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jiri Svoboda
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,6 +33,7 @@
 #include "compat.h"
 
 void list_init(list_t *list);
+void list_fini(list_t *list);
 void list_append(list_t *list, void *data);
 void list_prepend(list_t *list, void *data);
 void list_remove(list_t *list, list_node_t *node);

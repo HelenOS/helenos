@@ -29,16 +29,16 @@
 class StringDemo is
 	fun Main(), static is
 		-- Concatenate some strings.
-		Builtin.WriteLine("One-" + "two-" + "three!");
+		Console.WriteLine("One-" + "two-" + "three!");
 
 		-- Extract characters from a string.
 		var i : int;
 		i = 0;
 		while i < 5 do
-			Builtin.WriteLine("ABCDE"[i]);
+			Console.WriteLine("ABCDE"[i]);
 			i = i + 1;
 		end
 
-		Builtin.WriteLine("Abracadabra".Slice(2, 4));
+		Console.WriteLine("Abracadabra".Slice(2, 4));
 	end
 end

@@ -39,7 +39,7 @@ class ArrayDemo is
 
 		i = 0;
 		while i < 3 do
-			Builtin.WriteLine(a[i, 0]);
+			Console.WriteLine(a[i, 0]);
 			i = i + 1;
 		end
 	end

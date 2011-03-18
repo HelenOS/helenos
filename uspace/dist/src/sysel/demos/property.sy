@@ -32,16 +32,27 @@ class Foo is
 	-- Example of a named property
 	prop X : int is
 		get is
-			Builtin.Write("Getting value of X which is ");
-			Builtin.WriteLine(x);
+			Console.Write("Getting value of X which is ");
+			Console.WriteLine(x);
 			return x;
 		end
 
 		set value is
-			Builtin.Write("Setting value of X to ");
-			Builtin.WriteLine(value);
+			Console.Write("Setting value of X to ");
+			Console.WriteLine(value);
 			x = value;
 		end
+	end
+
+	-- Test accessing property via an unqualified name
+	fun TestUnqualPropAcc() is
+		var i : int;
+
+		X = 1;
+		i = X;
+
+		Console.Write("TestUnqualPropAcc(): Got ");
+		Console.WriteLine(i);
 	end
 
 	-- Backing store for indexed properties
@@ -50,19 +61,19 @@ class Foo is
 	-- Example of an indexed property set (i.e. an indexer)
 	prop self[index : int] : int is
 		get is
-			Builtin.Write("Getting property with index ");
-			Builtin.Write(index);
-			Builtin.Write(" which is ");
-			Builtin.WriteLine(iprops[index]);
+			Console.Write("Getting property with index ");
+			Console.Write(index);
+			Console.Write(" which is ");
+			Console.WriteLine(iprops[index]);
 
 			return iprops[index];
 		end
 
 		set value is
-			Builtin.Write("Setting property with index ");
-			Builtin.Write(index);
-			Builtin.Write(" to ");
-			Builtin.WriteLine(value);
+			Console.Write("Setting property with index ");
+			Console.Write(index);
+			Console.Write(" to ");
+			Console.WriteLine(value);
 
 			iprops[index] = value;
 		end
@@ -81,11 +92,11 @@ class Foo is
 
 	prop B : Bar is
 		get is
-			Builtin.WriteLine("Getting B");
+			Console.WriteLine("Getting B");
 			return bprop;
 		end
 		set value is
-			Builtin.WriteLine("Setting B");
+			Console.WriteLine("Setting B");
 			bprop = value;
 		end
 	end
@@ -109,8 +120,10 @@ class PropertyDemo is
 		-- Set value of named property.
 		i = a.X;
 
-		Builtin.Write("Main(): Got ");
-		Builtin.WriteLine(i);
+		Console.Write("Main(): Got ");
+		Console.WriteLine(i);
+
+		a.TestUnqualPropAcc();
 
 		a.iprops = new int[5];
 
@@ -120,8 +133,8 @@ class PropertyDemo is
 		-- Get value of indexed property.
 		i = a[1];
 
-		Builtin.Write("Main(): Got ");
-		Builtin.WriteLine(i);
+		Console.Write("Main(): Got ");
+		Console.WriteLine(i);
 
 		-- Property field access
 		var b : Bar;
@@ -131,8 +144,8 @@ class PropertyDemo is
 		b.i = 42;
 		a.bprop = b;
 
-		Builtin.WriteLine(a.bprop.i);
+		Console.WriteLine(a.bprop.i);
 		a.bprop.i = 2;
-		Builtin.WriteLine(a.bprop.i);
+		Console.WriteLine(a.bprop.i);
 	end
 end
