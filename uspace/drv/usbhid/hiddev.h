@@ -74,6 +74,9 @@ typedef struct {
 	
 	/** Report descriptor. */
 	uint8_t *report_desc;
+
+	size_t report_desc_size;
+
 	/** HID Report parser. */
 	usb_hid_report_parser_t *parser;
 	
