@@ -102,6 +102,7 @@ extern void mfs_mounted(ipc_callid_t rid, ipc_call_t *request);
 extern void mfs_mount(ipc_callid_t rid, ipc_call_t *request);
 extern bool mfs_is_directory(fs_node_t *fsnode);
 extern bool mfs_is_file(fs_node_t *fsnode);
+extern int mfs_root_get(fs_node_t **rfn, devmap_handle_t handle);
 extern devmap_handle_t mfs_device_get(fs_node_t *fsnode);
 extern int mfs_instance_get(devmap_handle_t handle,
 				struct mfs_instance **instance);

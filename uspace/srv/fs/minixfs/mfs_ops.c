@@ -46,6 +46,7 @@ static LIST_INITIALIZE(inst_list);
 static FIBRIL_MUTEX_INITIALIZE(inst_list_mutex);
 
 libfs_ops_t mfs_libfs_ops = {
+	.root_get = mfs_root_get,
 	.device_get = mfs_device_get,
 	.is_directory = mfs_is_directory,
 	.is_file = mfs_is_file,
@@ -291,6 +292,11 @@ bool mfs_is_file(fs_node_t *fsnode)
 		return S_ISREG(node->ino->i_mode);
 	else
 		return S_ISREG(node->ino2->i_mode);
+}
+
+int mfs_root_get(fs_node_t **rfn, devmap_handle_t handle)
+{
+	return mfs_node_get(rfn, handle, MFS_ROOT_INO);
 }
 
 /*
