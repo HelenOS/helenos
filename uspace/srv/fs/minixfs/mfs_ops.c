@@ -39,6 +39,8 @@
 
 static bool check_magic_number(uint16_t magic, bool *native,
 				mfs_version_t *version, bool *longfilenames);
+static int mfs_node_core_get(fs_node_t **rfn, struct mfs_instance *inst,
+			fs_index_t index);
 
 static LIST_INITIALIZE(inst_list);
 static FIBRIL_MUTEX_INITIALIZE(inst_list_mutex);
@@ -46,7 +48,8 @@ static FIBRIL_MUTEX_INITIALIZE(inst_list_mutex);
 libfs_ops_t mfs_libfs_ops = {
 	.device_get = mfs_device_get,
 	.is_directory = mfs_is_directory,
-	.is_file = mfs_is_file
+	.is_file = mfs_is_file,
+	.node_get = mfs_node_get
 };
 
 void mfs_mounted(ipc_callid_t rid, ipc_call_t *request)
@@ -203,10 +206,75 @@ devmap_handle_t mfs_device_get(fs_node_t *fsnode)
 	return node->instance->handle;
 }
 
+int mfs_node_get(fs_node_t **rfn, devmap_handle_t devmap_handle,
+			fs_index_t index)
+{
+	int rc;
+	struct mfs_instance *instance;
+
+	rc = mfs_instance_get(devmap_handle, &instance);
+
+	if (rc != EOK)
+		return rc;
+
+	return mfs_node_core_get(rfn, instance, index);
+}
+
+static int mfs_node_core_get(fs_node_t **rfn, struct mfs_instance *inst,
+			fs_index_t index)
+{
+	fs_node_t *node = NULL;
+	struct mfs_node *mnode = NULL;
+	int rc;
+
+	const struct mfs_sb_info *sbi = inst->sbi;
+
+	node = (fs_node_t *) malloc(sizeof(fs_node_t));
+	if (!node) {
+		rc = ENOMEM;
+		goto out_err;
+	}
+
+	fs_node_initialize(node);
+
+	mnode = (struct mfs_node *) malloc(sizeof(struct mfs_node));
+	if (!mnode) {
+		rc = ENOMEM;
+		goto out_err;
+	}
+
+	if (sbi->fs_version == MFS_VERSION_V1) {
+		/*Read MFS V1 inode*/
+		struct mfs_inode *ino;
+
+		ino = mfs_read_inode_raw(inst, index);
+		mnode->ino = ino;
+	} else {
+		/*Read MFS V2/V3 inode*/
+		struct mfs2_inode *ino2;
+
+		ino2 = mfs2_read_inode_raw(inst, index);
+		mnode->ino2 = ino2;
+	}
+
+	mnode->instance = inst;
+	node->data = mnode;
+	*rfn = node;
+
+	return EOK;
+
+out_err:
+	if (node)
+		free(node);
+	if (mnode)
+		free(mnode);
+	return rc;
+}
+
 bool mfs_is_directory(fs_node_t *fsnode)
 {
-	struct mfs_node *node = fsnode->data;
-	struct mfs_sb_info *sbi = node->instance->sbi;
+	const struct mfs_node *node = fsnode->data;
+	const struct mfs_sb_info *sbi = node->instance->sbi;
 
 	if (sbi->fs_version == MFS_VERSION_V1)
 		return S_ISDIR(node->ino->i_mode);
@@ -228,7 +296,7 @@ bool mfs_is_file(fs_node_t *fsnode)
 /*
  * Find a filesystem instance given the devmap handle
  */
-int mfs_get_instance(devmap_handle_t handle, struct mfs_instance **instance)
+int mfs_instance_get(devmap_handle_t handle, struct mfs_instance **instance)
 {
 	link_t *link;
 	struct mfs_instance *instance_ptr;
