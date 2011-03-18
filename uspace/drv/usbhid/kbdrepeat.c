@@ -77,9 +77,11 @@ static void usbhid_kbd_repeat_loop(usbhid_kbd_t *kbd)
 
 	while (true) {
 		// check if the kbd structure is usable
-		if (!usbhid_kbd_is_usable(kbd)) {
-			usbhid_kbd_free(&kbd);
-			assert(kbd == NULL);
+		if (!usbhid_kbd_is_initialized(kbd)) {
+			if (usbhid_kbd_is_ready_to_destroy(kbd)) {
+				usbhid_kbd_free(&kbd);
+				assert(kbd == NULL);
+			}
 			return;
 		}
 		

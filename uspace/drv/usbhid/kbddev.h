@@ -113,7 +113,9 @@ typedef struct {
 
 int usbhid_kbd_try_add_device(ddf_dev_t *dev);
 
-int usbhid_kbd_is_usable(const usbhid_kbd_t *kbd_dev);
+int usbhid_kbd_is_initialized(const usbhid_kbd_t *kbd_dev);
+
+int usbhid_kbd_is_ready_to_destroy(const usbhid_kbd_t *kbd_dev);
 
 void usbhid_kbd_free(usbhid_kbd_t **kbd_dev);
 

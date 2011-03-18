@@ -983,9 +983,16 @@ int usbhid_kbd_try_add_device(ddf_dev_t *dev)
 
 /*----------------------------------------------------------------------------*/
 
-int usbhid_kbd_is_usable(const usbhid_kbd_t *kbd_dev)
+int usbhid_kbd_is_initialized(const usbhid_kbd_t *kbd_dev)
 {
 	return (kbd_dev->initialized == USBHID_KBD_STATUS_INITIALIZED);
+}
+
+/*----------------------------------------------------------------------------*/
+
+int usbhid_kbd_is_ready_to_destroy(const usbhid_kbd_t *kbd_dev)
+{
+	return (kbd_dev->initialized == USBHID_KBD_STATUS_TO_DESTROY);
 }
 
 /*----------------------------------------------------------------------------*/
