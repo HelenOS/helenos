@@ -257,6 +257,70 @@ uint8_t *usb_dp_get_sibling_descriptor(usb_dp_parser_t *parser,
 	}
 }
 
+/** Browser of the descriptor tree.
+ *
+ * @see usb_dp_walk_simple
+ *
+ * @param parser Descriptor parser.
+ * @param data Data for descriptor parser.
+ * @param root Pointer to current root of the tree.
+ * @param depth Current nesting depth.
+ * @param callback Callback for each found descriptor.
+ * @param arg Custom (user) argument.
+ */
+static void usb_dp_browse_simple_internal(usb_dp_parser_t *parser,
+    usb_dp_parser_data_t *data, uint8_t *root, size_t depth,
+    void (*callback)(uint8_t *, size_t, void *), void *arg)
+{
+	if (root == NULL) {
+		return;
+	}
+	callback(root, depth, arg);
+	uint8_t *child = usb_dp_get_nested_descriptor(parser, data, root);
+	do {
+		usb_dp_browse_simple_internal(parser, data, child, depth + 1,
+		    callback, arg);
+		child = usb_dp_get_sibling_descriptor(parser, data,
+		    root, child);
+	} while (child != NULL);
+}
+
+/** Browse flatten descriptor tree.
+ *
+ * The callback is called with following arguments: pointer to the start
+ * of the descriptor (somewhere inside @p descriptors), depth of the nesting
+ * (starting from 0 for the first descriptor) and the custom argument.
+ * Note that the size of the descriptor is not passed because it can
+ * be read from the first byte of the descriptor.
+ *
+ * @param descriptors Descriptor data.
+ * @param descriptors_size Size of descriptor data (in bytes).
+ * @param descriptor_nesting Possible descriptor nesting.
+ * @param callback Callback for each found descriptor.
+ * @param arg Custom (user) argument.
+ */
+void usb_dp_walk_simple(uint8_t *descriptors, size_t descriptors_size,
+    usb_dp_descriptor_nesting_t *descriptor_nesting,
+    void (*callback)(uint8_t *, size_t, void *), void *arg)
+{
+	if ((descriptors == NULL) || (descriptors_size == 0)
+	    || (descriptor_nesting == NULL) || (callback == NULL)) {
+		return;
+	}
+
+	usb_dp_parser_data_t data = {
+		.data = descriptors,
+		.size = descriptors_size,
+		.arg = NULL
+	};
+
+	usb_dp_parser_t parser = {
+		.nesting = descriptor_nesting
+	};
+
+	usb_dp_browse_simple_internal(&parser, &data, descriptors,
+	    0, callback, arg);
+}
 
 /** @}
  */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2010 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,52 +25,13 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup drvusbuhcihc
- * @{
- */
-/** @file
- * @brief UHCI driver transfer list structure
- */
-#ifndef DRV_UHCI_TRANSFER_LIST_H
-#define DRV_UHCI_TRANSFER_LIST_H
 
-#include <fibril_synch.h>
+#ifndef BI_CONSOLE_H_
+#define BI_CONSOLE_H_
 
-#include "uhci_struct/queue_head.h"
+#include "../mytypes.h"
 
-#include "batch.h"
+void bi_console_declare(builtin_t *bi);
+void bi_console_bind(builtin_t *bi);
 
-typedef struct transfer_list
-{
-	fibril_mutex_t guard;
-	qh_t *queue_head;
-	uint32_t queue_head_pa;
-	const char *name;
-	link_t batch_list;
-} transfer_list_t;
-
-/** Dispose transfer list structures.
- *
- * @param[in] instance Memory place to use.
- *
- * Frees memory for internal qh_t structure.
- */
-static inline void transfer_list_fini(transfer_list_t *instance)
-{
-	assert(instance);
-	free32(instance->queue_head);
-}
-
-int transfer_list_init(transfer_list_t *instance, const char *name);
-
-void transfer_list_set_next(transfer_list_t *instance, transfer_list_t *next);
-
-void transfer_list_add_batch(transfer_list_t *instance, batch_t *batch);
-
-void transfer_list_remove_finished(transfer_list_t *instance);
-
-void transfer_list_abort_all(transfer_list_t *instance);
 #endif
-/**
- * @}
- */

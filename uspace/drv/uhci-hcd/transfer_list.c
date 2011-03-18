@@ -128,41 +128,6 @@ void transfer_list_add_batch(transfer_list_t *instance, batch_t *batch)
 	fibril_mutex_unlock(&instance->guard);
 }
 /*----------------------------------------------------------------------------*/
-/** Remove a transfer batch from the list and queue.
- *
- * @param[in] instance List to use.
- * @param[in] batch Transfer batch to remove.
- * @return Error code
- *
- * Does not lock the transfer list, caller is responsible for that.
- */
-void transfer_list_remove_batch(transfer_list_t *instance, batch_t *batch)
-{
-	assert(instance);
-	assert(batch);
-	assert(instance->queue_head);
-	assert(batch->qh);
-	usb_log_debug2(
-	    "Queue %s: removing batch(%p).\n", instance->name, batch);
-
-	const char * pos = NULL;
-	/* Remove from the hardware queue */
-	if (batch->link.prev == &instance->batch_list) {
-		/* I'm the first one here */
-		qh_set_element_qh(instance->queue_head, batch->qh->next);
-		pos = "FIRST";
-	} else {
-		batch_t *prev =
-		    list_get_instance(batch->link.prev, batch_t, link);
-		qh_set_next_qh(prev->qh, batch->qh->next);
-		pos = "NOT FIRST";
-	}
-	/* Remove from the driver list */
-	list_remove(&batch->link);
-	usb_log_debug("Batch(%p) removed (%s) from %s, next element %x.\n",
-	    batch, pos, instance->name, batch->qh->next);
-}
-/*----------------------------------------------------------------------------*/
 /** Check list for finished batches.
  *
  * @param[in] instance List to use.
@@ -199,6 +164,57 @@ void transfer_list_remove_finished(transfer_list_t *instance)
 		batch_t *batch = list_get_instance(item, batch_t, link);
 		batch->next_step(batch);
 	}
+}
+/*----------------------------------------------------------------------------*/
+/** Walk the list and abort all batches.
+ *
+ * @param[in] instance List to use.
+ */
+void transfer_list_abort_all(transfer_list_t *instance)
+{
+	fibril_mutex_lock(&instance->guard);
+	while (list_empty(&instance->batch_list)) {
+		link_t *current = instance->batch_list.next;
+		batch_t *batch = list_get_instance(current, batch_t, link);
+		transfer_list_remove_batch(instance, batch);
+		batch_abort(batch);
+	}
+	fibril_mutex_unlock(&instance->guard);
+}
+/*----------------------------------------------------------------------------*/
+/** Remove a transfer batch from the list and queue.
+ *
+ * @param[in] instance List to use.
+ * @param[in] batch Transfer batch to remove.
+ * @return Error code
+ *
+ * Does not lock the transfer list, caller is responsible for that.
+ */
+void transfer_list_remove_batch(transfer_list_t *instance, batch_t *batch)
+{
+	assert(instance);
+	assert(batch);
+	assert(instance->queue_head);
+	assert(batch->qh);
+	usb_log_debug2(
+	    "Queue %s: removing batch(%p).\n", instance->name, batch);
+
+	const char * pos = NULL;
+	/* Remove from the hardware queue */
+	if (batch->link.prev == &instance->batch_list) {
+		/* I'm the first one here */
+		qh_set_element_qh(instance->queue_head, batch->qh->next);
+		pos = "FIRST";
+	} else {
+		batch_t *prev =
+		    list_get_instance(batch->link.prev, batch_t, link);
+		qh_set_next_qh(prev->qh, batch->qh->next);
+		pos = "NOT FIRST";
+	}
+	/* Remove from the driver list */
+	list_remove(&batch->link);
+	usb_log_debug("Batch(%p) removed (%s) from %s, next element %x.\n",
+	    batch, pos, instance->name, batch->qh->next);
 }
 /**
  * @}

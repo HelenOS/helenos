@@ -41,7 +41,7 @@ COMMON_HEADER_PREV = $(COMMON_HEADER).prev
 CONFIG_MAKEFILE = Makefile.config
 CONFIG_HEADER = config.h
 
-.PHONY: all precheck cscope autotool config_auto config_default config distclean clean check distfile dist
+.PHONY: all precheck cscope autotool config_auto config_default config distclean clean check releasefile release
 
 all: $(COMMON_MAKEFILE) $(COMMON_HEADER) $(CONFIG_MAKEFILE) $(CONFIG_HEADER)
 	cp -a $(COMMON_HEADER) $(COMMON_HEADER_PREV)
@@ -87,18 +87,18 @@ endif
 config: $(CONFIG_RULES)
 	$(CONFIG) $<
 
-# Distribution files
+# Release files
 
-distfile: all
-	$(MAKE) -C dist distfile
+releasefile: all
+	$(MAKE) -C release releasefile
 
-dist:
-	$(MAKE) -C dist dist
+release:
+	$(MAKE) -C release release
 
 # Cleaning
 
 distclean: clean
-	rm -f $(CSCOPE).out $(COMMON_MAKEFILE) $(COMMON_HEADER) $(COMMON_HEADER_PREV) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) tools/*.pyc tools/checkers/*.pyc dist/HelenOS-*
+	rm -f $(CSCOPE).out $(COMMON_MAKEFILE) $(COMMON_HEADER) $(COMMON_HEADER_PREV) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) tools/*.pyc tools/checkers/*.pyc release/HelenOS-*
 
 clean:
 	rm -fr $(SANDBOX)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,52 +25,52 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup drvusbuhcihc
+
+/** @addtogroup libc
  * @{
  */
 /** @file
- * @brief UHCI driver transfer list structure
+ * Language and locale ids.
  */
-#ifndef DRV_UHCI_TRANSFER_LIST_H
-#define DRV_UHCI_TRANSFER_LIST_H
 
-#include <fibril_synch.h>
+#include <l18n/langs.h>
+#include <stdio.h>
+#include <fibril.h>
 
-#include "uhci_struct/queue_head.h"
+#define UNKNOWN_LOCALE_LEN 64
 
-#include "batch.h"
+static fibril_local char unknown_locale[UNKNOWN_LOCALE_LEN];
 
-typedef struct transfer_list
-{
-	fibril_mutex_t guard;
-	qh_t *queue_head;
-	uint32_t queue_head_pa;
-	const char *name;
-	link_t batch_list;
-} transfer_list_t;
-
-/** Dispose transfer list structures.
+/** Get string representation of a given locale.
  *
- * @param[in] instance Memory place to use.
- *
- * Frees memory for internal qh_t structure.
+ * @param locale The locale.
+ * @return Name of the locale.
  */
-static inline void transfer_list_fini(transfer_list_t *instance)
+const char *str_l18_win_locale(l18_win_locales_t locale)
 {
-	assert(instance);
-	free32(instance->queue_head);
+	/*
+	 * Static array with names might be better but it would be
+	 * way too big.
+	 */
+	switch (locale) {
+		case L18N_WIN_LOCALE_AFRIKAANS:
+			return "Afrikaans";
+		case L18N_WIN_LOCALE_CZECH:
+			return "Czech";
+		case L18N_WIN_LOCALE_ENGLISH_UNITED_STATES:
+			return "English (US)";
+		case L18N_WIN_LOCALE_SLOVAK:
+			return "Slovak";
+		case L18N_WIN_LOCALE_SPANISH_TRADITIONAL:
+			return "Spanish (traditional)";
+		case L18N_WIN_LOCALE_ZULU:
+			return "Zulu";
+	}
+
+	snprintf(unknown_locale, UNKNOWN_LOCALE_LEN, "Unknown locale 0x%04d",
+	    (int) locale);
+	return unknown_locale;
 }
 
-int transfer_list_init(transfer_list_t *instance, const char *name);
-
-void transfer_list_set_next(transfer_list_t *instance, transfer_list_t *next);
-
-void transfer_list_add_batch(transfer_list_t *instance, batch_t *batch);
-
-void transfer_list_remove_finished(transfer_list_t *instance);
-
-void transfer_list_abort_all(transfer_list_t *instance);
-#endif
-/**
- * @}
+/** @}
  */

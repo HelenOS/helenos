@@ -158,7 +158,7 @@ void td_print_status(td_t *instance)
 	    (s & TD_STATUS_ERROR_CRC) ? " CRC/TIMEOUT," : "",
 	    (s & TD_STATUS_ERROR_BIT_STUFF) ? " BIT_STUFF," : "",
 	    (s & TD_STATUS_ERROR_RESERVED) ? " RESERVED," : "",
-	    (s >> TD_STATUS_ACTLEN_POS) & TD_STATUS_ACTLEN_MASK
+	    td_act_size(instance)
 	);
 }
 /**

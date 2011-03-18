@@ -36,26 +36,87 @@
 #define LIBUSB_HIDPARSER_H_
 
 #include <stdint.h>
+#include <adt/list.h>
+#include <usb/classes/hid_report_items.h>
+
+/**
+ * Item prefix
+ */
+#define USB_HID_ITEM_SIZE(data) 	((uint8_t)(data & 0x3))
+#define USB_HID_ITEM_TAG(data) 		((uint8_t)((data & 0xF0) >> 4))
+#define USB_HID_ITEM_TAG_CLASS(data)	((uint8_t)((data & 0xC) >> 2))
+#define USB_HID_ITEM_IS_LONG(data)	(data == 0xFE)
+
+
+/**
+ * Input/Output/Feature Item flags
+ */
+/** Constant (1) / Variable (0) */
+#define USB_HID_ITEM_FLAG_CONSTANT(flags) 	((flags & 0x1) == 0x1)
+/** Variable (1) / Array (0) */
+#define USB_HID_ITEM_FLAG_VARIABLE(flags) 	((flags & 0x2) == 0x2)
+/** Absolute / Relative*/
+#define USB_HID_ITEM_FLAG_RELATIVE(flags) 	((flags & 0x4) == 0x4)
+/** Wrap / No Wrap */
+#define USB_HID_ITEM_FLAG_WRAP(flags)		((flags & 0x8) == 0x8)
+#define USB_HID_ITEM_FLAG_LINEAR(flags)		((flags & 0x10) == 0x10)
+#define USB_HID_ITEM_FLAG_PREFERRED(flags)	((flags & 0x20) == 0x20)
+#define USB_HID_ITEM_FLAG_POSITION(flags)	((flags & 0x40) == 0x40)
+#define USB_HID_ITEM_FLAG_VOLATILE(flags)	((flags & 0x80) == 0x80)
+#define USB_HID_ITEM_FLAG_BUFFERED(flags)	((flags & 0x100) == 0x100)
+
+
+/**
+ * Description of path of usage pages and usages in report descriptor
+ */
+typedef struct {
+	int32_t usage_page;
+} usb_hid_report_path_t;
 
 /**
  * Description of report items
  */
 typedef struct {
+	int32_t id;
+	int32_t usage_page;
+	int32_t	usage;	
+	int32_t usage_minimum;
+	int32_t usage_maximum;
+	int32_t logical_minimum;
+	int32_t logical_maximum;
+	int32_t size;
+	int32_t count;
+	size_t offset;
+	int32_t delimiter;
 
-	uint8_t usage_min;
-	uint8_t usage_max;
-	uint8_t logical_min;
-	uint8_t logical_max;
-	uint8_t size;
-	uint8_t count;
-	uint8_t offset;
+	int32_t unit_exponent;
+	int32_t unit;
 
+	/*
+	 * some not yet used fields
+	 */
+	int32_t string_index;
+	int32_t string_minimum;
+	int32_t string_maximum;
+	int32_t designator_index;
+	int32_t designator_minimum;
+	int32_t designator_maximum;
+	int32_t physical_minimum;
+	int32_t physical_maximum;
+
+	uint8_t item_flags;
+
+	link_t link;
 } usb_hid_report_item_t;
 
 
 /** HID report parser structure. */
-typedef struct {
-} usb_hid_report_parser_t;
+typedef struct {	
+	link_t input;
+	link_t output;
+	link_t feature;
+} usb_hid_report_parser_t;	
+
 
 
 /** HID parser callbacks for IN items. */
@@ -126,6 +187,7 @@ int usb_hid_boot_keyboard_input_report(const uint8_t *data, size_t size,
 
 int usb_hid_boot_keyboard_output_report(uint8_t leds, uint8_t *data, size_t size);
 
+int usb_hid_parser_init(usb_hid_report_parser_t *parser);
 int usb_hid_parse_report_descriptor(usb_hid_report_parser_t *parser, 
     const uint8_t *data, size_t size);
 
@@ -133,8 +195,13 @@ int usb_hid_parse_report(const usb_hid_report_parser_t *parser,
     const uint8_t *data, size_t size,
     const usb_hid_report_in_callbacks_t *callbacks, void *arg);
 
+int usb_hid_report_input_length(const usb_hid_report_parser_t *parser,
+	const usb_hid_report_path_t *path);
 
-int usb_hid_free_report_parser(usb_hid_report_parser_t *parser);
+
+void usb_hid_free_report_parser(usb_hid_report_parser_t *parser);
+
+void usb_hid_descriptor_print(usb_hid_report_parser_t *parser);
 
 #endif
 /**

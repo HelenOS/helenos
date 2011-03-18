@@ -42,8 +42,9 @@
 #include "builtin/bi_boxed.h"
 #include "builtin/bi_error.h"
 #include "builtin/bi_char.h"
-#include "builtin/bi_fun.h"
+#include "builtin/bi_console.h"
 #include "builtin/bi_int.h"
+#include "builtin/bi_task.h"
 #include "builtin/bi_textfile.h"
 #include "builtin/bi_string.h"
 #include "input.h"
@@ -92,8 +93,9 @@ void builtin_declare(stree_program_t *program)
 
 	bi_error_declare(bi);
 	bi_char_declare(bi);
-	bi_fun_declare(bi);
+	bi_console_declare(bi);
 	bi_int_declare(bi);
+	bi_task_declare(bi);
 	bi_textfile_declare(bi);
 	bi_string_declare(bi);
 }
@@ -110,8 +112,9 @@ void builtin_bind(builtin_t *bi)
 	bi_boxed_bind(bi);
 	bi_error_bind(bi);
 	bi_char_bind(bi);
-	bi_fun_bind(bi);
+	bi_console_bind(bi);
 	bi_int_bind(bi);
+	bi_task_bind(bi);
 	bi_textfile_bind(bi);
 	bi_string_bind(bi);
 }

@@ -42,7 +42,7 @@ class InterfaceDemo is
 		-- Foo. Foo is implementing the interface IA/int.
 		f = g as Foo;
 
-		Builtin.WriteLine(g.a());
+		Console.WriteLine(g.a());
 	end
 end
 

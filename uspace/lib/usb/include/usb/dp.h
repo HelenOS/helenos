@@ -76,6 +76,9 @@ uint8_t *usb_dp_get_nested_descriptor(usb_dp_parser_t *,
 uint8_t *usb_dp_get_sibling_descriptor(usb_dp_parser_t *,
     usb_dp_parser_data_t *, uint8_t *, uint8_t *);
 
+void usb_dp_walk_simple(uint8_t *, size_t, usb_dp_descriptor_nesting_t *,
+    void (*)(uint8_t *, size_t, void *), void *);
+
 #endif
 /**
  * @}
