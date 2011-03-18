@@ -26,12 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef BI_FUN_H_
-#define BI_FUN_H_
+#ifndef BI_CONSOLE_H_
+#define BI_CONSOLE_H_
 
 #include "../mytypes.h"
 
-void bi_fun_declare(builtin_t *bi);
-void bi_fun_bind(builtin_t *bi);
+void bi_console_declare(builtin_t *bi);
+void bi_console_bind(builtin_t *bi);
 
 #endif

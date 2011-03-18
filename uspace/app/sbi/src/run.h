@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jiri Svoboda
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -60,6 +60,7 @@ void run_proc_ar_set_setter_arg(run_t *run, run_proc_ar_t *proc_ar,
     rdata_item_t *arg_val);
 void run_proc_ar_create(run_t *run, rdata_var_t *obj, stree_proc_t *proc,
     run_proc_ar_t **rproc_ar);
+void run_proc_ar_destroy(run_t *run, run_proc_ar_t *proc_ar);
 
 var_class_t run_item_get_vc(run_t *run, rdata_item_t *item);
 void run_cvt_value_item(run_t *run, rdata_item_t *item, rdata_item_t **ritem);
@@ -78,6 +79,11 @@ void run_var_new(run_t *run, tdata_item_t *ti, rdata_var_t **rvar);
 
 run_thread_ar_t *run_thread_ar_new(void);
 run_proc_ar_t *run_proc_ar_new(void);
+void run_proc_ar_delete(run_proc_ar_t *proc_ar);
 run_block_ar_t *run_block_ar_new(void);
+void run_block_ar_delete(run_block_ar_t *block_ar);
+void run_proc_ar_delete(run_proc_ar_t *proc_ar);
+void run_block_ar_destroy(run_t *run, run_block_ar_t *block_ar);
+
 
 #endif

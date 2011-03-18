@@ -38,13 +38,13 @@ class AutoboxingDemo is
 		-- respective boxed type.
 		--
 		b = true;
-		Builtin.WriteLine(b.Value);
+		Console.WriteLine(b.Value);
 		c = 'a';
-		Builtin.WriteLine(c.Value);
+		Console.WriteLine(c.Value);
 		i = 1;
-		Builtin.WriteLine(i.Value);
+		Console.WriteLine(i.Value);
 		s = "Hello";
-		Builtin.WriteLine(s.Value);
+		Console.WriteLine(s.Value);
 
 		-- Anything can be converted to Object.
 		foo(b, c, i, s);

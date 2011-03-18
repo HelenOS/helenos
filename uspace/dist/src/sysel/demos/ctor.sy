@@ -31,8 +31,8 @@ class ConstructorDemo is
 		var a : A;
 
 		a = new A(1);
-		Builtin.Write("a.v = ");
-		Builtin.WriteLine(a.v);
+		Console.Write("a.v = ");
+		Console.WriteLine(a.v);
 	end
 end
 
@@ -40,7 +40,7 @@ class A is
 	var v : int;
 
 	new(i : int) is
-		Builtin.WriteLine("A.new()");
+		Console.WriteLine("A.new()");
 		v = i;
 	end
 end

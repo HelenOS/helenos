@@ -29,59 +29,59 @@
 class ArithmeticDemo is
 	fun Main(), static is
 		-- Test addition, multiplication and precedence.
-		Builtin.Write("2*2 + 2*2 = ");
-		Builtin.Write(2*2 + 2*2);
-		Builtin.WriteLine(" (expected: 8)");
+		Console.Write("2*2 + 2*2 = ");
+		Console.Write(2*2 + 2*2);
+		Console.WriteLine(" (expected: 8)");
 
 		-- Test subtraction, multiplication and precedence.
-		Builtin.Write("1111 - 1 - 10 - 10*10 - 10*10*10 = ");
-		Builtin.Write(1111 - 1 - 10 - 10*10 - 10*10*10);
-		Builtin.WriteLine(" (expected: 0)");
+		Console.Write("1111 - 1 - 10 - 10*10 - 10*10*10 = ");
+		Console.Write(1111 - 1 - 10 - 10*10 - 10*10*10);
+		Console.WriteLine(" (expected: 0)");
 
 		-- Test parenthesized sub-expressions.
-		Builtin.Write("10 * (1 - 1) = ");
-		Builtin.Write(10 * (1 - 1));
-		Builtin.WriteLine(" (expected: 0)");
+		Console.Write("10 * (1 - 1) = ");
+		Console.Write(10 * (1 - 1));
+		Console.WriteLine(" (expected: 0)");
 
 		-- Test unary plus and minus.
-		Builtin.Write("(+1) - (-1) - (+(+1)) + (+(-1)) = ");
-		Builtin.Write((+1) - (-1) - (+(+1)) + (+(-1)));
-		Builtin.WriteLine(" (expected: 0)");
+		Console.Write("(+1) - (-1) - (+(+1)) + (+(-1)) = ");
+		Console.Write((+1) - (-1) - (+(+1)) + (+(-1)));
+		Console.WriteLine(" (expected: 0)");
 
 		-- Test signed multiplication.
-		Builtin.Write("+1 * +1 = ");
-		Builtin.Write(+1 * +1);
-		Builtin.WriteLine(" (expected: 1)");
+		Console.Write("+1 * +1 = ");
+		Console.Write(+1 * +1);
+		Console.WriteLine(" (expected: 1)");
 
-		Builtin.Write("-1 * -1 = ");
-		Builtin.Write(-1 * -1);
-		Builtin.WriteLine(" (expected: 1)");
+		Console.Write("-1 * -1 = ");
+		Console.Write(-1 * -1);
+		Console.WriteLine(" (expected: 1)");
 
-		Builtin.Write("+1 * -1 = ");
-		Builtin.Write(+1 * -1);
-		Builtin.WriteLine(" (expected: -1)");
+		Console.Write("+1 * -1 = ");
+		Console.Write(+1 * -1);
+		Console.WriteLine(" (expected: -1)");
 
-		Builtin.Write("-1 * +1 = ");
-		Builtin.Write(-1 * +1);
-		Builtin.WriteLine(" (expected: -1)");
+		Console.Write("-1 * +1 = ");
+		Console.Write(-1 * +1);
+		Console.WriteLine(" (expected: -1)");
 
 		-- Test multiplication with large result.
-		Builtin.Write("1000000 * 1000000 * 1000000 * 1000000 = ");
-		Builtin.Write(1000000 * 1000000 * 1000000 * 1000000);
-		Builtin.WriteLine(" (expected: 1000000000000000000000000)");
+		Console.Write("1000000 * 1000000 * 1000000 * 1000000 = ");
+		Console.Write(1000000 * 1000000 * 1000000 * 1000000);
+		Console.WriteLine(" (expected: 1000000000000000000000000)");
 
 		-- Test large literals.
-		Builtin.Write("1000000000000000000000000 = ");
-		Builtin.Write(1000000000000000000000000);
-		Builtin.WriteLine(" (expected: 1000000000000000000000000)");
+		Console.Write("1000000000000000000000000 = ");
+		Console.Write(1000000000000000000000000);
+		Console.WriteLine(" (expected: 1000000000000000000000000)");
 
 		-- Test large factorials.
 		var n : int;
 
-		Builtin.WriteLine("Factorials:");
+		Console.WriteLine("Factorials:");
 		n = 1;
 		while n <= 40 do
-			Builtin.WriteLine(Factorial(n));
+			Console.WriteLine(Factorial(n));
 			n = n + 1;
 		end
 	end
