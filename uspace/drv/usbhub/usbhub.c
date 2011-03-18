@@ -404,9 +404,13 @@ static void usb_hub_init_add_device(usb_hub_info_t * hub, uint16_t port,
 		usb_speed_t speed) {
 	//if this hub already uses default address, it cannot request it once more
 	if(hub->is_default_address_used) return;
+	int opResult = usb_hub_clear_port_feature(&hub->endpoints.control,
+				port, USB_HUB_FEATURE_C_PORT_CONNECTION);
+	if(opResult != EOK){
+		usb_log_warning("could not clear port-change-connection flag");
+	}
 
 	usb_device_request_setup_packet_t request;
-	int opResult;
 	usb_log_info("some connection changed");
 	assert(hub->endpoints.control.hc_phone);
 	//get default address
@@ -430,6 +434,7 @@ static void usb_hub_init_add_device(usb_hub_info_t * hub, uint16_t port,
 		//usb_hub_release_default_address(hc);
 		usb_hub_release_default_address(hub);
 	}
+	return;
 }
 
 /**
@@ -530,7 +535,12 @@ static void usb_hub_finalize_add_device( usb_hub_info_t * hub,
  */
 static void usb_hub_removed_device(
     usb_hub_info_t * hub,uint16_t port) {
-		
+
+	int opResult = usb_hub_clear_port_feature(&hub->endpoints.control,
+				port, USB_HUB_FEATURE_C_PORT_CONNECTION);
+	if(opResult != EOK){
+		usb_log_warning("could not clear port-change-connection flag");
+	}
 	/** \TODO remove device from device manager - not yet implemented in
 	 * devide manager
 	 */
@@ -610,9 +620,6 @@ static void usb_hub_process_interrupt(usb_hub_info_t * hub,
 	}
 	//something connected/disconnected
 	if (usb_port_connect_change(&status)) {
-		opResult = usb_hub_clear_port_feature(pipe,
-		    port, USB_HUB_FEATURE_C_PORT_CONNECTION);
-		// TODO: check opResult
 		if (usb_port_dev_connected(&status)) {
 			usb_log_info("some connection changed");
 			usb_hub_init_add_device(hub, port, usb_port_speed(&status));
