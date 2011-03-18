@@ -401,7 +401,7 @@ static int usb_hub_release_default_address(usb_hub_info_t * hub){
  * @param target
  */
 static void usb_hub_init_add_device(usb_hub_info_t * hub, uint16_t port,
-		bool isLowSpeed) {
+		usb_speed_t speed) {
 	//if this hub already uses default address, it cannot request it once more
 	if(hub->is_default_address_used) return;
 
@@ -410,7 +410,6 @@ static void usb_hub_init_add_device(usb_hub_info_t * hub, uint16_t port,
 	usb_log_info("some connection changed");
 	assert(hub->endpoints.control.hc_phone);
 	//get default address
-	usb_speed_t speed = isLowSpeed?USB_SPEED_LOW:USB_SPEED_FULL;
 	opResult = usb_hc_reserve_default_address(&hub->connection, speed);
 	
 	if (opResult != EOK) {
@@ -616,7 +615,7 @@ static void usb_hub_process_interrupt(usb_hub_info_t * hub,
 		// TODO: check opResult
 		if (usb_port_dev_connected(&status)) {
 			usb_log_info("some connection changed");
-			usb_hub_init_add_device(hub, port, usb_port_low_speed(&status));
+			usb_hub_init_add_device(hub, port, usb_port_speed(&status));
 		} else {
 			usb_hub_removed_device(hub, port);
 		}
