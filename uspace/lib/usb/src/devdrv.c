@@ -108,7 +108,7 @@ static size_t count_other_pipes(usb_driver_t *drv)
 static int initialize_other_pipes(usb_driver_t *drv, usb_device_t *dev)
 {
 	int rc;
-	int my_interface = usb_device_get_assigned_interface(dev->ddf_dev);
+	dev->interface_no = usb_device_get_assigned_interface(dev->ddf_dev);
 
 	size_t pipe_count = count_other_pipes(drv);
 	dev->pipes = malloc(sizeof(usb_endpoint_mapping_t) * pipe_count);
@@ -133,7 +133,7 @@ static int initialize_other_pipes(usb_driver_t *drv, usb_device_t *dev)
 		}
 
 		dev->pipes[i].description = drv->endpoints[i];
-		dev->pipes[i].interface_no = my_interface;
+		dev->pipes[i].interface_no = dev->interface_no;
 	}
 
 	void *config_descriptor;

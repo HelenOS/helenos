@@ -94,6 +94,12 @@ static usb_endpoint_description_t poll_endpoint_description = {
 	.flags = 0
 };
 
+typedef enum usbhid_kbd_flags {
+	USBHID_KBD_STATUS_UNINITIALIZED = 0,
+	USBHID_KBD_STATUS_INITIALIZED = 1,
+	USBHID_KBD_STATUS_TO_DESTROY = -1
+} usbhid_kbd_flags;
+
 /*----------------------------------------------------------------------------*/
 /* Keyboard layouts                                                           */
 /*----------------------------------------------------------------------------*/
@@ -231,7 +237,7 @@ static void usbhid_kbd_set_led(usbhid_kbd_t *kbd_dev)
 	    usb_debug_str_buffer(buffer, BOOTP_BUFFER_OUT_SIZE, 0));
 	
 	assert(kbd_dev->hid_dev != NULL);
-	assert(kbd_dev->hid_dev->initialized);
+	assert(kbd_dev->hid_dev->initialized == USBHID_KBD_STATUS_INITIALIZED);
 	usbhid_req_set_report(kbd_dev->hid_dev, USB_HID_REPORT_TYPE_OUTPUT, 
 	    buffer, BOOTP_BUFFER_OUT_SIZE);
 }
@@ -564,7 +570,7 @@ static void usbhid_kbd_process_keycodes(const uint8_t *key_codes, size_t count,
 static void usbhid_kbd_process_data(usbhid_kbd_t *kbd_dev,
                                     uint8_t *buffer, size_t actual_size)
 {
-	assert(kbd_dev->initialized);
+	assert(kbd_dev->initialized == USBHID_KBD_STATUS_INITIALIZED);
 	assert(kbd_dev->hid_dev->parser != NULL);
 	
 	usb_hid_report_in_callbacks_t *callbacks =
@@ -618,39 +624,16 @@ static usbhid_kbd_t *usbhid_kbd_new(void)
 	}
 	
 	kbd_dev->console_phone = -1;
-	kbd_dev->initialized = 0;
+	kbd_dev->initialized = USBHID_KBD_STATUS_UNINITIALIZED;
 	
 	return kbd_dev;
 }
 
 /*----------------------------------------------------------------------------*/
-/**
- * Properly destroys the USB/HID keyboard structure.
- *
- * @param kbd_dev Pointer to the structure to be destroyed.
- */
-static void usbhid_kbd_free(usbhid_kbd_t **kbd_dev)
-{
-	if (kbd_dev == NULL || *kbd_dev == NULL) {
-		return;
-	}
-	
-	// hangup phone to the console
-	async_hangup((*kbd_dev)->console_phone);
-	
-	if ((*kbd_dev)->hid_dev != NULL) {
-		usbhid_dev_free(&(*kbd_dev)->hid_dev);
-		assert((*kbd_dev)->hid_dev == NULL);
-	}
-	
-	if ((*kbd_dev)->repeat_mtx != NULL) {
-		/* TODO: replace by some check and wait */
-		assert(!fibril_mutex_is_locked((*kbd_dev)->repeat_mtx));
-		free((*kbd_dev)->repeat_mtx);
-	}
 
-	free(*kbd_dev);
-	*kbd_dev = NULL;
+static void usbhid_kbd_mark_unusable(usbhid_kbd_t *kbd_dev)
+{
+	kbd_dev->initialized = USBHID_KBD_STATUS_TO_DESTROY;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -692,7 +675,7 @@ static int usbhid_kbd_init(usbhid_kbd_t *kbd_dev, ddf_dev_t *dev)
 		return EINVAL;
 	}
 	
-	if (kbd_dev->initialized) {
+	if (kbd_dev->initialized == USBHID_KBD_STATUS_INITIALIZED) {
 		usb_log_warning("Keyboard structure already initialized.\n");
 		return EINVAL;
 	}
@@ -705,7 +688,7 @@ static int usbhid_kbd_init(usbhid_kbd_t *kbd_dev, ddf_dev_t *dev)
 		return rc;
 	}
 	
-	assert(kbd_dev->hid_dev->initialized);
+	assert(kbd_dev->hid_dev->initialized == USBHID_KBD_STATUS_INITIALIZED);
 	
 	// save the size of the report (boot protocol report by default)
 //	kbd_dev->key_count = BOOTP_REPORT_SIZE;
@@ -757,7 +740,7 @@ static int usbhid_kbd_init(usbhid_kbd_t *kbd_dev, ddf_dev_t *dev)
 	
 	usbhid_req_set_idle(kbd_dev->hid_dev, IDLE_RATE);
 	
-	kbd_dev->initialized = 1;
+	kbd_dev->initialized = USBHID_KBD_STATUS_INITIALIZED;
 	usb_log_info("HID/KBD device structure initialized.\n");
 	
 	return EOK;
@@ -871,9 +854,12 @@ static int usbhid_kbd_fibril(void *arg)
 
 	usbhid_kbd_poll(kbd_dev);
 	
+	// as there is another fibril using this device, so we must leave the
+	// structure to it, but mark it for destroying.
+	usbhid_kbd_mark_unusable(kbd_dev);
 	// at the end, properly destroy the KBD structure
-	usbhid_kbd_free(&kbd_dev);
-	assert(kbd_dev == NULL);
+//	usbhid_kbd_free(&kbd_dev);
+//	assert(kbd_dev == NULL);
 
 	return EOK;
 }
@@ -993,6 +979,43 @@ int usbhid_kbd_try_add_device(ddf_dev_t *dev)
 	 * Hurrah, device is initialized.
 	 */
 	return EOK;
+}
+
+/*----------------------------------------------------------------------------*/
+
+int usbhid_kbd_is_usable(const usbhid_kbd_t *kbd_dev)
+{
+	return (kbd_dev->initialized == USBHID_KBD_STATUS_INITIALIZED);
+}
+
+/*----------------------------------------------------------------------------*/
+/**
+ * Properly destroys the USB/HID keyboard structure.
+ *
+ * @param kbd_dev Pointer to the structure to be destroyed.
+ */
+void usbhid_kbd_free(usbhid_kbd_t **kbd_dev)
+{
+	if (kbd_dev == NULL || *kbd_dev == NULL) {
+		return;
+	}
+	
+	// hangup phone to the console
+	async_hangup((*kbd_dev)->console_phone);
+	
+	if ((*kbd_dev)->hid_dev != NULL) {
+		usbhid_dev_free(&(*kbd_dev)->hid_dev);
+		assert((*kbd_dev)->hid_dev == NULL);
+	}
+	
+	if ((*kbd_dev)->repeat_mtx != NULL) {
+		/* TODO: replace by some check and wait */
+		assert(!fibril_mutex_is_locked((*kbd_dev)->repeat_mtx));
+		free((*kbd_dev)->repeat_mtx);
+	}
+
+	free(*kbd_dev);
+	*kbd_dev = NULL;
 }
 
 /**

@@ -31,6 +31,11 @@
  */
 /** @file
  * Generic USB HID device structure and API.
+ *
+ * @todo Add function for parsing report - this is generic HID function, not
+ *       keyboard-specific, as the report parser is also generic.
+ * @todo Add function for polling as that is also a generic HID process.
+ * @todo Add interrupt in pipe to the structure.
  */
 
 #ifndef USBHID_HIDDEV_H_
