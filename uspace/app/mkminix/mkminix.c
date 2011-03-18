@@ -56,7 +56,7 @@
 #define USED	1
 
 #define UPPER(n, size) 			(((n) / (size)) + (((n) % (size)) != 0))
-#define NEXT_DENTRY(p, dirsize)		(p += dirsize)
+#define NEXT_DENTRY(p, dirsize)		(p += (dirsize))
 
 typedef enum {
 	HELP_SHORT,
@@ -160,6 +160,7 @@ int main (int argc, char **argv)
 			sb.fs_version = 3;
 			sb.block_size = MFS_MAX_BLOCKSIZE;
 			sb.dirsize = MFS3_DIRSIZE;
+			sb.ino_per_block = V3_INODES_PER_BLOCK(sb.block_size);
 			break;
 		case 'b':
 			sb.block_size = (uint32_t) strtol(optarg, NULL, 10);
@@ -284,6 +285,7 @@ int main (int argc, char **argv)
 static int insert_dentries(const struct mfs_sb_info *sb)
 {
 	void *root_block;
+	uint8_t *dentry_ptr;
 	int rc;
 	const long root_dblock = sb->first_data_zone;
 
@@ -292,6 +294,8 @@ static int insert_dentries(const struct mfs_sb_info *sb)
 
 	if (!root_block)
 		return ENOMEM;
+
+	dentry_ptr = root_block;
 	
 	if (sb->fs_version != 3) {
 		/*Directory entries for V1/V2 filesystem*/
@@ -300,7 +304,8 @@ static int insert_dentries(const struct mfs_sb_info *sb)
 		dentry->d_inum = MFS_ROOT_INO;
 		memcpy(dentry->d_name, ".\0", 2);
 
-		NEXT_DENTRY(dentry, sb->dirsize);
+		dentry = (struct mfs_dentry *) NEXT_DENTRY(dentry_ptr,
+							sb->dirsize);
 
 		dentry->d_inum = MFS_ROOT_INO;
 		memcpy(dentry->d_name, "..\0", 3);
@@ -311,7 +316,8 @@ static int insert_dentries(const struct mfs_sb_info *sb)
 		dentry->d_inum = MFS_ROOT_INO;
 		memcpy(dentry->d_name, ".\0", 2);
 
-		NEXT_DENTRY(dentry, sb->dirsize);
+		dentry = (struct mfs3_dentry *) NEXT_DENTRY(dentry_ptr,
+							sb->dirsize);
 
 		dentry->d_inum = MFS_ROOT_INO;
 		memcpy(dentry->d_name, "..\0", 3);
