@@ -232,6 +232,7 @@ usb_hub_info_t * usb_create_hub_info(ddf_dev_t * device) {
 	//result->device = device;
 	result->port_count = -1;
 	result->device = device;
+	result->is_default_address_used = false;
 
 	//result->usb_device = usb_new(usb_hcd_attached_device_info_t);
 	size_t received_size;
@@ -376,6 +377,24 @@ int usb_add_hub_device(ddf_dev_t *dev) {
 //*********************************************
 
 /**
+ * release default address used by given hub
+ *
+ * Also unsets hub->is_default_address_used. Convenience wrapper function.
+ * @note hub->connection MUST be open for communication
+ * @param hub hub representation
+ * @return error code
+ */
+static int usb_hub_release_default_address(usb_hub_info_t * hub){
+	int opResult = usb_hc_release_default_address(&hub->connection);
+	if(opResult!=EOK){
+		usb_log_error("could not release default address, errno %d",opResult);
+		return opResult;
+	}
+	hub->is_default_address_used = false;
+	return EOK;
+}
+
+/**
  * Reset the port with new device and reserve the default address.
  * @param hc
  * @param port
@@ -383,6 +402,9 @@ int usb_add_hub_device(ddf_dev_t *dev) {
  */
 static void usb_hub_init_add_device(usb_hub_info_t * hub, uint16_t port,
 		bool isLowSpeed) {
+	//if this hub already uses default address, it cannot request it once more
+	if(hub->is_default_address_used) return;
+
 	usb_device_request_setup_packet_t request;
 	int opResult;
 	usb_log_info("some connection changed");
@@ -396,6 +418,7 @@ static void usb_hub_init_add_device(usb_hub_info_t * hub, uint16_t port,
 				opResult);
 		return;
 	}
+	hub->is_default_address_used = true;
 	//reset port
 	usb_hub_set_reset_port_request(&request, port);
 	opResult = usb_endpoint_pipe_control_write(
@@ -406,7 +429,7 @@ static void usb_hub_init_add_device(usb_hub_info_t * hub, uint16_t port,
 	if (opResult != EOK) {
 		usb_log_error("something went wrong when reseting a port %d",opResult);
 		//usb_hub_release_default_address(hc);
-		usb_hc_release_default_address(&hub->connection);
+		usb_hub_release_default_address(hub);
 	}
 }
 
@@ -426,7 +449,7 @@ static void usb_hub_finalize_add_device( usb_hub_info_t * hub,
 
 	if (opResult != EOK) {
 		usb_log_error("failed to clear port reset feature");
-		usb_hc_release_default_address(&hub->connection);
+		usb_hub_release_default_address(hub);
 		return;
 	}
 	//create connection to device
@@ -452,7 +475,7 @@ static void usb_hub_finalize_add_device( usb_hub_info_t * hub,
 	if (new_device_address < 0) {
 		usb_log_error("failed to get free USB address");
 		opResult = new_device_address;
-		usb_hc_release_default_address(&hub->connection);
+		usb_hub_release_default_address(hub);
 		return;
 	}
 	usb_log_info("setting new address %d",new_device_address);
@@ -463,13 +486,13 @@ static void usb_hub_finalize_add_device( usb_hub_info_t * hub,
 	usb_endpoint_pipe_end_session(&new_device_pipe);
 	if (opResult != EOK) {
 		usb_log_error("could not set address for new device %d",opResult);
-		usb_hc_release_default_address(&hub->connection);
+		usb_hub_release_default_address(hub);
 		return;
 	}
 
 
 	//opResult = usb_hub_release_default_address(hc);
-	opResult = usb_hc_release_default_address(&hub->connection);
+	opResult = usb_hub_release_default_address(hub);
 	if(opResult!=EOK){
 		return;
 	}
@@ -528,8 +551,7 @@ static void usb_hub_removed_device(
 	}else{
 		usb_log_warning("this is strange, disconnected device had no address");
 		//device was disconnected before it`s port was reset - return default address
-		//usb_drv_release_default_address(hc);
-		usb_hc_release_default_address(&hub->connection);
+		usb_hub_release_default_address(hub);
 	}
 }
 
