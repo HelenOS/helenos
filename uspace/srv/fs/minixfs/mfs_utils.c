@@ -31,6 +31,9 @@
  */
 
 #include <byteorder.h>
+#include <assert.h>
+#include <errno.h>
+#include "mfs.h"
 #include "mfs_utils.h"
 
 uint16_t conv16(bool native, uint16_t n)
@@ -55,6 +58,41 @@ uint64_t conv64(bool native, uint64_t n)
 		return n;
 
 	return uint64_t_byteorder_swap(n);
+}
+
+/*
+ *Read an indirect block from disk and convert its
+ *content to the native endian format.
+ */
+int read_ind_block(block_t *b, struct mfs_instance *inst, uint32_t block)
+{
+	int rc;
+	unsigned i;
+
+	assert(inst);
+	devmap_handle_t handle = inst->handle;
+	struct mfs_sb_info *sbi = inst->sbi;
+
+	assert(sbi);
+
+	rc = block_get(&b, handle, block, BLOCK_FLAGS_NONE);
+
+	if (rc != EOK)
+		return rc;
+
+	if (sbi->fs_version == MFS_VERSION_V1) {
+		uint16_t *pt16 = b->data;
+
+		for (i = 0; i < MFS_BLOCKSIZE / sizeof(uint16_t); ++i)
+			pt16[i] = conv16(sbi->native, pt16[i]);
+	} else {
+		uint32_t *pt32 = b->data;
+
+		for (i = 0; i < sbi->block_size / sizeof(uint32_t); ++i)
+			pt32[i] = conv32(sbi->native, pt32[i]);
+	}
+
+	return EOK;
 }
 
 /**

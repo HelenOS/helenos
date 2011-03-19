@@ -36,6 +36,7 @@ SOURCES = \
 	mfs.c \
 	mfs_ops.c \
 	mfs_inode.c \
+	mfs_read.c \
 	mfs_utils.c
 
 include $(USPACE_PREFIX)/Makefile.common

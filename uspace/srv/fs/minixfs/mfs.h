@@ -73,7 +73,7 @@ struct mfs_sb_info {
 	int ino_per_block;
 	int dirsize;
 	int block_size;
-	int fs_version;
+	mfs_version_t fs_version;
 	uint32_t max_file_size;
 	uint16_t magic;
 	uint16_t state;
@@ -120,6 +120,8 @@ extern
 struct mfs2_inode *mfs2_read_inode_raw(const struct mfs_instance *instance,
 					uint32_t inum);
 
+/*mfs_read.c*/
+int read_map(uint32_t *b, const struct mfs_node *mnode, const uint32_t pos);
 
 #endif
 
