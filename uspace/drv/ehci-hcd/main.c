@@ -45,8 +45,6 @@
 #include "pci.h"
 #include "ehci.h"
 
-#define NAME "ehci-hcd"
-
 static int ehci_add_device(ddf_dev_t *device);
 /*----------------------------------------------------------------------------*/
 static driver_ops_t ehci_driver_ops = {
@@ -76,8 +74,6 @@ if (ret != EOK) { \
 	return ret; \
 }
 
-	usb_log_info("uhci_add_device() called\n");
-
 	uintptr_t mem_reg_base = 0;
 	size_t mem_reg_size = 0;
 	int irq = 0;
@@ -105,6 +101,9 @@ if (ret != EOK) { \
 	    "Failed to bind EHCI function: %s.\n",
 	    str_error(ret));
 
+	usb_log_info("Controlling new EHCI device `%s' (handle %llu).\n",
+	    device->name, device->handle);
+
 	return EOK;
 #undef CHECK_RET_RETURN
 }
@@ -119,7 +118,7 @@ if (ret != EOK) { \
  */
 int main(int argc, char *argv[])
 {
-	usb_log_enable(USB_LOG_LEVEL_ERROR, NAME);
+	usb_log_enable(USB_LOG_LEVEL_DEBUG, NAME);
 	return ddf_driver_main(&ehci_driver);
 }
 /**
