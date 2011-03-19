@@ -47,7 +47,15 @@
 	usb_log_warning("Unsupported interface method `%s()' in %s:%d.\n", \
 	    methodname, __FILE__, __LINE__)
 
-
+/** Reserve default address.
+ *
+ * This function may block the caller.
+ *
+ * @param[in] fun Device function the action was invoked on.
+ * @param[in] speed Speed of the device for which the default address is
+ *	reserved.
+ * @return Error code.
+ */
 static int reserve_default_address(ddf_fun_t *fun, usb_speed_t speed)
 {
 	UNSUPPORTED("reserve_default_address");
@@ -55,6 +63,11 @@ static int reserve_default_address(ddf_fun_t *fun, usb_speed_t speed)
 	return ENOTSUP;
 }
 
+/** Release default address.
+ *
+ * @param[in] fun Device function the action was invoked on.
+ * @return Error code.
+ */
 static int release_default_address(ddf_fun_t *fun)
 {
 	UNSUPPORTED("release_default_address");
@@ -62,20 +75,42 @@ static int release_default_address(ddf_fun_t *fun)
 	return ENOTSUP;
 }
 
-static int request_address(ddf_fun_t *fun, usb_speed_t speed, usb_address_t *address)
+/** Found free USB address.
+ *
+ * @param[in] fun Device function the action was invoked on.
+ * @param[in] speed Speed of the device that will get this address.
+ * @param[out] address Non-null pointer where to store the free address.
+ * @return Error code.
+ */
+static int request_address(ddf_fun_t *fun, usb_speed_t speed,
+    usb_address_t *address)
 {
 	UNSUPPORTED("request_address");
 
 	return ENOTSUP;
 }
 
-static int bind_address(ddf_fun_t *fun, usb_address_t address, devman_handle_t handle)
+/** Bind USB address with device devman handle.
+ *
+ * @param[in] fun Device function the action was invoked on.
+ * @param[in] address USB address of the device.
+ * @param[in] handle Devman handle of the device.
+ * @return Error code.
+ */
+static int bind_address(ddf_fun_t *fun,
+    usb_address_t address, devman_handle_t handle)
 {
 	UNSUPPORTED("bind_address");
 
 	return ENOTSUP;
 }
 
+/** Release previously requested address.
+ *
+ * @param[in] fun Device function the action was invoked on.
+ * @param[in] address USB address to be released.
+ * @return Error code.
+ */
 static int release_address(ddf_fun_t *fun, usb_address_t address)
 {
 	UNSUPPORTED("release_address");
@@ -83,7 +118,19 @@ static int release_address(ddf_fun_t *fun, usb_address_t address)
 	return ENOTSUP;
 }
 
-static int register_endpoint(ddf_fun_t *fun, usb_address_t address, usb_endpoint_t endpoint,
+/** Register endpoint for bandwidth reservation.
+ *
+ * @param[in] fun Device function the action was invoked on.
+ * @param[in] address USB address of the device.
+ * @param[in] endpoint Endpoint number.
+ * @param[in] transfer_type USB transfer type.
+ * @param[in] direction Endpoint data direction.
+ * @param[in] max_packet_size Max packet size of the endpoint.
+ * @param[in] interval Polling interval.
+ * @return Error code.
+ */
+static int register_endpoint(ddf_fun_t *fun,
+    usb_address_t address, usb_endpoint_t endpoint,
     usb_transfer_type_t transfer_type, usb_direction_t direction,
     size_t max_packet_size, unsigned int interval)
 {
@@ -92,14 +139,39 @@ static int register_endpoint(ddf_fun_t *fun, usb_address_t address, usb_endpoint
 	return ENOTSUP;
 }
 
-static int unregister_endpoint(ddf_fun_t *fun, usb_address_t address, usb_endpoint_t endpoint,
-    usb_direction_t direction)
+/** Unregister endpoint (free some bandwidth reservation).
+ *
+ * @param[in] fun Device function the action was invoked on.
+ * @param[in] address USB address of the device.
+ * @param[in] endpoint Endpoint number.
+ * @param[in] direction Endpoint data direction.
+ * @return Error code.
+ */
+static int unregister_endpoint(ddf_fun_t *fun, usb_address_t address,
+    usb_endpoint_t endpoint, usb_direction_t direction)
 {
 	UNSUPPORTED("unregister_endpoint");
 
 	return ENOTSUP;
 }
 
+/** Schedule interrupt out transfer.
+ *
+ * The callback is supposed to be called once the transfer (on the wire) is
+ * complete regardless of the outcome.
+ * However, the callback could be called only when this function returns
+ * with success status (i.e. returns EOK).
+ *
+ * @param[in] fun Device function the action was invoked on.
+ * @param[in] target Target pipe (address and endpoint number) specification.
+ * @param[in] max_packet_size Max packet size for the transfer.
+ * @param[in] data Data to be sent (in USB endianess, allocated and deallocated
+ *	by the caller).
+ * @param[in] size Size of the @p data buffer in bytes.
+ * @param[in] callback Callback to be issued once the transfer is complete.
+ * @param[in] arg Pass-through argument to the callback.
+ * @return Error code.
+ */
 static int interrupt_out(ddf_fun_t *fun, usb_target_t target,
     size_t max_packet_size, void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
@@ -109,6 +181,23 @@ static int interrupt_out(ddf_fun_t *fun, usb_target_t target,
 	return ENOTSUP;
 }
 
+/** Schedule interrupt in transfer.
+ *
+ * The callback is supposed to be called once the transfer (on the wire) is
+ * complete regardless of the outcome.
+ * However, the callback could be called only when this function returns
+ * with success status (i.e. returns EOK).
+ *
+ * @param[in] fun Device function the action was invoked on.
+ * @param[in] target Target pipe (address and endpoint number) specification.
+ * @param[in] max_packet_size Max packet size for the transfer.
+ * @param[in] data Buffer where to store the data (in USB endianess,
+ *	allocated and deallocated by the caller).
+ * @param[in] size Size of the @p data buffer in bytes.
+ * @param[in] callback Callback to be issued once the transfer is complete.
+ * @param[in] arg Pass-through argument to the callback.
+ * @return Error code.
+ */
 static int interrupt_in(ddf_fun_t *fun, usb_target_t target,
     size_t max_packet_size, void *data, size_t size,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
@@ -118,6 +207,23 @@ static int interrupt_in(ddf_fun_t *fun, usb_target_t target,
 	return ENOTSUP;
 }
 
+/** Schedule bulk out transfer.
+ *
+ * The callback is supposed to be called once the transfer (on the wire) is
+ * complete regardless of the outcome.
+ * However, the callback could be called only when this function returns
+ * with success status (i.e. returns EOK).
+ *
+ * @param[in] fun Device function the action was invoked on.
+ * @param[in] target Target pipe (address and endpoint number) specification.
+ * @param[in] max_packet_size Max packet size for the transfer.
+ * @param[in] data Data to be sent (in USB endianess, allocated and deallocated
+ *	by the caller).
+ * @param[in] size Size of the @p data buffer in bytes.
+ * @param[in] callback Callback to be issued once the transfer is complete.
+ * @param[in] arg Pass-through argument to the callback.
+ * @return Error code.
+ */
 static int bulk_out(ddf_fun_t *fun, usb_target_t target,
     size_t max_packet_size, void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
@@ -127,6 +233,23 @@ static int bulk_out(ddf_fun_t *fun, usb_target_t target,
 	return ENOTSUP;
 }
 
+/** Schedule bulk in transfer.
+ *
+ * The callback is supposed to be called once the transfer (on the wire) is
+ * complete regardless of the outcome.
+ * However, the callback could be called only when this function returns
+ * with success status (i.e. returns EOK).
+ *
+ * @param[in] fun Device function the action was invoked on.
+ * @param[in] target Target pipe (address and endpoint number) specification.
+ * @param[in] max_packet_size Max packet size for the transfer.
+ * @param[in] data Buffer where to store the data (in USB endianess,
+ *	allocated and deallocated by the caller).
+ * @param[in] size Size of the @p data buffer in bytes.
+ * @param[in] callback Callback to be issued once the transfer is complete.
+ * @param[in] arg Pass-through argument to the callback.
+ * @return Error code.
+ */
 static int bulk_in(ddf_fun_t *fun, usb_target_t target,
     size_t max_packet_size, void *data, size_t size,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
@@ -136,9 +259,30 @@ static int bulk_in(ddf_fun_t *fun, usb_target_t target,
 	return ENOTSUP;
 }
 
+/** Schedule control write transfer.
+ *
+ * The callback is supposed to be called once the transfer (on the wire) is
+ * complete regardless of the outcome.
+ * However, the callback could be called only when this function returns
+ * with success status (i.e. returns EOK).
+ *
+ * @param[in] fun Device function the action was invoked on.
+ * @param[in] target Target pipe (address and endpoint number) specification.
+ * @param[in] max_packet_size Max packet size for the transfer.
+ * @param[in] setup_packet Setup packet buffer (in USB endianess, allocated
+ *	and deallocated by the caller).
+ * @param[in] setup_packet_size Size of @p setup_packet buffer in bytes.
+ * @param[in] data_buffer Data buffer (in USB endianess, allocated and
+ *	deallocated by the caller).
+ * @param[in] data_buffer_size Size of @p data_buffer buffer in bytes.
+ * @param[in] callback Callback to be issued once the transfer is complete.
+ * @param[in] arg Pass-through argument to the callback.
+ * @return Error code.
+ */
 static int control_write(ddf_fun_t *fun, usb_target_t target,
     size_t max_packet_size,
-    void *setup_packet, size_t setup_packet_size, void *data_buffer, size_t data_buffer_size,
+    void *setup_packet, size_t setup_packet_size,
+    void *data_buffer, size_t data_buffer_size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
 	UNSUPPORTED("control_write");
@@ -146,9 +290,30 @@ static int control_write(ddf_fun_t *fun, usb_target_t target,
 	return ENOTSUP;
 }
 
+/** Schedule control read transfer.
+ *
+ * The callback is supposed to be called once the transfer (on the wire) is
+ * complete regardless of the outcome.
+ * However, the callback could be called only when this function returns
+ * with success status (i.e. returns EOK).
+ *
+ * @param[in] fun Device function the action was invoked on.
+ * @param[in] target Target pipe (address and endpoint number) specification.
+ * @param[in] max_packet_size Max packet size for the transfer.
+ * @param[in] setup_packet Setup packet buffer (in USB endianess, allocated
+ *	and deallocated by the caller).
+ * @param[in] setup_packet_size Size of @p setup_packet buffer in bytes.
+ * @param[in] data_buffer Buffer where to store the data (in USB endianess,
+ *	allocated and deallocated by the caller).
+ * @param[in] data_buffer_size Size of @p data_buffer buffer in bytes.
+ * @param[in] callback Callback to be issued once the transfer is complete.
+ * @param[in] arg Pass-through argument to the callback.
+ * @return Error code.
+ */
 static int control_read(ddf_fun_t *fun, usb_target_t target,
     size_t max_packet_size,
-    void *setup_packet, size_t setup_packet_size, void *data_buffer, size_t data_buffer_size,
+    void *setup_packet, size_t setup_packet_size,
+    void *data_buffer, size_t data_buffer_size,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
 	UNSUPPORTED("control_read");
@@ -156,7 +321,7 @@ static int control_read(ddf_fun_t *fun, usb_target_t target,
 	return ENOTSUP;
 }
 
-
+/** Host controller interface implementation for EHCI. */
 usbhc_iface_t ehci_hc_iface = {
 	.reserve_default_address = reserve_default_address,
 	.release_default_address = release_default_address,
