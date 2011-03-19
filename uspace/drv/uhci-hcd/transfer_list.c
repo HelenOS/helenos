@@ -194,25 +194,31 @@ void transfer_list_remove_batch(transfer_list_t *instance, batch_t *batch)
 	assert(batch);
 	assert(instance->queue_head);
 	assert(batch->qh);
+	assert(fibril_mutex_is_locked(&instance->guard));
+
 	usb_log_debug2(
 	    "Queue %s: removing batch(%p).\n", instance->name, batch);
 
-	const char * pos = NULL;
+	const char *qpos = NULL;
 	/* Remove from the hardware queue */
-	if (batch->link.prev == &instance->batch_list) {
+	if (instance->batch_list.next == &batch->link) {
 		/* I'm the first one here */
+		assert((instance->queue_head->next & LINK_POINTER_ADDRESS_MASK)
+		    == addr_to_phys(batch->qh));
 		instance->queue_head->next = batch->qh->next;
-		pos = "FIRST";
+		qpos = "FIRST";
 	} else {
 		batch_t *prev =
 		    list_get_instance(batch->link.prev, batch_t, link);
+		assert((prev->qh->next & LINK_POINTER_ADDRESS_MASK)
+		    == addr_to_phys(batch->qh));
 		prev->qh->next = batch->qh->next;
-		pos = "NOT FIRST";
+		qpos = "NOT FIRST";
 	}
-	/* Remove from the driver list */
+	/* Remove from the batch list */
 	list_remove(&batch->link);
-	usb_log_debug("Batch(%p) removed (%s) from %s, next element %x.\n",
-	    batch, pos, instance->name, batch->qh->next);
+	usb_log_debug("Batch(%p) removed (%s) from %s, next %x.\n",
+	    batch, qpos, instance->name, batch->qh->next);
 }
 /**
  * @}
