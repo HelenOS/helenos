@@ -43,6 +43,7 @@
 #include <usb/debug.h>
 
 #include "pci.h"
+#include "ehci.h"
 
 #define NAME "ehci-hcd"
 
@@ -56,6 +57,10 @@ static driver_t ehci_driver = {
 	.name = NAME,
 	.driver_ops = &ehci_driver_ops
 };
+static ddf_dev_ops_t hc_ops = {
+	.interfaces[USBHC_DEV_IFACE] = &ehci_hc_iface,
+};
+
 /*----------------------------------------------------------------------------*/
 /** Initializes a new ddf driver instance of EHCI hcd.
  *
@@ -87,6 +92,18 @@ if (ret != EOK) { \
 	ret = pci_disable_legacy(device);
 	CHECK_RET_RETURN(ret,
 	    "Failed(%d) disable legacy USB: %s.\n", ret, str_error(ret));
+
+	ddf_fun_t *hc_fun = ddf_fun_create(device, fun_exposed, "ehci-hc");
+	if (hc_fun == NULL) {
+		usb_log_error("Failed to create EHCI function.\n");
+		return ENOMEM;
+	}
+	hc_fun->ops = &hc_ops;
+	ret = ddf_fun_bind(hc_fun);
+
+	CHECK_RET_RETURN(ret,
+	    "Failed to bind EHCI function: %s.\n",
+	    str_error(ret));
 
 	return EOK;
 #undef CHECK_RET_RETURN
