@@ -41,6 +41,7 @@
 #include <fibril_synch.h>
 
 #include <usb/classes/hid.h>
+#include <usb/classes/hidparser.h>
 #include <ddf/driver.h>
 #include <usb/pipes.h>
 
@@ -99,13 +100,22 @@ typedef struct {
 	/** Mutex for accessing the information about auto-repeat. */
 	fibril_mutex_t *repeat_mtx;
 	
-	/** State of the structure (for checking before use). */
+	/** State of the structure (for checking before use). 
+	 * 
+	 * 0 - not initialized
+	 * 1 - initialized
+	 * -1 - ready for destroying
+	 */
 	int initialized;
 } usbhid_kbd_t;
 
 /*----------------------------------------------------------------------------*/
 
 int usbhid_kbd_try_add_device(ddf_dev_t *dev);
+
+int usbhid_kbd_is_usable(const usbhid_kbd_t *kbd_dev);
+
+void usbhid_kbd_free(usbhid_kbd_t **kbd_dev);
 
 void usbhid_kbd_push_ev(usbhid_kbd_t *kbd_dev, int type, unsigned int key);
 
