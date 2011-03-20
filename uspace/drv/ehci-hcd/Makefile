@@ -32,6 +32,7 @@ EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include -I$(LIBUSB_PREFIX)/include -I.
 BINARY = ehci-hcd
 
 SOURCES = \
+	hc_iface.c \
 	main.c \
 	pci.c
 
