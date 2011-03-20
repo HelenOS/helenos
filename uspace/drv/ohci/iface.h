@@ -37,7 +37,7 @@
 
 #include <usbhc_iface.h>
 
-#define NAME "ohci-hcd"
+#define NAME "ohci"
 
 extern usbhc_iface_t ohci_hc_iface;
 

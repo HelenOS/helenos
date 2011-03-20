@@ -163,7 +163,7 @@ int pci_enable_interrupts(ddf_dev_t *device)
 int pci_disable_legacy(ddf_dev_t *device)
 {
 	/* TODO: implement */
-	return ENOTSUP;
+	return EOK;
 }
 /*----------------------------------------------------------------------------*/
 /**
