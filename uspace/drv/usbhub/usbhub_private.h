@@ -57,15 +57,6 @@
 #define usb_new(type) (type*)malloc(sizeof(type))
 
 
-//************
-//
-// convenience debug printf for usb hub
-//
-//************
-#define dprintf(level, format, ...) \
-	usb_log_printf((level), format "\n", ##__VA_ARGS__)
-
-
 /**
  * Create hub structure instance
  *
@@ -76,49 +67,6 @@
  * @return
  */
 usb_hub_info_t * usb_create_hub_info(ddf_dev_t * device);
-
-/** List of hubs maanged by this driver */
-extern usb_general_list_t usb_hub_list;
-
-/** Lock for hub list*/
-extern fibril_mutex_t usb_hub_list_lock;
-
-
-/**
- * Perform complete control read transaction
- *
- * Manages all three steps of transaction: setup, read and finalize
- * @param phone
- * @param target
- * @param request Request packet
- * @param rcvd_buffer Received data
- * @param rcvd_size
- * @param actual_size Actual size of received data
- * @return error code
- */
-/*
-int usb_drv_sync_control_read(
-    usb_endpoint_pipe_t *pipe,
-    usb_device_request_setup_packet_t * request,
-    void * rcvd_buffer, size_t rcvd_size, size_t * actual_size
-);*/
-
-/**
- * Perform complete control write transaction
- *
- * Manages all three steps of transaction: setup, write and finalize
- * @param phone
- * @param target
- * @param request Request packet to send data
- * @param sent_buffer
- * @param sent_size
- * @return error code
- */
-/*int usb_drv_sync_control_write(
-    usb_endpoint_pipe_t *pipe,
-    usb_device_request_setup_packet_t * request,
-    void * sent_buffer, size_t sent_size
-);*/
 
 /**
  * Set the device request to be a get hub descriptor request.
@@ -162,7 +110,7 @@ static inline int usb_hub_clear_port_feature(usb_endpoint_pipe_t *pipe,
 }
 
 /**
- * @brief create uint8_t array with serialized descriptor
+ * create uint8_t array with serialized descriptor
  *
  * @param descriptor
  * @return newly created serializd descriptor pointer
@@ -170,7 +118,7 @@ static inline int usb_hub_clear_port_feature(usb_endpoint_pipe_t *pipe,
 void * usb_serialize_hub_descriptor(usb_hub_descriptor_t * descriptor);
 
 /**
- * @brief create deserialized desriptor structure out of serialized descriptor
+ * create deserialized desriptor structure out of serialized descriptor
  *
  * The serialized descriptor must be proper usb hub descriptor,
  * otherwise an eerror might occur.

@@ -35,34 +35,45 @@
 #include <async.h>
 #include <stdio.h>
 
+#include <usb/devdrv.h>
+#include <usb/classes/classes.h>
+
 #include "usbhub.h"
 #include "usbhub_private.h"
 
 
-usb_general_list_t usb_hub_list;
-fibril_mutex_t usb_hub_list_lock;
-
-static driver_ops_t hub_driver_ops = {
-	.add_device = usb_add_hub_device,
+usb_endpoint_description_t hub_status_change_endpoint_description = {
+	.transfer_type = USB_TRANSFER_INTERRUPT,
+	.direction = USB_DIRECTION_IN,
+	.interface_class = USB_CLASS_HUB,
+	.interface_subclass = 0,
+	.interface_protocol = 0,
+	.flags = 0
 };
 
-static driver_t hub_driver = {
+
+static usb_driver_ops_t usb_hub_driver_ops = {
+	.add_device = usb_hub_add_device
+};
+
+static usb_driver_t usb_hub_driver = {
 	.name = "usbhub",
-	.driver_ops = &hub_driver_ops
+	.ops = &usb_hub_driver_ops
 };
+
 
 int main(int argc, char *argv[])
 {
 	usb_log_enable(USB_LOG_LEVEL_DEBUG, NAME);
-	dprintf(USB_LOG_LEVEL_INFO, "starting hub driver");
+	usb_log_info("starting hub driver\n");
 
-	//this is probably not needed anymore
-	fibril_mutex_initialize(&usb_hub_list_lock);
-	fibril_mutex_lock(&usb_hub_list_lock);
-	usb_lst_init(&usb_hub_list);
-	fibril_mutex_unlock(&usb_hub_list_lock);
 	
-	return ddf_driver_main(&hub_driver);
+	usb_hub_driver.endpoints = (usb_endpoint_description_t**)
+			malloc(2 * sizeof(usb_endpoint_description_t*));
+	usb_hub_driver.endpoints[0] = &hub_status_change_endpoint_description;
+	usb_hub_driver.endpoints[1] = NULL;
+
+	return usb_driver_main(&usb_hub_driver);
 }
 
 /**

@@ -87,7 +87,7 @@ usb_hub_descriptor_t * usb_deserialize_hub_desriptor(void * serialized_descripto
 	uint8_t * sdescriptor = (uint8_t*) serialized_descriptor;
 
 	if (sdescriptor[1] != USB_DESCTYPE_HUB) {
-		dprintf(1,"[usb_hub] wrong descriptor %x\n",sdescriptor[1]);
+		usb_log_warning("trying to deserialize wrong descriptor %x\n",sdescriptor[1]);
 		return NULL;
 	}
 
@@ -102,101 +102,13 @@ usb_hub_descriptor_t * usb_deserialize_hub_desriptor(void * serialized_descripto
 	size_t var_size = result->ports_count / 8 + ((result->ports_count % 8 > 0)
 			? 1 : 0);
 	result->devices_removable = (uint8_t*) malloc(var_size);
-	//printf("[usb_hub] getting removable devices data \n");
+
 	size_t i;
 	for (i = 0; i < var_size; ++i) {
 		result->devices_removable[i] = sdescriptor[7 + i];
 	}
 	return result;
 }
-
-//control transactions
-/*
-int usb_drv_sync_control_read(
-    int phone, usb_target_t target,
-    usb_device_request_setup_packet_t * request,
-    void * rcvd_buffer, size_t rcvd_size, size_t * actual_size
-) {
-	usb_handle_t handle;
-	int opResult;
-	//setup
-	opResult = usb_drv_async_control_read_setup(phone, target,
-	    request, sizeof (usb_device_request_setup_packet_t),
-	    &handle);
-	if (opResult != EOK) {
-		return opResult;
-	}
-	opResult = usb_drv_async_wait_for(handle);
-	if (opResult != EOK) {
-		return opResult;
-	}
-	//read
-	opResult = usb_drv_async_control_read_data(phone, target,
-			rcvd_buffer, rcvd_size, actual_size,
-			&handle);
-	if (opResult != EOK) {
-		return opResult;
-	}
-	opResult = usb_drv_async_wait_for(handle);
-	if (opResult != EOK) {
-		return opResult;
-	}
-	//finalize
-	opResult = usb_drv_async_control_read_status(phone, target,
-			&handle);
-	if (opResult != EOK) {
-		return opResult;
-	}
-	opResult = usb_drv_async_wait_for(handle);
-	if (opResult != EOK) {
-		return opResult;
-	}
-	return EOK;
-}
-
-int usb_drv_sync_control_write(
-    int phone, usb_target_t target,
-    usb_device_request_setup_packet_t * request,
-    void * sent_buffer, size_t sent_size
-) {
-	usb_handle_t handle;
-	int opResult;
-	//setup
-	opResult = usb_drv_async_control_write_setup(phone, target,
-	    request, sizeof (usb_device_request_setup_packet_t),
-	    &handle);
-	if (opResult != EOK) {
-		return opResult;
-	}
-	opResult = usb_drv_async_wait_for(handle);
-	if (opResult != EOK) {
-		return opResult;
-	}
-	//write
-	opResult = usb_drv_async_control_write_data(phone, target,
-			sent_buffer, sent_size,
-			&handle);
-	if (opResult != EOK) {
-		return opResult;
-	}
-	opResult = usb_drv_async_wait_for(handle);
-	if (opResult != EOK) {
-		return opResult;
-	}
-	//finalize
-	opResult = usb_drv_async_control_write_status(phone, target,
-	    &handle);
-	if (opResult != EOK) {
-		return opResult;
-	}
-	opResult = usb_drv_async_wait_for(handle);
-	if (opResult != EOK) {
-		return opResult;
-	}
-	return EOK;
-}
-
-*/
 
 
 
