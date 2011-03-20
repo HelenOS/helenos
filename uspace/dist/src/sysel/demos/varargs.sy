@@ -43,7 +43,7 @@ class VariadicArgumentsDemo is
 			-- array bounds, but until a better one is
 			-- implemented...
 			do
-				Builtin.WriteLine(args[i]);
+				Console.WriteLine(args[i]);
 			except e : Error.OutOfBounds do
 				error = true;
 			end

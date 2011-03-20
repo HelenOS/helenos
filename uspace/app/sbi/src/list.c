@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jiri Svoboda
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -54,6 +54,18 @@ void list_init(list_t *list)
 {
 	list->head.prev = &list->head;
 	list->head.next = &list->head;
+}
+
+/** Deinitialize list.
+ *
+ * @param list	List to deinitialize.
+ */
+void list_fini(list_t *list)
+{
+	assert(list_is_empty(list));
+
+	list->head.prev = NULL;
+	list->head.next = NULL;
 }
 
 /** Append data to list.

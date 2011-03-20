@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jiri Svoboda
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -363,7 +363,7 @@ typedef enum {
 	tc_tindex
 } texpr_class_t;
 
-/** Arithmetic expression */
+/** Type expression */
 typedef struct stree_texpr {
 	texpr_class_t tc;
 
@@ -393,6 +393,9 @@ typedef struct stree_block {
 typedef struct {
 	stree_ident_t *name;
 	stree_texpr_t *type;
+
+	/** Type of this variable or @c NULL if not typed yet */
+	struct tdata_item *titem;
 } stree_vdecl_t;
 
 /** @c except clause */
@@ -400,6 +403,9 @@ typedef struct {
 	stree_ident_t *evar;
 	stree_texpr_t *etype;
 	stree_block_t *block;
+
+	/** Evaluated etype or @c NULL if not typed yet */
+	struct tdata_item *titem;
 } stree_except_t;
 
 /** @c if or @c elif clause */
@@ -416,6 +422,25 @@ typedef struct {
 	/** Else block */
 	stree_block_t *else_block;
 } stree_if_t;
+
+/** @c when clause */
+typedef struct {
+	/** List of expressions -- cases -- for this clause */
+	list_t exprs; /* of stree_expr_t */
+	stree_block_t *block;
+} stree_when_t;
+
+/** Switch statement */
+typedef struct {
+	/** Switch expression */
+	stree_expr_t *expr;
+
+	/** When clauses */
+	list_t when_clauses; /* of stree_when_t */
+
+	/** Else block */
+	stree_block_t *else_block;
+} stree_switch_t;
 
 /** While statement */
 typedef struct {
@@ -447,7 +472,7 @@ typedef struct {
 	stree_expr_t *expr;
 } stree_exps_t;
 
-/** With-try-except-finally statement (WEF) */
+/** With-try-except-finally (WEF) statement */
 typedef struct {
 	stree_block_t *with_block;
 	list_t except_clauses; /* of stree_except_t */
@@ -458,6 +483,7 @@ typedef struct {
 typedef enum {
 	st_vdecl,
 	st_if,
+	st_switch,
 	st_while,
 	st_for,
 	st_raise,
@@ -474,6 +500,7 @@ typedef struct {
 	union {
 		stree_vdecl_t *vdecl_s;
 		stree_if_t *if_s;
+		stree_switch_t *switch_s;
 		stree_while_t *while_s;
 		stree_for_t *for_s;
 		stree_raise_t *raise_s;
@@ -509,7 +536,7 @@ typedef struct {
 
 /** Function signature.
  *
- * Foormal parameters and return type. This is common to function and delegate
+ * Formal parameters and return type. This is common to function and delegate
  * delcarations.
  */
 typedef struct {
@@ -787,13 +814,10 @@ typedef struct stree_symbol {
 		stree_prop_t *prop;
 	} u;
 
-	/** Containing CSI (for all symbols) */
+	/** Containing CSI */
 	stree_csi_t *outer_csi;
 
-	/** Containing block (for block-level symbols) */
-	stree_block_t *outer_block;
-
-	/** Symbol attributes. */
+	/** Symbol attributes */
 	list_t attr; /* of stree_symbol_attr_t */
 } stree_symbol_t;
 

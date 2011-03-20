@@ -42,7 +42,7 @@ class ListDemo is
 
 		e = list.GetEnumerator();
 		while e.MoveNext() do
-			Builtin.WriteLine(e.Data);
+			Console.WriteLine(e.Data);
 		end
 	end
 end

@@ -30,42 +30,42 @@ class EnumDemo is
 	fun Main(), static is
 		var color : ChessColor;
 
-		Builtin.WriteLine("Set color to ChessColor.Black.");
+		Console.WriteLine("Set color to ChessColor.Black.");
 		color = ChessColor.Black;
 
-		Builtin.Write("Test color == ChessColor.Black.. ");
+		Console.Write("Test color == ChessColor.Black.. ");
 		if color == ChessColor.Black then
-			Builtin.WriteLine("True - OK");
+			Console.WriteLine("True - OK");
 		else
-			Builtin.WriteLine("False - Fail!");
+			Console.WriteLine("False - Fail!");
 			raise new Error.Base();
 		end
 
-		Builtin.Write("Test color != ChessColor.Black.. ");
+		Console.Write("Test color != ChessColor.Black.. ");
 		if color != ChessColor.Black then
-			Builtin.WriteLine("True - Fail!");
+			Console.WriteLine("True - Fail!");
 			raise new Error.Base();
 		else
-			Builtin.WriteLine("False - OK");
+			Console.WriteLine("False - OK");
 		end
 
-		Builtin.Write("Test color == ChessColor.White.. ");
+		Console.Write("Test color == ChessColor.White.. ");
 		if color == ChessColor.White then
-			Builtin.WriteLine("True - Fail!");
+			Console.WriteLine("True - Fail!");
 			raise new Error.Base();
 		else
-			Builtin.WriteLine("False - OK");
+			Console.WriteLine("False - OK");
 		end
 
-		Builtin.Write("Test color != ChessColor.White.. ");
+		Console.Write("Test color != ChessColor.White.. ");
 		if color != ChessColor.White then
-			Builtin.WriteLine("True - OK");
+			Console.WriteLine("True - OK");
 		else
-			Builtin.WriteLine("False - Fail!");
+			Console.WriteLine("False - Fail!");
 			raise new Error.Base();
 		end
 
-		Builtin.WriteLine("Success");
+		Console.WriteLine("Success");
 
 		-- Test enum declared in non-CSI scope
 
