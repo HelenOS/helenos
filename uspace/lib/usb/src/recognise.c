@@ -247,6 +247,9 @@ int usb_device_create_match_ids_from_interface(
 #undef VENDOR_ONLY_FMT
 #undef VENDOR_ONLY_ARGS
 
+	/* As a last resort, try fallback driver. */
+	ADD_MATCHID_OR_RETURN(matches, 10, "usb&interface&fallback");
+
 	return EOK;
 }
 
