@@ -44,13 +44,11 @@
 #include <usbhc_iface.h>
 
 #include "batch.h"
+#include "ohci_regs.h"
 #include "ohci_rh.h"
 
-typedef struct ohci_regs {
-} regs_t;
-
-
 typedef struct ohci_hc {
+	ohci_regs_t *registers;
 	usb_address_t rh_address;
 	ohci_rh_t rh;
 	ddf_fun_t *ddf_instance;

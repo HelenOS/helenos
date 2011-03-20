@@ -37,13 +37,15 @@
 
 #include <usb/usb.h>
 
+#include "ohci_regs.h"
 #include "batch.h"
 
 typedef struct ohci_rh {
+	ohci_regs_t *registers;
 	usb_address_t address;
 } ohci_rh_t;
 
-int ohci_rh_init(ohci_rh_t *instance, uintptr_t reg_addr, size_t reg_size);
+int ohci_rh_init(ohci_rh_t *instance, ohci_regs_t *regs);
 
 void ohci_rh_request(ohci_rh_t *instance, batch_t *request);
 

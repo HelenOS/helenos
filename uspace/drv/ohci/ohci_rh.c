@@ -34,23 +34,22 @@
 #include <assert.h>
 #include <errno.h>
 #include <str_error.h>
-#include <stdio.h>
 
 #include <usb/debug.h>
 
 #include "ohci_rh.h"
 
 /** Root hub initialization
- * @param[in] instance RH structure to initialize
- * @param[in] fun DDF function representing UHCI root hub
- * @param[in] reg_addr Address of root hub status and control registers.
- * @param[in] reg_size Size of accessible address space.
  * @return Error code.
  */
-int ohci_rh_init(ohci_rh_t *instance, uintptr_t reg_addr, size_t reg_size)
+int ohci_rh_init(ohci_rh_t *instance, ohci_regs_t *regs)
 {
 	assert(instance);
 	instance->address = 0;
+	instance->registers = regs;
+
+	usb_log_info("OHCI root hub with %d ports.\n", regs->rh_desc_a & 0xff);
+
 	/* TODO: implement */
 	return EOK;
 }

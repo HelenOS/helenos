@@ -25,58 +25,42 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 /** @addtogroup drvusbohcihc
  * @{
  */
 /** @file
- * @brief OHCI Host controller driver routines
+ * @brief OHCI host controller register structure
  */
-#include <errno.h>
-#include <str_error.h>
-#include <adt/list.h>
-#include <libarch/ddi.h>
+#ifndef DRV_OHCI_OHCI_REGS_H
+#define DRV_OHCI_OHCI_REGS_H
+#include <stdint.h>
 
-#include <usb/debug.h>
-#include <usb/usb.h>
-#include <usb/ddfiface.h>
-#include <usb_iface.h>
-
-#include "ohci_hc.h"
-
-int ohci_hc_init(ohci_hc_t *instance, ddf_fun_t *fun,
-    uintptr_t regs, size_t reg_size)
+typedef struct ohci_regs
 {
-	assert(instance);
-	int ret = pio_enable((void*)regs, reg_size, (void**)&instance->registers);
-	if (ret != EOK) {
-		usb_log_error("Failed to gain access to device registers.\n");
-		return ret;
-	}
-
-	ohci_rh_init(&instance->rh, instance->registers);
-	/* TODO: implement */
-	/* TODO: register root hub */
-	return EOK;
-}
-/*----------------------------------------------------------------------------*/
-int ohci_hc_schedule(ohci_hc_t *instance, batch_t *batch)
-{
-	assert(instance);
-	assert(batch);
-	if (batch->target.address == instance->rh.address) {
-		ohci_rh_request(&instance->rh, batch);
-		return EOK;
-	}
-	/* TODO: implement */
-	return EOK;
-}
-/*----------------------------------------------------------------------------*/
-void ohci_hc_interrupt(ohci_hc_t *instance, uint16_t status)
-{
-	assert(instance);
-	ohci_rh_interrupt(&instance->rh);
-	/* TODO: implement */
-}
+	volatile uint32_t revision;
+	volatile uint32_t control;
+	volatile uint32_t command_status;
+	volatile uint32_t interupt_enable;
+	volatile uint32_t interrupt_disable;
+	volatile uint32_t hcca;
+	volatile uint32_t period_corrent;
+	volatile uint32_t control_head;
+	volatile uint32_t control_current;
+	volatile uint32_t bulk_head;
+	volatile uint32_t bulk_current;
+	volatile uint32_t done_head;
+	volatile uint32_t fm_interval;
+	volatile uint32_t fm_remaining;
+	volatile uint32_t fm_number;
+	volatile uint32_t periodic_start;
+	volatile uint32_t ls_threshold;
+	volatile uint32_t rh_desc_a;
+	volatile uint32_t rh_desc_b;
+	volatile uint32_t rh_status;
+	volatile uint32_t rh_port_status[];
+} ohci_regs_t;
+#endif
 /**
  * @}
  */
