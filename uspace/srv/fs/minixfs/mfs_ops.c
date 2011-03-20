@@ -211,31 +211,14 @@ devmap_handle_t mfs_device_get(fs_node_t *fsnode)
 
 aoff64_t mfs_size_get(fs_node_t *node)
 {
-	aoff64_t size;
-
 	mfsdebug("request for inode size\n");
 	assert(node);
 
 	const struct mfs_node *mnode = node->data;
 	assert(mnode);
+	assert(mnode->ino_i);
 
-	const struct mfs_instance *inst = mnode->instance;
-	assert(inst);
-
-	const struct mfs_sb_info *sbi = inst->sbi;
-	assert(sbi);
-
-	if (sbi->fs_version == MFS_VERSION_V1) {
-		struct mfs_inode *ino;
-		ino = mnode->ino;
-		size = ino->i_size;
-	} else {
-		struct mfs2_inode *ino2;
-		ino2 = mnode->ino2;
-		size = ino2->i_size;
-	}
-
-	return size;
+	return mnode->ino_i->i_size;
 }
 
 void mfs_stat(ipc_callid_t rid, ipc_call_t *request)
@@ -281,19 +264,20 @@ static int mfs_node_core_get(fs_node_t **rfn, struct mfs_instance *inst,
 		goto out_err;
 	}
 
+	struct mfs_ino_info *ino_i;
+
 	if (sbi->fs_version == MFS_VERSION_V1) {
 		/*Read MFS V1 inode*/
-		struct mfs_inode *ino;
-
-		ino = mfs_read_inode_raw(inst, index);
-		mnode->ino = ino;
+		ino_i = mfs_read_inode_raw(inst, index);
 	} else {
 		/*Read MFS V2/V3 inode*/
-		struct mfs2_inode *ino2;
-
-		ino2 = mfs2_read_inode_raw(inst, index);
-		mnode->ino2 = ino2;
+		ino_i = mfs2_read_inode_raw(inst, index);
 	}
+
+	if (!ino_i)
+		return -1;
+
+	mnode->ino_i = ino_i;
 
 	mnode->instance = inst;
 	node->data = mnode;
@@ -312,23 +296,13 @@ out_err:
 bool mfs_is_directory(fs_node_t *fsnode)
 {
 	const struct mfs_node *node = fsnode->data;
-	const struct mfs_sb_info *sbi = node->instance->sbi;
-
-	if (sbi->fs_version == MFS_VERSION_V1)
-		return S_ISDIR(node->ino->i_mode);
-	else
-		return S_ISDIR(node->ino2->i_mode);
+	return S_ISDIR(node->ino_i->i_mode);
 }
 
 bool mfs_is_file(fs_node_t *fsnode)
 {
 	struct mfs_node *node = fsnode->data;
-	struct mfs_sb_info *sbi = node->instance->sbi;
-
-	if (sbi->fs_version == MFS_VERSION_V1)
-		return S_ISREG(node->ino->i_mode);
-	else
-		return S_ISREG(node->ino2->i_mode);
+	return S_ISREG(node->ino_i->i_mode);
 }
 
 int mfs_root_get(fs_node_t **rfn, devmap_handle_t handle)

@@ -81,6 +81,22 @@ struct mfs_sb_info {
 	bool native;
 };
 
+/*Generic MinixFS inode*/
+struct mfs_ino_info {
+        uint16_t        i_mode;
+        uint16_t        i_nlinks;
+        int16_t         i_uid;
+        uint16_t        i_gid;
+        int32_t         i_size;
+        int32_t         i_atime;
+        int32_t         i_mtime;
+        int32_t         i_ctime;
+        /*Block numbers for direct zones*/
+        uint32_t        i_dzone[V2_NR_DIRECT_ZONES];
+        /*Block numbers for indirect zones*/
+        uint32_t        i_izone[V2_NR_INDIRECT_ZONES];
+};
+
 struct mfs_instance {
 	link_t link;
 	devmap_handle_t handle;
@@ -89,11 +105,7 @@ struct mfs_instance {
 
 /*MinixFS node in core*/
 struct mfs_node {
-	union {
-		struct mfs_inode *ino;
-		struct mfs2_inode *ino2;
-	};
-
+	struct mfs_ino_info *ino_i;
 	struct mfs_instance *instance;
 };
 
@@ -114,10 +126,10 @@ extern void mfs_stat(ipc_callid_t rid, ipc_call_t *request);
 
 /*mfs_inode.c*/
 extern
-struct mfs_inode *mfs_read_inode_raw(const struct mfs_instance *instance, 
+struct mfs_ino_info *mfs_read_inode_raw(const struct mfs_instance *instance, 
 					uint16_t inum);
 extern
-struct mfs2_inode *mfs2_read_inode_raw(const struct mfs_instance *instance,
+struct mfs_ino_info *mfs2_read_inode_raw(const struct mfs_instance *instance,
 					uint32_t inum);
 
 /*mfs_read.c*/
