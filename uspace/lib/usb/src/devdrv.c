@@ -205,7 +205,7 @@ rollback:
  * @param dev The device to be initialized.
  * @return Error code.
  */
-static int initialize_pipes(usb_driver_t *drv, usb_device_t *dev)
+static int initialize_pipes(usb_device_t *dev)
 {
 	int rc;
 
@@ -283,7 +283,7 @@ int generic_add_device(ddf_dev_t *gen_dev)
 	dev->ddf_dev->driver_data = dev;
 	dev->driver_data = NULL;
 
-	rc = initialize_pipes(driver, dev);
+	rc = initialize_pipes(dev);
 	if (rc != EOK) {
 		free(dev);
 		return rc;
