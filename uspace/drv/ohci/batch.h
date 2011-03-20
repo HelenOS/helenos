@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,58 +25,75 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-/** @addtogroup drvusbhub
+/** @addtogroup drvusbuhcihc
  * @{
  */
+/** @file
+ * @brief UHCI driver USB transaction structure
+ */
+#ifndef DRV_UHCI_BATCH_H
+#define DRV_UHCI_BATCH_H
 
-#include <ddf/driver.h>
-#include <errno.h>
-#include <async.h>
-#include <stdio.h>
+#include <adt/list.h>
 
-#include <usb/devdrv.h>
-#include <usb/classes/classes.h>
+#include <usbhc_iface.h>
+#include <usb/usb.h>
 
-#include "usbhub.h"
-#include "usbhub_private.h"
-
-
-usb_endpoint_description_t hub_status_change_endpoint_description = {
-	.transfer_type = USB_TRANSFER_INTERRUPT,
-	.direction = USB_DIRECTION_IN,
-	.interface_class = USB_CLASS_HUB,
-	.interface_subclass = 0,
-	.interface_protocol = 0,
-	.flags = 0
-};
-
-
-static usb_driver_ops_t usb_hub_driver_ops = {
-	.add_device = usb_hub_add_device
-};
-
-static usb_driver_t usb_hub_driver = {
-	.name = "usbhub",
-	.ops = &usb_hub_driver_ops
-};
-
-
-int main(int argc, char *argv[])
+typedef struct batch
 {
-	usb_log_enable(USB_LOG_LEVEL_DEBUG, NAME);
-	usb_log_info("starting hub driver\n");
+	link_t link;
+	usb_speed_t speed;
+	usb_target_t target;
+	usb_transfer_type_t transfer_type;
+	usbhc_iface_transfer_in_callback_t callback_in;
+	usbhc_iface_transfer_out_callback_t callback_out;
+	void *arg;
+	char *transport_buffer;
+	char *setup_buffer;
+	size_t setup_size;
+	char *buffer;
+	size_t buffer_size;
+	size_t max_packet_size;
+	size_t packets;
+	size_t transfered_size;
+	int error;
+	ddf_fun_t *fun;
+	void (*next_step)(struct batch*);
+} batch_t;
 
-	
-	usb_hub_driver.endpoints = (usb_endpoint_description_t**)
-			malloc(2 * sizeof(usb_endpoint_description_t*));
-	usb_hub_driver.endpoints[0] = &hub_status_change_endpoint_description;
-	usb_hub_driver.endpoints[1] = NULL;
+batch_t * batch_get(
+    ddf_fun_t *fun,
+		usb_target_t target,
+    usb_transfer_type_t transfer_type,
+		size_t max_packet_size,
+    usb_speed_t speed,
+		char *buffer,
+		size_t size,
+		char *setup_buffer,
+		size_t setup_size,
+    usbhc_iface_transfer_in_callback_t func_in,
+    usbhc_iface_transfer_out_callback_t func_out,
+		void *arg
+		);
 
-	return usb_driver_main(&usb_hub_driver);
-}
+void batch_dispose(batch_t *instance);
 
+void batch_finish(batch_t *instance, int error);
+
+bool batch_is_complete(batch_t *instance);
+
+void batch_control_write(batch_t *instance);
+
+void batch_control_read(batch_t *instance);
+
+void batch_interrupt_in(batch_t *instance);
+
+void batch_interrupt_out(batch_t *instance);
+
+void batch_bulk_in(batch_t *instance);
+
+void batch_bulk_out(batch_t *instance);
+#endif
 /**
  * @}
  */
-

@@ -76,6 +76,13 @@ static void usbhid_kbd_repeat_loop(usbhid_kbd_t *kbd)
 	usb_log_debug("Starting autorepeat loop.\n");
 
 	while (true) {
+		// check if the kbd structure is usable
+		if (!usbhid_kbd_is_usable(kbd)) {
+			usbhid_kbd_free(&kbd);
+			assert(kbd == NULL);
+			return;
+		}
+		
 		fibril_mutex_lock(kbd->repeat_mtx);
 
 		if (kbd->repeat.key_new > 0) {

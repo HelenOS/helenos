@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,58 +25,45 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-/** @addtogroup drvusbhub
+/** @addtogroup drvusbohci
  * @{
  */
-
-#include <ddf/driver.h>
+/** @file
+ * @brief UHCI driver
+ */
+#include <assert.h>
 #include <errno.h>
-#include <async.h>
-#include <stdio.h>
+#include <str_error.h>
 
-#include <usb/devdrv.h>
-#include <usb/classes/classes.h>
+#include <usb/debug.h>
 
-#include "usbhub.h"
-#include "usbhub_private.h"
+#include "ohci_rh.h"
 
-
-usb_endpoint_description_t hub_status_change_endpoint_description = {
-	.transfer_type = USB_TRANSFER_INTERRUPT,
-	.direction = USB_DIRECTION_IN,
-	.interface_class = USB_CLASS_HUB,
-	.interface_subclass = 0,
-	.interface_protocol = 0,
-	.flags = 0
-};
-
-
-static usb_driver_ops_t usb_hub_driver_ops = {
-	.add_device = usb_hub_add_device
-};
-
-static usb_driver_t usb_hub_driver = {
-	.name = "usbhub",
-	.ops = &usb_hub_driver_ops
-};
-
-
-int main(int argc, char *argv[])
+/** Root hub initialization
+ * @return Error code.
+ */
+int ohci_rh_init(ohci_rh_t *instance, ohci_regs_t *regs)
 {
-	usb_log_enable(USB_LOG_LEVEL_DEBUG, NAME);
-	usb_log_info("starting hub driver\n");
+	assert(instance);
+	instance->address = 0;
+	instance->registers = regs;
 
-	
-	usb_hub_driver.endpoints = (usb_endpoint_description_t**)
-			malloc(2 * sizeof(usb_endpoint_description_t*));
-	usb_hub_driver.endpoints[0] = &hub_status_change_endpoint_description;
-	usb_hub_driver.endpoints[1] = NULL;
+	usb_log_info("OHCI root hub with %d ports.\n", regs->rh_desc_a & 0xff);
 
-	return usb_driver_main(&usb_hub_driver);
+	/* TODO: implement */
+	return EOK;
 }
-
+/*----------------------------------------------------------------------------*/
+void ohci_rh_request(ohci_rh_t *instance, batch_t *request)
+{
+	/* TODO: implement */
+}
+/*----------------------------------------------------------------------------*/
+void ohci_rh_interrupt(ohci_rh_t *instance)
+{
+	usb_log_info("Interrupt!!.\n");
+	/* TODO: implement */
+}
 /**
  * @}
  */
-

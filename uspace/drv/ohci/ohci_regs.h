@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,57 +26,52 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbhub
+/** @addtogroup drvusbohcihc
  * @{
  */
+/** @file
+ * @brief OHCI host controller register structure
+ */
+#ifndef DRV_OHCI_OHCI_REGS_H
+#define DRV_OHCI_OHCI_REGS_H
+#include <stdint.h>
 
-#include <ddf/driver.h>
-#include <errno.h>
-#include <async.h>
-#include <stdio.h>
-
-#include <usb/devdrv.h>
-#include <usb/classes/classes.h>
-
-#include "usbhub.h"
-#include "usbhub_private.h"
-
-
-usb_endpoint_description_t hub_status_change_endpoint_description = {
-	.transfer_type = USB_TRANSFER_INTERRUPT,
-	.direction = USB_DIRECTION_IN,
-	.interface_class = USB_CLASS_HUB,
-	.interface_subclass = 0,
-	.interface_protocol = 0,
-	.flags = 0
-};
-
-
-static usb_driver_ops_t usb_hub_driver_ops = {
-	.add_device = usb_hub_add_device
-};
-
-static usb_driver_t usb_hub_driver = {
-	.name = "usbhub",
-	.ops = &usb_hub_driver_ops
-};
-
-
-int main(int argc, char *argv[])
+typedef struct ohci_regs
 {
-	usb_log_enable(USB_LOG_LEVEL_DEBUG, NAME);
-	usb_log_info("starting hub driver\n");
+	volatile uint32_t revision;
+	volatile uint32_t control;
+	volatile uint32_t command_status;
+	volatile uint32_t interrupt_status;
+	volatile uint32_t interupt_enable;
+#define IE_SO   (1 << 0)
+#define IE_WDH  (1 << 1)
+#define IE_SF   (1 << 2)
+#define IE_RD   (1 << 3)
+#define IE_UE   (1 << 4)
+#define IE_FNO  (1 << 5)
+#define IE_RHSC (1 << 6)
+#define IE_OC   (1 << 30)
+#define IE_MIE  (1 << 31)
 
-	
-	usb_hub_driver.endpoints = (usb_endpoint_description_t**)
-			malloc(2 * sizeof(usb_endpoint_description_t*));
-	usb_hub_driver.endpoints[0] = &hub_status_change_endpoint_description;
-	usb_hub_driver.endpoints[1] = NULL;
-
-	return usb_driver_main(&usb_hub_driver);
-}
-
+	volatile uint32_t interrupt_disable;
+	volatile uint32_t hcca;
+	volatile uint32_t period_corrent;
+	volatile uint32_t control_head;
+	volatile uint32_t control_current;
+	volatile uint32_t bulk_head;
+	volatile uint32_t bulk_current;
+	volatile uint32_t done_head;
+	volatile uint32_t fm_interval;
+	volatile uint32_t fm_remaining;
+	volatile uint32_t fm_number;
+	volatile uint32_t periodic_start;
+	volatile uint32_t ls_threshold;
+	volatile uint32_t rh_desc_a;
+	volatile uint32_t rh_desc_b;
+	volatile uint32_t rh_status;
+	volatile uint32_t rh_port_status[];
+} __attribute__((packed)) ohci_regs_t;
+#endif
 /**
  * @}
  */
-

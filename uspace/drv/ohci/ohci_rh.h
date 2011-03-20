@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,57 +26,31 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbhub
+/** @addtogroup drvusbohci
  * @{
  */
+/** @file
+ * @brief OHCI driver
+ */
+#ifndef DRV_OHCI_OHCI_RH_H
+#define DRV_OHCI_OHCI_RH_H
 
-#include <ddf/driver.h>
-#include <errno.h>
-#include <async.h>
-#include <stdio.h>
+#include <usb/usb.h>
 
-#include <usb/devdrv.h>
-#include <usb/classes/classes.h>
+#include "ohci_regs.h"
+#include "batch.h"
 
-#include "usbhub.h"
-#include "usbhub_private.h"
+typedef struct ohci_rh {
+	ohci_regs_t *registers;
+	usb_address_t address;
+} ohci_rh_t;
 
+int ohci_rh_init(ohci_rh_t *instance, ohci_regs_t *regs);
 
-usb_endpoint_description_t hub_status_change_endpoint_description = {
-	.transfer_type = USB_TRANSFER_INTERRUPT,
-	.direction = USB_DIRECTION_IN,
-	.interface_class = USB_CLASS_HUB,
-	.interface_subclass = 0,
-	.interface_protocol = 0,
-	.flags = 0
-};
+void ohci_rh_request(ohci_rh_t *instance, batch_t *request);
 
-
-static usb_driver_ops_t usb_hub_driver_ops = {
-	.add_device = usb_hub_add_device
-};
-
-static usb_driver_t usb_hub_driver = {
-	.name = "usbhub",
-	.ops = &usb_hub_driver_ops
-};
-
-
-int main(int argc, char *argv[])
-{
-	usb_log_enable(USB_LOG_LEVEL_DEBUG, NAME);
-	usb_log_info("starting hub driver\n");
-
-	
-	usb_hub_driver.endpoints = (usb_endpoint_description_t**)
-			malloc(2 * sizeof(usb_endpoint_description_t*));
-	usb_hub_driver.endpoints[0] = &hub_status_change_endpoint_description;
-	usb_hub_driver.endpoints[1] = NULL;
-
-	return usb_driver_main(&usb_hub_driver);
-}
-
+void ohci_rh_interrupt(ohci_rh_t *instance);
+#endif
 /**
  * @}
  */
-

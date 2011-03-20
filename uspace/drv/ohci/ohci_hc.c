@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,58 +25,63 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-/** @addtogroup drvusbhub
+/** @addtogroup drvusbohcihc
  * @{
  */
-
-#include <ddf/driver.h>
+/** @file
+ * @brief OHCI Host controller driver routines
+ */
 #include <errno.h>
-#include <async.h>
-#include <stdio.h>
+#include <str_error.h>
+#include <adt/list.h>
+#include <libarch/ddi.h>
 
-#include <usb/devdrv.h>
-#include <usb/classes/classes.h>
+#include <usb/debug.h>
+#include <usb/usb.h>
+#include <usb/ddfiface.h>
+#include <usb_iface.h>
 
-#include "usbhub.h"
-#include "usbhub_private.h"
+#include "ohci_hc.h"
 
-
-usb_endpoint_description_t hub_status_change_endpoint_description = {
-	.transfer_type = USB_TRANSFER_INTERRUPT,
-	.direction = USB_DIRECTION_IN,
-	.interface_class = USB_CLASS_HUB,
-	.interface_subclass = 0,
-	.interface_protocol = 0,
-	.flags = 0
-};
-
-
-static usb_driver_ops_t usb_hub_driver_ops = {
-	.add_device = usb_hub_add_device
-};
-
-static usb_driver_t usb_hub_driver = {
-	.name = "usbhub",
-	.ops = &usb_hub_driver_ops
-};
-
-
-int main(int argc, char *argv[])
+int ohci_hc_init(ohci_hc_t *instance, ddf_fun_t *fun,
+    uintptr_t regs, size_t reg_size, bool interrupts)
 {
-	usb_log_enable(USB_LOG_LEVEL_DEBUG, NAME);
-	usb_log_info("starting hub driver\n");
+	assert(instance);
+	int ret = pio_enable((void*)regs, reg_size, (void**)&instance->registers);
+	if (ret != EOK) {
+		usb_log_error("Failed to gain access to device registers.\n");
+		return ret;
+	}
+	instance->registers->interrupt_disable = 0;
+	/* enable interrupt on root hub status change */
+	instance->registers->interupt_enable |= IE_RHSC | IE_MIE;
 
-	
-	usb_hub_driver.endpoints = (usb_endpoint_description_t**)
-			malloc(2 * sizeof(usb_endpoint_description_t*));
-	usb_hub_driver.endpoints[0] = &hub_status_change_endpoint_description;
-	usb_hub_driver.endpoints[1] = NULL;
 
-	return usb_driver_main(&usb_hub_driver);
+	ohci_rh_init(&instance->rh, instance->registers);
+	/* TODO: implement */
+	/* TODO: register root hub */
+	return EOK;
 }
-
+/*----------------------------------------------------------------------------*/
+int ohci_hc_schedule(ohci_hc_t *instance, batch_t *batch)
+{
+	assert(instance);
+	assert(batch);
+	if (batch->target.address == instance->rh.address) {
+		ohci_rh_request(&instance->rh, batch);
+		return EOK;
+	}
+	/* TODO: implement */
+	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+void ohci_hc_interrupt(ohci_hc_t *instance, uint16_t status)
+{
+	assert(instance);
+	/* TODO: Check for interrupt cause */
+	ohci_rh_interrupt(&instance->rh);
+	/* TODO: implement */
+}
 /**
  * @}
  */
-

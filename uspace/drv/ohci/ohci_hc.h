@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,57 +26,55 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbhub
+/** @addtogroup drvusbohcihc
  * @{
  */
+/** @file
+ * @brief OHCI host controller driver structure
+ */
+#ifndef DRV_OHCI_OHCI_HC_H
+#define DRV_OHCI_OHCI_HC_H
 
-#include <ddf/driver.h>
-#include <errno.h>
-#include <async.h>
-#include <stdio.h>
+#include <fibril.h>
+#include <fibril_synch.h>
+#include <adt/list.h>
+#include <ddi.h>
 
-#include <usb/devdrv.h>
-#include <usb/classes/classes.h>
+#include <usb/usb.h>
+#include <usbhc_iface.h>
 
-#include "usbhub.h"
-#include "usbhub_private.h"
+#include "batch.h"
+#include "ohci_regs.h"
+#include "ohci_rh.h"
 
+typedef struct ohci_hc {
+	ohci_regs_t *registers;
+	usb_address_t rh_address;
+	ohci_rh_t rh;
+	ddf_fun_t *ddf_instance;
+} ohci_hc_t;
 
-usb_endpoint_description_t hub_status_change_endpoint_description = {
-	.transfer_type = USB_TRANSFER_INTERRUPT,
-	.direction = USB_DIRECTION_IN,
-	.interface_class = USB_CLASS_HUB,
-	.interface_subclass = 0,
-	.interface_protocol = 0,
-	.flags = 0
-};
+int ohci_hc_init(ohci_hc_t *instance, ddf_fun_t *fun,
+     uintptr_t regs, size_t reg_size, bool interrupts);
 
+int ohci_hc_schedule(ohci_hc_t *instance, batch_t *batch);
 
-static usb_driver_ops_t usb_hub_driver_ops = {
-	.add_device = usb_hub_add_device
-};
+void ohci_hc_interrupt(ohci_hc_t *instance, uint16_t status);
 
-static usb_driver_t usb_hub_driver = {
-	.name = "usbhub",
-	.ops = &usb_hub_driver_ops
-};
+/** Safely dispose host controller internal structures
+ *
+ * @param[in] instance Host controller structure to use.
+ */
+static inline void ohci_hc_fini(ohci_hc_t *instance) { /* TODO: implement*/ };
 
-
-int main(int argc, char *argv[])
-{
-	usb_log_enable(USB_LOG_LEVEL_DEBUG, NAME);
-	usb_log_info("starting hub driver\n");
-
-	
-	usb_hub_driver.endpoints = (usb_endpoint_description_t**)
-			malloc(2 * sizeof(usb_endpoint_description_t*));
-	usb_hub_driver.endpoints[0] = &hub_status_change_endpoint_description;
-	usb_hub_driver.endpoints[1] = NULL;
-
-	return usb_driver_main(&usb_hub_driver);
-}
-
+/** Get and cast pointer to the driver data
+ *
+ * @param[in] fun DDF function pointer
+ * @return cast pointer to driver_data
+ */
+static inline ohci_hc_t * fun_to_ohci_hc(ddf_fun_t *fun)
+	{ return (ohci_hc_t*)fun->driver_data; }
+#endif
 /**
  * @}
  */
-
