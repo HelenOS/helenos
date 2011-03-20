@@ -290,6 +290,9 @@ int usb_device_create_match_ids_from_device_descriptor(
 		ADD_MATCHID_OR_RETURN(matches, 50, "usb&mid");
 	}
 	
+	/* As a last resort, try fallback driver. */
+	ADD_MATCHID_OR_RETURN(matches, 10, "usb&fallback");
+
 	return EOK;
 }
 

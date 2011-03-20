@@ -119,6 +119,7 @@ ifeq ($(UARCH),amd64)
 		drv/ehci-hcd \
 		drv/uhci-hcd \
 		drv/uhci-rhd \
+		drv/usbflbk \
 		drv/usbhid \
 		drv/usbhub \
 		drv/usbmid \
@@ -137,6 +138,7 @@ ifeq ($(UARCH),ia32)
 		drv/ehci-hcd \
 		drv/uhci-hcd \
 		drv/uhci-rhd \
+		drv/usbflbk \
 		drv/usbhid \
 		drv/usbhub \
 		drv/usbmid \
