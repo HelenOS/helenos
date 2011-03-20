@@ -71,7 +71,7 @@ out:
 static int read_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock)
 {
 	block_t *bi1, *bi2;
-	int r, nr_direct, nr_indirect;
+	int r, nr_direct;
 	int ptrs_per_block;
 
 	assert(mnode);
@@ -87,14 +87,13 @@ static int read_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock
 
 	if (fs_version == MFS_VERSION_V1) {
 		nr_direct = V1_NR_DIRECT_ZONES;
-		nr_indirect = V1_NR_INDIRECT_ZONES;
 		ptrs_per_block = MFS_BLOCKSIZE / sizeof(uint16_t);
 	} else {
 		nr_direct = V2_NR_DIRECT_ZONES;
-		nr_indirect = V2_NR_INDIRECT_ZONES;
 		ptrs_per_block = sbi->block_size / sizeof(uint32_t);
 	}
 
+	/*Check if the wanted block is in the direct zones*/
 	if (rblock < nr_direct) {
 		*b = ino_i->i_dzone[rblock];
 		r = EOK;
@@ -102,8 +101,8 @@ static int read_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock
 	}
 	rblock -= nr_direct - 1;
 
-	/*Check if the wanted block is in the single indirect zone*/
 	if (rblock < ptrs_per_block) {
+		/*The wanted block is in the single indirect zone chain*/
 		if (ino_i->i_izone[0] == 0) {
 			r = -1;
 			goto out;
@@ -122,21 +121,25 @@ static int read_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock
 
 	rblock -= ptrs_per_block - 1;
 
-	/*The wanted block is in the double indirect zone*/
-	uint32_t di_block = rblock / ptrs_per_block;
+	/*The wanted block is in the double indirect zone chain*/
 
-	/*read the first indirect zone*/
+	/*read the first indirect zone of the chain*/
 	if (ino_i->i_izone[1] == 0) {
 		r = -1;
 		goto out;
 	}
-
 	r = read_ind_block(bi1, mnode->instance, ino_i->i_izone[1]);
 
 	if (r != EOK)
 		goto out;
 
-	/*read the second indirect zone*/
+	/*
+	 *Compute the position of the second indirect
+	 *zone pointer in the chain.
+	 */
+	uint32_t di_block = rblock / ptrs_per_block;
+
+	/*read the second indirect zone of the chain*/
 	if (fs_version == MFS_VERSION_V1) {
 		r = read_ind_block(bi2, mnode->instance,
 			((uint16_t *) bi1->data)[di_block]);
@@ -154,6 +157,7 @@ static int read_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock
 
 		*b = ((uint32_t *) bi2->data)[rblock % ptrs_per_block];
 	}
+	r = EOK;
 	block_put(bi2);
 
 out_block:
