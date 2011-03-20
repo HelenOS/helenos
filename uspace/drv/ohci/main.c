@@ -48,6 +48,20 @@
 
 static int ohci_add_device(ddf_dev_t *device);
 /*----------------------------------------------------------------------------*/
+/** IRQ handling callback, identifies device
+ *
+ * @param[in] dev DDF instance of the device to use.
+ * @param[in] iid (Unused).
+ * @param[in] call Pointer to the call that represents interrupt.
+ */
+static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
+{
+	assert(dev);
+	ohci_hc_t *hc = (ohci_hc_t*)dev->driver_data;
+	assert(hc);
+	ohci_hc_interrupt(hc, 0);
+}
+/*----------------------------------------------------------------------------*/
 static driver_ops_t ohci_driver_ops = {
 	.add_device = ohci_add_device,
 };
@@ -103,12 +117,25 @@ if (ret != EOK) { \
 		return ENOMEM;
 	}
 
-	ret = ohci_hc_init(hcd, hc_fun, mem_reg_base, mem_reg_size);
+	bool interrupts = false;
+	ret = pci_enable_interrupts(device);
+	if (ret != EOK) {
+		usb_log_warning(
+		    "Failed(%d) to enable interrupts, fall back to polling.\n",
+		    ret);
+	} else {
+		usb_log_debug("Hw interrupts enabled.\n");
+		interrupts = true;
+	}
+
+	ret = ohci_hc_init(hcd, hc_fun, mem_reg_base, mem_reg_size, interrupts);
 	if (ret != EOK) {
 		usb_log_error("Failed to initialize OHCI driver.\n");
 		free(hcd);
 		return ret;
 	}
+
+	ret = register_interrupt_handler(device, irq, irq_handler, NULL);
 
 	hc_fun->ops = &hc_ops;
 	ret = ddf_fun_bind(hc_fun);

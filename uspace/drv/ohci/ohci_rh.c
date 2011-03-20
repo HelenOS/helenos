@@ -61,6 +61,7 @@ void ohci_rh_request(ohci_rh_t *instance, batch_t *request)
 /*----------------------------------------------------------------------------*/
 void ohci_rh_interrupt(ohci_rh_t *instance)
 {
+	usb_log_info("Interrupt!!.\n");
 	/* TODO: implement */
 }
 /**

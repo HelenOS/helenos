@@ -41,7 +41,18 @@ typedef struct ohci_regs
 	volatile uint32_t revision;
 	volatile uint32_t control;
 	volatile uint32_t command_status;
+	volatile uint32_t interrupt_status;
 	volatile uint32_t interupt_enable;
+#define IE_SO   (1 << 0)
+#define IE_WDH  (1 << 1)
+#define IE_SF   (1 << 2)
+#define IE_RD   (1 << 3)
+#define IE_UE   (1 << 4)
+#define IE_FNO  (1 << 5)
+#define IE_RHSC (1 << 6)
+#define IE_OC   (1 << 30)
+#define IE_MIE  (1 << 31)
+
 	volatile uint32_t interrupt_disable;
 	volatile uint32_t hcca;
 	volatile uint32_t period_corrent;
@@ -59,7 +70,7 @@ typedef struct ohci_regs
 	volatile uint32_t rh_desc_b;
 	volatile uint32_t rh_status;
 	volatile uint32_t rh_port_status[];
-} ohci_regs_t;
+} __attribute__((packed)) ohci_regs_t;
 #endif
 /**
  * @}

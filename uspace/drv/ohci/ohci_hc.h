@@ -55,7 +55,7 @@ typedef struct ohci_hc {
 } ohci_hc_t;
 
 int ohci_hc_init(ohci_hc_t *instance, ddf_fun_t *fun,
-     uintptr_t regs, size_t reg_size);
+     uintptr_t regs, size_t reg_size, bool interrupts);
 
 int ohci_hc_schedule(ohci_hc_t *instance, batch_t *batch);
 

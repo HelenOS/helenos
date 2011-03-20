@@ -44,7 +44,7 @@
 #include "ohci_hc.h"
 
 int ohci_hc_init(ohci_hc_t *instance, ddf_fun_t *fun,
-    uintptr_t regs, size_t reg_size)
+    uintptr_t regs, size_t reg_size, bool interrupts)
 {
 	assert(instance);
 	int ret = pio_enable((void*)regs, reg_size, (void**)&instance->registers);
@@ -52,6 +52,10 @@ int ohci_hc_init(ohci_hc_t *instance, ddf_fun_t *fun,
 		usb_log_error("Failed to gain access to device registers.\n");
 		return ret;
 	}
+	instance->registers->interrupt_disable = 0;
+	/* enable interrupt on root hub status change */
+	instance->registers->interupt_enable |= IE_RHSC | IE_MIE;
+
 
 	ohci_rh_init(&instance->rh, instance->registers);
 	/* TODO: implement */
@@ -74,6 +78,7 @@ int ohci_hc_schedule(ohci_hc_t *instance, batch_t *batch)
 void ohci_hc_interrupt(ohci_hc_t *instance, uint16_t status)
 {
 	assert(instance);
+	/* TODO: Check for interrupt cause */
 	ohci_rh_interrupt(&instance->rh);
 	/* TODO: implement */
 }

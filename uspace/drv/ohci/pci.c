@@ -145,6 +145,7 @@ int pci_get_my_registers(ddf_dev_t *dev,
  */
 int pci_enable_interrupts(ddf_dev_t *device)
 {
+	return ENOTSUP;
 	int parent_phone =
 	    devman_parent_device_connect(device->handle, IPC_FLAG_BLOCKING);
 	if (parent_phone < 0) {
