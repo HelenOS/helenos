@@ -47,21 +47,25 @@
  */
 static int usbfallback_add_device(usb_device_t *dev)
 {
-	/* Create control function */
-	ddf_fun_t *ctl_fun = ddf_fun_create(dev->ddf_dev, fun_exposed, "ctl");
+	int rc;
+	const char *fun_name = "ctl";
+
+	ddf_fun_t *ctl_fun = ddf_fun_create(dev->ddf_dev, fun_exposed,
+	    fun_name);
 	if (ctl_fun == NULL) {
 		usb_log_error("Failed to create control function.\n");
 		return ENOMEM;
 	}
-	int rc = ddf_fun_bind(ctl_fun);
+	rc = ddf_fun_bind(ctl_fun);
 	if (rc != EOK) {
 		usb_log_error("Failed to bind control function: %s.\n",
 		    str_error(rc));
 		return rc;
 	}
 
-	usb_log_info("USB fallback driver controlling device `%s'.\n",
-	    dev->ddf_dev->name);
+	usb_log_info("Pretending to control device `%s'" \
+	    " (node `%s', handle %llu).\n",
+	    dev->ddf_dev->name, fun_name, dev->ddf_dev->handle);
 
 	return EOK;
 }
