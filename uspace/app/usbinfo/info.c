@@ -108,27 +108,30 @@ void dump_device_match_ids(usbinfo_device_t *dev)
 static void dump_descriptor_tree_brief_device(const char *prefix,
     usb_standard_device_descriptor_t *descriptor)
 {
-	printf("%sDevice (0x%04x by 0x%04x, %s)\n", prefix,
+	printf("%sDevice (0x%04x by 0x%04x, %s, %zu configurations)\n", prefix,
 	    (int) descriptor->product_id,
 	    (int) descriptor->vendor_id,
-	    usb_str_class(descriptor->device_class));
+	    usb_str_class(descriptor->device_class),
+	    (size_t) descriptor->configuration_count);
 }
 
 static void dump_descriptor_tree_brief_configuration(const char *prefix,
     usb_standard_configuration_descriptor_t *descriptor)
 {
-	printf("%sConfiguration #%d\n", prefix,
-	    (int) descriptor->configuration_number);
+	printf("%sConfiguration #%d (%zu interfaces)\n", prefix,
+	    (int) descriptor->configuration_number,
+	    (size_t) descriptor->interface_count);
 }
 
 static void dump_descriptor_tree_brief_interface(const char *prefix,
     usb_standard_interface_descriptor_t *descriptor)
 {
-	printf("%sInterface #%d (%s, 0x%02x, 0x%02x)\n", prefix,
+	printf("%sInterface #%d (%s, 0x%02x, 0x%02x), alternate %d\n", prefix,
 	    (int) descriptor->interface_number,
 	    usb_str_class(descriptor->interface_class),
 	    (int) descriptor->interface_subclass,
-	    (int) descriptor->interface_protocol);
+	    (int) descriptor->interface_protocol,
+	    (int) descriptor->alternate_setting);
 }
 
 static void dump_descriptor_tree_brief_endpoint(const char *prefix,
