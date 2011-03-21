@@ -30,7 +30,12 @@
  * @{
  */
 /** @file
- * @brief UHCI driver
+ * Device keeper structure and functions.
+ *
+ * Typical USB host controller needs to keep track of various settings for
+ * each device that is connected to it.
+ * State of toggle bit, device speed etc. etc.
+ * This structure shall simplify the management.
  */
 #ifndef LIBUSB_HOST_DEVICE_KEEPER_H
 #define LIBUSB_HOST_DEVICE_KEEPER_H
@@ -38,8 +43,10 @@
 #include <fibril_synch.h>
 #include <usb/usb.h>
 
+/** Number of USB address for array dimensions. */
 #define USB_ADDRESS_COUNT (USB11_ADDRESS_MAX + 1)
 
+/** Information about attached USB device. */
 struct usb_device_info {
 	usb_speed_t speed;
 	bool occupied;
@@ -47,6 +54,9 @@ struct usb_device_info {
 	devman_handle_t handle;
 };
 
+/** Host controller device keeper.
+ * You shall not access members directly but only using functions below.
+ */
 typedef struct {
 	struct usb_device_info devices[USB_ADDRESS_COUNT];
 	fibril_mutex_t guard;
@@ -56,34 +66,36 @@ typedef struct {
 
 void usb_device_keeper_init(usb_device_keeper_t *instance);
 
-void usb_device_keeper_reserve_default_address(
-    usb_device_keeper_t *instance, usb_speed_t speed);
+void usb_device_keeper_reserve_default_address(usb_device_keeper_t *instance,
+    usb_speed_t speed);
 
 void usb_device_keeper_release_default_address(usb_device_keeper_t *instance);
 
-void usb_device_keeper_reset_if_need(
-    usb_device_keeper_t *instance, usb_target_t target,
-    const unsigned char *setup_data);
+void usb_device_keeper_reset_if_need(usb_device_keeper_t *instance,
+    usb_target_t target,
+    const uint8_t *setup_data);
 
-int usb_device_keeper_get_toggle(
-    usb_device_keeper_t *instance, usb_target_t target, usb_direction_t direction);
+int usb_device_keeper_get_toggle(usb_device_keeper_t *instance,
+    usb_target_t target, usb_direction_t direction);
 
 int usb_device_keeper_set_toggle(usb_device_keeper_t *instance,
     usb_target_t target, usb_direction_t direction, bool toggle);
 
-usb_address_t device_keeper_get_free_address(
-    usb_device_keeper_t *instance, usb_speed_t speed);
+usb_address_t device_keeper_get_free_address(usb_device_keeper_t *instance,
+    usb_speed_t speed);
 
-void usb_device_keeper_bind(
-    usb_device_keeper_t *instance, usb_address_t address, devman_handle_t handle);
+void usb_device_keeper_bind(usb_device_keeper_t *instance,
+    usb_address_t address, devman_handle_t handle);
 
-void usb_device_keeper_release(usb_device_keeper_t *instance, usb_address_t address);
+void usb_device_keeper_release(usb_device_keeper_t *instance,
+    usb_address_t address);
 
-usb_address_t usb_device_keeper_find(
-    usb_device_keeper_t *instance, devman_handle_t handle);
+usb_address_t usb_device_keeper_find(usb_device_keeper_t *instance,
+    devman_handle_t handle);
 
-usb_speed_t usb_device_keeper_get_speed(
-    usb_device_keeper_t *instance, usb_address_t address);
+usb_speed_t usb_device_keeper_get_speed(usb_device_keeper_t *instance,
+    usb_address_t address);
+
 #endif
 /**
  * @}
