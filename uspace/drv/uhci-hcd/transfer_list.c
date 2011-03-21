@@ -109,7 +109,7 @@ void transfer_list_add_batch(transfer_list_t *instance, usb_transfer_batch_t *ba
 		    instance->batch_list.prev, usb_transfer_batch_t, link);
 		last_qh = batch_qh(last);
 	}
-	const uint32_t pa = addr_to_phys(batch->qh);
+	const uint32_t pa = addr_to_phys(batch_qh(batch));
 	assert((pa & LINK_POINTER_ADDRESS_MASK) == pa);
 
 	/* keep link */
@@ -204,7 +204,7 @@ void transfer_list_remove_batch(transfer_list_t *instance, usb_transfer_batch_t 
 	if (instance->batch_list.next == &batch->link) {
 		/* I'm the first one here */
 		assert((instance->queue_head->next & LINK_POINTER_ADDRESS_MASK)
-		    == addr_to_phys(bathc_qh(batch)));
+		    == addr_to_phys(batch_qh(batch)));
 		instance->queue_head->next = batch_qh(batch)->next;
 		qpos = "FIRST";
 	} else {
@@ -218,7 +218,7 @@ void transfer_list_remove_batch(transfer_list_t *instance, usb_transfer_batch_t 
 	/* Remove from the batch list */
 	list_remove(&batch->link);
 	usb_log_debug("Batch(%p) removed (%s) from %s, next %x.\n",
-	    batch, pos, instance->name, batch_qh(batch)->next);
+	    batch, qpos, instance->name, batch_qh(batch)->next);
 }
 /**
  * @}
