@@ -25,43 +25,22 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup drvusbuhcihc
+/** @addtogroup drvusbohci
  * @{
  */
 /** @file
- * @brief UHCI driver USB transaction structure
+ * @brief OHCI driver USB transaction structure
  */
-#ifndef DRV_UHCI_BATCH_H
-#define DRV_UHCI_BATCH_H
+#ifndef DRV_OHCI_BATCH_H
+#define DRV_OHCI_BATCH_H
 
-#include <adt/list.h>
 
 #include <usbhc_iface.h>
 #include <usb/usb.h>
+#include <usb/host/device_keeper.h>
+#include <usb/host/batch.h>
 
-typedef struct batch
-{
-	link_t link;
-	usb_speed_t speed;
-	usb_target_t target;
-	usb_transfer_type_t transfer_type;
-	usbhc_iface_transfer_in_callback_t callback_in;
-	usbhc_iface_transfer_out_callback_t callback_out;
-	void *arg;
-	char *transport_buffer;
-	char *setup_buffer;
-	size_t setup_size;
-	char *buffer;
-	size_t buffer_size;
-	size_t max_packet_size;
-	size_t packets;
-	size_t transfered_size;
-	int error;
-	ddf_fun_t *fun;
-	void (*next_step)(struct batch*);
-} batch_t;
-
-batch_t * batch_get(
+usb_transfer_batch_t * batch_get(
     ddf_fun_t *fun,
 		usb_target_t target,
     usb_transfer_type_t transfer_type,
@@ -73,26 +52,23 @@ batch_t * batch_get(
 		size_t setup_size,
     usbhc_iface_transfer_in_callback_t func_in,
     usbhc_iface_transfer_out_callback_t func_out,
-		void *arg
+		void *arg,
+		usb_device_keeper_t *manager
 		);
 
-void batch_dispose(batch_t *instance);
+void batch_dispose(usb_transfer_batch_t *instance);
 
-void batch_finish(batch_t *instance, int error);
+void batch_control_write(usb_transfer_batch_t *instance);
 
-bool batch_is_complete(batch_t *instance);
+void batch_control_read(usb_transfer_batch_t *instance);
 
-void batch_control_write(batch_t *instance);
+void batch_interrupt_in(usb_transfer_batch_t *instance);
 
-void batch_control_read(batch_t *instance);
+void batch_interrupt_out(usb_transfer_batch_t *instance);
 
-void batch_interrupt_in(batch_t *instance);
+void batch_bulk_in(usb_transfer_batch_t *instance);
 
-void batch_interrupt_out(batch_t *instance);
-
-void batch_bulk_in(batch_t *instance);
-
-void batch_bulk_out(batch_t *instance);
+void batch_bulk_out(usb_transfer_batch_t *instance);
 #endif
 /**
  * @}

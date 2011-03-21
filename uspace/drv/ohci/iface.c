@@ -42,6 +42,7 @@
 #include <usb/debug.h>
 
 #include "iface.h"
+#include "hc.h"
 
 #define UNSUPPORTED(methodname) \
 	usb_log_warning("Unsupported interface method `%s()' in %s:%d.\n", \
@@ -58,11 +59,14 @@
  */
 static int reserve_default_address(ddf_fun_t *fun, usb_speed_t speed)
 {
-	UNSUPPORTED("reserve_default_address");
-
-	return ENOTSUP;
+  assert(fun);
+  hc_t *hc = fun_to_hc(fun);
+  assert(hc);
+  usb_log_debug("Default address request with speed %d.\n", speed);
+  usb_device_keeper_reserve_default_address(&hc->manager, speed);
+  return EOK;
 }
-
+/*----------------------------------------------------------------------------*/
 /** Release default address.
  *
  * @param[in] fun Device function the action was invoked on.
@@ -70,11 +74,14 @@ static int reserve_default_address(ddf_fun_t *fun, usb_speed_t speed)
  */
 static int release_default_address(ddf_fun_t *fun)
 {
-	UNSUPPORTED("release_default_address");
-
-	return ENOTSUP;
+  assert(fun);
+  hc_t *hc = fun_to_hc(fun);
+  assert(hc);
+  usb_log_debug("Default address release.\n");
+  usb_device_keeper_release_default_address(&hc->manager);
+  return EOK;
 }
-
+/*----------------------------------------------------------------------------*/
 /** Found free USB address.
  *
  * @param[in] fun Device function the action was invoked on.
@@ -85,11 +92,19 @@ static int release_default_address(ddf_fun_t *fun)
 static int request_address(ddf_fun_t *fun, usb_speed_t speed,
     usb_address_t *address)
 {
-	UNSUPPORTED("request_address");
+  assert(fun);
+  hc_t *hc = fun_to_hc(fun);
+  assert(hc);
+  assert(address);
 
-	return ENOTSUP;
+  usb_log_debug("Address request with speed %d.\n", speed);
+  *address = device_keeper_get_free_address(&hc->manager, speed);
+  usb_log_debug("Address request with result: %d.\n", *address);
+  if (*address <= 0)
+    return *address;
+  return EOK;
 }
-
+/*----------------------------------------------------------------------------*/
 /** Bind USB address with device devman handle.
  *
  * @param[in] fun Device function the action was invoked on.
@@ -100,11 +115,14 @@ static int request_address(ddf_fun_t *fun, usb_speed_t speed,
 static int bind_address(ddf_fun_t *fun,
     usb_address_t address, devman_handle_t handle)
 {
-	UNSUPPORTED("bind_address");
-
-	return ENOTSUP;
+  assert(fun);
+  hc_t *hc = fun_to_hc(fun);
+  assert(hc);
+  usb_log_debug("Address bind %d-%d.\n", address, handle);
+  usb_device_keeper_bind(&hc->manager, address, handle);
+  return EOK;
 }
-
+/*----------------------------------------------------------------------------*/
 /** Release previously requested address.
  *
  * @param[in] fun Device function the action was invoked on.
@@ -113,9 +131,12 @@ static int bind_address(ddf_fun_t *fun,
  */
 static int release_address(ddf_fun_t *fun, usb_address_t address)
 {
-	UNSUPPORTED("release_address");
-
-	return ENOTSUP;
+  assert(fun);
+  hc_t *hc = fun_to_hc(fun);
+  assert(hc);
+  usb_log_debug("Address release %d.\n", address);
+  usb_device_keeper_release(&hc->manager, address);
+  return EOK;
 }
 
 /** Register endpoint for bandwidth reservation.
@@ -154,7 +175,7 @@ static int unregister_endpoint(ddf_fun_t *fun, usb_address_t address,
 
 	return ENOTSUP;
 }
-
+/*----------------------------------------------------------------------------*/
 /** Schedule interrupt out transfer.
  *
  * The callback is supposed to be called once the transfer (on the wire) is
@@ -176,11 +197,27 @@ static int interrupt_out(ddf_fun_t *fun, usb_target_t target,
     size_t max_packet_size, void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
-	UNSUPPORTED("interrupt_out");
+  hc_t *hc = fun_to_hc(fun);
+  assert(hc);
+  usb_speed_t speed = usb_device_keeper_get_speed(&hc->manager, target.address);
 
-	return ENOTSUP;
+  usb_log_debug("Interrupt OUT %d:%d %zu(%zu).\n",
+      target.address, target.endpoint, size, max_packet_size);
+
+  usb_transfer_batch_t *batch = batch_get(fun, target, USB_TRANSFER_INTERRUPT,
+      max_packet_size, speed, data, size, NULL, 0, NULL, callback, arg,
+      &hc->manager);
+  if (!batch)
+    return ENOMEM;
+  batch_interrupt_out(batch);
+  const int ret = hc_schedule(hc, batch);
+  if (ret != EOK) {
+    batch_dispose(batch);
+    return ret;
+  }
+  return EOK;
 }
-
+/*----------------------------------------------------------------------------*/
 /** Schedule interrupt in transfer.
  *
  * The callback is supposed to be called once the transfer (on the wire) is
@@ -202,11 +239,27 @@ static int interrupt_in(ddf_fun_t *fun, usb_target_t target,
     size_t max_packet_size, void *data, size_t size,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
-	UNSUPPORTED("interrupt_in");
+  assert(fun);
+  hc_t *hc = fun_to_hc(fun);
+  assert(hc);
+  usb_speed_t speed = usb_device_keeper_get_speed(&hc->manager, target.address);
+  usb_log_debug("Interrupt IN %d:%d %zu(%zu).\n", 
+      target.address, target.endpoint, size, max_packet_size);
 
-	return ENOTSUP;
+  usb_transfer_batch_t *batch = batch_get(fun, target, USB_TRANSFER_INTERRUPT,
+      max_packet_size, speed, data, size, NULL, 0, callback, NULL, arg,
+      &hc->manager);
+  if (!batch)
+    return ENOMEM;
+  batch_interrupt_in(batch);
+  const int ret = hc_schedule(hc, batch);
+  if (ret != EOK) {
+    batch_dispose(batch);
+    return ret;
+  }
+  return EOK;
 }
-
+/*----------------------------------------------------------------------------*/
 /** Schedule bulk out transfer.
  *
  * The callback is supposed to be called once the transfer (on the wire) is
@@ -228,11 +281,29 @@ static int bulk_out(ddf_fun_t *fun, usb_target_t target,
     size_t max_packet_size, void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
-	UNSUPPORTED("bulk_out");
+  assert(fun);
+  hc_t *hc = fun_to_hc(fun);
+  assert(hc);
+  usb_speed_t speed = usb_device_keeper_get_speed(&hc->manager, target.address);
 
-	return ENOTSUP;
+  usb_log_debug("Bulk OUT %d:%d %zu(%zu).\n",
+      target.address, target.endpoint, size, max_packet_size);
+
+  usb_transfer_batch_t *batch = batch_get(fun, target, USB_TRANSFER_BULK,
+      max_packet_size, speed, data, size, NULL, 0, NULL, callback, arg,
+      &hc->manager);
+  if (!batch)
+    return ENOMEM;
+  batch_bulk_out(batch);
+  const int ret = hc_schedule(hc, batch);
+  if (ret != EOK) {
+    batch_dispose(batch);
+    return ret;
+  }
+  return EOK;
+
 }
-
+/*----------------------------------------------------------------------------*/
 /** Schedule bulk in transfer.
  *
  * The callback is supposed to be called once the transfer (on the wire) is
@@ -254,11 +325,27 @@ static int bulk_in(ddf_fun_t *fun, usb_target_t target,
     size_t max_packet_size, void *data, size_t size,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
-	UNSUPPORTED("bulk_in");
+  assert(fun);
+  hc_t *hc = fun_to_hc(fun);
+  assert(hc);
+  usb_speed_t speed = usb_device_keeper_get_speed(&hc->manager, target.address);
+  usb_log_debug("Bulk IN %d:%d %zu(%zu).\n",
+      target.address, target.endpoint, size, max_packet_size);
 
-	return ENOTSUP;
+  usb_transfer_batch_t *batch = batch_get(fun, target, USB_TRANSFER_BULK,
+      max_packet_size, speed, data, size, NULL, 0, callback, NULL, arg,
+      &hc->manager);
+  if (!batch)
+    return ENOMEM;
+  batch_bulk_in(batch);
+  const int ret = hc_schedule(hc, batch);
+  if (ret != EOK) {
+    batch_dispose(batch);
+    return ret;
+  }
+  return EOK;
 }
-
+/*----------------------------------------------------------------------------*/
 /** Schedule control write transfer.
  *
  * The callback is supposed to be called once the transfer (on the wire) is
@@ -281,15 +368,35 @@ static int bulk_in(ddf_fun_t *fun, usb_target_t target,
  */
 static int control_write(ddf_fun_t *fun, usb_target_t target,
     size_t max_packet_size,
-    void *setup_packet, size_t setup_packet_size,
-    void *data_buffer, size_t data_buffer_size,
+    void *setup_data, size_t setup_size,
+    void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
-	UNSUPPORTED("control_write");
+  assert(fun);
+  hc_t *hc = fun_to_hc(fun);
+  assert(hc);
+  usb_speed_t speed = usb_device_keeper_get_speed(&hc->manager, target.address);
+  usb_log_debug("Control WRITE (%d) %d:%d %zu(%zu).\n",
+      speed, target.address, target.endpoint, size, max_packet_size);
 
-	return ENOTSUP;
+  if (setup_size != 8)
+    return EINVAL;
+
+  usb_transfer_batch_t *batch = batch_get(fun, target, USB_TRANSFER_CONTROL,
+      max_packet_size, speed, data, size, setup_data, setup_size,
+      NULL, callback, arg, &hc->manager);
+  if (!batch)
+    return ENOMEM;
+  usb_device_keeper_reset_if_need(&hc->manager, target, setup_data);
+  batch_control_write(batch);
+  const int ret = hc_schedule(hc, batch);
+  if (ret != EOK) {
+    batch_dispose(batch);
+    return ret;
+  }
+  return EOK;
 }
-
+/*----------------------------------------------------------------------------*/
 /** Schedule control read transfer.
  *
  * The callback is supposed to be called once the transfer (on the wire) is
@@ -312,17 +419,33 @@ static int control_write(ddf_fun_t *fun, usb_target_t target,
  */
 static int control_read(ddf_fun_t *fun, usb_target_t target,
     size_t max_packet_size,
-    void *setup_packet, size_t setup_packet_size,
-    void *data_buffer, size_t data_buffer_size,
+    void *setup_data, size_t setup_size,
+    void *data, size_t size,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
-	UNSUPPORTED("control_read");
+  assert(fun);
+  hc_t *hc = fun_to_hc(fun);
+  assert(hc);
+  usb_speed_t speed = usb_device_keeper_get_speed(&hc->manager, target.address);
 
-	return ENOTSUP;
+  usb_log_debug("Control READ(%d) %d:%d %zu(%zu).\n",
+      speed, target.address, target.endpoint, size, max_packet_size);
+  usb_transfer_batch_t *batch = batch_get(fun, target, USB_TRANSFER_CONTROL,
+      max_packet_size, speed, data, size, setup_data, setup_size, callback,
+      NULL, arg, &hc->manager);
+  if (!batch)
+    return ENOMEM;
+  batch_control_read(batch);
+  const int ret = hc_schedule(hc, batch);
+  if (ret != EOK) {
+    batch_dispose(batch);
+    return ret;
+  }
+  return EOK;
 }
-
-/** Host controller interface implementation for EHCI. */
-usbhc_iface_t ohci_hc_iface = {
+/*----------------------------------------------------------------------------*/
+/** Host controller interface implementation for OHCI. */
+usbhc_iface_t hc_iface = {
 	.reserve_default_address = reserve_default_address,
 	.release_default_address = release_default_address,
 	.request_address = request_address,

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,31 +26,70 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbohci
+/** @addtogroup drvusbfallback
  * @{
  */
-/** @file
- * @brief OHCI driver
+/**
+ * @file
+ * Main routines of USB fallback driver.
  */
-#ifndef DRV_OHCI_OHCI_RH_H
-#define DRV_OHCI_OHCI_RH_H
+#include <usb/devdrv.h>
+#include <usb/debug.h>
+#include <errno.h>
+#include <str_error.h>
 
-#include <usb/usb.h>
+#define NAME "usbflbk"
 
-#include "ohci_regs.h"
-#include "batch.h"
+/** Callback when new device is attached and recognized by DDF.
+ *
+ * @param dev Representation of a generic DDF device.
+ * @return Error code.
+ */
+static int usbfallback_add_device(usb_device_t *dev)
+{
+	int rc;
+	const char *fun_name = "ctl";
 
-typedef struct ohci_rh {
-	ohci_regs_t *registers;
-	usb_address_t address;
-} ohci_rh_t;
+	ddf_fun_t *ctl_fun = ddf_fun_create(dev->ddf_dev, fun_exposed,
+	    fun_name);
+	if (ctl_fun == NULL) {
+		usb_log_error("Failed to create control function.\n");
+		return ENOMEM;
+	}
+	rc = ddf_fun_bind(ctl_fun);
+	if (rc != EOK) {
+		usb_log_error("Failed to bind control function: %s.\n",
+		    str_error(rc));
+		return rc;
+	}
 
-int ohci_rh_init(ohci_rh_t *instance, ohci_regs_t *regs);
+	usb_log_info("Pretending to control %s `%s'" \
+	    " (node `%s', handle %llu).\n",
+	    dev->interface_no < 0 ? "device" : "interface",
+	    dev->ddf_dev->name, fun_name, dev->ddf_dev->handle);
 
-void ohci_rh_request(ohci_rh_t *instance, batch_t *request);
+	return EOK;
+}
 
-void ohci_rh_interrupt(ohci_rh_t *instance);
-#endif
+/** USB fallback driver ops. */
+static usb_driver_ops_t usbfallback_driver_ops = {
+	.add_device = usbfallback_add_device,
+};
+
+/** USB fallback driver. */
+static usb_driver_t usbfallback_driver = {
+	.name = NAME,
+	.ops = &usbfallback_driver_ops,
+	.endpoints = NULL
+};
+
+int main(int argc, char *argv[])
+{
+	usb_log_enable(USB_LOG_LEVEL_DEBUG, NAME);
+
+	return usb_driver_main(&usbfallback_driver);
+}
+
 /**
  * @}
  */

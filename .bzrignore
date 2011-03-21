@@ -87,6 +87,7 @@ _link.ld
 ./uspace/drv/ehci-hcd/ehci-hcd
 ./uspace/drv/uhci-hcd/uhci-hcd
 ./uspace/drv/uhci-rhd/uhci-rhd
+./uspace/drv/usbflbk/usbflbk
 ./uspace/drv/usbhub/usbhub
 ./uspace/drv/usbhid/usbhid
 ./uspace/drv/usbmid/usbmid

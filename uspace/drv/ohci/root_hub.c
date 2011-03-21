@@ -29,7 +29,7 @@
  * @{
  */
 /** @file
- * @brief UHCI driver
+ * @brief OHCI driver
  */
 #include <assert.h>
 #include <errno.h>
@@ -37,16 +37,17 @@
 
 #include <usb/debug.h>
 
-#include "ohci_rh.h"
+#include "root_hub.h"
 
 /** Root hub initialization
  * @return Error code.
  */
-int ohci_rh_init(ohci_rh_t *instance, ohci_regs_t *regs)
+int rh_init(rh_t *instance, ddf_dev_t *dev, ohci_regs_t *regs)
 {
 	assert(instance);
-	instance->address = 0;
+	instance->address = -1;
 	instance->registers = regs;
+	instance->device = dev;
 
 	usb_log_info("OHCI root hub with %d ports.\n", regs->rh_desc_a & 0xff);
 
@@ -54,14 +55,23 @@ int ohci_rh_init(ohci_rh_t *instance, ohci_regs_t *regs)
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-void ohci_rh_request(ohci_rh_t *instance, batch_t *request)
+int rh_request(rh_t *instance, usb_transfer_batch_t *request)
 {
+	assert(instance);
+	assert(request);
 	/* TODO: implement */
+	if (request->setup_buffer) {
+		usb_log_info("Root hub got SETUP packet: %s.\n",
+		    usb_debug_str_buffer((const uint8_t *)request->setup_buffer, 8, 8));
+	}
+	usb_log_error("Root hub request processing not implemented.\n");
+	usb_transfer_batch_finish(request, ENOTSUP);
+	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-void ohci_rh_interrupt(ohci_rh_t *instance)
+void rh_interrupt(rh_t *instance)
 {
-	usb_log_info("Interrupt!!.\n");
+	usb_log_error("Root hub interrupt not implemented.\n");
 	/* TODO: implement */
 }
 /**

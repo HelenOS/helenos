@@ -273,4 +273,14 @@
 	 * @brief Driver for EHCI host controller.
 	 */
 
+	/**
+	 * @defgroup drvusbfallback USB fallback driver.
+	 * @ingroup usb
+	 * @brief Fallback driver for any USB device.
+	 * @details
+	 * The purpose of this driver is to simplify querying of unknown
+	 * devices from within HelenOS (without a driver, no node at all
+	 * may appear under /dev/devices).
+	 */
+
 

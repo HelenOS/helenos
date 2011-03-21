@@ -46,6 +46,7 @@ RD_DRVS += \
 	ohci \
 	uhci-hcd \
 	uhci-rhd \
+	usbflbk \
 	usbhub \
 	usbhid \
 	usbmid \

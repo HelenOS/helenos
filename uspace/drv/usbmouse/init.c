@@ -125,7 +125,7 @@ int usb_mouse_create(usb_device_t *dev)
 	}
 	
 	/* Open the control pipe. */
-	rc = usb_endpoint_pipe_start_session(&dev->ctrl_pipe);
+	rc = usb_pipe_start_session(&dev->ctrl_pipe);
 	if (rc != EOK) {
 		goto leave;
 	}
@@ -140,7 +140,7 @@ int usb_mouse_create(usb_device_t *dev)
 	}
 	
 	/* Close the control pipe (ignore errors). */
-	usb_endpoint_pipe_end_session(&dev->ctrl_pipe);
+	usb_pipe_end_session(&dev->ctrl_pipe);
 
 
 	/* Everything allright. */

@@ -25,63 +25,33 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup drvusbohcihc
+
+/** @addtogroup drvusbohci
  * @{
  */
 /** @file
- * @brief OHCI Host controller driver routines
+ * @brief OHCI driver
  */
-#include <errno.h>
-#include <str_error.h>
-#include <adt/list.h>
-#include <libarch/ddi.h>
+#ifndef DRV_OHCI_ROOT_HUB_H
+#define DRV_OHCI_ROOT_HUB_H
 
-#include <usb/debug.h>
 #include <usb/usb.h>
-#include <usb/ddfiface.h>
-#include <usb_iface.h>
 
-#include "ohci_hc.h"
+#include "ohci_regs.h"
+#include "batch.h"
 
-int ohci_hc_init(ohci_hc_t *instance, ddf_fun_t *fun,
-    uintptr_t regs, size_t reg_size, bool interrupts)
-{
-	assert(instance);
-	int ret = pio_enable((void*)regs, reg_size, (void**)&instance->registers);
-	if (ret != EOK) {
-		usb_log_error("Failed to gain access to device registers.\n");
-		return ret;
-	}
-	instance->registers->interrupt_disable = 0;
-	/* enable interrupt on root hub status change */
-	instance->registers->interupt_enable |= IE_RHSC | IE_MIE;
+typedef struct rh {
+	ohci_regs_t *registers;
+	usb_address_t address;
+	ddf_dev_t *device;
+} rh_t;
 
+int rh_init(rh_t *instance, ddf_dev_t *dev, ohci_regs_t *regs);
 
-	ohci_rh_init(&instance->rh, instance->registers);
-	/* TODO: implement */
-	/* TODO: register root hub */
-	return EOK;
-}
-/*----------------------------------------------------------------------------*/
-int ohci_hc_schedule(ohci_hc_t *instance, batch_t *batch)
-{
-	assert(instance);
-	assert(batch);
-	if (batch->target.address == instance->rh.address) {
-		ohci_rh_request(&instance->rh, batch);
-		return EOK;
-	}
-	/* TODO: implement */
-	return EOK;
-}
-/*----------------------------------------------------------------------------*/
-void ohci_hc_interrupt(ohci_hc_t *instance, uint16_t status)
-{
-	assert(instance);
-	/* TODO: Check for interrupt cause */
-	ohci_rh_interrupt(&instance->rh);
-	/* TODO: implement */
-}
+int rh_request(rh_t *instance, usb_transfer_batch_t *request);
+
+void rh_interrupt(rh_t *instance);
+#endif
 /**
  * @}
  */

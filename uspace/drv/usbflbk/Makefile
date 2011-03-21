@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2011 Jan Vesely
+# Copyright (c) 2011 Vojtech Horky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,15 +28,10 @@
 
 USPACE_PREFIX = ../..
 LIBS = $(LIBDRV_PREFIX)/libdrv.a $(LIBUSB_PREFIX)/libusb.a
-EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include -I$(LIBUSB_PREFIX)/include -I.
-BINARY = ohci
+EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include -I$(LIBUSB_PREFIX)/include
+BINARY = usbflbk
 
 SOURCES = \
-	iface.c \
-	batch.c \
-	main.c \
-	hc.c \
-	root_hub.c \
-	pci.c
+	main.c
 
 include $(USPACE_PREFIX)/Makefile.common

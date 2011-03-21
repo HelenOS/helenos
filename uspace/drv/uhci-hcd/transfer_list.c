@@ -37,7 +37,7 @@
 #include "transfer_list.h"
 
 static void transfer_list_remove_batch(
-    transfer_list_t *instance, batch_t *batch);
+    transfer_list_t *instance, usb_transfer_batch_t *batch);
 /*----------------------------------------------------------------------------*/
 /** Initialize transfer list structures.
  *
@@ -91,18 +91,18 @@ void transfer_list_set_next(transfer_list_t *instance, transfer_list_t *next)
  *
  * The batch is added to the end of the list and queue.
  */
-void transfer_list_add_batch(transfer_list_t *instance, batch_t *batch)
+void transfer_list_add_batch(transfer_list_t *instance, usb_transfer_batch_t *batch)
 {
 	assert(instance);
 	assert(batch);
 	usb_log_debug2("Queue %s: Adding batch(%p).\n", instance->name, batch);
 
-	const uint32_t pa = addr_to_phys(batch->qh);
+	const uint32_t pa = addr_to_phys(batch_qh(batch));
 	assert((pa & LINK_POINTER_ADDRESS_MASK) == pa);
 
 	/* New batch will be added to the end of the current list
 	 * so set the link accordingly */
-	qh_set_next_qh(batch->qh, instance->queue_head->next);
+	qh_set_next_qh(batch_qh(batch), instance->queue_head->next);
 
 	fibril_mutex_lock(&instance->guard);
 
@@ -114,15 +114,15 @@ void transfer_list_add_batch(transfer_list_t *instance, batch_t *batch)
 		qh_set_element_qh(qh, pa);
 	} else {
 		/* There is something scheduled */
-		batch_t *last = list_get_instance(
-		    instance->batch_list.prev, batch_t, link);
-		qh_set_next_qh(last->qh, pa);
+		usb_transfer_batch_t *last = list_get_instance(
+		    instance->batch_list.prev, usb_transfer_batch_t, link);
+		qh_set_next_qh(batch_qh(last), pa);
 	}
 	/* Add to the driver list */
 	list_append(&batch->link, &instance->batch_list);
 
-	batch_t *first = list_get_instance(
-	    instance->batch_list.next, batch_t, link);
+	usb_transfer_batch_t *first = list_get_instance(
+	    instance->batch_list.next, usb_transfer_batch_t, link);
 	usb_log_debug("Batch(%p) added to queue %s, first is %p.\n",
 		batch, instance->name, first);
 	fibril_mutex_unlock(&instance->guard);
@@ -147,7 +147,7 @@ void transfer_list_remove_finished(transfer_list_t *instance)
 	link_t *current = instance->batch_list.next;
 	while (current != &instance->batch_list) {
 		link_t *next = current->next;
-		batch_t *batch = list_get_instance(current, batch_t, link);
+		usb_transfer_batch_t *batch = list_get_instance(current, usb_transfer_batch_t, link);
 
 		if (batch_is_complete(batch)) {
 			/* Save for post-processing */
@@ -161,7 +161,7 @@ void transfer_list_remove_finished(transfer_list_t *instance)
 	while (!list_empty(&done)) {
 		link_t *item = done.next;
 		list_remove(item);
-		batch_t *batch = list_get_instance(item, batch_t, link);
+		usb_transfer_batch_t *batch = list_get_instance(item, usb_transfer_batch_t, link);
 		batch->next_step(batch);
 	}
 }
@@ -175,9 +175,9 @@ void transfer_list_abort_all(transfer_list_t *instance)
 	fibril_mutex_lock(&instance->guard);
 	while (list_empty(&instance->batch_list)) {
 		link_t *current = instance->batch_list.next;
-		batch_t *batch = list_get_instance(current, batch_t, link);
+		usb_transfer_batch_t *batch = list_get_instance(current, usb_transfer_batch_t, link);
 		transfer_list_remove_batch(instance, batch);
-		batch_abort(batch);
+		usb_transfer_batch_finish(batch, EIO);
 	}
 	fibril_mutex_unlock(&instance->guard);
 }
@@ -190,12 +190,12 @@ void transfer_list_abort_all(transfer_list_t *instance)
  *
  * Does not lock the transfer list, caller is responsible for that.
  */
-void transfer_list_remove_batch(transfer_list_t *instance, batch_t *batch)
+void transfer_list_remove_batch(transfer_list_t *instance, usb_transfer_batch_t *batch)
 {
 	assert(instance);
-	assert(batch);
 	assert(instance->queue_head);
-	assert(batch->qh);
+	assert(batch);
+	assert(batch_qh(batch));
 	usb_log_debug2(
 	    "Queue %s: removing batch(%p).\n", instance->name, batch);
 
@@ -203,18 +203,18 @@ void transfer_list_remove_batch(transfer_list_t *instance, batch_t *batch)
 	/* Remove from the hardware queue */
 	if (batch->link.prev == &instance->batch_list) {
 		/* I'm the first one here */
-		qh_set_element_qh(instance->queue_head, batch->qh->next);
+		qh_set_element_qh(instance->queue_head, batch_qh(batch)->next);
 		pos = "FIRST";
 	} else {
-		batch_t *prev =
-		    list_get_instance(batch->link.prev, batch_t, link);
-		qh_set_next_qh(prev->qh, batch->qh->next);
+		usb_transfer_batch_t *prev =
+		    list_get_instance(batch->link.prev, usb_transfer_batch_t, link);
+		qh_set_next_qh(batch_qh(prev), batch_qh(batch)->next);
 		pos = "NOT FIRST";
 	}
 	/* Remove from the driver list */
 	list_remove(&batch->link);
 	usb_log_debug("Batch(%p) removed (%s) from %s, next element %x.\n",
-	    batch, pos, instance->name, batch->qh->next);
+	    batch, pos, instance->name, batch_qh(batch)->next);
 }
 /**
  * @}

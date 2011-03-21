@@ -25,55 +25,71 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-/** @addtogroup drvusbohcihc
+/** @addtogroup libusb
  * @{
  */
 /** @file
- * @brief OHCI host controller driver structure
+ * USB transfer transaction structures.
  */
-#ifndef DRV_OHCI_OHCI_HC_H
-#define DRV_OHCI_OHCI_HC_H
+#ifndef LIBUSB_HOST_BATCH_H
+#define LIBUSB_HOST_BATCH_H
 
-#include <fibril.h>
-#include <fibril_synch.h>
 #include <adt/list.h>
-#include <ddi.h>
 
-#include <usb/usb.h>
 #include <usbhc_iface.h>
+#include <usb/usb.h>
 
-#include "batch.h"
-#include "ohci_regs.h"
-#include "ohci_rh.h"
+typedef struct usb_transfer_batch usb_transfer_batch_t;
+struct usb_transfer_batch {
+	link_t link;
+	usb_target_t target;
+	usb_transfer_type_t transfer_type;
+	usb_speed_t speed;
+	usb_direction_t direction;
+	usbhc_iface_transfer_in_callback_t callback_in;
+	usbhc_iface_transfer_out_callback_t callback_out;
+	char *buffer;
+	char *transport_buffer;
+	size_t buffer_size;
+	char *setup_buffer;
+	size_t setup_size;
+	size_t max_packet_size;
+	size_t transfered_size;
+	void (*next_step)(usb_transfer_batch_t *);
+	int error;
+	ddf_fun_t *fun;
+	void *arg;
+	void *private_data;
+};
 
-typedef struct ohci_hc {
-	ohci_regs_t *registers;
-	usb_address_t rh_address;
-	ohci_rh_t rh;
-	ddf_fun_t *ddf_instance;
-} ohci_hc_t;
+void usb_transfer_batch_init(
+    usb_transfer_batch_t *instance,
+    usb_target_t target,
+    usb_transfer_type_t transfer_type,
+    usb_speed_t speed,
+    size_t max_packet_size,
+    char *buffer,
+    char *transport_buffer,
+    size_t buffer_size,
+    char *setup_buffer,
+    size_t setup_size,
+    usbhc_iface_transfer_in_callback_t func_in,
+    usbhc_iface_transfer_out_callback_t func_out,
+    void *arg,
+    ddf_fun_t *fun,
+    void *private_data
+);
 
-int ohci_hc_init(ohci_hc_t *instance, ddf_fun_t *fun,
-     uintptr_t regs, size_t reg_size, bool interrupts);
+static inline usb_transfer_batch_t *usb_transfer_batch_from_link(link_t *l)
+{
+	assert(l);
+	return list_get_instance(l, usb_transfer_batch_t, link);
+}
 
-int ohci_hc_schedule(ohci_hc_t *instance, batch_t *batch);
+void usb_transfer_batch_call_in(usb_transfer_batch_t *instance);
+void usb_transfer_batch_call_out(usb_transfer_batch_t *instance);
+void usb_transfer_batch_finish(usb_transfer_batch_t *instance, int error);
 
-void ohci_hc_interrupt(ohci_hc_t *instance, uint16_t status);
-
-/** Safely dispose host controller internal structures
- *
- * @param[in] instance Host controller structure to use.
- */
-static inline void ohci_hc_fini(ohci_hc_t *instance) { /* TODO: implement*/ };
-
-/** Get and cast pointer to the driver data
- *
- * @param[in] fun DDF function pointer
- * @return cast pointer to driver_data
- */
-static inline ohci_hc_t * fun_to_ohci_hc(ddf_fun_t *fun)
-	{ return (ohci_hc_t*)fun->driver_data; }
 #endif
 /**
  * @}

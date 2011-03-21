@@ -107,7 +107,7 @@ usbmid_device_t *usbmid_device_create(ddf_dev_t *dev)
 		return NULL;
 	}
 
-	rc = usb_endpoint_pipe_initialize_default_control(&mid->ctrl_pipe,
+	rc = usb_pipe_initialize_default_control(&mid->ctrl_pipe,
 	    &mid->wire);
 	if (rc != EOK) {
 		usb_log_error("Failed to initialize control pipe: %s.\n",
@@ -115,7 +115,7 @@ usbmid_device_t *usbmid_device_create(ddf_dev_t *dev)
 		free(mid);
 		return NULL;
 	}
-	rc = usb_endpoint_pipe_probe_default_control(&mid->ctrl_pipe);
+	rc = usb_pipe_probe_default_control(&mid->ctrl_pipe);
 	if (rc != EOK) {
 		usb_log_error("Probing default control pipe failed: %s.\n",
 		    str_error(rc));

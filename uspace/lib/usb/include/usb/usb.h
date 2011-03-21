@@ -60,6 +60,7 @@ typedef enum {
 } usb_transfer_type_t;
 
 const char * usb_str_transfer_type(usb_transfer_type_t t);
+const char * usb_str_transfer_type_short(usb_transfer_type_t t);
 
 /** USB data transfer direction. */
 typedef enum {
@@ -77,6 +78,9 @@ typedef enum {
 	/** USB 2.0 high speed (480Mbits/s). */
 	USB_SPEED_HIGH
 } usb_speed_t;
+
+const char *usb_str_speed(usb_speed_t);
+
 
 /** USB request type target. */
 typedef enum {

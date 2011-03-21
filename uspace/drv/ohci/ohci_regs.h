@@ -42,6 +42,14 @@ typedef struct ohci_regs
 	volatile uint32_t control;
 	volatile uint32_t command_status;
 	volatile uint32_t interrupt_status;
+#define IS_SO (1 << 0)
+#define IS_WDH (1 << 1)
+#define IS_SF (1 << 2)
+#define IS_RD (1 << 3)
+#define IS_UE (1 << 4)
+#define IS_FNO (1 << 5)
+#define IS_RHSC (1 << 6)
+#define IS_OC (1 << 30)
 	volatile uint32_t interupt_enable;
 #define IE_SO   (1 << 0)
 #define IE_WDH  (1 << 1)
