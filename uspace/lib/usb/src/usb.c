@@ -35,32 +35,52 @@
 #include <usb/usb.h>
 #include <errno.h>
 
+#define ARR_SIZE(arr) (sizeof(arr)/sizeof(arr[0]))
+
 static const char *str_speed[] = {
 	"low",
 	"full",
 	"high"
 };
-static size_t str_speed_size = sizeof(str_speed)/sizeof(str_speed[0]);
+
+static const char *str_transfer_type[] = {
+	"control",
+	"isochronous",
+	"bulk",
+	"interrupt"
+};
+
+static const char *str_transfer_type_short[] = {
+	"ctrl",
+	"iso",
+	"bulk",
+	"intr"
+};
 
 /** String representation for USB transfer type.
  *
  * @param t Transfer type.
  * @return Transfer type as a string (in English).
  */
-const char * usb_str_transfer_type(usb_transfer_type_t t)
+const char *usb_str_transfer_type(usb_transfer_type_t t)
 {
-	switch (t) {
-		case USB_TRANSFER_ISOCHRONOUS:
-			return "isochronous";
-		case USB_TRANSFER_INTERRUPT:
-			return "interrupt";
-		case USB_TRANSFER_CONTROL:
-			return "control";
-		case USB_TRANSFER_BULK:
-			return "bulk";
-		default:
-			return "unknown";
+	if (t >= ARR_SIZE(str_transfer_type)) {
+		return "invalid";
 	}
+	return str_transfer_type[t];
+}
+
+/** String representation for USB transfer type (short version).
+ *
+ * @param t Transfer type.
+ * @return Transfer type as a short string for debugging messages.
+ */
+const char *usb_str_transfer_type_short(usb_transfer_type_t t)
+{
+	if (t >= ARR_SIZE(str_transfer_type_short)) {
+		return "invl";
+	}
+	return str_transfer_type_short[t];
 }
 
 /** String representation of USB speed.
@@ -70,7 +90,7 @@ const char * usb_str_transfer_type(usb_transfer_type_t t)
  */
 const char *usb_str_speed(usb_speed_t s)
 {
-	if (s >= str_speed_size) {
+	if (s >= ARR_SIZE(str_speed)) {
 		return "invalid";
 	}
 	return str_speed[s];

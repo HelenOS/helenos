@@ -60,6 +60,7 @@ typedef enum {
 } usb_transfer_type_t;
 
 const char * usb_str_transfer_type(usb_transfer_type_t t);
+const char * usb_str_transfer_type_short(usb_transfer_type_t t);
 
 /** USB data transfer direction. */
 typedef enum {
