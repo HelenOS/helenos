@@ -60,8 +60,8 @@ static int get_address(
     ddf_fun_t *fun, devman_handle_t handle, usb_address_t *address)
 {
 	assert(fun);
-	device_keeper_t *manager = &fun_to_hc(fun)->manager;
-  usb_address_t addr = device_keeper_find(manager, handle);
+	usb_device_keeper_t *manager = &fun_to_hc(fun)->manager;
+  usb_address_t addr = usb_device_keeper_find(manager, handle);
   if (addr < 0) {
     return addr;
   }

@@ -57,7 +57,7 @@ batch_t * batch_get(
     usbhc_iface_transfer_in_callback_t func_in,
     usbhc_iface_transfer_out_callback_t func_out,
 		void *arg,
-		device_keeper_t *manager
+		usb_device_keeper_t *manager
 		)
 {
 #define CHECK_NULL_DISPOSE_RETURN(ptr, message...) \

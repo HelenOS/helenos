@@ -49,7 +49,7 @@ typedef struct uhci_batch {
 	qh_t *qh;
 	td_t *tds;
 	size_t packets;
-	device_keeper_t *manager;
+	usb_device_keeper_t *manager;
 } uhci_batch_t;
 
 static void batch_control(batch_t *instance,
@@ -87,7 +87,7 @@ batch_t * batch_get(ddf_fun_t *fun, usb_target_t target,
     char* setup_buffer, size_t setup_size,
     usbhc_iface_transfer_in_callback_t func_in,
     usbhc_iface_transfer_out_callback_t func_out, void *arg,
-    device_keeper_t *manager
+    usb_device_keeper_t *manager
     )
 {
 	assert(func_in == NULL || func_out == NULL);
@@ -181,7 +181,7 @@ bool batch_is_complete(batch_t *instance)
 			    instance, i, data->tds[i].status);
 			td_print_status(&data->tds[i]);
 
-			device_keeper_set_toggle(data->manager,
+			usb_device_keeper_set_toggle(data->manager,
 			    instance->target, instance->direction,
 			    td_toggle(&data->tds[i]));
 			if (i > 0)
@@ -310,7 +310,7 @@ void batch_data(batch_t *instance, usb_packet_id pid)
 	assert(data);
 
 	const bool low_speed = instance->speed == USB_SPEED_LOW;
-	int toggle = device_keeper_get_toggle(
+	int toggle = usb_device_keeper_get_toggle(
 	    data->manager, instance->target, instance->direction);
 	assert(toggle == 0 || toggle == 1);
 
@@ -342,7 +342,7 @@ void batch_data(batch_t *instance, usb_packet_id pid)
 		++packet;
 	}
 	td_set_ioc(&data->tds[packet - 1]);
-	device_keeper_set_toggle(data->manager, instance->target,
+	usb_device_keeper_set_toggle(data->manager, instance->target,
 	    instance->direction, toggle);
 }
 /*----------------------------------------------------------------------------*/

@@ -233,7 +233,7 @@ int uhci_hc_init_mem_structures(uhci_hc_t *instance)
 	}
 
 	/* Init device keeper*/
-	device_keeper_init(&instance->device_manager);
+	usb_device_keeper_init(&instance->device_manager);
 	usb_log_debug("Initialized device manager.\n");
 
 	return EOK;

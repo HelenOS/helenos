@@ -64,7 +64,7 @@ int hc_init(hc_t *instance, ddf_fun_t *fun, ddf_dev_t *dev,
 		return ret;
 	}
 	instance->ddf_instance = fun;
-	device_keeper_init(&instance->manager);
+	usb_device_keeper_init(&instance->manager);
 
 
 	rh_init(&instance->rh, dev, instance->registers);

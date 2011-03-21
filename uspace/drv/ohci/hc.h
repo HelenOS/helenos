@@ -52,7 +52,7 @@ typedef struct hc {
 	usb_address_t rh_address;
 	rh_t rh;
 	ddf_fun_t *ddf_instance;
-	device_keeper_t manager;
+	usb_device_keeper_t manager;
 } hc_t;
 
 int hc_init(hc_t *instance, ddf_fun_t *fun, ddf_dev_t *dev,

@@ -47,43 +47,43 @@ struct usb_device_info {
 	devman_handle_t handle;
 };
 
-typedef struct device_keeper {
+typedef struct {
 	struct usb_device_info devices[USB_ADDRESS_COUNT];
 	fibril_mutex_t guard;
 	fibril_condvar_t default_address_occupied;
 	usb_address_t last_address;
-} device_keeper_t;
+} usb_device_keeper_t;
 
-void device_keeper_init(device_keeper_t *instance);
+void usb_device_keeper_init(usb_device_keeper_t *instance);
 
-void device_keeper_reserve_default(
-    device_keeper_t *instance, usb_speed_t speed);
+void usb_device_keeper_reserve_default_address(
+    usb_device_keeper_t *instance, usb_speed_t speed);
 
-void device_keeper_release_default(device_keeper_t *instance);
+void usb_device_keeper_release_default_address(usb_device_keeper_t *instance);
 
-void device_keeper_reset_if_need(
-    device_keeper_t *instance, usb_target_t target,
+void usb_device_keeper_reset_if_need(
+    usb_device_keeper_t *instance, usb_target_t target,
     const unsigned char *setup_data);
 
-int device_keeper_get_toggle(
-    device_keeper_t *instance, usb_target_t target, usb_direction_t direction);
+int usb_device_keeper_get_toggle(
+    usb_device_keeper_t *instance, usb_target_t target, usb_direction_t direction);
 
-int device_keeper_set_toggle(device_keeper_t *instance,
+int usb_device_keeper_set_toggle(usb_device_keeper_t *instance,
     usb_target_t target, usb_direction_t direction, bool toggle);
 
-usb_address_t device_keeper_request(
-    device_keeper_t *instance, usb_speed_t speed);
+usb_address_t device_keeper_get_free_address(
+    usb_device_keeper_t *instance, usb_speed_t speed);
 
-void device_keeper_bind(
-    device_keeper_t *instance, usb_address_t address, devman_handle_t handle);
+void usb_device_keeper_bind(
+    usb_device_keeper_t *instance, usb_address_t address, devman_handle_t handle);
 
-void device_keeper_release(device_keeper_t *instance, usb_address_t address);
+void usb_device_keeper_release(usb_device_keeper_t *instance, usb_address_t address);
 
-usb_address_t device_keeper_find(
-    device_keeper_t *instance, devman_handle_t handle);
+usb_address_t usb_device_keeper_find(
+    usb_device_keeper_t *instance, devman_handle_t handle);
 
-usb_speed_t device_keeper_speed(
-    device_keeper_t *instance, usb_address_t address);
+usb_speed_t usb_device_keeper_get_speed(
+    usb_device_keeper_t *instance, usb_address_t address);
 #endif
 /**
  * @}
