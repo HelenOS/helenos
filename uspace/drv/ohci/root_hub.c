@@ -45,7 +45,7 @@
 int rh_init(rh_t *instance, ddf_dev_t *dev, ohci_regs_t *regs)
 {
 	assert(instance);
-	instance->address = 0;
+	instance->address = -1;
 	instance->registers = regs;
 	instance->device = dev;
 

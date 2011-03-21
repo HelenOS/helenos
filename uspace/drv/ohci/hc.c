@@ -44,8 +44,11 @@
 
 #include "hc.h"
 
-static int dummy_reset(int foo, void *bar)
+static int dummy_reset(int foo, void *arg)
 {
+	hc_t *hc = (hc_t*)arg;
+	assert(hc);
+	hc->rh.address = 0;
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -94,7 +97,7 @@ int hc_register_hub(hc_t *instance)
 	usb_address_t address;
 	devman_handle_t handle;
 	ret = usb_hc_new_device_wrapper(dev, &conn, USB_SPEED_FULL, dummy_reset,
-	    0, NULL, &address, &handle, NULL, NULL, NULL);
+	    0, instance, &address, &handle, NULL, NULL, NULL);
 	CHECK_RET_RETURN(ret, "Failed to add rh device.\n");
 
 	ret = usb_hc_connection_close(&conn);
