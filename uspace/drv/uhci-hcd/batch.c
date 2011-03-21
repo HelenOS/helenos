@@ -41,14 +41,20 @@
 #include "transfer_list.h"
 #include "uhci_hc.h"
 #include "utils/malloc32.h"
+#include "uhci_struct/transfer_descriptor.h"
 
 #define DEFAULT_ERROR_COUNT 3
+
+typedef struct uhci_batch {
+	qh_t *qh;
+	td_t *tds;
+	size_t packets;
+	device_keeper_t *manager;
+} uhci_batch_t;
 
 static void batch_control(batch_t *instance,
     usb_packet_id data_stage, usb_packet_id status_stage);
 static void batch_data(batch_t *instance, usb_packet_id pid);
-static void batch_call_in(batch_t *instance);
-static void batch_call_out(batch_t *instance);
 static void batch_call_in_and_dispose(batch_t *instance);
 static void batch_call_out_and_dispose(batch_t *instance);
 
@@ -77,7 +83,7 @@ static void batch_call_out_and_dispose(batch_t *instance);
  */
 batch_t * batch_get(ddf_fun_t *fun, usb_target_t target,
     usb_transfer_type_t transfer_type, size_t max_packet_size,
-    usb_speed_t speed, char *buffer, size_t size,
+    usb_speed_t speed, char *buffer, size_t buffer_size,
     char* setup_buffer, size_t setup_size,
     usbhc_iface_transfer_in_callback_t func_in,
     usbhc_iface_transfer_out_callback_t func_out, void *arg,
@@ -99,25 +105,36 @@ batch_t * batch_get(ddf_fun_t *fun, usb_target_t target,
 	batch_t *instance = malloc(sizeof(batch_t));
 	CHECK_NULL_DISPOSE_RETURN(instance,
 	    "Failed to allocate batch instance.\n");
-	bzero(instance, sizeof(batch_t));
+	batch_init(instance, target, transfer_type, speed, max_packet_size,
+	    buffer, NULL, buffer_size, NULL, setup_size, func_in,
+	    func_out, arg, fun, NULL);
 
-	instance->qh = malloc32(sizeof(qh_t));
-	CHECK_NULL_DISPOSE_RETURN(instance->qh,
-	    "Failed to allocate batch queue head.\n");
-	qh_init(instance->qh);
 
-	instance->packets = (size + max_packet_size - 1) / max_packet_size;
+	uhci_batch_t *data = malloc(sizeof(uhci_batch_t));
+	CHECK_NULL_DISPOSE_RETURN(instance,
+	    "Failed to allocate batch instance.\n");
+	bzero(data, sizeof(uhci_batch_t));
+	data->manager = manager;
+	instance->private_data = data;
+
+	data->packets = (buffer_size + max_packet_size - 1) / max_packet_size;
 	if (transfer_type == USB_TRANSFER_CONTROL) {
-		instance->packets += 2;
+		data->packets += 2;
 	}
 
-	instance->tds = malloc32(sizeof(td_t) * instance->packets);
+	data->tds = malloc32(sizeof(td_t) * data->packets);
 	CHECK_NULL_DISPOSE_RETURN(
-	    instance->tds, "Failed to allocate transfer descriptors.\n");
-	bzero(instance->tds, sizeof(td_t) * instance->packets);
+	    data->tds, "Failed to allocate transfer descriptors.\n");
+	bzero(data->tds, sizeof(td_t) * data->packets);
 
-	if (size > 0) {
-		instance->transport_buffer = malloc32(size);
+	data->qh = malloc32(sizeof(qh_t));
+	CHECK_NULL_DISPOSE_RETURN(data->qh,
+	    "Failed to allocate batch queue head.\n");
+	qh_init(data->qh);
+	qh_set_element_td(data->qh, addr_to_phys(data->tds));
+
+	if (buffer_size > 0) {
+		instance->transport_buffer = malloc32(buffer_size);
 		CHECK_NULL_DISPOSE_RETURN(instance->transport_buffer,
 		    "Failed to allocate device accessible buffer.\n");
 	}
@@ -129,39 +146,9 @@ batch_t * batch_get(ddf_fun_t *fun, usb_target_t target,
 		memcpy(instance->setup_buffer, setup_buffer, setup_size);
 	}
 
-
-	link_initialize(&instance->link);
-
-	instance->max_packet_size = max_packet_size;
-	instance->target = target;
-	instance->transfer_type = transfer_type;
-	instance->buffer = buffer;
-	instance->buffer_size = size;
-	instance->setup_size = setup_size;
-	instance->fun = fun;
-	instance->arg = arg;
-	instance->speed = speed;
-	instance->manager = manager;
-	instance->callback_out = func_out;
-	instance->callback_in = func_in;
-
-	qh_set_element_td(instance->qh, addr_to_phys(instance->tds));
-
 	usb_log_debug("Batch(%p) %d:%d memory structures ready.\n",
 	    instance, target.address, target.endpoint);
 	return instance;
-}
-/*----------------------------------------------------------------------------*/
-/** Mark batch as failed and continue with next step.
- *
- * @param[in] instance Batch structure to use.
- *
- */
-void batch_abort(batch_t *instance)
-{
-	assert(instance);
-	instance->error = EIO;
-	instance->next_step(instance);
 }
 /*----------------------------------------------------------------------------*/
 /** Check batch TDs for activity.
@@ -176,30 +163,33 @@ void batch_abort(batch_t *instance)
 bool batch_is_complete(batch_t *instance)
 {
 	assert(instance);
+	uhci_batch_t *data = instance->private_data;
+	assert(data);
+
 	usb_log_debug2("Batch(%p) checking %d packet(s) for completion.\n",
-	    instance, instance->packets);
+	    instance, data->packets);
 	instance->transfered_size = 0;
 	size_t i = 0;
-	for (;i < instance->packets; ++i) {
-		if (td_is_active(&instance->tds[i])) {
+	for (;i < data->packets; ++i) {
+		if (td_is_active(&data->tds[i])) {
 			return false;
 		}
 
-		instance->error = td_status(&instance->tds[i]);
+		instance->error = td_status(&data->tds[i]);
 		if (instance->error != EOK) {
 			usb_log_debug("Batch(%p) found error TD(%d):%x.\n",
-			    instance, i, instance->tds[i].status);
-			td_print_status(&instance->tds[i]);
+			    instance, i, data->tds[i].status);
+			td_print_status(&data->tds[i]);
 
-			device_keeper_set_toggle(instance->manager,
-			    instance->target, td_toggle(&instance->tds[i]));
+			device_keeper_set_toggle(data->manager,
+			    instance->target, td_toggle(&data->tds[i]));
 			if (i > 0)
 				goto substract_ret;
 			return true;
 		}
 
-		instance->transfered_size += td_act_size(&instance->tds[i]);
-		if (td_is_short(&instance->tds[i]))
+		instance->transfered_size += td_act_size(&data->tds[i]);
+		if (td_is_short(&data->tds[i]))
 			goto substract_ret;
 	}
 substract_ret:
@@ -311,15 +301,17 @@ void batch_bulk_out(batch_t *instance)
 void batch_data(batch_t *instance, usb_packet_id pid)
 {
 	assert(instance);
+	uhci_batch_t *data = instance->private_data;
+	assert(data);
+
 	const bool low_speed = instance->speed == USB_SPEED_LOW;
-	int toggle =
-	    device_keeper_get_toggle(instance->manager, instance->target);
+	int toggle = device_keeper_get_toggle(data->manager, instance->target);
 	assert(toggle == 0 || toggle == 1);
 
 	size_t packet = 0;
 	size_t remain_size = instance->buffer_size;
 	while (remain_size > 0) {
-		char *data =
+		char *trans_data =
 		    instance->transport_buffer + instance->buffer_size
 		    - remain_size;
 
@@ -327,15 +319,15 @@ void batch_data(batch_t *instance, usb_packet_id pid)
 		    (instance->max_packet_size > remain_size) ?
 		    remain_size : instance->max_packet_size;
 
-		td_t *next_packet = (packet + 1 < instance->packets)
-		    ? &instance->tds[packet + 1] : NULL;
+		td_t *next_packet = (packet + 1 < data->packets)
+		    ? &data->tds[packet + 1] : NULL;
 
-		assert(packet < instance->packets);
+		assert(packet < data->packets);
 		assert(packet_size <= remain_size);
 
 		td_init(
-		    &instance->tds[packet], DEFAULT_ERROR_COUNT, packet_size,
-		    toggle, false, low_speed, instance->target, pid, data,
+		    &data->tds[packet], DEFAULT_ERROR_COUNT, packet_size,
+		    toggle, false, low_speed, instance->target, pid, trans_data,
 		    next_packet);
 
 
@@ -343,8 +335,8 @@ void batch_data(batch_t *instance, usb_packet_id pid)
 		remain_size -= packet_size;
 		++packet;
 	}
-	td_set_ioc(&instance->tds[packet - 1]);
-	device_keeper_set_toggle(instance->manager, instance->target, toggle);
+	td_set_ioc(&data->tds[packet - 1]);
+	device_keeper_set_toggle(data->manager, instance->target, toggle);
 }
 /*----------------------------------------------------------------------------*/
 /** Prepare generic control transaction
@@ -362,19 +354,23 @@ void batch_control(batch_t *instance,
    usb_packet_id data_stage, usb_packet_id status_stage)
 {
 	assert(instance);
+	uhci_batch_t *data = instance->private_data;
+	assert(data);
+	assert(data->packets >= 2);
 
 	const bool low_speed = instance->speed == USB_SPEED_LOW;
 	int toggle = 0;
 	/* setup stage */
-	td_init(instance->tds, DEFAULT_ERROR_COUNT,
-	    instance->setup_size, toggle, false, low_speed, instance->target,
-	    USB_PID_SETUP, instance->setup_buffer, &instance->tds[1]);
+	td_init(
+	    data->tds, DEFAULT_ERROR_COUNT, instance->setup_size, toggle, false,
+	    low_speed, instance->target, USB_PID_SETUP, instance->setup_buffer,
+	    &data->tds[1]);
 
 	/* data stage */
 	size_t packet = 1;
 	size_t remain_size = instance->buffer_size;
 	while (remain_size > 0) {
-		char *data =
+		char *control_data =
 		    instance->transport_buffer + instance->buffer_size
 		    - remain_size;
 
@@ -385,64 +381,34 @@ void batch_control(batch_t *instance,
 		    remain_size : instance->max_packet_size;
 
 		td_init(
-		    &instance->tds[packet], DEFAULT_ERROR_COUNT, packet_size,
+		    &data->tds[packet], DEFAULT_ERROR_COUNT, packet_size,
 		    toggle, false, low_speed, instance->target, data_stage,
-		    data, &instance->tds[packet + 1]);
+		    control_data, &data->tds[packet + 1]);
 
 		++packet;
-		assert(packet < instance->packets);
+		assert(packet < data->packets);
 		assert(packet_size <= remain_size);
 		remain_size -= packet_size;
 	}
 
 	/* status stage */
-	assert(packet == instance->packets - 1);
-	td_init(&instance->tds[packet], DEFAULT_ERROR_COUNT,
-	    0, 1, false, low_speed, instance->target, status_stage, NULL, NULL);
+	assert(packet == data->packets - 1);
 
-	td_set_ioc(&instance->tds[packet]);
+	td_init(
+	    &data->tds[packet], DEFAULT_ERROR_COUNT, 0, 1, false, low_speed,
+	    instance->target, status_stage, NULL, NULL);
+	td_set_ioc(&data->tds[packet]);
+
 	usb_log_debug2("Control last TD status: %x.\n",
-	    instance->tds[packet].status);
+	    data->tds[packet].status);
 }
 /*----------------------------------------------------------------------------*/
-/** Prepare data, get error status and call callback in.
- *
- * @param[in] instance Batch structure to use.
- * Copies data from transport buffer, and calls callback with appropriate
- * parameters.
- */
-void batch_call_in(batch_t *instance)
+qh_t * batch_qh(batch_t *instance)
 {
 	assert(instance);
-	assert(instance->callback_in);
-
-	/* We are data in, we need data */
-	memcpy(instance->buffer, instance->transport_buffer,
-	    instance->buffer_size);
-
-	int err = instance->error;
-	usb_log_debug("Batch(%p) callback IN(type:%d): %s(%d), %zu.\n",
-	    instance, instance->transfer_type, str_error(err), err,
-	    instance->transfered_size);
-
-	instance->callback_in(
-	    instance->fun, err, instance->transfered_size, instance->arg);
-}
-/*----------------------------------------------------------------------------*/
-/** Get error status and call callback out.
- *
- * @param[in] instance Batch structure to use.
- */
-void batch_call_out(batch_t *instance)
-{
-	assert(instance);
-	assert(instance->callback_out);
-
-	int err = instance->error;
-	usb_log_debug("Batch(%p) callback OUT(type:%d): %s(%d).\n",
-	    instance, instance->transfer_type, str_error(err), err);
-	instance->callback_out(instance->fun,
-	    err, instance->arg);
+	uhci_batch_t *data = instance->private_data;
+	assert(data);
+	return data->qh;
 }
 /*----------------------------------------------------------------------------*/
 /** Helper function calls callback and correctly disposes of batch structure.
@@ -474,12 +440,15 @@ void batch_call_out_and_dispose(batch_t *instance)
 void batch_dispose(batch_t *instance)
 {
 	assert(instance);
+	uhci_batch_t *data = instance->private_data;
+	assert(data);
 	usb_log_debug("Batch(%p) disposing.\n", instance);
 	/* free32 is NULL safe */
-	free32(instance->tds);
-	free32(instance->qh);
+	free32(data->tds);
+	free32(data->qh);
 	free32(instance->setup_buffer);
 	free32(instance->transport_buffer);
+	free(data);
 	free(instance);
 }
 /**

@@ -321,7 +321,7 @@ static int control_read(ddf_fun_t *fun, usb_target_t target,
 	return ENOTSUP;
 }
 
-/** Host controller interface implementation for EHCI. */
+/** Host controller interface implementation for OHCI. */
 usbhc_iface_t ohci_hc_iface = {
 	.reserve_default_address = reserve_default_address,
 	.release_default_address = release_default_address,

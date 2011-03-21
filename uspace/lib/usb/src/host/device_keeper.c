@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbuhcihc
+/** @addtogroup libusb
  * @{
  */
 /** @file
@@ -35,8 +35,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <usb/debug.h>
-
-#include "device_keeper.h"
+#include <usb/host/device_keeper.h>
 
 /*----------------------------------------------------------------------------*/
 /** Initialize device keeper structure.
