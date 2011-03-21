@@ -120,6 +120,8 @@ int uhci_hc_init(uhci_hc_t *instance, ddf_fun_t *fun,
 		instance->cleaner =
 		    fibril_create(uhci_hc_interrupt_emulator, instance);
 		fibril_add_ready(instance->cleaner);
+	} else {
+		/* TODO: enable interrupts here */
 	}
 
 	instance->debug_checker = fibril_create(uhci_hc_debug_checker, instance);
