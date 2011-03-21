@@ -78,6 +78,9 @@ typedef enum {
 	USB_SPEED_HIGH
 } usb_speed_t;
 
+const char *usb_str_speed(usb_speed_t);
+
+
 /** USB request type target. */
 typedef enum {
 	USB_REQUEST_TYPE_STANDARD = 0,

@@ -35,6 +35,12 @@
 #include <usb/usb.h>
 #include <errno.h>
 
+static const char *str_speed[] = {
+	"low",
+	"full",
+	"high"
+};
+static size_t str_speed_size = sizeof(str_speed)/sizeof(str_speed[0]);
 
 /** String representation for USB transfer type.
  *
@@ -55,6 +61,19 @@ const char * usb_str_transfer_type(usb_transfer_type_t t)
 		default:
 			return "unknown";
 	}
+}
+
+/** String representation of USB speed.
+ *
+ * @param s The speed.
+ * @return USB speed as a string (in English).
+ */
+const char *usb_str_speed(usb_speed_t s)
+{
+	if (s >= str_speed_size) {
+		return "invalid";
+	}
+	return str_speed[s];
 }
 
 /**
