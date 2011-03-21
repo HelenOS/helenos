@@ -29,41 +29,55 @@
  * @{
  */
 /** @file
- * @brief OHCI driver
+ * @brief OHCI host controller driver structure
  */
-#include <assert.h>
-#include <errno.h>
-#include <str_error.h>
+#ifndef DRV_OHCI_HC_H
+#define DRV_OHCI_HC_H
 
-#include <usb/debug.h>
+#include <fibril.h>
+#include <fibril_synch.h>
+#include <adt/list.h>
+#include <ddi.h>
 
-#include "ohci_rh.h"
+#include <usb/usb.h>
+#include <usb/host/device_keeper.h>
+#include <usbhc_iface.h>
 
-/** Root hub initialization
- * @return Error code.
+#include "batch.h"
+#include "ohci_regs.h"
+#include "root_hub.h"
+
+typedef struct hc {
+	ohci_regs_t *registers;
+	usb_address_t rh_address;
+	rh_t rh;
+	ddf_fun_t *ddf_instance;
+	device_keeper_t manager;
+} hc_t;
+
+int hc_init(hc_t *instance, ddf_fun_t *fun, ddf_dev_t *dev,
+     uintptr_t regs, size_t reg_size, bool interrupts);
+
+int hc_register_hub(hc_t *instance);
+
+int hc_schedule(hc_t *instance, batch_t *batch);
+
+void hc_interrupt(hc_t *instance, uint16_t status);
+
+/** Safely dispose host controller internal structures
+ *
+ * @param[in] instance Host controller structure to use.
  */
-int ohci_rh_init(ohci_rh_t *instance, ohci_regs_t *regs)
-{
-	assert(instance);
-	instance->address = 0;
-	instance->registers = regs;
+static inline void hc_fini(hc_t *instance) { /* TODO: implement*/ };
 
-	usb_log_info("OHCI root hub with %d ports.\n", regs->rh_desc_a & 0xff);
-
-	/* TODO: implement */
-	return EOK;
-}
-/*----------------------------------------------------------------------------*/
-void ohci_rh_request(ohci_rh_t *instance, batch_t *request)
-{
-	/* TODO: implement */
-}
-/*----------------------------------------------------------------------------*/
-void ohci_rh_interrupt(ohci_rh_t *instance)
-{
-	usb_log_info("Interrupt!!.\n");
-	/* TODO: implement */
-}
+/** Get and cast pointer to the driver data
+ *
+ * @param[in] fun DDF function pointer
+ * @return cast pointer to driver_data
+ */
+static inline hc_t * fun_to_hc(ddf_fun_t *fun)
+	{ return (hc_t*)fun->driver_data; }
+#endif
 /**
  * @}
  */

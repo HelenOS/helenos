@@ -25,56 +25,55 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-/** @addtogroup drvusbohcihc
+/** @addtogroup drvusbohci
  * @{
  */
 /** @file
- * @brief OHCI host controller driver structure
+ * @brief OHCI driver
  */
-#ifndef DRV_OHCI_OHCI_HC_H
-#define DRV_OHCI_OHCI_HC_H
+#include <assert.h>
+#include <errno.h>
+#include <str_error.h>
 
-#include <fibril.h>
-#include <fibril_synch.h>
-#include <adt/list.h>
-#include <ddi.h>
+#include <usb/debug.h>
 
-#include <usb/usb.h>
-#include <usbhc_iface.h>
+#include "root_hub.h"
 
-#include "batch.h"
-#include "ohci_regs.h"
-#include "ohci_rh.h"
-
-typedef struct ohci_hc {
-	ohci_regs_t *registers;
-	usb_address_t rh_address;
-	ohci_rh_t rh;
-	ddf_fun_t *ddf_instance;
-} ohci_hc_t;
-
-int ohci_hc_init(ohci_hc_t *instance, ddf_fun_t *fun,
-     uintptr_t regs, size_t reg_size, bool interrupts);
-
-int ohci_hc_schedule(ohci_hc_t *instance, batch_t *batch);
-
-void ohci_hc_interrupt(ohci_hc_t *instance, uint16_t status);
-
-/** Safely dispose host controller internal structures
- *
- * @param[in] instance Host controller structure to use.
+/** Root hub initialization
+ * @return Error code.
  */
-static inline void ohci_hc_fini(ohci_hc_t *instance) { /* TODO: implement*/ };
+int rh_init(rh_t *instance, ddf_dev_t *dev, ohci_regs_t *regs)
+{
+	assert(instance);
+	instance->address = -1;
+	instance->registers = regs;
+	instance->device = dev;
 
-/** Get and cast pointer to the driver data
- *
- * @param[in] fun DDF function pointer
- * @return cast pointer to driver_data
- */
-static inline ohci_hc_t * fun_to_ohci_hc(ddf_fun_t *fun)
-	{ return (ohci_hc_t*)fun->driver_data; }
-#endif
+	usb_log_info("OHCI root hub with %d ports.\n", regs->rh_desc_a & 0xff);
+
+	/* TODO: implement */
+	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+int rh_request(rh_t *instance, batch_t *request)
+{
+	assert(instance);
+	assert(request);
+	/* TODO: implement */
+	if (request->setup_buffer) {
+		usb_log_info("Root hub got SETUP packet: %s.\n",
+		    usb_debug_str_buffer((const uint8_t *)request->setup_buffer, 8, 8));
+	}
+	usb_log_error("Root hub request processing not implemented.\n");
+	batch_finish(request, ENOTSUP);
+	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+void rh_interrupt(rh_t *instance)
+{
+	usb_log_error("Root hub interrupt not implemented.\n");
+	/* TODO: implement */
+}
 /**
  * @}
  */

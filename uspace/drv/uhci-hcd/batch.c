@@ -182,7 +182,8 @@ bool batch_is_complete(batch_t *instance)
 			td_print_status(&data->tds[i]);
 
 			device_keeper_set_toggle(data->manager,
-			    instance->target, td_toggle(&data->tds[i]));
+			    instance->target, instance->direction,
+			    td_toggle(&data->tds[i]));
 			if (i > 0)
 				goto substract_ret;
 			return true;
@@ -237,6 +238,7 @@ void batch_control_read(batch_t *instance)
 void batch_interrupt_in(batch_t *instance)
 {
 	assert(instance);
+	instance->direction = USB_DIRECTION_IN;
 	batch_data(instance, USB_PID_IN);
 	instance->next_step = batch_call_in_and_dispose;
 	usb_log_debug("Batch(%p) INTERRUPT IN initialized.\n", instance);
@@ -251,6 +253,7 @@ void batch_interrupt_in(batch_t *instance)
 void batch_interrupt_out(batch_t *instance)
 {
 	assert(instance);
+	instance->direction = USB_DIRECTION_OUT;
 	/* We are data out, we are supposed to provide data */
 	memcpy(instance->transport_buffer, instance->buffer,
 	    instance->buffer_size);
@@ -269,6 +272,7 @@ void batch_bulk_in(batch_t *instance)
 {
 	assert(instance);
 	batch_data(instance, USB_PID_IN);
+	instance->direction = USB_DIRECTION_IN;
 	instance->next_step = batch_call_in_and_dispose;
 	usb_log_debug("Batch(%p) BULK IN initialized.\n", instance);
 }
@@ -282,6 +286,7 @@ void batch_bulk_in(batch_t *instance)
 void batch_bulk_out(batch_t *instance)
 {
 	assert(instance);
+	instance->direction = USB_DIRECTION_OUT;
 	/* We are data out, we are supposed to provide data */
 	memcpy(instance->transport_buffer, instance->buffer,
 	    instance->buffer_size);
@@ -305,7 +310,8 @@ void batch_data(batch_t *instance, usb_packet_id pid)
 	assert(data);
 
 	const bool low_speed = instance->speed == USB_SPEED_LOW;
-	int toggle = device_keeper_get_toggle(data->manager, instance->target);
+	int toggle = device_keeper_get_toggle(
+	    data->manager, instance->target, instance->direction);
 	assert(toggle == 0 || toggle == 1);
 
 	size_t packet = 0;
@@ -336,7 +342,8 @@ void batch_data(batch_t *instance, usb_packet_id pid)
 		++packet;
 	}
 	td_set_ioc(&data->tds[packet - 1]);
-	device_keeper_set_toggle(data->manager, instance->target, toggle);
+	device_keeper_set_toggle(data->manager, instance->target,
+	    instance->direction, toggle);
 }
 /*----------------------------------------------------------------------------*/
 /** Prepare generic control transaction
