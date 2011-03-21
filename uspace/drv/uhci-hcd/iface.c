@@ -40,7 +40,6 @@
 
 #include "iface.h"
 #include "uhci_hc.h"
-#include "utils/device_keeper.h"
 
 /** Reserve default address interface function
  *

@@ -38,10 +38,10 @@
 
 #include <usbhc_iface.h>
 #include <usb/usb.h>
+#include <usb/host/device_keeper.h>
 
 #include "uhci_struct/transfer_descriptor.h"
 #include "uhci_struct/queue_head.h"
-#include "utils/device_keeper.h"
 
 typedef struct batch
 {
