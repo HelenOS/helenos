@@ -235,7 +235,7 @@ int hc_init_mem_structures(hc_t *instance)
 	}
 
 	/* Init device keeper*/
-	usb_device_keeper_init(&instance->device_manager);
+	usb_device_keeper_init(&instance->manager);
 	usb_log_debug("Initialized device manager.\n");
 
 	return EOK;

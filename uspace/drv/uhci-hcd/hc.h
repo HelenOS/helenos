@@ -82,7 +82,7 @@ typedef struct uhci_regs {
 #define UHCI_ALLOWED_HW_FAIL 5
 
 typedef struct hc {
-	usb_device_keeper_t device_manager;
+	usb_device_keeper_t manager;
 
 	regs_t *registers;
 
