@@ -59,6 +59,21 @@ typedef enum {
 	/* USB_HUB_FEATURE_ = , */
 } usb_hub_class_feature_t;
 
+/** Header of standard hub descriptor without the "variadic" part. */
+typedef struct {
+	/** Descriptor length. */
+	uint8_t length;
+	/** Descriptor type (0x29). */
+	uint8_t descriptor_type;
+	/** Number of downstream ports. */
+	uint8_t port_count;
+	/** Characteristics bitmask. */
+	uint16_t characteristics;
+	/** Time from power-on to stabilization of current on the port. */
+	uint8_t power_good_time;
+	/** Maximum current requirements in mA. */
+	uint8_t max_current;
+} __attribute__ ((packed)) usb_hub_descriptor_header_t;
 
 /**
  *	@brief usb hub descriptor
