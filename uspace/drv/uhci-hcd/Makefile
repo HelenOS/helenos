@@ -37,7 +37,7 @@ SOURCES = \
 	transfer_list.c \
 	uhci.c \
 	hc.c \
-	uhci_rh.c \
+	root_hub.c \
 	uhci_struct/transfer_descriptor.c \
 	pci.c \
 	batch.c

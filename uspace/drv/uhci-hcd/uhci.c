@@ -119,7 +119,7 @@ static ddf_dev_ops_t hc_ops = {
 static hw_resource_list_t *get_resource_list(ddf_fun_t *fun)
 {
 	assert(fun);
-	return &((uhci_rh_t*)fun->driver_data)->resource_list;
+	return &((rh_t*)fun->driver_data)->resource_list;
 }
 /*----------------------------------------------------------------------------*/
 static hw_res_ops_t hw_res_iface = {
@@ -127,7 +127,7 @@ static hw_res_ops_t hw_res_iface = {
 	.enable_interrupt = NULL
 };
 /*----------------------------------------------------------------------------*/
-static ddf_dev_ops_t uhci_rh_ops = {
+static ddf_dev_ops_t rh_ops = {
 	.interfaces[USB_DEV_IFACE] = &usb_iface,
 	.interfaces[HW_RES_DEV_IFACE] = &hw_res_iface
 };
@@ -222,12 +222,12 @@ if (ret != EOK) { \
 	CHECK_RET_FINI_RETURN(ret,
 	    "Failed(%d) to create root hub function.\n", ret);
 
-	ret = uhci_rh_init(&instance->rh, instance->rh_fun,
+	ret = rh_init(&instance->rh, instance->rh_fun,
 	    (uintptr_t)instance->hc.registers + 0x10, 4);
 	CHECK_RET_FINI_RETURN(ret,
 	    "Failed(%d) to setup UHCI root hub.\n", ret);
 
-	instance->rh_fun->ops = &uhci_rh_ops;
+	instance->rh_fun->ops = &rh_ops;
 	instance->rh_fun->driver_data = &instance->rh;
 	ret = ddf_fun_bind(instance->rh_fun);
 	CHECK_RET_FINI_RETURN(ret,

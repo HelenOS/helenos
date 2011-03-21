@@ -38,7 +38,7 @@
 
 #include <usb/debug.h>
 
-#include "uhci_rh.h"
+#include "root_hub.h"
 
 /** Root hub initialization
  * @param[in] instance RH structure to initialize
@@ -47,8 +47,8 @@
  * @param[in] reg_size Size of accessible address space.
  * @return Error code.
  */
-int uhci_rh_init(
-    uhci_rh_t *instance, ddf_fun_t *fun, uintptr_t reg_addr, size_t reg_size)
+int rh_init(
+    rh_t *instance, ddf_fun_t *fun, uintptr_t reg_addr, size_t reg_size)
 {
 	assert(fun);
 

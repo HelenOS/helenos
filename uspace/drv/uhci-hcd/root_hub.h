@@ -38,13 +38,13 @@
 #include <ddf/driver.h>
 #include <ops/hw_res.h>
 
-typedef struct uhci_rh {
+typedef struct rh {
 	hw_resource_list_t resource_list;
 	hw_resource_t io_regs;
-} uhci_rh_t;
+} rh_t;
 
-int uhci_rh_init(
-    uhci_rh_t *instance, ddf_fun_t *fun, uintptr_t reg_addr, size_t reg_size);
+int rh_init(
+    rh_t *instance, ddf_fun_t *fun, uintptr_t reg_addr, size_t reg_size);
 
 #endif
 /**
