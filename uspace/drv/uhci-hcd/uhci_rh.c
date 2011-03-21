@@ -39,7 +39,6 @@
 #include <usb/debug.h>
 
 #include "uhci_rh.h"
-#include "uhci_hc.h"
 
 /** Root hub initialization
  * @param[in] instance RH structure to initialize

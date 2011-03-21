@@ -37,14 +37,14 @@
 #include <ddi.h>
 #include <ddf/driver.h>
 
-#include "uhci_hc.h"
+#include "hc.h"
 #include "uhci_rh.h"
 
 typedef struct uhci {
 	ddf_fun_t *hc_fun;
 	ddf_fun_t *rh_fun;
 
-	uhci_hc_t hc;
+	hc_t hc;
 	uhci_rh_t rh;
 } uhci_t;
 

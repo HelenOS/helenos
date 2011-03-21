@@ -39,7 +39,6 @@
 
 #include "batch.h"
 #include "transfer_list.h"
-#include "uhci_hc.h"
 #include "utils/malloc32.h"
 #include "uhci_struct/transfer_descriptor.h"
 

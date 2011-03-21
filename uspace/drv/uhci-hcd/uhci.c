@@ -53,10 +53,10 @@
 static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
 {
 	assert(dev);
-	uhci_hc_t *hc = &((uhci_t*)dev->driver_data)->hc;
+	hc_t *hc = &((uhci_t*)dev->driver_data)->hc;
 	uint16_t status = IPC_GET_ARG1(*call);
 	assert(hc);
-	uhci_hc_interrupt(hc, status);
+	hc_interrupt(hc, status);
 }
 /*----------------------------------------------------------------------------*/
 /** Get address of the device identified by handle.
@@ -106,9 +106,9 @@ static usb_iface_t usb_iface = {
 	.get_address = usb_iface_get_address
 };
 /*----------------------------------------------------------------------------*/
-static ddf_dev_ops_t uhci_hc_ops = {
+static ddf_dev_ops_t hc_ops = {
 	.interfaces[USB_DEV_IFACE] = &usb_iface,
-	.interfaces[USBHC_DEV_IFACE] = &uhci_hc_iface, /* see iface.h/c */
+	.interfaces[USBHC_DEV_IFACE] = &hc_iface, /* see iface.h/c */
 };
 /*----------------------------------------------------------------------------*/
 /** Get root hub hw resources (I/O registers).
@@ -189,10 +189,10 @@ if (ret != EOK) { \
 	CHECK_RET_DEST_FUN_RETURN(ret,
 	    "Failed(%d) to create HC function.\n", ret);
 
-	ret = uhci_hc_init(&instance->hc, instance->hc_fun,
+	ret = hc_init(&instance->hc, instance->hc_fun,
 	    (void*)io_reg_base, io_reg_size, interrupts);
 	CHECK_RET_DEST_FUN_RETURN(ret, "Failed(%d) to init uhci-hcd.\n", ret);
-	instance->hc_fun->ops = &uhci_hc_ops;
+	instance->hc_fun->ops = &hc_ops;
 	instance->hc_fun->driver_data = &instance->hc;
 	ret = ddf_fun_bind(instance->hc_fun);
 	CHECK_RET_DEST_FUN_RETURN(ret,
@@ -207,7 +207,7 @@ if (ret != EOK) { \
 		ddf_fun_destroy(instance->hc_fun); \
 	if (instance->rh_fun) \
 		ddf_fun_destroy(instance->rh_fun); \
-	uhci_hc_fini(&instance->hc); \
+	hc_fini(&instance->hc); \
 	return ret; \
 }
 

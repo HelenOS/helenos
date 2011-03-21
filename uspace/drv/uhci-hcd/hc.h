@@ -81,7 +81,7 @@ typedef struct uhci_regs {
 #define UHCI_DEBUGER_TIMEOUT 5000000
 #define UHCI_ALLOWED_HW_FAIL 5
 
-typedef struct uhci_hc {
+typedef struct hc {
 	usb_device_keeper_t device_manager;
 
 	regs_t *registers;
@@ -103,28 +103,28 @@ typedef struct uhci_hc {
 	unsigned hw_failures;
 
 	ddf_fun_t *ddf_instance;
-} uhci_hc_t;
+} hc_t;
 
-int uhci_hc_init(uhci_hc_t *instance, ddf_fun_t *fun,
+int hc_init(hc_t *instance, ddf_fun_t *fun,
     void *regs, size_t reg_size, bool interupts);
 
-int uhci_hc_schedule(uhci_hc_t *instance, usb_transfer_batch_t *batch);
+int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch);
 
-void uhci_hc_interrupt(uhci_hc_t *instance, uint16_t status);
+void hc_interrupt(hc_t *instance, uint16_t status);
 
 /** Safely dispose host controller internal structures
  *
  * @param[in] instance Host controller structure to use.
  */
-static inline void uhci_hc_fini(uhci_hc_t *instance) { /* TODO: implement*/ };
+static inline void hc_fini(hc_t *instance) { /* TODO: implement*/ };
 
 /** Get and cast pointer to the driver data
  *
  * @param[in] fun DDF function pointer
  * @return cast pointer to driver_data
  */
-static inline uhci_hc_t * fun_to_uhci_hc(ddf_fun_t *fun)
-	{ return (uhci_hc_t*)fun->driver_data; }
+static inline hc_t * fun_to_hc(ddf_fun_t *fun)
+	{ return (hc_t*)fun->driver_data; }
 #endif
 /**
  * @}

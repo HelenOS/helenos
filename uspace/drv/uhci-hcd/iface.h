@@ -37,7 +37,7 @@
 
 #include <usbhc_iface.h>
 
-extern usbhc_iface_t uhci_hc_iface;
+extern usbhc_iface_t hc_iface;
 
 #endif
 /**
