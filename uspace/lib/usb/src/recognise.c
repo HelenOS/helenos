@@ -369,12 +369,12 @@ int usb_device_register_child_in_devman(usb_address_t address,
 		goto failure;
 	}
 
-	rc = usb_endpoint_pipe_initialize_default_control(&ctrl_pipe,
+	rc = usb_pipe_initialize_default_control(&ctrl_pipe,
 	    &dev_connection);
 	if (rc != EOK) {
 		goto failure;
 	}
-	rc = usb_endpoint_pipe_probe_default_control(&ctrl_pipe);
+	rc = usb_pipe_probe_default_control(&ctrl_pipe);
 	if (rc != EOK) {
 		goto failure;
 	}
@@ -403,7 +403,7 @@ int usb_device_register_child_in_devman(usb_address_t address,
 
 	child->driver_data = dev_data;
 
-	rc = usb_endpoint_pipe_start_session(&ctrl_pipe);
+	rc = usb_pipe_start_session(&ctrl_pipe);
 	if (rc != EOK) {
 		goto failure;
 	}
@@ -413,7 +413,7 @@ int usb_device_register_child_in_devman(usb_address_t address,
 		goto failure;
 	}
 
-	rc = usb_endpoint_pipe_end_session(&ctrl_pipe);
+	rc = usb_pipe_end_session(&ctrl_pipe);
 	if (rc != EOK) {
 		goto failure;
 	}

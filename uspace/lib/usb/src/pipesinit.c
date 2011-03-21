@@ -192,7 +192,7 @@ static int process_endpoint(
 		return EEXISTS;
 	}
 
-	int rc = usb_endpoint_pipe_initialize(ep_mapping->pipe, wire,
+	int rc = usb_pipe_initialize(ep_mapping->pipe, wire,
 	    ep_no, description.transfer_type, endpoint->max_packet_size,
 	    description.direction);
 	if (rc != EOK) {
@@ -275,7 +275,7 @@ static int process_interface(
  * @param connection Connection backing the endpoint pipes.
  * @return Error code.
  */
-int usb_endpoint_pipe_initialize_from_configuration(
+int usb_pipe_initialize_from_configuration(
     usb_endpoint_mapping_t *mapping, size_t mapping_count,
     uint8_t *configuration_descriptor, size_t configuration_descriptor_size,
     usb_device_connection_t *connection)
@@ -341,7 +341,7 @@ int usb_endpoint_pipe_initialize_from_configuration(
  * @param direction Endpoint direction (in/out).
  * @return Error code.
  */
-int usb_endpoint_pipe_initialize(usb_pipe_t *pipe,
+int usb_pipe_initialize(usb_pipe_t *pipe,
     usb_device_connection_t *connection, usb_endpoint_t endpoint_no,
     usb_transfer_type_t transfer_type, size_t max_packet_size,
     usb_direction_t direction)
@@ -366,13 +366,13 @@ int usb_endpoint_pipe_initialize(usb_pipe_t *pipe,
  * @param connection Connection to the USB device backing this pipe (the wire).
  * @return Error code.
  */
-int usb_endpoint_pipe_initialize_default_control(usb_pipe_t *pipe,
+int usb_pipe_initialize_default_control(usb_pipe_t *pipe,
     usb_device_connection_t *connection)
 {
 	assert(pipe);
 	assert(connection);
 
-	int rc = usb_endpoint_pipe_initialize(pipe, connection,
+	int rc = usb_pipe_initialize(pipe, connection,
 	    0, USB_TRANSFER_CONTROL, CTRL_PIPE_MIN_PACKET_SIZE,
 	    USB_DIRECTION_BOTH);
 
@@ -389,7 +389,7 @@ int usb_endpoint_pipe_initialize_default_control(usb_pipe_t *pipe,
  * @param pipe Default control pipe.
  * @return Error code.
  */
-int usb_endpoint_pipe_probe_default_control(usb_pipe_t *pipe)
+int usb_pipe_probe_default_control(usb_pipe_t *pipe)
 {
 	assert(pipe);
 	assert(DEV_DESCR_MAX_PACKET_SIZE_OFFSET < CTRL_PIPE_MIN_PACKET_SIZE);
@@ -407,7 +407,7 @@ int usb_endpoint_pipe_probe_default_control(usb_pipe_t *pipe)
 	int rc;
 
 	TRY_LOOP(failed_attempts) {
-		rc = usb_endpoint_pipe_start_session(pipe);
+		rc = usb_pipe_start_session(pipe);
 		if (rc == EOK) {
 			break;
 		}
@@ -432,7 +432,7 @@ int usb_endpoint_pipe_probe_default_control(usb_pipe_t *pipe)
 			break;
 		}
 	}
-	usb_endpoint_pipe_end_session(pipe);
+	usb_pipe_end_session(pipe);
 	if (rc != EOK) {
 		return rc;
 	}
@@ -450,7 +450,7 @@ int usb_endpoint_pipe_probe_default_control(usb_pipe_t *pipe)
  * @param hc_connection Connection to the host controller (must be opened).
  * @return Error code.
  */
-int usb_endpoint_pipe_register(usb_pipe_t *pipe,
+int usb_pipe_register(usb_pipe_t *pipe,
     unsigned int interval,
     usb_hc_connection_t *hc_connection)
 {
@@ -478,7 +478,7 @@ int usb_endpoint_pipe_register(usb_pipe_t *pipe,
  * @param hc_connection Connection to the host controller (must be opened).
  * @return Error code.
  */
-int usb_endpoint_pipe_unregister(usb_pipe_t *pipe,
+int usb_pipe_unregister(usb_pipe_t *pipe,
     usb_hc_connection_t *hc_connection)
 {
 	assert(pipe);

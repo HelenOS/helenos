@@ -41,7 +41,7 @@
 
 /** Generic wrapper for SET requests using standard control request format.
  *
- * @see usb_endpoint_pipe_control_write
+ * @see usb_pipe_control_write
  *
  * @param pipe Pipe used for the communication.
  * @param request_type Request type (standard/class/vendor).
@@ -89,7 +89,7 @@ int usb_control_request_set(usb_pipe_t *pipe,
 	setup_packet.index = index;
 	setup_packet.length = (uint16_t) data_size;
 
-	int rc = usb_endpoint_pipe_control_write(pipe,
+	int rc = usb_pipe_control_write(pipe,
 	    &setup_packet, sizeof(setup_packet),
 	    data, data_size);
 
@@ -98,7 +98,7 @@ int usb_control_request_set(usb_pipe_t *pipe,
 
  /** Generic wrapper for GET requests using standard control request format.
   *
-  * @see usb_endpoint_pipe_control_read
+  * @see usb_pipe_control_read
   *
   * @param pipe Pipe used for the communication.
   * @param request_type Request type (standard/class/vendor).
@@ -149,7 +149,7 @@ int usb_control_request_get(usb_pipe_t *pipe,
 	setup_packet.index = index;
 	setup_packet.length = (uint16_t) data_size;
 
-	int rc = usb_endpoint_pipe_control_read(pipe,
+	int rc = usb_pipe_control_read(pipe,
 	    &setup_packet, sizeof(setup_packet),
 	    data, data_size, actual_data_size);
 

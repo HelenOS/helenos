@@ -779,7 +779,7 @@ static void usbhid_kbd_poll(usbhid_kbd_t *kbd_dev)
 	assert(kbd_dev->hid_dev->initialized);
 
 	while (true) {
-		sess_rc = usb_endpoint_pipe_start_session(
+		sess_rc = usb_pipe_start_session(
 		    &kbd_dev->hid_dev->poll_pipe);
 		if (sess_rc != EOK) {
 			usb_log_warning("Failed to start a session: %s.\n",
@@ -787,10 +787,10 @@ static void usbhid_kbd_poll(usbhid_kbd_t *kbd_dev)
 			break;
 		}
 
-		rc = usb_endpoint_pipe_read(&kbd_dev->hid_dev->poll_pipe, 
+		rc = usb_pipe_read(&kbd_dev->hid_dev->poll_pipe, 
 		    buffer, BOOTP_BUFFER_SIZE, &actual_size);
 		
-		sess_rc = usb_endpoint_pipe_end_session(
+		sess_rc = usb_pipe_end_session(
 		    &kbd_dev->hid_dev->poll_pipe);
 
 		if (rc != EOK) {

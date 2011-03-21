@@ -58,7 +58,7 @@ usbinfo_device_t *prepare_device(devman_handle_t hc_handle,
 		goto leave;
 	}
 
-	rc = usb_endpoint_pipe_initialize_default_control(&dev->ctrl_pipe,
+	rc = usb_pipe_initialize_default_control(&dev->ctrl_pipe,
 	    &dev->wire);
 	if (rc != EOK) {
 		fprintf(stderr,
@@ -67,7 +67,7 @@ usbinfo_device_t *prepare_device(devman_handle_t hc_handle,
 		goto leave;
 	}
 
-	rc = usb_endpoint_pipe_probe_default_control(&dev->ctrl_pipe);
+	rc = usb_pipe_probe_default_control(&dev->ctrl_pipe);
 	if (rc != EOK) {
 		fprintf(stderr,
 		    NAME ": probing default control pipe failed: %s.\n",
@@ -75,7 +75,7 @@ usbinfo_device_t *prepare_device(devman_handle_t hc_handle,
 		goto leave;
 	}
 
-	rc = usb_endpoint_pipe_start_session(&dev->ctrl_pipe);
+	rc = usb_pipe_start_session(&dev->ctrl_pipe);
 	if (rc != EOK) {
 		fprintf(stderr,
 		    NAME ": failed to start session on control pipe: %s.\n",
@@ -106,8 +106,8 @@ usbinfo_device_t *prepare_device(devman_handle_t hc_handle,
 
 
 leave:
-	if (usb_endpoint_pipe_is_session_started(&dev->ctrl_pipe)) {
-		usb_endpoint_pipe_end_session(&dev->ctrl_pipe);
+	if (usb_pipe_is_session_started(&dev->ctrl_pipe)) {
+		usb_pipe_end_session(&dev->ctrl_pipe);
 	}
 
 	free(dev);
@@ -117,7 +117,7 @@ leave:
 
 void destroy_device(usbinfo_device_t *dev)
 {
-	usb_endpoint_pipe_end_session(&dev->ctrl_pipe);
+	usb_pipe_end_session(&dev->ctrl_pipe);
 	free(dev);
 }
 

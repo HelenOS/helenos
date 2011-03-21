@@ -60,7 +60,7 @@ static int usbmid_add_device(ddf_dev_t *gen_dev)
 
 	int rc;
 
-	rc = usb_endpoint_pipe_start_session(&dev->ctrl_pipe);
+	rc = usb_pipe_start_session(&dev->ctrl_pipe);
 	if (rc != EOK) {
 		usb_log_error("Failed to start session on control pipe: %s.\n",
 		    str_error(rc));
@@ -69,7 +69,7 @@ static int usbmid_add_device(ddf_dev_t *gen_dev)
 
 	bool accept = usbmid_explore_device(dev);
 
-	rc = usb_endpoint_pipe_end_session(&dev->ctrl_pipe);
+	rc = usb_pipe_end_session(&dev->ctrl_pipe);
 	if (rc != EOK) {
 		usb_log_warning("Failed to end session on control pipe: %s.\n",
 		    str_error(rc));

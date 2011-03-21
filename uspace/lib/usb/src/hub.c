@@ -228,19 +228,19 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 	}
 
 	usb_pipe_t ctrl_pipe;
-	rc = usb_endpoint_pipe_initialize_default_control(&ctrl_pipe,
+	rc = usb_pipe_initialize_default_control(&ctrl_pipe,
 	    &dev_conn);
 	if (rc != EOK) {
 		rc = ENOTCONN;
 		goto leave_release_default_address;
 	}
-	rc = usb_endpoint_pipe_probe_default_control(&ctrl_pipe);
+	rc = usb_pipe_probe_default_control(&ctrl_pipe);
 	if (rc != EOK) {
 		rc = ENOTCONN;
 		goto leave_release_default_address;
 	}
 
-	rc = usb_endpoint_pipe_start_session(&ctrl_pipe);
+	rc = usb_pipe_start_session(&ctrl_pipe);
 	if (rc != EOK) {
 		rc = ENOTCONN;
 		goto leave_release_default_address;
@@ -252,7 +252,7 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 		goto leave_stop_session;
 	}
 
-	usb_endpoint_pipe_end_session(&ctrl_pipe);
+	usb_pipe_end_session(&ctrl_pipe);
 
 	/*
 	 * Once the address is changed, we can return the default address.
@@ -305,7 +305,7 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 	 */
 
 leave_stop_session:
-	usb_endpoint_pipe_end_session(&ctrl_pipe);
+	usb_pipe_end_session(&ctrl_pipe);
 
 leave_release_default_address:
 	usb_hc_release_default_address(connection);

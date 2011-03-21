@@ -105,7 +105,7 @@ static inline int usb_hub_clear_port_feature(usb_pipe_t *pipe,
 		.index = port_index
 	};
 	clear_request.value = feature;
-	return usb_endpoint_pipe_control_write(pipe, &clear_request,
+	return usb_pipe_control_write(pipe, &clear_request,
 	    sizeof(clear_request), NULL, 0);
 }
 

@@ -56,7 +56,7 @@
  * @retval EOK if successful.
  * @retval EINVAL if no HID device is given.
  * @return Other value inherited from one of functions 
- *         usb_endpoint_pipe_start_session(), usb_endpoint_pipe_end_session(),
+ *         usb_pipe_start_session(), usb_pipe_end_session(),
  *         usb_control_request_set().
  */
 int usbhid_req_set_report(usbhid_dev_t *hid_dev,
@@ -75,7 +75,7 @@ int usbhid_req_set_report(usbhid_dev_t *hid_dev,
 	
 	int rc, sess_rc;
 	
-	sess_rc = usb_endpoint_pipe_start_session(&hid_dev->ctrl_pipe);
+	sess_rc = usb_pipe_start_session(&hid_dev->ctrl_pipe);
 	if (sess_rc != EOK) {
 		usb_log_warning("Failed to start a session: %s.\n",
 		    str_error(sess_rc));
@@ -91,7 +91,7 @@ int usbhid_req_set_report(usbhid_dev_t *hid_dev,
 	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_INTERFACE, 
 	    USB_HIDREQ_SET_REPORT, value, hid_dev->iface, buffer, buf_size);
 
-	sess_rc = usb_endpoint_pipe_end_session(&hid_dev->ctrl_pipe);
+	sess_rc = usb_pipe_end_session(&hid_dev->ctrl_pipe);
 
 	if (rc != EOK) {
 		usb_log_warning("Error sending output report to the keyboard: "
@@ -118,7 +118,7 @@ int usbhid_req_set_report(usbhid_dev_t *hid_dev,
  * @retval EOK if successful.
  * @retval EINVAL if no HID device is given.
  * @return Other value inherited from one of functions 
- *         usb_endpoint_pipe_start_session(), usb_endpoint_pipe_end_session(),
+ *         usb_pipe_start_session(), usb_pipe_end_session(),
  *         usb_control_request_set().
  */
 int usbhid_req_set_protocol(usbhid_dev_t *hid_dev, usb_hid_protocol_t protocol)
@@ -136,7 +136,7 @@ int usbhid_req_set_protocol(usbhid_dev_t *hid_dev, usb_hid_protocol_t protocol)
 	
 	int rc, sess_rc;
 	
-	sess_rc = usb_endpoint_pipe_start_session(&hid_dev->ctrl_pipe);
+	sess_rc = usb_pipe_start_session(&hid_dev->ctrl_pipe);
 	if (sess_rc != EOK) {
 		usb_log_warning("Failed to start a session: %s.\n",
 		    str_error(sess_rc));
@@ -150,7 +150,7 @@ int usbhid_req_set_protocol(usbhid_dev_t *hid_dev, usb_hid_protocol_t protocol)
 	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_INTERFACE, 
 	    USB_HIDREQ_SET_PROTOCOL, protocol, hid_dev->iface, NULL, 0);
 
-	sess_rc = usb_endpoint_pipe_end_session(&hid_dev->ctrl_pipe);
+	sess_rc = usb_pipe_end_session(&hid_dev->ctrl_pipe);
 
 	if (rc != EOK) {
 		usb_log_warning("Error sending output report to the keyboard: "
@@ -178,7 +178,7 @@ int usbhid_req_set_protocol(usbhid_dev_t *hid_dev, usb_hid_protocol_t protocol)
  * @retval EOK if successful.
  * @retval EINVAL if no HID device is given.
  * @return Other value inherited from one of functions 
- *         usb_endpoint_pipe_start_session(), usb_endpoint_pipe_end_session(),
+ *         usb_pipe_start_session(), usb_pipe_end_session(),
  *         usb_control_request_set().
  */
 int usbhid_req_set_idle(usbhid_dev_t *hid_dev, uint8_t duration)
@@ -196,7 +196,7 @@ int usbhid_req_set_idle(usbhid_dev_t *hid_dev, uint8_t duration)
 	
 	int rc, sess_rc;
 	
-	sess_rc = usb_endpoint_pipe_start_session(&hid_dev->ctrl_pipe);
+	sess_rc = usb_pipe_start_session(&hid_dev->ctrl_pipe);
 	if (sess_rc != EOK) {
 		usb_log_warning("Failed to start a session: %s.\n",
 		    str_error(sess_rc));
@@ -212,7 +212,7 @@ int usbhid_req_set_idle(usbhid_dev_t *hid_dev, uint8_t duration)
 	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_INTERFACE, 
 	    USB_HIDREQ_SET_IDLE, value, hid_dev->iface, NULL, 0);
 
-	sess_rc = usb_endpoint_pipe_end_session(&hid_dev->ctrl_pipe);
+	sess_rc = usb_pipe_end_session(&hid_dev->ctrl_pipe);
 
 	if (rc != EOK) {
 		usb_log_warning("Error sending output report to the keyboard: "
@@ -243,7 +243,7 @@ int usbhid_req_set_idle(usbhid_dev_t *hid_dev, uint8_t duration)
  * @retval EOK if successful.
  * @retval EINVAL if no HID device is given.
  * @return Other value inherited from one of functions 
- *         usb_endpoint_pipe_start_session(), usb_endpoint_pipe_end_session(),
+ *         usb_pipe_start_session(), usb_pipe_end_session(),
  *         usb_control_request_set().
  */
 int usbhid_req_get_report(usbhid_dev_t *hid_dev, usb_hid_report_type_t type, 
@@ -262,7 +262,7 @@ int usbhid_req_get_report(usbhid_dev_t *hid_dev, usb_hid_report_type_t type,
 	
 	int rc, sess_rc;
 	
-	sess_rc = usb_endpoint_pipe_start_session(&hid_dev->ctrl_pipe);
+	sess_rc = usb_pipe_start_session(&hid_dev->ctrl_pipe);
 	if (sess_rc != EOK) {
 		usb_log_warning("Failed to start a session: %s.\n",
 		    str_error(sess_rc));
@@ -279,7 +279,7 @@ int usbhid_req_get_report(usbhid_dev_t *hid_dev, usb_hid_report_type_t type,
 	    USB_HIDREQ_GET_REPORT, value, hid_dev->iface, buffer, buf_size,
 	    actual_size);
 
-	sess_rc = usb_endpoint_pipe_end_session(&hid_dev->ctrl_pipe);
+	sess_rc = usb_pipe_end_session(&hid_dev->ctrl_pipe);
 
 	if (rc != EOK) {
 		usb_log_warning("Error sending output report to the keyboard: "
@@ -306,7 +306,7 @@ int usbhid_req_get_report(usbhid_dev_t *hid_dev, usb_hid_report_type_t type,
  * @retval EOK if successful.
  * @retval EINVAL if no HID device is given.
  * @return Other value inherited from one of functions 
- *         usb_endpoint_pipe_start_session(), usb_endpoint_pipe_end_session(),
+ *         usb_pipe_start_session(), usb_pipe_end_session(),
  *         usb_control_request_set().
  */
 int usbhid_req_get_protocol(usbhid_dev_t *hid_dev, usb_hid_protocol_t *protocol)
@@ -324,7 +324,7 @@ int usbhid_req_get_protocol(usbhid_dev_t *hid_dev, usb_hid_protocol_t *protocol)
 	
 	int rc, sess_rc;
 	
-	sess_rc = usb_endpoint_pipe_start_session(&hid_dev->ctrl_pipe);
+	sess_rc = usb_pipe_start_session(&hid_dev->ctrl_pipe);
 	if (sess_rc != EOK) {
 		usb_log_warning("Failed to start a session: %s.\n",
 		    str_error(sess_rc));
@@ -341,7 +341,7 @@ int usbhid_req_get_protocol(usbhid_dev_t *hid_dev, usb_hid_protocol_t *protocol)
 	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_INTERFACE, 
 	    USB_HIDREQ_GET_PROTOCOL, 0, hid_dev->iface, buffer, 1, &actual_size);
 
-	sess_rc = usb_endpoint_pipe_end_session(&hid_dev->ctrl_pipe);
+	sess_rc = usb_pipe_end_session(&hid_dev->ctrl_pipe);
 
 	if (rc != EOK) {
 		usb_log_warning("Error sending output report to the keyboard: "
@@ -377,7 +377,7 @@ int usbhid_req_get_protocol(usbhid_dev_t *hid_dev, usb_hid_protocol_t *protocol)
  * @retval EOK if successful.
  * @retval EINVAL if no HID device is given.
  * @return Other value inherited from one of functions 
- *         usb_endpoint_pipe_start_session(), usb_endpoint_pipe_end_session(),
+ *         usb_pipe_start_session(), usb_pipe_end_session(),
  *         usb_control_request_set().
  */
 int usbhid_req_get_idle(usbhid_dev_t *hid_dev, uint8_t *duration)
@@ -395,7 +395,7 @@ int usbhid_req_get_idle(usbhid_dev_t *hid_dev, uint8_t *duration)
 	
 	int rc, sess_rc;
 	
-	sess_rc = usb_endpoint_pipe_start_session(&hid_dev->ctrl_pipe);
+	sess_rc = usb_pipe_start_session(&hid_dev->ctrl_pipe);
 	if (sess_rc != EOK) {
 		usb_log_warning("Failed to start a session: %s.\n",
 		    str_error(sess_rc));
@@ -414,7 +414,7 @@ int usbhid_req_get_idle(usbhid_dev_t *hid_dev, uint8_t *duration)
 	    USB_HIDREQ_GET_IDLE, value, hid_dev->iface, buffer, 1, 
 	    &actual_size);
 
-	sess_rc = usb_endpoint_pipe_end_session(&hid_dev->ctrl_pipe);
+	sess_rc = usb_pipe_end_session(&hid_dev->ctrl_pipe);
 
 	if (rc != EOK) {
 		usb_log_warning("Error sending output report to the keyboard: "
