@@ -26,14 +26,14 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbuhcihc
+/** @addtogroup libusb
  * @{
  */
 /** @file
  * @brief UHCI driver
  */
-#ifndef UTILS_DEVICE_KEEPER_H
-#define UTILS_DEVICE_KEEPER_H
+#ifndef LIBUSB_HOST_DEVICE_KEEPER_H
+#define LIBUSB_HOST_DEVICE_KEEPER_H
 #include <devman.h>
 #include <fibril_synch.h>
 #include <usb/usb.h>

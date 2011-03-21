@@ -25,45 +25,70 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup drvusbohci
+/** @addtogroup drvusbuhcihc
  * @{
  */
 /** @file
- * @brief OHCI driver
+ * @brief UHCI driver USB transaction structure
  */
-#include <assert.h>
-#include <errno.h>
-#include <str_error.h>
+#ifndef LIBUSB_HOST_BATCH_H
+#define LIBUSB_HOST_BATCH_H
 
-#include <usb/debug.h>
+#include <adt/list.h>
 
-#include "ohci_rh.h"
+#include <usbhc_iface.h>
+#include <usb/usb.h>
 
-/** Root hub initialization
- * @return Error code.
- */
-int ohci_rh_init(ohci_rh_t *instance, ohci_regs_t *regs)
+typedef struct batch
 {
-	assert(instance);
-	instance->address = 0;
-	instance->registers = regs;
+	link_t link;
+	usb_target_t target;
+	usb_transfer_type_t transfer_type;
+	usb_speed_t speed;
+	usbhc_iface_transfer_in_callback_t callback_in;
+	usbhc_iface_transfer_out_callback_t callback_out;
+	char *buffer;
+	char *transport_buffer;
+	size_t buffer_size;
+	char *setup_buffer;
+	size_t setup_size;
+	size_t max_packet_size;
+	size_t transfered_size;
+	void (*next_step)(struct batch*);
+	int error;
+	ddf_fun_t *fun;
+	void *arg;
+	void *private_data;
+} batch_t;
 
-	usb_log_info("OHCI root hub with %d ports.\n", regs->rh_desc_a & 0xff);
+void batch_init(
+    batch_t *instance,
+    usb_target_t target,
+    usb_transfer_type_t transfer_type,
+    usb_speed_t speed,
+    size_t max_packet_size,
+    char *buffer,
+    char *transport_buffer,
+    size_t buffer_size,
+    char *setup_buffer,
+    size_t setup_size,
+    usbhc_iface_transfer_in_callback_t func_in,
+    usbhc_iface_transfer_out_callback_t func_out,
+    void *arg,
+    ddf_fun_t *fun,
+    void *private_data
+);
 
-	/* TODO: implement */
-	return EOK;
-}
-/*----------------------------------------------------------------------------*/
-void ohci_rh_request(ohci_rh_t *instance, batch_t *request)
+static inline batch_t *batch_from_link(link_t *link_ptr)
 {
-	/* TODO: implement */
+	assert(link_ptr);
+	return list_get_instance(link_ptr, batch_t, link);
 }
-/*----------------------------------------------------------------------------*/
-void ohci_rh_interrupt(ohci_rh_t *instance)
-{
-	usb_log_info("Interrupt!!.\n");
-	/* TODO: implement */
-}
+
+void batch_call_in(batch_t *instance);
+void batch_call_out(batch_t *instance);
+void batch_finish(batch_t *instance, int error);
+#endif
 /**
  * @}
  */
