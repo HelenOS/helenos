@@ -38,6 +38,7 @@
 #include <usb/debug.h>
 
 #include "batch.h"
+#include "utils/malloc32.h"
 
 #define DEFAULT_ERROR_COUNT 3
 batch_t * batch_get(
@@ -47,7 +48,7 @@ batch_t * batch_get(
 		size_t max_packet_size,
     usb_speed_t speed,
 		char *buffer,
-		size_t size,
+		size_t buffer_size,
 		char *setup_buffer,
 		size_t setup_size,
     usbhc_iface_transfer_in_callback_t func_in,
@@ -56,35 +57,72 @@ batch_t * batch_get(
 		device_keeper_t *manager
 		)
 {
-	return NULL;
+#define CHECK_NULL_DISPOSE_RETURN(ptr, message...) \
+        if (ptr == NULL) { \
+                usb_log_error(message); \
+                if (instance) { \
+                        batch_dispose(instance); \
+                } \
+                return NULL; \
+        } else (void)0
+
+	batch_t *instance = malloc(sizeof(batch_t));
+	CHECK_NULL_DISPOSE_RETURN(instance,
+	    "Failed to allocate batch instance.\n");
+	batch_init(instance, target, transfer_type, speed, max_packet_size,
+	    buffer, NULL, buffer_size, NULL, setup_size, func_in,
+	    func_out, arg, fun, NULL);
+
+        if (buffer_size > 0) {
+                instance->transport_buffer = malloc32(buffer_size);
+                CHECK_NULL_DISPOSE_RETURN(instance->transport_buffer,
+                    "Failed to allocate device accessible buffer.\n");
+        }
+
+        if (setup_size > 0) {
+                instance->setup_buffer = malloc32(setup_size);
+                CHECK_NULL_DISPOSE_RETURN(instance->setup_buffer,
+                    "Failed to allocate device accessible setup buffer.\n");
+                memcpy(instance->setup_buffer, setup_buffer, setup_size);
+        }
+
+
+	return instance;
 }
 /*----------------------------------------------------------------------------*/
 void batch_dispose(batch_t *instance)
 {
+	assert(instance);
 }
 /*----------------------------------------------------------------------------*/
 void batch_control_write(batch_t *instance)
 {
+	assert(instance);
 }
 /*----------------------------------------------------------------------------*/
 void batch_control_read(batch_t *instance)
 {
+	assert(instance);
 }
 /*----------------------------------------------------------------------------*/
 void batch_interrupt_in(batch_t *instance)
 {
+	assert(instance);
 }
 /*----------------------------------------------------------------------------*/
 void batch_interrupt_out(batch_t *instance)
 {
+	assert(instance);
 }
 /*----------------------------------------------------------------------------*/
 void batch_bulk_in(batch_t *instance)
 {
+	assert(instance);
 }
 /*----------------------------------------------------------------------------*/
 void batch_bulk_out(batch_t *instance)
 {
+	assert(instance);
 }
 /**
  * @}

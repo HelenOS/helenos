@@ -107,8 +107,7 @@ int hc_schedule(hc_t *instance, batch_t *batch)
 	assert(instance);
 	assert(batch);
 	if (batch->target.address == instance->rh.address) {
-		rh_request(&instance->rh, batch);
-		return EOK;
+		return rh_request(&instance->rh, batch);
 	}
 	/* TODO: implement */
 	return ENOTSUP;

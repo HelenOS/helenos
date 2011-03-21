@@ -55,10 +55,11 @@ int rh_init(rh_t *instance, ddf_dev_t *dev, ohci_regs_t *regs)
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-void rh_request(rh_t *instance, batch_t *request)
+int rh_request(rh_t *instance, batch_t *request)
 {
-	usb_log_error("Request processing not implemented.\n");
 	/* TODO: implement */
+	usb_log_error("Root hub request processing not implemented.\n");
+	return ENOTSUP;
 }
 /*----------------------------------------------------------------------------*/
 void rh_interrupt(rh_t *instance)
