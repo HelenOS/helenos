@@ -41,6 +41,8 @@
 #include <errno.h>
 #include <assert.h>
 
+#define IPC_AGAIN_DELAY (1000 * 2) /* 2ms */
+
 /** Tell USB address assigned to given device.
  *
  * @param phone Phone to parent device.
@@ -149,11 +151,30 @@ int usb_device_connection_initialize_from_device(
 		return parent_phone;
 	}
 
-	my_address = get_my_address(parent_phone, dev);
-	if (my_address < 0) {
-		rc = my_address;
-		goto leave;
-	}
+	/*
+	 * Asking for "my" address may require several attempts.
+	 * That is because following scenario may happen:
+	 *  - parent driver (i.e. driver of parent device) announces new device
+	 *    and devman launches current driver
+	 *  - parent driver is preempted and thus does not send address-handle
+	 *    binding to HC driver
+	 *  - this driver gets here and wants the binding
+	 *  - the HC does not know the binding yet and thus it answers ENOENT
+	 *  So, we need to wait for the HC to learn the binding.
+	 */
+	do {
+		my_address = get_my_address(parent_phone, dev);
+
+		if (my_address == ENOENT) {
+			/* Be nice, let other fibrils run and try again. */
+			async_usleep(IPC_AGAIN_DELAY);
+		} else if (my_address < 0) {
+			/* Some other problem, no sense trying again. */
+			rc = my_address;
+			goto leave;
+		}
+
+	} while (my_address < 0);
 
 	rc = usb_device_connection_initialize(connection,
 	    hc_handle, my_address);
