@@ -51,8 +51,6 @@ int rh_init(rh_t *instance, ddf_dev_t *dev, ohci_regs_t *regs);
 void rh_request(rh_t *instance, batch_t *request);
 
 void rh_interrupt(rh_t *instance);
-
-int rh_register(rh_t *instance, ddf_dev_t *dev);
 #endif
 /**
  * @}

@@ -66,11 +66,6 @@ void rh_interrupt(rh_t *instance)
 	usb_log_error("Root hub interrupt not implemented.\n");
 	/* TODO: implement */
 }
-/*----------------------------------------------------------------------------*/
-int rh_register(rh_t *instance, ddf_dev_t *dev)
-{
-	return EOK;
-}
 /**
  * @}
  */

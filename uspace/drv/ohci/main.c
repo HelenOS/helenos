@@ -47,6 +47,31 @@
 #include "hc.h"
 
 static int ohci_add_device(ddf_dev_t *device);
+static int get_hc_handle(ddf_fun_t *fun, devman_handle_t *handle)
+{
+	assert(handle);
+  assert(fun != NULL);
+
+  *handle = fun->handle;
+  return EOK;
+}
+/*----------------------------------------------------------------------------*/
+static int get_address(
+    ddf_fun_t *fun, devman_handle_t handle, usb_address_t *address)
+{
+	assert(fun);
+	device_keeper_t *manager = &fun_to_hc(fun)->manager;
+  usb_address_t addr = device_keeper_find(manager, handle);
+  if (addr < 0) {
+    return addr;
+  }
+
+  if (address != NULL) {
+    *address = addr;
+  }
+
+  return EOK;
+}
 /*----------------------------------------------------------------------------*/
 /** IRQ handling callback, identifies device
  *
@@ -70,10 +95,16 @@ static driver_t ohci_driver = {
 	.name = NAME,
 	.driver_ops = &ohci_driver_ops
 };
+/*----------------------------------------------------------------------------*/
+static usb_iface_t hc_usb_iface = {
+	.get_address = get_address,
+	.get_hc_handle = get_hc_handle,
+};
+/*----------------------------------------------------------------------------*/
 static ddf_dev_ops_t hc_ops = {
+	.interfaces[USB_DEV_IFACE] = &hc_usb_iface,
 	.interfaces[USBHC_DEV_IFACE] = &hc_iface,
 };
-
 /*----------------------------------------------------------------------------*/
 /** Initializes a new ddf driver instance of OHCI hcd.
  *
