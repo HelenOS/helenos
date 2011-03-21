@@ -310,7 +310,7 @@ int usb_device_create_match_ids_from_device_descriptor(
  * @param matches Initialized list of match ids.
  * @return Error code.
  */
-int usb_device_create_match_ids(usb_endpoint_pipe_t *ctrl_pipe,
+int usb_device_create_match_ids(usb_pipe_t *ctrl_pipe,
     match_id_list_t *matches)
 {
 	int rc;
@@ -362,7 +362,7 @@ int usb_device_register_child_in_devman(usb_address_t address,
 	char *child_name = NULL;
 	int rc;
 	usb_device_connection_t dev_connection;
-	usb_endpoint_pipe_t ctrl_pipe;
+	usb_pipe_t ctrl_pipe;
 
 	rc = usb_device_connection_initialize(&dev_connection, hc_handle, address);
 	if (rc != EOK) {

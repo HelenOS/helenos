@@ -94,7 +94,7 @@ usb_device_request_setup_packet_t * request
  * @param feature Feature selector
  * @return Operation result
  */
-static inline int usb_hub_clear_port_feature(usb_endpoint_pipe_t *pipe,
+static inline int usb_hub_clear_port_feature(usb_pipe_t *pipe,
     int port_index,
     usb_hub_class_feature_t feature) {
 	

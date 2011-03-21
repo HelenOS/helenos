@@ -63,7 +63,7 @@ static int polling_fibril(void *arg)
 	polling_data_t *polling_data = (polling_data_t *) arg;
 	assert(polling_data);
 
-	usb_endpoint_pipe_t *pipe
+	usb_pipe_t *pipe
 	    = polling_data->dev->pipes[polling_data->pipe_index].pipe;
 
 	size_t failed_attempts = 0;

@@ -341,7 +341,7 @@ int usb_endpoint_pipe_initialize_from_configuration(
  * @param direction Endpoint direction (in/out).
  * @return Error code.
  */
-int usb_endpoint_pipe_initialize(usb_endpoint_pipe_t *pipe,
+int usb_endpoint_pipe_initialize(usb_pipe_t *pipe,
     usb_device_connection_t *connection, usb_endpoint_t endpoint_no,
     usb_transfer_type_t transfer_type, size_t max_packet_size,
     usb_direction_t direction)
@@ -366,7 +366,7 @@ int usb_endpoint_pipe_initialize(usb_endpoint_pipe_t *pipe,
  * @param connection Connection to the USB device backing this pipe (the wire).
  * @return Error code.
  */
-int usb_endpoint_pipe_initialize_default_control(usb_endpoint_pipe_t *pipe,
+int usb_endpoint_pipe_initialize_default_control(usb_pipe_t *pipe,
     usb_device_connection_t *connection)
 {
 	assert(pipe);
@@ -389,7 +389,7 @@ int usb_endpoint_pipe_initialize_default_control(usb_endpoint_pipe_t *pipe,
  * @param pipe Default control pipe.
  * @return Error code.
  */
-int usb_endpoint_pipe_probe_default_control(usb_endpoint_pipe_t *pipe)
+int usb_endpoint_pipe_probe_default_control(usb_pipe_t *pipe)
 {
 	assert(pipe);
 	assert(DEV_DESCR_MAX_PACKET_SIZE_OFFSET < CTRL_PIPE_MIN_PACKET_SIZE);
@@ -450,7 +450,7 @@ int usb_endpoint_pipe_probe_default_control(usb_endpoint_pipe_t *pipe)
  * @param hc_connection Connection to the host controller (must be opened).
  * @return Error code.
  */
-int usb_endpoint_pipe_register(usb_endpoint_pipe_t *pipe,
+int usb_endpoint_pipe_register(usb_pipe_t *pipe,
     unsigned int interval,
     usb_hc_connection_t *hc_connection)
 {
@@ -478,7 +478,7 @@ int usb_endpoint_pipe_register(usb_endpoint_pipe_t *pipe,
  * @param hc_connection Connection to the host controller (must be opened).
  * @return Error code.
  */
-int usb_endpoint_pipe_unregister(usb_endpoint_pipe_t *pipe,
+int usb_endpoint_pipe_unregister(usb_pipe_t *pipe,
     usb_hc_connection_t *hc_connection)
 {
 	assert(pipe);

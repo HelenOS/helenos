@@ -243,7 +243,7 @@ int usb_device_connection_initialize_on_default_address(
  * @param pipe Endpoint pipe to start the session on.
  * @return Error code.
  */
-int usb_endpoint_pipe_start_session(usb_endpoint_pipe_t *pipe)
+int usb_endpoint_pipe_start_session(usb_pipe_t *pipe)
 {
 	assert(pipe);
 
@@ -269,7 +269,7 @@ int usb_endpoint_pipe_start_session(usb_endpoint_pipe_t *pipe)
  * @param pipe Endpoint pipe to end the session on.
  * @return Error code.
  */
-int usb_endpoint_pipe_end_session(usb_endpoint_pipe_t *pipe)
+int usb_endpoint_pipe_end_session(usb_pipe_t *pipe)
 {
 	assert(pipe);
 
@@ -295,7 +295,7 @@ int usb_endpoint_pipe_end_session(usb_endpoint_pipe_t *pipe)
  * @param pipe Endpoint pipe in question.
  * @return Whether @p pipe has opened a session.
  */
-bool usb_endpoint_pipe_is_session_started(usb_endpoint_pipe_t *pipe)
+bool usb_endpoint_pipe_is_session_started(usb_pipe_t *pipe)
 {
 	return (pipe->hc_phone >= 0);
 }

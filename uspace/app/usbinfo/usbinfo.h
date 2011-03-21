@@ -43,7 +43,7 @@
 #include <ipc/devman.h>
 
 typedef struct {
-	usb_endpoint_pipe_t ctrl_pipe;
+	usb_pipe_t ctrl_pipe;
 	usb_device_connection_t wire;
 	usb_standard_device_descriptor_t device_descriptor;
 	uint8_t *full_configuration_descriptor;

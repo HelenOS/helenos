@@ -57,8 +57,8 @@ extern usb_endpoint_description_t hub_status_change_endpoint_description;
 
 /* Hub endpoints. */
 /*typedef struct {
-        usb_endpoint_pipe_t control;
-        usb_endpoint_pipe_t status_change;
+        usb_pipe_t control;
+        usb_pipe_t status_change;
 } usb_hub_endpoints_t;
 */
 
@@ -87,7 +87,7 @@ typedef struct {
 	 * pointer into this structure, so that it does not have to be
 	 * searched again and again for the 'right pipe'.
 	 */
-	usb_endpoint_pipe_t * status_change_pipe;
+	usb_pipe_t * status_change_pipe;
 
 	/** convenience pointer to control pipe
 	 *
@@ -95,7 +95,7 @@ typedef struct {
 	 * pointer into this structure, so that it does not have to be
 	 * searched again and again for the 'right pipe'.
 	 */
-	usb_endpoint_pipe_t * control_pipe;
+	usb_pipe_t * control_pipe;
 
 	/** generic usb device data*/
 	usb_device_t * usb_device;

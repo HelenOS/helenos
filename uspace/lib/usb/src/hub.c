@@ -227,7 +227,7 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 		goto leave_release_default_address;
 	}
 
-	usb_endpoint_pipe_t ctrl_pipe;
+	usb_pipe_t ctrl_pipe;
 	rc = usb_endpoint_pipe_initialize_default_control(&ctrl_pipe,
 	    &dev_conn);
 	if (rc != EOK) {

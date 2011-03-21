@@ -125,7 +125,7 @@ static int initialize_other_pipes(usb_driver_t *drv, usb_device_t *dev)
 	}
 
 	for (i = 0; i < pipe_count; i++) {
-		dev->pipes[i].pipe = malloc(sizeof(usb_endpoint_pipe_t));
+		dev->pipes[i].pipe = malloc(sizeof(usb_pipe_t));
 		if (dev->pipes[i].pipe == NULL) {
 			usb_log_oom(dev->ddf_dev);
 			rc = ENOMEM;

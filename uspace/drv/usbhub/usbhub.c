@@ -353,7 +353,7 @@ static void usb_hub_finalize_add_device( usb_hub_info_t * hub,
 		return;
 	}
 	//create connection to device
-	usb_endpoint_pipe_t new_device_pipe;
+	usb_pipe_t new_device_pipe;
 	usb_device_connection_t new_device_connection;
 	usb_device_connection_initialize_on_default_address(
 			&new_device_connection,
@@ -487,7 +487,7 @@ static void usb_hub_process_interrupt(usb_hub_info_t * hub,
         uint16_t port) {
 	usb_log_debug("interrupt at port %d\n", port);
 	//determine type of change
-	usb_endpoint_pipe_t *pipe = hub->control_pipe;
+	usb_pipe_t *pipe = hub->control_pipe;
 	
 	int opResult;
 
