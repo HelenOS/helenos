@@ -25,11 +25,11 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup drvusbuhcihc
+/** @addtogroup libusb
  * @{
  */
 /** @file
- * @brief UHCI driver USB transaction structure
+ * USB transfer transaction structures.
  */
 #ifndef LIBUSB_HOST_BATCH_H
 #define LIBUSB_HOST_BATCH_H
@@ -80,10 +80,10 @@ void usb_transfer_batch_init(
     void *private_data
 );
 
-static inline usb_transfer_batch_t *usb_transfer_batch_from_link(link_t *link_ptr)
+static inline usb_transfer_batch_t *usb_transfer_batch_from_link(link_t *l)
 {
-	assert(link_ptr);
-	return list_get_instance(link_ptr, usb_transfer_batch_t, link);
+	assert(l);
+	return list_get_instance(l, usb_transfer_batch_t, link);
 }
 
 void usb_transfer_batch_call_in(usb_transfer_batch_t *instance);

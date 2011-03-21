@@ -29,7 +29,7 @@
  * @{
  */
 /** @file
- * @brief OHCI driver USB transaction structure
+ * USB transfer transaction structures (implementation).
  */
 #include <errno.h>
 #include <str_error.h>
