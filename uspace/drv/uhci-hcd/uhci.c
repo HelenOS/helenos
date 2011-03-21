@@ -69,9 +69,9 @@ static int usb_iface_get_address(
     ddf_fun_t *fun, devman_handle_t handle, usb_address_t *address)
 {
 	assert(fun);
-	device_keeper_t *manager = &((uhci_t*)fun->dev->driver_data)->hc.device_manager;
+	usb_device_keeper_t *manager = &((uhci_t*)fun->dev->driver_data)->hc.device_manager;
 
-	usb_address_t addr = device_keeper_find(manager, handle);
+	usb_address_t addr = usb_device_keeper_find(manager, handle);
 	if (addr < 0) {
 		return addr;
 	}
@@ -166,7 +166,7 @@ if (ret != EOK) { \
 	    pci_get_my_registers(device, &io_reg_base, &io_reg_size, &irq);
 	CHECK_RET_DEST_FUN_RETURN(ret,
 	    "Failed(%d) to get I/O addresses:.\n", ret, device->handle);
-	usb_log_info("I/O regs at 0x%X (size %zu), IRQ %d.\n",
+	usb_log_debug("I/O regs at 0x%X (size %zu), IRQ %d.\n",
 	    io_reg_base, io_reg_size, irq);
 
 	ret = pci_disable_legacy(device);

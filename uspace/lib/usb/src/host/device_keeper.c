@@ -26,17 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbuhcihc
+/** @addtogroup libusb
  * @{
  */
 /** @file
- * @brief UHCI driver
+ * Device keeper structure and functions (implementation).
  */
 #include <assert.h>
 #include <errno.h>
 #include <usb/debug.h>
-
-#include "device_keeper.h"
+#include <usb/host/device_keeper.h>
 
 /*----------------------------------------------------------------------------*/
 /** Initialize device keeper structure.
@@ -45,7 +44,7 @@
  *
  * Set all values to false/0.
  */
-void device_keeper_init(device_keeper_t *instance)
+void usb_device_keeper_init(usb_device_keeper_t *instance)
 {
 	assert(instance);
 	fibril_mutex_initialize(&instance->guard);
@@ -55,7 +54,8 @@ void device_keeper_init(device_keeper_t *instance)
 	for (; i < USB_ADDRESS_COUNT; ++i) {
 		instance->devices[i].occupied = false;
 		instance->devices[i].handle = 0;
-		instance->devices[i].toggle_status = 0;
+		instance->devices[i].toggle_status[0] = 0;
+		instance->devices[i].toggle_status[1] = 0;
 	}
 }
 /*----------------------------------------------------------------------------*/
@@ -64,7 +64,8 @@ void device_keeper_init(device_keeper_t *instance)
  * @param[in] instance Device keeper structure to use.
  * @param[in] speed Speed of the device requesting default address.
  */
-void device_keeper_reserve_default(device_keeper_t *instance, usb_speed_t speed)
+void usb_device_keeper_reserve_default_address(usb_device_keeper_t *instance,
+    usb_speed_t speed)
 {
 	assert(instance);
 	fibril_mutex_lock(&instance->guard);
@@ -82,7 +83,7 @@ void device_keeper_reserve_default(device_keeper_t *instance, usb_speed_t speed)
  * @param[in] instance Device keeper structure to use.
  * @param[in] speed Speed of the device requesting default address.
  */
-void device_keeper_release_default(device_keeper_t *instance)
+void usb_device_keeper_release_default_address(usb_device_keeper_t *instance)
 {
 	assert(instance);
 	fibril_mutex_lock(&instance->guard);
@@ -99,8 +100,8 @@ void device_keeper_release_default(device_keeper_t *instance)
  *
  * Really ugly one.
  */
-void device_keeper_reset_if_need(
-    device_keeper_t *instance, usb_target_t target, const unsigned char *data)
+void usb_device_keeper_reset_if_need(usb_device_keeper_t *instance,
+    usb_target_t target, const uint8_t *data)
 {
 	assert(instance);
 	fibril_mutex_lock(&instance->guard);
@@ -118,7 +119,9 @@ void device_keeper_reset_if_need(
 		/* recipient is endpoint, value is zero (ENDPOINT_STALL) */
 		if (((data[0] & 0xf) == 1) && ((data[2] | data[3]) == 0)) {
 			/* endpoint number is < 16, thus first byte is enough */
-			instance->devices[target.address].toggle_status &=
+			instance->devices[target.address].toggle_status[0] &=
+			    ~(1 << data[4]);
+			instance->devices[target.address].toggle_status[1] &=
 			    ~(1 << data[4]);
 		}
 	break;
@@ -127,7 +130,8 @@ void device_keeper_reset_if_need(
 	case 0x11: /* set interface */
 		/* target must be device */
 		if ((data[0] & 0xf) == 0) {
-			instance->devices[target.address].toggle_status = 0;
+			instance->devices[target.address].toggle_status[0] = 0;
+			instance->devices[target.address].toggle_status[1] = 0;
 		}
 	break;
 	}
@@ -140,9 +144,13 @@ void device_keeper_reset_if_need(
  * @param[in] target Device and endpoint used.
  * @return Error code
  */
-int device_keeper_get_toggle(device_keeper_t *instance, usb_target_t target)
+int usb_device_keeper_get_toggle(usb_device_keeper_t *instance,
+    usb_target_t target, usb_direction_t direction)
 {
 	assert(instance);
+	/* only control pipes are bi-directional and those do not need toggle */
+	if (direction == USB_DIRECTION_BOTH)
+		return ENOENT;
 	int ret;
 	fibril_mutex_lock(&instance->guard);
 	if (target.endpoint > 15 || target.endpoint < 0
@@ -151,7 +159,7 @@ int device_keeper_get_toggle(device_keeper_t *instance, usb_target_t target)
 		usb_log_error("Invalid data when asking for toggle value.\n");
 		ret = EINVAL;
 	} else {
-		ret = (instance->devices[target.address].toggle_status
+		ret = (instance->devices[target.address].toggle_status[direction]
 		        >> target.endpoint) & 1;
 	}
 	fibril_mutex_unlock(&instance->guard);
@@ -165,10 +173,13 @@ int device_keeper_get_toggle(device_keeper_t *instance, usb_target_t target)
  * @param[in] toggle Toggle value.
  * @return Error code.
  */
-int device_keeper_set_toggle(
-    device_keeper_t *instance, usb_target_t target, bool toggle)
+int usb_device_keeper_set_toggle(usb_device_keeper_t *instance,
+    usb_target_t target, usb_direction_t direction, bool toggle)
 {
 	assert(instance);
+	/* only control pipes are bi-directional and those do not need toggle */
+	if (direction == USB_DIRECTION_BOTH)
+		return ENOENT;
 	int ret;
 	fibril_mutex_lock(&instance->guard);
 	if (target.endpoint > 15 || target.endpoint < 0
@@ -178,11 +189,11 @@ int device_keeper_set_toggle(
 		ret = EINVAL;
 	} else {
 		if (toggle) {
-			instance->devices[target.address].toggle_status |=
-			    (1 << target.endpoint);
+			instance->devices[target.address].toggle_status[direction]
+			    |= (1 << target.endpoint);
 		} else {
-			instance->devices[target.address].toggle_status &=
-			    ~(1 << target.endpoint);
+			instance->devices[target.address].toggle_status[direction]
+			    &= ~(1 << target.endpoint);
 		}
 		ret = EOK;
 	}
@@ -196,8 +207,8 @@ int device_keeper_set_toggle(
  * @param[in] speed Speed of the device requiring address.
  * @return Free address, or error code.
  */
-usb_address_t device_keeper_request(
-    device_keeper_t *instance, usb_speed_t speed)
+usb_address_t device_keeper_get_free_address(usb_device_keeper_t *instance,
+    usb_speed_t speed)
 {
 	assert(instance);
 	fibril_mutex_lock(&instance->guard);
@@ -217,7 +228,8 @@ usb_address_t device_keeper_request(
 	assert(instance->devices[new_address].occupied == false);
 	instance->devices[new_address].occupied = true;
 	instance->devices[new_address].speed = speed;
-	instance->devices[new_address].toggle_status = 0;
+	instance->devices[new_address].toggle_status[0] = 0;
+	instance->devices[new_address].toggle_status[1] = 0;
 	instance->last_address = new_address;
 	fibril_mutex_unlock(&instance->guard);
 	return new_address;
@@ -229,8 +241,8 @@ usb_address_t device_keeper_request(
  * @param[in] address Device address
  * @param[in] handle Devman handle of the device.
  */
-void device_keeper_bind(
-    device_keeper_t *instance, usb_address_t address, devman_handle_t handle)
+void usb_device_keeper_bind(usb_device_keeper_t *instance,
+    usb_address_t address, devman_handle_t handle)
 {
 	assert(instance);
 	fibril_mutex_lock(&instance->guard);
@@ -246,7 +258,8 @@ void device_keeper_bind(
  * @param[in] instance Device keeper structure to use.
  * @param[in] address Device address
  */
-void device_keeper_release(device_keeper_t *instance, usb_address_t address)
+void usb_device_keeper_release(usb_device_keeper_t *instance,
+    usb_address_t address)
 {
 	assert(instance);
 	assert(address > 0);
@@ -264,8 +277,8 @@ void device_keeper_release(device_keeper_t *instance, usb_address_t address)
  * @param[in] handle Devman handle of the device seeking its address.
  * @return USB Address, or error code.
  */
-usb_address_t device_keeper_find(
-    device_keeper_t *instance, devman_handle_t handle)
+usb_address_t usb_device_keeper_find(usb_device_keeper_t *instance,
+    devman_handle_t handle)
 {
 	assert(instance);
 	fibril_mutex_lock(&instance->guard);
@@ -287,14 +300,15 @@ usb_address_t device_keeper_find(
  * @param[in] address Address of the device.
  * @return USB speed.
  */
-usb_speed_t device_keeper_speed(
-    device_keeper_t *instance, usb_address_t address)
+usb_speed_t usb_device_keeper_get_speed(usb_device_keeper_t *instance,
+    usb_address_t address)
 {
 	assert(instance);
 	assert(address >= 0);
 	assert(address <= USB11_ADDRESS_MAX);
 	return instance->devices[address].speed;
 }
+
 /**
  * @}
  */

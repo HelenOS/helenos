@@ -120,13 +120,14 @@ int uhci_hc_init(uhci_hc_t *instance, ddf_fun_t *fun,
 		instance->cleaner =
 		    fibril_create(uhci_hc_interrupt_emulator, instance);
 		fibril_add_ready(instance->cleaner);
+	} else {
+		/* TODO: enable interrupts here */
 	}
 
 	instance->debug_checker =
 	    fibril_create(uhci_hc_debug_checker, instance);
 //	fibril_add_ready(instance->debug_checker);
 
-	usb_log_info("Started UHCI driver.\n");
 	return EOK;
 #undef CHECK_RET_DEST_FUN_RETURN
 }
@@ -234,7 +235,7 @@ int uhci_hc_init_mem_structures(uhci_hc_t *instance)
 	}
 
 	/* Init device keeper*/
-	device_keeper_init(&instance->device_manager);
+	usb_device_keeper_init(&instance->device_manager);
 	usb_log_debug("Initialized device manager.\n");
 
 	return EOK;
@@ -316,7 +317,7 @@ int uhci_hc_init_transfer_lists(uhci_hc_t *instance)
  *
  * Checks for bandwidth availability and appends the batch to the proper queue.
  */
-int uhci_hc_schedule(uhci_hc_t *instance, batch_t *batch)
+int uhci_hc_schedule(uhci_hc_t *instance, usb_transfer_batch_t *batch)
 {
 	assert(instance);
 	assert(batch);

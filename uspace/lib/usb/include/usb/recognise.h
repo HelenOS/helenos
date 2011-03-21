@@ -47,7 +47,7 @@ int usb_device_create_match_ids_from_interface(
     const usb_standard_device_descriptor_t *,
     const usb_standard_interface_descriptor_t *, match_id_list_t *);
 
-int usb_device_create_match_ids(usb_endpoint_pipe_t *, match_id_list_t *);
+int usb_device_create_match_ids(usb_pipe_t *, match_id_list_t *);
 
 int usb_device_register_child_in_devman(usb_address_t, devman_handle_t,
     ddf_dev_t *, devman_handle_t *, ddf_dev_ops_t *, void *, ddf_fun_t **);

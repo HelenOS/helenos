@@ -210,8 +210,8 @@ def mangle_ext(name):
 def create_dirent(name, directory, cluster, size):
 	dir_entry = xstruct.create(DIR_ENTRY)
 	
-	dir_entry.name = mangle_fname(name)
-	dir_entry.ext = mangle_ext(name)
+	dir_entry.name = mangle_fname(name).encode('ascii')
+	dir_entry.ext = mangle_ext(name).encode('ascii')
 	
 	if (directory):
 		dir_entry.attr = 0x30
@@ -238,8 +238,8 @@ def create_dot_dirent(empty_cluster):
 	dir_entry = xstruct.create(DOT_DIR_ENTRY)
 	
 	dir_entry.signature = 0x2e
-	dir_entry.name = '       '
-	dir_entry.ext = '   '
+	dir_entry.name = b'       '
+	dir_entry.ext = b'   '
 	dir_entry.attr = 0x10
 	
 	dir_entry.ctime_fine = 0 # FIXME
@@ -257,8 +257,8 @@ def create_dotdot_dirent(parent_cluster):
 	dir_entry = xstruct.create(DOTDOT_DIR_ENTRY)
 	
 	dir_entry.signature = [0x2e, 0x2e]
-	dir_entry.name = '      '
-	dir_entry.ext = '   '
+	dir_entry.name = b'      '
+	dir_entry.ext = b'   '
 	dir_entry.attr = 0x10
 	
 	dir_entry.ctime_fine = 0 # FIXME

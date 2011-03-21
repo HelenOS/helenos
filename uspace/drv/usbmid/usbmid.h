@@ -51,7 +51,7 @@ typedef struct {
 	/** Representation of USB wire. */
 	usb_device_connection_t wire;
 	/** Default control pipe. */
-	usb_endpoint_pipe_t ctrl_pipe;
+	usb_pipe_t ctrl_pipe;
 } usbmid_device_t;
 
 

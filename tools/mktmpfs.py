@@ -79,7 +79,7 @@ def recursion(root, outf):
 			dentry = xstruct.create(DENTRY_FILE % len(name))
 			dentry.kind = TMPFS_FILE
 			dentry.fname_len = len(name)
-			dentry.fname = name
+			dentry.fname = name.encode('ascii')
 			dentry.flen = size
 			
 			outf.write(dentry.pack())
@@ -96,7 +96,7 @@ def recursion(root, outf):
 			dentry = xstruct.create(DENTRY_DIRECTORY % len(name))
 			dentry.kind = TMPFS_DIRECTORY
 			dentry.fname_len = len(name)
-			dentry.fname = name
+			dentry.fname = name.encode('ascii')
 			
 			outf.write(dentry.pack())
 			
@@ -121,7 +121,7 @@ def main():
 	outf = open(sys.argv[2], "wb")
 	
 	header = xstruct.create(HEADER)
-	header.tag = "TMPFS"
+	header.tag = b"TMPFS"
 	
 	outf.write(header.pack())
 	

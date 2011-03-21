@@ -37,10 +37,19 @@
 
 #include <usb/pipes.h>
 
+/** Descriptors for USB device. */
+typedef struct {
+	/** Standard device descriptor. */
+	usb_standard_device_descriptor_t device;
+	/** Full configuration descriptor of current configuration. */
+	uint8_t *configuration;
+	size_t configuration_size;
+} usb_device_descriptors_t;
+
 /** USB device structure. */
 typedef struct {
 	/** The default control pipe. */
-	usb_endpoint_pipe_t ctrl_pipe;
+	usb_pipe_t ctrl_pipe;
 	/** Other endpoint pipes.
 	 * This is an array of other endpoint pipes in the same order as
 	 * in usb_driver_t.
@@ -51,6 +60,10 @@ typedef struct {
 	 * This item contains the value of the interface or -1 for any.
 	 */
 	int interface_no;
+
+	/** Some useful descriptors. */
+	usb_device_descriptors_t descriptors;
+
 	/** Generic DDF device backing this one. */
 	ddf_dev_t *ddf_dev;
 	/** Custom driver data.
@@ -78,7 +91,12 @@ typedef struct {
 	 * the same as the directory name where the driver executable resides.
 	 */
 	const char *name;
-	/** Expected endpoints description. */
+	/** Expected endpoints description, excluding default control endpoint.
+	 *
+	 * It MUST be of size expected_enpoints_count(excluding default ctrl) + 1
+	 * where the last record MUST BE NULL, otherwise catastrophic things may
+	 * happen.
+	 */
 	usb_endpoint_description_t **endpoints;
 	/** Driver ops. */
 	usb_driver_ops_t *ops;

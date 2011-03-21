@@ -26,62 +26,31 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbuhcihc
+/** @addtogroup drvusbohci
  * @{
  */
 /** @file
- * @brief UHCI driver
+ * @brief OHCI driver
  */
-#ifndef UTILS_DEVICE_KEEPER_H
-#define UTILS_DEVICE_KEEPER_H
-#include <devman.h>
-#include <fibril_synch.h>
+#ifndef DRV_OHCI_ROOT_HUB_H
+#define DRV_OHCI_ROOT_HUB_H
+
 #include <usb/usb.h>
 
-#define USB_ADDRESS_COUNT (USB11_ADDRESS_MAX + 1)
+#include "ohci_regs.h"
+#include "batch.h"
 
-struct usb_device_info {
-	usb_speed_t speed;
-	bool occupied;
-	uint16_t toggle_status;
-	devman_handle_t handle;
-};
+typedef struct rh {
+	ohci_regs_t *registers;
+	usb_address_t address;
+	ddf_dev_t *device;
+} rh_t;
 
-typedef struct device_keeper {
-	struct usb_device_info devices[USB_ADDRESS_COUNT];
-	fibril_mutex_t guard;
-	fibril_condvar_t default_address_occupied;
-	usb_address_t last_address;
-} device_keeper_t;
+int rh_init(rh_t *instance, ddf_dev_t *dev, ohci_regs_t *regs);
 
-void device_keeper_init(device_keeper_t *instance);
+int rh_request(rh_t *instance, usb_transfer_batch_t *request);
 
-void device_keeper_reserve_default(
-    device_keeper_t *instance, usb_speed_t speed);
-
-void device_keeper_release_default(device_keeper_t *instance);
-
-void device_keeper_reset_if_need(
-    device_keeper_t *instance, usb_target_t target, const unsigned char *setup_data);
-
-int device_keeper_get_toggle(device_keeper_t *instance, usb_target_t target);
-
-int device_keeper_set_toggle(
-    device_keeper_t *instance, usb_target_t target, bool toggle);
-
-usb_address_t device_keeper_request(
-    device_keeper_t *instance, usb_speed_t speed);
-
-void device_keeper_bind(
-    device_keeper_t *instance, usb_address_t address, devman_handle_t handle);
-
-void device_keeper_release(device_keeper_t *instance, usb_address_t address);
-
-usb_address_t device_keeper_find(
-    device_keeper_t *instance, devman_handle_t handle);
-
-usb_speed_t device_keeper_speed(
-    device_keeper_t *instance, usb_address_t address);
+void rh_interrupt(rh_t *instance);
 #endif
 /**
  * @}
