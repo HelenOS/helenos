@@ -136,18 +136,9 @@ static int initialize_other_pipes(usb_driver_t *drv, usb_device_t *dev)
 		dev->pipes[i].interface_no = dev->interface_no;
 	}
 
-	void *config_descriptor;
-	size_t config_descriptor_size;
-	rc = usb_request_get_full_configuration_descriptor_alloc(
-	    &dev->ctrl_pipe, 0, &config_descriptor, &config_descriptor_size);
-	if (rc != EOK) {
-		usb_log_error("Failed retrieving configuration of `%s': %s.\n",
-		    dev->ddf_dev->name, str_error(rc));
-		goto rollback;
-	}
-
-	rc = usb_pipe_initialize_from_configuration(dev->pipes,
-	   pipe_count, config_descriptor, config_descriptor_size, &dev->wire);
+	rc = usb_pipe_initialize_from_configuration(dev->pipes, pipe_count,
+	    dev->descriptors.configuration, dev->descriptors.configuration_size,
+	    &dev->wire);
 	if (rc != EOK) {
 		usb_log_error("Failed initializing USB endpoints: %s.\n",
 		    str_error(rc));
@@ -236,13 +227,31 @@ static int initialize_pipes(usb_device_t *dev)
 	}
 
 	/*
-	 * Initialization of other pipes requires open session on
-	 * default control pipe.
+	 * For further actions, we need open session on default control pipe.
 	 */
 	rc = usb_pipe_start_session(&dev->ctrl_pipe);
 	if (rc != EOK) {
 		usb_log_error("Failed to start an IPC session: %s.\n",
 		    str_error(rc));
+		return rc;
+	}
+
+	/* Get the device descriptor. */
+	rc = usb_request_get_device_descriptor(&dev->ctrl_pipe,
+	    &dev->descriptors.device);
+	if (rc != EOK) {
+		usb_log_error("Failed to retrieve device descriptor: %s.\n",
+		    str_error(rc));
+		return rc;
+	}
+
+	/* Get the full configuration descriptor. */
+	rc = usb_request_get_full_configuration_descriptor_alloc(
+	    &dev->ctrl_pipe, 0, (void **) &dev->descriptors.configuration,
+	    &dev->descriptors.configuration_size);
+	if (rc != EOK) {
+		usb_log_error("Failed retrieving configuration descriptor: %s.\n",
+		    dev->ddf_dev->name, str_error(rc));
 		return rc;
 	}
 
@@ -252,6 +261,13 @@ static int initialize_pipes(usb_device_t *dev)
 
 	/* No checking here. */
 	usb_pipe_end_session(&dev->ctrl_pipe);
+
+	/* Rollback actions. */
+	if (rc != EOK) {
+		if (dev->descriptors.configuration != NULL) {
+			free(dev->descriptors.configuration);
+		}
+	}
 
 	return rc;
 }
@@ -282,6 +298,7 @@ int generic_add_device(ddf_dev_t *gen_dev)
 	dev->ddf_dev = gen_dev;
 	dev->ddf_dev->driver_data = dev;
 	dev->driver_data = NULL;
+	dev->descriptors.configuration = NULL;
 
 	rc = initialize_pipes(dev);
 	if (rc != EOK) {

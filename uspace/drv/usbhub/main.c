@@ -41,8 +41,11 @@
 #include "usbhub.h"
 #include "usbhub_private.h"
 
-
-usb_endpoint_description_t hub_status_change_endpoint_description = {
+/** Hub status-change endpoint description.
+ *
+ * For more information see section 11.15.1 of USB 1.1 specification.
+ */
+static usb_endpoint_description_t hub_status_change_endpoint_description = {
 	.transfer_type = USB_TRANSFER_INTERRUPT,
 	.direction = USB_DIRECTION_IN,
 	.interface_class = USB_CLASS_HUB,
@@ -56,23 +59,24 @@ static usb_driver_ops_t usb_hub_driver_ops = {
 	.add_device = usb_hub_add_device
 };
 
+static usb_endpoint_description_t *usb_hub_endpoints[] = {
+	&hub_status_change_endpoint_description,
+	NULL
+};
+
 static usb_driver_t usb_hub_driver = {
-	.name = "usbhub",
-	.ops = &usb_hub_driver_ops
+	.name = NAME,
+	.ops = &usb_hub_driver_ops,
+	.endpoints = usb_hub_endpoints
 };
 
 
 int main(int argc, char *argv[])
 {
+	printf(NAME ": HelenOS USB hub driver.\n");
+
 	usb_log_enable(USB_LOG_LEVEL_DEBUG, NAME);
-	usb_log_info("starting hub driver\n");
-
 	
-	usb_hub_driver.endpoints = (usb_endpoint_description_t**)
-			malloc(2 * sizeof(usb_endpoint_description_t*));
-	usb_hub_driver.endpoints[0] = &hub_status_change_endpoint_description;
-	usb_hub_driver.endpoints[1] = NULL;
-
 	return usb_driver_main(&usb_hub_driver);
 }
 
