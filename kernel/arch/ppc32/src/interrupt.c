@@ -35,7 +35,7 @@
 #include <ddi/irq.h>
 #include <interrupt.h>
 #include <arch/interrupt.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch.h>
 #include <time/clock.h>
 #include <ipc/sysipc.h>
@@ -43,23 +43,66 @@
 #include <arch/mm/tlb.h>
 #include <print.h>
 
-
 void start_decrementer(void)
 {
 	asm volatile (
-		"mtdec %0\n"
-		:
-		: "r" (1000)
+		"mtdec %[dec]\n"
+		:: [dec] "r" (1000)
 	);
 }
 
-
-/** Handler of external interrupts */
-static void exception_external(int n, istate_t *istate)
+void istate_decode(istate_t *istate)
 {
-	int inum;
+	printf("r0 =%#0" PRIx32 "\tr1 =%p\tr2 =%#0" PRIx32 "\n",
+	    istate->r0, (void *) istate->sp, istate->r2);
 	
-	while ((inum = pic_get_pending()) != -1) {
+	printf("r3 =%#0" PRIx32 "\tr4 =%#0" PRIx32 "\tr5 =%#0" PRIx32 "\n",
+	    istate->r3, istate->r4, istate->r5);
+	
+	printf("r6 =%#0" PRIx32 "\tr7 =%#0" PRIx32 "\tr8 =%#0" PRIx32 "\n",
+	    istate->r6, istate->r7, istate->r8);
+	
+	printf("r9 =%#0" PRIx32 "\tr10=%#0" PRIx32 "\tr11=%#0" PRIx32 "\n",
+	    istate->r9, istate->r10, istate->r11);
+	
+	printf("r12=%#0" PRIx32 "\tr13=%#0" PRIx32 "\tr14=%#0" PRIx32 "\n",
+	    istate->r12, istate->r13, istate->r14);
+	
+	printf("r15=%#0" PRIx32 "\tr16=%#0" PRIx32 "\tr17=%#0" PRIx32 "\n",
+	    istate->r15, istate->r16, istate->r17);
+	
+	printf("r18=%#0" PRIx32 "\tr19=%#0" PRIx32 "\tr20=%#0" PRIx32 "\n",
+	    istate->r18, istate->r19, istate->r20);
+	
+	printf("r21=%#0" PRIx32 "\tr22=%#0" PRIx32 "\tr23=%#0" PRIx32 "\n",
+	    istate->r21, istate->r22, istate->r23);
+	
+	printf("r24=%#0" PRIx32 "\tr25=%#0" PRIx32 "\tr26=%#0" PRIx32 "\n",
+	    istate->r24, istate->r25, istate->r26);
+	
+	printf("r27=%#0" PRIx32 "\tr28=%#0" PRIx32 "\tr29=%#0" PRIx32 "\n",
+	    istate->r27, istate->r28, istate->r29);
+	
+	printf("r30=%#0" PRIx32 "\tr31=%#0" PRIx32 "\n",
+	    istate->r30, istate->r31);
+	
+	printf("cr =%#0" PRIx32 "\tpc =%p\tlr =%p\n",
+	    istate->cr, (void *) istate->pc, (void *) istate->lr);
+	
+	printf("ctr=%#0" PRIx32 "\txer=%#0" PRIx32 "\tdar=%#0" PRIx32 "\n",
+	    istate->ctr, istate->xer, istate->dar);
+	
+	printf("srr1=%p\n", (void *) istate->srr1);
+}
+
+/** External interrupts handler
+ *
+ */
+static void exception_external(unsigned int n, istate_t *istate)
+{
+	uint8_t inum;
+	
+	while ((inum = pic_get_pending()) != 255) {
 		irq_t *irq = irq_dispatch_and_lock(inum);
 		if (irq) {
 			/*
@@ -79,33 +122,36 @@ static void exception_external(int n, istate_t *istate)
 					irq->cir(irq->cir_arg, irq->inr);
 			}
 			
-			spinlock_unlock(&irq->lock);
+			irq_spinlock_unlock(&irq->lock, false);
 		} else {
 			/*
 			 * Spurious interrupt.
 			 */
 #ifdef CONFIG_DEBUG
-			printf("cpu%u: spurious interrupt (inum=%d)\n", CPU->id, inum);
+			printf("cpu%u: spurious interrupt (inum=%" PRIu8 ")\n",
+			    CPU->id, inum);
 #endif
 		}
 	}
 }
 
-
-static void exception_decrementer(int n, istate_t *istate)
+static void exception_decrementer(unsigned int n, istate_t *istate)
 {
 	start_decrementer();
 	clock();
 }
 
-
 /* Initialize basic tables for exception dispatching */
 void interrupt_init(void)
 {
-	exc_register(VECTOR_DATA_STORAGE, "data_storage", pht_refill);
-	exc_register(VECTOR_INSTRUCTION_STORAGE, "instruction_storage", pht_refill);
-	exc_register(VECTOR_EXTERNAL, "external", exception_external);
-	exc_register(VECTOR_DECREMENTER, "timer", exception_decrementer);
+	exc_register(VECTOR_DATA_STORAGE, "data_storage", true,
+	    pht_refill);
+	exc_register(VECTOR_INSTRUCTION_STORAGE, "instruction_storage", true,
+	    pht_refill);
+	exc_register(VECTOR_EXTERNAL, "external", true,
+	    exception_external);
+	exc_register(VECTOR_DECREMENTER, "timer", true,
+	    exception_decrementer);
 }
 
 /** @}

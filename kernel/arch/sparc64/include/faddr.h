@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64	
+/** @addtogroup sparc64
  * @{
  */
 /** @file
@@ -35,9 +35,9 @@
 #ifndef KERN_sparc64_FADDR_H_
 #define KERN_sparc64_FADDR_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 
-#define FADDR(fptr)		((uintptr_t) (fptr))
+#define FADDR(fptr)  ((uintptr_t) (fptr))
 
 #endif
 

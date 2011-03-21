@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ppc32	
+/** @addtogroup ppc32
  * @{
  */
 /** @file
@@ -35,9 +35,65 @@
 #ifndef KERN_ppc32_ASM_H_
 #define KERN_ppc32_ASM_H_
 
-#include <arch/types.h>
 #include <typedefs.h>
 #include <config.h>
+#include <arch/cpu.h>
+#include <arch/mm/asid.h>
+#include <trace.h>
+
+NO_TRACE static inline uint32_t msr_read(void)
+{
+	uint32_t msr;
+	
+	asm volatile (
+		"mfmsr %[msr]\n"
+		: [msr] "=r" (msr)
+	);
+	
+	return msr;
+}
+
+NO_TRACE static inline void msr_write(uint32_t msr)
+{
+	asm volatile (
+		"mtmsr %[msr]\n"
+		:: [msr] "r" (msr)
+	);
+}
+
+NO_TRACE static inline void sr_set(uint32_t flags, asid_t asid, uint32_t sr)
+{
+	asm volatile (
+		"mtsrin %[value], %[sr]\n"
+		:: [value] "r" ((flags << 16) + (asid << 4) + sr),
+		   [sr] "r" (sr << 28)
+	);
+}
+
+NO_TRACE static inline uint32_t sr_get(uint32_t vaddr)
+{
+	uint32_t vsid;
+	
+	asm volatile (
+		"mfsrin %[vsid], %[vaddr]\n"
+		: [vsid] "=r" (vsid)
+		: [vaddr] "r" (vaddr)
+	);
+	
+	return vsid;
+}
+
+NO_TRACE static inline uint32_t sdr1_get(void)
+{
+	uint32_t sdr1;
+	
+	asm volatile (
+		"mfsdr1 %[sdr1]\n"
+		: [sdr1] "=r" (sdr1)
+	);
+	
+	return sdr1;
+}
 
 /** Enable interrupts.
  *
@@ -45,20 +101,13 @@
  * value of EE.
  *
  * @return Old interrupt priority level.
+ *
  */
-static inline ipl_t interrupts_enable(void)
+NO_TRACE static inline ipl_t interrupts_enable(void)
 {
-	ipl_t v;
-	ipl_t tmp;
-	
-	asm volatile (
-		"mfmsr %0\n"
-		"mfmsr %1\n"
-		"ori %1, %1, 1 << 15\n"
-		"mtmsr %1\n"
-		: "=r" (v), "=r" (tmp)
-	);
-	return v;
+	ipl_t ipl = msr_read();
+	msr_write(ipl | MSR_EE);
+	return ipl;
 }
 
 /** Disable interrupts.
@@ -67,20 +116,13 @@ static inline ipl_t interrupts_enable(void)
  * value of EE.
  *
  * @return Old interrupt priority level.
+ *
  */
-static inline ipl_t interrupts_disable(void)
+NO_TRACE static inline ipl_t interrupts_disable(void)
 {
-	ipl_t v;
-	ipl_t tmp;
-	
-	asm volatile (
-		"mfmsr %0\n"
-		"mfmsr %1\n"
-		"rlwinm %1, %1, 0, 17, 15\n"
-		"mtmsr %1\n"
-		: "=r" (v), "=r" (tmp)
-	);
-	return v;
+	ipl_t ipl = msr_read();
+	msr_write(ipl & (~MSR_EE));
+	return ipl;
 }
 
 /** Restore interrupt priority level.
@@ -88,22 +130,11 @@ static inline ipl_t interrupts_disable(void)
  * Restore EE.
  *
  * @param ipl Saved interrupt priority level.
+ *
  */
-static inline void interrupts_restore(ipl_t ipl)
+NO_TRACE static inline void interrupts_restore(ipl_t ipl)
 {
-	ipl_t tmp;
-	
-	asm volatile (
-		"mfmsr %1\n"
-		"rlwimi  %0, %1, 0, 17, 15\n"
-		"cmpw 0, %0, %1\n"
-		"beq 0f\n"
-		"mtmsr %0\n"
-		"0:\n"
-		: "=r" (ipl), "=r" (tmp)
-		: "0" (ipl)
-		: "cr0"
-	);
+	msr_write((msr_read() & (~MSR_EE)) | (ipl & MSR_EE));
 }
 
 /** Return interrupt priority level.
@@ -111,16 +142,21 @@ static inline void interrupts_restore(ipl_t ipl)
  * Return EE.
  *
  * @return Current interrupt priority level.
+ *
  */
-static inline ipl_t interrupts_read(void)
+NO_TRACE static inline ipl_t interrupts_read(void)
 {
-	ipl_t v;
-	
-	asm volatile (
-		"mfmsr %0\n"
-		: "=r" (v)
-	);
-	return v;
+	return msr_read();
+}
+
+/** Check whether interrupts are disabled.
+ *
+ * @return True if interrupts are disabled.
+ *
+ */
+NO_TRACE static inline bool interrupts_disabled(void)
+{
+	return ((msr_read() & MSR_EE) == 0);
 }
 
 /** Return base address of current stack.
@@ -128,57 +164,58 @@ static inline ipl_t interrupts_read(void)
  * Return the base address of the current stack.
  * The stack is assumed to be STACK_SIZE bytes long.
  * The stack must start on page boundary.
+ *
  */
-static inline uintptr_t get_stack_base(void)
+NO_TRACE static inline uintptr_t get_stack_base(void)
 {
-	uintptr_t v;
+	uintptr_t base;
 	
 	asm volatile (
-		"and %0, %%sp, %1\n"
-		: "=r" (v)
-		: "r" (~(STACK_SIZE - 1))
+		"and %[base], %%sp, %[mask]\n"
+		: [base] "=r" (base)
+		: [mask] "r" (~(STACK_SIZE - 1))
 	);
-	return v;
+	
+	return base;
 }
 
-static inline void cpu_sleep(void)
+NO_TRACE static inline void cpu_sleep(void)
 {
 }
 
-void cpu_halt(void);
-void asm_delay_loop(uint32_t t);
+NO_TRACE static inline void pio_write_8(ioport8_t *port, uint8_t v)
+{
+	*port = v;
+}
 
+NO_TRACE static inline void pio_write_16(ioport16_t *port, uint16_t v)
+{
+	*port = v;
+}
+
+NO_TRACE static inline void pio_write_32(ioport32_t *port, uint32_t v)
+{
+	*port = v;
+}
+
+NO_TRACE static inline uint8_t pio_read_8(ioport8_t *port)
+{
+	return *port;
+}
+
+NO_TRACE static inline uint16_t pio_read_16(ioport16_t *port)
+{
+	return *port;
+}
+
+NO_TRACE static inline uint32_t pio_read_32(ioport32_t *port)
+{
+	return *port;
+}
+
+extern void cpu_halt(void) __attribute__((noreturn));
+extern void asm_delay_loop(uint32_t t);
 extern void userspace_asm(uintptr_t uspace_uarg, uintptr_t stack, uintptr_t entry);
-
-static inline void pio_write_8(ioport8_t *port, uint8_t v)
-{
-	*port = v;	
-}
-
-static inline void pio_write_16(ioport16_t *port, uint16_t v)
-{
-	*port = v;	
-}
-
-static inline void pio_write_32(ioport32_t *port, uint32_t v)
-{
-	*port = v;	
-}
-
-static inline uint8_t pio_read_8(ioport8_t *port)
-{
-	return *port; 
-}
-
-static inline uint16_t pio_read_16(ioport16_t *port)
-{
-	return *port; 
-}
-
-static inline uint32_t pio_read_32(ioport32_t *port)
-{
-	return *port; 
-}
 
 #endif
 

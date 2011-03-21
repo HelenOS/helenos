@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup generic
  * @{
  */
 /** @file
@@ -55,7 +55,7 @@ typedef struct {
 	entry_point_t entry;
 
 	/** ELF interpreter name or NULL if statically-linked */
-	char *interp;
+	const char *interp;
 
 	/** Pointer to the dynamic section */
 	void *dynamic;
@@ -81,7 +81,7 @@ typedef struct {
 	elf_info_t *info;
 } elf_ld_t;
 
-int elf_load_file(char *file_name, size_t so_bias, eld_flags_t flags,
+int elf_load_file(const char *file_name, size_t so_bias, eld_flags_t flags,
     elf_info_t *info);
 void elf_create_pcb(elf_info_t *info, pcb_t *pcb);
 

@@ -26,78 +26,26 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-TMP = distroot
+PAGE_SIZE = 4096
 
-INIT_TASKS = \
-	$(USPACEDIR)/srv/ns/ns \
-	$(USPACEDIR)/srv/loader/loader \
-	$(USPACEDIR)/app/init/init \
-	$(USPACEDIR)/srv/devmap/devmap \
-	$(USPACEDIR)/srv/bd/rd/rd \
-	$(USPACEDIR)/srv/vfs/vfs
-ifeq ($(RDFMT),tmpfs)
-	INIT_TASKS += $(USPACEDIR)/srv/fs/tmpfs/tmpfs
-endif
-ifeq ($(RDFMT),fat)
-	INIT_TASKS += $(USPACEDIR)/srv/fs/fat/fat
-endif
+RD_SRVS_ESSENTIAL += \
+	$(USPACE_PATH)/srv/hw/char/i8042/i8042 \
+	$(USPACE_PATH)/srv/hw/irc/apic/apic \
+	$(USPACE_PATH)/srv/hw/irc/i8259/i8259
 
-RD_SRVS = \
-	$(USPACEDIR)/srv/pci/pci \
-	$(USPACEDIR)/srv/fb/fb \
-	$(USPACEDIR)/srv/kbd/kbd \
-	$(USPACEDIR)/srv/console/console \
-	$(USPACEDIR)/srv/fs/devfs/devfs \
-	$(USPACEDIR)/srv/fs/tmpfs/tmpfs \
-	$(USPACEDIR)/srv/fs/fat/fat \
-	$(USPACEDIR)/srv/bd/ata_bd/ata_bd \
-	$(USPACEDIR)/srv/bd/file_bd/file_bd
+RD_SRVS_NON_ESSENTIAL += \
+	$(USPACE_PATH)/srv/bd/ata_bd/ata_bd \
+	$(USPACE_PATH)/srv/hid/char_mouse/char_ms
 
-RD_APPS = \
-	$(USPACEDIR)/app/getvc/getvc \
-	$(USPACEDIR)/app/tetris/tetris \
-	$(USPACEDIR)/app/tester/tester \
-	$(USPACEDIR)/app/trace/trace \
-	$(USPACEDIR)/app/klog/klog \
-	$(USPACEDIR)/app/bdsh/bdsh
+RD_DRVS += \
+	rootpc \
+	pciintel \
+	isa \
+	ns8250
 
-build: $(BASE)/image.iso
+RD_DRV_CFG += \
+	isa/isa.dev
 
-$(BASE)/image.iso: arch/$(BARCH)/grub/stage2_eltorito arch/$(BARCH)/grub/menu.lst $(KERNELDIR)/kernel.bin $(INIT_TASKS) $(RD_SRVS) $(RD_APPS)
-	mkdir -p $(TMP)/boot/grub
-	cp arch/$(BARCH)/grub/stage2_eltorito $(TMP)/boot/grub/
-ifneq ($(RDFMT),tmpfs)
-	cat arch/$(BARCH)/grub/menu.lst | grep -v "tmpfs" > $(TMP)/boot/grub/menu.lst
-endif
-ifneq ($(RDFMT),fat)
-	cat arch/$(BARCH)/grub/menu.lst | grep -v "fat" > $(TMP)/boot/grub/menu.lst
-endif
-	cp $(KERNELDIR)/kernel.bin $(TMP)/boot/
-	for task in $(INIT_TASKS) ; do \
-		cp $$task $(TMP)/boot/ ; \
-	done
-	for file in $(RD_SRVS) ; do \
-		cp $$file $(USPACEDIR)/dist/srv/ ; \
-	done
-	for file in $(RD_APPS) ; do \
-		cp $$file $(USPACEDIR)/dist/app/ ; \
-	done
-ifeq ($(RDFMT),tmpfs)
-	$(BASE)/tools/mktmpfs.py $(USPACEDIR)/dist/ $(TMP)/boot/initrd.fs
-endif
-ifeq ($(RDFMT),fat)
-	$(BASE)/tools/mkfat.py $(USPACEDIR)/dist/ $(TMP)/boot/initrd.fs
-endif
-	$(BASE)/tools/mkhord.py 4096 $(TMP)/boot/initrd.fs $(TMP)/boot/initrd.img
-	rm $(TMP)/boot/initrd.fs
-	mkisofs -J -r -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4 -boot-info-table -o $@ $(TMP)/
-
-clean:
-	-for file in $(RD_SRVS) ; do \
-		rm -f $(USPACEDIR)/dist/srv/`basename $$file` ; \
-	done
-	-for file in $(RD_APPS) ; do \
-		rm -f $(USPACEDIR)/dist/app/`basename $$file` ; \
-	done
-	-rm -fr $(TMP)
-	-rm -f $(BASE)/image.iso
+BOOT_OUTPUT = $(ROOT_PATH)/image.iso
+PREBUILD = $(INITRD).img
+BUILD = Makefile.grub

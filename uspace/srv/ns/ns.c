@@ -36,49 +36,14 @@
  */
 
 #include <ipc/ipc.h>
-#include <ipc/services.h>
 #include <ipc/ns.h>
-#include <unistd.h>
 #include <stdio.h>
 #include <errno.h>
-#include <as.h>
-#include <ddi.h>
-#include <event.h>
 #include <macros.h>
-#include <sysinfo.h>
 #include "ns.h"
 #include "service.h"
 #include "clonable.h"
 #include "task.h"
-
-static void *clockaddr = NULL;
-static void *klogaddr = NULL;
-
-static void get_as_area(ipc_callid_t callid, ipc_call_t *call, void *ph_addr,
-    size_t pages, void **addr)
-{
-	if (ph_addr == NULL) {
-		ipc_answer_0(callid, ENOENT);
-		return;
-	}
-	
-	if (*addr == NULL) {
-		*addr = as_get_mappable_page(pages * PAGE_SIZE);
-		
-		if (*addr == NULL) {
-			ipc_answer_0(callid, ENOENT);
-			return;
-		}
-		
-		if (physmem_map(ph_addr, *addr, pages,
-		    AS_AREA_READ | AS_AREA_CACHEABLE) != 0) {
-			ipc_answer_0(callid, ENOENT);
-			return;
-		}
-	}
-	
-	ipc_answer_2(callid, EOK, (ipcarg_t) *addr, AS_AREA_READ);
-}
 
 int main(int argc, char **argv)
 {
@@ -96,7 +61,7 @@ int main(int argc, char **argv)
 	if (rc != EOK)
 		return rc;
 	
-	printf(NAME ": Accepting connections\n");
+	printf("%s: Accepting connections\n", NAME);
 	
 	while (true) {
 		process_pending_conn();
@@ -106,25 +71,9 @@ int main(int argc, char **argv)
 		ipc_callid_t callid = ipc_wait_for_call(&call);
 		
 		task_id_t id;
-		ipcarg_t retval;
+		sysarg_t retval;
 		
-		switch (IPC_GET_METHOD(call)) {
-		case IPC_M_SHARE_IN:
-			switch (IPC_GET_ARG3(call)) {
-			case SERVICE_MEM_REALTIME:
-				get_as_area(callid, &call,
-				    (void *) sysinfo_value("clock.faddr"),
-				    1, &clockaddr);
-				break;
-			case SERVICE_MEM_KLOG:
-				get_as_area(callid, &call,
-				    (void *) sysinfo_value("klog.faddr"),
-				    sysinfo_value("klog.pages"), &klogaddr);
-				break;
-			default:
-				ipc_answer_0(callid, ENOENT);
-			}
-			continue;
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			retval = ns_task_disconnect(&call);
 			break;

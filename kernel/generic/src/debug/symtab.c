@@ -37,22 +37,23 @@
 
 #include <symtab.h>
 #include <byteorder.h>
-#include <string.h>
+#include <str.h>
 #include <print.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <typedefs.h>
 #include <errno.h>
 
 /** Get name of a symbol that seems most likely to correspond to address.
  *
- * @param addr Address.
- * @param name Place to store pointer to the symbol name.
+ * @param addr   Address.
+ * @param name   Place to store pointer to the symbol name.
+ * @param offset Place to store offset from the symbol address.
  *
  * @return Zero on success or negative error code, ENOENT if not found,
  *         ENOTSUP if symbol table not available.
  *
  */
-int symtab_name_lookup(unative_t addr, char **name)
+int symtab_name_lookup(uintptr_t addr, const char **name, uintptr_t *offset)
 {
 #ifdef CONFIG_SYMTAB
 	size_t i;
@@ -64,6 +65,9 @@ int symtab_name_lookup(unative_t addr, char **name)
 	
 	if (addr >= uint64_t_le2host(symbol_table[i - 1].address_le)) {
 		*name = symbol_table[i - 1].symbol_name;
+		if (offset)
+			*offset = addr -
+			    uint64_t_le2host(symbol_table[i - 1].address_le);
 		return EOK;
 	}
 	
@@ -78,8 +82,9 @@ int symtab_name_lookup(unative_t addr, char **name)
 
 /** Lookup symbol by address and format for display.
  *
- * Returns name of closest corresponding symbol, "Not found" if none exists
- * or "N/A" if no symbol information is available.
+ * Returns name of closest corresponding symbol,
+ * "unknown" if none exists and "N/A" if no symbol
+ * information is available.
  *
  * @param addr Address.
  * @param name Place to store pointer to the symbol name.
@@ -87,16 +92,16 @@ int symtab_name_lookup(unative_t addr, char **name)
  * @return Pointer to a human-readable string.
  *
  */
-char *symtab_fmt_name_lookup(unative_t addr)
+const char *symtab_fmt_name_lookup(uintptr_t addr)
 {
-	char *name;
-	int rc = symtab_name_lookup(addr, &name);
+	const char *name;
+	int rc = symtab_name_lookup(addr, &name, NULL);
 	
 	switch (rc) {
 	case EOK:
 		return name;
 	case ENOENT:
-		return "Not found";
+		return "unknown";
 	default:
 		return "N/A";
 	}
@@ -186,7 +191,7 @@ void symtab_print_search(const char *name)
 	while (symtab_search_one(name, &pos)) {
 		uintptr_t addr = uint64_t_le2host(symbol_table[pos].address_le);
 		char *realname = symbol_table[pos].symbol_name;
-		printf("%p: %s\n", addr, realname);
+		printf("%p: %s\n", (void *) addr, realname);
 		pos++;
 	}
 	
@@ -234,7 +239,7 @@ int symtab_compl(char *input, size_t size)
 	if ((found > 1) && (str_length(output) != 0)) {
 		printf("\n");
 		pos = 0;
-		while ((hint = symtab_search_one(name, &pos))) {
+		while (symtab_search_one(name, &pos)) {
 			printf("%s\n", symbol_table[pos].symbol_name);
 			pos++;
 		}

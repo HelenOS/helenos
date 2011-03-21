@@ -29,7 +29,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <str.h>
 #include <vfs/vfs.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -39,12 +39,7 @@
 #include <sys/stat.h>
 #include "../tester.h"
 
-#define FS_TYPE      "tmpfs"
-#define MOUNT_POINT  "/tmp"
-#define OPTIONS      ""
-#define FLAGS        0
-
-#define TEST_DIRECTORY  MOUNT_POINT "/testdir"
+#define TEST_DIRECTORY  "/tmp/testdir"
 #define TEST_FILE       TEST_DIRECTORY "/testfile"
 #define TEST_FILE2      TEST_DIRECTORY "/nextfile"
 
@@ -53,7 +48,7 @@
 
 static char text[] = "Lorem ipsum dolor sit amet, consectetur adipisicing elit";
 
-static char *read_root(void)
+static const char *read_root(void)
 {
 	TPRINTF("Opening the root directory...");
 	
@@ -72,34 +67,13 @@ static char *read_root(void)
 	return NULL;
 }
 
-char *test_vfs1(void)
+const char *test_vfs1(void)
 {
-	if (mkdir(MOUNT_POINT, 0) != 0)
+	int rc;
+	if ((rc = mkdir(TEST_DIRECTORY, 0)) != 0) {
+		TPRINTF("rc=%d\n", rc);
 		return "mkdir() failed";
-	TPRINTF("Created directory %s\n", MOUNT_POINT);
-	
-	char null[MAX_DEVICE_NAME];
-	int null_id = devmap_null_create();
-	
-	if (null_id == -1)
-		return "Unable to create null device";
-	
-	snprintf(null, MAX_DEVICE_NAME, "null%d", null_id);
-	int rc = mount(FS_TYPE, MOUNT_POINT, null, OPTIONS, FLAGS);
-	switch (rc) {
-	case EOK:
-		TPRINTF("Mounted /dev/%s as %s on %s\n", null, FS_TYPE, MOUNT_POINT);
-		break;
-	case EBUSY:
-		TPRINTF("(INFO) Filesystem already mounted on %s\n", MOUNT_POINT);
-		break;
-	default:
-		TPRINTF("(ERR) IPC returned errno %d (is tmpfs loaded?)\n", rc);
-		return "mount() failed";
 	}
-	
-	if (mkdir(TEST_DIRECTORY, 0) != 0)
-		return "mkdir() failed";
 	TPRINTF("Created directory %s\n", TEST_DIRECTORY);
 	
 	int fd0 = open(TEST_FILE, O_CREAT);
@@ -111,7 +85,7 @@ char *test_vfs1(void)
 	ssize_t cnt = write(fd0, text, size);
 	if (cnt < 0)
 		return "write() failed";
-	TPRINTF("Written %d bytes\n", cnt);
+	TPRINTF("Written %zd bytes\n", cnt);
 	
 	if (lseek(fd0, 0, SEEK_SET) != 0)
 		return "lseek() failed";
@@ -122,12 +96,18 @@ char *test_vfs1(void)
 		if (cnt < 0)
 			return "read() failed";
 		
-		TPRINTF("Read %d bytes: \".*s\"\n", cnt, cnt, buf);
+		int _cnt = (int) cnt;
+		if (_cnt != cnt) {
+			/* Count overflow, just to be sure. */
+			TPRINTF("Read %zd bytes\n", cnt);
+		} else {
+			TPRINTF("Read %zd bytes: \"%.*s\"\n", cnt, _cnt, buf);
+		}
 	}
 	
 	close(fd0);
 	
-	char *rv = read_root();
+	const char *rv = read_root();
 	if (rv != NULL)
 		return rv;
 	

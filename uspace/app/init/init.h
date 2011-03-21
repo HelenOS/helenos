@@ -38,8 +38,6 @@
 
 #define NAME  "init"
 
-#define MAX_DEVICE_NAME  32
-
 #endif
 
 /** @}

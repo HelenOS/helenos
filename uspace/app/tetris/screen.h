@@ -48,15 +48,16 @@
 
 #include <sys/types.h>
 #include <async.h>
+#include <bool.h>
 
 typedef struct {
-	ipcarg_t ws_row;
-	ipcarg_t ws_col;
+	sysarg_t ws_row;
+	sysarg_t ws_col;
 } winsize_t;
 
 extern winsize_t winsize;
 
-extern void moveto(int r, int c);
+extern void moveto(sysarg_t r, sysarg_t c);
 extern void clear_screen(void);
 
 /* just calls putchar; for tputs */
@@ -64,7 +65,7 @@ extern int put(int);
 extern void scr_clear(void);
 extern void scr_end(void);
 extern void scr_init(void);
-extern void scr_msg(char *, int);
+extern void scr_msg(char *, bool);
 extern void scr_set(void);
 extern void scr_update(void);
 

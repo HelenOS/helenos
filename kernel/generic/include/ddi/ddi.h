@@ -36,30 +36,29 @@
 #define KERN_DDI_H_
 
 #include <ddi/ddi_arg.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <proc/task.h>
 #include <adt/list.h>
 
 /** Structure representing contiguous physical memory area. */
 typedef struct {
-	uintptr_t pbase;    /**< Physical base of the area. */
-	pfn_t frames;       /**< Number of frames in the area. */
+	link_t link;      /**< Linked list link */
 	
-	link_t link;        /**< Linked list link */
+	uintptr_t pbase;  /**< Physical base of the area. */
+	pfn_t frames;     /**< Number of frames in the area. */
+	bool unpriv;      /**< Allow mapping by unprivileged tasks. */
 } parea_t;
 
 extern void ddi_init(void);
-extern void ddi_parea_register(parea_t *parea);
+extern void ddi_parea_register(parea_t *);
 
-extern unative_t sys_physmem_map(unative_t phys_base, unative_t virt_base,
-	unative_t pages, unative_t flags);
-extern unative_t sys_iospace_enable(ddi_ioarg_t *uspace_io_arg);
-extern unative_t sys_preempt_control(int enable);
+extern sysarg_t sys_physmem_map(sysarg_t, sysarg_t, sysarg_t, sysarg_t);
+extern sysarg_t sys_iospace_enable(ddi_ioarg_t *);
 
 /*
  * Interface to be implemented by all architectures.
  */
-extern int ddi_iospace_enable_arch(task_t *task, uintptr_t ioaddr, size_t size);
+extern int ddi_iospace_enable_arch(task_t *, uintptr_t, size_t);
 
 #endif
 

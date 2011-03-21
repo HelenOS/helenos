@@ -1,0 +1,11 @@
+(
+	tentative {
+		[fnc.vp_switch] ;
+		[fnc.set_rgb_color] ;
+		[fnc.clear] ;
+		[fnc.draw_pixmap] ;
+		[fnc.draw_pixmap] ;
+		[fnc.redraw_state]* ;
+		[fnc.vp_switch]
+	}
+)

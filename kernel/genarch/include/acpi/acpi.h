@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genarch	
+/** @addtogroup genarch
  * @{
  */
 /** @file
@@ -35,7 +35,7 @@
 #ifndef KERN_ACPI_H_
 #define KERN_ACPI_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 /* Root System Description Pointer */
 struct acpi_rsdp {
@@ -61,25 +61,25 @@ struct acpi_sdt_header {
 	uint32_t oem_revision;
 	uint32_t creator_id;
 	uint32_t creator_revision;
-} __attribute__ ((packed));;
+} __attribute__ ((packed));
 
 struct acpi_signature_map {
 	uint8_t *signature;
 	struct acpi_sdt_header **sdt_ptr;
-	char *description;
+	const char *description;
 };
 
 /* Root System Description Table */
 struct acpi_rsdt {
 	struct acpi_sdt_header header;
 	uint32_t entry[];
-} __attribute__ ((packed));;
+} __attribute__ ((packed));
 
 /* Extended System Description Table */
 struct acpi_xsdt {
 	struct acpi_sdt_header header;
 	uint64_t entry[];
-} __attribute__ ((packed));;
+} __attribute__ ((packed));
 
 extern struct acpi_rsdp *acpi_rsdp;
 extern struct acpi_rsdt *acpi_rsdt;

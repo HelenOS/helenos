@@ -36,12 +36,12 @@
 #include <console/console.h>
 #include <console/chardev.h>
 #include <sysinfo/sysinfo.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <proc/thread.h>
 #include <synch/spinlock.h>
 #include <arch/asm.h>
 #include <arch/drivers/kbd.h>
-#include <string.h>
+#include <str.h>
 #include <arch.h>
 
 enum {
@@ -215,7 +215,7 @@ outdev_t *skiout_init(void)
 		 * This is the necessary evil until the userspace driver is entirely
 		 * self-sufficient.
 		 */
-		sysinfo_set_item_val("fb", NULL, false);
+		sysinfo_set_item_val("fb.kind", NULL, 6);
 		
 		fb_exported = true;
 	}

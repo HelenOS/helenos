@@ -36,7 +36,7 @@
 
 #include <arch.h>
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 #include <arch/pm.h>
 
@@ -67,6 +67,7 @@
 #include <console/console.h>
 #include <sysinfo/sysinfo.h>
 #include <arch/boot/boot.h>
+#include <memstr.h>
 
 #ifdef CONFIG_SMP
 #include <arch/smp/apic.h>
@@ -137,7 +138,7 @@ void arch_post_mm_init(void)
 void arch_post_cpu_init()
 {
 #ifdef CONFIG_SMP
-        if (config.cpu_active > 1) {
+	if (config.cpu_active > 1) {
 		l_apic_init();
 		l_apic_debug();
 	}
@@ -155,6 +156,12 @@ void arch_pre_smp_init(void)
 
 void arch_post_smp_init(void)
 {
+	/* Currently the only supported platform for ia32 is 'pc'. */
+	static const char *platform = "pc";
+
+	sysinfo_set_item_data("platform", NULL, (void *) platform,
+	    str_size(platform));
+
 #ifdef CONFIG_PC_KBD
 	/*
 	 * Initialize the i8042 controller. Then initialize the keyboard
@@ -168,6 +175,7 @@ void arch_post_smp_init(void)
 			indev_t *kbrd = kbrd_wire(kbrd_instance, sink);
 			i8042_wire(i8042_instance, kbrd);
 			trap_virtual_enable_irqs(1 << IRQ_KBD);
+			trap_virtual_enable_irqs(1 << IRQ_MOUSE);
 		}
 	}
 	
@@ -175,13 +183,19 @@ void arch_post_smp_init(void)
 	 * This is the necessary evil until the userspace driver is entirely
 	 * self-sufficient.
 	 */
-	sysinfo_set_item_val("kbd", NULL, true);
-	sysinfo_set_item_val("kbd.inr", NULL, IRQ_KBD);
-	sysinfo_set_item_val("kbd.address.physical", NULL,
+	sysinfo_set_item_val("i8042", NULL, true);
+	sysinfo_set_item_val("i8042.inr_a", NULL, IRQ_KBD);
+	sysinfo_set_item_val("i8042.inr_b", NULL, IRQ_MOUSE);
+	sysinfo_set_item_val("i8042.address.physical", NULL,
 	    (uintptr_t) I8042_BASE);
-	sysinfo_set_item_val("kbd.address.kernel", NULL,
+	sysinfo_set_item_val("i8042.address.kernel", NULL,
 	    (uintptr_t) I8042_BASE);
 #endif
+	
+	if (irqs_info != NULL)
+		sysinfo_set_item_val(irqs_info, NULL, true);
+	
+	sysinfo_set_item_val("netif.ne2000.inr", NULL, IRQ_NE2000);
 }
 
 void calibrate_delay_loop(void)
@@ -201,7 +215,7 @@ void calibrate_delay_loop(void)
  * TLS pointer is set in GS register. That means, the GS contains
  * selector, and the descriptor->base is the correct address.
  */
-unative_t sys_tls_set(unative_t addr)
+sysarg_t sys_tls_set(sysarg_t addr)
 {
 	THREAD->arch.tls = addr;
 	set_tls_desc(addr);
@@ -228,6 +242,11 @@ void arch_reboot(void)
 #ifdef CONFIG_PC_KBD
 	i8042_cpu_reset((i8042_t *) I8042_BASE);
 #endif
+}
+
+void irq_initialize_arch(irq_t *irq)
+{
+	(void) irq;
 }
 
 /** @}

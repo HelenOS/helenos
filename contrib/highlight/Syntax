@@ -1,0 +1,5 @@
+file ..\*\\.(bp|BP)$ Behavior\sProtocol 
+include bp.syntax
+
+file ..\*\\.(adl|ADP)$ Architecture\sDescription\sLanguage
+include adl.syntax

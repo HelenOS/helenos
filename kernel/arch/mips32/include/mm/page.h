@@ -36,6 +36,7 @@
 #define KERN_mips32_PAGE_H_
 
 #include <arch/mm/frame.h>
+#include <trace.h>
 
 #define PAGE_WIDTH	FRAME_WIDTH
 #define PAGE_SIZE	FRAME_SIZE
@@ -140,7 +141,21 @@
 #include <mm/mm.h>
 #include <arch/exception.h>
 
-static inline int get_pt_flags(pte_t *pt, size_t i)
+/** Page Table Entry. */
+typedef struct {
+	unsigned g : 1;			/**< Global bit. */
+	unsigned p : 1;			/**< Present bit. */
+	unsigned d : 1;			/**< Dirty bit. */
+	unsigned cacheable : 1;		/**< Cacheable bit. */
+	unsigned : 1;			/**< Unused. */
+	unsigned soft_valid : 1;	/**< Valid content even if not present. */
+	unsigned pfn : 24;		/**< Physical frame number. */
+	unsigned w : 1;			/**< Page writable bit. */
+	unsigned a : 1;			/**< Accessed bit. */
+} pte_t;
+
+
+NO_TRACE static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
 {
 	pte_t *p = &pt[i];
 	
@@ -153,7 +168,7 @@ static inline int get_pt_flags(pte_t *pt, size_t i)
 	    (p->g << PAGE_GLOBAL_SHIFT));
 }
 
-static inline void set_pt_flags(pte_t *pt, size_t i, int flags)
+NO_TRACE static inline void set_pt_flags(pte_t *pt, size_t i, int flags)
 {
 	pte_t *p = &pt[i];
 	

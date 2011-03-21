@@ -1,0 +1,46 @@
+(
+	?ipc_m_connect_me_to ;
+	(
+		?mounted {
+			?ipc_m_data_write /* mount options */ ;
+			tentative {
+				[fnc.tmpfs_restore]
+			}
+		} +
+		
+		?mount {
+			[/uspace/lib/libfs/fnc.libfs_mount]
+		} +
+		
+		?lookup {
+			[/uspace/lib/libfs/fnc.libfs_lookup]
+		} +
+		
+		?open_node {
+			[/uspace/lib/libfs/fnc.libfs_open_node]
+		} +
+		
+		?read {
+			tentative {
+				?ipc_m_data_read /* payload */
+			}
+		} +
+		
+		?write {
+			tentative {
+				?ipc_m_data_write /* payload */
+			}
+		} +
+		
+		?stat {
+			[/uspace/lib/libfs/fnc.libfs_stat]
+		} +
+		
+		?truncate +
+		?close +
+		?destroy +
+		?sync
+	)* ;
+	?ipc_m_phone_hungup
+)* ;
+!vfs.ipc_m_phone_hungup

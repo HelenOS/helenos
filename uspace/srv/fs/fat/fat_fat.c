@@ -45,8 +45,19 @@
 #include <byteorder.h>
 #include <align.h>
 #include <assert.h>
-#include <fibril_sync.h>
+#include <fibril_synch.h>
 #include <mem.h>
+
+/*
+ * Convenience macros for computing some frequently used values from the
+ * primitive boot sector members.
+ */
+#define RDS(bs)		((sizeof(fat_dentry_t) * RDE((bs))) / BPS((bs))) + \
+			(((sizeof(fat_dentry_t) * RDE((bs))) % BPS((bs))) != 0)
+#define SSA(bs)		(RSCNT((bs)) + FATCNT((bs)) * SF((bs)) + RDS(bs))
+
+#define CLBN2PBN(bs, cl, bn) \
+	(SSA((bs)) + ((cl) - FAT_CLST_FIRST) * SPC((bs)) + (bn) % SPC((bs)))
 
 /**
  * The fat_alloc_lock mutex protects all copies of the File Allocation Table
@@ -58,106 +69,174 @@ static FIBRIL_MUTEX_INITIALIZE(fat_alloc_lock);
 /** Walk the cluster chain.
  *
  * @param bs		Buffer holding the boot sector for the file.
- * @param dev_handle	Device handle of the device with the file.
+ * @param devmap_handle	Device handle of the device with the file.
  * @param firstc	First cluster to start the walk with.
- * @param lastc		If non-NULL, output argument hodling the last cluster number visited.
+ * @param lastc		If non-NULL, output argument hodling the last cluster
+ *			number visited.
+ * @param numc		If non-NULL, output argument holding the number of
+ *			clusters seen during the walk.
  * @param max_clusters	Maximum number of clusters to visit.	
  *
- * @return		Number of clusters seen during the walk.
+ * @return		EOK on success or a negative error code.
  */
-uint16_t 
-fat_cluster_walk(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t firstc,
-    fat_cluster_t *lastc, uint16_t max_clusters)
+int 
+fat_cluster_walk(fat_bs_t *bs, devmap_handle_t devmap_handle, fat_cluster_t firstc,
+    fat_cluster_t *lastc, uint16_t *numc, uint16_t max_clusters)
 {
 	block_t *b;
-	unsigned bps;
-	unsigned rscnt;		/* block address of the first FAT */
 	uint16_t clusters = 0;
 	fat_cluster_t clst = firstc;
-
-	bps = uint16_t_le2host(bs->bps);
-	rscnt = uint16_t_le2host(bs->rscnt);
+	int rc;
 
 	if (firstc == FAT_CLST_RES0) {
 		/* No space allocated to the file. */
 		if (lastc)
 			*lastc = firstc;
-		return 0;
+		if (numc)
+			*numc = 0;
+		return EOK;
 	}
 
 	while (clst < FAT_CLST_LAST1 && clusters < max_clusters) {
-		bn_t fsec;	/* sector offset relative to FAT1 */
+		aoff64_t fsec;	/* sector offset relative to FAT1 */
 		unsigned fidx;	/* FAT1 entry index */
 
 		assert(clst >= FAT_CLST_FIRST);
 		if (lastc)
 			*lastc = clst;	/* remember the last cluster number */
-		fsec = (clst * sizeof(fat_cluster_t)) / bps;
-		fidx = clst % (bps / sizeof(fat_cluster_t));
+		fsec = (clst * sizeof(fat_cluster_t)) / BPS(bs);
+		fidx = clst % (BPS(bs) / sizeof(fat_cluster_t));
 		/* read FAT1 */
-		b = block_get(dev_handle, rscnt + fsec, BLOCK_FLAGS_NONE);
+		rc = block_get(&b, devmap_handle, RSCNT(bs) + fsec,
+		    BLOCK_FLAGS_NONE);
+		if (rc != EOK)
+			return rc;
 		clst = uint16_t_le2host(((fat_cluster_t *)b->data)[fidx]);
 		assert(clst != FAT_CLST_BAD);
-		block_put(b);
+		rc = block_put(b);
+		if (rc != EOK)
+			return rc;
 		clusters++;
 	}
 
 	if (lastc && clst < FAT_CLST_LAST1)
 		*lastc = clst;
+	if (numc)
+		*numc = clusters;
 
-	return clusters;
+	return EOK;
 }
 
 /** Read block from file located on a FAT file system.
  *
+ * @param block		Pointer to a block pointer for storing result.
  * @param bs		Buffer holding the boot sector of the file system.
- * @param dev_handle	Device handle of the file system.
- * @param firstc	First cluster used by the file. Can be zero if the file
- *			is empty.
+ * @param nodep		FAT node.
  * @param bn		Block number.
  * @param flags		Flags passed to libblock.
  *
- * @return		Block structure holding the requested block.
+ * @return		EOK on success or a negative error code.
  */
-block_t *
-_fat_block_get(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t firstc,
-    bn_t bn, int flags)
+int
+fat_block_get(block_t **block, struct fat_bs *bs, fat_node_t *nodep,
+    aoff64_t bn, int flags)
 {
-	block_t *b;
-	unsigned bps;
-	unsigned rscnt;		/* block address of the first FAT */
-	unsigned rde;
-	unsigned rds;		/* root directory size */
-	unsigned sf;
-	unsigned ssa;		/* size of the system area */
-	unsigned clusters, max_clusters;
-	fat_cluster_t lastc;
+	fat_cluster_t firstc = nodep->firstc;
+	fat_cluster_t currc;
+	aoff64_t relbn = bn;
+	int rc;
 
-	bps = uint16_t_le2host(bs->bps);
-	rscnt = uint16_t_le2host(bs->rscnt);
-	rde = uint16_t_le2host(bs->root_ent_max);
-	sf = uint16_t_le2host(bs->sec_per_fat);
+	if (!nodep->size)
+		return ELIMIT;
 
-	rds = (sizeof(fat_dentry_t) * rde) / bps;
-	rds += ((sizeof(fat_dentry_t) * rde) % bps != 0);
-	ssa = rscnt + bs->fatcnt * sf + rds;
+	if (nodep->firstc == FAT_CLST_ROOT) 
+		goto fall_through;
 
-	if (firstc == FAT_CLST_ROOT) {
-		/* root directory special case */
-		assert(bn < rds);
-		b = block_get(dev_handle, rscnt + bs->fatcnt * sf + bn, flags);
-		return b;
+	if (((((nodep->size - 1) / BPS(bs)) / SPC(bs)) == bn / SPC(bs)) &&
+	    nodep->lastc_cached_valid) {
+	    	/*
+		 * This is a request to read a block within the last cluster
+		 * when fortunately we have the last cluster number cached.
+		 */
+		return block_get(block, nodep->idx->devmap_handle,
+		    CLBN2PBN(bs, nodep->lastc_cached_value, bn), flags);
 	}
 
-	max_clusters = bn / bs->spc;
-	clusters = fat_cluster_walk(bs, dev_handle, firstc, &lastc,
-	    max_clusters);
+	if (nodep->currc_cached_valid && bn >= nodep->currc_cached_bn) {
+		/*
+		 * We can start with the cluster cached by the previous call to
+		 * fat_block_get().
+		 */
+		firstc = nodep->currc_cached_value;
+		relbn -= (nodep->currc_cached_bn / SPC(bs)) * SPC(bs);
+	}
+
+fall_through:
+	rc = _fat_block_get(block, bs, nodep->idx->devmap_handle, firstc,
+	    &currc, relbn, flags);
+	if (rc != EOK)
+		return rc;
+	
+	/*
+	 * Update the "current" cluster cache.
+	 */
+	nodep->currc_cached_valid = true;
+	nodep->currc_cached_bn = bn;
+	nodep->currc_cached_value = currc;
+
+	return rc;
+}
+
+/** Read block from file located on a FAT file system.
+ *
+ * @param block		Pointer to a block pointer for storing result.
+ * @param bs		Buffer holding the boot sector of the file system.
+ * @param devmap_handle	Device handle of the file system.
+ * @param fcl		First cluster used by the file. Can be zero if the file
+ *			is empty.
+ * @param clp		If not NULL, address where the cluster containing bn
+ *			will be stored.
+ *			stored 
+ * @param bn		Block number.
+ * @param flags		Flags passed to libblock.
+ *
+ * @return		EOK on success or a negative error code.
+ */
+int
+_fat_block_get(block_t **block, fat_bs_t *bs, devmap_handle_t devmap_handle,
+    fat_cluster_t fcl, fat_cluster_t *clp, aoff64_t bn, int flags)
+{
+	uint16_t clusters;
+	unsigned max_clusters;
+	fat_cluster_t c;
+	int rc;
+
+	/*
+	 * This function can only operate on non-zero length files.
+	 */
+	if (fcl == FAT_CLST_RES0)
+		return ELIMIT;
+
+	if (fcl == FAT_CLST_ROOT) {
+		/* root directory special case */
+		assert(bn < RDS(bs));
+		rc = block_get(block, devmap_handle,
+		    RSCNT(bs) + FATCNT(bs) * SF(bs) + bn, flags);
+		return rc;
+	}
+
+	max_clusters = bn / SPC(bs);
+	rc = fat_cluster_walk(bs, devmap_handle, fcl, &c, &clusters, max_clusters);
+	if (rc != EOK)
+		return rc;
 	assert(clusters == max_clusters);
 
-	b = block_get(dev_handle, ssa + (lastc - FAT_CLST_FIRST) * bs->spc +
-	    bn % bs->spc, flags);
+	rc = block_get(block, devmap_handle, CLBN2PBN(bs, c, bn), flags);
 
-	return b;
+	if (clp)
+		*clp = c;
+
+	return rc;
 }
 
 /** Fill the gap between EOF and a new file position.
@@ -169,121 +248,137 @@ _fat_block_get(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t firstc,
  *			chain. If pos is still in the last allocated cluster,
  *			this argument is ignored.
  * @param pos		Position in the last node block.
+ *
+ * @return		EOK on success or a negative error code.
  */
-void fat_fill_gap(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl, off_t pos)
+int fat_fill_gap(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl, aoff64_t pos)
 {
-	uint16_t bps;
-	unsigned spc;
 	block_t *b;
-	off_t o, boundary;
+	aoff64_t o, boundary;
+	int rc;
 
-	bps = uint16_t_le2host(bs->bps);
-	spc = bs->spc;
-	
-	boundary = ROUND_UP(nodep->size, bps * spc);
+	boundary = ROUND_UP(nodep->size, BPS(bs) * SPC(bs));
 
 	/* zero out already allocated space */
 	for (o = nodep->size; o < pos && o < boundary;
-	    o = ALIGN_DOWN(o + bps, bps)) {
-	    	int flags = (o % bps == 0) ?
+	    o = ALIGN_DOWN(o + BPS(bs), BPS(bs))) {
+	    	int flags = (o % BPS(bs) == 0) ?
 		    BLOCK_FLAGS_NOREAD : BLOCK_FLAGS_NONE;
-		b = fat_block_get(bs, nodep, o / bps, flags);
-		memset(b->data + o % bps, 0, bps - o % bps);
+		rc = fat_block_get(&b, bs, nodep, o / BPS(bs), flags);
+		if (rc != EOK)
+			return rc;
+		memset(b->data + o % BPS(bs), 0, BPS(bs) - o % BPS(bs));
 		b->dirty = true;		/* need to sync node */
-		block_put(b);
+		rc = block_put(b);
+		if (rc != EOK)
+			return rc;
 	}
 	
 	if (o >= pos)
-		return;
+		return EOK;
 	
 	/* zero out the initial part of the new cluster chain */
-	for (o = boundary; o < pos; o += bps) {
-		b = _fat_block_get(bs, nodep->idx->dev_handle, mcl,
-		    (o - boundary) / bps, BLOCK_FLAGS_NOREAD);
-		memset(b->data, 0, min(bps, pos - o));
+	for (o = boundary; o < pos; o += BPS(bs)) {
+		rc = _fat_block_get(&b, bs, nodep->idx->devmap_handle, mcl,
+		    NULL, (o - boundary) / BPS(bs), BLOCK_FLAGS_NOREAD);
+		if (rc != EOK)
+			return rc;
+		memset(b->data, 0, min(BPS(bs), pos - o));
 		b->dirty = true;		/* need to sync node */
-		block_put(b);
+		rc = block_put(b);
+		if (rc != EOK)
+			return rc;
 	}
+
+	return EOK;
 }
 
 /** Get cluster from the first FAT.
  *
  * @param bs		Buffer holding the boot sector for the file system.
- * @param dev_handle	Device handle for the file system.
+ * @param devmap_handle	Device handle for the file system.
  * @param clst		Cluster which to get.
+ * @param value		Output argument holding the value of the cluster.
  *
- * @return		Value found in the cluster.
+ * @return		EOK or a negative error code.
  */
-fat_cluster_t
-fat_get_cluster(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t clst)
+int
+fat_get_cluster(fat_bs_t *bs, devmap_handle_t devmap_handle, unsigned fatno,
+    fat_cluster_t clst, fat_cluster_t *value)
 {
 	block_t *b;
-	uint16_t bps;
-	uint16_t rscnt;
-	fat_cluster_t *cp, value;
+	fat_cluster_t *cp;
+	int rc;
 
-	bps = uint16_t_le2host(bs->bps);
-	rscnt = uint16_t_le2host(bs->rscnt);
-
-	b = block_get(dev_handle, rscnt + (clst * sizeof(fat_cluster_t)) / bps,
-	    BLOCK_FLAGS_NONE);
-	cp = (fat_cluster_t *)b->data + clst % (bps / sizeof(fat_cluster_t));
-	value = uint16_t_le2host(*cp);
-	block_put(b);
+	rc = block_get(&b, devmap_handle, RSCNT(bs) + SF(bs) * fatno +
+	    (clst * sizeof(fat_cluster_t)) / BPS(bs), BLOCK_FLAGS_NONE);
+	if (rc != EOK)
+		return rc;
+	cp = (fat_cluster_t *)b->data +
+	    clst % (BPS(bs) / sizeof(fat_cluster_t));
+	*value = uint16_t_le2host(*cp);
+	rc = block_put(b);
 	
-	return value;
+	return rc;
 }
 
 /** Set cluster in one instance of FAT.
  *
  * @param bs		Buffer holding the boot sector for the file system.
- * @param dev_handle	Device handle for the file system.
+ * @param devmap_handle	Device handle for the file system.
  * @param fatno		Number of the FAT instance where to make the change.
  * @param clst		Cluster which is to be set.
  * @param value		Value to set the cluster with.
+ *
+ * @return		EOK on success or a negative error code.
  */
-void
-fat_set_cluster(fat_bs_t *bs, dev_handle_t dev_handle, unsigned fatno,
+int
+fat_set_cluster(fat_bs_t *bs, devmap_handle_t devmap_handle, unsigned fatno,
     fat_cluster_t clst, fat_cluster_t value)
 {
 	block_t *b;
-	uint16_t bps;
-	uint16_t rscnt;
-	uint16_t sf;
 	fat_cluster_t *cp;
+	int rc;
 
-	bps = uint16_t_le2host(bs->bps);
-	rscnt = uint16_t_le2host(bs->rscnt);
-	sf = uint16_t_le2host(bs->sec_per_fat);
-
-	assert(fatno < bs->fatcnt);
-	b = block_get(dev_handle, rscnt + sf * fatno +
-	    (clst * sizeof(fat_cluster_t)) / bps, BLOCK_FLAGS_NONE);
-	cp = (fat_cluster_t *)b->data + clst % (bps / sizeof(fat_cluster_t));
+	assert(fatno < FATCNT(bs));
+	rc = block_get(&b, devmap_handle, RSCNT(bs) + SF(bs) * fatno +
+	    (clst * sizeof(fat_cluster_t)) / BPS(bs), BLOCK_FLAGS_NONE);
+	if (rc != EOK)
+		return rc;
+	cp = (fat_cluster_t *)b->data +
+	    clst % (BPS(bs) / sizeof(fat_cluster_t));
 	*cp = host2uint16_t_le(value);
 	b->dirty = true;		/* need to sync block */
-	block_put(b);
+	rc = block_put(b);
+	return rc;
 }
 
 /** Replay the allocatoin of clusters in all shadow instances of FAT.
  *
  * @param bs		Buffer holding the boot sector of the file system.
- * @param dev_handle	Device handle of the file system.
+ * @param devmap_handle	Device handle of the file system.
  * @param lifo		Chain of allocated clusters.
  * @param nclsts	Number of clusters in the lifo chain.
+ *
+ * @return		EOK on success or a negative error code.
  */
-void fat_alloc_shadow_clusters(fat_bs_t *bs, dev_handle_t dev_handle,
+int fat_alloc_shadow_clusters(fat_bs_t *bs, devmap_handle_t devmap_handle,
     fat_cluster_t *lifo, unsigned nclsts)
 {
 	uint8_t fatno;
 	unsigned c;
+	int rc;
 
 	for (fatno = FAT1 + 1; fatno < bs->fatcnt; fatno++) {
 		for (c = 0; c < nclsts; c++) {
-			fat_set_cluster(bs, dev_handle, fatno, lifo[c],
+			rc = fat_set_cluster(bs, devmap_handle, fatno, lifo[c],
 			    c == 0 ? FAT_CLST_LAST1 : lifo[c - 1]);
+			if (rc != EOK)
+				return rc;
 		}
 	}
+
+	return EOK;
 }
 
 /** Allocate clusters in all copies of FAT.
@@ -294,7 +389,7 @@ void fat_alloc_shadow_clusters(fat_bs_t *bs, dev_handle_t dev_handle,
  * file yet).
  *
  * @param bs		Buffer holding the boot sector of the file system.
- * @param dev_handle	Device handle of the file system.
+ * @param devmap_handle	Device handle of the file system.
  * @param nclsts	Number of clusters to allocate.
  * @param mcl		Output parameter where the first cluster in the chain
  *			will be returned.
@@ -304,32 +399,45 @@ void fat_alloc_shadow_clusters(fat_bs_t *bs, dev_handle_t dev_handle,
  * @return		EOK on success, a negative error code otherwise.
  */
 int
-fat_alloc_clusters(fat_bs_t *bs, dev_handle_t dev_handle, unsigned nclsts,
+fat_alloc_clusters(fat_bs_t *bs, devmap_handle_t devmap_handle, unsigned nclsts,
     fat_cluster_t *mcl, fat_cluster_t *lcl)
 {
-	uint16_t bps;
-	uint16_t rscnt;
-	uint16_t sf;
 	block_t *blk;
 	fat_cluster_t *lifo;	/* stack for storing free cluster numbers */ 
 	unsigned found = 0;	/* top of the free cluster number stack */
 	unsigned b, c, cl; 
+	int rc;
 
 	lifo = (fat_cluster_t *) malloc(nclsts * sizeof(fat_cluster_t));
 	if (!lifo)
 		return ENOMEM;
 	
-	bps = uint16_t_le2host(bs->bps);
-	rscnt = uint16_t_le2host(bs->rscnt);
-	sf = uint16_t_le2host(bs->sec_per_fat);
-	
 	/*
 	 * Search FAT1 for unused clusters.
 	 */
 	fibril_mutex_lock(&fat_alloc_lock);
-	for (b = 0, cl = 0; b < sf; b++) {
-		blk = block_get(dev_handle, rscnt + b, BLOCK_FLAGS_NONE);
-		for (c = 0; c < bps / sizeof(fat_cluster_t); c++, cl++) {
+	for (b = 0, cl = 0; b < SF(bs); b++) {
+		rc = block_get(&blk, devmap_handle, RSCNT(bs) + b,
+		    BLOCK_FLAGS_NONE);
+		if (rc != EOK)
+			goto error;
+		for (c = 0; c < BPS(bs) / sizeof(fat_cluster_t); c++, cl++) {
+			/*
+			 * Check if the entire cluster is physically there.
+			 * This check becomes necessary when the file system is
+			 * created with fewer total sectors than how many is
+			 * inferred from the size of the file allocation table
+			 * or when the last cluster ends beyond the end of the
+			 * device.
+			 */
+			if ((cl >= FAT_CLST_FIRST) &&
+			    CLBN2PBN(bs, cl, SPC(bs) - 1) >= TS(bs)) {
+				rc = block_put(blk);
+				if (rc != EOK)
+					goto error;
+				goto out;
+			}
+
 			fat_cluster_t *clst = (fat_cluster_t *)blk->data + c;
 			if (uint16_t_le2host(*clst) == FAT_CLST_RES0) {
 				/*
@@ -343,10 +451,14 @@ fat_alloc_clusters(fat_bs_t *bs, dev_handle_t dev_handle, unsigned nclsts,
 				blk->dirty = true;	/* need to sync block */
 				if (++found == nclsts) {
 					/* we are almost done */
-					block_put(blk);
+					rc = block_put(blk);
+					if (rc != EOK)
+						goto error;
 					/* update the shadow copies of FAT */
-					fat_alloc_shadow_clusters(bs,
-					    dev_handle, lifo, nclsts);
+					rc = fat_alloc_shadow_clusters(bs,
+					    devmap_handle, lifo, nclsts);
+					if (rc != EOK)
+						goto error;
 					*mcl = lifo[found - 1];
 					*lcl = lifo[0];
 					free(lifo);
@@ -355,8 +467,15 @@ fat_alloc_clusters(fat_bs_t *bs, dev_handle_t dev_handle, unsigned nclsts,
 				}
 			}
 		}
-		block_put(blk);
+		rc = block_put(blk);
+		if (rc != EOK) {
+error:
+			fibril_mutex_unlock(&fat_alloc_lock);
+			free(lifo);
+			return rc;
+		}
 	}
+out:
 	fibril_mutex_unlock(&fat_alloc_lock);
 
 	/*
@@ -364,8 +483,12 @@ fat_alloc_clusters(fat_bs_t *bs, dev_handle_t dev_handle, unsigned nclsts,
 	 * we have allocated so far.
 	 */
 	while (found--) {
-		fat_set_cluster(bs, dev_handle, FAT1, lifo[found],
+		rc = fat_set_cluster(bs, devmap_handle, FAT1, lifo[found],
 		    FAT_CLST_RES0);
+		if (rc != EOK) {
+			free(lifo);
+			return rc;
+		}
 	}
 	
 	free(lifo);
@@ -375,24 +498,35 @@ fat_alloc_clusters(fat_bs_t *bs, dev_handle_t dev_handle, unsigned nclsts,
 /** Free clusters forming a cluster chain in all copies of FAT.
  *
  * @param bs		Buffer hodling the boot sector of the file system.
- * @param dev_handle	Device handle of the file system.
+ * @param devmap_handle	Device handle of the file system.
  * @param firstc	First cluster in the chain which is to be freed.
+ *
+ * @return		EOK on success or a negative return code.
  */
-void
-fat_free_clusters(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t firstc)
+int
+fat_free_clusters(fat_bs_t *bs, devmap_handle_t devmap_handle, fat_cluster_t firstc)
 {
 	unsigned fatno;
 	fat_cluster_t nextc;
+	int rc;
 
 	/* Mark all clusters in the chain as free in all copies of FAT. */
 	while (firstc < FAT_CLST_LAST1) {
 		assert(firstc >= FAT_CLST_FIRST && firstc < FAT_CLST_BAD);
-		nextc = fat_get_cluster(bs, dev_handle, firstc);
-		for (fatno = FAT1; fatno < bs->fatcnt; fatno++)
-			fat_set_cluster(bs, dev_handle, fatno, firstc,
+		rc = fat_get_cluster(bs, devmap_handle, FAT1, firstc, &nextc);
+		if (rc != EOK)
+			return rc;
+		for (fatno = FAT1; fatno < bs->fatcnt; fatno++) {
+			rc = fat_set_cluster(bs, devmap_handle, fatno, firstc,
 			    FAT_CLST_RES0);
+			if (rc != EOK)
+				return rc;
+		}
+
 		firstc = nextc;
 	}
+
+	return EOK;
 }
 
 /** Append a cluster chain to the last file cluster in all FATs.
@@ -400,71 +534,198 @@ fat_free_clusters(fat_bs_t *bs, dev_handle_t dev_handle, fat_cluster_t firstc)
  * @param bs		Buffer holding the boot sector of the file system.
  * @param nodep		Node representing the file.
  * @param mcl		First cluster of the cluster chain to append.
+ * @param lcl		Last cluster of the cluster chain to append.
+ *
+ * @return		EOK on success or a negative error code.
  */
-void fat_append_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl)
+int
+fat_append_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t mcl,
+    fat_cluster_t lcl)
 {
-	dev_handle_t dev_handle = nodep->idx->dev_handle;
-	fat_cluster_t lcl;
+	devmap_handle_t devmap_handle = nodep->idx->devmap_handle;
+	fat_cluster_t lastc;
 	uint8_t fatno;
+	int rc;
 
-	if (fat_cluster_walk(bs, dev_handle, nodep->firstc, &lcl,
-	    (uint16_t) -1) == 0) {
+	if (nodep->firstc == FAT_CLST_RES0) {
 		/* No clusters allocated to the node yet. */
 		nodep->firstc = mcl;
-		nodep->dirty = true;		/* need to sync node */
-		return;
+		nodep->dirty = true;	/* need to sync node */
+	} else {
+		if (nodep->lastc_cached_valid) {
+			lastc = nodep->lastc_cached_value;
+			nodep->lastc_cached_valid = false;
+		} else {
+			rc = fat_cluster_walk(bs, devmap_handle, nodep->firstc,
+			    &lastc, NULL, (uint16_t) -1);
+			if (rc != EOK)
+				return rc;
+		}
+
+		for (fatno = FAT1; fatno < bs->fatcnt; fatno++) {
+			rc = fat_set_cluster(bs, nodep->idx->devmap_handle, fatno,
+			    lastc, mcl);
+			if (rc != EOK)
+				return rc;
+		}
 	}
 
-	for (fatno = FAT1; fatno < bs->fatcnt; fatno++)
-		fat_set_cluster(bs, nodep->idx->dev_handle, fatno, lcl, mcl);
+	nodep->lastc_cached_valid = true;
+	nodep->lastc_cached_value = lcl;
+
+	return EOK;
 }
 
 /** Chop off node clusters in all copies of FAT.
  *
  * @param bs		Buffer holding the boot sector of the file system.
  * @param nodep		FAT node where the chopping will take place.
- * @param lastc		Last cluster which will remain in the node. If this
+ * @param lcl		Last cluster which will remain in the node. If this
  *			argument is FAT_CLST_RES0, then all clusters will
  *			be chopped off.
+ *
+ * @return		EOK on success or a negative return code.
  */
-void fat_chop_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t lastc)
+int fat_chop_clusters(fat_bs_t *bs, fat_node_t *nodep, fat_cluster_t lcl)
 {
-	dev_handle_t dev_handle = nodep->idx->dev_handle;
-	if (lastc == FAT_CLST_RES0) {
+	int rc;
+	devmap_handle_t devmap_handle = nodep->idx->devmap_handle;
+
+	/*
+	 * Invalidate cached cluster numbers.
+	 */
+	nodep->lastc_cached_valid = false;
+	if (nodep->currc_cached_value != lcl)
+		nodep->currc_cached_valid = false;
+
+	if (lcl == FAT_CLST_RES0) {
 		/* The node will have zero size and no clusters allocated. */
-		fat_free_clusters(bs, dev_handle, nodep->firstc);
+		rc = fat_free_clusters(bs, devmap_handle, nodep->firstc);
+		if (rc != EOK)
+			return rc;
 		nodep->firstc = FAT_CLST_RES0;
 		nodep->dirty = true;		/* need to sync node */
 	} else {
 		fat_cluster_t nextc;
 		unsigned fatno;
 
-		nextc = fat_get_cluster(bs, dev_handle, lastc);
+		rc = fat_get_cluster(bs, devmap_handle, FAT1, lcl, &nextc);
+		if (rc != EOK)
+			return rc;
 
 		/* Terminate the cluster chain in all copies of FAT. */
-		for (fatno = FAT1; fatno < bs->fatcnt; fatno++)
-			fat_set_cluster(bs, dev_handle, fatno, lastc, FAT_CLST_LAST1);
+		for (fatno = FAT1; fatno < bs->fatcnt; fatno++) {
+			rc = fat_set_cluster(bs, devmap_handle, fatno, lcl,
+			    FAT_CLST_LAST1);
+			if (rc != EOK)
+				return rc;
+		}
 
 		/* Free all following clusters. */
-		fat_free_clusters(bs, dev_handle, nextc);
+		rc = fat_free_clusters(bs, devmap_handle, nextc);
+		if (rc != EOK)
+			return rc;
 	}
+
+	/*
+	 * Update and re-enable the last cluster cache.
+	 */
+	nodep->lastc_cached_valid = true;
+	nodep->lastc_cached_value = lcl;
+
+	return EOK;
 }
 
-void
-fat_zero_cluster(struct fat_bs *bs, dev_handle_t dev_handle, fat_cluster_t c)
+int
+fat_zero_cluster(struct fat_bs *bs, devmap_handle_t devmap_handle, fat_cluster_t c)
 {
 	int i;
 	block_t *b;
-	unsigned bps;
+	int rc;
 
-	bps = uint16_t_le2host(bs->bps);
-	
-	for (i = 0; i < bs->spc; i++) {
-		b = _fat_block_get(bs, dev_handle, c, i, BLOCK_FLAGS_NOREAD);
-		memset(b->data, 0, bps);
+	for (i = 0; i < SPC(bs); i++) {
+		rc = _fat_block_get(&b, bs, devmap_handle, c, NULL, i,
+		    BLOCK_FLAGS_NOREAD);
+		if (rc != EOK)
+			return rc;
+		memset(b->data, 0, BPS(bs));
 		b->dirty = true;
-		block_put(b);
+		rc = block_put(b);
+		if (rc != EOK)
+			return rc;
 	}
+
+	return EOK;
+}
+
+/** Perform basic sanity checks on the file system.
+ *
+ * Verify if values of boot sector fields are sane. Also verify media
+ * descriptor. This is used to rule out cases when a device obviously
+ * does not contain a fat file system.
+ */
+int fat_sanity_check(fat_bs_t *bs, devmap_handle_t devmap_handle)
+{
+	fat_cluster_t e0, e1;
+	unsigned fat_no;
+	int rc;
+
+	/* Check number of FATs. */
+	if (bs->fatcnt == 0)
+		return ENOTSUP;
+
+	/* Check total number of sectors. */
+
+	if (bs->totsec16 == 0 && bs->totsec32 == 0)
+		return ENOTSUP;
+
+	if (bs->totsec16 != 0 && bs->totsec32 != 0 &&
+	    bs->totsec16 != bs->totsec32) 
+		return ENOTSUP;
+
+	/* Check media descriptor. Must be between 0xf0 and 0xff. */
+	if ((bs->mdesc & 0xf0) != 0xf0)
+		return ENOTSUP;
+
+	/* Check number of sectors per FAT. */
+	if (bs->sec_per_fat == 0)
+		return ENOTSUP;
+
+	/*
+	 * Check that the root directory entries take up whole blocks.
+	 * This check is rather strict, but it allows us to treat the root
+	 * directory and non-root directories uniformly in some places.
+	 * It can be removed provided that functions such as fat_read() are
+	 * sanitized to support file systems with this property.
+	 */
+	if ((uint16_t_le2host(bs->root_ent_max) * sizeof(fat_dentry_t)) %
+	    uint16_t_le2host(bs->bps) != 0)
+		return ENOTSUP;
+
+	/* Check signature of each FAT. */
+
+	for (fat_no = 0; fat_no < bs->fatcnt; fat_no++) {
+		rc = fat_get_cluster(bs, devmap_handle, fat_no, 0, &e0);
+		if (rc != EOK)
+			return EIO;
+
+		rc = fat_get_cluster(bs, devmap_handle, fat_no, 1, &e1);
+		if (rc != EOK)
+			return EIO;
+
+		/* Check that first byte of FAT contains the media descriptor. */
+		if ((e0 & 0xff) != bs->mdesc)
+			return ENOTSUP;
+
+		/*
+		 * Check that remaining bits of the first two entries are
+		 * set to one.
+		 */
+		if ((e0 >> 8) != 0xff || e1 != 0xffff)
+			return ENOTSUP;
+	}
+
+	return EOK;
 }
 
 /**

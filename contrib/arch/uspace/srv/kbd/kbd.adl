@@ -1,0 +1,33 @@
+interface kbd extends service {
+		/* Callback connection */
+		sysarg_t ipc_m_connect_to_me(void);
+		
+		/* Yield hardware */
+		sysarg_t yield(void);
+		
+		/* Reclaim hardware */
+		sysarg_t reclaim(void);
+	protocol:
+		[kbd.bp]
+};
+
+interface event {
+		/* Send keyboard event */
+		sysarg_t event(in sysarg_t type, in sysarg_t key, in sysarg_t mods, in sysarg_t char);
+	protocol:
+		[event.bp]
+};
+
+frame kbd {
+	provides:
+		kbd kbd;
+	requires:
+		[/uspace/lib/libc/requires]
+		event event;
+		ns ns;
+	initialization:
+		!ns.ipc_m_connect_to_me /* kbd */ ;
+		!event.event*
+	protocol:
+		[/uspace/lib/libc/protocol]
+};

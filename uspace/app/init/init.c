@@ -36,7 +36,6 @@
 
 #include <stdio.h>
 #include <unistd.h>
-#include <ipc/ipc.h>
 #include <vfs/vfs.h>
 #include <bool.h>
 #include <errno.h>
@@ -45,106 +44,100 @@
 #include <task.h>
 #include <malloc.h>
 #include <macros.h>
-#include <string.h>
+#include <str.h>
 #include <devmap.h>
-#include <config.h>
+#include <str_error.h>
 #include "init.h"
+
+#define ROOT_DEVICE       "bd/initrd"
+#define ROOT_MOUNT_POINT  "/"
+
+#define DEVFS_FS_TYPE      "devfs"
+#define DEVFS_MOUNT_POINT  "/dev"
+
+#define TMPFS_FS_TYPE      "tmpfs"
+#define TMPFS_MOUNT_POINT  "/tmp"
+
+#define DATA_FS_TYPE      "fat"
+#define DATA_DEVICE       "bd/ata1disk0"
+#define DATA_MOUNT_POINT  "/data"
+
+#define SRV_CONSOLE  "/srv/console"
+#define APP_GETTERM  "/app/getterm"
 
 static void info_print(void)
 {
-	printf(NAME ": HelenOS init\n");
+	printf("%s: HelenOS init\n", NAME);
+}
+
+static bool mount_report(const char *desc, const char *mntpt,
+    const char *fstype, const char *dev, int rc)
+{
+	switch (rc) {
+	case EOK:
+		if (dev != NULL)
+			printf("%s: %s mounted on %s (%s at %s)\n", NAME, desc, mntpt,
+			    fstype, dev);
+		else
+			printf("%s: %s mounted on %s (%s)\n", NAME, desc, mntpt, fstype);
+		break;
+	case EBUSY:
+		printf("%s: %s already mounted on %s\n", NAME, desc, mntpt);
+		return false;
+	case ELIMIT:
+		printf("%s: %s limit exceeded\n", NAME, desc);
+		return false;
+	case ENOENT:
+		printf("%s: %s unknown type (%s)\n", NAME, desc, fstype);
+		return false;
+	default:
+		printf("%s: %s not mounted on %s (%s)\n", NAME, desc, mntpt,
+		    str_error(rc));
+		return false;
+	}
+	
+	return true;
 }
 
 static bool mount_root(const char *fstype)
 {
-	char *opts = "";
-	const char *root_dev = "initrd";
+	const char *opts = "";
 	
 	if (str_cmp(fstype, "tmpfs") == 0)
 		opts = "restore";
 	
-	int rc = mount(fstype, "/", root_dev, opts, IPC_FLAG_BLOCKING);
-	
-	switch (rc) {
-	case EOK:
-		printf(NAME ": Root filesystem mounted, %s at %s\n",
-		    fstype, root_dev);
-		break;
-	case EBUSY:
-		printf(NAME ": Root filesystem already mounted\n");
-		return false;
-	case ELIMIT:
-		printf(NAME ": Unable to mount root filesystem\n");
-		return false;
-	case ENOENT:
-		printf(NAME ": Unknown filesystem type (%s)\n", fstype);
-		return false;
-	default:
-		printf(NAME ": Error mounting root filesystem (%d)\n", rc);
-		return false;
-	}
-	
-	return true;
+	int rc = mount(fstype, ROOT_MOUNT_POINT, ROOT_DEVICE, opts,
+	    IPC_FLAG_BLOCKING);
+	return mount_report("Root filesystem", ROOT_MOUNT_POINT, fstype,
+	    ROOT_DEVICE, rc);
 }
 
 static bool mount_devfs(void)
 {
-	char null[MAX_DEVICE_NAME];
-	int null_id = devmap_null_create();
-	
-	if (null_id == -1) {
-		printf(NAME ": Unable to create null device\n");
-		return false;
-	}
-	
-	snprintf(null, MAX_DEVICE_NAME, "null%d", null_id);
-	int rc = mount("devfs", "/dev", null, "", IPC_FLAG_BLOCKING);
-	
-	switch (rc) {
-	case EOK:
-		printf(NAME ": Device filesystem mounted\n");
-		break;
-	case EBUSY:
-		printf(NAME ": Device filesystem already mounted\n");
-		devmap_null_destroy(null_id);
-		return false;
-	case ELIMIT:
-		printf(NAME ": Unable to mount device filesystem\n");
-		devmap_null_destroy(null_id);
-		return false;
-	case ENOENT:
-		printf(NAME ": Unknown filesystem type (devfs)\n");
-		devmap_null_destroy(null_id);
-		return false;
-	default:
-		printf(NAME ": Error mounting device filesystem (%d)\n", rc);
-		devmap_null_destroy(null_id);
-		return false;
-	}
-	
-	return true;
+	int rc = mount(DEVFS_FS_TYPE, DEVFS_MOUNT_POINT, "", "",
+	    IPC_FLAG_BLOCKING);
+	return mount_report("Device filesystem", DEVFS_MOUNT_POINT, DEVFS_FS_TYPE,
+	    NULL, rc);
 }
 
-static void spawn(char *fname)
+static void spawn(const char *fname)
 {
-	char *argv[2];
+	int rc;
 	struct stat s;
 	
 	if (stat(fname, &s) == ENOENT)
 		return;
 	
-	printf(NAME ": Spawning %s\n", fname);
-	
-	argv[0] = fname;
-	argv[1] = NULL;
-	
-	if (!task_spawn(fname, argv))
-		printf(NAME ": Error spawning %s\n", fname);
+	printf("%s: Spawning %s\n", NAME, fname);
+	rc = task_spawnl(NULL, fname, fname, NULL);
+	if (rc != EOK) {
+		printf("%s: Error spawning %s (%s)\n", NAME, fname,
+		    str_error(rc));
+	}
 }
 
-static void srv_start(char *fname)
+static void srv_start(const char *fname)
 {
-	char *argv[2];
 	task_id_t id;
 	task_exit_t texit;
 	int rc, retval;
@@ -153,67 +146,105 @@ static void srv_start(char *fname)
 	if (stat(fname, &s) == ENOENT)
 		return;
 	
-	printf(NAME ": Starting %s\n", fname);
-	
-	argv[0] = fname;
-	argv[1] = NULL;
-	
-	id = task_spawn(fname, argv);
+	printf("%s: Starting %s\n", NAME, fname);
+	rc = task_spawnl(&id, fname, fname, NULL);
 	if (!id) {
-		printf(NAME ": Error spawning %s\n", fname);
+		printf("%s: Error spawning %s (%s)\n", NAME, fname,
+		    str_error(rc));
 		return;
 	}
-
+	
 	rc = task_wait(id, &texit, &retval);
 	if (rc != EOK) {
-		printf(NAME ": Error waiting for %s\n", fname);
+		printf("%s: Error waiting for %s (%s(\n", NAME, fname,
+		    str_error(rc));
+		return;
+	}
+	
+	if (texit != TASK_EXIT_NORMAL) {
+		printf("%s: Server %s failed to start (unexpectedly "
+		    "terminated)\n", NAME, fname);
 		return;
 	}
 
-	if (texit != TASK_EXIT_NORMAL || retval != 0) {
-		printf(NAME ": Server %s failed to start (returned %d)\n",
+	if (retval != 0) {
+		printf("%s: Server %s failed to start (exit code %d)\n", NAME,
 			fname, retval);
 	}
 }
 
-static void getvc(char *dev, char *app)
+static void console(const char *dev)
 {
-	char *argv[4];
-	char vc[MAX_DEVICE_NAME];
+	char hid_in[DEVMAP_NAME_MAXLEN];
 	int rc;
 	
-	snprintf(vc, MAX_DEVICE_NAME, "/dev/%s", dev);
+	snprintf(hid_in, DEVMAP_NAME_MAXLEN, "%s/%s", DEVFS_MOUNT_POINT, dev);
 	
-	printf(NAME ": Spawning getvc on %s\n", vc);
+	printf("%s: Spawning %s %s\n", NAME, SRV_CONSOLE, hid_in);
 	
-	dev_handle_t handle;
+	/* Wait for the input device to be ready */
+	devmap_handle_t handle;
 	rc = devmap_device_get_handle(dev, &handle, IPC_FLAG_BLOCKING);
+	if (rc != EOK) {
+		printf("%s: Error waiting on %s (%s)\n", NAME, hid_in,
+		    str_error(rc));
+		return;
+	}
 	
-	if (rc == EOK) {
-		argv[0] = "/app/getvc";
-		argv[1] = vc;
-		argv[2] = app;
-		argv[3] = NULL;
-		
-		if (!task_spawn("/app/getvc", argv))
-			printf(NAME ": Error spawning getvc on %s\n", vc);
-	} else {
-		printf(NAME ": Error waiting on %s\n", vc);
+	rc = task_spawnl(NULL, SRV_CONSOLE, SRV_CONSOLE, hid_in, NULL);
+	if (rc != EOK) {
+		printf("%s: Error spawning %s %s (%s)\n", NAME, SRV_CONSOLE,
+		    hid_in, str_error(rc));
 	}
 }
 
-static void mount_data(void)
+static void getterm(const char *dev, const char *app, bool wmsg)
 {
+	char term[DEVMAP_NAME_MAXLEN];
 	int rc;
+	
+	snprintf(term, DEVMAP_NAME_MAXLEN, "%s/%s", DEVFS_MOUNT_POINT, dev);
+	
+	printf("%s: Spawning %s %s %s\n", NAME, APP_GETTERM, term, app);
+	
+	/* Wait for the terminal device to be ready */
+	devmap_handle_t handle;
+	rc = devmap_device_get_handle(dev, &handle, IPC_FLAG_BLOCKING);
+	if (rc != EOK) {
+		printf("%s: Error waiting on %s (%s)\n", NAME, term,
+		    str_error(rc));
+		return;
+	}
+	
+	if (wmsg) {
+		rc = task_spawnl(NULL, APP_GETTERM, APP_GETTERM, "-w", term,
+		    app, NULL);
+		if (rc != EOK) {
+			printf("%s: Error spawning %s -w %s %s (%s)\n", NAME,
+			    APP_GETTERM, term, app, str_error(rc));
+		}
+	} else {
+		rc = task_spawnl(NULL, APP_GETTERM, APP_GETTERM, term, app,
+		    NULL);
+		if (rc != EOK) {
+			printf("%s: Error spawning %s %s %s (%s)\n", NAME,
+			    APP_GETTERM, term, app, str_error(rc));
+		}
+	}
+}
 
-	printf("Trying to mount disk0 on /data... ");
-	fflush(stdout);
+static bool mount_tmpfs(void)
+{
+	int rc = mount(TMPFS_FS_TYPE, TMPFS_MOUNT_POINT, "", "", 0);
+	return mount_report("Temporary filesystem", TMPFS_MOUNT_POINT,
+	    TMPFS_FS_TYPE, NULL, rc);
+}
 
-	rc = mount("fat", "/data", "disk0", "wtcache", 0);
-	if (rc == EOK)
-		printf("OK\n");
-	else
-		printf("Failed\n");
+static bool mount_data(void)
+{
+	int rc = mount(DATA_FS_TYPE, DATA_MOUNT_POINT, DATA_DEVICE, "wtcache", 0);
+	return mount_report("Data filesystem", DATA_MOUNT_POINT, DATA_FS_TYPE,
+	    DATA_DEVICE, rc);
 }
 
 int main(int argc, char *argv[])
@@ -221,23 +252,42 @@ int main(int argc, char *argv[])
 	info_print();
 	
 	if (!mount_root(STRING(RDFMT))) {
-		printf(NAME ": Exiting\n");
+		printf("%s: Exiting\n", NAME);
 		return -1;
 	}
 	
+	/* Make sure tmpfs is running. */
+	if (str_cmp(STRING(RDFMT), "tmpfs") != 0) {
+		spawn("/srv/tmpfs");
+	}
+	
 	spawn("/srv/devfs");
+	spawn("/srv/taskmon");
 	
 	if (!mount_devfs()) {
-		printf(NAME ": Exiting\n");
+		printf("%s: Exiting\n", NAME);
 		return -2;
 	}
 	
-	spawn("/srv/fb");
-	spawn("/srv/kbd");
-	spawn("/srv/console");
+	mount_tmpfs();
+	
+	spawn("/srv/apic");
+	spawn("/srv/i8259");
 	spawn("/srv/fhc");
 	spawn("/srv/obio");
-
+	srv_start("/srv/cuda_adb");
+	srv_start("/srv/i8042");
+	srv_start("/srv/s3c24ser");
+	srv_start("/srv/adb_ms");
+	srv_start("/srv/char_ms");
+	srv_start("/srv/s3c24ts");
+	
+	spawn("/srv/fb");
+	spawn("/srv/kbd");
+	console("hid_in/kbd");
+	
+	spawn("/srv/clip");
+	
 	/*
 	 * Start these synchronously so that mount_data() can be
 	 * non-blocking.
@@ -248,20 +298,20 @@ int main(int argc, char *argv[])
 #else
 	(void) srv_start;
 #endif
-
+	
 #ifdef CONFIG_MOUNT_DATA
 	mount_data();
 #else
 	(void) mount_data;
 #endif
-
-	getvc("vc0", "/app/bdsh");
-	getvc("vc1", "/app/bdsh");
-	getvc("vc2", "/app/bdsh");
-	getvc("vc3", "/app/bdsh");
-	getvc("vc4", "/app/bdsh");
-	getvc("vc5", "/app/bdsh");
-	getvc("vc6", "/app/klog");
+	
+	getterm("term/vc0", "/app/bdsh", true);
+	getterm("term/vc1", "/app/bdsh", false);
+	getterm("term/vc2", "/app/bdsh", false);
+	getterm("term/vc3", "/app/bdsh", false);
+	getterm("term/vc4", "/app/bdsh", false);
+	getterm("term/vc5", "/app/bdsh", false);
+	getterm("term/vc6", "/app/klog", false);
 	
 	return 0;
 }

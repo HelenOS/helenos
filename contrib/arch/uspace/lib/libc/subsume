@@ -1,0 +1,15 @@
+/* Subsume %% to kernel interfaces */
+subsume %%:sys_klog to sys_klog;
+subsume %%:sys_tls to sys_tls;
+subsume %%:sys_thread to sys_thread;
+subsume %%:sys_task to sys_task;
+subsume %%:sys_program to sys_program;
+subsume %%:sys_futex to sys_futex;
+subsume %%:sys_smc to sys_smc;
+subsume %%:sys_as to sys_as;
+subsume %%:sys_ipc to sys_ipc;
+subsume %%:sys_event to sys_event;
+subsume %%:sys_cap to sys_cap;
+subsume %%:sys_ddi to sys_ddi;
+subsume %%:sys_sysinfo to sys_sysinfo;
+subsume %%:sys_debug to sys_debug;

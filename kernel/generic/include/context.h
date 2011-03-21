@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup generic
  * @{
  */
 /** @file
@@ -35,52 +35,63 @@
 #ifndef KERN_CONTEXT_H_
 #define KERN_CONTEXT_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
+#include <trace.h>
 #include <arch/context.h>
 
+#define context_set_generic(ctx, _pc, stack, size) \
+	(ctx)->pc = (uintptr_t) (_pc); \
+	(ctx)->sp = ((uintptr_t) (stack)) + (size) - SP_DELTA;
 
-#ifndef context_set
-#define context_set(c, _pc, stack, size) 	\
-	(c)->pc = (uintptr_t) (_pc);		\
-	(c)->sp = ((uintptr_t) (stack)) + (size) - SP_DELTA;
-#endif /* context_set */
-
-extern int context_save_arch(context_t *c) __attribute__ ((returns_twice));
-extern void context_restore_arch(context_t *c) __attribute__ ((noreturn));
+extern int context_save_arch(context_t *ctx) __attribute__((returns_twice));
+extern void context_restore_arch(context_t *ctx) __attribute__((noreturn));
 
 /** Save register context.
  *
- * Save current register context (including stack pointers)
- * to context structure.
- *
- * Note that call to context_restore() will return at the same
+ * Save the current register context (including stack pointer) to a context
+ * structure. A subsequent call to context_restore() will return to the same
  * address as the corresponding call to context_save().
  *
- * This MUST be a macro, gcc -O0 does not inline functions even
- * if they are marked inline and context_save_arch must be called
- * from level <= that when context_restore is called.
+ * Note that context_save_arch() must reuse the stack frame of the function
+ * which called context_save(). We guarantee this by:
  *
- * @param c Context structure.
+ *   a) implementing context_save_arch() in assembly so that it does not create
+ *      its own stack frame, and by
+ *   b) defining context_save() as a macro because the inline keyword is just a
+ *      hint for the compiler, not a real constraint; the application of a macro
+ *      will definitely not create a stack frame either.
+ *
+ * To imagine what could happen if there were some extra stack frames created
+ * either by context_save() or context_save_arch(), we need to realize that the
+ * sp saved in the contex_t structure points to the current stack frame as it
+ * existed when context_save_arch() was executing. After the return from
+ * context_save_arch() and context_save(), any extra stack frames created by
+ * these functions will be destroyed and their contents sooner or later
+ * overwritten by functions called next. Any attempt to restore to a context
+ * saved like that would therefore lead to a disaster.
+ *
+ * @param ctx Context structure.
  *
  * @return context_save() returns 1, context_restore() returns 0.
+ *
  */
-#define context_save(c)   context_save_arch(c)
+#define context_save(ctx)  context_save_arch(ctx)
 
 /** Restore register context.
  *
- * Restore previously saved register context (including stack pointers)
- * from context structure.
+ * Restore a previously saved register context (including stack pointer) from
+ * a context structure.
  *
- * Note that this function does not normally return.
- * Instead, it returns at the same address as the
- * corresponding call to context_save(), the only
- * difference being return value.
+ * Note that this function does not normally return.  Instead, it returns to the
+ * same address as the corresponding call to context_save(), the only difference
+ * being return value.
  *
- * @param c Context structure.
+ * @param ctx Context structure.
+ *
  */
-static inline void context_restore(context_t *c)
+NO_TRACE static inline void context_restore(context_t *ctx)
 {
-	context_restore_arch(c);
+	context_restore_arch(ctx);
 }
 
 #endif

@@ -77,6 +77,9 @@ jump_to_kernel:
 	
 	addl $0x80000000, %esp			# PA2KA(ctx.sp)
 	
+	pushl $0				# create the first stack frame
+	movl %esp, %ebp
+
 	jmpl $KTEXT, $main_ap
 
 #endif /* CONFIG_SMP */

@@ -38,17 +38,18 @@
 #include <stdio.h>
 #include <libarch/ddi.h>
 #include <ddi.h>
-#include <ipc/ipc.h>
 #include <ipc/bd.h>
 #include <async.h>
 #include <as.h>
-#include <fibril_sync.h>
+#include <fibril_synch.h>
 #include <devmap.h>
 #include <sys/types.h>
 #include <errno.h>
+#include <macros.h>
 #include <task.h>
 
-#define NAME "gxe_bd"
+#define NAME       "gxe_bd"
+#define NAMESPACE  "bd"
 
 enum {
 	CTL_READ_START	= 0,
@@ -90,18 +91,18 @@ static size_t comm_size;
 static uintptr_t dev_physical = 0x13000000;
 static gxe_bd_t *dev;
 
-static dev_handle_t dev_handle[MAX_DISKS];
+static devmap_handle_t devmap_handle[MAX_DISKS];
 
 static fibril_mutex_t dev_lock[MAX_DISKS];
 
 static int gxe_bd_init(void);
 static void gxe_bd_connection(ipc_callid_t iid, ipc_call_t *icall);
-static int gx_bd_rdwr(int disk_id, ipcarg_t method, off_t offset, size_t size,
+static int gxe_bd_read_blocks(int disk_id, uint64_t ba, unsigned cnt,
     void *buf);
-static int gxe_bd_read_block(int disk_id, uint64_t offset, size_t size,
-    void *buf);
-static int gxe_bd_write_block(int disk_id, uint64_t offset, size_t size,
+static int gxe_bd_write_blocks(int disk_id, uint64_t ba, unsigned cnt,
     const void *buf);
+static int gxe_bd_read_block(int disk_id, uint64_t ba, void *buf);
+static int gxe_bd_write_block(int disk_id, uint64_t ba, const void *buf);
 
 int main(int argc, char **argv)
 {
@@ -139,12 +140,10 @@ static int gxe_bd_init(void)
 	dev = vaddr;
 
 	for (i = 0; i < MAX_DISKS; i++) {
-		snprintf(name, 16, "disk%d", i);
-		rc = devmap_device_register(name, &dev_handle[i]);
+		snprintf(name, 16, "%s/disk%d", NAMESPACE, i);
+		rc = devmap_device_register(name, &devmap_handle[i]);
 		if (rc != EOK) {
-			devmap_hangup_phone(DEVMAP_DRIVER);
-			printf(NAME ": Unable to register device %s.\n",
-				name);
+			printf(NAME ": Unable to register device %s.\n", name);
 			return rc;
 		}
 		fibril_mutex_initialize(&dev_lock[i]);
@@ -158,12 +157,12 @@ static void gxe_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 	void *fs_va = NULL;
 	ipc_callid_t callid;
 	ipc_call_t call;
-	ipcarg_t method;
-	dev_handle_t dh;
-	int flags;
+	sysarg_t method;
+	devmap_handle_t dh;
+	unsigned int flags;
 	int retval;
-	off_t idx;
-	size_t size;
+	uint64_t ba;
+	unsigned cnt;
 	int disk_id, i;
 
 	/* Get the device handle. */
@@ -172,96 +171,128 @@ static void gxe_bd_connection(ipc_callid_t iid, ipc_call_t *icall)
 	/* Determine which disk device is the client connecting to. */
 	disk_id = -1;
 	for (i = 0; i < MAX_DISKS; i++)
-		if (dev_handle[i] == dh)
+		if (devmap_handle[i] == dh)
 			disk_id = i;
 
 	if (disk_id < 0) {
-		ipc_answer_0(iid, EINVAL);
+		async_answer_0(iid, EINVAL);
 		return;
 	}
 
 	/* Answer the IPC_M_CONNECT_ME_TO call. */
-	ipc_answer_0(iid, EOK);
+	async_answer_0(iid, EOK);
 
-	if (!ipc_share_out_receive(&callid, &comm_size, &flags)) {
-		ipc_answer_0(callid, EHANGUP);
+	if (!async_share_out_receive(&callid, &comm_size, &flags)) {
+		async_answer_0(callid, EHANGUP);
+		return;
+	}
+
+	if (comm_size < block_size) {
+		async_answer_0(callid, EHANGUP);
 		return;
 	}
 
 	fs_va = as_get_mappable_page(comm_size);
 	if (fs_va == NULL) {
-		ipc_answer_0(callid, EHANGUP);
+		async_answer_0(callid, EHANGUP);
 		return;
 	}
 
-	(void) ipc_share_out_finalize(callid, fs_va);
+	(void) async_share_out_finalize(callid, fs_va);
 
 	while (1) {
 		callid = async_get_call(&call);
-		method = IPC_GET_METHOD(call);
+		method = IPC_GET_IMETHOD(call);
 		switch (method) {
 		case IPC_M_PHONE_HUNGUP:
 			/* The other side has hung up. */
-			ipc_answer_0(callid, EOK);
+			async_answer_0(callid, EOK);
 			return;
-		case BD_READ_BLOCK:
-		case BD_WRITE_BLOCK:
-			idx = IPC_GET_ARG1(call);
-			size = IPC_GET_ARG2(call);
-			if (size > comm_size) {
-				retval = EINVAL;
+		case BD_READ_BLOCKS:
+			ba = MERGE_LOUP32(IPC_GET_ARG1(call),
+			    IPC_GET_ARG2(call));
+			cnt = IPC_GET_ARG3(call);
+			if (cnt * block_size > comm_size) {
+				retval = ELIMIT;
 				break;
 			}
-			retval = gx_bd_rdwr(disk_id, method, idx * size,
-			    size, fs_va);
+			retval = gxe_bd_read_blocks(disk_id, ba, cnt, fs_va);
+			break;
+		case BD_WRITE_BLOCKS:
+			ba = MERGE_LOUP32(IPC_GET_ARG1(call),
+			    IPC_GET_ARG2(call));
+			cnt = IPC_GET_ARG3(call);
+			if (cnt * block_size > comm_size) {
+				retval = ELIMIT;
+				break;
+			}
+			retval = gxe_bd_write_blocks(disk_id, ba, cnt, fs_va);
+			break;
+		case BD_GET_BLOCK_SIZE:
+			async_answer_1(callid, EOK, block_size);
+			continue;
+		case BD_GET_NUM_BLOCKS:
+			retval = ENOTSUP;
 			break;
 		default:
 			retval = EINVAL;
 			break;
 		}
-		ipc_answer_0(callid, retval);
+		async_answer_0(callid, retval);
 	}
 }
 
-static int gx_bd_rdwr(int disk_id, ipcarg_t method, off_t offset, size_t size,
-    void *buf)
-{
+/** Read multiple blocks from the device. */
+static int gxe_bd_read_blocks(int disk_id, uint64_t ba, unsigned cnt,
+    void *buf) {
+
 	int rc;
-	size_t now;
 
-	while (size > 0) {
-		now = size < block_size ? size : block_size;
-
-		if (method == BD_READ_BLOCK)
-			rc = gxe_bd_read_block(disk_id, offset, now, buf);
-		else
-			rc = gxe_bd_write_block(disk_id, offset, now, buf);
-
+	while (cnt > 0) {
+		rc = gxe_bd_read_block(disk_id, ba, buf);
 		if (rc != EOK)
 			return rc;
 
+		++ba;
+		--cnt;
 		buf += block_size;
-		offset += block_size;
-
-		if (size > block_size)
-			size -= block_size;
-		else
-			size = 0;
 	}
 
 	return EOK;
 }
 
-static int gxe_bd_read_block(int disk_id, uint64_t offset, size_t size,
-    void *buf)
+/** Write multiple blocks to the device. */
+static int gxe_bd_write_blocks(int disk_id, uint64_t ba, unsigned cnt,
+    const void *buf) {
+
+	int rc;
+
+	while (cnt > 0) {
+		rc = gxe_bd_write_block(disk_id, ba, buf);
+		if (rc != EOK)
+			return rc;
+
+		++ba;
+		--cnt;
+		buf += block_size;
+	}
+
+	return EOK;
+}
+
+/** Read a block from the device. */
+static int gxe_bd_read_block(int disk_id, uint64_t ba, void *buf)
 {
 	uint32_t status;
+	uint64_t byte_addr;
 	size_t i;
 	uint32_t w;
 
+	byte_addr = ba * block_size;
+
 	fibril_mutex_lock(&dev_lock[disk_id]);
-	pio_write_32(&dev->offset_lo, (uint32_t) offset);
-	pio_write_32(&dev->offset_hi, offset >> 32);
+	pio_write_32(&dev->offset_lo, (uint32_t) byte_addr);
+	pio_write_32(&dev->offset_hi, byte_addr >> 32);
 	pio_write_32(&dev->disk_id, disk_id);
 	pio_write_32(&dev->control, CTL_READ_START);
 
@@ -271,7 +302,7 @@ static int gxe_bd_read_block(int disk_id, uint64_t offset, size_t size,
 		return EIO;
 	}
 
-	for (i = 0; i < size; i++) {
+	for (i = 0; i < block_size; i++) {
 		((uint8_t *) buf)[i] = w = pio_read_8(&dev->buffer[i]);
 	}
 
@@ -279,19 +310,23 @@ static int gxe_bd_read_block(int disk_id, uint64_t offset, size_t size,
 	return EOK;
 }
 
-static int gxe_bd_write_block(int disk_id, uint64_t offset, size_t size,
-    const void *buf)
+/** Write a block to the device. */
+static int gxe_bd_write_block(int disk_id, uint64_t ba, const void *buf)
 {
 	uint32_t status;
+	uint64_t byte_addr;
 	size_t i;
 
-	for (i = 0; i < size; i++) {
+	byte_addr = ba * block_size;
+
+	fibril_mutex_lock(&dev_lock[disk_id]);
+
+	for (i = 0; i < block_size; i++) {
 		pio_write_8(&dev->buffer[i], ((const uint8_t *) buf)[i]);
 	}
 
-	fibril_mutex_lock(&dev_lock[disk_id]);
-	pio_write_32(&dev->offset_lo, (uint32_t) offset);
-	pio_write_32(&dev->offset_hi, offset >> 32);
+	pio_write_32(&dev->offset_lo, (uint32_t) byte_addr);
+	pio_write_32(&dev->offset_hi, byte_addr >> 32);
 	pio_write_32(&dev->disk_id, disk_id);
 	pio_write_32(&dev->control, CTL_WRITE_START);
 

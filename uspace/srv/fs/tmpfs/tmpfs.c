@@ -41,12 +41,13 @@
  */
 
 #include "tmpfs.h"
-#include <ipc/ipc.h>
 #include <ipc/services.h>
+#include <ipc/ns.h>
 #include <async.h>
 #include <errno.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <task.h>
 #include <libfs.h>
 #include "../../vfs/vfs.h"
 
@@ -54,7 +55,9 @@
 
 
 vfs_info_t tmpfs_vfs_info = {
-	.name = "tmpfs",
+	.name = NAME,
+	.concurrent_read_write = false,
+	.write_retains_size = false,
 };
 
 fs_reg_t tmpfs_reg;
@@ -86,16 +89,16 @@ static void tmpfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 		 * IPC_M_CONNECT_ME_TO calls as opposed to callback connections
 		 * created by IPC_M_CONNECT_TO_ME.
 		 */
-		ipc_answer_0(iid, EOK);
+		async_answer_0(iid, EOK);
 	}
 	
-	dprintf("VFS-TMPFS connection established.\n");
+	dprintf(NAME ": connection opened\n");
 	while (1) {
 		ipc_callid_t callid;
 		ipc_call_t call;
 	
 		callid = async_get_call(&call);
-		switch  (IPC_GET_METHOD(call)) {
+		switch  (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			return;
 		case VFS_OUT_MOUNTED:
@@ -103,6 +106,12 @@ static void tmpfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		case VFS_OUT_MOUNT:
 			tmpfs_mount(callid, &call);
+			break;
+		case VFS_OUT_UNMOUNTED:
+			tmpfs_unmounted(callid, &call);
+			break;
+		case VFS_OUT_UNMOUNT:
+			tmpfs_unmount(callid, &call);
 			break;
 		case VFS_OUT_LOOKUP:
 			tmpfs_lookup(callid, &call);
@@ -132,7 +141,7 @@ static void tmpfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 			tmpfs_sync(callid, &call);
 			break;
 		default:
-			ipc_answer_0(callid, ENOTSUP);
+			async_answer_0(callid, ENOTSUP);
 			break;
 		}
 	}
@@ -147,7 +156,7 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	int vfs_phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_VFS, 0, 0);
+	int vfs_phone = service_connect_blocking(SERVICE_VFS, 0, 0);
 	if (vfs_phone < EOK) {
 		printf(NAME ": Unable to connect to VFS\n");
 		return -1;
@@ -161,6 +170,7 @@ int main(int argc, char **argv)
 	}
 
 	printf(NAME ": Accepting connections\n");
+	task_retval(0);
 	async_manager();
 	/* not reached */
 	return 0;

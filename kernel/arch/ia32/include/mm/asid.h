@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia32mm	
+/** @addtogroup ia32mm
  * @{
  */
 /** @file
@@ -42,13 +42,13 @@
 #ifndef KERN_ia32_ASID_H_
 #define KERN_ia32_ASID_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 typedef int32_t asid_t;
 
-#define ASID_MAX_ARCH		3
+#define ASID_MAX_ARCH  3
 
-#define asid_get()		(ASID_START + 1)
+#define asid_get()  (ASID_START + 1)
 #define asid_put(asid)
 
 #endif

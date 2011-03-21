@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2005 Martin Decky
+# Copyright (c) 2011 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,66 +26,16 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-include ../../../version
+USPACE_PREFIX = ../..
+LIBS =
+EXTRA_CFLAGS = -I../../srv/loader/include -I../../lib/c/rtld/include -Iinclude
+BINARY = dload
 
-## Setup toolchain
-#
-
-LIBC_PREFIX = ../../lib/libc
-SOFTINT_PREFIX = ../../lib/softint
-
-include $(LIBC_PREFIX)/Makefile.toolchain
+include $(USPACE_PREFIX)/../Makefile.config
 include arch/$(UARCH)/Makefile.inc
 
-CFLAGS += -Iinclude -I../../srv/loader/include -I../../lib/libc/rtld/include -O0 -ggdb
-LFLAGS +=
+SOURCES = \
+	dload.c \
+	$(ARCH_SOURCES)
 
-LIBS = $(LIBC_PREFIX)/libc.a $(SOFTINT_PREFIX)/libsoftint.a
-DEFS += -DRELEASE=\"$(RELEASE)\"
-
-## Sources
-#
-
-OUTPUT = dload
-GENERIC_SOURCES = \
-	dload.c
-
-GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))
-ARCH_OBJECTS := $(addsuffix .o,$(basename $(ARCH_SOURCES)))
-
-.PHONY: all clean depend disasm sections inc
-
-all: inc $(OUTPUT) disasm sections
-
-inc:
-	ln -sfn ../arch/$(UARCH)/include include/arch
-
--include Makefile.depend
-
-clean:
-	-rm -f $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm $(OUTPUT).sections Makefile.depend *.o arch/$(UARCH)/_link.ld include/arch
-	find arch/$(UARCH)/ -name '*.o' -follow -exec rm \{\} \;
-
-depend:
-	$(CC) $(DEFS) $(CFLAGS) -M $(ARCH_SOURCES) $(GENERIC_SOURCES)> Makefile.depend
-
-$(OUTPUT): $(ARCH_OBJECTS) $(GENERIC_OBJECTS) $(LIBS) arch/$(UARCH)/_link.ld
-	$(LD) -T arch/$(UARCH)/_link.ld $(ARCH_OBJECTS) $(GENERIC_OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(OUTPUT).map
-
-disasm:
-	$(OBJDUMP) -d -S -s $(OUTPUT) >$(OUTPUT).disasm
-
-sections:
-	$(OBJDUMP) -h $(OUTPUT) >$(OUTPUT).sections
-
-arch/$(UARCH)/_link.ld: arch/$(UARCH)/_link.ld.in
-	$(CC) $(DEFS) $(CFLAGS) -DLIBC_PREFIX=$(LIBC_PREFIX) -E -x c $< | grep -v "^\#" > $@
-
-%.o: %.S
-	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__ -c $< -o $@
-
-%.o: %.s
-	$(AS) $(AFLAGS) $< -o $@
-
-%.o: %.c
-	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@
+include $(USPACE_PREFIX)/Makefile.common

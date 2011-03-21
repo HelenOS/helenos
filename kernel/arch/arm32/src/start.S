@@ -68,6 +68,14 @@ kernel_image_start:
 	
 	bl arch_pre_main
 	
+	#
+	# Create the first stack frame.
+	#
+	mov fp, #0
+	mov ip, sp
+	push {fp, ip, lr, pc}
+	sub fp, ip, #4
+
 	bl main_bsp
 
 	.space TEMP_STACK_SIZE

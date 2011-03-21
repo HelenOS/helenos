@@ -39,9 +39,9 @@ program_run:
 	# %eax := entry_point
 	movl 0x8(%ebp), %eax
 
-	# %ebx := pcb
-	# pcb is passed to the entry point int %ebx
-	mov 0xc(%ebp), %ebx
+	# %edi := pcb
+	# pcb is passed to the entry point in %edi
+	mov 0xc(%ebp), %edi
 
 	# Save a tiny bit of stack space
 	pop %ebp

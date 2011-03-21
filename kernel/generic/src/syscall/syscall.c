@@ -44,6 +44,7 @@
 #include <arch.h>
 #include <debug.h>
 #include <ddi/device.h>
+#include <interrupt.h>
 #include <ipc/sysipc.h>
 #include <synch/futex.h>
 #include <synch/smc.h>
@@ -55,47 +56,52 @@
 #include <udebug/udebug.h>
 
 /** Print a hex integer into klog */
-static unative_t sys_debug_putint(unative_t i)
+static sysarg_t sys_debug_putint(sysarg_t i)
 {
 	printf("[task:0x%x]", i);
 	return 0;
 }
 
 /** Dispatch system call */
-unative_t syscall_handler(unative_t a1, unative_t a2, unative_t a3,
-    unative_t a4, unative_t a5, unative_t a6, unative_t id)
+sysarg_t syscall_handler(sysarg_t a1, sysarg_t a2, sysarg_t a3,
+    sysarg_t a4, sysarg_t a5, sysarg_t a6, sysarg_t id)
 {
-	unative_t rc;
-
+	/* Do userpace accounting */
+	irq_spinlock_lock(&THREAD->lock, true);
+	thread_update_accounting(true);
+	irq_spinlock_unlock(&THREAD->lock, true);
+	
 #ifdef CONFIG_UDEBUG
-	bool debug;
+	/*
+	 * An istate_t-compatible record was created on the stack by the
+	 * low-level syscall handler. This is the userspace space state
+	 * structure.
+	 */
+	THREAD->udebug.uspace_state = istate_get(THREAD);
 
 	/*
 	 * Early check for undebugged tasks. We do not lock anything as this
-	 * test need not be precise in either way.
+	 * test need not be precise in either direction.
 	 */
-	debug = THREAD->udebug.active;
-	
-	if (debug) {
+	if (THREAD->udebug.active)
 		udebug_syscall_event(a1, a2, a3, a4, a5, a6, id, 0, false);
-	}
 #endif
 	
+	sysarg_t rc;
 	if (id < SYSCALL_END) {
 		rc = syscall_table[id](a1, a2, a3, a4, a5, a6);
 	} else {
 		printf("Task %" PRIu64": Unknown syscall %#" PRIxn, TASK->taskid, id);
-		task_kill(TASK->taskid);
-		thread_exit();
+		task_kill_self(true);
 	}
 	
 	if (THREAD->interrupted)
 		thread_exit();
 	
 #ifdef CONFIG_UDEBUG
-	if (debug) {
+	if (THREAD->udebug.active) {
 		udebug_syscall_event(a1, a2, a3, a4, a5, a6, id, rc, true);
-	
+		
 		/*
 		 * Stopping point needed for tasks that only invoke
 		 * non-blocking system calls. Not needed if the task
@@ -104,7 +110,15 @@ unative_t syscall_handler(unative_t a1, unative_t a2, unative_t a3,
 		udebug_stoppable_begin();
 		udebug_stoppable_end();
 	}
+
+	/* Clear userspace state pointer */
+	THREAD->udebug.uspace_state = NULL;
 #endif
+	
+	/* Do kernel accounting */
+	irq_spinlock_lock(&THREAD->lock, true);
+	thread_update_accounting(false);
+	irq_spinlock_unlock(&THREAD->lock, true);
 	
 	return rc;
 }
@@ -117,13 +131,16 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	(syshandler_t) sys_thread_create,
 	(syshandler_t) sys_thread_exit,
 	(syshandler_t) sys_thread_get_id,
+	(syshandler_t) sys_thread_usleep,
 	
 	(syshandler_t) sys_task_get_id,
 	(syshandler_t) sys_task_set_name,
+	(syshandler_t) sys_task_kill,
+	(syshandler_t) sys_task_exit,
 	(syshandler_t) sys_program_spawn_loader,
 	
 	/* Synchronization related syscalls. */
-	(syshandler_t) sys_futex_sleep_timeout,
+	(syshandler_t) sys_futex_sleep,
 	(syshandler_t) sys_futex_wakeup,
 	(syshandler_t) sys_smc_coherence,
 	
@@ -132,6 +149,7 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	(syshandler_t) sys_as_area_resize,
 	(syshandler_t) sys_as_area_change_flags,
 	(syshandler_t) sys_as_area_destroy,
+	(syshandler_t) sys_as_get_unmapped_area,
 	
 	/* IPC related syscalls. */
 	(syshandler_t) sys_ipc_call_sync_fast,
@@ -145,9 +163,8 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	(syshandler_t) sys_ipc_wait_for_call,
 	(syshandler_t) sys_ipc_poke,
 	(syshandler_t) sys_ipc_hangup,
-	(syshandler_t) sys_ipc_register_irq,
-	(syshandler_t) sys_ipc_unregister_irq,
-
+	(syshandler_t) sys_ipc_connect_kbox,
+	
 	/* Event notification syscalls. */
 	(syshandler_t) sys_event_subscribe,
 	
@@ -159,18 +176,19 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	(syshandler_t) sys_device_assign_devno,
 	(syshandler_t) sys_physmem_map,
 	(syshandler_t) sys_iospace_enable,
-	(syshandler_t) sys_preempt_control,
+	(syshandler_t) sys_register_irq,
+	(syshandler_t) sys_unregister_irq,
 	
 	/* Sysinfo syscalls */
-	(syshandler_t) sys_sysinfo_valid,
-	(syshandler_t) sys_sysinfo_value,
+	(syshandler_t) sys_sysinfo_get_tag,
+	(syshandler_t) sys_sysinfo_get_value,
+	(syshandler_t) sys_sysinfo_get_data_size,
+	(syshandler_t) sys_sysinfo_get_data,
 	
 	/* Debug calls */
 	(syshandler_t) sys_debug_putint,
 	(syshandler_t) sys_debug_enable_console,
-	(syshandler_t) sys_debug_disable_console,
-	
-	(syshandler_t) sys_ipc_connect_kbox
+	(syshandler_t) sys_debug_disable_console
 };
 
 /** @}

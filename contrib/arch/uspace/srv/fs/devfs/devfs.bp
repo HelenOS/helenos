@@ -1,0 +1,62 @@
+(
+	?ipc_m_connect_me_to ;
+	(
+		?mounted {
+			?ipc_m_data_write /* mount options */
+		} +
+		
+		?lookup {
+			tentative {
+				[/uspace/lib/libc/fnc.devmap_device_get_handle] ;
+				tentative {
+					[/uspace/lib/libc/fnc.devmap_device_connect]
+				}
+			}
+		} +
+		
+		?open_node {
+			tentative {
+				[/uspace/lib/libc/fnc.devmap_device_connect]
+			}
+		} +
+		
+		?read {
+			tentative {
+				?ipc_m_data_read /* payload */ {
+					!device.read {
+						!device.ipc_m_data_read /* forward */
+					}
+				} +
+				(
+					[/uspace/lib/libc/fnc.devmap_device_get_count] ;
+					[/uspace/lib/libc/fnc.devmap_device_get_devices]
+				)
+			}
+		} +
+		
+		?write {
+			tentative {
+				?ipc_m_data_write /* payload */ {
+					!device.write {
+						!device.ipc_m_data_write /* forward */
+					}
+				}
+			}
+		} +
+		
+		?stat {
+			?ipc_m_data_read /* struct data */
+		} +
+		
+		?close {
+			!device.ipc_m_phone_hungup
+		} +
+		
+		?mount +
+		?truncate +
+		?destroy +
+		?sync
+	)* ;
+	?ipc_m_phone_hungup
+)* ;
+!vfs.ipc_m_phone_hungup

@@ -26,45 +26,122 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-
-## Include configuration
+## Configuration
 #
 
-include ../version
--include ../Makefile.config
--include ../config.defs
+ROOT_PATH = ..
 
-INCLUDES = generic/include
-OPTIMIZATION = 3
+VERSION_DEF = $(ROOT_PATH)/version
 
-ifndef CROSS_PREFIX
-	CROSS_PREFIX = /usr/local
-endif
+COMMON_MAKEFILE = $(ROOT_PATH)/Makefile.common
+COMMON_HEADER = $(ROOT_PATH)/common.h
+COMMON_HEADER_ARCH = arch/$(KARCH)/include/common.h
+
+CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
+CONFIG_HEADER = $(ROOT_PATH)/config.h
+
+-include $(VERSION_DEF)
+-include $(COMMON_MAKEFILE)
+-include $(CONFIG_MAKEFILE)
+
+## Common names
+#
+
+DEPEND = Makefile.depend
+DEPEND_PREV = $(DEPEND).prev
+RAW = kernel.raw
+BIN = kernel.bin
+MAP = kernel.map
+JOB = kernel.job
+MAP_PREV = $(MAP).prev
+DISASM = kernel.disasm
+DUMP = kernel.dump
+REAL_MAP = generic/src/debug/real_map
+
+ARCH_INCLUDE = generic/include/arch
+GENARCH_INCLUDE = generic/include/genarch
+
+GENMAP = tools/genmap.py
+JOBFILE = $(ROOT_PATH)/tools/jobfile.py
+
+LINK = arch/$(KARCH)/_link.ld
+EMPTY_MAP = generic/src/debug/empty_map.o
+SIZEOK_MAP = generic/src/debug/sizeok_map.o
+
+.PHONY: all clean
+
+all: $(VERSION_DEF) $(COMMON_MAKEFILE) $(COMMON_HEADER) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(BIN) $(DISASM)
+	-[ -f $(DEPEND) ] && cp -a $(DEPEND) $(DEPEND_PREV)
+
+clean:
+	rm -f $(DEPEND) $(DEPEND_PREV) $(RAW) $(BIN) $(MAP) $(JOB) $(MAP_PREV) $(DISASM) $(DUMP) $(REAL_MAP).* $(ARCH_INCLUDE) $(GENARCH_INCLUDE) arch/*/_link.ld arch/*/include/common.h
+	find generic/src/ arch/*/src/ genarch/src/ test/ -name '*.o' -follow -exec rm \{\} \;
 
 ## Common compiler flags
 #
 
+INCLUDES = generic/include
+
+ifeq ($(CONFIG_OPTIMIZE_FOR_SIZE),y)
+	OPTIMIZATION = s
+else
+	OPTIMIZATION = 3
+endif
+
 DEFS = -DKERNEL -DRELEASE=$(RELEASE) "-DNAME=$(NAME)" -D__$(BITS)_BITS__ -D__$(ENDIANESS)__
 
-GCC_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros ../config.h \
+GCC_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
-	-finput-charset=UTF-8 -fno-builtin -Wall -Wextra -Wno-unused-parameter \
-	-Wmissing-prototypes -Werror -nostdlib -nostdinc -pipe
+	-finput-charset=UTF-8 -ffreestanding -fno-builtin -nostdlib -nostdinc \
+	-Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
+	-Werror-implicit-function-declaration -Wwrite-strings \
+	-pipe
 
-ICC_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros ../config.h \
-	-fno-builtin -Wall -Wmissing-prototypes -Werror \
-	-nostdlib -nostdinc \
-	-wd170
+ICC_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
+	-ffreestanding -fno-builtin -nostdlib -nostdinc -Wall -Wmissing-prototypes \
+	-Werror-implicit-function-declaration -wd170
 
 SUNCC_CFLAGS = -I$(INCLUDES) -xO$(OPTIMIZATION) \
 	-xnolib -xc99=all -features=extensions \
 	-erroff=E_ZERO_SIZED_STRUCT_UNION
 
-LFLAGS = -M
-AFLAGS =
+CLANG_CFLAGS = -I$(INCLUDES) -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
+	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
+	-finput-charset=UTF-8 -ffreestanding -fno-builtin -nostdlib -nostdinc \
+	-Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
+	-Werror-implicit-function-declaration -Wwrite-strings \
+	-pipe -arch $(CLANG_ARCH)
 
+ifeq ($(CONFIG_DEBUG),y)
+	GCC_CFLAGS += -Werror
+	ICC_CFLAGS += -Werror
+endif
+
+ifeq ($(CONFIG_LTO),y)
+	GCC_CFLAGS += -flto
+endif
+
+ifeq ($(CONFIG_LINE_DEBUG),y)
+	GCC_CFLAGS += -g
+	ICC_CFLAGS += -g
+	SUNCC_CFLAGS += -g
+	CLANG_CFLAGS += -g
+endif
+
+#
+# Mind the mutual ordering with the inclusion of the arch Makefile.inc.
+# AFLAGS and LFLAGS must be initialized before the inclusion.
+#
+AFLAGS =
+LFLAGS = -N -T $(LINK) -M
+
+#
+# Mind the mutual ordering with the initialization of AFLAGS and LFLAGS.
+# The arch Makefile.inc must be included after the initialization.
+#
 -include arch/$(KARCH)/Makefile.inc
 -include genarch/Makefile.inc
+-include $(DEPEND)
 
 ## The at-sign
 #
@@ -75,75 +152,48 @@ AFLAGS =
 # defined as the percentile-sign ('%') in the architecture-dependent
 # Makefile.inc.
 #
+
 ATSIGN ?= @
 
 ## Cross-platform assembly to start a symtab.data section
 #
-SYMTAB_SECTION=".section symtab.data, \"a\", $(ATSIGN)progbits;"
 
-## Simple detection for the type of the host system
-#
-HOST = $(shell uname)
+SYMTAB_SECTION = ".section symtab.data, \"a\", $(ATSIGN)progbits;"
 
-## On Solaris, some utilities have slightly different names
-#
-ifeq ($(HOST),SunOS)
-	BINUTILS_PREFIX = "g"
-else
-	BINUTILS_PREFIX = ""
-endif
-
-## Toolchain configuration
+## Compilation options
 #
 
 ifeq ($(COMPILER),gcc_native)
-	CC = gcc
-	GCC = gcc
-	AS = $(BINUTILS_PREFIX)as
-	LD = $(BINUTILS_PREFIX)ld
-	OBJCOPY = $(BINUTILS_PREFIX)objcopy
-	OBJDUMP = $(BINUTILS_PREFIX)objdump
-	LIBDIR = /usr/lib
 	CFLAGS = $(GCC_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
-endif
-
-ifeq ($(COMPILER),icc_native)
-	CC = icc
-	GCC = gcc
-	AS = as
-	LD = ld
-	OBJCOPY = objcopy
-	OBJDUMP = objdump
-	LIBDIR = /usr/lib
-	CFLAGS = $(ICC_CFLAGS)
-	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
-endif
-
-ifeq ($(COMPILER),suncc_native)
-	CC = suncc
-	GCC = gcc
-	AS = $(BINUTILS_PREFIX)as
-	LD = $(BINUTILS_PREFIX)ld
-	OBJCOPY = $(BINUTILS_PREFIX)objcopy
-	OBJDUMP = $(BINUTILS_PREFIX)objdump
-	LIBDIR = /usr/lib
-	CFLAGS = $(SUNCC_CFLAGS)
-	DEFS += $(CONFIG_DEFS)
-	DEPEND_DEFS = $(DEFS)
+	INSTRUMENTATION = -finstrument-functions
 endif
 
 ifeq ($(COMPILER),gcc_cross)
-	CC = $(TOOLCHAIN_DIR)/bin/$(TARGET)-gcc
-	GCC = $(CC)
-	AS = $(TOOLCHAIN_DIR)/bin/$(TARGET)-as
-	LD = $(TOOLCHAIN_DIR)/bin/$(TARGET)-ld
-	OBJCOPY = $(TOOLCHAIN_DIR)/bin/$(TARGET)-objcopy
-	OBJDUMP = $(TOOLCHAIN_DIR)/bin/$(TARGET)-objdump
-	LIBDIR = $(TOOLCHAIN_DIR)/lib
 	CFLAGS = $(GCC_CFLAGS)
 	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
+	INSTRUMENTATION = -finstrument-functions
 endif
+
+ifeq ($(COMPILER),icc)
+	CFLAGS = $(ICC_CFLAGS)
+	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
+	INSTRUMENTATION =
+endif
+
+ifeq ($(COMPILER),suncc)
+	CFLAGS = $(SUNCC_CFLAGS)
+	DEFS += $(CONFIG_DEFS)
+	DEPEND_DEFS = $(DEFS)
+	INSTRUMENTATION =
+endif
+
+ifeq ($(COMPILER),clang)
+	CFLAGS = $(CLANG_CFLAGS)
+	DEPEND_DEFS = $(DEFS) $(CONFIG_DEFS)
+	INSTRUMENTATION =
+endif
+
 
 ## Generic kernel sources
 #
@@ -161,6 +211,9 @@ GENERIC_SOURCES = \
 	generic/src/ddi/irq.c \
 	generic/src/ddi/device.c \
 	generic/src/debug/symtab.c \
+	generic/src/debug/stacktrace.c \
+	generic/src/debug/panic.c \
+	generic/src/debug/debug.c \
 	generic/src/interrupt/interrupt.c \
 	generic/src/main/main.c \
 	generic/src/main/kinit.c \
@@ -187,7 +240,7 @@ GENERIC_SOURCES = \
 	generic/src/lib/func.c \
 	generic/src/lib/memstr.c \
 	generic/src/lib/sort.c \
-	generic/src/lib/string.c \
+	generic/src/lib/str.c \
 	generic/src/lib/elf.c \
 	generic/src/lib/rd.c \
 	generic/src/printf/printf_core.c \
@@ -201,7 +254,6 @@ GENERIC_SOURCES = \
 	generic/src/preempt/preemption.c \
 	generic/src/synch/spinlock.c \
 	generic/src/synch/condvar.c \
-	generic/src/synch/rwlock.c \
 	generic/src/synch/mutex.c \
 	generic/src/synch/semaphore.c \
 	generic/src/synch/smc.c \
@@ -215,7 +267,8 @@ GENERIC_SOURCES = \
 	generic/src/ipc/irq.c \
 	generic/src/ipc/event.c \
 	generic/src/security/cap.c \
-	generic/src/sysinfo/sysinfo.c
+	generic/src/sysinfo/sysinfo.c \
+	generic/src/sysinfo/stats.c
 
 ## Kernel console support
 #
@@ -253,19 +306,14 @@ ifeq ($(CONFIG_TEST),y)
 		test/mm/mapping1.c \
 		test/mm/slab1.c \
 		test/mm/slab2.c \
-		test/synch/rwlock1.c \
-		test/synch/rwlock2.c \
-		test/synch/rwlock3.c \
-		test/synch/rwlock4.c \
-		test/synch/rwlock5.c \
 		test/synch/semaphore1.c \
 		test/synch/semaphore2.c \
 		test/print/print1.c \
 		test/print/print2.c \
 		test/print/print3.c \
 		test/print/print4.c \
-		test/thread/thread1.c \
-		test/sysinfo/sysinfo1.c
+		test/print/print5.c \
+		test/thread/thread1.c
 	
 	ifeq ($(KARCH),mips32)
 		GENERIC_SOURCES += test/debug/mips1.c
@@ -320,9 +368,35 @@ ifeq ($(CONFIG_TEST),y)
 	
 endif
 
+## Sources where instrumentation is enabled
+#
+
+ifeq ($(CONFIG_TRACE),y)
+	INSTRUMENTED_SOURCES = \
+		generic/src/adt/btree.c \
+		generic/src/cpu/cpu.c \
+		generic/src/ddi/ddi.c \
+		generic/src/interrupt/interrupt.c \
+		generic/src/main/main.c \
+		generic/src/main/kinit.c \
+		generic/src/proc/the.c \
+		generic/src/proc/tasklet.c \
+		generic/src/mm/frame.c \
+		generic/src/mm/page.c \
+		generic/src/mm/tlb.c \
+		generic/src/mm/as.c \
+		generic/src/mm/slab.c \
+		generic/src/sysinfo/sysinfo.c \
+		generic/src/console/kconsole.c
+else
+	INSTRUMENTED_SOURCES =
+endif
+
 GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))
 ARCH_OBJECTS := $(addsuffix .o,$(basename $(ARCH_SOURCES)))
 GENARCH_OBJECTS := $(addsuffix .o,$(basename $(GENARCH_SOURCES)))
+
+LFLAGS_LTO := $(addprefix -Xlinker ,$(LFLAGS))
 
 ifeq ($(CONFIG_SYMTAB),y)
 	SYMTAB_OBJECTS := generic/src/debug/real_map.o
@@ -330,72 +404,96 @@ else
 	SYMTAB_OBJECTS :=
 endif
 
-.PHONY: all build clean archlinks depend disasm
+$(BIN): $(RAW)
+	$(OBJCOPY) -O $(BFD) $< $@
 
-all: ../Makefile.config ../config.h ../config.defs
-	-rm Makefile.depend
-	$(MAKE) -C . build
+$(DISASM): $(RAW)
+ifeq ($(CONFIG_LINE_DEBUG),y)
+	$(OBJDUMP) -d -S $< > $@
+else
+	$(OBJDUMP) -d $< > $@
+endif
 
-build: kernel.bin disasm
+$(RAW): $(LINK) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(SYMTAB_OBJECTS)
+ifeq ($(CONFIG_LTO),y)
+	$(GCC) $(LFLAGS_LTO) -Xlinker -Map -Xlinker $(MAP) $(DEFS) $(GCC_CFLAGS) -o $@ $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(SYMTAB_OBJECTS)
+else
+	$(LD) $(LFLAGS) -Map $(MAP) -o $@ $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(SYMTAB_OBJECTS)
+endif
+ifeq ($(CONFIG_STRIP_BINARIES),y)
+	$(STRIP) $(RAW)
+endif
 
--include Makefile.depend
-
-clean:
-	-rm -f kernel.bin kernel.raw kernel.map kernel.map.pre kernel.objdump kernel.disasm generic/src/debug/real_map.bin Makefile.depend* generic/include/arch generic/include/genarch arch/$(KARCH)/_link.ld
-	find generic/src/ arch/*/src/ genarch/src/ test/ -name '*.o' -follow -exec rm \{\} \;
-	for arch in arch/* ; do \
-	    [ -e $$arch/_link.ld ] && rm $$arch/_link.ld 2>/dev/null ; \
-	done ; exit 0
-
-archlinks:
-	ln -sfn ../../arch/$(KARCH)/include/ generic/include/arch
-	ln -sfn ../../genarch/include/ generic/include/genarch
-
-depend: archlinks
-	-makedepend -f - -- $(DEPEND_DEFS) $(CFLAGS) -- $(ARCH_SOURCES) $(GENARCH_SOURCES) $(GENERIC_SOURCES) > Makefile.depend 2> /dev/null
-
-arch/$(KARCH)/_link.ld: arch/$(KARCH)/_link.ld.in
+$(LINK): $(LINK).in $(DEPEND)
 	$(GCC) $(DEFS) $(GCC_CFLAGS) -D__ASM__ -D__LINKER__ -E -x c $< | grep -v "^\#" > $@
 
-generic/src/debug/real_map.bin: depend arch/$(KARCH)/_link.ld $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS)
-	echo $(SYMTAB_SECTION) | $(AS) $(AFLAGS) -o generic/src/debug/empty_map.o
-	$(LD) -T arch/$(KARCH)/_link.ld $(LFLAGS) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) generic/src/debug/empty_map.o  -o $@ -Map kernel.map.pre
-	$(OBJDUMP) -t $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) > kernel.objdump
-	tools/genmap.py kernel.map.pre kernel.objdump generic/src/debug/real_map.bin 
-	# Do it once again, this time to get correct even the symbols
-	# on architectures, that have bss after symtab
-	echo $(SYMTAB_SECTION)" .incbin \"$@\"" | $(AS) $(AFLAGS) -o generic/src/debug/sizeok_map.o
-	$(LD) -T arch/$(KARCH)/_link.ld $(LFLAGS) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) generic/src/debug/sizeok_map.o -o $@ -Map kernel.map.pre
-	$(OBJDUMP) -t $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) > kernel.objdump
-	tools/genmap.py kernel.map.pre kernel.objdump generic/src/debug/real_map.bin 
+%.o: %.S $(DEPEND)
+	$(GCC) $(DEFS) $(GCC_CFLAGS) -D__ASM__ -c -o $@ $<
+ifeq ($(PRECHECK),y)
+	$(JOBFILE) $(JOB) $< $@ as asm/preproc $(DEFS) $(GCC_CFLAGS) -D__ASM__
+endif
 
-generic/src/debug/real_map.o: generic/src/debug/real_map.bin
-	echo $(SYMTAB_SECTION)" .incbin \"$<\"" | $(AS) $(AFLAGS) -o $@ 
-
-kernel.raw: depend arch/$(KARCH)/_link.ld $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(SYMTAB_OBJECTS)
-	$(LD) -T arch/$(KARCH)/_link.ld $(LFLAGS) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(SYMTAB_OBJECTS) -o $@ -Map kernel.map
-
-kernel.bin: kernel.raw
-	$(OBJCOPY) -O $(BFD) kernel.raw kernel.bin
-
-disasm: kernel.raw
-	$(OBJDUMP) -d kernel.raw > kernel.disasm
-
-%.o: %.S
-	$(GCC) $(DEFS) $(GCC_CFLAGS) -D__ASM__ -c $< -o $@
-
-%.o: %.s
-	$(AS) $(AFLAGS) $< -o $@
+%.o: %.s $(DEPEND)
+	$(AS) $(AFLAGS) -o $@ $<
+ifeq ($(PRECHECK),y)
+	$(JOBFILE) $(JOB) $< $@ as asm $(DEFS) $(CFLAGS) $(EXTRA_FLAGS)
+endif
 
 #
 # The FPU tests are the only objects for which we allow the compiler to generate
 # FPU instructions.
 #
-test/fpu/%.o: test/fpu/%.c
-	$(CC) $(DEFS) $(CFLAGS) $(EXTRA_FLAGS) -c $< -o $@
+
+test/fpu/%.o: test/fpu/%.c $(DEPEND)
+	$(CC) $(DEFS) $(CFLAGS) $(EXTRA_FLAGS) -c -o $@ $<
+ifeq ($(PRECHECK),y)
+	$(JOBFILE) $(JOB) $< $@ cc test $(DEFS) $(CFLAGS) $(EXTRA_FLAGS)
+endif
 
 #
 # Ordinary objects.
 #
-%.o: %.c
-	$(CC) $(DEFS) $(CFLAGS) $(EXTRA_FLAGS) $(FPU_NO_CFLAGS) -c $< -o $@ 
+
+%.o: %.c $(DEPEND)
+	$(CC) $(DEFS) $(CFLAGS) $(EXTRA_FLAGS) $(FPU_NO_CFLAGS) $(if $(findstring $<,$(INSTRUMENTED_SOURCES)),$(INSTRUMENTATION)) -c -o $@ $<
+ifeq ($(PRECHECK),y)
+	$(JOBFILE) $(JOB) $< $@ cc core $(DEFS) $(CFLAGS) $(EXTRA_FLAGS) $(FPU_NO_CFLAGS)
+endif
+
+$(REAL_MAP).o: $(REAL_MAP).bin
+	echo $(SYMTAB_SECTION)" .incbin \"$<\"" | $(AS) $(AFLAGS) -o $@
+
+$(REAL_MAP).bin: $(LINK) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS)
+	echo $(SYMTAB_SECTION) | $(AS) $(AFLAGS) -o $(EMPTY_MAP)
+ifeq ($(CONFIG_LTO),y)
+	$(GCC) $(LFLAGS_LTO) -Xlinker -Map -Xlinker $(MAP_PREV) $(DEFS) $(GCC_CFLAGS) -o $@ $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(EMPTY_MAP)
+else
+	$(LD) $(LFLAGS) -Map $(MAP_PREV) -o $@ $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(EMPTY_MAP)
+endif
+	$(OBJDUMP) -t $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) > $(DUMP)
+	$(GENMAP) $(MAP_PREV) $(DUMP) $@
+	
+	# Do it once again, this time to get correct even the symbols
+	# on architectures that have bss after symtab
+	
+	echo $(SYMTAB_SECTION)" .incbin \"$@\"" | $(AS) $(AFLAGS) -o $(SIZEOK_MAP)
+ifeq ($(CONFIG_LTO),y)
+	$(GCC) $(LFLAGS_LTO) -Xlinker -Map -Xlinker $(MAP_PREV) $(DEFS) $(GCC_CFLAGS) -o $@ $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(SIZEOK_MAP)
+else
+	$(LD) $(LFLAGS) -Map $(MAP_PREV) -o $@ $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(EXTRA_OBJECTS) $(SIZEOK_MAP)
+endif
+	$(OBJDUMP) -t $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) > $(DUMP)
+	$(GENMAP) $(MAP_PREV) $(DUMP) $@
+
+$(DEPEND): $(ARCH_INCLUDE) $(GENARCH_INCLUDE) $(COMMON_HEADER_ARCH)
+	makedepend -f - -- $(DEPEND_DEFS) $(CFLAGS) -- $(ARCH_SOURCES) $(GENARCH_SOURCES) $(GENERIC_SOURCES) > $@ 2> /dev/null
+	-[ -f $(DEPEND_PREV) ] && diff -q $(DEPEND_PREV) $@ && mv -f $(DEPEND_PREV) $@
+
+$(ARCH_INCLUDE): arch/$(KARCH)/include/
+	ln -sfn ../../$< $@
+
+$(GENARCH_INCLUDE): genarch/include/
+	ln -sfn ../../$< $@
+
+$(COMMON_HEADER_ARCH): $(COMMON_HEADER)
+	ln -sfn ../../../$< $@

@@ -35,6 +35,7 @@
  */
 
 #include <loader/pcb.h>
+#include "start.h"
 
 void program_run(void *entry, pcb_t *pcb)
 {

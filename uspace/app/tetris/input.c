@@ -51,7 +51,7 @@
 
 #include <errno.h>
 #include <unistd.h>
-#include <string.h>
+#include <str.h>
 
 #include "input.h"
 #include "tetris.h"
@@ -96,7 +96,7 @@ int rwait(struct timeval *tvp)
 {
 	struct timeval starttv, endtv, *s;
 	static ipc_call_t charcall;
-	ipcarg_t rc;
+	sysarg_t rc;
 	
 	/*
 	 * Someday, select() will do this for us.

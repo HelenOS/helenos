@@ -36,7 +36,7 @@
 #define KERN_PRINTF_CORE_H_
 
 #include <typedefs.h>
-#include <arch/arg.h>
+#include <stdarg.h>
 
 /** Structure for specifying output methods for different printf clones. */
 typedef struct {
@@ -50,7 +50,7 @@ typedef struct {
 	void *data;
 } printf_spec_t;
 
-int printf_core(const char *fmt, printf_spec_t *ps, va_list ap);
+extern int printf_core(const char *fmt, printf_spec_t *ps, va_list ap);
 
 #endif
 

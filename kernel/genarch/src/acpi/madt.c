@@ -26,15 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genarch	
+/** @addtogroup genarch
  * @{
  */
 /**
  * @file
- * @brief	Multiple APIC Description Table (MADT) parsing.
+ * @brief Multiple APIC Description Table (MADT) parsing.
  */
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <genarch/acpi/acpi.h>
 #include <genarch/acpi/madt.h>
 #include <arch/smp/apic.h>
@@ -51,27 +51,24 @@ struct acpi_madt *acpi_madt = NULL;
 
 #ifdef CONFIG_SMP
 
-/** Standard ISA IRQ map; can be overriden by Interrupt Source Override entries of MADT. */
-int isa_irq_map[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
-
-static void madt_l_apic_entry(struct madt_l_apic *la, uint32_t index);
-static void madt_io_apic_entry(struct madt_io_apic *ioa, uint32_t index);
-static void madt_intr_src_ovrd_entry(struct madt_intr_src_ovrd *override, uint32_t index);
-static int madt_cmp(void * a, void * b);
+/**
+ * Standard ISA IRQ map; can be overriden by
+ * Interrupt Source Override entries of MADT.
+ */
+static int isa_irq_map[] =
+    { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
 
 struct madt_l_apic *madt_l_apic_entries = NULL;
 struct madt_io_apic *madt_io_apic_entries = NULL;
 
-size_t madt_l_apic_entry_index = 0;
-size_t madt_io_apic_entry_index = 0;
-size_t madt_l_apic_entry_cnt = 0;
-size_t madt_io_apic_entry_cnt = 0;
-size_t cpu_count = 0;
+static size_t madt_l_apic_entry_index = 0;
+static size_t madt_io_apic_entry_index = 0;
+static size_t madt_l_apic_entry_cnt = 0;
+static size_t madt_io_apic_entry_cnt = 0;
 
-struct madt_apic_header * * madt_entries_index = NULL;
-unsigned int madt_entries_index_cnt = 0;
+static struct madt_apic_header **madt_entries_index = NULL;
 
-char *entry[] = {
+const char *entry[] = {
 	"L_APIC",
 	"IO_APIC",
 	"INTR_SRC_OVRD",
@@ -83,160 +80,182 @@ char *entry[] = {
 	"PLATFORM_INTR_SRC"
 };
 
-/*
- * ACPI MADT Implementation of SMP configuration interface.
- */
-static size_t madt_cpu_count(void);
-static bool madt_cpu_enabled(size_t i);
-static bool madt_cpu_bootstrap(size_t i);
-static uint8_t madt_cpu_apic_id(size_t i);
-static int madt_irq_to_pin(unsigned int irq);
+static uint8_t madt_cpu_apic_id(size_t i)
+{
+	ASSERT(i < madt_l_apic_entry_cnt);
+	
+	return ((struct madt_l_apic *)
+	    madt_entries_index[madt_l_apic_entry_index + i])->apic_id;
+}
 
+static bool madt_cpu_enabled(size_t i)
+{
+	ASSERT(i < madt_l_apic_entry_cnt);
+	
+	/*
+	 * FIXME: The current local APIC driver limits usable
+	 * CPU IDs to 8.
+	 *
+	 */
+	if (i > 7)
+		return false;
+	
+	return ((struct madt_l_apic *)
+	    madt_entries_index[madt_l_apic_entry_index + i])->flags & 0x1;
+}
+
+static bool madt_cpu_bootstrap(size_t i)
+{
+	ASSERT(i < madt_l_apic_entry_cnt);
+	
+	return ((struct madt_l_apic *)
+	    madt_entries_index[madt_l_apic_entry_index + i])->apic_id ==
+	    bsp_l_apic;
+}
+
+static int madt_irq_to_pin(unsigned int irq)
+{
+	ASSERT(irq < sizeof(isa_irq_map) / sizeof(int));
+	
+	return isa_irq_map[irq];
+}
+
+/** ACPI MADT Implementation of SMP configuration interface.
+ *
+ */
 struct smp_config_operations madt_config_operations = {
-	.cpu_count = madt_cpu_count,
 	.cpu_enabled = madt_cpu_enabled,
 	.cpu_bootstrap = madt_cpu_bootstrap,
 	.cpu_apic_id = madt_cpu_apic_id,
 	.irq_to_pin = madt_irq_to_pin
 };
 
-size_t madt_cpu_count(void)
+static int madt_cmp(void *a, void *b, void *arg)
 {
-	return madt_l_apic_entry_cnt;
-}
-
-bool madt_cpu_enabled(size_t i)
-{
-	ASSERT(i < madt_l_apic_entry_cnt);
-	return ((struct madt_l_apic *) madt_entries_index[madt_l_apic_entry_index + i])->flags & 0x1;
-
-}
-
-bool madt_cpu_bootstrap(size_t i)
-{
-	ASSERT(i < madt_l_apic_entry_cnt);
-	return ((struct madt_l_apic *) madt_entries_index[madt_l_apic_entry_index + i])->apic_id == l_apic_id();
-}
-
-uint8_t madt_cpu_apic_id(size_t i)
-{
-	ASSERT(i < madt_l_apic_entry_cnt);
-	return ((struct madt_l_apic *) madt_entries_index[madt_l_apic_entry_index + i])->apic_id;
-}
-
-int madt_irq_to_pin(unsigned int irq)
-{
-	ASSERT(irq < sizeof(isa_irq_map) / sizeof(int));
-        return isa_irq_map[irq];
-}
-
-int madt_cmp(void * a, void * b) 
-{
-	return 
-		(((struct madt_apic_header *) a)->type > ((struct madt_apic_header *) b)->type) ?
-		1 : 
-		((((struct madt_apic_header *) a)->type < ((struct madt_apic_header *) b)->type) ? -1 : 0);
-}
+	uint8_t typea = (*((struct madt_apic_header **) a))->type;
+	uint8_t typeb = (*((struct madt_apic_header **) b))->type;
 	
-void acpi_madt_parse(void)
-{
-	struct madt_apic_header *end = (struct madt_apic_header *) (((uint8_t *) acpi_madt) + acpi_madt->header.length);
-	struct madt_apic_header *h;
+	if (typea > typeb)
+		return 1;
 	
-	l_apic = (uint32_t *) (unative_t) acpi_madt->l_apic_address;
-
-	/* calculate madt entries */
-	for (h = &acpi_madt->apic_header[0]; h < end; h = (struct madt_apic_header *) (((uint8_t *) h) + h->length)) {
-		madt_entries_index_cnt++;
-	}
-
-	/* create madt apic entries index array */
-	madt_entries_index = (struct madt_apic_header * *) malloc(madt_entries_index_cnt * sizeof(struct madt_apic_header * *), FRAME_ATOMIC);
-	if (!madt_entries_index)
-		panic("Memory allocation error.");
-
-	uint32_t index = 0;
-
-	for (h = &acpi_madt->apic_header[0]; h < end; h = (struct madt_apic_header *) (((uint8_t *) h) + h->length)) {
-		madt_entries_index[index++] = h;
-	}
-
-	/* Quicksort MADT index structure */
-	qsort(madt_entries_index, madt_entries_index_cnt, sizeof(uintptr_t), &madt_cmp);
-
-	/* Parse MADT entries */
-	if (madt_entries_index_cnt > 0) {	
-		for (index = 0; index < madt_entries_index_cnt - 1; index++) {
-			h = madt_entries_index[index];
-			switch (h->type) {
-				case MADT_L_APIC:
-					madt_l_apic_entry((struct madt_l_apic *) h, index);
-					break;
-				case MADT_IO_APIC:
-					madt_io_apic_entry((struct madt_io_apic *) h, index);
-					break;
-				case MADT_INTR_SRC_OVRD:
-					madt_intr_src_ovrd_entry((struct madt_intr_src_ovrd *) h, index);
-					break;
-				case MADT_NMI_SRC:
-				case MADT_L_APIC_NMI:
-				case MADT_L_APIC_ADDR_OVRD:
-				case MADT_IO_SAPIC:
-				case MADT_L_SAPIC:
-				case MADT_PLATFORM_INTR_SRC:
-					printf("MADT: skipping %s entry (type=%" PRIu8 ")\n", entry[h->type], h->type);
-					break;
+	if (typea < typeb)
+		return -1;
 	
-				default:
-					if (h->type >= MADT_RESERVED_SKIP_BEGIN && h->type <= MADT_RESERVED_SKIP_END) {
-						printf("MADT: skipping reserved entry (type=%" PRIu8 ")\n", h->type);
-					}
-					if (h->type >= MADT_RESERVED_OEM_BEGIN) {
-						printf("MADT: skipping OEM entry (type=%" PRIu8 ")\n", h->type);
-					}
-					break;
-			}
-		}
-	}
-
-	if (cpu_count)
-		config.cpu_count = cpu_count;
+	return 0;
 }
- 
 
-void madt_l_apic_entry(struct madt_l_apic *la, uint32_t index)
+static void madt_l_apic_entry(struct madt_l_apic *la, size_t i)
 {
-	if (!madt_l_apic_entry_cnt++) {
-		madt_l_apic_entry_index = index;
-	}
-		
+	if (madt_l_apic_entry_cnt == 0)
+		madt_l_apic_entry_index = i;
+	
+	madt_l_apic_entry_cnt++;
+	
 	if (!(la->flags & 0x1)) {
 		/* Processor is unusable, skip it. */
 		return;
 	}
 	
-	cpu_count++;	
-	apic_id_mask |= 1<<la->apic_id;
+	apic_id_mask |= 1 << la->apic_id;
 }
 
-void madt_io_apic_entry(struct madt_io_apic *ioa, uint32_t index)
+static void madt_io_apic_entry(struct madt_io_apic *ioa, size_t i)
 {
-	if (!madt_io_apic_entry_cnt++) {
-		/* remember index of the first io apic entry */
-		madt_io_apic_entry_index = index;
-		io_apic = (uint32_t *) (unative_t) ioa->io_apic_address;
+	if (madt_io_apic_entry_cnt == 0) {
+		/* Remember index of the first io apic entry */
+		madt_io_apic_entry_index = i;
+		io_apic = (uint32_t *) (sysarg_t) ioa->io_apic_address;
 	} else {
-		/* currently not supported */
-		return;
+		/* Currently not supported */
 	}
+	
+	madt_io_apic_entry_cnt++;
 }
 
-void madt_intr_src_ovrd_entry(struct madt_intr_src_ovrd *override, uint32_t index)
+static void madt_intr_src_ovrd_entry(struct madt_intr_src_ovrd *override,
+    size_t i)
 {
 	ASSERT(override->source < sizeof(isa_irq_map) / sizeof(int));
-	printf("MADT: ignoring %s entry: bus=%" PRIu8 ", source=%" PRIu8 ", global_int=%" PRIu32 ", flags=%#" PRIx16 "\n",
-		entry[override->header.type], override->bus, override->source,
-		override->global_int, override->flags);
+	
+	printf("MADT: Ignoring %s entry: bus=%" PRIu8 ", source=%" PRIu8
+	    ", global_int=%" PRIu32 ", flags=%#" PRIx16 "\n",
+	    entry[override->header.type], override->bus, override->source,
+	    override->global_int, override->flags);
+}
+
+void acpi_madt_parse(void)
+{
+	struct madt_apic_header *end = (struct madt_apic_header *)
+	    (((uint8_t *) acpi_madt) + acpi_madt->header.length);
+	struct madt_apic_header *hdr;
+	
+	l_apic = (uint32_t *) (sysarg_t) acpi_madt->l_apic_address;
+	
+	/* Count MADT entries */
+	unsigned int madt_entries_index_cnt = 0;
+	for (hdr = acpi_madt->apic_header; hdr < end;
+	    hdr = (struct madt_apic_header *) (((uint8_t *) hdr) + hdr->length))
+		madt_entries_index_cnt++;
+	
+	/* Create MADT APIC entries index array */
+	madt_entries_index = (struct madt_apic_header **)
+	    malloc(madt_entries_index_cnt * sizeof(struct madt_apic_header *),
+	    FRAME_ATOMIC);
+	if (!madt_entries_index)
+		panic("Memory allocation error.");
+	
+	size_t i = 0;
+	
+	for (hdr = acpi_madt->apic_header; hdr < end;
+	    hdr = (struct madt_apic_header *) (((uint8_t *) hdr) + hdr->length)) {
+		madt_entries_index[i] = hdr;
+		i++;
+	}
+	
+	/* Sort MADT index structure */
+	if (!gsort(madt_entries_index, madt_entries_index_cnt,
+	    sizeof(struct madt_apic_header *), madt_cmp, NULL))
+		panic("Sorting error.");
+	
+	/* Parse MADT entries */
+	for (i = 0; i < madt_entries_index_cnt; i++) {
+		hdr = madt_entries_index[i];
+		
+		switch (hdr->type) {
+		case MADT_L_APIC:
+			madt_l_apic_entry((struct madt_l_apic *) hdr, i);
+			break;
+		case MADT_IO_APIC:
+			madt_io_apic_entry((struct madt_io_apic *) hdr, i);
+		break;
+		case MADT_INTR_SRC_OVRD:
+			madt_intr_src_ovrd_entry((struct madt_intr_src_ovrd *) hdr, i);
+			break;
+		case MADT_NMI_SRC:
+		case MADT_L_APIC_NMI:
+		case MADT_L_APIC_ADDR_OVRD:
+		case MADT_IO_SAPIC:
+		case MADT_L_SAPIC:
+		case MADT_PLATFORM_INTR_SRC:
+			printf("MADT: Skipping %s entry (type=%" PRIu8 ")\n",
+			    entry[hdr->type], hdr->type);
+			break;
+		default:
+			if ((hdr->type >= MADT_RESERVED_SKIP_BEGIN)
+			    && (hdr->type <= MADT_RESERVED_SKIP_END))
+				printf("MADT: Skipping reserved entry (type=%" PRIu8 ")\n",
+				    hdr->type);
+				
+			if (hdr->type >= MADT_RESERVED_OEM_BEGIN)
+				printf("MADT: Skipping OEM entry (type=%" PRIu8 ")\n",
+				    hdr->type);
+			
+			break;
+		}
+	}
+	
+	if (madt_l_apic_entry_cnt > 0)
+		config.cpu_count = madt_l_apic_entry_cnt;
 }
 
 #endif /* CONFIG_SMP */

@@ -1,5 +1,6 @@
 #
 # Copyright (c) 2005 Martin Decky
+# Copyright (c) 2007 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,57 +27,13 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Setup toolchain
-#
+USPACE_PREFIX = ../../..
+LIBS = $(LIBFS_PREFIX)/libfs.a
+EXTRA_CFLAGS += -I$(LIBFS_PREFIX)
+BINARY = devfs
 
-LIBC_PREFIX = ../../../lib/libc
-LIBFS_PREFIX = ../../../lib/libfs
-SOFTINT_PREFIX = ../../../lib/softint
-
-include $(LIBC_PREFIX)/Makefile.toolchain
-
-CFLAGS += -I $(LIBFS_PREFIX) 
-
-LIBS = \
-	$(LIBFS_PREFIX)/libfs.a \
-	$(LIBC_PREFIX)/libc.a
-
-## Sources
-#
-
-OUTPUT = devfs
 SOURCES = \
 	devfs.c \
 	devfs_ops.c
 
-
-OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
-
-.PHONY: all clean depend disasm
-
-all: $(OUTPUT) $(OUTPUT).disasm
-
--include Makefile.depend
-
-clean:
-	-rm -f $(OUTPUT) $(OUTPUT).map $(OUTPUT).disasm Makefile.depend $(OBJECTS)
-
-depend:
-	$(CC) $(DEFS) $(CFLAGS) -M $(SOURCES) > Makefile.depend
-
-$(OUTPUT): $(OBJECTS) $(LIBS)
-	$(LD) -T $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld $(OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(OUTPUT).map
-
-disasm: $(OUTPUT).disasm
-
-$(OUTPUT).disasm: $(OUTPUT)
-	$(OBJDUMP) -d $< > $@
-
-%.o: %.S
-	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__ -c $< -o $@
-
-%.o: %.s
-	$(AS) $(AFLAGS) $< -o $@
-
-%.o: %.c
-	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@
+include $(USPACE_PREFIX)/Makefile.common

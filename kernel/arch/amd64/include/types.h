@@ -35,16 +35,6 @@
 #ifndef KERN_amd64_TYPES_H_
 #define KERN_amd64_TYPES_H_
 
-typedef signed char int8_t;
-typedef signed short int16_t;
-typedef signed int int32_t;
-typedef signed long long int64_t;
-
-typedef unsigned char uint8_t;
-typedef unsigned short uint16_t;
-typedef unsigned int uint32_t;
-typedef unsigned long long uint64_t;
-
 typedef uint64_t size_t;
 
 typedef uint64_t uintptr_t;
@@ -52,52 +42,20 @@ typedef uint64_t pfn_t;
 
 typedef uint64_t ipl_t;
 
-typedef uint64_t unative_t;
+typedef uint64_t sysarg_t;
 typedef int64_t native_t;
+typedef uint64_t atomic_count_t;
 
 typedef struct {
 } fncptr_t;
 
-/**< Formats for uintptr_t, size_t */
-#define PRIp "llx"
-#define PRIs "llu"
+#define INTN_C(c)   INT64_C(c)
+#define UINTN_C(c)  UINT64_C(c)
 
-/**< Formats for (u)int8_t, (u)int16_t, (u)int32_t, (u)int64_t and (u)native_t */
-#define PRId8 "d"
-#define PRId16 "d"
-#define PRId32 "d"
-#define PRId64 "lld"
-#define PRIdn "lld"
-
-#define PRIu8 "u"
-#define PRIu16 "u"
-#define PRIu32 "u"
-#define PRIu64 "llu"
-#define PRIun "llu"
-
-#define PRIx8 "x"
-#define PRIx16 "x"
-#define PRIx32 "x"
-#define PRIx64 "llx"
-#define PRIxn "llx"
-
-/** Page Table Entry. */
-typedef struct {
-	unsigned present : 1;
-	unsigned writeable : 1;
-	unsigned uaccessible : 1;
-	unsigned page_write_through : 1;
-	unsigned page_cache_disable : 1;
-	unsigned accessed : 1;
-	unsigned dirty : 1;
-	unsigned unused: 1;
-	unsigned global : 1;
-	unsigned soft_valid : 1;		/**< Valid content even if present bit is cleared. */
-	unsigned avl : 2;
-	unsigned addr_12_31 : 30;
-	unsigned addr_32_51 : 21;
-	unsigned no_execute : 1;
-} __attribute__ ((packed)) pte_t;
+#define PRIdn  PRId64  /**< Format for native_t. */
+#define PRIun  PRIu64  /**< Format for sysarg_t. */
+#define PRIxn  PRIx64  /**< Format for hexadecimal sysarg_t. */
+#define PRIua  PRIu64  /**< Format for atomic_count_t. */
 
 #endif
 

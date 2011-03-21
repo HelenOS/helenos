@@ -26,6 +26,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
+
 """
 TMPFS creator
 """
@@ -64,7 +65,7 @@ TMPFS_DIRECTORY = 2
 
 def usage(prname):
 	"Print usage syntax"
-	print prname + " <PATH> <IMAGE>"
+	print(prname + " <PATH> <IMAGE>")
 
 def recursion(root, outf):
 	"Recursive directory walk"
@@ -83,7 +84,7 @@ def recursion(root, outf):
 			
 			outf.write(dentry.pack())
 			
-			inf = file(canon, "r")
+			inf = open(canon, "rb")
 			rd = 0;
 			while (rd < size):
 				data = inf.read(4096);
@@ -114,10 +115,10 @@ def main():
 	
 	path = os.path.abspath(sys.argv[1])
 	if (not os.path.isdir(path)):
-		print "<PATH> must be a directory"
+		print("<PATH> must be a directory")
 		return
 	
-	outf = file(sys.argv[2], "w")
+	outf = open(sys.argv[2], "wb")
 	
 	header = xstruct.create(HEADER)
 	header.tag = "TMPFS"

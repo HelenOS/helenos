@@ -39,10 +39,11 @@
  */
 
 #include <stdio.h>
-#include <ipc/ipc.h>
 #include <ipc/services.h>
+#include <ipc/ns.h>
 #include <async.h>
 #include <errno.h>
+#include <task.h>
 #include <libfs.h>
 #include "devfs.h"
 #include "devfs_ops.h"
@@ -50,7 +51,9 @@
 #define NAME  "devfs"
 
 static vfs_info_t devfs_vfs_info = {
-	.name = "devfs",
+	.name = NAME,
+	.concurrent_read_write = false,
+	.write_retains_size = false,
 };
 
 fs_reg_t devfs_reg;
@@ -58,13 +61,13 @@ fs_reg_t devfs_reg;
 static void devfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
 	if (iid)
-		ipc_answer_0(iid, EOK);
+		async_answer_0(iid, EOK);
 	
 	while (true) {
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
 		
-		switch  (IPC_GET_METHOD(call)) {
+		switch  (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			return;
 		case VFS_OUT_MOUNTED:
@@ -72,6 +75,12 @@ static void devfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		case VFS_OUT_MOUNT:
 			devfs_mount(callid, &call);
+			break;
+		case VFS_OUT_UNMOUNTED:
+			devfs_unmounted(callid, &call);
+			break;
+		case VFS_OUT_UNMOUNT:
+			devfs_unmount(callid, &call);
 			break;
 		case VFS_OUT_LOOKUP:
 			devfs_lookup(callid, &call);
@@ -101,7 +110,7 @@ static void devfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 			devfs_destroy(callid, &call);
 			break;
 		default:
-			ipc_answer_0(callid, ENOTSUP);
+			async_answer_0(callid, ENOTSUP);
 			break;
 		}
 	}
@@ -116,7 +125,7 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 	
-	int vfs_phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_VFS, 0, 0);
+	int vfs_phone = service_connect_blocking(SERVICE_VFS, 0, 0);
 	if (vfs_phone < EOK) {
 		printf(NAME ": Unable to connect to VFS\n");
 		return -1;
@@ -130,6 +139,7 @@ int main(int argc, char *argv[])
 	}
 	
 	printf(NAME ": Accepting connections\n");
+	task_retval(0);
 	async_manager();
 	
 	/* Not reached */

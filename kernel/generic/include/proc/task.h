@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2004 Jakub Jermar
+ * Copyright (c) 2010 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,7 +39,6 @@
 #include <ipc/ipc.h>
 #include <synch/spinlock.h>
 #include <synch/mutex.h>
-#include <synch/rwlock.h>
 #include <synch/futex.h>
 #include <adt/avl.h>
 #include <adt/btree.h>
@@ -54,8 +53,8 @@
 #include <proc/scheduler.h>
 #include <udebug/udebug.h>
 #include <ipc/kbox.h>
-
-#define TASK_NAME_BUFLEN	20
+#include <mm/as.h>
+#include <sysinfo/abi.h>
 
 struct thread;
 
@@ -69,8 +68,8 @@ typedef struct task {
 	 * Must be acquired before threads_lock and thread lock of any of its
 	 * threads.
 	 */
-	SPINLOCK_DECLARE(lock);
-
+	IRQ_SPINLOCK_DECLARE(lock);
+	
 	char name[TASK_NAME_BUFLEN];
 	/** List of threads contained in this task. */
 	link_t th_head;
@@ -79,33 +78,31 @@ typedef struct task {
 	/** Unique identity of task. */
 	task_id_t taskid;
 	/** Task security context. */
-	context_id_t context;	
-
+	context_id_t context;
+	
 	/** Number of references (i.e. threads). */
 	atomic_t refcount;
 	/** Number of threads that haven't exited yet. */
 	atomic_t lifecount;
-
+	
 	/** Task capabilities. */
-	cap_t capabilities;	
-
+	cap_t capabilities;
+	
 	/* IPC stuff */
 	answerbox_t answerbox;  /**< Communication endpoint */
 	phone_t phones[IPC_MAX_PHONES];
-	/**
-	 * Active asynchronous messages. It is used for limiting uspace to
-	 * certain extent.
-	 */
-	atomic_t active_calls;
-
+	stats_ipc_t ipc_info;   /**< IPC statistics */
+	/** List of synchronous answerboxes. */
+	link_t sync_box_head;
+	
 #ifdef CONFIG_UDEBUG
 	/** Debugging stuff. */
 	udebug_task_t udebug;
-
+	
 	/** Kernel answerbox. */
 	kbox_t kb;
-#endif
-
+#endif /* CONFIG_UDEBUG */
+	
 	/** Architecture specific task data. */
 	task_arch_t arch;
 	
@@ -115,36 +112,50 @@ typedef struct task {
 	 */
 	mutex_t futexes_lock;
 	/** B+tree of futexes referenced by this task. */
-	btree_t futexes;	
+	btree_t futexes;
 	
 	/** Accumulated accounting. */
-	uint64_t cycles;
+	uint64_t ucycles;
+	uint64_t kcycles;
 } task_t;
 
-SPINLOCK_EXTERN(tasks_lock);
+IRQ_SPINLOCK_EXTERN(tasks_lock);
 extern avltree_t tasks_tree;
 
 extern void task_init(void);
 extern void task_done(void);
-extern task_t *task_create(as_t *as, char *name);
-extern void task_destroy(task_t *t);
-extern task_t *task_find_by_id(task_id_t id);
-extern int task_kill(task_id_t id);
-extern uint64_t task_get_accounting(task_t *t);
+extern task_t *task_create(as_t *, const char *);
+extern void task_destroy(task_t *);
+extern void task_hold(task_t *);
+extern void task_release(task_t *);
+extern task_t *task_find_by_id(task_id_t);
+extern int task_kill(task_id_t);
+extern void task_kill_self(bool) __attribute__((noreturn));
+extern void task_get_accounting(task_t *, uint64_t *, uint64_t *);
+extern void task_print_list(bool);
 
-extern void cap_set(task_t *t, cap_t caps);
-extern cap_t cap_get(task_t *t);
+extern void cap_set(task_t *, cap_t);
+extern cap_t cap_get(task_t *);
 
 #ifndef task_create_arch
-extern void task_create_arch(task_t *t);
+extern void task_create_arch(task_t *);
 #endif
 
 #ifndef task_destroy_arch
-extern void task_destroy_arch(task_t *t);
+extern void task_destroy_arch(task_t *);
 #endif
 
-extern unative_t sys_task_get_id(task_id_t *uspace_task_id);
-extern unative_t sys_task_set_name(const char *uspace_name, size_t name_len);
+#ifdef __32_BITS__
+extern sysarg_t sys_task_get_id(sysarg64_t *);
+#endif
+
+#ifdef __64_BITS__
+extern sysarg_t sys_task_get_id(void);
+#endif
+
+extern sysarg_t sys_task_set_name(const char *, size_t);
+extern sysarg_t sys_task_kill(task_id_t *);
+extern sysarg_t sys_task_exit(sysarg_t);
 
 #endif
 

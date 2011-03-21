@@ -26,9 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/** @addtogroup mips32
+ * @{
+ */
+/** @file
+ */
+
 #ifndef KERN_mips32_DORDER_H_
 #define KERN_mips32_DORDER_H_
 
-extern void ipi_broadcast_arch(int ipi);
+#include <typedefs.h>
+
+extern uint32_t dorder_cpuid(void);
+extern void dorder_ipi_ack(uint32_t);
 
 #endif
+
+/** @}
+ */

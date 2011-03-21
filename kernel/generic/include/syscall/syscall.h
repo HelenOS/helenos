@@ -37,14 +37,17 @@
 
 typedef enum {
 	SYS_KLOG = 0,
-	SYS_TLS_SET = 1, /* Hardcoded in AMD64, IA32 uspace - fibril.S */
+	SYS_TLS_SET = 1,  /* Hardcoded for AMD64, IA-32 (fibril.S in uspace) */
 	
 	SYS_THREAD_CREATE,
 	SYS_THREAD_EXIT,
 	SYS_THREAD_GET_ID,
+	SYS_THREAD_USLEEP,
 	
 	SYS_TASK_GET_ID,
 	SYS_TASK_SET_NAME,
+	SYS_TASK_KILL,
+	SYS_TASK_EXIT,
 	SYS_PROGRAM_SPAWN_LOADER,
 	
 	SYS_FUTEX_SLEEP,
@@ -55,6 +58,7 @@ typedef enum {
 	SYS_AS_AREA_RESIZE,
 	SYS_AS_AREA_CHANGE_FLAGS,
 	SYS_AS_AREA_DESTROY,
+	SYS_AS_GET_UNMAPPED_AREA,
 	
 	SYS_IPC_CALL_SYNC_FAST,
 	SYS_IPC_CALL_SYNC_SLOW,
@@ -67,9 +71,8 @@ typedef enum {
 	SYS_IPC_WAIT,
 	SYS_IPC_POKE,
 	SYS_IPC_HANGUP,
-	SYS_IPC_REGISTER_IRQ,
-	SYS_IPC_UNREGISTER_IRQ,
-
+	SYS_IPC_CONNECT_KBOX,
+	
 	SYS_EVENT_SUBSCRIBE,
 	
 	SYS_CAP_GRANT,
@@ -78,29 +81,32 @@ typedef enum {
 	SYS_DEVICE_ASSIGN_DEVNO,
 	SYS_PHYSMEM_MAP,
 	SYS_IOSPACE_ENABLE,
-	SYS_PREEMPT_CONTROL,
+	SYS_REGISTER_IRQ,
+	SYS_UNREGISTER_IRQ,
 	
-	SYS_SYSINFO_VALID,
-	SYS_SYSINFO_VALUE,
-
+	SYS_SYSINFO_GET_TAG,
+	SYS_SYSINFO_GET_VALUE,
+	SYS_SYSINFO_GET_DATA_SIZE,
+	SYS_SYSINFO_GET_DATA,
+	
 	SYS_DEBUG_PUTINT,
 	SYS_DEBUG_ENABLE_CONSOLE,
 	SYS_DEBUG_DISABLE_CONSOLE,
-	SYS_IPC_CONNECT_KBOX,
+	
 	SYSCALL_END
 } syscall_t;
 
 #ifdef KERNEL
 
-#include <arch/types.h>
+#include <typedefs.h>
 
-typedef unative_t (*syshandler_t)(unative_t, unative_t, unative_t, unative_t,
-    unative_t, unative_t);
+typedef sysarg_t (*syshandler_t)(sysarg_t, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t);
 
 extern syshandler_t syscall_table[SYSCALL_END];
-extern unative_t syscall_handler(unative_t, unative_t, unative_t, unative_t,
-    unative_t, unative_t, unative_t);
-extern unative_t sys_tls_set(unative_t);
+extern sysarg_t syscall_handler(sysarg_t, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t, sysarg_t);
+extern sysarg_t sys_tls_set(sysarg_t);
 
 #endif
 

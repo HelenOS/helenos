@@ -37,8 +37,8 @@
 //#include <stdio.h>
 #include "libtest.h"
 
-static void kputint(unsigned i)
-{
+//static void kputint(unsigned i)
+//{
 //	unsigned dummy;
 //	asm volatile (
 //		"movl $30, %%eax;"
@@ -47,7 +47,7 @@ static void kputint(unsigned i)
 //		: "d" (i) /* input */
 //		: "%eax","%ecx" /* all scratch registers clobbered */
 //	);
-}
+//}
 
 int number = 137;
 

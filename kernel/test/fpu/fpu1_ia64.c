@@ -84,7 +84,7 @@ static void e(void *data)
 		}
 		
 		if ((int) (100000000 * e) != E_10e8) {
-			TPRINTF("tid%" PRIu64 ": e*10e8=%zd should be %" PRIun "\n", THREAD->tid, (unative_t) (100000000 * e), (unative_t) E_10e8);
+			TPRINTF("tid%" PRIu64 ": e*10e8=%zd should be %" PRIun "\n", THREAD->tid, (sysarg_t) (100000000 * e), (sysarg_t) E_10e8);
 			atomic_inc(&threads_fault);
 			break;
 		}
@@ -117,7 +117,7 @@ static void pi(void *data)
 		}
 		
 		if ((int) (1000000 * pi) != PI_10e8) {
-			TPRINTF("tid%" PRIu64 ": pi*10e8=%zd should be %" PRIun "\n", THREAD->tid, (unative_t) (1000000 * pi), (unative_t) (PI_10e8 / 100));
+			TPRINTF("tid%" PRIu64 ": pi*10e8=%zd should be %" PRIun "\n", THREAD->tid, (sysarg_t) (1000000 * pi), (sysarg_t) (PI_10e8 / 100));
 			atomic_inc(&threads_fault);
 			break;
 		}
@@ -125,9 +125,10 @@ static void pi(void *data)
 	atomic_inc(&threads_ok);
 }
 
-char *test_fpu1(void)
+const char *test_fpu1(void)
 {
-	unsigned int i, total = 0;
+	unsigned int i;
+	atomic_count_t total = 0;
 	
 	waitq_initialize(&can_start);
 	atomic_set(&threads_ok, 0);
@@ -158,8 +159,9 @@ char *test_fpu1(void)
 	thread_sleep(1);
 	waitq_wakeup(&can_start, WAKEUP_ALL);
 	
-	while (atomic_get(&threads_ok) != (long) total) {
-		TPRINTF("Threads left: %d\n", total - atomic_get(&threads_ok));
+	while (atomic_get(&threads_ok) != total) {
+		TPRINTF("Threads left: %" PRIua "\n",
+		    total - atomic_get(&threads_ok));
 		thread_sleep(1);
 	}
 	

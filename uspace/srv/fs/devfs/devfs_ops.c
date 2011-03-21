@@ -35,26 +35,33 @@
  * @brief Implementation of VFS operations for the devfs file system server.
  */
 
-#include <ipc/ipc.h>
+#include <macros.h>
 #include <bool.h>
 #include <errno.h>
 #include <malloc.h>
-#include <string.h>
+#include <str.h>
 #include <libfs.h>
-#include <fibril_sync.h>
+#include <fibril_synch.h>
 #include <adt/hash_table.h>
+#include <ipc/devmap.h>
 #include <sys/stat.h>
+#include <libfs.h>
+#include <assert.h>
 #include "devfs.h"
 #include "devfs_ops.h"
 
-#define PLB_GET_CHAR(pos)  (devfs_reg.plb_ro[pos % PLB_SIZE])
+typedef struct {
+	devmap_handle_type_t type;
+	devmap_handle_t handle;
+} devfs_node_t;
 
 /** Opened devices structure */
 typedef struct {
-	dev_handle_t handle;
-	int phone;
+	devmap_handle_t handle;
+	int phone;		/**< When < 0, the structure is incomplete. */
 	size_t refcount;
 	link_t link;
+	fibril_condvar_t cv;	/**< Broadcast when completed. */
 } device_t;
 
 /** Hash table of opened devices */
@@ -76,7 +83,7 @@ static hash_index_t devices_hash(unsigned long key[])
 static int devices_compare(unsigned long key[], hash_count_t keys, link_t *item)
 {
 	device_t *dev = hash_table_get_instance(item, device_t, link);
-	return (dev->handle == (dev_handle_t) key[DEVICES_KEY_HANDLE]);
+	return (dev->handle == (devmap_handle_t) key[DEVICES_KEY_HANDLE]);
 }
 
 static void devices_remove_callback(link_t *item)
@@ -90,13 +97,362 @@ static hash_table_operations_t devices_ops = {
 	.remove_callback = devices_remove_callback
 };
 
+static int devfs_node_get_internal(fs_node_t **rfn, devmap_handle_type_t type,
+    devmap_handle_t handle)
+{
+	devfs_node_t *node = (devfs_node_t *) malloc(sizeof(devfs_node_t));
+	if (node == NULL) {
+		*rfn = NULL;
+		return ENOMEM;
+	}
+	
+	*rfn = (fs_node_t *) malloc(sizeof(fs_node_t));
+	if (*rfn == NULL) {
+		free(node);
+		*rfn = NULL;
+		return ENOMEM;
+	}
+	
+	fs_node_initialize(*rfn);
+	node->type = type;
+	node->handle = handle;
+	
+	(*rfn)->data = node;
+	return EOK;
+}
+
+static int devfs_root_get(fs_node_t **rfn, devmap_handle_t devmap_handle)
+{
+	return devfs_node_get_internal(rfn, DEV_HANDLE_NONE, 0);
+}
+
+static int devfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
+{
+	devfs_node_t *node = (devfs_node_t *) pfn->data;
+	int ret;
+	
+	if (node->handle == 0) {
+		/* Root directory */
+		
+		dev_desc_t *devs;
+		size_t count = devmap_get_namespaces(&devs);
+		
+		if (count > 0) {
+			size_t pos;
+			for (pos = 0; pos < count; pos++) {
+				/* Ignore root namespace */
+				if (str_cmp(devs[pos].name, "") == 0)
+					continue;
+				
+				if (str_cmp(devs[pos].name, component) == 0) {
+					ret = devfs_node_get_internal(rfn, DEV_HANDLE_NAMESPACE, devs[pos].handle);
+					free(devs);
+					return ret;
+				}
+			}
+			
+			free(devs);
+		}
+		
+		/* Search root namespace */
+		devmap_handle_t namespace;
+		if (devmap_namespace_get_handle("", &namespace, 0) == EOK) {
+			count = devmap_get_devices(namespace, &devs);
+			
+			if (count > 0) {
+				size_t pos;
+				for (pos = 0; pos < count; pos++) {
+					if (str_cmp(devs[pos].name, component) == 0) {
+						ret = devfs_node_get_internal(rfn, DEV_HANDLE_DEVICE, devs[pos].handle);
+						free(devs);
+						return ret;
+					}
+				}
+				
+				free(devs);
+			}
+		}
+		
+		*rfn = NULL;
+		return EOK;
+	}
+	
+	if (node->type == DEV_HANDLE_NAMESPACE) {
+		/* Namespace directory */
+		
+		dev_desc_t *devs;
+		size_t count = devmap_get_devices(node->handle, &devs);
+		if (count > 0) {
+			size_t pos;
+			for (pos = 0; pos < count; pos++) {
+				if (str_cmp(devs[pos].name, component) == 0) {
+					ret = devfs_node_get_internal(rfn, DEV_HANDLE_DEVICE, devs[pos].handle);
+					free(devs);
+					return ret;
+				}
+			}
+			
+			free(devs);
+		}
+		
+		*rfn = NULL;
+		return EOK;
+	}
+	
+	*rfn = NULL;
+	return EOK;
+}
+
+static int devfs_node_get(fs_node_t **rfn, devmap_handle_t devmap_handle, fs_index_t index)
+{
+	return devfs_node_get_internal(rfn, devmap_handle_probe(index), index);
+}
+
+static int devfs_node_open(fs_node_t *fn)
+{
+	devfs_node_t *node = (devfs_node_t *) fn->data;
+	
+	if (node->handle == 0) {
+		/* Root directory */
+		return EOK;
+	}
+	
+	devmap_handle_type_t type = devmap_handle_probe(node->handle);
+	
+	if (type == DEV_HANDLE_NAMESPACE) {
+		/* Namespace directory */
+		return EOK;
+	}
+	
+	if (type == DEV_HANDLE_DEVICE) {
+		/* Device node */
+		
+		unsigned long key[] = {
+			[DEVICES_KEY_HANDLE] = (unsigned long) node->handle
+		};
+		link_t *lnk;
+
+		fibril_mutex_lock(&devices_mutex);
+restart:
+		lnk = hash_table_find(&devices, key);
+		if (lnk == NULL) {
+			device_t *dev = (device_t *) malloc(sizeof(device_t));
+			if (dev == NULL) {
+				fibril_mutex_unlock(&devices_mutex);
+				return ENOMEM;
+			}
+			
+			dev->handle = node->handle;
+			dev->phone = -1;	/* mark as incomplete */
+			dev->refcount = 1;
+			fibril_condvar_initialize(&dev->cv);
+
+			/*
+			 * Insert the incomplete device structure so that other
+			 * fibrils will not race with us when we drop the mutex
+			 * below.
+			 */
+			hash_table_insert(&devices, key, &dev->link);
+
+			/*
+			 * Drop the mutex to allow recursive devfs requests.
+			 */
+			fibril_mutex_unlock(&devices_mutex);
+
+			int phone = devmap_device_connect(node->handle, 0);
+
+			fibril_mutex_lock(&devices_mutex);
+
+			/*
+			 * Notify possible waiters about this device structure
+			 * being completed (or destroyed).
+			 */
+			fibril_condvar_broadcast(&dev->cv);
+
+			if (phone < 0) {
+				/*
+				 * Connecting failed, need to remove the
+				 * entry and free the device structure.
+				 */
+				hash_table_remove(&devices, key, DEVICES_KEYS);
+				fibril_mutex_unlock(&devices_mutex);
+
+				return ENOENT;
+			}
+			
+			/* Set the correct phone. */
+			dev->phone = phone;
+		} else {
+			device_t *dev = hash_table_get_instance(lnk, device_t, link);
+
+			if (dev->phone < 0) {
+				/*
+				 * Wait until the device structure is completed
+				 * and start from the beginning as the device
+				 * structure might have entirely disappeared
+				 * while we were not holding the mutex in
+				 * fibril_condvar_wait().
+				 */
+				fibril_condvar_wait(&dev->cv, &devices_mutex);
+				goto restart;
+			}
+
+			dev->refcount++;
+		}
+		
+		fibril_mutex_unlock(&devices_mutex);
+		
+		return EOK;
+	}
+	
+	return ENOENT;
+}
+
+static int devfs_node_put(fs_node_t *fn)
+{
+	free(fn->data);
+	free(fn);
+	return EOK;
+}
+
+static int devfs_create_node(fs_node_t **rfn, devmap_handle_t devmap_handle, int lflag)
+{
+	assert((lflag & L_FILE) ^ (lflag & L_DIRECTORY));
+	
+	*rfn = NULL;
+	return ENOTSUP;
+}
+
+static int devfs_destroy_node(fs_node_t *fn)
+{
+	return ENOTSUP;
+}
+
+static int devfs_link_node(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
+{
+	return ENOTSUP;
+}
+
+static int devfs_unlink_node(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
+{
+	return ENOTSUP;
+}
+
+static int devfs_has_children(bool *has_children, fs_node_t *fn)
+{
+	devfs_node_t *node = (devfs_node_t *) fn->data;
+	
+	if (node->handle == 0) {
+		size_t count = devmap_count_namespaces();
+		if (count > 0) {
+			*has_children = true;
+			return EOK;
+		}
+		
+		/* Root namespace */
+		devmap_handle_t namespace;
+		if (devmap_namespace_get_handle("", &namespace, 0) == EOK) {
+			count = devmap_count_devices(namespace);
+			if (count > 0) {
+				*has_children = true;
+				return EOK;
+			}
+		}
+		
+		*has_children = false;
+		return EOK;
+	}
+	
+	if (node->type == DEV_HANDLE_NAMESPACE) {
+		size_t count = devmap_count_devices(node->handle);
+		if (count > 0) {
+			*has_children = true;
+			return EOK;
+		}
+		
+		*has_children = false;
+		return EOK;
+	}
+	
+	*has_children = false;
+	return EOK;
+}
+
+static fs_index_t devfs_index_get(fs_node_t *fn)
+{
+	devfs_node_t *node = (devfs_node_t *) fn->data;
+	return node->handle;
+}
+
+static aoff64_t devfs_size_get(fs_node_t *fn)
+{
+	return 0;
+}
+
+static unsigned int devfs_lnkcnt_get(fs_node_t *fn)
+{
+	devfs_node_t *node = (devfs_node_t *) fn->data;
+	
+	if (node->handle == 0)
+		return 0;
+	
+	return 1;
+}
+
+static char devfs_plb_get_char(unsigned pos)
+{
+	return devfs_reg.plb_ro[pos % PLB_SIZE];
+}
+
+static bool devfs_is_directory(fs_node_t *fn)
+{
+	devfs_node_t *node = (devfs_node_t *) fn->data;
+	
+	return ((node->type == DEV_HANDLE_NONE) || (node->type == DEV_HANDLE_NAMESPACE));
+}
+
+static bool devfs_is_file(fs_node_t *fn)
+{
+	devfs_node_t *node = (devfs_node_t *) fn->data;
+	
+	return (node->type == DEV_HANDLE_DEVICE);
+}
+
+static devmap_handle_t devfs_device_get(fs_node_t *fn)
+{
+	devfs_node_t *node = (devfs_node_t *) fn->data;
+	
+	if (node->type == DEV_HANDLE_DEVICE)
+		return node->handle;
+	
+	return 0;
+}
+
+/** libfs operations */
+libfs_ops_t devfs_libfs_ops = {
+	.root_get = devfs_root_get,
+	.match = devfs_match,
+	.node_get = devfs_node_get,
+	.node_open = devfs_node_open,
+	.node_put = devfs_node_put,
+	.create = devfs_create_node,
+	.destroy = devfs_destroy_node,
+	.link = devfs_link_node,
+	.unlink = devfs_unlink_node,
+	.has_children = devfs_has_children,
+	.index_get = devfs_index_get,
+	.size_get = devfs_size_get,
+	.lnkcnt_get = devfs_lnkcnt_get,
+	.plb_get_char = devfs_plb_get_char,
+	.is_directory = devfs_is_directory,
+	.is_file = devfs_is_file,
+	.device_get = devfs_device_get
+};
+
 bool devfs_init(void)
 {
 	if (!hash_table_create(&devices, DEVICES_BUCKETS,
 	    DEVICES_KEYS, &devices_ops))
-		return false;
-	
-	if (devmap_get_phone(DEVMAP_CLIENT, IPC_FLAG_BLOCKING) < 0)
 		return false;
 	
 	return true;
@@ -104,226 +460,140 @@ bool devfs_init(void)
 
 void devfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 {
+	char *opts;
+	
 	/* Accept the mount options */
-	ipc_callid_t callid;
-	size_t size;
-	if (!ipc_data_write_receive(&callid, &size)) {
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
-		return;
-	}
-	
-	char *opts = malloc(size + 1);
-	if (!opts) {
-		ipc_answer_0(callid, ENOMEM);
-		ipc_answer_0(rid, ENOMEM);
-		return;
-	}
-	
-	ipcarg_t retval = ipc_data_write_finalize(callid, opts, size);
+	sysarg_t retval = async_data_write_accept((void **) &opts, true, 0, 0,
+	    0, NULL);
 	if (retval != EOK) {
-		ipc_answer_0(rid, retval);
-		free(opts);
+		async_answer_0(rid, retval);
 		return;
 	}
 	
 	free(opts);
-	
-	ipc_answer_3(rid, EOK, 0, 0, 0);
+	async_answer_3(rid, EOK, 0, 0, 0);
 }
 
 void devfs_mount(ipc_callid_t rid, ipc_call_t *request)
 {
-	ipc_answer_0(rid, ENOTSUP);
+	libfs_mount(&devfs_libfs_ops, devfs_reg.fs_handle, rid, request);
+}
+
+void devfs_unmounted(ipc_callid_t rid, ipc_call_t *request)
+{
+	async_answer_0(rid, ENOTSUP);
+}
+
+void devfs_unmount(ipc_callid_t rid, ipc_call_t *request)
+{
+	libfs_unmount(&devfs_libfs_ops, rid, request);
 }
 
 void devfs_lookup(ipc_callid_t rid, ipc_call_t *request)
 {
-	ipcarg_t first = IPC_GET_ARG1(*request);
-	ipcarg_t last = IPC_GET_ARG2(*request);
-	dev_handle_t dev_handle = IPC_GET_ARG3(*request);
-	ipcarg_t lflag = IPC_GET_ARG4(*request);
-	fs_index_t index = IPC_GET_ARG5(*request);
-	
-	/* Hierarchy is flat, no altroot is supported */
-	if (index != 0) {
-		ipc_answer_0(rid, ENOENT);
-		return;
-	}
-	
-	if ((lflag & L_LINK) || (lflag & L_UNLINK)) {
-		ipc_answer_0(rid, ENOTSUP);
-		return;
-	}
-	
-	/* Eat slash */
-	if (PLB_GET_CHAR(first) == '/') {
-		first++;
-		first %= PLB_SIZE;
-	}
-	
-	if (first >= last) {
-		/* Root entry */
-		if (!(lflag & L_FILE))
-			ipc_answer_5(rid, EOK, devfs_reg.fs_handle, dev_handle, 0, 0, 0);
-		else
-			ipc_answer_0(rid, ENOENT);
-	} else {
-		if (!(lflag & L_DIRECTORY)) {
-			size_t len;
-			if (last >= first)
-				len = last - first + 1;
-			else
-				len = first + PLB_SIZE - last + 1;
-			
-			char *name = (char *) malloc(len + 1);
-			if (name == NULL) {
-				ipc_answer_0(rid, ENOMEM);
-				return;
-			}
-			
-			size_t i;
-			for (i = 0; i < len; i++)
-				name[i] = PLB_GET_CHAR(first + i);
-			
-			name[len] = 0;
-			
-			dev_handle_t handle;
-			if (devmap_device_get_handle(name, &handle, 0) != EOK) {
-				free(name);
-				ipc_answer_0(rid, ENOENT);
-				return;
-			}
-			
-			if (lflag & L_OPEN) {
-				unsigned long key[] = {
-					[DEVICES_KEY_HANDLE] = (unsigned long) handle
-				};
-				
-				fibril_mutex_lock(&devices_mutex);
-				link_t *lnk = hash_table_find(&devices, key);
-				if (lnk == NULL) {
-					int phone = devmap_device_connect(handle, 0);
-					if (phone < 0) {
-						fibril_mutex_unlock(&devices_mutex);
-						free(name);
-						ipc_answer_0(rid, ENOENT);
-						return;
-					}
-					
-					device_t *dev = (device_t *) malloc(sizeof(device_t));
-					if (dev == NULL) {
-						fibril_mutex_unlock(&devices_mutex);
-						free(name);
-						ipc_answer_0(rid, ENOMEM);
-						return;
-					}
-					
-					dev->handle = handle;
-					dev->phone = phone;
-					dev->refcount = 1;
-					
-					hash_table_insert(&devices, key, &dev->link);
-				} else {
-					device_t *dev = hash_table_get_instance(lnk, device_t, link);
-					dev->refcount++;
-				}
-				fibril_mutex_unlock(&devices_mutex);
-			}
-			
-			free(name);
-			
-			ipc_answer_5(rid, EOK, devfs_reg.fs_handle, dev_handle, handle, 0, 1);
-		} else
-			ipc_answer_0(rid, ENOENT);
-	}
+	libfs_lookup(&devfs_libfs_ops, devfs_reg.fs_handle, rid, request);
 }
 
 void devfs_open_node(ipc_callid_t rid, ipc_call_t *request)
 {
-	dev_handle_t handle = IPC_GET_ARG2(*request);
-	
-	unsigned long key[] = {
-		[DEVICES_KEY_HANDLE] = (unsigned long) handle
-	};
-	
-	fibril_mutex_lock(&devices_mutex);
-	link_t *lnk = hash_table_find(&devices, key);
-	if (lnk == NULL) {
-		int phone = devmap_device_connect(handle, 0);
-		if (phone < 0) {
-			fibril_mutex_unlock(&devices_mutex);
-			ipc_answer_0(rid, ENOENT);
-			return;
-		}
-		
-		device_t *dev = (device_t *) malloc(sizeof(device_t));
-		if (dev == NULL) {
-			fibril_mutex_unlock(&devices_mutex);
-			ipc_answer_0(rid, ENOMEM);
-			return;
-		}
-		
-		dev->handle = handle;
-		dev->phone = phone;
-		dev->refcount = 1;
-		
-		hash_table_insert(&devices, key, &dev->link);
-	} else {
-		device_t *dev = hash_table_get_instance(lnk, device_t, link);
-		dev->refcount++;
-	}
-	fibril_mutex_unlock(&devices_mutex);
-	
-	ipc_answer_3(rid, EOK, 0, 1, L_FILE);
+	libfs_open_node(&devfs_libfs_ops, devfs_reg.fs_handle, rid, request);
 }
 
 void devfs_stat(ipc_callid_t rid, ipc_call_t *request)
 {
-	dev_handle_t dev_handle = (dev_handle_t) IPC_GET_ARG1(*request);
-	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
-	
-	ipc_callid_t callid;
-	size_t size;
-	if (!ipc_data_read_receive(&callid, &size) ||
-	    size != sizeof(struct stat)) {
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
-		return;
-	}
-
-	struct stat stat;
-	memset(&stat, 0, sizeof(struct stat));
-
-	stat.fs_handle = devfs_reg.fs_handle;
-	stat.dev_handle = dev_handle;
-	stat.index = index;
-	stat.lnkcnt = 1;
-	stat.is_file = (index != 0);
-	stat.size = 0;
-	
-	if (index != 0) {
-		unsigned long key[] = {
-			[DEVICES_KEY_HANDLE] = (unsigned long) index
-		};
-		
-		fibril_mutex_lock(&devices_mutex);
-		link_t *lnk = hash_table_find(&devices, key);
-		if (lnk != NULL) 
-			stat.devfs_stat.device = (dev_handle_t)index;
-		fibril_mutex_unlock(&devices_mutex);
-	}
-
-	ipc_data_read_finalize(callid, &stat, sizeof(struct stat));
-	ipc_answer_0(rid, EOK);
+	libfs_stat(&devfs_libfs_ops, devfs_reg.fs_handle, rid, request);
 }
 
 void devfs_read(ipc_callid_t rid, ipc_call_t *request)
 {
 	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
-	off_t pos = (off_t) IPC_GET_ARG3(*request);
+	aoff64_t pos =
+	    (aoff64_t) MERGE_LOUP32(IPC_GET_ARG3(*request), IPC_GET_ARG4(*request));
 	
-	if (index != 0) {
+	if (index == 0) {
+		ipc_callid_t callid;
+		size_t size;
+		if (!async_data_read_receive(&callid, &size)) {
+			async_answer_0(callid, EINVAL);
+			async_answer_0(rid, EINVAL);
+			return;
+		}
+		
+		dev_desc_t *desc;
+		size_t count = devmap_get_namespaces(&desc);
+		
+		/* Get rid of root namespace */
+		size_t i;
+		for (i = 0; i < count; i++) {
+			if (str_cmp(desc[i].name, "") == 0) {
+				if (pos >= i)
+					pos++;
+				
+				break;
+			}
+		}
+		
+		if (pos < count) {
+			async_data_read_finalize(callid, desc[pos].name, str_size(desc[pos].name) + 1);
+			free(desc);
+			async_answer_1(rid, EOK, 1);
+			return;
+		}
+		
+		free(desc);
+		pos -= count;
+		
+		/* Search root namespace */
+		devmap_handle_t namespace;
+		if (devmap_namespace_get_handle("", &namespace, 0) == EOK) {
+			count = devmap_get_devices(namespace, &desc);
+			
+			if (pos < count) {
+				async_data_read_finalize(callid, desc[pos].name, str_size(desc[pos].name) + 1);
+				free(desc);
+				async_answer_1(rid, EOK, 1);
+				return;
+			}
+			
+			free(desc);
+		}
+		
+		async_answer_0(callid, ENOENT);
+		async_answer_1(rid, ENOENT, 0);
+		return;
+	}
+	
+	devmap_handle_type_t type = devmap_handle_probe(index);
+	
+	if (type == DEV_HANDLE_NAMESPACE) {
+		/* Namespace directory */
+		ipc_callid_t callid;
+		size_t size;
+		if (!async_data_read_receive(&callid, &size)) {
+			async_answer_0(callid, EINVAL);
+			async_answer_0(rid, EINVAL);
+			return;
+		}
+		
+		dev_desc_t *desc;
+		size_t count = devmap_get_devices(index, &desc);
+		
+		if (pos < count) {
+			async_data_read_finalize(callid, desc[pos].name, str_size(desc[pos].name) + 1);
+			free(desc);
+			async_answer_1(rid, EOK, 1);
+			return;
+		}
+		
+		free(desc);
+		async_answer_0(callid, ENOENT);
+		async_answer_1(rid, ENOENT, 0);
+		return;
+	}
+	
+	if (type == DEV_HANDLE_DEVICE) {
+		/* Device node */
+		
 		unsigned long key[] = {
 			[DEVICES_KEY_HANDLE] = (unsigned long) index
 		};
@@ -332,76 +602,62 @@ void devfs_read(ipc_callid_t rid, ipc_call_t *request)
 		link_t *lnk = hash_table_find(&devices, key);
 		if (lnk == NULL) {
 			fibril_mutex_unlock(&devices_mutex);
-			ipc_answer_0(rid, ENOENT);
+			async_answer_0(rid, ENOENT);
 			return;
 		}
 		
 		device_t *dev = hash_table_get_instance(lnk, device_t, link);
+		assert(dev->phone >= 0);
 		
 		ipc_callid_t callid;
-		if (!ipc_data_read_receive(&callid, NULL)) {
+		if (!async_data_read_receive(&callid, NULL)) {
 			fibril_mutex_unlock(&devices_mutex);
-			ipc_answer_0(callid, EINVAL);
-			ipc_answer_0(rid, EINVAL);
+			async_answer_0(callid, EINVAL);
+			async_answer_0(rid, EINVAL);
 			return;
 		}
 		
 		/* Make a request at the driver */
 		ipc_call_t answer;
-		aid_t msg = async_send_3(dev->phone, IPC_GET_METHOD(*request),
+		aid_t msg = async_send_3(dev->phone, IPC_GET_IMETHOD(*request),
 		    IPC_GET_ARG1(*request), IPC_GET_ARG2(*request),
 		    IPC_GET_ARG3(*request), &answer);
 		
 		/* Forward the IPC_M_DATA_READ request to the driver */
-		ipc_forward_fast(callid, dev->phone, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
+		async_forward_fast(callid, dev->phone, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
 		fibril_mutex_unlock(&devices_mutex);
 		
 		/* Wait for reply from the driver. */
-		ipcarg_t rc;
+		sysarg_t rc;
 		async_wait_for(msg, &rc);
 		size_t bytes = IPC_GET_ARG1(answer);
 		
 		/* Driver reply is the final result of the whole operation */
-		ipc_answer_1(rid, rc, bytes);
-	} else {
-		ipc_callid_t callid;
-		size_t size;
-		if (!ipc_data_read_receive(&callid, &size)) {
-			ipc_answer_0(callid, EINVAL);
-			ipc_answer_0(rid, EINVAL);
-			return;
-		}
-		
-		size_t count = devmap_device_get_count();
-		dev_desc_t *desc = malloc(count * sizeof(dev_desc_t));
-		if (desc == NULL) {
-			ipc_answer_0(callid, ENOMEM);
-			ipc_answer_1(rid, ENOMEM, 0);
-			return;
-		}
-		
-		size_t max = devmap_device_get_devices(count, desc);
-		
-		if (pos < max) {
-			ipc_data_read_finalize(callid, desc[pos].name, str_size(desc[pos].name) + 1);
-		} else {
-			ipc_answer_0(callid, ENOENT);
-			ipc_answer_1(rid, ENOENT, 0);
-			return;
-		}
-		
-		free(desc);
-		
-		ipc_answer_1(rid, EOK, 1);
+		async_answer_1(rid, rc, bytes);
+		return;
 	}
+	
+	async_answer_0(rid, ENOENT);
 }
 
 void devfs_write(ipc_callid_t rid, ipc_call_t *request)
 {
 	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
-	off_t pos = (off_t) IPC_GET_ARG3(*request);
+	if (index == 0) {
+		async_answer_0(rid, ENOTSUP);
+		return;
+	}
 	
-	if (index != 0) {
+	devmap_handle_type_t type = devmap_handle_probe(index);
+	
+	if (type == DEV_HANDLE_NAMESPACE) {
+		/* Namespace directory */
+		async_answer_0(rid, ENOTSUP);
+		return;
+	}
+	
+	if (type == DEV_HANDLE_DEVICE) {
+		/* Device node */
 		unsigned long key[] = {
 			[DEVICES_KEY_HANDLE] = (unsigned long) index
 		};
@@ -410,54 +666,68 @@ void devfs_write(ipc_callid_t rid, ipc_call_t *request)
 		link_t *lnk = hash_table_find(&devices, key);
 		if (lnk == NULL) {
 			fibril_mutex_unlock(&devices_mutex);
-			ipc_answer_0(rid, ENOENT);
+			async_answer_0(rid, ENOENT);
 			return;
 		}
 		
 		device_t *dev = hash_table_get_instance(lnk, device_t, link);
+		assert(dev->phone >= 0);
 		
 		ipc_callid_t callid;
-		if (!ipc_data_write_receive(&callid, NULL)) {
+		if (!async_data_write_receive(&callid, NULL)) {
 			fibril_mutex_unlock(&devices_mutex);
-			ipc_answer_0(callid, EINVAL);
-			ipc_answer_0(rid, EINVAL);
+			async_answer_0(callid, EINVAL);
+			async_answer_0(rid, EINVAL);
 			return;
 		}
 		
 		/* Make a request at the driver */
 		ipc_call_t answer;
-		aid_t msg = async_send_3(dev->phone, IPC_GET_METHOD(*request),
+		aid_t msg = async_send_3(dev->phone, IPC_GET_IMETHOD(*request),
 		    IPC_GET_ARG1(*request), IPC_GET_ARG2(*request),
 		    IPC_GET_ARG3(*request), &answer);
 		
 		/* Forward the IPC_M_DATA_WRITE request to the driver */
-		ipc_forward_fast(callid, dev->phone, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
+		async_forward_fast(callid, dev->phone, 0, 0, 0, IPC_FF_ROUTE_FROM_ME);
 		
 		fibril_mutex_unlock(&devices_mutex);
 		
 		/* Wait for reply from the driver. */
-		ipcarg_t rc;
+		sysarg_t rc;
 		async_wait_for(msg, &rc);
 		size_t bytes = IPC_GET_ARG1(answer);
 		
 		/* Driver reply is the final result of the whole operation */
-		ipc_answer_1(rid, rc, bytes);
-	} else {
-		/* Read-only filesystem */
-		ipc_answer_0(rid, ENOTSUP);
+		async_answer_1(rid, rc, bytes);
+		return;
 	}
+	
+	async_answer_0(rid, ENOENT);
 }
 
 void devfs_truncate(ipc_callid_t rid, ipc_call_t *request)
 {
-	ipc_answer_0(rid, ENOTSUP);
+	async_answer_0(rid, ENOTSUP);
 }
 
 void devfs_close(ipc_callid_t rid, ipc_call_t *request)
 {
 	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
 	
-	if (index != 0) {
+	if (index == 0) {
+		async_answer_0(rid, EOK);
+		return;
+	}
+	
+	devmap_handle_type_t type = devmap_handle_probe(index);
+	
+	if (type == DEV_HANDLE_NAMESPACE) {
+		/* Namespace directory */
+		async_answer_0(rid, EOK);
+		return;
+	}
+	
+	if (type == DEV_HANDLE_DEVICE) {
 		unsigned long key[] = {
 			[DEVICES_KEY_HANDLE] = (unsigned long) index
 		};
@@ -466,30 +736,46 @@ void devfs_close(ipc_callid_t rid, ipc_call_t *request)
 		link_t *lnk = hash_table_find(&devices, key);
 		if (lnk == NULL) {
 			fibril_mutex_unlock(&devices_mutex);
-			ipc_answer_0(rid, ENOENT);
+			async_answer_0(rid, ENOENT);
 			return;
 		}
 		
 		device_t *dev = hash_table_get_instance(lnk, device_t, link);
+		assert(dev->phone >= 0);
 		dev->refcount--;
 		
 		if (dev->refcount == 0) {
-			ipc_hangup(dev->phone);
+			async_hangup(dev->phone);
 			hash_table_remove(&devices, key, DEVICES_KEYS);
 		}
 		
 		fibril_mutex_unlock(&devices_mutex);
 		
-		ipc_answer_0(rid, EOK);
-	} else
-		ipc_answer_0(rid, ENOTSUP);
+		async_answer_0(rid, EOK);
+		return;
+	}
+	
+	async_answer_0(rid, ENOENT);
 }
 
 void devfs_sync(ipc_callid_t rid, ipc_call_t *request)
 {
 	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
 	
-	if (index != 0) {
+	if (index == 0) {
+		async_answer_0(rid, EOK);
+		return;
+	}
+	
+	devmap_handle_type_t type = devmap_handle_probe(index);
+	
+	if (type == DEV_HANDLE_NAMESPACE) {
+		/* Namespace directory */
+		async_answer_0(rid, EOK);
+		return;
+	}
+	
+	if (type == DEV_HANDLE_DEVICE) {
 		unsigned long key[] = {
 			[DEVICES_KEY_HANDLE] = (unsigned long) index
 		};
@@ -498,32 +784,35 @@ void devfs_sync(ipc_callid_t rid, ipc_call_t *request)
 		link_t *lnk = hash_table_find(&devices, key);
 		if (lnk == NULL) {
 			fibril_mutex_unlock(&devices_mutex);
-			ipc_answer_0(rid, ENOENT);
+			async_answer_0(rid, ENOENT);
 			return;
 		}
 		
 		device_t *dev = hash_table_get_instance(lnk, device_t, link);
+		assert(dev->phone >= 0);
 		
 		/* Make a request at the driver */
 		ipc_call_t answer;
-		aid_t msg = async_send_2(dev->phone, IPC_GET_METHOD(*request),
+		aid_t msg = async_send_2(dev->phone, IPC_GET_IMETHOD(*request),
 		    IPC_GET_ARG1(*request), IPC_GET_ARG2(*request), &answer);
 		
 		fibril_mutex_unlock(&devices_mutex);
 		
 		/* Wait for reply from the driver */
-		ipcarg_t rc;
+		sysarg_t rc;
 		async_wait_for(msg, &rc);
 		
 		/* Driver reply is the final result of the whole operation */
-		ipc_answer_0(rid, rc);
-	} else
-		ipc_answer_0(rid, ENOTSUP);
+		async_answer_0(rid, rc);
+		return;
+	}
+	
+	async_answer_0(rid, ENOENT);
 }
 
 void devfs_destroy(ipc_callid_t rid, ipc_call_t *request)
 {
-	ipc_answer_0(rid, ENOTSUP);
+	async_answer_0(rid, ENOTSUP);
 }
 
 /**

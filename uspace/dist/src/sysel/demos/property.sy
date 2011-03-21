@@ -1,0 +1,151 @@
+--
+-- Copyright (c) 2010 Jiri Svoboda
+-- All rights reserved.
+--
+-- Redistribution and use in source and binary forms, with or without
+-- modification, are permitted provided that the following conditions
+-- are met:
+--
+-- o Redistributions of source code must retain the above copyright
+--   notice, this list of conditions and the following disclaimer.
+-- o Redistributions in binary form must reproduce the above copyright
+--   notice, this list of conditions and the following disclaimer in the
+--   documentation and/or other materials provided with the distribution.
+-- o The name of the author may not be used to endorse or promote products
+--   derived from this software without specific prior written permission.
+--
+-- THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+-- IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+-- OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+-- IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+-- INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+-- NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+-- DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+-- THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+-- (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+-- THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+--
+
+class Foo is
+	var x : int;
+
+	-- Example of a named property
+	prop X : int is
+		get is
+			Console.Write("Getting value of X which is ");
+			Console.WriteLine(x);
+			return x;
+		end
+
+		set value is
+			Console.Write("Setting value of X to ");
+			Console.WriteLine(value);
+			x = value;
+		end
+	end
+
+	-- Test accessing property via an unqualified name
+	fun TestUnqualPropAcc() is
+		var i : int;
+
+		X = 1;
+		i = X;
+
+		Console.Write("TestUnqualPropAcc(): Got ");
+		Console.WriteLine(i);
+	end
+
+	-- Backing store for indexed properties
+	var iprops : int[];
+
+	-- Example of an indexed property set (i.e. an indexer)
+	prop self[index : int] : int is
+		get is
+			Console.Write("Getting property with index ");
+			Console.Write(index);
+			Console.Write(" which is ");
+			Console.WriteLine(iprops[index]);
+
+			return iprops[index];
+		end
+
+		set value is
+			Console.Write("Setting property with index ");
+			Console.Write(index);
+			Console.Write(" to ");
+			Console.WriteLine(value);
+
+			iprops[index] = value;
+		end
+	end
+
+	--
+	-- Class-type property. This is used for demonstrating property
+	-- field access. This case is still quite easy. It does not require
+	-- read-modify-write. Since class is a reference type, access
+	-- operator will read the value and dereference it, thereby
+	-- getting somewhere else (so the value will not be modified and
+	-- need not be written back).
+	--
+
+	var bprop : Bar;
+
+	prop B : Bar is
+		get is
+			Console.WriteLine("Getting B");
+			return bprop;
+		end
+		set value is
+			Console.WriteLine("Setting B");
+			bprop = value;
+		end
+	end
+
+end
+
+class Bar is
+	var i : int;
+end
+
+class PropertyDemo is
+	fun Main(), static is
+		var a : Foo;
+		var i : int;
+
+		a = new Foo();
+
+		-- Get value of named property.
+		a.X = 1;
+
+		-- Set value of named property.
+		i = a.X;
+
+		Console.Write("Main(): Got ");
+		Console.WriteLine(i);
+
+		a.TestUnqualPropAcc();
+
+		a.iprops = new int[5];
+
+		-- Set value of indexed property.
+		a[1] = 2;
+
+		-- Get value of indexed property.
+		i = a[1];
+
+		Console.Write("Main(): Got ");
+		Console.WriteLine(i);
+
+		-- Property field access
+		var b : Bar;
+
+		b = new Bar();
+
+		b.i = 42;
+		a.bprop = b;
+
+		Console.WriteLine(a.bprop.i);
+		a.bprop.i = 2;
+		Console.WriteLine(a.bprop.i);
+	end
+end

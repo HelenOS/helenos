@@ -38,7 +38,7 @@
 #include <mm/asid.h>
 #include <arch/mm/asid.h>
 #include <arch/mm/vhpt.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <print.h>
 #include <mm/page.h>
 #include <mm/frame.h>
@@ -62,36 +62,22 @@ void page_arch_init(void)
 /** Initialize VHPT and region registers. */
 void set_environment(void)
 {
-	region_register rr;
-	pta_register pta;
+	region_register_t rr;
+	pta_register_t pta;
 	int i;
 #ifdef CONFIG_VHPT
 	uintptr_t vhpt_base;
 #endif
 
 	/*
-	 * First set up kernel region register.
-	 * This is redundant (see start.S) but we keep it here just for sure.
-	 */
-	rr.word = rr_read(VRN_KERNEL);
-	rr.map.ve = 0;                  /* disable VHPT walker */
-	rr.map.ps = PAGE_WIDTH;
-	rr.map.rid = ASID2RID(ASID_KERNEL, VRN_KERNEL);
-	rr_write(VRN_KERNEL, rr.word);
-	srlz_i();
-	srlz_d();
-
-	/*
-	 * And setup the rest of region register.
+	 * Set up kernel region registers.
+	 * VRN_KERNEL has already been set in start.S.
+	 * For paranoia reasons, we set it again.
 	 */
 	for(i = 0; i < REGION_REGISTERS; i++) {
-		/* skip kernel rr */
-		if (i == VRN_KERNEL)
-			continue;
-	
 		rr.word = rr_read(i);
 		rr.map.ve = 0;		/* disable VHPT walker */
-		rr.map.rid = RID_KERNEL;
+		rr.map.rid = ASID2RID(ASID_KERNEL, i);
 		rr.map.ps = PAGE_WIDTH;
 		rr_write(i, rr.word);
 		srlz_i();
@@ -130,7 +116,7 @@ void set_environment(void)
  */
 vhpt_entry_t *vhpt_hash(uintptr_t page, asid_t asid)
 {
-	region_register rr_save, rr;
+	region_register_t rr_save, rr;
 	size_t vrn;
 	rid_t rid;
 	vhpt_entry_t *v;
@@ -175,7 +161,7 @@ vhpt_entry_t *vhpt_hash(uintptr_t page, asid_t asid)
  */
 bool vhpt_compare(uintptr_t page, asid_t asid, vhpt_entry_t *v)
 {
-	region_register rr_save, rr;	
+	region_register_t rr_save, rr;
 	size_t vrn;
 	rid_t rid;
 	bool match;
@@ -222,7 +208,7 @@ void
 vhpt_set_record(vhpt_entry_t *v, uintptr_t page, asid_t asid, uintptr_t frame,
     int flags)
 {
-	region_register rr_save, rr;	
+	region_register_t rr_save, rr;
 	size_t vrn;
 	rid_t rid;
 	uint64_t tag;
@@ -256,13 +242,13 @@ vhpt_set_record(vhpt_entry_t *v, uintptr_t page, asid_t asid, uintptr_t frame,
 	v->present.p = true;
 	v->present.ma = (flags & PAGE_CACHEABLE) ?
 	    MA_WRITEBACK : MA_UNCACHEABLE;
-	v->present.a = false;	/* not accessed */
-	v->present.d = false;	/* not dirty */
+	v->present.a = false;  /* not accessed */
+	v->present.d = false;  /* not dirty */
 	v->present.pl = (flags & PAGE_USER) ? PL_USER : PL_KERNEL;
 	v->present.ar = (flags & PAGE_WRITE) ? AR_WRITE : AR_READ;
 	v->present.ar |= (flags & PAGE_EXEC) ? AR_EXECUTE : 0; 
 	v->present.ppn = frame >> PPN_SHIFT;
-	v->present.ed = false;	/* exception not deffered */
+	v->present.ed = false;  /* exception not deffered */
 	v->present.ps = PAGE_WIDTH;
 	v->present.key = 0;
 	v->present.tag.tag_word = tag;

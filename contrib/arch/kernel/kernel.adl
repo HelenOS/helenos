@@ -1,0 +1,333 @@
+/*****************************
+ * Kernel syscall interfaces *
+ *****************************/
+
+interface sys_klog {
+		/* Print using kernel facility */
+		sysarg_t sys_klog(int fd, const void *buf, size_t size);
+	protocol:
+		?sys_klog*
+};
+
+interface sys_console {
+		/* Enable kernel console */
+		sysarg_t sys_debug_enable_console(void);
+		
+		/* Disable kernel console */
+		sysarg_t sys_debug_disable_console(void);
+	protocol:
+		(
+			?sys_debug_enable_console +
+			?sys_debug_disable_console
+		)*
+};
+
+interface sys_tls {
+		/* Set thread-local storage pointer (on architectures where kernel mode is required) */
+		sysarg_t sys_tls_set(sysarg_t addr);
+	protocol:
+		?sys_tls_set*
+};
+
+interface sys_thread {
+		/* Create new thread */
+		sysarg_t sys_thread_create(uspace_arg_t *uspace_uarg, char *uspace_name, size_t name_len, thread_id_t *uspace_thread_id);
+		
+		/* Terminate current thread */
+		sysarg_t sys_thread_exit(int uspace_status);
+		
+		/* Get current thread id */
+		sysarg_t sys_thread_get_id(thread_id_t *uspace_thread_id);
+	protocol:
+		(
+			?sys_thread_create +
+			?sys_thread_get_id +
+			?sys_thread_exit
+		)*
+};
+
+interface sys_task {
+		/* Set name fo the current task */
+		sysarg_t sys_task_set_name(const char *uspace_name, size_t name_len);
+		
+		/* Get current task id */
+		sysarg_t sys_task_get_id(task_id_t *uspace_task_id);
+	protocol:
+		(
+			?sys_task_set_name +
+			?sys_task_get_id
+		)*
+};
+
+interface sys_program {
+		/* Spawn a new instance of clonable loader service */
+		sysarg_t sys_program_spawn_loader(char *uspace_name, size_t name_len);
+	protocol:
+		?sys_program_spawn_loader*
+};
+
+interface sys_futex {
+		/* Sleep in a futex wait queue */
+		sysarg_t sys_futex_sleep_timeout(uintptr_t uaddr, uint32_t usec, int flags);
+		
+		/* Wakeup one thread waiting in futex wait queue */
+		sysarg_t sys_futex_wakeup(uintptr_t uaddr);
+	protocol:
+		(
+			?sys_futex_sleep_timeout +
+			?sys_futex_wakeup
+		)*
+};
+
+interface sys_smc {
+		/* Enforce self-modifying code cache coherency */
+		sysarg_t sys_smc_coherence(uintptr_t va, size_t size);
+	protocol:
+		?sys_smc_coherence*
+};
+
+interface sys_as {
+		/* Create new address space area */
+		sysarg_t sys_as_area_create(uintptr_t address, size_t size, int flags);
+		
+		/* Resize an address space area */
+		sysarg_t sys_as_area_resize(uinptr_t address, size_t size, int flags);
+		
+		/* Change flags of an address space area */
+		sysarg_t sys_as_area_change_flags(uintptr_t address, int flags);
+		
+		/* Destroy an address space area */
+		sysarg_t sys_as_area_destroy(uintptr_t address);
+	protocol:
+		(
+			?sys_as_area_create +
+			?sys_as_area_resize +
+			?sys_as_area_change_flags +
+			?sys_as_area_destroy
+		)*
+};
+
+interface sys_ipc {
+		/* Fast synchronous IPC call */
+		sysarg_t sys_ipc_call_sync_fast(sysarg_t phoneid, sysarg_t method, sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, ipc_data_t *data);
+		
+		/* Slow synchronous IPC call */
+		sysarg_t sys_ipc_call_sync_slow(sysarg_t phoneid, ipc_data_t *question, ipc_data_t *answer);
+		
+		/* Fast asynchronous IPC call */
+		sysarg_t sys_ipc_call_async_fast(sysarg_t phoneid, sysarg_t method, sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4);
+		
+		/* Slow asynchronous IPC call */
+		sysarg_t sys_ipc_call_async_slow(sysarg_t phoneid, ipc_data_t *data);
+		
+		/* Fast forward a received IPC call to another destination */
+		sysarg_t sys_ipc_forward_fast(sysarg_t callid, sysarg_t phoneid, sysarg_t method, sysarg_t arg1, sysarg_t arg2, int mode);
+		
+		/* Slow forward a received IPC call to another destination */
+		sysarg_t sys_ipc_forward_slow(sysarg_t callid, sysarg_t phoneid, ipc_data_t *data, int mode);
+		
+		/* Fast answer an IPC call */
+		sysarg_t sys_ipc_answer_fast(sysarg_t callid, sysarg_t retval, sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4);
+		
+		/* Slow answer an IPC call */
+		sysarg_t sys_ipc_answer_slow(sysarg_t callid, ipc_data_t *data);
+		
+		/* Hang up a phone */
+		sysarg_t sys_ipc_hangup(int phoneid);
+		
+		/* Wait for an incoming IPC call or answer */
+		sysarg_t sys_ipc_wait_for_call(ipc_data_t *calldata, uint32_t usec, int flags);
+		
+		/* Interrupt one thread of the current task from waiting on IPC call */
+		sysarg_t sys_ipc_poke(void);
+	protocol:
+		(
+			?sys_ipc_call_sync_fast +
+			?sys_ipc_call_sync_slow +
+			?sys_ipc_call_async_fast +
+			?sys_ipc_call_async_slow +
+			?sys_ipc_forward_fast +
+			?sys_ipc_forward_slow +
+			?sys_ipc_answer_fast +
+			?sys_ipc_answer_slow +
+			?sys_ipc_hangup +
+			?sys_ipc_wait_for_call +
+			?sys_ipc_poke
+		)*
+};
+
+interface sys_event {
+		/* Subscribe to kernel event notifications */
+		sysarg_t sys_event_subscribe(sysarg_t evno, sysarg_t method);
+	protocol:
+		?sys_event_subscribe*
+};
+
+interface sys_cap {
+		/* Grant capabilities to a task */
+#ifdef __32_BITS__
+		sysarg_t sys_cap_grant(sysarg64_t *uspace_taskid, cap_t caps);
+#endif
+		
+#ifdef __64_BITS__
+		sysarg_t sys_cap_grant(sysarg_t taskid, cap_t caps);
+#endif
+		
+		/* Revoke capabilities from a task */
+#ifdef __32_BITS__
+		sysarg_t sys_cap_revoke(sysarg64_t *uspace_taskid, cap_t caps);
+#endif
+		
+#ifdef __64_BITS__
+		sysarg_t sys_cap_revoke(sysarg_t taskid, cap_t caps);
+#endif
+	protocol:
+		(
+			?sys_cap_grant +
+			?sys_cap_rewoke
+		)*
+};
+
+interface sys_ddi {
+		/* Enable access I/O address space for the current task */
+		sysarg_t sys_enable_iospace(ddi_ioarg_t *uspace_io_arg);
+		
+		/* Map physical memory to the current task's address space */
+		sysarg_t sys_physmem_map(sysarg_t phys_base, sysarg_t virt_base, sysarg_t pages, sysarg_t flags);
+		
+		/* Enable or disable preemption */
+		sysarg_t sys_preempt_control(int enable);
+		
+		/* Assign unique device number */
+		sysarg_t sys_device_assign_devno(void);
+		
+		/* Connect an IRQ handler to the current task */
+		sysarg_t sys_register_irq(inr_t inr, devno_t devno, sysarg_t method, irq_code_t *ucode);
+		
+		/* Disconnect an IRQ handler from the current task */
+		sysarg_t sys_unregister_irq(inr_t inr, devno_t devno);
+	protocol:
+		(
+			?sys_enable_iospace +
+			?sys_physmem_map +
+			?sys_device_assign_devno +
+			?sys_preempt_control +
+			?sys_register_irq +
+			?sys_unregister_irq
+		)*
+};
+
+interface sys_sysinfo {
+		/* Check for sysinfo key validity */
+		sysarg_t sys_sysinfo_valid(sysarg_t ptr, sysarg_t len);
+		
+		/* Get sysinfo key value */
+		sysarg_t sys_sysinfo_value(unatice_t ptr, sysarg_t len);
+	protocol:
+		(
+			?sys_sysinfo_valid +
+			?sys_sysinfo_value
+		)*
+};
+
+interface sys_debug {
+		/* Connect to the kernel debugging answerbox of a given task */
+#ifdef __32_BITS__
+		sysarg_t sys_ipc_connect_kbox(sysarg64_t *uspace_taskid);
+#endif
+		
+#ifdef __64_BITS__
+		sysarg_t sys_ipc_connect_kbox(sysarg_t taskid);
+#endif
+	protocol:
+		?sys_ipc_connect_kbox*
+};
+
+
+/*****************************************************
+ * Primitive kernel components (exported subsystems) *
+ *****************************************************/
+
+frame sys_console {
+	provides:
+		sys_klog sys_klog;
+		sys_console sys_console;
+};
+
+frame sys_proc {
+	provides:
+		sys_tls sys_tls;
+		sys_thread sys_thread;
+		sys_task sys_task;
+		sys_program sys_program;
+};
+
+frame sys_synch {
+	provides:
+		sys_futex sys_futex;
+		sys_smc sys_smc;
+};
+
+frame sys_mm {
+	provides:
+		sys_as sys_as;
+};
+
+frame sys_ipc {
+	provides:
+		sys_ipc sys_ipc;
+		sys_event sys_event;
+};
+
+frame sys_security {
+	provides:
+		sys_cap sys_cap;
+};
+
+frame sys_ddi {
+	provides:
+		sys_ddi sys_ddi;
+};
+
+frame sys_sysinfo {
+	provides:
+		sys_sysinfo sys_sysinfo;
+};
+
+frame sys_debug {
+	provides:
+		sys_debug sys_debug;
+};
+
+
+/******************************
+ * Composite kernel component *
+ ******************************/
+
+architecture kernel {
+	inst sys_console sys_console;
+	inst sys_proc sys_proc;
+	inst sys_synch sys_synch;
+	inst sys_mm sys_mm;
+	inst sys_ipc sys_ipc;
+	inst sys_security sys_security;
+	inst sys_ddi sys_ddi;
+	inst sys_sysinfo sys_sysinfo;
+	inst sys_debug sys_debug;
+	
+	delegate sys_klog to sys_console:sys_klog;
+	delegate sys_console to sys_console:sys_console;
+	delegate sys_tls to sys_proc:sys_tls;
+	delegate sys_thread to sys_proc:sys_thread;
+	delegate sys_task to sys_proc:sys_task;
+	delegate sys_program to sys_proc:sys_program;
+	delegate sys_futex to sys_synch:sys_futex;
+	delegate sys_smc to sys_synch:sys_smc;
+	delegate sys_as to sys_mm:sys_as;
+	delegate sys_ipc to sys_ipc:sys_ipc;
+	delegate sys_event to sys_ipc:sys_event;
+	delegate sys_cap to sys_security:sys_cap;
+	delegate sys_ddi to sys_ddi:sys_ddi;
+	delegate sys_sysinfo to sys_sysinfo:sys_sysinfo;
+	delegate sys_debug to sys_debug:sys_debug;
+};

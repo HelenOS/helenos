@@ -32,6 +32,7 @@
 /** @file
  */
 
+#include <mm/page.h>
 #include <arch/mm/page.h>
 #include <arch/mm/tlb.h>
 #include <genarch/mm/page_ht.h>

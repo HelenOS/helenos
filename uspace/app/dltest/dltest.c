@@ -69,10 +69,10 @@ int main(int argc, char *argv[])
 	fptr_t fun;
 	int i;
 
-	char *lib_name;
-	char *sym_name;
+	const char *lib_name;
+	const char *sym_name;
 
-//	kputint(-1);
+	if (0) kputint(-1);
 	printf("Hello from dltest!\n");
 
 	lib_name = "libtest.so.0";
@@ -84,6 +84,7 @@ int main(int argc, char *argv[])
 		printf("symbol '%s' = 0x%lx\n", sym_name, (long) s);
 	} else {
 		printf("failed to dlopen() library '%s'\n", lib_name);
+		return -1;
 	}
 
 	printf("Run dynamically-resolved function '%s'...\n", sym_name);

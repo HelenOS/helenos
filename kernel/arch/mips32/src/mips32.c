@@ -35,6 +35,7 @@
 #include <arch.h>
 #include <arch/cp0.h>
 #include <arch/exception.h>
+#include <arch/debug.h>
 #include <mm/as.h>
 #include <userspace.h>
 #include <memstr.h>
@@ -45,6 +46,7 @@
 #include <syscall/syscall.h>
 #include <sysinfo/sysinfo.h>
 #include <arch/interrupt.h>
+#include <interrupt.h>
 #include <console/chardev.h>
 #include <arch/barrier.h>
 #include <arch/debugger.h>
@@ -55,7 +57,7 @@
 #include <genarch/srln/srln.h>
 #include <macros.h>
 #include <config.h>
-#include <string.h>
+#include <str.h>
 #include <arch/drivers/msim.h>
 #include <arch/asm/regname.h>
 
@@ -81,12 +83,11 @@ size_t cpu_count = 0;
 /** Performs mips32-specific initialization before main_bsp() is called. */
 void arch_pre_main(void *entry __attribute__((unused)), bootinfo_t *bootinfo)
 {
-	/* Setup usermode */
-	init.cnt = bootinfo->cnt;
+	init.cnt = min3(bootinfo->cnt, TASKMAP_MAX_RECORDS, CONFIG_INIT_TASKS);
 	
 	size_t i;
-	for (i = 0; i < min3(bootinfo->cnt, TASKMAP_MAX_RECORDS, CONFIG_INIT_TASKS); i++) {
-		init.tasks[i].addr = bootinfo->tasks[i].addr;
+	for (i = 0; i < init.cnt; i++) {
+		init.tasks[i].addr = (uintptr_t) bootinfo->tasks[i].addr;
 		init.tasks[i].size = bootinfo->tasks[i].size;
 		str_cpy(init.tasks[i].name, CONFIG_TASK_NAME_BUFLEN,
 		    bootinfo->tasks[i].name);
@@ -166,6 +167,21 @@ void arch_pre_smp_init(void)
 
 void arch_post_smp_init(void)
 {
+	static const char *platform;
+
+	/* Set platform name. */
+#ifdef MACHINE_msim
+	platform = "msim";
+#endif
+#ifdef MACHINE_bgxemul
+	platform = "gxemul";
+#endif
+#ifdef MACHINE_lgxemul
+	platform = "gxemul";
+#endif
+	sysinfo_set_item_data("platform", NULL, (void *) platform,
+	    str_size(platform));
+
 #ifdef CONFIG_MIPS_KBD
 	/*
 	 * Initialize the msim/GXemul keyboard port. Then initialize the serial line
@@ -231,7 +247,7 @@ void after_thread_ran_arch(void)
  * We have it currently in K1, it is
  * possible to have it separately in the future.
  */
-unative_t sys_tls_set(unative_t addr)
+sysarg_t sys_tls_set(sysarg_t addr)
 {
 	return 0;
 }
@@ -254,6 +270,11 @@ void arch_reboot(void)
 void *arch_construct_function(fncptr_t *fptr, void *addr, void *caller)
 {
 	return addr;
+}
+
+void irq_initialize_arch(irq_t *irq)
+{
+	(void) irq;
 }
 
 /** @}

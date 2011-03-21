@@ -390,7 +390,7 @@ heavyweight_handler_inner:
 	 */
 
     /* 10. call handler */
-    	movl r1 = _hardcoded_load_address
+    	movl r1 = kernel_image_start
     
     	mov b1 = loc2
 	br.call.sptk.many b0 = b1

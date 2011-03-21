@@ -248,8 +248,7 @@ void frame_arch_init(void)
 
 void physmem_print(void)
 {
-	printf("Base       Size\n");
-	printf("---------- ----------\n");
+	printf("[base    ] [size    ]\n");
 	
 	size_t i;
 	for (i = 0; i < phys_regions_count; i++) {

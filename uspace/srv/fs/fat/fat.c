@@ -37,18 +37,22 @@
  */
 
 #include "fat.h"
-#include <ipc/ipc.h>
 #include <ipc/services.h>
+#include <ipc/ns.h>
 #include <async.h>
 #include <errno.h>
 #include <unistd.h>
+#include <task.h>
 #include <stdio.h>
 #include <libfs.h>
 #include "../../vfs/vfs.h"
 
+#define NAME	"fat"
 
 vfs_info_t fat_vfs_info = {
-	.name = "fat",
+	.name = NAME,
+	.concurrent_read_write = false,
+	.write_retains_size = false,	
 };
 
 fs_reg_t fat_reg;
@@ -79,16 +83,16 @@ static void fat_connection(ipc_callid_t iid, ipc_call_t *icall)
 		 * IPC_M_CONNECT_ME_TO calls as opposed to callback connections
 		 * created by IPC_M_CONNECT_TO_ME.
 		 */
-		ipc_answer_0(iid, EOK);
+		async_answer_0(iid, EOK);
 	}
 	
-	dprintf("VFS-FAT connection established.\n");
+	dprintf(NAME ": connection opened\n");
 	while (1) {
 		ipc_callid_t callid;
 		ipc_call_t call;
 	
 		callid = async_get_call(&call);
-		switch  (IPC_GET_METHOD(call)) {
+		switch  (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			return;
 		case VFS_OUT_MOUNTED:
@@ -96,6 +100,12 @@ static void fat_connection(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		case VFS_OUT_MOUNT:
 			fat_mount(callid, &call);
+			break;
+		case VFS_OUT_UNMOUNTED:
+			fat_unmounted(callid, &call);
+			break;
+		case VFS_OUT_UNMOUNT:
+			fat_unmount(callid, &call);
 			break;
 		case VFS_OUT_LOOKUP:
 			fat_lookup(callid, &call);
@@ -125,7 +135,7 @@ static void fat_connection(ipc_callid_t iid, ipc_call_t *icall)
 			fat_sync(callid, &call);
 			break;
 		default:
-			ipc_answer_0(callid, ENOTSUP);
+			async_answer_0(callid, ENOTSUP);
 			break;
 		}
 	}
@@ -136,15 +146,15 @@ int main(int argc, char **argv)
 	int vfs_phone;
 	int rc;
 
-	printf("fat: HelenOS FAT file system server.\n");
+	printf(NAME ": HelenOS FAT file system server\n");
 
 	rc = fat_idx_init();
 	if (rc != EOK)
 		goto err;
 
-	vfs_phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_VFS, 0, 0);
+	vfs_phone = service_connect_blocking(SERVICE_VFS, 0, 0);
 	if (vfs_phone < EOK) {
-		printf("fat: failed to connect to VFS\n");
+		printf(NAME ": failed to connect to VFS\n");
 		return -1;
 	}
 	
@@ -154,15 +164,14 @@ int main(int argc, char **argv)
 		goto err;
 	}
 	
-	dprintf("FAT filesystem registered, fs_handle=%d.\n",
-	    fat_reg.fs_handle);
-
+	printf(NAME ": Accepting connections\n");
+	task_retval(0);
 	async_manager();
 	/* not reached */
 	return 0;
 
 err:
-	printf("Failed to register the FAT file system (%d)\n", rc);
+	printf(NAME ": Failed to register file system (%d)\n", rc);
 	return rc;
 }
 

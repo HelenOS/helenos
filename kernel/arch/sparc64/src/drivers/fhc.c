@@ -43,7 +43,7 @@
 #include <arch/trap/interrupt.h>
 #include <mm/page.h>
 #include <mm/slab.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <genarch/ofw/ofw_tree.h>
 #include <genarch/ofw/fhc.h>
 #include <sysinfo/sysinfo.h>

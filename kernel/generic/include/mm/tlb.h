@@ -36,7 +36,7 @@
 #define KERN_TLB_H_
 
 #include <arch/mm/asid.h>
-#include <arch/types.h>
+#include <typedefs.h>
 
 /**
  * Number of TLB shootdown messages that can be queued in processor tlb_messages
@@ -67,13 +67,13 @@ typedef struct {
 extern void tlb_init(void);
 
 #ifdef CONFIG_SMP
-extern void tlb_shootdown_start(tlb_invalidate_type_t type, asid_t asid,
-    uintptr_t page, size_t count);
-extern void tlb_shootdown_finalize(void);
+extern ipl_t tlb_shootdown_start(tlb_invalidate_type_t, asid_t, uintptr_t,
+    size_t);
+extern void tlb_shootdown_finalize(ipl_t);
 extern void tlb_shootdown_ipi_recv(void);
 #else
-#define tlb_shootdown_start(w, x, y, z)
-#define tlb_shootdown_finalize()
+#define tlb_shootdown_start(w, x, y, z)	(0)
+#define tlb_shootdown_finalize(i)	((i) = (i));
 #define tlb_shootdown_ipi_recv()
 #endif /* CONFIG_SMP */
 
@@ -83,8 +83,8 @@ extern void tlb_print(void);
 extern void tlb_shootdown_ipi_send(void);
 
 extern void tlb_invalidate_all(void);
-extern void tlb_invalidate_asid(asid_t asid);
-extern void tlb_invalidate_pages(asid_t asid, uintptr_t page, size_t cnt);
+extern void tlb_invalidate_asid(asid_t);
+extern void tlb_invalidate_pages(asid_t, uintptr_t, size_t);
 #endif
 
 /** @}

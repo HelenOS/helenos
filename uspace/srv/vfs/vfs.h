@@ -33,18 +33,17 @@
 #ifndef VFS_VFS_H_
 #define VFS_VFS_H_
 
-#include <ipc/ipc.h>
+#include <async.h>
 #include <adt/list.h>
-#include <fibril_sync.h>
+#include <fibril_synch.h>
 #include <sys/types.h>
 #include <devmap.h>
 #include <bool.h>
 #include <ipc/vfs.h>
 
-// FIXME: according to CONFIG_DEBUG
-// #define dprintf(...)  printf(__VA_ARGS__)
-
-#define dprintf(...)
+#ifndef dprintf
+	#define dprintf(...)
+#endif
 
 /**
  * A structure like this will be allocated for each registered file system.
@@ -53,8 +52,7 @@ typedef struct {
 	link_t fs_link;
 	vfs_info_t vfs_info;
 	fs_handle_t fs_handle;
-	fibril_mutex_t phone_lock;
-	ipcarg_t phone;
+	async_sess_t session;
 } fs_info_t;
 
 /**
@@ -62,13 +60,13 @@ typedef struct {
  */
 #define VFS_PAIR \
 	fs_handle_t fs_handle; \
-	dev_handle_t dev_handle;
+	devmap_handle_t devmap_handle;
 
 /**
  * VFS_TRIPLET uniquely identifies a file system node (e.g. directory, file) but
  * doesn't contain any state. For a stateful structure, see vfs_node_t.
  *
- * @note	fs_handle, dev_handle and index are meant to be returned in one
+ * @note	fs_handle, devmap_handle and index are meant to be returned in one
  *		IPC reply.
  */
 #define VFS_TRIPLET \
@@ -92,8 +90,8 @@ typedef enum vfs_node_type {
 typedef struct {
 	vfs_triplet_t triplet;
 	vfs_node_type_t type;
-	size_t size;
-	unsigned lnkcnt;
+	aoff64_t size;
+	unsigned int lnkcnt;
 } vfs_lookup_res_t;
 
 /**
@@ -116,7 +114,7 @@ typedef struct {
 
 	vfs_node_type_t type;	/**< Partial info about the node type. */
 
-	size_t size;		/**< Cached size if the node is a file. */
+	aoff64_t size;		/**< Cached size if the node is a file. */
 
 	/**
 	 * Holding this rwlock prevents modifications of the node's contents.
@@ -140,8 +138,8 @@ typedef struct {
 	/** Append on write. */
 	bool append;
 
-	/** Current position in the file. */
-	off_t pos;
+	/** Current absolute position in the file. */
+	aoff64_t pos;
 } vfs_file_t;
 
 extern fibril_mutex_t nodes_mutex;
@@ -169,42 +167,49 @@ extern link_t plb_head;		/**< List of active PLB entries. */
 extern fibril_rwlock_t namespace_rwlock;
 
 extern int vfs_grab_phone(fs_handle_t);
-extern void vfs_release_phone(int);
+extern void vfs_release_phone(fs_handle_t, int);
 
 extern fs_handle_t fs_name_to_handle(char *, bool);
+extern vfs_info_t *fs_handle_to_info(fs_handle_t);
 
 extern int vfs_lookup_internal(char *, int, vfs_lookup_res_t *,
     vfs_pair_t *, ...);
 extern int vfs_open_node_internal(vfs_lookup_res_t *);
+extern int vfs_close_internal(vfs_file_t *);
 
 extern bool vfs_nodes_init(void);
 extern vfs_node_t *vfs_node_get(vfs_lookup_res_t *);
 extern void vfs_node_put(vfs_node_t *);
+extern void vfs_node_forget(vfs_node_t *);
+extern unsigned vfs_nodes_refcount_sum_get(fs_handle_t, devmap_handle_t);
+
 
 #define MAX_OPEN_FILES	128
 
-extern bool vfs_files_init(void);
-extern vfs_file_t *vfs_file_get(int);
-extern int vfs_fd_alloc(void);
-extern int vfs_fd_free(int);
+extern void *vfs_client_data_create(void);
+extern void vfs_client_data_destroy(void *);
 
-extern void vfs_file_addref(vfs_file_t *);
-extern void vfs_file_delref(vfs_file_t *);
+extern vfs_file_t *vfs_file_get(int);
+extern void vfs_file_put(vfs_file_t *);
+extern int vfs_fd_assign(vfs_file_t *, int);
+extern int vfs_fd_alloc(bool desc);
+extern int vfs_fd_free(int);
 
 extern void vfs_node_addref(vfs_node_t *);
 extern void vfs_node_delref(vfs_node_t *);
 
 extern void vfs_register(ipc_callid_t, ipc_call_t *);
 extern void vfs_mount(ipc_callid_t, ipc_call_t *);
+extern void vfs_unmount(ipc_callid_t, ipc_call_t *);
 extern void vfs_open(ipc_callid_t, ipc_call_t *);
 extern void vfs_open_node(ipc_callid_t, ipc_call_t *);
 extern void vfs_sync(ipc_callid_t, ipc_call_t *);
+extern void vfs_dup(ipc_callid_t, ipc_call_t *);
 extern void vfs_close(ipc_callid_t, ipc_call_t *);
 extern void vfs_read(ipc_callid_t, ipc_call_t *);
 extern void vfs_write(ipc_callid_t, ipc_call_t *);
 extern void vfs_seek(ipc_callid_t, ipc_call_t *);
 extern void vfs_truncate(ipc_callid_t, ipc_call_t *);
-extern void vfs_fstat(ipc_callid_t, ipc_call_t *);
 extern void vfs_fstat(ipc_callid_t, ipc_call_t *);
 extern void vfs_stat(ipc_callid_t, ipc_call_t *);
 extern void vfs_mkdir(ipc_callid_t, ipc_call_t *);

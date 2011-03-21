@@ -41,10 +41,11 @@
 #include <stdio.h>
 #include <errno.h>
 #include <bool.h>
-#include <fibril_sync.h>
+#include <fibril_synch.h>
 #include <stdlib.h>
-#include <string.h>
+#include <str.h>
 #include <ipc/devmap.h>
+#include <assert.h>
 
 #define NAME          "devmap"
 #define NULL_DEVICES  256
@@ -60,12 +61,26 @@ typedef struct {
 	/** Pointer to the linked list of devices controlled by this driver */
 	link_t devices;
 	/** Phone asociated with this driver */
-	ipcarg_t phone;
+	sysarg_t phone;
 	/** Device driver name */
 	char *name;
 	/** Fibril mutex for list of devices owned by this driver */
 	fibril_mutex_t devices_mutex;
 } devmap_driver_t;
+
+/** Info about registered namespaces
+ *
+ */
+typedef struct {
+	/** Pointer to the previous and next device in the list of all namespaces */
+	link_t namespaces;
+	/** Unique namespace identifier */
+	devmap_handle_t handle;
+	/** Namespace name */
+	char *name;
+	/** Reference count */
+	size_t refcnt;
+} devmap_namespace_t;
 
 /** Info about registered device
  *
@@ -76,15 +91,20 @@ typedef struct {
 	/** Pointer to the previous and next device in the list of devices
 	    owned by one driver */
 	link_t driver_devices;
-	/** Unique device identifier  */
-	dev_handle_t handle;
+	/** Unique device identifier */
+	devmap_handle_t handle;
+	/** Device namespace */
+	devmap_namespace_t *namespace;
 	/** Device name */
 	char *name;
 	/** Device driver handling this device */
 	devmap_driver_t *driver;
+	/** Use this interface when forwarding to driver. */
+	sysarg_t forward_interface;
 } devmap_device_t;
 
 LIST_INITIALIZE(devices_list);
+LIST_INITIALIZE(namespaces_list);
 LIST_INITIALIZE(drivers_list);
 
 /* Locking order:
@@ -100,10 +120,16 @@ static FIBRIL_MUTEX_INITIALIZE(drivers_list_mutex);
 static FIBRIL_MUTEX_INITIALIZE(create_handle_mutex);
 static FIBRIL_MUTEX_INITIALIZE(null_devices_mutex);
 
-static dev_handle_t last_handle = 0;
+static devmap_handle_t last_handle = 0;
 static devmap_device_t *null_devices[NULL_DEVICES];
 
-static dev_handle_t devmap_create_handle(void)
+/*
+ * Dummy list for null devices. This is necessary so that null devices can
+ * be used just as any other devices, e.g. in devmap_device_unregister_core().
+ */
+static LIST_INITIALIZE(dummy_null_driver_devices);
+
+static devmap_handle_t devmap_create_handle(void)
 {
 	/* TODO: allow reusing old handles after their unregistration
 	 * and implement some version of LRU algorithm, avoid overflow
@@ -116,26 +142,133 @@ static dev_handle_t devmap_create_handle(void)
 	return last_handle;
 }
 
-/** Find device with given name.
+/** Convert fully qualified device name to namespace and device name.
+ *
+ * A fully qualified device name can be either a plain device name
+ * (then the namespace is considered to be an empty string) or consist
+ * of two components separated by a slash. No more than one slash
+ * is allowed.
  *
  */
-static devmap_device_t *devmap_device_find_name(const char *name)
+static bool devmap_fqdn_split(const char *fqdn, char **ns_name, char **name)
 {
-	link_t *item = devices_list.next;
-	devmap_device_t *device = NULL;
+	size_t cnt = 0;
+	size_t slash_offset = 0;
+	size_t slash_after = 0;
 	
-	while (item != &devices_list) {
-		device = list_get_instance(item, devmap_device_t, devices);
-		if (str_cmp(device->name, name) == 0)
-			break;
-		item = item->next;
+	size_t offset = 0;
+	size_t offset_prev = 0;
+	wchar_t c;
+	
+	while ((c = str_decode(fqdn, &offset, STR_NO_LIMIT)) != 0) {
+		if (c == '/') {
+			cnt++;
+			slash_offset = offset_prev;
+			slash_after = offset;
+		}
+		offset_prev = offset;
 	}
 	
-	if (item == &devices_list)
-		return NULL;
+	/* More than one slash */
+	if (cnt > 1)
+		return false;
 	
-	device = list_get_instance(item, devmap_device_t, devices);
-	return device;
+	/* No slash -> namespace is empty */
+	if (cnt == 0) {
+		*ns_name = str_dup("");
+		if (*ns_name == NULL)
+			return false;
+		
+		*name = str_dup(fqdn);
+		if (*name == NULL) {
+			free(*ns_name);
+			return false;
+		}
+		
+		if (str_cmp(*name, "") == 0) {
+			free(*name);
+			free(*ns_name);
+			return false;
+		}
+		
+		return true;
+	}
+	
+	/* Exactly one slash */
+	*ns_name = str_ndup(fqdn, slash_offset);
+	if (*ns_name == NULL)
+		return false;
+	
+	*name = str_dup(fqdn + slash_after);
+	if (*name == NULL) {
+		free(*ns_name);
+		return false;
+	}
+	
+	if (str_cmp(*name, "") == 0) {
+		free(*name);
+		free(*ns_name);
+		return false;
+	}
+	
+	return true;
+}
+
+/** Find namespace with given name. */
+static devmap_namespace_t *devmap_namespace_find_name(const char *name)
+{
+	link_t *item;
+	
+	assert(fibril_mutex_is_locked(&devices_list_mutex));
+	
+	for (item = namespaces_list.next; item != &namespaces_list; item = item->next) {
+		devmap_namespace_t *namespace =
+		    list_get_instance(item, devmap_namespace_t, namespaces);
+		if (str_cmp(namespace->name, name) == 0)
+			return namespace;
+	}
+	
+	return NULL;
+}
+
+/** Find namespace with given handle.
+ *
+ * @todo: use hash table
+ *
+ */
+static devmap_namespace_t *devmap_namespace_find_handle(devmap_handle_t handle)
+{
+	link_t *item;
+	
+	assert(fibril_mutex_is_locked(&devices_list_mutex));
+	
+	for (item = namespaces_list.next; item != &namespaces_list; item = item->next) {
+		devmap_namespace_t *namespace =
+		    list_get_instance(item, devmap_namespace_t, namespaces);
+		if (namespace->handle == handle)
+			return namespace;
+	}
+	
+	return NULL;
+}
+
+/** Find device with given name. */
+static devmap_device_t *devmap_device_find_name(const char *ns_name,
+    const char *name)
+{
+	link_t *item;
+	
+	assert(fibril_mutex_is_locked(&devices_list_mutex));
+	
+	for (item = devices_list.next; item != &devices_list; item = item->next) {
+		devmap_device_t *device =
+		    list_get_instance(item, devmap_device_t, devices);
+		if ((str_cmp(device->namespace->name, ns_name) == 0)
+		    && (str_cmp(device->name, name) == 0))
+			return device;
+	}
+	
+	return NULL;
 }
 
 /** Find device with given handle.
@@ -143,145 +276,166 @@ static devmap_device_t *devmap_device_find_name(const char *name)
  * @todo: use hash table
  *
  */
-static devmap_device_t *devmap_device_find_handle(dev_handle_t handle)
+static devmap_device_t *devmap_device_find_handle(devmap_handle_t handle)
 {
-	fibril_mutex_lock(&devices_list_mutex);
+	link_t *item;
 	
-	link_t *item = (&devices_list)->next;
-	devmap_device_t *device = NULL;
+	assert(fibril_mutex_is_locked(&devices_list_mutex));
 	
-	while (item != &devices_list) {
-		device = list_get_instance(item, devmap_device_t, devices);
+	for (item = devices_list.next; item != &devices_list; item = item->next) {
+		devmap_device_t *device =
+		    list_get_instance(item, devmap_device_t, devices);
 		if (device->handle == handle)
-			break;
-		item = item->next;
+			return device;
 	}
 	
-	if (item == &devices_list) {
-		fibril_mutex_unlock(&devices_list_mutex);
+	return NULL;
+}
+
+/** Create a namespace (if not already present). */
+static devmap_namespace_t *devmap_namespace_create(const char *ns_name)
+{
+	devmap_namespace_t *namespace;
+	
+	assert(fibril_mutex_is_locked(&devices_list_mutex));
+	
+	namespace = devmap_namespace_find_name(ns_name);
+	if (namespace != NULL)
+		return namespace;
+	
+	namespace = (devmap_namespace_t *) malloc(sizeof(devmap_namespace_t));
+	if (namespace == NULL)
+		return NULL;
+	
+	namespace->name = str_dup(ns_name);
+	if (namespace->name == NULL) {
+		free(namespace);
 		return NULL;
 	}
 	
-	device = list_get_instance(item, devmap_device_t, devices);
+	namespace->handle = devmap_create_handle();
+	namespace->refcnt = 0;
 	
-	fibril_mutex_unlock(&devices_list_mutex);
+	/*
+	 * Insert new namespace into list of registered namespaces
+	 */
+	list_append(&(namespace->namespaces), &namespaces_list);
 	
-	return device;
+	return namespace;
 }
 
-/**
- * Unregister device and free it. It's assumed that driver's device list is
- * already locked.
- */
-static int devmap_device_unregister_core(devmap_device_t *device)
+/** Destroy a namespace (if it is no longer needed). */
+static void devmap_namespace_destroy(devmap_namespace_t *namespace)
 {
+	assert(fibril_mutex_is_locked(&devices_list_mutex));
+
+	if (namespace->refcnt == 0) {
+		list_remove(&(namespace->namespaces));
+		
+		free(namespace->name);
+		free(namespace);
+	}
+}
+
+/** Increase namespace reference count by including device. */
+static void devmap_namespace_addref(devmap_namespace_t *namespace,
+    devmap_device_t *device)
+{
+	assert(fibril_mutex_is_locked(&devices_list_mutex));
+
+	device->namespace = namespace;
+	namespace->refcnt++;
+}
+
+/** Decrease namespace reference count. */
+static void devmap_namespace_delref(devmap_namespace_t *namespace)
+{
+	assert(fibril_mutex_is_locked(&devices_list_mutex));
+
+	namespace->refcnt--;
+	devmap_namespace_destroy(namespace);
+}
+
+/** Unregister device and free it. */
+static void devmap_device_unregister_core(devmap_device_t *device)
+{
+	assert(fibril_mutex_is_locked(&devices_list_mutex));
+
+	devmap_namespace_delref(device->namespace);
 	list_remove(&(device->devices));
 	list_remove(&(device->driver_devices));
 	
 	free(device->name);
 	free(device);
-	
-	return EOK;
 }
 
 /**
  * Read info about new driver and add it into linked list of registered
  * drivers.
  */
-static void devmap_driver_register(devmap_driver_t **odriver)
+static devmap_driver_t *devmap_driver_register(void)
 {
-	*odriver = NULL;
-	
 	ipc_call_t icall;
 	ipc_callid_t iid = async_get_call(&icall);
 	
-	if (IPC_GET_METHOD(icall) != DEVMAP_DRIVER_REGISTER) {
-		ipc_answer_0(iid, EREFUSED);
-		return;
+	if (IPC_GET_IMETHOD(icall) != DEVMAP_DRIVER_REGISTER) {
+		async_answer_0(iid, EREFUSED);
+		return NULL;
 	}
 	
-	devmap_driver_t *driver = (devmap_driver_t *) malloc(sizeof(devmap_driver_t));
-	
+	devmap_driver_t *driver =
+	    (devmap_driver_t *) malloc(sizeof(devmap_driver_t));
 	if (driver == NULL) {
-		ipc_answer_0(iid, ENOMEM);
-		return;
+		async_answer_0(iid, ENOMEM);
+		return NULL;
 	}
 	
 	/*
 	 * Get driver name
 	 */
-	ipc_callid_t callid;
-	size_t name_size;
-	if (!ipc_data_write_receive(&callid, &name_size)) {
+	int rc = async_data_write_accept((void **) &driver->name, true, 0,
+	    DEVMAP_NAME_MAXLEN, 0, NULL);
+	if (rc != EOK) {
 		free(driver);
-		ipc_answer_0(callid, EREFUSED);
-		ipc_answer_0(iid, EREFUSED);
-		return;
-	}
-	
-	if (name_size > DEVMAP_NAME_MAXLEN) {
-		free(driver);
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(iid, EREFUSED);
-		return;
+		async_answer_0(iid, rc);
+		return NULL;
 	}
 	
 	/*
-	 * Allocate buffer for device name.
+	 * Create connection to the driver
 	 */
-	driver->name = (char *) malloc(name_size + 1);
-	if (driver->name == NULL) {
-		free(driver);
-		ipc_answer_0(callid, ENOMEM);
-		ipc_answer_0(iid, EREFUSED);
-		return;
-	}
+	ipc_call_t call;
+	ipc_callid_t callid = async_get_call(&call);
 	
-	/*
-	 * Send confirmation to sender and get data into buffer.
-	 */
-	if (ipc_data_write_finalize(callid, driver->name, name_size) != EOK) {
+	if (IPC_GET_IMETHOD(call) != IPC_M_CONNECT_TO_ME) {
 		free(driver->name);
 		free(driver);
-		ipc_answer_0(iid, EREFUSED);
-		return;
+		async_answer_0(callid, ENOTSUP);
+		async_answer_0(iid, ENOTSUP);
+		return NULL;
 	}
 	
-	driver->name[name_size] = 0;
+	driver->phone = IPC_GET_ARG5(call);
+	async_answer_0(callid, EOK);
 	
-	/* Initialize mutex for list of devices owned by this driver */
+	/*
+	 * Initialize mutex for list of devices
+	 * owned by this driver
+	 */
 	fibril_mutex_initialize(&driver->devices_mutex);
 	
 	/*
 	 * Initialize list of asociated devices
 	 */
 	list_initialize(&driver->devices);
-	
-	/*
-	 * Create connection to the driver
-	 */
-	ipc_call_t call;
-	callid = async_get_call(&call);
-	
-	if (IPC_GET_METHOD(call) != IPC_M_CONNECT_TO_ME) {
-		ipc_answer_0(callid, ENOTSUP);
-		
-		free(driver->name);
-		free(driver);
-		ipc_answer_0(iid, ENOTSUP);
-		return;
-	}
-	
-	driver->phone = IPC_GET_ARG5(call);
-	
-	ipc_answer_0(callid, EOK);
-	
-	list_initialize(&(driver->drivers));
+
+	link_initialize(&driver->drivers);
 	
 	fibril_mutex_lock(&drivers_list_mutex);
 	
 	/* TODO:
-	 * check that no driver with name equal to driver->name is registered
+	 * Check that no driver with name equal to
+	 * driver->name is registered
 	 */
 	
 	/*
@@ -290,9 +444,9 @@ static void devmap_driver_register(devmap_driver_t **odriver)
 	list_append(&(driver->drivers), &drivers_list);
 	fibril_mutex_unlock(&drivers_list_mutex);
 	
-	ipc_answer_0(iid, EOK);
+	async_answer_0(iid, EOK);
 	
-	*odriver = driver;
+	return driver;
 }
 
 /**
@@ -308,7 +462,7 @@ static int devmap_driver_unregister(devmap_driver_t *driver)
 	fibril_mutex_lock(&drivers_list_mutex);
 	
 	if (driver->phone != 0)
-		ipc_hangup(driver->phone);
+		async_hangup(driver->phone);
 	
 	/* Remove it from list of drivers */
 	list_remove(&(driver->drivers));
@@ -327,7 +481,7 @@ static int devmap_driver_unregister(devmap_driver_t *driver)
 	fibril_mutex_unlock(&devices_list_mutex);
 	fibril_mutex_unlock(&drivers_list_mutex);
 	
-	/* free name and driver */
+	/* Free name and driver */
 	if (driver->name != NULL)
 		free(driver->name);
 	
@@ -343,64 +497,72 @@ static void devmap_device_register(ipc_callid_t iid, ipc_call_t *icall,
     devmap_driver_t *driver)
 {
 	if (driver == NULL) {
-		ipc_answer_0(iid, EREFUSED);
+		async_answer_0(iid, EREFUSED);
 		return;
 	}
 	
 	/* Create new device entry */
-	devmap_device_t *device = (devmap_device_t *) malloc(sizeof(devmap_device_t));
+	devmap_device_t *device =
+	    (devmap_device_t *) malloc(sizeof(devmap_device_t));
 	if (device == NULL) {
-		ipc_answer_0(iid, ENOMEM);
+		async_answer_0(iid, ENOMEM);
 		return;
 	}
 	
-	/* Get device name */
-	ipc_callid_t callid;
-	size_t size;
-	if (!ipc_data_write_receive(&callid, &size)) {
+	/* Set the interface, if any. */
+	device->forward_interface = IPC_GET_ARG1(*icall);
+
+	/* Get fqdn */
+	char *fqdn;
+	int rc = async_data_write_accept((void **) &fqdn, true, 0,
+	    DEVMAP_NAME_MAXLEN, 0, NULL);
+	if (rc != EOK) {
 		free(device);
-		ipc_answer_0(iid, EREFUSED);
+		async_answer_0(iid, rc);
 		return;
 	}
 	
-	if (size > DEVMAP_NAME_MAXLEN) {
+	char *ns_name;
+	if (!devmap_fqdn_split(fqdn, &ns_name, &device->name)) {
+		free(fqdn);
 		free(device);
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(iid, EREFUSED);
+		async_answer_0(iid, EINVAL);
 		return;
 	}
 	
-	/* +1 for terminating \0 */
-	device->name = (char *) malloc(size + 1);
-	
-	if (device->name == NULL) {
-		free(device);
-		ipc_answer_0(callid, ENOMEM);
-		ipc_answer_0(iid, EREFUSED);
-		return;
-	}
-	
-	ipc_data_write_finalize(callid, device->name, size);
-	device->name[size] = 0;
-	
-	list_initialize(&(device->devices));
-	list_initialize(&(device->driver_devices));
+	free(fqdn);
 	
 	fibril_mutex_lock(&devices_list_mutex);
 	
-	/* Check that device with such name is not already registered */
-	if (NULL != devmap_device_find_name(device->name)) {
-		printf(NAME ": Device '%s' already registered\n", device->name);
+	devmap_namespace_t *namespace = devmap_namespace_create(ns_name);
+	free(ns_name);
+	if (namespace == NULL) {
 		fibril_mutex_unlock(&devices_list_mutex);
 		free(device->name);
 		free(device);
-		ipc_answer_0(iid, EEXISTS);
+		async_answer_0(iid, ENOMEM);
+		return;
+	}
+	
+	link_initialize(&device->devices);
+	link_initialize(&device->driver_devices);
+	
+	/* Check that device is not already registered */
+	if (devmap_device_find_name(namespace->name, device->name) != NULL) {
+		printf("%s: Device '%s/%s' already registered\n", NAME,
+		    device->namespace->name, device->name);
+		devmap_namespace_destroy(namespace);
+		fibril_mutex_unlock(&devices_list_mutex);
+		free(device->name);
+		free(device);
+		async_answer_0(iid, EEXISTS);
 		return;
 	}
 	
 	/* Get unique device handle */
 	device->handle = devmap_create_handle();
-	
+
+	devmap_namespace_addref(namespace, device);
 	device->driver = driver;
 	
 	/* Insert device into list of all devices  */
@@ -415,7 +577,7 @@ static void devmap_device_register(ipc_callid_t iid, ipc_call_t *icall,
 	fibril_condvar_broadcast(&devices_list_cv);
 	fibril_mutex_unlock(&devices_list_mutex);
 	
-	ipc_answer_1(iid, EOK, device->handle);
+	async_answer_1(iid, EOK, device->handle);
 }
 
 /**
@@ -436,19 +598,31 @@ static int devmap_device_unregister(ipc_callid_t iid, ipc_call_t *icall,
  */
 static void devmap_forward(ipc_callid_t callid, ipc_call_t *call)
 {
+	fibril_mutex_lock(&devices_list_mutex);
+	
 	/*
 	 * Get handle from request
 	 */
-	dev_handle_t handle = IPC_GET_ARG2(*call);
+	devmap_handle_t handle = IPC_GET_ARG2(*call);
 	devmap_device_t *dev = devmap_device_find_handle(handle);
 	
 	if ((dev == NULL) || (dev->driver == NULL) || (dev->driver->phone == 0)) {
-		ipc_answer_0(callid, ENOENT);
+		fibril_mutex_unlock(&devices_list_mutex);
+		async_answer_0(callid, ENOENT);
 		return;
 	}
 	
-	ipc_forward_fast(callid, dev->driver->phone, dev->handle,
-	    IPC_GET_ARG3(*call), 0, IPC_FF_NONE);
+	if (dev->forward_interface == 0) {
+		async_forward_fast(callid, dev->driver->phone,
+		    dev->handle, 0, 0,
+		    IPC_FF_NONE);
+	} else {
+		async_forward_fast(callid, dev->driver->phone,
+		    dev->forward_interface, dev->handle, 0,
+		    IPC_FF_NONE);
+	}
+	
+	fibril_mutex_unlock(&devices_list_mutex);
 }
 
 /** Find handle for device instance identified by name.
@@ -457,55 +631,37 @@ static void devmap_forward(ipc_callid_t callid, ipc_call_t *call)
  * code from errno.h.
  *
  */
-static void devmap_get_handle(ipc_callid_t iid, ipc_call_t *icall)
+static void devmap_device_get_handle(ipc_callid_t iid, ipc_call_t *icall)
 {
-	/*
-	 * Wait for incoming message with device name (but do not
-	 * read the name itself until the buffer is allocated).
-	 */
-	ipc_callid_t callid;
-	size_t size;
-	if (!ipc_data_write_receive(&callid, &size)) {
-		ipc_answer_0(callid, EREFUSED);
-		ipc_answer_0(iid, EREFUSED);
+	char *fqdn;
+	
+	/* Get fqdn */
+	int rc = async_data_write_accept((void **) &fqdn, true, 0,
+	    DEVMAP_NAME_MAXLEN, 0, NULL);
+	if (rc != EOK) {
+		async_answer_0(iid, rc);
 		return;
 	}
 	
-	if ((size < 1) || (size > DEVMAP_NAME_MAXLEN)) {
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(iid, EREFUSED);
+	char *ns_name;
+	char *name;
+	if (!devmap_fqdn_split(fqdn, &ns_name, &name)) {
+		free(fqdn);
+		async_answer_0(iid, EINVAL);
 		return;
 	}
 	
-	/*
-	 * Allocate buffer for device name.
-	 */
-	char *name = (char *) malloc(size + 1);
-	if (name == NULL) {
-		ipc_answer_0(callid, ENOMEM);
-		ipc_answer_0(iid, EREFUSED);
-		return;
-	}
-	
-	/*
-	 * Send confirmation to sender and get data into buffer.
-	 */
-	ipcarg_t retval = ipc_data_write_finalize(callid, name, size);
-	if (retval != EOK) {
-		ipc_answer_0(iid, EREFUSED);
-		free(name);
-		return;
-	}
-	name[size] = '\0';
+	free(fqdn);
 	
 	fibril_mutex_lock(&devices_list_mutex);
 	const devmap_device_t *dev;
+	
 recheck:
-
+	
 	/*
 	 * Find device name in the list of known devices.
 	 */
-	dev = devmap_device_find_name(name);
+	dev = devmap_device_find_name(ns_name, name);
 	
 	/*
 	 * Device was not found.
@@ -518,107 +674,230 @@ recheck:
 			goto recheck;
 		}
 		
-		ipc_answer_0(iid, ENOENT);
+		async_answer_0(iid, ENOENT);
+		free(ns_name);
 		free(name);
 		fibril_mutex_unlock(&devices_list_mutex);
 		return;
 	}
-	fibril_mutex_unlock(&devices_list_mutex);
 	
-	ipc_answer_1(iid, EOK, dev->handle);
+	async_answer_1(iid, EOK, dev->handle);
+	
+	fibril_mutex_unlock(&devices_list_mutex);
+	free(ns_name);
 	free(name);
 }
 
-/** Find name of device identified by id and send it to caller.
+/** Find handle for namespace identified by name.
+ *
+ * In answer will be send EOK and device handle in arg1 or a error
+ * code from errno.h.
  *
  */
-static void devmap_get_name(ipc_callid_t iid, ipc_call_t *icall)
+static void devmap_namespace_get_handle(ipc_callid_t iid, ipc_call_t *icall)
 {
-	const devmap_device_t *device = devmap_device_find_handle(IPC_GET_ARG1(*icall));
+	char *name;
 	
-	/*
-	 * Device not found.
-	 */
-	if (device == NULL) {
-		ipc_answer_0(iid, ENOENT);
+	/* Get device name */
+	int rc = async_data_write_accept((void **) &name, true, 0,
+	    DEVMAP_NAME_MAXLEN, 0, NULL);
+	if (rc != EOK) {
+		async_answer_0(iid, rc);
 		return;
 	}
 	
-	ipc_answer_0(iid, EOK);
+	fibril_mutex_lock(&devices_list_mutex);
+	const devmap_namespace_t *namespace;
 	
-	/* FIXME:
-	 * We have no channel from DEVMAP to client, therefore
-	 * sending must be initiated by client.
-	 *
-	 * size_t name_size = str_size(device->name);
-	 *
-	 * int rc = ipc_data_write_send(phone, device->name, name_size);
-	 * if (rc != EOK) {
-	 *     async_wait_for(req, NULL);
-	 *     return rc;
-	 * }
+recheck:
+	
+	/*
+	 * Find namespace name in the list of known namespaces.
 	 */
+	namespace = devmap_namespace_find_name(name);
 	
-	/* TODO: send name in response */
+	/*
+	 * Namespace was not found.
+	 */
+	if (namespace == NULL) {
+		if (IPC_GET_ARG1(*icall) & IPC_FLAG_BLOCKING) {
+			/* Blocking lookup */
+			fibril_condvar_wait(&devices_list_cv,
+			    &devices_list_mutex);
+			goto recheck;
+		}
+		
+		async_answer_0(iid, ENOENT);
+		free(name);
+		fibril_mutex_unlock(&devices_list_mutex);
+		return;
+	}
+	
+	async_answer_1(iid, EOK, namespace->handle);
+	
+	fibril_mutex_unlock(&devices_list_mutex);
+	free(name);
 }
 
-static void devmap_get_count(ipc_callid_t iid, ipc_call_t *icall)
+static void devmap_handle_probe(ipc_callid_t iid, ipc_call_t *icall)
 {
 	fibril_mutex_lock(&devices_list_mutex);
-	ipc_answer_1(iid, EOK, list_count(&devices_list));
+	
+	devmap_namespace_t *namespace =
+	    devmap_namespace_find_handle(IPC_GET_ARG1(*icall));
+	if (namespace == NULL) {
+		devmap_device_t *dev =
+		    devmap_device_find_handle(IPC_GET_ARG1(*icall));
+		if (dev == NULL)
+			async_answer_1(iid, EOK, DEV_HANDLE_NONE);
+		else
+			async_answer_1(iid, EOK, DEV_HANDLE_DEVICE);
+	} else
+		async_answer_1(iid, EOK, DEV_HANDLE_NAMESPACE);
+	
 	fibril_mutex_unlock(&devices_list_mutex);
 }
 
-static void devmap_get_devices(ipc_callid_t iid, ipc_call_t *icall)
+static void devmap_get_namespace_count(ipc_callid_t iid, ipc_call_t *icall)
+{
+	fibril_mutex_lock(&devices_list_mutex);
+	async_answer_1(iid, EOK, list_count(&namespaces_list));
+	fibril_mutex_unlock(&devices_list_mutex);
+}
+
+static void devmap_get_device_count(ipc_callid_t iid, ipc_call_t *icall)
 {
 	fibril_mutex_lock(&devices_list_mutex);
 	
+	devmap_namespace_t *namespace =
+	    devmap_namespace_find_handle(IPC_GET_ARG1(*icall));
+	if (namespace == NULL)
+		async_answer_0(iid, EEXISTS);
+	else
+		async_answer_1(iid, EOK, namespace->refcnt);
+	
+	fibril_mutex_unlock(&devices_list_mutex);
+}
+
+static void devmap_get_namespaces(ipc_callid_t iid, ipc_call_t *icall)
+{
 	ipc_callid_t callid;
 	size_t size;
-	if (!ipc_data_read_receive(&callid, &size)) {
-		ipc_answer_0(callid, EREFUSED);
-		ipc_answer_0(iid, EREFUSED);
+	if (!async_data_read_receive(&callid, &size)) {
+		async_answer_0(callid, EREFUSED);
+		async_answer_0(iid, EREFUSED);
 		return;
 	}
 	
 	if ((size % sizeof(dev_desc_t)) != 0) {
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(iid, EREFUSED);
+		async_answer_0(callid, EINVAL);
+		async_answer_0(iid, EINVAL);
+		return;
+	}
+	
+	fibril_mutex_lock(&devices_list_mutex);
+	
+	size_t count = size / sizeof(dev_desc_t);
+	if (count != list_count(&namespaces_list)) {
+		fibril_mutex_unlock(&devices_list_mutex);
+		async_answer_0(callid, EOVERFLOW);
+		async_answer_0(iid, EOVERFLOW);
+		return;
+	}
+	
+	dev_desc_t *desc = (dev_desc_t *) malloc(size);
+	if (desc == NULL) {
+		fibril_mutex_unlock(&devices_list_mutex);
+		async_answer_0(callid, ENOMEM);
+		async_answer_0(iid, ENOMEM);
+		return;
+	}
+	
+	link_t *item;
+	size_t pos = 0;
+	for (item = namespaces_list.next; item != &namespaces_list;
+	    item = item->next) {
+		devmap_namespace_t *namespace =
+		    list_get_instance(item, devmap_namespace_t, namespaces);
+		
+		desc[pos].handle = namespace->handle;
+		str_cpy(desc[pos].name, DEVMAP_NAME_MAXLEN, namespace->name);
+		pos++;
+	}
+	
+	sysarg_t retval = async_data_read_finalize(callid, desc, size);
+	
+	free(desc);
+	fibril_mutex_unlock(&devices_list_mutex);
+	
+	async_answer_0(iid, retval);
+}
+
+static void devmap_get_devices(ipc_callid_t iid, ipc_call_t *icall)
+{
+	/* FIXME: Use faster algorithm which can make better use
+	   of namespaces */
+	
+	ipc_callid_t callid;
+	size_t size;
+	if (!async_data_read_receive(&callid, &size)) {
+		async_answer_0(callid, EREFUSED);
+		async_answer_0(iid, EREFUSED);
+		return;
+	}
+	
+	if ((size % sizeof(dev_desc_t)) != 0) {
+		async_answer_0(callid, EINVAL);
+		async_answer_0(iid, EINVAL);
+		return;
+	}
+	
+	fibril_mutex_lock(&devices_list_mutex);
+	
+	devmap_namespace_t *namespace =
+	    devmap_namespace_find_handle(IPC_GET_ARG1(*icall));
+	if (namespace == NULL) {
+		fibril_mutex_unlock(&devices_list_mutex);
+		async_answer_0(callid, ENOENT);
+		async_answer_0(iid, ENOENT);
 		return;
 	}
 	
 	size_t count = size / sizeof(dev_desc_t);
+	if (count != namespace->refcnt) {
+		fibril_mutex_unlock(&devices_list_mutex);
+		async_answer_0(callid, EOVERFLOW);
+		async_answer_0(iid, EOVERFLOW);
+		return;
+	}
+	
 	dev_desc_t *desc = (dev_desc_t *) malloc(size);
 	if (desc == NULL) {
-		ipc_answer_0(callid, ENOMEM);
-		ipc_answer_0(iid, EREFUSED);
+		fibril_mutex_unlock(&devices_list_mutex);
+		async_answer_0(callid, ENOMEM);
+		async_answer_0(iid, EREFUSED);
 		return;
 	}
 	
+	link_t *item;
 	size_t pos = 0;
-	link_t *item = devices_list.next;
-	
-	while ((item != &devices_list) && (pos < count)) {
-		devmap_device_t *device = list_get_instance(item, devmap_device_t, devices);
+	for (item = devices_list.next; item != &devices_list; item = item->next) {
+		devmap_device_t *device =
+		    list_get_instance(item, devmap_device_t, devices);
 		
-		desc[pos].handle = device->handle;
-		str_cpy(desc[pos].name, DEVMAP_NAME_MAXLEN, device->name);
-		pos++;
-		item = item->next;
+		if (device->namespace == namespace) {
+			desc[pos].handle = device->handle;
+			str_cpy(desc[pos].name, DEVMAP_NAME_MAXLEN, device->name);
+			pos++;
+		}
 	}
 	
-	ipcarg_t retval = ipc_data_read_finalize(callid, desc, pos * sizeof(dev_desc_t));
-	if (retval != EOK) {
-		ipc_answer_0(iid, EREFUSED);
-		free(desc);
-		return;
-	}
+	sysarg_t retval = async_data_read_finalize(callid, desc, size);
 	
 	free(desc);
-	
 	fibril_mutex_unlock(&devices_list_mutex);
 	
-	ipc_answer_1(iid, EOK, pos);
+	async_answer_0(iid, retval);
 }
 
 static void devmap_null_create(ipc_callid_t iid, ipc_call_t *icall)
@@ -637,66 +916,87 @@ static void devmap_null_create(ipc_callid_t iid, ipc_call_t *icall)
 	
 	if (!fnd) {
 		fibril_mutex_unlock(&null_devices_mutex);
-		ipc_answer_0(iid, ENOMEM);
-		return;
-	}
-	
-	/* Create NULL device entry */
-	devmap_device_t *device = (devmap_device_t *) malloc(sizeof(devmap_device_t));
-	if (device == NULL) {
-		fibril_mutex_unlock(&null_devices_mutex);
-		ipc_answer_0(iid, ENOMEM);
+		async_answer_0(iid, ENOMEM);
 		return;
 	}
 	
 	char null[DEVMAP_NAME_MAXLEN];
-	snprintf(null, DEVMAP_NAME_MAXLEN, "null%u", i);
+	snprintf(null, DEVMAP_NAME_MAXLEN, "%u", i);
 	
-	device->name = str_dup(null);
-	if (device->name == NULL) {
+	char *dev_name = str_dup(null);
+	if (dev_name == NULL) {
 		fibril_mutex_unlock(&null_devices_mutex);
-		free(device);
-		ipc_answer_0(iid, ENOMEM);
+		async_answer_0(iid, ENOMEM);
 		return;
 	}
 	
-	list_initialize(&(device->devices));
-	list_initialize(&(device->driver_devices));
+	devmap_device_t *device =
+	    (devmap_device_t *) malloc(sizeof(devmap_device_t));
+	if (device == NULL) {
+		fibril_mutex_unlock(&null_devices_mutex);
+		async_answer_0(iid, ENOMEM);
+		return;
+	}
 	
 	fibril_mutex_lock(&devices_list_mutex);
+	
+	devmap_namespace_t *namespace = devmap_namespace_create("null");
+	if (namespace == NULL) {
+		fibril_mutex_lock(&devices_list_mutex);
+		fibril_mutex_unlock(&null_devices_mutex);
+		async_answer_0(iid, ENOMEM);
+		return;
+	}
+	
+	link_initialize(&device->devices);
+	link_initialize(&device->driver_devices);
 	
 	/* Get unique device handle */
 	device->handle = devmap_create_handle();
 	device->driver = NULL;
 	
-	/* Insert device into list of all devices
-	   and into null devices array */
+	devmap_namespace_addref(namespace, device);
+	device->name = dev_name;
+	
+	/*
+	 * Insert device into list of all devices and into null devices array.
+	 * Insert device into a dummy list of null driver's devices so that it
+	 * can be safely removed later.
+	 */
 	list_append(&device->devices, &devices_list);
+	list_append(&device->driver_devices, &dummy_null_driver_devices);
 	null_devices[i] = device;
 	
 	fibril_mutex_unlock(&devices_list_mutex);
 	fibril_mutex_unlock(&null_devices_mutex);
 	
-	ipc_answer_1(iid, EOK, (ipcarg_t) i);
+	async_answer_1(iid, EOK, (sysarg_t) i);
 }
 
 static void devmap_null_destroy(ipc_callid_t iid, ipc_call_t *icall)
 {
-	fibril_mutex_lock(&null_devices_mutex);
-	
-	ipcarg_t i = IPC_GET_ARG1(*icall);
-	
-	if (null_devices[i] == NULL) {
-		ipc_answer_0(iid, ENOENT);
+	sysarg_t i = IPC_GET_ARG1(*icall);
+	if (i >= NULL_DEVICES) {
+		async_answer_0(iid, ELIMIT);
 		return;
 	}
 	
+	fibril_mutex_lock(&null_devices_mutex);
+	
+	if (null_devices[i] == NULL) {
+		fibril_mutex_unlock(&null_devices_mutex);
+		async_answer_0(iid, ENOENT);
+		return;
+	}
+	
+	fibril_mutex_lock(&devices_list_mutex);
 	devmap_device_unregister_core(null_devices[i]);
+	fibril_mutex_unlock(&devices_list_mutex);
+	
 	null_devices[i] = NULL;
 	
 	fibril_mutex_unlock(&null_devices_mutex);
-	
-	ipc_answer_0(iid, EOK);
+	async_answer_0(iid, EOK);
 }
 
 /** Initialize device mapper.
@@ -722,12 +1022,10 @@ static bool devmap_init(void)
 static void devmap_connection_driver(ipc_callid_t iid, ipc_call_t *icall)
 {
 	/* Accept connection */
-	ipc_answer_0(iid, EOK);
+	async_answer_0(iid, EOK);
 	
-	devmap_driver_t *driver = NULL;
-	devmap_driver_register(&driver);
-	
-	if (NULL == driver)
+	devmap_driver_t *driver = devmap_driver_register();
+	if (driver == NULL)
 		return;
 	
 	bool cont = true;
@@ -735,15 +1033,15 @@ static void devmap_connection_driver(ipc_callid_t iid, ipc_call_t *icall)
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
 		
-		switch (IPC_GET_METHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			cont = false;
 			continue;
 		case DEVMAP_DRIVER_UNREGISTER:
 			if (NULL == driver)
-				ipc_answer_0(callid, ENOENT);
+				async_answer_0(callid, ENOENT);
 			else
-				ipc_answer_0(callid, EOK);
+				async_answer_0(callid, EOK);
 			break;
 		case DEVMAP_DEVICE_REGISTER:
 			/* Register one instance of device */
@@ -754,14 +1052,13 @@ static void devmap_connection_driver(ipc_callid_t iid, ipc_call_t *icall)
 			devmap_device_unregister(callid, &call, driver);
 			break;
 		case DEVMAP_DEVICE_GET_HANDLE:
-			devmap_get_handle(callid, &call);
+			devmap_device_get_handle(callid, &call);
 			break;
-		case DEVMAP_DEVICE_GET_NAME:
-			devmap_get_name(callid, &call);
+		case DEVMAP_NAMESPACE_GET_HANDLE:
+			devmap_namespace_get_handle(callid, &call);
 			break;
 		default:
-			if (!(callid & IPC_CALLID_NOTIFICATION))
-				ipc_answer_0(callid, ENOENT);
+			async_answer_0(callid, ENOENT);
 		}
 	}
 	
@@ -780,38 +1077,46 @@ static void devmap_connection_driver(ipc_callid_t iid, ipc_call_t *icall)
 static void devmap_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 {
 	/* Accept connection */
-	ipc_answer_0(iid, EOK);
+	async_answer_0(iid, EOK);
 	
 	bool cont = true;
 	while (cont) {
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
 		
-		switch (IPC_GET_METHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			cont = false;
 			continue;
 		case DEVMAP_DEVICE_GET_HANDLE:
-			devmap_get_handle(callid, &call);
+			devmap_device_get_handle(callid, &call);
 			break;
-		case DEVMAP_DEVICE_GET_NAME:
-			devmap_get_name(callid, &call);
+		case DEVMAP_NAMESPACE_GET_HANDLE:
+			devmap_namespace_get_handle(callid, &call);
 			break;
-		case DEVMAP_DEVICE_NULL_CREATE:
+		case DEVMAP_HANDLE_PROBE:
+			devmap_handle_probe(callid, &call);
+			break;
+		case DEVMAP_NULL_CREATE:
 			devmap_null_create(callid, &call);
 			break;
-		case DEVMAP_DEVICE_NULL_DESTROY:
+		case DEVMAP_NULL_DESTROY:
 			devmap_null_destroy(callid, &call);
 			break;
-		case DEVMAP_DEVICE_GET_COUNT:
-			devmap_get_count(callid, &call);
+		case DEVMAP_GET_NAMESPACE_COUNT:
+			devmap_get_namespace_count(callid, &call);
 			break;
-		case DEVMAP_DEVICE_GET_DEVICES:
+		case DEVMAP_GET_DEVICE_COUNT:
+			devmap_get_device_count(callid, &call);
+			break;
+		case DEVMAP_GET_NAMESPACES:
+			devmap_get_namespaces(callid, &call);
+			break;
+		case DEVMAP_GET_DEVICES:
 			devmap_get_devices(callid, &call);
 			break;
 		default:
-			if (!(callid & IPC_CALLID_NOTIFICATION))
-				ipc_answer_0(callid, ENOENT);
+			async_answer_0(callid, ENOENT);
 		}
 	}
 }
@@ -822,7 +1127,7 @@ static void devmap_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 static void devmap_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
 	/* Select interface */
-	switch ((ipcarg_t) (IPC_GET_ARG1(*icall))) {
+	switch ((sysarg_t) (IPC_GET_ARG1(*icall))) {
 	case DEVMAP_DRIVER:
 		devmap_connection_driver(iid, icall);
 		break;
@@ -835,7 +1140,7 @@ static void devmap_connection(ipc_callid_t iid, ipc_call_t *icall)
 		break;
 	default:
 		/* No such interface */
-		ipc_answer_0(iid, ENOENT);
+		async_answer_0(iid, ENOENT);
 	}
 }
 
@@ -844,10 +1149,10 @@ static void devmap_connection(ipc_callid_t iid, ipc_call_t *icall)
  */
 int main(int argc, char *argv[])
 {
-	printf(NAME ": HelenOS Device Mapper\n");
+	printf("%s: HelenOS Device Mapper\n", NAME);
 	
 	if (!devmap_init()) {
-		printf(NAME ": Error while initializing service\n");
+		printf("%s: Error while initializing service\n", NAME);
 		return -1;
 	}
 	
@@ -855,17 +1160,16 @@ int main(int argc, char *argv[])
 	async_set_client_connection(devmap_connection);
 	
 	/* Register device mapper at naming service */
-	ipcarg_t phonead;
-	if (ipc_connect_to_me(PHONE_NS, SERVICE_DEVMAP, 0, 0, &phonead) != 0) 
+	if (service_register(SERVICE_DEVMAP) != EOK)
 		return -1;
 	
-	printf(NAME ": Accepting connections\n");
+	printf("%s: Accepting connections\n", NAME);
 	async_manager();
 	
 	/* Never reached */
 	return 0;
 }
 
-/** 
+/**
  * @}
  */

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup amd64	
+/** @addtogroup amd64
  * @{
  */
 /** @file
@@ -35,12 +35,12 @@
 #ifndef KERN_amd64_BOOT_H_
 #define KERN_amd64_BOOT_H_
 
-#define BOOT_OFFSET		0x108000
-#define AP_BOOT_OFFSET		0x8000
-#define BOOT_STACK_SIZE		0x400
+#define BOOT_OFFSET      0x108000
+#define AP_BOOT_OFFSET   0x008000
+#define BOOT_STACK_SIZE  0x000400
 
-#define MULTIBOOT_HEADER_MAGIC	0x1BADB002
-#define MULTIBOOT_HEADER_FLAGS	0x00010003
+#define MULTIBOOT_HEADER_MAGIC  0x1BADB002
+#define MULTIBOOT_HEADER_FLAGS  0x00010003
 
 #ifndef __ASM__
 

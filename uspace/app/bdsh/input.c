@@ -1,6 +1,5 @@
 /* Copyright (c) 2008, Tim Post <tinkertim@gmail.com>
  * All rights reserved.
- * Copyright (c) 2008, Jiri Svoboda - All Rights Reserved
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
@@ -31,13 +30,18 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <str.h>
 #include <io/console.h>
 #include <io/keycode.h>
 #include <io/style.h>
+#include <io/color.h>
 #include <vfs/vfs.h>
+#include <clipboard.h>
+#include <macros.h>
 #include <errno.h>
+#include <assert.h>
 #include <bool.h>
+#include <tinput.h>
 
 #include "config.h"
 #include "util.h"
@@ -46,7 +50,10 @@
 #include "errors.h"
 #include "exec.h"
 
-static void read_line(char *, int);
+extern volatile unsigned int cli_quit;
+
+/** Text input field. */
+static tinput_t *tinput;
 
 /* Tokenizes input from console, sees if the first word is a built-in, if so
  * invokes the built-in entry point (a[0]) passing all arguments in a[] to
@@ -98,54 +105,10 @@ finit:
 	return rc;
 }
 
-static void read_line(char *buffer, int n)
-{
-	console_event_t ev;
-	size_t offs, otmp;
-	wchar_t dec;
-
-	offs = 0;
-	while (true) {
-		fflush(stdout);
-		if (!console_get_event(fphone(stdin), &ev))
-			return;
-		
-		if (ev.type != KEY_PRESS)
-			continue;
-		
-		if (ev.key == KC_ENTER || ev.key == KC_NENTER)
-			break;
-		if (ev.key == KC_BACKSPACE) {
-			if (offs > 0) {
-				/*
-				 * Back up until we reach valid start of
-				 * character.
-				 */
-				while (offs > 0) {
-					--offs; otmp = offs;
-					dec = str_decode(buffer, &otmp, n);
-					if (dec != U_SPECIAL)
-						break;
-				}
-				putchar('\b');
-			}
-			continue;
-		}
-		if (ev.c >= ' ') {
-			if (chr_encode(ev.c, buffer, &offs, n - 1) == EOK)
-				putchar(ev.c);
-		}
-	}
-	putchar('\n');
-	buffer[offs] = '\0';
-}
-
-/* TODO:
- * Implement something like editline() / readline(), if even
- * just for command history and making arrows work. */
 void get_input(cliuser_t *usr)
 {
-	char line[INPUT_MAX];
+	char *str;
+	int rc;
 
 	fflush(stdout);
 	console_set_style(fphone(stdout), STYLE_EMPHASIS);
@@ -153,12 +116,36 @@ void get_input(cliuser_t *usr)
 	fflush(stdout);
 	console_set_style(fphone(stdout), STYLE_NORMAL);
 
-	read_line(line, INPUT_MAX);
-	/* Make sure we don't have rubbish or a C/R happy user */
-	if (str_cmp(line, "") == 0 || str_cmp(line, "\n") == 0)
+	rc = tinput_read(tinput, &str);
+	if (rc == ENOENT) {
+		/* User requested exit */
+		cli_quit = 1;
+		putchar('\n');
 		return;
-	usr->line = str_dup(line);
+	}
 
+	if (rc != EOK) {
+		/* Error in communication with console */
+		return;
+	}
+
+	/* Check for empty input. */
+	if (str_cmp(str, "") == 0) {
+		free(str);
+		return;
+	}
+
+	usr->line = str;
 	return;
 }
 
+int input_init(void)
+{
+	tinput = tinput_new();
+	if (tinput == NULL) {
+		printf("Failed to initialize input.\n");
+		return 1;
+	}
+
+	return 0;
+}

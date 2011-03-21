@@ -35,11 +35,28 @@
 #ifndef KERN_TYPEDEFS_H_
 #define KERN_TYPEDEFS_H_
 
+#include <stdint.h>
+#include <arch/common.h>
 #include <arch/types.h>
 
-#define NULL 0
-#define false 0
-#define true 1
+#define NULL  ((void *) 0)
+
+#define false  0
+#define true   1
+
+typedef struct {
+	uint64_t lo;
+	int64_t hi;
+} int128_t;
+
+typedef struct {
+	uint64_t lo;
+	uint64_t hi;
+} uint128_t;
+
+typedef struct {
+	volatile atomic_count_t count;
+} atomic_t;
 
 typedef void (* function)();
 
@@ -51,11 +68,16 @@ typedef uint32_t context_id_t;
 typedef int32_t inr_t;
 typedef int32_t devno_t;
 
-typedef int32_t wchar_t;
-
 typedef volatile uint8_t ioport8_t;
 typedef volatile uint16_t ioport16_t;
 typedef volatile uint32_t ioport32_t;
+
+#ifdef __32_BITS__
+
+/** Explicit 64-bit arguments passed to syscalls. */
+typedef uint64_t sysarg64_t;
+
+#endif /* __32_BITS__ */
 
 #endif
 

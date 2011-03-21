@@ -26,17 +26,37 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-build: $(BASE)/image.boot
+BFD_NAME = elf64-ia64-little
+BFD_OUTPUT = $(BFD_NAME)
+BFD_ARCH = ia64
 
-$(BASE)/image.boot: depend arch/$(BARCH)/loader/image.boot
-	cp arch/$(BARCH)/loader/image.boot $(BASE)/image.boot
+BITS = 64
+ENDIANESS = LE
+PAGE_SIZE = 16384
+EXTRA_CFLAGS = -fno-unwind-tables -mfixed-range=f32-f127 -mno-pic -mno-sdata
 
-depend:
-	-rm arch/$(BARCH)/loader/image.boot
+RD_SRVS_NON_ESSENTIAL +=
 
-arch/$(BARCH)/loader/image.boot:
-	make -C arch/$(BARCH)/loader COMPILER=$(COMPILER) KERNELDIR=../../../$(KERNELDIR) USPACEDIR=../../../$(USPACEDIR)
+RD_SRVS_ESSENTIAL += \
+	$(USPACE_PATH)/srv/hw/char/i8042/i8042
 
-clean: generic_clean
-	make -C arch/$(BARCH)/loader clean COMPILER=$(COMPILER) KERNELDIR=../../../$(KERNELDIR) USPACEDIR=../../../$(USPACEDIR)
-	-rm -f $(BASE)/image.boot
+SOURCES = \
+	arch/$(BARCH)/src/boot.S \
+	arch/$(BARCH)/src/asm.S \
+	arch/$(BARCH)/src/main.c \
+	arch/$(BARCH)/src/putchar.c \
+	$(COMPS_C) \
+	genarch/src/division.c \
+	generic/src/balloc.c \
+	generic/src/memstr.c \
+	generic/src/printf_core.c \
+	generic/src/vprintf.c \
+	generic/src/printf.c \
+	generic/src/str.c \
+	generic/src/version.c \
+	generic/src/inflate.c
+
+ifeq ($(MACHINE),ski)
+SOURCES += \
+	arch/$(BARCH)/src/ski.c
+endif

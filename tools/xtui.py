@@ -212,7 +212,10 @@ def choice_window(screen, title, text, options, position):
 		if (position != None):
 			sys.stdout.write("Selection[%s]: " % str(position + 1))
 		else:
-			sys.stdout.write("Selection: ")
+			if (cnt > 0):
+				sys.stdout.write("Selection[1]: ")
+			else:
+				sys.stdout.write("Selection[0]: ")
 		inp = sys.stdin.readline()
 		
 		if (not inp):
@@ -221,7 +224,11 @@ def choice_window(screen, title, text, options, position):
 		if (not inp.strip()):
 			if (position != None):
 				return (None, position)
-			continue
+			else:
+				if (cnt > 0):
+					inp = '1'
+				else:
+					inp = '0'
 		
 		if (inp.strip() == 'q'):
 			return ('cancel', None)

@@ -36,39 +36,18 @@
 #ifndef KERN_sparc64_INTERRUPT_H_
 #define KERN_sparc64_INTERRUPT_H_
 
-#include <arch/types.h>
-#include <arch/regdef.h>
+#include <typedefs.h>
+#include <arch/istate.h>
 
-#define IVT_ITEMS 	15
-#define IVT_FIRST	1
+#define IVT_ITEMS  15
+#define IVT_FIRST  1
 
 /* This needs to be defined for inter-architecture API portability. */
-#define VECTOR_TLB_SHOOTDOWN_IPI	0
+#define VECTOR_TLB_SHOOTDOWN_IPI  0
 
 enum {
 	IPI_TLB_SHOOTDOWN = VECTOR_TLB_SHOOTDOWN_IPI
-};		
-
-typedef struct {
-	uint64_t	tnpc;
-	uint64_t	tpc;
-	uint64_t	tstate;
-} istate_t;
-
-static inline void istate_set_retaddr(istate_t *istate, uintptr_t retaddr)
-{
-	istate->tpc = retaddr;
-}
-
-static inline int istate_from_uspace(istate_t *istate)
-{
-	return !(istate->tstate & TSTATE_PRIV_BIT);
-}
-
-static inline unative_t istate_get_pc(istate_t *istate)
-{
-	return istate->tpc;
-}
+};
 
 #endif
 

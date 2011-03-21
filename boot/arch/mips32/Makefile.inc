@@ -26,17 +26,44 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-build: $(BASE)/image.boot
+BFD_ARCH = mips
+BITS = 32
+PAGE_SIZE = 16384
+EXTRA_CFLAGS = -mno-abicalls -G 0 -fno-zero-initialized-in-bss -mips3
 
-$(BASE)/image.boot: depend arch/$(BARCH)/loader/image.boot
-	cp arch/$(BARCH)/loader/image.boot $(BASE)/image.boot
+RD_SRVS_ESSENTIAL +=
 
-depend:
-	-rm arch/$(BARCH)/loader/image.boot
+RD_SRVS_NON_ESSENTIAL += \
+	$(USPACE_PATH)/srv/bd/gxe_bd/gxe_bd
 
-arch/$(BARCH)/loader/image.boot:
-	make -C arch/$(BARCH)/loader COMPILER=$(COMPILER) KERNELDIR=../../../$(KERNELDIR) USPACEDIR=../../../$(USPACEDIR)
+ifeq ($(MACHINE),lgxemul)
+	BFD_NAME = elf32-tradlittlemips
+	BFD_OUTPUT = ecoff-littlemips
+	ENDIANESS = LE
+endif
+ifeq ($(MACHINE),bgxemul)
+	BFD_NAME = elf32-tradbigmips
+	BFD_OUTPUT = ecoff-bigmips
+	ENDIANESS = BE
+endif
+ifeq ($(MACHINE),msim)
+	BFD_NAME = elf32-tradlittlemips
+	BFD_OUTPUT = binary
+	ENDIANESS = LE
+	EXTRA_GCC_CFLAGS = -mhard-float
+endif
 
-clean:
-	make -C arch/$(BARCH)/loader clean COMPILER=$(COMPILER) KERNELDIR=../../../$(KERNELDIR) USPACEDIR=../../../$(USPACEDIR)
-	-rm -f $(BASE)/image.boot
+SOURCES = \
+	arch/$(BARCH)/src/asm.S \
+	arch/$(BARCH)/src/main.c \
+	arch/$(BARCH)/src/putchar.c \
+	$(COMPS_C) \
+	genarch/src/division.c \
+	genarch/src/multiplication.c \
+	generic/src/memstr.c \
+	generic/src/printf_core.c \
+	generic/src/vprintf.c \
+	generic/src/printf.c \
+	generic/src/str.c \
+	generic/src/version.c \
+	generic/src/inflate.c

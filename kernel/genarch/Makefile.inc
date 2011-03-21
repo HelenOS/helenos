@@ -58,7 +58,8 @@ endif
 
 ifeq ($(CONFIG_SOFTINT),y)
 	GENARCH_SOURCES += \
-		genarch/src/softint/division.c
+		genarch/src/softint/division.c \
+		genarch/src/softint/multiplication.c
 endif
 
 ifeq ($(CONFIG_FB),y)
@@ -86,6 +87,16 @@ endif
 ifeq ($(CONFIG_NS16550),y)
 	GENARCH_SOURCES += \
 		genarch/src/drivers/ns16550/ns16550.c
+endif
+
+ifeq ($(CONFIG_S3C24XX_IRQC),y)
+	GENARCH_SOURCES += \
+		genarch/src/drivers/s3c24xx_irqc/s3c24xx_irqc.c
+endif
+
+ifeq ($(CONFIG_S3C24XX_UART),y)
+	GENARCH_SOURCES += \
+		genarch/src/drivers/s3c24xx_uart/s3c24xx_uart.c
 endif
 
 ifeq ($(CONFIG_Z8530),y)

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup arm32	
+/** @addtogroup arm32
  * @{
  */
 /** @file
@@ -36,13 +36,14 @@
 #ifndef KERN_arm32_FADDR_H_
 #define KERN_arm32_FADDR_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 /** Calculate absolute address of function referenced by fptr pointer.
  *
  * @param fptr Function pointer.
+ *
  */
-#define FADDR(fptr)		((uintptr_t) (fptr))
+#define FADDR(fptr)  ((uintptr_t) (fptr))
 
 #endif
 

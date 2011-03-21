@@ -1,0 +1,6 @@
+(
+	[fnc.devmap_get_phone] ;
+	tentative {
+		!devmap_client.device_get_count
+	}
+)

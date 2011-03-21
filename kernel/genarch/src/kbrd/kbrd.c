@@ -168,7 +168,7 @@ kbrd_instance_t *kbrd_init(void)
 		instance->sink = NULL;
 		indev_initialize("kbrd", &instance->raw, &kbrd_raw_ops);
 		
-		spinlock_initialize(&instance->keylock, "instance_keylock");
+		spinlock_initialize(&instance->keylock, "kbrd.instance.keylock");
 		instance->keyflags = 0;
 		instance->lockflags = 0;
 	}

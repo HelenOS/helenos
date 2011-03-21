@@ -41,15 +41,28 @@ SECTIONS {
 		LONG(unmapped_ktext_end - unmapped_ktext_start);
 		hardcoded_unmapped_kdata_size = .;
 		LONG(unmapped_kdata_end - unmapped_kdata_start);
+		. = ALIGN(8);
 		symbol_table = .;
 		*(symtab.*);            /* Symbol table, must be LAST symbol! */
 		*(.bss);                /* uninitialized static variables */
 		kdata_end = .;
 	}
 	
+#ifdef CONFIG_LINE_DEBUG
+	.comment 0 : { *(.comment); }
+	.debug_abbrev 0 : { *(.debug_abbrev); }
+	.debug_aranges 0 : { *(.debug_aranges); }
+	.debug_info 0 : { *(.debug_info); }
+	.debug_line 0 : { *(.debug_line); }
+	.debug_loc 0 : { *(.debug_loc); }
+	.debug_pubnames 0 : { *(.debug_pubnames); }
+	.debug_pubtypes 0 : { *(.debug_pubtypes); }
+	.debug_ranges 0 : { *(.debug_ranges); }
+	.debug_str 0 : { *(.debug_str); }
+#endif
+	
 	/DISCARD/ : {
-		*(.note.GNU-stack);
-		*(.comment);
+		*(*);
 	}
 	
 #ifdef CONFIG_SMP

@@ -38,25 +38,32 @@
 
 #include <printf/printf_core.h>
 #include <print.h>
-#include <arch/arg.h>
+#include <stdarg.h>
 #include <macros.h>
-#include <string.h>
+#include <str.h>
 #include <arch.h>
 
 /** show prefixes 0x or 0 */
 #define __PRINTF_FLAG_PREFIX       0x00000001
+
 /** signed / unsigned number */
 #define __PRINTF_FLAG_SIGNED       0x00000002
+
 /** print leading zeroes */
 #define __PRINTF_FLAG_ZEROPADDED   0x00000004
+
 /** align to left */
 #define __PRINTF_FLAG_LEFTALIGNED  0x00000010
+
 /** always show + sign */
 #define __PRINTF_FLAG_SHOWPLUS     0x00000020
+
 /** print space instead of plus */
 #define __PRINTF_FLAG_SPACESIGN    0x00000040
+
 /** show big characters */
 #define __PRINTF_FLAG_BIGCHARS     0x00000080
+
 /** number has - sign */
 #define __PRINTF_FLAG_NEGATIVE     0x00000100
 
@@ -75,13 +82,14 @@ typedef enum {
 	PrintfQualifierInt,
 	PrintfQualifierLong,
 	PrintfQualifierLongLong,
-	PrintfQualifierPointer
+	PrintfQualifierPointer,
+	PrintfQualifierSize
 } qualifier_t;
 
-static char nullstr[] = "(NULL)";
-static char digits_small[] = "0123456789abcdef";
-static char digits_big[] = "0123456789ABCDEF";
-static char invalch = U_SPECIAL;
+static const char *nullstr = "(NULL)";
+static const char *digits_small = "0123456789abcdef";
+static const char *digits_big = "0123456789ABCDEF";
+static const char invalch = U_SPECIAL;
 
 /** Print one or more characters without adding newline.
  *
@@ -253,12 +261,12 @@ static int print_str(char *str, int width, unsigned int precision,
 {
 	if (str == NULL)
 		return printf_putstr(nullstr, ps);
-
+	
 	/* Print leading spaces. */
 	size_t strw = str_length(str);
 	if (precision == 0)
 		precision = strw;
-
+	
 	/* Left padding */
 	size_t counter = 0;
 	width -= precision;
@@ -268,7 +276,7 @@ static int print_str(char *str, int width, unsigned int precision,
 				counter++;
 		}
 	}
-
+	
 	/* Part of @a str fitting into the alloted space. */
 	int retval;
 	size_t size = str_lsize(str, precision);
@@ -350,7 +358,7 @@ static int print_wstr(wchar_t *str, int width, unsigned int precision,
 static int print_number(uint64_t num, int width, int precision, int base,
     uint32_t flags, printf_spec_t *ps)
 {
-	char *digits;
+	const char *digits;
 	if (flags & __PRINTF_FLAG_BIGCHARS)
 		digits = digits_big;
 	else
@@ -383,7 +391,7 @@ static int print_number(uint64_t num, int width, int precision, int base,
 	 * leading zeroes.
 	 */
 	if (flags & __PRINTF_FLAG_PREFIX) {
-		switch(base) {
+		switch (base) {
 		case 2:
 			/* Binary formating is not standard, but usefull */
 			size += 2;
@@ -447,7 +455,7 @@ static int print_number(uint64_t num, int width, int precision, int base,
 	
 	/* Print prefix */
 	if (flags & __PRINTF_FLAG_PREFIX) {
-		switch(base) {
+		switch (base) {
 		case 2:
 			/* Binary formating is not standard, but usefull */
 			if (printf_putchar('0', ps) == 1)
@@ -545,9 +553,10 @@ static int print_number(uint64_t num, int width, int precision, int base,
  *  - "h"  Signed or unsigned short.@n
  *  - ""   Signed or unsigned int (default value).@n
  *  - "l"  Signed or unsigned long int.@n
- *         If conversion is "c", the character is wchar_t (wide character).@n
+ *         If conversion is "c", the character is wint_t (wide character).@n
  *         If conversion is "s", the string is wchar_t * (wide string).@n
  *  - "ll" Signed or unsigned long long int.@n
+ *  - "z"  Signed or unsigned ssize_t or site_t.@n
  *
  * CONVERSION:@n
  *  - % Print percentile character itself.
@@ -562,8 +571,9 @@ static int print_number(uint64_t num, int width, int precision, int base,
  *      If type is "l", then the string is expected to be wide string.
  *
  *  - P, p Print value of a pointer. Void * value is expected and it is
- *         printed in hexadecimal notation with prefix (as with \%#X / \%#x
- *         for 32-bit or \%#X / \%#x for 64-bit long pointers).
+ *         printed in hexadecimal notation with prefix (as with
+ *         \%#0.8X / \%#0.8x for 32-bit or \%#0.16lX / \%#0.16lx for 64-bit
+ *         long pointers).
  *
  *  - b Print value as unsigned binary number. Prefix is not printed by
  *      default. (Nonstandard extension.)
@@ -728,6 +738,11 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 					qualifier = PrintfQualifierLongLong;
 				}
 				break;
+			case 'z':
+				qualifier = PrintfQualifierSize;
+				i = nxt;
+				uc = str_decode(fmt, &nxt, STR_NO_LIMIT);
+				break;
 			default:
 				/* Default type */
 				qualifier = PrintfQualifierInt;
@@ -755,7 +770,7 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 				goto next_char;
 			case 'c':
 				if (qualifier == PrintfQualifierLong)
-					retval = print_wchar(va_arg(ap, wchar_t), width, flags, ps);
+					retval = print_wchar(va_arg(ap, wint_t), width, flags, ps);
 				else
 					retval = print_char(va_arg(ap, unsigned int), width, flags, ps);
 				
@@ -776,6 +791,7 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 				flags |= __PRINTF_FLAG_BIGCHARS;
 			case 'p':
 				flags |= __PRINTF_FLAG_PREFIX;
+				flags |= __PRINTF_FLAG_ZEROPADDED;
 				base = 16;
 				qualifier = PrintfQualifierPointer;
 				break;
@@ -838,7 +854,12 @@ int printf_core(const char *fmt, printf_spec_t *ps, va_list ap)
 				break;
 			case PrintfQualifierPointer:
 				size = sizeof(void *);
-				number = (uint64_t) (unsigned long) va_arg(ap, void *);
+				precision = size << 1;
+				number = (uint64_t) (uintptr_t) va_arg(ap, void *);
+				break;
+			case PrintfQualifierSize:
+				size = sizeof(size_t);
+				number = (uint64_t) va_arg(ap, size_t);
 				break;
 			default:
 				/* Unknown qualifier */

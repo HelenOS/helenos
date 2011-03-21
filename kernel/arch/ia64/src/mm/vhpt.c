@@ -26,7 +26,7 @@
 * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia64mm	
+/** @addtogroup ia64mm
  * @{
  */
 /** @file
@@ -43,7 +43,7 @@ uintptr_t vhpt_set_up(void)
 {
 	vhpt_base = frame_alloc(VHPT_WIDTH - FRAME_WIDTH,
 	    FRAME_KA | FRAME_ATOMIC);
-	if (!vhpt_base) 
+	if (!vhpt_base)
 		panic("Kernel configured with VHPT but no memory for table.");
 	vhpt_invalidate_all();
 	return (uintptr_t) vhpt_base;
@@ -52,17 +52,16 @@ uintptr_t vhpt_set_up(void)
 
 void vhpt_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry)
 {
-	region_register rr_save, rr;
+	region_register_t rr_save, rr;
 	size_t vrn;
 	rid_t rid;
 	uint64_t tag;
-
+	
 	vhpt_entry_t *ventry;
-
-
+	
 	vrn = va >> VRN_SHIFT;
 	rid = ASID2RID(asid, vrn);
-																												
+	
 	rr_save.word = rr_read(vrn);
 	rr.word = rr_save.word;
 	rr.map.rid = rid;
@@ -74,7 +73,7 @@ void vhpt_mapping_insert(uintptr_t va, asid_t asid, tlb_entry_t entry)
 	rr_write(vrn, rr_save.word);
 	srlz_i();
 	srlz_d();
-
+	
 	ventry->word[0] = entry.word[0];
 	ventry->word[1] = entry.word[1];
 	ventry->present.tag.tag_word = tag;

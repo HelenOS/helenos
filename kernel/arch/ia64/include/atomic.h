@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia64	
+/** @addtogroup ia64
  * @{
  */
 /** @file
@@ -35,72 +35,101 @@
 #ifndef KERN_ia64_ATOMIC_H_
 #define KERN_ia64_ATOMIC_H_
 
-/** Atomic addition.
- *
- * @param val		Atomic value.
- * @param imm		Value to add.
- *
- * @return		Value before addition.
- */
-static inline long atomic_add(atomic_t *val, int imm)
-{
-	long v;
+#include <trace.h>
 
- 	asm volatile ("fetchadd8.rel %0 = %1, %2\n" : "=r" (v),
-	    "+m" (val->count) : "i" (imm));
- 
-	return v;
-}
-
-static inline uint64_t test_and_set(atomic_t *val)
+NO_TRACE static inline atomic_count_t test_and_set(atomic_t *val)
 {
-	uint64_t v;
-		
+	atomic_count_t v;
+	
 	asm volatile (
-		"movl %0 = 0x1;;\n"
-		"xchg8 %0 = %1, %0;;\n"
-		: "=r" (v), "+m" (val->count)
+		"movl %[v] = 0x1;;\n"
+		"xchg8 %[v] = %[count], %[v];;\n"
+		: [v] "=r" (v),
+		  [count] "+m" (val->count)
 	);
 	
 	return v;
 }
 
-static inline void atomic_lock_arch(atomic_t *val)
+NO_TRACE static inline void atomic_lock_arch(atomic_t *val)
 {
 	do {
-		while (val->count)
-			;
+		while (val->count);
 	} while (test_and_set(val));
 }
 
-static inline void atomic_inc(atomic_t *val)
+NO_TRACE static inline void atomic_inc(atomic_t *val)
 {
-	atomic_add(val, 1);
+	atomic_count_t v;
+	
+	asm volatile (
+		"fetchadd8.rel %[v] = %[count], 1\n"
+		: [v] "=r" (v),
+		  [count] "+m" (val->count)
+	);
 }
 
-static inline void atomic_dec(atomic_t *val)
+NO_TRACE static inline void atomic_dec(atomic_t *val)
 {
-	atomic_add(val, -1);
+	atomic_count_t v;
+	
+	asm volatile (
+		"fetchadd8.rel %[v] = %[count], -1\n"
+		: [v] "=r" (v),
+		  [count] "+m" (val->count)
+	);
 }
 
-static inline long atomic_preinc(atomic_t *val)
+NO_TRACE static inline atomic_count_t atomic_preinc(atomic_t *val)
 {
-	return atomic_add(val, 1) + 1;
+	atomic_count_t v;
+	
+	asm volatile (
+		"fetchadd8.rel %[v] = %[count], 1\n"
+		: [v] "=r" (v),
+		  [count] "+m" (val->count)
+	);
+	
+	return (v + 1);
 }
 
-static inline long atomic_predec(atomic_t *val)
+NO_TRACE static inline atomic_count_t atomic_predec(atomic_t *val)
 {
-	return atomic_add(val, -1) - 1;
+	atomic_count_t v;
+	
+	asm volatile (
+		"fetchadd8.rel %[v] = %[count], -1\n"
+		: [v] "=r" (v),
+		  [count] "+m" (val->count)
+	);
+	
+	return (v - 1);
 }
 
-static inline long atomic_postinc(atomic_t *val)
+NO_TRACE static inline atomic_count_t atomic_postinc(atomic_t *val)
 {
-	return atomic_add(val, 1);
+	atomic_count_t v;
+	
+	asm volatile (
+		"fetchadd8.rel %[v] = %[count], 1\n"
+		: [v] "=r" (v),
+		  [count] "+m" (val->count)
+	);
+	
+	return v;
 }
 
-static inline long atomic_postdec(atomic_t *val)
+NO_TRACE static inline atomic_count_t atomic_postdec(atomic_t *val)
 {
-	return atomic_add(val, -1);
+	atomic_count_t v;
+	
+	asm volatile (
+		"fetchadd8.rel %[v] = %[count], -1\n"
+		: [v] "=r" (v),
+		  [count] "+m" (val->count)
+	);
+	
+	return v;
 }
 
 #endif

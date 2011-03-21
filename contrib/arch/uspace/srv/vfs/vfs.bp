@@ -1,0 +1,212 @@
+?ipc_m_connect_me_to ;
+(
+	?register {
+		?ipc_m_data_write /* fs name */ ;
+		tentative {
+			/* callback connection */
+			?ipc_m_connect_to_me ;
+			?ipc_m_share_in
+		}
+	} +
+	
+	?mount {
+		?ipc_m_data_write /* mount point */ ;
+		tentative {
+			?ipc_m_data_write /* mount options */ ;
+			tentative {
+				?ipc_m_data_write /* fs name */ ;
+				tentative {
+					?ipc_m_ping ;
+					tentative {
+						(
+							/* root fs */
+							alternative (fs; tmpfs; fat; devfs) {
+								!fs.mounted {
+									!fs.ipc_m_data_write /* mount options */
+								}
+							}
+						) +
+						(
+							/* non-root fs */
+							tentative {
+								alternative (fs; tmpfs; fat; devfs) {
+									[fnc.vfs_lookup_internal] ;
+									tentative {
+										[fnc.vfs_grab_phone] ;
+										[fnc.vfs_grab_phone] ;
+										!fs.mount ;
+										!fs.ipc_m_connection_clone ;
+										[fnc.vfs_release_phone] ;
+										tentative {
+											!fs.vfs_m_data_write /* mount options */
+										} ;
+										[fnc.vfs_release_phone]
+									}
+								}
+							}
+						)
+					}
+				}
+			}
+		}
+	} +
+	
+	?open {
+		tentative {
+			?ipc_m_data_write /* path */ ;
+			tentative {
+				alternative (fs; tmpfs; fat; devfs) {
+					[fnc.vfs_lookup_internal] ;
+					tentative {
+						[fnc.vfs_grab_phone] ;
+						!fs.truncate ;
+						[fnc.vfs_release_phone]
+					}
+				}
+			}
+		}
+	} +
+	
+	?open_node {
+		alternative (fs; tmpfs; fat; devfs) {
+			[fnc.vfs_open_node_internal] ;
+			tentative {
+				[fnc.vfs_grab_phone] ;
+				!fs.truncate ;
+				[fnc.vfs_release_phone]
+			}
+		}
+	} +
+	
+	?close {
+		tentative {
+			alternative (fs; tmpfs; fat; devfs) {
+				[fnc.vfs_grab_phone] ;
+				!fs.close ;
+				[fnc.vfs_release_phone]
+			}
+		}
+	} +
+	
+	?read {
+		tentative {
+			?ipc_m_data_read {
+				alternative (fs; tmpfs; fat; devfs) {
+					[fnc.vfs_grab_phone] ;
+					!fs.read {
+						!fs.ipc_m_data_read /* forward payload */
+					} ;
+					[fnc.vfs_release_phone]
+				}
+			}
+		}
+	} +
+	
+	?write {
+		tentative {
+			?ipc_m_data_write {
+				alternative (fs; tmpfs; fat; devfs) {
+					[fnc.vfs_grab_phone] ;
+					!fs.write {
+						!fs.ipc_m_data_write /* forward payload */
+					} ;
+					[fnc.vfs_release_phone]
+				}
+			}
+		}
+	} +
+	
+	?truncate {
+		tentative {
+			alternative (fs; tmpfs; fat; devfs) {
+				[fnc.vfs_grab_phone] ;
+				!fs.truncate ;
+				[fnc.vfs_release_phone]
+			}
+		}
+	} +
+	
+	?fstat {
+		tentative {
+			?ipc_m_data_read /* struct stat */ {
+				alternative (fs; tmpfs; fat; devfs) {
+					[fnc.vfs_grab_phone] ;
+					!fs.stat {
+						!fs.ipc_m_data_read /* forward struct stat */
+					} ;
+					[fnc.vfs_release_phone]
+				}
+			}
+		}
+	} +
+	
+	?stat {
+		?ipc_m_data_write /* path */ ;
+		tentative {
+			?ipc_m_data_read /* struct stat */ {
+				alternative (fs; tmpfs; fat; devfs) {
+					[fnc.vfs_lookup_internal] ;
+					tentative {
+						!fs.stat {
+							!fs.ipc_m_data_read /* forward struct stat */
+						}
+					}
+				}
+			}
+		}
+	} +
+	
+	?mkdir {
+		?ipc_m_data_write /* path */ ;
+		tentative {
+			alternative (fs; tmpfs; fat; devfs) {
+				[fnc.vfs_lookup_internal]
+			}
+		}
+	} +
+	
+	?unlink {
+		?ipc_m_data_write /* path */ ;
+		tentative {
+			alternative (fs; tmpfs; fat; devfs) {
+				[fnc.vfs_lookup_internal]
+			}
+		}
+	} +
+	
+	?rename {
+		?ipc_m_data_write /* old path */ ;
+		tentative {
+			?ipc_m_data_write /* new path */ ;
+			tentative {
+				alternative (fs; tmpfs; fat; devfs) {
+					[fnc.vfs_lookup_internal] /* lookup old path */ ;
+					tentative {
+						[fnc.vfs_lookup_internal] /* lookup parent of new path */ ;
+						tentative {
+							[fnc.vfs_lookup_internal] /* destroy old link for the new path */ ;
+							tentative {
+								[fnc.vfs_lookup_internal] /* create new link for the new path */ ;
+								tentative {
+									[fnc.vfs_lookup_internal] /* destroy link for the old path */
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	} +
+	
+	?sync {
+		tentative {
+			alternative (fs; tmpfs; fat; devfs) {
+				!fs.sync
+			}
+		}
+	} +
+	
+	?seek
+	
+)* ;
+?ipc_m_phone_hungup

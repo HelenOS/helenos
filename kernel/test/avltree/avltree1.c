@@ -30,7 +30,7 @@
 #include <print.h>
 #include <adt/avl.h>
 #include <debug.h>
-#include <arch/types.h>
+#include <typedefs.h>
 
 #define NODE_COUNT 100
 
@@ -201,7 +201,7 @@ static void test_tree_insert(avltree_t *tree, size_t node_count)
 	
 	avltree_create(tree);
 	
-	TPRINTF("Inserting %" PRIs " nodes...", node_count);
+	TPRINTF("Inserting %zu nodes...", node_count);
 	
 	for (i = 0; i < node_count; i++) {
 		newnode = alloc_avltree_node();
@@ -264,7 +264,7 @@ static void test_tree_delmin(avltree_t *tree, size_t node_count)
 	TPRINTF("done.\n");
 }
 
-char *test_avltree1(void)
+const char *test_avltree1(void)
 {
 	alloc_avltree_node_prepare();
 	test_tree_insert(&avltree, NODE_COUNT);

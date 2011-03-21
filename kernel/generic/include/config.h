@@ -35,7 +35,7 @@
 #ifndef KERN_CONFIG_H_
 #define KERN_CONFIG_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/mm/page.h>
 
 #define STACK_SIZE  PAGE_SIZE
@@ -65,14 +65,14 @@ typedef struct {
 } ballocs_t;
 
 typedef struct {
-	size_t cpu_count;            /**< Number of processors detected. */
+	unsigned int cpu_count;      /**< Number of processors detected. */
 	volatile size_t cpu_active;  /**< Number of processors that are up and running. */
 	
 	uintptr_t base;
-	size_t kernel_size;           /**< Size of memory in bytes taken by kernel and stack */
+	size_t kernel_size;          /**< Size of memory in bytes taken by kernel and stack */
 	
-	uintptr_t stack_base;         /**< Base adddress of initial stack */
-	size_t stack_size;            /**< Size of initial stack */
+	uintptr_t stack_base;        /**< Base adddress of initial stack */
+	size_t stack_size;           /**< Size of initial stack */
 } config_t;
 
 extern config_t config;

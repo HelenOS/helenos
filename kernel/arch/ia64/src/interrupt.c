@@ -40,7 +40,7 @@
 #include <print.h>
 #include <debug.h>
 #include <console/console.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/asm.h>
 #include <arch/barrier.h>
 #include <arch/register.h>
@@ -56,14 +56,15 @@
 #include <symtab.h>
 #include <putchar.h>
 
-#define VECTORS_64_BUNDLE	20
-#define VECTORS_16_BUNDLE	48
-#define VECTORS_16_BUNDLE_START	0x5000
-#define VECTOR_MAX		0x7f00
+#define VECTORS_64_BUNDLE        20
+#define VECTORS_16_BUNDLE        48
+#define VECTORS_16_BUNDLE_START  0x5000
 
-#define BUNDLE_SIZE		16
+#define VECTOR_MAX  0x7f00
 
-char *vector_names_64_bundle[VECTORS_64_BUNDLE] = {
+#define BUNDLE_SIZE  16
+
+static const char *vector_names_64_bundle[VECTORS_64_BUNDLE] = {
 	"VHPT Translation vector",
 	"Instruction TLB vector",
 	"Data TLB vector",
@@ -86,7 +87,7 @@ char *vector_names_64_bundle[VECTORS_64_BUNDLE] = {
 	"Reserved"
 };
 
-char *vector_names_16_bundle[VECTORS_16_BUNDLE] = {
+static const char *vector_names_16_bundle[VECTORS_16_BUNDLE] = {
 	"Page Not Present vector",
 	"Key Permission vector",
 	"Instruction Access rights vector",
@@ -120,10 +121,7 @@ char *vector_names_16_bundle[VECTORS_16_BUNDLE] = {
 	"Reserved"
 };
 
-static char *vector_to_string(uint16_t vector);
-static void dump_interrupted_context(istate_t *istate);
-
-char *vector_to_string(uint16_t vector)
+static const char *vector_to_string(uint16_t vector)
 {
 	ASSERT(vector <= VECTOR_MAX);
 	
@@ -134,35 +132,30 @@ char *vector_to_string(uint16_t vector)
 		return vector_names_64_bundle[vector / (64 * BUNDLE_SIZE)];
 }
 
-void dump_interrupted_context(istate_t *istate)
+void istate_decode(istate_t *istate)
 {
-	char *ifa, *iipa, *iip;
-
-	ifa = symtab_fmt_name_lookup(istate->cr_ifa);
-	iipa = symtab_fmt_name_lookup(istate->cr_iipa);
-	iip = symtab_fmt_name_lookup(istate->cr_iip);
-
-	putchar('\n');
-	printf("Interrupted context dump:\n");
-	printf("ar.bsp=%p\tar.bspstore=%p\n", istate->ar_bsp,
-	    istate->ar_bspstore);
-	printf("ar.rnat=%#018llx\tar.rsc=%#018llx\n", istate->ar_rnat,
-	    istate->ar_rsc);
-	printf("ar.ifs=%#018llx\tar.pfs=%#018llx\n", istate->ar_ifs,
-	    istate->ar_pfs);
-	printf("cr.isr=%#018llx\tcr.ipsr=%#018llx\t\n", istate->cr_isr.value,
-	    istate->cr_ipsr);
+	printf("ar.bsp=%p\tar.bspstore=%p\n",
+	    (void *) istate->ar_bsp, (void *) istate->ar_bspstore);
+	printf("ar.rnat=%#0" PRIx64 "\tar.rsc=%#0" PRIx64 "\n",
+	    istate->ar_rnat, istate->ar_rsc);
+	printf("ar.ifs=%#0" PRIx64 "\tar.pfs=%#0" PRIx64 "\n",
+	    istate->ar_ifs, istate->ar_pfs);
+	printf("cr.isr=%#0" PRIx64 "\tcr.ipsr=%#0" PRIx64 "\n",
+	    istate->cr_isr.value, istate->cr_ipsr.value);
 	
-	printf("cr.iip=%#018llx, #%d\t(%s)\n", istate->cr_iip,
-	    istate->cr_isr.ei, iip);
-	printf("cr.iipa=%#018llx\t(%s)\n", istate->cr_iipa, iipa);
-	printf("cr.ifa=%#018llx\t(%s)\n", istate->cr_ifa, ifa);
+	printf("cr.iip=%#0" PRIx64 ", #%u\t(%s)\n",
+	    istate->cr_iip, istate->cr_isr.ei,
+	    symtab_fmt_name_lookup(istate->cr_iip));
+	printf("cr.iipa=%#0" PRIx64 "\t(%s)\n", istate->cr_iipa,
+	    symtab_fmt_name_lookup(istate->cr_iipa));
+	printf("cr.ifa=%#0" PRIx64 "\t(%s)\n", istate->cr_ifa,
+	    symtab_fmt_name_lookup(istate->cr_ifa));
 }
 
 void general_exception(uint64_t vector, istate_t *istate)
 {
-	char *desc = "";
-
+	const char *desc;
+	
 	switch (istate->cr_isr.ge_code) {
 	case GE_ILLEGALOP:
 		desc = "Illegal Operation fault";
@@ -186,11 +179,9 @@ void general_exception(uint64_t vector, istate_t *istate)
 		desc = "unknown";
 		break;
 	}
-
+	
 	fault_if_from_uspace(istate, "General Exception (%s).", desc);
-
-	dump_interrupted_context(istate);
-	panic("General Exception (%s).", desc);
+	panic_badtrap(istate, vector, "General Exception (%s).", desc);
 }
 
 void disabled_fp_register(uint64_t vector, istate_t *istate)
@@ -200,9 +191,8 @@ void disabled_fp_register(uint64_t vector, istate_t *istate)
 #else
 	fault_if_from_uspace(istate, "Interruption: %#hx (%s).",
 	    (uint16_t) vector, vector_to_string(vector));
-	dump_interrupted_context(istate);
-	panic("Interruption: %#hx (%s).", (uint16_t) vector,
-	    vector_to_string(vector));
+	panic_badtrap(istate, vector, "Interruption: %#hx (%s).",
+	    (uint16_t) vector, vector_to_string(vector));
 #endif
 }
 
@@ -222,7 +212,7 @@ int break_instruction(uint64_t vector, istate_t *istate)
 	} else {
 		istate->cr_ipsr.ri++;
 	}
-
+	
 	return syscall_handler(istate->in0, istate->in1, istate->in2,
 	    istate->in3, istate->in4, istate->in5, istate->in6);
 }
@@ -231,44 +221,45 @@ void universal_handler(uint64_t vector, istate_t *istate)
 {
 	fault_if_from_uspace(istate, "Interruption: %#hx (%s).",
 	    (uint16_t) vector, vector_to_string(vector));
-	dump_interrupted_context(istate);
-	panic("Interruption: %#hx (%s).", (uint16_t) vector,
-	    vector_to_string(vector));
+	panic_badtrap(istate, vector, "Interruption: %#hx (%s).",
+	    (uint16_t) vector, vector_to_string(vector));
 }
 
 static void end_of_local_irq(void)
 {
-	asm volatile ("mov cr.eoi=r0;;");
+	asm volatile (
+		"mov cr.eoi=r0;;"
+	);
 }
-
 
 void external_interrupt(uint64_t vector, istate_t *istate)
 {
 	cr_ivr_t ivr;
-	irq_t *irq;
 	
 	ivr.value = ivr_read();
 	srlz_d();
-
+	
+	irq_t *irq;
+	
 	switch (ivr.vector) {
 	case INTERRUPT_SPURIOUS:
 #ifdef CONFIG_DEBUG
  		printf("cpu%d: spurious interrupt\n", CPU->id);
 #endif
 		break;
-
+	
 #ifdef CONFIG_SMP
 	case VECTOR_TLB_SHOOTDOWN_IPI:
 		tlb_shootdown_ipi_recv();
 		end_of_local_irq();
 		break;
 #endif
-
+	
 	case INTERRUPT_TIMER:
 		irq = irq_dispatch_and_lock(ivr.vector);
 		if (irq) {
 			irq->handler(irq);
-			spinlock_unlock(&irq->lock);
+			irq_spinlock_unlock(&irq->lock, false);
 		} else {
 			panic("Unhandled Internal Timer Interrupt (%d).",
 			    ivr.vector);
@@ -287,7 +278,7 @@ void external_interrupt(uint64_t vector, istate_t *istate)
 			irq->handler(irq);
 			if (!irq->preack)
 				end_of_local_irq();
-			spinlock_unlock(&irq->lock);
+			irq_spinlock_unlock(&irq->lock, false);
 		} else {
 			/*
 			 * Unhandled interrupt.

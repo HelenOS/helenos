@@ -42,13 +42,24 @@
 #ifdef KERNEL
 #ifndef __ASM__
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 #define BOOT_PAGE_TABLE_SIZE     0x4000
-#define BOOT_PAGE_TABLE_ADDRESS  0x4000
+
+#ifdef MACHINE_gta02
+#define BOOT_PAGE_TABLE_ADDRESS  0x30010000
+#else
+#define BOOT_PAGE_TABLE_ADDRESS  0x00008000
+#endif
 
 #define BOOT_PAGE_TABLE_START_FRAME     (BOOT_PAGE_TABLE_ADDRESS >> FRAME_WIDTH)
 #define BOOT_PAGE_TABLE_SIZE_IN_FRAMES  (BOOT_PAGE_TABLE_SIZE >> FRAME_WIDTH)
+
+#ifdef MACHINE_gta02
+#define PHYSMEM_START_ADDR	0x30008000
+#else
+#define PHYSMEM_START_ADDR	0x00000000
+#endif
 
 extern uintptr_t last_frame;
 

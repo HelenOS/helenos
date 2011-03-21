@@ -46,30 +46,8 @@ kernel_image_start:
 	mtsprg0 r31
 	
 	# r3 contains physical address of bootinfo_t
-	# r4 contains size of bootinfo_t
-	
-	cmpwi r4, 0
-	beq bootinfo_end
 	
 	addis r3, r3, 0x8000
-	
-	lis r31, bootinfo@ha
-	addi r31, r31, bootinfo@l  # r31 = bootinfo
-	
-	bootinfo_loop:
-		
-		lwz r30, 0(r3)
-		stw r30, 0(r31)
-		
-		addi r3, r3, 4
-		addi r31, r31, 4
-		subi r4, r4, 4
-		
-		cmpwi r4, 0
-		bgt bootinfo_loop
-		
-	bootinfo_end:
-	
 	bl arch_pre_main
 	b main_bsp
 

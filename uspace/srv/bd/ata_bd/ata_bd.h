@@ -29,110 +29,21 @@
 /** @addtogroup bd
  * @{
  */
-/** @file
+/** @file ATA driver definitions.
  */
 
 #ifndef __ATA_BD_H__
 #define __ATA_BD_H__
 
 #include <sys/types.h>
-#include <fibril_sync.h>
+#include <fibril_synch.h>
+#include <str.h>
 
-enum {
-	CTL_READ_START	= 0,
-	CTL_WRITE_START = 1,
-};
-
-enum {
-	STATUS_FAILURE	= 0
-};
-
-enum {
-	MAX_DISKS	= 2
-};
-
-/** ATA Command Register Block. */
-typedef union {
-	/* Read/Write */
-	struct {
-		uint16_t data_port;
-		uint8_t sector_count;
-		uint8_t sector_number;
-		uint8_t cylinder_low;
-		uint8_t cylinder_high;
-		uint8_t drive_head;
-		uint8_t pad_rw0;		
-	};
-
-	/* Read Only */
-	struct {
-		uint8_t pad_ro0;
-		uint8_t error;
-		uint8_t pad_ro1[5];
-		uint8_t status;
-	};
-
-	/* Write Only */
-	struct {
-		uint8_t pad_wo0;
-		uint8_t features;
-		uint8_t pad_wo1[5];
-		uint8_t command;
-	};
-} ata_cmd_t;
-
-typedef union {
-	/* Read */
-	struct {
-		uint8_t pad0[6];
-		uint8_t alt_status;
-		uint8_t drive_address;
-	};
-
-	/* Write */
-	struct {
-		uint8_t pad1[6];
-		uint8_t device_control;
-		uint8_t pad2;
-	};
-} ata_ctl_t;
-
-enum devctl_bits {
-	DCR_SRST	= 0x04, /**< Software Reset */
-	DCR_nIEN	= 0x02  /**< Interrupt Enable (negated) */
-};
-
-enum status_bits {
-	SR_BSY		= 0x80, /**< Busy */
-	SR_DRDY		= 0x40, /**< Drive Ready */
-	SR_DWF		= 0x20, /**< Drive Write Fault */
-	SR_DSC		= 0x10, /**< Drive Seek Complete */
-	SR_DRQ		= 0x08, /**< Data Request */
-	SR_CORR		= 0x04, /**< Corrected Data */
-	SR_IDX		= 0x02, /**< Index */
-	SR_ERR		= 0x01  /**< Error */
-};
-
-enum drive_head_bits {
-	DHR_DRV		= 0x10
-};
-
-enum error_bits {
-	ER_BBK		= 0x80, /**< Bad Block Detected */
-	ER_UNC		= 0x40, /**< Uncorrectable Data Error */
-	ER_MC		= 0x20, /**< Media Changed */
-	ER_IDNF		= 0x10, /**< ID Not Found */
-	ER_MCR		= 0x08, /**< Media Change Request */
-	ER_ABRT		= 0x04, /**< Aborted Command */
-	ER_TK0NF	= 0x02, /**< Track 0 Not Found */
-	ER_AMNF		= 0x01  /**< Address Mark Not Found */
-};
-
-enum ata_command {
-	CMD_IDENTIFY_DRIVE	= 0xEC,
-	CMD_READ_SECTORS	= 0x20,
-	CMD_WRITE_SECTORS	= 0x30
-};
+/** Base addresses for ATA I/O blocks. */
+typedef struct {
+	uintptr_t cmd;	/**< Command block base address. */
+	uintptr_t ctl;	/**< Control block base address. */
+} ata_base_t;
 
 /** Timeout definitions. Unit is 10 ms. */
 enum ata_timeout {
@@ -141,15 +52,70 @@ enum ata_timeout {
 	TIMEOUT_DRDY	= 1000  /* 10 s */
 };
 
+enum ata_dev_type {
+	ata_reg_dev,	/* Register device (no packet feature set support) */
+	ata_pkt_dev	/* Packet device (supports packet feature set). */
+};
+
+/** Register device block addressing mode. */
+enum rd_addr_mode {
+	am_chs,		/**< CHS block addressing */
+	am_lba28,	/**< LBA-28 block addressing */
+	am_lba48	/**< LBA-48 block addressing */
+};
+
+/** Block coordinates */
+typedef struct {
+	enum rd_addr_mode amode;
+
+	union {
+		/** CHS coordinates */
+		struct {
+			uint8_t sector;
+			uint8_t cyl_lo;
+			uint8_t cyl_hi;
+		};
+		/** LBA coordinates */
+		struct {
+			uint8_t c0;
+			uint8_t c1;
+			uint8_t c2;
+			uint8_t c3;
+			uint8_t c4;
+			uint8_t c5;
+		};
+	};
+
+	/** Lower 4 bits for device/head register */
+	uint8_t h;
+} block_coord_t;
+
+/** ATA device state structure. */
 typedef struct {
 	bool present;
-	unsigned heads;
-	unsigned cylinders;
-	unsigned sectors;
+
+	/** Device type */
+	enum ata_dev_type dev_type;
+
+	/** Addressing mode to use (if register device) */
+	enum rd_addr_mode amode;
+
+	/*
+	 * Geometry. Only valid if operating in CHS mode.
+	 */
+	struct {
+		unsigned heads;
+		unsigned cylinders;
+		unsigned sectors;
+	} geom;
+
 	uint64_t blocks;
+	size_t block_size;
+
+	char model[STR_BOUNDS(40) + 1];
 
 	fibril_mutex_t lock;
-	dev_handle_t dev_handle;
+	devmap_handle_t devmap_handle;
 } disk_t;
 
 #endif

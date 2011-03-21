@@ -28,21 +28,16 @@
 
 /** @addtogroup fs
  * @{
- */ 
+ */
 
 #ifndef TMPFS_TMPFS_H_
 #define TMPFS_TMPFS_H_
 
-#include <ipc/ipc.h>
 #include <libfs.h>
 #include <atomic.h>
 #include <sys/types.h>
 #include <bool.h>
 #include <adt/hash_table.h>
-
-#ifndef dprintf
-#define dprintf(...)	printf(__VA_ARGS__)
-#endif
 
 #define TMPFS_NODE(node)	((node) ? (tmpfs_node_t *)(node)->data : NULL)
 #define FS_NODE(node)		((node) ? (node)->bp : NULL)
@@ -65,7 +60,7 @@ typedef struct tmpfs_dentry {
 typedef struct tmpfs_node {
 	fs_node_t *bp;		/**< Back pointer to the FS node. */
 	fs_index_t index;	/**< TMPFS node index. */
-	dev_handle_t dev_handle;/**< Device handle. */
+	devmap_handle_t devmap_handle;/**< Device handle. */
 	link_t nh_link;		/**< Nodes hash table link. */
 	tmpfs_dentry_type_t type;
 	unsigned lnkcnt;	/**< Link count. */
@@ -82,6 +77,8 @@ extern bool tmpfs_init(void);
 
 extern void tmpfs_mounted(ipc_callid_t, ipc_call_t *);
 extern void tmpfs_mount(ipc_callid_t, ipc_call_t *);
+extern void tmpfs_unmounted(ipc_callid_t, ipc_call_t *);
+extern void tmpfs_unmount(ipc_callid_t, ipc_call_t *);
 extern void tmpfs_lookup(ipc_callid_t, ipc_call_t *);
 extern void tmpfs_read(ipc_callid_t, ipc_call_t *);
 extern void tmpfs_write(ipc_callid_t, ipc_call_t *);
@@ -92,7 +89,7 @@ extern void tmpfs_destroy(ipc_callid_t, ipc_call_t *);
 extern void tmpfs_open_node(ipc_callid_t, ipc_call_t *);
 extern void tmpfs_sync(ipc_callid_t, ipc_call_t *);
 
-extern bool tmpfs_restore(dev_handle_t);
+extern bool tmpfs_restore(devmap_handle_t);
 
 #endif
 

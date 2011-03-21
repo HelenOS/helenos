@@ -83,6 +83,8 @@
 #include <ddi/ddi.h>
 #include <main/main.h>
 #include <ipc/event.h>
+#include <sysinfo/sysinfo.h>
+#include <sysinfo/stats.h>
 
 /** Global configuration structure. */
 config_t config;
@@ -94,26 +96,14 @@ init_t init = {
 
 /** Boot allocations. */
 ballocs_t ballocs = {
-	.base = NULL,
+	.base = (uintptr_t) NULL,
 	.size = 0
 };
 
 context_t ctx;
 
-/*
- * These 'hardcoded' variables will be intialized by
- * the linker or the low level assembler code with
- * appropriate sizes and addresses.
- */
-
-/** Virtual address of where the kernel is loaded. */
-uintptr_t hardcoded_load_address = 0;
-/** Size of the kernel code in bytes. */
-size_t hardcoded_ktext_size = 0;
-/** Size of the kernel data in bytes. */
-size_t hardcoded_kdata_size = 0;
 /** Lowest safe stack virtual address. */
-uintptr_t stack_safe = 0;		
+uintptr_t stack_safe = 0;
 
 /*
  * These two functions prevent stack from underflowing during the
@@ -122,11 +112,12 @@ uintptr_t stack_safe = 0;
  * pop sequence otherwise.
  */
 static void main_bsp_separated_stack(void);
+
 #ifdef CONFIG_SMP
 static void main_ap_separated_stack(void);
 #endif
 
-#define CONFIG_STACK_SIZE	((1 << STACK_FRAMES) * STACK_SIZE)
+#define CONFIG_STACK_SIZE  ((1 << STACK_FRAMES) * STACK_SIZE)
 
 /** Main kernel routine for bootstrap CPU.
  *
@@ -139,7 +130,7 @@ static void main_ap_separated_stack(void);
  * Assuming interrupts_disable().
  *
  */
-void main_bsp(void)
+NO_TRACE void main_bsp(void)
 {
 	config.cpu_count = 1;
 	config.cpu_active = 1;
@@ -155,15 +146,15 @@ void main_bsp(void)
 	/* Avoid placing stack on top of init */
 	size_t i;
 	for (i = 0; i < init.cnt; i++) {
-		if (PA_overlaps(config.stack_base, config.stack_size,
+		if (PA_OVERLAPS(config.stack_base, config.stack_size,
 		    init.tasks[i].addr, init.tasks[i].size))
 			config.stack_base = ALIGN_UP(init.tasks[i].addr +
 			    init.tasks[i].size, config.stack_size);
 	}
-
+	
 	/* Avoid placing stack on top of boot allocations. */
 	if (ballocs.size) {
-		if (PA_overlaps(config.stack_base, config.stack_size,
+		if (PA_OVERLAPS(config.stack_base, config.stack_size,
 		    ballocs.base, ballocs.size))
 			config.stack_base = ALIGN_UP(ballocs.base +
 			    ballocs.size, PAGE_SIZE);
@@ -179,23 +170,22 @@ void main_bsp(void)
 	/* not reached */
 }
 
-
 /** Main kernel routine for bootstrap CPU using new stack.
  *
  * Second part of main_bsp().
  *
  */
-void main_bsp_separated_stack(void) 
+void main_bsp_separated_stack(void)
 {
 	/* Keep this the first thing. */
 	the_initialize(THE);
 	
 	version_print();
 	
-	LOG("\nconfig.base=%#" PRIp " config.kernel_size=%" PRIs
-	    "\nconfig.stack_base=%#" PRIp " config.stack_size=%" PRIs,
-	    config.base, config.kernel_size, config.stack_base,
-	    config.stack_size);
+	LOG("\nconfig.base=%p config.kernel_size=%zu"
+	    "\nconfig.stack_base=%p config.stack_size=%zu",
+	    (void *) config.base, config.kernel_size,
+	    (void *) config.stack_base, config.stack_size);
 	
 #ifdef CONFIG_KCONSOLE
 	/*
@@ -203,61 +193,62 @@ void main_bsp_separated_stack(void)
 	 * because other subsystems will register their respective
 	 * commands.
 	 */
-	LOG_EXEC(kconsole_init());
+	kconsole_init();
 #endif
 	
 	/*
 	 * Exception handler initialization, before architecture
 	 * starts adding its own handlers
 	 */
-	LOG_EXEC(exc_init());
+	exc_init();
 	
 	/*
 	 * Memory management subsystems initialization.
 	 */
-	LOG_EXEC(arch_pre_mm_init());
-	LOG_EXEC(frame_init());
+	arch_pre_mm_init();
+	frame_init();
 	
 	/* Initialize at least 1 memory segment big enough for slab to work. */
-	LOG_EXEC(slab_cache_init());
-	LOG_EXEC(btree_init());
-	LOG_EXEC(as_init());
-	LOG_EXEC(page_init());
-	LOG_EXEC(tlb_init());
-	LOG_EXEC(ddi_init());
-	LOG_EXEC(tasklet_init());
-	LOG_EXEC(arch_post_mm_init());
-	LOG_EXEC(arch_pre_smp_init());
-	LOG_EXEC(smp_init());
+	slab_cache_init();
+	sysinfo_init();
+	btree_init();
+	as_init();
+	page_init();
+	tlb_init();
+	ddi_init();
+	tasklet_init();
+	arch_post_mm_init();
+	arch_pre_smp_init();
+	smp_init();
 	
 	/* Slab must be initialized after we know the number of processors. */
-	LOG_EXEC(slab_enable_cpucache());
+	slab_enable_cpucache();
 	
-	printf("Detected %" PRIs " CPU(s), %" PRIu64" MiB free memory\n",
-	    config.cpu_count, SIZE2MB(zone_total_size()));
+	printf("Detected %u CPU(s), %" PRIu64 " MiB free memory\n",
+	    config.cpu_count, SIZE2MB(zones_total_size()));
 	
-	LOG_EXEC(cpu_init());
+	cpu_init();
 	
-	LOG_EXEC(calibrate_delay_loop());
-	LOG_EXEC(clock_counter_init());
-	LOG_EXEC(timeout_init());
-	LOG_EXEC(scheduler_init());
-	LOG_EXEC(task_init());
-	LOG_EXEC(thread_init());
-	LOG_EXEC(futex_init());
+	calibrate_delay_loop();
+	clock_counter_init();
+	timeout_init();
+	scheduler_init();
+	task_init();
+	thread_init();
+	futex_init();
 	
 	if (init.cnt > 0) {
 		size_t i;
 		for (i = 0; i < init.cnt; i++)
-			LOG("init[%" PRIs "].addr=%#" PRIp ", init[%" PRIs
-			    "].size=%#" PRIs, i, init.tasks[i].addr, i,
-			    init.tasks[i].size);
+			LOG("init[%zu].addr=%p, init[%zu].size=%zu",
+			    i, (void *) init.tasks[i].addr, i, init.tasks[i].size);
 	} else
 		printf("No init binaries found.\n");
 	
-	LOG_EXEC(ipc_init());
-	LOG_EXEC(event_init());
-	LOG_EXEC(klog_init());
+	ipc_init();
+	event_init();
+	klog_init();
+	stats_init();
 	
 	/*
 	 * Create kernel task.
@@ -273,7 +264,7 @@ void main_bsp_separated_stack(void)
 		= thread_create(kinit, NULL, kernel, 0, "kinit", true);
 	if (!kinit_thread)
 		panic("Cannot create kinit thread.");
-	LOG_EXEC(thread_ready(kinit_thread));
+	thread_ready(kinit_thread);
 	
 	/*
 	 * This call to scheduler() will return to kinit,
@@ -283,8 +274,8 @@ void main_bsp_separated_stack(void)
 	/* not reached */
 }
 
-
 #ifdef CONFIG_SMP
+
 /** Main kernel routine for application CPUs.
  *
  * Executed by application processors, temporary stack
@@ -303,7 +294,7 @@ void main_ap(void)
 	 * do initialization for AP only.
 	 */
 	config.cpu_active++;
-
+	
 	/*
 	 * The THE structure is well defined because ctx.sp is used as stack.
 	 */
@@ -318,9 +309,9 @@ void main_ap(void)
 	cpu_init();
 	calibrate_delay_loop();
 	arch_post_cpu_init();
-
+	
 	the_copy(THE, (the_t *) CPU->stack);
-
+	
 	/*
 	 * If we woke kmp up before we left the kernel stack, we could
 	 * collide with another CPU coming up. To prevent this, we
@@ -333,7 +324,6 @@ void main_ap(void)
 	/* not reached */
 }
 
-
 /** Main kernel routine for application CPUs using new stack.
  *
  * Second part of main_ap().
@@ -345,11 +335,12 @@ void main_ap_separated_stack(void)
 	 * Configure timeouts for this cpu.
 	 */
 	timeout_init();
-
+	
 	waitq_wakeup(&ap_completion_wq, WAKEUP_FIRST);
 	scheduler();
 	/* not reached */
 }
+
 #endif /* CONFIG_SMP */
 
 /** @}

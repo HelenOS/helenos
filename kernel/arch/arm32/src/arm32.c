@@ -44,32 +44,27 @@
 #include <config.h>
 #include <interrupt.h>
 #include <arch/regutils.h>
+#include <arch/machine_func.h>
 #include <userspace.h>
 #include <macros.h>
-#include <string.h>
-
-#ifdef MACHINE_testarm
-	#include <arch/mach/testarm/testarm.h>
-#endif
-
-#ifdef MACHINE_integratorcp
-	#include <arch/mach/integratorcp/integratorcp.h>
-#endif
-
+#include <str.h>
+#include <arch/ras.h>
 
 /** Performs arm32-specific initialization before main_bsp() is called. */
 void arch_pre_main(void *entry __attribute__((unused)), bootinfo_t *bootinfo)
 {
-	unsigned int i;
+	init.cnt = min3(bootinfo->cnt, TASKMAP_MAX_RECORDS, CONFIG_INIT_TASKS);
 	
-	init.cnt = bootinfo->cnt;
-	
-	for (i = 0; i < min3(bootinfo->cnt, TASKMAP_MAX_RECORDS, CONFIG_INIT_TASKS); ++i) {
-		init.tasks[i].addr = bootinfo->tasks[i].addr;
+	size_t i;
+	for (i = 0; i < init.cnt; i++) {
+		init.tasks[i].addr = (uintptr_t) bootinfo->tasks[i].addr;
 		init.tasks[i].size = bootinfo->tasks[i].size;
 		str_cpy(init.tasks[i].name, CONFIG_TASK_NAME_BUFLEN,
 		    bootinfo->tasks[i].name);
 	}
+
+	/* Initialize machine_ops pointer. */
+	machine_ops_init();
 }
 
 /** Performs arm32 specific initialization before mm is initialized. */
@@ -87,6 +82,9 @@ void arch_post_mm_init(void)
 	/* Initialize exception dispatch table */
 	exception_init();
 	interrupt_init();
+
+	/* Initialize Restartable Atomic Sequences support. */
+	ras_init();
 	
 	machine_output_init();
 }
@@ -135,7 +133,6 @@ void before_thread_runs_arch(void)
 {
 	uint8_t *stck;
 	
-	tlb_invalidate_all();
 	stck = &THREAD->kstack[THREAD_STACK_SIZE - SP_DELTA];
 	supervisor_sp = (uintptr_t) stck;
 }
@@ -151,14 +148,15 @@ void after_thread_ran_arch(void)
 /** Halts CPU. */
 void cpu_halt(void)
 {
-	machine_cpu_halt();
+	while (true)
+		machine_cpu_halt();
 }
 
 /** Reboot. */
 void arch_reboot()
 {
 	/* not implemented */
-	while (1);
+	while (true);
 }
 
 /** Construct function pointer
@@ -173,6 +171,11 @@ void arch_reboot()
 void *arch_construct_function(fncptr_t *fptr, void *addr, void *caller)
 {
 	return addr;
+}
+
+void irq_initialize_arch(irq_t *irq)
+{
+	(void) irq;
 }
 
 /** @}

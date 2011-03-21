@@ -1,5 +1,6 @@
 #
 # Copyright (c) 2005 Martin Decky
+# Copyright (c) 2007 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,53 +27,15 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Setup toolchain
-#
+USPACE_PREFIX = ../..
+BINARY = trace
 
-LIBC_PREFIX = ../../lib/libc
-SOFTINT_PREFIX = ../../lib/softint
-
-include $(LIBC_PREFIX)/Makefile.toolchain
-include $(LIBC_PREFIX)/Makefile.app
-
-CFLAGS += -I../../srv/kbd/include
-
-## Sources
-#
-
-OUTPUT = trace
-SOURCES = trace.c \
+SOURCES = \
+	trace.c \
 	syscalls.c \
 	ipcp.c \
 	ipc_desc.c \
 	proto.c \
 	errors.c
 
-OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
-
-.PHONY: all clean depend disasm
-
-all: $(OUTPUT) disasm
-
--include Makefile.depend
-
-clean:
-	-rm -f $(OUTPUT) $(OBJECTS) $(OUTPUT).map $(OUTPUT).disasm Makefile.depend
-
-depend:
-	$(CC) $(DEFS) $(CFLAGS) -M $(SOURCES) > Makefile.depend
-
-$(OUTPUT): $(OBJECTS) $(LIBS)
-	$(LD) -T $(LD_SCRIPT) $(OBJECTS) $(LIBS) $(LFLAGS) -o $@ -Map $(OUTPUT).map
-
-disasm:
-	$(OBJDUMP) -d $(OUTPUT) >$(OUTPUT).disasm
-
-%.o: %.S
-	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__ -c $< -o $@
-
-%.o: %.s
-	$(AS) $(AFLAGS) $< -o $@
-
-%.o: %.c
-	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@
+include $(USPACE_PREFIX)/Makefile.common

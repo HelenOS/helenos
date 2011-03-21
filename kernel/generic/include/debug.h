@@ -36,14 +36,11 @@
 #define KERN_DEBUG_H_
 
 #include <panic.h>
-#include <arch/debug.h>
+#include <symtab.h>
 
-#define CALLER ((uintptr_t) __builtin_return_address(0))
+#define CALLER  ((uintptr_t) __builtin_return_address(0))
 
-#ifndef HERE
-/** Current Instruction Pointer address */
-#	define HERE ((uintptr_t *) 0)
-#endif
+#ifdef CONFIG_DEBUG
 
 /** Debugging ASSERT macro
  *
@@ -54,14 +51,39 @@
  * @param expr Expression which is expected to be true.
  *
  */
-#ifdef CONFIG_DEBUG
-#	define ASSERT(expr) \
-		if (!(expr)) { \
-			panic("Assertion failed (%s), caller=%p.", #expr, CALLER); \
-		}
-#else
-#	define ASSERT(expr)
-#endif
+#define ASSERT(expr) \
+	do { \
+		if (!(expr)) \
+			panic_assert("%s() at %s:%u:\n%s", \
+			    __func__, __FILE__, __LINE__, #expr); \
+	} while (0)
+
+/** Debugging verbose ASSERT macro
+ *
+ * If CONFIG_DEBUG is set, the ASSERT() macro
+ * evaluates expr and if it is false raises
+ * kernel panic. The panic message contains also
+ * the supplied message.
+ *
+ * @param expr Expression which is expected to be true.
+ * @param msg  Additional message to show (string).
+ *
+ */
+#define ASSERT_VERBOSE(expr, msg) \
+	do { \
+		if (!(expr)) \
+			panic_assert("%s() at %s:%u:\n%s, %s", \
+			    __func__, __FILE__, __LINE__, #expr, msg); \
+	} while (0)
+
+#else /* CONFIG_DEBUG */
+
+#define ASSERT(expr)
+#define ASSERT_VERBOSE(expr, msg)
+
+#endif /* CONFIG_DEBUG */
+
+#ifdef CONFIG_LOG
 
 /** Extensive logging output macro
  *
@@ -70,34 +92,25 @@
  * an information about the location.
  *
  */
+#define LOG(format, ...) \
+	do { \
+		printf("%s() from %s at %s:%u: " format "\n", __func__, \
+		    symtab_fmt_name_lookup(CALLER), __FILE__, __LINE__, \
+		    ##__VA_ARGS__); \
+	} while (0)
 
-#ifdef CONFIG_LOG
-#	define LOG(format, ...) \
-		printf("%s() at %s:%u: " format "\n", __func__, __FILE__, \
-			__LINE__, ##__VA_ARGS__);
-#else
-#	define LOG(format, ...)
-#endif
+#else /* CONFIG_LOG */
 
-/** Extensive logging execute macro
- *
- * If CONFIG_LOG is set, the LOG_EXEC() macro
- * will print an information about calling a given
- * function and call it.
- *
- */
+#define LOG(format, ...)
 
-#ifdef CONFIG_LOG
-#	define LOG_EXEC(fnc) \
-		{ \
-			printf("%s() at %s:%u: " #fnc "\n", __func__, __FILE__, \
-			__LINE__); \
-			fnc; \
-		}
-#else
-#	define LOG_EXEC(fnc) fnc
-#endif
+#endif /* CONFIG_LOG */
 
+#ifdef CONFIG_TRACE
+
+extern void __cyg_profile_func_enter(void *, void *);
+extern void __cyg_profile_func_exit(void *, void *);
+
+#endif /* CONFIG_TRACE */
 
 #endif
 

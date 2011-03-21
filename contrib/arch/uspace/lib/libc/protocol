@@ -1,0 +1,41 @@
+/* Protocol according to which libc uses kernel syscalls */
+(
+	!sys_klog.sys_klog +
+	!sys_tls.sys_tls_set +
+	!sys_thread.sys_thread_create +
+	!sys_thread.sys_thread_get_id +
+	!sys_thread.sys_thread_exit +
+	!sys_task.sys_task_set_name +
+	!sys_task.sys_task_get_id +
+	!sys_program.sys_program_spawn_loader +
+	!sys_futex.sys_futex_sleep_timeout +
+	!sys_futex.sys_futex_wakeup +
+	!sys_smc.sys_smc_coherence +
+	!sys_as.sys_as_area_create +
+	!sys_as.sys_as_area_resize +
+	!sys_as.sys_as_area_change_flags +
+	!sys_as.sys_as_area_destroy +
+	!sys_ipc.sys_ipc_call_sync_fast +
+	!sys_ipc.sys_ipc_call_sync_slow +
+	!sys_ipc.sys_ipc_call_async_fast +
+	!sys_ipc.sys_ipc_call_async_slow +
+	!sys_ipc.sys_ipc_forward_fast +
+	!sys_ipc.sys_ipc_forward_slow +
+	!sys_ipc.sys_ipc_answer_fast +
+	!sys_ipc.sys_ipc_answer_slow +
+	!sys_ipc.sys_ipc_hangup +
+	!sys_ipc.sys_ipc_wait_for_call +
+	!sys_ipc.sys_ipc_poke +
+	!sys_event.sys_event_subscribe +
+	!sys_cap.sys_cap_grant +
+	!sys_cap.sys_cap_rewoke +
+	!sys_ddi.sys_enable_iospace +
+	!sys_ddi.sys_physmem_map +
+	!sys_ddi.sys_device_assign_devno +
+	!sys_ddi.sys_preempt_control +
+	!sys_ddi.sys_register_irq +
+	!sys_ddi.sys_unregister_irq +
+	!sys_sysinfo.sys_sysinfo_valid +
+	!sys_sysinfo.sys_sysinfo_value +
+	!sys_debug.sys_ipc_connect_kbox
+)*

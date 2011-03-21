@@ -29,7 +29,7 @@
  */
 
 #include <stdio.h>
-#include <string.h>
+#include <str.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdarg.h>
@@ -46,7 +46,7 @@ extern volatile unsigned int cli_quit;
 
 /* Look up errno in cl_errors and return the corresponding string.
  * Return NULL if not found */
-static char *err2str(int err)
+static const char *err2str(int err)
 {
 
 	if (NULL != cl_errors[err])

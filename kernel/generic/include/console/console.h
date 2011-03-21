@@ -35,12 +35,27 @@
 #ifndef KERN_CONSOLE_H_
 #define KERN_CONSOLE_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
+#include <print.h>
 #include <console/chardev.h>
+
+#define PAGING(counter, increment, before, after) \
+	do { \
+		(counter) += (increment); \
+		if ((counter) > 23) { \
+			before; \
+			printf(" -- Press any key to continue -- "); \
+			indev_pop_character(stdin); \
+			after; \
+			printf("\n"); \
+			(counter) = 0; \
+		} \
+	} while (0)
 
 extern indev_t *stdin;
 extern outdev_t *stdout;
-extern bool silent;
+
+extern void early_putchar(wchar_t);
 
 extern indev_t *stdin_wire(void);
 extern void stdout_wire(outdev_t *outdev);
@@ -51,13 +66,13 @@ extern void klog_update(void);
 
 extern wchar_t getc(indev_t *indev);
 extern size_t gets(indev_t *indev, char *buf, size_t buflen);
-extern unative_t sys_klog(int fd, const void *buf, size_t size);
+extern sysarg_t sys_klog(int fd, const void *buf, size_t size);
 
 extern void grab_console(void);
 extern void release_console(void);
 
-extern unative_t sys_debug_enable_console(void);
-extern unative_t sys_debug_disable_console(void);
+extern sysarg_t sys_debug_enable_console(void);
+extern sysarg_t sys_debug_disable_console(void);
 
 #endif /* KERN_CONSOLE_H_ */
 

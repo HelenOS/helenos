@@ -1,0 +1,6 @@
+(
+	!fb.prepare_shm ;
+	!fb.ipc_m_share_out ;
+	!fb.draw_ppm ;
+	!fb.drop_shm
+)

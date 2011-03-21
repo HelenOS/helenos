@@ -47,7 +47,7 @@
 #include <elf_load.h>
 #include <module.h>
 
-void program_run(void *entry, pcb_t *pcb);
+#include "start.h"
 
 runtime_env_t dload_re;
 

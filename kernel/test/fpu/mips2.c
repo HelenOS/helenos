@@ -47,7 +47,7 @@ static waitq_t can_start;
 static void testit1(void *data)
 {
 	int i;
-	int arg __attribute__((aligned(16))) = (int) ((unative_t) data);
+	int arg __attribute__((aligned(16))) = (int) ((sysarg_t) data);
 	int after_arg __attribute__((aligned(16)));
 	
 	thread_detach(THREAD);
@@ -79,7 +79,7 @@ static void testit1(void *data)
 static void testit2(void *data)
 {
 	int i;
-	int arg __attribute__((aligned(16))) = (int) ((unative_t) data);
+	int arg __attribute__((aligned(16))) = (int) ((sysarg_t) data);
 	int after_arg __attribute__((aligned(16)));
 	
 	thread_detach(THREAD);
@@ -108,9 +108,10 @@ static void testit2(void *data)
 }
 
 
-char *test_mips2(void)
+const char *test_mips2(void)
 {
-	unsigned int i, total = 0;
+	unsigned int i;
+	atomic_count_t total = 0;
 	
 	waitq_initialize(&can_start);
 	atomic_set(&threads_ok, 0);
@@ -121,14 +122,14 @@ char *test_mips2(void)
 	for (i = 0; i < THREADS; i++) {
 		thread_t *t;
 		
-		if (!(t = thread_create(testit1, (void *) ((unative_t) 2 * i), TASK, 0, "testit1", false))) {
+		if (!(t = thread_create(testit1, (void *) ((sysarg_t) 2 * i), TASK, 0, "testit1", false))) {
 			TPRINTF("could not create thread %u\n", 2 * i);
 			break;
 		}
 		thread_ready(t);
 		total++;
 		
-		if (!(t = thread_create(testit2, (void *) ((unative_t) 2 * i + 1), TASK, 0, "testit2", false))) {
+		if (!(t = thread_create(testit2, (void *) ((sysarg_t) 2 * i + 1), TASK, 0, "testit2", false))) {
 			TPRINTF("could not create thread %u\n", 2 * i + 1);
 			break;
 		}
@@ -137,11 +138,11 @@ char *test_mips2(void)
 	}
 	
 	TPRINTF("ok\n");
-		
+	
 	thread_sleep(1);
 	waitq_wakeup(&can_start, WAKEUP_ALL);
 	
-	while (atomic_get(&threads_ok) != (long) total) {
+	while (atomic_get(&threads_ok) != total) {
 		TPRINTF("Threads left: %d\n", total - atomic_get(&threads_ok));
 		thread_sleep(1);
 	}

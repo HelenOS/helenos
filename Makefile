@@ -26,31 +26,82 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Include configuration
-#
+CSCOPE = cscope
+CHECK = tools/check.sh
+CONFIG = tools/config.py
+AUTOTOOL = tools/autotool.py
+SANDBOX = autotool
 
-.PHONY: all config distclean clean cscope
+CONFIG_RULES = HelenOS.config
 
-all: Makefile.config config.h config.defs
-	$(MAKE) -C kernel
-	$(MAKE) -C uspace
-	$(MAKE) -C boot
+COMMON_MAKEFILE = Makefile.common
+COMMON_HEADER = common.h
+COMMON_HEADER_PREV = $(COMMON_HEADER).prev
 
-Makefile.config config.h config.defs: HelenOS.config
-	tools/config.py HelenOS.config default
+CONFIG_MAKEFILE = Makefile.config
+CONFIG_HEADER = config.h
 
-config:
-	tools/config.py HelenOS.config
+.PHONY: all precheck cscope autotool config_auto config_default config distclean clean check releasefile release
 
-distclean: clean
-	rm -f Makefile.config config.h config.defs tools/*.pyc
+all: $(COMMON_MAKEFILE) $(COMMON_HEADER) $(CONFIG_MAKEFILE) $(CONFIG_HEADER)
+	cp -a $(COMMON_HEADER) $(COMMON_HEADER_PREV)
+	$(MAKE) -C kernel PRECHECK=$(PRECHECK)
+	$(MAKE) -C uspace PRECHECK=$(PRECHECK)
+	$(MAKE) -C boot PRECHECK=$(PRECHECK)
 
-clean:
-	-$(MAKE) -C kernel clean
-	-$(MAKE) -C uspace clean
-	-$(MAKE) -C boot clean
+precheck: clean
+	$(MAKE) all PRECHECK=y
 
 cscope:
-	find kernel boot uspace -regex '^.*\.[chsS]$$' -print > srclist
-	rm -f cscope.out
-	cscope -bi srclist
+	find kernel boot uspace -regex '^.*\.[chsS]$$' | xargs $(CSCOPE) -b -k -u -f$(CSCOPE).out
+
+# Pre-integration build check
+check: $(CHECK)
+ifdef JOBS 
+	$(CHECK) -j $(JOBS)
+else
+	$(CHECK)
+endif
+
+# Autotool (detects compiler features)
+
+$(COMMON_MAKEFILE): autotool
+$(COMMON_HEADER): autotool
+
+autotool: $(CONFIG_MAKEFILE)
+	$(AUTOTOOL)
+	-[ -f $(COMMON_HEADER_PREV) ] && diff -q $(COMMON_HEADER_PREV) $(COMMON_HEADER) && mv -f $(COMMON_HEADER_PREV) $(COMMON_HEADER)
+
+# Build-time configuration
+
+$(CONFIG_MAKEFILE): config_default
+$(CONFIG_HEADER): config_default
+
+config_default: $(CONFIG_RULES)
+ifeq ($(HANDS_OFF),y)
+	$(CONFIG) $< hands-off $(PROFILE)
+else
+	$(CONFIG) $< default $(PROFILE)
+endif
+
+config: $(CONFIG_RULES)
+	$(CONFIG) $<
+
+# Release files
+
+releasefile: all
+	$(MAKE) -C release releasefile
+
+release:
+	$(MAKE) -C release release
+
+# Cleaning
+
+distclean: clean
+	rm -f $(CSCOPE).out $(COMMON_MAKEFILE) $(COMMON_HEADER) $(COMMON_HEADER_PREV) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) tools/*.pyc tools/checkers/*.pyc release/HelenOS-*
+
+clean:
+	rm -fr $(SANDBOX)
+	$(MAKE) -C kernel clean
+	$(MAKE) -C uspace clean
+	$(MAKE) -C boot clean

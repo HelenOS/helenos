@@ -59,7 +59,7 @@
 
 #define DPRINTF(...)
 
-static char *error_codes[] = {
+static const char *error_codes[] = {
 	"no error",
 	"invalid image",
 	"address space error",
@@ -94,21 +94,22 @@ static int my_read(int fd, void *buf, size_t len)
  * extracted from the binary is stored in a elf_info_t structure
  * pointed to by @a info.
  *
- * @param file_name	Path to the ELF file.
- * @param so_bias	Bias to use if the file is a shared object.
- * @param info		Pointer to a structure for storing information
- *			extracted from the binary.
+ * @param file_name Path to the ELF file.
+ * @param so_bias   Bias to use if the file is a shared object.
+ * @param info      Pointer to a structure for storing information
+ *                  extracted from the binary.
  *
  * @return EOK on success or negative error code.
+ *
  */
-int elf_load_file(char *file_name, size_t so_bias, eld_flags_t flags,
+int elf_load_file(const char *file_name, size_t so_bias, eld_flags_t flags,
     elf_info_t *info)
 {
 	elf_ld_t elf;
 
 	int fd;
 	int rc;
-
+	
 	fd = open(file_name, O_RDONLY);
 	if (fd < 0) {
 		DPRINTF("failed opening file\n");
@@ -268,7 +269,7 @@ static unsigned int elf_load(elf_ld_t *elf, size_t so_bias)
  *
  * @return NULL terminated description of error.
  */
-char *elf_error(unsigned int rc)
+const char *elf_error(unsigned int rc)
 {
 	assert(rc < sizeof(error_codes) / sizeof(char *));
 
@@ -286,6 +287,7 @@ static int segment_header(elf_ld_t *elf, elf_segment_header_t *entry)
 	switch (entry->p_type) {
 	case PT_NULL:
 	case PT_PHDR:
+	case PT_NOTE:
 		break;
 	case PT_LOAD:
 		return load_segment(elf, entry);
@@ -305,7 +307,6 @@ static int segment_header(elf_ld_t *elf, elf_segment_header_t *entry)
 		/* FIXME: MIPS reginfo */
 		break;
 	case PT_SHLIB:
-	case PT_NOTE:
 //	case PT_LOPROC:
 //	case PT_HIPROC:
 	default:
@@ -339,8 +340,8 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 	seg_addr = entry->p_vaddr + bias;
 	seg_ptr = (void *) seg_addr;
 
-	DPRINTF("Load segment at addr 0x%x, size 0x%x\n", seg_addr,
-		entry->p_memsz);	
+	DPRINTF("Load segment at addr %p, size 0x%x\n", (void *) seg_addr,
+		entry->p_memsz);
 
 	if (entry->p_align > 1) {
 		if ((entry->p_offset % entry->p_align) !=
@@ -367,8 +368,9 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 	base = ALIGN_DOWN(entry->p_vaddr, PAGE_SIZE);
 	mem_sz = entry->p_memsz + (entry->p_vaddr - base);
 
-	DPRINTF("Map to seg_addr=0x%x-0x%x.\n", seg_addr,
-	entry->p_vaddr + bias + ALIGN_UP(entry->p_memsz, PAGE_SIZE));
+	DPRINTF("Map to seg_addr=%p-%p.\n", (void *) seg_addr,
+	    (void *) (entry->p_vaddr + bias +
+	    ALIGN_UP(entry->p_memsz, PAGE_SIZE)));
 
 	/*
 	 * For the course of loading, the area needs to be readable
@@ -382,8 +384,8 @@ int load_segment(elf_ld_t *elf, elf_segment_header_t *entry)
 		return EE_MEMORY;
 	}
 
-	DPRINTF("as_area_create(0x%lx, 0x%x, %d) -> 0x%lx\n",
-		base + bias, mem_sz, flags, (uintptr_t)a);
+	DPRINTF("as_area_create(%p, %#zx, %d) -> %p\n",
+	    (void *) (base + bias), mem_sz, flags, (void *) a);
 
 	/*
 	 * Load segment data
@@ -463,6 +465,11 @@ static int section_header(elf_ld_t *elf, elf_section_header_t *entry)
 		}
 		break;
 	case SHT_DYNAMIC:
+		/* Record pointer to dynamic section into info structure */
+		elf->info->dynamic =
+		    (void *)((uint8_t *)entry->sh_addr + elf->bias);
+		DPRINTF("Dynamic section found at %p.\n",
+		    (void *) elf->info->dynamic);
 		break;
 	default:
 		break;

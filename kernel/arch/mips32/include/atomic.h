@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup mips32	
+/** @addtogroup mips32
  * @{
  */
 /** @file
@@ -34,6 +34,8 @@
 
 #ifndef KERN_mips32_ATOMIC_H_
 #define KERN_mips32_ATOMIC_H_
+
+#include <trace.h>
 
 #define atomic_inc(x)  ((void) atomic_add(x, 1))
 #define atomic_dec(x)  ((void) atomic_add(x, -1))
@@ -50,10 +52,13 @@
  * @param i Signed immediate that will be added to *val.
  *
  * @return Value after addition.
+ *
  */
-static inline long atomic_add(atomic_t *val, int i)
+NO_TRACE static inline atomic_count_t atomic_add(atomic_t *val,
+    atomic_count_t i)
 {
-	long tmp, v;
+	atomic_count_t tmp;
+	atomic_count_t v;
 	
 	asm volatile (
 		"1:\n"
@@ -63,15 +68,20 @@ static inline long atomic_add(atomic_t *val, int i)
 		"	sc %0, %1\n"
 		"	beq %0, %4, 1b\n"   /* if the atomic operation failed, try again */
 		"	nop\n"
-		: "=&r" (tmp), "+m" (val->count), "=&r" (v)
-		: "r" (i), "i" (0)
+		: "=&r" (tmp),
+		  "+m" (val->count),
+		  "=&r" (v)
+		: "r" (i),
+		  "i" (0)
 	);
 	
 	return v;
 }
 
-static inline uint32_t test_and_set(atomic_t *val) {
-	uint32_t tmp, v;
+NO_TRACE static inline atomic_count_t test_and_set(atomic_t *val)
+{
+	atomic_count_t tmp;
+	atomic_count_t v;
 	
 	asm volatile (
 		"1:\n"
@@ -81,17 +91,19 @@ static inline uint32_t test_and_set(atomic_t *val) {
 		"	sc %0, %1\n"
 		"	beqz %0, 1b\n"
 		"2:\n"
-		: "=&r" (tmp), "+m" (val->count), "=&r" (v)
+		: "=&r" (tmp),
+		  "+m" (val->count),
+		  "=&r" (v)
 		: "i" (1)
 	);
 	
 	return v;
 }
 
-static inline void atomic_lock_arch(atomic_t *val) {
+NO_TRACE static inline void atomic_lock_arch(atomic_t *val)
+{
 	do {
-		while (val->count)
-			;
+		while (val->count);
 	} while (test_and_set(val));
 }
 

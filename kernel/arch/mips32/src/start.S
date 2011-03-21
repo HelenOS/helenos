@@ -44,136 +44,209 @@
 .global exception_entry
 .global userspace_asm
 
-# Which status bits should are thread-local
-#define REG_SAVE_MASK 0x1f # KSU(UM), EXL, ERL, IE
-	
-# Save registers to space defined by \r
-# We will change status: Disable ERL,EXL,UM,IE
-# These changes will be automatically reversed in REGISTER_LOAD
-# SP is NOT saved as part of these registers
+/*
+ * Which status bits are thread-local:
+ * KSU(UM), EXL, ERL, IE
+ */
+#define REG_SAVE_MASK 0x1f
+
+#define ISTATE_OFFSET_A0	0
+#define ISTATE_OFFSET_A1	4
+#define ISTATE_OFFSET_A2	8
+#define ISTATE_OFFSET_A3	12
+#define ISTATE_OFFSET_T0	16
+#define ISTATE_OFFSET_T1	20
+#define ISTATE_OFFSET_V0	24
+#define ISTATE_OFFSET_V1	28
+#define ISTATE_OFFSET_AT	32
+#define ISTATE_OFFSET_T2	36
+#define ISTATE_OFFSET_T3	40
+#define ISTATE_OFFSET_T4	44
+#define ISTATE_OFFSET_T5	48
+#define ISTATE_OFFSET_T6	52
+#define ISTATE_OFFSET_T7	56
+#define ISTATE_OFFSET_S0	60
+#define ISTATE_OFFSET_S1	64
+#define ISTATE_OFFSET_S2	68
+#define ISTATE_OFFSET_S3	72
+#define ISTATE_OFFSET_S4	76
+#define ISTATE_OFFSET_S5	80
+#define ISTATE_OFFSET_S6	84
+#define ISTATE_OFFSET_S7	88
+#define ISTATE_OFFSET_T8	92
+#define ISTATE_OFFSET_T9	96
+#define ISTATE_OFFSET_KT0	100
+#define ISTATE_OFFSET_KT1	104
+#define ISTATE_OFFSET_GP	108
+#define ISTATE_OFFSET_SP	112
+#define ISTATE_OFFSET_S8	116
+#define ISTATE_OFFSET_RA	120
+#define ISTATE_OFFSET_LO	124
+#define ISTATE_OFFSET_HI	128
+#define ISTATE_OFFSET_STATUS	132
+#define ISTATE_OFFSET_EPC	136
+#define ISTATE_OFFSET_ALIGNMENT	140
+
+#define ISTATE_SOFT_SIZE	144
+
+/*
+ * The fake ABI prologue is never executed and may not be part of the
+ * procedure's body. Instead, it should be immediately preceding the procedure's
+ * body. Its only purpose is to trick the stack trace walker into thinking that
+ * the exception is more or less just a normal function call.
+ */
+.macro FAKE_ABI_PROLOGUE
+	sub $sp, ISTATE_SOFT_SIZE
+	sw $ra, ISTATE_OFFSET_EPC($sp)
+.endm
+
+/*
+ * Save registers to space defined by \r
+ * We will change status: Disable ERL, EXL, UM, IE
+ * These changes will be automatically reversed in REGISTER_LOAD
+ * %sp is NOT saved as part of these registers
+ */
 .macro REGISTERS_STORE_AND_EXC_RESET r
-	sw $at, EOFFSET_AT(\r)
-	sw $v0, EOFFSET_V0(\r)
-	sw $v1, EOFFSET_V1(\r)
-	sw $a0, EOFFSET_A0(\r)
-	sw $a1, EOFFSET_A1(\r)
-	sw $a2, EOFFSET_A2(\r)
-	sw $a3, EOFFSET_A3(\r)
-	sw $t0, EOFFSET_T0(\r)
-	sw $t1, EOFFSET_T1(\r)
-	sw $t2, EOFFSET_T2(\r)
-	sw $t3, EOFFSET_T3(\r)
-	sw $t4, EOFFSET_T4(\r)
-	sw $t5, EOFFSET_T5(\r)
-	sw $t6, EOFFSET_T6(\r)
-	sw $t7, EOFFSET_T7(\r)
-	sw $t8, EOFFSET_T8(\r)
-	sw $t9, EOFFSET_T9(\r)
-
-	mflo $at
-	sw $at, EOFFSET_LO(\r)
-	mfhi $at
-	sw $at, EOFFSET_HI(\r)
+	sw $at, ISTATE_OFFSET_AT(\r)
+	sw $v0, ISTATE_OFFSET_V0(\r)
+	sw $v1, ISTATE_OFFSET_V1(\r)
+	sw $a0, ISTATE_OFFSET_A0(\r)
+	sw $a1, ISTATE_OFFSET_A1(\r)
+	sw $a2, ISTATE_OFFSET_A2(\r)
+	sw $a3, ISTATE_OFFSET_A3(\r)
+	sw $t0, ISTATE_OFFSET_T0(\r)
+	sw $t1, ISTATE_OFFSET_T1(\r)
+	sw $t2, ISTATE_OFFSET_T2(\r)
+	sw $t3, ISTATE_OFFSET_T3(\r)
+	sw $t4, ISTATE_OFFSET_T4(\r)
+	sw $t5, ISTATE_OFFSET_T5(\r)
+	sw $t6, ISTATE_OFFSET_T6(\r)
+	sw $t7, ISTATE_OFFSET_T7(\r)
+	sw $t8, ISTATE_OFFSET_T8(\r)
+	sw $t9, ISTATE_OFFSET_T9(\r)
+	sw $s0, ISTATE_OFFSET_S0(\r)
+	sw $s1, ISTATE_OFFSET_S1(\r)
+	sw $s2, ISTATE_OFFSET_S2(\r)
+	sw $s3, ISTATE_OFFSET_S3(\r)
+	sw $s4, ISTATE_OFFSET_S4(\r)
+	sw $s5, ISTATE_OFFSET_S5(\r)
+	sw $s6, ISTATE_OFFSET_S6(\r)
+	sw $s7, ISTATE_OFFSET_S7(\r)
+	sw $s8, ISTATE_OFFSET_S8(\r)
 	
-	sw $gp, EOFFSET_GP(\r)
-	sw $ra, EOFFSET_RA(\r)
-	sw $k1, EOFFSET_K1(\r)
-
+	mflo $at
+	sw $at, ISTATE_OFFSET_LO(\r)
+	mfhi $at
+	sw $at, ISTATE_OFFSET_HI(\r)
+	
+	sw $gp, ISTATE_OFFSET_GP(\r)
+	sw $ra, ISTATE_OFFSET_RA(\r)
+	sw $k0, ISTATE_OFFSET_KT0(\r)
+	sw $k1, ISTATE_OFFSET_KT1(\r)
+	
 	mfc0 $t0, $status
 	mfc0 $t1, $epc
 	
-	and $t2, $t0, REG_SAVE_MASK	# Save only KSU,EXL,ERL,IE
-	li $t3, ~(0x1f)
-	and $t0, $t0, $t3		# Clear KSU,EXL,ERL,IE
+	/* save only KSU, EXL, ERL, IE */
+	and $t2, $t0, REG_SAVE_MASK
 	
-	sw $t2,EOFFSET_STATUS(\r)
-	sw $t1,EOFFSET_EPC(\r)
+	/* clear KSU, EXL, ERL, IE */
+	li $t3, ~(REG_SAVE_MASK)
+	and $t0, $t0, $t3
+	
+	sw $t2, ISTATE_OFFSET_STATUS(\r)
+	sw $t1, ISTATE_OFFSET_EPC(\r)
 	mtc0 $t0, $status
 .endm
 
 .macro REGISTERS_LOAD r
-	# Update only UM,EXR,IE from status, the rest
-	# is controlled by OS and not bound to task
+	/*
+	 * Update only UM, EXR, IE from status, the rest
+	 * is controlled by OS and not bound to task.
+	 */
 	mfc0 $t0, $status
-	lw $t1,EOFFSET_STATUS(\r)
-
-	li $t2, ~REG_SAVE_MASK		# Mask UM,EXL,ERL,IE
+	lw $t1, ISTATE_OFFSET_STATUS(\r)
+	
+	/* mask UM, EXL, ERL, IE */
+	li $t2, ~REG_SAVE_MASK
 	and $t0, $t0, $t2
 	
-	or $t0, $t0, $t1		# Copy UM,EXL, ERL, IE from saved status
+	/* copy UM, EXL, ERL, IE from saved status */
+	or $t0, $t0, $t1
 	mtc0 $t0, $status
 	
-	lw $v0, EOFFSET_V0(\r)
-	lw $v1, EOFFSET_V1(\r)
-	lw $a0, EOFFSET_A0(\r)
-	lw $a1, EOFFSET_A1(\r)
-	lw $a2, EOFFSET_A2(\r)
-	lw $a3, EOFFSET_A3(\r)
-	lw $t0, EOFFSET_T0(\r)
-	lw $t1, EOFFSET_T1(\r)
-	lw $t2, EOFFSET_T2(\r)
-	lw $t3, EOFFSET_T3(\r)
-	lw $t4, EOFFSET_T4(\r)
-	lw $t5, EOFFSET_T5(\r)
-	lw $t6, EOFFSET_T6(\r)
-	lw $t7, EOFFSET_T7(\r)
-	lw $t8, EOFFSET_T8(\r)
-	lw $t9, EOFFSET_T9(\r)
+	lw $v0, ISTATE_OFFSET_V0(\r)
+	lw $v1, ISTATE_OFFSET_V1(\r)
+	lw $a0, ISTATE_OFFSET_A0(\r)
+	lw $a1, ISTATE_OFFSET_A1(\r)
+	lw $a2, ISTATE_OFFSET_A2(\r)
+	lw $a3, ISTATE_OFFSET_A3(\r)
+	lw $t0, ISTATE_OFFSET_T0(\r)
+	lw $t1, ISTATE_OFFSET_T1(\r)
+	lw $t2, ISTATE_OFFSET_T2(\r)
+	lw $t3, ISTATE_OFFSET_T3(\r)
+	lw $t4, ISTATE_OFFSET_T4(\r)
+	lw $t5, ISTATE_OFFSET_T5(\r)
+	lw $t6, ISTATE_OFFSET_T6(\r)
+	lw $t7, ISTATE_OFFSET_T7(\r)
+	lw $t8, ISTATE_OFFSET_T8(\r)
+	lw $t9, ISTATE_OFFSET_T9(\r)
 	
-	lw $gp, EOFFSET_GP(\r)
-	lw $ra, EOFFSET_RA(\r)
-	lw $k1, EOFFSET_K1(\r)
+	lw $gp, ISTATE_OFFSET_GP(\r)
+	lw $ra, ISTATE_OFFSET_RA(\r)
+	lw $k1, ISTATE_OFFSET_KT1(\r)
 	
-	lw $at, EOFFSET_LO(\r)
+	lw $at, ISTATE_OFFSET_LO(\r)
 	mtlo $at
-	lw $at, EOFFSET_HI(\r)
+	lw $at, ISTATE_OFFSET_HI(\r)
 	mthi $at
-
-	lw $at, EOFFSET_EPC(\r)
+	
+	lw $at, ISTATE_OFFSET_EPC(\r)
 	mtc0 $at, $epc
 	
-	lw $at, EOFFSET_AT(\r)
-	lw $sp, EOFFSET_SP(\r)
+	lw $at, ISTATE_OFFSET_AT(\r)
+	lw $sp, ISTATE_OFFSET_SP(\r)
 .endm
 
-# Move kernel stack pointer address to register K0
-# - if we are in user mode, load the appropriate stack
-# address
+/*
+ * Move kernel stack pointer address to register $k0.
+ * If we are in user mode, load the appropriate stack address.
+ */
 .macro KERNEL_STACK_TO_K0
-	# If we are in user mode
+	/* if we are in user mode */
 	mfc0 $k0, $status
 	andi $k0, 0x10
 	
 	beq $k0, $0, 1f
-	add $k0, $sp, 0
+	move $k0, $sp
 	
-	# Move $k0 pointer to kernel stack
+	/* move $k0 pointer to kernel stack */
 	lui $k0, %hi(supervisor_sp)
 	ori $k0, $k0, %lo(supervisor_sp)
-	# Move $k0 (superveisor_sp)
-	lw $k0, 0($k0)
-1:
+	
+	/* move $k0 (supervisor_sp) */
+	lw $k0, ($k0)
+	
+	1:
 .endm
 
 .org 0x0
 kernel_image_start:
-	/* Load temporary stack */
+	/* load temporary stack */
 	lui $sp, %hi(end_stack)
 	ori $sp, $sp, %lo(end_stack)
 	
-	/* Not sure about this, but might
-	   be needed for PIC code */
+	/* not sure about this, but might be needed for PIC code */
 	lui $gp, 0x8000
 	
 	/* $a1 contains physical address of bootinfo_t */
-	
 	jal arch_pre_main
 	nop
 	
 	j main_bsp
 	nop
 
-	.space TEMP_STACK_SIZE
+.space TEMP_STACK_SIZE
 end_stack:
 
 tlb_refill_entry:
@@ -188,126 +261,126 @@ exception_entry:
 	j exception_handler
 	nop
 
+	FAKE_ABI_PROLOGUE
 exception_handler:
 	KERNEL_STACK_TO_K0
-	sub $k0, REGISTER_SPACE
-	sw $sp, EOFFSET_SP($k0)
+	
+	sub $k0, ISTATE_SOFT_SIZE
+	sw $sp, ISTATE_OFFSET_SP($k0)
 	move $sp, $k0
 	
 	mfc0 $k0, $cause
 	
-	sra $k0, $k0, 0x2    # cp0_exc_cause() part 1
-	andi $k0, $k0, 0x1f  # cp0_exc_cause() part 2
-	sub $k0, 8           # 8 = SYSCALL
+	sra $k0, $k0, 0x2    /* cp0_exc_cause() part 1 */
+	andi $k0, $k0, 0x1f  /* cp0_exc_cause() part 2 */
+	sub $k0, 8           /* 8 = SYSCALL */
 	
 	beqz $k0, syscall_shortcut
-	add $k0, 8           # Revert $k0 back to correct exc number
+	add $k0, 8           /* revert $k0 back to correct exc number */
 	
 	REGISTERS_STORE_AND_EXC_RESET $sp
 	
 	move $a1, $sp
-	jal exc_dispatch     # exc_dispatch(excno, register_space)
+	jal exc_dispatch     /* exc_dispatch(excno, register_space) */
 	move $a0, $k0
-
+	
 	REGISTERS_LOAD $sp
-	# The $sp is automatically restored to former value
+	/* the $sp is automatically restored to former value */
 	eret
 
-## Syscall entry
-#
-# Registers:
-#
-# @param v0		Syscall number.
-# @param a0		1st argument.
-# @param a1		2nd argument.
-# @param a2		3rd argument.
-# @param a3		4th argument.
-# @param t0		5th argument.
-# @param t1		6th argument.
-#
-# @return		The return value will be stored in v0.
-#
-#define SS_SP		EOFFSET_SP
-#define SS_STATUS	EOFFSET_STATUS
-#define SS_EPC		EOFFSET_EPC
-#define SS_K1		EOFFSET_K1
+/** Syscall entry
+ *
+ * Registers:
+ *
+ * @param $v0 Syscall number.
+ * @param $a0 1st argument.
+ * @param $a1 2nd argument.
+ * @param $a2 3rd argument.
+ * @param $a3 4th argument.
+ * @param $t0 5th argument.
+ * @param $t1 6th argument.
+ *
+ * @return The return value will be stored in $v0.
+ *
+ */
 syscall_shortcut:
-	# We have a lot of space on the stack, with free use
 	mfc0 $t3, $epc
 	mfc0 $t2, $status
-	sw $t3, SS_EPC($sp)		# Save EPC
-	sw $k1, SS_K1($sp)   		# Save k1 not saved on context switch
+	sw $t3, ISTATE_OFFSET_EPC($sp)  /* save EPC */
+	sw $k1, ISTATE_OFFSET_KT1($sp)  /* save $k1 not saved on context switch */
 	
-	and $t4, $t2, REG_SAVE_MASK	# Save only KSU, EXL, ERL, IE
+	and $t4, $t2, REG_SAVE_MASK  /* save only KSU, EXL, ERL, IE */
 	li $t5, ~(0x1f)
-	and $t2, $t2, $t5		# Clear KSU, EXL, ERL
-	ori $t2, $t2, 0x1		# Set IE
-
-	sw $t4, SS_STATUS($sp)
+	and $t2, $t2, $t5  /* clear KSU, EXL, ERL */
+	ori $t2, $t2, 0x1  /* set IE */
+	
+	sw $t4, ISTATE_OFFSET_STATUS($sp)
 	mtc0 $t2, $status
-
-	#
-	# Call the higher level system call handler
-	# We are going to reuse part of the unused exception stack frame
-	#
-	sw $t0, STACK_ARG4($sp)		# save the 5th argument on the stack
-	sw $t1, STACK_ARG5($sp)		# save the 6th argument on the stack
+	
+	/*
+	 * Call the higher level system call handler.
+	 *
+	 */
+	sw $t0, ISTATE_OFFSET_T0($sp)  /* save the 5th argument on the stack */
+	sw $t1, ISTATE_OFFSET_T1($sp)  /* save the 6th argument on the stack */
 	jal syscall_handler
-	sw $v0, STACK_ARG6($sp)		# save the syscall number on the stack
-
-	# restore status
+	sw $v0, ISTATE_OFFSET_V0($sp)  /* save the syscall number on the stack */
+	
+	/* restore status */
 	mfc0 $t2, $status
-	lw $t3, SS_STATUS($sp)
-
-	# Change back to EXL = 1 (from last exception), otherwise
-	# an interrupt could rewrite the CP0 - EPC
-	li $t4, ~REG_SAVE_MASK		# Mask UM, EXL, ERL, IE
+	lw $t3, ISTATE_OFFSET_STATUS($sp)
+	
+	/*
+	 * Change back to EXL = 1 (from last exception), otherwise
+	 * an interrupt could rewrite the CP0 - EPC.
+	 *
+	 */
+	li $t4, ~REG_SAVE_MASK  /* mask UM, EXL, ERL, IE */
 	and $t2, $t2, $t4
-	or $t2, $t2, $t3		# Copy saved UM, EXL, ERL, IE
+	or $t2, $t2, $t3  /* copy saved UM, EXL, ERL, IE */
 	mtc0 $t2, $status
-			
-	# restore epc + 4
-	lw $t2, SS_EPC($sp)
-	lw $k1, SS_K1($sp)
+	
+	/* restore epc + 4 */
+	lw $t2, ISTATE_OFFSET_EPC($sp)
+	lw $k1, ISTATE_OFFSET_KT1($sp)
 	addi $t2, $t2, 4
 	mtc0 $t2, $epc
 	
-	lw $sp, SS_SP($sp)		# restore sp
-	
+	lw $sp, ISTATE_OFFSET_SP($sp)  /* restore $sp */
 	eret
-		
+
+	FAKE_ABI_PROLOGUE
 tlb_refill_handler:
 	KERNEL_STACK_TO_K0
-	sub $k0, REGISTER_SPACE
+	sub $k0, ISTATE_SOFT_SIZE
 	REGISTERS_STORE_AND_EXC_RESET $k0
-	sw $sp,EOFFSET_SP($k0)
-	add $sp, $k0, 0
-
+	sw $sp, ISTATE_OFFSET_SP($k0)
+	move $sp, $k0
+	
 	jal tlb_refill
-	add $a0, $sp, 0 
-
+	move $a0, $sp 
+	
 	REGISTERS_LOAD $sp
-
 	eret
 
+	FAKE_ABI_PROLOGUE
 cache_error_handler:
 	KERNEL_STACK_TO_K0
-	sub $k0, REGISTER_SPACE
+	sub $k0, ISTATE_SOFT_SIZE 
 	REGISTERS_STORE_AND_EXC_RESET $k0
-	sw $sp,EOFFSET_SP($k0)
-	add $sp, $k0, 0
-
+	sw $sp, ISTATE_OFFSET_SP($k0)
+	move $sp, $k0
+	
 	jal cache_error
-	add $a0, $sp, 0 
-
+	move $a0, $sp
+	
 	REGISTERS_LOAD $sp
-
 	eret
 
 userspace_asm:
-	add $sp, $a0, 0
-	add $v0, $a1, 0 
-	add $t9, $a2, 0			# Set up correct entry into PIC code
-	xor $a0, $a0, $a0		# $a0 is defined to hold pcb_ptr
-					# set it to 0
+	move $sp, $a0
+	move $v0, $a1
+	move $t9, $a2      /* set up correct entry into PIC code */
+	xor $a0, $a0, $a0  /* $a0 is defined to hold pcb_ptr */
+	                   /* set it to 0 */
 	eret

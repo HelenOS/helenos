@@ -31,7 +31,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <string.h>
+#include <str.h>
 #include <errno.h>
 
 #include "util.h"
@@ -40,7 +40,7 @@
 #include "cmds.h"
 #include "cd.h"
 
-static char * cmdname = "cd";
+static const char *cmdname = "cd";
 
 void help_cmd_cd(unsigned int level)
 {

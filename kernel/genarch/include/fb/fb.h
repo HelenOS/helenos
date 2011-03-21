@@ -35,7 +35,7 @@
 #ifndef KERN_FB_H_
 #define KERN_FB_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <console/chardev.h>
 #include <genarch/fb/visuals.h>
 

@@ -1,0 +1,5 @@
+(
+	[fnc.vfs_grab_phone] ;
+	!fs.lookup ;
+	[fnc.vfs_release_phone]
+)

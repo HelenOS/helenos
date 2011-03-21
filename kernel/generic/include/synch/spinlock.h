@@ -35,11 +35,12 @@
 #ifndef KERN_SPINLOCK_H_
 #define KERN_SPINLOCK_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/barrier.h>
 #include <preemption.h>
 #include <atomic.h>
 #include <debug.h>
+#include <arch/asm.h>
 
 #ifdef CONFIG_SMP
 
@@ -47,8 +48,8 @@ typedef struct {
 	atomic_t val;
 	
 #ifdef CONFIG_DEBUG_SPINLOCK
-	char *name;
-#endif
+	const char *name;
+#endif /* CONFIG_DEBUG_SPINLOCK */
 } spinlock_t;
 
 /*
@@ -59,8 +60,9 @@ typedef struct {
 #define SPINLOCK_EXTERN(lock_name)   extern spinlock_t lock_name
 
 /*
- * SPINLOCK_INITIALIZE is to be used for statically allocated spinlocks.
- * It declares and initializes the lock.
+ * SPINLOCK_INITIALIZE and SPINLOCK_STATIC_INITIALIZE are to be used
+ * for statically allocated spinlocks. They declare (either as global
+ * or static) symbol and initialize the lock.
  */
 #ifdef CONFIG_DEBUG_SPINLOCK
 
@@ -76,9 +78,13 @@ typedef struct {
 		.val = { 0 } \
 	}
 
-#define spinlock_lock(lock)  spinlock_lock_debug(lock)
+#define ASSERT_SPINLOCK(expr, lock) \
+	ASSERT_VERBOSE(expr, (lock)->name)
 
-#else
+#define spinlock_lock(lock)    spinlock_lock_debug((lock))
+#define spinlock_unlock(lock)  spinlock_unlock_debug((lock))
+
+#else /* CONFIG_DEBUG_SPINLOCK */
 
 #define SPINLOCK_INITIALIZE_NAME(lock_name, desc_name) \
 	spinlock_t lock_name = { \
@@ -90,9 +96,13 @@ typedef struct {
 		.val = { 0 } \
 	}
 
-#define spinlock_lock(lock)  atomic_lock_arch(&(lock)->val)
+#define ASSERT_SPINLOCK(expr, lock) \
+	ASSERT(expr)
 
-#endif
+#define spinlock_lock(lock)    atomic_lock_arch(&(lock)->val)
+#define spinlock_unlock(lock)  spinlock_unlock_nondebug((lock))
+
+#endif /* CONFIG_DEBUG_SPINLOCK */
 
 #define SPINLOCK_INITIALIZE(lock_name) \
 	SPINLOCK_INITIALIZE_NAME(lock_name, #lock_name)
@@ -100,20 +110,21 @@ typedef struct {
 #define SPINLOCK_STATIC_INITIALIZE(lock_name) \
 	SPINLOCK_STATIC_INITIALIZE_NAME(lock_name, #lock_name)
 
-extern void spinlock_initialize(spinlock_t *lock, char *name);
-extern int spinlock_trylock(spinlock_t *lock);
-extern void spinlock_lock_debug(spinlock_t *lock);
+extern void spinlock_initialize(spinlock_t *, const char *);
+extern int spinlock_trylock(spinlock_t *);
+extern void spinlock_lock_debug(spinlock_t *);
+extern void spinlock_unlock_debug(spinlock_t *);
+extern bool spinlock_locked(spinlock_t *);
 
 /** Unlock spinlock
  *
- * Unlock spinlock.
+ * Unlock spinlock for non-debug kernels.
  *
  * @param sl Pointer to spinlock_t structure.
+ *
  */
-static inline void spinlock_unlock(spinlock_t *lock)
+NO_TRACE static inline void spinlock_unlock_nondebug(spinlock_t *lock)
 {
-	ASSERT(atomic_get(&lock->val) != 0);
-	
 	/*
 	 * Prevent critical section code from bleeding out this way down.
 	 */
@@ -134,17 +145,17 @@ static inline void spinlock_unlock(spinlock_t *lock)
 #define DEADLOCK_PROBE(pname, value) \
 	if ((pname)++ > (value)) { \
 		(pname) = 0; \
-		printf("Deadlock probe %s: exceeded threshold %u\n", \
+		printf("Deadlock probe %s: exceeded threshold %u\n" \
 		    "cpu%u: function=%s, line=%u\n", \
 		    #pname, (value), CPU->id, __func__, __LINE__); \
 	}
 
-#else
+#else /* CONFIG_DEBUG_SPINLOCK */
 
 #define DEADLOCK_PROBE_INIT(pname)
 #define DEADLOCK_PROBE(pname, value)
 
-#endif
+#endif /* CONFIG_DEBUG_SPINLOCK */
 
 #else /* CONFIG_SMP */
 
@@ -159,16 +170,122 @@ static inline void spinlock_unlock(spinlock_t *lock)
 #define SPINLOCK_INITIALIZE_NAME(name, desc_name)
 #define SPINLOCK_STATIC_INITIALIZE_NAME(name, desc_name)
 
+#define ASSERT_SPINLOCK(expr, lock)  ASSERT(expr)
+
 #define spinlock_initialize(lock, name)
 
 #define spinlock_lock(lock)     preemption_disable()
 #define spinlock_trylock(lock)  (preemption_disable(), 1)
 #define spinlock_unlock(lock)   preemption_enable()
+#define spinlock_locked(lock)	1
+#define spinlock_unlocked(lock)	1
 
 #define DEADLOCK_PROBE_INIT(pname)
 #define DEADLOCK_PROBE(pname, value)
 
-#endif
+#endif /* CONFIG_SMP */
+
+typedef struct {
+	SPINLOCK_DECLARE(lock);  /**< Spinlock */
+	bool guard;              /**< Flag whether ipl is valid */
+	ipl_t ipl;               /**< Original interrupt level */
+} irq_spinlock_t;
+
+#define IRQ_SPINLOCK_DECLARE(lock_name)  irq_spinlock_t lock_name
+#define IRQ_SPINLOCK_EXTERN(lock_name)   extern irq_spinlock_t lock_name
+
+#ifdef CONFIG_SMP
+
+#define ASSERT_IRQ_SPINLOCK(expr, irq_lock) \
+	ASSERT_SPINLOCK(expr, &((irq_lock)->lock))
+
+/*
+ * IRQ_SPINLOCK_INITIALIZE and IRQ_SPINLOCK_STATIC_INITIALIZE are to be used
+ * for statically allocated interrupts-disabled spinlocks. They declare (either
+ * as global or static symbol) and initialize the lock.
+ */
+#ifdef CONFIG_DEBUG_SPINLOCK
+
+#define IRQ_SPINLOCK_INITIALIZE_NAME(lock_name, desc_name) \
+	irq_spinlock_t lock_name = { \
+		.lock = { \
+			.name = desc_name, \
+			.val = { 0 } \
+		}, \
+		.guard = false, \
+		.ipl = 0 \
+	}
+
+#define IRQ_SPINLOCK_STATIC_INITIALIZE_NAME(lock_name, desc_name) \
+	static irq_spinlock_t lock_name = { \
+		.lock = { \
+			.name = desc_name, \
+			.val = { 0 } \
+		}, \
+		.guard = false, \
+		.ipl = 0 \
+	}
+
+#else /* CONFIG_DEBUG_SPINLOCK */
+
+#define IRQ_SPINLOCK_INITIALIZE_NAME(lock_name, desc_name) \
+	irq_spinlock_t lock_name = { \
+		.lock = { \
+			.val = { 0 } \
+		}, \
+		.guard = false, \
+		.ipl = 0 \
+	}
+
+#define IRQ_SPINLOCK_STATIC_INITIALIZE_NAME(lock_name, desc_name) \
+	static irq_spinlock_t lock_name = { \
+		.lock = { \
+			.val = { 0 } \
+		}, \
+		.guard = false, \
+		.ipl = 0 \
+	}
+
+#endif /* CONFIG_DEBUG_SPINLOCK */
+
+#else /* CONFIG_SMP */
+
+/*
+ * Since the spinlocks are void on UP systems, we also need
+ * to have a special variant of interrupts-disabled spinlock
+ * macros which take this into account.
+ */
+
+#define ASSERT_IRQ_SPINLOCK(expr, irq_lock) \
+	ASSERT_SPINLOCK(expr, NULL)
+
+#define IRQ_SPINLOCK_INITIALIZE_NAME(lock_name, desc_name) \
+	irq_spinlock_t lock_name = { \
+		.guard = false, \
+		.ipl = 0 \
+	}
+
+#define IRQ_SPINLOCK_STATIC_INITIALIZE_NAME(lock_name, desc_name) \
+	static irq_spinlock_t lock_name = { \
+		.guard = false, \
+		.ipl = 0 \
+	}
+
+#endif /* CONFIG_SMP */
+
+#define IRQ_SPINLOCK_INITIALIZE(lock_name) \
+	IRQ_SPINLOCK_INITIALIZE_NAME(lock_name, #lock_name)
+
+#define IRQ_SPINLOCK_STATIC_INITIALIZE(lock_name) \
+	IRQ_SPINLOCK_STATIC_INITIALIZE_NAME(lock_name, #lock_name)
+
+extern void irq_spinlock_initialize(irq_spinlock_t *, const char *);
+extern void irq_spinlock_lock(irq_spinlock_t *, bool);
+extern void irq_spinlock_unlock(irq_spinlock_t *, bool);
+extern int irq_spinlock_trylock(irq_spinlock_t *);
+extern void irq_spinlock_pass(irq_spinlock_t *, irq_spinlock_t *);
+extern void irq_spinlock_exchange(irq_spinlock_t *, irq_spinlock_t *);
+extern bool irq_spinlock_locked(irq_spinlock_t *);
 
 #endif
 

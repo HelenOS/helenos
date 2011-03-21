@@ -38,18 +38,19 @@
 #include <sysinfo/sysinfo.h>
 #include <synch/waitq.h>
 #include <synch/spinlock.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <ddi/irq.h>
 #include <ddi/ddi.h>
 #include <ipc/event.h>
 #include <ipc/irq.h>
 #include <arch.h>
+#include <panic.h>
 #include <print.h>
 #include <putchar.h>
 #include <atomic.h>
 #include <syscall/copy.h>
 #include <errno.h>
-#include <string.h>
+#include <str.h>
 
 #define KLOG_PAGES    4
 #define KLOG_LENGTH   (KLOG_PAGES * PAGE_SIZE / sizeof(wchar_t))
@@ -60,12 +61,16 @@ static wchar_t klog[KLOG_LENGTH] __attribute__ ((aligned (PAGE_SIZE)));
 
 /** Kernel log initialized */
 static bool klog_inited = false;
+
 /** First kernel log characters */
 static size_t klog_start = 0;
+
 /** Number of valid kernel log characters */
 static size_t klog_len = 0;
+
 /** Number of stored (not printed) kernel log characters */
 static size_t klog_stored = 0;
+
 /** Number of stored kernel log characters for uspace */
 static size_t klog_uspace = 0;
 
@@ -82,8 +87,8 @@ static indev_operations_t stdin_ops = {
 	.poll = NULL
 };
 
-static void stdout_write(outdev_t *dev, wchar_t ch, bool silent);
-static void stdout_redraw(outdev_t *dev);
+static void stdout_write(outdev_t *, wchar_t, bool);
+static void stdout_redraw(outdev_t *);
 
 static outdev_operations_t stdout_ops = {
 	.write = stdout_write,
@@ -154,9 +159,10 @@ void klog_init(void)
 	
 	klog_parea.pbase = (uintptr_t) faddr;
 	klog_parea.frames = SIZE2FRAMES(sizeof(klog));
+	klog_parea.unpriv = false;
 	ddi_parea_register(&klog_parea);
 	
-	sysinfo_set_item_val("klog.faddr", NULL, (unative_t) faddr);
+	sysinfo_set_item_val("klog.faddr", NULL, (sysarg_t) faddr);
 	sysinfo_set_item_val("klog.pages", NULL, KLOG_PAGES);
 	
 	spinlock_lock(&klog_lock);
@@ -172,9 +178,12 @@ void grab_console(void)
 	if ((stdout) && (stdout->op->redraw))
 		stdout->op->redraw(stdout);
 	
-	/* Force the console to print the prompt */
-	if ((stdin) && (prev))
+	if ((stdin) && (prev)) {
+		/*
+		 * Force the console to print the prompt.
+		 */
 		indev_push_character(stdin, '\n');
+	}
 }
 
 void release_console(void)
@@ -184,7 +193,7 @@ void release_console(void)
 }
 
 /** Tell kernel to get keyboard/console access again */
-unative_t sys_debug_enable_console(void)
+sysarg_t sys_debug_enable_console(void)
 {
 #ifdef CONFIG_KCONSOLE
 	grab_console();
@@ -195,7 +204,7 @@ unative_t sys_debug_enable_console(void)
 }
 
 /** Tell kernel to relinquish keyboard/console access */
-unative_t sys_debug_disable_console(void)
+sysarg_t sys_debug_disable_console(void)
 {
 	release_console();
 	return true;
@@ -285,7 +294,19 @@ void putchar(const wchar_t ch)
 	if ((stdout) && (stdout->op->write))
 		stdout->op->write(stdout, ch, silent);
 	else {
-		/* The character is just in the kernel log */
+		/*
+		 * No standard output routine defined yet.
+		 * The character is still stored in the kernel log
+		 * for possible future output.
+		 *
+		 * The early_putchar() function is used to output
+		 * the character for low-level debugging purposes.
+		 * Note that the early_putc() function might be
+		 * a no-op on certain hardware configurations.
+		 *
+		 */
+		early_putchar(ch);
+		
 		if (klog_stored < klog_len)
 			klog_stored++;
 	}
@@ -312,23 +333,23 @@ void putchar(const wchar_t ch)
  * Print to kernel log.
  *
  */
-unative_t sys_klog(int fd, const void *buf, size_t size)
+sysarg_t sys_klog(int fd, const void *buf, size_t size)
 {
 	char *data;
 	int rc;
 	
 	if (size > PAGE_SIZE)
-		return ELIMIT;
+		return (sysarg_t) ELIMIT;
 	
 	if (size > 0) {
 		data = (char *) malloc(size + 1, 0);
 		if (!data)
-			return ENOMEM;
+			return (sysarg_t) ENOMEM;
 		
 		rc = copy_from_uspace(data, buf, size);
 		if (rc) {
 			free(data);
-			return rc;
+			return (sysarg_t) rc;
 		}
 		data[size] = 0;
 		

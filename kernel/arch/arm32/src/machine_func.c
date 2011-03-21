@@ -38,36 +38,55 @@
  */
 
 #include <arch/machine_func.h>
+#include <arch/mach/gta02/gta02.h>
+#include <arch/mach/integratorcp/integratorcp.h>
+#include <arch/mach/testarm/testarm.h>
 
+/** Pointer to machine_ops structure being used. */
+struct arm_machine_ops *machine_ops;
+
+/** Initialize machine_ops pointer. */
+void machine_ops_init(void)
+{
+#if defined(MACHINE_gta02)
+	machine_ops = &gta02_machine_ops;
+#elif defined(MACHINE_testarm)
+	machine_ops = &gxemul_machine_ops;
+#elif defined(MACHINE_integratorcp)
+	machine_ops = &icp_machine_ops;
+#else
+#error Machine type not defined.
+#endif
+}
 
 /** Maps HW devices to the kernel address space using #hw_map. */
 void machine_init(void)
 {
-	(machine_ops.machine_init)();
+	(machine_ops->machine_init)();
 }
 
 
 /** Starts timer. */
 void machine_timer_irq_start(void)
 {
-	(machine_ops.machine_timer_irq_start)();
+	(machine_ops->machine_timer_irq_start)();
 }
 
 
 /** Halts CPU. */
 void machine_cpu_halt(void)
 {
-	(machine_ops.machine_cpu_halt)();
+	(machine_ops->machine_cpu_halt)();
 }
 
-
-/** Returns size of available memory.
+/** Get extents of available memory.
  *
- *  @return Size of available memory.
+ * @param start		Place to store memory start address.
+ * @param size		Place to store memory size.
  */
-uintptr_t machine_get_memory_size(void)
+void machine_get_memory_extents(uintptr_t *start, uintptr_t *size)
 {
-	return (machine_ops.machine_get_memory_size)();
+	(machine_ops->machine_get_memory_extents)(start, size);
 }
 
 /** Interrupt exception handler.
@@ -75,9 +94,9 @@ uintptr_t machine_get_memory_size(void)
  * @param exc_no Interrupt exception number.
  * @param istate Saved processor state.
  */
-void machine_irq_exception(int exc_no, istate_t *istate)
+void machine_irq_exception(unsigned int exc_no, istate_t *istate)
 {
-	(machine_ops.machine_irq_exception)(exc_no, istate);
+	(machine_ops->machine_irq_exception)(exc_no, istate);
 }
 
 
@@ -86,7 +105,7 @@ void machine_irq_exception(int exc_no, istate_t *istate)
  */
 void machine_frame_init(void)
 {
-	(machine_ops.machine_frame_init)();
+	(machine_ops->machine_frame_init)();
 }
 
 /*
@@ -94,7 +113,7 @@ void machine_frame_init(void)
  */
 void machine_output_init(void)
 {
-	(machine_ops.machine_output_init)();
+	(machine_ops->machine_output_init)();
 }
 
 /*
@@ -102,14 +121,13 @@ void machine_output_init(void)
  */
 void machine_input_init(void)
 {
-	(machine_ops.machine_input_init)();
+	(machine_ops->machine_input_init)();
 }
 
-/*
- * Generic function to use, if sepcific function doesn't define any of the above functions.
- */
-void machine_genfunc()
+/** Get IRQ number range used by machine. */
+size_t machine_get_irq_count(void)
 {
+	return (machine_ops->machine_get_irq_count)();
 }
 
 /** @}

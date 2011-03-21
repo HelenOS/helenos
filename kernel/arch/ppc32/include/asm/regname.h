@@ -216,19 +216,6 @@
 #define ptelo    982
 #define hid0     1008
 
-/* MSR bits */
-#define msr_dr  (1 << 4)
-#define msr_ir  (1 << 5)
-#define msr_pr  (1 << 14)
-#define msr_ee  (1 << 15)
-
-/* HID0 bits */
-#define hid0_sten  (1 << 24)
-#define hid0_ice   (1 << 15)
-#define hid0_dce   (1 << 14)
-#define hid0_icfi  (1 << 11)
-#define hid0_dci   (1 << 10)
-
 #endif
 
 /** @}

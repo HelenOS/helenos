@@ -1,6 +1,6 @@
 #
 # Copyright (c) 2005 Martin Decky
-# Copyright (c) 2008 Jiri Svoboda
+# Copyright (c) 2007 Jakub Jermar
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -27,57 +27,33 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Setup toolchain
-#
+USPACE_PREFIX = ../..
+ROOT_PATH = $(USPACE_PREFIX)/..
 
-LIBC_PREFIX = ../../lib/libc
-SOFTINT_PREFIX = ../../lib/softint
+COMMON_MAKEFILE = $(ROOT_PATH)/Makefile.common
+CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
 
-include $(LIBC_PREFIX)/Makefile.toolchain
-include arch/$(UARCH)/Makefile.inc
+-include $(COMMON_MAKEFILE)
+-include $(CONFIG_MAKEFILE)
+-include arch/$(UARCH)/Makefile.inc
 
-CFLAGS += -Iinclude
+LINKER_SCRIPT = arch/$(UARCH)/_link.ld
+EXTRA_CLEAN = $(LINKER_SCRIPT)
 
-LIBS = $(LIBC_PREFIX)/libc.a $(SOFTINT_PREFIX)/libsoftint.a
+EXTRA_CFLAGS = -Iinclude
 
-## Sources
-#
+BINARY = loader
 
-OUTPUT = loader
 GENERIC_SOURCES = \
 	main.c \
 	elf_load.c \
 	interp.s
 
-SOURCES := $(GENERIC_SOURCES) $(ARCH_SOURCES)
-OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
+SOURCES = \
+	$(GENERIC_SOURCES) \
+	$(ARCH_SOURCES)
 
-.PHONY: all clean depend disasm
+include $(USPACE_PREFIX)/Makefile.common
 
-all: $(OUTPUT) disasm
-
--include Makefile.depend
-
-clean:
-	-rm -f $(OUTPUT) $(OBJECTS) $(OUTPUT).map $(OUTPUT).disasm arch/$(UARCH)/_link.ld Makefile.depend
-
-depend:
-	$(CC) $(DEFS) $(CFLAGS) -M $(SOURCES) > Makefile.depend
-
-$(OUTPUT): $(OBJECTS) $(LIBS) arch/$(UARCH)/_link.ld
-	$(LD) -T arch/$(UARCH)/_link.ld $(LFLAGS) $(OBJECTS) $(LIBS) -o $@ -Map $(OUTPUT).map
-
-disasm:
-	$(OBJDUMP) -d $(OUTPUT) >$(OUTPUT).disasm
-
-arch/$(UARCH)/_link.ld: arch/$(UARCH)/_link.ld.in
-	$(CC) $(DEFS) $(CFLAGS) -DLIBC_PREFIX=$(LIBC_PREFIX) -E -x c $< | grep -v "^\#" > $@
-
-%.o: %.S
-	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__ -c $< -o $@
-
-%.o: %.s
-	$(AS) $(AFLAGS) $< -o $@
-
-%.o: %.c
-	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@
+$(LINKER_SCRIPT): $(LINKER_SCRIPT).in
+	$(GCC) $(DEFS) $(CFLAGS) -DLIBC_PREFIX=$(LIBC_PREFIX) -E -x c $< | grep -v "^\#" > $@

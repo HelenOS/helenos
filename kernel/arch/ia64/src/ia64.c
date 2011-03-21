@@ -39,12 +39,14 @@
 #include <arch/barrier.h>
 #include <arch/asm.h>
 #include <arch/register.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/context.h>
 #include <arch/stack.h>
 #include <arch/mm/page.h>
+#include <interrupt.h>
 #include <mm/as.h>
 #include <config.h>
+#include <macros.h>
 #include <userspace.h>
 #include <console/console.h>
 #include <proc/uarg.h>
@@ -64,7 +66,7 @@
 #include <panic.h>
 #include <print.h>
 #include <sysinfo/sysinfo.h>
-#include <string.h>
+#include <str.h>
 
 /* NS16550 as a COM 1 */
 #define NS16550_IRQ  (4 + LEGACY_INTERRUPT_BASE)
@@ -76,12 +78,8 @@ static uint64_t iosapic_base = 0xfec00000;
 /** Performs ia64-specific initialization before main_bsp() is called. */
 void arch_pre_main(void)
 {
-	/* Setup usermode init tasks. */
-
-	unsigned int i;
-	
-	init.cnt = bootinfo->taskmap.count;
-	
+	init.cnt = min3(bootinfo->taskmap.cnt, TASKMAP_MAX_RECORDS, CONFIG_INIT_TASKS);
+	size_t i;
 	for (i = 0; i < init.cnt; i++) {
 		init.tasks[i].addr =
 		    ((unsigned long) bootinfo->taskmap.tasks[i].addr) |
@@ -105,7 +103,7 @@ void arch_pre_mm_init(void)
 
 static void iosapic_init(void)
 {
-	uint64_t IOSAPIC = PA2KA((unative_t)(iosapic_base)) | FW_OFFSET;
+	uint64_t IOSAPIC = PA2KA((sysarg_t)(iosapic_base)) | FW_OFFSET;
 	int i;
 	
 	int myid, myeid;
@@ -148,6 +146,18 @@ void arch_pre_smp_init(void)
 
 void arch_post_smp_init(void)
 {
+	static const char *platform;
+
+	/* Set platform name. */
+#ifdef MACHINE_ski
+	platform = "pc";
+#endif
+#ifdef MACHINE_i460GX
+	platform = "i460GX";
+#endif
+	sysinfo_set_item_data("platform", NULL, (void *) platform,
+	    str_size(platform));
+
 #ifdef MACHINE_ski
 	ski_instance_t *ski_instance = skiin_init();
 	if (ski_instance) {
@@ -202,15 +212,17 @@ void arch_post_smp_init(void)
 		}
 	}
 	
-	sysinfo_set_item_val("kbd", NULL, true);
-	sysinfo_set_item_val("kbd.inr", NULL, IRQ_KBD);
-	sysinfo_set_item_val("kbd.type", NULL, KBD_LEGACY);
-	sysinfo_set_item_val("kbd.address.physical", NULL,
+	sysinfo_set_item_val("i8042", NULL, true);
+	sysinfo_set_item_val("i8042.inr_a", NULL, IRQ_KBD);
+	sysinfo_set_item_val("i8042.inr_b", NULL, IRQ_MOUSE);
+	sysinfo_set_item_val("i8042.address.physical", NULL,
 	    (uintptr_t) I8042_BASE);
-	sysinfo_set_item_val("kbd.address.kernel", NULL,
+	sysinfo_set_item_val("i8042.address.kernel", NULL,
 	    (uintptr_t) I8042_BASE);
 #endif
-	
+
+	sysinfo_set_item_val("netif.ne2000.inr", NULL, IRQ_NE2000);
+
 	sysinfo_set_item_val("ia64_iospace", NULL, true);
 	sysinfo_set_item_val("ia64_iospace.address", NULL, true);
 	sysinfo_set_item_val("ia64_iospace.address.virtual", NULL, IO_OFFSET);
@@ -250,7 +262,7 @@ void userspace(uspace_arg_t *kernel_uarg)
  *
  * We use r13 (a.k.a. tp) for this purpose.
  */
-unative_t sys_tls_set(unative_t addr)
+sysarg_t sys_tls_set(sysarg_t addr)
 {
 	return 0;
 }
@@ -273,10 +285,15 @@ void arch_reboot(void)
  */
 void *arch_construct_function(fncptr_t *fptr, void *addr, void *caller)
 {
-	fptr->fnc = (unative_t) addr;
-	fptr->gp = ((unative_t *) caller)[1];
+	fptr->fnc = (sysarg_t) addr;
+	fptr->gp = ((sysarg_t *) caller)[1];
 	
 	return (void *) fptr;
+}
+
+void irq_initialize_arch(irq_t *irq)
+{
+	(void) irq;
 }
 
 /** @}

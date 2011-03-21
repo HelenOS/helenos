@@ -4,14 +4,18 @@
 #define MBINFO_BIT_CMDLINE      2
 #define MBINFO_OFFSET_CMDLINE   16
 
-	# copy real mode VESA initialization code
+	/* Copy real mode VESA initialization code */
+	
+	pm_status $status_vesa_copy
 	
 	mov $vesa_init, %esi
 	mov $VESA_INIT_SEGMENT << 4, %edi
 	mov $e_vesa_init - vesa_init, %ecx
 	rep movsb
 	
-	# check for GRUB command line
+	/* Check for GRUB command line */
+	
+	pm_status $status_grub_cmdline
 	
 	mov grub_eax, %eax
 	cmp $MULTIBOOT_LOADER_MAGIC, %eax
@@ -22,7 +26,7 @@
 	bt $MBINFO_BIT_CMDLINE, %eax
 	jnc no_cmdline
 	
-	# skip the kernel path in command line
+	/* Skip the kernel path in command line */
 	
 	mov MBINFO_OFFSET_CMDLINE(%ebx), %esi
 	
@@ -51,7 +55,7 @@
 		jmp space_loop
 	space_loop_done:
 	
-	# copy at most 23 characters from command line
+	/* Copy at most 23 characters from command line */
 	
 	mov $VESA_INIT_SEGMENT << 4, %edi
 	add $default_mode - vesa_init, %edi
@@ -67,20 +71,22 @@
 		loop cmd_loop
 	cmd_loop_done:
 	
-	# zero termination
+	/* Zero termination */
 	
 	xor %eax, %eax
 	stosb
 	
 	no_cmdline:
 	
-	# jump to the real mode
+	/* Jump to the real mode */
+	
+	pm_status $status_vesa_real
 	
 	mov $VESA_INIT_SEGMENT << 4, %edi
 	jmpl *%edi
 	
 	vesa_meeting_point:
-		# returned back to protected mode
+		/* Returned back to protected mode */
 		
 		mov %ax, KA2PA(vesa_scanline)
 		shr $16, %eax

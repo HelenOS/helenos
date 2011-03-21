@@ -1,0 +1,5 @@
+(
+	?ipc_m_data_write ;
+	[fnc.write_char]* ;
+	[fnc.gcons_notify_char]
+)

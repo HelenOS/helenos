@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup amd64	
+/** @addtogroup amd64
  * @{
  */
 /** @file
@@ -37,13 +37,20 @@
 
 #ifdef KERNEL
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 /* According to ABI the stack MUST be aligned on 
  * 16-byte boundary. If it is not, the va_arg calling will
  * panic sooner or later
  */
-#define SP_DELTA     16
+#define SP_DELTA  16
+
+#define context_set(c, _pc, stack, size) \
+	do { \
+		(c)->pc = (uintptr_t) (_pc); \
+		(c)->sp = ((uintptr_t) (stack)) + (size) - SP_DELTA; \
+		(c)->rbp = 0; \
+	} while (0)
 
 #endif /* KERNEL */
 
@@ -51,18 +58,18 @@
  * during function call
  */
 typedef struct {
-    uintptr_t sp;
-    uintptr_t pc;
-    
-    uint64_t rbx;
-    uint64_t rbp;
-
-    uint64_t r12;
-    uint64_t r13;
-    uint64_t r14;
-    uint64_t r15;
-
-    ipl_t ipl;
+	uintptr_t sp;
+	uintptr_t pc;
+	
+	uint64_t rbx;
+	uint64_t rbp;
+	
+	uint64_t r12;
+	uint64_t r13;
+	uint64_t r14;
+	uint64_t r15;
+	
+	ipl_t ipl;
 } __attribute__ ((packed)) context_t;
 
 #endif

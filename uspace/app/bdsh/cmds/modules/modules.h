@@ -19,6 +19,7 @@
 
 #include "help/entry.h"
 #include "mkdir/entry.h"
+#include "mkfile/entry.h"
 #include "rm/entry.h"
 #include "bdd/entry.h"
 #include "cat/entry.h"
@@ -29,6 +30,7 @@
 #include "cp/entry.h"
 #include "mv/entry.h"
 #include "mount/entry.h"
+#include "unmount/entry.h"
 #include "kcon/entry.h"
 
 /* Each .def function fills the module_t struct with the individual name, entry
@@ -38,6 +40,7 @@
 module_t modules[] = {
 #include "help/help_def.h"
 #include "mkdir/mkdir_def.h"
+#include "mkfile/mkfile_def.h"
 #include "rm/rm_def.h"
 #include "bdd/bdd_def.h"
 #include "cat/cat_def.h"
@@ -48,6 +51,7 @@ module_t modules[] = {
 #include "cp/cp_def.h"
 #include "mv/mv_def.h"
 #include "mount/mount_def.h"
+#include "unmount/unmount_def.h"
 #include "kcon/kcon_def.h"
 
 	{NULL, NULL, NULL, NULL}

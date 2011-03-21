@@ -35,15 +35,15 @@
 #ifndef KERN_CLOCK_H_
 #define KERN_CLOCK_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 
-#define HZ		100
+#define HZ  100
 
 /** Uptime structure */
 typedef struct {
-	unative_t seconds1;
-	unative_t useconds;
-	unative_t seconds2;
+	sysarg_t seconds1;
+	sysarg_t useconds;
+	sysarg_t seconds2;
 } uptime_t;
 
 extern uptime_t *uptime;

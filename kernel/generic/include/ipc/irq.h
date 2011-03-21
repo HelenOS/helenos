@@ -36,14 +36,14 @@
 #define KERN_IPC_IRQ_H_
 
 /** Maximum length of IPC IRQ program */
-#define IRQ_MAX_PROG_SIZE	20
+#define IRQ_MAX_PROG_SIZE  20
 
 #include <ipc/ipc.h>
 #include <ddi/irq.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <adt/list.h>
 
-extern int ipc_irq_register(answerbox_t *, inr_t, devno_t, unative_t,
+extern int ipc_irq_register(answerbox_t *, inr_t, devno_t, sysarg_t,
     irq_code_t *);
 
 extern irq_ownership_t ipc_irq_top_half_claim(irq_t *);
@@ -57,20 +57,25 @@ extern void ipc_irq_cleanup(answerbox_t *);
  * ipc_irq_send_msg_m(), where m is the number of payload arguments.
  */
 #define ipc_irq_send_msg_0(irq) \
-    ipc_irq_send_msg((irq), 0, 0, 0, 0, 0)
-#define ipc_irq_send_msg_1(irq, a1) \
-    ipc_irq_send_msg((irq), (a1), 0, 0, 0, 0)
-#define ipc_irq_send_msg_2(irq, a1, a2) \
-    ipc_irq_send_msg((irq), (a1), (a2), 0, 0, 0)
-#define ipc_irq_send_msg_3(irq, a1, a2, a3) \
-    ipc_irq_send_msg((irq), (a1), (a2), (a3), 0, 0)
-#define ipc_irq_send_msg_4(irq, a1, a2, a3, a4) \
-    ipc_irq_send_msg((irq), (a1), (a2), (a3), (a4), 0)
-#define ipc_irq_send_msg_5(irq, a1, a2, a3, a4, a5) \
-    ipc_irq_send_msg((irq), (a1), (a2), (a3), (a4), (a5))
+	ipc_irq_send_msg((irq), 0, 0, 0, 0, 0)
 
-extern void ipc_irq_send_msg(irq_t *, unative_t, unative_t, unative_t, unative_t,
-    unative_t);
+#define ipc_irq_send_msg_1(irq, a1) \
+	ipc_irq_send_msg((irq), (a1), 0, 0, 0, 0)
+
+#define ipc_irq_send_msg_2(irq, a1, a2) \
+	ipc_irq_send_msg((irq), (a1), (a2), 0, 0, 0)
+
+#define ipc_irq_send_msg_3(irq, a1, a2, a3) \
+	ipc_irq_send_msg((irq), (a1), (a2), (a3), 0, 0)
+
+#define ipc_irq_send_msg_4(irq, a1, a2, a3, a4) \
+	ipc_irq_send_msg((irq), (a1), (a2), (a3), (a4), 0)
+
+#define ipc_irq_send_msg_5(irq, a1, a2, a3, a4, a5) \
+	ipc_irq_send_msg((irq), (a1), (a2), (a3), (a4), (a5))
+
+extern void ipc_irq_send_msg(irq_t *, sysarg_t, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t);
 
 #endif
 

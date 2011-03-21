@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic 
+/** @addtogroup generic
  * @{
  */
 /** @file
@@ -34,7 +34,7 @@
 
 /**
  * @file
- * @brief	Capabilities definitions.
+ * @brief Capabilities definitions.
  *
  * Capabilities represent virtual rights that entitle their
  * holder to perform certain security sensitive tasks.
@@ -47,41 +47,46 @@
 #ifndef __CAP_H__
 #define __CAP_H__
 
-#include <syscall/sysarg64.h>
-#include <arch/types.h>
+#include <typedefs.h>
 
 /**
  * CAP_CAP allows its holder to grant/revoke arbitrary
  * privilege to/from other tasks.
  */
-#define CAP_CAP			(1<<0)
+#define CAP_CAP  (1 << 0)
 
 /**
  * CAP_MEM_MANAGER allows its holder to map physical memory
  * to other tasks.
  */
-#define CAP_MEM_MANAGER		(1<<1)
+#define CAP_MEM_MANAGER  (1 << 1)
 
 /**
  * CAP_IO_MANAGER allows its holder to access I/O space
  * to other tasks.
  */
-#define CAP_IO_MANAGER		(1<<2)
-
-/**
- * CAP_PREEMPT_CONTROL allows its holder to disable/enable preemption.
- */
-#define CAP_PREEMPT_CONTROL	(1<<3)
+#define CAP_IO_MANAGER  (1 << 2)
 
 /**
  * CAP_IRQ_REG entitles its holder to register IRQ handlers.
  */
-#define CAP_IRQ_REG		(1<<4) 
+#define CAP_IRQ_REG  (1 << 3)
 
 typedef uint32_t cap_t;
 
-extern unative_t sys_cap_grant(sysarg64_t *uspace_taskid_arg, cap_t caps);
-extern unative_t sys_cap_revoke(sysarg64_t *uspace_taskid_arg, cap_t caps);
+#ifdef __32_BITS__
+
+extern sysarg_t sys_cap_grant(sysarg64_t *, cap_t);
+extern sysarg_t sys_cap_revoke(sysarg64_t *, cap_t);
+
+#endif  /* __32_BITS__ */
+
+#ifdef __64_BITS__
+
+extern sysarg_t sys_cap_grant(sysarg_t, cap_t);
+extern sysarg_t sys_cap_revoke(sysarg_t, cap_t);
+
+#endif  /* __64_BITS__ */
 
 #endif
 

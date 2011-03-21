@@ -1,0 +1,39 @@
+SECTIONS {
+	.text : {
+		ktext_start = .;
+		*(.text);
+		ktext_end = .;
+	}
+	.data : {
+		kdata_start = .;
+		*(.data);                       /* initialized data */
+		hardcoded_ktext_size = .;
+		LONG(ktext_end - ktext_start);
+		hardcoded_kdata_size = .;
+		LONG(kdata_end - kdata_start);
+		hardcoded_load_address = .;
+		LONG(hardcoded_load_address);
+		*(.bss);                        /* uninitialized static variables */
+		*(COMMON);                      /* global variables */
+		
+		*(.rodata*);
+		*(.sdata);
+		*(.reginfo);
+		. = ALIGN(8);
+		symbol_table = .;
+		*(symtab.*);
+	}
+	.sbss : {
+		*(.sbss);
+		*(.scommon);
+	}
+	
+	kdata_end = .;
+	
+	/DISCARD/ : {
+		*(.mdebug*);
+		*(.pdr);
+		*(.comment);
+		*(.note);
+	}
+}

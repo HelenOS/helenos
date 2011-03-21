@@ -69,9 +69,6 @@ static size_t asids_allocated = 0;
 
 /** Allocate free address space identifier.
  *
- * Interrupts must be disabled and inactive_as_with_asid_lock must be held
- * prior to this call
- *
  * @return New ASID.
  */
 asid_t asid_get(void)
@@ -79,6 +76,9 @@ asid_t asid_get(void)
 	asid_t asid;
 	link_t *tmp;
 	as_t *as;
+
+	ASSERT(interrupts_disabled());
+	ASSERT(spinlock_locked(&asidlock));
 
 	/*
 	 * Check if there is an unallocated ASID.
@@ -125,9 +125,9 @@ asid_t asid_get(void)
 		/*
 		 * Get the system rid of the stolen ASID.
 		 */
-		tlb_shootdown_start(TLB_INVL_ASID, asid, 0, 0);
+		ipl_t ipl = tlb_shootdown_start(TLB_INVL_ASID, asid, 0, 0);
 		tlb_invalidate_asid(asid);
-		tlb_shootdown_finalize();
+		tlb_shootdown_finalize(ipl);
 	} else {
 
 		/*
@@ -141,9 +141,9 @@ asid_t asid_get(void)
 		/*
 		 * Purge the allocated ASID from TLBs.
 		 */
-		tlb_shootdown_start(TLB_INVL_ASID, asid, 0, 0);
+		ipl_t ipl = tlb_shootdown_start(TLB_INVL_ASID, asid, 0, 0);
 		tlb_invalidate_asid(asid);
-		tlb_shootdown_finalize();
+		tlb_shootdown_finalize(ipl);
 	}
 	
 	return asid;

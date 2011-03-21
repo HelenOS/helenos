@@ -26,14 +26,10 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Toolchain configuration
-#
-
 BFD_NAME = elf32-i386
 BFD_ARCH = i386
 BFD = binary
-TARGET = i686-pc-linux-gnu
-TOOLCHAIN_DIR = $(CROSS_PREFIX)/i686
+CLANG_ARCH = i386
 
 BITS = 32
 ENDIANESS = LE
@@ -42,6 +38,7 @@ CMN1 = -m32
 GCC_CFLAGS += $(CMN1)
 ICC_CFLAGS += $(CMN1)
 SUNCC_CFLAGS += $(CMN1)
+CLANG_CFLAGS += $(CMN1)
 
 ## Accepted CPUs
 #
@@ -50,18 +47,22 @@ ifeq ($(PROCESSOR),athlon_xp)
 	CMN2 = -march=athlon-xp
 	SUNCC_CFLAGS += -xarch=ssea
 endif
+
 ifeq ($(PROCESSOR),athlon_mp)
 	CMN2 = -march=athlon-mp
 	SUNCC_CFLAGS += xarch=ssea
 endif
+
 ifeq ($(PROCESSOR),pentium3)
 	CMN2 = -march=pentium3
 	SUNCC_CFLAGS += -xarch=sse
 endif
+
 ifeq ($(PROCESSOR),pentium4)
 	CMN2 = -march=pentium4
 	SUNCC_CFLAGS += -xarch=sse2
 endif
+
 ifeq ($(PROCESSOR),core)
 	CMN2 = -march=prescott
 	SUNCC_CFLAGS += -xarch=sse3
@@ -70,10 +71,12 @@ endif
 FPU_NO_CFLAGS = -mno-mmx -mno-sse -mno-sse2 -mno-sse3 -mno-3dnow
 GCC_CFLAGS += $(CMN2)
 ICC_CFLAGS += $(CMN2)
+CLANG_CFLAGS += $(CMN2)
 
 ARCH_SOURCES = \
 	arch/$(KARCH)/src/context.S \
-	arch/$(KARCH)/src/debug/panic.s \
+	arch/$(KARCH)/src/debug/stacktrace.c \
+	arch/$(KARCH)/src/debug/stacktrace_asm.S \
 	arch/$(KARCH)/src/delay.s \
 	arch/$(KARCH)/src/asm.S \
 	arch/$(KARCH)/src/proc/scheduler.c \

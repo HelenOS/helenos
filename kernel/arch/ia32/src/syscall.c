@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia32	
+/** @addtogroup ia32
  * @{
  */
 /** @file
@@ -35,7 +35,7 @@
 #include <arch/syscall.h>
 #include <arch/cpu.h>
 #include <arch/asm.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/pm.h>
 
 /** Enable & setup support for SYSENTER/SYSEXIT */
@@ -44,7 +44,7 @@ void syscall_setup_cpu(void)
 	extern void sysenter_handler(void);
 
 	/* set kernel mode CS selector */
-	write_msr(IA32_MSR_SYSENTER_CS, gdtselector(KTEXT_DES));
+	write_msr(IA32_MSR_SYSENTER_CS, GDT_SELECTOR(KTEXT_DES));
 	/* set kernel mode entry point */
 	write_msr(IA32_MSR_SYSENTER_EIP, (uint32_t) sysenter_handler);
 }

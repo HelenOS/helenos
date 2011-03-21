@@ -35,6 +35,8 @@
 #ifndef KERN_ia32_BARRIER_H_
 #define KERN_ia32_BARRIER_H_
 
+#include <trace.h>
+
 /*
  * NOTE:
  * No barriers for critical section (i.e. spinlock) on IA-32 are needed:
@@ -49,7 +51,7 @@
 #define CS_ENTER_BARRIER()  asm volatile ("" ::: "memory")
 #define CS_LEAVE_BARRIER()  asm volatile ("" ::: "memory")
 
-static inline void cpuid_serialization(void)
+NO_TRACE static inline void cpuid_serialization(void)
 {
 #ifndef __IN_SHARED_LIBC__
 	asm volatile (

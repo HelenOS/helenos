@@ -45,12 +45,12 @@
 #include <console/kconsole.h>
 #include <print.h>
 #include <panic.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <adt/list.h>
 #include <arch.h>
 #include <config.h>
 #include <func.h>
-#include <string.h>
+#include <str.h>
 #include <macros.h>
 #include <debug.h>
 #include <cpu.h>
@@ -65,6 +65,7 @@
 #include <ipc/ipc.h>
 #include <ipc/irq.h>
 #include <ipc/event.h>
+#include <sysinfo/sysinfo.h>
 #include <symtab.h>
 #include <errno.h>
 
@@ -76,27 +77,30 @@
 static int cmd_help(cmd_arg_t *argv);
 static cmd_info_t help_info = {
 	.name = "help",
-	.description = "List of supported commands.",
+	.description = "List supported commands.",
 	.func = cmd_help,
 	.argc = 0
 };
 
+/* Data and methods for 'reboot' command. */
 static int cmd_reboot(cmd_arg_t *argv);
 static cmd_info_t reboot_info = {
 	.name = "reboot",
-	.description = "Reboot.",
+	.description = "Reboot system.",
 	.func = cmd_reboot,
 	.argc = 0
 };
 
+/* Data and methods for 'uptime' command. */
 static int cmd_uptime(cmd_arg_t *argv);
 static cmd_info_t uptime_info = {
 	.name = "uptime",
-	.description = "Print uptime information.",
+	.description = "Show system uptime.",
 	.func = cmd_uptime,
 	.argc = 0
 };
 
+/* Data and methods for 'continue' command. */
 static int cmd_continue(cmd_arg_t *argv);
 static cmd_info_t continue_info = {
 	.name = "continue",
@@ -106,31 +110,26 @@ static cmd_info_t continue_info = {
 };
 
 #ifdef CONFIG_TEST
-static int cmd_tests(cmd_arg_t *argv);
-static cmd_info_t tests_info = {
-	.name = "tests",
-	.description = "Print available kernel tests.",
-	.func = cmd_tests,
-	.argc = 0
-};
 
+/* Data and methods for 'test' command. */
 static char test_buf[MAX_CMDLINE + 1];
 static int cmd_test(cmd_arg_t *argv);
 static cmd_arg_t test_argv[] = {
 	{
-		.type = ARG_TYPE_STRING,
+		.type = ARG_TYPE_STRING_OPTIONAL,
 		.buffer = test_buf,
 		.len = sizeof(test_buf)
 	}
 };
 static cmd_info_t test_info = {
 	.name = "test",
-	.description = "Run kernel test.",
+	.description = "<test> List kernel tests or run a test.",
 	.func = cmd_test,
 	.argc = 1,
 	.argv = test_argv
 };
 
+/* Data and methods for 'bench' command. */
 static int cmd_bench(cmd_arg_t *argv);
 static cmd_arg_t bench_argv[] = {
 	{
@@ -144,17 +143,18 @@ static cmd_arg_t bench_argv[] = {
 };
 static cmd_info_t bench_info = {
 	.name = "bench",
-	.description = "Run kernel test as benchmark.",
+	.description = "<test> <count> Run kernel test as benchmark.",
 	.func = cmd_bench,
 	.argc = 2,
 	.argv = bench_argv
 };
-#endif
+
+#endif /* CONFIG_TEST */
 
 /* Data and methods for 'description' command. */
 static int cmd_desc(cmd_arg_t *argv);
 static void desc_help(void);
-static char desc_buf[MAX_CMDLINE+1];
+static char desc_buf[MAX_CMDLINE + 1];
 static cmd_arg_t desc_argv = {
 	.type = ARG_TYPE_STRING,
 	.buffer = desc_buf,
@@ -162,7 +162,7 @@ static cmd_arg_t desc_argv = {
 };
 static cmd_info_t desc_info = {
 	.name = "describe",
-	.description = "Describe specified command.",
+	.description = "<command> Describe specified command.",
 	.help = desc_help,
 	.func = cmd_desc,
 	.argc = 1,
@@ -171,7 +171,7 @@ static cmd_info_t desc_info = {
 
 /* Data and methods for 'symaddr' command. */
 static int cmd_symaddr(cmd_arg_t *argv);
-static char symaddr_buf[MAX_CMDLINE+1];
+static char symaddr_buf[MAX_CMDLINE + 1];
 static cmd_arg_t symaddr_argv = {
 	.type = ARG_TYPE_STRING,
 	.buffer = symaddr_buf,
@@ -179,13 +179,14 @@ static cmd_arg_t symaddr_argv = {
 };
 static cmd_info_t symaddr_info = {
 	.name = "symaddr",
-	.description = "Return symbol address.",
+	.description = "<symbol> Return symbol address.",
 	.func = cmd_symaddr,
 	.argc = 1,
 	.argv = &symaddr_argv
 };
 
-static char set_buf[MAX_CMDLINE+1];
+/* Data and methods for 'set4' command. */
+static char set_buf[MAX_CMDLINE + 1];
 static int cmd_set4(cmd_arg_t *argv);
 static cmd_arg_t set4_argv[] = {
 	{
@@ -199,13 +200,13 @@ static cmd_arg_t set4_argv[] = {
 };
 static cmd_info_t set4_info = {
 	.name = "set4",
-	.description = "set <dest_addr> <value> - 4byte version",
+	.description = "<addr> <value> Set 4B memory location to a value.",
 	.func = cmd_set4,
 	.argc = 2,
 	.argv = set4_argv
 };
 
-/* Data and methods for 'call0' command. */
+/* Data and methods for 'call0' and 'mcall0' command. */
 static char call0_buf[MAX_CMDLINE + 1];
 static char carg1_buf[MAX_CMDLINE + 1];
 static char carg2_buf[MAX_CMDLINE + 1];
@@ -219,7 +220,7 @@ static cmd_arg_t call0_argv = {
 };
 static cmd_info_t call0_info = {
 	.name = "call0",
-	.description = "call0 <function> -> call function().",
+	.description = "<function> Call function().",
 	.func = cmd_call0,
 	.argc = 1,
 	.argv = &call0_argv
@@ -234,7 +235,7 @@ static cmd_arg_t mcall0_argv = {
 };
 static cmd_info_t mcall0_info = {
 	.name = "mcall0",
-	.description = "mcall0 <function> -> call function() on each CPU.",
+	.description = "<function> Call function() on each CPU.",
 	.func = cmd_mcall0,
 	.argc = 1,
 	.argv = &mcall0_argv
@@ -256,7 +257,7 @@ static cmd_arg_t call1_argv[] = {
 };
 static cmd_info_t call1_info = {
 	.name = "call1",
-	.description = "call1 <function> <arg1> -> call function(arg1).",
+	.description = "<function> <arg1> Call function(arg1).",
 	.func = cmd_call1,
 	.argc = 2,
 	.argv = call1_argv
@@ -283,7 +284,7 @@ static cmd_arg_t call2_argv[] = {
 };
 static cmd_info_t call2_info = {
 	.name = "call2",
-	.description = "call2 <function> <arg1> <arg2> -> call function(arg1,arg2).",
+	.description = "<function> <arg1> <arg2> Call function(arg1, arg2).",
 	.func = cmd_call2,
 	.argc = 3,
 	.argv = call2_argv
@@ -316,7 +317,7 @@ static cmd_arg_t call3_argv[] = {
 };
 static cmd_info_t call3_info = {
 	.name = "call3",
-	.description = "call3 <function> <arg1> <arg2> <arg3> -> call function(arg1,arg2,arg3).",
+	.description = "<function> <arg1> <arg2> <arg3> Call function(arg1, arg2, arg3).",
 	.func = cmd_call3,
 	.argc = 4,
 	.argv = call3_argv
@@ -346,34 +347,64 @@ cmd_info_t physmem_info = {
 static int cmd_tlb(cmd_arg_t *argv);
 cmd_info_t tlb_info = {
 	.name = "tlb",
-	.description = "Print TLB of current processor.",
+	.description = "Print TLB of the current CPU.",
 	.help = NULL,
 	.func = cmd_tlb,
 	.argc = 0,
 	.argv = NULL
 };
 
+static char flag_buf[MAX_CMDLINE + 1];
+
 static int cmd_threads(cmd_arg_t *argv);
+static cmd_arg_t threads_argv = {
+	.type = ARG_TYPE_STRING_OPTIONAL,
+	.buffer = flag_buf,
+	.len = sizeof(flag_buf)
+};
 static cmd_info_t threads_info = {
 	.name = "threads",
-	.description = "List all threads.",
+	.description = "List all threads (use -a for additional information).",
 	.func = cmd_threads,
-	.argc = 0
+	.argc = 1,
+	.argv = &threads_argv
 };
 
 static int cmd_tasks(cmd_arg_t *argv);
+static cmd_arg_t tasks_argv = {
+	.type = ARG_TYPE_STRING_OPTIONAL,
+	.buffer = flag_buf,
+	.len = sizeof(flag_buf)
+};
 static cmd_info_t tasks_info = {
 	.name = "tasks",
-	.description = "List all tasks.",
+	.description = "List all tasks (use -a for additional information).",
 	.func = cmd_tasks,
-	.argc = 0
+	.argc = 1,
+	.argv = &tasks_argv
 };
 
+#ifdef CONFIG_UDEBUG
+
+/* Data and methods for 'btrace' command */
+static int cmd_btrace(cmd_arg_t *argv);
+static cmd_arg_t btrace_argv = {
+	.type = ARG_TYPE_INT,
+};
+static cmd_info_t btrace_info = {
+	.name = "btrace",
+	.description = "<threadid> Show thread stack trace.",
+	.func = cmd_btrace,
+	.argc = 1,
+	.argv = &btrace_argv
+};
+
+#endif /* CONFIG_UDEBUG */
 
 static int cmd_sched(cmd_arg_t *argv);
 static cmd_info_t sched_info = {
 	.name = "scheduler",
-	.description = "List all scheduler information.",
+	.description = "Show scheduler information.",
 	.func = cmd_sched,
 	.argc = 0
 };
@@ -386,26 +417,21 @@ static cmd_info_t slabs_info = {
 	.argc = 0
 };
 
+static int cmd_sysinfo(cmd_arg_t *argv);
+static cmd_info_t sysinfo_info = {
+	.name = "sysinfo",
+	.description = "Dump sysinfo.",
+	.func = cmd_sysinfo,
+	.argc = 0
+};
+
 /* Data and methods for 'zones' command */
 static int cmd_zones(cmd_arg_t *argv);
 static cmd_info_t zones_info = {
 	.name = "zones",
-	.description = "List of memory zones.",
+	.description = "List memory zones.",
 	.func = cmd_zones,
 	.argc = 0
-};
-
-/* Data and methods for 'ipc' command */
-static int cmd_ipc(cmd_arg_t *argv);
-static cmd_arg_t ipc_argv = {
-	.type = ARG_TYPE_INT,
-};
-static cmd_info_t ipc_info = {
-	.name = "ipc",
-	.description = "ipc <taskid> Show IPC information of given task.",
-	.func = cmd_ipc,
-	.argc = 1,
-	.argv = &ipc_argv
 };
 
 /* Data and methods for 'zone' command */
@@ -416,10 +442,36 @@ static cmd_arg_t zone_argv = {
 
 static cmd_info_t zone_info = {
 	.name = "zone",
-	.description = "Show memory zone structure.",
+	.description = "<zone> Show memory zone structure.",
 	.func = cmd_zone,
 	.argc = 1,
 	.argv = &zone_argv
+};
+
+/* Data and methods for 'ipc' command */
+static int cmd_ipc(cmd_arg_t *argv);
+static cmd_arg_t ipc_argv = {
+	.type = ARG_TYPE_INT,
+};
+static cmd_info_t ipc_info = {
+	.name = "ipc",
+	.description = "<taskid> Show IPC information of a task.",
+	.func = cmd_ipc,
+	.argc = 1,
+	.argv = &ipc_argv
+};
+
+/* Data and methods for 'kill' command */
+static int cmd_kill(cmd_arg_t *argv);
+static cmd_arg_t kill_argv = {
+	.type = ARG_TYPE_INT,
+};
+static cmd_info_t kill_info = {
+	.name = "kill",
+	.description = "<taskid> Kill a task.",
+	.func = cmd_kill,
+	.argc = 1,
+	.argv = &kill_argv
 };
 
 /* Data and methods for 'cpus' command. */
@@ -453,26 +505,30 @@ static cmd_info_t *basic_commands[] = {
 	&continue_info,
 	&cpus_info,
 	&desc_info,
-	&reboot_info,
-	&uptime_info,
 	&halt_info,
 	&help_info,
 	&ipc_info,
+	&kill_info,
+	&physmem_info,
+	&reboot_info,
+	&sched_info,
 	&set4_info,
 	&slabs_info,
 	&symaddr_info,
-	&sched_info,
-	&threads_info,
+	&sysinfo_info,
 	&tasks_info,
-	&physmem_info,
+	&threads_info,
 	&tlb_info,
+	&uptime_info,
 	&version_info,
 	&zones_info,
 	&zone_info,
 #ifdef CONFIG_TEST
-	&tests_info,
 	&test_info,
 	&bench_info,
+#endif
+#ifdef CONFIG_UDEBUG
+	&btrace_info,
 #endif
 	NULL
 };
@@ -485,7 +541,7 @@ static cmd_info_t *basic_commands[] = {
  */
 void cmd_initialize(cmd_info_t *cmd)
 {
-	spinlock_initialize(&cmd->lock, "cmd");
+	spinlock_initialize(&cmd->lock, "cmd.lock");
 	link_initialize(&cmd->link);
 }
 
@@ -496,11 +552,15 @@ void cmd_init(void)
 
 	for (i = 0; basic_commands[i]; i++) {
 		cmd_initialize(basic_commands[i]);
-		if (!cmd_register(basic_commands[i]))
-			printf("Cannot register command %s\n", basic_commands[i]->name);
+	}
+
+	for (i = 0; basic_commands[i]; i++) {
+		if (!cmd_register(basic_commands[i])) {
+			printf("Cannot register command %s\n",
+			    basic_commands[i]->name);
+		}
 	}
 }
-
 
 /** List supported commands.
  *
@@ -524,12 +584,18 @@ int cmd_help(cmd_arg_t *argv)
 		spinlock_unlock(&hlp->lock);
 	}
 	
+	unsigned int _len = (unsigned int) len;
+	if ((_len != len) || (((int) _len) < 0)) {
+		printf("Command length overflow\n");
+		return 1;
+	}
+	
 	for (cur = cmd_head.next; cur != &cmd_head; cur = cur->next) {
 		cmd_info_t *hlp;
 		hlp = list_get_instance(cur, cmd_info_t, link);
 		
 		spinlock_lock(&hlp->lock);
-		printf("%-*s %s\n", len, hlp->name, hlp->description);
+		printf("%-*s %s\n", _len, hlp->name, hlp->description);
 		spinlock_unlock(&hlp->lock);
 	}
 	
@@ -537,7 +603,6 @@ int cmd_help(cmd_arg_t *argv)
 	
 	return 1;
 }
-
 
 /** Reboot the system.
  *
@@ -553,7 +618,6 @@ int cmd_reboot(cmd_arg_t *argv)
 	return 1;
 }
 
-
 /** Print system uptime information.
  *
  * @param argv Argument vector.
@@ -565,7 +629,7 @@ int cmd_uptime(cmd_arg_t *argv)
 	ASSERT(uptime);
 	
 	/* This doesn't have to be very accurate */
-	unative_t sec = uptime->seconds1;
+	sysarg_t sec = uptime->seconds1;
 	
 	printf("Up %" PRIun " days, %" PRIun " hours, %" PRIun " minutes, %" PRIun " seconds\n",
 		sec / 86400, (sec % 86400) / 3600, (sec % 3600) / 60, sec % 60);
@@ -620,7 +684,7 @@ int cmd_call0(cmd_arg_t *argv)
 {
 	uintptr_t symaddr;
 	char *symbol;
-	unative_t (*fnc)(void);
+	sysarg_t (*fnc)(void);
 	fncptr_t fptr;
 	int rc;
 
@@ -633,10 +697,14 @@ int cmd_call0(cmd_arg_t *argv)
 		symtab_print_search(symbol);
 		printf("Duplicate symbol, be more specific.\n");
 	} else if (rc == EOK) {
-		fnc = (unative_t (*)(void)) arch_construct_function(&fptr,
+		ipl_t ipl;
+
+		ipl = interrupts_disable();
+		fnc = (sysarg_t (*)(void)) arch_construct_function(&fptr,
 		    (void *) symaddr, (void *) cmd_call0);
-		printf("Calling %s() (%p)\n", symbol, symaddr);
+		printf("Calling %s() (%p)\n", symbol, (void *) symaddr);
 		printf("Result: %#" PRIxn "\n", fnc());
+		interrupts_restore(ipl);
 	} else {
 		printf("No symbol information available.\n");
 	}
@@ -651,20 +719,23 @@ int cmd_mcall0(cmd_arg_t *argv)
 	 * call the function.
 	 */
 	
-	size_t i;
+	unsigned int i;
 	for (i = 0; i < config.cpu_count; i++) {
 		if (!cpus[i].active)
 			continue;
 		
-		thread_t *t;
-		if ((t = thread_create((void (*)(void *)) cmd_call0, (void *) argv, TASK, THREAD_FLAG_WIRED, "call0", false))) {
-			spinlock_lock(&t->lock);
-			t->cpu = &cpus[i];
-			spinlock_unlock(&t->lock);
+		thread_t *thread;
+		if ((thread = thread_create((void (*)(void *)) cmd_call0,
+		    (void *) argv, TASK, THREAD_FLAG_WIRED, "call0", false))) {
+			irq_spinlock_lock(&thread->lock, true);
+			thread->cpu = &cpus[i];
+			irq_spinlock_unlock(&thread->lock, true);
+			
 			printf("cpu%u: ", i);
-			thread_ready(t);
-			thread_join(t);
-			thread_detach(t);
+			
+			thread_ready(thread);
+			thread_join(thread);
+			thread_detach(thread);
 		} else
 			printf("Unable to create thread for cpu%u\n", i);
 	}
@@ -677,8 +748,8 @@ int cmd_call1(cmd_arg_t *argv)
 {
 	uintptr_t symaddr;
 	char *symbol;
-	unative_t (*fnc)(unative_t, ...);
-	unative_t arg1 = argv[1].intval;
+	sysarg_t (*fnc)(sysarg_t, ...);
+	sysarg_t arg1 = argv[1].intval;
 	fncptr_t fptr;
 	int rc;
 
@@ -691,9 +762,16 @@ int cmd_call1(cmd_arg_t *argv)
 		symtab_print_search(symbol);
 		printf("Duplicate symbol, be more specific.\n");
 	} else if (rc == EOK) {
-		fnc = (unative_t (*)(unative_t, ...)) arch_construct_function(&fptr, (void *) symaddr, (void *) cmd_call1);
-		printf("Calling f(%#" PRIxn "): %p: %s\n", arg1, symaddr, symbol);
+		ipl_t ipl;
+
+		ipl = interrupts_disable();
+		fnc = (sysarg_t (*)(sysarg_t, ...))
+		    arch_construct_function(&fptr, (void *) symaddr,
+		    (void *) cmd_call1);
+		printf("Calling f(%#" PRIxn "): %p: %s\n", arg1,
+		    (void *) symaddr, symbol);
 		printf("Result: %#" PRIxn "\n", fnc(arg1));
+		interrupts_restore(ipl);
 	} else {
 		printf("No symbol information available.\n");
 	}
@@ -706,9 +784,9 @@ int cmd_call2(cmd_arg_t *argv)
 {
 	uintptr_t symaddr;
 	char *symbol;
-	unative_t (*fnc)(unative_t, unative_t, ...);
-	unative_t arg1 = argv[1].intval;
-	unative_t arg2 = argv[2].intval;
+	sysarg_t (*fnc)(sysarg_t, sysarg_t, ...);
+	sysarg_t arg1 = argv[1].intval;
+	sysarg_t arg2 = argv[2].intval;
 	fncptr_t fptr;
 	int rc;
 
@@ -721,10 +799,16 @@ int cmd_call2(cmd_arg_t *argv)
 		symtab_print_search(symbol);
 		printf("Duplicate symbol, be more specific.\n");
 	} else if (rc == EOK) {
-		fnc = (unative_t (*)(unative_t, unative_t, ...)) arch_construct_function(&fptr, (void *) symaddr, (void *) cmd_call2);
+		ipl_t ipl;
+
+		ipl = interrupts_disable();
+		fnc = (sysarg_t (*)(sysarg_t, sysarg_t, ...))
+		    arch_construct_function(&fptr, (void *) symaddr,
+		    (void *) cmd_call2);
 		printf("Calling f(%#" PRIxn ", %#" PRIxn "): %p: %s\n", 
-		       arg1, arg2, symaddr, symbol);
+		       arg1, arg2, (void *) symaddr, symbol);
 		printf("Result: %#" PRIxn "\n", fnc(arg1, arg2));
+		interrupts_restore(ipl);
 	} else {
 		printf("No symbol information available.\n");
 	}
@@ -736,10 +820,10 @@ int cmd_call3(cmd_arg_t *argv)
 {
 	uintptr_t symaddr;
 	char *symbol;
-	unative_t (*fnc)(unative_t, unative_t, unative_t, ...);
-	unative_t arg1 = argv[1].intval;
-	unative_t arg2 = argv[2].intval;
-	unative_t arg3 = argv[3].intval;
+	sysarg_t (*fnc)(sysarg_t, sysarg_t, sysarg_t, ...);
+	sysarg_t arg1 = argv[1].intval;
+	sysarg_t arg2 = argv[2].intval;
+	sysarg_t arg3 = argv[3].intval;
 	fncptr_t fptr;
 	int rc;
 	
@@ -752,16 +836,21 @@ int cmd_call3(cmd_arg_t *argv)
 		symtab_print_search(symbol);
 		printf("Duplicate symbol, be more specific.\n");
 	} else if (rc == EOK) {
-		fnc = (unative_t (*)(unative_t, unative_t, unative_t, ...)) arch_construct_function(&fptr, (void *) symaddr, (void *) cmd_call3);
-		printf("Calling f(%#" PRIxn ",%#" PRIxn ", %#" PRIxn "): %p: %s\n", 
-		       arg1, arg2, arg3, symaddr, symbol);
+		ipl_t ipl;
+
+		ipl = interrupts_disable();
+		fnc = (sysarg_t (*)(sysarg_t, sysarg_t, sysarg_t, ...))
+		    arch_construct_function(&fptr, (void *) symaddr,
+		    (void *) cmd_call3);
+		printf("Calling f(%#" PRIxn ",%#" PRIxn ", %#" PRIxn "): %p: %s\n",
+		       arg1, arg2, arg3, (void *) symaddr, symbol);
 		printf("Result: %#" PRIxn "\n", fnc(arg1, arg2, arg3));
+		interrupts_restore(ipl);
 	} else {
 		printf("No symbol information available.\n");
 	}
 	return 1;
 }
-
 
 /** Print detailed description of 'describe' command. */
 void desc_help(void)
@@ -812,31 +901,33 @@ int cmd_set4(cmd_arg_t *argv)
 	uint32_t arg1 = argv[1].intval;
 	bool pointer = false;
 	int rc;
-
-	if (((char *)argv->buffer)[0] == '*') {
+	
+	if (((char *) argv->buffer)[0] == '*') {
 		rc = symtab_addr_lookup((char *) argv->buffer + 1, &addr);
 		pointer = true;
-	} else if (((char *) argv->buffer)[0] >= '0' && 
-		   ((char *)argv->buffer)[0] <= '9') {
-		rc = EOK;
-		addr = atoi((char *)argv->buffer);
-	} else {
+	} else if (((char *) argv->buffer)[0] >= '0' &&
+		   ((char *) argv->buffer)[0] <= '9') {
+		uint64_t value;
+		rc = str_uint64((char *) argv->buffer, NULL, 0, true, &value);
+		if (rc == EOK)
+			addr = (uintptr_t) value;
+	} else
 		rc = symtab_addr_lookup((char *) argv->buffer, &addr);
-	}
-
+	
 	if (rc == ENOENT)
-		printf("Symbol %s not found.\n", argv->buffer);
+		printf("Symbol %s not found.\n", (char *) argv->buffer);
+	else if (rc == EINVAL)
+		printf("Invalid address.\n");
 	else if (rc == EOVERFLOW) {
 		symtab_print_search((char *) argv->buffer);
-		printf("Duplicate symbol, be more specific.\n");
+		printf("Duplicate symbol (be more specific) or address overflow.\n");
 	} else if (rc == EOK) {
 		if (pointer)
 			addr = *(uintptr_t *) addr;
-		printf("Writing %#" PRIx64 " -> %p\n", arg1, addr);
+		printf("Writing %#" PRIx32" -> %p\n", arg1, (void *) addr);
 		*(uint32_t *) addr = arg1;
-	} else {
+	} else
 		printf("No symbol information available.\n");
-	}
 	
 	return 1;
 }
@@ -847,41 +938,85 @@ int cmd_set4(cmd_arg_t *argv)
  *
  * @return Always 1
  */
-int cmd_slabs(cmd_arg_t * argv) {
+int cmd_slabs(cmd_arg_t *argv)
+{
 	slab_print_list();
 	return 1;
 }
 
-
-/** Command for listings Thread information
+/** Command for dumping sysinfo
  *
  * @param argv Ignores
  *
  * @return Always 1
  */
-int cmd_threads(cmd_arg_t * argv) {
-	thread_print_list();
+int cmd_sysinfo(cmd_arg_t *argv)
+{
+	sysinfo_dump(NULL);
 	return 1;
 }
 
-/** Command for listings Task information
+/** Command for listing thread information
  *
- * @param argv Ignores
+ * @param argv Ignored
  *
  * @return Always 1
  */
-int cmd_tasks(cmd_arg_t * argv) {
-	task_print_list();
+int cmd_threads(cmd_arg_t *argv)
+{
+	if (str_cmp(flag_buf, "-a") == 0)
+		thread_print_list(true);
+	else if (str_cmp(flag_buf, "") == 0)
+		thread_print_list(false);
+	else
+		printf("Unknown argument \"%s\".\n", flag_buf);
+	
 	return 1;
 }
 
-/** Command for listings Thread information
+/** Command for listing task information
+ *
+ * @param argv Ignored
+ *
+ * @return Always 1
+ */
+int cmd_tasks(cmd_arg_t *argv)
+{
+	if (str_cmp(flag_buf, "-a") == 0)
+		task_print_list(true);
+	else if (str_cmp(flag_buf, "") == 0)
+		task_print_list(false);
+	else
+		printf("Unknown argument \"%s\".\n", flag_buf);
+	
+	return 1;
+}
+
+#ifdef CONFIG_UDEBUG
+
+/** Command for printing thread stack trace
+ *
+ * @param argv Integer argument from cmdline expected
+ *
+ * return Always 1
+ *
+ */
+int cmd_btrace(cmd_arg_t *argv)
+{
+	thread_stack_trace(argv[0].intval);
+	return 1;
+}
+
+#endif /* CONFIG_UDEBUG */
+
+/** Command for printing scheduler information
  *
  * @param argv Ignores
  *
  * @return Always 1
  */
-int cmd_sched(cmd_arg_t * argv) {
+int cmd_sched(cmd_arg_t *argv)
+{
 	sched_print_list();
 	return 1;
 }
@@ -892,8 +1027,9 @@ int cmd_sched(cmd_arg_t * argv) {
  *
  * return Always 1
  */
-int cmd_zones(cmd_arg_t * argv) {
-	zone_print_list();
+int cmd_zones(cmd_arg_t *argv)
+{
+	zones_print_list();
 	return 1;
 }
 
@@ -903,22 +1039,37 @@ int cmd_zones(cmd_arg_t * argv) {
  *
  * return Always 1
  */
-int cmd_zone(cmd_arg_t * argv) {
+int cmd_zone(cmd_arg_t *argv)
+{
 	zone_print_one(argv[0].intval);
 	return 1;
 }
 
-/** Command for printing task ipc details
+/** Command for printing task IPC details
  *
  * @param argv Integer argument from cmdline expected
  *
  * return Always 1
  */
-int cmd_ipc(cmd_arg_t * argv) {
+int cmd_ipc(cmd_arg_t *argv)
+{
 	ipc_print_task(argv[0].intval);
 	return 1;
 }
 
+/** Command for killing a task
+ *
+ * @param argv Integer argument from cmdline expected
+ *
+ * return 0 on failure, 1 on success.
+ */
+int cmd_kill(cmd_arg_t *argv)
+{
+	if (task_kill(argv[0].intval) != EOK)
+		return 0;
+
+	return 1;
+}
 
 /** Command for listing processors.
  *
@@ -962,62 +1113,40 @@ int cmd_continue(cmd_arg_t *argv)
 }
 
 #ifdef CONFIG_TEST
-/** Command for printing kernel tests list.
- *
- * @param argv Ignored.
- *
- * return Always 1.
- */
-int cmd_tests(cmd_arg_t *argv)
-{
-	size_t len = 0;
-	test_t *test;
-	for (test = tests; test->name != NULL; test++) {
-		if (str_length(test->name) > len)
-			len = str_length(test->name);
-	}
-	
-	for (test = tests; test->name != NULL; test++)
-		printf("%-*s %s%s\n", len, test->name, test->desc, (test->safe ? "" : " (unsafe)"));
-	
-	printf("%-*s Run all safe tests\n", len, "*");
-	return 1;
-}
-
 static bool run_test(const test_t *test)
 {
 	printf("%s (%s)\n", test->name, test->desc);
 	
 	/* Update and read thread accounting
 	   for benchmarking */
-	ipl_t ipl = interrupts_disable();
-	spinlock_lock(&TASK->lock);
-	uint64_t t0 = task_get_accounting(TASK);
-	spinlock_unlock(&TASK->lock);
-	interrupts_restore(ipl);
+	irq_spinlock_lock(&TASK->lock, true);
+	uint64_t ucycles0, kcycles0;
+	task_get_accounting(TASK, &ucycles0, &kcycles0);
+	irq_spinlock_unlock(&TASK->lock, true);
 	
 	/* Execute the test */
 	test_quiet = false;
-	char *ret = test->entry();
+	const char *ret = test->entry();
 	
 	/* Update and read thread accounting */
-	ipl = interrupts_disable();
-	spinlock_lock(&TASK->lock);
-	uint64_t dt = task_get_accounting(TASK) - t0;
-	spinlock_unlock(&TASK->lock);
-	interrupts_restore(ipl);
+	uint64_t ucycles1, kcycles1;
+	irq_spinlock_lock(&TASK->lock, true);
+	task_get_accounting(TASK, &ucycles1, &kcycles1);
+	irq_spinlock_unlock(&TASK->lock, true);
 	
-	uint64_t cycles;
-	char suffix;
-	order(dt, &cycles, &suffix);
-		
-	printf("Time: %" PRIu64 "%c cycles\n", cycles, suffix);
+	uint64_t ucycles, kcycles;
+	char usuffix, ksuffix;
+	order_suffix(ucycles1 - ucycles0, &ucycles, &usuffix);
+	order_suffix(kcycles1 - kcycles0, &kcycles, &ksuffix);
+	
+	printf("Time: %" PRIu64 "%c user cycles, %" PRIu64 "%c kernel cycles\n",
+	    ucycles, usuffix, kcycles, ksuffix);
 	
 	if (ret == NULL) {
 		printf("Test passed\n");
 		return true;
 	}
-
+	
 	printf("%s\n", ret);
 	return false;
 }
@@ -1026,8 +1155,8 @@ static bool run_bench(const test_t *test, const uint32_t cnt)
 {
 	uint32_t i;
 	bool ret = true;
-	uint64_t cycles;
-	char suffix;
+	uint64_t ucycles, kcycles;
+	char usuffix, ksuffix;
 	
 	if (cnt < 1)
 		return true;
@@ -1043,22 +1172,20 @@ static bool run_bench(const test_t *test, const uint32_t cnt)
 		
 		/* Update and read thread accounting
 		   for benchmarking */
-		ipl_t ipl = interrupts_disable();
-		spinlock_lock(&TASK->lock);
-		uint64_t t0 = task_get_accounting(TASK);
-		spinlock_unlock(&TASK->lock);
-		interrupts_restore(ipl);
+		irq_spinlock_lock(&TASK->lock, true);
+		uint64_t ucycles0, kcycles0;
+		task_get_accounting(TASK, &ucycles0, &kcycles0);
+		irq_spinlock_unlock(&TASK->lock, true);
 		
 		/* Execute the test */
 		test_quiet = true;
-		char * ret = test->entry();
+		const char *ret = test->entry();
 		
 		/* Update and read thread accounting */
-		ipl = interrupts_disable();
-		spinlock_lock(&TASK->lock);
-		uint64_t dt = task_get_accounting(TASK) - t0;
-		spinlock_unlock(&TASK->lock);
-		interrupts_restore(ipl);
+		irq_spinlock_lock(&TASK->lock, true);
+		uint64_t ucycles1, kcycles1;
+		task_get_accounting(TASK, &ucycles1, &kcycles1);
+		irq_spinlock_unlock(&TASK->lock, true);
 		
 		if (ret != NULL) {
 			printf("%s\n", ret);
@@ -1066,9 +1193,11 @@ static bool run_bench(const test_t *test, const uint32_t cnt)
 			break;
 		}
 		
-		data[i] = dt;
-		order(dt, &cycles, &suffix);
-		printf("OK (%" PRIu64 "%c cycles)\n", cycles, suffix);
+		data[i] = ucycles1 - ucycles0 + kcycles1 - kcycles0;
+		order_suffix(ucycles1 - ucycles0, &ucycles, &usuffix);
+		order_suffix(kcycles1 - kcycles0, &kcycles, &ksuffix);
+		printf("OK (%" PRIu64 "%c user cycles, %" PRIu64 "%c kernel cycles)\n",
+		    ucycles, usuffix, kcycles, ksuffix);
 	}
 	
 	if (ret) {
@@ -1080,8 +1209,8 @@ static bool run_bench(const test_t *test, const uint32_t cnt)
 			sum += data[i];
 		}
 		
-		order(sum / (uint64_t) cnt, &cycles, &suffix);
-		printf("Average\t\t%" PRIu64 "%c\n", cycles, suffix);
+		order_suffix(sum / (uint64_t) cnt, &ucycles, &usuffix);
+		printf("Average\t\t%" PRIu64 "%c\n", ucycles, usuffix);
 	}
 	
 	free(data);
@@ -1089,11 +1218,35 @@ static bool run_bench(const test_t *test, const uint32_t cnt)
 	return ret;
 }
 
-/** Command for returning kernel tests
+static void list_tests(void)
+{
+	size_t len = 0;
+	test_t *test;
+	
+	for (test = tests; test->name != NULL; test++) {
+		if (str_length(test->name) > len)
+			len = str_length(test->name);
+	}
+	
+	unsigned int _len = (unsigned int) len;
+	if ((_len != len) || (((int) _len) < 0)) {
+		printf("Command length overflow\n");
+		return;
+	}
+	
+	for (test = tests; test->name != NULL; test++)
+		printf("%-*s %s%s\n", _len, test->name, test->desc,
+		    (test->safe ? "" : " (unsafe)"));
+	
+	printf("%-*s Run all safe tests\n", _len, "*");
+}
+
+/** Command for listing and running kernel tests
  *
  * @param argv Argument vector.
  *
  * return Always 1.
+ *
  */
 int cmd_test(cmd_arg_t *argv)
 {
@@ -1107,7 +1260,7 @@ int cmd_test(cmd_arg_t *argv)
 					break;
 			}
 		}
-	} else {
+	} else if (str_cmp((char *) argv->buffer, "") != 0) {
 		bool fnd = false;
 		
 		for (test = tests; test->name != NULL; test++) {
@@ -1120,7 +1273,8 @@ int cmd_test(cmd_arg_t *argv)
 		
 		if (!fnd)
 			printf("Unknown test\n");
-	}
+	} else
+		list_tests();
 	
 	return 1;
 }

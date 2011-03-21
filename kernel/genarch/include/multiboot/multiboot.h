@@ -35,7 +35,7 @@
 #ifndef KERN_MULTIBOOT_H_
 #define KERN_MULTIBOOT_H_
 
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/boot/memmap.h>
 
 /** Multiboot 32-bit address. */

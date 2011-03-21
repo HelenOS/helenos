@@ -37,7 +37,7 @@
 #include <arch/pm.h>
 
 #include <arch.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <print.h>
 #include <fpu_context.h>
 
@@ -48,13 +48,13 @@
  * Identification of CPUs.
  * Contains only non-MP-Specification specific SMP code.
  */
-#define AMD_CPUID_EBX  0x68747541
-#define AMD_CPUID_ECX  0x444d4163
-#define AMD_CPUID_EDX  0x69746e65
+#define AMD_CPUID_EBX  UINT32_C(0x68747541)
+#define AMD_CPUID_ECX  UINT32_C(0x444d4163)
+#define AMD_CPUID_EDX  UINT32_C(0x69746e65)
 
-#define INTEL_CPUID_EBX  0x756e6547
-#define INTEL_CPUID_ECX  0x6c65746e
-#define INTEL_CPUID_EDX  0x49656e69
+#define INTEL_CPUID_EBX  UINT32_C(0x756e6547)
+#define INTEL_CPUID_ECX  UINT32_C(0x6c65746e)
+#define INTEL_CPUID_EDX  UINT32_C(0x49656e69)
 
 
 enum vendor {
@@ -63,7 +63,7 @@ enum vendor {
 	VendorIntel
 };
 
-static char *vendor_str[] = {
+static const char *vendor_str[] = {
 	"Unknown Vendor",
 	"AMD",
 	"Intel"
@@ -91,7 +91,6 @@ void fpu_enable(void)
 
 void cpu_arch_init(void)
 {
-	cpuid_feature_info fi;
 	cpuid_extended_feature_info efi;
 	cpu_info_t info;
 	uint32_t help = 0;
@@ -101,17 +100,17 @@ void cpu_arch_init(void)
 	
 	CPU->fpu_owner = NULL;
 	
-	cpuid(1, &info);
+	cpuid(INTEL_CPUID_STANDARD, &info);
 	
-	fi.word = info.cpuid_edx;
+	CPU->arch.fi.word = info.cpuid_edx;
 	efi.word = info.cpuid_ecx;
 	
-	if (fi.bits.fxsr)
+	if (CPU->arch.fi.bits.fxsr)
 		fpu_fxsr();
 	else
 		fpu_fsr();
 	
-	if (fi.bits.sse) {
+	if (CPU->arch.fi.bits.sse) {
 		asm volatile (
 			"mov %%cr4, %[help]\n"
 			"or %[mask], %[help]\n"
@@ -121,8 +120,10 @@ void cpu_arch_init(void)
 		);
 	}
 	
-	/* Setup fast SYSENTER/SYSEXIT syscalls */
-	syscall_setup_cpu();
+	if (CPU->arch.fi.bits.sep) {
+		/* Setup fast SYSENTER/SYSEXIT syscalls */
+		syscall_setup_cpu();
+	}
 }
 
 void cpu_identify(void)
@@ -131,28 +132,28 @@ void cpu_identify(void)
 
 	CPU->arch.vendor = VendorUnknown;
 	if (has_cpuid()) {
-		cpuid(0, &info);
+		cpuid(INTEL_CPUID_LEVEL, &info);
 
 		/*
 		 * Check for AMD processor.
 		 */
 		if ((info.cpuid_ebx == AMD_CPUID_EBX)
 		    && (info.cpuid_ecx == AMD_CPUID_ECX)
-			&& (info.cpuid_edx == AMD_CPUID_EDX))
+		    && (info.cpuid_edx == AMD_CPUID_EDX))
 			CPU->arch.vendor = VendorAMD;
 		
 		/*
 		 * Check for Intel processor.
-		 */		
+		 */
 		if ((info.cpuid_ebx == INTEL_CPUID_EBX)
 		    && (info.cpuid_ecx == INTEL_CPUID_ECX)
-			&& (info.cpuid_edx == INTEL_CPUID_EDX))
+		    && (info.cpuid_edx == INTEL_CPUID_EDX))
 			CPU->arch.vendor = VendorIntel;
 		
-		cpuid(1, &info);
-		CPU->arch.family = (info.cpuid_eax >> 8) & 0x0f;
-		CPU->arch.model = (info.cpuid_eax >> 4) & 0x0f;
-		CPU->arch.stepping = (info.cpuid_eax >> 0) & 0x0f;						
+		cpuid(INTEL_CPUID_STANDARD, &info);
+		CPU->arch.family = (info.cpuid_eax >> 8) & 0x0fU;
+		CPU->arch.model = (info.cpuid_eax >> 4) & 0x0fU;
+		CPU->arch.stepping = (info.cpuid_eax >> 0) & 0x0fU;
 	}
 }
 

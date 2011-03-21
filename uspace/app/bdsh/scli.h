@@ -5,12 +5,13 @@
 #include <stdint.h>
 
 typedef struct {
-	char *name;
-	char *home;
+	const char *name;
 	char *line;
 	char *cwd;
 	char *prompt;
 	int lasterr;
 } cliuser_t;
+
+extern const char *progname;
 
 #endif

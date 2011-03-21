@@ -36,7 +36,7 @@
 
 #include <arch.h>
 
-char *test_mips1(void)
+const char *test_mips1(void)
 {
 	TPRINTF("If kconsole is compiled in, you should enter debug mode now.\n");
 	

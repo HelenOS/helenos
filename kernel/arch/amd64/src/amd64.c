@@ -34,7 +34,7 @@
 
 #include <arch.h>
 
-#include <arch/types.h>
+#include <typedefs.h>
 
 #include <config.h>
 
@@ -66,6 +66,7 @@
 #include <console/console.h>
 #include <ddi/irq.h>
 #include <sysinfo/sysinfo.h>
+#include <memstr.h>
 
 /** Disable I/O on non-privileged levels
  *
@@ -120,7 +121,7 @@ void arch_pre_mm_init(void)
 	set_efer_flag(AMD_NXE_FLAG);
 	/* Enable FPU */
 	cpu_setup_fpu();
-
+	
 	/* Initialize segmentation */
 	pm_init();
 	
@@ -130,7 +131,7 @@ void arch_pre_mm_init(void)
 	clean_IOPL_NT_flags();
 	/* Disable alignment check */
 	clean_AM_flag();
-
+	
 	if (config.cpu_active == 1) {
 		interrupt_init();
 		bios_init();
@@ -197,6 +198,12 @@ void arch_pre_smp_init(void)
 
 void arch_post_smp_init(void)
 {
+	/* Currently the only supported platform for amd64 is 'pc'. */
+	static const char *platform = "pc";
+
+	sysinfo_set_item_data("platform", NULL, (void *) platform,
+	    str_size(platform));
+
 #ifdef CONFIG_PC_KBD
 	/*
 	 * Initialize the i8042 controller. Then initialize the keyboard
@@ -210,6 +217,7 @@ void arch_post_smp_init(void)
 			indev_t *kbrd = kbrd_wire(kbrd_instance, sink);
 			i8042_wire(i8042_instance, kbrd);
 			trap_virtual_enable_irqs(1 << IRQ_KBD);
+			trap_virtual_enable_irqs(1 << IRQ_MOUSE);
 		}
 	}
 	
@@ -217,13 +225,19 @@ void arch_post_smp_init(void)
 	 * This is the necessary evil until the userspace driver is entirely
 	 * self-sufficient.
 	 */
-	sysinfo_set_item_val("kbd", NULL, true);
-	sysinfo_set_item_val("kbd.inr", NULL, IRQ_KBD);
-	sysinfo_set_item_val("kbd.address.physical", NULL,
+	sysinfo_set_item_val("i8042", NULL, true);
+	sysinfo_set_item_val("i8042.inr_a", NULL, IRQ_KBD);
+	sysinfo_set_item_val("i8042.inr_b", NULL, IRQ_MOUSE);
+	sysinfo_set_item_val("i8042.address.physical", NULL,
 	    (uintptr_t) I8042_BASE);
-	sysinfo_set_item_val("kbd.address.kernel", NULL,
+	sysinfo_set_item_val("i8042.address.kernel", NULL,
 	    (uintptr_t) I8042_BASE);
 #endif
+	
+	if (irqs_info != NULL)
+		sysinfo_set_item_val(irqs_info, NULL, true);
+	
+	sysinfo_set_item_val("netif.ne2000.inr", NULL, IRQ_NE2000);
 }
 
 void calibrate_delay_loop(void)
@@ -246,10 +260,11 @@ void calibrate_delay_loop(void)
  * The specs say, that on %fs:0 there is stored contents of %fs register,
  * we need not to go to CPL0 to read it.
  */
-unative_t sys_tls_set(unative_t addr)
+sysarg_t sys_tls_set(sysarg_t addr)
 {
 	THREAD->arch.tls = addr;
 	write_msr(AMD_MSR_FS, addr);
+	
 	return 0;
 }
 
@@ -272,6 +287,11 @@ void arch_reboot(void)
 #ifdef CONFIG_PC_KBD
 	i8042_cpu_reset((i8042_t *) I8042_BASE);
 #endif
+}
+
+void irq_initialize_arch(irq_t *irq)
+{
+	(void) irq;
 }
 
 /** @}

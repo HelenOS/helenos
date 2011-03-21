@@ -37,7 +37,7 @@
 #include <proc/task.h>
 #include <proc/thread.h>
 #include <arch.h>
-#include <arch/context.h>	/* SP_DELTA */
+#include <arch/interrupt.h>
 #include <arch/pm.h>
 #include <arch/asm.h>
 #include <arch/ddi/ddi.h>
@@ -57,15 +57,16 @@ void before_task_runs_arch(void)
  */
 void before_thread_runs_arch(void)
 {
-	uintptr_t kstk = (uintptr_t) &THREAD->kstack[THREAD_STACK_SIZE -
-	    SP_DELTA];
+	uintptr_t kstk = (uintptr_t) &THREAD->kstack[THREAD_STACK_SIZE];
 	
-	/* Set kernel stack for CP3 -> CPL0 switch via SYSENTER */
-	write_msr(IA32_MSR_SYSENTER_ESP, kstk);
+	if (CPU->arch.fi.bits.sep) {
+		/* Set kernel stack for CP3 -> CPL0 switch via SYSENTER */
+		write_msr(IA32_MSR_SYSENTER_ESP, kstk - sizeof(istate_t));
+	}
 	
 	/* Set kernel stack for CPL3 -> CPL0 switch via interrupt */
 	CPU->arch.tss->esp0 = kstk;
-	CPU->arch.tss->ss0 = gdtselector(KDATA_DES);
+	CPU->arch.tss->ss0 = GDT_SELECTOR(KDATA_DES);
 	
 	/* Set up TLS in GS register */
 	set_tls_desc(THREAD->arch.tls);

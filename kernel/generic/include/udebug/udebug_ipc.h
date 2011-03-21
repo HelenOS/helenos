@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup generic
  * @{
  */
 /** @file
@@ -39,7 +39,6 @@
 
 int udebug_request_preprocess(call_t *call, phone_t *phone);
 void udebug_call_receive(call_t *call);
-
 
 #endif
 

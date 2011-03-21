@@ -26,74 +26,163 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-## Include configuration
-#
-
+-include ../Makefile.common
 -include ../Makefile.config
 
+## Common binaries
+#
+
 DIRS = \
-	lib/libc \
-	lib/libfs \
-	lib/libblock \
-	lib/softint \
-	lib/softfloat \
-	lib/libtest \
+	app/bdsh \
+	app/dload \
+	app/dltest2 \
+	app/edit \
+	app/getterm \
+	app/init \
+	app/kill \
+	app/killall \
+	app/klog \
+	app/mkfat \
+	app/redir \
+	app/sbi \
+	app/stats \
+	app/taskdump \
+	app/tester \
+	app/tetris \
+	app/trace \
+	app/top \
+	app/netecho \
+	app/nettest1 \
+	app/nettest2 \
+	app/ping \
+	app/websrv \
+	app/sysinfo \
+	srv/clip \
+	srv/devmap \
+	srv/devman \
+	srv/loader \
+	srv/ns \
+	srv/taskmon \
+	srv/vfs \
 	srv/bd/ata_bd \
 	srv/bd/file_bd \
 	srv/bd/gxe_bd \
 	srv/bd/rd \
-	srv/ns \
-	srv/loader \
-	srv/fb \
-	srv/kbd \
-	srv/console \
+	srv/bd/part/guid_part \
+	srv/bd/part/mbr_part \
 	srv/fs/fat \
 	srv/fs/tmpfs \
 	srv/fs/devfs \
-	srv/vfs \
-	srv/devmap \
-	app/tetris \
-	app/tester \
-	app/dltest2 \
-	app/dload \
-	app/trace \
-	app/klog \
-	app/init \
-	app/getvc \
-	app/bdsh
+	srv/hid/adb_mouse \
+	srv/hid/char_mouse \
+	srv/hid/s3c24xx_ts \
+	srv/hid/fb \
+	srv/hid/kbd \
+	srv/hw/char/i8042 \
+	srv/hw/char/s3c24xx_uart \
+	srv/hw/netif/ne2000 \
+	srv/net/netif/lo \
+	srv/net/il/arp \
+	srv/net/il/ip \
+	srv/net/tl/icmp \
+	srv/net/tl/udp \
+	srv/net/tl/tcp \
+	srv/net/net \
+	drv/root \
+	drv/rootvirt \
+	drv/test1 \
+	drv/test2
+
+## Shared C library
+ifeq ($(CONFIG_BUILD_SHARED_LIBC), y)
+	DIRS += \
+		lib/c/shared \
+		app/dltest
+endif
+
+## Networking
+#
+
+DIRS += \
+	srv/net/nil/eth \
+	srv/net/nil/nildummy
+
+## Platform-specific hardware support
+#
+
+ifneq ($(UARCH),abs32le)
+	DIRS += srv/hid/console
+endif
 
 ifeq ($(UARCH),amd64)
-	DIRS += srv/pci
+	DIRS += \
+		drv/rootpc \
+		drv/pciintel \
+		drv/isa \
+		drv/ns8250 \
+		srv/hw/irc/apic \
+		srv/hw/irc/i8259
 endif
 
 ifeq ($(UARCH),ia32)
-	DIRS += srv/pci
+	DIRS += \
+		drv/rootpc \
+		drv/pciintel \
+		drv/isa \
+		drv/ns8250 \
+		srv/hw/irc/apic \
+		srv/hw/irc/i8259
+endif
+
+ifeq ($(UARCH),ppc32)
+	DIRS += srv/hw/bus/cuda_adb
 endif
 
 ifeq ($(UARCH),sparc64)
 	DIRS += \
-		srv/cir/fhc \
-		srv/cir/obio
+		srv/hw/irc/fhc \
+		srv/hw/irc/obio
 endif
 
-ifeq ($(CONFIG_BUILD_SHARED_LIBC), y)
-	DIRS += \
-		lib/libc/shared \
-		app/dltest
-endif
+## System libraries
+#
 
+LIBC = lib/c
+LIBS = \
+	lib/fs \
+	lib/block \
+	lib/clui \
+	lib/softint \
+	lib/softfloat \
+	lib/libtest \
+	lib/drv \
+	lib/packet \
+	lib/net
 
+LIBC_BUILD = $(addsuffix .build,$(LIBC))
+LIBS_BUILD = $(addsuffix .build,$(LIBS))
+LIBN_BUILD = $(addsuffix .build,$(LIBN))
 BUILDS := $(addsuffix .build,$(DIRS))
-CLEANS := $(addsuffix .clean,$(DIRS))
 
-.PHONY: all $(BUILDS) $(CLEANS) clean kerninc
+CLEANS := $(addsuffix .clean,$(DIRS)) $(addsuffix .clean,$(LIBN)) $(addsuffix .clean,$(LIBS)) $(addsuffix .clean,$(LIBC))
 
-all: ../Makefile.config ../config.h ../config.defs $(BUILDS)
+.PHONY: all $(LIBC_BUILD) $(LIBS_BUILD) $(LIBN_BUILD) $(BUILDS) $(CLEANS) clean
+
+all: $(BUILDS)
 
 clean: $(CLEANS)
 
 $(CLEANS):
 	-$(MAKE) -C $(basename $@) clean
 
-$(BUILDS):
-	$(MAKE) -C $(basename $@) all
+$(BUILDS): $(LIBC_BUILD) $(LIBS_BUILD) $(LIBN_BUILD)
+	$(MAKE) -C $(basename $@) all PRECHECK=$(PRECHECK)
+
+$(LIBN_BUILD): $(LIBC_BUILD) $(LIBS_BUILD)
+	$(MAKE) -C $(basename $@) all PRECHECK=$(PRECHECK)
+
+$(LIBS_BUILD): $(LIBC_BUILD)
+	$(MAKE) -C $(basename $@) all PRECHECK=$(PRECHECK)
+
+$(LIBC_BUILD):
+	$(MAKE) -C $(basename $@) all PRECHECK=$(PRECHECK)

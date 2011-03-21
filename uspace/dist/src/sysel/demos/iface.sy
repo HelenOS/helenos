@@ -1,0 +1,87 @@
+--
+-- Copyright (c) 2010 Jiri Svoboda
+-- All rights reserved.
+--
+-- Redistribution and use in source and binary forms, with or without
+-- modification, are permitted provided that the following conditions
+-- are met:
+--
+-- o Redistributions of source code must retain the above copyright
+--   notice, this list of conditions and the following disclaimer.
+-- o Redistributions in binary form must reproduce the above copyright
+--   notice, this list of conditions and the following disclaimer in the
+--   documentation and/or other materials provided with the distribution.
+-- o The name of the author may not be used to endorse or promote products
+--   derived from this software without specific prior written permission.
+--
+-- THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+-- IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+-- OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+-- IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+-- INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+-- NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+-- DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+-- THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+-- (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+-- THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+--
+
+class InterfaceDemo is
+	fun Main(), static is
+		-- Create new instance of Foo
+		var f : Foo;
+		f = new Foo();
+
+		-- Variable of interface type
+		var g : IA/int;
+
+		-- Implicit conversion to interface implemented by Foo
+		g = f;
+
+		-- Explicit conversion of interface type IA/int to class type
+		-- Foo. Foo is implementing the interface IA/int.
+		f = g as Foo;
+
+		Console.WriteLine(g.a());
+	end
+end
+
+-- Generic interface implemented by class Foo
+interface IA/t is
+	fun a() : t;
+end
+
+-- Non-generic interface implemented by class Foo
+interface IB is
+	fun b();
+	prop P : int is
+		get;
+		set value;
+	end
+end
+
+-- Base class of Foo
+class A is
+end
+
+-- Class unrelated to Foo
+class B is
+end
+
+-- Foo is derived from A and implements IA/int and IB
+class Foo : A + IA/int + IB is
+	fun a() : int is
+		return 0;
+	end
+
+	fun b() is
+	end
+
+	prop P : int is
+		get is
+			return 1;
+		end
+		set value is
+		end
+	end
+end

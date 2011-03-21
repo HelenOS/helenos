@@ -1,0 +1,106 @@
+--
+-- Copyright (c) 2010 Jiri Svoboda
+-- All rights reserved.
+--
+-- Redistribution and use in source and binary forms, with or without
+-- modification, are permitted provided that the following conditions
+-- are met:
+--
+-- o Redistributions of source code must retain the above copyright
+--   notice, this list of conditions and the following disclaimer.
+-- o Redistributions in binary form must reproduce the above copyright
+--   notice, this list of conditions and the following disclaimer in the
+--   documentation and/or other materials provided with the distribution.
+-- o The name of the author may not be used to endorse or promote products
+--   derived from this software without specific prior written permission.
+--
+-- THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+-- IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+-- OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+-- IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+-- INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+-- NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+-- DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+-- THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+-- (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+-- THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+--
+
+-- Demonstrate generic classes.
+
+class GenericsDemo is
+	fun Main(), static is
+		Console.WriteLine("Let's try some generics.");
+
+		var f : B/int/string;
+		var g : A/string/int;
+		var s : string;
+
+		f = new B/int/string();
+		g = new A/string/int();
+
+		-- This should be okay.
+		f = f;
+		g = f;
+
+		-- Method
+		g.set_a("Lorem");
+		f.set_a("ipsum");
+		s = g.get_a();
+		s = f.get_a();
+
+		-- Named property
+		g.P = "Lorem";
+		f.P = "ipsum";
+		s = g.P;
+		s = f.P;
+
+		-- Indexed property
+		g[1] = "Lorem";
+		f[1] = "ipsum";
+		s = g[1];
+		s = f[1];
+	end
+end
+
+-- Generic class with two type parameters
+class A/u/v is
+	-- Variable whose type is one of the parameters
+	var a : u;
+
+	-- Member function whose argument type is one of the parameters
+	fun set_a(arg : u) is
+		a = arg;
+	end
+
+	fun get_a() : u is
+		return a;
+	end
+
+	-- Property whose type is one of the type parameters
+	prop P : u is
+		get is
+			return a;
+		end
+		set value is
+			a = value;
+		end
+	end
+
+	-- Indexed property whose type is one of the type arguments
+	prop self[i : int] : u is
+		get is
+			return a;
+		end
+		set value is
+			a = value;
+		end
+	end
+end
+
+-- Generic class derived from another generic class
+--
+-- Note the swapping of type arguments.
+--
+class B/v/u : A/u/v is
+end

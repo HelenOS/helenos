@@ -35,18 +35,18 @@
  * @brief VFS service for HelenOS.
  */
 
-#include <ipc/ipc.h>
 #include <ipc/services.h>
+#include <ipc/ns.h>
 #include <async.h>
 #include <errno.h>
 #include <stdio.h>
 #include <bool.h>
-#include <string.h>
+#include <str.h>
 #include <as.h>
 #include <atomic.h>
 #include "vfs.h"
 
-#define NAME "vfs"
+#define NAME  "vfs"
 
 static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 {
@@ -56,26 +56,13 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 	 * The connection was opened via the IPC_CONNECT_ME_TO call.
 	 * This call needs to be answered.
 	 */
-	ipc_answer_0(iid, EOK);
+	async_answer_0(iid, EOK);
 	
-	/*
-	 * Here we enter the main connection fibril loop.
-	 * The logic behind this loop and the protocol is that we'd like to keep
-	 * each connection open until the client hangs up. When the client hangs
-	 * up, we will free its VFS state. The act of hanging up the connection
-	 * by the client is equivalent to client termination because we cannot
-	 * distinguish one from the other. On the other hand, the client can
-	 * hang up arbitrarily if it has no open files and reestablish the
-	 * connection later.
-	 */
 	while (keep_on_going) {
 		ipc_call_t call;
 		ipc_callid_t callid = async_get_call(&call);
 		
-		fs_handle_t fs_handle;
-		int phone;
-		
-		switch (IPC_GET_METHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			keep_on_going = false;
 			break;
@@ -85,6 +72,9 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 			break;
 		case VFS_IN_MOUNT:
 			vfs_mount(callid, &call);
+			break;
+		case VFS_IN_UNMOUNT:
+			vfs_unmount(callid, &call);
 			break;
 		case VFS_IN_OPEN:
 			vfs_open(callid, &call);
@@ -125,13 +115,18 @@ static void vfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case VFS_IN_SYNC:
 			vfs_sync(callid, &call);
 			break;
+		case VFS_IN_DUP:
+			vfs_dup(callid, &call);
 		default:
-			ipc_answer_0(callid, ENOTSUP);
+			async_answer_0(callid, ENOTSUP);
 			break;
 		}
 	}
-	
-	/* TODO: cleanup after the client */
+
+	/*
+	 * Open files for this client will be cleaned up when its last
+	 * connection fibril terminates.
+	 */
 }
 
 int main(int argc, char **argv)
@@ -163,6 +158,12 @@ int main(int argc, char **argv)
 	memset(plb, 0, PLB_SIZE);
 	
 	/*
+	 * Set client data constructor and destructor.
+	 */
+	async_set_client_data_constructor(vfs_client_data_create);
+	async_set_client_data_destructor(vfs_client_data_destroy);
+
+	/*
 	 * Set a connection handling function/fibril.
 	 */
 	async_set_client_connection(vfs_connection);
@@ -170,8 +171,10 @@ int main(int argc, char **argv)
 	/*
 	 * Register at the naming service.
 	 */
-	ipcarg_t phonead;
-	ipc_connect_to_me(PHONE_NS, SERVICE_VFS, 0, 0, &phonead);
+	if (service_register(SERVICE_VFS) != EOK) {
+		printf("%s: Cannot register VFS service\n", NAME);
+		return EINVAL;
+	}
 	
 	/*
 	 * Start accepting connections.

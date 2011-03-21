@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2005 Martin Decky
+# Copyright (c) 2011 Jiri Svoboda
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,51 +26,10 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-include ../../../version
+USPACE_PREFIX = ../..
+BINARY = dltest2
 
-## Setup toolchain
-#
-
-LIBC_PREFIX = ../../lib/libc
-SOFTINT_PREFIX = ../../lib/softint
-
-include $(LIBC_PREFIX)/Makefile.toolchain
-
-CFLAGS += -D__32_BITS__ -I../../srv/loader/include -I../../lib/rtld/include -I../../lib/libc -O0
-LIBS = $(LIBC_PREFIX)/libc.a $(SOFTINT_PREFIX)/libsoftint.a
-
-## Sources
-#
-
-OUTPUT = dltest2
 SOURCES = \
 	dltest2.c
 
-OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
-
-.PHONY: all clean depend disasm
-
-all: $(OUTPUT) disasm
-
--include Makefile.depend
-
-clean:
-	-rm -f $(OUTPUT) $(OBJECTS) $(OUTPUT).map $(OUTPUT).disasm Makefile.depend arch/$(UARCH)/_link.ld
-
-depend:
-	$(CC) $(DEFS) $(CFLAGS) -M $(SOURCES) > Makefile.depend
-
-$(OUTPUT): $(OBJECTS) $(LIBS)
-	$(LD) -T $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld $(OBJECTS) $(LFLAGS) $(LIBS) -o $@ -Map $(OUTPUT).map
-
-disasm:
-	$(OBJDUMP) -d $(OUTPUT) >$(OUTPUT).disasm
-
-%.o: %.S
-	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__ -c $< -o $@
-
-%.o: %.s
-	$(AS) $(AFLAGS) $< -o $@
-
-%.o: %.c
-	$(CC) $(DEFS) $(CFLAGS) -c $< -o $@
+include $(USPACE_PREFIX)/Makefile.common

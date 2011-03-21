@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup generic
  * @{
  */
 /** @file
@@ -40,10 +40,14 @@
 extern waitq_t ap_completion_wq;
 
 #ifdef CONFIG_SMP
+
 extern void smp_init(void);
 extern void kmp(void *arg);
-#else
+
+#else /* CONFIG_SMP */
+
 #define smp_init()
+
 #endif /* CONFIG_SMP */
 
 #endif /* __SMP_H__ */

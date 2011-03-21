@@ -1,0 +1,15 @@
+interface rd extends bd;
+
+frame rd {
+	provides:
+		rd rd;
+	requires:
+		[/uspace/lib/libc/requires]
+		ns ns;
+		devmap_driver devmap_driver;
+	initialization:
+		[/uspace/lib/libc/fnc.devmap_driver_register] ;
+		[/uspace/lib/libc/fnc.devmap_device_register]
+	protocol:
+		[/uspace/lib/libc/protocol]
+};

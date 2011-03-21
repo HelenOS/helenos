@@ -37,42 +37,42 @@
 #define KERN_arm32_ASM_H_
 
 #include <typedefs.h>
-#include <arch/types.h>
 #include <arch/stack.h>
 #include <config.h>
 #include <arch/interrupt.h>
+#include <trace.h>
 
 /** No such instruction on ARM to sleep CPU. */
-static inline void cpu_sleep(void)
+NO_TRACE static inline void cpu_sleep(void)
 {
 }
 
-static inline void pio_write_8(ioport8_t *port, uint8_t v)
-{
-	*port = v;
-}
-
-static inline void pio_write_16(ioport16_t *port, uint16_t v)
+NO_TRACE static inline void pio_write_8(ioport8_t *port, uint8_t v)
 {
 	*port = v;
 }
 
-static inline void pio_write_32(ioport32_t *port, uint32_t v)
+NO_TRACE static inline void pio_write_16(ioport16_t *port, uint16_t v)
 {
 	*port = v;
 }
 
-static inline uint8_t pio_read_8(ioport8_t *port)
+NO_TRACE static inline void pio_write_32(ioport32_t *port, uint32_t v)
+{
+	*port = v;
+}
+
+NO_TRACE static inline uint8_t pio_read_8(ioport8_t *port)
 {
 	return *port;
 }
 
-static inline uint16_t pio_read_16(ioport16_t *port)
+NO_TRACE static inline uint16_t pio_read_16(ioport16_t *port)
 {
 	return *port;
 }
 
-static inline uint32_t pio_read_32(ioport32_t *port)
+NO_TRACE static inline uint32_t pio_read_32(ioport32_t *port)
 {
 	return *port;
 }
@@ -84,18 +84,20 @@ static inline uint32_t pio_read_32(ioport32_t *port)
  * The stack must start on page boundary.
  *
  */
-static inline uintptr_t get_stack_base(void)
+NO_TRACE static inline uintptr_t get_stack_base(void)
 {
 	uintptr_t v;
+	
 	asm volatile (
 		"and %[v], sp, %[size]\n" 
 		: [v] "=r" (v)
 		: [size] "r" (~(STACK_SIZE - 1))
 	);
+	
 	return v;
 }
 
-extern void cpu_halt(void);
+extern void cpu_halt(void) __attribute__((noreturn));
 extern void asm_delay_loop(uint32_t t);
 extern void userspace_asm(uintptr_t ustack, uintptr_t uspace_uarg,
     uintptr_t entry);

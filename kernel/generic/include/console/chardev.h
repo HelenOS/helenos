@@ -36,7 +36,7 @@
 #define KERN_CHARDEV_H_
 
 #include <adt/list.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <synch/waitq.h>
 #include <synch/spinlock.h>
 
@@ -52,11 +52,11 @@ typedef struct {
 
 /** Character input device. */
 typedef struct indev {
-	char *name;
+	const char *name;
 	waitq_t wq;
 	
 	/** Protects everything below. */
-	SPINLOCK_DECLARE(lock);
+	IRQ_SPINLOCK_DECLARE(lock);
 	wchar_t buffer[INDEV_BUFLEN];
 	size_t counter;
 	
@@ -80,7 +80,7 @@ typedef struct {
 
 /** Character output device. */
 typedef struct outdev {
-	char *name;
+	const char *name;
 	
 	/** Protects everything below. */
 	SPINLOCK_DECLARE(lock);
@@ -94,15 +94,15 @@ typedef struct outdev {
 	void *data;
 } outdev_t;
 
-extern void indev_initialize(char *name, indev_t *indev,
-    indev_operations_t *op);
-extern void indev_push_character(indev_t *indev, wchar_t ch);
-extern wchar_t indev_pop_character(indev_t *indev);
+extern void indev_initialize(const char *, indev_t *,
+    indev_operations_t *);
+extern void indev_push_character(indev_t *, wchar_t);
+extern wchar_t indev_pop_character(indev_t *);
 
-extern void outdev_initialize(char *name, outdev_t *outdev,
-    outdev_operations_t *op);
+extern void outdev_initialize(const char *, outdev_t *,
+    outdev_operations_t *);
 
-extern bool check_poll(indev_t *indev);
+extern bool check_poll(indev_t *);
 
 #endif /* KERN_CHARDEV_H_ */
 

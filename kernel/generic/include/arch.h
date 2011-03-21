@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup generic
  * @{
  */
 /** @file
@@ -38,17 +38,18 @@
 #include <arch/arch.h>
 #include <proc/thread.h>
 #include <proc/task.h>
+#include <mm/as.h>
 
-#define DEFAULT_CONTEXT		0
+#define DEFAULT_CONTEXT  0
 
-#define CPU			THE->cpu
-#define THREAD			THE->thread
-#define TASK			THE->task
-#define AS			THE->as
-#define CONTEXT		(THE->task ? THE->task->context : DEFAULT_CONTEXT)
-#define PREEMPTION_DISABLED	THE->preemption_disabled
+#define CPU                  THE->cpu
+#define THREAD               THE->thread
+#define TASK                 THE->task
+#define AS                   THE->as
+#define CONTEXT              (THE->task ? THE->task->context : DEFAULT_CONTEXT)
+#define PREEMPTION_DISABLED  THE->preemption_disabled
 
-#define context_check(ctx1, ctx2)	((ctx1) == (ctx2))
+#define context_check(ctx1, ctx2)  ((ctx1) == (ctx2))
 
 /**
  * For each possible kernel stack, structure
@@ -56,17 +57,23 @@
  * the base address of the stack.
  */
 typedef struct {
-	size_t preemption_disabled;	/**< Preemption disabled counter. */
-	thread_t *thread;		/**< Current thread. */
-	task_t *task;			/**< Current task. */
-	cpu_t *cpu;			/**< Executing cpu. */
-	as_t *as;			/**< Current address space. */
+	size_t preemption_disabled;  /**< Preemption disabled counter. */
+	thread_t *thread;            /**< Current thread. */
+	task_t *task;                /**< Current task. */
+	cpu_t *cpu;                  /**< Executing cpu. */
+	as_t *as;                    /**< Current address space. */
 } the_t;
 
+/*
+ * THE is not an abbreviation, but the English definite article written in
+ * capital letters. It means the current pointer to something, e.g. thread,
+ * processor or address space. Kind reader of this comment shall appreciate
+ * the wit of constructs like THE->thread and similar.
+ */
 #define THE  ((the_t * )(get_stack_base()))
 
-extern void the_initialize(the_t *the);
-extern void the_copy(the_t *src, the_t *dst);
+extern void the_initialize(the_t *);
+extern void the_copy(the_t *, the_t *);
 
 extern void arch_pre_mm_init(void);
 extern void arch_post_mm_init(void);
@@ -78,7 +85,7 @@ extern void calibrate_delay_loop(void);
 
 extern void reboot(void);
 extern void arch_reboot(void);
-extern void *arch_construct_function(fncptr_t *fptr, void *addr, void *caller);
+extern void *arch_construct_function(fncptr_t *, void *, void *);
 
 #endif
 

@@ -27,37 +27,47 @@
 #
 
 #include <arch/context_offset.h>
-
-/**
- * Both context_save_arch() and context_restore_arch() are
- * leaf-optimized procedures. This kind of optimization
- * is very important and prevents any implicit window
- * spill/fill/clean traps in these very core kernel
- * functions.
- */
-	
-#include <arch/context_offset.h>
+#include <arch/arch.h>
+#include <arch/regdef.h>
 
 .text   
 
 .global context_save_arch
 .global context_restore_arch
 
+/*
+ * context_save_arch() is required not to create its own stack frame. See the
+ * generic context.h for explanation.
+ */
 context_save_arch:
+	#
+	# Force all our active register windows to memory so that we can find
+	# them there even if e.g. the thread is migrated to another processor.
+	#
+	flushw
+
 	CONTEXT_SAVE_ARCH_CORE %o0
 	retl
 	mov 1, %o0		! context_save_arch returns 1
 
 context_restore_arch:
 	#
-	# Flush all active windows.
-	# This is essential, because CONTEXT_LOAD overwrites
-	# %sp of CWP - 1 with the value written to %fp of CWP.
-	# Flushing all active windows mitigates this problem
-	# as CWP - 1 becomes the overlap window.
+	# Forget all previous windows, they are not going to be needed again.
+	# Enforce a window fill on the next RESTORE instruction by setting
+	# CANRESTORE to zero and other window configuration registers
+	# accordingly. Note that the same can be achieved by executing the
+	# FLUSHW instruction, but since we don't need to remember the previous
+	# windows, we do the former and save thus some unnecessary window
+	# spills.
 	#
-	flushw
-	
+	rdpr %pstate, %l0
+	andn %l0, PSTATE_IE_BIT, %l1
+	wrpr %l1, %pstate
+	wrpr %g0, 0, %canrestore
+	wrpr %g0, 0, %otherwin
+	wrpr %g0, NWINDOWS - 2, %cansave
+	wrpr %l0, %pstate
+
 	CONTEXT_RESTORE_ARCH_CORE %o0
 	retl
 	xor %o0, %o0, %o0	! context_restore_arch returns 0

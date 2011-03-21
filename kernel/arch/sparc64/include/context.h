@@ -36,14 +36,10 @@
 #define KERN_sparc64_CONTEXT_H_
 
 #include <arch/stack.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <align.h>
 
 #define SP_DELTA	(STACK_WINDOW_SAVE_AREA_SIZE + STACK_ARG_SAVE_AREA_SIZE)
-
-#ifdef context_set
-#undef context_set
-#endif
 
 #define context_set(c, _pc, stack, size)			\
 	(c)->pc = ((uintptr_t) _pc) - 8;			\

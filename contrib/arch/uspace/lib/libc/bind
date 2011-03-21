@@ -1,0 +1,15 @@
+/* Bind %% to kernel interfaces */
+bind %%:sys_klog to kernel:sys_klog;
+bind %%:sys_tls to kernel:sys_tls;
+bind %%:sys_thread to kernel:sys_thread;
+bind %%:sys_task to kernel:sys_task;
+bind %%:sys_program to kernel:sys_program;
+bind %%:sys_futex to kernel:sys_futex;
+bind %%:sys_smc to kernel:sys_smc;
+bind %%:sys_as to kernel:sys_as;
+bind %%:sys_ipc to kernel:sys_ipc;
+bind %%:sys_event to kernel:sys_event;
+bind %%:sys_cap to kernel:sys_cap;
+bind %%:sys_ddi to kernel:sys_ddi;
+bind %%:sys_sysinfo to kernel:sys_sysinfo;
+bind %%:sys_debug to kernel:sys_debug;

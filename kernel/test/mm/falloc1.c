@@ -32,7 +32,7 @@
 #include <mm/frame.h>
 #include <mm/slab.h>
 #include <arch/mm/page.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <debug.h>
 #include <align.h>
 
@@ -40,7 +40,7 @@
 #define MAX_ORDER   8
 #define TEST_RUNS   2
 
-char *test_falloc1(void) {
+const char *test_falloc1(void) {
 	uintptr_t *frames
 	    = (uintptr_t *) malloc(MAX_FRAMES * sizeof(uintptr_t), 0);
 	int results[MAX_ORDER + 1];
@@ -63,7 +63,8 @@ char *test_falloc1(void) {
 				frames[allocated] = (uintptr_t) frame_alloc(order, FRAME_ATOMIC | FRAME_KA);
 				
 				if (ALIGN_UP(frames[allocated], FRAME_SIZE << order) != frames[allocated]) {
-					TPRINTF("Block at address %p (size %dK) is not aligned\n", frames[allocated], (FRAME_SIZE << order) >> 10);
+					TPRINTF("Block at address %p (size %dK) is not aligned\n",
+					    (void *) frames[allocated], (FRAME_SIZE << order) >> 10);
 					return "Test failed";
 				}
 				

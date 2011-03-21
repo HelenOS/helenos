@@ -35,8 +35,6 @@
 #ifndef KERN_UINIT_H_
 #define KERN_UINIT_H_
 
-#include <arch/types.h>
-
 extern void uinit(void *arg);
 
 #endif

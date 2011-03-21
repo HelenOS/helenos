@@ -26,6 +26,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
+
 """
 FAT creator
 """
@@ -44,7 +45,7 @@ def align_up(size, alignment):
 	if (size % alignment == 0):
 		return size
 	
-	return (((size / alignment) + 1) * alignment)
+	return ((size // alignment) + 1) * alignment
 
 def subtree_size(root, cluster_size, dirent_size):
 	"Recursive directory walk and calculate size"
@@ -77,7 +78,7 @@ def write_file(path, outf, cluster_size, data_start, fat, reserved_clusters):
 	prev = -1
 	first = 0
 	
-	inf = file(path, "r")
+	inf = open(path, "rb")
 	rd = 0;
 	while (rd < size):
 		empty_cluster = fat.index(0)
@@ -90,7 +91,7 @@ def write_file(path, outf, cluster_size, data_start, fat, reserved_clusters):
 		
 		prev = empty_cluster
 		
-		data = inf.read(cluster_size);
+		data = bytes(inf.read(cluster_size));
 		outf.seek(data_start + (empty_cluster - reserved_clusters) * cluster_size)
 		outf.write(data)
 		rd += len(data)
@@ -118,7 +119,7 @@ def write_directory(directory, outf, cluster_size, data_start, fat, reserved_clu
 		
 		prev = empty_cluster
 		
-		data = ''
+		data = bytes()
 		data_len = 0
 		while ((i < length) and (data_len < cluster_size)):
 			if (i == 0):
@@ -341,16 +342,22 @@ FAT_ENTRY = """little:
 
 def usage(prname):
 	"Print usage syntax"
-	print prname + " <PATH> <IMAGE>"
+	print(prname + " <EXTRA_BYTES> <PATH> <IMAGE>")
 
 def main():
-	if (len(sys.argv) < 3):
+	if (len(sys.argv) < 4):
 		usage(sys.argv[0])
 		return
 	
-	path = os.path.abspath(sys.argv[1])
+	if (not sys.argv[1].isdigit()):
+		print("<EXTRA_BYTES> must be a number")
+		return
+	
+	extra_bytes = int(sys.argv[1])
+	
+	path = os.path.abspath(sys.argv[2])
 	if (not os.path.isdir(path)):
-		print "<PATH> must be a directory"
+		print("<PATH> must be a directory")
 		return
 	
 	fat16_clusters = 4096
@@ -362,39 +369,39 @@ def main():
 	fat_count = 2
 	reserved_clusters = 2
 	
-	# Make sure the filesystem is large enought for FAT16
-	size = subtree_size(path, cluster_size, dirent_size) + reserved_clusters * cluster_size
-	while (size / cluster_size < fat16_clusters):
+	# Make sure the filesystem is large enough for FAT16
+	size = subtree_size(path, cluster_size, dirent_size) + reserved_clusters * cluster_size + extra_bytes
+	while (size // cluster_size < fat16_clusters):
 		if (cluster_size > sector_size):
-			cluster_size /= 2
-			size = subtree_size(path, cluster_size, dirent_size) + reserved_clusters * cluster_size
+			cluster_size = cluster_size // 2
+			size = subtree_size(path, cluster_size, dirent_size) + reserved_clusters * cluster_size + extra_bytes
 		else:
 			size = fat16_clusters * cluster_size + reserved_clusters * cluster_size
 	
 	root_size = align_up(root_entries(path) * dirent_size, cluster_size)
 	
-	fat_size = align_up(align_up(size, cluster_size) / cluster_size * fatent_size, sector_size)
+	fat_size = align_up(align_up(size, cluster_size) // cluster_size * fatent_size, sector_size)
 	
-	sectors = (cluster_size + fat_count * fat_size + root_size + size) / sector_size
+	sectors = (cluster_size + fat_count * fat_size + root_size + size) // sector_size
 	root_start = cluster_size + fat_count * fat_size
 	data_start = root_start + root_size
 	
-	outf = file(sys.argv[2], "w")
+	outf = open(sys.argv[3], "wb")
 	
 	boot_sector = xstruct.create(BOOT_SECTOR)
 	boot_sector.jmp = [0xEB, 0x3C, 0x90]
-	boot_sector.oem = "MSDOS5.0"
+	boot_sector.oem = b'MSDOS5.0'
 	boot_sector.sector = sector_size
-	boot_sector.cluster = cluster_size / sector_size
-	boot_sector.reserved = cluster_size / sector_size
+	boot_sector.cluster = cluster_size // sector_size
+	boot_sector.reserved = cluster_size // sector_size
 	boot_sector.fats = fat_count
-	boot_sector.rootdir = root_size / dirent_size
+	boot_sector.rootdir = root_size // dirent_size
 	if (sectors <= 65535):
 		boot_sector.sectors = sectors
 	else:
 		boot_sector.sectors = 0
 	boot_sector.descriptor = 0xF8
-	boot_sector.fat_sectors = fat_size / sector_size
+	boot_sector.fat_sectors = fat_size // sector_size
 	boot_sector.track_sectors = 63
 	boot_sector.heads = 6
 	boot_sector.hidden = 0
@@ -406,8 +413,8 @@ def main():
 	boot_sector.drive = 0x80
 	boot_sector.extboot_signature = 0x29
 	boot_sector.serial = random.randint(0, 0x7fffffff)
-	boot_sector.label = "HELENOS"
-	boot_sector.fstype = "FAT16   "
+	boot_sector.label = b'HELENOS'
+	boot_sector.fstype = b'FAT16   '
 	boot_sector.boot_signature = [0x55, 0xAA]
 	
 	outf.write(boot_sector.pack())
@@ -415,23 +422,23 @@ def main():
 	empty_sector = xstruct.create(EMPTY_SECTOR)
 	
 	# Reserved sectors
-	for i in range(1, cluster_size / sector_size):
+	for i in range(1, cluster_size // sector_size):
 		outf.write(empty_sector.pack())
 	
 	# FAT tables
 	for i in range(0, fat_count):
-		for j in range(0, fat_size / sector_size):
+		for j in range(0, fat_size // sector_size):
 			outf.write(empty_sector.pack())
 	
 	# Root directory
-	for i in range(0, root_size / sector_size):
+	for i in range(0, root_size // sector_size):
 		outf.write(empty_sector.pack())
 	
 	# Data
-	for i in range(0, size / sector_size):
+	for i in range(0, size // sector_size):
 		outf.write(empty_sector.pack())
 	
-	fat = array.array('L', [0] * (fat_size / fatent_size))
+	fat = array.array('L', [0] * (fat_size // fatent_size))
 	fat[0] = 0xfff8
 	fat[1] = 0xffff
 	
@@ -441,7 +448,7 @@ def main():
 	fat_entry = xstruct.create(FAT_ENTRY)
 	for i in range(0, fat_count):
 		outf.seek(cluster_size + i * fat_size)
-		for j in range(0, fat_size / fatent_size):
+		for j in range(0, fat_size // fatent_size):
 			fat_entry.next = fat[j]
 			outf.write(fat_entry.pack())
 	

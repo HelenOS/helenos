@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia64	
+/** @addtogroup ia64
  * @{
  */
 /** @file
@@ -37,68 +37,87 @@
 
 #include <config.h>
 #include <typedefs.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <arch/register.h>
+#include <trace.h>
 
-#define IA64_IOSPACE_ADDRESS 0xE001000000000000ULL
+#define IA64_IOSPACE_ADDRESS  0xE001000000000000ULL
 
-static inline void pio_write_8(ioport8_t *port, uint8_t v)
+NO_TRACE static inline void pio_write_8(ioport8_t *port, uint8_t v)
 {
 	uintptr_t prt = (uintptr_t) port;
-
-	*((ioport8_t *)(IA64_IOSPACE_ADDRESS +
+	
+	*((ioport8_t *) (IA64_IOSPACE_ADDRESS +
 	    ((prt & 0xfff) | ((prt >> 2) << 12)))) = v;
-
-	asm volatile ("mf\n" ::: "memory");
+	
+	asm volatile (
+		"mf\n"
+		::: "memory"
+	);
 }
 
-static inline void pio_write_16(ioport16_t *port, uint16_t v)
+NO_TRACE static inline void pio_write_16(ioport16_t *port, uint16_t v)
 {
 	uintptr_t prt = (uintptr_t) port;
-
-	*((ioport16_t *)(IA64_IOSPACE_ADDRESS +
+	
+	*((ioport16_t *) (IA64_IOSPACE_ADDRESS +
 	    ((prt & 0xfff) | ((prt >> 2) << 12)))) = v;
-
-	asm volatile ("mf\n" ::: "memory");
+	
+	asm volatile (
+		"mf\n"
+		::: "memory"
+	);
 }
 
-static inline void pio_write_32(ioport32_t *port, uint32_t v)
+NO_TRACE static inline void pio_write_32(ioport32_t *port, uint32_t v)
 {
 	uintptr_t prt = (uintptr_t) port;
-
-	*((ioport32_t *)(IA64_IOSPACE_ADDRESS +
+	
+	*((ioport32_t *) (IA64_IOSPACE_ADDRESS +
 	    ((prt & 0xfff) | ((prt >> 2) << 12)))) = v;
-
-	asm volatile ("mf\n" ::: "memory");
+	
+	asm volatile (
+		"mf\n"
+		::: "memory"
+	);
 }
 
-static inline uint8_t pio_read_8(ioport8_t *port)
+NO_TRACE static inline uint8_t pio_read_8(ioport8_t *port)
 {
 	uintptr_t prt = (uintptr_t) port;
-
-	asm volatile ("mf\n" ::: "memory");
-
-	return *((ioport8_t *)(IA64_IOSPACE_ADDRESS +
+	
+	asm volatile (
+		"mf\n"
+		::: "memory"
+	);
+	
+	return *((ioport8_t *) (IA64_IOSPACE_ADDRESS +
 	    ((prt & 0xfff) | ((prt >> 2) << 12))));
 }
 
-static inline uint16_t pio_read_16(ioport16_t *port)
+NO_TRACE static inline uint16_t pio_read_16(ioport16_t *port)
 {
 	uintptr_t prt = (uintptr_t) port;
-
-	asm volatile ("mf\n" ::: "memory");
-
-	return *((ioport16_t *)(IA64_IOSPACE_ADDRESS +
+	
+	asm volatile (
+		"mf\n"
+		::: "memory"
+	);
+	
+	return *((ioport16_t *) (IA64_IOSPACE_ADDRESS +
 	    ((prt & 0xfff) | ((prt >> 2) << 12))));
 }
 
-static inline uint32_t pio_read_32(ioport32_t *port)
+NO_TRACE static inline uint32_t pio_read_32(ioport32_t *port)
 {
 	uintptr_t prt = (uintptr_t) port;
-
-	asm volatile ("mf\n" ::: "memory");
-
-	return *((ioport32_t *)(IA64_IOSPACE_ADDRESS +
+	
+	asm volatile (
+		"mf\n"
+		::: "memory"
+	);
+	
+	return *((ioport32_t *) (IA64_IOSPACE_ADDRESS +
 	    ((prt & 0xfff) | ((prt >> 2) << 12))));
 }
 
@@ -107,30 +126,50 @@ static inline uint32_t pio_read_32(ioport32_t *port)
  * Return the base address of the current stack.
  * The stack is assumed to be STACK_SIZE long.
  * The stack must start on page boundary.
+ *
  */
-static inline uintptr_t get_stack_base(void)
+NO_TRACE static inline uintptr_t get_stack_base(void)
 {
 	uint64_t v;
-
-	//I'm not sure why but this code bad inlines in scheduler, 
-	//so THE shifts about 16B and causes kernel panic
-	//asm volatile ("and %0 = %1, r12" : "=r" (v) : "r" (~(STACK_SIZE-1)));
-	//return v;
 	
-	//this code have the same meaning but inlines well
-	asm volatile ("mov %0 = r12" : "=r" (v)  );
-	return v & (~(STACK_SIZE-1));
+	/*
+	 * I'm not sure why but this code inlines badly
+	 * in scheduler, resulting in THE shifting about
+	 * 16B and causing kernel panic.
+	 *
+	 * asm volatile (
+	 *     "and %[value] = %[mask], r12"
+	 *     : [value] "=r" (v)
+	 *     : [mask] "r" (~(STACK_SIZE - 1))
+	 * );
+	 * return v;
+	 *
+	 * The following code has the same semantics but
+	 * inlines correctly.
+	 *
+	 */
+	
+	asm volatile (
+		"mov %[value] = r12"
+		: [value] "=r" (v)
+	);
+	
+	return (v & (~(STACK_SIZE - 1)));
 }
 
 /** Return Processor State Register.
  *
  * @return PSR.
+ *
  */
-static inline uint64_t psr_read(void)
+NO_TRACE static inline uint64_t psr_read(void)
 {
 	uint64_t v;
 	
-	asm volatile ("mov %0 = psr\n" : "=r" (v));
+	asm volatile (
+		"mov %[value] = psr\n"
+		: [value] "=r" (v)
+	);
 	
 	return v;
 }
@@ -138,12 +177,16 @@ static inline uint64_t psr_read(void)
 /** Read IVA (Interruption Vector Address).
  *
  * @return Return location of interruption vector table.
+ *
  */
-static inline uint64_t iva_read(void)
+NO_TRACE static inline uint64_t iva_read(void)
 {
 	uint64_t v;
 	
-	asm volatile ("mov %0 = cr.iva\n" : "=r" (v));
+	asm volatile (
+		"mov %[value] = cr.iva\n"
+		: [value] "=r" (v)
+	);
 	
 	return v;
 }
@@ -151,54 +194,72 @@ static inline uint64_t iva_read(void)
 /** Write IVA (Interruption Vector Address) register.
  *
  * @param v New location of interruption vector table.
+ *
  */
-static inline void iva_write(uint64_t v)
+NO_TRACE static inline void iva_write(uint64_t v)
 {
-	asm volatile ("mov cr.iva = %0\n" : : "r" (v));
+	asm volatile (
+		"mov cr.iva = %[value]\n"
+		:: [value] "r" (v)
+	);
 }
-
 
 /** Read IVR (External Interrupt Vector Register).
  *
- * @return Highest priority, pending, unmasked external interrupt vector.
+ * @return Highest priority, pending, unmasked external
+ *         interrupt vector.
+ *
  */
-static inline uint64_t ivr_read(void)
+NO_TRACE static inline uint64_t ivr_read(void)
 {
 	uint64_t v;
 	
-	asm volatile ("mov %0 = cr.ivr\n" : "=r" (v));
+	asm volatile (
+		"mov %[value] = cr.ivr\n"
+		: [value] "=r" (v)
+	);
 	
 	return v;
 }
 
-static inline uint64_t cr64_read(void)
+NO_TRACE static inline uint64_t cr64_read(void)
 {
 	uint64_t v;
 	
-	asm volatile ("mov %0 = cr64\n" : "=r" (v));
+	asm volatile (
+		"mov %[value] = cr64\n"
+		: [value] "=r" (v)
+	);
 	
 	return v;
 }
-
 
 /** Write ITC (Interval Timer Counter) register.
  *
  * @param v New counter value.
+ *
  */
-static inline void itc_write(uint64_t v)
+NO_TRACE static inline void itc_write(uint64_t v)
 {
-	asm volatile ("mov ar.itc = %0\n" : : "r" (v));
+	asm volatile (
+		"mov ar.itc = %[value]\n"
+		:: [value] "r" (v)
+	);
 }
 
 /** Read ITC (Interval Timer Counter) register.
  *
  * @return Current counter value.
+ *
  */
-static inline uint64_t itc_read(void)
+NO_TRACE static inline uint64_t itc_read(void)
 {
 	uint64_t v;
 	
-	asm volatile ("mov %0 = ar.itc\n" : "=r" (v));
+	asm volatile (
+		"mov %[value] = ar.itc\n"
+		: [value] "=r" (v)
+	);
 	
 	return v;
 }
@@ -206,21 +267,29 @@ static inline uint64_t itc_read(void)
 /** Write ITM (Interval Timer Match) register.
  *
  * @param v New match value.
+ *
  */
-static inline void itm_write(uint64_t v)
+NO_TRACE static inline void itm_write(uint64_t v)
 {
-	asm volatile ("mov cr.itm = %0\n" : : "r" (v));
+	asm volatile (
+		"mov cr.itm = %[value]\n"
+		:: [value] "r" (v)
+	);
 }
 
 /** Read ITM (Interval Timer Match) register.
  *
  * @return Match value.
+ *
  */
-static inline uint64_t itm_read(void)
+NO_TRACE static inline uint64_t itm_read(void)
 {
 	uint64_t v;
 	
-	asm volatile ("mov %0 = cr.itm\n" : "=r" (v));
+	asm volatile (
+		"mov %[value] = cr.itm\n"
+		: [value] "=r" (v)
+	);
 	
 	return v;
 }
@@ -228,12 +297,16 @@ static inline uint64_t itm_read(void)
 /** Read ITV (Interval Timer Vector) register.
  *
  * @return Current vector and mask bit.
+ *
  */
-static inline uint64_t itv_read(void)
+NO_TRACE static inline uint64_t itv_read(void)
 {
 	uint64_t v;
 	
-	asm volatile ("mov %0 = cr.itv\n" : "=r" (v));
+	asm volatile (
+		"mov %[value] = cr.itv\n"
+		: [value] "=r" (v)
+	);
 	
 	return v;
 }
@@ -241,30 +314,42 @@ static inline uint64_t itv_read(void)
 /** Write ITV (Interval Timer Vector) register.
  *
  * @param v New vector and mask bit.
+ *
  */
-static inline void itv_write(uint64_t v)
+NO_TRACE static inline void itv_write(uint64_t v)
 {
-	asm volatile ("mov cr.itv = %0\n" : : "r" (v));
+	asm volatile (
+		"mov cr.itv = %[value]\n"
+		:: [value] "r" (v)
+	);
 }
 
 /** Write EOI (End Of Interrupt) register.
  *
  * @param v This value is ignored.
+ *
  */
-static inline void eoi_write(uint64_t v)
+NO_TRACE static inline void eoi_write(uint64_t v)
 {
-	asm volatile ("mov cr.eoi = %0\n" : : "r" (v));
+	asm volatile (
+		"mov cr.eoi = %[value]\n"
+		:: [value] "r" (v)
+	);
 }
 
 /** Read TPR (Task Priority Register).
  *
  * @return Current value of TPR.
+ *
  */
-static inline uint64_t tpr_read(void)
+NO_TRACE static inline uint64_t tpr_read(void)
 {
 	uint64_t v;
-
-	asm volatile ("mov %0 = cr.tpr\n"  : "=r" (v));
+	
+	asm volatile (
+		"mov %[value] = cr.tpr\n"
+		: [value] "=r" (v)
+	);
 	
 	return v;
 }
@@ -272,10 +357,14 @@ static inline uint64_t tpr_read(void)
 /** Write TPR (Task Priority Register).
  *
  * @param v New value of TPR.
+ *
  */
-static inline void tpr_write(uint64_t v)
+NO_TRACE static inline void tpr_write(uint64_t v)
 {
-	asm volatile ("mov cr.tpr = %0\n" : : "r" (v));
+	asm volatile (
+		"mov cr.tpr = %[value]\n"
+		:: [value] "r" (v)
+	);
 }
 
 /** Disable interrupts.
@@ -284,16 +373,17 @@ static inline void tpr_write(uint64_t v)
  * value of PSR.
  *
  * @return Old interrupt priority level.
+ *
  */
-static ipl_t interrupts_disable(void)
+NO_TRACE static ipl_t interrupts_disable(void)
 {
 	uint64_t v;
 	
 	asm volatile (
-		"mov %0 = psr\n"
-		"rsm %1\n"
-		: "=r" (v)
-		: "i" (PSR_I_MASK)
+		"mov %[value] = psr\n"
+		"rsm %[mask]\n"
+		: [value] "=r" (v)
+		: [mask] "i" (PSR_I_MASK)
 	);
 	
 	return (ipl_t) v;
@@ -305,18 +395,19 @@ static ipl_t interrupts_disable(void)
  * value of PSR.
  *
  * @return Old interrupt priority level.
+ *
  */
-static ipl_t interrupts_enable(void)
+NO_TRACE static ipl_t interrupts_enable(void)
 {
 	uint64_t v;
 	
 	asm volatile (
-		"mov %0 = psr\n"
-		"ssm %1\n"
+		"mov %[value] = psr\n"
+		"ssm %[mask]\n"
 		";;\n"
 		"srlz.d\n"
-		: "=r" (v)
-		: "i" (PSR_I_MASK)
+		: [value] "=r" (v)
+		: [mask] "i" (PSR_I_MASK)
 	);
 	
 	return (ipl_t) v;
@@ -327,8 +418,9 @@ static ipl_t interrupts_enable(void)
  * Restore PSR.
  *
  * @param ipl Saved interrupt priority level.
+ *
  */
-static inline void interrupts_restore(ipl_t ipl)
+NO_TRACE static inline void interrupts_restore(ipl_t ipl)
 {
 	if (ipl & PSR_I_MASK)
 		(void) interrupts_enable();
@@ -339,19 +431,35 @@ static inline void interrupts_restore(ipl_t ipl)
 /** Return interrupt priority level.
  *
  * @return PSR.
+ *
  */
-static inline ipl_t interrupts_read(void)
+NO_TRACE static inline ipl_t interrupts_read(void)
 {
 	return (ipl_t) psr_read();
 }
 
-/** Disable protection key checking. */
-static inline void pk_disable(void)
+/** Check interrupts state.
+ *
+ * @return True if interrupts are disabled.
+ *
+ */
+NO_TRACE static inline bool interrupts_disabled(void)
 {
-	asm volatile ("rsm %0\n" : : "i" (PSR_PK_MASK));
+	return !(psr_read() & PSR_I_MASK);
 }
 
-extern void cpu_halt(void);
+/** Disable protection key checking. */
+NO_TRACE static inline void pk_disable(void)
+{
+	asm volatile (
+		"rsm %[mask]\n"
+		";;\n"
+		"srlz.d\n"
+		:: [mask] "i" (PSR_PK_MASK)
+	);
+}
+
+extern void cpu_halt(void) __attribute__((noreturn));
 extern void cpu_sleep(void);
 extern void asm_delay_loop(uint32_t t);
 

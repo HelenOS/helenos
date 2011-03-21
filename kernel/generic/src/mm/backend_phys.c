@@ -37,8 +37,9 @@
  */
 
 #include <debug.h>
-#include <arch/types.h>
+#include <typedefs.h>
 #include <mm/as.h>
+#include <mm/page.h>
 #include <mm/frame.h>
 #include <mm/slab.h>
 #include <memstr.h>
@@ -70,14 +71,18 @@ int phys_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 {
 	uintptr_t base = area->backend_data.base;
 
+	ASSERT(page_table_locked(AS));
+	ASSERT(mutex_locked(&area->lock));
+
 	if (!as_area_check_access(area, access))
 		return AS_PF_FAULT;
 
 	ASSERT(addr - area->base < area->backend_data.frames * FRAME_SIZE);
 	page_mapping_insert(AS, addr, base + (addr - area->base),
 	    as_area_get_flags(area));
-        if (!used_space_insert(area, ALIGN_DOWN(addr, PAGE_SIZE), 1))
-                panic("Cannot insert used space.");
+	
+	if (!used_space_insert(area, ALIGN_DOWN(addr, PAGE_SIZE), 1))
+		panic("Cannot insert used space.");
 
 	return AS_PF_OK;
 }
@@ -91,6 +96,8 @@ int phys_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
  */
 void phys_share(as_area_t *area)
 {
+	ASSERT(mutex_locked(&area->as->lock));
+	ASSERT(mutex_locked(&area->lock));
 }
 
 /** @}
