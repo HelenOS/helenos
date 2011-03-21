@@ -165,7 +165,7 @@ static void dump_descriptor_tree_brief_hub(const char *prefix,
 }
 
 
-static void dump_descriptor_tree_brief_callback(uint8_t *descriptor,
+static void dump_descriptor_tree_callback(uint8_t *descriptor,
     size_t depth, void *arg)
 {
 	const char *indent = get_indent(depth + 1);
@@ -182,6 +182,11 @@ static void dump_descriptor_tree_brief_callback(uint8_t *descriptor,
 	case type_enum: \
 		if (descr_size >= sizeof(descriptor_type)) { \
 			callback(indent, (descriptor_type *) descriptor); \
+			if (arg != NULL) { \
+				usb_dump_standard_descriptor(stdout, \
+				    get_indent(depth +2), "\n", \
+				    descriptor, descr_size); \
+			} \
 		} else { \
 			descr_type = -1; \
 		} \
@@ -221,14 +226,26 @@ static void dump_descriptor_tree_brief_callback(uint8_t *descriptor,
 
 void dump_descriptor_tree_brief(usbinfo_device_t *dev)
 {
-	dump_descriptor_tree_brief_callback((uint8_t *)&dev->device_descriptor,
+	dump_descriptor_tree_callback((uint8_t *)&dev->device_descriptor,
 	    (size_t) -1, NULL);
 	usb_dp_walk_simple(dev->full_configuration_descriptor,
 	    dev->full_configuration_descriptor_size,
 	    usb_dp_standard_descriptor_nesting,
-	    dump_descriptor_tree_brief_callback,
+	    dump_descriptor_tree_callback,
 	    NULL);
 }
+
+void dump_descriptor_tree_full(usbinfo_device_t *dev)
+{
+	dump_descriptor_tree_callback((uint8_t *)&dev->device_descriptor,
+	    (size_t) -1, dev);
+	usb_dp_walk_simple(dev->full_configuration_descriptor,
+	    dev->full_configuration_descriptor_size,
+	    usb_dp_standard_descriptor_nesting,
+	    dump_descriptor_tree_callback,
+	    dev);
+}
+
 
 void dump_strings(usbinfo_device_t *dev)
 {
