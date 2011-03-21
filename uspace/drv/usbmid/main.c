@@ -105,7 +105,7 @@ int main(int argc, char *argv[])
 {
 	printf(NAME ": USB multi interface device driver.\n");
 
-	usb_log_enable(USB_LOG_LEVEL_INFO, NAME);
+	usb_log_enable(USB_LOG_LEVEL_DEFAULT, NAME);
 	return ddf_driver_main(&mid_driver);
 }
 

@@ -89,7 +89,7 @@ int uhci_add_device(ddf_dev_t *device)
 int main(int argc, char *argv[])
 {
 	sleep(3); /* TODO: remove in final version */
-	usb_log_enable(USB_LOG_LEVEL_DEBUG, NAME);
+	usb_log_enable(USB_LOG_LEVEL_DEFAULT, NAME);
 
 	return ddf_driver_main(&uhci_driver);
 }

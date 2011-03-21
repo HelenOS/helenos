@@ -121,7 +121,7 @@ int main(int argc, char * argv[])
 	 */
 	//sleep(5);
 
-	usb_log_enable(USB_LOG_LEVEL_DEBUG, NAME);
+	usb_log_enable(USB_LOG_LEVEL_DEFAULT, NAME);
 
 	printf(NAME ": virtual USB host controller driver.\n");
 
