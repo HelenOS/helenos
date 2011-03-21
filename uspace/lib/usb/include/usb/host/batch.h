@@ -39,8 +39,8 @@
 #include <usbhc_iface.h>
 #include <usb/usb.h>
 
-typedef struct batch
-{
+typedef struct usb_transfer_batch usb_transfer_batch_t;
+struct usb_transfer_batch {
 	link_t link;
 	usb_target_t target;
 	usb_transfer_type_t transfer_type;
@@ -55,15 +55,15 @@ typedef struct batch
 	size_t setup_size;
 	size_t max_packet_size;
 	size_t transfered_size;
-	void (*next_step)(struct batch*);
+	void (*next_step)(usb_transfer_batch_t *);
 	int error;
 	ddf_fun_t *fun;
 	void *arg;
 	void *private_data;
-} batch_t;
+};
 
-void batch_init(
-    batch_t *instance,
+void usb_transfer_batch_init(
+    usb_transfer_batch_t *instance,
     usb_target_t target,
     usb_transfer_type_t transfer_type,
     usb_speed_t speed,
@@ -80,15 +80,16 @@ void batch_init(
     void *private_data
 );
 
-static inline batch_t *batch_from_link(link_t *link_ptr)
+static inline usb_transfer_batch_t *usb_transfer_batch_from_link(link_t *link_ptr)
 {
 	assert(link_ptr);
-	return list_get_instance(link_ptr, batch_t, link);
+	return list_get_instance(link_ptr, usb_transfer_batch_t, link);
 }
 
-void batch_call_in(batch_t *instance);
-void batch_call_out(batch_t *instance);
-void batch_finish(batch_t *instance, int error);
+void usb_transfer_batch_call_in(usb_transfer_batch_t *instance);
+void usb_transfer_batch_call_out(usb_transfer_batch_t *instance);
+void usb_transfer_batch_finish(usb_transfer_batch_t *instance, int error);
+
 #endif
 /**
  * @}

@@ -105,7 +105,7 @@ int hc_register_hub(hc_t *instance)
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-int hc_schedule(hc_t *instance, batch_t *batch)
+int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch)
 {
 	assert(instance);
 	assert(batch);

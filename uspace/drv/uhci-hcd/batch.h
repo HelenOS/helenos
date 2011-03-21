@@ -43,7 +43,7 @@
 
 #include "uhci_struct/queue_head.h"
 
-batch_t * batch_get(
+usb_transfer_batch_t * batch_get(
     ddf_fun_t *fun,
 		usb_target_t target,
     usb_transfer_type_t transfer_type,
@@ -59,23 +59,23 @@ batch_t * batch_get(
 		usb_device_keeper_t *manager
 		);
 
-void batch_dispose(batch_t *instance);
+void batch_dispose(usb_transfer_batch_t *instance);
 
-bool batch_is_complete(batch_t *instance);
+bool batch_is_complete(usb_transfer_batch_t *instance);
 
-void batch_control_write(batch_t *instance);
+void batch_control_write(usb_transfer_batch_t *instance);
 
-void batch_control_read(batch_t *instance);
+void batch_control_read(usb_transfer_batch_t *instance);
 
-void batch_interrupt_in(batch_t *instance);
+void batch_interrupt_in(usb_transfer_batch_t *instance);
 
-void batch_interrupt_out(batch_t *instance);
+void batch_interrupt_out(usb_transfer_batch_t *instance);
 
-void batch_bulk_in(batch_t *instance);
+void batch_bulk_in(usb_transfer_batch_t *instance);
 
-void batch_bulk_out(batch_t *instance);
+void batch_bulk_out(usb_transfer_batch_t *instance);
 
-qh_t * batch_qh(batch_t *instance);
+qh_t * batch_qh(usb_transfer_batch_t *instance);
 #endif
 /**
  * @}

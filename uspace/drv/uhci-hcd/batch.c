@@ -52,11 +52,11 @@ typedef struct uhci_batch {
 	usb_device_keeper_t *manager;
 } uhci_batch_t;
 
-static void batch_control(batch_t *instance,
+static void batch_control(usb_transfer_batch_t *instance,
     usb_packet_id data_stage, usb_packet_id status_stage);
-static void batch_data(batch_t *instance, usb_packet_id pid);
-static void batch_call_in_and_dispose(batch_t *instance);
-static void batch_call_out_and_dispose(batch_t *instance);
+static void batch_data(usb_transfer_batch_t *instance, usb_packet_id pid);
+static void batch_call_in_and_dispose(usb_transfer_batch_t *instance);
+static void batch_call_out_and_dispose(usb_transfer_batch_t *instance);
 
 
 /** Allocate memory and initialize internal data structure.
@@ -81,7 +81,7 @@ static void batch_call_out_and_dispose(batch_t *instance);
  * (that is accessible by the hardware). Initializes parameters needed for the
  * transaction and callback.
  */
-batch_t * batch_get(ddf_fun_t *fun, usb_target_t target,
+usb_transfer_batch_t * batch_get(ddf_fun_t *fun, usb_target_t target,
     usb_transfer_type_t transfer_type, size_t max_packet_size,
     usb_speed_t speed, char *buffer, size_t buffer_size,
     char* setup_buffer, size_t setup_size,
@@ -102,10 +102,10 @@ batch_t * batch_get(ddf_fun_t *fun, usb_target_t target,
 		return NULL; \
 	} else (void)0
 
-	batch_t *instance = malloc(sizeof(batch_t));
+	usb_transfer_batch_t *instance = malloc(sizeof(usb_transfer_batch_t));
 	CHECK_NULL_DISPOSE_RETURN(instance,
 	    "Failed to allocate batch instance.\n");
-	batch_init(instance, target, transfer_type, speed, max_packet_size,
+	usb_transfer_batch_init(instance, target, transfer_type, speed, max_packet_size,
 	    buffer, NULL, buffer_size, NULL, setup_size, func_in,
 	    func_out, arg, fun, NULL);
 
@@ -160,7 +160,7 @@ batch_t * batch_get(ddf_fun_t *fun, usb_target_t target,
  * processed). Stop with true if an error is found. Return true if the last TS
  * is reached.
  */
-bool batch_is_complete(batch_t *instance)
+bool batch_is_complete(usb_transfer_batch_t *instance)
 {
 	assert(instance);
 	uhci_batch_t *data = instance->private_data;
@@ -204,7 +204,7 @@ substract_ret:
  *
  * Uses genercir control function with pids OUT and IN.
  */
-void batch_control_write(batch_t *instance)
+void batch_control_write(usb_transfer_batch_t *instance)
 {
 	assert(instance);
 	/* We are data out, we are supposed to provide data */
@@ -221,7 +221,7 @@ void batch_control_write(batch_t *instance)
  *
  * Uses generic control with pids IN and OUT.
  */
-void batch_control_read(batch_t *instance)
+void batch_control_read(usb_transfer_batch_t *instance)
 {
 	assert(instance);
 	batch_control(instance, USB_PID_IN, USB_PID_OUT);
@@ -235,7 +235,7 @@ void batch_control_read(batch_t *instance)
  *
  * Data transaction with PID_IN.
  */
-void batch_interrupt_in(batch_t *instance)
+void batch_interrupt_in(usb_transfer_batch_t *instance)
 {
 	assert(instance);
 	instance->direction = USB_DIRECTION_IN;
@@ -250,7 +250,7 @@ void batch_interrupt_in(batch_t *instance)
  *
  * Data transaction with PID_OUT.
  */
-void batch_interrupt_out(batch_t *instance)
+void batch_interrupt_out(usb_transfer_batch_t *instance)
 {
 	assert(instance);
 	instance->direction = USB_DIRECTION_OUT;
@@ -268,7 +268,7 @@ void batch_interrupt_out(batch_t *instance)
  *
  * Data transaction with PID_IN.
  */
-void batch_bulk_in(batch_t *instance)
+void batch_bulk_in(usb_transfer_batch_t *instance)
 {
 	assert(instance);
 	batch_data(instance, USB_PID_IN);
@@ -283,7 +283,7 @@ void batch_bulk_in(batch_t *instance)
  *
  * Data transaction with PID_OUT.
  */
-void batch_bulk_out(batch_t *instance)
+void batch_bulk_out(usb_transfer_batch_t *instance)
 {
 	assert(instance);
 	instance->direction = USB_DIRECTION_OUT;
@@ -303,7 +303,7 @@ void batch_bulk_out(batch_t *instance)
  * Packets with alternating toggle bit and supplied pid value.
  * The last packet is marked with IOC flag.
  */
-void batch_data(batch_t *instance, usb_packet_id pid)
+void batch_data(usb_transfer_batch_t *instance, usb_packet_id pid)
 {
 	assert(instance);
 	uhci_batch_t *data = instance->private_data;
@@ -357,7 +357,7 @@ void batch_data(batch_t *instance, usb_packet_id pid)
  * Status stage with toggle 1 and pid supplied by parameter.
  * The last packet is marked with IOC.
  */
-void batch_control(batch_t *instance,
+void batch_control(usb_transfer_batch_t *instance,
    usb_packet_id data_stage, usb_packet_id status_stage)
 {
 	assert(instance);
@@ -410,7 +410,7 @@ void batch_control(batch_t *instance,
 	    data->tds[packet].status);
 }
 /*----------------------------------------------------------------------------*/
-qh_t * batch_qh(batch_t *instance)
+qh_t * batch_qh(usb_transfer_batch_t *instance)
 {
 	assert(instance);
 	uhci_batch_t *data = instance->private_data;
@@ -422,10 +422,10 @@ qh_t * batch_qh(batch_t *instance)
  *
  * @param[in] instance Batch structure to use.
  */
-void batch_call_in_and_dispose(batch_t *instance)
+void batch_call_in_and_dispose(usb_transfer_batch_t *instance)
 {
 	assert(instance);
-	batch_call_in(instance);
+	usb_transfer_batch_call_in(instance);
 	batch_dispose(instance);
 }
 /*----------------------------------------------------------------------------*/
@@ -433,10 +433,10 @@ void batch_call_in_and_dispose(batch_t *instance)
  *
  * @param[in] instance Batch structure to use.
  */
-void batch_call_out_and_dispose(batch_t *instance)
+void batch_call_out_and_dispose(usb_transfer_batch_t *instance)
 {
 	assert(instance);
-	batch_call_out(instance);
+	usb_transfer_batch_call_out(instance);
 	batch_dispose(instance);
 }
 /*----------------------------------------------------------------------------*/
@@ -444,7 +444,7 @@ void batch_call_out_and_dispose(batch_t *instance)
  *
  * @param[in] instance Batch structure to use.
  */
-void batch_dispose(batch_t *instance)
+void batch_dispose(usb_transfer_batch_t *instance)
 {
 	assert(instance);
 	uhci_batch_t *data = instance->private_data;

@@ -40,11 +40,11 @@
 #include "batch.h"
 #include "utils/malloc32.h"
 
-static void batch_call_in_and_dispose(batch_t *instance);
-static void batch_call_out_and_dispose(batch_t *instance);
+static void batch_call_in_and_dispose(usb_transfer_batch_t *instance);
+static void batch_call_out_and_dispose(usb_transfer_batch_t *instance);
 
 #define DEFAULT_ERROR_COUNT 3
-batch_t * batch_get(
+usb_transfer_batch_t * batch_get(
     ddf_fun_t *fun,
 		usb_target_t target,
     usb_transfer_type_t transfer_type,
@@ -69,10 +69,10 @@ batch_t * batch_get(
                 return NULL; \
         } else (void)0
 
-	batch_t *instance = malloc(sizeof(batch_t));
+	usb_transfer_batch_t *instance = malloc(sizeof(usb_transfer_batch_t));
 	CHECK_NULL_DISPOSE_RETURN(instance,
 	    "Failed to allocate batch instance.\n");
-	batch_init(instance, target, transfer_type, speed, max_packet_size,
+	usb_transfer_batch_init(instance, target, transfer_type, speed, max_packet_size,
 	    buffer, NULL, buffer_size, NULL, setup_size, func_in,
 	    func_out, arg, fun, NULL);
 
@@ -93,7 +93,7 @@ batch_t * batch_get(
 	return instance;
 }
 /*----------------------------------------------------------------------------*/
-void batch_dispose(batch_t *instance)
+void batch_dispose(usb_transfer_batch_t *instance)
 {
 	assert(instance);
 	free32(instance->transport_buffer);
@@ -101,7 +101,7 @@ void batch_dispose(batch_t *instance)
 	free(instance);
 }
 /*----------------------------------------------------------------------------*/
-void batch_control_write(batch_t *instance)
+void batch_control_write(usb_transfer_batch_t *instance)
 {
 	assert(instance);
 	/* We are data out, we are supposed to provide data */
@@ -112,7 +112,7 @@ void batch_control_write(batch_t *instance)
 	usb_log_debug("Batch(%p) CONTROL WRITE initialized.\n", instance);
 }
 /*----------------------------------------------------------------------------*/
-void batch_control_read(batch_t *instance)
+void batch_control_read(usb_transfer_batch_t *instance)
 {
 	assert(instance);
 	instance->next_step = batch_call_in_and_dispose;
@@ -120,7 +120,7 @@ void batch_control_read(batch_t *instance)
 	usb_log_debug("Batch(%p) CONTROL WRITE initialized.\n", instance);
 }
 /*----------------------------------------------------------------------------*/
-void batch_interrupt_in(batch_t *instance)
+void batch_interrupt_in(usb_transfer_batch_t *instance)
 {
 	assert(instance);
 	instance->direction = USB_DIRECTION_IN;
@@ -129,7 +129,7 @@ void batch_interrupt_in(batch_t *instance)
 	usb_log_debug("Batch(%p) INTERRUPT IN initialized.\n", instance);
 }
 /*----------------------------------------------------------------------------*/
-void batch_interrupt_out(batch_t *instance)
+void batch_interrupt_out(usb_transfer_batch_t *instance)
 {
 	assert(instance);
 	instance->direction = USB_DIRECTION_OUT;
@@ -141,7 +141,7 @@ void batch_interrupt_out(batch_t *instance)
 	usb_log_debug("Batch(%p) INTERRUPT OUT initialized.\n", instance);
 }
 /*----------------------------------------------------------------------------*/
-void batch_bulk_in(batch_t *instance)
+void batch_bulk_in(usb_transfer_batch_t *instance)
 {
 	assert(instance);
 	instance->direction = USB_DIRECTION_IN;
@@ -150,7 +150,7 @@ void batch_bulk_in(batch_t *instance)
 	usb_log_debug("Batch(%p) BULK IN initialized.\n", instance);
 }
 /*----------------------------------------------------------------------------*/
-void batch_bulk_out(batch_t *instance)
+void batch_bulk_out(usb_transfer_batch_t *instance)
 {
 	assert(instance);
 	instance->direction = USB_DIRECTION_IN;
@@ -163,10 +163,10 @@ void batch_bulk_out(batch_t *instance)
  *
  * @param[in] instance Batch structure to use.
  */
-void batch_call_in_and_dispose(batch_t *instance)
+void batch_call_in_and_dispose(usb_transfer_batch_t *instance)
 {
 	assert(instance);
-	batch_call_in(instance);
+	usb_transfer_batch_call_in(instance);
 	batch_dispose(instance);
 }
 /*----------------------------------------------------------------------------*/
@@ -174,10 +174,10 @@ void batch_call_in_and_dispose(batch_t *instance)
  *
  * @param[in] instance Batch structure to use.
  */
-void batch_call_out_and_dispose(batch_t *instance)
+void batch_call_out_and_dispose(usb_transfer_batch_t *instance)
 {
 	assert(instance);
-	batch_call_out(instance);
+	usb_transfer_batch_call_out(instance);
 	batch_dispose(instance);
 }
 /**

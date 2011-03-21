@@ -315,7 +315,7 @@ int uhci_hc_init_transfer_lists(uhci_hc_t *instance)
  *
  * Checks for bandwidth availability and appends the batch to the proper queue.
  */
-int uhci_hc_schedule(uhci_hc_t *instance, batch_t *batch)
+int uhci_hc_schedule(uhci_hc_t *instance, usb_transfer_batch_t *batch)
 {
 	assert(instance);
 	assert(batch);

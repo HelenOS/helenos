@@ -60,7 +60,7 @@ int hc_init(hc_t *instance, ddf_fun_t *fun, ddf_dev_t *dev,
 
 int hc_register_hub(hc_t *instance);
 
-int hc_schedule(hc_t *instance, batch_t *batch);
+int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch);
 
 void hc_interrupt(hc_t *instance, uint16_t status);
 
