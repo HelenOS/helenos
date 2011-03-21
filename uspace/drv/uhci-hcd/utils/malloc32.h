@@ -49,6 +49,9 @@
  */
 static inline uintptr_t addr_to_phys(void *addr)
 {
+	if (addr == NULL)
+		return 0;
+
 	uintptr_t result;
 	int ret = as_get_physical_mapping(addr, &result);
 
