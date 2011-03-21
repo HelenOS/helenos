@@ -36,9 +36,8 @@
 
 #include <fibril_synch.h>
 
-#include "uhci_struct/queue_head.h"
-
 #include "batch.h"
+#include "hw_struct/queue_head.h"
 
 typedef struct transfer_list
 {
