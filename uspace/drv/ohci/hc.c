@@ -99,7 +99,11 @@ int hc_register_hub(hc_t *instance)
 	devman_handle_t handle;
 	ret = usb_hc_new_device_wrapper(dev, &conn, USB_SPEED_FULL, dummy_reset,
 	    0, instance, &address, &handle, NULL, NULL, NULL);
-	CHECK_RET_RETURN(ret, "Failed to add rh device.\n");
+	if (ret != EOK) {
+		usb_log_error("Failed to add rh device.\n");
+		instance->rh.address = -1;
+		return ret;
+	}
 
 	ret = usb_hc_connection_close(&conn);
 	CHECK_RET_RETURN(ret, "Failed to close hc connection.\n");
