@@ -106,13 +106,16 @@ void usb_transfer_batch_call_in(usb_transfer_batch_t *instance)
 	memcpy(instance->buffer, instance->transport_buffer,
 	    instance->buffer_size);
 
-	int err = instance->error;
-	usb_log_debug("Batch(%p) callback IN(type:%d): %s(%d), %zu.\n",
-	    instance, instance->transfer_type, str_error(err), err,
-	    instance->transfered_size);
+	usb_log_debug("Batch %p done (T%d.%d, %s %s in, %zuB): %s (%d).\n",
+	    instance,
+	    instance->target.address, instance->target.endpoint,
+	    usb_str_speed(instance->speed),
+	    usb_str_transfer_type_short(instance->transfer_type),
+	    instance->transfered_size,
+	    str_error(instance->error), instance->error);
 
-	instance->callback_in(
-	    instance->fun, err, instance->transfered_size, instance->arg);
+	instance->callback_in(instance->fun, instance->error,
+	    instance->transfered_size, instance->arg);
 }
 /*----------------------------------------------------------------------------*/
 /** Get error status and call callback out.
@@ -124,11 +127,15 @@ void usb_transfer_batch_call_out(usb_transfer_batch_t *instance)
 	assert(instance);
 	assert(instance->callback_out);
 
-	int err = instance->error;
-	usb_log_debug("Batch(%p) callback OUT(type:%d): %s(%d).\n",
-	    instance, instance->transfer_type, str_error(err), err);
+	usb_log_debug("Batch %p done (T%d.%d, %s %s out): %s (%d).\n",
+	    instance,
+	    instance->target.address, instance->target.endpoint,
+	    usb_str_speed(instance->speed),
+	    usb_str_transfer_type_short(instance->transfer_type),
+	    str_error(instance->error), instance->error);
+
 	instance->callback_out(instance->fun,
-	    err, instance->arg);
+	    instance->error, instance->arg);
 }
 /**
  * @}
