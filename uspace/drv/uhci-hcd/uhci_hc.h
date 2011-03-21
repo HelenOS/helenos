@@ -82,7 +82,7 @@ typedef struct uhci_regs {
 #define UHCI_ALLOWED_HW_FAIL 5
 
 typedef struct uhci_hc {
-	device_keeper_t device_manager;
+	usb_device_keeper_t device_manager;
 
 	regs_t *registers;
 
@@ -108,7 +108,7 @@ typedef struct uhci_hc {
 int uhci_hc_init(uhci_hc_t *instance, ddf_fun_t *fun,
     void *regs, size_t reg_size, bool interupts);
 
-int uhci_hc_schedule(uhci_hc_t *instance, batch_t *batch);
+int uhci_hc_schedule(uhci_hc_t *instance, usb_transfer_batch_t *batch);
 
 void uhci_hc_interrupt(uhci_hc_t *instance, uint16_t status);
 

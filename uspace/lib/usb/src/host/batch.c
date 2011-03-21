@@ -29,7 +29,7 @@
  * @{
  */
 /** @file
- * @brief OHCI driver USB transaction structure
+ * USB transfer transaction structures (implementation).
  */
 #include <errno.h>
 #include <str_error.h>
@@ -38,8 +38,8 @@
 #include <usb/debug.h>
 #include <usb/host/batch.h>
 
-void batch_init(
-    batch_t *instance,
+void usb_transfer_batch_init(
+    usb_transfer_batch_t *instance,
     usb_target_t target,
     usb_transfer_type_t transfer_type,
     usb_speed_t speed,
@@ -84,7 +84,7 @@ void batch_init(
  * @param[in] instance Batch structure to use.
  *
  */
-void batch_finish(batch_t *instance, int error)
+void usb_transfer_batch_finish(usb_transfer_batch_t *instance, int error)
 {
 	assert(instance);
 	instance->error = error;
@@ -97,7 +97,7 @@ void batch_finish(batch_t *instance, int error)
  * Copies data from transport buffer, and calls callback with appropriate
  * parameters.
  */
-void batch_call_in(batch_t *instance)
+void usb_transfer_batch_call_in(usb_transfer_batch_t *instance)
 {
 	assert(instance);
 	assert(instance->callback_in);
@@ -119,7 +119,7 @@ void batch_call_in(batch_t *instance)
  *
  * @param[in] instance Batch structure to use.
  */
-void batch_call_out(batch_t *instance)
+void usb_transfer_batch_call_out(usb_transfer_batch_t *instance)
 {
 	assert(instance);
 	assert(instance->callback_out);

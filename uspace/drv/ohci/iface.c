@@ -63,7 +63,7 @@ static int reserve_default_address(ddf_fun_t *fun, usb_speed_t speed)
   hc_t *hc = fun_to_hc(fun);
   assert(hc);
   usb_log_debug("Default address request with speed %d.\n", speed);
-  device_keeper_reserve_default(&hc->manager, speed);
+  usb_device_keeper_reserve_default_address(&hc->manager, speed);
   return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -78,7 +78,7 @@ static int release_default_address(ddf_fun_t *fun)
   hc_t *hc = fun_to_hc(fun);
   assert(hc);
   usb_log_debug("Default address release.\n");
-  device_keeper_release_default(&hc->manager);
+  usb_device_keeper_release_default_address(&hc->manager);
   return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -98,7 +98,7 @@ static int request_address(ddf_fun_t *fun, usb_speed_t speed,
   assert(address);
 
   usb_log_debug("Address request with speed %d.\n", speed);
-  *address = device_keeper_request(&hc->manager, speed);
+  *address = device_keeper_get_free_address(&hc->manager, speed);
   usb_log_debug("Address request with result: %d.\n", *address);
   if (*address <= 0)
     return *address;
@@ -119,7 +119,7 @@ static int bind_address(ddf_fun_t *fun,
   hc_t *hc = fun_to_hc(fun);
   assert(hc);
   usb_log_debug("Address bind %d-%d.\n", address, handle);
-  device_keeper_bind(&hc->manager, address, handle);
+  usb_device_keeper_bind(&hc->manager, address, handle);
   return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -135,7 +135,7 @@ static int release_address(ddf_fun_t *fun, usb_address_t address)
   hc_t *hc = fun_to_hc(fun);
   assert(hc);
   usb_log_debug("Address release %d.\n", address);
-  device_keeper_release(&hc->manager, address);
+  usb_device_keeper_release(&hc->manager, address);
   return EOK;
 }
 
@@ -199,12 +199,12 @@ static int interrupt_out(ddf_fun_t *fun, usb_target_t target,
 {
   hc_t *hc = fun_to_hc(fun);
   assert(hc);
-  usb_speed_t speed = device_keeper_speed(&hc->manager, target.address);
+  usb_speed_t speed = usb_device_keeper_get_speed(&hc->manager, target.address);
 
   usb_log_debug("Interrupt OUT %d:%d %zu(%zu).\n",
       target.address, target.endpoint, size, max_packet_size);
 
-  batch_t *batch = batch_get(fun, target, USB_TRANSFER_INTERRUPT,
+  usb_transfer_batch_t *batch = batch_get(fun, target, USB_TRANSFER_INTERRUPT,
       max_packet_size, speed, data, size, NULL, 0, NULL, callback, arg,
       &hc->manager);
   if (!batch)
@@ -242,11 +242,11 @@ static int interrupt_in(ddf_fun_t *fun, usb_target_t target,
   assert(fun);
   hc_t *hc = fun_to_hc(fun);
   assert(hc);
-  usb_speed_t speed = device_keeper_speed(&hc->manager, target.address);
+  usb_speed_t speed = usb_device_keeper_get_speed(&hc->manager, target.address);
   usb_log_debug("Interrupt IN %d:%d %zu(%zu).\n", 
       target.address, target.endpoint, size, max_packet_size);
 
-  batch_t *batch = batch_get(fun, target, USB_TRANSFER_INTERRUPT,
+  usb_transfer_batch_t *batch = batch_get(fun, target, USB_TRANSFER_INTERRUPT,
       max_packet_size, speed, data, size, NULL, 0, callback, NULL, arg,
       &hc->manager);
   if (!batch)
@@ -284,12 +284,12 @@ static int bulk_out(ddf_fun_t *fun, usb_target_t target,
   assert(fun);
   hc_t *hc = fun_to_hc(fun);
   assert(hc);
-  usb_speed_t speed = device_keeper_speed(&hc->manager, target.address);
+  usb_speed_t speed = usb_device_keeper_get_speed(&hc->manager, target.address);
 
   usb_log_debug("Bulk OUT %d:%d %zu(%zu).\n",
       target.address, target.endpoint, size, max_packet_size);
 
-  batch_t *batch = batch_get(fun, target, USB_TRANSFER_BULK,
+  usb_transfer_batch_t *batch = batch_get(fun, target, USB_TRANSFER_BULK,
       max_packet_size, speed, data, size, NULL, 0, NULL, callback, arg,
       &hc->manager);
   if (!batch)
@@ -328,11 +328,11 @@ static int bulk_in(ddf_fun_t *fun, usb_target_t target,
   assert(fun);
   hc_t *hc = fun_to_hc(fun);
   assert(hc);
-  usb_speed_t speed = device_keeper_speed(&hc->manager, target.address);
+  usb_speed_t speed = usb_device_keeper_get_speed(&hc->manager, target.address);
   usb_log_debug("Bulk IN %d:%d %zu(%zu).\n",
       target.address, target.endpoint, size, max_packet_size);
 
-  batch_t *batch = batch_get(fun, target, USB_TRANSFER_BULK,
+  usb_transfer_batch_t *batch = batch_get(fun, target, USB_TRANSFER_BULK,
       max_packet_size, speed, data, size, NULL, 0, callback, NULL, arg,
       &hc->manager);
   if (!batch)
@@ -375,19 +375,19 @@ static int control_write(ddf_fun_t *fun, usb_target_t target,
   assert(fun);
   hc_t *hc = fun_to_hc(fun);
   assert(hc);
-  usb_speed_t speed = device_keeper_speed(&hc->manager, target.address);
+  usb_speed_t speed = usb_device_keeper_get_speed(&hc->manager, target.address);
   usb_log_debug("Control WRITE (%d) %d:%d %zu(%zu).\n",
       speed, target.address, target.endpoint, size, max_packet_size);
 
   if (setup_size != 8)
     return EINVAL;
 
-  batch_t *batch = batch_get(fun, target, USB_TRANSFER_CONTROL,
+  usb_transfer_batch_t *batch = batch_get(fun, target, USB_TRANSFER_CONTROL,
       max_packet_size, speed, data, size, setup_data, setup_size,
       NULL, callback, arg, &hc->manager);
   if (!batch)
     return ENOMEM;
-  device_keeper_reset_if_need(&hc->manager, target, setup_data);
+  usb_device_keeper_reset_if_need(&hc->manager, target, setup_data);
   batch_control_write(batch);
   const int ret = hc_schedule(hc, batch);
   if (ret != EOK) {
@@ -426,11 +426,11 @@ static int control_read(ddf_fun_t *fun, usb_target_t target,
   assert(fun);
   hc_t *hc = fun_to_hc(fun);
   assert(hc);
-  usb_speed_t speed = device_keeper_speed(&hc->manager, target.address);
+  usb_speed_t speed = usb_device_keeper_get_speed(&hc->manager, target.address);
 
   usb_log_debug("Control READ(%d) %d:%d %zu(%zu).\n",
       speed, target.address, target.endpoint, size, max_packet_size);
-  batch_t *batch = batch_get(fun, target, USB_TRANSFER_CONTROL,
+  usb_transfer_batch_t *batch = batch_get(fun, target, USB_TRANSFER_CONTROL,
       max_packet_size, speed, data, size, setup_data, setup_size, callback,
       NULL, arg, &hc->manager);
   if (!batch)

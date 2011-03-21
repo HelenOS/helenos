@@ -125,7 +125,7 @@ static int initialize_other_pipes(usb_driver_t *drv, usb_device_t *dev)
 	}
 
 	for (i = 0; i < pipe_count; i++) {
-		dev->pipes[i].pipe = malloc(sizeof(usb_endpoint_pipe_t));
+		dev->pipes[i].pipe = malloc(sizeof(usb_pipe_t));
 		if (dev->pipes[i].pipe == NULL) {
 			usb_log_oom(dev->ddf_dev);
 			rc = ENOMEM;
@@ -146,7 +146,7 @@ static int initialize_other_pipes(usb_driver_t *drv, usb_device_t *dev)
 		goto rollback;
 	}
 
-	rc = usb_endpoint_pipe_initialize_from_configuration(dev->pipes,
+	rc = usb_pipe_initialize_from_configuration(dev->pipes,
 	   pipe_count, config_descriptor, config_descriptor_size, &dev->wire);
 	if (rc != EOK) {
 		usb_log_error("Failed initializing USB endpoints: %s.\n",
@@ -171,7 +171,7 @@ static int initialize_other_pipes(usb_driver_t *drv, usb_device_t *dev)
 	}
 	for (i = 0; i < pipe_count; i++) {
 		if (dev->pipes[i].present) {
-			rc = usb_endpoint_pipe_register(dev->pipes[i].pipe,
+			rc = usb_pipe_register(dev->pipes[i].pipe,
 			    dev->pipes[i].descriptor->poll_interval,
 			    &hc_conn);
 			/* Ignore error when operation not supported by HC. */
@@ -218,7 +218,7 @@ static int initialize_pipes(usb_device_t *dev)
 		return rc;
 	}
 
-	rc = usb_endpoint_pipe_initialize_default_control(&dev->ctrl_pipe,
+	rc = usb_pipe_initialize_default_control(&dev->ctrl_pipe,
 	    &dev->wire);
 	if (rc != EOK) {
 		usb_log_error("Failed to initialize default control pipe " \
@@ -227,7 +227,7 @@ static int initialize_pipes(usb_device_t *dev)
 		return rc;
 	}
 
-	rc = usb_endpoint_pipe_probe_default_control(&dev->ctrl_pipe);
+	rc = usb_pipe_probe_default_control(&dev->ctrl_pipe);
 	if (rc != EOK) {
 		usb_log_error(
 		    "Probing default control pipe on device `%s' failed: %s.\n",
@@ -239,7 +239,7 @@ static int initialize_pipes(usb_device_t *dev)
 	 * Initialization of other pipes requires open session on
 	 * default control pipe.
 	 */
-	rc = usb_endpoint_pipe_start_session(&dev->ctrl_pipe);
+	rc = usb_pipe_start_session(&dev->ctrl_pipe);
 	if (rc != EOK) {
 		usb_log_error("Failed to start an IPC session: %s.\n",
 		    str_error(rc));
@@ -251,7 +251,7 @@ static int initialize_pipes(usb_device_t *dev)
 	}
 
 	/* No checking here. */
-	usb_endpoint_pipe_end_session(&dev->ctrl_pipe);
+	usb_pipe_end_session(&dev->ctrl_pipe);
 
 	return rc;
 }

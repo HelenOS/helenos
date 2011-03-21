@@ -41,7 +41,7 @@
 
 /** Generic wrapper for SET requests using standard control request format.
  *
- * @see usb_endpoint_pipe_control_write
+ * @see usb_pipe_control_write
  *
  * @param pipe Pipe used for the communication.
  * @param request_type Request type (standard/class/vendor).
@@ -59,7 +59,7 @@
  * @retval EBADMEM @p data is NULL and @p data_size is not zero.
  * @retval ERANGE Data buffer too large.
  */
-int usb_control_request_set(usb_endpoint_pipe_t *pipe,
+int usb_control_request_set(usb_pipe_t *pipe,
     usb_request_type_t request_type, usb_request_recipient_t recipient,
     uint8_t request,
     uint16_t value, uint16_t index,
@@ -89,7 +89,7 @@ int usb_control_request_set(usb_endpoint_pipe_t *pipe,
 	setup_packet.index = index;
 	setup_packet.length = (uint16_t) data_size;
 
-	int rc = usb_endpoint_pipe_control_write(pipe,
+	int rc = usb_pipe_control_write(pipe,
 	    &setup_packet, sizeof(setup_packet),
 	    data, data_size);
 
@@ -98,7 +98,7 @@ int usb_control_request_set(usb_endpoint_pipe_t *pipe,
 
  /** Generic wrapper for GET requests using standard control request format.
   *
-  * @see usb_endpoint_pipe_control_read
+  * @see usb_pipe_control_read
   *
   * @param pipe Pipe used for the communication.
   * @param request_type Request type (standard/class/vendor).
@@ -119,7 +119,7 @@ int usb_control_request_set(usb_endpoint_pipe_t *pipe,
   * @retval EBADMEM @p data is NULL and @p data_size is not zero.
   * @retval ERANGE Data buffer too large.
   */
-int usb_control_request_get(usb_endpoint_pipe_t *pipe,
+int usb_control_request_get(usb_pipe_t *pipe,
     usb_request_type_t request_type, usb_request_recipient_t recipient,
     uint8_t request,
     uint16_t value, uint16_t index,
@@ -149,7 +149,7 @@ int usb_control_request_get(usb_endpoint_pipe_t *pipe,
 	setup_packet.index = index;
 	setup_packet.length = (uint16_t) data_size;
 
-	int rc = usb_endpoint_pipe_control_read(pipe,
+	int rc = usb_pipe_control_read(pipe,
 	    &setup_packet, sizeof(setup_packet),
 	    data, data_size, actual_data_size);
 
@@ -164,7 +164,7 @@ int usb_control_request_get(usb_endpoint_pipe_t *pipe,
  * @param[out] status Recipient status (in native endianness).
  * @return Error code.
  */
-int usb_request_get_status(usb_endpoint_pipe_t *pipe,
+int usb_request_get_status(usb_pipe_t *pipe,
     usb_request_recipient_t recipient, uint16_t index,
     uint16_t *status)
 {
@@ -202,7 +202,7 @@ int usb_request_get_status(usb_endpoint_pipe_t *pipe,
  * @param[in] index Recipient index (in native endianness).
  * @return Error code.
  */
-int usb_request_clear_feature(usb_endpoint_pipe_t *pipe,
+int usb_request_clear_feature(usb_pipe_t *pipe,
     usb_request_type_t request_type, usb_request_recipient_t recipient,
     uint16_t feature_selector, uint16_t index)
 {
@@ -230,7 +230,7 @@ int usb_request_clear_feature(usb_endpoint_pipe_t *pipe,
  * @param[in] index Recipient index (in native endianness).
  * @return Error code.
  */
-int usb_request_set_feature(usb_endpoint_pipe_t *pipe,
+int usb_request_set_feature(usb_pipe_t *pipe,
     usb_request_type_t request_type, usb_request_recipient_t recipient,
     uint16_t feature_selector, uint16_t index)
 {
@@ -257,7 +257,7 @@ int usb_request_set_feature(usb_endpoint_pipe_t *pipe,
  * @param new_address New USB address to be set (in native endianness).
  * @return Error code.
  */
-int usb_request_set_address(usb_endpoint_pipe_t *pipe,
+int usb_request_set_address(usb_pipe_t *pipe,
     usb_address_t new_address)
 {
 	if ((new_address < 0) || (new_address >= USB11_ADDRESS_MAX)) {
@@ -296,7 +296,7 @@ int usb_request_set_address(usb_endpoint_pipe_t *pipe,
  * @param[out] actual_size Number of bytes actually transferred.
  * @return Error code.
  */
-int usb_request_get_descriptor(usb_endpoint_pipe_t *pipe,
+int usb_request_get_descriptor(usb_pipe_t *pipe,
     usb_request_type_t request_type, usb_request_recipient_t recipient,
     uint8_t descriptor_type, uint8_t descriptor_index,
     uint16_t language,
@@ -330,7 +330,7 @@ int usb_request_get_descriptor(usb_endpoint_pipe_t *pipe,
  * @param[out] buffer_size Where to store the size of the descriptor.
  * @return
  */
-int usb_request_get_descriptor_alloc(usb_endpoint_pipe_t * pipe,
+int usb_request_get_descriptor_alloc(usb_pipe_t * pipe,
     usb_request_type_t request_type, usb_request_recipient_t recipient,
     uint8_t descriptor_type, uint8_t descriptor_index,
     uint16_t language,
@@ -399,7 +399,7 @@ int usb_request_get_descriptor_alloc(usb_endpoint_pipe_t * pipe,
  * @param[out] descriptor Storage for the device descriptor.
  * @return Error code.
  */
-int usb_request_get_device_descriptor(usb_endpoint_pipe_t *pipe,
+int usb_request_get_device_descriptor(usb_pipe_t *pipe,
     usb_standard_device_descriptor_t *descriptor)
 {
 	if (descriptor == NULL) {
@@ -441,7 +441,7 @@ int usb_request_get_device_descriptor(usb_endpoint_pipe_t *pipe,
  * @param[out] descriptor Storage for the device descriptor.
  * @return Error code.
  */
-int usb_request_get_bare_configuration_descriptor(usb_endpoint_pipe_t *pipe,
+int usb_request_get_bare_configuration_descriptor(usb_pipe_t *pipe,
     int index, usb_standard_configuration_descriptor_t *descriptor)
 {
 	if (descriptor == NULL) {
@@ -487,7 +487,7 @@ int usb_request_get_bare_configuration_descriptor(usb_endpoint_pipe_t *pipe,
  * @param[out] actual_size Number of bytes actually transferred.
  * @return Error code.
  */
-int usb_request_get_full_configuration_descriptor(usb_endpoint_pipe_t *pipe,
+int usb_request_get_full_configuration_descriptor(usb_pipe_t *pipe,
     int index, void *descriptor, size_t descriptor_size, size_t *actual_size)
 {
 	if ((index < 0) || (index > 0xFF)) {
@@ -513,7 +513,7 @@ int usb_request_get_full_configuration_descriptor(usb_endpoint_pipe_t *pipe,
  * @return Error code.
  */
 int usb_request_get_full_configuration_descriptor_alloc(
-    usb_endpoint_pipe_t *pipe, int index,
+    usb_pipe_t *pipe, int index,
     void **descriptor_ptr, size_t *descriptor_size)
 {
 	int rc;
@@ -577,7 +577,7 @@ int usb_request_get_full_configuration_descriptor_alloc(
  * @param[in] size Size of the @p buffer in bytes (in native endianness).
  * @return Error code.
  */
-int usb_request_set_descriptor(usb_endpoint_pipe_t *pipe,
+int usb_request_set_descriptor(usb_pipe_t *pipe,
     usb_request_type_t request_type, usb_request_recipient_t recipient,
     uint8_t descriptor_type, uint8_t descriptor_index,
     uint16_t language,
@@ -606,7 +606,7 @@ int usb_request_set_descriptor(usb_endpoint_pipe_t *pipe,
  * @param[out] configuration_value Current configuration value.
  * @return Error code.
  */
-int usb_request_get_configuration(usb_endpoint_pipe_t *pipe,
+int usb_request_get_configuration(usb_pipe_t *pipe,
     uint8_t *configuration_value)
 {
 	uint8_t value;
@@ -638,7 +638,7 @@ int usb_request_get_configuration(usb_endpoint_pipe_t *pipe,
  * @param configuration_value New configuration value.
  * @return Error code.
  */
-int usb_request_set_configuration(usb_endpoint_pipe_t *pipe,
+int usb_request_set_configuration(usb_pipe_t *pipe,
     uint8_t configuration_value)
 {
 	uint16_t config_value
@@ -657,7 +657,7 @@ int usb_request_set_configuration(usb_endpoint_pipe_t *pipe,
  * @param[out] alternate_setting Alternate setting for the interface.
  * @return Error code.
  */
-int usb_request_get_interface(usb_endpoint_pipe_t *pipe,
+int usb_request_get_interface(usb_pipe_t *pipe,
     uint8_t interface_index, uint8_t *alternate_setting)
 {
 	uint8_t value;
@@ -690,7 +690,7 @@ int usb_request_get_interface(usb_endpoint_pipe_t *pipe,
  * @param[in] alternate_setting Alternate setting to select.
  * @return Error code.
  */
-int usb_request_set_interface(usb_endpoint_pipe_t *pipe,
+int usb_request_set_interface(usb_pipe_t *pipe,
     uint8_t interface_index, uint8_t alternate_setting)
 {
 	return usb_control_request_set(pipe,
@@ -709,7 +709,7 @@ int usb_request_set_interface(usb_endpoint_pipe_t *pipe,
  * @param[out] languages_count Number of supported languages.
  * @return Error code.
  */
-int usb_request_get_supported_languages(usb_endpoint_pipe_t *pipe,
+int usb_request_get_supported_languages(usb_pipe_t *pipe,
     l18_win_locales_t **languages_ptr, size_t *languages_count)
 {
 	int rc;
@@ -781,7 +781,7 @@ int usb_request_get_supported_languages(usb_endpoint_pipe_t *pipe,
  * @param[out] string_ptr Where to store allocated string in native encoding.
  * @return Error code.
  */
-int usb_request_get_string(usb_endpoint_pipe_t *pipe,
+int usb_request_get_string(usb_pipe_t *pipe,
     size_t index, l18_win_locales_t lang, char **string_ptr)
 {
 	if (string_ptr == NULL) {

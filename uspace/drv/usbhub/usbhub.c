@@ -223,7 +223,7 @@ int usb_hub_add_device(usb_device_t * usb_dev){
 		return opResult;
 	}
 	
-	usb_endpoint_pipe_start_session(hub_info->control_pipe);
+	usb_pipe_start_session(hub_info->control_pipe);
 	//set hub configuration
 	opResult = usb_hub_set_configuration(hub_info);
 	if(opResult!=EOK){
@@ -238,7 +238,7 @@ int usb_hub_add_device(usb_device_t * usb_dev){
 		free(hub_info);
 		return opResult;
 	}
-	usb_endpoint_pipe_end_session(hub_info->control_pipe);
+	usb_pipe_end_session(hub_info->control_pipe);
 
 
 	/// \TODO what is this?
@@ -320,7 +320,7 @@ static void usb_hub_init_add_device(usb_hub_info_t * hub, uint16_t port,
 	hub->is_default_address_used = true;
 	//reset port
 	usb_hub_set_reset_port_request(&request, port);
-	opResult = usb_endpoint_pipe_control_write(
+	opResult = usb_pipe_control_write(
 			hub->control_pipe,
 			&request,sizeof(usb_device_request_setup_packet_t),
 			NULL, 0
@@ -353,16 +353,16 @@ static void usb_hub_finalize_add_device( usb_hub_info_t * hub,
 		return;
 	}
 	//create connection to device
-	usb_endpoint_pipe_t new_device_pipe;
+	usb_pipe_t new_device_pipe;
 	usb_device_connection_t new_device_connection;
 	usb_device_connection_initialize_on_default_address(
 			&new_device_connection,
 			&hub->connection
 			);
-	usb_endpoint_pipe_initialize_default_control(
+	usb_pipe_initialize_default_control(
 			&new_device_pipe,
 			&new_device_connection);
-	usb_endpoint_pipe_probe_default_control(&new_device_pipe);
+	usb_pipe_probe_default_control(&new_device_pipe);
 
 	/* Request address from host controller. */
 	usb_address_t new_device_address = usb_hc_request_address(
@@ -378,9 +378,9 @@ static void usb_hub_finalize_add_device( usb_hub_info_t * hub,
 	usb_log_info("setting new address %d\n",new_device_address);
 	//opResult = usb_drv_req_set_address(hc, USB_ADDRESS_DEFAULT,
 	//    new_device_address);
-	usb_endpoint_pipe_start_session(&new_device_pipe);
+	usb_pipe_start_session(&new_device_pipe);
 	opResult = usb_request_set_address(&new_device_pipe,new_device_address);
-	usb_endpoint_pipe_end_session(&new_device_pipe);
+	usb_pipe_end_session(&new_device_pipe);
 	if (opResult != EOK) {
 		usb_log_error("could not set address for new device %d\n",opResult);
 		usb_hub_release_default_address(hub);
@@ -487,7 +487,7 @@ static void usb_hub_process_interrupt(usb_hub_info_t * hub,
         uint16_t port) {
 	usb_log_debug("interrupt at port %d\n", port);
 	//determine type of change
-	usb_endpoint_pipe_t *pipe = hub->control_pipe;
+	usb_pipe_t *pipe = hub->control_pipe;
 	
 	int opResult;
 
@@ -498,7 +498,7 @@ static void usb_hub_process_interrupt(usb_hub_info_t * hub,
 	usb_hub_set_port_status_request(&request, port);
 	//endpoint 0
 
-	opResult = usb_endpoint_pipe_control_read(
+	opResult = usb_pipe_control_read(
 			pipe,
 			&request, sizeof(usb_device_request_setup_packet_t),
 			&status, 4, &rcvd_size
@@ -559,7 +559,7 @@ static void usb_hub_process_interrupt(usb_hub_info_t * hub,
  */
 int usb_hub_check_hub_changes(usb_hub_info_t * hub_info){
 	int opResult;
-	opResult = usb_endpoint_pipe_start_session(
+	opResult = usb_pipe_start_session(
 			hub_info->status_change_pipe);
 	if(opResult != EOK){
 		usb_log_error("could not initialize communication for hub; %d\n",
@@ -577,7 +577,7 @@ int usb_hub_check_hub_changes(usb_hub_info_t * hub_info){
 	/*
 	 * Send the request.
 	 */
-	opResult = usb_endpoint_pipe_read(
+	opResult = usb_pipe_read(
 			hub_info->status_change_pipe,
 			change_bitmap, byte_length, &actual_size
 			);
@@ -585,22 +585,22 @@ int usb_hub_check_hub_changes(usb_hub_info_t * hub_info){
 	if (opResult != EOK) {
 		free(change_bitmap);
 		usb_log_warning("something went wrong while getting status of hub\n");
-		usb_endpoint_pipe_end_session(hub_info->status_change_pipe);
+		usb_pipe_end_session(hub_info->status_change_pipe);
 		return opResult;
 	}
 	unsigned int port;
-	opResult = usb_endpoint_pipe_start_session(hub_info->control_pipe);
+	opResult = usb_pipe_start_session(hub_info->control_pipe);
 	if(opResult!=EOK){
 		usb_log_error("could not start control pipe session %d\n", opResult);
-		usb_endpoint_pipe_end_session(hub_info->status_change_pipe);
+		usb_pipe_end_session(hub_info->status_change_pipe);
 		return opResult;
 	}
 	opResult = usb_hc_connection_open(&hub_info->connection);
 	if(opResult!=EOK){
 		usb_log_error("could not start host controller session %d\n",
 				opResult);
-		usb_endpoint_pipe_end_session(hub_info->control_pipe);
-		usb_endpoint_pipe_end_session(hub_info->status_change_pipe);
+		usb_pipe_end_session(hub_info->control_pipe);
+		usb_pipe_end_session(hub_info->status_change_pipe);
 		return opResult;
 	}
 
@@ -614,8 +614,8 @@ int usb_hub_check_hub_changes(usb_hub_info_t * hub_info){
 		}
 	}
 	usb_hc_connection_close(&hub_info->connection);
-	usb_endpoint_pipe_end_session(hub_info->control_pipe);
-	usb_endpoint_pipe_end_session(hub_info->status_change_pipe);
+	usb_pipe_end_session(hub_info->control_pipe);
+	usb_pipe_end_session(hub_info->status_change_pipe);
 	free(change_bitmap);
 	return EOK;
 }

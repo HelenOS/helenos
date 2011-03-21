@@ -59,7 +59,7 @@ int hc_init(hc_t *instance, ddf_fun_t *fun, ddf_dev_t *dev,
 		return ret;
 	}
 	instance->ddf_instance = fun;
-	device_keeper_init(&instance->manager);
+	usb_device_keeper_init(&instance->manager);
 
 	if (!interrupts) {
 		instance->interrupt_emulator =
@@ -110,7 +110,7 @@ int hc_register_hub(hc_t *instance)
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-int hc_schedule(hc_t *instance, batch_t *batch)
+int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch)
 {
 	assert(instance);
 	assert(batch);

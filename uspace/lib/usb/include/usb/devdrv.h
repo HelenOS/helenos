@@ -40,7 +40,7 @@
 /** USB device structure. */
 typedef struct {
 	/** The default control pipe. */
-	usb_endpoint_pipe_t ctrl_pipe;
+	usb_pipe_t ctrl_pipe;
 	/** Other endpoint pipes.
 	 * This is an array of other endpoint pipes in the same order as
 	 * in usb_driver_t.
