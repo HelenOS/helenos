@@ -32,11 +32,9 @@
  * @brief UHCI driver hc interface implementation
  */
 #include <ddf/driver.h>
-#include <remote_usbhc.h>
+#include <errno.h>
 
 #include <usb/debug.h>
-
-#include <errno.h>
 
 #include "iface.h"
 #include "hc.h"
@@ -47,7 +45,6 @@
  * @param[in] speed Speed to associate with the new default address.
  * @return Error code.
  */
-/*----------------------------------------------------------------------------*/
 static int reserve_default_address(ddf_fun_t *fun, usb_speed_t speed)
 {
 	assert(fun);
@@ -92,7 +89,7 @@ static int request_address(ddf_fun_t *fun, usb_speed_t speed,
 	*address = device_keeper_get_free_address(&hc->manager, speed);
 	usb_log_debug("Address request with result: %d.\n", *address);
 	if (*address <= 0)
-	  return *address;
+		return *address;
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -191,7 +188,7 @@ static int interrupt_in(ddf_fun_t *fun, usb_target_t target,
 
 	usb_transfer_batch_t *batch = batch_get(fun, target, USB_TRANSFER_INTERRUPT,
 	    max_packet_size, speed, data, size, NULL, 0, callback, NULL, arg,
-			&hc->manager);
+	    &hc->manager);
 	if (!batch)
 		return ENOMEM;
 	batch_interrupt_in(batch);
@@ -368,11 +365,11 @@ usbhc_iface_t hc_iface = {
 	.interrupt_out = interrupt_out,
 	.interrupt_in = interrupt_in,
 
-	.bulk_in = bulk_in,
 	.bulk_out = bulk_out,
+	.bulk_in = bulk_in,
 
-	.control_read = control_read,
 	.control_write = control_write,
+	.control_read = control_read,
 };
 /**
  * @}
