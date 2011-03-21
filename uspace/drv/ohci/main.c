@@ -178,7 +178,8 @@ if (ret != EOK) { \
 	}
 	hc_fun->driver_data = hcd;
 
-	hc_register_hub(hcd, device);
+	fid_t later = fibril_create((int(*)(void*))hc_register_hub, hcd);
+	fibril_add_ready(later);
 
 	usb_log_info("Controlling new OHCI device `%s' (handle %llu).\n",
 	    device->name, device->handle);

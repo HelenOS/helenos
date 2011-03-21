@@ -39,33 +39,66 @@
 #include <usb/debug.h>
 #include <usb/usb.h>
 #include <usb/hub.h>
-#include <usb/usbdevice.h>
 #include <usb/ddfiface.h>
+#include <usb/usbdevice.h>
 
 #include "hc.h"
 
+static int dummy_reset(int foo, void *bar)
+{
+	return EOK;
+}
 /*----------------------------------------------------------------------------*/
 int hc_init(hc_t *instance, ddf_fun_t *fun, ddf_dev_t *dev,
     uintptr_t regs, size_t reg_size, bool interrupts)
 {
 	assert(instance);
-	int ret = pio_enable((void*)regs, reg_size, (void**)&instance->registers);
+	int ret = EOK;
+
+	ret = pio_enable((void*)regs, reg_size, (void**)&instance->registers);
 	if (ret != EOK) {
 		usb_log_error("Failed to gain access to device registers.\n");
 		return ret;
 	}
+	instance->ddf_instance = fun;
 	device_keeper_init(&instance->manager);
 
 
 	rh_init(&instance->rh, dev, instance->registers);
 	/* TODO: implement */
-	/* TODO: register root hub */
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-int hc_register_hub(hc_t *instance, ddf_dev_t *dev)
+int hc_register_hub(hc_t *instance)
 {
+	async_usleep(1000000);
+#define CHECK_RET_RETURN(ret, msg...) \
+	if (ret != EOK) { \
+		usb_log_error(msg); \
+		return ret; \
+	} else (void)0
 	assert(instance);
+	assert(instance->ddf_instance);
+	assert(instance->ddf_instance->handle);
+	ddf_dev_t *dev = instance->rh.device;
+	int ret = EOK;
+
+	usb_hc_connection_t conn;
+	ret =
+	    usb_hc_connection_initialize(&conn, instance->ddf_instance->handle);
+	CHECK_RET_RETURN(ret, "Failed to initialize hc connection.\n");
+
+	ret = usb_hc_connection_open(&conn);
+	CHECK_RET_RETURN(ret, "Failed to open hc connection.\n");
+
+	usb_address_t address;
+	devman_handle_t handle;
+	ret = usb_hc_new_device_wrapper(dev, &conn, USB_SPEED_FULL, dummy_reset,
+	    0, NULL, &address, &handle, NULL, NULL, NULL);
+	CHECK_RET_RETURN(ret, "Failed to add rh device.\n");
+
+	ret = usb_hc_connection_close(&conn);
+	CHECK_RET_RETURN(ret, "Failed to close hc connection.\n");
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/

@@ -58,7 +58,7 @@ typedef struct hc {
 int hc_init(hc_t *instance, ddf_fun_t *fun, ddf_dev_t *dev,
      uintptr_t regs, size_t reg_size, bool interrupts);
 
-int hc_register_hub(hc_t *instance, ddf_dev_t *dev);
+int hc_register_hub(hc_t *instance);
 
 int hc_schedule(hc_t *instance, batch_t *batch);
 
