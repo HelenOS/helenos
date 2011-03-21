@@ -128,7 +128,7 @@ if (ret != EOK) { \
 		interrupts = true;
 	}
 
-	ret = hc_init(hcd, hc_fun, mem_reg_base, mem_reg_size, interrupts);
+	ret = hc_init(hcd, hc_fun, device, mem_reg_base, mem_reg_size, interrupts);
 	if (ret != EOK) {
 		usb_log_error("Failed to initialize OHCI driver.\n");
 		free(hcd);
@@ -147,7 +147,7 @@ if (ret != EOK) { \
 	}
 	hc_fun->driver_data = hcd;
 
-	/* TODO: register interrupt handler */
+	hc_register_hub(hcd, device);
 
 	usb_log_info("Controlling new OHCI device `%s' (handle %llu).\n",
 	    device->name, device->handle);

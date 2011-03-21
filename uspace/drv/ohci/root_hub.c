@@ -42,11 +42,12 @@
 /** Root hub initialization
  * @return Error code.
  */
-int rh_init(ohci_rh_t *instance, ohci_regs_t *regs)
+int rh_init(rh_t *instance, ddf_dev_t *dev, ohci_regs_t *regs)
 {
 	assert(instance);
 	instance->address = 0;
 	instance->registers = regs;
+	instance->device = dev;
 
 	usb_log_info("OHCI root hub with %d ports.\n", regs->rh_desc_a & 0xff);
 
@@ -54,15 +55,21 @@ int rh_init(ohci_rh_t *instance, ohci_regs_t *regs)
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-void rh_request(ohci_rh_t *instance, batch_t *request)
+void rh_request(rh_t *instance, batch_t *request)
 {
+	usb_log_error("Request processing not implemented.\n");
 	/* TODO: implement */
 }
 /*----------------------------------------------------------------------------*/
-void rh_interrupt(ohci_rh_t *instance)
+void rh_interrupt(rh_t *instance)
 {
-	usb_log_info("Interrupt!!.\n");
+	usb_log_error("Root hub interrupt not implemented.\n");
 	/* TODO: implement */
+}
+/*----------------------------------------------------------------------------*/
+int rh_register(rh_t *instance, ddf_dev_t *dev)
+{
+	return EOK;
 }
 /**
  * @}

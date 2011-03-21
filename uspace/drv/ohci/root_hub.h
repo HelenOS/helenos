@@ -40,16 +40,19 @@
 #include "ohci_regs.h"
 #include "batch.h"
 
-typedef struct ohci_rh {
+typedef struct rh {
 	ohci_regs_t *registers;
 	usb_address_t address;
-} ohci_rh_t;
+	ddf_dev_t *device;
+} rh_t;
 
-int rh_init(ohci_rh_t *instance, ohci_regs_t *regs);
+int rh_init(rh_t *instance, ddf_dev_t *dev, ohci_regs_t *regs);
 
-void rh_request(ohci_rh_t *instance, batch_t *request);
+void rh_request(rh_t *instance, batch_t *request);
 
-void rh_interrupt(ohci_rh_t *instance);
+void rh_interrupt(rh_t *instance);
+
+int rh_register(rh_t *instance, ddf_dev_t *dev);
 #endif
 /**
  * @}

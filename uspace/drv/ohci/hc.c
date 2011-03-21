@@ -38,12 +38,14 @@
 
 #include <usb/debug.h>
 #include <usb/usb.h>
+#include <usb/hub.h>
+#include <usb/usbdevice.h>
 #include <usb/ddfiface.h>
-#include <usb_iface.h>
 
 #include "hc.h"
 
-int hc_init(hc_t *instance, ddf_fun_t *fun,
+/*----------------------------------------------------------------------------*/
+int hc_init(hc_t *instance, ddf_fun_t *fun, ddf_dev_t *dev,
     uintptr_t regs, size_t reg_size, bool interrupts)
 {
 	assert(instance);
@@ -55,10 +57,16 @@ int hc_init(hc_t *instance, ddf_fun_t *fun,
 	device_keeper_init(&instance->manager);
 
 
-	rh_init(&instance->rh, instance->registers);
+	rh_init(&instance->rh, dev, instance->registers);
 	/* TODO: implement */
 	/* TODO: register root hub */
 	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+int hc_register_hub(hc_t *instance, ddf_dev_t *dev)
+{
+	assert(instance);
+	return rh_register(&instance->rh, dev);
 }
 /*----------------------------------------------------------------------------*/
 int hc_schedule(hc_t *instance, batch_t *batch)
@@ -70,7 +78,7 @@ int hc_schedule(hc_t *instance, batch_t *batch)
 		return EOK;
 	}
 	/* TODO: implement */
-	return EOK;
+	return ENOTSUP;
 }
 /*----------------------------------------------------------------------------*/
 void hc_interrupt(hc_t *instance, uint16_t status)
