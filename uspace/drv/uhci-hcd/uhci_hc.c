@@ -127,7 +127,6 @@ int uhci_hc_init(uhci_hc_t *instance, ddf_fun_t *fun,
 	instance->debug_checker = fibril_create(uhci_hc_debug_checker, instance);
 	fibril_add_ready(instance->debug_checker);
 
-	usb_log_info("Started UHCI driver.\n");
 	return EOK;
 #undef CHECK_RET_DEST_FUN_RETURN
 }

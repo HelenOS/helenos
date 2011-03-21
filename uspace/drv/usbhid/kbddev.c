@@ -661,7 +661,7 @@ static int usbhid_kbd_init(usbhid_kbd_t *kbd_dev, ddf_dev_t *dev)
 {
 	int rc;
 	
-	usb_log_info("Initializing HID/KBD structure...\n");
+	usb_log_debug("Initializing HID/KBD structure...\n");
 	
 	if (kbd_dev == NULL) {
 		usb_log_error("Failed to init keyboard structure: no structure"
@@ -741,7 +741,7 @@ static int usbhid_kbd_init(usbhid_kbd_t *kbd_dev, ddf_dev_t *dev)
 	usbhid_req_set_idle(kbd_dev->hid_dev, IDLE_RATE);
 	
 	kbd_dev->initialized = USBHID_KBD_STATUS_INITIALIZED;
-	usb_log_info("HID/KBD device structure initialized.\n");
+	usb_log_debug("HID/KBD device structure initialized.\n");
 	
 	return EOK;
 }
@@ -768,7 +768,7 @@ static void usbhid_kbd_poll(usbhid_kbd_t *kbd_dev)
 	uint8_t buffer[BOOTP_BUFFER_SIZE];
 	size_t actual_size;
 	
-	usb_log_info("Polling keyboard...\n");
+	usb_log_debug("Polling keyboard...\n");
 	
 	if (!kbd_dev->initialized) {
 		usb_log_error("HID/KBD device not initialized!\n");
@@ -906,7 +906,7 @@ int usbhid_kbd_try_add_device(ddf_dev_t *dev)
 	/* 
 	 * Initialize device (get and process descriptors, get address, etc.)
 	 */
-	usb_log_info("Initializing USB/HID KBD device...\n");
+	usb_log_debug("Initializing USB/HID KBD device...\n");
 	
 	usbhid_kbd_t *kbd_dev = usbhid_kbd_new();
 	if (kbd_dev == NULL) {
@@ -925,7 +925,7 @@ int usbhid_kbd_try_add_device(ddf_dev_t *dev)
 		return rc;
 	}	
 	
-	usb_log_info("USB/HID KBD device structure initialized.\n");
+	usb_log_debug("USB/HID KBD device structure initialized.\n");
 	
 	/*
 	 * Store the initialized keyboard device and keyboard ops
@@ -936,7 +936,8 @@ int usbhid_kbd_try_add_device(ddf_dev_t *dev)
 
 	rc = ddf_fun_bind(kbd_fun);
 	if (rc != EOK) {
-		usb_log_error("Could not bind DDF function.\n");
+		usb_log_error("Could not bind DDF function: %s.\n",
+		    str_error(rc));
 		// TODO: Can / should I destroy the DDF function?
 		ddf_fun_destroy(kbd_fun);
 		usbhid_kbd_free(&kbd_dev);
@@ -945,8 +946,9 @@ int usbhid_kbd_try_add_device(ddf_dev_t *dev)
 	
 	rc = ddf_fun_add_to_class(kbd_fun, "keyboard");
 	if (rc != EOK) {
-		usb_log_error("Could not add DDF function to class 'keyboard'"
-		    "\n");
+		usb_log_error(
+		    "Could not add DDF function to class 'keyboard': %s.\n",
+		    str_error(rc));
 		// TODO: Can / should I destroy the DDF function?
 		ddf_fun_destroy(kbd_fun);
 		usbhid_kbd_free(&kbd_dev);
@@ -958,7 +960,8 @@ int usbhid_kbd_try_add_device(ddf_dev_t *dev)
 	 */
 	fid_t fid = fibril_create(usbhid_kbd_fibril, kbd_dev);
 	if (fid == 0) {
-		usb_log_error("Failed to start fibril for KBD device\n");
+		usb_log_error("Failed to start fibril for `%s' device.\n",
+		    dev->name);
 		return ENOMEM;
 	}
 	fibril_add_ready(fid);

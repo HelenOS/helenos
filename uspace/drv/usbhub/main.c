@@ -75,7 +75,7 @@ int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS USB hub driver.\n");
 
-	usb_log_enable(USB_LOG_LEVEL_DEBUG, NAME);
+	usb_log_enable(USB_LOG_LEVEL_DEFAULT, NAME);
 	
 	return usb_driver_main(&usb_hub_driver);
 }

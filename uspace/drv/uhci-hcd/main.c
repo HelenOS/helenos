@@ -61,7 +61,7 @@ static driver_t uhci_driver = {
  */
 int uhci_add_device(ddf_dev_t *device)
 {
-	usb_log_info("uhci_add_device() called\n");
+	usb_log_debug("uhci_add_device() called\n");
 	assert(device);
 	uhci_t *uhci = malloc(sizeof(uhci_t));
 	if (uhci == NULL) {
@@ -71,10 +71,14 @@ int uhci_add_device(ddf_dev_t *device)
 
 	int ret = uhci_init(uhci, device);
 	if (ret != EOK) {
-		usb_log_error("Failed to initialzie UHCI driver.\n");
+		usb_log_error("Failed to initialize UHCI driver: %s.\n",
+		    str_error(ret));
 		return ret;
 	}
 	device->driver_data = uhci;
+
+	usb_log_info("Controlling new UHCI device `%s'.\n", device->name);
+
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -88,8 +92,10 @@ int uhci_add_device(ddf_dev_t *device)
  */
 int main(int argc, char *argv[])
 {
+	printf(NAME ": HelenOS UHCI driver.\n");
+
 	sleep(3); /* TODO: remove in final version */
-	usb_log_enable(USB_LOG_LEVEL_DEBUG, NAME);
+	usb_log_enable(USB_LOG_LEVEL_DEFAULT, NAME);
 
 	return ddf_driver_main(&uhci_driver);
 }

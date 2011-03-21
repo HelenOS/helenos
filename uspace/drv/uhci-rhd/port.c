@@ -255,7 +255,7 @@ int uhci_port_new_device(uhci_port_t *port, usb_speed_t speed)
 	assert(port);
 	assert(usb_hc_connection_is_opened(&port->hc_connection));
 
-	usb_log_info("%s: Detected new device.\n", port->id_string);
+	usb_log_debug("%s: Detected new device.\n", port->id_string);
 
 	usb_address_t dev_addr;
 	int rc = usb_hc_new_device_wrapper(port->rh, &port->hc_connection,
@@ -269,8 +269,8 @@ int uhci_port_new_device(uhci_port_t *port, usb_speed_t speed)
 		return rc;
 	}
 
-	usb_log_info("%s: New device has address %d (handle %zu).\n",
-	    port->id_string, dev_addr, port->attached_device);
+	usb_log_info("New device at port %u, address %d (handle %llu).\n",
+	    port->number, dev_addr, port->attached_device);
 
 	return EOK;
 }
@@ -314,7 +314,7 @@ int uhci_port_set_enabled(uhci_port_t *port, bool enabled)
 	/* Write new value. */
 	uhci_port_write_status(port, port_status);
 
-	usb_log_info("%s: %sabled port.\n",
+	usb_log_debug("%s: %sabled port.\n",
 		port->id_string, enabled ? "En" : "Dis");
 	return EOK;
 }
