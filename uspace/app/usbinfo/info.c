@@ -41,6 +41,7 @@
 #include <usb/request.h>
 #include <usb/classes/classes.h>
 #include <usb/classes/hid.h>
+#include <usb/classes/hub.h>
 #include "usbinfo.h"
 
 void dump_short_device_identification(usbinfo_device_t *dev)
@@ -118,9 +119,10 @@ static void dump_descriptor_tree_brief_device(const char *prefix,
 static void dump_descriptor_tree_brief_configuration(const char *prefix,
     usb_standard_configuration_descriptor_t *descriptor)
 {
-	printf("%sConfiguration #%d (%zu interfaces)\n", prefix,
+	printf("%sConfiguration #%d (%zu interfaces, total %zuB)\n", prefix,
 	    (int) descriptor->configuration_number,
-	    (size_t) descriptor->interface_count);
+	    (size_t) descriptor->interface_count,
+	    (size_t) descriptor->total_length);
 }
 
 static void dump_descriptor_tree_brief_interface(const char *prefix,
@@ -153,6 +155,13 @@ static void dump_descriptor_tree_brief_hid(const char *prefix,
 	printf("%sHID (country %d, %d descriptors)\n", prefix,
 	    (int) descriptor->country_code,
 	    (int) descriptor->class_desc_count);
+}
+
+static void dump_descriptor_tree_brief_hub(const char *prefix,
+    usb_hub_descriptor_header_t *descriptor)
+{
+	printf("%shub (%d ports)\n", prefix,
+	    (int) descriptor->port_count);
 }
 
 
@@ -193,6 +202,13 @@ static void dump_descriptor_tree_brief_callback(uint8_t *descriptor,
 		_BRANCH(USB_DESCTYPE_HID,
 		    usb_standard_hid_descriptor_t,
 		    dump_descriptor_tree_brief_hid);
+		/*
+		 * Probably useless, hub descriptor shall not be part of
+		 * configuration descriptor.
+		 */
+		_BRANCH(USB_DESCTYPE_HUB,
+		    usb_hub_descriptor_header_t,
+		    dump_descriptor_tree_brief_hub);
 
 		default:
 			break;
