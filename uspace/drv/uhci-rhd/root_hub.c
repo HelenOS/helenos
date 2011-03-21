@@ -25,26 +25,24 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup usb
+/** @addtogroup drvusbuhcirh
  * @{
  */
 /** @file
- * @brief UHCI driver
+ * @brief UHCI root hub driver
  */
 #include <errno.h>
-#include <stdint.h>
 #include <ddi.h>
-#include <devman.h>
 #include <usb/debug.h>
 
 #include "root_hub.h"
 
-/** Initializes UHCI root hub instance.
+/** Initialize UHCI root hub instance.
  *
  * @param[in] instance Driver memory structure to use.
  * @param[in] addr Address of I/O registers.
  * @param[in] size Size of available I/O space.
- * @param[in] rh Pointer to ddf instance fo the root hub driver.
+ * @param[in] rh Pointer to ddf instance of the root hub driver.
  * @return Error code.
  */
 int uhci_root_hub_init(
@@ -60,11 +58,12 @@ int uhci_root_hub_init(
 	ret = pio_enable(addr, size, (void**)&regs);
 	if (ret < 0) {
 		usb_log_error(
-		    "Failed to gain access to port registers at %p\n", regs);
+		    "Failed(%d) to gain access to port registers at %p\n",
+		    ret, regs);
 		return ret;
 	}
 
-	/* add fibrils for periodic port checks */
+	/* Initialize root hub ports */
 	unsigned i = 0;
 	for (; i < UHCI_ROOT_HUB_PORT_COUNT; ++i) {
 		/* NOTE: mind pointer arithmetics here */
@@ -81,9 +80,9 @@ int uhci_root_hub_init(
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-/** Finishes UHCI root hub instance.
+/** Cleanup UHCI root hub instance.
  *
- * @param[in] instance Driver memory structure to use.
+ * @param[in] instance Root hub structure to use.
  * @return Error code.
  */
 int uhci_root_hub_fini(uhci_root_hub_t* instance)

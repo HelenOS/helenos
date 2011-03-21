@@ -83,9 +83,11 @@ _link.ld
 ./uspace/drv/rootvirt/rootvirt
 ./uspace/drv/test1/test1
 ./uspace/drv/test2/test2
+./uspace/drv/ohci/ohci
 ./uspace/drv/ehci-hcd/ehci-hcd
 ./uspace/drv/uhci-hcd/uhci-hcd
 ./uspace/drv/uhci-rhd/uhci-rhd
+./uspace/drv/usbflbk/usbflbk
 ./uspace/drv/usbhub/usbhub
 ./uspace/drv/usbhid/usbhid
 ./uspace/drv/usbmid/usbmid

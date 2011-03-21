@@ -42,9 +42,9 @@ class MapDemo is
 
 		e = map.GetEnumerator();
 		while e.MoveNext() do
-			Builtin.Write(e.Data);
-			Builtin.Write(" -> ");
-			Builtin.WriteLine(map[e.Data]);
+			Console.Write(e.Data);
+			Console.Write(" -> ");
+			Console.WriteLine(map[e.Data]);
 		end
 	end
 end

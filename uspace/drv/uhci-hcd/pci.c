@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 /**
- * @addtogroup drvusbuhci
+ * @addtogroup drvusbuhcihc
  * @{
  */
 /**
@@ -116,7 +116,7 @@ leave:
 	return rc;
 }
 /*----------------------------------------------------------------------------*/
-/** Calls the PCI driver with a request to enable interrupts
+/** Call the PCI driver with a request to enable interrupts
  *
  * @param[in] device Device asking for interrupts
  * @return Error code.
@@ -130,7 +130,7 @@ int pci_enable_interrupts(ddf_dev_t *device)
 	return enabled ? EOK : EIO;
 }
 /*----------------------------------------------------------------------------*/
-/** Calls the PCI driver with a request to clear legacy support register
+/** Call the PCI driver with a request to clear legacy support register
  *
  * @param[in] device Device asking to disable interrupts
  * @return Error code.

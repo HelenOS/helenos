@@ -54,8 +54,8 @@ class DelegateClass is
 
 	-- Function having delegate as the first parameger
 	fun Operate(op : BinaryOp; opName : string) is
-		Builtin.Write(opName + "(1, 2): ");
-		Builtin.WriteLine(op(1, 2));
+		Console.Write(opName + "(1, 2): ");
+		Console.WriteLine(op(1, 2));
 	end
 
 	-- A function matching the delegate signature

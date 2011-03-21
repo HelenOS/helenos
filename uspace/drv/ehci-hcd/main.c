@@ -26,7 +26,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup usbdrvehci
+/** @addtogroup drvusbehci
  * @{
  */
 /** @file
@@ -43,8 +43,7 @@
 #include <usb/debug.h>
 
 #include "pci.h"
-
-#define NAME "ehci-hcd"
+#include "ehci.h"
 
 static int ehci_add_device(ddf_dev_t *device);
 /*----------------------------------------------------------------------------*/
@@ -56,6 +55,10 @@ static driver_t ehci_driver = {
 	.name = NAME,
 	.driver_ops = &ehci_driver_ops
 };
+static ddf_dev_ops_t hc_ops = {
+	.interfaces[USBHC_DEV_IFACE] = &ehci_hc_iface,
+};
+
 /*----------------------------------------------------------------------------*/
 /** Initializes a new ddf driver instance of EHCI hcd.
  *
@@ -70,8 +73,6 @@ if (ret != EOK) { \
 	usb_log_error(message); \
 	return ret; \
 }
-
-	usb_log_info("uhci_add_device() called\n");
 
 	uintptr_t mem_reg_base = 0;
 	size_t mem_reg_size = 0;
@@ -88,6 +89,21 @@ if (ret != EOK) { \
 	CHECK_RET_RETURN(ret,
 	    "Failed(%d) disable legacy USB: %s.\n", ret, str_error(ret));
 
+	ddf_fun_t *hc_fun = ddf_fun_create(device, fun_exposed, "ehci-hc");
+	if (hc_fun == NULL) {
+		usb_log_error("Failed to create EHCI function.\n");
+		return ENOMEM;
+	}
+	hc_fun->ops = &hc_ops;
+	ret = ddf_fun_bind(hc_fun);
+
+	CHECK_RET_RETURN(ret,
+	    "Failed to bind EHCI function: %s.\n",
+	    str_error(ret));
+
+	usb_log_info("Controlling new EHCI device `%s' (handle %llu).\n",
+	    device->name, device->handle);
+
 	return EOK;
 #undef CHECK_RET_RETURN
 }
@@ -102,7 +118,7 @@ if (ret != EOK) { \
  */
 int main(int argc, char *argv[])
 {
-	usb_log_enable(USB_LOG_LEVEL_ERROR, NAME);
+	usb_log_enable(USB_LOG_LEVEL_DEBUG, NAME);
 	return ddf_driver_main(&ehci_driver);
 }
 /**

@@ -34,7 +34,6 @@ BINARY = uhci-rhd
 SOURCES = \
 	main.c \
 	port.c \
-	port_status.c \
 	root_hub.c
 
 include $(USPACE_PREFIX)/Makefile.common

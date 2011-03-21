@@ -252,13 +252,35 @@
 	/**
 	 * @defgroup drvusbuhci UHCI driver
 	 * @ingroup usb
-	 * @brief Driver for USB host controller UHCI.
+	 * @brief Drivers for USB UHCI host controller and root hub.
 	 */
+
+		/**
+		 * @defgroup drvusbuhcirh UHCI root hub driver
+		 * @ingroup drvusbuhci
+		 * @brief Driver for UHCI complaint root hub.
+		 */
+
+		/**
+		 * @defgroup drvusbuhcihc UHCI host controller driver
+		 * @ingroup drvusbuhci
+		 * @brief Driver for UHCI complaint USB host controller.
+		 */
 
 	/**
 	 * @defgroup drvusbehci EHCI driver
 	 * @ingroup usb
 	 * @brief Driver for EHCI host controller.
+	 */
+
+	/**
+	 * @defgroup drvusbfallback USB fallback driver.
+	 * @ingroup usb
+	 * @brief Fallback driver for any USB device.
+	 * @details
+	 * The purpose of this driver is to simplify querying of unknown
+	 * devices from within HelenOS (without a driver, no node at all
+	 * may appear under /dev/devices).
 	 */
 
 

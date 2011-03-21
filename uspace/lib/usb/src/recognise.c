@@ -247,6 +247,9 @@ int usb_device_create_match_ids_from_interface(
 #undef VENDOR_ONLY_FMT
 #undef VENDOR_ONLY_ARGS
 
+	/* As a last resort, try fallback driver. */
+	ADD_MATCHID_OR_RETURN(matches, 10, "usb&interface&fallback");
+
 	return EOK;
 }
 
@@ -290,6 +293,9 @@ int usb_device_create_match_ids_from_device_descriptor(
 		ADD_MATCHID_OR_RETURN(matches, 50, "usb&mid");
 	}
 	
+	/* As a last resort, try fallback driver. */
+	ADD_MATCHID_OR_RETURN(matches, 10, "usb&fallback");
+
 	return EOK;
 }
 
@@ -368,12 +374,17 @@ int usb_device_register_child_in_devman(usb_address_t address,
 	if (rc != EOK) {
 		goto failure;
 	}
+	rc = usb_endpoint_pipe_probe_default_control(&ctrl_pipe);
+	if (rc != EOK) {
+		goto failure;
+	}
 
 	/*
 	 * TODO: Once the device driver framework support persistent
 	 * naming etc., something more descriptive could be created.
 	 */
-	rc = asprintf(&child_name, "usbdev%02zu", this_device_name_index);
+	rc = asprintf(&child_name, "usb%02zu_a%d",
+	    this_device_name_index, address);
 	if (rc < 0) {
 		goto failure;
 	}

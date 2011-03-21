@@ -25,11 +25,11 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup usb
+/** @addtogroup drvusbuhcirh
  * @{
  */
 /** @file
- * @brief UHCI driver
+ * @brief UHCI root hub initialization routines
  */
 #include <ddf/driver.h>
 #include <devman.h>
@@ -39,13 +39,12 @@
 #include <usb/ddfiface.h>
 #include <usb/debug.h>
 
-
-
 #include "root_hub.h"
 
 #define NAME "uhci-rhd"
 static int hc_get_my_registers(ddf_dev_t *dev,
     uintptr_t *io_reg_address, size_t *io_reg_size);
+#if 0
 /*----------------------------------------------------------------------------*/
 static int usb_iface_get_hc_handle(ddf_fun_t *fun, devman_handle_t *handle)
 {
@@ -66,8 +65,9 @@ static usb_iface_t uhci_rh_usb_iface = {
 static ddf_dev_ops_t uhci_rh_ops = {
 	.interfaces[USB_DEV_IFACE] = &uhci_rh_usb_iface,
 };
+#endif
 /*----------------------------------------------------------------------------*/
-/** Initializes a new ddf driver instance of UHCI root hub.
+/** Initialize a new ddf driver instance of UHCI root hub.
  *
  * @param[in] device DDF instance of the device to initialize.
  * @return Error code.
@@ -80,22 +80,22 @@ static int uhci_rh_add_device(ddf_dev_t *device)
 	usb_log_debug2("%s called device %d\n", __FUNCTION__, device->handle);
 
 	//device->ops = &uhci_rh_ops;
-	(void) uhci_rh_ops;
-
-	uhci_root_hub_t *rh = malloc(sizeof(uhci_root_hub_t));
-	if (!rh) {
-		usb_log_error("Failed to allocate memory for driver instance.\n");
-		return ENOMEM;
-	}
-
 	uintptr_t io_regs = 0;
 	size_t io_size = 0;
 
 	int ret = hc_get_my_registers(device, &io_regs, &io_size);
-	assert(ret == EOK);
+	if (ret != EOK) {
+		usb_log_error("Failed(%d) to get registers from parent hc.",
+		    ret);
+	}
+	usb_log_info("I/O regs at %#X (size %zu).\n", io_regs, io_size);
 
-	/* TODO: verify values from hc */
-	usb_log_info("I/O regs at 0x%X (size %zu).\n", io_regs, io_size);
+	uhci_root_hub_t *rh = malloc(sizeof(uhci_root_hub_t));
+	if (!rh) {
+		usb_log_error("Failed to allocate driver instance.\n");
+		return ENOMEM;
+	}
+
 	ret = uhci_root_hub_init(rh, (void*)io_regs, io_size, device);
 	if (ret != EOK) {
 		usb_log_error("Failed(%d) to initialize driver instance.\n", ret);
@@ -118,7 +118,7 @@ static driver_t uhci_rh_driver = {
 	.driver_ops = &uhci_rh_driver_ops
 };
 /*----------------------------------------------------------------------------*/
-/** Initializes global driver structures (NONE).
+/** Initialize global driver structures (NONE).
  *
  * @param[in] argc Nmber of arguments in argv vector (ignored).
  * @param[in] argv Cmdline argument vector (ignored).

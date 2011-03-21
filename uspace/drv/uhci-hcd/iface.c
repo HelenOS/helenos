@@ -25,11 +25,11 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup usb
+/** @addtogroup drvusbuhcihc
  * @{
  */
 /** @file
- * @brief UHCI driver
+ * @brief UHCI driver hc interface implementation
  */
 #include <ddf/driver.h>
 #include <remote_usbhc.h>
@@ -39,8 +39,7 @@
 #include <errno.h>
 
 #include "iface.h"
-#include "uhci.h"
-#include "utils/device_keeper.h"
+#include "uhci_hc.h"
 
 /** Reserve default address interface function
  *
@@ -52,7 +51,7 @@
 static int reserve_default_address(ddf_fun_t *fun, usb_speed_t speed)
 {
 	assert(fun);
-	uhci_t *hc = fun_to_uhci(fun);
+	uhci_hc_t *hc = fun_to_uhci_hc(fun);
 	assert(hc);
 	usb_log_debug("Default address request with speed %d.\n", speed);
 	device_keeper_reserve_default(&hc->device_manager, speed);
@@ -67,7 +66,7 @@ static int reserve_default_address(ddf_fun_t *fun, usb_speed_t speed)
 static int release_default_address(ddf_fun_t *fun)
 {
 	assert(fun);
-	uhci_t *hc = fun_to_uhci(fun);
+	uhci_hc_t *hc = fun_to_uhci_hc(fun);
 	assert(hc);
 	usb_log_debug("Default address release.\n");
 	device_keeper_release_default(&hc->device_manager);
@@ -85,7 +84,7 @@ static int request_address(ddf_fun_t *fun, usb_speed_t speed,
     usb_address_t *address)
 {
 	assert(fun);
-	uhci_t *hc = fun_to_uhci(fun);
+	uhci_hc_t *hc = fun_to_uhci_hc(fun);
 	assert(hc);
 	assert(address);
 
@@ -108,7 +107,7 @@ static int bind_address(
   ddf_fun_t *fun, usb_address_t address, devman_handle_t handle)
 {
 	assert(fun);
-	uhci_t *hc = fun_to_uhci(fun);
+	uhci_hc_t *hc = fun_to_uhci_hc(fun);
 	assert(hc);
 	usb_log_debug("Address bind %d-%d.\n", address, handle);
 	device_keeper_bind(&hc->device_manager, address, handle);
@@ -124,7 +123,7 @@ static int bind_address(
 static int release_address(ddf_fun_t *fun, usb_address_t address)
 {
 	assert(fun);
-	uhci_t *hc = fun_to_uhci(fun);
+	uhci_hc_t *hc = fun_to_uhci_hc(fun);
 	assert(hc);
 	usb_log_debug("Address release %d.\n", address);
 	device_keeper_release(&hc->device_manager, address);
@@ -147,7 +146,7 @@ static int interrupt_out(ddf_fun_t *fun, usb_target_t target,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
 	assert(fun);
-	uhci_t *hc = fun_to_uhci(fun);
+	uhci_hc_t *hc = fun_to_uhci_hc(fun);
 	assert(hc);
 	usb_speed_t speed = device_keeper_speed(&hc->device_manager, target.address);
 
@@ -160,6 +159,11 @@ static int interrupt_out(ddf_fun_t *fun, usb_target_t target,
 	if (!batch)
 		return ENOMEM;
 	batch_interrupt_out(batch);
+	const int ret = uhci_hc_schedule(hc, batch);
+	if (ret != EOK) {
+		batch_dispose(batch);
+		return ret;
+	}
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -179,7 +183,7 @@ static int interrupt_in(ddf_fun_t *fun, usb_target_t target,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
 	assert(fun);
-	uhci_t *hc = fun_to_uhci(fun);
+	uhci_hc_t *hc = fun_to_uhci_hc(fun);
 	assert(hc);
 	usb_speed_t speed = device_keeper_speed(&hc->device_manager, target.address);
 	usb_log_debug("Interrupt IN %d:%d %zu(%zu).\n",
@@ -191,6 +195,11 @@ static int interrupt_in(ddf_fun_t *fun, usb_target_t target,
 	if (!batch)
 		return ENOMEM;
 	batch_interrupt_in(batch);
+	const int ret = uhci_hc_schedule(hc, batch);
+	if (ret != EOK) {
+		batch_dispose(batch);
+		return ret;
+	}
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -210,7 +219,7 @@ static int bulk_out(ddf_fun_t *fun, usb_target_t target,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
 	assert(fun);
-	uhci_t *hc = fun_to_uhci(fun);
+	uhci_hc_t *hc = fun_to_uhci_hc(fun);
 	assert(hc);
 	usb_speed_t speed = device_keeper_speed(&hc->device_manager, target.address);
 
@@ -223,6 +232,11 @@ static int bulk_out(ddf_fun_t *fun, usb_target_t target,
 	if (!batch)
 		return ENOMEM;
 	batch_bulk_out(batch);
+	const int ret = uhci_hc_schedule(hc, batch);
+	if (ret != EOK) {
+		batch_dispose(batch);
+		return ret;
+	}
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -242,7 +256,7 @@ static int bulk_in(ddf_fun_t *fun, usb_target_t target,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
 	assert(fun);
-	uhci_t *hc = fun_to_uhci(fun);
+	uhci_hc_t *hc = fun_to_uhci_hc(fun);
 	assert(hc);
 	usb_speed_t speed = device_keeper_speed(&hc->device_manager, target.address);
 	usb_log_debug("Bulk IN %d:%d %zu(%zu).\n",
@@ -254,6 +268,11 @@ static int bulk_in(ddf_fun_t *fun, usb_target_t target,
 	if (!batch)
 		return ENOMEM;
 	batch_bulk_in(batch);
+	const int ret = uhci_hc_schedule(hc, batch);
+	if (ret != EOK) {
+		batch_dispose(batch);
+		return ret;
+	}
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -276,11 +295,11 @@ static int control_write(ddf_fun_t *fun, usb_target_t target,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
 	assert(fun);
-	uhci_t *hc = fun_to_uhci(fun);
+	uhci_hc_t *hc = fun_to_uhci_hc(fun);
 	assert(hc);
 	usb_speed_t speed = device_keeper_speed(&hc->device_manager, target.address);
-	usb_log_debug("Control WRITE %d:%d %zu(%zu).\n",
-	    target.address, target.endpoint, size, max_packet_size);
+	usb_log_debug("Control WRITE (%d) %d:%d %zu(%zu).\n",
+	    speed, target.address, target.endpoint, size, max_packet_size);
 
 	if (setup_size != 8)
 		return EINVAL;
@@ -292,6 +311,11 @@ static int control_write(ddf_fun_t *fun, usb_target_t target,
 		return ENOMEM;
 	device_keeper_reset_if_need(&hc->device_manager, target, setup_data);
 	batch_control_write(batch);
+	const int ret = uhci_hc_schedule(hc, batch);
+	if (ret != EOK) {
+		batch_dispose(batch);
+		return ret;
+	}
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -314,22 +338,27 @@ static int control_read(ddf_fun_t *fun, usb_target_t target,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
 	assert(fun);
-	uhci_t *hc = fun_to_uhci(fun);
+	uhci_hc_t *hc = fun_to_uhci_hc(fun);
 	assert(hc);
 	usb_speed_t speed = device_keeper_speed(&hc->device_manager, target.address);
 
-	usb_log_debug("Control READ %d:%d %zu(%zu).\n",
-	    target.address, target.endpoint, size, max_packet_size);
+	usb_log_debug("Control READ(%d) %d:%d %zu(%zu).\n",
+	    speed, target.address, target.endpoint, size, max_packet_size);
 	batch_t *batch = batch_get(fun, target, USB_TRANSFER_CONTROL,
 	    max_packet_size, speed, data, size, setup_data, setup_size, callback,
 	    NULL, arg, &hc->device_manager);
 	if (!batch)
 		return ENOMEM;
 	batch_control_read(batch);
+	const int ret = uhci_hc_schedule(hc, batch);
+	if (ret != EOK) {
+		batch_dispose(batch);
+		return ret;
+	}
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-usbhc_iface_t uhci_iface = {
+usbhc_iface_t uhci_hc_iface = {
 	.reserve_default_address = reserve_default_address,
 	.release_default_address = release_default_address,
 	.request_address = request_address,

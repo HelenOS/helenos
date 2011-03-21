@@ -25,63 +25,70 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-/** @addtogroup drvusbuhci
+/** @addtogroup drvusbuhcihc
  * @{
  */
 /** @file
- * @brief UHCI driver
+ * @brief UHCI driver USB transaction structure
  */
-#ifndef UTILS_DEVICE_KEEPER_H
-#define UTILS_DEVICE_KEEPER_H
-#include <devman.h>
-#include <fibril_synch.h>
+#ifndef LIBUSB_HOST_BATCH_H
+#define LIBUSB_HOST_BATCH_H
+
+#include <adt/list.h>
+
+#include <usbhc_iface.h>
 #include <usb/usb.h>
 
-#define USB_ADDRESS_COUNT (USB11_ADDRESS_MAX + 1)
-
-struct usb_device_info {
+typedef struct batch
+{
+	link_t link;
+	usb_target_t target;
+	usb_transfer_type_t transfer_type;
 	usb_speed_t speed;
-	bool occupied;
-	uint16_t toggle_status;
-	devman_handle_t handle;
-};
+	usb_direction_t direction;
+	usbhc_iface_transfer_in_callback_t callback_in;
+	usbhc_iface_transfer_out_callback_t callback_out;
+	char *buffer;
+	char *transport_buffer;
+	size_t buffer_size;
+	char *setup_buffer;
+	size_t setup_size;
+	size_t max_packet_size;
+	size_t transfered_size;
+	void (*next_step)(struct batch*);
+	int error;
+	ddf_fun_t *fun;
+	void *arg;
+	void *private_data;
+} batch_t;
 
-typedef struct device_keeper {
-	struct usb_device_info devices[USB_ADDRESS_COUNT];
-	fibril_mutex_t guard;
-	fibril_condvar_t default_address_occupied;
-	usb_address_t last_address;
-} device_keeper_t;
+void batch_init(
+    batch_t *instance,
+    usb_target_t target,
+    usb_transfer_type_t transfer_type,
+    usb_speed_t speed,
+    size_t max_packet_size,
+    char *buffer,
+    char *transport_buffer,
+    size_t buffer_size,
+    char *setup_buffer,
+    size_t setup_size,
+    usbhc_iface_transfer_in_callback_t func_in,
+    usbhc_iface_transfer_out_callback_t func_out,
+    void *arg,
+    ddf_fun_t *fun,
+    void *private_data
+);
 
-void device_keeper_init(device_keeper_t *instance);
+static inline batch_t *batch_from_link(link_t *link_ptr)
+{
+	assert(link_ptr);
+	return list_get_instance(link_ptr, batch_t, link);
+}
 
-void device_keeper_reserve_default(
-    device_keeper_t *instance, usb_speed_t speed);
-
-void device_keeper_release_default(device_keeper_t *instance);
-
-void device_keeper_reset_if_need(
-    device_keeper_t *instance, usb_target_t target, const unsigned char *setup_data);
-
-int device_keeper_get_toggle(device_keeper_t *instance, usb_target_t target);
-
-int device_keeper_set_toggle(
-    device_keeper_t *instance, usb_target_t target, bool toggle);
-
-usb_address_t device_keeper_request(
-    device_keeper_t *instance, usb_speed_t speed);
-
-void device_keeper_bind(
-    device_keeper_t *instance, usb_address_t address, devman_handle_t handle);
-
-void device_keeper_release(device_keeper_t *instance, usb_address_t address);
-
-usb_address_t device_keeper_find(
-    device_keeper_t *instance, devman_handle_t handle);
-
-usb_speed_t device_keeper_speed(
-    device_keeper_t *instance, usb_address_t address);
+void batch_call_in(batch_t *instance);
+void batch_call_out(batch_t *instance);
+void batch_finish(batch_t *instance, int error);
 #endif
 /**
  * @}

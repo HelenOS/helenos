@@ -44,32 +44,61 @@
 #include <usb/hub.h>
 
 #include <usb/pipes.h>
+#include <usb/devdrv.h>
+
+
+/** Hub status-change endpoint description
+ *
+ * For more see usb hub specification in 11.15.1 of
+ */
+extern usb_endpoint_description_t hub_status_change_endpoint_description;
+
+
 
 /* Hub endpoints. */
-typedef struct {
+/*typedef struct {
         usb_endpoint_pipe_t control;
         usb_endpoint_pipe_t status_change;
 } usb_hub_endpoints_t;
-
+*/
 
 
 /** Information about attached hub. */
 typedef struct {
 	/** Number of ports. */
 	int port_count;
+
 	/** attached device handles, for each port one */
 	usb_hc_attached_device_t * attached_devs;
-	/** General usb device info. */
-	//usb_hcd_attached_device_info_t * usb_device;
-	/** General device info*/
-	ddf_dev_t * device;
+	
 	/** connection to hcd */
-	//usb_device_connection_t connection;
 	usb_hc_connection_t connection;
-	/** */
-	usb_device_connection_t device_connection;
-	/** hub endpoints */
-	usb_hub_endpoints_t endpoints;
+
+	/** default address is used indicator
+	 *
+	 * If default address is requested by this device, it cannot
+	 * be requested by the same hub again, otherwise a deadlock will occur.
+	 */
+	bool is_default_address_used;
+
+	/** convenience pointer to status change pipe
+	 *
+	 * Status change pipe is initialized in usb_device structure. This is
+	 * pointer into this structure, so that it does not have to be
+	 * searched again and again for the 'right pipe'.
+	 */
+	usb_endpoint_pipe_t * status_change_pipe;
+
+	/** convenience pointer to control pipe
+	 *
+	 * Control pipe is initialized in usb_device structure. This is
+	 * pointer into this structure, so that it does not have to be
+	 * searched again and again for the 'right pipe'.
+	 */
+	usb_endpoint_pipe_t * control_pipe;
+
+	/** generic usb device data*/
+	usb_device_t * usb_device;
 } usb_hub_info_t;
 
 /**
@@ -78,22 +107,16 @@ typedef struct {
  */
 int usb_hub_control_loop(void * hub_info_param);
 
-/** Callback when new hub device is detected.
- *
- * @param dev New device.
- * @return Error code.
- */
-int usb_add_hub_device(ddf_dev_t *dev);
-
 /**
- * check changes on specified hub
+ * Check changes on specified hub
  * @param hub_info_param pointer to usb_hub_info_t structure
+ * @return error code if there is problem when initializing communication with
+ * hub, EOK otherwise
  */
-void usb_hub_check_hub_changes(usb_hub_info_t * hub_info_param);
+int usb_hub_check_hub_changes(usb_hub_info_t * hub_info_param);
 
 
-
-
+int usb_hub_add_device(usb_device_t * usb_dev);
 
 #endif
 /**

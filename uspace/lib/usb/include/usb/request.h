@@ -93,6 +93,12 @@ int usb_control_request_get(usb_endpoint_pipe_t *,
     usb_request_type_t, usb_request_recipient_t, uint8_t,
     uint16_t, uint16_t, void *, size_t, size_t *);
 
+int usb_request_get_status(usb_endpoint_pipe_t *, usb_request_recipient_t,
+    uint16_t, uint16_t *);
+int usb_request_clear_feature(usb_endpoint_pipe_t *, usb_request_type_t,
+    usb_request_recipient_t, uint16_t, uint16_t);
+int usb_request_set_feature(usb_endpoint_pipe_t *, usb_request_type_t,
+    usb_request_recipient_t, uint16_t, uint16_t);
 int usb_request_set_address(usb_endpoint_pipe_t *, usb_address_t);
 int usb_request_get_descriptor(usb_endpoint_pipe_t *, usb_request_type_t,
     usb_request_recipient_t, uint8_t, uint8_t, uint16_t, void *, size_t, 
@@ -107,7 +113,12 @@ int usb_request_get_full_configuration_descriptor(usb_endpoint_pipe_t *, int,
     void *, size_t, size_t *);
 int usb_request_get_full_configuration_descriptor_alloc(usb_endpoint_pipe_t *,
     int, void **, size_t *);
+int usb_request_set_descriptor(usb_endpoint_pipe_t *, usb_request_type_t,
+    usb_request_recipient_t, uint8_t, uint8_t, uint16_t, void *, size_t);
+int usb_request_get_configuration(usb_endpoint_pipe_t *, uint8_t *);
 int usb_request_set_configuration(usb_endpoint_pipe_t *, uint8_t);
+int usb_request_get_interface(usb_endpoint_pipe_t *, uint8_t, uint8_t *);
+int usb_request_set_interface(usb_endpoint_pipe_t *, uint8_t, uint8_t);
 
 int usb_request_get_supported_languages(usb_endpoint_pipe_t *,
     l18_win_locales_t **, size_t *);

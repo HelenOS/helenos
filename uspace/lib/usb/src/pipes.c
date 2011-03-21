@@ -41,6 +41,8 @@
 #include <errno.h>
 #include <assert.h>
 
+#define IPC_AGAIN_DELAY (1000 * 2) /* 2ms */
+
 /** Tell USB address assigned to given device.
  *
  * @param phone Phone to parent device.
@@ -50,7 +52,6 @@
 static usb_address_t get_my_address(int phone, ddf_dev_t *dev)
 {
 	sysarg_t address;
-
 
 	/*
 	 * We are sending special value as a handle - zero - to get
@@ -95,6 +96,34 @@ int usb_device_get_assigned_interface(ddf_dev_t *device)
 	return (int) iface_no;
 }
 
+/** Tell USB address assigned to given device.
+ *
+ * @param dev_handle Devman handle of the USB device in question.
+ * @return USB address or negative error code.
+ */
+usb_address_t usb_device_get_assigned_address(devman_handle_t dev_handle)
+{
+	int parent_phone = devman_parent_device_connect(dev_handle,
+	    IPC_FLAG_BLOCKING);
+	if (parent_phone < 0) {
+		return parent_phone;
+	}
+
+	sysarg_t address;
+
+	int rc = async_req_2_1(parent_phone, DEV_IFACE_ID(USB_DEV_IFACE),
+	    IPC_M_USB_GET_ADDRESS,
+	    dev_handle, &address);
+
+	if (rc != EOK) {
+		return rc;
+	}
+
+	async_hangup(parent_phone);
+
+	return (usb_address_t) address;
+}
+
 /** Initialize connection to USB device.
  *
  * @param connection Connection structure to be initialized.
@@ -122,11 +151,30 @@ int usb_device_connection_initialize_from_device(
 		return parent_phone;
 	}
 
-	my_address = get_my_address(parent_phone, dev);
-	if (my_address < 0) {
-		rc = my_address;
-		goto leave;
-	}
+	/*
+	 * Asking for "my" address may require several attempts.
+	 * That is because following scenario may happen:
+	 *  - parent driver (i.e. driver of parent device) announces new device
+	 *    and devman launches current driver
+	 *  - parent driver is preempted and thus does not send address-handle
+	 *    binding to HC driver
+	 *  - this driver gets here and wants the binding
+	 *  - the HC does not know the binding yet and thus it answers ENOENT
+	 *  So, we need to wait for the HC to learn the binding.
+	 */
+	do {
+		my_address = get_my_address(parent_phone, dev);
+
+		if (my_address == ENOENT) {
+			/* Be nice, let other fibrils run and try again. */
+			async_usleep(IPC_AGAIN_DELAY);
+		} else if (my_address < 0) {
+			/* Some other problem, no sense trying again. */
+			rc = my_address;
+			goto leave;
+		}
+
+	} while (my_address < 0);
 
 	rc = usb_device_connection_initialize(connection,
 	    hc_handle, my_address);

@@ -25,53 +25,53 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup usb
+
+/** @addtogroup drvusbohcihc
  * @{
  */
 /** @file
- * @brief UHCI driver
+ * @brief OHCI host controller register structure
  */
-#include <assert.h>
-#include <stdio.h>
+#ifndef DRV_OHCI_OHCI_REGS_H
+#define DRV_OHCI_OHCI_REGS_H
+#include <stdint.h>
 
-#include <usb/debug.h>
-
-#include "port_status.h"
-
-struct flag_name
+typedef struct ohci_regs
 {
-	uint16_t flag;
-	const char *name;
-};
+	volatile uint32_t revision;
+	volatile uint32_t control;
+	volatile uint32_t command_status;
+	volatile uint32_t interrupt_status;
+	volatile uint32_t interupt_enable;
+#define IE_SO   (1 << 0)
+#define IE_WDH  (1 << 1)
+#define IE_SF   (1 << 2)
+#define IE_RD   (1 << 3)
+#define IE_UE   (1 << 4)
+#define IE_FNO  (1 << 5)
+#define IE_RHSC (1 << 6)
+#define IE_OC   (1 << 30)
+#define IE_MIE  (1 << 31)
 
-static const struct flag_name flags[] =
-{
-	{ STATUS_SUSPEND, "suspended" },
-	{ STATUS_IN_RESET, "in reset" },
-	{ STATUS_LOW_SPEED, "low speed device" },
-	{ STATUS_ALWAYS_ONE, "always 1 bit" },
-	{ STATUS_RESUME, "resume" },
-	{ STATUS_LINE_D_MINUS, "line D- value" },
-	{ STATUS_LINE_D_PLUS, "line D+ value" },
-	{ STATUS_ENABLED_CHANGED, "enabled changed" },
-	{ STATUS_ENABLED, "enabled" },
-	{ STATUS_CONNECTED_CHANGED, "connected changed" },
-	{ STATUS_CONNECTED, "connected" }
-};
-
-/** Prints portr status in a human readable way.
- *
- * @param[in] value Port value to print.
- * @return Error code.
- */
-void print_port_status(port_status_t value)
-{
-	unsigned i = 0;
-	for (;i < sizeof(flags)/sizeof(struct flag_name); ++i) {
-		usb_log_debug2("\t%s status: %s.\n", flags[i].name,
-		  ((value & flags[i].flag) != 0) ? "YES" : "NO");
-	}
-}
+	volatile uint32_t interrupt_disable;
+	volatile uint32_t hcca;
+	volatile uint32_t period_corrent;
+	volatile uint32_t control_head;
+	volatile uint32_t control_current;
+	volatile uint32_t bulk_head;
+	volatile uint32_t bulk_current;
+	volatile uint32_t done_head;
+	volatile uint32_t fm_interval;
+	volatile uint32_t fm_remaining;
+	volatile uint32_t fm_number;
+	volatile uint32_t periodic_start;
+	volatile uint32_t ls_threshold;
+	volatile uint32_t rh_desc_a;
+	volatile uint32_t rh_desc_b;
+	volatile uint32_t rh_status;
+	volatile uint32_t rh_port_status[];
+} __attribute__((packed)) ohci_regs_t;
+#endif
 /**
  * @}
  */

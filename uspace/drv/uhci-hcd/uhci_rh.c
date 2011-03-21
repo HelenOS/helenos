@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jan Vesely
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,43 +25,59 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup usb
+/** @addtogroup drvusbuhci
  * @{
  */
 /** @file
  * @brief UHCI driver
  */
-#ifndef DRV_UHCI_TD_PORT_STATUS_H
-#define DRV_UHCI_TD_PORT_STATUS_H
+#include <assert.h>
+#include <errno.h>
+#include <str_error.h>
+#include <stdio.h>
 
-#include <libarch/ddi.h> /* pio_read and pio_write */
+#include <usb/debug.h>
 
-#include <stdint.h>
+#include "uhci_rh.h"
+#include "uhci_hc.h"
 
-typedef uint16_t port_status_t;
+/** Root hub initialization
+ * @param[in] instance RH structure to initialize
+ * @param[in] fun DDF function representing UHCI root hub
+ * @param[in] reg_addr Address of root hub status and control registers.
+ * @param[in] reg_size Size of accessible address space.
+ * @return Error code.
+ */
+int uhci_rh_init(
+    uhci_rh_t *instance, ddf_fun_t *fun, uintptr_t reg_addr, size_t reg_size)
+{
+	assert(fun);
 
-#define STATUS_CONNECTED         (1 << 0)
-#define STATUS_CONNECTED_CHANGED (1 << 1)
-#define STATUS_ENABLED           (1 << 2)
-#define STATUS_ENABLED_CHANGED   (1 << 3)
-#define STATUS_LINE_D_PLUS       (1 << 4)
-#define STATUS_LINE_D_MINUS      (1 << 5)
-#define STATUS_RESUME            (1 << 6)
-#define STATUS_ALWAYS_ONE        (1 << 7)
+	char *match_str = NULL;
+	int ret = asprintf(&match_str, "usb&uhci&root-hub");
+	if (ret < 0) {
+		usb_log_error("Failed to create root hub match string.\n");
+		return ENOMEM;
+	}
 
-#define STATUS_LOW_SPEED (1 <<  8)
-#define STATUS_IN_RESET  (1 <<  9)
-#define STATUS_SUSPEND   (1 << 12)
+	ret = ddf_fun_add_match_id(fun, match_str, 100);
+	if (ret != EOK) {
+		usb_log_error("Failed(%d) to add root hub match id: %s\n",
+		    ret, str_error(ret));
+		return ret;
+	}
 
-static inline port_status_t port_status_read(port_status_t * address)
-	{ return pio_read_16(address); }
+	hw_resource_list_t *resource_list = &instance->resource_list;
+	resource_list->count = 1;
+	resource_list->resources = &instance->io_regs;
+	assert(resource_list->resources);
+	instance->io_regs.type = IO_RANGE;
+	instance->io_regs.res.io_range.address = reg_addr;
+	instance->io_regs.res.io_range.size = reg_size;
+	instance->io_regs.res.io_range.endianness = LITTLE_ENDIAN;
 
-static inline void port_status_write(
-  port_status_t *address, port_status_t value)
-	{ pio_write_16(address, value); }
-
-void print_port_status(const port_status_t status);
-#endif
+	return EOK;
+}
 /**
  * @}
  */

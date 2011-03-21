@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jiri Svoboda
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -271,8 +271,11 @@ typedef struct rdata_address {
 /** Value item. */
 typedef struct rdata_value {
 	/**
-	 * Read-only Variable holding a copy of the data. The same @c var
-	 * can be shared between different instances of @c rdata_value_t.
+	 * Read-only Variable holding a copy of the data. Currently we don't
+	 * allow sharing the same @c var node between different value nodes
+	 * so that when destroying the value we can destroy the var.
+	 *
+	 * We could share this, but would need to reference-count it.
 	 */
 	rdata_var_t *var;
 } rdata_value_t;
