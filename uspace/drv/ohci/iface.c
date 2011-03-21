@@ -66,7 +66,7 @@ static int reserve_default_address(ddf_fun_t *fun, usb_speed_t speed)
   device_keeper_reserve_default(&hc->manager, speed);
   return EOK;
 }
-
+/*----------------------------------------------------------------------------*/
 /** Release default address.
  *
  * @param[in] fun Device function the action was invoked on.
@@ -74,11 +74,14 @@ static int reserve_default_address(ddf_fun_t *fun, usb_speed_t speed)
  */
 static int release_default_address(ddf_fun_t *fun)
 {
-	UNSUPPORTED("release_default_address");
-
-	return ENOTSUP;
+  assert(fun);
+  hc_t *hc = fun_to_hc(fun);
+  assert(hc);
+  usb_log_debug("Default address release.\n");
+  device_keeper_release_default(&hc->manager);
+  return EOK;
 }
-
+/*----------------------------------------------------------------------------*/
 /** Found free USB address.
  *
  * @param[in] fun Device function the action was invoked on.
@@ -89,11 +92,19 @@ static int release_default_address(ddf_fun_t *fun)
 static int request_address(ddf_fun_t *fun, usb_speed_t speed,
     usb_address_t *address)
 {
-	UNSUPPORTED("request_address");
+  assert(fun);
+  hc_t *hc = fun_to_hc(fun);
+  assert(hc);
+  assert(address);
 
-	return ENOTSUP;
+  usb_log_debug("Address request with speed %d.\n", speed);
+  *address = device_keeper_request(&hc->manager, speed);
+  usb_log_debug("Address request with result: %d.\n", *address);
+  if (*address <= 0)
+    return *address;
+  return EOK;
 }
-
+/*----------------------------------------------------------------------------*/
 /** Bind USB address with device devman handle.
  *
  * @param[in] fun Device function the action was invoked on.
@@ -104,11 +115,14 @@ static int request_address(ddf_fun_t *fun, usb_speed_t speed,
 static int bind_address(ddf_fun_t *fun,
     usb_address_t address, devman_handle_t handle)
 {
-	UNSUPPORTED("bind_address");
-
-	return ENOTSUP;
+  assert(fun);
+  hc_t *hc = fun_to_hc(fun);
+  assert(hc);
+  usb_log_debug("Address bind %d-%d.\n", address, handle);
+  device_keeper_bind(&hc->manager, address, handle);
+  return EOK;
 }
-
+/*----------------------------------------------------------------------------*/
 /** Release previously requested address.
  *
  * @param[in] fun Device function the action was invoked on.
@@ -117,9 +131,12 @@ static int bind_address(ddf_fun_t *fun,
  */
 static int release_address(ddf_fun_t *fun, usb_address_t address)
 {
-	UNSUPPORTED("release_address");
-
-	return ENOTSUP;
+  assert(fun);
+  hc_t *hc = fun_to_hc(fun);
+  assert(hc);
+  usb_log_debug("Address release %d.\n", address);
+  device_keeper_release(&hc->manager, address);
+  return EOK;
 }
 
 /** Register endpoint for bandwidth reservation.
