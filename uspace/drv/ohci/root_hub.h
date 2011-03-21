@@ -32,8 +32,8 @@
 /** @file
  * @brief OHCI driver
  */
-#ifndef DRV_OHCI_OHCI_RH_H
-#define DRV_OHCI_OHCI_RH_H
+#ifndef DRV_OHCI_ROOT_HUB_H
+#define DRV_OHCI_ROOT_HUB_H
 
 #include <usb/usb.h>
 
@@ -45,11 +45,11 @@ typedef struct ohci_rh {
 	usb_address_t address;
 } ohci_rh_t;
 
-int ohci_rh_init(ohci_rh_t *instance, ohci_regs_t *regs);
+int rh_init(ohci_rh_t *instance, ohci_regs_t *regs);
 
-void ohci_rh_request(ohci_rh_t *instance, batch_t *request);
+void rh_request(ohci_rh_t *instance, batch_t *request);
 
-void ohci_rh_interrupt(ohci_rh_t *instance);
+void rh_interrupt(ohci_rh_t *instance);
 #endif
 /**
  * @}

@@ -37,12 +37,12 @@
 
 #include <usb/debug.h>
 
-#include "ohci_rh.h"
+#include "root_hub.h"
 
 /** Root hub initialization
  * @return Error code.
  */
-int ohci_rh_init(ohci_rh_t *instance, ohci_regs_t *regs)
+int rh_init(ohci_rh_t *instance, ohci_regs_t *regs)
 {
 	assert(instance);
 	instance->address = 0;
@@ -54,12 +54,12 @@ int ohci_rh_init(ohci_rh_t *instance, ohci_regs_t *regs)
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-void ohci_rh_request(ohci_rh_t *instance, batch_t *request)
+void rh_request(ohci_rh_t *instance, batch_t *request)
 {
 	/* TODO: implement */
 }
 /*----------------------------------------------------------------------------*/
-void ohci_rh_interrupt(ohci_rh_t *instance)
+void rh_interrupt(ohci_rh_t *instance)
 {
 	usb_log_info("Interrupt!!.\n");
 	/* TODO: implement */

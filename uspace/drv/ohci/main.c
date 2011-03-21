@@ -44,7 +44,7 @@
 
 #include "pci.h"
 #include "iface.h"
-#include "ohci_hc.h"
+#include "hc.h"
 
 static int ohci_add_device(ddf_dev_t *device);
 /*----------------------------------------------------------------------------*/
@@ -57,9 +57,9 @@ static int ohci_add_device(ddf_dev_t *device);
 static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
 {
 	assert(dev);
-	ohci_hc_t *hc = (ohci_hc_t*)dev->driver_data;
+	hc_t *hc = (hc_t*)dev->driver_data;
 	assert(hc);
-	ohci_hc_interrupt(hc, 0);
+	hc_interrupt(hc, 0);
 }
 /*----------------------------------------------------------------------------*/
 static driver_ops_t ohci_driver_ops = {
@@ -71,7 +71,7 @@ static driver_t ohci_driver = {
 	.driver_ops = &ohci_driver_ops
 };
 static ddf_dev_ops_t hc_ops = {
-	.interfaces[USBHC_DEV_IFACE] = &ohci_hc_iface,
+	.interfaces[USBHC_DEV_IFACE] = &hc_iface,
 };
 
 /*----------------------------------------------------------------------------*/
@@ -104,7 +104,7 @@ if (ret != EOK) { \
 	CHECK_RET_RETURN(ret,
 	    "Failed(%d) disable legacy USB: %s.\n", ret, str_error(ret));
 
-	ohci_hc_t *hcd = malloc(sizeof(ohci_hc_t));
+	hc_t *hcd = malloc(sizeof(hc_t));
 	if (hcd == NULL) {
 		usb_log_error("Failed to allocate OHCI driver.\n");
 		return ENOMEM;
@@ -128,7 +128,7 @@ if (ret != EOK) { \
 		interrupts = true;
 	}
 
-	ret = ohci_hc_init(hcd, hc_fun, mem_reg_base, mem_reg_size, interrupts);
+	ret = hc_init(hcd, hc_fun, mem_reg_base, mem_reg_size, interrupts);
 	if (ret != EOK) {
 		usb_log_error("Failed to initialize OHCI driver.\n");
 		free(hcd);

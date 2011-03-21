@@ -39,7 +39,7 @@
 
 #define NAME "ohci"
 
-extern usbhc_iface_t ohci_hc_iface;
+extern usbhc_iface_t hc_iface;
 
 #endif
 /**

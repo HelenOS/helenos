@@ -42,6 +42,7 @@
 #include <usb/debug.h>
 
 #include "iface.h"
+#include "hc.h"
 
 #define UNSUPPORTED(methodname) \
 	usb_log_warning("Unsupported interface method `%s()' in %s:%d.\n", \
@@ -58,9 +59,12 @@
  */
 static int reserve_default_address(ddf_fun_t *fun, usb_speed_t speed)
 {
-	UNSUPPORTED("reserve_default_address");
-
-	return ENOTSUP;
+  assert(fun);
+  hc_t *hc = fun_to_hc(fun);
+  assert(hc);
+  usb_log_debug("Default address request with speed %d.\n", speed);
+  device_keeper_reserve_default(&hc->manager, speed);
+  return EOK;
 }
 
 /** Release default address.
@@ -322,7 +326,7 @@ static int control_read(ddf_fun_t *fun, usb_target_t target,
 }
 
 /** Host controller interface implementation for OHCI. */
-usbhc_iface_t ohci_hc_iface = {
+usbhc_iface_t hc_iface = {
 	.reserve_default_address = reserve_default_address,
 	.release_default_address = release_default_address,
 	.request_address = request_address,
