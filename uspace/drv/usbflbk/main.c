@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,57 +26,70 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbhub
+/** @addtogroup drvusbfallback
  * @{
  */
-
-#include <ddf/driver.h>
-#include <errno.h>
-#include <async.h>
-#include <stdio.h>
-
+/**
+ * @file
+ * Main routines of USB fallback driver.
+ */
 #include <usb/devdrv.h>
-#include <usb/classes/classes.h>
+#include <usb/debug.h>
+#include <errno.h>
+#include <str_error.h>
 
-#include "usbhub.h"
-#include "usbhub_private.h"
+#define NAME "usbflbk"
 
+/** Callback when new device is attached and recognized by DDF.
+ *
+ * @param dev Representation of a generic DDF device.
+ * @return Error code.
+ */
+static int usbfallback_add_device(usb_device_t *dev)
+{
+	int rc;
+	const char *fun_name = "ctl";
 
-usb_endpoint_description_t hub_status_change_endpoint_description = {
-	.transfer_type = USB_TRANSFER_INTERRUPT,
-	.direction = USB_DIRECTION_IN,
-	.interface_class = USB_CLASS_HUB,
-	.interface_subclass = 0,
-	.interface_protocol = 0,
-	.flags = 0
+	ddf_fun_t *ctl_fun = ddf_fun_create(dev->ddf_dev, fun_exposed,
+	    fun_name);
+	if (ctl_fun == NULL) {
+		usb_log_error("Failed to create control function.\n");
+		return ENOMEM;
+	}
+	rc = ddf_fun_bind(ctl_fun);
+	if (rc != EOK) {
+		usb_log_error("Failed to bind control function: %s.\n",
+		    str_error(rc));
+		return rc;
+	}
+
+	usb_log_info("Pretending to control %s `%s'" \
+	    " (node `%s', handle %llu).\n",
+	    dev->interface_no < 0 ? "device" : "interface",
+	    dev->ddf_dev->name, fun_name, dev->ddf_dev->handle);
+
+	return EOK;
+}
+
+/** USB fallback driver ops. */
+static usb_driver_ops_t usbfallback_driver_ops = {
+	.add_device = usbfallback_add_device,
 };
 
-
-static usb_driver_ops_t usb_hub_driver_ops = {
-	.add_device = usb_hub_add_device
+/** USB fallback driver. */
+static usb_driver_t usbfallback_driver = {
+	.name = NAME,
+	.ops = &usbfallback_driver_ops,
+	.endpoints = NULL
 };
-
-static usb_driver_t usb_hub_driver = {
-	.name = "usbhub",
-	.ops = &usb_hub_driver_ops
-};
-
 
 int main(int argc, char *argv[])
 {
 	usb_log_enable(USB_LOG_LEVEL_DEBUG, NAME);
-	usb_log_info("starting hub driver\n");
 
-	
-	usb_hub_driver.endpoints = (usb_endpoint_description_t**)
-			malloc(2 * sizeof(usb_endpoint_description_t*));
-	usb_hub_driver.endpoints[0] = &hub_status_change_endpoint_description;
-	usb_hub_driver.endpoints[1] = NULL;
-
-	return usb_driver_main(&usb_hub_driver);
+	return usb_driver_main(&usbfallback_driver);
 }
 
 /**
  * @}
  */
-

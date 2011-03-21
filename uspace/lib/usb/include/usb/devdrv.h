@@ -78,7 +78,12 @@ typedef struct {
 	 * the same as the directory name where the driver executable resides.
 	 */
 	const char *name;
-	/** Expected endpoints description. */
+	/** Expected endpoints description, excluding default control endpoint.
+	 *
+	 * It MUST be of size expected_enpoints_count(excluding default ctrl) + 1
+	 * where the last record MUST BE NULL, otherwise catastrophic things may
+	 * happen.
+	 */
 	usb_endpoint_description_t **endpoints;
 	/** Driver ops. */
 	usb_driver_ops_t *ops;
