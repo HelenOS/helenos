@@ -166,7 +166,7 @@ if (ret != EOK) { \
 	    pci_get_my_registers(device, &io_reg_base, &io_reg_size, &irq);
 	CHECK_RET_DEST_FUN_RETURN(ret,
 	    "Failed(%d) to get I/O addresses:.\n", ret, device->handle);
-	usb_log_info("I/O regs at 0x%X (size %zu), IRQ %d.\n",
+	usb_log_debug("I/O regs at 0x%X (size %zu), IRQ %d.\n",
 	    io_reg_base, io_reg_size, irq);
 
 	ret = pci_disable_legacy(device);

@@ -191,7 +191,7 @@ static int usbhid_dev_process_descriptors(usbhid_dev_t *hid_dev,
 {
 	assert(hid_dev != NULL);
 	
-	usb_log_info("Processing descriptors...\n");
+	usb_log_debug("Processing descriptors...\n");
 	
 	int rc;
 
@@ -367,7 +367,7 @@ void usbhid_dev_free(usbhid_dev_t **hid_dev)
 int usbhid_dev_init(usbhid_dev_t *hid_dev, ddf_dev_t *dev, 
     usb_endpoint_description_t *poll_ep_desc)
 {
-	usb_log_info("Initializing HID device structure.\n");
+	usb_log_debug("Initializing HID device structure.\n");
 	
 	if (hid_dev == NULL) {
 		usb_log_error("Failed to init HID device structure: no "
@@ -453,7 +453,7 @@ int usbhid_dev_init(usbhid_dev_t *hid_dev, ddf_dev_t *dev,
 	}
 	
 	hid_dev->initialized = 1;
-	usb_log_info("HID device structure initialized.\n");
+	usb_log_debug("HID device structure initialized.\n");
 	
 	return EOK;
 }

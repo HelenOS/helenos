@@ -35,6 +35,7 @@
 #include <devman.h>
 #include <device/hw_res.h>
 #include <errno.h>
+#include <str_error.h>
 #include <usb_iface.h>
 #include <usb/ddfiface.h>
 #include <usb/debug.h>
@@ -85,10 +86,10 @@ static int uhci_rh_add_device(ddf_dev_t *device)
 
 	int ret = hc_get_my_registers(device, &io_regs, &io_size);
 	if (ret != EOK) {
-		usb_log_error("Failed(%d) to get registers from parent hc.",
-		    ret);
+		usb_log_error("Failed to get registers from parent HC: %s.\n",
+		    str_error(ret));
 	}
-	usb_log_info("I/O regs at %#X (size %zu).\n", io_regs, io_size);
+	usb_log_debug("I/O regs at %#X (size %zu).\n", io_regs, io_size);
 
 	uhci_root_hub_t *rh = malloc(sizeof(uhci_root_hub_t));
 	if (!rh) {
@@ -98,14 +99,15 @@ static int uhci_rh_add_device(ddf_dev_t *device)
 
 	ret = uhci_root_hub_init(rh, (void*)io_regs, io_size, device);
 	if (ret != EOK) {
-		usb_log_error("Failed(%d) to initialize driver instance.\n", ret);
+		usb_log_error("Failed to initialize driver instance: %s.\n",
+		    str_error(ret));
 		free(rh);
 		return ret;
 	}
 
 	device->driver_data = rh;
-	usb_log_info("Sucessfully initialized driver instance for device:%d.\n",
-	    device->handle);
+	usb_log_info("Controlling root hub `%s' (%llu).\n",
+	    device->name, device->handle);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -128,7 +130,10 @@ static driver_t uhci_rh_driver = {
  */
 int main(int argc, char *argv[])
 {
+	printf(NAME ": HelenOS UHCI root hub driver.\n");
+
 	usb_log_enable(USB_LOG_LEVEL_DEFAULT, NAME);
+
 	return ddf_driver_main(&uhci_rh_driver);
 }
 /*----------------------------------------------------------------------------*/
