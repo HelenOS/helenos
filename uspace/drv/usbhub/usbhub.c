@@ -156,37 +156,24 @@ static int usb_hub_get_hub_specific_info(usb_hub_info_t * hub_info){
  */
 static int usb_hub_set_configuration(usb_hub_info_t * hub_info){
 	//device descriptor
-	usb_standard_device_descriptor_t std_descriptor;
-	int opResult = usb_request_get_device_descriptor(
-		&hub_info->usb_device->ctrl_pipe,
-	    &std_descriptor);
-	if(opResult!=EOK){
-		usb_log_error("could not get device descriptor, %d\n",opResult);
-		return opResult;
-	}
+	usb_standard_device_descriptor_t *std_descriptor
+	    = &hub_info->usb_device->descriptors.device;
 	usb_log_info("hub has %d configurations\n",
-			std_descriptor.configuration_count);
-	if(std_descriptor.configuration_count<1){
+	    std_descriptor->configuration_count);
+	if(std_descriptor->configuration_count<1){
 		usb_log_error("THERE ARE NO CONFIGURATIONS AVAILABLE\n");
 		//shouldn`t I return?
+		//definitely
+		return EINVAL;
 	}
 
-	/* Retrieve full configuration descriptor. */
-	uint8_t *descriptors = NULL;
-	size_t descriptors_size = 0;
-	opResult = usb_request_get_full_configuration_descriptor_alloc(
-	    &hub_info->usb_device->ctrl_pipe, 0,
-	    (void **) &descriptors, &descriptors_size);
-	if (opResult != EOK) {
-		usb_log_error("Could not get configuration descriptor: %s.\n",
-		    str_error(opResult));
-		return opResult;
-	}
 	usb_standard_configuration_descriptor_t *config_descriptor
-	    = (usb_standard_configuration_descriptor_t *) descriptors;
+	    = (usb_standard_configuration_descriptor_t *)
+	    hub_info->usb_device->descriptors.configuration;
 
 	/* Set configuration. */
-	opResult = usb_request_set_configuration(&hub_info->usb_device->ctrl_pipe,
+	int opResult = usb_request_set_configuration(
+	    &hub_info->usb_device->ctrl_pipe,
 	    config_descriptor->configuration_number);
 
 	if (opResult != EOK) {
@@ -196,7 +183,7 @@ static int usb_hub_set_configuration(usb_hub_info_t * hub_info){
 	}
 	usb_log_debug("\tused configuration %d\n",
 			config_descriptor->configuration_number);
-	free(descriptors);
+
 	return EOK;
 }
 
@@ -242,7 +229,7 @@ int usb_hub_add_device(usb_device_t * usb_dev){
 
 
 	/// \TODO what is this?
-	usb_log_debug("adding to ddf");
+	usb_log_debug("Creating `hub' function.\n");
 	ddf_fun_t *hub_fun = ddf_fun_create(hub_info->usb_device->ddf_dev,
 			fun_exposed, "hub");
 	assert(hub_fun != NULL);
@@ -256,12 +243,14 @@ int usb_hub_add_device(usb_device_t * usb_dev){
 	//create fibril for the hub control loop
 	fid_t fid = fibril_create(usb_hub_control_loop, hub_info);
 	if (fid == 0) {
-		usb_log_error("failed to start monitoring fibril for new hub");
+		usb_log_error("failed to start monitoring fibril for new hub.\n");
 		return ENOMEM;
 	}
 	fibril_add_ready(fid);
-	usb_log_debug("hub fibril created");
-	usb_log_debug("has %d ports ",hub_info->port_count);
+	usb_log_debug("Hub fibril created.\n");
+
+	usb_log_info("Controlling hub `%s' (%d ports).\n",
+	    hub_info->usb_device->ddf_dev->name, hub_info->port_count);
 	return EOK;
 }
 
@@ -532,7 +521,7 @@ static void usb_hub_process_interrupt(usb_hub_info_t * hub,
 	}
 	//port reset
 	if (usb_port_reset_completed(&status)) {
-		usb_log_info("port reset complete");
+		usb_log_info("port reset complete\n");
 		if (usb_port_enabled(&status)) {
 			usb_hub_finalize_add_device(hub, port, usb_port_speed(&status));
 		} else {

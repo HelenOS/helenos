@@ -47,22 +47,6 @@
 #include <usb/devdrv.h>
 
 
-/** Hub status-change endpoint description
- *
- * For more see usb hub specification in 11.15.1 of
- */
-extern usb_endpoint_description_t hub_status_change_endpoint_description;
-
-
-
-/* Hub endpoints. */
-/*typedef struct {
-        usb_pipe_t control;
-        usb_pipe_t status_change;
-} usb_hub_endpoints_t;
-*/
-
-
 /** Information about attached hub. */
 typedef struct {
 	/** Number of ports. */
