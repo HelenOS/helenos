@@ -45,6 +45,7 @@ typedef struct batch
 	usb_target_t target;
 	usb_transfer_type_t transfer_type;
 	usb_speed_t speed;
+	usb_direction_t direction;
 	usbhc_iface_transfer_in_callback_t callback_in;
 	usbhc_iface_transfer_out_callback_t callback_out;
 	char *buffer;
