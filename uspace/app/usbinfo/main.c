@@ -133,6 +133,7 @@ static void print_usage(char *app_name)
 	_OPTION("-i --identification", "Brief device identification.");
 	_OPTION("-m --match-ids", "Print match ids generated for the device.");
 	_OPTION("-t --descriptor-tree", "Print descriptor tree.");
+	_OPTION("-T --descriptor-tree-full", "Print detailed descriptor tree");
 	_OPTION("-s --strings", "Try to print all string descriptors.");
 
 	printf("\n");
@@ -148,10 +149,11 @@ static struct option long_options[] = {
 	{"identification", no_argument, NULL, 'i'},
 	{"match-ids", no_argument, NULL, 'm'},
 	{"descriptor-tree", no_argument, NULL, 't'},
+	{"descriptor-tree-full", no_argument, NULL, 'T'},
 	{"strings", no_argument, NULL, 's'},
 	{0, 0, NULL, 0}
 };
-static const char *short_options = "himts";
+static const char *short_options = "himtTs";
 
 static usbinfo_action_t actions[] = {
 	{
@@ -167,6 +169,11 @@ static usbinfo_action_t actions[] = {
 	{
 		.opt = 't',
 		.action = dump_descriptor_tree_brief,
+		.active = false
+	},
+	{
+		.opt = 'T',
+		.action = dump_descriptor_tree_full,
 		.active = false
 	},
 	{
