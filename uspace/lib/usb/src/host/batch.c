@@ -61,6 +61,7 @@ void batch_init(
 	instance->target = target;
 	instance->transfer_type = transfer_type;
 	instance->speed = speed;
+	instance->direction = USB_DIRECTION_BOTH;
 	instance->callback_in = func_in;
 	instance->callback_out = func_out;
 	instance->arg = arg;
