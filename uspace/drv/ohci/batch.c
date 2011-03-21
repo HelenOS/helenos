@@ -40,6 +40,9 @@
 #include "batch.h"
 #include "utils/malloc32.h"
 
+static void batch_call_in_and_dispose(batch_t *instance);
+static void batch_call_out_and_dispose(batch_t *instance);
+
 #define DEFAULT_ERROR_COUNT 3
 batch_t * batch_get(
     ddf_fun_t *fun,
@@ -93,36 +96,89 @@ batch_t * batch_get(
 void batch_dispose(batch_t *instance)
 {
 	assert(instance);
+	free32(instance->transport_buffer);
+	free32(instance->setup_buffer);
+	free(instance);
 }
 /*----------------------------------------------------------------------------*/
 void batch_control_write(batch_t *instance)
 {
 	assert(instance);
+	/* We are data out, we are supposed to provide data */
+	memcpy(instance->transport_buffer, instance->buffer,
+	    instance->buffer_size);
+	instance->next_step = batch_call_out_and_dispose;
+	/* TODO: implement */
+	usb_log_debug("Batch(%p) CONTROL WRITE initialized.\n", instance);
 }
 /*----------------------------------------------------------------------------*/
 void batch_control_read(batch_t *instance)
 {
 	assert(instance);
+	instance->next_step = batch_call_in_and_dispose;
+	/* TODO: implement */
+	usb_log_debug("Batch(%p) CONTROL WRITE initialized.\n", instance);
 }
 /*----------------------------------------------------------------------------*/
 void batch_interrupt_in(batch_t *instance)
 {
 	assert(instance);
+	instance->direction = USB_DIRECTION_IN;
+	instance->next_step = batch_call_in_and_dispose;
+	/* TODO: implement */
+	usb_log_debug("Batch(%p) INTERRUPT IN initialized.\n", instance);
 }
 /*----------------------------------------------------------------------------*/
 void batch_interrupt_out(batch_t *instance)
 {
 	assert(instance);
+	instance->direction = USB_DIRECTION_OUT;
+	/* We are data out, we are supposed to provide data */
+	memcpy(instance->transport_buffer, instance->buffer,
+	    instance->buffer_size);
+	instance->next_step = batch_call_out_and_dispose;
+	/* TODO: implement */
+	usb_log_debug("Batch(%p) INTERRUPT OUT initialized.\n", instance);
 }
 /*----------------------------------------------------------------------------*/
 void batch_bulk_in(batch_t *instance)
 {
 	assert(instance);
+	instance->direction = USB_DIRECTION_IN;
+	instance->next_step = batch_call_in_and_dispose;
+	/* TODO: implement */
+	usb_log_debug("Batch(%p) BULK IN initialized.\n", instance);
 }
 /*----------------------------------------------------------------------------*/
 void batch_bulk_out(batch_t *instance)
 {
 	assert(instance);
+	instance->direction = USB_DIRECTION_IN;
+	instance->next_step = batch_call_in_and_dispose;
+	/* TODO: implement */
+	usb_log_debug("Batch(%p) BULK IN initialized.\n", instance);
+}
+/*----------------------------------------------------------------------------*/
+/** Helper function calls callback and correctly disposes of batch structure.
+ *
+ * @param[in] instance Batch structure to use.
+ */
+void batch_call_in_and_dispose(batch_t *instance)
+{
+	assert(instance);
+	batch_call_in(instance);
+	batch_dispose(instance);
+}
+/*----------------------------------------------------------------------------*/
+/** Helper function calls callback and correctly disposes of batch structure.
+ *
+ * @param[in] instance Batch structure to use.
+ */
+void batch_call_out_and_dispose(batch_t *instance)
+{
+	assert(instance);
+	batch_call_out(instance);
+	batch_dispose(instance);
 }
 /**
  * @}

@@ -57,9 +57,16 @@ int rh_init(rh_t *instance, ddf_dev_t *dev, ohci_regs_t *regs)
 /*----------------------------------------------------------------------------*/
 int rh_request(rh_t *instance, batch_t *request)
 {
+	assert(instance);
+	assert(request);
 	/* TODO: implement */
+	if (request->setup_buffer) {
+		usb_log_info("Root hub got SETUP packet: %s.\n",
+		    usb_debug_str_buffer((const uint8_t *)request->setup_buffer, 8, 8));
+	}
 	usb_log_error("Root hub request processing not implemented.\n");
-	return ENOTSUP;
+	batch_finish(request, ENOTSUP);
+	return EOK;
 }
 /*----------------------------------------------------------------------------*/
 void rh_interrupt(rh_t *instance)
