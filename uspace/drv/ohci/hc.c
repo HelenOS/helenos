@@ -44,13 +44,8 @@
 
 #include "hc.h"
 
-static int dummy_reset(int foo, void *arg)
-{
-	hc_t *hc = (hc_t*)arg;
-	assert(hc);
-	hc->rh.address = 0;
-	return EOK;
-}
+static int dummy_reset(int foo, void *arg);
+static int interrupt_emulator(hc_t *instance);
 /*----------------------------------------------------------------------------*/
 int hc_init(hc_t *instance, ddf_fun_t *fun, ddf_dev_t *dev,
     uintptr_t regs, size_t reg_size, bool interrupts)
@@ -65,6 +60,12 @@ int hc_init(hc_t *instance, ddf_fun_t *fun, ddf_dev_t *dev,
 	}
 	instance->ddf_instance = fun;
 	device_keeper_init(&instance->manager);
+
+	if (!interrupts) {
+		instance->interrupt_emulator =
+		    fibril_create((int(*)(void*))interrupt_emulator, instance);
+		fibril_add_ready(instance->interrupt_emulator);
+	}
 
 
 	rh_init(&instance->rh, dev, instance->registers);
@@ -98,7 +99,11 @@ int hc_register_hub(hc_t *instance)
 	devman_handle_t handle;
 	ret = usb_hc_new_device_wrapper(dev, &conn, USB_SPEED_FULL, dummy_reset,
 	    0, instance, &address, &handle, NULL, NULL, NULL);
-	CHECK_RET_RETURN(ret, "Failed to add rh device.\n");
+	if (ret != EOK) {
+		usb_log_error("Failed to add rh device.\n");
+		instance->rh.address = -1;
+		return ret;
+	}
 
 	ret = usb_hc_connection_close(&conn);
 	CHECK_RET_RETURN(ret, "Failed to close hc connection.\n");
@@ -116,12 +121,37 @@ int hc_schedule(hc_t *instance, batch_t *batch)
 	return ENOTSUP;
 }
 /*----------------------------------------------------------------------------*/
-void hc_interrupt(hc_t *instance, uint16_t status)
+void hc_interrupt(hc_t *instance, uint32_t status)
 {
 	assert(instance);
-	/* TODO: Check for interrupt cause */
-	rh_interrupt(&instance->rh);
+	if (status == 0)
+		return;
+	if (status & IS_RHSC)
+		rh_interrupt(&instance->rh);
+
+	/* TODO: Check for further interrupt causes */
 	/* TODO: implement */
+}
+/*----------------------------------------------------------------------------*/
+static int dummy_reset(int foo, void *arg)
+{
+	hc_t *hc = (hc_t*)arg;
+	assert(hc);
+	hc->rh.address = 0;
+	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+static int interrupt_emulator(hc_t *instance)
+{
+	assert(instance);
+	usb_log_info("Started interrupt emulator.\n");
+	while (1) {
+		uint32_t status = instance->registers->interrupt_status;
+		instance->registers->interrupt_status = status;
+		hc_interrupt(instance, status);
+		async_usleep(1000);
+	}
+	return EOK;
 }
 /**
  * @}
