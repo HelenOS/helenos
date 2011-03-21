@@ -49,6 +49,7 @@ SOURCES = \
 	src/request.c \
 	src/usb.c \
 	src/usbdevice.c \
-	src/host/device_keeper.c
+	src/host/device_keeper.c \
+	src/host/batch.c
 
 include $(USPACE_PREFIX)/Makefile.common
