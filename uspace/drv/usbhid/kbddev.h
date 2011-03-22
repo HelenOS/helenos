@@ -45,7 +45,9 @@
 #include <ddf/driver.h>
 #include <usb/pipes.h>
 
-#include "hiddev.h"
+#include <usb/devdrv.h>
+
+//#include "hiddev.h"
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -74,9 +76,10 @@ typedef struct {
  * @note Storing active lock keys in this structure results in their setting
  *       being device-specific.
  */
-typedef struct {
-	/** Structure holding generic USB/HID device information. */
-	usbhid_dev_t *hid_dev;
+typedef struct usbhid_kbd_t {
+	/** Structure holding generic USB device information. */
+	//usbhid_dev_t *hid_dev;
+	usb_device_t *usb_dev;
 	
 	/** Currently pressed keys (not translated to key codes). */
 	uint8_t *keys;
@@ -100,6 +103,15 @@ typedef struct {
 	/** Mutex for accessing the information about auto-repeat. */
 	fibril_mutex_t *repeat_mtx;
 	
+	/** Report descriptor. */
+	uint8_t *report_desc;
+
+	/** Report descriptor size. */
+	size_t report_desc_size;
+
+	/** HID Report parser. */
+	usb_hid_report_parser_t *parser;
+	
 	/** State of the structure (for checking before use). 
 	 * 
 	 * 0 - not initialized
@@ -111,7 +123,26 @@ typedef struct {
 
 /*----------------------------------------------------------------------------*/
 
-int usbhid_kbd_try_add_device(ddf_dev_t *dev);
+enum {
+	USBHID_KBD_POLL_EP_NO = 0,
+	USBHID_KBD_POLL_EP_COUNT = 1
+};
+
+usb_endpoint_description_t *usbhid_kbd_endpoints[USBHID_KBD_POLL_EP_COUNT + 1];
+
+ddf_dev_ops_t keyboard_ops;
+
+/*----------------------------------------------------------------------------*/
+
+usbhid_kbd_t *usbhid_kbd_new(void);
+
+int usbhid_kbd_init(usbhid_kbd_t *kbd_dev, usb_device_t *dev);
+
+bool usbhid_kbd_polling_callback(usb_device_t *dev, uint8_t *buffer,
+     size_t buffer_size, void *arg);
+
+void usbhid_kbd_polling_ended_callback(usb_device_t *dev, bool reason, 
+     void *arg);
 
 int usbhid_kbd_is_initialized(const usbhid_kbd_t *kbd_dev);
 

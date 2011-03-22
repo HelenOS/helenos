@@ -36,15 +36,17 @@
 #ifndef USBHID_KBDREPEAT_H_
 #define USBHID_KBDREPEAT_H_
 
-#include "kbddev.h"
+struct usbhid_kbd_t;
+
+//#include "kbddev.h"
 
 /*----------------------------------------------------------------------------*/
 
 int usbhid_kbd_repeat_fibril(void *arg);
 
-void usbhid_kbd_repeat_start(usbhid_kbd_t *kbd, unsigned int key);
+void usbhid_kbd_repeat_start(struct usbhid_kbd_t *kbd, unsigned int key);
 
-void usbhid_kbd_repeat_stop(usbhid_kbd_t *kbd, unsigned int key);
+void usbhid_kbd_repeat_stop(struct usbhid_kbd_t *kbd, unsigned int key);
 
 #endif /* USBHID_KBDREPEAT_H_ */
 

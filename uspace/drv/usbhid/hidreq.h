@@ -39,24 +39,28 @@
 #include <stdint.h>
 
 #include <usb/classes/hid.h>
+#include <usb/pipes.h>
 
 #include "hiddev.h"
 
 /*----------------------------------------------------------------------------*/
 
-int usbhid_req_set_report(usbhid_dev_t *hid_dev,
+int usbhid_req_set_report(usb_pipe_t *ctrl_pipe, int iface_no,
     usb_hid_report_type_t type, uint8_t *buffer, size_t buf_size);
 
-int usbhid_req_set_protocol(usbhid_dev_t *hid_dev, usb_hid_protocol_t protocol);
+int usbhid_req_set_protocol(usb_pipe_t *ctrl_pipe, int iface_no, 
+    usb_hid_protocol_t protocol);
 
-int usbhid_req_set_idle(usbhid_dev_t *hid_dev, uint8_t duration);
+int usbhid_req_set_idle(usb_pipe_t *ctrl_pipe, int iface_no, uint8_t duration);
 
-int usbhid_req_get_report(usbhid_dev_t *hid_dev, usb_hid_report_type_t type, 
-    uint8_t *buffer, size_t buf_size, size_t *actual_size);
+int usbhid_req_get_report(usb_pipe_t *ctrl_pipe, int iface_no, 
+    usb_hid_report_type_t type, uint8_t *buffer, size_t buf_size, 
+    size_t *actual_size);
 
-int usbhid_req_get_protocol(usbhid_dev_t *hid_dev, usb_hid_protocol_t *protocol);
+int usbhid_req_get_protocol(usb_pipe_t *ctrl_pipe, int iface_no, 
+    usb_hid_protocol_t *protocol);
 
-int usbhid_req_get_idle(usbhid_dev_t *hid_dev, uint8_t *duration);
+int usbhid_req_get_idle(usb_pipe_t *ctrl_pipe, int iface_no, uint8_t *duration);
 
 /*----------------------------------------------------------------------------*/
 
