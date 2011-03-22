@@ -56,8 +56,11 @@ static const char *cmdname = "cat";
 static const char *cat_oops = "That option is not yet supported\n";
 static const char *hexchars = "0123456789abcdef";
 
-static size_t chars_per_screen = 0;
+static bool paging_enabled = false;
 static size_t chars_remaining = 0;
+static size_t lines_remaining = 0;
+static sysarg_t console_cols = 0;
+static sysarg_t console_rows = 0;
 
 static struct option const long_options[] = {
 	{ "help", no_argument, 0, 'h' },
@@ -96,10 +99,7 @@ void help_cmd_cat(unsigned int level)
 
 static void waitprompt()
 {
-	sysarg_t rows, cols;
-	if (console_get_size(fphone(stdout), &cols, &rows) == EOK) {
-		console_set_pos(fphone(stdout), 0, rows-1);
-	}
+	console_set_pos(fphone(stdout), 0, console_rows-1);
 	console_set_color(fphone(stdout), COLOR_BLUE, COLOR_WHITE, 0);
 	printf("Press any key to continue");
 	fflush(stdout);
@@ -124,15 +124,20 @@ static void waitkey()
 static void newpage()
 {
 	console_clear(fphone(stdout));
-	chars_remaining = chars_per_screen;
+	chars_remaining = console_cols;
+	lines_remaining = console_rows-1;
 }
 
 static void paged_char(wchar_t c)
 {
 	putchar(c);
-	if (chars_per_screen > 0) {
+	if (paging_enabled) {
 		chars_remaining--;
-		if (chars_remaining == 0) {
+		if (c == '\n' || chars_remaining == 0) {
+			chars_remaining = console_cols;
+			lines_remaining--;
+		}
+		if (lines_remaining == 0) {
 			fflush(stdout);
 			waitprompt();
 			waitkey();
@@ -258,7 +263,9 @@ int cmd_cat(char **argv)
 			printf("%s - cannot get console size\n", cmdname);
 			return CMD_FAILURE;
 		}
-		chars_per_screen = cols * (rows-1);
+		console_cols = cols;
+		console_rows = rows;
+		paging_enabled = true;
 		newpage();
 	}
 
