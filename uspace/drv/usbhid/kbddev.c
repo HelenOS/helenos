@@ -928,6 +928,14 @@ usbhid_kbd_t *usbhid_kbd_new(void)
 	
 	memset(kbd_dev, 0, sizeof(usbhid_kbd_t));
 	
+	kbd_dev->parser = (usb_hid_report_parser_t *)(malloc(sizeof(
+	    usb_hid_report_parser_t)));
+	if (kbd_dev->parser == NULL) {
+		usb_log_fatal("No memory!\n");
+		free(kbd_dev);
+		return NULL;
+	}
+	
 	kbd_dev->console_phone = -1;
 	kbd_dev->initialized = USBHID_KBD_STATUS_UNINITIALIZED;
 	
@@ -995,7 +1003,14 @@ int usbhid_kbd_init(usbhid_kbd_t *kbd_dev, usb_device_t *dev)
 	/* The USB device should already be initialized, save it in structure */
 	kbd_dev->usb_dev = dev;
 	
-	/* Get the report descriptor and initialize report parser. */
+	/* Initialize the report parser. */
+	rc = usb_hid_parser_init(kbd_dev->parser);
+	if (rc != EOK) {
+		usb_log_error("Failed to initialize report parser.\n");
+		return rc;
+	}
+	
+	/* Get the report descriptor and parse it. */
 	rc = usbhid_kbd_process_report_descriptor(kbd_dev);
 	if (rc != EOK) {
 		usb_log_warning("Could not process report descriptor.\n");
@@ -1129,6 +1144,11 @@ void usbhid_kbd_free(usbhid_kbd_t **kbd_dev)
 		/* TODO: replace by some check and wait */
 		assert(!fibril_mutex_is_locked((*kbd_dev)->repeat_mtx));
 		free((*kbd_dev)->repeat_mtx);
+	}
+	
+	// destroy the parser
+	if ((*kbd_dev)->parser != NULL) {
+		usb_hid_free_report_parser((*kbd_dev)->parser);
 	}
 	
 	/* TODO: what about the USB device structure?? */
