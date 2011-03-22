@@ -76,6 +76,8 @@ NO_TRACE static inline void __attribute__((noreturn)) cpu_halt(void)
 	}
 }
 
+#define IO_SPACE_BOUNDARY	((void *) (64 * 1024))
+
 /** Byte from port
  *
  * Get byte from port
@@ -86,15 +88,17 @@ NO_TRACE static inline void __attribute__((noreturn)) cpu_halt(void)
  */
 NO_TRACE static inline uint8_t pio_read_8(ioport8_t *port)
 {
-	uint8_t val;
-	
-	asm volatile (
-		"inb %w[port], %b[val]\n"
-		: [val] "=a" (val)
-		: [port] "d" (port)
-	);
-	
-	return val;
+	if (((void *)port) < IO_SPACE_BOUNDARY) {
+		uint8_t val;
+		asm volatile (
+			"inb %w[port], %b[val]\n"
+			: [val] "=a" (val)
+			: [port] "d" (port)
+		);
+		return val;
+	} else {
+		return (uint8_t) *port;
+	}
 }
 
 /** Word from port
@@ -107,15 +111,17 @@ NO_TRACE static inline uint8_t pio_read_8(ioport8_t *port)
  */
 NO_TRACE static inline uint16_t pio_read_16(ioport16_t *port)
 {
-	uint16_t val;
-	
-	asm volatile (
-		"inw %w[port], %w[val]\n"
-		: [val] "=a" (val)
-		: [port] "d" (port)
-	);
-	
-	return val;
+	if (((void *)port) < IO_SPACE_BOUNDARY) {
+		uint16_t val;
+		asm volatile (
+			"inw %w[port], %w[val]\n"
+			: [val] "=a" (val)
+			: [port] "d" (port)
+		);
+		return val;
+	} else {
+		return (uint16_t) *port;
+	}
 }
 
 /** Double word from port
@@ -128,15 +134,17 @@ NO_TRACE static inline uint16_t pio_read_16(ioport16_t *port)
  */
 NO_TRACE static inline uint32_t pio_read_32(ioport32_t *port)
 {
-	uint32_t val;
-	
-	asm volatile (
-		"inl %w[port], %[val]\n"
-		: [val] "=a" (val)
-		: [port] "d" (port)
-	);
-	
-	return val;
+	if (((void *)port) < IO_SPACE_BOUNDARY) {
+		uint32_t val;
+		asm volatile (
+			"inl %w[port], %[val]\n"
+			: [val] "=a" (val)
+			: [port] "d" (port)
+		);
+		return val;
+	} else {
+		return (uint32_t) *port;
+	}
 }
 
 /** Byte to port
@@ -149,11 +157,14 @@ NO_TRACE static inline uint32_t pio_read_32(ioport32_t *port)
  */
 NO_TRACE static inline void pio_write_8(ioport8_t *port, uint8_t val)
 {
-	asm volatile (
-		"outb %b[val], %w[port]\n"
-		:: [val] "a" (val),
-		   [port] "d" (port)
-	);
+	if (((void *)port) < IO_SPACE_BOUNDARY) {
+		asm volatile (
+			"outb %b[val], %w[port]\n"
+			:: [val] "a" (val), [port] "d" (port)
+		);	
+	} else {
+		*((uint8_t *) port) = val;
+	}
 }
 
 /** Word to port
@@ -166,11 +177,14 @@ NO_TRACE static inline void pio_write_8(ioport8_t *port, uint8_t val)
  */
 NO_TRACE static inline void pio_write_16(ioport16_t *port, uint16_t val)
 {
-	asm volatile (
-		"outw %w[val], %w[port]\n"
-		:: [val] "a" (val),
-		   [port] "d" (port)
-	);
+	if (((void *)port) < IO_SPACE_BOUNDARY) {
+		asm volatile (
+			"outw %w[val], %w[port]\n"
+			:: [val] "a" (val), [port] "d" (port)
+		);
+	} else {
+		*((uint16_t *) port) = val;
+	}
 }
 
 /** Double word to port
@@ -183,11 +197,14 @@ NO_TRACE static inline void pio_write_16(ioport16_t *port, uint16_t val)
  */
 NO_TRACE static inline void pio_write_32(ioport32_t *port, uint32_t val)
 {
-	asm volatile (
-		"outl %[val], %w[port]\n"
-		:: [val] "a" (val),
-		   [port] "d" (port)
-	);
+	if (((void *)port) < IO_SPACE_BOUNDARY) {
+		asm volatile (
+			"outl %[val], %w[port]\n"
+			:: [val] "a" (val), [port] "d" (port)
+		);
+	} else {
+		*((uint32_t *) port) = val;
+	}
 }
 
 /** Swap Hidden part of GS register with visible one */
