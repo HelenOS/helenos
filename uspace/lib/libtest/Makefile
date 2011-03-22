@@ -28,6 +28,8 @@
 
 USPACE_PREFIX = ../..
 LIBRARY = libtest
+SLIBRARY = libtest.so.0.0
+LSONAME = libtest.so.0
 
 SOURCES = \
 	libtest.c

@@ -72,6 +72,12 @@ ifneq ($(LIBRARY),)
 	OUTPUT = $(LIBRARY).a
 endif
 
+ifneq ($(SLIBRARY),)
+	LARCHIVE = $(LIBRARY).la
+	LOUTPUT = $(SLIBRARY)
+	EXTRA_CLEAN += $(LOUTPUT).map $(LIBC_PREFIX)/shared/arch/$(UARCH)/_lib.ld
+endif
+
 DEPEND = Makefile.depend
 DEPEND_PREV = $(DEPEND).prev
 
@@ -101,12 +107,13 @@ endif
 
 .PHONY: all clean
 
-all: $(VERSION_DEF) $(COMMON_MAKEFILE) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(LIBS) $(OUTPUT) $(EXTRA_OUTPUT)
+all: $(VERSION_DEF) $(COMMON_MAKEFILE) $(CONFIG_MAKEFILE) $(CONFIG_HEADER) $(LIBS) $(OUTPUT) $(LOUTPUT) $(EXTRA_OUTPUT)
 	-[ -f $(DEPEND) ] && cp -a $(DEPEND) $(DEPEND_PREV)
 
 clean:
-	rm -f $(DEPEND) $(DEPEND_PREV) $(JOB) $(OUTPUT) $(EXTRA_OUTPUT) $(EXTRA_CLEAN)
+	rm -f $(DEPEND) $(DEPEND_PREV) $(JOB) $(OUTPUT) $(LARCHIVE) $(LOUTPUT) $(EXTRA_OUTPUT) $(EXTRA_CLEAN)
 	find . -name '*.o' -follow -exec rm \{\} \;
+	find . -name '*.lo' -follow -exec rm \{\} \;
 
 GCC_CFLAGS = -I$(LIBC_PREFIX)/include -O$(OPTIMIZATION) -imacros $(CONFIG_HEADER) \
 	-fexec-charset=UTF-8 -fwide-exec-charset=UTF-32$(ENDIANESS) \
@@ -128,6 +135,9 @@ CLANG_CFLAGS = -I$(LIBC_PREFIX)/include -O$(OPTIMIZATION) -imacros $(CONFIG_HEAD
 	-Wall -Wextra -Wno-unused-parameter -Wmissing-prototypes \
 	-Werror-implicit-function-declaration -Wwrite-strings \
 	-pipe -g -arch $(CLANG_ARCH) -D__$(ENDIANESS)__
+
+LIB_CFLAGS = $(CFLAGS) -fPIC -D__IN_SHARED_LIBC__
+LIB_LFLAGS = $(LFLAGS) -shared -soname $(LSONAME) --whole-archive
 
 ifeq ($(CONFIG_DEBUG),y)
 	GCC_CFLAGS += -Werror
@@ -174,6 +184,7 @@ endif
 -include $(DEPEND)
 
 OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
+LOBJECTS := $(addsuffix .lo,$(basename $(SOURCES)))
 
 ifneq ($(BINARY),)
 %.disasm: $(BINARY)
@@ -190,9 +201,20 @@ ifeq ($(CONFIG_STRIP_BINARIES),y)
 endif
 endif
 
+$(LOUTPUT): $(LARCHIVE) $(LIBC_PREFIX)/shared/arch/$(UARCH)/_lib.ld
+	$(LD) -T $(LIBC_PREFIX)/shared/arch/$(UARCH)/_lib.ld $(LIB_LFLAGS) $(LARCHIVE) -o $@ -Map $(LOUTPUT).map
+
+$(LIBC_PREFIX)/shared/arch/$(UARCH)/_lib.ld: $(LIBC_PREFIX)/shared/arch/$(UARCH)/_lib.ld.in
+	$(CC) $(DEFS) $(CFLAGS) -DLIBC_PREFIX=$(LIBC_PREFIX) -E -x c $< | grep -v "^\#" > $@
+
 ifneq ($(LIBRARY),)
 %.a: $(OBJECTS)
 	$(AR) rc $@ $(OBJECTS)
+endif
+
+ifneq ($(SLIBRARY),)
+%.la: $(LOBJECTS)
+	$(AR) rc $@ $(LOBJECTS)
 endif
 
 %.o: %.S $(DEPEND)
@@ -213,6 +235,12 @@ ifeq ($(PRECHECK),y)
 	$(JOBFILE) $(JOB) $< $@ cc core $(DEFS) $(CFLAGS)
 endif
 
+%.lo: %.c $(DEPEND)
+	$(CC) $(DEFS) $(LIB_CFLAGS) -c $< -o $@
+ifeq ($(PRECHECK),y)
+	$(JOBFILE) $(JOB) $< $@ cc core $(DEFS) $(CFLAGS)
+endif
+
 $(DEPEND): $(PRE_DEPEND)
 	makedepend -f - -- $(DEPEND_DEFS) $(CFLAGS) -- $(SOURCES) > $@ 2> /dev/null
 	-[ -f $(DEPEND_PREV) ] && diff -q $(DEPEND_PREV) $@ && mv -f $(DEPEND_PREV) $@
@@ -222,3 +250,4 @@ $(DEPEND): $(PRE_DEPEND)
 # necessary to prevent parallel build failures (GNU make bug #26893 ???).
 $(OUTPUT): $(OBJECTS)
 
+$(LARCHIVE): $(LOBJECTS)
