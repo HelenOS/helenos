@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jan Vesely
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,28 +25,21 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup drvusbuhcihc
+
+/** @addtogroup drvusbehci
  * @{
  */
 /** @file
- * @brief UHCI driver
+ * Common EHCI definitions.
  */
-#ifndef DRV_UHCI_LINK_POINTER_H
-#define DRV_UHCI_LINK_POINTER_H
+#ifndef DRV_EHCI_EHCI_H
+#define DRV_EHCI_EHCI_H
 
-/* UHCI link pointer, used by many data structures */
-typedef uint32_t link_pointer_t;
+#include <usbhc_iface.h>
 
-#define LINK_POINTER_TERMINATE_FLAG (1 << 0)
-#define LINK_POINTER_QUEUE_HEAD_FLAG (1 << 1)
-#define LINK_POINTER_ZERO_BIT_FLAG (1 << 2)
-#define LINK_POINTER_VERTICAL_FLAG (1 << 2)
-#define LINK_POINTER_RESERVED_FLAG (1 << 3)
+#define NAME "ehci-hcd"
 
-#define LINK_POINTER_ADDRESS_MASK 0xfffffff0 /* upper 28 bits */
-
-#define LINK_POINTER_QH(address) \
-	((address & LINK_POINTER_ADDRESS_MASK) | LINK_POINTER_QUEUE_HEAD_FLAG)
+extern usbhc_iface_t ehci_hc_iface;
 
 #endif
 /**

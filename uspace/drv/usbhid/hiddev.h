@@ -67,9 +67,9 @@ typedef struct {
 	/** Physical connection to the device. */
 	usb_device_connection_t wire;
 	/** USB pipe corresponding to the default Control endpoint. */
-	usb_endpoint_pipe_t ctrl_pipe;
+	usb_pipe_t ctrl_pipe;
 	/** USB pipe corresponding to the Interrupt In (polling) pipe. */
-	usb_endpoint_pipe_t poll_pipe;
+	usb_pipe_t poll_pipe;
 	
 	/** Polling interval retreived from the Interface descriptor. */
 	short poll_interval;

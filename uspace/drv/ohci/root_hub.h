@@ -26,26 +26,31 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbuhci
+/** @addtogroup drvusbohci
  * @{
  */
 /** @file
- * @brief UHCI driver
+ * @brief OHCI driver
  */
-#ifndef DRV_UHCI_UHCI_RH_H
-#define DRV_UHCI_UHCI_RH_H
+#ifndef DRV_OHCI_ROOT_HUB_H
+#define DRV_OHCI_ROOT_HUB_H
 
-#include <ddf/driver.h>
-#include <ops/hw_res.h>
+#include <usb/usb.h>
 
-typedef struct uhci_rh {
-	hw_resource_list_t resource_list;
-	hw_resource_t io_regs;
-} uhci_rh_t;
+#include "ohci_regs.h"
+#include "batch.h"
 
-int uhci_rh_init(
-    uhci_rh_t *instance, ddf_fun_t *fun, uintptr_t reg_addr, size_t reg_size);
+typedef struct rh {
+	ohci_regs_t *registers;
+	usb_address_t address;
+	ddf_dev_t *device;
+} rh_t;
 
+int rh_init(rh_t *instance, ddf_dev_t *dev, ohci_regs_t *regs);
+
+int rh_request(rh_t *instance, usb_transfer_batch_t *request);
+
+void rh_interrupt(rh_t *instance);
 #endif
 /**
  * @}

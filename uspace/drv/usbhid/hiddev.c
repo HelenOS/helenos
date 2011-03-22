@@ -183,7 +183,7 @@ static int usbhid_dev_get_report_descriptor(usbhid_dev_t *hid_dev,
  *                     that has to be present in the device in order to
  *                     successfuly initialize the structure.
  *
- * @sa usb_endpoint_pipe_initialize_from_configuration(), 
+ * @sa usb_pipe_initialize_from_configuration(), 
  *     usbhid_dev_get_report_descriptor()
  */
 static int usbhid_dev_process_descriptors(usbhid_dev_t *hid_dev, 
@@ -191,7 +191,7 @@ static int usbhid_dev_process_descriptors(usbhid_dev_t *hid_dev,
 {
 	assert(hid_dev != NULL);
 	
-	usb_log_info("Processing descriptors...\n");
+	usb_log_debug("Processing descriptors...\n");
 	
 	int rc;
 
@@ -217,7 +217,7 @@ static int usbhid_dev_process_descriptors(usbhid_dev_t *hid_dev,
 		}
 	};
 	
-	rc = usb_endpoint_pipe_initialize_from_configuration(
+	rc = usb_pipe_initialize_from_configuration(
 	    endpoint_mapping, 1, descriptors, descriptors_size,
 	    &hid_dev->wire);
 	
@@ -358,8 +358,8 @@ void usbhid_dev_free(usbhid_dev_t **hid_dev)
  * @retval EINVAL if some argument is missing.
  * @return Other value inherited from one of functions 
  *         usb_device_connection_initialize_from_device(),
- *         usb_endpoint_pipe_initialize_default_control(),
- *         usb_endpoint_pipe_start_session(), usb_endpoint_pipe_end_session(),
+ *         usb_pipe_initialize_default_control(),
+ *         usb_pipe_start_session(), usb_pipe_end_session(),
  *         usbhid_dev_process_descriptors().
  *
  * @sa usbhid_dev_process_descriptors()
@@ -367,7 +367,7 @@ void usbhid_dev_free(usbhid_dev_t **hid_dev)
 int usbhid_dev_init(usbhid_dev_t *hid_dev, ddf_dev_t *dev, 
     usb_endpoint_description_t *poll_ep_desc)
 {
-	usb_log_info("Initializing HID device structure.\n");
+	usb_log_debug("Initializing HID device structure.\n");
 	
 	if (hid_dev == NULL) {
 		usb_log_error("Failed to init HID device structure: no "
@@ -403,14 +403,14 @@ int usbhid_dev_init(usbhid_dev_t *hid_dev, ddf_dev_t *dev,
 	/*
 	 * Initialize device pipes.
 	 */
-	rc = usb_endpoint_pipe_initialize_default_control(&hid_dev->ctrl_pipe,
+	rc = usb_pipe_initialize_default_control(&hid_dev->ctrl_pipe,
 	    &hid_dev->wire);
 	if (rc != EOK) {
 		usb_log_error("Failed to initialize default control pipe: %s."
 		    "\n", str_error(rc));
 		return rc;
 	}
-	rc = usb_endpoint_pipe_probe_default_control(&hid_dev->ctrl_pipe);
+	rc = usb_pipe_probe_default_control(&hid_dev->ctrl_pipe);
 	if (rc != EOK) {
 		usb_log_error("Probing default control pipe failed: %s.\n",
 		    str_error(rc));
@@ -429,7 +429,7 @@ int usbhid_dev_init(usbhid_dev_t *hid_dev, ddf_dev_t *dev,
 	/*
 	 * Get descriptors, parse descriptors and save endpoints.
 	 */
-	rc = usb_endpoint_pipe_start_session(&hid_dev->ctrl_pipe);
+	rc = usb_pipe_start_session(&hid_dev->ctrl_pipe);
 	if (rc != EOK) {
 		usb_log_error("Failed to start session on the control pipe: %s"
 		    ".\n", str_error(rc));
@@ -439,13 +439,13 @@ int usbhid_dev_init(usbhid_dev_t *hid_dev, ddf_dev_t *dev,
 	rc = usbhid_dev_process_descriptors(hid_dev, poll_ep_desc);
 	if (rc != EOK) {
 		/* TODO: end session?? */
-		usb_endpoint_pipe_end_session(&hid_dev->ctrl_pipe);
+		usb_pipe_end_session(&hid_dev->ctrl_pipe);
 		usb_log_error("Failed to process descriptors: %s.\n",
 		    str_error(rc));
 		return rc;
 	}
 	
-	rc = usb_endpoint_pipe_end_session(&hid_dev->ctrl_pipe);
+	rc = usb_pipe_end_session(&hid_dev->ctrl_pipe);
 	if (rc != EOK) {
 		usb_log_warning("Failed to start session on the control pipe: "
 		    "%s.\n", str_error(rc));
@@ -453,7 +453,7 @@ int usbhid_dev_init(usbhid_dev_t *hid_dev, ddf_dev_t *dev,
 	}
 	
 	hid_dev->initialized = 1;
-	usb_log_info("HID device structure initialized.\n");
+	usb_log_debug("HID device structure initialized.\n");
 	
 	return EOK;
 }

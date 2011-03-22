@@ -38,6 +38,7 @@
 #include <ddf/driver.h>
 #include <usb/debug.h>
 #include <errno.h>
+#include <str_error.h>
 
 #include "kbddev.h"
 
@@ -63,11 +64,14 @@ static int usbhid_add_device(ddf_dev_t *dev)
 	int rc = usbhid_kbd_try_add_device(dev);
 	
 	if (rc != EOK) {
-		usb_log_info("Device is not a supported keyboard.\n");
-		usb_log_error("Failed to add HID device.\n");
-		return EREFUSED;
+		usb_log_warning("Device is not a supported keyboard.\n");
+		usb_log_error("Failed to add HID device: %s.\n",
+		    str_error(rc));
+		return rc;
 	}
 	
+	usb_log_info("Keyboard `%s' ready to use.\n", dev->name);
+
 	return EOK;
 }
 
@@ -88,7 +92,10 @@ static driver_t kbd_driver = {
 
 int main(int argc, char *argv[])
 {
-	usb_log_enable(USB_LOG_LEVEL_DEBUG, NAME);
+	printf(NAME ": HelenOS USB HID driver.\n");
+
+	usb_log_enable(USB_LOG_LEVEL_DEFAULT, NAME);
+
 	return ddf_driver_main(&kbd_driver);
 }
 

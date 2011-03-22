@@ -99,10 +99,11 @@ def generate(kmapf, obmapf, out):
 			symbols.sort(key = key_sorter)
 			for addr, symbol in symbols:
 				value = fname + ':' + symbol
-				data = struct.pack(symtabfmt, addr + offset, value[:MAXSTRING])
+				value_bytes = value.encode('ascii')
+				data = struct.pack(symtabfmt, addr + offset, value_bytes[:MAXSTRING])
 				out.write(data)
 			
-	out.write(struct.pack(symtabfmt, 0, ''))
+	out.write(struct.pack(symtabfmt, 0, b''))
 
 def main():
 	if (len(sys.argv) != 4):

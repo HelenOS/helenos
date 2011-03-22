@@ -25,64 +25,58 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-/** @addtogroup drvusbuhcihc
+/** @addtogroup drvusbuhci
  * @{
  */
 /** @file
  * @brief UHCI driver
  */
-#ifndef UTILS_DEVICE_KEEPER_H
-#define UTILS_DEVICE_KEEPER_H
-#include <devman.h>
-#include <fibril_synch.h>
-#include <usb/usb.h>
+#include <assert.h>
+#include <errno.h>
+#include <str_error.h>
+#include <stdio.h>
 
-#define USB_ADDRESS_COUNT (USB11_ADDRESS_MAX + 1)
+#include <usb/debug.h>
 
-struct usb_device_info {
-	usb_speed_t speed;
-	bool occupied;
-	uint16_t toggle_status;
-	devman_handle_t handle;
-};
+#include "root_hub.h"
 
-typedef struct device_keeper {
-	struct usb_device_info devices[USB_ADDRESS_COUNT];
-	fibril_mutex_t guard;
-	fibril_condvar_t default_address_occupied;
-	usb_address_t last_address;
-} device_keeper_t;
+/** Root hub initialization
+ * @param[in] instance RH structure to initialize
+ * @param[in] fun DDF function representing UHCI root hub
+ * @param[in] reg_addr Address of root hub status and control registers.
+ * @param[in] reg_size Size of accessible address space.
+ * @return Error code.
+ */
+int rh_init(
+    rh_t *instance, ddf_fun_t *fun, uintptr_t reg_addr, size_t reg_size)
+{
+	assert(fun);
 
-void device_keeper_init(device_keeper_t *instance);
+	char *match_str = NULL;
+	int ret = asprintf(&match_str, "usb&uhci&root-hub");
+	if (ret < 0) {
+		usb_log_error("Failed to create root hub match string.\n");
+		return ENOMEM;
+	}
 
-void device_keeper_reserve_default(
-    device_keeper_t *instance, usb_speed_t speed);
+	ret = ddf_fun_add_match_id(fun, match_str, 100);
+	if (ret != EOK) {
+		usb_log_error("Failed(%d) to add root hub match id: %s\n",
+		    ret, str_error(ret));
+		return ret;
+	}
 
-void device_keeper_release_default(device_keeper_t *instance);
+	hw_resource_list_t *resource_list = &instance->resource_list;
+	resource_list->count = 1;
+	resource_list->resources = &instance->io_regs;
+	assert(resource_list->resources);
+	instance->io_regs.type = IO_RANGE;
+	instance->io_regs.res.io_range.address = reg_addr;
+	instance->io_regs.res.io_range.size = reg_size;
+	instance->io_regs.res.io_range.endianness = LITTLE_ENDIAN;
 
-void device_keeper_reset_if_need(
-    device_keeper_t *instance, usb_target_t target, const unsigned char *setup_data);
-
-int device_keeper_get_toggle(device_keeper_t *instance, usb_target_t target);
-
-int device_keeper_set_toggle(
-    device_keeper_t *instance, usb_target_t target, bool toggle);
-
-usb_address_t device_keeper_request(
-    device_keeper_t *instance, usb_speed_t speed);
-
-void device_keeper_bind(
-    device_keeper_t *instance, usb_address_t address, devman_handle_t handle);
-
-void device_keeper_release(device_keeper_t *instance, usb_address_t address);
-
-usb_address_t device_keeper_find(
-    device_keeper_t *instance, devman_handle_t handle);
-
-usb_speed_t device_keeper_speed(
-    device_keeper_t *instance, usb_address_t address);
-#endif
+	return EOK;
+}
 /**
  * @}
  */

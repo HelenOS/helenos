@@ -25,58 +25,54 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup drvusbuhci
+/** @addtogroup drvusbohci
  * @{
  */
 /** @file
- * @brief UHCI driver
+ * @brief OHCI driver
  */
 #include <assert.h>
 #include <errno.h>
 #include <str_error.h>
-#include <stdio.h>
 
 #include <usb/debug.h>
 
-#include "uhci_rh.h"
-#include "uhci_hc.h"
+#include "root_hub.h"
 
 /** Root hub initialization
- * @param[in] instance RH structure to initialize
- * @param[in] fun DDF function representing UHCI root hub
- * @param[in] reg_addr Address of root hub status and control registers.
- * @param[in] reg_size Size of accessible address space.
  * @return Error code.
  */
-int uhci_rh_init(
-    uhci_rh_t *instance, ddf_fun_t *fun, uintptr_t reg_addr, size_t reg_size)
+int rh_init(rh_t *instance, ddf_dev_t *dev, ohci_regs_t *regs)
 {
-	assert(fun);
+	assert(instance);
+	instance->address = -1;
+	instance->registers = regs;
+	instance->device = dev;
 
-	char *match_str = NULL;
-	int ret = asprintf(&match_str, "usb&uhci&root-hub");
-	if (ret < 0) {
-		usb_log_error("Failed to create root hub match string.\n");
-		return ENOMEM;
-	}
+	usb_log_info("OHCI root hub with %d ports.\n", regs->rh_desc_a & 0xff);
 
-	ret = ddf_fun_add_match_id(fun, match_str, 100);
-	if (ret != EOK) {
-		usb_log_error("Failed(%d) to add root hub match id: %s\n",
-		    ret, str_error(ret));
-		return ret;
-	}
-
-	hw_resource_list_t *resource_list = &instance->resource_list;
-	resource_list->count = 1;
-	resource_list->resources = &instance->io_regs;
-	assert(resource_list->resources);
-	instance->io_regs.type = IO_RANGE;
-	instance->io_regs.res.io_range.address = reg_addr;
-	instance->io_regs.res.io_range.size = reg_size;
-	instance->io_regs.res.io_range.endianness = LITTLE_ENDIAN;
-
+	/* TODO: implement */
 	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+int rh_request(rh_t *instance, usb_transfer_batch_t *request)
+{
+	assert(instance);
+	assert(request);
+	/* TODO: implement */
+	if (request->setup_buffer) {
+		usb_log_info("Root hub got SETUP packet: %s.\n",
+		    usb_debug_str_buffer((const uint8_t *)request->setup_buffer, 8, 8));
+	}
+	usb_log_error("Root hub request processing not implemented.\n");
+	usb_transfer_batch_finish(request, ENOTSUP);
+	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+void rh_interrupt(rh_t *instance)
+{
+	usb_log_error("Root hub interrupt not implemented.\n");
+	/* TODO: implement */
 }
 /**
  * @}
