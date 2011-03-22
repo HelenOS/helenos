@@ -28,13 +28,13 @@
 
 class A is
 	fun Foo() is
-		Builtin.WriteLine("A.Foo()");
+		Console.WriteLine("A.Foo()");
 	end
 end
 
 class B : A is
 	fun Foo() is
-		Builtin.WriteLine("B.Foo()");
+		Console.WriteLine("B.Foo()");
 	end
 end
 

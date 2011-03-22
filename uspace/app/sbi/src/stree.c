@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jiri Svoboda
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -396,6 +396,23 @@ stree_if_t *stree_if_new(void)
 	return if_s;
 }
 
+/** Allocate new @c switch statement.
+ *
+ * @return	New @c if statement
+ */
+stree_switch_t *stree_switch_new(void)
+{
+	stree_switch_t *switch_s;
+
+	switch_s = calloc(1, sizeof(stree_switch_t));
+	if (switch_s == NULL) {
+		printf("Memory allocation failed.\n");
+		exit(1);
+	}
+
+	return switch_s;
+}
+
 /** Allocate new @c while statement.
  *
  * @return	New @c while statement
@@ -547,6 +564,23 @@ stree_if_clause_t *stree_if_clause_new(void)
 	}
 
 	return if_clause;
+}
+
+/** Allocate new @c when clause.
+ *
+ * @return	New @c when clause
+ */
+stree_when_t *stree_when_new(void)
+{
+	stree_when_t *when_c;
+
+	when_c = calloc(1, sizeof(stree_when_t));
+	if (when_c == NULL) {
+		printf("Memory allocation failed.\n");
+		exit(1);
+	}
+
+	return when_c;
 }
 
 /** Allocate new statement block.
