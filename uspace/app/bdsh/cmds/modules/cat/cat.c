@@ -216,6 +216,14 @@ int cmd_cat(char **argv)
 	bool more = false;
 	sysarg_t rows, cols;
 	int rc;
+	
+	// reset global state
+	// TODO: move to structure?
+	paging_enabled = false;
+	chars_remaining = 0;
+	lines_remaining = 0;
+	console_cols = 0;
+	console_rows = 0;
 
 	argc = cli_count_args(argv);
 
