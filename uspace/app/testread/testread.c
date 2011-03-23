@@ -74,6 +74,8 @@ int main(int argc, char **argv)
 	aoff64_t next_mark;
 	aoff64_t last_mark;
 	unsigned int i;
+	bool check_enabled = true;
+	bool progress = true;
 	
 	if (argc < 2) {
 		printf(NAME ": Error, argument missing.\n");
@@ -83,6 +85,16 @@ int main(int argc, char **argv)
 	
 	// Skip program name
 	--argc; ++argv;
+	
+	if (argc > 0 && str_cmp(*argv, "--no-check") == 0) {
+		check_enabled = false;
+		--argc; ++argv;
+	}
+	
+	if (argc > 0 && str_cmp(*argv, "--no-progress") == 0) {
+		progress = false;
+		--argc; ++argv;
+	}
 	
 	if (argc != 1) {
 		printf(NAME ": Error, unexpected argument.\n");
@@ -130,7 +142,7 @@ int main(int argc, char **argv)
 		}
 		
 		for (i = 0; i < elems; i++) {
-			if (uint64_t_le2host(buf[i]) != expected) {
+			if (check_enabled && uint64_t_le2host(buf[i]) != expected) {
 				printf("Unexpected value at offset %" PRIuOFF64 "\n", offset);
 				fclose(file);
 				free(buf);
@@ -140,7 +152,7 @@ int main(int argc, char **argv)
 			offset += sizeof(uint64_t);
 		}
 		
-		if (offset >= next_mark) {
+		if (progress && offset >= next_mark) {
 			struct timeval cur_time;
 			rc = gettimeofday(&cur_time, NULL);
 			if (rc != EOK) {
@@ -162,6 +174,24 @@ int main(int argc, char **argv)
 			}
 			next_mark += MBYTE;
 		}
+	}
+	
+	struct timeval final_time;
+	rc = gettimeofday(&final_time, NULL);
+	if (rc != EOK) {
+		printf("gettimeofday failed\n");
+		fclose(file);
+		free(buf);
+		return 1;
+	}
+	
+	uint32_t total_run_time = final_time.tv_sec - start_time.tv_sec;
+	if (total_run_time > 0) {
+		printf("total bytes: %" PRIuOFF64 
+		    ", total time: %u s, avg speed: %" PRIuOFF64 " B/s\n",
+		    offset,
+		    total_run_time,
+		    offset/total_run_time);
 	}
 	
 	fclose(file);
