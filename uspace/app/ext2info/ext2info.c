@@ -394,11 +394,20 @@ void print_inode(ext2_filesystem_t *fs, ext2_inode_t *inode)
 	uint32_t flags;
 	uint16_t access;
 	const char *type;
-	uint32_t block;
 	uint32_t total_blocks;
-	int i;
-	bool all_blocks = false;
+	uint32_t i;
+	uint32_t range_start;
+	uint32_t range_last;
+	uint32_t range_start_file;
+	uint32_t range_last_file;
+	uint32_t range_current;
+	uint32_t range_expected;
+	uint32_t block_size;
+	uint64_t file_blocks;
+	bool printed_range;
+	int rc;
 	
+	block_size = ext2_superblock_get_block_size(fs->superblock);
 	mode = ext2_inode_get_mode(fs->superblock, inode);
 	mode_type = mode & EXT2_INODE_MODE_TYPE_MASK;
 	user_id = ext2_inode_get_user_id(fs->superblock, inode);
@@ -407,6 +416,10 @@ void print_inode(ext2_filesystem_t *fs, ext2_inode_t *inode)
 	usage_count = ext2_inode_get_usage_count(inode);
 	flags = ext2_inode_get_flags(inode);
 	total_blocks = ext2_inode_get_reserved_blocks(fs->superblock, inode);
+	file_blocks = 0;
+	if (size > 0) {
+		file_blocks = ((size-1)/block_size)+1;
+	}
 	
 	type = "Unknown";
 	if (mode_type == EXT2_INODE_MODE_BLOCKDEV) {
@@ -442,17 +455,57 @@ void print_inode(ext2_filesystem_t *fs, ext2_inode_t *inode)
 	printf("  Flags: %u\n", flags);
 	printf("  Total allocated blocks: %u\n", total_blocks);
 	printf("  Block list: ");
-	for (i = 0; i < 12; i++) {
-		block = ext2_inode_get_direct_block(inode, i);
-		if (block == 0) {
-			all_blocks = true;
-			break;
+	
+	range_start = 0;
+	range_current = 0;
+	range_last = 0;
+	
+	printed_range = false;
+	
+	for (i = 0; i <= file_blocks; i++) {
+		if (i < file_blocks) {
+			rc = ext2_filesystem_get_inode_data_block_index(fs, inode, i, &range_current);
+			if (rc != EOK) {
+				printf("Error reading data block indexes\n");
+				return;
+			}
 		}
-		printf("%u ", block);
-	}
-	all_blocks = all_blocks || ext2_inode_get_indirect_block(inode, 0) == 0;
-	if (!all_blocks) {
-		printf(" and more...");
+		if (range_last == 0) {
+			range_expected = 0;
+		}
+		else {
+			range_expected = range_last + 1;
+		}
+		if (range_current != range_expected) {
+			if (i > 0) {
+				if (printed_range) {
+					printf(", ");
+				}
+				if (range_start == 0 && range_last == 0) {
+					if (range_start_file == range_last_file) {
+						printf("%u N/A", range_start_file);
+					}
+					else {
+						printf("[%u, %u] N/A", range_start_file,
+						    range_last_file);
+					}
+				}
+				else {
+					if (range_start_file == range_last_file) {
+						printf("%u -> %u", range_start_file, range_start);
+					}
+					else {
+						printf("[%u, %u] -> [%u, %u]", range_start_file,
+						    range_last_file, range_start, range_last);
+					}
+				}
+				printed_range = true;
+			}
+			range_start = range_current;
+			range_start_file = i;
+		}
+		range_last = range_current;
+		range_last_file = i;
 	}
 	printf("\n");
 }
