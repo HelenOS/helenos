@@ -93,10 +93,9 @@ DIRS = \
 	drv/test1 \
 	drv/test2
 
-## Shared C library
-ifeq ($(CONFIG_BUILD_SHARED_LIBC), y)
+## Shared libraries
+ifeq ($(CONFIG_BUILD_SHARED_LIBS), y)
 	DIRS += \
-		lib/c/shared \
 		app/dltest
 endif
 
@@ -154,7 +153,7 @@ LIBS = \
 	lib/clui \
 	lib/softint \
 	lib/softfloat \
-	lib/libtest \
+	lib/test \
 	lib/drv \
 	lib/packet \
 	lib/net

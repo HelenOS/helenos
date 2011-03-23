@@ -235,6 +235,12 @@ ifeq ($(PRECHECK),y)
 	$(JOBFILE) $(JOB) $< $@ cc core $(DEFS) $(CFLAGS)
 endif
 
+%.lo: %.S
+	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__ -c $< -o $@
+
+%.lo: %.s
+	$(AS) $(AFLAGS) $< -o $@
+
 %.lo: %.c $(DEPEND)
 	$(CC) $(DEFS) $(LIB_CFLAGS) -c $< -o $@
 ifeq ($(PRECHECK),y)
