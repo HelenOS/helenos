@@ -90,7 +90,8 @@ void transfer_list_set_next(transfer_list_t *instance, transfer_list_t *next)
  *
  * The batch is added to the end of the list and queue.
  */
-void transfer_list_add_batch(transfer_list_t *instance, usb_transfer_batch_t *batch)
+void transfer_list_add_batch(
+    transfer_list_t *instance, usb_transfer_batch_t *batch)
 {
 	assert(instance);
 	assert(batch);
@@ -145,7 +146,8 @@ void transfer_list_remove_finished(transfer_list_t *instance)
 	link_t *current = instance->batch_list.next;
 	while (current != &instance->batch_list) {
 		link_t *next = current->next;
-		usb_transfer_batch_t *batch = list_get_instance(current, usb_transfer_batch_t, link);
+		usb_transfer_batch_t *batch =
+		    list_get_instance(current, usb_transfer_batch_t, link);
 
 		if (batch_is_complete(batch)) {
 			/* Save for post-processing */
@@ -159,7 +161,8 @@ void transfer_list_remove_finished(transfer_list_t *instance)
 	while (!list_empty(&done)) {
 		link_t *item = done.next;
 		list_remove(item);
-		usb_transfer_batch_t *batch = list_get_instance(item, usb_transfer_batch_t, link);
+		usb_transfer_batch_t *batch =
+		    list_get_instance(item, usb_transfer_batch_t, link);
 		batch->next_step(batch);
 	}
 }
@@ -173,7 +176,8 @@ void transfer_list_abort_all(transfer_list_t *instance)
 	fibril_mutex_lock(&instance->guard);
 	while (!list_empty(&instance->batch_list)) {
 		link_t *current = instance->batch_list.next;
-		usb_transfer_batch_t *batch = list_get_instance(current, usb_transfer_batch_t, link);
+		usb_transfer_batch_t *batch =
+		    list_get_instance(current, usb_transfer_batch_t, link);
 		transfer_list_remove_batch(instance, batch);
 		usb_transfer_batch_finish(batch, EIO);
 	}
@@ -188,7 +192,8 @@ void transfer_list_abort_all(transfer_list_t *instance)
  *
  * Does not lock the transfer list, caller is responsible for that.
  */
-void transfer_list_remove_batch(transfer_list_t *instance, usb_transfer_batch_t *batch)
+void transfer_list_remove_batch(
+    transfer_list_t *instance, usb_transfer_batch_t *batch)
 {
 	assert(instance);
 	assert(instance->queue_head);
@@ -209,7 +214,8 @@ void transfer_list_remove_batch(transfer_list_t *instance, usb_transfer_batch_t 
 		qpos = "FIRST";
 	} else {
 		usb_transfer_batch_t *prev =
-		    list_get_instance(batch->link.prev, usb_transfer_batch_t, link);
+		    list_get_instance(
+		        batch->link.prev, usb_transfer_batch_t, link);
 		assert((batch_qh(prev)->next & LINK_POINTER_ADDRESS_MASK)
 		    == addr_to_phys(batch_qh(batch)));
 		batch_qh(prev)->next = batch_qh(batch)->next;
