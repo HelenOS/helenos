@@ -373,8 +373,8 @@ int ext2_filesystem_get_inode_data_block_index(ext2_filesystem_t *fs, ext2_inode
 			break;
 		}
 		
+		block_offset_in_level %= blocks_per_level[level];
 		offset_in_block = block_offset_in_level / blocks_per_level[level-1];
-		block_offset_in_level %= blocks_per_level[level-1];
 	}
 	
 	*fblock = current_block;
