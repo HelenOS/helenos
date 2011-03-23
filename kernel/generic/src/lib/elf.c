@@ -156,6 +156,7 @@ static int segment_header(elf_segment_header_t *entry, elf_header_t *elf,
 	switch (entry->p_type) {
 	case PT_NULL:
 	case PT_PHDR:
+	case PT_NOTE:
 		break;
 	case PT_LOAD:
 		return load_segment(entry, elf, as);
@@ -172,7 +173,6 @@ static int segment_header(elf_segment_header_t *entry, elf_header_t *elf,
 			return EE_LOADER;
 		break;
 	case PT_SHLIB:
-	case PT_NOTE:
 	case PT_LOPROC:
 	case PT_HIPROC:
 	default:

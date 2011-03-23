@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Martin Decky
+ * Copyright (c) 2010 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,20 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
- * @{
- */
-/** @file
- */
+#ifndef BI_TASK_H_
+#define BI_TASK_H_
 
-#ifndef LIBC_PRIVATE_LIBC_H_
-#define LIBC_PRIVATE_LIBC_H_
+#include "../mytypes.h"
 
-extern void __entry(void);
-extern void __main(void *) __attribute__((noreturn));
-extern int main(int, char *[]);
+void bi_task_declare(builtin_t *bi);
+void bi_task_bind(builtin_t *bi);
 
 #endif
-
-/** @}
- */

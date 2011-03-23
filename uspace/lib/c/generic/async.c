@@ -429,6 +429,12 @@ static bool process_notification(ipc_callid_t callid, ipc_call_t *call)
 	msg->call = *call;
 	
 	fid_t fid = fibril_create(notification_fibril, msg);
+	if (fid == 0) {
+		free(msg);
+		futex_up(&async_futex);
+		return false;
+	}
+	
 	fibril_add_ready(fid);
 	
 	futex_up(&async_futex);
@@ -680,10 +686,12 @@ fid_t async_new_connection(sysarg_t in_task_hash, sysarg_t in_phone_hash,
 	conn->cfibril = cfibril;
 	conn->wdata.fid = fibril_create(connection_fibril, conn);
 	
-	if (!conn->wdata.fid) {
+	if (conn->wdata.fid == 0) {
 		free(conn);
+		
 		if (callid)
 			ipc_answer_0(callid, ENOMEM);
+		
 		return (uintptr_t) NULL;
 	}
 	
@@ -852,7 +860,8 @@ static int async_manager_fibril(void *arg)
 void async_create_manager(void)
 {
 	fid_t fid = fibril_create(async_manager_fibril, NULL);
-	fibril_add_manager(fid);
+	if (fid != 0)
+		fibril_add_manager(fid);
 }
 
 /** Remove one manager from manager list */

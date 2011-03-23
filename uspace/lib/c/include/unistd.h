@@ -43,8 +43,6 @@
 	#define NULL  ((void *) 0)
 #endif
 
-#define getpagesize()  (PAGE_SIZE)
-
 #ifndef SEEK_SET
 	#define SEEK_SET  0
 #endif
@@ -56,6 +54,8 @@
 #ifndef SEEK_END
 	#define SEEK_END  2
 #endif
+
+#define getpagesize()  (PAGE_SIZE)
 
 extern int dup2(int oldfd, int newfd);
 

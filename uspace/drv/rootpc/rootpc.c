@@ -45,7 +45,7 @@
 #include <ctype.h>
 #include <macros.h>
 
-#include <driver.h>
+#include <ddf/driver.h>
 #include <devman.h>
 #include <ipc/devman.h>
 #include <ipc/dev_iface.h>
@@ -54,11 +54,14 @@
 
 #define NAME "rootpc"
 
-typedef struct rootpc_child_dev_data {
-	hw_resource_list_t hw_resources;
-} rootpc_child_dev_data_t;
+/** Obtain function soft-state from DDF function node */
+#define ROOTPC_FUN(fnode) ((rootpc_fun_t *) (fnode)->driver_data)
 
-static int rootpc_add_device(device_t *dev);
+typedef struct rootpc_fun {
+	hw_resource_list_t hw_resources;
+} rootpc_fun_t;
+
+static int rootpc_add_device(ddf_dev_t *dev);
 static void root_pc_init(void);
 
 /** The root device driver's standard operations. */
@@ -81,91 +84,87 @@ static hw_resource_t pci_conf_regs = {
 	}
 };
 
-static rootpc_child_dev_data_t pci_data = {
+static rootpc_fun_t pci_data = {
 	.hw_resources = {
 		1,
 		&pci_conf_regs
 	}
 };
 
-static hw_resource_list_t *rootpc_get_child_resources(device_t *dev)
+static hw_resource_list_t *rootpc_get_resources(ddf_fun_t *fnode)
 {
-	rootpc_child_dev_data_t *data;
+	rootpc_fun_t *fun = ROOTPC_FUN(fnode);
 	
-	data = (rootpc_child_dev_data_t *) dev->driver_data;
-	if (NULL == data)
-		return NULL;
-	
-	return &data->hw_resources;
+	assert(fun != NULL);
+	return &fun->hw_resources;
 }
 
-static bool rootpc_enable_child_interrupt(device_t *dev)
+static bool rootpc_enable_interrupt(ddf_fun_t *fun)
 {
 	/* TODO */
 	
 	return false;
 }
 
-static hw_res_ops_t child_hw_res_ops = {
-	&rootpc_get_child_resources,
-	&rootpc_enable_child_interrupt
+static hw_res_ops_t fun_hw_res_ops = {
+	&rootpc_get_resources,
+	&rootpc_enable_interrupt
 };
 
 /* Initialized in root_pc_init() function. */
-static device_ops_t rootpc_child_ops;
+static ddf_dev_ops_t rootpc_fun_ops;
 
 static bool
-rootpc_add_child(device_t *parent, const char *name, const char *str_match_id,
-    rootpc_child_dev_data_t *drv_data)
+rootpc_add_fun(ddf_dev_t *dev, const char *name, const char *str_match_id,
+    rootpc_fun_t *fun)
 {
-	printf(NAME ": adding new child device '%s'.\n", name);
+	printf(NAME ": adding new function '%s'.\n", name);
 	
-	device_t *child = NULL;
+	ddf_fun_t *fnode = NULL;
 	match_id_t *match_id = NULL;
 	
 	/* Create new device. */
-	child = create_device();
-	if (NULL == child)
+	fnode = ddf_fun_create(dev, fun_inner, name);
+	if (fnode == NULL)
 		goto failure;
 	
-	child->name = name;
-	child->driver_data = drv_data;
+	fnode->driver_data = fun;
 	
 	/* Initialize match id list */
 	match_id = create_match_id();
-	if (NULL == match_id)
+	if (match_id == NULL)
 		goto failure;
 	
 	match_id->id = str_match_id;
 	match_id->score = 100;
-	add_match_id(&child->match_ids, match_id);
+	add_match_id(&fnode->match_ids, match_id);
 	
 	/* Set provided operations to the device. */
-	child->ops = &rootpc_child_ops;
+	fnode->ops = &rootpc_fun_ops;
 	
-	/* Register child device. */
-	if (EOK != child_device_register(child, parent))
+	/* Register function. */
+	if (ddf_fun_bind(fnode) != EOK) {
+		printf(NAME ": error binding function %s.\n", name);
 		goto failure;
+	}
 	
 	return true;
 	
 failure:
-	if (NULL != match_id)
+	if (match_id != NULL)
 		match_id->id = NULL;
 	
-	if (NULL != child) {
-		child->name = NULL;
-		delete_device(child);
-	}
+	if (fnode != NULL)
+		ddf_fun_destroy(fnode);
 	
-	printf(NAME ": failed to add child device '%s'.\n", name);
+	printf(NAME ": failed to add function '%s'.\n", name);
 	
 	return false;
 }
 
-static bool rootpc_add_children(device_t *dev)
+static bool rootpc_add_functions(ddf_dev_t *dev)
 {
-	return rootpc_add_child(dev, "pci0", "intel_pci", &pci_data);
+	return rootpc_add_fun(dev, "pci0", "intel_pci", &pci_data);
 }
 
 /** Get the root device.
@@ -174,14 +173,14 @@ static bool rootpc_add_children(device_t *dev)
  *			of HW and pseudo devices).
  * @return		Zero on success, negative error number otherwise.
  */
-static int rootpc_add_device(device_t *dev)
+static int rootpc_add_device(ddf_dev_t *dev)
 {
 	printf(NAME ": rootpc_add_device, device handle = %d\n",
 	    (int)dev->handle);
 	
-	/* Register child devices. */
-	if (!rootpc_add_children(dev)) {
-		printf(NAME ": failed to add child devices for PC platform.\n");
+	/* Register functions. */
+	if (!rootpc_add_functions(dev)) {
+		printf(NAME ": failed to add functions for PC platform.\n");
 	}
 	
 	return EOK;
@@ -189,14 +188,14 @@ static int rootpc_add_device(device_t *dev)
 
 static void root_pc_init(void)
 {
-	rootpc_child_ops.interfaces[HW_RES_DEV_IFACE] = &child_hw_res_ops;
+	rootpc_fun_ops.interfaces[HW_RES_DEV_IFACE] = &fun_hw_res_ops;
 }
 
 int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS PC platform driver\n");
 	root_pc_init();
-	return driver_main(&rootpc_driver);
+	return ddf_driver_main(&rootpc_driver);
 }
 
 /**

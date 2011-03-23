@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jiri Svoboda
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -44,6 +44,11 @@
 
 #define TAB_WIDTH 8
 
+typedef enum {
+	cs_chr,
+	cs_str
+} chr_str_t;
+
 static void lex_touch(lex_t *lex);
 static bool_t lex_read_try(lex_t *lex);
 
@@ -56,6 +61,7 @@ static void lex_word(lex_t *lex);
 static void lex_char(lex_t *lex);
 static void lex_number(lex_t *lex);
 static void lex_string(lex_t *lex);
+static void lex_char_string_core(lex_t *lex, chr_str_t cs);
 static int digit_value(char c);
 
 /* Note: This imposes an implementation limit on identifier length. */
@@ -116,11 +122,13 @@ static struct lc_name keywords[] = {
 	{ lc_static,	"static" },
 	{ lc_string,	"string" },
 	{ lc_struct,	"struct" },
+	{ lc_switch,	"switch" },
 	{ lc_then,	"then" },
 	{ lc_this,	"this" },
 	{ lc_true,	"true" },
 	{ lc_var,	"var" },
 	{ lc_with,	"with" },
+	{ lc_when,	"when" },
 	{ lc_while,	"while" },
 	{ lc_yield,	"yield" },
 
@@ -534,32 +542,11 @@ static void lex_word(lex_t *lex)
  */
 static void lex_char(lex_t *lex)
 {
-	char *bp;
-	int idx;
 	size_t len;
 	int char_val;
 
-	bp = lex->ibp + 1;
-	idx = 0;
+	lex_char_string_core(lex, cs_chr);
 
-	while (bp[idx] != '\'') {
-		if (idx >= SLBUF_SIZE) {
-			printf("Error: Character literal too long.\n");
-			exit(1);
-		}
-
-		if (bp[idx] == '\0') {
-			printf("Error: Unterminated character literal.\n");
-			exit(1);
-		}
-
-		strlit_buf[idx] = bp[idx];
-		++idx;
-	}
-
-	lex->ibp = bp + idx + 1;
-
-	strlit_buf[idx] = '\0';
 	len = os_str_length(strlit_buf);
 	if (len != 1) {
 		printf("Character literal should contain one character, "
@@ -619,33 +606,86 @@ static void lex_number(lex_t *lex)
  */
 static void lex_string(lex_t *lex)
 {
-	char *bp;
-	int idx;
-
-	bp = lex->ibp + 1;
-	idx = 0;
-
-	while (bp[idx] != '"') {
-		if (idx >= SLBUF_SIZE) {
-			printf("Error: String literal too long.\n");
-			exit(1);
-		}
-
-		if (bp[idx] == '\0') {
-			printf("Error: Unterminated string literal.\n");
-			exit(1);
-		}
-
-		strlit_buf[idx] = bp[idx];
-		++idx;
-	}
-
-	lex->ibp = bp + idx + 1;
-
-	strlit_buf[idx] = '\0';
+	lex_char_string_core(lex, cs_str);
 
 	lex->current.lclass = lc_lit_string;
 	lex->current.u.lit_string.value = os_str_dup(strlit_buf);
+}
+
+static void lex_char_string_core(lex_t *lex, chr_str_t cs)
+{
+	char *bp;
+	int sidx, didx;
+	char term;
+	const char *descr, *cap_descr;
+	char spchar;
+
+	/* Make compiler happy */
+	term = '\0';
+	descr = NULL;
+	cap_descr = NULL;
+
+	switch (cs) {
+	case cs_chr:
+		term = '\'';
+		descr = "character";
+		cap_descr = "Character";
+		break;
+	case cs_str:
+		term = '"';
+		descr = "string";
+		cap_descr = "String";
+		break;
+	}
+
+	bp = lex->ibp + 1;
+	sidx = didx = 0;
+
+	while (bp[sidx] != term) {
+		if (didx >= SLBUF_SIZE) {
+			printf("Error: %s literal too long.\n", cap_descr);
+			exit(1);
+		}
+
+		if (bp[sidx] == '\0') {
+			printf("Error: Unterminated %s literal.\n", descr);
+			exit(1);
+		}
+
+		if (bp[sidx] == '\\') {
+			switch (bp[sidx + 1]) {
+			case '\\':
+				spchar = '\\';
+				break;
+			case '\'':
+				spchar = '\'';
+				break;
+			case '"':
+				spchar = '"';
+				break;
+			case 'n':
+				spchar = '\n';
+				break;
+			case 't':
+				spchar = '\t';
+				break;
+			default:
+				printf("Error: Unknown character escape sequence.\n");
+				exit(1);
+			}
+
+			strlit_buf[didx] = spchar;
+			++didx;
+			sidx += 2;
+		} else {
+			strlit_buf[didx] = bp[sidx];
+			++sidx; ++didx;
+		}
+	}
+
+	lex->ibp = bp + sidx + 1;
+
+	strlit_buf[didx] = '\0';
 }
 
 /** Lex a single-line comment.

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jiri Svoboda
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -84,11 +84,13 @@ typedef enum {
 	lc_static,
 	lc_string,
 	lc_struct,
+	lc_switch,
 	lc_then,
 	lc_this,
 	lc_true,
 	lc_var,
 	lc_with,
+	lc_when,
 	lc_while,
 	lc_yield,
 
