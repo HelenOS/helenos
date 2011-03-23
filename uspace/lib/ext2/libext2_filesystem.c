@@ -296,6 +296,8 @@ int ext2_filesystem_put_inode_ref(ext2_inode_ref_t *ref)
  * Find a filesystem block number where iblock-th data block
  * of the given inode is located.
  * 
+ * @param fblock the number of filesystem block, or 0 if no such block is allocated yet
+ * 
  * @return 		EOK on success or negative error code on failure
  */
 int ext2_filesystem_get_inode_data_block_index(ext2_filesystem_t *fs, ext2_inode_t* inode,
@@ -314,9 +316,6 @@ int ext2_filesystem_get_inode_data_block_index(ext2_filesystem_t *fs, ext2_inode
 	
 	if (iblock < EXT2_INODE_DIRECT_BLOCKS) {
 		current_block = ext2_inode_get_direct_block(inode, (uint32_t)iblock);
-		if (current_block == 0) {
-			return EIO;
-		}
 		*fblock = current_block;
 		return EOK;
 	}
@@ -364,7 +363,8 @@ int ext2_filesystem_get_inode_data_block_index(ext2_filesystem_t *fs, ext2_inode
 		}
 		
 		if (current_block == 0) {
-			return EIO;
+			*fblock = 0;
+			return EOK;
 		}
 		
 		level -= 1;

@@ -55,6 +55,7 @@
 #include <sys/mman.h>
 #include <align.h>
 #include <adt/hash_table.h>
+#include <sys/typefmt.h>
 
 #define EXT2FS_NODE(node)	((node) ? (ext2fs_node_t *) (node)->data : NULL)
 #define EXT2FS_DBG(format, ...) {if (false) printf("ext2fs: %s: " format "\n", __FUNCTION__, ##__VA_ARGS__);}
@@ -759,6 +760,7 @@ void ext2fs_read_file(ipc_callid_t rid, ipc_callid_t callid, aoff64_t pos,
 	size_t offset_in_block;
 	size_t bytes;
 	block_t *block;
+	uint8_t *buffer;
 	
 	file_size = ext2_inode_get_size(inst->filesystem->superblock,
 		inode_ref->inode);
@@ -776,6 +778,11 @@ void ext2fs_read_file(ipc_callid_t rid, ipc_callid_t callid, aoff64_t pos,
 	offset_in_block = pos % block_size;
 	bytes = min(block_size - offset_in_block, size);
 	
+	// Handle end of file
+	if (pos + bytes > file_size) {
+		bytes = file_size - pos;
+	}
+	
 	rc = ext2_filesystem_get_inode_data_block_index(inst->filesystem,
 		inode_ref->inode, file_block, &fs_block);
 	if (rc != EOK) {
@@ -784,6 +791,29 @@ void ext2fs_read_file(ipc_callid_t rid, ipc_callid_t callid, aoff64_t pos,
 		return;
 	}
 	
+	// Check for sparse file
+	// If ext2_filesystem_get_inode_data_block_index returned
+	// fs_block == 0, it means that the given block is not allocated for the 
+	// file and we need to return a buffer of zeros
+	if (fs_block == 0) {
+		buffer = malloc(bytes);
+		if (buffer == NULL) {
+			async_answer_0(callid, ENOMEM);
+			async_answer_0(rid, ENOMEM);
+			return;
+		}
+		
+		memset(buffer, 0, bytes);
+		
+		async_data_read_finalize(callid, buffer, bytes);
+		async_answer_1(rid, EOK, bytes);
+		
+		free(buffer);
+		
+		return;
+	}
+	
+	// Usual case - we need to read a block from device
 	rc = block_get(&block, inst->devmap_handle, fs_block, BLOCK_FLAGS_NONE);
 	if (rc != EOK) {
 		async_answer_0(callid, rc);
@@ -791,7 +821,8 @@ void ext2fs_read_file(ipc_callid_t rid, ipc_callid_t callid, aoff64_t pos,
 		return;
 	}
 	
-	async_data_read_finalize(callid, block->data, bytes);
+	assert(offset_in_block + bytes <= block_size);
+	async_data_read_finalize(callid, block->data + offset_in_block, bytes);
 	
 	rc = block_put(block);
 	if (rc != EOK) {
