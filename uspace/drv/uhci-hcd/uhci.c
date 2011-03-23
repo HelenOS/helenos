@@ -181,7 +181,7 @@ if (ret != EOK) { \
 	ret = pci_enable_interrupts(device);
 	if (ret != EOK) {
 		usb_log_warning("Failed to enable interrupts: %s.\n",
-		    str_error(rc));
+		    str_error(ret));
 		usb_log_info("HW interrupts not available, " \
 		    "falling back to polling.\n");
 	} else {

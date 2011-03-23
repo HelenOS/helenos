@@ -278,8 +278,8 @@ static int bulk_in(
  * @param[in] fun DDF function that was called.
  * @param[in] target USB device to write to.
  * @param[in] max_packet_size maximum size of data packet the device accepts.
- * @param[in] setup_data Data to send with SETUP packet.
- * @param[in] setup_size Size of data to send with SETUP packet (should be 8B).
+ * @param[in] setup_data Data to send with SETUP transfer.
+ * @param[in] setup_size Size of data to send with SETUP transfer (always 8B).
  * @param[in] data Source of data.
  * @param[in] size Size of data source.
  * @param[in] callback Function to call on transaction completion.
