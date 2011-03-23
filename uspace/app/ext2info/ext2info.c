@@ -48,6 +48,7 @@
 #include <inttypes.h>
 #include <errno.h>
 #include <libext2.h>
+#include <assert.h>
 
 #define NAME	"ext2info"
 
@@ -95,22 +96,22 @@ int main(int argc, char **argv)
 	// Skip program name
 	--argc; ++argv;
 	
-	if (str_cmp(*argv, "--strict-check") == 0) {
+	if (argc > 0 && str_cmp(*argv, "--strict-check") == 0) {
 		--argc; ++argv;
 		arg_flags |= ARG_STRICT_CHECK;
 	}
 	
-	if (str_cmp(*argv, "--superblock") == 0) {
+	if (argc > 0 && str_cmp(*argv, "--superblock") == 0) {
 		--argc; ++argv;
 		arg_flags |= ARG_SUPERBLOCK;
 	}
 	
-	if (str_cmp(*argv, "--block-groups") == 0) {
+	if (argc > 0 && str_cmp(*argv, "--block-groups") == 0) {
 		--argc; ++argv;
 		arg_flags |= ARG_BLOCK_GROUPS;
 	}
 	
-	if (str_cmp(*argv, "--inode") == 0) {
+	if (argc > 0 && str_cmp(*argv, "--inode") == 0) {
 		--argc; ++argv;
 		if (argc == 0) {
 			printf(NAME ": Argument expected for --inode\n");
@@ -127,7 +128,7 @@ int main(int argc, char **argv)
 		arg_flags |= ARG_INODE;
 		--argc; ++argv;
 		
-		if (str_cmp(*argv, "--inode-data") == 0) {
+		if (argc > 0 && str_cmp(*argv, "--inode-data") == 0) {
 			--argc; ++argv;
 			if (argc == 0) {
 				printf(NAME ": Argument expected for --inode-data\n");
@@ -145,17 +146,23 @@ int main(int argc, char **argv)
 			--argc; ++argv;
 		}
 		
-		if (str_cmp(*argv, "--list") == 0) {
+		if (argc > 0 && str_cmp(*argv, "--list") == 0) {
 			--argc; ++argv;
 			arg_flags |= ARG_INODE_LIST;
 		}
 	}
 
-	if (argc != 1) {
+	if (argc < 1) {
+		printf(NAME ": Error, argument missing.\n");
+		syntax_print();
+		return 1;
+	}
+	else if (argc > 1) {
 		printf(NAME ": Error, unexpected argument.\n");
 		syntax_print();
 		return 1;
 	}
+	assert(argc == 1);
 	
 	// Display common things by default
 	if ((arg_flags & ARG_ALL) == 0) {
