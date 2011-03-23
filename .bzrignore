@@ -45,6 +45,7 @@ uspace/app/taskdump/taskdump
 uspace/app/tasks/tasks
 uspace/app/test_serial/test_serial
 uspace/app/tester/tester
+uspace/app/testread/testread
 uspace/app/tetris/tetris
 uspace/app/top/top
 uspace/app/trace/trace
@@ -70,6 +71,7 @@ uspace/dist/app/taskdump
 uspace/dist/app/tasks
 uspace/dist/app/test_serial
 uspace/dist/app/tester
+uspace/dist/app/testread
 uspace/dist/app/tetris
 uspace/dist/app/top
 uspace/dist/app/trace

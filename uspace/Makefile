@@ -48,6 +48,7 @@ DIRS = \
 	app/stats \
 	app/taskdump \
 	app/tester \
+	app/testread \
 	app/tetris \
 	app/trace \
 	app/top \
