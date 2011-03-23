@@ -57,6 +57,8 @@ int transfer_list_init(transfer_list_t *instance, const char *name)
 		return ENOMEM;
 	}
 	instance->queue_head_pa = addr_to_phys(instance->queue_head);
+	usb_log_debug2("Transfer list %s setup with QH: %p(%p).\n",
+	    name, instance->queue_head, instance->queue_head_pa);
 
 	qh_init(instance->queue_head);
 	list_initialize(&instance->batch_list);
@@ -117,6 +119,9 @@ void transfer_list_add_batch(
 	batch_qh(batch)->next = last_qh->next;
 	qh_set_next_qh(last_qh, pa);
 
+	asm volatile ("": : :"memory");
+//	asm volatile("clflush (%0)": : "r"(last_qh));
+
 	/* Add to the driver list */
 	list_append(&batch->link, &instance->batch_list);
 
@@ -158,6 +163,7 @@ void transfer_list_remove_finished(transfer_list_t *instance)
 	}
 	fibril_mutex_unlock(&instance->guard);
 
+	async_usleep(1000);
 	while (!list_empty(&done)) {
 		link_t *item = done.next;
 		list_remove(item);
@@ -211,6 +217,7 @@ void transfer_list_remove_batch(
 		assert((instance->queue_head->next & LINK_POINTER_ADDRESS_MASK)
 		    == addr_to_phys(batch_qh(batch)));
 		instance->queue_head->next = batch_qh(batch)->next;
+//		asm volatile("clflush (%0)" : : "r"(instance->queue_head));
 		qpos = "FIRST";
 	} else {
 		usb_transfer_batch_t *prev =
@@ -219,8 +226,10 @@ void transfer_list_remove_batch(
 		assert((batch_qh(prev)->next & LINK_POINTER_ADDRESS_MASK)
 		    == addr_to_phys(batch_qh(batch)));
 		batch_qh(prev)->next = batch_qh(batch)->next;
+//		asm volatile("clflush (%0)" : : "r"(batch_qh(prev)));
 		qpos = "NOT FIRST";
 	}
+	asm volatile ("": : :"memory");
 	/* Remove from the batch list */
 	list_remove(&batch->link);
 	usb_log_debug("Batch(%p) removed (%s) from %s, next %x.\n",

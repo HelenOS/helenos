@@ -222,7 +222,7 @@ int hc_init_mem_structures(hc_t *instance)
 	instance->frame_list = get_page();
 	ret = instance ? EOK : ENOMEM;
 	CHECK_RET_DEST_CMDS_RETURN(ret, "Failed to get frame list page.\n");
-	usb_log_debug("Initialized frame list.\n");
+	usb_log_debug("Initialized frame list at %p.\n", instance->frame_list);
 
 	/* Set all frames to point to the first queue head */
 	const uint32_t queue =
