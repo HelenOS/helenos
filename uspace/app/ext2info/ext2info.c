@@ -57,20 +57,21 @@ static void print_superblock(ext2_superblock_t *);
 static void print_block_groups(ext2_filesystem_t *);
 static void print_block_group(ext2_block_group_t *);
 static void print_inode_by_number(ext2_filesystem_t *, uint32_t, bool, uint32_t,
-    bool);
+    bool, bool);
 static void print_data(unsigned char *, size_t);
-static void print_inode(ext2_filesystem_t *, ext2_inode_t *);
+static void print_inode(ext2_filesystem_t *, ext2_inode_t *, bool);
 static void print_inode_data(ext2_filesystem_t *, ext2_inode_t *, uint32_t);
 static void print_directory_contents(ext2_filesystem_t *, ext2_inode_ref_t *);
 
 #define ARG_SUPERBLOCK 1
 #define ARG_BLOCK_GROUPS 2
 #define ARG_INODE 4
-#define ARG_STRICT_CHECK 8
+#define ARG_NO_CHECK 8
 #define ARG_INODE_DATA 16
 #define ARG_INODE_LIST 32
-#define ARG_COMMON (ARG_SUPERBLOCK | ARG_BLOCK_GROUPS)
-#define ARG_ALL (ARG_COMMON | ARG_INODE)
+#define ARG_INODE_BLOCKS 64
+#define ARG_COMMON (ARG_SUPERBLOCK)
+#define ARG_ALL 127
 
 
 int main(int argc, char **argv)
@@ -96,9 +97,9 @@ int main(int argc, char **argv)
 	// Skip program name
 	--argc; ++argv;
 	
-	if (argc > 0 && str_cmp(*argv, "--strict-check") == 0) {
+	if (argc > 0 && str_cmp(*argv, "--no-check") == 0) {
 		--argc; ++argv;
-		arg_flags |= ARG_STRICT_CHECK;
+		arg_flags |= ARG_NO_CHECK;
 	}
 	
 	if (argc > 0 && str_cmp(*argv, "--superblock") == 0) {
@@ -128,16 +129,21 @@ int main(int argc, char **argv)
 		arg_flags |= ARG_INODE;
 		--argc; ++argv;
 		
-		if (argc > 0 && str_cmp(*argv, "--inode-data") == 0) {
+		if (argc > 0 && str_cmp(*argv, "--blocks") == 0) {
+			--argc; ++argv;
+			arg_flags |= ARG_INODE_BLOCKS;
+		}
+		
+		if (argc > 0 && str_cmp(*argv, "--data") == 0) {
 			--argc; ++argv;
 			if (argc == 0) {
-				printf(NAME ": Argument expected for --inode-data\n");
+				printf(NAME ": Argument expected for --data\n");
 				return 2;
 			}
 			
 			inode_data = strtol(*argv, &endptr, 10);
 			if (*endptr != '\0') {
-				printf(NAME ": Error, invalid argument for --inode-data.\n");
+				printf(NAME ": Error, invalid argument for --data.\n");
 				syntax_print();
 				return 1;
 			}
@@ -186,7 +192,7 @@ int main(int argc, char **argv)
 	rc = ext2_filesystem_check_sanity(&filesystem);
 	if (rc != EOK) {
 		printf(NAME ": Filesystem did not pass sanity check.\n");
-		if (arg_flags & ARG_STRICT_CHECK) {
+		if (!(arg_flags & ARG_NO_CHECK)) {
 			return 3;
 		}
 	}
@@ -201,7 +207,8 @@ int main(int argc, char **argv)
 	
 	if (arg_flags & ARG_INODE) {
 		print_inode_by_number(&filesystem, inode, arg_flags & ARG_INODE_DATA,
-		    inode_data, arg_flags & ARG_INODE_LIST);
+		    inode_data, arg_flags & ARG_INODE_LIST,
+		    arg_flags & ARG_INODE_BLOCKS);
 	}
 
 	ext2_filesystem_fini(&filesystem);
@@ -212,8 +219,9 @@ int main(int argc, char **argv)
 
 static void syntax_print(void)
 {
-	printf("syntax: ext2info [--strict-check] [--superblock] [--block-groups] "
-	    "[--inode <i-number> [--inode-data <block-number>] [--list]] <device_name>\n");
+	printf("syntax: ext2info [--no-check] [--superblock] [--block-groups] "
+	    "[--inode <i-number> [--blocks] [--data <block-number>] [--list]] "
+	    "<device_name>\n");
 }
 
 static void print_superblock(ext2_superblock_t *superblock)
@@ -361,7 +369,7 @@ void print_block_group(ext2_block_group_t *bg)
 }
 
 void print_inode_by_number(ext2_filesystem_t *fs, uint32_t inode, 
-    bool print_data, uint32_t data, bool list)
+    bool print_data, uint32_t data, bool list, bool blocks)
 {
 	int rc;
 	ext2_inode_ref_t *inode_ref;
@@ -374,7 +382,7 @@ void print_inode_by_number(ext2_filesystem_t *fs, uint32_t inode,
 		return;
 	}
 	
-	print_inode(fs, inode_ref->inode);
+	print_inode(fs, inode_ref->inode, blocks);
 	if (print_data) {
 		print_inode_data(fs, inode_ref->inode, data);
 	}
@@ -390,7 +398,7 @@ void print_inode_by_number(ext2_filesystem_t *fs, uint32_t inode,
 	}
 }
 
-void print_inode(ext2_filesystem_t *fs, ext2_inode_t *inode)
+void print_inode(ext2_filesystem_t *fs, ext2_inode_t *inode, bool blocks)
 {
 	uint32_t mode;
 	uint32_t mode_type;
@@ -461,60 +469,63 @@ void print_inode(ext2_filesystem_t *fs, ext2_inode_t *inode)
 	printf("  Usage (link) count: %u\n", usage_count);
 	printf("  Flags: %u\n", flags);
 	printf("  Total allocated blocks: %u\n", total_blocks);
-	printf("  Block list: ");
 	
-	range_start = 0;
-	range_current = 0;
-	range_last = 0;
-	
-	printed_range = false;
-	
-	for (i = 0; i <= file_blocks; i++) {
-		if (i < file_blocks) {
-			rc = ext2_filesystem_get_inode_data_block_index(fs, inode, i, &range_current);
-			if (rc != EOK) {
-				printf("Error reading data block indexes\n");
-				return;
-			}
-		}
-		if (range_last == 0) {
-			range_expected = 0;
-		}
-		else {
-			range_expected = range_last + 1;
-		}
-		if (range_current != range_expected) {
-			if (i > 0) {
-				if (printed_range) {
-					printf(", ");
+	if (blocks) {
+		printf("  Block list: ");
+		
+		range_start = 0;
+		range_current = 0;
+		range_last = 0;
+		
+		printed_range = false;
+		
+		for (i = 0; i <= file_blocks; i++) {
+			if (i < file_blocks) {
+				rc = ext2_filesystem_get_inode_data_block_index(fs, inode, i, &range_current);
+				if (rc != EOK) {
+					printf("Error reading data block indexes\n");
+					return;
 				}
-				if (range_start == 0 && range_last == 0) {
-					if (range_start_file == range_last_file) {
-						printf("%u N/A", range_start_file);
+			}
+			if (range_last == 0) {
+				range_expected = 0;
+			}
+			else {
+				range_expected = range_last + 1;
+			}
+			if (range_current != range_expected) {
+				if (i > 0) {
+					if (printed_range) {
+						printf(", ");
+					}
+					if (range_start == 0 && range_last == 0) {
+						if (range_start_file == range_last_file) {
+							printf("%u N/A", range_start_file);
+						}
+						else {
+							printf("[%u, %u] N/A", range_start_file,
+								range_last_file);
+						}
 					}
 					else {
-						printf("[%u, %u] N/A", range_start_file,
-						    range_last_file);
+						if (range_start_file == range_last_file) {
+							printf("%u -> %u", range_start_file, range_start);
+						}
+						else {
+							printf("[%u, %u] -> [%u, %u]", range_start_file,
+								range_last_file, range_start, range_last);
+						}
 					}
+					printed_range = true;
 				}
-				else {
-					if (range_start_file == range_last_file) {
-						printf("%u -> %u", range_start_file, range_start);
-					}
-					else {
-						printf("[%u, %u] -> [%u, %u]", range_start_file,
-						    range_last_file, range_start, range_last);
-					}
-				}
-				printed_range = true;
+				range_start = range_current;
+				range_start_file = i;
 			}
-			range_start = range_current;
-			range_start_file = i;
+			range_last = range_current;
+			range_last_file = i;
 		}
-		range_last = range_current;
-		range_last_file = i;
+		printf("\n");
 	}
-	printf("\n");
 }
 
 void print_data(unsigned char *data, size_t size)
