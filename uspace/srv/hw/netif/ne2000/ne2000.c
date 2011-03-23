@@ -74,7 +74,7 @@
  */
 #define IRQ_GET_TSR(call)  ((int) IPC_GET_ARG3(call))
 
-static int irc_service = 0;
+static bool irc_service = false;
 static int irc_phone = -1;
 
 /** NE2000 kernel interrupt command sequence.
@@ -382,14 +382,13 @@ int netif_initialize(void)
 	sysarg_t apic;
 	sysarg_t i8259;
 	
-	if ((sysinfo_get_value("apic", &apic) == EOK) && (apic))
-		irc_service = SERVICE_APIC;
-	else if ((sysinfo_get_value("i8259", &i8259) == EOK) && (i8259))
-		irc_service = SERVICE_I8259;
+	if (((sysinfo_get_value("apic", &apic) == EOK) && (apic))
+	    || ((sysinfo_get_value("i8259", &i8259) == EOK) && (i8259)))
+		irc_service = true;
 	
 	if (irc_service) {
 		while (irc_phone < 0)
-			irc_phone = service_connect_blocking(irc_service, 0, 0);
+			irc_phone = service_connect_blocking(SERVICE_IRC, 0, 0);
 	}
 	
 	async_set_interrupt_received(irq_handler);
