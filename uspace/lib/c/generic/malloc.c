@@ -239,7 +239,7 @@ static bool area_create(size_t size)
 	void *astart = (void *) ALIGN_UP((uintptr_t) start, PAGE_SIZE);
 	size_t asize = ALIGN_UP(size, PAGE_SIZE);
 	
-	astart = as_area_create(astart, asize, AS_AREA_WRITE | AS_AREA_READ);
+	astart = as_area_create(astart, asize, AS_AREA_WRITE | AS_AREA_READ | AS_AREA_CACHEABLE);
 	if (astart == (void *) -1)
 		return false;
 	

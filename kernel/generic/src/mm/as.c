@@ -1948,7 +1948,7 @@ success:
 /** Wrapper for as_area_create(). */
 sysarg_t sys_as_area_create(uintptr_t address, size_t size, unsigned int flags)
 {
-	if (as_area_create(AS, flags | AS_AREA_CACHEABLE, size, address,
+	if (as_area_create(AS, flags, size, address,
 	    AS_AREA_ATTR_NONE, &anon_backend, NULL))
 		return (sysarg_t) address;
 	else
