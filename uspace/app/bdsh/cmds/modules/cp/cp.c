@@ -107,6 +107,7 @@ static int64_t copy_file(const char *src, const char *dest,
 
 	for (;;) {
 		ssize_t res;
+		size_t written = 0;
 
 		bytes = read(fd1, buff, blen);
 		if (bytes <= 0)
@@ -119,9 +120,10 @@ static int64_t copy_file(const char *src, const char *dest,
 			 * only once. Also the previous read() may have
 			 * returned less data than requested.
 			 */
-			bytes = write(fd2, buff, res);
+			bytes = write(fd2, buff + written, res);
 			if (bytes < 0)
 				goto err;
+			written += bytes;
 			res -= bytes;
 		} while (res > 0);
 
