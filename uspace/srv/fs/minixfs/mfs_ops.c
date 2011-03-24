@@ -53,7 +53,8 @@ libfs_ops_t mfs_libfs_ops = {
 	.is_directory = mfs_is_directory,
 	.is_file = mfs_is_file,
 	.node_get = mfs_node_get,
-	.plb_get_char = mfs_plb_get_char
+	.plb_get_char = mfs_plb_get_char,
+	.has_children = mfs_has_children
 };
 
 void mfs_mounted(ipc_callid_t rid, ipc_call_t *request)
@@ -311,9 +312,53 @@ int mfs_root_get(fs_node_t **rfn, devmap_handle_t handle)
 	return mfs_node_get(rfn, handle, MFS_ROOT_INO);
 }
 
+void mfs_lookup(ipc_callid_t rid, ipc_call_t *request)
+{
+	libfs_lookup(&mfs_libfs_ops, mfs_reg.fs_handle, rid, request);
+}
+
 char mfs_plb_get_char(unsigned pos)
 {
 	return mfs_reg.plb_ro[pos % PLB_SIZE];
+}
+
+int mfs_has_children(bool *has_children, fs_node_t *fsnode)
+{
+	struct mfs_node *mnode = fsnode->data;
+	const struct mfs_ino_info *ino_i = mnode->ino_i;
+	const struct mfs_instance *inst = mnode->instance;
+	const struct mfs_sb_info *sbi = inst->sbi;
+	int i;
+
+	*has_children = false;
+
+	if (!S_ISDIR(mnode->ino_i->i_mode))
+		goto out;
+
+	struct mfs_dentry_info *d_info;
+
+	for (i = 2; i < ino_i->i_size / sbi->dirsize; ++i) {
+		d_info = read_directory_entry(mnode, i);
+
+		if (!d_info)
+			goto out;
+
+		if (d_info->d_inum) {
+			*has_children = true;
+			free(d_info);
+			break;
+		}
+
+		free(d_info);
+	}
+
+	if (*has_children)
+		mfsdebug("Has children\n");
+	else
+		mfsdebug("Has not children\n");
+
+out:
+	return EOK;
 }
 
 /*

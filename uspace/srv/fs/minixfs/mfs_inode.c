@@ -78,8 +78,9 @@ struct mfs_ino_info *mfs_read_inode_raw(const struct mfs_instance *instance,
 		ino_i->i_izone[i] = conv16(sbi->native, ino->i_izone[i]);
 
 	block_put(b);
-
 	free(ino);
+	ino_i->dirty = false;
+
 	return ino_i;
 
 out_err:
@@ -136,8 +137,9 @@ struct mfs_ino_info *mfs2_read_inode_raw(const struct mfs_instance *instance,
 		ino_i->i_izone[i] = conv32(sbi->native, ino->i_izone[i]);
 
 	block_put(b);
-
 	free(ino);
+	ino_i->dirty = false;
+
 	return ino_i;
 
 out_err:

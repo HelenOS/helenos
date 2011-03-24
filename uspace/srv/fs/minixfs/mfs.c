@@ -106,6 +106,9 @@ static void mfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case VFS_OUT_STAT:
 			mfs_stat(callid, &call);
 			break;
+		case VFS_OUT_LOOKUP:
+			mfs_lookup(callid, &call);
+			break;
 		default:
 			async_answer_0(callid, ENOTSUP);
 			break;

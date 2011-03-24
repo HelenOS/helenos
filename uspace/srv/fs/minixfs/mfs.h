@@ -95,6 +95,16 @@ struct mfs_ino_info {
         uint32_t        i_dzone[V2_NR_DIRECT_ZONES];
         /*Block numbers for indirect zones*/
         uint32_t        i_izone[V2_NR_INDIRECT_ZONES];
+
+	bool dirty;
+};
+
+/*Generic MFS directory entry*/
+struct mfs_dentry_info {
+	uint32_t d_inum;
+	char d_name[MFS3_MAX_NAME_LEN];
+
+	bool dirty;
 };
 
 struct mfs_instance {
@@ -112,10 +122,12 @@ struct mfs_node {
 /*mfs_ops.c*/
 extern void mfs_mounted(ipc_callid_t rid, ipc_call_t *request);
 extern void mfs_mount(ipc_callid_t rid, ipc_call_t *request);
+extern void mfs_lookup(ipc_callid_t rid, ipc_call_t *request);
 extern aoff64_t mfs_size_get(fs_node_t *node);
 extern bool mfs_is_directory(fs_node_t *fsnode);
 extern bool mfs_is_file(fs_node_t *fsnode);
 extern char mfs_plb_get_char(unsigned pos);
+extern int mfs_has_children(bool *has_children, fs_node_t *fsnode);
 extern int mfs_root_get(fs_node_t **rfn, devmap_handle_t handle);
 extern devmap_handle_t mfs_device_get(fs_node_t *fsnode);
 extern int mfs_instance_get(devmap_handle_t handle,
@@ -136,6 +148,10 @@ struct mfs_ino_info *mfs2_read_inode_raw(const struct mfs_instance *instance,
 
 /*mfs_read.c*/
 int read_map(uint32_t *b, const struct mfs_node *mnode, const uint32_t pos);
+
+/*mfs_dentry.c*/
+extern struct mfs_dentry_info *
+read_directory_entry(struct mfs_node *mnode, unsigned index);
 
 #endif
 
