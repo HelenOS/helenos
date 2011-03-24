@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006 Jakub Jermar
- * Copyright (c) 2009 Pavel Rimsky 
+ * Copyright (c) 2009 Pavel Rimsky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -438,7 +438,7 @@ static bool wake_cpu(uint64_t cpuid)
 	
 	if (waitq_sleep_timeout(&ap_completion_wq, 10000000, SYNCH_FLAGS_NONE) ==
 	    ESYNCH_TIMEOUT)
-		printf("%s: waiting for processor (cpuid = %" PRIu32 ") timed out\n",
+		printf("%s: waiting for processor (cpuid = %" PRIu64 ") timed out\n",
 		    __func__, cpuid);
 	
 	return true;
