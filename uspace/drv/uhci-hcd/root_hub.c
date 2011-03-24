@@ -25,28 +25,58 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 /** @addtogroup drvusbuhci
  * @{
  */
 /** @file
  * @brief UHCI driver
  */
-#ifndef DRV_UHCI_UHCI_RH_H
-#define DRV_UHCI_UHCI_RH_H
+#include <assert.h>
+#include <errno.h>
+#include <str_error.h>
+#include <stdio.h>
 
-#include <ddf/driver.h>
-#include <ops/hw_res.h>
+#include <usb/debug.h>
 
-typedef struct uhci_rh {
-	hw_resource_list_t resource_list;
-	hw_resource_t io_regs;
-} uhci_rh_t;
+#include "root_hub.h"
 
-int uhci_rh_init(
-    uhci_rh_t *instance, ddf_fun_t *fun, uintptr_t reg_addr, size_t reg_size);
+/** Root hub initialization
+ * @param[in] instance RH structure to initialize
+ * @param[in] fun DDF function representing UHCI root hub
+ * @param[in] reg_addr Address of root hub status and control registers.
+ * @param[in] reg_size Size of accessible address space.
+ * @return Error code.
+ */
+int rh_init(
+    rh_t *instance, ddf_fun_t *fun, uintptr_t reg_addr, size_t reg_size)
+{
+	assert(fun);
 
-#endif
+	char *match_str = NULL;
+	int ret = asprintf(&match_str, "usb&uhci&root-hub");
+	if (ret < 0) {
+		usb_log_error("Failed to create root hub match string.\n");
+		return ENOMEM;
+	}
+
+	ret = ddf_fun_add_match_id(fun, match_str, 100);
+	if (ret != EOK) {
+		usb_log_error("Failed(%d) to add root hub match id: %s\n",
+		    ret, str_error(ret));
+		return ret;
+	}
+
+	hw_resource_list_t *resource_list = &instance->resource_list;
+	resource_list->count = 1;
+	resource_list->resources = &instance->io_regs;
+	assert(resource_list->resources);
+	instance->io_regs.type = IO_RANGE;
+	instance->io_regs.res.io_range.address = reg_addr;
+	instance->io_regs.res.io_range.size = reg_size;
+	instance->io_regs.res.io_range.endianness = LITTLE_ENDIAN;
+
+	return EOK;
+}
 /**
  * @}
  */

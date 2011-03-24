@@ -63,25 +63,25 @@ static int polling_fibril(void *arg)
 	polling_data_t *polling_data = (polling_data_t *) arg;
 	assert(polling_data);
 
-	usb_endpoint_pipe_t *pipe
+	usb_pipe_t *pipe
 	    = polling_data->dev->pipes[polling_data->pipe_index].pipe;
 
 	size_t failed_attempts = 0;
 	while (failed_attempts < MAX_FAILED_ATTEMPTS) {
 		int rc;
 
-		rc = usb_endpoint_pipe_start_session(pipe);
+		rc = usb_pipe_start_session(pipe);
 		if (rc != EOK) {
 			failed_attempts++;
 			continue;
 		}
 
 		size_t actual_size;
-		rc = usb_endpoint_pipe_read(pipe, polling_data->buffer,
+		rc = usb_pipe_read(pipe, polling_data->buffer,
 		    polling_data->request_size, &actual_size);
 
 		/* Quit the session regardless of errors. */
-		usb_endpoint_pipe_end_session(pipe);
+		usb_pipe_end_session(pipe);
 
 		if (rc != EOK) {
 			failed_attempts++;

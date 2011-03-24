@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2010 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,59 +25,37 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup drvusbuhci
+/** @addtogroup drvusbuhcihc
  * @{
  */
 /** @file
  * @brief UHCI driver
  */
-#include <assert.h>
-#include <errno.h>
-#include <str_error.h>
-#include <stdio.h>
+#ifndef DRV_UHCI_LINK_POINTER_H
+#define DRV_UHCI_LINK_POINTER_H
 
-#include <usb/debug.h>
+/* UHCI link pointer, used by many data structures */
+typedef uint32_t link_pointer_t;
 
-#include "uhci_rh.h"
-#include "uhci_hc.h"
+#define LINK_POINTER_TERMINATE_FLAG (1 << 0)
+#define LINK_POINTER_QUEUE_HEAD_FLAG (1 << 1)
+#define LINK_POINTER_ZERO_BIT_FLAG (1 << 2)
+#define LINK_POINTER_VERTICAL_FLAG (1 << 2)
+#define LINK_POINTER_RESERVED_FLAG (1 << 3)
 
-/** Root hub initialization
- * @param[in] instance RH structure to initialize
- * @param[in] fun DDF function representing UHCI root hub
- * @param[in] reg_addr Address of root hub status and control registers.
- * @param[in] reg_size Size of accessible address space.
- * @return Error code.
- */
-int uhci_rh_init(
-    uhci_rh_t *instance, ddf_fun_t *fun, uintptr_t reg_addr, size_t reg_size)
-{
-	assert(fun);
+#define LINK_POINTER_ADDRESS_MASK 0xfffffff0 /* upper 28 bits */
 
-	char *match_str = NULL;
-	int ret = asprintf(&match_str, "usb&uhci&root-hub");
-	if (ret < 0) {
-		usb_log_error("Failed to create root hub match string.\n");
-		return ENOMEM;
-	}
+#define LINK_POINTER_QH(address) \
+	((address & LINK_POINTER_ADDRESS_MASK) | LINK_POINTER_QUEUE_HEAD_FLAG)
 
-	ret = ddf_fun_add_match_id(fun, match_str, 100);
-	if (ret != EOK) {
-		usb_log_error("Failed(%d) to add root hub match id: %s\n",
-		    ret, str_error(ret));
-		return ret;
-	}
+#define LINK_POINTER_TD(address) \
+	(address & LINK_POINTER_ADDRESS_MASK)
 
-	hw_resource_list_t *resource_list = &instance->resource_list;
-	resource_list->count = 1;
-	resource_list->resources = &instance->io_regs;
-	assert(resource_list->resources);
-	instance->io_regs.type = IO_RANGE;
-	instance->io_regs.res.io_range.address = reg_addr;
-	instance->io_regs.res.io_range.size = reg_size;
-	instance->io_regs.res.io_range.endianness = LITTLE_ENDIAN;
+#define LINK_POINTER_TERM \
+	((link_pointer_t)LINK_POINTER_TERMINATE_FLAG)
 
-	return EOK;
-}
+#endif
 /**
  * @}
  */
+

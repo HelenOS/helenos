@@ -83,7 +83,7 @@ int usb_pow(int a, int b)
 int usb_hid_parser_init(usb_hid_report_parser_t *parser)
 {
    if(parser == NULL) {
-	return -1;
+	return EINVAL;
    }
 
     list_initialize(&(parser->input));
@@ -114,6 +114,10 @@ int usb_hid_parse_report_descriptor(usb_hid_report_parser_t *parser,
 	size_t offset_input=0;
 	size_t offset_output=0;
 	size_t offset_feature=0;
+
+	if(usb_hid_parser_init(parser) != EOK) {
+		return EINVAL;
+	}
 	
 
 	if(!(report_item=malloc(sizeof(usb_hid_report_item_t)))){
@@ -127,7 +131,7 @@ int usb_hid_parse_report_descriptor(usb_hid_report_parser_t *parser,
 		if(!USB_HID_ITEM_IS_LONG(data[i])){
 
 			if((i+USB_HID_ITEM_SIZE(data[i]))>= size){
-				return -1; // TODO ERROR CODE
+				return EINVAL; // TODO ERROR CODE
 			}
 			
 			tag = USB_HID_ITEM_TAG(data[i]);
@@ -529,6 +533,10 @@ void usb_hid_descriptor_print_list(link_t *head)
  */
 void usb_hid_descriptor_print(usb_hid_report_parser_t *parser)
 {
+	if(parser == NULL) {
+		return;
+	}
+	
 	usb_log_debug("INPUT:\n");
 	usb_hid_descriptor_print_list(&parser->input);
 	
@@ -614,6 +622,11 @@ int usb_hid_parse_report(const usb_hid_report_parser_t *parser,
 	size_t i=0;
 	size_t j=0;
 
+	if(parser == NULL) {
+		return EINVAL;
+	}
+
+	
 	// get the size of result keycodes array
 	usb_hid_report_path_t path;
 	path.usage_page = BAD_HACK_USAGE_PAGE;
@@ -736,11 +749,15 @@ int usb_hid_translate_data(usb_hid_report_item_t *item, const uint8_t *data, siz
 
 int usb_hid_report_input_length(const usb_hid_report_parser_t *parser,
 	const usb_hid_report_path_t *path)
-{
+{	
 	int ret = 0;
 	link_t *item;
 	usb_hid_report_item_t *report_item;
 
+	if(parser == NULL) {
+		return EINVAL;
+	}
+	
 	item = (&parser->input)->next;
 	while(&parser->input != item) {
 		report_item = list_get_instance(item, usb_hid_report_item_t, link);

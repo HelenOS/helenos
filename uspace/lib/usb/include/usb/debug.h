@@ -78,6 +78,9 @@ typedef enum {
 	USB_LOG_LEVEL_MAX
 } usb_log_level_t;
 
+/** Default log level. */
+#define USB_LOG_LEVEL_DEFAULT USB_LOG_LEVEL_DEBUG
+
 
 void usb_log_enable(usb_log_level_t, const char *);
 

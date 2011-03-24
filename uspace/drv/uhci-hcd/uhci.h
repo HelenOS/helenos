@@ -37,15 +37,15 @@
 #include <ddi.h>
 #include <ddf/driver.h>
 
-#include "uhci_hc.h"
-#include "uhci_rh.h"
+#include "hc.h"
+#include "root_hub.h"
 
 typedef struct uhci {
 	ddf_fun_t *hc_fun;
 	ddf_fun_t *rh_fun;
 
-	uhci_hc_t hc;
-	uhci_rh_t rh;
+	hc_t hc;
+	rh_t rh;
 } uhci_t;
 
 int uhci_init(uhci_t *instance, ddf_dev_t *device);

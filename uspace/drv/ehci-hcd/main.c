@@ -118,7 +118,7 @@ if (ret != EOK) { \
  */
 int main(int argc, char *argv[])
 {
-	usb_log_enable(USB_LOG_LEVEL_DEBUG, NAME);
+	usb_log_enable(USB_LOG_LEVEL_DEFAULT, NAME);
 	return ddf_driver_main(&ehci_driver);
 }
 /**

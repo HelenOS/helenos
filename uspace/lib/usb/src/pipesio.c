@@ -57,7 +57,7 @@
  * @param[out] size_transfered Number of bytes that were actually transfered.
  * @return Error code.
  */
-static int usb_endpoint_pipe_read_no_checks(usb_endpoint_pipe_t *pipe,
+static int usb_pipe_read_no_checks(usb_pipe_t *pipe,
     void *buffer, size_t size, size_t *size_transfered)
 {
 	/*
@@ -139,7 +139,7 @@ static int usb_endpoint_pipe_read_no_checks(usb_endpoint_pipe_t *pipe,
  * @param[out] size_transfered Number of bytes that were actually transfered.
  * @return Error code.
  */
-int usb_endpoint_pipe_read(usb_endpoint_pipe_t *pipe,
+int usb_pipe_read(usb_pipe_t *pipe,
     void *buffer, size_t size, size_t *size_transfered)
 {
 	assert(pipe);
@@ -152,7 +152,7 @@ int usb_endpoint_pipe_read(usb_endpoint_pipe_t *pipe,
 		return EINVAL;
 	}
 
-	if (!usb_endpoint_pipe_is_session_started(pipe)) {
+	if (!usb_pipe_is_session_started(pipe)) {
 		return EBADF;
 	}
 
@@ -167,7 +167,7 @@ int usb_endpoint_pipe_read(usb_endpoint_pipe_t *pipe,
 	size_t act_size = 0;
 	int rc;
 
-	rc = usb_endpoint_pipe_read_no_checks(pipe, buffer, size, &act_size);
+	rc = usb_pipe_read_no_checks(pipe, buffer, size, &act_size);
 	if (rc != EOK) {
 		return rc;
 	}
@@ -189,7 +189,7 @@ int usb_endpoint_pipe_read(usb_endpoint_pipe_t *pipe,
  * @param[in] size Size of the buffer (in bytes).
  * @return Error code.
  */
-static int usb_endpoint_pipe_write_no_check(usb_endpoint_pipe_t *pipe,
+static int usb_pipe_write_no_check(usb_pipe_t *pipe,
     void *buffer, size_t size)
 {
 	/*
@@ -246,7 +246,7 @@ static int usb_endpoint_pipe_write_no_check(usb_endpoint_pipe_t *pipe,
  * @param[in] size Size of the buffer (in bytes).
  * @return Error code.
  */
-int usb_endpoint_pipe_write(usb_endpoint_pipe_t *pipe,
+int usb_pipe_write(usb_pipe_t *pipe,
     void *buffer, size_t size)
 {
 	assert(pipe);
@@ -259,7 +259,7 @@ int usb_endpoint_pipe_write(usb_endpoint_pipe_t *pipe,
 		return EINVAL;
 	}
 
-	if (!usb_endpoint_pipe_is_session_started(pipe)) {
+	if (!usb_pipe_is_session_started(pipe)) {
 		return EBADF;
 	}
 
@@ -271,7 +271,7 @@ int usb_endpoint_pipe_write(usb_endpoint_pipe_t *pipe,
 		return EBADF;
 	}
 
-	int rc = usb_endpoint_pipe_write_no_check(pipe, buffer, size);
+	int rc = usb_pipe_write_no_check(pipe, buffer, size);
 
 	return rc;
 }
@@ -288,7 +288,7 @@ int usb_endpoint_pipe_write(usb_endpoint_pipe_t *pipe,
  *                                  transfered during the DATA stage.
  * @return Error code.
  */
-static int usb_endpoint_pipe_control_read_no_check(usb_endpoint_pipe_t *pipe,
+static int usb_pipe_control_read_no_check(usb_pipe_t *pipe,
     void *setup_buffer, size_t setup_buffer_size,
     void *data_buffer, size_t data_buffer_size, size_t *data_transfered_size)
 {
@@ -364,7 +364,7 @@ static int usb_endpoint_pipe_control_read_no_check(usb_endpoint_pipe_t *pipe,
  *                                  transfered during the DATA stage.
  * @return Error code.
  */
-int usb_endpoint_pipe_control_read(usb_endpoint_pipe_t *pipe,
+int usb_pipe_control_read(usb_pipe_t *pipe,
     void *setup_buffer, size_t setup_buffer_size,
     void *data_buffer, size_t data_buffer_size, size_t *data_transfered_size)
 {
@@ -378,7 +378,7 @@ int usb_endpoint_pipe_control_read(usb_endpoint_pipe_t *pipe,
 		return EINVAL;
 	}
 
-	if (!usb_endpoint_pipe_is_session_started(pipe)) {
+	if (!usb_pipe_is_session_started(pipe)) {
 		return EBADF;
 	}
 
@@ -388,7 +388,7 @@ int usb_endpoint_pipe_control_read(usb_endpoint_pipe_t *pipe,
 	}
 
 	size_t act_size = 0;
-	int rc = usb_endpoint_pipe_control_read_no_check(pipe,
+	int rc = usb_pipe_control_read_no_check(pipe,
 	    setup_buffer, setup_buffer_size,
 	    data_buffer, data_buffer_size, &act_size);
 
@@ -413,7 +413,7 @@ int usb_endpoint_pipe_control_read(usb_endpoint_pipe_t *pipe,
  * @param[in] data_buffer_size Size of the buffer with outgoing data (in bytes).
  * @return Error code.
  */
-static int usb_endpoint_pipe_control_write_no_check(usb_endpoint_pipe_t *pipe,
+static int usb_pipe_control_write_no_check(usb_pipe_t *pipe,
     void *setup_buffer, size_t setup_buffer_size,
     void *data_buffer, size_t data_buffer_size)
 {
@@ -472,7 +472,7 @@ static int usb_endpoint_pipe_control_write_no_check(usb_endpoint_pipe_t *pipe,
  * @param[in] data_buffer_size Size of the buffer with outgoing data (in bytes).
  * @return Error code.
  */
-int usb_endpoint_pipe_control_write(usb_endpoint_pipe_t *pipe,
+int usb_pipe_control_write(usb_pipe_t *pipe,
     void *setup_buffer, size_t setup_buffer_size,
     void *data_buffer, size_t data_buffer_size)
 {
@@ -490,7 +490,7 @@ int usb_endpoint_pipe_control_write(usb_endpoint_pipe_t *pipe,
 		return EINVAL;
 	}
 
-	if (!usb_endpoint_pipe_is_session_started(pipe)) {
+	if (!usb_pipe_is_session_started(pipe)) {
 		return EBADF;
 	}
 
@@ -499,7 +499,7 @@ int usb_endpoint_pipe_control_write(usb_endpoint_pipe_t *pipe,
 		return EBADF;
 	}
 
-	int rc = usb_endpoint_pipe_control_write_no_check(pipe,
+	int rc = usb_pipe_control_write_no_check(pipe,
 	    setup_buffer, setup_buffer_size, data_buffer, data_buffer_size);
 
 	return rc;

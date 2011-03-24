@@ -60,8 +60,8 @@ static int get_address(
     ddf_fun_t *fun, devman_handle_t handle, usb_address_t *address)
 {
 	assert(fun);
-	device_keeper_t *manager = &fun_to_hc(fun)->manager;
-  usb_address_t addr = device_keeper_find(manager, handle);
+	usb_device_keeper_t *manager = &fun_to_hc(fun)->manager;
+  usb_address_t addr = usb_device_keeper_find(manager, handle);
   if (addr < 0) {
     return addr;
   }
@@ -148,16 +148,23 @@ if (ret != EOK) { \
 		return ENOMEM;
 	}
 
+
 	bool interrupts = false;
+#ifdef CONFIG_USBHC_NO_INTERRUPTS
+	usb_log_warning("Interrupts disabled in OS config, " \
+	    "falling back to polling.\n");
+#else
 	ret = pci_enable_interrupts(device);
 	if (ret != EOK) {
-		usb_log_warning(
-		    "Failed(%d) to enable interrupts, fall back to polling.\n",
-		    ret);
+		usb_log_warning("Failed to enable interrupts: %s.\n",
+		    str_error(ret));
+		usb_log_info("HW interrupts not available, " \
+		    "falling back to polling.\n");
 	} else {
 		usb_log_debug("Hw interrupts enabled.\n");
 		interrupts = true;
 	}
+#endif
 
 	ret = hc_init(hcd, hc_fun, device, mem_reg_base, mem_reg_size, interrupts);
 	if (ret != EOK) {
@@ -198,7 +205,7 @@ if (ret != EOK) { \
  */
 int main(int argc, char *argv[])
 {
-	usb_log_enable(USB_LOG_LEVEL_DEBUG, NAME);
+	usb_log_enable(USB_LOG_LEVEL_DEFAULT, NAME);
 	sleep(5);
 	return ddf_driver_main(&ohci_driver);
 }

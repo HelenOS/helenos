@@ -55,7 +55,7 @@ int rh_init(rh_t *instance, ddf_dev_t *dev, ohci_regs_t *regs)
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-int rh_request(rh_t *instance, batch_t *request)
+int rh_request(rh_t *instance, usb_transfer_batch_t *request)
 {
 	assert(instance);
 	assert(request);
@@ -65,7 +65,7 @@ int rh_request(rh_t *instance, batch_t *request)
 		    usb_debug_str_buffer((const uint8_t *)request->setup_buffer, 8, 8));
 	}
 	usb_log_error("Root hub request processing not implemented.\n");
-	batch_finish(request, ENOTSUP);
+	usb_transfer_batch_finish(request, ENOTSUP);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/

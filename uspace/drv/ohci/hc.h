@@ -52,7 +52,8 @@ typedef struct hc {
 	usb_address_t rh_address;
 	rh_t rh;
 	ddf_fun_t *ddf_instance;
-	device_keeper_t manager;
+	usb_device_keeper_t manager;
+	fid_t interrupt_emulator;
 } hc_t;
 
 int hc_init(hc_t *instance, ddf_fun_t *fun, ddf_dev_t *dev,
@@ -60,9 +61,9 @@ int hc_init(hc_t *instance, ddf_fun_t *fun, ddf_dev_t *dev,
 
 int hc_register_hub(hc_t *instance);
 
-int hc_schedule(hc_t *instance, batch_t *batch);
+int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch);
 
-void hc_interrupt(hc_t *instance, uint16_t status);
+void hc_interrupt(hc_t *instance, uint32_t status);
 
 /** Safely dispose host controller internal structures
  *
