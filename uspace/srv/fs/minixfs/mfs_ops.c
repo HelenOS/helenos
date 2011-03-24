@@ -52,7 +52,8 @@ libfs_ops_t mfs_libfs_ops = {
 	.device_get = mfs_device_get,
 	.is_directory = mfs_is_directory,
 	.is_file = mfs_is_file,
-	.node_get = mfs_node_get
+	.node_get = mfs_node_get,
+	.plb_get_char = mfs_plb_get_char
 };
 
 void mfs_mounted(ipc_callid_t rid, ipc_call_t *request)
@@ -308,6 +309,11 @@ bool mfs_is_file(fs_node_t *fsnode)
 int mfs_root_get(fs_node_t **rfn, devmap_handle_t handle)
 {
 	return mfs_node_get(rfn, handle, MFS_ROOT_INO);
+}
+
+char mfs_plb_get_char(unsigned pos)
+{
+	return mfs_reg.plb_ro[pos % PLB_SIZE];
 }
 
 /*

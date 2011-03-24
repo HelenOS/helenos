@@ -58,6 +58,7 @@ int read_map(uint32_t *b, const struct mfs_node *mnode, const uint32_t pos)
 	int rblock = pos / block_size;
 
 	if (mnode->ino_i->i_size < (int32_t) pos) {
+		/*Trying to read beyond the end of file*/
 		r = EOK;
 		*b = 0;
 		goto out;
