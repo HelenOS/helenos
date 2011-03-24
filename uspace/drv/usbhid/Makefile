@@ -42,7 +42,6 @@ SOURCES = \
 	hidreq.c \
 	kbddev.c \
 	kbdrepeat.c \
-	hiddev.c \
 	$(STOLEN_LAYOUT_SOURCES)
 
 EXTRA_CLEAN = $(STOLEN_LAYOUT_SOURCES)

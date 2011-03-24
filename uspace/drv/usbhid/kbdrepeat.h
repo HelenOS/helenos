@@ -38,7 +38,20 @@
 
 struct usbhid_kbd_t;
 
-//#include "kbddev.h"
+/*----------------------------------------------------------------------------*/
+/**
+ * Structure for keeping information needed for auto-repeat of keys.
+ */
+typedef struct {
+	/** Last pressed key. */
+	unsigned int key_new;
+	/** Key to be repeated. */
+	unsigned int key_repeated;
+	/** Delay before first repeat in microseconds. */
+	unsigned int delay_before;
+	/** Delay between repeats in microseconds. */
+	unsigned int delay_between;
+} usbhid_kbd_repeat_t;
 
 /*----------------------------------------------------------------------------*/
 

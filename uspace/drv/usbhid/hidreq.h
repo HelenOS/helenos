@@ -41,8 +41,6 @@
 #include <usb/classes/hid.h>
 #include <usb/pipes.h>
 
-#include "hiddev.h"
-
 /*----------------------------------------------------------------------------*/
 
 int usbhid_req_set_report(usb_pipe_t *ctrl_pipe, int iface_no,

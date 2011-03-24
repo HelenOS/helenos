@@ -57,7 +57,6 @@
 #include <usb/devdrv.h>
 
 #include "kbddev.h"
-#include "hiddev.h"
 #include "hidreq.h"
 #include "layout.h"
 #include "conv.h"

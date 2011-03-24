@@ -44,26 +44,11 @@
 #include <usb/classes/hidparser.h>
 #include <ddf/driver.h>
 #include <usb/pipes.h>
-
 #include <usb/devdrv.h>
 
-//#include "hiddev.h"
+#include "kbdrepeat.h"
 
 /*----------------------------------------------------------------------------*/
-/**
- * Structure for keeping information needed for auto-repeat of keys.
- */
-typedef struct {
-	/** Last pressed key. */
-	unsigned int key_new;
-	/** Key to be repeated. */
-	unsigned int key_repeated;
-	/** Delay before first repeat in microseconds. */
-	unsigned int delay_before;
-	/** Delay between repeats in microseconds. */
-	unsigned int delay_between;
-} usbhid_kbd_repeat_t;
-
 /**
  * USB/HID keyboard device type.
  *
