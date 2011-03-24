@@ -39,7 +39,13 @@
 #include <usb/classes/classes.h>
 #include <usb/request.h>
 #include <usb/dp.h>
+#include <usb/ddfiface.h>
 #include "usbmid.h"
+
+/** Operations of the device itself. */
+static ddf_dev_ops_t mid_device_ops = {
+	.interfaces[USB_DEV_IFACE] = &usb_iface_hub_impl
+};
 
 /** Find starting indexes of all interface descriptors in a configuration.
  *
@@ -104,39 +110,24 @@ static size_t find_interface_descriptors(uint8_t *config_descriptor,
  * @param dev Device to be explored.
  * @return Whether to accept this device from devman.
  */
-bool usbmid_explore_device(usbmid_device_t *dev)
+bool usbmid_explore_device(usb_device_t *dev)
 {
-	usb_standard_device_descriptor_t device_descriptor;
-	int rc = usb_request_get_device_descriptor(&dev->ctrl_pipe,
-	    &device_descriptor);
-	if (rc != EOK) {
-		usb_log_error("Getting device descriptor failed: %s.\n",
-		    str_error(rc));
-		return false;
-	}
+	int rc;
 
-	if (device_descriptor.device_class != USB_CLASS_USE_INTERFACE) {
+	int dev_class = dev->descriptors.device.device_class;
+	if (dev_class != USB_CLASS_USE_INTERFACE) {
 		usb_log_warning(
 		    "Device class: %d (%s), but expected class 0.\n",
-		    device_descriptor.device_class,
-		    usb_str_class(device_descriptor.device_class));
+		    dev_class, usb_str_class(dev_class));
 		usb_log_error("Not multi interface device, refusing.\n");
 		return false;
 	}
 
-	size_t config_descriptor_size;
-	uint8_t *config_descriptor_raw = NULL;
-	rc = usb_request_get_full_configuration_descriptor_alloc(
-	    &dev->ctrl_pipe, 0,
-	    (void **) &config_descriptor_raw, &config_descriptor_size);
-	if (rc != EOK) {
-		usb_log_error("Failed getting full config descriptor: %s.\n",
-		    str_error(rc));
-		return false;
-	}
-
-	usb_standard_configuration_descriptor_t *config_descriptor
-	    = (usb_standard_configuration_descriptor_t *) config_descriptor_raw;
+	/* Short cuts to save on typing ;-). */
+	uint8_t *config_descriptor_raw = dev->descriptors.configuration;
+	size_t config_descriptor_size = dev->descriptors.configuration_size;
+	usb_standard_configuration_descriptor_t *config_descriptor =
+	    (usb_standard_configuration_descriptor_t *) config_descriptor_raw;
 
 	size_t *interface_descriptors
 	    = malloc(sizeof(size_t) * config_descriptor->interface_count);
@@ -153,7 +144,6 @@ bool usbmid_explore_device(usbmid_device_t *dev)
 
 	if (interface_descriptors_count == (size_t) -1) {
 		usb_log_error("Problem parsing configuration descriptor.\n");
-		free(config_descriptor_raw);
 		free(interface_descriptors);
 		return false;
 	}
@@ -164,25 +154,25 @@ bool usbmid_explore_device(usbmid_device_t *dev)
 	if (rc != EOK) {
 		usb_log_error("Failed to set device configuration: %s.\n",
 		    str_error(rc));
-		free(config_descriptor_raw);
 		free(interface_descriptors);
 		return false;
 	}
 
 
 	/* Create control function */
-	ddf_fun_t *ctl_fun = ddf_fun_create(dev->dev, fun_exposed, "ctl");
+	ddf_fun_t *ctl_fun = ddf_fun_create(dev->ddf_dev, fun_exposed, "ctl");
 	if (ctl_fun == NULL) {
 		usb_log_error("Failed to create control function.\n");
-		free(config_descriptor_raw);
 		free(interface_descriptors);
 		return false;
 	}
+
+	ctl_fun->ops = &mid_device_ops;
+
 	rc = ddf_fun_bind(ctl_fun);
 	if (rc != EOK) {
 		usb_log_error("Failed to bind control function: %s.\n",
 		    str_error(rc));
-		free(config_descriptor_raw);
 		free(interface_descriptors);
 		return false;
 	}
@@ -198,15 +188,13 @@ bool usbmid_explore_device(usbmid_device_t *dev)
 		usb_log_info("Creating child for interface %d (%s).\n",
 		    (int) interface->interface_number,
 		    usb_str_class(interface->interface_class));
-		rc = usbmid_spawn_interface_child(dev, &device_descriptor,
+		rc = usbmid_spawn_interface_child(dev, &dev->descriptors.device,
 		    interface);
 		if (rc != EOK) {
 			usb_log_error("Failed to create interface child: %s.\n",
 			    str_error(rc));
 		}
 	}
-
-	free(config_descriptor_raw);
 
 	return true;
 }
