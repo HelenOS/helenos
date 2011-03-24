@@ -42,7 +42,7 @@
 #include <usb/request.h>
 #include <usb/pipes.h>
 
-#include "hidreq.h"
+#include <usb/classes/hidreq.h>
 
 /*----------------------------------------------------------------------------*/
 /**

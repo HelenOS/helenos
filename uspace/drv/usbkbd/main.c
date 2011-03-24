@@ -47,7 +47,7 @@
 
 /*----------------------------------------------------------------------------*/
 
-#define NAME "usbhid"
+#define NAME "usbkbd"
 
 /**
  * Function for adding a new device of type USB/HID/keyboard.

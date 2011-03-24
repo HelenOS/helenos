@@ -29,7 +29,7 @@
 USPACE_PREFIX = ../..
 LIBS = $(LIBDRV_PREFIX)/libdrv.a $(LIBUSB_PREFIX)/libusb.a
 EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include -I$(LIBUSB_PREFIX)/include -I.
-BINARY = usbhid
+BINARY = usbkbd
 
 STOLEN_LAYOUT_SOURCES = \
 	layout/us_qwerty.c \
@@ -39,7 +39,6 @@ STOLEN_LAYOUT_SOURCES = \
 SOURCES = \
 	main.c \
 	conv.c \
-	hidreq.c \
 	kbddev.c \
 	kbdrepeat.c \
 	$(STOLEN_LAYOUT_SOURCES)

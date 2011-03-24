@@ -53,11 +53,12 @@
 #include <usb/classes/hidparser.h>
 #include <usb/classes/classes.h>
 #include <usb/classes/hidut.h>
+#include <usb/classes/hidreq.h>
 
 #include <usb/devdrv.h>
 
 #include "kbddev.h"
-#include "hidreq.h"
+
 #include "layout.h"
 #include "conv.h"
 #include "kbdrepeat.h"
