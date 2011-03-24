@@ -82,7 +82,7 @@ static int usb_hid_get_report_descriptor(usb_device_t *dev,
 	}
 	
 	if (d == NULL) {
-		usb_log_error("The %. interface descriptor not found!\n",
+		usb_log_error("The %d. interface descriptor not found!\n",
 		    dev->interface_no);
 		return ENOENT;
 	}

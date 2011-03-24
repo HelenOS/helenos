@@ -111,10 +111,44 @@ usb_endpoint_description_t
 /*----------------------------------------------------------------------------*/
 
 enum {
-	BOOT_REPORT_DESCRIPTOR_SIZE = 0
+	BOOT_REPORT_DESCRIPTOR_SIZE = 63
 };
 
-static const uint8_t BOOT_REPORT_DESCRIPTOR[BOOT_REPORT_DESCRIPTOR_SIZE] = {};
+static const uint8_t BOOT_REPORT_DESCRIPTOR[BOOT_REPORT_DESCRIPTOR_SIZE] = {
+        0x05, 0x01,  // Usage Page (Generic Desktop),
+        0x09, 0x06,  // Usage (Keyboard),
+        0xA1, 0x01,  // Collection (Application),
+        0x75, 0x01,  //   Report Size (1),
+        0x95, 0x08,  //   Report Count (8),       
+        0x05, 0x07,  //   Usage Page (Key Codes);
+        0x19, 0xE0,  //   Usage Minimum (224),
+        0x29, 0xE7,  //   Usage Maximum (231),
+        0x15, 0x00,  //   Logical Minimum (0),
+        0x25, 0x01,  //   Logical Maximum (1),
+        0x81, 0x02,  //   Input (Data, Variable, Absolute),   ; Modifier byte
+	0x95, 0x01,  //   Report Count (1),
+        0x75, 0x08,  //   Report Size (8),
+        0x81, 0x01,  //   Input (Constant),                   ; Reserved byte
+        0x95, 0x05,  //   Report Count (5),
+        0x75, 0x01,  //   Report Size (1),
+        0x05, 0x08,  //   Usage Page (Page# for LEDs),
+        0x19, 0x01,  //   Usage Minimum (1),
+        0x29, 0x05,  //   Usage Maxmimum (5),
+        0x91, 0x02,  //   Output (Data, Variable, Absolute),  ; LED report
+        0x95, 0x01,  //   Report Count (1),
+        0x75, 0x03,  //   Report Size (3),
+        0x91, 0x01,  //   Output (Constant),              ; LED report padding
+        0x95, 0x06,  //   Report Count (6),
+        0x75, 0x08,  //   Report Size (8),
+        0x15, 0x00,  //   Logical Minimum (0),
+        0x25, 0xff,  //   Logical Maximum (255),
+        0x05, 0x07,  //   Usage Page (Key Codes),
+        0x19, 0x00,  //   Usage Minimum (0),
+        0x29, 0xff,  //   Usage Maximum (255),
+        0x81, 0x00,  //   Input (Data, Array),            ; Key arrays (6 bytes)
+        0xC0           // End Collection
+
+};
 
 /*----------------------------------------------------------------------------*/
 
@@ -668,19 +702,12 @@ int usb_kbd_init(usb_kbd_t *kbd_dev, usb_device_t *dev)
 		return EINVAL;
 	}
 	
-	//rc = usbhid_dev_init(kbd_dev->hid_dev, dev, &poll_endpoint_description);
-	
-	
-//	if (rc != EOK) {
-//		usb_log_error("Failed to initialize HID device structure: %s\n",
-//		   str_error(rc));
-//		return rc;
-//	}
-	
-//	assert(kbd_dev->hid_dev->initialized == USB_KBD_STATUS_INITIALIZED);
-	
-	// save the size of the report (boot protocol report by default)
-//	kbd_dev->key_count = BOOTP_REPORT_SIZE;
+	/* TODO: does not work! */
+	if (dev->pipes[USB_KBD_POLL_EP_NO].interface_no < 0) {
+		usb_log_warning("Required endpoint not found - probably not "
+		    "a supported device.\n");
+		return ENOTSUP;
+	}
 	
 	/* The USB device should already be initialized, save it in structure */
 	kbd_dev->usb_dev = dev;
