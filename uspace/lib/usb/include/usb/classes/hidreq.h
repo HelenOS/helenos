@@ -26,15 +26,15 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbhid
+/** @addtogroup libusb
  * @{
  */
 /** @file
  * HID class-specific requests.
  */
 
-#ifndef USBHID_HIDREQ_H_
-#define USBHID_HIDREQ_H_
+#ifndef USB_KBD_HIDREQ_H_
+#define USB_KBD_HIDREQ_H_
 
 #include <stdint.h>
 
@@ -62,7 +62,7 @@ int usbhid_req_get_idle(usb_pipe_t *ctrl_pipe, int iface_no, uint8_t *duration);
 
 /*----------------------------------------------------------------------------*/
 
-#endif /* USBHID_HIDREQ_H_ */
+#endif /* USB_KBD_HIDREQ_H_ */
 
 /**
  * @}

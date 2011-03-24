@@ -61,7 +61,7 @@ static unsigned int CHECK_DELAY = 10000;
  * in the keyboard structure to wait until the key should be repeated.
  * 
  * If the currently repeated key is not pressed any more (
- * usbhid_kbd_repeat_stop() was called), it stops repeating it and starts 
+ * usb_kbd_repeat_stop() was called), it stops repeating it and starts 
  * checking again.
  *
  * @note For accessing the keyboard device auto-repeat information a fibril
@@ -69,7 +69,7 @@ static unsigned int CHECK_DELAY = 10000;
  * 
  * @param kbd Keyboard device structure.
  */
-static void usbhid_kbd_repeat_loop(usbhid_kbd_t *kbd)
+static void usb_kbd_repeat_loop(usb_kbd_t *kbd)
 {
 	unsigned int delay = 0;
 	
@@ -77,9 +77,9 @@ static void usbhid_kbd_repeat_loop(usbhid_kbd_t *kbd)
 
 	while (true) {
 		// check if the kbd structure is usable
-		if (!usbhid_kbd_is_initialized(kbd)) {
-			if (usbhid_kbd_is_ready_to_destroy(kbd)) {
-				usbhid_kbd_free(&kbd);
+		if (!usb_kbd_is_initialized(kbd)) {
+			if (usb_kbd_is_ready_to_destroy(kbd)) {
+				usb_kbd_free(&kbd);
 				assert(kbd == NULL);
 			}
 			return;
@@ -91,7 +91,7 @@ static void usbhid_kbd_repeat_loop(usbhid_kbd_t *kbd)
 			if (kbd->repeat.key_new == kbd->repeat.key_repeated) {
 				usb_log_debug2("Repeating key: %u.\n", 
 				    kbd->repeat.key_repeated);
-				usbhid_kbd_push_ev(kbd, KEY_PRESS, 
+				usb_kbd_push_ev(kbd, KEY_PRESS, 
 				    kbd->repeat.key_repeated);
 				delay = kbd->repeat.delay_between;
 			} else {
@@ -126,7 +126,7 @@ static void usbhid_kbd_repeat_loop(usbhid_kbd_t *kbd)
  * @retval EOK if the routine has finished.
  * @retval EINVAL if no argument is supplied.
  */
-int usbhid_kbd_repeat_fibril(void *arg)
+int usb_kbd_repeat_fibril(void *arg)
 {
 	usb_log_debug("Autorepeat fibril spawned.\n");
 	
@@ -135,9 +135,9 @@ int usbhid_kbd_repeat_fibril(void *arg)
 		return EINVAL;
 	}
 	
-	usbhid_kbd_t *kbd = (usbhid_kbd_t *)arg;
+	usb_kbd_t *kbd = (usb_kbd_t *)arg;
 	
-	usbhid_kbd_repeat_loop(kbd);
+	usb_kbd_repeat_loop(kbd);
 	
 	return EOK;
 }
@@ -153,7 +153,7 @@ int usbhid_kbd_repeat_fibril(void *arg)
  * @param kbd Keyboard device structure.
  * @param key Key to start repeating.
  */
-void usbhid_kbd_repeat_start(usbhid_kbd_t *kbd, unsigned int key)
+void usb_kbd_repeat_start(usb_kbd_t *kbd, unsigned int key)
 {
 	fibril_mutex_lock(kbd->repeat_mtx);
 	kbd->repeat.key_new = key;
@@ -171,7 +171,7 @@ void usbhid_kbd_repeat_start(usbhid_kbd_t *kbd, unsigned int key)
  * @param kbd Keyboard device structure.
  * @param key Key to stop repeating.
  */
-void usbhid_kbd_repeat_stop(usbhid_kbd_t *kbd, unsigned int key)
+void usb_kbd_repeat_stop(usb_kbd_t *kbd, unsigned int key)
 {
 	fibril_mutex_lock(kbd->repeat_mtx);
 	if (key == kbd->repeat.key_new) {

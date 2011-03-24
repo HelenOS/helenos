@@ -33,8 +33,8 @@
  * USB HID keyboard device structure and API.
  */
 
-#ifndef USBHID_KBDDEV_H_
-#define USBHID_KBDDEV_H_
+#ifndef USB_KBDDEV_H_
+#define USB_KBDDEV_H_
 
 #include <stdint.h>
 
@@ -61,7 +61,7 @@
  * @note Storing active lock keys in this structure results in their setting
  *       being device-specific.
  */
-typedef struct usbhid_kbd_t {
+typedef struct usb_kbd_t {
 	/** Structure holding generic USB device information. */
 	//usbhid_dev_t *hid_dev;
 	usb_device_t *usb_dev;
@@ -83,7 +83,7 @@ typedef struct usbhid_kbd_t {
 	int console_phone;
 	
 	/** Information for auto-repeat of keys. */
-	usbhid_kbd_repeat_t repeat;
+	usb_kbd_repeat_t repeat;
 	
 	/** Mutex for accessing the information about auto-repeat. */
 	fibril_mutex_t *repeat_mtx;
@@ -104,40 +104,40 @@ typedef struct usbhid_kbd_t {
 	 * -1 - ready for destroying
 	 */
 	int initialized;
-} usbhid_kbd_t;
+} usb_kbd_t;
 
 /*----------------------------------------------------------------------------*/
 
 enum {
-	USBHID_KBD_POLL_EP_NO = 0,
-	USBHID_KBD_POLL_EP_COUNT = 1
+	USB_KBD_POLL_EP_NO = 0,
+	USB_KBD_POLL_EP_COUNT = 1
 };
 
-usb_endpoint_description_t *usbhid_kbd_endpoints[USBHID_KBD_POLL_EP_COUNT + 1];
+usb_endpoint_description_t *usb_kbd_endpoints[USB_KBD_POLL_EP_COUNT + 1];
 
 ddf_dev_ops_t keyboard_ops;
 
 /*----------------------------------------------------------------------------*/
 
-usbhid_kbd_t *usbhid_kbd_new(void);
+usb_kbd_t *usb_kbd_new(void);
 
-int usbhid_kbd_init(usbhid_kbd_t *kbd_dev, usb_device_t *dev);
+int usb_kbd_init(usb_kbd_t *kbd_dev, usb_device_t *dev);
 
-bool usbhid_kbd_polling_callback(usb_device_t *dev, uint8_t *buffer,
+bool usb_kbd_polling_callback(usb_device_t *dev, uint8_t *buffer,
      size_t buffer_size, void *arg);
 
-void usbhid_kbd_polling_ended_callback(usb_device_t *dev, bool reason, 
+void usb_kbd_polling_ended_callback(usb_device_t *dev, bool reason, 
      void *arg);
 
-int usbhid_kbd_is_initialized(const usbhid_kbd_t *kbd_dev);
+int usb_kbd_is_initialized(const usb_kbd_t *kbd_dev);
 
-int usbhid_kbd_is_ready_to_destroy(const usbhid_kbd_t *kbd_dev);
+int usb_kbd_is_ready_to_destroy(const usb_kbd_t *kbd_dev);
 
-void usbhid_kbd_free(usbhid_kbd_t **kbd_dev);
+void usb_kbd_free(usb_kbd_t **kbd_dev);
 
-void usbhid_kbd_push_ev(usbhid_kbd_t *kbd_dev, int type, unsigned int key);
+void usb_kbd_push_ev(usb_kbd_t *kbd_dev, int type, unsigned int key);
 
-#endif /* USBHID_KBDDEV_H_ */
+#endif /* USB_KBDDEV_H_ */
 
 /**
  * @}

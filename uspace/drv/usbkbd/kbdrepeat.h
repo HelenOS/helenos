@@ -33,10 +33,10 @@
  * USB HID keyboard autorepeat facilities
  */
 
-#ifndef USBHID_KBDREPEAT_H_
-#define USBHID_KBDREPEAT_H_
+#ifndef USB_KBDREPEAT_H_
+#define USB_KBDREPEAT_H_
 
-struct usbhid_kbd_t;
+struct usb_kbd_t;
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -51,17 +51,17 @@ typedef struct {
 	unsigned int delay_before;
 	/** Delay between repeats in microseconds. */
 	unsigned int delay_between;
-} usbhid_kbd_repeat_t;
+} usb_kbd_repeat_t;
 
 /*----------------------------------------------------------------------------*/
 
-int usbhid_kbd_repeat_fibril(void *arg);
+int usb_kbd_repeat_fibril(void *arg);
 
-void usbhid_kbd_repeat_start(struct usbhid_kbd_t *kbd, unsigned int key);
+void usb_kbd_repeat_start(struct usb_kbd_t *kbd, unsigned int key);
 
-void usbhid_kbd_repeat_stop(struct usbhid_kbd_t *kbd, unsigned int key);
+void usb_kbd_repeat_stop(struct usb_kbd_t *kbd, unsigned int key);
 
-#endif /* USBHID_KBDREPEAT_H_ */
+#endif /* USB_KBDREPEAT_H_ */
 
 /**
  * @}

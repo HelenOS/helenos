@@ -69,10 +69,10 @@
  *
  * @retval EOK if successful.
  * @retval ENOMEM if there
- * @return Other error code inherited from one of functions usbhid_kbd_init(),
+ * @return Other error code inherited from one of functions usb_kbd_init(),
  *         ddf_fun_bind() and ddf_fun_add_to_class().
  *
- * @sa usbhid_kbd_fibril(), usbhid_kbd_repeat_fibril()
+ * @sa usb_kbd_fibril(), usb_kbd_repeat_fibril()
  */
 static int usbhid_try_add_device(usb_device_t *dev)
 {
@@ -89,7 +89,7 @@ static int usbhid_try_add_device(usb_device_t *dev)
 	 */
 	usb_log_debug("Initializing USB/HID KBD device...\n");
 	
-	usbhid_kbd_t *kbd_dev = usbhid_kbd_new();
+	usb_kbd_t *kbd_dev = usb_kbd_new();
 	if (kbd_dev == NULL) {
 		usb_log_error("Error while creating USB/HID KBD device "
 		    "structure.\n");
@@ -97,12 +97,12 @@ static int usbhid_try_add_device(usb_device_t *dev)
 		return ENOMEM;  // TODO: some other code??
 	}
 	
-	int rc = usbhid_kbd_init(kbd_dev, dev);
+	int rc = usb_kbd_init(kbd_dev, dev);
 	
 	if (rc != EOK) {
 		usb_log_error("Failed to initialize USB/HID KBD device.\n");
 		ddf_fun_destroy(kbd_fun);
-		usbhid_kbd_free(&kbd_dev);
+		usb_kbd_free(&kbd_dev);
 		return rc;
 	}	
 	
@@ -121,7 +121,7 @@ static int usbhid_try_add_device(usb_device_t *dev)
 		    str_error(rc));
 		// TODO: Can / should I destroy the DDF function?
 		ddf_fun_destroy(kbd_fun);
-		usbhid_kbd_free(&kbd_dev);
+		usb_kbd_free(&kbd_dev);
 		return rc;
 	}
 	
@@ -132,14 +132,14 @@ static int usbhid_try_add_device(usb_device_t *dev)
 		    str_error(rc));
 		// TODO: Can / should I destroy the DDF function?
 		ddf_fun_destroy(kbd_fun);
-		usbhid_kbd_free(&kbd_dev);
+		usb_kbd_free(&kbd_dev);
 		return rc;
 	}
 	
 	/*
 	 * Create new fibril for handling this keyboard
 	 */
-	//fid_t fid = fibril_create(usbhid_kbd_fibril, kbd_dev);
+	//fid_t fid = fibril_create(usb_kbd_fibril, kbd_dev);
 	
 	/* Start automated polling function.
 	 * This will create a separate fibril that will query the device
@@ -147,13 +147,13 @@ static int usbhid_try_add_device(usb_device_t *dev)
 	 */
        rc = usb_device_auto_poll(dev,
 	   /* Index of the polling pipe. */
-	   USBHID_KBD_POLL_EP_NO,
+	   USB_KBD_POLL_EP_NO,
 	   /* Callback when data arrives. */
-	   usbhid_kbd_polling_callback,
+	   usb_kbd_polling_callback,
 	   /* How much data to request. */
-	   dev->pipes[USBHID_KBD_POLL_EP_NO].pipe->max_packet_size,
+	   dev->pipes[USB_KBD_POLL_EP_NO].pipe->max_packet_size,
 	   /* Callback when the polling ends. */
-	   usbhid_kbd_polling_ended_callback,
+	   usb_kbd_polling_ended_callback,
 	   /* Custom argument. */
 	   kbd_dev);
 	
@@ -168,7 +168,7 @@ static int usbhid_try_add_device(usb_device_t *dev)
 	/*
 	 * Create new fibril for auto-repeat
 	 */
-	fid_t fid = fibril_create(usbhid_kbd_repeat_fibril, kbd_dev);
+	fid_t fid = fibril_create(usb_kbd_repeat_fibril, kbd_dev);
 	if (fid == 0) {
 		usb_log_error("Failed to start fibril for KBD auto-repeat");
 		return ENOMEM;
@@ -232,7 +232,7 @@ static usb_driver_ops_t usbhid_driver_ops = {
 static usb_driver_t usbhid_driver = {
         .name = NAME,
         .ops = &usbhid_driver_ops,
-        .endpoints = usbhid_kbd_endpoints
+        .endpoints = usb_kbd_endpoints
 };
 
 /*----------------------------------------------------------------------------*/

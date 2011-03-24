@@ -1,7 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
- * Copyright (c) 2011 Lubos Slovak 
- * (copied from /uspace/srv/hid/kbd/include/layout.h)
+ * Copyright (c) 2011 Lubos Slovak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,29 +26,39 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbhid
+/** @addtogroup libusb
  * @{
  */
 /** @file
- * Keyboard layout.
+ * USB HID report parser initialization from descriptors.
  */
 
-#ifndef USB_KBD_LAYOUT_H_
-#define USB_KBD_LAYOUT_H_
+#ifndef LIBUSB_HIDREPORT_H_
+#define LIBUSB_HIDREPORT_H_
 
-#include <sys/types.h>
-#include <io/console.h>
+#include <usb/devdrv.h>
+#include <usb/classes/hidparser.h>
 
-typedef struct {
-	void (*reset)(void);
-	wchar_t (*parse_ev)(console_event_t *);
-} layout_op_t;
+/**
+ * Retrieves the Report descriptor from the USB device and initializes the
+ * report parser.
+ *
+ * \param dev USB device representing a HID device.
+ * \param parser HID Report parser.
+ *
+ * \retval EOK if successful.
+ * \retval EINVAL if one of the parameters is not given (is NULL).
+ * \retval ENOENT if there are some descriptors missing.
+ * \retval ENOMEM if an error with allocation occured.
+ * \retval EINVAL if the Report descriptor's size does not match the size 
+ *         from the interface descriptor.
+ * \return Other value inherited from function usb_pipe_start_session(),
+ *         usb_pipe_end_session() or usb_request_get_descriptor().
+ */
+int usb_hid_process_report_descriptor(usb_device_t *dev, 
+    usb_hid_report_parser_t *parser);
 
-extern layout_op_t us_qwerty_op;
-extern layout_op_t us_dvorak_op;
-extern layout_op_t cz_op;
-
-#endif
+#endif /* LIBUSB_HIDREPORT_H_ */
 
 /**
  * @}

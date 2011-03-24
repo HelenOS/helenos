@@ -33,12 +33,12 @@
  * USB scancode parser.
  */
 
-#ifndef USBHID_CONV_H_
-#define USBHID_CONV_H_
+#ifndef USB_KBD_CONV_H_
+#define USB_KBD_CONV_H_
 
 unsigned int usbhid_parse_scancode(int scancode);
 
-#endif /* USBHID_CONV_H_ */
+#endif /* USB_KBD_CONV_H_ */
 
 /**
  * @}
