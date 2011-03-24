@@ -41,7 +41,7 @@
 #include <usb/host/device_keeper.h>
 #include <usb/host/batch.h>
 
-#include "uhci_struct/queue_head.h"
+#include "hw_struct/queue_head.h"
 
 usb_transfer_batch_t * batch_get(
     ddf_fun_t *fun,

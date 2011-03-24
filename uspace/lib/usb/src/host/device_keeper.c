@@ -213,16 +213,16 @@ usb_address_t device_keeper_get_free_address(usb_device_keeper_t *instance,
 	assert(instance);
 	fibril_mutex_lock(&instance->guard);
 
-	usb_address_t new_address = instance->last_address + 1;
-	while (instance->devices[new_address].occupied) {
+	usb_address_t new_address = instance->last_address;
+	do {
+		++new_address;
+		if (new_address > USB11_ADDRESS_MAX)
+			new_address = 1;
 		if (new_address == instance->last_address) {
 			fibril_mutex_unlock(&instance->guard);
 			return ENOSPC;
 		}
-		if (new_address == USB11_ADDRESS_MAX)
-			new_address = 1;
-		++new_address;
-	}
+	} while (instance->devices[new_address].occupied);
 
 	assert(new_address != USB_ADDRESS_DEFAULT);
 	assert(instance->devices[new_address].occupied == false);

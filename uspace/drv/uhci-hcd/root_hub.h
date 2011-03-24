@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jan Vesely
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,31 +25,28 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup drvusbuhcihc
+
+/** @addtogroup drvusbuhci
  * @{
  */
 /** @file
  * @brief UHCI driver
  */
-#ifndef DRV_UHCI_LINK_POINTER_H
-#define DRV_UHCI_LINK_POINTER_H
+#ifndef DRV_UHCI_UHCI_RH_H
+#define DRV_UHCI_UHCI_RH_H
 
-/* UHCI link pointer, used by many data structures */
-typedef uint32_t link_pointer_t;
+#include <ddf/driver.h>
+#include <ops/hw_res.h>
 
-#define LINK_POINTER_TERMINATE_FLAG (1 << 0)
-#define LINK_POINTER_QUEUE_HEAD_FLAG (1 << 1)
-#define LINK_POINTER_ZERO_BIT_FLAG (1 << 2)
-#define LINK_POINTER_VERTICAL_FLAG (1 << 2)
-#define LINK_POINTER_RESERVED_FLAG (1 << 3)
+typedef struct rh {
+	hw_resource_list_t resource_list;
+	hw_resource_t io_regs;
+} rh_t;
 
-#define LINK_POINTER_ADDRESS_MASK 0xfffffff0 /* upper 28 bits */
-
-#define LINK_POINTER_QH(address) \
-	((address & LINK_POINTER_ADDRESS_MASK) | LINK_POINTER_QUEUE_HEAD_FLAG)
+int rh_init(
+    rh_t *instance, ddf_fun_t *fun, uintptr_t reg_addr, size_t reg_size);
 
 #endif
 /**
  * @}
  */
-

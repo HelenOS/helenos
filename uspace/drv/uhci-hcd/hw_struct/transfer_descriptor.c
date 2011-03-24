@@ -68,9 +68,12 @@ void td_init(td_t *instance, int err_count, size_t size, bool toggle, bool iso,
 	assert((pid == USB_PID_SETUP) || (pid == USB_PID_IN)
 	    || (pid == USB_PID_OUT));
 
+	const uint32_t next_pa = addr_to_phys(next);
+	assert((next_pa & LINK_POINTER_ADDRESS_MASK) == next_pa);
+
 	instance->next = 0
 	    | LINK_POINTER_VERTICAL_FLAG
-	    | ((next != NULL) ? addr_to_phys(next) : LINK_POINTER_TERMINATE_FLAG);
+	    | (next_pa ? next_pa : LINK_POINTER_TERMINATE_FLAG);
 
 	instance->status = 0
 	    | ((err_count & TD_STATUS_ERROR_COUNT_MASK) << TD_STATUS_ERROR_COUNT_POS)
@@ -89,11 +92,7 @@ void td_init(td_t *instance, int err_count, size_t size, bool toggle, bool iso,
 	    | ((target.endpoint & TD_DEVICE_ENDPOINT_MASK) << TD_DEVICE_ENDPOINT_POS)
 	    | ((pid & TD_DEVICE_PID_MASK) << TD_DEVICE_PID_POS);
 
-	instance->buffer_ptr = 0;
-
-	if (size) {
-		instance->buffer_ptr = (uintptr_t)addr_to_phys(buffer);
-	}
+	instance->buffer_ptr = addr_to_phys(buffer);
 
 	usb_log_debug2("Created TD(%p): %X:%X:%X:%X(%p).\n",
 	    instance, instance->next, instance->status, instance->device,
@@ -114,23 +113,31 @@ int td_status(td_t *instance)
 {
 	assert(instance);
 
-	if ((instance->status & TD_STATUS_ERROR_STALLED) != 0)
-		return ESTALL;
+	/* this is hc internal error it should never be reported */
+	if ((instance->status & TD_STATUS_ERROR_BIT_STUFF) != 0)
+		return EAGAIN;
 
+	/* CRC or timeout error, like device not present or bad data,
+	 * it won't be reported unless err count reached zero */
 	if ((instance->status & TD_STATUS_ERROR_CRC) != 0)
 		return EBADCHECKSUM;
 
-	if ((instance->status & TD_STATUS_ERROR_BUFFER) != 0)
-		return EAGAIN;
-
-	if ((instance->status & TD_STATUS_ERROR_BABBLE) != 0)
-		return EIO;
-
+	/* hc does not end transaction on these, it should never be reported */
 	if ((instance->status & TD_STATUS_ERROR_NAK) != 0)
 		return EAGAIN;
 
-	if ((instance->status & TD_STATUS_ERROR_BIT_STUFF) != 0)
-		return EAGAIN;
+	/* buffer overrun or underrun */
+	if ((instance->status & TD_STATUS_ERROR_BUFFER) != 0)
+		return ERANGE;
+
+	/* device babble is something serious */
+	if ((instance->status & TD_STATUS_ERROR_BABBLE) != 0)
+		return EIO;
+
+	/* stall might represent err count reaching zero or stall response from
+	 * the device, is err count reached zero, one of the above is reported*/
+	if ((instance->status & TD_STATUS_ERROR_STALLED) != 0)
+		return ESTALL;
 
 	return EOK;
 }
