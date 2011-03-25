@@ -161,9 +161,7 @@ static int usb_hub_set_configuration(usb_hub_info_t * hub_info){
 	usb_log_debug("hub has %d configurations\n",
 	    std_descriptor->configuration_count);
 	if(std_descriptor->configuration_count<1){
-		usb_log_error("THERE ARE NO CONFIGURATIONS AVAILABLE\n");
-		//shouldn`t I return?
-		//definitely
+		usb_log_error("there are no configurations available\n");
 		return EINVAL;
 	}
 
