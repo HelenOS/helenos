@@ -50,10 +50,98 @@
 
 static const char *cmdname = "ls";
 
+/** Sort array of files/directories
+ *
+ * Sort an array containing files and directories,
+ * in alphabetical order, with files first.
+ *
+ * @param d			Current directory.
+ * @param tab		Array of file/directories to sort.
+ * @param nbdirs	Number of elements.
+ *
+ */
+static void ls_sort_dir(const char *d, char ** tab, int nbdirs)
+{
+	int i = 0;
+	int j = 0;
+	int min = 0;
+	int rc;
+	char * buff1 = NULL;
+	char * buff2 = NULL;
+	char * tmp = NULL;
+	struct stat s1;
+	struct stat s2;
+	
+	buff1 = (char *)malloc(PATH_MAX);
+	if (NULL == buff1) {
+		cli_error(CL_ENOMEM, "ls: failed to scan %s", d);
+		return;
+	}
+	
+	buff2 = (char *)malloc(PATH_MAX);
+	if (NULL == buff2) {
+		cli_error(CL_ENOMEM, "ls: failed to scan %s", d);
+		return;
+	}
+	
+	for(i=0;i<nbdirs;i++) {
+		min = i;
+		
+		for(j=i;j<nbdirs;j++) {
+			memset(buff1, 0, sizeof(buff1));
+			memset(buff2, 0, sizeof(buff2));
+			snprintf(buff1, PATH_MAX - 1, "%s/%s", d, tab[min]);
+			snprintf(buff2, PATH_MAX - 1, "%s/%s", d, tab[j]);
+			
+			rc = stat(buff1, &s1);
+			if (rc != 0) {
+				printf("ls: skipping bogus node %s\n", buff1);
+				printf("rc=%d\n", rc);
+				return;
+			}
+			
+			rc = stat(buff2, &s2);
+			if (rc != 0) {
+				printf("ls: skipping bogus node %s\n", buff2);
+				printf("rc=%d\n", rc);
+				return;
+			}
+			
+			if ((s2.is_file && s1.is_directory)
+				|| (((s2.is_file && s1.is_file)
+				|| (s2.is_directory && s1.is_directory))
+				&& str_cmp(tab[min], tab[j]) > 0))
+			    min = j;
+		}
+		
+		tmp = tab[i];
+		tab[i] = tab[min];
+		tab[min] = tmp;
+	}
+	
+	free(buff1);
+	free(buff2);
+	
+	return;
+}
+
+/** Scan a directory.
+ *
+ * Scan the content of a directory and print it.
+ *
+ * @param d		Name of the directory.
+ * @param dirp	Directory stream.
+ *
+ */
 static void ls_scan_dir(const char *d, DIR *dirp)
 {
-	struct dirent *dp;
-	char *buff;
+	int alloc_blocks = 20;
+	int i = 0;
+	int nbdirs = 0;
+	char * buff = NULL;
+	char ** tmp = NULL;
+	char ** tosort = NULL;
+	struct dirent * dp = NULL;
 
 	if (! dirp)
 		return;
@@ -63,15 +151,51 @@ static void ls_scan_dir(const char *d, DIR *dirp)
 		cli_error(CL_ENOMEM, "ls: failed to scan %s", d);
 		return;
 	}
-
+	
+	tosort = (char **)malloc(alloc_blocks*sizeof(char *));
+	if (NULL == tosort) {
+		cli_error(CL_ENOMEM, "ls: failed to scan %s", d);
+		return;
+	}
+	memset(tosort, 0, sizeof(tosort));
+	
 	while ((dp = readdir(dirp))) {
+		nbdirs++;
+		
+		if (nbdirs > alloc_blocks) {
+			alloc_blocks += alloc_blocks;
+			
+			tmp = (char **)realloc(tosort, (alloc_blocks)*sizeof(char *));
+			if (NULL == tmp) {
+				cli_error(CL_ENOMEM, "ls: failed to scan %s", d);
+				return;
+			}
+			
+			tosort = tmp;
+		}
+		
+		tosort[nbdirs-1] = (char *)malloc(str_length(dp->d_name)+1);
+		if (NULL == tosort[nbdirs-1]) {
+				cli_error(CL_ENOMEM, "ls: failed to scan %s", d);
+				return;
+		}
+		memset(tosort[nbdirs-1], 0, str_length(dp->d_name)+1);
+		
+		str_cpy(tosort[nbdirs-1], str_length(dp->d_name)+1, dp->d_name);
+	}
+	
+	ls_sort_dir(d, tosort, nbdirs);
+	
+	for(i=0;i<nbdirs;i++) {
 		memset(buff, 0, sizeof(buff));
 		/* Don't worry if inserting a double slash, this will be fixed by
 		 * absolutize() later with subsequent calls to open() or readdir() */
-		snprintf(buff, PATH_MAX - 1, "%s/%s", d, dp->d_name);
-		ls_print(dp->d_name, buff);
+		snprintf(buff, PATH_MAX - 1, "%s/%s", d, tosort[i]);
+		ls_print(tosort[i], buff);
+		free(tosort[i]);
 	}
-
+	
+	free(tosort);
 	free(buff);
 
 	return;

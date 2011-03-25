@@ -6,6 +6,7 @@
 #define LS_FILE  1
 #define LS_DIR   2
 
+static void ls_sort_dir(const char *, char **, int);
 static void ls_scan_dir(const char *, DIR *);
 static void ls_print(const char *, const char *);
 
