@@ -1,5 +1,4 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
  * Copyright (c) 2011 Lubos Slovak
  * All rights reserved.
  *
@@ -27,77 +26,43 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbhid
+/** @addtogroup libusb
  * @{
  */
-/**
- * @file
- * Main routines of USB HID driver.
+/** @file
+ * HID class-specific requests.
  */
 
-#include <ddf/driver.h>
-#include <usb/debug.h>
-#include <errno.h>
-#include <str_error.h>
+#ifndef USB_KBD_HIDREQ_H_
+#define USB_KBD_HIDREQ_H_
 
-#include "kbddev.h"
+#include <stdint.h>
 
-/*----------------------------------------------------------------------------*/
-
-#define NAME "usbhid"
-
-/*----------------------------------------------------------------------------*/
-/**
- * Callback for passing a new device to the driver.
- *
- * @note Currently, only boot-protocol keyboards are supported by this driver.
- *
- * @param dev Structure representing the new device.
- *
- * @retval EOK if successful. 
- * @retval EREFUSED if the device is not supported.
- */
-static int usbhid_add_device(ddf_dev_t *dev)
-{
-	usb_log_debug("usbhid_add_device()\n");
-	
-	int rc = usbhid_kbd_try_add_device(dev);
-	
-	if (rc != EOK) {
-		usb_log_warning("Device is not a supported keyboard.\n");
-		usb_log_error("Failed to add HID device: %s.\n",
-		    str_error(rc));
-		return rc;
-	}
-	
-	usb_log_info("Keyboard `%s' ready to use.\n", dev->name);
-
-	return EOK;
-}
+#include <usb/classes/hid.h>
+#include <usb/pipes.h>
 
 /*----------------------------------------------------------------------------*/
 
-static driver_ops_t kbd_driver_ops = {
-	.add_device = usbhid_add_device,
-};
+int usbhid_req_set_report(usb_pipe_t *ctrl_pipe, int iface_no,
+    usb_hid_report_type_t type, uint8_t *buffer, size_t buf_size);
+
+int usbhid_req_set_protocol(usb_pipe_t *ctrl_pipe, int iface_no, 
+    usb_hid_protocol_t protocol);
+
+int usbhid_req_set_idle(usb_pipe_t *ctrl_pipe, int iface_no, uint8_t duration);
+
+int usbhid_req_get_report(usb_pipe_t *ctrl_pipe, int iface_no, 
+    usb_hid_report_type_t type, uint8_t *buffer, size_t buf_size, 
+    size_t *actual_size);
+
+int usbhid_req_get_protocol(usb_pipe_t *ctrl_pipe, int iface_no, 
+    usb_hid_protocol_t *protocol);
+
+int usbhid_req_get_idle(usb_pipe_t *ctrl_pipe, int iface_no, uint8_t *duration);
 
 /*----------------------------------------------------------------------------*/
 
-static driver_t kbd_driver = {
-	.name = NAME,
-	.driver_ops = &kbd_driver_ops
-};
-
-/*----------------------------------------------------------------------------*/
-
-int main(int argc, char *argv[])
-{
-	printf(NAME ": HelenOS USB HID driver.\n");
-
-	usb_log_enable(USB_LOG_LEVEL_DEFAULT, NAME);
-
-	return ddf_driver_main(&kbd_driver);
-}
+#endif /* USB_KBD_HIDREQ_H_ */
 
 /**
  * @}
