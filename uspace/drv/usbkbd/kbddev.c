@@ -703,7 +703,7 @@ int usb_kbd_init(usb_kbd_t *kbd_dev, usb_device_t *dev)
 	}
 	
 	/* TODO: does not work! */
-	if (dev->pipes[USB_KBD_POLL_EP_NO].interface_no < 0) {
+	if (!dev->pipes[USB_KBD_POLL_EP_NO].present) {
 		usb_log_warning("Required endpoint not found - probably not "
 		    "a supported device.\n");
 		return ENOTSUP;
