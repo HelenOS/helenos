@@ -93,7 +93,7 @@ static void slab_init(slab_t *instance)
 	}
 	memset(instance->page, 0xa, SLAB_SIZE);
 	fibril_mutex_unlock(&init_mutex);
-	usb_log_fatal("SLAB initialized at %p.\n", instance->page);
+	usb_log_debug2("SLAB initialized at %p.\n", instance->page);
 }
 /*----------------------------------------------------------------------------*/
 static void * slab_malloc(slab_t *instance) {
@@ -113,7 +113,6 @@ static void * slab_malloc(slab_t *instance) {
 	}
 	fibril_mutex_unlock(&instance->guard);
 
-	usb_log_fatal("SLAB allocated address element %zu(%p).\n", i, addr);
 	return addr;
 }
 /*----------------------------------------------------------------------------*/
@@ -121,8 +120,6 @@ static bool slab_in_range(slab_t *instance, void *addr) {
 	assert(instance);
 	bool in_range = (instance->page != NULL) &&
 		(addr >= instance->page) && (addr < instance->page + SLAB_SIZE);
-//	usb_log_fatal("SLAB address %sin range %p(%p-%p).\n",
-//	    in_range ? "" : "NOT ", addr, instance->page, instance->page + SLAB_SIZE);
 	return in_range;
 }
 /*----------------------------------------------------------------------------*/
@@ -138,8 +135,6 @@ static void slab_free(slab_t *instance, void *addr)
 	assert(instance->slabs[pos] == false);
 	instance->slabs[pos] = true;
 	fibril_mutex_unlock(&instance->guard);
-
-	usb_log_fatal("SLAB freed element %zu(%p).\n", pos, addr);
 }
 /**
  * @}
