@@ -163,12 +163,9 @@ int usb_hid_parse_report_descriptor(usb_hid_report_parser_t *parser,
 
 					// store current usage path
 					report_item->usage_path = usage_path;
-
-					// new current usage path 
-					tmp_usage_path = usb_hid_report_path();
 					
-					// copy old path to the new one
-					usb_hid_report_path_clone(tmp_usage_path, usage_path);
+					// clone path to the new one
+					tmp_usage_path = usb_hid_report_path_clone(usage_path);
 
 					// swap
 					usage_path = tmp_usage_path;
@@ -795,7 +792,7 @@ int usb_hid_translate_data(usb_hid_report_item_t *item, const uint8_t *data, siz
 	
 }
 
-int usb_hid_report_input_length(const usb_hid_report_parser_t *parser,
+size_t usb_hid_report_input_length(const usb_hid_report_parser_t *parser,
 	usb_hid_report_path_t *path, int flags)
 {	
 	int ret = 0;
@@ -948,7 +945,7 @@ int usb_hid_report_compare_usage_path(usb_hid_report_path_t *report_path,
 				}						
 			break;
 
-		/* given path must be the end of the report one*/
+		/* compare with only the end of path*/
 		case USB_HID_PATH_COMPARE_END:
 				report_link = report_path->link.prev;
 				path_link = path->link.prev;
@@ -1018,16 +1015,21 @@ void usb_hid_report_path_free(usb_hid_report_path_t *path)
 
 
 /**
+ * Clone content of given usage path to the new one
  *
  */
-int	usb_hid_report_path_clone(usb_hid_report_path_t *new_usage_path, usb_hid_report_path_t *usage_path)
+usb_hid_report_path_t *usb_hid_report_path_clone(usb_hid_report_path_t *usage_path)
 {
 	usb_hid_report_usage_path_t *path_item;
 	link_t *path_link;
+	usb_hid_report_path_t *new_usage_path = usb_hid_report_path ();
 
+	if(new_usage_path == NULL){
+		return NULL;
+	}
 	
 	if(list_empty(&usage_path->link)){
-		return EOK;
+		return new_usage_path;
 	}
 
 	path_link = usage_path->link.next;
@@ -1038,7 +1040,7 @@ int	usb_hid_report_path_clone(usb_hid_report_path_t *new_usage_path, usb_hid_rep
 		path_link = path_link->next;
 	}
 
-	return EOK;
+	return new_usage_path;
 }
 
 

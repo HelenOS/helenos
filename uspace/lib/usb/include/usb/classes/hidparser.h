@@ -206,7 +206,7 @@ int usb_hid_parse_report(const usb_hid_report_parser_t *parser,
     usb_hid_report_path_t *path, int flags,
     const usb_hid_report_in_callbacks_t *callbacks, void *arg);
 
-int usb_hid_report_input_length(const usb_hid_report_parser_t *parser,
+size_t usb_hid_report_input_length(const usb_hid_report_parser_t *parser,
 	usb_hid_report_path_t *path, int flags);
 
 
@@ -222,14 +222,23 @@ void usb_hid_report_remove_last_item(usb_hid_report_path_t *usage_path);
 void usb_hid_report_null_last_item(usb_hid_report_path_t *usage_path);
 void usb_hid_report_set_last_item(usb_hid_report_path_t *usage_path, int32_t tag, int32_t data);
 int usb_hid_report_compare_usage_path(usb_hid_report_path_t *report_path, usb_hid_report_path_t *path, int flags);
-int	usb_hid_report_path_clone(usb_hid_report_path_t *new_usage_path, usb_hid_report_path_t *usage_path);
+usb_hid_report_path_t *usb_hid_report_path_clone(usb_hid_report_path_t *usage_path);
 
 
-// output
-//	- funkce co vrati cesty poli v output reportu
-//	- funkce co pro danou cestu nastavi data
-//	- finalize
+// output API
+/** Allocates output report buffer*/
+uint8_t *usb_hid_report_output(usb_hid_report_parser_t *parser);
+/** Frees output report buffer*/
+void usb_hid_report_output_free(uint8_t *output);
 
+/** Returns size of output for given usage path */
+size_t usb_hid_report_output_size(usb_hid_report_parser_t *parser,
+                                  usb_hid_report_path_t *path, int flags);
+/** Updates the output report buffer by translated given data */
+int usb_hid_report_output_translate(usb_hid_report_parser_t *parser,
+                                    usb_hid_report_path_t *path, int flags,
+                                    uint8_t *buffer, size_t size,
+                                    int32_t *data, size_t data_size);
 #endif
 /**
  * @}
