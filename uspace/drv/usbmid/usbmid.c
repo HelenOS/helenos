@@ -78,57 +78,6 @@ static ddf_dev_ops_t child_device_ops = {
 	.interfaces[USB_DEV_IFACE] = &child_usb_iface
 };
 
-/** Operations of the device itself. */
-static ddf_dev_ops_t mid_device_ops = {
-	.interfaces[USB_DEV_IFACE] = &usb_iface_hub_impl
-};
-
-/** Create new USB multi interface device.
- *
- * @param dev Backing generic DDF device.
- * @return New USB MID device.
- * @retval NULL Error occured.
- */
-usbmid_device_t *usbmid_device_create(ddf_dev_t *dev)
-{
-	usbmid_device_t *mid = malloc(sizeof(usbmid_device_t));
-	if (mid == NULL) {
-		usb_log_error("Out of memory (wanted %zu bytes).\n",
-		    sizeof(usbmid_device_t));
-		return NULL;
-	}
-
-	int rc;
-	rc = usb_device_connection_initialize_from_device(&mid->wire, dev);
-	if (rc != EOK) {
-		usb_log_error("Failed to initialize `USB wire': %s.\n",
-		    str_error(rc));
-		free(mid);
-		return NULL;
-	}
-
-	rc = usb_pipe_initialize_default_control(&mid->ctrl_pipe,
-	    &mid->wire);
-	if (rc != EOK) {
-		usb_log_error("Failed to initialize control pipe: %s.\n",
-		    str_error(rc));
-		free(mid);
-		return NULL;
-	}
-	rc = usb_pipe_probe_default_control(&mid->ctrl_pipe);
-	if (rc != EOK) {
-		usb_log_error("Probing default control pipe failed: %s.\n",
-		    str_error(rc));
-		free(mid);
-		return NULL;
-	}
-
-	mid->dev = dev;
-	(void) &mid_device_ops;
-
-	return mid;
-}
-
 /** Create new interface for USB MID device.
  *
  * @param fun Backing generic DDF device function (representing interface).
@@ -159,7 +108,7 @@ usbmid_interface_t *usbmid_interface_create(ddf_fun_t *fun, int iface_no)
  * @param interface_descriptor Interface descriptor.
  * @return Error code.
  */
-int usbmid_spawn_interface_child(usbmid_device_t *parent,
+int usbmid_spawn_interface_child(usb_device_t *parent,
     const usb_standard_device_descriptor_t *device_descriptor,
     const usb_standard_interface_descriptor_t *interface_descriptor)
 {
@@ -181,7 +130,7 @@ int usbmid_spawn_interface_child(usbmid_device_t *parent,
 	}
 
 	/* Create the device. */
-	child = ddf_fun_create(parent->dev, fun_inner, child_name);
+	child = ddf_fun_create(parent->ddf_dev, fun_inner, child_name);
 	if (child == NULL) {
 		rc = ENOMEM;
 		goto error_leave;
