@@ -584,8 +584,13 @@ static void usbhid_kbd_process_data(usbhid_kbd_t *kbd_dev,
 	
 //	int rc = usb_hid_boot_keyboard_input_report(buffer, actual_size,
 //	    callbacks, kbd_dev);
+	usb_hid_report_path_t *path = usb_hid_report_path();
+	usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_KEYBOARD, 0);
+	
 	int rc = usb_hid_parse_report(kbd_dev->hid_dev->parser, buffer,
-	    actual_size, callbacks, kbd_dev);
+	    actual_size, path, USB_HID_PATH_COMPARE_STRICT, callbacks, kbd_dev);
+
+	usb_hid_report_path_free (path);
 	
 	if (rc != EOK) {
 		usb_log_warning("Error in usb_hid_boot_keyboard_input_report():"
@@ -693,10 +698,12 @@ static int usbhid_kbd_init(usbhid_kbd_t *kbd_dev, ddf_dev_t *dev)
 	// save the size of the report (boot protocol report by default)
 //	kbd_dev->key_count = BOOTP_REPORT_SIZE;
 	
-	usb_hid_report_path_t path;
-	path.usage_page = USB_HIDUT_PAGE_KEYBOARD;
+	usb_hid_report_path_t *path;
+	path = usb_hid_report_path();
+	usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_KEYBOARD, 0);
 	kbd_dev->key_count = usb_hid_report_input_length(
-	    kbd_dev->hid_dev->parser, &path);
+	    kbd_dev->hid_dev->parser, path, USB_HID_PATH_COMPARE_STRICT);
+	usb_hid_report_path_free (path);
 	
 	usb_log_debug("Size of the input report: %zu\n", kbd_dev->key_count);
 	
