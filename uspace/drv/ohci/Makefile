@@ -36,6 +36,7 @@ SOURCES = \
 	batch.c \
 	main.c \
 	hc.c \
+	ohci.c \
 	root_hub.c \
 	pci.c
 

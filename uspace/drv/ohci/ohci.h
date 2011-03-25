@@ -25,59 +25,31 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 /** @addtogroup drvusbohci
  * @{
  */
 /** @file
- * @brief OHCI host controller driver structure
+ * @brief OHCI driver main structure for both host controller and root-hub.
  */
-#ifndef DRV_OHCI_HC_H
-#define DRV_OHCI_HC_H
-
-#include <fibril.h>
-#include <fibril_synch.h>
-#include <adt/list.h>
+#ifndef DRV_OHCI_OHCI_H
+#define DRV_OHCI_OHCI_H
 #include <ddi.h>
+#include <ddf/driver.h>
 
-#include <usb/usb.h>
-#include <usb/host/device_keeper.h>
-#include <usbhc_iface.h>
-
-#include "batch.h"
-#include "ohci_regs.h"
+#include "hc.h"
 #include "root_hub.h"
 
-typedef struct hc {
-	ohci_regs_t *registers;
-	usb_address_t rh_address;
+typedef struct ohci {
+	ddf_fun_t *hc_fun;
+	ddf_fun_t *rh_fun;
+
+	hc_t hc;
 	rh_t rh;
-	ddf_fun_t *ddf_instance;
-	usb_device_keeper_t manager;
-	fid_t interrupt_emulator;
-} hc_t;
+} ohci_t;
 
-int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun);
+int ohci_init(ohci_t *instance, ddf_dev_t *device);
 
-int hc_init(hc_t *instance, ddf_fun_t *fun, ddf_dev_t *dev,
-     uintptr_t regs, size_t reg_size, bool interrupts);
-
-int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch);
-
-void hc_interrupt(hc_t *instance, uint32_t status);
-
-/** Safely dispose host controller internal structures
- *
- * @param[in] instance Host controller structure to use.
- */
-static inline void hc_fini(hc_t *instance) { /* TODO: implement*/ };
-
-/** Get and cast pointer to the driver data
- *
- * @param[in] fun DDF function pointer
- * @return cast pointer to driver_data
- */
-static inline hc_t * fun_to_hc(ddf_fun_t *fun)
-	{ return (hc_t*)fun->driver_data; }
 #endif
 /**
  * @}

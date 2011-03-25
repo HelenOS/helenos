@@ -32,12 +32,10 @@
 /** @file
  * Common OHCI definitions.
  */
-#ifndef DRV_OHCI_OHCI_H
-#define DRV_OHCI_OHCI_H
+#ifndef DRV_OHCI_IFACE_H
+#define DRV_OHCI_IFACE_H
 
 #include <usbhc_iface.h>
-
-#define NAME "ohci"
 
 extern usbhc_iface_t hc_iface;
 
