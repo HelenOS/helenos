@@ -69,8 +69,20 @@
 /**
  * Description of path of usage pages and usages in report descriptor
  */
+#define USB_HID_PATH_COMPARE_STRICT				0
+#define USB_HID_PATH_COMPARE_END				1
+#define USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY	4
+
 typedef struct {
 	int32_t usage_page;
+	int32_t usage;
+
+	link_t link;
+} usb_hid_report_usage_path_t;
+
+typedef struct {
+	int depth;	
+	link_t link;
 } usb_hid_report_path_t;
 
 /**
@@ -78,8 +90,6 @@ typedef struct {
  */
 typedef struct {
 	int32_t id;
-	int32_t usage_page;
-	int32_t	usage;	
 	int32_t usage_minimum;
 	int32_t usage_maximum;
 	int32_t logical_minimum;
@@ -106,6 +116,7 @@ typedef struct {
 
 	uint8_t item_flags;
 
+	usb_hid_report_path_t *usage_path;
 	link_t link;
 } usb_hid_report_item_t;
 
@@ -116,7 +127,6 @@ typedef struct {
 	link_t output;
 	link_t feature;
 } usb_hid_report_parser_t;	
-
 
 
 /** HID parser callbacks for IN items. */
@@ -193,15 +203,32 @@ int usb_hid_parse_report_descriptor(usb_hid_report_parser_t *parser,
 
 int usb_hid_parse_report(const usb_hid_report_parser_t *parser,  
     const uint8_t *data, size_t size,
+    usb_hid_report_path_t *path, int flags,
     const usb_hid_report_in_callbacks_t *callbacks, void *arg);
 
 int usb_hid_report_input_length(const usb_hid_report_parser_t *parser,
-	const usb_hid_report_path_t *path);
+	usb_hid_report_path_t *path, int flags);
 
 
 void usb_hid_free_report_parser(usb_hid_report_parser_t *parser);
 
 void usb_hid_descriptor_print(usb_hid_report_parser_t *parser);
+
+/* usage path functions */
+usb_hid_report_path_t *usb_hid_report_path(void);
+void usb_hid_report_path_free(usb_hid_report_path_t *path);
+int usb_hid_report_path_append_item(usb_hid_report_path_t *usage_path, int32_t usage_page, int32_t usage);
+void usb_hid_report_remove_last_item(usb_hid_report_path_t *usage_path);
+void usb_hid_report_null_last_item(usb_hid_report_path_t *usage_path);
+void usb_hid_report_set_last_item(usb_hid_report_path_t *usage_path, int32_t tag, int32_t data);
+int usb_hid_report_compare_usage_path(usb_hid_report_path_t *report_path, usb_hid_report_path_t *path, int flags);
+int	usb_hid_report_path_clone(usb_hid_report_path_t *new_usage_path, usb_hid_report_path_t *usage_path);
+
+
+// output
+//	- funkce co vrati cesty poli v output reportu
+//	- funkce co pro danou cestu nastavi data
+//	- finalize
 
 #endif
 /**
