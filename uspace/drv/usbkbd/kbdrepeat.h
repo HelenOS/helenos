@@ -1,7 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
- * Copyright (c) 2011 Lubos Slovak 
- * (copied from /uspace/srv/hid/kbd/include/layout.h)
+ * Copyright (c) 2011 Lubos Slovak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,25 +30,38 @@
  * @{
  */
 /** @file
- * Keyboard layout.
+ * USB HID keyboard autorepeat facilities
  */
 
-#ifndef USBHID_LAYOUT_H_
-#define USBHID_LAYOUT_H_
+#ifndef USB_KBDREPEAT_H_
+#define USB_KBDREPEAT_H_
 
-#include <sys/types.h>
-#include <io/console.h>
+struct usb_kbd_t;
 
+/*----------------------------------------------------------------------------*/
+/**
+ * Structure for keeping information needed for auto-repeat of keys.
+ */
 typedef struct {
-	void (*reset)(void);
-	wchar_t (*parse_ev)(console_event_t *);
-} layout_op_t;
+	/** Last pressed key. */
+	unsigned int key_new;
+	/** Key to be repeated. */
+	unsigned int key_repeated;
+	/** Delay before first repeat in microseconds. */
+	unsigned int delay_before;
+	/** Delay between repeats in microseconds. */
+	unsigned int delay_between;
+} usb_kbd_repeat_t;
 
-extern layout_op_t us_qwerty_op;
-extern layout_op_t us_dvorak_op;
-extern layout_op_t cz_op;
+/*----------------------------------------------------------------------------*/
 
-#endif
+int usb_kbd_repeat_fibril(void *arg);
+
+void usb_kbd_repeat_start(struct usb_kbd_t *kbd, unsigned int key);
+
+void usb_kbd_repeat_stop(struct usb_kbd_t *kbd, unsigned int key);
+
+#endif /* USB_KBDREPEAT_H_ */
 
 /**
  * @}

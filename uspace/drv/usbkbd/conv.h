@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Lubos Slovak
+ * Copyright (c) 2011 Lubos Slovak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,34 +30,15 @@
  * @{
  */
 /** @file
- * Descriptor dumping.
+ * USB scancode parser.
  */
 
-#ifndef USBHID_DESCDUMP_H_
-#define USBHID_DESCDUMP_H_
+#ifndef USB_KBD_CONV_H_
+#define USB_KBD_CONV_H_
 
-#include <usb/descriptor.h>
-#include <usb/classes/hid.h>
+unsigned int usbhid_parse_scancode(int scancode);
 
-void dump_standard_configuration_descriptor(
-    int index, const usb_standard_configuration_descriptor_t *d);
-
-void dump_standard_interface_descriptor(
-    const usb_standard_interface_descriptor_t *d);
-
-void dump_standard_endpoint_descriptor(
-    const usb_standard_endpoint_descriptor_t *d);
-
-void dump_standard_hid_descriptor_header(
-    const usb_standard_hid_descriptor_t *d);
-
-void dump_standard_hid_class_descriptor_info(
-    const usb_standard_hid_class_descriptor_info_t *d);
-
-void dump_hid_class_descriptor(int index, uint8_t type, 
-    const uint8_t *d, size_t size);
-
-#endif /* USBHID_DESCDUMP_H_ */
+#endif /* USB_KBD_CONV_H_ */
 
 /**
  * @}

@@ -117,7 +117,7 @@ void batch_control_read(usb_transfer_batch_t *instance)
 	assert(instance);
 	instance->next_step = batch_call_in_and_dispose;
 	/* TODO: implement */
-	usb_log_debug("Batch(%p) CONTROL WRITE initialized.\n", instance);
+	usb_log_debug("Batch(%p) CONTROL READ initialized.\n", instance);
 }
 /*----------------------------------------------------------------------------*/
 void batch_interrupt_in(usb_transfer_batch_t *instance)

@@ -49,6 +49,8 @@ SOURCES = \
 	src/request.c \
 	src/usb.c \
 	src/usbdevice.c \
+	src/hidreq.c \
+	src/hidreport.c \
 	src/host/device_keeper.c \
 	src/host/batch.c
 

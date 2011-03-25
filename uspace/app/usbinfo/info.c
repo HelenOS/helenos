@@ -293,5 +293,50 @@ void dump_strings(usbinfo_device_t *dev)
 	}
 }
 
+
+void dump_status(usbinfo_device_t *dev)
+{
+	int rc;
+	uint16_t device_status = 0;
+	uint16_t ctrl_pipe_status = 0;
+
+	/* Device status first. */
+	rc = usb_request_get_status(&dev->ctrl_pipe,
+	    USB_REQUEST_RECIPIENT_DEVICE, 0,
+	    &device_status);
+	if (rc != EOK) {
+		printf("%sFailed to get device status: %s.\n",
+		    get_indent(0), str_error(rc));
+		goto try_ctrl_pipe_status;
+	}
+
+	printf("%sDevice status 0x%04x: power=%s, remote-wakeup=%s.\n",
+	    get_indent(0),
+	    device_status,
+	    device_status & USB_DEVICE_STATUS_SELF_POWERED ? "self" : "bus",
+	    device_status & USB_DEVICE_STATUS_REMOTE_WAKEUP ? "yes" : "no");
+
+	/* Interface is not interesting, skipping ;-). */
+
+	/* Control endpoint zero. */
+try_ctrl_pipe_status:
+	rc = usb_request_get_status(&dev->ctrl_pipe,
+	    USB_REQUEST_RECIPIENT_ENDPOINT, 0,
+	    &ctrl_pipe_status);
+	if (rc != EOK) {
+		printf("%sFailed to get control endpoint status: %s.\n",
+		    get_indent(0), str_error(rc));
+		goto leave;
+	}
+
+	printf("%sControl endpoint zero status %04X: halted=%s.\n",
+	    get_indent(0),
+	    ctrl_pipe_status,
+	    ctrl_pipe_status & USB_ENDPOINT_STATUS_HALTED ? "yes" : "no");
+
+leave:
+	return;
+}
+
 /** @}
  */

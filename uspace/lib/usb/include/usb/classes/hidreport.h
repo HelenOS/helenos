@@ -26,27 +26,39 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbhid
+/** @addtogroup libusb
  * @{
  */
 /** @file
- * USB HID keyboard autorepeat facilities
+ * USB HID report parser initialization from descriptors.
  */
 
-#ifndef USBHID_KBDREPEAT_H_
-#define USBHID_KBDREPEAT_H_
+#ifndef LIBUSB_HIDREPORT_H_
+#define LIBUSB_HIDREPORT_H_
 
-#include "kbddev.h"
+#include <usb/devdrv.h>
+#include <usb/classes/hidparser.h>
 
-/*----------------------------------------------------------------------------*/
+/**
+ * Retrieves the Report descriptor from the USB device and initializes the
+ * report parser.
+ *
+ * \param dev USB device representing a HID device.
+ * \param parser HID Report parser.
+ *
+ * \retval EOK if successful.
+ * \retval EINVAL if one of the parameters is not given (is NULL).
+ * \retval ENOENT if there are some descriptors missing.
+ * \retval ENOMEM if an error with allocation occured.
+ * \retval EINVAL if the Report descriptor's size does not match the size 
+ *         from the interface descriptor.
+ * \return Other value inherited from function usb_pipe_start_session(),
+ *         usb_pipe_end_session() or usb_request_get_descriptor().
+ */
+int usb_hid_process_report_descriptor(usb_device_t *dev, 
+    usb_hid_report_parser_t *parser);
 
-int usbhid_kbd_repeat_fibril(void *arg);
-
-void usbhid_kbd_repeat_start(usbhid_kbd_t *kbd, unsigned int key);
-
-void usbhid_kbd_repeat_stop(usbhid_kbd_t *kbd, unsigned int key);
-
-#endif /* USBHID_KBDREPEAT_H_ */
+#endif /* LIBUSB_HIDREPORT_H_ */
 
 /**
  * @}
