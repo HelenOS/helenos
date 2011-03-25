@@ -25,50 +25,25 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup drvusbuhcihc
+/** @addtogroup usb
  * @{
  */
 /** @file
- * @brief UHCI driver transfer list structure
+ * @brief UHCI driver
  */
-#ifndef DRV_UHCI_TRANSFER_LIST_H
-#define DRV_UHCI_TRANSFER_LIST_H
+#ifndef DRV_UHCI_SLAB_H
+#define DRV_UHCI_SLAB_H
 
-#include <fibril_synch.h>
+#include <bool.h>
 
-#include "batch.h"
-#include "hw_struct/queue_head.h"
+#define SLAB_ELEMENT_SIZE 1024
 
-typedef struct transfer_list
-{
-	fibril_mutex_t guard;
-	qh_t *queue_head;
-	uint32_t queue_head_pa;
-	const char *name;
-	link_t batch_list;
-} transfer_list_t;
+void * slab_malloc_g(void);
 
-/** Dispose transfer list structures.
- *
- * @param[in] instance Memory place to use.
- *
- * Frees memory for internal qh_t structure.
- */
-static inline void transfer_list_fini(transfer_list_t *instance)
-{
-	assert(instance);
-	free32(instance->queue_head);
-}
+void slab_free_g(void *addr);
 
-int transfer_list_init(transfer_list_t *instance, const char *name);
+bool slab_in_range_g(void *addr);
 
-void transfer_list_set_next(transfer_list_t *instance, transfer_list_t *next);
-
-void transfer_list_add_batch(transfer_list_t *instance, usb_transfer_batch_t *batch);
-
-void transfer_list_remove_finished(transfer_list_t *instance, link_t *done);
-
-void transfer_list_abort_all(transfer_list_t *instance);
 #endif
 /**
  * @}
