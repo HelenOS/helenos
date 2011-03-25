@@ -135,6 +135,7 @@ static void print_usage(char *app_name)
 	_OPTION("-t --descriptor-tree", "Print descriptor tree.");
 	_OPTION("-T --descriptor-tree-full", "Print detailed descriptor tree");
 	_OPTION("-s --strings", "Try to print all string descriptors.");
+	_OPTION("-S --status", "Get status of the device.");
 
 	printf("\n");
 	printf("If no option is specified, `-i' is considered default.\n");
@@ -151,9 +152,10 @@ static struct option long_options[] = {
 	{"descriptor-tree", no_argument, NULL, 't'},
 	{"descriptor-tree-full", no_argument, NULL, 'T'},
 	{"strings", no_argument, NULL, 's'},
+	{"status", no_argument, NULL, 'S'},
 	{0, 0, NULL, 0}
 };
-static const char *short_options = "himtTs";
+static const char *short_options = "himtTsS";
 
 static usbinfo_action_t actions[] = {
 	{
@@ -179,6 +181,11 @@ static usbinfo_action_t actions[] = {
 	{
 		.opt = 's',
 		.action = dump_strings,
+		.active = false
+	},
+	{
+		.opt = 'S',
+		.action = dump_status,
 		.active = false
 	},
 	{

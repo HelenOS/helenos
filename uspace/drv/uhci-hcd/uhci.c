@@ -174,15 +174,21 @@ if (ret != EOK) { \
 	    "Failed(%d) to disable legacy USB: %s.\n", ret, str_error(ret));
 
 	bool interrupts = false;
+#ifdef CONFIG_USBHC_NO_INTERRUPTS
+	usb_log_warning("Interrupts disabled in OS config, " \
+	    "falling back to polling.\n");
+#else
 	ret = pci_enable_interrupts(device);
 	if (ret != EOK) {
-		usb_log_warning(
-		    "Failed(%d) to enable interrupts, fall back to polling.\n",
-		    ret);
+		usb_log_warning("Failed to enable interrupts: %s.\n",
+		    str_error(ret));
+		usb_log_info("HW interrupts not available, " \
+		    "falling back to polling.\n");
 	} else {
 		usb_log_debug("Hw interrupts enabled.\n");
 		interrupts = true;
 	}
+#endif
 
 	instance->hc_fun = ddf_fun_create(device, fun_exposed, "uhci-hc");
 	ret = (instance->hc_fun == NULL) ? ENOMEM : EOK;
