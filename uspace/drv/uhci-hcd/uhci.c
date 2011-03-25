@@ -43,7 +43,6 @@
 #include "iface.h"
 #include "pci.h"
 
-
 /** IRQ handling callback, identifies device
  *
  * @param[in] dev DDF instance of the device to use.
@@ -107,7 +106,7 @@ static usb_iface_t usb_iface = {
 };
 /*----------------------------------------------------------------------------*/
 static ddf_dev_ops_t hc_ops = {
-	.interfaces[USB_DEV_IFACE] = &usb_iface,
+//	.interfaces[USB_DEV_IFACE] = &usb_iface,
 	.interfaces[USBHC_DEV_IFACE] = &hc_iface, /* see iface.h/c */
 };
 /*----------------------------------------------------------------------------*/
