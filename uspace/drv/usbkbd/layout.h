@@ -1,5 +1,7 @@
 /*
- * Copyright (c) 2011 Lubos Slovak
+ * Copyright (c) 2009 Jiri Svoboda
+ * Copyright (c) 2011 Lubos Slovak 
+ * (copied from /uspace/srv/hid/kbd/include/layout.h)
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,15 +32,25 @@
  * @{
  */
 /** @file
- * USB scancode parser.
+ * Keyboard layout.
  */
 
-#ifndef USBHID_CONV_H_
-#define USBHID_CONV_H_
+#ifndef USB_KBD_LAYOUT_H_
+#define USB_KBD_LAYOUT_H_
 
-unsigned int usbhid_parse_scancode(int scancode);
+#include <sys/types.h>
+#include <io/console.h>
 
-#endif /* USBHID_CONV_H_ */
+typedef struct {
+	void (*reset)(void);
+	wchar_t (*parse_ev)(console_event_t *);
+} layout_op_t;
+
+extern layout_op_t us_qwerty_op;
+extern layout_op_t us_dvorak_op;
+extern layout_op_t cz_op;
+
+#endif
 
 /**
  * @}

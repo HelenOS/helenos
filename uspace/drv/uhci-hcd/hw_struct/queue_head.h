@@ -71,10 +71,9 @@ static inline void qh_set_next_qh(qh_t *instance, uint32_t pa)
 {
 	/* Address is valid and not terminal */
 	if (pa && ((pa & LINK_POINTER_TERMINATE_FLAG) == 0)) {
-		instance->next = (pa & LINK_POINTER_ADDRESS_MASK)
-		    | LINK_POINTER_QUEUE_HEAD_FLAG;
+		instance->next = LINK_POINTER_QH(pa);
 	} else {
-		instance->next = 0 | LINK_POINTER_TERMINATE_FLAG;
+		instance->next = LINK_POINTER_TERM;
 	}
 }
 /*----------------------------------------------------------------------------*/
@@ -90,10 +89,9 @@ static inline void qh_set_element_qh(qh_t *instance, uint32_t pa)
 {
 	/* Address is valid and not terminal */
 	if (pa && ((pa & LINK_POINTER_TERMINATE_FLAG) == 0)) {
-		instance->element = (pa & LINK_POINTER_ADDRESS_MASK)
-		    | LINK_POINTER_QUEUE_HEAD_FLAG;
+		instance->element = LINK_POINTER_QH(pa);
 	} else {
-		instance->element = 0 | LINK_POINTER_TERMINATE_FLAG;
+		instance->element = LINK_POINTER_TERM;
 	}
 }
 /*----------------------------------------------------------------------------*/
@@ -108,9 +106,9 @@ static inline void qh_set_element_qh(qh_t *instance, uint32_t pa)
 static inline void qh_set_element_td(qh_t *instance, uint32_t pa)
 {
 	if (pa && ((pa & LINK_POINTER_TERMINATE_FLAG) == 0)) {
-		instance->element = (pa & LINK_POINTER_ADDRESS_MASK);
+		instance->element = LINK_POINTER_TD(pa);
 	} else {
-		instance->element = 0 | LINK_POINTER_TERMINATE_FLAG;
+		instance->element = LINK_POINTER_TERM;
 	}
 }
 

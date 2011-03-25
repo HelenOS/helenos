@@ -53,10 +53,10 @@
 static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
 {
 	assert(dev);
-	uhci_hc_t *hc = &((uhci_t*)dev->driver_data)->hc;
+	hc_t *hc = &((uhci_t*)dev->driver_data)->hc;
 	uint16_t status = IPC_GET_ARG1(*call);
 	assert(hc);
-	uhci_hc_interrupt(hc, status);
+	hc_interrupt(hc, status);
 }
 /*----------------------------------------------------------------------------*/
 /** Get address of the device identified by handle.
@@ -69,7 +69,7 @@ static int usb_iface_get_address(
     ddf_fun_t *fun, devman_handle_t handle, usb_address_t *address)
 {
 	assert(fun);
-	usb_device_keeper_t *manager = &((uhci_t*)fun->dev->driver_data)->hc.device_manager;
+	usb_device_keeper_t *manager = &((uhci_t*)fun->dev->driver_data)->hc.manager;
 
 	usb_address_t addr = usb_device_keeper_find(manager, handle);
 	if (addr < 0) {
@@ -106,9 +106,9 @@ static usb_iface_t usb_iface = {
 	.get_address = usb_iface_get_address
 };
 /*----------------------------------------------------------------------------*/
-static ddf_dev_ops_t uhci_hc_ops = {
+static ddf_dev_ops_t hc_ops = {
 	.interfaces[USB_DEV_IFACE] = &usb_iface,
-	.interfaces[USBHC_DEV_IFACE] = &uhci_hc_iface, /* see iface.h/c */
+	.interfaces[USBHC_DEV_IFACE] = &hc_iface, /* see iface.h/c */
 };
 /*----------------------------------------------------------------------------*/
 /** Get root hub hw resources (I/O registers).
@@ -119,7 +119,7 @@ static ddf_dev_ops_t uhci_hc_ops = {
 static hw_resource_list_t *get_resource_list(ddf_fun_t *fun)
 {
 	assert(fun);
-	return &((uhci_rh_t*)fun->driver_data)->resource_list;
+	return &((rh_t*)fun->driver_data)->resource_list;
 }
 /*----------------------------------------------------------------------------*/
 static hw_res_ops_t hw_res_iface = {
@@ -127,7 +127,7 @@ static hw_res_ops_t hw_res_iface = {
 	.enable_interrupt = NULL
 };
 /*----------------------------------------------------------------------------*/
-static ddf_dev_ops_t uhci_rh_ops = {
+static ddf_dev_ops_t rh_ops = {
 	.interfaces[USB_DEV_IFACE] = &usb_iface,
 	.interfaces[HW_RES_DEV_IFACE] = &hw_res_iface
 };
@@ -166,7 +166,7 @@ if (ret != EOK) { \
 	    pci_get_my_registers(device, &io_reg_base, &io_reg_size, &irq);
 	CHECK_RET_DEST_FUN_RETURN(ret,
 	    "Failed(%d) to get I/O addresses:.\n", ret, device->handle);
-	usb_log_info("I/O regs at 0x%X (size %zu), IRQ %d.\n",
+	usb_log_debug("I/O regs at 0x%X (size %zu), IRQ %d.\n",
 	    io_reg_base, io_reg_size, irq);
 
 	ret = pci_disable_legacy(device);
@@ -174,25 +174,31 @@ if (ret != EOK) { \
 	    "Failed(%d) to disable legacy USB: %s.\n", ret, str_error(ret));
 
 	bool interrupts = false;
+#ifdef CONFIG_USBHC_NO_INTERRUPTS
+	usb_log_warning("Interrupts disabled in OS config, " \
+	    "falling back to polling.\n");
+#else
 	ret = pci_enable_interrupts(device);
 	if (ret != EOK) {
-		usb_log_warning(
-		    "Failed(%d) to enable interrupts, fall back to polling.\n",
-		    ret);
+		usb_log_warning("Failed to enable interrupts: %s.\n",
+		    str_error(ret));
+		usb_log_info("HW interrupts not available, " \
+		    "falling back to polling.\n");
 	} else {
 		usb_log_debug("Hw interrupts enabled.\n");
 		interrupts = true;
 	}
+#endif
 
 	instance->hc_fun = ddf_fun_create(device, fun_exposed, "uhci-hc");
 	ret = (instance->hc_fun == NULL) ? ENOMEM : EOK;
 	CHECK_RET_DEST_FUN_RETURN(ret,
 	    "Failed(%d) to create HC function.\n", ret);
 
-	ret = uhci_hc_init(&instance->hc, instance->hc_fun,
+	ret = hc_init(&instance->hc, instance->hc_fun,
 	    (void*)io_reg_base, io_reg_size, interrupts);
 	CHECK_RET_DEST_FUN_RETURN(ret, "Failed(%d) to init uhci-hcd.\n", ret);
-	instance->hc_fun->ops = &uhci_hc_ops;
+	instance->hc_fun->ops = &hc_ops;
 	instance->hc_fun->driver_data = &instance->hc;
 	ret = ddf_fun_bind(instance->hc_fun);
 	CHECK_RET_DEST_FUN_RETURN(ret,
@@ -207,7 +213,7 @@ if (ret != EOK) { \
 		ddf_fun_destroy(instance->hc_fun); \
 	if (instance->rh_fun) \
 		ddf_fun_destroy(instance->rh_fun); \
-	uhci_hc_fini(&instance->hc); \
+	hc_fini(&instance->hc); \
 	return ret; \
 }
 
@@ -222,12 +228,12 @@ if (ret != EOK) { \
 	CHECK_RET_FINI_RETURN(ret,
 	    "Failed(%d) to create root hub function.\n", ret);
 
-	ret = uhci_rh_init(&instance->rh, instance->rh_fun,
+	ret = rh_init(&instance->rh, instance->rh_fun,
 	    (uintptr_t)instance->hc.registers + 0x10, 4);
 	CHECK_RET_FINI_RETURN(ret,
 	    "Failed(%d) to setup UHCI root hub.\n", ret);
 
-	instance->rh_fun->ops = &uhci_rh_ops;
+	instance->rh_fun->ops = &rh_ops;
 	instance->rh_fun->driver_data = &instance->rh;
 	ret = ddf_fun_bind(instance->rh_fun);
 	CHECK_RET_FINI_RETURN(ret,

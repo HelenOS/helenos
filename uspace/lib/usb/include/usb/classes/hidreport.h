@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2011 Lubos Slovak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,59 +25,41 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup drvusbuhci
+
+/** @addtogroup libusb
  * @{
  */
 /** @file
- * @brief UHCI driver
+ * USB HID report parser initialization from descriptors.
  */
-#include <assert.h>
-#include <errno.h>
-#include <str_error.h>
-#include <stdio.h>
 
-#include <usb/debug.h>
+#ifndef LIBUSB_HIDREPORT_H_
+#define LIBUSB_HIDREPORT_H_
 
-#include "uhci_rh.h"
-#include "uhci_hc.h"
+#include <usb/devdrv.h>
+#include <usb/classes/hidparser.h>
 
-/** Root hub initialization
- * @param[in] instance RH structure to initialize
- * @param[in] fun DDF function representing UHCI root hub
- * @param[in] reg_addr Address of root hub status and control registers.
- * @param[in] reg_size Size of accessible address space.
- * @return Error code.
+/**
+ * Retrieves the Report descriptor from the USB device and initializes the
+ * report parser.
+ *
+ * \param dev USB device representing a HID device.
+ * \param parser HID Report parser.
+ *
+ * \retval EOK if successful.
+ * \retval EINVAL if one of the parameters is not given (is NULL).
+ * \retval ENOENT if there are some descriptors missing.
+ * \retval ENOMEM if an error with allocation occured.
+ * \retval EINVAL if the Report descriptor's size does not match the size 
+ *         from the interface descriptor.
+ * \return Other value inherited from function usb_pipe_start_session(),
+ *         usb_pipe_end_session() or usb_request_get_descriptor().
  */
-int uhci_rh_init(
-    uhci_rh_t *instance, ddf_fun_t *fun, uintptr_t reg_addr, size_t reg_size)
-{
-	assert(fun);
+int usb_hid_process_report_descriptor(usb_device_t *dev, 
+    usb_hid_report_parser_t *parser);
 
-	char *match_str = NULL;
-	int ret = asprintf(&match_str, "usb&uhci&root-hub");
-	if (ret < 0) {
-		usb_log_error("Failed to create root hub match string.\n");
-		return ENOMEM;
-	}
+#endif /* LIBUSB_HIDREPORT_H_ */
 
-	ret = ddf_fun_add_match_id(fun, match_str, 100);
-	if (ret != EOK) {
-		usb_log_error("Failed(%d) to add root hub match id: %s\n",
-		    ret, str_error(ret));
-		return ret;
-	}
-
-	hw_resource_list_t *resource_list = &instance->resource_list;
-	resource_list->count = 1;
-	resource_list->resources = &instance->io_regs;
-	assert(resource_list->resources);
-	instance->io_regs.type = IO_RANGE;
-	instance->io_regs.res.io_range.address = reg_addr;
-	instance->io_regs.res.io_range.size = reg_size;
-	instance->io_regs.res.io_range.endianness = LITTLE_ENDIAN;
-
-	return EOK;
-}
 /**
  * @}
  */

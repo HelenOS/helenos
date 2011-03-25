@@ -33,8 +33,8 @@
  * USB HID keyboard device structure and API.
  */
 
-#ifndef USBHID_KBDDEV_H_
-#define USBHID_KBDDEV_H_
+#ifndef USB_KBDDEV_H_
+#define USB_KBDDEV_H_
 
 #include <stdint.h>
 
@@ -44,24 +44,11 @@
 #include <usb/classes/hidparser.h>
 #include <ddf/driver.h>
 #include <usb/pipes.h>
+#include <usb/devdrv.h>
 
-#include "hiddev.h"
+#include "kbdrepeat.h"
 
 /*----------------------------------------------------------------------------*/
-/**
- * Structure for keeping information needed for auto-repeat of keys.
- */
-typedef struct {
-	/** Last pressed key. */
-	unsigned int key_new;
-	/** Key to be repeated. */
-	unsigned int key_repeated;
-	/** Delay before first repeat in microseconds. */
-	unsigned int delay_before;
-	/** Delay between repeats in microseconds. */
-	unsigned int delay_between;
-} usbhid_kbd_repeat_t;
-
 /**
  * USB/HID keyboard device type.
  *
@@ -74,9 +61,10 @@ typedef struct {
  * @note Storing active lock keys in this structure results in their setting
  *       being device-specific.
  */
-typedef struct {
-	/** Structure holding generic USB/HID device information. */
-	usbhid_dev_t *hid_dev;
+typedef struct usb_kbd_t {
+	/** Structure holding generic USB device information. */
+	//usbhid_dev_t *hid_dev;
+	usb_device_t *usb_dev;
 	
 	/** Currently pressed keys (not translated to key codes). */
 	uint8_t *keys;
@@ -95,10 +83,19 @@ typedef struct {
 	int console_phone;
 	
 	/** Information for auto-repeat of keys. */
-	usbhid_kbd_repeat_t repeat;
+	usb_kbd_repeat_t repeat;
 	
 	/** Mutex for accessing the information about auto-repeat. */
 	fibril_mutex_t *repeat_mtx;
+	
+	/** Report descriptor. */
+	uint8_t *report_desc;
+
+	/** Report descriptor size. */
+	size_t report_desc_size;
+
+	/** HID Report parser. */
+	usb_hid_report_parser_t *parser;
 	
 	/** State of the structure (for checking before use). 
 	 * 
@@ -107,19 +104,40 @@ typedef struct {
 	 * -1 - ready for destroying
 	 */
 	int initialized;
-} usbhid_kbd_t;
+} usb_kbd_t;
 
 /*----------------------------------------------------------------------------*/
 
-int usbhid_kbd_try_add_device(ddf_dev_t *dev);
+enum {
+	USB_KBD_POLL_EP_NO = 0,
+	USB_KBD_POLL_EP_COUNT = 1
+};
 
-int usbhid_kbd_is_usable(const usbhid_kbd_t *kbd_dev);
+usb_endpoint_description_t *usb_kbd_endpoints[USB_KBD_POLL_EP_COUNT + 1];
 
-void usbhid_kbd_free(usbhid_kbd_t **kbd_dev);
+ddf_dev_ops_t keyboard_ops;
 
-void usbhid_kbd_push_ev(usbhid_kbd_t *kbd_dev, int type, unsigned int key);
+/*----------------------------------------------------------------------------*/
 
-#endif /* USBHID_KBDDEV_H_ */
+usb_kbd_t *usb_kbd_new(void);
+
+int usb_kbd_init(usb_kbd_t *kbd_dev, usb_device_t *dev);
+
+bool usb_kbd_polling_callback(usb_device_t *dev, uint8_t *buffer,
+     size_t buffer_size, void *arg);
+
+void usb_kbd_polling_ended_callback(usb_device_t *dev, bool reason, 
+     void *arg);
+
+int usb_kbd_is_initialized(const usb_kbd_t *kbd_dev);
+
+int usb_kbd_is_ready_to_destroy(const usb_kbd_t *kbd_dev);
+
+void usb_kbd_free(usb_kbd_t **kbd_dev);
+
+void usb_kbd_push_ev(usb_kbd_t *kbd_dev, int type, unsigned int key);
+
+#endif /* USB_KBDDEV_H_ */
 
 /**
  * @}

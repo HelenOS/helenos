@@ -131,7 +131,7 @@ static int usb_hub_get_hub_specific_info(usb_hub_info_t * hub_info){
 		usb_log_warning("could not deserialize descriptor \n");
 		return opResult;
 	}
-	usb_log_info("setting port count to %d\n",descriptor->ports_count);
+	usb_log_debug("setting port count to %d\n",descriptor->ports_count);
 	hub_info->port_count = descriptor->ports_count;
 	hub_info->attached_devs = (usb_hc_attached_device_t*)
 	    malloc((hub_info->port_count+1) * sizeof(usb_hc_attached_device_t));
@@ -158,7 +158,7 @@ static int usb_hub_set_configuration(usb_hub_info_t * hub_info){
 	//device descriptor
 	usb_standard_device_descriptor_t *std_descriptor
 	    = &hub_info->usb_device->descriptors.device;
-	usb_log_info("hub has %d configurations\n",
+	usb_log_debug("hub has %d configurations\n",
 	    std_descriptor->configuration_count);
 	if(std_descriptor->configuration_count<1){
 		usb_log_error("there are no configurations available\n");
@@ -287,7 +287,7 @@ static void usb_hub_init_add_device(usb_hub_info_t * hub, uint16_t port,
 		usb_speed_t speed) {
 	//if this hub already uses default address, it cannot request it once more
 	if(hub->is_default_address_used) return;
-	usb_log_info("some connection changed\n");
+	usb_log_debug("some connection changed\n");
 	assert(hub->control_pipe->hc_phone);
 	int opResult = usb_hub_clear_port_feature(hub->control_pipe,
 				port, USB_HUB_FEATURE_C_PORT_CONNECTION);
@@ -330,7 +330,7 @@ static void usb_hub_finalize_add_device( usb_hub_info_t * hub,
 		uint16_t port, usb_speed_t speed) {
 
 	int opResult;
-	usb_log_info("finalizing add device\n");
+	usb_log_debug("finalizing add device\n");
 	opResult = usb_hub_clear_port_feature(hub->control_pipe,
 	    port, USB_HUB_FEATURE_C_PORT_RESET);
 
@@ -362,7 +362,7 @@ static void usb_hub_finalize_add_device( usb_hub_info_t * hub,
 		usb_hub_release_default_address(hub);
 		return;
 	}
-	usb_log_info("setting new address %d\n",new_device_address);
+	usb_log_debug("setting new address %d\n",new_device_address);
 	//opResult = usb_drv_req_set_address(hc, USB_ADDRESS_DEFAULT,
 	//    new_device_address);
 	usb_pipe_start_session(&new_device_pipe);
@@ -402,9 +402,10 @@ static void usb_hub_finalize_add_device( usb_hub_info_t * hub,
 		usb_log_error("could not assign address of device in hcd %d\n",opResult);
 		return;
 	}
-	usb_log_info("new device address %d, handle %zu\n",
+	usb_log_info("Detected new device on `%s' (port %d), " \
+	    "address %d (handle %llu).\n",
+	    hub->usb_device->ddf_dev->name, (int) port,
 	    new_device_address, child_handle);
-
 }
 
 /**
@@ -501,7 +502,7 @@ static void usb_hub_process_interrupt(usb_hub_info_t * hub,
 	//something connected/disconnected
 	if (usb_port_connect_change(&status)) {
 		if (usb_port_dev_connected(&status)) {
-			usb_log_info("some connection changed\n");
+			usb_log_debug("some connection changed\n");
 			usb_hub_init_add_device(hub, port, usb_port_speed(&status));
 		} else {
 			usb_hub_removed_device(hub, port);
@@ -513,13 +514,13 @@ static void usb_hub_process_interrupt(usb_hub_info_t * hub,
 		if(usb_port_over_current(&status)){
 			usb_hub_over_current(hub,port);
 		}else{
-			usb_log_info("over current condition was auto-resolved on port %d\n",
+			usb_log_debug("over current condition was auto-resolved on port %d\n",
 					port);
 		}
 	}
 	//port reset
 	if (usb_port_reset_completed(&status)) {
-		usb_log_info("port reset complete\n");
+		usb_log_debug("port reset complete\n");
 		if (usb_port_enabled(&status)) {
 			usb_hub_finalize_add_device(hub, port, usb_port_speed(&status));
 		} else {

@@ -9,6 +9,8 @@ Makefile.depend
 _link.ld
 ./*.iso
 
+./tools/__pycache__/
+
 ./Makefile.common
 ./Makefile.config
 ./common.h
@@ -138,3 +140,6 @@ _link.ld
 # IDE files
 .cproject
 .project
+.settings
+.pydevproject
+

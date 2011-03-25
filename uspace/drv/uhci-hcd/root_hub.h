@@ -1,7 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
- * Copyright (c) 2011 Lubos Slovak 
- * (copied from /uspace/srv/hid/kbd/include/layout.h)
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,30 +26,27 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbhid
+/** @addtogroup drvusbuhci
  * @{
  */
 /** @file
- * Keyboard layout.
+ * @brief UHCI driver
  */
+#ifndef DRV_UHCI_UHCI_RH_H
+#define DRV_UHCI_UHCI_RH_H
 
-#ifndef USBHID_LAYOUT_H_
-#define USBHID_LAYOUT_H_
+#include <ddf/driver.h>
+#include <ops/hw_res.h>
 
-#include <sys/types.h>
-#include <io/console.h>
+typedef struct rh {
+	hw_resource_list_t resource_list;
+	hw_resource_t io_regs;
+} rh_t;
 
-typedef struct {
-	void (*reset)(void);
-	wchar_t (*parse_ev)(console_event_t *);
-} layout_op_t;
-
-extern layout_op_t us_qwerty_op;
-extern layout_op_t us_dvorak_op;
-extern layout_op_t cz_op;
+int rh_init(
+    rh_t *instance, ddf_fun_t *fun, uintptr_t reg_addr, size_t reg_size);
 
 #endif
-
 /**
  * @}
  */

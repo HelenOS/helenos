@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Lubos Slovak
+ * Copyright (c) 2010 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,29 +25,37 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-/** @addtogroup drvusbhid
+/** @addtogroup drvusbuhcihc
  * @{
  */
 /** @file
- * USB HID keyboard autorepeat facilities
+ * @brief UHCI driver
  */
+#ifndef DRV_UHCI_LINK_POINTER_H
+#define DRV_UHCI_LINK_POINTER_H
 
-#ifndef USBHID_KBDREPEAT_H_
-#define USBHID_KBDREPEAT_H_
+/* UHCI link pointer, used by many data structures */
+typedef uint32_t link_pointer_t;
 
-#include "kbddev.h"
+#define LINK_POINTER_TERMINATE_FLAG (1 << 0)
+#define LINK_POINTER_QUEUE_HEAD_FLAG (1 << 1)
+#define LINK_POINTER_ZERO_BIT_FLAG (1 << 2)
+#define LINK_POINTER_VERTICAL_FLAG (1 << 2)
+#define LINK_POINTER_RESERVED_FLAG (1 << 3)
 
-/*----------------------------------------------------------------------------*/
+#define LINK_POINTER_ADDRESS_MASK 0xfffffff0 /* upper 28 bits */
 
-int usbhid_kbd_repeat_fibril(void *arg);
+#define LINK_POINTER_QH(address) \
+	((address & LINK_POINTER_ADDRESS_MASK) | LINK_POINTER_QUEUE_HEAD_FLAG)
 
-void usbhid_kbd_repeat_start(usbhid_kbd_t *kbd, unsigned int key);
+#define LINK_POINTER_TD(address) \
+	(address & LINK_POINTER_ADDRESS_MASK)
 
-void usbhid_kbd_repeat_stop(usbhid_kbd_t *kbd, unsigned int key);
+#define LINK_POINTER_TERM \
+	((link_pointer_t)LINK_POINTER_TERMINATE_FLAG)
 
-#endif /* USBHID_KBDREPEAT_H_ */
-
+#endif
 /**
  * @}
  */
+

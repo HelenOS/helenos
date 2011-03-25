@@ -41,6 +41,15 @@
 #include <usb/pipes.h>
 #include <usb/descriptor.h>
 
+/** USB device status - device is self powered (opposed to bus powered). */
+#define USB_DEVICE_STATUS_SELF_POWERED ((uint16_t)(1 << 0))
+
+/** USB device status - remote wake-up signaling is enabled. */
+#define USB_DEVICE_STATUS_REMOTE_WAKEUP ((uint16_t)(1 << 1))
+
+/** USB endpoint status - endpoint is halted (stalled). */
+#define USB_ENDPOINT_STATUS_HALTED ((uint16_t)(1 << 0))
+
 /** Standard device request. */
 typedef enum {
 	USB_DEVREQ_GET_STATUS = 0,
