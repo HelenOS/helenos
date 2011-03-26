@@ -70,6 +70,7 @@ struct mfs_ino_info *mfs_read_inode_raw(const struct mfs_instance *instance,
 	ino_i->i_uid = conv16(sbi->native, ino->i_uid);
 	ino_i->i_size = conv32(sbi->native, ino->i_size);
 	ino_i->i_mtime = conv32(sbi->native, ino->i_mtime);
+	ino_i->i_nlinks = ino->i_nlinks;
 
 	for (i = 0; i < V1_NR_DIRECT_ZONES; ++i)
 		ino_i->i_dzone[i] = conv16(sbi->native, ino->i_dzone[i]);
