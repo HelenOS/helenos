@@ -97,6 +97,7 @@ struct mfs_ino_info {
         uint32_t        i_izone[V2_NR_INDIRECT_ZONES];
 
 	bool dirty;
+	fs_index_t index;
 };
 
 /*Generic MFS directory entry*/

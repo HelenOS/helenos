@@ -43,6 +43,11 @@ static bool check_magic_number(uint16_t magic, bool *native,
 static int mfs_node_core_get(fs_node_t **rfn, struct mfs_instance *inst,
 			fs_index_t index);
 
+static int mfs_node_put(fs_node_t *fsnode);
+static int mfs_node_open(fs_node_t *fsnode);
+static fs_index_t mfs_index_get(fs_node_t *fsnode);
+static unsigned mfs_lnkcnt_get(fs_node_t *fsnode);
+
 static LIST_INITIALIZE(inst_list);
 static FIBRIL_MUTEX_INITIALIZE(inst_list_mutex);
 
@@ -53,8 +58,12 @@ libfs_ops_t mfs_libfs_ops = {
 	.is_directory = mfs_is_directory,
 	.is_file = mfs_is_file,
 	.node_get = mfs_node_get,
+	.node_put = mfs_node_put,
+	.node_open = mfs_node_open,
+	.index_get = mfs_index_get,
 	.plb_get_char = mfs_plb_get_char,
-	.has_children = mfs_has_children
+	.has_children = mfs_has_children,
+	.lnkcnt_get = mfs_lnkcnt_get
 };
 
 void mfs_mounted(ipc_callid_t rid, ipc_call_t *request)
@@ -220,6 +229,8 @@ aoff64_t mfs_size_get(fs_node_t *node)
 	assert(mnode);
 	assert(mnode->ino_i);
 
+	mfsdebug("inode size is %d\n", (int) mnode->ino_i->i_size);
+
 	return mnode->ino_i->i_size;
 }
 
@@ -235,12 +246,65 @@ int mfs_node_get(fs_node_t **rfn, devmap_handle_t devmap_handle,
 	int rc;
 	struct mfs_instance *instance;
 
+	mfsdebug("node_get called\n");
+
 	rc = mfs_instance_get(devmap_handle, &instance);
 
 	if (rc != EOK)
 		return rc;
 
 	return mfs_node_core_get(rfn, instance, index);
+}
+
+static int mfs_node_put(fs_node_t *fsnode)
+{
+	struct mfs_node *mnode = fsnode->data;
+
+	mfsdebug("mfs_node_put()\n");
+
+	assert(mnode->ino_i);
+
+	if (mnode->ino_i->dirty) {
+		/*TODO: Write inode on disk*/
+	}
+
+	free(mnode->ino_i);
+	free(mnode);
+
+	return EOK;
+}
+
+static int mfs_node_open(fs_node_t *fsnode)
+{
+	mfsdebug("mfs_node_open()\n");
+	/*
+	 * Opening a file is stateless, nothing
+	 * to be done here.
+	 */
+	return EOK;
+}
+
+static fs_index_t mfs_index_get(fs_node_t *fsnode)
+{
+	struct mfs_node *mnode = fsnode->data;
+
+	mfsdebug("mfs_index_get()\n");
+
+	assert(mnode->ino_i);
+	return mnode->ino_i->index;
+}
+
+static unsigned mfs_lnkcnt_get(fs_node_t *fsnode)
+{
+	unsigned rc;
+	struct mfs_node *mnode = fsnode->data;
+
+	assert(mnode);
+	assert(mnode->ino_i);
+
+	rc = mnode->ino_i->i_nlinks;
+	mfsdebug("mfs_lnkcnt_get(): %u\n", rc);
+	return rc;
 }
 
 static int mfs_node_core_get(fs_node_t **rfn, struct mfs_instance *inst,
@@ -279,11 +343,14 @@ static int mfs_node_core_get(fs_node_t **rfn, struct mfs_instance *inst,
 	if (!ino_i)
 		return -1;
 
+	ino_i->index = index;
 	mnode->ino_i = ino_i;
 
 	mnode->instance = inst;
 	node->data = mnode;
 	*rfn = node;
+
+	mfsdebug("node_get_core(%d) OK\n", (int) index);
 
 	return EOK;
 
@@ -309,7 +376,10 @@ bool mfs_is_file(fs_node_t *fsnode)
 
 int mfs_root_get(fs_node_t **rfn, devmap_handle_t handle)
 {
-	return mfs_node_get(rfn, handle, MFS_ROOT_INO);
+	int rc = mfs_node_get(rfn, handle, MFS_ROOT_INO);
+
+	mfsdebug("mfs_root_get %s\n", rc == EOK ? "OK" : "FAIL");
+	return rc;
 }
 
 void mfs_lookup(ipc_callid_t rid, ipc_call_t *request)
@@ -352,12 +422,13 @@ int mfs_has_children(bool *has_children, fs_node_t *fsnode)
 		free(d_info);
 	}
 
+out:
+
 	if (*has_children)
 		mfsdebug("Has children\n");
 	else
 		mfsdebug("Has not children\n");
 
-out:
 	return EOK;
 }
 

@@ -93,7 +93,10 @@ static void mfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 		ipc_call_t call;
 	
 		callid = async_get_call(&call);
-		switch  (IPC_GET_IMETHOD(call)) {
+		int method = IPC_GET_IMETHOD(call);
+
+		mfsdebug(NAME "method = %d\n", method);
+		switch  (method) {
 		case IPC_M_PHONE_HUNGUP:
 			return;
 		case VFS_OUT_MOUNTED:
@@ -107,6 +110,7 @@ static void mfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 			mfs_stat(callid, &call);
 			break;
 		case VFS_OUT_LOOKUP:
+			mfsdebug("lookup called\n");
 			mfs_lookup(callid, &call);
 			break;
 		default:
