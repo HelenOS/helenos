@@ -287,10 +287,6 @@ int main(int argc, char *argv[])
 	console("hid_in/kbd");
 	
 	spawn("/srv/clip");
-
-#ifdef CONFIG_DEVMAN_EARLY_LAUNCH
-	spawn("/srv/devman");
-#endif
 	
 	/*
 	 * Start these synchronously so that mount_data() can be
@@ -317,7 +313,9 @@ int main(int argc, char *argv[])
 	getterm("term/vc5", "/app/bdsh", false);
 	getterm("term/vc6", "/app/klog", false);
 
-#ifndef CONFIG_DEVMAN_EARLY_LAUNCH
+#ifdef CONFIG_DEVMAN_EARLY_LAUNCH
+	spawn("/srv/devman");
+#else
 	getterm("term/vc7", "/srv/devman", false);
 #endif
 
