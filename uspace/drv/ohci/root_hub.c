@@ -42,6 +42,9 @@
 #include <usb/request.h>
 #include <usb/classes/hub.h>
 
+/**
+ *	standart device descriptor for ohci root hub
+ */
 static const usb_standard_device_descriptor_t ohci_rh_device_descriptor =
 {
 		.configuration_count = 1,
@@ -60,6 +63,10 @@ static const usb_standard_device_descriptor_t ohci_rh_device_descriptor =
 		.usb_spec_version = 0,
 };
 
+/**
+ * standart configuration descriptor with filled common values
+ * for ohci root hubs
+ */
 static const usb_standard_configuration_descriptor_t ohci_rh_conf_descriptor =
 {
 	/// \TODO some values are default or guessed
@@ -72,6 +79,9 @@ static const usb_standard_configuration_descriptor_t ohci_rh_conf_descriptor =
 	.str_configuration = 0,
 };
 
+/**
+ * standart ohci root hub interface descriptor
+ */
 static const usb_standard_interface_descriptor_t ohci_rh_iface_descriptor =
 {
 	.alternate_setting = 0,
@@ -86,6 +96,9 @@ static const usb_standard_interface_descriptor_t ohci_rh_iface_descriptor =
 	.str_interface = 0,
 };
 
+/**
+ * standart ohci root hub endpoint descriptor
+ */
 static const usb_standard_endpoint_descriptor_t ohci_rh_ep_descriptor =
 {
 	.attributes = USB_TRANSFER_INTERRUPT,
@@ -272,33 +285,6 @@ static void create_interrupt_mask(rh_t *instance, void ** buffer,
 }
 
 /**
- * create standard device descriptor for a hub
- * @return newly allocated descriptor
- */
-static usb_standard_device_descriptor_t *
-	usb_ohci_rh_create_standard_device_descriptor(){
-	usb_standard_device_descriptor_t * descriptor =
-				(usb_standard_device_descriptor_t*)
-				malloc(sizeof(usb_standard_device_descriptor_t));
-	descriptor->configuration_count = 1;
-	descriptor->descriptor_type = USB_DESCTYPE_DEVICE;
-	descriptor->device_class = USB_CLASS_HUB;
-	descriptor->device_protocol = 0;
-	descriptor->device_subclass = 0;
-	descriptor->device_version = 0;
-	descriptor->length = sizeof(usb_standard_device_descriptor_t);
-	/// \TODO this value is guessed
-	descriptor->max_packet_size = 8;
-	descriptor->product_id = 0x0001;
-	/// \TODO these values migt be different
-	descriptor->str_serial_number = 0;
-	descriptor->str_serial_number = 0;
-	descriptor->usb_spec_version = 0;
-	descriptor->vendor_id = 0x16db;
-	return descriptor;
-}
-
-/**
  * create standart configuration descriptor for the root hub instance
  * @param instance root hub instance
  * @return newly allocated descriptor
@@ -306,18 +292,11 @@ static usb_standard_device_descriptor_t *
 static usb_standard_configuration_descriptor_t *
 usb_ohci_rh_create_standart_configuration_descriptor(rh_t *instance){
 	usb_standard_configuration_descriptor_t * descriptor =
-			(usb_standard_configuration_descriptor_t*)
 			malloc(sizeof(usb_standard_configuration_descriptor_t));
-	/// \TODO some values are default or guessed
-	descriptor->attributes = 1<<7;
-	descriptor->configuration_number = 1;
-	descriptor->descriptor_type = USB_DESCTYPE_CONFIGURATION;
-	descriptor->interface_count = 1;
-	descriptor->length = sizeof(usb_standard_configuration_descriptor_t);
-	descriptor->max_power = 100;
-	descriptor->str_configuration = 0;
+	memcpy(descriptor, &ohci_rh_conf_descriptor,
+		sizeof(usb_standard_configuration_descriptor_t));
 	/// \TODO should this include device descriptor?
-	size_t hub_descriptor_size = 7 +
+	const size_t hub_descriptor_size = 7 +
 			2* (instance->port_count / 8 +
 			((instance->port_count % 8 > 0) ? 1 : 0));
 	descriptor->total_length =
@@ -325,46 +304,6 @@ usb_ohci_rh_create_standart_configuration_descriptor(rh_t *instance){
 			sizeof(usb_standard_endpoint_descriptor_t)+
 			sizeof(usb_standard_interface_descriptor_t)+
 			hub_descriptor_size;
-	return descriptor;
-}
-
-/**
- * create standard interface descriptor for a root hub
- * @return newly allocated descriptor
- */
-static usb_standard_interface_descriptor_t *
-usb_ohci_rh_create_standard_interface_descriptor(){
-	usb_standard_interface_descriptor_t * descriptor =
-				(usb_standard_interface_descriptor_t*)
-				malloc(sizeof(usb_standard_interface_descriptor_t));
-	descriptor->alternate_setting = 0;
-	descriptor->descriptor_type = USB_DESCTYPE_INTERFACE;
-	descriptor->endpoint_count = 1;
-	descriptor->interface_class = USB_CLASS_HUB;
-	/// \TODO is this correct?
-	descriptor->interface_number = 1;
-	descriptor->interface_protocol = 0;
-	descriptor->interface_subclass = 0;
-	descriptor->length = sizeof(usb_standard_interface_descriptor_t);
-	descriptor->str_interface = 0;
-	return descriptor;
-}
-
-/**
- * create standard endpoint descriptor for a root hub
- * @return newly allocated descriptor
- */
-static usb_standard_endpoint_descriptor_t *
-usb_ohci_rh_create_standard_endpoint_descriptor(){
-	usb_standard_endpoint_descriptor_t * descriptor =
-			(usb_standard_endpoint_descriptor_t*)
-			malloc(sizeof(usb_standard_endpoint_descriptor_t));
-	descriptor->attributes = USB_TRANSFER_INTERRUPT;
-	descriptor->descriptor_type = USB_DESCTYPE_ENDPOINT;
-	descriptor->endpoint_address = 1 + (1<<7);
-	descriptor->length = sizeof(usb_standard_endpoint_descriptor_t);
-	descriptor->max_packet_size = 8;
-	descriptor->poll_interval = 255;
 	return descriptor;
 }
 
@@ -385,115 +324,63 @@ static int process_get_descriptor_request(rh_t *instance,
 	const void * result_descriptor = NULL;
 	const uint16_t setup_request_value = setup_request->value_high;
 			//(setup_request->value_low << 8);
-#if 0
 	bool del = false;
-	//this code was merged from development and has to be reviewed
 	switch (setup_request_value)
 	{
-	case USB_DESCTYPE_HUB: {
-		uint8_t * descriptor;
-		usb_create_serialized_hub_descriptor(
-		    instance, &descriptor, &size);
-		result_descriptor = descriptor;
-		break;
-	}
-	case USB_DESCTYPE_DEVICE: {
-		usb_log_debug("USB_DESCTYPE_DEVICE\n");
-		result_descriptor = &ohci_rh_device_descriptor;
-		size = sizeof(ohci_rh_device_descriptor);
-		break;
-	}
-	case USB_DESCTYPE_CONFIGURATION: {
-		usb_log_debug("USB_DESCTYPE_CONFIGURATION\n");
-		usb_standard_configuration_descriptor_t * descriptor =
-				malloc(sizeof(usb_standard_configuration_descriptor_t));
-		memcpy(descriptor, &ohci_rh_conf_descriptor,
-		    sizeof(usb_standard_configuration_descriptor_t));
-		/// \TODO should this include device descriptor?
-		const size_t hub_descriptor_size = 7 +
-				2* (instance->port_count / 8 +
-				((instance->port_count % 8 > 0) ? 1 : 0));
-		descriptor->total_length =
-				sizeof(usb_standard_configuration_descriptor_t)+
-				sizeof(usb_standard_endpoint_descriptor_t)+
-				sizeof(usb_standard_interface_descriptor_t)+
-				hub_descriptor_size;
-		result_descriptor = descriptor;
-		size = sizeof(usb_standard_configuration_descriptor_t);
-		del = true;
-		break;
-	}
-	case USB_DESCTYPE_INTERFACE: {
-		usb_log_debug("USB_DESCTYPE_INTERFACE\n");
-		result_descriptor = &ohci_rh_iface_descriptor;
-		size = sizeof(ohci_rh_iface_descriptor);
-		break;
-	}
-	case USB_DESCTYPE_ENDPOINT: {
-		usb_log_debug("USB_DESCTYPE_ENDPOINT\n");
-		result_descriptor = &ohci_rh_ep_descriptor;
-		size = sizeof(ohci_rh_ep_descriptor);
-		break;
-	}
-	default: {
-		usb_log_debug("USB_DESCTYPE_EINVAL %d \n",setup_request->value);
-		usb_log_debug("\ttype %d\n\trequest %d\n\tvalue %d\n\tindex %d\n\tlen %d\n ",
-				setup_request->request_type,
-				setup_request->request,
-				setup_request_value,
-				setup_request->index,
-				setup_request->length
-				);
-		return EINVAL;
-	}
-	}
-#endif
-	if(setup_request_value == USB_DESCTYPE_HUB){
-		usb_log_debug("USB_DESCTYPE_HUB\n");
-		//create hub descriptor
-		uint8_t * descriptor;
-		usb_create_serialized_hub_descriptor(instance, 
-				&descriptor, &size);
-		result_descriptor = descriptor;
-	}else if(setup_request_value == USB_DESCTYPE_DEVICE){
-		//create std device descriptor
-		usb_log_debug("USB_DESCTYPE_DEVICE\n");
-		result_descriptor =
-				usb_ohci_rh_create_standard_device_descriptor();
-		size = sizeof(usb_standard_device_descriptor_t);
-	}else if(setup_request_value == USB_DESCTYPE_CONFIGURATION){
-		usb_log_debug("USB_DESCTYPE_CONFIGURATION\n");
-		result_descriptor =
-				usb_ohci_rh_create_standart_configuration_descriptor(instance);
-		size = sizeof(usb_standard_configuration_descriptor_t);
-
-	}else if(setup_request_value == USB_DESCTYPE_INTERFACE){
-		usb_log_debug("USB_DESCTYPE_INTERFACE\n");
-		result_descriptor =
-				usb_ohci_rh_create_standard_interface_descriptor();
-		size = sizeof(usb_standard_interface_descriptor_t);
-	}else if(setup_request_value == USB_DESCTYPE_ENDPOINT){
-		usb_log_debug("USB_DESCTYPE_ENDPOINT\n");
-		result_descriptor =
-				usb_ohci_rh_create_standard_endpoint_descriptor();
-		size = sizeof(usb_standard_endpoint_descriptor_t);
-	}else{
-		usb_log_debug("USB_DESCTYPE_EINVAL %d \n",setup_request->value);
-		usb_log_debug("\ttype %d\n\trequest %d\n\tvalue %d\n\tindex %d\n\tlen %d\n ",
-				setup_request->request_type,
-				setup_request->request,
-				setup_request_value,
-				setup_request->index,
-				setup_request->length
-				);
-		return EINVAL;
+		case USB_DESCTYPE_HUB: {
+			uint8_t * descriptor;
+			usb_create_serialized_hub_descriptor(
+				instance, &descriptor, &size);
+			result_descriptor = descriptor;
+			if(result_descriptor) del = true;
+			break;
+		}
+		case USB_DESCTYPE_DEVICE: {
+			usb_log_debug("USB_DESCTYPE_DEVICE\n");
+			result_descriptor = &ohci_rh_device_descriptor;
+			size = sizeof(ohci_rh_device_descriptor);
+			break;
+		}
+		case USB_DESCTYPE_CONFIGURATION: {
+			usb_log_debug("USB_DESCTYPE_CONFIGURATION\n");
+			usb_standard_configuration_descriptor_t * descriptor =
+					usb_ohci_rh_create_standart_configuration_descriptor(
+						instance);
+			result_descriptor = descriptor;
+			size = sizeof(usb_standard_configuration_descriptor_t);
+			del = true;
+			break;
+		}
+		case USB_DESCTYPE_INTERFACE: {
+			usb_log_debug("USB_DESCTYPE_INTERFACE\n");
+			result_descriptor = &ohci_rh_iface_descriptor;
+			size = sizeof(ohci_rh_iface_descriptor);
+			break;
+		}
+		case USB_DESCTYPE_ENDPOINT: {
+			usb_log_debug("USB_DESCTYPE_ENDPOINT\n");
+			result_descriptor = &ohci_rh_ep_descriptor;
+			size = sizeof(ohci_rh_ep_descriptor);
+			break;
+		}
+		default: {
+			usb_log_debug("USB_DESCTYPE_EINVAL %d \n",setup_request->value);
+			usb_log_debug("\ttype %d\n\trequest %d\n\tvalue %d\n\tindex %d\n\tlen %d\n ",
+					setup_request->request_type,
+					setup_request->request,
+					setup_request_value,
+					setup_request->index,
+					setup_request->length
+					);
+			return EINVAL;
+		}
 	}
 	if(request->buffer_size < size){
 		size = request->buffer_size;
 	}
 	request->transfered_size = size;
 	memcpy(request->buffer,result_descriptor,size);
-	if (result_descriptor)
+	if (del)
 		free(result_descriptor);
 	return EOK;
 }
@@ -760,7 +647,7 @@ int rh_request(rh_t *instance, usb_transfer_batch_t *request)
 
 void rh_interrupt(rh_t *instance)
 {
-	usb_log_info("Whoa whoa wait, I`m not supposed to receive interrupts, am I?\n");
+	usb_log_info("Whoa whoa wait, I`m not supposed to receive any interrupts, am I?\n");
 	/* TODO: implement? */
 }
 /**

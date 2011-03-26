@@ -40,10 +40,17 @@
 #include "ohci_regs.h"
 #include "batch.h"
 
+/**
+ * ohci root hub representation
+ */
 typedef struct rh {
+	/** pointer to ohci driver registers */
 	ohci_regs_t *registers;
+	/** usb address of the root hub */
 	usb_address_t address;
+	/** ddf device information */
 	ddf_dev_t *device;
+	/** hub port count */
 	int port_count;
 } rh_t;
 
