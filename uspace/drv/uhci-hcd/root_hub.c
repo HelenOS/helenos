@@ -47,8 +47,7 @@
  * @param[in] reg_size Size of accessible address space.
  * @return Error code.
  */
-int rh_init(
-    rh_t *instance, ddf_fun_t *fun, uintptr_t reg_addr, size_t reg_size)
+int rh_init(rh_t *instance, ddf_fun_t *fun, uintptr_t reg_addr, size_t reg_size)
 {
 	assert(fun);
 

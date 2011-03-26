@@ -30,37 +30,15 @@
  * @{
  */
 /** @file
- * HID class-specific requests.
+ * USB scancode parser.
  */
 
-#ifndef USBHID_HIDREQ_H_
-#define USBHID_HIDREQ_H_
+#ifndef USB_KBD_CONV_H_
+#define USB_KBD_CONV_H_
 
-#include <stdint.h>
+unsigned int usbhid_parse_scancode(int scancode);
 
-#include <usb/classes/hid.h>
-
-#include "hiddev.h"
-
-/*----------------------------------------------------------------------------*/
-
-int usbhid_req_set_report(usbhid_dev_t *hid_dev,
-    usb_hid_report_type_t type, uint8_t *buffer, size_t buf_size);
-
-int usbhid_req_set_protocol(usbhid_dev_t *hid_dev, usb_hid_protocol_t protocol);
-
-int usbhid_req_set_idle(usbhid_dev_t *hid_dev, uint8_t duration);
-
-int usbhid_req_get_report(usbhid_dev_t *hid_dev, usb_hid_report_type_t type, 
-    uint8_t *buffer, size_t buf_size, size_t *actual_size);
-
-int usbhid_req_get_protocol(usbhid_dev_t *hid_dev, usb_hid_protocol_t *protocol);
-
-int usbhid_req_get_idle(usbhid_dev_t *hid_dev, uint8_t *duration);
-
-/*----------------------------------------------------------------------------*/
-
-#endif /* USBHID_HIDREQ_H_ */
+#endif /* USB_KBD_CONV_H_ */
 
 /**
  * @}

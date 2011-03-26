@@ -45,16 +45,21 @@
 #include <fibril_synch.h>
 
 #include <usb/usb.h>
+#include <usb/dp.h>
+#include <usb/request.h>
 #include <usb/classes/hid.h>
 #include <usb/pipes.h>
 #include <usb/debug.h>
 #include <usb/classes/hidparser.h>
 #include <usb/classes/classes.h>
 #include <usb/classes/hidut.h>
+#include <usb/classes/hidreq.h>
+#include <usb/classes/hidreport.h>
+
+#include <usb/devdrv.h>
 
 #include "kbddev.h"
-#include "hiddev.h"
-#include "hidreq.h"
+
 #include "layout.h"
 #include "conv.h"
 #include "kbdrepeat.h"
@@ -84,8 +89,10 @@ static const unsigned int DEFAULT_DELAY_BEFORE_FIRST_REPEAT = 500 * 1000;
 /** Delay between two repeats of a pressed key when auto-repeating. */
 static const unsigned int DEFAULT_REPEAT_DELAY = 50 * 1000;
 
+/*----------------------------------------------------------------------------*/
+
 /** Keyboard polling endpoint description for boot protocol class. */
-static usb_endpoint_description_t poll_endpoint_description = {
+static usb_endpoint_description_t boot_poll_endpoint_description = {
 	.transfer_type = USB_TRANSFER_INTERRUPT,
 	.direction = USB_DIRECTION_IN,
 	.interface_class = USB_CLASS_HID,
@@ -94,11 +101,62 @@ static usb_endpoint_description_t poll_endpoint_description = {
 	.flags = 0
 };
 
-typedef enum usbhid_kbd_flags {
-	USBHID_KBD_STATUS_UNINITIALIZED = 0,
-	USBHID_KBD_STATUS_INITIALIZED = 1,
-	USBHID_KBD_STATUS_TO_DESTROY = -1
-} usbhid_kbd_flags;
+/* Array of endpoints expected on the device, NULL terminated. */
+usb_endpoint_description_t 
+    *usb_kbd_endpoints[USB_KBD_POLL_EP_COUNT + 1] = {
+	&boot_poll_endpoint_description,
+	NULL
+};
+
+/*----------------------------------------------------------------------------*/
+
+enum {
+	BOOT_REPORT_DESCRIPTOR_SIZE = 63
+};
+
+static const uint8_t BOOT_REPORT_DESCRIPTOR[BOOT_REPORT_DESCRIPTOR_SIZE] = {
+        0x05, 0x01,  // Usage Page (Generic Desktop),
+        0x09, 0x06,  // Usage (Keyboard),
+        0xA1, 0x01,  // Collection (Application),
+        0x75, 0x01,  //   Report Size (1),
+        0x95, 0x08,  //   Report Count (8),       
+        0x05, 0x07,  //   Usage Page (Key Codes);
+        0x19, 0xE0,  //   Usage Minimum (224),
+        0x29, 0xE7,  //   Usage Maximum (231),
+        0x15, 0x00,  //   Logical Minimum (0),
+        0x25, 0x01,  //   Logical Maximum (1),
+        0x81, 0x02,  //   Input (Data, Variable, Absolute),   ; Modifier byte
+	0x95, 0x01,  //   Report Count (1),
+        0x75, 0x08,  //   Report Size (8),
+        0x81, 0x01,  //   Input (Constant),                   ; Reserved byte
+        0x95, 0x05,  //   Report Count (5),
+        0x75, 0x01,  //   Report Size (1),
+        0x05, 0x08,  //   Usage Page (Page# for LEDs),
+        0x19, 0x01,  //   Usage Minimum (1),
+        0x29, 0x05,  //   Usage Maxmimum (5),
+        0x91, 0x02,  //   Output (Data, Variable, Absolute),  ; LED report
+        0x95, 0x01,  //   Report Count (1),
+        0x75, 0x03,  //   Report Size (3),
+        0x91, 0x01,  //   Output (Constant),              ; LED report padding
+        0x95, 0x06,  //   Report Count (6),
+        0x75, 0x08,  //   Report Size (8),
+        0x15, 0x00,  //   Logical Minimum (0),
+        0x25, 0xff,  //   Logical Maximum (255),
+        0x05, 0x07,  //   Usage Page (Key Codes),
+        0x19, 0x00,  //   Usage Minimum (0),
+        0x29, 0xff,  //   Usage Maximum (255),
+        0x81, 0x00,  //   Input (Data, Array),            ; Key arrays (6 bytes)
+        0xC0           // End Collection
+
+};
+
+/*----------------------------------------------------------------------------*/
+
+typedef enum usb_kbd_flags {
+	USB_KBD_STATUS_UNINITIALIZED = 0,
+	USB_KBD_STATUS_INITIALIZED = 1,
+	USB_KBD_STATUS_TO_DESTROY = -1
+} usb_kbd_flags;
 
 /*----------------------------------------------------------------------------*/
 /* Keyboard layouts                                                           */
@@ -131,16 +189,16 @@ static const keycode_t usbhid_modifiers_keycodes[USB_HID_MOD_COUNT] = {
 };
 
 typedef enum usbhid_lock_code {
-	USBHID_LOCK_NUM = 0x53,
-	USBHID_LOCK_CAPS = 0x39,
-	USBHID_LOCK_SCROLL = 0x47,
-	USBHID_LOCK_COUNT = 3
+	USB_KBD_LOCK_NUM = 0x53,
+	USB_KBD_LOCK_CAPS = 0x39,
+	USB_KBD_LOCK_SCROLL = 0x47,
+	USB_KBD_LOCK_COUNT = 3
 } usbhid_lock_code;
 
-static const usbhid_lock_code usbhid_lock_codes[USBHID_LOCK_COUNT] = {
-	USBHID_LOCK_NUM,
-	USBHID_LOCK_CAPS,
-	USBHID_LOCK_SCROLL
+static const usbhid_lock_code usbhid_lock_codes[USB_KBD_LOCK_COUNT] = {
+	USB_KBD_LOCK_NUM,
+	USB_KBD_LOCK_CAPS,
+	USB_KBD_LOCK_SCROLL
 };
 
 /*----------------------------------------------------------------------------*/
@@ -148,7 +206,7 @@ static const usbhid_lock_code usbhid_lock_codes[USBHID_LOCK_COUNT] = {
 /*----------------------------------------------------------------------------*/
 
 static void default_connection_handler(ddf_fun_t *, ipc_callid_t, ipc_call_t *);
-static ddf_dev_ops_t keyboard_ops = {
+ddf_dev_ops_t keyboard_ops = {
 	.default_handler = default_connection_handler
 };
 
@@ -168,7 +226,7 @@ void default_connection_handler(ddf_fun_t *fun,
 {
 	sysarg_t method = IPC_GET_IMETHOD(*icall);
 	
-	usbhid_kbd_t *kbd_dev = (usbhid_kbd_t *)fun->driver_data;
+	usb_kbd_t *kbd_dev = (usb_kbd_t *)fun->driver_data;
 	assert(kbd_dev != NULL);
 
 	if (method == IPC_M_CONNECT_TO_ME) {
@@ -202,7 +260,7 @@ void default_connection_handler(ddf_fun_t *fun,
  *
  * @param kbd_dev Keyboard device structure.
  */
-static void usbhid_kbd_set_led(usbhid_kbd_t *kbd_dev) 
+static void usb_kbd_set_led(usb_kbd_t *kbd_dev) 
 {
 	uint8_t buffer[BOOTP_BUFFER_OUT_SIZE];
 	int rc= 0;
@@ -236,9 +294,10 @@ static void usbhid_kbd_set_led(usbhid_kbd_t *kbd_dev)
 	usb_log_debug("Output report buffer: %s\n", 
 	    usb_debug_str_buffer(buffer, BOOTP_BUFFER_OUT_SIZE, 0));
 	
-	assert(kbd_dev->hid_dev != NULL);
-	assert(kbd_dev->hid_dev->initialized == USBHID_KBD_STATUS_INITIALIZED);
-	usbhid_req_set_report(kbd_dev->hid_dev, USB_HID_REPORT_TYPE_OUTPUT, 
+	assert(kbd_dev->usb_dev != NULL);
+	
+	usbhid_req_set_report(&kbd_dev->usb_dev->ctrl_pipe, 
+	    kbd_dev->usb_dev->interface_no, USB_HID_REPORT_TYPE_OUTPUT, 
 	    buffer, BOOTP_BUFFER_OUT_SIZE);
 }
 
@@ -259,7 +318,7 @@ static void usbhid_kbd_set_led(usbhid_kbd_t *kbd_dev)
  *             KEY_PRESS, KEY_RELEASE
  * @param key Key code of the key according to HID Usage Tables.
  */
-void usbhid_kbd_push_ev(usbhid_kbd_t *kbd_dev, int type, unsigned int key)
+void usb_kbd_push_ev(usb_kbd_t *kbd_dev, int type, unsigned int key)
 {
 	console_event_t ev;
 	unsigned mod_mask;
@@ -309,7 +368,7 @@ void usbhid_kbd_push_ev(usbhid_kbd_t *kbd_dev, int type, unsigned int key)
 
 			/* Update keyboard lock indicator lights. */
 			if (kbd_dev->lock_keys != locks_old) {
-				usbhid_kbd_set_led(kbd_dev);
+				usb_kbd_set_led(kbd_dev);
 			}
 		} else {
 			kbd_dev->lock_keys = kbd_dev->lock_keys & ~mod_mask;
@@ -357,51 +416,8 @@ void usbhid_kbd_push_ev(usbhid_kbd_t *kbd_dev, int type, unsigned int key)
 }
 
 /*----------------------------------------------------------------------------*/
-/**
- * Checks if modifiers were pressed or released and generates key events.
- *
- * @param kbd_dev Keyboard device structure.
- * @param modifiers Bitmap of modifiers.
- *
- * @sa usbhid_kbd_push_ev()
- */
-//static void usbhid_kbd_check_modifier_changes(usbhid_kbd_t *kbd_dev, 
-//    const uint8_t *key_codes, size_t count)
-//{
-//	/*
-//	 * TODO: why the USB keyboard has NUM_, SCROLL_ and CAPS_LOCK
-//	 *       both as modifiers and as keyUSB_HID_LOCK_COUNTs with their own scancodes???
-//	 *
-//	 * modifiers should be sent as normal keys to usbhid_parse_scancode()!!
-//	 * so maybe it would be better if I received it from report parser in 
-//	 * that way
-//	 */
-	
-//	int i;
-//	for (i = 0; i < count; ++i) {
-//		if ((modifiers & usb_hid_modifiers_consts[i]) &&
-//		    !(kbd_dev->modifiers & usb_hid_modifiers_consts[i])) {
-//			// modifier pressed
-//			if (usbhid_modifiers_keycodes[i] != 0) {
-//				usbhid_kbd_push_ev(kbd_dev, KEY_PRESS, 
-//				    usbhid_modifiers_keycodes[i]);
-//			}
-//		} else if (!(modifiers & usb_hid_modifiers_consts[i]) &&
-//		    (kbd_dev->modifiers & usb_hid_modifiers_consts[i])) {
-//			// modifier released
-//			if (usbhid_modifiers_keycodes[i] != 0) {
-//				usbhid_kbd_push_ev(kbd_dev, KEY_RELEASE, 
-//				    usbhid_modifiers_keycodes[i]);
-//			}
-//		}	// no change
-//	}
-	
-//	kbd_dev->modifiers = modifiers;
-//}
 
-/*----------------------------------------------------------------------------*/
-
-static inline int usbhid_kbd_is_lock(unsigned int key_code) 
+static inline int usb_kbd_is_lock(unsigned int key_code) 
 {
 	return (key_code == KC_NUM_LOCK
 	    || key_code == KC_SCROLL_LOCK
@@ -413,18 +429,18 @@ static inline int usbhid_kbd_is_lock(unsigned int key_code)
  * Checks if some keys were pressed or released and generates key events.
  *
  * An event is created only when key is pressed or released. Besides handling
- * the events (usbhid_kbd_push_ev()), the auto-repeat fibril is notified about
- * key presses and releases (see usbhid_kbd_repeat_start() and 
- * usbhid_kbd_repeat_stop()).
+ * the events (usb_kbd_push_ev()), the auto-repeat fibril is notified about
+ * key presses and releases (see usb_kbd_repeat_start() and 
+ * usb_kbd_repeat_stop()).
  *
  * @param kbd_dev Keyboard device structure.
  * @param key_codes Parsed keyboard report - codes of currently pressed keys 
  *                  according to HID Usage Tables.
  * @param count Number of key codes in report (size of the report).
  *
- * @sa usbhid_kbd_push_ev(), usbhid_kbd_repeat_start(), usbhid_kbd_repeat_stop()
+ * @sa usb_kbd_push_ev(), usb_kbd_repeat_start(), usb_kbd_repeat_stop()
  */
-static void usbhid_kbd_check_key_changes(usbhid_kbd_t *kbd_dev, 
+static void usb_kbd_check_key_changes(usb_kbd_t *kbd_dev, 
     const uint8_t *key_codes, size_t count)
 {
 	unsigned int key;
@@ -433,7 +449,7 @@ static void usbhid_kbd_check_key_changes(usbhid_kbd_t *kbd_dev,
 	/*
 	 * First of all, check if the kbd have reported phantom state.
 	 *
-	 * TODO: this must be changed as we don't know which keys are modifiers
+	 *  this must be changed as we don't know which keys are modifiers
 	 *       and which are regular keys.
 	 */
 	i = 0;
@@ -465,10 +481,10 @@ static void usbhid_kbd_check_key_changes(usbhid_kbd_t *kbd_dev,
 		if (i == count) {
 			// not found, i.e. the key was released
 			key = usbhid_parse_scancode(kbd_dev->keys[j]);
-			if (!usbhid_kbd_is_lock(key)) {
-				usbhid_kbd_repeat_stop(kbd_dev, key);
+			if (!usb_kbd_is_lock(key)) {
+				usb_kbd_repeat_stop(kbd_dev, key);
 			}
-			usbhid_kbd_push_ev(kbd_dev, KEY_RELEASE, key);
+			usb_kbd_push_ev(kbd_dev, KEY_RELEASE, key);
 			usb_log_debug2("Key released: %d\n", key);
 		} else {
 			// found, nothing happens
@@ -490,9 +506,9 @@ static void usbhid_kbd_check_key_changes(usbhid_kbd_t *kbd_dev,
 			key = usbhid_parse_scancode(key_codes[i]);
 			usb_log_debug2("Key pressed: %d (keycode: %d)\n", key,
 			    key_codes[i]);
-			usbhid_kbd_push_ev(kbd_dev, KEY_PRESS, key);
-			if (!usbhid_kbd_is_lock(key)) {
-				usbhid_kbd_repeat_start(kbd_dev, key);
+			usb_kbd_push_ev(kbd_dev, KEY_PRESS, key);
+			if (!usb_kbd_is_lock(key)) {
+				usb_kbd_repeat_start(kbd_dev, key);
 			}
 		} else {
 			// found, nothing happens
@@ -522,9 +538,9 @@ static void usbhid_kbd_check_key_changes(usbhid_kbd_t *kbd_dev,
  * @param arg User-specified argument. Expects pointer to the keyboard device
  *            structure representing the keyboard.
  *
- * @sa usbhid_kbd_check_key_changes(), usbhid_kbd_check_modifier_changes()
+ * @sa usb_kbd_check_key_changes(), usb_kbd_check_modifier_changes()
  */
-static void usbhid_kbd_process_keycodes(const uint8_t *key_codes, size_t count,
+static void usb_kbd_process_keycodes(const uint8_t *key_codes, size_t count,
     uint8_t modifiers, void *arg)
 {
 	if (arg == NULL) {
@@ -533,7 +549,7 @@ static void usbhid_kbd_process_keycodes(const uint8_t *key_codes, size_t count,
 		return;
 	}
 	
-	usbhid_kbd_t *kbd_dev = (usbhid_kbd_t *)arg;
+	usb_kbd_t *kbd_dev = (usb_kbd_t *)arg;
 	assert(kbd_dev != NULL);
 
 	usb_log_debug("Got keys from parser: %s\n", 
@@ -545,8 +561,8 @@ static void usbhid_kbd_process_keycodes(const uint8_t *key_codes, size_t count,
 		return;
 	}
 	
-	///usbhid_kbd_check_modifier_changes(kbd_dev, key_codes, count);
-	usbhid_kbd_check_key_changes(kbd_dev, key_codes, count);
+	///usb_kbd_check_modifier_changes(kbd_dev, key_codes, count);
+	usb_kbd_check_key_changes(kbd_dev, key_codes, count);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -557,7 +573,7 @@ static void usbhid_kbd_process_keycodes(const uint8_t *key_codes, size_t count,
  *
  * This function uses the HID report parser to translate the data received from
  * the device into generic USB HID key codes and into generic modifiers bitmap.
- * The parser then calls the given callback (usbhid_kbd_process_keycodes()).
+ * The parser then calls the given callback (usb_kbd_process_keycodes()).
  *
  * @note Currently, only the boot protocol is supported.
  *
@@ -565,27 +581,33 @@ static void usbhid_kbd_process_keycodes(const uint8_t *key_codes, size_t count,
  * @param buffer Data from the keyboard (i.e. the report).
  * @param actual_size Size of the data from keyboard (report size) in bytes.
  *
- * @sa usbhid_kbd_process_keycodes(), usb_hid_boot_keyboard_input_report().
+ * @sa usb_kbd_process_keycodes(), usb_hid_boot_keyboard_input_report(),
+ *     usb_hid_parse_report().
  */
-static void usbhid_kbd_process_data(usbhid_kbd_t *kbd_dev,
+static void usb_kbd_process_data(usb_kbd_t *kbd_dev,
                                     uint8_t *buffer, size_t actual_size)
 {
-	assert(kbd_dev->initialized == USBHID_KBD_STATUS_INITIALIZED);
-	assert(kbd_dev->hid_dev->parser != NULL);
+	assert(kbd_dev->initialized == USB_KBD_STATUS_INITIALIZED);
+	assert(kbd_dev->parser != NULL);
 	
 	usb_hid_report_in_callbacks_t *callbacks =
 	    (usb_hid_report_in_callbacks_t *)malloc(
 	        sizeof(usb_hid_report_in_callbacks_t));
 	
-	callbacks->keyboard = usbhid_kbd_process_keycodes;
+	callbacks->keyboard = usb_kbd_process_keycodes;
 
 	usb_log_debug("Calling usb_hid_parse_report() with "
 	    "buffer %s\n", usb_debug_str_buffer(buffer, actual_size, 0));
 	
 //	int rc = usb_hid_boot_keyboard_input_report(buffer, actual_size,
 //	    callbacks, kbd_dev);
-	int rc = usb_hid_parse_report(kbd_dev->hid_dev->parser, buffer,
-	    actual_size, callbacks, kbd_dev);
+	usb_hid_report_path_t *path = usb_hid_report_path();
+	usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_KEYBOARD, 0);
+	
+	int rc = usb_hid_parse_report(kbd_dev->parser, buffer,
+	    actual_size, path, USB_HID_PATH_COMPARE_STRICT, callbacks, kbd_dev);
+
+	usb_hid_report_path_free (path);
 	
 	if (rc != EOK) {
 		usb_log_warning("Error in usb_hid_boot_keyboard_input_report():"
@@ -596,44 +618,49 @@ static void usbhid_kbd_process_data(usbhid_kbd_t *kbd_dev,
 /*----------------------------------------------------------------------------*/
 /* HID/KBD structure manipulation                                             */
 /*----------------------------------------------------------------------------*/
+
+static void usb_kbd_mark_unusable(usb_kbd_t *kbd_dev)
+{
+	kbd_dev->initialized = USB_KBD_STATUS_TO_DESTROY;
+}
+
+
+/*----------------------------------------------------------------------------*/
+/* API functions                                                              */
+/*----------------------------------------------------------------------------*/
 /**
  * Creates a new USB/HID keyboard structure.
  *
  * The structure returned by this function is not initialized. Use 
- * usbhid_kbd_init() to initialize it prior to polling.
+ * usb_kbd_init() to initialize it prior to polling.
  *
  * @return New uninitialized structure for representing a USB/HID keyboard or
  *         NULL if not successful (memory error).
  */
-static usbhid_kbd_t *usbhid_kbd_new(void)
+usb_kbd_t *usb_kbd_new(void)
 {
-	usbhid_kbd_t *kbd_dev = 
-	    (usbhid_kbd_t *)malloc(sizeof(usbhid_kbd_t));
+	usb_kbd_t *kbd_dev = 
+	    (usb_kbd_t *)malloc(sizeof(usb_kbd_t));
 
 	if (kbd_dev == NULL) {
 		usb_log_fatal("No memory!\n");
 		return NULL;
 	}
 	
-	memset(kbd_dev, 0, sizeof(usbhid_kbd_t));
+	memset(kbd_dev, 0, sizeof(usb_kbd_t));
 	
-	kbd_dev->hid_dev = usbhid_dev_new();
-	if (kbd_dev->hid_dev == NULL) {
-		usb_log_fatal("Could not create HID device structure.\n");
+	kbd_dev->parser = (usb_hid_report_parser_t *)(malloc(sizeof(
+	    usb_hid_report_parser_t)));
+	if (kbd_dev->parser == NULL) {
+		usb_log_fatal("No memory!\n");
+		free(kbd_dev);
 		return NULL;
 	}
 	
 	kbd_dev->console_phone = -1;
-	kbd_dev->initialized = USBHID_KBD_STATUS_UNINITIALIZED;
+	kbd_dev->initialized = USB_KBD_STATUS_UNINITIALIZED;
 	
 	return kbd_dev;
-}
-
-/*----------------------------------------------------------------------------*/
-
-static void usbhid_kbd_mark_unusable(usbhid_kbd_t *kbd_dev)
-{
-	kbd_dev->initialized = USBHID_KBD_STATUS_TO_DESTROY;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -657,7 +684,7 @@ static void usbhid_kbd_mark_unusable(usbhid_kbd_t *kbd_dev)
  * @retval EINVAL if some parameter is not given.
  * @return Other value inherited from function usbhid_dev_init().
  */
-static int usbhid_kbd_init(usbhid_kbd_t *kbd_dev, ddf_dev_t *dev)
+int usb_kbd_init(usb_kbd_t *kbd_dev, usb_device_t *dev)
 {
 	int rc;
 	
@@ -670,33 +697,65 @@ static int usbhid_kbd_init(usbhid_kbd_t *kbd_dev, ddf_dev_t *dev)
 	}
 	
 	if (dev == NULL) {
-		usb_log_error("Failed to init keyboard structure: no device"
+		usb_log_error("Failed to init keyboard structure: no USB device"
 		    " given.\n");
 		return EINVAL;
 	}
 	
-	if (kbd_dev->initialized == USBHID_KBD_STATUS_INITIALIZED) {
+	if (kbd_dev->initialized == USB_KBD_STATUS_INITIALIZED) {
 		usb_log_warning("Keyboard structure already initialized.\n");
 		return EINVAL;
 	}
 	
-	rc = usbhid_dev_init(kbd_dev->hid_dev, dev, &poll_endpoint_description);
+	/* TODO: does not work! */
+	if (!dev->pipes[USB_KBD_POLL_EP_NO].present) {
+		usb_log_warning("Required endpoint not found - probably not "
+		    "a supported device.\n");
+		return ENOTSUP;
+	}
 	
+	/* The USB device should already be initialized, save it in structure */
+	kbd_dev->usb_dev = dev;
+	
+	/* Initialize the report parser. */
+	rc = usb_hid_parser_init(kbd_dev->parser);
 	if (rc != EOK) {
-		usb_log_error("Failed to initialize HID device structure: %s\n",
-		   str_error(rc));
+		usb_log_error("Failed to initialize report parser.\n");
 		return rc;
 	}
 	
-	assert(kbd_dev->hid_dev->initialized == USBHID_KBD_STATUS_INITIALIZED);
+	/* Get the report descriptor and parse it. */
+	rc = usb_hid_process_report_descriptor(kbd_dev->usb_dev, 
+	    kbd_dev->parser);
+	if (rc != EOK) {
+		usb_log_warning("Could not process report descriptor, "
+		    "falling back to boot protocol.\n");
+		rc = usb_hid_parse_report_descriptor(kbd_dev->parser, 
+		    BOOT_REPORT_DESCRIPTOR, BOOT_REPORT_DESCRIPTOR_SIZE);
+		if (rc != EOK) {
+			usb_log_error("Failed to parse boot report descriptor:"
+			    " %s.\n", str_error(rc));
+			return rc;
+		}
+		
+		rc = usbhid_req_set_protocol(&kbd_dev->usb_dev->ctrl_pipe, 
+		    kbd_dev->usb_dev->interface_no, USB_HID_PROTOCOL_BOOT);
+		
+		if (rc != EOK) {
+			usb_log_warning("Failed to set boot protocol to the "
+			    "device: %s\n", str_error(rc));
+			return rc;
+		}
+	}
 	
-	// save the size of the report (boot protocol report by default)
-//	kbd_dev->key_count = BOOTP_REPORT_SIZE;
-	
-	usb_hid_report_path_t path;
-	path.usage_page = USB_HIDUT_PAGE_KEYBOARD;
+	/*
+	 * TODO: make more general
+	 */
+	usb_hid_report_path_t *path = usb_hid_report_path();
+	usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_KEYBOARD, 0);
 	kbd_dev->key_count = usb_hid_report_input_length(
-	    kbd_dev->hid_dev->parser, &path);
+	    kbd_dev->parser, path, USB_HID_PATH_COMPARE_STRICT);
+	usb_hid_report_path_free (path);
 	
 	usb_log_debug("Size of the input report: %zu\n", kbd_dev->key_count);
 	
@@ -728,267 +787,64 @@ static int usbhid_kbd_init(usbhid_kbd_t *kbd_dev, ddf_dev_t *dev)
 	fibril_mutex_initialize(kbd_dev->repeat_mtx);
 	
 	/*
-	 * Set boot protocol.
 	 * Set LEDs according to initial setup.
 	 * Set Idle rate
 	 */
-	assert(kbd_dev->hid_dev != NULL);
-	assert(kbd_dev->hid_dev->initialized);
-	//usbhid_req_set_protocol(kbd_dev->hid_dev, USB_HID_PROTOCOL_BOOT);
+	usb_kbd_set_led(kbd_dev);
 	
-	usbhid_kbd_set_led(kbd_dev);
+	usbhid_req_set_idle(&kbd_dev->usb_dev->ctrl_pipe, 
+	    kbd_dev->usb_dev->interface_no, IDLE_RATE);
 	
-	usbhid_req_set_idle(kbd_dev->hid_dev, IDLE_RATE);
-	
-	kbd_dev->initialized = USBHID_KBD_STATUS_INITIALIZED;
+	kbd_dev->initialized = USB_KBD_STATUS_INITIALIZED;
 	usb_log_debug("HID/KBD device structure initialized.\n");
 	
 	return EOK;
 }
 
 /*----------------------------------------------------------------------------*/
-/* HID/KBD polling                                                            */
-/*----------------------------------------------------------------------------*/
-/**
- * Main keyboard polling function.
- *
- * This function uses the Interrupt In pipe of the keyboard to poll for events.
- * The keyboard is initialized in a way that it reports only when a key is 
- * pressed or released, so there is no actual need for any sleeping between
- * polls (see usbhid_kbd_try_add_device() or usbhid_kbd_init()).
- *
- * @param kbd_dev Initialized keyboard structure representing the device to 
- *                poll.
- *
- * @sa usbhid_kbd_process_data()
- */
-static void usbhid_kbd_poll(usbhid_kbd_t *kbd_dev)
+
+bool usb_kbd_polling_callback(usb_device_t *dev, uint8_t *buffer,
+     size_t buffer_size, void *arg)
 {
-	int rc, sess_rc;
-	uint8_t buffer[BOOTP_BUFFER_SIZE];
-	size_t actual_size;
+	if (dev == NULL || buffer == NULL || arg == NULL) {
+		// do not continue polling (???)
+		return false;
+	}
 	
-	usb_log_debug("Polling keyboard...\n");
+	usb_kbd_t *kbd_dev = (usb_kbd_t *)arg;
 	
-	if (!kbd_dev->initialized) {
-		usb_log_error("HID/KBD device not initialized!\n");
+	// TODO: add return value from this function
+	usb_kbd_process_data(kbd_dev, buffer, buffer_size);
+	
+	return true;
+}
+
+/*----------------------------------------------------------------------------*/
+
+void usb_kbd_polling_ended_callback(usb_device_t *dev, bool reason, 
+     void *arg)
+{
+	if (dev == NULL || arg == NULL) {
 		return;
 	}
 	
-	assert(kbd_dev->hid_dev != NULL);
-	assert(kbd_dev->hid_dev->initialized);
-
-	while (true) {
-		sess_rc = usb_pipe_start_session(
-		    &kbd_dev->hid_dev->poll_pipe);
-		if (sess_rc != EOK) {
-			usb_log_warning("Failed to start a session: %s.\n",
-			    str_error(sess_rc));
-			break;
-		}
-
-		rc = usb_pipe_read(&kbd_dev->hid_dev->poll_pipe, 
-		    buffer, BOOTP_BUFFER_SIZE, &actual_size);
-		
-		sess_rc = usb_pipe_end_session(
-		    &kbd_dev->hid_dev->poll_pipe);
-
-		if (rc != EOK) {
-			usb_log_warning("Error polling the keyboard: %s.\n",
-			    str_error(rc));
-			break;
-		}
-
-		if (sess_rc != EOK) {
-			usb_log_warning("Error closing session: %s.\n",
-			    str_error(sess_rc));
-			break;
-		}
-
-		/*
-		 * If the keyboard answered with NAK, it returned no data.
-		 * This implies that no change happened since last query.
-		 */
-		if (actual_size == 0) {
-			usb_log_debug("Keyboard returned NAK\n");
-			continue;
-		}
-
-		/*
-		 * TODO: Process pressed keys.
-		 */
-		usb_log_debug("Calling usbhid_kbd_process_data()\n");
-		usbhid_kbd_process_data(kbd_dev, buffer, actual_size);
-		
-		// disabled for now, no reason to sleep
-		//async_usleep(kbd_dev->hid_dev->poll_interval);
-	}
-}
-
-/*----------------------------------------------------------------------------*/
-/**
- * Function executed by the main driver fibril.
- *
- * Just starts polling the keyboard for events.
- * 
- * @param arg Initialized keyboard device structure (of type usbhid_kbd_t) 
- *            representing the device.
- *
- * @retval EOK if the fibril finished polling the device.
- * @retval EINVAL if no device was given in the argument.
- *
- * @sa usbhid_kbd_poll()
- *
- * @todo Change return value - only case when the fibril finishes is in case
- *       of some error, so the error should probably be propagated from function
- *       usbhid_kbd_poll() to here and up.
- */
-static int usbhid_kbd_fibril(void *arg)
-{
-	if (arg == NULL) {
-		usb_log_error("No device!\n");
-		return EINVAL;
-	}
+	usb_kbd_t *kbd = (usb_kbd_t *)arg;
 	
-	usbhid_kbd_t *kbd_dev = (usbhid_kbd_t *)arg;
-
-	usbhid_kbd_poll(kbd_dev);
-	
-	// as there is another fibril using this device, so we must leave the
-	// structure to it, but mark it for destroying.
-	usbhid_kbd_mark_unusable(kbd_dev);
-	// at the end, properly destroy the KBD structure
-//	usbhid_kbd_free(&kbd_dev);
-//	assert(kbd_dev == NULL);
-
-	return EOK;
-}
-
-/*----------------------------------------------------------------------------*/
-/* API functions                                                              */
-/*----------------------------------------------------------------------------*/
-/**
- * Function for adding a new device of type USB/HID/keyboard.
- *
- * This functions initializes required structures from the device's descriptors
- * and starts new fibril for polling the keyboard for events and another one for
- * handling auto-repeat of keys.
- *
- * During initialization, the keyboard is switched into boot protocol, the idle
- * rate is set to 0 (infinity), resulting in the keyboard only reporting event
- * when a key is pressed or released. Finally, the LED lights are turned on 
- * according to the default setup of lock keys.
- *
- * @note By default, the keyboards is initialized with Num Lock turned on and 
- *       other locks turned off.
- * @note Currently supports only boot-protocol keyboards.
- *
- * @param dev Device to add.
- *
- * @retval EOK if successful.
- * @retval ENOMEM if there
- * @return Other error code inherited from one of functions usbhid_kbd_init(),
- *         ddf_fun_bind() and ddf_fun_add_to_class().
- *
- * @sa usbhid_kbd_fibril(), usbhid_kbd_repeat_fibril()
- */
-int usbhid_kbd_try_add_device(ddf_dev_t *dev)
-{
-	/*
-	 * Create default function.
-	 */
-	ddf_fun_t *kbd_fun = ddf_fun_create(dev, fun_exposed, "keyboard");
-	if (kbd_fun == NULL) {
-		usb_log_error("Could not create DDF function node.\n");
-		return ENOMEM;
-	}
-	
-	/* 
-	 * Initialize device (get and process descriptors, get address, etc.)
-	 */
-	usb_log_debug("Initializing USB/HID KBD device...\n");
-	
-	usbhid_kbd_t *kbd_dev = usbhid_kbd_new();
-	if (kbd_dev == NULL) {
-		usb_log_error("Error while creating USB/HID KBD device "
-		    "structure.\n");
-		ddf_fun_destroy(kbd_fun);
-		return ENOMEM;  // TODO: some other code??
-	}
-	
-	int rc = usbhid_kbd_init(kbd_dev, dev);
-	
-	if (rc != EOK) {
-		usb_log_error("Failed to initialize USB/HID KBD device.\n");
-		ddf_fun_destroy(kbd_fun);
-		usbhid_kbd_free(&kbd_dev);
-		return rc;
-	}	
-	
-	usb_log_debug("USB/HID KBD device structure initialized.\n");
-	
-	/*
-	 * Store the initialized keyboard device and keyboard ops
-	 * to the DDF function.
-	 */
-	kbd_fun->driver_data = kbd_dev;
-	kbd_fun->ops = &keyboard_ops;
-
-	rc = ddf_fun_bind(kbd_fun);
-	if (rc != EOK) {
-		usb_log_error("Could not bind DDF function: %s.\n",
-		    str_error(rc));
-		// TODO: Can / should I destroy the DDF function?
-		ddf_fun_destroy(kbd_fun);
-		usbhid_kbd_free(&kbd_dev);
-		return rc;
-	}
-	
-	rc = ddf_fun_add_to_class(kbd_fun, "keyboard");
-	if (rc != EOK) {
-		usb_log_error(
-		    "Could not add DDF function to class 'keyboard': %s.\n",
-		    str_error(rc));
-		// TODO: Can / should I destroy the DDF function?
-		ddf_fun_destroy(kbd_fun);
-		usbhid_kbd_free(&kbd_dev);
-		return rc;
-	}
-	
-	/*
-	 * Create new fibril for handling this keyboard
-	 */
-	fid_t fid = fibril_create(usbhid_kbd_fibril, kbd_dev);
-	if (fid == 0) {
-		usb_log_error("Failed to start fibril for `%s' device.\n",
-		    dev->name);
-		return ENOMEM;
-	}
-	fibril_add_ready(fid);
-	
-	/*
-	 * Create new fibril for auto-repeat
-	 */
-	fid = fibril_create(usbhid_kbd_repeat_fibril, kbd_dev);
-	if (fid == 0) {
-		usb_log_error("Failed to start fibril for KBD auto-repeat");
-		return ENOMEM;
-	}
-	fibril_add_ready(fid);
-
-	(void)keyboard_ops;
-
-	/*
-	 * Hurrah, device is initialized.
-	 */
-	return EOK;
+	usb_kbd_mark_unusable(kbd);
 }
 
 /*----------------------------------------------------------------------------*/
 
-int usbhid_kbd_is_usable(const usbhid_kbd_t *kbd_dev)
+int usb_kbd_is_initialized(const usb_kbd_t *kbd_dev)
 {
-	return (kbd_dev->initialized == USBHID_KBD_STATUS_INITIALIZED);
+	return (kbd_dev->initialized == USB_KBD_STATUS_INITIALIZED);
+}
+
+/*----------------------------------------------------------------------------*/
+
+int usb_kbd_is_ready_to_destroy(const usb_kbd_t *kbd_dev)
+{
+	return (kbd_dev->initialized == USB_KBD_STATUS_TO_DESTROY);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -997,7 +853,7 @@ int usbhid_kbd_is_usable(const usbhid_kbd_t *kbd_dev)
  *
  * @param kbd_dev Pointer to the structure to be destroyed.
  */
-void usbhid_kbd_free(usbhid_kbd_t **kbd_dev)
+void usb_kbd_free(usb_kbd_t **kbd_dev)
 {
 	if (kbd_dev == NULL || *kbd_dev == NULL) {
 		return;
@@ -1006,16 +862,23 @@ void usbhid_kbd_free(usbhid_kbd_t **kbd_dev)
 	// hangup phone to the console
 	async_hangup((*kbd_dev)->console_phone);
 	
-	if ((*kbd_dev)->hid_dev != NULL) {
-		usbhid_dev_free(&(*kbd_dev)->hid_dev);
-		assert((*kbd_dev)->hid_dev == NULL);
-	}
+//	if ((*kbd_dev)->hid_dev != NULL) {
+//		usbhid_dev_free(&(*kbd_dev)->hid_dev);
+//		assert((*kbd_dev)->hid_dev == NULL);
+//	}
 	
 	if ((*kbd_dev)->repeat_mtx != NULL) {
 		/* TODO: replace by some check and wait */
 		assert(!fibril_mutex_is_locked((*kbd_dev)->repeat_mtx));
 		free((*kbd_dev)->repeat_mtx);
 	}
+	
+	// destroy the parser
+	if ((*kbd_dev)->parser != NULL) {
+		usb_hid_free_report_parser((*kbd_dev)->parser);
+	}
+	
+	/* TODO: what about the USB device structure?? */
 
 	free(*kbd_dev);
 	*kbd_dev = NULL;

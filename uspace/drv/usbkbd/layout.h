@@ -35,8 +35,8 @@
  * Keyboard layout.
  */
 
-#ifndef USBHID_LAYOUT_H_
-#define USBHID_LAYOUT_H_
+#ifndef USB_KBD_LAYOUT_H_
+#define USB_KBD_LAYOUT_H_
 
 #include <sys/types.h>
 #include <io/console.h>

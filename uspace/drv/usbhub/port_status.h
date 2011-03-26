@@ -29,8 +29,8 @@
  * @{
  */
 
-#ifndef PORT_STATUS_H
-#define	PORT_STATUS_H
+#ifndef HUB_PORT_STATUS_H
+#define	HUB_PORT_STATUS_H
 
 #include <bool.h>
 #include <sys/types.h>
@@ -334,7 +334,7 @@ static inline void usb_port_set_reset_completed(usb_port_status_t * status,bool 
 
 
 
-#endif	/* PORT_STATUS_H */
+#endif	/* HUB_PORT_STATUS_H */
 
 /**
  * @}

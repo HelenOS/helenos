@@ -40,9 +40,9 @@
 #include <usb/classes/hid.h>
 #include <usb/debug.h>
 #include <usb/request.h>
+#include <usb/pipes.h>
 
-#include "hidreq.h"
-#include "hiddev.h"
+#include <usb/classes/hidreq.h>
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -59,12 +59,17 @@
  *         usb_pipe_start_session(), usb_pipe_end_session(),
  *         usb_control_request_set().
  */
-int usbhid_req_set_report(usbhid_dev_t *hid_dev,
+int usbhid_req_set_report(usb_pipe_t *ctrl_pipe, int iface_no,
     usb_hid_report_type_t type, uint8_t *buffer, size_t buf_size)
 {
-	if (hid_dev == NULL) {
-		usb_log_error("usbhid_req_set_report(): no HID device structure"
-		    " given.\n");
+	if (ctrl_pipe == NULL) {
+		usb_log_warning("usbhid_req_set_report(): no pipe given.\n");
+		return EINVAL;
+	}
+	
+	if (iface_no < 0) {
+		usb_log_warning("usbhid_req_set_report(): no interface given."
+		    "\n");
 		return EINVAL;
 	}
 	
@@ -75,7 +80,7 @@ int usbhid_req_set_report(usbhid_dev_t *hid_dev,
 	
 	int rc, sess_rc;
 	
-	sess_rc = usb_pipe_start_session(&hid_dev->ctrl_pipe);
+	sess_rc = usb_pipe_start_session(ctrl_pipe);
 	if (sess_rc != EOK) {
 		usb_log_warning("Failed to start a session: %s.\n",
 		    str_error(sess_rc));
@@ -87,11 +92,11 @@ int usbhid_req_set_report(usbhid_dev_t *hid_dev,
 
 	usb_log_debug("Sending Set_Report request to the device.\n");
 	
-	rc = usb_control_request_set(&hid_dev->ctrl_pipe, 
+	rc = usb_control_request_set(ctrl_pipe, 
 	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_INTERFACE, 
-	    USB_HIDREQ_SET_REPORT, value, hid_dev->iface, buffer, buf_size);
+	    USB_HIDREQ_SET_REPORT, value, iface_no, buffer, buf_size);
 
-	sess_rc = usb_pipe_end_session(&hid_dev->ctrl_pipe);
+	sess_rc = usb_pipe_end_session(ctrl_pipe);
 
 	if (rc != EOK) {
 		usb_log_warning("Error sending output report to the keyboard: "
@@ -121,11 +126,17 @@ int usbhid_req_set_report(usbhid_dev_t *hid_dev,
  *         usb_pipe_start_session(), usb_pipe_end_session(),
  *         usb_control_request_set().
  */
-int usbhid_req_set_protocol(usbhid_dev_t *hid_dev, usb_hid_protocol_t protocol)
+int usbhid_req_set_protocol(usb_pipe_t *ctrl_pipe, int iface_no,
+    usb_hid_protocol_t protocol)
 {
-	if (hid_dev == NULL) {
-		usb_log_error("usbhid_req_set_protocol(): no HID device "
-		    "structure given.\n");
+	if (ctrl_pipe == NULL) {
+		usb_log_warning("usbhid_req_set_report(): no pipe given.\n");
+		return EINVAL;
+	}
+	
+	if (iface_no < 0) {
+		usb_log_warning("usbhid_req_set_report(): no interface given."
+		    "\n");
 		return EINVAL;
 	}
 	
@@ -136,7 +147,7 @@ int usbhid_req_set_protocol(usbhid_dev_t *hid_dev, usb_hid_protocol_t protocol)
 	
 	int rc, sess_rc;
 	
-	sess_rc = usb_pipe_start_session(&hid_dev->ctrl_pipe);
+	sess_rc = usb_pipe_start_session(ctrl_pipe);
 	if (sess_rc != EOK) {
 		usb_log_warning("Failed to start a session: %s.\n",
 		    str_error(sess_rc));
@@ -144,13 +155,13 @@ int usbhid_req_set_protocol(usbhid_dev_t *hid_dev, usb_hid_protocol_t protocol)
 	}
 
 	usb_log_debug("Sending Set_Protocol request to the device ("
-	    "protocol: %d, iface: %d).\n", protocol, hid_dev->iface);
+	    "protocol: %d, iface: %d).\n", protocol, iface_no);
 	
-	rc = usb_control_request_set(&hid_dev->ctrl_pipe, 
+	rc = usb_control_request_set(ctrl_pipe, 
 	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_INTERFACE, 
-	    USB_HIDREQ_SET_PROTOCOL, protocol, hid_dev->iface, NULL, 0);
+	    USB_HIDREQ_SET_PROTOCOL, protocol, iface_no, NULL, 0);
 
-	sess_rc = usb_pipe_end_session(&hid_dev->ctrl_pipe);
+	sess_rc = usb_pipe_end_session(ctrl_pipe);
 
 	if (rc != EOK) {
 		usb_log_warning("Error sending output report to the keyboard: "
@@ -181,11 +192,16 @@ int usbhid_req_set_protocol(usbhid_dev_t *hid_dev, usb_hid_protocol_t protocol)
  *         usb_pipe_start_session(), usb_pipe_end_session(),
  *         usb_control_request_set().
  */
-int usbhid_req_set_idle(usbhid_dev_t *hid_dev, uint8_t duration)
+int usbhid_req_set_idle(usb_pipe_t *ctrl_pipe, int iface_no, uint8_t duration)
 {
-	if (hid_dev == NULL) {
-		usb_log_error("usbhid_req_set_idle(): no HID device "
-		    "structure given.\n");
+	if (ctrl_pipe == NULL) {
+		usb_log_warning("usbhid_req_set_report(): no pipe given.\n");
+		return EINVAL;
+	}
+	
+	if (iface_no < 0) {
+		usb_log_warning("usbhid_req_set_report(): no interface given."
+		    "\n");
 		return EINVAL;
 	}
 	
@@ -196,7 +212,7 @@ int usbhid_req_set_idle(usbhid_dev_t *hid_dev, uint8_t duration)
 	
 	int rc, sess_rc;
 	
-	sess_rc = usb_pipe_start_session(&hid_dev->ctrl_pipe);
+	sess_rc = usb_pipe_start_session(ctrl_pipe);
 	if (sess_rc != EOK) {
 		usb_log_warning("Failed to start a session: %s.\n",
 		    str_error(sess_rc));
@@ -204,15 +220,15 @@ int usbhid_req_set_idle(usbhid_dev_t *hid_dev, uint8_t duration)
 	}
 
 	usb_log_debug("Sending Set_Idle request to the device ("
-	    "duration: %u, iface: %d).\n", duration, hid_dev->iface);
+	    "duration: %u, iface: %d).\n", duration, iface_no);
 	
 	uint16_t value = duration << 8;
 	
-	rc = usb_control_request_set(&hid_dev->ctrl_pipe, 
+	rc = usb_control_request_set(ctrl_pipe, 
 	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_INTERFACE, 
-	    USB_HIDREQ_SET_IDLE, value, hid_dev->iface, NULL, 0);
+	    USB_HIDREQ_SET_IDLE, value, iface_no, NULL, 0);
 
-	sess_rc = usb_pipe_end_session(&hid_dev->ctrl_pipe);
+	sess_rc = usb_pipe_end_session(ctrl_pipe);
 
 	if (rc != EOK) {
 		usb_log_warning("Error sending output report to the keyboard: "
@@ -246,12 +262,18 @@ int usbhid_req_set_idle(usbhid_dev_t *hid_dev, uint8_t duration)
  *         usb_pipe_start_session(), usb_pipe_end_session(),
  *         usb_control_request_set().
  */
-int usbhid_req_get_report(usbhid_dev_t *hid_dev, usb_hid_report_type_t type, 
-    uint8_t *buffer, size_t buf_size, size_t *actual_size)
+int usbhid_req_get_report(usb_pipe_t *ctrl_pipe, int iface_no, 
+    usb_hid_report_type_t type, uint8_t *buffer, size_t buf_size, 
+    size_t *actual_size)
 {
-	if (hid_dev == NULL) {
-		usb_log_error("usbhid_req_set_report(): no HID device structure"
-		    " given.\n");
+	if (ctrl_pipe == NULL) {
+		usb_log_warning("usbhid_req_set_report(): no pipe given.\n");
+		return EINVAL;
+	}
+	
+	if (iface_no < 0) {
+		usb_log_warning("usbhid_req_set_report(): no interface given."
+		    "\n");
 		return EINVAL;
 	}
 	
@@ -262,7 +284,7 @@ int usbhid_req_get_report(usbhid_dev_t *hid_dev, usb_hid_report_type_t type,
 	
 	int rc, sess_rc;
 	
-	sess_rc = usb_pipe_start_session(&hid_dev->ctrl_pipe);
+	sess_rc = usb_pipe_start_session(ctrl_pipe);
 	if (sess_rc != EOK) {
 		usb_log_warning("Failed to start a session: %s.\n",
 		    str_error(sess_rc));
@@ -274,12 +296,12 @@ int usbhid_req_get_report(usbhid_dev_t *hid_dev, usb_hid_report_type_t type,
 	
 	usb_log_debug("Sending Get_Report request to the device.\n");
 	
-	rc = usb_control_request_get(&hid_dev->ctrl_pipe, 
+	rc = usb_control_request_get(ctrl_pipe, 
 	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_INTERFACE, 
-	    USB_HIDREQ_GET_REPORT, value, hid_dev->iface, buffer, buf_size,
+	    USB_HIDREQ_GET_REPORT, value, iface_no, buffer, buf_size,
 	    actual_size);
 
-	sess_rc = usb_pipe_end_session(&hid_dev->ctrl_pipe);
+	sess_rc = usb_pipe_end_session(ctrl_pipe);
 
 	if (rc != EOK) {
 		usb_log_warning("Error sending output report to the keyboard: "
@@ -309,11 +331,17 @@ int usbhid_req_get_report(usbhid_dev_t *hid_dev, usb_hid_report_type_t type,
  *         usb_pipe_start_session(), usb_pipe_end_session(),
  *         usb_control_request_set().
  */
-int usbhid_req_get_protocol(usbhid_dev_t *hid_dev, usb_hid_protocol_t *protocol)
+int usbhid_req_get_protocol(usb_pipe_t *ctrl_pipe, int iface_no, 
+    usb_hid_protocol_t *protocol)
 {
-	if (hid_dev == NULL) {
-		usb_log_error("usbhid_req_set_protocol(): no HID device "
-		    "structure given.\n");
+	if (ctrl_pipe == NULL) {
+		usb_log_warning("usbhid_req_set_report(): no pipe given.\n");
+		return EINVAL;
+	}
+	
+	if (iface_no < 0) {
+		usb_log_warning("usbhid_req_set_report(): no interface given."
+		    "\n");
 		return EINVAL;
 	}
 	
@@ -324,7 +352,7 @@ int usbhid_req_get_protocol(usbhid_dev_t *hid_dev, usb_hid_protocol_t *protocol)
 	
 	int rc, sess_rc;
 	
-	sess_rc = usb_pipe_start_session(&hid_dev->ctrl_pipe);
+	sess_rc = usb_pipe_start_session(ctrl_pipe);
 	if (sess_rc != EOK) {
 		usb_log_warning("Failed to start a session: %s.\n",
 		    str_error(sess_rc));
@@ -332,16 +360,16 @@ int usbhid_req_get_protocol(usbhid_dev_t *hid_dev, usb_hid_protocol_t *protocol)
 	}
 
 	usb_log_debug("Sending Get_Protocol request to the device ("
-	    "iface: %d).\n", hid_dev->iface);
+	    "iface: %d).\n", iface_no);
 	
 	uint8_t buffer[1];
 	size_t actual_size = 0;
 	
-	rc = usb_control_request_get(&hid_dev->ctrl_pipe, 
+	rc = usb_control_request_get(ctrl_pipe, 
 	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_INTERFACE, 
-	    USB_HIDREQ_GET_PROTOCOL, 0, hid_dev->iface, buffer, 1, &actual_size);
+	    USB_HIDREQ_GET_PROTOCOL, 0, iface_no, buffer, 1, &actual_size);
 
-	sess_rc = usb_pipe_end_session(&hid_dev->ctrl_pipe);
+	sess_rc = usb_pipe_end_session(ctrl_pipe);
 
 	if (rc != EOK) {
 		usb_log_warning("Error sending output report to the keyboard: "
@@ -380,11 +408,16 @@ int usbhid_req_get_protocol(usbhid_dev_t *hid_dev, usb_hid_protocol_t *protocol)
  *         usb_pipe_start_session(), usb_pipe_end_session(),
  *         usb_control_request_set().
  */
-int usbhid_req_get_idle(usbhid_dev_t *hid_dev, uint8_t *duration)
+int usbhid_req_get_idle(usb_pipe_t *ctrl_pipe, int iface_no, uint8_t *duration)
 {
-	if (hid_dev == NULL) {
-		usb_log_error("usbhid_req_set_idle(): no HID device "
-		    "structure given.\n");
+	if (ctrl_pipe == NULL) {
+		usb_log_warning("usbhid_req_set_report(): no pipe given.\n");
+		return EINVAL;
+	}
+	
+	if (iface_no < 0) {
+		usb_log_warning("usbhid_req_set_report(): no interface given."
+		    "\n");
 		return EINVAL;
 	}
 	
@@ -395,7 +428,7 @@ int usbhid_req_get_idle(usbhid_dev_t *hid_dev, uint8_t *duration)
 	
 	int rc, sess_rc;
 	
-	sess_rc = usb_pipe_start_session(&hid_dev->ctrl_pipe);
+	sess_rc = usb_pipe_start_session(ctrl_pipe);
 	if (sess_rc != EOK) {
 		usb_log_warning("Failed to start a session: %s.\n",
 		    str_error(sess_rc));
@@ -403,18 +436,18 @@ int usbhid_req_get_idle(usbhid_dev_t *hid_dev, uint8_t *duration)
 	}
 
 	usb_log_debug("Sending Get_Idle request to the device ("
-	    "iface: %d).\n", hid_dev->iface);
+	    "iface: %d).\n", iface_no);
 	
 	uint16_t value = 0;
 	uint8_t buffer[1];
 	size_t actual_size = 0;
 	
-	rc = usb_control_request_get(&hid_dev->ctrl_pipe, 
+	rc = usb_control_request_get(ctrl_pipe, 
 	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_INTERFACE, 
-	    USB_HIDREQ_GET_IDLE, value, hid_dev->iface, buffer, 1, 
+	    USB_HIDREQ_GET_IDLE, value, iface_no, buffer, 1, 
 	    &actual_size);
 
-	sess_rc = usb_pipe_end_session(&hid_dev->ctrl_pipe);
+	sess_rc = usb_pipe_end_session(ctrl_pipe);
 
 	if (rc != EOK) {
 		usb_log_warning("Error sending output report to the keyboard: "

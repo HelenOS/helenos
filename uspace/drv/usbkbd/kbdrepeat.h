@@ -1,5 +1,4 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
  * Copyright (c) 2011 Lubos Slovak
  * All rights reserved.
  *
@@ -30,74 +29,39 @@
 /** @addtogroup drvusbhid
  * @{
  */
-/**
- * @file
- * Main routines of USB HID driver.
+/** @file
+ * USB HID keyboard autorepeat facilities
  */
 
-#include <ddf/driver.h>
-#include <usb/debug.h>
-#include <errno.h>
-#include <str_error.h>
+#ifndef USB_KBDREPEAT_H_
+#define USB_KBDREPEAT_H_
 
-#include "kbddev.h"
-
-/*----------------------------------------------------------------------------*/
-
-#define NAME "usbhid"
+struct usb_kbd_t;
 
 /*----------------------------------------------------------------------------*/
 /**
- * Callback for passing a new device to the driver.
- *
- * @note Currently, only boot-protocol keyboards are supported by this driver.
- *
- * @param dev Structure representing the new device.
- *
- * @retval EOK if successful. 
- * @retval EREFUSED if the device is not supported.
+ * Structure for keeping information needed for auto-repeat of keys.
  */
-static int usbhid_add_device(ddf_dev_t *dev)
-{
-	usb_log_debug("usbhid_add_device()\n");
-	
-	int rc = usbhid_kbd_try_add_device(dev);
-	
-	if (rc != EOK) {
-		usb_log_warning("Device is not a supported keyboard.\n");
-		usb_log_error("Failed to add HID device: %s.\n",
-		    str_error(rc));
-		return rc;
-	}
-	
-	usb_log_info("Keyboard `%s' ready to use.\n", dev->name);
-
-	return EOK;
-}
+typedef struct {
+	/** Last pressed key. */
+	unsigned int key_new;
+	/** Key to be repeated. */
+	unsigned int key_repeated;
+	/** Delay before first repeat in microseconds. */
+	unsigned int delay_before;
+	/** Delay between repeats in microseconds. */
+	unsigned int delay_between;
+} usb_kbd_repeat_t;
 
 /*----------------------------------------------------------------------------*/
 
-static driver_ops_t kbd_driver_ops = {
-	.add_device = usbhid_add_device,
-};
+int usb_kbd_repeat_fibril(void *arg);
 
-/*----------------------------------------------------------------------------*/
+void usb_kbd_repeat_start(struct usb_kbd_t *kbd, unsigned int key);
 
-static driver_t kbd_driver = {
-	.name = NAME,
-	.driver_ops = &kbd_driver_ops
-};
+void usb_kbd_repeat_stop(struct usb_kbd_t *kbd, unsigned int key);
 
-/*----------------------------------------------------------------------------*/
-
-int main(int argc, char *argv[])
-{
-	printf(NAME ": HelenOS USB HID driver.\n");
-
-	usb_log_enable(USB_LOG_LEVEL_DEFAULT, NAME);
-
-	return ddf_driver_main(&kbd_driver);
-}
+#endif /* USB_KBDREPEAT_H_ */
 
 /**
  * @}

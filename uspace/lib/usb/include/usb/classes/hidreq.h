@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2011 Lubos Slovak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,51 +25,45 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup drvusbuhcihc
+
+/** @addtogroup libusb
  * @{
  */
 /** @file
- * @brief UHCI driver transfer list structure
+ * HID class-specific requests.
  */
-#ifndef DRV_UHCI_TRANSFER_LIST_H
-#define DRV_UHCI_TRANSFER_LIST_H
 
-#include <fibril_synch.h>
+#ifndef USB_KBD_HIDREQ_H_
+#define USB_KBD_HIDREQ_H_
 
-#include "batch.h"
-#include "hw_struct/queue_head.h"
+#include <stdint.h>
 
-typedef struct transfer_list
-{
-	fibril_mutex_t guard;
-	qh_t *queue_head;
-	uint32_t queue_head_pa;
-	const char *name;
-	link_t batch_list;
-} transfer_list_t;
+#include <usb/classes/hid.h>
+#include <usb/pipes.h>
 
-/** Dispose transfer list structures.
- *
- * @param[in] instance Memory place to use.
- *
- * Frees memory for internal qh_t structure.
- */
-static inline void transfer_list_fini(transfer_list_t *instance)
-{
-	assert(instance);
-	free32(instance->queue_head);
-}
+/*----------------------------------------------------------------------------*/
 
-int transfer_list_init(transfer_list_t *instance, const char *name);
+int usbhid_req_set_report(usb_pipe_t *ctrl_pipe, int iface_no,
+    usb_hid_report_type_t type, uint8_t *buffer, size_t buf_size);
 
-void transfer_list_set_next(transfer_list_t *instance, transfer_list_t *next);
+int usbhid_req_set_protocol(usb_pipe_t *ctrl_pipe, int iface_no, 
+    usb_hid_protocol_t protocol);
 
-void transfer_list_add_batch(transfer_list_t *instance, usb_transfer_batch_t *batch);
+int usbhid_req_set_idle(usb_pipe_t *ctrl_pipe, int iface_no, uint8_t duration);
 
-void transfer_list_remove_finished(transfer_list_t *instance, link_t *done);
+int usbhid_req_get_report(usb_pipe_t *ctrl_pipe, int iface_no, 
+    usb_hid_report_type_t type, uint8_t *buffer, size_t buf_size, 
+    size_t *actual_size);
 
-void transfer_list_abort_all(transfer_list_t *instance);
-#endif
+int usbhid_req_get_protocol(usb_pipe_t *ctrl_pipe, int iface_no, 
+    usb_hid_protocol_t *protocol);
+
+int usbhid_req_get_idle(usb_pipe_t *ctrl_pipe, int iface_no, uint8_t *duration);
+
+/*----------------------------------------------------------------------------*/
+
+#endif /* USB_KBD_HIDREQ_H_ */
+
 /**
  * @}
  */

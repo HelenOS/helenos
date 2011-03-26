@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Lubos Slovak
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,29 +25,26 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-/** @addtogroup drvusbhid
+/** @addtogroup usb
  * @{
  */
 /** @file
- * USB HID keyboard autorepeat facilities
+ * @brief UHCI driver
  */
+#ifndef DRV_UHCI_SLAB_H
+#define DRV_UHCI_SLAB_H
 
-#ifndef USBHID_KBDREPEAT_H_
-#define USBHID_KBDREPEAT_H_
+#include <bool.h>
 
-#include "kbddev.h"
+#define SLAB_ELEMENT_SIZE 1024
 
-/*----------------------------------------------------------------------------*/
+void * slab_malloc_g(void);
 
-int usbhid_kbd_repeat_fibril(void *arg);
+void slab_free_g(void *addr);
 
-void usbhid_kbd_repeat_start(usbhid_kbd_t *kbd, unsigned int key);
+bool slab_in_range_g(void *addr);
 
-void usbhid_kbd_repeat_stop(usbhid_kbd_t *kbd, unsigned int key);
-
-#endif /* USBHID_KBDREPEAT_H_ */
-
+#endif
 /**
  * @}
  */

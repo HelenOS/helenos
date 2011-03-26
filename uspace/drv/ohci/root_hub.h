@@ -44,6 +44,7 @@ typedef struct rh {
 	ohci_regs_t *registers;
 	usb_address_t address;
 	ddf_dev_t *device;
+	int port_count;
 } rh_t;
 
 int rh_init(rh_t *instance, ddf_dev_t *dev, ohci_regs_t *regs);
