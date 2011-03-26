@@ -575,8 +575,6 @@ static int init_bitmaps(const struct mfs_sb_info *sb)
 	for (i = sb->first_data_zone + 1; i < sb->n_zones; ++i)
 		mark_bmap(zbmap_buf, i, FREE);
 
-	/*Convert to 1K block offsets*/
-
 	ibmap_buf8 = (uint8_t *) ibmap_buf;
 	zbmap_buf8 = (uint8_t *) zbmap_buf;
 
