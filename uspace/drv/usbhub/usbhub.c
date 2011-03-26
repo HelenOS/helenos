@@ -52,6 +52,12 @@
 #include "usb/pipes.h"
 #include "usb/classes/classes.h"
 
+static void usb_hub_init_add_device(usb_hub_info_t * hub, uint16_t port,
+		usb_speed_t speed);
+
+static int usb_hub_attach_non_removable_devices(usb_hub_info_t * hub,
+usb_hub_descriptor_t * descriptor);
+
 int usb_hub_control_loop(void * hub_info_param){
 	usb_hub_info_t * hub_info = (usb_hub_info_t*)hub_info_param;
 	int errorCode = EOK;
@@ -90,22 +96,24 @@ static usb_hub_info_t * usb_hub_info_create(usb_device_t * usb_dev) {
 }
 
 /**
- * Load hub-specific information into hub_info structure.
+ * Load hub-specific information into hub_info structure and process if needed
  *
  * Particularly read port count and initialize structure holding port
- * information.
+ * information. If there are non-removable devices, start initializing them.
  * This function is hub-specific and should be run only after the hub is
  * configured using usb_hub_set_configuration function.
  * @param hub_info pointer to structure with usb hub data
  * @return error code
  */
-static int usb_hub_get_hub_specific_info(usb_hub_info_t * hub_info){
+static int usb_hub_process_hub_specific_info(usb_hub_info_t * hub_info){
 	// get hub descriptor
 	usb_log_debug("creating serialized descriptor\n");
 	void * serialized_descriptor = malloc(USB_HUB_MAX_DESCRIPTOR_SIZE);
 	usb_hub_descriptor_t * descriptor;
 
 	/* this was one fix of some bug, should not be needed anymore
+	 * these lines allow to reset hub once more, it can be used as
+	 * brute-force initialization for non-removable devices
 	int opResult = usb_request_set_configuration(&result->endpoints.control, 1);
 	if(opResult!=EOK){
 		usb_log_error("could not set default configuration, errno %d",opResult);
@@ -140,6 +148,7 @@ static int usb_hub_get_hub_specific_info(usb_hub_info_t * hub_info){
 		hub_info->attached_devs[i].handle=0;
 		hub_info->attached_devs[i].address=0;
 	}
+	usb_hub_attach_non_removable_devices(hub_info, descriptor);
 	usb_log_debug2("freeing data\n");
 	free(serialized_descriptor);
 	free(descriptor->devices_removable);
@@ -217,7 +226,7 @@ int usb_hub_add_device(usb_device_t * usb_dev){
 		return opResult;
 	}
 	//get port count and create attached_devs
-	opResult = usb_hub_get_hub_specific_info(hub_info);
+	opResult = usb_hub_process_hub_specific_info(hub_info);
 	if(opResult!=EOK){
 		usb_log_error("could not set hub configuration, errno %d\n",opResult);
 		free(hub_info);
@@ -255,9 +264,55 @@ int usb_hub_add_device(usb_device_t * usb_dev){
 
 //*********************************************
 //
-//  hub driver code, main loop
+//  hub driver code, main loop and port handling
 //
 //*********************************************
+
+/**
+ * Perform \a usb_hub_init_add_device on all ports with non-removable device
+ *
+ * This will trigger operations leading to activated non-removable device.
+ * Control pipe of the hub must be open fo communication.
+ * @param hub hub instance
+ * @param descriptor usb hub descriptor
+ * @return error code
+ */
+static int usb_hub_attach_non_removable_devices(usb_hub_info_t * hub,
+		usb_hub_descriptor_t * descriptor)
+{
+	usb_log_info("attaching non-removable devices(if any)\n");
+	usb_device_request_setup_packet_t request;
+	int opResult;
+	size_t rcvd_size;
+	usb_port_status_t status;
+	uint8_t * non_removable_dev_bitmap = descriptor->devices_removable;
+	//initialize all connected, non-removable devices
+	int port;
+	for(port=1;port<=descriptor->ports_count;++port){
+		bool is_non_removable =
+				((non_removable_dev_bitmap[port/8]) >> (port%8)) %2;
+		if(is_non_removable){
+			usb_log_debug("non-removable device on port %d\n",port);
+			usb_hub_set_port_status_request(&request, port);
+			opResult = usb_pipe_control_read(
+					hub->control_pipe,
+					&request, sizeof(usb_device_request_setup_packet_t),
+					&status, 4, &rcvd_size
+					);
+			if (opResult != EOK) {
+				usb_log_error("could not get port status of port %d errno:%d\n",
+						port, opResult);
+				return opResult;
+			}
+			//this should be true..
+			if(usb_port_dev_connected(&status)){
+				usb_hub_init_add_device(hub,port,usb_port_speed(&status));
+			}
+		}
+	}
+	return EOK;
+}
+
 
 /**
  * release default address used by given hub
