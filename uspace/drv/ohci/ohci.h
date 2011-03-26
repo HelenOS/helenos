@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Vojtech Horky
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,39 +26,29 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbmid
+/** @addtogroup drvusbohci
  * @{
  */
 /** @file
- * Common definitions.
+ * @brief OHCI driver main structure for both host controller and root-hub.
  */
-
-#ifndef USBMID_H_
-#define USBMID_H_
-
+#ifndef DRV_OHCI_OHCI_H
+#define DRV_OHCI_OHCI_H
+#include <ddi.h>
 #include <ddf/driver.h>
-#include <usb/usb.h>
-#include <usb/pipes.h>
-#include <usb/debug.h>
-#include <usb/devdrv.h>
 
-#define NAME "usbmid"
+#include "hc.h"
+#include "root_hub.h"
 
-/** Container for single interface in a MID device. */
-typedef struct {
-	/** Function container. */
-	ddf_fun_t *fun;
+typedef struct ohci {
+	ddf_fun_t *hc_fun;
+	ddf_fun_t *rh_fun;
 
-	/** Interface number. */
-	int interface_no;
-} usbmid_interface_t;
+	hc_t hc;
+	rh_t rh;
+} ohci_t;
 
-usbmid_interface_t *usbmid_interface_create(ddf_fun_t *, int);
-bool usbmid_explore_device(usb_device_t *);
-int usbmid_spawn_interface_child(usb_device_t *,
-    const usb_standard_device_descriptor_t *,
-    const usb_standard_interface_descriptor_t *);
-void usbmid_dump_descriptors(uint8_t *, size_t);
+int ohci_init(ohci_t *instance, ddf_dev_t *device);
 
 #endif
 /**

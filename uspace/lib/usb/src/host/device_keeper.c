@@ -48,11 +48,12 @@ void usb_device_keeper_init(usb_device_keeper_t *instance)
 {
 	assert(instance);
 	fibril_mutex_initialize(&instance->guard);
-	fibril_condvar_initialize(&instance->default_address_occupied);
+	fibril_condvar_initialize(&instance->change);
 	instance->last_address = 0;
 	unsigned i = 0;
 	for (; i < USB_ADDRESS_COUNT; ++i) {
 		instance->devices[i].occupied = false;
+		instance->devices[i].control_used = false;
 		instance->devices[i].handle = 0;
 		instance->devices[i].toggle_status[0] = 0;
 		instance->devices[i].toggle_status[1] = 0;
@@ -70,8 +71,7 @@ void usb_device_keeper_reserve_default_address(usb_device_keeper_t *instance,
 	assert(instance);
 	fibril_mutex_lock(&instance->guard);
 	while (instance->devices[USB_ADDRESS_DEFAULT].occupied) {
-		fibril_condvar_wait(&instance->default_address_occupied,
-		    &instance->guard);
+		fibril_condvar_wait(&instance->change, &instance->guard);
 	}
 	instance->devices[USB_ADDRESS_DEFAULT].occupied = true;
 	instance->devices[USB_ADDRESS_DEFAULT].speed = speed;
@@ -89,7 +89,7 @@ void usb_device_keeper_release_default_address(usb_device_keeper_t *instance)
 	fibril_mutex_lock(&instance->guard);
 	instance->devices[USB_ADDRESS_DEFAULT].occupied = false;
 	fibril_mutex_unlock(&instance->guard);
-	fibril_condvar_signal(&instance->default_address_occupied);
+	fibril_condvar_signal(&instance->change);
 }
 /*----------------------------------------------------------------------------*/
 /** Check setup packet data for signs of toggle reset.
@@ -308,7 +308,28 @@ usb_speed_t usb_device_keeper_get_speed(usb_device_keeper_t *instance,
 	assert(address <= USB11_ADDRESS_MAX);
 	return instance->devices[address].speed;
 }
-
+/*----------------------------------------------------------------------------*/
+void usb_device_keeper_use_control(usb_device_keeper_t *instance,
+    usb_address_t address)
+{
+	assert(instance);
+	fibril_mutex_lock(&instance->guard);
+	while (instance->devices[address].control_used) {
+		fibril_condvar_wait(&instance->change, &instance->guard);
+	}
+	instance->devices[address].control_used = true;
+	fibril_mutex_unlock(&instance->guard);
+}
+/*----------------------------------------------------------------------------*/
+void usb_device_keeper_release_control(usb_device_keeper_t *instance,
+    usb_address_t address)
+{
+	assert(instance);
+	fibril_mutex_lock(&instance->guard);
+	instance->devices[address].control_used = false;
+	fibril_mutex_unlock(&instance->guard);
+	fibril_condvar_signal(&instance->change);
+}
 /**
  * @}
  */

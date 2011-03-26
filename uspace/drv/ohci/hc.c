@@ -38,14 +38,38 @@
 
 #include <usb/debug.h>
 #include <usb/usb.h>
-#include <usb/hub.h>
 #include <usb/ddfiface.h>
 #include <usb/usbdevice.h>
 
 #include "hc.h"
 
-static int dummy_reset(int foo, void *arg);
 static int interrupt_emulator(hc_t *instance);
+/*----------------------------------------------------------------------------*/
+int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun)
+{
+	assert(instance);
+	assert(hub_fun);
+
+	usb_address_t hub_address =
+	    device_keeper_get_free_address(&instance->manager, USB_SPEED_FULL);
+	instance->rh.address = hub_address;
+	usb_device_keeper_bind(
+	    &instance->manager, hub_address, hub_fun->handle);
+
+	char *match_str = NULL;
+	int ret = asprintf(&match_str, "usb&mid");
+	ret = (match_str == NULL) ? ret : EOK;
+	if (ret < 0) {
+		usb_log_error("Failed to create root hub match-id string.\n");
+		return ret;
+	}
+
+	ret = ddf_fun_add_match_id(hub_fun, match_str, 100);
+	if (ret != EOK) {
+		usb_log_error("Failed add create root hub match-id.\n");
+	}
+	return ret;
+}
 /*----------------------------------------------------------------------------*/
 int hc_init(hc_t *instance, ddf_fun_t *fun, ddf_dev_t *dev,
     uintptr_t regs, size_t reg_size, bool interrupts)
@@ -67,46 +91,9 @@ int hc_init(hc_t *instance, ddf_fun_t *fun, ddf_dev_t *dev,
 		fibril_add_ready(instance->interrupt_emulator);
 	}
 
-
 	rh_init(&instance->rh, dev, instance->registers);
+
 	/* TODO: implement */
-	return EOK;
-}
-/*----------------------------------------------------------------------------*/
-int hc_register_hub(hc_t *instance)
-{
-	async_usleep(1000000);
-#define CHECK_RET_RETURN(ret, msg...) \
-	if (ret != EOK) { \
-		usb_log_error(msg); \
-		return ret; \
-	} else (void)0
-	assert(instance);
-	assert(instance->ddf_instance);
-	assert(instance->ddf_instance->handle);
-	ddf_dev_t *dev = instance->rh.device;
-	int ret = EOK;
-
-	usb_hc_connection_t conn;
-	ret =
-	    usb_hc_connection_initialize(&conn, instance->ddf_instance->handle);
-	CHECK_RET_RETURN(ret, "Failed to initialize hc connection.\n");
-
-	ret = usb_hc_connection_open(&conn);
-	CHECK_RET_RETURN(ret, "Failed to open hc connection.\n");
-
-	usb_address_t address;
-	devman_handle_t handle;
-	ret = usb_hc_new_device_wrapper(dev, &conn, USB_SPEED_FULL, dummy_reset,
-	    0, instance, &address, &handle, NULL, NULL, NULL);
-	if (ret != EOK) {
-		usb_log_error("Failed to add rh device.\n");
-		instance->rh.address = -1;
-		return ret;
-	}
-
-	ret = usb_hc_connection_close(&conn);
-	CHECK_RET_RETURN(ret, "Failed to close hc connection.\n");
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -133,15 +120,7 @@ void hc_interrupt(hc_t *instance, uint32_t status)
 	/* TODO: implement */
 }
 /*----------------------------------------------------------------------------*/
-static int dummy_reset(int foo, void *arg)
-{
-	hc_t *hc = (hc_t*)arg;
-	assert(hc);
-	hc->rh.address = 0;
-	return EOK;
-}
-/*----------------------------------------------------------------------------*/
-static int interrupt_emulator(hc_t *instance)
+int interrupt_emulator(hc_t *instance)
 {
 	assert(instance);
 	usb_log_info("Started interrupt emulator.\n");

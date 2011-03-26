@@ -39,8 +39,11 @@
 #include <mem.h>
 #include <as.h>
 
+#include "slab.h"
+
 #define UHCI_STRCUTURES_ALIGNMENT 16
 #define UHCI_REQUIRED_PAGE_SIZE 4096
+
 
 /** Get physical address translation
  *
@@ -53,7 +56,8 @@ static inline uintptr_t addr_to_phys(void *addr)
 		return 0;
 
 	uintptr_t result;
-	int ret = as_get_physical_mapping(addr, &result);
+	const int ret = as_get_physical_mapping(addr, &result);
+	assert(ret == EOK);
 
 	if (ret != EOK)
 		return 0;
@@ -65,15 +69,24 @@ static inline uintptr_t addr_to_phys(void *addr)
  * @param[in] size Size of the required memory space
  * @return Address of the alligned and big enough memory place, NULL on failure.
  */
-static inline void * malloc32(size_t size)
-	{ return memalign(UHCI_STRCUTURES_ALIGNMENT, size); }
+static inline void * malloc32(size_t size) {
+	if (size <= SLAB_ELEMENT_SIZE)
+		return slab_malloc_g();
+	assert(false);
+	return memalign(UHCI_STRCUTURES_ALIGNMENT, size);
+}
 /*----------------------------------------------------------------------------*/
 /** Physical mallocator simulator
  *
  * @param[in] addr Address of the place allocated by malloc32
  */
-static inline void free32(void *addr)
-	{ if (addr) free(addr); }
+static inline void free32(void *addr) {
+	if (!addr)
+		return;
+	if (slab_in_range_g(addr))
+		return slab_free_g(addr);
+	free(addr);
+}
 /*----------------------------------------------------------------------------*/
 /** Create 4KB page mapping
  *
@@ -81,12 +94,11 @@ static inline void free32(void *addr)
  */
 static inline void * get_page(void)
 {
-	void * free_address = as_get_mappable_page(UHCI_REQUIRED_PAGE_SIZE);
-	assert(free_address);
+	void *free_address = as_get_mappable_page(UHCI_REQUIRED_PAGE_SIZE);
+	assert(free_address); /* TODO: remove this assert */
 	if (free_address == 0)
 		return NULL;
-	void* ret =
-	  as_area_create(free_address, UHCI_REQUIRED_PAGE_SIZE,
+	void *ret = as_area_create(free_address, UHCI_REQUIRED_PAGE_SIZE,
 		  AS_AREA_READ | AS_AREA_WRITE);
 	if (ret != free_address)
 		return NULL;
