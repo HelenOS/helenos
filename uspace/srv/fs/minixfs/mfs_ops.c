@@ -150,6 +150,7 @@ void mfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 	sb3 = (struct mfs3_superblock *) sb;
 
 	if (check_magic_number(sb->s_magic, &native, &version, &longnames)) {
+		/*This is a V1 or V2 Minix filesystem*/
 		magic = sb->s_magic;
 		goto recognized;
 	}
@@ -160,6 +161,8 @@ void mfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 		async_answer_0(rid, ENOTSUP);
 		return;
 	}
+
+	/*This is a V3 Minix filesystem*/
 
 	magic = sb3->s_magic;
 
@@ -249,7 +252,7 @@ static aoff64_t mfs_size_get(fs_node_t *node)
 
 void mfs_stat(ipc_callid_t rid, ipc_call_t *request)
 {
-	mfsdebug("mfs_stat called\n");
+	mfsdebug("mfs_stat()\n");
 	libfs_stat(&mfs_libfs_ops, mfs_reg.fs_handle, rid, request);
 }
 
@@ -259,7 +262,7 @@ static int mfs_node_get(fs_node_t **rfn, devmap_handle_t devmap_handle,
 	int rc;
 	struct mfs_instance *instance;
 
-	mfsdebug("node_get called\n");
+	mfsdebug("mfs_node_get()\n");
 
 	rc = mfs_instance_get(devmap_handle, &instance);
 
@@ -353,7 +356,7 @@ static int mfs_node_core_get(fs_node_t **rfn, struct mfs_instance *inst,
 	}
 
 	if (!ino_i)
-		return -1;
+		goto out_err;
 
 	ino_i->index = index;
 	mnode->ino_i = ino_i;
@@ -430,10 +433,13 @@ static int mfs_has_children(bool *has_children, fs_node_t *fsnode)
 	while (1) {
 		d_info = read_directory_entry(mnode, i++);
 
-		if (!d_info)
+		if (!d_info) {
+			/*Reached the end of the dentries list*/
 			goto out;
+		}
 
 		if (d_info->d_inum) {
+			/*A valid entry has been found*/
 			*has_children = true;
 			free(d_info);
 			break;
@@ -445,7 +451,7 @@ static int mfs_has_children(bool *has_children, fs_node_t *fsnode)
 out:
 
 	if (n_dentries > 2 && !*has_children)
-		printf(NAME ": Filesystem corruption detected");
+		printf(NAME ": Filesystem corruption detected\n");
 
 	if (*has_children)
 		mfsdebug("Has children\n");
@@ -484,33 +490,34 @@ int mfs_instance_get(devmap_handle_t handle, struct mfs_instance **instance)
 static bool check_magic_number(uint16_t magic, bool *native,
 				mfs_version_t *version, bool *longfilenames)
 {
+	bool rc = false;
 	*longfilenames = false;
 
 	if (magic == MFS_MAGIC_V1 || magic == MFS_MAGIC_V1R) {
 		*native = magic == MFS_MAGIC_V1;
 		*version = MFS_VERSION_V1;
-		return true;
+		rc = true;
 	} else if (magic == MFS_MAGIC_V1L || magic == MFS_MAGIC_V1LR) {
 		*native = magic == MFS_MAGIC_V1L;
 		*version = MFS_VERSION_V1;
 		*longfilenames = true;
-		return true;
+		rc = true;
 	} else if (magic == MFS_MAGIC_V2 || magic == MFS_MAGIC_V2R) {
 		*native = magic == MFS_MAGIC_V2;
 		*version = MFS_VERSION_V2;
-		return true;
+		rc = true;
 	} else if (magic == MFS_MAGIC_V2L || magic == MFS_MAGIC_V2LR) {
 		*native = magic == MFS_MAGIC_V2L;
 		*version = MFS_VERSION_V2;
 		*longfilenames = true;
-		return true;
+		rc = true;
 	} else if (magic == MFS_MAGIC_V3 || magic == MFS_MAGIC_V3R) {
 		*native = magic == MFS_MAGIC_V3;
 		*version = MFS_VERSION_V3;
-		return true;
+		rc = true;
 	}
 
-	return false;
+	return rc;
 }
 
 /**

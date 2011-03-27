@@ -70,15 +70,17 @@ struct mfs_sb_info {
 	unsigned long ibmap_blocks;
 	unsigned long zbmap_blocks;
 	unsigned long firstdatazone;
-	unsigned long itable_size;
 	int log2_zone_size;
-	int ino_per_block;
-	int dirsize;
 	int block_size;
-	mfs_version_t fs_version;
 	uint32_t max_file_size;
 	uint16_t magic;
 	uint16_t state;
+
+	/*The following fields do not exist on disk but only in memory*/
+	unsigned long itable_size;
+	mfs_version_t fs_version;
+	int ino_per_block;
+	int dirsize;
 	bool long_names;
 	bool native;
 };
@@ -98,6 +100,7 @@ struct mfs_ino_info {
         /*Block numbers for indirect zones*/
         uint32_t        i_izone[V2_NR_INDIRECT_ZONES];
 
+	/*The following fields do not exist on disk but only in memory*/
 	bool dirty;
 	fs_index_t index;
 };
@@ -107,6 +110,7 @@ struct mfs_dentry_info {
 	uint32_t d_inum;
 	char d_name[MFS3_MAX_NAME_LEN];
 
+	/*The following fields do not exist on disk but only in memory*/
 	bool dirty;
 };
 
