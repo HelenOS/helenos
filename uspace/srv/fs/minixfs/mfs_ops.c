@@ -47,6 +47,18 @@ static int mfs_node_put(fs_node_t *fsnode);
 static int mfs_node_open(fs_node_t *fsnode);
 static fs_index_t mfs_index_get(fs_node_t *fsnode);
 static unsigned mfs_lnkcnt_get(fs_node_t *fsnode);
+static char mfs_plb_get_char(unsigned pos);
+static bool mfs_is_directory(fs_node_t *fsnode);
+static bool mfs_is_file(fs_node_t *fsnode);
+static int mfs_has_children(bool *has_children, fs_node_t *fsnode);
+static int mfs_root_get(fs_node_t **rfn, devmap_handle_t handle);
+static devmap_handle_t mfs_device_get(fs_node_t *fsnode);
+static aoff64_t mfs_size_get(fs_node_t *node);
+
+static
+int mfs_node_get(fs_node_t **rfn, devmap_handle_t devmap_handle,
+			fs_index_t index);
+
 
 static LIST_INITIALIZE(inst_list);
 static FIBRIL_MUTEX_INITIALIZE(inst_list_mutex);
@@ -220,9 +232,8 @@ devmap_handle_t mfs_device_get(fs_node_t *fsnode)
 	return node->instance->handle;
 }
 
-aoff64_t mfs_size_get(fs_node_t *node)
+static aoff64_t mfs_size_get(fs_node_t *node)
 {
-	mfsdebug("request for inode size\n");
 	assert(node);
 
 	const struct mfs_node *mnode = node->data;
@@ -240,7 +251,7 @@ void mfs_stat(ipc_callid_t rid, ipc_call_t *request)
 	libfs_stat(&mfs_libfs_ops, mfs_reg.fs_handle, rid, request);
 }
 
-int mfs_node_get(fs_node_t **rfn, devmap_handle_t devmap_handle,
+static int mfs_node_get(fs_node_t **rfn, devmap_handle_t devmap_handle,
 			fs_index_t index)
 {
 	int rc;
@@ -276,7 +287,6 @@ static int mfs_node_put(fs_node_t *fsnode)
 
 static int mfs_node_open(fs_node_t *fsnode)
 {
-	mfsdebug("mfs_node_open()\n");
 	/*
 	 * Opening a file is stateless, nothing
 	 * to be done here.
@@ -362,19 +372,19 @@ out_err:
 	return rc;
 }
 
-bool mfs_is_directory(fs_node_t *fsnode)
+static bool mfs_is_directory(fs_node_t *fsnode)
 {
 	const struct mfs_node *node = fsnode->data;
 	return S_ISDIR(node->ino_i->i_mode);
 }
 
-bool mfs_is_file(fs_node_t *fsnode)
+static bool mfs_is_file(fs_node_t *fsnode)
 {
 	struct mfs_node *node = fsnode->data;
 	return S_ISREG(node->ino_i->i_mode);
 }
 
-int mfs_root_get(fs_node_t **rfn, devmap_handle_t handle)
+static int mfs_root_get(fs_node_t **rfn, devmap_handle_t handle)
 {
 	int rc = mfs_node_get(rfn, handle, MFS_ROOT_INO);
 
@@ -387,18 +397,18 @@ void mfs_lookup(ipc_callid_t rid, ipc_call_t *request)
 	libfs_lookup(&mfs_libfs_ops, mfs_reg.fs_handle, rid, request);
 }
 
-char mfs_plb_get_char(unsigned pos)
+static char mfs_plb_get_char(unsigned pos)
 {
 	return mfs_reg.plb_ro[pos % PLB_SIZE];
 }
 
-int mfs_has_children(bool *has_children, fs_node_t *fsnode)
+static int mfs_has_children(bool *has_children, fs_node_t *fsnode)
 {
 	struct mfs_node *mnode = fsnode->data;
 	const struct mfs_ino_info *ino_i = mnode->ino_i;
 	const struct mfs_instance *inst = mnode->instance;
 	const struct mfs_sb_info *sbi = inst->sbi;
-	int i;
+	uint32_t n_dentries = 0;
 
 	*has_children = false;
 
@@ -406,9 +416,17 @@ int mfs_has_children(bool *has_children, fs_node_t *fsnode)
 		goto out;
 
 	struct mfs_dentry_info *d_info;
+	n_dentries =  ino_i->i_size / sbi->dirsize;
+	
+	/* The first two dentries are always . and .. */
+	assert(n_dentries >= 2);
 
-	for (i = 2; i < ino_i->i_size / sbi->dirsize; ++i) {
-		d_info = read_directory_entry(mnode, i);
+	if (n_dentries == 2)
+		goto out;
+
+	int i = 2;
+	while (1) {
+		d_info = read_directory_entry(mnode, i++);
 
 		if (!d_info)
 			goto out;
@@ -423,6 +441,9 @@ int mfs_has_children(bool *has_children, fs_node_t *fsnode)
 	}
 
 out:
+
+	if (n_dentries > 2 && !*has_children)
+		printf(NAME ": Filesystem corruption detected");
 
 	if (*has_children)
 		mfsdebug("Has children\n");

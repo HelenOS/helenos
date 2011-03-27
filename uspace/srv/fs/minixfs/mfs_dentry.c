@@ -49,7 +49,7 @@ read_directory_entry(struct mfs_node *mnode, unsigned index)
 	if (!d_info)
 		return NULL;
 
-	int r = read_map(&block, mnode, index *sbi->dirsize);
+	int r = read_map(&block, mnode, index * sbi->dirsize);
 
 	if (r != EOK || block == 0)
 		goto out_err;

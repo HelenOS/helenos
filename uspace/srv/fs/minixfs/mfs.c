@@ -48,8 +48,6 @@
 #include <stdio.h>
 #include "mfs.h"
 
-#define NAME	"mfs"
-
 vfs_info_t mfs_vfs_info = {
 	.name = NAME,
 	.concurrent_read_write = false,
