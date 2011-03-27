@@ -288,14 +288,17 @@ static int net_initialize(async_client_conn_t client_connection)
 	    (uint8_t *) LO_FILENAME, SERVICE_LO, 0, connect_to_service);
 	if (rc != EOK)
 		return rc;
+	
 	rc = add_module(NULL, &net_globals.modules, (uint8_t *) NE2000_NAME,
 	    (uint8_t *) NE2000_FILENAME, SERVICE_NE2000, 0, connect_to_service);
 	if (rc != EOK)
 		return rc;
+	
 	rc = add_module(NULL, &net_globals.modules, (uint8_t *) ETHERNET_NAME,
 	    (uint8_t *) ETHERNET_FILENAME, SERVICE_ETHERNET, 0, connect_to_service);
 	if (rc != EOK)
 		return rc;
+	
 	rc = add_module(NULL, &net_globals.modules, (uint8_t *) NILDUMMY_NAME,
 	    (uint8_t *) NILDUMMY_FILENAME, SERVICE_NILDUMMY, 0, connect_to_service);
 	if (rc != EOK)
@@ -589,12 +592,11 @@ static int startup(void)
 		
 		rc = start_device(netif);
 		if (rc != EOK) {
-			printf("%s: Error starting interface %s (%s)\n", NAME,
+			printf("%s: Ignoring failed interface %s (%s)\n", NAME,
 			    netif->name, str_error(rc));
 			measured_strings_destroy(&netif->configuration);
 			netifs_exclude_index(&net_globals.netifs, index);
-			
-			return rc;
+			continue;
 		}
 		
 		/* Increment modules' usage */

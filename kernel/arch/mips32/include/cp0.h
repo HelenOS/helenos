@@ -69,13 +69,13 @@
 #define GEN_READ_CP0(nm,reg) static inline uint32_t cp0_ ##nm##_read(void) \
   { \
       uint32_t retval; \
-      asm("mfc0 %0, $" #reg : "=r"(retval)); \
+      asm volatile ("mfc0 %0, $" #reg : "=r"(retval)); \
       return retval; \
   }
 
 #define GEN_WRITE_CP0(nm,reg) static inline void cp0_ ##nm##_write(uint32_t val) \
  { \
-    asm("mtc0 %0, $" #reg : : "r"(val) ); \
+    asm volatile ("mtc0 %0, $" #reg : : "r"(val) ); \
  }
 
 GEN_READ_CP0(index, 0);
