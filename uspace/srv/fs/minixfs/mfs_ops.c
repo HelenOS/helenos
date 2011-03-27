@@ -183,6 +183,7 @@ recognized:
 		sbi->max_file_size = conv32(native, sb3->s_max_file_size);
 		sbi->nzones = conv32(native, sb3->s_nzones);
 		sbi->block_size = conv16(native, sb3->s_block_size);
+		sbi->dirsize = MFS3_DIRSIZE;
 	} else {
 		sbi->ninodes = conv16(native, sb->s_ninodes);
 		sbi->ibmap_blocks = conv16(native, sb->s_ibmap_blocks);
@@ -194,6 +195,7 @@ recognized:
 		sbi->block_size = MFS_BLOCKSIZE;
 		if (version == MFS_VERSION_V2)
 			sbi->nzones = conv32(native, sb->s_nzones2);
+		sbi->dirsize = longnames ? MFSL_DIRSIZE : MFS_DIRSIZE;
 	}
  
 	free(sb);
