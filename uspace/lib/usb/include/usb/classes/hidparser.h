@@ -290,7 +290,7 @@ usb_hid_report_path_t *usb_hid_report_path_clone(usb_hid_report_path_t *usage_pa
  * Output report parser functions
  */
 /** Allocates output report buffer*/
-uint8_t *usb_hid_report_output(usb_hid_report_parser_t *parser);
+uint8_t *usb_hid_report_output(usb_hid_report_parser_t *parser, size_t *size);
 
 /** Frees output report buffer*/
 void usb_hid_report_output_free(uint8_t *output);
