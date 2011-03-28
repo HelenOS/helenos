@@ -265,11 +265,12 @@ bool read_match_ids(const char *conf_path, match_id_list_t *ids)
 		goto cleanup;
 	}
 	
-	if (read(fd, buf, len) <= 0) {
+	ssize_t read_bytes = safe_read(fd, buf, len);
+	if (read_bytes <= 0) {
 		printf(NAME ": unable to read file '%s'.\n", conf_path);
 		goto cleanup;
 	}
-	buf[len] = 0;
+	buf[read_bytes] = 0;
 	
 	suc = parse_match_ids(buf, ids);
 	
