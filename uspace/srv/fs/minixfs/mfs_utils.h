@@ -35,11 +35,20 @@
 
 #include <sys/types.h>
 #include <bool.h>
+#include "mfs.h"
 
-uint16_t conv16(bool native, uint16_t n);
-uint32_t conv32(bool native, uint32_t n);
-uint64_t conv64(bool native, uint64_t n);
-int read_ind_block(block_t *b, struct mfs_instance *inst, uint32_t block);
+extern uint16_t
+conv16(bool native, uint16_t n);
+
+extern uint32_t
+conv32(bool native, uint32_t n);
+
+extern uint64_t
+conv64(bool native, uint64_t n);
+
+extern int
+read_ind_block(void *data, struct mfs_instance *inst,
+		uint32_t block, mfs_version_t version);
 
 #endif
 

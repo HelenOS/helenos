@@ -58,6 +58,11 @@
 GLOBAL fs_reg_t mfs_reg;
 
 typedef enum {
+	BMAP_ZONE,
+	BMAP_INODE
+} bmap_id_t;
+
+typedef enum {
 	MFS_VERSION_V1 = 1,
 	MFS_VERSION_V2,
 	MFS_VERSION_V3

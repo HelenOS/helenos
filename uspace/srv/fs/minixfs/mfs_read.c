@@ -71,9 +71,10 @@ out:
 
 static int read_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock)
 {
-	block_t *bi1, *bi2;
 	int r, nr_direct;
 	int ptrs_per_block;
+	uint32_t *bi1 = NULL;
+	uint32_t *bi2 = NULL;
 
 	assert(mnode);
 	const struct mfs_ino_info *ino_i = mnode->ino_i;
@@ -109,15 +110,16 @@ static int read_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock
 			goto out;
 		}
 
-		r = read_ind_block(bi2, mnode->instance, ino_i->i_izone[0]);
+		bi1 = (uint32_t *) malloc(sbi->block_size);
+		r = read_ind_block(bi1, mnode->instance, ino_i->i_izone[0],
+					fs_version);
 
-		if (r != EOK)
-			goto out;
+		if (fs_version == MFS_VERSION_V1)
+			*b = ((uint16_t *) bi1)[rblock];
+		else
+			*b = bi1[rblock];
 
-		*b = fs_version == MFS_VERSION_V1 ? 
-				((uint16_t *) bi1->data)[rblock] :
-				((uint32_t *) bi1->data)[rblock];
-		goto out_block;
+		goto out;
 	}
 
 	rblock -= ptrs_per_block - 1;
@@ -129,7 +131,12 @@ static int read_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock
 		r = -1;
 		goto out;
 	}
-	r = read_ind_block(bi1, mnode->instance, ino_i->i_izone[1]);
+
+	bi1 = (uint32_t *) malloc(sbi->block_size);
+	bi2 = (uint32_t *) malloc(sbi->block_size);
+
+	r = read_ind_block(bi1, mnode->instance, ino_i->i_izone[1],
+				fs_version);
 
 	if (r != EOK)
 		goto out;
@@ -143,27 +150,28 @@ static int read_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock
 	/*read the second indirect zone of the chain*/
 	if (fs_version == MFS_VERSION_V1) {
 		r = read_ind_block(bi2, mnode->instance,
-			((uint16_t *) bi1->data)[di_block]);
+			((uint16_t *) bi1)[di_block], fs_version);
 
 		if (r != EOK)
-			goto out_block;
+			goto out;
 
-		*b = ((uint16_t *) bi2->data)[rblock % ptrs_per_block];
+		*b = ((uint16_t *) bi2)[rblock % ptrs_per_block];
 	} else {
 		r = read_ind_block(bi2, mnode->instance,
-			((uint32_t *) bi1->data)[di_block]);
+			((uint32_t *) bi1)[di_block], fs_version);
 
 		if (r != EOK)
-			goto out_block;
+			goto out;
 
-		*b = ((uint32_t *) bi2->data)[rblock % ptrs_per_block];
+		*b = bi2[rblock % ptrs_per_block];
 	}
 	r = EOK;
-	block_put(bi2);
 
-out_block:
-	block_put(bi1);
 out:
+	if (bi1)
+		free(bi1);
+	if (bi2)
+		free(bi2);
 	return r;
 }
 

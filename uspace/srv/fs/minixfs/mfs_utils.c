@@ -64,10 +64,15 @@ uint64_t conv64(bool native, uint64_t n)
  *Read an indirect block from disk and convert its
  *content to the native endian format.
  */
-int read_ind_block(block_t *b, struct mfs_instance *inst, uint32_t block)
+int
+read_ind_block(void *data, struct mfs_instance *inst,
+			uint32_t block, mfs_version_t version)
 {
 	int rc;
 	unsigned i;
+	block_t *b;
+	uint32_t *ptr32;
+	uint16_t *ptr16;
 
 	assert(inst);
 	devmap_handle_t handle = inst->handle;
@@ -78,21 +83,26 @@ int read_ind_block(block_t *b, struct mfs_instance *inst, uint32_t block)
 	rc = block_get(&b, handle, block, BLOCK_FLAGS_NONE);
 
 	if (rc != EOK)
-		return rc;
+		goto out;
 
-	if (sbi->fs_version == MFS_VERSION_V1) {
-		uint16_t *pt16 = b->data;
-
-		for (i = 0; i < MFS_BLOCKSIZE / sizeof(uint16_t); ++i)
-			pt16[i] = conv16(sbi->native, pt16[i]);
+	if (version == MFS_VERSION_V1) {
+		uint16_t *p = b->data;
+		ptr16 = data;
+		for (i = 0; i < sbi->block_size / sizeof(uint16_t); ++i)
+			ptr16[i] = conv16(sbi->native, p[i]);
 	} else {
-		uint32_t *pt32 = b->data;
-
+		uint32_t *p = b->data;
+		ptr32 = data;
 		for (i = 0; i < sbi->block_size / sizeof(uint32_t); ++i)
-			pt32[i] = conv32(sbi->native, pt32[i]);
+			ptr32[i] = conv32(sbi->native, p[i]);
+
 	}
 
-	return EOK;
+	rc = EOK;
+
+out:
+	block_put(b);
+	return rc;
 }
 
 /**
