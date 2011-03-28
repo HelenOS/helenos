@@ -1123,6 +1123,13 @@ bool insert_fun_node(dev_tree_t *tree, fun_node_t *fun, char *fun_name,
  */
 fun_node_t *find_fun_node_by_path(dev_tree_t *tree, char *path)
 {
+	assert(path != NULL);
+
+	bool is_absolute = path[0] == '/';
+	if (!is_absolute) {
+		return NULL;
+	}
+
 	fibril_rwlock_read_lock(&tree->rwlock);
 	
 	fun_node_t *fun = tree->root_node;
@@ -1132,7 +1139,7 @@ fun_node_t *find_fun_node_by_path(dev_tree_t *tree, char *path)
 	 */
 	char *rel_path = path;
 	char *next_path_elem = NULL;
-	bool cont = (rel_path[0] == '/');
+	bool cont = true;
 	
 	while (cont && fun != NULL) {
 		next_path_elem  = get_path_elem_end(rel_path + 1);
