@@ -476,7 +476,13 @@ static void devman_forward(ipc_callid_t iid, ipc_call_t *icall,
 	else
 		dev = fun->dev;
 
-	if (fun == NULL && dev == NULL) {
+	/*
+	 * For a valid function to connect to we need a device. The root
+	 * function, for example, has no device and cannot be connected to.
+	 * This means @c dev needs to be valid regardless whether we are
+	 * connecting to a device or to a function.
+	 */
+	if (dev == NULL) {
 		printf(NAME ": devman_forward error - no device or function with "
 		    "handle %" PRIun " was found.\n", handle);
 		async_answer_0(iid, ENOENT);
