@@ -48,6 +48,10 @@
 /** Internal magic value for an item consistency check. */
 #define INT_MAP_ITEM_MAGIC_VALUE	0x55667788
 
+/** Generic destructor function pointer. */
+#define DTOR_T(identifier) \
+	void (*identifier)(const void *)
+
 /** Integer to generic type map declaration.
  *
  * @param[in] name	Name of the map.
@@ -71,17 +75,17 @@
 	}; \
 	\
 	int name##_add(name##_t *, int, type *); \
-	void name##_clear(name##_t *); \
+	void name##_clear(name##_t *, DTOR_T()); \
 	int name##_count(name##_t *); \
-	void name##_destroy(name##_t *); \
-	void name##_exclude(name##_t *, int); \
-	void name##_exclude_index(name##_t *, int); \
+	void name##_destroy(name##_t *, DTOR_T()); \
+	void name##_exclude(name##_t *, int, DTOR_T()); \
+	void name##_exclude_index(name##_t *, int, DTOR_T()); \
 	type *name##_find(name##_t *, int); \
 	int name##_update(name##_t *, int, int); \
 	type *name##_get_index(name##_t *, int); \
 	int name##_initialize(name##_t *); \
 	int name##_is_valid(name##_t *); \
-	void name##_item_destroy(name##_item_t *); \
+	void name##_item_destroy(name##_item_t *, DTOR_T()); \
 	int name##_item_is_valid(name##_item_t *);
 
 /** Integer to generic type map implementation.
@@ -114,14 +118,14 @@
 		return EINVAL; \
 	} \
 	\
-	void name##_clear(name##_t *map) \
+	void name##_clear(name##_t *map, DTOR_T(dtor)) \
 	{ \
 		if (name##_is_valid(map)) { \
 			int index; \
 			for (index = 0; index < map->next; ++index) { \
 				if (name##_item_is_valid(&map->items[index])) { \
 					name##_item_destroy( \
-					    &map->items[index]); \
+					    &map->items[index], dtor); \
 				} \
 			} \
 			map->next = 0; \
@@ -134,7 +138,7 @@
 		return name##_is_valid(map) ? map->next : -1; \
 	} \
 	\
-	void name##_destroy(name##_t *map) \
+	void name##_destroy(name##_t *map, DTOR_T(dtor)) \
 	{ \
 		if (name##_is_valid(map)) { \
 			int index; \
@@ -142,14 +146,14 @@
 			for (index = 0; index < map->next; ++index) { \
 				if (name##_item_is_valid(&map->items[index])) { \
 					name##_item_destroy( \
-					    &map->items[index]); \
+					    &map->items[index], dtor); \
 				} \
 			} \
 			free(map->items); \
 		} \
 	} \
 	\
-	void name##_exclude(name##_t *map, int key) \
+	void name##_exclude(name##_t *map, int key, DTOR_T(dtor)) \
 	{ \
 		if (name##_is_valid(map)) { \
 			int index; \
@@ -157,18 +161,18 @@
 				if (name##_item_is_valid(&map->items[index]) && \
 				    (map->items[index].key == key)) { \
 					name##_item_destroy( \
-					    &map->items[index]); \
+					    &map->items[index], dtor); \
 				} \
 			} \
 		} \
 	} \
 	\
-	void name##_exclude_index(name##_t *map, int index) \
+	void name##_exclude_index(name##_t *map, int index, DTOR_T(dtor)) \
 	{ \
 		if (name##_is_valid(map) && (index >= 0) && \
 		    (index < map->next) && \
 		    name##_item_is_valid(&map->items[index])) { \
-			name##_item_destroy(&map->items[index]); \
+			name##_item_destroy(&map->items[index], dtor); \
 		} \
 	} \
 	\
@@ -235,12 +239,13 @@
 		return map && (map->magic == INT_MAP_MAGIC_VALUE); \
 	} \
 	\
-	void name##_item_destroy(name##_item_t *item) \
+	void name##_item_destroy(name##_item_t *item, DTOR_T(dtor)) \
 	{ \
 		if (name##_item_is_valid(item)) { \
 			item->magic = 0; \
 			if (item->value) { \
-				free(item->value); \
+				if (dtor) \
+					free(item->value); \
 				item->value = NULL; \
 			} \
 		} \

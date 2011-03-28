@@ -1706,7 +1706,7 @@ int tcp_connect_message(socket_cores_t *local_sockets, int socket_id,
 		/* Unbind if bound */
 		if (socket->port > 0) {
 			socket_ports_exclude(&tcp_globals.sockets,
-			    socket->port);
+			    socket->port, free);
 			socket->port = 0;
 		}
 	}
@@ -2491,7 +2491,7 @@ int tl_initialize(int net_phone)
 
 	rc = packet_dimensions_initialize(&tcp_globals.dimensions);
 	if (rc != EOK) {
-		socket_ports_destroy(&tcp_globals.sockets);
+		socket_ports_destroy(&tcp_globals.sockets, free);
 		goto out;
 	}
 

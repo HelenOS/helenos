@@ -181,7 +181,7 @@ tl_update_ip_packet_dimension(packet_dimensions_t *packet_dimensions,
 				packet_dimension->content = content;
 			else
 				packet_dimensions_exclude(packet_dimensions,
-				    DEVICE_INVALID_ID);
+				    DEVICE_INVALID_ID, free);
 		}
 	}
 
