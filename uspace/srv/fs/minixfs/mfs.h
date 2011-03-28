@@ -83,6 +83,8 @@ struct mfs_sb_info {
 	int dirsize;
 	bool long_names;
 	bool native;
+	unsigned isearch;
+	unsigned zsearch;
 };
 
 /*Generic MinixFS inode*/
@@ -136,12 +138,11 @@ extern int mfs_instance_get(devmap_handle_t handle,
 extern void mfs_stat(ipc_callid_t rid, ipc_call_t *request);
 
 /*mfs_inode.c*/
-extern
-struct mfs_ino_info *mfs_read_inode_raw(const struct mfs_instance *instance, 
-					uint16_t inum);
-extern
-struct mfs_ino_info *mfs2_read_inode_raw(const struct mfs_instance *instance,
-					uint32_t inum);
+extern struct mfs_ino_info *
+mfs_read_inode_raw(const struct mfs_instance *instance, uint16_t inum);
+
+extern struct mfs_ino_info *
+mfs2_read_inode_raw(const struct mfs_instance *instance, uint32_t inum);
 
 /*mfs_read.c*/
 int read_map(uint32_t *b, const struct mfs_node *mnode, const uint32_t pos);

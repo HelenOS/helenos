@@ -176,6 +176,8 @@ recognized:
 	sbi->long_names = longnames;
 	sbi->native = native;
 	sbi->magic = magic;
+	sbi->isearch = 0;
+	sbi->zsearch = 0;
 
 	if (version == MFS_VERSION_V3) {
 		sbi->ninodes = conv32(native, sb3->s_ninodes);
