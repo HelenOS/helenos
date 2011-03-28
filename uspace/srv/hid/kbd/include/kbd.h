@@ -37,8 +37,10 @@
 #ifndef KBD_KBD_H_
 #define KBD_KBD_H_
 
-extern int cir_service;
-extern int cir_phone;
+#include <bool.h>
+
+extern bool irc_service;
+extern int irc_phone;
 
 extern void kbd_push_scancode(int);
 extern void kbd_push_ev(int, unsigned int);

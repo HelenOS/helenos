@@ -78,6 +78,24 @@ usb_hub_create_port_status_request(uint16_t port){
 
 
 /**
+ * set the device request to be a port feature enable request
+ * @param request
+ * @param port
+ * @param feature_selector
+ */
+static inline void usb_hub_set_enable_port_feature_request(
+usb_device_request_setup_packet_t * request, uint16_t port,
+		uint16_t feature_selector
+){
+	request->index = port;
+	request->request_type = USB_HUB_REQ_TYPE_SET_PORT_FEATURE;
+	request->request = USB_HUB_REQUEST_SET_FEATURE;
+	request->value = feature_selector;
+	request->length = 0;
+}
+
+
+/**
  * set the device request to be a port enable request
  * @param request
  * @param port
@@ -190,6 +208,7 @@ usb_device_request_setup_packet_t * request, uint16_t port
 	request->value = USB_HUB_FEATURE_PORT_POWER;
 	request->length = 0;
 }
+
 
 /** get i`th bit of port status */
 static inline bool usb_port_get_bit(usb_port_status_t * status, int idx)
