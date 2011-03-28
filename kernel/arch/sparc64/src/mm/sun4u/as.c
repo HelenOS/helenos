@@ -42,7 +42,6 @@
 #ifdef CONFIG_TSB
 
 #include <arch/mm/tsb.h>
-#include <arch/memstr.h>
 #include <arch/asm.h>
 #include <mm/frame.h>
 #include <bitops.h>

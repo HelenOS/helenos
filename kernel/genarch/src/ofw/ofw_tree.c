@@ -36,7 +36,6 @@
  */
 
 #include <genarch/ofw/ofw_tree.h>
-#include <arch/memstr.h>
 #include <mm/slab.h>
 #include <str.h>
 #include <panic.h>

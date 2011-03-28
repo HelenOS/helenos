@@ -27,137 +27,132 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup generic	
+/** @addtogroup generic
  * @{
  */
 
 /**
  * @file
- * @brief	Memory string operations.
+ * @brief Memory string operations.
  *
- * This file provides architecture independent functions to manipulate blocks of
- * memory. These functions are optimized as much as generic functions of this
- * type can be. However, architectures are free to provide even more optimized
- * versions of these functions.
+ * This file provides architecture independent functions to manipulate blocks
+ * of memory. These functions are optimized as much as generic functions of
+ * this type can be.
  */
 
 #include <memstr.h>
 #include <typedefs.h>
 #include <align.h>
 
-/** Copy block of memory.
+/** Fill block of memory.
  *
- * Copy cnt bytes from src address to dst address.  The copying is done
- * word-by-word and then byte-by-byte.  The source and destination memory areas
- * cannot overlap.
+ * Fill cnt bytes at dst address with the value val.
  *
- * @param src		Source address to copy from.
- * @param dst		Destination address to copy to.
- * @param cnt		Number of bytes to copy.
+ * @param dst Destination address to fill.
+ * @param cnt Number of bytes to fill.
+ * @param val Value to fill.
  *
- * @return		Destination address.
  */
-void *_memcpy(void *dst, const void *src, size_t cnt)
+void memsetb(void *dst, size_t cnt, uint8_t val)
 {
-	unsigned int i, j;
+	__builtin_memset(dst, val, cnt);
+}
+
+/** Fill block of memory.
+ *
+ * Fill cnt words at dst address with the value val. The filling
+ * is done word-by-word.
+ *
+ * @param dst Destination address to fill.
+ * @param cnt Number of words to fill.
+ * @param val Value to fill.
+ *
+ */
+void memsetw(void *dst, size_t cnt, uint16_t val)
+{
+	size_t i;
+	uint16_t *ptr = (uint16_t *) dst;
 	
-	if (ALIGN_UP((uintptr_t) src, sizeof(sysarg_t)) != (uintptr_t) src ||
-	    ALIGN_UP((uintptr_t) dst, sizeof(sysarg_t)) != (uintptr_t) dst) {
-		for (i = 0; i < cnt; i++)
-			((uint8_t *) dst)[i] = ((uint8_t *) src)[i];
-	} else { 
-		for (i = 0; i < cnt / sizeof(sysarg_t); i++)
-			((sysarg_t *) dst)[i] = ((sysarg_t *) src)[i];
-		
-		for (j = 0; j < cnt % sizeof(sysarg_t); j++)
-			((uint8_t *)(((sysarg_t *) dst) + i))[j] =
-			    ((uint8_t *)(((sysarg_t *) src) + i))[j];
-	}
-		
-	return (char *) dst;
+	for (i = 0; i < cnt; i++)
+		ptr[i] = val;
+}
+
+/** Fill block of memory.
+ *
+ * Fill cnt bytes at dst address with the value val.
+ *
+ * @param dst Destination address to fill.
+ * @param val Value to fill.
+ * @param cnt Number of bytes to fill.
+ *
+ * @return Destination address.
+ *
+ */
+void *memset(void *dst, int val, size_t cnt)
+{
+	return __builtin_memset(dst, val, cnt);
+}
+
+/** Move memory block without overlapping.
+ *
+ * Copy cnt bytes from src address to dst address. The source
+ * and destination memory areas cannot overlap.
+ *
+ * @param dst Destination address to copy to.
+ * @param src Source address to copy from.
+ * @param cnt Number of bytes to copy.
+ *
+ * @return Destination address.
+ *
+ */
+void *memcpy(void *dst, const void *src, size_t cnt)
+{
+	return __builtin_memcpy(dst, src, cnt);
 }
 
 /** Move memory block with possible overlapping.
  *
- * Copy cnt bytes from src address to dst address. The source and destination
- * memory areas may overlap.
+ * Copy cnt bytes from src address to dst address. The source
+ * and destination memory areas may overlap.
  *
- * @param src		Source address to copy from.
- * @param dst		Destination address to copy to.
- * @param cnt		Number of bytes to copy.
+ * @param dst Destination address to copy to.
+ * @param src Source address to copy from.
+ * @param cnt Number of bytes to copy.
  *
- * @return		Destination address.
+ * @return Destination address.
+ *
  */
-void *memmove(void *dst, const void *src, size_t n)
+void *memmove(void *dst, const void *src, size_t cnt)
 {
-	const uint8_t *sp;
-	uint8_t *dp;
-
 	/* Nothing to do? */
 	if (src == dst)
 		return dst;
-
+	
 	/* Non-overlapping? */
-	if (dst >= src + n || src >= dst + n) {	
-		return memcpy(dst, src, n);
-	}
-
+	if ((dst >= src + cnt) || (src >= dst + cnt))
+		return memcpy(dst, src, cnt);
+	
+	const uint8_t *sp;
+	uint8_t *dp;
+	
 	/* Which direction? */
 	if (src > dst) {
 		/* Forwards. */
 		sp = src;
 		dp = dst;
-
-		while (n-- != 0)
+		
+		while (cnt-- != 0)
 			*dp++ = *sp++;
 	} else {
 		/* Backwards. */
-		sp = src + (n - 1);
-		dp = dst + (n - 1);
-
-		while (n-- != 0)
+		sp = src + (cnt - 1);
+		dp = dst + (cnt - 1);
+		
+		while (cnt-- != 0)
 			*dp-- = *sp--;
 	}
-
+	
 	return dst;
-}
-
-/** Fill block of memory
- *
- * Fill cnt bytes at dst address with the value x.  The filling is done
- * byte-by-byte.
- *
- * @param dst		Destination address to fill.
- * @param cnt		Number of bytes to fill.
- * @param x		Value to fill.
- *
- */
-void _memsetb(void *dst, size_t cnt, uint8_t x)
-{
-	unsigned int i;
-	uint8_t *p = (uint8_t *) dst;
-	
-	for (i = 0; i < cnt; i++)
-		p[i] = x;
-}
-
-/** Fill block of memory.
- *
- * Fill cnt words at dst address with the value x.  The filling is done
- * word-by-word.
- *
- * @param dst		Destination address to fill.
- * @param cnt		Number of words to fill.
- * @param x		Value to fill.
- *
- */
-void _memsetw(void *dst, size_t cnt, uint16_t x)
-{
-	unsigned int i;
-	uint16_t *p = (uint16_t *) dst;
-	
-	for (i = 0; i < cnt; i++)
-		p[i] = x;	
 }
 
 /** @}
