@@ -163,7 +163,6 @@ static void paged_char(wchar_t c)
 static unsigned int cat_file(const char *fname, size_t blen, bool hex)
 {
 	int fd, bytes = 0, count = 0, reads = 0;
-	off64_t total = 0;
 	char *buff = NULL;
 	int i;
 	size_t offset = 0;
@@ -173,9 +172,6 @@ static unsigned int cat_file(const char *fname, size_t blen, bool hex)
 		printf("Unable to open %s\n", fname);
 		return 1;
 	}
-
-	total = lseek(fd, 0, SEEK_END);
-	lseek(fd, 0, SEEK_SET);
 
 	if (NULL == (buff = (char *) malloc(blen + 1))) {
 		close(fd);
