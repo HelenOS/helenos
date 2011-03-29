@@ -11,9 +11,9 @@ int
 mfs_alloc_bit(struct mfs_instance *inst, uint32_t *idx, bmap_id_t bid)
 {
 	struct mfs_sb_info *sbi;
-	unsigned start_block;
+	uint32_t limit;
 	unsigned long nblocks;
-	unsigned *search, i;
+	unsigned *search, i, start_block;
 	int r, freebit;
 
 	assert(inst != NULL);
@@ -24,11 +24,13 @@ mfs_alloc_bit(struct mfs_instance *inst, uint32_t *idx, bmap_id_t bid)
 		search = &sbi->zsearch;
 		start_block = 2 + sbi->ibmap_blocks;
 		nblocks = sbi->zbmap_blocks;
+		limit = sbi->nzones;
 	} else {
 		/*bid == BMAP_INODE*/
 		search = &sbi->isearch;
 		start_block = 2;
 		nblocks = sbi->ibmap_blocks;
+		limit = sbi->ninodes;
 	}
 
 	block_t *b;
@@ -51,11 +53,16 @@ retry:
 
 		/*Free bit found, compute real index*/
 		*idx = (freebit + sbi->block_size * 8 * i);
+		if (*idx > limit) {
+			/*Index is beyond the limit, it is invalid*/
+			block_put(b);
+			break;
+		}
+
 		*search = i;
 		b->dirty = true;
 		block_put(b);
 		goto found;
-		
 	}
 
 	if (*search > 0) {
