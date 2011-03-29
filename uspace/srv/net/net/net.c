@@ -554,7 +554,7 @@ static int startup(void)
 		/* Read configuration files */
 		rc = read_netif_configuration(conf_files[i], netif);
 		if (rc != EOK) {
-			measured_strings_destroy(&netif->configuration);
+			measured_strings_destroy(&netif->configuration, free);
 			free(netif);
 			return rc;
 		}
@@ -564,7 +564,7 @@ static int startup(void)
 		    measured_strings_find(&netif->configuration, (uint8_t *) CONF_NAME, 0);
 		if (!setting) {
 			fprintf(stderr, "%s: Network interface name is missing\n", NAME);
-			measured_strings_destroy(&netif->configuration);
+			measured_strings_destroy(&netif->configuration, free);
 			free(netif);
 			return EINVAL;
 		}
@@ -573,7 +573,7 @@ static int startup(void)
 		/* Add to the netifs map */
 		int index = netifs_add(&net_globals.netifs, netif->id, netif);
 		if (index < 0) {
-			measured_strings_destroy(&netif->configuration);
+			measured_strings_destroy(&netif->configuration, free);
 			free(netif);
 			return index;
 		}
@@ -585,8 +585,8 @@ static int startup(void)
 		rc = char_map_add(&net_globals.netif_names, netif->name, 0,
 		    index);
 		if (rc != EOK) {
-			measured_strings_destroy(&netif->configuration);
-			netifs_exclude_index(&net_globals.netifs, index);
+			measured_strings_destroy(&netif->configuration, free);
+			netifs_exclude_index(&net_globals.netifs, index, free);
 			return rc;
 		}
 		
@@ -594,8 +594,8 @@ static int startup(void)
 		if (rc != EOK) {
 			printf("%s: Ignoring failed interface %s (%s)\n", NAME,
 			    netif->name, str_error(rc));
-			measured_strings_destroy(&netif->configuration);
-			netifs_exclude_index(&net_globals.netifs, index);
+			measured_strings_destroy(&netif->configuration, free);
+			netifs_exclude_index(&net_globals.netifs, index, free);
 			continue;
 		}
 		
