@@ -160,7 +160,10 @@ read_directory_entry(struct mfs_node *mnode, unsigned index);
 
 /*mfs_balloc.c*/
 extern int
-mfs_alloc_bit(struct mfs_instance *inst, uint32_t *idx, bmap_id_t id);
+mfs_alloc_bit(struct mfs_instance *inst, uint32_t *idx, bmap_id_t bid);
+
+extern int
+mfs_free_bit(struct mfs_instance *inst, uint32_t idx, bmap_id_t bid);
 
 #endif
 

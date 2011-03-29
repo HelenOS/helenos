@@ -8,6 +8,58 @@ static int
 find_free_bit_and_set(bitchunk_t *b, const int bsize, const bool native);
 
 int
+mfs_free_bit(struct mfs_instance *inst, uint32_t idx, bmap_id_t bid)
+{
+	struct mfs_sb_info *sbi;
+	int r;
+	unsigned start_block;
+	block_t *b;
+
+	assert(inst != NULL);
+	sbi = inst->sbi;
+	assert(sbi != NULL);
+
+	if (bid == BMAP_ZONE) {
+		start_block = 2 + sbi->ibmap_blocks;
+		if (idx > sbi->nzones) {
+			printf(NAME ": Error! Trying to free beyond the" \
+					"bitmap max size\n");
+			return -1;
+		}
+	} else {
+		/*bid == BMAP_INODE*/
+		start_block = 2;
+		if (idx > sbi->ninodes) {
+			printf(NAME ": Error! Trying to free beyond the" \
+					"bitmap max size\n");
+			return -1;
+		}
+	}
+
+	/*Compute the bitmap block*/
+	uint32_t block = idx / (sbi->block_size * 8) + start_block;
+
+	r = block_get(&b, inst->handle, block, BLOCK_FLAGS_NONE);
+	if (r != EOK)
+		goto out_err;
+
+	/*Compute the bit index in the block*/
+	idx %= (sbi->block_size * 8);
+	bitchunk_t *ptr = b->data;
+	bitchunk_t chunk;
+
+	chunk = conv32(sbi->native, ptr[idx / 32]);
+	chunk &= ~(1 << (idx % 32));
+	ptr[idx / 32] = conv32(sbi->native, chunk);
+	b->dirty = true;
+	r = EOK;
+	block_put(b);
+
+out_err:
+	return r;
+}
+
+int
 mfs_alloc_bit(struct mfs_instance *inst, uint32_t *idx, bmap_id_t bid)
 {
 	struct mfs_sb_info *sbi;
