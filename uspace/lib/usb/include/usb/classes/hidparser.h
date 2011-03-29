@@ -30,7 +30,7 @@
  * @{
  */
 /** @file
- * @brief USB HID parser.
+ * USB HID report descriptor and report data parser
  */
 #ifndef LIBUSB_HIDPARSER_H_
 #define LIBUSB_HIDPARSER_H_
@@ -73,15 +73,22 @@
 #define USB_HID_PATH_COMPARE_END				1
 #define USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY	4
 
+/** */
 typedef struct {
+	/** */
 	int32_t usage_page;
+	/** */	
 	int32_t usage;
-
+	/** */
 	link_t link;
 } usb_hid_report_usage_path_t;
 
+/** */
 typedef struct {
+	/** */	
 	int depth;	
+	
+	/** */	
 	link_t link;
 } usb_hid_report_path_t;
 
@@ -89,42 +96,63 @@ typedef struct {
  * Description of report items
  */
 typedef struct {
+	/** */	
 	int32_t id;
+	/** */	
 	int32_t usage_minimum;
+	/** */	
 	int32_t usage_maximum;
+	/** */	
 	int32_t logical_minimum;
+	/** */	
 	int32_t logical_maximum;
+	/** */	
 	int32_t size;
+	/** */	
 	int32_t count;
+	/** */	
 	size_t offset;
+	/** */	
 	int32_t delimiter;
-
+	/** */	
 	int32_t unit_exponent;
+	/** */	
 	int32_t unit;
 
-	/*
-	 * some not yet used fields
-	 */
+	/** */
 	int32_t string_index;
+	/** */	
 	int32_t string_minimum;
+	/** */	
 	int32_t string_maximum;
+	/** */	
 	int32_t designator_index;
+	/** */	
 	int32_t designator_minimum;
+	/** */	
 	int32_t designator_maximum;
+	/** */	
 	int32_t physical_minimum;
+	/** */	
 	int32_t physical_maximum;
 
+	/** */	
 	uint8_t item_flags;
 
+	/** */	
 	usb_hid_report_path_t *usage_path;
+	/** */	
 	link_t link;
 } usb_hid_report_item_t;
 
 
 /** HID report parser structure. */
 typedef struct {	
+	/** */	
 	link_t input;
+	/** */	
 	link_t output;
+	/** */	
 	link_t feature;
 } usb_hid_report_parser_t;	
 
@@ -189,47 +217,93 @@ static const usb_hid_modifiers_t
 //#define USB_HID_BOOT_KEYBOARD_KANA			0x10
 
 /*
- * modifiers definitions
+ * Descriptor parser functions
  */
-
-int usb_hid_boot_keyboard_input_report(const uint8_t *data, size_t size,
-	const usb_hid_report_in_callbacks_t *callbacks, void *arg);
-
-int usb_hid_boot_keyboard_output_report(uint8_t leds, uint8_t *data, size_t size);
-
+/** */
 int usb_hid_parser_init(usb_hid_report_parser_t *parser);
+
+/** */
 int usb_hid_parse_report_descriptor(usb_hid_report_parser_t *parser, 
     const uint8_t *data, size_t size);
 
+/** */
+void usb_hid_free_report_parser(usb_hid_report_parser_t *parser);
+
+/** */
+void usb_hid_descriptor_print(usb_hid_report_parser_t *parser);
+
+/*
+ * Boot protocol functions
+ */
+/** */
+int usb_hid_boot_keyboard_input_report(const uint8_t *data, size_t size,
+	const usb_hid_report_in_callbacks_t *callbacks, void *arg);
+
+/** */
+int usb_hid_boot_keyboard_output_report(uint8_t leds, uint8_t *data, size_t size);
+
+
+/*
+ * Input report parser functions
+ */
+/** */
 int usb_hid_parse_report(const usb_hid_report_parser_t *parser,  
     const uint8_t *data, size_t size,
     usb_hid_report_path_t *path, int flags,
     const usb_hid_report_in_callbacks_t *callbacks, void *arg);
 
-int usb_hid_report_input_length(const usb_hid_report_parser_t *parser,
+/** */
+size_t usb_hid_report_input_length(const usb_hid_report_parser_t *parser,
 	usb_hid_report_path_t *path, int flags);
 
 
-void usb_hid_free_report_parser(usb_hid_report_parser_t *parser);
 
-void usb_hid_descriptor_print(usb_hid_report_parser_t *parser);
-
-/* usage path functions */
+/* 
+ * usage path functions 
+ */
+/** */
 usb_hid_report_path_t *usb_hid_report_path(void);
+
+/** */
 void usb_hid_report_path_free(usb_hid_report_path_t *path);
+
+/** */
 int usb_hid_report_path_append_item(usb_hid_report_path_t *usage_path, int32_t usage_page, int32_t usage);
+
+/** */
 void usb_hid_report_remove_last_item(usb_hid_report_path_t *usage_path);
+
+/** */
 void usb_hid_report_null_last_item(usb_hid_report_path_t *usage_path);
+
+/** */
 void usb_hid_report_set_last_item(usb_hid_report_path_t *usage_path, int32_t tag, int32_t data);
+
+/** */
 int usb_hid_report_compare_usage_path(usb_hid_report_path_t *report_path, usb_hid_report_path_t *path, int flags);
-int	usb_hid_report_path_clone(usb_hid_report_path_t *new_usage_path, usb_hid_report_path_t *usage_path);
+
+/** */
+usb_hid_report_path_t *usb_hid_report_path_clone(usb_hid_report_path_t *usage_path);
 
 
-// output
-//	- funkce co vrati cesty poli v output reportu
-//	- funkce co pro danou cestu nastavi data
-//	- finalize
+/*
+ * Output report parser functions
+ */
+/** Allocates output report buffer*/
+uint8_t *usb_hid_report_output(usb_hid_report_parser_t *parser, size_t *size);
 
+/** Frees output report buffer*/
+void usb_hid_report_output_free(uint8_t *output);
+
+/** Returns size of output for given usage path */
+size_t usb_hid_report_output_size(usb_hid_report_parser_t *parser,
+                                  usb_hid_report_path_t *path, int flags);
+
+/** Updates the output report buffer by translated given data */
+int usb_hid_report_output_translate(usb_hid_report_parser_t *parser,
+                                    usb_hid_report_path_t *path, int flags,
+                                    uint8_t *buffer, size_t size,
+                                    int32_t *data, size_t data_size);
 #endif
 /**
  * @}
