@@ -90,7 +90,7 @@ static int	write_superblock3(const struct mfs_sb_info *sbi);
 static int	init_bitmaps(const struct mfs_sb_info *sb);
 static int	init_inode_table(const struct mfs_sb_info *sb);
 static int	make_root_ino(const struct mfs_sb_info *sb);
-static int	make_root_ino3(const struct mfs_sb_info *sb);
+static int	make_root_ino2(const struct mfs_sb_info *sb);
 static void	mark_bmap(uint32_t *bmap, int idx, int v);
 static int	insert_dentries(const struct mfs_sb_info *sb);
 
@@ -263,10 +263,10 @@ int main (int argc, char **argv)
 	}
 
 	/*Make the root inode*/
-	if (sb.fs_version == 3)
-		rc = make_root_ino3(&sb);		
-	else
+	if (sb.fs_version == 1)
 		rc = make_root_ino(&sb);
+	else
+		rc = make_root_ino2(&sb);
 
 	if (rc != EOK) {
 		printf(NAME ": Error. Root inode initialization failed\n");
@@ -386,7 +386,8 @@ static int make_root_ino(const struct mfs_sb_info *sb)
 	return rc;
 }
 
-static int make_root_ino3(const struct mfs_sb_info *sb)
+/*Initialize a Minix V2 root inode on disk, also valid for V3 filesystem*/
+static int make_root_ino2(const struct mfs_sb_info *sb)
 {
 	struct mfs2_inode *ino_buf;
 	int rc;
