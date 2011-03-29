@@ -37,7 +37,6 @@
 
 #include <typedefs.h>
 
-
 extern void memsetb(void *, size_t, uint8_t);
 extern void memsetw(void *, size_t, uint16_t);
 extern void *memset(void *, int, size_t);
