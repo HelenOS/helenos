@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbuhci
+/** @addtogroup drvusbohci
  * @{
  */
 /** @file
@@ -36,10 +36,11 @@
 #include <str_error.h>
 #include <ddf/interrupt.h>
 #include <usb_iface.h>
+#include <usb/usb.h>
 #include <usb/ddfiface.h>
 #include <usb/debug.h>
 
-#include "uhci.h"
+#include "ohci.h"
 #include "iface.h"
 #include "pci.h"
 
@@ -52,7 +53,7 @@
 static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
 {
 	assert(dev);
-	hc_t *hc = &((uhci_t*)dev->driver_data)->hc;
+	hc_t *hc = &((ohci_t*)dev->driver_data)->hc;
 	uint16_t status = IPC_GET_ARG1(*call);
 	assert(hc);
 	hc_interrupt(hc, status);
@@ -68,7 +69,7 @@ static int usb_iface_get_address(
     ddf_fun_t *fun, devman_handle_t handle, usb_address_t *address)
 {
 	assert(fun);
-	usb_device_keeper_t *manager = &((uhci_t*)fun->dev->driver_data)->hc.manager;
+	usb_device_keeper_t *manager = &((ohci_t*)fun->dev->driver_data)->hc.manager;
 
 	usb_address_t addr = usb_device_keeper_find(manager, handle);
 	if (addr < 0) {
@@ -82,7 +83,7 @@ static int usb_iface_get_address(
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-/** Gets handle of the respective hc (this or parent device).
+/** Gets handle of the respective hc (this device, hc function).
  *
  * @param[in] root_hub_fun Root hub function seeking hc handle.
  * @param[out] handle Place to write the handle.
@@ -92,7 +93,7 @@ static int usb_iface_get_hc_handle(
     ddf_fun_t *fun, devman_handle_t *handle)
 {
 	assert(handle);
-	ddf_fun_t *hc_fun = ((uhci_t*)fun->dev->driver_data)->hc_fun;
+	ddf_fun_t *hc_fun = ((ohci_t*)fun->dev->driver_data)->hc_fun;
 	assert(hc_fun != NULL);
 
 	*handle = hc_fun->handle;
@@ -106,29 +107,11 @@ static usb_iface_t usb_iface = {
 };
 /*----------------------------------------------------------------------------*/
 static ddf_dev_ops_t hc_ops = {
-//	.interfaces[USB_DEV_IFACE] = &usb_iface,
 	.interfaces[USBHC_DEV_IFACE] = &hc_iface, /* see iface.h/c */
-};
-/*----------------------------------------------------------------------------*/
-/** Get root hub hw resources (I/O registers).
- *
- * @param[in] fun Root hub function.
- * @return Pointer to the resource list used by the root hub.
- */
-static hw_resource_list_t *get_resource_list(ddf_fun_t *fun)
-{
-	assert(fun);
-	return &((rh_t*)fun->driver_data)->resource_list;
-}
-/*----------------------------------------------------------------------------*/
-static hw_res_ops_t hw_res_iface = {
-	.get_resource_list = get_resource_list,
-	.enable_interrupt = NULL
 };
 /*----------------------------------------------------------------------------*/
 static ddf_dev_ops_t rh_ops = {
 	.interfaces[USB_DEV_IFACE] = &usb_iface,
-	.interfaces[HW_RES_DEV_IFACE] = &hw_res_iface
 };
 /*----------------------------------------------------------------------------*/
 /** Initialize hc and rh ddf structures and their respective drivers.
@@ -142,7 +125,7 @@ static ddf_dev_ops_t rh_ops = {
  *  - asks for interrupt
  *  - registers interrupt handler
  */
-int uhci_init(uhci_t *instance, ddf_dev_t *device)
+int ohci_init(ohci_t *instance, ddf_dev_t *device)
 {
 	assert(instance);
 	instance->hc_fun = NULL;
@@ -157,16 +140,16 @@ if (ret != EOK) { \
 	return ret; \
 }
 
-	uintptr_t io_reg_base = 0;
-	size_t io_reg_size = 0;
+	uintptr_t mem_reg_base = 0;
+	size_t mem_reg_size = 0;
 	int irq = 0;
 
 	int ret =
-	    pci_get_my_registers(device, &io_reg_base, &io_reg_size, &irq);
+	    pci_get_my_registers(device, &mem_reg_base, &mem_reg_size, &irq);
 	CHECK_RET_DEST_FUN_RETURN(ret,
-	    "Failed(%d) to get I/O addresses:.\n", ret, device->handle);
-	usb_log_debug("I/O regs at 0x%X (size %zu), IRQ %d.\n",
-	    io_reg_base, io_reg_size, irq);
+	    "Failed(%d) to get memory addresses:.\n", ret, device->handle);
+	usb_log_debug("Memory mapped regs at 0x%X (size %zu), IRQ %d.\n",
+	    mem_reg_base, mem_reg_size, irq);
 
 	ret = pci_disable_legacy(device);
 	CHECK_RET_DEST_FUN_RETURN(ret,
@@ -189,14 +172,14 @@ if (ret != EOK) { \
 	}
 #endif
 
-	instance->hc_fun = ddf_fun_create(device, fun_exposed, "uhci-hc");
+	instance->hc_fun = ddf_fun_create(device, fun_exposed, "ohci-hc");
 	ret = (instance->hc_fun == NULL) ? ENOMEM : EOK;
 	CHECK_RET_DEST_FUN_RETURN(ret,
 	    "Failed(%d) to create HC function.\n", ret);
 
-	ret = hc_init(&instance->hc, instance->hc_fun,
-	    (void*)io_reg_base, io_reg_size, interrupts);
-	CHECK_RET_DEST_FUN_RETURN(ret, "Failed(%d) to init uhci-hcd.\n", ret);
+	ret = hc_init(&instance->hc, instance->hc_fun, device,
+	    mem_reg_base, mem_reg_size, interrupts);
+	CHECK_RET_DEST_FUN_RETURN(ret, "Failed(%d) to init ohci-hcd.\n", ret);
 	instance->hc_fun->ops = &hc_ops;
 	instance->hc_fun->driver_data = &instance->hc;
 	ret = ddf_fun_bind(instance->hc_fun);
@@ -217,23 +200,19 @@ if (ret != EOK) { \
 }
 
 	/* It does no harm if we register this on polling */
-	ret = register_interrupt_handler(device, irq, irq_handler,
-	    &instance->hc.interrupt_code);
+	ret = register_interrupt_handler(device, irq, irq_handler, NULL);
 	CHECK_RET_FINI_RETURN(ret,
 	    "Failed(%d) to register interrupt handler.\n", ret);
 
-	instance->rh_fun = ddf_fun_create(device, fun_inner, "uhci-rh");
+	instance->rh_fun = ddf_fun_create(device, fun_inner, "ohci-rh");
 	ret = (instance->rh_fun == NULL) ? ENOMEM : EOK;
 	CHECK_RET_FINI_RETURN(ret,
 	    "Failed(%d) to create root hub function.\n", ret);
 
-	ret = rh_init(&instance->rh, instance->rh_fun,
-	    (uintptr_t)instance->hc.registers + 0x10, 4);
-	CHECK_RET_FINI_RETURN(ret,
-	    "Failed(%d) to setup UHCI root hub.\n", ret);
+	hc_register_hub(&instance->hc, instance->rh_fun);
 
 	instance->rh_fun->ops = &rh_ops;
-	instance->rh_fun->driver_data = &instance->rh;
+	instance->rh_fun->driver_data = NULL;
 	ret = ddf_fun_bind(instance->rh_fun);
 	CHECK_RET_FINI_RETURN(ret,
 	    "Failed(%d) to register UHCI root hub.\n", ret);

@@ -43,6 +43,7 @@
 #include <str_error.h>
 #include <io/klog.h>
 #include <sysinfo.h>
+#include <fibril_synch.h>
 
 #define NAME       "klog"
 #define LOG_FNAME  "/log/klog"
@@ -53,8 +54,14 @@ static size_t klog_length;
 
 static FILE *log;
 
+/* Serialize the output a bit. This will not avoid messed-up log completely
+   but chances for are pretty high (experimentally confirmed). */
+static FIBRIL_MUTEX_INITIALIZE(log_mutex);
+
 static void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
 {
+	fibril_mutex_lock(&log_mutex);
+	
 	size_t klog_start = (size_t) IPC_GET_ARG1(*call);
 	size_t klog_len = (size_t) IPC_GET_ARG2(*call);
 	size_t klog_stored = (size_t) IPC_GET_ARG3(*call);
@@ -73,6 +80,8 @@ static void interrupt_received(ipc_callid_t callid, ipc_call_t *call)
 		fflush(log);
 		fsync(fileno(log));
 	}
+	
+	fibril_mutex_unlock(&log_mutex);
 }
 
 int main(int argc, char *argv[])

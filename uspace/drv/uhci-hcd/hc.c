@@ -66,7 +66,7 @@ static void hc_init_hw(hc_t *instance);
 static int hc_interrupt_emulator(void *arg);
 static int hc_debug_checker(void *arg);
 
-static bool allowed_usb_packet(
+static bool usb_is_allowed(
     bool low_speed, usb_transfer_type_t transfer, size_t size);
 /*----------------------------------------------------------------------------*/
 /** Initialize UHCI hcd driver structure
@@ -222,7 +222,7 @@ int hc_init_mem_structures(hc_t *instance)
 	instance->frame_list = get_page();
 	ret = instance ? EOK : ENOMEM;
 	CHECK_RET_DEST_CMDS_RETURN(ret, "Failed to get frame list page.\n");
-	usb_log_debug("Initialized frame list.\n");
+	usb_log_debug("Initialized frame list at %p.\n", instance->frame_list);
 
 	/* Set all frames to point to the first queue head */
 	const uint32_t queue =
@@ -322,10 +322,10 @@ int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch)
 	assert(instance);
 	assert(batch);
 	const int low_speed = (batch->speed == USB_SPEED_LOW);
-	if (!allowed_usb_packet(
+	if (!usb_is_allowed(
 	    low_speed, batch->transfer_type, batch->max_packet_size)) {
 		usb_log_warning(
-		    "Invalid USB packet specified %s SPEED %d %zu.\n",
+		    "Invalid USB transfer specified %s SPEED %d %zu.\n",
 		    low_speed ? "LOW" : "FULL" , batch->transfer_type,
 		    batch->max_packet_size);
 		return ENOTSUP;
@@ -335,6 +335,10 @@ int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch)
 	transfer_list_t *list =
 	    instance->transfers[batch->speed][batch->transfer_type];
 	assert(list);
+	if (batch->transfer_type == USB_TRANSFER_CONTROL) {
+		usb_device_keeper_use_control(
+		    &instance->manager, batch->target.address);
+	}
 	transfer_list_add_batch(list, batch);
 
 	return EOK;
@@ -356,10 +360,27 @@ void hc_interrupt(hc_t *instance, uint16_t status)
 	/* TODO: Resume interrupts are not supported */
 	/* Lower 2 bits are transaction error and transaction complete */
 	if (status & 0x3) {
-		transfer_list_remove_finished(&instance->transfers_interrupt);
-		transfer_list_remove_finished(&instance->transfers_control_slow);
-		transfer_list_remove_finished(&instance->transfers_control_full);
-		transfer_list_remove_finished(&instance->transfers_bulk_full);
+		LIST_INITIALIZE(done);
+		transfer_list_remove_finished(
+		    &instance->transfers_interrupt, &done);
+		transfer_list_remove_finished(
+		    &instance->transfers_control_slow, &done);
+		transfer_list_remove_finished(
+		    &instance->transfers_control_full, &done);
+		transfer_list_remove_finished(
+		    &instance->transfers_bulk_full, &done);
+
+		while (!list_empty(&done)) {
+			link_t *item = done.next;
+			list_remove(item);
+			usb_transfer_batch_t *batch =
+			    list_get_instance(item, usb_transfer_batch_t, link);
+			if (batch->transfer_type == USB_TRANSFER_CONTROL) {
+				usb_device_keeper_release_control(
+				    &instance->manager, batch->target.address);
+			}
+			batch->next_step(batch);
+		}
 	}
 	/* bits 4 and 5 indicate hc error */
 	if (status & 0x18) {
@@ -470,14 +491,14 @@ int hc_debug_checker(void *arg)
 #undef QH
 }
 /*----------------------------------------------------------------------------*/
-/** Check transfer packets, for USB validity
+/** Check transfers for USB validity
  *
  * @param[in] low_speed Transfer speed.
  * @param[in] transfer Transer type
- * @param[in] size Maximum size of used packets
+ * @param[in] size Size of data packets
  * @return True if transaction is allowed by USB specs, false otherwise
  */
-bool allowed_usb_packet(
+bool usb_is_allowed(
     bool low_speed, usb_transfer_type_t transfer, size_t size)
 {
 	/* see USB specification chapter 5.5-5.8 for magic numbers used here */

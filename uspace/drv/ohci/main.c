@@ -33,59 +33,16 @@
  * Main routines of OHCI driver.
  */
 #include <ddf/driver.h>
-#include <ddf/interrupt.h>
-#include <device/hw_res.h>
 #include <errno.h>
 #include <str_error.h>
 
-#include <usb_iface.h>
-#include <usb/ddfiface.h>
 #include <usb/debug.h>
 
-#include "pci.h"
-#include "iface.h"
-#include "hc.h"
+#include "ohci.h"
+
+#define NAME "ohci"
 
 static int ohci_add_device(ddf_dev_t *device);
-static int get_hc_handle(ddf_fun_t *fun, devman_handle_t *handle)
-{
-	assert(handle);
-  assert(fun != NULL);
-
-  *handle = fun->handle;
-  return EOK;
-}
-/*----------------------------------------------------------------------------*/
-static int get_address(
-    ddf_fun_t *fun, devman_handle_t handle, usb_address_t *address)
-{
-	assert(fun);
-	usb_device_keeper_t *manager = &fun_to_hc(fun)->manager;
-  usb_address_t addr = usb_device_keeper_find(manager, handle);
-  if (addr < 0) {
-    return addr;
-  }
-
-  if (address != NULL) {
-    *address = addr;
-  }
-
-  return EOK;
-}
-/*----------------------------------------------------------------------------*/
-/** IRQ handling callback, identifies device
- *
- * @param[in] dev DDF instance of the device to use.
- * @param[in] iid (Unused).
- * @param[in] call Pointer to the call that represents interrupt.
- */
-static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
-{
-	assert(dev);
-	hc_t *hc = (hc_t*)dev->driver_data;
-	assert(hc);
-	hc_interrupt(hc, 0);
-}
 /*----------------------------------------------------------------------------*/
 static driver_ops_t ohci_driver_ops = {
 	.add_device = ohci_add_device,
@@ -96,96 +53,32 @@ static driver_t ohci_driver = {
 	.driver_ops = &ohci_driver_ops
 };
 /*----------------------------------------------------------------------------*/
-static usb_iface_t hc_usb_iface = {
-	.get_address = get_address,
-	.get_hc_handle = get_hc_handle,
-};
-/*----------------------------------------------------------------------------*/
-static ddf_dev_ops_t hc_ops = {
-	.interfaces[USB_DEV_IFACE] = &hc_usb_iface,
-	.interfaces[USBHC_DEV_IFACE] = &hc_iface,
-};
-/*----------------------------------------------------------------------------*/
 /** Initializes a new ddf driver instance of OHCI hcd.
  *
  * @param[in] device DDF instance of the device to initialize.
  * @return Error code.
  */
-static int ohci_add_device(ddf_dev_t *device)
+int ohci_add_device(ddf_dev_t *device)
 {
+	usb_log_debug("ohci_add_device() called\n");
 	assert(device);
-#define CHECK_RET_RETURN(ret, message...) \
-if (ret != EOK) { \
-	usb_log_error(message); \
-	return ret; \
-}
-
-	uintptr_t mem_reg_base = 0;
-	size_t mem_reg_size = 0;
-	int irq = 0;
-
-	int ret =
-	    pci_get_my_registers(device, &mem_reg_base, &mem_reg_size, &irq);
-	CHECK_RET_RETURN(ret,
-	    "Failed(%d) to get memory addresses:.\n", ret, device->handle);
-	usb_log_info("Memory mapped regs at 0x%X (size %zu), IRQ %d.\n",
-	    mem_reg_base, mem_reg_size, irq);
-
-	ret = pci_disable_legacy(device);
-	CHECK_RET_RETURN(ret,
-	    "Failed(%d) disable legacy USB: %s.\n", ret, str_error(ret));
-
-	hc_t *hcd = malloc(sizeof(hc_t));
-	if (hcd == NULL) {
+	ohci_t *ohci = malloc(sizeof(ohci_t));
+	if (ohci == NULL) {
 		usb_log_error("Failed to allocate OHCI driver.\n");
 		return ENOMEM;
 	}
 
-	ddf_fun_t *hc_fun = ddf_fun_create(device, fun_exposed, "ohci-hc");
-	if (hc_fun == NULL) {
-		usb_log_error("Failed to create OHCI function.\n");
-		free(hcd);
-		return ENOMEM;
-	}
-
-	bool interrupts = false;
-	ret = pci_enable_interrupts(device);
+	int ret = ohci_init(ohci, device);
 	if (ret != EOK) {
-		usb_log_warning(
-		    "Failed(%d) to enable interrupts, fall back to polling.\n",
-		    ret);
-	} else {
-		usb_log_debug("Hw interrupts enabled.\n");
-		interrupts = true;
-	}
-
-	ret = hc_init(hcd, hc_fun, device, mem_reg_base, mem_reg_size, interrupts);
-	if (ret != EOK) {
-		usb_log_error("Failed to initialize OHCI driver.\n");
-		free(hcd);
+		usb_log_error("Failed to initialize OHCI driver: %s.\n",
+		    str_error(ret));
 		return ret;
 	}
+	device->driver_data = ohci;
 
-	ret = register_interrupt_handler(device, irq, irq_handler, NULL);
-
-	hc_fun->ops = &hc_ops;
-	ret = ddf_fun_bind(hc_fun);
-	if (ret != EOK) {
-		usb_log_error("Failed to bind OHCI function.\n");
-		ddf_fun_destroy(hc_fun);
-		free(hcd);
-		return ret;
-	}
-	hc_fun->driver_data = hcd;
-
-	fid_t later = fibril_create((int(*)(void*))hc_register_hub, hcd);
-	fibril_add_ready(later);
-
-	usb_log_info("Controlling new OHCI device `%s' (handle %llu).\n",
-	    device->name, device->handle);
+	usb_log_info("Controlling new OHCI device `%s'.\n", device->name);
 
 	return EOK;
-#undef CHECK_RET_RETURN
 }
 /*----------------------------------------------------------------------------*/
 /** Initializes global driver structures (NONE).

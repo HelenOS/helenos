@@ -29,8 +29,8 @@
  * @{
  */
 
-#ifndef PORT_STATUS_H
-#define	PORT_STATUS_H
+#ifndef HUB_PORT_STATUS_H
+#define	HUB_PORT_STATUS_H
 
 #include <bool.h>
 #include <sys/types.h>
@@ -74,6 +74,24 @@ usb_hub_create_port_status_request(uint16_t port){
 		usb_new(usb_device_request_setup_packet_t);
 	usb_hub_set_port_status_request(result,port);
 	return result;
+}
+
+
+/**
+ * set the device request to be a port feature enable request
+ * @param request
+ * @param port
+ * @param feature_selector
+ */
+static inline void usb_hub_set_enable_port_feature_request(
+usb_device_request_setup_packet_t * request, uint16_t port,
+		uint16_t feature_selector
+){
+	request->index = port;
+	request->request_type = USB_HUB_REQ_TYPE_SET_PORT_FEATURE;
+	request->request = USB_HUB_REQUEST_SET_FEATURE;
+	request->value = feature_selector;
+	request->length = 0;
 }
 
 
@@ -190,6 +208,7 @@ usb_device_request_setup_packet_t * request, uint16_t port
 	request->value = USB_HUB_FEATURE_PORT_POWER;
 	request->length = 0;
 }
+
 
 /** get i`th bit of port status */
 static inline bool usb_port_get_bit(usb_port_status_t * status, int idx)
@@ -334,7 +353,7 @@ static inline void usb_port_set_reset_completed(usb_port_status_t * status,bool 
 
 
 
-#endif	/* PORT_STATUS_H */
+#endif	/* HUB_PORT_STATUS_H */
 
 /**
  * @}

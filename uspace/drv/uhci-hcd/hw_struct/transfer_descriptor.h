@@ -107,11 +107,11 @@ static inline size_t td_act_size(td_t *instance)
 	return ((s >> TD_STATUS_ACTLEN_POS) + 1) & TD_STATUS_ACTLEN_MASK;
 }
 /*----------------------------------------------------------------------------*/
-/** Check whether less than max data were recieved and packet is marked as SPD.
+/** Check whether less than max data were received on SPD marked transfer.
  *
  * @param[in] instance TD structure to use.
- * @return True if packet is short (less than max bytes and SPD set), false
- *     otherwise.
+ * @return True if data packet is short (less than max bytes and SPD set),
+ * false otherwise.
  */
 static inline bool td_is_short(td_t *instance)
 {

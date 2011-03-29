@@ -56,10 +56,10 @@ typedef struct hc {
 	fid_t interrupt_emulator;
 } hc_t;
 
+int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun);
+
 int hc_init(hc_t *instance, ddf_fun_t *fun, ddf_dev_t *dev,
      uintptr_t regs, size_t reg_size, bool interrupts);
-
-int hc_register_hub(hc_t *instance);
 
 int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch);
 

@@ -52,7 +52,16 @@
 #include <errno.h>
 #include <str.h>
 
+/*
+ * devman produces a lot of output and by giving so many pages
+ * we to allow /app/klog to catch-up.
+ */
+#ifdef CONFIG_DEVMAN_EARLY_LAUNCH
+#define KLOG_PAGES    64
+#else
 #define KLOG_PAGES    4
+#endif
+
 #define KLOG_LENGTH   (KLOG_PAGES * PAGE_SIZE / sizeof(wchar_t))
 #define KLOG_LATENCY  8
 
