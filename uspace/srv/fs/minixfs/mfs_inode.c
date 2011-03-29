@@ -60,7 +60,8 @@ struct mfs_ino_info *mfs_read_inode_raw(const struct mfs_instance *instance,
 
 	const int itable_off = 2 + sbi->ibmap_blocks + sbi->zbmap_blocks;
 
-	if (block_get(&b, instance->handle, itable_off + inum / V1_INODES_PER_BLOCK,
+	if (block_get(&b, instance->handle,
+			itable_off + inum / V1_INODES_PER_BLOCK,
 			BLOCK_FLAGS_NONE) != EOK)
 		goto out_err;
 
