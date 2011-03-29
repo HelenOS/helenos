@@ -437,7 +437,7 @@ static int mfs_has_children(bool *has_children, fs_node_t *fsnode)
 
 		if (!d_info) {
 			/*Reached the end of the dentries list*/
-			goto out;
+			break;
 		}
 
 		if (d_info->d_inum) {

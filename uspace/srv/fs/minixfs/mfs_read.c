@@ -73,8 +73,8 @@ static int read_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock
 {
 	int r, nr_direct;
 	int ptrs_per_block;
-	uint32_t *bi1 = NULL;
-	uint32_t *bi2 = NULL;
+	block_t *bi1;
+	block_t *bi2;
 
 	assert(mnode);
 	const struct mfs_ino_info *ino_i = mnode->ino_i;
@@ -82,7 +82,8 @@ static int read_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock
 	assert(ino_i);
 	assert(mnode->instance);
 
-	const struct mfs_sb_info *sbi = mnode->instance->sbi;
+	const struct mfs_instance *inst = mnode->instance;
+	const struct mfs_sb_info *sbi = inst->sbi;
 	assert(sbi);
 
 	const int fs_version = sbi->fs_version;
@@ -110,16 +111,20 @@ static int read_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock
 			goto out;
 		}
 
-		bi1 = (uint32_t *) malloc(sbi->block_size);
-		r = read_ind_block(bi1, mnode->instance, ino_i->i_izone[0],
-					fs_version);
+		r = block_get(&bi1, inst->handle, ino_i->i_izone[0],
+				BLOCK_FLAGS_NONE);
+		if (r != EOK)
+			goto out;
 
-		if (fs_version == MFS_VERSION_V1)
-			*b = ((uint16_t *) bi1)[rblock];
-		else
-			*b = bi1[rblock];
+		if (fs_version == MFS_VERSION_V1) {
+			uint16_t tmp = ((uint16_t *) bi1->data)[rblock];
+			*b = conv16(sbi->native, tmp);
+	 	} else {
+			uint32_t tmp = ((uint32_t *) bi1->data)[rblock];
+			*b = conv32(sbi->native, tmp);
+		}
 
-		goto out;
+		goto out_put_1;
 	}
 
 	rblock -= ptrs_per_block - 1;
@@ -132,11 +137,8 @@ static int read_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock
 		goto out;
 	}
 
-	bi1 = (uint32_t *) malloc(sbi->block_size);
-	bi2 = (uint32_t *) malloc(sbi->block_size);
-
-	r = read_ind_block(bi1, mnode->instance, ino_i->i_izone[1],
-				fs_version);
+	r = block_get(&bi1, inst->handle, ino_i->i_izone[1],
+			BLOCK_FLAGS_NONE);
 
 	if (r != EOK)
 		goto out;
@@ -149,29 +151,34 @@ static int read_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock
 
 	/*read the second indirect zone of the chain*/
 	if (fs_version == MFS_VERSION_V1) {
-		r = read_ind_block(bi2, mnode->instance,
-			((uint16_t *) bi1)[di_block], fs_version);
+		uint16_t *pt16 = bi1->data;
+		uint16_t blk = conv16(sbi->native, pt16[di_block]);
+		r = block_get(&bi2, inst->handle, blk, BLOCK_FLAGS_NONE);
 
 		if (r != EOK)
-			goto out;
+			goto out_put_1;
 
-		*b = ((uint16_t *) bi2)[rblock % ptrs_per_block];
+		pt16 = bi2->data;
+		blk = conv16(sbi->native, pt16[di_block % ptrs_per_block]);
+		*b = blk;
 	} else {
-		r = read_ind_block(bi2, mnode->instance,
-			((uint32_t *) bi1)[di_block], fs_version);
+		uint32_t *pt32 = bi1->data;
+		uint32_t blk = conv32(sbi->native, pt32[di_block]);
+		r = block_get(&bi2, inst->handle, blk, BLOCK_FLAGS_NONE);
 
 		if (r != EOK)
-			goto out;
+			goto out_put_1;
 
-		*b = bi2[rblock % ptrs_per_block];
+		pt32 = bi2->data;
+		blk = conv32(sbi->native, pt32[di_block % ptrs_per_block]);
+		*b = blk;
 	}
 	r = EOK;
 
+	block_put(bi2);
+out_put_1:
+	block_put(bi1);
 out:
-	if (bi1)
-		free(bi1);
-	if (bi2)
-		free(bi2);
 	return r;
 }
 

@@ -57,6 +57,8 @@
 
 GLOBAL fs_reg_t mfs_reg;
 
+typedef uint32_t bitchunk_t;
+
 typedef enum {
 	BMAP_ZONE,
 	BMAP_INODE

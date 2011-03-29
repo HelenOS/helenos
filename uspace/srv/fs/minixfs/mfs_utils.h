@@ -46,10 +46,6 @@ conv32(bool native, uint32_t n);
 extern uint64_t
 conv64(bool native, uint64_t n);
 
-extern int
-read_ind_block(void *data, struct mfs_instance *inst,
-		uint32_t block, mfs_version_t version);
-
 #endif
 
 /**
