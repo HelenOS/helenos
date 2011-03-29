@@ -38,6 +38,7 @@ SOURCES = \
 	mfs_inode.c \
 	mfs_read.c \
 	mfs_dentry.c \
+	mfs_balloc.c \
 	mfs_utils.c
 
 include $(USPACE_PREFIX)/Makefile.common
