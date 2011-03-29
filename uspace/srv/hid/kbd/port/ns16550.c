@@ -119,8 +119,8 @@ static void ns16550_irq_handler(ipc_callid_t iid, ipc_call_t *call)
 	int scan_code = IPC_GET_ARG2(*call);
 	kbd_push_scancode(scan_code);
 	
-	if (cir_service)
-		async_msg_1(cir_phone, IRC_CLEAR_INTERRUPT,
+	if (irc_service)
+		async_msg_1(irc_phone, IRC_CLEAR_INTERRUPT,
 		    IPC_GET_IMETHOD(*call));
 }
 

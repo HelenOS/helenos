@@ -66,8 +66,8 @@ static unsigned mods = KM_NUM_LOCK;
 /** Currently pressed lock keys. We track these to tackle autorepeat. */
 static unsigned lock_keys;
 
-int cir_service = 0;
-int cir_phone = -1;
+bool irc_service = false;
+int irc_phone = -1;
 
 #define NUM_LAYOUTS 3
 
@@ -215,14 +215,13 @@ int main(int argc, char **argv)
 	sysarg_t fhc;
 	sysarg_t obio;
 	
-	if ((sysinfo_get_value("kbd.cir.fhc", &fhc) == EOK) && (fhc))
-		cir_service = SERVICE_FHC;
-	else if ((sysinfo_get_value("kbd.cir.obio", &obio) == EOK) && (obio))
-		cir_service = SERVICE_OBIO;
+	if (((sysinfo_get_value("kbd.cir.fhc", &fhc) == EOK) && (fhc))
+	    || ((sysinfo_get_value("kbd.cir.obio", &obio) == EOK) && (obio)))
+		irc_service = true;
 	
-	if (cir_service) {
-		while (cir_phone < 0)
-			cir_phone = service_connect_blocking(cir_service, 0, 0);
+	if (irc_service) {
+		while (irc_phone < 0)
+			irc_phone = service_connect_blocking(SERVICE_IRC, 0, 0);
 	}
 	
 	/* Initialize port driver. */

@@ -83,7 +83,7 @@ def main():
 	header_size_aligned = align_up(header_size, align)
 	payload_size_aligned = align_up(payload_size, align)
 	
-	header.tag = "HORD"
+	header.tag = b"HORD"
 	header.version = 1
 	header.encoding = HORD_LSB
 	header.header_size = header_size_aligned

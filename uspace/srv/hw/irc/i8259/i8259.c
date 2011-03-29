@@ -148,7 +148,7 @@ static bool i8259_init(void)
 	}
 	
 	async_set_client_connection(i8259_connection);
-	service_register(SERVICE_I8259);
+	service_register(SERVICE_IRC);
 	
 	return true;
 }

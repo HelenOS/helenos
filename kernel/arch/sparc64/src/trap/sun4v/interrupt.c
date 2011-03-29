@@ -110,7 +110,7 @@ void cpu_mondo(void)
 		if (data1 == (uintptr_t) tlb_shootdown_ipi_recv) {
 			((void (*)(void)) data1)();
 		} else {
-			printf("Spurious interrupt on %d, data = %" PRIx64 ".\n",
+			printf("Spurious interrupt on %" PRIu64 ", data = %" PRIx64 ".\n",
 			    CPU->arch.id, data1);
 		}
 	}
