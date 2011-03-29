@@ -28,7 +28,7 @@
 
 class ExceptionDemo is
 	fun foo(), static is
-	        Builtin.WriteLine("Entered foo().");
+	        Console.WriteLine("Entered foo().");
 		raise new BaseException();
 	end
 
@@ -37,11 +37,11 @@ class ExceptionDemo is
 			foo();
 			foo();
 		except e : DerivedException do
-			Builtin.WriteLine("Caught derived exception.");
+			Console.WriteLine("Caught derived exception.");
 		except e : BaseException do
-			Builtin.WriteLine("Caught base exception.");
+			Console.WriteLine("Caught base exception.");
 		finally do
-			Builtin.WriteLine("Finally.");
+			Console.WriteLine("Finally.");
 		end
 	end
 end

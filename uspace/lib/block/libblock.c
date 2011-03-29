@@ -410,6 +410,7 @@ retry:
 	fibril_mutex_lock(&cache->lock);
 	l = hash_table_find(&cache->block_hash, &key);
 	if (l) {
+found:
 		/*
 		 * We found the block in the cache.
 		 */
@@ -492,6 +493,20 @@ recycle:
 					 */
 					fibril_mutex_unlock(&b->lock);
 					goto retry;
+				}
+				l = hash_table_find(&cache->block_hash, &key);
+				if (l) {
+					/*
+					 * Someone else must have already
+					 * instantiated the block while we were
+					 * not holding the cache lock.
+					 * Leave the recycled block on the
+					 * freelist and continue as if we
+					 * found the block of interest during
+					 * the first try.
+					 */
+					fibril_mutex_unlock(&b->lock);
+					goto found;
 				}
 
 			}

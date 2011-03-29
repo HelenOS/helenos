@@ -46,6 +46,10 @@
 /** Internal magic value for a&nbsp;map consistency check. */
 #define GENERIC_CHAR_MAP_MAGIC_VALUE	0x12345622
 
+/** Generic destructor function pointer. */
+#define DTOR_T(identifier) \
+	void (*identifier)(const void *)
+
 /** Character string to generic type map declaration.
  *  @param[in] name	Name of the map.
  *  @param[in] type	Inner object type.
@@ -63,8 +67,8 @@
 	\
 	int name##_add(name##_t *, const uint8_t *, const size_t, type *); \
 	int name##_count(name##_t *); \
-	void name##_destroy(name##_t *); \
-	void name##_exclude(name##_t *, const uint8_t *, const size_t); \
+	void name##_destroy(name##_t *, DTOR_T()); \
+	void name##_exclude(name##_t *, const uint8_t *, const size_t, DTOR_T()); \
 	type *name##_find(name##_t *, const uint8_t *, const size_t); \
 	int name##_initialize(name##_t *); \
 	int name##_is_valid(name##_t *);
@@ -83,19 +87,13 @@
 	int name##_add(name##_t *map, const uint8_t *name, const size_t length, \
 	     type *value) \
 	{ \
-		int rc; \
 		int index; \
 		if (!name##_is_valid(map)) \
 			return EINVAL; \
 		index = name##_items_add(&map->values, value); \
 		if (index < 0) \
 			return index; \
-		rc = char_map_add(&map->names, name, length, index); \
-		if (rc != EOK) { \
-			name##_items_exclude_index(&map->values, index); \
-			return rc; \
-		} \
-		return EOK; \
+		return char_map_add(&map->names, name, length, index); \
 	} \
 	\
 	int name##_count(name##_t *map) \
@@ -104,23 +102,23 @@
 		    name##_items_count(&map->values) : -1; \
 	} \
 	\
-	void name##_destroy(name##_t *map) \
+	void name##_destroy(name##_t *map, DTOR_T(dtor)) \
 	{ \
 		if (name##_is_valid(map)) { \
 			char_map_destroy(&map->names); \
-			name##_items_destroy(&map->values); \
+			name##_items_destroy(&map->values, dtor); \
 		} \
 	} \
 	\
 	void name##_exclude(name##_t *map, const uint8_t *name, \
-	    const size_t length) \
+	    const size_t length, DTOR_T(dtor)) \
 	{ \
 		if (name##_is_valid(map)) { \
 			int index; \
 			index = char_map_exclude(&map->names, name, length); \
 			if (index != CHAR_MAP_NULL) \
 				name##_items_exclude_index(&map->values, \
-				     index); \
+				     index, dtor); \
 		} \
 	} \
 	\
