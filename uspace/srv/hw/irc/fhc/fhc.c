@@ -135,7 +135,7 @@ static bool fhc_init(void)
 	    fhc_uart_size);
 	
 	async_set_client_connection(fhc_connection);
-	service_register(SERVICE_FHC);
+	service_register(SERVICE_IRC);
 	
 	return true;
 }

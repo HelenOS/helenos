@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Vojtech Horky
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,40 +25,24 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-/** @addtogroup drvusbmid
+/** @addtogroup usb
  * @{
  */
 /** @file
- * Common definitions.
+ * @brief UHCI driver
  */
+#ifndef DRV_UHCI_SLAB_H
+#define DRV_UHCI_SLAB_H
 
-#ifndef USBMID_H_
-#define USBMID_H_
+#include <bool.h>
 
-#include <ddf/driver.h>
-#include <usb/usb.h>
-#include <usb/pipes.h>
-#include <usb/debug.h>
-#include <usb/devdrv.h>
+#define SLAB_ELEMENT_SIZE 1024
 
-#define NAME "usbmid"
+void * slab_malloc_g(void);
 
-/** Container for single interface in a MID device. */
-typedef struct {
-	/** Function container. */
-	ddf_fun_t *fun;
+void slab_free_g(void *addr);
 
-	/** Interface number. */
-	int interface_no;
-} usbmid_interface_t;
-
-usbmid_interface_t *usbmid_interface_create(ddf_fun_t *, int);
-bool usbmid_explore_device(usb_device_t *);
-int usbmid_spawn_interface_child(usb_device_t *,
-    const usb_standard_device_descriptor_t *,
-    const usb_standard_interface_descriptor_t *);
-void usbmid_dump_descriptors(uint8_t *, size_t);
+bool slab_in_range_g(void *addr);
 
 #endif
 /**

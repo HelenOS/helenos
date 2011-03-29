@@ -48,15 +48,9 @@
  * @param gen_dev Generic DDF device representing the new device.
  * @return Error code.
  */
-static int usbmid_add_device(ddf_dev_t *gen_dev)
+static int usbmid_add_device(usb_device_t *dev)
 {
-	usbmid_device_t *dev = usbmid_device_create(gen_dev);
-	if (dev == NULL) {
-		return ENOMEM;
-	}
-
-	usb_log_info("Taking care of new MID: addr %d (HC %zu)\n",
-	    dev->wire.address, dev->wire.hc_handle);
+	usb_log_info("Taking care of new MID `%s'.\n", dev->ddf_dev->name);
 
 	int rc;
 
@@ -64,7 +58,7 @@ static int usbmid_add_device(ddf_dev_t *gen_dev)
 	if (rc != EOK) {
 		usb_log_error("Failed to start session on control pipe: %s.\n",
 		    str_error(rc));
-		goto error_leave;
+		return rc;
 	}
 
 	bool accept = usbmid_explore_device(dev);
@@ -76,29 +70,22 @@ static int usbmid_add_device(ddf_dev_t *gen_dev)
 	}
 
 	if (!accept) {
-		rc = ENOTSUP;
-		goto error_leave;
+		return ENOTSUP;
 	}
 
-	gen_dev->driver_data = dev;
-
 	return EOK;
-
-
-error_leave:
-	free(dev);
-	return rc;
 }
 
 /** USB MID driver ops. */
-static driver_ops_t mid_driver_ops = {
+static usb_driver_ops_t mid_driver_ops = {
 	.add_device = usbmid_add_device,
 };
 
 /** USB MID driver. */
-static driver_t mid_driver = {
+static usb_driver_t mid_driver = {
 	.name = NAME,
-	.driver_ops = &mid_driver_ops
+	.ops = &mid_driver_ops,
+	.endpoints = NULL
 };
 
 int main(int argc, char *argv[])
@@ -106,7 +93,8 @@ int main(int argc, char *argv[])
 	printf(NAME ": USB multi interface device driver.\n");
 
 	usb_log_enable(USB_LOG_LEVEL_DEFAULT, NAME);
-	return ddf_driver_main(&mid_driver);
+
+	return usb_driver_main(&mid_driver);
 }
 
 /**
