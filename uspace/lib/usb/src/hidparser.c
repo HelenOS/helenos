@@ -1203,7 +1203,7 @@ int usb_hid_report_output_translate(usb_hid_report_parser_t *parser,
 	while(item != &parser->output) {
 		report_item = list_get_instance(item, usb_hid_report_item_t, link);
 
-		for(i=0; i<report_item->count; i++, idx++) {
+		for(i=0; i<report_item->count; i++) {
 
 			if(idx >= data_size) {
 				break;
@@ -1216,10 +1216,12 @@ int usb_hid_report_output_translate(usb_hid_report_parser_t *parser,
 			else {
 				//variable item
 				value = usb_hid_translate_data_reverse(report_item, data[idx]);
+				idx++;
 			}
 
 			if((USB_HID_ITEM_FLAG_VARIABLE(report_item->item_flags) == 0) ||
 				((report_item->usage_minimum == 0) && (report_item->usage_maximum == 0))) {
+					
 //				// variable item
 				offset = report_item->offset + (i * report_item->size);
 				length = report_item->size;
@@ -1230,29 +1232,36 @@ int usb_hid_report_output_translate(usb_hid_report_parser_t *parser,
 				length = report_item->size * report_item->count;
 			}
 
-			if((offset/8) == ((offset+length)/8)) {
+			if((offset/8) == ((offset+length-1)/8)) {
 				// je to v jednom bytu
-				if(((size_t)(offset/8) >= size) || ((size_t)(offset+length)/8) >= size) {
+				if(((size_t)(offset/8) >= size) || ((size_t)(offset+length-1)/8) >= size) {
 					break; // TODO ErrorCode
 				}
 
-				value = value << (8- ((offset+length)%8));
-				value = value & (((1 << length)-1) << (8- ((offset+length)%8)));
-				buffer[offset/8] = buffer[offset/8] | value;
+				size_t shift=0;
+				if(((offset+length)%8) > 0) {
+					shift = (8- ((offset+length)%8));
+				}
 
+				value = value << shift;							
+				value = value & (((1 << length)-1) << shift);
+				buffer[offset/8] = buffer[offset/8] | value;
 			}
 			else {
 				// je to ve dvou!! FIXME: melo by to umet delsi jak 2
 
 				// konec prvniho
 				tmp_value = value;
-				tmp_value = tmp_value >> (8 - (offset%8));
-				tmp_value = tmp_value & ((1 << (8-(offset%8)))-1);
+				tmp_value = tmp_value >> (8 - (offset%8) - 1);
+				tmp_value = tmp_value & ((1 << (8-(offset%8)))-1);				
+
 				buffer[offset/8] = buffer[offset/8] | tmp_value;
 
 				// a ted druhej
-				value = value & (((1 << report_item->size) - ((8 - (offset%8))))-1);
-				buffer[(offset+length)/8] = buffer[(offset+length)/8] | value;
+				value = value & ((1 << (length - (8 - (offset%8))))-1);
+				value = value << (8 - (length - (8 - (offset%8))));
+				
+				buffer[(offset+length-1)/8] = buffer[(offset+length-1)/8] | value;
 			}
 
 		}
@@ -1275,8 +1284,7 @@ int32_t usb_hid_translate_data_reverse(usb_hid_report_item_t *item, int value)
 	int ret=0;
 	int resolution;
 
-	if((USB_HID_ITEM_FLAG_VARIABLE(item->item_flags) == 0) ||
-		((item->usage_minimum == 0) && (item->usage_maximum == 0))) {
+	if((USB_HID_ITEM_FLAG_VARIABLE(item->item_flags) == 0)) {
 
 		// variable item
 		if((item->physical_minimum == 0) && (item->physical_maximum == 0)) {
