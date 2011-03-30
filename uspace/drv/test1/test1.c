@@ -57,9 +57,10 @@ static driver_t test1_driver = {
  * @param score Device match score.
  */
 static int register_fun_verbose(ddf_dev_t *parent, const char *message,
-    const char *name, const char *match_id, int match_score)
+    const char *name, const char *match_id, int match_score,
+    int expected_rc)
 {
-	ddf_fun_t *fun;
+	ddf_fun_t *fun = NULL;
 	int rc;
 
 	printf(NAME ": registering function `%s': %s.\n", name, message);
@@ -67,26 +68,40 @@ static int register_fun_verbose(ddf_dev_t *parent, const char *message,
 	fun = ddf_fun_create(parent, fun_inner, name);
 	if (fun == NULL) {
 		printf(NAME ": error creating function %s\n", name);
-		return ENOMEM;
+		rc = ENOMEM;
+		goto leave;
 	}
 
-	rc = ddf_fun_add_match_id(fun, match_id, match_score);
+	rc = ddf_fun_add_match_id(fun, str_dup(match_id), match_score);
 	if (rc != EOK) {
 		printf(NAME ": error adding match IDs to function %s\n", name);
-		ddf_fun_destroy(fun);
-		return rc;
+		goto leave;
 	}
 
 	rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
 		printf(NAME ": error binding function %s: %s\n", name,
 		    str_error(rc));
-		ddf_fun_destroy(fun);
-		return rc;
+		goto leave;
 	}
 
 	printf(NAME ": registered child device `%s'\n", name);
-	return EOK;
+	rc = EOK;
+
+
+leave:
+	if (rc != expected_rc) {
+		fprintf(stderr,
+		    NAME ": Unexpected error registering function `%s'.\n" \
+		    NAME ":     Expected \"%s\" but got \"%s\".\n",
+		    name, str_error(expected_rc), str_error(rc));
+	}
+
+	if ((rc != EOK) && (fun != NULL)) {
+		ddf_fun_destroy(fun);
+	}
+
+	return rc;
 }
 
 /** Callback when new device is passed to this driver.
@@ -132,11 +147,16 @@ static int test1_add_device(ddf_dev_t *dev)
 		fun_a->ops = &char_device_ops;
 		ddf_fun_add_to_class(fun_a, "virt-null");
 	} else if (str_cmp(dev->name, "test1") == 0) {
-		(void) register_fun_verbose(dev, "cloning myself ;-)", "clone",
-		    "virtual&test1", 10);
+		(void) register_fun_verbose(dev,
+		    "cloning myself ;-)", "clone",
+		    "virtual&test1", 10, EOK);
+		(void) register_fun_verbose(dev,
+		    "cloning myself twice ;-)", "clone",
+		    "virtual&test1", 10, EEXISTS);
 	} else if (str_cmp(dev->name, "clone") == 0) {
-		(void) register_fun_verbose(dev, "run by the same task", "child",
-		    "virtual&test1&child", 10);
+		(void) register_fun_verbose(dev,
+		    "run by the same task", "child",
+		    "virtual&test1&child", 10, EOK);
 	}
 
 	printf(NAME ": device `%s' accepted.\n", dev->name);
