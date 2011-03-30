@@ -146,8 +146,6 @@ static int devman_send_match_ids(int phone, match_id_list_t *match_ids)
 		match_id = list_get_instance(link, match_id_t, link); 
 		ret = devman_send_match_id(phone, match_id);
 		if (ret != EOK) {
-			printf("Driver failed to send match id, error %d\n",
-			    ret);
 			return ret;
 		}
 
@@ -194,12 +192,17 @@ int devman_add_function(const char *name, fun_type_t ftype,
 		return retval;
 	}
 	
-	devman_send_match_ids(phone, match_ids);
+	int match_ids_rc = devman_send_match_ids(phone, match_ids);
 	
 	async_wait_for(req, &retval);
 	
 	async_serialize_end();
 	
+	/* Prefer the answer to DEVMAN_ADD_FUNCTION in case of errors. */
+	if ((match_ids_rc != EOK) && (retval == EOK)) {
+		retval = match_ids_rc;
+	}
+
 	if (retval == EOK)
 		fun_handle = (int) IPC_GET_ARG1(answer);
 	else
