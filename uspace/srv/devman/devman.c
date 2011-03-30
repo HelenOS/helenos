@@ -1193,6 +1193,36 @@ fun_node_t *find_fun_node_in_device(dev_node_t *dev, const char *name)
 	return NULL;
 }
 
+/** Find function node by its class name and index. */
+fun_node_t *find_fun_node_by_class(class_list_t *class_list,
+    const char *class_name, const char *dev_name)
+{
+	assert(class_list != NULL);
+	assert(class_name != NULL);
+	assert(dev_name != NULL);
+
+	fibril_rwlock_read_lock(&class_list->rwlock);
+
+	dev_class_t *cl = find_dev_class_no_lock(class_list, class_name);
+	if (cl == NULL) {
+		fibril_rwlock_read_unlock(&class_list->rwlock);
+		return NULL;
+	}
+
+	dev_class_info_t *dev = find_dev_in_class(cl, dev_name);
+	if (dev == NULL) {
+		fibril_rwlock_read_unlock(&class_list->rwlock);
+		return NULL;
+	}
+
+	fun_node_t *fun = dev->fun;
+
+	fibril_rwlock_read_unlock(&class_list->rwlock);
+
+	return fun;
+}
+
+
 /** Find child function node with a specified name.
  *
  * Device tree rwlock should be held at least for reading.
@@ -1363,6 +1393,26 @@ dev_class_t *find_dev_class_no_lock(class_list_t *class_list,
 void add_dev_class_no_lock(class_list_t *class_list, dev_class_t *cl)
 {
 	list_append(&cl->link, &class_list->classes);
+}
+
+dev_class_info_t *find_dev_in_class(dev_class_t *dev_class, const char *dev_name)
+{
+	assert(dev_class != NULL);
+	assert(dev_name != NULL);
+
+	link_t *link;
+	for (link = dev_class->devices.next;
+	    link != &dev_class->devices;
+	    link = link->next) {
+		dev_class_info_t *dev = list_get_instance(link,
+		    dev_class_info_t, link);
+
+		if (str_cmp(dev->dev_name, dev_name) == 0) {
+			return dev;
+		}
+	}
+
+	return NULL;
 }
 
 void init_class_list(class_list_t *class_list)
