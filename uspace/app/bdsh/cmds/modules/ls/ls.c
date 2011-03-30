@@ -93,6 +93,8 @@ static int ls_cmp(void *a, void *b, void *arg)
  *
  * @param d		Name of the directory.
  * @param dirp	Directory stream.
+ * @param sort	1 if the output must be sorted,
+ *				0 otherwise.
  */
 static void ls_scan_dir(const char *d, DIR *dirp, int sort)
 {
