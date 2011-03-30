@@ -36,6 +36,7 @@
 #ifndef USBMID_H_
 #define USBMID_H_
 
+#include <adt/list.h>
 #include <ddf/driver.h>
 #include <usb/usb.h>
 #include <usb/pipes.h>
@@ -48,14 +49,16 @@
 typedef struct {
 	/** Function container. */
 	ddf_fun_t *fun;
-
+	/** Interface descriptor. */
+	usb_standard_interface_descriptor_t *interface;
 	/** Interface number. */
 	int interface_no;
+	/** List link. */
+	link_t link;
 } usbmid_interface_t;
 
-usbmid_interface_t *usbmid_interface_create(ddf_fun_t *, int);
 bool usbmid_explore_device(usb_device_t *);
-int usbmid_spawn_interface_child(usb_device_t *,
+int usbmid_spawn_interface_child(usb_device_t *, usbmid_interface_t *,
     const usb_standard_device_descriptor_t *,
     const usb_standard_interface_descriptor_t *);
 void usbmid_dump_descriptors(uint8_t *, size_t);
