@@ -242,6 +242,16 @@ static void devman_add_function(ipc_callid_t callid, ipc_call_t *call)
 		return;
 	}
 	
+	/* Check that function with same name is not there already. */
+	if (find_fun_node_in_device(pdev, fun_name) != NULL) {
+		fibril_rwlock_write_unlock(&tree->rwlock);
+		async_answer_0(callid, EEXISTS);
+		printf(NAME ": Warning, driver tried to register `%s' twice.\n",
+		    fun_name);
+		free(fun_name);
+		return;
+	}
+
 	fun_node_t *fun = create_fun_node();
 	if (!insert_fun_node(&device_tree, fun, fun_name, pdev)) {
 		fibril_rwlock_write_unlock(&tree->rwlock);

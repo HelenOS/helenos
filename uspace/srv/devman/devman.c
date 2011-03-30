@@ -1164,6 +1164,35 @@ fun_node_t *find_fun_node_by_path(dev_tree_t *tree, char *path)
 	return fun;
 }
 
+/** Find function with a specified name belonging to given device.
+ *
+ * Device tree rwlock should be held at least for reading.
+ *
+ * @param dev Device the function belongs to.
+ * @param name Function name (not path).
+ * @return Function node.
+ * @retval NULL No function with given name.
+ */
+fun_node_t *find_fun_node_in_device(dev_node_t *dev, const char *name)
+{
+	assert(dev != NULL);
+	assert(name != NULL);
+
+	fun_node_t *fun;
+	link_t *link;
+
+	for (link = dev->functions.next;
+	    link != &dev->functions;
+	    link = link->next) {
+		fun = list_get_instance(link, fun_node_t, dev_functions);
+
+		if (str_cmp(name, fun->name) == 0)
+			return fun;
+	}
+
+	return NULL;
+}
+
 /** Find child function node with a specified name.
  *
  * Device tree rwlock should be held at least for reading.
@@ -1174,21 +1203,7 @@ fun_node_t *find_fun_node_by_path(dev_tree_t *tree, char *path)
  */
 fun_node_t *find_node_child(fun_node_t *pfun, const char *name)
 {
-	fun_node_t *fun;
-	link_t *link;
-	
-	link = pfun->child->functions.next;
-	
-	while (link != &pfun->child->functions) {
-		fun = list_get_instance(link, fun_node_t, dev_functions);
-		
-		if (str_cmp(name, fun->name) == 0)
-			return fun;
-		
-		link = link->next;
-	}
-	
-	return NULL;
+	return find_fun_node_in_device(pfun->child, name);
 }
 
 /* Device classes */

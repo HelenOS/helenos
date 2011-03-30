@@ -337,6 +337,7 @@ extern fun_node_t *find_fun_node_no_lock(dev_tree_t *tree,
     devman_handle_t handle);
 extern fun_node_t *find_fun_node(dev_tree_t *tree, devman_handle_t handle);
 extern fun_node_t *find_fun_node_by_path(dev_tree_t *, char *);
+extern fun_node_t *find_fun_node_in_device(dev_node_t *, const char *);
 
 /* Device tree */
 
