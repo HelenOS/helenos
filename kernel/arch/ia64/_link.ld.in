@@ -15,7 +15,7 @@ SECTIONS {
 	.image LOAD_ADDRESS_V: AT (LOAD_ADDRESS_P) {
 		ktext_start = .;
 		*(K_TEXT_START);
-		*(.text)
+		*(.text .text.*)
 		ktext_end = .;
 		
 		kdata_start = .;
@@ -35,16 +35,15 @@ SECTIONS {
 		*(.scommon)
 		*(.bss)
 		*(COMMON);
-
+		
 		. = ALIGN(8);
-                symbol_table = .;
-                *(symtab.*);            /* Symbol table, must be LAST symbol!*/
-
+		symbol_table = .;
+		*(symtab.*);            /* Symbol table, must be LAST symbol!*/
+		
 		kdata_end = .;
 	}
-
+	
 	/DISCARD/ : {
 		*(*);
 	}
-
 }

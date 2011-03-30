@@ -39,7 +39,6 @@
 #include <genarch/ofw/pci.h>
 #include <arch/drivers/pci.h>
 #include <arch/trap/interrupt.h>
-#include <arch/memstr.h>
 #include <str.h>
 #include <panic.h>
 #include <macros.h>

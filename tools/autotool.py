@@ -500,7 +500,7 @@ def main():
 	if ('CROSS_PREFIX' in os.environ):
 		cross_prefix = os.environ['CROSS_PREFIX']
 	else:
-		cross_prefix = "/usr/local"
+		cross_prefix = "/usr/local/cross"
 	
 	# Prefix binutils tools on Solaris
 	if (os.uname()[0] == "SunOS"):
