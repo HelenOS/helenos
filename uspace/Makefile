@@ -37,13 +37,14 @@ DIRS = \
 	app/edit \
 	app/getterm \
 	app/init \
+	app/kill \
+	app/killall \
 	app/klog \
 	app/mkfat \
 	app/redir \
 	app/sbi \
 	app/stats \
 	app/taskdump \
-	app/tasks \
 	app/tester \
 	app/tetris \
 	app/trace \
@@ -52,6 +53,8 @@ DIRS = \
 	app/nettest1 \
 	app/nettest2 \
 	app/ping \
+	app/websrv \
+	app/sysinfo \
 	srv/clip \
 	srv/devmap \
 	srv/devman \
@@ -75,8 +78,7 @@ DIRS = \
 	srv/hid/kbd \
 	srv/hw/char/i8042 \
 	srv/hw/char/s3c24xx_uart \
-	srv/hw/netif/dp8390 \
-	srv/net/cfg \
+	srv/hw/netif/ne2000 \
 	srv/net/netif/lo \
 	srv/net/il/arp \
 	srv/net/il/ip \
@@ -92,15 +94,9 @@ DIRS = \
 ## Networking
 #
 
-ifeq ($(CONFIG_NETIF_NIL_BUNDLE),y)
-	LIBN = \
-		srv/net/nil/eth \
-		srv/net/nil/nildummy
-else
-	DIRS += \
-		srv/net/nil/eth \
-		srv/net/nil/nildummy
-endif
+DIRS += \
+	srv/net/nil/eth \
+	srv/net/nil/nildummy
 
 ## Platform-specific hardware support
 #
@@ -110,17 +106,23 @@ ifneq ($(UARCH),abs32le)
 endif
 
 ifeq ($(UARCH),amd64)
-	DIRS += drv/rootpc
-	DIRS += drv/pciintel
-	DIRS += drv/isa
-	DIRS += drv/ns8250
+	DIRS += \
+		drv/rootpc \
+		drv/pciintel \
+		drv/isa \
+		drv/ns8250 \
+		srv/hw/irc/apic \
+		srv/hw/irc/i8259
 endif
 
 ifeq ($(UARCH),ia32)
-	DIRS += drv/rootpc
-	DIRS += drv/pciintel
-	DIRS += drv/isa
-	DIRS += drv/ns8250
+	DIRS += \
+		drv/rootpc \
+		drv/pciintel \
+		drv/isa \
+		drv/ns8250 \
+		srv/hw/irc/apic \
+		srv/hw/irc/i8259
 endif
 
 ifeq ($(UARCH),ppc32)
@@ -129,8 +131,8 @@ endif
 
 ifeq ($(UARCH),sparc64)
 	DIRS += \
-		srv/hw/cir/fhc \
-		srv/hw/cir/obio
+		srv/hw/irc/fhc \
+		srv/hw/irc/obio
 endif
 
 ## System libraries

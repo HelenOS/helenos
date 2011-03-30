@@ -38,10 +38,7 @@
 #define NET_ARP_H_
 
 #include <fibril_synch.h>
-
-#include <ipc/ipc.h>
 #include <ipc/services.h>
-
 #include <net/device.h>
 #include <net/packet.h>
 #include <net_hardware.h>
@@ -95,11 +92,11 @@ struct arp_device {
 	/** Actual device hardware address. */
 	measured_string_t *addr;
 	/** Actual device hardware address data. */
-	char *addr_data;
+	uint8_t *addr_data;
 	/** Broadcast device hardware address. */
 	measured_string_t *broadcast_addr;
 	/** Broadcast device hardware address data. */
-	char *broadcast_data;
+	uint8_t *broadcast_data;
 	/** Device identifier. */
 	device_id_t device_id;
 	/** Hardware type. */
@@ -124,12 +121,6 @@ struct arp_globals {
 	/** ARP address cache. */
 	arp_cache_t cache;
 	
-	/**
-	 * The client connection processing function.
-	 * The module skeleton propagates its own one.
-	 */
-	async_client_conn_t client_connection;
-	
 	/** Networking module phone. */
 	int net_phone;
 	/** Safety lock. */
@@ -141,7 +132,7 @@ struct arp_proto {
 	/** Actual device protocol address. */
 	measured_string_t *addr;
 	/** Actual device protocol address data. */
-	char *addr_data;
+	uint8_t *addr_data;
 	/** Address map. */
 	arp_addr_t addresses;
 	/** Protocol service. */
@@ -153,7 +144,7 @@ struct arp_trans {
 	/**
 	 * Hardware address for the translation. NULL denotes an incomplete
 	 * record with possible waiters.
-	 */ 
+	 */
 	measured_string_t *hw_addr;
 	/** Condition variable used for waiting for completion of the record. */
 	fibril_condvar_t cv;

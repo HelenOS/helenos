@@ -33,7 +33,6 @@
  */
 
 #include <ipc/fb.h>
-#include <ipc/ipc.h>
 #include <async.h>
 #include <stdio.h>
 #include <sys/mman.h>
@@ -285,8 +284,9 @@ void gcons_mouse_move(ssize_t dx, ssize_t dy)
 {
 	ssize_t nx = (ssize_t) mouse_x + dx;
 	ssize_t ny = (ssize_t) mouse_y + dy;
-
-	if (!use_gcons)
+	
+	/* Until gcons is initalized we don't have the screen resolution */
+	if (xres == 0 || yres == 0)
 		return;
 	
 	mouse_x = (size_t) limit(nx, 0, xres);

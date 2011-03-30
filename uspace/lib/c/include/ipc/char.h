@@ -31,17 +31,16 @@
  */
 /** @file
  * @brief Character device interface.
- */ 
+ */
 
 #ifndef LIBC_IPC_CHAR_H_
 #define LIBC_IPC_CHAR_H_
 
-#include <ipc/ipc.h>
+#include <ipc/common.h>
 
 typedef enum {
 	CHAR_WRITE_BYTE = IPC_FIRST_USER_METHOD
 } char_request_t;
-
 
 typedef enum {
 	CHAR_NOTIF_BYTE = IPC_FIRST_USER_METHOD

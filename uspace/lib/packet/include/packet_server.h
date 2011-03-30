@@ -44,10 +44,10 @@
 #ifndef LIBPACKET_PACKET_SERVER_H_
 #define LIBPACKET_PACKET_SERVER_H_
 
-#include <ipc/ipc.h>
+#include <ipc/common.h>
 
 extern int packet_server_message(ipc_callid_t, ipc_call_t *, ipc_call_t *,
-    int *);
+    size_t *);
 
 #endif
 

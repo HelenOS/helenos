@@ -146,6 +146,18 @@ void arch_pre_smp_init(void)
 
 void arch_post_smp_init(void)
 {
+	static const char *platform;
+
+	/* Set platform name. */
+#ifdef MACHINE_ski
+	platform = "pc";
+#endif
+#ifdef MACHINE_i460GX
+	platform = "i460GX";
+#endif
+	sysinfo_set_item_data("platform", NULL, (void *) platform,
+	    str_size(platform));
+
 #ifdef MACHINE_ski
 	ski_instance_t *ski_instance = skiin_init();
 	if (ski_instance) {
@@ -209,7 +221,7 @@ void arch_post_smp_init(void)
 	    (uintptr_t) I8042_BASE);
 #endif
 
-	sysinfo_set_item_val("netif.dp8390.inr", NULL, IRQ_DP8390);
+	sysinfo_set_item_val("netif.ne2000.inr", NULL, IRQ_NE2000);
 
 	sysinfo_set_item_val("ia64_iospace", NULL, true);
 	sysinfo_set_item_val("ia64_iospace.address", NULL, true);

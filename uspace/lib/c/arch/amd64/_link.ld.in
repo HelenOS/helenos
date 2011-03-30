@@ -4,6 +4,7 @@ ENTRY(__entry)
 PHDRS {
 	text PT_LOAD FLAGS(5);
 	data PT_LOAD FLAGS(6);
+	debug PT_NOTE;
 }
 
 SECTIONS {
@@ -12,16 +13,18 @@ SECTIONS {
 	.init : {
 		*(.init);
 	} :text
+	
 	.text : {
-		*(.text);
-		*(.rodata*);
+		*(.text .text.*);
+		*(.rodata .rodata.*);
 	} :text
-
+	
 	. = . + 0x1000;
-
+	
 	.data : {
 		*(.data);
 	} :data
+	
 	.tdata : {
 		_tdata_start = .;
 		*(.tdata);
@@ -30,17 +33,28 @@ SECTIONS {
 		*(.tbss);
 		_tbss_end = .;
 	} :data
+	
 	_tls_alignment = ALIGNOF(.tdata);
+	
 	.bss : {
 		*(COMMON);
 		*(.bss);
 	} :data
-
-	. = ALIGN(0x1000);
-	_heap = .;
+	
+#ifdef CONFIG_LINE_DEBUG
+	.comment 0 : { *(.comment); } :debug
+	.debug_abbrev 0 : { *(.debug_abbrev); } :debug
+	.debug_aranges 0 : { *(.debug_aranges); } :debug
+	.debug_info 0 : { *(.debug_info); } :debug
+	.debug_line 0 : { *(.debug_line); } :debug
+	.debug_loc 0 : { *(.debug_loc); } :debug
+	.debug_pubnames 0 : { *(.debug_pubnames); } :debug
+	.debug_pubtypes 0 : { *(.debug_pubtypes); } :debug
+	.debug_ranges 0 : { *(.debug_ranges); } :debug
+	.debug_str 0 : { *(.debug_str); } :debug
+#endif
 	
 	/DISCARD/ : {
 		*(*);
 	}
-
 }

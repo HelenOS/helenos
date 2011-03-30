@@ -43,7 +43,6 @@
 #include <errno.h>
 #include <sys/mman.h>
 #include <async.h>
-#include <ipc/ipc.h>
 #include <as.h>
 #include <assert.h>
 #include <fibril_synch.h>
@@ -176,20 +175,20 @@ int block_init(devmap_handle_t devmap_handle, size_t comm_size)
 	    AS_AREA_READ | AS_AREA_WRITE);
 	if (rc != EOK) {
 	    	munmap(comm_area, comm_size);
-		ipc_hangup(dev_phone);
+		async_hangup(dev_phone);
 		return rc;
 	}
 
 	if (get_block_size(dev_phone, &bsize) != EOK) {
 		munmap(comm_area, comm_size);
-		ipc_hangup(dev_phone);
+		async_hangup(dev_phone);
 		return rc;
 	}
 	
 	rc = devcon_add(devmap_handle, dev_phone, bsize, comm_area, comm_size);
 	if (rc != EOK) {
 		munmap(comm_area, comm_size);
-		ipc_hangup(dev_phone);
+		async_hangup(dev_phone);
 		return rc;
 	}
 
@@ -210,7 +209,7 @@ void block_fini(devmap_handle_t devmap_handle)
 		free(devcon->bb_buf);
 
 	munmap(devcon->comm_area, devcon->comm_size);
-	ipc_hangup(devcon->dev_phone);
+	async_hangup(devcon->dev_phone);
 
 	free(devcon);	
 }
@@ -294,8 +293,10 @@ int block_cache_init(devmap_handle_t devmap_handle, size_t size, unsigned blocks
 	cache->mode = mode;
 
 	/* Allow 1:1 or small-to-large block size translation */
-	if (cache->lblock_size % devcon->pblock_size != 0)
+	if (cache->lblock_size % devcon->pblock_size != 0) {
+		free(cache);
 		return ENOTSUP;
+	}
 
 	cache->blocks_cluster = cache->lblock_size / devcon->pblock_size;
 
@@ -409,6 +410,7 @@ retry:
 	fibril_mutex_lock(&cache->lock);
 	l = hash_table_find(&cache->block_hash, &key);
 	if (l) {
+found:
 		/*
 		 * We found the block in the cache.
 		 */
@@ -436,6 +438,7 @@ retry:
 			b->data = malloc(cache->lblock_size);
 			if (!b->data) {
 				free(b);
+				b = NULL;
 				goto recycle;
 			}
 			cache->blocks_cached++;
@@ -490,6 +493,20 @@ recycle:
 					 */
 					fibril_mutex_unlock(&b->lock);
 					goto retry;
+				}
+				l = hash_table_find(&cache->block_hash, &key);
+				if (l) {
+					/*
+					 * Someone else must have already
+					 * instantiated the block while we were
+					 * not holding the cache lock.
+					 * Leave the recycled block on the
+					 * freelist and continue as if we
+					 * found the block of interest during
+					 * the first try.
+					 */
+					fibril_mutex_unlock(&b->lock);
+					goto found;
 				}
 
 			}
@@ -563,6 +580,7 @@ int block_put(block_t *block)
 
 	assert(devcon);
 	assert(devcon->cache);
+	assert(block->refcnt >= 1);
 
 	cache = devcon->cache;
 
@@ -622,8 +640,9 @@ retry:
 			 */
 			unsigned long key = block->lba;
 			hash_table_remove(&cache->block_hash, &key, 1);
-			free(block);
+			fibril_mutex_unlock(&block->lock);
 			free(block->data);
+			free(block);
 			cache->blocks_cached--;
 			fibril_mutex_unlock(&cache->lock);
 			return rc;

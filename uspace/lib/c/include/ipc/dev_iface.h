@@ -29,15 +29,13 @@
 #ifndef LIBC_IPC_DEV_IFACE_H_
 #define LIBC_IPC_DEV_IFACE_H_
 
-#include <ipc/ipc.h>
 #include <malloc.h>
 #include <unistd.h>
 #include <libarch/types.h>
 
-typedef enum {	
-	HW_RES_DEV_IFACE = 0,	
+typedef enum {
+	HW_RES_DEV_IFACE = 0,
 	CHAR_DEV_IFACE,
-	// TODO add more interfaces
 	DEV_IFACE_MAX
 } dev_inferface_idx_t;
 

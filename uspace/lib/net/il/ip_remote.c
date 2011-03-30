@@ -35,7 +35,7 @@
  * IP interface implementation for remote modules.
  *
  * @see ip_interface.h
- * @see il_interface.h
+ * @see il_remote.h
  *
  */
 
@@ -120,7 +120,7 @@ int ip_connect_module(services_t service)
 int ip_device_req_remote(int ip_phone, device_id_t device_id,
     services_t service)
 {
-	return generic_device_req_remote(ip_phone, NET_IL_DEVICE, device_id, 0,
+	return generic_device_req_remote(ip_phone, NET_IP_DEVICE, device_id, 0,
 	    service);
 }
 
@@ -169,7 +169,7 @@ int ip_get_route_req_remote(int ip_phone, ip_protocol_t protocol,
 	if ((result != EOK) && *header)
 		free(*header);
 	else
-		*device_id = IPC_GET_DEVICE(&answer);
+		*device_id = IPC_GET_DEVICE(answer);
 	
 	return (int) result;
 }
@@ -187,7 +187,7 @@ int ip_get_route_req_remote(int ip_phone, ip_protocol_t protocol,
 int ip_packet_size_req_remote(int ip_phone, device_id_t device_id,
     packet_dimension_t *packet_dimension)
 {
-	return generic_packet_size_req_remote(ip_phone, NET_IL_PACKET_SPACE,
+	return generic_packet_size_req_remote(ip_phone, NET_IP_PACKET_SPACE,
 	    device_id, packet_dimension);
 }
 
@@ -227,7 +227,7 @@ int ip_received_error_msg_remote(int ip_phone, device_id_t device_id,
 int ip_send_msg_remote(int ip_phone, device_id_t device_id, packet_t *packet,
     services_t sender, services_t error)
 {
-	return generic_send_msg_remote(ip_phone, NET_IL_SEND, device_id,
+	return generic_send_msg_remote(ip_phone, NET_IP_SEND, device_id,
 	    packet_get_id(packet), sender, error);
 }
 

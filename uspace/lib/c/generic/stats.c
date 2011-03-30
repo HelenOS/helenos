@@ -35,10 +35,10 @@
 
 #include <stats.h>
 #include <sysinfo.h>
-#include <assert.h>
 #include <errno.h>
 #include <stdio.h>
 #include <inttypes.h>
+#include <malloc.h>
 
 #define SYSINFO_STATS_MAX_PATH  64
 
@@ -70,7 +70,12 @@ stats_cpu_t *stats_get_cpus(size_t *count)
 	stats_cpu_t *stats_cpus =
 	    (stats_cpu_t *) sysinfo_get_data("system.cpus", &size);
 	
-	assert((size % sizeof(stats_cpu_t)) == 0);
+	if ((size % sizeof(stats_cpu_t)) != 0) {
+		if (stats_cpus != NULL)
+			free(stats_cpus);
+		*count = 0;
+		return NULL;
+	}
 	
 	*count = size / sizeof(stats_cpu_t);
 	return stats_cpus;
@@ -90,7 +95,11 @@ stats_physmem_t *stats_get_physmem(void)
 	stats_physmem_t *stats_physmem =
 	    (stats_physmem_t *) sysinfo_get_data("system.physmem", &size);
 	
-	assert((size == sizeof(stats_physmem_t)) || (size == 0));
+	if (size != sizeof(stats_physmem_t)) {
+		if (stats_physmem != NULL)
+			free(stats_physmem);
+		return NULL;
+	}
 	
 	return stats_physmem;
 }
@@ -110,7 +119,12 @@ stats_task_t *stats_get_tasks(size_t *count)
 	stats_task_t *stats_tasks =
 	    (stats_task_t *) sysinfo_get_data("system.tasks", &size);
 	
-	assert((size % sizeof(stats_task_t)) == 0);
+	if ((size % sizeof(stats_task_t)) != 0) {
+		if (stats_tasks != NULL)
+			free(stats_tasks);
+		*count = 0;
+		return NULL;
+	}
 	
 	*count = size / sizeof(stats_task_t);
 	return stats_tasks;
@@ -134,7 +148,11 @@ stats_task_t *stats_get_task(task_id_t task_id)
 	stats_task_t *stats_task =
 	    (stats_task_t *) sysinfo_get_data(name, &size);
 	
-	assert((size == sizeof(stats_task_t)) || (size == 0));
+	if (size != sizeof(stats_task_t)) {
+		if (stats_task != NULL)
+			free(stats_task);
+		return NULL;
+	}
 	
 	return stats_task;
 }
@@ -154,7 +172,12 @@ stats_thread_t *stats_get_threads(size_t *count)
 	stats_thread_t *stats_threads =
 	    (stats_thread_t *) sysinfo_get_data("system.threads", &size);
 	
-	assert((size % sizeof(stats_thread_t)) == 0);
+	if ((size % sizeof(stats_thread_t)) != 0) {
+		if (stats_threads != NULL)
+			free(stats_threads);
+		*count = 0;
+		return NULL;
+	}
 	
 	*count = size / sizeof(stats_thread_t);
 	return stats_threads;
@@ -178,7 +201,11 @@ stats_thread_t *stats_get_thread(thread_id_t thread_id)
 	stats_thread_t *stats_thread =
 	    (stats_thread_t *) sysinfo_get_data(name, &size);
 	
-	assert((size == sizeof(stats_thread_t)) || (size == 0));
+	if (size != sizeof(stats_thread_t)) {
+		if (stats_thread != NULL)
+			free(stats_thread);
+		return NULL;
+	}
 	
 	return stats_thread;
 }
@@ -198,7 +225,12 @@ stats_exc_t *stats_get_exceptions(size_t *count)
 	stats_exc_t *stats_exceptions =
 	    (stats_exc_t *) sysinfo_get_data("system.exceptions", &size);
 	
-	assert((size % sizeof(stats_exc_t)) == 0);
+	if ((size % sizeof(stats_exc_t)) != 0) {
+		if (stats_exceptions != NULL)
+			free(stats_exceptions);
+		*count = 0;
+		return NULL;
+	}
 	
 	*count = size / sizeof(stats_exc_t);
 	return stats_exceptions;
@@ -216,13 +248,17 @@ stats_exc_t *stats_get_exceptions(size_t *count)
 stats_exc_t *stats_get_exception(unsigned int excn)
 {
 	char name[SYSINFO_STATS_MAX_PATH];
-	snprintf(name, SYSINFO_STATS_MAX_PATH, "system.exceptionss.%u", excn);
+	snprintf(name, SYSINFO_STATS_MAX_PATH, "system.exceptions.%u", excn);
 	
 	size_t size = 0;
 	stats_exc_t *stats_exception =
 	    (stats_exc_t *) sysinfo_get_data(name, &size);
 	
-	assert((size == sizeof(stats_exc_t)) || (size == 0));
+	if (size != sizeof(stats_exc_t)) {
+		if (stats_exception != NULL)
+			free(stats_exception);
+		return NULL;
+	}
 	
 	return stats_exception;
 }
@@ -242,7 +278,12 @@ load_t *stats_get_load(size_t *count)
 	load_t *load =
 	    (load_t *) sysinfo_get_data("system.load", &size);
 	
-	assert((size % sizeof(load_t)) == 0);
+	if ((size % sizeof(load_t)) != 0) {
+		if (load != NULL)
+			free(load);
+		*count = 0;
+		return NULL;
+	}
 	
 	*count = size / sizeof(load_t);
 	return load;

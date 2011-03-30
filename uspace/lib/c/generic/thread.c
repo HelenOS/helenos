@@ -30,7 +30,7 @@
  * @{
  */
 /** @file
- */ 
+ */
 
 #include <thread.h>
 #include <libc.h>
@@ -40,6 +40,7 @@
 #include <fibril.h>
 #include <str.h>
 #include <async.h>
+#include "private/thread.h"
 
 #ifndef THREAD_INITIAL_STACK_PAGES_NO
 #define THREAD_INITIAL_STACK_PAGES_NO 1
@@ -49,27 +50,29 @@
  *
  * This function is called from __thread_entry() and is used
  * to call the thread's implementing function and perform cleanup
- * and exit when thread returns back. Do not call this function
- * directly.
+ * and exit when thread returns back.
  *
  * @param uarg Pointer to userspace argument structure.
+ *
  */
 void __thread_main(uspace_arg_t *uarg)
 {
-	fibril_t *f;
-
-	f = fibril_setup();
-	__tcb_set(f->tcb);
-
+	fibril_t *fibril = fibril_setup();
+	if (fibril == NULL)
+		thread_exit(0);
+	
+	__tcb_set(fibril->tcb);
+	
 	uarg->uspace_thread_function(uarg->uspace_thread_arg);
-	/* XXX: we cannot free the userspace stack while running on it */
-//	free(uarg->uspace_stack);
-//	free(uarg);
-
+	/* XXX: we cannot free the userspace stack while running on it
+		free(uarg->uspace_stack);
+		free(uarg);
+	*/
+	
 	/* If there is a manager, destroy it */
 	async_destroy_manager();
-	fibril_teardown(f);
-
+	fibril_teardown(fibril);
+	
 	thread_exit(0);
 }
 
@@ -126,12 +129,14 @@ int thread_create(void (* function)(void *), void *arg, const char *name,
 /** Terminate current thread.
  *
  * @param status Exit status. Currently not used.
+ *
  */
 void thread_exit(int status)
 {
 	__SYSCALL1(SYS_THREAD_EXIT, (sysarg_t) status);
-	for (;;)
-		;
+	
+	/* Unreachable */
+	while (1);
 }
 
 /** Detach thread.

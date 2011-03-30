@@ -33,7 +33,7 @@
 #ifndef DEVFS_DEVFS_OPS_H_
 #define DEVFS_DEVFS_OPS_H_
 
-#include <ipc/ipc.h>
+#include <ipc/common.h>
 #include <bool.h>
 
 extern bool devfs_init(void);

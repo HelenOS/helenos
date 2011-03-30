@@ -28,8 +28,8 @@
  */
 
 #include <str.h>
-#include <ipc/ipc.h>
 #include <ipc/services.h>
+#include <ipc/ns.h>
 #include <ipc/devmap.h>
 #include <devmap.h>
 #include <async.h>
@@ -49,11 +49,11 @@ int devmap_get_phone(devmap_interface_t iface, unsigned int flags)
 			return devmap_phone_driver;
 		
 		if (flags & IPC_FLAG_BLOCKING)
-			devmap_phone_driver = ipc_connect_me_to_blocking(PHONE_NS,
-			    SERVICE_DEVMAP, DEVMAP_DRIVER, 0);
+			devmap_phone_driver = service_connect_blocking(SERVICE_DEVMAP,
+			    DEVMAP_DRIVER, 0);
 		else
-			devmap_phone_driver = ipc_connect_me_to(PHONE_NS,
-			    SERVICE_DEVMAP, DEVMAP_DRIVER, 0);
+			devmap_phone_driver = service_connect(SERVICE_DEVMAP,
+			    DEVMAP_DRIVER, 0);
 		
 		return devmap_phone_driver;
 	case DEVMAP_CLIENT:
@@ -61,11 +61,11 @@ int devmap_get_phone(devmap_interface_t iface, unsigned int flags)
 			return devmap_phone_client;
 		
 		if (flags & IPC_FLAG_BLOCKING)
-			devmap_phone_client = ipc_connect_me_to_blocking(PHONE_NS,
-			    SERVICE_DEVMAP, DEVMAP_CLIENT, 0);
+			devmap_phone_client = service_connect_blocking(SERVICE_DEVMAP,
+			    DEVMAP_CLIENT, 0);
 		else
-			devmap_phone_client = ipc_connect_me_to(PHONE_NS,
-			    SERVICE_DEVMAP, DEVMAP_CLIENT, 0);
+			devmap_phone_client = service_connect(SERVICE_DEVMAP,
+			    DEVMAP_CLIENT, 0);
 		
 		return devmap_phone_client;
 	default:
@@ -78,13 +78,13 @@ void devmap_hangup_phone(devmap_interface_t iface)
 	switch (iface) {
 	case DEVMAP_DRIVER:
 		if (devmap_phone_driver >= 0) {
-			ipc_hangup(devmap_phone_driver);
+			async_hangup(devmap_phone_driver);
 			devmap_phone_driver = -1;
 		}
 		break;
 	case DEVMAP_CLIENT:
 		if (devmap_phone_client >= 0) {
-			ipc_hangup(devmap_phone_client);
+			async_hangup(devmap_phone_client);
 			devmap_phone_client = -1;
 		}
 		break;
@@ -115,8 +115,7 @@ int devmap_driver_register(const char *name, async_client_conn_t conn)
 	
 	async_set_client_connection(conn);
 	
-	sysarg_t callback_phonehash;
-	ipc_connect_to_me(phone, 0, 0, 0, &callback_phonehash);
+	async_connect_to_me(phone, 0, 0, 0, NULL);
 	async_wait_for(req, &retval);
 	
 	async_serialize_end();
@@ -278,10 +277,10 @@ int devmap_device_connect(devmap_handle_t handle, unsigned int flags)
 	int phone;
 	
 	if (flags & IPC_FLAG_BLOCKING) {
-		phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_DEVMAP,
+		phone = async_connect_me_to_blocking(PHONE_NS, SERVICE_DEVMAP,
 		    DEVMAP_CONNECT_TO_DEVICE, handle);
 	} else {
-		phone = ipc_connect_me_to(PHONE_NS, SERVICE_DEVMAP,
+		phone = async_connect_me_to(PHONE_NS, SERVICE_DEVMAP,
 		    DEVMAP_CONNECT_TO_DEVICE, handle);
 	}
 	

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Jakub Jermar 
+ * Copyright (c) 2008 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,20 +42,23 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <ipc/ipc.h>
 #include <ipc/services.h>
+#include <ipc/ns.h>
 #include <async.h>
-#include <atomic.h>
-#include <futex.h>
+#include <fibril_synch.h>
 #include <errno.h>
+#include <assert.h>
 #include <str.h>
 #include <devmap.h>
 #include <ipc/vfs.h>
 #include <ipc/devmap.h>
 
+static async_sess_t vfs_session;
+
+static FIBRIL_MUTEX_INITIALIZE(vfs_phone_mutex);
 static int vfs_phone = -1;
-static futex_t vfs_phone_futex = FUTEX_INITIALIZER;
-static futex_t cwd_futex = FUTEX_INITIALIZER;
+
+static FIBRIL_MUTEX_INITIALIZE(cwd_mutex);
 
 static int cwd_fd = -1;
 static char *cwd_path = NULL;
@@ -65,34 +68,37 @@ char *absolutize(const char *path, size_t *retlen)
 {
 	char *ncwd_path;
 	char *ncwd_path_nc;
+	size_t total_size; 
 
-	futex_down(&cwd_futex);
+	fibril_mutex_lock(&cwd_mutex);
 	size_t size = str_size(path);
 	if (*path != '/') {
 		if (!cwd_path) {
-			futex_up(&cwd_futex);
+			fibril_mutex_unlock(&cwd_mutex);
 			return NULL;
 		}
-		ncwd_path_nc = malloc(cwd_size + 1 + size + 1);
+		total_size = cwd_size + 1 + size + 1;
+		ncwd_path_nc = malloc(total_size);
 		if (!ncwd_path_nc) {
-			futex_up(&cwd_futex);
+			fibril_mutex_unlock(&cwd_mutex);
 			return NULL;
 		}
-		str_cpy(ncwd_path_nc, cwd_size + 1 + size + 1, cwd_path);
+		str_cpy(ncwd_path_nc, total_size, cwd_path);
 		ncwd_path_nc[cwd_size] = '/';
 		ncwd_path_nc[cwd_size + 1] = '\0';
 	} else {
-		ncwd_path_nc = malloc(size + 1);
+		total_size = size + 1;
+		ncwd_path_nc = malloc(total_size);
 		if (!ncwd_path_nc) {
-			futex_up(&cwd_futex);
+			fibril_mutex_unlock(&cwd_mutex);
 			return NULL;
 		}
 		ncwd_path_nc[0] = '\0';
 	}
-	str_append(ncwd_path_nc, cwd_size + 1 + size + 1, path);
+	str_append(ncwd_path_nc, total_size, path);
 	ncwd_path = canonify(ncwd_path_nc, retlen);
 	if (!ncwd_path) {
-		futex_up(&cwd_futex);
+		fibril_mutex_unlock(&cwd_mutex);
 		free(ncwd_path_nc);
 		return NULL;
 	}
@@ -104,17 +110,43 @@ char *absolutize(const char *path, size_t *retlen)
 	ncwd_path = str_dup(ncwd_path);
 	free(ncwd_path_nc);
 	if (!ncwd_path) {
-		futex_up(&cwd_futex);
+		fibril_mutex_unlock(&cwd_mutex);
 		return NULL;
 	}
-	futex_up(&cwd_futex);
+	fibril_mutex_unlock(&cwd_mutex);
 	return ncwd_path;
 }
 
+/** Connect to VFS service and create session. */
 static void vfs_connect(void)
 {
 	while (vfs_phone < 0)
-		vfs_phone = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_VFS, 0, 0);
+		vfs_phone = service_connect_blocking(SERVICE_VFS, 0, 0);
+	
+	async_session_create(&vfs_session, vfs_phone, 0);
+}
+
+/** Start an async exchange on the VFS session.
+ *
+ * @return		New phone to be used during the exchange.
+ */
+static int vfs_exchange_begin(void)
+{
+	fibril_mutex_lock(&vfs_phone_mutex);
+	if (vfs_phone < 0)
+		vfs_connect();
+	fibril_mutex_unlock(&vfs_phone_mutex);
+
+	return async_exchange_begin(&vfs_session);
+}
+
+/** End an async exchange on the VFS session.
+ *
+ * @param phone		Phone used during the exchange.
+ */
+static void vfs_exchange_end(int phone)
+{
+	async_exchange_end(&vfs_session, phone);
 }
 
 int mount(const char *fs_name, const char *mp, const char *fqdn,
@@ -153,18 +185,15 @@ int mount(const char *fs_name, const char *mp, const char *fqdn,
 		return ENOMEM;
 	}
 	
-	futex_down(&vfs_phone_futex);
-	async_serialize_start();
-	vfs_connect();
-	
+	int vfs_phone = vfs_exchange_begin();
+
 	sysarg_t rc_orig;
 	aid_t req = async_send_2(vfs_phone, VFS_IN_MOUNT, devmap_handle, flags, NULL);
 	sysarg_t rc = async_data_write_start(vfs_phone, (void *) mpa, mpa_size);
 	if (rc != EOK) {
-		async_wait_for(req, &rc_orig);
-		async_serialize_end();
-		futex_up(&vfs_phone_futex);
+		vfs_exchange_end(vfs_phone);
 		free(mpa);
+		async_wait_for(req, &rc_orig);
 		
 		if (null_id != -1)
 			devmap_null_destroy(null_id);
@@ -177,10 +206,9 @@ int mount(const char *fs_name, const char *mp, const char *fqdn,
 	
 	rc = async_data_write_start(vfs_phone, (void *) opts, str_size(opts));
 	if (rc != EOK) {
-		async_wait_for(req, &rc_orig);
-		async_serialize_end();
-		futex_up(&vfs_phone_futex);
+		vfs_exchange_end(vfs_phone);
 		free(mpa);
+		async_wait_for(req, &rc_orig);
 		
 		if (null_id != -1)
 			devmap_null_destroy(null_id);
@@ -193,10 +221,9 @@ int mount(const char *fs_name, const char *mp, const char *fqdn,
 	
 	rc = async_data_write_start(vfs_phone, (void *) fs_name, str_size(fs_name));
 	if (rc != EOK) {
-		async_wait_for(req, &rc_orig);
-		async_serialize_end();
-		futex_up(&vfs_phone_futex);
+		vfs_exchange_end(vfs_phone);
 		free(mpa);
+		async_wait_for(req, &rc_orig);
 		
 		if (null_id != -1)
 			devmap_null_destroy(null_id);
@@ -210,10 +237,9 @@ int mount(const char *fs_name, const char *mp, const char *fqdn,
 	/* Ask VFS whether it likes fs_name. */
 	rc = async_req_0_0(vfs_phone, IPC_M_PING);
 	if (rc != EOK) {
-		async_wait_for(req, &rc_orig);
-		async_serialize_end();
-		futex_up(&vfs_phone_futex);
+		vfs_exchange_end(vfs_phone);
 		free(mpa);
+		async_wait_for(req, &rc_orig);
 		
 		if (null_id != -1)
 			devmap_null_destroy(null_id);
@@ -224,10 +250,9 @@ int mount(const char *fs_name, const char *mp, const char *fqdn,
 			return (int) rc_orig;
 	}
 	
-	async_wait_for(req, &rc);
-	async_serialize_end();
-	futex_up(&vfs_phone_futex);
+	vfs_exchange_end(vfs_phone);
 	free(mpa);
+	async_wait_for(req, &rc);
 	
 	if ((rc != EOK) && (null_id != -1))
 		devmap_null_destroy(null_id);
@@ -247,17 +272,14 @@ int unmount(const char *mp)
 	if (!mpa)
 		return ENOMEM;
 	
-	futex_down(&vfs_phone_futex);
-	async_serialize_start();
-	vfs_connect();
+	int vfs_phone = vfs_exchange_begin();
 	
 	req = async_send_0(vfs_phone, VFS_IN_UNMOUNT, NULL);
 	rc = async_data_write_start(vfs_phone, (void *) mpa, mpa_size);
 	if (rc != EOK) {
-		async_wait_for(req, &rc_orig);
-		async_serialize_end();
-		futex_up(&vfs_phone_futex);
+		vfs_exchange_end(vfs_phone);
 		free(mpa);
+		async_wait_for(req, &rc_orig);
 		if (rc_orig == EOK)
 			return (int) rc;
 		else
@@ -265,30 +287,26 @@ int unmount(const char *mp)
 	}
 	
 
-	async_wait_for(req, &rc);
-	async_serialize_end();
-	futex_up(&vfs_phone_futex);
+	vfs_exchange_end(vfs_phone);
 	free(mpa);
+	async_wait_for(req, &rc);
 	
 	return (int) rc;
 }
 
 static int open_internal(const char *abs, size_t abs_size, int lflag, int oflag)
 {
-	futex_down(&vfs_phone_futex);
-	async_serialize_start();
-	vfs_connect();
+	int vfs_phone = vfs_exchange_begin();
 	
 	ipc_call_t answer;
 	aid_t req = async_send_3(vfs_phone, VFS_IN_OPEN, lflag, oflag, 0, &answer);
 	sysarg_t rc = async_data_write_start(vfs_phone, abs, abs_size);
 	
 	if (rc != EOK) {
+		vfs_exchange_end(vfs_phone);
+
 		sysarg_t rc_orig;
 		async_wait_for(req, &rc_orig);
-		
-		async_serialize_end();
-		futex_up(&vfs_phone_futex);
 		
 		if (rc_orig == EOK)
 			return (int) rc;
@@ -296,9 +314,8 @@ static int open_internal(const char *abs, size_t abs_size, int lflag, int oflag)
 			return (int) rc_orig;
 	}
 	
+	vfs_exchange_end(vfs_phone);
 	async_wait_for(req, &rc);
-	async_serialize_end();
-	futex_up(&vfs_phone_futex);
 	
 	if (rc != EOK)
 	    return (int) rc;
@@ -321,18 +338,16 @@ int open(const char *path, int oflag, ...)
 
 int open_node(fdi_node_t *node, int oflag)
 {
-	futex_down(&vfs_phone_futex);
-	async_serialize_start();
-	vfs_connect();
+	int vfs_phone = vfs_exchange_begin();
 	
 	ipc_call_t answer;
 	aid_t req = async_send_4(vfs_phone, VFS_IN_OPEN_NODE, node->fs_handle,
 	    node->devmap_handle, node->index, oflag, &answer);
 	
+	vfs_exchange_end(vfs_phone);
+
 	sysarg_t rc;
 	async_wait_for(req, &rc);
-	async_serialize_end();
-	futex_up(&vfs_phone_futex);
 	
 	if (rc != EOK)
 		return (int) rc;
@@ -344,14 +359,11 @@ int close(int fildes)
 {
 	sysarg_t rc;
 	
-	futex_down(&vfs_phone_futex);
-	async_serialize_start();
-	vfs_connect();
+	int vfs_phone = vfs_exchange_begin();
 	
 	rc = async_req_1_0(vfs_phone, VFS_IN_CLOSE, fildes);
 	
-	async_serialize_end();
-	futex_up(&vfs_phone_futex);
+	vfs_exchange_end(vfs_phone);
 	
 	return (int)rc;
 }
@@ -362,26 +374,23 @@ ssize_t read(int fildes, void *buf, size_t nbyte)
 	ipc_call_t answer;
 	aid_t req;
 
-	futex_down(&vfs_phone_futex);
-	async_serialize_start();
-	vfs_connect();
+	int vfs_phone = vfs_exchange_begin();
 	
 	req = async_send_1(vfs_phone, VFS_IN_READ, fildes, &answer);
 	rc = async_data_read_start(vfs_phone, (void *)buf, nbyte);
 	if (rc != EOK) {
+		vfs_exchange_end(vfs_phone);
+
 		sysarg_t rc_orig;
-	
 		async_wait_for(req, &rc_orig);
-		async_serialize_end();
-		futex_up(&vfs_phone_futex);
+
 		if (rc_orig == EOK)
 			return (ssize_t) rc;
 		else
 			return (ssize_t) rc_orig;
 	}
+	vfs_exchange_end(vfs_phone);
 	async_wait_for(req, &rc);
-	async_serialize_end();
-	futex_up(&vfs_phone_futex);
 	if (rc == EOK)
 		return (ssize_t) IPC_GET_ARG1(answer);
 	else
@@ -394,26 +403,23 @@ ssize_t write(int fildes, const void *buf, size_t nbyte)
 	ipc_call_t answer;
 	aid_t req;
 
-	futex_down(&vfs_phone_futex);
-	async_serialize_start();
-	vfs_connect();
+	int vfs_phone = vfs_exchange_begin();
 	
 	req = async_send_1(vfs_phone, VFS_IN_WRITE, fildes, &answer);
 	rc = async_data_write_start(vfs_phone, (void *)buf, nbyte);
 	if (rc != EOK) {
+		vfs_exchange_end(vfs_phone);
+
 		sysarg_t rc_orig;
-	
 		async_wait_for(req, &rc_orig);
-		async_serialize_end();
-		futex_up(&vfs_phone_futex);
+
 		if (rc_orig == EOK)
 			return (ssize_t) rc;
 		else
 			return (ssize_t) rc_orig;
 	}
+	vfs_exchange_end(vfs_phone);
 	async_wait_for(req, &rc);
-	async_serialize_end();
-	futex_up(&vfs_phone_futex);
 	if (rc == EOK)
 		return (ssize_t) IPC_GET_ARG1(answer);
 	else
@@ -422,23 +428,18 @@ ssize_t write(int fildes, const void *buf, size_t nbyte)
 
 int fsync(int fildes)
 {
-	futex_down(&vfs_phone_futex);
-	async_serialize_start();
-	vfs_connect();
+	int vfs_phone = vfs_exchange_begin();
 	
 	sysarg_t rc = async_req_1_0(vfs_phone, VFS_IN_SYNC, fildes);
 	
-	async_serialize_end();
-	futex_up(&vfs_phone_futex);
+	vfs_exchange_end(vfs_phone);
 	
 	return (int) rc;
 }
 
 off64_t lseek(int fildes, off64_t offset, int whence)
 {
-	futex_down(&vfs_phone_futex);
-	async_serialize_start();
-	vfs_connect();
+	int vfs_phone = vfs_exchange_begin();
 	
 	sysarg_t newoff_lo;
 	sysarg_t newoff_hi;
@@ -446,8 +447,7 @@ off64_t lseek(int fildes, off64_t offset, int whence)
 	    LOWER32(offset), UPPER32(offset), whence,
 	    &newoff_lo, &newoff_hi);
 	
-	async_serialize_end();
-	futex_up(&vfs_phone_futex);
+	vfs_exchange_end(vfs_phone);
 	
 	if (rc != EOK)
 		return (off64_t) -1;
@@ -459,14 +459,11 @@ int ftruncate(int fildes, aoff64_t length)
 {
 	sysarg_t rc;
 	
-	futex_down(&vfs_phone_futex);
-	async_serialize_start();
-	vfs_connect();
+	int vfs_phone = vfs_exchange_begin();
 	
 	rc = async_req_3_0(vfs_phone, VFS_IN_TRUNCATE, fildes,
 	    LOWER32(length), UPPER32(length));
-	async_serialize_end();
-	futex_up(&vfs_phone_futex);
+	vfs_exchange_end(vfs_phone);
 	
 	return (int) rc;
 }
@@ -476,26 +473,23 @@ int fstat(int fildes, struct stat *stat)
 	sysarg_t rc;
 	aid_t req;
 
-	futex_down(&vfs_phone_futex);
-	async_serialize_start();
-	vfs_connect();
+	int vfs_phone = vfs_exchange_begin();
 	
 	req = async_send_1(vfs_phone, VFS_IN_FSTAT, fildes, NULL);
 	rc = async_data_read_start(vfs_phone, (void *) stat, sizeof(struct stat));
 	if (rc != EOK) {
+		vfs_exchange_end(vfs_phone);
+
 		sysarg_t rc_orig;
-		
 		async_wait_for(req, &rc_orig);
-		async_serialize_end();
-		futex_up(&vfs_phone_futex);
+
 		if (rc_orig == EOK)
 			return (ssize_t) rc;
 		else
 			return (ssize_t) rc_orig;
 	}
+	vfs_exchange_end(vfs_phone);
 	async_wait_for(req, &rc);
-	async_serialize_end();
-	futex_up(&vfs_phone_futex);
 
 	return rc;
 }
@@ -511,17 +505,14 @@ int stat(const char *path, struct stat *stat)
 	if (!pa)
 		return ENOMEM;
 	
-	futex_down(&vfs_phone_futex);
-	async_serialize_start();
-	vfs_connect();
+	int vfs_phone = vfs_exchange_begin();
 	
 	req = async_send_0(vfs_phone, VFS_IN_STAT, NULL);
 	rc = async_data_write_start(vfs_phone, pa, pa_size);
 	if (rc != EOK) {
-		async_wait_for(req, &rc_orig);
-		async_serialize_end();
-		futex_up(&vfs_phone_futex);
+		vfs_exchange_end(vfs_phone);
 		free(pa);
+		async_wait_for(req, &rc_orig);
 		if (rc_orig == EOK)
 			return (int) rc;
 		else
@@ -529,19 +520,17 @@ int stat(const char *path, struct stat *stat)
 	}
 	rc = async_data_read_start(vfs_phone, stat, sizeof(struct stat));
 	if (rc != EOK) {
-		async_wait_for(req, &rc_orig);
-		async_serialize_end();
-		futex_up(&vfs_phone_futex);
+		vfs_exchange_end(vfs_phone);
 		free(pa);
+		async_wait_for(req, &rc_orig);
 		if (rc_orig == EOK)
 			return (int) rc;
 		else
 			return (int) rc_orig;
 	}
-	async_wait_for(req, &rc);
-	async_serialize_end();
-	futex_up(&vfs_phone_futex);
+	vfs_exchange_end(vfs_phone);
 	free(pa);
+	async_wait_for(req, &rc);
 	return rc;
 }
 
@@ -600,28 +589,25 @@ int mkdir(const char *path, mode_t mode)
 	if (!pa)
 		return ENOMEM;
 	
-	futex_down(&vfs_phone_futex);
-	async_serialize_start();
-	vfs_connect();
+	int vfs_phone = vfs_exchange_begin();
 	
 	req = async_send_1(vfs_phone, VFS_IN_MKDIR, mode, NULL);
 	rc = async_data_write_start(vfs_phone, pa, pa_size);
 	if (rc != EOK) {
-		sysarg_t rc_orig;
-	
-		async_wait_for(req, &rc_orig);
-		async_serialize_end();
-		futex_up(&vfs_phone_futex);
+		vfs_exchange_end(vfs_phone);
 		free(pa);
+
+		sysarg_t rc_orig;
+		async_wait_for(req, &rc_orig);
+
 		if (rc_orig == EOK)
 			return (int) rc;
 		else
 			return (int) rc_orig;
 	}
-	async_wait_for(req, &rc);
-	async_serialize_end();
-	futex_up(&vfs_phone_futex);
+	vfs_exchange_end(vfs_phone);
 	free(pa);
+	async_wait_for(req, &rc);
 	return rc;
 }
 
@@ -635,28 +621,25 @@ static int _unlink(const char *path, int lflag)
 	if (!pa)
 		return ENOMEM;
 
-	futex_down(&vfs_phone_futex);
-	async_serialize_start();
-	vfs_connect();
+	int vfs_phone = vfs_exchange_begin();
 	
 	req = async_send_0(vfs_phone, VFS_IN_UNLINK, NULL);
 	rc = async_data_write_start(vfs_phone, pa, pa_size);
 	if (rc != EOK) {
-		sysarg_t rc_orig;
-
-		async_wait_for(req, &rc_orig);
-		async_serialize_end();
-		futex_up(&vfs_phone_futex);
+		vfs_exchange_end(vfs_phone);
 		free(pa);
+
+		sysarg_t rc_orig;
+		async_wait_for(req, &rc_orig);
+
 		if (rc_orig == EOK)
 			return (int) rc;
 		else
 			return (int) rc_orig;
 	}
-	async_wait_for(req, &rc);
-	async_serialize_end();
-	futex_up(&vfs_phone_futex);
+	vfs_exchange_end(vfs_phone);
 	free(pa);
+	async_wait_for(req, &rc);
 	return rc;
 }
 
@@ -688,18 +671,15 @@ int rename(const char *old, const char *new)
 		return ENOMEM;
 	}
 
-	futex_down(&vfs_phone_futex);
-	async_serialize_start();
-	vfs_connect();
+	int vfs_phone = vfs_exchange_begin();
 	
 	req = async_send_0(vfs_phone, VFS_IN_RENAME, NULL);
 	rc = async_data_write_start(vfs_phone, olda, olda_size);
 	if (rc != EOK) {
-		async_wait_for(req, &rc_orig);
-		async_serialize_end();
-		futex_up(&vfs_phone_futex);
+		vfs_exchange_end(vfs_phone);
 		free(olda);
 		free(newa);
+		async_wait_for(req, &rc_orig);
 		if (rc_orig == EOK)
 			return (int) rc;
 		else
@@ -707,21 +687,19 @@ int rename(const char *old, const char *new)
 	}
 	rc = async_data_write_start(vfs_phone, newa, newa_size);
 	if (rc != EOK) {
-		async_wait_for(req, &rc_orig);
-		async_serialize_end();
-		futex_up(&vfs_phone_futex);
+		vfs_exchange_end(vfs_phone);
 		free(olda);
 		free(newa);
+		async_wait_for(req, &rc_orig);
 		if (rc_orig == EOK)
 			return (int) rc;
 		else
 			return (int) rc_orig;
 	}
-	async_wait_for(req, &rc);
-	async_serialize_end();
-	futex_up(&vfs_phone_futex);
+	vfs_exchange_end(vfs_phone);
 	free(olda);
 	free(newa);
+	async_wait_for(req, &rc);
 	return rc;
 }
 
@@ -739,7 +717,7 @@ int chdir(const char *path)
 		return ENOENT;
 	}
 	
-	futex_down(&cwd_futex);
+	fibril_mutex_lock(&cwd_mutex);
 	
 	if (cwd_fd >= 0)
 		close(cwd_fd);
@@ -752,7 +730,7 @@ int chdir(const char *path)
 	cwd_path = abs;
 	cwd_size = abs_size;
 	
-	futex_up(&cwd_futex);
+	fibril_mutex_unlock(&cwd_mutex);
 	return EOK;
 }
 
@@ -761,15 +739,15 @@ char *getcwd(char *buf, size_t size)
 	if (size == 0)
 		return NULL;
 	
-	futex_down(&cwd_futex);
+	fibril_mutex_lock(&cwd_mutex);
 	
 	if ((cwd_size == 0) || (size < cwd_size + 1)) {
-		futex_up(&cwd_futex);
+		fibril_mutex_unlock(&cwd_mutex);
 		return NULL;
 	}
 	
 	str_cpy(buf, size, cwd_path);
-	futex_up(&cwd_futex);
+	fibril_mutex_unlock(&cwd_mutex);
 	
 	return buf;
 }
@@ -777,10 +755,11 @@ char *getcwd(char *buf, size_t size)
 int fd_phone(int fildes)
 {
 	struct stat stat;
-	int rc;
-
-	rc = fstat(fildes, &stat);
-
+	
+	int rc = fstat(fildes, &stat);
+	if (rc != 0)
+		return rc;
+	
 	if (!stat.device)
 		return -1;
 	
@@ -805,15 +784,12 @@ int fd_node(int fildes, fdi_node_t *node)
 
 int dup2(int oldfd, int newfd)
 {
-	futex_down(&vfs_phone_futex);
-	async_serialize_start();
-	vfs_connect();
+	int vfs_phone = vfs_exchange_begin();
 	
 	sysarg_t ret;
 	sysarg_t rc = async_req_2_1(vfs_phone, VFS_IN_DUP, oldfd, newfd, &ret);
 	
-	async_serialize_end();
-	futex_up(&vfs_phone_futex);
+	vfs_exchange_end(vfs_phone);
 	
 	if (rc == EOK)
 		return (int) ret;

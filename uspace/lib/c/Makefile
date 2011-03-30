@@ -58,7 +58,7 @@ GENERIC_SOURCES = \
 	generic/devmap.c \
 	generic/devman.c \
 	generic/device/hw_res.c \
-	generic/device/char.c \
+	generic/device/char_dev.c \
 	generic/event.c \
 	generic/errno.c \
 	generic/mem.c \
@@ -82,20 +82,20 @@ GENERIC_SOURCES = \
 	generic/io/printf_core.c \
 	generic/io/console.c \
 	generic/io/screenbuffer.c \
+	generic/ipc/ns.c \
 	generic/malloc.c \
 	generic/sysinfo.c \
 	generic/ipc.c \
 	generic/async.c \
-	generic/async_rel.c \
+	generic/async_sess.c \
 	generic/loader.c \
 	generic/getopt.c \
-	generic/adt/list.o \
-	generic/adt/hash_table.o \
+	generic/adt/list.c \
+	generic/adt/hash_table.c \
 	generic/adt/dynamic_fifo.c \
 	generic/adt/measured_strings.c \
 	generic/adt/char_map.c \
 	generic/time.c \
-	generic/err.c \
 	generic/stdlib.c \
 	generic/mman.c \
 	generic/udebug.c \

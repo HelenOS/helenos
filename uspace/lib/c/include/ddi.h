@@ -35,14 +35,16 @@
 #ifndef LIBC_DDI_H_
 #define LIBC_DDI_H_
 
+#include <sys/types.h>
+#include <kernel/ddi/irq.h>
 #include <task.h>
 
 extern int device_assign_devno(void);
 extern int physmem_map(void *, void *, unsigned long, int);
 extern int iospace_enable(task_id_t, void *, unsigned long);
 extern int pio_enable(void *, size_t, void **);
-extern int interrupt_enable(int);
-extern int interrupt_disable(int);
+extern int register_irq(int, int, int, irq_code_t *);
+extern int unregister_irq(int, int);
 
 #endif
 

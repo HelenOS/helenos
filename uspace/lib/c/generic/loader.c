@@ -32,9 +32,9 @@
 /** @file
  */
 
-#include <ipc/ipc.h>
 #include <ipc/loader.h>
 #include <ipc/services.h>
+#include <ipc/ns.h>
 #include <libc.h>
 #include <task.h>
 #include <str.h>
@@ -62,7 +62,7 @@ int loader_spawn(const char *name)
 
 loader_t *loader_connect(void)
 {
-	int phone_id = ipc_connect_me_to_blocking(PHONE_NS, SERVICE_LOAD, 0, 0);
+	int phone_id = service_connect_blocking(SERVICE_LOAD, 0, 0);
 	if (phone_id < 0)
 		return NULL;
 	
@@ -159,6 +159,7 @@ int loader_set_pathname(loader_t *ldr, const char *path)
 	aid_t req = async_send_0(ldr->phone_id, LOADER_SET_PATHNAME, &answer);
 	int rc = async_data_write_start(ldr->phone_id, (void *) pa, pa_len);
 	if (rc != EOK) {
+		free(pa);
 		async_wait_for(req, NULL);
 		return rc;
 	}
@@ -318,7 +319,7 @@ int loader_run(loader_t *ldr)
 	if (rc != EOK)
 		return rc;
 	
-	ipc_hangup(ldr->phone_id);
+	async_hangup(ldr->phone_id);
 	ldr->phone_id = 0;
 	return EOK;
 }
@@ -336,7 +337,7 @@ int loader_run(loader_t *ldr)
  */
 void loader_abort(loader_t *ldr)
 {
-	ipc_hangup(ldr->phone_id);
+	async_hangup(ldr->phone_id);
 	ldr->phone_id = 0;
 }
 

@@ -42,10 +42,11 @@
 
 /** Structure representing contiguous physical memory area. */
 typedef struct {
-	uintptr_t pbase;    /**< Physical base of the area. */
-	pfn_t frames;       /**< Number of frames in the area. */
+	link_t link;      /**< Linked list link */
 	
-	link_t link;        /**< Linked list link */
+	uintptr_t pbase;  /**< Physical base of the area. */
+	pfn_t frames;     /**< Number of frames in the area. */
+	bool unpriv;      /**< Allow mapping by unprivileged tasks. */
 } parea_t;
 
 extern void ddi_init(void);
@@ -53,13 +54,11 @@ extern void ddi_parea_register(parea_t *);
 
 extern sysarg_t sys_physmem_map(sysarg_t, sysarg_t, sysarg_t, sysarg_t);
 extern sysarg_t sys_iospace_enable(ddi_ioarg_t *);
-extern sysarg_t sys_interrupt_enable(int irq, int enable);
 
 /*
  * Interface to be implemented by all architectures.
  */
 extern int ddi_iospace_enable_arch(task_t *, uintptr_t, size_t);
-
 
 #endif
 

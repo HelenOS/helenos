@@ -106,7 +106,7 @@ socket_destroy_core(int packet_phone, socket_core_t *socket,
 	if (socket_release)
 		socket_release(socket);
 
-	socket_cores_exclude(local_sockets, socket->socket_id);
+	socket_cores_exclude(local_sockets, socket->socket_id, free);
 }
 
 /** Destroys local sockets.
@@ -160,7 +160,7 @@ socket_cores_release(int packet_phone, socket_cores_t *local_sockets,
  */
 static int
 socket_port_add_core(socket_port_t *socket_port, socket_core_t *socket,
-    const char *key, size_t key_length)
+    const uint8_t *key, size_t key_length)
 {
 	socket_core_t **socket_ref;
 	int rc;
@@ -215,8 +215,8 @@ socket_bind_insert(socket_ports_t *global_sockets, socket_core_t *socket,
 	if (rc != EOK)
 		goto fail;
 	
-	rc = socket_port_add_core(socket_port, socket, SOCKET_MAP_KEY_LISTENING,
-	    0);
+	rc = socket_port_add_core(socket_port, socket,
+	    (const uint8_t *) SOCKET_MAP_KEY_LISTENING, 0);
 	if (rc != EOK)
 		goto fail;
 	
@@ -229,7 +229,7 @@ socket_bind_insert(socket_ports_t *global_sockets, socket_core_t *socket,
 	return EOK;
 
 fail:
-	socket_port_map_destroy(&socket_port->map);
+	socket_port_map_destroy(&socket_port->map, free);
 	free(socket_port);
 	return rc;
 	
@@ -601,7 +601,7 @@ int socket_reply_packets(packet_t *packet, size_t *length)
  * @return		NULL if no socket was found.
  */
 socket_core_t *
-socket_port_find(socket_ports_t *global_sockets, int port, const char *key,
+socket_port_find(socket_ports_t *global_sockets, int port, const uint8_t *key,
     size_t key_length)
 {
 	socket_port_t *socket_port;
@@ -648,14 +648,14 @@ socket_port_release(socket_ports_t *global_sockets, socket_core_t *socket)
 			// release if empty
 			if (socket_port->count <= 0) {
 				// destroy the map
-				socket_port_map_destroy(&socket_port->map);
+				socket_port_map_destroy(&socket_port->map, free);
 				// release the port
 				socket_ports_exclude(global_sockets,
-				    socket->port);
+				    socket->port, free);
 			} else {
 				// remove
 				socket_port_map_exclude(&socket_port->map,
-				    socket->key, socket->key_length);
+				    socket->key, socket->key_length, free);
 			}
 		}
 	}
@@ -679,7 +679,7 @@ socket_port_release(socket_ports_t *global_sockets, socket_core_t *socket)
  */
 int
 socket_port_add(socket_ports_t *global_sockets, int port,
-    socket_core_t *socket, const char *key, size_t key_length)
+    socket_core_t *socket, const uint8_t *key, size_t key_length)
 {
 	socket_port_t *socket_port;
 	int rc;

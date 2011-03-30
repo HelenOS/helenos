@@ -161,7 +161,6 @@ int main(int argc, char *argv[])
 
 	rc = devmap_device_register("adb/kbd", &devmap_handle);
 	if (rc != EOK) {
-		devmap_hangup_phone(DEVMAP_DRIVER);
 		printf(NAME ": Unable to register device %s.\n", "adb/kdb");
 		return rc;
 	}
@@ -171,7 +170,6 @@ int main(int argc, char *argv[])
 
 	rc = devmap_device_register("adb/mouse", &devmap_handle);
 	if (rc != EOK) {
-		devmap_hangup_phone(DEVMAP_DRIVER);
 		printf(NAME ": Unable to register device %s.\n", "adb/mouse");
 		return rc;
 	}
@@ -210,12 +208,12 @@ static void cuda_connection(ipc_callid_t iid, ipc_call_t *icall)
 	}
 
 	if (dev_addr < 0) {
-		ipc_answer_0(iid, EINVAL);
+		async_answer_0(iid, EINVAL);
 		return;
 	}
 
 	/* Answer the IPC_M_CONNECT_ME_TO call. */
-	ipc_answer_0(iid, EOK);
+	async_answer_0(iid, EOK);
 
 	while (1) {
 		callid = async_get_call(&call);
@@ -223,7 +221,7 @@ static void cuda_connection(ipc_callid_t iid, ipc_call_t *icall)
 		switch (method) {
 		case IPC_M_PHONE_HUNGUP:
 			/* The other side has hung up. */
-			ipc_answer_0(callid, EOK);
+			async_answer_0(callid, EOK);
 			return;
 		case IPC_M_CONNECT_TO_ME:
 			if (adb_dev[dev_addr].client_phone != -1) {
@@ -246,7 +244,7 @@ static void cuda_connection(ipc_callid_t iid, ipc_call_t *icall)
 			retval = EINVAL;
 			break;
 		}
-		ipc_answer_0(callid, retval);
+		async_answer_0(callid, retval);
 	}
 }
 
@@ -277,7 +275,7 @@ static int cuda_init(void)
 
 	cuda_irq_code.cmds[0].addr = (void *) &((cuda_t *) instance->cuda_kernel)->ifr;
 	async_set_interrupt_received(cuda_irq_handler);
-	ipc_register_irq(10, device_assign_devno(), 0, &cuda_irq_code);
+	register_irq(10, device_assign_devno(), 0, &cuda_irq_code);
 
 	/* Enable SR interrupt. */
 	pio_write_8(&dev->ier, TIP | TREQ);
@@ -368,11 +366,11 @@ static void cuda_irq_receive(void)
  */
 static void cuda_irq_rcv_end(void *buf, size_t *len)
 {
-	uint8_t data, b;
-
+	uint8_t b;
+	
 	b = pio_read_8(&dev->b);
-	data = pio_read_8(&dev->sr);
-
+	pio_read_8(&dev->sr);
+	
 	if ((b & TREQ) == 0) {
 		instance->xstate = cx_receive;
 		pio_write_8(&dev->b, b & ~TIP);
@@ -380,9 +378,9 @@ static void cuda_irq_rcv_end(void *buf, size_t *len)
 		instance->xstate = cx_listen;
 		cuda_send_start();
 	}
-
-        memcpy(buf, instance->rcv_buf, instance->bidx);
-        *len = instance->bidx;
+	
+	memcpy(buf, instance->rcv_buf, instance->bidx);
+	*len = instance->bidx;
 	instance->bidx = 0;
 }
 

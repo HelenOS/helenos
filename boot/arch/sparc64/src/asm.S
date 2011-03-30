@@ -151,7 +151,7 @@ icache_flush:
 
 .global ofw
 ofw:
-	save %sp, -STACK_WINDOW_SAVE_AREA_SIZE, %sp
+	save %sp, -(STACK_WINDOW_SAVE_AREA_SIZE + STACK_ARG_SAVE_AREA_SIZE), %sp
 	set ofw_cif, %l0
 	ldx [%l0], %l0
 	

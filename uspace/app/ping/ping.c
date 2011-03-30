@@ -34,11 +34,11 @@
  * Packet Internet Network Grouper.
  */
 
+#include <async.h>
 #include <stdio.h>
 #include <str.h>
 #include <task.h>
 #include <time.h>
-#include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <str_error.h>
 #include <errno.h>
@@ -339,7 +339,7 @@ int main(int argc, char *argv[])
 	printf("PING %s (%s) %zu(%zu) bytes of data\n", config.dest_addr,
 	    config.dest_str, config.size, config.size);
 	
-	int icmp_phone = icmp_connect_module(SERVICE_ICMP, ICMP_CONNECT_TIMEOUT);
+	int icmp_phone = icmp_connect_module(ICMP_CONNECT_TIMEOUT);
 	if (icmp_phone < 0) {
 		fprintf(stderr, "%s: Unable to connect to ICMP service (%s)\n", NAME,
 		    str_error(icmp_phone));
@@ -354,7 +354,7 @@ int main(int argc, char *argv[])
 			fprintf(stderr, "%s: gettimeofday failed (%s)\n", NAME,
 			    str_error(ret));
 			
-			ipc_hangup(icmp_phone);
+			async_hangup(icmp_phone);
 			return ret;
 		}
 		
@@ -369,7 +369,7 @@ int main(int argc, char *argv[])
 			fprintf(stderr, "%s: gettimeofday failed (%s)\n", NAME,
 			    str_error(ret));
 			
-			ipc_hangup(icmp_phone);
+			async_hangup(icmp_phone);
 			return ret;
 		}
 		
@@ -389,7 +389,7 @@ int main(int argc, char *argv[])
 		}
 	}
 	
-	ipc_hangup(icmp_phone);
+	async_hangup(icmp_phone);
 	
 	return 0;
 }

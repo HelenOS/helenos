@@ -189,8 +189,8 @@ void pm_destroy(void)
 				munmap(packet, packet->length);
 		}
 	}
-	gpm_destroy(&pm_globals.packet_map);
-	// leave locked
+	gpm_destroy(&pm_globals.packet_map, free);
+	/* leave locked */
 }
 
 /** Add packet to the sorted queue.

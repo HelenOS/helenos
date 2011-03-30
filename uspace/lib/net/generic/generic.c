@@ -35,11 +35,8 @@
  */
 
 #include <generic.h>
-
 #include <async.h>
-#include <ipc/ipc.h>
 #include <ipc/services.h>
-
 #include <net/device.h>
 #include <adt/measured_strings.h>
 #include <net/packet.h>
@@ -99,7 +96,7 @@ generic_device_req_remote(int phone, int message, device_id_t device_id,
  */
 int
 generic_get_addr_req(int phone, int message, device_id_t device_id,
-    measured_string_t **address, char ** data)
+    measured_string_t **address, uint8_t **data)
 {
 	aid_t message_id;
 	sysarg_t result;
@@ -233,7 +230,7 @@ generic_send_msg_remote(int phone, int message, device_id_t device_id,
 int
 generic_translate_req(int phone, int message, device_id_t device_id,
     services_t service, measured_string_t *configuration, size_t count,
-    measured_string_t **translation, char **data)
+    measured_string_t **translation, uint8_t **data)
 {
 	aid_t message_id;
 	sysarg_t result;

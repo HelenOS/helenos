@@ -41,7 +41,7 @@
  * (read/write port/memory, add information to notification ipc message).
  *
  * The structure of a notification message is as follows:
- * - IMETHOD: interface and method as registered by the SYS_IPC_REGISTER_IRQ
+ * - IMETHOD: interface and method as registered by the SYS_REGISTER_IRQ
  *            syscall
  * - ARG1: payload modified by a 'top-half' handler
  * - ARG2: payload modified by a 'top-half' handler
@@ -130,14 +130,13 @@ static irq_code_t *code_from_uspace(irq_code_t *ucode)
 
 /** Register an answerbox as a receiving end for IRQ notifications.
  *
- * @param box     Receiving answerbox.
- * @param inr     IRQ number.
- * @param devno   Device number.
- * @param imethod Interface and method to be associated
- *                with the notification.
- * @param ucode   Uspace pointer to top-half pseudocode.
- *
- * @return EBADMEM, ENOENT or EEXISTS on failure or 0 on success.
+ * @param box		Receiving answerbox.
+ * @param inr		IRQ number.
+ * @param devno		Device number.
+ * @param imethod	Interface and method to be associated with the
+ *			notification.
+ * @param ucode		Uspace pointer to top-half pseudocode.
+ * @return		EOK on success or a negative error code.
  *
  */
 int ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno,
@@ -147,6 +146,9 @@ int ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno,
 		(sysarg_t) inr,
 		(sysarg_t) devno
 	};
+
+	if ((inr < 0) || (inr > last_inr))
+		return ELIMIT;
 	
 	irq_code_t *code;
 	if (ucode) {
@@ -207,10 +209,10 @@ int ipc_irq_register(answerbox_t *box, inr_t inr, devno_t devno,
 
 /** Unregister task from IRQ notification.
  *
- * @param box   Answerbox associated with the notification.
- * @param inr   IRQ number.
- * @param devno Device number.
- *
+ * @param box		Answerbox associated with the notification.
+ * @param inr		IRQ number.
+ * @param devno		Device number.
+ * @return		EOK on success or a negative error code.
  */
 int ipc_irq_unregister(answerbox_t *box, inr_t inr, devno_t devno)
 {
@@ -218,6 +220,9 @@ int ipc_irq_unregister(answerbox_t *box, inr_t inr, devno_t devno)
 		(sysarg_t) inr,
 		(sysarg_t) devno
 	};
+
+	if ((inr < 0) || (inr > last_inr))
+		return ELIMIT;
 	
 	irq_spinlock_lock(&irq_uspace_hash_table_lock, true);
 	link_t *lnk = hash_table_find(&irq_uspace_hash_table, key);
@@ -397,6 +402,24 @@ irq_ownership_t ipc_irq_top_half_claim(irq_t *irq)
 		case CMD_PIO_WRITE_32:
 			pio_write_32((ioport32_t *) code->cmds[i].addr,
 			    (uint32_t) code->cmds[i].value);
+			break;
+		case CMD_PIO_WRITE_A_8:
+			if (srcarg) {
+				pio_write_8((ioport8_t *) code->cmds[i].addr,
+				    (uint8_t) scratch[srcarg]);
+			}
+			break;
+		case CMD_PIO_WRITE_A_16:
+			if (srcarg) {
+				pio_write_16((ioport16_t *) code->cmds[i].addr,
+				    (uint16_t) scratch[srcarg]);
+			}
+			break;
+		case CMD_PIO_WRITE_A_32:
+			if (srcarg) {
+				pio_write_32((ioport32_t *) code->cmds[i].addr,
+				    (uint32_t) scratch[srcarg]);
+			}
 			break;
 		case CMD_BTEST:
 			if ((srcarg) && (dstarg)) {

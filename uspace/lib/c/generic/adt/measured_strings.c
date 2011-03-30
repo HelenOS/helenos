@@ -58,7 +58,7 @@
  * @return		NULL if there is not enough memory left.
  */
 measured_string_t *
-measured_string_create_bulk(const char *string, size_t length)
+measured_string_create_bulk(const uint8_t *string, size_t length)
 {
 	measured_string_t *new;
 
@@ -67,12 +67,12 @@ measured_string_create_bulk(const char *string, size_t length)
 			length++;
 	}
 	new = (measured_string_t *) malloc(sizeof(measured_string_t) +
-	    (sizeof(char) * (length + 1)));
+	    (sizeof(uint8_t) * (length + 1)));
 	if (!new)
 		return NULL;
 
 	new->length = length;
-	new->value = ((char *) new) + sizeof(measured_string_t);
+	new->value = ((uint8_t *) new) + sizeof(measured_string_t);
 	// append terminating zero explicitly - to be safe
 	memcpy(new->value, string, new->length);
 	new->value[new->length] = '\0';
@@ -96,7 +96,7 @@ measured_string_t *measured_string_copy(measured_string_t *source)
 
 	new = (measured_string_t *) malloc(sizeof(measured_string_t));
 	if (new) {
-		new->value = (char *) malloc(source->length + 1);
+		new->value = (uint8_t *) malloc(source->length + 1);
 		if (new->value) {
 			new->length = source->length;
 			memcpy(new->value, source->value, new->length);
@@ -130,13 +130,13 @@ measured_string_t *measured_string_copy(measured_string_t *source)
  *			async_data_write_finalize() function.
  */
 int
-measured_strings_receive(measured_string_t **strings, char **data,
+measured_strings_receive(measured_string_t **strings, uint8_t **data,
     size_t count)
 {
 	size_t *lengths;
 	size_t index;
 	size_t length;
-	char *next;
+	uint8_t *next;
 	ipc_callid_t callid;
 	int rc;
 
@@ -310,12 +310,12 @@ int measured_strings_reply(const measured_string_t *strings, size_t count)
  *			async_data_read_start() function.
  */
 int
-measured_strings_return(int phone, measured_string_t **strings, char **data,
+measured_strings_return(int phone, measured_string_t **strings, uint8_t **data,
     size_t count)
 {
 	size_t *lengths;
 	size_t index;
-	char *next;
+	uint8_t *next;
 	int rc;
 
 	if ((phone < 0) || (!strings) || (!data) || (count <= 0))

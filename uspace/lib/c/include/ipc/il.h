@@ -32,56 +32,49 @@
 
 /** @file
  * Internetwork layer modules messages.
- * @see il_interface.h
+ * @see il_remote.h
  * @see ip_interface.h
  */
 
 #ifndef LIBC_IL_MESSAGES_H_
 #define LIBC_IL_MESSAGES_H_
 
-#include <ipc/ipc.h>
 #include <ipc/net.h>
 
 /** Internet layer modules messages. */
 typedef enum {
-	/** New device message.
-	 * @see ip_device_req()
-	 */
-	NET_IL_DEVICE = NET_IL_FIRST,
 	/** Device state changed message.
 	 * @see il_device_state_msg()
 	 */
-	NET_IL_DEVICE_STATE,
+	NET_IL_DEVICE_STATE = NET_IL_FIRST,
+	
 	/** Device MTU changed message.
 	 * @see il_mtu_changed_msg()
 	 */
 	NET_IL_MTU_CHANGED,
-	/** Packet size message.
-	 * @see il_packet_size_req()
-	 */
-	NET_IL_PACKET_SPACE,
+	
 	/** Packet received message.
 	 * @see il_received_msg()
 	 */
-	NET_IL_RECEIVED,
-	/** Packet send message.
-	 * @see il_send_msg()
-	 */
-	NET_IL_SEND
+	NET_IL_RECEIVED
 } il_messages;
 
 /** @name Internetwork layer specific message parameters definitions */
 /*@{*/
 
 /** Return the protocol number message parameter.
- * @param[in] call The message call structure.
+ *
+ * @param[in] call Message call structure.
+ *
  */
-#define IL_GET_PROTO(call)	(int) IPC_GET_ARG1(*call)
+#define IL_GET_PROTO(call)  ((int) IPC_GET_ARG1(call))
 
 /** Return the registering service message parameter.
- * @param[in] call The message call structure.
+ *
+ * @param[in] call Message call structure.
+ *
  */
-#define IL_GET_SERVICE(call)	(services_t) IPC_GET_ARG2(*call)
+#define IL_GET_SERVICE(call)  ((services_t) IPC_GET_ARG2(call))
 
 /*@}*/
 

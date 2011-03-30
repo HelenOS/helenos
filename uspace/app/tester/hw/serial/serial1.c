@@ -38,13 +38,12 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <ipc/ipc.h>
 #include <sys/types.h>
 #include <async.h>
 #include <ipc/services.h>
 #include <ipc/devman.h>
 #include <devman.h>
-#include <device/char.h>
+#include <device/char_dev.h>
 #include <str.h>
 #include <ipc/serial_ctl.h>
 #include "../../tester.h"
@@ -74,7 +73,7 @@ const char *test_serial1(void)
 	int res = devman_get_phone(DEVMAN_CLIENT, IPC_FLAG_BLOCKING);
 	
 	devman_handle_t handle;
-	res = devman_device_get_handle("/hw/pci0/00:01.0/com1", &handle,
+	res = devman_device_get_handle("/hw/pci0/00:01.0/com1/a", &handle,
 	    IPC_FLAG_BLOCKING);
 	if (res != EOK)
 		return "Could not get serial device handle";
@@ -87,7 +86,7 @@ const char *test_serial1(void)
 	
 	char *buf = (char *) malloc(cnt + 1);
 	if (buf == NULL) {
-		ipc_hangup(phone);
+		async_hangup(phone);
 		devman_hangup_phone(DEVMAN_CLIENT);
 		return "Failed to allocate input buffer";
 	}
@@ -97,20 +96,20 @@ const char *test_serial1(void)
 	sysarg_t old_stop;
 	sysarg_t old_word_size;
 	
-	res = ipc_call_sync_0_4(phone, SERIAL_GET_COM_PROPS, &old_baud,
+	res = async_req_0_4(phone, SERIAL_GET_COM_PROPS, &old_baud,
 	    &old_par, &old_word_size, &old_stop);
 	if (res != EOK) {
 		free(buf);
-		ipc_hangup(phone);
+		async_hangup(phone);
 		devman_hangup_phone(DEVMAN_CLIENT);
 		return "Failed to get old serial communication parameters";
 	}
 	
-	res = ipc_call_sync_4_0(phone, SERIAL_SET_COM_PROPS, 1200,
+	res = async_req_4_0(phone, SERIAL_SET_COM_PROPS, 1200,
 	    SERIAL_NO_PARITY, 8, 1);
 	if (EOK != res) {
 		free(buf);
-		ipc_hangup(phone);
+		async_hangup(phone);
 		devman_hangup_phone(DEVMAN_CLIENT);
 		return "Failed to set serial communication parameters";
 	}
@@ -120,22 +119,22 @@ const char *test_serial1(void)
 	
 	size_t total = 0;
 	while (total < cnt) {
-		ssize_t read = read_dev(phone, buf, cnt - total);
+		ssize_t read = char_dev_read(phone, buf, cnt - total);
 		
 		if (read < 0) {
-			ipc_call_sync_4_0(phone, SERIAL_SET_COM_PROPS, old_baud,
+			async_req_4_0(phone, SERIAL_SET_COM_PROPS, old_baud,
 			    old_par, old_word_size, old_stop);
 			free(buf);
-			ipc_hangup(phone);
+			async_hangup(phone);
 			devman_hangup_phone(DEVMAN_CLIENT);
 			return "Failed read from serial device";
 		}
 		
 		if ((size_t) read > cnt - total) {
-			ipc_call_sync_4_0(phone, SERIAL_SET_COM_PROPS, old_baud,
+			async_req_4_0(phone, SERIAL_SET_COM_PROPS, old_baud,
 			    old_par, old_word_size, old_stop);
 			free(buf);
-			ipc_hangup(phone);
+			async_hangup(phone);
 			devman_hangup_phone(DEVMAN_CLIENT);
 			return "Read more data than expected";
 		}
@@ -151,22 +150,22 @@ const char *test_serial1(void)
 			 * Write data back to the device to test the opposite
 			 * direction of data transfer.
 			 */
-			ssize_t written = write_dev(phone, buf, read);
+			ssize_t written = char_dev_write(phone, buf, read);
 			
 			if (written < 0) {
-				ipc_call_sync_4_0(phone, SERIAL_SET_COM_PROPS, old_baud,
+				async_req_4_0(phone, SERIAL_SET_COM_PROPS, old_baud,
 				    old_par, old_word_size, old_stop);
 				free(buf);
-				ipc_hangup(phone);
+				async_hangup(phone);
 				devman_hangup_phone(DEVMAN_CLIENT);
 				return "Failed write to serial device";
 			}
 			
 			if (written != read) {
-				ipc_call_sync_4_0(phone, SERIAL_SET_COM_PROPS, old_baud,
+				async_req_4_0(phone, SERIAL_SET_COM_PROPS, old_baud,
 				    old_par, old_word_size, old_stop);
 				free(buf);
-				ipc_hangup(phone);
+				async_hangup(phone);
 				devman_hangup_phone(DEVMAN_CLIENT);
 				return "Written less data than read from serial device";
 			}
@@ -180,12 +179,12 @@ const char *test_serial1(void)
 	TPRINTF("Trying to write EOT banner to the serial device\n");
 	
 	size_t eot_size = str_size(EOT);
-	ssize_t written = write_dev(phone, (void *) EOT, eot_size);
+	ssize_t written = char_dev_write(phone, (void *) EOT, eot_size);
 	
-	ipc_call_sync_4_0(phone, SERIAL_SET_COM_PROPS, old_baud,
+	async_req_4_0(phone, SERIAL_SET_COM_PROPS, old_baud,
 	    old_par, old_word_size, old_stop);
 	free(buf);
-	ipc_hangup(phone);
+	async_hangup(phone);
 	devman_hangup_phone(DEVMAN_CLIENT);
 	
 	if (written < 0)
