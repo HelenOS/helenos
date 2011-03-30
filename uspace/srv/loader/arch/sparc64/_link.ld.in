@@ -19,8 +19,8 @@ SECTIONS {
 	} :text
 	
 	.text : {
-		*(.text);
-		*(.rodata*);
+		*(.text .text.*);
+		*(.rodata .rodata.*);
 	} :text
 	
 	. = . + 0x4000;

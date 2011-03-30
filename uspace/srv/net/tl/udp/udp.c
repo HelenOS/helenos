@@ -416,7 +416,7 @@ int tl_initialize(int net_phone)
 	
 	rc = packet_dimensions_initialize(&udp_globals.dimensions);
 	if (rc != EOK) {
-		socket_ports_destroy(&udp_globals.sockets);
+		socket_ports_destroy(&udp_globals.sockets, free);
 		fibril_rwlock_write_unlock(&udp_globals.lock);
 		return rc;
 	}
@@ -433,7 +433,7 @@ int tl_initialize(int net_phone)
 	rc = net_get_conf_req(udp_globals.net_phone, &configuration, count,
 	    &data);
 	if (rc != EOK) {
-		socket_ports_destroy(&udp_globals.sockets);
+		socket_ports_destroy(&udp_globals.sockets, free);
 		fibril_rwlock_write_unlock(&udp_globals.lock);
 		return rc;
 	}

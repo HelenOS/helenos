@@ -295,7 +295,7 @@ kernel_image_start:
 	/*
 	 * Create the first stack frame.
 	 */
-	save %sp, -(STACK_WINDWO_SAVE_AREA_SIZE + STACK_ARG_SAVE_AREA_SIZE), %sp
+	save %sp, -(STACK_WINDOW_SAVE_AREA_SIZE + STACK_ARG_SAVE_AREA_SIZE), %sp
 	flushw
 	add %g0, -STACK_BIAS, %fp
 

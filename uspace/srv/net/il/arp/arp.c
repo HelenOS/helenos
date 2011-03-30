@@ -156,11 +156,11 @@ static void arp_clear_device(arp_device_t *device)
 				free(proto->addr_data);
 			
 			arp_clear_addr(&proto->addresses);
-			arp_addr_destroy(&proto->addresses);
+			arp_addr_destroy(&proto->addresses, free);
 		}
 	}
 	
-	arp_protos_clear(&device->protos);
+	arp_protos_clear(&device->protos, free);
 }
 
 static int arp_clean_cache_req(int arp_phone)
@@ -183,7 +183,7 @@ static int arp_clean_cache_req(int arp_phone)
 		}
 	}
 	
-	arp_cache_clear(&arp_globals.cache);
+	arp_cache_clear(&arp_globals.cache, free);
 	fibril_mutex_unlock(&arp_globals.lock);
 	
 	return EOK;
@@ -211,7 +211,7 @@ static int arp_clear_address_req(int arp_phone, device_id_t device_id,
 	if (trans)
 		arp_clear_trans(trans);
 	
-	arp_addr_exclude(&proto->addresses, address->value, address->length);
+	arp_addr_exclude(&proto->addresses, address->value, address->length, free);
 	
 	fibril_mutex_unlock(&arp_globals.lock);
 	return EOK;
@@ -344,7 +344,7 @@ static int arp_receive_message(device_id_t device_id, packet_t *packet)
 			rc = arp_addr_add(&proto->addresses, src_proto,
 			    header->protocol_length, trans);
 			if (rc != EOK) {
-				/* The generic char map has already freed trans! */
+				free(trans);
 				return rc;
 			}
 		}
@@ -555,7 +555,7 @@ static int arp_device_message(device_id_t device_id, services_t service,
 		index = arp_protos_add(&device->protos, proto->service, proto);
 		if (index < 0) {
 			fibril_mutex_unlock(&arp_globals.lock);
-			arp_protos_destroy(&device->protos);
+			arp_protos_destroy(&device->protos, free);
 			free(device);
 			return index;
 		}
@@ -568,7 +568,7 @@ static int arp_device_message(device_id_t device_id, services_t service,
 		    arp_receiver);
 		if (device->phone < 0) {
 			fibril_mutex_unlock(&arp_globals.lock);
-			arp_protos_destroy(&device->protos);
+			arp_protos_destroy(&device->protos, free);
 			free(device);
 			return EREFUSED;
 		}
@@ -578,7 +578,7 @@ static int arp_device_message(device_id_t device_id, services_t service,
 		    &device->packet_dimension);
 		if (rc != EOK) {
 			fibril_mutex_unlock(&arp_globals.lock);
-			arp_protos_destroy(&device->protos);
+			arp_protos_destroy(&device->protos, free);
 			free(device);
 			return rc;
 		}
@@ -588,7 +588,7 @@ static int arp_device_message(device_id_t device_id, services_t service,
 		    &device->addr_data);
 		if (rc != EOK) {
 			fibril_mutex_unlock(&arp_globals.lock);
-			arp_protos_destroy(&device->protos);
+			arp_protos_destroy(&device->protos, free);
 			free(device);
 			return rc;
 		}
@@ -600,7 +600,7 @@ static int arp_device_message(device_id_t device_id, services_t service,
 			fibril_mutex_unlock(&arp_globals.lock);
 			free(device->addr);
 			free(device->addr_data);
-			arp_protos_destroy(&device->protos);
+			arp_protos_destroy(&device->protos, free);
 			free(device);
 			return rc;
 		}
@@ -613,7 +613,7 @@ static int arp_device_message(device_id_t device_id, services_t service,
 			free(device->addr_data);
 			free(device->broadcast_addr);
 			free(device->broadcast_data);
-			arp_protos_destroy(&device->protos);
+			arp_protos_destroy(&device->protos, free);
 			free(device);
 			return rc;
 		}
@@ -745,7 +745,7 @@ restart:
 			 */
 			arp_clear_trans(trans);
 			arp_addr_exclude(&proto->addresses, target->value,
-			    target->length);
+			    target->length, free);
 			return EAGAIN;
 		}
 		
@@ -793,7 +793,7 @@ restart:
 	rc = arp_addr_add(&proto->addresses, target->value, target->length,
 	    trans);
 	if (rc != EOK) {
-		/* The generic char map has already freed trans! */
+		free(trans);
 		return rc;
 	}
 	
@@ -806,7 +806,7 @@ restart:
 		 */
 		arp_clear_trans(trans);
 		arp_addr_exclude(&proto->addresses, target->value,
-		    target->length);
+		    target->length, free);
 		return ENOENT;
 	}
 	
