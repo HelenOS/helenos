@@ -328,6 +328,51 @@ int devman_device_get_handle(const char *pathname, devman_handle_t *handle,
 	return retval;
 }
 
+int devman_device_get_handle_by_class(const char *classname,
+    const char *devname, devman_handle_t *handle, unsigned int flags)
+{
+	int phone = devman_get_phone(DEVMAN_CLIENT, flags);
+
+	if (phone < 0)
+		return phone;
+
+	async_serialize_start();
+
+	ipc_call_t answer;
+	aid_t req = async_send_1(phone, DEVMAN_DEVICE_GET_HANDLE_BY_CLASS,
+	    flags, &answer);
+
+	sysarg_t retval = async_data_write_start(phone, classname,
+	    str_size(classname));
+	if (retval != EOK) {
+		async_wait_for(req, NULL);
+		async_serialize_end();
+		return retval;
+	}
+	retval = async_data_write_start(phone, devname,
+	    str_size(devname));
+	if (retval != EOK) {
+		async_wait_for(req, NULL);
+		async_serialize_end();
+		return retval;
+	}
+
+	async_wait_for(req, &retval);
+
+	async_serialize_end();
+
+	if (retval != EOK) {
+		if (handle != NULL)
+			*handle = (devman_handle_t) -1;
+		return retval;
+	}
+
+	if (handle != NULL)
+		*handle = (devman_handle_t) IPC_GET_ARG1(answer);
+
+	return retval;
+}
+
 
 /** @}
  */
