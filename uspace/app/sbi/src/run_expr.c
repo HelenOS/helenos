@@ -2528,6 +2528,8 @@ static void run_index_string(run_t *run, stree_index_t *index,
 
 	if (rc1 == EOK)
 		rc2 = os_str_get_char(string->value, elem_index, &cval);
+	else
+		rc2 = EOK;
 
 	if (rc1 != EOK || rc2 != EOK) {
 #ifdef DEBUG_RUN_TRACE

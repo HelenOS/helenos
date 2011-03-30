@@ -504,7 +504,7 @@ static int ip_device_req_local(int il_phone, device_id_t device_id,
 	rc = ip_netif_initialize(ip_netif);
 	if (rc != EOK) {
 		fibril_rwlock_write_unlock(&ip_globals.netifs_lock);
-		ip_routes_destroy(&ip_netif->routes);
+		ip_routes_destroy(&ip_netif->routes, free);
 		free(ip_netif);
 		return rc;
 	}
