@@ -43,6 +43,8 @@
 
 #define DEBUG_MODE
 
+#define min(a, b)	((a) < (b) ? (a) : (b))
+
 #ifdef DEBUG_MODE
 #define mfsdebug(...)	printf(__VA_ARGS__)
 #else
@@ -88,6 +90,7 @@ struct mfs_sb_info {
 	mfs_version_t fs_version;
 	int ino_per_block;
 	int dirsize;
+	unsigned max_name_len;
 	bool long_names;
 	bool native;
 	unsigned isearch;

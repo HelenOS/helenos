@@ -54,6 +54,7 @@ static int mfs_has_children(bool *has_children, fs_node_t *fsnode);
 static int mfs_root_get(fs_node_t **rfn, devmap_handle_t handle);
 static devmap_handle_t mfs_device_get(fs_node_t *fsnode);
 static aoff64_t mfs_size_get(fs_node_t *node);
+static int mfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component);
 
 static
 int mfs_node_get(fs_node_t **rfn, devmap_handle_t devmap_handle,
@@ -73,6 +74,7 @@ libfs_ops_t mfs_libfs_ops = {
 	.node_put = mfs_node_put,
 	.node_open = mfs_node_open,
 	.index_get = mfs_index_get,
+	.match = mfs_match,
 	.plb_get_char = mfs_plb_get_char,
 	.has_children = mfs_has_children,
 	.lnkcnt_get = mfs_lnkcnt_get
@@ -189,6 +191,7 @@ recognized:
 		sbi->nzones = conv32(native, sb3->s_nzones);
 		sbi->block_size = conv16(native, sb3->s_block_size);
 		sbi->dirsize = MFS3_DIRSIZE;
+		sbi->max_name_len = MFS3_MAX_NAME_LEN;
 	} else {
 		sbi->ninodes = conv16(native, sb->s_ninodes);
 		sbi->ibmap_blocks = conv16(native, sb->s_ibmap_blocks);
@@ -201,6 +204,8 @@ recognized:
 		if (version == MFS_VERSION_V2)
 			sbi->nzones = conv32(native, sb->s_nzones2);
 		sbi->dirsize = longnames ? MFSL_DIRSIZE : MFS_DIRSIZE;
+		sbi->max_name_len = longnames ? MFS_L_MAX_NAME_LEN :
+				MFS_MAX_NAME_LEN;
 	}
  
 	free(sb);
@@ -237,6 +242,47 @@ devmap_handle_t mfs_device_get(fs_node_t *fsnode)
 {
 	struct mfs_node *node = fsnode->data;
 	return node->instance->handle;
+}
+
+static int mfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
+{
+	struct mfs_node *mnode = pfn->data;
+	struct mfs_ino_info *ino_i = mnode->ino_i;
+	struct mfs_dentry_info *d_info;
+
+	if (!S_ISDIR(ino_i->i_mode))
+		return ENOTDIR;
+
+	mfsdebug("mfs_match()\n");
+
+	struct mfs_sb_info *sbi = mnode->instance->sbi;
+	const size_t comp_size = str_size(component);
+
+	int i = 2;
+	while (1) {
+		d_info = read_directory_entry(mnode, i++);
+		if (!d_info) {
+			/*Reached the end of the directory entry list*/
+			break;
+		}
+
+		if (!d_info->d_inum) {
+			/*This entry is not used*/
+			continue;
+		}
+
+		if (!bcmp(component, d_info->d_name, min(sbi->max_name_len,
+				comp_size))) {
+			/*Hit!*/
+			mfs_node_core_get(rfn, mnode->instance,
+				d_info->d_inum);
+			goto found;
+		}
+	}
+	*rfn = NULL;
+	return ENOENT;
+found:
+	return EOK;
 }
 
 static aoff64_t mfs_size_get(fs_node_t *node)
@@ -474,7 +520,8 @@ int mfs_instance_get(devmap_handle_t handle, struct mfs_instance **instance)
 	fibril_mutex_lock(&inst_list_mutex);
 
 	for (link = inst_list.next; link != &inst_list; link = link->next) {
-		instance_ptr = list_get_instance(link, struct mfs_instance, link);
+		instance_ptr = list_get_instance(link, struct mfs_instance,
+				link);
 		
 		if (instance_ptr->handle == handle) {
 			*instance = instance_ptr;
