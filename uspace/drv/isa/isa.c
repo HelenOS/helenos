@@ -52,6 +52,7 @@
 #include <sys/stat.h>
 
 #include <ddf/driver.h>
+#include <ddf/log.h>
 #include <ops/hw_res.h>
 
 #include <devman.h>
@@ -133,29 +134,28 @@ static char *fun_conf_read(const char *conf_path)
 
 	fd = open(conf_path, O_RDONLY);
 	if (fd < 0) {
-		printf(NAME ": unable to open %s\n", conf_path);
+		ddf_msg(LVL_ERROR, "Unable to open %s\n", conf_path);
 		goto cleanup;
 	}
 
 	opened = true;
 
 	len = lseek(fd, 0, SEEK_END);
-	lseek(fd, 0, SEEK_SET);	
+	lseek(fd, 0, SEEK_SET);
 	if (len == 0) {
-		printf(NAME ": fun_conf_read error: configuration file '%s' "
-		    "is empty.\n", conf_path);
+		ddf_msg(LVL_ERROR, "Configuration file '%s' is empty.\n",
+		    conf_path);
 		goto cleanup;
 	}
 
 	buf = malloc(len + 1);
 	if (buf == NULL) {
-		printf(NAME ": fun_conf_read error: memory allocation failed.\n");
+		ddf_msg(LVL_ERROR, "Memory allocation failed.\n");
 		goto cleanup;
 	}
 
 	if (0 >= read(fd, buf, len)) {
-		printf(NAME ": fun_conf_read error: unable to read file '%s'.\n",
-		    conf_path);
+		ddf_msg(LVL_ERROR, "Unable to read file '%s'.\n", conf_path);
 		goto cleanup;
 	}
 
@@ -251,7 +251,7 @@ static void isa_fun_set_irq(isa_fun_t *fun, int irq)
 
 		fun->hw_resources.count++;
 
-		printf(NAME ": added irq 0x%x to function %s\n", irq,
+		ddf_msg(LVL_NOTE, "Added irq 0x%x to function %s\n", irq,
 		    fun->fnode->name);
 	}
 }
@@ -269,7 +269,7 @@ static void isa_fun_set_io_range(isa_fun_t *fun, size_t addr, size_t len)
 
 		fun->hw_resources.count++;
 
-		printf(NAME ": added io range (addr=0x%x, size=0x%x) to "
+		ddf_msg(LVL_NOTE, "Added io range (addr=0x%x, size=0x%x) to "
 		    "function %s\n", (unsigned int) addr, (unsigned int) len,
 		    fun->fnode->name);
 	}
@@ -330,25 +330,27 @@ static void fun_parse_match_id(isa_fun_t *fun, char *val)
 
 	score = (int)strtol(val, &end, 10);
 	if (val == end) {
-		printf(NAME " : error - could not read match score for "
-		    "function %s.\n", fun->fnode->name);
+		ddf_msg(LVL_ERROR, "Cannot read match score for function "
+		    "%s.\n", fun->fnode->name);
 		return;
 	}
 
 	val = skip_spaces(end);
 	get_match_id(&id, val);
 	if (id == NULL) {
-		printf(NAME " : error - could not read match id for "
-		    "function %s.\n", fun->fnode->name);
+		ddf_msg(LVL_ERROR, "Cannot read match ID for function %s.\n",
+		    fun->fnode->name);
 		return;
 	}
 
-	printf(NAME ": adding match id '%s' with score %d to function %s\n", id,
-	    score, fun->fnode->name);
+	ddf_msg(LVL_DEBUG, "Adding match id '%s' with score %d to "
+	    "function %s\n", id, score, fun->fnode->name);
 
 	rc = ddf_fun_add_match_id(fun->fnode, id, score);
-	if (rc != EOK)
-		printf(NAME ": error adding match ID: %s\n", str_error(rc));
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed adding match ID: %s\n",
+		    str_error(rc));
+	}
 }
 
 static bool prop_parse(isa_fun_t *fun, char *line, const char *prop,
@@ -374,10 +376,10 @@ static void fun_prop_parse(isa_fun_t *fun, char *line)
 
 	if (!prop_parse(fun, line, "io_range", &fun_parse_io_range) &&
 	    !prop_parse(fun, line, "irq", &fun_parse_irq) &&
-	    !prop_parse(fun, line, "match", &fun_parse_match_id))
-	{
-	    printf(NAME " error undefined device property at line '%s'\n",
-		line);
+	    !prop_parse(fun, line, "match", &fun_parse_match_id)) {
+
+		ddf_msg(LVL_ERROR, "Undefined device property at line '%s'\n",
+		    line);
 	}
 }
 
@@ -438,7 +440,7 @@ static char *isa_fun_read_info(char *fun_conf, ddf_dev_t *dev)
 	/* Set device operations to the device. */
 	fun->fnode->ops = &isa_fun_ops;
 
-	printf(NAME ": Binding function %s.\n", fun->fnode->name);
+	ddf_msg(LVL_DEBUG, "Binding function %s.\n", fun->fnode->name);
 
 	/* XXX Handle error */
 	(void) ddf_fun_bind(fun->fnode);
@@ -466,32 +468,33 @@ static void isa_functions_add(ddf_dev_t *dev)
 
 static int isa_add_device(ddf_dev_t *dev)
 {
-	printf(NAME ": isa_add_device, device handle = %d\n",
+	ddf_msg(LVL_DEBUG, "isa_add_device, device handle = %d\n",
 	    (int) dev->handle);
 
 	/* Make the bus device more visible. Does not do anything. */
-	printf(NAME ": adding a 'ctl' function\n");
+	ddf_msg(LVL_DEBUG, "Adding a 'ctl' function\n");
 
 	ddf_fun_t *ctl = ddf_fun_create(dev, fun_exposed, "ctl");
 	if (ctl == NULL) {
-		printf(NAME ": Error creating control function.\n");
+		ddf_msg(LVL_ERROR, "Failed creating control function.\n");
 		return EXDEV;
 	}
 
 	if (ddf_fun_bind(ctl) != EOK) {
-		printf(NAME ": Error binding control function.\n");
+		ddf_msg(LVL_ERROR, "Failed binding control function.\n");
 		return EXDEV;
 	}
 
 	/* Add functions as specified in the configuration file. */
 	isa_functions_add(dev);
-	printf(NAME ": finished the enumeration of legacy functions\n");
+	ddf_msg(LVL_NOTE, "Finished enumerating legacy functions\n");
 
 	return EOK;
 }
 
 static void isa_init() 
 {
+	ddf_log_init(NAME, LVL_ERROR);
 	isa_fun_ops.interfaces[HW_RES_DEV_IFACE] = &isa_fun_hw_res_ops;
 }
 

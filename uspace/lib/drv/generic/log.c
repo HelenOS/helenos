@@ -1,5 +1,4 @@
 /*
- * Copyright (c) 2011 Vojtech Horky
  * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
@@ -27,32 +26,40 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libdrv
  * @{
  */
 
-#ifndef LIBC_IO_LOG_H_
-#define LIBC_IO_LOG_H_
-
+#include <io/log.h>
 #include <stdarg.h>
 
-typedef enum {
-	LVL_FATAL,
-	LVL_ERROR,
-	LVL_WARN,
-	LVL_NOTE,
-	LVL_DEBUG,
-	LVL_DEBUG2,
+#include <ddf/log.h>
 
-	/** For checking range of values */
-	LVL_LIMIT
-} log_level_t;
+/** Initialize the logging system.
+ *
+ * @param drv_name	Driver name, will be printed as part of message
+ * @param level		Minimum message level to print
+ */
+int ddf_log_init(const char *drv_name, log_level_t level)
+{
+	return log_init(drv_name, level);
+}
 
-extern int log_init(const char *, log_level_t);
-extern void log_msg(log_level_t, const char *, ...);
-extern void log_msgv(log_level_t, const char *, va_list);
+/** Log a driver message.
+ *
+ * @param level		Message verbosity level. Message is only printed
+ *			if verbosity is less than or equal to current
+ *			reporting level.
+ * @param fmt		Format string
+ */
+void ddf_msg(log_level_t level, const char *fmt, ...)
+{
+	va_list args;
 
-#endif
+	va_start(args, fmt);
+	log_msgv(level, fmt, args);
+	va_end(args);
+}
 
 /** @}
  */

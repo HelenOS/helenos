@@ -34,6 +34,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <fibril_synch.h>
+#include <stdarg.h>
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -88,20 +89,32 @@ void log_msg(log_level_t level, const char *fmt, ...)
 {
 	va_list args;
 
+	va_start(args, fmt);
+	log_msgv(level, fmt, args);
+	va_end(args);
+}
+
+/** Write an entry to the log (va_list variant).
+ *
+ * @param level		Message verbosity level. Message is only printed
+ *			if verbosity is less than or equal to current
+ *			reporting level.
+ * @param fmt		Format string
+ */
+void log_msgv(log_level_t level, const char *fmt, va_list args)
+{
 	assert(level < LVL_LIMIT);
 
 	/* Higher number means higher verbosity. */
 	if (level <= log_level) {
-		va_start(args, fmt);
 		fibril_mutex_lock(&log_serializer);
 
-		fprintf(log_stream, "%s: %s", log_prog_name,
+		fprintf(log_stream, "%s: %s: ", log_prog_name,
 		    log_level_names[level]);
 		vfprintf(log_stream, fmt, args);
 		fflush(log_stream);
 
 		fibril_mutex_unlock(&log_serializer);
-		va_end(args);
 	}
 }
 

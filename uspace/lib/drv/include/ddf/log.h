@@ -1,5 +1,4 @@
 /*
- * Copyright (c) 2011 Vojtech Horky
  * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
@@ -27,30 +26,17 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup libdrv
  * @{
  */
 
-#ifndef LIBC_IO_LOG_H_
-#define LIBC_IO_LOG_H_
+#ifndef DDF_LOG_H_
+#define DDF_LOG_H_
 
-#include <stdarg.h>
+#include <io/log.h>
 
-typedef enum {
-	LVL_FATAL,
-	LVL_ERROR,
-	LVL_WARN,
-	LVL_NOTE,
-	LVL_DEBUG,
-	LVL_DEBUG2,
-
-	/** For checking range of values */
-	LVL_LIMIT
-} log_level_t;
-
-extern int log_init(const char *, log_level_t);
-extern void log_msg(log_level_t, const char *, ...);
-extern void log_msgv(log_level_t, const char *, va_list);
+extern int ddf_log_init(const char *, log_level_t);
+extern void ddf_msg(log_level_t, const char *, ...);
 
 #endif
 
