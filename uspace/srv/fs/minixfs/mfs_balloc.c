@@ -5,7 +5,8 @@
 #include "mfs_utils.h"
 
 static int
-find_free_bit_and_set(bitchunk_t *b, const int bsize, const bool native);
+find_free_bit_and_set(bitchunk_t *b, const int bsize,
+				const bool native, unsigned start_bit);
 
 int
 mfs_free_bit(struct mfs_instance *inst, uint32_t idx, bmap_id_t bid)
@@ -66,6 +67,7 @@ mfs_alloc_bit(struct mfs_instance *inst, uint32_t *idx, bmap_id_t bid)
 	uint32_t limit;
 	unsigned long nblocks;
 	unsigned *search, i, start_block;
+	unsigned bits_per_block;
 	int r, freebit;
 
 	assert(inst != NULL);
@@ -84,19 +86,20 @@ mfs_alloc_bit(struct mfs_instance *inst, uint32_t *idx, bmap_id_t bid)
 		nblocks = sbi->ibmap_blocks;
 		limit = sbi->ninodes;
 	}
+	bits_per_block = sbi->block_size * 8;
 
 	block_t *b;
 
 retry:
 
-	for (i = *search; i < nblocks; ++i) {
+	for (i = *search / bits_per_block; i < nblocks; ++i) {
 		r = block_get(&b, inst->handle, i, BLOCK_FLAGS_NONE);
 
 		if (r != EOK)
 			goto out;
 
 		freebit = find_free_bit_and_set(b->data, sbi->block_size,
-						sbi->native);
+						sbi->native, *search);
 		if (freebit == -1) {
 			/*No free bit in this block*/
 			block_put(b);
@@ -111,7 +114,7 @@ retry:
 			break;
 		}
 
-		*search = i;
+		*search = i * bits_per_block + *idx;
 		b->dirty = true;
 		block_put(b);
 		goto found;
@@ -134,25 +137,26 @@ out:
 }
 
 static int
-find_free_bit_and_set(bitchunk_t *b, const int bsize, const bool native)
+find_free_bit_and_set(bitchunk_t *b, const int bsize,
+				const bool native, unsigned start_bit)
 {
 	int r = -1;
 	unsigned i, j;
 	bitchunk_t chunk;
 
-	for (i = 0; i < bsize / sizeof(uint32_t); ++i, ++b) {
-		if (~*b) {
+	for (i = start_bit; i < bsize / sizeof(uint32_t); ++i) {
+		if (~b[i]) {
 			/*No free bit in this chunk*/
 			continue;
 		}
 
-		chunk = conv32(native, *b);
+		chunk = conv32(native, b[i]);
 
 		for (j = 0; j < 32; ++j) {
 			if (chunk & (1 << j)) {
 				r = i * 32 + j;
 				chunk |= 1 << j;
-				*b = conv32(native, chunk);
+				b[i] = conv32(native, chunk);
 				goto found;
 			}
 		}
