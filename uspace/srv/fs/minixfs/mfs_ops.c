@@ -117,7 +117,7 @@ void mfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 	}
 
 	/*Allocate space for generic MFS superblock*/
-	sbi = (struct mfs_sb_info *) malloc(sizeof(struct mfs_sb_info));
+	sbi = malloc(sizeof(*sbi));
 
 	if (!sbi) {
 		async_answer_0(rid, ENOMEM);
@@ -125,14 +125,14 @@ void mfs_mounted(ipc_callid_t rid, ipc_call_t *request)
 	}
 
 	/*Allocate space for filesystem instance*/
-	instance = (struct mfs_instance *) malloc(sizeof(struct mfs_instance));
+	instance = malloc(sizeof(*instance));
 
 	if (!instance) {
 		async_answer_0(rid, ENOMEM);
 		return;
 	}
 
-	sb = (struct mfs_superblock *) malloc(MFS_SUPERBLOCK_SIZE);
+	sb = malloc(MFS_SUPERBLOCK_SIZE);
 
 	if (!sb) {
 		async_answer_0(rid, ENOMEM);
@@ -333,7 +333,7 @@ static int mfs_node_core_get(fs_node_t **rfn, struct mfs_instance *inst,
 
 	const struct mfs_sb_info *sbi = inst->sbi;
 
-	node = (fs_node_t *) malloc(sizeof(fs_node_t));
+	node = malloc(sizeof(fs_node_t));
 	if (!node) {
 		rc = ENOMEM;
 		goto out_err;
@@ -341,7 +341,7 @@ static int mfs_node_core_get(fs_node_t **rfn, struct mfs_instance *inst,
 
 	fs_node_initialize(node);
 
-	mnode = (struct mfs_node *) malloc(sizeof(struct mfs_node));
+	mnode = malloc(sizeof(*mnode));
 	if (!mnode) {
 		rc = ENOMEM;
 		goto out_err;

@@ -289,7 +289,7 @@ static int insert_dentries(const struct mfs_sb_info *sb)
 	int rc;
 	const long root_dblock = sb->first_data_zone;
 
-	root_block = (void *) malloc(sb->block_size);
+	root_block = malloc(sb->block_size);
 	memset(root_block, 0x00, sb->block_size);
 
 	if (!root_block)
@@ -365,7 +365,7 @@ static int make_root_ino(const struct mfs_sb_info *sb)
 
 	const time_t sec = time(NULL);
 
-	ino_buf = (struct mfs_inode *) malloc(MFS_BLOCKSIZE);
+	ino_buf = malloc(MFS_BLOCKSIZE);
 
 	if (!ino_buf)
 		return ENOMEM;
@@ -397,7 +397,7 @@ static int make_root_ino2(const struct mfs_sb_info *sb)
 
 	const time_t sec = time(NULL);
 
-	ino_buf = (struct mfs2_inode *) malloc(sb->block_size);
+	ino_buf = malloc(sb->block_size);
 
 	if (!ino_buf)
 		return ENOMEM;
@@ -503,7 +503,7 @@ static int write_superblock(const struct mfs_sb_info *sbi)
 	struct mfs_superblock *sb;
 	int rc;
 
-	sb = (struct mfs_superblock *) malloc(MFS_SUPERBLOCK_SIZE);;
+	sb = malloc(MFS_SUPERBLOCK_SIZE);;
 
 	if (!sb)
 		return ENOMEM;
@@ -530,7 +530,7 @@ static int write_superblock3(const struct mfs_sb_info *sbi)
 	struct mfs3_superblock *sb;
 	int rc;
 
-	sb = (struct mfs3_superblock *) malloc(MFS_SUPERBLOCK_SIZE);
+	sb = malloc(MFS_SUPERBLOCK_SIZE);
 
 	if (!sb)
 		return ENOMEM;
@@ -561,8 +561,8 @@ static int init_bitmaps(const struct mfs_sb_info *sb)
 	unsigned int i;
 	int rc;
 
-	ibmap_buf = (uint32_t *) malloc(ibmap_nblocks * sb->block_size);
-	zbmap_buf = (uint32_t *) malloc(zbmap_nblocks * sb->block_size);
+	ibmap_buf = malloc(ibmap_nblocks * sb->block_size);
+	zbmap_buf = malloc(zbmap_nblocks * sb->block_size);
 
 	if (!ibmap_buf || !zbmap_buf)
 		return ENOMEM;

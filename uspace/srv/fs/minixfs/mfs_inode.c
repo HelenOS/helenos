@@ -49,8 +49,8 @@ struct mfs_ino_info *mfs_read_inode_raw(const struct mfs_instance *instance,
 	const int ino_off = inum % V1_INODES_PER_BLOCK;
 	const size_t ino_size = sizeof(struct mfs_inode);
 
-	ino_i = (struct mfs_ino_info *) malloc(sizeof(struct mfs_ino_info));
-	ino = (struct mfs_inode *) malloc(ino_size);
+	ino_i = malloc(sizeof(*ino_i));
+	ino = malloc(ino_size);
 
 	if (!ino || !ino_i)
 		goto out_err;
@@ -104,8 +104,8 @@ struct mfs_ino_info *mfs2_read_inode_raw(const struct mfs_instance *instance,
 
 	const size_t ino_size = sizeof(struct mfs2_inode);
 
-	ino = (struct mfs2_inode *) malloc(ino_size);
-	ino_i = (struct mfs_ino_info *) malloc(sizeof(struct mfs_ino_info));
+	ino = malloc(ino_size);
+	ino_i = malloc(sizeof(*ino_i));
 
 	if (!ino || !ino_i)
 		goto out_err;
