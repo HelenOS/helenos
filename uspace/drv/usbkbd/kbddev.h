@@ -93,6 +93,16 @@ typedef struct usb_kbd_t {
 
 	/** Report descriptor size. */
 	size_t report_desc_size;
+	
+	uint8_t *output_buffer;
+	
+	size_t output_size;
+	
+	size_t led_output_size;
+	
+	usb_hid_report_path_t *led_path;
+	
+	int32_t *led_data;
 
 	/** HID Report parser. */
 	usb_hid_report_parser_t *parser;
