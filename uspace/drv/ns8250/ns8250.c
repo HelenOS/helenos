@@ -54,6 +54,7 @@
 
 #include <ddf/driver.h>
 #include <ddf/interrupt.h>
+#include <ddf/log.h>
 #include <ops/char_dev.h>
 
 #include <devman.h>
@@ -274,13 +275,13 @@ static void ns8250_dev_cleanup(ns8250_t *ns)
  */
 static bool ns8250_pio_enable(ns8250_t *ns)
 {
-	printf(NAME ": ns8250_pio_enable %s\n", ns->dev->name);
+	ddf_msg(LVL_DEBUG, "ns8250_pio_enable %s\n", ns->dev->name);
 	
 	/* Gain control over port's registers. */
 	if (pio_enable((void *)(uintptr_t) ns->io_addr, REG_COUNT,
 	    (void **) &ns->port)) {
-		printf(NAME ": error - cannot gain the port %#" PRIx32 " for device "
-		    "%s.\n", ns->io_addr, ns->dev->name);
+		ddf_msg(LVL_ERROR, "Cannot map the port %#" PRIx32
+		    " for device %s.\n", ns->io_addr, ns->dev->name);
 		return false;
 	}
 	
@@ -294,7 +295,7 @@ static bool ns8250_pio_enable(ns8250_t *ns)
  */
 static bool ns8250_dev_probe(ns8250_t *ns)
 {
-	printf(NAME ": ns8250_dev_probe %s\n", ns->dev->name);
+	ddf_msg(LVL_DEBUG, "ns8250_dev_probe %s\n", ns->dev->name);
 	
 	ioport8_t *port_addr = ns->port;
 	bool res = true;
@@ -312,8 +313,10 @@ static bool ns8250_dev_probe(ns8250_t *ns)
 	
 	pio_write_8(port_addr + 4, olddata);
 	
-	if (!res)
-		printf(NAME ": device %s is not present.\n", ns->dev->name);
+	if (!res) {
+		ddf_msg(LVL_DEBUG, "Device %s is not present.\n",
+		    ns->dev->name);
+	}
 	
 	return res;
 }
@@ -325,7 +328,7 @@ static bool ns8250_dev_probe(ns8250_t *ns)
  */
 static int ns8250_dev_initialize(ns8250_t *ns)
 {
-	printf(NAME ": ns8250_dev_initialize %s\n", ns->dev->name);
+	ddf_msg(LVL_DEBUG, "ns8250_dev_initialize %s\n", ns->dev->name);
 	
 	int ret = EOK;
 	
@@ -336,7 +339,7 @@ static int ns8250_dev_initialize(ns8250_t *ns)
 	ns->dev->parent_phone = devman_parent_device_connect(ns->dev->handle,
 	    IPC_FLAG_BLOCKING);
 	if (ns->dev->parent_phone < 0) {
-		printf(NAME ": failed to connect to the parent driver of the "
+		ddf_msg(LVL_ERROR, "Failed to connect to parent driver of "
 		    "device %s.\n", ns->dev->name);
 		ret = ns->dev->parent_phone;
 		goto failed;
@@ -345,7 +348,7 @@ static int ns8250_dev_initialize(ns8250_t *ns)
 	/* Get hw resources. */
 	ret = hw_res_get_resource_list(ns->dev->parent_phone, &hw_resources);
 	if (ret != EOK) {
-		printf(NAME ": failed to get hw resources for the device "
+		ddf_msg(LVL_ERROR, "Failed to get HW resources for device "
 		    "%s.\n", ns->dev->name);
 		goto failed;
 	}
@@ -361,20 +364,20 @@ static int ns8250_dev_initialize(ns8250_t *ns)
 		case INTERRUPT:
 			ns->irq = res->res.interrupt.irq;
 			irq = true;
-			printf(NAME ": the %s device was asigned irq = 0x%x.\n",
+			ddf_msg(LVL_NOTE, "Device %s was asigned irq = 0x%x.\n",
 			    ns->dev->name, ns->irq);
 			break;
 			
 		case IO_RANGE:
 			ns->io_addr = res->res.io_range.address;
 			if (res->res.io_range.size < REG_COUNT) {
-				printf(NAME ": i/o range assigned to the device "
-				    "%s is too small.\n", ns->dev->name);
+				ddf_msg(LVL_ERROR, "I/O range assigned to "
+				    "device %s is too small.\n", ns->dev->name);
 				ret = ELIMIT;
 				goto failed;
 			}
 			ioport = true;
-			printf(NAME ": the %s device was asigned i/o address = "
+			ddf_msg(LVL_NOTE, "Device %s was asigned I/O address = "
 			    "0x%x.\n", ns->dev->name, ns->io_addr);
 			break;
 			
@@ -384,7 +387,7 @@ static int ns8250_dev_initialize(ns8250_t *ns)
 	}
 	
 	if (!irq || !ioport) {
-		printf(NAME ": missing hw resource(s) for the device %s.\n",
+		ddf_msg(LVL_ERROR, "Missing HW resource(s) for device %s.\n",
 		    ns->dev->name);
 		ret = ENOENT;
 		goto failed;
@@ -469,8 +472,8 @@ static int ns8250_port_set_baud_rate(ioport8_t *port, unsigned int baud_rate)
 	uint8_t div_low, div_high;
 	
 	if (baud_rate < 50 || MAX_BAUD_RATE % baud_rate != 0) {
-		printf(NAME ": error - somebody tried to set invalid baud rate "
-		    "%d\n", baud_rate);
+		ddf_msg(LVL_ERROR, "Invalid baud rate %d requested.\n",
+		    baud_rate);
 		return EINVAL;
 	}
 	
@@ -653,10 +656,10 @@ static void ns8250_read_from_device(ns8250_t *ns)
 			
 			if (ns->client_connected) {
 				if (!buf_push_back(&ns->input_buffer, val)) {
-					printf(NAME ": buffer overflow on "
+					ddf_msg(LVL_WARN, "Buffer overflow on "
 					    "%s.\n", ns->dev->name);
 				} else {
-					printf(NAME ": the character %c saved "
+					ddf_msg(LVL_DEBUG2, "Character %c saved "
 					    "to the buffer of %s.\n",
 					    val, ns->dev->name);
 				}
@@ -713,7 +716,7 @@ static int ns8250_add_device(ddf_dev_t *dev)
 	bool need_cleanup = false;
 	int rc;
 	
-	printf(NAME ": ns8250_add_device %s (handle = %d)\n",
+	ddf_msg(LVL_DEBUG, "ns8250_add_device %s (handle = %d)\n",
 	    dev->name, (int) dev->handle);
 	
 	/* Allocate soft-state for the device */
@@ -748,7 +751,7 @@ static int ns8250_add_device(ddf_dev_t *dev)
 	
 	/* Register interrupt handler. */
 	if (ns8250_register_interrupt_handler(ns) != EOK) {
-		printf(NAME ": failed to register interrupt handler.\n");
+		ddf_msg(LVL_ERROR, "Failed to register interrupt handler.\n");
 		rc = EADDRNOTAVAIL;
 		goto fail;
 	}
@@ -756,14 +759,14 @@ static int ns8250_add_device(ddf_dev_t *dev)
 	/* Enable interrupt. */
 	rc = ns8250_interrupt_enable(ns);
 	if (rc != EOK) {
-		printf(NAME ": failed to enable the interrupt. Error code = "
+		ddf_msg(LVL_ERROR, "Failed to enable the interrupt. Error code = "
 		    "%d.\n", rc);
 		goto fail;
 	}
 	
 	fun = ddf_fun_create(dev, fun_exposed, "a");
 	if (fun == NULL) {
-		printf(NAME ": error creating function.\n");
+		ddf_msg(LVL_ERROR, "Failed creating function.\n");
 		goto fail;
 	}
 	
@@ -771,7 +774,7 @@ static int ns8250_add_device(ddf_dev_t *dev)
 	fun->ops = &ns8250_dev_ops;
 	rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
-		printf(NAME ": error binding function.\n");
+		ddf_msg(LVL_ERROR, "Failed binding function.\n");
 		goto fail;
 	}
 
@@ -779,7 +782,7 @@ static int ns8250_add_device(ddf_dev_t *dev)
 	
 	ddf_fun_add_to_class(fun, "serial");
 	
-	printf(NAME ": the %s device has been successfully initialized.\n",
+	ddf_msg(LVL_NOTE, "Device %s successfully initialized.\n",
 	    dev->name);
 	
 	return EOK;
@@ -861,7 +864,7 @@ ns8250_get_props(ddf_dev_t *dev, unsigned int *baud_rate, unsigned int *parity,
 	ns8250_port_interrupts_enable(port);
 	fibril_mutex_unlock(&data->mutex);
 	
-	printf(NAME ": ns8250_get_props: baud rate %d, parity 0x%x, word "
+	ddf_msg(LVL_DEBUG, "ns8250_get_props: baud rate %d, parity 0x%x, word "
 	    "length %d, stop bits %d\n", *baud_rate, *parity, *word_length,
 	    *stop_bits);
 }
@@ -878,7 +881,7 @@ ns8250_get_props(ddf_dev_t *dev, unsigned int *baud_rate, unsigned int *parity,
 static int ns8250_set_props(ddf_dev_t *dev, unsigned int baud_rate,
     unsigned int parity, unsigned int word_length, unsigned int stop_bits)
 {
-	printf(NAME ": ns8250_set_props: baud rate %d, parity 0x%x, word "
+	ddf_msg(LVL_DEBUG, "ns8250_set_props: baud rate %d, parity 0x%x, word "
 	    "length %d, stop bits %d\n", baud_rate, parity, word_length,
 	    stop_bits);
 	
@@ -939,6 +942,8 @@ static void ns8250_default_handler(ddf_fun_t *fun, ipc_callid_t callid,
  */
 static void ns8250_init(void)
 {
+	ddf_log_init(NAME, LVL_ERROR);
+	
 	ns8250_dev_ops.open = &ns8250_open;
 	ns8250_dev_ops.close = &ns8250_close;
 	

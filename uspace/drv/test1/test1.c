@@ -34,6 +34,7 @@
 #include <errno.h>
 #include <str_error.h>
 #include <ddf/driver.h>
+#include <ddf/log.h>
 
 #include "test1.h"
 
@@ -62,30 +63,31 @@ static int register_fun_verbose(ddf_dev_t *parent, const char *message,
 	ddf_fun_t *fun;
 	int rc;
 
-	printf(NAME ": registering function `%s': %s.\n", name, message);
+	ddf_msg(LVL_DEBUG, "Registering function `%s': %s.\n", name, message);
 
 	fun = ddf_fun_create(parent, fun_inner, name);
 	if (fun == NULL) {
-		printf(NAME ": error creating function %s\n", name);
+		ddf_msg(LVL_ERROR, "Failed creating function %s\n", name);
 		return ENOMEM;
 	}
 
 	rc = ddf_fun_add_match_id(fun, match_id, match_score);
 	if (rc != EOK) {
-		printf(NAME ": error adding match IDs to function %s\n", name);
+		ddf_msg(LVL_ERROR, "Failed adding match IDs to function %s\n",
+		    name);
 		ddf_fun_destroy(fun);
 		return rc;
 	}
 
 	rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
-		printf(NAME ": error binding function %s: %s\n", name,
+		ddf_msg(LVL_ERROR, "Failed binding function %s: %s\n", name,
 		    str_error(rc));
 		ddf_fun_destroy(fun);
 		return rc;
 	}
 
-	printf(NAME ": registered child device `%s'\n", name);
+	ddf_msg(LVL_NOTE, "Registered child device `%s'\n", name);
 	return EOK;
 }
 
@@ -111,18 +113,18 @@ static int test1_add_device(ddf_dev_t *dev)
 	ddf_fun_t *fun_a;
 	int rc;
 
-	printf(NAME ": add_device(name=\"%s\", handle=%d)\n",
+	ddf_msg(LVL_DEBUG, "add_device(name=\"%s\", handle=%d)\n",
 	    dev->name, (int) dev->handle);
 
 	fun_a = ddf_fun_create(dev, fun_exposed, "a");
 	if (fun_a == NULL) {
-		printf(NAME ": error creating function 'a'.\n");
+		ddf_msg(LVL_ERROR, "Failed creating function 'a'.\n");
 		return ENOMEM;
 	}
 
 	rc = ddf_fun_bind(fun_a);
 	if (rc != EOK) {
-		printf(NAME ": error binding function 'a'.\n");
+		ddf_msg(LVL_ERROR, "Failed binding function 'a'.\n");
 		return rc;
 	}
 
@@ -139,7 +141,7 @@ static int test1_add_device(ddf_dev_t *dev)
 		    "virtual&test1&child", 10);
 	}
 
-	printf(NAME ": device `%s' accepted.\n", dev->name);
+	ddf_msg(LVL_DEBUG, "Device `%s' accepted.\n", dev->name);
 
 	return EOK;
 }
@@ -147,6 +149,7 @@ static int test1_add_device(ddf_dev_t *dev)
 int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS test1 virtual device driver\n");
+	ddf_log_init(NAME, LVL_ERROR);
 	return ddf_driver_main(&test1_driver);
 }
 
