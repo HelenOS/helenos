@@ -57,7 +57,7 @@ int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun)
 	    &instance->manager, hub_address, hub_fun->handle);
 
 	char *match_str = NULL;
-	int ret = asprintf(&match_str, "usb&mid");
+	int ret = asprintf(&match_str, "usb&class=hub");
 	ret = (match_str == NULL) ? ret : EOK;
 	if (ret < 0) {
 		usb_log_error("Failed to create root hub match-id string.\n");
