@@ -55,6 +55,7 @@
 #include <usb/classes/hidut.h>
 #include <usb/classes/hidreq.h>
 #include <usb/classes/hidreport.h>
+#include <usb/classes/hid/utled.h>
 
 #include <usb/devdrv.h>
 
@@ -262,43 +263,63 @@ void default_connection_handler(ddf_fun_t *fun,
  */
 static void usb_kbd_set_led(usb_kbd_t *kbd_dev) 
 {
-	uint8_t buffer[BOOTP_BUFFER_OUT_SIZE];
-	int rc= 0;
+//	uint8_t buffer[BOOTP_BUFFER_OUT_SIZE];
+//	int rc= 0;
 	
-	memset(buffer, 0, BOOTP_BUFFER_OUT_SIZE);
-	uint8_t leds = 0;
+//	memset(buffer, 0, BOOTP_BUFFER_OUT_SIZE);
+//	uint8_t leds = 0;
 
-	if (kbd_dev->mods & KM_NUM_LOCK) {
-		leds |= USB_HID_LED_NUM_LOCK;
+	unsigned i = 0;
+	
+	if ((kbd_dev->mods & KM_NUM_LOCK) && (i < kbd_dev->led_output_size)) {
+		kbd_dev->led_data[i++] = USB_HID_LED_NUM_LOCK;
+//		leds |= USB_HID_LED_NUM_LOCK;
 	}
 	
-	if (kbd_dev->mods & KM_CAPS_LOCK) {
-		leds |= USB_HID_LED_CAPS_LOCK;
+	if ((kbd_dev->mods & KM_CAPS_LOCK) && (i < kbd_dev->led_output_size)) {
+		kbd_dev->led_data[i++] = USB_HID_LED_CAPS_LOCK;
+//		leds |= USB_HID_LED_CAPS_LOCK;
 	}
 	
-	if (kbd_dev->mods & KM_SCROLL_LOCK) {
-		leds |= USB_HID_LED_SCROLL_LOCK;
+	if ((kbd_dev->mods & KM_SCROLL_LOCK) 
+	    && (i < kbd_dev->led_output_size)) {
+		kbd_dev->led_data[i++] = USB_HID_LED_SCROLL_LOCK;
+//		leds |= USB_HID_LED_SCROLL_LOCK;
+	}
+	
+	usb_log_debug("Output report data: ");
+	for (i = 0; i < kbd_dev->led_output_size; ++i) {
+		usb_log_debug("%u: %d", i, kbd_dev->led_data[i]);
 	}
 
 	// TODO: COMPOSE and KANA
 	
 	usb_log_debug("Creating output report.\n");
-	usb_log_debug("Leds: 0x%x\n", leds);
-	if ((rc = usb_hid_boot_keyboard_output_report(
-	    leds, buffer, BOOTP_BUFFER_OUT_SIZE)) != EOK) {
-		usb_log_warning("Error composing output report to the keyboard:"
-		    "%s.\n", str_error(rc));
+	
+	int rc = usb_hid_report_output_translate(kbd_dev->parser, 
+	    kbd_dev->led_path, USB_HID_PATH_COMPARE_END, kbd_dev->output_buffer, 
+	    kbd_dev->output_size, kbd_dev->led_data, kbd_dev->led_output_size);
+	
+	if (rc != EOK) {
+		usb_log_warning("Error translating LED output to output report"
+		    ".\n");
 		return;
 	}
 	
-	usb_log_debug("Output report buffer: %s\n", 
-	    usb_debug_str_buffer(buffer, BOOTP_BUFFER_OUT_SIZE, 0));
+//	if ((rc = usb_hid_boot_keyboard_output_report(
+//	    leds, buffer, BOOTP_BUFFER_OUT_SIZE)) != EOK) {
+//		usb_log_warning("Error composing output report to the keyboard:"
+//		    "%s.\n", str_error(rc));
+//		return;
+//	}
 	
-	assert(kbd_dev->usb_dev != NULL);
+	usb_log_debug("Output report buffer: %s\n", 
+	    usb_debug_str_buffer(kbd_dev->output_buffer, kbd_dev->output_size, 
+	        0));
 	
 	usbhid_req_set_report(&kbd_dev->usb_dev->ctrl_pipe, 
 	    kbd_dev->usb_dev->interface_no, USB_HID_REPORT_TYPE_OUTPUT, 
-	    buffer, BOOTP_BUFFER_OUT_SIZE);
+	    kbd_dev->output_buffer, kbd_dev->output_size);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -585,7 +606,7 @@ static void usb_kbd_process_keycodes(const uint8_t *key_codes, size_t count,
  *     usb_hid_parse_report().
  */
 static void usb_kbd_process_data(usb_kbd_t *kbd_dev,
-                                    uint8_t *buffer, size_t actual_size)
+                                 uint8_t *buffer, size_t actual_size)
 {
 	assert(kbd_dev->initialized == USB_KBD_STATUS_INITIALIZED);
 	assert(kbd_dev->parser != NULL);
@@ -759,18 +780,58 @@ int usb_kbd_init(usb_kbd_t *kbd_dev, usb_device_t *dev)
 	
 	usb_log_debug("Size of the input report: %zu\n", kbd_dev->key_count);
 	
-	kbd_dev->keys = (uint8_t *)calloc(
-	    kbd_dev->key_count, sizeof(uint8_t));
+	kbd_dev->keys = (uint8_t *)calloc(kbd_dev->key_count, sizeof(uint8_t));
 	
 	if (kbd_dev->keys == NULL) {
 		usb_log_fatal("No memory!\n");
 		return ENOMEM;
 	}
 	
+	/*
+	 * Output report
+	 */
+	kbd_dev->output_size = 0;
+	kbd_dev->output_buffer = usb_hid_report_output(kbd_dev->parser, 
+	    &kbd_dev->output_size);
+	if (kbd_dev->output_buffer == NULL) {
+		usb_log_warning("Error creating output report buffer.\n");
+		free(kbd_dev->keys);
+		return ENOMEM;  /* TODO: other error code */
+	}
+	
+	usb_log_debug("Output buffer size: %zu\n", kbd_dev->output_size);
+	
+	kbd_dev->led_path = usb_hid_report_path();
+	usb_hid_report_path_append_item(
+	    kbd_dev->led_path, USB_HIDUT_PAGE_LED, 0);
+	
+	kbd_dev->led_output_size = usb_hid_report_output_size(kbd_dev->parser, 
+	    kbd_dev->led_path, USB_HID_PATH_COMPARE_END);
+	
+	usb_log_debug("Output report size (in items): %zu\n", 
+	    kbd_dev->led_output_size);
+	
+	kbd_dev->led_data = (int32_t *)calloc(
+	    kbd_dev->led_output_size, sizeof(int32_t));
+	
+	if (kbd_dev->led_data == NULL) {
+		usb_log_warning("Error creating buffer for LED output report."
+		    "\n");
+		free(kbd_dev->keys);
+		usb_hid_report_output_free(kbd_dev->output_buffer);
+		return ENOMEM;
+	}
+	
+	/*
+	 * Modifiers and locks
+	 */	
 	kbd_dev->modifiers = 0;
 	kbd_dev->mods = DEFAULT_ACTIVE_MODS;
 	kbd_dev->lock_keys = 0;
 	
+	/*
+	 * Autorepeat
+	 */	
 	kbd_dev->repeat.key_new = 0;
 	kbd_dev->repeat.key_repeated = 0;
 	kbd_dev->repeat.delay_before = DEFAULT_DELAY_BEFORE_FIRST_REPEAT;
@@ -877,6 +938,9 @@ void usb_kbd_free(usb_kbd_t **kbd_dev)
 	if ((*kbd_dev)->parser != NULL) {
 		usb_hid_free_report_parser((*kbd_dev)->parser);
 	}
+	
+	// free the output buffer
+	usb_hid_report_output_free((*kbd_dev)->output_buffer);
 	
 	/* TODO: what about the USB device structure?? */
 
