@@ -127,6 +127,21 @@ static int release_address(ddf_fun_t *fun, usb_address_t address)
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
+static int register_endpoint(
+    ddf_fun_t *fun, usb_address_t address, usb_endpoint_t endpoint,
+    usb_transfer_type_t transfer_type, usb_direction_t direction,
+    size_t max_packet_size, unsigned int interval)
+{
+	return ENOTSUP;
+}
+/*----------------------------------------------------------------------------*/
+static int unregister_endpoint(
+    ddf_fun_t *fun, usb_address_t address,
+    usb_endpoint_t endpoint, usb_direction_t direction)
+{
+	return ENOTSUP;
+}
+/*----------------------------------------------------------------------------*/
 /** Interrupt out transaction interface function
  *
  * @param[in] fun DDF function that was called.
@@ -363,6 +378,9 @@ usbhc_iface_t hc_iface = {
 	.request_address = request_address,
 	.bind_address = bind_address,
 	.release_address = release_address,
+
+	.register_endpoint = register_endpoint,
+	.unregister_endpoint = unregister_endpoint,
 
 	.interrupt_out = interrupt_out,
 	.interrupt_in = interrupt_in,

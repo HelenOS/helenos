@@ -54,20 +54,18 @@ int bandwidth_init(bandwidth_t *instance);
 void bandwidth_destroy(bandwidth_t *instance);
 
 int bandwidth_reserve(bandwidth_t *instance, usb_address_t address,
-    usb_endpoint_t endpoint, usb_transfer_type_t transfer_type,
-    size_t max_packet_size, size_t size, unsigned interval);
+    usb_endpoint_t endpoint, usb_direction_t direction, usb_speed_t speed,
+    usb_transfer_type_t transfer_type, size_t max_packet_size, size_t size,
+    unsigned interval);
 
 int bandwidth_release(bandwidth_t *instance, usb_address_t address,
-    usb_endpoint_t endpoint, usb_transfer_type_t transfer_type,
-    size_t max_packet_size, size_t size, unsigned interval);
+    usb_endpoint_t endpoint, usb_direction_t direction);
 
 int bandwidth_use(bandwidth_t *instance, usb_address_t address,
-    usb_endpoint_t endpoint, usb_transfer_type_t transfer_type,
-    size_t max_packet_size, size_t size, unsigned interval);
+    usb_endpoint_t endpoint, usb_direction_t direction);
 
 int bandwidth_free(bandwidth_t *instance, usb_address_t address,
-    usb_endpoint_t endpoint, usb_transfer_type_t transfer_type,
-    size_t max_packet_size, size_t size, unsigned interval);
+    usb_endpoint_t endpoint, usb_direction_t direction);
 
 #endif
 /**

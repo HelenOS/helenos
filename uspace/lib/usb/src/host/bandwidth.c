@@ -33,15 +33,14 @@
 typedef struct {
 	usb_address_t address;
 	usb_endpoint_t endpoint;
-	usb_transfer_type_t transfer_type;
-	size_t max_packet_size;
-	size_t size;
+	usb_direction_t direction;
 } __attribute__((aligned (sizeof(unsigned long)))) transfer_t;
 /*----------------------------------------------------------------------------*/
 typedef struct {
 	transfer_t transfer;
 	link_t link;
 	bool used;
+	size_t required;
 } transfer_status_t;
 /*----------------------------------------------------------------------------*/
 #define BUCKET_COUNT 7
@@ -90,16 +89,15 @@ void bandwidth_destroy(bandwidth_t *instance)
 }
 /*----------------------------------------------------------------------------*/
 int bandwidth_reserve(bandwidth_t *instance, usb_address_t address,
-    usb_endpoint_t endpoint, usb_transfer_type_t transfer_type,
-    size_t max_packet_size, size_t size, unsigned interval)
+    usb_endpoint_t endpoint, usb_direction_t direction, usb_speed_t speed,
+    usb_transfer_type_t transfer_type, size_t max_packet_size, size_t size,
+    unsigned interval)
 {
 	assert(instance);
 	transfer_t trans = {
 		.address = address,
 		.endpoint = endpoint,
-		.transfer_type = transfer_type,
-		.max_packet_size = max_packet_size,
-		.size = size,
+		.direction = direction,
 	};
 	fibril_mutex_lock(&instance->guard);
 	link_t *item =
@@ -116,6 +114,7 @@ int bandwidth_reserve(bandwidth_t *instance, usb_address_t address,
 	}
 
 	status->transfer = trans;
+	status->required = 0;
 	status->used = false;
 	link_initialize(&status->link);
 
@@ -127,16 +126,13 @@ int bandwidth_reserve(bandwidth_t *instance, usb_address_t address,
 }
 /*----------------------------------------------------------------------------*/
 int bandwidth_release(bandwidth_t *instance, usb_address_t address,
-    usb_endpoint_t endpoint, usb_transfer_type_t transfer_type,
-    size_t max_packet_size, size_t size, unsigned interval)
+    usb_endpoint_t endpoint, usb_direction_t direction)
 {
 	assert(instance);
 	transfer_t trans = {
 		.address = address,
 		.endpoint = endpoint,
-		.transfer_type = transfer_type,
-		.max_packet_size = max_packet_size,
-		.size = size,
+		.direction = direction,
 	};
 	fibril_mutex_lock(&instance->guard);
 	link_t *item =
@@ -155,16 +151,13 @@ int bandwidth_release(bandwidth_t *instance, usb_address_t address,
 }
 /*----------------------------------------------------------------------------*/
 int bandwidth_use(bandwidth_t *instance, usb_address_t address,
-    usb_endpoint_t endpoint, usb_transfer_type_t transfer_type,
-    size_t max_packet_size, size_t size, unsigned interval)
+    usb_endpoint_t endpoint, usb_direction_t direction)
 {
 	assert(instance);
 	transfer_t trans = {
 		.address = address,
 		.endpoint = endpoint,
-		.transfer_type = transfer_type,
-		.max_packet_size = max_packet_size,
-		.size = size,
+		.direction = direction,
 	};
 	fibril_mutex_lock(&instance->guard);
 	link_t *item =
@@ -186,16 +179,13 @@ int bandwidth_use(bandwidth_t *instance, usb_address_t address,
 }
 /*----------------------------------------------------------------------------*/
 int bandwidth_free(bandwidth_t *instance, usb_address_t address,
-    usb_endpoint_t endpoint, usb_transfer_type_t transfer_type,
-    size_t max_packet_size, size_t size, unsigned interval)
+    usb_endpoint_t endpoint, usb_direction_t direction)
 {
 	assert(instance);
 	transfer_t trans = {
 		.address = address,
 		.endpoint = endpoint,
-		.transfer_type = transfer_type,
-		.max_packet_size = max_packet_size,
-		.size = size,
+		.direction = direction,
 	};
 	fibril_mutex_lock(&instance->guard);
 	link_t *item =
