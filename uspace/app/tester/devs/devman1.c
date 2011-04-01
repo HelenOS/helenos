@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
- * Copyright (c) 2010 Lenka Trochtova 
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,37 +26,64 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libc
+/** @addtogroup tester
+ * @brief Test devman service.
  * @{
  */
-/** @file
+/**
+ * @file
  */
 
-#ifndef LIBC_DEVMAN_H_
-#define LIBC_DEVMAN_H_
-
-#include <ipc/devman.h>
+#include <inttypes.h>
+#include <errno.h>
+#include <str_error.h>
+#include <sys/types.h>
 #include <async.h>
-#include <bool.h>
+#include <devman.h>
+#include <str.h>
+#include <vfs/vfs.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include "../tester.h"
 
-extern int devman_get_phone(devman_interface_t, unsigned int);
-extern void devman_hangup_phone(devman_interface_t);
+#define DEVICE_PATH_NORMAL "/virt/null/a"
+#define DEVICE_CLASS "virt-null"
+#define DEVICE_CLASS_NAME "1"
+#define DEVICE_PATH_CLASSES DEVICE_CLASS "/" DEVICE_CLASS_NAME
 
-extern int devman_driver_register(const char *, async_client_conn_t);
-extern int devman_add_function(const char *, fun_type_t, match_id_list_t *,
-    devman_handle_t, devman_handle_t *);
+const char *test_devman1(void)
+{
+	devman_handle_t handle_primary;
+	devman_handle_t handle_class;
+	
+	int rc;
+	
+	TPRINTF("Asking for handle of `%s'...\n", DEVICE_PATH_NORMAL);
+	rc = devman_device_get_handle(DEVICE_PATH_NORMAL, &handle_primary, 0);
+	if (rc != EOK) {
+		TPRINTF(" ...failed: %s.\n", str_error(rc));
+		if (rc == ENOENT) {
+			TPRINTF("Have you compiled the test drivers?\n");
+		}
+		return "Failed getting device handle";
+	}
 
-extern int devman_device_connect(devman_handle_t, unsigned int);
-extern int devman_parent_device_connect(devman_handle_t, unsigned int);
+	TPRINTF("Asking for handle of `%s' by class..\n", DEVICE_PATH_CLASSES);
+	rc = devman_device_get_handle_by_class(DEVICE_CLASS, DEVICE_CLASS_NAME,
+	    &handle_class, 0);
+	if (rc != EOK) {
+		TPRINTF(" ...failed: %s.\n", str_error(rc));
+		return "Failed getting device class handle";
+	}
 
-extern int devman_device_get_handle(const char *, devman_handle_t *,
-    unsigned int);
-extern int devman_device_get_handle_by_class(const char *, const char *,
-    devman_handle_t *, unsigned int);
+	TPRINTF("Received handles %" PRIun " and %" PRIun ".\n",
+	    handle_primary, handle_class);
+	if (handle_primary != handle_class) {
+		return "Retrieved different handles for the same device";
+	}
 
-extern int devman_add_device_to_class(devman_handle_t, const char *);
-
-#endif
+	return NULL;
+}
 
 /** @}
  */

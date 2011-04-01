@@ -247,6 +247,16 @@ static void devman_add_function(ipc_callid_t callid, ipc_call_t *call)
 		return;
 	}
 	
+	/* Check that function with same name is not there already. */
+	if (find_fun_node_in_device(pdev, fun_name) != NULL) {
+		fibril_rwlock_write_unlock(&tree->rwlock);
+		async_answer_0(callid, EEXISTS);
+		printf(NAME ": Warning, driver tried to register `%s' twice.\n",
+		    fun_name);
+		free(fun_name);
+		return;
+	}
+
 	fun_node_t *fun = create_fun_node();
 	if (!insert_fun_node(&device_tree, fun, fun_name, pdev)) {
 		fibril_rwlock_write_unlock(&tree->rwlock);
@@ -442,6 +452,40 @@ static void devman_function_get_handle(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_1(iid, EOK, fun->handle);
 }
 
+/** Find handle for the device instance identified by device class name. */
+static void devman_function_get_handle_by_class(ipc_callid_t iid,
+    ipc_call_t *icall)
+{
+	char *classname;
+	char *devname;
+
+	int rc = async_data_write_accept((void **) &classname, true, 0, 0, 0, 0);
+	if (rc != EOK) {
+		async_answer_0(iid, rc);
+		return;
+	}
+	rc = async_data_write_accept((void **) &devname, true, 0, 0, 0, 0);
+	if (rc != EOK) {
+		free(classname);
+		async_answer_0(iid, rc);
+		return;
+	}
+
+
+	fun_node_t *fun = find_fun_node_by_class(&class_list,
+	    classname, devname);
+
+	free(classname);
+	free(devname);
+
+	if (fun == NULL) {
+		async_answer_0(iid, ENOENT);
+		return;
+	}
+
+	async_answer_1(iid, EOK, fun->handle);
+}
+
 
 /** Function for handling connections from a client to the device manager. */
 static void devman_connection_client(ipc_callid_t iid, ipc_call_t *icall)
@@ -460,6 +504,9 @@ static void devman_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 			continue;
 		case DEVMAN_DEVICE_GET_HANDLE:
 			devman_function_get_handle(callid, &call);
+			break;
+		case DEVMAN_DEVICE_GET_HANDLE_BY_CLASS:
+			devman_function_get_handle_by_class(callid, &call);
 			break;
 		default:
 			async_answer_0(callid, ENOENT);
