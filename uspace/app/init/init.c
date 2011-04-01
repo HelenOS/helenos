@@ -313,10 +313,14 @@ int main(int argc, char *argv[])
 	getterm("term/vc5", "/app/bdsh", false);
 	getterm("term/vc6", "/app/klog", false);
 
+#ifdef CONFIG_START_DEVMAN
+
 #ifdef CONFIG_DEVMAN_EARLY_LAUNCH
 	spawn("/srv/devman");
 #else
 	getterm("term/vc7", "/srv/devman", false);
+#endif
+
 #endif
 
 	return 0;

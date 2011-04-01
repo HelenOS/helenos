@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007 Martin Decky
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,65 +27,63 @@
  */
 
 /** @addtogroup tester
+ * @brief Test devman service.
  * @{
  */
-/** @file
+/**
+ * @file
  */
 
-#ifndef TESTER_H_
-#define TESTER_H_
-
+#include <inttypes.h>
+#include <errno.h>
+#include <str_error.h>
 #include <sys/types.h>
-#include <bool.h>
+#include <async.h>
+#include <devman.h>
+#include <str.h>
+#include <vfs/vfs.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include "../tester.h"
 
-#define IPC_TEST_SERVICE  10240
-#define IPC_TEST_METHOD   2000
+#define DEVICE_PATH_NORMAL "/virt/null/a"
+#define DEVICE_CLASS "virt-null"
+#define DEVICE_CLASS_NAME "1"
+#define DEVICE_PATH_CLASSES DEVICE_CLASS "/" DEVICE_CLASS_NAME
 
-extern bool test_quiet;
-extern int test_argc;
-extern char **test_argv;
-
-#define TPRINTF(format, ...) \
-	{ \
-		if (!test_quiet) { \
-			fprintf(stderr, format, ##__VA_ARGS__); \
-		} \
+const char *test_devman1(void)
+{
+	devman_handle_t handle_primary;
+	devman_handle_t handle_class;
+	
+	int rc;
+	
+	TPRINTF("Asking for handle of `%s'...\n", DEVICE_PATH_NORMAL);
+	rc = devman_device_get_handle(DEVICE_PATH_NORMAL, &handle_primary, 0);
+	if (rc != EOK) {
+		TPRINTF(" ...failed: %s.\n", str_error(rc));
+		if (rc == ENOENT) {
+			TPRINTF("Have you compiled the test drivers?\n");
+		}
+		return "Failed getting device handle";
 	}
 
-typedef const char *(*test_entry_t)(void);
+	TPRINTF("Asking for handle of `%s' by class..\n", DEVICE_PATH_CLASSES);
+	rc = devman_device_get_handle_by_class(DEVICE_CLASS, DEVICE_CLASS_NAME,
+	    &handle_class, 0);
+	if (rc != EOK) {
+		TPRINTF(" ...failed: %s.\n", str_error(rc));
+		return "Failed getting device class handle";
+	}
 
-typedef struct {
-	const char *name;
-	const char *desc;
-	test_entry_t entry;
-	bool safe;
-} test_t;
+	TPRINTF("Received handles %" PRIun " and %" PRIun ".\n",
+	    handle_primary, handle_class);
+	if (handle_primary != handle_class) {
+		return "Retrieved different handles for the same device";
+	}
 
-extern const char *test_thread1(void);
-extern const char *test_print1(void);
-extern const char *test_print2(void);
-extern const char *test_print3(void);
-extern const char *test_print4(void);
-extern const char *test_print5(void);
-extern const char *test_console1(void);
-extern const char *test_stdio1(void);
-extern const char *test_stdio2(void);
-extern const char *test_fault1(void);
-extern const char *test_fault2(void);
-extern const char *test_fault3(void);
-extern const char *test_vfs1(void);
-extern const char *test_ping_pong(void);
-extern const char *test_loop1(void);
-extern const char *test_malloc1(void);
-extern const char *test_mapping1(void);
-extern const char *test_serial1(void);
-extern const char *test_usbaddrkeep(void);
-extern const char *test_virtchar1(void);
-extern const char *test_devman1(void);
-
-extern test_t tests[];
-
-#endif
+	return NULL;
+}
 
 /** @}
  */
