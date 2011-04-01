@@ -56,7 +56,7 @@
 
 /** Structure to represent a directory entry.
  *
- * Useful to keep together important informations
+ * Useful to keep together important information
  * for sorting directory entries.
  */
 struct dir_elem_t {
@@ -68,7 +68,7 @@ static const char *cmdname = "ls";
 
 static struct option const long_options[] = {
 	{ "help", no_argument, 0, 'h' },
-	{ "unsort", no_argument, 0, 'u' },	
+	{ "unsort", no_argument, 0, 'u' },
 	{ 0, 0, 0, 0 }
 };
 
@@ -245,8 +245,7 @@ int cmd_ls(char **argv)
 		}
 	}
 	
-	int dir = (int) argc > optind ? (int) argc - 1 : optind - 1;
-	argc -= (optind - 1);
+	argc -= optind;
 	
 	de.name = (char *) malloc(PATH_MAX);
 	if (!de.name) {
@@ -255,10 +254,10 @@ int cmd_ls(char **argv)
 	}
 	memset(de.name, 0, sizeof(PATH_MAX));
 	
-	if (argc == 1)
+	if (argc == 0)
 		getcwd(de.name, PATH_MAX);
 	else
-		str_cpy(de.name, PATH_MAX, argv[dir]);
+		str_cpy(de.name, PATH_MAX, argv[optind]);
 	
 	if (stat(de.name, &de.s)) {
 		cli_error(CL_ENOENT, de.name);
