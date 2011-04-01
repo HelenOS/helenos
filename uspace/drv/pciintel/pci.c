@@ -225,13 +225,13 @@ void pci_fun_create_match_ids(pci_fun_t *fun)
 	    fun->vendor_id, fun->device_id);
 
 	if (match_id_str == NULL) {
-		ddf_msg(LVL_ERROR, "Out of memory creating match ID.\n");
+		ddf_msg(LVL_ERROR, "Out of memory creating match ID.");
 		return;
 	}
 
 	rc = ddf_fun_add_match_id(fun->fnode, match_id_str, 90);
 	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "Failed adding match ID: %s\n",
+		ddf_msg(LVL_ERROR, "Failed adding match ID: %s",
 		    str_error(rc));
 	}
 	
@@ -324,7 +324,7 @@ int pci_read_bar(pci_fun_t *fun, int addr)
 	
 	if (range_addr != 0) {
 		ddf_msg(LVL_DEBUG, "Function %s : address = %" PRIx64
-		    ", size = %x\n", fun->fnode->name, range_addr,
+		    ", size = %x", fun->fnode->name, range_addr,
 		    (unsigned int) range_size);
 	}
 	
@@ -350,7 +350,7 @@ void pci_add_interrupt(pci_fun_t *fun, int irq)
 	
 	hw_res_list->count++;
 	
-	ddf_msg(LVL_NOTE, "Function %s uses irq %x.\n", fun->fnode->name, irq);
+	ddf_msg(LVL_NOTE, "Function %s uses irq %x.", fun->fnode->name, irq);
 }
 
 void pci_read_interrupt(pci_fun_t *fun)
@@ -406,13 +406,13 @@ void pci_bus_scan(pci_bus_t *bus, int bus_num)
 			
 			char *fun_name = pci_fun_create_name(fun);
 			if (fun_name == NULL) {
-				ddf_msg(LVL_ERROR, "Out of memory.\n");
+				ddf_msg(LVL_ERROR, "Out of memory.");
 				return;
 			}
 			
 			fnode = ddf_fun_create(bus->dnode, fun_inner, fun_name);
 			if (fnode == NULL) {
-				ddf_msg(LVL_ERROR, "Failed creating function.\n");
+				ddf_msg(LVL_ERROR, "Failed creating function.");
 				return;
 			}
 			
@@ -426,7 +426,7 @@ void pci_bus_scan(pci_bus_t *bus, int bus_num)
 			fnode->ops = &pci_fun_ops;
 			fnode->driver_data = fun;
 			
-			ddf_msg(LVL_DEBUG, "Adding new function %s.\n",
+			ddf_msg(LVL_DEBUG, "Adding new function %s.",
 			    fnode->name);
 			
 			pci_fun_create_match_ids(fun);
@@ -444,7 +444,7 @@ void pci_bus_scan(pci_bus_t *bus, int bus_num)
 				child_bus = pci_conf_read_8(fun,
 				    PCI_BRIDGE_SEC_BUS_NUM);
 				ddf_msg(LVL_DEBUG, "Device is pci-to-pci "
-				    "bridge, secondary bus number = %d.\n",
+				    "bridge, secondary bus number = %d.",
 				    bus_num);
 				if (child_bus > bus_num)
 					pci_bus_scan(bus, child_bus);
@@ -467,12 +467,12 @@ static int pci_add_device(ddf_dev_t *dnode)
 	bool got_res = false;
 	int rc;
 	
-	ddf_msg(LVL_DEBUG, "pci_add_device\n");
+	ddf_msg(LVL_DEBUG, "pci_add_device");
 	dnode->parent_phone = -1;
 	
 	bus = pci_bus_new();
 	if (bus == NULL) {
-		ddf_msg(LVL_ERROR, "pci_add_device allocation failed.\n");
+		ddf_msg(LVL_ERROR, "pci_add_device allocation failed.");
 		rc = ENOMEM;
 		goto fail;
 	}
@@ -483,7 +483,7 @@ static int pci_add_device(ddf_dev_t *dnode)
 	    IPC_FLAG_BLOCKING);
 	if (dnode->parent_phone < 0) {
 		ddf_msg(LVL_ERROR, "pci_add_device failed to connect to the "
-		    "parent's driver.\n");
+		    "parent's driver.");
 		rc = dnode->parent_phone;
 		goto fail;
 	}
@@ -493,12 +493,12 @@ static int pci_add_device(ddf_dev_t *dnode)
 	rc = hw_res_get_resource_list(dnode->parent_phone, &hw_resources);
 	if (rc != EOK) {
 		ddf_msg(LVL_ERROR, "pci_add_device failed to get hw resources "
-		    "for the device.\n");
+		    "for the device.");
 		goto fail;
 	}
 	got_res = true;
 	
-	ddf_msg(LVL_DEBUG, "conf_addr = %" PRIx64 ".\n",
+	ddf_msg(LVL_DEBUG, "conf_addr = %" PRIx64 ".",
 	    hw_resources.resources[0].res.io_range.address);
 	
 	assert(hw_resources.count > 0);
@@ -510,30 +510,30 @@ static int pci_add_device(ddf_dev_t *dnode)
 	
 	if (pio_enable((void *)(uintptr_t)bus->conf_io_addr, 8,
 	    &bus->conf_addr_port)) {
-		ddf_msg(LVL_ERROR, "Failed to enable configuration ports.\n");
+		ddf_msg(LVL_ERROR, "Failed to enable configuration ports.");
 		rc = EADDRNOTAVAIL;
 		goto fail;
 	}
 	bus->conf_data_port = (char *) bus->conf_addr_port + 4;
 	
 	/* Make the bus device more visible. It has no use yet. */
-	ddf_msg(LVL_DEBUG, "Adding a 'ctl' function\n");
+	ddf_msg(LVL_DEBUG, "Adding a 'ctl' function");
 	
 	ctl = ddf_fun_create(bus->dnode, fun_exposed, "ctl");
 	if (ctl == NULL) {
-		printf(NAME ": error creating control function.\n");
+		ddf_msg(LVL_ERROR, "Failed creating control function.");
 		rc = ENOMEM;
 		goto fail;
 	}
 	
 	rc = ddf_fun_bind(ctl);
 	if (rc != EOK) {
-		printf(NAME ": error binding control function.\n");
+		ddf_msg(LVL_ERROR, "Failed binding control function.");
 		goto fail;
 	}
 	
 	/* Enumerate functions. */
-	ddf_msg(LVL_DEBUG, "Scanning the bus\n");
+	ddf_msg(LVL_DEBUG, "Scanning the bus");
 	pci_bus_scan(bus, 0);
 	
 	hw_res_clean_resource_list(&hw_resources);
@@ -633,7 +633,7 @@ size_t pci_bar_mask_to_size(uint32_t mask)
 
 int main(int argc, char *argv[])
 {
-	printf(NAME ": HelenOS pci bus driver (intel method 1).\n");
+	printf(NAME ": HelenOS PCI bus driver (Intel method 1).\n");
 	pciintel_init();
 	return ddf_driver_main(&pci_driver);
 }

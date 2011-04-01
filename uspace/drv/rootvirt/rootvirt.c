@@ -83,18 +83,18 @@ static int rootvirt_add_fun(ddf_dev_t *vdev, virtual_function_t *vfun)
 	ddf_fun_t *fun;
 	int rc;
 
-	ddf_msg(LVL_DEBUG, "Registering function `%s' (match \"%s\")\n",
+	ddf_msg(LVL_DEBUG, "Registering function `%s' (match \"%s\")",
 	    vfun->name, vfun->match_id);
 
 	fun = ddf_fun_create(vdev, fun_inner, vfun->name);
 	if (fun == NULL) {
-		ddf_msg(LVL_ERROR, "Failed creating function %s\n", vfun->name);
+		ddf_msg(LVL_ERROR, "Failed creating function %s", vfun->name);
 		return ENOMEM;
 	}
 
 	rc = ddf_fun_add_match_id(fun, vfun->match_id, 10);
 	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "Failed adding match IDs to function %s\n",
+		ddf_msg(LVL_ERROR, "Failed adding match IDs to function %s",
 		    vfun->name);
 		ddf_fun_destroy(fun);
 		return rc;
@@ -102,13 +102,13 @@ static int rootvirt_add_fun(ddf_dev_t *vdev, virtual_function_t *vfun)
 
 	rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "Failed binding function %s: %s\n", vfun->name,
-		    str_error(rc));
+		ddf_msg(LVL_ERROR, "Failed binding function %s: %s",
+		    vfun->name, str_error(rc));
 		ddf_fun_destroy(fun);
 		return rc;
 	}
 
-	ddf_msg(LVL_NOTE, "Registered child device `%s'\n", vfun->name);
+	ddf_msg(LVL_NOTE, "Registered child device `%s'", vfun->name);
 	return EOK;
 }
 
@@ -124,7 +124,7 @@ static int rootvirt_add_device(ddf_dev_t *dev)
 		return ELIMIT;
 	}
 
-	ddf_msg(LVL_DEBUG, "add_device(handle=%d)\n", (int)dev->handle);
+	ddf_msg(LVL_DEBUG, "add_device(handle=%d)", (int)dev->handle);
 
 	/*
 	 * Go through all virtual functions and try to add them.

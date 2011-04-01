@@ -64,17 +64,17 @@ static int register_fun_verbose(ddf_dev_t *parent, const char *message,
 	ddf_fun_t *fun;
 	int rc;
 
-	ddf_msg(LVL_DEBUG, "Registering function `%s': %s.\n", name, message);
+	ddf_msg(LVL_DEBUG, "Registering function `%s': %s.", name, message);
 
 	fun = ddf_fun_create(parent, fun_inner, name);
 	if (fun == NULL) {
-		ddf_msg(LVL_ERROR, "Failed creating function %s\n", name);
+		ddf_msg(LVL_ERROR, "Failed creating function %s", name);
 		return ENOMEM;
 	}
 
 	rc = ddf_fun_add_match_id(fun, match_id, match_score);
 	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "Failed adding match IDs to function %s\n",
+		ddf_msg(LVL_ERROR, "Failed adding match IDs to function %s",
 		    name);
 		ddf_fun_destroy(fun);
 		return rc;
@@ -82,13 +82,13 @@ static int register_fun_verbose(ddf_dev_t *parent, const char *message,
 
 	rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "Failed binding function %s: %s\n", name,
+		ddf_msg(LVL_ERROR, "Failed binding function %s: %s", name,
 		    str_error(rc));
 		ddf_fun_destroy(fun);
 		return rc;
 	}
 
-	ddf_msg(LVL_NOTE, "Registered child device `%s'\n", name);
+	ddf_msg(LVL_NOTE, "Registered child device `%s'", name);
 	return EOK;
 }
 
@@ -112,13 +112,13 @@ static int postponed_birth(void *arg)
 
 	fun_a = ddf_fun_create(dev, fun_exposed, "a");
 	if (fun_a == NULL) {
-		ddf_msg(LVL_ERROR, "Failed creating function 'a'.\n");
+		ddf_msg(LVL_ERROR, "Failed creating function 'a'.");
 		return ENOMEM;
 	}
 
 	rc = ddf_fun_bind(fun_a);
 	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "Failed binding function 'a'.\n");
+		ddf_msg(LVL_ERROR, "Failed binding function 'a'.");
 		return rc;
 	}
 
@@ -129,13 +129,13 @@ static int postponed_birth(void *arg)
 
 static int test2_add_device(ddf_dev_t *dev)
 {
-	ddf_msg(LVL_DEBUG, "test2_add_device(name=\"%s\", handle=%d)\n",
+	ddf_msg(LVL_DEBUG, "test2_add_device(name=\"%s\", handle=%d)",
 	    dev->name, (int) dev->handle);
 
 	if (str_cmp(dev->name, "child") != 0) {
 		fid_t postpone = fibril_create(postponed_birth, dev);
 		if (postpone == 0) {
-			ddf_msg(LVL_ERROR, "fibril_create() failed.\n");
+			ddf_msg(LVL_ERROR, "fibril_create() failed.");
 			return ENOMEM;
 		}
 		fibril_add_ready(postpone);

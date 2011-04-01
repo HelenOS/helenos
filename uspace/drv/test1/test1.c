@@ -64,30 +64,30 @@ static int register_fun_verbose(ddf_dev_t *parent, const char *message,
 	ddf_fun_t *fun = NULL;
 	int rc;
 
-	ddf_msg(LVL_DEBUG, "Registering function `%s': %s.\n", name, message);
+	ddf_msg(LVL_DEBUG, "Registering function `%s': %s.", name, message);
 
 	fun = ddf_fun_create(parent, fun_inner, name);
 	if (fun == NULL) {
-		ddf_msg(LVL_ERROR, "Failed creating function %s\n", name);
+		ddf_msg(LVL_ERROR, "Failed creating function %s", name);
 		rc = ENOMEM;
 		goto leave;
 	}
 
 	rc = ddf_fun_add_match_id(fun, str_dup(match_id), match_score);
 	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "Failed adding match IDs to function %s\n",
+		ddf_msg(LVL_ERROR, "Failed adding match IDs to function %s",
 		    name);
 		goto leave;
 	}
 
 	rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "Failed binding function %s: %s\n", name,
+		ddf_msg(LVL_ERROR, "Failed binding function %s: %s", name,
 		    str_error(rc));
 		goto leave;
 	}
 
-	ddf_msg(LVL_NOTE, "Registered child device `%s'\n", name);
+	ddf_msg(LVL_NOTE, "Registered child device `%s'", name);
 	rc = EOK;
 
 leave:
@@ -127,18 +127,18 @@ static int test1_add_device(ddf_dev_t *dev)
 	ddf_fun_t *fun_a;
 	int rc;
 
-	ddf_msg(LVL_DEBUG, "add_device(name=\"%s\", handle=%d)\n",
+	ddf_msg(LVL_DEBUG, "add_device(name=\"%s\", handle=%d)",
 	    dev->name, (int) dev->handle);
 
 	fun_a = ddf_fun_create(dev, fun_exposed, "a");
 	if (fun_a == NULL) {
-		ddf_msg(LVL_ERROR, "Failed creating function 'a'.\n");
+		ddf_msg(LVL_ERROR, "Failed creating function 'a'.");
 		return ENOMEM;
 	}
 
 	rc = ddf_fun_bind(fun_a);
 	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "Failed binding function 'a'.\n");
+		ddf_msg(LVL_ERROR, "Failed binding function 'a'.");
 		return rc;
 	}
 
@@ -160,7 +160,7 @@ static int test1_add_device(ddf_dev_t *dev)
 		    "virtual&test1&child", 10, EOK);
 	}
 
-	ddf_msg(LVL_DEBUG, "Device `%s' accepted.\n", dev->name);
+	ddf_msg(LVL_DEBUG, "Device `%s' accepted.", dev->name);
 
 	return EOK;
 }

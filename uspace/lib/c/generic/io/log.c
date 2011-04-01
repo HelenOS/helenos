@@ -83,7 +83,7 @@ int log_init(const char *prog_name, log_level_t level)
  * @param level		Message verbosity level. Message is only printed
  *			if verbosity is less than or equal to current
  *			reporting level.
- * @param fmt		Format string
+ * @param fmt		Format string (no traling newline).
  */
 void log_msg(log_level_t level, const char *fmt, ...)
 {
@@ -99,7 +99,7 @@ void log_msg(log_level_t level, const char *fmt, ...)
  * @param level		Message verbosity level. Message is only printed
  *			if verbosity is less than or equal to current
  *			reporting level.
- * @param fmt		Format string
+ * @param fmt		Format string (no trailing newline)
  */
 void log_msgv(log_level_t level, const char *fmt, va_list args)
 {
@@ -112,6 +112,7 @@ void log_msgv(log_level_t level, const char *fmt, va_list args)
 		fprintf(log_stream, "%s: %s: ", log_prog_name,
 		    log_level_names[level]);
 		vfprintf(log_stream, fmt, args);
+		fputc('\n', log_stream);
 		fflush(log_stream);
 
 		fibril_mutex_unlock(&log_serializer);

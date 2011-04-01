@@ -119,7 +119,7 @@ static bool
 rootpc_add_fun(ddf_dev_t *dev, const char *name, const char *str_match_id,
     rootpc_fun_t *fun)
 {
-	ddf_msg(LVL_DEBUG, "Adding new function '%s'.\n", name);
+	ddf_msg(LVL_DEBUG, "Adding new function '%s'.", name);
 	
 	ddf_fun_t *fnode = NULL;
 	match_id_t *match_id = NULL;
@@ -145,7 +145,7 @@ rootpc_add_fun(ddf_dev_t *dev, const char *name, const char *str_match_id,
 	
 	/* Register function. */
 	if (ddf_fun_bind(fnode) != EOK) {
-		ddf_msg(LVL_ERROR, "Failed binding function %s.\n", name);
+		ddf_msg(LVL_ERROR, "Failed binding function %s.", name);
 		goto failure;
 	}
 	
@@ -158,7 +158,7 @@ failure:
 	if (fnode != NULL)
 		ddf_fun_destroy(fnode);
 	
-	ddf_msg(LVL_ERROR, "Failed adding function '%s'.\n", name);
+	ddf_msg(LVL_ERROR, "Failed adding function '%s'.", name);
 	
 	return false;
 }
@@ -176,12 +176,12 @@ static bool rootpc_add_functions(ddf_dev_t *dev)
  */
 static int rootpc_add_device(ddf_dev_t *dev)
 {
-	ddf_msg(LVL_DEBUG, "rootpc_add_device, device handle = %d\n",
+	ddf_msg(LVL_DEBUG, "rootpc_add_device, device handle = %d",
 	    (int)dev->handle);
 	
 	/* Register functions. */
 	if (!rootpc_add_functions(dev)) {
-		ddf_msg(LVL_ERROR, "Failed to add functions for PC platform.\n");
+		ddf_msg(LVL_ERROR, "Failed to add functions for PC platform.");
 	}
 	
 	return EOK;

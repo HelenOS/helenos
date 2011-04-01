@@ -50,7 +50,7 @@ int ddf_log_init(const char *drv_name, log_level_t level)
  * @param level		Message verbosity level. Message is only printed
  *			if verbosity is less than or equal to current
  *			reporting level.
- * @param fmt		Format string
+ * @param fmt		Format string (no trailing newline)
  */
 void ddf_msg(log_level_t level, const char *fmt, ...)
 {
