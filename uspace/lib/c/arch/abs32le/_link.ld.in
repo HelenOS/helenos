@@ -10,8 +10,8 @@ SECTIONS {
 	. = 0x1000 + SIZEOF_HEADERS;
 	
 	.text : {
-		*(.text);
-		*(.rodata*);
+		*(.text .text.*);
+		*(.rodata .rodata.*);
 	} :text
 	
 	. = . + 0x1000;
