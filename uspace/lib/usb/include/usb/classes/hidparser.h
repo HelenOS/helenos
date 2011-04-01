@@ -87,6 +87,7 @@ typedef struct {
 typedef struct {
 	/** */	
 	int depth;	
+	uint8_t report_id;
 	
 	/** */	
 	link_t link;
@@ -154,6 +155,9 @@ typedef struct {
 	link_t output;
 	/** */	
 	link_t feature;
+	
+	int use_report_id;
+	
 } usb_hid_report_parser_t;	
 
 
@@ -165,7 +169,7 @@ typedef struct {
 	 * @param count Length of @p key_codes.
 	 * @param arg Custom argument.
 	 */
-	void (*keyboard)(const uint8_t *key_codes, size_t count, const uint8_t modifiers, void *arg);
+	void (*keyboard)(const uint8_t *key_codes, size_t count, const uint8_t report_id, void *arg);
 } usb_hid_report_in_callbacks_t;
 
 
@@ -266,6 +270,9 @@ usb_hid_report_path_t *usb_hid_report_path(void);
 
 /** */
 void usb_hid_report_path_free(usb_hid_report_path_t *path);
+
+/** */
+int usb_hid_report_path_set_report_id(usb_hid_report_path_t *usage_path, uint8_t report_id);
 
 /** */
 int usb_hid_report_path_append_item(usb_hid_report_path_t *usage_path, int32_t usage_page, int32_t usage);
