@@ -73,8 +73,8 @@ int usb_hub_control_loop(void * hub_info_param){
 	int errorCode = EOK;
 
 	while(errorCode == EOK){
+		async_usleep(1000 * 1000 * 10 );/// \TODO proper number once
 		errorCode = usb_hub_check_hub_changes(hub_info);
-		async_usleep(1000 * 1000 );/// \TODO proper number once
 	}
 	usb_log_error("something in ctrl loop went wrong, errno %d\n",errorCode);
 

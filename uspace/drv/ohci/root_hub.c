@@ -39,6 +39,7 @@
 
 #include "root_hub.h"
 #include "usb/classes/classes.h"
+#include "usb/devdrv.h"
 #include <usb/request.h>
 #include <usb/classes/hub.h>
 
@@ -60,7 +61,7 @@ static const usb_standard_device_descriptor_t ohci_rh_device_descriptor =
 		.product_id = 0x0001,
 		/// \TODO these values migt be different
 		.str_serial_number = 0,
-		.usb_spec_version = 0,
+		.usb_spec_version = 0x110,
 };
 
 /**
@@ -109,6 +110,98 @@ static const usb_standard_endpoint_descriptor_t ohci_rh_ep_descriptor =
 	.poll_interval = 255,
 };
 
+/**
+ * Create hub descriptor used in hub-driver <-> hub communication
+ *
+ * This means creating byt array from data in root hub registers. For more
+ * info see usb hub specification.
+ *
+ * @param instance root hub instance
+ * @param@out out_result pointer to resultant serialized descriptor
+ * @param@out out_size size of serialized descriptor
+ */
+static void usb_create_serialized_hub_descriptor(rh_t *instance,
+		uint8_t ** out_result,
+		size_t * out_size) {
+	//base size
+	size_t size = 7;
+	//variable size according to port count
+	size_t var_size = instance->port_count / 8 +
+			((instance->port_count % 8 > 0) ? 1 : 0);
+	size += 2 * var_size;
+	uint8_t * result = (uint8_t*) malloc(size);
+	bzero(result,size);
+	//size
+	result[0] = size;
+	//descriptor type
+	result[1] = USB_DESCTYPE_HUB;
+	result[2] = instance->port_count;
+	uint32_t hub_desc_reg = instance->registers->rh_desc_a;
+	result[3] =
+			((hub_desc_reg >> 8) %2) +
+			(((hub_desc_reg >> 9) %2) << 1) +
+			(((hub_desc_reg >> 10) %2) << 2) +
+			(((hub_desc_reg >> 11) %2) << 3) +
+			(((hub_desc_reg >> 12) %2) << 4);
+	result[4] = 0;
+	result[5] = /*descriptor->pwr_on_2_good_time*/ 50;
+	result[6] = 50;
+
+	int port;
+	for (port = 1; port <= instance->port_count; ++port) {
+		result[7 + port/8] +=
+				((instance->registers->rh_desc_b >> port)%2) << (port%8);
+	}
+	size_t i;
+	for (i = 0; i < var_size; ++i) {
+		result[7 + var_size + i] = 255;
+	}
+	(*out_result) = result;
+	(*out_size) = size;
+}
+
+
+/** initialize hub descriptors
+ *
+ * Initialized are device and full configuration descriptor. These need to
+ * be initialized only once per hub.
+ * @instance root hub instance
+ */
+static void rh_init_descriptors(rh_t *instance){
+	memcpy(&instance->descriptors.device, &ohci_rh_device_descriptor,
+		sizeof(ohci_rh_device_descriptor)
+	);
+	usb_standard_configuration_descriptor_t descriptor;
+	memcpy(&descriptor,&ohci_rh_conf_descriptor,
+			sizeof(ohci_rh_conf_descriptor));
+	uint8_t * hub_descriptor;
+	size_t hub_desc_size;
+	usb_create_serialized_hub_descriptor(instance, &hub_descriptor,
+			&hub_desc_size);
+
+	descriptor.total_length =
+			sizeof(usb_standard_configuration_descriptor_t)+
+			sizeof(usb_standard_endpoint_descriptor_t)+
+			sizeof(usb_standard_interface_descriptor_t)+
+			hub_desc_size;
+	
+	uint8_t * full_config_descriptor =
+			(uint8_t*) malloc(descriptor.total_length);
+	memcpy(full_config_descriptor, &descriptor, sizeof(descriptor));
+	memcpy(full_config_descriptor + sizeof(descriptor),
+			&ohci_rh_iface_descriptor, sizeof(ohci_rh_iface_descriptor));
+	memcpy(full_config_descriptor + sizeof(descriptor) +
+				sizeof(ohci_rh_iface_descriptor),
+			&ohci_rh_ep_descriptor, sizeof(ohci_rh_ep_descriptor));
+	memcpy(full_config_descriptor + sizeof(descriptor) +
+				sizeof(ohci_rh_iface_descriptor) +
+				sizeof(ohci_rh_ep_descriptor),
+			hub_descriptor, hub_desc_size);
+	
+	instance->descriptors.configuration = full_config_descriptor;
+	instance->descriptors.configuration_size = descriptor.total_length;
+}
+
 /** Root hub initialization
  * @return Error code.
  */
@@ -118,6 +211,7 @@ int rh_init(rh_t *instance, ddf_dev_t *dev, ohci_regs_t *regs)
 	instance->address = -1;
 	instance->registers = regs;
 	instance->device = dev;
+	rh_init_descriptors(instance);
 
 
 	usb_log_info("OHCI root hub with %d ports.\n", regs->rh_desc_a & 0xff);
@@ -169,55 +263,6 @@ static int process_get_hub_status_request(rh_t *instance,
 
 }
 
-/**
- * Create hub descriptor used in hub-driver <-> hub communication
- * 
- * This means creating byt array from data in root hub registers. For more
- * info see usb hub specification.
- *
- * @param instance root hub instance
- * @param@out out_result pointer to resultant serialized descriptor
- * @param@out out_size size of serialized descriptor
- */
-static void usb_create_serialized_hub_descriptor(rh_t *instance,
-		uint8_t ** out_result,
-		size_t * out_size) {
-	//base size
-	size_t size = 7;
-	//variable size according to port count
-	size_t var_size = instance->port_count / 8 +
-			((instance->port_count % 8 > 0) ? 1 : 0);
-	size += 2 * var_size;
-	uint8_t * result = (uint8_t*) malloc(size);
-	bzero(result,size);
-	//size
-	result[0] = size;
-	//descriptor type
-	result[1] = USB_DESCTYPE_HUB;
-	result[2] = instance->port_count;
-	uint32_t hub_desc_reg = instance->registers->rh_desc_a;
-	result[3] = 
-			((hub_desc_reg >> 8) %2) +
-			(((hub_desc_reg >> 9) %2) << 1) +
-			(((hub_desc_reg >> 10) %2) << 2) +
-			(((hub_desc_reg >> 11) %2) << 3) +
-			(((hub_desc_reg >> 12) %2) << 4);
-	result[4] = 0;
-	result[5] = /*descriptor->pwr_on_2_good_time*/ 50;
-	result[6] = 50;
-
-	int port;
-	for (port = 1; port <= instance->port_count; ++port) {
-		result[7 + port/8] +=
-				((instance->registers->rh_desc_b >> port)%2) << (port%8);
-	}
-	size_t i;
-	for (i = 0; i < var_size; ++i) {
-		result[7 + var_size + i] = 255;
-	}
-	(*out_result) = result;
-	(*out_size) = size;
-}
 
 
 /**
@@ -283,30 +328,7 @@ static void create_interrupt_mask(rh_t *instance, void ** buffer,
 		}
 	}
 }
-
-/**
- * create standart configuration descriptor for the root hub instance
- * @param instance root hub instance
- * @return newly allocated descriptor
- */
-static usb_standard_configuration_descriptor_t *
-usb_ohci_rh_create_standart_configuration_descriptor(rh_t *instance){
-	usb_standard_configuration_descriptor_t * descriptor =
-			malloc(sizeof(usb_standard_configuration_descriptor_t));
-	memcpy(descriptor, &ohci_rh_conf_descriptor,
-		sizeof(usb_standard_configuration_descriptor_t));
-	/// \TODO should this include device descriptor?
-	const size_t hub_descriptor_size = 7 +
-			2* (instance->port_count / 8 +
-			((instance->port_count % 8 > 0) ? 1 : 0));
-	descriptor->total_length =
-			sizeof(usb_standard_configuration_descriptor_t)+
-			sizeof(usb_standard_endpoint_descriptor_t)+
-			sizeof(usb_standard_interface_descriptor_t)+
-			hub_descriptor_size;
-	return descriptor;
-}
-
+ 
 /**
  * create answer to a descriptor request
  *
@@ -343,12 +365,8 @@ static int process_get_descriptor_request(rh_t *instance,
 		}
 		case USB_DESCTYPE_CONFIGURATION: {
 			usb_log_debug("USB_DESCTYPE_CONFIGURATION\n");
-			usb_standard_configuration_descriptor_t * descriptor =
-					usb_ohci_rh_create_standart_configuration_descriptor(
-						instance);
-			result_descriptor = descriptor;
-			size = sizeof(usb_standard_configuration_descriptor_t);
-			del = true;
+			result_descriptor = instance->descriptors.configuration;
+			size = instance->descriptors.configuration_size;
 			break;
 		}
 		case USB_DESCTYPE_INTERFACE: {
@@ -379,7 +397,9 @@ static int process_get_descriptor_request(rh_t *instance,
 		size = request->buffer_size;
 	}
 	request->transfered_size = size;
-	memcpy(request->buffer,result_descriptor,size);
+	memcpy(request->transport_buffer,result_descriptor,size);
+	usb_log_debug("sent desctiptor: %s\n",
+			usb_debug_str_buffer((uint8_t*)request->transport_buffer,size,size));
 	if (del)
 		free(result_descriptor);
 	return EOK;
