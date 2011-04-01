@@ -213,7 +213,7 @@ int nil_initialize(int net_phone)
 	rc = eth_protos_initialize(&eth_globals.protos);
 	if (rc != EOK) {
 		free(eth_globals.broadcast_addr);
-		eth_devices_destroy(&eth_globals.devices);
+		eth_devices_destroy(&eth_globals.devices, free);
 	}
 out:
 	fibril_rwlock_write_unlock(&eth_globals.protos_lock);

@@ -94,20 +94,13 @@ static bool pciintel_enable_interrupt(ddf_fun_t *fnode)
 	sysarg_t apic;
 	sysarg_t i8259;
 
-	int irc_phone = -1;
-	int irc_service = -1;
+	int irc_phone = ENOTSUP;
 
-	if ((sysinfo_get_value("apic", &apic) == EOK) && (apic)) {
-		irc_service = SERVICE_APIC;
-	} else if ((sysinfo_get_value("i8259", &i8259) == EOK) && (i8259)) {
-		irc_service = SERVICE_I8259;
+	if (((sysinfo_get_value("apic", &apic) == EOK) && (apic))
+	    || ((sysinfo_get_value("i8259", &i8259) == EOK) && (i8259))) {
+		irc_phone = service_connect_blocking(SERVICE_IRC, 0, 0);
 	}
 
-	if (irc_service == -1) {
-		return false;
-	}
-
-	irc_phone = service_connect_blocking(irc_service, 0, 0);
 	if (irc_phone < 0) {
 		return false;
 	}

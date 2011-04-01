@@ -748,7 +748,7 @@ static void socket_destroy(socket_t *socket)
 
 	dyn_fifo_destroy(&socket->received);
 	dyn_fifo_destroy(&socket->accepted);
-	sockets_exclude(socket_get_sockets(), socket->socket_id);
+	sockets_exclude(socket_get_sockets(), socket->socket_id, free);
 }
 
 /** Closes the socket.

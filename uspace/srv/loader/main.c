@@ -406,14 +406,12 @@ static void ldr_connection(ipc_callid_t iid, ipc_call_t *icall)
 			ldr_run(callid, &call);
 			/* Not reached */
 		default:
-			retval = ENOENT;
+			retval = EINVAL;
 			break;
 		}
-		if (IPC_GET_IMETHOD(call) != IPC_M_PHONE_HUNGUP) {
-			DPRINTF("Responding EINVAL to method %d.\n",
-			    IPC_GET_IMETHOD(call));
-			async_answer_0(callid, EINVAL);
-		}
+		
+		if (IPC_GET_IMETHOD(call) != IPC_M_PHONE_HUNGUP)
+			async_answer_0(callid, retval);
 	}
 }
 

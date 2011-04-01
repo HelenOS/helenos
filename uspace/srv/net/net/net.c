@@ -288,14 +288,17 @@ static int net_initialize(async_client_conn_t client_connection)
 	    (uint8_t *) LO_FILENAME, SERVICE_LO, 0, connect_to_service);
 	if (rc != EOK)
 		return rc;
+	
 	rc = add_module(NULL, &net_globals.modules, (uint8_t *) NE2000_NAME,
 	    (uint8_t *) NE2000_FILENAME, SERVICE_NE2000, 0, connect_to_service);
 	if (rc != EOK)
 		return rc;
+	
 	rc = add_module(NULL, &net_globals.modules, (uint8_t *) ETHERNET_NAME,
 	    (uint8_t *) ETHERNET_FILENAME, SERVICE_ETHERNET, 0, connect_to_service);
 	if (rc != EOK)
 		return rc;
+	
 	rc = add_module(NULL, &net_globals.modules, (uint8_t *) NILDUMMY_NAME,
 	    (uint8_t *) NILDUMMY_FILENAME, SERVICE_NILDUMMY, 0, connect_to_service);
 	if (rc != EOK)
@@ -551,7 +554,7 @@ static int startup(void)
 		/* Read configuration files */
 		rc = read_netif_configuration(conf_files[i], netif);
 		if (rc != EOK) {
-			measured_strings_destroy(&netif->configuration);
+			measured_strings_destroy(&netif->configuration, free);
 			free(netif);
 			return rc;
 		}
@@ -561,7 +564,7 @@ static int startup(void)
 		    measured_strings_find(&netif->configuration, (uint8_t *) CONF_NAME, 0);
 		if (!setting) {
 			fprintf(stderr, "%s: Network interface name is missing\n", NAME);
-			measured_strings_destroy(&netif->configuration);
+			measured_strings_destroy(&netif->configuration, free);
 			free(netif);
 			return EINVAL;
 		}
@@ -570,7 +573,7 @@ static int startup(void)
 		/* Add to the netifs map */
 		int index = netifs_add(&net_globals.netifs, netif->id, netif);
 		if (index < 0) {
-			measured_strings_destroy(&netif->configuration);
+			measured_strings_destroy(&netif->configuration, free);
 			free(netif);
 			return index;
 		}
@@ -582,19 +585,18 @@ static int startup(void)
 		rc = char_map_add(&net_globals.netif_names, netif->name, 0,
 		    index);
 		if (rc != EOK) {
-			measured_strings_destroy(&netif->configuration);
-			netifs_exclude_index(&net_globals.netifs, index);
+			measured_strings_destroy(&netif->configuration, free);
+			netifs_exclude_index(&net_globals.netifs, index, free);
 			return rc;
 		}
 		
 		rc = start_device(netif);
 		if (rc != EOK) {
-			printf("%s: Error starting interface %s (%s)\n", NAME,
+			printf("%s: Ignoring failed interface %s (%s)\n", NAME,
 			    netif->name, str_error(rc));
-			measured_strings_destroy(&netif->configuration);
-			netifs_exclude_index(&net_globals.netifs, index);
-			
-			return rc;
+			measured_strings_destroy(&netif->configuration, free);
+			netifs_exclude_index(&net_globals.netifs, index, free);
+			continue;
 		}
 		
 		/* Increment modules' usage */
