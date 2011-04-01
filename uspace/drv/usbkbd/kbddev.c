@@ -275,16 +275,25 @@ static void usb_kbd_set_led(usb_kbd_t *kbd_dev)
 		kbd_dev->led_data[i++] = USB_HID_LED_NUM_LOCK;
 //		leds |= USB_HID_LED_NUM_LOCK;
 	}
+	else {
+	    kbd_dev->led_data[i++] = 0;
+	}
 	
 	if ((kbd_dev->mods & KM_CAPS_LOCK) && (i < kbd_dev->led_output_size)) {
 		kbd_dev->led_data[i++] = USB_HID_LED_CAPS_LOCK;
 //		leds |= USB_HID_LED_CAPS_LOCK;
+	}
+	else {
+	    kbd_dev->led_data[i++] = 0;
 	}
 	
 	if ((kbd_dev->mods & KM_SCROLL_LOCK) 
 	    && (i < kbd_dev->led_output_size)) {
 		kbd_dev->led_data[i++] = USB_HID_LED_SCROLL_LOCK;
 //		leds |= USB_HID_LED_SCROLL_LOCK;
+	}
+	else {
+	    kbd_dev->led_data[i++] = 0;
 	}
 	
 	usb_log_debug("Output report data: ");
