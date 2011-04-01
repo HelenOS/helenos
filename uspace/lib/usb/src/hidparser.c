@@ -1238,10 +1238,7 @@ int usb_hid_report_output_translate(usb_hid_report_parser_t *parser,
 					break; // TODO ErrorCode
 				}
 
-				size_t shift=0;
-				if(((offset+length)%8) > 0) {
-					shift = (8- ((offset+length)%8));
-				}
+				size_t shift = offset%8;
 
 				value = value << shift;							
 				value = value & (((1 << length)-1) << shift);
@@ -1250,16 +1247,16 @@ int usb_hid_report_output_translate(usb_hid_report_parser_t *parser,
 			else {
 				// je to ve dvou!! FIXME: melo by to umet delsi jak 2
 
-				// konec prvniho
+				// konec prvniho -- dolni x bitu
 				tmp_value = value;
-				tmp_value = tmp_value >> (8 - (offset%8) - 1);
 				tmp_value = tmp_value & ((1 << (8-(offset%8)))-1);				
+				tmp_value = tmp_value << (offset%8);
 
 				buffer[offset/8] = buffer[offset/8] | tmp_value;
 
-				// a ted druhej
-				value = value & ((1 << (length - (8 - (offset%8))))-1);
-				value = value << (8 - (length - (8 - (offset%8))));
+				// a ted druhej -- hornich length-x bitu
+				value = value >> (8 - (offset % 8));
+				value = value & ((1 << (length - (8 - (offset % 8)))) - 1);
 				
 				buffer[(offset+length-1)/8] = buffer[(offset+length-1)/8] | value;
 			}
