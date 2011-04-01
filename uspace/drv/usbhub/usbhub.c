@@ -331,6 +331,37 @@ static int usb_hub_trigger_connecting_non_removable_devices(usb_hub_info_t * hub
 			}
 		}
 	}
+	/// \TODO this is just a debug code
+	for(port=1;port<=descriptor->ports_count;++port){
+		bool is_non_removable =
+				((non_removable_dev_bitmap[port/8]) >> (port%8)) %2;
+		if(is_non_removable){
+			usb_log_debug("port %d is non-removable\n",port);
+			usb_port_status_t status;
+			size_t rcvd_size;
+			usb_device_request_setup_packet_t request;
+			//int opResult;
+			usb_hub_set_port_status_request(&request, port);
+			//endpoint 0
+			opResult = usb_pipe_control_read(
+					hub->control_pipe,
+					&request, sizeof(usb_device_request_setup_packet_t),
+					&status, 4, &rcvd_size
+					);
+			if (opResult != EOK) {
+				usb_log_error("could not get port status %d\n",opResult);
+			}
+			if (rcvd_size != sizeof (usb_port_status_t)) {
+				usb_log_error("received status has incorrect size\n");
+			}
+			//something connected/disconnected
+			if (usb_port_connect_change(&status)) {
+				usb_log_debug("some connection changed\n");
+			}
+			usb_log_debug("status: %s\n",usb_debug_str_buffer(
+					(uint8_t *)&status,4,4));
+		}
+	}
 	return EOK;
 }
 
