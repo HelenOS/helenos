@@ -36,6 +36,7 @@
 #define DRV_OHCI_ROOT_HUB_H
 
 #include <usb/usb.h>
+#include <usb/devdrv.h>
 
 #include "ohci_regs.h"
 #include "batch.h"
@@ -52,6 +53,8 @@ typedef struct rh {
 	ddf_dev_t *device;
 	/** hub port count */
 	int port_count;
+	/** hubs descriptors */
+	usb_device_descriptors_t descriptors;
 } rh_t;
 
 int rh_init(rh_t *instance, ddf_dev_t *dev, ohci_regs_t *regs);

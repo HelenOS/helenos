@@ -250,7 +250,7 @@ static int initialize_pipes(usb_device_t *dev)
 	    &dev->ctrl_pipe, 0, (void **) &dev->descriptors.configuration,
 	    &dev->descriptors.configuration_size);
 	if (rc != EOK) {
-		usb_log_error("Failed retrieving configuration descriptor: %s.\n",
+		usb_log_error("Failed retrieving configuration descriptor: %s. %s\n",
 		    dev->ddf_dev->name, str_error(rc));
 		return rc;
 	}
