@@ -271,6 +271,9 @@ static void usb_kbd_set_led(usb_kbd_t *kbd_dev)
 
 	unsigned i = 0;
 	
+	/* Reset the LED data. */
+	memset(kbd_dev->led_data, 0, kbd_dev->led_output_size * sizeof(int32_t));
+	
 	if ((kbd_dev->mods & KM_NUM_LOCK) && (i < kbd_dev->led_output_size)) {
 		kbd_dev->led_data[i++] = USB_HID_LED_NUM_LOCK;
 //		leds |= USB_HID_LED_NUM_LOCK;

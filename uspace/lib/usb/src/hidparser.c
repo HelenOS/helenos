@@ -1199,6 +1199,9 @@ int usb_hid_report_output_translate(usb_hid_report_parser_t *parser,
 		return EINVAL;
 	}
 
+	usb_log_debug("OUTPUT BUFFER: %s\n", usb_debug_str_buffer(buffer,size, 0));
+	usb_log_debug("OUTPUT DATA[0]: %d, DATA[1]: %d, DATA[2]: %d\n", data[0], data[1], data[2]);
+
 	item = parser->output.next;	
 	while(item != &parser->output) {
 		report_item = list_get_instance(item, usb_hid_report_item_t, link);
@@ -1209,25 +1212,17 @@ int usb_hid_report_output_translate(usb_hid_report_parser_t *parser,
 				break;
 			}
 
-			// translate data
-			if(USB_HID_ITEM_FLAG_CONSTANT(report_item->item_flags)) {
-				value = report_item->logical_minimum;
-			}
-			else {
-				//variable item
-				value = usb_hid_translate_data_reverse(report_item, data[idx]);
-				idx++;
-			}
-
 			if((USB_HID_ITEM_FLAG_VARIABLE(report_item->item_flags) == 0) ||
 				((report_item->usage_minimum == 0) && (report_item->usage_maximum == 0))) {
 					
 //				// variable item
+				value = usb_hid_translate_data_reverse(report_item, data[idx++]);
 				offset = report_item->offset + (i * report_item->size);
 				length = report_item->size;
 			}
 			else {
 				//bitmap
+				value += usb_hid_translate_data_reverse(report_item, data[idx++]);
 				offset = report_item->offset;
 				length = report_item->size * report_item->count;
 			}
@@ -1238,30 +1233,33 @@ int usb_hid_report_output_translate(usb_hid_report_parser_t *parser,
 					break; // TODO ErrorCode
 				}
 
-				size_t shift=0;
-				if(((offset+length)%8) > 0) {
-					shift = (8- ((offset+length)%8));
-				}
+				size_t shift = offset%8;
 
 				value = value << shift;							
 				value = value & (((1 << length)-1) << shift);
-				buffer[offset/8] = buffer[offset/8] | value;
+				
+				uint8_t mask = 0;
+				mask = 0xff - (((1 << length) - 1) << shift);
+				buffer[offset/8] = (buffer[offset/8] & mask) | value;
 			}
 			else {
 				// je to ve dvou!! FIXME: melo by to umet delsi jak 2
 
-				// konec prvniho
+				// konec prvniho -- dolni x bitu
 				tmp_value = value;
-				tmp_value = tmp_value >> (8 - (offset%8) - 1);
 				tmp_value = tmp_value & ((1 << (8-(offset%8)))-1);				
+				tmp_value = tmp_value << (offset%8);
 
-				buffer[offset/8] = buffer[offset/8] | tmp_value;
+				uint8_t mask = 0;
+				mask = ~(((1 << (8-(offset%8)))-1) << (offset%8));
+				buffer[offset/8] = (buffer[offset/8] & mask) | tmp_value;
 
-				// a ted druhej
-				value = value & ((1 << (length - (8 - (offset%8))))-1);
-				value = value << (8 - (length - (8 - (offset%8))));
+				// a ted druhej -- hornich length-x bitu
+				value = value >> (8 - (offset % 8));
+				value = value & ((1 << (length - (8 - (offset % 8)))) - 1);
 				
-				buffer[(offset+length-1)/8] = buffer[(offset+length-1)/8] | value;
+				mask = ((1 << (length - (8 - (offset % 8)))) - 1);
+				buffer[(offset+length-1)/8] = (buffer[(offset+length-1)/8] & mask) | value;
 			}
 
 		}
@@ -1269,6 +1267,7 @@ int usb_hid_report_output_translate(usb_hid_report_parser_t *parser,
 		item = item->next;
 	}
 
+	usb_log_debug("OUTPUT BUFFER: %s\n", usb_debug_str_buffer(buffer,size, 0));
 
 	return EOK;
 }
@@ -1283,6 +1282,10 @@ int32_t usb_hid_translate_data_reverse(usb_hid_report_item_t *item, int value)
 {
 	int ret=0;
 	int resolution;
+
+	if(USB_HID_ITEM_FLAG_CONSTANT(item->item_flags)) {
+		ret = item->logical_minimum;
+	}
 
 	if((USB_HID_ITEM_FLAG_VARIABLE(item->item_flags) == 0)) {
 
