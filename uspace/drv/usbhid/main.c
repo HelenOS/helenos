@@ -32,7 +32,7 @@
  */
 /**
  * @file
- * Main routines of USB KBD driver.
+ * Main routines of USB HID driver.
  */
 
 #include <ddf/driver.h>
@@ -42,12 +42,11 @@
 
 #include <usb/devdrv.h>
 
-#include "kbddev.h"
-#include "kbdrepeat.h"
+#include "usbhid.h"
 
 /*----------------------------------------------------------------------------*/
 
-#define NAME "usbkbd"
+#define NAME "usbhid"
 
 /**
  * Function for adding a new device of type USB/HID/keyboard.
@@ -74,12 +73,12 @@
  *
  * @sa usb_kbd_fibril(), usb_kbd_repeat_fibril()
  */
-static int usb_kbd_try_add_device(usb_device_t *dev)
+static int usb_hid_try_add_device(usb_device_t *dev)
 {
 	/* Create the function exposed under /dev/devices. */
-	ddf_fun_t *kbd_fun = ddf_fun_create(dev->ddf_dev, fun_exposed, 
-	    "keyboard");
-	if (kbd_fun == NULL) {
+	ddf_fun_t *hid_fun = ddf_fun_create(dev->ddf_dev, fun_exposed, 
+	    "hid");
+	if (hid_fun == NULL) {
 		usb_log_error("Could not create DDF function node.\n");
 		return ENOMEM;
 	}
@@ -87,75 +86,69 @@ static int usb_kbd_try_add_device(usb_device_t *dev)
 	/* 
 	 * Initialize device (get and process descriptors, get address, etc.)
 	 */
-	usb_log_debug("Initializing USB/HID KBD device...\n");
+	usb_log_debug("Initializing USB/HID device...\n");
 	
-	usb_kbd_t *kbd_dev = usb_kbd_new();
-	if (kbd_dev == NULL) {
-		usb_log_error("Error while creating USB/HID KBD device "
-		    "structure.\n");
-		ddf_fun_destroy(kbd_fun);
-		return ENOMEM;  // TODO: some other code??
-	}
+//	usb_kbd_t *kbd_dev = usb_kbd_new();
+//	if (kbd_dev == NULL) {
+//		usb_log_error("Error while creating USB/HID KBD device "
+//		    "structure.\n");
+//		ddf_fun_destroy(hid_fun);
+//		return ENOMEM;  // TODO: some other code??
+//	}
 	
-	int rc = usb_kbd_init(kbd_dev, dev);
+//	int rc = usb_kbd_init(kbd_dev, dev);
 	
-	if (rc != EOK) {
-		usb_log_error("Failed to initialize USB/HID KBD device.\n");
-		ddf_fun_destroy(kbd_fun);
-		usb_kbd_free(&kbd_dev);
-		return rc;
-	}	
+//	if (rc != EOK) {
+//		usb_log_error("Failed to initialize USB/HID KBD device.\n");
+//		ddf_fun_destroy(hid_fun);
+//		usb_kbd_free(&kbd_dev);
+//		return rc;
+//	}	
 	
-	usb_log_debug("USB/HID KBD device structure initialized.\n");
+//	usb_log_debug("USB/HID KBD device structure initialized.\n");
 	
 	/*
 	 * Store the initialized keyboard device and keyboard ops
 	 * to the DDF function.
 	 */
-	kbd_fun->driver_data = kbd_dev;
-	kbd_fun->ops = &keyboard_ops;
+	//kbd_fun->driver_data = kbd_dev;
+	hid_fun->ops = &hid_ops;
 
-	rc = ddf_fun_bind(kbd_fun);
+	int rc = ddf_fun_bind(hid_fun);
 	if (rc != EOK) {
 		usb_log_error("Could not bind DDF function: %s.\n",
 		    str_error(rc));
 		// TODO: Can / should I destroy the DDF function?
-		ddf_fun_destroy(kbd_fun);
-		usb_kbd_free(&kbd_dev);
+		ddf_fun_destroy(hid_fun);
 		return rc;
 	}
 	
-	rc = ddf_fun_add_to_class(kbd_fun, "keyboard");
+	rc = ddf_fun_add_to_class(hid_fun, "hid");
 	if (rc != EOK) {
 		usb_log_error(
-		    "Could not add DDF function to class 'keyboard': %s.\n",
+		    "Could not add DDF function to class 'hid': %s.\n",
 		    str_error(rc));
 		// TODO: Can / should I destroy the DDF function?
-		ddf_fun_destroy(kbd_fun);
-		usb_kbd_free(&kbd_dev);
+		ddf_fun_destroy(hid_fun);
 		return rc;
 	}
 	
-	/*
-	 * Create new fibril for handling this keyboard
-	 */
-	//fid_t fid = fibril_create(usb_kbd_fibril, kbd_dev);
-	
+
 	/* Start automated polling function.
 	 * This will create a separate fibril that will query the device
 	 * for the data continuously 
 	 */
        rc = usb_device_auto_poll(dev,
 	   /* Index of the polling pipe. */
-	   USB_KBD_POLL_EP_NO,
+	   USB_HID_POLL_EP_NO,
 	   /* Callback when data arrives. */
-	   usb_kbd_polling_callback,
+	   usb_hid_polling_callback,
 	   /* How much data to request. */
-	   dev->pipes[USB_KBD_POLL_EP_NO].pipe->max_packet_size,
+	   dev->pipes[USB_HID_POLL_EP_NO].pipe->max_packet_size,
 	   /* Callback when the polling ends. */
-	   usb_kbd_polling_ended_callback,
+	   usb_hid_polling_ended_callback,
 	   /* Custom argument. */
-	   kbd_dev);
+	   NULL);
 	
 	
 	if (rc != EOK) {
@@ -163,19 +156,8 @@ static int usb_kbd_try_add_device(usb_device_t *dev)
 		    dev->ddf_dev->name);
 		return rc;
 	}
-	//fibril_add_ready(fid);
-	
-	/*
-	 * Create new fibril for auto-repeat
-	 */
-	fid_t fid = fibril_create(usb_kbd_repeat_fibril, kbd_dev);
-	if (fid == 0) {
-		usb_log_error("Failed to start fibril for KBD auto-repeat");
-		return ENOMEM;
-	}
-	fibril_add_ready(fid);
 
-	(void)keyboard_ops;
+	(void)hid_ops;
 
 	/*
 	 * Hurrah, device is initialized.
@@ -194,27 +176,27 @@ static int usb_kbd_try_add_device(usb_device_t *dev)
  * @retval EOK if successful. 
  * @retval EREFUSED if the device is not supported.
  */
-static int usb_kbd_add_device(usb_device_t *dev)
+static int usb_hid_add_device(usb_device_t *dev)
 {
-	usb_log_debug("usb_kbd_add_device()\n");
+	usb_log_debug("usb_hid_add_device()\n");
 	
 	if (dev->interface_no < 0) {
-		usb_log_warning("Device is not a supported keyboard.\n");
-		usb_log_error("Failed to add USB KBD device: endpoint not found."
+		usb_log_warning("Device is not a supported HID device.\n");
+		usb_log_error("Failed to add HID device: endpoint not found."
 		    "\n");
 		return ENOTSUP;
 	}
 	
-	int rc = usb_kbd_try_add_device(dev);
+	int rc = usb_hid_try_add_device(dev);
 	
 	if (rc != EOK) {
-		usb_log_warning("Device is not a supported keyboard.\n");
-		usb_log_error("Failed to add KBD device: %s.\n",
+		usb_log_warning("Device is not a supported HID device.\n");
+		usb_log_error("Failed to add HID device: %s.\n",
 		    str_error(rc));
 		return rc;
 	}
 	
-	usb_log_info("Keyboard `%s' ready to use.\n", dev->ddf_dev->name);
+	usb_log_info("HID device `%s' ready to use.\n", dev->ddf_dev->name);
 
 	return EOK;
 }
@@ -223,27 +205,27 @@ static int usb_kbd_add_device(usb_device_t *dev)
 
 /* Currently, the framework supports only device adding. Once the framework
  * supports unplug, more callbacks will be added. */
-static usb_driver_ops_t usb_kbd_driver_ops = {
-        .add_device = usb_kbd_add_device,
+static usb_driver_ops_t usb_hid_driver_ops = {
+        .add_device = usb_hid_add_device,
 };
 
 
 /* The driver itself. */
-static usb_driver_t usb_kbd_driver = {
+static usb_driver_t usb_hid_driver = {
         .name = NAME,
-        .ops = &usb_kbd_driver_ops,
-        .endpoints = usb_kbd_endpoints
+        .ops = &usb_hid_driver_ops,
+        .endpoints = usb_hid_endpoints
 };
 
 /*----------------------------------------------------------------------------*/
 
 int main(int argc, char *argv[])
 {
-	printf(NAME ": HelenOS USB KBD driver.\n");
+	printf(NAME ": HelenOS USB HID driver.\n");
 
 	usb_log_enable(USB_LOG_LEVEL_DEBUG, NAME);
 
-	return usb_driver_main(&usb_kbd_driver);
+	return usb_driver_main(&usb_hid_driver);
 }
 
 /**
