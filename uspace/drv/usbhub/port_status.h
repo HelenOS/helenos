@@ -94,6 +94,22 @@ usb_device_request_setup_packet_t * request, uint16_t port,
 	request->length = 0;
 }
 
+/**
+ * set the device request to be a port feature clear request
+ * @param request
+ * @param port
+ * @param feature_selector
+ */
+static inline void usb_hub_set_disable_port_feature_request(
+usb_device_request_setup_packet_t * request, uint16_t port,
+		uint16_t feature_selector
+){
+	request->index = port;
+	request->request_type = USB_HUB_REQ_TYPE_SET_PORT_FEATURE;
+	request->request = USB_HUB_REQUEST_CLEAR_FEATURE;
+	request->value = feature_selector;
+	request->length = 0;
+}
 
 /**
  * set the device request to be a port enable request

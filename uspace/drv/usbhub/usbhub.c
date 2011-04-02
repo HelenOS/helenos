@@ -316,8 +316,8 @@ static int usb_hub_trigger_connecting_non_removable_devices(usb_hub_info_t * hub
 			}
 			//set the status change bit, so it will be noticed in driver loop
 			if(usb_port_dev_connected(&status)){
-				usb_hub_set_enable_port_feature_request(&request, port,
-						USB_HUB_FEATURE_C_PORT_CONNECTION);
+				usb_hub_set_disable_port_feature_request(&request, port,
+						USB_HUB_FEATURE_PORT_CONNECTION);
 				opResult = usb_pipe_control_read(
 						hub->control_pipe,
 						&request, sizeof(usb_device_request_setup_packet_t),
@@ -325,9 +325,23 @@ static int usb_hub_trigger_connecting_non_removable_devices(usb_hub_info_t * hub
 						);
 				if (opResult != EOK) {
 					usb_log_warning(
-							"could not set port change on port %d errno:%d\n",
+							"could not clear port connection on port %d errno:%d\n",
 							port, opResult);
 				}
+				usb_log_debug("cleared port connection\n");
+				usb_hub_set_enable_port_feature_request(&request, port,
+						USB_HUB_FEATURE_PORT_ENABLE);
+				opResult = usb_pipe_control_read(
+						hub->control_pipe,
+						&request, sizeof(usb_device_request_setup_packet_t),
+						&status, 4, &rcvd_size
+						);
+				if (opResult != EOK) {
+					usb_log_warning(
+							"could not set port enabled on port %d errno:%d\n",
+							port, opResult);
+				}
+				usb_log_debug("port set to enabled - should lead to connection change\n");
 			}
 		}
 	}
@@ -612,6 +626,7 @@ static void usb_hub_process_interrupt(usb_hub_info_t * hub,
 	}
 	//something connected/disconnected
 	if (usb_port_connect_change(&status)) {
+		usb_log_debug("connection change on port\n");
 		if (usb_port_dev_connected(&status)) {
 			usb_log_debug("some connection changed\n");
 			usb_hub_init_add_device(hub, port, usb_port_speed(&status));
@@ -622,6 +637,7 @@ static void usb_hub_process_interrupt(usb_hub_info_t * hub,
 	//over current
 	if (usb_port_overcurrent_change(&status)) {
 		//check if it was not auto-resolved
+		usb_log_debug("overcurrent change on port\n");
 		if(usb_port_over_current(&status)){
 			usb_hub_over_current(hub,port);
 		}else{
@@ -638,6 +654,7 @@ static void usb_hub_process_interrupt(usb_hub_info_t * hub,
 			usb_log_warning("port reset, but port still not enabled\n");
 		}
 	}
+	usb_log_debug("status %x\n ",status);
 
 	usb_port_set_connect_change(&status, false);
 	usb_port_set_reset(&status, false);
