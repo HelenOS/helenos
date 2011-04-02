@@ -350,7 +350,7 @@ int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch)
 	assert(list);
 	if (batch->transfer_type == USB_TRANSFER_CONTROL) {
 		usb_device_keeper_use_control(
-		    &instance->manager, batch->target.address);
+		    &instance->manager, batch->target);
 	}
 	transfer_list_add_batch(list, batch);
 
@@ -393,7 +393,7 @@ void hc_interrupt(hc_t *instance, uint16_t status)
 			{
 			case USB_TRANSFER_CONTROL:
 				usb_device_keeper_release_control(
-				    &instance->manager, batch->target.address);
+				    &instance->manager, batch->target);
 				break;
 			case USB_TRANSFER_INTERRUPT:
 			case USB_TRANSFER_ISOCHRONOUS: {

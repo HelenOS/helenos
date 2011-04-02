@@ -50,7 +50,7 @@
 struct usb_device_info {
 	usb_speed_t speed;
 	bool occupied;
-	bool control_used;
+	uint16_t control_used;
 	uint16_t toggle_status[2];
 	devman_handle_t handle;
 };
@@ -98,10 +98,10 @@ usb_speed_t usb_device_keeper_get_speed(usb_device_keeper_t *instance,
     usb_address_t address);
 
 void usb_device_keeper_use_control(usb_device_keeper_t *instance,
-    usb_address_t address);
+    usb_target_t target);
 
 void usb_device_keeper_release_control(usb_device_keeper_t *instance,
-    usb_address_t address);
+    usb_target_t target);
 
 #endif
 /**
