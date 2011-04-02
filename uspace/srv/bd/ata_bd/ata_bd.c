@@ -370,7 +370,8 @@ static int disk_init(disk_t *d, int disk_id)
 	uint8_t model[40];
 	ata_inquiry_data_t inq_data;
 	uint16_t w;
-	uint8_t c, bc_high, bc_low;
+	uint8_t c;
+	uint16_t bc;
 	size_t pos, len;
 	int rc;
 	unsigned i;
@@ -395,10 +396,10 @@ static int disk_init(disk_t *d, int disk_id)
 		 * there are many devices that do not follow this and only set
 		 * the byte count registers. So, only check these.
 		 */
-		bc_high = pio_read_8(&cmd->cylinder_high);
-		bc_low = pio_read_8(&cmd->cylinder_low);
+		bc = ((uint16_t)pio_read_8(&cmd->cylinder_high) << 8) |
+		    pio_read_8(&cmd->cylinder_low);
 
-		if (bc_high == 0xEB && bc_low == 0x14) {
+		if (bc == PDEV_SIGNATURE_BC) {
 			rc = identify_pkt_dev(disk_id, &idata);
 			if (rc == EOK) {
 				/* We have a packet device. */
@@ -415,7 +416,6 @@ static int disk_init(disk_t *d, int disk_id)
 		return EIO;
 	}
 
-	printf("device caps: 0x%04x\n", idata.caps);
 	if (d->dev_type == ata_pkt_dev) {
 		/* Packet device */
 		d->amode = 0;
