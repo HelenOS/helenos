@@ -43,13 +43,21 @@
 #include <fibril_synch.h>
 #include <usb/usb.h>
 
+#define BANDWIDTH_TOTAL_USB11 12000000
+#define BANDWIDTH_AVAILABLE_USB11 ((BANDWIDTH_TOTAL_USB11 / 10) * 9)
+
 typedef struct bandwidth {
 	hash_table_t reserved;
 	fibril_mutex_t guard;
 	size_t free;
+	size_t (*usage_fnc)(usb_speed_t, usb_transfer_type_t, size_t, size_t);
 } bandwidth_t;
 
-int bandwidth_init(bandwidth_t *instance);
+size_t bandwidth_count_usb11(usb_speed_t speed, usb_transfer_type_t type,
+    size_t size, size_t max_packet_size);
+
+int bandwidth_init(bandwidth_t *instance, size_t bandwidth,
+    size_t (*usage_fnc)(usb_speed_t, usb_transfer_type_t, size_t, size_t));
 
 void bandwidth_destroy(bandwidth_t *instance);
 

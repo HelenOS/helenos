@@ -57,7 +57,8 @@ static hash_index_t transfer_hash(unsigned long key[])
 	return hash;
 }
 /*----------------------------------------------------------------------------*/
-static int trans_compare(unsigned long key[], hash_count_t keys, link_t *item)
+static int transfer_compare(
+    unsigned long key[], hash_count_t keys, link_t *item)
 {
 	assert(item);
 	transfer_status_t *status =
@@ -67,18 +68,64 @@ static int trans_compare(unsigned long key[], hash_count_t keys, link_t *item)
 	return bcmp(key, &status->transfer, bytes);
 }
 /*----------------------------------------------------------------------------*/
-static void dummy(link_t *item) {}
+static void transfer_remove(link_t *item)
+{
+	assert(item);
+	transfer_status_t *status =
+	    hash_table_get_instance(item, transfer_status_t, link);
+	assert(status);
+	free(status);
+}
 /*----------------------------------------------------------------------------*/
 hash_table_operations_t op = {
 	.hash = transfer_hash,
-	.compare = trans_compare,
-	.remove_callback = dummy,
+	.compare = transfer_compare,
+	.remove_callback = transfer_remove,
 };
 /*----------------------------------------------------------------------------*/
-int bandwidth_init(bandwidth_t *instance)
+size_t bandwidth_count_usb11(usb_speed_t speed, usb_transfer_type_t type,
+    size_t size, size_t max_packet_size)
+{
+	const unsigned packet_count =
+	    (size + max_packet_size - 1) / max_packet_size;
+	/* TODO: It may be that ISO and INT transfers use only one data packet
+	 * per transaction, but I did not find text in UB spec that confirms
+	 * this */
+	/* NOTE: All data packets will be considered to be max_packet_size */
+	switch (speed)
+	{
+	case USB_SPEED_LOW:
+		assert(type == USB_TRANSFER_INTERRUPT);
+		/* Protocol overhead 13B
+		 * (3 SYNC bytes, 3 PID bytes, 2 Endpoint + CRC bytes, 2
+		 * CRC bytes, and a 3-byte interpacket delay)
+		 * see USB spec page 45-46. */
+		/* Speed penalty 8: low speed is 8-times slower*/
+		return packet_count * (13 + max_packet_size) * 8;
+	case USB_SPEED_FULL:
+		/* Interrupt transfer overhead see above
+		 * or page 45 of USB spec */
+		if (type == USB_TRANSFER_INTERRUPT)
+			return packet_count * (13 + max_packet_size);
+
+		assert(type == USB_TRANSFER_ISOCHRONOUS);
+		/* Protocol overhead 9B
+		 * (2 SYNC bytes, 2 PID bytes, 2 Endpoint + CRC bytes, 2 CRC
+		 * bytes, and a 1-byte interpacket delay)
+		 * see USB spec page 42 */
+		return packet_count * (9 + max_packet_size);
+	default:
+		return 0;
+	}
+}
+/*----------------------------------------------------------------------------*/
+int bandwidth_init(bandwidth_t *instance, size_t bandwidth,
+    size_t (*usage_fnc)(usb_speed_t, usb_transfer_type_t, size_t, size_t))
 {
 	assert(instance);
 	fibril_mutex_initialize(&instance->guard);
+	instance->free = bandwidth;
+	instance->usage_fnc = usage_fnc;
 	return
 	    hash_table_create(&instance->reserved, BUCKET_COUNT, MAX_KEYS, &op);
 }
@@ -93,13 +140,28 @@ int bandwidth_reserve(bandwidth_t *instance, usb_address_t address,
     usb_transfer_type_t transfer_type, size_t max_packet_size, size_t size,
     unsigned interval)
 {
+	if (transfer_type != USB_TRANSFER_ISOCHRONOUS &&
+	    transfer_type != USB_TRANSFER_INTERRUPT) {
+		return ENOTSUP;
+	}
+
 	assert(instance);
+	assert(instance->usage_fnc);
+
 	transfer_t trans = {
 		.address = address,
 		.endpoint = endpoint,
 		.direction = direction,
 	};
 	fibril_mutex_lock(&instance->guard);
+	const size_t required =
+	    instance->usage_fnc(speed, transfer_type, size, max_packet_size);
+
+	if (required > instance->free) {
+		fibril_mutex_unlock(&instance->guard);
+		return ENOSPC;
+	}
+
 	link_t *item =
 	    hash_table_find(&instance->reserved, (unsigned long*)&trans);
 	if (item != NULL) {
@@ -114,12 +176,13 @@ int bandwidth_reserve(bandwidth_t *instance, usb_address_t address,
 	}
 
 	status->transfer = trans;
-	status->required = 0;
+	status->required = required;
 	status->used = false;
 	link_initialize(&status->link);
 
 	hash_table_insert(&instance->reserved,
 	    (unsigned long*)&status->transfer, &status->link);
+	instance->free -= required;
 	fibril_mutex_unlock(&instance->guard);
 	return EOK;
 	/* TODO: compute bandwidth used */
@@ -141,6 +204,11 @@ int bandwidth_release(bandwidth_t *instance, usb_address_t address,
 		fibril_mutex_unlock(&instance->guard);
 		return EINVAL;
 	}
+
+	transfer_status_t *status =
+	    hash_table_get_instance(item, transfer_status_t, link);
+
+	instance->free += status->required;
 
 	hash_table_remove(&instance->reserved,
 	    (unsigned long*)&trans, MAX_KEYS);
