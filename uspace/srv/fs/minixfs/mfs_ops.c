@@ -268,6 +268,7 @@ static int mfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 
 		if (!d_info->d_inum) {
 			/*This entry is not used*/
+			free(d_info);
 			continue;
 		}
 
@@ -276,8 +277,10 @@ static int mfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 			/*Hit!*/
 			mfs_node_core_get(rfn, mnode->instance,
 				d_info->d_inum);
+			free(d_info);
 			goto found;
 		}
+		free(d_info);
 	}
 	*rfn = NULL;
 	return ENOENT;
