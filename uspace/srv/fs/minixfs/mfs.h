@@ -90,6 +90,7 @@ struct mfs_sb_info {
 	mfs_version_t fs_version;
 	int ino_per_block;
 	int dirsize;
+	int itable_off;
 	unsigned max_name_len;
 	bool long_names;
 	bool native;
@@ -153,6 +154,9 @@ mfs_read_inode_raw(const struct mfs_instance *instance, uint16_t inum);
 
 extern struct mfs_ino_info *
 mfs2_read_inode_raw(const struct mfs_instance *instance, uint32_t inum);
+
+extern int
+put_inode(struct mfs_node *mnode);
 
 /*mfs_read.c*/
 int read_map(uint32_t *b, const struct mfs_node *mnode, const uint32_t pos);

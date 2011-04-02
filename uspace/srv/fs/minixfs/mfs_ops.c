@@ -55,6 +55,7 @@ static int mfs_root_get(fs_node_t **rfn, devmap_handle_t handle);
 static devmap_handle_t mfs_device_get(fs_node_t *fsnode);
 static aoff64_t mfs_size_get(fs_node_t *node);
 static int mfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component);
+static int mfs_create_node(fs_node_t **rfn, devmap_handle_t handle, int flags);
 
 static
 int mfs_node_get(fs_node_t **rfn, devmap_handle_t devmap_handle,
@@ -75,6 +76,7 @@ libfs_ops_t mfs_libfs_ops = {
 	.node_open = mfs_node_open,
 	.index_get = mfs_index_get,
 	.match = mfs_match,
+	.create = mfs_create_node,
 	.plb_get_char = mfs_plb_get_char,
 	.has_children = mfs_has_children,
 	.lnkcnt_get = mfs_lnkcnt_get
@@ -190,6 +192,7 @@ recognized:
 		sbi->max_file_size = conv32(native, sb3->s_max_file_size);
 		sbi->nzones = conv32(native, sb3->s_nzones);
 		sbi->block_size = conv16(native, sb3->s_block_size);
+		sbi->ino_per_block = V3_INODES_PER_BLOCK(sbi->block_size);
 		sbi->dirsize = MFS3_DIRSIZE;
 		sbi->max_name_len = MFS3_MAX_NAME_LEN;
 	} else {
@@ -201,12 +204,14 @@ recognized:
 		sbi->max_file_size = conv32(native, sb->s_max_file_size);
 		sbi->nzones = conv16(native, sb->s_nzones);
 		sbi->block_size = MFS_BLOCKSIZE;
+		sbi->ino_per_block = V1_INODES_PER_BLOCK;
 		if (version == MFS_VERSION_V2)
 			sbi->nzones = conv32(native, sb->s_nzones2);
 		sbi->dirsize = longnames ? MFSL_DIRSIZE : MFS_DIRSIZE;
 		sbi->max_name_len = longnames ? MFS_L_MAX_NAME_LEN :
 				MFS_MAX_NAME_LEN;
 	}
+	sbi->itable_off = 2 + sbi->ibmap_blocks + sbi->zbmap_blocks;
  
 	free(sb);
 
@@ -242,6 +247,12 @@ devmap_handle_t mfs_device_get(fs_node_t *fsnode)
 {
 	struct mfs_node *node = fsnode->data;
 	return node->instance->handle;
+}
+
+static int mfs_create_node(fs_node_t **rfn, devmap_handle_t handle, int flags)
+{
+	mfsdebug("create_node()\n");
+	return ENOTSUP;
 }
 
 static int mfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
