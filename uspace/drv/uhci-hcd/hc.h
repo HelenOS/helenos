@@ -42,6 +42,7 @@
 
 #include <usbhc_iface.h>
 #include <usb/host/device_keeper.h>
+#include <usb/host/bandwidth.h>
 
 #include "batch.h"
 #include "transfer_list.h"
@@ -83,6 +84,7 @@ typedef struct uhci_regs {
 
 typedef struct hc {
 	usb_device_keeper_t manager;
+	bandwidth_t bandwidth;
 
 	regs_t *registers;
 

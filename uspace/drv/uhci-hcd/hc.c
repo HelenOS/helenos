@@ -238,6 +238,10 @@ int hc_init_mem_structures(hc_t *instance)
 	usb_device_keeper_init(&instance->manager);
 	usb_log_debug("Initialized device manager.\n");
 
+	ret = bandwidth_init(&instance->bandwidth, BANDWIDTH_AVAILABLE_USB11,
+	    bandwidth_count_usb11);
+	assert(ret == true);
+
 	return EOK;
 #undef CHECK_RET_DEST_CMDS_RETURN
 }

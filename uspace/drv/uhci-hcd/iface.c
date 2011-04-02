@@ -132,14 +132,28 @@ static int register_endpoint(
     usb_transfer_type_t transfer_type, usb_direction_t direction,
     size_t max_packet_size, unsigned int interval)
 {
-	return ENOTSUP;
+	hc_t *hc = fun_to_hc(fun);
+	assert(hc);
+	const usb_speed_t speed =
+	    usb_device_keeper_get_speed(&hc->manager, address);
+	size_t size = max_packet_size;
+
+	usb_log_debug("Register endpoint %d:%d %s %s(%d) %zu(%zu) %u.\n",
+	    address, endpoint, usb_str_transfer_type(transfer_type),
+	    usb_str_speed(speed), direction, size, max_packet_size, interval);
+	return bandwidth_reserve(&hc->bandwidth, address, endpoint, direction,
+	    speed, transfer_type, max_packet_size, size, interval);
 }
 /*----------------------------------------------------------------------------*/
 static int unregister_endpoint(
     ddf_fun_t *fun, usb_address_t address,
     usb_endpoint_t endpoint, usb_direction_t direction)
 {
-	return ENOTSUP;
+	hc_t *hc = fun_to_hc(fun);
+	assert(hc);
+	usb_log_debug("Unregister endpoint %d:%d %d.\n",
+	    address, endpoint, direction);
+	return bandwidth_release(&hc->bandwidth, address, endpoint, direction);
 }
 /*----------------------------------------------------------------------------*/
 /** Interrupt out transaction interface function
