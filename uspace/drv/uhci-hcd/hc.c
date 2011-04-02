@@ -328,13 +328,22 @@ int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch)
 	const int low_speed = (batch->speed == USB_SPEED_LOW);
 	if (!usb_is_allowed(
 	    low_speed, batch->transfer_type, batch->max_packet_size)) {
-		usb_log_warning(
-		    "Invalid USB transfer specified %s SPEED %d %zu.\n",
-		    low_speed ? "LOW" : "FULL" , batch->transfer_type,
+		usb_log_error("Invalid USB transfer specified %s %d %zu.\n",
+		    usb_str_speed(batch->speed), batch->transfer_type,
 		    batch->max_packet_size);
 		return ENOTSUP;
 	}
-	/* TODO: check available bandwidth here */
+	/* Check available bandwidth */
+	if (batch->transfer_type == USB_TRANSFER_INTERRUPT ||
+	    batch->transfer_type == USB_TRANSFER_ISOCHRONOUS) {
+		int ret =
+		    bandwidth_use(&instance->bandwidth, batch->target.address,
+		    batch->target.endpoint, batch->direction);
+		if (ret != EOK) {
+			usb_log_warning("Failed(%d) to use reserved bw: %s.\n",
+			    ret, str_error(ret));
+		}
+	}
 
 	transfer_list_t *list =
 	    instance->transfers[batch->speed][batch->transfer_type];
@@ -361,6 +370,7 @@ int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch)
 void hc_interrupt(hc_t *instance, uint16_t status)
 {
 	assert(instance);
+//	status |= 1; //Uncomment to work around qemu hang
 	/* TODO: Resume interrupts are not supported */
 	/* Lower 2 bits are transaction error and transaction complete */
 	if (status & 0x3) {
@@ -379,9 +389,25 @@ void hc_interrupt(hc_t *instance, uint16_t status)
 			list_remove(item);
 			usb_transfer_batch_t *batch =
 			    list_get_instance(item, usb_transfer_batch_t, link);
-			if (batch->transfer_type == USB_TRANSFER_CONTROL) {
+			switch (batch->transfer_type)
+			{
+			case USB_TRANSFER_CONTROL:
 				usb_device_keeper_release_control(
 				    &instance->manager, batch->target.address);
+				break;
+			case USB_TRANSFER_INTERRUPT:
+			case USB_TRANSFER_ISOCHRONOUS: {
+				int ret = bandwidth_free(&instance->bandwidth,
+				    batch->target.address,
+				    batch->target.endpoint,
+				    batch->direction);
+				if (ret != EOK)
+					usb_log_warning("Failed(%d) to free "
+					    "reserved bw: %s.\n", ret,
+					    str_error(ret));
+				}
+			default:
+				break;
 			}
 			batch->next_step(batch);
 		}
