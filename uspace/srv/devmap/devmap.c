@@ -550,7 +550,7 @@ static void devmap_device_register(ipc_callid_t iid, ipc_call_t *icall,
 	/* Check that device is not already registered */
 	if (devmap_device_find_name(namespace->name, device->name) != NULL) {
 		printf("%s: Device '%s/%s' already registered\n", NAME,
-		    device->namespace->name, device->name);
+		    namespace->name, device->name);
 		devmap_namespace_destroy(namespace);
 		fibril_mutex_unlock(&devices_list_mutex);
 		free(device->name);

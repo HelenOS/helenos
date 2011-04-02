@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2007 Martin Decky
+ * Copyright (c) 2011 Vojtech Horky
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,64 +27,30 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup tester
+/** @addtogroup libc
  * @{
  */
-/** @file
- */
 
-#ifndef TESTER_H_
-#define TESTER_H_
+#ifndef LIBC_IO_LOG_H_
+#define LIBC_IO_LOG_H_
 
-#include <sys/types.h>
-#include <bool.h>
+#include <stdarg.h>
 
-#define IPC_TEST_SERVICE  10240
-#define IPC_TEST_METHOD   2000
+typedef enum {
+	LVL_FATAL,
+	LVL_ERROR,
+	LVL_WARN,
+	LVL_NOTE,
+	LVL_DEBUG,
+	LVL_DEBUG2,
 
-extern bool test_quiet;
-extern int test_argc;
-extern char **test_argv;
+	/** For checking range of values */
+	LVL_LIMIT
+} log_level_t;
 
-#define TPRINTF(format, ...) \
-	{ \
-		if (!test_quiet) { \
-			fprintf(stderr, format, ##__VA_ARGS__); \
-		} \
-	}
-
-typedef const char *(*test_entry_t)(void);
-
-typedef struct {
-	const char *name;
-	const char *desc;
-	test_entry_t entry;
-	bool safe;
-} test_t;
-
-extern const char *test_thread1(void);
-extern const char *test_print1(void);
-extern const char *test_print2(void);
-extern const char *test_print3(void);
-extern const char *test_print4(void);
-extern const char *test_print5(void);
-extern const char *test_console1(void);
-extern const char *test_stdio1(void);
-extern const char *test_stdio2(void);
-extern const char *test_fault1(void);
-extern const char *test_fault2(void);
-extern const char *test_fault3(void);
-extern const char *test_vfs1(void);
-extern const char *test_ping_pong(void);
-extern const char *test_loop1(void);
-extern const char *test_malloc1(void);
-extern const char *test_mapping1(void);
-extern const char *test_serial1(void);
-extern const char *test_usbaddrkeep(void);
-extern const char *test_virtchar1(void);
-extern const char *test_devman1(void);
-
-extern test_t tests[];
+extern int log_init(const char *, log_level_t);
+extern void log_msg(log_level_t, const char *, ...);
+extern void log_msgv(log_level_t, const char *, va_list);
 
 #endif
 
