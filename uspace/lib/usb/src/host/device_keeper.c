@@ -53,7 +53,7 @@ void usb_device_keeper_init(usb_device_keeper_t *instance)
 	unsigned i = 0;
 	for (; i < USB_ADDRESS_COUNT; ++i) {
 		instance->devices[i].occupied = false;
-		instance->devices[i].control_used = false;
+		instance->devices[i].control_used = 0;
 		instance->devices[i].handle = 0;
 		instance->devices[i].toggle_status[0] = 0;
 		instance->devices[i].toggle_status[1] = 0;
@@ -310,23 +310,26 @@ usb_speed_t usb_device_keeper_get_speed(usb_device_keeper_t *instance,
 }
 /*----------------------------------------------------------------------------*/
 void usb_device_keeper_use_control(usb_device_keeper_t *instance,
-    usb_address_t address)
+    usb_target_t target)
 {
 	assert(instance);
+	const uint16_t ep = 1 << target.endpoint;
 	fibril_mutex_lock(&instance->guard);
-	while (instance->devices[address].control_used) {
+	while (instance->devices[target.address].control_used & ep) {
 		fibril_condvar_wait(&instance->change, &instance->guard);
 	}
-	instance->devices[address].control_used = true;
+	instance->devices[target.address].control_used |= ep;
 	fibril_mutex_unlock(&instance->guard);
 }
 /*----------------------------------------------------------------------------*/
 void usb_device_keeper_release_control(usb_device_keeper_t *instance,
-    usb_address_t address)
+    usb_target_t target)
 {
 	assert(instance);
+	const uint16_t ep = 1 << target.endpoint;
 	fibril_mutex_lock(&instance->guard);
-	instance->devices[address].control_used = false;
+	assert((instance->devices[target.address].control_used & ep) != 0);
+	instance->devices[target.address].control_used &= ~ep;
 	fibril_mutex_unlock(&instance->guard);
 	fibril_condvar_signal(&instance->change);
 }
