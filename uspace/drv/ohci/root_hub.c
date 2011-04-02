@@ -110,6 +110,41 @@ static const usb_standard_endpoint_descriptor_t ohci_rh_ep_descriptor =
 	.poll_interval = 255,
 };
 
+static const uint32_t hub_clear_feature_valid_mask =
+	(1 << USB_HUB_FEATURE_C_HUB_LOCAL_POWER) +
+	(1 << USB_HUB_FEATURE_C_HUB_OVER_CURRENT);
+
+static const uint32_t hub_clear_feature_by_writing_one_mask =
+	1 << USB_HUB_FEATURE_C_HUB_LOCAL_POWER;
+
+static const uint32_t hub_set_feature_valid_mask =
+	(1 << USB_HUB_FEATURE_C_HUB_OVER_CURRENT);
+
+	
+static const uint32_t hub_set_feature_direct_mask =
+	(1 << USB_HUB_FEATURE_C_HUB_OVER_CURRENT);
+
+static const uint32_t port_set_feature_valid_mask =
+	(1 << USB_HUB_FEATURE_PORT_ENABLE) +
+	(1 << USB_HUB_FEATURE_PORT_SUSPEND) +
+	(1 << USB_HUB_FEATURE_PORT_RESET) +
+	(1 << USB_HUB_FEATURE_PORT_POWER);
+
+static const uint32_t port_clear_feature_valid_mask =
+	(1 << USB_HUB_FEATURE_PORT_CONNECTION) +
+	(1 << USB_HUB_FEATURE_PORT_SUSPEND) +
+	(1 << USB_HUB_FEATURE_PORT_OVER_CURRENT) +
+	(1 << USB_HUB_FEATURE_PORT_POWER) +
+	(1 << USB_HUB_FEATURE_C_PORT_CONNECTION) +
+	(1 << USB_HUB_FEATURE_C_PORT_ENABLE) +
+	(1 << USB_HUB_FEATURE_C_PORT_SUSPEND) +
+	(1 << USB_HUB_FEATURE_C_PORT_OVER_CURRENT) +
+	(1 << USB_HUB_FEATURE_C_PORT_RESET);
+//note that USB_HUB_FEATURE_PORT_POWER bit is translated into USB_HUB_FEATURE_PORT_LOW_SPEED
+
+
+
+
 /**
  * Create hub descriptor used in hub-driver <-> hub communication
  *
@@ -211,7 +246,9 @@ int rh_init(rh_t *instance, ddf_dev_t *dev, ohci_regs_t *regs)
 	instance->address = -1;
 	instance->registers = regs;
 	instance->device = dev;
+	instance->port_count = instance->registers->rh_desc_a & 0xff;
 	rh_init_descriptors(instance);
+	/// \TODO set port power mode
 
 
 	usb_log_info("OHCI root hub with %d ports.\n", regs->rh_desc_a & 0xff);
@@ -425,28 +462,51 @@ static int process_get_configuration_request(rh_t *instance,
 }
 
 /**
- * process feature-enabling/disabling request on hub
+ * process feature-enabling request on hub
  * 
  * @param instance root hub instance
  * @param feature feature selector
- * @param enable enable or disable specified feature
  * @return error code
  */
 static int process_hub_feature_set_request(rh_t *instance,
-		uint16_t feature, bool enable){
-	if(feature > USB_HUB_FEATURE_C_HUB_OVER_CURRENT)
+		uint16_t feature){
+	if(! ((1<<feature) & hub_set_feature_valid_mask))
 		return EINVAL;
 	instance->registers->rh_status =
-			enable ?
 			(instance->registers->rh_status | (1<<feature))
-			:
-			(instance->registers->rh_status & (~(1<<feature)));
-	/// \TODO any error?
+			& (~ hub_clear_feature_by_writing_one_mask);
 	return EOK;
 }
 
 /**
- * process feature-enabling/disabling request on hub
+ * process feature-disabling request on hub
+ *
+ * @param instance root hub instance
+ * @param feature feature selector
+ * @return error code
+ */
+static int process_hub_feature_clear_request(rh_t *instance,
+		uint16_t feature){
+	if(! ((1<<feature) & hub_clear_feature_valid_mask))
+		return EINVAL;
+	//is the feature cleared directly?
+	if ((1<<feature) & hub_set_feature_direct_mask){
+		instance->registers->rh_status =
+			(instance->registers->rh_status & (~(1<<feature)))
+			& (~ hub_clear_feature_by_writing_one_mask);
+	}else{//the feature is cleared by writing '1'
+		instance->registers->rh_status =
+				(instance->registers->rh_status
+				& (~ hub_clear_feature_by_writing_one_mask))
+				| (1<<feature);
+	}
+	return EOK;
+}
+
+
+
+/**
+ * process feature-enabling request on hub
  * 
  * @param instance root hub instance
  * @param feature feature selector
@@ -455,19 +515,45 @@ static int process_hub_feature_set_request(rh_t *instance,
  * @return error code
  */
 static int process_port_feature_set_request(rh_t *instance,
-		uint16_t feature, uint16_t port, bool enable){
-	if(feature > USB_HUB_FEATURE_C_PORT_RESET)
+		uint16_t feature, uint16_t port){
+	if(!((1<<feature) & port_set_feature_valid_mask))
 		return EINVAL;
 	if(port<1 || port>instance->port_count)
 		return EINVAL;
 	instance->registers->rh_port_status[port - 1] =
-			enable ?
 			(instance->registers->rh_port_status[port - 1] | (1<<feature))
-			:
-			(instance->registers->rh_port_status[port - 1] & (~(1<<feature)));
+			& (~port_clear_feature_valid_mask);
 	/// \TODO any error?
 	return EOK;
 }
+
+/**
+ * process feature-disabling request on hub
+ *
+ * @param instance root hub instance
+ * @param feature feature selector
+ * @param port port number, counted from 1
+ * @param enable enable or disable the specified feature
+ * @return error code
+ */
+static int process_port_feature_clear_request(rh_t *instance,
+		uint16_t feature, uint16_t port){
+	if(!((1<<feature) & port_clear_feature_valid_mask))
+		return EINVAL;
+	if(port<1 || port>instance->port_count)
+		return EINVAL;
+	if(feature == USB_HUB_FEATURE_PORT_POWER)
+		feature = USB_HUB_FEATURE_PORT_LOW_SPEED;
+	if(feature == USB_HUB_FEATURE_PORT_SUSPEND)
+		feature = USB_HUB_FEATURE_PORT_OVER_CURRENT;
+	instance->registers->rh_port_status[port - 1] =
+			(instance->registers->rh_port_status[port - 1] 
+			& (~port_clear_feature_valid_mask))
+			| (1<<feature);
+	/// \TODO any error?
+	return EOK;
+}
+
 
 /**
  * register address to this device
@@ -549,18 +635,33 @@ static int process_request_without_data(rh_t *instance,
 	usb_device_request_setup_packet_t * setup_request =
 			(usb_device_request_setup_packet_t*)request->setup_buffer;
 	request->transfered_size = 0;
-	if(setup_request->request == USB_DEVREQ_CLEAR_FEATURE
-				|| setup_request->request == USB_DEVREQ_SET_FEATURE){
+	if(setup_request->request == USB_DEVREQ_CLEAR_FEATURE){
 		if(setup_request->request_type == USB_HUB_REQ_TYPE_SET_HUB_FEATURE){
 			usb_log_debug("USB_HUB_REQ_TYPE_SET_HUB_FEATURE\n");
-			return process_hub_feature_set_request(instance, setup_request->value,
-					setup_request->request == USB_DEVREQ_SET_FEATURE);
+			return process_hub_feature_clear_request(instance,
+					setup_request->value);
 		}
 		if(setup_request->request_type == USB_HUB_REQ_TYPE_SET_PORT_FEATURE){
 			usb_log_debug("USB_HUB_REQ_TYPE_SET_PORT_FEATURE\n");
-			return process_port_feature_set_request(instance, setup_request->value,
-					setup_request->index,
-					setup_request->request == USB_DEVREQ_SET_FEATURE);
+			return process_port_feature_clear_request(instance,
+					setup_request->value,
+					setup_request->index);
+		}
+		usb_log_debug("USB_HUB_REQ_TYPE_INVALID %d\n",
+				setup_request->request_type);
+		return EINVAL;
+	}
+	if(setup_request->request == USB_DEVREQ_SET_FEATURE){
+		if(setup_request->request_type == USB_HUB_REQ_TYPE_SET_HUB_FEATURE){
+			usb_log_debug("USB_HUB_REQ_TYPE_SET_HUB_FEATURE\n");
+			return process_hub_feature_set_request(instance,
+					setup_request->value);
+		}
+		if(setup_request->request_type == USB_HUB_REQ_TYPE_SET_PORT_FEATURE){
+			usb_log_debug("USB_HUB_REQ_TYPE_SET_PORT_FEATURE\n");
+			return process_port_feature_set_request(instance,
+					setup_request->value,
+					setup_request->index);
 		}
 		usb_log_debug("USB_HUB_REQ_TYPE_INVALID %d\n",setup_request->request_type);
 		return EINVAL;
