@@ -314,8 +314,23 @@ static int usb_hub_trigger_connecting_non_removable_devices(usb_hub_info_t * hub
 						port, opResult);
 				return opResult;
 			}
-			//set the status change bit, so it will be noticed in driver loop
 			if(usb_port_dev_connected(&status)){
+			usb_hub_set_enable_port_feature_request(&request, port,
+					USB_HUB_FEATURE_PORT_RESET);
+			opResult = usb_pipe_control_read(
+					hub->control_pipe,
+					&request, sizeof(usb_device_request_setup_packet_t),
+					&status, 4, &rcvd_size
+					);
+			if (opResult != EOK) {
+				usb_log_warning(
+						"could not reset port %d errno:%d\n",
+						port, opResult);
+			}
+			usb_log_debug("port reset\n");
+			}
+			//set the status change bit, so it will be noticed in driver loop
+			/*if(usb_port_dev_connected(&status)){
 				usb_hub_set_disable_port_feature_request(&request, port,
 						USB_HUB_FEATURE_PORT_CONNECTION);
 				opResult = usb_pipe_control_read(
@@ -342,7 +357,7 @@ static int usb_hub_trigger_connecting_non_removable_devices(usb_hub_info_t * hub
 							port, opResult);
 				}
 				usb_log_debug("port set to enabled - should lead to connection change\n");
-			}
+			}*/
 		}
 	}
 	/// \TODO this is just a debug code
