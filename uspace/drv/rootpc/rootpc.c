@@ -46,6 +46,7 @@
 #include <macros.h>
 
 #include <ddf/driver.h>
+#include <ddf/log.h>
 #include <devman.h>
 #include <ipc/devman.h>
 #include <ipc/dev_iface.h>
@@ -118,7 +119,7 @@ static bool
 rootpc_add_fun(ddf_dev_t *dev, const char *name, const char *str_match_id,
     rootpc_fun_t *fun)
 {
-	printf(NAME ": adding new function '%s'.\n", name);
+	ddf_msg(LVL_DEBUG, "Adding new function '%s'.", name);
 	
 	ddf_fun_t *fnode = NULL;
 	match_id_t *match_id = NULL;
@@ -144,7 +145,7 @@ rootpc_add_fun(ddf_dev_t *dev, const char *name, const char *str_match_id,
 	
 	/* Register function. */
 	if (ddf_fun_bind(fnode) != EOK) {
-		printf(NAME ": error binding function %s.\n", name);
+		ddf_msg(LVL_ERROR, "Failed binding function %s.", name);
 		goto failure;
 	}
 	
@@ -157,7 +158,7 @@ failure:
 	if (fnode != NULL)
 		ddf_fun_destroy(fnode);
 	
-	printf(NAME ": failed to add function '%s'.\n", name);
+	ddf_msg(LVL_ERROR, "Failed adding function '%s'.", name);
 	
 	return false;
 }
@@ -175,12 +176,12 @@ static bool rootpc_add_functions(ddf_dev_t *dev)
  */
 static int rootpc_add_device(ddf_dev_t *dev)
 {
-	printf(NAME ": rootpc_add_device, device handle = %d\n",
+	ddf_msg(LVL_DEBUG, "rootpc_add_device, device handle = %d",
 	    (int)dev->handle);
 	
 	/* Register functions. */
 	if (!rootpc_add_functions(dev)) {
-		printf(NAME ": failed to add functions for PC platform.\n");
+		ddf_msg(LVL_ERROR, "Failed to add functions for PC platform.");
 	}
 	
 	return EOK;
@@ -188,6 +189,7 @@ static int rootpc_add_device(ddf_dev_t *dev)
 
 static void root_pc_init(void)
 {
+	ddf_log_init(NAME, LVL_ERROR);
 	rootpc_fun_ops.interfaces[HW_RES_DEV_IFACE] = &fun_hw_res_ops;
 }
 
