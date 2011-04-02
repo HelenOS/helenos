@@ -251,7 +251,7 @@ int rh_init(rh_t *instance, ddf_dev_t *dev, ohci_regs_t *regs)
 	/// \TODO set port power mode
 
 
-	usb_log_info("OHCI root hub with %d ports.\n", regs->rh_desc_a & 0xff);
+	usb_log_info("OHCI root hub with %d ports.\n", instance->port_count);
 
 	//start generic usb hub driver
 	

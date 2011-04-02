@@ -38,9 +38,34 @@
 
 typedef struct ohci_regs
 {
-	volatile uint32_t revision;
+	const volatile uint32_t revision;
 	volatile uint32_t control;
+#define C_CSBR_MASK (0x3)
+#define C_CSBR_SHIFT (0)
+#define C_PLE (1 << 2)
+#define C_IE (1 << 3)
+#define C_CLE (1 << 4)
+#define C_BLE (1 << 5)
+
+#define C_HCFS_MASK (0x3)
+#define C_HCFS_SHIFT (6)
+#define C_HCFS_RESET (0x0)
+#define C_HCFS_OPERATIONAL (0x1)
+#define C_HCFS_RESUME (0x2)
+#define C_HCFS_SUSPEND (0x3)
+
+#define C_IR (1 << 8)
+#define C_RWC (1 << 9)
+#define C_RWE (1 << 10)
+
 	volatile uint32_t command_status;
+#define CS_HCR (1 << 0)
+#define CS_CLF (1 << 1)
+#define CS_BLF (1 << 2)
+#define CS_OCR (1 << 3)
+#define CS_SOC_MASK (0x3)
+#define CS_SOC_SHIFT (16)
+
 	volatile uint32_t interrupt_status;
 #define IS_SO (1 << 0)
 #define IS_WDH (1 << 1)
@@ -50,6 +75,7 @@ typedef struct ohci_regs
 #define IS_FNO (1 << 5)
 #define IS_RHSC (1 << 6)
 #define IS_OC (1 << 30)
+
 	volatile uint32_t interupt_enable;
 #define IE_SO   (1 << 0)
 #define IE_WDH  (1 << 1)
