@@ -122,7 +122,7 @@ ip_client_get_pseudo_header(ip_protocol_t protocol, struct sockaddr *src,
 		*header = header_in;
 		return EOK;
 
-	// TODO IPv6
+	/* TODO IPv6 */
 /*	case AF_INET6:
 		if (addrlen != sizeof(struct sockaddr_in6))
 			return EINVAL;
@@ -158,24 +158,26 @@ ip_client_prepare_packet(packet_t *packet, ip_protocol_t protocol, ip_ttl_t ttl,
 	uint8_t *data;
 	size_t padding;
 
-	// compute the padding if IP options are set
-	// multiple of 4 bytes
+	/*
+	 * Compute the padding if IP options are set
+	 * multiple of 4 bytes
+	 */
 	padding =  ipopt_length % 4;
 	if (padding) {
 		padding = 4 - padding;
 		ipopt_length += padding;
 	}
 
-	// prefix the header
+	/* Prefix the header */
 	data = (uint8_t *) packet_prefix(packet, sizeof(ip_header_t) + padding);
 	if (!data)
 		return ENOMEM;
 
-	// add the padding
+	/* Add the padding */
 	while (padding--)
 		data[sizeof(ip_header_t) + padding] = IPOPT_NOOP;
 
-	// set the header
+	/* Set the header */
 	header = (ip_header_t *) data;
 	header->header_length = IP_COMPUTE_HEADER_LENGTH(sizeof(ip_header_t) +
 	    ipopt_length);
@@ -255,7 +257,7 @@ ip_client_set_pseudo_header_data_length(void *header, size_t headerlen,
 		header_in = (ipv4_pseudo_header_t *) header;
 		header_in->data_length = htons(data_length);
 		return EOK;
-	// TODO IPv6
+	/* TODO IPv6 */
 	} else {
 		return EINVAL;
 	}

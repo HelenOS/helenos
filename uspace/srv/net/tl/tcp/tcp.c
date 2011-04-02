@@ -298,9 +298,10 @@ int tcp_process_packet(device_id_t device_id, packet_t *packet, services_t error
 	if (!header)
 		return tcp_release_and_return(packet, NO_DATA);
 
-//      printf("header len %d, port %d \n", TCP_HEADER_LENGTH(header),
-//	    ntohs(header->destination_port));
-
+#if 0
+	printf("header len %d, port %d \n", TCP_HEADER_LENGTH(header),
+	    ntohs(header->destination_port));
+#endif
 	result = packet_get_addr(packet, (uint8_t **) &src, (uint8_t **) &dest);
 	if (result <= 0)
 		return tcp_release_and_return(packet, result);
@@ -1061,7 +1062,7 @@ int tcp_process_syn_received(socket_core_t *socket,
 	/* Process acknowledgement */
 	tcp_process_acknowledgement(socket, socket_data, header);
 
-	socket_data->next_incoming = ntohl(header->sequence_number);	// + 1;
+	socket_data->next_incoming = ntohl(header->sequence_number); /* + 1; */
 	pq_release_remote(tcp_globals.net_phone, packet_get_id(packet));
 	socket_data->state = TCP_SOCKET_ESTABLISHED;
 	listening_socket = socket_cores_find(socket_data->local_sockets,
