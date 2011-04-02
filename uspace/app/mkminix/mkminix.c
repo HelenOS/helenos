@@ -136,7 +136,7 @@ int main (int argc, char **argv)
 	}
 
 	for (c = 0, optind = 0, opt_ind = 0; c != -1;) {
-		c = getopt_long(argc, argv, "lh123b:i:", long_options, &opt_ind);
+		c = getopt_long(argc, argv, "lh12b:i:", long_options, &opt_ind);
 		switch (c) {
 		case 'h':
 			help_cmd_mkminix(HELP_LONG);
@@ -154,13 +154,6 @@ int main (int argc, char **argv)
 			sb.fs_version = 2;
 			sb.ino_per_block = V2_INODES_PER_BLOCK;
 			sb.dirsize = MFS_DIRSIZE;
-			break;
-		case '3':
-			sb.magic = MFS_MAGIC_V3;
-			sb.fs_version = 3;
-			sb.block_size = MFS_MAX_BLOCKSIZE;
-			sb.dirsize = MFS3_DIRSIZE;
-			sb.ino_per_block = V3_INODES_PER_BLOCK(sb.block_size);
 			break;
 		case 'b':
 			sb.block_size = (uint32_t) strtol(optarg, NULL, 10);
