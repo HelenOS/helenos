@@ -370,7 +370,7 @@ static int disk_init(disk_t *d, int disk_id)
 	uint8_t model[40];
 	ata_inquiry_data_t inq_data;
 	uint16_t w;
-	uint8_t c;
+	uint8_t c, bc_high, bc_low;
 	size_t pos, len;
 	int rc;
 	unsigned i;
@@ -386,13 +386,26 @@ static int disk_init(disk_t *d, int disk_id)
 		d->dev_type = ata_reg_dev;
 	} else if (rc == EIO) {
 		/*
-		 * There is something, but not a register device.
-		 * It could be a packet device.
+		 * There is something, but not a register device. Check to see
+		 * whether the IDENTIFY command left the packet signature in
+		 * the registers in case this is a packet device.
+		 *
+		 * According to the ATA specification, the LBA low and
+		 * interrupt reason registers should be set to 0x01. However,
+		 * there are many devices that do not follow this and only set
+		 * the byte count registers. So, only check these.
 		 */
-		rc = identify_pkt_dev(disk_id, &idata);
-		if (rc == EOK) {
-			/* We have a packet device. */
-			d->dev_type = ata_pkt_dev;
+		bc_high = pio_read_8(&cmd->cylinder_high);
+		bc_low = pio_read_8(&cmd->cylinder_low);
+
+		if (bc_high == 0xEB && bc_low == 0x14) {
+			rc = identify_pkt_dev(disk_id, &idata);
+			if (rc == EOK) {
+				/* We have a packet device. */
+				d->dev_type = ata_pkt_dev;
+			} else {
+				return EIO;
+			}
 		} else {
 			/* Nope. Something's there, but not recognized. */
 			return EIO;
@@ -565,10 +578,11 @@ static int drive_identify(int disk_id, void *buf)
 	pio_write_8(&cmd->drive_head, drv_head);
 
 	/*
-	 * This is where we would most likely expect a non-existing device to
-	 * show up by not setting SR_DRDY.
+	 * Do not wait for DRDY to be set in case this is a packet device.
+	 * We determine whether the device is present by waiting for DRQ to be
+	 * set after issuing the command.
 	 */
-	if (wait_status(SR_DRDY, ~SR_BSY, NULL, TIMEOUT_PROBE) != EOK)
+	if (wait_status(0, ~SR_BSY, NULL, TIMEOUT_PROBE) != EOK)
 		return ETIMEOUT;
 
 	pio_write_8(&cmd->command, CMD_IDENTIFY_DRIVE);
@@ -576,17 +590,22 @@ static int drive_identify(int disk_id, void *buf)
 	if (wait_status(0, ~SR_BSY, &status, TIMEOUT_PROBE) != EOK)
 		return ETIMEOUT;
 
-	/* Read data from the disk buffer. */
-
-	if ((status & SR_DRQ) != 0) {
-		for (i = 0; i < identify_data_size / 2; i++) {
-			data = pio_read_16(&cmd->data_port);
-			((uint16_t *) buf)[i] = data;
-		}
-	}
-
+	/*
+	 * If ERR is set, this may be a packet device, so return EIO to cause
+	 * the caller to check for one.
+	 */
 	if ((status & SR_ERR) != 0) {
 		return EIO;
+	}
+
+	if (wait_status(SR_DRQ, ~SR_BSY, &status, TIMEOUT_PROBE) != EOK)
+		return ETIMEOUT;
+
+	/* Read data from the disk buffer. */
+
+	for (i = 0; i < identify_data_size / 2; i++) {
+		data = pio_read_16(&cmd->data_port);
+		((uint16_t *) buf)[i] = data;
 	}
 
 	return EOK;
