@@ -274,7 +274,7 @@ static int process_get_port_status_request(rh_t *instance, uint16_t port,
 		usb_transfer_batch_t * request){
 	if(port<1 || port>instance->port_count)
 		return EINVAL;
-	uint32_t * uint32_buffer = (uint32_t*)request->buffer;
+	uint32_t * uint32_buffer = (uint32_t*)request->transport_buffer;
 	request->transfered_size = 4;
 	uint32_buffer[0] = instance->registers->rh_port_status[port -1];
 	return EOK;
@@ -291,7 +291,7 @@ static int process_get_port_status_request(rh_t *instance, uint16_t port,
  */
 static int process_get_hub_status_request(rh_t *instance,
 		usb_transfer_batch_t * request){
-	uint32_t * uint32_buffer = (uint32_t*)request->buffer;
+	uint32_t * uint32_buffer = (uint32_t*)request->transport_buffer;
 	//bits, 0,1,16,17
 	request->transfered_size = 4;
 	uint32_t mask = 1 & (1<<1) & (1<<16) & (1<<17);
@@ -456,7 +456,7 @@ static int process_get_configuration_request(rh_t *instance,
 	//values are returned
 	if(request->buffer_size != 1)
 		return EINVAL;
-	request->buffer[0] = 1;
+	request->transport_buffer[0] = 1;
 	request->transfered_size = 1;
 	return EOK;
 }
