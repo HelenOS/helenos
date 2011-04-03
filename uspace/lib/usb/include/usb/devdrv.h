@@ -46,6 +46,29 @@ typedef struct {
 	size_t configuration_size;
 } usb_device_descriptors_t;
 
+/** Wrapper for data related to alternate interface setting.
+ * The pointers will typically point inside configuration descriptor and
+ * thus you shall not deallocate them.
+ */
+typedef struct {
+	/** Interface descriptor. */
+	usb_standard_interface_descriptor_t *interface;
+	/** Pointer to start of descriptor tree bound with this interface. */
+	uint8_t *nested_descriptors;
+	/** Size of data pointed by nested_descriptors in bytes. */
+	size_t nested_descriptors_size;
+} usb_alternate_interface_descriptors_t;
+
+/** Alternate interface settings. */
+typedef struct {
+	/** Array of alternate interfaces descriptions. */
+	usb_alternate_interface_descriptors_t *alternatives;
+	/** Size of @c alternatives array. */
+	size_t alternative_count;
+	/** Index of currently selected one. */
+	size_t current;
+} usb_alternate_interfaces_t;
+
 /** USB device structure. */
 typedef struct {
 	/** The default control pipe. */
@@ -60,6 +83,12 @@ typedef struct {
 	 * This item contains the value of the interface or -1 for any.
 	 */
 	int interface_no;
+
+	/** Alternative interfaces.
+	 * Set to NULL when the driver controls whole device
+	 * (i.e. more (or any) interfaces).
+	 */
+	usb_alternate_interfaces_t *alternate_interfaces;
 
 	/** Some useful descriptors. */
 	usb_device_descriptors_t descriptors;
@@ -130,7 +159,6 @@ int usb_driver_main(usb_driver_t *);
 typedef bool (*usb_polling_callback_t)(usb_device_t *,
     uint8_t *, size_t, void *);
 typedef void (*usb_polling_terminted_callback_t)(usb_device_t *, bool, void *);
-
 
 int usb_device_auto_poll(usb_device_t *, size_t,
     usb_polling_callback_t, size_t, usb_polling_terminted_callback_t, void *);
