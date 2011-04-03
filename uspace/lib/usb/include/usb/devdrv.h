@@ -91,11 +91,34 @@ typedef struct {
 	 * the same as the directory name where the driver executable resides.
 	 */
 	const char *name;
-	/** Expected endpoints description, excluding default control endpoint.
+	/** Expected endpoints description.
+	 * This description shall exclude default control endpoint (pipe zero)
+	 * and must be NULL terminated.
+	 * When only control endpoint is expected, you may set NULL directly
+	 * without creating one item array containing NULL.
 	 *
-	 * It MUST be of size expected_enpoints_count(excluding default ctrl) + 1
-	 * where the last record MUST BE NULL, otherwise catastrophic things may
-	 * happen.
+	 * When the driver expect single interrupt in endpoint,
+	 * the initialization may look like this:
+\code
+static usb_endpoint_description_t poll_endpoint_description = {
+	.transfer_type = USB_TRANSFER_INTERRUPT,
+	.direction = USB_DIRECTION_IN,
+	.interface_class = USB_CLASS_HUB,
+	.interface_subclass = 0,
+	.interface_protocol = 0,
+	.flags = 0
+};
+
+static usb_endpoint_description_t *hub_endpoints[] = {
+	&poll_endpoint_description,
+	NULL
+};
+
+static usb_driver_t hub_driver = {
+	.endpoints = hub_endpoints,
+	...
+};
+\endcode
 	 */
 	usb_endpoint_description_t **endpoints;
 	/** Driver ops. */
