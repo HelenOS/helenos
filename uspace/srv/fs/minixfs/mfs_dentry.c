@@ -79,11 +79,57 @@ read_directory_entry(struct mfs_node *mnode, unsigned index)
 	block_put(b);
 
 	d_info->dirty = false;
+	d_info->index = index;
+	d_info->node = mnode;
 	return d_info;
 
 out_err:
 	free(d_info);
 	return NULL;
+}
+
+int
+write_dentry(struct mfs_dentry_info *d_info)
+{
+	struct mfs_node *mnode = d_info->node;
+	struct mfs_sb_info *sbi = mnode->instance->sbi;
+	const unsigned d_off_bytes = d_info->index * sbi->dirsize;
+	const unsigned dirs_per_block = sbi->block_size / sbi->dirsize;
+	block_t *b;
+	uint32_t block;
+	int r;
+
+	r = read_map(&block, mnode, d_off_bytes);
+	if (r != EOK)
+		goto out;
+
+	r = block_get(&b, mnode->instance->handle, block, BLOCK_FLAGS_NONE);
+	if (r != EOK)
+		goto out;
+
+	const size_t name_len = str_size(d_info->d_name);
+	uint8_t *ptr = b->data;
+	ptr += (d_info->index % dirs_per_block) * sbi->dirsize;
+
+	if (sbi->fs_version == MFS_VERSION_V3) {
+		struct mfs3_dentry *dentry;
+		dentry = (struct mfs3_dentry *) ptr;
+
+		dentry->d_inum = conv32(sbi->native, d_info->d_inum);
+		memcpy(dentry->d_name, d_info->d_name, name_len);
+	} else {
+		struct mfs_dentry *dentry;
+		dentry = (struct mfs_dentry *) ptr;
+
+		dentry->d_inum = conv16(sbi->native, d_info->d_inum);
+		memcpy(dentry->d_name, d_info->d_name, name_len);
+	}
+
+	b->dirty = true;
+	block_put(b);
+
+out:
+	return r;
 }
 
 /**

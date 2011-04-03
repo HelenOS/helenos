@@ -125,6 +125,9 @@ struct mfs_dentry_info {
 
 	/*The following fields do not exist on disk but only in memory*/
 	bool dirty;
+	unsigned index;
+	/*Pointer to the node at witch the dentry belongs*/
+	struct mfs_node *node;
 };
 
 struct mfs_instance {
@@ -164,6 +167,9 @@ int read_map(uint32_t *b, const struct mfs_node *mnode, const uint32_t pos);
 /*mfs_dentry.c*/
 extern struct mfs_dentry_info *
 read_directory_entry(struct mfs_node *mnode, unsigned index);
+
+extern int
+write_dentry(struct mfs_dentry_info *d_info);
 
 /*mfs_balloc.c*/
 extern int
