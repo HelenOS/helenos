@@ -52,6 +52,7 @@ SOURCES = \
 	src/hidreq.c \
 	src/hidreport.c \
 	src/host/device_keeper.c \
-	src/host/batch.c
+	src/host/batch.c \
+	src/host/bandwidth.c
 
 include $(USPACE_PREFIX)/Makefile.common

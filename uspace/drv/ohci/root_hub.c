@@ -39,6 +39,7 @@
 
 #include "root_hub.h"
 #include "usb/classes/classes.h"
+#include "usb/devdrv.h"
 #include <usb/request.h>
 #include <usb/classes/hub.h>
 
@@ -60,7 +61,7 @@ static const usb_standard_device_descriptor_t ohci_rh_device_descriptor =
 		.product_id = 0x0001,
 		/// \TODO these values migt be different
 		.str_serial_number = 0,
-		.usb_spec_version = 0,
+		.usb_spec_version = 0x110,
 };
 
 /**
@@ -109,69 +110,44 @@ static const usb_standard_endpoint_descriptor_t ohci_rh_ep_descriptor =
 	.poll_interval = 255,
 };
 
-/** Root hub initialization
- * @return Error code.
- */
-int rh_init(rh_t *instance, ddf_dev_t *dev, ohci_regs_t *regs)
-{
-	assert(instance);
-	instance->address = -1;
-	instance->registers = regs;
-	instance->device = dev;
+static const uint32_t hub_clear_feature_valid_mask =
+	(1 << USB_HUB_FEATURE_C_HUB_LOCAL_POWER) +
+	(1 << USB_HUB_FEATURE_C_HUB_OVER_CURRENT);
 
+static const uint32_t hub_clear_feature_by_writing_one_mask =
+	1 << USB_HUB_FEATURE_C_HUB_LOCAL_POWER;
 
-	usb_log_info("OHCI root hub with %d ports.\n", regs->rh_desc_a & 0xff);
+static const uint32_t hub_set_feature_valid_mask =
+	(1 << USB_HUB_FEATURE_C_HUB_OVER_CURRENT);
 
-	//start generic usb hub driver
 	
-	/* TODO: implement */
-	return EOK;
-}
-/*----------------------------------------------------------------------------*/
+static const uint32_t hub_set_feature_direct_mask =
+	(1 << USB_HUB_FEATURE_C_HUB_OVER_CURRENT);
 
-/**
- * create answer to port status_request
- *
- * Copy content of corresponding port status register to answer buffer.
- *
- * @param instance root hub instance
- * @param port port number, counted from 1
- * @param request structure containing both request and response information
- * @return error code
- */
-static int process_get_port_status_request(rh_t *instance, uint16_t port,
-		usb_transfer_batch_t * request){
-	if(port<1 || port>instance->port_count)
-		return EINVAL;
-	uint32_t * uint32_buffer = (uint32_t*)request->buffer;
-	request->transfered_size = 4;
-	uint32_buffer[0] = instance->registers->rh_port_status[port -1];
-	return EOK;
-}
+static const uint32_t port_set_feature_valid_mask =
+	(1 << USB_HUB_FEATURE_PORT_ENABLE) +
+	(1 << USB_HUB_FEATURE_PORT_SUSPEND) +
+	(1 << USB_HUB_FEATURE_PORT_RESET) +
+	(1 << USB_HUB_FEATURE_PORT_POWER);
 
-/**
- * create answer to port status_request
- *
- * Copy content of hub status register to answer buffer.
- *
- * @param instance root hub instance
- * @param request structure containing both request and response information
- * @return error code
- */
-static int process_get_hub_status_request(rh_t *instance,
-		usb_transfer_batch_t * request){
-	uint32_t * uint32_buffer = (uint32_t*)request->buffer;
-	//bits, 0,1,16,17
-	request->transfered_size = 4;
-	uint32_t mask = 1 & (1<<1) & (1<<16) & (1<<17);
-	uint32_buffer[0] = mask & instance->registers->rh_status;
-	return EOK;
+static const uint32_t port_clear_feature_valid_mask =
+	(1 << USB_HUB_FEATURE_PORT_CONNECTION) +
+	(1 << USB_HUB_FEATURE_PORT_SUSPEND) +
+	(1 << USB_HUB_FEATURE_PORT_OVER_CURRENT) +
+	(1 << USB_HUB_FEATURE_PORT_POWER) +
+	(1 << USB_HUB_FEATURE_C_PORT_CONNECTION) +
+	(1 << USB_HUB_FEATURE_C_PORT_ENABLE) +
+	(1 << USB_HUB_FEATURE_C_PORT_SUSPEND) +
+	(1 << USB_HUB_FEATURE_C_PORT_OVER_CURRENT) +
+	(1 << USB_HUB_FEATURE_C_PORT_RESET);
+//note that USB_HUB_FEATURE_PORT_POWER bit is translated into USB_HUB_FEATURE_PORT_LOW_SPEED
 
-}
+
+
 
 /**
  * Create hub descriptor used in hub-driver <-> hub communication
- * 
+ *
  * This means creating byt array from data in root hub registers. For more
  * info see usb hub specification.
  *
@@ -196,7 +172,7 @@ static void usb_create_serialized_hub_descriptor(rh_t *instance,
 	result[1] = USB_DESCTYPE_HUB;
 	result[2] = instance->port_count;
 	uint32_t hub_desc_reg = instance->registers->rh_desc_a;
-	result[3] = 
+	result[3] =
 			((hub_desc_reg >> 8) %2) +
 			(((hub_desc_reg >> 9) %2) << 1) +
 			(((hub_desc_reg >> 10) %2) << 2) +
@@ -218,6 +194,112 @@ static void usb_create_serialized_hub_descriptor(rh_t *instance,
 	(*out_result) = result;
 	(*out_size) = size;
 }
+
+
+/** initialize hub descriptors
+ *
+ * Initialized are device and full configuration descriptor. These need to
+ * be initialized only once per hub.
+ * @instance root hub instance
+ */
+static void rh_init_descriptors(rh_t *instance){
+	memcpy(&instance->descriptors.device, &ohci_rh_device_descriptor,
+		sizeof(ohci_rh_device_descriptor)
+	);
+	usb_standard_configuration_descriptor_t descriptor;
+	memcpy(&descriptor,&ohci_rh_conf_descriptor,
+			sizeof(ohci_rh_conf_descriptor));
+	uint8_t * hub_descriptor;
+	size_t hub_desc_size;
+	usb_create_serialized_hub_descriptor(instance, &hub_descriptor,
+			&hub_desc_size);
+
+	descriptor.total_length =
+			sizeof(usb_standard_configuration_descriptor_t)+
+			sizeof(usb_standard_endpoint_descriptor_t)+
+			sizeof(usb_standard_interface_descriptor_t)+
+			hub_desc_size;
+	
+	uint8_t * full_config_descriptor =
+			(uint8_t*) malloc(descriptor.total_length);
+	memcpy(full_config_descriptor, &descriptor, sizeof(descriptor));
+	memcpy(full_config_descriptor + sizeof(descriptor),
+			&ohci_rh_iface_descriptor, sizeof(ohci_rh_iface_descriptor));
+	memcpy(full_config_descriptor + sizeof(descriptor) +
+				sizeof(ohci_rh_iface_descriptor),
+			&ohci_rh_ep_descriptor, sizeof(ohci_rh_ep_descriptor));
+	memcpy(full_config_descriptor + sizeof(descriptor) +
+				sizeof(ohci_rh_iface_descriptor) +
+				sizeof(ohci_rh_ep_descriptor),
+			hub_descriptor, hub_desc_size);
+	
+	instance->descriptors.configuration = full_config_descriptor;
+	instance->descriptors.configuration_size = descriptor.total_length;
+}
+
+/** Root hub initialization
+ * @return Error code.
+ */
+int rh_init(rh_t *instance, ddf_dev_t *dev, ohci_regs_t *regs)
+{
+	assert(instance);
+	instance->address = -1;
+	instance->registers = regs;
+	instance->device = dev;
+	instance->port_count = instance->registers->rh_desc_a & 0xff;
+	rh_init_descriptors(instance);
+	/// \TODO set port power mode
+
+
+	usb_log_info("OHCI root hub with %d ports.\n", instance->port_count);
+
+	//start generic usb hub driver
+	
+	/* TODO: implement */
+	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+
+/**
+ * create answer to port status_request
+ *
+ * Copy content of corresponding port status register to answer buffer.
+ *
+ * @param instance root hub instance
+ * @param port port number, counted from 1
+ * @param request structure containing both request and response information
+ * @return error code
+ */
+static int process_get_port_status_request(rh_t *instance, uint16_t port,
+		usb_transfer_batch_t * request){
+	if(port<1 || port>instance->port_count)
+		return EINVAL;
+	uint32_t * uint32_buffer = (uint32_t*)request->transport_buffer;
+	request->transfered_size = 4;
+	uint32_buffer[0] = instance->registers->rh_port_status[port -1];
+	return EOK;
+}
+
+/**
+ * create answer to port status_request
+ *
+ * Copy content of hub status register to answer buffer.
+ *
+ * @param instance root hub instance
+ * @param request structure containing both request and response information
+ * @return error code
+ */
+static int process_get_hub_status_request(rh_t *instance,
+		usb_transfer_batch_t * request){
+	uint32_t * uint32_buffer = (uint32_t*)request->transport_buffer;
+	//bits, 0,1,16,17
+	request->transfered_size = 4;
+	uint32_t mask = 1 & (1<<1) & (1<<16) & (1<<17);
+	uint32_buffer[0] = mask & instance->registers->rh_status;
+	return EOK;
+
+}
+
 
 
 /**
@@ -283,30 +365,7 @@ static void create_interrupt_mask(rh_t *instance, void ** buffer,
 		}
 	}
 }
-
-/**
- * create standart configuration descriptor for the root hub instance
- * @param instance root hub instance
- * @return newly allocated descriptor
- */
-static usb_standard_configuration_descriptor_t *
-usb_ohci_rh_create_standart_configuration_descriptor(rh_t *instance){
-	usb_standard_configuration_descriptor_t * descriptor =
-			malloc(sizeof(usb_standard_configuration_descriptor_t));
-	memcpy(descriptor, &ohci_rh_conf_descriptor,
-		sizeof(usb_standard_configuration_descriptor_t));
-	/// \TODO should this include device descriptor?
-	const size_t hub_descriptor_size = 7 +
-			2* (instance->port_count / 8 +
-			((instance->port_count % 8 > 0) ? 1 : 0));
-	descriptor->total_length =
-			sizeof(usb_standard_configuration_descriptor_t)+
-			sizeof(usb_standard_endpoint_descriptor_t)+
-			sizeof(usb_standard_interface_descriptor_t)+
-			hub_descriptor_size;
-	return descriptor;
-}
-
+ 
 /**
  * create answer to a descriptor request
  *
@@ -343,12 +402,8 @@ static int process_get_descriptor_request(rh_t *instance,
 		}
 		case USB_DESCTYPE_CONFIGURATION: {
 			usb_log_debug("USB_DESCTYPE_CONFIGURATION\n");
-			usb_standard_configuration_descriptor_t * descriptor =
-					usb_ohci_rh_create_standart_configuration_descriptor(
-						instance);
-			result_descriptor = descriptor;
-			size = sizeof(usb_standard_configuration_descriptor_t);
-			del = true;
+			result_descriptor = instance->descriptors.configuration;
+			size = instance->descriptors.configuration_size;
 			break;
 		}
 		case USB_DESCTYPE_INTERFACE: {
@@ -379,7 +434,9 @@ static int process_get_descriptor_request(rh_t *instance,
 		size = request->buffer_size;
 	}
 	request->transfered_size = size;
-	memcpy(request->buffer,result_descriptor,size);
+	memcpy(request->transport_buffer,result_descriptor,size);
+	usb_log_debug("sent desctiptor: %s\n",
+			usb_debug_str_buffer((uint8_t*)request->transport_buffer,size,size));
 	if (del)
 		free(result_descriptor);
 	return EOK;
@@ -399,34 +456,57 @@ static int process_get_configuration_request(rh_t *instance,
 	//values are returned
 	if(request->buffer_size != 1)
 		return EINVAL;
-	request->buffer[0] = 1;
+	request->transport_buffer[0] = 1;
 	request->transfered_size = 1;
 	return EOK;
 }
 
 /**
- * process feature-enabling/disabling request on hub
+ * process feature-enabling request on hub
  * 
  * @param instance root hub instance
  * @param feature feature selector
- * @param enable enable or disable specified feature
  * @return error code
  */
 static int process_hub_feature_set_request(rh_t *instance,
-		uint16_t feature, bool enable){
-	if(feature > USB_HUB_FEATURE_C_HUB_OVER_CURRENT)
+		uint16_t feature){
+	if(! ((1<<feature) & hub_set_feature_valid_mask))
 		return EINVAL;
 	instance->registers->rh_status =
-			enable ?
 			(instance->registers->rh_status | (1<<feature))
-			:
-			(instance->registers->rh_status & (~(1<<feature)));
-	/// \TODO any error?
+			& (~ hub_clear_feature_by_writing_one_mask);
 	return EOK;
 }
 
 /**
- * process feature-enabling/disabling request on hub
+ * process feature-disabling request on hub
+ *
+ * @param instance root hub instance
+ * @param feature feature selector
+ * @return error code
+ */
+static int process_hub_feature_clear_request(rh_t *instance,
+		uint16_t feature){
+	if(! ((1<<feature) & hub_clear_feature_valid_mask))
+		return EINVAL;
+	//is the feature cleared directly?
+	if ((1<<feature) & hub_set_feature_direct_mask){
+		instance->registers->rh_status =
+			(instance->registers->rh_status & (~(1<<feature)))
+			& (~ hub_clear_feature_by_writing_one_mask);
+	}else{//the feature is cleared by writing '1'
+		instance->registers->rh_status =
+				(instance->registers->rh_status
+				& (~ hub_clear_feature_by_writing_one_mask))
+				| (1<<feature);
+	}
+	return EOK;
+}
+
+
+
+/**
+ * process feature-enabling request on hub
  * 
  * @param instance root hub instance
  * @param feature feature selector
@@ -435,19 +515,45 @@ static int process_hub_feature_set_request(rh_t *instance,
  * @return error code
  */
 static int process_port_feature_set_request(rh_t *instance,
-		uint16_t feature, uint16_t port, bool enable){
-	if(feature > USB_HUB_FEATURE_C_PORT_RESET)
+		uint16_t feature, uint16_t port){
+	if(!((1<<feature) & port_set_feature_valid_mask))
 		return EINVAL;
 	if(port<1 || port>instance->port_count)
 		return EINVAL;
 	instance->registers->rh_port_status[port - 1] =
-			enable ?
 			(instance->registers->rh_port_status[port - 1] | (1<<feature))
-			:
-			(instance->registers->rh_port_status[port - 1] & (~(1<<feature)));
+			& (~port_clear_feature_valid_mask);
 	/// \TODO any error?
 	return EOK;
 }
+
+/**
+ * process feature-disabling request on hub
+ *
+ * @param instance root hub instance
+ * @param feature feature selector
+ * @param port port number, counted from 1
+ * @param enable enable or disable the specified feature
+ * @return error code
+ */
+static int process_port_feature_clear_request(rh_t *instance,
+		uint16_t feature, uint16_t port){
+	if(!((1<<feature) & port_clear_feature_valid_mask))
+		return EINVAL;
+	if(port<1 || port>instance->port_count)
+		return EINVAL;
+	if(feature == USB_HUB_FEATURE_PORT_POWER)
+		feature = USB_HUB_FEATURE_PORT_LOW_SPEED;
+	if(feature == USB_HUB_FEATURE_PORT_SUSPEND)
+		feature = USB_HUB_FEATURE_PORT_OVER_CURRENT;
+	instance->registers->rh_port_status[port - 1] =
+			(instance->registers->rh_port_status[port - 1] 
+			& (~port_clear_feature_valid_mask))
+			| (1<<feature);
+	/// \TODO any error?
+	return EOK;
+}
+
 
 /**
  * register address to this device
@@ -529,18 +635,33 @@ static int process_request_without_data(rh_t *instance,
 	usb_device_request_setup_packet_t * setup_request =
 			(usb_device_request_setup_packet_t*)request->setup_buffer;
 	request->transfered_size = 0;
-	if(setup_request->request == USB_DEVREQ_CLEAR_FEATURE
-				|| setup_request->request == USB_DEVREQ_SET_FEATURE){
+	if(setup_request->request == USB_DEVREQ_CLEAR_FEATURE){
 		if(setup_request->request_type == USB_HUB_REQ_TYPE_SET_HUB_FEATURE){
 			usb_log_debug("USB_HUB_REQ_TYPE_SET_HUB_FEATURE\n");
-			return process_hub_feature_set_request(instance, setup_request->value,
-					setup_request->request == USB_DEVREQ_SET_FEATURE);
+			return process_hub_feature_clear_request(instance,
+					setup_request->value);
 		}
 		if(setup_request->request_type == USB_HUB_REQ_TYPE_SET_PORT_FEATURE){
 			usb_log_debug("USB_HUB_REQ_TYPE_SET_PORT_FEATURE\n");
-			return process_port_feature_set_request(instance, setup_request->value,
-					setup_request->index,
-					setup_request->request == USB_DEVREQ_SET_FEATURE);
+			return process_port_feature_clear_request(instance,
+					setup_request->value,
+					setup_request->index);
+		}
+		usb_log_debug("USB_HUB_REQ_TYPE_INVALID %d\n",
+				setup_request->request_type);
+		return EINVAL;
+	}
+	if(setup_request->request == USB_DEVREQ_SET_FEATURE){
+		if(setup_request->request_type == USB_HUB_REQ_TYPE_SET_HUB_FEATURE){
+			usb_log_debug("USB_HUB_REQ_TYPE_SET_HUB_FEATURE\n");
+			return process_hub_feature_set_request(instance,
+					setup_request->value);
+		}
+		if(setup_request->request_type == USB_HUB_REQ_TYPE_SET_PORT_FEATURE){
+			usb_log_debug("USB_HUB_REQ_TYPE_SET_PORT_FEATURE\n");
+			return process_port_feature_set_request(instance,
+					setup_request->value,
+					setup_request->index);
 		}
 		usb_log_debug("USB_HUB_REQ_TYPE_INVALID %d\n",setup_request->request_type);
 		return EINVAL;

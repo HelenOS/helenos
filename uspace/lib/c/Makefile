@@ -76,6 +76,7 @@ GENERIC_SOURCES = \
 	generic/io/asprintf.c \
 	generic/io/io.c \
 	generic/io/printf.c \
+	generic/io/log.c \
 	generic/io/klog.c \
 	generic/io/snprintf.c \
 	generic/io/vprintf.c \

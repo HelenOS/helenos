@@ -35,6 +35,7 @@ SOURCES = \
 	generic/driver.c \
 	generic/dev_iface.c \
 	generic/remote_char_dev.c \
+	generic/log.c \
 	generic/remote_hw_res.c \
 	generic/remote_usb.c \
 	generic/remote_pci.c \
