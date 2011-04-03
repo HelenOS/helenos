@@ -69,7 +69,7 @@ int main(int argc, char *argv[])
 	 * program and insert it into the module graph.
 	 */
 
-	DPRINTF("Parse program .dynamic section at 0x%x\n", __pcb->dynamic);
+	DPRINTF("Parse program .dynamic section at %p\n", __pcb->dynamic);
 	dynamic_parse(__pcb->dynamic, 0, &prog.dyn);
 	prog.bias = 0;
 	prog.dyn.soname = "[program]";
@@ -105,7 +105,7 @@ int main(int argc, char *argv[])
 	/*
 	 * Finally, run the main program.
 	 */
-	DPRINTF("Run program.. (at 0x%lx)\n", (uintptr_t)__pcb->entry);
+	DPRINTF("Run program.. (at %p)\n", __pcb->entry);
 
 #ifndef RTLD_DEBUG
 	ipc_hangup(fphone(stdout));

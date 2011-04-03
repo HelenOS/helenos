@@ -254,11 +254,17 @@ ifeq ($(PRECHECK),y)
 	$(JOBFILE) $(JOB) $< $@ cc core $(DEFS) $(CFLAGS)
 endif
 
-%.lo: %.S
-	$(CC) $(DEFS) $(AFLAGS) $(CFLAGS) -D__ASM__ -c $< -o $@
+%.lo: %.S $(DEPEND)
+	$(CC) $(DEFS) $(LIB_CFLAGS) -D__ASM__ -c $< -o $@
+ifeq ($(PRECHECK),y)
+	$(JOBFILE) $(JOB) $< $@ as asm/preproc $(DEFS) $(CFLAGS) -D__ASM__
+endif
 
-%.lo: %.s
-	$(AS) $(AFLAGS) $< -o $@
+%.lo: %.s $(DEPEND)
+	$(AS) $(AFLAGS) -o $@ $<
+ifeq ($(PRECHECK),y)
+	$(JOBFILE) $(JOB) $< $@ as asm
+endif
 
 %.lo: %.c $(DEPEND)
 	$(CC) $(DEFS) $(LIB_CFLAGS) -c $< -o $@

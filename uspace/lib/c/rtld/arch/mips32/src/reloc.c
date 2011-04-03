@@ -37,10 +37,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <arch.h>
 #include <elf_dyn.h>
 #include <symbol.h>
 #include <rtld.h>
+
+#include <rtld_arch.h>
 
 void module_process_pre_arch(module_t *m)
 {
@@ -51,7 +52,7 @@ void module_process_pre_arch(module_t *m)
 	uint32_t lgotno;
 	uint32_t *got;
 	char *str_tab;
-	int i, j;
+	unsigned i, j;
 
 	uint32_t sym_addr;
 	module_t *dest;
@@ -123,7 +124,7 @@ void module_process_pre_arch(module_t *m)
 		DPRINTF("(1) symbol name='%s'\n", str_tab + sym->st_name);
 		sym_def = symbol_def_find(str_tab + sym->st_name, m, &dest);
 		if (sym_def) {
-			sym_addr = symbol_get_addr(sym_def, dest);
+			sym_addr = (uintptr_t) symbol_get_addr(sym_def, dest);
 			DPRINTF("symbol definition found, addr=0x%x\n", sym_addr);
 		} else {
 			DPRINTF("symbol definition not found\n");
@@ -141,7 +142,7 @@ void module_process_pre_arch(module_t *m)
  */
 void rel_table_process(module_t *m, elf_rel_t *rt, size_t rt_size)
 {
-	int i;
+	unsigned i;
 
 	size_t rt_entries;
 	size_t r_offset;
@@ -153,7 +154,7 @@ void rel_table_process(module_t *m, elf_rel_t *rt, size_t rt_size)
 	elf_symbol_t *sym_table;
 	elf_symbol_t *sym;
 	uint32_t *r_ptr;
-	uint16_t *r_ptr16;
+/*	uint16_t *r_ptr16;*/
 	char *str_tab;
 	
 	elf_symbol_t *sym_def;
@@ -173,7 +174,7 @@ void rel_table_process(module_t *m, elf_rel_t *rt, size_t rt_size)
 	gotsym = m->dyn.arch.gotsym;
 	lgotno = m->dyn.arch.lgotno;
 
-	DPRINTF("got=0x%lx, gotsym=%d\n", (uintptr_t) got, gotsym);
+	DPRINTF("got=0x%x, gotsym=%d\n", (uintptr_t) got, gotsym);
 
 	DPRINTF("address: 0x%x, entries: %d\n", (uintptr_t)rt, rt_entries);
 	
@@ -192,19 +193,23 @@ void rel_table_process(module_t *m, elf_rel_t *rt, size_t rt_size)
 
 		rel_type = ELF32_R_TYPE(r_info);
 		r_ptr = (uint32_t *)(r_offset + m->bias);
-		r_ptr16 = (uint16_t *)(r_offset + m->bias);
+		/*r_ptr16 = (uint16_t *)(r_offset + m->bias);*/
 
 		if (sym->st_name != 0) {
 			DPRINTF("rel_type: %x, rel_offset: 0x%x\n", rel_type, r_offset);
 			DPRINTF("dest name: '%s'\n", dest->dyn.soname);
 			DPRINTF("dest bias: 0x%x\n", dest->bias);
 			if (sym_def) {
-				sym_addr = symbol_get_addr(sym_def, dest);
+				sym_addr = (uintptr_t) symbol_get_addr(sym_def,
+				    dest);
 				DPRINTF("symbol definition found, addr=0x%x\n", sym_addr);
 			} else {
 				DPRINTF("symbol definition not found\n");
 				continue;
 			}
+		} else {
+			sym_def = NULL;
+			sym_addr = 0;
 		}
 
 		DPRINTF("switch(%u)\n", rel_type);

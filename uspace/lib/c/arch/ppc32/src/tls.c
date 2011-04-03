@@ -47,6 +47,7 @@ void __free_tls_arch(tcb_t *tcb, size_t size)
 	tls_free_variant_1(tcb, size);
 }
 
+/*
 static void kputint(unsigned i)
 {
 	asm volatile (
@@ -58,6 +59,7 @@ static void kputint(unsigned i)
 		: "%r3","%r9"
 	) ;
 }
+*/
 
 typedef struct {
 	unsigned long int ti_module;

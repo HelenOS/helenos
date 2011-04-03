@@ -13,7 +13,7 @@ SECTIONS {
 		*(.init);
 	} :text
 	.text : {
-	        *(.text);
+	        *(.text*);
 		*(.rodata*);
 	} :text
 

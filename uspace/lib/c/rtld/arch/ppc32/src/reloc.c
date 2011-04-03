@@ -37,11 +37,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <arch.h>
 #include <elf_dyn.h>
 #include <symbol.h>
 #include <rtld.h>
 #include <smc.h>
+
+#include <rtld_arch.h>
 
 #define __L(ptr) ((uint32_t)(ptr) & 0x0000ffff)
 #define __HA(ptr) ((uint32_t)(ptr) >> 16)
@@ -84,7 +85,7 @@ static inline uint32_t _b(uint32_t *addr, uint32_t *location)
 void module_process_pre_arch(module_t *m)
 {
 	uint32_t *plt;
-	uint32_t *_plt_ent;
+//	uint32_t *_plt_ent;
 	
 	/* No lazy linking -- no pre-processing yet. */
 	return;
@@ -96,18 +97,18 @@ void module_process_pre_arch(module_t *m)
 	}
 
 	// PLT entries start here. However, each occupies 2 words
-	_plt_ent = plt + 18;
+//	_plt_ent = plt + 18;
 
 	// By definition of the ppc ABI, there's 1:1 correspondence
 	// between JMPREL entries and PLT entries
 	unsigned plt_n = m->dyn.plt_rel_sz / sizeof(elf_rela_t);
 
 	uint32_t *_plt_table;
-	uint32_t *_plt_call;
-	uint32_t *_plt_resolve;
+//	uint32_t *_plt_call;
+//	uint32_t *_plt_resolve;
 
-	_plt_resolve = plt;
-	_plt_call = plt + 6;
+//	_plt_resolve = plt;
+//	_plt_call = plt + 6;
 	_plt_table = plt + 18 + plt_n;
 
 /* .PLTcall: */
@@ -135,7 +136,7 @@ void rel_table_process(module_t *m, elf_rel_t *rt, size_t rt_size)
  */
 void rela_table_process(module_t *m, elf_rela_t *rt, size_t rt_size)
 {
-	int i;
+	unsigned i;
 
 	size_t rt_entries;
 	size_t r_offset;
@@ -155,7 +156,7 @@ void rela_table_process(module_t *m, elf_rela_t *rt, size_t rt_size)
 	module_t *dest;
 
 	uint32_t *plt;
-	uint32_t *_plt_table;
+//	uint32_t *_plt_table;
 	uint32_t *_plt_ent;
 	uint32_t plt_n;
 	uint32_t pidx;
@@ -165,7 +166,7 @@ void rela_table_process(module_t *m, elf_rela_t *rt, size_t rt_size)
 	plt = m->dyn.plt_got;
 	plt_n = m->dyn.plt_rel_sz / sizeof(elf_rela_t);
 	_plt_ent = plt+ 18;
-	_plt_table = plt + 18 + plt_n;
+//	_plt_table = plt + 18 + plt_n;
 
 	DPRINTF("parse relocation table\n");
 
@@ -200,12 +201,16 @@ void rela_table_process(module_t *m, elf_rela_t *rt, size_t rt_size)
 			DPRINTF("dest name: '%s'\n", dest->dyn.soname);
 			DPRINTF("dest bias: 0x%x\n", dest->bias);
 			if (sym_def) {
-				sym_addr = symbol_get_addr(sym_def, dest);
+				sym_addr = (uintptr_t) symbol_get_addr(
+				    sym_def, dest);
 				DPRINTF("symbol definition found, addr=0x%x\n", sym_addr);
 			} else {
 				DPRINTF("symbol definition not found\n");
 				continue;
 			}
+		} else {
+			sym_def = NULL;
+			sym_addr = 0;
 		}
 
 		switch (rel_type) {
@@ -246,6 +251,7 @@ void rela_table_process(module_t *m, elf_rela_t *rt, size_t rt_size)
 			 * location.
 			 */
 			DPRINTF("fixup R_PPC_COPY (s)\n");
+
 			sym_size = sym->st_size;
 			if (sym_size != sym_def->st_size) {
 				printf("warning: mismatched symbol sizes\n");
