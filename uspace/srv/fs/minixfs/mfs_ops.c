@@ -215,7 +215,7 @@ recognized:
  
 	free(sb);
 
-	rc = block_cache_init(devmap_handle, sbi->block_size, 0, CACHE_MODE_WT);
+	rc = block_cache_init(devmap_handle, sbi->block_size, 0, cmode);
 
 	if (rc != EOK) {
 		block_fini(devmap_handle);
