@@ -134,6 +134,7 @@ static int initialize_other_pipes(usb_driver_t *drv, usb_device_t *dev)
 
 		dev->pipes[i].description = drv->endpoints[i];
 		dev->pipes[i].interface_no = dev->interface_no;
+		dev->pipes[i].interface_setting = 0;
 	}
 
 	rc = usb_pipe_initialize_from_configuration(dev->pipes, pipe_count,
@@ -437,6 +438,7 @@ int generic_add_device(ddf_dev_t *gen_dev)
 
 	return driver->ops->add_device(dev);
 }
+
 
 /**
  * @}
