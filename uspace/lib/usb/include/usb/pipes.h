@@ -106,6 +106,8 @@ typedef struct {
 	const usb_endpoint_description_t *description;
 	/** Interface number the endpoint must belong to (-1 for any). */
 	int interface_no;
+	/** Alternate interface setting to choose. */
+	int interface_setting;
 	/** Found descriptor fitting the description. */
 	usb_standard_endpoint_descriptor_t *descriptor;
 	/** Interface descriptor the endpoint belongs to. */

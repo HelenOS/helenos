@@ -92,6 +92,7 @@ _link.ld
 ./uspace/drv/usbflbk/usbflbk
 ./uspace/drv/usbhub/usbhub
 ./uspace/drv/usbhid/usbhid
+./uspace/drv/usbkbd/usbkbd
 ./uspace/drv/usbmid/usbmid
 ./uspace/drv/usbmouse/usbmouse
 ./uspace/drv/vhc/vhc
