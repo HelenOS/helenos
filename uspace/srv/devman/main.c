@@ -42,6 +42,7 @@
 #include <async.h>
 #include <stdio.h>
 #include <errno.h>
+#include <str_error.h>
 #include <bool.h>
 #include <fibril_synch.h>
 #include <stdlib.h>
@@ -50,6 +51,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <ctype.h>
+#include <io/log.h>
 #include <ipc/devman.h>
 #include <ipc/driver.h>
 #include <thread.h>
@@ -70,7 +72,7 @@ static driver_t *devman_driver_register(void)
 	ipc_callid_t iid;
 	driver_t *driver = NULL;
 
-	printf(NAME ": devman_driver_register \n");
+	log_msg(LVL_DEBUG, "devman_driver_register");
 	
 	iid = async_get_call(&icall);
 	if (IPC_GET_IMETHOD(icall) != DEVMAN_DRIVER_REGISTER) {
@@ -87,14 +89,14 @@ static driver_t *devman_driver_register(void)
 		return NULL;
 	}
 
-	printf(NAME ": the %s driver is trying to register by the service.\n",
+	log_msg(LVL_DEBUG, "The `%s' driver is trying to register.",
 	    drv_name);
 	
 	/* Find driver structure. */
 	driver = find_driver(&drivers_list, drv_name);
 	
 	if (driver == NULL) {
-		printf(NAME ": no driver named %s was found.\n", drv_name);
+		log_msg(LVL_ERROR, "No driver named `%s' was found.", drv_name);
 		free(drv_name);
 		drv_name = NULL;
 		async_answer_0(iid, ENOENT);
@@ -105,7 +107,8 @@ static driver_t *devman_driver_register(void)
 	drv_name = NULL;
 	
 	/* Create connection to the driver. */
-	printf(NAME ":  creating connection to the %s driver.\n", driver->name);
+	log_msg(LVL_DEBUG, "Creating connection to the `%s' driver.",
+	    driver->name);
 	ipc_call_t call;
 	ipc_callid_t callid = async_get_call(&call);
 	if (IPC_GET_IMETHOD(call) != IPC_M_CONNECT_TO_ME) {
@@ -117,7 +120,8 @@ static driver_t *devman_driver_register(void)
 	/* Remember driver's phone. */
 	set_driver_phone(driver, IPC_GET_ARG5(call));
 	
-	printf(NAME ": the %s driver was successfully registered as running.\n",
+	log_msg(LVL_NOTE, 
+	    "The `%s' driver was successfully registered as running.",
 	    driver->name);
 	
 	async_answer_0(callid, EOK);
@@ -141,16 +145,15 @@ static int devman_receive_match_id(match_id_list_t *match_ids)
 	
 	callid = async_get_call(&call);
 	if (DEVMAN_ADD_MATCH_ID != IPC_GET_IMETHOD(call)) {
-		printf(NAME ": ERROR: devman_receive_match_id - invalid "
-		    "protocol.\n");
+		log_msg(LVL_ERROR, 
+		    "Invalid protocol when trying to receive match id.");
 		async_answer_0(callid, EINVAL); 
 		delete_match_id(match_id);
 		return EINVAL;
 	}
 	
 	if (match_id == NULL) {
-		printf(NAME ": ERROR: devman_receive_match_id - failed to "
-		    "allocate match id.\n");
+		log_msg(LVL_ERROR, "Failed to allocate match id.");
 		async_answer_0(callid, ENOMEM);
 		return ENOMEM;
 	}
@@ -164,14 +167,14 @@ static int devman_receive_match_id(match_id_list_t *match_ids)
 	match_id->id = match_id_str;
 	if (rc != EOK) {
 		delete_match_id(match_id);
-		printf(NAME ": devman_receive_match_id - failed to receive "
-		    "match id string.\n");
+		log_msg(LVL_ERROR, "Failed to receive match id string: %s.",
+		    str_error(rc));
 		return rc;
 	}
 	
 	list_append(&match_id->link, &match_ids->ids);
 	
-	printf(NAME ": received match id '%s', score = %d \n",
+	log_msg(LVL_DEBUG, "Received match id `%s', score %d.",
 	    match_id->id, match_id->score);
 	return rc;
 }
@@ -227,7 +230,9 @@ static void devman_add_function(ipc_callid_t callid, ipc_call_t *call)
 	
 	if (ftype != fun_inner && ftype != fun_exposed) {
 		/* Unknown function type */
-		printf(NAME ": Error, unknown function type provided by driver!\n");
+		log_msg(LVL_ERROR, 
+		    "Unknown function type %d provided by driver.",
+		    (int) ftype);
 
 		fibril_rwlock_write_unlock(&tree->rwlock);
 		async_answer_0(callid, EINVAL);
@@ -242,6 +247,16 @@ static void devman_add_function(ipc_callid_t callid, ipc_call_t *call)
 		return;
 	}
 	
+	/* Check that function with same name is not there already. */
+	if (find_fun_node_in_device(pdev, fun_name) != NULL) {
+		fibril_rwlock_write_unlock(&tree->rwlock);
+		async_answer_0(callid, EEXISTS);
+		printf(NAME ": Warning, driver tried to register `%s' twice.\n",
+		    fun_name);
+		free(fun_name);
+		return;
+	}
+
 	fun_node_t *fun = create_fun_node();
 	if (!insert_fun_node(&device_tree, fun, fun_name, pdev)) {
 		fibril_rwlock_write_unlock(&tree->rwlock);
@@ -264,7 +279,7 @@ static void devman_add_function(ipc_callid_t callid, ipc_call_t *call)
 
 	fibril_rwlock_write_unlock(&tree->rwlock);
 	
-	printf(NAME ": devman_add_function %s\n", fun->pathname);
+	log_msg(LVL_DEBUG, "devman_add_function(fun=\"%s\")", fun->pathname);
 	
 	devman_receive_match_ids(match_count, &fun->match_ids);
 
@@ -346,8 +361,8 @@ static void devman_add_function_to_class(ipc_callid_t callid, ipc_call_t *call)
 	/* Register the device's class alias by devmapper. */
 	devmap_register_class_dev(class_info);
 	
-	printf(NAME ": function'%s' added to class '%s', class name '%s' was "
-	    "asigned to it\n", fun->pathname, class_name, class_info->dev_name);
+	log_msg(LVL_NOTE, "Function `%s' added to class `%s' as `%s'.",
+	    fun->pathname, class_name, class_info->dev_name);
 
 	async_answer_0(callid, EOK);
 }
@@ -362,7 +377,7 @@ static int init_running_drv(void *drv)
 	driver_t *driver = (driver_t *) drv;
 	
 	initialize_running_driver(driver, &device_tree);
-	printf(NAME ": the %s driver was successfully initialized. \n",
+	log_msg(LVL_DEBUG, "The `%s` driver was successfully initialized.",
 	    driver->name);
 	return 0;
 }
@@ -384,8 +399,8 @@ static void devman_connection_driver(ipc_callid_t iid, ipc_call_t *icall)
 	 */
 	fid_t fid = fibril_create(init_running_drv, driver);
 	if (fid == 0) {
-		printf(NAME ": Error creating fibril for the initialization of "
-		    "the newly registered running driver.\n");
+		log_msg(LVL_ERROR, "Failed to create initialization fibril " \
+		    "for driver `%s'.", driver->name);
 		return;
 	}
 	fibril_add_ready(fid);
@@ -437,6 +452,40 @@ static void devman_function_get_handle(ipc_callid_t iid, ipc_call_t *icall)
 	async_answer_1(iid, EOK, fun->handle);
 }
 
+/** Find handle for the device instance identified by device class name. */
+static void devman_function_get_handle_by_class(ipc_callid_t iid,
+    ipc_call_t *icall)
+{
+	char *classname;
+	char *devname;
+
+	int rc = async_data_write_accept((void **) &classname, true, 0, 0, 0, 0);
+	if (rc != EOK) {
+		async_answer_0(iid, rc);
+		return;
+	}
+	rc = async_data_write_accept((void **) &devname, true, 0, 0, 0, 0);
+	if (rc != EOK) {
+		free(classname);
+		async_answer_0(iid, rc);
+		return;
+	}
+
+
+	fun_node_t *fun = find_fun_node_by_class(&class_list,
+	    classname, devname);
+
+	free(classname);
+	free(devname);
+
+	if (fun == NULL) {
+		async_answer_0(iid, ENOENT);
+		return;
+	}
+
+	async_answer_1(iid, EOK, fun->handle);
+}
+
 
 /** Function for handling connections from a client to the device manager. */
 static void devman_connection_client(ipc_callid_t iid, ipc_call_t *icall)
@@ -455,6 +504,9 @@ static void devman_connection_client(ipc_callid_t iid, ipc_call_t *icall)
 			continue;
 		case DEVMAN_DEVICE_GET_HANDLE:
 			devman_function_get_handle(callid, &call);
+			break;
+		case DEVMAN_DEVICE_GET_HANDLE_BY_CLASS:
+			devman_function_get_handle_by_class(callid, &call);
 			break;
 		default:
 			async_answer_0(callid, ENOENT);
@@ -483,15 +535,16 @@ static void devman_forward(ipc_callid_t iid, ipc_call_t *icall,
 	 * connecting to a device or to a function.
 	 */
 	if (dev == NULL) {
-		printf(NAME ": devman_forward error - no device or function with "
-		    "handle %" PRIun " was found.\n", handle);
+		log_msg(LVL_ERROR, "IPC forwarding failed - no device or "
+		    "function with handle %" PRIun " was found.", handle);
 		async_answer_0(iid, ENOENT);
 		return;
 	}
 
 	if (fun == NULL && !drv_to_parent) {
-		printf(NAME ": devman_forward error - cannot connect to "
-		    "handle %" PRIun ", refers to a device.\n", handle);
+		log_msg(LVL_ERROR, NAME ": devman_forward error - cannot "
+		    "connect to handle %" PRIun ", refers to a device.",
+		    handle);
 		async_answer_0(iid, ENOENT);
 		return;
 	}
@@ -512,8 +565,8 @@ static void devman_forward(ipc_callid_t iid, ipc_call_t *icall,
 	}
 	
 	if (driver == NULL) {
-		printf(NAME ": devman_forward error - the device is not in %" PRIun
-		    " usable state.\n", handle);
+		log_msg(LVL_ERROR, "IPC forwarding refused - " \
+		    "the device %" PRIun " is not in usable state.", handle);
 		async_answer_0(iid, ENOENT);
 		return;
 	}
@@ -525,19 +578,21 @@ static void devman_forward(ipc_callid_t iid, ipc_call_t *icall,
 		method = DRIVER_CLIENT;
 	
 	if (driver->phone <= 0) {
-		printf(NAME ": devman_forward: cound not forward to driver %s ",
-		    driver->name);
-		printf("the driver's phone is %" PRIun ").\n", driver->phone);
+		log_msg(LVL_ERROR, 
+		    "Could not forward to driver `%s' (phone is %d).",
+		    driver->name, (int) driver->phone);
 		async_answer_0(iid, EINVAL);
 		return;
 	}
 
 	if (fun != NULL) {
-		printf(NAME ": devman_forward: forward connection to function %s to "
-		    "driver %s.\n", fun->pathname, driver->name);
+		log_msg(LVL_DEBUG, 
+		    "Forwarding request for `%s' function to driver `%s'.",
+		    fun->pathname, driver->name);
 	} else {
-		printf(NAME ": devman_forward: forward connection to device %s to "
-		    "driver %s.\n", dev->pfun->pathname, driver->name);
+		log_msg(LVL_DEBUG, 
+		    "Forwarding request for `%s' device to driver `%s'.",
+		    dev->pfun->pathname, driver->name);
 	}
 
 	async_forward_fast(iid, driver->phone, method, fwd_h, 0, IPC_FF_NONE);
@@ -569,8 +624,9 @@ static void devman_connection_devmapper(ipc_callid_t iid, ipc_call_t *icall)
 	
 	async_forward_fast(iid, dev->drv->phone, DRIVER_CLIENT, fun->handle, 0,
 	    IPC_FF_NONE);
-	printf(NAME ": devman_connection_devmapper: forwarded connection to "
-	    "device %s to driver %s.\n", fun->pathname, dev->drv->name);
+	log_msg(LVL_DEBUG, 
+	    "Forwarding devmapper request for `%s' function to driver `%s'.",
+	    fun->pathname, dev->drv->name);
 }
 
 /** Function for handling connections to device manager. */
@@ -605,21 +661,21 @@ static void devman_connection(ipc_callid_t iid, ipc_call_t *icall)
 /** Initialize device manager internal structures. */
 static bool devman_init(void)
 {
-	printf(NAME ": devman_init - looking for available drivers.\n");
+	log_msg(LVL_DEBUG, "devman_init - looking for available drivers.");
 	
 	/* Initialize list of available drivers. */
 	init_driver_list(&drivers_list);
 	if (lookup_available_drivers(&drivers_list,
 	    DRIVER_DEFAULT_STORE) == 0) {
-		printf(NAME " no drivers found.");
+		log_msg(LVL_FATAL, "No drivers found.");
 		return false;
 	}
 
-	printf(NAME ": devman_init  - list of drivers has been initialized.\n");
+	log_msg(LVL_DEBUG, "devman_init - list of drivers has been initialized.");
 
 	/* Create root device node. */
 	if (!init_device_tree(&device_tree, &drivers_list)) {
-		printf(NAME " failed to initialize device tree.");
+		log_msg(LVL_FATAL, "Failed to initialize device tree.");
 		return false;
 	}
 
@@ -640,8 +696,13 @@ int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS Device Manager\n");
 
+	if (log_init(NAME, LVL_ERROR) != EOK) {
+		printf(NAME ": Error initializing logging subsystem.\n");
+		return -1;
+	}
+
 	if (!devman_init()) {
-		printf(NAME ": Error while initializing service\n");
+		log_msg(LVL_ERROR, "Error while initializing service.");
 		return -1;
 	}
 	
@@ -649,10 +710,12 @@ int main(int argc, char *argv[])
 	async_set_client_connection(devman_connection);
 
 	/* Register device manager at naming service. */
-	if (service_register(SERVICE_DEVMAN) != EOK)
+	if (service_register(SERVICE_DEVMAN) != EOK) {
+		log_msg(LVL_ERROR, "Failed registering as a service.");
 		return -1;
+	}
 
-	printf(NAME ": Accepting connections\n");
+	printf(NAME ": Accepting connections.\n");
 	async_manager();
 
 	/* Never reached. */

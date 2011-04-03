@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2005 Sergey Bondari
+ * Copyright (c) 2011 Vojtech Horky
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,19 +27,30 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup mips32
+/** @addtogroup libc
  * @{
  */
-/** @file
- */
 
-#ifndef KERN_mips32_MEMSTR_H_
-#define KERN_mips32_MEMSTR_H_
+#ifndef LIBC_IO_LOG_H_
+#define LIBC_IO_LOG_H_
 
-#define memcpy(dst, src, cnt)  __builtin_memcpy((dst), (src), (cnt))
+#include <stdarg.h>
 
-extern void memsetw(void *, size_t, uint16_t);
-extern void memsetb(void *, size_t, uint8_t);
+typedef enum {
+	LVL_FATAL,
+	LVL_ERROR,
+	LVL_WARN,
+	LVL_NOTE,
+	LVL_DEBUG,
+	LVL_DEBUG2,
+
+	/** For checking range of values */
+	LVL_LIMIT
+} log_level_t;
+
+extern int log_init(const char *, log_level_t);
+extern void log_msg(log_level_t, const char *, ...);
+extern void log_msgv(log_level_t, const char *, va_list);
 
 #endif
 

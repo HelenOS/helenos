@@ -52,7 +52,7 @@
 
 #include <libc.h>
 
-// Temporary: service and method names
+/* Temporary: service and method names */
 #include "proto.h"
 #include <ipc/services.h>
 #include "../../srv/vfs/vfs.h"
@@ -871,7 +871,7 @@ static void print_syntax()
 
 static display_mask_t parse_display_mask(const char *text)
 {
-	display_mask_t dm;
+	display_mask_t dm = 0;
 	const char *c = text;
 	
 	while (*c) {

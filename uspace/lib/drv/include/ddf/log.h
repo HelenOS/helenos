@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Sergey Bondari
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,19 +26,17 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup amd64
+/** @addtogroup libdrv
  * @{
  */
-/** @file
- */
 
-#ifndef KERN_amd64_MEMSTR_H_
-#define KERN_amd64_MEMSTR_H_
+#ifndef DDF_LOG_H_
+#define DDF_LOG_H_
 
-#define memcpy(dst, src, cnt)  __builtin_memcpy((dst), (src), (cnt))
+#include <io/log.h>
 
-extern void memsetw(void *, size_t, uint16_t);
-extern void memsetb(void *, size_t, uint8_t);
+extern int ddf_log_init(const char *, log_level_t);
+extern void ddf_msg(log_level_t, const char *, ...);
 
 #endif
 

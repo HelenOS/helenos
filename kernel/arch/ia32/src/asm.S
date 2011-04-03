@@ -37,22 +37,11 @@
 .text
 .global paging_on
 .global enable_l_apic_in_msr
-.global memsetb
-.global memsetw
-.global memcpy
 .global memcpy_from_uspace
 .global memcpy_from_uspace_failover_address
 .global memcpy_to_uspace
 .global memcpy_to_uspace_failover_address
 .global early_putchar
-
-/* Wrapper for generic memsetb */
-memsetb:
-	jmp _memsetb
-
-/* Wrapper for generic memsetw */
-memsetw:
-	jmp _memsetw
 
 #define MEMCPY_DST   4
 #define MEMCPY_SRC   8
@@ -73,7 +62,6 @@ memsetw:
  * @return MEMCPY_DST(%esp) on success and 0 on failure.
  *
  */
-memcpy:
 memcpy_from_uspace:
 memcpy_to_uspace:
 	movl %edi, %edx  /* save %edi */

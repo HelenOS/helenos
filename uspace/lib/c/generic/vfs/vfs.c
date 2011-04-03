@@ -755,10 +755,11 @@ char *getcwd(char *buf, size_t size)
 int fd_phone(int fildes)
 {
 	struct stat stat;
-	int rc;
-
-	rc = fstat(fildes, &stat);
-
+	
+	int rc = fstat(fildes, &stat);
+	if (rc != 0)
+		return rc;
+	
 	if (!stat.device)
 		return -1;
 	
