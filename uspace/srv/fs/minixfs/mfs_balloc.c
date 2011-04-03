@@ -93,7 +93,8 @@ mfs_alloc_bit(struct mfs_instance *inst, uint32_t *idx, bmap_id_t bid)
 retry:
 
 	for (i = *search / bits_per_block; i < nblocks; ++i) {
-		r = block_get(&b, inst->handle, i, BLOCK_FLAGS_NONE);
+		r = block_get(&b, inst->handle, i + start_block,
+				BLOCK_FLAGS_NONE);
 
 		if (r != EOK)
 			goto out;
