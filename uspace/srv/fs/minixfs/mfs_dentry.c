@@ -78,7 +78,6 @@ read_directory_entry(struct mfs_node *mnode, unsigned index)
 
 	block_put(b);
 
-	d_info->dirty = false;
 	d_info->index = index;
 	d_info->node = mnode;
 	return d_info;

@@ -124,7 +124,8 @@ struct mfs_dentry_info {
 	char d_name[MFS3_MAX_NAME_LEN];
 
 	/*The following fields do not exist on disk but only in memory*/
-	bool dirty;
+
+	/*Index of the dentry in the list*/
 	unsigned index;
 	/*Pointer to the node at witch the dentry belongs*/
 	struct mfs_node *node;
