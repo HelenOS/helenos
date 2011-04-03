@@ -107,7 +107,7 @@ static const usb_standard_endpoint_descriptor_t ohci_rh_ep_descriptor = {
 };
 
 static const uint32_t hub_clear_feature_valid_mask =
-	(1 << USB_HUB_FEATURE_C_HUB_LOCAL_POWER) +
+	(1 << USB_HUB_FEATURE_C_HUB_LOCAL_POWER) |
 (1 << USB_HUB_FEATURE_C_HUB_OVER_CURRENT);
 
 static const uint32_t hub_clear_feature_by_writing_one_mask =
@@ -121,20 +121,20 @@ static const uint32_t hub_set_feature_direct_mask =
 	(1 << USB_HUB_FEATURE_C_HUB_OVER_CURRENT);
 
 static const uint32_t port_set_feature_valid_mask =
-	(1 << USB_HUB_FEATURE_PORT_ENABLE) +
-(1 << USB_HUB_FEATURE_PORT_SUSPEND) +
-(1 << USB_HUB_FEATURE_PORT_RESET) +
+	(1 << USB_HUB_FEATURE_PORT_ENABLE) |
+(1 << USB_HUB_FEATURE_PORT_SUSPEND) |
+(1 << USB_HUB_FEATURE_PORT_RESET) |
 (1 << USB_HUB_FEATURE_PORT_POWER);
 
 static const uint32_t port_clear_feature_valid_mask =
-	(1 << USB_HUB_FEATURE_PORT_CONNECTION) +
-(1 << USB_HUB_FEATURE_PORT_SUSPEND) +
-(1 << USB_HUB_FEATURE_PORT_OVER_CURRENT) +
-(1 << USB_HUB_FEATURE_PORT_POWER) +
-(1 << USB_HUB_FEATURE_C_PORT_CONNECTION) +
-(1 << USB_HUB_FEATURE_C_PORT_ENABLE) +
-(1 << USB_HUB_FEATURE_C_PORT_SUSPEND) +
-(1 << USB_HUB_FEATURE_C_PORT_OVER_CURRENT) +
+	(1 << USB_HUB_FEATURE_PORT_CONNECTION) |
+(1 << USB_HUB_FEATURE_PORT_SUSPEND) |
+(1 << USB_HUB_FEATURE_PORT_OVER_CURRENT) |
+(1 << USB_HUB_FEATURE_PORT_POWER) |
+(1 << USB_HUB_FEATURE_C_PORT_CONNECTION) |
+(1 << USB_HUB_FEATURE_C_PORT_ENABLE) |
+(1 << USB_HUB_FEATURE_C_PORT_SUSPEND) |
+(1 << USB_HUB_FEATURE_C_PORT_OVER_CURRENT) |
 (1 << USB_HUB_FEATURE_C_PORT_RESET);
 //note that USB_HUB_FEATURE_PORT_POWER bit is translated into
 //USB_HUB_FEATURE_PORT_LOW_SPEED
@@ -164,7 +164,6 @@ static int process_get_configuration_request(rh_t *instance,
 	usb_transfer_batch_t *request);
 
 static int process_hub_feature_set_request(rh_t *instance, uint16_t feature);
-
 
 static int process_hub_feature_clear_request(rh_t *instance,
 	uint16_t feature);
@@ -203,8 +202,9 @@ int rh_init(rh_t *instance, ddf_dev_t *dev, ohci_regs_t *regs) {
 	instance->device = dev;
 	instance->port_count = instance->registers->rh_desc_a & 0xff;
 	rh_init_descriptors(instance);
-	/// \TODO set port power mode
-
+	// set port power mode to no-power-switching
+	instance->registers->rh_desc_a =
+		instance->registers->rh_desc_a | (1<<9);
 
 	usb_log_info("OHCI root hub with %d ports.\n", instance->port_count);
 
