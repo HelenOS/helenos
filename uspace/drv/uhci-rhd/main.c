@@ -43,73 +43,11 @@
 #include "root_hub.h"
 
 #define NAME "uhci-rhd"
+
 static int hc_get_my_registers(ddf_dev_t *dev,
     uintptr_t *io_reg_address, size_t *io_reg_size);
-#if 0
 /*----------------------------------------------------------------------------*/
-static int usb_iface_get_hc_handle(ddf_fun_t *fun, devman_handle_t *handle)
-{
-	assert(fun);
-	assert(fun->driver_data);
-	assert(handle);
-
-	*handle = ((uhci_root_hub_t*)fun->driver_data)->hc_handle;
-
-	return EOK;
-}
-/*----------------------------------------------------------------------------*/
-static usb_iface_t uhci_rh_usb_iface = {
-	.get_hc_handle = usb_iface_get_hc_handle,
-	.get_address = usb_iface_get_address_hub_impl
-};
-/*----------------------------------------------------------------------------*/
-static ddf_dev_ops_t uhci_rh_ops = {
-	.interfaces[USB_DEV_IFACE] = &uhci_rh_usb_iface,
-};
-#endif
-/*----------------------------------------------------------------------------*/
-/** Initialize a new ddf driver instance of UHCI root hub.
- *
- * @param[in] device DDF instance of the device to initialize.
- * @return Error code.
- */
-static int uhci_rh_add_device(ddf_dev_t *device)
-{
-	if (!device)
-		return ENOTSUP;
-
-	usb_log_debug2("%s called device %d\n", __FUNCTION__, device->handle);
-
-	//device->ops = &uhci_rh_ops;
-	uintptr_t io_regs = 0;
-	size_t io_size = 0;
-
-	int ret = hc_get_my_registers(device, &io_regs, &io_size);
-	if (ret != EOK) {
-		usb_log_error("Failed to get registers from parent HC: %s.\n",
-		    str_error(ret));
-	}
-	usb_log_debug("I/O regs at %#X (size %zu).\n", io_regs, io_size);
-
-	uhci_root_hub_t *rh = malloc(sizeof(uhci_root_hub_t));
-	if (!rh) {
-		usb_log_error("Failed to allocate driver instance.\n");
-		return ENOMEM;
-	}
-
-	ret = uhci_root_hub_init(rh, (void*)io_regs, io_size, device);
-	if (ret != EOK) {
-		usb_log_error("Failed to initialize driver instance: %s.\n",
-		    str_error(ret));
-		free(rh);
-		return ret;
-	}
-
-	device->driver_data = rh;
-	usb_log_info("Controlling root hub `%s' (%llu).\n",
-	    device->name, device->handle);
-	return EOK;
-}
+static int uhci_rh_add_device(ddf_dev_t *device);
 /*----------------------------------------------------------------------------*/
 static driver_ops_t uhci_rh_driver_ops = {
 	.add_device = uhci_rh_add_device,
@@ -131,10 +69,54 @@ static driver_t uhci_rh_driver = {
 int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS UHCI root hub driver.\n");
-
 	usb_log_enable(USB_LOG_LEVEL_DEFAULT, NAME);
-
 	return ddf_driver_main(&uhci_rh_driver);
+}
+/*----------------------------------------------------------------------------*/
+/** Initialize a new ddf driver instance of UHCI root hub.
+ *
+ * @param[in] device DDF instance of the device to initialize.
+ * @return Error code.
+ */
+static int uhci_rh_add_device(ddf_dev_t *device)
+{
+	if (!device)
+		return EINVAL;
+
+	usb_log_debug2("%s called device %d\n", __FUNCTION__, device->handle);
+
+	uintptr_t io_regs = 0;
+	size_t io_size = 0;
+	uhci_root_hub_t *rh = NULL;
+	int ret = EOK;
+
+#define CHECK_RET_FREE_RH_RETURN(ret, message...) \
+if (ret != EOK) { \
+	usb_log_error(message); \
+	if (rh) \
+		free(rh); \
+	return ret; \
+} else (void)0
+
+	ret = hc_get_my_registers(device, &io_regs, &io_size);
+	CHECK_RET_FREE_RH_RETURN(ret,
+	    "Failed(%d) to get registers from HC: %s.\n", ret, str_error(ret));
+	usb_log_debug("I/O regs at %#x (size %zu).\n", io_regs, io_size);
+
+	rh = malloc(sizeof(uhci_root_hub_t));
+	ret = (rh == NULL) ? ENOMEM : EOK;
+	CHECK_RET_FREE_RH_RETURN(ret,
+	    "Failed to allocate rh driver instance.\n");
+
+	ret = uhci_root_hub_init(rh, (void*)io_regs, io_size, device);
+	CHECK_RET_FREE_RH_RETURN(ret,
+	    "Failed(%d) to initialize rh driver instance: %s.\n",
+	    ret, str_error(ret));
+
+	device->driver_data = rh;
+	usb_log_info("Controlling root hub '%s' (%llu).\n",
+	    device->name, device->handle);
+	return EOK;
 }
 /*----------------------------------------------------------------------------*/
 /** Get address of I/O registers.
@@ -155,49 +137,38 @@ int hc_get_my_registers(
 		return parent_phone;
 	}
 
-	int rc;
-
 	hw_resource_list_t hw_resources;
-	rc = hw_res_get_resource_list(parent_phone, &hw_resources);
-	if (rc != EOK) {
-		goto leave;
+	int ret = hw_res_get_resource_list(parent_phone, &hw_resources);
+	if (ret != EOK) {
+		async_hangup(parent_phone);
+		return ret;
 	}
 
 	uintptr_t io_address = 0;
 	size_t io_size = 0;
 	bool io_found = false;
 
-	size_t i;
-	for (i = 0; i < hw_resources.count; i++) {
+	size_t i = 0;
+	for (; i < hw_resources.count; i++) {
 		hw_resource_t *res = &hw_resources.resources[i];
-		switch (res->type)
-		{
-		case IO_RANGE:
-			io_address = (uintptr_t) res->res.io_range.address;
+		if (res->type == IO_RANGE) {
+			io_address = res->res.io_range.address;
 			io_size = res->res.io_range.size;
 			io_found = true;
-
-		default:
-			break;
 		}
 	}
+	async_hangup(parent_phone);
 
 	if (!io_found) {
-		rc = ENOENT;
-		goto leave;
+		return ENOENT;
 	}
-
 	if (io_reg_address != NULL) {
 		*io_reg_address = io_address;
 	}
 	if (io_reg_size != NULL) {
 		*io_reg_size = io_size;
 	}
-	rc = EOK;
-
-leave:
-	async_hangup(parent_phone);
-	return rc;
+	return EOK;
 }
 /**
  * @}
