@@ -243,7 +243,7 @@ static void rh_init_descriptors(rh_t *instance){
 int rh_init(rh_t *instance, ddf_dev_t *dev, ohci_regs_t *regs)
 {
 	assert(instance);
-	instance->address = -1;
+	//instance->address = -1;
 	instance->registers = regs;
 	instance->device = dev;
 	instance->port_count = instance->registers->rh_desc_a & 0xff;
@@ -277,6 +277,14 @@ static int process_get_port_status_request(rh_t *instance, uint16_t port,
 	uint32_t * uint32_buffer = (uint32_t*)request->transport_buffer;
 	request->transfered_size = 4;
 	uint32_buffer[0] = instance->registers->rh_port_status[port -1];
+#if 0
+	int i;
+	for(i=0;i<instance->port_count;++i){
+		usb_log_debug("port status %d,x%x\n",
+				instance->registers->rh_port_status[i],
+				instance->registers->rh_port_status[i]);
+	}
+#endif
 	return EOK;
 }
 
@@ -297,7 +305,6 @@ static int process_get_hub_status_request(rh_t *instance,
 	uint32_t mask = 1 & (1<<1) & (1<<16) & (1<<17);
 	uint32_buffer[0] = mask & instance->registers->rh_status;
 	return EOK;
-
 }
 
 
@@ -338,7 +345,8 @@ static int process_get_status_request(rh_t *instance,
  *
  * Result contains bitmap where bit 0 indicates change on hub and
  * bit i indicates change on i`th port (i>0). For more info see
- * Hub and Port status bitmap specification in USB specification.
+ * Hub and Port status bitmap specification in USB specification
+ * (chapter 11.13.4)
  * @param instance root hub instance
  * @param@out buffer pointer to created interrupt mas
  * @param@out buffer_size size of created interrupt mask
@@ -346,10 +354,12 @@ static int process_get_status_request(rh_t *instance,
 static void create_interrupt_mask(rh_t *instance, void ** buffer,
 		size_t * buffer_size){
 	int bit_count = instance->port_count + 1;
-	(*buffer_size) = (bit_count / 8) + (bit_count%8==0)?0:1;
+	(*buffer_size) = (bit_count / 8) + ((bit_count%8==0)?0:1);
+	
 	(*buffer) = malloc(*buffer_size);
 	uint8_t * bitmap = (uint8_t*)(*buffer);
-	uint32_t mask = (1<<16) + (1<<17);
+	uint32_t mask = (1<<(USB_HUB_FEATURE_C_HUB_LOCAL_POWER+16))
+			| (1<<(USB_HUB_FEATURE_C_HUB_OVER_CURRENT+16));
 	bzero(bitmap,(*buffer_size));
 	if(instance->registers->rh_status & mask){
 		bitmap[0] = 1;
@@ -357,11 +367,12 @@ static void create_interrupt_mask(rh_t *instance, void ** buffer,
 	int port;
 	mask = 0;
 	int i;
-	for(i=16;i<=20;++i)
+	for(i=16;i<=20;++i){
 		mask += 1<<i;
+	}
 	for(port = 1; port<=instance->port_count;++port){
 		if(mask & instance->registers->rh_port_status[port-1]){
-			bitmap[(port+1)/8] += 1<<(port%8);
+			bitmap[(port)/8] += 1<<(port%8);
 		}
 	}
 }
@@ -435,8 +446,6 @@ static int process_get_descriptor_request(rh_t *instance,
 	}
 	request->transfered_size = size;
 	memcpy(request->transport_buffer,result_descriptor,size);
-	usb_log_debug("sent desctiptor: %s\n",
-			usb_debug_str_buffer((uint8_t*)request->transport_buffer,size,size));
 	if (del)
 		free(result_descriptor);
 	return EOK;

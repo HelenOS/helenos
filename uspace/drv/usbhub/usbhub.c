@@ -53,7 +53,7 @@
 #include "usb/classes/classes.h"
 
 
-static void usb_hub_init_add_device(usb_hub_info_t * hub, uint16_t port,
+static int usb_hub_init_add_device(usb_hub_info_t * hub, uint16_t port,
 		usb_speed_t speed);
 
 static int usb_hub_trigger_connecting_non_removable_devices(
@@ -75,6 +75,7 @@ int usb_hub_control_loop(void * hub_info_param){
 	while(errorCode == EOK){
 		async_usleep(1000 * 1000 * 10 );/// \TODO proper number once
 		errorCode = usb_hub_check_hub_changes(hub_info);
+		
 	}
 	usb_log_error("something in ctrl loop went wrong, errno %d\n",errorCode);
 
@@ -124,14 +125,17 @@ static int usb_hub_process_hub_specific_info(usb_hub_info_t * hub_info){
 	/* this was one fix of some bug, should not be needed anymore
 	 * these lines allow to reset hub once more, it can be used as
 	 * brute-force initialization for non-removable devices
-	int opResult = usb_request_set_configuration(&result->endpoints.control, 1);
+	 */
+	int opResult = usb_request_set_configuration(hub_info->control_pipe,
+			1);
 	if(opResult!=EOK){
 		usb_log_error("could not set default configuration, errno %d",opResult);
 		return opResult;
 	}
-	 */
+	 
+	 
 	size_t received_size;
-	int opResult = usb_request_get_descriptor(&hub_info->usb_device->ctrl_pipe,
+	opResult = usb_request_get_descriptor(&hub_info->usb_device->ctrl_pipe,
 			USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_DEVICE,
 			USB_DESCTYPE_HUB,
 			0, 0, serialized_descriptor,
@@ -162,8 +166,16 @@ static int usb_hub_process_hub_specific_info(usb_hub_info_t * hub_info){
 	usb_hub_trigger_connecting_non_removable_devices(hub_info, descriptor);
 	usb_log_debug2("freeing data\n");
 	free(serialized_descriptor);
-	free(descriptor->devices_removable);
-	free(descriptor);
+	hub_info->descriptor = descriptor;
+	hub_info->not_initialized_non_removables =
+		(uint8_t*)malloc((hub_info->port_count+8)/8);
+	memcpy(hub_info->not_initialized_non_removables,
+		descriptor->devices_removable,
+		(hub_info->port_count+8)/8
+		);
+
+	//free(descriptor->devices_removable);
+	//free(descriptor);
 	return EOK;
 }
 /**
@@ -288,16 +300,25 @@ int usb_hub_add_device(usb_device_t * usb_dev){
  * @param descriptor usb hub descriptor
  * @return error code
  */
-static int usb_hub_trigger_connecting_non_removable_devices(usb_hub_info_t * hub,
+static int usb_hub_trigger_connecting_non_removable_devices(
+		usb_hub_info_t * hub,
 		usb_hub_descriptor_t * descriptor)
 {
 	usb_log_info("attaching non-removable devices(if any)\n");
-	usb_device_request_setup_packet_t request;
+	//usb_device_request_setup_packet_t request;
 	int opResult;
-	size_t rcvd_size;
-	usb_port_status_t status;
+	//size_t rcvd_size;
+	//usb_port_status_t status;
 	uint8_t * non_removable_dev_bitmap = descriptor->devices_removable;
 	int port;
+
+	opResult = usb_request_set_configuration(hub->control_pipe,
+			1);
+	if(opResult!=EOK){
+		usb_log_error("could not set default configuration, errno %d",opResult);
+		return opResult;
+	}
+#if 0
 	for(port=1;port<=descriptor->ports_count;++port){
 		bool is_non_removable =
 				((non_removable_dev_bitmap[port/8]) >> (port%8)) %2;
@@ -314,23 +335,27 @@ static int usb_hub_trigger_connecting_non_removable_devices(usb_hub_info_t * hub
 						port, opResult);
 				return opResult;
 			}
-			if(usb_port_dev_connected(&status)){
-			usb_hub_set_enable_port_feature_request(&request, port,
-					USB_HUB_FEATURE_PORT_RESET);
-			opResult = usb_pipe_control_read(
-					hub->control_pipe,
-					&request, sizeof(usb_device_request_setup_packet_t),
-					&status, 4, &rcvd_size
-					);
-			if (opResult != EOK) {
-				usb_log_warning(
-						"could not reset port %d errno:%d\n",
-						port, opResult);
-			}
-			usb_log_debug("port reset\n");
+			//try to reset port
+			if(usb_port_dev_connected(&status) || true){
+				usb_hub_set_enable_port_feature_request(&request, port,
+						USB_HUB_FEATURE_PORT_RESET);
+				opResult = usb_pipe_control_read(
+						hub->control_pipe,
+						&request, sizeof(usb_device_request_setup_packet_t),
+						&status, 4, &rcvd_size
+						);
+				if (opResult != EOK) {
+					usb_log_warning(
+							"could not reset port %d errno:%d\n",
+							port, opResult);
+				}
+				usb_log_debug("port reset, should look like %d,x%x\n",
+						(1<<USB_HUB_FEATURE_PORT_RESET),
+						(1<<USB_HUB_FEATURE_PORT_RESET)
+						);
 			}
 			//set the status change bit, so it will be noticed in driver loop
-			/*if(usb_port_dev_connected(&status)){
+			if(usb_port_dev_connected(&status) && false){
 				usb_hub_set_disable_port_feature_request(&request, port,
 						USB_HUB_FEATURE_PORT_CONNECTION);
 				opResult = usb_pipe_control_read(
@@ -357,15 +382,17 @@ static int usb_hub_trigger_connecting_non_removable_devices(usb_hub_info_t * hub
 							port, opResult);
 				}
 				usb_log_debug("port set to enabled - should lead to connection change\n");
-			}*/
+			}
 		}
 	}
+#endif
+
 	/// \TODO this is just a debug code
 	for(port=1;port<=descriptor->ports_count;++port){
 		bool is_non_removable =
 				((non_removable_dev_bitmap[port/8]) >> (port%8)) %2;
 		if(is_non_removable){
-			usb_log_debug("port %d is non-removable\n",port);
+			usb_log_debug("CHECKING port %d is non-removable\n",port);
 			usb_port_status_t status;
 			size_t rcvd_size;
 			usb_device_request_setup_packet_t request;
@@ -391,6 +418,7 @@ static int usb_hub_trigger_connecting_non_removable_devices(usb_hub_info_t * hub
 					(uint8_t *)&status,4,4));
 		}
 	}
+
 	return EOK;
 }
 
@@ -418,11 +446,12 @@ static int usb_hub_release_default_address(usb_hub_info_t * hub){
  * @param hub hub representation
  * @param port port number, starting from 1
  * @param speed transfer speed of attached device, one of low, full or high
+ * @return error code
  */
-static void usb_hub_init_add_device(usb_hub_info_t * hub, uint16_t port,
+static int usb_hub_init_add_device(usb_hub_info_t * hub, uint16_t port,
 		usb_speed_t speed) {
 	//if this hub already uses default address, it cannot request it once more
-	if(hub->is_default_address_used) return;
+	if(hub->is_default_address_used) return EREFUSED;
 	usb_log_debug("some connection changed\n");
 	assert(hub->control_pipe->hc_phone);
 	int opResult = usb_hub_clear_port_feature(hub->control_pipe,
@@ -438,7 +467,7 @@ static void usb_hub_init_add_device(usb_hub_info_t * hub, uint16_t port,
 	if (opResult != EOK) {
 		usb_log_warning("cannot assign default address, it is probably used %d\n",
 				opResult);
-		return;
+		return opResult;
 	}
 	hub->is_default_address_used = true;
 	//reset port
@@ -452,7 +481,7 @@ static void usb_hub_init_add_device(usb_hub_info_t * hub, uint16_t port,
 		usb_log_error("something went wrong when reseting a port %d\n",opResult);
 		usb_hub_release_default_address(hub);
 	}
-	return;
+	return opResult;
 }
 
 /**
@@ -669,7 +698,7 @@ static void usb_hub_process_interrupt(usb_hub_info_t * hub,
 			usb_log_warning("port reset, but port still not enabled\n");
 		}
 	}
-	usb_log_debug("status %x\n ",status);
+	usb_log_debug("status x%x : %d\n ",status,status);
 
 	usb_port_set_connect_change(&status, false);
 	usb_port_set_reset(&status, false);
@@ -680,6 +709,43 @@ static void usb_hub_process_interrupt(usb_hub_info_t * hub,
 				port,status);
 
 	}
+}
+
+
+static int initialize_non_removable(usb_hub_info_t * hub_info,
+	unsigned int port){
+	int opResult;
+	usb_log_debug("there is not pluged in non-removable device on "
+		"port %d\n",port
+		);
+	//usb_hub_init_add_device(hub_info, port, usb_port_speed(&status));
+	usb_port_status_t status;
+	size_t rcvd_size;
+	usb_device_request_setup_packet_t request;
+	//int opResult;
+	usb_hub_set_port_status_request(&request, port);
+	//endpoint 0
+
+	opResult = usb_pipe_control_read(
+			hub_info->control_pipe,
+			&request, sizeof(usb_device_request_setup_packet_t),
+			&status, 4, &rcvd_size
+			);
+	if (opResult != EOK) {
+		usb_log_error("could not get port status %d\n",opResult);
+		return opResult;
+	}
+	if (rcvd_size != sizeof (usb_port_status_t)) {
+		usb_log_error("received status has incorrect size\n");
+		return opResult;
+	}
+	usb_log_debug("port status %d, x%x\n",status,status);
+	if(usb_port_dev_connected(&status)){
+		usb_log_debug("there is connected device on this port\n");
+	}
+	if(!hub_info->is_default_address_used)
+		usb_hub_init_add_device(hub_info, port, usb_port_speed(&status));
+	return opResult;
 }
 
 /**
@@ -693,6 +759,8 @@ int usb_hub_check_hub_changes(usb_hub_info_t * hub_info){
 	int opResult;
 	opResult = usb_pipe_start_session(
 			hub_info->status_change_pipe);
+	//this might not be necessary - if all non-removables are ok, it is not needed here
+	opResult = usb_pipe_start_session(hub_info->control_pipe);
 	if(opResult != EOK){
 		usb_log_error("could not initialize communication for hub; %d\n",
 				opResult);
@@ -700,6 +768,19 @@ int usb_hub_check_hub_changes(usb_hub_info_t * hub_info){
 	}
 
 	size_t port_count = hub_info->port_count;
+	//first check non-removable devices
+	{
+	unsigned int port;
+	for(port = 1; port<=port_count; ++port){
+		bool is_non_removable =
+			hub_info->not_initialized_non_removables[port/8]
+			& (1 << (port%8));
+		if(is_non_removable){
+			opResult = initialize_non_removable(hub_info,port);
+		}
+	}
+	}
+
 
 	/// FIXME: count properly
 	size_t byte_length = ((port_count+1) / 8) + 1;
@@ -721,7 +802,7 @@ int usb_hub_check_hub_changes(usb_hub_info_t * hub_info){
 		return opResult;
 	}
 	unsigned int port;
-	opResult = usb_pipe_start_session(hub_info->control_pipe);
+	
 	if(opResult!=EOK){
 		usb_log_error("could not start control pipe session %d\n", opResult);
 		usb_pipe_end_session(hub_info->status_change_pipe);
