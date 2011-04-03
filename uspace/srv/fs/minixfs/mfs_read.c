@@ -180,7 +180,7 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 		*b = conv16(sbi->native, *pt16);
 		if (write_mode) {
 			*pt16 = conv16(sbi->native, w_block);
-			bi2->dirty = false;
+			bi2->dirty = true;
 		}
 	} else {
 		uint32_t *pt32 = bi1->data;
@@ -196,7 +196,7 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 		*b = conv32(sbi->native, *pt32);
 		if (write_mode) {
 			*pt32 = conv32(sbi->native, w_block);
-			bi2->dirty = false;
+			bi2->dirty = true;
 		}
 	}
 	r = EOK;
