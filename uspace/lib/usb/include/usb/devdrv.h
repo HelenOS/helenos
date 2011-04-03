@@ -78,6 +78,8 @@ typedef struct {
 	 * in usb_driver_t.
 	 */
 	usb_endpoint_mapping_t *pipes;
+	/** Number of other endpoint pipes. */
+	size_t pipes_count;
 	/** Current interface.
 	 * Usually, drivers operate on single interface only.
 	 * This item contains the value of the interface or -1 for any.
@@ -155,6 +157,9 @@ static usb_driver_t hub_driver = {
 } usb_driver_t;
 
 int usb_driver_main(usb_driver_t *);
+
+int usb_device_select_interface(usb_device_t *, uint8_t,
+    usb_endpoint_description_t **);
 
 typedef bool (*usb_polling_callback_t)(usb_device_t *,
     uint8_t *, size_t, void *);

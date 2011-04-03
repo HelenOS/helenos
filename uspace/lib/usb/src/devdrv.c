@@ -86,14 +86,14 @@ static void usb_log_oom(ddf_dev_t *dev)
  * @param drv USB driver.
  * @return Number of pipes (excluding default control pipe).
  */
-static size_t count_other_pipes(usb_driver_t *drv)
+static size_t count_other_pipes(usb_endpoint_description_t **endpoints)
 {
 	size_t count = 0;
-	if (drv->endpoints == NULL) {
+	if (endpoints == NULL) {
 		return 0;
 	}
 
-	while (drv->endpoints[count] != NULL) {
+	while (endpoints[count] != NULL) {
 		count++;
 	}
 
@@ -106,11 +106,16 @@ static size_t count_other_pipes(usb_driver_t *drv)
  * @param dev Device to be initialized.
  * @return Error code.
  */
-static int initialize_other_pipes(usb_driver_t *drv, usb_device_t *dev)
+static int initialize_other_pipes(usb_endpoint_description_t **endpoints,
+    usb_device_t *dev)
 {
 	int rc;
 
-	size_t pipe_count = count_other_pipes(drv);
+	size_t pipe_count = count_other_pipes(endpoints);
+	if (pipe_count == 0) {
+		return EOK;
+	}
+
 	dev->pipes = malloc(sizeof(usb_endpoint_mapping_t) * pipe_count);
 	if (dev->pipes == NULL) {
 		usb_log_oom(dev->ddf_dev);
@@ -132,7 +137,7 @@ static int initialize_other_pipes(usb_driver_t *drv, usb_device_t *dev)
 			goto rollback;
 		}
 
-		dev->pipes[i].description = drv->endpoints[i];
+		dev->pipes[i].description = endpoints[i];
 		dev->pipes[i].interface_no = dev->interface_no;
 		dev->pipes[i].interface_setting = 0;
 	}
@@ -177,6 +182,8 @@ static int initialize_other_pipes(usb_driver_t *drv, usb_device_t *dev)
 	}
 	/* Ignoring errors here. */
 	usb_hc_connection_close(&hc_conn);
+
+	dev->pipes_count = pipe_count;
 
 	return EOK;
 
@@ -260,7 +267,7 @@ static int initialize_pipes(usb_device_t *dev)
 	}
 
 	if (driver->endpoints != NULL) {
-		rc = initialize_other_pipes(driver, dev);
+		rc = initialize_other_pipes(driver->endpoints, dev);
 	}
 
 	/* No checking here. */
@@ -428,6 +435,9 @@ int generic_add_device(ddf_dev_t *gen_dev)
 	dev->driver_data = NULL;
 	dev->descriptors.configuration = NULL;
 
+	dev->pipes_count = 0;
+	dev->pipes = NULL;
+
 	rc = initialize_pipes(dev);
 	if (rc != EOK) {
 		free(dev);
@@ -439,6 +449,95 @@ int generic_add_device(ddf_dev_t *gen_dev)
 	return driver->ops->add_device(dev);
 }
 
+/** Destroy existing pipes of a USB device.
+ *
+ * @param dev Device where to destroy the pipes.
+ * @return Error code.
+ */
+static int destroy_current_pipes(usb_device_t *dev)
+{
+	size_t i;
+	int rc;
+
+	/* TODO: this shall be done under some device mutex. */
+
+	/* First check that no session is opened. */
+	for (i = 0; i < dev->pipes_count; i++) {
+		if (usb_pipe_is_session_started(dev->pipes[i].pipe)) {
+			return EBUSY;
+		}
+	}
+
+	/* Prepare connection to HC. */
+	usb_hc_connection_t hc_conn;
+	rc = usb_hc_connection_initialize_from_device(&hc_conn, dev->ddf_dev);
+	if (rc != EOK) {
+		return rc;
+	}
+	rc = usb_hc_connection_open(&hc_conn);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	/* Destroy the pipes. */
+	for (i = 0; i < dev->pipes_count; i++) {
+		usb_pipe_unregister(dev->pipes[i].pipe, &hc_conn);
+		free(dev->pipes[i].pipe);
+	}
+
+	usb_hc_connection_close(&hc_conn);
+
+	free(dev->pipes);
+	dev->pipes = NULL;
+	dev->pipes_count = 0;
+
+	return EOK;
+}
+
+/** Change interface setting of a device.
+ * This function selects new alternate setting of an interface by issuing
+ * proper USB command to the device and also creates new USB pipes
+ * under @c dev->pipes.
+ *
+ * @warning This function is intended for drivers working at interface level.
+ * For drivers controlling the whole device, you need to change interface
+ * manually using usb_request_set_interface() and creating new pipes
+ * with usb_pipe_initialize_from_configuration().
+ *
+ * @param dev USB device.
+ * @param alternate_setting Alternate setting to choose.
+ * @param endpoints New endpoint descriptions.
+ * @return Error code.
+ */
+int usb_device_select_interface(usb_device_t *dev, uint8_t alternate_setting,
+    usb_endpoint_description_t **endpoints)
+{
+	if (dev->interface_no < 0) {
+		return EINVAL;
+	}
+
+	int rc;
+
+	/* TODO: more transactional behavior. */
+
+	/* Destroy existing pipes. */
+	rc = destroy_current_pipes(dev);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	/* Change the interface itself. */
+	rc = usb_request_set_interface(&dev->ctrl_pipe, dev->interface_no,
+	    alternate_setting);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	/* Create new pipes. */
+	rc = initialize_other_pipes(endpoints, dev);
+
+	return rc;
+}
 
 /**
  * @}
