@@ -108,7 +108,6 @@ static size_t count_other_pipes(usb_driver_t *drv)
 static int initialize_other_pipes(usb_driver_t *drv, usb_device_t *dev)
 {
 	int rc;
-	dev->interface_no = usb_device_get_assigned_interface(dev->ddf_dev);
 
 	size_t pipe_count = count_other_pipes(drv);
 	dev->pipes = malloc(sizeof(usb_endpoint_mapping_t) * pipe_count);
@@ -225,6 +224,9 @@ static int initialize_pipes(usb_device_t *dev)
 		    dev->ddf_dev->name, str_error(rc));
 		return rc;
 	}
+
+	/* Get our interface. */
+	dev->interface_no = usb_device_get_assigned_interface(dev->ddf_dev);
 
 	/*
 	 * For further actions, we need open session on default control pipe.
