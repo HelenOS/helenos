@@ -37,74 +37,172 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <fcntl.h>
+#include <getopt.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <str.h>
+#include <sort.h>
 
 #include "errors.h"
 #include "config.h"
 #include "util.h"
 #include "entry.h"
-#include "ls.h"
 #include "cmds.h"
+
+/* Various values that can be returned by ls_scope() */
+#define LS_BOGUS 0
+#define LS_FILE  1
+#define LS_DIR   2
+
+/** Structure to represent a directory entry.
+ *
+ * Useful to keep together important information
+ * for sorting directory entries.
+ */
+struct dir_elem_t {
+	char *name;
+	struct stat s;
+};
 
 static const char *cmdname = "ls";
 
-static void ls_scan_dir(const char *d, DIR *dirp)
-{
-	struct dirent *dp;
-	char *buff;
+static struct option const long_options[] = {
+	{ "help", no_argument, 0, 'h' },
+	{ "unsort", no_argument, 0, 'u' },
+	{ 0, 0, 0, 0 }
+};
 
-	if (! dirp)
-		return;
-
-	buff = (char *)malloc(PATH_MAX);
-	if (NULL == buff) {
-		cli_error(CL_ENOMEM, "ls: failed to scan %s", d);
-		return;
-	}
-
-	while ((dp = readdir(dirp))) {
-		memset(buff, 0, sizeof(buff));
-		/* Don't worry if inserting a double slash, this will be fixed by
-		 * absolutize() later with subsequent calls to open() or readdir() */
-		snprintf(buff, PATH_MAX - 1, "%s/%s", d, dp->d_name);
-		ls_print(dp->d_name, buff);
-	}
-
-	free(buff);
-
-	return;
-}
-
-/* ls_print currently does nothing more than print the entry.
- * in the future, we will likely pass the absolute path, and
+/** Print an entry.
+ *
+ * ls_print currently does nothing more than print the entry.
+ * In the future, we will likely pass the absolute path, and
  * some sort of ls_options structure that controls how each
  * entry is printed and what is printed about it.
  *
- * Now we just print basic DOS style lists */
-
-static void ls_print(const char *name, const char *pathname)
+ * Now we just print basic DOS style lists.
+ *
+ * @param de		Directory element.
+ */
+static void ls_print(struct dir_elem_t *de)
 {
-	struct stat s;
-	int rc;
+	if (de->s.is_file)
+		printf("%-40s\t%llu\n", de->name, (long long) de->s.size);
+	else if (de->s.is_directory)
+		printf("%-40s\t<dir>\n", de->name);
+	else
+		printf("%-40s\n", de->name);
+}
 
-	rc = stat(pathname, &s);
-	if (rc != 0) {
-		/* Odd chance it was deleted from the time readdir() found it */
-		printf("ls: skipping bogus node %s\n", pathname);
-		printf("rc=%d\n", rc);
+
+/** Compare 2 directory elements.
+ *
+ * It compares 2 elements of a directory : a file is considered
+ * as bigger than a directory, and if they have the same type,
+ * they are compared alphabetically.
+ *
+ * @param a		Pointer to the structure of the first element.
+ * @param b		Pointer to the structure of the second element.
+ * @param arg		Pointer for an other and optionnal argument.
+ *
+ * @return		-1 if a < b, 1 otherwise.
+ */
+static int ls_cmp(void *a, void *b, void *arg)
+{
+	struct dir_elem_t *da = a;
+	struct dir_elem_t *db = b;
+	
+	if ((da->s.is_directory && db->s.is_file) ||
+	    ((da->s.is_directory == db->s.is_directory) &&
+	    str_cmp(da->name, db->name) < 0))
+		return -1;
+	else
+		return 1;
+}
+
+/** Scan a directory.
+ *
+ * Scan the content of a directory and print it.
+ *
+ * @param d		Name of the directory.
+ * @param dirp	Directory stream.
+ * @param sort	1 if the output must be sorted,
+ *				0 otherwise.
+ */
+static void ls_scan_dir(const char *d, DIR *dirp, int sort)
+{
+	int alloc_blocks = 20;
+	int i;
+	int nbdirs = 0;
+	int rc;
+	int len;
+	char *buff;
+	struct dir_elem_t *tmp;
+	struct dir_elem_t *tosort;
+	struct dirent *dp;
+	
+	if (!dirp)
+		return;
+
+	buff = (char *) malloc(PATH_MAX);
+	if (!buff) {
+		cli_error(CL_ENOMEM, "ls: failed to scan %s", d);
 		return;
 	}
 	
-	if (s.is_file)
-		printf("%-40s\t%llu\n", name, (long long) s.size);
-	else if (s.is_directory)
-		printf("%-40s\t<dir>\n", name);
-	else
-		printf("%-40s\n", name);
+	tosort = (struct dir_elem_t *) malloc(alloc_blocks * sizeof(*tosort));
+	if (!tosort) {
+		cli_error(CL_ENOMEM, "ls: failed to scan %s", d);
+		free(buff);
+		return;
+	}
+	
+	while ((dp = readdir(dirp))) {
+		if (nbdirs + 1 > alloc_blocks) {
+			alloc_blocks += alloc_blocks;
+			
+			tmp = (struct dir_elem_t *) realloc(tosort,
+			    alloc_blocks * sizeof(struct dir_elem_t));
+			if (!tmp) {
+				cli_error(CL_ENOMEM, "ls: failed to scan %s", d);
+				goto out;
+			}
+			tosort = tmp;
+		}
+		
+		/* fill the name field */
+		tosort[nbdirs].name = (char *) malloc(str_length(dp->d_name) + 1);
+		if (!tosort[nbdirs].name) {
+			cli_error(CL_ENOMEM, "ls: failed to scan %s", d);
+			goto out;
+		}
+		
+		str_cpy(tosort[nbdirs].name, str_length(dp->d_name) + 1, dp->d_name);
+		len = snprintf(buff, PATH_MAX - 1, "%s/%s", d, tosort[nbdirs].name);
+		buff[len] = '\0';
 
-	return;
+		rc = stat(buff, &tosort[nbdirs++].s);
+		if (rc != 0) {
+			printf("ls: skipping bogus node %s\n", buff);
+			printf("rc=%d\n", rc);
+			goto out;
+		}
+	}
+	
+	if (sort) {
+		if (!qsort(&tosort[0], nbdirs, sizeof(struct dir_elem_t),
+		    ls_cmp, NULL)) {
+			printf("Sorting error.\n");
+		}
+	}
+	
+	for (i = 0; i < nbdirs; i++)
+		ls_print(&tosort[i]);
+	
+out:
+	for(i = 0; i < nbdirs; i++)
+		free(tosort[i].name);
+	free(tosort);
+	free(buff);
 }
 
 void help_cmd_ls(unsigned int level)
@@ -113,8 +211,13 @@ void help_cmd_ls(unsigned int level)
 		printf("`%s' lists files and directories.\n", cmdname);
 	} else {
 		help_cmd_ls(HELP_SHORT);
-		printf("  `%s' [path], if no path is given the current "
-				"working directory is used.\n", cmdname);
+		printf(
+		"Usage:  %s [options] [path]\n"
+		"If not path is given, the current working directory is used.\n"
+		"Options:\n"
+		"  -h, --help       A short option summary\n"
+		"  -u, --unsort     Do not sort directory entries\n",
+		cmdname);
 	}
 
 	return;
@@ -123,45 +226,60 @@ void help_cmd_ls(unsigned int level)
 int cmd_ls(char **argv)
 {
 	unsigned int argc;
-	struct stat s;
-	char *buff;
+	struct dir_elem_t de;
 	DIR *dirp;
+	int c, opt_ind;
+	int sort = 1;
 
 	argc = cli_count_args(argv);
-
-	buff = (char *) malloc(PATH_MAX);
-	if (NULL == buff) {
+	
+	for (c = 0, optind = 0, opt_ind = 0; c != -1;) {
+		c = getopt_long(argc, argv, "hu", long_options, &opt_ind);
+		switch (c) {
+		case 'h':
+			help_cmd_ls(HELP_LONG);
+			return CMD_SUCCESS;
+		case 'u':
+			sort = 0;
+			break;
+		}
+	}
+	
+	argc -= optind;
+	
+	de.name = (char *) malloc(PATH_MAX);
+	if (!de.name) {
 		cli_error(CL_ENOMEM, "%s: ", cmdname);
 		return CMD_FAILURE;
 	}
-	memset(buff, 0, sizeof(buff));
-
-	if (argc == 1)
-		getcwd(buff, PATH_MAX);
+	memset(de.name, 0, sizeof(PATH_MAX));
+	
+	if (argc == 0)
+		getcwd(de.name, PATH_MAX);
 	else
-		str_cpy(buff, PATH_MAX, argv[1]);
-
-	if (stat(buff, &s)) {
-		cli_error(CL_ENOENT, buff);
-		free(buff);
+		str_cpy(de.name, PATH_MAX, argv[optind]);
+	
+	if (stat(de.name, &de.s)) {
+		cli_error(CL_ENOENT, de.name);
+		free(de.name);
 		return CMD_FAILURE;
 	}
 
-	if (s.is_file) {
-		ls_print(buff, buff);
+	if (de.s.is_file) {
+		ls_print(&de);
 	} else {
-		dirp = opendir(buff);
+		dirp = opendir(de.name);
 		if (!dirp) {
 			/* May have been deleted between scoping it and opening it */
-			cli_error(CL_EFAIL, "Could not stat %s", buff);
-			free(buff);
+			cli_error(CL_EFAIL, "Could not stat %s", de.name);
+			free(de.name);
 			return CMD_FAILURE;
 		}
-		ls_scan_dir(buff, dirp);
+		ls_scan_dir(de.name, dirp, sort);
 		closedir(dirp);
 	}
 
-	free(buff);
+	free(de.name);
 
 	return CMD_SUCCESS;
 }

@@ -416,7 +416,7 @@ int tl_initialize(int net_phone)
 	
 	rc = packet_dimensions_initialize(&udp_globals.dimensions);
 	if (rc != EOK) {
-		socket_ports_destroy(&udp_globals.sockets);
+		socket_ports_destroy(&udp_globals.sockets, free);
 		fibril_rwlock_write_unlock(&udp_globals.lock);
 		return rc;
 	}
@@ -433,7 +433,7 @@ int tl_initialize(int net_phone)
 	rc = net_get_conf_req(udp_globals.net_phone, &configuration, count,
 	    &data);
 	if (rc != EOK) {
-		socket_ports_destroy(&udp_globals.sockets);
+		socket_ports_destroy(&udp_globals.sockets, free);
 		fibril_rwlock_write_unlock(&udp_globals.lock);
 		return rc;
 	}
@@ -498,7 +498,11 @@ static int udp_sendto_message(socket_cores_t *local_sockets, int socket_id,
 	size_t headerlen;
 	device_id_t device_id;
 	packet_dimension_t *packet_dimension;
+	size_t size;
 	int rc;
+
+	/* In case of error, do not update the data fragment size. */
+	*data_fragment_size = 0;
 	
 	rc = tl_get_address_port(addr, addrlen, &dest_port);
 	if (rc != EOK)
@@ -538,6 +542,16 @@ static int udp_sendto_message(socket_cores_t *local_sockets, int socket_id,
 			return rc;
 		packet_dimension = &udp_globals.packet_dimension;
 //	}
+
+	/*
+	 * Update the data fragment size based on what the lower layers can
+	 * handle without fragmentation, but not more than the maximum allowed
+	 * for UDP.
+	 */
+	size = MAX_UDP_FRAGMENT_SIZE;
+	if (packet_dimension->content < size)
+	    size = packet_dimension->content;
+	*data_fragment_size = size;
 
 	/* Read the first packet fragment */
 	result = tl_socket_read_packet_data(udp_globals.net_phone, &packet,
@@ -785,15 +799,14 @@ static int udp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 			if (res != EOK)
 				break;
 			
+			size = MAX_UDP_FRAGMENT_SIZE;
 			if (tl_get_ip_packet_dimension(udp_globals.ip_phone,
 			    &udp_globals.dimensions, DEVICE_INVALID_ID,
 			    &packet_dimension) == EOK) {
-				SOCKET_SET_DATA_FRAGMENT_SIZE(answer,
-				    packet_dimension->content);
+				if (packet_dimension->content < size)
+					size = packet_dimension->content;
 			}
-
-//			SOCKET_SET_DATA_FRAGMENT_SIZE(answer,
-//			    MAX_UDP_FRAGMENT_SIZE);
+			SOCKET_SET_DATA_FRAGMENT_SIZE(answer, size);
 			SOCKET_SET_HEADER_SIZE(answer, UDP_HEADER_SIZE);
 			answer_count = 3;
 			break;

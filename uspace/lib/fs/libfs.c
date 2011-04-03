@@ -390,6 +390,8 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 					if (rc != EOK) {
 						if (lflag & L_CREATE)
 							(void) ops->destroy(fn);
+						else
+							(void) ops->node_put(fn);
 						async_answer_0(rid, rc);
 					} else {
 						aoff64_t size = ops->size_get(fn);
@@ -472,6 +474,8 @@ void libfs_lookup(libfs_ops_t *ops, fs_handle_t fs_handle, ipc_callid_t rid,
 				if (rc != EOK) {
 					if (lflag & L_CREATE)
 						(void) ops->destroy(fn);
+					else
+						(void) ops->node_put(fn);
 					async_answer_0(rid, rc);
 				} else {
 					aoff64_t size = ops->size_get(fn);

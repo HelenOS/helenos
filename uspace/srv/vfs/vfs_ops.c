@@ -610,7 +610,7 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 
 void vfs_open_node(ipc_callid_t rid, ipc_call_t *request)
 {
-	// FIXME: check for sanity of the supplied fs, dev and index
+	/* FIXME: check for sanity of the supplied fs, dev and index */
 	
 	/*
 	 * The interface is open_node(fs, dev, index, oflag).
@@ -1233,6 +1233,7 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 	char *parentc = str_dup(newc);
 	if (!parentc) {
 		fibril_rwlock_write_unlock(&namespace_rwlock);
+		vfs_node_put(old_node);
 		async_answer_0(rid, rc);
 		free(old);
 		free(new);
@@ -1250,6 +1251,7 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 	free(parentc);	/* not needed anymore */
 	if (rc != EOK) {
 		fibril_rwlock_write_unlock(&namespace_rwlock);
+		vfs_node_put(old_node);
 		async_answer_0(rid, rc);
 		free(old);
 		free(new);
@@ -1260,6 +1262,7 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 	if ((old_node->fs_handle != new_par_lr.triplet.fs_handle) ||
 	    (old_node->devmap_handle != new_par_lr.triplet.devmap_handle)) {
 		fibril_rwlock_write_unlock(&namespace_rwlock);
+		vfs_node_put(old_node);
 		async_answer_0(rid, EXDEV);	/* different file systems */
 		free(old);
 		free(new);
@@ -1278,6 +1281,7 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 		new_node = vfs_node_get(&new_lr);
 		if (!new_node) {
 			fibril_rwlock_write_unlock(&namespace_rwlock);
+			vfs_node_put(old_node);
 			async_answer_0(rid, ENOMEM);
 			free(old);
 			free(new);
@@ -1289,6 +1293,7 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 		break;
 	default:
 		fibril_rwlock_write_unlock(&namespace_rwlock);
+		vfs_node_put(old_node);
 		async_answer_0(rid, ENOTEMPTY);
 		free(old);
 		free(new);
@@ -1299,6 +1304,7 @@ void vfs_rename(ipc_callid_t rid, ipc_call_t *request)
 	rc = vfs_lookup_internal(newc, L_LINK, NULL, NULL, old_node->index);
 	if (rc != EOK) {
 		fibril_rwlock_write_unlock(&namespace_rwlock);
+		vfs_node_put(old_node);
 		if (new_node)
 			vfs_node_put(new_node);
 		async_answer_0(rid, rc);

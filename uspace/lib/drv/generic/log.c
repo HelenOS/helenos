@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Sergey Bondari
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,21 +26,40 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ia32
+/** @addtogroup libdrv
  * @{
  */
-/** @file
+
+#include <io/log.h>
+#include <stdarg.h>
+
+#include <ddf/log.h>
+
+/** Initialize the logging system.
+ *
+ * @param drv_name	Driver name, will be printed as part of message
+ * @param level		Minimum message level to print
  */
+int ddf_log_init(const char *drv_name, log_level_t level)
+{
+	return log_init(drv_name, level);
+}
 
-#ifndef KERN_ia32_MEMSTR_H_
-#define KERN_ia32_MEMSTR_H_
+/** Log a driver message.
+ *
+ * @param level		Message verbosity level. Message is only printed
+ *			if verbosity is less than or equal to current
+ *			reporting level.
+ * @param fmt		Format string (no trailing newline)
+ */
+void ddf_msg(log_level_t level, const char *fmt, ...)
+{
+	va_list args;
 
-#define memcpy(dst, src, cnt)  __builtin_memcpy((dst), (src), (cnt))
-
-extern void memsetw(void *, size_t, uint16_t);
-extern void memsetb(void *, size_t, uint8_t);
-
-#endif
+	va_start(args, fmt);
+	log_msgv(level, fmt, args);
+	va_end(args);
+}
 
 /** @}
  */

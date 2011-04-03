@@ -213,7 +213,7 @@ int nil_initialize(int net_phone)
 	rc = eth_protos_initialize(&eth_globals.protos);
 	if (rc != EOK) {
 		free(eth_globals.broadcast_addr);
-		eth_devices_destroy(&eth_globals.devices);
+		eth_devices_destroy(&eth_globals.devices, free);
 	}
 out:
 	fibril_rwlock_write_unlock(&eth_globals.protos_lock);
@@ -530,7 +530,7 @@ int nil_received_msg_local(int nil_phone, device_id_t device_id,
 			il_received_msg(proto->phone, device_id, packet,
 			    proto->service);
 		} else {
-			// drop invalid/unknown
+			/* Drop invalid/unknown */
 			pq_release_remote(eth_globals.net_phone,
 			    packet_get_id(packet));
 		}
