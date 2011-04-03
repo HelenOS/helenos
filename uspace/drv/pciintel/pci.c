@@ -106,11 +106,13 @@ static bool pciintel_enable_interrupt(ddf_fun_t *fnode)
 		return false;
 	}
 
-	size_t i;
-	for (i = 0; i < dev_data->hw_resources.count; i++) {
-		if (dev_data->hw_resources.resources[i].type == INTERRUPT) {
-			int irq = dev_data->hw_resources.resources[i].res.interrupt.irq;
-			int rc = async_req_1_0(irc_phone, IRC_ENABLE_INTERRUPT, irq);
+	size_t i = 0;
+	hw_resource_list_t *res = &dev_data->hw_resources;
+	for (; i < res->count; i++) {
+		if (res->resources[i].type == INTERRUPT) {
+			const int irq = res->resources[i].res.interrupt.irq;
+			const int rc =
+			    async_req_1_0(irc_phone, IRC_ENABLE_INTERRUPT, irq);
 			if (rc != EOK) {
 				async_hangup(irc_phone);
 				return false;
