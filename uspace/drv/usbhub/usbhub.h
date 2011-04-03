@@ -47,7 +47,6 @@
 #include <usb/pipes.h>
 #include <usb/devdrv.h>
 
-
 /** Information about attached hub. */
 typedef struct {
 	/** Number of ports. */
@@ -55,7 +54,7 @@ typedef struct {
 
 	/** attached device handles, for each port one */
 	usb_hc_attached_device_t * attached_devs;
-	
+
 	/** connection to hcd */
 	usb_hc_connection_t connection;
 
