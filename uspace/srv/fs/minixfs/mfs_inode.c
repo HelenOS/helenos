@@ -40,6 +40,9 @@
 static int
 mfs_write_inode_raw(struct mfs_node *mnode);
 
+static int
+mfs2_write_inode_raw(struct mfs_node *mnode);
+
 struct mfs_ino_info *
 mfs_read_inode_raw(const struct mfs_instance *instance, uint16_t inum)
 {
@@ -173,9 +176,8 @@ put_inode(struct mfs_node *mnode)
 
 	if (sbi->fs_version == MFS_VERSION_V1)
 		rc = mfs_write_inode_raw(mnode);
-	else {
-		/*rc = mfs2_write_inode_raw(mnode);*/
-	}
+	else
+		rc = mfs2_write_inode_raw(mnode);
 
 out:
 	return rc;
@@ -219,6 +221,51 @@ mfs_write_inode_raw(struct mfs_node *mnode)
 	block_put(b);
 
 	ino_i->dirty = false;
+out:
+	return r;
+}
+
+static int
+mfs2_write_inode_raw(struct mfs_node *mnode)
+{
+	struct mfs_ino_info *ino_i = mnode->ino_i;
+	struct mfs_sb_info *sbi = mnode->instance->sbi;
+	block_t *b;
+	int i, r;
+
+	const int itable_off = sbi->itable_off;
+	const int ino_off = ino_i->index % sbi->ino_per_block;
+	const bool native = sbi->native;
+	
+	r = block_get(&b, mnode->instance->handle,
+				itable_off + ino_i->index / sbi->ino_per_block,
+				BLOCK_FLAGS_NONE);
+
+	if (r != EOK)
+		goto out;
+
+	struct mfs2_inode *ino2 = b->data;
+	ino2 += ino_off;
+
+	ino2->i_mode = conv16(native, ino_i->i_mode);
+	ino2->i_nlinks = conv16(native, ino_i->i_mode);
+	ino2->i_uid = conv16(native, ino_i->i_uid);
+	ino2->i_gid = conv16(native, ino_i->i_gid);
+	ino2->i_size = conv32(native, ino_i->i_size);	
+	ino2->i_atime = conv32(native, ino_i->i_atime);
+	ino2->i_mtime = conv32(native, ino_i->i_mtime);
+	ino2->i_ctime = conv32(native, ino_i->i_ctime);
+
+	for (i = 0; i < V2_NR_DIRECT_ZONES; ++i)
+		ino2->i_dzone[i] = conv32(native, ino_i->i_dzone[i]);
+
+	for (i = 0; i < V2_NR_INDIRECT_ZONES; ++i)
+		ino2->i_izone[i] = conv32(native, ino_i->i_izone[i]);
+
+	b->dirty = true;
+	block_put(b);
+	ino_i->dirty = false;
+
 out:
 	return r;
 }
