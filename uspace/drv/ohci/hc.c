@@ -44,6 +44,8 @@
 #include "hc.h"
 
 static int interrupt_emulator(hc_t *instance);
+static void hc_gain_control(hc_t *instance);
+static void hc_init_hw(hc_t *instance);
 /*----------------------------------------------------------------------------*/
 int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun)
 {
@@ -76,14 +78,23 @@ int hc_init(hc_t *instance, ddf_fun_t *fun, ddf_dev_t *dev,
 {
 	assert(instance);
 	int ret = EOK;
+#define CHECK_RET_RETURN(ret, message...) \
+if (ret != EOK) { \
+	usb_log_error(message); \
+	return ret; \
+} else (void)0
 
 	ret = pio_enable((void*)regs, reg_size, (void**)&instance->registers);
-	if (ret != EOK) {
-		usb_log_error("Failed to gain access to device registers.\n");
-		return ret;
-	}
+	CHECK_RET_RETURN(ret,
+	    "Failed(%d) to gain access to device registers: %s.\n",
+	    ret, str_error(ret));
+
 	instance->ddf_instance = fun;
 	usb_device_keeper_init(&instance->manager);
+	ret = bandwidth_init(&instance->bandwidth, BANDWIDTH_AVAILABLE_USB11,
+	    bandwidth_count_usb11);
+	CHECK_RET_RETURN(ret, "Failed to initialize bandwidth allocator: %s.\n",
+	    ret, str_error(ret));
 
 	if (!interrupts) {
 		instance->interrupt_emulator =
@@ -91,7 +102,11 @@ int hc_init(hc_t *instance, ddf_fun_t *fun, ddf_dev_t *dev,
 		fibril_add_ready(instance->interrupt_emulator);
 	}
 
+	hc_gain_control(instance);
+
 	rh_init(&instance->rh, dev, instance->registers);
+
+	hc_init_hw(instance);
 
 	/* TODO: implement */
 	return EOK;
@@ -116,6 +131,8 @@ void hc_interrupt(hc_t *instance, uint32_t status)
 	if (status & IS_RHSC)
 		rh_interrupt(&instance->rh);
 
+	usb_log_info("OHCI interrupt: %x.\n", status);
+
 	/* TODO: Check for further interrupt causes */
 	/* TODO: implement */
 }
@@ -125,12 +142,65 @@ int interrupt_emulator(hc_t *instance)
 	assert(instance);
 	usb_log_info("Started interrupt emulator.\n");
 	while (1) {
-		uint32_t status = instance->registers->interrupt_status;
+		const uint32_t status = instance->registers->interrupt_status;
 		instance->registers->interrupt_status = status;
 		hc_interrupt(instance, status);
 		async_usleep(1000);
 	}
 	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+void hc_gain_control(hc_t *instance)
+{
+	assert(instance);
+	/* Interrupt routing enabled => smm driver is active */
+	if (instance->registers->control & C_IR) {
+		usb_log_info("Found SMM driver requesting ownership change.\n");
+		instance->registers->command_status |= CS_OCR;
+		while (instance->registers->control & C_IR) {
+			async_usleep(1000);
+		}
+		usb_log_info("Ownership taken from SMM driver.\n");
+		return;
+	}
+
+	const unsigned hc_status =
+	    (instance->registers->control >> C_HCFS_SHIFT) & C_HCFS_MASK;
+	/* Interrupt routing disabled && status != USB_RESET => BIOS active */
+	if (hc_status != C_HCFS_RESET) {
+		usb_log_info("Found BIOS driver.\n");
+		if (hc_status == C_HCFS_OPERATIONAL) {
+			usb_log_info("HC operational(BIOS).\n");
+			return;
+		}
+		/* HC is suspended assert resume for 20ms */
+		instance->registers->control &= (C_HCFS_RESUME << C_HCFS_SHIFT);
+		async_usleep(20000);
+		return;
+	}
+
+	/* HC is in reset (hw startup) => no other driver
+	 * maintain reset for at least the time specified in USB spec (50 ms)*/
+	async_usleep(50000);
+}
+/*----------------------------------------------------------------------------*/
+void hc_init_hw(hc_t *instance)
+{
+	assert(instance);
+	const uint32_t fm_interval = instance->registers->fm_interval;
+	instance->registers->command_status = CS_HCR;
+	async_usleep(10);
+	instance->registers->fm_interval = fm_interval;
+	assert((instance->registers->command_status & CS_HCR) == 0);
+	/* hc is now in suspend state */
+	/* TODO: init HCCA block */
+	/* TODO: init queues */
+	/* TODO: enable queues */
+	/* TODO: enable interrupts */
+	/* TODO: set periodic start to 90% */
+
+	instance->registers->control &= (C_HCFS_OPERATIONAL << C_HCFS_SHIFT);
+	usb_log_info("OHCI HC up and running.\n");
 }
 /**
  * @}

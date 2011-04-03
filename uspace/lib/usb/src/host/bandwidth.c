@@ -126,8 +126,9 @@ int bandwidth_init(bandwidth_t *instance, size_t bandwidth,
 	fibril_mutex_initialize(&instance->guard);
 	instance->free = bandwidth;
 	instance->usage_fnc = usage_fnc;
-	return
+	bool ht =
 	    hash_table_create(&instance->reserved, BUCKET_COUNT, MAX_KEYS, &op);
+	return ht ? EOK : ENOMEM;
 }
 /*----------------------------------------------------------------------------*/
 void bandwidth_destroy(bandwidth_t *instance)
