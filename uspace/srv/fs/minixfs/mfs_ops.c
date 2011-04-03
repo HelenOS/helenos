@@ -340,12 +340,7 @@ static int mfs_node_put(fs_node_t *fsnode)
 
 	mfsdebug("mfs_node_put()\n");
 
-	assert(mnode->ino_i);
-
-	if (mnode->ino_i->dirty) {
-		/*TODO: Write inode on disk*/
-	}
-
+	put_inode(mnode);
 	free(mnode->ino_i);
 	free(mnode);
 
