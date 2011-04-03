@@ -151,3 +151,8 @@ $(LINKER_SCRIPT): $(LINKER_SCRIPT).in
 
 $(COMMON_HEADER_ARCH): $(COMMON_HEADER)
 	ln -sfn ../../../$< $@
+
+test:
+	echo uspace_prefix=$(USPACE_PREFIX)
+	echo libc_prefix=$(LIBC_PREFIX)
+	echo linker_script=$(LINKER_SCRIPT)

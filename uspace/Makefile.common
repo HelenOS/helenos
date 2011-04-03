@@ -75,7 +75,9 @@ endif
 ifneq ($(SLIBRARY),)
 	LARCHIVE = $(LIBRARY).la
 	LOUTPUT = $(SLIBRARY)
-	EXTRA_CLEAN += $(LOUTPUT).map $(LIBC_PREFIX)/shared/arch/$(UARCH)/_lib.ld
+	EXTRA_OUTPUT += $(LOUTPUT).disasm
+	EXTRA_CLEAN += $(LOUTPUT).map $(LOUTPUT).ldisasm \
+	    $(LIBC_PREFIX)/shared/arch/$(UARCH)/_lib.ld
 endif
 
 DEPEND = Makefile.depend
@@ -95,9 +97,14 @@ LIBDRV_PREFIX = $(LIB_PREFIX)/drv
 LIBPACKET_PREFIX = $(LIB_PREFIX)/packet
 LIBNET_PREFIX = $(LIB_PREFIX)/net
 
+ifeq ($(DYNAMIC_LINKING),y)
+BASE_LIBS = $(LIBC_PREFIX)/libc.so.0 $(LIBSOFTINT_PREFIX)/libsoftint.a
+LFLAGS = -Bdynamic
+LINKER_SCRIPT ?= $(LIBC_PREFIX)/shared/arch/$(UARCH)/_link.ld
+else
 BASE_LIBS = $(LIBC_PREFIX)/libc.a $(LIBSOFTINT_PREFIX)/libsoftint.a
-
 LINKER_SCRIPT ?= $(LIBC_PREFIX)/arch/$(UARCH)/_link.ld
+endif
 
 ifeq ($(CONFIG_OPTIMIZE_FOR_SIZE),y)
 	OPTIMIZATION = s
@@ -201,10 +208,22 @@ ifeq ($(CONFIG_STRIP_BINARIES),y)
 endif
 endif
 
+ifneq ($(SLIBRARY),)
+%.disasm: $(LOUTPUT)
+ifeq ($(CONFIG_LINE_DEBUG),y)
+	$(OBJDUMP) -d -S $< > $@
+else
+	$(OBJDUMP) -d $< > $@
+endif
+
 $(LOUTPUT): $(LARCHIVE) $(LIBC_PREFIX)/shared/arch/$(UARCH)/_lib.ld
 	$(LD) -T $(LIBC_PREFIX)/shared/arch/$(UARCH)/_lib.ld $(LIB_LFLAGS) $(LARCHIVE) -o $@ -Map $(LOUTPUT).map
+endif
 
 $(LIBC_PREFIX)/shared/arch/$(UARCH)/_lib.ld: $(LIBC_PREFIX)/shared/arch/$(UARCH)/_lib.ld.in
+	$(CC) $(DEFS) $(CFLAGS) -DLIBC_PREFIX=$(LIBC_PREFIX) -E -x c $< | grep -v "^\#" > $@
+
+$(LIBC_PREFIX)/shared/arch/$(UARCH)/_link.ld: $(LIBC_PREFIX)/shared/arch/$(UARCH)/_link.ld.in
 	$(CC) $(DEFS) $(CFLAGS) -DLIBC_PREFIX=$(LIBC_PREFIX) -E -x c $< | grep -v "^\#" > $@
 
 ifneq ($(LIBRARY),)

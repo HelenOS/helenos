@@ -34,7 +34,7 @@
  * @file
  */
 
-//#include <stdio.h>
+#include <stdio.h>
 #include "libtest.h"
 
 //static void kputint(unsigned i)
@@ -55,7 +55,8 @@ int test_fun2(void);
 
 int test_fun2(void)
 {
-	return number;
+	return 42;
+//	return number;
 }
 
 int test_func(void)
@@ -64,7 +65,9 @@ int test_func(void)
 //	kputint(42);
 //	return 42;
 //	while(1);
-	return test_fun2();
+//	return test_fun2();
+	printf("Hello from libtest/test_func()!\n");
+	return 42;
 }
 
 /** @}

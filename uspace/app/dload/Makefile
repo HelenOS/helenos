@@ -29,6 +29,8 @@
 USPACE_PREFIX = ../..
 LIBS =
 EXTRA_CFLAGS = -I../../srv/loader/include -I../../lib/c/rtld/include -Iinclude
+LINKER_SCRIPT = arch/$(UARCH)/_link.ld
+EXTRA_CLEAN = $(LINKER_SCRIPT)
 BINARY = dload
 
 include $(USPACE_PREFIX)/../Makefile.config
@@ -39,3 +41,6 @@ SOURCES = \
 	$(ARCH_SOURCES)
 
 include $(USPACE_PREFIX)/Makefile.common
+
+$(LINKER_SCRIPT): $(LINKER_SCRIPT).in
+	$(GCC) $(DEFS) $(CFLAGS) -DLIBC_PREFIX=$(LIBC_PREFIX) -E -x c $< | grep -v "^\#" > $@

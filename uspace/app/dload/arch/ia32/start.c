@@ -40,7 +40,7 @@
 void program_run(void *entry, pcb_t *pcb)
 {
 	asm (
-		"mov %%eax, %%ebx\n"
+		"mov %%eax, %%edi\n"
 		"jmp *%0\n"
 		:: "m" (entry), "a" (pcb)
 	);

@@ -31,6 +31,7 @@
 .global __syscall_fast_func
 __syscall_fast_func:
 	.long __syscall_slow
+	.size __syscall_fast_func, . - __syscall_fast_func
 
 .text
 
