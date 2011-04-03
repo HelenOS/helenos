@@ -35,9 +35,11 @@
 #include "mfs.h"
 #include "mfs_utils.h"
 
-static int read_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock);
+static int
+rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
+				bool write_mode, uint32_t w_block);
 
-/*Given the position in the file expressed in
+/**Given the position in the file expressed in
  *bytes, this function returns the on-disk block
  *relative to that position.
  *Returns zero if the block does not exist.
@@ -64,12 +66,14 @@ int read_map(uint32_t *b, const struct mfs_node *mnode, const uint32_t pos)
 		goto out;
 	}
 
-	r = read_map_ondisk(b, mnode, rblock);
+	r = rw_map_ondisk(b, mnode, rblock, false, 0);
 out:
 	return r;
 }
 
-static int read_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock)
+static int
+rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
+				bool write_mode, uint32_t w_block)
 {
 	int r, nr_direct;
 	int ptrs_per_block;
@@ -77,7 +81,7 @@ static int read_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock
 	block_t *bi2;
 
 	assert(mnode);
-	const struct mfs_ino_info *ino_i = mnode->ino_i;
+	struct mfs_ino_info *ino_i = mnode->ino_i;
 
 	assert(ino_i);
 	assert(mnode->instance);
@@ -99,6 +103,10 @@ static int read_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock
 	/*Check if the wanted block is in the direct zones*/
 	if (rblock < nr_direct) {
 		*b = ino_i->i_dzone[rblock];
+		if (write_mode) {
+			ino_i->i_dzone[rblock] = w_block;
+			ino_i->dirty = true;
+		}
 		r = EOK;
 		goto out;
 	}
@@ -117,11 +125,19 @@ static int read_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock
 			goto out;
 
 		if (fs_version == MFS_VERSION_V1) {
-			uint16_t tmp = ((uint16_t *) bi1->data)[rblock];
-			*b = conv16(sbi->native, tmp);
+			uint16_t *tmp = &(((uint16_t *) bi1->data)[rblock]);
+			*b = conv16(sbi->native, *tmp);
+			if (write_mode) {
+				*tmp = conv16(sbi->native, w_block);
+				bi1->dirty = true;
+			}
 	 	} else {
-			uint32_t tmp = ((uint32_t *) bi1->data)[rblock];
-			*b = conv32(sbi->native, tmp);
+			uint32_t *tmp = &(((uint32_t *) bi1->data)[rblock]);
+			*b = conv32(sbi->native, *tmp);
+			if (write_mode) {
+				*tmp = conv32(sbi->native, w_block);
+				bi1->dirty = true;
+			}
 		}
 
 		goto out_put_1;
@@ -153,25 +169,35 @@ static int read_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock
 	if (fs_version == MFS_VERSION_V1) {
 		uint16_t *pt16 = bi1->data;
 		uint16_t blk = conv16(sbi->native, pt16[di_block]);
+	
 		r = block_get(&bi2, inst->handle, blk, BLOCK_FLAGS_NONE);
 
 		if (r != EOK)
 			goto out_put_1;
 
 		pt16 = bi2->data;
-		blk = conv16(sbi->native, pt16[di_block % ptrs_per_block]);
-		*b = blk;
+		pt16 += di_block % ptrs_per_block;
+		*b = conv16(sbi->native, *pt16);
+		if (write_mode) {
+			*pt16 = conv16(sbi->native, w_block);
+			bi2->dirty = false;
+		}
 	} else {
 		uint32_t *pt32 = bi1->data;
 		uint32_t blk = conv32(sbi->native, pt32[di_block]);
+	
 		r = block_get(&bi2, inst->handle, blk, BLOCK_FLAGS_NONE);
 
 		if (r != EOK)
 			goto out_put_1;
 
 		pt32 = bi2->data;
-		blk = conv32(sbi->native, pt32[di_block % ptrs_per_block]);
-		*b = blk;
+		pt32 += di_block % ptrs_per_block;
+		*b = conv32(sbi->native, *pt32);
+		if (write_mode) {
+			*pt32 = conv32(sbi->native, w_block);
+			bi2->dirty = false;
+		}
 	}
 	r = EOK;
 
