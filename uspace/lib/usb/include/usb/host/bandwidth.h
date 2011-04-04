@@ -70,7 +70,7 @@ int bandwidth_release(bandwidth_t *instance, usb_address_t address,
     usb_endpoint_t endpoint, usb_direction_t direction);
 
 int bandwidth_use(bandwidth_t *instance, usb_address_t address,
-    usb_endpoint_t endpoint, usb_direction_t direction);
+    usb_endpoint_t endpoint, usb_direction_t direction, size_t bw);
 
 int bandwidth_free(bandwidth_t *instance, usb_address_t address,
     usb_endpoint_t endpoint, usb_direction_t direction);

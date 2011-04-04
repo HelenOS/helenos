@@ -220,7 +220,7 @@ int bandwidth_release(bandwidth_t *instance, usb_address_t address,
 }
 /*----------------------------------------------------------------------------*/
 int bandwidth_use(bandwidth_t *instance, usb_address_t address,
-    usb_endpoint_t endpoint, usb_direction_t direction)
+    usb_endpoint_t endpoint, usb_direction_t direction, size_t bw)
 {
 	assert(instance);
 	transfer_t trans = {
@@ -236,10 +236,14 @@ int bandwidth_use(bandwidth_t *instance, usb_address_t address,
 		transfer_status_t *status =
 		    hash_table_get_instance(item, transfer_status_t, link);
 		assert(status);
-		if (status->used) {
-			ret = EINPROGRESS;
+		if (status->required >= bw) {
+			if (status->used) {
+				ret = EINPROGRESS;
+			}
+			status->used = true;
+		} else {
+			ret = ENOSPC;
 		}
-		status->used = true;
 	} else {
 		ret = EINVAL;
 	}
