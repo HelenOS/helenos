@@ -343,8 +343,9 @@ int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch)
 		    bandwidth_use(&instance->bandwidth, batch->target.address,
 		    batch->target.endpoint, batch->direction, bw);
 		if (ret != EOK) {
-			usb_log_warning("Failed(%d) to use reserved bw: %s.\n",
+			usb_log_error("Failed(%d) to use reserved bw: %s.\n",
 			    ret, str_error(ret));
+			return ret;
 		}
 	}
 
