@@ -65,7 +65,7 @@ static int transfer_compare(
 	    hash_table_get_instance(item, transfer_status_t, link);
 	const size_t bytes =
 	    keys < MAX_KEYS ? keys * sizeof(unsigned long) : sizeof(transfer_t);
-	return bcmp(key, &status->transfer, bytes);
+	return bcmp(key, &status->transfer, bytes) == 0;
 }
 /*----------------------------------------------------------------------------*/
 static void transfer_remove(link_t *item)
