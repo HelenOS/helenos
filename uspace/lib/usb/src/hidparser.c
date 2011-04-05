@@ -219,11 +219,19 @@ int usb_hid_parse_report_descriptor(usb_hid_report_parser_t *parser,
 					/* clone current state table to the new item */
 					if(!(new_report_item = malloc(sizeof(usb_hid_report_item_t)))) {
 						return ENOMEM;
-					}
+					}					
 					memcpy(new_report_item,report_item, sizeof(usb_hid_report_item_t));
+					
 					/* reset local items */
 					new_report_item->usage_minimum = 0;
 					new_report_item->usage_maximum = 0;
+					new_report_item->usage = 0;
+					new_report_item->designator_index = 0;
+					new_report_item->designator_minimum = 0;
+					new_report_item->designator_maximum = 0;
+					new_report_item->string_index = 0;
+					new_report_item->string_minimum = 0;
+					new_report_item->string_maximum = 0;										
 					
 					link_initialize(&(new_report_item->link));
 					report_item = new_report_item;
