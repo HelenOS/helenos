@@ -139,6 +139,14 @@ static const uint32_t port_clear_feature_valid_mask =
 //note that USB_HUB_FEATURE_PORT_POWER bit is translated into
 //USB_HUB_FEATURE_PORT_LOW_SPEED
 
+static const uint32_t port_status_change_mask =
+(1<< USB_HUB_FEATURE_C_PORT_CONNECTION) |
+(1<< USB_HUB_FEATURE_C_PORT_ENABLE) |
+(1<< USB_HUB_FEATURE_C_PORT_OVER_CURRENT) |
+(1<< USB_HUB_FEATURE_C_PORT_RESET) |
+(1<< USB_HUB_FEATURE_C_PORT_SUSPEND);
+
+
 static void usb_create_serialized_hub_descriptor(rh_t *instance,
 	uint8_t ** out_result,
 	size_t * out_size);
@@ -390,9 +398,9 @@ static int process_get_port_status_request(rh_t *instance, uint16_t port,
 static int process_get_hub_status_request(rh_t *instance,
 	usb_transfer_batch_t * request) {
 	uint32_t * uint32_buffer = (uint32_t*) request->transport_buffer;
-	//bits, 0,1,16,17
 	request->transfered_size = 4;
-	uint32_t mask = 1 & (1 << 1) & (1 << 16) & (1 << 17);
+	//bits, 0,1,16,17
+	uint32_t mask = 1 | (1 << 1) | (1 << 16) | (1 << 17);
 	uint32_buffer[0] = mask & instance->registers->rh_status;
 	return EOK;
 }
@@ -455,11 +463,7 @@ static void create_interrupt_mask(rh_t *instance, void ** buffer,
 		bitmap[0] = 1;
 	}
 	int port;
-	mask = 0;
-	int i;
-	for (i = 16; i <= 20; ++i) {
-		mask += 1 << i;
-	}
+	mask = port_status_change_mask;
 	for (port = 1; port <= instance->port_count; ++port) {
 		if (mask & instance->registers->rh_port_status[port - 1]) {
 			bitmap[(port) / 8] += 1 << (port % 8);
