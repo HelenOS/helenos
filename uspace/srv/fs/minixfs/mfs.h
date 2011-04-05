@@ -162,6 +162,9 @@ mfs2_read_inode_raw(const struct mfs_instance *instance, uint32_t inum);
 extern int
 put_inode(struct mfs_node *mnode);
 
+int
+mfs_inode_grow(struct mfs_node *mnode, unsigned size_grow);
+
 /*mfs_rw.c*/
 extern int
 read_map(uint32_t *b, const struct mfs_node *mnode, const uint32_t pos);

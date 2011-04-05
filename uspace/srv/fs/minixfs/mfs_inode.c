@@ -270,6 +270,49 @@ out:
 	return r;
 }
 
+int
+mfs_inode_grow(struct mfs_node *mnode, unsigned size_grow)
+{
+	unsigned i;
+
+	if (size_grow == 0)
+		return EOK;
+
+	struct mfs_sb_info *sbi = mnode->instance->sbi;
+	struct mfs_ino_info *ino_i = mnode->ino_i;
+	const int bs = sbi->block_size;
+
+	const uint32_t old_size = ino_i->i_size;
+	const uint32_t new_size = old_size + size_grow;
+
+	/*Compute the number of zones to add to the inode*/
+	unsigned zones_to_add = 0;
+	if ((old_size % (bs - 1)) == 0)
+		zones_to_add++;
+
+	zones_to_add += (new_size - old_size) / bs;
+
+	/*Compute the start zone*/
+	unsigned start_zone = old_size / bs;
+	start_zone += (old_size % bs) != 0;
+
+	int r;
+	for (i = 0; i < zones_to_add; ++i) {
+		uint32_t new_zone;
+		uint32_t dummy;
+
+		r = mfs_alloc_bit(mnode->instance, &new_zone, BMAP_ZONE);
+		if (r != EOK)
+			return r;
+
+		r = write_map(mnode, (start_zone + i) * sbi->block_size,
+				new_zone, &dummy);
+		if (r != EOK)
+			return r;
+	}
+	return EOK;
+}
+
 /**
  * @}
  */ 
