@@ -98,6 +98,8 @@ typedef struct {
  */
 int usb_hub_control_loop(void * hub_info_param);
 
+int usb_hub_add_device(usb_device_t * usb_dev);
+
 /**
  * Check changes on specified hub
  * @param hub_info_param pointer to usb_hub_info_t structure
@@ -106,8 +108,6 @@ int usb_hub_control_loop(void * hub_info_param);
  */
 int usb_hub_check_hub_changes(usb_hub_info_t * hub_info_param);
 
-
-int usb_hub_add_device(usb_device_t * usb_dev);
 
 #endif
 /**

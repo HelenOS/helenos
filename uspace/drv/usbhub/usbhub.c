@@ -59,6 +59,45 @@ static int usb_hub_init_add_device(usb_hub_info_t * hub, uint16_t port,
 static int usb_hub_trigger_connecting_non_removable_devices(
 	usb_hub_info_t * hub, usb_hub_descriptor_t * descriptor);
 
+static usb_hub_info_t * usb_hub_info_create(usb_device_t * usb_dev);
+
+static int usb_hub_process_hub_specific_info(usb_hub_info_t * hub_info);
+
+static int usb_hub_set_configuration(usb_hub_info_t * hub_info);
+
+
+static int usb_hub_trigger_connecting_non_removable_devices(
+	usb_hub_info_t * hub,
+	usb_hub_descriptor_t * descriptor);
+
+static int usb_hub_release_default_address(usb_hub_info_t * hub);
+
+static int usb_hub_init_add_device(usb_hub_info_t * hub, uint16_t port,
+	usb_speed_t speed);
+
+static void usb_hub_finalize_add_device(usb_hub_info_t * hub,
+	uint16_t port, usb_speed_t speed);
+
+static void usb_hub_removed_device(
+	usb_hub_info_t * hub, uint16_t port);
+
+static void usb_hub_port_over_current(usb_hub_info_t * hub,
+	uint16_t port, uint32_t status);
+
+static void usb_hub_process_interrupt(usb_hub_info_t * hub,
+	uint16_t port);
+
+static int usb_process_hub_over_current(usb_hub_info_t * hub_info,
+	usb_hub_status_t status);
+
+static int usb_process_hub_power_change(usb_hub_info_t * hub_info,
+	usb_hub_status_t status);
+
+static void usb_hub_process_global_interrupt(usb_hub_info_t * hub_info);
+
+static int initialize_non_removable(usb_hub_info_t * hub_info,
+	unsigned int port);
+
 /**
  * control loop running in hub`s fibril
  *
@@ -91,6 +130,187 @@ int usb_hub_control_loop(void * hub_info_param) {
 //
 //*********************************************
 
+
+
+/**
+ * Initialize hub device driver fibril
+ *
+ * Creates hub representation and fibril that periodically checks hub`s status.
+ * Hub representation is passed to the fibril.
+ * @param usb_dev generic usb device information
+ * @return error code
+ */
+int usb_hub_add_device(usb_device_t * usb_dev) {
+	if (!usb_dev) return EINVAL;
+	usb_hub_info_t * hub_info = usb_hub_info_create(usb_dev);
+	//create hc connection
+	usb_log_debug("Initializing USB wire abstraction.\n");
+	int opResult = usb_hc_connection_initialize_from_device(
+		&hub_info->connection,
+		hub_info->usb_device->ddf_dev);
+	if (opResult != EOK) {
+		usb_log_error("could not initialize connection to device, "
+			"errno %d\n",
+			opResult);
+		free(hub_info);
+		return opResult;
+	}
+
+	usb_pipe_start_session(hub_info->control_pipe);
+	//set hub configuration
+	opResult = usb_hub_set_configuration(hub_info);
+	if (opResult != EOK) {
+		usb_log_error("could not set hub configuration, errno %d\n",
+			opResult);
+		free(hub_info);
+		return opResult;
+	}
+	//get port count and create attached_devs
+	opResult = usb_hub_process_hub_specific_info(hub_info);
+	if (opResult != EOK) {
+		usb_log_error("could not set hub configuration, errno %d\n",
+			opResult);
+		free(hub_info);
+		return opResult;
+	}
+	usb_pipe_end_session(hub_info->control_pipe);
+
+
+	/// \TODO what is this?
+	usb_log_debug("Creating `hub' function.\n");
+	ddf_fun_t *hub_fun = ddf_fun_create(hub_info->usb_device->ddf_dev,
+		fun_exposed, "hub");
+	assert(hub_fun != NULL);
+	hub_fun->ops = NULL;
+
+	int rc = ddf_fun_bind(hub_fun);
+	assert(rc == EOK);
+	rc = ddf_fun_add_to_class(hub_fun, "hub");
+	assert(rc == EOK);
+
+	//create fibril for the hub control loop
+	fid_t fid = fibril_create(usb_hub_control_loop, hub_info);
+	if (fid == 0) {
+		usb_log_error("failed to start monitoring fibril for new"
+			" hub.\n");
+		return ENOMEM;
+	}
+	fibril_add_ready(fid);
+	usb_log_debug("Hub fibril created.\n");
+
+	usb_log_info("Controlling hub `%s' (%d ports).\n",
+		hub_info->usb_device->ddf_dev->name, hub_info->port_count);
+	return EOK;
+}
+
+
+//*********************************************
+//
+//  hub driver code, main loop and port handling
+//
+//*********************************************
+
+/**
+ * check changes on hub
+ *
+ * Handles changes on each port with a status change.
+ * @param hub_info hub representation
+ * @return error code
+ */
+int usb_hub_check_hub_changes(usb_hub_info_t * hub_info) {
+	int opResult;
+	opResult = usb_pipe_start_session(
+		hub_info->status_change_pipe);
+	//this might not be necessary - if all non-removables are ok, it is
+	//not needed here
+	opResult = usb_pipe_start_session(hub_info->control_pipe);
+	if (opResult != EOK) {
+		usb_log_error("could not initialize communication for hub; %d\n",
+			opResult);
+		return opResult;
+	}
+
+	size_t port_count = hub_info->port_count;
+	//first check non-removable devices
+	{
+		unsigned int port;
+		for (port = 1; port <= port_count; ++port) {
+			bool is_non_removable =
+				hub_info->not_initialized_non_removables[port/8]
+				& (1 << (port % 8));
+			if (is_non_removable) {
+				opResult = initialize_non_removable(hub_info,
+					port);
+			}
+		}
+	}
+
+
+	/// FIXME: count properly
+	size_t byte_length = ((port_count + 1) / 8) + 1;
+	void *change_bitmap = malloc(byte_length);
+	size_t actual_size;
+
+	/*
+	 * Send the request.
+	 */
+	opResult = usb_pipe_read(
+		hub_info->status_change_pipe,
+		change_bitmap, byte_length, &actual_size
+		);
+
+	if (opResult != EOK) {
+		free(change_bitmap);
+		usb_log_warning("something went wrong while getting the"
+			"status of hub\n");
+		usb_pipe_end_session(hub_info->status_change_pipe);
+		return opResult;
+	}
+	unsigned int port;
+
+	if (opResult != EOK) {
+		usb_log_error("could not start control pipe session %d\n",
+			opResult);
+		usb_pipe_end_session(hub_info->status_change_pipe);
+		return opResult;
+	}
+	opResult = usb_hc_connection_open(&hub_info->connection);
+	if (opResult != EOK) {
+		usb_log_error("could not start host controller session %d\n",
+			opResult);
+		usb_pipe_end_session(hub_info->control_pipe);
+		usb_pipe_end_session(hub_info->status_change_pipe);
+		return opResult;
+	}
+
+	///todo, opresult check, pre obe konekce
+	bool interrupt;
+	interrupt = ((uint8_t*)change_bitmap)[0] & 1;
+	if(interrupt){
+		usb_hub_process_global_interrupt(hub_info);
+	}
+	for (port = 1; port < port_count + 1; ++port) {
+		interrupt =
+			((uint8_t*) change_bitmap)[port / 8] & (1<<(port % 8));
+		if (interrupt) {
+			usb_hub_process_interrupt(
+				hub_info, port);
+		}
+	}
+	/// \todo check hub status
+	usb_hc_connection_close(&hub_info->connection);
+	usb_pipe_end_session(hub_info->control_pipe);
+	usb_pipe_end_session(hub_info->status_change_pipe);
+	free(change_bitmap);
+	return EOK;
+}
+
+//*********************************************
+//
+//  support functions
+//
+//*********************************************
+
 /**
  * create usb_hub_info_t structure
  *
@@ -107,6 +327,7 @@ static usb_hub_info_t * usb_hub_info_create(usb_device_t * usb_dev) {
 	result->is_default_address_used = false;
 	return result;
 }
+
 
 /**
  * Load hub-specific information into hub_info structure and process if needed
@@ -225,83 +446,6 @@ static int usb_hub_set_configuration(usb_hub_info_t * hub_info) {
 	return EOK;
 }
 
-/**
- * Initialize hub device driver fibril
- *
- * Creates hub representation and fibril that periodically checks hub`s status.
- * Hub representation is passed to the fibril.
- * @param usb_dev generic usb device information
- * @return error code
- */
-int usb_hub_add_device(usb_device_t * usb_dev) {
-	if (!usb_dev) return EINVAL;
-	usb_hub_info_t * hub_info = usb_hub_info_create(usb_dev);
-	//create hc connection
-	usb_log_debug("Initializing USB wire abstraction.\n");
-	int opResult = usb_hc_connection_initialize_from_device(
-		&hub_info->connection,
-		hub_info->usb_device->ddf_dev);
-	if (opResult != EOK) {
-		usb_log_error("could not initialize connection to device, "
-			"errno %d\n",
-			opResult);
-		free(hub_info);
-		return opResult;
-	}
-
-	usb_pipe_start_session(hub_info->control_pipe);
-	//set hub configuration
-	opResult = usb_hub_set_configuration(hub_info);
-	if (opResult != EOK) {
-		usb_log_error("could not set hub configuration, errno %d\n",
-			opResult);
-		free(hub_info);
-		return opResult;
-	}
-	//get port count and create attached_devs
-	opResult = usb_hub_process_hub_specific_info(hub_info);
-	if (opResult != EOK) {
-		usb_log_error("could not set hub configuration, errno %d\n",
-			opResult);
-		free(hub_info);
-		return opResult;
-	}
-	usb_pipe_end_session(hub_info->control_pipe);
-
-
-	/// \TODO what is this?
-	usb_log_debug("Creating `hub' function.\n");
-	ddf_fun_t *hub_fun = ddf_fun_create(hub_info->usb_device->ddf_dev,
-		fun_exposed, "hub");
-	assert(hub_fun != NULL);
-	hub_fun->ops = NULL;
-
-	int rc = ddf_fun_bind(hub_fun);
-	assert(rc == EOK);
-	rc = ddf_fun_add_to_class(hub_fun, "hub");
-	assert(rc == EOK);
-
-	//create fibril for the hub control loop
-	fid_t fid = fibril_create(usb_hub_control_loop, hub_info);
-	if (fid == 0) {
-		usb_log_error("failed to start monitoring fibril for new"
-			" hub.\n");
-		return ENOMEM;
-	}
-	fibril_add_ready(fid);
-	usb_log_debug("Hub fibril created.\n");
-
-	usb_log_info("Controlling hub `%s' (%d ports).\n",
-		hub_info->usb_device->ddf_dev->name, hub_info->port_count);
-	return EOK;
-}
-
-
-//*********************************************
-//
-//  hub driver code, main loop and port handling
-//
-//*********************************************
 
 /**
  * triggers actions to connect non0removable devices
@@ -874,7 +1018,7 @@ static void usb_hub_process_global_interrupt(usb_hub_info_t * hub_info){
 
 /**
  * this is an attempt to initialize non-removable devices in the hub
- * 
+ *
  * @param hub_info hub instance
  * @param port port number, counting from 1
  * @return error code
@@ -914,101 +1058,6 @@ static int initialize_non_removable(usb_hub_info_t * hub_info,
 		usb_hub_init_add_device(hub_info, port,
 			usb_port_speed(&status));
 	return opResult;
-}
-
-/**
- * check changes on hub
- *
- * Handles changes on each port with a status change.
- * @param hub_info hub representation
- * @return error code
- */
-int usb_hub_check_hub_changes(usb_hub_info_t * hub_info) {
-	int opResult;
-	opResult = usb_pipe_start_session(
-		hub_info->status_change_pipe);
-	//this might not be necessary - if all non-removables are ok, it is
-	//not needed here
-	opResult = usb_pipe_start_session(hub_info->control_pipe);
-	if (opResult != EOK) {
-		usb_log_error("could not initialize communication for hub; %d\n",
-			opResult);
-		return opResult;
-	}
-
-	size_t port_count = hub_info->port_count;
-	//first check non-removable devices
-	{
-		unsigned int port;
-		for (port = 1; port <= port_count; ++port) {
-			bool is_non_removable =
-				hub_info->not_initialized_non_removables[port/8]
-				& (1 << (port % 8));
-			if (is_non_removable) {
-				opResult = initialize_non_removable(hub_info,
-					port);
-			}
-		}
-	}
-
-
-	/// FIXME: count properly
-	size_t byte_length = ((port_count + 1) / 8) + 1;
-	void *change_bitmap = malloc(byte_length);
-	size_t actual_size;
-
-	/*
-	 * Send the request.
-	 */
-	opResult = usb_pipe_read(
-		hub_info->status_change_pipe,
-		change_bitmap, byte_length, &actual_size
-		);
-
-	if (opResult != EOK) {
-		free(change_bitmap);
-		usb_log_warning("something went wrong while getting the"
-			"status of hub\n");
-		usb_pipe_end_session(hub_info->status_change_pipe);
-		return opResult;
-	}
-	unsigned int port;
-
-	if (opResult != EOK) {
-		usb_log_error("could not start control pipe session %d\n",
-			opResult);
-		usb_pipe_end_session(hub_info->status_change_pipe);
-		return opResult;
-	}
-	opResult = usb_hc_connection_open(&hub_info->connection);
-	if (opResult != EOK) {
-		usb_log_error("could not start host controller session %d\n",
-			opResult);
-		usb_pipe_end_session(hub_info->control_pipe);
-		usb_pipe_end_session(hub_info->status_change_pipe);
-		return opResult;
-	}
-
-	///todo, opresult check, pre obe konekce
-	bool interrupt;
-	interrupt = ((uint8_t*)change_bitmap)[0] & 1;
-	if(interrupt){
-		usb_hub_process_global_interrupt(hub_info);
-	}
-	for (port = 1; port < port_count + 1; ++port) {
-		interrupt =
-			((uint8_t*) change_bitmap)[port / 8] & (1<<(port % 8));
-		if (interrupt) {
-			usb_hub_process_interrupt(
-				hub_info, port);
-		}
-	}
-	/// \todo check hub status
-	usb_hc_connection_close(&hub_info->connection);
-	usb_pipe_end_session(hub_info->control_pipe);
-	usb_pipe_end_session(hub_info->status_change_pipe);
-	free(change_bitmap);
-	return EOK;
 }
 
 
