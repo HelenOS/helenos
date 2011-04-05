@@ -98,9 +98,9 @@ free_zone(struct mfs_node *mnode, const uint32_t zone)
 		return r;
 
 	if (old_zone > 0)
-		mfs_free_bit(mnode->instance, old_zone, BMAP_ZONE);
+		r = mfs_free_bit(mnode->instance, old_zone, BMAP_ZONE);
 
-	return EOK;
+	return r;
 }
 
 static int
