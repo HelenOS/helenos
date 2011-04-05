@@ -208,7 +208,7 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 				pt16[di_block] = conv16(sbi->native, blk);
 				bi1->dirty = true;
 			} else {
-				r = 1;
+				r = -1;
 				goto out;
 			}
 		}
@@ -240,7 +240,7 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 				pt32[di_block] = conv32(sbi->native, blk);
 				bi1->dirty = true;
 			} else {
-				r = 1;
+				r = -1;
 				goto out;
 			}
 		}
