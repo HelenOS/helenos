@@ -190,12 +190,12 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 	 *Compute the position of the second indirect
 	 *zone pointer in the chain.
 	 */
-	uint32_t di_block = rblock / ptrs_per_block;
+	uint32_t ind2_block = rblock / ptrs_per_block;
 
 	/*read the second indirect zone of the chain*/
 	if (fs_version == MFS_VERSION_V1) {
 		uint16_t *pt16 = bi1->data;
-		uint16_t blk = conv16(sbi->native, pt16[di_block]);
+		uint16_t blk = conv16(sbi->native, pt16[ind2_block]);
 
 		if (blk == 0) {
 			if (write_mode) {
@@ -205,7 +205,7 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 					goto out;
 
 				blk = block;
-				pt16[di_block] = conv16(sbi->native, blk);
+				pt16[ind2_block] = conv16(sbi->native, blk);
 				bi1->dirty = true;
 			} else {
 				r = -1;
@@ -219,7 +219,7 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 			goto out_put_1;
 
 		pt16 = bi2->data;
-		pt16 += di_block % ptrs_per_block;
+		pt16 += ind2_block % ptrs_per_block;
 		*b = conv16(sbi->native, *pt16);
 		if (write_mode) {
 			*pt16 = conv16(sbi->native, w_block);
@@ -227,7 +227,7 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 		}
 	} else {
 		uint32_t *pt32 = bi1->data;
-		uint32_t blk = conv32(sbi->native, pt32[di_block]);
+		uint32_t blk = conv32(sbi->native, pt32[ind2_block]);
 
 		if (blk == 0) {
 			if (write_mode) {
@@ -237,7 +237,7 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 					goto out;
 
 				blk = block;
-				pt32[di_block] = conv32(sbi->native, blk);
+				pt32[ind2_block] = conv32(sbi->native, blk);
 				bi1->dirty = true;
 			} else {
 				r = -1;
@@ -251,7 +251,7 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 			goto out_put_1;
 
 		pt32 = bi2->data;
-		pt32 += di_block % ptrs_per_block;
+		pt32 += ind2_block % ptrs_per_block;
 		*b = conv32(sbi->native, *pt32);
 		if (write_mode) {
 			*pt32 = conv32(sbi->native, w_block);
