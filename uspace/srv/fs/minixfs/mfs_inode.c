@@ -309,6 +309,9 @@ mfs_inode_grow(struct mfs_node *mnode, unsigned size_grow)
 				new_zone, &dummy);
 		if (r != EOK)
 			return r;
+
+		ino_i->i_size += bs;
+		ino_i->dirty = true;
 	}
 	return EOK;
 }
