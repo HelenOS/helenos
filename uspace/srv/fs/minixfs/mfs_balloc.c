@@ -80,10 +80,11 @@ mfs_free_bit(struct mfs_instance *inst, uint32_t idx, bmap_id_t bid)
 	idx %= (sbi->block_size * 8);
 	bitchunk_t *ptr = b->data;
 	bitchunk_t chunk;
+	const size_t chunk_bits = sizeof(bitchunk_t) * 8;
 
-	chunk = conv32(sbi->native, ptr[idx / 32]);
-	chunk &= ~(1 << (idx % 32));
-	ptr[idx / 32] = conv32(sbi->native, chunk);
+	chunk = conv32(sbi->native, ptr[idx / chunk_bits]);
+	chunk &= ~(1 << (idx % chunk_bits));
+	ptr[idx / chunk_bits] = conv32(sbi->native, chunk);
 	b->dirty = true;
 	r = EOK;
 	block_put(b);
@@ -139,15 +140,15 @@ retry:
 			continue;
 		}
 
-		/*Free bit found, compute real index*/
-		*idx = (freebit + sbi->block_size * 8 * i);
+		/*Free bit found in this block, compute the real index*/
+		*idx = (freebit + bits_per_block * i);
 		if (*idx > limit) {
 			/*Index is beyond the limit, it is invalid*/
 			block_put(b);
 			break;
 		}
 
-		*search = i * bits_per_block + *idx;
+		*search = *idx;
 		b->dirty = true;
 		block_put(b);
 		goto found;
@@ -176,6 +177,7 @@ find_free_bit_and_set(bitchunk_t *b, const int bsize,
 	int r = -1;
 	unsigned i, j;
 	bitchunk_t chunk;
+	const size_t chunk_bits = sizeof(bitchunk_t) * 8;
 
 	for (i = start_bit; i < bsize / sizeof(uint32_t); ++i) {
 		if (~b[i]) {
@@ -185,9 +187,9 @@ find_free_bit_and_set(bitchunk_t *b, const int bsize,
 
 		chunk = conv32(native, b[i]);
 
-		for (j = 0; j < 32; ++j) {
+		for (j = 0; j < chunk_bits; ++j) {
 			if (chunk & (1 << j)) {
-				r = i * 32 + j;
+				r = i * chunk_bits + j;
 				chunk |= 1 << j;
 				b[i] = conv32(native, chunk);
 				goto found;
