@@ -1,4 +1,5 @@
 /*
+g
  * Copyright (c) 2011 Maurizio Lombardi
  * All rights reserved.
  *
@@ -51,16 +52,11 @@ alloc_zone_and_clear(struct mfs_instance *inst, uint32_t *block);
  *relative to that position.
  *Returns zero if the block does not exist.
  */
-int read_map(uint32_t *b, const struct mfs_node *mnode, const uint32_t pos)
+int
+read_map(uint32_t *b, const struct mfs_node *mnode, uint32_t pos)
 {
 	int r;
-
-	assert(mnode);
-	assert(mnode->instance);
-
 	const struct mfs_sb_info *sbi = mnode->instance->sbi;
-	assert(sbi);
-
 	const int block_size = sbi->block_size;
 
 	/*Compute relative block number in file*/
@@ -76,6 +72,35 @@ int read_map(uint32_t *b, const struct mfs_node *mnode, const uint32_t pos)
 	r = rw_map_ondisk(b, mnode, rblock, false, 0);
 out:
 	return r;
+}
+
+int
+write_map(struct mfs_node *mnode, const uint32_t pos, uint32_t new_zone, 
+				uint32_t *old_zone)
+{
+	const struct mfs_sb_info *sbi = mnode->instance->sbi;
+	const int block_size = sbi->block_size;
+
+	/*Compute the relative block number in file*/
+	int rblock = pos / block_size;
+
+	return rw_map_ondisk(old_zone, mnode, rblock, true, new_zone);
+}
+
+int
+free_zone(struct mfs_node *mnode, const uint32_t zone)
+{
+	int r;
+	uint32_t old_zone;
+
+	r = rw_map_ondisk(&old_zone, mnode, zone, true, 0);
+	if (r != EOK)
+		return r;
+
+	if (old_zone > 0)
+		mfs_free_bit(mnode->instance, old_zone, BMAP_ZONE);
+
+	return EOK;
 }
 
 static int
@@ -97,7 +122,7 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 	struct mfs_sb_info *sbi = inst->sbi;
 	assert(sbi);
 
-	const int fs_version = sbi->fs_version;
+	const mfs_version_t fs_version = sbi->fs_version;
 
 	if (fs_version == MFS_VERSION_V1) {
 		nr_direct = V1_NR_DIRECT_ZONES;
@@ -114,8 +139,7 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 			ino_i->i_dzone[rblock] = w_block;
 			ino_i->dirty = true;
 		}
-		r = EOK;
-		goto out;
+		return EOK;
 	}
 	rblock -= nr_direct - 1;
 
@@ -126,20 +150,18 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 				uint32_t block;
 				r = alloc_zone_and_clear(inst, &block);
 				if (r != EOK)
-					goto out;
+					return r;
 
 				ino_i->i_izone[0] = block;
 				ino_i->dirty = true;
-			} else {
-				r = -1;
-				goto out;
-			}
+			} else
+				return -1;
 		}
 
 		r = block_get(&bi1, inst->handle, ino_i->i_izone[0],
 				BLOCK_FLAGS_NONE);
 		if (r != EOK)
-			goto out;
+			return r;
 
 		if (fs_version == MFS_VERSION_V1) {
 			uint16_t *tmp = &(((uint16_t *) bi1->data)[rblock]);
@@ -170,21 +192,18 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 			uint32_t block;
 			r = alloc_zone_and_clear(inst, &block);
 			if (r != EOK)
-				goto out;
+				return r;
 
 			ino_i->i_izone[1] = block;
 			ino_i->dirty = true;
-		} else {
-			r = -1;
-			goto out;
-		}
+		} else
+			return -1;
 	}
 
 	r = block_get(&bi1, inst->handle, ino_i->i_izone[1],
 			BLOCK_FLAGS_NONE);
-
 	if (r != EOK)
-		goto out;
+		return r;
 
 	/*
 	 *Compute the position of the second indirect
@@ -202,15 +221,13 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 				uint32_t block;
 				r = alloc_zone_and_clear(inst, &block);
 				if (r != EOK)
-					goto out;
+					return r;
 
 				blk = block;
 				pt16[ind2_block] = conv16(sbi->native, blk);
 				bi1->dirty = true;
-			} else {
-				r = -1;
-				goto out;
-			}
+			} else
+				return -1;
 		}
 	
 		r = block_get(&bi2, inst->handle, blk, BLOCK_FLAGS_NONE);
@@ -234,15 +251,13 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 				uint32_t block;
 				r = alloc_zone_and_clear(inst, &block);
 				if (r != EOK)
-					goto out;
+					return r;
 
 				blk = block;
 				pt32[ind2_block] = conv32(sbi->native, blk);
 				bi1->dirty = true;
-			} else {
-				r = -1;
-				goto out;
-			}
+			} else
+				return -1;
 		}
 	
 		r = block_get(&bi2, inst->handle, blk, BLOCK_FLAGS_NONE);
@@ -263,7 +278,6 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 	block_put(bi2);
 out_put_1:
 	block_put(bi1);
-out:
 	return r;
 }
 

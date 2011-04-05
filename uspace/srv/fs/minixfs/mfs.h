@@ -162,8 +162,16 @@ mfs2_read_inode_raw(const struct mfs_instance *instance, uint32_t inum);
 extern int
 put_inode(struct mfs_node *mnode);
 
-/*mfs_read.c*/
-int read_map(uint32_t *b, const struct mfs_node *mnode, const uint32_t pos);
+/*mfs_rw.c*/
+extern int
+read_map(uint32_t *b, const struct mfs_node *mnode, const uint32_t pos);
+
+extern int
+write_map(struct mfs_node *mnode, uint32_t pos, uint32_t new_zone,
+				uint32_t *old_zone);
+
+extern int
+free_zone(struct mfs_node *mnode, const uint32_t zone);
 
 /*mfs_dentry.c*/
 extern struct mfs_dentry_info *
