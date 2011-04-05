@@ -83,6 +83,7 @@ int usb_hub_control_loop(void * hub_info_param) {
 	return 0;
 }
 
+/// \TODO set_port_feature use
 
 //*********************************************
 //
@@ -122,18 +123,19 @@ static int usb_hub_process_hub_specific_info(usb_hub_info_t * hub_info) {
 	usb_log_debug("creating serialized descriptor\n");
 	void * serialized_descriptor = malloc(USB_HUB_MAX_DESCRIPTOR_SIZE);
 	usb_hub_descriptor_t * descriptor;
+	int opResult;
 
 	/* this was one fix of some bug, should not be needed anymore
 	 * these lines allow to reset hub once more, it can be used as
 	 * brute-force initialization for non-removable devices
-	 */
-	int opResult = usb_request_set_configuration(hub_info->control_pipe,
+	 *
+	opResult = usb_request_set_configuration(hub_info->control_pipe,
 		1);
 	if (opResult != EOK) {
 		usb_log_error("could not set default configuration, errno %d",
 			opResult);
 		return opResult;
-	}
+	}*/
 
 
 	size_t received_size;
@@ -661,14 +663,29 @@ static void usb_hub_removed_device(
  * @param hub hub representation
  * @param port port number, starting from 1
  */
-static void usb_hub_over_current(usb_hub_info_t * hub,
-	uint16_t port) {
+static void usb_hub_port_over_current(usb_hub_info_t * hub,
+	uint16_t port, uint32_t status) {
+	/// \todo no, this is not proper sollution
+	/// get affected ports
+	/// power them off
+	/// wait until there over-current is cleared
+	/// power them on
+
 	int opResult;
-	opResult = usb_hub_clear_port_feature(hub->control_pipe,
-		port, USB_HUB_FEATURE_PORT_POWER);
-	if (opResult != EOK) {
-		usb_log_error("cannot power off port %d;  %d\n",
-			port, opResult);
+	if(usb_port_over_current(&status)){
+		opResult = usb_hub_clear_port_feature(hub->control_pipe,
+			port, USB_HUB_FEATURE_PORT_POWER);
+		if (opResult != EOK) {
+			usb_log_error("cannot power off port %d;  %d\n",
+				port, opResult);
+		}
+	}else{
+		opResult = usb_hub_set_port_feature(hub->control_pipe,
+			port, USB_HUB_FEATURE_PORT_POWER);
+		if (opResult != EOK) {
+			usb_log_error("cannot power on port %d;  %d\n",
+				port, opResult);
+		}
 	}
 }
 
@@ -722,13 +739,7 @@ static void usb_hub_process_interrupt(usb_hub_info_t * hub,
 	if (usb_port_overcurrent_change(&status)) {
 		//check if it was not auto-resolved
 		usb_log_debug("overcurrent change on port\n");
-		if (usb_port_over_current(&status)) {
-			usb_hub_over_current(hub, port);
-		} else {
-			usb_log_debug("over current condition was "
-				"auto-resolved on port %d\n",
-				port);
-		}
+		usb_hub_port_over_current(hub, port, status);
 	}
 	//port reset
 	if (usb_port_reset_completed(&status)) {
@@ -751,6 +762,90 @@ static void usb_hub_process_interrupt(usb_hub_info_t * hub,
 		usb_log_info("there was some unsupported change on port %d: %X\n",
 			port, status);
 
+	}
+}
+
+static int usb_process_hub_over_current(usb_hub_info_t * hub_info,
+	usb_hub_status_t status)
+{
+	int opResult;
+	if(usb_hub_over_current(&status)){
+		opResult = usb_hub_clear_feature(hub_info->control_pipe,
+			USB_HUB_FEATURE_PORT_POWER);
+		if (opResult != EOK) {
+			usb_log_error("cannot power off hub: %d\n",
+				opResult);
+		}
+	}else{
+		opResult = usb_hub_set_feature(hub_info->control_pipe,
+			USB_HUB_FEATURE_PORT_POWER);
+		if (opResult != EOK) {
+			usb_log_error("cannot power on hub: %d\n",
+				opResult);
+		}
+	}
+	return opResult;
+}
+
+static int usb_process_hub_power_change(usb_hub_info_t * hub_info,
+	usb_hub_status_t status)
+{
+	int opResult;
+	if(usb_hub_local_power_lost(&status)){
+		//restart power on hub
+		opResult = usb_hub_set_feature(hub_info->control_pipe,
+			USB_HUB_FEATURE_PORT_POWER);
+		if (opResult != EOK) {
+			usb_log_error("cannot power on hub: %d\n",
+				opResult);
+		}
+	}else{//power reestablished on hub- restart ports
+		int port;
+		for(port=0;port<hub_info->port_count;++port){
+			opResult = usb_hub_set_port_feature(
+				hub_info->control_pipe,
+				port, USB_HUB_FEATURE_PORT_POWER);
+			if (opResult != EOK) {
+				usb_log_error("cannot power on port %d;  %d\n",
+					port, opResult);
+			}
+		}
+	}
+	return opResult;
+}
+
+
+static void usb_hub_process_global_interrupt(usb_hub_info_t * hub_info){
+	usb_log_debug("global interrupt on a hub\n");
+	usb_pipe_t *pipe = hub_info->control_pipe;
+	int opResult;
+
+	usb_port_status_t status;
+	size_t rcvd_size;
+	usb_device_request_setup_packet_t request;
+	//int opResult;
+	usb_hub_set_hub_status_request(&request);
+	//endpoint 0
+
+	opResult = usb_pipe_control_read(
+		pipe,
+		&request, sizeof (usb_device_request_setup_packet_t),
+		&status, 4, &rcvd_size
+		);
+	if (opResult != EOK) {
+		usb_log_error("could not get hub status\n");
+		return;
+	}
+	if (rcvd_size != sizeof (usb_port_status_t)) {
+		usb_log_error("received status has incorrect size\n");
+		return;
+	}
+	//port reset
+	if (usb_hub_over_current_change(&status)) {
+		usb_process_hub_over_current(hub_info,status);
+	}
+	if (usb_hub_local_power_change(&status)) {
+		usb_process_hub_power_change(hub_info,status);
 	}
 }
 
@@ -865,14 +960,20 @@ int usb_hub_check_hub_changes(usb_hub_info_t * hub_info) {
 	}
 
 	///todo, opresult check, pre obe konekce
+	bool interrupt;
+	interrupt = ((uint8_t*)change_bitmap)[0] & 1;
+	if(interrupt){
+		usb_hub_process_global_interrupt(hub_info);
+	}
 	for (port = 1; port < port_count + 1; ++port) {
-		bool interrupt =
-			(((uint8_t*) change_bitmap)[port / 8] >> (port % 8)) % 2;
+		interrupt =
+			((uint8_t*) change_bitmap)[port / 8] & (1<<(port % 8));
 		if (interrupt) {
 			usb_hub_process_interrupt(
 				hub_info, port);
 		}
 	}
+	/// \todo check hub status
 	usb_hc_connection_close(&hub_info->connection);
 	usb_pipe_end_session(hub_info->control_pipe);
 	usb_pipe_end_session(hub_info->status_change_pipe);

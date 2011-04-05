@@ -89,7 +89,7 @@ typedef struct {
 
 	/** not yet initialized non-removable devices */
 	uint8_t * not_initialized_non_removables;
-
+	
 } usb_hub_info_t;
 
 /**

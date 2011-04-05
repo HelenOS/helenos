@@ -48,6 +48,16 @@
 typedef uint32_t usb_port_status_t;
 
 /**
+ * structure holding hub status and changes flags.
+ * should not be accessed directly, use supplied getter/setter methods.
+ *
+ * For more information refer to table 11.16.2.5 in
+ * "Universal Serial Bus Specification Revision 1.1"
+ *
+ */
+typedef uint32_t usb_hub_status_t;
+
+/**
  * set values in request to be it a port status request
  * @param request
  * @param port
@@ -57,6 +67,21 @@ usb_device_request_setup_packet_t * request, uint16_t port
 ){
 	request->index = port;
 	request->request_type = USB_HUB_REQ_TYPE_GET_PORT_STATUS;
+	request->request = USB_HUB_REQUEST_GET_STATUS;
+	request->value = 0;
+	request->length = 4;
+}
+
+/**
+ * set values in request to be it a port status request
+ * @param request
+ * @param port
+ */
+static inline void usb_hub_set_hub_status_request(
+usb_device_request_setup_packet_t * request
+){
+	request->index = 0;
+	request->request_type = USB_HUB_REQ_TYPE_GET_HUB_STATUS;
 	request->request = USB_HUB_REQUEST_GET_STATUS;
 	request->value = 0;
 	request->length = 4;
@@ -241,6 +266,22 @@ static inline void usb_port_set_bit(
 		               ((*status)&(~(1<<(idx))));
 }
 
+/** get i`th bit of hub status */
+static inline bool usb_hub_get_bit(usb_hub_status_t * status, int idx)
+{
+	return (((*status)>>(idx))%2);
+}
+
+/** set i`th bit of hub status */
+static inline void usb_hub_set_bit(
+	usb_hub_status_t * status, int idx, bool value)
+{
+	(*status) = value?
+		               ((*status)|(1<<(idx))):
+		               ((*status)&(~(1<<(idx))));
+}
+
+
 //device connnected on port
 static inline bool usb_port_dev_connected(usb_port_status_t * status){
 	return usb_port_get_bit(status,0);
@@ -367,6 +408,45 @@ static inline void usb_port_set_reset_completed(usb_port_status_t * status,bool 
 	usb_port_set_bit(status,20,completed);
 }
 
+//local power status
+static inline bool usb_hub_local_power_lost(usb_hub_status_t * status){
+	return usb_hub_get_bit(status,0);
+}
+
+static inline void usb_hub_set_local_power_lost(usb_port_status_t * status,
+	bool power_lost){
+	usb_hub_set_bit(status,0,power_lost);
+}
+
+//over current ocndition
+static inline bool usb_hub_over_current(usb_hub_status_t * status){
+	return usb_hub_get_bit(status,1);
+}
+
+static inline void usb_hub_set_over_current(usb_port_status_t * status,
+	bool over_current){
+	usb_hub_set_bit(status,1,over_current);
+}
+
+//local power change
+static inline bool usb_hub_local_power_change(usb_hub_status_t * status){
+	return usb_hub_get_bit(status,16);
+}
+
+static inline void usb_hub_set_local_power_change(usb_port_status_t * status,
+	bool change){
+	usb_hub_set_bit(status,16,change);
+}
+
+//local power status
+static inline bool usb_hub_over_current_change(usb_hub_status_t * status){
+	return usb_hub_get_bit(status,17);
+}
+
+static inline void usb_hub_set_over_current_change(usb_port_status_t * status,
+	bool change){
+	usb_hub_set_bit(status,17,change);
+}
 
 
 #endif	/* HUB_PORT_STATUS_H */
