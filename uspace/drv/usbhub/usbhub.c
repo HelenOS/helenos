@@ -75,7 +75,6 @@ int usb_hub_control_loop(void * hub_info_param) {
 	while (errorCode == EOK) {
 		async_usleep(1000 * 1000 * 10); /// \TODO proper number once
 		errorCode = usb_hub_check_hub_changes(hub_info);
-
 	}
 	usb_log_error("something in ctrl loop went wrong, errno %d\n",
 		errorCode);
@@ -84,6 +83,7 @@ int usb_hub_control_loop(void * hub_info_param) {
 }
 
 /// \TODO set_port_feature use
+/// \TODO unmess code
 
 //*********************************************
 //
@@ -765,6 +765,14 @@ static void usb_hub_process_interrupt(usb_hub_info_t * hub,
 	}
 }
 
+/**
+ * process hub over current change
+ *
+ * This means either to power off the hub or power it on.
+ * @param hub_info hub instance
+ * @param status hub status bitmask
+ * @return error code
+ */
 static int usb_process_hub_over_current(usb_hub_info_t * hub_info,
 	usb_hub_status_t status)
 {
@@ -787,6 +795,15 @@ static int usb_process_hub_over_current(usb_hub_info_t * hub_info,
 	return opResult;
 }
 
+/**
+ * process hub power change
+ *
+ * If the power has been lost, reestablish it.
+ * If it was reestablished, re-power all ports.
+ * @param hub_info hub instance
+ * @param status hub status bitmask
+ * @return error code
+ */
 static int usb_process_hub_power_change(usb_hub_info_t * hub_info,
 	usb_hub_status_t status)
 {
@@ -814,7 +831,13 @@ static int usb_process_hub_power_change(usb_hub_info_t * hub_info,
 	return opResult;
 }
 
-
+/**
+ * process hub interrupts
+ *
+ * The change can be either in the over-current condition or
+ * local-power lost condition.
+ * @param hub_info hub instance
+ */
 static void usb_hub_process_global_interrupt(usb_hub_info_t * hub_info){
 	usb_log_debug("global interrupt on a hub\n");
 	usb_pipe_t *pipe = hub_info->control_pipe;
@@ -849,6 +872,13 @@ static void usb_hub_process_global_interrupt(usb_hub_info_t * hub_info){
 	}
 }
 
+/**
+ * this is an attempt to initialize non-removable devices in the hub
+ * 
+ * @param hub_info hub instance
+ * @param port port number, counting from 1
+ * @return error code
+ */
 static int initialize_non_removable(usb_hub_info_t * hub_info,
 	unsigned int port) {
 	int opResult;
