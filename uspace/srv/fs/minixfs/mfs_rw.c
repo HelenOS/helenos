@@ -41,10 +41,16 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 				bool write_mode, uint32_t w_block);
 
 static int
-reset_block_content(struct mfs_instance *inst, uint32_t block);
+reset_zone_content(struct mfs_instance *inst, uint32_t zone);
 
 static int
-alloc_zone_and_clear(struct mfs_instance *inst, uint32_t *block);
+alloc_zone_and_clear(struct mfs_instance *inst, uint32_t *zone);
+
+static int
+read_ind_zone(struct mfs_instance *inst, uint32_t zone, uint32_t **ind_zone);
+
+static int
+write_ind_zone(struct mfs_instance *inst, uint32_t zone, uint32_t *ind_zone);
 
 
 /**Given the position in the file expressed in
@@ -109,8 +115,7 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 {
 	int r, nr_direct;
 	int ptrs_per_block;
-	block_t *bi1;
-	block_t *bi2;
+	uint32_t *ind_zone, *ind2_zone;
 
 	assert(mnode);
 	struct mfs_ino_info *ino_i = mnode->ino_i;
@@ -147,39 +152,28 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 		/*The wanted block is in the single indirect zone chain*/
 		if (ino_i->i_izone[0] == 0) {
 			if (write_mode) {
-				uint32_t block;
-				r = alloc_zone_and_clear(inst, &block);
+				uint32_t zone;
+				r = alloc_zone_and_clear(inst, &zone);
 				if (r != EOK)
 					return r;
 
-				ino_i->i_izone[0] = block;
+				ino_i->i_izone[0] = zone;
 				ino_i->dirty = true;
 			} else
 				return -1;
 		}
 
-		r = block_get(&bi1, inst->handle, ino_i->i_izone[0],
-				BLOCK_FLAGS_NONE);
+		r = read_ind_zone(inst, ino_i->i_izone[0], &ind_zone);
 		if (r != EOK)
 			return r;
 
-		if (fs_version == MFS_VERSION_V1) {
-			uint16_t *tmp = &(((uint16_t *) bi1->data)[rblock]);
-			*b = conv16(sbi->native, *tmp);
-			if (write_mode) {
-				*tmp = conv16(sbi->native, w_block);
-				bi1->dirty = true;
-			}
-	 	} else {
-			uint32_t *tmp = &(((uint32_t *) bi1->data)[rblock]);
-			*b = conv32(sbi->native, *tmp);
-			if (write_mode) {
-				*tmp = conv32(sbi->native, w_block);
-				bi1->dirty = true;
-			}
+		*b = ind_zone[rblock];
+		if (write_mode) {
+			ind_zone[rblock] = w_block;
+			write_ind_zone(inst, ino_i->i_izone[0], ind_zone);
 		}
 
-		goto out_put_1;
+		goto out_free_ind1;
 	}
 
 	rblock -= ptrs_per_block - 1;
@@ -189,19 +183,18 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 	/*read the first indirect zone of the chain*/
 	if (ino_i->i_izone[1] == 0) {
 		if (write_mode) {
-			uint32_t block;
-			r = alloc_zone_and_clear(inst, &block);
+			uint32_t zone;
+			r = alloc_zone_and_clear(inst, &zone);
 			if (r != EOK)
 				return r;
 
-			ino_i->i_izone[1] = block;
+			ino_i->i_izone[1] = zone;
 			ino_i->dirty = true;
 		} else
 			return -1;
 	}
 
-	r = block_get(&bi1, inst->handle, ino_i->i_izone[1],
-			BLOCK_FLAGS_NONE);
+	r = read_ind_zone(inst, ino_i->i_izone[1], &ind_zone);
 	if (r != EOK)
 		return r;
 
@@ -209,86 +202,49 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 	 *Compute the position of the second indirect
 	 *zone pointer in the chain.
 	 */
-	uint32_t ind2_block = rblock / ptrs_per_block;
+	uint32_t ind2_off = rblock / ptrs_per_block;
 
 	/*read the second indirect zone of the chain*/
-	if (fs_version == MFS_VERSION_V1) {
-		uint16_t *pt16 = bi1->data;
-		uint16_t blk = conv16(sbi->native, pt16[ind2_block]);
-
-		if (blk == 0) {
-			if (write_mode) {
-				uint32_t block;
-				r = alloc_zone_and_clear(inst, &block);
-				if (r != EOK)
-					return r;
-
-				blk = block;
-				pt16[ind2_block] = conv16(sbi->native, blk);
-				bi1->dirty = true;
-			} else
-				return -1;
-		}
-	
-		r = block_get(&bi2, inst->handle, blk, BLOCK_FLAGS_NONE);
-
-		if (r != EOK)
-			goto out_put_1;
-
-		pt16 = bi2->data;
-		pt16 += ind2_block % ptrs_per_block;
-		*b = conv16(sbi->native, *pt16);
+	if (ind_zone[ind2_off] == 0) {
 		if (write_mode) {
-			*pt16 = conv16(sbi->native, w_block);
-			bi2->dirty = true;
-		}
-	} else {
-		uint32_t *pt32 = bi1->data;
-		uint32_t blk = conv32(sbi->native, pt32[ind2_block]);
-
-		if (blk == 0) {
-			if (write_mode) {
-				uint32_t block;
-				r = alloc_zone_and_clear(inst, &block);
-				if (r != EOK)
-					return r;
-
-				blk = block;
-				pt32[ind2_block] = conv32(sbi->native, blk);
-				bi1->dirty = true;
-			} else
-				return -1;
-		}
-	
-		r = block_get(&bi2, inst->handle, blk, BLOCK_FLAGS_NONE);
-
-		if (r != EOK)
-			goto out_put_1;
-
-		pt32 = bi2->data;
-		pt32 += ind2_block % ptrs_per_block;
-		*b = conv32(sbi->native, *pt32);
-		if (write_mode) {
-			*pt32 = conv32(sbi->native, w_block);
-			bi2->dirty = true;
+			uint32_t zone;
+			r = alloc_zone_and_clear(inst, &zone);
+			if(r != EOK)
+				goto out_free_ind1;
+			ind_zone[ind2_off] = zone;
+			write_ind_zone(inst, ino_i->i_izone[1], ind_zone);
+		} else {
+			r = -1;
+			goto out_free_ind1;
 		}
 	}
+
+	r = read_ind_zone(inst, ind_zone[ind2_off], &ind2_zone);
+	if (r != EOK)
+		goto out_free_ind1;
+
+	*b = ind2_zone[ind2_off % ptrs_per_block];
+	if (write_mode) {
+		ind2_zone[ind2_off % ptrs_per_block] = w_block;
+		write_ind_zone(inst, ind_zone[ind2_off], ind2_zone);
+	}
+
 	r = EOK;
 
-	block_put(bi2);
-out_put_1:
-	block_put(bi1);
+	free(ind2_zone);
+out_free_ind1:
+	free(ind_zone);
 	return r;
 }
 
 
 static int
-reset_block_content(struct mfs_instance *inst, uint32_t block)
+reset_zone_content(struct mfs_instance *inst, uint32_t zone)
 {
 	block_t *b;
 	int r;
 
-	r = block_get(&b, inst->handle, block, BLOCK_FLAGS_NOREAD);
+	r = block_get(&b, inst->handle, zone, BLOCK_FLAGS_NOREAD);
 	if (r != EOK)
 		return r;
 
@@ -300,18 +256,83 @@ reset_block_content(struct mfs_instance *inst, uint32_t block)
 }
 
 static int
-alloc_zone_and_clear(struct mfs_instance *inst, uint32_t *block)
+alloc_zone_and_clear(struct mfs_instance *inst, uint32_t *zone)
 {
 	int r;
 
-	r = mfs_alloc_bit(inst, block, BMAP_ZONE);
+	r = mfs_alloc_bit(inst, zone, BMAP_ZONE);
 	if (r != EOK)
 		goto out;
 
-	r = reset_block_content(inst, *block);
+	r = reset_zone_content(inst, *zone);
 out:
 	return r;
 }
+
+static int
+read_ind_zone(struct mfs_instance *inst, uint32_t zone, uint32_t **ind_zone)
+{
+	struct mfs_sb_info *sbi = inst->sbi;
+	int r;
+	unsigned i;
+	block_t *b;
+
+	*ind_zone = malloc(sbi->block_size);
+	if (*ind_zone == NULL)
+		return ENOMEM;
+
+	r = block_get(&b, inst->handle, zone, BLOCK_FLAGS_NONE);
+	if (r != EOK) {
+		free(*ind_zone);
+		return r;
+	}
+
+	if (sbi->fs_version == MFS_VERSION_V1) {
+		uint16_t *src_ptr = b->data;
+
+		for (i = 0; i < sbi->block_size / sizeof(uint16_t); ++i)
+			(*ind_zone)[i] = conv16(sbi->native, src_ptr[i]);
+	} else {
+		uint32_t *src_ptr = b->data;
+
+		for (i = 0; i < sbi->block_size / sizeof(uint32_t); ++i)
+			(*ind_zone)[i] = conv32(sbi->native, src_ptr[i]);
+	}
+
+	block_put(b);
+	
+	return EOK;
+}
+
+static int
+write_ind_zone(struct mfs_instance *inst, uint32_t zone, uint32_t *ind_zone)
+{
+	struct mfs_sb_info *sbi = inst->sbi;
+	int r;
+	unsigned i;
+	block_t *b;
+
+	r = block_get(&b, inst->handle, zone, BLOCK_FLAGS_NONE);
+	if (r != EOK)
+		return r;
+
+	if (sbi->fs_version == MFS_VERSION_V1) {
+		uint16_t *dest_ptr = b->data;
+
+		for (i = 0; i < sbi->block_size / sizeof(uint16_t); ++i)
+			dest_ptr[i] = conv16(sbi->native, ind_zone[i]);
+	} else {
+		uint32_t *dest_ptr = b->data;
+
+		for (i = 0; i < sbi->block_size / sizeof(uint32_t); ++i)
+			dest_ptr[i] = conv32(sbi->native, ind_zone[i]);
+
+	}
+	b->dirty = true;
+	block_put(b);
+	return EOK;
+}
+
 
 /**
  * @}
