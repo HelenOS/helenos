@@ -193,11 +193,21 @@ static int interrupt_out(
 	usb_log_debug("Interrupt OUT %d:%d %zu(%zu).\n",
 	    target.address, target.endpoint, size, max_packet_size);
 
+	size_t res_bw;
 	endpoint_t *ep = usb_endpoint_manager_get_ep_data(&hc->ep_manager,
-	    target.address, target.endpoint, USB_DIRECTION_OUT, NULL);
+	    target.address, target.endpoint, USB_DIRECTION_OUT, &res_bw);
 	if (ep == NULL) {
 		usb_log_error("Endpoint(%d:%d) not registered for INT OUT.\n",
 			target.address, target.endpoint);
+		return ENOENT;
+	}
+	const size_t bw = bandwidth_count_usb11(ep->speed, ep->transfer_type,
+	    size, ep->max_packet_size);
+	if (res_bw < bw)
+	{
+		usb_log_error("Endpoint(%d:%d) INT IN needs %zu bw "
+		    "but only %zu is reserved.\n",
+		    target.address, target.endpoint, bw, res_bw);
 		return ENOENT;
 	}
 	assert(ep->speed ==
@@ -240,13 +250,24 @@ static int interrupt_in(
 	usb_log_debug("Interrupt IN %d:%d %zu(%zu).\n",
 	    target.address, target.endpoint, size, max_packet_size);
 
+	size_t res_bw;
 	endpoint_t *ep = usb_endpoint_manager_get_ep_data(&hc->ep_manager,
-	    target.address, target.endpoint, USB_DIRECTION_IN, NULL);
+	    target.address, target.endpoint, USB_DIRECTION_IN, &res_bw);
 	if (ep == NULL) {
 		usb_log_error("Endpoint(%d:%d) not registered for INT IN.\n",
-			target.address, target.endpoint);
+		    target.address, target.endpoint);
 		return ENOENT;
 	}
+	const size_t bw = bandwidth_count_usb11(ep->speed, ep->transfer_type,
+	    size, ep->max_packet_size);
+	if (res_bw < bw)
+	{
+		usb_log_error("Endpoint(%d:%d) INT IN needs %zu bw "
+		    "but only %zu bw is reserved.\n",
+		    target.address, target.endpoint, bw, res_bw);
+		return ENOENT;
+	}
+
 	assert(ep->speed ==
 	    usb_device_keeper_get_speed(&hc->manager, target.address));
 	assert(ep->max_packet_size == max_packet_size);
