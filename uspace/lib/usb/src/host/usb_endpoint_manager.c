@@ -29,6 +29,7 @@
 #include <bool.h>
 #include <assert.h>
 #include <errno.h>
+
 #include <usb/host/usb_endpoint_manager.h>
 
 #define BUCKET_COUNT 7
@@ -61,12 +62,10 @@ static hash_index_t ep_hash(unsigned long key[])
 	return hash;
 }
 /*----------------------------------------------------------------------------*/
-static int ep_compare(
-    unsigned long key[], hash_count_t keys, link_t *item)
+static int ep_compare(unsigned long key[], hash_count_t keys, link_t *item)
 {
 	assert(item);
-	ep_t *ep =
-	    hash_table_get_instance(item, ep_t, link);
+	ep_t *ep = hash_table_get_instance(item, ep_t, link);
 	hash_count_t i = 0;
 	for (; i < keys; ++i) {
 		if (key[i] != ep->key[i])
@@ -156,7 +155,6 @@ int usb_endpoint_manager_register_ep(usb_endpoint_manager_t *instance,
 	};
 	fibril_mutex_lock(&instance->guard);
 
-
 	link_t *item =
 	    hash_table_find(&instance->ep_table, (unsigned long*)&id);
 	if (item != NULL) {
@@ -177,6 +175,7 @@ int usb_endpoint_manager_register_ep(usb_endpoint_manager_t *instance,
 
 	ep->id = id;
 	ep->bw = bw;
+	ep->data = data;
 	link_initialize(&ep->link);
 
 	hash_table_insert(&instance->ep_table, (unsigned long*)&id, &ep->link);
