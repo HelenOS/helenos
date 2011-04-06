@@ -62,7 +62,14 @@ void usb_device_keeper_init(usb_device_keeper_t *instance)
 }
 /*----------------------------------------------------------------------------*/
 void usb_device_keeper_add_ep(
-    usb_device_keeper_t *instance, usb_address_t address, link_t *ep);
+    usb_device_keeper_t *instance, usb_address_t address, link_t *ep)
+{
+	assert(instance);
+	fibril_mutex_lock(&instance->guard);
+	assert(instance->devices[address].occupied);
+	list_append(ep, &instance->devices[address].endpoints);
+	fibril_mutex_unlock(&instance->guard);
+}
 /*----------------------------------------------------------------------------*/
 /** Attempt to obtain address 0, blocks.
  *

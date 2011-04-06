@@ -35,8 +35,7 @@
 
 #include <errno.h>
 
-#include "endpoint.h"
-#include "utils/malloc32.h"
+#include <usb/host/endpoint.h>
 
 int endpoint_init(endpoint_t *instance, usb_transfer_type_t transfer_type,
     usb_speed_t speed, size_t max_packet_size)
@@ -47,18 +46,13 @@ int endpoint_init(endpoint_t *instance, usb_transfer_type_t transfer_type,
 	instance->speed = speed;
 	instance->max_packet_size = max_packet_size;
 	instance->toggle = 0;
-	instance->qh = malloc32(sizeof(qh_t));
-	if (instance->qh == NULL)
-		return ENOMEM;
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-void endpoint_destroy(void *ep)
+void endpoint_destroy(endpoint_t *instance)
 {
-	endpoint_t *instance = ep;
 	assert(instance);
 	list_remove(&instance->same_device_eps);
-	free32(instance->qh);
 	free(instance);
 }
 /*----------------------------------------------------------------------------*/

@@ -42,6 +42,7 @@
 #include <adt/hash_table.h>
 #include <fibril_synch.h>
 #include <usb/usb.h>
+#include <usb/host/endpoint.h>
 
 #define BANDWIDTH_TOTAL_USB11 12000000
 #define BANDWIDTH_AVAILABLE_USB11 ((BANDWIDTH_TOTAL_USB11 / 10) * 9)
@@ -62,8 +63,8 @@ int usb_endpoint_manager_init(usb_endpoint_manager_t *instance,
 void usb_endpoint_manager_destroy(usb_endpoint_manager_t *instance);
 
 int usb_endpoint_manager_register_ep(usb_endpoint_manager_t *instance,
-    usb_address_t address, usb_endpoint_t ep, usb_direction_t direction,
-    void *data, void (*data_remove_callback)(void* data), size_t bw);
+    usb_address_t address, usb_endpoint_t endpoint, usb_direction_t direction,
+    endpoint_t *ep, size_t data_size);
 
 int usb_endpoint_manager_register_ep_wait(usb_endpoint_manager_t *instance,
     usb_address_t address, usb_endpoint_t ep, usb_direction_t direction,
@@ -73,7 +74,7 @@ int usb_endpoint_manager_register_ep_wait(usb_endpoint_manager_t *instance,
 int usb_endpoint_manager_unregister_ep(usb_endpoint_manager_t *instance,
     usb_address_t address, usb_endpoint_t ep, usb_direction_t direction);
 
-void * usb_endpoint_manager_get_ep_data(usb_endpoint_manager_t *instance,
+endpoint_t * usb_endpoint_manager_get_ep(usb_endpoint_manager_t *instance,
     usb_address_t address, usb_endpoint_t ep, usb_direction_t direction,
     size_t *bw);
 

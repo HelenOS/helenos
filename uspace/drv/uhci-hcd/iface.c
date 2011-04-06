@@ -35,8 +35,8 @@
 #include <errno.h>
 
 #include <usb/debug.h>
+#include <usb/host/endpoint.h>
 
-#include "endpoint.h"
 #include "iface.h"
 #include "hc.h"
 
@@ -158,7 +158,10 @@ static int register_endpoint(
 	assert(hc);
 	const usb_speed_t speed =
 	    usb_device_keeper_get_speed(&hc->manager, address);
-	const size_t size = max_packet_size;
+	const size_t size =
+	    (transfer_type == USB_TRANSFER_INTERRUPT
+	    || transfer_type == USB_TRANSFER_ISOCHRONOUS) ?
+	    max_packet_size : 0;
 	int ret;
 
 	endpoint_t *ep = malloc(sizeof(endpoint_t));
@@ -174,14 +177,8 @@ static int register_endpoint(
 	    address, endpoint, usb_str_transfer_type(transfer_type),
 	    usb_str_speed(speed), direction, size, max_packet_size, interval);
 
-	const size_t bw =
-	    (transfer_type == USB_TRANSFER_INTERRUPT
-	    || transfer_type == USB_TRANSFER_ISOCHRONOUS) ?
-	    bandwidth_count_usb11(speed, transfer_type, size, max_packet_size) :
-	    0;
-
 	ret = usb_endpoint_manager_register_ep(&hc->ep_manager,
-	    address, endpoint, direction, ep, endpoint_destroy, bw);
+	    address, endpoint, direction, ep, size);
 	if (ret != EOK) {
 		endpoint_destroy(ep);
 	} else {
@@ -225,7 +222,7 @@ static int interrupt_out(
 	    target.address, target.endpoint, size, max_packet_size);
 
 	size_t res_bw;
-	endpoint_t *ep = usb_endpoint_manager_get_ep_data(&hc->ep_manager,
+	endpoint_t *ep = usb_endpoint_manager_get_ep(&hc->ep_manager,
 	    target.address, target.endpoint, USB_DIRECTION_OUT, &res_bw);
 	if (ep == NULL) {
 		usb_log_error("Endpoint(%d:%d) not registered for INT OUT.\n",
@@ -282,7 +279,7 @@ static int interrupt_in(
 	    target.address, target.endpoint, size, max_packet_size);
 
 	size_t res_bw;
-	endpoint_t *ep = usb_endpoint_manager_get_ep_data(&hc->ep_manager,
+	endpoint_t *ep = usb_endpoint_manager_get_ep(&hc->ep_manager,
 	    target.address, target.endpoint, USB_DIRECTION_IN, &res_bw);
 	if (ep == NULL) {
 		usb_log_error("Endpoint(%d:%d) not registered for INT IN.\n",
@@ -339,7 +336,7 @@ static int bulk_out(
 	usb_log_debug("Bulk OUT %d:%d %zu(%zu).\n",
 	    target.address, target.endpoint, size, max_packet_size);
 
-	endpoint_t *ep = usb_endpoint_manager_get_ep_data(&hc->ep_manager,
+	endpoint_t *ep = usb_endpoint_manager_get_ep(&hc->ep_manager,
 	    target.address, target.endpoint, USB_DIRECTION_OUT, NULL);
 	if (ep == NULL) {
 		usb_log_error("Endpoint(%d:%d) not registered for BULK OUT.\n",
@@ -386,7 +383,7 @@ static int bulk_in(
 	usb_log_debug("Bulk IN %d:%d %zu(%zu).\n",
 	    target.address, target.endpoint, size, max_packet_size);
 
-	endpoint_t *ep = usb_endpoint_manager_get_ep_data(&hc->ep_manager,
+	endpoint_t *ep = usb_endpoint_manager_get_ep(&hc->ep_manager,
 	    target.address, target.endpoint, USB_DIRECTION_IN, NULL);
 	if (ep == NULL) {
 		usb_log_error("Endpoint(%d:%d) not registered for BULK IN.\n",
@@ -437,7 +434,7 @@ static int control_write(
 	    usb_device_keeper_get_speed(&hc->manager, target.address);
 	usb_log_debug("Control WRITE (%d) %d:%d %zu(%zu).\n",
 	    speed, target.address, target.endpoint, size, max_packet_size);
-	endpoint_t *ep = usb_endpoint_manager_get_ep_data(&hc->ep_manager,
+	endpoint_t *ep = usb_endpoint_manager_get_ep(&hc->ep_manager,
 	    target.address, target.endpoint, USB_DIRECTION_BOTH, NULL);
 	if (ep == NULL) {
 		usb_log_warning("Endpoint(%d:%d) not registered for CONTROL.\n",
@@ -488,7 +485,7 @@ static int control_read(
 
 	usb_log_debug("Control READ(%d) %d:%d %zu(%zu).\n",
 	    speed, target.address, target.endpoint, size, max_packet_size);
-	endpoint_t *ep = usb_endpoint_manager_get_ep_data(&hc->ep_manager,
+	endpoint_t *ep = usb_endpoint_manager_get_ep(&hc->ep_manager,
 	    target.address, target.endpoint, USB_DIRECTION_BOTH, NULL);
 	if (ep == NULL) {
 		usb_log_warning("Endpoint(%d:%d) not registered for CONTROL.\n",

@@ -47,11 +47,10 @@ typedef struct {
 	};
 	link_t link;
 	size_t bw;
-	void *data;
-	void (*data_remove_callback)(void* data);
-} ep_t;
+	endpoint_t *ep;
+} node_t;
 /*----------------------------------------------------------------------------*/
-static hash_index_t ep_hash(unsigned long key[])
+static hash_index_t node_hash(unsigned long key[])
 {
 	hash_index_t hash = 0;
 	unsigned i = 0;
@@ -62,31 +61,30 @@ static hash_index_t ep_hash(unsigned long key[])
 	return hash;
 }
 /*----------------------------------------------------------------------------*/
-static int ep_compare(unsigned long key[], hash_count_t keys, link_t *item)
+static int node_compare(unsigned long key[], hash_count_t keys, link_t *item)
 {
 	assert(item);
-	ep_t *ep = hash_table_get_instance(item, ep_t, link);
+	node_t *node = hash_table_get_instance(item, node_t, link);
 	hash_count_t i = 0;
 	for (; i < keys; ++i) {
-		if (key[i] != ep->key[i])
+		if (key[i] != node->key[i])
 			return false;
 	}
 	return true;
 }
 /*----------------------------------------------------------------------------*/
-static void ep_remove(link_t *item)
+static void node_remove(link_t *item)
 {
 	assert(item);
-	ep_t *ep =
-	    hash_table_get_instance(item, ep_t, link);
-	ep->data_remove_callback(ep->data);
-	free(ep);
+	node_t *node = hash_table_get_instance(item, node_t, link);
+	endpoint_destroy(node->ep);
+	free(node);
 }
 /*----------------------------------------------------------------------------*/
 static hash_table_operations_t op = {
-	.hash = ep_hash,
-	.compare = ep_compare,
-	.remove_callback = ep_remove,
+	.hash = node_hash,
+	.compare = node_compare,
+	.remove_callback = node_remove,
 };
 /*----------------------------------------------------------------------------*/
 size_t bandwidth_count_usb11(usb_speed_t speed, usb_transfer_type_t type,
@@ -144,8 +142,11 @@ void usb_endpoint_manager_destroy(usb_endpoint_manager_t *instance)
 /*----------------------------------------------------------------------------*/
 int usb_endpoint_manager_register_ep(usb_endpoint_manager_t *instance,
     usb_address_t address, usb_endpoint_t endpoint, usb_direction_t direction,
-    void *data, void (*data_remove_callback)(void* data), size_t bw)
+    endpoint_t *ep, size_t data_size)
 {
+	assert(ep);
+	size_t bw = bandwidth_count_usb11(ep->speed, ep->transfer_type,
+	    data_size, ep->max_packet_size);
 	assert(instance);
 
 	id_t id = {
@@ -167,18 +168,19 @@ int usb_endpoint_manager_register_ep(usb_endpoint_manager_t *instance,
 		return ENOSPC;
 	}
 
-	ep_t *ep = malloc(sizeof(ep_t));
-	if (ep == NULL) {
+	node_t *node = malloc(sizeof(node_t));
+	if (node == NULL) {
 		fibril_mutex_unlock(&instance->guard);
 		return ENOMEM;
 	}
 
-	ep->id = id;
-	ep->bw = bw;
-	ep->data = data;
-	link_initialize(&ep->link);
+	node->id = id;
+	node->bw = bw;
+	node->ep = ep;
+	link_initialize(&node->link);
 
-	hash_table_insert(&instance->ep_table, (unsigned long*)&id, &ep->link);
+	hash_table_insert(&instance->ep_table,
+	    (unsigned long*)&id, &node->link);
 	instance->free_bw -= bw;
 	fibril_mutex_unlock(&instance->guard);
 	fibril_condvar_broadcast(&instance->change);
@@ -202,8 +204,8 @@ int usb_endpoint_manager_unregister_ep(usb_endpoint_manager_t *instance,
 		return EINVAL;
 	}
 
-	ep_t *ep = hash_table_get_instance(item, ep_t, link);
-	instance->free_bw += ep->bw;
+	node_t *node = hash_table_get_instance(item, node_t, link);
+	instance->free_bw += node->bw;
 	hash_table_remove(&instance->ep_table, (unsigned long*)&id, MAX_KEYS);
 
 	fibril_mutex_unlock(&instance->guard);
@@ -211,7 +213,7 @@ int usb_endpoint_manager_unregister_ep(usb_endpoint_manager_t *instance,
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-void * usb_endpoint_manager_get_ep_data(usb_endpoint_manager_t *instance,
+endpoint_t * usb_endpoint_manager_get_ep(usb_endpoint_manager_t *instance,
     usb_address_t address, usb_endpoint_t endpoint, usb_direction_t direction,
     size_t *bw)
 {
@@ -228,10 +230,10 @@ void * usb_endpoint_manager_get_ep_data(usb_endpoint_manager_t *instance,
 		fibril_mutex_unlock(&instance->guard);
 		return NULL;
 	}
-	ep_t *ep = hash_table_get_instance(item, ep_t, link);
+	node_t *node = hash_table_get_instance(item, node_t, link);
 	if (bw)
-		*bw = ep->bw;
+		*bw = node->bw;
 
 	fibril_mutex_unlock(&instance->guard);
-	return ep->data;
+	return node->ep;
 }

@@ -36,7 +36,6 @@ SOURCES = \
 	main.c \
 	transfer_list.c \
 	uhci.c \
-	endpoint.c \
 	hc.c \
 	root_hub.c \
 	hw_struct/transfer_descriptor.c \

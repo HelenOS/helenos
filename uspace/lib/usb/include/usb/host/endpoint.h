@@ -26,21 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbuhcihc
+/** @addtogroup libusb
  * @{
  */
 /** @file
- * @brief UHCI host controller driver structure
+ *
  */
-#ifndef DRV_UHCI_UHCI_ENDPOINT_H
-#define DRV_UHCI_UHCI_ENDPOINT_H
+#ifndef LIBUSB_HOST_ENDPOINT_H
+#define LIBUSB_HOST_ENDPOINT_H
 
 #include <assert.h>
 #include <bool.h>
 #include <adt/list.h>
 #include <usb/usb.h>
-
-#include "hw_struct/queue_head.h"
 
 typedef struct endpoint {
 	link_t same_device_eps;
@@ -49,13 +47,12 @@ typedef struct endpoint {
 	size_t max_packet_size;
 	bool active;
 	int toggle:1;
-	qh_t *qh;
 } endpoint_t;
 
 int endpoint_init(endpoint_t *instance, usb_transfer_type_t transfer_type,
     usb_speed_t speed, size_t max_packet_size);
 
-void endpoint_destroy(void *ep);
+void endpoint_destroy(endpoint_t *instance);
 
 void endpoint_toggle_reset(link_t *ep);
 
