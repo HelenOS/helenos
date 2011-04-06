@@ -47,8 +47,7 @@ typedef struct {
 	link_t link;
 	size_t bw;
 	void *data;
-	void (*data_remove_callback)(void* data, void* arg);
-	void *arg;
+	void (*data_remove_callback)(void* data);
 } ep_t;
 /*----------------------------------------------------------------------------*/
 static hash_index_t ep_hash(unsigned long key[])
@@ -81,7 +80,7 @@ static void ep_remove(link_t *item)
 	assert(item);
 	ep_t *ep =
 	    hash_table_get_instance(item, ep_t, link);
-	ep->data_remove_callback(ep->data, ep->arg);
+	ep->data_remove_callback(ep->data);
 	free(ep);
 }
 /*----------------------------------------------------------------------------*/
@@ -146,8 +145,7 @@ void usb_endpoint_manager_destroy(usb_endpoint_manager_t *instance)
 /*----------------------------------------------------------------------------*/
 int usb_endpoint_manager_register_ep(usb_endpoint_manager_t *instance,
     usb_address_t address, usb_endpoint_t endpoint, usb_direction_t direction,
-    void *data, void (*data_remove_callback)(void* data, void* arg), void *arg,
-    size_t bw)
+    void *data, void (*data_remove_callback)(void* data), size_t bw)
 {
 	assert(instance);
 
