@@ -238,8 +238,9 @@ int hc_init_mem_structures(hc_t *instance)
 	usb_device_keeper_init(&instance->manager);
 	usb_log_debug("Initialized device manager.\n");
 
-	ret = bandwidth_init(&instance->bandwidth, BANDWIDTH_AVAILABLE_USB11,
-	    bandwidth_count_usb11);
+	ret =
+	    usb_endpoint_manager_init(&instance->ep_manager,
+	        BANDWIDTH_AVAILABLE_USB11);
 	assert(ret == EOK);
 
 	return EOK;
@@ -334,11 +335,13 @@ int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch)
 		return ENOTSUP;
 	}
 	/* Check available bandwidth */
+/*
 	if (batch->transfer_type == USB_TRANSFER_INTERRUPT ||
 	    batch->transfer_type == USB_TRANSFER_ISOCHRONOUS) {
-		size_t bw = bandwidth_count_usb11(batch->speed,
+		const size_t bw = bandwidth_count_usb11(batch->speed,
 		    batch->transfer_type, batch->buffer_size,
 		    batch->max_packet_size);
+
 		int ret =
 		    bandwidth_use(&instance->bandwidth, batch->target.address,
 		    batch->target.endpoint, batch->direction, bw);
@@ -348,6 +351,7 @@ int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch)
 			return ret;
 		}
 	}
+*/
 
 	transfer_list_t *list =
 	    instance->transfers[batch->speed][batch->transfer_type];
@@ -401,6 +405,7 @@ void hc_interrupt(hc_t *instance, uint16_t status)
 				break;
 			case USB_TRANSFER_INTERRUPT:
 			case USB_TRANSFER_ISOCHRONOUS: {
+/*
 				int ret = bandwidth_free(&instance->bandwidth,
 				    batch->target.address,
 				    batch->target.endpoint,
@@ -409,6 +414,7 @@ void hc_interrupt(hc_t *instance, uint16_t status)
 					usb_log_warning("Failed(%d) to free "
 					    "reserved bw: %s.\n", ret,
 					    str_error(ret));
+*/
 				}
 			default:
 				break;
