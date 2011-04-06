@@ -43,7 +43,34 @@ mfs_write_inode_raw(struct mfs_node *mnode);
 static int
 mfs2_write_inode_raw(struct mfs_node *mnode);
 
-struct mfs_ino_info *
+static struct mfs_ino_info *
+mfs_read_inode_raw(const struct mfs_instance *instance, uint16_t inum);
+
+static struct mfs_ino_info *
+mfs2_read_inode_raw(const struct mfs_instance *instance, uint32_t inum);
+
+
+int
+get_inode(struct mfs_instance *inst, struct mfs_ino_info **ino_i,
+				fs_index_t index)
+{
+	struct mfs_sb_info *sbi = inst->sbi;
+
+	if (sbi->fs_version == MFS_VERSION_V1) {
+		/*Read a MFS V1 inode*/
+		*ino_i = mfs_read_inode_raw(inst, index);
+	} else {
+		/*Read a MFS V2/V3 inode*/
+		*ino_i = mfs2_read_inode_raw(inst, index);
+	}
+
+	if (*ino_i == NULL)
+		return -1;
+
+	return EOK;
+}
+
+static struct mfs_ino_info *
 mfs_read_inode_raw(const struct mfs_instance *instance, uint16_t inum)
 {
 	struct mfs_inode *ino = NULL;
@@ -99,7 +126,7 @@ out_err:
 	return NULL;
 }
 
-struct mfs_ino_info *
+static struct mfs_ino_info *
 mfs2_read_inode_raw(const struct mfs_instance *instance, uint32_t inum)
 {
 	struct mfs2_inode *ino = NULL;
@@ -271,7 +298,7 @@ out:
 }
 
 int
-mfs_inode_grow(struct mfs_node *mnode, unsigned size_grow)
+inode_grow(struct mfs_node *mnode, unsigned size_grow)
 {
 	unsigned i;
 

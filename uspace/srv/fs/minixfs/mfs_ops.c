@@ -386,8 +386,6 @@ static int mfs_node_core_get(fs_node_t **rfn, struct mfs_instance *inst,
 	struct mfs_node *mnode = NULL;
 	int rc;
 
-	const struct mfs_sb_info *sbi = inst->sbi;
-
 	node = malloc(sizeof(fs_node_t));
 	if (!node) {
 		rc = ENOMEM;
@@ -404,15 +402,8 @@ static int mfs_node_core_get(fs_node_t **rfn, struct mfs_instance *inst,
 
 	struct mfs_ino_info *ino_i;
 
-	if (sbi->fs_version == MFS_VERSION_V1) {
-		/*Read MFS V1 inode*/
-		ino_i = mfs_read_inode_raw(inst, index);
-	} else {
-		/*Read MFS V2/V3 inode*/
-		ino_i = mfs2_read_inode_raw(inst, index);
-	}
-
-	if (!ino_i)
+	rc = get_inode(inst, &ino_i, index);
+	if (rc != EOK)
 		goto out_err;
 
 	ino_i->index = index;

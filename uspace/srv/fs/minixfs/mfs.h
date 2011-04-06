@@ -153,17 +153,15 @@ extern int mfs_instance_get(devmap_handle_t handle,
 extern void mfs_stat(ipc_callid_t rid, ipc_call_t *request);
 
 /*mfs_inode.c*/
-extern struct mfs_ino_info *
-mfs_read_inode_raw(const struct mfs_instance *instance, uint16_t inum);
-
-extern struct mfs_ino_info *
-mfs2_read_inode_raw(const struct mfs_instance *instance, uint32_t inum);
+int
+get_inode(struct mfs_instance *inst, struct mfs_ino_info **ino_i,
+				fs_index_t index);
 
 extern int
 put_inode(struct mfs_node *mnode);
 
 int
-mfs_inode_grow(struct mfs_node *mnode, unsigned size_grow);
+inode_grow(struct mfs_node *mnode, unsigned size_grow);
 
 /*mfs_rw.c*/
 extern int
