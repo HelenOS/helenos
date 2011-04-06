@@ -39,6 +39,8 @@
  */
 #ifndef LIBUSB_HOST_DEVICE_KEEPER_H
 #define LIBUSB_HOST_DEVICE_KEEPER_H
+
+#include <adt/list.h>
 #include <devman.h>
 #include <fibril_synch.h>
 #include <usb/usb.h>
@@ -50,6 +52,7 @@
 struct usb_device_info {
 	usb_speed_t speed;
 	bool occupied;
+	link_t endpoints;
 	uint16_t control_used;
 	uint16_t toggle_status[2];
 	devman_handle_t handle;
@@ -67,8 +70,11 @@ typedef struct {
 
 void usb_device_keeper_init(usb_device_keeper_t *instance);
 
-void usb_device_keeper_reserve_default_address(usb_device_keeper_t *instance,
-    usb_speed_t speed);
+void usb_device_keeper_add_ep(
+    usb_device_keeper_t *instance, usb_address_t address, link_t *ep);
+
+void usb_device_keeper_reserve_default_address(
+    usb_device_keeper_t *instance, usb_speed_t speed);
 
 void usb_device_keeper_release_default_address(usb_device_keeper_t *instance);
 
