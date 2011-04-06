@@ -55,7 +55,8 @@ usb_transfer_batch_t * batch_get(
     usbhc_iface_transfer_in_callback_t func_in,
     usbhc_iface_transfer_out_callback_t func_out,
 		void *arg,
-		usb_device_keeper_t *manager
+		usb_device_keeper_t *manager,
+		endpoint_t *ep
 		);
 
 void batch_dispose(usb_transfer_batch_t *instance);

@@ -55,19 +55,19 @@ void usb_device_keeper_init(usb_device_keeper_t *instance)
 		instance->devices[i].occupied = false;
 		instance->devices[i].control_used = 0;
 		instance->devices[i].handle = 0;
-		instance->devices[i].toggle_status[0] = 0;
-		instance->devices[i].toggle_status[1] = 0;
+//		instance->devices[i].toggle_status[0] = 0;
+//		instance->devices[i].toggle_status[1] = 0;
 		list_initialize(&instance->devices[i].endpoints);
 	}
 }
 /*----------------------------------------------------------------------------*/
 void usb_device_keeper_add_ep(
-    usb_device_keeper_t *instance, usb_address_t address, link_t *ep)
+    usb_device_keeper_t *instance, usb_address_t address, endpoint_t *ep)
 {
 	assert(instance);
 	fibril_mutex_lock(&instance->guard);
 	assert(instance->devices[address].occupied);
-	list_append(ep, &instance->devices[address].endpoints);
+	list_append(&ep->same_device_eps, &instance->devices[address].endpoints);
 	fibril_mutex_unlock(&instance->guard);
 }
 /*----------------------------------------------------------------------------*/
@@ -130,10 +130,11 @@ void usb_device_keeper_reset_if_need(
 		/* recipient is endpoint, value is zero (ENDPOINT_STALL) */
 		if (((data[0] & 0xf) == 1) && ((data[2] | data[3]) == 0)) {
 			/* endpoint number is < 16, thus first byte is enough */
-			instance->devices[target.address].toggle_status[0] &=
-			    ~(1 << data[4]);
-			instance->devices[target.address].toggle_status[1] &=
-			    ~(1 << data[4]);
+			assert(!"NOT IMPLEMENTED!");
+//			instance->devices[target.address].toggle_status[0] &=
+//			    ~(1 << data[4]);
+//			instance->devices[target.address].toggle_status[1] &=
+//			    ~(1 << data[4]);
 		}
 	break;
 
@@ -141,14 +142,23 @@ void usb_device_keeper_reset_if_need(
 	case 0x11: /* set interface */
 		/* target must be device */
 		if ((data[0] & 0xf) == 0) {
-			instance->devices[target.address].toggle_status[0] = 0;
-			instance->devices[target.address].toggle_status[1] = 0;
+			link_t *current =
+			    instance->devices[target.address].endpoints.next;
+			while (current !=
+			   instance->devices[target.address].endpoints.prev)
+			{
+				endpoint_toggle_reset(current);
+				current = current->next;
+			}
+//			instance->devices[target.address].toggle_status[0] = 0;
+//			instance->devices[target.address].toggle_status[1] = 0;
 		}
 	break;
 	}
 	fibril_mutex_unlock(&instance->guard);
 }
 /*----------------------------------------------------------------------------*/
+#if 0
 /** Get current value of endpoint toggle.
  *
  * @param[in] instance Device keeper structure to use.
@@ -211,6 +221,7 @@ int usb_device_keeper_set_toggle(usb_device_keeper_t *instance,
 	fibril_mutex_unlock(&instance->guard);
 	return ret;
 }
+#endif
 /*----------------------------------------------------------------------------*/
 /** Get a free USB address
  *

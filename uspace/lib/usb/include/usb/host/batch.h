@@ -38,6 +38,7 @@
 
 #include <usbhc_iface.h>
 #include <usb/usb.h>
+#include <usb/host/endpoint.h>
 
 typedef struct usb_transfer_batch usb_transfer_batch_t;
 struct usb_transfer_batch {
@@ -59,6 +60,7 @@ struct usb_transfer_batch {
 	int error;
 	ddf_fun_t *fun;
 	void *arg;
+	endpoint_t *ep;
 	void *private_data;
 };
 
@@ -77,6 +79,7 @@ void usb_transfer_batch_init(
     usbhc_iface_transfer_out_callback_t func_out,
     void *arg,
     ddf_fun_t *fun,
+		endpoint_t *ep,
     void *private_data
 );
 

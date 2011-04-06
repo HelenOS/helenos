@@ -46,7 +46,7 @@ typedef struct endpoint {
 	usb_speed_t speed;
 	size_t max_packet_size;
 	bool active;
-	int toggle:1;
+	unsigned toggle:1;
 } endpoint_t;
 
 int endpoint_init(endpoint_t *instance, usb_transfer_type_t transfer_type,
@@ -54,7 +54,12 @@ int endpoint_init(endpoint_t *instance, usb_transfer_type_t transfer_type,
 
 void endpoint_destroy(endpoint_t *instance);
 
+int endpoint_toggle_get(endpoint_t *instance);
+
+void endpoint_toggle_set(endpoint_t *instance, int toggle);
+
 void endpoint_toggle_reset(link_t *ep);
+
 
 #endif
 /**

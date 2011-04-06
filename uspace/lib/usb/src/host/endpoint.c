@@ -34,7 +34,6 @@
  */
 
 #include <errno.h>
-
 #include <usb/host/endpoint.h>
 
 int endpoint_init(endpoint_t *instance, usb_transfer_type_t transfer_type,
@@ -54,6 +53,19 @@ void endpoint_destroy(endpoint_t *instance)
 	assert(instance);
 	list_remove(&instance->same_device_eps);
 	free(instance);
+}
+/*----------------------------------------------------------------------------*/
+int endpoint_toggle_get(endpoint_t *instance)
+{
+	assert(instance);
+	return (int)instance->toggle;
+}
+/*----------------------------------------------------------------------------*/
+void endpoint_toggle_set(endpoint_t *instance, int toggle)
+{
+	assert(instance);
+	assert(toggle == 0 || toggle == 1);
+	instance->toggle = toggle;
 }
 /*----------------------------------------------------------------------------*/
 void endpoint_toggle_reset(link_t *ep)

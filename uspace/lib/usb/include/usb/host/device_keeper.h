@@ -44,6 +44,7 @@
 #include <devman.h>
 #include <fibril_synch.h>
 #include <usb/usb.h>
+#include <usb/host/endpoint.h>
 
 /** Number of USB address for array dimensions. */
 #define USB_ADDRESS_COUNT (USB11_ADDRESS_MAX + 1)
@@ -71,7 +72,7 @@ typedef struct {
 void usb_device_keeper_init(usb_device_keeper_t *instance);
 
 void usb_device_keeper_add_ep(
-    usb_device_keeper_t *instance, usb_address_t address, link_t *ep);
+    usb_device_keeper_t *instance, usb_address_t address, endpoint_t *ep);
 
 void usb_device_keeper_reserve_default_address(
     usb_device_keeper_t *instance, usb_speed_t speed);
@@ -81,13 +82,13 @@ void usb_device_keeper_release_default_address(usb_device_keeper_t *instance);
 void usb_device_keeper_reset_if_need(usb_device_keeper_t *instance,
     usb_target_t target,
     const uint8_t *setup_data);
-
+/*
 int usb_device_keeper_get_toggle(usb_device_keeper_t *instance,
     usb_target_t target, usb_direction_t direction);
 
 int usb_device_keeper_set_toggle(usb_device_keeper_t *instance,
     usb_target_t target, usb_direction_t direction, bool toggle);
-
+*/
 usb_address_t device_keeper_get_free_address(usb_device_keeper_t *instance,
     usb_speed_t speed);
 

@@ -163,7 +163,7 @@ static int register_endpoint(
 	    usb_str_speed(speed), direction, size, max_packet_size, interval);
 	// TODO use real endpoint here!
 	return usb_endpoint_manager_register_ep(&hc->ep_manager,
-	    address, endpoint, direction, NULL, NULL, 0);
+	    address, endpoint, direction, NULL, 0);
 }
 /*----------------------------------------------------------------------------*/
 /** Unregister endpoint (free some bandwidth reservation).
