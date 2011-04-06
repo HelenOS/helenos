@@ -55,8 +55,6 @@ void usb_device_keeper_init(usb_device_keeper_t *instance)
 		instance->devices[i].occupied = false;
 		instance->devices[i].control_used = 0;
 		instance->devices[i].handle = 0;
-//		instance->devices[i].toggle_status[0] = 0;
-//		instance->devices[i].toggle_status[1] = 0;
 		list_initialize(&instance->devices[i].endpoints);
 	}
 }
@@ -131,10 +129,6 @@ void usb_device_keeper_reset_if_need(
 		if (((data[0] & 0xf) == 1) && ((data[2] | data[3]) == 0)) {
 			/* endpoint number is < 16, thus first byte is enough */
 			assert(!"NOT IMPLEMENTED!");
-//			instance->devices[target.address].toggle_status[0] &=
-//			    ~(1 << data[4]);
-//			instance->devices[target.address].toggle_status[1] &=
-//			    ~(1 << data[4]);
 		}
 	break;
 
@@ -145,83 +139,16 @@ void usb_device_keeper_reset_if_need(
 			link_t *current =
 			    instance->devices[target.address].endpoints.next;
 			while (current !=
-			   instance->devices[target.address].endpoints.prev)
+			   &instance->devices[target.address].endpoints)
 			{
 				endpoint_toggle_reset(current);
 				current = current->next;
 			}
-//			instance->devices[target.address].toggle_status[0] = 0;
-//			instance->devices[target.address].toggle_status[1] = 0;
 		}
 	break;
 	}
 	fibril_mutex_unlock(&instance->guard);
 }
-/*----------------------------------------------------------------------------*/
-#if 0
-/** Get current value of endpoint toggle.
- *
- * @param[in] instance Device keeper structure to use.
- * @param[in] target Device and endpoint used.
- * @return Error code
- */
-int usb_device_keeper_get_toggle(usb_device_keeper_t *instance,
-    usb_target_t target, usb_direction_t direction)
-{
-	assert(instance);
-	/* only control pipes are bi-directional and those do not need toggle */
-	if (direction == USB_DIRECTION_BOTH)
-		return ENOENT;
-	int ret;
-	fibril_mutex_lock(&instance->guard);
-	if (target.endpoint > 15 || target.endpoint < 0
-	    || target.address >= USB_ADDRESS_COUNT || target.address < 0
-	    || !instance->devices[target.address].occupied) {
-		usb_log_error("Invalid data when asking for toggle value.\n");
-		ret = EINVAL;
-	} else {
-		ret = (instance->devices[target.address].toggle_status[direction]
-		        >> target.endpoint) & 1;
-	}
-	fibril_mutex_unlock(&instance->guard);
-	return ret;
-}
-/*----------------------------------------------------------------------------*/
-/** Set current value of endpoint toggle.
- *
- * @param[in] instance Device keeper structure to use.
- * @param[in] target Device and endpoint used.
- * @param[in] toggle Toggle value.
- * @return Error code.
- */
-int usb_device_keeper_set_toggle(usb_device_keeper_t *instance,
-    usb_target_t target, usb_direction_t direction, bool toggle)
-{
-	assert(instance);
-	/* only control pipes are bi-directional and those do not need toggle */
-	if (direction == USB_DIRECTION_BOTH)
-		return ENOENT;
-	int ret;
-	fibril_mutex_lock(&instance->guard);
-	if (target.endpoint > 15 || target.endpoint < 0
-	    || target.address >= USB_ADDRESS_COUNT || target.address < 0
-	    || !instance->devices[target.address].occupied) {
-		usb_log_error("Invalid data when setting toggle value.\n");
-		ret = EINVAL;
-	} else {
-		if (toggle) {
-			instance->devices[target.address].toggle_status[direction]
-			    |= (1 << target.endpoint);
-		} else {
-			instance->devices[target.address].toggle_status[direction]
-			    &= ~(1 << target.endpoint);
-		}
-		ret = EOK;
-	}
-	fibril_mutex_unlock(&instance->guard);
-	return ret;
-}
-#endif
 /*----------------------------------------------------------------------------*/
 /** Get a free USB address
  *
@@ -250,8 +177,6 @@ usb_address_t device_keeper_get_free_address(
 	assert(instance->devices[new_address].occupied == false);
 	instance->devices[new_address].occupied = true;
 	instance->devices[new_address].speed = speed;
-	instance->devices[new_address].toggle_status[0] = 0;
-	instance->devices[new_address].toggle_status[1] = 0;
 	instance->last_address = new_address;
 	fibril_mutex_unlock(&instance->guard);
 	return new_address;

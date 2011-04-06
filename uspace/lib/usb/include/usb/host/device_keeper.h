@@ -55,7 +55,6 @@ struct usb_device_info {
 	bool occupied;
 	link_t endpoints;
 	uint16_t control_used;
-	uint16_t toggle_status[2];
 	devman_handle_t handle;
 };
 
@@ -80,15 +79,8 @@ void usb_device_keeper_reserve_default_address(
 void usb_device_keeper_release_default_address(usb_device_keeper_t *instance);
 
 void usb_device_keeper_reset_if_need(usb_device_keeper_t *instance,
-    usb_target_t target,
-    const uint8_t *setup_data);
-/*
-int usb_device_keeper_get_toggle(usb_device_keeper_t *instance,
-    usb_target_t target, usb_direction_t direction);
+    usb_target_t target, const uint8_t *setup_data);
 
-int usb_device_keeper_set_toggle(usb_device_keeper_t *instance,
-    usb_target_t target, usb_direction_t direction, bool toggle);
-*/
 usb_address_t device_keeper_get_free_address(usb_device_keeper_t *instance,
     usb_speed_t speed);
 
