@@ -77,47 +77,11 @@ static void transfer_remove(link_t *item)
 	free(status);
 }
 /*----------------------------------------------------------------------------*/
-hash_table_operations_t op = {
+static hash_table_operations_t op = {
 	.hash = transfer_hash,
 	.compare = transfer_compare,
 	.remove_callback = transfer_remove,
 };
-/*----------------------------------------------------------------------------*/
-size_t bandwidth_count_usb11(usb_speed_t speed, usb_transfer_type_t type,
-    size_t size, size_t max_packet_size)
-{
-	const unsigned packet_count =
-	    (size + max_packet_size - 1) / max_packet_size;
-	/* TODO: It may be that ISO and INT transfers use only one data packet
-	 * per transaction, but I did not find text in UB spec that confirms
-	 * this */
-	/* NOTE: All data packets will be considered to be max_packet_size */
-	switch (speed)
-	{
-	case USB_SPEED_LOW:
-		assert(type == USB_TRANSFER_INTERRUPT);
-		/* Protocol overhead 13B
-		 * (3 SYNC bytes, 3 PID bytes, 2 Endpoint + CRC bytes, 2
-		 * CRC bytes, and a 3-byte interpacket delay)
-		 * see USB spec page 45-46. */
-		/* Speed penalty 8: low speed is 8-times slower*/
-		return packet_count * (13 + max_packet_size) * 8;
-	case USB_SPEED_FULL:
-		/* Interrupt transfer overhead see above
-		 * or page 45 of USB spec */
-		if (type == USB_TRANSFER_INTERRUPT)
-			return packet_count * (13 + max_packet_size);
-
-		assert(type == USB_TRANSFER_ISOCHRONOUS);
-		/* Protocol overhead 9B
-		 * (2 SYNC bytes, 2 PID bytes, 2 Endpoint + CRC bytes, 2 CRC
-		 * bytes, and a 1-byte interpacket delay)
-		 * see USB spec page 42 */
-		return packet_count * (9 + max_packet_size);
-	default:
-		return 0;
-	}
-}
 /*----------------------------------------------------------------------------*/
 int bandwidth_init(bandwidth_t *instance, size_t bandwidth,
     size_t (*usage_fnc)(usb_speed_t, usb_transfer_type_t, size_t, size_t))

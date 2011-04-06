@@ -85,7 +85,7 @@ static void ep_remove(link_t *item)
 	free(ep);
 }
 /*----------------------------------------------------------------------------*/
-hash_table_operations_t op = {
+static hash_table_operations_t op = {
 	.hash = ep_hash,
 	.compare = ep_compare,
 	.remove_callback = ep_remove,
