@@ -33,9 +33,12 @@
  * @brief UHCI host controller driver structure
  */
 
-#include "endpoint.h"
+#include <errno.h>
 
-void endpoint_init(endpoint_t *instance, usb_transfer_type_t transfer_type,
+#include "endpoint.h"
+#include "utils/malloc32.h"
+
+int endpoint_init(endpoint_t *instance, usb_transfer_type_t transfer_type,
     usb_speed_t speed, size_t max_packet_size)
 {
 	assert(instance);
@@ -44,12 +47,27 @@ void endpoint_init(endpoint_t *instance, usb_transfer_type_t transfer_type,
 	instance->speed = speed;
 	instance->max_packet_size = max_packet_size;
 	instance->toggle = 0;
+	instance->qh = malloc32(sizeof(qh_t));
+	if (instance->qh == NULL)
+		return ENOMEM;
+	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-void endpoint_destroy(void *instance)
+void endpoint_destroy(void *ep)
 {
+	endpoint_t *instance = ep;
 	assert(instance);
+	list_remove(&instance->same_device_eps);
+	free32(instance->qh);
 	free(instance);
+}
+/*----------------------------------------------------------------------------*/
+void endpoint_toggle_reset(link_t *ep)
+{
+	endpoint_t *instance =
+	    list_get_instance(ep, endpoint_t, same_device_eps);
+	assert(instance);
+	instance->toggle = 0;
 }
 /**
  * @}

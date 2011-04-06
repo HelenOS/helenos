@@ -40,6 +40,8 @@
 #include <adt/list.h>
 #include <usb/usb.h>
 
+#include "hw_struct/queue_head.h"
+
 typedef struct endpoint {
 	link_t same_device_eps;
 	usb_transfer_type_t transfer_type;
@@ -47,12 +49,15 @@ typedef struct endpoint {
 	size_t max_packet_size;
 	bool active;
 	int toggle:1;
+	qh_t *qh;
 } endpoint_t;
 
-void endpoint_init(endpoint_t *instance, usb_transfer_type_t transfer_type,
+int endpoint_init(endpoint_t *instance, usb_transfer_type_t transfer_type,
     usb_speed_t speed, size_t max_packet_size);
 
-void endpoint_destroy(void *instance);
+void endpoint_destroy(void *ep);
+
+void endpoint_toggle_reset(link_t *ep);
 
 #endif
 /**

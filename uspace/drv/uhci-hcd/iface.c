@@ -159,11 +159,16 @@ static int register_endpoint(
 	const usb_speed_t speed =
 	    usb_device_keeper_get_speed(&hc->manager, address);
 	const size_t size = max_packet_size;
+	int ret;
 
 	endpoint_t *ep = malloc(sizeof(endpoint_t));
 	if (ep == NULL)
 		return ENOMEM;
-	endpoint_init(ep, transfer_type, speed, max_packet_size);
+	ret = endpoint_init(ep, transfer_type, speed, max_packet_size);
+	if (ret != EOK) {
+		free(ep);
+		return ret;
+	}
 
 	usb_log_debug("Register endpoint %d:%d %s %s(%d) %zu(%zu) %u.\n",
 	    address, endpoint, usb_str_transfer_type(transfer_type),
@@ -175,10 +180,12 @@ static int register_endpoint(
 	    bandwidth_count_usb11(speed, transfer_type, size, max_packet_size) :
 	    0;
 
-	int ret = usb_endpoint_manager_register_ep(&hc->ep_manager,
+	ret = usb_endpoint_manager_register_ep(&hc->ep_manager,
 	    address, endpoint, direction, ep, endpoint_destroy, bw);
 	if (ret != EOK) {
 		endpoint_destroy(ep);
+	} else {
+		usb_device_keeper_add_ep(&hc->manager, address, &ep->same_device_eps);
 	}
 	return ret;
 }
@@ -344,7 +351,6 @@ static int bulk_out(
 	assert(ep->max_packet_size == max_packet_size);
 	assert(ep->transfer_type == USB_TRANSFER_BULK);
 
-
 	usb_transfer_batch_t *batch =
 	    batch_get(fun, target, ep->transfer_type, ep->max_packet_size,
 	        ep->speed, data, size, NULL, 0, NULL, callback, arg,
@@ -393,8 +399,9 @@ static int bulk_in(
 	assert(ep->transfer_type == USB_TRANSFER_BULK);
 
 	usb_transfer_batch_t *batch =
-	    batch_get(fun, target, ep->transfer_type, ep->max_packet_size, ep->speed,
-	        data, size, NULL, 0, callback, NULL, arg, &hc->manager);
+	    batch_get(fun, target, ep->transfer_type, ep->max_packet_size,
+	        ep->speed, data, size, NULL, 0, callback, NULL, arg,
+		&hc->manager);
 	if (!batch)
 		return ENOMEM;
 	batch_bulk_in(batch);
