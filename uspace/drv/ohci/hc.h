@@ -41,7 +41,7 @@
 
 #include <usb/usb.h>
 #include <usb/host/device_keeper.h>
-#include <usb/host/bandwidth.h>
+#include <usb/host/usb_endpoint_manager.h>
 #include <usbhc_iface.h>
 
 #include "batch.h"
@@ -54,7 +54,7 @@ typedef struct hc {
 	rh_t rh;
 	ddf_fun_t *ddf_instance;
 	usb_device_keeper_t manager;
-	bandwidth_t bandwidth;
+	usb_endpoint_manager_t ep_manager;
 	fid_t interrupt_emulator;
 } hc_t;
 
