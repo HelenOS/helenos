@@ -298,7 +298,7 @@ out:
 }
 
 int
-inode_grow(struct mfs_node *mnode, unsigned size_grow)
+inode_grow(struct mfs_node *mnode, size_t size_grow)
 {
 	unsigned i;
 

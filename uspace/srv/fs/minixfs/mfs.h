@@ -161,7 +161,7 @@ extern int
 put_inode(struct mfs_node *mnode);
 
 int
-inode_grow(struct mfs_node *mnode, unsigned size_grow);
+inode_grow(struct mfs_node *mnode, size_t size_grow);
 
 /*mfs_rw.c*/
 extern int
