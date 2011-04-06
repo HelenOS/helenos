@@ -54,6 +54,25 @@ static int reserve_default_address(ddf_fun_t *fun, usb_speed_t speed)
 	usb_log_debug("Default address request with speed %d.\n", speed);
 	usb_device_keeper_reserve_default_address(&hc->manager, speed);
 	return EOK;
+#if 0
+	endpoint_t *ep = malloc(sizeof(endpoint_t));
+	if (ep == NULL)
+		return ENOMEM;
+	const size_t max_packet_size = speed == USB_SPEED_LOW ? 8 : 64;
+	endpoint_init(ep, USB_TRANSFER_CONTROL, speed, max_packet_size);
+	int ret;
+try_retgister:
+	ret = usb_endpoint_manager_register_ep(&hc->ep_manager,
+	    USB_ADDRESS_DEFAULT, 0, USB_DIRECTION_BOTH, ep, endpoint_destroy, 0);
+	if (ret == EEXISTS) {
+		async_usleep(1000);
+		goto try_retgister;
+	}
+	if (ret != EOK) {
+		endpoint_destroy(ep);
+	}
+	return ret;
+#endif
 }
 /*----------------------------------------------------------------------------*/
 /** Release default address interface function
@@ -67,6 +86,8 @@ static int release_default_address(ddf_fun_t *fun)
 	hc_t *hc = fun_to_hc(fun);
 	assert(hc);
 	usb_log_debug("Default address release.\n");
+//	return usb_endpoint_manager_unregister_ep(&hc->ep_manager,
+//	    USB_ADDRESS_DEFAULT, 0, USB_DIRECTION_BOTH);
 	usb_device_keeper_release_default_address(&hc->manager);
 	return EOK;
 }
@@ -148,14 +169,17 @@ static int register_endpoint(
 	    address, endpoint, usb_str_transfer_type(transfer_type),
 	    usb_str_speed(speed), direction, size, max_packet_size, interval);
 
-	const size_t bw = bandwidth_count_usb11(speed, transfer_type, size,
-	    max_packet_size);
+	const size_t bw =
+	    (transfer_type == USB_TRANSFER_INTERRUPT
+	    || transfer_type == USB_TRANSFER_ISOCHRONOUS) ?
+	    bandwidth_count_usb11(speed, transfer_type, size, max_packet_size) :
+	    0;
+
 	int ret = usb_endpoint_manager_register_ep(&hc->ep_manager,
 	    address, endpoint, direction, ep, endpoint_destroy, bw);
 	if (ret != EOK) {
 		endpoint_destroy(ep);
 	}
-
 	return ret;
 }
 /*----------------------------------------------------------------------------*/
