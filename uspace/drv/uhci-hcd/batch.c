@@ -48,7 +48,6 @@ typedef struct uhci_batch {
 	qh_t *qh;
 	td_t *tds;
 	size_t transfers;
-//	usb_device_keeper_t *manager;
 } uhci_batch_t;
 
 static void batch_control(usb_transfer_batch_t *instance,
@@ -72,7 +71,7 @@ static void batch_call_out_and_dispose(usb_transfer_batch_t *instance);
  * @param[in] func_in function to call on inbound transaction completion
  * @param[in] func_out function to call on outbound transaction completion
  * @param[in] arg additional parameter to func_in or func_out
- * @param[in] manager Pointer to toggle management structure.
+ * @param[in] ep Pointer to endpoint toggle management structure.
  * @return Valid pointer if all substructures were successfully created,
  * NULL otherwise.
  *
@@ -85,8 +84,7 @@ usb_transfer_batch_t * batch_get(ddf_fun_t *fun, usb_target_t target,
     usb_speed_t speed, char *buffer, size_t buffer_size,
     char* setup_buffer, size_t setup_size,
     usbhc_iface_transfer_in_callback_t func_in,
-    usbhc_iface_transfer_out_callback_t func_out, void *arg,
-    usb_device_keeper_t *manager, endpoint_t *ep
+    usbhc_iface_transfer_out_callback_t func_out, void *arg, endpoint_t *ep
     )
 {
 	assert(func_in == NULL || func_out == NULL);
@@ -114,7 +112,6 @@ usb_transfer_batch_t * batch_get(ddf_fun_t *fun, usb_target_t target,
 	CHECK_NULL_DISPOSE_RETURN(instance,
 	    "Failed to allocate batch instance.\n");
 	bzero(data, sizeof(uhci_batch_t));
-//	data->manager = manager;
 	instance->private_data = data;
 
 	data->transfers = (buffer_size + max_packet_size - 1) / max_packet_size;
@@ -180,13 +177,9 @@ bool batch_is_complete(usb_transfer_batch_t *instance)
 			usb_log_debug("Batch(%p) found error TD(%d):%x.\n",
 			    instance, i, data->tds[i].status);
 			td_print_status(&data->tds[i]);
-			endpoint_toggle_set(instance->ep,
-			    td_toggle(&data->tds[i]));
-/*
-			usb_device_keeper_set_toggle(data->manager,
-			    instance->target, instance->direction,
-			    td_toggle(&data->tds[i]));
-*/
+			if (instance->ep != NULL)
+				endpoint_toggle_set(instance->ep,
+				    td_toggle(&data->tds[i]));
 			if (i > 0)
 				goto substract_ret;
 			return true;
@@ -314,8 +307,6 @@ void batch_data(usb_transfer_batch_t *instance, usb_packet_id pid)
 
 	const bool low_speed = instance->speed == USB_SPEED_LOW;
 	int toggle = endpoint_toggle_get(instance->ep);
-//	usb_device_keeper_get_toggle(
-//	    data->manager, instance->target, instance->direction);
 	assert(toggle == 0 || toggle == 1);
 
 	size_t transfer = 0;
@@ -347,8 +338,6 @@ void batch_data(usb_transfer_batch_t *instance, usb_packet_id pid)
 	}
 	td_set_ioc(&data->tds[transfer - 1]);
 	endpoint_toggle_set(instance->ep, toggle);
-//	usb_device_keeper_set_toggle(data->manager, instance->target,
-//	    instance->direction, toggle);
 }
 /*----------------------------------------------------------------------------*/
 /** Prepare generic control transaction

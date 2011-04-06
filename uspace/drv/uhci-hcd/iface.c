@@ -245,8 +245,7 @@ static int interrupt_out(
 
 	usb_transfer_batch_t *batch =
 	    batch_get(fun, target, ep->transfer_type, ep->max_packet_size,
-	        ep->speed, data, size, NULL, 0, NULL, callback, arg,
-		&hc->manager, ep);
+	        ep->speed, data, size, NULL, 0, NULL, callback, arg, ep);
 	if (!batch)
 		return ENOMEM;
 	batch_interrupt_out(batch);
@@ -304,8 +303,7 @@ static int interrupt_in(
 
 	usb_transfer_batch_t *batch =
 	    batch_get(fun, target, ep->transfer_type, ep->max_packet_size,
-	        ep->speed, data, size, NULL, 0, callback, NULL, arg,
-		&hc->manager, ep);
+	        ep->speed, data, size, NULL, 0, callback, NULL, arg, ep);
 	if (!batch)
 		return ENOMEM;
 	batch_interrupt_in(batch);
@@ -352,8 +350,7 @@ static int bulk_out(
 
 	usb_transfer_batch_t *batch =
 	    batch_get(fun, target, ep->transfer_type, ep->max_packet_size,
-	        ep->speed, data, size, NULL, 0, NULL, callback, arg,
-		&hc->manager, ep);
+	        ep->speed, data, size, NULL, 0, NULL, callback, arg, ep);
 	if (!batch)
 		return ENOMEM;
 	batch_bulk_out(batch);
@@ -399,8 +396,7 @@ static int bulk_in(
 
 	usb_transfer_batch_t *batch =
 	    batch_get(fun, target, ep->transfer_type, ep->max_packet_size,
-	        ep->speed, data, size, NULL, 0, callback, NULL, arg,
-		&hc->manager, ep);
+	        ep->speed, data, size, NULL, 0, callback, NULL, arg, ep);
 	if (!batch)
 		return ENOMEM;
 	batch_bulk_in(batch);
@@ -448,8 +444,7 @@ static int control_write(
 
 	usb_transfer_batch_t *batch =
 	    batch_get(fun, target, USB_TRANSFER_CONTROL, max_packet_size, speed,
-	        data, size, setup_data, setup_size, NULL, callback, arg,
-	        &hc->manager, ep);
+	        data, size, setup_data, setup_size, NULL, callback, arg, ep);
 	if (!batch)
 		return ENOMEM;
 	usb_device_keeper_reset_if_need(&hc->manager, target, setup_data);
@@ -495,8 +490,7 @@ static int control_read(
 	}
 	usb_transfer_batch_t *batch =
 	    batch_get(fun, target, USB_TRANSFER_CONTROL, max_packet_size, speed,
-	        data, size, setup_data, setup_size, callback, NULL, arg,
-		&hc->manager, ep);
+	        data, size, setup_data, setup_size, callback, NULL, arg, ep);
 	if (!batch)
 		return ENOMEM;
 	batch_control_read(batch);
