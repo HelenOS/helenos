@@ -91,9 +91,9 @@ if (ret != EOK) { \
 
 	instance->ddf_instance = fun;
 	usb_device_keeper_init(&instance->manager);
-	ret = bandwidth_init(&instance->bandwidth, BANDWIDTH_AVAILABLE_USB11,
-	    bandwidth_count_usb11);
-	CHECK_RET_RETURN(ret, "Failed to initialize bandwidth allocator: %s.\n",
+	ret = usb_endpoint_manager_init(&instance->ep_manager,
+	    BANDWIDTH_AVAILABLE_USB11);
+	CHECK_RET_RETURN(ret, "Failed to initialize endpoint manager: %s.\n",
 	    ret, str_error(ret));
 
 	if (!interrupts) {

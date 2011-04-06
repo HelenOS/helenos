@@ -25,73 +25,41 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 /** @addtogroup libusb
  * @{
  */
 /** @file
- * USB transfer transaction structures.
+ *
  */
-#ifndef LIBUSB_HOST_BATCH_H
-#define LIBUSB_HOST_BATCH_H
+#ifndef LIBUSB_HOST_ENDPOINT_H
+#define LIBUSB_HOST_ENDPOINT_H
 
+#include <assert.h>
+#include <bool.h>
 #include <adt/list.h>
-
-#include <usbhc_iface.h>
 #include <usb/usb.h>
-#include <usb/host/endpoint.h>
 
-typedef struct usb_transfer_batch usb_transfer_batch_t;
-struct usb_transfer_batch {
-	link_t link;
-	usb_target_t target;
+typedef struct endpoint {
+	link_t same_device_eps;
 	usb_transfer_type_t transfer_type;
 	usb_speed_t speed;
-	usb_direction_t direction;
-	usbhc_iface_transfer_in_callback_t callback_in;
-	usbhc_iface_transfer_out_callback_t callback_out;
-	char *buffer;
-	char *transport_buffer;
-	size_t buffer_size;
-	char *setup_buffer;
-	size_t setup_size;
 	size_t max_packet_size;
-	size_t transfered_size;
-	void (*next_step)(usb_transfer_batch_t *);
-	int error;
-	ddf_fun_t *fun;
-	void *arg;
-	endpoint_t *ep;
-	void *private_data;
-};
+	bool active;
+	unsigned toggle:1;
+} endpoint_t;
 
-void usb_transfer_batch_init(
-    usb_transfer_batch_t *instance,
-    usb_target_t target,
-    usb_transfer_type_t transfer_type,
-    usb_speed_t speed,
-    size_t max_packet_size,
-    char *buffer,
-    char *transport_buffer,
-    size_t buffer_size,
-    char *setup_buffer,
-    size_t setup_size,
-    usbhc_iface_transfer_in_callback_t func_in,
-    usbhc_iface_transfer_out_callback_t func_out,
-    void *arg,
-    ddf_fun_t *fun,
-		endpoint_t *ep,
-    void *private_data
-);
+int endpoint_init(endpoint_t *instance, usb_transfer_type_t transfer_type,
+    usb_speed_t speed, size_t max_packet_size);
 
-static inline usb_transfer_batch_t *usb_transfer_batch_from_link(link_t *l)
-{
-	assert(l);
-	return list_get_instance(l, usb_transfer_batch_t, link);
-}
+void endpoint_destroy(endpoint_t *instance);
 
-void usb_transfer_batch_call_in(usb_transfer_batch_t *instance);
-void usb_transfer_batch_call_out(usb_transfer_batch_t *instance);
-void usb_transfer_batch_finish(usb_transfer_batch_t *instance, int error);
+int endpoint_toggle_get(endpoint_t *instance);
+
+void endpoint_toggle_set(endpoint_t *instance, int toggle);
+
+void endpoint_toggle_reset(link_t *ep);
+
 
 #endif
 /**

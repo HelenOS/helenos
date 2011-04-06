@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2011 Jan Vesely
- * All rights reserved.
+ * All rights eps.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -26,27 +26,31 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <bool.h>
 #include <assert.h>
 #include <errno.h>
-#include <usb/host/bandwidth.h>
 
-typedef struct {
+#include <usb/host/usb_endpoint_manager.h>
+
+#define BUCKET_COUNT 7
+
+typedef	struct {
 	usb_address_t address;
 	usb_endpoint_t endpoint;
 	usb_direction_t direction;
-} __attribute__((aligned (sizeof(unsigned long)))) transfer_t;
-/*----------------------------------------------------------------------------*/
+} __attribute__((aligned (sizeof(unsigned long)))) id_t;
+#define MAX_KEYS (sizeof(id_t) / sizeof(unsigned long))
 typedef struct {
-	transfer_t transfer;
+	union {
+		id_t id;
+		unsigned long key[MAX_KEYS];
+	};
 	link_t link;
-	bool used;
-	size_t required;
-} transfer_status_t;
+	size_t bw;
+	endpoint_t *ep;
+} node_t;
 /*----------------------------------------------------------------------------*/
-#define BUCKET_COUNT 7
-#define MAX_KEYS (sizeof(transfer_t) / sizeof(unsigned long))
-/*----------------------------------------------------------------------------*/
-static hash_index_t transfer_hash(unsigned long key[])
+static hash_index_t node_hash(unsigned long key[])
 {
 	hash_index_t hash = 0;
 	unsigned i = 0;
@@ -57,30 +61,30 @@ static hash_index_t transfer_hash(unsigned long key[])
 	return hash;
 }
 /*----------------------------------------------------------------------------*/
-static int transfer_compare(
-    unsigned long key[], hash_count_t keys, link_t *item)
+static int node_compare(unsigned long key[], hash_count_t keys, link_t *item)
 {
 	assert(item);
-	transfer_status_t *status =
-	    hash_table_get_instance(item, transfer_status_t, link);
-	const size_t bytes =
-	    keys < MAX_KEYS ? keys * sizeof(unsigned long) : sizeof(transfer_t);
-	return bcmp(key, &status->transfer, bytes) == 0;
+	node_t *node = hash_table_get_instance(item, node_t, link);
+	hash_count_t i = 0;
+	for (; i < keys; ++i) {
+		if (key[i] != node->key[i])
+			return false;
+	}
+	return true;
 }
 /*----------------------------------------------------------------------------*/
-static void transfer_remove(link_t *item)
+static void node_remove(link_t *item)
 {
 	assert(item);
-	transfer_status_t *status =
-	    hash_table_get_instance(item, transfer_status_t, link);
-	assert(status);
-	free(status);
+	node_t *node = hash_table_get_instance(item, node_t, link);
+	endpoint_destroy(node->ep);
+	free(node);
 }
 /*----------------------------------------------------------------------------*/
-hash_table_operations_t op = {
-	.hash = transfer_hash,
-	.compare = transfer_compare,
-	.remove_callback = transfer_remove,
+static hash_table_operations_t op = {
+	.hash = node_hash,
+	.compare = node_compare,
+	.remove_callback = node_remove,
 };
 /*----------------------------------------------------------------------------*/
 size_t bandwidth_count_usb11(usb_speed_t speed, usb_transfer_type_t type,
@@ -119,162 +123,117 @@ size_t bandwidth_count_usb11(usb_speed_t speed, usb_transfer_type_t type,
 	}
 }
 /*----------------------------------------------------------------------------*/
-int bandwidth_init(bandwidth_t *instance, size_t bandwidth,
-    size_t (*usage_fnc)(usb_speed_t, usb_transfer_type_t, size_t, size_t))
+int usb_endpoint_manager_init(usb_endpoint_manager_t *instance,
+    size_t available_bandwidth)
 {
 	assert(instance);
 	fibril_mutex_initialize(&instance->guard);
-	instance->free = bandwidth;
-	instance->usage_fnc = usage_fnc;
+	fibril_condvar_initialize(&instance->change);
+	instance->free_bw = available_bandwidth;
 	bool ht =
-	    hash_table_create(&instance->reserved, BUCKET_COUNT, MAX_KEYS, &op);
+	    hash_table_create(&instance->ep_table, BUCKET_COUNT, MAX_KEYS, &op);
 	return ht ? EOK : ENOMEM;
 }
 /*----------------------------------------------------------------------------*/
-void bandwidth_destroy(bandwidth_t *instance)
+void usb_endpoint_manager_destroy(usb_endpoint_manager_t *instance)
 {
-	hash_table_destroy(&instance->reserved);
+	hash_table_destroy(&instance->ep_table);
 }
 /*----------------------------------------------------------------------------*/
-int bandwidth_reserve(bandwidth_t *instance, usb_address_t address,
-    usb_endpoint_t endpoint, usb_direction_t direction, usb_speed_t speed,
-    usb_transfer_type_t transfer_type, size_t max_packet_size, size_t size,
-    unsigned interval)
+int usb_endpoint_manager_register_ep(usb_endpoint_manager_t *instance,
+    usb_address_t address, usb_endpoint_t endpoint, usb_direction_t direction,
+    endpoint_t *ep, size_t data_size)
 {
-	if (transfer_type != USB_TRANSFER_ISOCHRONOUS &&
-	    transfer_type != USB_TRANSFER_INTERRUPT) {
-		return ENOTSUP;
-	}
-
+	assert(ep);
+	size_t bw = bandwidth_count_usb11(ep->speed, ep->transfer_type,
+	    data_size, ep->max_packet_size);
 	assert(instance);
-	assert(instance->usage_fnc);
 
-	transfer_t trans = {
+	id_t id = {
 		.address = address,
 		.endpoint = endpoint,
 		.direction = direction,
 	};
 	fibril_mutex_lock(&instance->guard);
-	const size_t required =
-	    instance->usage_fnc(speed, transfer_type, size, max_packet_size);
-
-	if (required > instance->free) {
-		fibril_mutex_unlock(&instance->guard);
-		return ENOSPC;
-	}
 
 	link_t *item =
-	    hash_table_find(&instance->reserved, (unsigned long*)&trans);
+	    hash_table_find(&instance->ep_table, (unsigned long*)&id);
 	if (item != NULL) {
 		fibril_mutex_unlock(&instance->guard);
 		return EEXISTS;
 	}
 
-	transfer_status_t *status = malloc(sizeof(transfer_status_t));
-	if (status == NULL) {
+	if (bw > instance->free_bw) {
+		fibril_mutex_unlock(&instance->guard);
+		return ENOSPC;
+	}
+
+	node_t *node = malloc(sizeof(node_t));
+	if (node == NULL) {
 		fibril_mutex_unlock(&instance->guard);
 		return ENOMEM;
 	}
 
-	status->transfer = trans;
-	status->required = required;
-	status->used = false;
-	link_initialize(&status->link);
+	node->id = id;
+	node->bw = bw;
+	node->ep = ep;
+	link_initialize(&node->link);
 
-	hash_table_insert(&instance->reserved,
-	    (unsigned long*)&status->transfer, &status->link);
-	instance->free -= required;
+	hash_table_insert(&instance->ep_table,
+	    (unsigned long*)&id, &node->link);
+	instance->free_bw -= bw;
 	fibril_mutex_unlock(&instance->guard);
+	fibril_condvar_broadcast(&instance->change);
 	return EOK;
-	/* TODO: compute bandwidth used */
 }
 /*----------------------------------------------------------------------------*/
-int bandwidth_release(bandwidth_t *instance, usb_address_t address,
-    usb_endpoint_t endpoint, usb_direction_t direction)
+int usb_endpoint_manager_unregister_ep(usb_endpoint_manager_t *instance,
+    usb_address_t address, usb_endpoint_t endpoint, usb_direction_t direction)
 {
 	assert(instance);
-	transfer_t trans = {
+	id_t id = {
 		.address = address,
 		.endpoint = endpoint,
 		.direction = direction,
 	};
 	fibril_mutex_lock(&instance->guard);
 	link_t *item =
-	    hash_table_find(&instance->reserved, (unsigned long*)&trans);
+	    hash_table_find(&instance->ep_table, (unsigned long*)&id);
 	if (item == NULL) {
 		fibril_mutex_unlock(&instance->guard);
 		return EINVAL;
 	}
 
-	transfer_status_t *status =
-	    hash_table_get_instance(item, transfer_status_t, link);
-
-	instance->free += status->required;
-
-	hash_table_remove(&instance->reserved,
-	    (unsigned long*)&trans, MAX_KEYS);
+	node_t *node = hash_table_get_instance(item, node_t, link);
+	instance->free_bw += node->bw;
+	hash_table_remove(&instance->ep_table, (unsigned long*)&id, MAX_KEYS);
 
 	fibril_mutex_unlock(&instance->guard);
+	fibril_condvar_broadcast(&instance->change);
 	return EOK;
-	/* TODO: compute bandwidth freed */
 }
 /*----------------------------------------------------------------------------*/
-int bandwidth_use(bandwidth_t *instance, usb_address_t address,
-    usb_endpoint_t endpoint, usb_direction_t direction, size_t bw)
+endpoint_t * usb_endpoint_manager_get_ep(usb_endpoint_manager_t *instance,
+    usb_address_t address, usb_endpoint_t endpoint, usb_direction_t direction,
+    size_t *bw)
 {
 	assert(instance);
-	transfer_t trans = {
+	id_t id = {
 		.address = address,
 		.endpoint = endpoint,
 		.direction = direction,
 	};
 	fibril_mutex_lock(&instance->guard);
 	link_t *item =
-	    hash_table_find(&instance->reserved, (unsigned long*)&trans);
-	int ret = EOK;
-	if (item != NULL) {
-		transfer_status_t *status =
-		    hash_table_get_instance(item, transfer_status_t, link);
-		assert(status);
-		if (status->required >= bw) {
-			if (status->used) {
-				ret = EINPROGRESS;
-			}
-			status->used = true;
-		} else {
-			ret = ENOSPC;
-		}
-	} else {
-		ret = EINVAL;
+	    hash_table_find(&instance->ep_table, (unsigned long*)&id);
+	if (item == NULL) {
+		fibril_mutex_unlock(&instance->guard);
+		return NULL;
 	}
+	node_t *node = hash_table_get_instance(item, node_t, link);
+	if (bw)
+		*bw = node->bw;
+
 	fibril_mutex_unlock(&instance->guard);
-	return ret;
-}
-/*----------------------------------------------------------------------------*/
-int bandwidth_free(bandwidth_t *instance, usb_address_t address,
-    usb_endpoint_t endpoint, usb_direction_t direction)
-{
-	assert(instance);
-	transfer_t trans = {
-		.address = address,
-		.endpoint = endpoint,
-		.direction = direction,
-	};
-	fibril_mutex_lock(&instance->guard);
-	link_t *item =
-	    hash_table_find(&instance->reserved, (unsigned long*)&trans);
-	int ret = EOK;
-	if (item != NULL) {
-		transfer_status_t *status =
-		    hash_table_get_instance(item, transfer_status_t, link);
-		assert(status);
-		if (!status->used) {
-			ret = ENOENT;
-		}
-		status->used = false;
-	} else {
-		ret = EINVAL;
-	}
-	fibril_mutex_unlock(&instance->guard);
-	return ret;
+	return node->ep;
 }

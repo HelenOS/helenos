@@ -55,9 +55,18 @@ void usb_device_keeper_init(usb_device_keeper_t *instance)
 		instance->devices[i].occupied = false;
 		instance->devices[i].control_used = 0;
 		instance->devices[i].handle = 0;
-		instance->devices[i].toggle_status[0] = 0;
-		instance->devices[i].toggle_status[1] = 0;
+		list_initialize(&instance->devices[i].endpoints);
 	}
+}
+/*----------------------------------------------------------------------------*/
+void usb_device_keeper_add_ep(
+    usb_device_keeper_t *instance, usb_address_t address, endpoint_t *ep)
+{
+	assert(instance);
+	fibril_mutex_lock(&instance->guard);
+	assert(instance->devices[address].occupied);
+	list_append(&ep->same_device_eps, &instance->devices[address].endpoints);
+	fibril_mutex_unlock(&instance->guard);
 }
 /*----------------------------------------------------------------------------*/
 /** Attempt to obtain address 0, blocks.
@@ -65,8 +74,8 @@ void usb_device_keeper_init(usb_device_keeper_t *instance)
  * @param[in] instance Device keeper structure to use.
  * @param[in] speed Speed of the device requesting default address.
  */
-void usb_device_keeper_reserve_default_address(usb_device_keeper_t *instance,
-    usb_speed_t speed)
+void usb_device_keeper_reserve_default_address(
+    usb_device_keeper_t *instance, usb_speed_t speed)
 {
 	assert(instance);
 	fibril_mutex_lock(&instance->guard);
@@ -100,8 +109,8 @@ void usb_device_keeper_release_default_address(usb_device_keeper_t *instance)
  *
  * Really ugly one.
  */
-void usb_device_keeper_reset_if_need(usb_device_keeper_t *instance,
-    usb_target_t target, const uint8_t *data)
+void usb_device_keeper_reset_if_need(
+    usb_device_keeper_t *instance, usb_target_t target, const uint8_t *data)
 {
 	assert(instance);
 	fibril_mutex_lock(&instance->guard);
@@ -119,10 +128,7 @@ void usb_device_keeper_reset_if_need(usb_device_keeper_t *instance,
 		/* recipient is endpoint, value is zero (ENDPOINT_STALL) */
 		if (((data[0] & 0xf) == 1) && ((data[2] | data[3]) == 0)) {
 			/* endpoint number is < 16, thus first byte is enough */
-			instance->devices[target.address].toggle_status[0] &=
-			    ~(1 << data[4]);
-			instance->devices[target.address].toggle_status[1] &=
-			    ~(1 << data[4]);
+			assert(!"NOT IMPLEMENTED!");
 		}
 	break;
 
@@ -130,75 +136,18 @@ void usb_device_keeper_reset_if_need(usb_device_keeper_t *instance,
 	case 0x11: /* set interface */
 		/* target must be device */
 		if ((data[0] & 0xf) == 0) {
-			instance->devices[target.address].toggle_status[0] = 0;
-			instance->devices[target.address].toggle_status[1] = 0;
+			link_t *current =
+			    instance->devices[target.address].endpoints.next;
+			while (current !=
+			   &instance->devices[target.address].endpoints)
+			{
+				endpoint_toggle_reset(current);
+				current = current->next;
+			}
 		}
 	break;
 	}
 	fibril_mutex_unlock(&instance->guard);
-}
-/*----------------------------------------------------------------------------*/
-/** Get current value of endpoint toggle.
- *
- * @param[in] instance Device keeper structure to use.
- * @param[in] target Device and endpoint used.
- * @return Error code
- */
-int usb_device_keeper_get_toggle(usb_device_keeper_t *instance,
-    usb_target_t target, usb_direction_t direction)
-{
-	assert(instance);
-	/* only control pipes are bi-directional and those do not need toggle */
-	if (direction == USB_DIRECTION_BOTH)
-		return ENOENT;
-	int ret;
-	fibril_mutex_lock(&instance->guard);
-	if (target.endpoint > 15 || target.endpoint < 0
-	    || target.address >= USB_ADDRESS_COUNT || target.address < 0
-	    || !instance->devices[target.address].occupied) {
-		usb_log_error("Invalid data when asking for toggle value.\n");
-		ret = EINVAL;
-	} else {
-		ret = (instance->devices[target.address].toggle_status[direction]
-		        >> target.endpoint) & 1;
-	}
-	fibril_mutex_unlock(&instance->guard);
-	return ret;
-}
-/*----------------------------------------------------------------------------*/
-/** Set current value of endpoint toggle.
- *
- * @param[in] instance Device keeper structure to use.
- * @param[in] target Device and endpoint used.
- * @param[in] toggle Toggle value.
- * @return Error code.
- */
-int usb_device_keeper_set_toggle(usb_device_keeper_t *instance,
-    usb_target_t target, usb_direction_t direction, bool toggle)
-{
-	assert(instance);
-	/* only control pipes are bi-directional and those do not need toggle */
-	if (direction == USB_DIRECTION_BOTH)
-		return ENOENT;
-	int ret;
-	fibril_mutex_lock(&instance->guard);
-	if (target.endpoint > 15 || target.endpoint < 0
-	    || target.address >= USB_ADDRESS_COUNT || target.address < 0
-	    || !instance->devices[target.address].occupied) {
-		usb_log_error("Invalid data when setting toggle value.\n");
-		ret = EINVAL;
-	} else {
-		if (toggle) {
-			instance->devices[target.address].toggle_status[direction]
-			    |= (1 << target.endpoint);
-		} else {
-			instance->devices[target.address].toggle_status[direction]
-			    &= ~(1 << target.endpoint);
-		}
-		ret = EOK;
-	}
-	fibril_mutex_unlock(&instance->guard);
-	return ret;
 }
 /*----------------------------------------------------------------------------*/
 /** Get a free USB address
@@ -207,8 +156,8 @@ int usb_device_keeper_set_toggle(usb_device_keeper_t *instance,
  * @param[in] speed Speed of the device requiring address.
  * @return Free address, or error code.
  */
-usb_address_t device_keeper_get_free_address(usb_device_keeper_t *instance,
-    usb_speed_t speed)
+usb_address_t device_keeper_get_free_address(
+    usb_device_keeper_t *instance, usb_speed_t speed)
 {
 	assert(instance);
 	fibril_mutex_lock(&instance->guard);
@@ -228,8 +177,6 @@ usb_address_t device_keeper_get_free_address(usb_device_keeper_t *instance,
 	assert(instance->devices[new_address].occupied == false);
 	instance->devices[new_address].occupied = true;
 	instance->devices[new_address].speed = speed;
-	instance->devices[new_address].toggle_status[0] = 0;
-	instance->devices[new_address].toggle_status[1] = 0;
 	instance->last_address = new_address;
 	fibril_mutex_unlock(&instance->guard);
 	return new_address;
@@ -258,8 +205,8 @@ void usb_device_keeper_bind(usb_device_keeper_t *instance,
  * @param[in] instance Device keeper structure to use.
  * @param[in] address Device address
  */
-void usb_device_keeper_release(usb_device_keeper_t *instance,
-    usb_address_t address)
+void usb_device_keeper_release(
+    usb_device_keeper_t *instance, usb_address_t address)
 {
 	assert(instance);
 	assert(address > 0);
@@ -277,8 +224,8 @@ void usb_device_keeper_release(usb_device_keeper_t *instance,
  * @param[in] handle Devman handle of the device seeking its address.
  * @return USB Address, or error code.
  */
-usb_address_t usb_device_keeper_find(usb_device_keeper_t *instance,
-    devman_handle_t handle)
+usb_address_t usb_device_keeper_find(
+    usb_device_keeper_t *instance, devman_handle_t handle)
 {
 	assert(instance);
 	fibril_mutex_lock(&instance->guard);
@@ -300,8 +247,8 @@ usb_address_t usb_device_keeper_find(usb_device_keeper_t *instance,
  * @param[in] address Address of the device.
  * @return USB speed.
  */
-usb_speed_t usb_device_keeper_get_speed(usb_device_keeper_t *instance,
-    usb_address_t address)
+usb_speed_t usb_device_keeper_get_speed(
+    usb_device_keeper_t *instance, usb_address_t address)
 {
 	assert(instance);
 	assert(address >= 0);
@@ -309,8 +256,8 @@ usb_speed_t usb_device_keeper_get_speed(usb_device_keeper_t *instance,
 	return instance->devices[address].speed;
 }
 /*----------------------------------------------------------------------------*/
-void usb_device_keeper_use_control(usb_device_keeper_t *instance,
-    usb_target_t target)
+void usb_device_keeper_use_control(
+    usb_device_keeper_t *instance, usb_target_t target)
 {
 	assert(instance);
 	const uint16_t ep = 1 << target.endpoint;
@@ -322,8 +269,8 @@ void usb_device_keeper_use_control(usb_device_keeper_t *instance,
 	fibril_mutex_unlock(&instance->guard);
 }
 /*----------------------------------------------------------------------------*/
-void usb_device_keeper_release_control(usb_device_keeper_t *instance,
-    usb_target_t target)
+void usb_device_keeper_release_control(
+    usb_device_keeper_t *instance, usb_target_t target)
 {
 	assert(instance);
 	const uint16_t ep = 1 << target.endpoint;

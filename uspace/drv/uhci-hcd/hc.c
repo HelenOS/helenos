@@ -65,9 +65,10 @@ static void hc_init_hw(hc_t *instance);
 
 static int hc_interrupt_emulator(void *arg);
 static int hc_debug_checker(void *arg);
-
+#if 0
 static bool usb_is_allowed(
     bool low_speed, usb_transfer_type_t transfer, size_t size);
+#endif
 /*----------------------------------------------------------------------------*/
 /** Initialize UHCI hcd driver structure
  *
@@ -238,8 +239,9 @@ int hc_init_mem_structures(hc_t *instance)
 	usb_device_keeper_init(&instance->manager);
 	usb_log_debug("Initialized device manager.\n");
 
-	ret = bandwidth_init(&instance->bandwidth, BANDWIDTH_AVAILABLE_USB11,
-	    bandwidth_count_usb11);
+	ret =
+	    usb_endpoint_manager_init(&instance->ep_manager,
+	        BANDWIDTH_AVAILABLE_USB11);
 	assert(ret == EOK);
 
 	return EOK;
@@ -325,29 +327,6 @@ int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch)
 {
 	assert(instance);
 	assert(batch);
-	const int low_speed = (batch->speed == USB_SPEED_LOW);
-	if (!usb_is_allowed(
-	    low_speed, batch->transfer_type, batch->max_packet_size)) {
-		usb_log_error("Invalid USB transfer specified %s %d %zu.\n",
-		    usb_str_speed(batch->speed), batch->transfer_type,
-		    batch->max_packet_size);
-		return ENOTSUP;
-	}
-	/* Check available bandwidth */
-	if (batch->transfer_type == USB_TRANSFER_INTERRUPT ||
-	    batch->transfer_type == USB_TRANSFER_ISOCHRONOUS) {
-		size_t bw = bandwidth_count_usb11(batch->speed,
-		    batch->transfer_type, batch->buffer_size,
-		    batch->max_packet_size);
-		int ret =
-		    bandwidth_use(&instance->bandwidth, batch->target.address,
-		    batch->target.endpoint, batch->direction, bw);
-		if (ret != EOK) {
-			usb_log_error("Failed(%d) to use reserved bw: %s.\n",
-			    ret, str_error(ret));
-			return ret;
-		}
-	}
 
 	transfer_list_t *list =
 	    instance->transfers[batch->speed][batch->transfer_type];
@@ -401,6 +380,7 @@ void hc_interrupt(hc_t *instance, uint16_t status)
 				break;
 			case USB_TRANSFER_INTERRUPT:
 			case USB_TRANSFER_ISOCHRONOUS: {
+/*
 				int ret = bandwidth_free(&instance->bandwidth,
 				    batch->target.address,
 				    batch->target.endpoint,
@@ -409,6 +389,7 @@ void hc_interrupt(hc_t *instance, uint16_t status)
 					usb_log_warning("Failed(%d) to free "
 					    "reserved bw: %s.\n", ret,
 					    str_error(ret));
+*/
 				}
 			default:
 				break;
@@ -532,6 +513,7 @@ int hc_debug_checker(void *arg)
  * @param[in] size Size of data packets
  * @return True if transaction is allowed by USB specs, false otherwise
  */
+#if 0
 bool usb_is_allowed(
     bool low_speed, usb_transfer_type_t transfer, size_t size)
 {
@@ -549,6 +531,7 @@ bool usb_is_allowed(
 	}
 	return false;
 }
+#endif
 /**
  * @}
  */

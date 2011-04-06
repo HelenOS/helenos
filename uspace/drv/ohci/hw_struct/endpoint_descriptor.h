@@ -29,57 +29,45 @@
  * @{
  */
 /** @file
- * @brief OHCI host controller driver structure
+ * @brief OHCI driver
  */
-#ifndef DRV_OHCI_HC_H
-#define DRV_OHCI_HC_H
+#ifndef DRV_OHCI_ENDPOINT_DESCRIPTOR_H
+#define DRV_OHCI_ENDPOINT_DESCRIPTOR_H
 
-#include <fibril.h>
-#include <fibril_synch.h>
-#include <adt/list.h>
-#include <ddi.h>
+#include <stdint.h>
 
-#include <usb/usb.h>
-#include <usb/host/device_keeper.h>
-#include <usb/host/usb_endpoint_manager.h>
-#include <usbhc_iface.h>
+typedef struct ed {
+	volatile uint32_t status;
+#define ED_STATUS_FA_MASK (0x7f)   /* USB device address   */
+#define ED_STATUS_FA_SHIFT (0)
+#define ED_STATUS_EN_MASK (0xf)    /* USB endpoint address */
+#define ED_STATUS_EN_SHIFT (6)
+#define ED_STATUS_D_MASK (0x3)     /* direction */
+#define ED_STATUS_D_SHIFT (10)
+#define ED_STATUS_D_IN (0x1)
+#define ED_STATUS_D_OUT (0x2)
 
-#include "batch.h"
-#include "ohci_regs.h"
-#include "root_hub.h"
+#define ED_STATUS_S_FLAG (1 << 13) /* speed flag */
+#define ED_STATUS_K_FLAG (1 << 14) /* skip flag (no not execute this ED) */
+#define ED_STATUS_F_FLAG (1 << 15) /* format: 1 = isochronous*/
+#define ED_STATUS_MPS_MASK (0x3ff) /* max_packet_size*/
+#define ED_STATUS_MPS_SHIFT (16)
 
-typedef struct hc {
-	ohci_regs_t *registers;
-	usb_address_t rh_address;
-	rh_t rh;
-	ddf_fun_t *ddf_instance;
-	usb_device_keeper_t manager;
-	usb_endpoint_manager_t ep_manager;
-	fid_t interrupt_emulator;
-} hc_t;
+	volatile uint32_t td_tail;
+#define ED_TDTAIL_PTR_MASK (0xfffffff0)
+#define ED_TDTAIL_PTR_SHIFT (0)
 
-int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun);
+	volatile uint32_t td_head;
+#define ED_TDHEAD_PTR_MASK (0xfffffff0)
+#define ED_TDHEAD_PTR_SHIFT (0)
+#define ED_TDHEAD_ZERO_MASK (0x3)
+#define ED_TDHEAD_ZERO_SHIFT (2)
+#define ED_TDHEAD_TOGGLE_CARRY (0x2)
 
-int hc_init(hc_t *instance, ddf_fun_t *fun, ddf_dev_t *dev,
-     uintptr_t regs, size_t reg_size, bool interrupts);
-
-int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch);
-
-void hc_interrupt(hc_t *instance, uint32_t status);
-
-/** Safely dispose host controller internal structures
- *
- * @param[in] instance Host controller structure to use.
- */
-static inline void hc_fini(hc_t *instance) { /* TODO: implement*/ };
-
-/** Get and cast pointer to the driver data
- *
- * @param[in] fun DDF function pointer
- * @return cast pointer to driver_data
- */
-static inline hc_t * fun_to_hc(ddf_fun_t *fun)
-	{ return (hc_t*)fun->driver_data; }
+	volatile uint32_t next;
+#define ED_NEXT_PTR_MASK (0xfffffff0)
+#define ED_NEXT_PTR_SHIFT (0)
+} __attribute__((packed)) ed_t;
 #endif
 /**
  * @}

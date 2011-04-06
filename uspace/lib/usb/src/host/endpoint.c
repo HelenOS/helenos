@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jan Vesely
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,88 +25,56 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup usb
+
+/** @addtogroup drvusbuhcihc
  * @{
  */
 /** @file
- * @brief UHCI driver
+ * @brief UHCI host controller driver structure
  */
-#ifndef DRV_UHCI_TRANSLATOR_H
-#define DRV_UHCI_TRANSLATOR_H
 
-#include <assert.h>
 #include <errno.h>
-#include <malloc.h>
-#include <mem.h>
-#include <as.h>
+#include <usb/host/endpoint.h>
 
-#include "slab.h"
-
-#define UHCI_STRCUTURES_ALIGNMENT 16
-#define UHCI_REQUIRED_PAGE_SIZE 4096
-
-
-/** Get physical address translation
- *
- * @param[in] addr Virtual address to translate
- * @return Physical address if exists, NULL otherwise.
- */
-static inline uintptr_t addr_to_phys(void *addr)
+int endpoint_init(endpoint_t *instance, usb_transfer_type_t transfer_type,
+    usb_speed_t speed, size_t max_packet_size)
 {
-	if (addr == NULL)
-		return 0;
-
-	uintptr_t result;
-	const int ret = as_get_physical_mapping(addr, &result);
-	assert(ret == EOK);
-
-	if (ret != EOK)
-		return 0;
-	return (result | ((uintptr_t)addr & 0xfff));
+	assert(instance);
+	link_initialize(&instance->same_device_eps);
+	instance->transfer_type = transfer_type;
+	instance->speed = speed;
+	instance->max_packet_size = max_packet_size;
+	instance->toggle = 0;
+	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-/** Physical mallocator simulator
- *
- * @param[in] size Size of the required memory space
- * @return Address of the alligned and big enough memory place, NULL on failure.
- */
-static inline void * malloc32(size_t size) {
-	if (size <= SLAB_ELEMENT_SIZE)
-		return slab_malloc_g();
-	assert(false);
-	return memalign(UHCI_STRCUTURES_ALIGNMENT, size);
-}
-/*----------------------------------------------------------------------------*/
-/** Physical mallocator simulator
- *
- * @param[in] addr Address of the place allocated by malloc32
- */
-static inline void free32(void *addr) {
-	if (!addr)
-		return;
-	if (slab_in_range_g(addr))
-		return slab_free_g(addr);
-	free(addr);
-}
-/*----------------------------------------------------------------------------*/
-/** Create 4KB page mapping
- *
- * @return Address of the mapped page, NULL on failure.
- */
-static inline void * get_page(void)
+void endpoint_destroy(endpoint_t *instance)
 {
-	void *free_address = as_get_mappable_page(UHCI_REQUIRED_PAGE_SIZE);
-	assert(free_address); /* TODO: remove this assert */
-	if (free_address == 0)
-		return NULL;
-	void *ret = as_area_create(free_address, UHCI_REQUIRED_PAGE_SIZE,
-		  AS_AREA_READ | AS_AREA_WRITE);
-	if (ret != free_address)
-		return NULL;
-	return ret;
+	assert(instance);
+	list_remove(&instance->same_device_eps);
+	free(instance);
 }
-
-#endif
+/*----------------------------------------------------------------------------*/
+int endpoint_toggle_get(endpoint_t *instance)
+{
+	assert(instance);
+	return (int)instance->toggle;
+}
+/*----------------------------------------------------------------------------*/
+void endpoint_toggle_set(endpoint_t *instance, int toggle)
+{
+	assert(instance);
+	assert(toggle == 0 || toggle == 1);
+	instance->toggle = toggle;
+}
+/*----------------------------------------------------------------------------*/
+void endpoint_toggle_reset(link_t *ep)
+{
+	endpoint_t *instance =
+	    list_get_instance(ep, endpoint_t, same_device_eps);
+	assert(instance);
+	instance->toggle = 0;
+}
 /**
  * @}
  */
