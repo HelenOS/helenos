@@ -1571,14 +1571,16 @@ int async_share_out_finalize(ipc_callid_t callid, void *dst)
  * @param phoneid Phone that will be used to contact the receiving side.
  * @param dst     Address of the beginning of the destination buffer.
  * @param size    Size of the destination buffer.
+ * @param flags   Flags to control the data transfer.
  *
  * @return Zero on success or a negative error code from errno.h.
  *
  */
-int async_data_read_start(int phoneid, void *dst, size_t size)
+int
+async_data_read_start_flexible(int phoneid, void *dst, size_t size, int flags)
 {
-	return async_req_2_0(phoneid, IPC_M_DATA_READ, (sysarg_t) dst,
-	    (sysarg_t) size);
+	return async_req_3_0(phoneid, IPC_M_DATA_READ, (sysarg_t) dst,
+	    (sysarg_t) size, (sysarg_t) flags);
 }
 
 /** Wrapper for receiving the IPC_M_DATA_READ calls using the async framework.
@@ -1668,14 +1670,17 @@ int async_data_read_forward_fast(int phoneid, sysarg_t method, sysarg_t arg1,
  * @param phoneid Phone that will be used to contact the receiving side.
  * @param src     Address of the beginning of the source buffer.
  * @param size    Size of the source buffer.
+ * @param flags   Flags to control the data transfer.
  *
  * @return Zero on success or a negative error code from errno.h.
  *
  */
-int async_data_write_start(int phoneid, const void *src, size_t size)
+int
+async_data_write_start_flexible(int phoneid, const void *src, size_t size,
+    int flags)
 {
-	return async_req_2_0(phoneid, IPC_M_DATA_WRITE, (sysarg_t) src,
-	    (sysarg_t) size);
+	return async_req_3_0(phoneid, IPC_M_DATA_WRITE, (sysarg_t) src,
+	    (sysarg_t) size, (sysarg_t) flags);
 }
 
 /** Wrapper for receiving the IPC_M_DATA_WRITE calls using the async framework.
