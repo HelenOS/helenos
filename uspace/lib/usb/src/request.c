@@ -528,7 +528,6 @@ int usb_request_get_full_configuration_descriptor_alloc(
 	if (rc != EOK) {
 		return rc;
 	}
-
 	if (bare_config.descriptor_type != USB_DESCTYPE_CONFIGURATION) {
 		return ENOENT;
 	}

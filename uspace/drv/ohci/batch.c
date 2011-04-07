@@ -72,9 +72,9 @@ usb_transfer_batch_t * batch_get(
 	usb_transfer_batch_t *instance = malloc(sizeof(usb_transfer_batch_t));
 	CHECK_NULL_DISPOSE_RETURN(instance,
 	    "Failed to allocate batch instance.\n");
-	usb_transfer_batch_init(instance, target, transfer_type, speed, max_packet_size,
-	    buffer, NULL, buffer_size, NULL, setup_size, func_in,
-	    func_out, arg, fun, NULL);
+	usb_transfer_batch_init(instance, target, transfer_type, speed,
+	    max_packet_size, buffer, NULL, buffer_size, NULL, setup_size,
+	    func_in, func_out, arg, fun, NULL, NULL);
 
         if (buffer_size > 0) {
                 instance->transport_buffer = malloc32(buffer_size);

@@ -42,6 +42,7 @@
 
 #include <usbhc_iface.h>
 #include <usb/host/device_keeper.h>
+#include <usb/host/usb_endpoint_manager.h>
 
 #include "batch.h"
 #include "transfer_list.h"
@@ -83,6 +84,7 @@ typedef struct uhci_regs {
 
 typedef struct hc {
 	usb_device_keeper_t manager;
+	usb_endpoint_manager_t ep_manager;
 
 	regs_t *registers;
 

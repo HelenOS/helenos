@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Sergey Bondari
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,22 +25,52 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-/** @addtogroup amd64
+/** @addtogroup drvusbohci
  * @{
  */
 /** @file
+ * @brief OHCI driver
  */
+#ifndef DRV_OHCI_HW_STRUCT_ENDPOINT_DESCRIPTOR_H
+#define DRV_OHCI_HW_STRUCT_ENDPOINT_DESCRIPTOR_H
 
-#ifndef KERN_amd64_MEMSTR_H_
-#define KERN_amd64_MEMSTR_H_
+#include <stdint.h>
 
-#define memcpy(dst, src, cnt)  __builtin_memcpy((dst), (src), (cnt))
+#include "completion_codes.h"
 
-extern void memsetw(void *, size_t, uint16_t);
-extern void memsetb(void *, size_t, uint8_t);
+typedef struct ed {
+	volatile uint32_t status;
+#define ED_STATUS_FA_MASK (0x7f)   /* USB device address   */
+#define ED_STATUS_FA_SHIFT (0)
+#define ED_STATUS_EN_MASK (0xf)    /* USB endpoint address */
+#define ED_STATUS_EN_SHIFT (6)
+#define ED_STATUS_D_MASK (0x3)     /* direction */
+#define ED_STATUS_D_SHIFT (10)
+#define ED_STATUS_D_IN (0x1)
+#define ED_STATUS_D_OUT (0x2)
 
+#define ED_STATUS_S_FLAG (1 << 13) /* speed flag */
+#define ED_STATUS_K_FLAG (1 << 14) /* skip flag (no not execute this ED) */
+#define ED_STATUS_F_FLAG (1 << 15) /* format: 1 = isochronous*/
+#define ED_STATUS_MPS_MASK (0x3ff) /* max_packet_size*/
+#define ED_STATUS_MPS_SHIFT (16)
+
+	volatile uint32_t td_tail;
+#define ED_TDTAIL_PTR_MASK (0xfffffff0)
+#define ED_TDTAIL_PTR_SHIFT (0)
+
+	volatile uint32_t td_head;
+#define ED_TDHEAD_PTR_MASK (0xfffffff0)
+#define ED_TDHEAD_PTR_SHIFT (0)
+#define ED_TDHEAD_ZERO_MASK (0x3)
+#define ED_TDHEAD_ZERO_SHIFT (2)
+#define ED_TDHEAD_TOGGLE_CARRY (0x2)
+
+	volatile uint32_t next;
+#define ED_NEXT_PTR_MASK (0xfffffff0)
+#define ED_NEXT_PTR_SHIFT (0)
+} __attribute__((packed)) ed_t;
 #endif
-
-/** @}
+/**
+ * @}
  */

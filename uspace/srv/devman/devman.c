@@ -33,6 +33,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <io/log.h>
 #include <ipc/driver.h>
 #include <ipc/devman.h>
 #include <devmap.h>
@@ -145,16 +146,8 @@ void add_driver(driver_list_t *drivers_list, driver_t *drv)
 	list_prepend(&drv->drivers, &drivers_list->drivers);
 	fibril_mutex_unlock(&drivers_list->drivers_mutex);
 
-	printf(NAME": the '%s' driver was added to the list of available "
-	    "drivers.\n", drv->name);
-
-	printf(NAME ": match ids:");
-	link_t *cur;
-	for (cur = drv->match_ids.ids.next; cur != &drv->match_ids.ids; cur = cur->next) {
-		match_id_t *match_id = list_get_instance(cur, match_id_t, link);
-		printf(" %d:%s", match_id->score, match_id->id);
-	}
-	printf("\n");
+	log_msg(LVL_NOTE, "Driver `%s' was added to the list of available "
+	    "drivers.", drv->name);
 }
 
 /** Read match id at the specified position of a string and set the position in
@@ -244,7 +237,7 @@ bool parse_match_ids(char *buf, match_id_list_t *ids)
  */
 bool read_match_ids(const char *conf_path, match_id_list_t *ids)
 {
-	printf(NAME ": read_match_ids conf_path = %s.\n", conf_path);
+	log_msg(LVL_DEBUG, "read_match_ids(conf_path=\"%s\")", conf_path);
 	
 	bool suc = false;
 	char *buf = NULL;
@@ -254,7 +247,8 @@ bool read_match_ids(const char *conf_path, match_id_list_t *ids)
 	
 	fd = open(conf_path, O_RDONLY);
 	if (fd < 0) {
-		printf(NAME ": unable to open %s\n", conf_path);
+		log_msg(LVL_ERROR, "Unable to open `%s' for reading: %s.",
+		    conf_path, str_error(fd));
 		goto cleanup;
 	}
 	opened = true;
@@ -262,22 +256,24 @@ bool read_match_ids(const char *conf_path, match_id_list_t *ids)
 	len = lseek(fd, 0, SEEK_END);
 	lseek(fd, 0, SEEK_SET);
 	if (len == 0) {
-		printf(NAME ": configuration file '%s' is empty.\n", conf_path);
+		log_msg(LVL_ERROR, "Configuration file '%s' is empty.",
+		    conf_path);
 		goto cleanup;
 	}
 	
 	buf = malloc(len + 1);
 	if (buf == NULL) {
-		printf(NAME ": memory allocation failed when parsing file "
-		    "'%s'.\n", conf_path);
+		log_msg(LVL_ERROR, "Memory allocation failed when parsing file "
+		    "'%s'.", conf_path);
 		goto cleanup;
 	}
 	
-	if (read(fd, buf, len) <= 0) {
-		printf(NAME ": unable to read file '%s'.\n", conf_path);
+	ssize_t read_bytes = safe_read(fd, buf, len);
+	if (read_bytes <= 0) {
+		log_msg(LVL_ERROR, "Unable to read file '%s'.", conf_path);
 		goto cleanup;
 	}
-	buf[len] = 0;
+	buf[read_bytes] = 0;
 	
 	suc = parse_match_ids(buf, ids);
 	
@@ -312,7 +308,7 @@ cleanup:
  */
 bool get_driver_info(const char *base_path, const char *name, driver_t *drv)
 {
-	printf(NAME ": get_driver_info base_path = %s, name = %s.\n",
+	log_msg(LVL_DEBUG, "get_driver_info(base_path=\"%s\", name=\"%s\")",
 	    base_path, name);
 	
 	assert(base_path != NULL && name != NULL && drv != NULL);
@@ -344,7 +340,8 @@ bool get_driver_info(const char *base_path, const char *name, driver_t *drv)
 	/* Check whether the driver's binary exists. */
 	struct stat s;
 	if (stat(drv->binary_path, &s) == ENOENT) { /* FIXME!! */
-		printf(NAME ": driver not found at path %s.", drv->binary_path);
+		log_msg(LVL_ERROR, "Driver not found at path `%s'.",
+		    drv->binary_path);
 		goto cleanup;
 	}
 	
@@ -371,7 +368,7 @@ cleanup:
  */
 int lookup_available_drivers(driver_list_t *drivers_list, const char *dir_path)
 {
-	printf(NAME ": lookup_available_drivers, dir = %s \n", dir_path);
+	log_msg(LVL_DEBUG, "lookup_available_drivers(dir=\"%s\")", dir_path);
 	
 	int drv_cnt = 0;
 	DIR *dir = NULL;
@@ -405,7 +402,7 @@ bool create_root_nodes(dev_tree_t *tree)
 	fun_node_t *fun;
 	dev_node_t *dev;
 	
-	printf(NAME ": create_root_nodes\n");
+	log_msg(LVL_DEBUG, "create_root_nodes()");
 	
 	fibril_rwlock_write_lock(&tree->rwlock);
 	
@@ -490,8 +487,8 @@ driver_t *find_best_match_driver(driver_list_t *drivers_list, dev_node_t *node)
  */
 void attach_driver(dev_node_t *dev, driver_t *drv)
 {
-	printf(NAME ": attach_driver %s to device %s\n",
-	    drv->name, dev->pfun->pathname);
+	log_msg(LVL_DEBUG, "attach_driver(dev=\"%s\",drv=\"%s\")",
+	    dev->pfun->pathname, drv->name);
 	
 	fibril_mutex_lock(&drv->driver_mutex);
 	
@@ -513,12 +510,12 @@ bool start_driver(driver_t *drv)
 
 	assert(fibril_mutex_is_locked(&drv->driver_mutex));
 	
-	printf(NAME ": start_driver '%s'\n", drv->name);
+	log_msg(LVL_DEBUG, "start_driver(drv=\"%s\")", drv->name);
 	
 	rc = task_spawnl(NULL, drv->binary_path, drv->binary_path, NULL);
 	if (rc != EOK) {
-		printf(NAME ": error spawning %s (%s)\n",
-		    drv->name, str_error(rc));
+		log_msg(LVL_ERROR, "Spawning driver `%s' (%s) failed: %s.",
+		    drv->name, drv->binary_path, str_error(rc));
 		return false;
 	}
 	
@@ -580,7 +577,8 @@ static void pass_devices_to_driver(driver_t *driver, dev_tree_t *tree)
 	link_t *link;
 	int phone;
 
-	printf(NAME ": pass_devices_to_driver(`%s')\n", driver->name);
+	log_msg(LVL_DEBUG, "pass_devices_to_driver(driver=\"%s\")",
+	    driver->name);
 
 	fibril_mutex_lock(&driver->driver_mutex);
 
@@ -647,7 +645,7 @@ static void pass_devices_to_driver(driver_t *driver, dev_tree_t *tree)
 	 * the driver would be added to the device list and started
 	 * immediately and possibly started here as well.
 	 */
-	printf(NAME ": driver %s goes into running state.\n", driver->name);
+	log_msg(LVL_DEBUG, "Driver `%s' enters running state.", driver->name);
 	driver->state = DRIVER_RUNNING;
 
 	fibril_mutex_unlock(&driver->driver_mutex);
@@ -664,7 +662,8 @@ static void pass_devices_to_driver(driver_t *driver, dev_tree_t *tree)
  */
 void initialize_running_driver(driver_t *driver, dev_tree_t *tree)
 {
-	printf(NAME ": initialize_running_driver (`%s')\n", driver->name);
+	log_msg(LVL_DEBUG, "initialize_running_driver(driver=\"%s\")",
+	    driver->name);
 	
 	/*
 	 * Pass devices which have been already assigned to the driver to the
@@ -754,8 +753,8 @@ void add_device(int phone, driver_t *drv, dev_node_t *dev, dev_tree_t *tree)
 	 * We do not expect to have driver's mutex locked as we do not
 	 * access any structures that would affect driver_t.
 	 */
-	printf(NAME ": add_device (driver `%s', device `%s')\n", drv->name,
-	    dev->pfun->name);
+	log_msg(LVL_DEBUG, "add_device(drv=\"%s\", dev=\"%s\")",
+	    drv->name, dev->pfun->name);
 	
 	sysarg_t rc;
 	ipc_call_t answer;
@@ -816,7 +815,7 @@ bool assign_driver(dev_node_t *dev, driver_list_t *drivers_list,
 	 */
 	driver_t *drv = find_best_match_driver(drivers_list, dev);
 	if (drv == NULL) {
-		printf(NAME ": no driver found for device '%s'.\n",
+		log_msg(LVL_ERROR, "No driver found for device `%s'.",
 		    dev->pfun->pathname);
 		return false;
 	}
@@ -854,7 +853,7 @@ bool assign_driver(dev_node_t *dev, driver_list_t *drivers_list,
  */
 bool init_device_tree(dev_tree_t *tree, driver_list_t *drivers_list)
 {
-	printf(NAME ": init_device_tree.\n");
+	log_msg(LVL_DEBUG, "init_device_tree()");
 	
 	tree->current_handle = 0;
 	
@@ -1033,7 +1032,7 @@ static bool set_fun_path(fun_node_t *fun, fun_node_t *parent)
 	
 	fun->pathname = (char *) malloc(pathsize);
 	if (fun->pathname == NULL) {
-		printf(NAME ": failed to allocate device path.\n");
+		log_msg(LVL_ERROR, "Failed to allocate device path.");
 		return false;
 	}
 	
@@ -1064,13 +1063,15 @@ bool insert_dev_node(dev_tree_t *tree, dev_node_t *dev, fun_node_t *pfun)
 	assert(tree != NULL);
 	assert(fibril_rwlock_is_write_locked(&tree->rwlock));
 	
+	log_msg(LVL_DEBUG, "insert_dev_node(dev=%p, pfun=%p [\"%s\"])",
+	    dev, pfun, pfun->pathname);
+
 	/* Add the node to the handle-to-node map. */
 	dev->handle = ++tree->current_handle;
 	unsigned long key = dev->handle;
 	hash_table_insert(&tree->devman_devices, &key, &dev->devman_dev);
 
 	/* Add the node to the list of its parent's children. */
-	printf("insert_dev_node: dev=%p, dev->pfun := %p\n", dev, pfun);
 	dev->pfun = pfun;
 	pfun->child = dev;
 	
@@ -1130,6 +1131,13 @@ bool insert_fun_node(dev_tree_t *tree, fun_node_t *fun, char *fun_name,
  */
 fun_node_t *find_fun_node_by_path(dev_tree_t *tree, char *path)
 {
+	assert(path != NULL);
+
+	bool is_absolute = path[0] == '/';
+	if (!is_absolute) {
+		return NULL;
+	}
+
 	fibril_rwlock_read_lock(&tree->rwlock);
 	
 	fun_node_t *fun = tree->root_node;
@@ -1139,7 +1147,7 @@ fun_node_t *find_fun_node_by_path(dev_tree_t *tree, char *path)
 	 */
 	char *rel_path = path;
 	char *next_path_elem = NULL;
-	bool cont = (rel_path[0] == '/');
+	bool cont = true;
 	
 	while (cont && fun != NULL) {
 		next_path_elem  = get_path_elem_end(rel_path + 1);
@@ -1164,6 +1172,65 @@ fun_node_t *find_fun_node_by_path(dev_tree_t *tree, char *path)
 	return fun;
 }
 
+/** Find function with a specified name belonging to given device.
+ *
+ * Device tree rwlock should be held at least for reading.
+ *
+ * @param dev Device the function belongs to.
+ * @param name Function name (not path).
+ * @return Function node.
+ * @retval NULL No function with given name.
+ */
+fun_node_t *find_fun_node_in_device(dev_node_t *dev, const char *name)
+{
+	assert(dev != NULL);
+	assert(name != NULL);
+
+	fun_node_t *fun;
+	link_t *link;
+
+	for (link = dev->functions.next;
+	    link != &dev->functions;
+	    link = link->next) {
+		fun = list_get_instance(link, fun_node_t, dev_functions);
+
+		if (str_cmp(name, fun->name) == 0)
+			return fun;
+	}
+
+	return NULL;
+}
+
+/** Find function node by its class name and index. */
+fun_node_t *find_fun_node_by_class(class_list_t *class_list,
+    const char *class_name, const char *dev_name)
+{
+	assert(class_list != NULL);
+	assert(class_name != NULL);
+	assert(dev_name != NULL);
+
+	fibril_rwlock_read_lock(&class_list->rwlock);
+
+	dev_class_t *cl = find_dev_class_no_lock(class_list, class_name);
+	if (cl == NULL) {
+		fibril_rwlock_read_unlock(&class_list->rwlock);
+		return NULL;
+	}
+
+	dev_class_info_t *dev = find_dev_in_class(cl, dev_name);
+	if (dev == NULL) {
+		fibril_rwlock_read_unlock(&class_list->rwlock);
+		return NULL;
+	}
+
+	fun_node_t *fun = dev->fun;
+
+	fibril_rwlock_read_unlock(&class_list->rwlock);
+
+	return fun;
+}
+
+
 /** Find child function node with a specified name.
  *
  * Device tree rwlock should be held at least for reading.
@@ -1174,21 +1241,7 @@ fun_node_t *find_fun_node_by_path(dev_tree_t *tree, char *path)
  */
 fun_node_t *find_node_child(fun_node_t *pfun, const char *name)
 {
-	fun_node_t *fun;
-	link_t *link;
-	
-	link = pfun->child->functions.next;
-	
-	while (link != &pfun->child->functions) {
-		fun = list_get_instance(link, fun_node_t, dev_functions);
-		
-		if (str_cmp(name, fun->name) == 0)
-			return fun;
-		
-		link = link->next;
-	}
-	
-	return NULL;
+	return find_fun_node_in_device(pfun->child, name);
 }
 
 /* Device classes */
@@ -1348,6 +1401,26 @@ dev_class_t *find_dev_class_no_lock(class_list_t *class_list,
 void add_dev_class_no_lock(class_list_t *class_list, dev_class_t *cl)
 {
 	list_append(&cl->link, &class_list->classes);
+}
+
+dev_class_info_t *find_dev_in_class(dev_class_t *dev_class, const char *dev_name)
+{
+	assert(dev_class != NULL);
+	assert(dev_name != NULL);
+
+	link_t *link;
+	for (link = dev_class->devices.next;
+	    link != &dev_class->devices;
+	    link = link->next) {
+		dev_class_info_t *dev = list_get_instance(link,
+		    dev_class_info_t, link);
+
+		if (str_cmp(dev->dev_name, dev_name) == 0) {
+			return dev;
+		}
+	}
+
+	return NULL;
 }
 
 void init_class_list(class_list_t *class_list)

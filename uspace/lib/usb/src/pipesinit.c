@@ -120,16 +120,21 @@ static bool endpoint_fits_description(const usb_endpoint_description_t *wanted,
 static usb_endpoint_mapping_t *find_endpoint_mapping(
     usb_endpoint_mapping_t *mapping, size_t mapping_count,
     usb_endpoint_description_t *found_endpoint,
-    int interface_number)
+    int interface_number, int interface_setting)
 {
 	while (mapping_count > 0) {
 		bool interface_number_fits = (mapping->interface_no < 0)
 		    || (mapping->interface_no == interface_number);
 
+		bool interface_setting_fits = (mapping->interface_setting < 0)
+		    || (mapping->interface_setting == interface_setting);
+
 		bool endpoint_descriptions_fits = endpoint_fits_description(
 		    mapping->description, found_endpoint);
 
-		if (interface_number_fits && endpoint_descriptions_fits) {
+		if (interface_number_fits
+		    && interface_setting_fits
+		    && endpoint_descriptions_fits) {
 			return mapping;
 		}
 
@@ -180,7 +185,8 @@ static int process_endpoint(
 	 * Find the most fitting mapping and initialize the pipe.
 	 */
 	usb_endpoint_mapping_t *ep_mapping = find_endpoint_mapping(mapping,
-	    mapping_count, &description, interface->interface_number);
+	    mapping_count, &description,
+	    interface->interface_number, interface->alternate_setting);
 	if (ep_mapping == NULL) {
 		return ENOENT;
 	}

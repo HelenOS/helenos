@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Matus Dekanek
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,58 +25,51 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-/** @addtogroup drvusbhub
+/** @addtogroup drvusbohci
  * @{
  */
 /** @file
- * @brief HC driver and hub driver.
- *
- * My private list implementation; I did not like the original helenos list.
- * This one does not depend on the structure of stored data and has
- * much simpler and more straight-forward semantics.
+ * @brief OHCI driver
  */
-#ifndef USBLIST_H
-#define	USBLIST_H
+#ifndef DRV_OHCI_HW_STRUCT_ISO_TRANSFER_DESCRIPTOR_H
+#define DRV_OHCI_HW_STRUCT_ISO_TRANSFER_DESCRIPTOR_H
 
-/**
- * general list structure
- */
-typedef struct usb_general_list{
-	void * data;
-	struct usb_general_list * prev, * next;
-} usb_general_list_t;
+#include <stdint.h>
 
-/** create head of usb general list */
-usb_general_list_t * usb_lst_create(void);
+#include "completion_codes.h"
 
-/** initialize head of usb general list */
-void usb_lst_init(usb_general_list_t * lst);
+typedef struct itd {
+	volatile uint32_t status;
+#define ITD_STATUS_SF_MASK (0xffff) /* starting frame */
+#define ITD_STATUS_SF_SHIFT (0)
+#define ITD_STATUS_DI_MASK (0x7) /* delay int, wait DI frames before int */
+#define ITD_STATUS_DI_SHIFT (21)
+#define ITD_STATUS_DI_NO_INTERRUPT (0x7)
+#define ITD_STATUS_FC_MASK (0x7) /* frame count */
+#define ITD_STATUS_FC_SHIFT (24)
+#define ITD_STATUS_CC_MASK (0xf) /* condition code */
+#define ITD_STATUS_CC_SHIFT (28)
 
+	volatile uint32_t page;   /* page number of the first byte in buffer */
+#define ITD_PAGE_BP0_MASK (0xfffff000)
+#define ITD_PAGE_BP0_SHIFT (0)
 
-/** is the list empty? */
-static inline bool usb_lst_empty(usb_general_list_t * lst){
-	return lst?(lst->next==lst):true;
-}
+	volatile uint32_t next;
+#define ITD_NEXT_PTR_MASK (0xfffffff0)
+#define ITD_NEXT_PTR_SHIFT (0)
 
-/** append data behind item */
-void usb_lst_append(usb_general_list_t * lst, void * data);
+	volatile uint32_t be; /* buffer end, address of the last byte */
 
-/** prepend data beore item */
-void usb_lst_prepend(usb_general_list_t * lst, void * data);
+	volatile uint16_t offset[8];
+#define ITD_OFFSET_SIZE_MASK (0x3ff)
+#define ITD_OFFSET_SIZE_SHIFT (0)
+#define ITD_OFFSET_CC_MASK (0xf)
+#define ITD_OFFSET_CC_SHIFT (12)
 
-/** remove list item from list */
-void usb_lst_remove(usb_general_list_t * item);
-
-/** get data o specified type from list item */
-#define usb_lst_get_data(item, type)  (type *) (item->data)
-
-/** get usb_hub_info_t data from list item */
-static inline usb_hub_info_t * usb_hub_lst_get_data(usb_general_list_t * item) {
-	return usb_lst_get_data(item,usb_hub_info_t);
-}
-
-#endif	/* USBLIST_H */
+} __attribute__((packed)) itd_t;
+#endif
 /**
  * @}
  */
+
+

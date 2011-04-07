@@ -150,9 +150,19 @@ static int register_endpoint(
     usb_transfer_type_t transfer_type, usb_direction_t direction,
     size_t max_packet_size, unsigned int interval)
 {
-	UNSUPPORTED("register_endpoint");
-
-	return ENOTSUP;
+	assert(fun);
+	hc_t *hc = fun_to_hc(fun);
+	assert(hc);
+	if (address == hc->rh.address)
+		return EOK;
+	const usb_speed_t speed =
+		usb_device_keeper_get_speed(&hc->manager, address);
+	const size_t size = max_packet_size;
+	usb_log_debug("Register endpoint %d:%d %s %s(%d) %zu(%zu) %u.\n",
+	    address, endpoint, usb_str_transfer_type(transfer_type),
+	    usb_str_speed(speed), direction, size, max_packet_size, interval);
+	// TODO use real endpoint here!
+	return usb_endpoint_manager_register_ep(&hc->ep_manager,NULL, 0);
 }
 /*----------------------------------------------------------------------------*/
 /** Unregister endpoint (free some bandwidth reservation).
@@ -167,9 +177,13 @@ static int unregister_endpoint(
     ddf_fun_t *fun, usb_address_t address,
     usb_endpoint_t endpoint, usb_direction_t direction)
 {
-	UNSUPPORTED("unregister_endpoint");
-
-	return ENOTSUP;
+	assert(fun);
+	hc_t *hc = fun_to_hc(fun);
+	assert(hc);
+	usb_log_debug("Unregister endpoint %d:%d %d.\n",
+	    address, endpoint, direction);
+	return usb_endpoint_manager_unregister_ep(&hc->ep_manager, address,
+	    endpoint, direction);
 }
 /*----------------------------------------------------------------------------*/
 /** Schedule interrupt out transfer.

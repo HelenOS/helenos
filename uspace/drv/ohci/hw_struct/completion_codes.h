@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Sergey Bondari
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,22 +25,31 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-/** @addtogroup sparc64
+/** @addtogroup drvusbohci
  * @{
  */
 /** @file
+ * @brief OHCI driver
  */
+#ifndef DRV_OHCI_HW_STRUCT_COMPLETION_CODES_H
+#define DRV_OHCI_HW_STRUCT_COMPLETION_CODES_H
 
-#ifndef KERN_sparc64_MEMSTR_H_
-#define KERN_sparc64_MEMSTR_H_
-
-#define memcpy(dst, src, cnt)  __builtin_memcpy((dst), (src), (cnt))
-
-extern void memsetw(void *, size_t, uint16_t);
-extern void memsetb(void *, size_t, uint8_t);
+#define CC_NOERROR (0x0)
+#define CC_CRC (0x1)
+#define CC_BITSTUFF (0x2)
+#define CC_TOGGLE (0x3)
+#define CC_STALL (0x4)
+#define CC_NORESPONSE (0x5)
+#define CC_PIDFAIL (0x6)
+#define CC_PIDUNEXPECTED (0x7)
+#define CC_DATAOVERRRUN (0x8)
+#define CC_DATAUNDERRRUN (0x9)
+#define CC_BUFFEROVERRRUN (0xc)
+#define CC_BUFFERUNDERRUN (0xd)
+#define CC_NOACCESS1 (0xe)
+#define CC_NOACCESS2 (0xf)
 
 #endif
-
-/** @}
+/**
+ * @}
  */

@@ -272,14 +272,8 @@ static void driver_add_device(ipc_callid_t iid, ipc_call_t *icall)
 	(void) parent_fun_handle;
 	
 	res = driver->driver_ops->add_device(dev);
-	if (res == EOK) {
-		printf("%s: new device with handle=%" PRIun " was added.\n",
-		    driver->name, dev_handle);
-	} else {
-		printf("%s: failed to add a new device with handle = %" PRIun ".\n",
-		    driver->name, dev_handle);
+	if (res != EOK)
 		delete_device(dev);
-	}
 	
 	async_answer_0(iid, res);
 }

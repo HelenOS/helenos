@@ -35,6 +35,7 @@
 #define DRV_UHCI_TRANSLATOR_H
 
 #include <assert.h>
+#include <errno.h>
 #include <malloc.h>
 #include <mem.h>
 #include <as.h>

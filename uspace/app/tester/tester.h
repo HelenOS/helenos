@@ -81,6 +81,7 @@ extern const char *test_mapping1(void);
 extern const char *test_serial1(void);
 extern const char *test_usbaddrkeep(void);
 extern const char *test_virtchar1(void);
+extern const char *test_devman1(void);
 
 extern test_t tests[];
 

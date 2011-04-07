@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Sergey Bondari
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,22 +25,45 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-/** @addtogroup ia32
+/** @addtogroup drvusbohci
  * @{
  */
 /** @file
+ * @brief OHCI driver
  */
+#ifndef DRV_OHCI_HW_STRUCT_TRANSFER_DESCRIPTOR_H
+#define DRV_OHCI_HW_STRUCT_TRANSFER_DESCRIPTOR_H
 
-#ifndef KERN_ia32_MEMSTR_H_
-#define KERN_ia32_MEMSTR_H_
+#include <stdint.h>
 
-#define memcpy(dst, src, cnt)  __builtin_memcpy((dst), (src), (cnt))
+#include "completion_codes.h"
 
-extern void memsetw(void *, size_t, uint16_t);
-extern void memsetb(void *, size_t, uint8_t);
+typedef struct td {
+	volatile uint32_t status;
+#define TD_STATUS_ROUND_FLAG (1 << 18)
+#define TD_STATUS_DP_MASK (0x3) /* direction/PID */
+#define TD_STATUS_DP_SHIFT (19)
+#define TD_STATUS_DP_SETUP (0x0)
+#define TD_STATUS_DP_IN (0x1)
+#define TD_STATUS_DP_OUT (0x2)
+#define TD_STATUS_DI_MASK (0x7) /* delay interrupt, wait DI frames before int */
+#define TD_STATUS_DI_SHIFT (21)
+#define TD_STATUS_DI_NO_INTERRUPT (0x7)
+#define TD_STATUS_T_MASK (0x3)  /* data toggle 1x = use ED toggle carry */
+#define TD_STATUS_T_SHIFT (24)
+#define TD_STATUS_EC_MASK (0x3) /* error count */
+#define TD_STATUS_EC_SHIFT (26)
+#define TD_STATUS_CC_MASK (0xf) /* condition code */
+#define TD_STATUS_CC_SHIFT (28)
 
+	volatile uint32_t cbp; /* current buffer ptr, data to be transfered */
+	volatile uint32_t next;
+#define TD_NEXT_PTR_MASK (0xfffffff0)
+#define TD_NEXT_PTR_SHIFT (0)
+
+	volatile uint32_t be; /* buffer end, address of the last byte */
+} __attribute__((packed)) td_t;
 #endif
-
-/** @}
+/**
+ * @}
  */

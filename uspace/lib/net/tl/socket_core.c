@@ -106,7 +106,7 @@ socket_destroy_core(int packet_phone, socket_core_t *socket,
 	if (socket_release)
 		socket_release(socket);
 
-	socket_cores_exclude(local_sockets, socket->socket_id);
+	socket_cores_exclude(local_sockets, socket->socket_id, free);
 }
 
 /** Destroys local sockets.
@@ -229,7 +229,7 @@ socket_bind_insert(socket_ports_t *global_sockets, socket_core_t *socket,
 	return EOK;
 
 fail:
-	socket_port_map_destroy(&socket_port->map);
+	socket_port_map_destroy(&socket_port->map, free);
 	free(socket_port);
 	return rc;
 	
@@ -648,14 +648,14 @@ socket_port_release(socket_ports_t *global_sockets, socket_core_t *socket)
 			// release if empty
 			if (socket_port->count <= 0) {
 				// destroy the map
-				socket_port_map_destroy(&socket_port->map);
+				socket_port_map_destroy(&socket_port->map, free);
 				// release the port
 				socket_ports_exclude(global_sockets,
-				    socket->port);
+				    socket->port, free);
 			} else {
 				// remove
 				socket_port_map_exclude(&socket_port->map,
-				    socket->key, socket->key_length);
+				    socket->key, socket->key_length, free);
 			}
 		}
 	}
