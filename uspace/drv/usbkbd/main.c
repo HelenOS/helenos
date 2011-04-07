@@ -104,7 +104,7 @@ static int usb_kbd_try_add_device(usb_device_t *dev)
 		ddf_fun_destroy(kbd_fun);
 		usb_kbd_free(&kbd_dev);
 		return rc;
-	}	
+	}
 	
 	usb_log_debug("USB/HID KBD device structure initialized.\n");
 	
@@ -200,8 +200,8 @@ static int usb_kbd_add_device(usb_device_t *dev)
 	
 	if (dev->interface_no < 0) {
 		usb_log_warning("Device is not a supported keyboard.\n");
-		usb_log_error("Failed to add USB KBD device: endpoint not found."
-		    "\n");
+		usb_log_error("Failed to add USB KBD device: endpoint not "
+		    "found.\n");
 		return ENOTSUP;
 	}
 	
