@@ -239,16 +239,6 @@ void usb_hid_free_report_parser(usb_hid_report_parser_t *parser);
 /** */
 void usb_hid_descriptor_print(usb_hid_report_parser_t *parser);
 
-/*
- * Boot protocol functions
- */
-/** */
-int usb_hid_boot_keyboard_input_report(const uint8_t *data, size_t size,
-	const usb_hid_report_in_callbacks_t *callbacks, void *arg);
-
-/** */
-int usb_hid_boot_keyboard_output_report(uint8_t leds, uint8_t *data, size_t size);
-
 
 /*
  * Input report parser functions
@@ -300,7 +290,7 @@ usb_hid_report_path_t *usb_hid_report_path_clone(usb_hid_report_path_t *usage_pa
  * Output report parser functions
  */
 /** Allocates output report buffer*/
-uint8_t *usb_hid_report_output(usb_hid_report_parser_t *parser, size_t *size);
+uint8_t *usb_hid_report_output(usb_hid_report_parser_t *parser, size_t *size, uint8_t report_id);
 
 /** Frees output report buffer*/
 void usb_hid_report_output_free(uint8_t *output);

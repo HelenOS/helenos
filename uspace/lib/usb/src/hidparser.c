@@ -39,13 +39,17 @@
 #include <mem.h>
 #include <usb/debug.h>
 
-/** */
+/** The new report item flag. Used to determine when the item is completly
+ * configured and should be added to the report structure
+ */
 #define USB_HID_NEW_REPORT_ITEM 1
 
-/** */
-#define USB_HID_NO_ACTION		2
+/** No special action after the report descriptor tag is processed should be
+ * done
+ */
+#define USB_HID_NO_ACTION	2
 
-/** */
+/** Unknown tag was founded in report descriptor data*/
 #define USB_HID_UNKNOWN_TAG		-99
 
 /*
@@ -235,6 +239,9 @@ int usb_hid_parse_report_descriptor(usb_hid_report_parser_t *parser,
 					new_report_item->string_minimum = 0;
 					new_report_item->string_maximum = 0;
 
+					/* set the report id */
+					new_report_item->id = report_item->id;
+
 					/* reset usage from current usage path */
 					usb_hid_report_usage_path_t *path = list_get_instance(&usage_path->link, usb_hid_report_usage_path_t, link);
 					path->usage = 0;
@@ -289,66 +296,6 @@ int usb_hid_parse_report_descriptor(usb_hid_report_parser_t *parser,
 	return EOK;
 }
 
-
-/**
- * Parse input report.
- *
- * @param data Data for report
- * @param size Size of report
- * @param callbacks Callbacks for report actions
- * @param arg Custom arguments
- *
- * @return Error code
- */
-int usb_hid_boot_keyboard_input_report(const uint8_t *data, size_t size,
-	const usb_hid_report_in_callbacks_t *callbacks, void *arg)
-{
-	int i;
-	usb_hid_report_item_t item;
-
-	/* fill item due to the boot protocol report descriptor */
-	// modifier keys are in the first byte
-	uint8_t modifiers = data[0];
-
-	item.offset = 2; /* second byte is reserved */
-	item.size = 8;
-	item.count = 6;
-	item.usage_minimum = 0;
-	item.usage_maximum = 255;
-	item.logical_minimum = 0;
-	item.logical_maximum = 255;
-
-	if (size != 8) {
-		return -1; //ERANGE;
-	}
-
-	uint8_t keys[6];
-	for (i = 0; i < item.count; i++) {
-		keys[i] = data[i + item.offset];
-	}
-
-	callbacks->keyboard(keys, 6, modifiers, arg);
-	return EOK;
-}
-
-/**
- * Makes output report for keyboard boot protocol
- *
- * @param leds
- * @param output Output report data buffer
- * @param size Size of the output buffer
- * @return Error code
- */
-int usb_hid_boot_keyboard_output_report(uint8_t leds, uint8_t *data, size_t size)
-{
-	if(size != 1){
-		return -1;
-	}
-
-	/* used only first five bits, others are only padding*/
-	*data = leds;
-	return EOK;
-}
 
 /**
  * Parse one tag of the report descriptor
@@ -858,12 +805,12 @@ int usb_hid_translate_data(const usb_hid_report_parser_t *parser, usb_hid_report
 }
 
 /**
+ * Returns number of items in input report which are accessible by given usage path
  *
- *
- * @param parser
- * @param path
- * @param flags
- * @return
+ * @param parser Opaque report descriptor structure
+ * @param path Usage path specification
+ * @param flags Usage path comparison flags
+ * @return Number of items in input report
  */
 size_t usb_hid_report_input_length(const usb_hid_report_parser_t *parser,
 	usb_hid_report_path_t *path, int flags)
@@ -892,11 +839,13 @@ size_t usb_hid_report_input_length(const usb_hid_report_parser_t *parser,
 
 
 /**
- * 
- * @param usage_path
- * @param usage_page
- * @param usage
- * @return
+ * Appends one item (couple of usage_path and usage) into the usage path
+ * structure
+ *
+ * @param usage_path Usage path structure
+ * @param usage_page Usage page constant
+ * @param usage Usage constant
+ * @return Error code
  */
 int usb_hid_report_path_append_item(usb_hid_report_path_t *usage_path, 
                                     int32_t usage_page, int32_t usage)
@@ -917,9 +866,9 @@ int usb_hid_report_path_append_item(usb_hid_report_path_t *usage_path,
 }
 
 /**
- *
- * @param usage_path
- * @return
+ * Removes last item from the usage path structure
+ * @param usage_path 
+ * @return void
  */
 void usb_hid_report_remove_last_item(usb_hid_report_path_t *usage_path)
 {
@@ -934,9 +883,10 @@ void usb_hid_report_remove_last_item(usb_hid_report_path_t *usage_path)
 }
 
 /**
+ * Nulls last item of the usage path structure.
  *
  * @param usage_path
- * @return
+ * @return void
  */
 void usb_hid_report_null_last_item(usb_hid_report_path_t *usage_path)
 {
@@ -949,11 +899,13 @@ void usb_hid_report_null_last_item(usb_hid_report_path_t *usage_path)
 }
 
 /**
+ * Modifies last item of usage path structure by given usage page or usage
  *
- * @param usage_path
- * @param tag
- * @param data
- * @return
+ * @param usage_path Opaque usage path structure
+ * @param tag Class of currently processed tag (Usage page tag falls into Global
+ * class but Usage tag into the Local)
+ * @param data Value of the processed tag
+ * @return void
  */
 void usb_hid_report_set_last_item(usb_hid_report_path_t *usage_path, int32_t tag, int32_t data)
 {
@@ -975,12 +927,12 @@ void usb_hid_report_set_last_item(usb_hid_report_path_t *usage_path, int32_t tag
 }
 
 /**
- * 
+ * Compares two usage paths structures
  *
- * @param report_path
- * @param path
- * @param flags
- * @return
+ * @param report_path usage path structure to compare
+ * @param path usage patrh structure to compare
+ * @param flags Flags determining the mode of comparison
+ * @return EOK if both paths are identical, non zero number otherwise
  */
 int usb_hid_report_compare_usage_path(usb_hid_report_path_t *report_path, 
                                       usb_hid_report_path_t *path,
@@ -1081,8 +1033,9 @@ int usb_hid_report_compare_usage_path(usb_hid_report_path_t *report_path,
 }
 
 /**
+ * Allocates and initializes new usage path structure.
  *
- * @return
+ * @return Initialized usage path structure
  */
 usb_hid_report_path_t *usb_hid_report_path(void)
 {
@@ -1100,8 +1053,9 @@ usb_hid_report_path_t *usb_hid_report_path(void)
 }
 
 /**
+ * Releases given usage path structure.
  *
- * @param path
+ * @param path usage path structure to release
  * @return void
  */
 void usb_hid_report_path_free(usb_hid_report_path_t *path)
@@ -1115,8 +1069,8 @@ void usb_hid_report_path_free(usb_hid_report_path_t *path)
 /**
  * Clone content of given usage path to the new one
  *
- * @param usage_path
- * @return
+ * @param usage_path Usage path structure to clone
+ * @return New copy of given usage path structure
  */
 usb_hid_report_path_t *usb_hid_report_path_clone(usb_hid_report_path_t *usage_path)
 {
@@ -1146,13 +1100,15 @@ usb_hid_report_path_t *usb_hid_report_path_clone(usb_hid_report_path_t *usage_pa
 
 /*** OUTPUT API **/
 
-/** Allocates output report buffer
+/** 
+ * Allocates output report buffer for output report
  *
- * @param parser
- * @param size
- * @return
+ * @param parser Report parsed structure
+ * @param size Size of returned buffer
+ * @param report_id Report id of created output report
+ * @return Returns allocated output buffer for specified output
  */
-uint8_t *usb_hid_report_output(usb_hid_report_parser_t *parser, size_t *size)
+uint8_t *usb_hid_report_output(usb_hid_report_parser_t *parser, size_t *size, uint8_t report_id)
 {
 	if(parser == NULL) {
 		*size = 0;
@@ -1164,6 +1120,20 @@ uint8_t *usb_hid_report_output(usb_hid_report_parser_t *parser, size_t *size)
 	link_t *link;
 
 	link = parser->output.prev;
+	while((link != &parser->output)){
+		last = list_get_instance(link, usb_hid_report_item_t, link);
+
+		usb_log_debug("pro id: %d, posledni %d\n", report_id, last->id);
+		if(last->id == report_id){
+			break;
+		} 
+		else {
+			link =  link->prev;
+		}
+	}
+
+	
+
 	if(link != &parser->output) {
 		last = list_get_instance(link, usb_hid_report_item_t, link);
 		*size = (last->offset + (last->size * last->count)) / 8;
@@ -1188,7 +1158,7 @@ uint8_t *usb_hid_report_output(usb_hid_report_parser_t *parser, size_t *size)
 /** Frees output report buffer
  *
  * @param output Output report buffer
- * @return
+ * @return void
  */
 void usb_hid_report_output_free(uint8_t *output)
 
@@ -1200,10 +1170,10 @@ void usb_hid_report_output_free(uint8_t *output)
 
 /** Returns size of output for given usage path 
  *
- * @param parser
- * @param path
- * @param flags
- * @return
+ * @param parser Opaque report parser structure
+ * @param path Usage path specified which items will be thought for the output
+ * @param flags Flags of usage path structure comparison
+ * @return Number of items matching the given usage path
  */
 size_t usb_hid_report_output_size(usb_hid_report_parser_t *parser,
                                   usb_hid_report_path_t *path, int flags)
@@ -1231,16 +1201,16 @@ size_t usb_hid_report_output_size(usb_hid_report_parser_t *parser,
 	
 }
 
-/** Updates the output report buffer by translated given data 
+/** Updates the output report buffer by given data 
  *
- * @param parser
- * @param path
- * @param flags
- * @param buffer
- * @param size
- * @param data
- * @param data_size
- * @return
+ * @param parser Opaque report parser structure
+ * @param path Usage path specifing which parts of output will be set
+ * @param flags Usage path structure comparison flags
+ * @param buffer Output buffer
+ * @param size Size of output buffer
+ * @param data Data buffer
+ * @param data_size Size of data buffer
+ * @return Error code
  */
 int usb_hid_report_output_translate(usb_hid_report_parser_t *parser,
                                     usb_hid_report_path_t *path, int flags,
@@ -1340,10 +1310,10 @@ int usb_hid_report_output_translate(usb_hid_report_parser_t *parser,
 }
 
 /**
- *
- * @param item
- * @param value
- * @return
+ * Translate given data for putting them into the outoput report
+ * @param item Report item structure
+ * @param value Value to translate
+ * @return ranslated value
  */
 int32_t usb_hid_translate_data_reverse(usb_hid_report_item_t *item, int value)
 {
@@ -1388,7 +1358,13 @@ int32_t usb_hid_translate_data_reverse(usb_hid_report_item_t *item, int value)
 	return ret;
 }
 
-
+/**
+ * Sets report id in usage path structure
+ *
+ * @param path Usage path structure
+ * @param report_id Report id to set
+ * @return Error code
+ */
 int usb_hid_report_path_set_report_id(usb_hid_report_path_t *path, uint8_t report_id)
 {
 	if(path == NULL){
@@ -1399,7 +1375,12 @@ int usb_hid_report_path_set_report_id(usb_hid_report_path_t *path, uint8_t repor
 	return EOK;
 }
 
-
+/**
+ * Clones given report item structure and returns the new one
+ *
+ * @param item Report item structure to clone
+ * @return Clonned item
+ */
 usb_hid_report_item_t *usb_hid_report_item_clone(const usb_hid_report_item_t *item)
 {
 	usb_hid_report_item_t *new_report_item;

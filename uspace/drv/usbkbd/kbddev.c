@@ -127,9 +127,12 @@ static const uint8_t BOOT_REPORT_DESCRIPTOR[BOOT_REPORT_DESCRIPTOR_SIZE] = {
         0x29, 0xE7,  //   Usage Maximum (231),
         0x15, 0x00,  //   Logical Minimum (0),
         0x25, 0x01,  //   Logical Maximum (1),
+	//0x85, 0x00,  //   Report ID,
+	//0xA4,	     //   Push
         0x81, 0x02,  //   Input (Data, Variable, Absolute),   ; Modifier byte
-	0x95, 0x01,  //   Report Count (1),
-        0x75, 0x08,  //   Report Size (8),
+	//0xB4,	     //   Pop
+        0x75, 0x08,  //   Report Size (1),
+        0x95, 0x01,  //   Report Count (8),       
         0x81, 0x01,  //   Input (Constant),                   ; Reserved byte
         0x95, 0x05,  //   Report Count (5),
         0x75, 0x01,  //   Report Size (1),
@@ -556,7 +559,7 @@ static void usb_kbd_process_keycodes(const uint8_t *key_codes, size_t count,
 	usb_kbd_t *kbd_dev = (usb_kbd_t *)arg;
 	assert(kbd_dev != NULL);
 
-	usb_log_debug("Got keys from parser: %s\n", 
+	usb_log_debug("Got keys from parser (report id: %d): %s\n", modifiers, 
 	    usb_debug_str_buffer(key_codes, count, 0));
 	
 	if (count != kbd_dev->key_count) {
@@ -607,8 +610,12 @@ static void usb_kbd_process_data(usb_kbd_t *kbd_dev,
 //	    callbacks, kbd_dev);
 	usb_hid_report_path_t *path = usb_hid_report_path();
 	usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_KEYBOARD, 0);
+
+	uint8_t *tmp_buf = malloc((actual_size+1)*sizeof(uint8_t));
+	tmp_buf[0] = 0x00;
+	memcpy(tmp_buf+1, buffer, actual_size);
 	
-	int rc = usb_hid_parse_report(kbd_dev->parser, buffer,
+	int rc = usb_hid_parse_report(kbd_dev->parser, tmp_buf,
 	    actual_size, path, USB_HID_PATH_COMPARE_STRICT, callbacks, kbd_dev);
 
 	usb_hid_report_path_free (path);
@@ -729,9 +736,9 @@ int usb_kbd_init(usb_kbd_t *kbd_dev, usb_device_t *dev)
 	}
 	
 	/* Get the report descriptor and parse it. */
-	rc = usb_hid_process_report_descriptor(kbd_dev->usb_dev, 
-	    kbd_dev->parser);
-	if (rc != EOK) {
+	//rc = usb_hid_process_report_descriptor(kbd_dev->usb_dev, 
+	//    kbd_dev->parser);
+	if (true || rc != EOK) {
 		usb_log_warning("Could not process report descriptor, "
 		    "falling back to boot protocol.\n");
 		rc = usb_hid_parse_report_descriptor(kbd_dev->parser, 
@@ -775,7 +782,7 @@ int usb_kbd_init(usb_kbd_t *kbd_dev, usb_device_t *dev)
 	 */
 	kbd_dev->output_size = 0;
 	kbd_dev->output_buffer = usb_hid_report_output(kbd_dev->parser, 
-	    &kbd_dev->output_size);
+	    &kbd_dev->output_size, 0x00);
 	if (kbd_dev->output_buffer == NULL) {
 		usb_log_warning("Error creating output report buffer.\n");
 		free(kbd_dev->keys);
@@ -787,6 +794,7 @@ int usb_kbd_init(usb_kbd_t *kbd_dev, usb_device_t *dev)
 	kbd_dev->led_path = usb_hid_report_path();
 	usb_hid_report_path_append_item(
 	    kbd_dev->led_path, USB_HIDUT_PAGE_LED, 0);
+	usb_hid_report_path_set_report_id(kbd_dev->led_path, 0x00);
 	
 	kbd_dev->led_output_size = usb_hid_report_output_size(kbd_dev->parser, 
 	    kbd_dev->led_path, USB_HID_PATH_COMPARE_END);
