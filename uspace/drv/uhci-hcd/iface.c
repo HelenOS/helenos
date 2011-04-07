@@ -231,8 +231,7 @@ static int interrupt_out(
 	}
 	const size_t bw = bandwidth_count_usb11(ep->speed, ep->transfer_type,
 	    size, ep->max_packet_size);
-	if (res_bw < bw)
-	{
+	if (res_bw < bw) {
 		usb_log_error("Endpoint(%d:%d) INT IN needs %zu bw "
 		    "but only %zu is reserved.\n",
 		    target.address, target.endpoint, bw, res_bw);
@@ -288,8 +287,7 @@ static int interrupt_in(
 	}
 	const size_t bw = bandwidth_count_usb11(ep->speed, ep->transfer_type,
 	    size, ep->max_packet_size);
-	if (res_bw < bw)
-	{
+	if (res_bw < bw) {
 		usb_log_error("Endpoint(%d:%d) INT IN needs %zu bw "
 		    "but only %zu bw is reserved.\n",
 		    target.address, target.endpoint, bw, res_bw);
@@ -428,23 +426,29 @@ static int control_write(
 	assert(fun);
 	hc_t *hc = fun_to_hc(fun);
 	assert(hc);
-	usb_speed_t speed =
-	    usb_device_keeper_get_speed(&hc->manager, target.address);
-	usb_log_debug("Control WRITE (%d) %d:%d %zu(%zu).\n",
-	    speed, target.address, target.endpoint, size, max_packet_size);
+
+	usb_log_debug("Control WRITE %d:%d %zu(%zu).\n",
+	    target.address, target.endpoint, size, max_packet_size);
+
 	endpoint_t *ep = usb_endpoint_manager_get_ep(&hc->ep_manager,
 	    target.address, target.endpoint, USB_DIRECTION_BOTH, NULL);
 	if (ep == NULL) {
-		usb_log_warning("Endpoint(%d:%d) not registered for CONTROL.\n",
+		usb_log_error("Endpoint(%d:%d) not registered for CONTROL.\n",
 			target.address, target.endpoint);
+		return ENOENT;
 	}
+	assert(ep->speed ==
+	    usb_device_keeper_get_speed(&hc->manager, target.address));
+	assert(ep->max_packet_size == max_packet_size);
+	assert(ep->transfer_type == USB_TRANSFER_CONTROL);
 
 	if (setup_size != 8)
 		return EINVAL;
 
 	usb_transfer_batch_t *batch =
-	    batch_get(fun, target, USB_TRANSFER_CONTROL, max_packet_size, speed,
-	        data, size, setup_data, setup_size, NULL, callback, arg, ep);
+	    batch_get(fun, target, ep->transfer_type, ep->max_packet_size,
+	        ep->speed, data, size, setup_data, setup_size, NULL, callback,
+		arg, ep);
 	if (!batch)
 		return ENOMEM;
 	usb_device_keeper_reset_if_need(&hc->manager, target, setup_data);
@@ -477,20 +481,26 @@ static int control_read(
 	assert(fun);
 	hc_t *hc = fun_to_hc(fun);
 	assert(hc);
-	usb_speed_t speed =
-	    usb_device_keeper_get_speed(&hc->manager, target.address);
 
-	usb_log_debug("Control READ(%d) %d:%d %zu(%zu).\n",
-	    speed, target.address, target.endpoint, size, max_packet_size);
+	usb_log_debug("Control READ %d:%d %zu(%zu).\n",
+	    target.address, target.endpoint, size, max_packet_size);
+
 	endpoint_t *ep = usb_endpoint_manager_get_ep(&hc->ep_manager,
 	    target.address, target.endpoint, USB_DIRECTION_BOTH, NULL);
 	if (ep == NULL) {
-		usb_log_warning("Endpoint(%d:%d) not registered for CONTROL.\n",
-			target.address, target.endpoint);
+		usb_log_error("Endpoint(%d:%d) not registered for CONTROL.\n",
+		    target.address, target.endpoint);
+		return ENOENT;
 	}
+	assert(ep->speed ==
+	    usb_device_keeper_get_speed(&hc->manager, target.address));
+	assert(ep->max_packet_size == max_packet_size);
+	assert(ep->transfer_type == USB_TRANSFER_CONTROL);
+
 	usb_transfer_batch_t *batch =
-	    batch_get(fun, target, USB_TRANSFER_CONTROL, max_packet_size, speed,
-	        data, size, setup_data, setup_size, callback, NULL, arg, ep);
+	    batch_get(fun, target, ep->transfer_type, ep->max_packet_size,
+	        ep->speed, data, size, setup_data, setup_size,
+		callback, NULL, arg, ep);
 	if (!batch)
 		return ENOMEM;
 	batch_control_read(batch);

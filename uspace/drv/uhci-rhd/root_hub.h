@@ -39,7 +39,7 @@
 #include "port.h"
 
 #define UHCI_ROOT_HUB_PORT_COUNT 2
-#define ROOT_HUB_WAIT_USEC 5000000 /* 5 seconds */
+#define ROOT_HUB_WAIT_USEC 250000 /* 250 miliseconds */
 
 typedef struct root_hub {
 	uhci_port_t ports[UHCI_ROOT_HUB_PORT_COUNT];

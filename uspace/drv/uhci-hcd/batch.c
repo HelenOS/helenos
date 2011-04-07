@@ -87,6 +87,7 @@ usb_transfer_batch_t * batch_get(ddf_fun_t *fun, usb_target_t target,
     usbhc_iface_transfer_out_callback_t func_out, void *arg, endpoint_t *ep
     )
 {
+	assert(ep);
 	assert(func_in == NULL || func_out == NULL);
 	assert(func_in != NULL || func_out != NULL);
 
