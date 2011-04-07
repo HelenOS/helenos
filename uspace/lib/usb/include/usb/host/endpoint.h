@@ -41,16 +41,20 @@
 #include <usb/usb.h>
 
 typedef struct endpoint {
-	link_t same_device_eps;
+	usb_address_t address;
+	usb_endpoint_t endpoint;
+	usb_direction_t direction;
 	usb_transfer_type_t transfer_type;
 	usb_speed_t speed;
 	size_t max_packet_size;
 	bool active;
 	unsigned toggle:1;
+	link_t same_device_eps;
 } endpoint_t;
 
-int endpoint_init(endpoint_t *instance, usb_transfer_type_t transfer_type,
-    usb_speed_t speed, size_t max_packet_size);
+int endpoint_init(endpoint_t *instance, usb_address_t address,
+    usb_endpoint_t endpoint, usb_direction_t direction,
+    usb_transfer_type_t type, usb_speed_t speed, size_t max_packet_size);
 
 void endpoint_destroy(endpoint_t *instance);
 

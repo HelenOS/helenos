@@ -167,7 +167,8 @@ static int register_endpoint(
 	endpoint_t *ep = malloc(sizeof(endpoint_t));
 	if (ep == NULL)
 		return ENOMEM;
-	ret = endpoint_init(ep, transfer_type, speed, max_packet_size);
+	ret = endpoint_init(ep, address, endpoint, direction,
+	    transfer_type, speed, max_packet_size);
 	if (ret != EOK) {
 		free(ep);
 		return ret;
