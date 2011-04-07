@@ -147,7 +147,8 @@ typedef enum {
 } devman_to_driver_t;
 
 typedef enum {
-	DEVMAN_DEVICE_GET_HANDLE = IPC_FIRST_USER_METHOD
+	DEVMAN_DEVICE_GET_HANDLE = IPC_FIRST_USER_METHOD,
+	DEVMAN_DEVICE_GET_HANDLE_BY_CLASS
 } client_to_devman_t;
 
 #endif

@@ -86,6 +86,10 @@ static void apic_connection(ipc_callid_t iid, ipc_call_t *icall)
 			/* Noop */
 			async_answer_0(callid, EOK);
 			break;
+		case IPC_M_PHONE_HUNGUP:
+			/* The other side has hung up. */
+			async_answer_0(callid, EOK);
+			return;
 		default:
 			async_answer_0(callid, EINVAL);
 			break;

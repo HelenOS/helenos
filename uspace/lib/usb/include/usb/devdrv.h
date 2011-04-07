@@ -46,6 +46,29 @@ typedef struct {
 	size_t configuration_size;
 } usb_device_descriptors_t;
 
+/** Wrapper for data related to alternate interface setting.
+ * The pointers will typically point inside configuration descriptor and
+ * thus you shall not deallocate them.
+ */
+typedef struct {
+	/** Interface descriptor. */
+	usb_standard_interface_descriptor_t *interface;
+	/** Pointer to start of descriptor tree bound with this interface. */
+	uint8_t *nested_descriptors;
+	/** Size of data pointed by nested_descriptors in bytes. */
+	size_t nested_descriptors_size;
+} usb_alternate_interface_descriptors_t;
+
+/** Alternate interface settings. */
+typedef struct {
+	/** Array of alternate interfaces descriptions. */
+	usb_alternate_interface_descriptors_t *alternatives;
+	/** Size of @c alternatives array. */
+	size_t alternative_count;
+	/** Index of currently selected one. */
+	size_t current;
+} usb_alternate_interfaces_t;
+
 /** USB device structure. */
 typedef struct {
 	/** The default control pipe. */
@@ -55,11 +78,19 @@ typedef struct {
 	 * in usb_driver_t.
 	 */
 	usb_endpoint_mapping_t *pipes;
+	/** Number of other endpoint pipes. */
+	size_t pipes_count;
 	/** Current interface.
 	 * Usually, drivers operate on single interface only.
 	 * This item contains the value of the interface or -1 for any.
 	 */
 	int interface_no;
+
+	/** Alternative interfaces.
+	 * Set to NULL when the driver controls whole device
+	 * (i.e. more (or any) interfaces).
+	 */
+	usb_alternate_interfaces_t *alternate_interfaces;
 
 	/** Some useful descriptors. */
 	usb_device_descriptors_t descriptors;
@@ -91,11 +122,34 @@ typedef struct {
 	 * the same as the directory name where the driver executable resides.
 	 */
 	const char *name;
-	/** Expected endpoints description, excluding default control endpoint.
+	/** Expected endpoints description.
+	 * This description shall exclude default control endpoint (pipe zero)
+	 * and must be NULL terminated.
+	 * When only control endpoint is expected, you may set NULL directly
+	 * without creating one item array containing NULL.
 	 *
-	 * It MUST be of size expected_enpoints_count(excluding default ctrl) + 1
-	 * where the last record MUST BE NULL, otherwise catastrophic things may
-	 * happen.
+	 * When the driver expect single interrupt in endpoint,
+	 * the initialization may look like this:
+\code
+static usb_endpoint_description_t poll_endpoint_description = {
+	.transfer_type = USB_TRANSFER_INTERRUPT,
+	.direction = USB_DIRECTION_IN,
+	.interface_class = USB_CLASS_HUB,
+	.interface_subclass = 0,
+	.interface_protocol = 0,
+	.flags = 0
+};
+
+static usb_endpoint_description_t *hub_endpoints[] = {
+	&poll_endpoint_description,
+	NULL
+};
+
+static usb_driver_t hub_driver = {
+	.endpoints = hub_endpoints,
+	...
+};
+\endcode
 	 */
 	usb_endpoint_description_t **endpoints;
 	/** Driver ops. */
@@ -104,10 +158,12 @@ typedef struct {
 
 int usb_driver_main(usb_driver_t *);
 
+int usb_device_select_interface(usb_device_t *, uint8_t,
+    usb_endpoint_description_t **);
+
 typedef bool (*usb_polling_callback_t)(usb_device_t *,
     uint8_t *, size_t, void *);
 typedef void (*usb_polling_terminted_callback_t)(usb_device_t *, bool, void *);
-
 
 int usb_device_auto_poll(usb_device_t *, size_t,
     usb_polling_callback_t, size_t, usb_polling_terminted_callback_t, void *);

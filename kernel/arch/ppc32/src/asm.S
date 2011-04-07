@@ -34,9 +34,6 @@
 .global userspace_asm
 .global iret
 .global iret_syscall
-.global memsetb
-.global memsetw
-.global memcpy
 .global memcpy_from_uspace
 .global memcpy_to_uspace
 .global memcpy_from_uspace_failover_address
@@ -207,13 +204,6 @@ iret_syscall:
 	
 	rfi
 
-memsetb:
-	b _memsetb
-
-memsetw:
-	b _memsetw
-
-memcpy:
 memcpy_from_uspace:
 memcpy_to_uspace:
 	

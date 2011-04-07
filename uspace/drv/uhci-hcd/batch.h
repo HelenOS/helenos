@@ -34,11 +34,10 @@
 #ifndef DRV_UHCI_BATCH_H
 #define DRV_UHCI_BATCH_H
 
-#include <adt/list.h>
-
 #include <usbhc_iface.h>
 #include <usb/usb.h>
 #include <usb/host/device_keeper.h>
+#include <usb/host/endpoint.h>
 #include <usb/host/batch.h>
 
 #include "hw_struct/queue_head.h"
@@ -56,7 +55,7 @@ usb_transfer_batch_t * batch_get(
     usbhc_iface_transfer_in_callback_t func_in,
     usbhc_iface_transfer_out_callback_t func_out,
 		void *arg,
-		usb_device_keeper_t *manager
+		endpoint_t *ep
 		);
 
 void batch_dispose(usb_transfer_batch_t *instance);

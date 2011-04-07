@@ -52,6 +52,8 @@ SOURCES = \
 	src/hidreq.c \
 	src/hidreport.c \
 	src/host/device_keeper.c \
-	src/host/batch.c
+	src/host/batch.c \
+	src/host/endpoint.c \
+	src/host/usb_endpoint_manager.c
 
 include $(USPACE_PREFIX)/Makefile.common

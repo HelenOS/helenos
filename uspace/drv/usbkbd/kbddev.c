@@ -69,17 +69,18 @@
 /** Default modifiers when the keyboard is initialized. */
 static const unsigned DEFAULT_ACTIVE_MODS = KM_NUM_LOCK;
 
-/** Boot protocol report size (key part). */
-static const size_t BOOTP_REPORT_SIZE = 6;
+///** Boot protocol report size (key part). */
+//static const size_t BOOTP_REPORT_SIZE = 6;
 
-/** Boot protocol total report size. */
-static const size_t BOOTP_BUFFER_SIZE = 8;
+///** Boot protocol total report size. */
+//static const size_t BOOTP_BUFFER_SIZE = 8;
 
-/** Boot protocol output report size. */
-static const size_t BOOTP_BUFFER_OUT_SIZE = 1;
+///** Boot protocol output report size. */
+//static const size_t BOOTP_BUFFER_OUT_SIZE = 1;
 
-/** Boot protocol error key code. */
-static const uint8_t BOOTP_ERROR_ROLLOVER = 1;
+///** Boot protocol error key code. */
+//static const uint8_t BOOTP_ERROR_ROLLOVER = 1;
+static const uint8_t ERROR_ROLLOVER = 1;
 
 /** Default idle rate for keyboards. */
 static const uint8_t IDLE_RATE = 0;
@@ -263,42 +264,22 @@ void default_connection_handler(ddf_fun_t *fun,
  */
 static void usb_kbd_set_led(usb_kbd_t *kbd_dev) 
 {
-//	uint8_t buffer[BOOTP_BUFFER_OUT_SIZE];
-//	int rc= 0;
-	
-//	memset(buffer, 0, BOOTP_BUFFER_OUT_SIZE);
-//	uint8_t leds = 0;
-
 	unsigned i = 0;
+	
+	/* Reset the LED data. */
+	memset(kbd_dev->led_data, 0, kbd_dev->led_output_size * sizeof(int32_t));
 	
 	if ((kbd_dev->mods & KM_NUM_LOCK) && (i < kbd_dev->led_output_size)) {
 		kbd_dev->led_data[i++] = USB_HID_LED_NUM_LOCK;
-//		leds |= USB_HID_LED_NUM_LOCK;
-	}
-	else {
-	    kbd_dev->led_data[i++] = 0;
 	}
 	
 	if ((kbd_dev->mods & KM_CAPS_LOCK) && (i < kbd_dev->led_output_size)) {
 		kbd_dev->led_data[i++] = USB_HID_LED_CAPS_LOCK;
-//		leds |= USB_HID_LED_CAPS_LOCK;
-	}
-	else {
-	    kbd_dev->led_data[i++] = 0;
 	}
 	
 	if ((kbd_dev->mods & KM_SCROLL_LOCK) 
 	    && (i < kbd_dev->led_output_size)) {
 		kbd_dev->led_data[i++] = USB_HID_LED_SCROLL_LOCK;
-//		leds |= USB_HID_LED_SCROLL_LOCK;
-	}
-	else {
-	    kbd_dev->led_data[i++] = 0;
-	}
-	
-	usb_log_debug("Output report data: ");
-	for (i = 0; i < kbd_dev->led_output_size; ++i) {
-		usb_log_debug("%u: %d", i, kbd_dev->led_data[i]);
 	}
 
 	// TODO: COMPOSE and KANA
@@ -314,13 +295,6 @@ static void usb_kbd_set_led(usb_kbd_t *kbd_dev)
 		    ".\n");
 		return;
 	}
-	
-//	if ((rc = usb_hid_boot_keyboard_output_report(
-//	    leds, buffer, BOOTP_BUFFER_OUT_SIZE)) != EOK) {
-//		usb_log_warning("Error composing output report to the keyboard:"
-//		    "%s.\n", str_error(rc));
-//		return;
-//	}
 	
 	usb_log_debug("Output report buffer: %s\n", 
 	    usb_debug_str_buffer(kbd_dev->output_buffer, kbd_dev->output_size, 
@@ -479,16 +453,16 @@ static void usb_kbd_check_key_changes(usb_kbd_t *kbd_dev,
 	/*
 	 * First of all, check if the kbd have reported phantom state.
 	 *
-	 *  this must be changed as we don't know which keys are modifiers
-	 *       and which are regular keys.
+	 * As there is no way to distinguish keys from modifiers, we do not have
+	 * a way to check that 'all keys report Error Rollover'. We thus check
+	 * if there is at least one such error and in such case we ignore the
+	 * whole input report.
 	 */
 	i = 0;
-	// all fields should report Error Rollover
-	while (i < count &&
-	    key_codes[i] == BOOTP_ERROR_ROLLOVER) {
+	while (i < count && key_codes[i] != ERROR_ROLLOVER) {
 		++i;
 	}
-	if (i == count) {
+	if (i != count) {
 		usb_log_debug("Phantom state occured.\n");
 		// phantom state, do nothing
 		return;

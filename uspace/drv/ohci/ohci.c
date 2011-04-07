@@ -30,7 +30,7 @@
  * @{
  */
 /** @file
- * @brief UHCI driver
+ * @brief OHCI driver
  */
 #include <errno.h>
 #include <str_error.h>
@@ -116,12 +116,12 @@ static ddf_dev_ops_t rh_ops = {
 /*----------------------------------------------------------------------------*/
 /** Initialize hc and rh ddf structures and their respective drivers.
  *
- * @param[in] instance UHCI structure to use.
+ * @param[in] instance OHCI structure to use.
  * @param[in] device DDF instance of the device to use.
  *
  * This function does all the preparatory work for hc and rh drivers:
  *  - gets device hw resources
- *  - disables UHCI legacy support
+ *  - disables OHCI legacy support
  *  - asks for interrupt
  *  - registers interrupt handler
  */
@@ -184,7 +184,7 @@ if (ret != EOK) { \
 	instance->hc_fun->driver_data = &instance->hc;
 	ret = ddf_fun_bind(instance->hc_fun);
 	CHECK_RET_DEST_FUN_RETURN(ret,
-	    "Failed(%d) to bind UHCI device function: %s.\n",
+	    "Failed(%d) to bind OHCI device function: %s.\n",
 	    ret, str_error(ret));
 #undef CHECK_RET_HC_RETURN
 
@@ -215,7 +215,7 @@ if (ret != EOK) { \
 	instance->rh_fun->driver_data = NULL;
 	ret = ddf_fun_bind(instance->rh_fun);
 	CHECK_RET_FINI_RETURN(ret,
-	    "Failed(%d) to register UHCI root hub.\n", ret);
+	    "Failed(%d) to register OHCI root hub.\n", ret);
 
 	return EOK;
 #undef CHECK_RET_FINI_RETURN

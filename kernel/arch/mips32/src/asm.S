@@ -56,22 +56,10 @@ cpu_halt:
 	j cpu_halt
 	nop
 
-.global memsetb
-memsetb:
-	j _memsetb
-	nop
-
-.global memsetw
-memsetw:
-	j _memsetw
-	nop
-
-.global memcpy
 .global memcpy_from_uspace
 .global memcpy_to_uspace
 .global memcpy_from_uspace_failover_address
 .global memcpy_to_uspace_failover_address
-memcpy:
 memcpy_from_uspace:
 memcpy_to_uspace:
 	move $t2, $a0  /* save dst */
