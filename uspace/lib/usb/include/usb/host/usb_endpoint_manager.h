@@ -36,46 +36,49 @@
  * State of toggle bit, device speed etc. etc.
  * This structure shall simplify the management.
  */
-#ifndef LIBUSB_HOST_BANDWIDTH_H
-#define LIBUSB_HOST_BANDWIDTH_H
+#ifndef LIBUSB_HOST_USB_ENDPOINT_MANAGER_H
+#define LIBUSB_HOST_YSB_ENDPOINT_MANAGER_H
 
 #include <adt/hash_table.h>
 #include <fibril_synch.h>
 #include <usb/usb.h>
+#include <usb/host/endpoint.h>
 
 #define BANDWIDTH_TOTAL_USB11 12000000
 #define BANDWIDTH_AVAILABLE_USB11 ((BANDWIDTH_TOTAL_USB11 / 10) * 9)
 
-typedef struct bandwidth {
-	hash_table_t reserved;
+typedef struct usb_endpoint_manager {
+	hash_table_t ep_table;
 	fibril_mutex_t guard;
-	size_t free;
-	size_t (*usage_fnc)(usb_speed_t, usb_transfer_type_t, size_t, size_t);
-} bandwidth_t;
+	fibril_condvar_t change;
+	size_t free_bw;
+} usb_endpoint_manager_t;
 
 size_t bandwidth_count_usb11(usb_speed_t speed, usb_transfer_type_t type,
     size_t size, size_t max_packet_size);
 
-int bandwidth_init(bandwidth_t *instance, size_t bandwidth,
-    size_t (*usage_fnc)(usb_speed_t, usb_transfer_type_t, size_t, size_t));
+int usb_endpoint_manager_init(usb_endpoint_manager_t *instance,
+    size_t available_bandwidth);
 
-void bandwidth_destroy(bandwidth_t *instance);
+void usb_endpoint_manager_destroy(usb_endpoint_manager_t *instance);
 
-int bandwidth_reserve(bandwidth_t *instance, usb_address_t address,
-    usb_endpoint_t endpoint, usb_direction_t direction, usb_speed_t speed,
-    usb_transfer_type_t transfer_type, size_t max_packet_size, size_t size,
-    unsigned interval);
+int usb_endpoint_manager_register_ep(usb_endpoint_manager_t *instance,
+    endpoint_t *ep, size_t data_size);
 
-int bandwidth_release(bandwidth_t *instance, usb_address_t address,
-    usb_endpoint_t endpoint, usb_direction_t direction);
+int usb_endpoint_manager_register_ep_wait(usb_endpoint_manager_t *instance,
+    usb_address_t address, usb_endpoint_t ep, usb_direction_t direction,
+    void *data, void (*data_remove_callback)(void* data, void* arg), void *arg,
+    size_t bw);
 
-int bandwidth_use(bandwidth_t *instance, usb_address_t address,
-    usb_endpoint_t endpoint, usb_direction_t direction);
+int usb_endpoint_manager_unregister_ep(usb_endpoint_manager_t *instance,
+    usb_address_t address, usb_endpoint_t ep, usb_direction_t direction);
 
-int bandwidth_free(bandwidth_t *instance, usb_address_t address,
-    usb_endpoint_t endpoint, usb_direction_t direction);
+endpoint_t * usb_endpoint_manager_get_ep(usb_endpoint_manager_t *instance,
+    usb_address_t address, usb_endpoint_t ep, usb_direction_t direction,
+    size_t *bw);
 
 #endif
 /**
  * @}
  */
+

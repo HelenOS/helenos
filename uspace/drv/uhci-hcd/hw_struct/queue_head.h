@@ -38,7 +38,6 @@
 #include <assert.h>
 
 #include "link_pointer.h"
-#include "utils/malloc32.h"
 
 typedef struct queue_head {
 	volatile link_pointer_t next;

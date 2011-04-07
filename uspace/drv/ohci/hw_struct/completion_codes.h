@@ -29,58 +29,26 @@
  * @{
  */
 /** @file
- * @brief OHCI host controller driver structure
+ * @brief OHCI driver
  */
-#ifndef DRV_OHCI_HC_H
-#define DRV_OHCI_HC_H
+#ifndef DRV_OHCI_HW_STRUCT_COMPLETION_CODES_H
+#define DRV_OHCI_HW_STRUCT_COMPLETION_CODES_H
 
-#include <fibril.h>
-#include <fibril_synch.h>
-#include <adt/list.h>
-#include <ddi.h>
+#define CC_NOERROR (0x0)
+#define CC_CRC (0x1)
+#define CC_BITSTUFF (0x2)
+#define CC_TOGGLE (0x3)
+#define CC_STALL (0x4)
+#define CC_NORESPONSE (0x5)
+#define CC_PIDFAIL (0x6)
+#define CC_PIDUNEXPECTED (0x7)
+#define CC_DATAOVERRRUN (0x8)
+#define CC_DATAUNDERRRUN (0x9)
+#define CC_BUFFEROVERRRUN (0xc)
+#define CC_BUFFERUNDERRUN (0xd)
+#define CC_NOACCESS1 (0xe)
+#define CC_NOACCESS2 (0xf)
 
-#include <usb/usb.h>
-#include <usb/host/device_keeper.h>
-#include <usb/host/usb_endpoint_manager.h>
-#include <usbhc_iface.h>
-
-#include "batch.h"
-#include "ohci_regs.h"
-#include "root_hub.h"
-#include "hw_struct/hcca.h"
-
-typedef struct hc {
-	ohci_regs_t *registers;
-	usb_address_t rh_address;
-	rh_t rh;
-	ddf_fun_t *ddf_instance;
-	usb_device_keeper_t manager;
-	usb_endpoint_manager_t ep_manager;
-	fid_t interrupt_emulator;
-} hc_t;
-
-int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun);
-
-int hc_init(hc_t *instance, ddf_fun_t *fun, ddf_dev_t *dev,
-     uintptr_t regs, size_t reg_size, bool interrupts);
-
-int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch);
-
-void hc_interrupt(hc_t *instance, uint32_t status);
-
-/** Safely dispose host controller internal structures
- *
- * @param[in] instance Host controller structure to use.
- */
-static inline void hc_fini(hc_t *instance) { /* TODO: implement*/ };
-
-/** Get and cast pointer to the driver data
- *
- * @param[in] fun DDF function pointer
- * @return cast pointer to driver_data
- */
-static inline hc_t * fun_to_hc(ddf_fun_t *fun)
-	{ return (hc_t*)fun->driver_data; }
 #endif
 /**
  * @}

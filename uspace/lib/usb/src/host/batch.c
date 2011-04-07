@@ -53,6 +53,7 @@ void usb_transfer_batch_init(
     usbhc_iface_transfer_out_callback_t func_out,
     void *arg,
     ddf_fun_t *fun,
+		endpoint_t *ep,
     void *private_data
     )
 {
@@ -76,7 +77,7 @@ void usb_transfer_batch_init(
 	instance->transfered_size = 0;
 	instance->next_step = NULL;
 	instance->error = EOK;
-
+	instance->ep = ep;
 }
 /*----------------------------------------------------------------------------*/
 /** Mark batch as finished and continue with next step.
