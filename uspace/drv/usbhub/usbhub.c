@@ -343,18 +343,18 @@ static int usb_hub_process_hub_specific_info(usb_hub_info_t * hub_info) {
 	/* this was one fix of some bug, should not be needed anymore
 	 * these lines allow to reset hub once more, it can be used as
 	 * brute-force initialization for non-removable devices
-	 *
+	 */
 	opResult = usb_request_set_configuration(hub_info->control_pipe,
 		1);
 	if (opResult != EOK) {
 		usb_log_error("could not set default configuration, errno %d",
 			opResult);
 		return opResult;
-	}*/
+	}
 
 
 	size_t received_size;
-	opResult = usb_request_get_descriptor(&hub_info->usb_device->ctrl_pipe,
+	opResult = usb_request_get_descriptor(hub_info->control_pipe,
 		USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_DEVICE,
 		USB_DESCTYPE_HUB,
 		0, 0, serialized_descriptor,
@@ -375,14 +375,23 @@ static int usb_hub_process_hub_specific_info(usb_hub_info_t * hub_info) {
 	}
 	usb_log_debug("setting port count to %d\n", descriptor->ports_count);
 	hub_info->port_count = descriptor->ports_count;
+	/// \TODO check attached_devices array: this is not semantically correct
 	hub_info->attached_devs = (usb_hc_attached_device_t*)
 		malloc((hub_info->port_count + 1) *
 			sizeof (usb_hc_attached_device_t)
 		);
 	int i;
-	for (i = 0; i < hub_info->port_count + 1; ++i) {
+	for (i = 1; i <= hub_info->port_count; ++i) {
 		hub_info->attached_devs[i].handle = 0;
 		hub_info->attached_devs[i].address = 0;
+		usb_log_info("powering port %d\n",i);
+		opResult = usb_hub_set_port_feature(
+			hub_info->control_pipe,
+			i,
+			USB_HUB_FEATURE_PORT_POWER);
+		if(opResult!=EOK)
+			usb_log_warning("could not power port %d\n",i);
+
 	}
 	//handle non-removable devices
 	usb_hub_trigger_connecting_non_removable_devices(hub_info, descriptor);
