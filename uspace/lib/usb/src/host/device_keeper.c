@@ -127,8 +127,14 @@ void usb_device_keeper_reset_if_need(
 	case 0x01: /*clear feature*/
 		/* recipient is endpoint, value is zero (ENDPOINT_STALL) */
 		if (((data[0] & 0xf) == 1) && ((data[2] | data[3]) == 0)) {
+			while (current !=
+			   &instance->devices[target.address].endpoints)
+			{
 			/* endpoint number is < 16, thus first byte is enough */
-			assert(!"NOT IMPLEMENTED!");
+				endpoint_toggle_reset_filtered(
+				    current, data[4]);
+				current = current->next;
+			}
 		}
 	break;
 

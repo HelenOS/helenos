@@ -64,6 +64,7 @@ void endpoint_toggle_set(endpoint_t *instance, int toggle);
 
 void endpoint_toggle_reset(link_t *ep);
 
+void endpoint_toggle_reset_filtered(link_t *ep, usb_endpoint_t epn);
 
 #endif
 /**

@@ -79,6 +79,15 @@ void endpoint_toggle_reset(link_t *ep)
 	assert(instance);
 	instance->toggle = 0;
 }
+/*----------------------------------------------------------------------------*/
+void endpoint_toggle_reset_filtered(link_t *ep, usb_endpoint_t epn)
+{
+	endpoint_t *instance =
+	    list_get_instance(ep, endpoint_t, same_device_eps);
+	assert(instance);
+	if (instance->endpoint == epn)
+		instance->toggle = 0;
+}
 /**
  * @}
  */
