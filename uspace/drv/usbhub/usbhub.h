@@ -46,14 +46,17 @@
 #include <usb/pipes.h>
 #include <usb/devdrv.h>
 
+#include "ports.h"
+
+
 
 /** Information about attached hub. */
 typedef struct {
 	/** Number of ports. */
-	int port_count;
+	size_t port_count;
 
-	/** attached device handles, for each port one */
-	usb_hc_attached_device_t * attached_devs;
+	/** Ports. */
+	usb_hub_port_t *ports;
 	
 	/** connection to hcd */
 	usb_hc_connection_t connection;
@@ -99,6 +102,8 @@ int usb_hub_control_loop(void * hub_info_param);
  */
 int usb_hub_check_hub_changes(usb_hub_info_t * hub_info_param);
 
+void usb_hub_removed_device(usb_hub_info_t *, uint16_t);
+void usb_hub_over_current(usb_hub_info_t *, uint16_t);
 
 int usb_hub_add_device(usb_device_t * usb_dev);
 

@@ -53,12 +53,13 @@
 #include "usb/classes/classes.h"
 
 
-static void usb_hub_init_add_device(usb_hub_info_t * hub, uint16_t port,
-		usb_speed_t speed);
+//static void usb_hub_init_add_device(usb_hub_info_t * hub, uint16_t port,
+//		usb_speed_t speed);
 
 static int usb_hub_trigger_connecting_non_removable_devices(
 		usb_hub_info_t * hub, usb_hub_descriptor_t * descriptor);
 
+#if 0
 /**
  * control loop running in hub`s fibril
  *
@@ -80,6 +81,7 @@ int usb_hub_control_loop(void * hub_info_param){
 
 	return 0;
 }
+#endif
 
 
 //*********************************************
@@ -151,12 +153,10 @@ static int usb_hub_process_hub_specific_info(usb_hub_info_t * hub_info){
 	}
 	usb_log_debug("setting port count to %d\n",descriptor->ports_count);
 	hub_info->port_count = descriptor->ports_count;
-	hub_info->attached_devs = (usb_hc_attached_device_t*)
-	    malloc((hub_info->port_count+1) * sizeof(usb_hc_attached_device_t));
-	int i;
-	for(i=0;i<hub_info->port_count+1;++i){
-		hub_info->attached_devs[i].handle=0;
-		hub_info->attached_devs[i].address=0;
+	hub_info->ports = malloc(sizeof(usb_hub_port_t) * (hub_info->port_count+1));
+	size_t port;
+	for (port = 0; port < hub_info->port_count + 1; port++) {
+		usb_hub_port_init(&hub_info->ports[port]);
 	}
 	//handle non-removable devices
 	usb_hub_trigger_connecting_non_removable_devices(hub_info, descriptor);
@@ -258,18 +258,46 @@ int usb_hub_add_device(usb_device_t * usb_dev){
 	rc = ddf_fun_add_to_class(hub_fun, "hub");
 	assert(rc == EOK);
 
-	//create fibril for the hub control loop
-	fid_t fid = fibril_create(usb_hub_control_loop, hub_info);
-	if (fid == 0) {
-		usb_log_error("failed to start monitoring fibril for new hub.\n");
-		return ENOMEM;
+	/*
+	 * The processing will require opened control pipe and connection
+	 * to the host controller.
+	 * It is waste of resources but let's hope there will be less
+	 * hubs than the phone limit.
+	 * FIXME: with some proper locking over pipes and session
+	 * auto destruction, this could work better.
+	 */
+	rc = usb_pipe_start_session(&usb_dev->ctrl_pipe);
+	if (rc != EOK) {
+		usb_log_error("Failed to start session on control pipe: %s.\n",
+		    str_error(rc));
+		goto leave;
 	}
-	fibril_add_ready(fid);
-	usb_log_debug("Hub fibril created.\n");
+	rc = usb_hc_connection_open(&hub_info->connection);
+	if (rc != EOK) {
+		usb_pipe_end_session(&usb_dev->ctrl_pipe);
+		usb_log_error("Failed to open connection to HC: %s.\n",
+		    str_error(rc));
+		goto leave;
+	}
+
+	rc = usb_device_auto_poll(hub_info->usb_device, 0,
+	    hub_port_changes_callback, ((hub_info->port_count+1) / 8) + 1,
+	    NULL, hub_info);
+	if (rc != EOK) {
+		usb_log_error("Failed to create polling fibril: %s.\n",
+		    str_error(rc));
+		free(hub_info);
+		return rc;
+	}
 
 	usb_log_info("Controlling hub `%s' (%d ports).\n",
 	    hub_info->usb_device->ddf_dev->name, hub_info->port_count);
 	return EOK;
+
+leave:
+	free(hub_info);
+
+	return rc;
 }
 
 
@@ -398,6 +426,7 @@ static int usb_hub_release_default_address(usb_hub_info_t * hub){
 	return EOK;
 }
 
+#if 0
 /**
  * Reset the port with new device and reserve the default address.
  * @param hub hub representation
@@ -439,7 +468,9 @@ static void usb_hub_init_add_device(usb_hub_info_t * hub, uint16_t port,
 	}
 	return;
 }
+#endif
 
+#if 0
 /**
  * Finalize adding new device after port reset
  *
@@ -528,6 +559,7 @@ static void usb_hub_finalize_add_device( usb_hub_info_t * hub,
 	    hub->usb_device->ddf_dev->name, (int) port,
 	    new_device_address, child_handle);
 }
+#endif
 
 /**
  * routine called when a device on port has been removed
@@ -538,7 +570,7 @@ static void usb_hub_finalize_add_device( usb_hub_info_t * hub,
  * @param hub hub representation
  * @param port port number, starting from 1
  */
-static void usb_hub_removed_device(
+void usb_hub_removed_device(
     usb_hub_info_t * hub,uint16_t port) {
 
 	int opResult = usb_hub_clear_port_feature(hub->control_pipe,
@@ -551,7 +583,7 @@ static void usb_hub_removed_device(
 	 */
 	
 	//close address
-	if(hub->attached_devs[port].address!=0){
+	if(hub->ports[port].attached_device.address >= 0){
 		/*uncomment this code to use it when DDF allows device removal
 		opResult = usb_hc_unregister_device(
 				&hub->connection, hub->attached_devs[port].address);
@@ -578,7 +610,7 @@ static void usb_hub_removed_device(
  * @param hub hub representation
  * @param port port number, starting from 1
  */
-static void usb_hub_over_current( usb_hub_info_t * hub,
+void usb_hub_over_current( usb_hub_info_t * hub,
 		uint16_t port){
 	int opResult;
 	opResult = usb_hub_clear_port_feature(hub->control_pipe,
@@ -589,6 +621,7 @@ static void usb_hub_over_current( usb_hub_info_t * hub,
 	}
 }
 
+#if 0
 /**
  * Process interrupts on given hub port
  *
@@ -736,7 +769,7 @@ int usb_hub_check_hub_changes(usb_hub_info_t * hub_info){
 	free(change_bitmap);
 	return EOK;
 }
-
+#endif
 
 
 /**
