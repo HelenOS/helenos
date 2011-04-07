@@ -56,6 +56,7 @@ static devmap_handle_t mfs_device_get(fs_node_t *fsnode);
 static aoff64_t mfs_size_get(fs_node_t *node);
 static int mfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component);
 static int mfs_create_node(fs_node_t **rfn, devmap_handle_t handle, int flags);
+static int mfs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name);
 
 static
 int mfs_node_get(fs_node_t **rfn, devmap_handle_t devmap_handle,
@@ -77,6 +78,7 @@ libfs_ops_t mfs_libfs_ops = {
 	.index_get = mfs_index_get,
 	.match = mfs_match,
 	.create = mfs_create_node,
+	.link = mfs_link,
 	.plb_get_char = mfs_plb_get_char,
 	.has_children = mfs_has_children,
 	.lnkcnt_get = mfs_lnkcnt_get
@@ -251,8 +253,79 @@ devmap_handle_t mfs_device_get(fs_node_t *fsnode)
 
 static int mfs_create_node(fs_node_t **rfn, devmap_handle_t handle, int flags)
 {
+	int r;
+	struct mfs_instance *inst;
+	struct mfs_node *mnode;
+	fs_node_t *fsnode;
+	uint32_t inum;
+	
 	mfsdebug("create_node()\n");
-	return ENOTSUP;
+
+	r = mfs_instance_get(handle, &inst);
+	if (r != EOK)
+		return r;
+
+	if (flags & L_DIRECTORY) {
+		/*Not yet supported*/
+		return ENOTSUP;
+	}
+
+	/*Alloc a new inode*/
+	r = mfs_alloc_bit(inst, &inum, BMAP_INODE);
+	if (r != EOK)
+		return r;
+
+	struct mfs_ino_info *ino_i;
+
+	ino_i = malloc(sizeof(*ino_i));
+	if (!ino_i) {
+		r = ENOMEM;
+		goto out_err;
+	}
+
+	mnode = malloc(sizeof(*mnode));
+	if (!mnode) {
+		r = ENOMEM;
+		goto out_err_1;
+	}
+	
+	fsnode = malloc(sizeof(fs_node_t));
+	if (!fsnode) {
+		r = ENOMEM;
+		goto out_err_2;
+	}
+
+	ino_i->i_mode = S_IFREG;
+	ino_i->i_nlinks = 1;
+	ino_i->i_uid = 0;
+	ino_i->i_gid = 0;
+	ino_i->i_size = 0;
+	ino_i->i_atime = 0;
+	ino_i->i_mtime = 0;
+	ino_i->i_ctime = 0;
+
+	memset(ino_i->i_dzone, 0, sizeof(uint32_t) * V2_NR_DIRECT_ZONES);
+	memset(ino_i->i_izone, 0, sizeof(uint32_t) * V2_NR_INDIRECT_ZONES);
+
+	ino_i->index = inum;
+	ino_i->dirty = true;
+	mnode->ino_i = ino_i;
+	mnode->instance = inst;
+
+	put_inode(mnode);
+
+	fs_node_initialize(fsnode);
+	fsnode->data = mnode;
+	*rfn = fsnode;
+
+	return EOK;
+
+out_err_2:
+	free(mnode);
+out_err_1:
+	free(ino_i);
+out_err:
+	return r;
 }
 
 static int mfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
@@ -453,6 +526,12 @@ void mfs_lookup(ipc_callid_t rid, ipc_call_t *request)
 static char mfs_plb_get_char(unsigned pos)
 {
 	return mfs_reg.plb_ro[pos % PLB_SIZE];
+}
+
+static int mfs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
+{
+	mfsdebug("mfs_link()\n");
+	return ENOTSUP;
 }
 
 static int mfs_has_children(bool *has_children, fs_node_t *fsnode)
