@@ -44,25 +44,27 @@ read_directory_entry(struct mfs_node *mnode, unsigned index)
 	uint32_t block;
 	block_t *b;
 
-	struct mfs_dentry_info *d_info = malloc(sizeof *d_info);
+	struct mfs_dentry_info *d_info = malloc(sizeof(*d_info));
 
 	if (!d_info)
 		return NULL;
 
 	int r = read_map(&block, mnode, index * sbi->dirsize);
-
 	if (r != EOK || block == 0)
 		goto out_err;
 
 	r = block_get(&b, inst->handle, block, BLOCK_FLAGS_NONE);
-
 	if (r != EOK)
 		goto out_err;
+
+	unsigned dentries_per_zone = sbi->block_size / sbi->dirsize;
+	unsigned dentry_off = index % (dentries_per_zone - 1);
 
 	if (sbi->fs_version == MFS_VERSION_V3) {
 		struct mfs3_dentry *d3;
 
 		d3 = b->data;
+		d3 += dentry_off;
 		d_info->d_inum = conv32(sbi->native, d3->d_inum);
 		memcpy(d_info->d_name, d3->d_name, MFS3_MAX_NAME_LEN);
 	} else {
@@ -72,6 +74,7 @@ read_directory_entry(struct mfs_node *mnode, unsigned index)
 		struct mfs_dentry *d;
 
 		d = b->data;
+		d += dentry_off;
 		d_info->d_inum = conv16(sbi->native, d->d_inum);
 		memcpy(d_info->d_name, d->d_name, namelen);
 	}
