@@ -267,41 +267,6 @@ static int interrupt_out(
 	    NULL, 0, NULL, callback, arg, "Interrupt OUT", &hc, &batch);
 	if (ret != EOK)
 		return ret;
-#if 0
-	assert(fun);
-	hc_t *hc = fun_to_hc(fun);
-	assert(hc);
-
-	usb_log_debug("Interrupt OUT %d:%d %zu(%zu).\n",
-	    target.address, target.endpoint, size, max_packet_size);
-
-	size_t res_bw;
-	endpoint_t *ep = usb_endpoint_manager_get_ep(&hc->ep_manager,
-	    target.address, target.endpoint, USB_DIRECTION_OUT, &res_bw);
-	if (ep == NULL) {
-		usb_log_error("Endpoint(%d:%d) not registered for INT OUT.\n",
-			target.address, target.endpoint);
-		return ENOENT;
-	}
-	const size_t bw = bandwidth_count_usb11(ep->speed, ep->transfer_type,
-	    size, ep->max_packet_size);
-	if (res_bw < bw) {
-		usb_log_error("Endpoint(%d:%d) INT OUT needs %zu bw "
-		    "but only %zu is reserved.\n",
-		    target.address, target.endpoint, bw, res_bw);
-		return ENOSPC;
-	}
-
-	assert(ep->speed ==
-	    usb_device_keeper_get_speed(&hc->manager, target.address));
-	assert(ep->max_packet_size == max_packet_size);
-	assert(ep->transfer_type == USB_TRANSFER_INTERRUPT);
-
-	usb_transfer_batch_t *batch =
-	    batch_get(fun, ep, data, size, NULL, 0, NULL, callback, arg);
-	if (!batch)
-		return ENOMEM;
-#endif
 	batch_interrupt_out(batch);
 	ret = hc_schedule(hc, batch);
 	if (ret != EOK) {
@@ -331,41 +296,6 @@ static int interrupt_in(
 	    NULL, 0, callback, NULL, arg, "Interrupt IN", &hc, &batch);
 	if (ret != EOK)
 		return ret;
-#if 0
-	assert(fun);
-	hc_t *hc = fun_to_hc(fun);
-	assert(hc);
-
-	usb_log_debug("Interrupt IN %d:%d %zu(%zu).\n",
-	    target.address, target.endpoint, size, max_packet_size);
-
-	size_t res_bw;
-	endpoint_t *ep = usb_endpoint_manager_get_ep(&hc->ep_manager,
-	    target.address, target.endpoint, USB_DIRECTION_IN, &res_bw);
-	if (ep == NULL) {
-		usb_log_error("Endpoint(%d:%d) not registered for INT IN.\n",
-		    target.address, target.endpoint);
-		return ENOSPC;
-	}
-	const size_t bw = bandwidth_count_usb11(ep->speed, ep->transfer_type,
-	    size, ep->max_packet_size);
-	if (res_bw < bw) {
-		usb_log_error("Endpoint(%d:%d) INT IN needs %zu bw "
-		    "but only %zu bw is reserved.\n",
-		    target.address, target.endpoint, bw, res_bw);
-		return ENOENT;
-	}
-
-	assert(ep->speed ==
-	    usb_device_keeper_get_speed(&hc->manager, target.address));
-	assert(ep->max_packet_size == max_packet_size);
-	assert(ep->transfer_type == USB_TRANSFER_INTERRUPT);
-
-	usb_transfer_batch_t *batch =
-	    batch_get(fun, ep, data, size, NULL, 0, callback, NULL, arg);
-	if (!batch)
-		return ENOMEM;
-#endif
 	batch_interrupt_in(batch);
 	ret = hc_schedule(hc, batch);
 	if (ret != EOK) {
@@ -395,31 +325,6 @@ static int bulk_out(
 	    NULL, 0, NULL, callback, arg, "Bulk OUT", &hc, &batch);
 	if (ret != EOK)
 		return ret;
-#if 0
-	assert(fun);
-	hc_t *hc = fun_to_hc(fun);
-	assert(hc);
-
-	usb_log_debug("Bulk OUT %d:%d %zu(%zu).\n",
-	    target.address, target.endpoint, size, max_packet_size);
-
-	endpoint_t *ep = usb_endpoint_manager_get_ep(&hc->ep_manager,
-	    target.address, target.endpoint, USB_DIRECTION_OUT, NULL);
-	if (ep == NULL) {
-		usb_log_error("Endpoint(%d:%d) not registered for BULK OUT.\n",
-			target.address, target.endpoint);
-		return ENOENT;
-	}
-	assert(ep->speed ==
-	    usb_device_keeper_get_speed(&hc->manager, target.address));
-	assert(ep->max_packet_size == max_packet_size);
-	assert(ep->transfer_type == USB_TRANSFER_BULK);
-
-	usb_transfer_batch_t *batch =
-	    batch_get(fun, ep, data, size, NULL, 0, NULL, callback, arg);
-	if (!batch)
-		return ENOMEM;
-#endif
 	batch_bulk_out(batch);
 	ret = hc_schedule(hc, batch);
 	if (ret != EOK) {
@@ -449,31 +354,6 @@ static int bulk_in(
 	    NULL, 0, callback, NULL, arg, "Bulk IN", &hc, &batch);
 	if (ret != EOK)
 		return ret;
-#if 0
-	assert(fun);
-	hc_t *hc = fun_to_hc(fun);
-	assert(hc);
-
-	usb_log_debug("Bulk IN %d:%d %zu(%zu).\n",
-	    target.address, target.endpoint, size, max_packet_size);
-
-	endpoint_t *ep = usb_endpoint_manager_get_ep(&hc->ep_manager,
-	    target.address, target.endpoint, USB_DIRECTION_IN, NULL);
-	if (ep == NULL) {
-		usb_log_error("Endpoint(%d:%d) not registered for BULK IN.\n",
-			target.address, target.endpoint);
-		return ENOENT;
-	}
-	assert(ep->speed ==
-	    usb_device_keeper_get_speed(&hc->manager, target.address));
-	assert(ep->max_packet_size == max_packet_size);
-	assert(ep->transfer_type == USB_TRANSFER_BULK);
-
-	usb_transfer_batch_t *batch =
-	    batch_get(fun, ep, data, size, NULL, 0, callback, NULL, arg);
-	if (!batch)
-		return ENOMEM;
-#endif
 	batch_bulk_in(batch);
 	ret = hc_schedule(hc, batch);
 	if (ret != EOK) {
@@ -507,35 +387,6 @@ static int control_write(
 	    &hc, &batch);
 	if (ret != EOK)
 		return ret;
-#if 0
-	assert(fun);
-	hc_t *hc = fun_to_hc(fun);
-	assert(hc);
-
-	usb_log_debug("Control WRITE %d:%d %zu(%zu).\n",
-	    target.address, target.endpoint, size, max_packet_size);
-
-	endpoint_t *ep = usb_endpoint_manager_get_ep(&hc->ep_manager,
-	    target.address, target.endpoint, USB_DIRECTION_BOTH, NULL);
-	if (ep == NULL) {
-		usb_log_error("Endpoint(%d:%d) not registered for CONTROL.\n",
-			target.address, target.endpoint);
-		return ENOENT;
-	}
-	assert(ep->speed ==
-	    usb_device_keeper_get_speed(&hc->manager, target.address));
-	assert(ep->max_packet_size == max_packet_size);
-	assert(ep->transfer_type == USB_TRANSFER_CONTROL);
-
-	if (setup_size != 8)
-		return EINVAL;
-
-	usb_transfer_batch_t *batch =
-	    batch_get(fun, ep, data, size, setup_data, setup_size,
-	        NULL, callback, arg);
-	if (!batch)
-		return ENOMEM;
-#endif
 	usb_device_keeper_reset_if_need(&hc->manager, target, setup_data);
 	batch_control_write(batch);
 	ret = hc_schedule(hc, batch);
@@ -570,32 +421,6 @@ static int control_read(
 	    &hc, &batch);
 	if (ret != EOK)
 		return ret;
-#if 0
-	assert(fun);
-	hc_t *hc = fun_to_hc(fun);
-	assert(hc);
-
-	usb_log_debug("Control READ %d:%d %zu(%zu).\n",
-	    target.address, target.endpoint, size, max_packet_size);
-
-	endpoint_t *ep = usb_endpoint_manager_get_ep(&hc->ep_manager,
-	    target.address, target.endpoint, USB_DIRECTION_BOTH, NULL);
-	if (ep == NULL) {
-		usb_log_error("Endpoint(%d:%d) not registered for CONTROL.\n",
-		    target.address, target.endpoint);
-		return ENOENT;
-	}
-	assert(ep->speed ==
-	    usb_device_keeper_get_speed(&hc->manager, target.address));
-	assert(ep->max_packet_size == max_packet_size);
-	assert(ep->transfer_type == USB_TRANSFER_CONTROL);
-
-	usb_transfer_batch_t *batch =
-	    batch_get(fun, ep, data, size, setup_data, setup_size,
-		callback, NULL, arg);
-	if (!batch)
-		return ENOMEM;
-#endif
 	batch_control_read(batch);
 	ret = hc_schedule(hc, batch);
 	if (ret != EOK) {
