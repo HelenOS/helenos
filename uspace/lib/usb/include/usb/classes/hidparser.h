@@ -91,6 +91,7 @@ typedef struct {
 	
 	/** */	
 	link_t link;
+
 } usb_hid_report_path_t;
 
 /**
@@ -157,7 +158,9 @@ typedef struct {
 	link_t feature;
 	
 	int use_report_id;
-	
+
+	/** */
+ 	link_t stack;
 } usb_hid_report_parser_t;	
 
 
