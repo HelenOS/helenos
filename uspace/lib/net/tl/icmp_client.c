@@ -80,7 +80,7 @@ icmp_client_process_packet(packet_t *packet, icmp_type_t *type,
 	if (mtu)
 		*mtu = header->un.frag.mtu;
 
-	// remove debug dump
+	/* Remove debug dump */
 #ifdef CONFIG_DEBUG
 	printf("ICMP error %d (%d) in packet %d\n", header->type, header->code,
 	    packet_get_id(packet));

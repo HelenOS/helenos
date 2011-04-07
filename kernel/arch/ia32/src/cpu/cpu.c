@@ -91,7 +91,6 @@ void fpu_enable(void)
 
 void cpu_arch_init(void)
 {
-	cpuid_extended_feature_info efi;
 	cpu_info_t info;
 	uint32_t help = 0;
 	
@@ -103,7 +102,6 @@ void cpu_arch_init(void)
 	cpuid(INTEL_CPUID_STANDARD, &info);
 	
 	CPU->arch.fi.word = info.cpuid_edx;
-	efi.word = info.cpuid_ecx;
 	
 	if (CPU->arch.fi.bits.fxsr)
 		fpu_fxsr();

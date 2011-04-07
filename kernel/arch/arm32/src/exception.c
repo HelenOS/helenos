@@ -34,7 +34,6 @@
  */
 
 #include <arch/exception.h>
-#include <arch/memstr.h>
 #include <arch/regutils.h>
 #include <arch/machine_func.h>
 #include <interrupt.h>

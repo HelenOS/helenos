@@ -20,15 +20,15 @@ SECTIONS {
 	} :text
 	
 	.text : {
-		*(.text);
-		*(.rodata*);
+		*(.text .text.*);
+		*(.rodata .rodata.*);
 	} :text
 	
 	. = . + 0x4000;
 	
 	.got : {
 		_gp = .;
-		*(.got*);
+		*(.got .got.*);
 	} :data
 	
 	.data : {

@@ -115,6 +115,12 @@
  */
 #define IPC_FF_ROUTE_FROM_ME  (1 << 0)
 
+/* Data transfer flags. */
+#define IPC_XF_NONE		0
+
+/** Restrict the transfer size if necessary. */
+#define IPC_XF_RESTRICT		(1 << 0)
+
 /** Kernel IPC interfaces
  *
  */

@@ -90,26 +90,27 @@ static int add_virtual_root_fun(ddf_dev_t *dev)
 	int rc;
 
 	ddf_msg(LVL_DEBUG, "Adding new function for virtual devices. "
-	    "Function node is `%s' (%d %s)\n", name,
+	    "Function node is `%s' (%d %s)", name,
 	    VIRTUAL_FUN_MATCH_SCORE, VIRTUAL_FUN_MATCH_ID);
 
 	fun = ddf_fun_create(dev, fun_inner, name);
 	if (fun == NULL) {
-		ddf_msg(LVL_ERROR, "Failed creating function %s\n", name);
+		ddf_msg(LVL_ERROR, "Failed creating function %s", name);
 		return ENOMEM;
 	}
 
 	rc = ddf_fun_add_match_id(fun, VIRTUAL_FUN_MATCH_ID,
 	    VIRTUAL_FUN_MATCH_SCORE);
 	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "Failed adding match IDs to function %s\n", name);
+		ddf_msg(LVL_ERROR, "Failed adding match IDs to function %s",
+		    name);
 		ddf_fun_destroy(fun);
 		return rc;
 	}
 
 	rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "Failed binding function %s: %s\n", name,
+		ddf_msg(LVL_ERROR, "Failed binding function %s: %s", name,
 		    str_error(rc));
 		ddf_fun_destroy(fun);
 		return rc;
@@ -136,14 +137,14 @@ static int add_platform_fun(ddf_dev_t *dev)
 	/* Get platform name from sysinfo. */
 	platform = sysinfo_get_data("platform", &platform_size);
 	if (platform == NULL) {
-		ddf_msg(LVL_ERROR, "Failed to obtain platform name.\n");
+		ddf_msg(LVL_ERROR, "Failed to obtain platform name.");
 		return ENOENT;
 	}
 
 	/* Null-terminate string. */
 	platform = realloc(platform, platform_size + 1);
 	if (platform == NULL) {
-		ddf_msg(LVL_ERROR, "Memory allocation failed.\n");
+		ddf_msg(LVL_ERROR, "Memory allocation failed.");
 		return ENOMEM;
 	}
 
@@ -151,24 +152,24 @@ static int add_platform_fun(ddf_dev_t *dev)
 
 	/* Construct match ID. */
 	if (asprintf(&match_id, PLATFORM_FUN_MATCH_ID_FMT, platform) == -1) {
-		ddf_msg(LVL_ERROR, "Memory allocation failed.\n");
+		ddf_msg(LVL_ERROR, "Memory allocation failed.");
 		return ENOMEM;
 	}
 
 	/* Add function. */
 	ddf_msg(LVL_DEBUG, "Adding platform function. Function node is `%s' "
-	    " (%d %s)\n", PLATFORM_FUN_NAME, PLATFORM_FUN_MATCH_SCORE,
+	    " (%d %s)", PLATFORM_FUN_NAME, PLATFORM_FUN_MATCH_SCORE,
 	    match_id);
 
 	fun = ddf_fun_create(dev, fun_inner, name);
 	if (fun == NULL) {
-		ddf_msg(LVL_ERROR, "Error creating function %s\n", name);
+		ddf_msg(LVL_ERROR, "Error creating function %s", name);
 		return ENOMEM;
 	}
 
 	rc = ddf_fun_add_match_id(fun, match_id, PLATFORM_FUN_MATCH_SCORE);
 	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "Failed adding match IDs to function %s\n",
+		ddf_msg(LVL_ERROR, "Failed adding match IDs to function %s",
 		    name);
 		ddf_fun_destroy(fun);
 		return rc;
@@ -176,7 +177,7 @@ static int add_platform_fun(ddf_dev_t *dev)
 
 	rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
-		ddf_msg(LVL_ERROR, "Failed binding function %s: %s\n", name,
+		ddf_msg(LVL_ERROR, "Failed binding function %s: %s", name,
 		    str_error(rc));
 		ddf_fun_destroy(fun);
 		return rc;
@@ -192,7 +193,7 @@ static int add_platform_fun(ddf_dev_t *dev)
  */
 static int root_add_device(ddf_dev_t *dev)
 {
-	ddf_msg(LVL_DEBUG, "root_add_device, device handle=%" PRIun "\n",
+	ddf_msg(LVL_DEBUG, "root_add_device, device handle=%" PRIun,
 	    dev->handle);
 
 	/*
@@ -205,7 +206,7 @@ static int root_add_device(ddf_dev_t *dev)
 	/* Register root device's children. */
 	int res = add_platform_fun(dev);
 	if (EOK != res)
-		ddf_msg(LVL_ERROR, "Failed adding child device for platform.\n");
+		ddf_msg(LVL_ERROR, "Failed adding child device for platform.");
 
 	return res;
 }

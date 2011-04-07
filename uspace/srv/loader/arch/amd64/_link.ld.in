@@ -26,8 +26,8 @@ SECTIONS {
 	} :text
 	
 	.text : {
-		*(.text);
-		*(.rodata*);
+		*(.text .text.*);
+		*(.rodata .rodata.*);
 	} :text
 	
 	.data ALIGN(0x1000) : SUBALIGN(0x1000) {

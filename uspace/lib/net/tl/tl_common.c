@@ -181,7 +181,7 @@ tl_update_ip_packet_dimension(packet_dimensions_t *packet_dimensions,
 				packet_dimension->content = content;
 			else
 				packet_dimensions_exclude(packet_dimensions,
-				    DEVICE_INVALID_ID);
+				    DEVICE_INVALID_ID, free);
 		}
 	}
 
@@ -254,15 +254,17 @@ tl_prepare_icmp_packet(int packet_phone, int icmp_phone, packet_t *packet,
 	uint8_t *src;
 	int length;
 
-	// detach the first packet and release the others
+	/* Detach the first packet and release the others */
 	next = pq_detach(packet);
 	if (next)
 		pq_release_remote(packet_phone, packet_get_id(next));
 	
 	length = packet_get_addr(packet, &src, NULL);
 	if ((length > 0) && (!error) && (icmp_phone >= 0) &&
-	    // set both addresses to the source one (avoids the source address
-	    // deletion before setting the destination one)
+	    /*
+	     * Set both addresses to the source one (avoids the source address
+	     * deletion before setting the destination one)
+	     */
 	    (packet_set_addr(packet, src, src, (size_t) length) == EOK)) {
 		return EOK;
 	} else
@@ -298,31 +300,31 @@ tl_socket_read_packet_data(int packet_phone, packet_t **packet, size_t prefix,
 	if (!dimension)
 		return EINVAL;
 
-	// get the data length
+	/* Get the data length */
 	if (!async_data_write_receive(&callid, &length))
 		return EINVAL;
 
-	// get a new packet
+	/* Get a new packet */
 	*packet = packet_get_4_remote(packet_phone, length, dimension->addr_len,
 	    prefix + dimension->prefix, dimension->suffix);
 	if (!packet)
 		return ENOMEM;
 
-	// allocate space in the packet
+	/* Allocate space in the packet */
 	data = packet_suffix(*packet, length);
 	if (!data) {
 		pq_release_remote(packet_phone, packet_get_id(*packet));
 		return ENOMEM;
 	}
 
-	// read the data into the packet
+	/* Read the data into the packet */
 	rc = async_data_write_finalize(callid, data, length);
 	if (rc != EOK) {
 		pq_release_remote(packet_phone, packet_get_id(*packet));
 		return rc;
 	}
 	
-	// set the packet destination address
+	/* Set the packet destination address */
 	rc = packet_set_addr(*packet, NULL, (uint8_t *) addr, addrlen);
 	if (rc != EOK) {
 		pq_release_remote(packet_phone, packet_get_id(*packet));
