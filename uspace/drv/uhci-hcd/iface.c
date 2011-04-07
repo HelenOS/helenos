@@ -40,6 +40,53 @@
 #include "iface.h"
 #include "hc.h"
 
+static inline int setup_batch(
+    ddf_fun_t *fun, usb_target_t target, usb_direction_t direction,
+    void *data, size_t size, void * setup_data, size_t setup_size,
+    usbhc_iface_transfer_in_callback_t in,
+    usbhc_iface_transfer_out_callback_t out, void *arg, const char* name,
+    hc_t **hc, usb_transfer_batch_t **batch)
+{
+	assert(hc);
+	assert(batch);
+	assert(fun);
+	*hc = fun_to_hc(fun);
+	assert(*hc);
+
+	size_t res_bw;
+	endpoint_t *ep = usb_endpoint_manager_get_ep(&(*hc)->ep_manager,
+	    target.address, target.endpoint, direction, &res_bw);
+	if (ep == NULL) {
+		usb_log_error("Endpoint(%d:%d) not registered for %s.\n",
+		    target.address, target.endpoint, name);
+		return ENOENT;
+	}
+
+	const size_t bw = bandwidth_count_usb11(
+	    ep->speed, ep->transfer_type, size, ep->max_packet_size);
+	if (res_bw < bw) {
+		usb_log_error("Endpoint(%d:%d) %s needs %zu bw "
+		    "but only %zu is reserved.\n",
+		    name, target.address, target.endpoint, bw, res_bw);
+		return ENOSPC;
+	}
+	usb_log_debug("%s %d:%d %zu(%zu).\n",
+	    name, target.address, target.endpoint, size, ep->max_packet_size);
+
+	assert(ep->speed ==
+	    usb_device_keeper_get_speed(&(*hc)->manager, target.address));
+//	assert(ep->max_packet_size == max_packet_size);
+//	assert(ep->transfer_type == USB_TRANSFER_CONTROL);
+
+	*batch =
+	    batch_get(fun, ep, data, size, setup_data, setup_size,
+		in, out, arg);
+	if (!batch)
+		return ENOMEM;
+	return EOK;
+}
+
+
 /** Reserve default address interface function
  *
  * @param[in] fun DDF function that was called.
@@ -214,6 +261,13 @@ static int interrupt_out(
     ddf_fun_t *fun, usb_target_t target, size_t max_packet_size, void *data,
     size_t size, usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
+	usb_transfer_batch_t *batch = NULL;
+	hc_t *hc = NULL;
+	int ret = setup_batch(fun, target, USB_DIRECTION_OUT, data, size,
+	    NULL, 0, NULL, callback, arg, "Interrupt OUT", &hc, &batch);
+	if (ret != EOK)
+		return ret;
+#if 0
 	assert(fun);
 	hc_t *hc = fun_to_hc(fun);
 	assert(hc);
@@ -232,11 +286,12 @@ static int interrupt_out(
 	const size_t bw = bandwidth_count_usb11(ep->speed, ep->transfer_type,
 	    size, ep->max_packet_size);
 	if (res_bw < bw) {
-		usb_log_error("Endpoint(%d:%d) INT IN needs %zu bw "
+		usb_log_error("Endpoint(%d:%d) INT OUT needs %zu bw "
 		    "but only %zu is reserved.\n",
 		    target.address, target.endpoint, bw, res_bw);
-		return ENOENT;
+		return ENOSPC;
 	}
+
 	assert(ep->speed ==
 	    usb_device_keeper_get_speed(&hc->manager, target.address));
 	assert(ep->max_packet_size == max_packet_size);
@@ -246,8 +301,9 @@ static int interrupt_out(
 	    batch_get(fun, ep, data, size, NULL, 0, NULL, callback, arg);
 	if (!batch)
 		return ENOMEM;
+#endif
 	batch_interrupt_out(batch);
-	const int ret = hc_schedule(hc, batch);
+	ret = hc_schedule(hc, batch);
 	if (ret != EOK) {
 		batch_dispose(batch);
 	}
@@ -269,6 +325,13 @@ static int interrupt_in(
     ddf_fun_t *fun, usb_target_t target, size_t max_packet_size, void *data,
     size_t size, usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
+	usb_transfer_batch_t *batch = NULL;
+	hc_t *hc = NULL;
+	int ret = setup_batch(fun, target, USB_DIRECTION_IN, data, size,
+	    NULL, 0, callback, NULL, arg, "Interrupt IN", &hc, &batch);
+	if (ret != EOK)
+		return ret;
+#if 0
 	assert(fun);
 	hc_t *hc = fun_to_hc(fun);
 	assert(hc);
@@ -282,7 +345,7 @@ static int interrupt_in(
 	if (ep == NULL) {
 		usb_log_error("Endpoint(%d:%d) not registered for INT IN.\n",
 		    target.address, target.endpoint);
-		return ENOENT;
+		return ENOSPC;
 	}
 	const size_t bw = bandwidth_count_usb11(ep->speed, ep->transfer_type,
 	    size, ep->max_packet_size);
@@ -302,8 +365,9 @@ static int interrupt_in(
 	    batch_get(fun, ep, data, size, NULL, 0, callback, NULL, arg);
 	if (!batch)
 		return ENOMEM;
+#endif
 	batch_interrupt_in(batch);
-	const int ret = hc_schedule(hc, batch);
+	ret = hc_schedule(hc, batch);
 	if (ret != EOK) {
 		batch_dispose(batch);
 	}
@@ -325,6 +389,13 @@ static int bulk_out(
     ddf_fun_t *fun, usb_target_t target, size_t max_packet_size, void *data,
     size_t size, usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
+	usb_transfer_batch_t *batch = NULL;
+	hc_t *hc = NULL;
+	int ret = setup_batch(fun, target, USB_DIRECTION_OUT, data, size,
+	    NULL, 0, NULL, callback, arg, "Bulk OUT", &hc, &batch);
+	if (ret != EOK)
+		return ret;
+#if 0
 	assert(fun);
 	hc_t *hc = fun_to_hc(fun);
 	assert(hc);
@@ -348,8 +419,9 @@ static int bulk_out(
 	    batch_get(fun, ep, data, size, NULL, 0, NULL, callback, arg);
 	if (!batch)
 		return ENOMEM;
+#endif
 	batch_bulk_out(batch);
-	const int ret = hc_schedule(hc, batch);
+	ret = hc_schedule(hc, batch);
 	if (ret != EOK) {
 		batch_dispose(batch);
 	}
@@ -371,9 +443,17 @@ static int bulk_in(
     ddf_fun_t *fun, usb_target_t target, size_t max_packet_size, void *data,
     size_t size, usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
+	usb_transfer_batch_t *batch = NULL;
+	hc_t *hc = NULL;
+	int ret = setup_batch(fun, target, USB_DIRECTION_IN, data, size,
+	    NULL, 0, callback, NULL, arg, "Bulk IN", &hc, &batch);
+	if (ret != EOK)
+		return ret;
+#if 0
 	assert(fun);
 	hc_t *hc = fun_to_hc(fun);
 	assert(hc);
+
 	usb_log_debug("Bulk IN %d:%d %zu(%zu).\n",
 	    target.address, target.endpoint, size, max_packet_size);
 
@@ -393,8 +473,9 @@ static int bulk_in(
 	    batch_get(fun, ep, data, size, NULL, 0, callback, NULL, arg);
 	if (!batch)
 		return ENOMEM;
+#endif
 	batch_bulk_in(batch);
-	const int ret = hc_schedule(hc, batch);
+	ret = hc_schedule(hc, batch);
 	if (ret != EOK) {
 		batch_dispose(batch);
 	}
@@ -419,6 +500,14 @@ static int control_write(
     void *setup_data, size_t setup_size, void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
+	usb_transfer_batch_t *batch = NULL;
+	hc_t *hc = NULL;
+	int ret = setup_batch(fun, target, USB_DIRECTION_BOTH, data, size,
+	    setup_data, setup_size, NULL, callback, arg, "Control WRITE",
+	    &hc, &batch);
+	if (ret != EOK)
+		return ret;
+#if 0
 	assert(fun);
 	hc_t *hc = fun_to_hc(fun);
 	assert(hc);
@@ -446,9 +535,10 @@ static int control_write(
 	        NULL, callback, arg);
 	if (!batch)
 		return ENOMEM;
+#endif
 	usb_device_keeper_reset_if_need(&hc->manager, target, setup_data);
 	batch_control_write(batch);
-	const int ret = hc_schedule(hc, batch);
+	ret = hc_schedule(hc, batch);
 	if (ret != EOK) {
 		batch_dispose(batch);
 	}
@@ -473,6 +563,14 @@ static int control_read(
     void *setup_data, size_t setup_size, void *data, size_t size,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
+	usb_transfer_batch_t *batch = NULL;
+	hc_t *hc = NULL;
+	int ret = setup_batch(fun, target, USB_DIRECTION_BOTH, data, size,
+	    setup_data, setup_size, callback, NULL, arg, "Control READ",
+	    &hc, &batch);
+	if (ret != EOK)
+		return ret;
+#if 0
 	assert(fun);
 	hc_t *hc = fun_to_hc(fun);
 	assert(hc);
@@ -497,8 +595,9 @@ static int control_read(
 		callback, NULL, arg);
 	if (!batch)
 		return ENOMEM;
+#endif
 	batch_control_read(batch);
-	const int ret = hc_schedule(hc, batch);
+	ret = hc_schedule(hc, batch);
 	if (ret != EOK) {
 		batch_dispose(batch);
 	}
