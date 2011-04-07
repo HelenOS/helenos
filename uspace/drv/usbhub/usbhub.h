@@ -83,13 +83,6 @@ typedef struct {
 
 	/** generic usb device data*/
 	usb_device_t * usb_device;
-
-	/** usb hub specific descriptor */
-	usb_hub_descriptor_t * descriptor;
-
-	/** not yet initialized non-removable devices */
-	uint8_t * not_initialized_non_removables;
-	
 } usb_hub_info_t;
 
 /**

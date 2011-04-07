@@ -398,16 +398,16 @@ static int usb_hub_process_hub_specific_info(usb_hub_info_t * hub_info) {
 	usb_hub_trigger_connecting_non_removable_devices(hub_info, descriptor);
 	usb_log_debug2("freeing data\n");
 	free(serialized_descriptor);
-	hub_info->descriptor = descriptor;
-	hub_info->not_initialized_non_removables =
+	//hub_info->descriptor = descriptor;
+	/*hub_info->not_initialized_non_removables =
 		(uint8_t*) malloc((hub_info->port_count + 8) / 8);
 	memcpy(hub_info->not_initialized_non_removables,
 		descriptor->devices_removable,
 		(hub_info->port_count + 8) / 8
 		);
-
-	//free(descriptor->devices_removable);
-	//free(descriptor);
+		*/
+	free(descriptor->devices_removable);
+	free(descriptor);
 	return EOK;
 }
 
