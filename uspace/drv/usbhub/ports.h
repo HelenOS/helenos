@@ -45,13 +45,25 @@
 #include <usb/pipes.h>
 #include <usb/devdrv.h>
 
+/** Information about single port on a hub. */
 typedef struct {
+	/** Mutex needed by CV for checking port reset. */
 	fibril_mutex_t reset_mutex;
+	/** CV for waiting to port reset completion. */
 	fibril_condvar_t reset_cv;
-	usb_hc_attached_device_t attached_device;
+	/** Whether port reset is completed.
+	 * Guarded by @c reset_mutex.
+	 */
 	bool reset_completed;
+
+	/** Information about attached device. */
+	usb_hc_attached_device_t attached_device;
 } usb_hub_port_t;
 
+/** Initialize hub port information.
+ *
+ * @param port Port to be initialized.
+ */
 static inline void usb_hub_port_init(usb_hub_port_t *port) {
 	port->attached_device.address = -1;
 	port->attached_device.handle = 0;

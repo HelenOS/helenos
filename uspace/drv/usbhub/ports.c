@@ -39,6 +39,13 @@
 #include <usb/request.h>
 #include <usb/debug.h>
 
+/** Retrieve port status.
+ *
+ * @param[in] ctrl_pipe Control pipe to use.
+ * @param[in] port Port number (starting at 1).
+ * @param[out] status Where to store the port status.
+ * @return Error code.
+ */
 static int get_port_status(usb_pipe_t *ctrl_pipe, size_t port,
     usb_port_status_t *status)
 {
@@ -65,12 +72,22 @@ static int get_port_status(usb_pipe_t *ctrl_pipe, size_t port,
 	return EOK;
 }
 
+/** Information for fibril for device discovery. */
 struct add_device_phase1 {
 	usb_hub_info_t *hub;
 	size_t port;
 	usb_speed_t speed;
 };
 
+/** Callback for enabling a specific port.
+ *
+ * We wait on a CV until port is reseted.
+ * That is announced via change on interrupt pipe.
+ *
+ * @param port_no Port number (starting at 1).
+ * @param arg Custom argument, points to @c usb_hub_info_t.
+ * @return Error code.
+ */
 static int enable_port_callback(int port_no, void *arg)
 {
 	usb_hub_info_t *hub = (usb_hub_info_t *) arg;
@@ -107,6 +124,14 @@ static int enable_port_callback(int port_no, void *arg)
 	return EOK;
 }
 
+/** Fibril for adding a new device.
+ *
+ * Separate fibril is needed because the port reset completion is announced
+ * via interrupt pipe and thus we cannot block here.
+ *
+ * @param arg Pointer to struct add_device_phase1.
+ * @return 0 Always.
+ */
 static int add_device_phase1_worker_fibril(void *arg)
 {
 	struct add_device_phase1 *data
@@ -141,6 +166,15 @@ leave:
 	return EOK;
 }
 
+/** Start device adding when connection change is detected.
+ *
+ * This fires a new fibril to complete the device addition.
+ *
+ * @param hub Hub where the change occured.
+ * @param port Port index (starting at 1).
+ * @param speed Speed of the device.
+ * @return Error code.
+ */
 static int add_device_phase1_new_fibril(usb_hub_info_t *hub, size_t port,
     usb_speed_t speed)
 {
@@ -178,6 +212,11 @@ static int add_device_phase1_new_fibril(usb_hub_info_t *hub, size_t port,
 	return EOK;
 }
 
+/** Process change on a single port.
+ *
+ * @param hub Hub to which the port belongs.
+ * @param port Port index (starting at 1).
+ */
 static void process_port_change(usb_hub_info_t *hub, size_t port)
 {
 	int rc;
@@ -251,6 +290,15 @@ static void process_port_change(usb_hub_info_t *hub, size_t port)
 	}
 }
 
+
+/** Callback for polling hub for port changes.
+ *
+ * @param dev Device where the change occured.
+ * @param change_bitmap Bitmap of changed ports.
+ * @param change_bitmap_size Size of the bitmap in bytes.
+ * @param arg Custom argument, points to @c usb_hub_info_t.
+ * @return Whether to continue polling.
+ */
 bool hub_port_changes_callback(usb_device_t *dev,
     uint8_t *change_bitmap, size_t change_bitmap_size, void *arg)
 {
