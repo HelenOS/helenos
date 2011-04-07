@@ -168,6 +168,14 @@ typedef void (*usb_polling_terminted_callback_t)(usb_device_t *, bool, void *);
 int usb_device_auto_poll(usb_device_t *, size_t,
     usb_polling_callback_t, size_t, usb_polling_terminted_callback_t, void *);
 
+int usb_device_retrieve_descriptors(usb_pipe_t *, usb_device_descriptors_t *);
+int usb_device_create_pipes(ddf_dev_t *, usb_device_connection_t *,
+    usb_endpoint_description_t **, uint8_t *, size_t, int, int,
+    usb_endpoint_mapping_t **, size_t *);
+int usb_device_destroy_pipes(ddf_dev_t *, usb_endpoint_mapping_t *, size_t);
+
+size_t usb_interface_count_alternates(uint8_t *, size_t, uint8_t);
+
 #endif
 /**
  * @}
