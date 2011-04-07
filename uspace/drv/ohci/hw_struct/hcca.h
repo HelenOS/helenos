@@ -25,32 +25,27 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup drvusbuhcirh
+/** @addtogroup drvusbohci
  * @{
  */
 /** @file
- * @brief UHCI driver
+ * @brief OHCI driver
  */
-#ifndef DRV_UHCI_ROOT_HUB_H
-#define DRV_UHCI_ROOT_HUB_H
+#ifndef DRV_OHCI_HW_STRUCT_HCCA_H
+#define DRV_OHCI_HW_STRUCT_HCCA_H
 
-#include <ddf/driver.h>
+#include <stdint.h>
 
-#include "port.h"
+typedef struct hcca {
+	uint32_t int_ep[32];
+	uint16_t frame_number;
+	uint16_t pad1;
+	uint32_t done_head;
+	uint32_t reserved[29];
+} __attribute__((packed)) hcca_t;
 
-#define UHCI_ROOT_HUB_PORT_COUNT 2
-#define ROOT_HUB_WAIT_USEC 5000000 /* 5 seconds */
-
-typedef struct root_hub {
-	uhci_port_t ports[UHCI_ROOT_HUB_PORT_COUNT];
-	devman_handle_t hc_handle;
-} uhci_root_hub_t;
-
-int uhci_root_hub_init(
-  uhci_root_hub_t *instance, void *addr, size_t size, ddf_dev_t *rh);
-
-void uhci_root_hub_fini(uhci_root_hub_t *instance);
 #endif
 /**
  * @}
  */
+

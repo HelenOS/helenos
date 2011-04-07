@@ -25,31 +25,44 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup drvusbuhcirh
+/** @addtogroup drvusbohci
  * @{
  */
 /** @file
- * @brief UHCI driver
+ * @brief OHCI driver
  */
-#ifndef DRV_UHCI_ROOT_HUB_H
-#define DRV_UHCI_ROOT_HUB_H
+#ifndef DRV_OHCI_HW_STRUCT_TRANSFER_DESCRIPTOR_H
+#define DRV_OHCI_HW_STRUCT_TRANSFER_DESCRIPTOR_H
 
-#include <ddf/driver.h>
+#include <stdint.h>
 
-#include "port.h"
+#include "completion_codes.h"
 
-#define UHCI_ROOT_HUB_PORT_COUNT 2
-#define ROOT_HUB_WAIT_USEC 5000000 /* 5 seconds */
+typedef struct td {
+	volatile uint32_t status;
+#define TD_STATUS_ROUND_FLAG (1 << 18)
+#define TD_STATUS_DP_MASK (0x3) /* direction/PID */
+#define TD_STATUS_DP_SHIFT (19)
+#define TD_STATUS_DP_SETUP (0x0)
+#define TD_STATUS_DP_IN (0x1)
+#define TD_STATUS_DP_OUT (0x2)
+#define TD_STATUS_DI_MASK (0x7) /* delay interrupt, wait DI frames before int */
+#define TD_STATUS_DI_SHIFT (21)
+#define TD_STATUS_DI_NO_INTERRUPT (0x7)
+#define TD_STATUS_T_MASK (0x3)  /* data toggle 1x = use ED toggle carry */
+#define TD_STATUS_T_SHIFT (24)
+#define TD_STATUS_EC_MASK (0x3) /* error count */
+#define TD_STATUS_EC_SHIFT (26)
+#define TD_STATUS_CC_MASK (0xf) /* condition code */
+#define TD_STATUS_CC_SHIFT (28)
 
-typedef struct root_hub {
-	uhci_port_t ports[UHCI_ROOT_HUB_PORT_COUNT];
-	devman_handle_t hc_handle;
-} uhci_root_hub_t;
+	volatile uint32_t cbp; /* current buffer ptr, data to be transfered */
+	volatile uint32_t next;
+#define TD_NEXT_PTR_MASK (0xfffffff0)
+#define TD_NEXT_PTR_SHIFT (0)
 
-int uhci_root_hub_init(
-  uhci_root_hub_t *instance, void *addr, size_t size, ddf_dev_t *rh);
-
-void uhci_root_hub_fini(uhci_root_hub_t *instance);
+	volatile uint32_t be; /* buffer end, address of the last byte */
+} __attribute__((packed)) td_t;
 #endif
 /**
  * @}

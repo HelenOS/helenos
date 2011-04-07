@@ -42,11 +42,11 @@
 
 #include "port.h"
 
+static int uhci_port_check(void *port);
+static int uhci_port_reset_enable(int portno, void *arg);
 static int uhci_port_new_device(uhci_port_t *port, usb_speed_t speed);
 static int uhci_port_remove_device(uhci_port_t *port);
 static int uhci_port_set_enabled(uhci_port_t *port, bool enabled);
-static int uhci_port_check(void *port);
-static int uhci_port_reset_enable(int portno, void *arg);
 static void uhci_port_print_status(
     uhci_port_t *port, const port_status_t value);
 
@@ -73,7 +73,6 @@ static inline void uhci_port_write_status(
 	assert(port);
 	pio_write_16(port->address, value);
 }
-
 /*----------------------------------------------------------------------------*/
 /** Initialize UHCI root hub port instance.
  *
@@ -258,15 +257,15 @@ int uhci_port_new_device(uhci_port_t *port, usb_speed_t speed)
 	usb_log_debug("%s: Detected new device.\n", port->id_string);
 
 	usb_address_t dev_addr;
-	int rc = usb_hc_new_device_wrapper(port->rh, &port->hc_connection,
+	int ret = usb_hc_new_device_wrapper(port->rh, &port->hc_connection,
 	    speed, uhci_port_reset_enable, port->number, port,
 	    &dev_addr, &port->attached_device, NULL, NULL, NULL);
 
-	if (rc != EOK) {
+	if (ret != EOK) {
 		usb_log_error("%s: Failed(%d) to add device: %s.\n",
-		    port->id_string, rc, str_error(rc));
+		    port->id_string, ret, str_error(ret));
 		uhci_port_set_enabled(port, false);
-		return rc;
+		return ret;
 	}
 
 	usb_log_info("New device at port %u, address %d (handle %llu).\n",
@@ -286,9 +285,9 @@ int uhci_port_new_device(uhci_port_t *port, usb_speed_t speed)
  */
 int uhci_port_remove_device(uhci_port_t *port)
 {
-	usb_log_error("%s: Don't know how to remove device %d.\n",
-	    port->id_string, (unsigned int)port->attached_device);
-	return EOK;
+	usb_log_error("%s: Don't know how to remove device %llu.\n",
+	    port->id_string, port->attached_device);
+	return ENOTSUP;
 }
 /*----------------------------------------------------------------------------*/
 /** Enable or disable root hub port.
@@ -340,7 +339,7 @@ void uhci_port_print_status(uhci_port_t *port, const port_status_t value)
 	    (value & STATUS_ENABLED) ? " ENABLED," : "",
 	    (value & STATUS_CONNECTED_CHANGED) ? " CONNECTED-CHANGE," : "",
 	    (value & STATUS_CONNECTED) ? " CONNECTED," : "",
-	    (value & STATUS_ALWAYS_ONE) ? " ALWAYS ONE" : " ERROR: NO ALWAYS ONE"
+	    (value & STATUS_ALWAYS_ONE) ? " ALWAYS ONE" : " ERR: NO ALWAYS ONE"
 	);
 }
 /**

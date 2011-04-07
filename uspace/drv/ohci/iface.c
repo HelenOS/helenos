@@ -161,8 +161,8 @@ static int register_endpoint(
 	usb_log_debug("Register endpoint %d:%d %s %s(%d) %zu(%zu) %u.\n",
 	    address, endpoint, usb_str_transfer_type(transfer_type),
 	    usb_str_speed(speed), direction, size, max_packet_size, interval);
-	return bandwidth_reserve(&hc->bandwidth, address, endpoint, direction,
-	    speed, transfer_type, max_packet_size, size, interval);
+	// TODO use real endpoint here!
+	return usb_endpoint_manager_register_ep(&hc->ep_manager,NULL, 0);
 }
 /*----------------------------------------------------------------------------*/
 /** Unregister endpoint (free some bandwidth reservation).
@@ -182,9 +182,8 @@ static int unregister_endpoint(
 	assert(hc);
 	usb_log_debug("Unregister endpoint %d:%d %d.\n",
 	    address, endpoint, direction);
-	return bandwidth_release(&hc->bandwidth, address, endpoint, direction);
-
-	return ENOTSUP;
+	return usb_endpoint_manager_unregister_ep(&hc->ep_manager, address,
+	    endpoint, direction);
 }
 /*----------------------------------------------------------------------------*/
 /** Schedule interrupt out transfer.

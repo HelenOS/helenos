@@ -78,43 +78,22 @@ static ddf_dev_ops_t child_device_ops = {
 	.interfaces[USB_DEV_IFACE] = &child_usb_iface
 };
 
-/** Create new interface for USB MID device.
- *
- * @param fun Backing generic DDF device function (representing interface).
- * @param iface_no Interface number.
- * @return New interface.
- * @retval NULL Error occured.
- */
-usbmid_interface_t *usbmid_interface_create(ddf_fun_t *fun, int iface_no)
-{
-	usbmid_interface_t *iface = malloc(sizeof(usbmid_interface_t));
-	if (iface == NULL) {
-		usb_log_error("Out of memory (wanted %zuB).\n",
-		    sizeof(usbmid_interface_t));
-		return NULL;
-	}
-
-	iface->fun = fun;
-	iface->interface_no = iface_no;
-
-	return iface;
-}
-
 
 /** Spawn new child device from one interface.
  *
  * @param parent Parent MID device.
+ * @param iface Interface information.
  * @param device_descriptor Device descriptor.
  * @param interface_descriptor Interface descriptor.
  * @return Error code.
  */
 int usbmid_spawn_interface_child(usb_device_t *parent,
+    usbmid_interface_t *iface,
     const usb_standard_device_descriptor_t *device_descriptor,
     const usb_standard_interface_descriptor_t *interface_descriptor)
 {
 	ddf_fun_t *child = NULL;
 	char *child_name = NULL;
-	usbmid_interface_t *child_as_interface = NULL;
 	int rc;
 
 	/*
@@ -136,16 +115,9 @@ int usbmid_spawn_interface_child(usb_device_t *parent,
 		goto error_leave;
 	}
 
+	iface->fun = child;
 
-
-	child_as_interface = usbmid_interface_create(child,
-	    (int) interface_descriptor->interface_number);
-	if (child_as_interface == NULL) {
-		rc = ENOMEM;
-		goto error_leave;
-	}
-
-	child->driver_data = child_as_interface;
+	child->driver_data = iface;
 	child->ops = &child_device_ops;
 
 	rc = usb_device_create_match_ids_from_interface(device_descriptor,
@@ -170,9 +142,6 @@ error_leave:
 	}
 	if (child_name != NULL) {
 		free(child_name);
-	}
-	if (child_as_interface != NULL) {
-		free(child_as_interface);
 	}
 
 	return rc;

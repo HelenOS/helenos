@@ -38,6 +38,7 @@
 
 #include "batch.h"
 #include "hw_struct/queue_head.h"
+#include "utils/malloc32.h"
 
 typedef struct transfer_list
 {

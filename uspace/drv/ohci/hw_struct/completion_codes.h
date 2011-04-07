@@ -25,31 +25,30 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup drvusbuhcirh
+/** @addtogroup drvusbohci
  * @{
  */
 /** @file
- * @brief UHCI driver
+ * @brief OHCI driver
  */
-#ifndef DRV_UHCI_ROOT_HUB_H
-#define DRV_UHCI_ROOT_HUB_H
+#ifndef DRV_OHCI_HW_STRUCT_COMPLETION_CODES_H
+#define DRV_OHCI_HW_STRUCT_COMPLETION_CODES_H
 
-#include <ddf/driver.h>
+#define CC_NOERROR (0x0)
+#define CC_CRC (0x1)
+#define CC_BITSTUFF (0x2)
+#define CC_TOGGLE (0x3)
+#define CC_STALL (0x4)
+#define CC_NORESPONSE (0x5)
+#define CC_PIDFAIL (0x6)
+#define CC_PIDUNEXPECTED (0x7)
+#define CC_DATAOVERRRUN (0x8)
+#define CC_DATAUNDERRRUN (0x9)
+#define CC_BUFFEROVERRRUN (0xc)
+#define CC_BUFFERUNDERRUN (0xd)
+#define CC_NOACCESS1 (0xe)
+#define CC_NOACCESS2 (0xf)
 
-#include "port.h"
-
-#define UHCI_ROOT_HUB_PORT_COUNT 2
-#define ROOT_HUB_WAIT_USEC 5000000 /* 5 seconds */
-
-typedef struct root_hub {
-	uhci_port_t ports[UHCI_ROOT_HUB_PORT_COUNT];
-	devman_handle_t hc_handle;
-} uhci_root_hub_t;
-
-int uhci_root_hub_init(
-  uhci_root_hub_t *instance, void *addr, size_t size, ddf_dev_t *rh);
-
-void uhci_root_hub_fini(uhci_root_hub_t *instance);
 #endif
 /**
  * @}
