@@ -106,7 +106,7 @@ write_dentry(struct mfs_dentry_info *d_info)
 	if (r != EOK)
 		goto out;
 
-	const size_t name_len = str_size(d_info->d_name);
+	const size_t name_len = sbi->max_name_len;
 	uint8_t *ptr = b->data;
 	ptr += (d_info->index % dirs_per_block) * sbi->dirsize;
 
@@ -130,6 +130,54 @@ write_dentry(struct mfs_dentry_info *d_info)
 out:
 	return r;
 }
+
+int
+insert_dentry(struct mfs_node *mnode, char *d_name, fs_index_t d_inum)
+{
+	int i, r;
+	struct mfs_sb_info *sbi = mnode->instance->sbi;
+	struct mfs_dentry_info *d_info;
+	bool empty_dentry_found = false;
+
+	const size_t name_len = str_size(d_name);
+
+	assert(name_len <= sbi->max_name_len);
+
+	/*Search for an empty dentry*/
+
+	for (i = 2; ; ++i) {
+		d_info = read_directory_entry(mnode, i);
+
+		if (!d_info) {
+			/*Reached the end of the dentries list*/
+			break;
+		}
+
+		if (d_info->d_inum == 0) {
+			/*This entry is not used*/
+			empty_dentry_found = true;
+			break;
+		}
+		free(d_info);
+	}
+
+	if (!empty_dentry_found) {
+		r = inode_grow(mnode, sbi->dirsize);
+		if (r != EOK)
+			return r;
+
+		d_info = read_directory_entry(mnode, i);
+		if (!d_info)
+			return EIO;
+	}
+
+	d_info->d_inum = d_inum;
+	memcpy(d_info->d_name, d_name, name_len);
+	d_info->d_name[name_len] = 0;
+
+	return  write_dentry(d_info);
+}
+
 
 /**
  * @}

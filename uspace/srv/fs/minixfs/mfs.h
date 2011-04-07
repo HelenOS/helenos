@@ -89,7 +89,7 @@ struct mfs_sb_info {
 	unsigned long itable_size;
 	mfs_version_t fs_version;
 	int ino_per_block;
-	int dirsize;
+	size_t dirsize;
 	int itable_off;
 	unsigned max_name_len;
 	bool long_names;
@@ -121,7 +121,7 @@ struct mfs_ino_info {
 /*Generic MFS directory entry*/
 struct mfs_dentry_info {
 	uint32_t d_inum;
-	char d_name[MFS3_MAX_NAME_LEN];
+	char d_name[MFS3_MAX_NAME_LEN + 1];
 
 	/*The following fields do not exist on disk but only in memory*/
 
@@ -180,6 +180,9 @@ read_directory_entry(struct mfs_node *mnode, unsigned index);
 
 extern int
 write_dentry(struct mfs_dentry_info *d_info);
+
+int
+insert_dentry(struct mfs_node *mnode, char *d_name, fs_index_t d_inum);
 
 /*mfs_balloc.c*/
 extern int
