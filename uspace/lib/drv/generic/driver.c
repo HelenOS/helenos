@@ -272,14 +272,8 @@ static void driver_add_device(ipc_callid_t iid, ipc_call_t *icall)
 	(void) parent_fun_handle;
 	
 	res = driver->driver_ops->add_device(dev);
-	if (res == EOK) {
-		printf("%s: new device with handle=%" PRIun " was added.\n",
-		    driver->name, dev_handle);
-	} else {
-		printf("%s: failed to add a new device with handle = %" PRIun ".\n",
-		    driver->name, dev_handle);
+	if (res != EOK)
 		delete_device(dev);
-	}
 	
 	async_answer_0(iid, res);
 }
@@ -407,7 +401,7 @@ static void driver_connection_gen(ipc_callid_t iid, ipc_call_t *icall, bool drv)
 			remote_iface_func_ptr_t iface_method_ptr =
 			    get_remote_method(rem_iface, iface_method_idx);
 			if (iface_method_ptr == NULL) {
-				// the interface has not such method
+				/* The interface has not such method */
 				printf("%s: driver_connection_gen error - "
 				    "invalid interface method.", driver->name);
 				async_answer_0(callid, ENOTSUP);

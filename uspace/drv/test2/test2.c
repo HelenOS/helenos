@@ -35,6 +35,7 @@
 #include <errno.h>
 #include <str_error.h>
 #include <ddf/driver.h>
+#include <ddf/log.h>
 
 #define NAME "test2"
 
@@ -63,30 +64,31 @@ static int register_fun_verbose(ddf_dev_t *parent, const char *message,
 	ddf_fun_t *fun;
 	int rc;
 
-	printf(NAME ": registering function `%s': %s.\n", name, message);
+	ddf_msg(LVL_DEBUG, "Registering function `%s': %s.", name, message);
 
 	fun = ddf_fun_create(parent, fun_inner, name);
 	if (fun == NULL) {
-		printf(NAME ": error creating function %s\n", name);
+		ddf_msg(LVL_ERROR, "Failed creating function %s", name);
 		return ENOMEM;
 	}
 
 	rc = ddf_fun_add_match_id(fun, match_id, match_score);
 	if (rc != EOK) {
-		printf(NAME ": error adding match IDs to function %s\n", name);
+		ddf_msg(LVL_ERROR, "Failed adding match IDs to function %s",
+		    name);
 		ddf_fun_destroy(fun);
 		return rc;
 	}
 
 	rc = ddf_fun_bind(fun);
 	if (rc != EOK) {
-		printf(NAME ": error binding function %s: %s\n", name,
+		ddf_msg(LVL_ERROR, "Failed binding function %s: %s", name,
 		    str_error(rc));
 		ddf_fun_destroy(fun);
 		return rc;
 	}
 
-	printf(NAME ": registered child device `%s'\n", name);
+	ddf_msg(LVL_NOTE, "Registered child device `%s'", name);
 	return EOK;
 }
 
@@ -110,13 +112,13 @@ static int postponed_birth(void *arg)
 
 	fun_a = ddf_fun_create(dev, fun_exposed, "a");
 	if (fun_a == NULL) {
-		printf(NAME ": error creating function 'a'.\n");
+		ddf_msg(LVL_ERROR, "Failed creating function 'a'.");
 		return ENOMEM;
 	}
 
 	rc = ddf_fun_bind(fun_a);
 	if (rc != EOK) {
-		printf(NAME ": error binding function 'a'.\n");
+		ddf_msg(LVL_ERROR, "Failed binding function 'a'.");
 		return rc;
 	}
 
@@ -127,13 +129,13 @@ static int postponed_birth(void *arg)
 
 static int test2_add_device(ddf_dev_t *dev)
 {
-	printf(NAME ": test2_add_device(name=\"%s\", handle=%d)\n",
+	ddf_msg(LVL_DEBUG, "test2_add_device(name=\"%s\", handle=%d)",
 	    dev->name, (int) dev->handle);
 
 	if (str_cmp(dev->name, "child") != 0) {
 		fid_t postpone = fibril_create(postponed_birth, dev);
 		if (postpone == 0) {
-			printf(NAME ": fibril_create() error\n");
+			ddf_msg(LVL_ERROR, "fibril_create() failed.");
 			return ENOMEM;
 		}
 		fibril_add_ready(postpone);
@@ -148,6 +150,7 @@ static int test2_add_device(ddf_dev_t *dev)
 int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS test2 virtual device driver\n");
+	ddf_log_init(NAME, LVL_ERROR);
 	return ddf_driver_main(&test2_driver);
 }
 

@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2007 Jan Hudecek
- * Copyright (c) 2008 Martin Decky
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,38 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genericproc
+/** @addtogroup libdrv
  * @{
  */
-/** @file tasklet.c
- *  @brief Tasklet implementation
- */
 
-#include <proc/tasklet.h>
-#include <synch/spinlock.h>
-#include <mm/slab.h>
-#include <config.h>
+#ifndef DDF_LOG_H_
+#define DDF_LOG_H_
 
-/** Spinlock protecting list of tasklets */
-SPINLOCK_INITIALIZE(tasklet_lock);
+#include <io/log.h>
 
-/** Array of tasklet lists for every CPU */
-tasklet_descriptor_t **tasklet_list;
+extern int ddf_log_init(const char *, log_level_t);
+extern void ddf_msg(log_level_t, const char *, ...);
 
-void tasklet_init(void)
-{
-	unsigned int i;
-	
-	tasklet_list = malloc(sizeof(tasklet_descriptor_t *) * config.cpu_count, 0);
-	if (!tasklet_list)
-		panic("Error initializing tasklets.");
-	
-	for (i = 0; i < config.cpu_count; i++)
-		tasklet_list[i] = NULL;
-	
-	spinlock_initialize(&tasklet_lock, "tasklet_lock");
-}
-
+#endif
 
 /** @}
  */

@@ -14,13 +14,12 @@ SECTIONS {
 	.image VMA: AT (LMA) {
 		ktext_start = .;
 		*(K_TEXT_START)
-		*(.text);
+		*(.text .text.*);
 		ktext_end = .;
 		
 		kdata_start = .;
 		*(K_DATA_START)
-		*(.rodata);
-		*(.rodata.*);
+		*(.rodata .rodata.*);
 		*(.data);                   /* initialized data */
 		*(.sdata);
 		*(.sdata2);

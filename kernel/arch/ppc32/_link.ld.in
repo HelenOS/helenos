@@ -35,8 +35,7 @@ SECTIONS {
 		
 		kdata_start = .;
 		*(K_DATA_START);
-		*(.rodata);
-		*(.rodata.*);
+		*(.rodata .rodata.*);
 		*(.data);       /* initialized data */
 		*(.sdata);
 		*(.sdata2);

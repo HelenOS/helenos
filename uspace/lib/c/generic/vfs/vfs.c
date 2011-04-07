@@ -377,7 +377,7 @@ ssize_t read(int fildes, void *buf, size_t nbyte)
 	int vfs_phone = vfs_exchange_begin();
 	
 	req = async_send_1(vfs_phone, VFS_IN_READ, fildes, &answer);
-	rc = async_data_read_start_flexible(vfs_phone, (void *) buf, nbyte,
+	rc = async_data_read_start_generic(vfs_phone, (void *) buf, nbyte,
 	    IPC_XF_RESTRICT);
 	if (rc != EOK) {
 		vfs_exchange_end(vfs_phone);
@@ -407,7 +407,7 @@ ssize_t write(int fildes, const void *buf, size_t nbyte)
 	int vfs_phone = vfs_exchange_begin();
 	
 	req = async_send_1(vfs_phone, VFS_IN_WRITE, fildes, &answer);
-	rc = async_data_write_start_flexible(vfs_phone, (void *) buf, nbyte,
+	rc = async_data_write_start_generic(vfs_phone, (void *) buf, nbyte,
 	    IPC_XF_RESTRICT);
 	if (rc != EOK) {
 		vfs_exchange_end(vfs_phone);
@@ -757,10 +757,11 @@ char *getcwd(char *buf, size_t size)
 int fd_phone(int fildes)
 {
 	struct stat stat;
-	int rc;
-
-	rc = fstat(fildes, &stat);
-
+	
+	int rc = fstat(fildes, &stat);
+	if (rc != 0)
+		return rc;
+	
 	if (!stat.device)
 		return -1;
 	

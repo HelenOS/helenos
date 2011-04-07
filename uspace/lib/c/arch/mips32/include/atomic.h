@@ -69,7 +69,6 @@ static inline atomic_count_t atomic_add(atomic_t *val, atomic_count_t i)
 		"       move %2, %0\n"
 		"	sc %0, %1\n"
 		"	beq %0, %4, 1b\n"	/* if the atomic operation failed, try again */
-		/*	nop	*/		/* nop is inserted automatically by compiler */
 		"	nop\n"
 		: "=&r" (tmp),
 		  "+m" (val->count),

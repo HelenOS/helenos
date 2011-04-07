@@ -55,7 +55,7 @@
 
 static int apic_enable_irq(sysarg_t irq)
 {
-	// FIXME: TODO
+	/* FIXME: TODO */
 	return ENOTSUP;
 }
 
@@ -106,7 +106,7 @@ static bool apic_init(void)
 	}
 	
 	async_set_client_connection(apic_connection);
-	service_register(SERVICE_APIC);
+	service_register(SERVICE_IRC);
 	
 	return true;
 }

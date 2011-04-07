@@ -189,7 +189,7 @@ void pm_destroy(void)
 				munmap(packet, packet->length);
 		}
 	}
-	gpm_destroy(&pm_globals.packet_map);
+	gpm_destroy(&pm_globals.packet_map, free);
 	/* leave locked */
 }
 
