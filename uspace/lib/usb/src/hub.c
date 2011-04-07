@@ -143,6 +143,25 @@ int usb_hc_unregister_device(usb_hc_connection_t *connection,
 	    IPC_M_USBHC_RELEASE_ADDRESS, address);
 }
 
+static void unregister_control_endpoint_on_default_address(
+    usb_hc_connection_t *connection)
+{
+	usb_device_connection_t dev_conn;
+	int rc = usb_device_connection_initialize_on_default_address(&dev_conn,
+	    connection);
+	if (rc != EOK) {
+		return;
+	}
+
+	usb_pipe_t ctrl_pipe;
+	rc = usb_pipe_initialize_default_control(&ctrl_pipe, &dev_conn);
+	if (rc != EOK) {
+		return;
+	}
+
+	usb_pipe_unregister(&ctrl_pipe, connection);
+}
+
 
 /** Wrapper for registering attached device to the hub.
  *
@@ -234,6 +253,15 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 		rc = ENOTCONN;
 		goto leave_release_default_address;
 	}
+
+	/* Before sending any traffic, we need to register this
+	 * endpoint.
+	 */
+	rc = usb_pipe_register(&ctrl_pipe, 0, connection);
+	if (rc != EOK) {
+		rc = EREFUSED;
+		goto leave_release_default_address;
+	}
 	rc = usb_pipe_probe_default_control(&ctrl_pipe);
 	if (rc != EOK) {
 		rc = ENOTCONN;
@@ -243,7 +271,7 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 	rc = usb_pipe_start_session(&ctrl_pipe);
 	if (rc != EOK) {
 		rc = ENOTCONN;
-		goto leave_release_default_address;
+		goto leave_unregister_endpoint;
 	}
 
 	rc = usb_request_set_address(&ctrl_pipe, dev_addr);
@@ -255,9 +283,24 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 	usb_pipe_end_session(&ctrl_pipe);
 
 	/*
+	 * Register the control endpoint for the new device.
+	 */
+	rc = usb_pipe_register(&ctrl_pipe, 0, connection);
+	if (rc != EOK) {
+		rc = EREFUSED;
+		goto leave_unregister_endpoint;
+	}
+
+	/*
+	 * Release the original endpoint.
+	 */
+	unregister_control_endpoint_on_default_address(connection);
+
+	/*
 	 * Once the address is changed, we can return the default address.
 	 */
 	usb_hc_release_default_address(connection);
+
 
 	/*
 	 * It is time to register the device with devman.
@@ -271,6 +314,8 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 		rc = ESTALL;
 		goto leave_release_free_address;
 	}
+
+
 
 	/*
 	 * And now inform the host controller about the handle.
@@ -306,6 +351,9 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 
 leave_stop_session:
 	usb_pipe_end_session(&ctrl_pipe);
+
+leave_unregister_endpoint:
+	usb_pipe_unregister(&ctrl_pipe, connection);
 
 leave_release_default_address:
 	usb_hc_release_default_address(connection);
