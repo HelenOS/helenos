@@ -103,10 +103,10 @@ static void fat_node_initialize(fat_node_t *node)
 	node->refcnt = 0;
 	node->dirty = false;
 	node->lastc_cached_valid = false;
-	node->lastc_cached_value = FAT_CLST_LAST1;
+	node->lastc_cached_value = FAT16_CLST_LAST1;
 	node->currc_cached_valid = false;
 	node->currc_cached_bn = 0;
-	node->currc_cached_value = FAT_CLST_LAST1;
+	node->currc_cached_value = FAT16_CLST_LAST1;
 }
 
 static int fat_node_sync(fat_node_t *node)
@@ -944,6 +944,12 @@ libfs_ops_t fat_libfs_ops = {
  * VFS operations.
  */
 
+
+#define RootDirSectors(bs)      (((RDE(bs)*32) + (BPS(bs)-1)) / BPS(bs))
+#define FATSz(bs)               SF(bs) != 0 ? SF(bs) : uint32_t_le2host((bs)->fat32.sectors_per_fat)
+#define DataSec(bs)             (TS(bs) - (RSCNT(bs) + (FATCNT(bs) * FATSz(bs)) + RootDirSectors(bs)))
+#define CountOfClusters(bs)     (DataSec(bs) / SPC(bs))
+
 void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 {
 	devmap_handle_t devmap_handle = (devmap_handle_t) IPC_GET_ARG1(*request);
@@ -999,9 +1005,28 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 
+        /* Storing FAT type (12, 16, 32) in reserved field (bs->reserved) */
+        if (CountOfClusters(bs) < 4085) {
+        /* Volume is FAT12 */
+            printf("Found FAT12 filesystem\n");
+            (bs)->reserved = 12;
+        } else if (CountOfClusters(bs) < 65525) {
+        /* Volume is FAT16 */
+            printf("Found FAT16 filesystem\n");
+            (bs)->reserved = 16;
+        } else {
+        /* Volume is FAT32 */
+            printf("FAT32 is not supported by FAT driver. Sorry\n");
+            block_fini(devmap_handle);
+            async_answer_0(rid, ENOTSUP);
+            return;
+
+        }
+
 	/* Do some simple sanity checks on the file system. */
 	rc = fat_sanity_check(bs, devmap_handle);
 	if (rc != EOK) {
+                printf("Sanity check failed\n");
 		(void) block_cache_fini(devmap_handle);
 		block_fini(devmap_handle);
 		async_answer_0(rid, rc);

@@ -39,17 +39,23 @@
 
 #define FAT1		0
 
-#define FAT_CLST_RES0	0x0000
-#define FAT_CLST_RES1	0x0001
-#define FAT_CLST_FIRST	0x0002
-#define FAT_CLST_BAD	0xfff7
-#define FAT_CLST_LAST1	0xfff8
-#define FAT_CLST_LAST8  0xffff
+#define FAT_CLST_RES0	  0x0000
+#define FAT_CLST_RES1	  0x0001
+#define FAT_CLST_FIRST	  0x0002
+
+#define FAT12_CLST_BAD	  0x0ff7
+#define FAT12_CLST_LAST1  0x0ff8
+#define FAT12_CLST_LAST8  0x0fff
+#define FAT16_CLST_BAD    0xfff7
+#define FAT16_CLST_LAST1  0xfff8
+#define FAT16_CLST_LAST8  0xffff
 
 /* internally used to mark root directory's parent */
 #define FAT_CLST_ROOTPAR	FAT_CLST_RES0
 /* internally used to mark root directory */
 #define FAT_CLST_ROOT		FAT_CLST_RES1
+
+#define FATTYPE(bs)      (bs)->reserved
 
 /* forward declarations */
 struct block;
