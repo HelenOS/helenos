@@ -31,10 +31,12 @@
 /** @file
  * @brief OHCI driver
  */
-#ifndef DRV_OHCI_ISO_TRANSFER_DESCRIPTOR_H
-#define DRV_OHCI_ISO_TRANSFER_DESCRIPTOR_H
+#ifndef DRV_OHCI_HW_STRUCT_ISO_TRANSFER_DESCRIPTOR_H
+#define DRV_OHCI_HW_STRUCT_ISO_TRANSFER_DESCRIPTOR_H
 
 #include <stdint.h>
+
+#include "completion_codes.h"
 
 typedef struct itd {
 	volatile uint32_t status;

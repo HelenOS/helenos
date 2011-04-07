@@ -36,15 +36,19 @@
 #include <errno.h>
 #include <usb/host/endpoint.h>
 
-int endpoint_init(endpoint_t *instance, usb_transfer_type_t transfer_type,
-    usb_speed_t speed, size_t max_packet_size)
+int endpoint_init(endpoint_t *instance, usb_address_t address,
+    usb_endpoint_t endpoint, usb_direction_t direction,
+    usb_transfer_type_t type, usb_speed_t speed, size_t max_packet_size)
 {
 	assert(instance);
-	link_initialize(&instance->same_device_eps);
-	instance->transfer_type = transfer_type;
+	instance->address = address;
+	instance->endpoint = endpoint;
+	instance->direction = direction;
+	instance->transfer_type = type;
 	instance->speed = speed;
 	instance->max_packet_size = max_packet_size;
 	instance->toggle = 0;
+	link_initialize(&instance->same_device_eps);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -74,6 +78,15 @@ void endpoint_toggle_reset(link_t *ep)
 	    list_get_instance(ep, endpoint_t, same_device_eps);
 	assert(instance);
 	instance->toggle = 0;
+}
+/*----------------------------------------------------------------------------*/
+void endpoint_toggle_reset_filtered(link_t *ep, usb_endpoint_t epn)
+{
+	endpoint_t *instance =
+	    list_get_instance(ep, endpoint_t, same_device_eps);
+	assert(instance);
+	if (instance->endpoint == epn)
+		instance->toggle = 0;
 }
 /**
  * @}
