@@ -364,7 +364,7 @@ static int ip_netif_initialize(ip_netif_t *ip_netif)
 		    configuration[1].length);
 		
 		if (ip_netif->dhcp) {
-			/* TODO dhcp */
+			// TODO dhcp
 			net_free_settings(configuration, data);
 			return ENOTSUP;
 		} else if (ip_netif->ipv == IPV4) {
@@ -397,7 +397,7 @@ static int ip_netif_initialize(ip_netif_t *ip_netif)
 				return EINVAL;
 			}
 		} else {
-			/* TODO ipv6 in separate module */
+			// TODO ipv6 in separate module
 			net_free_settings(configuration, data);
 			return ENOTSUP;
 		}
@@ -516,7 +516,7 @@ static int ip_device_req_local(int il_phone, device_id_t device_id,
 	    NAME, ip_netif->device_id, ip_netif->phone, ip_netif->ipv,
 	    ip_netif->dhcp ? "dhcp" : "static");
 	
-	/* TODO ipv6 addresses */
+	// TODO ipv6 addresses
 	
 	char address[INET_ADDRSTRLEN];
 	char netmask[INET_ADDRSTRLEN];
@@ -945,7 +945,7 @@ ip_fragment_packet(packet_t *packet, size_t length, size_t prefix, size_t suffix
 		return ip_release_and_return(packet, rc);
 
 	/* Greatest multiple of 8 lower than content */
-	/* TODO even fragmentation? */
+	// TODO even fragmentation?
 	length = length & ~0x7;
 	
 	rc = ip_fragment_packet_data(packet, new_packet, header, last_header,
@@ -1211,7 +1211,7 @@ static int ip_send_msg_local(int il_phone, device_id_t device_id,
 		}
 	}
 	
-	/* Ff the local host is the destination */
+	/* If the local host is the destination */
 	if ((route->address.s_addr == dest->s_addr) &&
 	    (dest->s_addr != IPV4_LOCALHOST_ADDRESS)) {
 		/* Find the loopback device to deliver */
@@ -1278,7 +1278,7 @@ static in_addr_t ip_get_destination(ip_header_t *header)
 {
 	in_addr_t destination;
 
-	/* TODO search set ipopt route? */
+	// TODO search set ipopt route?
 	destination.s_addr = header->destination_address;
 	return destination;
 }
@@ -1320,7 +1320,7 @@ static int ip_deliver_local(device_id_t device_id, packet_t *packet,
 
 	if ((header->flags & IPFLAG_MORE_FRAGMENTS) ||
 	    IP_FRAGMENT_OFFSET(header)) {
-		/* TODO fragmented */
+		// TODO fragmented
 		return ENOTSUP;
 	}
 	
@@ -1436,7 +1436,7 @@ static int ip_process_packet(device_id_t device_id, packet_t *packet)
 	if (header->ttl <= 1) {
 		phone = ip_prepare_icmp_and_get_phone(0, packet, header);
 		if (phone >= 0) {
-			/* ttl exceeded ICMP */
+			/* TTL exceeded ICMP */
 			icmp_time_exceeded_msg(phone, ICMP_EXC_TTL, packet);
 		}
 		return EINVAL;
@@ -1776,7 +1776,7 @@ ip_received_error_msg_local(int ip_phone, device_id_t device_id,
 		/* Destination host unreachable? */
 		if ((type != ICMP_DEST_UNREACH) ||
 		    (code != ICMP_HOST_UNREACH)) {
-		    	/* No, something else */
+			/* No, something else */
 			break;
 		}
 

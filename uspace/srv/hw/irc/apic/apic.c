@@ -55,7 +55,7 @@
 
 static int apic_enable_irq(sysarg_t irq)
 {
-	/* FIXME: TODO */
+	// FIXME: TODO
 	return ENOTSUP;
 }
 

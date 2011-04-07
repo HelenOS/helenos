@@ -122,14 +122,15 @@ ip_client_get_pseudo_header(ip_protocol_t protocol, struct sockaddr *src,
 		*header = header_in;
 		return EOK;
 
-	/* TODO IPv6 */
-/*	case AF_INET6:
+	// TODO IPv6
+#if 0
+	case AF_INET6:
 		if (addrlen != sizeof(struct sockaddr_in6))
 			return EINVAL;
 
 		address_in6 = (struct sockaddr_in6 *) addr;
 		return EOK;
-*/
+#endif
 
 	default:
 		return EAFNOSUPPORT;
@@ -257,7 +258,7 @@ ip_client_set_pseudo_header_data_length(void *header, size_t headerlen,
 		header_in = (ipv4_pseudo_header_t *) header;
 		header_in->data_length = htons(data_length);
 		return EOK;
-	/* TODO IPv6 */
+	// TODO IPv6
 	} else {
 		return EINVAL;
 	}
