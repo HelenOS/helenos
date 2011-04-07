@@ -182,6 +182,14 @@ void hc_gain_control(hc_t *instance)
 	/* HC is in reset (hw startup) => no other driver
 	 * maintain reset for at least the time specified in USB spec (50 ms)*/
 	async_usleep(50000);
+
+	/* turn off legacy emulation */
+	volatile uint32_t *ohci_emulation_reg =
+	    (uint32_t*)((char*)instance->registers + 0x100);
+	usb_log_info("OHCI legacy register status %p: %x.\n",
+		ohci_emulation_reg, *ohci_emulation_reg);
+	*ohci_emulation_reg = 0;
+
 }
 /*----------------------------------------------------------------------------*/
 void hc_init_hw(hc_t *instance)

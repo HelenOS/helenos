@@ -127,6 +127,8 @@ void usb_device_keeper_reset_if_need(
 	case 0x01: /*clear feature*/
 		/* recipient is endpoint, value is zero (ENDPOINT_STALL) */
 		if (((data[0] & 0xf) == 1) && ((data[2] | data[3]) == 0)) {
+			link_t *current =
+			    instance->devices[target.address].endpoints.next;
 			while (current !=
 			   &instance->devices[target.address].endpoints)
 			{
