@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Matus Dekanek
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,56 +25,56 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 /** @addtogroup drvusbhub
  * @{
  */
 /** @file
- * @brief usblist implementation
+ * Hub ports related functions.
  */
-#include <sys/types.h>
+#ifndef DRV_USBHUB_PORTS_H
+#define DRV_USBHUB_PORTS_H
 
-#include "usbhub_private.h"
+#include <ipc/devman.h>
+#include <usb/usb.h>
+#include <ddf/driver.h>
+#include <fibril_synch.h>
 
+#include <usb/hub.h>
 
-usb_general_list_t * usb_lst_create(void) {
-	usb_general_list_t* result = usb_new(usb_general_list_t);
-	usb_lst_init(result);
-	return result;
+#include <usb/pipes.h>
+#include <usb/devdrv.h>
+
+/** Information about single port on a hub. */
+typedef struct {
+	/** Mutex needed by CV for checking port reset. */
+	fibril_mutex_t reset_mutex;
+	/** CV for waiting to port reset completion. */
+	fibril_condvar_t reset_cv;
+	/** Whether port reset is completed.
+	 * Guarded by @c reset_mutex.
+	 */
+	bool reset_completed;
+
+	/** Information about attached device. */
+	usb_hc_attached_device_t attached_device;
+} usb_hub_port_t;
+
+/** Initialize hub port information.
+ *
+ * @param port Port to be initialized.
+ */
+static inline void usb_hub_port_init(usb_hub_port_t *port) {
+	port->attached_device.address = -1;
+	port->attached_device.handle = 0;
+	fibril_mutex_initialize(&port->reset_mutex);
+	fibril_condvar_initialize(&port->reset_cv);
 }
 
-void usb_lst_init(usb_general_list_t * lst) {
-	lst->prev = lst;
-	lst->next = lst;
-	lst->data = NULL;
-}
-
-void usb_lst_prepend(usb_general_list_t* item, void* data) {
-	usb_general_list_t* appended = usb_new(usb_general_list_t);
-	appended->data = data;
-	appended->next = item;
-	appended->prev = item->prev;
-	item->prev->next = appended;
-	item->prev = appended;
-}
-
-void usb_lst_append(usb_general_list_t* item, void* data) {
-	usb_general_list_t* appended = usb_new(usb_general_list_t);
-	appended->data = data;
-	appended->next = item->next;
-	appended->prev = item;
-	item->next->prev = appended;
-	item->next = appended;
-}
-
-void usb_lst_remove(usb_general_list_t* item) {
-	item->next->prev = item->prev;
-	item->prev->next = item->next;
-}
+bool hub_port_changes_callback(usb_device_t *, uint8_t *, size_t, void *);
 
 
-
+#endif
 /**
  * @}
  */
-
-

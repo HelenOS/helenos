@@ -90,6 +90,12 @@ static hash_table_operations_t op = {
 size_t bandwidth_count_usb11(usb_speed_t speed, usb_transfer_type_t type,
     size_t size, size_t max_packet_size)
 {
+	/* We care about bandwidth only for interrupt and isochronous. */
+	if ((type != USB_TRANSFER_INTERRUPT)
+	    && (type != USB_TRANSFER_ISOCHRONOUS)) {
+		return 0;
+	}
+
 	const unsigned packet_count =
 	    (size + max_packet_size - 1) / max_packet_size;
 	/* TODO: It may be that ISO and INT transfers use only one data packet
