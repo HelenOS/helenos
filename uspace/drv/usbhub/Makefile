@@ -35,7 +35,6 @@ SOURCES = \
 	main.c \
 	ports.c \
 	utils.c \
-	usbhub.c \
-	usblist.c
+	usbhub.c
 
 include $(USPACE_PREFIX)/Makefile.common
