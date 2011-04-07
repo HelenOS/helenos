@@ -243,8 +243,7 @@ static int interrupt_out(
 	assert(ep->transfer_type == USB_TRANSFER_INTERRUPT);
 
 	usb_transfer_batch_t *batch =
-	    batch_get(fun, target, ep->transfer_type, ep->max_packet_size,
-	        ep->speed, data, size, NULL, 0, NULL, callback, arg, ep);
+	    batch_get(fun, ep, data, size, NULL, 0, NULL, callback, arg);
 	if (!batch)
 		return ENOMEM;
 	batch_interrupt_out(batch);
@@ -300,8 +299,7 @@ static int interrupt_in(
 	assert(ep->transfer_type == USB_TRANSFER_INTERRUPT);
 
 	usb_transfer_batch_t *batch =
-	    batch_get(fun, target, ep->transfer_type, ep->max_packet_size,
-	        ep->speed, data, size, NULL, 0, callback, NULL, arg, ep);
+	    batch_get(fun, ep, data, size, NULL, 0, callback, NULL, arg);
 	if (!batch)
 		return ENOMEM;
 	batch_interrupt_in(batch);
@@ -347,8 +345,7 @@ static int bulk_out(
 	assert(ep->transfer_type == USB_TRANSFER_BULK);
 
 	usb_transfer_batch_t *batch =
-	    batch_get(fun, target, ep->transfer_type, ep->max_packet_size,
-	        ep->speed, data, size, NULL, 0, NULL, callback, arg, ep);
+	    batch_get(fun, ep, data, size, NULL, 0, NULL, callback, arg);
 	if (!batch)
 		return ENOMEM;
 	batch_bulk_out(batch);
@@ -393,8 +390,7 @@ static int bulk_in(
 	assert(ep->transfer_type == USB_TRANSFER_BULK);
 
 	usb_transfer_batch_t *batch =
-	    batch_get(fun, target, ep->transfer_type, ep->max_packet_size,
-	        ep->speed, data, size, NULL, 0, callback, NULL, arg, ep);
+	    batch_get(fun, ep, data, size, NULL, 0, callback, NULL, arg);
 	if (!batch)
 		return ENOMEM;
 	batch_bulk_in(batch);
@@ -446,9 +442,8 @@ static int control_write(
 		return EINVAL;
 
 	usb_transfer_batch_t *batch =
-	    batch_get(fun, target, ep->transfer_type, ep->max_packet_size,
-	        ep->speed, data, size, setup_data, setup_size, NULL, callback,
-		arg, ep);
+	    batch_get(fun, ep, data, size, setup_data, setup_size,
+	        NULL, callback, arg);
 	if (!batch)
 		return ENOMEM;
 	usb_device_keeper_reset_if_need(&hc->manager, target, setup_data);
@@ -498,9 +493,8 @@ static int control_read(
 	assert(ep->transfer_type == USB_TRANSFER_CONTROL);
 
 	usb_transfer_batch_t *batch =
-	    batch_get(fun, target, ep->transfer_type, ep->max_packet_size,
-	        ep->speed, data, size, setup_data, setup_size,
-		callback, NULL, arg, ep);
+	    batch_get(fun, ep, data, size, setup_data, setup_size,
+		callback, NULL, arg);
 	if (!batch)
 		return ENOMEM;
 	batch_control_read(batch);

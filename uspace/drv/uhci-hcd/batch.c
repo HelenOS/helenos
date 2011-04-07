@@ -79,13 +79,10 @@ static void batch_call_out_and_dispose(usb_transfer_batch_t *instance);
  * (that is accessible by the hardware). Initializes parameters needed for the
  * transaction and callback.
  */
-usb_transfer_batch_t * batch_get(ddf_fun_t *fun, usb_target_t target,
-    usb_transfer_type_t transfer_type, size_t max_packet_size,
-    usb_speed_t speed, char *buffer, size_t buffer_size,
-    char* setup_buffer, size_t setup_size,
+usb_transfer_batch_t * batch_get(ddf_fun_t *fun, endpoint_t *ep,
+    char *buffer, size_t buffer_size, char* setup_buffer, size_t setup_size,
     usbhc_iface_transfer_in_callback_t func_in,
-    usbhc_iface_transfer_out_callback_t func_out, void *arg, endpoint_t *ep
-    )
+    usbhc_iface_transfer_out_callback_t func_out, void *arg)
 {
 	assert(ep);
 	assert(func_in == NULL || func_out == NULL);
@@ -103,8 +100,10 @@ usb_transfer_batch_t * batch_get(ddf_fun_t *fun, usb_target_t target,
 	usb_transfer_batch_t *instance = malloc(sizeof(usb_transfer_batch_t));
 	CHECK_NULL_DISPOSE_RETURN(instance,
 	    "Failed to allocate batch instance.\n");
+	usb_target_t target =
+	    { .address = ep->address, .endpoint = ep->endpoint };
 	usb_transfer_batch_init(instance, target,
-	    transfer_type, speed, max_packet_size,
+	    ep->transfer_type, ep->speed, ep->max_packet_size,
 	    buffer, NULL, buffer_size, NULL, setup_size, func_in,
 	    func_out, arg, fun, ep, NULL);
 
@@ -115,8 +114,9 @@ usb_transfer_batch_t * batch_get(ddf_fun_t *fun, usb_target_t target,
 	bzero(data, sizeof(uhci_batch_t));
 	instance->private_data = data;
 
-	data->transfers = (buffer_size + max_packet_size - 1) / max_packet_size;
-	if (transfer_type == USB_TRANSFER_CONTROL) {
+	data->transfers =
+	    (buffer_size + ep->max_packet_size - 1) / ep->max_packet_size;
+	if (ep->transfer_type == USB_TRANSFER_CONTROL) {
 		data->transfers += 2;
 	}
 
@@ -178,9 +178,10 @@ bool batch_is_complete(usb_transfer_batch_t *instance)
 			usb_log_debug("Batch(%p) found error TD(%d):%x.\n",
 			    instance, i, data->tds[i].status);
 			td_print_status(&data->tds[i]);
-			if (instance->ep != NULL)
-				endpoint_toggle_set(instance->ep,
-				    td_toggle(&data->tds[i]));
+			assert(instance->ep != NULL);
+
+			endpoint_toggle_set(instance->ep,
+			    td_toggle(&data->tds[i]));
 			if (i > 0)
 				goto substract_ret;
 			return true;
