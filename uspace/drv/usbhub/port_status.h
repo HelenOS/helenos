@@ -256,7 +256,7 @@ static inline void usb_hub_unset_power_port_request(
  * @return
  */
 static inline bool usb_port_get_bit(usb_port_status_t * status, int idx) {
-	return (*status)&(1 << idx);
+	return ((*status)&(1 << idx))!=0;
 }
 
 /**

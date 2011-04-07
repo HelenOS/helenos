@@ -228,13 +228,13 @@ int usb_hub_check_hub_changes(usb_hub_info_t * hub_info) {
 	//first check non-removable devices
 	{
 		unsigned int port;
-		for (port = 1; port <= port_count; ++port) {
+		for (port = 0; port < port_count; ++port) {
 			bool is_non_removable =
 				hub_info->not_initialized_non_removables[port/8]
-				& (1 << (port % 8));
+				& (1 << (port-1 % 8));
 			if (is_non_removable) {
 				opResult = initialize_non_removable(hub_info,
-					port);
+					port+1);
 			}
 		}
 	}
@@ -469,7 +469,10 @@ static int usb_hub_release_default_address(usb_hub_info_t * hub) {
 static int usb_hub_init_add_device(usb_hub_info_t * hub, uint16_t port,
 	usb_speed_t speed) {
 	//if this hub already uses default address, it cannot request it once more
-	if (hub->is_default_address_used) return EREFUSED;
+	if (hub->is_default_address_used) {
+		usb_log_info("default address used, another time\n");
+		return EREFUSED;
+	}
 	usb_log_debug("some connection changed\n");
 	assert(hub->control_pipe->hc_phone);
 	int opResult = usb_hub_clear_port_feature(hub->control_pipe,
@@ -709,7 +712,6 @@ static void usb_hub_process_interrupt(usb_hub_info_t * hub,
 	if (usb_port_connect_change(&status)) {
 		usb_log_debug("connection change on port\n");
 		if (usb_port_dev_connected(&status)) {
-			usb_log_debug("some connection changed\n");
 			usb_hub_init_add_device(hub, port,
 				usb_port_speed(&status));
 		} else {
@@ -742,7 +744,7 @@ static void usb_hub_process_interrupt(usb_hub_info_t * hub,
 	usb_port_set_overcurrent_change(&status,false);
 	/// \TODO what about port power change?
 	if (status >> 16) {
-		usb_log_info("there was some unsupported change on port %d: %X\n",
+		usb_log_info("there was unsupported change on port %d: %X\n",
 			port, status);
 
 	}
@@ -897,12 +899,13 @@ static int initialize_non_removable(usb_hub_info_t * hub_info,
 	usb_log_debug("port status %d, x%x\n", status, status);
 	if (usb_port_dev_connected(&status)) {
 		usb_log_debug("there is connected device on this port\n");
+		opResult = usb_hub_init_add_device(hub_info, port,
+			usb_port_speed(&status));
 	}else{
 		usb_log_debug("the non-removable device is not connected\n");
+		opResult = EINVAL;
 	}
-	if (!hub_info->is_default_address_used)
-		usb_hub_init_add_device(hub_info, port,
-			usb_port_speed(&status));
+	
 	return opResult;
 }
 
@@ -1020,7 +1023,7 @@ static int usb_hub_trigger_connecting_non_removable_devices(
 	/// \TODO this is just a debug code
 	for (port = 1; port <= descriptor->ports_count; ++port) {
 		bool is_non_removable =
-			((non_removable_dev_bitmap[port / 8]) >> (port % 8)) % 2;
+			((non_removable_dev_bitmap[(port-1) / 8]) >> ((port-1) % 8)) % 2;
 		if (is_non_removable) {
 			usb_log_debug("CHECKING port %d is non-removable\n",
 				port);
