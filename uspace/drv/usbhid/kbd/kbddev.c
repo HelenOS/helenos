@@ -635,7 +635,7 @@ static void usb_kbd_process_data(usb_hid_dev_t *hid_dev,
 //	    callbacks, kbd_dev);
 	usb_hid_report_path_t *path = usb_hid_report_path();
 	usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_KEYBOARD, 0);
-	usb_hid_report_path_set_report_id(path, 1);
+	usb_hid_report_path_set_report_id(path, 0);
 	
 	int rc = usb_hid_parse_report(hid_dev->parser, buffer,
 	    actual_size, path, 
@@ -732,7 +732,7 @@ int usb_kbd_init(usb_hid_dev_t *hid_dev)
 	usb_hid_report_path_t *path = usb_hid_report_path();
 	usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_KEYBOARD, 0);
 	
-	usb_hid_report_path_set_report_id(path, 1);
+	usb_hid_report_path_set_report_id(path, 0);
 	
 	kbd_dev->key_count = usb_hid_report_input_length(
 	    hid_dev->parser, path, 

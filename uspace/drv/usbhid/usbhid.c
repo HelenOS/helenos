@@ -39,6 +39,7 @@
 #include <usb/classes/hid.h>
 #include <usb/classes/hidparser.h>
 #include <usb/classes/hidreport.h>
+#include <usb/classes/hidreq.h>
 #include <errno.h>
 
 #include "usbhid.h"
@@ -116,6 +117,7 @@ usb_hid_dev_t *usb_hid_new(void)
 static bool usb_dummy_polling_callback(usb_device_t *dev, uint8_t *buffer,
      size_t buffer_size, void *arg)
 {
+	usb_log_debug("Dummy polling callback.\n");
 	return false;
 }
 
@@ -176,6 +178,7 @@ static int usb_hid_init_parser(usb_hid_dev_t *hid_dev)
 	/* Get the report descriptor and parse it. */
 	rc = usb_hid_process_report_descriptor(hid_dev->usb_dev, 
 	    hid_dev->parser);
+	
 	if (rc != EOK) {
 		usb_log_warning("Could not process report descriptor.\n");
 		
@@ -239,6 +242,8 @@ int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 	case USB_HID_PROTOCOL_MOUSE:
 		break;
 	default:
+//		usbhid_req_set_idle(&hid_dev->usb_dev->ctrl_pipe, 
+//		    hid_dev->usb_dev->interface_no, 0);
 		break;
 	}
 	
