@@ -458,10 +458,6 @@ static char mfs_plb_get_char(unsigned pos)
 static int mfs_has_children(bool *has_children, fs_node_t *fsnode)
 {
 	struct mfs_node *mnode = fsnode->data;
-	const struct mfs_ino_info *ino_i = mnode->ino_i;
-	const struct mfs_instance *inst = mnode->instance;
-	const struct mfs_sb_info *sbi = inst->sbi;
-	uint32_t n_dentries = 0;
 
 	*has_children = false;
 
@@ -469,14 +465,8 @@ static int mfs_has_children(bool *has_children, fs_node_t *fsnode)
 		goto out;
 
 	struct mfs_dentry_info *d_info;
-	n_dentries =  ino_i->i_size / sbi->dirsize;
 	
 	/* The first two dentries are always . and .. */
-	assert(n_dentries >= 2);
-
-	if (n_dentries == 2)
-		goto out;
-
 	int i = 2;
 	while (1) {
 		d_info = read_directory_entry(mnode, i++);
@@ -497,9 +487,6 @@ static int mfs_has_children(bool *has_children, fs_node_t *fsnode)
 	}
 
 out:
-
-	if (n_dentries > 2 && !*has_children)
-		printf(NAME ": Filesystem corruption detected\n");
 
 	if (*has_children)
 		mfsdebug("Has children\n");
