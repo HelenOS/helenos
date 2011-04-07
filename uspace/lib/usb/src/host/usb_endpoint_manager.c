@@ -34,17 +34,8 @@
 
 #define BUCKET_COUNT 7
 
-typedef	struct {
-	usb_address_t address;
-	usb_endpoint_t endpoint;
-	usb_direction_t direction;
-} __attribute__((aligned (sizeof(unsigned long)))) id_t;
-#define MAX_KEYS (sizeof(id_t) / sizeof(unsigned long))
+#define MAX_KEYS (3)
 typedef struct {
-	union {
-		id_t id;
-		unsigned long key[MAX_KEYS];
-	};
 	link_t link;
 	size_t bw;
 	endpoint_t *ep;
@@ -65,12 +56,21 @@ static int node_compare(unsigned long key[], hash_count_t keys, link_t *item)
 {
 	assert(item);
 	node_t *node = hash_table_get_instance(item, node_t, link);
-	hash_count_t i = 0;
-	for (; i < keys; ++i) {
-		if (key[i] != node->key[i])
-			return false;
+	assert(node);
+	assert(node->ep);
+	bool match = true;
+	switch (keys) {
+	case 3:
+		match = match && (key[2] == node->ep->direction);
+	case 2:
+		match = match && (key[1] == (unsigned long)node->ep->endpoint);
+	case 1:
+		match = match && (key[0] == (unsigned long)node->ep->address);
+		break;
+	default:
+		match = false;
 	}
-	return true;
+	return match;
 }
 /*----------------------------------------------------------------------------*/
 static void node_remove(link_t *item)
@@ -141,7 +141,6 @@ void usb_endpoint_manager_destroy(usb_endpoint_manager_t *instance)
 }
 /*----------------------------------------------------------------------------*/
 int usb_endpoint_manager_register_ep(usb_endpoint_manager_t *instance,
-    usb_address_t address, usb_endpoint_t endpoint, usb_direction_t direction,
     endpoint_t *ep, size_t data_size)
 {
 	assert(ep);
@@ -149,15 +148,12 @@ int usb_endpoint_manager_register_ep(usb_endpoint_manager_t *instance,
 	    data_size, ep->max_packet_size);
 	assert(instance);
 
-	id_t id = {
-		.address = address,
-		.endpoint = endpoint,
-		.direction = direction,
-	};
+	unsigned long key[MAX_KEYS] =
+	    {ep->address, ep->endpoint, ep->direction};
 	fibril_mutex_lock(&instance->guard);
 
 	link_t *item =
-	    hash_table_find(&instance->ep_table, (unsigned long*)&id);
+	    hash_table_find(&instance->ep_table, key);
 	if (item != NULL) {
 		fibril_mutex_unlock(&instance->guard);
 		return EEXISTS;
@@ -174,13 +170,11 @@ int usb_endpoint_manager_register_ep(usb_endpoint_manager_t *instance,
 		return ENOMEM;
 	}
 
-	node->id = id;
 	node->bw = bw;
 	node->ep = ep;
 	link_initialize(&node->link);
 
-	hash_table_insert(&instance->ep_table,
-	    (unsigned long*)&id, &node->link);
+	hash_table_insert(&instance->ep_table, key, &node->link);
 	instance->free_bw -= bw;
 	fibril_mutex_unlock(&instance->guard);
 	fibril_condvar_broadcast(&instance->change);
@@ -191,14 +185,10 @@ int usb_endpoint_manager_unregister_ep(usb_endpoint_manager_t *instance,
     usb_address_t address, usb_endpoint_t endpoint, usb_direction_t direction)
 {
 	assert(instance);
-	id_t id = {
-		.address = address,
-		.endpoint = endpoint,
-		.direction = direction,
-	};
+	unsigned long key[MAX_KEYS] = {address, endpoint, direction};
+
 	fibril_mutex_lock(&instance->guard);
-	link_t *item =
-	    hash_table_find(&instance->ep_table, (unsigned long*)&id);
+	link_t *item = hash_table_find(&instance->ep_table, key);
 	if (item == NULL) {
 		fibril_mutex_unlock(&instance->guard);
 		return EINVAL;
@@ -206,7 +196,7 @@ int usb_endpoint_manager_unregister_ep(usb_endpoint_manager_t *instance,
 
 	node_t *node = hash_table_get_instance(item, node_t, link);
 	instance->free_bw += node->bw;
-	hash_table_remove(&instance->ep_table, (unsigned long*)&id, MAX_KEYS);
+	hash_table_remove(&instance->ep_table, key, MAX_KEYS);
 
 	fibril_mutex_unlock(&instance->guard);
 	fibril_condvar_broadcast(&instance->change);
@@ -218,14 +208,10 @@ endpoint_t * usb_endpoint_manager_get_ep(usb_endpoint_manager_t *instance,
     size_t *bw)
 {
 	assert(instance);
-	id_t id = {
-		.address = address,
-		.endpoint = endpoint,
-		.direction = direction,
-	};
+	unsigned long key[MAX_KEYS] = {address, endpoint, direction};
+
 	fibril_mutex_lock(&instance->guard);
-	link_t *item =
-	    hash_table_find(&instance->ep_table, (unsigned long*)&id);
+	link_t *item = hash_table_find(&instance->ep_table, key);
 	if (item == NULL) {
 		fibril_mutex_unlock(&instance->guard);
 		return NULL;

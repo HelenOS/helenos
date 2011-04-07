@@ -63,7 +63,6 @@ int usb_endpoint_manager_init(usb_endpoint_manager_t *instance,
 void usb_endpoint_manager_destroy(usb_endpoint_manager_t *instance);
 
 int usb_endpoint_manager_register_ep(usb_endpoint_manager_t *instance,
-    usb_address_t address, usb_endpoint_t endpoint, usb_direction_t direction,
     endpoint_t *ep, size_t data_size);
 
 int usb_endpoint_manager_register_ep_wait(usb_endpoint_manager_t *instance,

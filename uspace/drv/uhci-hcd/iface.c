@@ -178,8 +178,7 @@ static int register_endpoint(
 	    address, endpoint, usb_str_transfer_type(transfer_type),
 	    usb_str_speed(speed), direction, size, max_packet_size, interval);
 
-	ret = usb_endpoint_manager_register_ep(&hc->ep_manager,
-	    address, endpoint, direction, ep, size);
+	ret = usb_endpoint_manager_register_ep(&hc->ep_manager, ep, size);
 	if (ret != EOK) {
 		endpoint_destroy(ep);
 	} else {
