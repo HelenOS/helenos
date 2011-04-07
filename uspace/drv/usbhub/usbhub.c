@@ -87,8 +87,8 @@ static int usb_process_hub_power_change(usb_hub_info_t * hub_info,
 
 static void usb_hub_process_global_interrupt(usb_hub_info_t * hub_info);
 
-static int initialize_non_removable(usb_hub_info_t * hub_info,
-	unsigned int port);
+//static int initialize_non_removable(usb_hub_info_t * hub_info,
+//	unsigned int port);
 
 static int usb_hub_trigger_connecting_non_removable_devices(
 	usb_hub_info_t * hub, usb_hub_descriptor_t * descriptor);
@@ -226,6 +226,7 @@ int usb_hub_check_hub_changes(usb_hub_info_t * hub_info) {
 
 	size_t port_count = hub_info->port_count;
 	//first check non-removable devices
+	/*
 	{
 		unsigned int port;
 		for (port = 0; port < port_count; ++port) {
@@ -238,7 +239,7 @@ int usb_hub_check_hub_changes(usb_hub_info_t * hub_info) {
 			}
 		}
 	}
-
+	*/
 
 	/// FIXME: count properly
 	size_t byte_length = ((port_count + 1) / 8) + 1;
@@ -343,14 +344,14 @@ static int usb_hub_process_hub_specific_info(usb_hub_info_t * hub_info) {
 	/* this was one fix of some bug, should not be needed anymore
 	 * these lines allow to reset hub once more, it can be used as
 	 * brute-force initialization for non-removable devices
-	 */
+	 *
 	opResult = usb_request_set_configuration(hub_info->control_pipe,
 		1);
 	if (opResult != EOK) {
 		usb_log_error("could not set default configuration, errno %d",
 			opResult);
 		return opResult;
-	}
+	}*/
 
 
 	size_t received_size;
@@ -878,6 +879,7 @@ static void usb_hub_process_global_interrupt(usb_hub_info_t * hub_info){
  * @param port port number, counting from 1
  * @return error code
  */
+#if 0
 static int initialize_non_removable(usb_hub_info_t * hub_info,
 	unsigned int port) {
 	int opResult;
@@ -917,7 +919,7 @@ static int initialize_non_removable(usb_hub_info_t * hub_info,
 	
 	return opResult;
 }
-
+#endif
 /**
  * triggers actions to connect non0removable devices
  *
