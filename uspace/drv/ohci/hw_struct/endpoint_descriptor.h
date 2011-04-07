@@ -31,10 +31,12 @@
 /** @file
  * @brief OHCI driver
  */
-#ifndef DRV_OHCI_ENDPOINT_DESCRIPTOR_H
-#define DRV_OHCI_ENDPOINT_DESCRIPTOR_H
+#ifndef DRV_OHCI_HW_STRUCT_ENDPOINT_DESCRIPTOR_H
+#define DRV_OHCI_HW_STRUCT_ENDPOINT_DESCRIPTOR_H
 
 #include <stdint.h>
+
+#include "completion_codes.h"
 
 typedef struct ed {
 	volatile uint32_t status;

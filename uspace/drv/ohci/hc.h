@@ -47,6 +47,7 @@
 #include "batch.h"
 #include "ohci_regs.h"
 #include "root_hub.h"
+#include "hw_struct/hcca.h"
 
 typedef struct hc {
 	ohci_regs_t *registers;
