@@ -41,99 +41,73 @@
 //#include <fibril_synch.h>
 
 //#include <usb/classes/hid.h>
-//#include <usb/classes/hidparser.h>
+#include <usb/classes/hidparser.h>
 #include <ddf/driver.h>
 #include <usb/pipes.h>
 #include <usb/devdrv.h>
+#include <usb/classes/hid.h>
 
 /*----------------------------------------------------------------------------*/
-///**
-// * USB/HID keyboard device type.
-// *
-// * Holds a reference to generic USB/HID device structure and keyboard-specific
-// * data, such as currently pressed keys, modifiers and lock keys.
-// *
-// * Also holds a IPC phone to the console (since there is now no other way to 
-// * communicate with it).
-// *
-// * @note Storing active lock keys in this structure results in their setting
-// *       being device-specific.
-// */
-//typedef struct usb_kbd_t {
-//	/** Structure holding generic USB device information. */
-//	//usbhid_dev_t *hid_dev;
-//	usb_device_t *usb_dev;
+/**
+ * Structure for holding general HID device data.
+ */
+typedef struct usb_hid_dev_t {
+	/** Structure holding generic USB device information. */
+	usb_device_t *usb_dev;
 	
-//	/** Currently pressed keys (not translated to key codes). */
-//	uint8_t *keys;
-//	/** Count of stored keys (i.e. number of keys in the report). */
-//	size_t key_count;
-//	/** Currently pressed modifiers (bitmap). */
-//	uint8_t modifiers;
+	/** @todo What is this actually? */
+	ddf_dev_ops_t ops;
 	
-//	/** Currently active modifiers including locks. Sent to the console. */
-//	unsigned mods;
+	/** Index of the polling pipe in usb_hid_endpoints array. */
+	int poll_pipe_index;
 	
-//	/** Currently active lock keys. */
-//	unsigned lock_keys;
+	/** Function to be called when data arrives from the device. */
+	usb_polling_callback_t poll_callback;
 	
-//	/** IPC phone to the console device (for sending key events). */
-//	int console_phone;
-	
-//	/** Information for auto-repeat of keys. */
-//	usb_kbd_repeat_t repeat;
-	
-//	/** Mutex for accessing the information about auto-repeat. */
-//	fibril_mutex_t *repeat_mtx;
-	
-//	/** Report descriptor. */
-//	uint8_t *report_desc;
+	/** Report descriptor. */
+	uint8_t *report_desc;
 
-//	/** Report descriptor size. */
-//	size_t report_desc_size;
+	/** Report descriptor size. */
+	size_t report_desc_size;
 	
-//	uint8_t *output_buffer;
+	/** HID Report parser. */
+	usb_hid_report_parser_t *parser;
 	
-//	size_t output_size;
+	/** Arbitrary data (e.g. a special structure for handling keyboard). */
+	void *data;
 	
-//	size_t led_output_size;
-	
-//	usb_hid_report_path_t *led_path;
-	
-//	int32_t *led_data;
-
-//	/** HID Report parser. */
-//	usb_hid_report_parser_t *parser;
-	
-//	/** State of the structure (for checking before use). 
-//	 * 
-//	 * 0 - not initialized
-//	 * 1 - initialized
-//	 * -1 - ready for destroying
-//	 */
-//	int initialized;
-//} usb_kbd_t;
+	/** Type of the device (keyboard, mouse, generic HID device). */
+	usb_hid_iface_protocol_t device_type;
+} usb_hid_dev_t;
 
 /*----------------------------------------------------------------------------*/
 
 enum {
-	USB_HID_POLL_EP_NO = 0,
-	USB_HID_POLL_EP_COUNT = 1
+	USB_HID_KBD_POLL_EP_NO = 0,
+	USB_HID_MOUSE_POLL_EP_NO = 1,
+	USB_HID_GENERIC_POLL_EP_NO = 2,
+	USB_HID_POLL_EP_COUNT = 3
 };
 
 usb_endpoint_description_t *usb_hid_endpoints[USB_HID_POLL_EP_COUNT + 1];
 
-ddf_dev_ops_t hid_ops;
-
 /*----------------------------------------------------------------------------*/
 
-bool usb_hid_polling_callback(usb_device_t *dev, uint8_t *buffer,
-     size_t buffer_size, void *arg);
+usb_hid_dev_t *usb_hid_new(void);
 
-void usb_hid_polling_ended_callback(usb_device_t *dev, bool reason,
+int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev);
+
+void usb_hid_polling_ended_callback(usb_device_t *dev, bool reason, 
      void *arg);
 
-#endif /* USB_KBDDEV_H_ */
+const char *usb_hid_get_function_name(usb_hid_iface_protocol_t device_type);
+
+const char *usb_hid_get_class_name(usb_hid_iface_protocol_t device_type);
+
+/** @todo Maybe not needed in the API. */
+void usb_hid_free(usb_hid_dev_t **hid_dev);
+
+#endif /* USB_USBHID_H_ */
 
 /**
  * @}

@@ -31,9 +31,25 @@ LIBS = $(LIBDRV_PREFIX)/libdrv.a $(LIBUSB_PREFIX)/libusb.a
 EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include -I$(LIBUSB_PREFIX)/include -I.
 BINARY = usbhid
 
+STOLEN_LAYOUT_SOURCES = \
+        kbd/layout/us_qwerty.c \
+        kbd/layout/us_dvorak.c \
+        kbd/layout/cz.c
+
 SOURCES = \
 	main.c \
-	usbhid.c
+	usbhid.c \
+	kbd/conv.c \
+	kbd/kbddev.c \
+	kbd/kbdrepeat.c \
+	generic/hidd.c \
+	$(STOLEN_LAYOUT_SOURCES)
+
+EXTRA_CLEAN = $(STOLEN_LAYOUT_SOURCES)
+
+SRV_KBD = $(USPACE_PREFIX)/srv/hid/kbd
 
 include $(USPACE_PREFIX)/Makefile.common
 
+kbd/layout/%.c: $(SRV_KBD)/layout/%.c
+	ln -sfn ../../$< $@
