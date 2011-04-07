@@ -1577,7 +1577,7 @@ int async_share_out_finalize(ipc_callid_t callid, void *dst)
  *
  */
 int
-async_data_read_start_flexible(int phoneid, void *dst, size_t size, int flags)
+async_data_read_start_generic(int phoneid, void *dst, size_t size, int flags)
 {
 	return async_req_3_0(phoneid, IPC_M_DATA_READ, (sysarg_t) dst,
 	    (sysarg_t) size, (sysarg_t) flags);
@@ -1676,7 +1676,7 @@ int async_data_read_forward_fast(int phoneid, sysarg_t method, sysarg_t arg1,
  *
  */
 int
-async_data_write_start_flexible(int phoneid, const void *src, size_t size,
+async_data_write_start_generic(int phoneid, const void *src, size_t size,
     int flags)
 {
 	return async_req_3_0(phoneid, IPC_M_DATA_WRITE, (sysarg_t) src,
