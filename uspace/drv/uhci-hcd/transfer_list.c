@@ -175,7 +175,7 @@ void transfer_list_abort_all(transfer_list_t *instance)
 		usb_transfer_batch_t *batch =
 		    list_get_instance(current, usb_transfer_batch_t, link);
 		transfer_list_remove_batch(instance, batch);
-		usb_transfer_batch_finish(batch, EIO);
+		usb_transfer_batch_finish_error(batch, EIO);
 	}
 	fibril_mutex_unlock(&instance->guard);
 }

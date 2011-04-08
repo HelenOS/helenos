@@ -760,7 +760,7 @@ int rh_request(rh_t *instance, usb_transfer_batch_t *request)
 	}else{
 		opResult = EINVAL;
 	}
-	usb_transfer_batch_finish(request, opResult);
+	usb_transfer_batch_finish_error(request, opResult);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/

@@ -85,10 +85,9 @@ void usb_transfer_batch_init(
  * @param[in] instance Batch structure to use.
  *
  */
-void usb_transfer_batch_finish(usb_transfer_batch_t *instance, int error)
+void usb_transfer_batch_finish(usb_transfer_batch_t *instance)
 {
 	assert(instance);
-	instance->error = error;
 	instance->next_step(instance);
 }
 /*----------------------------------------------------------------------------*/
