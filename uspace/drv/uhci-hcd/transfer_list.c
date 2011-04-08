@@ -131,14 +131,10 @@ void transfer_list_add_batch(
 	fibril_mutex_unlock(&instance->guard);
 }
 /*----------------------------------------------------------------------------*/
-/** Check list for finished batches.
+/** Create list for finished batches.
  *
  * @param[in] instance List to use.
- * @return Error code
- *
- * Creates a local list of finished batches and calls next_step on each and
- * every one. This is safer because next_step may theoretically access
- * this transfer list leading to the deadlock if its done inline.
+ * @param[in] done list to fill
  */
 void transfer_list_remove_finished(transfer_list_t *instance, link_t *done)
 {
@@ -160,7 +156,6 @@ void transfer_list_remove_finished(transfer_list_t *instance, link_t *done)
 		current = next;
 	}
 	fibril_mutex_unlock(&instance->guard);
-
 }
 /*----------------------------------------------------------------------------*/
 /** Walk the list and abort all batches.
@@ -175,7 +170,7 @@ void transfer_list_abort_all(transfer_list_t *instance)
 		usb_transfer_batch_t *batch =
 		    list_get_instance(current, usb_transfer_batch_t, link);
 		transfer_list_remove_batch(instance, batch);
-		usb_transfer_batch_finish(batch, EIO);
+		usb_transfer_batch_finish_error(batch, EIO);
 	}
 	fibril_mutex_unlock(&instance->guard);
 }
