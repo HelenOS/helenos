@@ -42,8 +42,6 @@
 #include "hw_struct/endpoint_descriptor.h"
 #include "hw_struct/transfer_descriptor.h"
 
-#define OHCI_MAX_TRANSFER (8 * 1024) /* OHCI TDs can handle up to 8KB buffers */
-
 typedef struct ohci_batch {
 	ed_t *ed;
 	td_t *tds;
@@ -84,8 +82,8 @@ usb_transfer_batch_t * batch_get(ddf_fun_t *fun, endpoint_t *ep,
 	instance->private_data = data;
 
 	/* we needs + 1 transfer descriptor as the last one won't be executed */
-	data->td_count =
-	    1 + ((buffer_size + OHCI_MAX_TRANSFER - 1) / OHCI_MAX_TRANSFER);
+	data->td_count = 1 +
+	    ((buffer_size + OHCI_TD_MAX_TRANSFER - 1) / OHCI_TD_MAX_TRANSFER);
 	if (ep->transfer_type == USB_TRANSFER_CONTROL) {
 		data->td_count += 2;
 	}

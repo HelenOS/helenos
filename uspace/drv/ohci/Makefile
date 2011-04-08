@@ -40,7 +40,8 @@ SOURCES = \
 	pci.c \
 	root_hub.c \
 	transfer_list.c \
-	hw_struct/endpoint_descriptor.c
+	hw_struct/endpoint_descriptor.c \
+	hw_struct/transfer_descriptor.c
 
 
 include $(USPACE_PREFIX)/Makefile.common
