@@ -39,6 +39,16 @@
 
 #include "batch.h"
 #include "utils/malloc32.h"
+#include "hw_struct/endpoint_descriptor.h"
+#include "hw_struct/transfer_descriptor.h"
+
+#define OHCI_MAX_TRANSFER (8 * 1024) /* OHCI TDs can handle up to 8KB buffers */
+
+typedef struct ohci_batch {
+	ed_t *ed;
+	td_t *tds;
+	size_t td_count;
+} ohci_batch_t;
 
 static void batch_call_in_and_dispose(usb_transfer_batch_t *instance);
 static void batch_call_out_and_dispose(usb_transfer_batch_t *instance);
@@ -67,6 +77,26 @@ usb_transfer_batch_t * batch_get(ddf_fun_t *fun, endpoint_t *ep,
 	    ep->max_packet_size, buffer, NULL, buffer_size, NULL, setup_size,
 	    func_in, func_out, arg, fun, ep, NULL);
 
+	ohci_batch_t *data = malloc(sizeof(ohci_batch_t));
+	CHECK_NULL_DISPOSE_RETURN(data, "Failed to allocate batch data.\n");
+	bzero(data, sizeof(ohci_batch_t));
+	instance->private_data = data;
+
+	data->td_count =
+	    (buffer_size + OHCI_MAX_TRANSFER - 1) / OHCI_MAX_TRANSFER;
+	if (ep->transfer_type == USB_TRANSFER_CONTROL) {
+		data->td_count += 2;
+	}
+
+	data->tds = malloc32(sizeof(td_t) * data->td_count);
+	CHECK_NULL_DISPOSE_RETURN(data->tds,
+	    "Failed to allocate transfer descriptors.\n");
+	bzero(data->tds, sizeof(td_t) * data->td_count);
+
+	data->ed = malloc32(sizeof(ed_t));
+	CHECK_NULL_DISPOSE_RETURN(data->ed,
+	    "Failed to allocate endpoint descriptor.\n");
+
         if (buffer_size > 0) {
                 instance->transport_buffer = malloc32(buffer_size);
                 CHECK_NULL_DISPOSE_RETURN(instance->transport_buffer,
@@ -79,7 +109,6 @@ usb_transfer_batch_t * batch_get(ddf_fun_t *fun, endpoint_t *ep,
                     "Failed to allocate device accessible setup buffer.\n");
                 memcpy(instance->setup_buffer, setup_buffer, setup_size);
         }
-
 
 	return instance;
 }
