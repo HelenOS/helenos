@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2006 Martin Decky
+# Copyright (c) 2010-2011 Vojtech Horky
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -26,37 +26,30 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-PAGE_SIZE = 4096
+USPACE_PREFIX = ../..
+LIBS = $(LIBDRV_PREFIX)/libdrv.a $(LIBUSB_PREFIX)/libusb.a
+EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include -I$(LIBUSB_PREFIX)/include -I.
+BINARY = usbhid
 
-RD_SRVS_ESSENTIAL += \
-	$(USPACE_PATH)/srv/hw/char/i8042/i8042 \
-	$(USPACE_PATH)/srv/hw/irc/apic/apic \
-	$(USPACE_PATH)/srv/hw/irc/i8259/i8259
+STOLEN_LAYOUT_SOURCES = \
+        kbd/layout/us_qwerty.c \
+        kbd/layout/us_dvorak.c \
+        kbd/layout/cz.c
 
-RD_SRVS_NON_ESSENTIAL += \
-	$(USPACE_PATH)/srv/bd/ata_bd/ata_bd \
-	$(USPACE_PATH)/srv/hid/char_mouse/char_ms
+SOURCES = \
+	main.c \
+	usbhid.c \
+	kbd/conv.c \
+	kbd/kbddev.c \
+	kbd/kbdrepeat.c \
+	generic/hiddev.c \
+	$(STOLEN_LAYOUT_SOURCES)
 
-RD_DRVS += \
-	rootpc \
-	pciintel \
-	isa \
-	ns8250 \
-	ehci-hcd \
-	ohci \
-	uhci-hcd \
-	uhci-rhd \
-	usbflbk \
-	usbhub \
-	usbkbd \
-	usbhid \
-	usbmid \
-	usbmouse \
-	vhc
+EXTRA_CLEAN = $(STOLEN_LAYOUT_SOURCES)
 
-RD_DRV_CFG += \
-	isa/isa.dev
+SRV_KBD = $(USPACE_PREFIX)/srv/hid/kbd
 
-BOOT_OUTPUT = $(ROOT_PATH)/image.iso
-PREBUILD = $(INITRD).img
-BUILD = Makefile.grub
+include $(USPACE_PREFIX)/Makefile.common
+
+kbd/layout/%.c: $(SRV_KBD)/layout/%.c
+	ln -sfn ../../$< $@

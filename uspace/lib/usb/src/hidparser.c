@@ -63,7 +63,7 @@ int usb_hid_report_parse_local_tag(uint8_t tag, const uint8_t *data, size_t item
 void usb_hid_descriptor_print_list(link_t *head);
 int usb_hid_report_reset_local_items();
 void usb_hid_free_report_list(link_t *head);
-
+usb_hid_report_item_t *usb_hid_report_item_clone(const usb_hid_report_item_t *item);
 /*
  * Data translation private functions
  */
@@ -105,6 +105,9 @@ int usb_hid_parser_init(usb_hid_report_parser_t *parser)
     list_initialize(&(parser->output));
     list_initialize(&(parser->feature));
 
+	list_initialize(&(parser->stack));
+
+	parser->use_report_id = 0;
     return EOK;   
 }
 
@@ -185,6 +188,10 @@ int usb_hid_parse_report_descriptor(usb_hid_report_parser_t *parser,
 					usage_path = tmp_usage_path;
 					tmp_usage_path = NULL;
 
+					usb_hid_report_path_set_report_id(report_item->usage_path, report_item->id);	
+					if(report_item->id != 0){
+						parser->use_report_id = 1;
+					}
 					
 					switch(tag) {
 						case USB_HID_REPORT_TAG_INPUT:
@@ -214,23 +221,42 @@ int usb_hid_parse_report_descriptor(usb_hid_report_parser_t *parser,
 					/* clone current state table to the new item */
 					if(!(new_report_item = malloc(sizeof(usb_hid_report_item_t)))) {
 						return ENOMEM;
-					}
+					}					
 					memcpy(new_report_item,report_item, sizeof(usb_hid_report_item_t));
+					link_initialize(&(new_report_item->link));
+					
 					/* reset local items */
 					new_report_item->usage_minimum = 0;
 					new_report_item->usage_maximum = 0;
+					new_report_item->designator_index = 0;
+					new_report_item->designator_minimum = 0;
+					new_report_item->designator_maximum = 0;
+					new_report_item->string_index = 0;
+					new_report_item->string_minimum = 0;
+					new_report_item->string_maximum = 0;
+
+					/* reset usage from current usage path */
+					usb_hid_report_usage_path_t *path = list_get_instance(&usage_path->link, usb_hid_report_usage_path_t, link);
+					path->usage = 0;
 					
-					link_initialize(&(new_report_item->link));
 					report_item = new_report_item;
 										
 					break;
 				case USB_HID_REPORT_TAG_PUSH:
 					// push current state to stack
-					// not yet implemented
+					new_report_item = usb_hid_report_item_clone(report_item);
+					list_prepend (&parser->stack, &new_report_item->link);
+					
 					break;
 				case USB_HID_REPORT_TAG_POP:
 					// restore current state from stack
-					// not yet implemented						   
+					if(list_empty (&parser->stack)) {
+						return EINVAL;
+					}
+					
+					report_item = list_get_instance(&parser->stack, usb_hid_report_item_t, link);
+					list_remove (parser->stack.next);
+					
 					break;
 					
 				default:
@@ -646,6 +672,8 @@ void usb_hid_free_report_parser(usb_hid_report_parser_t *parser)
 		return;
 	}
 
+	parser->use_report_id = 0;
+
 	usb_hid_free_report_list(&parser->input);
 	usb_hid_free_report_list(&parser->output);
 	usb_hid_free_report_list(&parser->feature);
@@ -675,6 +703,7 @@ int usb_hid_parse_report(const usb_hid_report_parser_t *parser,
 	size_t key_count=0;
 	size_t i=0;
 	size_t j=0;
+	uint8_t report_id = 0;
 
 	if(parser == NULL) {
 		return EINVAL;
@@ -687,11 +716,17 @@ int usb_hid_parse_report(const usb_hid_report_parser_t *parser,
 		return ENOMEM;
 	}
 
+	if(parser->use_report_id != 0) {
+		report_id = data[0];
+		usb_hid_report_path_set_report_id(path, report_id);
+	}
+
 	/* read data */
 	list_item = parser->input.next;	   
 	while(list_item != &(parser->input)) {
 
 		item = list_get_instance(list_item, usb_hid_report_item_t, link);
+
 		if(!USB_HID_ITEM_FLAG_CONSTANT(item->item_flags) && 
 		   (usb_hid_report_compare_usage_path(item->usage_path, path, flags) == EOK)) {
 			for(j=0; j<(size_t)(item->count); j++) {
@@ -714,7 +749,7 @@ int usb_hid_parse_report(const usb_hid_report_parser_t *parser,
 		list_item = list_item->next;
 	}
 
-	callbacks->keyboard(keys, key_count, 0, arg);
+	callbacks->keyboard(keys, key_count, report_id, arg);
 	   
 	free(keys);	
 	return EOK;
@@ -738,7 +773,7 @@ int usb_hid_translate_data(usb_hid_report_item_t *item, const uint8_t *data, siz
 	int32_t value;
 	int32_t mask;
 	const uint8_t *foo;
-	
+
 	// now only common numbers llowed
 	if(item->size > 32) {
 		return 0;
@@ -757,7 +792,12 @@ int usb_hid_translate_data(usb_hid_report_item_t *item, const uint8_t *data, siz
 		((item->physical_maximum - item->physical_minimum) * 
 		(usb_pow(10,(item->unit_exponent))));
 	}
+
 	offset = item->offset + (j * item->size);
+	if(item->id != 0) {
+		offset += 8;
+		usb_log_debug("MOVED OFFSET BY 1Byte, REPORT_ID(%d)\n", item->id);
+	}
 	
 	// FIXME
 	if((offset/8) != ((offset+item->size)/8)) {
@@ -942,6 +982,10 @@ int usb_hid_report_compare_usage_path(usb_hid_report_path_t *report_path,
 
 	int only_page;
 
+	if(report_path->report_id != path->report_id) {
+		return 1;
+	}
+
 	if(path->depth == 0){
 		return EOK;
 	}
@@ -1037,6 +1081,7 @@ usb_hid_report_path_t *usb_hid_report_path(void)
 	}
 	else {
 		path->depth = 0;
+		path->report_id = 0;
 		list_initialize(&path->link);
 		return path;
 	}
@@ -1154,7 +1199,7 @@ size_t usb_hid_report_output_size(usb_hid_report_parser_t *parser,
 	if(parser == NULL) {
 		return 0;
 	}
-	
+
 	item = parser->output.next;
 	while(&parser->output != item) {
 		report_item = list_get_instance(item, usb_hid_report_item_t, link);
@@ -1194,9 +1239,15 @@ int usb_hid_report_output_translate(usb_hid_report_parser_t *parser,
 	int offset;
 	int length;
 	int32_t tmp_value;
+	size_t offset_prefix = 0;
 	
 	if(parser == NULL) {
 		return EINVAL;
+	}
+
+	if(parser->use_report_id != 0) {
+		buffer[0] = path->report_id;
+		offset_prefix = 8;
 	}
 
 	usb_log_debug("OUTPUT BUFFER: %s\n", usb_debug_str_buffer(buffer,size, 0));
@@ -1217,13 +1268,13 @@ int usb_hid_report_output_translate(usb_hid_report_parser_t *parser,
 					
 //				// variable item
 				value = usb_hid_translate_data_reverse(report_item, data[idx++]);
-				offset = report_item->offset + (i * report_item->size);
+				offset = report_item->offset + (i * report_item->size) + offset_prefix;
 				length = report_item->size;
 			}
 			else {
 				//bitmap
 				value += usb_hid_translate_data_reverse(report_item, data[idx++]);
-				offset = report_item->offset;
+				offset = report_item->offset + offset_prefix;
 				length = report_item->size * report_item->count;
 			}
 
@@ -1321,6 +1372,30 @@ int32_t usb_hid_translate_data_reverse(usb_hid_report_item_t *item, int value)
 	return ret;
 }
 
+
+int usb_hid_report_path_set_report_id(usb_hid_report_path_t *path, uint8_t report_id)
+{
+	if(path == NULL){
+		return EINVAL;
+	}
+
+	path->report_id = report_id;
+	return EOK;
+}
+
+
+usb_hid_report_item_t *usb_hid_report_item_clone(const usb_hid_report_item_t *item)
+{
+	usb_hid_report_item_t *new_report_item;
+	
+	if(!(new_report_item = malloc(sizeof(usb_hid_report_item_t)))) {
+		return NULL;
+	}					
+	memcpy(new_report_item,item, sizeof(usb_hid_report_item_t));
+	link_initialize(&(new_report_item->link));
+
+	return new_report_item;
+}
 
 /**
  * @}
