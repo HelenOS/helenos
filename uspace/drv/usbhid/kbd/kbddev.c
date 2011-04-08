@@ -237,7 +237,7 @@ static void default_connection_handler(ddf_fun_t *, ipc_callid_t, ipc_call_t *);
  * @param icallid Call id.
  * @param icall Call data.
  */
-void default_connection_handler(ddf_fun_t *fun,
+static void default_connection_handler(ddf_fun_t *fun,
     ipc_callid_t icallid, ipc_call_t *icall)
 {
 	sysarg_t method = IPC_GET_IMETHOD(*icall);
