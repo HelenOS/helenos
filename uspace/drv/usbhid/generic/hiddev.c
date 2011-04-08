@@ -56,7 +56,8 @@ const char *HID_GENERIC_CLASS_NAME = "hid";
 bool usb_hid_polling_callback(usb_device_t *dev, uint8_t *buffer,
      size_t buffer_size, void *arg)
 {
-	usb_log_debug("usb_hid_polling_callback()\n");
+	usb_log_debug("usb_hid_polling_callback(%p, %p, %zu, %p)\n",
+	    dev, buffer, buffer_size, arg);
 	usb_debug_str_buffer(buffer, buffer_size, 0);
 	return true;
 }
