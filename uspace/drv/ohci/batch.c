@@ -92,6 +92,12 @@ void batch_dispose(usb_transfer_batch_t *instance)
 	free(instance);
 }
 /*----------------------------------------------------------------------------*/
+bool batch_is_complete(usb_transfer_batch_t *instance)
+{
+	// TODO: implement
+	return false;
+}
+/*----------------------------------------------------------------------------*/
 void batch_control_write(usb_transfer_batch_t *instance)
 {
 	assert(instance);
@@ -148,6 +154,11 @@ void batch_bulk_out(usb_transfer_batch_t *instance)
 	instance->next_step = batch_call_in_and_dispose;
 	/* TODO: implement */
 	usb_log_debug("Batch(%p) BULK IN initialized.\n", instance);
+}
+/*----------------------------------------------------------------------------*/
+ed_t * batch_ed(usb_transfer_batch_t *instance)
+{
+	return NULL;
 }
 /*----------------------------------------------------------------------------*/
 /** Helper function calls callback and correctly disposes of batch structure.

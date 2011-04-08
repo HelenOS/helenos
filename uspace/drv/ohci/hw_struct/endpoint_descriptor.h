@@ -34,7 +34,10 @@
 #ifndef DRV_OHCI_HW_STRUCT_ENDPOINT_DESCRIPTOR_H
 #define DRV_OHCI_HW_STRUCT_ENDPOINT_DESCRIPTOR_H
 
+#include <assert.h>
 #include <stdint.h>
+
+#include "utils/malloc32.h"
 
 #include "completion_codes.h"
 
@@ -70,6 +73,23 @@ typedef struct ed {
 #define ED_NEXT_PTR_MASK (0xfffffff0)
 #define ED_NEXT_PTR_SHIFT (0)
 } __attribute__((packed)) ed_t;
+
+static inline void ed_init_dummy(ed_t *instance)
+{
+	assert(instance);
+	bzero(instance, sizeof(ed_t));
+	instance->status |= ED_STATUS_K_FLAG;
+}
+
+static inline void ed_append_ed(ed_t *instance, ed_t *next)
+{
+	assert(instance);
+	assert(next);
+	uint32_t pa = addr_to_phys(next);
+	assert((pa & ED_NEXT_PTR_MASK) << ED_NEXT_PTR_SHIFT == pa);
+	instance->next = pa;
+}
+
 #endif
 /**
  * @}

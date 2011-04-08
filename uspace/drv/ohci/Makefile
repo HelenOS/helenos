@@ -32,12 +32,14 @@ EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include -I$(LIBUSB_PREFIX)/include -I.
 BINARY = ohci
 
 SOURCES = \
-	iface.c \
 	batch.c \
-	main.c \
 	hc.c \
+	iface.c \
+	main.c \
 	ohci.c \
+	pci.c \
 	root_hub.c \
-	pci.c
+	transfer_list.c
+
 
 include $(USPACE_PREFIX)/Makefile.common

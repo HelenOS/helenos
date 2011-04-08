@@ -25,47 +25,51 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup drvusbuhcihc
+/** @addtogroup drvusbohci
  * @{
  */
 /** @file
- * @brief UHCI driver USB transaction structure
+ * @brief OHCI driver transfer list structure
  */
-#ifndef DRV_UHCI_BATCH_H
-#define DRV_UHCI_BATCH_H
+#ifndef DRV_OHCI_TRANSFER_LIST_H
+#define DRV_OHCI_TRANSFER_LIST_H
 
-#include <usbhc_iface.h>
-#include <usb/usb.h>
-#include <usb/host/device_keeper.h>
-#include <usb/host/endpoint.h>
-#include <usb/host/batch.h>
+#include <fibril_synch.h>
 
+#include "batch.h"
 #include "hw_struct/endpoint_descriptor.h"
+#include "utils/malloc32.h"
 
-usb_transfer_batch_t * batch_get(
-    ddf_fun_t *fun, endpoint_t *ep, char *buffer, size_t size,
-    char *setup_buffer, size_t setup_size,
-    usbhc_iface_transfer_in_callback_t func_in,
-    usbhc_iface_transfer_out_callback_t func_out,
-    void *arg);
+typedef struct transfer_list
+{
+	fibril_mutex_t guard;
+	ed_t *list_head;
+	uint32_t list_head_pa;
+	const char *name;
+	link_t batch_list;
+} transfer_list_t;
 
-void batch_dispose(usb_transfer_batch_t *instance);
+/** Dispose transfer list structures.
+ *
+ * @param[in] instance Memory place to use.
+ *
+ * Frees memory for internal qh_t structure.
+ */
+static inline void transfer_list_fini(transfer_list_t *instance)
+{
+	assert(instance);
+	free32(instance->list_head);
+}
 
-bool batch_is_complete(usb_transfer_batch_t *instance);
+int transfer_list_init(transfer_list_t *instance, const char *name);
 
-void batch_control_write(usb_transfer_batch_t *instance);
+void transfer_list_set_next(transfer_list_t *instance, transfer_list_t *next);
 
-void batch_control_read(usb_transfer_batch_t *instance);
+void transfer_list_add_batch(transfer_list_t *instance, usb_transfer_batch_t *batch);
 
-void batch_interrupt_in(usb_transfer_batch_t *instance);
+void transfer_list_remove_finished(transfer_list_t *instance, link_t *done);
 
-void batch_interrupt_out(usb_transfer_batch_t *instance);
-
-void batch_bulk_in(usb_transfer_batch_t *instance);
-
-void batch_bulk_out(usb_transfer_batch_t *instance);
-
-ed_t * batch_ed(usb_transfer_batch_t *instance);
+void transfer_list_abort_all(transfer_list_t *instance);
 #endif
 /**
  * @}
