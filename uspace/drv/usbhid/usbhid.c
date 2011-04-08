@@ -46,18 +46,9 @@
 
 #include "kbd/kbddev.h"
 #include "generic/hiddev.h"
+#include "mouse/mousedev.h"
 
 /*----------------------------------------------------------------------------*/
-
-/** Mouse polling endpoint description for boot protocol class. */
-static usb_endpoint_description_t usb_hid_mouse_poll_endpoint_description = {
-	.transfer_type = USB_TRANSFER_INTERRUPT,
-	.direction = USB_DIRECTION_IN,
-	.interface_class = USB_CLASS_HID,
-	.interface_subclass = USB_HID_SUBCLASS_BOOT,
-	.interface_protocol = USB_HID_PROTOCOL_MOUSE,
-	.flags = 0
-};
 
 /* Array of endpoints expected on the device, NULL terminated. */
 usb_endpoint_description_t *usb_hid_endpoints[USB_HID_POLL_EP_COUNT + 1] = {
@@ -66,9 +57,6 @@ usb_endpoint_description_t *usb_hid_endpoints[USB_HID_POLL_EP_COUNT + 1] = {
 	&usb_hid_generic_poll_endpoint_description,
 	NULL
 };
-
-static const char *HID_MOUSE_FUN_NAME = "mouse";
-static const char *HID_MOUSE_CLASS_NAME = "mouse";
 
 /*----------------------------------------------------------------------------*/
 
@@ -95,15 +83,6 @@ usb_hid_dev_t *usb_hid_new(void)
 
 /*----------------------------------------------------------------------------*/
 
-static bool usb_dummy_polling_callback(usb_device_t *dev, uint8_t *buffer,
-     size_t buffer_size, void *arg)
-{
-	usb_log_debug("Dummy polling callback.\n");
-	return false;
-}
-
-/*----------------------------------------------------------------------------*/
-
 static int usb_hid_check_pipes(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 {
 	if (dev->pipes[USB_HID_KBD_POLL_EP_NO].present) {
@@ -124,7 +103,7 @@ static int usb_hid_check_pipes(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 		hid_dev->device_type = USB_HID_PROTOCOL_MOUSE;
 		
 		// set the polling callback
-		hid_dev->poll_callback = usb_dummy_polling_callback;
+		hid_dev->poll_callback = usb_mouse_polling_callback;
 		
 	} else if (dev->pipes[USB_HID_GENERIC_POLL_EP_NO].present) {
 		usb_log_debug("Found generic HID endpoint.\n");
@@ -160,17 +139,15 @@ static int usb_hid_init_parser(usb_hid_dev_t *hid_dev)
 	rc = usb_hid_process_report_descriptor(hid_dev->usb_dev, 
 	    hid_dev->parser);
 	
-	if (rc != EOK) {
+	if (rc != EOK || hid_dev->device_type == USB_HID_PROTOCOL_MOUSE) {
 		usb_log_warning("Could not process report descriptor.\n");
 		
 		if (hid_dev->device_type == USB_HID_PROTOCOL_KEYBOARD) {
 			usb_log_warning("Falling back to boot protocol.\n");
-			
 			rc = usb_kbd_set_boot_protocol(hid_dev);
-			
 		} else if (hid_dev->device_type == USB_HID_PROTOCOL_MOUSE) {
-			usb_log_warning("No boot protocol for mouse yet.\n");
-			rc = ENOTSUP;
+			usb_log_warning("Falling back to boot protocol.\n");
+			rc = usb_mouse_set_boot_protocol(hid_dev);
 		}
 	}
 	
@@ -221,10 +198,13 @@ int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 		}
 		break;
 	case USB_HID_PROTOCOL_MOUSE:
+		rc = usb_mouse_init(hid_dev);
+		if (rc != EOK) {
+			usb_log_warning("Failed to initialize Mouse structure."
+			    "\n");
+		}
 		break;
 	default:
-//		usbhid_req_set_idle(&hid_dev->usb_dev->ctrl_pipe, 
-//		    hid_dev->usb_dev->interface_no, 0);
 		break;
 	}
 	
@@ -290,6 +270,7 @@ void usb_hid_free(usb_hid_dev_t **hid_dev)
 		usb_kbd_deinit(*hid_dev);
 		break;
 	case USB_HID_PROTOCOL_MOUSE:
+		usb_mouse_deinit(*hid_dev);
 		break;
 	default:
 		break;

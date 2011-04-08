@@ -43,6 +43,7 @@ SOURCES = \
 	kbd/kbddev.c \
 	kbd/kbdrepeat.c \
 	generic/hiddev.c \
+	mouse/mousedev.c \
 	$(STOLEN_LAYOUT_SOURCES)
 
 EXTRA_CLEAN = $(STOLEN_LAYOUT_SOURCES)
