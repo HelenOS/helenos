@@ -203,7 +203,6 @@ static int unregister_endpoint(
  *
  * @param[in] fun DDF function that was called.
  * @param[in] target USB device to write to.
- * @param[in] max_packet_size maximum size of data packet the device accepts
  * @param[in] data Source of data.
  * @param[in] size Size of data source.
  * @param[in] callback Function to call on transaction completion
@@ -211,15 +210,15 @@ static int unregister_endpoint(
  * @return Error code.
  */
 static int interrupt_out(
-    ddf_fun_t *fun, usb_target_t target, size_t max_packet_size, void *data,
+    ddf_fun_t *fun, usb_target_t target, void *data,
     size_t size, usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
 	assert(fun);
 	hc_t *hc = fun_to_hc(fun);
 	assert(hc);
 
-	usb_log_debug("Interrupt OUT %d:%d %zu(%zu).\n",
-	    target.address, target.endpoint, size, max_packet_size);
+	usb_log_debug("Interrupt OUT %d:%d %zu.\n",
+	    target.address, target.endpoint, size);
 
 	size_t res_bw;
 	endpoint_t *ep = usb_endpoint_manager_get_ep(&hc->ep_manager,
@@ -240,7 +239,6 @@ static int interrupt_out(
 	}
 	assert(ep->speed ==
 	    usb_device_keeper_get_speed(&hc->manager, target.address));
-	assert(ep->max_packet_size == max_packet_size);
 	assert(ep->transfer_type == USB_TRANSFER_INTERRUPT);
 
 	usb_transfer_batch_t *batch =
@@ -260,7 +258,6 @@ static int interrupt_out(
  *
  * @param[in] fun DDF function that was called.
  * @param[in] target USB device to write to.
- * @param[in] max_packet_size maximum size of data packet the device accepts
  * @param[out] data Data destination.
  * @param[in] size Size of data source.
  * @param[in] callback Function to call on transaction completion
@@ -268,15 +265,15 @@ static int interrupt_out(
  * @return Error code.
  */
 static int interrupt_in(
-    ddf_fun_t *fun, usb_target_t target, size_t max_packet_size, void *data,
+    ddf_fun_t *fun, usb_target_t target, void *data,
     size_t size, usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
 	assert(fun);
 	hc_t *hc = fun_to_hc(fun);
 	assert(hc);
 
-	usb_log_debug("Interrupt IN %d:%d %zu(%zu).\n",
-	    target.address, target.endpoint, size, max_packet_size);
+	usb_log_debug("Interrupt IN %d:%d %zu.\n",
+	    target.address, target.endpoint, size);
 
 	size_t res_bw;
 	endpoint_t *ep = usb_endpoint_manager_get_ep(&hc->ep_manager,
@@ -298,7 +295,6 @@ static int interrupt_in(
 
 	assert(ep->speed ==
 	    usb_device_keeper_get_speed(&hc->manager, target.address));
-	assert(ep->max_packet_size == max_packet_size);
 	assert(ep->transfer_type == USB_TRANSFER_INTERRUPT);
 
 	usb_transfer_batch_t *batch =
@@ -318,7 +314,6 @@ static int interrupt_in(
  *
  * @param[in] fun DDF function that was called.
  * @param[in] target USB device to write to.
- * @param[in] max_packet_size maximum size of data packet the device accepts
  * @param[in] data Source of data.
  * @param[in] size Size of data source.
  * @param[in] callback Function to call on transaction completion
@@ -326,15 +321,15 @@ static int interrupt_in(
  * @return Error code.
  */
 static int bulk_out(
-    ddf_fun_t *fun, usb_target_t target, size_t max_packet_size, void *data,
+    ddf_fun_t *fun, usb_target_t target, void *data,
     size_t size, usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
 	assert(fun);
 	hc_t *hc = fun_to_hc(fun);
 	assert(hc);
 
-	usb_log_debug("Bulk OUT %d:%d %zu(%zu).\n",
-	    target.address, target.endpoint, size, max_packet_size);
+	usb_log_debug("Bulk OUT %d:%d %zu.\n",
+	    target.address, target.endpoint, size);
 
 	endpoint_t *ep = usb_endpoint_manager_get_ep(&hc->ep_manager,
 	    target.address, target.endpoint, USB_DIRECTION_OUT, NULL);
@@ -345,7 +340,6 @@ static int bulk_out(
 	}
 	assert(ep->speed ==
 	    usb_device_keeper_get_speed(&hc->manager, target.address));
-	assert(ep->max_packet_size == max_packet_size);
 	assert(ep->transfer_type == USB_TRANSFER_BULK);
 
 	usb_transfer_batch_t *batch =
@@ -365,7 +359,6 @@ static int bulk_out(
  *
  * @param[in] fun DDF function that was called.
  * @param[in] target USB device to write to.
- * @param[in] max_packet_size maximum size of data packet the device accepts
  * @param[out] data Data destination.
  * @param[in] size Size of data source.
  * @param[in] callback Function to call on transaction completion
@@ -373,14 +366,14 @@ static int bulk_out(
  * @return Error code.
  */
 static int bulk_in(
-    ddf_fun_t *fun, usb_target_t target, size_t max_packet_size, void *data,
+    ddf_fun_t *fun, usb_target_t target, void *data,
     size_t size, usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
 	assert(fun);
 	hc_t *hc = fun_to_hc(fun);
 	assert(hc);
-	usb_log_debug("Bulk IN %d:%d %zu(%zu).\n",
-	    target.address, target.endpoint, size, max_packet_size);
+	usb_log_debug("Bulk IN %d:%d %zu.\n",
+	    target.address, target.endpoint, size);
 
 	endpoint_t *ep = usb_endpoint_manager_get_ep(&hc->ep_manager,
 	    target.address, target.endpoint, USB_DIRECTION_IN, NULL);
@@ -391,7 +384,6 @@ static int bulk_in(
 	}
 	assert(ep->speed ==
 	    usb_device_keeper_get_speed(&hc->manager, target.address));
-	assert(ep->max_packet_size == max_packet_size);
 	assert(ep->transfer_type == USB_TRANSFER_BULK);
 
 	usb_transfer_batch_t *batch =
@@ -411,7 +403,6 @@ static int bulk_in(
  *
  * @param[in] fun DDF function that was called.
  * @param[in] target USB device to write to.
- * @param[in] max_packet_size maximum size of data packet the device accepts.
  * @param[in] setup_data Data to send with SETUP transfer.
  * @param[in] setup_size Size of data to send with SETUP transfer (always 8B).
  * @param[in] data Source of data.
@@ -421,7 +412,7 @@ static int bulk_in(
  * @return Error code.
  */
 static int control_write(
-    ddf_fun_t *fun, usb_target_t target, size_t max_packet_size,
+    ddf_fun_t *fun, usb_target_t target,
     void *setup_data, size_t setup_size, void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
@@ -430,8 +421,8 @@ static int control_write(
 	assert(hc);
 	usb_speed_t speed =
 	    usb_device_keeper_get_speed(&hc->manager, target.address);
-	usb_log_debug("Control WRITE (%d) %d:%d %zu(%zu).\n",
-	    speed, target.address, target.endpoint, size, max_packet_size);
+	usb_log_debug("Control WRITE (%d) %d:%d %zu.\n",
+	    speed, target.address, target.endpoint, size);
 	endpoint_t *ep = usb_endpoint_manager_get_ep(&hc->ep_manager,
 	    target.address, target.endpoint, USB_DIRECTION_BOTH, NULL);
 	if (ep == NULL) {
@@ -443,7 +434,7 @@ static int control_write(
 		return EINVAL;
 
 	usb_transfer_batch_t *batch =
-	    batch_get(fun, target, USB_TRANSFER_CONTROL, max_packet_size, speed,
+	    batch_get(fun, target, USB_TRANSFER_CONTROL, ep->max_packet_size, speed,
 	        data, size, setup_data, setup_size, NULL, callback, arg, ep);
 	if (!batch)
 		return ENOMEM;
@@ -460,7 +451,6 @@ static int control_write(
  *
  * @param[in] fun DDF function that was called.
  * @param[in] target USB device to write to.
- * @param[in] max_packet_size maximum size of data packet the device accepts.
  * @param[in] setup_data Data to send with SETUP packet.
  * @param[in] setup_size Size of data to send with SETUP packet (should be 8B).
  * @param[out] data Source of data.
@@ -470,7 +460,7 @@ static int control_write(
  * @return Error code.
  */
 static int control_read(
-    ddf_fun_t *fun, usb_target_t target, size_t max_packet_size,
+    ddf_fun_t *fun, usb_target_t target,
     void *setup_data, size_t setup_size, void *data, size_t size,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
@@ -480,8 +470,8 @@ static int control_read(
 	usb_speed_t speed =
 	    usb_device_keeper_get_speed(&hc->manager, target.address);
 
-	usb_log_debug("Control READ(%d) %d:%d %zu(%zu).\n",
-	    speed, target.address, target.endpoint, size, max_packet_size);
+	usb_log_debug("Control READ(%d) %d:%d %zu.\n",
+	    speed, target.address, target.endpoint, size);
 	endpoint_t *ep = usb_endpoint_manager_get_ep(&hc->ep_manager,
 	    target.address, target.endpoint, USB_DIRECTION_BOTH, NULL);
 	if (ep == NULL) {
@@ -489,7 +479,7 @@ static int control_read(
 			target.address, target.endpoint);
 	}
 	usb_transfer_batch_t *batch =
-	    batch_get(fun, target, USB_TRANSFER_CONTROL, max_packet_size, speed,
+	    batch_get(fun, target, USB_TRANSFER_CONTROL, ep->max_packet_size, speed,
 	        data, size, setup_data, setup_size, callback, NULL, arg, ep);
 	if (!batch)
 		return ENOMEM;

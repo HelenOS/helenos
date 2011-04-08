@@ -195,7 +195,6 @@ static int unregister_endpoint(
  *
  * @param[in] fun Device function the action was invoked on.
  * @param[in] target Target pipe (address and endpoint number) specification.
- * @param[in] max_packet_size Max packet size for the transfer.
  * @param[in] data Data to be sent (in USB endianess, allocated and deallocated
  *	by the caller).
  * @param[in] size Size of the @p data buffer in bytes.
@@ -204,10 +203,14 @@ static int unregister_endpoint(
  * @return Error code.
  */
 static int interrupt_out(
-    ddf_fun_t *fun, usb_target_t target, size_t max_packet_size, void *data,
+    ddf_fun_t *fun, usb_target_t target, void *data,
     size_t size, usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
 	assert(fun);
+
+	// FIXME: get from endpoint manager
+	size_t max_packet_size = 8;
+
 	hc_t *hc = fun_to_hc(fun);
 	assert(hc);
 	usb_speed_t speed =
@@ -238,7 +241,6 @@ static int interrupt_out(
  *
  * @param[in] fun Device function the action was invoked on.
  * @param[in] target Target pipe (address and endpoint number) specification.
- * @param[in] max_packet_size Max packet size for the transfer.
  * @param[in] data Buffer where to store the data (in USB endianess,
  *	allocated and deallocated by the caller).
  * @param[in] size Size of the @p data buffer in bytes.
@@ -247,10 +249,14 @@ static int interrupt_out(
  * @return Error code.
  */
 static int interrupt_in(
-    ddf_fun_t *fun, usb_target_t target, size_t max_packet_size, void *data,
+    ddf_fun_t *fun, usb_target_t target, void *data,
     size_t size, usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
 	assert(fun);
+
+	// FIXME: get from endpoint manager
+	size_t max_packet_size = 8;
+
 	hc_t *hc = fun_to_hc(fun);
 	assert(hc);
 	usb_speed_t speed =
@@ -280,7 +286,6 @@ static int interrupt_in(
  *
  * @param[in] fun Device function the action was invoked on.
  * @param[in] target Target pipe (address and endpoint number) specification.
- * @param[in] max_packet_size Max packet size for the transfer.
  * @param[in] data Data to be sent (in USB endianess, allocated and deallocated
  *	by the caller).
  * @param[in] size Size of the @p data buffer in bytes.
@@ -289,10 +294,14 @@ static int interrupt_in(
  * @return Error code.
  */
 static int bulk_out(
-    ddf_fun_t *fun, usb_target_t target, size_t max_packet_size, void *data,
+    ddf_fun_t *fun, usb_target_t target, void *data,
     size_t size, usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
 	assert(fun);
+
+	// FIXME: get from endpoint manager
+	size_t max_packet_size = 8;
+
 	hc_t *hc = fun_to_hc(fun);
 	assert(hc);
 	usb_speed_t speed =
@@ -323,7 +332,6 @@ static int bulk_out(
  *
  * @param[in] fun Device function the action was invoked on.
  * @param[in] target Target pipe (address and endpoint number) specification.
- * @param[in] max_packet_size Max packet size for the transfer.
  * @param[in] data Buffer where to store the data (in USB endianess,
  *	allocated and deallocated by the caller).
  * @param[in] size Size of the @p data buffer in bytes.
@@ -332,10 +340,14 @@ static int bulk_out(
  * @return Error code.
  */
 static int bulk_in(
-    ddf_fun_t *fun, usb_target_t target, size_t max_packet_size, void *data,
+    ddf_fun_t *fun, usb_target_t target, void *data,
     size_t size, usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
 	assert(fun);
+
+	// FIXME: get from endpoint manager
+	size_t max_packet_size = 8;
+
 	hc_t *hc = fun_to_hc(fun);
 	assert(hc);
 	usb_speed_t speed =
@@ -365,7 +377,6 @@ static int bulk_in(
  *
  * @param[in] fun Device function the action was invoked on.
  * @param[in] target Target pipe (address and endpoint number) specification.
- * @param[in] max_packet_size Max packet size for the transfer.
  * @param[in] setup_packet Setup packet buffer (in USB endianess, allocated
  *	and deallocated by the caller).
  * @param[in] setup_packet_size Size of @p setup_packet buffer in bytes.
@@ -377,11 +388,15 @@ static int bulk_in(
  * @return Error code.
  */
 static int control_write(
-    ddf_fun_t *fun, usb_target_t target, size_t max_packet_size,
+    ddf_fun_t *fun, usb_target_t target,
     void *setup_data, size_t setup_size, void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
 	assert(fun);
+
+	// FIXME: get from endpoint manager
+	size_t max_packet_size = 8;
+
 	hc_t *hc = fun_to_hc(fun);
 	assert(hc);
 	usb_speed_t speed =
@@ -416,7 +431,6 @@ static int control_write(
  *
  * @param[in] fun Device function the action was invoked on.
  * @param[in] target Target pipe (address and endpoint number) specification.
- * @param[in] max_packet_size Max packet size for the transfer.
  * @param[in] setup_packet Setup packet buffer (in USB endianess, allocated
  *	and deallocated by the caller).
  * @param[in] setup_packet_size Size of @p setup_packet buffer in bytes.
@@ -428,11 +442,15 @@ static int control_write(
  * @return Error code.
  */
 static int control_read(
-    ddf_fun_t *fun, usb_target_t target, size_t max_packet_size,
+    ddf_fun_t *fun, usb_target_t target,
     void *setup_data, size_t setup_size, void *data, size_t size,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
 	assert(fun);
+
+	// FIXME: get from endpoint manager
+	size_t max_packet_size = 8;
+
 	hc_t *hc = fun_to_hc(fun);
 	assert(hc);
 	usb_speed_t speed =

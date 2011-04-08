@@ -164,7 +164,6 @@ static int unregister_endpoint(ddf_fun_t *fun, usb_address_t address,
  *
  * @param[in] fun Device function the action was invoked on.
  * @param[in] target Target pipe (address and endpoint number) specification.
- * @param[in] max_packet_size Max packet size for the transfer.
  * @param[in] data Data to be sent (in USB endianess, allocated and deallocated
  *	by the caller).
  * @param[in] size Size of the @p data buffer in bytes.
@@ -173,7 +172,7 @@ static int unregister_endpoint(ddf_fun_t *fun, usb_address_t address,
  * @return Error code.
  */
 static int interrupt_out(ddf_fun_t *fun, usb_target_t target,
-    size_t max_packet_size, void *data, size_t size,
+    void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
 	UNSUPPORTED("interrupt_out");
@@ -190,7 +189,6 @@ static int interrupt_out(ddf_fun_t *fun, usb_target_t target,
  *
  * @param[in] fun Device function the action was invoked on.
  * @param[in] target Target pipe (address and endpoint number) specification.
- * @param[in] max_packet_size Max packet size for the transfer.
  * @param[in] data Buffer where to store the data (in USB endianess,
  *	allocated and deallocated by the caller).
  * @param[in] size Size of the @p data buffer in bytes.
@@ -199,7 +197,7 @@ static int interrupt_out(ddf_fun_t *fun, usb_target_t target,
  * @return Error code.
  */
 static int interrupt_in(ddf_fun_t *fun, usb_target_t target,
-    size_t max_packet_size, void *data, size_t size,
+    void *data, size_t size,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
 	UNSUPPORTED("interrupt_in");
@@ -216,7 +214,6 @@ static int interrupt_in(ddf_fun_t *fun, usb_target_t target,
  *
  * @param[in] fun Device function the action was invoked on.
  * @param[in] target Target pipe (address and endpoint number) specification.
- * @param[in] max_packet_size Max packet size for the transfer.
  * @param[in] data Data to be sent (in USB endianess, allocated and deallocated
  *	by the caller).
  * @param[in] size Size of the @p data buffer in bytes.
@@ -225,7 +222,7 @@ static int interrupt_in(ddf_fun_t *fun, usb_target_t target,
  * @return Error code.
  */
 static int bulk_out(ddf_fun_t *fun, usb_target_t target,
-    size_t max_packet_size, void *data, size_t size,
+    void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
 	UNSUPPORTED("bulk_out");
@@ -242,7 +239,6 @@ static int bulk_out(ddf_fun_t *fun, usb_target_t target,
  *
  * @param[in] fun Device function the action was invoked on.
  * @param[in] target Target pipe (address and endpoint number) specification.
- * @param[in] max_packet_size Max packet size for the transfer.
  * @param[in] data Buffer where to store the data (in USB endianess,
  *	allocated and deallocated by the caller).
  * @param[in] size Size of the @p data buffer in bytes.
@@ -251,7 +247,7 @@ static int bulk_out(ddf_fun_t *fun, usb_target_t target,
  * @return Error code.
  */
 static int bulk_in(ddf_fun_t *fun, usb_target_t target,
-    size_t max_packet_size, void *data, size_t size,
+    void *data, size_t size,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
 	UNSUPPORTED("bulk_in");
@@ -268,7 +264,6 @@ static int bulk_in(ddf_fun_t *fun, usb_target_t target,
  *
  * @param[in] fun Device function the action was invoked on.
  * @param[in] target Target pipe (address and endpoint number) specification.
- * @param[in] max_packet_size Max packet size for the transfer.
  * @param[in] setup_packet Setup packet buffer (in USB endianess, allocated
  *	and deallocated by the caller).
  * @param[in] setup_packet_size Size of @p setup_packet buffer in bytes.
@@ -280,7 +275,6 @@ static int bulk_in(ddf_fun_t *fun, usb_target_t target,
  * @return Error code.
  */
 static int control_write(ddf_fun_t *fun, usb_target_t target,
-    size_t max_packet_size,
     void *setup_packet, size_t setup_packet_size,
     void *data_buffer, size_t data_buffer_size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
@@ -299,7 +293,6 @@ static int control_write(ddf_fun_t *fun, usb_target_t target,
  *
  * @param[in] fun Device function the action was invoked on.
  * @param[in] target Target pipe (address and endpoint number) specification.
- * @param[in] max_packet_size Max packet size for the transfer.
  * @param[in] setup_packet Setup packet buffer (in USB endianess, allocated
  *	and deallocated by the caller).
  * @param[in] setup_packet_size Size of @p setup_packet buffer in bytes.
@@ -311,7 +304,6 @@ static int control_write(ddf_fun_t *fun, usb_target_t target,
  * @return Error code.
  */
 static int control_read(ddf_fun_t *fun, usb_target_t target,
-    size_t max_packet_size,
     void *setup_packet, size_t setup_packet_size,
     void *data_buffer, size_t data_buffer_size,
     usbhc_iface_transfer_in_callback_t callback, void *arg)

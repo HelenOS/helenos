@@ -65,7 +65,6 @@
  * - first, IPC call with given method is made
  *   - argument #1 is target address
  *   - argument #2 is target endpoint
- *   - argument #3 is max packet size of the endpoint
  * - this call is immediately followed by IPC data read (async version)
  * - the call is not answered until the device returns some data (or until
  *   error occurs)
@@ -201,7 +200,7 @@ typedef void (*usbhc_iface_transfer_in_callback_t)(ddf_fun_t *,
 
 
 /** Out transfer processing function prototype. */
-typedef int (*usbhc_iface_transfer_out_t)(ddf_fun_t *, usb_target_t, size_t,
+typedef int (*usbhc_iface_transfer_out_t)(ddf_fun_t *, usb_target_t,
     void *, size_t,
     usbhc_iface_transfer_out_callback_t, void *);
 
@@ -209,7 +208,7 @@ typedef int (*usbhc_iface_transfer_out_t)(ddf_fun_t *, usb_target_t, size_t,
 typedef usbhc_iface_transfer_out_t usbhc_iface_transfer_setup_t;
 
 /** In transfer processing function prototype. */
-typedef int (*usbhc_iface_transfer_in_t)(ddf_fun_t *, usb_target_t, size_t,
+typedef int (*usbhc_iface_transfer_in_t)(ddf_fun_t *, usb_target_t,
     void *, size_t,
     usbhc_iface_transfer_in_callback_t, void *);
 
@@ -233,12 +232,10 @@ typedef struct {
 	usbhc_iface_transfer_in_t bulk_in;
 
 	int (*control_write)(ddf_fun_t *, usb_target_t,
-	    size_t,
 	    void *, size_t, void *, size_t,
 	    usbhc_iface_transfer_out_callback_t, void *);
 
 	int (*control_read)(ddf_fun_t *, usb_target_t,
-	    size_t,
 	    void *, size_t, void *, size_t,
 	    usbhc_iface_transfer_in_callback_t, void *);
 } usbhc_iface_t;
