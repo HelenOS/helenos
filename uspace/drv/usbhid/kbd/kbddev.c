@@ -96,7 +96,7 @@ static const unsigned int DEFAULT_REPEAT_DELAY = 50 * 1000;
 /*----------------------------------------------------------------------------*/
 
 /** Keyboard polling endpoint description for boot protocol class. */
-usb_endpoint_description_t ush_hid_kbd_poll_endpoint_description = {
+usb_endpoint_description_t usb_hid_kbd_poll_endpoint_description = {
 	.transfer_type = USB_TRANSFER_INTERRUPT,
 	.direction = USB_DIRECTION_IN,
 	.interface_class = USB_CLASS_HID,
@@ -242,8 +242,16 @@ void default_connection_handler(ddf_fun_t *fun,
 {
 	sysarg_t method = IPC_GET_IMETHOD(*icall);
 	
-	usb_kbd_t *kbd_dev = (usb_kbd_t *)fun->driver_data;
-	assert(kbd_dev != NULL);
+	usb_hid_dev_t *hid_dev = (usb_hid_dev_t *)fun->driver_data;
+	
+	if (hid_dev == NULL || hid_dev->data == NULL) {
+		async_answer_0(icallid, EINVAL);
+		return;
+	}
+	
+	assert(hid_dev != NULL);
+	assert(hid_dev->data != NULL);
+	usb_kbd_t *kbd_dev = (usb_kbd_t *)hid_dev->data;
 
 	if (method == IPC_M_CONNECT_TO_ME) {
 		int callback = IPC_GET_ARG5(*icall);

@@ -130,7 +130,7 @@ typedef struct usb_kbd_t {
 
 //ddf_dev_ops_t keyboard_ops;
 
-usb_endpoint_description_t ush_hid_kbd_poll_endpoint_description;
+usb_endpoint_description_t usb_hid_kbd_poll_endpoint_description;
 
 const char *HID_KBD_FUN_NAME;
 const char *HID_KBD_CLASS_NAME;
