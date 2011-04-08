@@ -58,11 +58,20 @@ int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun)
 	usb_device_keeper_bind(
 	    &instance->manager, hub_address, hub_fun->handle);
 
+	endpoint_t *ep = malloc(sizeof(endpoint_t));
+	assert(ep);
+	int ret = endpoint_init(ep, hub_address, 0, USB_DIRECTION_BOTH,
+	    USB_TRANSFER_CONTROL, USB_SPEED_FULL, 64);
+	assert(ret == EOK);
+	ret = usb_endpoint_manager_register_ep(&instance->ep_manager, ep, 0);
+	assert(ret == EOK);
+
 	char *match_str = NULL;
-	int ret = asprintf(&match_str, "usb&class=hub");
-	ret = (match_str == NULL) ? ret : EOK;
+	ret = asprintf(&match_str, "usb&class=hub");
+//	ret = (match_str == NULL) ? ret : EOK;
 	if (ret < 0) {
-		usb_log_error("Failed to create root hub match-id string.\n");
+		usb_log_error(
+		    "Failed(%d) to create root hub match-id string.\n", ret);
 		return ret;
 	}
 

@@ -44,21 +44,10 @@ static void batch_call_in_and_dispose(usb_transfer_batch_t *instance);
 static void batch_call_out_and_dispose(usb_transfer_batch_t *instance);
 
 #define DEFAULT_ERROR_COUNT 3
-usb_transfer_batch_t * batch_get(
-    ddf_fun_t *fun,
-		usb_target_t target,
-    usb_transfer_type_t transfer_type,
-		size_t max_packet_size,
-    usb_speed_t speed,
-		char *buffer,
-		size_t buffer_size,
-		char *setup_buffer,
-		size_t setup_size,
+usb_transfer_batch_t * batch_get(ddf_fun_t *fun, endpoint_t *ep,
+    char *buffer, size_t buffer_size, char* setup_buffer, size_t setup_size,
     usbhc_iface_transfer_in_callback_t func_in,
-    usbhc_iface_transfer_out_callback_t func_out,
-		void *arg,
-		usb_device_keeper_t *manager
-		)
+    usbhc_iface_transfer_out_callback_t func_out, void *arg)
 {
 #define CHECK_NULL_DISPOSE_RETURN(ptr, message...) \
         if (ptr == NULL) { \
@@ -72,9 +61,11 @@ usb_transfer_batch_t * batch_get(
 	usb_transfer_batch_t *instance = malloc(sizeof(usb_transfer_batch_t));
 	CHECK_NULL_DISPOSE_RETURN(instance,
 	    "Failed to allocate batch instance.\n");
-	usb_transfer_batch_init(instance, target, transfer_type, speed,
-	    max_packet_size, buffer, NULL, buffer_size, NULL, setup_size,
-	    func_in, func_out, arg, fun, NULL, NULL);
+	usb_target_t target =
+	    { .address = ep->address, .endpoint = ep->endpoint };
+	usb_transfer_batch_init(instance, target, ep->transfer_type, ep->speed,
+	    ep->max_packet_size, buffer, NULL, buffer_size, NULL, setup_size,
+	    func_in, func_out, arg, fun, ep, NULL);
 
         if (buffer_size > 0) {
                 instance->transport_buffer = malloc32(buffer_size);
