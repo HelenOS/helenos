@@ -122,6 +122,7 @@ static int release_address(ddf_fun_t *fun, usb_address_t address)
  *
  * @param[in] fun Device function the action was invoked on.
  * @param[in] address USB address of the device.
+ * @param[in] speed Endpoint speed (invalid means to use device one).
  * @param[in] endpoint Endpoint number.
  * @param[in] transfer_type USB transfer type.
  * @param[in] direction Endpoint data direction.
@@ -130,7 +131,7 @@ static int release_address(ddf_fun_t *fun, usb_address_t address)
  * @return Error code.
  */
 static int register_endpoint(ddf_fun_t *fun,
-    usb_address_t address, usb_endpoint_t endpoint,
+    usb_address_t address, usb_speed_t speed, usb_endpoint_t endpoint,
     usb_transfer_type_t transfer_type, usb_direction_t direction,
     size_t max_packet_size, unsigned int interval)
 {

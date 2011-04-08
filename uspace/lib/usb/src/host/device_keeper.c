@@ -55,8 +55,12 @@ void usb_device_keeper_init(usb_device_keeper_t *instance)
 		instance->devices[i].occupied = false;
 		instance->devices[i].control_used = 0;
 		instance->devices[i].handle = 0;
+		instance->devices[i].speed = USB_SPEED_MAX;
 		list_initialize(&instance->devices[i].endpoints);
 	}
+	// TODO: is this hack enough?
+	// (it is needed to allow smooth registration at default address)
+	instance->devices[0].occupied = true;
 }
 /*----------------------------------------------------------------------------*/
 void usb_device_keeper_add_ep(
@@ -66,6 +70,17 @@ void usb_device_keeper_add_ep(
 	fibril_mutex_lock(&instance->guard);
 	assert(instance->devices[address].occupied);
 	list_append(&ep->same_device_eps, &instance->devices[address].endpoints);
+	fibril_mutex_unlock(&instance->guard);
+}
+/*----------------------------------------------------------------------------*/
+void usb_device_keeper_del_ep(
+    usb_device_keeper_t *instance, usb_address_t address, endpoint_t *ep)
+{
+	assert(instance);
+	fibril_mutex_lock(&instance->guard);
+	assert(instance->devices[address].occupied);
+	list_remove(&ep->same_device_eps);
+	list_initialize(&ep->same_device_eps);
 	fibril_mutex_unlock(&instance->guard);
 }
 /*----------------------------------------------------------------------------*/

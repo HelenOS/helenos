@@ -167,11 +167,14 @@ typedef enum {
 
 	/** Register endpoint attributes at host controller.
 	 * This is used to reserve portion of USB bandwidth.
+	 * When speed is invalid, speed of the device is used.
 	 * Parameters:
-	 * - USB address + endpoint number (ADDR * 256 + EP)
-	 * - transfer type + direction (TYPE * 256 + DIR)
-	 * - maximum packet size
-	 * - interval (in milliseconds)
+	 * - USB address + endpoint number
+	 *   - packed as ADDR << 16 + EP
+	 * - speed + transfer type + direction
+	 *   - packed as ( SPEED << 8 + TYPE ) << 8 + DIR
+	 * - maximum packet size + interval (in milliseconds)
+	 *   - packed as MPS << 16 + INT
 	 * Answer:
 	 * - EOK - reservation successful
 	 * - ELIMIT - not enough bandwidth to satisfy the request
@@ -220,7 +223,8 @@ typedef struct {
 	int (*bind_address)(ddf_fun_t *, usb_address_t, devman_handle_t);
 	int (*release_address)(ddf_fun_t *, usb_address_t);
 
-	int (*register_endpoint)(ddf_fun_t *, usb_address_t, usb_endpoint_t,
+	int (*register_endpoint)(ddf_fun_t *,
+	    usb_address_t, usb_speed_t, usb_endpoint_t,
 	    usb_transfer_type_t, usb_direction_t, size_t, unsigned int);
 	int (*unregister_endpoint)(ddf_fun_t *, usb_address_t, usb_endpoint_t,
 	    usb_direction_t);

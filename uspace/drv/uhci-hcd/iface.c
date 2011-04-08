@@ -73,8 +73,8 @@ static inline int setup_batch(
 	usb_log_debug("%s %d:%d %zu(%zu).\n",
 	    name, target.address, target.endpoint, size, ep->max_packet_size);
 
-	assert(ep->speed ==
-	    usb_device_keeper_get_speed(&(*hc)->manager, target.address));
+//	assert(ep->speed ==
+//	    usb_device_keeper_get_speed(&(*hc)->manager, target.address));
 //	assert(ep->max_packet_size == max_packet_size);
 //	assert(ep->transfer_type == USB_TRANSFER_CONTROL);
 
@@ -197,14 +197,17 @@ static int release_address(ddf_fun_t *fun, usb_address_t address)
 }
 /*----------------------------------------------------------------------------*/
 static int register_endpoint(
-    ddf_fun_t *fun, usb_address_t address, usb_endpoint_t endpoint,
+    ddf_fun_t *fun, usb_address_t address, usb_speed_t ep_speed,
+    usb_endpoint_t endpoint,
     usb_transfer_type_t transfer_type, usb_direction_t direction,
     size_t max_packet_size, unsigned int interval)
 {
 	hc_t *hc = fun_to_hc(fun);
 	assert(hc);
-	const usb_speed_t speed =
-	    usb_device_keeper_get_speed(&hc->manager, address);
+	usb_speed_t speed = usb_device_keeper_get_speed(&hc->manager, address);
+	if (speed >= USB_SPEED_MAX) {
+		speed = ep_speed;
+	}
 	const size_t size =
 	    (transfer_type == USB_TRANSFER_INTERRUPT
 	    || transfer_type == USB_TRANSFER_ISOCHRONOUS) ?
@@ -242,6 +245,11 @@ static int unregister_endpoint(
 	assert(hc);
 	usb_log_debug("Unregister endpoint %d:%d %d.\n",
 	    address, endpoint, direction);
+	endpoint_t *ep = usb_endpoint_manager_get_ep(&hc->ep_manager,
+	    address, endpoint, direction, NULL);
+	if (ep != NULL) {
+		usb_device_keeper_del_ep(&hc->manager, address, ep);
+	}
 	return usb_endpoint_manager_unregister_ep(&hc->ep_manager, address,
 	    endpoint, direction);
 }
