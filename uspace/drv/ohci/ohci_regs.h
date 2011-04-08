@@ -42,6 +42,11 @@ typedef struct ohci_regs
 	volatile uint32_t control;
 #define C_CSBR_MASK (0x3)
 #define C_CSBR_SHIFT (0)
+#define C_CSBR_1_1 (0x0)
+#define C_CSBR_1_2 (0x1)
+#define C_CSBR_1_3 (0x2)
+#define C_CSBR_1_4 (0x3)
+
 #define C_PLE (1 << 2)
 #define C_IE (1 << 3)
 #define C_CLE (1 << 4)
@@ -89,7 +94,7 @@ typedef struct ohci_regs
 
 	volatile uint32_t interrupt_disable;
 	volatile uint32_t hcca;
-	volatile uint32_t period_corrent;
+	volatile uint32_t period_current;
 	volatile uint32_t control_head;
 	volatile uint32_t control_current;
 	volatile uint32_t bulk_head;

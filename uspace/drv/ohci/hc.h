@@ -55,6 +55,8 @@ typedef struct hc {
 	usb_address_t rh_address;
 	rh_t rh;
 
+	hcca_t *hcca;
+
 	transfer_list_t transfers_isochronous;
 	transfer_list_t transfers_interrupt;
 	transfer_list_t transfers_control;
