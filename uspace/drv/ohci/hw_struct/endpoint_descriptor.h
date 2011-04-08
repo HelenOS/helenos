@@ -37,6 +37,8 @@
 #include <assert.h>
 #include <stdint.h>
 
+#include <usb/host/endpoint.h>
+
 #include "utils/malloc32.h"
 
 #include "completion_codes.h"
@@ -51,8 +53,9 @@ typedef struct ed {
 #define ED_STATUS_D_SHIFT (10)
 #define ED_STATUS_D_IN (0x1)
 #define ED_STATUS_D_OUT (0x2)
+#define ED_STATUS_D_TRANSFER (0x3)
 
-#define ED_STATUS_S_FLAG (1 << 13) /* speed flag */
+#define ED_STATUS_S_FLAG (1 << 13) /* speed flag: 1 = low */
 #define ED_STATUS_K_FLAG (1 << 14) /* skip flag (no not execute this ED) */
 #define ED_STATUS_F_FLAG (1 << 15) /* format: 1 = isochronous*/
 #define ED_STATUS_MPS_MASK (0x3ff) /* max_packet_size*/
@@ -74,11 +77,13 @@ typedef struct ed {
 #define ED_NEXT_PTR_SHIFT (0)
 } __attribute__((packed)) ed_t;
 
-static inline void ed_init_dummy(ed_t *instance)
+void ed_init(ed_t *instance, endpoint_t *ep);
+
+static inline void ed_add_tds(ed_t *instance, uint32_t head, uint32_t tail)
 {
 	assert(instance);
-	bzero(instance, sizeof(ed_t));
-	instance->status |= ED_STATUS_K_FLAG;
+	instance->td_head = head & ED_TDHEAD_PTR_MASK;
+	instance->td_tail = tail & ED_TDTAIL_PTR_MASK;
 }
 
 static inline void ed_append_ed(ed_t *instance, ed_t *next)

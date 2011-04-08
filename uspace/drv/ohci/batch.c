@@ -50,6 +50,7 @@ typedef struct ohci_batch {
 	size_t td_count;
 } ohci_batch_t;
 
+static void batch_control(usb_transfer_batch_t *instance);
 static void batch_call_in_and_dispose(usb_transfer_batch_t *instance);
 static void batch_call_out_and_dispose(usb_transfer_batch_t *instance);
 
@@ -82,8 +83,9 @@ usb_transfer_batch_t * batch_get(ddf_fun_t *fun, endpoint_t *ep,
 	bzero(data, sizeof(ohci_batch_t));
 	instance->private_data = data;
 
+	/* we needs + 1 transfer descriptor as the last one won't be executed */
 	data->td_count =
-	    (buffer_size + OHCI_MAX_TRANSFER - 1) / OHCI_MAX_TRANSFER;
+	    1 + ((buffer_size + OHCI_MAX_TRANSFER - 1) / OHCI_MAX_TRANSFER);
 	if (ep->transfer_type == USB_TRANSFER_CONTROL) {
 		data->td_count += 2;
 	}
@@ -134,7 +136,7 @@ void batch_control_write(usb_transfer_batch_t *instance)
 	memcpy(instance->transport_buffer, instance->buffer,
 	    instance->buffer_size);
 	instance->next_step = batch_call_out_and_dispose;
-	/* TODO: implement */
+	batch_control(instance);
 	usb_log_debug("Batch(%p) CONTROL WRITE initialized.\n", instance);
 }
 /*----------------------------------------------------------------------------*/
@@ -142,14 +144,14 @@ void batch_control_read(usb_transfer_batch_t *instance)
 {
 	assert(instance);
 	instance->next_step = batch_call_in_and_dispose;
-	/* TODO: implement */
+	batch_control(instance);
 	usb_log_debug("Batch(%p) CONTROL READ initialized.\n", instance);
 }
 /*----------------------------------------------------------------------------*/
 void batch_interrupt_in(usb_transfer_batch_t *instance)
 {
 	assert(instance);
-	instance->direction = USB_DIRECTION_IN;
+	assert(instance->direction == USB_DIRECTION_IN);
 	instance->next_step = batch_call_in_and_dispose;
 	/* TODO: implement */
 	usb_log_debug("Batch(%p) INTERRUPT IN initialized.\n", instance);
@@ -158,7 +160,7 @@ void batch_interrupt_in(usb_transfer_batch_t *instance)
 void batch_interrupt_out(usb_transfer_batch_t *instance)
 {
 	assert(instance);
-	instance->direction = USB_DIRECTION_OUT;
+	assert(instance->direction == USB_DIRECTION_OUT);
 	/* We are data out, we are supposed to provide data */
 	memcpy(instance->transport_buffer, instance->buffer,
 	    instance->buffer_size);
@@ -187,7 +189,18 @@ void batch_bulk_out(usb_transfer_batch_t *instance)
 /*----------------------------------------------------------------------------*/
 ed_t * batch_ed(usb_transfer_batch_t *instance)
 {
-	return NULL;
+	assert(instance);
+	ohci_batch_t *data = instance->private_data;
+	assert(data);
+	return data->ed;
+}
+/*----------------------------------------------------------------------------*/
+static void batch_control(usb_transfer_batch_t *instance)
+{
+	assert(instance);
+	ohci_batch_t *data = instance->private_data;
+	assert(data);
+	ed_init(data->ed, instance->ep);
 }
 /*----------------------------------------------------------------------------*/
 /** Helper function calls callback and correctly disposes of batch structure.

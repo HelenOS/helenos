@@ -39,7 +39,8 @@ SOURCES = \
 	ohci.c \
 	pci.c \
 	root_hub.c \
-	transfer_list.c
+	transfer_list.c \
+	hw_struct/endpoint_descriptor.c
 
 
 include $(USPACE_PREFIX)/Makefile.common

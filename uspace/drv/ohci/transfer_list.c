@@ -60,7 +60,7 @@ int transfer_list_init(transfer_list_t *instance, const char *name)
 	usb_log_debug2("Transfer list %s setup with ED: %p(%p).\n",
 	    name, instance->list_head, instance->list_head_pa);
 
-	ed_init_dummy(instance->list_head);
+	ed_init(instance->list_head, NULL);
 	list_initialize(&instance->batch_list);
 	fibril_mutex_initialize(&instance->guard);
 	return EOK;
