@@ -654,6 +654,8 @@ int ddf_fun_add_to_class(ddf_fun_t *fun, const char *class_name)
 
 int ddf_driver_main(driver_t *drv)
 {
+	int rc;
+
 	/*
 	 * Remember the driver structure - driver_ops will be called by generic
 	 * handler for incoming connections.
@@ -667,10 +669,14 @@ int ddf_driver_main(driver_t *drv)
 	async_set_interrupt_received(driver_irq_handler);
 	
 	/*
-	 * Register driver by device manager with generic handler for incoming
-	 * connections.
+	 * Register driver with device manager using generic handler for
+	 * incoming connections.
 	 */
-	devman_driver_register(driver->name, driver_connection);
+	rc = devman_driver_register(driver->name, driver_connection);
+	if (rc != EOK) {
+		printf("Error: Failed to register driver with device manager.\n");
+		return 1;
+	}
 	
 	async_manager();
 	
