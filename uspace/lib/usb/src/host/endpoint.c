@@ -59,6 +59,7 @@ int endpoint_init(endpoint_t *instance, usb_address_t address,
 void endpoint_destroy(endpoint_t *instance)
 {
 	assert(instance);
+	assert(!instance->active);
 	list_remove(&instance->same_device_eps);
 	free(instance);
 }
@@ -78,8 +79,8 @@ void endpoint_release(endpoint_t *instance)
 	assert(instance);
 	fibril_mutex_lock(&instance->guard);
 	instance->active = false;
-	fibril_condvar_signal(&instance->avail);
 	fibril_mutex_unlock(&instance->guard);
+	fibril_condvar_signal(&instance->avail);
 }
 /*----------------------------------------------------------------------------*/
 int endpoint_toggle_get(endpoint_t *instance)

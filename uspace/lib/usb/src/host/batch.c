@@ -78,6 +78,7 @@ void usb_transfer_batch_init(
 	instance->next_step = NULL;
 	instance->error = EOK;
 	instance->ep = ep;
+	endpoint_use(instance->ep);
 }
 /*----------------------------------------------------------------------------*/
 /** Mark batch as finished and continue with next step.
@@ -88,6 +89,8 @@ void usb_transfer_batch_init(
 void usb_transfer_batch_finish(usb_transfer_batch_t *instance)
 {
 	assert(instance);
+	assert(instance->ep);
+	endpoint_release(instance->ep);
 	instance->next_step(instance);
 }
 /*----------------------------------------------------------------------------*/

@@ -52,7 +52,7 @@ typedef struct endpoint {
 	unsigned toggle:1;
 	fibril_mutex_t guard;
 	fibril_condvar_t avail;
-	bool active;
+	volatile bool active;
 	link_t same_device_eps;
 } endpoint_t;
 
