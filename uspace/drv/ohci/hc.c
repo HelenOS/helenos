@@ -46,6 +46,7 @@
 static int interrupt_emulator(hc_t *instance);
 static void hc_gain_control(hc_t *instance);
 static void hc_init_hw(hc_t *instance);
+static int hc_init_transfer_lists(hc_t *instance);
 /*----------------------------------------------------------------------------*/
 int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun)
 {
@@ -210,14 +211,55 @@ void hc_init_hw(hc_t *instance)
 	instance->registers->fm_interval = fm_interval;
 	assert((instance->registers->command_status & CS_HCR) == 0);
 	/* hc is now in suspend state */
+	/* init queues */
+	hc_init_transfer_lists(instance);
 	/* TODO: init HCCA block */
-	/* TODO: init queues */
 	/* TODO: enable queues */
 	/* TODO: enable interrupts */
 	/* TODO: set periodic start to 90% */
 
 	instance->registers->control &= (C_HCFS_OPERATIONAL << C_HCFS_SHIFT);
 	usb_log_info("OHCI HC up and running.\n");
+}
+/*----------------------------------------------------------------------------*/
+int hc_init_transfer_lists(hc_t *instance)
+{
+	assert(instance);
+#define CHECK_RET_CLEAR_RETURN(ret, message...) \
+	if (ret != EOK) { \
+		usb_log_error(message); \
+		transfer_list_fini(&instance->transfers_isochronous); \
+		transfer_list_fini(&instance->transfers_interrupt); \
+		transfer_list_fini(&instance->transfers_control); \
+		transfer_list_fini(&instance->transfers_bulk); \
+		return ret; \
+	} else (void) 0
+
+	int ret;
+	ret = transfer_list_init(&instance->transfers_bulk, "BULK");
+	CHECK_RET_CLEAR_RETURN(ret, "Failed to init BULK list.");
+
+	ret = transfer_list_init(&instance->transfers_control, "CONTROL");
+	CHECK_RET_CLEAR_RETURN(ret, "Failed to init CONTROL list.");
+
+	ret = transfer_list_init(&instance->transfers_interrupt, "INTERRUPT");
+	CHECK_RET_CLEAR_RETURN(ret, "Failed to init INTERRUPT list.");
+
+	transfer_list_set_next(&instance->transfers_interrupt,
+		&instance->transfers_isochronous);
+
+	/* Assign pointers to be used during scheduling */
+	instance->transfers[USB_TRANSFER_INTERRUPT] =
+	  &instance->transfers_interrupt;
+	instance->transfers[USB_TRANSFER_ISOCHRONOUS] =
+	  &instance->transfers_interrupt;
+	instance->transfers[USB_TRANSFER_CONTROL] =
+	  &instance->transfers_control;
+	instance->transfers[USB_TRANSFER_BULK] =
+	  &instance->transfers_bulk;
+
+	return EOK;
+#undef CHECK_RET_CLEAR_RETURN
 }
 /**
  * @}
