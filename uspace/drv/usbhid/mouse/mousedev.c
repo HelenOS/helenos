@@ -131,7 +131,7 @@ static void default_connection_handler(ddf_fun_t *fun,
 		}
 
 		mouse_dev->console_phone = callback;
-		usb_log_debug("Console phone to mouse set ok.\n");
+		usb_log_debug("Console phone to mouse set ok (%d).\n", callback);
 		async_answer_0(icallid, EOK);
 		return;
 	}
@@ -198,6 +198,7 @@ static bool usb_mouse_process_boot_report(usb_mouse_t *mouse_dev,
 	}
 	
 	if (mouse_dev->console_phone >= 0) {
+		usb_log_debug("Console phone: %d\n", mouse_dev->console_phone);
 		if ((shift_x != 0) || (shift_y != 0)) {
 			/* FIXME: guessed for QEMU */
 			async_req_2_0(mouse_dev->console_phone,
@@ -275,7 +276,13 @@ bool usb_mouse_polling_callback(usb_device_t *dev, uint8_t *buffer,
 		return false;
 	}
 	
-	usb_mouse_t *mouse_dev = (usb_mouse_t *)arg;
+	usb_hid_dev_t *hid_dev = (usb_hid_dev_t *)arg;
+	if (hid_dev->data == NULL) {
+		usb_log_error("Wrong argument to the mouse polling callback."
+		    "\n");
+		return false;
+	}
+	usb_mouse_t *mouse_dev = (usb_mouse_t *)hid_dev->data;
 	
 	return usb_mouse_process_boot_report(mouse_dev, buffer, buffer_size);
 }
