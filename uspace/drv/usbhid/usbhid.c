@@ -45,27 +45,9 @@
 #include "usbhid.h"
 
 #include "kbd/kbddev.h"
-#include "generic/hidd.h"
+#include "generic/hiddev.h"
 
 /*----------------------------------------------------------------------------*/
-
-/** Generic HID device polling endpoint description. */
-//static usb_endpoint_description_t usb_hid_generic_poll_endpoint_description = {
-//	.transfer_type = USB_TRANSFER_INTERRUPT,
-//	.direction = USB_DIRECTION_IN,
-//	.interface_class = USB_CLASS_HID,
-//	.flags = 0
-//};
-
-///** Keyboard polling endpoint description for boot protocol class. */
-//static usb_endpoint_description_t ush_hid_kbd_poll_endpoint_description = {
-//	.transfer_type = USB_TRANSFER_INTERRUPT,
-//	.direction = USB_DIRECTION_IN,
-//	.interface_class = USB_CLASS_HID,
-//	.interface_subclass = USB_HID_SUBCLASS_BOOT,
-//	.interface_protocol = USB_HID_PROTOCOL_KEYBOARD,
-//	.flags = 0
-//};
 
 /** Mouse polling endpoint description for boot protocol class. */
 static usb_endpoint_description_t ush_hid_mouse_poll_endpoint_description = {

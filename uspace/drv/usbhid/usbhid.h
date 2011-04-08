@@ -38,9 +38,6 @@
 
 #include <stdint.h>
 
-//#include <fibril_synch.h>
-
-//#include <usb/classes/hid.h>
 #include <usb/classes/hidparser.h>
 #include <ddf/driver.h>
 #include <usb/pipes.h>
@@ -104,7 +101,6 @@ const char *usb_hid_get_function_name(usb_hid_iface_protocol_t device_type);
 
 const char *usb_hid_get_class_name(usb_hid_iface_protocol_t device_type);
 
-/** @todo Maybe not needed in the API. */
 void usb_hid_free(usb_hid_dev_t **hid_dev);
 
 #endif /* USB_USBHID_H_ */

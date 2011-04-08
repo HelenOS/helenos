@@ -37,7 +37,7 @@
 #include <usb/debug.h>
 #include <usb/classes/classes.h>
 
-#include "hidd.h"
+#include "hiddev.h"
 
 /*----------------------------------------------------------------------------*/
 

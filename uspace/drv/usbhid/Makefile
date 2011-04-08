@@ -42,7 +42,7 @@ SOURCES = \
 	kbd/conv.c \
 	kbd/kbddev.c \
 	kbd/kbdrepeat.c \
-	generic/hidd.c \
+	generic/hiddev.c \
 	$(STOLEN_LAYOUT_SOURCES)
 
 EXTRA_CLEAN = $(STOLEN_LAYOUT_SOURCES)
