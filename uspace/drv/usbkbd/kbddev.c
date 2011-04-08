@@ -732,9 +732,9 @@ int usb_kbd_init(usb_kbd_t *kbd_dev, usb_device_t *dev)
 	}
 	
 	/* Get the report descriptor and parse it. */
-	//rc = usb_hid_process_report_descriptor(kbd_dev->usb_dev, 
-	//    kbd_dev->parser);
-	if (true || rc != EOK) {
+	rc = usb_hid_process_report_descriptor(kbd_dev->usb_dev, 
+	    kbd_dev->parser);
+	if (rc != EOK) {
 		usb_log_warning("Could not process report descriptor, "
 		    "falling back to boot protocol.\n");
 		rc = usb_hid_parse_report_descriptor(kbd_dev->parser, 
