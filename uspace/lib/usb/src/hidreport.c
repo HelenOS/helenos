@@ -79,6 +79,7 @@ static int usb_hid_get_report_descriptor(usb_device_t *dev,
 	while (d != NULL && i < dev->interface_no) {
 		d = usb_dp_get_sibling_descriptor(&parser, &parser_data, 
 		    dev->descriptors.configuration, d);
+		++i;
 	}
 	
 	if (d == NULL) {

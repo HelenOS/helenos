@@ -65,6 +65,12 @@ static int polling_fibril(void *arg)
 
 	usb_pipe_t *pipe
 	    = polling_data->dev->pipes[polling_data->pipe_index].pipe;
+	
+	usb_log_debug("Pipe interface number: %d, protocol: %d, subclass: %d, max packet size: %d\n", 
+	    polling_data->dev->pipes[polling_data->pipe_index].interface_no,
+	    polling_data->dev->pipes[polling_data->pipe_index].description->interface_protocol,
+	    polling_data->dev->pipes[polling_data->pipe_index].description->interface_subclass,
+	    pipe->max_packet_size);
 
 	size_t failed_attempts = 0;
 	while (failed_attempts < MAX_FAILED_ATTEMPTS) {
@@ -82,6 +88,13 @@ static int polling_fibril(void *arg)
 
 		/* Quit the session regardless of errors. */
 		usb_pipe_end_session(pipe);
+		
+//		if (rc == ESTALL) {
+//			usb_log_debug("Seding clear feature...\n");
+//			usb_request_clear_feature(pipe, USB_REQUEST_TYPE_STANDARD,
+//			  USB_REQUEST_RECIPIENT_ENDPOINT, 0, pipe->endpoint_no);
+//			continue;
+//		}
 
 		if (rc != EOK) {
 			failed_attempts++;
