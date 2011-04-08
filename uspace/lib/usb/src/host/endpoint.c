@@ -33,6 +33,7 @@
  * @brief UHCI host controller driver structure
  */
 
+#include <assert.h>
 #include <errno.h>
 #include <usb/host/endpoint.h>
 
@@ -48,6 +49,9 @@ int endpoint_init(endpoint_t *instance, usb_address_t address,
 	instance->speed = speed;
 	instance->max_packet_size = max_packet_size;
 	instance->toggle = 0;
+	instance->active = false;
+	fibril_mutex_initialize(&instance->guard);
+	fibril_condvar_initialize(&instance->avail);
 	link_initialize(&instance->same_device_eps);
 	return EOK;
 }
@@ -57,6 +61,25 @@ void endpoint_destroy(endpoint_t *instance)
 	assert(instance);
 	list_remove(&instance->same_device_eps);
 	free(instance);
+}
+/*----------------------------------------------------------------------------*/
+void endpoint_use(endpoint_t *instance)
+{
+	assert(instance);
+	fibril_mutex_lock(&instance->guard);
+	while (instance->active)
+		fibril_condvar_wait(&instance->avail, &instance->guard);
+	instance->active = true;
+	fibril_mutex_unlock(&instance->guard);
+}
+/*----------------------------------------------------------------------------*/
+void endpoint_release(endpoint_t *instance)
+{
+	assert(instance);
+	fibril_mutex_lock(&instance->guard);
+	instance->active = false;
+	fibril_condvar_signal(&instance->avail);
+	fibril_mutex_unlock(&instance->guard);
 }
 /*----------------------------------------------------------------------------*/
 int endpoint_toggle_get(endpoint_t *instance)

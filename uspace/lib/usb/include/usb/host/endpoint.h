@@ -38,6 +38,8 @@
 #include <assert.h>
 #include <bool.h>
 #include <adt/list.h>
+#include <fibril_synch.h>
+
 #include <usb/usb.h>
 
 typedef struct endpoint {
@@ -47,8 +49,10 @@ typedef struct endpoint {
 	usb_transfer_type_t transfer_type;
 	usb_speed_t speed;
 	size_t max_packet_size;
-	bool active;
 	unsigned toggle:1;
+	fibril_mutex_t guard;
+	fibril_condvar_t avail;
+	bool active;
 	link_t same_device_eps;
 } endpoint_t;
 
@@ -57,6 +61,10 @@ int endpoint_init(endpoint_t *instance, usb_address_t address,
     usb_transfer_type_t type, usb_speed_t speed, size_t max_packet_size);
 
 void endpoint_destroy(endpoint_t *instance);
+
+void endpoint_use(endpoint_t *instance);
+
+void endpoint_release(endpoint_t *instance);
 
 int endpoint_toggle_get(endpoint_t *instance);
 
