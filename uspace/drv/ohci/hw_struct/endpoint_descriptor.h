@@ -40,6 +40,7 @@
 #include <usb/host/endpoint.h>
 
 #include "utils/malloc32.h"
+#include "transfer_descriptor.h"
 
 #include "completion_codes.h"
 
@@ -48,9 +49,9 @@ typedef struct ed {
 #define ED_STATUS_FA_MASK (0x7f)   /* USB device address   */
 #define ED_STATUS_FA_SHIFT (0)
 #define ED_STATUS_EN_MASK (0xf)    /* USB endpoint address */
-#define ED_STATUS_EN_SHIFT (6)
+#define ED_STATUS_EN_SHIFT (7)
 #define ED_STATUS_D_MASK (0x3)     /* direction */
-#define ED_STATUS_D_SHIFT (10)
+#define ED_STATUS_D_SHIFT (11)
 #define ED_STATUS_D_IN (0x1)
 #define ED_STATUS_D_OUT (0x2)
 #define ED_STATUS_D_TRANSFER (0x3)
@@ -79,11 +80,11 @@ typedef struct ed {
 
 void ed_init(ed_t *instance, endpoint_t *ep);
 
-static inline void ed_add_tds(ed_t *instance, uint32_t head, uint32_t tail)
+static inline void ed_add_tds(ed_t *instance, td_t *head, td_t *tail)
 {
 	assert(instance);
-	instance->td_head = head & ED_TDHEAD_PTR_MASK;
-	instance->td_tail = tail & ED_TDTAIL_PTR_MASK;
+	instance->td_head = addr_to_phys(head) & ED_TDHEAD_PTR_MASK;
+	instance->td_tail = addr_to_phys(tail) & ED_TDTAIL_PTR_MASK;
 }
 
 static inline void ed_append_ed(ed_t *instance, ed_t *next)

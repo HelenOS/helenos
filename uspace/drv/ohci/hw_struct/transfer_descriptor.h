@@ -35,6 +35,7 @@
 #define DRV_OHCI_HW_STRUCT_TRANSFER_DESCRIPTOR_H
 
 #include <stdint.h>
+#include "utils/malloc32.h"
 
 #include "completion_codes.h"
 
@@ -54,9 +55,8 @@ typedef struct td {
 #define TD_STATUS_DI_NO_INTERRUPT (0x7)
 #define TD_STATUS_T_MASK (0x3)  /* data toggle 1x = use ED toggle carry */
 #define TD_STATUS_T_SHIFT (24)
-#define TD_STATUS_T_0 (0x0)
-#define TD_STATUS_T_1 (0x1)
-#define TD_STATUS_T_USE_EP (0x1)
+#define TD_STATUS_T_0 (0x2)
+#define TD_STATUS_T_1 (0x3)
 #define TD_STATUS_EC_MASK (0x3) /* error count */
 #define TD_STATUS_EC_SHIFT (26)
 #define TD_STATUS_CC_MASK (0xf) /* condition code */
@@ -73,10 +73,10 @@ typedef struct td {
 void td_init(
     td_t *instance, usb_direction_t dir, void *buffer, size_t size, int toggle);
 
-inline static void td_set_next(td_t *instance, uint32_t next)
+inline static void td_set_next(td_t *instance, td_t *next)
 {
 	assert(instance);
-	instance->next = next & TD_NEXT_PTR_MASK;
+	instance->next = addr_to_phys(next) & TD_NEXT_PTR_MASK;
 }
 #endif
 /**
