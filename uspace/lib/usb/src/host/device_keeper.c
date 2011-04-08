@@ -263,31 +263,6 @@ usb_speed_t usb_device_keeper_get_speed(
 	assert(address <= USB11_ADDRESS_MAX);
 	return instance->devices[address].speed;
 }
-/*----------------------------------------------------------------------------*/
-void usb_device_keeper_use_control(
-    usb_device_keeper_t *instance, usb_target_t target)
-{
-	assert(instance);
-	const uint16_t ep = 1 << target.endpoint;
-	fibril_mutex_lock(&instance->guard);
-	while (instance->devices[target.address].control_used & ep) {
-		fibril_condvar_wait(&instance->change, &instance->guard);
-	}
-	instance->devices[target.address].control_used |= ep;
-	fibril_mutex_unlock(&instance->guard);
-}
-/*----------------------------------------------------------------------------*/
-void usb_device_keeper_release_control(
-    usb_device_keeper_t *instance, usb_target_t target)
-{
-	assert(instance);
-	const uint16_t ep = 1 << target.endpoint;
-	fibril_mutex_lock(&instance->guard);
-	assert((instance->devices[target.address].control_used & ep) != 0);
-	instance->devices[target.address].control_used &= ~ep;
-	fibril_mutex_unlock(&instance->guard);
-	fibril_condvar_signal(&instance->change);
-}
 /**
  * @}
  */
