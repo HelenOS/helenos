@@ -50,7 +50,7 @@
 /*----------------------------------------------------------------------------*/
 
 /** Mouse polling endpoint description for boot protocol class. */
-static usb_endpoint_description_t ush_hid_mouse_poll_endpoint_description = {
+static usb_endpoint_description_t usb_hid_mouse_poll_endpoint_description = {
 	.transfer_type = USB_TRANSFER_INTERRUPT,
 	.direction = USB_DIRECTION_IN,
 	.interface_class = USB_CLASS_HID,
@@ -60,10 +60,9 @@ static usb_endpoint_description_t ush_hid_mouse_poll_endpoint_description = {
 };
 
 /* Array of endpoints expected on the device, NULL terminated. */
-usb_endpoint_description_t 
-    *usb_hid_endpoints[USB_HID_POLL_EP_COUNT + 1] = {
-	&ush_hid_kbd_poll_endpoint_description,
-	&ush_hid_mouse_poll_endpoint_description,
+usb_endpoint_description_t *usb_hid_endpoints[USB_HID_POLL_EP_COUNT + 1] = {
+	&usb_hid_kbd_poll_endpoint_description,
+	&usb_hid_mouse_poll_endpoint_description,
 	&usb_hid_generic_poll_endpoint_description,
 	NULL
 };
