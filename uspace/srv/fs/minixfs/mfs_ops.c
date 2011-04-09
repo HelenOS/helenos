@@ -334,10 +334,10 @@ static int mfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 	struct mfs_ino_info *ino_i = mnode->ino_i;
 	struct mfs_dentry_info *d_info;
 
+	mfsdebug("mfs_match()\n");
+
 	if (!S_ISDIR(ino_i->i_mode))
 		return ENOTDIR;
-
-	mfsdebug("mfs_match()\n");
 
 	struct mfs_sb_info *sbi = mnode->instance->sbi;
 	const size_t comp_size = str_size(component);
@@ -380,6 +380,7 @@ static aoff64_t mfs_size_get(fs_node_t *node)
 	assert(mnode);
 	assert(mnode->ino_i);
 
+	mfsdebug("inode links = %d\n", (int) mnode->ino_i->i_nlinks);
 	mfsdebug("inode size is %d\n", (int) mnode->ino_i->i_size);
 
 	return mnode->ino_i->i_size;
