@@ -365,13 +365,14 @@ static int make_root_ino(const struct mfs_sb_info *sb)
 
 	memset(ino_buf, 0x00, MFS_BLOCKSIZE);
 
-	ino_buf[MFS_ROOT_INO].i_mode = S_IFDIR;
-	ino_buf[MFS_ROOT_INO].i_uid = 0;
-	ino_buf[MFS_ROOT_INO].i_gid = 0;
-	ino_buf[MFS_ROOT_INO].i_size = (sb->longnames ? MFSL_DIRSIZE : MFS_DIRSIZE) * 2;
-	ino_buf[MFS_ROOT_INO].i_mtime = sec;
-	ino_buf[MFS_ROOT_INO].i_nlinks = 2;
-	ino_buf[MFS_ROOT_INO].i_dzone[0] = sb->first_data_zone;
+	ino_buf[MFS_ROOT_INO - 1].i_mode = S_IFDIR;
+	ino_buf[MFS_ROOT_INO - 1].i_uid = 0;
+	ino_buf[MFS_ROOT_INO - 1].i_gid = 0;
+	ino_buf[MFS_ROOT_INO - 1].i_size = (sb->longnames ? MFSL_DIRSIZE :
+						MFS_DIRSIZE) * 2;
+	ino_buf[MFS_ROOT_INO - 1].i_mtime = sec;
+	ino_buf[MFS_ROOT_INO - 1].i_nlinks = 2;
+	ino_buf[MFS_ROOT_INO - 1].i_dzone[0] = sb->first_data_zone;
 
 	rc = write_block(itable_off, 1, ino_buf);
 
@@ -397,15 +398,15 @@ static int make_root_ino2(const struct mfs_sb_info *sb)
 
 	memset(ino_buf, 0x00, sb->block_size);
 
-	ino_buf[MFS_ROOT_INO].i_mode = S_IFDIR;
-	ino_buf[MFS_ROOT_INO].i_uid = 0;
-	ino_buf[MFS_ROOT_INO].i_gid = 0;
-	ino_buf[MFS_ROOT_INO].i_size = MFS3_DIRSIZE * 2;
-	ino_buf[MFS_ROOT_INO].i_mtime = sec;
-	ino_buf[MFS_ROOT_INO].i_atime = sec;
-	ino_buf[MFS_ROOT_INO].i_ctime = sec;
-	ino_buf[MFS_ROOT_INO].i_nlinks = 2;
-	ino_buf[MFS_ROOT_INO].i_dzone[0] = sb->first_data_zone;
+	ino_buf[MFS_ROOT_INO - 1].i_mode = S_IFDIR;
+	ino_buf[MFS_ROOT_INO - 1].i_uid = 0;
+	ino_buf[MFS_ROOT_INO - 1].i_gid = 0;
+	ino_buf[MFS_ROOT_INO - 1].i_size = MFS3_DIRSIZE * 2;
+	ino_buf[MFS_ROOT_INO - 1].i_mtime = sec;
+	ino_buf[MFS_ROOT_INO - 1].i_atime = sec;
+	ino_buf[MFS_ROOT_INO - 1].i_ctime = sec;
+	ino_buf[MFS_ROOT_INO - 1].i_nlinks = 2;
+	ino_buf[MFS_ROOT_INO - 1].i_dzone[0] = sb->first_data_zone;
 
 	rc = write_block(itable_off, 1, ino_buf);
 
@@ -563,7 +564,7 @@ static int init_bitmaps(const struct mfs_sb_info *sb)
 	memset(ibmap_buf, 0xFF, ibmap_nblocks * sb->block_size);
 	memset(zbmap_buf, 0xFF, zbmap_nblocks * sb->block_size);
 
-	for (i = 2; i < sb->n_inodes; ++i)
+	for (i = 2; i < sb->n_inodes + 1; ++i)
 		mark_bmap(ibmap_buf, i, FREE);
 
 	for (i = sb->first_data_zone + 1; i < sb->n_zones; ++i)

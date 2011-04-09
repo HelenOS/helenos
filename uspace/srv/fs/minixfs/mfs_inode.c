@@ -81,7 +81,10 @@ mfs_read_inode_raw(const struct mfs_instance *instance, uint16_t inum)
 
 	sbi = instance->sbi;
 	assert(sbi);
-	
+
+	/*inode 0 does not exist*/
+	inum -= 1;
+
 	const int ino_off = inum % sbi->ino_per_block;
 	const size_t ino_size = sizeof(struct mfs_inode);
 
@@ -145,6 +148,9 @@ mfs2_read_inode_raw(const struct mfs_instance *instance, uint32_t inum)
 
 	sbi = instance->sbi;
 	assert(sbi);
+
+	/*inode 0 does not exist*/
+	inum -= 1;
 
 	const int itable_off = sbi->itable_off;
 	const int ino_off = inum % sbi->ino_per_block;
