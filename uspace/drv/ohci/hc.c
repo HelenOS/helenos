@@ -46,6 +46,8 @@
 static int interrupt_emulator(hc_t *instance);
 static void hc_gain_control(hc_t *instance);
 static void hc_init_hw(hc_t *instance);
+static int hc_init_transfer_lists(hc_t *instance);
+static int hc_init_memory(hc_t *instance);
 /*----------------------------------------------------------------------------*/
 int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun)
 {
@@ -58,11 +60,20 @@ int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun)
 	usb_device_keeper_bind(
 	    &instance->manager, hub_address, hub_fun->handle);
 
+	endpoint_t *ep = malloc(sizeof(endpoint_t));
+	assert(ep);
+	int ret = endpoint_init(ep, hub_address, 0, USB_DIRECTION_BOTH,
+	    USB_TRANSFER_CONTROL, USB_SPEED_FULL, 64);
+	assert(ret == EOK);
+	ret = usb_endpoint_manager_register_ep(&instance->ep_manager, ep, 0);
+	assert(ret == EOK);
+
 	char *match_str = NULL;
-	int ret = asprintf(&match_str, "usb&class=hub");
-	ret = (match_str == NULL) ? ret : EOK;
+	ret = asprintf(&match_str, "usb&class=hub");
+//	ret = (match_str == NULL) ? ret : EOK;
 	if (ret < 0) {
-		usb_log_error("Failed to create root hub match-id string.\n");
+		usb_log_error(
+		    "Failed(%d) to create root hub match-id string.\n", ret);
 		return ret;
 	}
 
@@ -106,6 +117,7 @@ if (ret != EOK) { \
 
 	rh_init(&instance->rh, dev, instance->registers);
 
+	hc_init_memory(instance);
 	hc_init_hw(instance);
 
 	/* TODO: implement */
@@ -116,11 +128,26 @@ int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch)
 {
 	assert(instance);
 	assert(batch);
+
+	/* check for root hub communication */
 	if (batch->target.address == instance->rh.address) {
 		return rh_request(&instance->rh, batch);
 	}
-	/* TODO: implement */
-	return ENOTSUP;
+
+	transfer_list_add_batch(
+	    instance->transfers[batch->transfer_type], batch);
+
+	switch (batch->transfer_type) {
+	case USB_TRANSFER_CONTROL:
+		instance->registers->command_status |= CS_CLF;
+		break;
+	case USB_TRANSFER_BULK:
+		instance->registers->command_status |= CS_BLF;
+		break;
+	default:
+		break;
+	}
+	return EOK;
 }
 /*----------------------------------------------------------------------------*/
 void hc_interrupt(hc_t *instance, uint32_t status)
@@ -133,8 +160,19 @@ void hc_interrupt(hc_t *instance, uint32_t status)
 
 	usb_log_info("OHCI interrupt: %x.\n", status);
 
-	/* TODO: Check for further interrupt causes */
-	/* TODO: implement */
+	LIST_INITIALIZE(done);
+	transfer_list_remove_finished(&instance->transfers_interrupt, &done);
+	transfer_list_remove_finished(&instance->transfers_isochronous, &done);
+	transfer_list_remove_finished(&instance->transfers_control, &done);
+	transfer_list_remove_finished(&instance->transfers_bulk, &done);
+
+	while (!list_empty(&done)) {
+		link_t *item = done.next;
+		list_remove(item);
+		usb_transfer_batch_t *batch =
+		    list_get_instance(item, usb_transfer_batch_t, link);
+		usb_transfer_batch_finish(batch);
+	}
 }
 /*----------------------------------------------------------------------------*/
 int interrupt_emulator(hc_t *instance)
@@ -196,19 +234,91 @@ void hc_init_hw(hc_t *instance)
 {
 	assert(instance);
 	const uint32_t fm_interval = instance->registers->fm_interval;
+
+	/* reset hc */
 	instance->registers->command_status = CS_HCR;
 	async_usleep(10);
+
+	/* restore fm_interval */
 	instance->registers->fm_interval = fm_interval;
 	assert((instance->registers->command_status & CS_HCR) == 0);
+
 	/* hc is now in suspend state */
-	/* TODO: init HCCA block */
-	/* TODO: init queues */
-	/* TODO: enable queues */
+
+	/* enable queues */
+	instance->registers->control |= (C_PLE | C_IE | C_CLE | C_BLE);
 	/* TODO: enable interrupts */
-	/* TODO: set periodic start to 90% */
+	/* set periodic start to 90% */
+	instance->registers->periodic_start = (fm_interval / 10) * 9;
 
 	instance->registers->control &= (C_HCFS_OPERATIONAL << C_HCFS_SHIFT);
 	usb_log_info("OHCI HC up and running.\n");
+}
+/*----------------------------------------------------------------------------*/
+int hc_init_transfer_lists(hc_t *instance)
+{
+	assert(instance);
+
+#define SETUP_TRANSFER_LIST(type, name) \
+do { \
+	int ret = transfer_list_init(&instance->type, name); \
+	if (ret != EOK) { \
+		usb_log_error("Failed(%d) to setup %s transfer list.\n", \
+		    ret, name); \
+		transfer_list_fini(&instance->transfers_isochronous); \
+		transfer_list_fini(&instance->transfers_interrupt); \
+		transfer_list_fini(&instance->transfers_control); \
+		transfer_list_fini(&instance->transfers_bulk); \
+	} \
+} while (0)
+
+	SETUP_TRANSFER_LIST(transfers_isochronous, "ISOCHRONOUS");
+	SETUP_TRANSFER_LIST(transfers_interrupt, "INTERRUPT");
+	SETUP_TRANSFER_LIST(transfers_control, "CONTROL");
+	SETUP_TRANSFER_LIST(transfers_bulk, "BULK");
+
+	transfer_list_set_next(&instance->transfers_interrupt,
+	    &instance->transfers_isochronous);
+
+	/* Assign pointers to be used during scheduling */
+	instance->transfers[USB_TRANSFER_INTERRUPT] =
+	  &instance->transfers_interrupt;
+	instance->transfers[USB_TRANSFER_ISOCHRONOUS] =
+	  &instance->transfers_interrupt;
+	instance->transfers[USB_TRANSFER_CONTROL] =
+	  &instance->transfers_control;
+	instance->transfers[USB_TRANSFER_BULK] =
+	  &instance->transfers_bulk;
+
+	return EOK;
+#undef CHECK_RET_CLEAR_RETURN
+}
+/*----------------------------------------------------------------------------*/
+int hc_init_memory(hc_t *instance)
+{
+	assert(instance);
+	/* init queues */
+	hc_init_transfer_lists(instance);
+
+	/* init HCCA */
+	instance->hcca = malloc32(sizeof(hcca_t));
+	if (instance->hcca == NULL)
+		return ENOMEM;
+	bzero(instance->hcca, sizeof(hcca_t));
+	instance->registers->hcca = addr_to_phys(instance->hcca);
+
+	/* use queues */
+	instance->registers->bulk_head = instance->transfers_bulk.list_head_pa;
+	instance->registers->control_head =
+	    instance->transfers_control.list_head_pa;
+
+	unsigned i = 0;
+	for (; i < 32; ++i) {
+		instance->hcca->int_ep[i] =
+		    instance->transfers_interrupt.list_head_pa;
+	}
+
+	return EOK;
 }
 /**
  * @}

@@ -42,6 +42,7 @@ SOURCES = \
 	src/dump.c \
 	src/hidparser.c \
 	src/hub.c \
+	src/pipepriv.c \
 	src/pipes.c \
 	src/pipesinit.c \
 	src/pipesio.c \

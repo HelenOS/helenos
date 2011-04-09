@@ -160,11 +160,12 @@ static int initialize_pipes(usb_device_t *dev)
 	dev->interface_no = usb_device_get_assigned_interface(dev->ddf_dev);
 
 	/*
-	 * For further actions, we need open session on default control pipe.
+	 * We will do some querying of the device, it is worth to prepare
+	 * the long transfer.
 	 */
-	rc = usb_pipe_start_session(&dev->ctrl_pipe);
+	rc = usb_pipe_start_long_transfer(&dev->ctrl_pipe);
 	if (rc != EOK) {
-		usb_log_error("Failed to start an IPC session: %s.\n",
+		usb_log_error("Failed to start transfer: %s.\n",
 		    str_error(rc));
 		return rc;
 	}
@@ -184,8 +185,7 @@ static int initialize_pipes(usb_device_t *dev)
 		rc = initialize_other_pipes(driver->endpoints, dev, 0);
 	}
 
-	/* No checking here. */
-	usb_pipe_end_session(&dev->ctrl_pipe);
+	usb_pipe_end_long_transfer(&dev->ctrl_pipe);
 
 	/* Rollback actions. */
 	if (rc != EOK) {

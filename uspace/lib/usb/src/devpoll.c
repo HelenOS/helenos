@@ -76,18 +76,10 @@ static int polling_fibril(void *arg)
 	while (failed_attempts < MAX_FAILED_ATTEMPTS) {
 		int rc;
 
-		rc = usb_pipe_start_session(pipe);
-		if (rc != EOK) {
-			failed_attempts++;
-			continue;
-		}
-
 		size_t actual_size;
 		rc = usb_pipe_read(pipe, polling_data->buffer,
 		    polling_data->request_size, &actual_size);
 
-		/* Quit the session regardless of errors. */
-		usb_pipe_end_session(pipe);
 		
 //		if (rc == ESTALL) {
 //			usb_log_debug("Seding clear feature...\n");

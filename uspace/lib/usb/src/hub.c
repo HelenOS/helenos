@@ -287,20 +287,11 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 		goto leave_release_default_address;
 	}
 
-
-	rc = usb_pipe_start_session(&ctrl_pipe);
-	if (rc != EOK) {
-		rc = ENOTCONN;
-		goto leave_release_default_address;
-	}
-
 	rc = usb_request_set_address(&ctrl_pipe, dev_addr);
 	if (rc != EOK) {
 		rc = ESTALL;
-		goto leave_stop_session;
+		goto leave_release_default_address;
 	}
-
-	usb_pipe_end_session(&ctrl_pipe);
 
 	/*
 	 * Address changed. We can release the original endpoint, thus
@@ -360,10 +351,6 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 	 * Error handling (like nested exceptions) starts here.
 	 * Completely ignoring errors here.
 	 */
-
-leave_stop_session:
-	usb_pipe_end_session(&ctrl_pipe);
-
 leave_release_default_address:
 	usb_pipe_unregister(&ctrl_pipe, &hc_conn);
 
