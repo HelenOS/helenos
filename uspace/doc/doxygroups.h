@@ -268,13 +268,19 @@
 		 */
 
 	/**
+	 * @defgroup drvusbohci OHCI driver
+	 * @ingroup usb
+	 * @brief Driver for OHCI host controller.
+	 */
+
+	/**
 	 * @defgroup drvusbehci EHCI driver
 	 * @ingroup usb
 	 * @brief Driver for EHCI host controller.
 	 */
 
 	/**
-	 * @defgroup drvusbfallback USB fallback driver.
+	 * @defgroup drvusbfallback USB fallback driver
 	 * @ingroup usb
 	 * @brief Fallback driver for any USB device.
 	 * @details
