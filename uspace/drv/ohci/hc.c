@@ -107,20 +107,20 @@ if (ret != EOK) { \
 	CHECK_RET_RETURN(ret, "Failed to initialize endpoint manager: %s.\n",
 	    ret, str_error(ret));
 
+	hc_gain_control(instance);
+	ret = hc_init_memory(instance);
+	CHECK_RET_RETURN(ret, "Failed to create OHCI memory structures:%s.\n",
+	    ret, str_error(ret));
+	hc_init_hw(instance);
+
+	rh_init(&instance->rh, dev, instance->registers);
+
 	if (!interrupts) {
 		instance->interrupt_emulator =
 		    fibril_create((int(*)(void*))interrupt_emulator, instance);
 		fibril_add_ready(instance->interrupt_emulator);
 	}
 
-	hc_gain_control(instance);
-
-	rh_init(&instance->rh, dev, instance->registers);
-
-	hc_init_memory(instance);
-	hc_init_hw(instance);
-
-	/* TODO: implement */
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -139,10 +139,16 @@ int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch)
 
 	switch (batch->transfer_type) {
 	case USB_TRANSFER_CONTROL:
+		instance->registers->control &= ~C_CLE;
 		instance->registers->command_status |= CS_CLF;
+		usb_log_debug2("Set control transfer filled: %x.\n",
+			instance->registers->command_status);
+		instance->registers->control |= C_CLE;
 		break;
 	case USB_TRANSFER_BULK:
 		instance->registers->command_status |= CS_BLF;
+		usb_log_debug2("Set bulk transfer filled: %x.\n",
+			instance->registers->command_status);
 		break;
 	default:
 		break;
@@ -153,12 +159,13 @@ int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch)
 void hc_interrupt(hc_t *instance, uint32_t status)
 {
 	assert(instance);
-	if (status == 0)
+	if ((status & ~IS_SF) == 0) /* ignore sof status */
 		return;
 	if (status & IS_RHSC)
 		rh_interrupt(&instance->rh);
 
 	usb_log_info("OHCI interrupt: %x.\n", status);
+
 
 	LIST_INITIALIZE(done);
 	transfer_list_remove_finished(&instance->transfers_interrupt, &done);
@@ -191,14 +198,21 @@ int interrupt_emulator(hc_t *instance)
 void hc_gain_control(hc_t *instance)
 {
 	assert(instance);
+	/* Turn off legacy emulation */
+	volatile uint32_t *ohci_emulation_reg =
+	    (uint32_t*)((char*)instance->registers + 0x100);
+	usb_log_debug("OHCI legacy register %p: %x.\n",
+		ohci_emulation_reg, *ohci_emulation_reg);
+	*ohci_emulation_reg = 0;
+
 	/* Interrupt routing enabled => smm driver is active */
 	if (instance->registers->control & C_IR) {
-		usb_log_info("Found SMM driver requesting ownership change.\n");
+		usb_log_debug("SMM driver: request ownership change.\n");
 		instance->registers->command_status |= CS_OCR;
 		while (instance->registers->control & C_IR) {
 			async_usleep(1000);
 		}
-		usb_log_info("Ownership taken from SMM driver.\n");
+		usb_log_info("SMM driver: Ownership taken.\n");
 		return;
 	}
 
@@ -206,53 +220,75 @@ void hc_gain_control(hc_t *instance)
 	    (instance->registers->control >> C_HCFS_SHIFT) & C_HCFS_MASK;
 	/* Interrupt routing disabled && status != USB_RESET => BIOS active */
 	if (hc_status != C_HCFS_RESET) {
-		usb_log_info("Found BIOS driver.\n");
+		usb_log_debug("BIOS driver found.\n");
 		if (hc_status == C_HCFS_OPERATIONAL) {
-			usb_log_info("HC operational(BIOS).\n");
+			usb_log_info("BIOS driver: HC operational.\n");
 			return;
 		}
 		/* HC is suspended assert resume for 20ms */
 		instance->registers->control &= (C_HCFS_RESUME << C_HCFS_SHIFT);
 		async_usleep(20000);
+		usb_log_info("BIOS driver: HC resumed.\n");
 		return;
 	}
 
 	/* HC is in reset (hw startup) => no other driver
 	 * maintain reset for at least the time specified in USB spec (50 ms)*/
+	usb_log_info("HC found in reset.\n");
 	async_usleep(50000);
-
-	/* turn off legacy emulation */
-	volatile uint32_t *ohci_emulation_reg =
-	    (uint32_t*)((char*)instance->registers + 0x100);
-	usb_log_info("OHCI legacy register status %p: %x.\n",
-		ohci_emulation_reg, *ohci_emulation_reg);
-	*ohci_emulation_reg = 0;
-
 }
 /*----------------------------------------------------------------------------*/
 void hc_init_hw(hc_t *instance)
 {
+	/* OHCI guide page 42 */
 	assert(instance);
+	usb_log_debug2("Started hc initialization routine.\n");
+
+	/* Save contents of fm_interval register */
 	const uint32_t fm_interval = instance->registers->fm_interval;
+	usb_log_debug2("Old value of HcFmInterval: %x.\n", fm_interval);
 
-	/* reset hc */
+	/* Reset hc */
+	usb_log_debug2("HC reset.\n");
+	size_t time = 0;
 	instance->registers->command_status = CS_HCR;
-	async_usleep(10);
+	while (instance->registers->command_status & CS_HCR) {
+		async_usleep(10);
+		time += 10;
+	}
+	usb_log_debug2("HC reset complete in %zu us.\n", time);
 
-	/* restore fm_interval */
+	/* Restore fm_interval */
 	instance->registers->fm_interval = fm_interval;
 	assert((instance->registers->command_status & CS_HCR) == 0);
 
 	/* hc is now in suspend state */
+	usb_log_debug2("HC should be in suspend state(%x).\n",
+	    instance->registers->control);
 
-	/* enable queues */
+	/* Enable queues */
 	instance->registers->control |= (C_PLE | C_IE | C_CLE | C_BLE);
-	/* TODO: enable interrupts */
-	/* set periodic start to 90% */
-	instance->registers->periodic_start = (fm_interval / 10) * 9;
+	usb_log_debug2("All queues enabled(%x).\n",
+	    instance->registers->control);
+
+	/* Disable interrupts */
+	instance->registers->interrupt_disable = I_SF | I_OC;
+	usb_log_debug2("Disabling interrupts: %x.\n",
+	    instance->registers->interrupt_disable);
+	instance->registers->interrupt_disable = I_MI;
+	usb_log_debug2("Enabled interrupts: %x.\n",
+	    instance->registers->interrupt_enable);
+
+	/* Set periodic start to 90% */
+	uint32_t frame_length = ((fm_interval >> FMI_FI_SHIFT) & FMI_FI_MASK);
+	instance->registers->periodic_start = (frame_length / 10) * 9;
+	usb_log_debug2("All periodic start set to: %x(%u - 90%% of %d).\n",
+	    instance->registers->periodic_start,
+	    instance->registers->periodic_start, frame_length);
 
 	instance->registers->control &= (C_HCFS_OPERATIONAL << C_HCFS_SHIFT);
-	usb_log_info("OHCI HC up and running.\n");
+	usb_log_info("OHCI HC up and running(%x).\n",
+	    instance->registers->control);
 }
 /*----------------------------------------------------------------------------*/
 int hc_init_transfer_lists(hc_t *instance)
@@ -297,26 +333,38 @@ do { \
 int hc_init_memory(hc_t *instance)
 {
 	assert(instance);
-	/* init queues */
+	/* Init queues */
 	hc_init_transfer_lists(instance);
 
-	/* init HCCA */
+	/*Init HCCA */
 	instance->hcca = malloc32(sizeof(hcca_t));
 	if (instance->hcca == NULL)
 		return ENOMEM;
 	bzero(instance->hcca, sizeof(hcca_t));
 	instance->registers->hcca = addr_to_phys(instance->hcca);
+	usb_log_debug2("OHCI HCCA initialized at %p(%p).\n",
+	    instance->hcca, instance->registers->hcca);
 
-	/* use queues */
+	/* Use queues */
 	instance->registers->bulk_head = instance->transfers_bulk.list_head_pa;
+	usb_log_debug2("Bulk HEAD set to: %p(%p).\n",
+	    instance->transfers_bulk.list_head,
+	    instance->transfers_bulk.list_head_pa);
+
 	instance->registers->control_head =
 	    instance->transfers_control.list_head_pa;
+	usb_log_debug2("Control HEAD set to: %p(%p).\n",
+	    instance->transfers_control.list_head,
+	    instance->transfers_control.list_head_pa);
 
 	unsigned i = 0;
 	for (; i < 32; ++i) {
 		instance->hcca->int_ep[i] =
 		    instance->transfers_interrupt.list_head_pa;
 	}
+	usb_log_debug2("Interrupt HEADs set to: %p(%p).\n",
+	    instance->transfers_interrupt.list_head,
+	    instance->transfers_interrupt.list_head_pa);
 
 	return EOK;
 }

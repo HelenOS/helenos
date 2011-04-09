@@ -53,7 +53,6 @@ typedef struct endpoint {
 	fibril_mutex_t guard;
 	fibril_condvar_t avail;
 	volatile bool active;
-	link_t same_device_eps;
 } endpoint_t;
 
 int endpoint_init(endpoint_t *instance, usb_address_t address,
@@ -70,10 +69,7 @@ int endpoint_toggle_get(endpoint_t *instance);
 
 void endpoint_toggle_set(endpoint_t *instance, int toggle);
 
-void endpoint_toggle_reset(link_t *ep);
-
-void endpoint_toggle_reset_filtered(link_t *ep, usb_endpoint_t epn);
-
+void endpoint_toggle_reset_filtered(endpoint_t *instance, usb_target_t target);
 #endif
 /**
  * @}

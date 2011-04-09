@@ -73,69 +73,10 @@ static inline int setup_batch(
 	usb_log_debug("%s %d:%d %zu(%zu).\n",
 	    name, target.address, target.endpoint, size, ep->max_packet_size);
 
-//	assert(ep->speed ==
-//	    usb_device_keeper_get_speed(&(*hc)->manager, target.address));
-//	assert(ep->max_packet_size == max_packet_size);
-//	assert(ep->transfer_type == USB_TRANSFER_CONTROL);
-
-	*batch =
-	    batch_get(fun, ep, data, size, setup_data, setup_size,
-		in, out, arg);
-	if (!batch)
+	*batch = batch_get(
+	        fun, ep, data, size, setup_data, setup_size, in, out, arg);
+	if (!*batch)
 		return ENOMEM;
-	return EOK;
-}
-
-
-/** Reserve default address interface function
- *
- * @param[in] fun DDF function that was called.
- * @param[in] speed Speed to associate with the new default address.
- * @return Error code.
- */
-static int reserve_default_address(ddf_fun_t *fun, usb_speed_t speed)
-{
-	assert(fun);
-	hc_t *hc = fun_to_hc(fun);
-	assert(hc);
-	usb_log_debug("Default address request with speed %d.\n", speed);
-	usb_device_keeper_reserve_default_address(&hc->manager, speed);
-	return EOK;
-#if 0
-	endpoint_t *ep = malloc(sizeof(endpoint_t));
-	if (ep == NULL)
-		return ENOMEM;
-	const size_t max_packet_size = speed == USB_SPEED_LOW ? 8 : 64;
-	endpoint_init(ep, USB_TRANSFER_CONTROL, speed, max_packet_size);
-	int ret;
-try_retgister:
-	ret = usb_endpoint_manager_register_ep(&hc->ep_manager,
-	    USB_ADDRESS_DEFAULT, 0, USB_DIRECTION_BOTH, ep, endpoint_destroy, 0);
-	if (ret == EEXISTS) {
-		async_usleep(1000);
-		goto try_retgister;
-	}
-	if (ret != EOK) {
-		endpoint_destroy(ep);
-	}
-	return ret;
-#endif
-}
-/*----------------------------------------------------------------------------*/
-/** Release default address interface function
- *
- * @param[in] fun DDF function that was called.
- * @return Error code.
- */
-static int release_default_address(ddf_fun_t *fun)
-{
-	assert(fun);
-	hc_t *hc = fun_to_hc(fun);
-	assert(hc);
-	usb_log_debug("Default address release.\n");
-//	return usb_endpoint_manager_unregister_ep(&hc->ep_manager,
-//	    USB_ADDRESS_DEFAULT, 0, USB_DIRECTION_BOTH);
-	usb_device_keeper_release_default_address(&hc->manager);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -231,8 +172,6 @@ static int register_endpoint(
 	ret = usb_endpoint_manager_register_ep(&hc->ep_manager, ep, size);
 	if (ret != EOK) {
 		endpoint_destroy(ep);
-	} else {
-		usb_device_keeper_add_ep(&hc->manager, address, ep);
 	}
 	return ret;
 }
@@ -245,11 +184,6 @@ static int unregister_endpoint(
 	assert(hc);
 	usb_log_debug("Unregister endpoint %d:%d %d.\n",
 	    address, endpoint, direction);
-	endpoint_t *ep = usb_endpoint_manager_get_ep(&hc->ep_manager,
-	    address, endpoint, direction, NULL);
-	if (ep != NULL) {
-		usb_device_keeper_del_ep(&hc->manager, address, ep);
-	}
 	return usb_endpoint_manager_unregister_ep(&hc->ep_manager, address,
 	    endpoint, direction);
 }
@@ -390,7 +324,7 @@ static int control_write(
 	    &hc, &batch);
 	if (ret != EOK)
 		return ret;
-	usb_device_keeper_reset_if_need(&hc->manager, target, setup_data);
+	usb_endpoint_manager_reset_if_need(&hc->ep_manager, target, setup_data);
 	batch_control_write(batch);
 	ret = hc_schedule(hc, batch);
 	if (ret != EOK) {
@@ -432,8 +366,6 @@ static int control_read(
 }
 /*----------------------------------------------------------------------------*/
 usbhc_iface_t hc_iface = {
-	.reserve_default_address = reserve_default_address,
-	.release_default_address = release_default_address,
 	.request_address = request_address,
 	.bind_address = bind_address,
 	.release_address = release_address,

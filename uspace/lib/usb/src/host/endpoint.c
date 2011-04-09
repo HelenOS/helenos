@@ -52,7 +52,6 @@ int endpoint_init(endpoint_t *instance, usb_address_t address,
 	instance->active = false;
 	fibril_mutex_initialize(&instance->guard);
 	fibril_condvar_initialize(&instance->avail);
-	link_initialize(&instance->same_device_eps);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -60,7 +59,6 @@ void endpoint_destroy(endpoint_t *instance)
 {
 	assert(instance);
 	assert(!instance->active);
-	list_remove(&instance->same_device_eps);
 	free(instance);
 }
 /*----------------------------------------------------------------------------*/
@@ -96,20 +94,11 @@ void endpoint_toggle_set(endpoint_t *instance, int toggle)
 	instance->toggle = toggle;
 }
 /*----------------------------------------------------------------------------*/
-void endpoint_toggle_reset(link_t *ep)
+void endpoint_toggle_reset_filtered(endpoint_t *instance, usb_target_t target)
 {
-	endpoint_t *instance =
-	    list_get_instance(ep, endpoint_t, same_device_eps);
 	assert(instance);
-	instance->toggle = 0;
-}
-/*----------------------------------------------------------------------------*/
-void endpoint_toggle_reset_filtered(link_t *ep, usb_endpoint_t epn)
-{
-	endpoint_t *instance =
-	    list_get_instance(ep, endpoint_t, same_device_eps);
-	assert(instance);
-	if (instance->endpoint == epn)
+	if (instance->address == target.address &&
+	    instance->endpoint == target.endpoint)
 		instance->toggle = 0;
 }
 /**
