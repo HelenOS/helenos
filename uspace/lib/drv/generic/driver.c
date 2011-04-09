@@ -682,6 +682,11 @@ int ddf_driver_main(driver_t *drv)
 		return 1;
 	}
 	
+	/* Return success from the task since server has started. */
+	rc = task_retval(0);
+	if (rc != EOK)
+		return 1;
+
 	async_manager();
 	
 	/* Never reached. */
