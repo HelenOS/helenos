@@ -98,7 +98,6 @@ static void mfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case IPC_M_PHONE_HUNGUP:
 			return;
 		case VFS_OUT_MOUNTED:
-			mfsdebug("Mount request received\n");
 			mfs_mounted(callid, &call);
 			break;
 		case VFS_OUT_MOUNT:
@@ -108,8 +107,10 @@ static void mfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 			mfs_stat(callid, &call);
 			break;
 		case VFS_OUT_LOOKUP:
-			mfsdebug("lookup called\n");
 			mfs_lookup(callid, &call);
+			break;
+		case VFS_OUT_READ:
+			mfs_read(callid, &call);
 			break;
 		default:
 			async_answer_0(callid, ENOTSUP);

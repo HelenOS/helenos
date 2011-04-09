@@ -34,6 +34,7 @@
 #define _MFS_H_
 
 #include <minix.h>
+#include <macros.h>
 #include <libblock.h>
 #include <libfs.h>
 #include <adt/list.h>
@@ -151,6 +152,10 @@ extern int mfs_instance_get(devmap_handle_t handle,
 				struct mfs_instance **instance);
 
 extern void mfs_stat(ipc_callid_t rid, ipc_call_t *request);
+
+extern void
+mfs_read(ipc_callid_t rid, ipc_call_t *request);
+
 
 /*mfs_inode.c*/
 int

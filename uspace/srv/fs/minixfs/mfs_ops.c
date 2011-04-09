@@ -58,8 +58,7 @@ static int mfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component);
 static int mfs_create_node(fs_node_t **rfn, devmap_handle_t handle, int flags);
 static int mfs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name);
 
-static
-int mfs_node_get(fs_node_t **rfn, devmap_handle_t devmap_handle,
+static int mfs_node_get(fs_node_t **rfn, devmap_handle_t devmap_handle,
 			fs_index_t index);
 
 
@@ -380,9 +379,6 @@ static aoff64_t mfs_size_get(fs_node_t *node)
 	assert(mnode);
 	assert(mnode->ino_i);
 
-	mfsdebug("inode links = %d\n", (int) mnode->ino_i->i_nlinks);
-	mfsdebug("inode size is %d\n", (int) mnode->ino_i->i_size);
-
 	return mnode->ino_i->i_size;
 }
 
@@ -398,8 +394,6 @@ static int mfs_node_get(fs_node_t **rfn, devmap_handle_t devmap_handle,
 	int rc;
 	struct mfs_instance *instance;
 
-	mfsdebug("mfs_node_get()\n");
-
 	rc = mfs_instance_get(devmap_handle, &instance);
 
 	if (rc != EOK)
@@ -411,8 +405,6 @@ static int mfs_node_get(fs_node_t **rfn, devmap_handle_t devmap_handle,
 static int mfs_node_put(fs_node_t *fsnode)
 {
 	struct mfs_node *mnode = fsnode->data;
-
-	mfsdebug("mfs_node_put()\n");
 
 	put_inode(mnode);
 	free(mnode->ino_i);
@@ -434,8 +426,6 @@ static fs_index_t mfs_index_get(fs_node_t *fsnode)
 {
 	struct mfs_node *mnode = fsnode->data;
 
-	mfsdebug("mfs_index_get()\n");
-
 	assert(mnode->ino_i);
 	return mnode->ino_i->index;
 }
@@ -449,7 +439,6 @@ static unsigned mfs_lnkcnt_get(fs_node_t *fsnode)
 	assert(mnode->ino_i);
 
 	rc = mnode->ino_i->i_nlinks;
-	mfsdebug("mfs_lnkcnt_get(): %u\n", rc);
 	return rc;
 }
 
@@ -514,8 +503,6 @@ static bool mfs_is_file(fs_node_t *fsnode)
 static int mfs_root_get(fs_node_t **rfn, devmap_handle_t handle)
 {
 	int rc = mfs_node_get(rfn, handle, MFS_ROOT_INO);
-
-	mfsdebug("mfs_root_get %s\n", rc == EOK ? "OK" : "FAIL");
 	return rc;
 }
 
@@ -576,9 +563,76 @@ out:
 	return EOK;
 }
 
-/*
- * Find a filesystem instance given the devmap handle
- */
+void
+mfs_read(ipc_callid_t rid, ipc_call_t *request)
+{
+	int rc;
+	devmap_handle_t handle = (devmap_handle_t) IPC_GET_ARG1(*request);
+	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
+	aoff64_t pos = (aoff64_t) MERGE_LOUP32(IPC_GET_ARG3(*request),
+				IPC_GET_ARG4(*request));
+	fs_node_t *fn;
+
+	rc = mfs_node_get(&fn, handle, index);
+	if (rc != EOK) {
+		async_answer_0(rid, rc);
+		return;
+	}
+	if (!fn) {
+		async_answer_0(rid, ENOENT);
+		return;
+	}
+
+	struct mfs_node *mnode;
+	struct mfs_ino_info *ino_i;
+	size_t len, bytes = 0;
+	ipc_callid_t callid;
+
+	mnode = fn->data;
+	ino_i = mnode->ino_i;
+
+	if (!async_data_read_receive(&callid, &len)) {
+		mfs_node_put(fn);
+		async_answer_0(callid, EINVAL);
+		async_answer_0(rid, EINVAL);
+		return;
+	}
+
+	if (S_ISDIR(ino_i->i_mode)) {
+		aoff64_t spos = pos;
+		struct mfs_dentry_info *d_info;
+
+		while (1) {
+			d_info = read_directory_entry(mnode, pos);
+			if (!d_info) {
+				/*Reached the end of the dentries list*/
+				break;
+			}
+
+			if (d_info->d_inum) {
+				/*Dentry found!*/
+				mfsdebug("DENTRY FOUND %s!!\n", d_info->d_name);
+				goto found;
+			}
+
+			free(d_info);
+			pos++;
+		}
+
+		rc = mfs_node_put(fn);
+		async_answer_0(callid, rc != EOK ? rc : ENOENT);
+		async_answer_1(rid, rc != EOK ? rc : ENOENT, 0);
+		return;
+found:
+		async_data_read_finalize(callid, d_info->d_name,
+				str_size(d_info->d_name) + 1);
+		bytes = ((pos - spos) + 1);
+	}
+
+	rc = mfs_node_put(fn);
+	async_answer_1(rid, rc, (sysarg_t)bytes);
+}
+
 int mfs_instance_get(devmap_handle_t handle, struct mfs_instance **instance)
 {
 	link_t *link;
