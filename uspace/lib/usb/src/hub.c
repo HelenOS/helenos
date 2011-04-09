@@ -41,6 +41,11 @@
 #include <assert.h>
 #include <usb/debug.h>
 
+/** How much time to wait between attempts to register endpoint 0:0.
+ * The value is based on typical value for port reset + some overhead.
+ */
+#define ENDPOINT_0_0_REGISTER_ATTEMPT_DELAY_USEC (1000 * (10 + 2))
+
 /** Check that HC connection is alright.
  *
  * @param conn Connection to be checked.
@@ -231,7 +236,7 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 		    &hc_conn);
 		if (rc != EOK) {
 			/* Do not overheat the CPU ;-). */
-			async_usleep(10);
+			async_usleep(ENDPOINT_0_0_REGISTER_ATTEMPT_DELAY_USEC);
 		}
 	} while (rc != EOK);
 
