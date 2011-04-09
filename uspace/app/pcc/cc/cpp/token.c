@@ -799,7 +799,8 @@ pushfile(const usch *file, const usch *fn, int idx, void *incs)
 		if (++inclevel > MAX_INCLEVEL)
 			error("Limit for nested includes exceeded");
 	} else {
-		ic->infil = 0;
+		error("Reading from stdin is disabled on HelenOS.");
+		ic->infil = fileno(stdin);
 		ic->orgfn = ic->fname = (const usch *)"<stdin>";
 	}
 #ifndef BUF_STACK

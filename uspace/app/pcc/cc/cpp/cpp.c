@@ -274,7 +274,7 @@ main(int argc, char **argv)
 		if ((ofd = open(argv[1], O_WRONLY|O_CREAT, 0600)) < 0)
 			error("Can't creat %s", argv[1]);
 	} else
-		ofd = 1; /* stdout */
+		ofd = fileno(stdout);
 	istty = isatty(ofd);
 
 	if (argc && strcmp(argv[0], "-")) {

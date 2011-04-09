@@ -36,7 +36,7 @@ MIPDIR = ../../mip
 ARCHDIR = ../../arch/$(ARCH)
 EXTRA_CFLAGS = -I$(LIBCOMPAT_PREFIX) -I$(MIPDIR) -I$(ARCHDIR)
 EXTRA_CLEAN = y.tab.c y.tab.h
-DEFS = -DCPP_DEBUG -Dfree=free
+DEFS = -DCPP_DEBUG -Dfree=free -DCPPBUF=16384
 BINARY = cpp
 
 YACC = yacc
