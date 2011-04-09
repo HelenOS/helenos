@@ -28,7 +28,7 @@
 
 /** @addtogroup fs
  * @{
- */ 
+ */
 
 /**
  * @file	fat_ops.c
@@ -115,11 +115,11 @@ static int fat_node_sync(fat_node_t *node)
 	fat_bs_t *bs;
 	fat_dentry_t *d;
 	int rc;
-	
+
 	assert(node->dirty);
 
 	bs = block_bb_get(node->idx->devmap_handle);
-	
+
 	/* Read the block that contains the dentry of interest. */
 	rc = _fat_block_get(&b, bs, node->idx->devmap_handle, node->idx->pfc,
 	    NULL, (node->idx->pdi * sizeof(fat_dentry_t)) / BPS(bs),
@@ -135,9 +135,9 @@ static int fat_node_sync(fat_node_t *node)
 	} else if (node->type == FAT_DIRECTORY) {
 		d->attr = FAT_ATTR_SUBDIR;
 	}
-	
+
 	/* TODO: update other fields? (e.g time fields) */
-	
+
 	b->dirty = true;		/* need to sync block */
 	rc = block_put(b);
 	return rc;
@@ -254,7 +254,7 @@ skip_cache:
 	fs_node_initialize(fn);
 	fn->data = nodep;
 	nodep->bp = fn;
-	
+
 	*nodepp = nodep;
 	return EOK;
 }
@@ -290,7 +290,7 @@ static int fat_node_get_core(fat_node_t **nodepp, fat_idx_t *idxp)
 	/*
 	 * We must instantiate the node from the file system.
 	 */
-	
+
 	assert(idxp->pfc);
 
 	rc = fat_node_get_new(&nodep);
@@ -309,13 +309,14 @@ static int fat_node_get_core(fat_node_t **nodepp, fat_idx_t *idxp)
 
 	d = ((fat_dentry_t *)b->data) + (idxp->pdi % DPS(bs));
 	if (d->attr & FAT_ATTR_SUBDIR) {
-		/* 
+		/*
 		 * The only directory which does not have this bit set is the
 		 * root directory itself. The root directory node is handled
 		 * and initialized elsewhere.
 		 */
 		nodep->type = FAT_DIRECTORY;
-		/*
+
+                /*
 		 * Unfortunately, the 'size' field of the FAT dentry is not
 		 * defined for the directory entry type. We must determine the
 		 * size of the directory by walking the FAT.
@@ -333,7 +334,8 @@ static int fat_node_get_core(fat_node_t **nodepp, fat_idx_t *idxp)
 		nodep->type = FAT_FILE;
 		nodep->size = uint32_t_le2host(d->size);
 	}
-	nodep->firstc = uint16_t_le2host(d->firstc);
+
+        nodep->firstc = uint16_t_le2host(d->firstc);
 	nodep->lnkcnt = 1;
 	nodep->refcnt = 1;
 
@@ -382,7 +384,7 @@ int fat_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 		rc = fat_block_get(&b, bs, parentp, i, BLOCK_FLAGS_NONE);
 		if (rc != EOK)
 			return rc;
-		for (j = 0; j < DPS(bs); j++) { 
+		for (j = 0; j < DPS(bs); j++) {
 			d = ((fat_dentry_t *)b->data) + j;
 			switch (fat_classify_dentry(d)) {
 			case FAT_DENTRY_SKIP:
@@ -520,7 +522,7 @@ int fat_create_node(fs_node_t **rfn, devmap_handle_t devmap_handle, int flags)
 	}
 	rc = fat_idx_get_new(&idxp, devmap_handle);
 	if (rc != EOK) {
-		(void) fat_free_clusters(bs, devmap_handle, mcl);	
+		(void) fat_free_clusters(bs, devmap_handle, mcl);
 		(void) fat_node_put(FS_NODE(nodep));
 		return rc;
 	}
@@ -617,7 +619,7 @@ int fat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	 * Get us an unused parent node's dentry or grow the parent and allocate
 	 * a new one.
 	 */
-	
+
 	fibril_mutex_lock(&parentp->idx->lock);
 	bs = block_bb_get(parentp->idx->devmap_handle);
 
@@ -649,7 +651,7 @@ int fat_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 		}
 	}
 	j = 0;
-	
+
 	/*
 	 * We need to grow the parent in order to create a new unused dentry.
 	 */
@@ -696,11 +698,11 @@ hit:
 	b->dirty = true;		/* need to sync block */
 	rc = block_put(b);
 	fibril_mutex_unlock(&parentp->idx->lock);
-	if (rc != EOK) 
+	if (rc != EOK)
 		return rc;
 
 	fibril_mutex_lock(&childp->idx->lock);
-	
+
 	if (childp->type == FAT_DIRECTORY) {
 		/*
 		 * If possible, create the Sub-directory Identifier Entry and
@@ -777,7 +779,7 @@ int fat_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 
 	if (!parentp)
 		return EBUSY;
-	
+
 	rc = fat_has_children(&has_children, cfn);
 	if (rc != EOK)
 		return rc;
@@ -793,7 +795,7 @@ int fat_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 	rc = _fat_block_get(&b, bs, childp->idx->devmap_handle, childp->idx->pfc,
 	    NULL, (childp->idx->pdi * sizeof(fat_dentry_t)) / BPS(bs),
 	    BLOCK_FLAGS_NONE);
-	if (rc != EOK) 
+	if (rc != EOK)
 		goto error;
 	d = (fat_dentry_t *)b->data +
 	    (childp->idx->pdi % (BPS(bs) / sizeof(fat_dentry_t)));
@@ -838,7 +840,7 @@ int fat_has_children(bool *has_children, fs_node_t *fn)
 		*has_children = false;
 		return EOK;
 	}
-	
+
 	fibril_mutex_lock(&nodep->idx->lock);
 	bs = block_bb_get(nodep->idx->devmap_handle);
 
@@ -846,7 +848,7 @@ int fat_has_children(bool *has_children, fs_node_t *fn)
 
 	for (i = 0; i < blocks; i++) {
 		fat_dentry_t *d;
-	
+
 		rc = fat_block_get(&b, bs, nodep, i, BLOCK_FLAGS_NONE);
 		if (rc != EOK) {
 			fibril_mutex_unlock(&nodep->idx->lock);
@@ -874,7 +876,7 @@ int fat_has_children(bool *has_children, fs_node_t *fn)
 		rc = block_put(b);
 		if (rc != EOK) {
 			fibril_mutex_unlock(&nodep->idx->lock);
-			return rc;	
+			return rc;
 		}
 	}
 
@@ -944,22 +946,16 @@ libfs_ops_t fat_libfs_ops = {
  * VFS operations.
  */
 
-
-#define RootDirSectors(bs)      (((RDE(bs)*32) + (BPS(bs)-1)) / BPS(bs))
-#define FATSz(bs)               SF(bs) != 0 ? SF(bs) : uint32_t_le2host((bs)->fat32.sectors_per_fat)
-#define DataSec(bs)             (TS(bs) - (RSCNT(bs) + (FATCNT(bs) * FATSz(bs)) + RootDirSectors(bs)))
-#define CountOfClusters(bs)     (DataSec(bs) / SPC(bs))
-
 void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 {
 	devmap_handle_t devmap_handle = (devmap_handle_t) IPC_GET_ARG1(*request);
 	enum cache_mode cmode;
 	fat_bs_t *bs;
-	
+
 	/* Accept the mount options */
 	char *opts;
 	int rc = async_data_write_accept((void **) &opts, true, 0, 0, 0, NULL);
-	
+
 	if (rc != EOK) {
 		async_answer_0(rid, rc);
 		return;
@@ -990,7 +986,7 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 
 	/* get the buffer with the boot sector */
 	bs = block_bb_get(devmap_handle);
-	
+
 	if (BPS(bs) != BS_SIZE) {
 		block_fini(devmap_handle);
 		async_answer_0(rid, ENOTSUP);
@@ -1006,17 +1002,17 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 	}
 
         /* Storing FAT type (12, 16, 32) in reserved field (bs->reserved) */
-        if (CountOfClusters(bs) < 4085) {
+        if (CC(bs) < 4085) {
         /* Volume is FAT12 */
             printf("Found FAT12 filesystem\n");
             (bs)->reserved = 12;
-        } else if (CountOfClusters(bs) < 65525) {
+        } else if (CC(bs) < 65525) {
         /* Volume is FAT16 */
             printf("Found FAT16 filesystem\n");
             (bs)->reserved = 16;
         } else {
         /* Volume is FAT32 */
-            printf("FAT32 is not supported by FAT driver. Sorry\n");
+            printf("FAT32 filesystem is not supported by FAT server. Sorry.\n");
             block_fini(devmap_handle);
             async_answer_0(rid, ENOTSUP);
             return;
@@ -1084,7 +1080,7 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 	ridxp->nodep = rootp;
 	rootp->bp = rfn;
 	rfn->data = rootp;
-	
+
 	fibril_mutex_unlock(&ridxp->lock);
 
 	async_answer_3(rid, EOK, ridxp->index, rootp->size, rootp->lnkcnt);
@@ -1118,7 +1114,7 @@ void fat_unmounted(ipc_callid_t rid, ipc_call_t *request)
 		async_answer_0(rid, EBUSY);
 		return;
 	}
-	
+
 	/*
 	 * Put the root node and force it to the FAT free node list.
 	 */
@@ -1299,7 +1295,7 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 	aoff64_t boundary;
 	int flags = BLOCK_FLAGS_NONE;
 	int rc;
-	
+
 	rc = fat_node_get(&fn, devmap_handle, index);
 	if (rc != EOK) {
 		async_answer_0(rid, rc);
@@ -1310,7 +1306,7 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 	nodep = FAT_NODE(fn);
-	
+
 	ipc_callid_t callid;
 	size_t len;
 	if (!async_data_write_receive(&callid, &len)) {
@@ -1327,12 +1323,12 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 	 * of data at maximum. There might be some more efficient approaches,
 	 * but this one greatly simplifies fat_write(). Note that we can afford
 	 * to do this because the client must be ready to handle the return
-	 * value signalizing a smaller number of bytes written. 
-	 */ 
+	 * value signalizing a smaller number of bytes written.
+	 */
 	bytes = min(len, BPS(bs) - pos % BPS(bs));
 	if (bytes == BPS(bs))
 		flags |= BLOCK_FLAGS_NOREAD;
-	
+
 	boundary = ROUND_UP(nodep->size, BPC(bs));
 	if (pos < boundary) {
 		/*
@@ -1378,8 +1374,8 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 		 * clusters for the node and zero them out.
 		 */
 		unsigned nclsts;
-		fat_cluster_t mcl, lcl; 
- 
+		fat_cluster_t mcl, lcl;
+
 		nclsts = (ROUND_UP(pos + bytes, BPC(bs)) - boundary) / BPC(bs);
 		/* create an independent chain of nclsts clusters in all FATs */
 		rc = fat_alloc_clusters(bs, devmap_handle, nclsts, &mcl, &lcl);
@@ -1475,7 +1471,7 @@ void fat_truncate(ipc_callid_t rid, ipc_call_t *request)
 		 */
 		nodep->size = size;
 		nodep->dirty = true;		/* need to sync node */
-		rc = EOK;	
+		rc = EOK;
 	} else {
 		/*
 		 * The node will be shrunk, clusters will be deallocated.
@@ -1496,7 +1492,7 @@ void fat_truncate(ipc_callid_t rid, ipc_call_t *request)
 		}
 		nodep->size = size;
 		nodep->dirty = true;		/* need to sync node */
-		rc = EOK;	
+		rc = EOK;
 	}
 out:
 	fat_node_put(fn);
@@ -1552,7 +1548,7 @@ void fat_sync(ipc_callid_t rid, ipc_call_t *request)
 {
 	devmap_handle_t devmap_handle = (devmap_handle_t) IPC_GET_ARG1(*request);
 	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
-	
+
 	fs_node_t *fn;
 	int rc = fat_node_get(&fn, devmap_handle, index);
 	if (rc != EOK) {
@@ -1563,12 +1559,12 @@ void fat_sync(ipc_callid_t rid, ipc_call_t *request)
 		async_answer_0(rid, ENOENT);
 		return;
 	}
-	
+
 	fat_node_t *nodep = FAT_NODE(fn);
-	
+
 	nodep->dirty = true;
 	rc = fat_node_sync(nodep);
-	
+
 	fat_node_put(fn);
 	async_answer_0(rid, rc);
 }

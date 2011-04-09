@@ -28,7 +28,7 @@
 
 /** @addtogroup fs
  * @{
- */ 
+ */
 
 #ifndef FAT_FAT_FAT_H_
 #define FAT_FAT_FAT_H_
@@ -55,7 +55,16 @@
 /* internally used to mark root directory */
 #define FAT_CLST_ROOT		FAT_CLST_RES1
 
-#define FATTYPE(bs)      (bs)->reserved
+/*
+ * Convenience macros for computing some frequently used values from the
+ * primitive boot sector members.
+ */
+#define RDS(bs)         ((sizeof(fat_dentry_t) * RDE((bs))) / BPS((bs))) + \
+                        (((sizeof(fat_dentry_t) * RDE((bs))) % BPS((bs))) != 0)
+#define SSA(bs)         (RSCNT((bs)) + FATCNT((bs)) * SF((bs)) + RDS(bs))
+#define DS(bs)          (TS(bs) - SSA(bs))
+#define CC(bs)          (DS(bs) / SPC(bs))
+#define FATTYPE(bs)     (bs)->reserved
 
 /* forward declarations */
 struct block;
