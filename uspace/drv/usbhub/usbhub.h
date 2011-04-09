@@ -36,28 +36,30 @@
 #define DRV_USBHUB_USBHUB_H
 
 #include <ipc/devman.h>
-#include <usb/usb.h>
 #include <ddf/driver.h>
 
-#define NAME "usbhub"
-
 #include <usb/hub.h>
+#include <usb/classes/hub.h>
 
 #include <usb/pipes.h>
 #include <usb/devdrv.h>
+
+#include <fibril_synch.h>
+
+#define NAME "usbhub"
 
 #include "ports.h"
 
 
 
 /** Information about attached hub. */
-typedef struct {
+struct usb_hub_info_t{
 	/** Number of ports. */
 	size_t port_count;
 
-	/** Ports. */
+	/** attached device handles, for each port one */
 	usb_hub_port_t *ports;
-	
+
 	/** connection to hcd */
 	usb_hc_connection_t connection;
 
@@ -86,26 +88,16 @@ typedef struct {
 
 	/** generic usb device data*/
 	usb_device_t * usb_device;
-} usb_hub_info_t;
+};
 
-/**
- * function running the hub-controlling loop.
- * @param hub_info_param hub info pointer
- */
-int usb_hub_control_loop(void * hub_info_param);
-
-/**
- * Check changes on specified hub
- * @param hub_info_param pointer to usb_hub_info_t structure
- * @return error code if there is problem when initializing communication with
- * hub, EOK otherwise
- */
-int usb_hub_check_hub_changes(usb_hub_info_t * hub_info_param);
-
-void usb_hub_removed_device(usb_hub_info_t *, uint16_t);
-void usb_hub_over_current(usb_hub_info_t *, uint16_t);
+//int usb_hub_control_loop(void * hub_info_param);
 
 int usb_hub_add_device(usb_device_t * usb_dev);
+
+bool hub_port_changes_callback(usb_device_t *dev,
+    uint8_t *change_bitmap, size_t change_bitmap_size, void *arg);
+
+int usb_hub_release_default_address(usb_hub_info_t * hub);
 
 #endif
 /**
