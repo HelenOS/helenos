@@ -238,11 +238,12 @@ static int initialize_pipes(usb_device_t *dev)
 	dev->interface_no = usb_device_get_assigned_interface(dev->ddf_dev);
 
 	/*
-	 * For further actions, we need open session on default control pipe.
+	 * We will do some querying of the device, it is worth to prepare
+	 * the long transfer.
 	 */
-	rc = usb_pipe_start_session(&dev->ctrl_pipe);
+	rc = usb_pipe_start_long_transfer(&dev->ctrl_pipe);
 	if (rc != EOK) {
-		usb_log_error("Failed to start an IPC session: %s.\n",
+		usb_log_error("Failed to start transfer: %s.\n",
 		    str_error(rc));
 		return rc;
 	}
@@ -251,6 +252,7 @@ static int initialize_pipes(usb_device_t *dev)
 	rc = usb_request_get_device_descriptor(&dev->ctrl_pipe,
 	    &dev->descriptors.device);
 	if (rc != EOK) {
+		usb_pipe_end_long_transfer(&dev->ctrl_pipe);
 		usb_log_error("Failed to retrieve device descriptor: %s.\n",
 		    str_error(rc));
 		return rc;
@@ -261,6 +263,7 @@ static int initialize_pipes(usb_device_t *dev)
 	    &dev->ctrl_pipe, 0, (void **) &dev->descriptors.configuration,
 	    &dev->descriptors.configuration_size);
 	if (rc != EOK) {
+		usb_pipe_end_long_transfer(&dev->ctrl_pipe);
 		usb_log_error("Failed retrieving configuration descriptor: %s. %s\n",
 		    dev->ddf_dev->name, str_error(rc));
 		return rc;
@@ -270,8 +273,7 @@ static int initialize_pipes(usb_device_t *dev)
 		rc = initialize_other_pipes(driver->endpoints, dev);
 	}
 
-	/* No checking here. */
-	usb_pipe_end_session(&dev->ctrl_pipe);
+	usb_pipe_end_long_transfer(&dev->ctrl_pipe);
 
 	/* Rollback actions. */
 	if (rc != EOK) {

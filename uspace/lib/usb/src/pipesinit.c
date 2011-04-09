@@ -415,12 +415,7 @@ int usb_pipe_probe_default_control(usb_pipe_t *pipe)
 	size_t failed_attempts;
 	int rc;
 
-	TRY_LOOP(failed_attempts) {
-		rc = usb_pipe_start_session(pipe);
-		if (rc == EOK) {
-			break;
-		}
-	}
+	rc = usb_pipe_start_long_transfer(pipe);
 	if (rc != EOK) {
 		return rc;
 	}
@@ -441,7 +436,7 @@ int usb_pipe_probe_default_control(usb_pipe_t *pipe)
 			break;
 		}
 	}
-	usb_pipe_end_session(pipe);
+	usb_pipe_end_long_transfer(pipe);
 	if (rc != EOK) {
 		return rc;
 	}
