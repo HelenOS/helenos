@@ -83,6 +83,9 @@ typedef struct {
 
 	/** Guard for serialization of requests over the phone. */
 	fibril_mutex_t hc_phone_mutex;
+
+	/** Number of active transfers over the pipe. */
+	int refcount;
 } usb_pipe_t;
 
 

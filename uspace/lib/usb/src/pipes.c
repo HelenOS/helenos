@@ -40,6 +40,7 @@
 #include <devman.h>
 #include <errno.h>
 #include <assert.h>
+#include "pipepriv.h"
 
 #define IPC_AGAIN_DELAY (1000 * 2) /* 2ms */
 
@@ -245,20 +246,7 @@ int usb_device_connection_initialize_on_default_address(
  */
 int usb_pipe_start_session(usb_pipe_t *pipe)
 {
-	assert(pipe);
-
-	if (usb_pipe_is_session_started(pipe)) {
-		return EBUSY;
-	}
-
-	int phone = devman_device_connect(pipe->wire->hc_handle, 0);
-	if (phone < 0) {
-		return phone;
-	}
-
-	pipe->hc_phone = phone;
-
-	return EOK;
+	return pipe_add_ref(pipe);
 }
 
 
@@ -271,19 +259,7 @@ int usb_pipe_start_session(usb_pipe_t *pipe)
  */
 int usb_pipe_end_session(usb_pipe_t *pipe)
 {
-	assert(pipe);
-
-	if (!usb_pipe_is_session_started(pipe)) {
-		return ENOENT;
-	}
-
-	int rc = async_hangup(pipe->hc_phone);
-	if (rc != EOK) {
-		return rc;
-	}
-
-	pipe->hc_phone = -1;
-
+	pipe_drop_ref(pipe);
 	return EOK;
 }
 
@@ -297,7 +273,10 @@ int usb_pipe_end_session(usb_pipe_t *pipe)
  */
 bool usb_pipe_is_session_started(usb_pipe_t *pipe)
 {
-	return (pipe->hc_phone >= 0);
+	pipe_acquire(pipe);
+	bool started = pipe->refcount > 0;
+	pipe_release(pipe);
+	return started;
 }
 
 /**

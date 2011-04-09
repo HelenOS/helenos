@@ -362,6 +362,7 @@ int usb_pipe_initialize(usb_pipe_t *pipe,
 	pipe->transfer_type = transfer_type;
 	pipe->max_packet_size = max_packet_size;
 	pipe->direction = direction;
+	pipe->refcount = 0;
 
 	return EOK;
 }

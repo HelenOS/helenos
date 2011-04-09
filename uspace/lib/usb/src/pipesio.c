@@ -48,26 +48,7 @@
 #include <errno.h>
 #include <assert.h>
 #include <usbhc_iface.h>
-
-/** Ensure exclusive access to the IPC phone of given pipe.
- *
- * @param pipe Pipe to be exclusively accessed.
- */
-static void pipe_acquire(usb_pipe_t *pipe)
-{
-	fibril_mutex_lock(&pipe->hc_phone_mutex);
-}
-
-/** Terminate exclusive access to the IPC phone of given pipe.
- *
- * @param pipe Pipe to be released from exclusive usage.
- */
-static void pipe_release(usb_pipe_t *pipe)
-{
-	fibril_mutex_unlock(&pipe->hc_phone_mutex);
-}
-
-
+#include "pipepriv.h"
 
 /** Request an in transfer, no checking of input parameters.
  *
@@ -175,15 +156,11 @@ int usb_pipe_read(usb_pipe_t *pipe,
 	assert(pipe);
 
 	if (buffer == NULL) {
-			return EINVAL;
+		return EINVAL;
 	}
 
 	if (size == 0) {
 		return EINVAL;
-	}
-
-	if (!usb_pipe_is_session_started(pipe)) {
-		return EBADF;
 	}
 
 	if (pipe->direction != USB_DIRECTION_IN) {
@@ -194,10 +171,19 @@ int usb_pipe_read(usb_pipe_t *pipe,
 		return EBADF;
 	}
 
-	size_t act_size = 0;
 	int rc;
+	rc = pipe_add_ref(pipe);
+	if (rc != EOK) {
+		return rc;
+	}
+
+
+	size_t act_size = 0;
 
 	rc = usb_pipe_read_no_checks(pipe, buffer, size, &act_size);
+
+	pipe_drop_ref(pipe);
+
 	if (rc != EOK) {
 		return rc;
 	}
@@ -300,10 +286,6 @@ int usb_pipe_write(usb_pipe_t *pipe,
 		return EINVAL;
 	}
 
-	if (!usb_pipe_is_session_started(pipe)) {
-		return EBADF;
-	}
-
 	if (pipe->direction != USB_DIRECTION_OUT) {
 		return EBADF;
 	}
@@ -312,7 +294,16 @@ int usb_pipe_write(usb_pipe_t *pipe,
 		return EBADF;
 	}
 
-	int rc = usb_pipe_write_no_check(pipe, buffer, size);
+	int rc;
+
+	rc = pipe_add_ref(pipe);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	rc = usb_pipe_write_no_check(pipe, buffer, size);
+
+	pipe_drop_ref(pipe);
 
 	return rc;
 }
@@ -431,19 +422,24 @@ int usb_pipe_control_read(usb_pipe_t *pipe,
 		return EINVAL;
 	}
 
-	if (!usb_pipe_is_session_started(pipe)) {
-		return EBADF;
-	}
-
 	if ((pipe->direction != USB_DIRECTION_BOTH)
 	    || (pipe->transfer_type != USB_TRANSFER_CONTROL)) {
 		return EBADF;
 	}
 
+	int rc;
+
+	rc = pipe_add_ref(pipe);
+	if (rc != EOK) {
+		return rc;
+	}
+
 	size_t act_size = 0;
-	int rc = usb_pipe_control_read_no_check(pipe,
+	rc = usb_pipe_control_read_no_check(pipe,
 	    setup_buffer, setup_buffer_size,
 	    data_buffer, data_buffer_size, &act_size);
+
+	pipe_drop_ref(pipe);
 
 	if (rc != EOK) {
 		return rc;
@@ -555,17 +551,22 @@ int usb_pipe_control_write(usb_pipe_t *pipe,
 		return EINVAL;
 	}
 
-	if (!usb_pipe_is_session_started(pipe)) {
-		return EBADF;
-	}
-
 	if ((pipe->direction != USB_DIRECTION_BOTH)
 	    || (pipe->transfer_type != USB_TRANSFER_CONTROL)) {
 		return EBADF;
 	}
 
-	int rc = usb_pipe_control_write_no_check(pipe,
+	int rc;
+
+	rc = pipe_add_ref(pipe);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	rc = usb_pipe_control_write_no_check(pipe,
 	    setup_buffer, setup_buffer_size, data_buffer, data_buffer_size);
+
+	pipe_drop_ref(pipe);
 
 	return rc;
 }
