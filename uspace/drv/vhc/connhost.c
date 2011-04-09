@@ -256,7 +256,6 @@ static int enqueue_transfer_in(ddf_fun_t *fun,
 
 
 static int interrupt_out(ddf_fun_t *fun, usb_target_t target,
-    size_t max_packet_size,
     void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
@@ -266,7 +265,6 @@ static int interrupt_out(ddf_fun_t *fun, usb_target_t target,
 }
 
 static int interrupt_in(ddf_fun_t *fun, usb_target_t target,
-    size_t max_packet_size,
     void *data, size_t size,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
@@ -276,7 +274,6 @@ static int interrupt_in(ddf_fun_t *fun, usb_target_t target,
 }
 
 static int control_write(ddf_fun_t *fun, usb_target_t target,
-    size_t max_packet_size,
     void *setup_packet, size_t setup_packet_size,
     void *data, size_t data_size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
@@ -294,7 +291,6 @@ static int control_write(ddf_fun_t *fun, usb_target_t target,
 }
 
 static int control_read(ddf_fun_t *fun, usb_target_t target,
-    size_t max_packet_size,
     void *setup_packet, size_t setup_packet_size,
     void *data, size_t data_size,
     usbhc_iface_transfer_in_callback_t callback, void *arg)

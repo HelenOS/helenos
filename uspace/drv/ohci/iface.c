@@ -196,15 +196,31 @@ static int release_address(ddf_fun_t *fun, usb_address_t address)
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-static int register_endpoint(
-    ddf_fun_t *fun, usb_address_t address, usb_endpoint_t endpoint,
+/** Register endpoint for bandwidth reservation.
+ *
+ * @param[in] fun Device function the action was invoked on.
+ * @param[in] address USB address of the device.
+ * @param[in] ep_speed Endpoint speed (invalid means to use device one).
+ * @param[in] endpoint Endpoint number.
+ * @param[in] transfer_type USB transfer type.
+ * @param[in] direction Endpoint data direction.
+ * @param[in] max_packet_size Max packet size of the endpoint.
+ * @param[in] interval Polling interval.
+ * @return Error code.
+ */
+static int register_endpoint(ddf_fun_t *fun,
+    usb_address_t address, usb_speed_t ep_speed, usb_endpoint_t endpoint,
     usb_transfer_type_t transfer_type, usb_direction_t direction,
     size_t max_packet_size, unsigned int interval)
 {
 	hc_t *hc = fun_to_hc(fun);
 	assert(hc);
-	const usb_speed_t speed =
-	    usb_device_keeper_get_speed(&hc->manager, address);
+	if (address == hc->rh.address)
+		return EOK;
+	usb_speed_t speed = usb_device_keeper_get_speed(&hc->manager, address);
+	if (speed >= USB_SPEED_MAX) {
+		speed = ep_speed;
+	}
 	const size_t size =
 	    (transfer_type == USB_TRANSFER_INTERRUPT
 	    || transfer_type == USB_TRANSFER_ISOCHRONOUS) ?
@@ -242,23 +258,33 @@ static int unregister_endpoint(
 	assert(hc);
 	usb_log_debug("Unregister endpoint %d:%d %d.\n",
 	    address, endpoint, direction);
+	endpoint_t *ep = usb_endpoint_manager_get_ep(&hc->ep_manager,
+	    address, endpoint, direction, NULL);
+	if (ep != NULL) {
+		usb_device_keeper_del_ep(&hc->manager, address, ep);
+	}
 	return usb_endpoint_manager_unregister_ep(&hc->ep_manager, address,
 	    endpoint, direction);
 }
 /*----------------------------------------------------------------------------*/
-/** Interrupt out transaction interface function
+/** Schedule interrupt out transfer.
  *
- * @param[in] fun DDF function that was called.
- * @param[in] target USB device to write to.
- * @param[in] max_packet_size maximum size of data packet the device accepts
- * @param[in] data Source of data.
- * @param[in] size Size of data source.
- * @param[in] callback Function to call on transaction completion
- * @param[in] arg Additional for callback function.
+ * The callback is supposed to be called once the transfer (on the wire) is
+ * complete regardless of the outcome.
+ * However, the callback could be called only when this function returns
+ * with success status (i.e. returns EOK).
+ *
+ * @param[in] fun Device function the action was invoked on.
+ * @param[in] target Target pipe (address and endpoint number) specification.
+ * @param[in] data Data to be sent (in USB endianess, allocated and deallocated
+ *	by the caller).
+ * @param[in] size Size of the @p data buffer in bytes.
+ * @param[in] callback Callback to be issued once the transfer is complete.
+ * @param[in] arg Pass-through argument to the callback.
  * @return Error code.
  */
 static int interrupt_out(
-    ddf_fun_t *fun, usb_target_t target, size_t max_packet_size, void *data,
+    ddf_fun_t *fun, usb_target_t target, void *data,
     size_t size, usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
 	usb_transfer_batch_t *batch = NULL;
@@ -275,19 +301,24 @@ static int interrupt_out(
 	return ret;
 }
 /*----------------------------------------------------------------------------*/
-/** Interrupt in transaction interface function
+/** Schedule interrupt in transfer.
  *
- * @param[in] fun DDF function that was called.
- * @param[in] target USB device to write to.
- * @param[in] max_packet_size maximum size of data packet the device accepts
- * @param[out] data Data destination.
- * @param[in] size Size of data source.
- * @param[in] callback Function to call on transaction completion
- * @param[in] arg Additional for callback function.
+ * The callback is supposed to be called once the transfer (on the wire) is
+ * complete regardless of the outcome.
+ * However, the callback could be called only when this function returns
+ * with success status (i.e. returns EOK).
+ *
+ * @param[in] fun Device function the action was invoked on.
+ * @param[in] target Target pipe (address and endpoint number) specification.
+ * @param[in] data Buffer where to store the data (in USB endianess,
+ *	allocated and deallocated by the caller).
+ * @param[in] size Size of the @p data buffer in bytes.
+ * @param[in] callback Callback to be issued once the transfer is complete.
+ * @param[in] arg Pass-through argument to the callback.
  * @return Error code.
  */
 static int interrupt_in(
-    ddf_fun_t *fun, usb_target_t target, size_t max_packet_size, void *data,
+    ddf_fun_t *fun, usb_target_t target, void *data,
     size_t size, usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
 	usb_transfer_batch_t *batch = NULL;
@@ -304,19 +335,24 @@ static int interrupt_in(
 	return ret;
 }
 /*----------------------------------------------------------------------------*/
-/** Bulk out transaction interface function
+/** Schedule bulk out transfer.
  *
- * @param[in] fun DDF function that was called.
- * @param[in] target USB device to write to.
- * @param[in] max_packet_size maximum size of data packet the device accepts
- * @param[in] data Source of data.
- * @param[in] size Size of data source.
- * @param[in] callback Function to call on transaction completion
- * @param[in] arg Additional for callback function.
+ * The callback is supposed to be called once the transfer (on the wire) is
+ * complete regardless of the outcome.
+ * However, the callback could be called only when this function returns
+ * with success status (i.e. returns EOK).
+ *
+ * @param[in] fun Device function the action was invoked on.
+ * @param[in] target Target pipe (address and endpoint number) specification.
+ * @param[in] data Data to be sent (in USB endianess, allocated and deallocated
+ *	by the caller).
+ * @param[in] size Size of the @p data buffer in bytes.
+ * @param[in] callback Callback to be issued once the transfer is complete.
+ * @param[in] arg Pass-through argument to the callback.
  * @return Error code.
  */
 static int bulk_out(
-    ddf_fun_t *fun, usb_target_t target, size_t max_packet_size, void *data,
+    ddf_fun_t *fun, usb_target_t target, void *data,
     size_t size, usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
 	usb_transfer_batch_t *batch = NULL;
@@ -333,19 +369,24 @@ static int bulk_out(
 	return ret;
 }
 /*----------------------------------------------------------------------------*/
-/** Bulk in transaction interface function
+/** Schedule bulk in transfer.
  *
- * @param[in] fun DDF function that was called.
- * @param[in] target USB device to write to.
- * @param[in] max_packet_size maximum size of data packet the device accepts
- * @param[out] data Data destination.
- * @param[in] size Size of data source.
- * @param[in] callback Function to call on transaction completion
- * @param[in] arg Additional for callback function.
+ * The callback is supposed to be called once the transfer (on the wire) is
+ * complete regardless of the outcome.
+ * However, the callback could be called only when this function returns
+ * with success status (i.e. returns EOK).
+ *
+ * @param[in] fun Device function the action was invoked on.
+ * @param[in] target Target pipe (address and endpoint number) specification.
+ * @param[in] data Buffer where to store the data (in USB endianess,
+ *	allocated and deallocated by the caller).
+ * @param[in] size Size of the @p data buffer in bytes.
+ * @param[in] callback Callback to be issued once the transfer is complete.
+ * @param[in] arg Pass-through argument to the callback.
  * @return Error code.
  */
 static int bulk_in(
-    ddf_fun_t *fun, usb_target_t target, size_t max_packet_size, void *data,
+    ddf_fun_t *fun, usb_target_t target, void *data,
     size_t size, usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
 	usb_transfer_batch_t *batch = NULL;
@@ -362,21 +403,27 @@ static int bulk_in(
 	return ret;
 }
 /*----------------------------------------------------------------------------*/
-/** Control write transaction interface function
+/** Schedule control write transfer.
  *
- * @param[in] fun DDF function that was called.
- * @param[in] target USB device to write to.
- * @param[in] max_packet_size maximum size of data packet the device accepts.
- * @param[in] setup_data Data to send with SETUP transfer.
- * @param[in] setup_size Size of data to send with SETUP transfer (always 8B).
- * @param[in] data Source of data.
- * @param[in] size Size of data source.
- * @param[in] callback Function to call on transaction completion.
- * @param[in] arg Additional for callback function.
+ * The callback is supposed to be called once the transfer (on the wire) is
+ * complete regardless of the outcome.
+ * However, the callback could be called only when this function returns
+ * with success status (i.e. returns EOK).
+ *
+ * @param[in] fun Device function the action was invoked on.
+ * @param[in] target Target pipe (address and endpoint number) specification.
+ * @param[in] setup_packet Setup packet buffer (in USB endianess, allocated
+ *	and deallocated by the caller).
+ * @param[in] setup_packet_size Size of @p setup_packet buffer in bytes.
+ * @param[in] data_buffer Data buffer (in USB endianess, allocated and
+ *	deallocated by the caller).
+ * @param[in] data_buffer_size Size of @p data_buffer buffer in bytes.
+ * @param[in] callback Callback to be issued once the transfer is complete.
+ * @param[in] arg Pass-through argument to the callback.
  * @return Error code.
  */
 static int control_write(
-    ddf_fun_t *fun, usb_target_t target, size_t max_packet_size,
+    ddf_fun_t *fun, usb_target_t target,
     void *setup_data, size_t setup_size, void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
@@ -396,21 +443,27 @@ static int control_write(
 	return ret;
 }
 /*----------------------------------------------------------------------------*/
-/** Control read transaction interface function
+/** Schedule control read transfer.
  *
- * @param[in] fun DDF function that was called.
- * @param[in] target USB device to write to.
- * @param[in] max_packet_size maximum size of data packet the device accepts.
- * @param[in] setup_data Data to send with SETUP packet.
- * @param[in] setup_size Size of data to send with SETUP packet (should be 8B).
- * @param[out] data Source of data.
- * @param[in] size Size of data source.
- * @param[in] callback Function to call on transaction completion.
- * @param[in] arg Additional for callback function.
+ * The callback is supposed to be called once the transfer (on the wire) is
+ * complete regardless of the outcome.
+ * However, the callback could be called only when this function returns
+ * with success status (i.e. returns EOK).
+ *
+ * @param[in] fun Device function the action was invoked on.
+ * @param[in] target Target pipe (address and endpoint number) specification.
+ * @param[in] setup_packet Setup packet buffer (in USB endianess, allocated
+ *	and deallocated by the caller).
+ * @param[in] setup_packet_size Size of @p setup_packet buffer in bytes.
+ * @param[in] data_buffer Buffer where to store the data (in USB endianess,
+ *	allocated and deallocated by the caller).
+ * @param[in] data_buffer_size Size of @p data_buffer buffer in bytes.
+ * @param[in] callback Callback to be issued once the transfer is complete.
+ * @param[in] arg Pass-through argument to the callback.
  * @return Error code.
  */
 static int control_read(
-    ddf_fun_t *fun, usb_target_t target, size_t max_packet_size,
+    ddf_fun_t *fun, usb_target_t target,
     void *setup_data, size_t setup_size, void *data, size_t size,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
