@@ -36,17 +36,17 @@
 #ifdef HAVE_SYS_WAIT_H
 #include <sys/wait.h>
 #endif
-#include <sys/stat.h>
+#include <compat/sys/stat.h>
 
 #include <fcntl.h>
 #ifdef HAVE_UNISTD_H
-#include <unistd.h>
+#include <compat/unistd.h>
 #endif
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
+#include <compat/time.h>
 #include <ctype.h>
 
 #include "compat.h"
@@ -402,7 +402,7 @@ include()
 	struct symtab *nl;
 	usch *osp;
 	usch *fn, *safefn;
-	int c, it;
+	int c;
 
 	if (flslvl)
 		return;
@@ -436,7 +436,7 @@ include()
 			;
 		if (c != '\n')
 			goto bad;
-		it = SYSINC;
+		(void) SYSINC;
 		safefn = fn;
 	} else {
 		usch *nm = stringbuf;
@@ -869,7 +869,6 @@ xwarning(usch *s)
 {
 	usch *t;
 	usch *sb = stringbuf;
-	int dummy;
 
 	flbuf();
 	savch(0);
@@ -877,8 +876,8 @@ xwarning(usch *s)
 		t = sheap("%s:%d: warning: ", ifiles->fname, ifiles->lineno);
 		write (2, t, strlen((char *)t));
 	}
-	dummy = write (2, s, strlen((char *)s));
-	dummy = write (2, "\n", 1);
+	write (2, s, strlen((char *)s));
+	write (2, "\n", 1);
 	stringbuf = sb;
 }
 
@@ -886,16 +885,15 @@ void
 xerror(usch *s)
 {
 	usch *t;
-	int dummy;
 
 	flbuf();
 	savch(0);
 	if (ifiles != NULL) {
 		t = sheap("%s:%d: error: ", ifiles->fname, ifiles->lineno);
-		dummy = write (2, t, strlen((char *)t));
+		write (2, t, strlen((char *)t));
 	}
-	dummy = write (2, s, strlen((char *)s));
-	dummy = write (2, "\n", 1);
+	write (2, s, strlen((char *)s));
+	write (2, "\n", 1);
 	exit(1);
 }
 
@@ -1862,7 +1860,7 @@ lookup(const usch *key, int enterf)
 	struct symtab *sp;
 	struct tree *w, *new, *last;
 	int len, cix, bit, fbit, svbit, ix, bitno;
-	const usch *k, *m, *sm;
+	const usch *k, *m;
 
 	/* Count full string length */
 	for (k = key, len = 0; *k; k++, len++)
@@ -1897,7 +1895,7 @@ lookup(const usch *key, int enterf)
 
 	sp = (struct symtab *)w;
 
-	sm = m = sp->namep;
+	m = sp->namep;
 	k = key;
 
 	/* Check for correct string and return */
