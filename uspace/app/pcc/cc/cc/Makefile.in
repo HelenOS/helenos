@@ -1,0 +1,70 @@
+#	$Id: Makefile.in,v 1.22 2009/11/14 16:27:23 ragge Exp $
+#
+# Makefile.in for the cc part of pcc.
+#
+VPATH=@srcdir@
+srcdir=@srcdir@
+top_srcdir=@top_srcdir@
+top_builddir=@top_builddir@
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+bindir = @bindir@
+libdir = @libdir@
+libexecdir = @libexecdir@
+includedir = @includedir@
+datarootdir = @datarootdir@
+mandir = @mandir@
+strip = @strip@
+CC = @CC@
+EXEEXT = @EXEEXT@
+TARGOS = @targos@
+TARGMACH = @targmach@
+TARGET = @target@
+VERSION = @PACKAGE_VERSION@
+PCCLIBDIR = $(libdir)/pcc/$(TARGET)/$(VERSION)/lib
+PCCINCDIR = $(libdir)/pcc/$(TARGET)/$(VERSION)/include
+CFLAGS = @CFLAGS@ @ADD_CFLAGS@
+CPPFLAGS = @CPPFLAGS@ -DLIBEXECDIR=\"${libexecdir}/\" \
+	@ADD_CPPFLAGS@ -DINCLUDEDIR=\"${includedir}/\" \
+	-DPCCINCDIR=\"${PCCINCDIR}/\" -DPCCLIBDIR=\"${PCCLIBDIR}/\" \
+	-Dos_${TARGOS} -DTARGMACH=${TARGMACH} -Dmach_${TARGMACH} \
+	-I${top_builddir} -I${top_srcdir}/os/${TARGOS} -I${MIPDIR} -I${MDIR}
+LIBS = @LIBS@
+LDFLAGS = @LDFLAGS@
+INSTALL = @INSTALL@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
+
+OBJS=cc.o compat.o
+DEST=@BINPREFIX@pcc$(EXEEXT)
+
+MIPDIR=${top_srcdir}/mip
+MDIR=${top_srcdir}/arch/$(TARGMACH)
+
+all: ${DEST}
+
+${DEST}: $(OBJS)
+	$(CC) $(CFLAGS) $(LDFLAGS) $(OBJS) -o $@
+
+.c.o:
+	$(CC) $(DEFS) $(CPPFLAGS) $(CFLAGS) -c $<
+
+compat.o: $(MIPDIR)/compat.c
+	$(CC) $(DEFS) $(CPPFLAGS) $(CFLAGS) -c -o $@ $(MIPDIR)/compat.c
+
+install:
+	test -z "${DESTDIR}$(bindir)" || mkdir -p "${DESTDIR}$(bindir)"
+	${INSTALL_PROGRAM} ${DEST} ${DESTDIR}${bindir}
+	@if [ ${strip} = yes ]; then		\
+		strip ${DESTDIR}${bindir}/${DEST} ;	\
+		echo strip ${DESTDIR}${bindir}/${DEST} ;	\
+	fi
+	test -z "${DESTDIR}$(mandir)/man1" || mkdir -p "${DESTDIR}$(mandir)/man1"
+	${INSTALL} $(srcdir)/cc.1 ${DESTDIR}${mandir}/man1/${DEST}.1
+	test -z "${DESTDIR}$(PCCINCDIR)" || mkdir -p "${DESTDIR}$(PCCINCDIR)"
+	test -z "${DESTDIR}$(PCCLIBDIR)" || mkdir -p "${DESTDIR}$(PCCLIBDIR)"
+
+clean:
+	/bin/rm -f  $(OBJS) ${DEST}
+
+distclean: clean
+	/bin/rm -f  Makefile

@@ -1,0 +1,121 @@
+#	$Id: Makefile.in,v 1.13 2008/12/19 08:08:48 ragge Exp $
+#
+# Makefile for the Fortran 77 command
+#  Running on the @targmach@
+#  Generating code for the @targmach@
+#  Using the Johnson C compiler's second pass (binary version)
+VPATH=@srcdir@
+srcdir=@srcdir@
+top_srcdir=@top_srcdir@
+builddir=@builddir@
+top_builddir=@top_builddir@
+XFL=-DPCC_DEBUG  -Wall -Wmissing-prototypes -Wstrict-prototypes -Werror \
+	-Werror -Wshadow -Wsign-compare
+
+CC = @CC@
+CC_FOR_BUILD = @CC_FOR_BUILD@
+CFLAGS = @CFLAGS@ @ADD_CFLAGS@
+CPPFLAGS = @CPPFLAGS@ ${XFL} -DFCOM -DLANG_F77 -Dos_${TARGOS} \
+	-I${srcdir} -I${builddir} -I${top_builddir} \
+	-I${MIPDIR} -I${MDIR} -Dmach_${TARGMACH} -I${top_srcdir}/os/${TARGOS}
+LIBS = @LIBS@
+LDFLAGS = @LDFLAGS@
+TARGOS = @targos@
+TARGMACH = @targmach@
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+libexecdir = @libexecdir@
+datarootdir = @datarootdir@
+mandir = @mandir@
+strip = @strip@
+INSTALL = @INSTALL@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
+YFLAGS = -d
+
+MDIR=$(top_srcdir)/arch/$(TARGMACH)
+MIPDIR=$(top_srcdir)/mip
+
+DEST=@BINPREFIX@fcom
+
+OBJS1 = main.o init.o proc.o gram.o lex.o \
+	  equiv.o data.o expr.o exec.o intr.o io.o misc.o error.o\
+	  put.o putscj.o flocal.o
+
+OBJS2=match.o reader.o optim2.o regs.o local2.o order.o table.o
+
+OBJS=$(OBJS1) $(OBJS2) common.o external.o
+
+all: ${DEST}
+
+${DEST}: $(OBJS)
+	$(CC) $(CFLAGS) $(LDFLAGS) $(OBJS) -o $@
+
+gram.c:	gram.head gram.dcl gram.expr gram.exec gram.io tokdefs
+	( sed <tokdefs "s/#define/%token/" ;\
+		cat gram.head gram.dcl gram.expr gram.exec gram.io ) >gram.in
+	$(YACC) $(YFLAGS) gram.in
+	mv y.tab.c gram.c
+	mv y.tab.h gram.h
+	rm gram.in
+
+tokdefs: tokens
+	grep -n . <tokens | sed "s/\([^:]*\):\(.*\)/#define \2 \1/" >tokdefs
+
+lex.o : tokdefs
+driver.o $(OBJS)  : defs.h defines.h ftypes.h
+
+clean:
+	/bin/rm -f $(OBJS) ${DEST} gram.in gram.[ch] tokdefs \
+		mkext external.[ch]
+
+distclean: clean
+	/bin/rm -f Makefile
+
+install: 
+	${INSTALL_PROGRAM} ${DEST} ${libexecdir}
+	@if [ ${strip} = yes ]; then            \
+		strip ${libexecdir}/${DEST} ;       \
+		echo strip ${libexecdir}/${DEST} ;  \
+	fi
+
+.c.o :
+	$(CC) -c $(CFLAGS) $(CPPFLAGS) $*.c
+
+flocal.o: $(MDIR)/flocal.c
+	$(CC) -c $(CFLAGS) $(CPPFLAGS) -o $@ $(MDIR)/flocal.c
+
+local2.o: $(MDIR)/local2.c
+	$(CC) $(DEFS) $(CPPFLAGS) $(CFLAGS) -c -o $@ $(MDIR)/local2.c
+
+order.o: $(MDIR)/order.c
+	$(CC) $(DEFS) $(CPPFLAGS) $(CFLAGS) -c -o $@ $(MDIR)/order.c
+
+table.o: $(MDIR)/table.c
+	$(CC) $(DEFS) $(CPPFLAGS) $(CFLAGS) -c -o $@ $(MDIR)/table.c
+
+match.o: $(MIPDIR)/match.c
+	$(CC) $(DEFS) $(CPPFLAGS) $(CFLAGS) -c -o $@ $(MIPDIR)/match.c
+
+reader.o: $(MIPDIR)/reader.c
+	$(CC) $(DEFS) $(CPPFLAGS) $(CFLAGS) -c -o $@ $(MIPDIR)/reader.c
+
+optim2.o: $(MIPDIR)/optim2.c
+	$(CC) $(DEFS) $(CPPFLAGS) $(CFLAGS) -c -o $@ $(MIPDIR)/optim2.c
+
+regs.o: $(MIPDIR)/regs.c
+	$(CC) $(DEFS) $(CPPFLAGS) $(CFLAGS) -c -o $@ $(MIPDIR)/regs.c
+
+compat.o: $(MIPDIR)/compat.c
+	$(CC) $(DEFS) $(CPPFLAGS) $(CFLAGS) -c -o $@ $(MIPDIR)/compat.c
+
+common.o: $(MIPDIR)/common.c
+	$(CC) $(DEFS) $(CPPFLAGS) $(CFLAGS) -c -o $@ $(MIPDIR)/common.c
+
+external.h external.c: ${MIPDIR}/mkext.c $(MDIR)/table.c
+	$(CC_FOR_BUILD) $(DEFS) $(CPPFLAGS) $(CFLAGS) -DMKEXT -o mkext \
+	${MIPDIR}/mkext.c $(MDIR)/table.c ${MIPDIR}/common.c
+	./mkext
+	-rm -f mkext.o table.o common.o
+
+$(OBJS): external.h
+

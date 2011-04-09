@@ -1,0 +1,17 @@
+/Makefile.in/1.32/Sun Apr 11 15:01:04 2010//Tr-1-0-0-RELEASE
+/builtins.c/1.18.2.2/Tue Mar 29 15:56:24 2011//Tr-1-0-0-RELEASE
+/ccom.1/1.9/Mon Apr  5 13:13:57 2010//Tr-1-0-0-RELEASE
+/cgram.y/1.319/Thu Jan 27 18:00:32 2011//Tr-1-0-0-RELEASE
+/gcc_compat.c/1.77/Tue Feb  1 14:20:02 2011//Tr-1-0-0-RELEASE
+/init.c/1.62/Sat Feb 19 17:23:39 2011//Tr-1-0-0-RELEASE
+/inline.c/1.37.2.2/Sat Feb 26 11:31:45 2011//Tr-1-0-0-RELEASE
+/main.c/1.106/Sat Jan 22 22:08:23 2011//Tr-1-0-0-RELEASE
+/optim.c/1.36.2.1/Tue Mar  1 17:40:21 2011//Tr-1-0-0-RELEASE
+/pass1.h/1.215/Thu Feb 17 13:44:13 2011//Tr-1-0-0-RELEASE
+/pftn.c/1.311/Sun Feb 20 10:19:07 2011//Tr-1-0-0-RELEASE
+/scan.l/1.102/Wed Feb 16 18:50:42 2011//Tr-1-0-0-RELEASE
+/softfloat.c/1.4/Wed Jul 29 12:32:34 2009//Tr-1-0-0-RELEASE
+/stabs.c/1.31/Wed Aug 11 14:08:44 2010//Tr-1-0-0-RELEASE
+/symtabs.c/1.19/Sat Jan 22 22:08:23 2011//Tr-1-0-0-RELEASE
+/trees.c/1.272.2.1/Tue Mar  1 17:39:28 2011//Tr-1-0-0-RELEASE
+D

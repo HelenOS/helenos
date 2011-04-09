@@ -1,0 +1,26 @@
+/Makefile.in/1.13/Fri Dec 19 08:08:48 2008//Tr-1-0-0-RELEASE
+/data.c/1.15/Sun May 11 15:28:03 2008//Tr-1-0-0-RELEASE
+/defines.h/1.15/Sat May 10 07:53:41 2008//Tr-1-0-0-RELEASE
+/defs.h/1.22/Wed Dec 24 17:40:41 2008//Tr-1-0-0-RELEASE
+/equiv.c/1.11/Sun May 11 15:28:03 2008//Tr-1-0-0-RELEASE
+/error.c/1.8/Sat May 10 07:53:41 2008//Tr-1-0-0-RELEASE
+/exec.c/1.14/Sun May 11 15:28:03 2008//Tr-1-0-0-RELEASE
+/expr.c/1.20/Sun May 11 15:28:03 2008//Tr-1-0-0-RELEASE
+/ftypes.h/1.5/Fri Dec 19 08:08:48 2008//Tr-1-0-0-RELEASE
+/gram.dcl/1.7/Sat May 10 08:44:17 2008//Tr-1-0-0-RELEASE
+/gram.exec/1.4/Sat May 10 08:39:27 2008//Tr-1-0-0-RELEASE
+/gram.expr/1.4/Sun May  4 09:51:57 2008//Tr-1-0-0-RELEASE
+/gram.head/1.9/Sat May 10 07:53:41 2008//Tr-1-0-0-RELEASE
+/gram.io/1.1/Sun Apr 17 13:54:38 2005//Tr-1-0-0-RELEASE
+/init.c/1.16/Wed Dec 24 17:40:41 2008//Tr-1-0-0-RELEASE
+/intr.c/1.13/Sun May 11 15:28:03 2008//Tr-1-0-0-RELEASE
+/io.c/1.15/Fri Dec 19 08:08:48 2008//Tr-1-0-0-RELEASE
+/lex.c/1.12/Sun May 11 15:28:03 2008//Tr-1-0-0-RELEASE
+/main.c/1.14/Mon Feb  9 15:59:48 2009//Tr-1-0-0-RELEASE
+/misc.c/1.17/Wed Feb 11 15:58:55 2009//Tr-1-0-0-RELEASE
+/proc.c/1.14/Wed Dec 24 17:40:41 2008//Tr-1-0-0-RELEASE
+/put.c/1.17/Sun May 11 15:28:03 2008//Tr-1-0-0-RELEASE
+/putscj.c/1.18/Fri Dec 19 08:08:48 2008//Tr-1-0-0-RELEASE
+/scjdefs.h/1.9/Sun Mar 23 09:17:44 2008//Tr-1-0-0-RELEASE
+/tokens/1.2/Wed Mar  5 18:50:33 2008//Tr-1-0-0-RELEASE
+D
