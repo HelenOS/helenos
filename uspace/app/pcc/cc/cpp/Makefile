@@ -26,18 +26,17 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-# TODO: prefer libcompat headers to libc
-
 ARCH = i386  # FIXME: figure out the real arch
 
 USPACE_PREFIX = ../../../..
-LIBS = $(LIBCOMPAT_PREFIX)/libcompat.a
 MIPDIR = ../../mip
 ARCHDIR = ../../arch/$(ARCH)
-EXTRA_CFLAGS = -I$(LIBCOMPAT_PREFIX) -I$(MIPDIR) -I$(ARCHDIR)
+EXTRA_CFLAGS = -I$(MIPDIR) -I$(ARCHDIR)
 EXTRA_CLEAN = y.tab.c y.tab.h
 DEFS = -DCPP_DEBUG -Dfree=free -DCPPBUF=16384
 BINARY = cpp
+
+POSIX_COMPAT = 1
 
 YACC = yacc
 

@@ -29,6 +29,8 @@
 #ifndef COMPAT_UNISTD_H
 #define COMPAT_UNISTD_H
 
+#include "../c/include/unistd.h"
+
 //#include <getopt.h>
 
 extern char *optarg;

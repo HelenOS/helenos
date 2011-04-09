@@ -44,7 +44,7 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <compat/ctype.h>
+#include <ctype.h>
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif

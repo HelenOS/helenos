@@ -36,17 +36,17 @@
 #ifdef HAVE_SYS_WAIT_H
 #include <sys/wait.h>
 #endif
-#include <compat/sys/stat.h>
+#include <sys/stat.h>
 
 #include <fcntl.h>
 #ifdef HAVE_UNISTD_H
-#include <compat/unistd.h>
+#include <unistd.h>
 #endif
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
-#include <compat/time.h>
+#include <time.h>
 #include <ctype.h>
 
 #include "compat.h"

@@ -2,7 +2,7 @@
 #ifndef COMPAT_STAT_H
 #define COMPAT_STAT_H
 
-#include <sys/stat.h>
+#include "../../c/include/sys/stat.h"
 #include "time.h"
 
 /* values are the same as on Linux */

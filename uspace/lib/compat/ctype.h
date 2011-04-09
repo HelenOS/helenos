@@ -29,7 +29,7 @@
 #ifndef COMPAT_CTYPE_H
 #define COMPAT_CTYPE_H
 
-#include <ctype.h>
+#include "../c/include/ctype.h"
 
 extern int isxdigit(int ch);
 
