@@ -94,7 +94,6 @@ static driver_t *devman_driver_register(void)
 	
 	/* Find driver structure. */
 	driver = find_driver(&drivers_list, drv_name);
-	
 	if (driver == NULL) {
 		log_msg(LVL_ERROR, "No driver named `%s' was found.", drv_name);
 		free(drv_name);
@@ -106,19 +105,48 @@ static driver_t *devman_driver_register(void)
 	free(drv_name);
 	drv_name = NULL;
 	
+	fibril_mutex_lock(&driver->driver_mutex);
+	
+	if (driver->phone >= 0) {
+		/* We already have a connection to the driver. */
+		log_msg(LVL_ERROR, "Driver '%s' already started.\n",
+		    driver->name);
+		fibril_mutex_unlock(&driver->driver_mutex);
+		async_answer_0(iid, EEXISTS);
+		return NULL;
+	}
+	
+	switch (driver->state) {
+	case DRIVER_NOT_STARTED:
+		/* Somebody started the driver manually. */
+		log_msg(LVL_NOTE, "Driver '%s' started manually.\n",
+		    driver->name);
+		driver->state = DRIVER_STARTING;
+		break;
+	case DRIVER_STARTING:
+		/* The expected case */
+		break;
+	case DRIVER_RUNNING:
+		/* Should not happen since we do not have a connected phone */
+		assert(false);
+	}
+	
 	/* Create connection to the driver. */
 	log_msg(LVL_DEBUG, "Creating connection to the `%s' driver.",
 	    driver->name);
 	ipc_call_t call;
 	ipc_callid_t callid = async_get_call(&call);
 	if (IPC_GET_IMETHOD(call) != IPC_M_CONNECT_TO_ME) {
+		fibril_mutex_unlock(&driver->driver_mutex);
 		async_answer_0(callid, ENOTSUP);
 		async_answer_0(iid, ENOTSUP);
 		return NULL;
 	}
 	
 	/* Remember driver's phone. */
-	set_driver_phone(driver, IPC_GET_ARG5(call));
+	driver->phone = IPC_GET_ARG5(call);
+	
+	fibril_mutex_unlock(&driver->driver_mutex);
 	
 	log_msg(LVL_NOTE, 
 	    "The `%s' driver was successfully registered as running.",
@@ -577,7 +605,7 @@ static void devman_forward(ipc_callid_t iid, ipc_call_t *icall,
 	else
 		method = DRIVER_CLIENT;
 	
-	if (driver->phone <= 0) {
+	if (driver->phone < 0) {
 		log_msg(LVL_ERROR, 
 		    "Could not forward to driver `%s' (phone is %d).",
 		    driver->name, (int) driver->phone);
@@ -617,7 +645,7 @@ static void devman_connection_devmapper(ipc_callid_t iid, ipc_call_t *icall)
 	
 	dev = fun->dev;
 	
-	if (dev->state != DEVICE_USABLE || dev->drv->phone <= 0) {
+	if (dev->state != DEVICE_USABLE || dev->drv->phone < 0) {
 		async_answer_0(iid, EINVAL);
 		return;
 	}
