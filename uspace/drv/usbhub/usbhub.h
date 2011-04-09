@@ -53,7 +53,7 @@
 
 
 /** Information about attached hub. */
-typedef struct usb_hub_info_t{
+struct usb_hub_info_t{
 	/** Number of ports. */
 	size_t port_count;
 
@@ -88,7 +88,7 @@ typedef struct usb_hub_info_t{
 
 	/** generic usb device data*/
 	usb_device_t * usb_device;
-} usb_hub_info_t;
+};
 
 //int usb_hub_control_loop(void * hub_info_param);
 
