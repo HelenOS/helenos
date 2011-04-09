@@ -41,6 +41,7 @@
 #include <usb/descriptor.h>
 #include <ipc/devman.h>
 #include <ddf/driver.h>
+#include <fibril_synch.h>
 
 /** Abstraction of a physical connection to the device.
  * This type is an abstraction of the USB wire that connects the host and
@@ -79,6 +80,9 @@ typedef struct {
 	 * Negative when no session is active.
 	 */
 	int hc_phone;
+
+	/** Guard for serialization of requests over the phone. */
+	fibril_mutex_t hc_phone_mutex;
 } usb_pipe_t;
 
 

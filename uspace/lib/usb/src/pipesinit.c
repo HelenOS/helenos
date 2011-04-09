@@ -357,6 +357,7 @@ int usb_pipe_initialize(usb_pipe_t *pipe,
 
 	pipe->wire = connection;
 	pipe->hc_phone = -1;
+	fibril_mutex_initialize(&pipe->hc_phone_mutex);
 	pipe->endpoint_no = endpoint_no;
 	pipe->transfer_type = transfer_type;
 	pipe->max_packet_size = max_packet_size;

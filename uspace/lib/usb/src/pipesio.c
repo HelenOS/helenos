@@ -49,6 +49,26 @@
 #include <assert.h>
 #include <usbhc_iface.h>
 
+/** Ensure exclusive access to the IPC phone of given pipe.
+ *
+ * @param pipe Pipe to be exclusively accessed.
+ */
+static void pipe_acquire(usb_pipe_t *pipe)
+{
+	fibril_mutex_lock(&pipe->hc_phone_mutex);
+}
+
+/** Terminate exclusive access to the IPC phone of given pipe.
+ *
+ * @param pipe Pipe to be released from exclusive usage.
+ */
+static void pipe_release(usb_pipe_t *pipe)
+{
+	fibril_mutex_unlock(&pipe->hc_phone_mutex);
+}
+
+
+
 /** Request an in transfer, no checking of input parameters.
  *
  * @param[in] pipe Pipe used for the transfer.
@@ -77,6 +97,9 @@ static int usb_pipe_read_no_checks(usb_pipe_t *pipe,
 			return ENOTSUP;
 	}
 
+	/* Ensure serialization over the phone. */
+	pipe_acquire(pipe);
+
 	/*
 	 * Make call identifying target USB device and type of transfer.
 	 */
@@ -86,6 +109,7 @@ static int usb_pipe_read_no_checks(usb_pipe_t *pipe,
 	    pipe->max_packet_size,
 	    NULL);
 	if (opening_request == 0) {
+		pipe_release(pipe);
 		return ENOMEM;
 	}
 
@@ -95,6 +119,12 @@ static int usb_pipe_read_no_checks(usb_pipe_t *pipe,
 	ipc_call_t data_request_call;
 	aid_t data_request = async_data_read(pipe->hc_phone, buffer, size,
 	    &data_request_call);
+
+	/*
+	 * Since now on, someone else might access the backing phone
+	 * without breaking the transfer IPC protocol.
+	 */
+	pipe_release(pipe);
 
 	if (data_request == 0) {
 		/*
@@ -209,6 +239,9 @@ static int usb_pipe_write_no_check(usb_pipe_t *pipe,
 			return ENOTSUP;
 	}
 
+	/* Ensure serialization over the phone. */
+	pipe_acquire(pipe);
+
 	/*
 	 * Make call identifying target USB device and type of transfer.
 	 */
@@ -218,6 +251,7 @@ static int usb_pipe_write_no_check(usb_pipe_t *pipe,
 	    pipe->max_packet_size,
 	    NULL);
 	if (opening_request == 0) {
+		pipe_release(pipe);
 		return ENOMEM;
 	}
 
@@ -225,6 +259,13 @@ static int usb_pipe_write_no_check(usb_pipe_t *pipe,
 	 * Send the data.
 	 */
 	int rc = async_data_write_start(pipe->hc_phone, buffer, size);
+
+	/*
+	 * Since now on, someone else might access the backing phone
+	 * without breaking the transfer IPC protocol.
+	 */
+	pipe_release(pipe);
+
 	if (rc != EOK) {
 		async_wait_for(opening_request, NULL);
 		return rc;
@@ -292,6 +333,9 @@ static int usb_pipe_control_read_no_check(usb_pipe_t *pipe,
     void *setup_buffer, size_t setup_buffer_size,
     void *data_buffer, size_t data_buffer_size, size_t *data_transfered_size)
 {
+	/* Ensure serialization over the phone. */
+	pipe_acquire(pipe);
+
 	/*
 	 * Make call identifying target USB device and control transfer type.
 	 */
@@ -310,6 +354,7 @@ static int usb_pipe_control_read_no_check(usb_pipe_t *pipe,
 	int rc = async_data_write_start(pipe->hc_phone,
 	    setup_buffer, setup_buffer_size);
 	if (rc != EOK) {
+		pipe_release(pipe);
 		async_wait_for(opening_request, NULL);
 		return rc;
 	}
@@ -321,6 +366,14 @@ static int usb_pipe_control_read_no_check(usb_pipe_t *pipe,
 	aid_t data_request = async_data_read(pipe->hc_phone,
 	    data_buffer, data_buffer_size,
 	    &data_request_call);
+
+	/*
+	 * Since now on, someone else might access the backing phone
+	 * without breaking the transfer IPC protocol.
+	 */
+	pipe_release(pipe);
+
+
 	if (data_request == 0) {
 		async_wait_for(opening_request, NULL);
 		return ENOMEM;
@@ -417,6 +470,9 @@ static int usb_pipe_control_write_no_check(usb_pipe_t *pipe,
     void *setup_buffer, size_t setup_buffer_size,
     void *data_buffer, size_t data_buffer_size)
 {
+	/* Ensure serialization over the phone. */
+	pipe_acquire(pipe);
+
 	/*
 	 * Make call identifying target USB device and control transfer type.
 	 */
@@ -427,6 +483,7 @@ static int usb_pipe_control_write_no_check(usb_pipe_t *pipe,
 	    pipe->max_packet_size,
 	    NULL);
 	if (opening_request == 0) {
+		pipe_release(pipe);
 		return ENOMEM;
 	}
 
@@ -436,6 +493,7 @@ static int usb_pipe_control_write_no_check(usb_pipe_t *pipe,
 	int rc = async_data_write_start(pipe->hc_phone,
 	    setup_buffer, setup_buffer_size);
 	if (rc != EOK) {
+		pipe_release(pipe);
 		async_wait_for(opening_request, NULL);
 		return rc;
 	}
@@ -446,10 +504,17 @@ static int usb_pipe_control_write_no_check(usb_pipe_t *pipe,
 	if (data_buffer_size > 0) {
 		rc = async_data_write_start(pipe->hc_phone,
 		    data_buffer, data_buffer_size);
+
+		/* All data sent, pipe can be released. */
+		pipe_release(pipe);
+
 		if (rc != EOK) {
 			async_wait_for(opening_request, NULL);
 			return rc;
 		}
+	} else {
+		/* No data to send, we can release the pipe for others. */
+		pipe_release(pipe);
 	}
 
 	/*
