@@ -231,8 +231,6 @@ static int register_endpoint(
 	ret = usb_endpoint_manager_register_ep(&hc->ep_manager, ep, size);
 	if (ret != EOK) {
 		endpoint_destroy(ep);
-	} else {
-		usb_device_keeper_add_ep(&hc->manager, address, ep);
 	}
 	return ret;
 }
@@ -245,11 +243,6 @@ static int unregister_endpoint(
 	assert(hc);
 	usb_log_debug("Unregister endpoint %d:%d %d.\n",
 	    address, endpoint, direction);
-	endpoint_t *ep = usb_endpoint_manager_get_ep(&hc->ep_manager,
-	    address, endpoint, direction, NULL);
-	if (ep != NULL) {
-		usb_device_keeper_del_ep(&hc->manager, address, ep);
-	}
 	return usb_endpoint_manager_unregister_ep(&hc->ep_manager, address,
 	    endpoint, direction);
 }
@@ -390,7 +383,7 @@ static int control_write(
 	    &hc, &batch);
 	if (ret != EOK)
 		return ret;
-	usb_device_keeper_reset_if_need(&hc->manager, target, setup_data);
+	usb_endpoint_manager_reset_if_need(&hc->ep_manager, target, setup_data);
 	batch_control_write(batch);
 	ret = hc_schedule(hc, batch);
 	if (ret != EOK) {
