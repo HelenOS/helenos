@@ -241,16 +241,23 @@ int usb_device_connection_initialize_on_default_address(
  * Since they are limited, sessions shall not be longer than strictly
  * necessary.
  *
+ * @deprecated
+ * Obsoleted with introduction of usb_pipe_start_long_transfer
+ *
  * @param pipe Endpoint pipe to start the session on.
  * @return Error code.
  */
 int usb_pipe_start_session(usb_pipe_t *pipe)
 {
-	return pipe_add_ref(pipe);
+	usb_log_warning("usb_pipe_start_session() was deprecated.\n");
+	return EOK;
 }
 
 
 /** Ends a session on the endpoint pipe.
+ *
+ * @deprecated
+ * Obsoleted with introduction of usb_pipe_end_long_transfer
  *
  * @see usb_pipe_start_session
  *
@@ -259,7 +266,7 @@ int usb_pipe_start_session(usb_pipe_t *pipe)
  */
 int usb_pipe_end_session(usb_pipe_t *pipe)
 {
-	pipe_drop_ref(pipe);
+	usb_log_warning("usb_pipe_end_session() was deprecated.\n");
 	return EOK;
 }
 
@@ -277,6 +284,32 @@ bool usb_pipe_is_session_started(usb_pipe_t *pipe)
 	bool started = pipe->refcount > 0;
 	pipe_release(pipe);
 	return started;
+}
+
+/** Prepare pipe for a long transfer.
+ *
+ * By a long transfer is mean transfer consisting of several
+ * requests to the HC.
+ * Calling such function is optional and it has positive effect of
+ * improved performance because IPC session is initiated only once.
+ *
+ * @param pipe Pipe over which the transfer will happen.
+ * @return Error code.
+ */
+int usb_pipe_start_long_transfer(usb_pipe_t *pipe)
+{
+	return pipe_add_ref(pipe);
+}
+
+/** Terminate a long transfer on a pipe.
+ *
+ * @see usb_pipe_start_long_transfer
+ *
+ * @param pipe Pipe where to end the long transfer.
+ */
+void usb_pipe_end_long_transfer(usb_pipe_t *pipe)
+{
+	pipe_drop_ref(pipe);
 }
 
 /**
