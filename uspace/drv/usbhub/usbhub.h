@@ -36,10 +36,7 @@
 #define DRV_USBHUB_USBHUB_H
 
 #include <ipc/devman.h>
-#include <usb/usb.h>
 #include <ddf/driver.h>
-
-#define NAME "usbhub"
 
 #include <usb/hub.h>
 #include <usb/classes/hub.h>
@@ -49,35 +46,14 @@
 
 #include <fibril_synch.h>
 
+#define NAME "usbhub"
 
-/** Information about single port on a hub. */
-typedef struct {
-	/** Mutex needed by CV for checking port reset. */
-	fibril_mutex_t reset_mutex;
-	/** CV for waiting to port reset completion. */
-	fibril_condvar_t reset_cv;
-	/** Whether port reset is completed.
-	 * Guarded by @c reset_mutex.
-	 */
-	bool reset_completed;
+#include "ports.h"
 
-	/** Information about attached device. */
-	usb_hc_attached_device_t attached_device;
-} usb_hub_port_t;
 
-/** Initialize hub port information.
- *
- * @param port Port to be initialized.
- */
-static inline void usb_hub_port_init(usb_hub_port_t *port) {
-	port->attached_device.address = -1;
-	port->attached_device.handle = 0;
-	fibril_mutex_initialize(&port->reset_mutex);
-	fibril_condvar_initialize(&port->reset_cv);
-}
 
 /** Information about attached hub. */
-typedef struct {
+typedef struct usb_hub_info_t{
 	/** Number of ports. */
 	size_t port_count;
 
@@ -118,10 +94,11 @@ typedef struct {
 
 int usb_hub_add_device(usb_device_t * usb_dev);
 
-int usb_hub_check_hub_changes(usb_hub_info_t * hub_info_param);
-
 bool hub_port_changes_callback(usb_device_t *dev,
     uint8_t *change_bitmap, size_t change_bitmap_size, void *arg);
+
+int usb_hub_release_default_address(usb_hub_info_t * hub);
+
 #endif
 /**
  * @}

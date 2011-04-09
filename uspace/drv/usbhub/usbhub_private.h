@@ -37,7 +37,6 @@
 #define	USBHUB_PRIVATE_H
 
 #include "usbhub.h"
-#include "usblist.h"
 
 #include <adt/list.h>
 #include <bool.h>
