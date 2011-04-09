@@ -205,10 +205,7 @@ static int register_endpoint(
 	assert(hc);
 	const usb_speed_t speed =
 	    usb_device_keeper_get_speed(&hc->manager, address);
-	const size_t size =
-	    (transfer_type == USB_TRANSFER_INTERRUPT
-	    || transfer_type == USB_TRANSFER_ISOCHRONOUS) ?
-	    max_packet_size : 0;
+	const size_t size = max_packet_size;
 	int ret;
 
 	endpoint_t *ep = malloc(sizeof(endpoint_t));

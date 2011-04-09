@@ -29,70 +29,34 @@
  * @{
  */
 /** @file
- * @brief OHCI host controller driver structure
+ * @brief OHCI driver
  */
-#ifndef DRV_OHCI_HC_H
-#define DRV_OHCI_HC_H
-
-#include <fibril.h>
-#include <fibril_synch.h>
-#include <adt/list.h>
-#include <ddi.h>
-
 #include <usb/usb.h>
-#include <usb/host/device_keeper.h>
-#include <usb/host/usb_endpoint_manager.h>
-#include <usbhc_iface.h>
+#include "utils/malloc32.h"
 
-#include "batch.h"
-#include "ohci_regs.h"
-#include "root_hub.h"
-#include "transfer_list.h"
-#include "hw_struct/hcca.h"
+#include "transfer_descriptor.h"
 
-typedef struct hc {
-	ohci_regs_t *registers;
-	usb_address_t rh_address;
-	rh_t rh;
+static unsigned dp[3] =
+    { TD_STATUS_DP_IN, TD_STATUS_DP_OUT, TD_STATUS_DP_SETUP };
+static unsigned togg[2] = { TD_STATUS_T_0, TD_STATUS_T_1 };
 
-	hcca_t *hcca;
-
-	transfer_list_t transfers_isochronous;
-	transfer_list_t transfers_interrupt;
-	transfer_list_t transfers_control;
-	transfer_list_t transfers_bulk;
-
-	transfer_list_t *transfers[4];
-
-	ddf_fun_t *ddf_instance;
-	usb_device_keeper_t manager;
-	usb_endpoint_manager_t ep_manager;
-	fid_t interrupt_emulator;
-} hc_t;
-
-int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun);
-
-int hc_init(hc_t *instance, ddf_fun_t *fun, ddf_dev_t *dev,
-     uintptr_t regs, size_t reg_size, bool interrupts);
-
-int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch);
-
-void hc_interrupt(hc_t *instance, uint32_t status);
-
-/** Safely dispose host controller internal structures
- *
- * @param[in] instance Host controller structure to use.
- */
-static inline void hc_fini(hc_t *instance) { /* TODO: implement*/ };
-
-/** Get and cast pointer to the driver data
- *
- * @param[in] fun DDF function pointer
- * @return cast pointer to driver_data
- */
-static inline hc_t * fun_to_hc(ddf_fun_t *fun)
-	{ return (hc_t*)fun->driver_data; }
-#endif
+void td_init(
+    td_t *instance, usb_direction_t dir, void *buffer, size_t size, int toggle)
+{
+	assert(instance);
+	bzero(instance, sizeof(td_t));
+	instance-> status = 0
+	    | ((dp[dir] & TD_STATUS_DP_MASK) << TD_STATUS_DP_SHIFT)
+	    | ((CC_NOACCESS2 & TD_STATUS_CC_MASK) << TD_STATUS_CC_SHIFT);
+	if (toggle == 0 || toggle == 1) {
+		instance->status |= togg[toggle] << TD_STATUS_T_SHIFT;
+	}
+	if (buffer != NULL) {
+		instance->cbp = addr_to_phys(buffer);
+		instance->be = addr_to_phys(buffer + size - 1);
+	}
+}
 /**
  * @}
  */
+
