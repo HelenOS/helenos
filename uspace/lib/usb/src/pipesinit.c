@@ -355,6 +355,7 @@ int usb_pipe_initialize(usb_pipe_t *pipe,
 	assert(pipe);
 	assert(connection);
 
+	fibril_mutex_initialize(&pipe->guard);
 	pipe->wire = connection;
 	pipe->hc_phone = -1;
 	fibril_mutex_initialize(&pipe->hc_phone_mutex);

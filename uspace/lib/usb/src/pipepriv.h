@@ -40,6 +40,9 @@
 void pipe_acquire(usb_pipe_t *);
 void pipe_release(usb_pipe_t *);
 
+void pipe_start_transaction(usb_pipe_t *);
+void pipe_end_transaction(usb_pipe_t *);
+
 int pipe_add_ref(usb_pipe_t *);
 void pipe_drop_ref(usb_pipe_t *);
 

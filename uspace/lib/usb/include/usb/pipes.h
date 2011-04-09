@@ -59,8 +59,16 @@ typedef struct {
  * as information about currently running sessions.
  * This endpoint must be bound with existing usb_device_connection_t
  * (i.e. the wire to send data over).
+ *
+ * Locking order: if you want to lock both mutexes
+ * (@c guard and @c hc_phone_mutex), lock @c guard first.
+ * It is not necessary to lock @c guard if you want to lock @c hc_phone_mutex
+ * only.
  */
 typedef struct {
+	/** Guard of the whole pipe. */
+	fibril_mutex_t guard;
+
 	/** The connection used for sending the data. */
 	usb_device_connection_t *wire;
 
@@ -78,6 +86,10 @@ typedef struct {
 
 	/** Phone to the host controller.
 	 * Negative when no session is active.
+	 * It is an error to access this member without @c hc_phone_mutex
+	 * being locked.
+	 * If call over the phone is to be made, it must be preceeded by
+	 * call to pipe_add_ref() [internal libusb function].
 	 */
 	int hc_phone;
 

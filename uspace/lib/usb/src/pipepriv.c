@@ -41,7 +41,7 @@
  *
  * @param pipe Pipe to be exclusively accessed.
  */
-void pipe_acquire(usb_pipe_t *pipe)
+void pipe_start_transaction(usb_pipe_t *pipe)
 {
 	fibril_mutex_lock(&pipe->hc_phone_mutex);
 }
@@ -50,9 +50,27 @@ void pipe_acquire(usb_pipe_t *pipe)
  *
  * @param pipe Pipe to be released from exclusive usage.
  */
-void pipe_release(usb_pipe_t *pipe)
+void pipe_end_transaction(usb_pipe_t *pipe)
 {
 	fibril_mutex_unlock(&pipe->hc_phone_mutex);
+}
+
+/** Ensure exclusive access to the pipe as a whole.
+ *
+ * @param pipe Pipe to be exclusively accessed.
+ */
+void pipe_acquire(usb_pipe_t *pipe)
+{
+	fibril_mutex_lock(&pipe->guard);
+}
+
+/** Terminate exclusive access to the pipe as a whole.
+ *
+ * @param pipe Pipe to be released from exclusive usage.
+ */
+void pipe_release(usb_pipe_t *pipe)
+{
+	fibril_mutex_unlock(&pipe->guard);
 }
 
 /** Add reference of active transfers over the pipe.
@@ -75,6 +93,10 @@ another_try:
 			pipe_release(pipe);
 			goto another_try;
 		}
+		/*
+		 * No locking is needed, refcount is zero and whole pipe
+		 * mutex is locked.
+		 */
 		pipe->hc_phone = phone;
 	}
 	pipe->refcount++;
