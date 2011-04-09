@@ -121,8 +121,13 @@ void transfer_list_add_batch(
 
 	usb_transfer_batch_t *first = list_get_instance(
 	    instance->batch_list.next, usb_transfer_batch_t, link);
-	usb_log_debug("Batch(%p) added to queue %s, first is %p.\n",
-		batch, instance->name, first);
+	usb_log_debug("Batch(%p) added to list %s, first is %p(%p).\n",
+		batch, instance->name, first, batch_ed(first));
+	if (last_ed == instance->list_head) {
+		usb_log_debug2("%s head ED: %x:%x:%x:%x.\n", instance->name,
+			last_ed->status, last_ed->td_tail, last_ed->td_head,
+			last_ed->next);
+	}
 	fibril_mutex_unlock(&instance->guard);
 }
 /*----------------------------------------------------------------------------*/

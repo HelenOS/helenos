@@ -41,7 +41,7 @@ void ed_init(ed_t *instance, endpoint_t *ep)
 	assert(instance);
 	bzero(instance, sizeof(ed_t));
 	if (ep == NULL) {
-		instance->status |= ED_STATUS_K_FLAG;
+		instance->status = ED_STATUS_K_FLAG;
 		return;
 	}
 	assert(ep);

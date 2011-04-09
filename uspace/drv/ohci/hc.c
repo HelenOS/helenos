@@ -107,13 +107,13 @@ if (ret != EOK) { \
 	CHECK_RET_RETURN(ret, "Failed to initialize endpoint manager: %s.\n",
 	    ret, str_error(ret));
 
-
 	hc_gain_control(instance);
+	ret = hc_init_memory(instance);
+	CHECK_RET_RETURN(ret, "Failed to create OHCI memory structures:%s.\n",
+	    ret, str_error(ret));
+	hc_init_hw(instance);
 
 	rh_init(&instance->rh, dev, instance->registers);
-
-	hc_init_memory(instance);
-	hc_init_hw(instance);
 
 	if (!interrupts) {
 		instance->interrupt_emulator =
@@ -121,7 +121,6 @@ if (ret != EOK) { \
 		fibril_add_ready(instance->interrupt_emulator);
 	}
 
-	/* TODO: implement */
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -140,10 +139,16 @@ int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch)
 
 	switch (batch->transfer_type) {
 	case USB_TRANSFER_CONTROL:
+		instance->registers->control &= ~C_CLE;
 		instance->registers->command_status |= CS_CLF;
+		usb_log_debug2("Set control transfer filled: %x.\n",
+			instance->registers->command_status);
+		instance->registers->control |= C_CLE;
 		break;
 	case USB_TRANSFER_BULK:
 		instance->registers->command_status |= CS_BLF;
+		usb_log_debug2("Set bulk transfer filled: %x.\n",
+			instance->registers->command_status);
 		break;
 	default:
 		break;
@@ -160,6 +165,7 @@ void hc_interrupt(hc_t *instance, uint32_t status)
 		rh_interrupt(&instance->rh);
 
 	usb_log_info("OHCI interrupt: %x.\n", status);
+
 
 	LIST_INITIALIZE(done);
 	transfer_list_remove_finished(&instance->transfers_interrupt, &done);
@@ -327,26 +333,38 @@ do { \
 int hc_init_memory(hc_t *instance)
 {
 	assert(instance);
-	/* init queues */
+	/* Init queues */
 	hc_init_transfer_lists(instance);
 
-	/* init HCCA */
+	/*Init HCCA */
 	instance->hcca = malloc32(sizeof(hcca_t));
 	if (instance->hcca == NULL)
 		return ENOMEM;
 	bzero(instance->hcca, sizeof(hcca_t));
 	instance->registers->hcca = addr_to_phys(instance->hcca);
+	usb_log_debug2("OHCI HCCA initialized at %p(%p).\n",
+	    instance->hcca, instance->registers->hcca);
 
-	/* use queues */
+	/* Use queues */
 	instance->registers->bulk_head = instance->transfers_bulk.list_head_pa;
+	usb_log_debug2("Bulk HEAD set to: %p(%p).\n",
+	    instance->transfers_bulk.list_head,
+	    instance->transfers_bulk.list_head_pa);
+
 	instance->registers->control_head =
 	    instance->transfers_control.list_head_pa;
+	usb_log_debug2("Control HEAD set to: %p(%p).\n",
+	    instance->transfers_control.list_head,
+	    instance->transfers_control.list_head_pa);
 
 	unsigned i = 0;
 	for (; i < 32; ++i) {
 		instance->hcca->int_ep[i] =
 		    instance->transfers_interrupt.list_head_pa;
 	}
+	usb_log_debug2("Interrupt HEADs set to: %p(%p).\n",
+	    instance->transfers_interrupt.list_head,
+	    instance->transfers_interrupt.list_head_pa);
 
 	return EOK;
 }
