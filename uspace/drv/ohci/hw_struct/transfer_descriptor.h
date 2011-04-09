@@ -34,6 +34,7 @@
 #ifndef DRV_OHCI_HW_STRUCT_TRANSFER_DESCRIPTOR_H
 #define DRV_OHCI_HW_STRUCT_TRANSFER_DESCRIPTOR_H
 
+#include <bool.h>
 #include <stdint.h>
 #include "utils/malloc32.h"
 
@@ -77,6 +78,28 @@ inline static void td_set_next(td_t *instance, td_t *next)
 {
 	assert(instance);
 	instance->next = addr_to_phys(next) & TD_NEXT_PTR_MASK;
+}
+
+inline static bool td_is_finished(td_t *instance)
+{
+	assert(instance);
+	int cc = (instance->status >> TD_STATUS_CC_SHIFT) & TD_STATUS_CC_MASK;
+	/* something went wrong, error code is set */
+	if (cc != CC_NOACCESS1 && cc != CC_NOACCESS2 && cc != CC_NOERROR) {
+		return true;
+	}
+	/* everything done */
+	if (cc == CC_NOERROR && instance->cbp == 0) {
+		return true;
+	}
+	return false;
+}
+
+static inline int td_error(td_t *instance)
+{
+	assert(instance);
+	int cc = (instance->status >> TD_STATUS_CC_SHIFT) & TD_STATUS_CC_MASK;
+	return cc_to_rc(cc);
 }
 #endif
 /**

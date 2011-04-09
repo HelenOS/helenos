@@ -117,15 +117,39 @@ usb_transfer_batch_t * batch_get(ddf_fun_t *fun, endpoint_t *ep,
 void batch_dispose(usb_transfer_batch_t *instance)
 {
 	assert(instance);
-	free32(instance->transport_buffer);
+	ohci_batch_t *data = instance->private_data;
+	assert(data);
+	free32(data->ed);
+	free32(data->tds);
 	free32(instance->setup_buffer);
+	free32(instance->transport_buffer);
+	free(data);
 	free(instance);
 }
 /*----------------------------------------------------------------------------*/
 bool batch_is_complete(usb_transfer_batch_t *instance)
 {
-	// TODO: implement
-	return false;
+	assert(instance);
+	ohci_batch_t *data = instance->private_data;
+	assert(data);
+	size_t tds = data->td_count - 1;
+	usb_log_debug2("Batch(%p) checking %d td(s) for completion.\n",
+	    instance, tds);
+	size_t i = 0;
+	for (; i < tds; ++i) {
+		if (!td_is_finished(&data->tds[i]))
+			return false;
+		instance->error = td_error(&data->tds[i]);
+		/* FIXME: calculate real transfered size */
+		instance->transfered_size = instance->buffer_size;
+		if (instance->error != EOK) {
+			usb_log_debug("Batch(%p) found error TD(%d):%x.\n",
+			    instance, i, data->tds[i].status);
+			return true;
+//			endpoint_toggle_set(instance->ep,
+		}
+	}
+	return true;
 }
 /*----------------------------------------------------------------------------*/
 void batch_control_write(usb_transfer_batch_t *instance)

@@ -31,61 +31,32 @@
 /** @file
  * @brief OHCI driver
  */
-#ifndef DRV_OHCI_HW_STRUCT_COMPLETION_CODES_H
-#define DRV_OHCI_HW_STRUCT_COMPLETION_CODES_H
+#include <usb/usb.h>
+#include "utils/malloc32.h"
 
-#include <errno.h>
+#include "transfer_descriptor.h"
 
-#define CC_NOERROR (0x0)
-#define CC_CRC (0x1)
-#define CC_BITSTUFF (0x2)
-#define CC_TOGGLE (0x3)
-#define CC_STALL (0x4)
-#define CC_NORESPONSE (0x5)
-#define CC_PIDFAIL (0x6)
-#define CC_PIDUNEXPECTED (0x7)
-#define CC_DATAOVERRRUN (0x8)
-#define CC_DATAUNDERRRUN (0x9)
-#define CC_BUFFEROVERRRUN (0xc)
-#define CC_BUFFERUNDERRUN (0xd)
-#define CC_NOACCESS1 (0xe)
-#define CC_NOACCESS2 (0xf)
+static unsigned dp[3] =
+    { TD_STATUS_DP_IN, TD_STATUS_DP_OUT, TD_STATUS_DP_SETUP };
+static unsigned togg[2] = { TD_STATUS_T_0, TD_STATUS_T_1 };
 
-inline static int cc_to_rc(int cc)
+void td_init(
+    td_t *instance, usb_direction_t dir, void *buffer, size_t size, int toggle)
 {
-	switch (cc) {
-	case CC_NOERROR:
-		return EOK;
-
-	case CC_CRC:
-		return EBADCHECKSUM;
-
-	case CC_PIDUNEXPECTED:
-	case CC_PIDFAIL:
-	case CC_BITSTUFF:
-		return EIO;
-
-	case CC_TOGGLE:
-	case CC_STALL:
-		return ESTALL;
-
-	case CC_NORESPONSE:
-		return ETIMEOUT;
-
-	case CC_DATAOVERRRUN:
-	case CC_DATAUNDERRRUN:
-	case CC_BUFFEROVERRRUN:
-	case CC_BUFFERUNDERRUN:
-		return EOVERFLOW;
-
-	case CC_NOACCESS1:
-	case CC_NOACCESS2:
-	default:
-		return ENOTSUP;
+	assert(instance);
+	bzero(instance, sizeof(td_t));
+	instance-> status = 0
+	    | ((dp[dir] & TD_STATUS_DP_MASK) << TD_STATUS_DP_SHIFT)
+	    | ((CC_NOACCESS2 & TD_STATUS_CC_MASK) << TD_STATUS_CC_SHIFT);
+	if (toggle == 0 || toggle == 1) {
+		instance->status |= togg[toggle] << TD_STATUS_T_SHIFT;
+	}
+	if (buffer != NULL) {
+		instance->cbp = addr_to_phys(buffer);
+		instance->be = addr_to_phys(buffer + size - 1);
 	}
 }
-
-#endif
 /**
  * @}
  */
+
