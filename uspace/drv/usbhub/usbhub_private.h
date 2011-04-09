@@ -53,18 +53,8 @@
 // convenience define for malloc
 //
 //************
-#define usb_new(type) (type*)malloc(sizeof(type))
 
 
-/**
- * Create hub structure instance
- *
- * Set the address and port count information most importantly.
- *
- * @param device
- * @param hc host controller phone
- * @return
- */
 usb_hub_info_t * usb_create_hub_info(ddf_dev_t * device);
 
 /**

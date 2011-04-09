@@ -59,9 +59,9 @@ void * usb_serialize_hub_descriptor(usb_hub_descriptor_t * descriptor) {
 	//base size
 	size_t size = 7;
 	//variable size according to port count
-	size_t var_size = descriptor->ports_count / 8 + ((descriptor->ports_count % 8 > 0) ? 1 : 0);
+	size_t var_size = (descriptor->ports_count+7)/8;
 	size += 2 * var_size;
-	uint8_t * result = (uint8_t*) malloc(size);
+	uint8_t * result = malloc(size);
 	//size
 	result[0] = size;
 	//descriptor type
@@ -83,15 +83,17 @@ void * usb_serialize_hub_descriptor(usb_hub_descriptor_t * descriptor) {
 	return result;
 }
 
-usb_hub_descriptor_t * usb_deserialize_hub_desriptor(void * serialized_descriptor) {
-	uint8_t * sdescriptor = (uint8_t*) serialized_descriptor;
+usb_hub_descriptor_t * usb_deserialize_hub_desriptor(
+void * serialized_descriptor) {
+	uint8_t * sdescriptor = serialized_descriptor;
 
 	if (sdescriptor[1] != USB_DESCTYPE_HUB) {
-		usb_log_warning("trying to deserialize wrong descriptor %x\n",sdescriptor[1]);
+		usb_log_warning("trying to deserialize wrong descriptor %x\n",
+		    sdescriptor[1]);
 		return NULL;
 	}
 
-	usb_hub_descriptor_t * result = usb_new(usb_hub_descriptor_t);
+	usb_hub_descriptor_t * result = malloc(sizeof(usb_hub_descriptor_t));
 	
 
 	result->ports_count = sdescriptor[2];
@@ -99,8 +101,7 @@ usb_hub_descriptor_t * usb_deserialize_hub_desriptor(void * serialized_descripto
 	result->hub_characteristics = sdescriptor[4] + 256 * sdescriptor[3];
 	result->pwr_on_2_good_time = sdescriptor[5];
 	result->current_requirement = sdescriptor[6];
-	size_t var_size = result->ports_count / 8 + ((result->ports_count % 8 > 0)
-			? 1 : 0);
+	size_t var_size = (result->ports_count+7) / 8;
 	result->devices_removable = (uint8_t*) malloc(var_size);
 
 	size_t i;
