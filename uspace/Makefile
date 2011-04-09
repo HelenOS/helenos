@@ -34,6 +34,7 @@
 
 DIRS = \
 	app/bdsh \
+	app/cpp \
 	app/edit \
 	app/getterm \
 	app/init \
@@ -143,6 +144,7 @@ LIBS = \
 	lib/fs \
 	lib/block \
 	lib/clui \
+	lib/compat \
 	lib/softint \
 	lib/softfloat \
 	lib/drv \
