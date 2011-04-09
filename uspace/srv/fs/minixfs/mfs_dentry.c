@@ -44,8 +44,9 @@ read_directory_entry(struct mfs_node *mnode, unsigned index)
 	uint32_t block;
 	block_t *b;
 
-	struct mfs_dentry_info *d_info = malloc(sizeof(*d_info));
+	mfsdebug("read_directory(%u)\n", index);
 
+	struct mfs_dentry_info *d_info = malloc(sizeof(*d_info));
 	if (!d_info)
 		return NULL;
 
@@ -63,7 +64,7 @@ read_directory_entry(struct mfs_node *mnode, unsigned index)
 	if (sbi->fs_version == MFS_VERSION_V3) {
 		struct mfs3_dentry *d3;
 
-		d3 = b->data;
+		d3 = b->data + (dentry_off * MFS3_DIRSIZE);
 		d3 += dentry_off;
 		d_info->d_inum = conv32(sbi->native, d3->d_inum);
 		memcpy(d_info->d_name, d3->d_name, MFS3_MAX_NAME_LEN);
@@ -73,8 +74,8 @@ read_directory_entry(struct mfs_node *mnode, unsigned index)
 
 		struct mfs_dentry *d;
 
-		d = b->data;
-		d += dentry_off;
+		d = b->data + dentry_off * (longnames ? MFSL_DIRSIZE :
+							MFS_DIRSIZE);
 		d_info->d_inum = conv16(sbi->native, d->d_inum);
 		memcpy(d_info->d_name, d->d_name, namelen);
 	}
