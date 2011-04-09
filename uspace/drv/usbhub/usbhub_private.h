@@ -53,18 +53,8 @@
 // convenience define for malloc
 //
 //************
-#define usb_new(type) (type*)malloc(sizeof(type))
 
 
-/**
- * Create hub structure instance
- *
- * Set the address and port count information most importantly.
- *
- * @param device
- * @param hc host controller phone
- * @return
- */
 usb_hub_info_t * usb_create_hub_info(ddf_dev_t * device);
 
 /**
@@ -102,6 +92,73 @@ static inline int usb_hub_clear_port_feature(usb_pipe_t *pipe,
 		.request = USB_DEVREQ_CLEAR_FEATURE,
 		.length = 0,
 		.index = port_index
+	};
+	clear_request.value = feature;
+	return usb_pipe_control_write(pipe, &clear_request,
+	    sizeof(clear_request), NULL, 0);
+}
+
+/**
+ * Clear feature on hub port.
+ *
+ * @param hc Host controller telephone
+ * @param address Hub address
+ * @param port_index Port
+ * @param feature Feature selector
+ * @return Operation result
+ */
+static inline int usb_hub_set_port_feature(usb_pipe_t *pipe,
+    int port_index,
+    usb_hub_class_feature_t feature) {
+
+	usb_device_request_setup_packet_t clear_request = {
+		.request_type = USB_HUB_REQ_TYPE_CLEAR_PORT_FEATURE,
+		.request = USB_DEVREQ_SET_FEATURE,
+		.length = 0,
+		.index = port_index
+	};
+	clear_request.value = feature;
+	return usb_pipe_control_write(pipe, &clear_request,
+	    sizeof(clear_request), NULL, 0);
+}
+
+
+/**
+ * Clear feature on hub port.
+ *
+ * @param pipe pipe to hub control endpoint
+ * @param feature Feature selector
+ * @return Operation result
+ */
+static inline int usb_hub_clear_feature(usb_pipe_t *pipe,
+    usb_hub_class_feature_t feature) {
+
+	usb_device_request_setup_packet_t clear_request = {
+		.request_type = USB_HUB_REQ_TYPE_CLEAR_HUB_FEATURE,
+		.request = USB_DEVREQ_CLEAR_FEATURE,
+		.length = 0,
+		.index = 0
+	};
+	clear_request.value = feature;
+	return usb_pipe_control_write(pipe, &clear_request,
+	    sizeof(clear_request), NULL, 0);
+}
+
+/**
+ * Clear feature on hub port.
+ *
+ * @param pipe pipe to hub control endpoint
+ * @param feature Feature selector
+ * @return Operation result
+ */
+static inline int usb_hub_set_feature(usb_pipe_t *pipe,
+    usb_hub_class_feature_t feature) {
+
+	usb_device_request_setup_packet_t clear_request = {
+		.request_type = USB_HUB_REQ_TYPE_CLEAR_HUB_FEATURE,
+		.request = USB_DEVREQ_SET_FEATURE,
+		.length = 0,
+		.index = 0
 	};
 	clear_request.value = feature;
 	return usb_pipe_control_write(pipe, &clear_request,

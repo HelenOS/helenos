@@ -53,35 +53,12 @@ void usb_device_keeper_init(usb_device_keeper_t *instance)
 	unsigned i = 0;
 	for (; i < USB_ADDRESS_COUNT; ++i) {
 		instance->devices[i].occupied = false;
-		instance->devices[i].control_used = 0;
 		instance->devices[i].handle = 0;
 		instance->devices[i].speed = USB_SPEED_MAX;
-		list_initialize(&instance->devices[i].endpoints);
 	}
 	// TODO: is this hack enough?
 	// (it is needed to allow smooth registration at default address)
 	instance->devices[0].occupied = true;
-}
-/*----------------------------------------------------------------------------*/
-void usb_device_keeper_add_ep(
-    usb_device_keeper_t *instance, usb_address_t address, endpoint_t *ep)
-{
-	assert(instance);
-	fibril_mutex_lock(&instance->guard);
-	assert(instance->devices[address].occupied);
-	list_append(&ep->same_device_eps, &instance->devices[address].endpoints);
-	fibril_mutex_unlock(&instance->guard);
-}
-/*----------------------------------------------------------------------------*/
-void usb_device_keeper_del_ep(
-    usb_device_keeper_t *instance, usb_address_t address, endpoint_t *ep)
-{
-	assert(instance);
-	fibril_mutex_lock(&instance->guard);
-	assert(instance->devices[address].occupied);
-	list_remove(&ep->same_device_eps);
-	list_initialize(&ep->same_device_eps);
-	fibril_mutex_unlock(&instance->guard);
 }
 /*----------------------------------------------------------------------------*/
 /** Attempt to obtain address 0, blocks.
@@ -116,62 +93,6 @@ void usb_device_keeper_release_default_address(usb_device_keeper_t *instance)
 	fibril_condvar_signal(&instance->change);
 }
 /*----------------------------------------------------------------------------*/
-/** Check setup packet data for signs of toggle reset.
- *
- * @param[in] instance Device keeper structure to use.
- * @param[in] target Device to receive setup packet.
- * @param[in] data Setup packet data.
- *
- * Really ugly one.
- */
-void usb_device_keeper_reset_if_need(
-    usb_device_keeper_t *instance, usb_target_t target, const uint8_t *data)
-{
-	assert(instance);
-	fibril_mutex_lock(&instance->guard);
-	if (target.endpoint > 15 || target.endpoint < 0
-	    || target.address >= USB_ADDRESS_COUNT || target.address < 0
-	    || !instance->devices[target.address].occupied) {
-		fibril_mutex_unlock(&instance->guard);
-		usb_log_error("Invalid data when checking for toggle reset.\n");
-		return;
-	}
-
-	switch (data[1])
-	{
-	case 0x01: /*clear feature*/
-		/* recipient is endpoint, value is zero (ENDPOINT_STALL) */
-		if (((data[0] & 0xf) == 1) && ((data[2] | data[3]) == 0)) {
-			link_t *current =
-			    instance->devices[target.address].endpoints.next;
-			while (current !=
-			   &instance->devices[target.address].endpoints)
-			{
-			/* endpoint number is < 16, thus first byte is enough */
-				endpoint_toggle_reset_filtered(
-				    current, data[4]);
-				current = current->next;
-			}
-		}
-	break;
-
-	case 0x9: /* set configuration */
-	case 0x11: /* set interface */
-		/* target must be device */
-		if ((data[0] & 0xf) == 0) {
-			link_t *current =
-			    instance->devices[target.address].endpoints.next;
-			while (current !=
-			   &instance->devices[target.address].endpoints)
-			{
-				endpoint_toggle_reset(current);
-				current = current->next;
-			}
-		}
-	break;
-	}
-	fibril_mutex_unlock(&instance->guard);
-}
 /*----------------------------------------------------------------------------*/
 /** Get a free USB address
  *

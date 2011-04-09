@@ -226,8 +226,9 @@ void batch_control(usb_transfer_batch_t *instance,
 	assert(data);
 	ed_init(data->ed, instance->ep);
 	ed_add_tds(data->ed, &data->tds[0], &data->tds[data->td_count - 1]);
-	usb_log_debug("Created ED: %x:%x:%x:%x.\n", data->ed->status,
-	    data->ed->td_tail, data->ed->td_head, data->ed->next);
+	usb_log_debug("Created ED(%p): %x:%x:%x:%x.\n", data->ed,
+	    data->ed->status, data->ed->td_tail, data->ed->td_head,
+	    data->ed->next);
 	int toggle = 0;
 	/* setup stage */
 	td_init(&data->tds[0], USB_DIRECTION_BOTH, instance->setup_buffer,

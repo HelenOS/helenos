@@ -48,13 +48,23 @@
 typedef uint32_t usb_port_status_t;
 
 /**
+ * structure holding hub status and changes flags.
+ * should not be accessed directly, use supplied getter/setter methods.
+ *
+ * For more information refer to table 11.16.2.5 in
+ * "Universal Serial Bus Specification Revision 1.1"
+ *
+ */
+typedef uint32_t usb_hub_status_t;
+
+/**
  * set values in request to be it a port status request
  * @param request
  * @param port
  */
 static inline void usb_hub_set_port_status_request(
-usb_device_request_setup_packet_t * request, uint16_t port
-){
+	usb_device_request_setup_packet_t * request, uint16_t port
+	) {
 	request->index = port;
 	request->request_type = USB_HUB_REQ_TYPE_GET_PORT_STATUS;
 	request->request = USB_HUB_REQUEST_GET_STATUS;
@@ -62,6 +72,20 @@ usb_device_request_setup_packet_t * request, uint16_t port
 	request->length = 4;
 }
 
+/**
+ * set values in request to be it a port status request
+ * @param request
+ * @param port
+ */
+static inline void usb_hub_set_hub_status_request(
+	usb_device_request_setup_packet_t * request
+	) {
+	request->index = 0;
+	request->request_type = USB_HUB_REQ_TYPE_GET_HUB_STATUS;
+	request->request = USB_HUB_REQUEST_GET_STATUS;
+	request->value = 0;
+	request->length = 4;
+}
 
 /**
  * create request for usb hub port status
@@ -69,13 +93,12 @@ usb_device_request_setup_packet_t * request, uint16_t port
  * @return
  */
 static inline usb_device_request_setup_packet_t *
-usb_hub_create_port_status_request(uint16_t port){
+usb_hub_create_port_status_request(uint16_t port) {
 	usb_device_request_setup_packet_t * result =
-		usb_new(usb_device_request_setup_packet_t);
-	usb_hub_set_port_status_request(result,port);
+		malloc(sizeof(usb_device_request_setup_packet_t));
+	usb_hub_set_port_status_request(result, port);
 	return result;
 }
-
 
 /**
  * set the device request to be a port feature enable request
@@ -84,9 +107,9 @@ usb_hub_create_port_status_request(uint16_t port){
  * @param feature_selector
  */
 static inline void usb_hub_set_enable_port_feature_request(
-usb_device_request_setup_packet_t * request, uint16_t port,
-		uint16_t feature_selector
-){
+	usb_device_request_setup_packet_t * request, uint16_t port,
+	uint16_t feature_selector
+	) {
 	request->index = port;
 	request->request_type = USB_HUB_REQ_TYPE_SET_PORT_FEATURE;
 	request->request = USB_HUB_REQUEST_SET_FEATURE;
@@ -101,9 +124,9 @@ usb_device_request_setup_packet_t * request, uint16_t port,
  * @param feature_selector
  */
 static inline void usb_hub_set_disable_port_feature_request(
-usb_device_request_setup_packet_t * request, uint16_t port,
-		uint16_t feature_selector
-){
+	usb_device_request_setup_packet_t * request, uint16_t port,
+	uint16_t feature_selector
+	) {
 	request->index = port;
 	request->request_type = USB_HUB_REQ_TYPE_SET_PORT_FEATURE;
 	request->request = USB_HUB_REQUEST_CLEAR_FEATURE;
@@ -117,8 +140,8 @@ usb_device_request_setup_packet_t * request, uint16_t port,
  * @param port
  */
 static inline void usb_hub_set_enable_port_request(
-usb_device_request_setup_packet_t * request, uint16_t port
-){
+	usb_device_request_setup_packet_t * request, uint16_t port
+	) {
 	request->index = port;
 	request->request_type = USB_HUB_REQ_TYPE_SET_PORT_FEATURE;
 	request->request = USB_HUB_REQUEST_SET_FEATURE;
@@ -132,10 +155,10 @@ usb_device_request_setup_packet_t * request, uint16_t port
  * @return
  */
 static inline usb_device_request_setup_packet_t *
-usb_hub_create_enable_port_request(uint16_t port){
+usb_hub_create_enable_port_request(uint16_t port) {
 	usb_device_request_setup_packet_t * result =
-		usb_new(usb_device_request_setup_packet_t);
-	usb_hub_set_enable_port_request(result,port);
+		malloc(sizeof(usb_device_request_setup_packet_t));
+	usb_hub_set_enable_port_request(result, port);
 	return result;
 }
 
@@ -145,8 +168,8 @@ usb_hub_create_enable_port_request(uint16_t port){
  * @param port
  */
 static inline void usb_hub_set_disable_port_request(
-usb_device_request_setup_packet_t * request, uint16_t port
-){
+	usb_device_request_setup_packet_t * request, uint16_t port
+	) {
 	request->index = port;
 	request->request_type = USB_HUB_REQ_TYPE_SET_PORT_FEATURE;
 	request->request = USB_HUB_REQUEST_SET_FEATURE;
@@ -160,10 +183,10 @@ usb_device_request_setup_packet_t * request, uint16_t port
  * @return
  */
 static inline usb_device_request_setup_packet_t *
-usb_hub_create_disable_port_request(uint16_t port){
+usb_hub_create_disable_port_request(uint16_t port) {
 	usb_device_request_setup_packet_t * result =
-		usb_new(usb_device_request_setup_packet_t);
-	usb_hub_set_disable_port_request(result,port);
+		malloc(sizeof(usb_device_request_setup_packet_t));
+	usb_hub_set_disable_port_request(result, port);
 	return result;
 }
 
@@ -173,8 +196,8 @@ usb_hub_create_disable_port_request(uint16_t port){
  * @param port
  */
 static inline void usb_hub_set_reset_port_request(
-usb_device_request_setup_packet_t * request, uint16_t port
-){
+	usb_device_request_setup_packet_t * request, uint16_t port
+	) {
 	request->index = port;
 	request->request_type = USB_HUB_REQ_TYPE_SET_PORT_FEATURE;
 	request->request = USB_HUB_REQUEST_SET_FEATURE;
@@ -188,10 +211,10 @@ usb_device_request_setup_packet_t * request, uint16_t port
  * @return
  */
 static inline usb_device_request_setup_packet_t *
-usb_hub_create_reset_port_request(uint16_t port){
+usb_hub_create_reset_port_request(uint16_t port) {
 	usb_device_request_setup_packet_t * result =
-		usb_new(usb_device_request_setup_packet_t);
-	usb_hub_set_reset_port_request(result,port);
+		malloc(sizeof(usb_device_request_setup_packet_t));
+	usb_hub_set_reset_port_request(result, port);
 	return result;
 }
 
@@ -201,8 +224,8 @@ usb_hub_create_reset_port_request(uint16_t port){
  * @param port
  */
 static inline void usb_hub_set_power_port_request(
-usb_device_request_setup_packet_t * request, uint16_t port
-){
+	usb_device_request_setup_packet_t * request, uint16_t port
+	) {
 	request->index = port;
 	request->request_type = USB_HUB_REQ_TYPE_SET_PORT_FEATURE;
 	request->request = USB_HUB_REQUEST_SET_FEATURE;
@@ -216,8 +239,8 @@ usb_device_request_setup_packet_t * request, uint16_t port
  * @param port
  */
 static inline void usb_hub_unset_power_port_request(
-usb_device_request_setup_packet_t * request, uint16_t port
-){
+	usb_device_request_setup_packet_t * request, uint16_t port
+	) {
 	request->index = port;
 	request->request_type = USB_HUB_REQ_TYPE_SET_PORT_FEATURE;
 	request->request = USB_HUB_REQUEST_CLEAR_FEATURE;
@@ -225,148 +248,435 @@ usb_device_request_setup_packet_t * request, uint16_t port
 	request->length = 0;
 }
 
-
-/** get i`th bit of port status */
-static inline bool usb_port_get_bit(usb_port_status_t * status, int idx)
-{
-	return (((*status)>>(idx))%2);
+/**
+ * get i`th bit of port status
+ * 
+ * @param status
+ * @param idx
+ * @return
+ */
+static inline bool usb_port_is_status(usb_port_status_t status, int idx) {
+	return (status&(1 << idx))!=0;
 }
 
-/** set i`th bit of port status */
-static inline void usb_port_set_bit(
-	usb_port_status_t * status, int idx, bool value)
-{
-	(*status) = value?
-		               ((*status)|(1<<(idx))):
-		               ((*status)&(~(1<<(idx))));
+/**
+ * set i`th bit of port status
+ * 
+ * @param status
+ * @param idx
+ * @param value
+ */
+static inline void usb_port_status_set_bit(
+	usb_port_status_t * status, int idx, bool value) {
+	(*status) = value ?
+		((*status) | (1 << (idx))) :
+		((*status)&(~(1 << (idx))));
 }
 
-//device connnected on port
-static inline bool usb_port_dev_connected(usb_port_status_t * status){
-	return usb_port_get_bit(status,0);
+/**
+ * get i`th bit of hub status
+ * 
+ * @param status
+ * @param idx
+ * @return
+ */
+static inline bool usb_hub_is_status(usb_hub_status_t status, int idx) {
+	return (status&(1 << idx))!=0;
 }
 
-static inline void usb_port_set_dev_connected(usb_port_status_t * status,bool connected){
-	usb_port_set_bit(status,0,connected);
+/**
+ * set i`th bit of hub status
+ * 
+ * @param status
+ * @param idx
+ * @param value
+ */
+static inline void usb_hub_status_set_bit(
+	usb_hub_status_t * status, int idx, bool value) {
+	(*status) = value ?
+		((*status) | (1 << (idx))) :
+		((*status)&(~(1 << (idx))));
+}
+
+
+#if 0
+/**
+ * connection status geter for port status
+ * 
+ * @param status
+ * @return true if there is something connected
+ */
+static inline bool usb_port_dev_connected(usb_port_status_t * status) {
+	return usb_port_get_bit(status, 0);
+}
+
+/**
+ * set device connected bit in port status
+ *
+ * @param status
+ * @param connected value of the bit
+ */
+static inline void usb_port_set_dev_connected(usb_port_status_t * status, bool connected) {
+	usb_port_set_bit(status, 0, connected);
 }
 
 //port enabled
-static inline bool usb_port_enabled(usb_port_status_t * status){
-	return usb_port_get_bit(status,1);
+
+/**
+ * port enabled getter for port status
+ * 
+ * @param status
+ * @return true if the port is enabled
+ */
+static inline bool usb_port_enabled(usb_port_status_t * status) {
+	return usb_port_get_bit(status, 1);
 }
 
-static inline void usb_port_set_enabled(usb_port_status_t * status,bool enabled){
-	usb_port_set_bit(status,1,enabled);
+/**
+ * set port enabled bit in port status
+ *
+ * @param status
+ * @param enabled value of the bit
+ */
+static inline void usb_port_set_enabled(usb_port_status_t * status, bool enabled) {
+	usb_port_set_bit(status, 1, enabled);
 }
 
 //port suspended
-static inline bool usb_port_suspended(usb_port_status_t * status){
-	return usb_port_get_bit(status,2);
+/**
+ * port suspended getter for port status
+ *
+ * @param status
+ * @return true if port is suspended
+ */
+static inline bool usb_port_suspended(usb_port_status_t * status) {
+	return usb_port_get_bit(status, 2);
 }
 
-static inline void usb_port_set_suspended(usb_port_status_t * status,bool suspended){
-	usb_port_set_bit(status,2,suspended);
+/**
+ * set port suspended bit in port status
+ *
+ * @param status
+ * @param suspended value of the bit
+ */
+static inline void usb_port_set_suspended(usb_port_status_t * status, bool suspended) {
+	usb_port_set_bit(status, 2, suspended);
 }
 
 //over currect
-static inline bool usb_port_over_current(usb_port_status_t * status){
-	return usb_port_get_bit(status,3);
+/**
+ * over current condition indicator getter for port status
+ *
+ * @param status
+ * @return true if there is opver-current condition on the hub
+ */
+static inline bool usb_port_over_current(usb_port_status_t * status) {
+	return usb_port_get_bit(status, 3);
 }
 
-static inline void usb_port_set_over_current(usb_port_status_t * status,bool value){
-	usb_port_set_bit(status,3,value);
+/**
+ * set over current indicator bit in port status
+ *
+ * @param status
+ * @param value value of the bit
+ */
+static inline void usb_port_set_over_current(usb_port_status_t * status, bool value) {
+	usb_port_set_bit(status, 3, value);
 }
 
 //port reset
-static inline bool usb_port_reset(usb_port_status_t * status){
-	return usb_port_get_bit(status,4);
+/**
+ * port reset indicator getter for port status
+ * 
+ * @param status
+ * @return true if port is reset
+ */
+static inline bool usb_port_reset(usb_port_status_t * status) {
+	return usb_port_get_bit(status, 4);
 }
 
-static inline void usb_port_set_reset(usb_port_status_t * status,bool value){
-	usb_port_set_bit(status,4,value);
+/**
+ * set port reset bit in port status
+ *
+ * @param status
+ * @param value value of the bit
+ */
+static inline void usb_port_set_reset(usb_port_status_t * status, bool value) {
+	usb_port_set_bit(status, 4, value);
 }
 
 //powered
-static inline bool usb_port_powered(usb_port_status_t * status){
-	return usb_port_get_bit(status,8);
+/**
+ * power state getter for port status
+ *
+ * @param status
+ * @return true if port is powered
+ */
+static inline bool usb_port_powered(usb_port_status_t * status) {
+	return usb_port_get_bit(status, 8);
 }
 
-static inline void usb_port_set_powered(usb_port_status_t * status,bool powered){
-	usb_port_set_bit(status,8,powered);
+/**
+ * set port powered bit in port status
+ *
+ * @param status
+ * @param powered value of the bit
+ */
+static inline void usb_port_set_powered(usb_port_status_t * status, bool powered) {
+	usb_port_set_bit(status, 8, powered);
 }
+
+#endif
 
 //low speed device attached
-static inline bool usb_port_low_speed(usb_port_status_t * status){
-	return usb_port_get_bit(status,9);
+/**
+ * low speed device on the port indicator
+ * 
+ * @param status
+ * @return true if low speed device is attached
+ */
+static inline bool usb_port_low_speed(usb_port_status_t status) {
+	return usb_port_is_status(status, 9);
 }
 
-static inline void usb_port_set_low_speed(usb_port_status_t * status,bool low_speed){
-	usb_port_set_bit(status,9,low_speed);
+/**
+ * set low speed device connected bit in port status
+ * 
+ * @param status
+ * @param low_speed value of the bit
+ */
+static inline void usb_port_set_low_speed(usb_port_status_t * status, bool low_speed) {
+	usb_port_status_set_bit(status, 9, low_speed);
 }
 
-//low speed device attached
-static inline bool usb_port_high_speed(usb_port_status_t * status){
-	return usb_port_get_bit(status,10);
+//high speed device attached
+/**
+ * high speed device on the port indicator
+ *
+ * @param status
+ * @return true if high speed device is on port
+ */
+static inline bool usb_port_high_speed(usb_port_status_t status) {
+	return usb_port_is_status(status, 10);
 }
 
-static inline void usb_port_set_high_speed(usb_port_status_t * status,bool high_speed){
-	usb_port_set_bit(status,10,high_speed);
+/**
+ * set high speed device bit in port status
+ *
+ * @param status
+ * @param high_speed value of the bit
+ */
+static inline void usb_port_set_high_speed(usb_port_status_t * status, bool high_speed) {
+	usb_port_status_set_bit(status, 10, high_speed);
 }
 
-static inline usb_speed_t usb_port_speed(usb_port_status_t * status){
-	if(usb_port_low_speed(status))
+/**
+ * speed getter for port status
+ *
+ * @param status
+ * @return speed of usb device (for more see usb specification)
+ */
+static inline usb_speed_t usb_port_speed(usb_port_status_t status) {
+	if (usb_port_low_speed(status))
 		return USB_SPEED_LOW;
-	if(usb_port_high_speed(status))
+	if (usb_port_high_speed(status))
 		return USB_SPEED_HIGH;
 	return USB_SPEED_FULL;
 }
 
-
+#if 0
 //connect change
-static inline bool usb_port_connect_change(usb_port_status_t * status){
-	return usb_port_get_bit(status,16);
+/**
+ * port connect change indicator
+ *
+ * @param status
+ * @return true if connection has changed
+ */
+static inline bool usb_port_connect_change(usb_port_status_t * status) {
+	return usb_port_get_bit(status, 16);
 }
 
-static inline void usb_port_set_connect_change(usb_port_status_t * status,bool change){
-	usb_port_set_bit(status,16,change);
+/**
+ * set connection change bit in port status
+ * @param status
+ * @param change value of the bit
+ */
+static inline void usb_port_set_connect_change(usb_port_status_t * status, bool change) {
+	usb_port_set_bit(status, 16, change);
 }
 
 //port enable change
-static inline bool usb_port_enabled_change(usb_port_status_t * status){
-	return usb_port_get_bit(status,17);
+/**
+ * port enable change for port status
+ *
+ * @param status
+ * @return true if the port has been enabled/disabled
+ */
+static inline bool usb_port_enabled_change(usb_port_status_t * status) {
+	return usb_port_get_bit(status, 17);
 }
 
-static inline void usb_port_set_enabled_change(usb_port_status_t * status,bool change){
-	usb_port_set_bit(status,17,change);
+/**
+ * set port enable change bit in port status
+ *
+ * @param status
+ * @param change value of the bit
+ */
+static inline void usb_port_set_enabled_change(usb_port_status_t * status, bool change) {
+	usb_port_set_bit(status, 17, change);
 }
 
 //suspend change
-static inline bool usb_port_suspend_change(usb_port_status_t * status){
-	return usb_port_get_bit(status,18);
+/**
+ * port suspend change for port status
+ * 
+ * @param status
+ * @return ture if suspend status has changed
+ */
+static inline bool usb_port_suspend_change(usb_port_status_t * status) {
+	return usb_port_get_bit(status, 18);
 }
 
-static inline void usb_port_set_suspend_change(usb_port_status_t * status,bool change){
-	usb_port_set_bit(status,18,change);
+/**
+ * set port suspend change bit in port status
+ *
+ * @param status
+ * @param change value of the bit
+ */
+static inline void usb_port_set_suspend_change(usb_port_status_t * status, bool change) {
+	usb_port_set_bit(status, 18, change);
 }
 
 //over current change
-static inline bool usb_port_overcurrent_change(usb_port_status_t * status){
-	return usb_port_get_bit(status,19);
+/**
+ * over current change indicator
+ * 
+ * @param status
+ * @return true if over-current condition on port has changed
+ */
+static inline bool usb_port_overcurrent_change(usb_port_status_t * status) {
+	return usb_port_get_bit(status, 19);
 }
 
-static inline void usb_port_set_overcurrent_change(usb_port_status_t * status,bool change){
-	usb_port_set_bit(status,19,change);
+/**
+ * set port over current change bit in port status
+ *
+ * @param status
+ * @param change value of the bit
+ */
+static inline void usb_port_set_overcurrent_change(usb_port_status_t * status, bool change) {
+	usb_port_set_bit(status, 19, change);
 }
 
 //reset change
-static inline bool usb_port_reset_completed(usb_port_status_t * status){
-	return usb_port_get_bit(status,20);
+/**
+ * port reset change indicator
+ * @param status
+ * @return true if port has been reset
+ */
+static inline bool usb_port_reset_completed(usb_port_status_t * status) {
+	return usb_port_get_bit(status, 20);
 }
 
-static inline void usb_port_set_reset_completed(usb_port_status_t * status,bool completed){
-	usb_port_set_bit(status,20,completed);
+/**
+ * set port reset completed bit in port status
+ *
+ * @param status
+ * @param change value of the bit
+ */
+static inline void usb_port_set_reset_completed(usb_port_status_t * status, bool completed) {
+	usb_port_set_bit(status, 20, completed);
 }
 
+//local power status
+/**
+ * local power lost indicator for hub status
+ * 
+ * @param status
+ * @return true if hub is not powered
+ */
+static inline bool usb_hub_local_power_lost(usb_hub_status_t * status) {
+	return usb_hub_get_bit(status, 0);
+}
+
+/**
+ * set hub power lost bit in hub status
+ *
+ * @param status
+ * @param change value of the bit
+ */
+static inline void usb_hub_set_local_power_lost(usb_port_status_t * status,
+	bool power_lost) {
+	usb_hub_set_bit(status, 0, power_lost);
+}
+
+//over current ocndition
+/**
+ * hub over-current indicator
+ *
+ * @param status
+ * @return true if over-current condition occurred on hub
+ */
+static inline bool usb_hub_over_current(usb_hub_status_t * status) {
+	return usb_hub_get_bit(status, 1);
+}
+
+/**
+ * set hub over current bit in hub status
+ *
+ * @param status
+ * @param change value of the bit
+ */
+static inline void usb_hub_set_over_current(usb_port_status_t * status,
+	bool over_current) {
+	usb_hub_set_bit(status, 1, over_current);
+}
+
+//local power change
+/**
+ * hub power change indicator
+ *
+ * @param status
+ * @return true if local power status has been changed - power has been
+ * dropped or re-established
+ */
+static inline bool usb_hub_local_power_change(usb_hub_status_t * status) {
+	return usb_hub_get_bit(status, 16);
+}
+
+/**
+ * set hub power change bit in hub status
+ *
+ * @param status
+ * @param change value of the bit
+ */
+static inline void usb_hub_set_local_power_change(usb_port_status_t * status,
+	bool change) {
+	usb_hub_set_bit(status, 16, change);
+}
+
+//local power status
+/**
+ * hub over-current condition change indicator
+ *
+ * @param status
+ * @return true if over-current condition has changed
+ */
+static inline bool usb_hub_over_current_change(usb_hub_status_t * status) {
+	return usb_hub_get_bit(status, 17);
+}
+
+/**
+ * set hub over current change bit in hub status
+ *
+ * @param status
+ * @param change value of the bit
+ */
+static inline void usb_hub_set_over_current_change(usb_port_status_t * status,
+	bool change) {
+	usb_hub_set_bit(status, 17, change);
+}
+#endif
 
 
 #endif	/* HUB_PORT_STATUS_H */

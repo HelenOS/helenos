@@ -114,7 +114,8 @@ static const uint32_t hub_clear_feature_by_writing_one_mask =
 	1 << USB_HUB_FEATURE_C_HUB_LOCAL_POWER;
 
 static const uint32_t hub_set_feature_valid_mask =
-	(1 << USB_HUB_FEATURE_C_HUB_OVER_CURRENT);
+	(1 << USB_HUB_FEATURE_C_HUB_OVER_CURRENT) |
+(1 << USB_HUB_FEATURE_C_HUB_LOCAL_POWER);
 
 
 static const uint32_t hub_set_feature_direct_mask =
@@ -208,7 +209,8 @@ int rh_init(rh_t *instance, ddf_dev_t *dev, ohci_regs_t *regs) {
 	//instance->address = -1;
 	instance->registers = regs;
 	instance->device = dev;
-	instance->port_count = instance->registers->rh_desc_a & 0xff;
+	instance->port_count =
+	    (instance->registers->rh_desc_a >> RHDA_NDS_SHIFT) & RHDA_NDS_MASK;
 	rh_init_descriptors(instance);
 	// set port power mode to no-power-switching
 	instance->registers->rh_desc_a =
@@ -585,6 +587,8 @@ static int process_hub_feature_set_request(rh_t *instance,
 	uint16_t feature) {
 	if (!((1 << feature) & hub_set_feature_valid_mask))
 		return EINVAL;
+	if(feature == USB_HUB_FEATURE_C_HUB_LOCAL_POWER)
+		feature = USB_HUB_FEATURE_C_HUB_LOCAL_POWER << 16;
 	instance->registers->rh_status =
 		(instance->registers->rh_status | (1 << feature))
 		& (~hub_clear_feature_by_writing_one_mask);
