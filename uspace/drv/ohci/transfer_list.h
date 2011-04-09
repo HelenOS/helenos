@@ -29,69 +29,47 @@
  * @{
  */
 /** @file
- * @brief OHCI host controller driver structure
+ * @brief OHCI driver transfer list structure
  */
-#ifndef DRV_OHCI_HC_H
-#define DRV_OHCI_HC_H
+#ifndef DRV_OHCI_TRANSFER_LIST_H
+#define DRV_OHCI_TRANSFER_LIST_H
 
-#include <fibril.h>
 #include <fibril_synch.h>
-#include <adt/list.h>
-#include <ddi.h>
-
-#include <usb/usb.h>
-#include <usb/host/device_keeper.h>
-#include <usb/host/usb_endpoint_manager.h>
-#include <usbhc_iface.h>
 
 #include "batch.h"
-#include "ohci_regs.h"
-#include "root_hub.h"
-#include "transfer_list.h"
-#include "hw_struct/hcca.h"
+#include "hw_struct/endpoint_descriptor.h"
+#include "utils/malloc32.h"
 
-typedef struct hc {
-	ohci_regs_t *registers;
-	usb_address_t rh_address;
-	rh_t rh;
+typedef struct transfer_list
+{
+	fibril_mutex_t guard;
+	ed_t *list_head;
+	uint32_t list_head_pa;
+	const char *name;
+	link_t batch_list;
+} transfer_list_t;
 
-	hcca_t *hcca;
-
-	transfer_list_t transfers_isochronous;
-	transfer_list_t transfers_interrupt;
-	transfer_list_t transfers_control;
-	transfer_list_t transfers_bulk;
-
-	transfer_list_t *transfers[4];
-
-	ddf_fun_t *ddf_instance;
-	usb_device_keeper_t manager;
-	usb_endpoint_manager_t ep_manager;
-	fid_t interrupt_emulator;
-} hc_t;
-
-int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun);
-
-int hc_init(hc_t *instance, ddf_fun_t *fun, ddf_dev_t *dev,
-     uintptr_t regs, size_t reg_size, bool interrupts);
-
-int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch);
-
-void hc_interrupt(hc_t *instance, uint32_t status);
-
-/** Safely dispose host controller internal structures
+/** Dispose transfer list structures.
  *
- * @param[in] instance Host controller structure to use.
- */
-static inline void hc_fini(hc_t *instance) { /* TODO: implement*/ };
-
-/** Get and cast pointer to the driver data
+ * @param[in] instance Memory place to use.
  *
- * @param[in] fun DDF function pointer
- * @return cast pointer to driver_data
+ * Frees memory for internal qh_t structure.
  */
-static inline hc_t * fun_to_hc(ddf_fun_t *fun)
-	{ return (hc_t*)fun->driver_data; }
+static inline void transfer_list_fini(transfer_list_t *instance)
+{
+	assert(instance);
+	free32(instance->list_head);
+}
+
+int transfer_list_init(transfer_list_t *instance, const char *name);
+
+void transfer_list_set_next(transfer_list_t *instance, transfer_list_t *next);
+
+void transfer_list_add_batch(transfer_list_t *instance, usb_transfer_batch_t *batch);
+
+void transfer_list_remove_finished(transfer_list_t *instance, link_t *done);
+
+void transfer_list_abort_all(transfer_list_t *instance);
 #endif
 /**
  * @}

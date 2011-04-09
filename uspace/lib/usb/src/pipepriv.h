@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,65 +25,27 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup drvusbohci
+
+/** @addtogroup libusb
  * @{
  */
 /** @file
- * @brief OHCI driver
+ * Library internal functions on USB pipes.
  */
-#ifndef DRV_OHCI_HW_STRUCT_COMPLETION_CODES_H
-#define DRV_OHCI_HW_STRUCT_COMPLETION_CODES_H
+#ifndef LIBUSB_PIPEPRIV_H_
+#define LIBUSB_PIPEPRIV_H_
 
-#include <errno.h>
+#include <usb/pipes.h>
 
-#define CC_NOERROR (0x0)
-#define CC_CRC (0x1)
-#define CC_BITSTUFF (0x2)
-#define CC_TOGGLE (0x3)
-#define CC_STALL (0x4)
-#define CC_NORESPONSE (0x5)
-#define CC_PIDFAIL (0x6)
-#define CC_PIDUNEXPECTED (0x7)
-#define CC_DATAOVERRRUN (0x8)
-#define CC_DATAUNDERRRUN (0x9)
-#define CC_BUFFEROVERRRUN (0xc)
-#define CC_BUFFERUNDERRUN (0xd)
-#define CC_NOACCESS1 (0xe)
-#define CC_NOACCESS2 (0xf)
+void pipe_acquire(usb_pipe_t *);
+void pipe_release(usb_pipe_t *);
 
-inline static int cc_to_rc(int cc)
-{
-	switch (cc) {
-	case CC_NOERROR:
-		return EOK;
+void pipe_start_transaction(usb_pipe_t *);
+void pipe_end_transaction(usb_pipe_t *);
 
-	case CC_CRC:
-		return EBADCHECKSUM;
+int pipe_add_ref(usb_pipe_t *);
+void pipe_drop_ref(usb_pipe_t *);
 
-	case CC_PIDUNEXPECTED:
-	case CC_PIDFAIL:
-	case CC_BITSTUFF:
-		return EIO;
-
-	case CC_TOGGLE:
-	case CC_STALL:
-		return ESTALL;
-
-	case CC_NORESPONSE:
-		return ETIMEOUT;
-
-	case CC_DATAOVERRRUN:
-	case CC_DATAUNDERRRUN:
-	case CC_BUFFEROVERRRUN:
-	case CC_BUFFERUNDERRUN:
-		return EOVERFLOW;
-
-	case CC_NOACCESS1:
-	case CC_NOACCESS2:
-	default:
-		return ENOTSUP;
-	}
-}
 
 #endif
 /**

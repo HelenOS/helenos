@@ -49,6 +49,7 @@ usbinfo_device_t *prepare_device(devman_handle_t hc_handle,
 	}
 
 	int rc;
+	bool transfer_started = false;
 
 	rc = usb_device_connection_initialize(&dev->wire, hc_handle, dev_addr);
 	if (rc != EOK) {
@@ -75,13 +76,14 @@ usbinfo_device_t *prepare_device(devman_handle_t hc_handle,
 		goto leave;
 	}
 
-	rc = usb_pipe_start_session(&dev->ctrl_pipe);
+	rc = usb_pipe_start_long_transfer(&dev->ctrl_pipe);
 	if (rc != EOK) {
 		fprintf(stderr,
-		    NAME ": failed to start session on control pipe: %s.\n",
+		    NAME ": failed to start transfer on control pipe: %s.\n",
 		    str_error(rc));
 		goto leave;
 	}
+	transfer_started = true;
 
 	rc = usb_request_get_device_descriptor(&dev->ctrl_pipe,
 	    &dev->device_descriptor);
@@ -106,8 +108,8 @@ usbinfo_device_t *prepare_device(devman_handle_t hc_handle,
 
 
 leave:
-	if (usb_pipe_is_session_started(&dev->ctrl_pipe)) {
-		usb_pipe_end_session(&dev->ctrl_pipe);
+	if (transfer_started) {
+		usb_pipe_end_long_transfer(&dev->ctrl_pipe);
 	}
 
 	free(dev);
@@ -117,7 +119,7 @@ leave:
 
 void destroy_device(usbinfo_device_t *dev)
 {
-	usb_pipe_end_session(&dev->ctrl_pipe);
+	usb_pipe_end_long_transfer(&dev->ctrl_pipe);
 	free(dev);
 }
 

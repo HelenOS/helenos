@@ -54,20 +54,16 @@ static int usbmid_add_device(usb_device_t *dev)
 
 	int rc;
 
-	rc = usb_pipe_start_session(&dev->ctrl_pipe);
+	rc = usb_pipe_start_long_transfer(&dev->ctrl_pipe);
 	if (rc != EOK) {
-		usb_log_error("Failed to start session on control pipe: %s.\n",
+		usb_log_error("Failed to start transfer on control pipe: %s.\n",
 		    str_error(rc));
 		return rc;
 	}
 
 	bool accept = usbmid_explore_device(dev);
 
-	rc = usb_pipe_end_session(&dev->ctrl_pipe);
-	if (rc != EOK) {
-		usb_log_warning("Failed to end session on control pipe: %s.\n",
-		    str_error(rc));
-	}
+	usb_pipe_end_long_transfer(&dev->ctrl_pipe);
 
 	if (!accept) {
 		return ENOTSUP;

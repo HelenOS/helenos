@@ -102,15 +102,13 @@ usb_transfer_batch_t * batch_get(ddf_fun_t *fun, endpoint_t *ep,
 	    "Failed to allocate batch instance.\n");
 	usb_target_t target =
 	    { .address = ep->address, .endpoint = ep->endpoint };
-	usb_transfer_batch_init(instance, target,
-	    ep->transfer_type, ep->speed, ep->max_packet_size,
-	    buffer, NULL, buffer_size, NULL, setup_size, func_in,
-	    func_out, arg, fun, ep, NULL);
+	usb_transfer_batch_init(instance, target, ep->transfer_type, ep->speed,
+	    ep->max_packet_size, buffer, NULL, buffer_size, NULL, setup_size,
+	    func_in, func_out, arg, fun, ep, NULL);
 
 
 	uhci_batch_t *data = malloc(sizeof(uhci_batch_t));
-	CHECK_NULL_DISPOSE_RETURN(instance,
-	    "Failed to allocate batch instance.\n");
+	CHECK_NULL_DISPOSE_RETURN(data, "Failed to allocate batch data.\n");
 	bzero(data, sizeof(uhci_batch_t));
 	instance->private_data = data;
 
