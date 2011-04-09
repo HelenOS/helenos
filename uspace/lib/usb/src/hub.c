@@ -53,43 +53,6 @@
 		} \
 	} while (false)
 
-
-/** Tell host controller to reserve default address.
- * @deprecated
- *
- * @param connection Opened connection to host controller.
- * @param speed Speed of the device that will respond on the default address.
- * @return Error code.
- */
-int usb_hc_reserve_default_address(usb_hc_connection_t *connection,
-    usb_speed_t speed)
-{
-	CHECK_CONNECTION(connection);
-
-	usb_log_warning("usb_hc_reserve_default_address() considered obsolete");
-
-	return async_req_2_0(connection->hc_phone,
-	    DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_RESERVE_DEFAULT_ADDRESS, speed);
-}
-
-/** Tell host controller to release default address.
- * @deprecated
- *
- * @param connection Opened connection to host controller.
- * @return Error code.
- */
-int usb_hc_release_default_address(usb_hc_connection_t *connection)
-{
-	CHECK_CONNECTION(connection);
-
-	usb_log_warning("usb_hc_release_default_address() considered obsolete");
-
-	return async_req_1_0(connection->hc_phone,
-	    DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_RELEASE_DEFAULT_ADDRESS);
-}
-
 /** Ask host controller for free address assignment.
  *
  * @param connection Opened connection to host controller.

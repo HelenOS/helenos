@@ -97,8 +97,6 @@ int usb_hub_add_device(usb_device_t * usb_dev);
 bool hub_port_changes_callback(usb_device_t *dev,
     uint8_t *change_bitmap, size_t change_bitmap_size, void *arg);
 
-int usb_hub_release_default_address(usb_hub_info_t * hub);
-
 #endif
 /**
  * @}

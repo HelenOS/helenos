@@ -49,8 +49,6 @@ static void remote_usbhc_bulk_out(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t 
 static void remote_usbhc_bulk_in(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbhc_control_write(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbhc_control_read(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_usbhc_reserve_default_address(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
-static void remote_usbhc_release_default_address(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbhc_request_address(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbhc_bind_address(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
 static void remote_usbhc_release_address(ddf_fun_t *, void *, ipc_callid_t, ipc_call_t *);
@@ -60,9 +58,6 @@ static void remote_usbhc_unregister_endpoint(ddf_fun_t *, void *, ipc_callid_t, 
 
 /** Remote USB host controller interface operations. */
 static remote_iface_func_ptr_t remote_usbhc_iface_ops [] = {
-	remote_usbhc_reserve_default_address,
-	remote_usbhc_release_default_address,
-
 	remote_usbhc_request_address,
 	remote_usbhc_bind_address,
 	remote_usbhc_release_address,
@@ -126,38 +121,6 @@ static async_transaction_t *async_transaction_create(ipc_callid_t caller)
 	trans->size = 0;
 
 	return trans;
-}
-
-void remote_usbhc_reserve_default_address(ddf_fun_t *fun, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
-{
-	usbhc_iface_t *usb_iface = (usbhc_iface_t *) iface;
-
-	if (!usb_iface->reserve_default_address) {
-		async_answer_0(callid, ENOTSUP);
-		return;
-	}
-	
-	usb_speed_t speed = DEV_IPC_GET_ARG1(*call);
-	
-	int rc = usb_iface->reserve_default_address(fun, speed);
-
-	async_answer_0(callid, rc);
-}
-
-void remote_usbhc_release_default_address(ddf_fun_t *fun, void *iface,
-    ipc_callid_t callid, ipc_call_t *call)
-{
-	usbhc_iface_t *usb_iface = (usbhc_iface_t *) iface;
-
-	if (!usb_iface->release_default_address) {
-		async_answer_0(callid, ENOTSUP);
-		return;
-	}
-
-	int rc = usb_iface->release_default_address(fun);
-
-	async_answer_0(callid, rc);
 }
 
 void remote_usbhc_request_address(ddf_fun_t *fun, void *iface,
