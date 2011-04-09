@@ -131,8 +131,9 @@ int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch)
 	if (batch->target.address == instance->rh.address) {
 		return rh_request(&instance->rh, batch);
 	}
-	/* TODO: implement */
-	return ENOTSUP;
+	transfer_list_add_batch(
+	    instance->transfers[batch->transfer_type], batch);
+	return EOK;
 }
 /*----------------------------------------------------------------------------*/
 void hc_interrupt(hc_t *instance, uint32_t status)
@@ -144,6 +145,20 @@ void hc_interrupt(hc_t *instance, uint32_t status)
 		rh_interrupt(&instance->rh);
 
 	usb_log_info("OHCI interrupt: %x.\n", status);
+
+	LIST_INITIALIZE(done);
+	transfer_list_remove_finished(&instance->transfers_interrupt, &done);
+	transfer_list_remove_finished(&instance->transfers_isochronous, &done);
+	transfer_list_remove_finished(&instance->transfers_control, &done);
+	transfer_list_remove_finished(&instance->transfers_bulk, &done);
+
+	while (!list_empty(&done)) {
+		link_t *item = done.next;
+		list_remove(item);
+		usb_transfer_batch_t *batch =
+		    list_get_instance(item, usb_transfer_batch_t, link);
+		usb_transfer_batch_finish(batch);
+	}
 
 	/* TODO: Check for further interrupt causes */
 	/* TODO: implement */
