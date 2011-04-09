@@ -56,9 +56,7 @@ void ed_init(ed_t *instance, endpoint_t *ep)
 		instance->status |= ED_STATUS_S_FLAG;
 	if (ep->transfer_type == USB_TRANSFER_ISOCHRONOUS)
 		instance->status |= ED_STATUS_F_FLAG;
-
 }
-
 /**
  * @}
  */

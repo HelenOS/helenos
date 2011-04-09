@@ -107,11 +107,6 @@ if (ret != EOK) { \
 	CHECK_RET_RETURN(ret, "Failed to initialize endpoint manager: %s.\n",
 	    ret, str_error(ret));
 
-	if (!interrupts) {
-		instance->interrupt_emulator =
-		    fibril_create((int(*)(void*))interrupt_emulator, instance);
-		fibril_add_ready(instance->interrupt_emulator);
-	}
 
 	hc_gain_control(instance);
 
@@ -119,6 +114,12 @@ if (ret != EOK) { \
 
 	hc_init_memory(instance);
 	hc_init_hw(instance);
+
+	if (!interrupts) {
+		instance->interrupt_emulator =
+		    fibril_create((int(*)(void*))interrupt_emulator, instance);
+		fibril_add_ready(instance->interrupt_emulator);
+	}
 
 	/* TODO: implement */
 	return EOK;
