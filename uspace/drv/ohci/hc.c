@@ -128,11 +128,25 @@ int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch)
 {
 	assert(instance);
 	assert(batch);
+
+	/* check for root hub communication */
 	if (batch->target.address == instance->rh.address) {
 		return rh_request(&instance->rh, batch);
 	}
+
 	transfer_list_add_batch(
 	    instance->transfers[batch->transfer_type], batch);
+
+	switch (batch->transfer_type) {
+	case USB_TRANSFER_CONTROL:
+		instance->registers->command_status |= CS_CLF;
+		break;
+	case USB_TRANSFER_BULK:
+		instance->registers->command_status |= CS_BLF;
+		break;
+	default:
+		break;
+	}
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -159,9 +173,6 @@ void hc_interrupt(hc_t *instance, uint32_t status)
 		    list_get_instance(item, usb_transfer_batch_t, link);
 		usb_transfer_batch_finish(batch);
 	}
-
-	/* TODO: Check for further interrupt causes */
-	/* TODO: implement */
 }
 /*----------------------------------------------------------------------------*/
 int interrupt_emulator(hc_t *instance)
