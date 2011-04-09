@@ -65,7 +65,7 @@ read_directory_entry(struct mfs_node *mnode, unsigned index)
 		struct mfs3_dentry *d3;
 
 		d3 = b->data + (dentry_off * MFS3_DIRSIZE);
-		d3 += dentry_off;
+
 		d_info->d_inum = conv32(sbi->native, d3->d_inum);
 		memcpy(d_info->d_name, d3->d_name, MFS3_MAX_NAME_LEN);
 	} else {
