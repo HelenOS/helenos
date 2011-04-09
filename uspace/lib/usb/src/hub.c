@@ -177,8 +177,13 @@ static void unregister_control_endpoint_on_default_address(
  * The return value is then returned (it is good idea to use different
  * error codes than those listed as return codes by this function itself).
  *
+ * The @p connection representing connection with host controller does not
+ * need to be started.
+ * This function duplicates the connection to allow simultaneous calls of
+ * this function (i.e. from different fibrils).
+ *
  * @param[in] parent Parent device (i.e. the hub device).
- * @param[in] connection Opened connection to host controller.
+ * @param[in] connection Connection to host controller.
  * @param[in] dev_speed New device speed.
  * @param[in] enable_port Function for enabling signaling through the port the
  *	device is attached to.
@@ -205,22 +210,35 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
     usb_address_t *assigned_address, devman_handle_t *assigned_handle,
     ddf_dev_ops_t *dev_ops, void *new_dev_data, ddf_fun_t **new_fun)
 {
-	CHECK_CONNECTION(connection);
+	assert(connection != NULL);
+	// FIXME: this is awful, we are accessing directly the structure.
+	usb_hc_connection_t hc_conn = {
+		.hc_handle = connection->hc_handle,
+		.hc_phone = -1
+	};
+
+	int rc;
+
+	rc = usb_hc_connection_open(&hc_conn);
+	if (rc != EOK) {
+		return rc;
+	}
+
 
 	/*
 	 * Request new address.
 	 */
-	usb_address_t dev_addr = usb_hc_request_address(connection, dev_speed);
+	usb_address_t dev_addr = usb_hc_request_address(&hc_conn, dev_speed);
 	if (dev_addr < 0) {
+		usb_hc_connection_close(&hc_conn);
 		return EADDRNOTAVAIL;
 	}
 
-	int rc;
 
 	/*
 	 * Reserve the default address.
 	 */
-	rc = usb_hc_reserve_default_address(connection, dev_speed);
+	rc = usb_hc_reserve_default_address(&hc_conn, dev_speed);
 	if (rc != EOK) {
 		rc = EBUSY;
 		goto leave_release_free_address;
@@ -240,7 +258,7 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 	 */
 	usb_device_connection_t dev_conn;
 	rc = usb_device_connection_initialize_on_default_address(&dev_conn,
-	    connection);
+	    &hc_conn);
 	if (rc != EOK) {
 		rc = ENOTCONN;
 		goto leave_release_default_address;
@@ -257,7 +275,7 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 	/* Before sending any traffic, we need to register this
 	 * endpoint.
 	 */
-	rc = usb_pipe_register(&ctrl_pipe, 0, connection);
+	rc = usb_pipe_register(&ctrl_pipe, 0, &hc_conn);
 	if (rc != EOK) {
 		rc = EREFUSED;
 		goto leave_release_default_address;
@@ -285,7 +303,7 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 	/*
 	 * Register the control endpoint for the new device.
 	 */
-	rc = usb_pipe_register(&ctrl_pipe, 0, connection);
+	rc = usb_pipe_register(&ctrl_pipe, 0, &hc_conn);
 	if (rc != EOK) {
 		rc = EREFUSED;
 		goto leave_unregister_endpoint;
@@ -294,12 +312,12 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 	/*
 	 * Release the original endpoint.
 	 */
-	unregister_control_endpoint_on_default_address(connection);
+	unregister_control_endpoint_on_default_address(&hc_conn);
 
 	/*
 	 * Once the address is changed, we can return the default address.
 	 */
-	usb_hc_release_default_address(connection);
+	usb_hc_release_default_address(&hc_conn);
 
 
 	/*
@@ -324,7 +342,7 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 		.address = dev_addr,
 		.handle = child_handle
 	};
-	rc = usb_hc_register_device(connection, &new_device);
+	rc = usb_hc_register_device(&hc_conn, &new_device);
 	if (rc != EOK) {
 		rc = EDESTADDRREQ;
 		goto leave_release_free_address;
@@ -353,13 +371,15 @@ leave_stop_session:
 	usb_pipe_end_session(&ctrl_pipe);
 
 leave_unregister_endpoint:
-	usb_pipe_unregister(&ctrl_pipe, connection);
+	usb_pipe_unregister(&ctrl_pipe, &hc_conn);
 
 leave_release_default_address:
-	usb_hc_release_default_address(connection);
+	usb_hc_release_default_address(&hc_conn);
 
 leave_release_free_address:
-	usb_hc_unregister_device(connection, dev_addr);
+	usb_hc_unregister_device(&hc_conn, dev_addr);
+
+	usb_hc_connection_close(&hc_conn);
 
 	return rc;
 }

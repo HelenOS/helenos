@@ -104,7 +104,7 @@ static int usb_kbd_try_add_device(usb_device_t *dev)
 		ddf_fun_destroy(kbd_fun);
 		usb_kbd_free(&kbd_dev);
 		return rc;
-	}
+	}	
 	
 	usb_log_debug("USB/HID KBD device structure initialized.\n");
 	

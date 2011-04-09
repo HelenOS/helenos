@@ -91,7 +91,15 @@ static inline usb_transfer_batch_t *usb_transfer_batch_from_link(link_t *l)
 
 void usb_transfer_batch_call_in(usb_transfer_batch_t *instance);
 void usb_transfer_batch_call_out(usb_transfer_batch_t *instance);
-void usb_transfer_batch_finish(usb_transfer_batch_t *instance, int error);
+void usb_transfer_batch_finish(usb_transfer_batch_t *instance);
+
+static inline void usb_transfer_batch_finish_error(
+    usb_transfer_batch_t *instance, int error)
+{
+	assert(instance);
+	instance->error = error;
+	usb_transfer_batch_finish(instance);
+}
 
 #endif
 /**

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2011 Lubos Slovak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,32 +25,42 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup drvusbuhcirh
+
+/** @addtogroup drvusbhid
  * @{
  */
-/** @file
- * @brief UHCI driver
+/**
+ * @file
+ * USB HID driver API.
  */
-#ifndef DRV_UHCI_ROOT_HUB_H
-#define DRV_UHCI_ROOT_HUB_H
 
-#include <ddf/driver.h>
+#include <usb/debug.h>
+#include <usb/classes/classes.h>
 
-#include "port.h"
+#include "hiddev.h"
 
-#define UHCI_ROOT_HUB_PORT_COUNT 2
-#define ROOT_HUB_WAIT_USEC 250000 /* 250 miliseconds */
+/*----------------------------------------------------------------------------*/
 
-typedef struct root_hub {
-	uhci_port_t ports[UHCI_ROOT_HUB_PORT_COUNT];
-	devman_handle_t hc_handle;
-} uhci_root_hub_t;
+usb_endpoint_description_t usb_hid_generic_poll_endpoint_description = {
+	.transfer_type = USB_TRANSFER_INTERRUPT,
+	.direction = USB_DIRECTION_IN,
+	.interface_class = USB_CLASS_HID,
+	.flags = 0
+};
 
-int uhci_root_hub_init(
-  uhci_root_hub_t *instance, void *addr, size_t size, ddf_dev_t *rh);
+const char *HID_GENERIC_FUN_NAME = "hid";
+const char *HID_GENERIC_CLASS_NAME = "hid";
 
-void uhci_root_hub_fini(uhci_root_hub_t *instance);
-#endif
+/*----------------------------------------------------------------------------*/
+
+bool usb_hid_polling_callback(usb_device_t *dev, uint8_t *buffer,
+     size_t buffer_size, void *arg)
+{
+	usb_log_debug("usb_hid_polling_callback()\n");
+	usb_debug_str_buffer(buffer, buffer_size, 0);
+	return true;
+}
+
 /**
  * @}
  */
