@@ -114,7 +114,8 @@ static const uint32_t hub_clear_feature_by_writing_one_mask =
 	1 << USB_HUB_FEATURE_C_HUB_LOCAL_POWER;
 
 static const uint32_t hub_set_feature_valid_mask =
-	(1 << USB_HUB_FEATURE_C_HUB_OVER_CURRENT);
+	(1 << USB_HUB_FEATURE_C_HUB_OVER_CURRENT) |
+(1 << USB_HUB_FEATURE_C_HUB_LOCAL_POWER);
 
 
 static const uint32_t hub_set_feature_direct_mask =
@@ -586,6 +587,8 @@ static int process_hub_feature_set_request(rh_t *instance,
 	uint16_t feature) {
 	if (!((1 << feature) & hub_set_feature_valid_mask))
 		return EINVAL;
+	if(feature == USB_HUB_FEATURE_C_HUB_LOCAL_POWER)
+		feature = USB_HUB_FEATURE_C_HUB_LOCAL_POWER << 16;
 	instance->registers->rh_status =
 		(instance->registers->rh_status | (1 << feature))
 		& (~hub_clear_feature_by_writing_one_mask);

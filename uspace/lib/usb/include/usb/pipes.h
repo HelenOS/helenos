@@ -41,6 +41,7 @@
 #include <usb/descriptor.h>
 #include <ipc/devman.h>
 #include <ddf/driver.h>
+#include <fibril_synch.h>
 
 /** Abstraction of a physical connection to the device.
  * This type is an abstraction of the USB wire that connects the host and
@@ -58,8 +59,16 @@ typedef struct {
  * as information about currently running sessions.
  * This endpoint must be bound with existing usb_device_connection_t
  * (i.e. the wire to send data over).
+ *
+ * Locking order: if you want to lock both mutexes
+ * (@c guard and @c hc_phone_mutex), lock @c guard first.
+ * It is not necessary to lock @c guard if you want to lock @c hc_phone_mutex
+ * only.
  */
 typedef struct {
+	/** Guard of the whole pipe. */
+	fibril_mutex_t guard;
+
 	/** The connection used for sending the data. */
 	usb_device_connection_t *wire;
 
@@ -77,8 +86,18 @@ typedef struct {
 
 	/** Phone to the host controller.
 	 * Negative when no session is active.
+	 * It is an error to access this member without @c hc_phone_mutex
+	 * being locked.
+	 * If call over the phone is to be made, it must be preceeded by
+	 * call to pipe_add_ref() [internal libusb function].
 	 */
 	int hc_phone;
+
+	/** Guard for serialization of requests over the phone. */
+	fibril_mutex_t hc_phone_mutex;
+
+	/** Number of active transfers over the pipe. */
+	int refcount;
 } usb_pipe_t;
 
 
@@ -133,12 +152,17 @@ int usb_pipe_initialize_default_control(usb_pipe_t *,
 int usb_pipe_probe_default_control(usb_pipe_t *);
 int usb_pipe_initialize_from_configuration(usb_endpoint_mapping_t *,
     size_t, uint8_t *, size_t, usb_device_connection_t *);
+int usb_pipe_register_with_speed(usb_pipe_t *, usb_speed_t,
+    unsigned int, usb_hc_connection_t *);
 int usb_pipe_register(usb_pipe_t *, unsigned int, usb_hc_connection_t *);
 int usb_pipe_unregister(usb_pipe_t *, usb_hc_connection_t *);
 
 int usb_pipe_start_session(usb_pipe_t *);
 int usb_pipe_end_session(usb_pipe_t *);
 bool usb_pipe_is_session_started(usb_pipe_t *);
+
+int usb_pipe_start_long_transfer(usb_pipe_t *);
+void usb_pipe_end_long_transfer(usb_pipe_t *);
 
 int usb_pipe_read(usb_pipe_t *, void *, size_t, size_t *);
 int usb_pipe_write(usb_pipe_t *, void *, size_t);

@@ -26,50 +26,25 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbhub
+/** @addtogroup libusb
  * @{
  */
 /** @file
- * Hub ports related functions.
+ * Library internal functions on USB pipes.
  */
-#ifndef DRV_USBHUB_PORTS_H
-#define DRV_USBHUB_PORTS_H
+#ifndef LIBUSB_PIPEPRIV_H_
+#define LIBUSB_PIPEPRIV_H_
 
-#include <usb/devdrv.h>
-#include <usb/hub.h>
+#include <usb/pipes.h>
 
-typedef struct usb_hub_info_t usb_hub_info_t;
+void pipe_acquire(usb_pipe_t *);
+void pipe_release(usb_pipe_t *);
 
-/** Information about single port on a hub. */
-typedef struct {
-	/** Mutex needed by CV for checking port reset. */
-	fibril_mutex_t reset_mutex;
-	/** CV for waiting to port reset completion. */
-	fibril_condvar_t reset_cv;
-	/** Whether port reset is completed.
-	 * Guarded by @c reset_mutex.
-	 */
-	bool reset_completed;
+void pipe_start_transaction(usb_pipe_t *);
+void pipe_end_transaction(usb_pipe_t *);
 
-	/** Information about attached device. */
-	usb_hc_attached_device_t attached_device;
-} usb_hub_port_t;
-
-/** Initialize hub port information.
- *
- * @param port Port to be initialized.
- */
-static inline void usb_hub_port_init(usb_hub_port_t *port) {
-	port->attached_device.address = -1;
-	port->attached_device.handle = 0;
-	fibril_mutex_initialize(&port->reset_mutex);
-	fibril_condvar_initialize(&port->reset_cv);
-}
-
-
-void usb_hub_process_interrupt(usb_hub_info_t * hub,
-	uint16_t port);
-
+int pipe_add_ref(usb_pipe_t *);
+void pipe_drop_ref(usb_pipe_t *);
 
 
 #endif

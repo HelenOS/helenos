@@ -65,7 +65,6 @@
  * - first, IPC call with given method is made
  *   - argument #1 is target address
  *   - argument #2 is target endpoint
- *   - argument #3 is max packet size of the endpoint
  * - this call is immediately followed by IPC data read (async version)
  * - the call is not answered until the device returns some data (or until
  *   error occurs)
@@ -168,11 +167,14 @@ typedef enum {
 
 	/** Register endpoint attributes at host controller.
 	 * This is used to reserve portion of USB bandwidth.
+	 * When speed is invalid, speed of the device is used.
 	 * Parameters:
-	 * - USB address + endpoint number (ADDR * 256 + EP)
-	 * - transfer type + direction (TYPE * 256 + DIR)
-	 * - maximum packet size
-	 * - interval (in milliseconds)
+	 * - USB address + endpoint number
+	 *   - packed as ADDR << 16 + EP
+	 * - speed + transfer type + direction
+	 *   - packed as ( SPEED << 8 + TYPE ) << 8 + DIR
+	 * - maximum packet size + interval (in milliseconds)
+	 *   - packed as MPS << 16 + INT
 	 * Answer:
 	 * - EOK - reservation successful
 	 * - ELIMIT - not enough bandwidth to satisfy the request
@@ -201,7 +203,7 @@ typedef void (*usbhc_iface_transfer_in_callback_t)(ddf_fun_t *,
 
 
 /** Out transfer processing function prototype. */
-typedef int (*usbhc_iface_transfer_out_t)(ddf_fun_t *, usb_target_t, size_t,
+typedef int (*usbhc_iface_transfer_out_t)(ddf_fun_t *, usb_target_t,
     void *, size_t,
     usbhc_iface_transfer_out_callback_t, void *);
 
@@ -209,7 +211,7 @@ typedef int (*usbhc_iface_transfer_out_t)(ddf_fun_t *, usb_target_t, size_t,
 typedef usbhc_iface_transfer_out_t usbhc_iface_transfer_setup_t;
 
 /** In transfer processing function prototype. */
-typedef int (*usbhc_iface_transfer_in_t)(ddf_fun_t *, usb_target_t, size_t,
+typedef int (*usbhc_iface_transfer_in_t)(ddf_fun_t *, usb_target_t,
     void *, size_t,
     usbhc_iface_transfer_in_callback_t, void *);
 
@@ -221,7 +223,8 @@ typedef struct {
 	int (*bind_address)(ddf_fun_t *, usb_address_t, devman_handle_t);
 	int (*release_address)(ddf_fun_t *, usb_address_t);
 
-	int (*register_endpoint)(ddf_fun_t *, usb_address_t, usb_endpoint_t,
+	int (*register_endpoint)(ddf_fun_t *,
+	    usb_address_t, usb_speed_t, usb_endpoint_t,
 	    usb_transfer_type_t, usb_direction_t, size_t, unsigned int);
 	int (*unregister_endpoint)(ddf_fun_t *, usb_address_t, usb_endpoint_t,
 	    usb_direction_t);
@@ -233,12 +236,10 @@ typedef struct {
 	usbhc_iface_transfer_in_t bulk_in;
 
 	int (*control_write)(ddf_fun_t *, usb_target_t,
-	    size_t,
 	    void *, size_t, void *, size_t,
 	    usbhc_iface_transfer_out_callback_t, void *);
 
 	int (*control_read)(ddf_fun_t *, usb_target_t,
-	    size_t,
 	    void *, size_t, void *, size_t,
 	    usbhc_iface_transfer_in_callback_t, void *);
 } usbhc_iface_t;

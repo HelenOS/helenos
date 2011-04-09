@@ -72,6 +72,8 @@ void usb_device_keeper_init(usb_device_keeper_t *instance);
 
 void usb_device_keeper_add_ep(
     usb_device_keeper_t *instance, usb_address_t address, endpoint_t *ep);
+void usb_device_keeper_del_ep(
+    usb_device_keeper_t *instance, usb_address_t address, endpoint_t *ep);
 
 void usb_device_keeper_reserve_default_address(
     usb_device_keeper_t *instance, usb_speed_t speed);

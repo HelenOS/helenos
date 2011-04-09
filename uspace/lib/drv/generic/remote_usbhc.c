@@ -269,7 +269,6 @@ static void remote_usbhc_out_transfer(ddf_fun_t *fun,
 		return;
 	}
 
-	size_t max_packet_size = DEV_IPC_GET_ARG3(*call);
 	usb_target_t target = {
 		.address = DEV_IPC_GET_ARG1(*call),
 		.endpoint = DEV_IPC_GET_ARG2(*call)
@@ -299,7 +298,7 @@ static void remote_usbhc_out_transfer(ddf_fun_t *fun,
 	trans->buffer = buffer;
 	trans->size = len;
 
-	rc = transfer_func(fun, target, max_packet_size,
+	rc = transfer_func(fun, target,
 	    buffer, len,
 	    callback_out, trans);
 
@@ -325,7 +324,6 @@ static void remote_usbhc_in_transfer(ddf_fun_t *fun,
 		return;
 	}
 
-	size_t max_packet_size = DEV_IPC_GET_ARG3(*call);
 	usb_target_t target = {
 		.address = DEV_IPC_GET_ARG1(*call),
 		.endpoint = DEV_IPC_GET_ARG2(*call)
@@ -347,7 +345,7 @@ static void remote_usbhc_in_transfer(ddf_fun_t *fun,
 	trans->buffer = malloc(len);
 	trans->size = len;
 
-	int rc = transfer_func(fun, target, max_packet_size,
+	int rc = transfer_func(fun, target,
 	    trans->buffer, len,
 	    callback_in, trans);
 
@@ -413,7 +411,6 @@ ipc_callid_t callid, ipc_call_t *call)
 		.endpoint = DEV_IPC_GET_ARG2(*call)
 	};
 	size_t data_buffer_len = DEV_IPC_GET_ARG3(*call);
-	size_t max_packet_size = DEV_IPC_GET_ARG4(*call);
 
 	int rc;
 
@@ -449,7 +446,7 @@ ipc_callid_t callid, ipc_call_t *call)
 	trans->buffer = data_buffer;
 	trans->size = data_buffer_len;
 
-	rc = usb_iface->control_write(fun, target, max_packet_size,
+	rc = usb_iface->control_write(fun, target,
 	    setup_packet, setup_packet_len,
 	    data_buffer, data_buffer_len,
 	    callback_out, trans);
@@ -476,7 +473,6 @@ ipc_callid_t callid, ipc_call_t *call)
 		.address = DEV_IPC_GET_ARG1(*call),
 		.endpoint = DEV_IPC_GET_ARG2(*call)
 	};
-	size_t max_packet_size = DEV_IPC_GET_ARG3(*call);
 
 	int rc;
 
@@ -514,7 +510,7 @@ ipc_callid_t callid, ipc_call_t *call)
 		return;
 	}
 
-	rc = usb_iface->control_read(fun, target, max_packet_size,
+	rc = usb_iface->control_read(fun, target,
 	    setup_packet, setup_packet_len,
 	    trans->buffer, trans->size,
 	    callback_in, trans);
@@ -536,23 +532,34 @@ void remote_usbhc_register_endpoint(ddf_fun_t *fun, void *iface,
 		return;
 	}
 
-#define INIT_FROM_HIGH_DATA(type, var, arg_no) \
-	type var = (type) DEV_IPC_GET_ARG##arg_no(*call) / 256
-#define INIT_FROM_LOW_DATA(type, var, arg_no) \
-	type var = (type) DEV_IPC_GET_ARG##arg_no(*call) % 256
+#define _INIT_FROM_HIGH_DATA2(type, var, arg_no) \
+	type var = (type) DEV_IPC_GET_ARG##arg_no(*call) / (1 << 16)
+#define _INIT_FROM_LOW_DATA2(type, var, arg_no) \
+	type var = (type) DEV_IPC_GET_ARG##arg_no(*call) % (1 << 16)
+#define _INIT_FROM_HIGH_DATA3(type, var, arg_no) \
+	type var = (type) DEV_IPC_GET_ARG##arg_no(*call) / (1 << 16)
+#define _INIT_FROM_MIDDLE_DATA3(type, var, arg_no) \
+	type var = (type) (DEV_IPC_GET_ARG##arg_no(*call) / (1 << 8)) % (1 << 8)
+#define _INIT_FROM_LOW_DATA3(type, var, arg_no) \
+	type var = (type) DEV_IPC_GET_ARG##arg_no(*call) % (1 << 8)
 
-	INIT_FROM_HIGH_DATA(usb_address_t, address, 1);
-	INIT_FROM_LOW_DATA(usb_endpoint_t, endpoint, 1);
-	INIT_FROM_HIGH_DATA(usb_transfer_type_t, transfer_type, 2);
-	INIT_FROM_LOW_DATA(usb_direction_t, direction, 2);
+	_INIT_FROM_HIGH_DATA2(usb_address_t, address, 1);
+	_INIT_FROM_LOW_DATA2(usb_endpoint_t, endpoint, 1);
 
-#undef INIT_FROM_HIGH_DATA
-#undef INIT_FROM_LOW_DATA
+	_INIT_FROM_HIGH_DATA3(usb_speed_t, speed, 2);
+	_INIT_FROM_MIDDLE_DATA3(usb_transfer_type_t, transfer_type, 2);
+	_INIT_FROM_LOW_DATA3(usb_direction_t, direction, 2);
 
-	size_t max_packet_size = (size_t) DEV_IPC_GET_ARG3(*call);
-	unsigned int interval  = (unsigned int) DEV_IPC_GET_ARG4(*call);
+	_INIT_FROM_HIGH_DATA2(size_t, max_packet_size, 3);
+	_INIT_FROM_LOW_DATA2(unsigned int, interval, 3);
 
-	int rc = usb_iface->register_endpoint(fun, address, endpoint,
+#undef _INIT_FROM_HIGH_DATA2
+#undef _INIT_FROM_LOW_DATA2
+#undef _INIT_FROM_HIGH_DATA3
+#undef _INIT_FROM_MIDDLE_DATA3
+#undef _INIT_FROM_LOW_DATA3
+
+	int rc = usb_iface->register_endpoint(fun, address, speed, endpoint,
 	    transfer_type, direction, max_packet_size, interval);
 
 	async_answer_0(callid, rc);
