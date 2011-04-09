@@ -26,11 +26,9 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-ARCH = i386  # FIXME: figure out the real arch
-
 USPACE_PREFIX = ../../../..
 MIPDIR = ../../mip
-ARCHDIR = ../../arch/$(ARCH)
+ARCHDIR = ../../arch/$(PLATFORM)
 EXTRA_CFLAGS = -I$(MIPDIR) -I$(ARCHDIR)
 EXTRA_CLEAN = y.tab.c y.tab.h
 DEFS = -DCPP_DEBUG -Dfree=free -DCPPBUF=16384
