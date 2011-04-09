@@ -26,73 +26,28 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbmid
+/** @addtogroup libusb
  * @{
  */
-/**
- * @file
- * Main routines of USB multi interface device driver.
+/** @file
+ * Library internal functions on USB pipes.
  */
-#include <errno.h>
-#include <str_error.h>
-#include <usb/debug.h>
-#include <usb/classes/classes.h>
-#include <usb/request.h>
-#include <usb/descriptor.h>
+#ifndef LIBUSB_PIPEPRIV_H_
+#define LIBUSB_PIPEPRIV_H_
+
 #include <usb/pipes.h>
 
-#include "usbmid.h"
+void pipe_acquire(usb_pipe_t *);
+void pipe_release(usb_pipe_t *);
 
-/** Callback when new MID device is attached to the host.
- *
- * @param gen_dev Generic DDF device representing the new device.
- * @return Error code.
- */
-static int usbmid_add_device(usb_device_t *dev)
-{
-	usb_log_info("Taking care of new MID `%s'.\n", dev->ddf_dev->name);
+void pipe_start_transaction(usb_pipe_t *);
+void pipe_end_transaction(usb_pipe_t *);
 
-	int rc;
+int pipe_add_ref(usb_pipe_t *);
+void pipe_drop_ref(usb_pipe_t *);
 
-	rc = usb_pipe_start_long_transfer(&dev->ctrl_pipe);
-	if (rc != EOK) {
-		usb_log_error("Failed to start transfer on control pipe: %s.\n",
-		    str_error(rc));
-		return rc;
-	}
 
-	bool accept = usbmid_explore_device(dev);
-
-	usb_pipe_end_long_transfer(&dev->ctrl_pipe);
-
-	if (!accept) {
-		return ENOTSUP;
-	}
-
-	return EOK;
-}
-
-/** USB MID driver ops. */
-static usb_driver_ops_t mid_driver_ops = {
-	.add_device = usbmid_add_device,
-};
-
-/** USB MID driver. */
-static usb_driver_t mid_driver = {
-	.name = NAME,
-	.ops = &mid_driver_ops,
-	.endpoints = NULL
-};
-
-int main(int argc, char *argv[])
-{
-	printf(NAME ": USB multi interface device driver.\n");
-
-	usb_log_enable(USB_LOG_LEVEL_DEFAULT, NAME);
-
-	return usb_driver_main(&mid_driver);
-}
-
+#endif
 /**
  * @}
  */

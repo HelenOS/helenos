@@ -355,12 +355,15 @@ int usb_pipe_initialize(usb_pipe_t *pipe,
 	assert(pipe);
 	assert(connection);
 
+	fibril_mutex_initialize(&pipe->guard);
 	pipe->wire = connection;
 	pipe->hc_phone = -1;
+	fibril_mutex_initialize(&pipe->hc_phone_mutex);
 	pipe->endpoint_no = endpoint_no;
 	pipe->transfer_type = transfer_type;
 	pipe->max_packet_size = max_packet_size;
 	pipe->direction = direction;
+	pipe->refcount = 0;
 
 	return EOK;
 }
@@ -412,12 +415,7 @@ int usb_pipe_probe_default_control(usb_pipe_t *pipe)
 	size_t failed_attempts;
 	int rc;
 
-	TRY_LOOP(failed_attempts) {
-		rc = usb_pipe_start_session(pipe);
-		if (rc == EOK) {
-			break;
-		}
-	}
+	rc = usb_pipe_start_long_transfer(pipe);
 	if (rc != EOK) {
 		return rc;
 	}
@@ -438,7 +436,7 @@ int usb_pipe_probe_default_control(usb_pipe_t *pipe)
 			break;
 		}
 	}
-	usb_pipe_end_session(pipe);
+	usb_pipe_end_long_transfer(pipe);
 	if (rc != EOK) {
 		return rc;
 	}
