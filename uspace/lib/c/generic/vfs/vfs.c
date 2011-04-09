@@ -377,7 +377,8 @@ ssize_t read(int fildes, void *buf, size_t nbyte)
 	int vfs_phone = vfs_exchange_begin();
 	
 	req = async_send_1(vfs_phone, VFS_IN_READ, fildes, &answer);
-	rc = async_data_read_start(vfs_phone, (void *)buf, nbyte);
+	rc = async_data_read_start_generic(vfs_phone, (void *) buf, nbyte,
+	    IPC_XF_RESTRICT);
 	if (rc != EOK) {
 		vfs_exchange_end(vfs_phone);
 
@@ -406,7 +407,8 @@ ssize_t write(int fildes, const void *buf, size_t nbyte)
 	int vfs_phone = vfs_exchange_begin();
 	
 	req = async_send_1(vfs_phone, VFS_IN_WRITE, fildes, &answer);
-	rc = async_data_write_start(vfs_phone, (void *)buf, nbyte);
+	rc = async_data_write_start_generic(vfs_phone, (void *) buf, nbyte,
+	    IPC_XF_RESTRICT);
 	if (rc != EOK) {
 		vfs_exchange_end(vfs_phone);
 

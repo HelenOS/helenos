@@ -554,19 +554,6 @@ driver_t *find_driver(driver_list_t *drv_list, const char *drv_name)
 	return res;
 }
 
-/** Remember the driver's phone.
- *
- * @param driver	The driver.
- * @param phone		The phone to the driver.
- */
-void set_driver_phone(driver_t *driver, sysarg_t phone)
-{
-	fibril_mutex_lock(&driver->driver_mutex);
-	assert(driver->state == DRIVER_STARTING);
-	driver->phone = phone;
-	fibril_mutex_unlock(&driver->driver_mutex);
-}
-
 /** Notify driver about the devices to which it was assigned.
  *
  * @param driver	The driver to which the devices are passed.
@@ -684,6 +671,7 @@ void init_driver(driver_t *drv)
 	list_initialize(&drv->match_ids.ids);
 	list_initialize(&drv->devices);
 	fibril_mutex_initialize(&drv->driver_mutex);
+	drv->phone = -1;
 }
 
 /** Device driver structure clean-up.

@@ -257,9 +257,11 @@ vfs_file_t *vfs_file_get(int fd)
 	fibril_mutex_lock(&VFS_DATA->lock);
 	if ((fd >= 0) && (fd < MAX_OPEN_FILES)) {
 		vfs_file_t *file = FILES[fd];
-		vfs_file_addref(file);
-		fibril_mutex_unlock(&VFS_DATA->lock);
-		return file;
+		if (file != NULL) {
+			vfs_file_addref(file);
+			fibril_mutex_unlock(&VFS_DATA->lock);
+			return file;
+		}
 	}
 	fibril_mutex_unlock(&VFS_DATA->lock);
 	

@@ -305,7 +305,7 @@ socket_bind(socket_cores_t *local_sockets, socket_ports_t *global_sockets,
 		    ntohs(address_in->sin_port));
 		
 	case AF_INET6:
-		/* TODO IPv6 */
+		// TODO IPv6
 		break;
 	}
 	
@@ -375,7 +375,9 @@ static int socket_generate_new_id(socket_cores_t *local_sockets, int positive)
 	int count;
 
 	count = 0;
-//	socket_id = socket_globals.last_id;
+#if 0
+	socket_id = socket_globals.last_id;
+#endif
 	do {
 		if (count < SOCKET_ID_TRIES) {
 			socket_id = rand() % INT_MAX;
@@ -387,10 +389,12 @@ static int socket_generate_new_id(socket_cores_t *local_sockets, int positive)
 		} else {
 			if (socket_id < INT_MAX) {
 				++ socket_id;
-/*			} else if(socket_globals.last_id) {
-*				socket_globals.last_id = 0;
-*				socket_id = 1;
-*/			} else {
+#if 0
+			} else if(socket_globals.last_id) {
+				socket_globals.last_id = 0;
+				socket_id = 1;
+#endif
+			} else {
 				return ELIMIT;
 			}
 		}
