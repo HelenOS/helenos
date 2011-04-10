@@ -39,11 +39,16 @@
 #include <usb/classes/massstor.h>
 #include <errno.h>
 #include <str_error.h>
+#include "cmds.h"
+#include "scsi.h"
 
 #define NAME "usbmast"
 
 #define BULK_IN_EP 0
 #define BULK_OUT_EP 1
+
+#define GET_BULK_IN(dev) ((dev)->pipes[BULK_IN_EP].pipe)
+#define GET_BULK_OUT(dev) ((dev)->pipes[BULK_OUT_EP].pipe)
 
 static usb_endpoint_description_t bulk_in_ep = {
 	.transfer_type = USB_TRANSFER_BULK,
@@ -67,6 +72,49 @@ usb_endpoint_description_t *mast_endpoints[] = {
 	&bulk_out_ep,
 	NULL
 };
+
+#define INQUIRY_RESPONSE_LENGTH 35
+
+static void try_inquiry(usb_device_t *dev)
+{
+	usb_massstor_cbw_t cbw;
+	scsi_cmd_inquiry_t inquiry = {
+		.op_code = 0x12,
+		.lun_evpd = 0,
+		.page_code = 0,
+		.alloc_length = INQUIRY_RESPONSE_LENGTH,
+		.ctrl = 0
+	};
+	size_t response_len;
+	uint8_t response[INQUIRY_RESPONSE_LENGTH];
+	usb_massstor_csw_t csw;
+	size_t csw_len;
+
+	usb_massstor_cbw_prepare(&cbw, 0xdeadbeef, INQUIRY_RESPONSE_LENGTH,
+	    USB_DIRECTION_IN, 0, sizeof(inquiry), (uint8_t *) &inquiry);
+
+	int rc;
+	rc = usb_pipe_write(GET_BULK_OUT(dev), &cbw, sizeof(cbw));
+	usb_log_debug("Wrote CBW: %s.\n", str_error(rc));
+	if (rc != EOK) {
+		return;
+	}
+
+	rc = usb_pipe_read(GET_BULK_IN(dev), response, INQUIRY_RESPONSE_LENGTH,
+	    &response_len);
+	usb_log_debug("Read response (%zuB): '%s' (%s).\n", response_len,
+	    usb_debug_str_buffer(response, response_len, 0),
+	    str_error(rc));
+	if (rc != EOK) {
+		return;
+	}
+
+	rc = usb_pipe_read(GET_BULK_IN(dev), &csw, sizeof(csw), &csw_len);
+	usb_log_debug("Read CSW (%zuB): '%s' (%s).\n", csw_len,
+	    usb_debug_str_buffer((uint8_t *) &csw, csw_len, 0),
+	    str_error(rc));
+
+}
 
 /** Callback when new device is attached and recognized as a mass storage.
  *
@@ -99,6 +147,8 @@ static int usbmast_add_device(usb_device_t *dev)
 	usb_log_debug("Bulk out endpoint: %d [%zuB].\n",
 	    dev->pipes[BULK_OUT_EP].pipe->endpoint_no,
 	    (size_t) dev->pipes[BULK_OUT_EP].descriptor->max_packet_size);
+
+	try_inquiry(dev);
 
 	return EOK;
 }
