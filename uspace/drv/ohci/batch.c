@@ -133,10 +133,16 @@ bool batch_is_complete(usb_transfer_batch_t *instance)
 	ohci_batch_t *data = instance->private_data;
 	assert(data);
 	size_t tds = data->td_count - 1;
-	usb_log_debug2("Batch(%p) checking %d td(s) for completion.\n",
+	usb_log_debug("Batch(%p) checking %d td(s) for completion.\n",
 	    instance, tds);
+	usb_log_debug("ED: %x:%x:%x:%x.\n",
+	    data->ed->status, data->ed->td_head, data->ed->td_tail,
+	    data->ed->next);
 	size_t i = 0;
 	for (; i < tds; ++i) {
+		usb_log_debug("TD %d: %x:%x:%x:%x.\n", i,
+		    data->tds[i].status, data->tds[i].cbp, data->tds[i].next,
+		    data->tds[i].be);
 		if (!td_is_finished(&data->tds[i]))
 			return false;
 		instance->error = td_error(&data->tds[i]);
