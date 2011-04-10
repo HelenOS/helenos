@@ -68,7 +68,7 @@ read_map(uint32_t *b, const struct mfs_node *mnode, uint32_t pos)
 	/*Compute relative block number in file*/
 	int rblock = pos / block_size;
 
-	if (mnode->ino_i->i_size < (int32_t) pos) {
+	if (mnode->ino_i->i_size < pos) {
 		/*Trying to read beyond the end of file*/
 		r = EOK;
 		*b = 0;
@@ -146,7 +146,8 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 		}
 		return EOK;
 	}
-	rblock -= nr_direct - 1;
+
+	rblock -= nr_direct;
 
 	if (rblock < ptrs_per_block) {
 		/*The wanted block is in the single indirect zone chain*/
@@ -159,8 +160,9 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 
 				ino_i->i_izone[0] = zone;
 				ino_i->dirty = true;
-			} else
+			} else {
 				return -1;
+			}
 		}
 
 		r = read_ind_zone(inst, ino_i->i_izone[0], &ind_zone);
@@ -176,7 +178,7 @@ rw_map_ondisk(uint32_t *b, const struct mfs_node *mnode, int rblock,
 		goto out_free_ind1;
 	}
 
-	rblock -= ptrs_per_block - 1;
+	rblock -= ptrs_per_block;
 
 	/*The wanted block is in the double indirect zone chain*/
 
@@ -276,8 +278,10 @@ read_ind_zone(struct mfs_instance *inst, uint32_t zone, uint32_t **ind_zone)
 	int r;
 	unsigned i;
 	block_t *b;
+	const int max_ind_zone_ptrs = (MFS_MAX_BLOCKSIZE / sizeof(uint16_t)) *
+				sizeof(uint32_t);
 
-	*ind_zone = malloc(sbi->block_size);
+	*ind_zone = malloc(max_ind_zone_ptrs);
 	if (*ind_zone == NULL)
 		return ENOMEM;
 
