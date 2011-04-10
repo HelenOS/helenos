@@ -342,7 +342,7 @@ int usb_device_select_interface(usb_device_t *dev, uint8_t alternate_setting,
 
 /** Retrieve basic descriptors from the device.
  *
- * @param[in] ctrl_pipe Control pipe with opened session.
+ * @param[in] ctrl_pipe Control endpoint pipe.
  * @param[out] descriptors Where to store the descriptors.
  * @return Error code.
  */
@@ -350,27 +350,32 @@ int usb_device_retrieve_descriptors(usb_pipe_t *ctrl_pipe,
     usb_device_descriptors_t *descriptors)
 {
 	assert(descriptors != NULL);
-	assert(usb_pipe_is_session_started(ctrl_pipe));
 
 	descriptors->configuration = NULL;
 
 	int rc;
 
+	/* It is worth to start a long transfer. */
+	rc = usb_pipe_start_long_transfer(ctrl_pipe);
+	if (rc != EOK) {
+		return rc;
+	}
+
 	/* Get the device descriptor. */
 	rc = usb_request_get_device_descriptor(ctrl_pipe, &descriptors->device);
 	if (rc != EOK) {
-		return rc;
+		goto leave;
 	}
 
 	/* Get the full configuration descriptor. */
 	rc = usb_request_get_full_configuration_descriptor_alloc(
 	    ctrl_pipe, 0, (void **) &descriptors->configuration,
 	    &descriptors->configuration_size);
-	if (rc != EOK) {
-		return rc;
-	}
 
-	return EOK;
+leave:
+	usb_pipe_end_long_transfer(ctrl_pipe);
+
+	return rc;
 }
 
 /** Create pipes for a device.
@@ -574,24 +579,12 @@ static int initialize_ctrl_pipe_and_descriptors(usb_device_t *dev,
 	/* Get our interface. */
 	dev->interface_no = usb_device_get_assigned_interface(dev->ddf_dev);
 
-	/*
-	 * We will do some querying of the device, it is worth to prepare
-	 * the long transfer.
-	 */
-	rc = usb_pipe_start_long_transfer(&dev->ctrl_pipe);
-	if (rc != EOK) {
-		*errmsg = "transfer start";
-		return rc;
-	}
-
 	/* Retrieve the descriptors. */
 	rc = usb_device_retrieve_descriptors(&dev->ctrl_pipe,
 	    &dev->descriptors);
 	if (rc != EOK) {
 		*errmsg = "descriptor retrieval";
 	}
-
-	usb_pipe_end_long_transfer(&dev->ctrl_pipe);
 
 	return rc;
 }
