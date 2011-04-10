@@ -555,10 +555,11 @@ static int mfs_has_children(bool *has_children, fs_node_t *fsnode)
 
 out:
 
-	if (*has_children)
+	if (*has_children) {
 		mfsdebug("Has children\n");
-	else
+	} else {
 		mfsdebug("Has not children\n");
+	}
 
 	return EOK;
 }
