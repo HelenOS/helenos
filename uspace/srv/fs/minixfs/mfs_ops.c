@@ -592,10 +592,8 @@ mfs_read(ipc_callid_t rid, ipc_call_t *request)
 	ino_i = mnode->ino_i;
 
 	if (!async_data_read_receive(&callid, &len)) {
-		mfs_node_put(fn);
-		async_answer_0(callid, EINVAL);
-		async_answer_0(rid, EINVAL);
-		return;
+		rc = EINVAL;
+		goto out_error;
 	}
 
 	if (S_ISDIR(ino_i->i_mode)) {
@@ -627,10 +625,61 @@ found:
 		async_data_read_finalize(callid, d_info->d_name,
 				str_size(d_info->d_name) + 1);
 		bytes = ((pos - spos) + 1);
-	}
+	} else {
+		struct mfs_sb_info *sbi = mnode->instance->sbi;
 
+		if (pos >= (size_t) ino_i->i_size) {
+			/*Trying to read beyond the end of file*/
+			bytes = 0;
+			(void) async_data_read_finalize(callid, NULL, 0);
+			goto out_success;
+		}
+
+		bytes = min(len, sbi->block_size - pos % sbi->block_size);
+		bytes = min(bytes, ino_i->i_size - pos);
+
+		uint32_t zone;
+		block_t *b;
+
+		rc = read_map(&zone, mnode, pos);
+		if (rc != EOK)
+			goto out_error;
+
+		if (zone == 0) {
+			/*sparse file*/
+			uint8_t *buf = malloc(sbi->block_size);
+			if (!buf) {
+				rc = ENOMEM;
+				goto out_error;
+			}
+			async_data_read_finalize(callid,
+			    buf + pos % sbi->block_size, bytes);
+			free(buf);
+			goto out_success;
+		}
+
+		rc = block_get(&b, handle, zone, BLOCK_FLAGS_NONE);
+		if (rc != EOK)
+			goto out_error;
+
+		async_data_read_finalize(callid, b->data +
+				pos % sbi->block_size, bytes);
+
+		rc = block_put(b);
+		if (rc != EOK) {
+			mfs_node_put(fn);
+			async_answer_0(rid, rc);
+			return;
+		}
+	}
+out_success:
 	rc = mfs_node_put(fn);
 	async_answer_1(rid, rc, (sysarg_t)bytes);
+	return;
+out_error: ;
+	int tmp = mfs_node_put(fn);
+	async_answer_0(callid, tmp != EOK ? tmp : rc);
+	async_answer_0(rid, tmp != EOK ? tmp : rc);
 }
 
 int mfs_instance_get(devmap_handle_t handle, struct mfs_instance **instance)
