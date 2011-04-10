@@ -33,8 +33,8 @@
  * USB HID keyboard autorepeat facilities
  */
 
-#ifndef USB_KBDREPEAT_H_
-#define USB_KBDREPEAT_H_
+#ifndef USB_HID_KBDREPEAT_H_
+#define USB_HID_KBDREPEAT_H_
 
 struct usb_kbd_t;
 
@@ -61,7 +61,7 @@ void usb_kbd_repeat_start(struct usb_kbd_t *kbd, unsigned int key);
 
 void usb_kbd_repeat_stop(struct usb_kbd_t *kbd, unsigned int key);
 
-#endif /* USB_KBDREPEAT_H_ */
+#endif /* USB_HID_KBDREPEAT_H_ */
 
 /**
  * @}

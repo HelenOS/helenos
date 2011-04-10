@@ -237,7 +237,7 @@ static void default_connection_handler(ddf_fun_t *, ipc_callid_t, ipc_call_t *);
  * @param icallid Call id.
  * @param icall Call data.
  */
-void default_connection_handler(ddf_fun_t *fun,
+static void default_connection_handler(ddf_fun_t *fun,
     ipc_callid_t icallid, ipc_call_t *icall)
 {
 	sysarg_t method = IPC_GET_IMETHOD(*icall);
@@ -855,15 +855,13 @@ int usb_kbd_init(usb_hid_dev_t *hid_dev)
 
 /*----------------------------------------------------------------------------*/
 
-bool usb_kbd_polling_callback(usb_device_t *dev, uint8_t *buffer,
-     size_t buffer_size, void *arg)
+bool usb_kbd_polling_callback(usb_hid_dev_t *hid_dev, uint8_t *buffer,
+     size_t buffer_size)
 {
-	if (dev == NULL || buffer == NULL || arg == NULL) {
+	if (hid_dev == NULL || buffer == NULL) {
 		// do not continue polling (???)
 		return false;
 	}
-	
-	usb_hid_dev_t *hid_dev = (usb_hid_dev_t *)arg;
 	
 	// TODO: add return value from this function
 	usb_kbd_process_data(hid_dev, buffer, buffer_size);
@@ -915,7 +913,7 @@ void usb_kbd_free(usb_kbd_t **kbd_dev)
 
 /*----------------------------------------------------------------------------*/
 
-void usb_kbd_deinit(struct usb_hid_dev_t *hid_dev)
+void usb_kbd_deinit(usb_hid_dev_t *hid_dev)
 {
 	if (hid_dev == NULL) {
 		return;

@@ -1,7 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
- * Copyright (c) 2011 Lubos Slovak 
- * (copied from /uspace/srv/hid/kbd/include/layout.h)
+ * Copyright (c) 2011 Lubos Slovak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,25 +30,43 @@
  * @{
  */
 /** @file
- * Keyboard layout.
+ * USB HID subdriver mappings.
  */
 
-#ifndef USB_HID_LAYOUT_H_
-#define USB_HID_LAYOUT_H_
+#ifndef USB_HID_SUBDRIVERS_H_
+#define USB_HID_SUBDRIVERS_H_
 
-#include <sys/types.h>
-#include <io/console.h>
+#include "usbhid.h"
+#include "kbd/kbddev.h"
 
-typedef struct {
-	void (*reset)(void);
-	wchar_t (*parse_ev)(console_event_t *);
-} layout_op_t;
+/*----------------------------------------------------------------------------*/
 
-extern layout_op_t us_qwerty_op;
-extern layout_op_t us_dvorak_op;
-extern layout_op_t cz_op;
+typedef struct usb_hid_subdriver_usage {
+	int usage_page;
+	int usage;
+} usb_hid_subdriver_usage_t;
 
-#endif
+/*----------------------------------------------------------------------------*/
+
+/* TODO: This mapping must contain some other information to get the proper
+ *       interface.
+ */
+typedef struct usb_hid_subdriver_mapping {
+	const usb_hid_subdriver_usage_t *usage_path;
+	int path_size;
+	int compare;
+	const char *vendor_id;
+	const char *product_id;
+	usb_hid_subdriver_t subdriver;
+} usb_hid_subdriver_mapping_t;
+
+/*----------------------------------------------------------------------------*/
+
+extern const usb_hid_subdriver_mapping_t usb_hid_subdrivers[];
+
+/*----------------------------------------------------------------------------*/
+
+#endif /* USB_HID_SUBDRIVERS_H_ */
 
 /**
  * @}
