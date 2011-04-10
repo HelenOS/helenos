@@ -203,11 +203,14 @@ recognized:
 		sbi->firstdatazone = conv16(native, sb->s_first_data_zone);
 		sbi->log2_zone_size = conv16(native, sb->s_log2_zone_size);
 		sbi->max_file_size = conv32(native, sb->s_max_file_size);
-		sbi->nzones = conv16(native, sb->s_nzones);
 		sbi->block_size = MFS_BLOCKSIZE;
-		sbi->ino_per_block = V1_INODES_PER_BLOCK;
-		if (version == MFS_VERSION_V2)
+		if (version == MFS_VERSION_V2) {
 			sbi->nzones = conv32(native, sb->s_nzones2);
+			sbi->ino_per_block = V2_INODES_PER_BLOCK;
+		} else {
+			sbi->nzones = conv16(native, sb->s_nzones);
+			sbi->ino_per_block = V1_INODES_PER_BLOCK;
+		}
 		sbi->dirsize = longnames ? MFSL_DIRSIZE : MFS_DIRSIZE;
 		sbi->max_name_len = longnames ? MFS_L_MAX_NAME_LEN :
 				MFS_MAX_NAME_LEN;
