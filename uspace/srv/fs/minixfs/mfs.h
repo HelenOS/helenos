@@ -105,7 +105,7 @@ struct mfs_ino_info {
         uint16_t        i_nlinks;
         int16_t         i_uid;
         uint16_t        i_gid;
-        int32_t         i_size;
+        size_t		i_size;
         int32_t         i_atime;
         int32_t         i_mtime;
         int32_t         i_ctime;
