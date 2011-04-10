@@ -58,9 +58,6 @@ typedef struct {
 	devman_handle_t handle;
 } usb_hc_attached_device_t;
 
-int usb_hc_reserve_default_address(usb_hc_connection_t *, usb_speed_t);
-int usb_hc_release_default_address(usb_hc_connection_t *);
-
 usb_address_t usb_hc_request_address(usb_hc_connection_t *, usb_speed_t);
 int usb_hc_register_device(usb_hc_connection_t *,
     const usb_hc_attached_device_t *);

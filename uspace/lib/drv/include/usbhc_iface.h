@@ -83,21 +83,6 @@
  *
  */
 typedef enum {
-	/** Reserve usage of default address.
-	 * This call informs the host controller that the caller will be
-	 * using default USB address. It is duty of the HC driver to ensure
-	 * that only single entity will have it reserved.
-	 * The address is returned via IPC_M_USBHC_RELEASE_DEFAULT_ADDRESS.
-	 * The caller can start using the address after receiving EOK
-	 * answer.
-	 */
-	IPC_M_USBHC_RESERVE_DEFAULT_ADDRESS,
-
-	/** Release usage of default address.
-	 * @see IPC_M_USBHC_RESERVE_DEFAULT_ADDRESS
-	 */
-	IPC_M_USBHC_RELEASE_DEFAULT_ADDRESS,
-
 	/** Asks for address assignment by host controller.
 	 * Answer:
 	 * - ELIMIT - host controller run out of address

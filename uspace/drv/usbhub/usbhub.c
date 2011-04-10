@@ -178,25 +178,6 @@ leave:
 	return true;
 }
 
-/**
- * release default address used by given hub
- *
- * Also unsets hub->is_default_address_used. Convenience wrapper function.
- * @note hub->connection MUST be open for communication
- * @param hub hub representation
- * @return error code
- */
-int usb_hub_release_default_address(usb_hub_info_t * hub) {
-	int opResult = usb_hc_release_default_address(&hub->connection);
-	if (opResult != EOK) {
-		usb_log_error("could not release default address, errno %d\n",
-		    opResult);
-		return opResult;
-	}
-	hub->is_default_address_used = false;
-	return EOK;
-}
-
 
 //*********************************************
 //

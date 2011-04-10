@@ -323,18 +323,6 @@ static int tell_address(ddf_fun_t *fun, devman_handle_t handle,
 	return EOK;
 }
 
-static int reserve_default_address(ddf_fun_t *fun, usb_speed_t ignored)
-{
-	usb_address_keeping_reserve_default(&addresses);
-	return EOK;
-}
-
-static int release_default_address(ddf_fun_t *fun)
-{
-	usb_address_keeping_release_default(&addresses);
-	return EOK;
-}
-
 static int request_address(ddf_fun_t *fun, usb_speed_t ignored,
     usb_address_t *address)
 {
@@ -387,8 +375,6 @@ void address_init(void)
 }
 
 usbhc_iface_t vhc_iface = {
-	.reserve_default_address = reserve_default_address,
-	.release_default_address = release_default_address,
 	.request_address = request_address,
 	.bind_address = bind_address,
 	.release_address = release_address,

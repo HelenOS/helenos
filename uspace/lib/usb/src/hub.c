@@ -41,6 +41,11 @@
 #include <assert.h>
 #include <usb/debug.h>
 
+/** How much time to wait between attempts to register endpoint 0:0.
+ * The value is based on typical value for port reset + some overhead.
+ */
+#define ENDPOINT_0_0_REGISTER_ATTEMPT_DELAY_USEC (1000 * (10 + 2))
+
 /** Check that HC connection is alright.
  *
  * @param conn Connection to be checked.
@@ -52,43 +57,6 @@
 			return ENOENT; \
 		} \
 	} while (false)
-
-
-/** Tell host controller to reserve default address.
- * @deprecated
- *
- * @param connection Opened connection to host controller.
- * @param speed Speed of the device that will respond on the default address.
- * @return Error code.
- */
-int usb_hc_reserve_default_address(usb_hc_connection_t *connection,
-    usb_speed_t speed)
-{
-	CHECK_CONNECTION(connection);
-
-	usb_log_warning("usb_hc_reserve_default_address() considered obsolete");
-
-	return async_req_2_0(connection->hc_phone,
-	    DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_RESERVE_DEFAULT_ADDRESS, speed);
-}
-
-/** Tell host controller to release default address.
- * @deprecated
- *
- * @param connection Opened connection to host controller.
- * @return Error code.
- */
-int usb_hc_release_default_address(usb_hc_connection_t *connection)
-{
-	CHECK_CONNECTION(connection);
-
-	usb_log_warning("usb_hc_release_default_address() considered obsolete");
-
-	return async_req_1_0(connection->hc_phone,
-	    DEV_IFACE_ID(USBHC_DEV_IFACE),
-	    IPC_M_USBHC_RELEASE_DEFAULT_ADDRESS);
-}
 
 /** Ask host controller for free address assignment.
  *
@@ -268,7 +236,7 @@ int usb_hc_new_device_wrapper(ddf_dev_t *parent, usb_hc_connection_t *connection
 		    &hc_conn);
 		if (rc != EOK) {
 			/* Do not overheat the CPU ;-). */
-			async_usleep(10);
+			async_usleep(ENDPOINT_0_0_REGISTER_ATTEMPT_DELAY_USEC);
 		}
 	} while (rc != EOK);
 
