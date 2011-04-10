@@ -146,9 +146,20 @@ int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch)
 		instance->registers->control |= C_CLE;
 		break;
 	case USB_TRANSFER_BULK:
+		instance->registers->control &= ~C_BLE;
+		transfer_list_add_batch(
+		    instance->transfers[batch->transfer_type], batch);
 		instance->registers->command_status |= CS_BLF;
 		usb_log_debug2("Set bulk transfer filled: %x.\n",
 			instance->registers->command_status);
+		instance->registers->control |= C_BLE;
+		break;
+	case USB_TRANSFER_INTERRUPT:
+	case USB_TRANSFER_ISOCHRONOUS:
+		instance->registers->control &= ~C_PLE;
+		transfer_list_add_batch(
+		    instance->transfers[batch->transfer_type], batch);
+		instance->registers->control |= C_PLE;
 		break;
 	default:
 		break;
