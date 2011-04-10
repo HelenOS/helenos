@@ -47,12 +47,23 @@
 #include "batch.h"
 #include "ohci_regs.h"
 #include "root_hub.h"
+#include "transfer_list.h"
 #include "hw_struct/hcca.h"
 
 typedef struct hc {
 	ohci_regs_t *registers;
 	usb_address_t rh_address;
 	rh_t rh;
+
+	hcca_t *hcca;
+
+	transfer_list_t transfers_isochronous;
+	transfer_list_t transfers_interrupt;
+	transfer_list_t transfers_control;
+	transfer_list_t transfers_bulk;
+
+	transfer_list_t *transfers[4];
+
 	ddf_fun_t *ddf_instance;
 	usb_device_keeper_t manager;
 	usb_endpoint_manager_t ep_manager;

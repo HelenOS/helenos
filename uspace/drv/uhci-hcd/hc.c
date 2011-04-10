@@ -239,9 +239,8 @@ int hc_init_mem_structures(hc_t *instance)
 	usb_device_keeper_init(&instance->manager);
 	usb_log_debug("Initialized device manager.\n");
 
-	ret =
-	    usb_endpoint_manager_init(&instance->ep_manager,
-	        BANDWIDTH_AVAILABLE_USB11);
+	ret = usb_endpoint_manager_init(&instance->ep_manager,
+	    BANDWIDTH_AVAILABLE_USB11);
 	assert(ret == EOK);
 
 	return EOK;
@@ -331,10 +330,6 @@ int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch)
 	transfer_list_t *list =
 	    instance->transfers[batch->speed][batch->transfer_type];
 	assert(list);
-	if (batch->transfer_type == USB_TRANSFER_CONTROL) {
-		usb_device_keeper_use_control(
-		    &instance->manager, batch->target);
-	}
 	transfer_list_add_batch(list, batch);
 
 	return EOK;
@@ -372,29 +367,7 @@ void hc_interrupt(hc_t *instance, uint16_t status)
 			list_remove(item);
 			usb_transfer_batch_t *batch =
 			    list_get_instance(item, usb_transfer_batch_t, link);
-			switch (batch->transfer_type)
-			{
-			case USB_TRANSFER_CONTROL:
-				usb_device_keeper_release_control(
-				    &instance->manager, batch->target);
-				break;
-			case USB_TRANSFER_INTERRUPT:
-			case USB_TRANSFER_ISOCHRONOUS: {
-/*
-				int ret = bandwidth_free(&instance->bandwidth,
-				    batch->target.address,
-				    batch->target.endpoint,
-				    batch->direction);
-				if (ret != EOK)
-					usb_log_warning("Failed(%d) to free "
-					    "reserved bw: %s.\n", ret,
-					    str_error(ret));
-*/
-				}
-			default:
-				break;
-			}
-			batch->next_step(batch);
+			usb_transfer_batch_finish(batch);
 		}
 	}
 	/* bits 4 and 5 indicate hc error */

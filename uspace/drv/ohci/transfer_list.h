@@ -25,51 +25,51 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-/** @addtogroup libusb
+/** @addtogroup drvusbohci
  * @{
  */
 /** @file
- *
+ * @brief OHCI driver transfer list structure
  */
-#ifndef LIBUSB_HOST_ENDPOINT_H
-#define LIBUSB_HOST_ENDPOINT_H
+#ifndef DRV_OHCI_TRANSFER_LIST_H
+#define DRV_OHCI_TRANSFER_LIST_H
 
-#include <assert.h>
-#include <bool.h>
-#include <adt/list.h>
 #include <fibril_synch.h>
 
-#include <usb/usb.h>
+#include "batch.h"
+#include "hw_struct/endpoint_descriptor.h"
+#include "utils/malloc32.h"
 
-typedef struct endpoint {
-	usb_address_t address;
-	usb_endpoint_t endpoint;
-	usb_direction_t direction;
-	usb_transfer_type_t transfer_type;
-	usb_speed_t speed;
-	size_t max_packet_size;
-	unsigned toggle:1;
+typedef struct transfer_list
+{
 	fibril_mutex_t guard;
-	fibril_condvar_t avail;
-	volatile bool active;
-} endpoint_t;
+	ed_t *list_head;
+	uint32_t list_head_pa;
+	const char *name;
+	link_t batch_list;
+} transfer_list_t;
 
-int endpoint_init(endpoint_t *instance, usb_address_t address,
-    usb_endpoint_t endpoint, usb_direction_t direction,
-    usb_transfer_type_t type, usb_speed_t speed, size_t max_packet_size);
+/** Dispose transfer list structures.
+ *
+ * @param[in] instance Memory place to use.
+ *
+ * Frees memory for internal qh_t structure.
+ */
+static inline void transfer_list_fini(transfer_list_t *instance)
+{
+	assert(instance);
+	free32(instance->list_head);
+}
 
-void endpoint_destroy(endpoint_t *instance);
+int transfer_list_init(transfer_list_t *instance, const char *name);
 
-void endpoint_use(endpoint_t *instance);
+void transfer_list_set_next(transfer_list_t *instance, transfer_list_t *next);
 
-void endpoint_release(endpoint_t *instance);
+void transfer_list_add_batch(transfer_list_t *instance, usb_transfer_batch_t *batch);
 
-int endpoint_toggle_get(endpoint_t *instance);
+void transfer_list_remove_finished(transfer_list_t *instance, link_t *done);
 
-void endpoint_toggle_set(endpoint_t *instance, int toggle);
-
-void endpoint_toggle_reset_filtered(endpoint_t *instance, usb_target_t target);
+void transfer_list_abort_all(transfer_list_t *instance);
 #endif
 /**
  * @}

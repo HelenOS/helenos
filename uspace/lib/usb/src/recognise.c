@@ -403,17 +403,7 @@ int usb_device_register_child_in_devman(usb_address_t address,
 
 	child->driver_data = dev_data;
 
-	rc = usb_pipe_start_session(&ctrl_pipe);
-	if (rc != EOK) {
-		goto failure;
-	}
-
 	rc = usb_device_create_match_ids(&ctrl_pipe, &child->match_ids);
-	if (rc != EOK) {
-		goto failure;
-	}
-
-	rc = usb_pipe_end_session(&ctrl_pipe);
 	if (rc != EOK) {
 		goto failure;
 	}

@@ -70,9 +70,6 @@ typedef struct {
 
 void usb_device_keeper_init(usb_device_keeper_t *instance);
 
-void usb_device_keeper_add_ep(
-    usb_device_keeper_t *instance, usb_address_t address, endpoint_t *ep);
-
 void usb_device_keeper_reserve_default_address(
     usb_device_keeper_t *instance, usb_speed_t speed);
 
@@ -95,13 +92,6 @@ usb_address_t usb_device_keeper_find(usb_device_keeper_t *instance,
 
 usb_speed_t usb_device_keeper_get_speed(usb_device_keeper_t *instance,
     usb_address_t address);
-
-void usb_device_keeper_use_control(usb_device_keeper_t *instance,
-    usb_target_t target);
-
-void usb_device_keeper_release_control(usb_device_keeper_t *instance,
-    usb_target_t target);
-
 #endif
 /**
  * @}

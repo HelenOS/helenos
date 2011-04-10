@@ -35,15 +35,10 @@
 #ifndef DRV_USBHUB_PORTS_H
 #define DRV_USBHUB_PORTS_H
 
-#include <ipc/devman.h>
-#include <usb/usb.h>
-#include <ddf/driver.h>
-#include <fibril_synch.h>
-
+#include <usb/devdrv.h>
 #include <usb/hub.h>
 
-#include <usb/pipes.h>
-#include <usb/devdrv.h>
+typedef struct usb_hub_info_t usb_hub_info_t;
 
 /** Information about single port on a hub. */
 typedef struct {
@@ -55,6 +50,8 @@ typedef struct {
 	 * Guarded by @c reset_mutex.
 	 */
 	bool reset_completed;
+	/** Whether to announce the port reset as successful. */
+	bool reset_okay;
 
 	/** Information about attached device. */
 	usb_hc_attached_device_t attached_device;
@@ -71,7 +68,10 @@ static inline void usb_hub_port_init(usb_hub_port_t *port) {
 	fibril_condvar_initialize(&port->reset_cv);
 }
 
-bool hub_port_changes_callback(usb_device_t *, uint8_t *, size_t, void *);
+
+void usb_hub_process_interrupt(usb_hub_info_t * hub,
+	uint16_t port);
+
 
 
 #endif

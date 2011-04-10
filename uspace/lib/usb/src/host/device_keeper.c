@@ -53,20 +53,12 @@ void usb_device_keeper_init(usb_device_keeper_t *instance)
 	unsigned i = 0;
 	for (; i < USB_ADDRESS_COUNT; ++i) {
 		instance->devices[i].occupied = false;
-		instance->devices[i].control_used = 0;
 		instance->devices[i].handle = 0;
-		list_initialize(&instance->devices[i].endpoints);
+		instance->devices[i].speed = USB_SPEED_MAX;
 	}
-}
-/*----------------------------------------------------------------------------*/
-void usb_device_keeper_add_ep(
-    usb_device_keeper_t *instance, usb_address_t address, endpoint_t *ep)
-{
-	assert(instance);
-	fibril_mutex_lock(&instance->guard);
-	assert(instance->devices[address].occupied);
-	list_append(&ep->same_device_eps, &instance->devices[address].endpoints);
-	fibril_mutex_unlock(&instance->guard);
+	// TODO: is this hack enough?
+	// (it is needed to allow smooth registration at default address)
+	instance->devices[0].occupied = true;
 }
 /*----------------------------------------------------------------------------*/
 /** Attempt to obtain address 0, blocks.
@@ -101,62 +93,6 @@ void usb_device_keeper_release_default_address(usb_device_keeper_t *instance)
 	fibril_condvar_signal(&instance->change);
 }
 /*----------------------------------------------------------------------------*/
-/** Check setup packet data for signs of toggle reset.
- *
- * @param[in] instance Device keeper structure to use.
- * @param[in] target Device to receive setup packet.
- * @param[in] data Setup packet data.
- *
- * Really ugly one.
- */
-void usb_device_keeper_reset_if_need(
-    usb_device_keeper_t *instance, usb_target_t target, const uint8_t *data)
-{
-	assert(instance);
-	fibril_mutex_lock(&instance->guard);
-	if (target.endpoint > 15 || target.endpoint < 0
-	    || target.address >= USB_ADDRESS_COUNT || target.address < 0
-	    || !instance->devices[target.address].occupied) {
-		fibril_mutex_unlock(&instance->guard);
-		usb_log_error("Invalid data when checking for toggle reset.\n");
-		return;
-	}
-
-	switch (data[1])
-	{
-	case 0x01: /*clear feature*/
-		/* recipient is endpoint, value is zero (ENDPOINT_STALL) */
-		if (((data[0] & 0xf) == 1) && ((data[2] | data[3]) == 0)) {
-			link_t *current =
-			    instance->devices[target.address].endpoints.next;
-			while (current !=
-			   &instance->devices[target.address].endpoints)
-			{
-			/* endpoint number is < 16, thus first byte is enough */
-				endpoint_toggle_reset_filtered(
-				    current, data[4]);
-				current = current->next;
-			}
-		}
-	break;
-
-	case 0x9: /* set configuration */
-	case 0x11: /* set interface */
-		/* target must be device */
-		if ((data[0] & 0xf) == 0) {
-			link_t *current =
-			    instance->devices[target.address].endpoints.next;
-			while (current !=
-			   &instance->devices[target.address].endpoints)
-			{
-				endpoint_toggle_reset(current);
-				current = current->next;
-			}
-		}
-	break;
-	}
-	fibril_mutex_unlock(&instance->guard);
-}
 /*----------------------------------------------------------------------------*/
 /** Get a free USB address
  *
@@ -262,31 +198,6 @@ usb_speed_t usb_device_keeper_get_speed(
 	assert(address >= 0);
 	assert(address <= USB11_ADDRESS_MAX);
 	return instance->devices[address].speed;
-}
-/*----------------------------------------------------------------------------*/
-void usb_device_keeper_use_control(
-    usb_device_keeper_t *instance, usb_target_t target)
-{
-	assert(instance);
-	const uint16_t ep = 1 << target.endpoint;
-	fibril_mutex_lock(&instance->guard);
-	while (instance->devices[target.address].control_used & ep) {
-		fibril_condvar_wait(&instance->change, &instance->guard);
-	}
-	instance->devices[target.address].control_used |= ep;
-	fibril_mutex_unlock(&instance->guard);
-}
-/*----------------------------------------------------------------------------*/
-void usb_device_keeper_release_control(
-    usb_device_keeper_t *instance, usb_target_t target)
-{
-	assert(instance);
-	const uint16_t ep = 1 << target.endpoint;
-	fibril_mutex_lock(&instance->guard);
-	assert((instance->devices[target.address].control_used & ep) != 0);
-	instance->devices[target.address].control_used &= ~ep;
-	fibril_mutex_unlock(&instance->guard);
-	fibril_condvar_signal(&instance->change);
 }
 /**
  * @}

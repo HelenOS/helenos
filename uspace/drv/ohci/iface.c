@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Vojtech Horky
+ * Copyright (c) 2011 Vojtech Horky, Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,59 +29,63 @@
  * @{
  */
 /** @file
- * USB-HC interface implementation.
+ * @brief OHCI driver hc interface implementation
  */
 #include <ddf/driver.h>
 #include <errno.h>
 
 #include <usb/debug.h>
+#include <usb/host/endpoint.h>
 
 #include "iface.h"
 #include "hc.h"
 
-#define UNSUPPORTED(methodname) \
-	usb_log_warning("Unsupported interface method `%s()' in %s:%d.\n", \
-	    methodname, __FILE__, __LINE__)
+static inline int setup_batch(
+    ddf_fun_t *fun, usb_target_t target, usb_direction_t direction,
+    void *data, size_t size, void * setup_data, size_t setup_size,
+    usbhc_iface_transfer_in_callback_t in,
+    usbhc_iface_transfer_out_callback_t out, void *arg, const char* name,
+    hc_t **hc, usb_transfer_batch_t **batch)
+{
+	assert(hc);
+	assert(batch);
+	assert(fun);
+	*hc = fun_to_hc(fun);
+	assert(*hc);
 
-/** Reserve default address.
- *
- * This function may block the caller.
- *
- * @param[in] fun Device function the action was invoked on.
- * @param[in] speed Speed of the device for which the default address is
- *	reserved.
- * @return Error code.
- */
-static int reserve_default_address(ddf_fun_t *fun, usb_speed_t speed)
-{
-	assert(fun);
-	hc_t *hc = fun_to_hc(fun);
-	assert(hc);
-	usb_log_debug("Default address request with speed %d.\n", speed);
-	usb_device_keeper_reserve_default_address(&hc->manager, speed);
+	size_t res_bw;
+	endpoint_t *ep = usb_endpoint_manager_get_ep(&(*hc)->ep_manager,
+	    target.address, target.endpoint, direction, &res_bw);
+	if (ep == NULL) {
+		usb_log_error("Endpoint(%d:%d) not registered for %s.\n",
+		    target.address, target.endpoint, name);
+		return ENOENT;
+	}
+
+	usb_log_debug("%s %d:%d %zu(%zu).\n",
+	    name, target.address, target.endpoint, size, ep->max_packet_size);
+
+	const size_t bw = bandwidth_count_usb11(
+	    ep->speed, ep->transfer_type, size, ep->max_packet_size);
+	if (res_bw < bw) {
+		usb_log_error("Endpoint(%d:%d) %s needs %zu bw "
+		    "but only %zu is reserved.\n",
+		    target.address, target.endpoint, name, bw, res_bw);
+		return ENOSPC;
+	}
+
+	*batch = batch_get(
+	    fun, ep, data, size, setup_data, setup_size, in, out, arg);
+	if (!*batch)
+		return ENOMEM;
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-/** Release default address.
+/** Request address interface function
  *
- * @param[in] fun Device function the action was invoked on.
- * @return Error code.
- */
-static int release_default_address(ddf_fun_t *fun)
-{
-	assert(fun);
-	hc_t *hc = fun_to_hc(fun);
-	assert(hc);
-	usb_log_debug("Default address release.\n");
-	usb_device_keeper_release_default_address(&hc->manager);
-	return EOK;
-}
-/*----------------------------------------------------------------------------*/
-/** Found free USB address.
- *
- * @param[in] fun Device function the action was invoked on.
- * @param[in] speed Speed of the device that will get this address.
- * @param[out] address Non-null pointer where to store the free address.
+ * @param[in] fun DDF function that was called.
+ * @param[in] speed Speed to associate with the new default address.
+ * @param[out] address Place to write a new address.
  * @return Error code.
  */
 static int request_address(
@@ -100,15 +104,15 @@ static int request_address(
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-/** Bind USB address with device devman handle.
+/** Bind address interface function
  *
- * @param[in] fun Device function the action was invoked on.
- * @param[in] address USB address of the device.
- * @param[in] handle Devman handle of the device.
+ * @param[in] fun DDF function that was called.
+ * @param[in] address Address of the device
+ * @param[in] handle Devman handle of the device driver.
  * @return Error code.
  */
 static int bind_address(
-    ddf_fun_t *fun, usb_address_t address, devman_handle_t handle)
+  ddf_fun_t *fun, usb_address_t address, devman_handle_t handle)
 {
 	assert(fun);
 	hc_t *hc = fun_to_hc(fun);
@@ -118,9 +122,9 @@ static int bind_address(
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
-/** Release previously requested address.
+/** Release address interface function
  *
- * @param[in] fun Device function the action was invoked on.
+ * @param[in] fun DDF function that was called.
  * @param[in] address USB address to be released.
  * @return Error code.
  */
@@ -138,6 +142,7 @@ static int release_address(ddf_fun_t *fun, usb_address_t address)
  *
  * @param[in] fun Device function the action was invoked on.
  * @param[in] address USB address of the device.
+ * @param[in] ep_speed Endpoint speed (invalid means to use device one).
  * @param[in] endpoint Endpoint number.
  * @param[in] transfer_type USB transfer type.
  * @param[in] direction Endpoint data direction.
@@ -145,39 +150,46 @@ static int release_address(ddf_fun_t *fun, usb_address_t address)
  * @param[in] interval Polling interval.
  * @return Error code.
  */
-static int register_endpoint(
-    ddf_fun_t *fun, usb_address_t address, usb_endpoint_t endpoint,
+static int register_endpoint(ddf_fun_t *fun,
+    usb_address_t address, usb_speed_t ep_speed, usb_endpoint_t endpoint,
     usb_transfer_type_t transfer_type, usb_direction_t direction,
     size_t max_packet_size, unsigned int interval)
 {
-	assert(fun);
 	hc_t *hc = fun_to_hc(fun);
 	assert(hc);
-	if (address == hc->rh.address)
-		return EOK;
-	const usb_speed_t speed =
-		usb_device_keeper_get_speed(&hc->manager, address);
+
+	usb_speed_t speed = usb_device_keeper_get_speed(&hc->manager, address);
+	if (speed >= USB_SPEED_MAX) {
+		speed = ep_speed;
+	}
 	const size_t size = max_packet_size;
+	int ret;
+
 	usb_log_debug("Register endpoint %d:%d %s %s(%d) %zu(%zu) %u.\n",
 	    address, endpoint, usb_str_transfer_type(transfer_type),
 	    usb_str_speed(speed), direction, size, max_packet_size, interval);
-	// TODO use real endpoint here!
-	return usb_endpoint_manager_register_ep(&hc->ep_manager,NULL, 0);
+
+	endpoint_t *ep = malloc(sizeof(endpoint_t));
+	if (ep == NULL)
+		return ENOMEM;
+	ret = endpoint_init(ep, address, endpoint, direction,
+	    transfer_type, speed, max_packet_size);
+	if (ret != EOK) {
+		free(ep);
+		return ret;
+	}
+
+	ret = usb_endpoint_manager_register_ep(&hc->ep_manager, ep, size);
+	if (ret != EOK) {
+		endpoint_destroy(ep);
+	}
+	return ret;
 }
 /*----------------------------------------------------------------------------*/
-/** Unregister endpoint (free some bandwidth reservation).
- *
- * @param[in] fun Device function the action was invoked on.
- * @param[in] address USB address of the device.
- * @param[in] endpoint Endpoint number.
- * @param[in] direction Endpoint data direction.
- * @return Error code.
- */
 static int unregister_endpoint(
     ddf_fun_t *fun, usb_address_t address,
     usb_endpoint_t endpoint, usb_direction_t direction)
 {
-	assert(fun);
 	hc_t *hc = fun_to_hc(fun);
 	assert(hc);
 	usb_log_debug("Unregister endpoint %d:%d %d.\n",
@@ -195,7 +207,6 @@ static int unregister_endpoint(
  *
  * @param[in] fun Device function the action was invoked on.
  * @param[in] target Target pipe (address and endpoint number) specification.
- * @param[in] max_packet_size Max packet size for the transfer.
  * @param[in] data Data to be sent (in USB endianess, allocated and deallocated
  *	by the caller).
  * @param[in] size Size of the @p data buffer in bytes.
@@ -204,25 +215,17 @@ static int unregister_endpoint(
  * @return Error code.
  */
 static int interrupt_out(
-    ddf_fun_t *fun, usb_target_t target, size_t max_packet_size, void *data,
+    ddf_fun_t *fun, usb_target_t target, void *data,
     size_t size, usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
-	assert(fun);
-	hc_t *hc = fun_to_hc(fun);
-	assert(hc);
-	usb_speed_t speed =
-	    usb_device_keeper_get_speed(&hc->manager, target.address);
-
-	usb_log_debug("Interrupt OUT %d:%d %zu(%zu).\n",
-	    target.address, target.endpoint, size, max_packet_size);
-
-	usb_transfer_batch_t *batch =
-	    batch_get(fun, target, USB_TRANSFER_INTERRUPT, max_packet_size,
-	        speed, data, size, NULL, 0, NULL, callback, arg, &hc->manager);
-	if (!batch)
-		return ENOMEM;
+	usb_transfer_batch_t *batch = NULL;
+	hc_t *hc = NULL;
+	int ret = setup_batch(fun, target, USB_DIRECTION_OUT, data, size,
+	    NULL, 0, NULL, callback, arg, "Interrupt OUT", &hc, &batch);
+	if (ret != EOK)
+		return ret;
 	batch_interrupt_out(batch);
-	const int ret = hc_schedule(hc, batch);
+	ret = hc_schedule(hc, batch);
 	if (ret != EOK) {
 		batch_dispose(batch);
 	}
@@ -238,7 +241,6 @@ static int interrupt_out(
  *
  * @param[in] fun Device function the action was invoked on.
  * @param[in] target Target pipe (address and endpoint number) specification.
- * @param[in] max_packet_size Max packet size for the transfer.
  * @param[in] data Buffer where to store the data (in USB endianess,
  *	allocated and deallocated by the caller).
  * @param[in] size Size of the @p data buffer in bytes.
@@ -247,24 +249,17 @@ static int interrupt_out(
  * @return Error code.
  */
 static int interrupt_in(
-    ddf_fun_t *fun, usb_target_t target, size_t max_packet_size, void *data,
+    ddf_fun_t *fun, usb_target_t target, void *data,
     size_t size, usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
-	assert(fun);
-	hc_t *hc = fun_to_hc(fun);
-	assert(hc);
-	usb_speed_t speed =
-	    usb_device_keeper_get_speed(&hc->manager, target.address);
-	usb_log_debug("Interrupt IN %d:%d %zu(%zu).\n",
-	    target.address, target.endpoint, size, max_packet_size);
-
-	usb_transfer_batch_t *batch =
-	    batch_get(fun, target, USB_TRANSFER_INTERRUPT, max_packet_size,
-	        speed, data, size, NULL, 0, callback, NULL, arg, &hc->manager);
-	if (!batch)
-		return ENOMEM;
+	usb_transfer_batch_t *batch = NULL;
+	hc_t *hc = NULL;
+	int ret = setup_batch(fun, target, USB_DIRECTION_IN, data, size,
+	    NULL, 0, callback, NULL, arg, "Interrupt IN", &hc, &batch);
+	if (ret != EOK)
+		return ret;
 	batch_interrupt_in(batch);
-	const int ret = hc_schedule(hc, batch);
+	ret = hc_schedule(hc, batch);
 	if (ret != EOK) {
 		batch_dispose(batch);
 	}
@@ -280,7 +275,6 @@ static int interrupt_in(
  *
  * @param[in] fun Device function the action was invoked on.
  * @param[in] target Target pipe (address and endpoint number) specification.
- * @param[in] max_packet_size Max packet size for the transfer.
  * @param[in] data Data to be sent (in USB endianess, allocated and deallocated
  *	by the caller).
  * @param[in] size Size of the @p data buffer in bytes.
@@ -289,25 +283,17 @@ static int interrupt_in(
  * @return Error code.
  */
 static int bulk_out(
-    ddf_fun_t *fun, usb_target_t target, size_t max_packet_size, void *data,
+    ddf_fun_t *fun, usb_target_t target, void *data,
     size_t size, usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
-	assert(fun);
-	hc_t *hc = fun_to_hc(fun);
-	assert(hc);
-	usb_speed_t speed =
-	    usb_device_keeper_get_speed(&hc->manager, target.address);
-
-	usb_log_debug("Bulk OUT %d:%d %zu(%zu).\n",
-	    target.address, target.endpoint, size, max_packet_size);
-
-	usb_transfer_batch_t *batch =
-	    batch_get(fun, target, USB_TRANSFER_BULK, max_packet_size, speed,
-	        data, size, NULL, 0, NULL, callback, arg, &hc->manager);
-	if (!batch)
-		return ENOMEM;
+	usb_transfer_batch_t *batch = NULL;
+	hc_t *hc = NULL;
+	int ret = setup_batch(fun, target, USB_DIRECTION_OUT, data, size,
+	    NULL, 0, NULL, callback, arg, "Bulk OUT", &hc, &batch);
+	if (ret != EOK)
+		return ret;
 	batch_bulk_out(batch);
-	const int ret = hc_schedule(hc, batch);
+	ret = hc_schedule(hc, batch);
 	if (ret != EOK) {
 		batch_dispose(batch);
 	}
@@ -323,7 +309,6 @@ static int bulk_out(
  *
  * @param[in] fun Device function the action was invoked on.
  * @param[in] target Target pipe (address and endpoint number) specification.
- * @param[in] max_packet_size Max packet size for the transfer.
  * @param[in] data Buffer where to store the data (in USB endianess,
  *	allocated and deallocated by the caller).
  * @param[in] size Size of the @p data buffer in bytes.
@@ -332,24 +317,17 @@ static int bulk_out(
  * @return Error code.
  */
 static int bulk_in(
-    ddf_fun_t *fun, usb_target_t target, size_t max_packet_size, void *data,
+    ddf_fun_t *fun, usb_target_t target, void *data,
     size_t size, usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
-	assert(fun);
-	hc_t *hc = fun_to_hc(fun);
-	assert(hc);
-	usb_speed_t speed =
-	    usb_device_keeper_get_speed(&hc->manager, target.address);
-	usb_log_debug("Bulk IN %d:%d %zu(%zu).\n",
-	    target.address, target.endpoint, size, max_packet_size);
-
-	usb_transfer_batch_t *batch =
-	    batch_get(fun, target, USB_TRANSFER_BULK, max_packet_size, speed,
-	        data, size, NULL, 0, callback, NULL, arg, &hc->manager);
-	if (!batch)
-		return ENOMEM;
+	usb_transfer_batch_t *batch = NULL;
+	hc_t *hc = NULL;
+	int ret = setup_batch(fun, target, USB_DIRECTION_IN, data, size,
+	    NULL, 0, callback, NULL, arg, "Bulk IN", &hc, &batch);
+	if (ret != EOK)
+		return ret;
 	batch_bulk_in(batch);
-	const int ret = hc_schedule(hc, batch);
+	ret = hc_schedule(hc, batch);
 	if (ret != EOK) {
 		batch_dispose(batch);
 	}
@@ -365,7 +343,6 @@ static int bulk_in(
  *
  * @param[in] fun Device function the action was invoked on.
  * @param[in] target Target pipe (address and endpoint number) specification.
- * @param[in] max_packet_size Max packet size for the transfer.
  * @param[in] setup_packet Setup packet buffer (in USB endianess, allocated
  *	and deallocated by the caller).
  * @param[in] setup_packet_size Size of @p setup_packet buffer in bytes.
@@ -377,30 +354,20 @@ static int bulk_in(
  * @return Error code.
  */
 static int control_write(
-    ddf_fun_t *fun, usb_target_t target, size_t max_packet_size,
+    ddf_fun_t *fun, usb_target_t target,
     void *setup_data, size_t setup_size, void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
-	assert(fun);
-	hc_t *hc = fun_to_hc(fun);
-	assert(hc);
-	usb_speed_t speed =
-	    usb_device_keeper_get_speed(&hc->manager, target.address);
-	usb_log_debug("Control WRITE (%d) %d:%d %zu(%zu).\n",
-	    speed, target.address, target.endpoint, size, max_packet_size);
-
-	if (setup_size != 8)
-		return EINVAL;
-
-	usb_transfer_batch_t *batch =
-	    batch_get(fun, target, USB_TRANSFER_CONTROL, max_packet_size,
-	        speed, data, size, setup_data, setup_size, NULL, callback, arg,
-		&hc->manager);
-	if (!batch)
-		return ENOMEM;
-	usb_device_keeper_reset_if_need(&hc->manager, target, setup_data);
+	usb_transfer_batch_t *batch = NULL;
+	hc_t *hc = NULL;
+	int ret = setup_batch(fun, target, USB_DIRECTION_BOTH, data, size,
+	    setup_data, setup_size, NULL, callback, arg, "Control WRITE",
+	    &hc, &batch);
+	if (ret != EOK)
+		return ret;
+	usb_endpoint_manager_reset_if_need(&hc->ep_manager, target, setup_data);
 	batch_control_write(batch);
-	const int ret = hc_schedule(hc, batch);
+	ret = hc_schedule(hc, batch);
 	if (ret != EOK) {
 		batch_dispose(batch);
 	}
@@ -416,7 +383,6 @@ static int control_write(
  *
  * @param[in] fun Device function the action was invoked on.
  * @param[in] target Target pipe (address and endpoint number) specification.
- * @param[in] max_packet_size Max packet size for the transfer.
  * @param[in] setup_packet Setup packet buffer (in USB endianess, allocated
  *	and deallocated by the caller).
  * @param[in] setup_packet_size Size of @p setup_packet buffer in bytes.
@@ -428,36 +394,26 @@ static int control_write(
  * @return Error code.
  */
 static int control_read(
-    ddf_fun_t *fun, usb_target_t target, size_t max_packet_size,
+    ddf_fun_t *fun, usb_target_t target,
     void *setup_data, size_t setup_size, void *data, size_t size,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
-	assert(fun);
-	hc_t *hc = fun_to_hc(fun);
-	assert(hc);
-	usb_speed_t speed =
-	    usb_device_keeper_get_speed(&hc->manager, target.address);
-
-	usb_log_debug("Control READ(%d) %d:%d %zu(%zu).\n",
-	    speed, target.address, target.endpoint, size, max_packet_size);
-	usb_transfer_batch_t *batch =
-	    batch_get(fun, target, USB_TRANSFER_CONTROL, max_packet_size,
-	        speed, data, size, setup_data, setup_size, callback, NULL, arg,
-		&hc->manager);
-	if (!batch)
-		return ENOMEM;
+	usb_transfer_batch_t *batch = NULL;
+	hc_t *hc = NULL;
+	int ret = setup_batch(fun, target, USB_DIRECTION_BOTH, data, size,
+	    setup_data, setup_size, callback, NULL, arg, "Control READ",
+	    &hc, &batch);
+	if (ret != EOK)
+		return ret;
 	batch_control_read(batch);
-	const int ret = hc_schedule(hc, batch);
+	ret = hc_schedule(hc, batch);
 	if (ret != EOK) {
 		batch_dispose(batch);
 	}
 	return ret;
 }
 /*----------------------------------------------------------------------------*/
-/** Host controller interface implementation for OHCI. */
 usbhc_iface_t hc_iface = {
-	.reserve_default_address = reserve_default_address,
-	.release_default_address = release_default_address,
 	.request_address = request_address,
 	.bind_address = bind_address,
 	.release_address = release_address,
@@ -474,7 +430,6 @@ usbhc_iface_t hc_iface = {
 	.control_write = control_write,
 	.control_read = control_read,
 };
-
 /**
  * @}
  */

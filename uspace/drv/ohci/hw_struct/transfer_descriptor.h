@@ -34,9 +34,14 @@
 #ifndef DRV_OHCI_HW_STRUCT_TRANSFER_DESCRIPTOR_H
 #define DRV_OHCI_HW_STRUCT_TRANSFER_DESCRIPTOR_H
 
+#include <bool.h>
 #include <stdint.h>
+#include "utils/malloc32.h"
 
 #include "completion_codes.h"
+
+/* OHCI TDs can handle up to 8KB buffers */
+#define OHCI_TD_MAX_TRANSFER (8 * 1024)
 
 typedef struct td {
 	volatile uint32_t status;
@@ -51,6 +56,8 @@ typedef struct td {
 #define TD_STATUS_DI_NO_INTERRUPT (0x7)
 #define TD_STATUS_T_MASK (0x3)  /* data toggle 1x = use ED toggle carry */
 #define TD_STATUS_T_SHIFT (24)
+#define TD_STATUS_T_0 (0x2)
+#define TD_STATUS_T_1 (0x3)
 #define TD_STATUS_EC_MASK (0x3) /* error count */
 #define TD_STATUS_EC_SHIFT (26)
 #define TD_STATUS_CC_MASK (0xf) /* condition code */
@@ -63,6 +70,37 @@ typedef struct td {
 
 	volatile uint32_t be; /* buffer end, address of the last byte */
 } __attribute__((packed)) td_t;
+
+void td_init(
+    td_t *instance, usb_direction_t dir, void *buffer, size_t size, int toggle);
+
+inline static void td_set_next(td_t *instance, td_t *next)
+{
+	assert(instance);
+	instance->next = addr_to_phys(next) & TD_NEXT_PTR_MASK;
+}
+
+inline static bool td_is_finished(td_t *instance)
+{
+	assert(instance);
+	int cc = (instance->status >> TD_STATUS_CC_SHIFT) & TD_STATUS_CC_MASK;
+	/* something went wrong, error code is set */
+	if (cc != CC_NOACCESS1 && cc != CC_NOACCESS2 && cc != CC_NOERROR) {
+		return true;
+	}
+	/* everything done */
+	if (cc == CC_NOERROR && instance->cbp == 0) {
+		return true;
+	}
+	return false;
+}
+
+static inline int td_error(td_t *instance)
+{
+	assert(instance);
+	int cc = (instance->status >> TD_STATUS_CC_SHIFT) & TD_STATUS_CC_MASK;
+	return cc_to_rc(cc);
+}
 #endif
 /**
  * @}

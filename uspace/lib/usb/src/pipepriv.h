@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,46 +30,23 @@
  * @{
  */
 /** @file
- *
+ * Library internal functions on USB pipes.
  */
-#ifndef LIBUSB_HOST_ENDPOINT_H
-#define LIBUSB_HOST_ENDPOINT_H
+#ifndef LIBUSB_PIPEPRIV_H_
+#define LIBUSB_PIPEPRIV_H_
 
-#include <assert.h>
-#include <bool.h>
-#include <adt/list.h>
-#include <fibril_synch.h>
+#include <usb/pipes.h>
 
-#include <usb/usb.h>
+void pipe_acquire(usb_pipe_t *);
+void pipe_release(usb_pipe_t *);
 
-typedef struct endpoint {
-	usb_address_t address;
-	usb_endpoint_t endpoint;
-	usb_direction_t direction;
-	usb_transfer_type_t transfer_type;
-	usb_speed_t speed;
-	size_t max_packet_size;
-	unsigned toggle:1;
-	fibril_mutex_t guard;
-	fibril_condvar_t avail;
-	volatile bool active;
-} endpoint_t;
+void pipe_start_transaction(usb_pipe_t *);
+void pipe_end_transaction(usb_pipe_t *);
 
-int endpoint_init(endpoint_t *instance, usb_address_t address,
-    usb_endpoint_t endpoint, usb_direction_t direction,
-    usb_transfer_type_t type, usb_speed_t speed, size_t max_packet_size);
+int pipe_add_ref(usb_pipe_t *);
+void pipe_drop_ref(usb_pipe_t *);
 
-void endpoint_destroy(endpoint_t *instance);
 
-void endpoint_use(endpoint_t *instance);
-
-void endpoint_release(endpoint_t *instance);
-
-int endpoint_toggle_get(endpoint_t *instance);
-
-void endpoint_toggle_set(endpoint_t *instance, int toggle);
-
-void endpoint_toggle_reset_filtered(endpoint_t *instance, usb_target_t target);
 #endif
 /**
  * @}

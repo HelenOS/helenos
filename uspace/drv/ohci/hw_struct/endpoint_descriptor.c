@@ -25,52 +25,38 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-/** @addtogroup libusb
+/** @addtogroup drvusbohci
  * @{
  */
 /** @file
- *
+ * @brief OHCI driver
  */
-#ifndef LIBUSB_HOST_ENDPOINT_H
-#define LIBUSB_HOST_ENDPOINT_H
+#include "endpoint_descriptor.h"
 
-#include <assert.h>
-#include <bool.h>
-#include <adt/list.h>
-#include <fibril_synch.h>
+static unsigned direc[3] =
+    { ED_STATUS_D_IN, ED_STATUS_D_OUT, ED_STATUS_D_TRANSFER };
 
-#include <usb/usb.h>
+void ed_init(ed_t *instance, endpoint_t *ep)
+{
+	assert(instance);
+	bzero(instance, sizeof(ed_t));
+	if (ep == NULL) {
+		instance->status = ED_STATUS_K_FLAG;
+		return;
+	}
+	assert(ep);
+	instance->status = 0
+	    | ((ep->address & ED_STATUS_FA_MASK) << ED_STATUS_FA_SHIFT)
+	    | ((ep->endpoint & ED_STATUS_EN_MASK) << ED_STATUS_EN_SHIFT)
+	    | ((direc[ep->direction] & ED_STATUS_D_MASK) << ED_STATUS_D_SHIFT)
+	    | ((ep->max_packet_size & ED_STATUS_MPS_MASK)
+	        << ED_STATUS_MPS_SHIFT);
 
-typedef struct endpoint {
-	usb_address_t address;
-	usb_endpoint_t endpoint;
-	usb_direction_t direction;
-	usb_transfer_type_t transfer_type;
-	usb_speed_t speed;
-	size_t max_packet_size;
-	unsigned toggle:1;
-	fibril_mutex_t guard;
-	fibril_condvar_t avail;
-	volatile bool active;
-} endpoint_t;
-
-int endpoint_init(endpoint_t *instance, usb_address_t address,
-    usb_endpoint_t endpoint, usb_direction_t direction,
-    usb_transfer_type_t type, usb_speed_t speed, size_t max_packet_size);
-
-void endpoint_destroy(endpoint_t *instance);
-
-void endpoint_use(endpoint_t *instance);
-
-void endpoint_release(endpoint_t *instance);
-
-int endpoint_toggle_get(endpoint_t *instance);
-
-void endpoint_toggle_set(endpoint_t *instance, int toggle);
-
-void endpoint_toggle_reset_filtered(endpoint_t *instance, usb_target_t target);
-#endif
+	if (ep->speed == USB_SPEED_LOW)
+		instance->status |= ED_STATUS_S_FLAG;
+	if (ep->transfer_type == USB_TRANSFER_ISOCHRONOUS)
+		instance->status |= ED_STATUS_F_FLAG;
+}
 /**
  * @}
  */

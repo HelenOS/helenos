@@ -25,52 +25,38 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-/** @addtogroup libusb
+/** @addtogroup drvusbohci
  * @{
  */
 /** @file
- *
+ * @brief OHCI driver
  */
-#ifndef LIBUSB_HOST_ENDPOINT_H
-#define LIBUSB_HOST_ENDPOINT_H
-
-#include <assert.h>
-#include <bool.h>
-#include <adt/list.h>
-#include <fibril_synch.h>
-
 #include <usb/usb.h>
+#include "utils/malloc32.h"
 
-typedef struct endpoint {
-	usb_address_t address;
-	usb_endpoint_t endpoint;
-	usb_direction_t direction;
-	usb_transfer_type_t transfer_type;
-	usb_speed_t speed;
-	size_t max_packet_size;
-	unsigned toggle:1;
-	fibril_mutex_t guard;
-	fibril_condvar_t avail;
-	volatile bool active;
-} endpoint_t;
+#include "transfer_descriptor.h"
 
-int endpoint_init(endpoint_t *instance, usb_address_t address,
-    usb_endpoint_t endpoint, usb_direction_t direction,
-    usb_transfer_type_t type, usb_speed_t speed, size_t max_packet_size);
+static unsigned dp[3] =
+    { TD_STATUS_DP_IN, TD_STATUS_DP_OUT, TD_STATUS_DP_SETUP };
+static unsigned togg[2] = { TD_STATUS_T_0, TD_STATUS_T_1 };
 
-void endpoint_destroy(endpoint_t *instance);
-
-void endpoint_use(endpoint_t *instance);
-
-void endpoint_release(endpoint_t *instance);
-
-int endpoint_toggle_get(endpoint_t *instance);
-
-void endpoint_toggle_set(endpoint_t *instance, int toggle);
-
-void endpoint_toggle_reset_filtered(endpoint_t *instance, usb_target_t target);
-#endif
+void td_init(
+    td_t *instance, usb_direction_t dir, void *buffer, size_t size, int toggle)
+{
+	assert(instance);
+	bzero(instance, sizeof(td_t));
+	instance-> status = 0
+	    | ((dp[dir] & TD_STATUS_DP_MASK) << TD_STATUS_DP_SHIFT)
+	    | ((CC_NOACCESS2 & TD_STATUS_CC_MASK) << TD_STATUS_CC_SHIFT);
+	if (toggle == 0 || toggle == 1) {
+		instance->status |= togg[toggle] << TD_STATUS_T_SHIFT;
+	}
+	if (buffer != NULL) {
+		instance->cbp = addr_to_phys(buffer);
+		instance->be = addr_to_phys(buffer + size - 1);
+	}
+}
 /**
  * @}
  */
+

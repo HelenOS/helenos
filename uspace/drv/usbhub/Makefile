@@ -33,8 +33,8 @@ BINARY = usbhub
 
 SOURCES = \
 	main.c \
-	ports.c \
 	utils.c \
-	usbhub.c
+	usbhub.c \
+	ports.c
 
 include $(USPACE_PREFIX)/Makefile.common

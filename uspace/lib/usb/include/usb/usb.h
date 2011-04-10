@@ -76,7 +76,9 @@ typedef enum {
 	/** USB 1.1 full speed (12Mbits/s). */
 	USB_SPEED_FULL,
 	/** USB 2.0 high speed (480Mbits/s). */
-	USB_SPEED_HIGH
+	USB_SPEED_HIGH,
+	/** Psuedo-speed serving as a boundary. */
+	USB_SPEED_MAX
 } usb_speed_t;
 
 const char *usb_str_speed(usb_speed_t);

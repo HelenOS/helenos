@@ -62,7 +62,7 @@ void usb_transfer_batch_init(
 	instance->target = target;
 	instance->transfer_type = transfer_type;
 	instance->speed = speed;
-	instance->direction = USB_DIRECTION_BOTH;
+	instance->direction = ep->direction;
 	instance->callback_in = func_in;
 	instance->callback_out = func_out;
 	instance->arg = arg;
@@ -78,6 +78,7 @@ void usb_transfer_batch_init(
 	instance->next_step = NULL;
 	instance->error = EOK;
 	instance->ep = ep;
+	endpoint_use(instance->ep);
 }
 /*----------------------------------------------------------------------------*/
 /** Mark batch as finished and continue with next step.
@@ -85,10 +86,11 @@ void usb_transfer_batch_init(
  * @param[in] instance Batch structure to use.
  *
  */
-void usb_transfer_batch_finish(usb_transfer_batch_t *instance, int error)
+void usb_transfer_batch_finish(usb_transfer_batch_t *instance)
 {
 	assert(instance);
-	instance->error = error;
+	assert(instance->ep);
+	endpoint_release(instance->ep);
 	instance->next_step(instance);
 }
 /*----------------------------------------------------------------------------*/

@@ -25,11 +25,11 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup drvusbuhcihc
+/** @addtogroup drvusbohci
  * @{
  */
 /** @file
- * @brief UHCI driver transfer list implementation
+ * @brief OHCI driver transfer list implementation
  */
 #include <errno.h>
 #include <usb/debug.h>
@@ -51,16 +51,16 @@ int transfer_list_init(transfer_list_t *instance, const char *name)
 {
 	assert(instance);
 	instance->name = name;
-	instance->queue_head = malloc32(sizeof(qh_t));
-	if (!instance->queue_head) {
-		usb_log_error("Failed to allocate queue head.\n");
+	instance->list_head = malloc32(sizeof(ed_t));
+	if (!instance->list_head) {
+		usb_log_error("Failed to allocate list head.\n");
 		return ENOMEM;
 	}
-	instance->queue_head_pa = addr_to_phys(instance->queue_head);
-	usb_log_debug2("Transfer list %s setup with QH: %p(%p).\n",
-	    name, instance->queue_head, instance->queue_head_pa);
+	instance->list_head_pa = addr_to_phys(instance->list_head);
+	usb_log_debug2("Transfer list %s setup with ED: %p(%p).\n",
+	    name, instance->list_head, instance->list_head_pa);
 
-	qh_init(instance->queue_head);
+	ed_init(instance->list_head, NULL);
 	list_initialize(&instance->batch_list);
 	fibril_mutex_initialize(&instance->guard);
 	return EOK;
@@ -78,10 +78,8 @@ void transfer_list_set_next(transfer_list_t *instance, transfer_list_t *next)
 {
 	assert(instance);
 	assert(next);
-	if (!instance->queue_head)
-		return;
 	/* Set both queue_head.next to point to the follower */
-	qh_set_next_qh(instance->queue_head, next->queue_head_pa);
+	ed_append_ed(instance->list_head, next->list_head);
 }
 /*----------------------------------------------------------------------------*/
 /** Submit transfer batch to the list and queue.
@@ -101,23 +99,20 @@ void transfer_list_add_batch(
 
 	fibril_mutex_lock(&instance->guard);
 
-	qh_t *last_qh = NULL;
+	ed_t *last_ed = NULL;
 	/* Add to the hardware queue. */
 	if (list_empty(&instance->batch_list)) {
 		/* There is nothing scheduled */
-		last_qh = instance->queue_head;
+		last_ed = instance->list_head;
 	} else {
 		/* There is something scheduled */
 		usb_transfer_batch_t *last = list_get_instance(
 		    instance->batch_list.prev, usb_transfer_batch_t, link);
-		last_qh = batch_qh(last);
+		last_ed = batch_ed(last);
 	}
-	const uint32_t pa = addr_to_phys(batch_qh(batch));
-	assert((pa & LINK_POINTER_ADDRESS_MASK) == pa);
-
 	/* keep link */
-	batch_qh(batch)->next = last_qh->next;
-	qh_set_next_qh(last_qh, pa);
+	batch_ed(batch)->next = last_ed->next;
+	ed_append_ed(last_ed, batch_ed(batch));
 
 	asm volatile ("": : :"memory");
 
@@ -126,8 +121,13 @@ void transfer_list_add_batch(
 
 	usb_transfer_batch_t *first = list_get_instance(
 	    instance->batch_list.next, usb_transfer_batch_t, link);
-	usb_log_debug("Batch(%p) added to queue %s, first is %p.\n",
-		batch, instance->name, first);
+	usb_log_debug("Batch(%p) added to list %s, first is %p(%p).\n",
+		batch, instance->name, first, batch_ed(first));
+	if (last_ed == instance->list_head) {
+		usb_log_debug2("%s head ED: %x:%x:%x:%x.\n", instance->name,
+			last_ed->status, last_ed->td_tail, last_ed->td_head,
+			last_ed->next);
+	}
 	fibril_mutex_unlock(&instance->guard);
 }
 /*----------------------------------------------------------------------------*/
@@ -187,9 +187,9 @@ void transfer_list_remove_batch(
     transfer_list_t *instance, usb_transfer_batch_t *batch)
 {
 	assert(instance);
-	assert(instance->queue_head);
+	assert(instance->list_head);
 	assert(batch);
-	assert(batch_qh(batch));
+	assert(batch_ed(batch));
 	assert(fibril_mutex_is_locked(&instance->guard));
 
 	usb_log_debug2(
@@ -199,24 +199,25 @@ void transfer_list_remove_batch(
 	/* Remove from the hardware queue */
 	if (instance->batch_list.next == &batch->link) {
 		/* I'm the first one here */
-		assert((instance->queue_head->next & LINK_POINTER_ADDRESS_MASK)
-		    == addr_to_phys(batch_qh(batch)));
-		instance->queue_head->next = batch_qh(batch)->next;
+		assert((instance->list_head->next & ED_NEXT_PTR_MASK)
+		    == addr_to_phys(batch_ed(batch)));
+		instance->list_head->next = batch_ed(batch)->next;
 		qpos = "FIRST";
 	} else {
 		usb_transfer_batch_t *prev =
 		    list_get_instance(
 		        batch->link.prev, usb_transfer_batch_t, link);
-		assert((batch_qh(prev)->next & LINK_POINTER_ADDRESS_MASK)
-		    == addr_to_phys(batch_qh(batch)));
-		batch_qh(prev)->next = batch_qh(batch)->next;
+		assert((batch_ed(prev)->next & ED_NEXT_PTR_MASK)
+		    == addr_to_phys(batch_ed(batch)));
+		batch_ed(prev)->next = batch_ed(batch)->next;
 		qpos = "NOT FIRST";
 	}
 	asm volatile ("": : :"memory");
+	usb_log_debug("Batch(%p) removed (%s) from %s, next %x.\n",
+	    batch, qpos, instance->name, batch_ed(batch)->next);
+
 	/* Remove from the batch list */
 	list_remove(&batch->link);
-	usb_log_debug("Batch(%p) removed (%s) from %s, next %x.\n",
-	    batch, qpos, instance->name, batch_qh(batch)->next);
 }
 /**
  * @}

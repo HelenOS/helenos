@@ -33,6 +33,7 @@
  * @brief UHCI host controller driver structure
  */
 
+#include <assert.h>
 #include <errno.h>
 #include <usb/host/endpoint.h>
 
@@ -48,15 +49,36 @@ int endpoint_init(endpoint_t *instance, usb_address_t address,
 	instance->speed = speed;
 	instance->max_packet_size = max_packet_size;
 	instance->toggle = 0;
-	link_initialize(&instance->same_device_eps);
+	instance->active = false;
+	fibril_mutex_initialize(&instance->guard);
+	fibril_condvar_initialize(&instance->avail);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
 void endpoint_destroy(endpoint_t *instance)
 {
 	assert(instance);
-	list_remove(&instance->same_device_eps);
+	assert(!instance->active);
 	free(instance);
+}
+/*----------------------------------------------------------------------------*/
+void endpoint_use(endpoint_t *instance)
+{
+	assert(instance);
+	fibril_mutex_lock(&instance->guard);
+	while (instance->active)
+		fibril_condvar_wait(&instance->avail, &instance->guard);
+	instance->active = true;
+	fibril_mutex_unlock(&instance->guard);
+}
+/*----------------------------------------------------------------------------*/
+void endpoint_release(endpoint_t *instance)
+{
+	assert(instance);
+	fibril_mutex_lock(&instance->guard);
+	instance->active = false;
+	fibril_mutex_unlock(&instance->guard);
+	fibril_condvar_signal(&instance->avail);
 }
 /*----------------------------------------------------------------------------*/
 int endpoint_toggle_get(endpoint_t *instance)
@@ -72,20 +94,11 @@ void endpoint_toggle_set(endpoint_t *instance, int toggle)
 	instance->toggle = toggle;
 }
 /*----------------------------------------------------------------------------*/
-void endpoint_toggle_reset(link_t *ep)
+void endpoint_toggle_reset_filtered(endpoint_t *instance, usb_target_t target)
 {
-	endpoint_t *instance =
-	    list_get_instance(ep, endpoint_t, same_device_eps);
 	assert(instance);
-	instance->toggle = 0;
-}
-/*----------------------------------------------------------------------------*/
-void endpoint_toggle_reset_filtered(link_t *ep, usb_endpoint_t epn)
-{
-	endpoint_t *instance =
-	    list_get_instance(ep, endpoint_t, same_device_eps);
-	assert(instance);
-	if (instance->endpoint == epn)
+	if (instance->address == target.address &&
+	    (instance->endpoint == target.endpoint || target.endpoint == 0))
 		instance->toggle = 0;
 }
 /**

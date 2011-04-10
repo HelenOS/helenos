@@ -355,12 +355,15 @@ int usb_pipe_initialize(usb_pipe_t *pipe,
 	assert(pipe);
 	assert(connection);
 
+	fibril_mutex_initialize(&pipe->guard);
 	pipe->wire = connection;
 	pipe->hc_phone = -1;
+	fibril_mutex_initialize(&pipe->hc_phone_mutex);
 	pipe->endpoint_no = endpoint_no;
 	pipe->transfer_type = transfer_type;
 	pipe->max_packet_size = max_packet_size;
 	pipe->direction = direction;
+	pipe->refcount = 0;
 
 	return EOK;
 }
@@ -412,12 +415,7 @@ int usb_pipe_probe_default_control(usb_pipe_t *pipe)
 	size_t failed_attempts;
 	int rc;
 
-	TRY_LOOP(failed_attempts) {
-		rc = usb_pipe_start_session(pipe);
-		if (rc == EOK) {
-			break;
-		}
-	}
+	rc = usb_pipe_start_long_transfer(pipe);
 	if (rc != EOK) {
 		return rc;
 	}
@@ -438,7 +436,7 @@ int usb_pipe_probe_default_control(usb_pipe_t *pipe)
 			break;
 		}
 	}
-	usb_pipe_end_session(pipe);
+	usb_pipe_end_long_transfer(pipe);
 	if (rc != EOK) {
 		return rc;
 	}
@@ -460,6 +458,27 @@ int usb_pipe_register(usb_pipe_t *pipe,
     unsigned int interval,
     usb_hc_connection_t *hc_connection)
 {
+	return usb_pipe_register_with_speed(pipe, USB_SPEED_MAX + 1,
+	    interval, hc_connection);
+}
+
+/** Register endpoint with a speed at the host controller.
+ *
+ * You will rarely need to use this function because it is needed only
+ * if the registered endpoint is of address 0 and there is no other way
+ * to tell speed of the device at address 0.
+ *
+ * @param pipe Pipe to be registered.
+ * @param speed Speed of the device
+ *	(invalid speed means use previously specified one).
+ * @param interval Polling interval.
+ * @param hc_connection Connection to the host controller (must be opened).
+ * @return Error code.
+ */
+int usb_pipe_register_with_speed(usb_pipe_t *pipe, usb_speed_t speed,
+    unsigned int interval,
+    usb_hc_connection_t *hc_connection)
+{
 	assert(pipe);
 	assert(hc_connection);
 
@@ -467,15 +486,17 @@ int usb_pipe_register(usb_pipe_t *pipe,
 		return EBADF;
 	}
 
-#define _PACK(high, low) ((high) * 256 + (low))
+#define _PACK2(high, low) (((high) << 16) + (low))
+#define _PACK3(high, middle, low) (((((high) << 8) + (middle)) << 8) + (low))
 
-	return async_req_5_0(hc_connection->hc_phone,
+	return async_req_4_0(hc_connection->hc_phone,
 	    DEV_IFACE_ID(USBHC_DEV_IFACE), IPC_M_USBHC_REGISTER_ENDPOINT,
-	    _PACK(pipe->wire->address, pipe->endpoint_no),
-	    _PACK(pipe->transfer_type, pipe->direction),
-	    pipe->max_packet_size, interval);
+	    _PACK2(pipe->wire->address, pipe->endpoint_no),
+	    _PACK3(speed, pipe->transfer_type, pipe->direction),
+	    _PACK2(pipe->max_packet_size, interval));
 
-#undef _PACK
+#undef _PACK2
+#undef _PACK3
 }
 
 /** Revert endpoint registration with the host controller.
