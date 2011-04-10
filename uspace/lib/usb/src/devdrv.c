@@ -179,6 +179,13 @@ static int destroy_current_pipes(usb_device_t *dev)
  * manually using usb_request_set_interface() and creating new pipes
  * with usb_pipe_initialize_from_configuration().
  *
+ * @warning This is a wrapper function that does several operations that
+ * can fail and that cannot be rollbacked easily. That means that a failure
+ * during the SET_INTERFACE request would result in having a device with
+ * no pipes at all (except the default control one). That is because the old
+ * pipes needs to be unregistered at HC first and the new ones could not
+ * be created.
+ *
  * @param dev USB device.
  * @param alternate_setting Alternate setting to choose.
  * @param endpoints New endpoint descriptions.
@@ -192,8 +199,6 @@ int usb_device_select_interface(usb_device_t *dev, uint8_t alternate_setting,
 	}
 
 	int rc;
-
-	/* TODO: more transactional behavior. */
 
 	/* Destroy existing pipes. */
 	rc = destroy_current_pipes(dev);
@@ -430,9 +435,13 @@ int usb_device_destroy_pipes(ddf_dev_t *dev,
 	return EOK;
 }
 
-/** Initialize control pipe and device descriptors. */
-static int initialize_ctrl_pipe_and_descriptors(usb_device_t *dev,
-     const char **errmsg)
+/** Initialize control pipe in a device.
+ *
+ * @param dev USB device in question.
+ * @param errmsg Where to store error context.
+ * @return
+ */
+static int init_wire_and_ctrl_pipe(usb_device_t *dev, const char **errmsg)
 {
 	int rc;
 
@@ -450,17 +459,7 @@ static int initialize_ctrl_pipe_and_descriptors(usb_device_t *dev,
 		return rc;
 	}
 
-	/* Get our interface. */
-	dev->interface_no = usb_device_get_assigned_interface(dev->ddf_dev);
-
-	/* Retrieve the descriptors. */
-	rc = usb_device_retrieve_descriptors(&dev->ctrl_pipe,
-	    &dev->descriptors);
-	if (rc != EOK) {
-		*errmsg = "descriptor retrieval";
-	}
-
-	return rc;
+	return EOK;
 }
 
 
@@ -488,6 +487,8 @@ int usb_device_create(ddf_dev_t *ddf_dev,
 		return ENOMEM;
 	}
 
+	// FIXME: proper deallocation in case of errors
+
 	dev->ddf_dev = ddf_dev;
 	dev->driver_data = NULL;
 	dev->descriptors.configuration = NULL;
@@ -496,11 +497,24 @@ int usb_device_create(ddf_dev_t *ddf_dev,
 	dev->pipes_count = 0;
 	dev->pipes = NULL;
 
-	rc = initialize_ctrl_pipe_and_descriptors(dev, errstr_ptr);
+	/* Initialize backing wire and control pipe. */
+	rc = init_wire_and_ctrl_pipe(dev, errstr_ptr);
 	if (rc != EOK) {
 		return rc;
 	}
 
+	/* Get our interface. */
+	dev->interface_no = usb_device_get_assigned_interface(dev->ddf_dev);
+
+	/* Retrieve standard descriptors. */
+	rc = usb_device_retrieve_descriptors(&dev->ctrl_pipe,
+	    &dev->descriptors);
+	if (rc != EOK) {
+		*errstr_ptr = "descriptor retrieval";
+		return rc;
+	}
+
+	/* Create alternate interfaces. */
 	rc = usb_alternate_interfaces_create(dev->descriptors.configuration,
 	    dev->descriptors.configuration_size, dev->interface_no,
 	    &dev->alternate_interfaces);
@@ -512,7 +526,6 @@ int usb_device_create(ddf_dev_t *ddf_dev,
 	rc = initialize_other_pipes(endpoints, dev, 0);
 	if (rc != EOK) {
 		*errstr_ptr = "pipes initialization";
-		/* TODO: deallocate */
 		return rc;
 	}
 
