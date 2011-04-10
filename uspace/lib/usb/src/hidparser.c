@@ -899,6 +899,8 @@ int usb_hid_report_path_append_item(usb_hid_report_path_t *usage_path,
 	item->usage = usage;
 	item->usage_page = usage_page;
 	
+	usb_log_debug("Appending usage %d, usage page %d\n", usage, usage_page);
+	
 	list_append (&usage_path->link, &item->link);
 	usage_path->depth++;
 	return EOK;

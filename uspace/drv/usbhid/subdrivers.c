@@ -34,8 +34,9 @@
  */
 
 #include "subdrivers.h"
+#include "usb/classes/hidut.h"
 
-static usb_hid_subdriver_usage_t path_kbd[] = {{0, 7}};
+static usb_hid_subdriver_usage_t path_kbd[] = {{USB_HIDUT_PAGE_KEYBOARD, 0}};
 
 const usb_hid_subdriver_mapping_t usb_hid_subdrivers[] = {
 	{

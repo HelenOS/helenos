@@ -170,23 +170,29 @@ static bool usb_hid_path_matches(usb_hid_dev_t *hid_dev,
 	
 	usb_hid_report_path_t *usage_path = usb_hid_report_path();
 	if (usage_path == NULL) {
+		usb_log_debug("Failed to create usage path.\n");
 		return false;
 	}
 	int i;
 	for (i = 0; i < path_size; ++i) {
 		if (usb_hid_report_path_append_item(usage_path, 
 		    path[i].usage_page, path[i].usage) != EOK) {
+			usb_log_debug("Failed to append to usage path.\n");
 			usb_hid_report_path_free(usage_path);
 			return false;
 		}
 	}
 	
-	bool matches = (usb_hid_report_input_length(hid_dev->parser, usage_path, 
-	    compare) > 0);
+	assert(hid_dev->parser != NULL);
+	
+	usb_log_debug("Compare flags: %d\n", compare);
+	size_t size = usb_hid_report_input_length(hid_dev->parser, usage_path, 
+	    compare);
+	usb_log_debug("Size of the input report: %d\n", size);
 	
 	usb_hid_report_path_free(usage_path);
 	
-	return matches;
+	return (size > 0);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -259,10 +265,13 @@ static int usb_hid_find_subdrivers(usb_hid_dev_t *hid_dev)
 		}
 		
 		if (mapping->usage_path != NULL) {
+			usb_log_debug("Comparing device against usage path.\n");
 			if (usb_hid_path_matches(hid_dev, 
 			    mapping->usage_path, mapping->path_size,
 			    mapping->compare)) {
 				subdrivers[count++] = &mapping->subdriver;
+			} else {
+				usb_log_debug("Not matched.\n");
 			}
 		}
 	next:
@@ -551,7 +560,7 @@ void usb_hid_free(usb_hid_dev_t **hid_dev)
 	
 	// free the subdrivers info
 	if ((*hid_dev)->subdrivers != NULL) {
-		free(subdrivers);
+		free((*hid_dev)->subdrivers);
 	}
 
 	// destroy the parser
