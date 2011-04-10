@@ -38,7 +38,7 @@
 
 #include <usb/devdrv.h>
 
-struct usb_hid_dev_t;
+struct usb_hid_dev;
 
 /*----------------------------------------------------------------------------*/
 
@@ -59,14 +59,14 @@ const char *HID_MOUSE_CLASS_NAME;
 
 /*----------------------------------------------------------------------------*/
 
-int usb_mouse_init(struct usb_hid_dev_t *hid_dev);
+int usb_mouse_init(struct usb_hid_dev *hid_dev);
 
-bool usb_mouse_polling_callback(usb_device_t *dev, uint8_t *buffer,
-     size_t buffer_size, void *arg);
+bool usb_mouse_polling_callback(struct usb_hid_dev *hid_dev, uint8_t *buffer,
+    size_t buffer_size);
 
-void usb_mouse_deinit(struct usb_hid_dev_t *hid_dev);
+void usb_mouse_deinit(struct usb_hid_dev *hid_dev);
 
-int usb_mouse_set_boot_protocol(struct usb_hid_dev_t *hid_dev);
+int usb_mouse_set_boot_protocol(struct usb_hid_dev *hid_dev);
 
 /*----------------------------------------------------------------------------*/
 

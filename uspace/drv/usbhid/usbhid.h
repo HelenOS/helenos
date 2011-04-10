@@ -44,11 +44,30 @@
 #include <usb/devdrv.h>
 #include <usb/classes/hid.h>
 
+struct usb_hid_dev;
+
+typedef int (*usb_hid_driver_init_t)(struct usb_hid_dev *);
+typedef void (*usb_hid_driver_deinit_t)(struct usb_hid_dev *);
+typedef bool (*usb_hid_driver_poll)(struct usb_hid_dev *, uint8_t *, size_t);
+typedef int (*usb_hid_driver_poll_ended)(struct usb_hid_dev *, bool reason);
+
+// TODO: add function and class name??
+typedef struct usb_hid_subdriver {	
+	/** Function to be called when initializing HID device. */
+	usb_hid_driver_init_t init;
+	/** Function to be called when destroying the HID device structure. */
+	usb_hid_driver_deinit_t deinit;
+	/** Function to be called when data arrives from the device. */
+	usb_hid_driver_poll poll;
+	/** Function to be called when polling ends. */
+	usb_hid_driver_poll_ended poll_end;
+} usb_hid_subdriver_t;
+
 /*----------------------------------------------------------------------------*/
 /**
  * Structure for holding general HID device data.
  */
-typedef struct usb_hid_dev_t {
+typedef struct usb_hid_dev {
 	/** Structure holding generic USB device information. */
 	usb_device_t *usb_dev;
 	
@@ -58,8 +77,11 @@ typedef struct usb_hid_dev_t {
 	/** Index of the polling pipe in usb_hid_endpoints array. */
 	int poll_pipe_index;
 	
-	/** Function to be called when data arrives from the device. */
-	usb_polling_callback_t poll_callback;
+	/** Subdrivers. */
+	usb_hid_subdriver_t *subdrivers;
+	
+	/** Number of subdrivers. */
+	int subdriver_count;
 	
 	/** Report descriptor. */
 	uint8_t *report_desc;
@@ -72,9 +94,6 @@ typedef struct usb_hid_dev_t {
 	
 	/** Arbitrary data (e.g. a special structure for handling keyboard). */
 	void *data;
-	
-	/** Type of the device (keyboard, mouse, generic HID device). */
-	usb_hid_iface_protocol_t device_type;
 } usb_hid_dev_t;
 
 /*----------------------------------------------------------------------------*/
@@ -94,12 +113,15 @@ usb_hid_dev_t *usb_hid_new(void);
 
 int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev);
 
+bool usb_hid_polling_callback(usb_device_t *dev, uint8_t *buffer, 
+    size_t buffer_size, void *arg);
+
 void usb_hid_polling_ended_callback(usb_device_t *dev, bool reason, 
      void *arg);
 
-const char *usb_hid_get_function_name(usb_hid_iface_protocol_t device_type);
+const char *usb_hid_get_function_name(const usb_hid_dev_t *hid_dev);
 
-const char *usb_hid_get_class_name(usb_hid_iface_protocol_t device_type);
+const char *usb_hid_get_class_name(const usb_hid_dev_t *hid_dev);
 
 void usb_hid_free(usb_hid_dev_t **hid_dev);
 

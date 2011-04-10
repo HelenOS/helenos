@@ -230,7 +230,7 @@ static bool usb_mouse_process_boot_report(usb_mouse_t *mouse_dev,
 
 /*----------------------------------------------------------------------------*/
 
-int usb_mouse_init(struct usb_hid_dev_t *hid_dev)
+int usb_mouse_init(usb_hid_dev_t *hid_dev)
 {
 	usb_log_debug("Initializing HID/Mouse structure...\n");
 	
@@ -251,32 +251,29 @@ int usb_mouse_init(struct usb_hid_dev_t *hid_dev)
 	hid_dev->data = mouse_dev;
 	
 	// set handler for incoming calls
-	// TODO: now does this behave when we have more such handlers in
-	//       one actual driver??
 	hid_dev->ops.default_handler = default_connection_handler;
 	
 	// TODO: how to know if the device supports the request???
-//	usbhid_req_set_idle(&hid_dev->usb_dev->ctrl_pipe, 
-//	    hid_dev->usb_dev->interface_no, IDLE_RATE);
+	usbhid_req_set_idle(&hid_dev->usb_dev->ctrl_pipe, 
+	    hid_dev->usb_dev->interface_no, IDLE_RATE);
 	
 	return EOK;
 }
 
 /*----------------------------------------------------------------------------*/
 
-bool usb_mouse_polling_callback(usb_device_t *dev, uint8_t *buffer,
-     size_t buffer_size, void *arg)
+bool usb_mouse_polling_callback(usb_hid_dev_t *hid_dev, uint8_t *buffer,
+     size_t buffer_size)
 {
 	usb_log_debug("usb_mouse_polling_callback()\n");
 	usb_debug_str_buffer(buffer, buffer_size, 0);
 	
-	if (arg == NULL) {
+	if (hid_dev == NULL) {
 		usb_log_error("Missing argument to the mouse polling callback."
 		    "\n");
 		return false;
 	}
 	
-	usb_hid_dev_t *hid_dev = (usb_hid_dev_t *)arg;
 	if (hid_dev->data == NULL) {
 		usb_log_error("Wrong argument to the mouse polling callback."
 		    "\n");
@@ -289,14 +286,14 @@ bool usb_mouse_polling_callback(usb_device_t *dev, uint8_t *buffer,
 
 /*----------------------------------------------------------------------------*/
 
-void usb_mouse_deinit(struct usb_hid_dev_t *hid_dev)
+void usb_mouse_deinit(usb_hid_dev_t *hid_dev)
 {
 	usb_mouse_free((usb_mouse_t **)&hid_dev->data);
 }
 
 /*----------------------------------------------------------------------------*/
 
-int usb_mouse_set_boot_protocol(struct usb_hid_dev_t *hid_dev)
+int usb_mouse_set_boot_protocol(usb_hid_dev_t *hid_dev)
 {
 	int rc = usb_hid_parse_report_descriptor(hid_dev->parser, 
 	    USB_MOUSE_BOOT_REPORT_DESCRIPTOR, 

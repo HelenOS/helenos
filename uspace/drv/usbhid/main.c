@@ -97,7 +97,7 @@ static int usb_hid_try_add_device(usb_device_t *dev)
 	
 	/* Create the function exposed under /dev/devices. */
 	ddf_fun_t *hid_fun = ddf_fun_create(dev->ddf_dev, fun_exposed, 
-	    usb_hid_get_function_name(hid_dev->device_type));
+	    usb_hid_get_function_name(hid_dev));
 	if (hid_fun == NULL) {
 		usb_log_error("Could not create DDF function node.\n");
 		usb_hid_free(&hid_dev);
@@ -121,8 +121,7 @@ static int usb_hid_try_add_device(usb_device_t *dev)
 		return rc;
 	}
 	
-	rc = ddf_fun_add_to_class(hid_fun, 
-	    usb_hid_get_class_name(hid_dev->device_type));
+	rc = ddf_fun_add_to_class(hid_fun, usb_hid_get_class_name(hid_dev));
 	if (rc != EOK) {
 		usb_log_error(
 		    "Could not add DDF function to class 'hid': %s.\n",
@@ -141,7 +140,7 @@ static int usb_hid_try_add_device(usb_device_t *dev)
 	   /* Index of the polling pipe. */
 	   hid_dev->poll_pipe_index,
 	   /* Callback when data arrives. */
-	   hid_dev->poll_callback,
+	   usb_hid_polling_callback,
 	   /* How much data to request. */
 	   dev->pipes[hid_dev->poll_pipe_index].pipe->max_packet_size,
 	   /* Callback when the polling ends. */

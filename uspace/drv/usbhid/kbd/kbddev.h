@@ -48,7 +48,7 @@
 
 #include "kbdrepeat.h"
 
-struct usb_hid_dev_t;
+struct usb_hid_dev;
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -114,10 +114,10 @@ const char *HID_KBD_CLASS_NAME;
 
 /*----------------------------------------------------------------------------*/
 
-int usb_kbd_init(struct usb_hid_dev_t *hid_dev);
+int usb_kbd_init(struct usb_hid_dev *hid_dev);
 
-bool usb_kbd_polling_callback(usb_device_t *dev, uint8_t *buffer,
-     size_t buffer_size, void *arg);
+bool usb_kbd_polling_callback(struct usb_hid_dev *hid_dev, uint8_t *buffer,
+    size_t buffer_size);
 
 int usb_kbd_is_initialized(const usb_kbd_t *kbd_dev);
 
@@ -125,12 +125,12 @@ int usb_kbd_is_ready_to_destroy(const usb_kbd_t *kbd_dev);
 
 void usb_kbd_free(usb_kbd_t **kbd_dev);
 
-void usb_kbd_push_ev(struct usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev,
+void usb_kbd_push_ev(struct usb_hid_dev *hid_dev, usb_kbd_t *kbd_dev,
     int type, unsigned int key);
 
-void usb_kbd_deinit(struct usb_hid_dev_t *hid_dev);
+void usb_kbd_deinit(struct usb_hid_dev *hid_dev);
 
-int usb_kbd_set_boot_protocol(struct usb_hid_dev_t *hid_dev);
+int usb_kbd_set_boot_protocol(struct usb_hid_dev *hid_dev);
 
 #endif /* USB_KBDDEV_H_ */
 
