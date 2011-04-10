@@ -123,132 +123,6 @@ static int initialize_other_pipes(usb_endpoint_description_t **endpoints,
 	return EOK;
 }
 
-/** Count number of alternate settings of a interface.
- *
- * @param config_descr Full configuration descriptor.
- * @param config_descr_size Size of @p config_descr in bytes.
- * @param interface_no Interface number.
- * @return Number of alternate interfaces for @p interface_no interface.
- */
-size_t usb_interface_count_alternates(uint8_t *config_descr,
-    size_t config_descr_size, uint8_t interface_no)
-{
-	assert(config_descr != NULL);
-	assert(config_descr_size > 0);
-
-	usb_dp_parser_t dp_parser = {
-		.nesting = usb_dp_standard_descriptor_nesting
-	};
-	usb_dp_parser_data_t dp_data = {
-		.data = config_descr,
-		.size = config_descr_size,
-		.arg = NULL
-	};
-
-	size_t alternate_count = 0;
-
-	uint8_t *iface_ptr = usb_dp_get_nested_descriptor(&dp_parser,
-	    &dp_data, config_descr);
-	while (iface_ptr != NULL) {
-		usb_standard_interface_descriptor_t *iface
-		    = (usb_standard_interface_descriptor_t *) iface_ptr;
-		if (iface->descriptor_type == USB_DESCTYPE_INTERFACE) {
-			if (iface->interface_number == interface_no) {
-				alternate_count++;
-			}
-		}
-		iface_ptr = usb_dp_get_sibling_descriptor(&dp_parser, &dp_data,
-		    config_descr, iface_ptr);
-	}
-
-	return alternate_count;
-}
-
-/** Initialize structures related to alternate interfaces.
- *
- * @param dev Device where alternate settings shall be initialized.
- * @return Error code.
- */
-static int initialize_alternate_interfaces(usb_device_t *dev)
-{
-	if (dev->interface_no < 0) {
-		dev->alternate_interfaces = NULL;
-		return EOK;
-	}
-
-	usb_alternate_interfaces_t *alternates
-	    = malloc(sizeof(usb_alternate_interfaces_t));
-
-	if (alternates == NULL) {
-		return ENOMEM;
-	}
-
-	alternates->alternative_count
-	    = usb_interface_count_alternates(dev->descriptors.configuration,
-	    dev->descriptors.configuration_size, dev->interface_no);
-
-	if (alternates->alternative_count == 0) {
-		free(alternates);
-		return ENOENT;
-	}
-
-	alternates->alternatives = malloc(alternates->alternative_count
-	    * sizeof(usb_alternate_interface_descriptors_t));
-	if (alternates->alternatives == NULL) {
-		free(alternates);
-		return ENOMEM;
-	}
-
-	alternates->current = 0;
-
-	usb_dp_parser_t dp_parser = {
-		.nesting = usb_dp_standard_descriptor_nesting
-	};
-	usb_dp_parser_data_t dp_data = {
-		.data = dev->descriptors.configuration,
-		.size = dev->descriptors.configuration_size,
-		.arg = NULL
-	};
-
-	usb_alternate_interface_descriptors_t *cur_alt_iface
-	    = &alternates->alternatives[0];
-
-	uint8_t *iface_ptr = usb_dp_get_nested_descriptor(&dp_parser,
-	    &dp_data, dp_data.data);
-	while (iface_ptr != NULL) {
-		usb_standard_interface_descriptor_t *iface
-		    = (usb_standard_interface_descriptor_t *) iface_ptr;
-		if ((iface->descriptor_type != USB_DESCTYPE_INTERFACE)
-		    || (iface->interface_number != dev->interface_no)) {
-			iface_ptr = usb_dp_get_sibling_descriptor(&dp_parser,
-			    &dp_data,
-			    dp_data.data, iface_ptr);
-			continue;
-		}
-
-		cur_alt_iface->interface = iface;
-		cur_alt_iface->nested_descriptors = iface_ptr + sizeof(*iface);
-
-		/* Find next interface to count size of nested descriptors. */
-		iface_ptr = usb_dp_get_sibling_descriptor(&dp_parser, &dp_data,
-		    dp_data.data, iface_ptr);
-		if (iface_ptr == NULL) {
-			uint8_t *next = dp_data.data + dp_data.size;
-			cur_alt_iface->nested_descriptors_size
-			    = next - cur_alt_iface->nested_descriptors;
-		} else {
-			cur_alt_iface->nested_descriptors_size
-			    = iface_ptr - cur_alt_iface->nested_descriptors;
-		}
-
-		cur_alt_iface++;
-	}
-
-	dev->alternate_interfaces = alternates;
-
-	return EOK;
-}
-
 /** Callback when new device is supposed to be controlled by this driver.
  *
  * This callback is a wrapper for USB specific version of @c add_device.
@@ -627,7 +501,9 @@ int usb_device_create(ddf_dev_t *ddf_dev,
 		return rc;
 	}
 
-	rc = initialize_alternate_interfaces(dev);
+	rc = usb_alternate_interfaces_create(dev->descriptors.configuration,
+	    dev->descriptors.configuration_size, dev->interface_no,
+	    &dev->alternate_interfaces);
 	if (rc != EOK) {
 		/* We will try to silently ignore this. */
 		dev->alternate_interfaces = NULL;

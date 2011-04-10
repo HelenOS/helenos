@@ -176,6 +176,8 @@ int usb_device_destroy_pipes(ddf_dev_t *, usb_endpoint_mapping_t *, size_t);
 int usb_device_create(ddf_dev_t *, usb_endpoint_description_t **, usb_device_t **, const char **);
 
 size_t usb_interface_count_alternates(uint8_t *, size_t, uint8_t);
+int usb_alternate_interfaces_create(uint8_t *, size_t, int,
+    usb_alternate_interfaces_t **);
 
 #endif
 /**
