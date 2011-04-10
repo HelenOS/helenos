@@ -39,6 +39,7 @@ STOLEN_LAYOUT_SOURCES = \
 SOURCES = \
 	main.c \
 	usbhid.c \
+	subdrivers.c \
 	kbd/conv.c \
 	kbd/kbddev.c \
 	kbd/kbdrepeat.c \

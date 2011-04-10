@@ -64,14 +64,6 @@ typedef struct usb_hid_subdriver {
 } usb_hid_subdriver_t;
 
 /*----------------------------------------------------------------------------*/
-
-typedef struct usb_hid_callback_mapping {
-	usb_hid_report_path_t *path;
-	char *vendor_id;
-	char *product_id;
-} usb_hid_callback_mapping_t;
-
-/*----------------------------------------------------------------------------*/
 /**
  * Structure for holding general HID device data.
  */

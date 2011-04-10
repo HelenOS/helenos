@@ -47,6 +47,7 @@
 #include "kbd/kbddev.h"
 #include "generic/hiddev.h"
 #include "mouse/mousedev.h"
+#include "subdrivers.h"
 
 /*----------------------------------------------------------------------------*/
 
