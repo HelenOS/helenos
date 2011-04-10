@@ -33,8 +33,8 @@
  * USB HID driver API.
  */
 
-#ifndef USB_USBHID_H_
-#define USB_USBHID_H_
+#ifndef USB_HID_USBHID_H_
+#define USB_HID_USBHID_H_
 
 #include <stdint.h>
 
@@ -62,6 +62,14 @@ typedef struct usb_hid_subdriver {
 	/** Function to be called when polling ends. */
 	usb_hid_driver_poll_ended poll_end;
 } usb_hid_subdriver_t;
+
+/*----------------------------------------------------------------------------*/
+
+typedef struct usb_hid_callback_mapping {
+	usb_hid_report_path_t *path;
+	char *vendor_id;
+	char *product_id;
+} usb_hid_callback_mapping_t;
 
 /*----------------------------------------------------------------------------*/
 /**
@@ -125,7 +133,7 @@ const char *usb_hid_get_class_name(const usb_hid_dev_t *hid_dev);
 
 void usb_hid_free(usb_hid_dev_t **hid_dev);
 
-#endif /* USB_USBHID_H_ */
+#endif /* USB_HID_USBHID_H_ */
 
 /**
  * @}

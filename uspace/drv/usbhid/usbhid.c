@@ -50,14 +50,6 @@
 
 /*----------------------------------------------------------------------------*/
 
-typedef struct usb_hid_callback_mapping {
-	usb_hid_report_path_t *path;
-	char *vendor_id;
-	char *product_id;
-} usb_hid_callback_mapping;
-
-/*----------------------------------------------------------------------------*/
-
 /* Array of endpoints expected on the device, NULL terminated. */
 usb_endpoint_description_t *usb_hid_endpoints[USB_HID_POLL_EP_COUNT + 1] = {
 	&usb_hid_kbd_poll_endpoint_description,

@@ -33,8 +33,8 @@
  * USB HID keyboard device structure and API.
  */
 
-#ifndef USB_KBDDEV_H_
-#define USB_KBDDEV_H_
+#ifndef USB_HID_KBDDEV_H_
+#define USB_HID_KBDDEV_H_
 
 #include <stdint.h>
 
@@ -132,7 +132,7 @@ void usb_kbd_deinit(struct usb_hid_dev *hid_dev);
 
 int usb_kbd_set_boot_protocol(struct usb_hid_dev *hid_dev);
 
-#endif /* USB_KBDDEV_H_ */
+#endif /* USB_HID_KBDDEV_H_ */
 
 /**
  * @}

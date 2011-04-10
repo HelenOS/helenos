@@ -33,8 +33,8 @@
  * USB Mouse driver API.
  */
 
-#ifndef USB_MOUSEDEV_H_
-#define USB_MOUSEDEV_H_
+#ifndef USB_HID_MOUSEDEV_H_
+#define USB_HID_MOUSEDEV_H_
 
 #include <usb/devdrv.h>
 
@@ -70,7 +70,7 @@ int usb_mouse_set_boot_protocol(struct usb_hid_dev *hid_dev);
 
 /*----------------------------------------------------------------------------*/
 
-#endif // USB_MOUSEDEV_H_
+#endif // USB_HID_MOUSEDEV_H_
 
 /**
  * @}
