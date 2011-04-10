@@ -142,6 +142,8 @@ void transfer_list_remove_finished(transfer_list_t *instance, link_t *done)
 	assert(done);
 
 	fibril_mutex_lock(&instance->guard);
+	usb_log_debug2("Checking list %s for completed batches(%d).\n",
+	    instance->name, list_count(&instance->batch_list));
 	link_t *current = instance->batch_list.next;
 	while (current != &instance->batch_list) {
 		link_t *next = current->next;
