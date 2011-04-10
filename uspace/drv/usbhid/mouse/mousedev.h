@@ -1,7 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
- * Copyright (c) 2011 Lubos Slovak 
- * (copied from /uspace/srv/hid/kbd/include/layout.h)
+ * Copyright (c) 2011 Lubos Slovak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,25 +30,47 @@
  * @{
  */
 /** @file
- * Keyboard layout.
+ * USB Mouse driver API.
  */
 
-#ifndef USB_HID_LAYOUT_H_
-#define USB_HID_LAYOUT_H_
+#ifndef USB_HID_MOUSEDEV_H_
+#define USB_HID_MOUSEDEV_H_
 
-#include <sys/types.h>
-#include <io/console.h>
+#include <usb/devdrv.h>
 
+struct usb_hid_dev;
+
+/*----------------------------------------------------------------------------*/
+
+/** Container for USB mouse device. */
 typedef struct {
-	void (*reset)(void);
-	wchar_t (*parse_ev)(console_event_t *);
-} layout_op_t;
+	///** Polling interval in microseconds. */
+	//suseconds_t poll_interval_us;
+	/** IPC phone to console (consumer). */
+	int console_phone;
+} usb_mouse_t;
 
-extern layout_op_t us_qwerty_op;
-extern layout_op_t us_dvorak_op;
-extern layout_op_t cz_op;
+/*----------------------------------------------------------------------------*/
 
-#endif
+usb_endpoint_description_t usb_hid_mouse_poll_endpoint_description;
+
+const char *HID_MOUSE_FUN_NAME;
+const char *HID_MOUSE_CLASS_NAME;
+
+/*----------------------------------------------------------------------------*/
+
+int usb_mouse_init(struct usb_hid_dev *hid_dev);
+
+bool usb_mouse_polling_callback(struct usb_hid_dev *hid_dev, uint8_t *buffer,
+    size_t buffer_size);
+
+void usb_mouse_deinit(struct usb_hid_dev *hid_dev);
+
+int usb_mouse_set_boot_protocol(struct usb_hid_dev *hid_dev);
+
+/*----------------------------------------------------------------------------*/
+
+#endif // USB_HID_MOUSEDEV_H_
 
 /**
  * @}

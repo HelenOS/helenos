@@ -1,7 +1,5 @@
 /*
- * Copyright (c) 2009 Jiri Svoboda
- * Copyright (c) 2011 Lubos Slovak 
- * (copied from /uspace/srv/hid/kbd/include/layout.h)
+ * Copyright (c) 2011 Lubos Slovak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,25 +30,32 @@
  * @{
  */
 /** @file
- * Keyboard layout.
+ * USB HID subdriver mappings.
  */
 
-#ifndef USB_HID_LAYOUT_H_
-#define USB_HID_LAYOUT_H_
+#include "subdrivers.h"
+#include "usb/classes/hidut.h"
 
-#include <sys/types.h>
-#include <io/console.h>
+static usb_hid_subdriver_usage_t path_kbd[] = {{USB_HIDUT_PAGE_KEYBOARD, 0}};
 
-typedef struct {
-	void (*reset)(void);
-	wchar_t (*parse_ev)(console_event_t *);
-} layout_op_t;
-
-extern layout_op_t us_qwerty_op;
-extern layout_op_t us_dvorak_op;
-extern layout_op_t cz_op;
-
-#endif
+const usb_hid_subdriver_mapping_t usb_hid_subdrivers[] = {
+	{
+		path_kbd,
+		1,
+		USB_HID_PATH_COMPARE_END 
+		| USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY,
+		NULL,
+		NULL,
+		{
+			usb_kbd_init,
+			usb_kbd_deinit,
+			usb_kbd_polling_callback,
+			NULL
+		},
+		
+	},
+	{NULL, 0, 0, NULL, NULL, {NULL, NULL, NULL, NULL}}
+};
 
 /**
  * @}

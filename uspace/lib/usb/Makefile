@@ -33,6 +33,7 @@ EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include -Iinclude
 
 SOURCES = \
 	src/addrkeep.c \
+	src/altiface.c \
 	src/class.c \
 	src/ddfiface.c \
 	src/debug.c \
