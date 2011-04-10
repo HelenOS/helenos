@@ -48,8 +48,12 @@ typedef struct usb_hid_subdriver_usage {
 
 /*----------------------------------------------------------------------------*/
 
+/* TODO: This mapping must contain some other information to get the proper
+ *       interface.
+ */
 typedef struct usb_hid_subdriver_mapping {
 	const usb_hid_subdriver_usage_t *usage_path;
+	int path_size;
 	int compare;
 	const char *vendor_id;
 	const char *product_id;

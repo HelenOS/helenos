@@ -41,6 +41,7 @@
 #include <usb/classes/hidreport.h>
 #include <usb/classes/hidreq.h>
 #include <errno.h>
+#include <str_error.h>
 
 #include "usbhid.h"
 
@@ -58,6 +59,8 @@ usb_endpoint_description_t *usb_hid_endpoints[USB_HID_POLL_EP_COUNT + 1] = {
 	&usb_hid_generic_poll_endpoint_description,
 	NULL
 };
+
+static const int USB_HID_MAX_SUBDRIVERS = 10;
 
 /*----------------------------------------------------------------------------*/
 
@@ -143,6 +146,77 @@ static int usb_hid_set_generic_hid_subdriver(usb_hid_dev_t *hid_dev)
 	// set the deinit callback
 	hid_dev->subdrivers[0].deinit = NULL;
 	
+	// set subdriver count
+	hid_dev->subdriver_count = 1;
+	
+	return EOK;
+}
+
+/*----------------------------------------------------------------------------*/
+
+static bool usb_hid_ids_match(usb_hid_dev_t *hid_dev, 
+    const usb_hid_subdriver_mapping_t *mapping)
+{
+	return false;
+}
+
+/*----------------------------------------------------------------------------*/
+
+static bool usb_hid_path_matches(usb_hid_dev_t *hid_dev, 
+    const usb_hid_subdriver_usage_t *path, int path_size, int compare)
+{
+	assert(hid_dev != NULL);
+	assert(path != NULL);
+	
+	usb_hid_report_path_t *usage_path = usb_hid_report_path();
+	if (usage_path == NULL) {
+		return false;
+	}
+	int i;
+	for (i = 0; i < path_size; ++i) {
+		if (usb_hid_report_path_append_item(usage_path, 
+		    path[i].usage_page, path[i].usage) != EOK) {
+			usb_hid_report_path_free(usage_path);
+			return false;
+		}
+	}
+	
+	bool matches = (usb_hid_report_input_length(hid_dev->parser, usage_path, 
+	    compare) > 0);
+	
+	usb_hid_report_path_free(usage_path);
+	
+	return matches;
+}
+
+/*----------------------------------------------------------------------------*/
+
+static int usb_hid_save_subdrivers(usb_hid_dev_t *hid_dev, 
+    const usb_hid_subdriver_t **subdrivers, int count)
+{
+	int i;
+	
+	if (count <= 0) {
+		hid_dev->subdriver_count = 0;
+		hid_dev->subdrivers = NULL;
+		return EOK;
+	}
+	
+	hid_dev->subdrivers = (usb_hid_subdriver_t *)malloc(count * 
+	    sizeof(usb_hid_subdriver_t));
+	if (hid_dev->subdrivers == NULL) {
+		return ENOMEM;
+	}
+	
+	for (i = 0; i < count; ++i) {
+		hid_dev->subdrivers[i].init = subdrivers[i]->init;
+		hid_dev->subdrivers[i].deinit = subdrivers[i]->deinit;
+		hid_dev->subdrivers[i].poll = subdrivers[i]->poll;
+		hid_dev->subdrivers[i].poll_end = subdrivers[i]->poll_end;
+	}
+	
+	hid_dev->subdriver_count = count;
+	
 	return EOK;
 }
 
@@ -150,85 +224,77 @@ static int usb_hid_set_generic_hid_subdriver(usb_hid_dev_t *hid_dev)
 
 static int usb_hid_find_subdrivers(usb_hid_dev_t *hid_dev)
 {
-	return EOK;
+	const usb_hid_subdriver_t *subdrivers[USB_HID_MAX_SUBDRIVERS];
+	
+	int i = 0, count = 0;
+	const usb_hid_subdriver_mapping_t *mapping = &usb_hid_subdrivers[i];
+	
+	while (count < USB_HID_MAX_SUBDRIVERS &&
+	    (mapping->usage_path != NULL
+	    || mapping->vendor_id != NULL
+	    || mapping->product_id != NULL)) {
+		// check the vendor & product ID
+		if (mapping->vendor_id != NULL && mapping->product_id == NULL) {
+			usb_log_warning("Missing Product ID for Vendor ID %s\n",
+			    mapping->vendor_id);
+			return EINVAL;
+		}
+		if (mapping->product_id != NULL && mapping->vendor_id == NULL) {
+			usb_log_warning("Missing Vendor ID for Product ID %s\n",
+			    mapping->product_id);
+			return EINVAL;
+		}
+		
+		if (mapping->vendor_id != NULL) {
+			assert(mapping->product_id != NULL);
+			usb_log_debug("Comparing device against vendor ID %s"
+			    " and product ID %s.\n", mapping->vendor_id,
+			    mapping->product_id);
+			if (usb_hid_ids_match(hid_dev, mapping)) {
+				usb_log_debug("Matched.\n");
+				subdrivers[count++] = &mapping->subdriver;
+				// skip the checking of usage path
+				goto next;
+			}
+		}
+		
+		if (mapping->usage_path != NULL) {
+			if (usb_hid_path_matches(hid_dev, 
+			    mapping->usage_path, mapping->path_size,
+			    mapping->compare)) {
+				subdrivers[count++] = &mapping->subdriver;
+			}
+		}
+	next:
+		mapping = &usb_hid_subdrivers[++i];
+	}
+	
+	// we have all subdrivers determined, save them into the hid device
+	return usb_hid_save_subdrivers(hid_dev, subdrivers, count);
 }
 
 /*----------------------------------------------------------------------------*/
 
 static int usb_hid_check_pipes(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 {
-	// first try to find subdrivers that may want to handle this device
-	int rc = usb_hid_find_subdrivers(hid_dev);
+	int rc = EOK;
 	
 	if (dev->pipes[USB_HID_KBD_POLL_EP_NO].present) {
 		usb_log_debug("Found keyboard endpoint.\n");
-		
 		// save the pipe index
 		hid_dev->poll_pipe_index = USB_HID_KBD_POLL_EP_NO;
-		
-		// if no subdrivers registered, use the boot kbd subdriver
-		if (hid_dev->subdriver_count == 0) {
-			rc = usb_hid_set_boot_kbd_subdriver(hid_dev);
-		}
 	} else if (dev->pipes[USB_HID_MOUSE_POLL_EP_NO].present) {
 		usb_log_debug("Found mouse endpoint.\n");
-		
 		// save the pipe index
 		hid_dev->poll_pipe_index = USB_HID_MOUSE_POLL_EP_NO;
-		//hid_dev->device_type = USB_HID_PROTOCOL_MOUSE;
-		
-		// if no subdrivers registered, use the boot kbd subdriver
-		if (hid_dev->subdriver_count == 0) {
-			rc = usb_hid_set_boot_mouse_subdriver(hid_dev);
-		}		
 	} else if (dev->pipes[USB_HID_GENERIC_POLL_EP_NO].present) {
 		usb_log_debug("Found generic HID endpoint.\n");
-		
 		// save the pipe index
 		hid_dev->poll_pipe_index = USB_HID_GENERIC_POLL_EP_NO;
-		
-		if (hid_dev->subdriver_count == 0) {
-			usb_log_warning("Found no subdriver for handling this"
-			    " HID device. Setting generic HID subdriver.\n");
-			usb_hid_set_generic_hid_subdriver(hid_dev);
-			return EOK;
-		}
 	} else {
 		usb_log_error("None of supported endpoints found - probably"
 		    " not a supported device.\n");
 		rc = ENOTSUP;
-	}
-	
-	return rc;
-}
-
-/*----------------------------------------------------------------------------*/
-
-static int usb_hid_init_parser(usb_hid_dev_t *hid_dev)
-{
-	/* Initialize the report parser. */
-	int rc = usb_hid_parser_init(hid_dev->parser);
-	if (rc != EOK) {
-		usb_log_error("Failed to initialize report parser.\n");
-		return rc;
-	}
-	
-	/* Get the report descriptor and parse it. */
-	rc = usb_hid_process_report_descriptor(hid_dev->usb_dev, 
-	    hid_dev->parser);
-	
-	// TODO: remove the hack
-	if (rc != EOK || hid_dev->poll_pipe_index == USB_HID_MOUSE_POLL_EP_NO) {
-		usb_log_warning("Could not process report descriptor.\n");
-		
-		if (hid_dev->poll_pipe_index == USB_HID_KBD_POLL_EP_NO) {
-			usb_log_warning("Falling back to boot protocol.\n");
-			rc = usb_kbd_set_boot_protocol(hid_dev);
-		} else if (hid_dev->poll_pipe_index 
-		    == USB_HID_MOUSE_POLL_EP_NO) {
-			usb_log_warning("Falling back to boot protocol.\n");
-			rc = usb_mouse_set_boot_protocol(hid_dev);
-		}
 	}
 	
 	return rc;
@@ -253,6 +319,8 @@ usb_hid_dev_t *usb_hid_new(void)
 		free(hid_dev);
 		return NULL;
 	}
+	
+	hid_dev->poll_pipe_index = -1;
 	
 	return hid_dev;
 }
@@ -282,23 +350,96 @@ int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 	
 	rc = usb_hid_check_pipes(hid_dev, dev);
 	if (rc != EOK) {
+		usb_hid_free(&hid_dev);
 		return rc;
 	}
 	
-	rc = usb_hid_init_parser(hid_dev);
+	/* Initialize the report parser. */
+	rc = usb_hid_parser_init(hid_dev->parser);
 	if (rc != EOK) {
-		usb_log_error("Failed to initialize HID parser.\n");
+		usb_log_error("Failed to initialize report parser.\n");
+		usb_hid_free(&hid_dev);
 		return rc;
 	}
 	
-	for (i = 0; i < hid_dev->subdriver_count; ++i) {
-		if (hid_dev->subdrivers[i].init != NULL) {
-			rc = hid_dev->subdrivers[i].init(hid_dev);
-			if (rc != EOK) {
-				usb_log_warning("Failed to initialize HID"
-				    " subdriver structure.\n");
+	/* Get the report descriptor and parse it. */
+	rc = usb_hid_process_report_descriptor(hid_dev->usb_dev, 
+	    hid_dev->parser);
+	
+	bool fallback = false;
+	
+	if (rc == EOK) {
+		// try to find subdrivers that may want to handle this device
+		rc = usb_hid_find_subdrivers(hid_dev);
+		if (rc != EOK || hid_dev->subdriver_count == 0) {
+			// try to fall back to the boot protocol if available
+			usb_log_info("No subdrivers found to handle this"
+			    " device.\n");
+			fallback = true;
+		}
+	} else {
+		usb_log_error("Failed to parse Report descriptor.\n");
+		// try to fall back to the boot protocol if available
+		fallback = true;
+	}
+	
+	// TODO: remove the mouse hack
+	if (hid_dev->poll_pipe_index == USB_HID_MOUSE_POLL_EP_NO ||
+	    fallback) {
+		// fall back to boot protocol
+		switch (hid_dev->poll_pipe_index) {
+		case USB_HID_KBD_POLL_EP_NO:
+			usb_log_info("Falling back to kbd boot protocol.\n");
+			rc = usb_kbd_set_boot_protocol(hid_dev);
+			if (rc == EOK) {
+				rc = usb_hid_set_boot_kbd_subdriver(hid_dev);
+			}
+			break;
+		case USB_HID_MOUSE_POLL_EP_NO:
+			usb_log_info("Falling back to mouse boot protocol.\n");
+			rc = usb_mouse_set_boot_protocol(hid_dev);
+			if (rc == EOK) {
+				rc = usb_hid_set_boot_mouse_subdriver(hid_dev);
+			}
+			break;
+		default:
+			assert(hid_dev->poll_pipe_index 
+			    == USB_HID_GENERIC_POLL_EP_NO);
+			
+			/* TODO: this has no meaning if the report descriptor
+			         is not parsed */
+			usb_log_info("Falling back to generic HID driver.\n");
+			rc = usb_hid_set_generic_hid_subdriver(hid_dev);
+		}
+	}
+	
+	if (rc != EOK) {
+		usb_log_error("No subdriver for handling this device could be"
+		    " initialized: %s.\n", str_error(rc));
+		usb_hid_free(&hid_dev);
+	} else {
+		bool ok = false;
+		
+		usb_log_debug("Subdriver count: %d\n", 
+		    hid_dev->subdriver_count);
+		
+		for (i = 0; i < hid_dev->subdriver_count; ++i) {
+			if (hid_dev->subdrivers[i].init != NULL) {
+				usb_log_debug("Initializing subdriver %d.\n",i);
+				rc = hid_dev->subdrivers[i].init(hid_dev);
+				if (rc != EOK) {
+					usb_log_warning("Failed to initialize"
+					    " HID subdriver structure.\n");
+				} else {
+					// at least one subdriver initialized
+					ok = true;
+				}
+			} else {
+				ok = true;
 			}
 		}
+		
+		rc = (ok) ? EOK : -1;	// what error to report
 	}
 	
 	return rc;
@@ -399,10 +540,18 @@ void usb_hid_free(usb_hid_dev_t **hid_dev)
 		return;
 	}
 	
+	assert((*hid_dev)->subdrivers != NULL 
+	    || (*hid_dev)->subdriver_count == 0);
+	
 	for (i = 0; i < (*hid_dev)->subdriver_count; ++i) {
 		if ((*hid_dev)->subdrivers[i].deinit != NULL) {
 			(*hid_dev)->subdrivers[i].deinit(*hid_dev);
 		}
+	}
+	
+	// free the subdrivers info
+	if ((*hid_dev)->subdrivers != NULL) {
+		free(subdrivers);
 	}
 
 	// destroy the parser

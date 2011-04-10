@@ -40,6 +40,7 @@ static usb_hid_subdriver_usage_t path_kbd[] = {{0, 7}};
 const usb_hid_subdriver_mapping_t usb_hid_subdrivers[] = {
 	{
 		path_kbd,
+		1,
 		USB_HID_PATH_COMPARE_END 
 		| USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY,
 		NULL,
@@ -52,7 +53,7 @@ const usb_hid_subdriver_mapping_t usb_hid_subdrivers[] = {
 		},
 		
 	},
-	{NULL, 0, NULL, NULL, {NULL, NULL, NULL, NULL}}
+	{NULL, 0, 0, NULL, NULL, {NULL, NULL, NULL, NULL}}
 };
 
 /**
