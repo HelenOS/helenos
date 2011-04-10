@@ -62,6 +62,9 @@ static inline int setup_batch(
 		return ENOENT;
 	}
 
+	usb_log_debug("%s %d:%d %zu(%zu).\n",
+	    name, target.address, target.endpoint, size, ep->max_packet_size);
+
 	const size_t bw = bandwidth_count_usb11(
 	    ep->speed, ep->transfer_type, size, ep->max_packet_size);
 	if (res_bw < bw) {
@@ -70,8 +73,6 @@ static inline int setup_batch(
 		    target.address, target.endpoint, name, bw, res_bw);
 		return ENOSPC;
 	}
-	usb_log_debug("%s %d:%d %zu(%zu).\n",
-	    name, target.address, target.endpoint, size, ep->max_packet_size);
 
 	*batch = batch_get(
 	    fun, ep, data, size, setup_data, setup_size, in, out, arg);
@@ -156,8 +157,7 @@ static int register_endpoint(ddf_fun_t *fun,
 {
 	hc_t *hc = fun_to_hc(fun);
 	assert(hc);
-	if (address == hc->rh.address)
-		return EOK;
+
 	usb_speed_t speed = usb_device_keeper_get_speed(&hc->manager, address);
 	if (speed >= USB_SPEED_MAX) {
 		speed = ep_speed;
