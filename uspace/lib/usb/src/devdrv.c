@@ -99,6 +99,12 @@ static size_t count_other_pipes(usb_endpoint_description_t **endpoints)
 static int initialize_other_pipes(usb_endpoint_description_t **endpoints,
     usb_device_t *dev, int alternate_setting)
 {
+	if (endpoints == NULL) {
+		dev->pipes = NULL;
+		dev->pipes_count = 0;
+		return EOK;
+	}
+
 	usb_endpoint_mapping_t *pipes;
 	size_t pipes_count;
 
@@ -108,9 +114,6 @@ static int initialize_other_pipes(usb_endpoint_description_t **endpoints,
 	    &pipes, &pipes_count);
 
 	if (rc != EOK) {
-		usb_log_error(
-		    "Failed to create endpoint pipes for `%s': %s.\n",
-		    dev->ddf_dev->name, str_error(rc));
 		return rc;
 	}
 
@@ -118,83 +121,6 @@ static int initialize_other_pipes(usb_endpoint_description_t **endpoints,
 	dev->pipes_count = pipes_count;
 
 	return EOK;
-}
-
-/** Initialize all endpoint pipes.
- *
- * @param drv The driver.
- * @param dev The device to be initialized.
- * @return Error code.
- */
-static int initialize_pipes(usb_device_t *dev)
-{
-	int rc;
-
-	rc = usb_device_connection_initialize_from_device(&dev->wire,
-	    dev->ddf_dev);
-	if (rc != EOK) {
-		usb_log_error(
-		    "Failed initializing connection on device `%s'. %s.\n",
-		    dev->ddf_dev->name, str_error(rc));
-		return rc;
-	}
-
-	rc = usb_pipe_initialize_default_control(&dev->ctrl_pipe,
-	    &dev->wire);
-	if (rc != EOK) {
-		usb_log_error("Failed to initialize default control pipe " \
-		    "on device `%s': %s.\n",
-		    dev->ddf_dev->name, str_error(rc));
-		return rc;
-	}
-
-	rc = usb_pipe_probe_default_control(&dev->ctrl_pipe);
-	if (rc != EOK) {
-		usb_log_error(
-		    "Probing default control pipe on device `%s' failed: %s.\n",
-		    dev->ddf_dev->name, str_error(rc));
-		return rc;
-	}
-
-	/* Get our interface. */
-	dev->interface_no = usb_device_get_assigned_interface(dev->ddf_dev);
-
-	/*
-	 * We will do some querying of the device, it is worth to prepare
-	 * the long transfer.
-	 */
-	rc = usb_pipe_start_long_transfer(&dev->ctrl_pipe);
-	if (rc != EOK) {
-		usb_log_error("Failed to start transfer: %s.\n",
-		    str_error(rc));
-		return rc;
-	}
-
-	/* Retrieve the descriptors. */
-	rc = usb_device_retrieve_descriptors(&dev->ctrl_pipe,
-	    &dev->descriptors);
-	if (rc != EOK) {
-		usb_log_error("Failed to retrieve standard device " \
-		    "descriptors of %s: %s.\n",
-		    dev->ddf_dev->name, str_error(rc));
-		return rc;
-	}
-
-
-	if (driver->endpoints != NULL) {
-		rc = initialize_other_pipes(driver->endpoints, dev, 0);
-	}
-
-	usb_pipe_end_long_transfer(&dev->ctrl_pipe);
-
-	/* Rollback actions. */
-	if (rc != EOK) {
-		if (dev->descriptors.configuration != NULL) {
-			free(dev->descriptors.configuration);
-		}
-	}
-
-	return rc;
 }
 
 /** Count number of alternate settings of a interface.
@@ -338,29 +264,14 @@ int generic_add_device(ddf_dev_t *gen_dev)
 
 	int rc;
 
-	usb_device_t *dev = malloc(sizeof(usb_device_t));
-	if (dev == NULL) {
-		usb_log_error("Out of memory when adding device `%s'.\n",
-		    gen_dev->name);
-		return ENOMEM;
-	}
-
-
-	dev->ddf_dev = gen_dev;
-	dev->ddf_dev->driver_data = dev;
-	dev->driver_data = NULL;
-	dev->descriptors.configuration = NULL;
-
-	dev->pipes_count = 0;
-	dev->pipes = NULL;
-
-	rc = initialize_pipes(dev);
+	usb_device_t *dev = NULL;
+	const char *err_msg = NULL;
+	rc = usb_device_create(gen_dev, driver->endpoints, &dev, &err_msg);
 	if (rc != EOK) {
-		free(dev);
+		usb_log_error("USB device `%s' creation failed (%s): %s.\n",
+		    gen_dev->name, err_msg, str_error(rc));
 		return rc;
 	}
-
-	(void) initialize_alternate_interfaces(dev);
 
 	return driver->ops->add_device(dev);
 }
@@ -636,6 +547,108 @@ int usb_device_destroy_pipes(ddf_dev_t *dev,
 	usb_hc_connection_close(&hc_conn);
 
 	free(pipes);
+
+	return EOK;
+}
+
+/** Initialize control pipe and device descriptors. */
+static int initialize_ctrl_pipe_and_descriptors(usb_device_t *dev,
+     const char **errmsg)
+{
+	int rc;
+
+	rc = usb_device_connection_initialize_from_device(&dev->wire,
+	    dev->ddf_dev);
+	if (rc != EOK) {
+		*errmsg = "device connection initialization";
+		return rc;
+	}
+
+	rc = usb_pipe_initialize_default_control(&dev->ctrl_pipe,
+	    &dev->wire);
+	if (rc != EOK) {
+		*errmsg = "default control pipe initialization";
+		return rc;
+	}
+
+	/* Get our interface. */
+	dev->interface_no = usb_device_get_assigned_interface(dev->ddf_dev);
+
+	/*
+	 * We will do some querying of the device, it is worth to prepare
+	 * the long transfer.
+	 */
+	rc = usb_pipe_start_long_transfer(&dev->ctrl_pipe);
+	if (rc != EOK) {
+		*errmsg = "transfer start";
+		return rc;
+	}
+
+	/* Retrieve the descriptors. */
+	rc = usb_device_retrieve_descriptors(&dev->ctrl_pipe,
+	    &dev->descriptors);
+	if (rc != EOK) {
+		*errmsg = "descriptor retrieval";
+	}
+
+	usb_pipe_end_long_transfer(&dev->ctrl_pipe);
+
+	return rc;
+}
+
+
+/** Create new instance of USB device.
+ *
+ * @param[in] ddf_dev Generic DDF device backing the USB one.
+ * @param[in] endpoints NULL terminated array of endpoints (NULL for none).
+ * @param[out] dev_ptr Where to store pointer to the new device.
+ * @param[out] errstr_ptr Where to store description of context
+ *	(in case error occurs).
+ * @return Error code.
+ */
+int usb_device_create(ddf_dev_t *ddf_dev,
+    usb_endpoint_description_t **endpoints,
+    usb_device_t **dev_ptr, const char **errstr_ptr)
+{
+	assert(dev_ptr != NULL);
+	assert(ddf_dev != NULL);
+
+	int rc;
+
+	usb_device_t *dev = malloc(sizeof(usb_device_t));
+	if (dev == NULL) {
+		*errstr_ptr = "structure allocation";
+		return ENOMEM;
+	}
+
+	dev->ddf_dev = ddf_dev;
+	dev->driver_data = NULL;
+	dev->descriptors.configuration = NULL;
+	dev->alternate_interfaces = NULL;
+
+	dev->pipes_count = 0;
+	dev->pipes = NULL;
+
+	rc = initialize_ctrl_pipe_and_descriptors(dev, errstr_ptr);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	rc = initialize_alternate_interfaces(dev);
+	if (rc != EOK) {
+		/* We will try to silently ignore this. */
+		dev->alternate_interfaces = NULL;
+	}
+
+	rc = initialize_other_pipes(endpoints, dev, 0);
+	if (rc != EOK) {
+		*errstr_ptr = "pipes initialization";
+		/* TODO: deallocate */
+		return rc;
+	}
+
+	*errstr_ptr = NULL;
+	*dev_ptr = dev;
 
 	return EOK;
 }
