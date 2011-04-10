@@ -180,11 +180,20 @@ static void usb_hub_removed_device(
 		hub->attached_devs[port].handle = 0;
 		 */
 	} else {
-		usb_log_warning("this is strange, disconnected device had "
-			"no address\n");
-		//device was disconnected before it`s port was reset -
-		//return default address
-		usb_hub_release_default_address(hub);
+		// TODO: is this really reason to print a warning?
+		usb_log_warning("Device removed before being registered.\n");
+
+		/*
+		 * Device was removed before port reset completed.
+		 * We will announce a failed port reset to unblock the
+		 * port reset callback from new device wrapper.
+		 */
+		usb_hub_port_t *the_port = hub->ports + port;
+		fibril_mutex_lock(&the_port->reset_mutex);
+		the_port->reset_completed = true;
+		the_port->reset_okay = false;
+		fibril_condvar_broadcast(&the_port->reset_cv);
+		fibril_mutex_unlock(&the_port->reset_mutex);
 	}
 }
 
@@ -206,6 +215,7 @@ static void usb_hub_port_reset_completed(usb_hub_info_t * hub,
 		usb_hub_port_t *the_port = hub->ports + port;
 		fibril_mutex_lock(&the_port->reset_mutex);
 		the_port->reset_completed = true;
+		the_port->reset_okay = true;
 		fibril_condvar_broadcast(&the_port->reset_cv);
 		fibril_mutex_unlock(&the_port->reset_mutex);
 	} else {
@@ -318,7 +328,11 @@ static int enable_port_callback(int port_no, void *arg)
 		return rc;
 	}
 
-	return EOK;
+	if (my_port->reset_okay) {
+		return EOK;
+	} else {
+		return ESTALL;
+	}
 }
 
 /** Fibril for adding a new device.

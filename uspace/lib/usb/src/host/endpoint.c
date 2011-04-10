@@ -98,7 +98,7 @@ void endpoint_toggle_reset_filtered(endpoint_t *instance, usb_target_t target)
 {
 	assert(instance);
 	if (instance->address == target.address &&
-	    instance->endpoint == target.endpoint)
+	    (instance->endpoint == target.endpoint || target.endpoint == 0))
 		instance->toggle = 0;
 }
 /**

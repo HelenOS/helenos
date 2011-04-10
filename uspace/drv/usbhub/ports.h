@@ -50,6 +50,8 @@ typedef struct {
 	 * Guarded by @c reset_mutex.
 	 */
 	bool reset_completed;
+	/** Whether to announce the port reset as successful. */
+	bool reset_okay;
 
 	/** Information about attached device. */
 	usb_hc_attached_device_t attached_device;
