@@ -265,6 +265,12 @@ static int usb_hub_process_hub_specific_info(usb_hub_info_t * hub_info) {
 	size_t port;
 	for (port = 0; port < hub_info->port_count + 1; port++) {
 		usb_hub_port_init(&hub_info->ports[port]);
+		opResult = usb_hub_set_port_feature(hub_info->control_pipe,
+		    port, USB_HUB_FEATURE_PORT_POWER);
+		if (opResult != EOK) {
+			usb_log_error("cannot power on port %d;  %d\n",
+			    port, opResult);
+		}
 	}
 	usb_log_debug2("freeing data\n");
 	free(serialized_descriptor);
