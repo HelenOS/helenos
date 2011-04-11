@@ -85,7 +85,7 @@ inline static bool td_is_finished(td_t *instance)
 	assert(instance);
 	int cc = (instance->status >> TD_STATUS_CC_SHIFT) & TD_STATUS_CC_MASK;
 	/* something went wrong, error code is set */
-	if (cc != CC_NOACCESS1 && cc != CC_NOACCESS2 && cc != CC_NOERROR) {
+	if (cc != CC_NOACCESS1 && cc != CC_NOACCESS2) {
 		return true;
 	}
 	/* everything done */

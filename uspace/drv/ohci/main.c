@@ -91,7 +91,7 @@ int ohci_add_device(ddf_dev_t *device)
  */
 int main(int argc, char *argv[])
 {
-	usb_log_enable(USB_LOG_LEVEL_DEBUG2, NAME);
+	usb_log_enable(USB_LOG_LEVEL_DEFAULT, NAME);
 	sleep(5);
 	return ddf_driver_main(&ohci_driver);
 }
