@@ -178,25 +178,6 @@ leave:
 	return true;
 }
 
-/**
- * release default address used by given hub
- *
- * Also unsets hub->is_default_address_used. Convenience wrapper function.
- * @note hub->connection MUST be open for communication
- * @param hub hub representation
- * @return error code
- */
-int usb_hub_release_default_address(usb_hub_info_t * hub) {
-	int opResult = usb_hc_release_default_address(&hub->connection);
-	if (opResult != EOK) {
-		usb_log_error("could not release default address, errno %d\n",
-		    opResult);
-		return opResult;
-	}
-	hub->is_default_address_used = false;
-	return EOK;
-}
-
 
 //*********************************************
 //
@@ -265,11 +246,13 @@ static int usb_hub_process_hub_specific_info(usb_hub_info_t * hub_info) {
 	size_t port;
 	for (port = 0; port < hub_info->port_count + 1; port++) {
 		usb_hub_port_init(&hub_info->ports[port]);
+	}
+	for (port = 0; port < hub_info->port_count; port++) {
 		opResult = usb_hub_set_port_feature(hub_info->control_pipe,
-		    port, USB_HUB_FEATURE_PORT_POWER);
+		    port+1, USB_HUB_FEATURE_PORT_POWER);
 		if (opResult != EOK) {
 			usb_log_error("cannot power on port %d;  %d\n",
-			    port, opResult);
+			    port+1, opResult);
 		}
 	}
 	usb_log_debug2("freeing data\n");

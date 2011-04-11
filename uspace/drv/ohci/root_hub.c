@@ -209,7 +209,8 @@ int rh_init(rh_t *instance, ddf_dev_t *dev, ohci_regs_t *regs) {
 	//instance->address = -1;
 	instance->registers = regs;
 	instance->device = dev;
-	instance->port_count = instance->registers->rh_desc_a & 0xff;
+	instance->port_count =
+	    (instance->registers->rh_desc_a >> RHDA_NDS_SHIFT) & RHDA_NDS_MASK;
 	rh_init_descriptors(instance);
 	// set port power mode to no-power-switching
 	instance->registers->rh_desc_a =

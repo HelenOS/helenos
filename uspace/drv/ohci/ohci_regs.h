@@ -83,7 +83,7 @@ typedef struct ohci_regs
 
 	/** Interupt enable/disable, reads give the same value, writing causes
 	 * enable/disable */
-	volatile uint32_t interupt_enable;
+	volatile uint32_t interrupt_enable;
 	volatile uint32_t interrupt_disable;
 #define I_SO   (1 << 0)   /* Scheduling overrun */
 #define I_WDH  (1 << 1)   /* Done head write-back */
@@ -99,8 +99,8 @@ typedef struct ohci_regs
 	volatile uint32_t hcca;
 #define HCCA_PTR_MASK 0xffffff00 /* HCCA is 256B aligned */
 
-	/** Currently executed period endpoint */
-	const volatile uint32_t period_current;
+	/** Currently executed periodic endpoint */
+	const volatile uint32_t periodic_current;
 
 	/** The first control endpoint */
 	volatile uint32_t control_head;
@@ -119,7 +119,7 @@ typedef struct ohci_regs
 
 	/** Frame time and max packet size for all transfers */
 	volatile uint32_t fm_interval;
-#define FMI_FI_MASK (0x1fff) /* Frame interval in bit times (should be 11999)*/
+#define FMI_FI_MASK (0x3fff) /* Frame interval in bit times (should be 11999)*/
 #define FMI_FI_SHIFT (0)
 #define FMI_FSMPS_MASK (0x7fff) /* Full speed max packet size */
 #define FMI_FSMPS_SHIFT (16)
@@ -137,7 +137,7 @@ typedef struct ohci_regs
 
 	/** Remaining bit time in frame to start periodic transfers */
 	volatile uint32_t periodic_start;
-#define PS_PS_MASK (0x1fff) /* bit time when periodic get priority (0x3e67) */
+#define PS_PS_MASK (0x3fff) /* bit time when periodic get priority (0x3e67) */
 
 	/** Threshold for starting LS transaction */
 	volatile uint32_t ls_threshold;

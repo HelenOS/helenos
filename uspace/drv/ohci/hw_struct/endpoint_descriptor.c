@@ -41,7 +41,7 @@ void ed_init(ed_t *instance, endpoint_t *ep)
 	assert(instance);
 	bzero(instance, sizeof(ed_t));
 	if (ep == NULL) {
-		instance->status |= ED_STATUS_K_FLAG;
+		instance->status = ED_STATUS_K_FLAG;
 		return;
 	}
 	assert(ep);
@@ -52,13 +52,15 @@ void ed_init(ed_t *instance, endpoint_t *ep)
 	    | ((ep->max_packet_size & ED_STATUS_MPS_MASK)
 	        << ED_STATUS_MPS_SHIFT);
 
+
 	if (ep->speed == USB_SPEED_LOW)
 		instance->status |= ED_STATUS_S_FLAG;
 	if (ep->transfer_type == USB_TRANSFER_ISOCHRONOUS)
 		instance->status |= ED_STATUS_F_FLAG;
 
+	if (ep->toggle)
+		instance->td_head |= ED_TDHEAD_TOGGLE_CARRY;
 }
-
 /**
  * @}
  */

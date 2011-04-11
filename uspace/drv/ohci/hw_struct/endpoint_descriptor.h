@@ -52,8 +52,8 @@ typedef struct ed {
 #define ED_STATUS_EN_SHIFT (7)
 #define ED_STATUS_D_MASK (0x3)     /* direction */
 #define ED_STATUS_D_SHIFT (11)
-#define ED_STATUS_D_IN (0x1)
-#define ED_STATUS_D_OUT (0x2)
+#define ED_STATUS_D_OUT (0x1)
+#define ED_STATUS_D_IN (0x2)
 #define ED_STATUS_D_TRANSFER (0x3)
 
 #define ED_STATUS_S_FLAG (1 << 13) /* speed flag: 1 = low */
@@ -83,7 +83,9 @@ void ed_init(ed_t *instance, endpoint_t *ep);
 static inline void ed_add_tds(ed_t *instance, td_t *head, td_t *tail)
 {
 	assert(instance);
-	instance->td_head = addr_to_phys(head) & ED_TDHEAD_PTR_MASK;
+	instance->td_head =
+	    ((addr_to_phys(head) & ED_TDHEAD_PTR_MASK)
+	    | (instance->td_head & ~ED_TDHEAD_PTR_MASK));
 	instance->td_tail = addr_to_phys(tail) & ED_TDTAIL_PTR_MASK;
 }
 
@@ -95,7 +97,6 @@ static inline void ed_append_ed(ed_t *instance, ed_t *next)
 	assert((pa & ED_NEXT_PTR_MASK) << ED_NEXT_PTR_SHIFT == pa);
 	instance->next = pa;
 }
-
 #endif
 /**
  * @}

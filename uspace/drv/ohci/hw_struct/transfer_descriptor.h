@@ -49,8 +49,8 @@ typedef struct td {
 #define TD_STATUS_DP_MASK (0x3) /* direction/PID */
 #define TD_STATUS_DP_SHIFT (19)
 #define TD_STATUS_DP_SETUP (0x0)
-#define TD_STATUS_DP_IN (0x1)
-#define TD_STATUS_DP_OUT (0x2)
+#define TD_STATUS_DP_OUT (0x1)
+#define TD_STATUS_DP_IN (0x2)
 #define TD_STATUS_DI_MASK (0x7) /* delay interrupt, wait DI frames before int */
 #define TD_STATUS_DI_SHIFT (21)
 #define TD_STATUS_DI_NO_INTERRUPT (0x7)
@@ -85,7 +85,7 @@ inline static bool td_is_finished(td_t *instance)
 	assert(instance);
 	int cc = (instance->status >> TD_STATUS_CC_SHIFT) & TD_STATUS_CC_MASK;
 	/* something went wrong, error code is set */
-	if (cc != CC_NOACCESS1 && cc != CC_NOACCESS2 && cc != CC_NOERROR) {
+	if (cc != CC_NOACCESS1 && cc != CC_NOACCESS2) {
 		return true;
 	}
 	/* everything done */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2011 Lubos Slovak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,27 +25,38 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup drvusbohci
+
+/** @addtogroup drvusbhid
  * @{
  */
 /** @file
- * @brief OHCI driver
+ * USB HID subdriver mappings.
  */
-#ifndef DRV_OHCI_HW_STRUCT_HCCA_H
-#define DRV_OHCI_HW_STRUCT_HCCA_H
 
-#include <stdint.h>
+#include "subdrivers.h"
+#include "usb/classes/hidut.h"
 
-typedef struct hcca {
-	uint32_t int_ep[32];
-	uint16_t frame_number;
-	uint16_t pad1;
-	uint32_t done_head;
-	uint32_t reserved[29];
-} __attribute__((packed, aligned)) hcca_t;
+static usb_hid_subdriver_usage_t path_kbd[] = {{USB_HIDUT_PAGE_KEYBOARD, 0}};
 
-#endif
+const usb_hid_subdriver_mapping_t usb_hid_subdrivers[] = {
+	{
+		path_kbd,
+		1,
+		USB_HID_PATH_COMPARE_END 
+		| USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY,
+		NULL,
+		NULL,
+		{
+			usb_kbd_init,
+			usb_kbd_deinit,
+			usb_kbd_polling_callback,
+			NULL
+		},
+		
+	},
+	{NULL, 0, 0, NULL, NULL, {NULL, NULL, NULL, NULL}}
+};
+
 /**
  * @}
  */
-
