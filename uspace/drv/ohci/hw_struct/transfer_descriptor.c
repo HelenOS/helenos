@@ -52,6 +52,7 @@ void td_init(
 		instance->status |= togg[toggle] << TD_STATUS_T_SHIFT;
 	}
 	if (buffer != NULL) {
+		assert(size != 0);
 		instance->cbp = addr_to_phys(buffer);
 		instance->be = addr_to_phys(buffer + size - 1);
 	}
