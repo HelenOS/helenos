@@ -68,6 +68,7 @@ typedef struct hc {
 	usb_device_keeper_t manager;
 	usb_endpoint_manager_t ep_manager;
 	fid_t interrupt_emulator;
+	fibril_mutex_t guard;
 } hc_t;
 
 int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun);

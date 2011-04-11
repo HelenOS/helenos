@@ -144,8 +144,9 @@ bool batch_is_complete(usb_transfer_batch_t *instance)
 		usb_log_debug("TD %d: %x:%x:%x:%x.\n", i,
 		    data->tds[i].status, data->tds[i].cbp, data->tds[i].next,
 		    data->tds[i].be);
-		if (!td_is_finished(&data->tds[i]))
+		if (!td_is_finished(&data->tds[i])) {
 			return false;
+		}
 		instance->error = td_error(&data->tds[i]);
 		/* FIXME: calculate real transfered size */
 		instance->transfered_size = instance->buffer_size;
@@ -286,7 +287,7 @@ void batch_data(usb_transfer_batch_t *instance)
 	    data->ed->next);
 
 	/* data stage */
-	size_t td_current = 1;
+	size_t td_current = 0;
 	size_t remain_size = instance->buffer_size;
 	char *transfer_buffer = instance->transport_buffer;
 	while (remain_size > 0) {

@@ -78,7 +78,6 @@ void transfer_list_set_next(transfer_list_t *instance, transfer_list_t *next)
 {
 	assert(instance);
 	assert(next);
-	/* Set both queue_head.next to point to the follower */
 	ed_append_ed(instance->list_head, next->list_head);
 }
 /*----------------------------------------------------------------------------*/
@@ -124,9 +123,10 @@ void transfer_list_add_batch(
 	usb_log_debug("Batch(%p) added to list %s, first is %p(%p).\n",
 		batch, instance->name, first, batch_ed(first));
 	if (last_ed == instance->list_head) {
-		usb_log_debug2("%s head ED: %x:%x:%x:%x.\n", instance->name,
-			last_ed->status, last_ed->td_tail, last_ed->td_head,
-			last_ed->next);
+		usb_log_debug2("%s head ED(%p-%p): %x:%x:%x:%x.\n",
+		    instance->name, last_ed, instance->list_head_pa,
+		    last_ed->status, last_ed->td_tail, last_ed->td_head,
+		    last_ed->next);
 	}
 	fibril_mutex_unlock(&instance->guard);
 }
