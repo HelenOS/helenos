@@ -112,6 +112,7 @@ if (ret != EOK) { \
 	CHECK_RET_RETURN(ret, "Failed to create OHCI memory structures:%s.\n",
 	    ret, str_error(ret));
 	hc_init_hw(instance);
+	fibril_mutex_initialize(&instance->guard);
 
 	rh_init(&instance->rh, dev, instance->registers);
 
@@ -134,6 +135,7 @@ int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch)
 		return rh_request(&instance->rh, batch);
 	}
 
+	fibril_mutex_lock(&instance->guard);
 	switch (batch->transfer_type) {
 	case USB_TRANSFER_CONTROL:
 		instance->registers->control &= ~C_CLE;
@@ -156,14 +158,17 @@ int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch)
 		break;
 	case USB_TRANSFER_INTERRUPT:
 	case USB_TRANSFER_ISOCHRONOUS:
-		instance->registers->control &= ~C_PLE;
+		instance->registers->control &= (~C_PLE & ~C_IE);
 		transfer_list_add_batch(
 		    instance->transfers[batch->transfer_type], batch);
-		instance->registers->control |= C_PLE;
+		instance->registers->control |= C_PLE | C_IE;
+		usb_log_debug2("Added periodic transfer: %x.\n",
+		    instance->registers->periodic_current);
 		break;
 	default:
 		break;
 	}
+	fibril_mutex_unlock(&instance->guard);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -177,8 +182,12 @@ void hc_interrupt(hc_t *instance, uint32_t status)
 
 	usb_log_debug("OHCI interrupt: %x.\n", status);
 
-
 	if (status & IS_WDH) {
+		fibril_mutex_lock(&instance->guard);
+		usb_log_debug2("HCCA: %p-%p(%p).\n", instance->hcca,
+		    instance->registers->hcca, addr_to_phys(instance->hcca));
+		usb_log_debug2("Periodic current: %p.\n",
+		    instance->registers->periodic_current);
 		LIST_INITIALIZE(done);
 		transfer_list_remove_finished(
 		    &instance->transfers_interrupt, &done);
@@ -196,6 +205,7 @@ void hc_interrupt(hc_t *instance, uint32_t status)
 			    list_get_instance(item, usb_transfer_batch_t, link);
 			usb_transfer_batch_finish(batch);
 		}
+		fibril_mutex_unlock(&instance->guard);
 	}
 }
 /*----------------------------------------------------------------------------*/
@@ -207,7 +217,7 @@ int interrupt_emulator(hc_t *instance)
 		const uint32_t status = instance->registers->interrupt_status;
 		instance->registers->interrupt_status = status;
 		hc_interrupt(instance, status);
-		async_usleep(10000);
+		async_usleep(50000);
 	}
 	return EOK;
 }
@@ -344,7 +354,7 @@ do { \
 	SETUP_TRANSFER_LIST(transfers_interrupt, "INTERRUPT");
 	SETUP_TRANSFER_LIST(transfers_control, "CONTROL");
 	SETUP_TRANSFER_LIST(transfers_bulk, "BULK");
-
+#undef SETUP_TRANSFER_LIST
 	transfer_list_set_next(&instance->transfers_interrupt,
 	    &instance->transfers_isochronous);
 
@@ -359,7 +369,6 @@ do { \
 	  &instance->transfers_bulk;
 
 	return EOK;
-#undef CHECK_RET_CLEAR_RETURN
 }
 /*----------------------------------------------------------------------------*/
 int hc_init_memory(hc_t *instance)
