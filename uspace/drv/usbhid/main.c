@@ -73,6 +73,8 @@
  */
 static int usb_hid_try_add_device(usb_device_t *dev)
 {
+	assert(dev != NULL);
+	
 	/* 
 	 * Initialize device (get and process descriptors, get address, etc.)
 	 */
@@ -175,6 +177,11 @@ static int usb_hid_try_add_device(usb_device_t *dev)
 static int usb_hid_add_device(usb_device_t *dev)
 {
 	usb_log_debug("usb_hid_add_device()\n");
+	
+	if (dev != NULL) {
+		usb_log_warning("Wrong parameter given for add_device().\n");
+		return EINVAL;
+	}
 	
 	if (dev->interface_no < 0) {
 		usb_log_warning("Device is not a supported HID device.\n");
