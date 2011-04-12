@@ -62,6 +62,23 @@ void endpoint_destroy(endpoint_t *instance)
 	free(instance);
 }
 /*----------------------------------------------------------------------------*/
+void endpoint_set_hc_data(endpoint_t *instance,
+    void *data, int (*toggle_get)(void *), void (*toggle_set)(void *, int))
+{
+	assert(instance);
+	instance->hc_data.data = data;
+	instance->hc_data.toggle_get = toggle_get;
+	instance->hc_data.toggle_set = toggle_set;
+}
+/*----------------------------------------------------------------------------*/
+void endpoint_clear_hc_data(endpoint_t *instance)
+{
+	assert(instance);
+	instance->hc_data.data = NULL;
+	instance->hc_data.toggle_get = NULL;
+	instance->hc_data.toggle_set = NULL;
+}
+/*----------------------------------------------------------------------------*/
 void endpoint_use(endpoint_t *instance)
 {
 	assert(instance);
@@ -84,6 +101,9 @@ void endpoint_release(endpoint_t *instance)
 int endpoint_toggle_get(endpoint_t *instance)
 {
 	assert(instance);
+	if (instance->hc_data.toggle_get)
+		instance->toggle =
+		    instance->hc_data.toggle_get(instance->hc_data.data);
 	return (int)instance->toggle;
 }
 /*----------------------------------------------------------------------------*/
@@ -91,6 +111,8 @@ void endpoint_toggle_set(endpoint_t *instance, int toggle)
 {
 	assert(instance);
 	assert(toggle == 0 || toggle == 1);
+	if (instance->hc_data.toggle_set)
+		instance->hc_data.toggle_set(instance->hc_data.data, toggle);
 	instance->toggle = toggle;
 }
 /*----------------------------------------------------------------------------*/
