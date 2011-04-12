@@ -237,6 +237,9 @@ static int usb_hid_find_subdrivers(usb_hid_dev_t *hid_dev)
 	
 	int i = 0, count = 0;
 	const usb_hid_subdriver_mapping_t *mapping = &usb_hid_subdrivers[i];
+
+	bool ids_matched;
+	bool matched;
 	
 	while (count < USB_HID_MAX_SUBDRIVERS &&
 	    (mapping->usage_path != NULL
@@ -253,16 +256,17 @@ static int usb_hid_find_subdrivers(usb_hid_dev_t *hid_dev)
 			return EINVAL;
 		}
 		
+		ids_matched = false;
+		matched = false;
+		
 		if (mapping->vendor_id != 0) {
 			assert(mapping->product_id != 0);
 			usb_log_debug("Comparing device against vendor ID %u"
 			    " and product ID %u.\n", mapping->vendor_id,
 			    mapping->product_id);
 			if (usb_hid_ids_match(hid_dev, mapping)) {
-				usb_log_debug("Matched.\n");
-				subdrivers[count++] = &mapping->subdriver;
-				// skip the checking of usage path
-				goto next;
+				usb_log_debug("IDs matched.\n");
+				ids_matched = true;
 			}
 		}
 		
@@ -270,12 +274,18 @@ static int usb_hid_find_subdrivers(usb_hid_dev_t *hid_dev)
 			usb_log_debug("Comparing device against usage path.\n");
 			if (usb_hid_path_matches(hid_dev, 
 			    mapping->usage_path, mapping->compare)) {
-				subdrivers[count++] = &mapping->subdriver;
-			} else {
-				usb_log_debug("Not matched.\n");
+				// does not matter if IDs were matched
+				matched = true;
 			}
+		} else {
+			// matched only if IDs were matched and there is no path
+			matched = ids_matched;
 		}
-	next:
+		
+		if (matched) {
+			subdrivers[count++] = &mapping->subdriver;
+		}
+		
 		mapping = &usb_hid_subdrivers[++i];
 	}
 	
