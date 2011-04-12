@@ -47,9 +47,6 @@
 void usb_device_keeper_init(usb_device_keeper_t *instance)
 {
 	assert(instance);
-	fibril_mutex_initialize(&instance->guard);
-	fibril_condvar_initialize(&instance->change);
-	instance->last_address = 0;
 	unsigned i = 0;
 	for (; i < USB_ADDRESS_COUNT; ++i) {
 		instance->devices[i].occupied = false;
@@ -59,40 +56,9 @@ void usb_device_keeper_init(usb_device_keeper_t *instance)
 	// TODO: is this hack enough?
 	// (it is needed to allow smooth registration at default address)
 	instance->devices[0].occupied = true;
+	instance->last_address = 0;
+	fibril_mutex_initialize(&instance->guard);
 }
-/*----------------------------------------------------------------------------*/
-/** Attempt to obtain address 0, blocks.
- *
- * @param[in] instance Device keeper structure to use.
- * @param[in] speed Speed of the device requesting default address.
- */
-void usb_device_keeper_reserve_default_address(
-    usb_device_keeper_t *instance, usb_speed_t speed)
-{
-	assert(instance);
-	fibril_mutex_lock(&instance->guard);
-	while (instance->devices[USB_ADDRESS_DEFAULT].occupied) {
-		fibril_condvar_wait(&instance->change, &instance->guard);
-	}
-	instance->devices[USB_ADDRESS_DEFAULT].occupied = true;
-	instance->devices[USB_ADDRESS_DEFAULT].speed = speed;
-	fibril_mutex_unlock(&instance->guard);
-}
-/*----------------------------------------------------------------------------*/
-/** Attempt to obtain address 0, blocks.
- *
- * @param[in] instance Device keeper structure to use.
- * @param[in] speed Speed of the device requesting default address.
- */
-void usb_device_keeper_release_default_address(usb_device_keeper_t *instance)
-{
-	assert(instance);
-	fibril_mutex_lock(&instance->guard);
-	instance->devices[USB_ADDRESS_DEFAULT].occupied = false;
-	fibril_mutex_unlock(&instance->guard);
-	fibril_condvar_signal(&instance->change);
-}
-/*----------------------------------------------------------------------------*/
 /*----------------------------------------------------------------------------*/
 /** Get a free USB address
  *
@@ -119,9 +85,11 @@ usb_address_t device_keeper_get_free_address(
 
 	assert(new_address != USB_ADDRESS_DEFAULT);
 	assert(instance->devices[new_address].occupied == false);
+
 	instance->devices[new_address].occupied = true;
 	instance->devices[new_address].speed = speed;
 	instance->last_address = new_address;
+
 	fibril_mutex_unlock(&instance->guard);
 	return new_address;
 }
@@ -137,9 +105,11 @@ void usb_device_keeper_bind(usb_device_keeper_t *instance,
 {
 	assert(instance);
 	fibril_mutex_lock(&instance->guard);
+
 	assert(address > 0);
 	assert(address <= USB11_ADDRESS_MAX);
 	assert(instance->devices[address].occupied);
+
 	instance->devices[address].handle = handle;
 	fibril_mutex_unlock(&instance->guard);
 }
@@ -158,6 +128,7 @@ void usb_device_keeper_release(
 
 	fibril_mutex_lock(&instance->guard);
 	assert(instance->devices[address].occupied);
+
 	instance->devices[address].occupied = false;
 	fibril_mutex_unlock(&instance->guard);
 }
@@ -176,6 +147,7 @@ usb_address_t usb_device_keeper_find(
 	usb_address_t address = 1;
 	while (address <= USB11_ADDRESS_MAX) {
 		if (instance->devices[address].handle == handle) {
+			assert(instance->devices[address].occupied);
 			fibril_mutex_unlock(&instance->guard);
 			return address;
 		}
@@ -197,6 +169,7 @@ usb_speed_t usb_device_keeper_get_speed(
 	assert(instance);
 	assert(address >= 0);
 	assert(address <= USB11_ADDRESS_MAX);
+
 	return instance->devices[address].speed;
 }
 /**
