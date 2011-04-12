@@ -66,7 +66,7 @@ static const int USB_HID_MAX_SUBDRIVERS = 10;
 
 static int usb_hid_set_boot_kbd_subdriver(usb_hid_dev_t *hid_dev)
 {
-	assert(hid_dev->subdriver_count == 0);
+	assert(hid_dev != NULL && hid_dev->subdriver_count == 0);
 	
 	hid_dev->subdrivers = (usb_hid_subdriver_t *)malloc(
 	    sizeof(usb_hid_subdriver_t));
@@ -96,7 +96,7 @@ static int usb_hid_set_boot_kbd_subdriver(usb_hid_dev_t *hid_dev)
 
 static int usb_hid_set_boot_mouse_subdriver(usb_hid_dev_t *hid_dev)
 {
-	assert(hid_dev->subdriver_count == 0);
+	assert(hid_dev != NULL && hid_dev->subdriver_count == 0);
 	
 	hid_dev->subdrivers = (usb_hid_subdriver_t *)malloc(
 	    sizeof(usb_hid_subdriver_t));
@@ -126,7 +126,7 @@ static int usb_hid_set_boot_mouse_subdriver(usb_hid_dev_t *hid_dev)
 
 static int usb_hid_set_generic_hid_subdriver(usb_hid_dev_t *hid_dev)
 {
-	assert(hid_dev->subdriver_count == 0);
+	assert(hid_dev != NULL && hid_dev->subdriver_count == 0);
 	
 	hid_dev->subdrivers = (usb_hid_subdriver_t *)malloc(
 	    sizeof(usb_hid_subdriver_t));
@@ -231,6 +231,8 @@ static int usb_hid_save_subdrivers(usb_hid_dev_t *hid_dev,
 
 static int usb_hid_find_subdrivers(usb_hid_dev_t *hid_dev)
 {
+	assert(hid_dev != NULL);
+	
 	const usb_hid_subdriver_t *subdrivers[USB_HID_MAX_SUBDRIVERS];
 	
 	int i = 0, count = 0;
@@ -285,6 +287,8 @@ static int usb_hid_find_subdrivers(usb_hid_dev_t *hid_dev)
 
 static int usb_hid_check_pipes(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 {
+	assert(hid_dev != NULL && dev != NULL);
+	
 	int rc = EOK;
 	
 	if (dev->pipes[USB_HID_KBD_POLL_EP_NO].present) {
