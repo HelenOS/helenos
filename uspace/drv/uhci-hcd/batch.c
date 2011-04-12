@@ -29,7 +29,7 @@
  * @{
  */
 /** @file
- * @brief UHCI driver USB transaction structure
+ * @brief UHCI driver USB transfer structure
  */
 #include <errno.h>
 #include <str_error.h>
@@ -60,24 +60,20 @@ static void batch_call_out_and_dispose(usb_transfer_batch_t *instance);
 /** Allocate memory and initialize internal data structure.
  *
  * @param[in] fun DDF function to pass to callback.
- * @param[in] target Device and endpoint target of the transaction.
- * @param[in] transfer_type Interrupt, Control or Bulk.
- * @param[in] max_packet_size maximum allowed size of data transactions.
- * @param[in] speed Speed of the transaction.
+ * @param[in] ep Communication target
  * @param[in] buffer Data source/destination.
  * @param[in] size Size of the buffer.
  * @param[in] setup_buffer Setup data source (if not NULL)
  * @param[in] setup_size Size of setup_buffer (should be always 8)
- * @param[in] func_in function to call on inbound transaction completion
- * @param[in] func_out function to call on outbound transaction completion
+ * @param[in] func_in function to call on inbound transfer completion
+ * @param[in] func_out function to call on outbound transfer completion
  * @param[in] arg additional parameter to func_in or func_out
- * @param[in] ep Pointer to endpoint toggle management structure.
  * @return Valid pointer if all substructures were successfully created,
  * NULL otherwise.
  *
  * Determines the number of needed transfer descriptors (TDs).
  * Prepares a transport buffer (that is accessible by the hardware).
- * Initializes parameters needed for the transaction and callback.
+ * Initializes parameters needed for the transfer and callback.
  */
 usb_transfer_batch_t * batch_get(ddf_fun_t *fun, endpoint_t *ep,
     char *buffer, size_t buffer_size, char* setup_buffer, size_t setup_size,
@@ -153,7 +149,7 @@ usb_transfer_batch_t * batch_get(ddf_fun_t *fun, endpoint_t *ep,
  * @return False, if there is an active TD, true otherwise.
  *
  * Walk all TDs. Stop with false if there is an active one (it is to be
- * processed). Stop with true if an error is found. Return true if the last TS
+ * processed). Stop with true if an error is found. Return true if the last TD
  * is reached.
  */
 bool batch_is_complete(usb_transfer_batch_t *instance)
@@ -176,8 +172,8 @@ bool batch_is_complete(usb_transfer_batch_t *instance)
 			usb_log_debug("Batch(%p) found error TD(%d):%x.\n",
 			    instance, i, data->tds[i].status);
 			td_print_status(&data->tds[i]);
-			assert(instance->ep != NULL);
 
+			assert(instance->ep != NULL);
 			endpoint_toggle_set(instance->ep,
 			    td_toggle(&data->tds[i]));
 			if (i > 0)
@@ -194,11 +190,11 @@ substract_ret:
 	return true;
 }
 /*----------------------------------------------------------------------------*/
-/** Prepares control write transaction.
+/** Prepares control write transfer.
  *
  * @param[in] instance Batch structure to use.
  *
- * Uses genercir control function with pids OUT and IN.
+ * Uses generic control function with pids OUT and IN.
  */
 void batch_control_write(usb_transfer_batch_t *instance)
 {
@@ -210,7 +206,7 @@ void batch_control_write(usb_transfer_batch_t *instance)
 	usb_log_debug("Batch(%p) CONTROL WRITE initialized.\n", instance);
 }
 /*----------------------------------------------------------------------------*/
-/** Prepares control read transaction.
+/** Prepares control read transfer.
  *
  * @param[in] instance Batch structure to use.
  *
@@ -224,26 +220,25 @@ void batch_control_read(usb_transfer_batch_t *instance)
 	usb_log_debug("Batch(%p) CONTROL READ initialized.\n", instance);
 }
 /*----------------------------------------------------------------------------*/
-/** Prepare interrupt in transaction.
+/** Prepare interrupt in transfer.
  *
  * @param[in] instance Batch structure to use.
  *
- * Data transaction with PID_IN.
+ * Data transfer with PID_IN.
  */
 void batch_interrupt_in(usb_transfer_batch_t *instance)
 {
 	assert(instance);
-//	instance->direction = USB_DIRECTION_IN;
 	batch_data(instance, USB_PID_IN);
 	instance->next_step = batch_call_in_and_dispose;
 	usb_log_debug("Batch(%p) INTERRUPT IN initialized.\n", instance);
 }
 /*----------------------------------------------------------------------------*/
-/** Prepare interrupt out transaction.
+/** Prepare interrupt out transfer.
  *
  * @param[in] instance Batch structure to use.
  *
- * Data transaction with PID_OUT.
+ * Data transfer with PID_OUT.
  */
 void batch_interrupt_out(usb_transfer_batch_t *instance)
 {
@@ -255,11 +250,11 @@ void batch_interrupt_out(usb_transfer_batch_t *instance)
 	usb_log_debug("Batch(%p) INTERRUPT OUT initialized.\n", instance);
 }
 /*----------------------------------------------------------------------------*/
-/** Prepare bulk in transaction.
+/** Prepare bulk in transfer.
  *
  * @param[in] instance Batch structure to use.
  *
- * Data transaction with PID_IN.
+ * Data transfer with PID_IN.
  */
 void batch_bulk_in(usb_transfer_batch_t *instance)
 {
@@ -269,29 +264,28 @@ void batch_bulk_in(usb_transfer_batch_t *instance)
 	usb_log_debug("Batch(%p) BULK IN initialized.\n", instance);
 }
 /*----------------------------------------------------------------------------*/
-/** Prepare bulk out transaction.
+/** Prepare bulk out transfer.
  *
  * @param[in] instance Batch structure to use.
  *
- * Data transaction with PID_OUT.
+ * Data transfer with PID_OUT.
  */
 void batch_bulk_out(usb_transfer_batch_t *instance)
 {
 	assert(instance);
 	/* We are data out, we are supposed to provide data */
-	memcpy(instance->data_buffer, instance->buffer,
-	    instance->buffer_size);
+	memcpy(instance->data_buffer, instance->buffer, instance->buffer_size);
 	batch_data(instance, USB_PID_OUT);
 	instance->next_step = batch_call_out_and_dispose;
 	usb_log_debug("Batch(%p) BULK OUT initialized.\n", instance);
 }
 /*----------------------------------------------------------------------------*/
-/** Prepare generic data transaction
+/** Prepare generic data transfer
  *
  * @param[in] instance Batch structure to use.
  * @param[in] pid Pid to use for data transactions.
  *
- * Packets with alternating toggle bit and supplied pid value.
+ * Transactions with alternating toggle bit and supplied pid value.
  * The last transfer is marked with IOC flag.
  */
 void batch_data(usb_transfer_batch_t *instance, usb_packet_id pid)
@@ -306,11 +300,8 @@ void batch_data(usb_transfer_batch_t *instance, usb_packet_id pid)
 
 	size_t td = 0;
 	size_t remain_size = instance->buffer_size;
+	char *buffer = instance->data_buffer;
 	while (remain_size > 0) {
-		char *trans_data =
-		    instance->data_buffer + instance->buffer_size
-		    - remain_size;
-
 		const size_t packet_size =
 		    (instance->ep->max_packet_size > remain_size) ?
 		    remain_size : instance->ep->max_packet_size;
@@ -318,25 +309,26 @@ void batch_data(usb_transfer_batch_t *instance, usb_packet_id pid)
 		td_t *next_td = (td + 1 < data->td_count)
 		    ? &data->tds[td + 1] : NULL;
 
-		assert(td < data->td_count);
-		assert(packet_size <= remain_size);
+
 		usb_target_t target =
 		    { instance->ep->address, instance->ep->endpoint };
 
+		assert(td < data->td_count);
 		td_init(
 		    &data->tds[td], DEFAULT_ERROR_COUNT, packet_size,
-		    toggle, false, low_speed, target, pid, trans_data, next_td);
+		    toggle, false, low_speed, target, pid, buffer, next_td);
 
-
-		toggle = 1 - toggle;
-		remain_size -= packet_size;
 		++td;
+		toggle = 1 - toggle;
+		buffer += packet_size;
+		assert(packet_size <= remain_size);
+		remain_size -= packet_size;
 	}
 	td_set_ioc(&data->tds[td - 1]);
 	endpoint_toggle_set(instance->ep, toggle);
 }
 /*----------------------------------------------------------------------------*/
-/** Prepare generic control transaction
+/** Prepare generic control transfer
  *
  * @param[in] instance Batch structure to use.
  * @param[in] data_stage Pid to use for data tds.
@@ -356,26 +348,21 @@ void batch_control(usb_transfer_batch_t *instance,
 	assert(data->td_count >= 2);
 
 	const bool low_speed = instance->ep->speed == USB_SPEED_LOW;
-	int toggle = 0;
 	const usb_target_t target =
 	    { instance->ep->address, instance->ep->endpoint };
 
 	/* setup stage */
 	td_init(
-	    data->tds, DEFAULT_ERROR_COUNT, instance->setup_size, toggle, false,
+	    data->tds, DEFAULT_ERROR_COUNT, instance->setup_size, 0, false,
 	    low_speed, target, USB_PID_SETUP, instance->setup_buffer,
 	    &data->tds[1]);
 
 	/* data stage */
 	size_t td = 1;
+	unsigned toggle = 1;
 	size_t remain_size = instance->buffer_size;
+	char *buffer = instance->data_buffer;
 	while (remain_size > 0) {
-		char *control_data =
-		    instance->data_buffer + instance->buffer_size
-		    - remain_size;
-
-		toggle = 1 - toggle;
-
 		const size_t packet_size =
 		    (instance->ep->max_packet_size > remain_size) ?
 		    remain_size : instance->ep->max_packet_size;
@@ -383,9 +370,11 @@ void batch_control(usb_transfer_batch_t *instance,
 		td_init(
 		    &data->tds[td], DEFAULT_ERROR_COUNT, packet_size,
 		    toggle, false, low_speed, target, data_stage,
-		    control_data, &data->tds[td + 1]);
+		    buffer, &data->tds[td + 1]);
 
 		++td;
+		toggle = 1 - toggle;
+		buffer += packet_size;
 		assert(td < data->td_count);
 		assert(packet_size <= remain_size);
 		remain_size -= packet_size;
@@ -411,7 +400,7 @@ qh_t * batch_qh(usb_transfer_batch_t *instance)
 	return data->qh;
 }
 /*----------------------------------------------------------------------------*/
-/** Helper function calls callback and correctly disposes of batch structure.
+/** Helper function, calls callback and correctly destroys batch structure.
  *
  * @param[in] instance Batch structure to use.
  */
@@ -422,7 +411,7 @@ void batch_call_in_and_dispose(usb_transfer_batch_t *instance)
 	batch_dispose(instance);
 }
 /*----------------------------------------------------------------------------*/
-/** Helper function calls callback and correctly disposes of batch structure.
+/** Helper function calls callback and correctly destroys batch structure.
  *
  * @param[in] instance Batch structure to use.
  */
