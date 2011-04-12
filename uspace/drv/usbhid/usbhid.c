@@ -163,7 +163,7 @@ static bool usb_hid_ids_match(usb_hid_dev_t *hid_dev,
 /*----------------------------------------------------------------------------*/
 
 static bool usb_hid_path_matches(usb_hid_dev_t *hid_dev, 
-    const usb_hid_subdriver_usage_t *path, int path_size, int compare)
+    const usb_hid_subdriver_usage_t *path, int compare)
 {
 	assert(hid_dev != NULL);
 	assert(path != NULL);
@@ -173,14 +173,15 @@ static bool usb_hid_path_matches(usb_hid_dev_t *hid_dev,
 		usb_log_debug("Failed to create usage path.\n");
 		return false;
 	}
-	int i;
-	for (i = 0; i < path_size; ++i) {
+	int i = 0;
+	while (path[i].usage != 0 || path[i].usage_page != 0) {
 		if (usb_hid_report_path_append_item(usage_path, 
 		    path[i].usage_page, path[i].usage) != EOK) {
 			usb_log_debug("Failed to append to usage path.\n");
 			usb_hid_report_path_free(usage_path);
 			return false;
 		}
+		++i;
 	}
 	
 	assert(hid_dev->parser != NULL);
@@ -237,24 +238,23 @@ static int usb_hid_find_subdrivers(usb_hid_dev_t *hid_dev)
 	
 	while (count < USB_HID_MAX_SUBDRIVERS &&
 	    (mapping->usage_path != NULL
-	    || mapping->vendor_id != NULL
-	    || mapping->product_id != NULL)) {
+	    || mapping->vendor_id != 0 || mapping->product_id != 0)) {
 		// check the vendor & product ID
-		if (mapping->vendor_id != NULL && mapping->product_id == NULL) {
-			usb_log_warning("Missing Product ID for Vendor ID %s\n",
+		if (mapping->vendor_id != 0 && mapping->product_id == 0) {
+			usb_log_warning("Missing Product ID for Vendor ID %u\n",
 			    mapping->vendor_id);
 			return EINVAL;
 		}
-		if (mapping->product_id != NULL && mapping->vendor_id == NULL) {
-			usb_log_warning("Missing Vendor ID for Product ID %s\n",
+		if (mapping->product_id != 0 && mapping->vendor_id == 0) {
+			usb_log_warning("Missing Vendor ID for Product ID %u\n",
 			    mapping->product_id);
 			return EINVAL;
 		}
 		
-		if (mapping->vendor_id != NULL) {
-			assert(mapping->product_id != NULL);
-			usb_log_debug("Comparing device against vendor ID %s"
-			    " and product ID %s.\n", mapping->vendor_id,
+		if (mapping->vendor_id != 0) {
+			assert(mapping->product_id != 0);
+			usb_log_debug("Comparing device against vendor ID %u"
+			    " and product ID %u.\n", mapping->vendor_id,
 			    mapping->product_id);
 			if (usb_hid_ids_match(hid_dev, mapping)) {
 				usb_log_debug("Matched.\n");
@@ -267,8 +267,7 @@ static int usb_hid_find_subdrivers(usb_hid_dev_t *hid_dev)
 		if (mapping->usage_path != NULL) {
 			usb_log_debug("Comparing device against usage path.\n");
 			if (usb_hid_path_matches(hid_dev, 
-			    mapping->usage_path, mapping->path_size,
-			    mapping->compare)) {
+			    mapping->usage_path, mapping->compare)) {
 				subdrivers[count++] = &mapping->subdriver;
 			} else {
 				usb_log_debug("Not matched.\n");
