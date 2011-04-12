@@ -102,9 +102,9 @@ usb_transfer_batch_t * batch_get(ddf_fun_t *fun, endpoint_t *ep,
 	    "Failed to allocate batch instance.\n");
 	usb_target_t target =
 	    { .address = ep->address, .endpoint = ep->endpoint };
-	usb_transfer_batch_init(instance, target, ep->transfer_type, ep->speed,
-	    ep->max_packet_size, buffer, NULL, buffer_size, NULL, setup_size,
-	    func_in, func_out, arg, fun, ep, NULL);
+	usb_transfer_batch_init(instance, ep,
+	    buffer, NULL, buffer_size, NULL, setup_size,
+	    func_in, func_out, arg, fun, NULL);
 
 
 	uhci_batch_t *data = malloc(sizeof(uhci_batch_t));
@@ -130,8 +130,8 @@ usb_transfer_batch_t * batch_get(ddf_fun_t *fun, endpoint_t *ep,
 	qh_set_element_td(data->qh, addr_to_phys(data->tds));
 
 	if (buffer_size > 0) {
-		instance->transport_buffer = malloc32(buffer_size);
-		CHECK_NULL_DISPOSE_RETURN(instance->transport_buffer,
+		instance->data_buffer = malloc32(buffer_size);
+		CHECK_NULL_DISPOSE_RETURN(instance->data_buffer,
 		    "Failed to allocate device accessible buffer.\n");
 	}
 
@@ -204,8 +204,7 @@ void batch_control_write(usb_transfer_batch_t *instance)
 {
 	assert(instance);
 	/* We are data out, we are supposed to provide data */
-	memcpy(instance->transport_buffer, instance->buffer,
-	    instance->buffer_size);
+	memcpy(instance->data_buffer, instance->buffer, instance->buffer_size);
 	batch_control(instance, USB_PID_OUT, USB_PID_IN);
 	instance->next_step = batch_call_out_and_dispose;
 	usb_log_debug("Batch(%p) CONTROL WRITE initialized.\n", instance);
@@ -234,7 +233,7 @@ void batch_control_read(usb_transfer_batch_t *instance)
 void batch_interrupt_in(usb_transfer_batch_t *instance)
 {
 	assert(instance);
-	instance->direction = USB_DIRECTION_IN;
+//	instance->direction = USB_DIRECTION_IN;
 	batch_data(instance, USB_PID_IN);
 	instance->next_step = batch_call_in_and_dispose;
 	usb_log_debug("Batch(%p) INTERRUPT IN initialized.\n", instance);
@@ -249,10 +248,8 @@ void batch_interrupt_in(usb_transfer_batch_t *instance)
 void batch_interrupt_out(usb_transfer_batch_t *instance)
 {
 	assert(instance);
-	instance->direction = USB_DIRECTION_OUT;
 	/* We are data out, we are supposed to provide data */
-	memcpy(instance->transport_buffer, instance->buffer,
-	    instance->buffer_size);
+	memcpy(instance->data_buffer, instance->buffer, instance->buffer_size);
 	batch_data(instance, USB_PID_OUT);
 	instance->next_step = batch_call_out_and_dispose;
 	usb_log_debug("Batch(%p) INTERRUPT OUT initialized.\n", instance);
@@ -268,7 +265,6 @@ void batch_bulk_in(usb_transfer_batch_t *instance)
 {
 	assert(instance);
 	batch_data(instance, USB_PID_IN);
-	instance->direction = USB_DIRECTION_IN;
 	instance->next_step = batch_call_in_and_dispose;
 	usb_log_debug("Batch(%p) BULK IN initialized.\n", instance);
 }
@@ -282,9 +278,8 @@ void batch_bulk_in(usb_transfer_batch_t *instance)
 void batch_bulk_out(usb_transfer_batch_t *instance)
 {
 	assert(instance);
-	instance->direction = USB_DIRECTION_OUT;
 	/* We are data out, we are supposed to provide data */
-	memcpy(instance->transport_buffer, instance->buffer,
+	memcpy(instance->data_buffer, instance->buffer,
 	    instance->buffer_size);
 	batch_data(instance, USB_PID_OUT);
 	instance->next_step = batch_call_out_and_dispose;
@@ -305,7 +300,7 @@ void batch_data(usb_transfer_batch_t *instance, usb_packet_id pid)
 	uhci_batch_t *data = instance->private_data;
 	assert(data);
 
-	const bool low_speed = instance->speed == USB_SPEED_LOW;
+	const bool low_speed = instance->ep->speed == USB_SPEED_LOW;
 	int toggle = endpoint_toggle_get(instance->ep);
 	assert(toggle == 0 || toggle == 1);
 
@@ -313,22 +308,24 @@ void batch_data(usb_transfer_batch_t *instance, usb_packet_id pid)
 	size_t remain_size = instance->buffer_size;
 	while (remain_size > 0) {
 		char *trans_data =
-		    instance->transport_buffer + instance->buffer_size
+		    instance->data_buffer + instance->buffer_size
 		    - remain_size;
 
 		const size_t packet_size =
-		    (instance->max_packet_size > remain_size) ?
-		    remain_size : instance->max_packet_size;
+		    (instance->ep->max_packet_size > remain_size) ?
+		    remain_size : instance->ep->max_packet_size;
 
 		td_t *next_transfer = (transfer + 1 < data->transfers)
 		    ? &data->tds[transfer + 1] : NULL;
 
 		assert(transfer < data->transfers);
 		assert(packet_size <= remain_size);
+		usb_target_t target =
+		    { instance->ep->address, instance->ep->endpoint };
 
 		td_init(
 		    &data->tds[transfer], DEFAULT_ERROR_COUNT, packet_size,
-		    toggle, false, low_speed, instance->target, pid, trans_data,
+		    toggle, false, low_speed, target, pid, trans_data,
 		    next_transfer);
 
 
@@ -359,12 +356,15 @@ void batch_control(usb_transfer_batch_t *instance,
 	assert(data);
 	assert(data->transfers >= 2);
 
-	const bool low_speed = instance->speed == USB_SPEED_LOW;
+	const bool low_speed = instance->ep->speed == USB_SPEED_LOW;
 	int toggle = 0;
+	const usb_target_t target =
+	    { instance->ep->address, instance->ep->endpoint };
+
 	/* setup stage */
 	td_init(
 	    data->tds, DEFAULT_ERROR_COUNT, instance->setup_size, toggle, false,
-	    low_speed, instance->target, USB_PID_SETUP, instance->setup_buffer,
+	    low_speed, target, USB_PID_SETUP, instance->setup_buffer,
 	    &data->tds[1]);
 
 	/* data stage */
@@ -372,18 +372,18 @@ void batch_control(usb_transfer_batch_t *instance,
 	size_t remain_size = instance->buffer_size;
 	while (remain_size > 0) {
 		char *control_data =
-		    instance->transport_buffer + instance->buffer_size
+		    instance->data_buffer + instance->buffer_size
 		    - remain_size;
 
 		toggle = 1 - toggle;
 
 		const size_t packet_size =
-		    (instance->max_packet_size > remain_size) ?
-		    remain_size : instance->max_packet_size;
+		    (instance->ep->max_packet_size > remain_size) ?
+		    remain_size : instance->ep->max_packet_size;
 
 		td_init(
 		    &data->tds[transfer], DEFAULT_ERROR_COUNT, packet_size,
-		    toggle, false, low_speed, instance->target, data_stage,
+		    toggle, false, low_speed, target, data_stage,
 		    control_data, &data->tds[transfer + 1]);
 
 		++transfer;
@@ -397,7 +397,7 @@ void batch_control(usb_transfer_batch_t *instance,
 
 	td_init(
 	    &data->tds[transfer], DEFAULT_ERROR_COUNT, 0, 1, false, low_speed,
-	    instance->target, status_stage, NULL, NULL);
+	    target, status_stage, NULL, NULL);
 	td_set_ioc(&data->tds[transfer]);
 
 	usb_log_debug2("Control last TD status: %x.\n",
@@ -448,7 +448,7 @@ void batch_dispose(usb_transfer_batch_t *instance)
 	free32(data->tds);
 	free32(data->qh);
 	free32(instance->setup_buffer);
-	free32(instance->transport_buffer);
+	free32(instance->data_buffer);
 	free(data);
 	free(instance);
 }

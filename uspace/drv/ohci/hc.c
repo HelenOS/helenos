@@ -129,18 +129,19 @@ int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch)
 {
 	assert(instance);
 	assert(batch);
+	assert(batch->ep);
 
 	/* check for root hub communication */
-	if (batch->target.address == instance->rh.address) {
+	if (batch->ep->address == instance->rh.address) {
 		return rh_request(&instance->rh, batch);
 	}
 
 	fibril_mutex_lock(&instance->guard);
-	switch (batch->transfer_type) {
+	switch (batch->ep->transfer_type) {
 	case USB_TRANSFER_CONTROL:
 		instance->registers->control &= ~C_CLE;
 		transfer_list_add_batch(
-		    instance->transfers[batch->transfer_type], batch);
+		    instance->transfers[batch->ep->transfer_type], batch);
 		instance->registers->command_status |= CS_CLF;
 		usb_log_debug2("Set CS control transfer filled: %x.\n",
 			instance->registers->command_status);
@@ -150,7 +151,7 @@ int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch)
 	case USB_TRANSFER_BULK:
 		instance->registers->control &= ~C_BLE;
 		transfer_list_add_batch(
-		    instance->transfers[batch->transfer_type], batch);
+		    instance->transfers[batch->ep->transfer_type], batch);
 		instance->registers->command_status |= CS_BLF;
 		usb_log_debug2("Set bulk transfer filled: %x.\n",
 			instance->registers->command_status);
@@ -160,7 +161,7 @@ int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch)
 	case USB_TRANSFER_ISOCHRONOUS:
 		instance->registers->control &= (~C_PLE & ~C_IE);
 		transfer_list_add_batch(
-		    instance->transfers[batch->transfer_type], batch);
+		    instance->transfers[batch->ep->transfer_type], batch);
 		instance->registers->control |= C_PLE | C_IE;
 		usb_log_debug2("Added periodic transfer: %x.\n",
 		    instance->registers->periodic_current);
