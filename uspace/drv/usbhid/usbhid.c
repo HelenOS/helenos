@@ -163,10 +163,10 @@ static bool usb_hid_ids_match(usb_hid_dev_t *hid_dev,
 /*----------------------------------------------------------------------------*/
 
 static bool usb_hid_path_matches(usb_hid_dev_t *hid_dev, 
-    const usb_hid_subdriver_usage_t *path, int compare)
+    const usb_hid_subdriver_mapping_t *mapping)
 {
 	assert(hid_dev != NULL);
-	assert(path != NULL);
+	assert(mapping != NULL);
 	
 	usb_hid_report_path_t *usage_path = usb_hid_report_path();
 	if (usage_path == NULL) {
@@ -174,9 +174,11 @@ static bool usb_hid_path_matches(usb_hid_dev_t *hid_dev,
 		return false;
 	}
 	int i = 0;
-	while (path[i].usage != 0 || path[i].usage_page != 0) {
+	while (mapping->usage_path[i].usage != 0 
+	    || mapping->usage_path[i].usage_page != 0) {
 		if (usb_hid_report_path_append_item(usage_path, 
-		    path[i].usage_page, path[i].usage) != EOK) {
+		    mapping->usage_path[i].usage_page, 
+		    mapping->usage_path[i].usage) != EOK) {
 			usb_log_debug("Failed to append to usage path.\n");
 			usb_hid_report_path_free(usage_path);
 			return false;
@@ -184,11 +186,16 @@ static bool usb_hid_path_matches(usb_hid_dev_t *hid_dev,
 		++i;
 	}
 	
+	if (mapping->report_id >= 0) {
+		usb_hid_report_path_set_report_id(usage_path, 
+		    mapping->report_id);
+	}
+	
 	assert(hid_dev->parser != NULL);
 	
-	usb_log_debug("Compare flags: %d\n", compare);
+	usb_log_debug("Compare flags: %d\n", mapping->compare);
 	size_t size = usb_hid_report_input_length(hid_dev->parser, usage_path, 
-	    compare);
+	    mapping->compare);
 	usb_log_debug("Size of the input report: %d\n", size);
 	
 	usb_hid_report_path_free(usage_path);
@@ -272,8 +279,7 @@ static int usb_hid_find_subdrivers(usb_hid_dev_t *hid_dev)
 		
 		if (mapping->usage_path != NULL) {
 			usb_log_debug("Comparing device against usage path.\n");
-			if (usb_hid_path_matches(hid_dev, 
-			    mapping->usage_path, mapping->compare)) {
+			if (usb_hid_path_matches(hid_dev, mapping)) {
 				// does not matter if IDs were matched
 				matched = true;
 			}

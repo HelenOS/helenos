@@ -30,43 +30,31 @@
  * @{
  */
 /** @file
- * USB HID subdriver mappings.
+ * USB Logitech UltraX Keyboard sample driver.
  */
 
-#ifndef USB_HID_SUBDRIVERS_H_
-#define USB_HID_SUBDRIVERS_H_
+#ifndef USB_HID_LGTCH_ULTRAX_H_
+#define USB_HID_LGTCH_ULTRAX_H_
 
-#include "usbhid.h"
-#include "kbd/kbddev.h"
+#include <usb/devdrv.h>
 
-/*----------------------------------------------------------------------------*/
-
-typedef struct usb_hid_subdriver_usage {
-	int usage_page;
-	int usage;
-} usb_hid_subdriver_usage_t;
+struct usb_hid_dev;
+//struct usb_hid_subdriver_mapping;
 
 /*----------------------------------------------------------------------------*/
 
-/* TODO: This mapping must contain some other information to get the proper
- *       interface.
- */
-typedef struct usb_hid_subdriver_mapping {
-	const usb_hid_subdriver_usage_t *usage_path;
-	int report_id;
-	int compare;
-	uint16_t vendor_id;
-	uint16_t product_id;
-	usb_hid_subdriver_t subdriver;
-} usb_hid_subdriver_mapping_t;
+//extern struct usb_hid_subdriver_mapping usb_lgtch_mapping;
 
 /*----------------------------------------------------------------------------*/
 
-extern const usb_hid_subdriver_mapping_t usb_hid_subdrivers[];
+//int usb_lgtch_init(struct usb_hid_dev *hid_dev);
+
+bool usb_lgtch_polling_callback(struct usb_hid_dev *hid_dev, uint8_t *buffer,
+    size_t buffer_size);
 
 /*----------------------------------------------------------------------------*/
 
-#endif /* USB_HID_SUBDRIVERS_H_ */
+#endif // USB_HID_LGTCH_ULTRAX_H_
 
 /**
  * @}
