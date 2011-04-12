@@ -147,7 +147,6 @@ static int register_endpoint(
 	hc_t *hc = fun_to_hc(fun);
 	assert(hc);
 	const size_t size = max_packet_size;
-	int ret;
 	usb_speed_t speed = usb_device_keeper_get_speed(&hc->manager, address);
 	if (speed >= USB_SPEED_MAX) {
 		speed = ep_speed;
@@ -156,22 +155,8 @@ static int register_endpoint(
 	    address, endpoint, usb_str_transfer_type(transfer_type),
 	    usb_str_speed(speed), direction, size, max_packet_size, interval);
 
-
-	endpoint_t *ep = malloc(sizeof(endpoint_t));
-	if (ep == NULL)
-		return ENOMEM;
-	ret = endpoint_init(ep, address, endpoint, direction,
-	    transfer_type, speed, max_packet_size);
-	if (ret != EOK) {
-		free(ep);
-		return ret;
-	}
-
-	ret = usb_endpoint_manager_register_ep(&hc->ep_manager, ep, size);
-	if (ret != EOK) {
-		endpoint_destroy(ep);
-	}
-	return ret;
+	return usb_endpoint_manager_add_ep(&hc->ep_manager, address, endpoint,
+	    direction, transfer_type, speed, max_packet_size, size);
 }
 /*----------------------------------------------------------------------------*/
 static int unregister_endpoint(
