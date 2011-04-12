@@ -54,32 +54,40 @@ int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun)
 	assert(instance);
 	assert(hub_fun);
 
+	int ret;
+
 	usb_address_t hub_address =
 	    device_keeper_get_free_address(&instance->manager, USB_SPEED_FULL);
+	if (hub_address <= 0) {
+		usb_log_error("Failed to get OHCI root hub address.\n");
+		return hub_address;
+	}
 	instance->rh.address = hub_address;
 	usb_device_keeper_bind(
 	    &instance->manager, hub_address, hub_fun->handle);
 
-	endpoint_t *ep = malloc(sizeof(endpoint_t));
-	assert(ep);
-	int ret = endpoint_init(ep, hub_address, 0, USB_DIRECTION_BOTH,
-	    USB_TRANSFER_CONTROL, USB_SPEED_FULL, 64);
-	assert(ret == EOK);
-	ret = usb_endpoint_manager_register_ep(&instance->ep_manager, ep, 0);
-	assert(ret == EOK);
+	ret = usb_endpoint_manager_add_ep(&instance->ep_manager,
+	    hub_address, 0, USB_DIRECTION_BOTH, USB_TRANSFER_CONTROL,
+	    USB_SPEED_FULL, 64, 0);
+	if (ret != EOK) {
+		usb_log_error("Failed to add OHCI rh endpoint 0.\n");
+		usb_device_keeper_release(&instance->manager, hub_address);
+		return ret;
+	}
 
 	char *match_str = NULL;
+	/* DDF needs heap allocated string */
 	ret = asprintf(&match_str, "usb&class=hub");
-//	ret = (match_str == NULL) ? ret : EOK;
 	if (ret < 0) {
 		usb_log_error(
 		    "Failed(%d) to create root hub match-id string.\n", ret);
+		usb_device_keeper_release(&instance->manager, hub_address);
 		return ret;
 	}
 
 	ret = ddf_fun_add_match_id(hub_fun, match_str, 100);
 	if (ret != EOK) {
-		usb_log_error("Failed add create root hub match-id.\n");
+		usb_log_error("Failed add root hub match-id.\n");
 	}
 	return ret;
 }
@@ -114,7 +122,7 @@ if (ret != EOK) { \
 	hc_init_hw(instance);
 	fibril_mutex_initialize(&instance->guard);
 
-	rh_init(&instance->rh, dev, instance->registers);
+	rh_init(&instance->rh, instance->registers);
 
 	if (!interrupts) {
 		instance->interrupt_emulator =
@@ -129,18 +137,19 @@ int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch)
 {
 	assert(instance);
 	assert(batch);
+	assert(batch->ep);
 
 	/* check for root hub communication */
-	if (batch->target.address == instance->rh.address) {
+	if (batch->ep->address == instance->rh.address) {
 		return rh_request(&instance->rh, batch);
 	}
 
 	fibril_mutex_lock(&instance->guard);
-	switch (batch->transfer_type) {
+	switch (batch->ep->transfer_type) {
 	case USB_TRANSFER_CONTROL:
 		instance->registers->control &= ~C_CLE;
 		transfer_list_add_batch(
-		    instance->transfers[batch->transfer_type], batch);
+		    instance->transfers[batch->ep->transfer_type], batch);
 		instance->registers->command_status |= CS_CLF;
 		usb_log_debug2("Set CS control transfer filled: %x.\n",
 			instance->registers->command_status);
@@ -150,7 +159,7 @@ int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch)
 	case USB_TRANSFER_BULK:
 		instance->registers->control &= ~C_BLE;
 		transfer_list_add_batch(
-		    instance->transfers[batch->transfer_type], batch);
+		    instance->transfers[batch->ep->transfer_type], batch);
 		instance->registers->command_status |= CS_BLF;
 		usb_log_debug2("Set bulk transfer filled: %x.\n",
 			instance->registers->command_status);
@@ -160,7 +169,7 @@ int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch)
 	case USB_TRANSFER_ISOCHRONOUS:
 		instance->registers->control &= (~C_PLE & ~C_IE);
 		transfer_list_add_batch(
-		    instance->transfers[batch->transfer_type], batch);
+		    instance->transfers[batch->ep->transfer_type], batch);
 		instance->registers->control |= C_PLE | C_IE;
 		usb_log_debug2("Added periodic transfer: %x.\n",
 		    instance->registers->periodic_current);

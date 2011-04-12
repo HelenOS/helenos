@@ -49,15 +49,13 @@ typedef struct rh {
 	ohci_regs_t *registers;
 	/** usb address of the root hub */
 	usb_address_t address;
-	/** ddf device information */
-	ddf_dev_t *device;
 	/** hub port count */
 	int port_count;
 	/** hubs descriptors */
 	usb_device_descriptors_t descriptors;
 } rh_t;
 
-int rh_init(rh_t *instance, ddf_dev_t *dev, ohci_regs_t *regs);
+int rh_init(rh_t *instance, ohci_regs_t *regs);
 
 int rh_request(rh_t *instance, usb_transfer_batch_t *request);
 

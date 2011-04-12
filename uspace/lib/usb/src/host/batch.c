@@ -40,12 +40,9 @@
 
 void usb_transfer_batch_init(
     usb_transfer_batch_t *instance,
-    usb_target_t target,
-    usb_transfer_type_t transfer_type,
-    usb_speed_t speed,
-    size_t max_packet_size,
+		endpoint_t *ep,
     char *buffer,
-    char *transport_buffer,
+    char *data_buffer,
     size_t buffer_size,
     char *setup_buffer,
     size_t setup_size,
@@ -53,31 +50,25 @@ void usb_transfer_batch_init(
     usbhc_iface_transfer_out_callback_t func_out,
     void *arg,
     ddf_fun_t *fun,
-		endpoint_t *ep,
     void *private_data
     )
 {
 	assert(instance);
 	link_initialize(&instance->link);
-	instance->target = target;
-	instance->transfer_type = transfer_type;
-	instance->speed = speed;
-	instance->direction = ep->direction;
+	instance->ep = ep;
 	instance->callback_in = func_in;
 	instance->callback_out = func_out;
 	instance->arg = arg;
 	instance->buffer = buffer;
-	instance->transport_buffer = transport_buffer;
+	instance->data_buffer = data_buffer;
 	instance->buffer_size = buffer_size;
 	instance->setup_buffer = setup_buffer;
 	instance->setup_size = setup_size;
-	instance->max_packet_size = max_packet_size;
 	instance->fun = fun;
 	instance->private_data = private_data;
 	instance->transfered_size = 0;
 	instance->next_step = NULL;
 	instance->error = EOK;
-	instance->ep = ep;
 	endpoint_use(instance->ep);
 }
 /*----------------------------------------------------------------------------*/
@@ -104,18 +95,16 @@ void usb_transfer_batch_call_in(usb_transfer_batch_t *instance)
 {
 	assert(instance);
 	assert(instance->callback_in);
+	assert(instance->ep);
 
 	/* We are data in, we need data */
-	memcpy(instance->buffer, instance->transport_buffer,
-	    instance->buffer_size);
+	memcpy(instance->buffer, instance->data_buffer, instance->buffer_size);
 
 	usb_log_debug("Batch %p done (T%d.%d, %s %s in, %zuB): %s (%d).\n",
-	    instance,
-	    instance->target.address, instance->target.endpoint,
-	    usb_str_speed(instance->speed),
-	    usb_str_transfer_type_short(instance->transfer_type),
-	    instance->transfered_size,
-	    str_error(instance->error), instance->error);
+	    instance, instance->ep->address, instance->ep->endpoint,
+	    usb_str_speed(instance->ep->speed),
+	    usb_str_transfer_type_short(instance->ep->transfer_type),
+	    instance->transfered_size, str_error(instance->error), instance->error);
 
 	instance->callback_in(instance->fun, instance->error,
 	    instance->transfered_size, instance->arg);
@@ -131,10 +120,9 @@ void usb_transfer_batch_call_out(usb_transfer_batch_t *instance)
 	assert(instance->callback_out);
 
 	usb_log_debug("Batch %p done (T%d.%d, %s %s out): %s (%d).\n",
-	    instance,
-	    instance->target.address, instance->target.endpoint,
-	    usb_str_speed(instance->speed),
-	    usb_str_transfer_type_short(instance->transfer_type),
+	    instance, instance->ep->address, instance->ep->endpoint,
+	    usb_str_speed(instance->ep->speed),
+	    usb_str_transfer_type_short(instance->ep->transfer_type),
 	    str_error(instance->error), instance->error);
 
 	instance->callback_out(instance->fun,

@@ -328,7 +328,7 @@ int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch)
 	assert(batch);
 
 	transfer_list_t *list =
-	    instance->transfers[batch->speed][batch->transfer_type];
+	    instance->transfers[batch->ep->speed][batch->ep->transfer_type];
 	assert(list);
 	transfer_list_add_batch(list, batch);
 

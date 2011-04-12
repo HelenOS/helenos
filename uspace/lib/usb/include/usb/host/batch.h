@@ -42,36 +42,28 @@
 
 typedef struct usb_transfer_batch usb_transfer_batch_t;
 struct usb_transfer_batch {
+	endpoint_t *ep;
 	link_t link;
-	usb_target_t target;
-	usb_transfer_type_t transfer_type;
-	usb_speed_t speed;
-	usb_direction_t direction;
 	usbhc_iface_transfer_in_callback_t callback_in;
 	usbhc_iface_transfer_out_callback_t callback_out;
+	void *arg;
 	char *buffer;
-	char *transport_buffer;
+	char *data_buffer;
 	size_t buffer_size;
 	char *setup_buffer;
 	size_t setup_size;
-	size_t max_packet_size;
 	size_t transfered_size;
 	void (*next_step)(usb_transfer_batch_t *);
 	int error;
 	ddf_fun_t *fun;
-	void *arg;
-	endpoint_t *ep;
 	void *private_data;
 };
 
 void usb_transfer_batch_init(
     usb_transfer_batch_t *instance,
-    usb_target_t target,
-    usb_transfer_type_t transfer_type,
-    usb_speed_t speed,
-    size_t max_packet_size,
+		endpoint_t *ep,
     char *buffer,
-    char *transport_buffer,
+    char *data_buffer,
     size_t buffer_size,
     char *setup_buffer,
     size_t setup_size,
@@ -79,7 +71,6 @@ void usb_transfer_batch_init(
     usbhc_iface_transfer_out_callback_t func_out,
     void *arg,
     ddf_fun_t *fun,
-		endpoint_t *ep,
     void *private_data
 );
 
