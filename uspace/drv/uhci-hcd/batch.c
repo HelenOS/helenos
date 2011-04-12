@@ -47,7 +47,7 @@
 typedef struct uhci_batch {
 	qh_t *qh;
 	td_t *tds;
-	size_t transfers;
+	size_t td_count;
 } uhci_batch_t;
 
 static void batch_control(usb_transfer_batch_t *instance,
@@ -62,7 +62,7 @@ static void batch_call_out_and_dispose(usb_transfer_batch_t *instance);
  * @param[in] fun DDF function to pass to callback.
  * @param[in] target Device and endpoint target of the transaction.
  * @param[in] transfer_type Interrupt, Control or Bulk.
- * @param[in] max_packet_size maximum allowed size of data transfers.
+ * @param[in] max_packet_size maximum allowed size of data transactions.
  * @param[in] speed Speed of the transaction.
  * @param[in] buffer Data source/destination.
  * @param[in] size Size of the buffer.
@@ -75,9 +75,9 @@ static void batch_call_out_and_dispose(usb_transfer_batch_t *instance);
  * @return Valid pointer if all substructures were successfully created,
  * NULL otherwise.
  *
- * Determines the number of needed transfers (TDs). Prepares a transport buffer
- * (that is accessible by the hardware). Initializes parameters needed for the
- * transaction and callback.
+ * Determines the number of needed transfer descriptors (TDs).
+ * Prepares a transport buffer (that is accessible by the hardware).
+ * Initializes parameters needed for the transaction and callback.
  */
 usb_transfer_batch_t * batch_get(ddf_fun_t *fun, endpoint_t *ep,
     char *buffer, size_t buffer_size, char* setup_buffer, size_t setup_size,
@@ -112,16 +112,16 @@ usb_transfer_batch_t * batch_get(ddf_fun_t *fun, endpoint_t *ep,
 	bzero(data, sizeof(uhci_batch_t));
 	instance->private_data = data;
 
-	data->transfers =
+	data->td_count =
 	    (buffer_size + ep->max_packet_size - 1) / ep->max_packet_size;
 	if (ep->transfer_type == USB_TRANSFER_CONTROL) {
-		data->transfers += 2;
+		data->td_count += 2;
 	}
 
-	data->tds = malloc32(sizeof(td_t) * data->transfers);
+	data->tds = malloc32(sizeof(td_t) * data->td_count);
 	CHECK_NULL_DISPOSE_RETURN(
 	    data->tds, "Failed to allocate transfer descriptors.\n");
-	bzero(data->tds, sizeof(td_t) * data->transfers);
+	bzero(data->tds, sizeof(td_t) * data->td_count);
 
 	data->qh = malloc32(sizeof(qh_t));
 	CHECK_NULL_DISPOSE_RETURN(data->qh,
@@ -163,10 +163,10 @@ bool batch_is_complete(usb_transfer_batch_t *instance)
 	assert(data);
 
 	usb_log_debug2("Batch(%p) checking %d transfer(s) for completion.\n",
-	    instance, data->transfers);
+	    instance, data->td_count);
 	instance->transfered_size = 0;
 	size_t i = 0;
-	for (;i < data->transfers; ++i) {
+	for (;i < data->td_count; ++i) {
 		if (td_is_active(&data->tds[i])) {
 			return false;
 		}
@@ -289,7 +289,7 @@ void batch_bulk_out(usb_transfer_batch_t *instance)
 /** Prepare generic data transaction
  *
  * @param[in] instance Batch structure to use.
- * @param[in] pid Pid to use for data transfers.
+ * @param[in] pid Pid to use for data transactions.
  *
  * Packets with alternating toggle bit and supplied pid value.
  * The last transfer is marked with IOC flag.
@@ -304,7 +304,7 @@ void batch_data(usb_transfer_batch_t *instance, usb_packet_id pid)
 	int toggle = endpoint_toggle_get(instance->ep);
 	assert(toggle == 0 || toggle == 1);
 
-	size_t transfer = 0;
+	size_t td = 0;
 	size_t remain_size = instance->buffer_size;
 	while (remain_size > 0) {
 		char *trans_data =
@@ -315,33 +315,32 @@ void batch_data(usb_transfer_batch_t *instance, usb_packet_id pid)
 		    (instance->ep->max_packet_size > remain_size) ?
 		    remain_size : instance->ep->max_packet_size;
 
-		td_t *next_transfer = (transfer + 1 < data->transfers)
-		    ? &data->tds[transfer + 1] : NULL;
+		td_t *next_td = (td + 1 < data->td_count)
+		    ? &data->tds[td + 1] : NULL;
 
-		assert(transfer < data->transfers);
+		assert(td < data->td_count);
 		assert(packet_size <= remain_size);
 		usb_target_t target =
 		    { instance->ep->address, instance->ep->endpoint };
 
 		td_init(
-		    &data->tds[transfer], DEFAULT_ERROR_COUNT, packet_size,
-		    toggle, false, low_speed, target, pid, trans_data,
-		    next_transfer);
+		    &data->tds[td], DEFAULT_ERROR_COUNT, packet_size,
+		    toggle, false, low_speed, target, pid, trans_data, next_td);
 
 
 		toggle = 1 - toggle;
 		remain_size -= packet_size;
-		++transfer;
+		++td;
 	}
-	td_set_ioc(&data->tds[transfer - 1]);
+	td_set_ioc(&data->tds[td - 1]);
 	endpoint_toggle_set(instance->ep, toggle);
 }
 /*----------------------------------------------------------------------------*/
 /** Prepare generic control transaction
  *
  * @param[in] instance Batch structure to use.
- * @param[in] data_stage Pid to use for data transfers.
- * @param[in] status_stage Pid to use for data transfers.
+ * @param[in] data_stage Pid to use for data tds.
+ * @param[in] status_stage Pid to use for data tds.
  *
  * Setup stage with toggle 0 and USB_PID_SETUP.
  * Data stage with alternating toggle and pid supplied by parameter.
@@ -354,7 +353,7 @@ void batch_control(usb_transfer_batch_t *instance,
 	assert(instance);
 	uhci_batch_t *data = instance->private_data;
 	assert(data);
-	assert(data->transfers >= 2);
+	assert(data->td_count >= 2);
 
 	const bool low_speed = instance->ep->speed == USB_SPEED_LOW;
 	int toggle = 0;
@@ -368,7 +367,7 @@ void batch_control(usb_transfer_batch_t *instance,
 	    &data->tds[1]);
 
 	/* data stage */
-	size_t transfer = 1;
+	size_t td = 1;
 	size_t remain_size = instance->buffer_size;
 	while (remain_size > 0) {
 		char *control_data =
@@ -382,26 +381,26 @@ void batch_control(usb_transfer_batch_t *instance,
 		    remain_size : instance->ep->max_packet_size;
 
 		td_init(
-		    &data->tds[transfer], DEFAULT_ERROR_COUNT, packet_size,
+		    &data->tds[td], DEFAULT_ERROR_COUNT, packet_size,
 		    toggle, false, low_speed, target, data_stage,
-		    control_data, &data->tds[transfer + 1]);
+		    control_data, &data->tds[td + 1]);
 
-		++transfer;
-		assert(transfer < data->transfers);
+		++td;
+		assert(td < data->td_count);
 		assert(packet_size <= remain_size);
 		remain_size -= packet_size;
 	}
 
 	/* status stage */
-	assert(transfer == data->transfers - 1);
+	assert(td == data->td_count - 1);
 
 	td_init(
-	    &data->tds[transfer], DEFAULT_ERROR_COUNT, 0, 1, false, low_speed,
+	    &data->tds[td], DEFAULT_ERROR_COUNT, 0, 1, false, low_speed,
 	    target, status_stage, NULL, NULL);
-	td_set_ioc(&data->tds[transfer]);
+	td_set_ioc(&data->tds[td]);
 
 	usb_log_debug2("Control last TD status: %x.\n",
-	    data->tds[transfer].status);
+	    data->tds[td].status);
 }
 /*----------------------------------------------------------------------------*/
 qh_t * batch_qh(usb_transfer_batch_t *instance)
