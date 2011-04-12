@@ -178,7 +178,7 @@ static int usb_hid_add_device(usb_device_t *dev)
 {
 	usb_log_debug("usb_hid_add_device()\n");
 	
-	if (dev != NULL) {
+	if (dev == NULL) {
 		usb_log_warning("Wrong parameter given for add_device().\n");
 		return EINVAL;
 	}
