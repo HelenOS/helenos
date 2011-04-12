@@ -175,6 +175,15 @@ typedef enum usb_kbd_flags {
 } usb_kbd_flags;
 
 /*----------------------------------------------------------------------------*/
+
+static void usb_kbd_process_keycodes(const uint8_t *key_codes, size_t count,
+    uint8_t report_id, void *arg);
+
+static const usb_hid_report_in_callbacks_t usb_kbd_parser_callbacks = {
+	.keyboard = usb_kbd_process_keycodes
+};
+
+/*----------------------------------------------------------------------------*/
 /* Keyboard layouts                                                           */
 /*----------------------------------------------------------------------------*/
 
@@ -629,12 +638,6 @@ static void usb_kbd_process_data(usb_hid_dev_t *hid_dev,
                                  uint8_t *buffer, size_t actual_size)
 {
 	assert(hid_dev->parser != NULL);
-	
-	usb_hid_report_in_callbacks_t *callbacks =
-	    (usb_hid_report_in_callbacks_t *)malloc(
-	        sizeof(usb_hid_report_in_callbacks_t));
-	
-	callbacks->keyboard = usb_kbd_process_keycodes;
 
 	usb_log_debug("Calling usb_hid_parse_report() with "
 	    "buffer %s\n", usb_debug_str_buffer(buffer, actual_size, 0));
@@ -643,12 +646,12 @@ static void usb_kbd_process_data(usb_hid_dev_t *hid_dev,
 //	    callbacks, kbd_dev);
 	usb_hid_report_path_t *path = usb_hid_report_path();
 	usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_KEYBOARD, 0);
-	usb_hid_report_path_set_report_id(path, 0);
+	//usb_hid_report_path_set_report_id(path, 0);
 	
 	int rc = usb_hid_parse_report(hid_dev->parser, buffer,
 	    actual_size, path, 
 	    USB_HID_PATH_COMPARE_END | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY, 
-	    callbacks, hid_dev);
+	    &usb_kbd_parser_callbacks, hid_dev);
 
 	usb_hid_report_path_free(path);
 	
