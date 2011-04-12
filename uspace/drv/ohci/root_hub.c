@@ -204,23 +204,16 @@ static int process_ctrl_request(rh_t *instance, usb_transfer_batch_t *request);
 /** Root hub initialization
  * @return Error code.
  */
-int rh_init(rh_t *instance, ddf_dev_t *dev, ohci_regs_t *regs) {
+int rh_init(rh_t *instance, ohci_regs_t *regs) {
 	assert(instance);
-	//instance->address = -1;
 	instance->registers = regs;
-	instance->device = dev;
 	instance->port_count =
 	    (instance->registers->rh_desc_a >> RHDA_NDS_SHIFT) & RHDA_NDS_MASK;
 	rh_init_descriptors(instance);
 	// set port power mode to no-power-switching
-	instance->registers->rh_desc_a =
-		instance->registers->rh_desc_a | (1<<9);
+	instance->registers->rh_desc_a |= RHDA_NPS_FLAG;
 
 	usb_log_info("OHCI root hub with %d ports.\n", instance->port_count);
-
-	//start generic usb hub driver
-
-	/* TODO: implement */
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
