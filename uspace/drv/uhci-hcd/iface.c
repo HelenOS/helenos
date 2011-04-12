@@ -194,7 +194,7 @@ static int interrupt_out(
 	batch_interrupt_out(batch);
 	ret = hc_schedule(hc, batch);
 	if (ret != EOK) {
-		batch_dispose(batch);
+		usb_transfer_batch_dispose(batch);
 	}
 	return ret;
 }
@@ -222,7 +222,7 @@ static int interrupt_in(
 	batch_interrupt_in(batch);
 	ret = hc_schedule(hc, batch);
 	if (ret != EOK) {
-		batch_dispose(batch);
+		usb_transfer_batch_dispose(batch);
 	}
 	return ret;
 }
@@ -250,7 +250,7 @@ static int bulk_out(
 	batch_bulk_out(batch);
 	ret = hc_schedule(hc, batch);
 	if (ret != EOK) {
-		batch_dispose(batch);
+		usb_transfer_batch_dispose(batch);
 	}
 	return ret;
 }
@@ -278,7 +278,7 @@ static int bulk_in(
 	batch_bulk_in(batch);
 	ret = hc_schedule(hc, batch);
 	if (ret != EOK) {
-		batch_dispose(batch);
+		usb_transfer_batch_dispose(batch);
 	}
 	return ret;
 }
@@ -311,7 +311,7 @@ static int control_write(
 	batch_control_write(batch);
 	ret = hc_schedule(hc, batch);
 	if (ret != EOK) {
-		batch_dispose(batch);
+		usb_transfer_batch_dispose(batch);
 	}
 	return ret;
 }
@@ -343,7 +343,7 @@ static int control_read(
 	batch_control_read(batch);
 	ret = hc_schedule(hc, batch);
 	if (ret != EOK) {
-		batch_dispose(batch);
+		usb_transfer_batch_dispose(batch);
 	}
 	return ret;
 }

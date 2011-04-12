@@ -44,18 +44,25 @@
 
 #define DEFAULT_ERROR_COUNT 3
 
-typedef struct uhci_batch {
+typedef struct uhci_transfer_batch {
 	qh_t *qh;
 	td_t *tds;
+	void *device_buffer;
 	size_t td_count;
-} uhci_batch_t;
+} uhci_transfer_batch_t;
+/*----------------------------------------------------------------------------*/
+static void uhci_transfer_batch_dispose(void *uhci_batch)
+{
+	uhci_transfer_batch_t *instance = uhci_batch;
+	assert(instance);
+	free32(instance->device_buffer);
+	free(instance);
+}
+/*----------------------------------------------------------------------------*/
 
 static void batch_control(usb_transfer_batch_t *instance,
     usb_packet_id data_stage, usb_packet_id status_stage);
 static void batch_data(usb_transfer_batch_t *instance, usb_packet_id pid);
-static void batch_call_in_and_dispose(usb_transfer_batch_t *instance);
-static void batch_call_out_and_dispose(usb_transfer_batch_t *instance);
-
 
 /** Allocate memory and initialize internal data structure.
  *
@@ -87,57 +94,53 @@ usb_transfer_batch_t * batch_get(ddf_fun_t *fun, endpoint_t *ep,
 #define CHECK_NULL_DISPOSE_RETURN(ptr, message...) \
 	if (ptr == NULL) { \
 		usb_log_error(message); \
-		if (instance) { \
-			batch_dispose(instance); \
+		if (uhci_data) { \
+			uhci_transfer_batch_dispose(uhci_data); \
 		} \
 		return NULL; \
 	} else (void)0
 
+	uhci_transfer_batch_t *uhci_data =
+	    malloc(sizeof(uhci_transfer_batch_t));
+	CHECK_NULL_DISPOSE_RETURN(uhci_data,
+	    "Failed to allocate UHCI batch.\n");
+	bzero(uhci_data, sizeof(uhci_transfer_batch_t));
+
+	uhci_data->td_count =
+	    (buffer_size + ep->max_packet_size - 1) / ep->max_packet_size;
+	if (ep->transfer_type == USB_TRANSFER_CONTROL) {
+		uhci_data->td_count += 2;
+	}
+
+	assert((sizeof(td_t) % 16) == 0);
+	const size_t total_size = (sizeof(td_t) * uhci_data->td_count)
+	    + sizeof(qh_t) + setup_size + buffer_size;
+	uhci_data->device_buffer = malloc32(total_size);
+	CHECK_NULL_DISPOSE_RETURN(uhci_data->device_buffer,
+	    "Failed to allocate UHCI buffer.\n");
+	bzero(uhci_data->device_buffer, total_size);
+
+	uhci_data->tds = uhci_data->device_buffer;
+	uhci_data->qh =
+	    (uhci_data->device_buffer + (sizeof(td_t) * uhci_data->td_count));
+
+	qh_init(uhci_data->qh);
+	qh_set_element_td(uhci_data->qh, addr_to_phys(uhci_data->tds));
+
 	usb_transfer_batch_t *instance = malloc(sizeof(usb_transfer_batch_t));
 	CHECK_NULL_DISPOSE_RETURN(instance,
 	    "Failed to allocate batch instance.\n");
+	void *setup =
+	    uhci_data->device_buffer + (sizeof(td_t) * uhci_data->td_count)
+	    + sizeof(qh_t);
+	void *data_buffer = setup + setup_size;
 	usb_target_t target =
 	    { .address = ep->address, .endpoint = ep->endpoint };
-	usb_transfer_batch_init(instance, ep,
-	    buffer, NULL, buffer_size, NULL, setup_size,
-	    func_in, func_out, arg, fun, NULL);
+	usb_transfer_batch_init(instance, ep, buffer, data_buffer, buffer_size,
+	    setup, setup_size, func_in, func_out, arg, fun,
+	    uhci_data, uhci_transfer_batch_dispose);
 
-
-	uhci_batch_t *data = malloc(sizeof(uhci_batch_t));
-	CHECK_NULL_DISPOSE_RETURN(data, "Failed to allocate batch data.\n");
-	bzero(data, sizeof(uhci_batch_t));
-	instance->private_data = data;
-
-	data->td_count =
-	    (buffer_size + ep->max_packet_size - 1) / ep->max_packet_size;
-	if (ep->transfer_type == USB_TRANSFER_CONTROL) {
-		data->td_count += 2;
-	}
-
-	data->tds = malloc32(sizeof(td_t) * data->td_count);
-	CHECK_NULL_DISPOSE_RETURN(
-	    data->tds, "Failed to allocate transfer descriptors.\n");
-	bzero(data->tds, sizeof(td_t) * data->td_count);
-
-	data->qh = malloc32(sizeof(qh_t));
-	CHECK_NULL_DISPOSE_RETURN(data->qh,
-	    "Failed to allocate batch queue head.\n");
-	qh_init(data->qh);
-	qh_set_element_td(data->qh, addr_to_phys(data->tds));
-
-	if (buffer_size > 0) {
-		instance->data_buffer = malloc32(buffer_size);
-		CHECK_NULL_DISPOSE_RETURN(instance->data_buffer,
-		    "Failed to allocate device accessible buffer.\n");
-	}
-
-	if (setup_size > 0) {
-		instance->setup_buffer = malloc32(setup_size);
-		CHECK_NULL_DISPOSE_RETURN(instance->setup_buffer,
-		    "Failed to allocate device accessible setup buffer.\n");
-		memcpy(instance->setup_buffer, setup_buffer, setup_size);
-	}
-
+	memcpy(instance->setup_buffer, setup_buffer, setup_size);
 	usb_log_debug("Batch(%p) %d:%d memory structures ready.\n",
 	    instance, target.address, target.endpoint);
 	return instance;
@@ -155,7 +158,7 @@ usb_transfer_batch_t * batch_get(ddf_fun_t *fun, endpoint_t *ep,
 bool batch_is_complete(usb_transfer_batch_t *instance)
 {
 	assert(instance);
-	uhci_batch_t *data = instance->private_data;
+	uhci_transfer_batch_t *data = instance->private_data;
 	assert(data);
 
 	usb_log_debug2("Batch(%p) checking %d transfer(s) for completion.\n",
@@ -202,7 +205,7 @@ void batch_control_write(usb_transfer_batch_t *instance)
 	/* We are data out, we are supposed to provide data */
 	memcpy(instance->data_buffer, instance->buffer, instance->buffer_size);
 	batch_control(instance, USB_PID_OUT, USB_PID_IN);
-	instance->next_step = batch_call_out_and_dispose;
+	instance->next_step = usb_transfer_batch_call_out_and_dispose;
 	usb_log_debug("Batch(%p) CONTROL WRITE initialized.\n", instance);
 }
 /*----------------------------------------------------------------------------*/
@@ -216,7 +219,7 @@ void batch_control_read(usb_transfer_batch_t *instance)
 {
 	assert(instance);
 	batch_control(instance, USB_PID_IN, USB_PID_OUT);
-	instance->next_step = batch_call_in_and_dispose;
+	instance->next_step = usb_transfer_batch_call_in_and_dispose;
 	usb_log_debug("Batch(%p) CONTROL READ initialized.\n", instance);
 }
 /*----------------------------------------------------------------------------*/
@@ -230,7 +233,7 @@ void batch_interrupt_in(usb_transfer_batch_t *instance)
 {
 	assert(instance);
 	batch_data(instance, USB_PID_IN);
-	instance->next_step = batch_call_in_and_dispose;
+	instance->next_step = usb_transfer_batch_call_in_and_dispose;
 	usb_log_debug("Batch(%p) INTERRUPT IN initialized.\n", instance);
 }
 /*----------------------------------------------------------------------------*/
@@ -246,7 +249,7 @@ void batch_interrupt_out(usb_transfer_batch_t *instance)
 	/* We are data out, we are supposed to provide data */
 	memcpy(instance->data_buffer, instance->buffer, instance->buffer_size);
 	batch_data(instance, USB_PID_OUT);
-	instance->next_step = batch_call_out_and_dispose;
+	instance->next_step = usb_transfer_batch_call_out_and_dispose;
 	usb_log_debug("Batch(%p) INTERRUPT OUT initialized.\n", instance);
 }
 /*----------------------------------------------------------------------------*/
@@ -260,7 +263,7 @@ void batch_bulk_in(usb_transfer_batch_t *instance)
 {
 	assert(instance);
 	batch_data(instance, USB_PID_IN);
-	instance->next_step = batch_call_in_and_dispose;
+	instance->next_step = usb_transfer_batch_call_in_and_dispose;
 	usb_log_debug("Batch(%p) BULK IN initialized.\n", instance);
 }
 /*----------------------------------------------------------------------------*/
@@ -276,7 +279,7 @@ void batch_bulk_out(usb_transfer_batch_t *instance)
 	/* We are data out, we are supposed to provide data */
 	memcpy(instance->data_buffer, instance->buffer, instance->buffer_size);
 	batch_data(instance, USB_PID_OUT);
-	instance->next_step = batch_call_out_and_dispose;
+	instance->next_step = usb_transfer_batch_call_out_and_dispose;
 	usb_log_debug("Batch(%p) BULK OUT initialized.\n", instance);
 }
 /*----------------------------------------------------------------------------*/
@@ -291,7 +294,7 @@ void batch_bulk_out(usb_transfer_batch_t *instance)
 void batch_data(usb_transfer_batch_t *instance, usb_packet_id pid)
 {
 	assert(instance);
-	uhci_batch_t *data = instance->private_data;
+	uhci_transfer_batch_t *data = instance->private_data;
 	assert(data);
 
 	const bool low_speed = instance->ep->speed == USB_SPEED_LOW;
@@ -343,7 +346,7 @@ void batch_control(usb_transfer_batch_t *instance,
    usb_packet_id data_stage, usb_packet_id status_stage)
 {
 	assert(instance);
-	uhci_batch_t *data = instance->private_data;
+	uhci_transfer_batch_t *data = instance->private_data;
 	assert(data);
 	assert(data->td_count >= 2);
 
@@ -395,50 +398,9 @@ void batch_control(usb_transfer_batch_t *instance,
 qh_t * batch_qh(usb_transfer_batch_t *instance)
 {
 	assert(instance);
-	uhci_batch_t *data = instance->private_data;
+	uhci_transfer_batch_t *data = instance->private_data;
 	assert(data);
 	return data->qh;
-}
-/*----------------------------------------------------------------------------*/
-/** Helper function, calls callback and correctly destroys batch structure.
- *
- * @param[in] instance Batch structure to use.
- */
-void batch_call_in_and_dispose(usb_transfer_batch_t *instance)
-{
-	assert(instance);
-	usb_transfer_batch_call_in(instance);
-	batch_dispose(instance);
-}
-/*----------------------------------------------------------------------------*/
-/** Helper function calls callback and correctly destroys batch structure.
- *
- * @param[in] instance Batch structure to use.
- */
-void batch_call_out_and_dispose(usb_transfer_batch_t *instance)
-{
-	assert(instance);
-	usb_transfer_batch_call_out(instance);
-	batch_dispose(instance);
-}
-/*----------------------------------------------------------------------------*/
-/** Correctly dispose all used data structures.
- *
- * @param[in] instance Batch structure to use.
- */
-void batch_dispose(usb_transfer_batch_t *instance)
-{
-	assert(instance);
-	uhci_batch_t *data = instance->private_data;
-	assert(data);
-	usb_log_debug("Batch(%p) disposing.\n", instance);
-	/* free32 is NULL safe */
-	free32(data->tds);
-	free32(data->qh);
-	free32(instance->setup_buffer);
-	free32(instance->data_buffer);
-	free(data);
-	free(instance);
 }
 /**
  * @}

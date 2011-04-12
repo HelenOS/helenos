@@ -38,9 +38,12 @@
 #include <usb/debug.h>
 #include <usb/host/batch.h>
 
+void usb_transfer_batch_call_in(usb_transfer_batch_t *instance);
+void usb_transfer_batch_call_out(usb_transfer_batch_t *instance);
+
 void usb_transfer_batch_init(
     usb_transfer_batch_t *instance,
-		endpoint_t *ep,
+    endpoint_t *ep,
     char *buffer,
     char *data_buffer,
     size_t buffer_size,
@@ -50,7 +53,8 @@ void usb_transfer_batch_init(
     usbhc_iface_transfer_out_callback_t func_out,
     void *arg,
     ddf_fun_t *fun,
-    void *private_data
+    void *private_data,
+    void (*private_data_dtor)(void *p_data)
     )
 {
 	assert(instance);
@@ -66,10 +70,33 @@ void usb_transfer_batch_init(
 	instance->setup_size = setup_size;
 	instance->fun = fun;
 	instance->private_data = private_data;
+	instance->private_data_dtor = private_data_dtor;
 	instance->transfered_size = 0;
 	instance->next_step = NULL;
 	instance->error = EOK;
 	endpoint_use(instance->ep);
+}
+/*----------------------------------------------------------------------------*/
+/** Helper function, calls callback and correctly destroys batch structure.
+ *
+ * @param[in] instance Batch structure to use.
+ */
+void usb_transfer_batch_call_in_and_dispose(usb_transfer_batch_t *instance)
+{
+	assert(instance);
+	usb_transfer_batch_call_in(instance);
+	usb_transfer_batch_dispose(instance);
+}
+/*----------------------------------------------------------------------------*/
+/** Helper function calls callback and correctly destroys batch structure.
+ *
+ * @param[in] instance Batch structure to use.
+ */
+void usb_transfer_batch_call_out_and_dispose(usb_transfer_batch_t *instance)
+{
+	assert(instance);
+	usb_transfer_batch_call_out(instance);
+	usb_transfer_batch_dispose(instance);
 }
 /*----------------------------------------------------------------------------*/
 /** Mark batch as finished and continue with next step.
@@ -127,6 +154,21 @@ void usb_transfer_batch_call_out(usb_transfer_batch_t *instance)
 
 	instance->callback_out(instance->fun,
 	    instance->error, instance->arg);
+}
+/*----------------------------------------------------------------------------*/
+/** Correctly dispose all used data structures.
+ *
+ * @param[in] instance Batch structure to use.
+ */
+void usb_transfer_batch_dispose(usb_transfer_batch_t *instance)
+{
+	assert(instance);
+	usb_log_debug("Batch(%p) disposing.\n", instance);
+	if (instance->private_data) {
+		assert(instance->private_data_dtor);
+		instance->private_data_dtor(instance->private_data);
+	}
+	free(instance);
 }
 /**
  * @}
