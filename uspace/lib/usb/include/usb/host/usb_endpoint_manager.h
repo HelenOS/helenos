@@ -65,11 +65,6 @@ void usb_endpoint_manager_destroy(usb_endpoint_manager_t *instance);
 int usb_endpoint_manager_register_ep(usb_endpoint_manager_t *instance,
     endpoint_t *ep, size_t data_size);
 
-int usb_endpoint_manager_register_ep_wait(usb_endpoint_manager_t *instance,
-    usb_address_t address, usb_endpoint_t ep, usb_direction_t direction,
-    void *data, void (*data_remove_callback)(void* data, void* arg), void *arg,
-    size_t bw);
-
 int usb_endpoint_manager_unregister_ep(usb_endpoint_manager_t *instance,
     usb_address_t address, usb_endpoint_t ep, usb_direction_t direction);
 
@@ -79,6 +74,30 @@ endpoint_t * usb_endpoint_manager_get_ep(usb_endpoint_manager_t *instance,
 
 void usb_endpoint_manager_reset_if_need(
     usb_endpoint_manager_t *instance, usb_target_t target, const uint8_t *data);
+
+static inline int usb_endpoint_manager_add_ep(usb_endpoint_manager_t *instance,
+    usb_address_t address, usb_endpoint_t endpoint, usb_direction_t direction,
+    usb_transfer_type_t type, usb_speed_t speed, size_t max_packet_size,
+    size_t data_size)
+{
+	endpoint_t *ep = malloc(sizeof(endpoint_t));
+	if (ep == NULL)
+		return ENOMEM;
+
+	int ret = endpoint_init(ep, address, endpoint, direction, type, speed,
+	    max_packet_size);
+	if (ret != EOK) {
+		free(ep);
+		return ret;
+	}
+
+	ret = usb_endpoint_manager_register_ep(instance, ep, data_size);
+	if (ret != EOK) {
+		endpoint_destroy(ep);
+		return ret;
+	}
+	return EOK;
+}
 #endif
 /**
  * @}
