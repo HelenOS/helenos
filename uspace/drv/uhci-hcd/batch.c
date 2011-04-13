@@ -125,7 +125,7 @@ usb_transfer_batch_t * batch_get(ddf_fun_t *fun, endpoint_t *ep,
 	    (uhci_data->device_buffer + (sizeof(td_t) * uhci_data->td_count));
 
 	qh_init(uhci_data->qh);
-	qh_set_element_td(uhci_data->qh, addr_to_phys(uhci_data->tds));
+	qh_set_element_td(uhci_data->qh, uhci_data->tds);
 
 	usb_transfer_batch_t *instance = malloc(sizeof(usb_transfer_batch_t));
 	CHECK_NULL_DISPOSE_RETURN(instance,

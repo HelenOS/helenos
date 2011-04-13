@@ -36,10 +36,14 @@
 #include <assert.h>
 
 #include "link_pointer.h"
+#include "transfer_descriptor.h"
 #include "utils/malloc32.h"
 
+/** This structure is defined in UHCI design guide p. 31 */
 typedef struct queue_head {
+	/** Pointer to the next entity (another QH or TD */
 	volatile link_pointer_t next;
+	/** Pointer to the contained entities (execution controlled by vertical flag*/
 	volatile link_pointer_t element;
 } __attribute__((packed)) qh_t;
 /*----------------------------------------------------------------------------*/
@@ -62,12 +66,10 @@ static inline void qh_init(qh_t *instance)
  * @param[in] instance qh_t structure to use.
  * @param[in] pa Physical address of the next queue head.
  *
- * Adds proper flag. If the pointer is NULL or terminal, sets next to terminal
- * NULL.
+ * Adds proper flag. If the pointer is NULL, sets next to terminal NULL.
  */
 static inline void qh_set_next_qh(qh_t *instance, qh_t *next)
 {
-	/* Address is valid and not terminal */
 	uint32_t pa = addr_to_phys(next);
 	if (pa) {
 		instance->next = LINK_POINTER_QH(pa);
@@ -81,18 +83,17 @@ static inline void qh_set_next_qh(qh_t *instance, qh_t *next)
  * @param[in] instance qh_t structure to initialize.
  * @param[in] pa Physical address of the TD structure.
  *
- * Adds proper flag. If the pointer is NULL or terminal, sets element
- * to terminal NULL.
+ * Adds proper flag. If the pointer is NULL, sets element to terminal NULL.
  */
-static inline void qh_set_element_td(qh_t *instance, uint32_t pa)
+static inline void qh_set_element_td(qh_t *instance, td_t *td)
 {
-	if (pa && ((pa & LINK_POINTER_TERMINATE_FLAG) == 0)) {
+	uint32_t pa = addr_to_phys(td);
+	if (pa) {
 		instance->element = LINK_POINTER_TD(pa);
 	} else {
 		instance->element = LINK_POINTER_TERM;
 	}
 }
-
 #endif
 /**
  * @}

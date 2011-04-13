@@ -39,50 +39,55 @@
 
 #include "link_pointer.h"
 
-/** UHCI Transfer Descriptor */
+/** Transfer Descriptor, defined in UHCI design guide p. 26 */
 typedef struct transfer_descriptor {
+	/** Pointer to the next entity (TD or QH) */
 	link_pointer_t next;
 
+	/** Status doubleword */
 	volatile uint32_t status;
 #define TD_STATUS_RESERVED_MASK 0xc000f800
-#define TD_STATUS_SPD_FLAG ( 1 << 29 )
-#define TD_STATUS_ERROR_COUNT_POS ( 27 )
-#define TD_STATUS_ERROR_COUNT_MASK ( 0x3 )
-#define TD_STATUS_LOW_SPEED_FLAG ( 1 << 26 )
-#define TD_STATUS_ISOCHRONOUS_FLAG ( 1 << 25 )
-#define TD_STATUS_IOC_FLAG ( 1 << 24 )
+#define TD_STATUS_SPD_FLAG         (1 << 29)
+#define TD_STATUS_ERROR_COUNT_POS 27
+#define TD_STATUS_ERROR_COUNT_MASK 0x3
+#define TD_STATUS_LOW_SPEED_FLAG   (1 << 26)
+#define TD_STATUS_ISOCHRONOUS_FLAG (1 << 25)
+#define TD_STATUS_IOC_FLAG         (1 << 24)
 
-#define TD_STATUS_ERROR_ACTIVE ( 1 << 23 )
-#define TD_STATUS_ERROR_STALLED ( 1 << 22 )
-#define TD_STATUS_ERROR_BUFFER ( 1 << 21 )
-#define TD_STATUS_ERROR_BABBLE ( 1 << 20 )
-#define TD_STATUS_ERROR_NAK ( 1 << 19 )
-#define TD_STATUS_ERROR_CRC ( 1 << 18 )
-#define TD_STATUS_ERROR_BIT_STUFF ( 1 << 17 )
-#define TD_STATUS_ERROR_RESERVED ( 1 << 16 )
+#define TD_STATUS_ERROR_ACTIVE    (1 << 23)
+#define TD_STATUS_ERROR_STALLED   (1 << 22)
+#define TD_STATUS_ERROR_BUFFER    (1 << 21)
+#define TD_STATUS_ERROR_BABBLE    (1 << 20)
+#define TD_STATUS_ERROR_NAK       (1 << 19)
+#define TD_STATUS_ERROR_CRC       (1 << 18)
+#define TD_STATUS_ERROR_BIT_STUFF (1 << 17)
+#define TD_STATUS_ERROR_RESERVED  (1 << 16)
 #define TD_STATUS_ERROR_POS 16
-#define TD_STATUS_ERROR_MASK ( 0xff )
+#define TD_STATUS_ERROR_MASK 0xff
 
 #define TD_STATUS_ACTLEN_POS 0
 #define TD_STATUS_ACTLEN_MASK 0x7ff
 
+	/* double word with USB device specific info */
 	volatile uint32_t device;
 #define TD_DEVICE_MAXLEN_POS 21
-#define TD_DEVICE_MAXLEN_MASK ( 0x7ff )
-#define TD_DEVICE_RESERVED_FLAG ( 1 << 20 )
-#define TD_DEVICE_DATA_TOGGLE_ONE_FLAG ( 1 << 19 )
+#define TD_DEVICE_MAXLEN_MASK 0x7ff
+#define TD_DEVICE_RESERVED_FLAG        (1 << 20)
+#define TD_DEVICE_DATA_TOGGLE_ONE_FLAG (1 << 19)
 #define TD_DEVICE_ENDPOINT_POS 15
-#define TD_DEVICE_ENDPOINT_MASK ( 0xf )
+#define TD_DEVICE_ENDPOINT_MASK 0xf
 #define TD_DEVICE_ADDRESS_POS 8
-#define TD_DEVICE_ADDRESS_MASK ( 0x7f )
+#define TD_DEVICE_ADDRESS_MASK 0x7f
 #define TD_DEVICE_PID_POS 0
-#define TD_DEVICE_PID_MASK ( 0xff )
+#define TD_DEVICE_PID_MASK 0xff
 
+	/** Pointer(physical) to the beginning of the transaction's buffer */
 	volatile uint32_t buffer_ptr;
 
-	/* there is 16 bytes of data available here, according to UHCI
-	 * Design guide, according to linux kernel the hardware does not care,
-	 * it just needs to be aligned, we don't use it anyway
+	/* According to UHCI design guide, there is 16 bytes of
+	 * data available here.
+	 * According to linux kernel the hardware does not care,
+	 * it just needs to be aligned. We don't use it anyway.
 	 */
 } __attribute__((packed)) td_t;
 
