@@ -163,8 +163,12 @@ bool batch_is_complete(usb_transfer_batch_t *instance)
 			break;
 		}
 	}
-	data->leave_td = ++i;
+	data->leave_td = i;
 	assert(data->leave_td <= data->td_count);
+	hcd_endpoint_t *hcd_ep = hcd_endpoint_get(instance->ep);
+	assert(hcd_ep);
+	hcd_ep->td = data->tds[i];
+
 	return true;
 }
 /*----------------------------------------------------------------------------*/
@@ -242,9 +246,7 @@ void batch_control(usb_transfer_batch_t *instance,
 	assert(instance);
 	ohci_transfer_batch_t *data = instance->private_data;
 	assert(data);
-	ed_init(data->ed, instance->ep);
-//	ed_add_tds(data->ed, &data->tds[0], &data->tds[data->td_count - 1]);
-	usb_log_debug("Created ED(%p): %x:%x:%x:%x.\n", data->ed,
+	usb_log_debug("Using ED(%p): %x:%x:%x:%x.\n", data->ed,
 	    data->ed->status, data->ed->td_tail, data->ed->td_head,
 	    data->ed->next);
 	int toggle = 0;
@@ -291,13 +293,10 @@ void batch_data(usb_transfer_batch_t *instance)
 	assert(instance);
 	ohci_transfer_batch_t *data = instance->private_data;
 	assert(data);
-	ed_init(data->ed, instance->ep);
-//	ed_add_tds(data->ed, &data->tds[0], &data->tds[data->td_count - 1]);
-	usb_log_debug("Created ED(%p): %x:%x:%x:%x.\n", data->ed,
+	usb_log_debug("Using ED(%p): %x:%x:%x:%x.\n", data->ed,
 	    data->ed->status, data->ed->td_tail, data->ed->td_head,
 	    data->ed->next);
 
-	/* data stage */
 	size_t td_current = 0;
 	size_t remain_size = instance->buffer_size;
 	char *buffer = instance->data_buffer;

@@ -305,6 +305,7 @@ void hc_interrupt(hc_t *instance, uint32_t status)
 			    usb_transfer_batch_from_link(current);
 
 			if (batch_is_complete(batch)) {
+				list_remove(current);
 				usb_transfer_batch_finish(batch);
 			}
 			current = next;
