@@ -47,7 +47,7 @@
 #include "batch.h"
 #include "ohci_regs.h"
 #include "root_hub.h"
-#include "transfer_list.h"
+#include "endpoint_list.h"
 #include "hw_struct/hcca.h"
 
 typedef struct hc {
@@ -57,12 +57,7 @@ typedef struct hc {
 
 	hcca_t *hcca;
 
-	transfer_list_t transfers_isochronous;
-	transfer_list_t transfers_interrupt;
-	transfer_list_t transfers_control;
-	transfer_list_t transfers_bulk;
-
-	transfer_list_t *transfers[4];
+	endpoint_list_t lists[4];
 
 	ddf_fun_t *ddf_instance;
 	usb_device_keeper_t manager;
