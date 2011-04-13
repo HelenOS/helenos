@@ -54,21 +54,24 @@ int rh_init(rh_t *instance, ddf_fun_t *fun, uintptr_t reg_addr, size_t reg_size)
 	char *match_str = NULL;
 	int ret = asprintf(&match_str, "usb&uhci&root-hub");
 	if (ret < 0) {
-		usb_log_error("Failed to create root hub match string.\n");
-		return ENOMEM;
+		usb_log_error(
+		    "Failed(%d) to create root hub match string: %s.\n",
+		    ret, str_error(ret));
+		return ret;
 	}
 
 	ret = ddf_fun_add_match_id(fun, match_str, 100);
 	if (ret != EOK) {
+		free(match_str);
 		usb_log_error("Failed(%d) to add root hub match id: %s\n",
 		    ret, str_error(ret));
 		return ret;
 	}
 
-	hw_resource_list_t *resource_list = &instance->resource_list;
-	resource_list->count = 1;
-	resource_list->resources = &instance->io_regs;
-	assert(resource_list->resources);
+	/* Initialize resource structure */
+	instance->resource_list.count = 1;
+	instance->resource_list.resources = &instance->io_regs;
+
 	instance->io_regs.type = IO_RANGE;
 	instance->io_regs.res.io_range.address = reg_addr;
 	instance->io_regs.res.io_range.size = reg_size;

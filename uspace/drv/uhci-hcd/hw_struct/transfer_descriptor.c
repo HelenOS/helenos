@@ -76,7 +76,8 @@ void td_init(td_t *instance, int err_count, size_t size, bool toggle, bool iso,
 	    | (next_pa ? next_pa : LINK_POINTER_TERMINATE_FLAG);
 
 	instance->status = 0
-	    | ((err_count & TD_STATUS_ERROR_COUNT_MASK) << TD_STATUS_ERROR_COUNT_POS)
+	    | ((err_count & TD_STATUS_ERROR_COUNT_MASK)
+	        << TD_STATUS_ERROR_COUNT_POS)
 	    | (low_speed ? TD_STATUS_LOW_SPEED_FLAG : 0)
 	    | (iso ? TD_STATUS_ISOCHRONOUS_FLAG : 0)
 	    | TD_STATUS_ERROR_ACTIVE;
@@ -88,8 +89,10 @@ void td_init(td_t *instance, int err_count, size_t size, bool toggle, bool iso,
 	instance->device = 0
 	    | (((size - 1) & TD_DEVICE_MAXLEN_MASK) << TD_DEVICE_MAXLEN_POS)
 	    | (toggle ? TD_DEVICE_DATA_TOGGLE_ONE_FLAG : 0)
-	    | ((target.address & TD_DEVICE_ADDRESS_MASK) << TD_DEVICE_ADDRESS_POS)
-	    | ((target.endpoint & TD_DEVICE_ENDPOINT_MASK) << TD_DEVICE_ENDPOINT_POS)
+	    | ((target.address & TD_DEVICE_ADDRESS_MASK)
+	        << TD_DEVICE_ADDRESS_POS)
+	    | ((target.endpoint & TD_DEVICE_ENDPOINT_MASK)
+	        << TD_DEVICE_ENDPOINT_POS)
 	    | ((pid & TD_DEVICE_PID_MASK) << TD_DEVICE_PID_POS);
 
 	instance->buffer_ptr = addr_to_phys(buffer);
@@ -113,7 +116,7 @@ int td_status(td_t *instance)
 {
 	assert(instance);
 
-	/* this is hc internal error it should never be reported */
+	/* This is hc internal error it should never be reported. */
 	if ((instance->status & TD_STATUS_ERROR_BIT_STUFF) != 0)
 		return EAGAIN;
 
@@ -122,20 +125,20 @@ int td_status(td_t *instance)
 	if ((instance->status & TD_STATUS_ERROR_CRC) != 0)
 		return EBADCHECKSUM;
 
-	/* hc does not end transaction on these, it should never be reported */
+	/* HC does not end transactions on these, it should never be reported */
 	if ((instance->status & TD_STATUS_ERROR_NAK) != 0)
 		return EAGAIN;
 
-	/* buffer overrun or underrun */
+	/* Buffer overrun or underrun */
 	if ((instance->status & TD_STATUS_ERROR_BUFFER) != 0)
 		return ERANGE;
 
-	/* device babble is something serious */
+	/* Device babble is something serious */
 	if ((instance->status & TD_STATUS_ERROR_BABBLE) != 0)
 		return EIO;
 
-	/* stall might represent err count reaching zero or stall response from
-	 * the device, is err count reached zero, one of the above is reported*/
+	/* Stall might represent err count reaching zero or stall response from
+	 * the device. If err count reached zero, one of the above is reported*/
 	if ((instance->status & TD_STATUS_ERROR_STALLED) != 0)
 		return ESTALL;
 

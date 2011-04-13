@@ -38,8 +38,11 @@
 #include <ddf/driver.h>
 #include <ops/hw_res.h>
 
+/** DDF support structure for uhci-rhd driver, provides I/O resources */
 typedef struct rh {
+	/** List of resources available to the root hub. */
 	hw_resource_list_t resource_list;
+	/** The only resource in the above list */
 	hw_resource_t io_regs;
 } rh_t;
 
