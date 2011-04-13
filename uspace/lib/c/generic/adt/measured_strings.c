@@ -73,7 +73,7 @@ measured_string_create_bulk(const uint8_t *string, size_t length)
 
 	new->length = length;
 	new->value = ((uint8_t *) new) + sizeof(measured_string_t);
-	// append terminating zero explicitly - to be safe
+	/* Append terminating zero explicitly - to be safe */
 	memcpy(new->value, string, new->length);
 	new->value[new->length] = '\0';
 

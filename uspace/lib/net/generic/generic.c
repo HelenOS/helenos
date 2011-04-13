@@ -105,15 +105,15 @@ generic_get_addr_req(int phone, int message, device_id_t device_id,
 	if (!address || !data)
 		return EBADMEM;
 
-	// request the address
+	/* Request the address */
 	message_id = async_send_1(phone, (sysarg_t) message,
 	    (sysarg_t) device_id, NULL);
 	string = measured_strings_return(phone, address, data, 1);
 	async_wait_for(message_id, &result);
 
-	// if not successful
+	/* If not successful */
 	if ((string == EOK) && (result != EOK)) {
-		// clear the data
+		/* Clear the data */
 		free(*address);
 		free(*data);
 	}
@@ -241,16 +241,16 @@ generic_translate_req(int phone, int message, device_id_t device_id,
 	if (!translation || !data)
 		return EBADMEM;
 
-	// request the translation
+	/* Request the translation */
 	message_id = async_send_3(phone, (sysarg_t) message,
 	    (sysarg_t) device_id, (sysarg_t) count, (sysarg_t) service, NULL);
 	measured_strings_send(phone, configuration, count);
 	string = measured_strings_return(phone, translation, data, count);
 	async_wait_for(message_id, &result);
 
-	// if not successful
+	/* If not successful */
 	if ((string == EOK) && (result != EOK)) {
-		// clear the data
+		/* Clear the data */
 		free(*translation);
 		free(*data);
 	}

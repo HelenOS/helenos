@@ -194,7 +194,7 @@ static unsigned int cat_file(const char *fname, size_t blen, bool hex)
 				else {
 					wchar_t c = str_decode(buff, &offset, bytes);
 					if (c == 0) {
-						// reached end of string
+						/* Reached end of string */
 						break;
 					}
 					paged_char(c);
@@ -227,8 +227,10 @@ int cmd_cat(char **argv)
 	sysarg_t rows, cols;
 	int rc;
 	
-	// reset global state
-	// TODO: move to structure?
+	/*
+	 * reset global state
+	 * TODO: move to structure?
+	 */
 	paging_enabled = false;
 	chars_remaining = 0;
 	lines_remaining = 0;

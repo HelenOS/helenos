@@ -82,7 +82,7 @@ static hw_resource_list_t *isa_get_fun_resources(ddf_fun_t *fnode)
 
 static bool isa_enable_fun_interrupt(ddf_fun_t *fnode)
 {
-	// TODO
+	/* TODO */
 
 	return false;
 }
