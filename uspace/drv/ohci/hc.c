@@ -108,7 +108,6 @@ if (ret != EOK) { \
 	    "Failed(%d) to gain access to device registers: %s.\n",
 	    ret, str_error(ret));
 
-	instance->ddf_instance = fun;
 	usb_device_keeper_init(&instance->manager);
 	ret = usb_endpoint_manager_init(&instance->ep_manager,
 	    BANDWIDTH_AVAILABLE_USB11);
@@ -129,6 +128,8 @@ if (ret != EOK) { \
 		    fibril_create((int(*)(void*))interrupt_emulator, instance);
 		fibril_add_ready(instance->interrupt_emulator);
 	}
+
+	list_initialize(&instance->pending_batches);
 #undef CHECK_RET_RETURN
 	return EOK;
 }
@@ -261,42 +262,22 @@ int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch)
 	if (batch->ep->address == instance->rh.address) {
 		return rh_request(&instance->rh, batch);
 	}
-#if 0
+
 	fibril_mutex_lock(&instance->guard);
+	list_append(&batch->link, &instance->pending_batches);
+	batch_commit(batch);
 	switch (batch->ep->transfer_type) {
 	case USB_TRANSFER_CONTROL:
-		instance->registers->control &= ~C_CLE;
-		transfer_list_add_batch(
-		    instance->transfers[batch->ep->transfer_type], batch);
 		instance->registers->command_status |= CS_CLF;
-		usb_log_debug2("Set CS control transfer filled: %x.\n",
-			instance->registers->command_status);
-		instance->registers->control_current = 0;
-		instance->registers->control |= C_CLE;
 		break;
 	case USB_TRANSFER_BULK:
-		instance->registers->control &= ~C_BLE;
-		transfer_list_add_batch(
-		    instance->transfers[batch->ep->transfer_type], batch);
 		instance->registers->command_status |= CS_BLF;
-		usb_log_debug2("Set bulk transfer filled: %x.\n",
-			instance->registers->command_status);
-		instance->registers->control |= C_BLE;
-		break;
-	case USB_TRANSFER_INTERRUPT:
-	case USB_TRANSFER_ISOCHRONOUS:
-		instance->registers->control &= (~C_PLE & ~C_IE);
-		transfer_list_add_batch(
-		    instance->transfers[batch->ep->transfer_type], batch);
-		instance->registers->control |= C_PLE | C_IE;
-		usb_log_debug2("Added periodic transfer: %x.\n",
-		    instance->registers->periodic_current);
 		break;
 	default:
 		break;
 	}
+
 	fibril_mutex_unlock(&instance->guard);
-#endif
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -316,26 +297,19 @@ void hc_interrupt(hc_t *instance, uint32_t status)
 		    instance->registers->hcca, addr_to_phys(instance->hcca));
 		usb_log_debug2("Periodic current: %p.\n",
 		    instance->registers->periodic_current);
-#if 0
-		LIST_INITIALIZE(done);
-		transfer_list_remove_finished(
-		    &instance->transfers_interrupt, &done);
-		transfer_list_remove_finished(
-		    &instance->transfers_isochronous, &done);
-		transfer_list_remove_finished(
-		    &instance->transfers_control, &done);
-		transfer_list_remove_finished(
-		    &instance->transfers_bulk, &done);
 
-		while (!list_empty(&done)) {
-			link_t *item = done.next;
-			list_remove(item);
+		link_t *current = instance->pending_batches.next;
+		while (current != &instance->pending_batches) {
+			link_t *next = current->next;
 			usb_transfer_batch_t *batch =
-			    list_get_instance(item, usb_transfer_batch_t, link);
-			usb_transfer_batch_finish(batch);
+			    usb_transfer_batch_from_link(current);
+
+			if (batch_is_complete(batch)) {
+				usb_transfer_batch_finish(batch);
+			}
+			current = next;
 		}
 		fibril_mutex_unlock(&instance->guard);
-#endif
 	}
 }
 /*----------------------------------------------------------------------------*/

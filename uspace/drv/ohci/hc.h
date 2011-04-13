@@ -52,14 +52,14 @@
 
 typedef struct hc {
 	ohci_regs_t *registers;
+	hcca_t *hcca;
+
 	usb_address_t rh_address;
 	rh_t rh;
 
-	hcca_t *hcca;
-
 	endpoint_list_t lists[4];
+	link_t pending_batches;
 
-	ddf_fun_t *ddf_instance;
 	usb_device_keeper_t manager;
 	usb_endpoint_manager_t ep_manager;
 	fid_t interrupt_emulator;
@@ -79,7 +79,7 @@ static inline void hc_fini(hc_t *instance) { /* TODO: implement*/ };
 
 int hc_add_endpoint(hc_t *instance, usb_address_t address, usb_endpoint_t ep,
     usb_speed_t speed, usb_transfer_type_t type, usb_direction_t direction,
-		size_t max_packet_size, size_t size, unsigned interval);
+    size_t max_packet_size, size_t size, unsigned interval);
 
 int hc_remove_endpoint(hc_t *instance, usb_address_t address,
     usb_endpoint_t endpoint, usb_direction_t direction);

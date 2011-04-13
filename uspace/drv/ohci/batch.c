@@ -168,6 +168,14 @@ bool batch_is_complete(usb_transfer_batch_t *instance)
 	return true;
 }
 /*----------------------------------------------------------------------------*/
+void batch_commit(usb_transfer_batch_t *instance)
+{
+	assert(instance);
+	ohci_transfer_batch_t *data = instance->private_data;
+	assert(data);
+	ed_set_end_td(data->ed, data->tds[data->td_count]);
+}
+/*----------------------------------------------------------------------------*/
 void batch_control_write(usb_transfer_batch_t *instance)
 {
 	assert(instance);

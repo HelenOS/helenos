@@ -51,6 +51,8 @@ usb_transfer_batch_t * batch_get(
 
 bool batch_is_complete(usb_transfer_batch_t *instance);
 
+void batch_commit(usb_transfer_batch_t *instance);
+
 void batch_control_write(usb_transfer_batch_t *instance);
 
 void batch_control_read(usb_transfer_batch_t *instance);

@@ -190,7 +190,8 @@ void endpoint_list_remove_ep(endpoint_list_t *instance, hcd_endpoint_t *hcd_ep)
 	assert(instance->list_head);
 	assert(hcd_ep);
 	assert(hcd_ep->ed);
-	assert(fibril_mutex_is_locked(&instance->guard));
+
+	fibril_mutex_lock(&instance->guard);
 
 	usb_log_debug2(
 	    "Queue %s: removing endpoint(%p).\n", instance->name, hcd_ep);
@@ -217,6 +218,7 @@ void endpoint_list_remove_ep(endpoint_list_t *instance, hcd_endpoint_t *hcd_ep)
 
 	/* Remove from the endpoint list */
 	list_remove(&hcd_ep->link);
+	fibril_mutex_unlock(&instance->guard);
 }
 /**
  * @}
