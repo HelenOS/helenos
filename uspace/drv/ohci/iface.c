@@ -54,7 +54,7 @@ static inline int setup_batch(
 	assert(*hc);
 
 	size_t res_bw;
-	endpoint_t *ep = usb_endpoint_manager_get_ep(&(*hc)->ep_manager,
+	endpoint_t *ep = hc_get_endpoint(*hc,
 	    target.address, target.endpoint, direction, &res_bw);
 	if (ep == NULL) {
 		usb_log_error("Endpoint(%d:%d) not registered for %s.\n",

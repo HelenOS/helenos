@@ -84,6 +84,9 @@ int hc_add_endpoint(hc_t *instance, usb_address_t address, usb_endpoint_t ep,
 int hc_remove_endpoint(hc_t *instance, usb_address_t address,
     usb_endpoint_t endpoint, usb_direction_t direction);
 
+endpoint_t * hc_get_endpoint(hc_t *instance, usb_address_t address,
+    usb_endpoint_t endpoint, usb_direction_t direction, size_t *bw);
+
 int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch);
 
 void hc_interrupt(hc_t *instance, uint32_t status);

@@ -151,12 +151,13 @@ int hc_add_endpoint(
 
 	hcd_endpoint_t *hcd_ep = hcd_endpoint_assign(ep);
 	if (hcd_ep == NULL) {
-		free(ep);
+		endpoint_destroy(ep);
 		return ENOMEM;
 	}
 
 	ret = usb_endpoint_manager_register_ep(&instance->ep_manager, ep, size);
 	if (ret != EOK) {
+		hcd_endpoint_clear(ep);
 		endpoint_destroy(ep);
 		return ret;
 	}
@@ -187,16 +188,19 @@ int hc_add_endpoint(
 		break;
 	}
 
-	return ret;
+	return EOK;
 }
 /*----------------------------------------------------------------------------*/
 int hc_remove_endpoint(hc_t *instance, usb_address_t address,
     usb_endpoint_t endpoint, usb_direction_t direction)
 {
+	assert(instance);
+	fibril_mutex_lock(&instance->guard);
 	endpoint_t *ep = usb_endpoint_manager_get_ep(&instance->ep_manager,
 	    address, endpoint, direction, NULL);
 	if (ep == NULL) {
-		usb_log_error("Endpoint unregister failed.\n");
+		usb_log_error("Endpoint unregister failed: No such EP.\n");
+		fibril_mutex_unlock(&instance->guard);
 		return ENOENT;
 	}
 
@@ -231,8 +235,21 @@ int hc_remove_endpoint(hc_t *instance, usb_address_t address,
 	} else {
 		usb_log_warning("Endpoint without hcd equivalent structure.\n");
 	}
-	return usb_endpoint_manager_unregister_ep(&instance->ep_manager,
+	int ret = usb_endpoint_manager_unregister_ep(&instance->ep_manager,
 	    address, endpoint, direction);
+	fibril_mutex_unlock(&instance->guard);
+	return ret;
+}
+/*----------------------------------------------------------------------------*/
+endpoint_t * hc_get_endpoint(hc_t *instance, usb_address_t address,
+    usb_endpoint_t endpoint, usb_direction_t direction, size_t *bw)
+{
+	assert(instance);
+	fibril_mutex_lock(&instance->guard);
+	endpoint_t *ep = usb_endpoint_manager_get_ep(&instance->ep_manager,
+	    address, endpoint, direction, bw);
+	fibril_mutex_unlock(&instance->guard);
+	return ep;
 }
 /*----------------------------------------------------------------------------*/
 int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch)
