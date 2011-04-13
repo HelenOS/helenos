@@ -25,62 +25,57 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-/** @addtogroup libusb
+/** @addtogroup drvusbohci
  * @{
  */
 /** @file
- *
+ * @brief OHCI driver
  */
-#ifndef LIBUSB_HOST_ENDPOINT_H
-#define LIBUSB_HOST_ENDPOINT_H
+#include "utils/malloc32.h"
+#include "hcd_endpoint.h"
 
-#include <assert.h>
-#include <bool.h>
-#include <adt/list.h>
-#include <fibril_synch.h>
+hcd_endpoint_t * hcd_endpoint_assign(endpoint_t *ep)
+{
+	assert(ep);
+	hcd_endpoint_t *hcd_ep = malloc(sizeof(hcd_endpoint_t));
+	if (hcd_ep == NULL)
+		return NULL;
 
-#include <usb/usb.h>
+	hcd_ep->ed = malloc32(sizeof(ed_t));
+	if (hcd_ep->ed == NULL) {
+		free(hcd_ep);
+		return NULL;
+	}
 
-typedef struct endpoint {
-	usb_address_t address;
-	usb_endpoint_t endpoint;
-	usb_direction_t direction;
-	usb_transfer_type_t transfer_type;
-	usb_speed_t speed;
-	size_t max_packet_size;
-	unsigned toggle:1;
-	fibril_mutex_t guard;
-	fibril_condvar_t avail;
-	volatile bool active;
-	struct {
-		void *data;
-		int (*toggle_get)(void *);
-		void (*toggle_set)(void *, int);
-	} hc_data;
-} endpoint_t;
+	hcd_ep->td = malloc32(sizeof(td_t));
+	if (hcd_ep->td == NULL) {
+		free32(hcd_ep->ed);
+		free(hcd_ep);
+		return NULL;
+	}
 
-int endpoint_init(endpoint_t *instance, usb_address_t address,
-    usb_endpoint_t endpoint, usb_direction_t direction,
-    usb_transfer_type_t type, usb_speed_t speed, size_t max_packet_size);
+	ed_init(hcd_ep->ed, ep);
+	ed_set_td(hcd_ep->ed, hcd_ep->td);
+	endpoint_set_hc_data(ep, hcd_ep, NULL, NULL);
 
-void endpoint_destroy(endpoint_t *instance);
-
-void endpoint_set_hc_data(endpoint_t *instance,
-    void *data, int (*toggle_get)(void *), void (*toggle_set)(void *, int));
-
-void endpoint_clear_hc_data(endpoint_t *instance);
-
-void endpoint_use(endpoint_t *instance);
-
-void endpoint_release(endpoint_t *instance);
-
-int endpoint_toggle_get(endpoint_t *instance);
-
-void endpoint_toggle_set(endpoint_t *instance, int toggle);
-
-void endpoint_toggle_reset_filtered(endpoint_t *instance, usb_target_t target);
-#endif
+	return hcd_ep;
+}
+/*----------------------------------------------------------------------------*/
+hcd_endpoint_t * hcd_endpoint_get(endpoint_t *ep)
+{
+	assert(ep);
+	return ep->hc_data.data;
+}
+/*----------------------------------------------------------------------------*/
+void hcd_endpoint_clear(endpoint_t *ep)
+{
+	assert(ep);
+	hcd_endpoint_t *hcd_ep = ep->hc_data.data;
+	assert(hcd_ep);
+	free32(hcd_ep->ed);
+	free32(hcd_ep->td);
+	free(hcd_ep);
+}
 /**
  * @}
  */

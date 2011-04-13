@@ -31,23 +31,23 @@
 /** @file
  * @brief OHCI driver transfer list structure
  */
-#ifndef DRV_OHCI_TRANSFER_LIST_H
-#define DRV_OHCI_TRANSFER_LIST_H
+#ifndef DRV_OHCI_ENDPOINT_LIST_H
+#define DRV_OHCI_ENDPOINT_LIST_H
 
 #include <fibril_synch.h>
 
-#include "batch.h"
+#include "hcd_endpoint.h"
 #include "hw_struct/endpoint_descriptor.h"
 #include "utils/malloc32.h"
 
-typedef struct transfer_list
+typedef struct endpoint_list
 {
 	fibril_mutex_t guard;
 	ed_t *list_head;
 	uint32_t list_head_pa;
 	const char *name;
-	link_t batch_list;
-} transfer_list_t;
+	link_t endpoint_list;
+} endpoint_list_t;
 
 /** Dispose transfer list structures.
  *
@@ -55,21 +55,24 @@ typedef struct transfer_list
  *
  * Frees memory for internal qh_t structure.
  */
-static inline void transfer_list_fini(transfer_list_t *instance)
+static inline void endpoint_list_fini(endpoint_list_t *instance)
 {
 	assert(instance);
 	free32(instance->list_head);
 }
 
-int transfer_list_init(transfer_list_t *instance, const char *name);
+int endpoint_list_init(endpoint_list_t *instance, const char *name);
 
-void transfer_list_set_next(transfer_list_t *instance, transfer_list_t *next);
+void endpoint_list_set_next(endpoint_list_t *instance, endpoint_list_t *next);
 
-void transfer_list_add_batch(transfer_list_t *instance, usb_transfer_batch_t *batch);
+void endpoint_list_add_ep(endpoint_list_t *instance, hcd_endpoint_t *hcd_ep);
 
-void transfer_list_remove_finished(transfer_list_t *instance, link_t *done);
+void endpoint_list_remove_ep(endpoint_list_t *instance, hcd_endpoint_t *hcd_ep);
+#if 0
+void endpoint_list_remove_finished(endpoint_list_t *instance, link_t *done);
 
-void transfer_list_abort_all(transfer_list_t *instance);
+void endpoint_list_abort_all(endpoint_list_t *instance);
+#endif
 #endif
 /**
  * @}

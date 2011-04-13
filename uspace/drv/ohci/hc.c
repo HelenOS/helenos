@@ -42,6 +42,7 @@
 #include <usb/usbdevice.h>
 
 #include "hc.h"
+#include "hcd_endpoint.h"
 
 static int interrupt_emulator(hc_t *instance);
 static void hc_gain_control(hc_t *instance);
@@ -66,9 +67,8 @@ int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun)
 	usb_device_keeper_bind(
 	    &instance->manager, hub_address, hub_fun->handle);
 
-	ret = usb_endpoint_manager_add_ep(&instance->ep_manager,
-	    hub_address, 0, USB_DIRECTION_BOTH, USB_TRANSFER_CONTROL,
-	    USB_SPEED_FULL, 64, 0);
+	ret = hc_add_endpoint(instance, hub_address, 0, USB_SPEED_FULL,
+	    USB_TRANSFER_CONTROL, USB_DIRECTION_BOTH, 64, 0, 0);
 	if (ret != EOK) {
 		usb_log_error("Failed to add OHCI rh endpoint 0.\n");
 		usb_device_keeper_release(&instance->manager, hub_address);
@@ -108,7 +108,6 @@ if (ret != EOK) { \
 	    "Failed(%d) to gain access to device registers: %s.\n",
 	    ret, str_error(ret));
 
-	instance->ddf_instance = fun;
 	usb_device_keeper_init(&instance->manager);
 	ret = usb_endpoint_manager_init(&instance->ep_manager,
 	    BANDWIDTH_AVAILABLE_USB11);
@@ -130,7 +129,127 @@ if (ret != EOK) { \
 		fibril_add_ready(instance->interrupt_emulator);
 	}
 
+	list_initialize(&instance->pending_batches);
+#undef CHECK_RET_RETURN
 	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+int hc_add_endpoint(
+    hc_t *instance, usb_address_t address, usb_endpoint_t endpoint,
+    usb_speed_t speed, usb_transfer_type_t type, usb_direction_t direction,
+    size_t mps, size_t size, unsigned interval)
+{
+	endpoint_t *ep = malloc(sizeof(endpoint_t));
+	if (ep == NULL)
+		return ENOMEM;
+	int ret =
+	    endpoint_init(ep, address, endpoint, direction, type, speed, mps);
+	if (ret != EOK) {
+		free(ep);
+		return ret;
+	}
+
+	hcd_endpoint_t *hcd_ep = hcd_endpoint_assign(ep);
+	if (hcd_ep == NULL) {
+		endpoint_destroy(ep);
+		return ENOMEM;
+	}
+
+	ret = usb_endpoint_manager_register_ep(&instance->ep_manager, ep, size);
+	if (ret != EOK) {
+		hcd_endpoint_clear(ep);
+		endpoint_destroy(ep);
+		return ret;
+	}
+
+	/* Enqueue hcd_ep */
+	switch (ep->transfer_type) {
+	case USB_TRANSFER_CONTROL:
+		instance->registers->control &= ~C_CLE;
+		endpoint_list_add_ep(
+		    &instance->lists[ep->transfer_type], hcd_ep);
+		instance->registers->control_current = 0;
+		instance->registers->control |= C_CLE;
+		break;
+	case USB_TRANSFER_BULK:
+		instance->registers->control &= ~C_BLE;
+		endpoint_list_add_ep(
+		    &instance->lists[ep->transfer_type], hcd_ep);
+		instance->registers->control |= C_BLE;
+		break;
+	case USB_TRANSFER_ISOCHRONOUS:
+	case USB_TRANSFER_INTERRUPT:
+		instance->registers->control &= (~C_PLE & ~C_IE);
+		endpoint_list_add_ep(
+		    &instance->lists[ep->transfer_type], hcd_ep);
+		instance->registers->control |= C_PLE | C_IE;
+		break;
+	default:
+		break;
+	}
+
+	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+int hc_remove_endpoint(hc_t *instance, usb_address_t address,
+    usb_endpoint_t endpoint, usb_direction_t direction)
+{
+	assert(instance);
+	fibril_mutex_lock(&instance->guard);
+	endpoint_t *ep = usb_endpoint_manager_get_ep(&instance->ep_manager,
+	    address, endpoint, direction, NULL);
+	if (ep == NULL) {
+		usb_log_error("Endpoint unregister failed: No such EP.\n");
+		fibril_mutex_unlock(&instance->guard);
+		return ENOENT;
+	}
+
+	hcd_endpoint_t *hcd_ep = hcd_endpoint_get(ep);
+	if (hcd_ep) {
+		/* Dequeue hcd_ep */
+		switch (ep->transfer_type) {
+		case USB_TRANSFER_CONTROL:
+			instance->registers->control &= ~C_CLE;
+			endpoint_list_remove_ep(
+			    &instance->lists[ep->transfer_type], hcd_ep);
+			instance->registers->control_current = 0;
+			instance->registers->control |= C_CLE;
+			break;
+		case USB_TRANSFER_BULK:
+			instance->registers->control &= ~C_BLE;
+			endpoint_list_remove_ep(
+			    &instance->lists[ep->transfer_type], hcd_ep);
+			instance->registers->control |= C_BLE;
+			break;
+		case USB_TRANSFER_ISOCHRONOUS:
+		case USB_TRANSFER_INTERRUPT:
+			instance->registers->control &= (~C_PLE & ~C_IE);
+			endpoint_list_remove_ep(
+			    &instance->lists[ep->transfer_type], hcd_ep);
+			instance->registers->control |= C_PLE | C_IE;
+			break;
+		default:
+			break;
+		}
+		hcd_endpoint_clear(ep);
+	} else {
+		usb_log_warning("Endpoint without hcd equivalent structure.\n");
+	}
+	int ret = usb_endpoint_manager_unregister_ep(&instance->ep_manager,
+	    address, endpoint, direction);
+	fibril_mutex_unlock(&instance->guard);
+	return ret;
+}
+/*----------------------------------------------------------------------------*/
+endpoint_t * hc_get_endpoint(hc_t *instance, usb_address_t address,
+    usb_endpoint_t endpoint, usb_direction_t direction, size_t *bw)
+{
+	assert(instance);
+	fibril_mutex_lock(&instance->guard);
+	endpoint_t *ep = usb_endpoint_manager_get_ep(&instance->ep_manager,
+	    address, endpoint, direction, bw);
+	fibril_mutex_unlock(&instance->guard);
+	return ep;
 }
 /*----------------------------------------------------------------------------*/
 int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch)
@@ -145,38 +264,19 @@ int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch)
 	}
 
 	fibril_mutex_lock(&instance->guard);
+	list_append(&batch->link, &instance->pending_batches);
+	batch_commit(batch);
 	switch (batch->ep->transfer_type) {
 	case USB_TRANSFER_CONTROL:
-		instance->registers->control &= ~C_CLE;
-		transfer_list_add_batch(
-		    instance->transfers[batch->ep->transfer_type], batch);
 		instance->registers->command_status |= CS_CLF;
-		usb_log_debug2("Set CS control transfer filled: %x.\n",
-			instance->registers->command_status);
-		instance->registers->control_current = 0;
-		instance->registers->control |= C_CLE;
 		break;
 	case USB_TRANSFER_BULK:
-		instance->registers->control &= ~C_BLE;
-		transfer_list_add_batch(
-		    instance->transfers[batch->ep->transfer_type], batch);
 		instance->registers->command_status |= CS_BLF;
-		usb_log_debug2("Set bulk transfer filled: %x.\n",
-			instance->registers->command_status);
-		instance->registers->control |= C_BLE;
-		break;
-	case USB_TRANSFER_INTERRUPT:
-	case USB_TRANSFER_ISOCHRONOUS:
-		instance->registers->control &= (~C_PLE & ~C_IE);
-		transfer_list_add_batch(
-		    instance->transfers[batch->ep->transfer_type], batch);
-		instance->registers->control |= C_PLE | C_IE;
-		usb_log_debug2("Added periodic transfer: %x.\n",
-		    instance->registers->periodic_current);
 		break;
 	default:
 		break;
 	}
+
 	fibril_mutex_unlock(&instance->guard);
 	return EOK;
 }
@@ -197,22 +297,18 @@ void hc_interrupt(hc_t *instance, uint32_t status)
 		    instance->registers->hcca, addr_to_phys(instance->hcca));
 		usb_log_debug2("Periodic current: %p.\n",
 		    instance->registers->periodic_current);
-		LIST_INITIALIZE(done);
-		transfer_list_remove_finished(
-		    &instance->transfers_interrupt, &done);
-		transfer_list_remove_finished(
-		    &instance->transfers_isochronous, &done);
-		transfer_list_remove_finished(
-		    &instance->transfers_control, &done);
-		transfer_list_remove_finished(
-		    &instance->transfers_bulk, &done);
 
-		while (!list_empty(&done)) {
-			link_t *item = done.next;
-			list_remove(item);
+		link_t *current = instance->pending_batches.next;
+		while (current != &instance->pending_batches) {
+			link_t *next = current->next;
 			usb_transfer_batch_t *batch =
-			    list_get_instance(item, usb_transfer_batch_t, link);
-			usb_transfer_batch_finish(batch);
+			    usb_transfer_batch_from_link(current);
+
+			if (batch_is_complete(batch)) {
+				list_remove(current);
+				usb_transfer_batch_finish(batch);
+			}
+			current = next;
 		}
 		fibril_mutex_unlock(&instance->guard);
 	}
@@ -306,16 +402,17 @@ void hc_init_hw(hc_t *instance)
 	instance->registers->hcca = addr_to_phys(instance->hcca);
 
 	/* Use queues */
-	instance->registers->bulk_head = instance->transfers_bulk.list_head_pa;
+	instance->registers->bulk_head =
+	    instance->lists[USB_TRANSFER_BULK].list_head_pa;
 	usb_log_debug2("Bulk HEAD set to: %p(%p).\n",
-	    instance->transfers_bulk.list_head,
-	    instance->transfers_bulk.list_head_pa);
+	    instance->lists[USB_TRANSFER_BULK].list_head,
+	    instance->lists[USB_TRANSFER_BULK].list_head_pa);
 
 	instance->registers->control_head =
-	    instance->transfers_control.list_head_pa;
+	    instance->lists[USB_TRANSFER_CONTROL].list_head_pa;
 	usb_log_debug2("Control HEAD set to: %p(%p).\n",
-	    instance->transfers_control.list_head,
-	    instance->transfers_control.list_head_pa);
+	    instance->lists[USB_TRANSFER_CONTROL].list_head,
+	    instance->lists[USB_TRANSFER_CONTROL].list_head_pa);
 
 	/* Enable queues */
 	instance->registers->control |= (C_PLE | C_IE | C_CLE | C_BLE);
@@ -346,36 +443,27 @@ int hc_init_transfer_lists(hc_t *instance)
 {
 	assert(instance);
 
-#define SETUP_TRANSFER_LIST(type, name) \
+#define SETUP_ENDPOINT_LIST(type) \
 do { \
-	int ret = transfer_list_init(&instance->type, name); \
+	const char *name = usb_str_transfer_type(type); \
+	int ret = endpoint_list_init(&instance->lists[type], name); \
 	if (ret != EOK) { \
-		usb_log_error("Failed(%d) to setup %s transfer list.\n", \
+		usb_log_error("Failed(%d) to setup %s endpoint list.\n", \
 		    ret, name); \
-		transfer_list_fini(&instance->transfers_isochronous); \
-		transfer_list_fini(&instance->transfers_interrupt); \
-		transfer_list_fini(&instance->transfers_control); \
-		transfer_list_fini(&instance->transfers_bulk); \
+		endpoint_list_fini(&instance->lists[USB_TRANSFER_ISOCHRONOUS]); \
+		endpoint_list_fini(&instance->lists[USB_TRANSFER_INTERRUPT]); \
+		endpoint_list_fini(&instance->lists[USB_TRANSFER_CONTROL]); \
+		endpoint_list_fini(&instance->lists[USB_TRANSFER_BULK]); \
 	} \
 } while (0)
 
-	SETUP_TRANSFER_LIST(transfers_isochronous, "ISOCHRONOUS");
-	SETUP_TRANSFER_LIST(transfers_interrupt, "INTERRUPT");
-	SETUP_TRANSFER_LIST(transfers_control, "CONTROL");
-	SETUP_TRANSFER_LIST(transfers_bulk, "BULK");
-#undef SETUP_TRANSFER_LIST
-	transfer_list_set_next(&instance->transfers_interrupt,
-	    &instance->transfers_isochronous);
-
-	/* Assign pointers to be used during scheduling */
-	instance->transfers[USB_TRANSFER_INTERRUPT] =
-	  &instance->transfers_interrupt;
-	instance->transfers[USB_TRANSFER_ISOCHRONOUS] =
-	  &instance->transfers_interrupt;
-	instance->transfers[USB_TRANSFER_CONTROL] =
-	  &instance->transfers_control;
-	instance->transfers[USB_TRANSFER_BULK] =
-	  &instance->transfers_bulk;
+	SETUP_ENDPOINT_LIST(USB_TRANSFER_ISOCHRONOUS);
+	SETUP_ENDPOINT_LIST(USB_TRANSFER_INTERRUPT);
+	SETUP_ENDPOINT_LIST(USB_TRANSFER_CONTROL);
+	SETUP_ENDPOINT_LIST(USB_TRANSFER_BULK);
+#undef SETUP_ENDPOINT_LIST
+	endpoint_list_set_next(&instance->lists[USB_TRANSFER_INTERRUPT],
+	    &instance->lists[USB_TRANSFER_ISOCHRONOUS]);
 
 	return EOK;
 }
@@ -396,11 +484,11 @@ int hc_init_memory(hc_t *instance)
 	unsigned i = 0;
 	for (; i < 32; ++i) {
 		instance->hcca->int_ep[i] =
-		    instance->transfers_interrupt.list_head_pa;
+		    instance->lists[USB_TRANSFER_INTERRUPT].list_head_pa;
 	}
 	usb_log_debug2("Interrupt HEADs set to: %p(%p).\n",
-	    instance->transfers_interrupt.list_head,
-	    instance->transfers_interrupt.list_head_pa);
+	    instance->lists[USB_TRANSFER_INTERRUPT].list_head,
+	    instance->lists[USB_TRANSFER_INTERRUPT].list_head_pa);
 
 	return EOK;
 }
