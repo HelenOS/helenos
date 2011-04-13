@@ -11,7 +11,7 @@ SECTIONS {
 		*(.rodata);
 		*(.rodata.*);
 		*(.data);               /* initialized data */
-		_got = . ;
+		__gp = . ;
 		*(.got .got.*);
 		*(.bss);                /* uninitialized static variables */
 		*(COMMON);
