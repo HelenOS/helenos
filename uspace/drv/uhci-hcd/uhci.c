@@ -62,7 +62,7 @@ static void irq_handler(ddf_dev_t *dev, ipc_callid_t iid, ipc_call_t *call)
  *
  * @param[in] fun DDF instance of the function to use.
  * @param[in] handle DDF handle of the driver seeking its USB address.
- * @param[in] address Pointer to the place to store the found address.
+ * @param[out] address Found address.
  */
 static int usb_iface_get_address(
     ddf_fun_t *fun, devman_handle_t handle, usb_address_t *address)
@@ -86,7 +86,7 @@ static int usb_iface_get_address(
 /** Gets handle of the respective hc.
  *
  * @param[in] fun DDF function of uhci device.
- * @param[out] handle Place to write the HC handle.
+ * @param[out] handle Host cotnroller handle.
  * @return Error code.
  */
 static int usb_iface_get_hc_handle(
