@@ -266,19 +266,19 @@ packet_t *packet_get_copy(int phone, packet_t *packet)
 	if (!packet_is_valid(packet))
 		return NULL;
 
-	// get a new packet
+	/* Get a new packet */
 	copy = packet_get_4_remote(phone, PACKET_DATA_LENGTH(packet),
 	    PACKET_MAX_ADDRESS_LENGTH(packet), packet->max_prefix,
 	    PACKET_MIN_SUFFIX(packet));
 	if (!copy)
 		return NULL;
 
-	// get addresses
+	/* Get addresses */
 	addrlen = packet_get_addr(packet, &src, &dest);
-	// copy data
+	/* Copy data */
 	if ((packet_copy_data(copy, packet_get_data(packet),
 	    PACKET_DATA_LENGTH(packet)) == EOK) &&
-	    // copy addresses if present
+	    /* Copy addresses if present */
 	    ((addrlen <= 0) ||
 	    (packet_set_addr(copy, src, dest, addrlen) == EOK))) {
 		copy->order = packet->order;
