@@ -33,11 +33,10 @@
  */
 #ifndef DRV_UHCI_QH_H
 #define DRV_UHCI_QH_H
-
-/* libc */
 #include <assert.h>
 
 #include "link_pointer.h"
+#include "utils/malloc32.h"
 
 typedef struct queue_head {
 	volatile link_pointer_t next;
@@ -66,31 +65,14 @@ static inline void qh_init(qh_t *instance)
  * Adds proper flag. If the pointer is NULL or terminal, sets next to terminal
  * NULL.
  */
-static inline void qh_set_next_qh(qh_t *instance, uint32_t pa)
+static inline void qh_set_next_qh(qh_t *instance, qh_t *next)
 {
 	/* Address is valid and not terminal */
-	if (pa && ((pa & LINK_POINTER_TERMINATE_FLAG) == 0)) {
+	uint32_t pa = addr_to_phys(next);
+	if (pa) {
 		instance->next = LINK_POINTER_QH(pa);
 	} else {
 		instance->next = LINK_POINTER_TERM;
-	}
-}
-/*----------------------------------------------------------------------------*/
-/** Set queue head element pointer
- *
- * @param[in] instance qh_t structure to initialize.
- * @param[in] pa Physical address of the next queue head.
- *
- * Adds proper flag. If the pointer is NULL or terminal, sets element
- * to terminal NULL.
- */
-static inline void qh_set_element_qh(qh_t *instance, uint32_t pa)
-{
-	/* Address is valid and not terminal */
-	if (pa && ((pa & LINK_POINTER_TERMINATE_FLAG) == 0)) {
-		instance->element = LINK_POINTER_QH(pa);
-	} else {
-		instance->element = LINK_POINTER_TERM;
 	}
 }
 /*----------------------------------------------------------------------------*/

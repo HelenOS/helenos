@@ -227,15 +227,15 @@ int hc_init_mem_structures(hc_t *instance)
 
 	/* Set all frames to point to the first queue head */
 	const uint32_t queue =
-	  instance->transfers_interrupt.queue_head_pa
-	  | LINK_POINTER_QUEUE_HEAD_FLAG;
+	    LINK_POINTER_QH(addr_to_phys(
+	        instance->transfers_interrupt.queue_head));
 
 	unsigned i = 0;
 	for(; i < UHCI_FRAME_LIST_COUNT; ++i) {
 		instance->frame_list[i] = queue;
 	}
 
-	/* Init device keeper*/
+	/* Init device keeper */
 	usb_device_keeper_init(&instance->manager);
 	usb_log_debug("Initialized device manager.\n");
 
