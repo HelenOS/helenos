@@ -55,7 +55,7 @@ hcd_endpoint_t * hcd_endpoint_assign(endpoint_t *ep)
 	}
 
 	ed_init(hcd_ep->ed, ep);
-	ed_add_tds(hcd_ep->ed, hcd_ep->td, hcd_ep->td);
+	ed_set_td(hcd_ep->ed, hcd_ep->td);
 	endpoint_set_hc_data(ep, hcd_ep, NULL, NULL);
 
 	return hcd_ep;

@@ -67,9 +67,8 @@ int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun)
 	usb_device_keeper_bind(
 	    &instance->manager, hub_address, hub_fun->handle);
 
-	ret = usb_endpoint_manager_add_ep(&instance->ep_manager,
-	    hub_address, 0, USB_DIRECTION_BOTH, USB_TRANSFER_CONTROL,
-	    USB_SPEED_FULL, 64, 0);
+	ret = hc_add_endpoint(instance, hub_address, 0, USB_SPEED_FULL,
+	    USB_TRANSFER_CONTROL, USB_DIRECTION_BOTH, 64, 0, 0);
 	if (ret != EOK) {
 		usb_log_error("Failed to add OHCI rh endpoint 0.\n");
 		usb_device_keeper_release(&instance->manager, hub_address);
