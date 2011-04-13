@@ -51,10 +51,10 @@ void __cyg_profile_func_enter(void *fn, void *call_site)
 	
 	if (symtab_name_lookup((uintptr_t) call_site, &call_site_sym,
 	    &call_site_off) == EOK)
-		printf("%s+%" PRIp "->%s\n", call_site_sym, call_site_off,
-		    fn_sym);
+		printf("%s()+%p->%s()\n", call_site_sym,
+		    (void *) call_site_off, fn_sym);
 	else
-		printf("->%s\n", fn_sym);
+		printf("->%s()\n", fn_sym);
 }
 
 void __cyg_profile_func_exit(void *fn, void *call_site)
@@ -66,10 +66,10 @@ void __cyg_profile_func_exit(void *fn, void *call_site)
 	
 	if (symtab_name_lookup((uintptr_t) call_site, &call_site_sym,
 	    &call_site_off) == EOK)
-		printf("%s+%" PRIp "<-%s\n", call_site_sym, call_site_off,
-		    fn_sym);
+		printf("%s()+%p<-%s()\n", call_site_sym,
+		    (void *) call_site_off, fn_sym);
 	else
-		printf("<-%s\n", fn_sym);
+		printf("<-%s()\n", fn_sym);
 }
 
 #endif /* CONFIG_TRACE */

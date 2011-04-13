@@ -73,16 +73,42 @@ static const char *exctable[] = {
 
 void istate_decode(istate_t *istate)
 {
-	printf("at=%p\tv0=%p\tv1=%p\n", istate->at, istate->v0, istate->v1);
-	printf("a0=%p\ta1=%p\ta2=%p\n", istate->a0, istate->a1, istate->a2);
-	printf("a3=%p\tt0=%p\tt1=%p\n", istate->a3, istate->t0, istate->t1);
-	printf("t2=%p\tt3=%p\tt4=%p\n", istate->t2, istate->t3, istate->t4);
-	printf("t5=%p\tt6=%p\tt7=%p\n", istate->t5, istate->t6, istate->t7);
-	printf("t8=%p\tt9=%p\tgp=%p\n", istate->t8, istate->t9, istate->gp);
-	printf("sp=%p\tra=%p\t\n", istate->sp, istate->ra);
-	printf("lo=%p\thi=%p\t\n", istate->lo, istate->hi);
-	printf("cp0_status=%p\tcp0_epc=%p\tk1=%p\n",
-	    istate->status, istate->epc, istate->k1);
+	printf("epc=%p\tsta=%#010" PRIx32 "\t"
+	    "lo =%#010" PRIx32 "\thi =%#010" PRIx32 "\n",
+	    (void *) istate->epc, istate->status,
+	    istate->lo, istate->hi);
+	
+	printf("a0 =%#010" PRIx32 "\ta1 =%#010" PRIx32 "\t"
+	    "a2 =%#010" PRIx32 "\ta3 =%#010" PRIx32 "\n",
+	    istate->a0, istate->a1, istate->a2, istate->a3);
+	
+	printf("t0 =%#010" PRIx32 "\tt1 =%#010" PRIx32 "\t"
+	    "t2 =%#010" PRIx32 "\tt3 =%#010" PRIx32 "\n",
+	    istate->t0, istate->t1, istate->t2, istate->t3);
+	
+	printf("t4 =%#010" PRIx32 "\tt5 =%#010" PRIx32 "\t"
+	    "t6 =%#010" PRIx32 "\tt7 =%#010" PRIx32 "\n",
+	    istate->t4, istate->t5, istate->t6, istate->t7);
+	
+	printf("t8 =%#010" PRIx32 "\tt9 =%#010" PRIx32 "\t"
+	    "v0 =%#010" PRIx32 "\tv1 =%#010" PRIx32 "\n",
+	    istate->t8, istate->t9, istate->v0, istate->v1);
+	
+	printf("s0 =%#010" PRIx32 "\ts1 =%#010" PRIx32 "\t"
+	    "s2 =%#010" PRIx32 "\ts3 =%#010" PRIx32 "\n",
+	    istate->s0, istate->s1, istate->s2, istate->s3);
+	
+	printf("s4 =%#010" PRIx32 "\ts5 =%#010" PRIx32 "\t"
+	    "s6 =%#010" PRIx32 "\ts7 =%#010" PRIx32 "\n",
+	    istate->s4, istate->s5, istate->s6, istate->s7);
+	
+	printf("s8 =%#010" PRIx32 "\tat =%#010" PRIx32 "\t"
+	    "kt0=%#010" PRIx32 "\tkt1=%#010" PRIx32 "\n",
+	    istate->s8, istate->at, istate->kt0, istate->kt1);
+	
+	printf("sp =%p\tra =%p\tgp =%p\n",
+	    (void *) istate->sp, (void *) istate->ra,
+	    (void *) istate->gp);
 }
 
 static void unhandled_exception(unsigned int n, istate_t *istate)
@@ -96,7 +122,7 @@ static void reserved_instr_exception(unsigned int n, istate_t *istate)
 	if (*((uint32_t *) istate->epc) == 0x7c03e83b) {
 		ASSERT(THREAD);
 		istate->epc += 4;
-		istate->v1 = istate->k1;
+		istate->v1 = istate->kt1;
 	} else
 		unhandled_exception(n, istate);
 }

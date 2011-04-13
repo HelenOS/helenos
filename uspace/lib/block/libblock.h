@@ -71,9 +71,11 @@ typedef struct block {
 	/** Readers / Writer lock protecting the contents of the block. */
 	fibril_rwlock_t contents_lock;
 	/** Handle of the device where the block resides. */
-	dev_handle_t dev_handle;
-	/** Block offset on the block device. Counted in 'size'-byte blocks. */
-	aoff64_t boff;
+	devmap_handle_t devmap_handle;
+	/** Logical block address */
+	aoff64_t lba;
+	/** Physical block address */
+	aoff64_t pba;
 	/** Size of the block. */
 	size_t size;
 	/** Link for placing the block into the free block list. */
@@ -92,25 +94,25 @@ enum cache_mode {
 	CACHE_MODE_WB
 };
 
-extern int block_init(dev_handle_t, size_t);
-extern void block_fini(dev_handle_t);
+extern int block_init(devmap_handle_t, size_t);
+extern void block_fini(devmap_handle_t);
 
-extern int block_bb_read(dev_handle_t, aoff64_t);
-extern void *block_bb_get(dev_handle_t);
+extern int block_bb_read(devmap_handle_t, aoff64_t);
+extern void *block_bb_get(devmap_handle_t);
 
-extern int block_cache_init(dev_handle_t, size_t, unsigned, enum cache_mode);
-extern int block_cache_fini(dev_handle_t);
+extern int block_cache_init(devmap_handle_t, size_t, unsigned, enum cache_mode);
+extern int block_cache_fini(devmap_handle_t);
 
-extern int block_get(block_t **, dev_handle_t, aoff64_t, int);
+extern int block_get(block_t **, devmap_handle_t, aoff64_t, int);
 extern int block_put(block_t *);
 
-extern int block_seqread(dev_handle_t, size_t *, size_t *, aoff64_t *, void *,
+extern int block_seqread(devmap_handle_t, size_t *, size_t *, aoff64_t *, void *,
     size_t);
 
-extern int block_get_bsize(dev_handle_t, size_t *);
-extern int block_get_nblocks(dev_handle_t, aoff64_t *);
-extern int block_read_direct(dev_handle_t, aoff64_t, size_t, void *);
-extern int block_write_direct(dev_handle_t, aoff64_t, size_t, const void *);
+extern int block_get_bsize(devmap_handle_t, size_t *);
+extern int block_get_nblocks(devmap_handle_t, aoff64_t *);
+extern int block_read_direct(devmap_handle_t, aoff64_t, size_t, void *);
+extern int block_write_direct(devmap_handle_t, aoff64_t, size_t, const void *);
 
 #endif
 

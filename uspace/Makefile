@@ -37,19 +37,27 @@ DIRS = \
 	app/edit \
 	app/getterm \
 	app/init \
+	app/kill \
+	app/killall \
 	app/klog \
 	app/mkfat \
 	app/redir \
 	app/sbi \
 	app/stats \
 	app/taskdump \
-	app/tasks \
 	app/tester \
 	app/tetris \
 	app/trace \
 	app/top \
+	app/netecho \
+	app/nettest1 \
+	app/nettest2 \
+	app/ping \
+	app/websrv \
+	app/sysinfo \
 	srv/clip \
 	srv/devmap \
+	srv/devman \
 	srv/loader \
 	srv/ns \
 	srv/taskmon \
@@ -65,11 +73,12 @@ DIRS = \
 	srv/fs/devfs \
 	srv/hid/adb_mouse \
 	srv/hid/char_mouse \
+	srv/hid/s3c24xx_ts \
 	srv/hid/fb \
 	srv/hid/kbd \
 	srv/hw/char/i8042 \
-	srv/hw/netif/dp8390 \
-	srv/net/cfg \
+	srv/hw/char/s3c24xx_uart \
+	srv/hw/netif/ne2000 \
 	srv/net/netif/lo \
 	srv/net/il/arp \
 	srv/net/il/ip \
@@ -77,24 +86,17 @@ DIRS = \
 	srv/net/tl/udp \
 	srv/net/tl/tcp \
 	srv/net/net \
-	srv/net/netstart \
-	app/netecho \
-	app/nettest1 \
-	app/nettest2 \
-	app/ping
+	drv/root \
+	drv/rootvirt \
+	drv/test1 \
+	drv/test2
 
 ## Networking
 #
 
-ifeq ($(CONFIG_NETIF_NIL_BUNDLE),y)
-	LIBN = \
-		srv/net/nil/eth \
-		srv/net/nil/nildummy
-else
-	DIRS += \
-		srv/net/nil/eth \
-		srv/net/nil/nildummy
-endif
+DIRS += \
+	srv/net/nil/eth \
+	srv/net/nil/nildummy
 
 ## Platform-specific hardware support
 #
@@ -104,11 +106,23 @@ ifneq ($(UARCH),abs32le)
 endif
 
 ifeq ($(UARCH),amd64)
-	DIRS += srv/hw/bus/pci
+	DIRS += \
+		drv/rootpc \
+		drv/pciintel \
+		drv/isa \
+		drv/ns8250 \
+		srv/hw/irc/apic \
+		srv/hw/irc/i8259
 endif
 
 ifeq ($(UARCH),ia32)
-	DIRS += srv/hw/bus/pci
+	DIRS += \
+		drv/rootpc \
+		drv/pciintel \
+		drv/isa \
+		drv/ns8250 \
+		srv/hw/irc/apic \
+		srv/hw/irc/i8259
 endif
 
 ifeq ($(UARCH),ppc32)
@@ -117,8 +131,8 @@ endif
 
 ifeq ($(UARCH),sparc64)
 	DIRS += \
-		srv/hw/cir/fhc \
-		srv/hw/cir/obio
+		srv/hw/irc/fhc \
+		srv/hw/irc/obio
 endif
 
 ## System libraries
@@ -131,17 +145,9 @@ LIBS = \
 	lib/clui \
 	lib/softint \
 	lib/softfloat \
-	lib/socket \
+	lib/drv \
+	lib/packet \
 	lib/net
-
-ifeq ($(UARCH),amd64)
-	LIBS += lib/pci
-endif
-
-ifeq ($(UARCH),ia32)
-	LIBS += lib/pci
-endif
-
 
 LIBC_BUILD = $(addsuffix .build,$(LIBC))
 LIBS_BUILD = $(addsuffix .build,$(LIBS))

@@ -26,59 +26,78 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup icmp
- *  @{
+/** @addtogroup libnet
+ * @{
  */
 
 /** @file
- *  ICMP client interface implementation.
- *  @see icmp_client.h
+ * ICMP client interface implementation.
+ * @see icmp_client.h
  */
 
+#include <icmp_client.h>
+#include <icmp_header.h>
+#include <packet_client.h>
+
 #ifdef CONFIG_DEBUG
-	#include <stdio.h>
+#include <stdio.h>
 #endif
 
 #include <errno.h>
 #include <sys/types.h>
 
-#include <icmp_codes.h>
-#include <icmp_client.h>
-#include <packet/packet.h>
-#include <packet/packet_client.h>
-#include <icmp_header.h>
+#include <net/icmp_codes.h>
+#include <net/packet.h>
 
-int icmp_client_process_packet(packet_t packet, icmp_type_t * type, icmp_code_t * code, icmp_param_t * pointer, icmp_param_t * mtu){
-	icmp_header_ref header;
+/** Processes the received packet prefixed with an ICMP header.
+ *
+ * @param[in] packet	The received packet.
+ * @param[out] type	The ICMP header type.
+ * @param[out] code	The ICMP header code.
+ * @param[out] pointer	The ICMP header pointer.
+ * @param[out] mtu	The ICMP header MTU.
+ * @return		The ICMP header length.
+ * @return		Zero if the packet contains no data.
+ */
+int
+icmp_client_process_packet(packet_t *packet, icmp_type_t *type,
+    icmp_code_t *code, icmp_param_t *pointer, icmp_param_t *mtu)
+{
+	icmp_header_t *header;
 
-	header = (icmp_header_ref) packet_get_data(packet);
-	if((! header)
-		|| (packet_get_data_length(packet) < sizeof(icmp_header_t))){
+	header = (icmp_header_t *) packet_get_data(packet);
+	if (!header ||
+	    (packet_get_data_length(packet) < sizeof(icmp_header_t))) {
 		return 0;
 	}
-	if(type){
+
+	if (type)
 		*type = header->type;
-	}
-	if(code){
+	if (code)
 		*code = header->code;
-	}
-	if(pointer){
+	if (pointer)
 		*pointer = header->un.param.pointer;
-	}
-	if(mtu){
+	if (mtu)
 		*mtu = header->un.frag.mtu;
-	}
-	// remove debug dump
+
+	/* Remove debug dump */
 #ifdef CONFIG_DEBUG
-	printf("ICMP error %d (%d) in packet %d\n", header->type, header->code, packet_get_id(packet));
+	printf("ICMP error %d (%d) in packet %d\n", header->type, header->code,
+	    packet_get_id(packet));
 #endif
 	return sizeof(icmp_header_t);
 }
 
-size_t icmp_client_header_length(packet_t packet){
-	if(packet_get_data_length(packet) < sizeof(icmp_header_t)){
+/** Returns the ICMP header length.
+ *
+ * @param[in] packet	The packet.
+ * @return		The ICMP header length in bytes.
+ */
+size_t icmp_client_header_length(packet_t *packet)
+{
+	if (packet_get_data_length(packet) < sizeof(icmp_header_t))
 		return 0;
-	}
+
 	return sizeof(icmp_header_t);
 }
 

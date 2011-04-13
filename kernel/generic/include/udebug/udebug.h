@@ -35,146 +35,152 @@
 #ifndef KERN_UDEBUG_H_
 #define KERN_UDEBUG_H_
 
-#include <ipc/ipc.h>
+#define UDEBUG_EVMASK(event)  (1 << ((event) - 1))
 
 typedef enum { /* udebug_method_t */
-
-/** Start debugging the recipient.
- * Causes all threads in the receiving task to stop. When they
- * are all stoped, an answer with retval 0 is generated.
- */
-UDEBUG_M_BEGIN = 1,
-
-/** Finish debugging the recipient.
- * Answers all pending GO and GUARD messages.
- */
-UDEBUG_M_END,
-
-/** Set which events should be captured.
- */
-UDEBUG_M_SET_EVMASK,
-
-/** Make sure the debugged task is still there.
- * This message is answered when the debugged task dies
- * or the debugging session ends.
- */
-UDEBUG_M_GUARD,
-
-/** Run a thread until a debugging event occurs.
- * This message is answered when the thread stops
- * in a debugging event.
- *
- * - ARG2 - id of the thread to run
- */
-UDEBUG_M_GO,
-
-/** Stop a thread being debugged.
- * Creates a special STOP event in the thread, causing
- * it to answer a pending GO message (if any).
- */
-UDEBUG_M_STOP,
-
-/** Read arguments of a syscall.
- *
- * - ARG2 - thread identification
- * - ARG3 - destination address in the caller's address space
- *
- */
-UDEBUG_M_ARGS_READ,
-
-/** Read thread's userspace register state (istate_t).
- *
- * - ARG2 - thread identification
- * - ARG3 - destination address in the caller's address space
- *
- * or, on error, retval will be
- * - ENOENT - thread does not exist
- * - EBUSY - register state not available
- */
-UDEBUG_M_REGS_READ,
-
-/** Read the list of the debugged tasks's threads.
- *
- * - ARG2 - destination address in the caller's address space
- * - ARG3 - size of receiving buffer in bytes
- *
- * The kernel fills the buffer with a series of sysarg_t values
- * (thread ids). On answer, the kernel will set:
- *
- * - ARG2 - number of bytes that were actually copied
- * - ARG3 - number of bytes of the complete data
- *
- */
-UDEBUG_M_THREAD_READ,
-
-/** Read the name of the debugged task.
- *
- * - ARG2 - destination address in the caller's address space
- * - ARG3 - size of receiving buffer in bytes
- *
- * The kernel fills the buffer with a non-terminated string.
- *
- * - ARG2 - number of bytes that were actually copied
- * - ARG3 - number of bytes of the complete data
- *
- */
-UDEBUG_M_NAME_READ,
-
-/** Read the list of the debugged task's address space areas.
- *
- * - ARG2 - destination address in the caller's address space
- * - ARG3 - size of receiving buffer in bytes
- *
- * The kernel fills the buffer with a series of as_area_info_t structures.
- * Upon answer, the kernel will set:
- *
- * - ARG2 - number of bytes that were actually copied
- * - ARG3 - number of bytes of the complete data
- *
- */
-UDEBUG_M_AREAS_READ,
-
-/** Read the debugged tasks's memory.
- *
- * - ARG2 - destination address in the caller's address space
- * - ARG3 - source address in the recipient's address space
- * - ARG4 - size of receiving buffer in bytes
- *
- */
-UDEBUG_M_MEM_READ,
-
+	
+	/** Start debugging the recipient.
+	 *
+	 * Causes all threads in the receiving task to stop. When they
+	 * are all stoped, an answer with retval 0 is generated.
+	 *
+	 */
+	UDEBUG_M_BEGIN = 1,
+	
+	/** Finish debugging the recipient.
+	 *
+	 * Answers all pending GO and GUARD messages.
+	 *
+	 */
+	UDEBUG_M_END,
+	
+	/** Set which events should be captured. */
+	UDEBUG_M_SET_EVMASK,
+	
+	/** Make sure the debugged task is still there.
+	 *
+	 * This message is answered when the debugged task dies
+	 * or the debugging session ends.
+	 *
+	 */
+	UDEBUG_M_GUARD,
+	
+	/** Run a thread until a debugging event occurs.
+	 *
+	 * This message is answered when the thread stops
+	 * in a debugging event.
+	 *
+	 * - ARG2 - id of the thread to run
+	 *
+	 */
+	UDEBUG_M_GO,
+	
+	/** Stop a thread being debugged.
+	 *
+	 * Creates a special STOP event in the thread, causing
+	 * it to answer a pending GO message (if any).
+	 *
+	 */
+	UDEBUG_M_STOP,
+	
+	/** Read arguments of a syscall.
+	 *
+	 * - ARG2 - thread identification
+	 * - ARG3 - destination address in the caller's address space
+	 *
+	 */
+	UDEBUG_M_ARGS_READ,
+	
+	/** Read thread's userspace register state (istate_t).
+	 *
+	 * - ARG2 - thread identification
+	 * - ARG3 - destination address in the caller's address space
+	 *
+	 * or, on error, retval will be
+	 * - ENOENT - thread does not exist
+	 * - EBUSY - register state not available
+	 */
+	UDEBUG_M_REGS_READ,
+	
+	/** Read the list of the debugged tasks's threads.
+	 *
+	 * - ARG2 - destination address in the caller's address space
+	 * - ARG3 - size of receiving buffer in bytes
+	 *
+	 * The kernel fills the buffer with a series of sysarg_t values
+	 * (thread ids). On answer, the kernel will set:
+	 *
+	 * - ARG2 - number of bytes that were actually copied
+	 * - ARG3 - number of bytes of the complete data
+	 *
+	 */
+	UDEBUG_M_THREAD_READ,
+	
+	/** Read the name of the debugged task.
+	 *
+	 * - ARG2 - destination address in the caller's address space
+	 * - ARG3 - size of receiving buffer in bytes
+	 *
+	 * The kernel fills the buffer with a non-terminated string.
+	 *
+	 * - ARG2 - number of bytes that were actually copied
+	 * - ARG3 - number of bytes of the complete data
+	 *
+	 */
+	UDEBUG_M_NAME_READ,
+	
+	/** Read the list of the debugged task's address space areas.
+	 *
+	 * - ARG2 - destination address in the caller's address space
+	 * - ARG3 - size of receiving buffer in bytes
+	 *
+	 * The kernel fills the buffer with a series of as_area_info_t structures.
+	 * Upon answer, the kernel will set:
+	 *
+	 * - ARG2 - number of bytes that were actually copied
+	 * - ARG3 - number of bytes of the complete data
+	 *
+	 */
+	UDEBUG_M_AREAS_READ,
+	
+	/** Read the debugged tasks's memory.
+	 *
+	 * - ARG2 - destination address in the caller's address space
+	 * - ARG3 - source address in the recipient's address space
+	 * - ARG4 - size of receiving buffer in bytes
+	 *
+	 */
+	UDEBUG_M_MEM_READ
 } udebug_method_t;
 
-
 typedef enum {
-	UDEBUG_EVENT_FINISHED = 1,	/**< Debuging session has finished */
-	UDEBUG_EVENT_STOP,		/**< Stopped on DEBUG_STOP request */
-	UDEBUG_EVENT_SYSCALL_B,		/**< Before beginning syscall execution */
-	UDEBUG_EVENT_SYSCALL_E,		/**< After finishing syscall execution */
-	UDEBUG_EVENT_THREAD_B,		/**< The task created a new thread */
-	UDEBUG_EVENT_THREAD_E		/**< A thread exited */
+	UDEBUG_EVENT_FINISHED = 1,  /**< Debuging session has finished */
+	UDEBUG_EVENT_STOP,          /**< Stopped on DEBUG_STOP request */
+	UDEBUG_EVENT_SYSCALL_B,     /**< Before beginning syscall execution */
+	UDEBUG_EVENT_SYSCALL_E,     /**< After finishing syscall execution */
+	UDEBUG_EVENT_THREAD_B,      /**< The task created a new thread */
+	UDEBUG_EVENT_THREAD_E       /**< A thread exited */
 } udebug_event_t;
 
-#define UDEBUG_EVMASK(event) (1 << ((event) - 1))
-
 typedef enum {
-	UDEBUG_EM_FINISHED	= UDEBUG_EVMASK(UDEBUG_EVENT_FINISHED),
-	UDEBUG_EM_STOP		= UDEBUG_EVMASK(UDEBUG_EVENT_STOP),
-	UDEBUG_EM_SYSCALL_B	= UDEBUG_EVMASK(UDEBUG_EVENT_SYSCALL_B),
-	UDEBUG_EM_SYSCALL_E	= UDEBUG_EVMASK(UDEBUG_EVENT_SYSCALL_E),
-	UDEBUG_EM_THREAD_B	= UDEBUG_EVMASK(UDEBUG_EVENT_THREAD_B),
-	UDEBUG_EM_THREAD_E	= UDEBUG_EVMASK(UDEBUG_EVENT_THREAD_E),
-	UDEBUG_EM_ALL		=
-		UDEBUG_EVMASK(UDEBUG_EVENT_FINISHED) |
-		UDEBUG_EVMASK(UDEBUG_EVENT_STOP) |
-		UDEBUG_EVMASK(UDEBUG_EVENT_SYSCALL_B) |
-		UDEBUG_EVMASK(UDEBUG_EVENT_SYSCALL_E) |
-		UDEBUG_EVMASK(UDEBUG_EVENT_THREAD_B) |
-		UDEBUG_EVMASK(UDEBUG_EVENT_THREAD_E)
+	UDEBUG_EM_FINISHED = UDEBUG_EVMASK(UDEBUG_EVENT_FINISHED),
+	UDEBUG_EM_STOP = UDEBUG_EVMASK(UDEBUG_EVENT_STOP),
+	UDEBUG_EM_SYSCALL_B = UDEBUG_EVMASK(UDEBUG_EVENT_SYSCALL_B),
+	UDEBUG_EM_SYSCALL_E = UDEBUG_EVMASK(UDEBUG_EVENT_SYSCALL_E),
+	UDEBUG_EM_THREAD_B = UDEBUG_EVMASK(UDEBUG_EVENT_THREAD_B),
+	UDEBUG_EM_THREAD_E = UDEBUG_EVMASK(UDEBUG_EVENT_THREAD_E),
+	UDEBUG_EM_ALL =
+	    (UDEBUG_EVMASK(UDEBUG_EVENT_FINISHED) |
+	    UDEBUG_EVMASK(UDEBUG_EVENT_STOP) |
+	    UDEBUG_EVMASK(UDEBUG_EVENT_SYSCALL_B) |
+	    UDEBUG_EVMASK(UDEBUG_EVENT_SYSCALL_E) |
+	    UDEBUG_EVMASK(UDEBUG_EVENT_THREAD_B) |
+	    UDEBUG_EVMASK(UDEBUG_EVENT_THREAD_E))
 } udebug_evmask_t;
 
 #ifdef KERNEL
 
+#include <ipc/ipc.h>
 #include <synch/mutex.h>
 #include <synch/condvar.h>
 #include <arch/interrupt.h>
@@ -195,7 +201,7 @@ typedef struct {
 	/** Synchronize debug ops on this task / access to this structure */
 	mutex_t lock;
 	char *lock_owner;
-
+	
 	udebug_task_state_t dt_state;
 	call_t *begin_call;
 	int not_stoppable_count;
@@ -208,31 +214,30 @@ typedef struct {
 typedef struct {
 	/** Synchronize debug ops on this thread / access to this structure. */
 	mutex_t lock;
-
+	
 	waitq_t go_wq;
 	call_t *go_call;
-	unative_t syscall_args[6];
+	sysarg_t syscall_args[6];
 	istate_t *uspace_state;
-
+	
 	/** What type of event are we stopped in or 0 if none. */
 	udebug_event_t cur_event;
-	bool go;		/**< thread is GO */
-	bool stoppable;		/**< thread is stoppable */
-	bool active;		/**< thread is in a debugging session */
+	bool go;         /**< Thread is GO */
+	bool stoppable;  /**< Thread is stoppable */
+	bool active;     /**< Thread is in a debugging session */
 	condvar_t active_cv;
 } udebug_thread_t;
 
 struct task;
 struct thread;
 
-void udebug_task_init(udebug_task_t *ut);
-void udebug_thread_initialize(udebug_thread_t *ut);
+void udebug_task_init(udebug_task_t *);
+void udebug_thread_initialize(udebug_thread_t *);
 
-void udebug_syscall_event(unative_t a1, unative_t a2, unative_t a3,
-    unative_t a4, unative_t a5, unative_t a6, unative_t id, unative_t rc,
-    bool end_variant);
+void udebug_syscall_event(sysarg_t, sysarg_t, sysarg_t, sysarg_t, sysarg_t,
+    sysarg_t, sysarg_t, sysarg_t, bool);
 
-void udebug_thread_b_event_attach(struct thread *t, struct task *ta);
+void udebug_thread_b_event_attach(struct thread *, struct task *);
 void udebug_thread_e_event(void);
 
 void udebug_stoppable_begin(void);
@@ -240,7 +245,7 @@ void udebug_stoppable_end(void);
 
 void udebug_before_thread_runs(void);
 
-int udebug_task_cleanup(struct task *ta);
+int udebug_task_cleanup(struct task *);
 void udebug_thread_fault(void);
 
 #endif

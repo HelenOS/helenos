@@ -212,7 +212,7 @@ void itlb_pte_copy(pte_t *t)
 }
 
 /** ITLB miss handler. */
-void fast_instruction_access_mmu_miss(unative_t unused, istate_t *istate)
+void fast_instruction_access_mmu_miss(sysarg_t unused, istate_t *istate)
 {
 	uintptr_t va = ALIGN_DOWN(istate->tpc, PAGE_SIZE);
 	pte_t *t;
@@ -357,26 +357,27 @@ void tlb_print(void)
 void do_fast_instruction_access_mmu_miss_fault(istate_t *istate, uintptr_t va,
     const char *str)
 {
-	fault_if_from_uspace(istate, "%s, Address=%p.", str, va);
-	panic_memtrap(istate, PF_ACCESS_EXEC, va, "%s.", str);
+	fault_if_from_uspace(istate, "%s, address=%p.", str,
+	    (void *) va);
+	panic_memtrap(istate, PF_ACCESS_EXEC, va, str);
 }
 
 void do_fast_data_access_mmu_miss_fault(istate_t *istate,
     uint64_t page_and_ctx, const char *str)
 {
-	fault_if_from_uspace(istate, "%s, Page=%p (ASID=%d).", str,
-	    DMISS_ADDRESS(page_and_ctx), DMISS_CONTEXT(page_and_ctx));
-	panic_memtrap(istate, PF_ACCESS_READ, DMISS_ADDRESS(page_and_ctx),
-	    "%s.");
+	fault_if_from_uspace(istate, "%s, page=%p (asid=%" PRId64 ").", str,
+	    (void *) DMISS_ADDRESS(page_and_ctx), DMISS_CONTEXT(page_and_ctx));
+	panic_memtrap(istate, PF_ACCESS_UNKNOWN, DMISS_ADDRESS(page_and_ctx),
+	    str);
 }
 
 void do_fast_data_access_protection_fault(istate_t *istate,
     uint64_t page_and_ctx, const char *str)
 {
-	fault_if_from_uspace(istate, "%s, Page=%p (ASID=%d).", str,
-	    DMISS_ADDRESS(page_and_ctx), DMISS_CONTEXT(page_and_ctx));
+	fault_if_from_uspace(istate, "%s, page=%p (asid=%" PRId64 ").", str,
+	    (void *) DMISS_ADDRESS(page_and_ctx), DMISS_CONTEXT(page_and_ctx));
 	panic_memtrap(istate, PF_ACCESS_WRITE, DMISS_ADDRESS(page_and_ctx),
-	    "%s.");
+	    str);
 }
 
 /**
@@ -398,9 +399,8 @@ void tlb_invalidate_all(void)
 {
 	uint64_t errno =  __hypercall_fast3(MMU_DEMAP_ALL, 0, 0,
 		MMU_FLAG_DTLB | MMU_FLAG_ITLB);
-	if (errno != HV_EOK) {
-		panic("Error code = %d.\n", errno);
-	}
+	if (errno != HV_EOK)
+		panic("Error code = %" PRIu64 ".\n", errno);
 }
 
 /** Invalidate all ITLB and DTLB entries that belong to specified ASID

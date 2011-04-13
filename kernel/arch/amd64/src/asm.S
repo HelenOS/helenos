@@ -26,26 +26,6 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#define IREGISTER_SPACE  80
-
-#define IOFFSET_RAX  0x00
-#define IOFFSET_RCX  0x08
-#define IOFFSET_RDX  0x10
-#define IOFFSET_RSI  0x18
-#define IOFFSET_RDI  0x20
-#define IOFFSET_R8   0x28
-#define IOFFSET_R9   0x30
-#define IOFFSET_R10  0x38
-#define IOFFSET_R11  0x40
-#define IOFFSET_RBP  0x48
-
-/**
- * Mask for interrupts 0 - 31 (bits 0 - 31) where 0 means that int
- * has no error word  and 1 means interrupt with error word
- *
- */
-#define ERROR_WORD_INTERRUPT_LIST  0x00027D00
-
 #include <arch/pm.h>
 #include <arch/mm/page.h>
 
@@ -56,22 +36,11 @@
 .global has_cpuid
 .global read_efer_flag
 .global set_efer_flag
-.global memsetb
-.global memsetw
-.global memcpy
 .global memcpy_from_uspace
 .global memcpy_to_uspace
 .global memcpy_from_uspace_failover_address
 .global memcpy_to_uspace_failover_address
 .global early_putchar
-
-/* Wrapper for generic memsetb */
-memsetb:
-	jmp _memsetb
-
-/* Wrapper for generic memsetw */
-memsetw:
-	jmp _memsetw
 
 #define MEMCPY_DST   %rdi
 #define MEMCPY_SRC   %rsi
@@ -93,7 +62,6 @@ memsetw:
  * @retrun MEMCPY_DST on success, 0 on failure.
  *
  */
-memcpy:
 memcpy_from_uspace:
 memcpy_to_uspace:
 	movq MEMCPY_DST, %rax
@@ -114,7 +82,7 @@ memcpy_to_uspace:
 
 memcpy_from_uspace_failover_address:
 memcpy_to_uspace_failover_address:
-	xorq %rax, %rax         /* return 0, failure */
+	xorl %eax, %eax         /* return 0, failure */
 	ret
 
 /** Determine CPUID support
@@ -162,65 +130,62 @@ cpuid:
 	ret
 
 set_efer_flag:
-	movq $0xc0000080, %rcx
+	movl $0xc0000080, %ecx
 	rdmsr
 	btsl %edi, %eax
 	wrmsr
 	ret
 
 read_efer_flag:
-	movq $0xc0000080, %rcx
+	movl $0xc0000080, %ecx
 	rdmsr
 	ret
 
-/** Push all volatile general purpose registers on stack
+#define ISTATE_OFFSET_RAX		0
+#define ISTATE_OFFSET_RBX		8
+#define ISTATE_OFFSET_RCX		16
+#define ISTATE_OFFSET_RDX		24
+#define ISTATE_OFFSET_RSI		32
+#define ISTATE_OFFSET_RDI		40
+#define ISTATE_OFFSET_RBP		48
+#define ISTATE_OFFSET_R8		56
+#define ISTATE_OFFSET_R9		64
+#define ISTATE_OFFSET_R10		72
+#define ISTATE_OFFSET_R11		80
+#define ISTATE_OFFSET_R12		88	
+#define ISTATE_OFFSET_R13 		96
+#define ISTATE_OFFSET_R14		104
+#define ISTATE_OFFSET_R15		112
+#define ISTATE_OFFSET_ALIGNMENT		120
+#define ISTATE_OFFSET_RBP_FRAME		128
+#define ISTATE_OFFSET_RIP_FRAME		136
+#define ISTATE_OFFSET_ERROR_WORD	144
+#define ISTATE_OFFSET_RIP		152
+#define ISTATE_OFFSET_CS		160
+#define ISTATE_OFFSET_RFLAGS		168
+#define ISTATE_OFFSET_RSP		176
+#define ISTATE_OFFSET_SS		184
+
+/*
+ * Size of the istate structure without the hardware-saved part and without the
+ * error word.
+ */
+#define ISTATE_SOFT_SIZE	144
+
+/**
+ * Mask for interrupts 0 - 31 (bits 0 - 31) where 0 means that int
+ * has no error word  and 1 means interrupt with error word
  *
  */
-.macro save_all_gpr
-	movq %rax, IOFFSET_RAX(%rsp)
-	movq %rcx, IOFFSET_RCX(%rsp)
-	movq %rdx, IOFFSET_RDX(%rsp)
-	movq %rsi, IOFFSET_RSI(%rsp)
-	movq %rdi, IOFFSET_RDI(%rsp)
-	movq %r8, IOFFSET_R8(%rsp)
-	movq %r9, IOFFSET_R9(%rsp)
-	movq %r10, IOFFSET_R10(%rsp)
-	movq %r11, IOFFSET_R11(%rsp)
-	movq %rbp, IOFFSET_RBP(%rsp)
-.endm
+#define ERROR_WORD_INTERRUPT_LIST  0x00027D00
 
-.macro restore_all_gpr
-	movq IOFFSET_RAX(%rsp), %rax
-	movq IOFFSET_RCX(%rsp), %rcx
-	movq IOFFSET_RDX(%rsp), %rdx
-	movq IOFFSET_RSI(%rsp), %rsi
-	movq IOFFSET_RDI(%rsp), %rdi
-	movq IOFFSET_R8(%rsp), %r8
-	movq IOFFSET_R9(%rsp), %r9
-	movq IOFFSET_R10(%rsp), %r10
-	movq IOFFSET_R11(%rsp), %r11
-	movq IOFFSET_RBP(%rsp), %rbp
-.endm
+.macro handler i
+.global int_\i
+int_\i:
 
-#define INTERRUPT_ALIGN  128
-
-/** Declare interrupt handlers
- *
- * Declare interrupt handlers for n interrupt
- * vectors starting at vector i.
- *
- * The handlers call exc_dispatch().
- *
- */
-.macro handler i n
-	
 	/*
 	 * Choose between version with error code and version without error
-	 * code. Both versions have to be of the same size. amd64 assembly is,
-	 * however, a little bit tricky. For instance, subq $0x80, %rsp and
-	 * subq $0x78, %rsp can result in two instructions with different
-	 * op-code lengths.
-	 * Therefore we align the interrupt handlers.
+	 * code.
 	 */
 	
 	.iflt \i-32
@@ -228,54 +193,89 @@ read_efer_flag:
 			/*
 			 * Version with error word.
 			 */
-			subq $IREGISTER_SPACE, %rsp
+			subq $ISTATE_SOFT_SIZE, %rsp
 		.else
 			/*
-			 * Version without error word,
+			 * Version without error word.
 			 */
-			subq $(IREGISTER_SPACE + 8), %rsp
+			subq $(ISTATE_SOFT_SIZE + 8), %rsp
 		.endif
 	.else
 		/*
-		 * Version without error word,
+		 * Version without error word.
 		 */
-		subq $(IREGISTER_SPACE + 8), %rsp
+		subq $(ISTATE_SOFT_SIZE + 8), %rsp
 	.endif
-	
-	save_all_gpr
-	cld
 	
 	/*
+	 * Save the general purpose registers.
+	 */
+	movq %rax, ISTATE_OFFSET_RAX(%rsp)
+	movq %rbx, ISTATE_OFFSET_RBX(%rsp)
+	movq %rcx, ISTATE_OFFSET_RCX(%rsp)
+	movq %rdx, ISTATE_OFFSET_RDX(%rsp)
+	movq %rsi, ISTATE_OFFSET_RSI(%rsp)
+	movq %rdi, ISTATE_OFFSET_RDI(%rsp)
+	movq %rbp, ISTATE_OFFSET_RBP(%rsp)
+	movq %r8, ISTATE_OFFSET_R8(%rsp)
+	movq %r9, ISTATE_OFFSET_R9(%rsp)
+	movq %r10, ISTATE_OFFSET_R10(%rsp)
+	movq %r11, ISTATE_OFFSET_R11(%rsp)
+	movq %r12, ISTATE_OFFSET_R12(%rsp)
+	movq %r13, ISTATE_OFFSET_R13(%rsp)
+	movq %r14, ISTATE_OFFSET_R14(%rsp)
+	movq %r15, ISTATE_OFFSET_R15(%rsp)
+
+	/*
+	 * Imitate a regular stack frame linkage.
 	 * Stop stack traces here if we came from userspace.
 	 */
-	movq %cs, %rax
-	xorq %rdx, %rdx
-	cmpq %rax, IREGISTER_SPACE+16(%rsp)
-	cmovneq %rdx, %rbp
+	xorl %edx, %edx
+	cmpq $(GDT_SELECTOR(KTEXT_DES)), ISTATE_OFFSET_CS(%rsp)
+	cmovnzq %rdx, %rbp
 
-	movq $(\i), %rdi   /* %rdi - first argument */
-	movq %rsp, %rsi    /* %rsi - pointer to istate */
+	movq %rbp, ISTATE_OFFSET_RBP_FRAME(%rsp)
+	movq ISTATE_OFFSET_RIP(%rsp), %rax
+	movq %rax, ISTATE_OFFSET_RIP_FRAME(%rsp)
+	leaq ISTATE_OFFSET_RBP_FRAME(%rsp), %rbp
+
+	movq $(\i), %rdi   /* pass intnum in the first argument */
+	movq %rsp, %rsi    /* pass istate address in the second argument */
 	
+	cld
+
 	/* Call exc_dispatch(i, istate) */
 	call exc_dispatch
-	
-	restore_all_gpr
+
+	/*
+	 * Restore all scratch registers and the preserved registers we have
+	 * clobbered in this handler (i.e. RBP).
+	 */
+	movq ISTATE_OFFSET_RAX(%rsp), %rax
+	movq ISTATE_OFFSET_RCX(%rsp), %rcx
+	movq ISTATE_OFFSET_RDX(%rsp), %rdx
+	movq ISTATE_OFFSET_RSI(%rsp), %rsi
+	movq ISTATE_OFFSET_RDI(%rsp), %rdi
+	movq ISTATE_OFFSET_RBP(%rsp), %rbp
+	movq ISTATE_OFFSET_R8(%rsp), %r8
+	movq ISTATE_OFFSET_R9(%rsp), %r9
+	movq ISTATE_OFFSET_R10(%rsp), %r10
+	movq ISTATE_OFFSET_R11(%rsp), %r11
 	
 	/* $8 = Skip error word */
-	addq $(IREGISTER_SPACE + 8), %rsp
+	addq $(ISTATE_SOFT_SIZE + 8), %rsp
 	iretq
-	
-	.align INTERRUPT_ALIGN
-	.if (\n - \i) - 1
-		handler "(\i + 1)", \n
-	.endif
 .endm
 
-.align INTERRUPT_ALIGN
+#define LIST_0_63 \
+	0, 1, 2, 3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,\
+	28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,\
+	53,54,55,56,57,58,59,60,61,62,63
+
 interrupt_handlers:
-	h_start:
-		handler 0 IDT_ITEMS
-	h_end:
+.irp cnt, LIST_0_63
+	handler \cnt 
+.endr
 
 /** Low-level syscall handler
  *
@@ -308,35 +308,83 @@ syscall_entry:
 	movq %rsp, %gs:0  /* save this thread's user RSP */
 	movq %gs:8, %rsp  /* set this thread's kernel RSP */
 	
-	/* Switch back to remain consistent */
+	/*
+	 * Note that the space needed for the imitated istate structure has been
+	 * preallocated for us in thread_create_arch() and set in
+	 * before_thread_runs_arch().
+	 */
+
+	/*
+	 * Save the general purpose registers and push the 7th argument (syscall
+	 * number) onto the stack. Note that the istate structure has a layout
+	 * which supports this.
+	 */
+	movq %rax, ISTATE_OFFSET_RAX(%rsp)  /* 7th argument, passed on stack */
+	movq %rbx, ISTATE_OFFSET_RBX(%rsp)  /* observability */
+	movq %rcx, ISTATE_OFFSET_RCX(%rsp)  /* userspace RIP */
+	movq %rdx, ISTATE_OFFSET_RDX(%rsp)  /* 3rd argument, observability */
+	movq %rsi, ISTATE_OFFSET_RSI(%rsp)  /* 2nd argument, observability */ 
+	movq %rdi, ISTATE_OFFSET_RDI(%rsp)  /* 1st argument, observability */
+	movq %rbp, ISTATE_OFFSET_RBP(%rsp)  /* need to preserve userspace RBP */
+	movq %r8, ISTATE_OFFSET_R8(%rsp)    /* 5th argument, observability */
+	movq %r9, ISTATE_OFFSET_R9(%rsp)    /* 6th argument, observability */
+	movq %r10, ISTATE_OFFSET_R10(%rsp)  /* 4th argument, observability */
+	movq %r11, ISTATE_OFFSET_R11(%rsp)  /* low 32 bits userspace RFLAGS */
+	movq %r12, ISTATE_OFFSET_R12(%rsp)  /* observability */
+	movq %r13, ISTATE_OFFSET_R13(%rsp)  /* observability */
+	movq %r14, ISTATE_OFFSET_R14(%rsp)  /* observability */
+	movq %r15, ISTATE_OFFSET_R15(%rsp)  /* observability */
+
+	/*
+	 * Save the return address and the userspace stack on locations that
+	 * would normally be taken by them.
+	 */
+	movq %gs:0, %rax
+	movq %rax, ISTATE_OFFSET_RSP(%rsp)
+	movq %rcx, ISTATE_OFFSET_RIP(%rsp)
+
+	/*
+	 * Imitate a regular stack frame linkage.
+	 */
+	movq $0, ISTATE_OFFSET_RBP_FRAME(%rsp)
+	movq %rcx, ISTATE_OFFSET_RIP_FRAME(%rsp)
+	leaq ISTATE_OFFSET_RBP_FRAME(%rsp), %rbp
+
+	/* Switch back to normal %gs */
 	swapgs
 	sti
 	
-	pushq %rcx
-	pushq %r11
-	pushq %rbp
-	
-	xorq %rbp, %rbp  /* stop the stack traces here */
-	
 	/* Copy the 4th argument where it is expected  */
 	movq %r10, %rcx
-	pushq %rax
-	
+
+	/*
+	 * Call syscall_handler() with the 7th argument passed on stack.
+	 */
 	call syscall_handler
 	
-	addq $8, %rsp
-	
-	popq %rbp
-	popq %r11
-	popq %rcx
-	
 	cli
-	swapgs
 	
-	/* Restore the user RSP */
-	movq %gs:0, %rsp
-	swapgs
-	
+	/*
+	 * Restore registers needed for return via the SYSRET instruction and
+	 * the clobbered preserved registers (i.e. RBP).
+	 */
+	movq ISTATE_OFFSET_RBP(%rsp), %rbp
+	movq ISTATE_OFFSET_RCX(%rsp), %rcx
+	movq ISTATE_OFFSET_R11(%rsp), %r11
+	movq ISTATE_OFFSET_RSP(%rsp), %rsp
+
+	/*
+	 * Clear the rest of the scratch registers to prevent information leak.
+	 * The 32-bit XOR on the low GPRs actually clears the entire 64-bit
+	 * register and the instruction is shorter.
+	 */
+	xorl %edx, %edx
+	xorl %esi, %esi
+	xorl %edi, %edi
+	xorq %r8, %r8
+	xorq %r9, %r9
+	xorq %r10, %r10
+
 	sysretq
 
 /** Print Unicode character to EGA display.
@@ -346,8 +394,8 @@ syscall_entry:
  *
  * Since the EGA can only display Extended ASCII (usually
  * ISO Latin 1) characters, some of the Unicode characters
- * can be displayed in a wrong way. Only the newline character
- * is interpreted, all other characters (even unprintable) are
+ * can be displayed in a wrong way. Only newline and backspace
+ * are interpreted, all other characters (even unprintable) are
  * printed verbatim.
  *
  * @param %rdi Unicode character to be printed.
@@ -364,7 +412,7 @@ early_putchar:
 	
 	movq %rdi, %rsi
 	movq $(PA2KA(0xb8000)), %rdi  /* base of EGA text mode memory */
-	xorq %rax, %rax
+	xorl %eax, %eax
 	
 	/* Read bits 8 - 15 of the cursor address */
 	movw $0x3d4, %dx
@@ -398,7 +446,7 @@ early_putchar:
 	movq %rsi, %rax
 	
 	cmp $0x0a, %al
-	jne early_putchar_print
+	jne early_putchar_backspace
 	
 		/* Interpret newline */
 		
@@ -412,7 +460,20 @@ early_putchar:
 		addw %cx, %bx
 		subw %dx, %bx
 		
-		jmp early_putchar_newline
+		jmp early_putchar_skip
+	
+	early_putchar_backspace:
+	
+		cmp $0x08, %al
+		jne early_putchar_print
+		
+		/* Interpret backspace */
+		
+		cmp $0x0000, %bx
+		je early_putchar_skip
+		
+		dec %bx
+		jmp early_putchar_skip
 	
 	early_putchar_print:
 	
@@ -422,7 +483,7 @@ early_putchar:
 		stosw
 		inc %bx
 	
-	early_putchar_newline:
+	early_putchar_skip:
 	
 	/* Sanity check for the cursor on the last line */
 	cmp $2000, %bx
@@ -431,13 +492,13 @@ early_putchar:
 		/* Scroll the screen (24 rows) */
 		movq $(PA2KA(0xb80a0)), %rsi
 		movq $(PA2KA(0xb8000)), %rdi
-		movq $1920, %rcx
-		rep movsw
+		movl $480, %ecx
+		rep movsq
 		
 		/* Clear the 24th row */
-		xorq %rax, %rax
-		movq $80, %rcx
-		rep stosw
+		xorl %eax, %eax
+		movl $20, %ecx
+		rep stosq
 		
 		/* Go to row 24 */
 		movw $1920, %bx
@@ -470,7 +531,3 @@ early_putchar:
 	
 	ret
 
-.data
-.global interrupt_handler_size
-
-interrupt_handler_size: .quad (h_end - h_start) / IDT_ITEMS

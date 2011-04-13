@@ -36,13 +36,16 @@
 #ifndef KERN_arm32_CYCLE_H_
 #define KERN_arm32_CYCLE_H_
 
-/** Returns count of CPU cycles.
+#include <trace.h>
+
+/** Return count of CPU cycles.
  *
- *  No such instruction on ARM to get count of cycles.
+ * No such instruction on ARM to get count of cycles.
  *
- *  @return Count of CPU cycles.
+ * @return Count of CPU cycles.
+ *
  */
-static inline uint64_t get_cycle(void)
+NO_TRACE static inline uint64_t get_cycle(void)
 {
 	return 0;
 }

@@ -59,11 +59,13 @@ struct arm_machine_ops gxemul_machine_ops = {
 	gxemul_init,
 	gxemul_timer_irq_start,
 	gxemul_cpu_halt,
-	gxemul_get_memory_size,
+	gxemul_get_memory_extents,
 	gxemul_irq_exception,
 	gxemul_frame_init,
 	gxemul_output_init,
-	gxemul_input_init
+	gxemul_input_init,
+	gxemul_get_irq_count,
+	gxemul_get_platform_name
 };
 
 void gxemul_init(void)
@@ -121,8 +123,18 @@ void gxemul_input_init(void)
 	 */
 	sysinfo_set_item_val("kbd", NULL, true);
 	sysinfo_set_item_val("kbd.inr", NULL, GXEMUL_KBD_IRQ);
-	sysinfo_set_item_val("kbd.address.virtual", NULL, (unative_t) gxemul_kbd);
+	sysinfo_set_item_val("kbd.address.virtual", NULL, (sysarg_t) gxemul_kbd);
 #endif
+}
+
+size_t gxemul_get_irq_count(void)
+{
+	return GXEMUL_IRQ_COUNT;
+}
+
+const char *gxemul_get_platform_name(void)
+{
+	return "gxemul";
 }
 
 /** Starts gxemul Real Time Clock device, which asserts regular interrupts.
@@ -184,15 +196,16 @@ void gxemul_timer_irq_start(void)
         gxemul_timer_start(GXEMUL_TIMER_FREQ);
 }
 
-/** Returns the size of emulated memory.
+/** Get extents of available memory.
  *
- * @return Size in bytes.
+ * @param start		Place to store memory start address.
+ * @param size		Place to store memory size.
  */
-uintptr_t gxemul_get_memory_size(void)
+void gxemul_get_memory_extents(uintptr_t *start, uintptr_t *size)
 {
-        return  *((uintptr_t *) (GXEMUL_MP_ADDRESS + GXEMUL_MP_MEMSIZE_OFFSET));
+	*start = 0;
+        *size = *((uintptr_t *) (GXEMUL_MP_ADDRESS + GXEMUL_MP_MEMSIZE_OFFSET));
 }
-
 
 /** Returns the mask of active interrupts. */
 static inline uint32_t gxemul_irqc_get_sources(void)
@@ -209,7 +222,7 @@ void gxemul_irq_exception(unsigned int exc_no, istate_t *istate)
 	uint32_t sources = gxemul_irqc_get_sources();
 	unsigned int i;
 
-	for (i = 0; i < GXEMUL_IRQC_MAX_IRQ; i++) {
+	for (i = 0; i < GXEMUL_IRQ_COUNT; i++) {
 		if (sources & (1 << i)) {
 			irq_t *irq = irq_dispatch_and_lock(i);
 			if (irq) {

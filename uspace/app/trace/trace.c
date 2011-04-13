@@ -35,7 +35,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <ipc/ipc.h>
 #include <fibril.h>
 #include <errno.h>
 #include <udebug.h>
@@ -53,7 +52,7 @@
 
 #include <libc.h>
 
-// Temporary: service and method names
+/* Temporary: service and method names */
 #include "proto.h"
 #include <ipc/services.h>
 #include "../../srv/vfs/vfs.h"
@@ -148,7 +147,7 @@ static int connect_task(task_id_t task_id)
 {
 	int rc;
 
-	rc = ipc_connect_kbox(task_id);
+	rc = async_connect_kbox(task_id);
 
 	if (rc == ENOTSUP) {
 		printf("You do not have userspace debugging support "
@@ -160,7 +159,7 @@ static int connect_task(task_id_t task_id)
 
 	if (rc < 0) {
 		printf("Error connecting\n");
-		printf("ipc_connect_task(%" PRIdTASKID ") -> %d ", task_id, rc);
+		printf("ipc_connect_task(%" PRIu64 ") -> %d ", task_id, rc);
 		return rc;
 	}
 
@@ -199,9 +198,9 @@ static int get_thread_list(void)
 
 	printf("Threads:");
 	for (i = 0; i < n_threads; i++) {
-		printf(" [%d] (hash %p)", 1+i, thread_hash_buf[i]);
+		printf(" [%d] (hash %p)", 1 + i, (void *) thread_hash_buf[i]);
 	}
-	printf("\ntotal of %u threads\n", tb_needed / sizeof(uintptr_t));
+	printf("\ntotal of %zu threads\n", tb_needed / sizeof(uintptr_t));
 
 	return 0;
 }
@@ -223,7 +222,7 @@ void val_print(sysarg_t val, val_type_t v_type)
 
 	case V_HASH:
 	case V_PTR:
-		printf("%p", val);
+		printf("%p", (void *) val);
 		break;
 
 	case V_ERRNO:
@@ -247,7 +246,7 @@ void val_print(sysarg_t val, val_type_t v_type)
 
 	case V_CHAR:
 		if (sval >= 0x20 && sval < 0x7f) {
-			printf("'%c'", sval);
+			printf("'%c'", (char) sval);
 		} else {
 			switch (sval) {
 			case '\a': printf("'\\a'"); break;
@@ -256,7 +255,7 @@ void val_print(sysarg_t val, val_type_t v_type)
 			case '\r': printf("'\\r'"); break;
 			case '\t': printf("'\\t'"); break;
 			case '\\': printf("'\\\\'"); break;
-			default: printf("'\\x%02lX'", val); break;
+			default: printf("'\\x%02" PRIxn "'", val); break;
 			}
 		}
 		break;
@@ -276,9 +275,9 @@ static void print_sc_args(sysarg_t *sc_args, int n)
 	int i;
 
 	putchar('(');
-	if (n > 0) printf("%" PRIdSYSARG, sc_args[0]);
+	if (n > 0) printf("%" PRIun, sc_args[0]);
 	for (i = 1; i < n; i++) {
-		printf(", %" PRIdSYSARG, sc_args[i]);
+		printf(", %" PRIun, sc_args[i]);
 	}
 	putchar(')');
 }
@@ -286,7 +285,7 @@ static void print_sc_args(sysarg_t *sc_args, int n)
 static void sc_ipc_call_async_fast(sysarg_t *sc_args, sysarg_t sc_rc)
 {
 	ipc_call_t call;
-	ipcarg_t phoneid;
+	sysarg_t phoneid;
 	
 	if (sc_rc == (sysarg_t) IPC_CALLRET_FATAL ||
 	    sc_rc == (sysarg_t) IPC_CALLRET_TEMPORARY)
@@ -294,7 +293,7 @@ static void sc_ipc_call_async_fast(sysarg_t *sc_args, sysarg_t sc_rc)
 
 	phoneid = sc_args[0];
 
-	IPC_SET_METHOD(call, sc_args[1]);
+	IPC_SET_IMETHOD(call, sc_args[1]);
 	IPC_SET_ARG1(call, sc_args[2]);
 	IPC_SET_ARG2(call, sc_args[3]);
 	IPC_SET_ARG3(call, sc_args[4]);
@@ -330,7 +329,7 @@ static void sc_ipc_call_sync_fast(sysarg_t *sc_args)
 //	printf("sc_ipc_call_sync_fast()\n");
 	phoneidx = sc_args[0];
 
-	IPC_SET_METHOD(question, sc_args[1]);
+	IPC_SET_IMETHOD(question, sc_args[1]);
 	IPC_SET_ARG1(question, sc_args[2]);
 	IPC_SET_ARG2(question, sc_args[3]);
 	IPC_SET_ARG3(question, sc_args[4]);
@@ -488,7 +487,7 @@ static void event_syscall_e(unsigned thread_id, uintptr_t thread_hash,
 static void event_thread_b(uintptr_t hash)
 {
 	async_serialize_start();
-	printf("New thread, hash 0x%lx\n", hash);
+	printf("New thread, hash %p\n", (void *) hash);
 	async_serialize_end();
 
 	thread_trace_start(hash);
@@ -509,19 +508,20 @@ static int trace_loop(void *thread_hash_arg)
 		return ELIMIT;
 	}
 
-	printf("Start tracing thread [%d] (hash %p).\n", thread_id, thread_hash);
+	printf("Start tracing thread [%u] (hash %p).\n",
+	    thread_id, (void *) thread_hash);
 
 	while (!abort_trace) {
 
 		fibril_mutex_lock(&state_lock);
 		if (paused) {
-			printf("Thread [%d] paused. Press R to resume.\n",
+			printf("Thread [%u] paused. Press R to resume.\n",
 			    thread_id);
 
 			while (paused)
 				fibril_condvar_wait(&state_cv, &state_lock);
 
-			printf("Thread [%d] resumed.\n", thread_id);
+			printf("Thread [%u] resumed.\n", thread_id);
 		}
 		fibril_mutex_unlock(&state_lock);
 
@@ -553,7 +553,7 @@ static int trace_loop(void *thread_hash_arg)
 				event_thread_b(val0);
 				break;
 			case UDEBUG_EVENT_THREAD_E:
-				printf("Thread %p exited.\n", val0);
+				printf("Thread %" PRIun " exited.\n", val0);
 				fibril_mutex_lock(&state_lock);
 				abort_trace = true;
 				fibril_condvar_broadcast(&state_cv);
@@ -743,7 +743,7 @@ static void trace_task(task_id_t task_id)
 	printf("\nTerminate debugging session...\n");
 	abort_trace = true;
 	udebug_end(phoneid);
-	ipc_hangup(phoneid);
+	async_hangup(phoneid);
 
 	ipcp_cleanup();
 
@@ -871,7 +871,7 @@ static void print_syntax()
 
 static display_mask_t parse_display_mask(const char *text)
 {
-	display_mask_t dm;
+	display_mask_t dm = 0;
 	const char *c = text;
 	
 	while (*c) {
@@ -926,7 +926,7 @@ static int parse_args(int argc, char *argv[])
 					return -1;
 				}
 			} else {
-				printf("Uknown option '%s'\n", arg[0]);
+				printf("Uknown option '%c'\n", arg[0]);
 				print_syntax();
 				return -1;
 			}
@@ -983,11 +983,11 @@ int main(int argc, char *argv[])
 
 	rc = connect_task(task_id);
 	if (rc < 0) {
-		printf("Failed connecting to task %" PRIdTASKID ".\n", task_id);
+		printf("Failed connecting to task %" PRIu64 ".\n", task_id);
 		return 1;
 	}
 
-	printf("Connected to task %" PRIdTASKID ".\n", task_id);
+	printf("Connected to task %" PRIu64 ".\n", task_id);
 
 	if (task_ldr != NULL)
 		program_run();

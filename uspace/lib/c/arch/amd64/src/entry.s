@@ -41,10 +41,8 @@ __entry:
 	# Create the first stack frame.
 	#
 	pushq $0
-	mov %rsp, %rbp
+	movq %rsp, %rbp
 	
 	# %rdi was deliberately chosen as the first argument is also in %rdi
 	# Pass PCB pointer to __main (no operation)
 	call __main
-
-	call __exit

@@ -38,8 +38,8 @@
 #define PAGE0  0x10000000
 #define PAGE1  (PAGE0 + PAGE_SIZE)
 
-#define VALUE0  0x01234567
-#define VALUE1  0x89abcdef
+#define VALUE0  UINT32_C(0x01234567)
+#define VALUE1  UINT32_C(0x89abcdef)
 
 const char *test_mapping1(void)
 {
@@ -49,39 +49,49 @@ const char *test_mapping1(void)
 	frame0 = (uintptr_t) frame_alloc(ONE_FRAME, FRAME_KA);
 	frame1 = (uintptr_t) frame_alloc(ONE_FRAME, FRAME_KA);
 	
-	TPRINTF("Writing %#x to physical address %p.\n", VALUE0, KA2PA(frame0));
+	TPRINTF("Writing %#" PRIx32 " to physical address %p.\n",
+	    (uint32_t) VALUE0, (void *) KA2PA(frame0));
 	*((uint32_t *) frame0) = VALUE0;
 	
-	TPRINTF("Writing %#x to physical address %p.\n", VALUE1, KA2PA(frame1));
+	TPRINTF("Writing %#" PRIx32 " to physical address %p.\n",
+	    (uint32_t) VALUE1, (void *) KA2PA(frame1));
 	*((uint32_t *) frame1) = VALUE1;
 	
-	TPRINTF("Mapping virtual address %p to physical address %p.\n", PAGE0, KA2PA(frame0));
+	TPRINTF("Mapping virtual address %p to physical address %p.\n",
+	    (void *) PAGE0, (void *) KA2PA(frame0));
 	page_mapping_insert(AS_KERNEL, PAGE0, KA2PA(frame0), PAGE_PRESENT | PAGE_WRITE);
 	
-	TPRINTF("Mapping virtual address %p to physical address %p.\n", PAGE1, KA2PA(frame1));
+	TPRINTF("Mapping virtual address %p to physical address %p.\n",
+	    (void *) PAGE1, (void *) KA2PA(frame1));
 	page_mapping_insert(AS_KERNEL, PAGE1, KA2PA(frame1), PAGE_PRESENT | PAGE_WRITE);
 	
 	v0 = *((uint32_t *) PAGE0);
 	v1 = *((uint32_t *) PAGE1);
-	TPRINTF("Value at virtual address %p is %#x.\n", PAGE0, v0);
-	TPRINTF("Value at virtual address %p is %#x.\n", PAGE1, v1);
+	TPRINTF("Value at virtual address %p is %#" PRIx32 ".\n",
+	    (void *) PAGE0, v0);
+	TPRINTF("Value at virtual address %p is %#" PRIx32 ".\n",
+	    (void *) PAGE1, v1);
 	
 	if (v0 != VALUE0)
 		return "Value at v0 not equal to VALUE0";
 	if (v1 != VALUE1)
 		return "Value at v1 not equal to VALUE1";
 	
-	TPRINTF("Writing %#x to virtual address %p.\n", 0, PAGE0);
+	TPRINTF("Writing %#" PRIx32 " to virtual address %p.\n",
+	    (uint32_t) 0, (void *) PAGE0);
 	*((uint32_t *) PAGE0) = 0;
 	
-	TPRINTF("Writing %#x to virtual address %p.\n", 0, PAGE1);
+	TPRINTF("Writing %#" PRIx32 " to virtual address %p.\n",
+	    (uint32_t) 0, (void *) PAGE1);
 	*((uint32_t *) PAGE1) = 0;
 	
 	v0 = *((uint32_t *) PAGE0);
 	v1 = *((uint32_t *) PAGE1);
 	
-	TPRINTF("Value at virtual address %p is %#x.\n", PAGE0, *((uint32_t *) PAGE0));	
-	TPRINTF("Value at virtual address %p is %#x.\n", PAGE1, *((uint32_t *) PAGE1));
+	TPRINTF("Value at virtual address %p is %#" PRIx32 ".\n",
+	    (void *) PAGE0, *((uint32_t *) PAGE0));
+	TPRINTF("Value at virtual address %p is %#" PRIx32 ".\n",
+	    (void *) PAGE1, *((uint32_t *) PAGE1));
 	
 	if (v0 != 0)
 		return "Value at v0 not equal to 0";

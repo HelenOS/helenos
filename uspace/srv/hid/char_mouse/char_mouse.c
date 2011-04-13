@@ -38,7 +38,6 @@
 /** @file
  */
 
-#include <ipc/ipc.h>
 #include <ipc/mouse.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -82,18 +81,18 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	ipc_call_t call;
 	int retval;
 
-	ipc_answer_0(iid, EOK);
+	async_answer_0(iid, EOK);
 
 	while (1) {
 		callid = async_get_call(&call);
-		switch (IPC_GET_METHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			if (client_phone != -1) {
-				ipc_hangup(client_phone);
+				async_hangup(client_phone);
 				client_phone = -1;
 			}
 
-			ipc_answer_0(callid, EOK);
+			async_answer_0(callid, EOK);
 			return;
 		case IPC_M_CONNECT_TO_ME:
 			if (client_phone != -1) {
@@ -106,7 +105,7 @@ static void client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		default:
 			retval = EINVAL;
 		}
-		ipc_answer_0(callid, retval);
+		async_answer_0(callid, retval);
 	}
 }
 
@@ -133,8 +132,8 @@ int main(int argc, char **argv)
 	char dev_path[DEVMAP_NAME_MAXLEN + 1];
 	snprintf(dev_path, DEVMAP_NAME_MAXLEN, "%s/%s", NAMESPACE, NAME);
 
-	dev_handle_t dev_handle;
-	if (devmap_device_register(dev_path, &dev_handle) != EOK) {
+	devmap_handle_t devmap_handle;
+	if (devmap_device_register(dev_path, &devmap_handle) != EOK) {
 		printf(NAME ": Unable to register device %s\n", dev_path);
 		return -1;
 	}

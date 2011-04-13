@@ -45,7 +45,7 @@
 /** Request for connection to a clonable service. */
 typedef struct {
 	link_t link;
-	ipcarg_t service;
+	sysarg_t service;
 	ipc_call_t call;
 	ipc_callid_t callid;
 } cs_req_t;
@@ -72,7 +72,7 @@ bool service_clonable(int service)
  * @param call    Pointer to call structure.
  *
  */
-void register_clonable(ipcarg_t service, ipcarg_t phone, ipc_call_t *call,
+void register_clonable(sysarg_t service, sysarg_t phone, ipc_call_t *call,
     ipc_callid_t callid)
 {
 	if (list_empty(&cs_req)) {
@@ -91,7 +91,7 @@ void register_clonable(ipcarg_t service, ipcarg_t phone, ipc_call_t *call,
 	ipc_answer_0(callid, EOK);
 	
 	ipc_forward_fast(csr->callid, phone, IPC_GET_ARG2(csr->call),
-		IPC_GET_ARG3(csr->call), 0, IPC_FF_NONE);
+	    IPC_GET_ARG3(csr->call), 0, IPC_FF_NONE);
 	
 	free(csr);
 	ipc_hangup(phone);
@@ -106,7 +106,7 @@ void register_clonable(ipcarg_t service, ipcarg_t phone, ipc_call_t *call,
  * @return Zero on success or a value from @ref errno.h.
  *
  */
-void connect_to_clonable(ipcarg_t service, ipc_call_t *call,
+void connect_to_clonable(sysarg_t service, ipc_call_t *call,
     ipc_callid_t callid)
 {
 	assert(service == SERVICE_LOAD);
@@ -126,6 +126,7 @@ void connect_to_clonable(ipcarg_t service, ipc_call_t *call,
 		return;
 	}
 	
+	link_initialize(&csr->link);
 	csr->service = service;
 	csr->call = *call;
 	csr->callid = callid;

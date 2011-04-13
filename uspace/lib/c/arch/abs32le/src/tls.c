@@ -45,7 +45,7 @@ void __free_tls_arch(tcb_t *tcb, size_t size)
 
 uintptr_t __aeabi_read_tp(void)
 {
-	return NULL;
+	return (uintptr_t) NULL;
 }
 
 /** @}

@@ -84,7 +84,7 @@ static void syntax_print(void);
 static int fat_params_compute(struct fat_cfg const *cfg,
     struct fat_params *par);
 static int fat_blocks_write(struct fat_params const *par,
-    dev_handle_t handle);
+    devmap_handle_t handle);
 static void fat_bootsec_create(struct fat_params const *par, struct fat_bs *bs);
 
 int main(int argc, char **argv)
@@ -94,7 +94,7 @@ int main(int argc, char **argv)
 
 	int rc;
 	char *dev_path;
-	dev_handle_t handle;
+	devmap_handle_t handle;
 	size_t block_size;
 	char *endptr;
 	aoff64_t dev_nblocks;
@@ -233,7 +233,7 @@ static int fat_params_compute(struct fat_cfg const *cfg, struct fat_params *par)
 }
 
 /** Create file system with the given parameters. */
-static int fat_blocks_write(struct fat_params const *par, dev_handle_t handle)
+static int fat_blocks_write(struct fat_params const *par, devmap_handle_t handle)
 {
 	aoff64_t addr;
 	uint8_t *buffer;

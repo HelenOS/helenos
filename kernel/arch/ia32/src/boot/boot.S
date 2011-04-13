@@ -77,17 +77,17 @@ multiboot_image_start:
 	movl $START_STACK, %esp
 	
 	/* Initialize Global Descriptor Table register */
-	lgdtl KA2PA(bootstrap_gdtr)
+	lgdtl bootstrap_gdtr
 	
 	/* Kernel data + stack */
-	movw $gdtselector(KDATA_DES), %cx
+	movw $GDT_SELECTOR(KDATA_DES), %cx
 	movw %cx, %es
 	movw %cx, %fs
 	movw %cx, %gs
 	movw %cx, %ds
 	movw %cx, %ss
 	
-	jmpl $gdtselector(KTEXT_DES), $multiboot_meeting_point
+	jmpl $GDT_SELECTOR(KTEXT_DES), $multiboot_meeting_point
 	multiboot_meeting_point:
 	
 	/* Save GRUB arguments */
@@ -239,13 +239,13 @@ pm_error_halt:
 		movl %esi, %edx
 		movl $0xb80a0, %esi
 		movl $0xb8000, %edi
-		movl $1920, %ecx
-		rep movsw
+		movl $960, %ecx
+		rep movsl
 		
 		/* Clear the 24th row */
 		xorl %eax, %eax
-		movl $80, %ecx
-		rep stosw
+		movl $40, %ecx
+		rep stosl
 		
 		/* Go to row 24 */
 		movl %edx, %esi
@@ -347,13 +347,13 @@ pm_early_puts:
 		movl %esi, %edx
 		movl $0xb80a0, %esi
 		movl $0xb8000, %edi
-		movl $1920, %ecx
-		rep movsw
+		movl $960, %ecx
+		rep movsl
 		
 		/* Clear the 24th row */
 		xorl %eax, %eax
-		movl $80, %ecx
-		rep stosw
+		movl $40, %ecx
+		rep stosl
 		
 		/* Go to row 24 */
 		movl %edx, %esi
@@ -462,13 +462,13 @@ early_puts:
 		movl %esi, %edx
 		movl $(PA2KA(0xb80a0)), %esi
 		movl $(PA2KA(0xb8000)), %edi
-		movl $1920, %ecx
-		rep movsw
+		movl $960, %ecx
+		rep movsl
 		
 		/* Clear the 24th row */
 		xorl %eax, %eax
-		movl $80, %ecx
-		rep stosw
+		movl $40, %ecx
+		rep stosl
 		
 		/* Go to row 24 */
 		movl %edx, %esi
@@ -513,6 +513,10 @@ early_puts:
 .align 4096
 page_directory:
 	.space 4096, 0
+
+bootstrap_gdtr:
+	.word GDT_SELECTOR(GDT_ITEMS)
+	.long KA2PA(gdt)
 
 grub_eax:
 	.long 0

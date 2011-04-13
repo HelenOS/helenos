@@ -37,11 +37,11 @@
 
 #include <typedefs.h>
 
-#define FPU_CONTEXT_ALIGN    sizeof(unative_t)
+#define FPU_CONTEXT_ALIGN    sizeof(sysarg_t)
 
 typedef struct {
-	unative_t dregs[32];
-	unative_t cregs[32];
+	sysarg_t dregs[32];
+	sysarg_t cregs[32];
 } fpu_context_t;
 
 #endif

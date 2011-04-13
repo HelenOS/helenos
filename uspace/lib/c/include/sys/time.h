@@ -42,6 +42,9 @@
 typedef long time_t;
 typedef long suseconds_t;
 
+typedef uint32_t useconds_t;
+typedef uint32_t mseconds_t;
+
 struct timeval {
 	time_t tv_sec;        /* seconds */
 	suseconds_t tv_usec;  /* microseconds */

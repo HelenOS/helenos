@@ -48,6 +48,7 @@
 #include <arch/interrupt.h>
 #include <syscall/copy.h>
 #include <security/cap.h>
+#include <console/console.h>
 #include <mm/as.h>
 #include <print.h>
 
@@ -67,7 +68,7 @@
  * @return EOK on success, EINVAL if ID is invalid.
  *
  */
-static int phone_get(unative_t phoneid, phone_t **phone)
+static int phone_get(sysarg_t phoneid, phone_t **phone)
 {
 	if (phoneid >= IPC_MAX_PHONES)
 		return EINVAL;
@@ -76,34 +77,35 @@ static int phone_get(unative_t phoneid, phone_t **phone)
 	return EOK;
 }
 
-/** Decide if the method is a system method.
+/** Decide if the interface and method is a system method.
  *
- * @param method Method to be decided.
+ * @param imethod Interface and method to be decided.
  *
- * @return true if the method is a system method.
+ * @return True if the interface and method is a system
+ *         interface and method.
  *
  */
-static inline bool method_is_system(unative_t method)
+static inline bool method_is_system(sysarg_t imethod)
 {
-	if (method <= IPC_M_LAST_SYSTEM)
+	if (imethod <= IPC_M_LAST_SYSTEM)
 		return true;
 	
 	return false;
 }
 
-/** Decide if the message with this method is forwardable.
+/** Decide if the message with this interface and method is forwardable.
  *
- * - some system messages may be forwarded, for some of them
- *   it is useless
+ * Some system messages may be forwarded, for some of them
+ * it is useless.
  *
- * @param method Method to be decided.
+ * @param imethod Interface and method to be decided.
  *
- * @return true if the method is forwardable.
+ * @return True if the interface and method is forwardable.
  *
  */
-static inline bool method_is_forwardable(unative_t method)
+static inline bool method_is_forwardable(sysarg_t imethod)
 {
-	switch (method) {
+	switch (imethod) {
 	case IPC_M_CONNECTION_CLONE:
 	case IPC_M_CONNECT_ME:
 	case IPC_M_PHONE_HUNGUP:
@@ -114,18 +116,18 @@ static inline bool method_is_forwardable(unative_t method)
 	}
 }
 
-/** Decide if the message with this method is immutable on forward.
+/** Decide if the message with this interface and method is immutable on forward.
  *
- * - some system messages may be forwarded but their content cannot be altered
+ * Some system messages may be forwarded but their content cannot be altered.
  *
- * @param method Method to be decided.
+ * @param imethod Interface and method to be decided.
  *
- * @return true if the method is immutable on forward.
+ * @return True if the interface and method is immutable on forward.
  *
  */
-static inline bool method_is_immutable(unative_t method)
+static inline bool method_is_immutable(sysarg_t imethod)
 {
-	switch (method) {
+	switch (imethod) {
 	case IPC_M_SHARE_OUT:
 	case IPC_M_SHARE_IN:
 	case IPC_M_DATA_WRITE:
@@ -151,7 +153,7 @@ static inline bool method_is_immutable(unative_t method)
  */
 static inline bool answer_need_old(call_t *call)
 {
-	switch (IPC_GET_METHOD(call->data)) {
+	switch (IPC_GET_IMETHOD(call->data)) {
 	case IPC_M_CONNECTION_CLONE:
 	case IPC_M_CONNECT_ME:
 	case IPC_M_CONNECT_TO_ME:
@@ -195,7 +197,7 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 	if (!olddata)
 		return 0;
 	
-	if (IPC_GET_METHOD(*olddata) == IPC_M_CONNECTION_CLONE) {
+	if (IPC_GET_IMETHOD(*olddata) == IPC_M_CONNECTION_CLONE) {
 		int phoneid = IPC_GET_ARG1(*olddata);
 		phone_t *phone = &TASK->phones[phoneid];
 		
@@ -217,7 +219,7 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 			}
 			mutex_unlock(&phone->lock);
 		}
-	} else if (IPC_GET_METHOD(*olddata) == IPC_M_CONNECT_ME) {
+	} else if (IPC_GET_IMETHOD(*olddata) == IPC_M_CONNECT_ME) {
 		phone_t *phone = (phone_t *) IPC_GET_ARG5(*olddata);
 		
 		if (IPC_GET_RETVAL(answer->data) != EOK) {
@@ -236,7 +238,7 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 			}
 			mutex_unlock(&phone->lock);
 		}
-	} else if (IPC_GET_METHOD(*olddata) == IPC_M_CONNECT_TO_ME) {
+	} else if (IPC_GET_IMETHOD(*olddata) == IPC_M_CONNECT_TO_ME) {
 		int phoneid = IPC_GET_ARG5(*olddata);
 		
 		if (IPC_GET_RETVAL(answer->data) != EOK) {
@@ -245,17 +247,19 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 		} else {
 			/* The connection was accepted */
 			phone_connect(phoneid, &answer->sender->answerbox);
+			/* Set 'task hash' as arg4 of response */
+			IPC_SET_ARG4(answer->data, (sysarg_t) TASK);
 			/* Set 'phone hash' as arg5 of response */
 			IPC_SET_ARG5(answer->data,
-			    (unative_t) &TASK->phones[phoneid]);
+			    (sysarg_t) &TASK->phones[phoneid]);
 		}
-	} else if (IPC_GET_METHOD(*olddata) == IPC_M_CONNECT_ME_TO) {
+	} else if (IPC_GET_IMETHOD(*olddata) == IPC_M_CONNECT_ME_TO) {
 		/* If the users accepted call, connect */
 		if (IPC_GET_RETVAL(answer->data) == EOK) {
 			ipc_phone_connect((phone_t *) IPC_GET_ARG5(*olddata),
 			    &TASK->answerbox);
 		}
-	} else if (IPC_GET_METHOD(*olddata) == IPC_M_SHARE_OUT) {
+	} else if (IPC_GET_IMETHOD(*olddata) == IPC_M_SHARE_OUT) {
 		if (!IPC_GET_RETVAL(answer->data)) {
 			/* Accepted, handle as_area receipt */
 			
@@ -269,7 +273,7 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 			IPC_SET_RETVAL(answer->data, rc);
 			return rc;
 		}
-	} else if (IPC_GET_METHOD(*olddata) == IPC_M_SHARE_IN) {
+	} else if (IPC_GET_IMETHOD(*olddata) == IPC_M_SHARE_IN) {
 		if (!IPC_GET_RETVAL(answer->data)) { 
 			irq_spinlock_lock(&answer->sender->lock, true);
 			as_t *as = answer->sender->as;
@@ -280,7 +284,7 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 			    IPC_GET_ARG2(answer->data));
 			IPC_SET_RETVAL(answer->data, rc);
 		}
-	} else if (IPC_GET_METHOD(*olddata) == IPC_M_DATA_READ) {
+	} else if (IPC_GET_IMETHOD(*olddata) == IPC_M_DATA_READ) {
 		ASSERT(!answer->buffer);
 		if (!IPC_GET_RETVAL(answer->data)) {
 			/* The recipient agreed to send data. */
@@ -309,7 +313,7 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 				IPC_SET_RETVAL(answer->data, ELIMIT);
 			}
 		}
-	} else if (IPC_GET_METHOD(*olddata) == IPC_M_DATA_WRITE) {
+	} else if (IPC_GET_IMETHOD(*olddata) == IPC_M_DATA_WRITE) {
 		ASSERT(answer->buffer);
 		if (!IPC_GET_RETVAL(answer->data)) {
 			/* The recipient agreed to receive data. */
@@ -362,7 +366,7 @@ static void phones_unlock(phone_t *p1, phone_t *p2)
  */
 static int request_preprocess(call_t *call, phone_t *phone)
 {
-	switch (IPC_GET_METHOD(call->data)) {
+	switch (IPC_GET_IMETHOD(call->data)) {
 	case IPC_M_CONNECTION_CLONE: {
 		phone_t *cloned_phone;
 		if (phone_get(IPC_GET_ARG1(call->data), &cloned_phone) != EOK)
@@ -398,7 +402,7 @@ static int request_preprocess(call_t *call, phone_t *phone)
 		break;
 	}
 	case IPC_M_CONNECT_ME:
-		IPC_SET_ARG5(call->data, (unative_t) phone);
+		IPC_SET_ARG5(call->data, (sysarg_t) phone);
 		break;
 	case IPC_M_CONNECT_ME_TO: {
 		int newphid = phone_alloc(TASK);
@@ -406,7 +410,7 @@ static int request_preprocess(call_t *call, phone_t *phone)
 			return ELIMIT;
 		
 		/* Set arg5 for server */
-		IPC_SET_ARG5(call->data, (unative_t) &TASK->phones[newphid]);
+		IPC_SET_ARG5(call->data, (sysarg_t) &TASK->phones[newphid]);
 		call->flags |= IPC_CALL_CONN_ME_TO;
 		call->priv = newphid;
 		break;
@@ -421,17 +425,29 @@ static int request_preprocess(call_t *call, phone_t *phone)
 	}
 	case IPC_M_DATA_READ: {
 		size_t size = IPC_GET_ARG2(call->data);
-		if ((size <= 0 || (size > DATA_XFER_LIMIT)))
+		if (size <= 0)
 			return ELIMIT;
-		
+		if (size > DATA_XFER_LIMIT) {
+			int flags = IPC_GET_ARG3(call->data);
+			if (flags & IPC_XF_RESTRICT)
+				IPC_SET_ARG2(call->data, DATA_XFER_LIMIT);
+			else
+				return ELIMIT;
+		}
 		break;
 	}
 	case IPC_M_DATA_WRITE: {
 		uintptr_t src = IPC_GET_ARG1(call->data);
 		size_t size = IPC_GET_ARG2(call->data);
 		
-		if (size > DATA_XFER_LIMIT)
-			return ELIMIT;
+		if (size > DATA_XFER_LIMIT) {
+			int flags = IPC_GET_ARG3(call->data);
+			if (flags & IPC_XF_RESTRICT) {
+				size = DATA_XFER_LIMIT;
+				IPC_SET_ARG2(call->data, size);
+			} else
+				return ELIMIT;
+		}
 		
 		call->buffer = (uint8_t *) malloc(size, 0);
 		int rc = copy_from_uspace(call->buffer, (void *) src, size);
@@ -502,7 +518,7 @@ static void process_answer(call_t *call)
  */
 static int process_request(answerbox_t *box, call_t *call)
 {
-	if (IPC_GET_METHOD(call->data) == IPC_M_CONNECT_TO_ME) {
+	if (IPC_GET_IMETHOD(call->data) == IPC_M_CONNECT_TO_ME) {
 		int phoneid = phone_alloc(TASK);
 		if (phoneid < 0) { /* Failed to allocate phone */
 			IPC_SET_RETVAL(call->data, ELIMIT);
@@ -513,7 +529,7 @@ static int process_request(answerbox_t *box, call_t *call)
 		IPC_SET_ARG5(call->data, phoneid);
 	}
 	
-	switch (IPC_GET_METHOD(call->data)) {
+	switch (IPC_GET_IMETHOD(call->data)) {
 	case IPC_M_DEBUG_ALL:
 		return -1;
 	default:
@@ -529,26 +545,26 @@ static int process_request(answerbox_t *box, call_t *call)
  * the generic function (i.e. sys_ipc_call_sync_slow()).
  *
  * @param phoneid Phone handle for the call.
- * @param method  Method of the call.
+ * @param imethod Interface and method of the call.
  * @param arg1    Service-defined payload argument.
  * @param arg2    Service-defined payload argument.
  * @param arg3    Service-defined payload argument.
- * @param data    Address of userspace structure where the reply call will
+ * @param data    Address of user-space structure where the reply call will
  *                be stored.
  *
  * @return 0 on success.
  * @return ENOENT if there is no such phone handle.
  *
  */
-unative_t sys_ipc_call_sync_fast(unative_t phoneid, unative_t method,
-    unative_t arg1, unative_t arg2, unative_t arg3, ipc_data_t *data)
+sysarg_t sys_ipc_call_sync_fast(sysarg_t phoneid, sysarg_t imethod,
+    sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, ipc_data_t *data)
 {
 	phone_t *phone;
 	if (phone_get(phoneid, &phone) != EOK)
 		return ENOENT;
-
+	
 	call_t *call = ipc_call_alloc(0);
-	IPC_SET_METHOD(call->data, method);
+	IPC_SET_IMETHOD(call->data, imethod);
 	IPC_SET_ARG1(call->data, arg1);
 	IPC_SET_ARG2(call->data, arg2);
 	IPC_SET_ARG3(call->data, arg3);
@@ -578,7 +594,6 @@ unative_t sys_ipc_call_sync_fast(unative_t phoneid, unative_t method,
 		}
 		
 		process_answer(call);
-		
 	} else
 		IPC_SET_RETVAL(call->data, res);
 	
@@ -592,27 +607,27 @@ unative_t sys_ipc_call_sync_fast(unative_t phoneid, unative_t method,
 
 /** Make a synchronous IPC call allowing to transmit the entire payload.
  *
- * @param phoneid  Phone handle for the call.
- * @param question Userspace address of call data with the request.
- * @param reply    Userspace address of call data where to store the
- *                 answer.
+ * @param phoneid Phone handle for the call.
+ * @param request User-space address of call data with the request.
+ * @param reply   User-space address of call data where to store the
+ *                answer.
  *
  * @return Zero on success or an error code.
  *
  */
-unative_t sys_ipc_call_sync_slow(unative_t phoneid, ipc_data_t *question,
+sysarg_t sys_ipc_call_sync_slow(sysarg_t phoneid, ipc_data_t *request,
     ipc_data_t *reply)
 {
 	phone_t *phone;
 	if (phone_get(phoneid, &phone) != EOK)
 		return ENOENT;
-
+	
 	call_t *call = ipc_call_alloc(0);
-	int rc = copy_from_uspace(&call->data.args, &question->args,
+	int rc = copy_from_uspace(&call->data.args, &request->args,
 	    sizeof(call->data.args));
 	if (rc != 0) {
 		ipc_call_free(call);
-		return (unative_t) rc;
+		return (sysarg_t) rc;
 	}
 	
 	int res = request_preprocess(call, phone);
@@ -643,17 +658,18 @@ unative_t sys_ipc_call_sync_slow(unative_t phoneid, ipc_data_t *question,
 	return 0;
 }
 
-/** Check that the task did not exceed the allowed limit of asynchronous calls.
+/** Check that the task did not exceed the allowed limit of asynchronous calls
+ * made over a phone.
+ *
+ * @param phone Phone to check the limit against.
  *
  * @return 0 if limit not reached or -1 if limit exceeded.
  *
  */
-static int check_call_limit(void)
+static int check_call_limit(phone_t *phone)
 {
-	if (atomic_preinc(&TASK->active_calls) > IPC_MAX_ASYNC_CALLS) {
-		atomic_dec(&TASK->active_calls);
+	if (atomic_get(&phone->active_calls) >= IPC_MAX_ASYNC_CALLS)
 		return -1;
-	}
 	
 	return 0;
 }
@@ -664,7 +680,7 @@ static int check_call_limit(void)
  * the generic function sys_ipc_call_async_slow().
  *
  * @param phoneid Phone handle for the call.
- * @param method  Method of the call.
+ * @param imethod Interface and method of the call.
  * @param arg1    Service-defined payload argument.
  * @param arg2    Service-defined payload argument.
  * @param arg3    Service-defined payload argument.
@@ -676,18 +692,18 @@ static int check_call_limit(void)
  *         asynchronous requests; answers should be handled first.
  *
  */
-unative_t sys_ipc_call_async_fast(unative_t phoneid, unative_t method,
-    unative_t arg1, unative_t arg2, unative_t arg3, unative_t arg4)
+sysarg_t sys_ipc_call_async_fast(sysarg_t phoneid, sysarg_t imethod,
+    sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4)
 {
-	if (check_call_limit())
-		return IPC_CALLRET_TEMPORARY;
-	
 	phone_t *phone;
 	if (phone_get(phoneid, &phone) != EOK)
 		return IPC_CALLRET_FATAL;
 	
+	if (check_call_limit(phone))
+		return IPC_CALLRET_TEMPORARY;
+	
 	call_t *call = ipc_call_alloc(0);
-	IPC_SET_METHOD(call->data, method);
+	IPC_SET_IMETHOD(call->data, imethod);
 	IPC_SET_ARG1(call->data, arg1);
 	IPC_SET_ARG2(call->data, arg2);
 	IPC_SET_ARG3(call->data, arg3);
@@ -706,7 +722,7 @@ unative_t sys_ipc_call_async_fast(unative_t phoneid, unative_t method,
 	else
 		ipc_backsend_err(phone, call, res);
 	
-	return (unative_t) call;
+	return (sysarg_t) call;
 }
 
 /** Make an asynchronous IPC call allowing to transmit the entire payload.
@@ -717,21 +733,21 @@ unative_t sys_ipc_call_async_fast(unative_t phoneid, unative_t method,
  * @return See sys_ipc_call_async_fast().
  *
  */
-unative_t sys_ipc_call_async_slow(unative_t phoneid, ipc_data_t *data)
+sysarg_t sys_ipc_call_async_slow(sysarg_t phoneid, ipc_data_t *data)
 {
-	if (check_call_limit())
-		return IPC_CALLRET_TEMPORARY;
-	
 	phone_t *phone;
 	if (phone_get(phoneid, &phone) != EOK)
 		return IPC_CALLRET_FATAL;
+
+	if (check_call_limit(phone))
+		return IPC_CALLRET_TEMPORARY;
 
 	call_t *call = ipc_call_alloc(0);
 	int rc = copy_from_uspace(&call->data.args, &data->args,
 	    sizeof(call->data.args));
 	if (rc != 0) {
 		ipc_call_free(call);
-		return (unative_t) rc;
+		return (sysarg_t) rc;
 	}
 	
 	int res = request_preprocess(call, phone);
@@ -741,7 +757,7 @@ unative_t sys_ipc_call_async_slow(unative_t phoneid, ipc_data_t *data)
 	else
 		ipc_backsend_err(phone, call, res);
 	
-	return (unative_t) call;
+	return (sysarg_t) call;
 }
 
 /** Forward a received call to another destination
@@ -750,7 +766,7 @@ unative_t sys_ipc_call_async_slow(unative_t phoneid, ipc_data_t *data)
  *
  * @param callid  Hash of the call to forward.
  * @param phoneid Phone handle to use for forwarding.
- * @param method  New method to use for the forwarded call.
+ * @param imethod New interface and method to use for the forwarded call.
  * @param arg1    New value of the first argument for the forwarded call.
  * @param arg2    New value of the second argument for the forwarded call.
  * @param arg3    New value of the third argument for the forwarded call.
@@ -766,9 +782,9 @@ unative_t sys_ipc_call_async_slow(unative_t phoneid, ipc_data_t *data)
  * Warning: Make sure that ARG5 is not rewritten for certain system IPC
  *
  */
-static unative_t sys_ipc_forward_common(unative_t callid, unative_t phoneid,
-    unative_t method, unative_t arg1, unative_t arg2, unative_t arg3,
-    unative_t arg4, unative_t arg5, unsigned int mode, bool slow)
+static sysarg_t sys_ipc_forward_common(sysarg_t callid, sysarg_t phoneid,
+    sysarg_t imethod, sysarg_t arg1, sysarg_t arg2, sysarg_t arg3,
+    sysarg_t arg4, sysarg_t arg5, unsigned int mode, bool slow)
 {
 	call_t *call = get_call(callid);
 	if (!call)
@@ -783,24 +799,24 @@ static unative_t sys_ipc_forward_common(unative_t callid, unative_t phoneid,
 		return ENOENT;
 	}
 	
-	if (!method_is_forwardable(IPC_GET_METHOD(call->data))) {
+	if (!method_is_forwardable(IPC_GET_IMETHOD(call->data))) {
 		IPC_SET_RETVAL(call->data, EFORWARD);
 		ipc_answer(&TASK->answerbox, call);
 		return EPERM;
 	}
 	
 	/*
-	 * Userspace is not allowed to change method of system methods on
-	 * forward, allow changing ARG1, ARG2, ARG3 and ARG4 by means of method,
-	 * arg1, arg2 and arg3.
-	 * If the method is immutable, don't change anything.
+	 * Userspace is not allowed to change interface and method of system
+	 * methods on forward, allow changing ARG1, ARG2, ARG3 and ARG4 by
+	 * means of method, arg1, arg2 and arg3.
+	 * If the interface and method is immutable, don't change anything.
 	 */
-	if (!method_is_immutable(IPC_GET_METHOD(call->data))) {
-		if (method_is_system(IPC_GET_METHOD(call->data))) {
-			if (IPC_GET_METHOD(call->data) == IPC_M_CONNECT_TO_ME)
+	if (!method_is_immutable(IPC_GET_IMETHOD(call->data))) {
+		if (method_is_system(IPC_GET_IMETHOD(call->data))) {
+			if (IPC_GET_IMETHOD(call->data) == IPC_M_CONNECT_TO_ME)
 				phone_dealloc(IPC_GET_ARG5(call->data));
 			
-			IPC_SET_ARG1(call->data, method);
+			IPC_SET_ARG1(call->data, imethod);
 			IPC_SET_ARG2(call->data, arg1);
 			IPC_SET_ARG3(call->data, arg2);
 			
@@ -812,7 +828,7 @@ static unative_t sys_ipc_forward_common(unative_t callid, unative_t phoneid,
 				 */
 			}
 		} else {
-			IPC_SET_METHOD(call->data, method);
+			IPC_SET_IMETHOD(call->data, imethod);
 			IPC_SET_ARG1(call->data, arg1);
 			IPC_SET_ARG2(call->data, arg2);
 			if (slow) {
@@ -828,16 +844,16 @@ static unative_t sys_ipc_forward_common(unative_t callid, unative_t phoneid,
 
 /** Forward a received call to another destination - fast version.
  *
- * In case the original method is a system method, ARG1, ARG2 and ARG3 are
- * overwritten in the forwarded message with the new method and the new
- * arg1 and arg2, respectively. Otherwise the METHOD, ARG1 and ARG2 are
- * rewritten with the new method, arg1 and arg2, respectively. Also note there
- * is a set of immutable methods, for which the new method and arguments are not
- * set and these values are ignored.
+ * In case the original interface and method is a system method, ARG1, ARG2
+ * and ARG3 are overwritten in the forwarded message with the new method and
+ * the new arg1 and arg2, respectively. Otherwise the IMETHOD, ARG1 and ARG2
+ * are rewritten with the new interface and method, arg1 and arg2, respectively.
+ * Also note there is a set of immutable methods, for which the new method and
+ * arguments are not set and these values are ignored.
  *
  * @param callid  Hash of the call to forward.
  * @param phoneid Phone handle to use for forwarding.
- * @param method  New method to use for the forwarded call.
+ * @param imethod New interface and method to use for the forwarded call.
  * @param arg1    New value of the first argument for the forwarded call.
  * @param arg2    New value of the second argument for the forwarded call.
  * @param mode    Flags that specify mode of the forward operation.
@@ -845,21 +861,21 @@ static unative_t sys_ipc_forward_common(unative_t callid, unative_t phoneid,
  * @return 0 on succes, otherwise an error code.
  *
  */
-unative_t sys_ipc_forward_fast(unative_t callid, unative_t phoneid,
-    unative_t method, unative_t arg1, unative_t arg2, unsigned int mode)
+sysarg_t sys_ipc_forward_fast(sysarg_t callid, sysarg_t phoneid,
+    sysarg_t imethod, sysarg_t arg1, sysarg_t arg2, unsigned int mode)
 {
-	return sys_ipc_forward_common(callid, phoneid, method, arg1, arg2, 0, 0,
+	return sys_ipc_forward_common(callid, phoneid, imethod, arg1, arg2, 0, 0,
 	    0, mode, false); 
 }
 
 /** Forward a received call to another destination - slow version.
  *
  * This function is the slow verision of the sys_ipc_forward_fast interface.
- * It can copy all five new arguments and the new method from the userspace.
- * It naturally extends the functionality of the fast version. For system
- * methods, it additionally stores the new value of arg3 to ARG4. For non-system
- * methods, it additionally stores the new value of arg3, arg4 and arg5,
- * respectively, to ARG3, ARG4 and ARG5, respectively.
+ * It can copy all five new arguments and the new interface and method from
+ * the userspace. It naturally extends the functionality of the fast version.
+ * For system methods, it additionally stores the new value of arg3 to ARG4.
+ * For non-system methods, it additionally stores the new value of arg3, arg4
+ * and arg5, respectively, to ARG3, ARG4 and ARG5, respectively.
  *
  * @param callid  Hash of the call to forward.
  * @param phoneid Phone handle to use for forwarding.
@@ -869,17 +885,17 @@ unative_t sys_ipc_forward_fast(unative_t callid, unative_t phoneid,
  * @return 0 on succes, otherwise an error code.
  *
  */
-unative_t sys_ipc_forward_slow(unative_t callid, unative_t phoneid,
+sysarg_t sys_ipc_forward_slow(sysarg_t callid, sysarg_t phoneid,
     ipc_data_t *data, unsigned int mode)
 {
 	ipc_data_t newdata;
 	int rc = copy_from_uspace(&newdata.args, &data->args,
 	    sizeof(newdata.args));
 	if (rc != 0)
-		return (unative_t) rc;
+		return (sysarg_t) rc;
 	
 	return sys_ipc_forward_common(callid, phoneid,
-	    IPC_GET_METHOD(newdata), IPC_GET_ARG1(newdata),
+	    IPC_GET_IMETHOD(newdata), IPC_GET_ARG1(newdata),
 	    IPC_GET_ARG2(newdata), IPC_GET_ARG3(newdata),
 	    IPC_GET_ARG4(newdata), IPC_GET_ARG5(newdata), mode, true); 
 }
@@ -899,8 +915,8 @@ unative_t sys_ipc_forward_slow(unative_t callid, unative_t phoneid,
  * @return 0 on success, otherwise an error code.
  *
  */
-unative_t sys_ipc_answer_fast(unative_t callid, unative_t retval,
-    unative_t arg1, unative_t arg2, unative_t arg3, unative_t arg4)
+sysarg_t sys_ipc_answer_fast(sysarg_t callid, sysarg_t retval,
+    sysarg_t arg1, sysarg_t arg2, sysarg_t arg3, sysarg_t arg4)
 {
 	/* Do not answer notification callids */
 	if (callid & IPC_CALLID_NOTIFICATION)
@@ -944,7 +960,7 @@ unative_t sys_ipc_answer_fast(unative_t callid, unative_t retval,
  * @return 0 on success, otherwise an error code.
  *
  */
-unative_t sys_ipc_answer_slow(unative_t callid, ipc_data_t *data)
+sysarg_t sys_ipc_answer_slow(sysarg_t callid, ipc_data_t *data)
 {
 	/* Do not answer notification callids */
 	if (callid & IPC_CALLID_NOTIFICATION)
@@ -981,7 +997,7 @@ unative_t sys_ipc_answer_slow(unative_t callid, ipc_data_t *data)
  * @return 0 on success or an error code.
  *
  */
-unative_t sys_ipc_hangup(unative_t phoneid)
+sysarg_t sys_ipc_hangup(sysarg_t phoneid)
 {
 	phone_t *phone;
 	
@@ -1007,7 +1023,7 @@ unative_t sys_ipc_hangup(unative_t phoneid)
  *         answer.
  *
  */
-unative_t sys_ipc_wait_for_call(ipc_data_t *calldata, uint32_t usec,
+sysarg_t sys_ipc_wait_for_call(ipc_data_t *calldata, uint32_t usec,
     unsigned int flags)
 {
 	call_t *call;
@@ -1036,7 +1052,7 @@ restart:
 		
 		ipc_call_free(call);
 		
-		return ((unative_t) call) | IPC_CALLID_NOTIFICATION;
+		return ((sysarg_t) call) | IPC_CALLID_NOTIFICATION;
 	}
 	
 	if (call->flags & IPC_CALL_ANSWERED) {
@@ -1045,19 +1061,12 @@ restart:
 		if (call->flags & IPC_CALL_DISCARD_ANSWER) {
 			ipc_call_free(call);
 			goto restart;
-		} else {
-			/*
-			 * Decrement the counter of active calls only if the
-			 * call is not an answer to IPC_M_PHONE_HUNGUP,
-			 * which doesn't contribute to the counter.
-			 */
-			atomic_dec(&TASK->active_calls);
 		}
 		
 		STRUCT_TO_USPACE(&calldata->args, &call->data.args);
 		ipc_call_free(call);
 		
-		return ((unative_t) call) | IPC_CALLID_ANSWERED;
+		return ((sysarg_t) call) | IPC_CALLID_ANSWERED;
 	}
 	
 	if (process_request(&TASK->answerbox, call))
@@ -1085,13 +1094,13 @@ restart:
 		return 0;
 	}
 	
-	return (unative_t) call;
+	return (sysarg_t) call;
 }
 
 /** Interrupt one thread from sys_ipc_wait_for_call().
  *
  */
-unative_t sys_ipc_poke(void)
+sysarg_t sys_ipc_poke(void)
 {
 	waitq_unsleep(&TASK->answerbox.wq);
 	return EOK;
@@ -1099,21 +1108,21 @@ unative_t sys_ipc_poke(void)
 
 /** Connect an IRQ handler to a task.
  *
- * @param inr    IRQ number.
- * @param devno  Device number.
- * @param method Method to be associated with the notification.
- * @param ucode  Uspace pointer to the top-half pseudocode.
+ * @param inr     IRQ number.
+ * @param devno   Device number.
+ * @param imethod Interface and method to be associated with the notification.
+ * @param ucode   Uspace pointer to the top-half pseudocode.
  *
  * @return EPERM or a return code returned by ipc_irq_register().
  *
  */
-unative_t sys_ipc_register_irq(inr_t inr, devno_t devno, unative_t method,
+sysarg_t sys_register_irq(inr_t inr, devno_t devno, sysarg_t imethod,
     irq_code_t *ucode)
 {
 	if (!(cap_get(TASK) & CAP_IRQ_REG))
 		return EPERM;
 	
-	return ipc_irq_register(&TASK->answerbox, inr, devno, method, ucode);
+	return ipc_irq_register(&TASK->answerbox, inr, devno, imethod, ucode);
 }
 
 /** Disconnect an IRQ handler from a task.
@@ -1124,7 +1133,7 @@ unative_t sys_ipc_register_irq(inr_t inr, devno_t devno, unative_t method,
  * @return Zero on success or EPERM on error.
  *
  */
-unative_t sys_ipc_unregister_irq(inr_t inr, devno_t devno)
+sysarg_t sys_unregister_irq(inr_t inr, devno_t devno)
 {
 	if (!(cap_get(TASK) & CAP_IRQ_REG))
 		return EPERM;
@@ -1134,28 +1143,46 @@ unative_t sys_ipc_unregister_irq(inr_t inr, devno_t devno)
 	return 0;
 }
 
-#include <console/console.h>
+#ifdef __32_BITS__
 
-/** Syscall connect to a task by id.
+/** Syscall connect to a task by ID (32 bits)
  *
  * @return Phone id on success, or negative error code.
  *
  */
-unative_t sys_ipc_connect_kbox(sysarg64_t *uspace_taskid_arg)
+sysarg_t sys_ipc_connect_kbox(sysarg64_t *uspace_taskid)
 {
 #ifdef CONFIG_UDEBUG
-	sysarg64_t taskid_arg;
-	int rc = copy_from_uspace(&taskid_arg, uspace_taskid_arg, sizeof(sysarg64_t));
+	sysarg64_t taskid;
+	int rc = copy_from_uspace(&taskid, uspace_taskid, sizeof(sysarg64_t));
 	if (rc != 0)
-		return (unative_t) rc;
+		return (sysarg_t) rc;
 	
-	LOG("sys_ipc_connect_kbox(%" PRIu64 ")", taskid_arg.value);
-	
-	return ipc_connect_kbox(taskid_arg.value);
+	return ipc_connect_kbox((task_id_t) taskid);
 #else
-	return (unative_t) ENOTSUP;
+	return (sysarg_t) ENOTSUP;
 #endif
 }
+
+#endif  /* __32_BITS__ */
+
+#ifdef __64_BITS__
+
+/** Syscall connect to a task by ID (64 bits)
+ *
+ * @return Phone id on success, or negative error code.
+ *
+ */
+sysarg_t sys_ipc_connect_kbox(sysarg_t taskid)
+{
+#ifdef CONFIG_UDEBUG
+	return ipc_connect_kbox((task_id_t) taskid);
+#else
+	return (sysarg_t) ENOTSUP;
+#endif
+}
+
+#endif  /* __64_BITS__ */
 
 /** @}
  */

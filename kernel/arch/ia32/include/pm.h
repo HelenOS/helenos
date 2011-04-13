@@ -57,7 +57,7 @@
 
 #endif /* CONFIG_FB */
 
-#define gdtselector(des)  ((des) << 3)
+#define GDT_SELECTOR(des)  ((des) << 3)
 
 #define PL_KERNEL  0
 #define PL_USER    3
@@ -66,14 +66,15 @@
 #define AR_DATA       (2 << 3)
 #define AR_CODE       (3 << 3)
 #define AR_WRITABLE   (1 << 1)
-#define AR_INTERRUPT  (0x0e)
-#define AR_TSS        (0x09)
+#define AR_INTERRUPT  (0xe)
+#define AR_TRAP       (0xf)
+#define AR_TSS        (0x9)
 
 #define DPL_KERNEL  (PL_KERNEL << 5)
 #define DPL_USER    (PL_USER << 5)
 
 #define TSS_BASIC_SIZE  104
-#define TSS_IOMAP_SIZE  (16 * 1024 + 1)  /* 16K for bitmap + 1 terminating byte for convenience */
+#define TSS_IOMAP_SIZE  (8 * 1024 + 1)  /* 8K for bitmap + 1 terminating byte for convenience */
 
 #define IO_PORTS  (64 * 1024)
 
@@ -151,7 +152,6 @@ typedef struct {
 } __attribute__ ((packed)) tss_t;
 
 extern ptr_16_32_t gdtr;
-extern ptr_16_32_t bootstrap_gdtr;
 extern ptr_16_32_t protected_ap_gdtr;
 extern tss_t *tss_p;
 

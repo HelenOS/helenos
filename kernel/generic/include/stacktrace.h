@@ -41,9 +41,15 @@
 struct istate;
 
 typedef struct {
-	bool (* frame_pointer_validate)(uintptr_t);
-	bool (* frame_pointer_prev)(uintptr_t, uintptr_t *);
-	bool (* return_address_get)(uintptr_t, uintptr_t *);
+	uintptr_t fp;
+	uintptr_t pc;
+	struct istate *istate;
+} stack_trace_context_t;
+
+typedef struct {
+	bool (* stack_trace_context_validate)(stack_trace_context_t *);
+	bool (* frame_pointer_prev)(stack_trace_context_t *, uintptr_t *);
+	bool (* return_address_get)(stack_trace_context_t *, uintptr_t *);
 	bool (* symbol_resolve)(uintptr_t, const char **, uintptr_t *);
 } stack_trace_ops_t;
 
@@ -52,7 +58,7 @@ extern stack_trace_ops_t ust_ops;
 
 extern void stack_trace(void);
 extern void stack_trace_istate(struct istate *);
-extern void stack_trace_fp_pc(stack_trace_ops_t *, uintptr_t, uintptr_t);
+extern void stack_trace_ctx(stack_trace_ops_t *, stack_trace_context_t *);
 
 /*
  * The following interface is to be implemented by each architecture.
@@ -60,13 +66,13 @@ extern void stack_trace_fp_pc(stack_trace_ops_t *, uintptr_t, uintptr_t);
 extern uintptr_t frame_pointer_get(void);
 extern uintptr_t program_counter_get(void);
 
-extern bool kernel_frame_pointer_validate(uintptr_t);
-extern bool kernel_frame_pointer_prev(uintptr_t, uintptr_t *);
-extern bool kernel_return_address_get(uintptr_t, uintptr_t *);
+extern bool kernel_stack_trace_context_validate(stack_trace_context_t *);
+extern bool kernel_frame_pointer_prev(stack_trace_context_t *, uintptr_t *);
+extern bool kernel_return_address_get(stack_trace_context_t *, uintptr_t *);
 
-extern bool uspace_frame_pointer_validate(uintptr_t);
-extern bool uspace_frame_pointer_prev(uintptr_t, uintptr_t *);
-extern bool uspace_return_address_get(uintptr_t, uintptr_t *);
+extern bool uspace_stack_trace_context_validate(stack_trace_context_t *);
+extern bool uspace_frame_pointer_prev(stack_trace_context_t *, uintptr_t *);
+extern bool uspace_return_address_get(stack_trace_context_t *, uintptr_t *);
 
 #endif
 

@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup mips32	
+/** @addtogroup mips32
  * @{
  */
 /** @file
@@ -37,7 +37,7 @@
 
 #include <typedefs.h>
 
-#define FADDR(fptr)		((uintptr_t) (fptr))
+#define FADDR(fptr)  ((uintptr_t) (fptr))
 
 #endif
 

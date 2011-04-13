@@ -57,6 +57,11 @@ ifeq ($(UARCH),amd64)
 endif
 
 ifeq ($(UARCH),arm32)
+	ifeq ($(MACHINE),gta02)
+		SOURCES += \
+			port/chardev.c \
+			ctl/stty.c
+	endif
 	ifeq ($(MACHINE),testarm)
 		SOURCES += \
 			port/gxemul.c
@@ -72,7 +77,7 @@ ifeq ($(UARCH),arm32)
 	ifeq ($(MACHINE),integratorcp)
 		SOURCES += \
 			port/pl050.c \
-			ctl/pl050.c
+			ctl/pc.c
 	endif
 endif
 

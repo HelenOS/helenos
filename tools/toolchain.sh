@@ -1,4 +1,4 @@
-#!/bin/bash
+#! /bin/bash
 
 #
 # Copyright (c) 2009 Martin Decky
@@ -28,10 +28,90 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+GMP_MAIN=<<EOF
+#define GCC_GMP_VERSION_NUM(a, b, c) \
+	(((a) << 16L) | ((b) << 8) | (c))
+
+#define GCC_GMP_VERSION \
+	GCC_GMP_VERSION_NUM(__GNU_MP_VERSION, __GNU_MP_VERSION_MINOR, __GNU_MP_VERSION_PATCHLEVEL)
+
+#if GCC_GMP_VERSION < GCC_GMP_VERSION_NUM(4,3,2)
+	choke me
+#endif
+EOF
+
+MPFR_MAIN=<<EOF
+#if MPFR_VERSION < MPFR_VERSION_NUM(2, 4, 2)
+choke me
+	#endif
+EOF
+
+MPC_MAIN=<<EOF
+#if MPC_VERSION < MPC_VERSION_NUM(0, 8, 1)
+	choke me
+#endif
+EOF
+
+BINUTILS_VERSION="2.21"
+GCC_VERSION="4.6.0"
+
+BASEDIR="`pwd`"
+BINUTILS="binutils-${BINUTILS_VERSION}.tar.bz2"
+GCC_CORE="gcc-core-${GCC_VERSION}.tar.bz2"
+GCC_OBJC="gcc-objc-${GCC_VERSION}.tar.bz2"
+GCC_CPP="gcc-g++-${GCC_VERSION}.tar.bz2"
+
+#
+# Check if the library described in the argument
+# exists and has acceptable version.
+#
+check_dependency() {
+	DEPENDENCY="$1"
+	HEADER="$2"
+	BODY="$3"
+	
+	FNAME="/tmp/conftest-$$"
+	
+	echo "#include ${HEADER}" > "${FNAME}.c"
+	echo >> "${FNAME}.c"
+	echo "int main()" >> "${FNAME}.c"
+	echo "{" >> "${FNAME}.c"
+	echo "${BODY}" >> "${FNAME}.c"
+	echo "	return 0;" >> "${FNAME}.c"
+	echo "}" >> "${FNAME}.c"
+	
+	cc -c -o "${FNAME}.o" "${FNAME}.c" 2> "${FNAME}.log"
+	RC="$?"
+	
+	if [ "$RC" -ne "0" ] ; then
+		echo " ${DEPENDENCY} not found, too old or compiler error."
+		echo " Please recheck manually the source file \"${FNAME}.c\"."
+		echo " The compilation of the toolchain is probably going to fail,"
+		echo " you have been warned."
+		echo
+		echo " ===== Compiler output ====="
+		cat "${FNAME}.log"
+		echo " ==========================="
+		echo
+	else
+		echo " ${DEPENDENCY} found"
+		rm -f "${FNAME}.log" "${FNAME}.o" "${FNAME}.c"
+	fi
+}
+
+check_dependecies() {
+	echo ">>> Basic dependency check"
+	check_dependency "GMP" "<gmp.h>" "${GMP_MAIN}"
+	check_dependency "MPFR" "<mpfr.h>" "${MPFR_MAIN}"
+	check_dependency "MPC" "<mpc.h>" "${MPC_MAIN}"
+	echo
+}
+
 check_error() {
 	if [ "$1" -ne "0" ]; then
 		echo
 		echo "Script failed: $2"
+		
 		exit 1
 	fi
 }
@@ -44,6 +124,7 @@ check_md5() {
 	if [ "${SUM}" != "${COMPUTED}" ] ; then
 		echo
 		echo "Checksum of ${FILE} does not match."
+		
 		exit 2
 	fi
 }
@@ -59,23 +140,76 @@ show_usage() {
 	echo " arm32      ARM"
 	echo " ia32       IA-32 (x86, i386)"
 	echo " ia64       IA-64 (Itanium)"
-	echo " mips32     MIPS little-endian"
-	echo " mips32eb   MIPS big-endian"
+	echo " mips32     MIPS little-endian 32b"
+	echo " mips32eb   MIPS big-endian 32b"
+	echo " mips64     MIPS little-endian 64b"
 	echo " ppc32      32-bit PowerPC"
 	echo " ppc64      64-bit PowerPC"
 	echo " sparc64    SPARC V9"
 	echo " all        build all targets"
+	echo " parallel   same as 'all', but in parallel"
+	echo
+	echo "The toolchain will be installed to the directory specified by"
+	echo "the CROSS_PREFIX environment variable. If the variable is not"
+	echo "defined, /usr/local/cross will be used by default."
 	echo
 	
 	exit 3
 }
 
-download_check() {
+change_title() {
+	echo -en "\e]0;$1\a"
+}
+
+show_countdown() {
+	TM="$1"
+	
+	if [ "${TM}" -eq 0 ] ; then
+		echo
+		return 0
+	fi
+	
+	echo -n "${TM} "
+	change_title "${TM}"
+	sleep 1
+	
+	TM="`expr "${TM}" - 1`"
+	show_countdown "${TM}"
+}
+
+show_dependencies() {
+	echo "IMPORTANT NOTICE:"
+	echo
+	echo "For a successful compilation and use of the cross-compiler"
+	echo "toolchain you need at least the following dependencies."
+	echo
+	echo "Please make sure that the dependencies are present in your"
+	echo "system. Otherwise the compilation process might fail after"
+	echo "a few seconds or minutes."
+	echo
+	echo " - SED, AWK, Flex, Bison, gzip, bzip2, Bourne Shell"
+	echo " - gettext, zlib, Texinfo, libelf, libgomp"
+	echo " - GNU Multiple Precision Library (GMP)"
+	echo " - GNU Make"
+	echo " - GNU tar"
+	echo " - GNU Coreutils"
+	echo " - GNU Sharutils"
+	echo " - MPFR"
+	echo " - MPC"
+	echo " - Parma Polyhedra Library (PPL)"
+	echo " - ClooG-PPL"
+	echo " - native C compiler, assembler and linker"
+	echo " - native C library with headers"
+	echo
+}
+
+download_fetch() {
 	SOURCE="$1"
 	FILE="$2"
 	CHECKSUM="$3"
 	
 	if [ ! -f "${FILE}" ]; then
+		change_title "Downloading ${FILE}"
 		wget -c "${SOURCE}${FILE}"
 		check_error $? "Error downloading ${FILE}."
 	fi
@@ -83,10 +217,22 @@ download_check() {
 	check_md5 "${FILE}" "${CHECKSUM}"
 }
 
+source_check() {
+	FILE="$1"
+	
+	if [ ! -f "${FILE}" ]; then
+		echo
+		echo "File ${FILE} not found."
+		
+		exit 4
+	fi
+}
+
 cleanup_dir() {
 	DIR="$1"
 	
 	if [ -d "${DIR}" ]; then
+		change_title "Removing ${DIR}"
 		echo " >>> Removing ${DIR}"
 		rm -fr "${DIR}"
 	fi
@@ -96,6 +242,7 @@ create_dir() {
 	DIR="$1"
 	DESC="$2"
 	
+	change_title "Creating ${DESC}"
 	echo ">>> Creating ${DESC}"
 	
 	mkdir -p "${DIR}"
@@ -107,106 +254,93 @@ unpack_tarball() {
 	FILE="$1"
 	DESC="$2"
 	
-	echo " >>> ${DESC}"
+	change_title "Unpacking ${DESC}"
+	echo " >>> Unpacking ${DESC}"
 	
 	tar -xjf "${FILE}"
 	check_error $? "Error unpacking ${DESC}."
 }
 
-patch_binutils() {
-	PLATFORM="$1"
+prepare() {
+	show_dependencies
+	check_dependecies
+	show_countdown 10
 	
-	if [ "${PLATFORM}" == "arm32" ] ; then
-		patch -p1 <<EOF
-diff -Naur binutils-2.20.orig/gas/config/tc-arm.c binutils-2.20/gas/config/tc-arm.c
---- binutils-2.20.orig/gas/config/tc-arm.c	2009-08-30 00:10:59.000000000 +0200
-+++ binutils-2.20/gas/config/tc-arm.c	2009-11-02 14:25:11.000000000 +0100
-@@ -2485,8 +2485,9 @@
-       know (frag->tc_frag_data.first_map == NULL);
-       frag->tc_frag_data.first_map = symbolP;
-     }
--  if (frag->tc_frag_data.last_map != NULL)
-+  if (frag->tc_frag_data.last_map != NULL) {
-     know (S_GET_VALUE (frag->tc_frag_data.last_map) < S_GET_VALUE (symbolP));
-+  }
-   frag->tc_frag_data.last_map = symbolP;
- }
-EOF
-		check_error $? "Error patching binutils"
-	fi
+	BINUTILS_SOURCE="ftp://ftp.gnu.org/gnu/binutils/"
+	GCC_SOURCE="ftp://ftp.gnu.org/gnu/gcc/gcc-${GCC_VERSION}/"
+	
+	download_fetch "${BINUTILS_SOURCE}" "${BINUTILS}" "c84c5acc9d266f1a7044b51c85a823f5"
+	download_fetch "${GCC_SOURCE}" "${GCC_CORE}" "b1957f3209080b2f55bc3756d3a62b7c"
+	download_fetch "${GCC_SOURCE}" "${GCC_OBJC}" "120d4675366ee82ea52f9ed65b57da04"
+	download_fetch "${GCC_SOURCE}" "${GCC_CPP}" "a30090fa655d0db4c970740d353c81f1"
 }
 
 build_target() {
 	PLATFORM="$1"
 	TARGET="$2"
 	
-	BINUTILS_VERSION="2.20"
-	GCC_VERSION="4.5.0"
-	
-	BINUTILS="binutils-${BINUTILS_VERSION}.tar.bz2"
-	GCC_CORE="gcc-core-${GCC_VERSION}.tar.bz2"
-	GCC_OBJC="gcc-objc-${GCC_VERSION}.tar.bz2"
-	GCC_CPP="gcc-g++-${GCC_VERSION}.tar.bz2"
-	
-	BINUTILS_SOURCE="ftp://ftp.gnu.org/gnu/binutils/"
-	GCC_SOURCE="ftp://ftp.gnu.org/gnu/gcc/gcc-${GCC_VERSION}/"
-	
-	WORKDIR="`pwd`"
+	WORKDIR="${BASEDIR}/${PLATFORM}"
 	BINUTILSDIR="${WORKDIR}/binutils-${BINUTILS_VERSION}"
 	GCCDIR="${WORKDIR}/gcc-${GCC_VERSION}"
 	OBJDIR="${WORKDIR}/gcc-obj"
 	
 	if [ -z "${CROSS_PREFIX}" ] ; then
-		CROSS_PREFIX="/usr/local"
+		CROSS_PREFIX="/usr/local/cross"
 	fi
 	
 	PREFIX="${CROSS_PREFIX}/${PLATFORM}"
 	
 	echo ">>> Downloading tarballs"
-	download_check "${BINUTILS_SOURCE}" "${BINUTILS}" "ee2d3e996e9a2d669808713360fa96f8"
-	download_check "${GCC_SOURCE}" "${GCC_CORE}" "58eda33c3184303628f91c42a7ab15b5"
-	download_check "${GCC_SOURCE}" "${GCC_OBJC}" "8d8c01b6631b020cc6c167860fde2398"
-	download_check "${GCC_SOURCE}" "${GCC_CPP}" "5ab93605af40def4844eda09ca769c2d"
+	source_check "${BASEDIR}/${BINUTILS}"
+	source_check "${BASEDIR}/${GCC_CORE}"
+	source_check "${BASEDIR}/${GCC_OBJC}"
+	source_check "${BASEDIR}/${GCC_CPP}"
 	
 	echo ">>> Removing previous content"
 	cleanup_dir "${PREFIX}"
-	cleanup_dir "${OBJDIR}"
-	cleanup_dir "${BINUTILSDIR}"
-	cleanup_dir "${GCCDIR}"
+	cleanup_dir "${WORKDIR}"
 	
 	create_dir "${PREFIX}" "destination directory"
 	create_dir "${OBJDIR}" "GCC object directory"
 	
 	echo ">>> Unpacking tarballs"
-	unpack_tarball "${BINUTILS}" "binutils"
-	unpack_tarball "${GCC_CORE}" "GCC Core"
-	unpack_tarball "${GCC_OBJC}" "Objective C"
-	unpack_tarball "${GCC_CPP}" "C++"
-	
-	echo ">>> Compiling and installing binutils"
-	cd "${BINUTILSDIR}"
-	check_error $? "Change directory failed."
-	patch_binutils "${PLATFORM}"
-	./configure "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-" "--disable-nls"
-	check_error $? "Error configuring binutils."
-	make all install
-	check_error $? "Error compiling/installing binutils."
-	
-	echo ">>> Compiling and installing GCC"
-	cd "${OBJDIR}"
-	check_error $? "Change directory failed."
-	"${GCCDIR}/configure" "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-" --with-gnu-as --with-gnu-ld --disable-nls --disable-threads --enable-languages=c,objc,c++,obj-c++ --disable-multilib --disable-libgcj --without-headers --disable-shared --enable-lto
-	check_error $? "Error configuring GCC."
-	PATH="${PATH}:${PREFIX}/bin" make all-gcc install-gcc
-	check_error $? "Error compiling/installing GCC."
-	
 	cd "${WORKDIR}"
 	check_error $? "Change directory failed."
 	
+	unpack_tarball "${BASEDIR}/${BINUTILS}" "binutils"
+	unpack_tarball "${BASEDIR}/${GCC_CORE}" "GCC Core"
+	unpack_tarball "${BASEDIR}/${GCC_OBJC}" "Objective C"
+	unpack_tarball "${BASEDIR}/${GCC_CPP}" "C++"
+	
+	echo ">>> Processing binutils (${PLATFORM})"
+	cd "${BINUTILSDIR}"
+	check_error $? "Change directory failed."
+	
+	change_title "binutils: configure (${PLATFORM})"
+	./configure "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-" --disable-nls
+	check_error $? "Error configuring binutils."
+	
+	change_title "binutils: make (${PLATFORM})"
+	make all install
+	check_error $? "Error compiling/installing binutils."
+	
+	echo ">>> Processing GCC (${PLATFORM})"
+	cd "${OBJDIR}"
+	check_error $? "Change directory failed."
+	
+	change_title "GCC: configure (${PLATFORM})"
+	"${GCCDIR}/configure" "--target=${TARGET}" "--prefix=${PREFIX}" "--program-prefix=${TARGET}-" --with-gnu-as --with-gnu-ld --disable-nls --disable-threads --enable-languages=c,objc,c++,obj-c++ --disable-multilib --disable-libgcj --without-headers --disable-shared --enable-lto
+	check_error $? "Error configuring GCC."
+	
+	change_title "GCC: make (${PLATFORM})"
+	PATH="${PATH}:${PREFIX}/bin" make all-gcc install-gcc
+	check_error $? "Error compiling/installing GCC."
+	
+	cd "${BASEDIR}"
+	check_error $? "Change directory failed."
+	
 	echo ">>> Cleaning up"
-	cleanup_dir "${OBJDIR}"
-	cleanup_dir "${BINUTILSDIR}"
-	cleanup_dir "${GCCDIR}"
+	cleanup_dir "${WORKDIR}"
 	
 	echo
 	echo ">>> Cross-compiler for ${TARGET} installed."
@@ -218,46 +352,71 @@ fi
 
 case "$1" in
 	"amd64")
+		prepare
 		build_target "amd64" "amd64-linux-gnu"
 		;;
 	"arm32")
+		prepare
 		build_target "arm32" "arm-linux-gnu"
 		;;
 	"ia32")
+		prepare
 		build_target "ia32" "i686-pc-linux-gnu"
 		;;
 	"ia64")
-		build_target "ia64" "ia64-pc-linux-gnu"
-		;;
-	"ia64")
+		prepare
 		build_target "ia64" "ia64-pc-linux-gnu"
 		;;
 	"mips32")
+		prepare
 		build_target "mips32" "mipsel-linux-gnu"
 		;;
 	"mips32eb")
+		prepare
 		build_target "mips32eb" "mips-linux-gnu"
 		;;
+	"mips64")
+		prepare
+		build_target "mips64" "mips64el-linux-gnu"
+		;;
 	"ppc32")
+		prepare
 		build_target "ppc32" "ppc-linux-gnu"
 		;;
 	"ppc64")
+		prepare
 		build_target "ppc64" "ppc64-linux-gnu"
 		;;
 	"sparc64")
+		prepare
 		build_target "sparc64" "sparc64-linux-gnu"
 		;;
 	"all")
+		prepare
 		build_target "amd64" "amd64-linux-gnu"
 		build_target "arm32" "arm-linux-gnu"
 		build_target "ia32" "i686-pc-linux-gnu"
 		build_target "ia64" "ia64-pc-linux-gnu"
-		build_target "ia64" "ia64-pc-linux-gnu"
 		build_target "mips32" "mipsel-linux-gnu"
 		build_target "mips32eb" "mips-linux-gnu"
+		build_target "mips64" "mips64el-linux-gnu"
 		build_target "ppc32" "ppc-linux-gnu"
 		build_target "ppc64" "ppc64-linux-gnu"
 		build_target "sparc64" "sparc64-linux-gnu"
+		;;
+	"parallel")
+		prepare
+		build_target "amd64" "amd64-linux-gnu" &
+		build_target "arm32" "arm-linux-gnu" &
+		build_target "ia32" "i686-pc-linux-gnu" &
+		build_target "ia64" "ia64-pc-linux-gnu" &
+		build_target "mips32" "mipsel-linux-gnu" &
+		build_target "mips32eb" "mips-linux-gnu" &
+		build_target "mips64" "mips64el-linux-gnu" &
+		build_target "ppc32" "ppc-linux-gnu" &
+		build_target "ppc64" "ppc64-linux-gnu" &
+		build_target "sparc64" "sparc64-linux-gnu" &
+		wait
 		;;
 	*)
 		show_usage

@@ -48,65 +48,65 @@
 #define IPI_STARTUP  0
 
 /** Delivery modes. */
-#define DELMOD_FIXED    0x0
-#define DELMOD_LOWPRI   0x1
-#define DELMOD_SMI      0x2
+#define DELMOD_FIXED    0x0U
+#define DELMOD_LOWPRI   0x1U
+#define DELMOD_SMI      0x2U
 /* 0x3 reserved */
-#define DELMOD_NMI      0x4
-#define DELMOD_INIT     0x5
-#define DELMOD_STARTUP  0x6
-#define DELMOD_EXTINT   0x7
+#define DELMOD_NMI      0x4U
+#define DELMOD_INIT     0x5U
+#define DELMOD_STARTUP  0x6U
+#define DELMOD_EXTINT   0x7U
 
 /** Destination modes. */
-#define DESTMOD_PHYS   0x0
-#define DESTMOD_LOGIC  0x1
+#define DESTMOD_PHYS   0x0U
+#define DESTMOD_LOGIC  0x1U
 
 /** Trigger Modes. */
-#define TRIGMOD_EDGE   0x0
-#define TRIGMOD_LEVEL  0x1
+#define TRIGMOD_EDGE   0x0U
+#define TRIGMOD_LEVEL  0x1U
 
 /** Levels. */
-#define LEVEL_DEASSERT  0x0
-#define LEVEL_ASSERT    0x1
+#define LEVEL_DEASSERT  0x0U
+#define LEVEL_ASSERT    0x1U
 
 /** Destination Shorthands. */
-#define SHORTHAND_NONE      0x0
-#define SHORTHAND_SELF      0x1
-#define SHORTHAND_ALL_INCL  0x2
-#define SHORTHAND_ALL_EXCL  0x3
+#define SHORTHAND_NONE      0x0U
+#define SHORTHAND_SELF      0x1U
+#define SHORTHAND_ALL_INCL  0x2U
+#define SHORTHAND_ALL_EXCL  0x3U
 
 /** Interrupt Input Pin Polarities. */
-#define POLARITY_HIGH  0x0
-#define POLARITY_LOW   0x1
+#define POLARITY_HIGH  0x0U
+#define POLARITY_LOW   0x1U
 
 /** Divide Values. (Bit 2 is always 0) */
-#define DIVIDE_2    0x0
-#define DIVIDE_4    0x1
-#define DIVIDE_8    0x2
-#define DIVIDE_16   0x3
-#define DIVIDE_32   0x8
-#define DIVIDE_64   0x9
-#define DIVIDE_128  0xa
-#define DIVIDE_1    0xb
+#define DIVIDE_2    0x0U
+#define DIVIDE_4    0x1U
+#define DIVIDE_8    0x2U
+#define DIVIDE_16   0x3U
+#define DIVIDE_32   0x8U
+#define DIVIDE_64   0x9U
+#define DIVIDE_128  0xaU
+#define DIVIDE_1    0xbU
 
 /** Timer Modes. */
-#define TIMER_ONESHOT   0x0
-#define TIMER_PERIODIC  0x1
+#define TIMER_ONESHOT   0x0U
+#define TIMER_PERIODIC  0x1U
 
 /** Delivery status. */
-#define DELIVS_IDLE     0x0
-#define DELIVS_PENDING  0x1
+#define DELIVS_IDLE     0x0U
+#define DELIVS_PENDING  0x1U
 
 /** Destination masks. */
-#define DEST_ALL  0xff
+#define DEST_ALL  0xffU
 
 /** Dest format models. */
-#define MODEL_FLAT     0xf
-#define MODEL_CLUSTER  0x0
+#define MODEL_FLAT     0xfU
+#define MODEL_CLUSTER  0x0U
 
 /** Interrupt Command Register. */
-#define ICRlo  (0x300 / sizeof(uint32_t))
-#define ICRhi  (0x310 / sizeof(uint32_t))
+#define ICRlo  (0x300U / sizeof(uint32_t))
+#define ICRhi  (0x310U / sizeof(uint32_t))
 
 typedef struct {
 	union {
@@ -134,10 +134,10 @@ typedef struct {
 } __attribute__ ((packed)) icr_t;
 
 /* End Of Interrupt. */
-#define EOI  (0x0b0 / sizeof(uint32_t))
+#define EOI  (0x0b0U / sizeof(uint32_t))
 
 /** Error Status Register. */
-#define ESR  (0x280 / sizeof(uint32_t))
+#define ESR  (0x280U / sizeof(uint32_t))
 
 typedef union {
 	uint32_t value;
@@ -156,7 +156,7 @@ typedef union {
 } esr_t;
 
 /* Task Priority Register */
-#define TPR  (0x080 / sizeof(uint32_t))
+#define TPR  (0x080U / sizeof(uint32_t))
 
 typedef union {
 	uint32_t value;
@@ -167,7 +167,7 @@ typedef union {
 } tpr_t;
 
 /** Spurious-Interrupt Vector Register. */
-#define SVR  (0x0f0 / sizeof(uint32_t))
+#define SVR  (0x0f0U / sizeof(uint32_t))
 
 typedef union {
 	uint32_t value;
@@ -180,7 +180,7 @@ typedef union {
 } svr_t;
 
 /** Time Divide Configuration Register. */
-#define TDCR  (0x3e0 / sizeof(uint32_t))
+#define TDCR  (0x3e0U / sizeof(uint32_t))
 
 typedef union {
 	uint32_t value;
@@ -191,13 +191,13 @@ typedef union {
 } tdcr_t;
 
 /* Initial Count Register for Timer */
-#define ICRT  (0x380 / sizeof(uint32_t))
+#define ICRT  (0x380U / sizeof(uint32_t))
 
 /* Current Count Register for Timer */
-#define CCRT  (0x390 / sizeof(uint32_t))
+#define CCRT  (0x390U / sizeof(uint32_t))
 
 /** LVT Timer register. */
-#define LVT_Tm  (0x320 / sizeof(uint32_t))
+#define LVT_Tm  (0x320U / sizeof(uint32_t))
 
 typedef union {
 	uint32_t value;
@@ -213,8 +213,8 @@ typedef union {
 } lvt_tm_t;
 
 /** LVT LINT registers. */
-#define LVT_LINT0  (0x350 / sizeof(uint32_t))
-#define LVT_LINT1  (0x360 / sizeof(uint32_t))
+#define LVT_LINT0  (0x350U / sizeof(uint32_t))
+#define LVT_LINT1  (0x360U / sizeof(uint32_t))
 
 typedef union {
 	uint32_t value;
@@ -232,7 +232,7 @@ typedef union {
 } lvt_lint_t;
 
 /** LVT Error register. */
-#define LVT_Err  (0x370 / sizeof(uint32_t))
+#define LVT_Err  (0x370U / sizeof(uint32_t))
 
 typedef union {
 	uint32_t value;
@@ -247,7 +247,7 @@ typedef union {
 } lvt_error_t;
 
 /** Local APIC ID Register. */
-#define L_APIC_ID  (0x020 / sizeof(uint32_t))
+#define L_APIC_ID  (0x020U / sizeof(uint32_t))
 
 typedef union {
 	uint32_t value;
@@ -258,15 +258,15 @@ typedef union {
 } l_apic_id_t;
 
 /** Local APIC Version Register */
-#define LAVR       (0x030 / sizeof(uint32_t))
-#define LAVR_Mask  0xff
+#define LAVR       (0x030U / sizeof(uint32_t))
+#define LAVR_Mask  0xffU
 
-#define is_local_apic(x)    (((x) & LAVR_Mask & 0xf0) == 0x1)
-#define is_82489DX_apic(x)  ((((x) & LAVR_Mask & 0xf0) == 0x0))
-#define is_local_xapic(x)   (((x) & LAVR_Mask) == 0x14)
+#define is_local_apic(x)    (((x) & LAVR_Mask & 0xf0U) == 0x1U)
+#define is_82489DX_apic(x)  ((((x) & LAVR_Mask & 0xf0U) == 0x0U))
+#define is_local_xapic(x)   (((x) & LAVR_Mask) == 0x14U)
 
 /** Logical Destination Register. */
-#define  LDR  (0x0d0 / sizeof(uint32_t))
+#define  LDR  (0x0d0U / sizeof(uint32_t))
 
 typedef union {
 	uint32_t value;
@@ -277,7 +277,7 @@ typedef union {
 } ldr_t;
 
 /** Destination Format Register. */
-#define DFR  (0x0e0 / sizeof(uint32_t))
+#define DFR  (0x0e0U / sizeof(uint32_t))
 
 typedef union {
 	uint32_t value;
@@ -288,13 +288,13 @@ typedef union {
 } dfr_t;
 
 /* IO APIC */
-#define IOREGSEL  (0x00 / sizeof(uint32_t))
-#define IOWIN     (0x10 / sizeof(uint32_t))
+#define IOREGSEL  (0x00U / sizeof(uint32_t))
+#define IOWIN     (0x10U / sizeof(uint32_t))
 
-#define IOAPICID   0x00
-#define IOAPICVER  0x01
-#define IOAPICARB  0x02
-#define IOREDTBL   0x10
+#define IOAPICID   0x00U
+#define IOAPICVER  0x01U
+#define IOAPICARB  0x02U
+#define IOREDTBL   0x10U
 
 /** I/O Register Select Register. */
 typedef union {

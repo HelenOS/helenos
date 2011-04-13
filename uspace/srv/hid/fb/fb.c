@@ -46,7 +46,6 @@
 #include <align.h>
 #include <as.h>
 #include <ipc/fb.h>
-#include <ipc/ipc.h>
 #include <ipc/ns.h>
 #include <ipc/services.h>
 #include <kernel/errno.h>
@@ -198,11 +197,11 @@ static uint32_t color_table[16] = {
 
 static int rgb_from_attr(attr_rgb_t *rgb, const attrs_t *a);
 static int rgb_from_style(attr_rgb_t *rgb, int style);
-static int rgb_from_idx(attr_rgb_t *rgb, ipcarg_t fg_color,
-    ipcarg_t bg_color, ipcarg_t flags);
+static int rgb_from_idx(attr_rgb_t *rgb, sysarg_t fg_color,
+    sysarg_t bg_color, sysarg_t flags);
 
-static int fb_set_color(viewport_t *vport, ipcarg_t fg_color,
-    ipcarg_t bg_color, ipcarg_t attr);
+static int fb_set_color(viewport_t *vport, sysarg_t fg_color,
+    sysarg_t bg_color, sysarg_t attr);
 
 static void draw_glyph_aligned(unsigned int x, unsigned int y, bool cursor,
     uint8_t *glyphs, uint32_t glyph, uint32_t fg_color, uint32_t bg_color);
@@ -1071,7 +1070,7 @@ static bool shm_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 	static size_t intersize = 0;
 	
 	static unsigned char *shm = NULL;
-	static ipcarg_t shm_id = 0;
+	static sysarg_t shm_id = 0;
 	static size_t shm_size;
 	
 	bool handled = true;
@@ -1082,13 +1081,13 @@ static bool shm_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 	unsigned int w;
 	unsigned int h;
 	
-	switch (IPC_GET_METHOD(*call)) {
+	switch (IPC_GET_IMETHOD(*call)) {
 	case IPC_M_SHARE_OUT:
 		/* We accept one area for data interchange */
 		if (IPC_GET_ARG1(*call) == shm_id) {
 			void *dest = as_get_mappable_page(IPC_GET_ARG2(*call));
 			shm_size = IPC_GET_ARG2(*call);
-			if (ipc_answer_1(callid, EOK, (sysarg_t) dest)) {
+			if (async_answer_1(callid, EOK, (sysarg_t) dest)) {
 				shm_id = 0;
 				return false;
 			}
@@ -1165,7 +1164,7 @@ static bool shm_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 	}
 	
 	if (handled)
-		ipc_answer_0(callid, retval);
+		async_answer_0(callid, retval);
 	return handled;
 }
 
@@ -1346,8 +1345,8 @@ static void mouse_hide(void)
 static void mouse_move(unsigned int x, unsigned int y)
 {
 	mouse_hide();
-	pointer_x = x;
-	pointer_y = y;
+	pointer_x = x % screen.xres;
+	pointer_y = y % screen.yres;
 	mouse_show();
 }
 
@@ -1359,7 +1358,7 @@ static int anim_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 	int i, nvp;
 	int newval;
 	
-	switch (IPC_GET_METHOD(*call)) {
+	switch (IPC_GET_IMETHOD(*call)) {
 	case FB_ANIM_CREATE:
 		nvp = IPC_GET_ARG1(*call);
 		if (nvp == -1)
@@ -1434,7 +1433,7 @@ static int anim_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 			retval = EINVAL;
 			break;
 		}
-		newval = (IPC_GET_METHOD(*call) == FB_ANIM_START);
+		newval = (IPC_GET_IMETHOD(*call) == FB_ANIM_START);
 		if (newval ^ animations[i].enabled) {
 			animations[i].enabled = newval;
 			anims_enabled += newval ? 1 : -1;
@@ -1444,7 +1443,7 @@ static int anim_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 		handled = 0;
 	}
 	if (handled)
-		ipc_answer_0(callid, retval);
+		async_answer_0(callid, retval);
 	return handled;
 }
 
@@ -1458,7 +1457,7 @@ static int pixmap_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 	int retval = EOK;
 	int i, nvp;
 	
-	switch (IPC_GET_METHOD(*call)) {
+	switch (IPC_GET_IMETHOD(*call)) {
 	case FB_VP_DRAW_PIXMAP:
 		nvp = IPC_GET_ARG1(*call);
 		if (nvp == -1)
@@ -1497,7 +1496,7 @@ static int pixmap_handle(ipc_callid_t callid, ipc_call_t *call, int vp)
 	}
 	
 	if (handled)
-		ipc_answer_0(callid, retval);
+		async_answer_0(callid, retval);
 	return handled;
 	
 }
@@ -1528,8 +1527,8 @@ static int rgb_from_style(attr_rgb_t *rgb, int style)
 	return EOK;
 }
 
-static int rgb_from_idx(attr_rgb_t *rgb, ipcarg_t fg_color,
-    ipcarg_t bg_color, ipcarg_t flags)
+static int rgb_from_idx(attr_rgb_t *rgb, sysarg_t fg_color,
+    sysarg_t bg_color, sysarg_t flags)
 {
 	fg_color = (fg_color & 7) | ((flags & CATTR_BRIGHT) ? 8 : 0);
 	bg_color = (bg_color & 7) | ((flags & CATTR_BRIGHT) ? 8 : 0);
@@ -1561,13 +1560,13 @@ static int rgb_from_attr(attr_rgb_t *rgb, const attrs_t *a)
 	return rc;
 }
 
-static int fb_set_style(viewport_t *vport, ipcarg_t style)
+static int fb_set_style(viewport_t *vport, sysarg_t style)
 {
 	return rgb_from_style(&vport->attr, (int) style);
 }
 
-static int fb_set_color(viewport_t *vport, ipcarg_t fg_color,
-    ipcarg_t bg_color, ipcarg_t flags)
+static int fb_set_color(viewport_t *vport, sysarg_t fg_color,
+    sysarg_t bg_color, sysarg_t flags)
 {
 	return rgb_from_idx(&vport->attr, fg_color, bg_color, flags);
 }
@@ -1581,13 +1580,13 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	viewport_t *vport = &viewports[vp];
 	
 	if (client_connected) {
-		ipc_answer_0(iid, ELIMIT);
+		async_answer_0(iid, ELIMIT);
 		return;
 	}
 	
 	/* Accept connection */
 	client_connected = true;
-	ipc_answer_0(iid, EOK);
+	async_answer_0(iid, EOK);
 	
 	while (true) {
 		ipc_callid_t callid;
@@ -1620,7 +1619,7 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		if (anim_handle(callid, &call, vp))
 			continue;
 		
-		switch (IPC_GET_METHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			client_connected = false;
 			
@@ -1640,7 +1639,7 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 				retval = EINVAL;
 				break;
 			}
-			ipc_answer_0(callid, EOK);
+			async_answer_0(callid, EOK);
 			
 			draw_char(vport, ch, col, row);
 			
@@ -1673,10 +1672,10 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			retval = EOK;
 			break;
 		case FB_GET_CSIZE:
-			ipc_answer_2(callid, EOK, vport->cols, vport->rows);
+			async_answer_2(callid, EOK, vport->cols, vport->rows);
 			continue;
 		case FB_GET_COLOR_CAP:
-			ipc_answer_1(callid, EOK, FB_CCAP_RGB);
+			async_answer_1(callid, EOK, FB_CCAP_RGB);
 			continue;
 		case FB_SCROLL:
 			scroll = IPC_GET_ARG1(call);
@@ -1741,7 +1740,7 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			retval = EOK;
 			break;
 		case FB_GET_RESOLUTION:
-			ipc_answer_2(callid, EOK, screen.xres, screen.yres);
+			async_answer_2(callid, EOK, screen.xres, screen.yres);
 			continue;
 		case FB_POINTER_MOVE:
 			pointer_enabled = true;
@@ -1755,7 +1754,7 @@ static void fb_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		default:
 			retval = ENOENT;
 		}
-		ipc_answer_0(callid, retval);
+		async_answer_0(callid, retval);
 	}
 }
 

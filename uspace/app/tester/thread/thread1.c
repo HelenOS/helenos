@@ -34,6 +34,7 @@
 #include <thread.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <inttypes.h>
 #include "../tester.h"
 
 static atomic_t finish;
@@ -73,7 +74,8 @@ const char *test_thread1(void)
 	
 	atomic_set(&finish, 0);
 	while (atomic_get(&threads_finished) < total) {
-		TPRINTF("Threads left: %u\n", total - atomic_get(&threads_finished));
+		TPRINTF("Threads left: %" PRIua "\n",
+		    total - atomic_get(&threads_finished));
 		sleep(1);
 	}
 	

@@ -140,7 +140,8 @@ static pf_access_t get_memory_access_type(uint32_t instr_addr,
 	/* undefined instructions */
 	if (instr.condition == 0xf) {
 		panic("page_fault - instruction does not access memory "
-		    "(instr_code: %x, badvaddr:%x).", instr, badvaddr);
+		    "(instr_code: %#0" PRIx32 ", badvaddr:%p).",
+		    instr_union.pc, (void *) badvaddr);
 		return PF_ACCESS_EXEC;
 	}
 
@@ -159,7 +160,8 @@ static pf_access_t get_memory_access_type(uint32_t instr_addr,
 	}
 
 	panic("page_fault - instruction doesn't access memory "
-	    "(instr_code: %x, badvaddr:%x).", instr, badvaddr);
+	    "(instr_code: %#0" PRIx32 ", badvaddr:%p).",
+	    instr_union.pc, (void *) badvaddr);
 
 	return PF_ACCESS_EXEC;
 }
@@ -182,7 +184,7 @@ void data_abort(unsigned int exc_no, istate_t *istate)
 
 	if (ret == AS_PF_FAULT) {
 		fault_if_from_uspace(istate, "Page fault: %#x.", badvaddr);
-		panic_memtrap(istate, access, badvaddr, "Page fault.");
+		panic_memtrap(istate, access, badvaddr, NULL);
 	}
 }
 
@@ -197,8 +199,9 @@ void prefetch_abort(unsigned int exc_no, istate_t *istate)
 	int ret = as_page_fault(istate->pc, PF_ACCESS_EXEC, istate);
 
 	if (ret == AS_PF_FAULT) {
-		panic_memtrap(istate, PF_ACCESS_EXEC, istate->pc,
-		    "Page fault - prefetch_abort.");
+		fault_if_from_uspace(istate,
+		    "Page fault - prefetch_abort: %#x.", istate->pc);
+		panic_memtrap(istate, PF_ACCESS_EXEC, istate->pc, NULL);
 	}
 }
 

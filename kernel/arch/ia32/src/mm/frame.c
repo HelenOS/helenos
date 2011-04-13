@@ -43,11 +43,10 @@
 #include <debug.h>
 #include <align.h>
 #include <macros.h>
-
 #include <print.h>
 
-#define PHYSMEM_LIMIT32  0x07c000000ull
-#define PHYSMEM_LIMIT64  0x200000000ull
+#define PHYSMEM_LIMIT32  UINT64_C(0x07c000000)
+#define PHYSMEM_LIMIT64  UINT64_C(0x200000000)
 
 size_t hardcoded_unmapped_ktext_size = 0;
 size_t hardcoded_unmapped_kdata_size = 0;
@@ -130,19 +129,8 @@ static void init_e820_memory(pfn_t minconf)
 			// XXX this has to be removed
 			if (last_frame < ALIGN_UP(new_base + new_size, FRAME_SIZE))
 				last_frame = ALIGN_UP(new_base + new_size, FRAME_SIZE);
-		}
-		
-		if (e820table[i].type == MEMMAP_MEMORY_RESERVED) {
-			/* To be safe, make the reserved zone possibly larger */
-			uint64_t new_base = ALIGN_DOWN(base, FRAME_SIZE);
-			uint64_t new_size = ALIGN_UP(size + (base - new_base),
-			    FRAME_SIZE);
-			
-			zone_create(ADDR2PFN(new_base), SIZE2FRAMES(new_size), 0,
-			    ZONE_RESERVED);
-		}
-		
-		if (e820table[i].type == MEMMAP_MEMORY_ACPI) {
+		} else if ((e820table[i].type == MEMMAP_MEMORY_ACPI) ||
+		    (e820table[i].type == MEMMAP_MEMORY_NVS)) {
 			/* To be safe, make the firmware zone possibly larger */
 			uint64_t new_base = ALIGN_DOWN(base, FRAME_SIZE);
 			uint64_t new_size = ALIGN_UP(size + (base - new_base),
@@ -150,6 +138,14 @@ static void init_e820_memory(pfn_t minconf)
 			
 			zone_create(ADDR2PFN(new_base), SIZE2FRAMES(new_size), 0,
 			    ZONE_FIRMWARE);
+		} else {
+			/* To be safe, make the reserved zone possibly larger */
+			uint64_t new_base = ALIGN_DOWN(base, FRAME_SIZE);
+			uint64_t new_size = ALIGN_UP(size + (base - new_base),
+			    FRAME_SIZE);
+			
+			zone_create(ADDR2PFN(new_base), SIZE2FRAMES(new_size), 0,
+			    ZONE_RESERVED);
 		}
 	}
 }
@@ -202,7 +198,7 @@ void frame_arch_init(void)
 		
 #ifdef CONFIG_SMP
 		/* Reserve AP real mode bootstrap memory */
-		frame_mark_unavailable(AP_BOOT_OFFSET >> FRAME_WIDTH, 
+		frame_mark_unavailable(AP_BOOT_OFFSET >> FRAME_WIDTH,
 		    (hardcoded_unmapped_ktext_size +
 		    hardcoded_unmapped_kdata_size) >> FRAME_WIDTH);
 #endif

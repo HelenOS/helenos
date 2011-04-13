@@ -26,18 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup packet
+/** @addtogroup libnet
  * @{
  */
 
-#ifndef __NET_PACKET_REMOTE_H__
-#define __NET_PACKET_REMOTE_H__
+#ifndef LIBNET_PACKET_REMOTE_H_
+#define LIBNET_PACKET_REMOTE_H_
 
-#include <packet/packet.h>
+#include <net/packet.h>
+#include <sys/types.h>
 
-extern int packet_translate_remote(int, packet_ref, packet_id_t);
-extern packet_t packet_get_4_remote(int, size_t, size_t, size_t, size_t);
-extern packet_t packet_get_1_remote(int, size_t);
+extern int packet_translate_remote(int, packet_t **, packet_id_t);
+extern packet_t *packet_get_4_remote(int, size_t, size_t, size_t, size_t);
+extern packet_t *packet_get_1_remote(int, size_t);
 extern void pq_release_remote(int, packet_id_t);
 
 #endif

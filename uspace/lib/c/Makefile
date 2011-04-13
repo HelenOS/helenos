@@ -56,6 +56,9 @@ GENERIC_SOURCES = \
 	generic/cap.c \
 	generic/clipboard.c \
 	generic/devmap.c \
+	generic/devman.c \
+	generic/device/hw_res.c \
+	generic/device/char_dev.c \
 	generic/event.c \
 	generic/errno.c \
 	generic/mem.c \
@@ -72,6 +75,7 @@ GENERIC_SOURCES = \
 	generic/io/asprintf.c \
 	generic/io/io.c \
 	generic/io/printf.c \
+	generic/io/log.c \
 	generic/io/klog.c \
 	generic/io/snprintf.c \
 	generic/io/vprintf.c \
@@ -79,21 +83,32 @@ GENERIC_SOURCES = \
 	generic/io/printf_core.c \
 	generic/io/console.c \
 	generic/io/screenbuffer.c \
+	generic/ipc/ns.c \
 	generic/malloc.c \
 	generic/sysinfo.c \
 	generic/ipc.c \
 	generic/async.c \
+	generic/async_sess.c \
 	generic/loader.c \
 	generic/getopt.c \
-	generic/adt/list.o \
-	generic/adt/hash_table.o \
+	generic/adt/list.c \
+	generic/adt/hash_table.c \
+	generic/adt/dynamic_fifo.c \
+	generic/adt/measured_strings.c \
+	generic/adt/char_map.c \
 	generic/time.c \
-	generic/err.c \
 	generic/stdlib.c \
 	generic/mman.c \
 	generic/udebug.c \
 	generic/vfs/vfs.c \
 	generic/vfs/canonify.c \
+	generic/net/inet.c \
+	generic/net/icmp_common.c \
+	generic/net/icmp_api.c \
+	generic/net/modules.c \
+	generic/net/packet.c \
+	generic/net/socket_client.c \
+	generic/net/socket_parse.c \
 	generic/stacktrace.c \
 	generic/arg_parse.c \
 	generic/sort.c \

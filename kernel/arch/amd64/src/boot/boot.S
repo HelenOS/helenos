@@ -84,7 +84,7 @@ multiboot_image_start:
 	lgdtl bootstrap_gdtr
 	
 	/* Kernel data + stack */
-	movw $gdtselector(KDATA_DES), %cx
+	movw $GDT_SELECTOR(KDATA_DES), %cx
 	movw %cx, %es
 	movw %cx, %ds
 	movw %cx, %ss
@@ -93,11 +93,11 @@ multiboot_image_start:
 	 * Simics seems to remove hidden part of GS on entering user mode
 	 * when _visible_ part of GS does not point to user-mode segment.
 	 */
-	movw $gdtselector(UDATA_DES), %cx
+	movw $GDT_SELECTOR(UDATA_DES), %cx
 	movw %cx, %fs
 	movw %cx, %gs
 	
-	jmpl $gdtselector(KTEXT32_DES), $multiboot_meeting_point
+	jmpl $GDT_SELECTOR(KTEXT32_DES), $multiboot_meeting_point
 	multiboot_meeting_point:
 	
 	/* Save GRUB arguments */
@@ -181,7 +181,7 @@ multiboot_image_start:
 	movl %eax, %cr0
 	
 	/* At this point we are in compatibility mode */
-	jmpl $gdtselector(KTEXT_DES), $start64
+	jmpl $GDT_SELECTOR(KTEXT_DES), $start64
 
 /** Print string to EGA display (in light red) and halt.
  *
@@ -246,13 +246,13 @@ pm_error_halt:
 		movl %esi, %edx
 		movl $0xb80a0, %esi
 		movl $0xb8000, %edi
-		movl $1920, %ecx
-		rep movsw
+		movl $960, %ecx
+		rep movsl
 		
 		/* Clear the 24th row */
 		xorl %eax, %eax
-		movl $80, %ecx
-		rep stosw
+		movl $40, %ecx
+		rep stosl
 		
 		/* Go to row 24 */
 		movl %edx, %esi
@@ -356,13 +356,13 @@ pm_early_puts:
 		movl %esi, %edx
 		movl $0xb80a0, %esi
 		movl $0xb8000, %edi
-		movl $1920, %ecx
-		rep movsw
+		movl $960, %ecx
+		rep movsl
 		
 		/* Clear the 24th row */
 		xorl %eax, %eax
-		movl $80, %ecx
-		rep stosw
+		movl $40, %ecx
+		rep stosl
 		
 		/* Go to row 24 */
 		movl %edx, %esi
@@ -515,13 +515,13 @@ early_puts:
 		movq %rsi, %rdx
 		movq $(PA2KA(0xb80a0)), %rsi
 		movq $(PA2KA(0xb8000)), %rdi
-		movq $1920, %rcx
-		rep movsw
+		movl $480, %ecx
+		rep movsq
 		
 		/* Clear the 24th row */
-		xorq %rax, %rax
-		movq $80, %rcx
-		rep stosw
+		xorl %eax, %eax
+		movl $20, %ecx
+		rep stosq
 		
 		/* Go to row 24 */
 		movq %rdx, %rsi
@@ -604,22 +604,22 @@ ptl_2_3g:
 /* Page table for pages in the 5th gigabyte. */
 .align 4096
 ptl_2_4g:
-	ptl2gen 512 3
+	ptl2gen 512 4
 
 /* Page table for pages in the 6th gigabyte. */
 .align 4096
 ptl_2_5g:
-	ptl2gen 512 3
+	ptl2gen 512 5
 
 /* Page table for pages in the 7th gigabyte. */
 .align 4096
 ptl_2_6g:
-	ptl2gen 512 3
+	ptl2gen 512 6
 
 /* Page table for pages in the 8th gigabyte. */
 .align 4096
 ptl_2_7g:
-	ptl2gen 512 3
+	ptl2gen 512 7
 
 .align 4096
 ptl_1:
@@ -644,9 +644,8 @@ ptl_0:
 
 .section K_DATA_START, "aw", @progbits
 
-.global bootstrap_gdtr
 bootstrap_gdtr:
-	.word gdtselector(GDT_ITEMS)
+	.word GDT_SELECTOR(GDT_ITEMS)
 	.long KA2PA(gdt)
 
 grub_eax:

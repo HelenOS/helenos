@@ -35,15 +35,27 @@
 
 .global start
 .global halt
-.global memcpy
 .global jump_to_kernel
 
 .section BOOTSTRAP
 
 start:
-	/* Setup CPU map (on msim this code
-	   is executed in parallel on all CPUs,
-	   but it not an issue) */
+	/*
+	 * Setup the CP0 configuration
+	 *  - Disable 64-bit kernel addressing mode
+	 *  - DIsable 64-bit supervisor adressing mode
+	 *  - Disable 64-bit user addressing mode
+	 */
+	mfc0 $a0, $status
+	la $a1, 0xffffff1f
+	and $a0, $a1, $a0
+	mtc0 $a0, $status
+	
+	/*
+	 * Setup CPU map (on msim this code
+	 * is executed in parallel on all CPUs,
+	 * but it not an issue).
+	 */
 	la $a0, PA2KA(CPUMAP_OFFSET)
 	
 	sw $zero, 0($a0)
@@ -94,8 +106,10 @@ start:
 	la $k0, MSIM_DORDER_ADDRESS
 	lw $k1, ($k0)
 	
-	/* If we are not running on BSP
-	   then end in an infinite loop  */
+	/*
+	 * If we are not running on BSP
+	 * then end in an infinite loop.
+	 */
 	beq $k1, $zero, bsp
 	nop
 	
@@ -126,77 +140,12 @@ halt:
 	j halt
 	nop
 
-memcpy:
-	addiu $v0, $a1, 3
-	li $v1, -4
-	and $v0, $v0, $v1
-	beq $a1, $v0, 3f
-	move $t0, $a0
-	move $t2, $a0
-	
-	0:
-		beq $a2, $zero, 2f
-		move $a3, $zero
-	
-	1:
-		addu $v0, $a1, $a3
-		lbu $a0, 0($v0)
-		addu $v1, $t0, $a3
-		addiu $a3, $a3, 1
-		bne $a3, $a2, 1b
-		sb $a0, 0($v1)
-	
-	2:
-		jr $ra
-		move $v0, $t2
-	
-	3:
-		addiu $v0, $a0, 3
-		and $v0, $v0, $v1
-		bne $a0, $v0, 0b
-		srl $t1, $a2, 2
-		
-		beq $t1, $zero, 5f
-		move $a3, $zero
-		
-		move $a3, $zero
-		move $a0, $zero
-	
-	4:
-		addu $v0, $a1, $a0
-		lw $v1, 0($v0)
-		addiu $a3, $a3, 1
-		addu $v0, $t0, $a0
-		sw $v1, 0($v0)
-		bne $a3, $t1, 4b
-		addiu $a0, $a0, 4
-	
-	5:
-		andi $a2, $a2, 0x3
-		beq $a2, $zero, 2b
-		nop
-		
-		sll $v0, $a3, 2
-		addu $t1, $v0, $t0
-		move $a3, $zero
-		addu $t0, $v0, $a1
-	
-	6:
-		addu $v0, $t0, $a3
-		lbu $a0, 0($v0)
-		addu $v1, $t1, $a3
-		addiu $a3, $a3, 1
-		bne $a3, $a2, 6b
-		sb $a0, 0($v1)
-		
-		jr $ra
-		move $v0, $t2
-
 jump_to_kernel:
-	#
-	# TODO:
-	# Make sure that the I-cache, D-cache and memory are mutually coherent
-	# before passing control to the copied code.
-	#
+	/*
+	 * TODO:
+	 *
+	 * Make sure that the I-cache, D-cache and memory are mutually
+	 * coherent before passing control to the copied code.
+	 */
 	j $a0
 	nop

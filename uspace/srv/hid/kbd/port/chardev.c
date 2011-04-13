@@ -34,12 +34,12 @@
  * @brief Chardev keyboard port driver.
  */
 
-#include <ipc/ipc.h>
 #include <ipc/char.h>
 #include <async.h>
 #include <kbd_port.h>
 #include <kbd.h>
 #include <vfs/vfs.h>
+#include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
 
@@ -49,33 +49,50 @@ static int dev_phone;
 
 #define NAME "kbd"
 
+/** List of devices to try connecting to. */
+static const char *in_devs[] = {
+	"/dev/char/ps2a",
+	"/dev/char/s3c24ser"
+};
+
+static const int num_devs = sizeof(in_devs) / sizeof(in_devs[0]);
+
 int kbd_port_init(void)
 {
-	const char *input = "/dev/char/ps2a";
 	int input_fd;
+	int i;
 
-	printf(NAME ": open %s\n", input);
+	input_fd = -1;
+	for (i = 0; i < num_devs; i++) {
+		struct stat s;
 
-	input_fd = open(input, O_RDONLY);
+		if (stat(in_devs[i], &s) == EOK)
+			break;
+	}
+
+	if (i >= num_devs) {
+		printf(NAME ": Could not find any suitable input device.\n");
+		return -1;
+	}
+
+	input_fd = open(in_devs[i], O_RDONLY);
 	if (input_fd < 0) {
-		printf(NAME ": Failed opening %s (%d)\n", input, input_fd);
-		return false;
+		printf(NAME ": failed opening device %s (%d).\n", in_devs[i],
+		    input_fd);
+		return -1;
 	}
 
 	dev_phone = fd_phone(input_fd);
 	if (dev_phone < 0) {
-		printf(NAME ": Failed to connect to device\n");
-		return false;
+		printf(NAME ": Failed connecting to device\n");
+		return -1;
 	}
 
 	/* NB: The callback connection is slotted for removal */
-	ipcarg_t phonehash;
-	if (ipc_connect_to_me(dev_phone, 0, 0, 0, &phonehash) != 0) {
+	if (async_connect_to_me(dev_phone, 0, 0, 0, kbd_port_events) != 0) {
 		printf(NAME ": Failed to create callback from device\n");
-		return false;
+		return -1;
 	}
-
-	async_new_connection(phonehash, 0, NULL, kbd_port_events);
 
 	return 0;
 }
@@ -103,7 +120,7 @@ static void kbd_port_events(ipc_callid_t iid, ipc_call_t *icall)
 
 		int retval;
 
-		switch (IPC_GET_METHOD(call)) {
+		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			/* TODO: Handle hangup */
 			return;
@@ -113,7 +130,7 @@ static void kbd_port_events(ipc_callid_t iid, ipc_call_t *icall)
 		default:
 			retval = ENOENT;
 		}
-		ipc_answer_0(callid, retval);
+		async_answer_0(callid, retval);
 	}
 }
 

@@ -35,39 +35,7 @@
 #ifndef LIBC_ia32__ISTATE_H_
 #define LIBC_ia32__ISTATE_H_
 
-#include <sys/types.h>
-
-/** Interrupt context.
- *
- * This is a copy of the kernel definition with which it must be kept in sync.
- */
-typedef struct istate {
-	uint32_t eax;
-	uint32_t ecx;
-	uint32_t edx;
-	uint32_t ebp;
-
-	uint32_t gs;
-	uint32_t fs;
-	uint32_t es;
-	uint32_t ds;
-
-	uint32_t error_word;
-	uint32_t eip;
-	uint32_t cs;
-	uint32_t eflags;
-	uint32_t stack[];
-} istate_t;
-
-static inline uintptr_t istate_get_pc(istate_t *istate)
-{
-	return istate->eip;
-}
-
-static inline uintptr_t istate_get_fp(istate_t *istate)
-{
-	return istate->ebp;
-}
+#include <arch/istate.h>
 
 #endif
 

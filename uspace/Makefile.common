@@ -85,9 +85,8 @@ LIBBLOCK_PREFIX = $(LIB_PREFIX)/block
 LIBFS_PREFIX = $(LIB_PREFIX)/fs
 LIBCLUI_PREFIX = $(LIB_PREFIX)/clui
 
-LIBPCI_PREFIX = $(LIB_PREFIX)/pci
-
-LIBSOCKET_PREFIX = $(LIB_PREFIX)/socket
+LIBDRV_PREFIX = $(LIB_PREFIX)/drv
+LIBPACKET_PREFIX = $(LIB_PREFIX)/packet
 LIBNET_PREFIX = $(LIB_PREFIX)/net
 
 BASE_LIBS = $(LIBC_PREFIX)/libc.a $(LIBSOFTINT_PREFIX)/libsoftint.a
@@ -135,6 +134,13 @@ ifeq ($(CONFIG_DEBUG),y)
 	ICC_CFLAGS += -Werror
 endif
 
+ifeq ($(CONFIG_LINE_DEBUG),y)
+	GCC_CFLAGS += -g
+	ICC_CFLAGS += -g
+	SUNCC_CFLAGS += -g
+	CLANG_CFLAGS += -g
+endif
+
 ## Setup platform configuration
 #
 
@@ -171,7 +177,11 @@ OBJECTS := $(addsuffix .o,$(basename $(SOURCES)))
 
 ifneq ($(BINARY),)
 %.disasm: $(BINARY)
+ifeq ($(CONFIG_LINE_DEBUG),y)
+	$(OBJDUMP) -d -S $< > $@
+else
 	$(OBJDUMP) -d $< > $@
+endif
 
 $(BINARY): $(LINKER_SCRIPT) $(OBJECTS) $(LIBS) $(BASE_LIBS)
 	$(LD) -N $(LFLAGS) -T $(LINKER_SCRIPT) -M -Map $(BINARY).map -o $(BINARY) $(OBJECTS) $(LIBS) $(BASE_LIBS)
@@ -206,3 +216,9 @@ endif
 $(DEPEND): $(PRE_DEPEND)
 	makedepend -f - -- $(DEPEND_DEFS) $(CFLAGS) -- $(SOURCES) > $@ 2> /dev/null
 	-[ -f $(DEPEND_PREV) ] && diff -q $(DEPEND_PREV) $@ && mv -f $(DEPEND_PREV) $@
+
+##
+# This explicit dependecy of the output binary on the object files seems to be
+# necessary to prevent parallel build failures (GNU make bug #26893 ???).
+$(OUTPUT): $(OBJECTS)
+

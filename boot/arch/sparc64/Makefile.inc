@@ -42,8 +42,8 @@ EXTRA_CFLAGS = -mcpu=ultrasparc -m64 -mno-fpu -mcmodel=medlow
 RD_SRVS_NON_ESSENTIAL +=
 
 RD_SRVS_ESSENTIAL += \
-	$(USPACE_PATH)/srv/hw/cir/fhc/fhc \
-	$(USPACE_PATH)/srv/hw/cir/obio/obio
+	$(USPACE_PATH)/srv/hw/irc/fhc/fhc \
+	$(USPACE_PATH)/srv/hw/irc/obio/obio
 
 SOURCES = \
 	arch/$(BARCH)/src/asm.S \
@@ -53,6 +53,7 @@ SOURCES = \
 	genarch/src/ofw.c \
 	genarch/src/ofw_tree.c \
 	generic/src/balloc.c \
+	generic/src/memstr.c \
 	generic/src/printf_core.c \
 	generic/src/vprintf.c \
 	generic/src/printf.c \

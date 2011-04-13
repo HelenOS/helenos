@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jiri Svoboda
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -112,6 +112,7 @@ static void run_access_symbol(run_t *run, stree_access_t *access,
 
 static void run_call(run_t *run, stree_call_t *call, rdata_item_t **res);
 static void run_call_args(run_t *run, list_t *args, list_t *arg_vals);
+static void run_destroy_arg_vals(list_t *arg_vals);
 
 static void run_index(run_t *run, stree_index_t *index, rdata_item_t **res);
 static void run_index_array(run_t *run, stree_index_t *index,
@@ -199,6 +200,9 @@ static void run_nameref(run_t *run, stree_nameref_t *nameref,
 	rdata_item_t *item;
 	rdata_address_t *address;
 	rdata_addr_var_t *addr_var;
+	rdata_addr_prop_t *addr_prop;
+	rdata_aprop_named_t *aprop_named;
+	rdata_deleg_t *deleg_p;
 	rdata_value_t *value;
 	rdata_var_t *var;
 	rdata_deleg_t *deleg_v;
@@ -333,15 +337,19 @@ static void run_nameref(run_t *run, stree_nameref_t *nameref,
 		*res = item;
 		break;
 	case sc_var:
+	case sc_prop:
 #ifdef DEBUG_RUN_TRACE
-		printf("Referencing member variable.\n");
+		if (sym->sc == sc_var)
+			printf("Referencing member variable.\n");
+		else
+			printf("Referencing unqualified property.\n");
 #endif
-		/* There should be no global variables. */
+		/* There should be no global variables or properties. */
 		assert(csi != NULL);
 
 		if (symbol_search_csi(run->program, csi, nameref->name)
 		    == NULL && !stree_symbol_is_static(sym)) {
-			/* Variable is not in the current object. */
+			/* Symbol is not in the current object. */
 			printf("Error: Cannot access non-static member "
 			    "variable '");
 			symbol_print_fqn(sym);
@@ -351,8 +359,12 @@ static void run_nameref(run_t *run, stree_nameref_t *nameref,
 			exit(1);
 		}
 
+		/*
+		 * Determine object in which the symbol resides
+		 */
 		if (stree_symbol_is_static(sym)) {
 			/*
+			 * Class object
 			 * XXX This is too slow!
 			 *
 			 * However fixing this is non-trivial. We would
@@ -364,28 +376,48 @@ static void run_nameref(run_t *run, stree_nameref_t *nameref,
 			assert(sobj->vc == vc_object);
 			aobj = sobj->u.object_v;
 		} else {
-			aobj = obj;
+			/*
+			 * Instance object. Currently we don't support
+			 * true inner classes, thus we know the symbol is
+			 * in the active object (there is no dynamic parent).
+			 */
+			sobj = proc_ar->obj;
+			aobj = sobj->u.object_v;;
 		}
 
-		/* Find member variable in object. */
-		member_var = intmap_get(&aobj->fields, nameref->name->sid);
-		assert(member_var != NULL);
+		if (sym->sc == sc_var) {
+			/* Find member variable in object. */
+			member_var = intmap_get(&aobj->fields,
+			    nameref->name->sid);
+			assert(member_var != NULL);
 
-		/* Return address of the variable. */
-		item = rdata_item_new(ic_address);
-		address = rdata_address_new(ac_var);
-		addr_var = rdata_addr_var_new();
+			/* Return address of the variable. */
+			item = rdata_item_new(ic_address);
+			address = rdata_address_new(ac_var);
+			addr_var = rdata_addr_var_new();
 
-		item->u.address = address;
-		address->u.var_a = addr_var;
-		addr_var->vref = member_var;
+			item->u.address = address;
+			address->u.var_a = addr_var;
+			addr_var->vref = member_var;
 
-		*res = item;
-		break;
-	case sc_prop:
-		/* XXX TODO */
-		printf("Unimplemented: Property name reference.\n");
-		abort();
+			*res = item;
+		} else {
+			/* Construct named property address. */
+			item = rdata_item_new(ic_address);
+			address = rdata_address_new(ac_prop);
+			addr_prop = rdata_addr_prop_new(apc_named);
+			aprop_named = rdata_aprop_named_new();
+			item->u.address = address;
+			address->u.prop_a = addr_prop;
+			addr_prop->u.named = aprop_named;
+
+			deleg_p = rdata_deleg_new();
+			deleg_p->obj = sobj;
+			deleg_p->sym = sym;
+			addr_prop->u.named->prop_d = deleg_p;
+
+			*res = item;
+		}
 		break;
 	}
 }
@@ -610,27 +642,43 @@ static void run_binop(run_t *run, stree_binop_t *binop, rdata_item_t **res)
 	rdata_item_t *rarg1_vi, *rarg2_vi;
 	rdata_value_t *v1, *v2;
 
+	rarg1_i = NULL;
+	rarg2_i = NULL;
+	rarg1_vi = NULL;
+	rarg2_vi = NULL;
+
 #ifdef DEBUG_RUN_TRACE
 	printf("Run binary operation.\n");
 #endif
 	run_expr(run, binop->arg1, &rarg1_i);
 	if (run_is_bo(run)) {
-		*res = NULL;
-		return;
+		*res = run_recovery_item(run);
+		goto cleanup;
+	}
+
+#ifdef DEBUG_RUN_TRACE
+	printf("Check binop argument result.\n");
+#endif
+	run_cvt_value_item(run, rarg1_i, &rarg1_vi);
+	if (run_is_bo(run)) {
+		*res = run_recovery_item(run);
+		goto cleanup;
 	}
 
 	run_expr(run, binop->arg2, &rarg2_i);
 	if (run_is_bo(run)) {
-		*res = NULL;
-		return;
+		*res = run_recovery_item(run);
+		goto cleanup;
 	}
 
 #ifdef DEBUG_RUN_TRACE
-	printf("Check binop argument results.\n");
+	printf("Check binop argument result.\n");
 #endif
-
-	run_cvt_value_item(run, rarg1_i, &rarg1_vi);
 	run_cvt_value_item(run, rarg2_i, &rarg2_vi);
+	if (run_is_bo(run)) {
+		*res = run_recovery_item(run);
+		goto cleanup;
+	}
 
 	v1 = rarg1_vi->u.value;
 	v2 = rarg2_vi->u.value;
@@ -667,6 +715,16 @@ static void run_binop(run_t *run, stree_binop_t *binop, rdata_item_t **res)
 	case vc_symbol:
 		assert(b_false);
 	}
+
+cleanup:
+	if (rarg1_i != NULL)
+		rdata_item_destroy(rarg1_i);
+	if (rarg2_i != NULL)
+		rdata_item_destroy(rarg2_i);
+	if (rarg1_vi != NULL)
+		rdata_item_destroy(rarg1_vi);
+	if (rarg2_vi != NULL)
+		rdata_item_destroy(rarg2_vi);
 }
 
 /** Evaluate binary operation on bool arguments.
@@ -1053,7 +1111,7 @@ static void run_binop_enum(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
 	rdata_var_t *var;
 	rdata_bool_t *bool_v;
 
-	rdata_var_t *ref1, *ref2;
+	stree_embr_t *e1, *e2;
 
 	(void) run;
 
@@ -1066,15 +1124,15 @@ static void run_binop_enum(run_t *run, stree_binop_t *binop, rdata_value_t *v1,
 	value->var = var;
 	var->u.bool_v = bool_v;
 
-	ref1 = v1->var->u.ref_v->vref;
-	ref2 = v2->var->u.ref_v->vref;
+	e1 = v1->var->u.enum_v->value;
+	e2 = v2->var->u.enum_v->value;
 
 	switch (binop->bc) {
 	case bo_equal:
-		bool_v->value = (ref1 == ref2);
+		bool_v->value = (e1 == e2);
 		break;
 	case bo_notequal:
-		bool_v->value = (ref1 != ref2);
+		bool_v->value = (e1 != e2);
 		break;
 	default:
 		/* Should have been caught by static typing. */
@@ -1099,16 +1157,23 @@ static void run_unop(run_t *run, stree_unop_t *unop, rdata_item_t **res)
 #ifdef DEBUG_RUN_TRACE
 	printf("Run unary operation.\n");
 #endif
+	rarg_i = NULL;
+	rarg_vi = NULL;
+
 	run_expr(run, unop->arg, &rarg_i);
 	if (run_is_bo(run)) {
-		*res = NULL;
-		return;
+		*res = run_recovery_item(run);
+		goto cleanup;
 	}
 
 #ifdef DEBUG_RUN_TRACE
 	printf("Check unop argument result.\n");
 #endif
 	run_cvt_value_item(run, rarg_i, &rarg_vi);
+	if (run_is_bo(run)) {
+		*res = run_recovery_item(run);
+		goto cleanup;
+	}
 
 	val = rarg_vi->u.value;
 
@@ -1123,9 +1188,14 @@ static void run_unop(run_t *run, stree_unop_t *unop, rdata_item_t **res)
 		printf("Unimplemented: Unrary operation argument of "
 		    "type %d.\n", val->var->vc);
 		run_raise_error(run);
-		*res = NULL;
+		*res = run_recovery_item(run);
 		break;
 	}
+cleanup:
+	if (rarg_i != NULL)
+		rdata_item_destroy(rarg_i);
+	if (rarg_vi != NULL)
+		rdata_item_destroy(rarg_vi);
 }
 
 /** Evaluate unary operation on bool argument.
@@ -1207,6 +1277,79 @@ static void run_unop_int(run_t *run, stree_unop_t *unop, rdata_value_t *val,
 
 	*res = item;
 }
+
+/** Run equality comparison of two values
+ *
+ * This should be equivalent to equality ('==') binary operation.
+ * XXX Duplicating code of run_binop_xxx().
+ *
+ * @param run		Runner object
+ * @param v1		Value of first argument
+ * @param v2		Value of second argument
+ * @param res		Place to store result (plain boolean value)
+ */
+void run_equal(run_t *run, rdata_value_t *v1, rdata_value_t *v2, bool_t *res)
+{
+	bool_t b1, b2;
+	bigint_t *c1, *c2;
+	bigint_t *i1, *i2;
+	bigint_t diff;
+	const char *s1, *s2;
+	rdata_var_t *ref1, *ref2;
+	stree_embr_t *e1, *e2;
+
+	(void) run;
+	assert(v1->var->vc == v2->var->vc);
+
+	switch (v1->var->vc) {
+	case vc_bool:
+		b1 = v1->var->u.bool_v->value;
+		b2 = v2->var->u.bool_v->value;
+
+		*res = (b1 == b2);
+		break;
+	case vc_char:
+		c1 = &v1->var->u.char_v->value;
+		c2 = &v2->var->u.char_v->value;
+
+    		bigint_sub(c1, c2, &diff);
+		*res = bigint_is_zero(&diff);
+		break;
+	case vc_int:
+		i1 = &v1->var->u.int_v->value;
+		i2 = &v2->var->u.int_v->value;
+
+		bigint_sub(i1, i2, &diff);
+		*res = bigint_is_zero(&diff);
+		break;
+	case vc_string:
+		s1 = v1->var->u.string_v->value;
+		s2 = v2->var->u.string_v->value;
+
+		*res = os_str_cmp(s1, s2) == 0;
+		break;
+	case vc_ref:
+		ref1 = v1->var->u.ref_v->vref;
+		ref2 = v2->var->u.ref_v->vref;
+
+		*res = (ref1 == ref2);
+		break;
+	case vc_enum:
+		e1 = v1->var->u.enum_v->value;
+		e2 = v2->var->u.enum_v->value;
+
+		*res = (e1 == e2);
+		break;
+
+	case vc_deleg:
+	case vc_array:
+	case vc_object:
+	case vc_resource:
+	case vc_symbol:
+		assert(b_false);
+	}
+}
+
 
 /** Evaluate @c new operation.
  *
@@ -1296,11 +1439,16 @@ static void run_new_array(run_t *run, stree_new_t *new_op,
 		/* Evaluate extent argument. */
 		run_expr(run, expr, &rexpr);
 		if (run_is_bo(run)) {
-			*res = NULL;
+			*res = run_recovery_item(run);
 			return;
 		}
 
 		run_cvt_value_item(run, rexpr, &rexpr_vi);
+		if (run_is_bo(run)) {
+			*res = run_recovery_item(run);
+			return;
+		}
+
 		assert(rexpr_vi->ic == ic_value);
 		rexpr_var = rexpr_vi->u.value->var;
 
@@ -1374,7 +1522,7 @@ static void run_new_object(run_t *run, stree_new_t *new_op,
 	/* Evaluate constructor arguments. */
 	run_call_args(run, &new_op->ctor_args, &arg_vals);
 	if (run_is_bo(run)) {
-		*res = NULL;
+		*res = run_recovery_item(run);
 		return;
 	}
 
@@ -1386,6 +1534,10 @@ static void run_new_object(run_t *run, stree_new_t *new_op,
 	assert(obj_i->ic == ic_address);
 	assert(obj_i->u.address->ac == ac_var);
 	run_object_ctor(run, obj_i->u.address->u.var_a->vref, &arg_vals);
+	rdata_item_destroy(obj_i);
+
+	/* Destroy argument values */
+	run_destroy_arg_vals(&arg_vals);
 }
 
 /** Evaluate member acccess.
@@ -1403,10 +1555,12 @@ static void run_access(run_t *run, stree_access_t *access, rdata_item_t **res)
 #ifdef DEBUG_RUN_TRACE
 	printf("Run access operation.\n");
 #endif
+	rarg = NULL;
+
 	run_expr(run, access->arg, &rarg);
 	if (run_is_bo(run)) {
-		*res = NULL;
-		return;
+		*res = run_recovery_item(run);
+		goto cleanup;
     	}
 
 	if (rarg == NULL) {
@@ -1415,6 +1569,9 @@ static void run_access(run_t *run, stree_access_t *access, rdata_item_t **res)
 	}
 
 	run_access_item(run, access, rarg, res);
+cleanup:
+	if (rarg != NULL)
+		rdata_item_destroy(rarg);
 }
 
 /** Evaluate member acccess (with base already evaluated).
@@ -1483,6 +1640,9 @@ static void run_access_ref(run_t *run, stree_access_t *access,
 
 	/* Try again. */
 	run_access_item(run, access, darg, res);
+
+	/* Destroy temporary */
+	rdata_item_destroy(darg);
 }
 
 /** Evaluate delegate member acccess.
@@ -1789,6 +1949,11 @@ static void run_access_symbol(run_t *run, stree_access_t *access,
 	printf("Run symbol access operation.\n");
 #endif
 	run_cvt_value_item(run, arg, &arg_vi);
+	if (run_is_bo(run)) {
+		*res = run_recovery_item(run);
+		return;
+	}
+
 	arg_val = arg_vi->u.value;
 	assert(arg_val->var->vc == vc_symbol);
 
@@ -1799,6 +1964,8 @@ static void run_access_symbol(run_t *run, stree_access_t *access,
 
 	embr = stree_enum_find_mbr(symbol_v->sym->u.enum_d,
 	    access->member_name);
+
+	rdata_item_destroy(arg_vi);
 
 	/* Member existence should be ensured by static type checking. */
 	assert(embr != NULL);
@@ -1840,18 +2007,21 @@ static void run_call(run_t *run, stree_call_t *call, rdata_item_t **res)
 #ifdef DEBUG_RUN_TRACE
 	printf("Run call operation.\n");
 #endif
+	rdeleg = NULL;
+	rdeleg_vi = NULL;
+
 	run_expr(run, call->fun, &rdeleg);
 	if (run_is_bo(run)) {
-		*res = NULL;
-		return;
-	}
-
-	if (run->thread_ar->bo_mode != bm_none) {
 		*res = run_recovery_item(run);
-		return;
+		goto cleanup;
 	}
 
 	run_cvt_value_item(run, rdeleg, &rdeleg_vi);
+	if (run_is_bo(run)) {
+		*res = run_recovery_item(run);
+		goto cleanup;
+	}
+
 	assert(rdeleg_vi->ic == ic_value);
 
 	if (rdeleg_vi->u.value->var->vc != vc_deleg) {
@@ -1876,8 +2046,8 @@ static void run_call(run_t *run, stree_call_t *call, rdata_item_t **res)
 	/* Evaluate function arguments. */
 	run_call_args(run, &call->args, &arg_vals);
 	if (run_is_bo(run)) {
-		*res = NULL;
-		return;
+		*res = run_recovery_item(run);
+		goto cleanup;
 	}
 
 	fun = symbol_to_fun(deleg_v->sym);
@@ -1889,6 +2059,9 @@ static void run_call(run_t *run, stree_call_t *call, rdata_item_t **res)
 	/* Fill in argument values. */
 	run_proc_ar_set_args(run, proc_ar, &arg_vals);
 
+	/* Destroy arg_vals, they are no longer needed. */
+	run_destroy_arg_vals(&arg_vals);
+
 	/* Run the function. */
 	run_proc(run, proc_ar, res);
 
@@ -1898,6 +2071,15 @@ static void run_call(run_t *run, stree_call_t *call, rdata_item_t **res)
 		printf("' did not return a value.\n");
 		exit(1);
 	}
+
+	/* Destroy procedure activation record. */
+	run_proc_ar_destroy(run, proc_ar);
+
+cleanup:
+	if (rdeleg != NULL)
+		rdata_item_destroy(rdeleg);
+	if (rdeleg_vi != NULL)
+		rdata_item_destroy(rdeleg_vi);
 
 #ifdef DEBUG_RUN_TRACE
 	printf("Returned from function call.\n");
@@ -1927,13 +2109,53 @@ static void run_call_args(run_t *run, list_t *args, list_t *arg_vals)
 		arg = list_node_data(arg_n, stree_expr_t *);
 		run_expr(run, arg, &rarg_i);
 		if (run_is_bo(run))
-			return;
+			goto error;
 
 		run_cvt_value_item(run, rarg_i, &rarg_vi);
+		rdata_item_destroy(rarg_i);
+		if (run_is_bo(run))
+			goto error;
 
 		list_append(arg_vals, rarg_vi);
 		arg_n = list_next(args, arg_n);
 	}
+	return;
+
+error:
+	/*
+	 * An exception or error occured while evaluating one of the
+	 * arguments. Destroy already obtained argument values and
+	 * dismantle the list.
+	 */
+	run_destroy_arg_vals(arg_vals);
+}
+
+/** Destroy list of evaluated arguments.
+ *
+ * Provided a list of evaluated arguments, destroy them, removing them
+ * from the list and fini the list itself.
+ *
+ * @param arg_vals	List of evaluated arguments (value items,
+ *			rdata_item_t).
+ */
+static void run_destroy_arg_vals(list_t *arg_vals)
+{
+	list_node_t *val_n;
+	rdata_item_t *val_i;
+
+	/*
+	 * An exception or error occured while evaluating one of the
+	 * arguments. Destroy already obtained argument values and
+	 * dismantle the list.
+	 */
+	while (!list_is_empty(arg_vals)) {
+		val_n = list_first(arg_vals);
+		val_i = list_node_data(val_n, rdata_item_t *);
+
+		rdata_item_destroy(val_i);
+		list_remove(arg_vals, val_n);
+	}
+	list_fini(arg_vals);
 }
 
 /** Run index operation.
@@ -1953,13 +2175,15 @@ static void run_index(run_t *run, stree_index_t *index, rdata_item_t **res)
 	rdata_item_t *rarg_i, *rarg_vi;
 	var_class_t vc;
 	list_t arg_vals;
+	list_node_t *val_n;
+	rdata_item_t *val_i;
 
 #ifdef DEBUG_RUN_TRACE
 	printf("Run index operation.\n");
 #endif
 	run_expr(run, index->base, &rbase);
 	if (run_is_bo(run)) {
-		*res = NULL;
+		*res = run_recovery_item(run);
 		return;
 	}
 
@@ -1968,8 +2192,9 @@ static void run_index(run_t *run, stree_index_t *index, rdata_item_t **res)
 	/* Implicitly dereference. */
 	if (vc == vc_ref) {
 		run_dereference(run, rbase, index->base->cspan, &base_i);
+		rdata_item_destroy(rbase);
 		if (run_is_bo(run)) {
-			*res = NULL;
+			*res = run_recovery_item(run);
 			return;
 		}
 	} else {
@@ -1986,11 +2211,16 @@ static void run_index(run_t *run, stree_index_t *index, rdata_item_t **res)
 		arg = list_node_data(node, stree_expr_t *);
 		run_expr(run, arg, &rarg_i);
 		if (run_is_bo(run)) {
-			*res = NULL;
-			return;
+			*res = run_recovery_item(run);
+			goto cleanup;
 		}
 
 		run_cvt_value_item(run, rarg_i, &rarg_vi);
+		rdata_item_destroy(rarg_i);
+		if (run_is_bo(run)) {
+			*res = run_recovery_item(run);
+			goto cleanup;
+		}
 
 		list_append(&arg_vals, rarg_vi);
 
@@ -2011,6 +2241,24 @@ static void run_index(run_t *run, stree_index_t *index, rdata_item_t **res)
 		printf("Error: Indexing object of bad type (%d).\n", vc);
 		exit(1);
 	}
+
+	/* Destroy the indexing base temporary */
+	rdata_item_destroy(base_i);
+cleanup:
+	/*
+	 * An exception or error occured while evaluating one of the
+	 * arguments. Destroy already obtained argument values and
+	 * dismantle the list.
+	 */
+	while (!list_is_empty(&arg_vals)) {
+		val_n = list_first(&arg_vals);
+		val_i = list_node_data(val_n, rdata_item_t *);
+
+		rdata_item_destroy(val_i);
+		list_remove(&arg_vals, val_n);
+	}
+
+	list_fini(&arg_vals);
 }
 
 /** Run index operation on array.
@@ -2135,7 +2383,7 @@ static void run_index_object(run_t *run, stree_index_t *index,
 	stree_ident_t *indexer_ident;
 
 	list_node_t *node;
-	rdata_item_t *arg;
+	rdata_item_t *arg, *arg_copy;
 
 #ifdef DEBUG_RUN_TRACE
 	printf("Run object index operation.\n");
@@ -2185,7 +2433,16 @@ static void run_index_object(run_t *run, stree_index_t *index,
 	node = list_first(args);
 	while (node != NULL) {
 		arg = list_node_data(node, rdata_item_t *);
-		list_append(&aprop_indexed->args, arg);
+
+		/*
+		 * Clone argument so that original can
+		 * be freed.
+		 */
+		assert(arg->ic == ic_value);
+		arg_copy = rdata_item_new(ic_value);
+		rdata_value_copy(arg->u.value, &arg_copy->u.value);
+
+		list_append(&aprop_indexed->args, arg_copy);
 		node = list_next(args, node);
 	}
 
@@ -2224,6 +2481,11 @@ static void run_index_string(run_t *run, stree_index_t *index,
 	(void) run;
 
 	run_cvt_value_item(run, base, &base_vi);
+	if (run_is_bo(run)) {
+		*res = run_recovery_item(run);
+		return;
+	}
+
 	assert(base_vi->u.value->var->vc == vc_string);
 	string = base_vi->u.value->var->u.string_v;
 
@@ -2266,6 +2528,8 @@ static void run_index_string(run_t *run, stree_index_t *index,
 
 	if (rc1 == EOK)
 		rc2 = os_str_get_char(string->value, elem_index, &cval);
+	else
+		rc2 = EOK;
 
 	if (rc1 != EOK || rc2 != EOK) {
 #ifdef DEBUG_RUN_TRACE
@@ -2276,7 +2540,7 @@ static void run_index_string(run_t *run, stree_index_t *index,
 		run_raise_exc(run, run->program->builtin->error_outofbounds,
 		    index->expr->cspan);
 		*res = run_recovery_item(run);
-		return;
+		goto cleanup;
 	}
 
 	/* Construct character value. */
@@ -2290,6 +2554,8 @@ static void run_index_string(run_t *run, stree_index_t *index,
 	value->var = cvar;
 
 	*res = ritem;
+cleanup:
+	rdata_item_destroy(base_vi);
 }
 
 /** Run assignment.
@@ -2309,19 +2575,28 @@ static void run_assign(run_t *run, stree_assign_t *assign, rdata_item_t **res)
 #ifdef DEBUG_RUN_TRACE
 	printf("Run assign operation.\n");
 #endif
+	rdest_i = NULL;
+	rsrc_i = NULL;
+	rsrc_vi = NULL;
+
 	run_expr(run, assign->dest, &rdest_i);
 	if (run_is_bo(run)) {
-		*res = NULL;
-		return;
+		*res = run_recovery_item(run);
+		goto cleanup;
 	}
 
 	run_expr(run, assign->src, &rsrc_i);
 	if (run_is_bo(run)) {
-		*res = NULL;
-		return;
+		*res = run_recovery_item(run);
+		goto cleanup;
 	}
 
 	run_cvt_value_item(run, rsrc_i, &rsrc_vi);
+	if (run_is_bo(run)) {
+		*res = run_recovery_item(run);
+		goto cleanup;
+	}
+
 	assert(rsrc_vi->ic == ic_value);
 
 	if (rdest_i->ic != ic_address) {
@@ -2333,6 +2608,13 @@ static void run_assign(run_t *run, stree_assign_t *assign, rdata_item_t **res)
 	run_address_write(run, rdest_i->u.address, rsrc_vi->u.value);
 
 	*res = NULL;
+cleanup:
+	if (rdest_i != NULL)
+		rdata_item_destroy(rdest_i);
+	if (rsrc_i != NULL)
+		rdata_item_destroy(rsrc_i);
+	if (rsrc_vi != NULL)
+		rdata_item_destroy(rsrc_vi);
 }
 
 /** Execute @c as conversion.
@@ -2358,7 +2640,7 @@ static void run_as(run_t *run, stree_as_t *as_op, rdata_item_t **res)
 #endif
 	run_expr(run, as_op->arg, &rarg_i);
 	if (run_is_bo(run)) {
-		*res = NULL;
+		*res = run_recovery_item(run);
 		return;
 	}
 
@@ -2368,6 +2650,13 @@ static void run_as(run_t *run, stree_as_t *as_op, rdata_item_t **res)
 	 */
 	assert(run_item_get_vc(run, rarg_i) == vc_ref);
 	run_cvt_value_item(run, rarg_i, &rarg_vi);
+	rdata_item_destroy(rarg_i);
+
+	if (run_is_bo(run)) {
+		*res = run_recovery_item(run);
+		return;
+	}
+
 	assert(rarg_vi->ic == ic_value);
 
 	if (rarg_vi->u.value->var->u.ref_v->vref == NULL) {
@@ -2404,6 +2693,9 @@ static void run_as(run_t *run, stree_as_t *as_op, rdata_item_t **res)
 		exit(1);
 	}
 
+	/* The dereferenced item is not used anymore. */
+	rdata_item_destroy(rarg_di);
+
 	*res = rarg_vi;
 }
 
@@ -2434,11 +2726,17 @@ static void run_box(run_t *run, stree_box_t *box, rdata_item_t **res)
 #endif
 	run_expr(run, box->arg, &rarg_i);
 	if (run_is_bo(run)) {
-		*res = NULL;
+		*res = run_recovery_item(run);
 		return;
 	}
 
 	run_cvt_value_item(run, rarg_i, &rarg_vi);
+	rdata_item_destroy(rarg_i);
+	if (run_is_bo(run)) {
+		*res = run_recovery_item(run);
+		return;
+	}
+
 	assert(rarg_vi->ic == ic_value);
 
 	bi = run->program->builtin;
@@ -2481,6 +2779,7 @@ static void run_box(run_t *run, stree_box_t *box, rdata_item_t **res)
 	assert(mbr_var != NULL);
 
 	rdata_var_write(mbr_var, rarg_vi->u.value);
+	rdata_item_destroy(rarg_vi);
 }
 
 /** Create new CSI instance and return reference to it.
@@ -2656,6 +2955,9 @@ static void run_object_ctor(run_t *run, rdata_var_t *obj, list_t *arg_vals)
 	/* Constructor does not return a value. */
 	assert(res == NULL);
 
+	/* Destroy procedure activation record. */
+	run_proc_ar_destroy(run, proc_ar);
+
 #ifdef DEBUG_RUN_TRACE
 	printf("Returned from constructor..\n");
 #endif
@@ -2674,13 +2976,20 @@ bool_t run_item_boolean_value(run_t *run, rdata_item_t *item)
 {
 	rdata_item_t *vitem;
 	rdata_var_t *var;
+	bool_t res;
 
 	(void) run;
 	run_cvt_value_item(run, item, &vitem);
+	if (run_is_bo(run))
+		return b_true;
 
 	assert(vitem->ic == ic_value);
 	var = vitem->u.value->var;
 
 	assert(var->vc == vc_bool);
-	return var->u.bool_v->value;
+	res = var->u.bool_v->value;
+
+	/* Free value item */
+	rdata_item_destroy(vitem);
+	return res;
 }

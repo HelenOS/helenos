@@ -42,13 +42,13 @@
 
 struct stat {
 	fs_handle_t fs_handle;
-	dev_handle_t dev_handle;
+	devmap_handle_t devmap_handle;
 	fs_index_t index;
 	unsigned int lnkcnt;
 	bool is_file;
 	bool is_directory;
 	aoff64_t size;
-	dev_handle_t device;
+	devmap_handle_t device;
 };
 
 extern int fstat(int, struct stat *);

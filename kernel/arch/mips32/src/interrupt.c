@@ -37,6 +37,7 @@
 #include <typedefs.h>
 #include <arch.h>
 #include <arch/cp0.h>
+#include <arch/smp/dorder.h>
 #include <time/clock.h>
 #include <ipc/sysipc.h>
 #include <ddi/device.h>
@@ -47,6 +48,7 @@
 
 function virtual_timer_fnc = NULL;
 static irq_t timer_irq;
+static irq_t dorder_irq;
 
 // TODO: This is SMP unsafe!!!
 
@@ -148,6 +150,16 @@ static void timer_irq_handler(irq_t *irq)
 		virtual_timer_fnc();
 }
 
+static irq_ownership_t dorder_claim(irq_t *irq)
+{
+	return IRQ_ACCEPT;
+}
+
+static void dorder_irq_handler(irq_t *irq)
+{
+	dorder_ipi_ack(1 << dorder_cpuid());
+}
+
 /* Initialize basic tables for exception dispatching */
 void interrupt_init(void)
 {
@@ -162,6 +174,15 @@ void interrupt_init(void)
 	
 	timer_start();
 	cp0_unmask_int(TIMER_IRQ);
+	
+	irq_initialize(&dorder_irq);
+	dorder_irq.devno = device_assign_devno();
+	dorder_irq.inr = DORDER_IRQ;
+	dorder_irq.claim = dorder_claim;
+	dorder_irq.handler = dorder_irq_handler;
+	irq_register(&dorder_irq);
+	
+	cp0_unmask_int(DORDER_IRQ);
 }
 
 /** @}

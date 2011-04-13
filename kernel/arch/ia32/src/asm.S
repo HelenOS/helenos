@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001 Jakub Jermar
+ * Copyright (c) 2010 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,36 +30,18 @@
  *
  */
 
-/**
- * Mask for interrupts 0 - 31 (bits 0 - 31) where 0 means that int
- * has no error word  and 1 means interrupt with error word
- *
- */
-#define ERROR_WORD_INTERRUPT_LIST  0x00027d00
-
 #include <arch/pm.h>
+#include <arch/cpu.h>
 #include <arch/mm/page.h>
 
 .text
 .global paging_on
 .global enable_l_apic_in_msr
-.global interrupt_handlers
-.global memsetb
-.global memsetw
-.global memcpy
 .global memcpy_from_uspace
 .global memcpy_from_uspace_failover_address
 .global memcpy_to_uspace
 .global memcpy_to_uspace_failover_address
 .global early_putchar
-
-/* Wrapper for generic memsetb */
-memsetb:
-	jmp _memsetb
-
-/* Wrapper for generic memsetw */
-memsetw:
-	jmp _memsetw
 
 #define MEMCPY_DST   4
 #define MEMCPY_SRC   8
@@ -80,7 +62,6 @@ memsetw:
  * @return MEMCPY_DST(%esp) on success and 0 on failure.
  *
  */
-memcpy:
 memcpy_from_uspace:
 memcpy_to_uspace:
 	movl %edi, %edx  /* save %edi */
@@ -154,63 +135,13 @@ enable_l_apic_in_msr:
 	wrmsr
 	ret
 
-/** Clear nested flag
- *
- */
-.macro CLEAR_NT_FLAG
-	pushfl
-	andl $0xffffbfff, (%esp)
-	popfl
-.endm
-
-/*
- * The SYSENTER syscall mechanism can be used for syscalls with
- * four or fewer arguments. To pass these four arguments, we
- * use four registers: EDX, ECX, EBX, ESI. The syscall number
- * is passed in EAX. We use EDI to remember the return address
- * and EBP to remember the stack. The INT-based syscall mechanism
- * can actually handle six arguments plus the syscall number
- * entirely in registers.
- */
-.global sysenter_handler
-sysenter_handler:
-	sti
-	pushl %ebp  /* remember user stack */
-	pushl %edi  /* remember return user address */
-	
-	xorl %ebp, %ebp  /* stop stack traces here */
-	
-	pushl %gs  /* remember TLS */
-	
-	pushl %eax     /* syscall number */
-	subl $8, %esp  /* unused sixth and fifth argument */
-	pushl %esi     /* fourth argument */
-	pushl %ebx     /* third argument */
-	pushl %ecx     /* second argument */
-	pushl %edx     /* first argument */
-	
-	movw $16, %ax
-	movw %ax, %ds
-	movw %ax, %es
-	
-	cld
-	call syscall_handler
-	addl $28, %esp  /* remove arguments from stack */
-	
-	pop %gs  /* restore TLS */
-	
-	pop %edx  /* prepare return EIP for SYSEXIT */
-	pop %ecx  /* prepare userspace ESP for SYSEXIT */
-	
-	sysexit   /* return to userspace */
-
-#define ISTATE_OFFSET_EAX         0
-#define ISTATE_OFFSET_EBX         4
-#define ISTATE_OFFSET_ECX         8
-#define ISTATE_OFFSET_EDX         12
-#define ISTATE_OFFSET_EDI         16
-#define ISTATE_OFFSET_ESI         20
-#define ISTATE_OFFSET_EBP         24
+#define ISTATE_OFFSET_EDX         0
+#define ISTATE_OFFSET_ECX         4
+#define ISTATE_OFFSET_EBX         8
+#define ISTATE_OFFSET_ESI         12
+#define ISTATE_OFFSET_EDI         16 
+#define ISTATE_OFFSET_EBP         20
+#define ISTATE_OFFSET_EAX         24
 #define ISTATE_OFFSET_EBP_FRAME   28
 #define ISTATE_OFFSET_EIP_FRAME   32
 #define ISTATE_OFFSET_GS          36
@@ -230,195 +161,304 @@ sysenter_handler:
  */
 #define ISTATE_SOFT_SIZE  52
 
-/** Declare interrupt handlers
- *
- * Declare interrupt handlers for n interrupt
- * vectors starting at vector i.
- *
- * The handlers setup data segment registers
- * and call exc_dispatch().
+/*
+ * The SYSENTER syscall mechanism can be used for syscalls with
+ * four or fewer arguments. To pass these four arguments, we
+ * use four registers: EDX, ECX, EBX, ESI. The syscall number
+ * is passed in EAX. We use EDI to remember the return address
+ * and EBP to remember the stack. The INT-based syscall mechanism
+ * can actually handle six arguments plus the syscall number
+ * entirely in registers.
+ */
+.global sysenter_handler
+sysenter_handler:
+
+	/*
+	 * Note that the space needed for the istate structure has been
+	 * preallocated on the stack by before_thread_runs_arch().
+	 */
+
+	/*
+	 * Save the return address and the userspace stack in the istate
+	 * structure on locations that would normally be taken by them.
+	 */
+	movl %ebp, ISTATE_OFFSET_ESP(%esp)
+	movl %edi, ISTATE_OFFSET_EIP(%esp)
+
+	/*
+	 * Push syscall arguments onto the stack
+	 */
+	movl %eax, ISTATE_OFFSET_EAX(%esp)
+	movl %ebx, ISTATE_OFFSET_EBX(%esp)
+	movl %ecx, ISTATE_OFFSET_ECX(%esp)
+	movl %edx, ISTATE_OFFSET_EDX(%esp)
+	movl %esi, ISTATE_OFFSET_ESI(%esp)
+	movl %edi, ISTATE_OFFSET_EDI(%esp)	/* observability; not needed */
+	movl %ebp, ISTATE_OFFSET_EBP(%esp)	/* observability; not needed */
+	
+	/*
+	 * Fake up the stack trace linkage.
+	 */
+	movl %edi, ISTATE_OFFSET_EIP_FRAME(%esp)
+	movl $0, ISTATE_OFFSET_EBP_FRAME(%esp)
+	leal ISTATE_OFFSET_EBP_FRAME(%esp), %ebp
+
+	/*
+	 * Save TLS.
+	 */
+	movl %gs, %edx
+	movl %edx, ISTATE_OFFSET_GS(%esp)
+
+	/*
+	 * Switch to kernel selectors.
+	 */
+	movw $(GDT_SELECTOR(KDATA_DES)), %ax
+	movw %ax, %ds
+	movw %ax, %es
+	
+	/*
+	 * Sanitize EFLAGS.
+	 *
+	 * SYSENTER does not clear the NT flag, which could thus proliferate
+	 * from here to the IRET instruction via a context switch and result
+	 * in crash.
+	 *
+	 * SYSENTER does not clear DF, which the ABI assumes to be cleared.
+	 *
+	 * SYSENTER clears IF, which we would like to be set for syscalls.
+	 *
+	 */
+	pushl $(EFLAGS_IF)  /* specify EFLAGS bits that we want to set */
+	popfl	            /* set bits from the mask, clear or ignore others */
+
+	call syscall_handler
+	
+	/*
+	 * Restore TLS.
+	 */
+	movl ISTATE_OFFSET_GS(%esp), %edx
+	movl %edx, %gs
+	
+	/*
+	 * Prepare return address and userspace stack for SYSEXIT.
+	 */
+	movl ISTATE_OFFSET_EIP(%esp), %edx
+	movl ISTATE_OFFSET_ESP(%esp), %ecx
+
+	sysexit   /* return to userspace */
+
+/*
+ * This is the legacy syscall handler using the interrupt mechanism.
+ */
+.global int_syscall
+int_syscall:
+	subl $(ISTATE_SOFT_SIZE + 4), %esp
+
+	/*
+	 * Push syscall arguments onto the stack
+	 *
+	 * NOTE: The idea behind the order of arguments passed
+	 *       in registers is to use all scratch registers
+	 *       first and preserved registers next. An optimized
+	 *       libc syscall wrapper can make use of this setup.
+	 *       The istate structure is arranged in the way to support
+	 *       this idea.
+	 *
+	 */
+	movl %eax, ISTATE_OFFSET_EAX(%esp)
+	movl %ebx, ISTATE_OFFSET_EBX(%esp)
+	movl %ecx, ISTATE_OFFSET_ECX(%esp)
+	movl %edx, ISTATE_OFFSET_EDX(%esp)
+	movl %edi, ISTATE_OFFSET_EDI(%esp)
+	movl %esi, ISTATE_OFFSET_ESI(%esp)
+	movl %ebp, ISTATE_OFFSET_EBP(%esp)
+
+	/*
+	 * Save the selector registers.
+	 */
+	movl %gs, %ecx
+	movl %fs, %edx
+
+	movl %ecx, ISTATE_OFFSET_GS(%esp)
+	movl %edx, ISTATE_OFFSET_FS(%esp)
+
+	movl %es, %ecx
+	movl %ds, %edx
+		
+	movl %ecx, ISTATE_OFFSET_ES(%esp)
+	movl %edx, ISTATE_OFFSET_DS(%esp)
+
+	/*
+	 * Switch to kernel selectors.
+	 */
+	movl $(GDT_SELECTOR(KDATA_DES)), %eax
+	movl %eax, %ds
+	movl %eax, %es
+		
+	movl $0, ISTATE_OFFSET_EBP_FRAME(%esp)
+	movl ISTATE_OFFSET_EIP(%esp), %eax
+	movl %eax, ISTATE_OFFSET_EIP_FRAME(%esp)
+	leal ISTATE_OFFSET_EBP_FRAME(%esp), %ebp
+		
+	cld
+		
+	/* Call syscall_handler(edx, ecx, ebx, esi, edi, ebp, eax) */
+	call syscall_handler
+			
+	/*
+	 * Restore the selector registers.
+	 */
+	movl ISTATE_OFFSET_GS(%esp), %ecx
+	movl ISTATE_OFFSET_FS(%esp), %edx
+
+	movl %ecx, %gs
+	movl %edx, %fs
+
+	movl ISTATE_OFFSET_ES(%esp), %ecx
+	movl ISTATE_OFFSET_DS(%esp), %edx
+			
+	movl %ecx, %es
+	movl %edx, %ds
+			
+	/*
+	 * Restore the preserved registers the handler cloberred itself
+	 * (i.e. EBP).
+	 */
+	movl ISTATE_OFFSET_EBP(%esp), %ebp
+			
+	addl $(ISTATE_SOFT_SIZE + 4), %esp
+	iret
+		
+/**
+ * Mask for interrupts 0 - 31 (bits 0 - 31) where 0 means that int
+ * has no error word  and 1 means interrupt with error word
  *
  */
-#define INTERRUPT_ALIGN  256
+#define ERROR_WORD_INTERRUPT_LIST  0x00027d00
 
-.macro handler i n
-	.ifeq \i - 0x30
-		/* Syscall handler */
-		pushl %ds
-		pushl %es
-		pushl %fs
-		pushl %gs
-		
-		/*
-		 * Push syscall arguments onto the stack
-		 *
-		 * NOTE: The idea behind the order of arguments passed
-		 *       in registers is to use all scratch registers
-		 *       first and preserved registers next. An optimized
-		 *       libc syscall wrapper can make use of this setup.
-		 *
-		 */
-		pushl %eax
-		pushl %ebp
-		pushl %edi
-		pushl %esi
-		pushl %ebx
-		pushl %ecx
-		pushl %edx
-		
-		/* We must fill the data segment registers */
-		movw $16, %ax
-		movw %ax, %ds
-		movw %ax, %es
-		
-		xorl %ebp, %ebp
-		
-		cld
-		sti
-		
-		/* Call syscall_handler(edx, ecx, ebx, esi, edi, ebp, eax) */
-		call syscall_handler
-		cli
-		
-		movl 20(%esp), %ebp  /* restore EBP */
-		addl $28, %esp       /* clean-up of parameters */
-		
-		popl %gs
-		popl %fs
-		popl %es
-		popl %ds
-		
-		CLEAR_NT_FLAG
-		iret
-	.else
-		/*
-		 * This macro distinguishes between two versions of ia32
-		 * exceptions. One version has error word and the other
-		 * does not have it. The latter version fakes the error
-		 * word on the stack so that the handlers and istate_t
-		 * can be the same for both types.
-		 */
-		.iflt \i - 32
-			.if (1 << \i) & ERROR_WORD_INTERRUPT_LIST
-				/*
-				 * Exception with error word: do nothing
-				 */
-			.else
-				/*
-				 * Exception without error word: fake up one
-				 */
-				pushl $0
-			.endif
+.macro handler i
+.global int_\i
+int_\i:
+	/*
+	 * This macro distinguishes between two versions of ia32
+	 * exceptions. One version has error word and the other
+	 * does not have it. The latter version fakes the error
+	 * word on the stack so that the handlers and istate_t
+	 * can be the same for both types.
+	 */
+	.iflt \i - 32
+		.if (1 << \i) & ERROR_WORD_INTERRUPT_LIST
+			/*
+			 * Exception with error word.
+			 */
+			subl $ISTATE_SOFT_SIZE, %esp
 		.else
 			/*
-			 * Interrupt: fake up one
+			 * Exception without error word: fake up one
 			 */
-			pushl $0
+			subl $(ISTATE_SOFT_SIZE + 4), %esp
 		.endif
-		
-		subl $ISTATE_SOFT_SIZE, %esp
-		
+	.else
 		/*
-		 * Save the general purpose registers.
+		 * Interrupt: fake up an error word 
 		 */
-		movl %eax, ISTATE_OFFSET_EAX(%esp)
-		movl %ebx, ISTATE_OFFSET_EBX(%esp)
-		movl %ecx, ISTATE_OFFSET_ECX(%esp)
-		movl %edx, ISTATE_OFFSET_EDX(%esp)
-		movl %edi, ISTATE_OFFSET_EDI(%esp)
-		movl %esi, ISTATE_OFFSET_ESI(%esp)
-		movl %ebp, ISTATE_OFFSET_EBP(%esp)
-		
-		/*
-		 * Save the selector registers.
-		 */
-		movl %gs, %eax
-		movl %fs, %ebx
-		movl %es, %ecx
-		movl %ds, %edx
-		
-		movl %eax, ISTATE_OFFSET_GS(%esp)
-		movl %ebx, ISTATE_OFFSET_FS(%esp)
-		movl %ecx, ISTATE_OFFSET_ES(%esp)
-		movl %edx, ISTATE_OFFSET_DS(%esp)
-		
-		/*
-		 * Switch to kernel selectors.
-		 */
-		movl $16, %eax
-		movl %eax, %ds
-		movl %eax, %es
-		
-		/*
-		 * Imitate a regular stack frame linkage.
-		 * Stop stack traces here if we came from userspace.
-		 */
-		cmpl $8, ISTATE_OFFSET_CS(%esp)
-		jz 0f
-		xorl %ebp, %ebp
-		
-		0:
-		
-			movl %ebp, ISTATE_OFFSET_EBP_FRAME(%esp)
-			movl ISTATE_OFFSET_EIP(%esp), %eax
-			movl %eax, ISTATE_OFFSET_EIP_FRAME(%esp)
-			leal ISTATE_OFFSET_EBP_FRAME(%esp), %ebp
-			
-			cld
-			
-			pushl %esp   /* pass istate address */
-			pushl $(\i)  /* pass intnum */
-			
-			/* Call exc_dispatch(intnum, istate) */
-			call exc_dispatch
-			
-			addl $8, %esp  /* clear arguments from the stack */
-			
-			CLEAR_NT_FLAG
-			
-			/*
-			 * Restore the selector registers.
-			 */
-			movl ISTATE_OFFSET_GS(%esp), %eax
-			movl ISTATE_OFFSET_FS(%esp), %ebx
-			movl ISTATE_OFFSET_ES(%esp), %ecx
-			movl ISTATE_OFFSET_DS(%esp), %edx
-			
-			movl %eax, %gs
-			movl %ebx, %fs
-			movl %ecx, %es
-			movl %edx, %ds
-			
-			/*
-			 * Restore the scratch registers and the preserved
-			 * registers the handler cloberred itself
-			 * (i.e. EBX and EBP).
-			 */
-			movl ISTATE_OFFSET_EAX(%esp), %eax
-			movl ISTATE_OFFSET_EBX(%esp), %ebx
-			movl ISTATE_OFFSET_ECX(%esp), %ecx
-			movl ISTATE_OFFSET_EDX(%esp), %edx
-			movl ISTATE_OFFSET_EBP(%esp), %ebp
-			
-			addl $(ISTATE_SOFT_SIZE + 4), %esp
-			iret
-		
+		subl $(ISTATE_SOFT_SIZE + 4), %esp
 	.endif
 	
-	.align INTERRUPT_ALIGN
-	.if (\n - \i) - 1
-		handler "(\i + 1)", \n
-	.endif
+	/*
+	 * Save the general purpose registers.
+	 */
+	movl %eax, ISTATE_OFFSET_EAX(%esp)
+	movl %ebx, ISTATE_OFFSET_EBX(%esp)
+	movl %ecx, ISTATE_OFFSET_ECX(%esp)
+	movl %edx, ISTATE_OFFSET_EDX(%esp)
+	movl %edi, ISTATE_OFFSET_EDI(%esp)
+	movl %esi, ISTATE_OFFSET_ESI(%esp)
+	movl %ebp, ISTATE_OFFSET_EBP(%esp)
+	
+	/*
+	 * Save the selector registers.
+	 */
+	movl %gs, %ecx
+	movl %fs, %edx
+
+	movl %ecx, ISTATE_OFFSET_GS(%esp)
+	movl %edx, ISTATE_OFFSET_FS(%esp)
+
+	movl %es, %ecx
+	movl %ds, %edx
+	
+	movl %ecx, ISTATE_OFFSET_ES(%esp)
+	movl %edx, ISTATE_OFFSET_DS(%esp)
+	
+	/*
+	 * Switch to kernel selectors.
+	 */
+	movl $(GDT_SELECTOR(KDATA_DES)), %eax
+	movl %eax, %ds
+	movl %eax, %es
+	
+	/*
+	 * Imitate a regular stack frame linkage.
+	 * Stop stack traces here if we came from userspace.
+	 */
+	xorl %eax, %eax
+	cmpl $(GDT_SELECTOR(KTEXT_DES)), ISTATE_OFFSET_CS(%esp)
+	cmovnzl %eax, %ebp
+
+	movl %ebp, ISTATE_OFFSET_EBP_FRAME(%esp)
+	movl ISTATE_OFFSET_EIP(%esp), %eax
+	movl %eax, ISTATE_OFFSET_EIP_FRAME(%esp)
+	leal ISTATE_OFFSET_EBP_FRAME(%esp), %ebp
+		
+	cld
+		
+	pushl %esp   /* pass istate address */
+	pushl $(\i)  /* pass intnum */
+		
+	/* Call exc_dispatch(intnum, istate) */
+	call exc_dispatch
+		
+	addl $8, %esp  /* clear arguments from the stack */
+		
+	/*
+	 * Restore the selector registers.
+	 */
+	movl ISTATE_OFFSET_GS(%esp), %ecx
+	movl ISTATE_OFFSET_FS(%esp), %edx
+
+	movl %ecx, %gs
+	movl %edx, %fs
+
+	movl ISTATE_OFFSET_ES(%esp), %ecx
+	movl ISTATE_OFFSET_DS(%esp), %edx
+		
+	movl %ecx, %es
+	movl %edx, %ds
+		
+	/*
+	 * Restore the scratch registers and the preserved
+	 * registers the handler cloberred itself
+	 * (i.e. EBP).
+	 */
+	movl ISTATE_OFFSET_EAX(%esp), %eax
+	movl ISTATE_OFFSET_ECX(%esp), %ecx
+	movl ISTATE_OFFSET_EDX(%esp), %edx
+	movl ISTATE_OFFSET_EBP(%esp), %ebp
+		
+	addl $(ISTATE_SOFT_SIZE + 4), %esp
+	iret
 .endm
 
-/* Keep in sync with pm.h! */
-#define IDT_ITEMS  64
+#define LIST_0_63 \
+	0, 1, 2, 3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,\
+	28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,\
+	53,54,55,56,57,58,59,60,61,62,63
 
-.align INTERRUPT_ALIGN
 interrupt_handlers:
-	h_start:
-		handler 0 IDT_ITEMS
-	h_end:
+.irp cnt, LIST_0_63 
+	handler \cnt
+.endr
 
 /** Print Unicode character to EGA display.
  *
@@ -427,8 +467,8 @@ interrupt_handlers:
  *
  * Since the EGA can only display Extended ASCII (usually
  * ISO Latin 1) characters, some of the Unicode characters
- * can be displayed in a wrong way. Only the newline character
- * is interpreted, all other characters (even unprintable) are
+ * can be displayed in a wrong way. Only newline and backspace
+ * are interpreted, all other characters (even unprintable) are
  * printed verbatim.
  *
  * @param %ebp+0x08 Unicode character to be printed.
@@ -480,7 +520,7 @@ early_putchar:
 	movl 0x08(%ebp), %eax
 	
 	cmp $0x0a, %al
-	jne early_putchar_print
+	jne early_putchar_backspace
 	
 		/* Interpret newline */
 		
@@ -494,7 +534,20 @@ early_putchar:
 		addw %cx, %bx
 		subw %dx, %bx
 		
-		jmp early_putchar_newline
+		jmp early_putchar_skip
+	
+	early_putchar_backspace:
+	
+		cmp $0x08, %al
+		jne early_putchar_print
+		
+		/* Interpret backspace */
+		
+		cmp $0x0000, %bx
+		je early_putchar_skip
+		
+		dec %bx
+		jmp early_putchar_skip
 	
 	early_putchar_print:
 	
@@ -504,7 +557,7 @@ early_putchar:
 		stosw
 		inc %bx
 	
-	early_putchar_newline:
+	early_putchar_skip:
 	
 	/* Sanity check for the cursor on the last line */
 	cmp $2000, %bx
@@ -513,13 +566,13 @@ early_putchar:
 		/* Scroll the screen (24 rows) */
 		movl $(PA2KA(0xb80a0)), %esi
 		movl $(PA2KA(0xb8000)), %edi
-		movl $1920, %ecx
-		rep movsw
+		movl $960, %ecx
+		rep movsl
 		
 		/* Clear the 24th row */
 		xorl %eax, %eax
-		movl $80, %ecx
-		rep stosw
+		movl $40, %ecx
+		rep stosl
 		
 		/* Go to row 24 */
 		movw $1920, %bx
@@ -554,7 +607,3 @@ early_putchar:
 	
 	ret
 
-.data
-.global interrupt_handler_size
-
-interrupt_handler_size: .long (h_end - h_start) / IDT_ITEMS

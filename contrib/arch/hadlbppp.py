@@ -41,14 +41,14 @@ INC, POST_INC, BLOCK_COMMENT, LINE_COMMENT, SYSTEM, ARCH, HEAD, BODY, NULL, \
 def usage(prname):
 	"Print usage syntax"
 	
-	print "%s <--bp|--ebp|--adl|--dot|--nop>+ <OUTPUT>" % prname
-	print
-	print "--bp   Dump original Behavior Protocols (dChecker, BPSlicer)"
-	print "--ebp  Dump Extended Behavior Protocols (bp2promela)"
-	print "--adl  Dump Architecture Description Language (modified SOFA ADL/CDL)"
-	print "--dot  Dump Dot architecture diagram (GraphViz)"
-	print "--nop  Do not dump anything (just input files syntax check)"
-	print
+	print("%s <--bp|--ebp|--adl|--dot|--nop>+ <OUTPUT>" % prname)
+	print()
+	print("--bp   Dump original Behavior Protocols (dChecker, BPSlicer)")
+	print("--ebp  Dump Extended Behavior Protocols (bp2promela)")
+	print("--adl  Dump Architecture Description Language (modified SOFA ADL/CDL)")
+	print("--dot  Dump Dot architecture diagram (GraphViz)")
+	print("--nop  Do not dump anything (just input files syntax check)")
+	print()
 
 def tabs(cnt):
 	"Return given number of tabs"
@@ -162,9 +162,9 @@ def tentative_bp(name, tokens):
 					if (i < len(tokens)):
 						result.append(tokens[i])
 				else:
-					print "%s: Syntax error in tentative statement" % name
+					print("%s: Syntax error in tentative statement" % name)
 			else:
-				print "%s: Expected '{' for tentative statement" % name
+				print("%s: Expected '{' for tentative statement" % name)
 		else:
 			result.append(tokens[i])
 		
@@ -230,13 +230,13 @@ def alternative_bp(name, tokens):
 							if (i < len(tokens)):
 								result.append(tokens[i])
 						else:
-							print "%s: Syntax error in alternative statement" % name
+							print("%s: Syntax error in alternative statement" % name)
 					else:
-						print "%s: Expected '{' for alternative statement body" % name
+						print("%s: Expected '{' for alternative statement body" % name)
 				else:
-					print "%s: At least one pattern and one replacement required for alternative statement" % name
+					print("%s: At least one pattern and one replacement required for alternative statement" % name)
 			else:
-				print "%s: Expected '(' for alternative statement head" % name
+				print("%s: Expected '(' for alternative statement head" % name)
 		else:
 			result.append(tokens[i])
 		
@@ -268,7 +268,7 @@ def extend_bp(name, tokens, iface):
 				else:
 					result.append(tokens[i])
 			else:
-				print "%s: Unexpected end of protocol" % name
+				print("%s: Unexpected end of protocol" % name)
 		
 		i += 1
 	
@@ -348,7 +348,7 @@ def parse_bp(name, tokens, base_indent):
 			indent += 1
 		elif (token == ")"):
 			if (indent < base_indent):
-				print "%s: Too many parentheses" % name
+				print("%s: Too many parentheses" % name)
 			
 			indent -= 1
 			output += "\n%s%s" % (tabs(indent), token)
@@ -357,7 +357,7 @@ def parse_bp(name, tokens, base_indent):
 			indent += 1
 		elif (token == "}"):
 			if (indent < base_indent):
-				print "%s: Too many parentheses" % name
+				print("%s: Too many parentheses" % name)
 			
 			indent -= 1
 			output += "\n%s%s" % (tabs(indent), token)
@@ -369,7 +369,7 @@ def parse_bp(name, tokens, base_indent):
 			output += "%s" % token
 	
 	if (indent > base_indent):
-		print "%s: Missing parentheses" % name
+		print("%s: Missing parentheses" % name)
 	
 	output = output.strip()
 	if (output == ""):
@@ -404,7 +404,7 @@ def inherited_protocols(iface):
 				result.append(supiface['protocol'])
 			result.extend(inherited_protocols(supiface))
 		else:
-			print "%s: Extends unknown interface '%s'" % (iface['name'], iface['extends'])
+			print("%s: Extends unknown interface '%s'" % (iface['name'], iface['extends']))
 	
 	return result
 
@@ -458,15 +458,15 @@ def dump_frame(directed_binds, frame, outdir, var, archf):
 					for _ in range(0, cnt):
 						protocols.append(proto)
 			else:
-				print "%s: Provided interface '%s' is undefined" % (frame['name'], provides['iface'])
+				print("%s: Provided interface '%s' is undefined" % (frame['name'], provides['iface']))
 	
 	if (opt_bp):
-		outf = file(outname, "w")
+		outf = open(outname, "w")
 		outf.write(parse_bp(outname, merge_bp(initialization, finalization, protocols), 0))
 		outf.close()
 	
 	if (opt_ebp):
-		outf = file(outname, "w")
+		outf = open(outname, "w")
 		outf.write(parse_ebp(frame['name'], outname, merge_bp(initialization, finalization, protocols), 0))
 		outf.close()
 
@@ -513,12 +513,12 @@ def create_null_bp(fname, outdir, archf):
 	outname = os.path.join(outdir, fname)
 	
 	if (opt_bp):
-		outf = file(outname, "w")
+		outf = open(outname, "w")
 		outf.write("NULL")
 		outf.close()
 	
 	if (opt_ebp):
-		outf = file(outname, "w")
+		outf = open(outname, "w")
 		outf.write("component null {\n\tbehavior {\n\t\tNULL\n\t}\n}")
 		outf.close()
 
@@ -586,7 +586,7 @@ def merge_arch(prefix, arch, outdir):
 				if (not subframe is None):
 					insts.append({'var': "%s_%s" % (prefix, inst['var']), 'frame': subframe})
 				else:
-					print "%s: '%s' is neither an architecture nor a frame" % (arch['name'], inst['type'])
+					print("%s: '%s' is neither an architecture nor a frame" % (arch['name'], inst['type']))
 	
 	if ('bind' in arch):
 		for bind in arch['bind']:
@@ -611,7 +611,7 @@ def dump_archbp(outdir):
 	arch = get_system_arch()
 	
 	if (arch is None):
-		print "Unable to find system architecture"
+		print("Unable to find system architecture")
 		return
 	
 	insts = []
@@ -633,7 +633,7 @@ def dump_archbp(outdir):
 				if (not subframe is None):
 					insts.append({'var': inst['var'], 'frame': subframe})
 				else:
-					print "%s: '%s' is neither an architecture nor a frame" % (arch['name'], inst['type'])
+					print("%s: '%s' is neither an architecture nor a frame" % (arch['name'], inst['type']))
 	
 	if ('bind' in arch):
 		for bind in arch['bind']:
@@ -641,19 +641,19 @@ def dump_archbp(outdir):
 	
 	if ('delegate' in arch):
 		for delegate in arch['delegate']:
-			print "Unable to delegate interface in system architecture"
+			print("Unable to delegate interface in system architecture")
 			break
 	
 	if ('subsume' in arch):
 		for subsume in arch['subsume']:
-			print "Unable to subsume interface in system architecture"
+			print("Unable to subsume interface in system architecture")
 			break
 	
 	directed_binds = direct_binds(flatten_binds(binds, delegates, subsumes))
 	
 	outname = os.path.join(outdir, "%s.archbp" % arch['name'])
 	if ((opt_bp) or (opt_ebp)):
-		outf = file(outname, "w")
+		outf = open(outname, "w")
 	else:
 		outf = None
 	
@@ -708,14 +708,14 @@ def parse_adl(base, root, inname, nested, indent):
 			nested_root = root
 		
 		if (not os.path.isfile(path)):
-			print "%s: Unable to include file %s" % (inname, path)
+			print("%s: Unable to include file %s" % (inname, path))
 			return ""
 	else:
 		inarg = "%%"
 		path = inname
 		nested_root = root
 	
-	inf = file(path, "r")
+	inf = open(path, "r")
 	
 	raw = preproc_adl(inf.read(), inarg)
 	tokens = split_tokens(raw, ["\n", " ", "\t", "(", ")", "{", "}", "[", "]", "/*", "*/", "#", ";"], True, True)
@@ -732,7 +732,7 @@ def parse_adl(base, root, inname, nested, indent):
 		
 		if (POST_INC in context):
 			if (token != "]"):
-				print "%s: Expected ]" % inname
+				print("%s: Expected ]" % inname)
 			
 			context.remove(POST_INC)
 			continue
@@ -773,7 +773,7 @@ def parse_adl(base, root, inname, nested, indent):
 		if (FRAME in context):
 			if (NULL in context):
 				if (token != ";"):
-					print "%s: Expected ';' in frame '%s'" % (inname, frame)
+					print("%s: Expected ';' in frame '%s'" % (inname, frame))
 				else:
 					output += "%s\n" % token
 				
@@ -797,7 +797,7 @@ def parse_adl(base, root, inname, nested, indent):
 							frame_properties[frame] = {}
 						
 						if ('finalization' in frame_properties[frame]):
-							print "%s: Finalization protocol for frame '%s' already defined" % (inname, frame)
+							print("%s: Finalization protocol for frame '%s' already defined" % (inname, frame))
 						else:
 							frame_properties[frame]['finalization'] = bp
 						
@@ -831,7 +831,7 @@ def parse_adl(base, root, inname, nested, indent):
 							frame_properties[frame] = {}
 						
 						if ('initialization' in frame_properties[frame]):
-							print "%s: Initialization protocol for frame '%s' already defined" % (inname, frame)
+							print("%s: Initialization protocol for frame '%s' already defined" % (inname, frame))
 						else:
 							frame_properties[frame]['initialization'] = bp
 						
@@ -865,7 +865,7 @@ def parse_adl(base, root, inname, nested, indent):
 							frame_properties[frame] = {}
 						
 						if ('protocol' in frame_properties[frame]):
-							print "%s: Protocol for frame '%s' already defined" % (inname, frame)
+							print("%s: Protocol for frame '%s' already defined" % (inname, frame))
 						else:
 							frame_properties[frame]['protocol'] = bp
 						
@@ -888,7 +888,7 @@ def parse_adl(base, root, inname, nested, indent):
 				if (REQUIRES in context):
 					if (FIN in context):
 						if (token != ";"):
-							print "%s: Expected ';' in frame '%s'" % (inname, frame)
+							print("%s: Expected ';' in frame '%s'" % (inname, frame))
 						else:
 							output += "%s" % token
 						
@@ -897,7 +897,7 @@ def parse_adl(base, root, inname, nested, indent):
 					
 					if (VAR in context):
 						if (not identifier(token)):
-							print "%s: Variable name expected in frame '%s'" % (inname, frame)
+							print("%s: Variable name expected in frame '%s'" % (inname, frame))
 						else:
 							if (not frame in frame_properties):
 								frame_properties[frame] = {}
@@ -918,7 +918,7 @@ def parse_adl(base, root, inname, nested, indent):
 						context.remove(REQUIRES)
 					else:
 						if (not identifier(token)):
-							print "%s: Interface name expected in frame '%s'" % (inname, frame)
+							print("%s: Interface name expected in frame '%s'" % (inname, frame))
 						else:
 							arg0 = token
 							output += "\n%s%s " % (tabs(indent), token)
@@ -929,7 +929,7 @@ def parse_adl(base, root, inname, nested, indent):
 				if (PROVIDES in context):
 					if (FIN in context):
 						if (token != ";"):
-							print "%s: Expected ';' in frame '%s'" % (inname, frame)
+							print("%s: Expected ';' in frame '%s'" % (inname, frame))
 						else:
 							output += "%s" % token
 						
@@ -938,7 +938,7 @@ def parse_adl(base, root, inname, nested, indent):
 					
 					if (VAR in context):
 						if (not identifier(token)):
-							print "%s: Variable name expected in frame '%s'" % (inname, frame)
+							print("%s: Variable name expected in frame '%s'" % (inname, frame))
 						else:
 							if (not frame in frame_properties):
 								frame_properties[frame] = {}
@@ -959,7 +959,7 @@ def parse_adl(base, root, inname, nested, indent):
 						context.remove(PROVIDES)
 					else:
 						if (not identifier(token)):
-							print "%s: Interface name expected in frame '%s'" % (inname, frame)
+							print("%s: Interface name expected in frame '%s'" % (inname, frame))
 						else:
 							arg0 = token
 							output += "\n%s%s " % (tabs(indent), token)
@@ -969,7 +969,7 @@ def parse_adl(base, root, inname, nested, indent):
 				
 				if (token == "}"):
 					if (indent != 2):
-						print "%s: Wrong number of parentheses in frame '%s'" % (inname, frame)
+						print("%s: Wrong number of parentheses in frame '%s'" % (inname, frame))
 					else:
 						indent = 0
 						output += "\n%s" % token
@@ -1009,7 +1009,7 @@ def parse_adl(base, root, inname, nested, indent):
 					protocol = ""
 					continue
 				
-				print "%s: Unknown token '%s' in frame '%s'" % (inname, token, frame)
+				print("%s: Unknown token '%s' in frame '%s'" % (inname, token, frame))
 				continue
 			
 			if (HEAD in context):
@@ -1026,12 +1026,12 @@ def parse_adl(base, root, inname, nested, indent):
 					context.remove(FRAME)
 					continue
 				
-				print "%s: Unknown token '%s' in frame head '%s'" % (inname, token, frame)
+				print("%s: Unknown token '%s' in frame head '%s'" % (inname, token, frame))
 				
 				continue
 			
 			if (not identifier(token)):
-				print "%s: Expected frame name" % inname
+				print("%s: Expected frame name" % inname)
 			else:
 				frame = token
 				output += "%s " % token
@@ -1049,7 +1049,7 @@ def parse_adl(base, root, inname, nested, indent):
 		if (IFACE in context):
 			if (NULL in context):
 				if (token != ";"):
-					print "%s: Expected ';' in interface '%s'" % (inname, interface)
+					print("%s: Expected ';' in interface '%s'" % (inname, interface))
 				else:
 					output += "%s\n" % token
 				
@@ -1073,7 +1073,7 @@ def parse_adl(base, root, inname, nested, indent):
 							iface_properties[interface] = {}
 						
 						if ('protocol' in iface_properties[interface]):
-							print "%s: Protocol for interface '%s' already defined" % (inname, interface)
+							print("%s: Protocol for interface '%s' already defined" % (inname, interface))
 						else:
 							iface_properties[interface]['protocol'] = bp
 						
@@ -1093,7 +1093,7 @@ def parse_adl(base, root, inname, nested, indent):
 				if (PROTOTYPE in context):
 					if (FIN in context):
 						if (token != ";"):
-							print "%s: Expected ';' in interface '%s'" % (inname, interface)
+							print("%s: Expected ';' in interface '%s'" % (inname, interface))
 						else:
 							output += "%s" % token
 						
@@ -1123,7 +1123,7 @@ def parse_adl(base, root, inname, nested, indent):
 					
 					if (PAR_LEFT in context):
 						if (token != "("):
-							print "%s: Expected '(' in interface '%s'" % (inname, interface)
+							print("%s: Expected '(' in interface '%s'" % (inname, interface))
 						else:
 							output += "%s" % token
 						
@@ -1132,7 +1132,7 @@ def parse_adl(base, root, inname, nested, indent):
 						continue
 					
 					if (not identifier(token)):
-						print "%s: Method identifier expected in interface '%s'" % (inname, interface)
+						print("%s: Method identifier expected in interface '%s'" % (inname, interface))
 					else:
 						output += "%s" % token
 					
@@ -1141,7 +1141,7 @@ def parse_adl(base, root, inname, nested, indent):
 				
 				if (token == "}"):
 					if (indent != 2):
-						print "%s: Wrong number of parentheses in interface '%s'" % (inname, interface)
+						print("%s: Wrong number of parentheses in interface '%s'" % (inname, interface))
 					else:
 						indent = 0
 						output += "\n%s" % token
@@ -1150,7 +1150,7 @@ def parse_adl(base, root, inname, nested, indent):
 					context.add(NULL)
 					continue
 				
-				if ((token == "ipcarg_t") or (token == "unative_t")):
+				if (token == "sysarg_t"):
 					output += "\n%s%s " % (tabs(indent), token)
 					context.add(PROTOTYPE)
 					continue
@@ -1162,7 +1162,7 @@ def parse_adl(base, root, inname, nested, indent):
 					protocol = ""
 					continue
 				
-				print "%s: Unknown token '%s' in interface '%s'" % (inname, token, interface)
+				print("%s: Unknown token '%s' in interface '%s'" % (inname, token, interface))
 				continue
 			
 			if (HEAD in context):
@@ -1182,12 +1182,12 @@ def parse_adl(base, root, inname, nested, indent):
 						context.remove(IFACE)
 						continue
 						
-					print "%s: Expected '{' or ';' in interface head '%s'" % (inname, interface)
+					print("%s: Expected '{' or ';' in interface head '%s'" % (inname, interface))
 					continue
 				
 				if (EXTENDS in context):
 					if (not identifier(token)):
-						print "%s: Expected inherited interface name in interface head '%s'" % (inname, interface)
+						print("%s: Expected inherited interface name in interface head '%s'" % (inname, interface))
 					else:
 						output += "%s " % token
 						if (not interface in iface_properties):
@@ -1217,11 +1217,11 @@ def parse_adl(base, root, inname, nested, indent):
 					context.remove(IFACE)
 					continue
 				
-				print "%s: Expected 'extends', '{' or ';' in interface head '%s'" % (inname, interface)
+				print("%s: Expected 'extends', '{' or ';' in interface head '%s'" % (inname, interface))
 				continue
 			
 			if (not identifier(token)):
-				print "%s: Expected interface name" % inname
+				print("%s: Expected interface name" % inname)
 			else:
 				interface = token
 				output += "%s " % token
@@ -1239,7 +1239,7 @@ def parse_adl(base, root, inname, nested, indent):
 		if (ARCH in context):
 			if (NULL in context):
 				if (token != ";"):
-					print "%s: Expected ';' in architecture '%s'" % (inname, architecture)
+					print("%s: Expected ';' in architecture '%s'" % (inname, architecture))
 				else:
 					output += "%s\n" % token
 				
@@ -1253,7 +1253,7 @@ def parse_adl(base, root, inname, nested, indent):
 				if (DELEGATE in context):
 					if (FIN in context):
 						if (token != ";"):
-							print "%s: Expected ';' in architecture '%s'" % (inname, architecture)
+							print("%s: Expected ';' in architecture '%s'" % (inname, architecture))
 						else:
 							output += "%s" % token
 						
@@ -1263,7 +1263,7 @@ def parse_adl(base, root, inname, nested, indent):
 					
 					if (VAR in context):
 						if (not descriptor(token)):
-							print "%s: Expected interface descriptor in architecture '%s'" % (inname, architecture)
+							print("%s: Expected interface descriptor in architecture '%s'" % (inname, architecture))
 						else:
 							if (not architecture in arch_properties):
 								arch_properties[architecture] = {}
@@ -1282,7 +1282,7 @@ def parse_adl(base, root, inname, nested, indent):
 					
 					if (TO in context):
 						if (token != "to"):
-							print "%s: Expected 'to' in architecture '%s'" % (inname, architecture)
+							print("%s: Expected 'to' in architecture '%s'" % (inname, architecture))
 						else:
 							output += "%s " % token
 						
@@ -1291,7 +1291,7 @@ def parse_adl(base, root, inname, nested, indent):
 						continue
 					
 					if (not identifier(token)):
-						print "%s: Expected interface name in architecture '%s'" % (inname, architecture)
+						print("%s: Expected interface name in architecture '%s'" % (inname, architecture))
 					else:
 						output += "%s " % token
 						arg0 = token
@@ -1302,7 +1302,7 @@ def parse_adl(base, root, inname, nested, indent):
 				if (SUBSUME in context):
 					if (FIN in context):
 						if (token != ";"):
-							print "%s: Expected ';' in architecture '%s'" % (inname, architecture)
+							print("%s: Expected ';' in architecture '%s'" % (inname, architecture))
 						else:
 							output += "%s" % token
 						
@@ -1312,7 +1312,7 @@ def parse_adl(base, root, inname, nested, indent):
 					
 					if (VAR in context):
 						if (not identifier(token)):
-							print "%s: Expected interface name in architecture '%s'" % (inname, architecture)
+							print("%s: Expected interface name in architecture '%s'" % (inname, architecture))
 						else:
 							if (not architecture in arch_properties):
 								arch_properties[architecture] = {}
@@ -1331,7 +1331,7 @@ def parse_adl(base, root, inname, nested, indent):
 					
 					if (TO in context):
 						if (token != "to"):
-							print "%s: Expected 'to' in architecture '%s'" % (inname, architecture)
+							print("%s: Expected 'to' in architecture '%s'" % (inname, architecture))
 						else:
 							output += "%s " % token
 						
@@ -1340,7 +1340,7 @@ def parse_adl(base, root, inname, nested, indent):
 						continue
 					
 					if (not descriptor(token)):
-						print "%s: Expected interface descriptor in architecture '%s'" % (inname, architecture)
+						print("%s: Expected interface descriptor in architecture '%s'" % (inname, architecture))
 					else:
 						output += "%s " % token
 						arg0 = token
@@ -1351,7 +1351,7 @@ def parse_adl(base, root, inname, nested, indent):
 				if (BIND in context):
 					if (FIN in context):
 						if (token != ";"):
-							print "%s: Expected ';' in architecture '%s'" % (inname, architecture)
+							print("%s: Expected ';' in architecture '%s'" % (inname, architecture))
 						else:
 							output += "%s" % token
 						
@@ -1361,7 +1361,7 @@ def parse_adl(base, root, inname, nested, indent):
 					
 					if (VAR in context):
 						if (not descriptor(token)):
-							print "%s: Expected second interface descriptor in architecture '%s'" % (inname, architecture)
+							print("%s: Expected second interface descriptor in architecture '%s'" % (inname, architecture))
 						else:
 							if (not architecture in arch_properties):
 								arch_properties[architecture] = {}
@@ -1380,7 +1380,7 @@ def parse_adl(base, root, inname, nested, indent):
 					
 					if (TO in context):
 						if (token != "to"):
-							print "%s: Expected 'to' in architecture '%s'" % (inname, architecture)
+							print("%s: Expected 'to' in architecture '%s'" % (inname, architecture))
 						else:
 							output += "%s " % token
 						
@@ -1389,7 +1389,7 @@ def parse_adl(base, root, inname, nested, indent):
 						continue
 					
 					if (not descriptor(token)):
-						print "%s: Expected interface descriptor in architecture '%s'" % (inname, architecture)
+						print("%s: Expected interface descriptor in architecture '%s'" % (inname, architecture))
 					else:
 						output += "%s " % token
 						arg0 = token
@@ -1400,7 +1400,7 @@ def parse_adl(base, root, inname, nested, indent):
 				if (INST in context):
 					if (FIN in context):
 						if (token != ";"):
-							print "%s: Expected ';' in architecture '%s'" % (inname, architecture)
+							print("%s: Expected ';' in architecture '%s'" % (inname, architecture))
 						else:
 							output += "%s" % token
 						
@@ -1410,7 +1410,7 @@ def parse_adl(base, root, inname, nested, indent):
 					
 					if (VAR in context):
 						if (not identifier(token)):
-							print "%s: Expected instance name in architecture '%s'" % (inname, architecture)
+							print("%s: Expected instance name in architecture '%s'" % (inname, architecture))
 						else:
 							if (not architecture in arch_properties):
 								arch_properties[architecture] = {}
@@ -1428,7 +1428,7 @@ def parse_adl(base, root, inname, nested, indent):
 						continue
 					
 					if (not identifier(token)):
-						print "%s: Expected frame/architecture type in architecture '%s'" % (inname, architecture)
+						print("%s: Expected frame/architecture type in architecture '%s'" % (inname, architecture))
 					else:
 						output += "%s " % token
 						arg0 = token
@@ -1438,7 +1438,7 @@ def parse_adl(base, root, inname, nested, indent):
 				
 				if (token == "}"):
 					if (indent != 1):
-						print "%s: Wrong number of parentheses in architecture '%s'" % (inname, architecture)
+						print("%s: Wrong number of parentheses in architecture '%s'" % (inname, architecture))
 					else:
 						indent -= 1
 						output += "\n%s" % token
@@ -1467,7 +1467,7 @@ def parse_adl(base, root, inname, nested, indent):
 					context.add(DELEGATE)
 					continue
 				
-				print "%s: Unknown token '%s' in architecture '%s'" % (inname, token, architecture)
+				print("%s: Unknown token '%s' in architecture '%s'" % (inname, token, architecture))
 				continue
 			
 			if (HEAD in context):
@@ -1486,14 +1486,14 @@ def parse_adl(base, root, inname, nested, indent):
 					continue
 				
 				if (not word(token)):
-					print "%s: Expected word in architecture head '%s'" % (inname, architecture)
+					print("%s: Expected word in architecture head '%s'" % (inname, architecture))
 				else:
 					output += "%s " % token
 				
 				continue
 			
 			if (not identifier(token)):
-				print "%s: Expected architecture name" % inname
+				print("%s: Expected architecture name" % inname)
 			else:
 				architecture = token
 				output += "%s " % token
@@ -1513,7 +1513,7 @@ def parse_adl(base, root, inname, nested, indent):
 		
 		if (SYSTEM in context):
 			if (token != "architecture"):
-				print "%s: Expected 'architecture'" % inname
+				print("%s: Expected 'architecture'" % inname)
 			else:
 				output += "%s " % token
 			
@@ -1540,7 +1540,7 @@ def parse_adl(base, root, inname, nested, indent):
 			context.add(ARCH)
 			continue
 		
-		print "%s: Unknown token '%s'" % (inname, token)
+		print("%s: Unknown token '%s'" % (inname, token))
 	
 	inf.close()
 
@@ -1574,7 +1574,7 @@ def open_adl(base, root, inname, outdir, outname):
 	output = output.strip()
 	
 	if ((output != "") and (opt_adl)):
-		outf = file(outname, "w")
+		outf = open(outname, "w")
 		outf.write(output)
 		outf.close()
 
@@ -1632,7 +1632,7 @@ def merge_dot_arch(prefix, name, arch, outf, indent):
 				if (not subframe is None):
 					merge_dot_frame("%s_%s" % (prefix, inst['var']), inst['var'], subframe, outf, indent + 1)
 				else:
-					print "%s: '%s' is neither an architecture nor a frame" % (arch['name'], inst['type'])
+					print("%s: '%s' is neither an architecture nor a frame" % (arch['name'], inst['type']))
 	
 	if ('bind' in arch):
 		labels = {}
@@ -1727,12 +1727,12 @@ def dump_dot(outdir):
 	arch = get_system_arch()
 	
 	if (arch is None):
-		print "Unable to find system architecture"
+		print("Unable to find system architecture")
 		return
 	
 	if (opt_dot):
 		outname = os.path.join(outdir, "%s.dot" % arch['name'])
-		outf = file(outname, "w")
+		outf = open(outname, "w")
 		
 		outf.write("digraph {\n")
 		outf.write("\tlabel=\"%s\";\n" % arch['name'])
@@ -1751,7 +1751,7 @@ def dump_dot(outdir):
 					if (not subframe is None):
 						merge_dot_frame("%s" % inst['var'], inst['var'], subframe, outf, 1)
 					else:
-						print "%s: '%s' is neither an architecture nor a frame" % (arch['name'], inst['type'])
+						print("%s: '%s' is neither an architecture nor a frame" % (arch['name'], inst['type']))
 		
 		if ('bind' in arch):
 			labels = {}
@@ -1783,12 +1783,12 @@ def dump_dot(outdir):
 		
 		if ('delegate' in arch):
 			for delegate in arch['delegate']:
-				print "Unable to delegate interface in system architecture"
+				print("Unable to delegate interface in system architecture")
 				break
 		
 		if ('subsume' in arch):
 			for subsume in arch['subsume']:
-				print "Unable to subsume interface in system architecture"
+				print("Unable to subsume interface in system architecture")
 				break
 		
 		outf.write("}\n")
@@ -1825,16 +1825,16 @@ def main():
 		elif (arg == "--nop"):
 			pass
 		else:
-			print "Error: Unknown command line option '%s'" % arg
+			print("Error: Unknown command line option '%s'" % arg)
 			return
 	
 	if ((opt_bp) and (opt_ebp)):
-		print "Error: Cannot dump both original Behavior Protocols and Extended Behavior Protocols"
+		print("Error: Cannot dump both original Behavior Protocols and Extended Behavior Protocols")
 		return
 	
 	path = os.path.abspath(sys.argv[-1])
 	if (not os.path.isdir(path)):
-		print "Error: <OUTPUT> is not a directory"
+		print("Error: <OUTPUT> is not a directory")
 		return
 	
 	iface_properties = {}

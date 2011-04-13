@@ -42,6 +42,7 @@
 #include <stdio.h>
 #include <task.h>
 #include <str_error.h>
+#include <errno.h>
 
 #define NAME  "redir"
 
@@ -75,7 +76,11 @@ static void reopen(FILE **stream, int fd, const char *path, int flags, const cha
 
 static task_id_t spawn(int argc, char *argv[])
 {
-	const char **args = (const char **) calloc(argc + 1, sizeof(char *));
+	const char **args;
+	task_id_t id = 0;
+	int rc;
+
+	args = (const char **) calloc(argc + 1, sizeof(char *));
 	if (!args) {
 		printf("No memory available\n");
 		return 0;
@@ -87,14 +92,14 @@ static task_id_t spawn(int argc, char *argv[])
 	
 	args[argc] = NULL;
 	
-	int err;
-	task_id_t id = task_spawn(argv[0], args, &err);
+	rc = task_spawnv(&id, argv[0], args);
 	
 	free(args);
 	
-	if (id == 0)
+	if (rc != EOK) {
 		printf("%s: Error spawning %s (%s)\n", NAME, argv[0],
-		    str_error(err));
+		    str_error(rc));
+	}
 	
 	return id;
 }

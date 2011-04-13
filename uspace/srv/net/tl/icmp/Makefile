@@ -28,12 +28,11 @@
 #
 
 USPACE_PREFIX = ../../../..
-LIBS = $(LIBNET_PREFIX)/libnet.a $(LIBSOCKET_PREFIX)/libsocket.a
-EXTRA_CFLAGS = -I$(LIBNET_PREFIX)/include -I$(LIBSOCKET_PREFIX)/include
+LIBS = $(LIBNET_PREFIX)/libnet.a
+EXTRA_CFLAGS = -I$(LIBNET_PREFIX)/include
 BINARY = icmp
 
 SOURCES = \
-	icmp.c \
-	icmp_module.c
+	icmp.c
 
 include $(USPACE_PREFIX)/Makefile.common

@@ -36,14 +36,15 @@
 #define KERN_abs32le_PAGE_H_
 
 #include <arch/mm/frame.h>
+#include <trace.h>
 
 #define PAGE_WIDTH  FRAME_WIDTH
 #define PAGE_SIZE   FRAME_SIZE
 
 #ifdef KERNEL
 
-#define KA2PA(x)  (((uintptr_t) (x)) - 0x80000000)
-#define PA2KA(x)  (((uintptr_t) (x)) + 0x80000000)
+#define KA2PA(x)  (((uintptr_t) (x)) - UINT32_C(0x80000000))
+#define PA2KA(x)  (((uintptr_t) (x)) + UINT32_C(0x80000000))
 
 /*
  * This is an example of 2-level page tables (PTL1 and PTL2 are left out)
@@ -63,10 +64,10 @@
 #define PTL3_SIZE_ARCH  ONE_FRAME
 
 /* Macros calculating indices for each level. */
-#define PTL0_INDEX_ARCH(vaddr)  (((vaddr) >> 22) & 0x3ff)
+#define PTL0_INDEX_ARCH(vaddr)  (((vaddr) >> 22) & 0x3ffU)
 #define PTL1_INDEX_ARCH(vaddr)  0
 #define PTL2_INDEX_ARCH(vaddr)  0
-#define PTL3_INDEX_ARCH(vaddr)  (((vaddr) >> 12) & 0x3ff)
+#define PTL3_INDEX_ARCH(vaddr)  (((vaddr) >> 12) & 0x3ffU)
 
 /* Get PTE address accessors for each level. */
 #define GET_PTL1_ADDRESS_ARCH(ptl0, i) \
@@ -138,7 +139,7 @@ typedef struct {
 	unsigned int frame_address : 20;
 } __attribute__((packed)) pte_t;
 
-static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
+NO_TRACE static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
     REQUIRES_ARRAY_MUTABLE(pt, PTL0_ENTRIES_ARCH)
 {
 	pte_t *p = &pt[i];
@@ -154,7 +155,7 @@ static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
 	);
 }
 
-static inline void set_pt_flags(pte_t *pt, size_t i, int flags)
+NO_TRACE static inline void set_pt_flags(pte_t *pt, size_t i, int flags)
     WRITES(ARRAY_RANGE(pt, PTL0_ENTRIES_ARCH))
     REQUIRES_ARRAY_MUTABLE(pt, PTL0_ENTRIES_ARCH)
 {

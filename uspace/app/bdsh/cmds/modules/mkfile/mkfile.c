@@ -124,7 +124,7 @@ int cmd_mkfile(char **argv)
 	argc = cli_count_args(argv);
 
 	for (c = 0, optind = 0, opt_ind = 0; c != -1;) {
-		c = getopt_long(argc, argv, "pvhVfm:", long_options, &opt_ind);
+		c = getopt_long(argc, argv, "s:h", long_options, &opt_ind);
 		switch (c) {
 		case 'h':
 			help_cmd_mkfile(HELP_LONG);
@@ -167,7 +167,7 @@ int cmd_mkfile(char **argv)
 		to_write = min(file_size - total_written, BUFFER_SIZE);
 		rc = write(fd, buffer, to_write);
 		if (rc <= 0) {
-			printf("%s: Error writing file (%d).\n", cmdname, rc);
+			printf("%s: Error writing file (%zd).\n", cmdname, rc);
 			close(fd);
 			return CMD_FAILURE;
 		}
@@ -176,7 +176,7 @@ int cmd_mkfile(char **argv)
 
 	rc = close(fd);
 	if (rc != 0) {
-		printf("%s: Error writing file (%d).\n", cmdname, rc);
+		printf("%s: Error writing file (%zd).\n", cmdname, rc);
 		return CMD_FAILURE;
 	}
 

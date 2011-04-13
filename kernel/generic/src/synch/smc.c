@@ -41,9 +41,9 @@
 #include <arch/barrier.h>
 #include <synch/smc.h>
 
-unative_t sys_smc_coherence(uintptr_t va, size_t size)
+sysarg_t sys_smc_coherence(uintptr_t va, size_t size)
 {
-	if (overlaps(va, size, NULL, PAGE_SIZE))
+	if (overlaps(va, size, (uintptr_t) NULL, PAGE_SIZE))
 		return EINVAL;
 
 	if (!KERNEL_ADDRESS_SPACE_SHADOWED) {

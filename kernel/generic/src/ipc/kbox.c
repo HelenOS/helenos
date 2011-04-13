@@ -106,9 +106,9 @@ static void kbox_proc_phone_hungup(call_t *call, bool *last)
 	if (call->sender == TASK->udebug.debugger) {
 		/* Terminate debugging session (if any). */
 		LOG("Terminate debugging session.");
-		irq_spinlock_lock(&TASK->lock, true);
+		mutex_lock(&TASK->udebug.lock);
 		udebug_task_cleanup(TASK);
-		irq_spinlock_unlock(&TASK->lock, true);
+		mutex_unlock(&TASK->udebug.lock);
 	} else {
 		LOG("Was not debugger.");
 	}
@@ -166,7 +166,7 @@ static void kbox_thread_proc(void *arg)
 		if (call == NULL)
 			continue;  /* Try again. */
 		
-		switch (IPC_GET_METHOD(call->data)) {
+		switch (IPC_GET_IMETHOD(call->data)) {
 		
 		case IPC_M_DEBUG_ALL:
 			/* Handle debug call. */
@@ -190,7 +190,6 @@ static void kbox_thread_proc(void *arg)
 	
 	LOG("Exiting.");
 }
-
 
 /** Connect phone to a task kernel-box specified by id.
  *

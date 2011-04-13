@@ -123,7 +123,7 @@ extern bool spinlock_locked(spinlock_t *);
  * @param sl Pointer to spinlock_t structure.
  *
  */
-static inline void spinlock_unlock_nondebug(spinlock_t *lock)
+NO_TRACE static inline void spinlock_unlock_nondebug(spinlock_t *lock)
 {
 	/*
 	 * Prevent critical section code from bleeding out this way down.
@@ -145,7 +145,7 @@ static inline void spinlock_unlock_nondebug(spinlock_t *lock)
 #define DEADLOCK_PROBE(pname, value) \
 	if ((pname)++ > (value)) { \
 		(pname) = 0; \
-		printf("Deadlock probe %s: exceeded threshold %u\n", \
+		printf("Deadlock probe %s: exceeded threshold %u\n" \
 		    "cpu%u: function=%s, line=%u\n", \
 		    #pname, (value), CPU->id, __func__, __LINE__); \
 	}

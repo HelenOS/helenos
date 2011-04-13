@@ -31,17 +31,16 @@
  */
 /** @file
  * @brief ADB device interface.
- */ 
+ */
 
 #ifndef LIBC_IPC_ADB_H_
 #define LIBC_IPC_ADB_H_
 
-#include <ipc/ipc.h>
+#include <ipc/common.h>
 
 typedef enum {
 	ADB_REG_WRITE = IPC_FIRST_USER_METHOD
 } adb_request_t;
-
 
 typedef enum {
 	ADB_REG_NOTIF = IPC_FIRST_USER_METHOD

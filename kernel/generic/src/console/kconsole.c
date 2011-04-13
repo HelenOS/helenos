@@ -159,7 +159,7 @@ bool cmd_register(cmd_info_t *cmd)
 }
 
 /** Print count times a character */
-static void print_cc(wchar_t ch, size_t count)
+NO_TRACE static void print_cc(wchar_t ch, size_t count)
 {
 	size_t i;
 	for (i = 0; i < count; i++)
@@ -167,7 +167,8 @@ static void print_cc(wchar_t ch, size_t count)
 }
 
 /** Try to find a command beginning with prefix */
-static const char *cmdtab_search_one(const char *name, link_t **startpos)
+NO_TRACE static const char *cmdtab_search_one(const char *name,
+    link_t **startpos)
 {
 	size_t namelen = str_length(name);
 	
@@ -201,14 +202,14 @@ static const char *cmdtab_search_one(const char *name, link_t **startpos)
  * @return Number of found matches
  *
  */
-static int cmdtab_compl(char *input, size_t size)
+NO_TRACE static int cmdtab_compl(char *input, size_t size)
 {
 	const char *name = input;
 	
 	size_t found = 0;
 	link_t *pos = NULL;
 	const char *hint;
-	char output[MAX_CMDLINE];
+	char *output = malloc(MAX_CMDLINE, 0);
 	
 	output[0] = 0;
 	
@@ -233,16 +234,18 @@ static int cmdtab_compl(char *input, size_t size)
 	if (found > 0)
 		str_cpy(input, size, output);
 	
+	free(output);
 	return found;
 }
 
-static wchar_t *clever_readline(const char *prompt, indev_t *indev)
+NO_TRACE static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 {
 	printf("%s> ", prompt);
 	
 	size_t position = 0;
 	wchar_t *current = history[history_pos];
 	current[0] = 0;
+	char *tmp = malloc(STR_BOUNDS(MAX_CMDLINE), 0);
 	
 	while (true) {
 		wchar_t ch = indev_pop_character(indev);
@@ -287,7 +290,6 @@ static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 			if (isspace(current[beg]))
 				beg++;
 			
-			char tmp[STR_BOUNDS(MAX_CMDLINE)];
 			wstr_to_str(tmp, position - beg + 1, current + beg);
 			
 			int found;
@@ -413,6 +415,7 @@ static wchar_t *clever_readline(const char *prompt, indev_t *indev)
 		history_pos = history_pos % KCONSOLE_HISTORY;
 	}
 	
+	free(tmp);
 	return current;
 }
 
@@ -421,7 +424,8 @@ bool kconsole_check_poll(void)
 	return check_poll(stdin);
 }
 
-static bool parse_int_arg(const char *text, size_t len, unative_t *result)
+NO_TRACE static bool parse_int_arg(const char *text, size_t len,
+    sysarg_t *result)
 {
 	bool isaddr = false;
 	bool isptr = false;
@@ -456,11 +460,11 @@ static bool parse_int_arg(const char *text, size_t len, unative_t *result)
 			return false;
 		case EOK:
 			if (isaddr)
-				*result = (unative_t) symaddr;
+				*result = (sysarg_t) symaddr;
 			else if (isptr)
-				*result = **((unative_t **) symaddr);
+				*result = **((sysarg_t **) symaddr);
 			else
-				*result = *((unative_t *) symaddr);
+				*result = *((sysarg_t *) symaddr);
 			break;
 		default:
 			printf("Unknown error.\n");
@@ -478,9 +482,9 @@ static bool parse_int_arg(const char *text, size_t len, unative_t *result)
 			printf("Integer overflow.\n");
 			return false;
 		case EOK:
-			*result = (unative_t) value;
+			*result = (sysarg_t) value;
 			if (isptr)
-				*result = *((unative_t *) *result);
+				*result = *((sysarg_t *) *result);
 			break;
 		default:
 			printf("Unknown error.\n");
@@ -506,7 +510,8 @@ static bool parse_int_arg(const char *text, size_t len, unative_t *result)
  * @return False on failure, true on success.
  *
  */
-static bool parse_argument(const char *cmdline, size_t size, size_t *start, size_t *end)
+NO_TRACE static bool parse_argument(const char *cmdline, size_t size,
+    size_t *start, size_t *end)
 {
 	ASSERT(start != NULL);
 	ASSERT(end != NULL);
@@ -542,7 +547,7 @@ static bool parse_argument(const char *cmdline, size_t size, size_t *start, size
  * @return Structure describing the command.
  *
  */
-static cmd_info_t *parse_cmdline(const char *cmdline, size_t size)
+NO_TRACE static cmd_info_t *parse_cmdline(const char *cmdline, size_t size)
 {
 	size_t start = 0;
 	size_t end = 0;
@@ -623,10 +628,10 @@ static cmd_info_t *parse_cmdline(const char *cmdline, size_t size)
 					str_ncpy(buf, cmd->argv[i].len,
 					    cmdline + start + 1,
 					    (end - start) - 1);
-					cmd->argv[i].intval = (unative_t) buf;
+					cmd->argv[i].intval = (sysarg_t) buf;
 					cmd->argv[i].vartype = ARG_TYPE_STRING;
 				} else {
-					printf("Wrong synxtax.\n");
+					printf("Wrong syntax.\n");
 					error = true;
 				}
 			} else if (parse_int_arg(cmdline + start,
@@ -684,13 +689,13 @@ void kconsole(const char *prompt, const char *msg, bool kcon)
 	else
 		printf("Type \"exit\" to leave the console.\n");
 	
+	char *cmdline = malloc(STR_BOUNDS(MAX_CMDLINE), 0);
 	while (true) {
 		wchar_t *tmp = clever_readline((char *) prompt, stdin);
 		size_t len = wstr_length(tmp);
 		if (!len)
 			continue;
 		
-		char cmdline[STR_BOUNDS(MAX_CMDLINE)];
 		wstr_to_str(cmdline, STR_BOUNDS(MAX_CMDLINE), tmp);
 		
 		if ((!kcon) && (len == 4) && (str_lcmp(cmdline, "exit", 4) == 0))
@@ -702,6 +707,7 @@ void kconsole(const char *prompt, const char *msg, bool kcon)
 		
 		(void) cmd_info->func(cmd_info->argv);
 	}
+	free(cmdline);
 }
 
 /** Kernel console managing thread.

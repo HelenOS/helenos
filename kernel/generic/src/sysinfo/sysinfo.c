@@ -39,6 +39,7 @@
 #include <synch/mutex.h>
 #include <arch/asm.h>
 #include <errno.h>
+#include <macros.h>
 
 /** Maximal sysinfo path length */
 #define SYSINFO_MAX_PATH  2048
@@ -57,7 +58,7 @@ static mutex_t sysinfo_lock;
 /** Sysinfo item constructor
  *
  */
-static int sysinfo_item_constructor(void *obj, unsigned int kmflag)
+NO_TRACE static int sysinfo_item_constructor(void *obj, unsigned int kmflag)
 {
 	sysinfo_item_t *item = (sysinfo_item_t *) obj;
 	
@@ -77,7 +78,7 @@ static int sysinfo_item_constructor(void *obj, unsigned int kmflag)
  * to the disposal of item->name
  *
  */
-static size_t sysinfo_item_destructor(void *obj)
+NO_TRACE static size_t sysinfo_item_destructor(void *obj)
 {
 	sysinfo_item_t *item = (sysinfo_item_t *) obj;
 	
@@ -119,7 +120,7 @@ void sysinfo_init(void)
  *         was found (N.B. ret).
  *
  */
-static sysinfo_item_t *sysinfo_find_item(const char *name,
+NO_TRACE static sysinfo_item_t *sysinfo_find_item(const char *name,
     sysinfo_item_t *subtree, sysinfo_return_t **ret, bool dry_run)
 {
 	ASSERT(subtree != NULL);
@@ -179,7 +180,7 @@ static sysinfo_item_t *sysinfo_find_item(const char *name,
  *         create a new item.
  *
  */
-static sysinfo_item_t *sysinfo_create_path(const char *name,
+NO_TRACE static sysinfo_item_t *sysinfo_create_path(const char *name,
     sysinfo_item_t **psubtree)
 {
 	ASSERT(psubtree != NULL);
@@ -295,7 +296,7 @@ static sysinfo_item_t *sysinfo_create_path(const char *name,
  *
  */
 void sysinfo_set_item_val(const char *name, sysinfo_item_t **root,
-    unative_t val)
+    sysarg_t val)
 {
 	/* Protect sysinfo tree consistency */
 	mutex_lock(&sysinfo_lock);
@@ -457,7 +458,7 @@ void sysinfo_set_subtree_fn(const char *name, sysinfo_item_t **root,
  * @param depth Number of indentation characters to print.
  *
  */
-static void sysinfo_indent(unsigned int depth)
+NO_TRACE static void sysinfo_indent(unsigned int depth)
 {
 	unsigned int i;
 	for (i = 0; i < depth; i++)
@@ -472,7 +473,7 @@ static void sysinfo_indent(unsigned int depth)
  * @param depth Current depth in the sysinfo tree.
  *
  */
-static void sysinfo_dump_internal(sysinfo_item_t *root, unsigned int depth)
+NO_TRACE static void sysinfo_dump_internal(sysinfo_item_t *root, unsigned int depth)
 {
 	sysinfo_item_t *cur = root;
 	
@@ -480,7 +481,7 @@ static void sysinfo_dump_internal(sysinfo_item_t *root, unsigned int depth)
 	while (cur != NULL) {
 		sysinfo_indent(depth);
 		
-		unative_t val;
+		sysarg_t val;
 		size_t size;
 		
 		/* Display node value and type */
@@ -493,7 +494,7 @@ static void sysinfo_dump_internal(sysinfo_item_t *root, unsigned int depth)
 			    cur->val.val, cur->val.val);
 			break;
 		case SYSINFO_VAL_DATA:
-			printf("+ %s (%" PRIs" bytes)\n", cur->name,
+			printf("+ %s (%zu bytes)\n", cur->name,
 			    cur->val.data.size);
 			break;
 		case SYSINFO_VAL_FUNCTION_VAL:
@@ -504,7 +505,7 @@ static void sysinfo_dump_internal(sysinfo_item_t *root, unsigned int depth)
 		case SYSINFO_VAL_FUNCTION_DATA:
 			/* N.B.: No data was actually returned (only a dry run) */
 			(void) cur->val.fn_data(cur, &size, true);
-			printf("+ %s (%" PRIs" bytes) [generated]\n", cur->name,
+			printf("+ %s (%zu bytes) [generated]\n", cur->name,
 			    size);
 			break;
 		default:
@@ -566,7 +567,7 @@ void sysinfo_dump(sysinfo_item_t *root)
  * @return Item value (constant or generated).
  *
  */
-static sysinfo_return_t sysinfo_get_item(const char *name,
+NO_TRACE static sysinfo_return_t sysinfo_get_item(const char *name,
     sysinfo_item_t **root, bool dry_run)
 {
 	if (root == NULL)
@@ -621,7 +622,7 @@ static sysinfo_return_t sysinfo_get_item(const char *name,
  *                binary data, just calculate the size.
  *
  */
-static sysinfo_return_t sysinfo_get_item_uspace(void *ptr, size_t size,
+NO_TRACE static sysinfo_return_t sysinfo_get_item_uspace(void *ptr, size_t size,
     bool dry_run)
 {
 	sysinfo_return_t ret;
@@ -659,7 +660,7 @@ static sysinfo_return_t sysinfo_get_item_uspace(void *ptr, size_t size,
  * @return Item value type.
  *
  */
-unative_t sys_sysinfo_get_tag(void *path_ptr, size_t path_size)
+sysarg_t sys_sysinfo_get_tag(void *path_ptr, size_t path_size)
 {
 	/*
 	 * Get the item.
@@ -678,7 +679,7 @@ unative_t sys_sysinfo_get_tag(void *path_ptr, size_t path_size)
 	else if (ret.tag == SYSINFO_VAL_FUNCTION_DATA)
 		ret.tag = SYSINFO_VAL_DATA;
 	
-	return (unative_t) ret.tag;
+	return (sysarg_t) ret.tag;
 }
 
 /** Get the sysinfo numerical value (syscall)
@@ -695,7 +696,7 @@ unative_t sys_sysinfo_get_tag(void *path_ptr, size_t path_size)
  * @return Error code (EOK in case of no error).
  *
  */
-unative_t sys_sysinfo_get_value(void *path_ptr, size_t path_size,
+sysarg_t sys_sysinfo_get_value(void *path_ptr, size_t path_size,
     void *value_ptr)
 {
 	int rc;
@@ -714,7 +715,7 @@ unative_t sys_sysinfo_get_value(void *path_ptr, size_t path_size,
 	else
 		rc = EINVAL;
 	
-	return (unative_t) rc;
+	return (sysarg_t) rc;
 }
 
 /** Get the sysinfo binary data size (syscall)
@@ -731,7 +732,7 @@ unative_t sys_sysinfo_get_value(void *path_ptr, size_t path_size,
  * @return Error code (EOK in case of no error).
  *
  */
-unative_t sys_sysinfo_get_data_size(void *path_ptr, size_t path_size,
+sysarg_t sys_sysinfo_get_data_size(void *path_ptr, size_t path_size,
     void *size_ptr)
 {
 	int rc;
@@ -751,7 +752,7 @@ unative_t sys_sysinfo_get_data_size(void *path_ptr, size_t path_size,
 	else
 		rc = EINVAL;
 	
-	return (unative_t) rc;
+	return (sysarg_t) rc;
 }
 
 /** Get the sysinfo binary data (syscall)
@@ -760,35 +761,43 @@ unative_t sys_sysinfo_get_data_size(void *path_ptr, size_t path_size,
  * to be properly null-terminated (the last passed
  * character must be null).
  *
- * The user space buffer must be sized exactly according
- * to the size of the binary data, otherwise the request
- * fails.
+ * If the user space buffer size does not equal
+ * the actual size of the returned data, the data
+ * is truncated. Whether this is actually a fatal
+ * error or the data can be still interpreted as valid
+ * depends on the nature of the data and has to be
+ * decided by the user space.
+ *
+ * The actual size of data returned is stored to
+ * size_ptr.
  *
  * @param path_ptr    Sysinfo path in the user address space.
  * @param path_size   Size of the path string.
  * @param buffer_ptr  User space pointer to the buffer where
  *                    to store the binary data.
  * @param buffer_size User space buffer size.
+ * @param size_ptr    User space pointer where to store the
+ *                    binary data size.
  *
  * @return Error code (EOK in case of no error).
  *
  */
-unative_t sys_sysinfo_get_data(void *path_ptr, size_t path_size,
-    void *buffer_ptr, size_t buffer_size)
+sysarg_t sys_sysinfo_get_data(void *path_ptr, size_t path_size,
+    void *buffer_ptr, size_t buffer_size, size_t *size_ptr)
 {
 	int rc;
 	
 	/* Get the item */
-	sysinfo_return_t ret = sysinfo_get_item_uspace(path_ptr, path_size, false);
-
+	sysinfo_return_t ret = sysinfo_get_item_uspace(path_ptr, path_size,
+	    false);
+	
 	/* Only constant or generated binary data is considered */
-	if ((ret.tag == SYSINFO_VAL_DATA) || (ret.tag == SYSINFO_VAL_FUNCTION_DATA)) {
-		/* Check destination buffer size */
-		if (ret.data.size == buffer_size)
-			rc = copy_to_uspace(buffer_ptr, ret.data.data,
-			    ret.data.size);
-		else
-			rc = ENOMEM;
+	if ((ret.tag == SYSINFO_VAL_DATA) ||
+	    (ret.tag == SYSINFO_VAL_FUNCTION_DATA)) {
+		size_t size = min(ret.data.size, buffer_size);
+		rc = copy_to_uspace(buffer_ptr, ret.data.data, size);
+		if (rc == EOK)
+			rc = copy_to_uspace(size_ptr, &size, sizeof(size));
 	} else
 		rc = EINVAL;
 	
@@ -796,7 +805,7 @@ unative_t sys_sysinfo_get_data(void *path_ptr, size_t path_size,
 	if ((ret.tag == SYSINFO_VAL_FUNCTION_DATA) && (ret.data.data != NULL))
 		free(ret.data.data);
 	
-	return (unative_t) rc;
+	return (sysarg_t) rc;
 }
 
 /** @}

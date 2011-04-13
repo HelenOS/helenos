@@ -51,7 +51,7 @@ typedef struct i8042 i8042_t;
 
 /** Softstate structure, one for each serial port (primary and aux). */
 typedef struct {
-	dev_handle_t dev_handle;
+	devmap_handle_t devmap_handle;
 	int client_phone;
 } i8042_port_t;
 

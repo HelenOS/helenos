@@ -51,6 +51,7 @@
 #include <arch.h>
 #include <align.h>
 #include <errno.h>
+#include <trace.h>
 
 /** This lock protects the parea_btree. */
 static mutex_t parea_lock;
@@ -98,19 +99,23 @@ void ddi_parea_register(parea_t *parea)
  *         creating address space area.
  *
  */
-static int ddi_physmem_map(uintptr_t pf, uintptr_t vp, size_t pages,
+NO_TRACE static int ddi_physmem_map(uintptr_t pf, uintptr_t vp, size_t pages,
     unsigned int flags)
 {
 	ASSERT(TASK);
-	ASSERT((pf % FRAME_SIZE) == 0);
-	ASSERT((vp % PAGE_SIZE) == 0);
+	
+	if ((pf % FRAME_SIZE) != 0)
+		return EBADMEM;
+	
+	if ((vp % PAGE_SIZE) != 0)
+		return EBADMEM;
 	
 	/*
-	 * Make sure the caller is authorised to make this syscall.
+	 * Unprivileged tasks are only allowed to map pareas
+	 * which are explicitly marked as such.
 	 */
-	cap_t caps = cap_get(TASK);
-	if (!(caps & CAP_MEM_MANAGER))
-		return EPERM;
+	bool priv =
+	    ((cap_get(TASK) & CAP_MEM_MANAGER) == CAP_MEM_MANAGER);
 	
 	mem_backend_data_t backend_data;
 	backend_data.base = pf;
@@ -121,23 +126,36 @@ static int ddi_physmem_map(uintptr_t pf, uintptr_t vp, size_t pages,
 	size_t znum = find_zone(ADDR2PFN(pf), pages, 0);
 	
 	if (znum == (size_t) -1) {
-		/* Frames not found in any zones
-		 * -> assume it is hardware device and allow mapping
+		/*
+		 * Frames not found in any zone
+		 * -> assume it is a hardware device and allow mapping
+		 *    for privileged tasks.
 		 */
 		irq_spinlock_unlock(&zones.lock, true);
+		
+		if (!priv)
+			return EPERM;
+		
 		goto map;
 	}
 	
 	if (zones.info[znum].flags & ZONE_FIRMWARE) {
-		/* Frames are part of firmware */
+		/*
+		 * Frames are part of firmware
+		 * -> allow mapping for privileged tasks.
+		 */
 		irq_spinlock_unlock(&zones.lock, true);
+		
+		if (!priv)
+			return EPERM;
+		
 		goto map;
 	}
 	
 	if (zone_flags_available(zones.info[znum].flags)) {
 		/*
-		 * Frames are part of physical memory, check if the memory
-		 * region is enabled for mapping.
+		 * Frames are part of physical memory, check
+		 * if the memory region is enabled for mapping.
 		 */
 		irq_spinlock_unlock(&zones.lock, true);
 		
@@ -148,7 +166,14 @@ static int ddi_physmem_map(uintptr_t pf, uintptr_t vp, size_t pages,
 		
 		if ((!parea) || (parea->frames < pages)) {
 			mutex_unlock(&parea_lock);
-			goto err;
+			return ENOENT;
+		}
+		
+		if (!priv) {
+			if (!parea->unpriv) {
+				mutex_unlock(&parea_lock);
+				return EPERM;
+			}
 		}
 		
 		mutex_unlock(&parea_lock);
@@ -156,8 +181,6 @@ static int ddi_physmem_map(uintptr_t pf, uintptr_t vp, size_t pages,
 	}
 	
 	irq_spinlock_unlock(&zones.lock, true);
-	
-err:
 	return ENOENT;
 	
 map:
@@ -186,7 +209,8 @@ map:
  *           syscall, ENOENT if there is no task matching the specified ID.
  *
  */
-static int ddi_iospace_enable(task_id_t id, uintptr_t ioaddr, size_t size)
+NO_TRACE static int ddi_iospace_enable(task_id_t id, uintptr_t ioaddr,
+    size_t size)
 {
 	/*
 	 * Make sure the caller is authorised to make this syscall.
@@ -229,10 +253,10 @@ static int ddi_iospace_enable(task_id_t id, uintptr_t ioaddr, size_t size)
  * @return 0 on success, otherwise it returns error code found in errno.h
  *
  */
-unative_t sys_physmem_map(unative_t phys_base, unative_t virt_base,
-    unative_t pages, unative_t flags)
+sysarg_t sys_physmem_map(sysarg_t phys_base, sysarg_t virt_base,
+    sysarg_t pages, sysarg_t flags)
 {
-	return (unative_t) ddi_physmem_map(ALIGN_DOWN((uintptr_t) phys_base,
+	return (sysarg_t) ddi_physmem_map(ALIGN_DOWN((uintptr_t) phys_base,
 	    FRAME_SIZE), ALIGN_DOWN((uintptr_t) virt_base, PAGE_SIZE),
 	    (size_t) pages, (int) flags);
 }
@@ -244,38 +268,15 @@ unative_t sys_physmem_map(unative_t phys_base, unative_t virt_base,
  * @return 0 on success, otherwise it returns error code found in errno.h
  *
  */
-unative_t sys_iospace_enable(ddi_ioarg_t *uspace_io_arg)
+sysarg_t sys_iospace_enable(ddi_ioarg_t *uspace_io_arg)
 {
 	ddi_ioarg_t arg;
 	int rc = copy_from_uspace(&arg, uspace_io_arg, sizeof(ddi_ioarg_t));
 	if (rc != 0)
-		return (unative_t) rc;
+		return (sysarg_t) rc;
 	
-	return (unative_t) ddi_iospace_enable((task_id_t) arg.task_id,
+	return (sysarg_t) ddi_iospace_enable((task_id_t) arg.task_id,
 	    (uintptr_t) arg.ioaddr, (size_t) arg.size);
-}
-
-/** Disable or enable preemption.
- *
- * @param enable If non-zero, the preemption counter will be decremented,
- *               leading to potential enabling of preemption. Otherwise
- *               the preemption counter will be incremented, preventing
- *               preemption from occurring.
- *
- * @return Zero on success or EPERM if callers capabilities are not sufficient.
- *
- */
-unative_t sys_preempt_control(int enable)
-{
-	if (!(cap_get(TASK) & CAP_PREEMPT_CONTROL))
-		return EPERM;
-	
-	if (enable)
-		preemption_enable();
-	else
-		preemption_disable();
-	
-	return 0;
 }
 
 /** @}

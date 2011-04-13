@@ -34,22 +34,22 @@
  * Packet Internet Network Grouper.
  */
 
+#include <async.h>
 #include <stdio.h>
 #include <str.h>
 #include <task.h>
 #include <time.h>
-#include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <str_error.h>
+#include <errno.h>
 #include <arg_parse.h>
 
-#include <icmp_api.h>
-#include <in.h>
-#include <in6.h>
-#include <inet.h>
-#include <ip_codes.h>
-#include <socket_errno.h>
-#include <socket_parse.h>
+#include <net/icmp_api.h>
+#include <net/in.h>
+#include <net/in6.h>
+#include <net/inet.h>
+#include <net/socket_parse.h>
+#include <net/ip_codes.h>
 
 #include "print_error.h"
 
@@ -336,10 +336,10 @@ int main(int argc, char *argv[])
 		return 5;
 	}
 	
-	printf("PING %s (%s) %u(%u) bytes of data\n", config.dest_addr,
+	printf("PING %s (%s) %zu(%zu) bytes of data\n", config.dest_addr,
 	    config.dest_str, config.size, config.size);
 	
-	int icmp_phone = icmp_connect_module(SERVICE_ICMP, ICMP_CONNECT_TIMEOUT);
+	int icmp_phone = icmp_connect_module(ICMP_CONNECT_TIMEOUT);
 	if (icmp_phone < 0) {
 		fprintf(stderr, "%s: Unable to connect to ICMP service (%s)\n", NAME,
 		    str_error(icmp_phone));
@@ -354,7 +354,7 @@ int main(int argc, char *argv[])
 			fprintf(stderr, "%s: gettimeofday failed (%s)\n", NAME,
 			    str_error(ret));
 			
-			ipc_hangup(icmp_phone);
+			async_hangup(icmp_phone);
 			return ret;
 		}
 		
@@ -369,7 +369,7 @@ int main(int argc, char *argv[])
 			fprintf(stderr, "%s: gettimeofday failed (%s)\n", NAME,
 			    str_error(ret));
 			
-			ipc_hangup(icmp_phone);
+			async_hangup(icmp_phone);
 			return ret;
 		}
 		
@@ -377,11 +377,11 @@ int main(int argc, char *argv[])
 		
 		switch (result) {
 		case ICMP_ECHO:
-			printf("%u bytes from ? (?): icmp_seq=%u ttl=? time=%u.%04u\n",
+			printf("%zu bytes from ? (?): icmp_seq=%u ttl=? time=%ld.%04ld\n",
 				config.size, seq, elapsed / 1000, elapsed % 1000);
 			break;
 		case ETIMEOUT:
-			printf("%u bytes from ? (?): icmp_seq=%u Timed out\n",
+			printf("%zu bytes from ? (?): icmp_seq=%u Timed out\n",
 				config.size, seq);
 			break;
 		default:
@@ -389,7 +389,7 @@ int main(int argc, char *argv[])
 		}
 	}
 	
-	ipc_hangup(icmp_phone);
+	async_hangup(icmp_phone);
 	
 	return 0;
 }

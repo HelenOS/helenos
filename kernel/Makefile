@@ -121,6 +121,13 @@ ifeq ($(CONFIG_LTO),y)
 	GCC_CFLAGS += -flto
 endif
 
+ifeq ($(CONFIG_LINE_DEBUG),y)
+	GCC_CFLAGS += -g
+	ICC_CFLAGS += -g
+	SUNCC_CFLAGS += -g
+	CLANG_CFLAGS += -g
+endif
+
 #
 # Mind the mutual ordering with the inclusion of the arch Makefile.inc.
 # AFLAGS and LFLAGS must be initialized before the inclusion.
@@ -218,7 +225,6 @@ GENERIC_SOURCES = \
 	generic/src/proc/thread.c \
 	generic/src/proc/task.c \
 	generic/src/proc/the.c \
-	generic/src/proc/tasklet.c \
 	generic/src/syscall/syscall.c \
 	generic/src/syscall/copy.c \
 	generic/src/mm/buddy.c \
@@ -232,6 +238,7 @@ GENERIC_SOURCES = \
 	generic/src/mm/slab.c \
 	generic/src/lib/func.c \
 	generic/src/lib/memstr.c \
+	generic/src/lib/memfnc.c \
 	generic/src/lib/sort.c \
 	generic/src/lib/str.c \
 	generic/src/lib/elf.c \
@@ -305,6 +312,7 @@ ifeq ($(CONFIG_TEST),y)
 		test/print/print2.c \
 		test/print/print3.c \
 		test/print/print4.c \
+		test/print/print5.c \
 		test/thread/thread1.c
 	
 	ifeq ($(KARCH),mips32)
@@ -364,11 +372,23 @@ endif
 #
 
 ifeq ($(CONFIG_TRACE),y)
-INSTRUMENTED_SOURCES = \
-	generic/src/cpu/cpu.c \
-	generic/src/main/main.c \
-	generic/src/main/kinit.c \
-	generic/src/proc/the.c
+	INSTRUMENTED_SOURCES = \
+		generic/src/adt/btree.c \
+		generic/src/cpu/cpu.c \
+		generic/src/ddi/ddi.c \
+		generic/src/interrupt/interrupt.c \
+		generic/src/main/main.c \
+		generic/src/main/kinit.c \
+		generic/src/proc/the.c \
+		generic/src/mm/frame.c \
+		generic/src/mm/page.c \
+		generic/src/mm/tlb.c \
+		generic/src/mm/as.c \
+		generic/src/mm/slab.c \
+		generic/src/sysinfo/sysinfo.c \
+		generic/src/console/kconsole.c
+else
+	INSTRUMENTED_SOURCES =
 endif
 
 GENERIC_OBJECTS := $(addsuffix .o,$(basename $(GENERIC_SOURCES)))
@@ -387,7 +407,11 @@ $(BIN): $(RAW)
 	$(OBJCOPY) -O $(BFD) $< $@
 
 $(DISASM): $(RAW)
+ifeq ($(CONFIG_LINE_DEBUG),y)
+	$(OBJDUMP) -d -S $< > $@
+else
 	$(OBJDUMP) -d $< > $@
+endif
 
 $(RAW): $(LINK) $(ARCH_OBJECTS) $(GENARCH_OBJECTS) $(GENERIC_OBJECTS) $(SYMTAB_OBJECTS)
 ifeq ($(CONFIG_LTO),y)

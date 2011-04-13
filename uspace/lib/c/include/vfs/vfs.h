@@ -46,7 +46,7 @@
  */
 typedef struct {
 	fs_handle_t fs_handle;
-	dev_handle_t dev_handle;
+	devmap_handle_t devmap_handle;
 	fs_index_t index;
 } fdi_node_t;
 
@@ -55,9 +55,6 @@ extern char *absolutize(const char *, size_t *);
 extern int mount(const char *, const char *, const char *, const char *,
     unsigned int);
 extern int unmount(const char *);
-
-extern void __stdio_init(int filc, fdi_node_t *filv[]);
-extern void __stdio_done(void);
 
 extern int open_node(fdi_node_t *, int);
 extern int fd_phone(int);

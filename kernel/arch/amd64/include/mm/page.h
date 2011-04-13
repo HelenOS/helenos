@@ -45,6 +45,7 @@
 #define KERN_amd64_PAGE_H_
 
 #include <arch/mm/frame.h>
+#include <trace.h>
 
 #define PAGE_WIDTH  FRAME_WIDTH
 #define PAGE_SIZE   FRAME_SIZE
@@ -53,8 +54,8 @@
 
 #ifndef __ASM__
 
-#define KA2PA(x)  (((uintptr_t) (x)) - 0xffff800000000000)
-#define PA2KA(x)  (((uintptr_t) (x)) + 0xffff800000000000)
+#define KA2PA(x)  (((uintptr_t) (x)) - UINT64_C(0xffff800000000000))
+#define PA2KA(x)  (((uintptr_t) (x)) + UINT64_C(0xffff800000000000))
 
 #else /* __ASM__ */
 
@@ -76,10 +77,10 @@
 #define PTL3_SIZE_ARCH  ONE_FRAME
 
 /* Macros calculating indices into page tables in each level. */
-#define PTL0_INDEX_ARCH(vaddr)  (((vaddr) >> 39) & 0x1ff)
-#define PTL1_INDEX_ARCH(vaddr)  (((vaddr) >> 30) & 0x1ff)
-#define PTL2_INDEX_ARCH(vaddr)  (((vaddr) >> 21) & 0x1ff)
-#define PTL3_INDEX_ARCH(vaddr)  (((vaddr) >> 12) & 0x1ff)
+#define PTL0_INDEX_ARCH(vaddr)  (((vaddr) >> 39) & 0x1ffU)
+#define PTL1_INDEX_ARCH(vaddr)  (((vaddr) >> 30) & 0x1ffU)
+#define PTL2_INDEX_ARCH(vaddr)  (((vaddr) >> 21) & 0x1ffU)
+#define PTL3_INDEX_ARCH(vaddr)  (((vaddr) >> 12) & 0x1ffU)
 
 /* Get PTE address accessors for each level. */
 #define GET_PTL1_ADDRESS_ARCH(ptl0, i) \
@@ -186,7 +187,7 @@ typedef struct {
 	unsigned int no_execute : 1;
 } __attribute__ ((packed)) pte_t;
 
-static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
+NO_TRACE static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
 {
 	pte_t *p = &pt[i];
 	
@@ -199,15 +200,15 @@ static inline unsigned int get_pt_flags(pte_t *pt, size_t i)
 	    p->global << PAGE_GLOBAL_SHIFT);
 }
 
-static inline void set_pt_addr(pte_t *pt, size_t i, uintptr_t a)
+NO_TRACE static inline void set_pt_addr(pte_t *pt, size_t i, uintptr_t a)
 {
 	pte_t *p = &pt[i];
 	
-	p->addr_12_31 = (a >> 12) & 0xfffff;
+	p->addr_12_31 = (a >> 12) & UINT32_C(0xfffff);
 	p->addr_32_51 = a >> 32;
 }
 
-static inline void set_pt_flags(pte_t *pt, size_t i, int flags)
+NO_TRACE static inline void set_pt_flags(pte_t *pt, size_t i, int flags)
 {
 	pte_t *p = &pt[i];
 	

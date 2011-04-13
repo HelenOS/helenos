@@ -26,92 +26,35 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup arp
- *  @{
+/** @addtogroup libnet
+ * @{
  */
 
-#ifndef __NET_ARP_INTERFACE_H__
-#define __NET_ARP_INTERFACE_H__
+#ifndef LIBNET_ARP_INTERFACE_H_
+#define LIBNET_ARP_INTERFACE_H_
 
 #include <adt/measured_strings.h>
-#include <net_device.h>
+#include <task.h>
+
+#include <ipc/services.h>
+
+#include <net/device.h>
+#include <net/socket.h>
 
 /** @name ARP module interface
- *  This interface is used by other modules.
+ * This interface is used by other modules.
  */
 /*@{*/
 
-/** Registers the new device and the requesting protocol service.
- *  Connects to the network interface layer service.
- *  Determines the device broadcast address, its address lengths and packet size.
- *  @param[in] arp_phone The ARP module phone used for (semi)remote calls.
- *  @param[in] device_id The new device identifier.
- *  @param[in] protocol The requesting protocol service.
- *  @param[in] netif The underlying device network interface layer service.
- *  @param[in] address The local requesting protocol address of the device.
- *  @returns EOK on success.
- *  @returns EEXIST if the device is already used.
- *  @returns ENOMEM if there is not enough memory left.
- *  @returns ENOENT if the network interface service is not known.
- *  @returns EREFUSED if the network interface service is not responding.
- *  @returns Other error codes as defined for the nil_packet_get_size() function.
- *  @returns Other error codes as defined for the nil_get_addr() function.
- *  @returns Other error codes as defined for the nil_get_broadcast_addr() function.
- */
-extern int arp_device_req(int arp_phone, device_id_t device_id, services_t protocol, services_t netif, measured_string_ref address);
-
-/** Translates the given protocol address to the network interface address.
- *  Broadcasts the ARP request if the mapping is not found.
- *  Allocates and returns the needed memory block as the data parameter.
- *  @param[in] arp_phone The ARP module phone used for (semi)remote calls.
- *  @param[in] device_id The device identifier.
- *  @param[in] protocol The requesting protocol service.
- *  @param[in] address The local requesting protocol address.
- *  @param[out] translation The translation of the local protocol address.
- *  @param[out] data The allocated raw translation data container.
- *  @returns EOK on success.
- *  @returns EINVAL if the address parameter is NULL.
- *  @returns EBADMEM if the translation or the data parameters are NULL.
- *  @returns ENOENT if the mapping is not found.
- */
-extern int arp_translate_req(int arp_phone, device_id_t device_id, services_t protocol, measured_string_ref address, measured_string_ref * translation, char ** data);
-
-/** Clears the device cache.
- *  @param[in] arp_phone The ARP module phone used for (semi)remote calls.
- *  @param[in] device_id The device identifier.
- *  @returns EOK on success.
- *  @returns ENOENT if the device is not found.
- */
-extern int arp_clear_device_req(int arp_phone, device_id_t device_id);
-
-/** Clears the given protocol address from the cache.
- *  @param[in] arp_phone The ARP module phone used for (semi)remote calls.
- *  @param[in] device_id The device identifier.
- *  @param[in] protocol The requesting protocol service.
- *  @param[in] address The protocol address to be cleared.
- *  @returns EOK on success.
- *  @returns ENOENT if the mapping is not found.
- */
-extern int arp_clear_address_req(int arp_phone, device_id_t device_id, services_t protocol, measured_string_ref address);
-
-/** Cleans the cache.
- *  @param[in] arp_phone The ARP module phone used for (semi)remote calls.
- *  @returns EOK on success.
- */
-extern int arp_clean_cache_req(int arp_phone);
-
-/** Connects to the ARP module.
- *  @param service The ARP module service. Ignored parameter.
- *  @returns The ARP module phone on success.
- *  @returns 0 if called by the bundle module.
- */
-extern int arp_connect_module(services_t service);
-
-/** Returns the ARP task identifier.
- *  @returns The current task identifier if called by the bundle module.
- *  @returns 0 if called by the remote module.
- */
-extern task_id_t arp_task_get_id(void);
+extern int arp_device_req(int, device_id_t, services_t, services_t,
+    measured_string_t *);
+extern int arp_translate_req(int, device_id_t, services_t, measured_string_t *,
+    measured_string_t **, uint8_t **);
+extern int arp_clear_device_req(int, device_id_t);
+extern int arp_clear_address_req(int, device_id_t, services_t,
+    measured_string_t *);
+extern int arp_clean_cache_req(int);
+extern int arp_connect_module(services_t);
 
 /*@}*/
 

@@ -35,6 +35,8 @@
 #ifndef KERN_ppc32_BARRIER_H_
 #define KERN_ppc32_BARRIER_H_
 
+#include <trace.h>
+
 #define CS_ENTER_BARRIER()  asm volatile ("" ::: "memory")
 #define CS_LEAVE_BARRIER()  asm volatile ("" ::: "memory")
 
@@ -57,7 +59,7 @@
  * chapter 5.1.5.2
  */
 
-static inline void smc_coherence(void *addr)
+NO_TRACE static inline void smc_coherence(void *addr)
 {
 	asm volatile (
 		"dcbst 0, %[addr]\n"
@@ -69,7 +71,7 @@ static inline void smc_coherence(void *addr)
 	);
 }
 
-static inline void smc_coherence_block(void *addr, unsigned int len)
+NO_TRACE static inline void smc_coherence_block(void *addr, unsigned int len)
 {
 	unsigned int i;
 	

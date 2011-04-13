@@ -89,6 +89,16 @@ ifeq ($(CONFIG_NS16550),y)
 		genarch/src/drivers/ns16550/ns16550.c
 endif
 
+ifeq ($(CONFIG_S3C24XX_IRQC),y)
+	GENARCH_SOURCES += \
+		genarch/src/drivers/s3c24xx_irqc/s3c24xx_irqc.c
+endif
+
+ifeq ($(CONFIG_S3C24XX_UART),y)
+	GENARCH_SOURCES += \
+		genarch/src/drivers/s3c24xx_uart/s3c24xx_uart.c
+endif
+
 ifeq ($(CONFIG_Z8530),y)
 	GENARCH_SOURCES += \
 		genarch/src/drivers/z8530/z8530.c
@@ -109,12 +119,6 @@ ifeq ($(CONFIG_SUN_KBD),y)
 	GENARCH_SOURCES += \
 		genarch/src/kbrd/kbrd.c \
 		genarch/src/kbrd/scanc_sun.c
-endif
-
-ifeq ($(CONFIG_PL050),y)
-	GENARCH_SOURCES += \
-		genarch/src/kbrd/kbrd_pl050.c \
-		genarch/src/kbrd/scanc_pl050.c
 endif
 
 ifeq ($(CONFIG_MAC_KBD),y)

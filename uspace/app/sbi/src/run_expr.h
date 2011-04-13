@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jiri Svoboda
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,6 +38,7 @@ void run_new_csi_inst_ref(run_t *run, stree_csi_t *csi, statns_t sn,
 void run_new_csi_inst(run_t *run, stree_csi_t *csi, statns_t sn,
     rdata_var_t **res);
 
+void run_equal(run_t *run, rdata_value_t *v1, rdata_value_t *v2, bool_t *res);
 bool_t run_item_boolean_value(run_t *run, rdata_item_t *item);
 
 

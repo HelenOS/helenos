@@ -26,7 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup arm32	
+/** @addtogroup arm32
  * @{
  */
 /** @file
@@ -41,8 +41,9 @@
 /** Calculate absolute address of function referenced by fptr pointer.
  *
  * @param fptr Function pointer.
+ *
  */
-#define FADDR(fptr)		((uintptr_t) (fptr))
+#define FADDR(fptr)  ((uintptr_t) (fptr))
 
 #endif
 

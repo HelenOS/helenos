@@ -41,49 +41,64 @@
 #include <stdarg.h>
 #include <interrupt.h>
 
+#define BANNER_LEFT   "######>"
+#define BANNER_RIGHT  "<######"
+
 void panic_common(panic_category_t cat, istate_t *istate, int access,
     uintptr_t address, const char *fmt, ...)
 {
 	va_list args;
-
+	
 	silent = false;
-
-	printf("\nKERNEL PANIC ");
+	
+	printf("\n%s Kernel panic ", BANNER_LEFT);
 	if (CPU)
-		printf("ON cpu%d ", CPU->id);
-	printf("DUE TO ");
-
+		printf("on cpu%u ", CPU->id);
+	printf("due to ");
+	
 	va_start(args, fmt);
 	if (cat == PANIC_ASSERT) {
-		printf("A FAILED ASSERTION:\n");
+		printf("a failed assertion: %s\n", BANNER_RIGHT);
 		vprintf(fmt, args);
 		printf("\n");
 	} else if (cat == PANIC_BADTRAP) {
-		printf("BAD TRAP %ld.\n", address);
+		printf("bad trap %" PRIun ". %s\n", address,
+		    BANNER_RIGHT);
+		if (fmt) {
+			vprintf(fmt, args);
+			printf("\n");
+		}
 	} else if (cat == PANIC_MEMTRAP) {
-		printf("A BAD MEMORY ACCESS WHILE ");
+		printf("a bad memory access while ");
 		if (access == PF_ACCESS_READ)
-			printf("LOADING FROM");
+			printf("loading from");
 		else if (access == PF_ACCESS_WRITE)
-			printf("STORING TO");
+			printf("storing to");
 		else if (access == PF_ACCESS_EXEC)
-			printf("BRANCHING TO");
+			printf("branching to");
 		else
-			printf("REFERENCING");
-		printf(" ADDRESS %p.\n", address); 
+			printf("referencing");
+		printf(" address %p. %s\n", (void *) address,
+		    BANNER_RIGHT);
+		if (fmt) {
+			vprintf(fmt, args);
+			printf("\n");
+		}
 	} else {
-		printf("THE FOLLOWING REASON:\n");
+		printf("the following reason: %s\n",
+		    BANNER_RIGHT);
 		vprintf(fmt, args);
+		printf("\n");
 	}
 	va_end(args);
-
+	
 	printf("\n");
-
+	
 	if (istate) {
 		istate_decode(istate);
 		printf("\n");
 	}
-
+	
 	stack_trace();
 	halt();
 }

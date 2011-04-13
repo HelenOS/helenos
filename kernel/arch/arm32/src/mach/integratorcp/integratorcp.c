@@ -59,11 +59,13 @@ struct arm_machine_ops icp_machine_ops = {
 	icp_init,
 	icp_timer_irq_start,
 	icp_cpu_halt,
-	icp_get_memory_size,
+	icp_get_memory_extents,
 	icp_irq_exception,
 	icp_frame_init,
 	icp_output_init,
-	icp_input_init
+	icp_input_init,
+	icp_get_irq_count,
+	icp_get_platform_name
 };
 
 static bool hw_map_init_called = false;
@@ -213,18 +215,21 @@ void icp_timer_irq_start(void)
 	icp_timer_start(ICP_TIMER_FREQ);
 }
 
-/** Returns the size of emulated memory.
+/** Get extents of available memory.
  *
- * @return Size in bytes.
+ * @param start		Place to store memory start address.
+ * @param size		Place to store memory size.
  */
-size_t icp_get_memory_size(void) 
+void icp_get_memory_extents(uintptr_t *start, uintptr_t *size)
 {
+	*start = 0;
+
 	if (hw_map_init_called) {
-		return (sdram[((*(uint32_t *)icp_hw_map.sdramcr & ICP_SDRAM_MASK) >> 2)]);
+		*size = (sdram[((*(uint32_t *)icp_hw_map.sdramcr &
+		    ICP_SDRAM_MASK) >> 2)]);
 	} else {
-		return SDRAM_SIZE;
+		*size = SDRAM_SIZE;
 	}
-	
 }
 
 /** Stops icp. */
@@ -286,7 +291,7 @@ void icp_output_init(void)
 		.x = 640,
 		.y = 480,
 		.scan = 2560,
-		.visual = VISUAL_BGR_0_8_8_8,
+		.visual = VISUAL_RGB_8_8_8_0,
 	};
 	
 	outdev_t *fbdev = fb_init(&prop);
@@ -294,6 +299,7 @@ void icp_output_init(void)
 		stdout_wire(fbdev);
 		fb_parea.pbase = ICP_FB;
 		fb_parea.frames = 300;
+		fb_parea.unpriv = false;
 		ddi_parea_register(&fb_parea);
 	}
 #endif
@@ -332,6 +338,15 @@ void icp_input_init(void)
 
 }
 
+size_t icp_get_irq_count(void)
+{
+	return ICP_IRQ_COUNT;
+}
+
+const char *icp_get_platform_name(void)
+{
+	return "integratorcp";
+}
 
 /** @}
  */

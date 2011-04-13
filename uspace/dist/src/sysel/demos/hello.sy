@@ -28,6 +28,6 @@
 
 class HelloWorld is
 	fun Main(), static is
-		Builtin.WriteLine("Hello world!");
+		Console.WriteLine("Hello world!");
 	end
 end

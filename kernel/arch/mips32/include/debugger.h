@@ -57,15 +57,17 @@
 
 
 typedef struct  {
-	uintptr_t address;          /**< Breakpoint address */
-	unative_t instruction;      /**< Original instruction */
-	unative_t nextinstruction;  /**< Original instruction following break */
-	unsigned int flags;         /**< Flags regarding breakpoint */
+	uintptr_t address;         /**< Breakpoint address */
+	sysarg_t instruction;      /**< Original instruction */
+	sysarg_t nextinstruction;  /**< Original instruction following break */
+	unsigned int flags;        /**< Flags regarding breakpoint */
 	size_t counter;
 	void (*bkfunc)(void *, istate_t *);
 } bpinfo_t;
 
 extern bpinfo_t breakpoints[BKPOINTS_MAX];
+
+extern bool is_jump(sysarg_t);
 
 extern void debugger_init(void);
 extern void debugger_bpoint(istate_t *);

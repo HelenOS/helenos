@@ -28,12 +28,11 @@
 #
 
 USPACE_PREFIX = ../../../..
-LIBS = $(LIBNET_PREFIX)/libnet.a $(LIBSOCKET_PREFIX)/libsocket.a
-EXTRA_CFLAGS = -I$(LIBNET_PREFIX)/include -I$(LIBSOCKET_PREFIX)/include
+LIBS = $(LIBNET_PREFIX)/libnet.a
+EXTRA_CFLAGS = -I$(LIBNET_PREFIX)/include
 BINARY = udp
 
 SOURCES = \
-	udp.c \
-	udp_module.c
+	udp.c
 
 include $(USPACE_PREFIX)/Makefile.common

@@ -81,7 +81,8 @@ void page_arch_init(void)
 uintptr_t hw_map(uintptr_t physaddr, size_t size)
 {
 	if (last_frame + ALIGN_UP(size, PAGE_SIZE) > KA2PA(KERNEL_ADDRESS_SPACE_END_ARCH))
-		panic("Unable to map physical memory %p (%d bytes).", physaddr, size);
+		panic("Unable to map physical memory %p (%zu bytes).",
+		    (void *) physaddr, size);
 	
 	uintptr_t virtaddr = PA2KA(last_frame);
 	pfn_t i;
@@ -114,7 +115,7 @@ void page_fault(unsigned int n __attribute__((unused)), istate_t *istate)
 	
 	if (as_page_fault(page, access, istate) == AS_PF_FAULT) {
 		fault_if_from_uspace(istate, "Page fault: %#x.", page);
-		panic_memtrap(istate, access, page, "Page fault.");
+		panic_memtrap(istate, access, page, NULL);
 	}
 }
 

@@ -33,7 +33,7 @@ BFD_ARCH = ia64
 BITS = 64
 ENDIANESS = LE
 PAGE_SIZE = 16384
-EXTRA_CFLAGS = -fno-unwind-tables -mfixed-range=f32-f127 -mno-pic
+EXTRA_CFLAGS = -fno-unwind-tables -mfixed-range=f32-f127 -mno-pic -mno-sdata
 
 RD_SRVS_NON_ESSENTIAL +=
 
@@ -48,6 +48,7 @@ SOURCES = \
 	$(COMPS_C) \
 	genarch/src/division.c \
 	generic/src/balloc.c \
+	generic/src/memstr.c \
 	generic/src/printf_core.c \
 	generic/src/vprintf.c \
 	generic/src/printf.c \

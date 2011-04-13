@@ -57,7 +57,7 @@ void page_arch_init(void)
 	
 	uintptr_t cur;
 	/* Kernel identity mapping */
-	for (cur = 0; cur < last_frame; cur += FRAME_SIZE)
+	for (cur = PHYSMEM_START_ADDR; cur < last_frame; cur += FRAME_SIZE)
 		page_mapping_insert(AS_KERNEL, PA2KA(cur), cur, flags);
 	
 	/* Create mapping for exception table at high offset */
@@ -67,6 +67,8 @@ void page_arch_init(void)
 #else
 #error "Only high exception vector supported now"
 #endif
+	cur = ALIGN_DOWN(0x50008010, FRAME_SIZE);
+	page_mapping_insert(AS_KERNEL, PA2KA(cur), cur, flags);
 
 	page_table_unlock(AS_KERNEL, true);
 	
@@ -90,7 +92,7 @@ uintptr_t hw_map(uintptr_t physaddr, size_t size)
 	if (last_frame + ALIGN_UP(size, PAGE_SIZE) >
 	    KA2PA(KERNEL_ADDRESS_SPACE_END_ARCH)) {
 		panic("Unable to map physical memory %p (%d bytes).",
-		    physaddr, size);
+		    (void *) physaddr, size);
 	}
 	
 	uintptr_t virtaddr = PA2KA(last_frame);

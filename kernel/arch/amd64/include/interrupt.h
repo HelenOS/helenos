@@ -36,84 +36,48 @@
 #define KERN_amd64_INTERRUPT_H_
 
 #include <typedefs.h>
+#include <arch/istate.h>
 #include <arch/pm.h>
 
-#define IVT_ITEMS		IDT_ITEMS
-#define IVT_FIRST		0
+#define IVT_ITEMS  IDT_ITEMS
+#define IVT_FIRST  0
 
-#define EXC_COUNT		32
-#define IRQ_COUNT		16
+#define EXC_COUNT  32
+#define IRQ_COUNT  16
 
-#define IVT_EXCBASE		0
-#define IVT_IRQBASE		(IVT_EXCBASE + EXC_COUNT)
-#define IVT_FREEBASE		(IVT_IRQBASE + IRQ_COUNT)
+#define IVT_EXCBASE   0
+#define IVT_IRQBASE   (IVT_EXCBASE + EXC_COUNT)
+#define IVT_FREEBASE  (IVT_IRQBASE + IRQ_COUNT)
 
-#define IRQ_CLK			0
-#define IRQ_KBD			1
-#define IRQ_PIC1		2
-#define IRQ_PIC_SPUR		7
-#define IRQ_MOUSE		12
-#define IRQ_DP8390		9
+#define IRQ_CLK       0
+#define IRQ_KBD       1
+#define IRQ_PIC1      2
+#define IRQ_PIC_SPUR  7
+#define IRQ_MOUSE     12
+#define IRQ_NE2000    9
 
-/* this one must have four least significant bits set to ones */
-#define VECTOR_APIC_SPUR	(IVT_ITEMS - 1)
+/* This one must have four least significant bits set to ones */
+#define VECTOR_APIC_SPUR  (IVT_ITEMS - 1)
 
 #if (((VECTOR_APIC_SPUR + 1) % 16) || VECTOR_APIC_SPUR >= IVT_ITEMS)
 #error Wrong definition of VECTOR_APIC_SPUR
 #endif
 
-#define VECTOR_DEBUG			1
-#define VECTOR_CLK			(IVT_IRQBASE + IRQ_CLK)
-#define VECTOR_PIC_SPUR			(IVT_IRQBASE + IRQ_PIC_SPUR)
-#define VECTOR_SYSCALL			IVT_FREEBASE
-#define VECTOR_TLB_SHOOTDOWN_IPI	(IVT_FREEBASE + 1)
-#define VECTOR_DEBUG_IPI		(IVT_FREEBASE + 2)
+#define VECTOR_DEBUG              1
+#define VECTOR_CLK                (IVT_IRQBASE + IRQ_CLK)
+#define VECTOR_PIC_SPUR           (IVT_IRQBASE + IRQ_PIC_SPUR)
+#define VECTOR_SYSCALL            IVT_FREEBASE
+#define VECTOR_TLB_SHOOTDOWN_IPI  (IVT_FREEBASE + 1)
+#define VECTOR_DEBUG_IPI          (IVT_FREEBASE + 2)
 
-/** This is passed to interrupt handlers */
-typedef struct istate {
-	uint64_t rax;
-	uint64_t rcx;
-	uint64_t rdx;
-	uint64_t rsi;
-	uint64_t rdi;
-	uint64_t r8;
-	uint64_t r9;
-	uint64_t r10;
-	uint64_t r11;
-	uint64_t rbp;
-	uint64_t error_word;
-	uint64_t rip;
-	uint64_t cs;
-	uint64_t rflags;
-	uint64_t stack[]; /* Additional data on stack */
-} istate_t;
-
-/** Return true if exception happened while in userspace */
-static inline int istate_from_uspace(istate_t *istate)
-{
-	return !(istate->rip & 0x8000000000000000);
-}
-
-static inline void istate_set_retaddr(istate_t *istate, uintptr_t retaddr)
-{
-	istate->rip = retaddr;
-}
-static inline unative_t istate_get_pc(istate_t *istate)
-{
-	return istate->rip;
-}
-static inline unative_t istate_get_fp(istate_t *istate)
-{
-	return istate->rbp;
-}
-
-extern void (* disable_irqs_function)(uint16_t irqmask);
-extern void (* enable_irqs_function)(uint16_t irqmask);
+extern void (* disable_irqs_function)(uint16_t);
+extern void (* enable_irqs_function)(uint16_t);
 extern void (* eoi_function)(void);
+extern const char *irqs_info;
 
 extern void interrupt_init(void);
-extern void trap_virtual_enable_irqs(uint16_t irqmask);
-extern void trap_virtual_disable_irqs(uint16_t irqmask);
+extern void trap_virtual_enable_irqs(uint16_t);
+extern void trap_virtual_disable_irqs(uint16_t);
 
 #endif
 

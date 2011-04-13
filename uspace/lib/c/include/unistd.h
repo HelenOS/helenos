@@ -36,13 +36,12 @@
 #define LIBC_UNISTD_H_
 
 #include <sys/types.h>
+#include <time.h>
 #include <libarch/config.h>
 
 #ifndef NULL
-	#define NULL  0
+	#define NULL  ((void *) 0)
 #endif
-
-#define getpagesize()  (PAGE_SIZE)
 
 #ifndef SEEK_SET
 	#define SEEK_SET  0
@@ -56,7 +55,7 @@
 	#define SEEK_END  2
 #endif
 
-typedef uint32_t useconds_t;
+#define getpagesize()  (PAGE_SIZE)
 
 extern int dup2(int oldfd, int newfd);
 
@@ -74,7 +73,7 @@ extern char *getcwd(char *buf, size_t);
 extern int rmdir(const char *);
 extern int chdir(const char *);
 
-extern void _exit(int) __attribute__((noreturn));
+extern void exit(int) __attribute__((noreturn));
 extern int usleep(useconds_t);
 extern unsigned int sleep(unsigned int);
 

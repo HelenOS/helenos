@@ -61,18 +61,35 @@
 void (* disable_irqs_function)(uint16_t irqmask) = NULL;
 void (* enable_irqs_function)(uint16_t irqmask) = NULL;
 void (* eoi_function)(void) = NULL;
+const char *irqs_info = NULL;
 
 void istate_decode(istate_t *istate)
 {
-	printf("error_word=%#llx\n", istate->error_word);
-	printf("cs =%#0.16llx\trflags=%#0.16llx\n", istate->cs,
-	    istate->rflags);
-	printf("rax=%#0.16llx\trbx=%#0.16llx\trcx=%#0.16llx\n", istate->rax,
-	    istate->rcx, istate->rdx);
-	printf("rsi=%#0.16llx\trdi=%#0.16llx\tr8 =%#0.16llx\n", istate->rsi,
-	    istate->rdi, istate->r8);
-	printf("r9 =%#0.16llx\tr10=%#0.16llx\tr11=%#0.16llx\n", istate->r9,
-	    istate->r10, istate->r11);
+	printf("cs =%#0" PRIx64 "\trip=%p\t"
+	    "rfl=%#0" PRIx64 "\terr=%#0" PRIx64 "\n",
+	    istate->cs, (void *) istate->rip,
+	    istate->rflags, istate->error_word);
+	
+	if (istate_from_uspace(istate))
+		printf("ss =%#0" PRIx64 "\n", istate->ss);
+	
+	printf("rax=%#0" PRIx64 "\trbx=%#0" PRIx64 "\t"
+	    "rcx=%#0" PRIx64 "\trdx=%#0" PRIx64 "\n",
+	    istate->rax, istate->rbx, istate->rcx, istate->rdx);
+	
+	printf("rsi=%p\trdi=%p\trbp=%p\trsp=%p\n",
+	    (void *) istate->rsi, (void *) istate->rdi,
+	    (void *) istate->rbp,
+	    istate_from_uspace(istate) ? ((void *) istate->rsp) :
+	    &istate->rsp);
+	
+	printf("r8 =%#0" PRIx64 "\tr9 =%#0" PRIx64 "\t"
+	    "r10=%#0" PRIx64 "\tr11=%#0" PRIx64 "\n",
+	    istate->r8, istate->r9, istate->r10, istate->r11);
+	
+	printf("r12=%#0" PRIx64 "\tr13=%#0" PRIx64 "\t"
+	    "r14=%#0" PRIx64 "\tr15=%#0" PRIx64 "\n",
+	    istate->r12, istate->r13, istate->r14, istate->r15);
 }
 
 static void trap_virtual_eoi(void)

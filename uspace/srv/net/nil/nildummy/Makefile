@@ -29,8 +29,8 @@
 
 USPACE_PREFIX = ../../../..
 ROOT_PATH = $(USPACE_PREFIX)/..
-LIBS = $(LIBNET_PREFIX)/libnet.a $(LIBSOCKET_PREFIX)/libsocket.a
-EXTRA_CFLAGS = -I$(LIBNET_PREFIX)/include -I$(LIBSOCKET_PREFIX)/include
+LIBS = $(LIBNET_PREFIX)/libnet.a
+EXTRA_CFLAGS = -I$(LIBNET_PREFIX)/include
 
 COMMON_MAKEFILE = $(ROOT_PATH)/Makefile.common
 CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
@@ -38,14 +38,9 @@ CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
 -include $(COMMON_MAKEFILE)
 -include $(CONFIG_MAKEFILE)
 
-ifeq ($(CONFIG_NETIF_NIL_BUNDLE),y)
-	LIBRARY = libnildummy
-else
-	BINARY = nildummy
-endif
+BINARY = nildummy
 
 SOURCES = \
-	nildummy.c \
-	nildummy_module.c
+	nildummy.c
 
 include $(USPACE_PREFIX)/Makefile.common

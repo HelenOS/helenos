@@ -128,7 +128,7 @@ void kinit(void *arg)
 		/*
 		 * For each CPU, create its load balancing thread.
 		 */
-		size_t i;
+		unsigned int i;
 		
 		for (i = 0; i < config.cpu_count; i++) {
 			thread = thread_create(kcpulb, NULL, TASK, THREAD_FLAG_WIRED, "kcpulb", true);
@@ -138,7 +138,7 @@ void kinit(void *arg)
 				irq_spinlock_unlock(&thread->lock, false);
 				thread_ready(thread);
 			} else
-				printf("Unable to create kcpulb thread for cpu" PRIs "\n", i);
+				printf("Unable to create kcpulb thread for cpu%u\n", i);
 		}
 	}
 #endif /* CONFIG_SMP */
@@ -178,7 +178,7 @@ void kinit(void *arg)
 	
 	for (i = 0; i < init.cnt; i++) {
 		if (init.tasks[i].addr % FRAME_SIZE) {
-			printf("init[%" PRIs "].addr is not frame aligned\n", i);
+			printf("init[%zu].addr is not frame aligned\n", i);
 			programs[i].task = NULL;
 			continue;
 		}
@@ -207,7 +207,7 @@ void kinit(void *arg)
 			 * Set capabilities to init userspace tasks.
 			 */
 			cap_set(programs[i].task, CAP_CAP | CAP_MEM_MANAGER |
-			    CAP_IO_MANAGER | CAP_PREEMPT_CONTROL | CAP_IRQ_REG);
+			    CAP_IO_MANAGER | CAP_IRQ_REG);
 			
 			if (!ipc_phone_0)
 				ipc_phone_0 = &programs[i].task->answerbox;
@@ -218,7 +218,7 @@ void kinit(void *arg)
 			int rd = init_rd((rd_header_t *) init.tasks[i].addr, init.tasks[i].size);
 			
 			if (rd != RE_OK)
-				printf("Init binary %" PRIs " not used (error %d)\n", i, rd);
+				printf("Init binary %zu not used (error %d)\n", i, rd);
 		}
 	}
 	

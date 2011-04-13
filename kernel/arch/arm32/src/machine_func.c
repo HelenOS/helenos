@@ -38,6 +38,7 @@
  */
 
 #include <arch/machine_func.h>
+#include <arch/mach/gta02/gta02.h>
 #include <arch/mach/integratorcp/integratorcp.h>
 #include <arch/mach/testarm/testarm.h>
 
@@ -47,7 +48,9 @@ struct arm_machine_ops *machine_ops;
 /** Initialize machine_ops pointer. */
 void machine_ops_init(void)
 {
-#if defined(MACHINE_testarm)
+#if defined(MACHINE_gta02)
+	machine_ops = &gta02_machine_ops;
+#elif defined(MACHINE_testarm)
 	machine_ops = &gxemul_machine_ops;
 #elif defined(MACHINE_integratorcp)
 	machine_ops = &icp_machine_ops;
@@ -76,14 +79,14 @@ void machine_cpu_halt(void)
 	(machine_ops->machine_cpu_halt)();
 }
 
-
-/** Returns size of available memory.
+/** Get extents of available memory.
  *
- *  @return Size of available memory.
+ * @param start		Place to store memory start address.
+ * @param size		Place to store memory size.
  */
-uintptr_t machine_get_memory_size(void)
+void machine_get_memory_extents(uintptr_t *start, uintptr_t *size)
 {
-	return (machine_ops->machine_get_memory_size)();
+	(machine_ops->machine_get_memory_extents)(start, size);
 }
 
 /** Interrupt exception handler.
@@ -119,6 +122,12 @@ void machine_output_init(void)
 void machine_input_init(void)
 {
 	(machine_ops->machine_input_init)();
+}
+
+/** Get IRQ number range used by machine. */
+size_t machine_get_irq_count(void)
+{
+	return (machine_ops->machine_get_irq_count)();
 }
 
 /** @}

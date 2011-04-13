@@ -34,22 +34,23 @@
  * @brief List of all known services and their codes.
  */
 
-#ifndef LIBIPC_SERVICES_H_
-#define LIBIPC_SERVICES_H_
+#ifndef LIBC_SERVICES_H_
+#define LIBC_SERVICES_H_
 
 typedef enum {
-	SERVICE_LOAD = 1,
+	SERVICE_NONE = 0,
+	SERVICE_LOAD,
 	SERVICE_PCI,
 	SERVICE_VIDEO,
 	SERVICE_CONSOLE,
 	SERVICE_VFS,
 	SERVICE_DEVMAP,
-	SERVICE_FHC,
-	SERVICE_OBIO,
+	SERVICE_DEVMAN,
+	SERVICE_IRC,
 	SERVICE_CLIPBOARD,
 	SERVICE_NETWORKING,
 	SERVICE_LO,
-	SERVICE_DP8390,
+	SERVICE_NE2000,
 	SERVICE_ETHERNET,
 	SERVICE_NILDUMMY,
 	SERVICE_IP,
@@ -60,10 +61,6 @@ typedef enum {
 	SERVICE_TCP,
 	SERVICE_SOCKET
 } services_t;
-
-/* Memory area to be received from NS */
-#define SERVICE_MEM_REALTIME    1
-#define SERVICE_MEM_KLOG        2
 
 #endif
 

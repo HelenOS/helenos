@@ -38,6 +38,7 @@
 #include <arch/barrier.h>
 #include <typedefs.h>
 #include <preemption.h>
+#include <trace.h>
 
 /** Atomic add operation.
  *
@@ -49,7 +50,8 @@
  * @return Value of the atomic variable as it existed before addition.
  *
  */
-static inline atomic_count_t atomic_add(atomic_t *val, atomic_count_t i)
+NO_TRACE static inline atomic_count_t atomic_add(atomic_t *val,
+    atomic_count_t i)
 {
 	atomic_count_t a;
 	atomic_count_t b;
@@ -71,37 +73,37 @@ static inline atomic_count_t atomic_add(atomic_t *val, atomic_count_t i)
 	return a;
 }
 
-static inline atomic_count_t atomic_preinc(atomic_t *val)
+NO_TRACE static inline atomic_count_t atomic_preinc(atomic_t *val)
 {
 	return atomic_add(val, 1) + 1;
 }
 
-static inline atomic_count_t atomic_postinc(atomic_t *val)
+NO_TRACE static inline atomic_count_t atomic_postinc(atomic_t *val)
 {
 	return atomic_add(val, 1);
 }
 
-static inline atomic_count_t atomic_predec(atomic_t *val)
+NO_TRACE static inline atomic_count_t atomic_predec(atomic_t *val)
 {
 	return atomic_add(val, -1) - 1;
 }
 
-static inline atomic_count_t atomic_postdec(atomic_t *val)
+NO_TRACE static inline atomic_count_t atomic_postdec(atomic_t *val)
 {
 	return atomic_add(val, -1);
 }
 
-static inline void atomic_inc(atomic_t *val)
+NO_TRACE static inline void atomic_inc(atomic_t *val)
 {
 	(void) atomic_add(val, 1);
 }
 
-static inline void atomic_dec(atomic_t *val)
+NO_TRACE static inline void atomic_dec(atomic_t *val)
 {
 	(void) atomic_add(val, -1);
 }
 
-static inline atomic_count_t test_and_set(atomic_t *val)
+NO_TRACE static inline atomic_count_t test_and_set(atomic_t *val)
 {
 	atomic_count_t v = 1;
 	volatile uintptr_t ptr = (uintptr_t) &val->count;
@@ -116,7 +118,7 @@ static inline atomic_count_t test_and_set(atomic_t *val)
 	return v;
 }
 
-static inline void atomic_lock_arch(atomic_t *val)
+NO_TRACE static inline void atomic_lock_arch(atomic_t *val)
 {
 	atomic_count_t tmp1 = 1;
 	atomic_count_t tmp2 = 0;

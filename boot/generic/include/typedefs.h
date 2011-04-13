@@ -36,13 +36,12 @@
 #include <arch/common.h>
 #include <arch/types.h>
 
-#define NULL  0
+#define NULL  ((void *) 0)
 
 #define false  0
 #define true   1
 
 typedef uint8_t bool;
-typedef int32_t wchar_t;
 
 #endif
 
