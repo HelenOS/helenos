@@ -42,6 +42,7 @@
 #include <usb/usbdevice.h>
 
 #include "hc.h"
+#include "hcd_endpoint.h"
 
 static int interrupt_emulator(hc_t *instance);
 static void hc_gain_control(hc_t *instance);
@@ -148,6 +149,13 @@ int hc_add_endpoint(
 		return ret;
 	}
 
+	hcd_endpoint_t *hcd_ep = hcd_endpoint_assign(ep);
+	if (hcd_ep == NULL) {
+		free(ep);
+		return ENOMEM;
+	}
+	// TODO: enqueue hcd_ep here!
+
 	ret = usb_endpoint_manager_register_ep(&instance->ep_manager, ep, size);
 	if (ret != EOK) {
 		endpoint_destroy(ep);
@@ -158,6 +166,20 @@ int hc_add_endpoint(
 int hc_remove_endpoint(hc_t *instance, usb_address_t address,
     usb_endpoint_t endpoint, usb_direction_t direction)
 {
+	endpoint_t *ep = usb_endpoint_manager_get_ep(&instance->ep_manager,
+	    address, endpoint, direction, NULL);
+	if (ep == NULL) {
+		usb_log_error("Endpoint unregister failed.\n");
+		return ENOENT;
+	}
+
+	hcd_endpoint_t *hcd_ep = hcd_endpoint_get(ep);
+	if (hcd_ep) {
+		// TODO: dequeue hcd_ep here!
+		hcd_endpoint_clear(ep);
+	} else {
+		usb_log_warning("Endpoint without hcd equivalent structure.\n");
+	}
 	return usb_endpoint_manager_unregister_ep(&instance->ep_manager,
 	    address, endpoint, direction);
 }

@@ -34,6 +34,7 @@ BINARY = ohci
 SOURCES = \
 	batch.c \
 	hc.c \
+	hcd_endpoint.c \
 	iface.c \
 	main.c \
 	ohci.c \
