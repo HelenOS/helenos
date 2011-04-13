@@ -129,8 +129,37 @@ if (ret != EOK) { \
 		    fibril_create((int(*)(void*))interrupt_emulator, instance);
 		fibril_add_ready(instance->interrupt_emulator);
 	}
-
+#undef CHECK_RET_RETURN
 	return EOK;
+}
+/*----------------------------------------------------------------------------*/
+int hc_add_endpoint(
+    hc_t *instance, usb_address_t address, usb_endpoint_t endpoint,
+    usb_speed_t speed, usb_transfer_type_t type, usb_direction_t direction,
+    size_t mps, size_t size, unsigned interval)
+{
+	endpoint_t *ep = malloc(sizeof(endpoint_t));
+	if (ep == NULL)
+		return ENOMEM;
+	int ret =
+	    endpoint_init(ep, address, endpoint, direction, type, speed, mps);
+	if (ret != EOK) {
+		free(ep);
+		return ret;
+	}
+
+	ret = usb_endpoint_manager_register_ep(&instance->ep_manager, ep, size);
+	if (ret != EOK) {
+		endpoint_destroy(ep);
+	}
+	return ret;
+}
+/*----------------------------------------------------------------------------*/
+int hc_remove_endpoint(hc_t *instance, usb_address_t address,
+    usb_endpoint_t endpoint, usb_direction_t direction)
+{
+	return usb_endpoint_manager_unregister_ep(&instance->ep_manager,
+	    address, endpoint, direction);
 }
 /*----------------------------------------------------------------------------*/
 int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch)

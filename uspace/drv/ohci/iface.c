@@ -163,27 +163,13 @@ static int register_endpoint(ddf_fun_t *fun,
 		speed = ep_speed;
 	}
 	const size_t size = max_packet_size;
-	int ret;
 
 	usb_log_debug("Register endpoint %d:%d %s %s(%d) %zu(%zu) %u.\n",
 	    address, endpoint, usb_str_transfer_type(transfer_type),
 	    usb_str_speed(speed), direction, size, max_packet_size, interval);
 
-	endpoint_t *ep = malloc(sizeof(endpoint_t));
-	if (ep == NULL)
-		return ENOMEM;
-	ret = endpoint_init(ep, address, endpoint, direction,
-	    transfer_type, speed, max_packet_size);
-	if (ret != EOK) {
-		free(ep);
-		return ret;
-	}
-
-	ret = usb_endpoint_manager_register_ep(&hc->ep_manager, ep, size);
-	if (ret != EOK) {
-		endpoint_destroy(ep);
-	}
-	return ret;
+	return hc_add_endpoint(hc, address, endpoint, speed, transfer_type,
+	    direction, max_packet_size, size, interval);
 }
 /*----------------------------------------------------------------------------*/
 static int unregister_endpoint(
@@ -194,8 +180,7 @@ static int unregister_endpoint(
 	assert(hc);
 	usb_log_debug("Unregister endpoint %d:%d %d.\n",
 	    address, endpoint, direction);
-	return usb_endpoint_manager_unregister_ep(&hc->ep_manager, address,
-	    endpoint, direction);
+	return hc_remove_endpoint(hc, address, endpoint, direction);
 }
 /*----------------------------------------------------------------------------*/
 /** Schedule interrupt out transfer.
@@ -345,10 +330,10 @@ static int bulk_in(
  * @param[in] target Target pipe (address and endpoint number) specification.
  * @param[in] setup_packet Setup packet buffer (in USB endianess, allocated
  *	and deallocated by the caller).
- * @param[in] setup_packet_size Size of @p setup_packet buffer in bytes.
+ * @param[in] setup_size Size of @p setup_packet buffer in bytes.
  * @param[in] data_buffer Data buffer (in USB endianess, allocated and
  *	deallocated by the caller).
- * @param[in] data_buffer_size Size of @p data_buffer buffer in bytes.
+ * @param[in] size Size of @p data_buffer buffer in bytes.
  * @param[in] callback Callback to be issued once the transfer is complete.
  * @param[in] arg Pass-through argument to the callback.
  * @return Error code.
@@ -385,10 +370,10 @@ static int control_write(
  * @param[in] target Target pipe (address and endpoint number) specification.
  * @param[in] setup_packet Setup packet buffer (in USB endianess, allocated
  *	and deallocated by the caller).
- * @param[in] setup_packet_size Size of @p setup_packet buffer in bytes.
+ * @param[in] setup_size Size of @p setup_packet buffer in bytes.
  * @param[in] data_buffer Buffer where to store the data (in USB endianess,
  *	allocated and deallocated by the caller).
- * @param[in] data_buffer_size Size of @p data_buffer buffer in bytes.
+ * @param[in] size Size of @p data_buffer buffer in bytes.
  * @param[in] callback Callback to be issued once the transfer is complete.
  * @param[in] arg Pass-through argument to the callback.
  * @return Error code.
