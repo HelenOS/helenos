@@ -29,7 +29,7 @@
  * @{
  */
 /** @file
- * @brief UHCI driver USB transaction structure
+ * @brief UHCI driver USB tranfer helper functions
  */
 #ifndef DRV_UHCI_BATCH_H
 #define DRV_UHCI_BATCH_H

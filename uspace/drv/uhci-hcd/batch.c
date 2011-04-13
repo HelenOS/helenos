@@ -75,7 +75,7 @@ static void batch_data(usb_transfer_batch_t *instance, usb_packet_id pid);
  * @param[in] func_in function to call on inbound transfer completion
  * @param[in] func_out function to call on outbound transfer completion
  * @param[in] arg additional parameter to func_in or func_out
- * @return Valid pointer if all substructures were successfully created,
+ * @return Valid pointer if all structures were successfully created,
  * NULL otherwise.
  *
  * Determines the number of needed transfer descriptors (TDs).
@@ -395,6 +395,10 @@ void batch_control(usb_transfer_batch_t *instance,
 	    data->tds[td].status);
 }
 /*----------------------------------------------------------------------------*/
+/** Provides access to QH data structure.
+ * @param[in] instance Batch pointer to use.
+ * @return Pointer to the QH used by the batch.
+ */
 qh_t * batch_qh(usb_transfer_batch_t *instance)
 {
 	assert(instance);
