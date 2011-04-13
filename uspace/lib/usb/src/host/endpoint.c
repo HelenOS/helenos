@@ -52,6 +52,7 @@ int endpoint_init(endpoint_t *instance, usb_address_t address,
 	instance->active = false;
 	fibril_mutex_initialize(&instance->guard);
 	fibril_condvar_initialize(&instance->avail);
+	endpoint_clear_hc_data(instance);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
