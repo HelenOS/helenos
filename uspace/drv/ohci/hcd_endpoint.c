@@ -34,6 +34,22 @@
 #include "utils/malloc32.h"
 #include "hcd_endpoint.h"
 
+static void hcd_ep_toggle_set(void *hcd_ep, int toggle)
+{
+	hcd_endpoint_t *instance = hcd_ep;
+	assert(instance);
+	assert(instance->ed);
+	ed_toggle_set(instance->ed, toggle);
+}
+static int hcd_ep_toggle_get(void *hcd_ep)
+{
+	hcd_endpoint_t *instance = hcd_ep;
+	assert(instance);
+	assert(instance->ed);
+	return ed_toggle_get(instance->ed);
+}
+
+
 hcd_endpoint_t * hcd_endpoint_assign(endpoint_t *ep)
 {
 	assert(ep);
@@ -56,7 +72,7 @@ hcd_endpoint_t * hcd_endpoint_assign(endpoint_t *ep)
 
 	ed_init(hcd_ep->ed, ep);
 	ed_set_td(hcd_ep->ed, hcd_ep->td);
-	endpoint_set_hc_data(ep, hcd_ep, NULL, NULL);
+	endpoint_set_hc_data(ep, hcd_ep, hcd_ep_toggle_get, hcd_ep_toggle_set);
 
 	return hcd_ep;
 }
