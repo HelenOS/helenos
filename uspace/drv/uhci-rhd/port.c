@@ -310,6 +310,13 @@ int uhci_port_set_enabled(uhci_port_t *port, bool enabled)
 	/* Write new value. */
 	uhci_port_write_status(port, port_status);
 
+	/* Wait for port to become enabled */
+	do {
+		async_usleep(1000);
+		port_status = uhci_port_read_status(port);
+	} while ((port_status & STATUS_CONNECTED) &&
+	    !(port_status & STATUS_ENABLED));
+
 	usb_log_debug("%s: %sabled port.\n",
 		port->id_string, enabled ? "En" : "Dis");
 	return EOK;
