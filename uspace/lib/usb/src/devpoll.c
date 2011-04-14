@@ -35,6 +35,7 @@
 #include <usb/devpoll.h>
 #include <usb/request.h>
 #include <usb/debug.h>
+#include <usb/classes/classes.h>
 #include <errno.h>
 #include <str_error.h>
 #include <assert.h>
@@ -44,6 +45,7 @@
 
 /** Data needed for polling. */
 typedef struct {
+	int debug;
 	size_t max_failures;
 	useconds_t delay;
 	bool auto_clear_halt;
@@ -72,11 +74,19 @@ static int polling_fibril(void *arg)
 	usb_pipe_t *pipe
 	    = polling_data->dev->pipes[polling_data->pipe_index].pipe;
 	
-	usb_log_debug("Pipe interface number: %d, protocol: %d, subclass: %d, max packet size: %d\n", 
-	    polling_data->dev->pipes[polling_data->pipe_index].interface_no,
-	    polling_data->dev->pipes[polling_data->pipe_index].description->interface_protocol,
-	    polling_data->dev->pipes[polling_data->pipe_index].description->interface_subclass,
-	    pipe->max_packet_size);
+	if (polling_data->debug > 0) {
+		usb_endpoint_mapping_t *mapping
+		    = &polling_data->dev->pipes[polling_data->pipe_index];
+		usb_log_debug("Poll0x%x: started polling of `%s' - " \
+		    "interface %d (%s,%d,%d), %zuB/%zu.\n",
+		    polling_data,
+		    polling_data->dev->ddf_dev->name,
+		    (int) mapping->interface->interface_number,
+		    usb_str_class(mapping->interface->interface_class),
+		    (int) mapping->interface->interface_subclass,
+		    (int) mapping->interface->interface_protocol,
+		    polling_data->request_size, pipe->max_packet_size);
+	}
 
 	size_t failed_attempts = 0;
 	while (failed_attempts <= polling_data->max_failures) {
@@ -85,6 +95,21 @@ static int polling_fibril(void *arg)
 		size_t actual_size;
 		rc = usb_pipe_read(pipe, polling_data->buffer,
 		    polling_data->request_size, &actual_size);
+
+		if (polling_data->debug > 1) {
+			if (rc == EOK) {
+				usb_log_debug(
+				    "Poll0x%x: received: '%s' (%zuB).\n",
+				    polling_data,
+				    usb_debug_str_buffer(polling_data->buffer,
+				        actual_size, 16),
+				    actual_size);
+			} else {
+				usb_log_debug(
+				    "Poll0x%x: polling failed: %s.\n",
+				    polling_data, str_error(rc));
+			}
+		}
 
 		/* If the pipe stalled, we can try to reset the stall. */
 		if ((rc == ESTALL) && (polling_data->auto_clear_halt)) {
@@ -128,15 +153,23 @@ static int polling_fibril(void *arg)
 		async_usleep(polling_data->delay);
 	}
 
-	if (failed_attempts > 0) {
-		usb_log_error(
-		    "Polling of device `%s' terminated: recurring failures.\n",
-		    polling_data->dev->ddf_dev->name);
-	}
-
 	if (polling_data->on_polling_end != NULL) {
 		polling_data->on_polling_end(polling_data->dev,
 		    failed_attempts > 0, polling_data->custom_arg);
+	}
+
+	if (polling_data->debug > 0) {
+		if (failed_attempts > 0) {
+			usb_log_error(
+			    "Polling of device `%s' terminated: %s.\n",
+			    polling_data->dev->ddf_dev->name,
+			    "recurring failures");
+		} else {
+			usb_log_debug(
+			    "Polling of device `%s' terminated by user.\n",
+			    polling_data->dev->ddf_dev->name
+			);
+		}
 	}
 
 	/* Free the allocated memory. */
@@ -185,6 +218,7 @@ int usb_device_auto_poll(usb_device_t *dev, size_t pipe_index,
 		return ENOMEM;
 	}
 
+	auto_polling->debug = 1;
 	auto_polling->auto_clear_halt = true;
 	auto_polling->delay = 0;
 	auto_polling->max_failures = MAX_FAILED_ATTEMPTS;
@@ -251,6 +285,7 @@ int usb_device_auto_polling(usb_device_t *dev, size_t pipe_index,
 	polling_data->pipe_index = pipe_index;
 	polling_data->custom_arg = arg;
 
+	polling_data->debug = polling->debug;
 	polling_data->max_failures = polling->max_failures;
 	if (polling->delay >= 0) {
 		polling_data->delay = (useconds_t) polling->delay;

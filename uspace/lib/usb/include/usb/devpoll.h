@@ -39,6 +39,12 @@
 #include <time.h>
 
 typedef struct {
+	/** Level of debugging messages from auto polling.
+	 * 0 - nothing
+	 * 1 - inform about errors and polling start/end
+	 * 2 - also dump every retrieved buffer
+	 */
+	int debug;
 	/** Maximum number of consecutive errors before polling termination. */
 	size_t max_failures;
 	/** Delay between poll requests in milliseconds.
