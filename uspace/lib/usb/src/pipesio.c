@@ -48,6 +48,7 @@
 #include <errno.h>
 #include <assert.h>
 #include <usbhc_iface.h>
+#include <usb/request.h>
 #include "pipepriv.h"
 
 /** Request an in transfer, no checking of input parameters.
@@ -306,6 +307,25 @@ int usb_pipe_write(usb_pipe_t *pipe,
 	return rc;
 }
 
+/** Try to clear endpoint halt of default control pipe.
+ *
+ * @param pipe Pipe for control endpoint zero.
+ */
+static void clear_self_endpoint_halt(usb_pipe_t *pipe)
+{
+	assert(pipe != NULL);
+
+	if (!pipe->auto_reset_halt || (pipe->endpoint_no != 0)) {
+		return;
+	}
+
+
+	/* Prevent indefinite recursion. */
+	pipe->auto_reset_halt = false;
+	usb_request_clear_endpoint_halt(pipe, 0);
+	pipe->auto_reset_halt = true;
+}
+
 
 /** Request a control read transfer, no checking of input parameters.
  *
@@ -436,6 +456,10 @@ int usb_pipe_control_read(usb_pipe_t *pipe,
 	    setup_buffer, setup_buffer_size,
 	    data_buffer, data_buffer_size, &act_size);
 
+	if (rc == ESTALL) {
+		clear_self_endpoint_halt(pipe);
+	}
+
 	pipe_drop_ref(pipe);
 
 	if (rc != EOK) {
@@ -561,6 +585,10 @@ int usb_pipe_control_write(usb_pipe_t *pipe,
 
 	rc = usb_pipe_control_write_no_check(pipe,
 	    setup_buffer, setup_buffer_size, data_buffer, data_buffer_size);
+
+	if (rc == ESTALL) {
+		clear_self_endpoint_halt(pipe);
+	}
 
 	pipe_drop_ref(pipe);
 
