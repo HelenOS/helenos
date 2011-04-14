@@ -39,5 +39,7 @@ extern int getopt(int, char * const [], const char *);
 
 extern int isatty(int fd);
 
+#define getpid task_get_id
+
 #endif /* COMPAT_UNISTD_H */
 
