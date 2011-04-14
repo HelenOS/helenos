@@ -284,6 +284,7 @@ struct Wflags {
 /*
  * Wide char defines.
  */
+ #if 0
 #if WCHAR_TYPE == USHORT
 #define	WCT "short unsigned int"
 #define WCM "65535U"
@@ -305,6 +306,11 @@ struct Wflags {
 #else
 #error WCHAR_TYPE not defined or invalid
 #endif
+ #endif
+
+#define WCT "int"
+#define WCM "2147483647"
+
 
 #ifdef GCC_COMPAT
 #ifndef REGISTER_PREFIX
@@ -1324,6 +1330,63 @@ callsys(char *f, char *v[])
 	CloseHandle(pi.hThread);
 
 	return (exitCode != 0);
+}
+
+#elif defined(__helenos__)
+
+#include <task.h>
+
+int callsys(char *f, char *v[])
+{
+	size_t len;
+	char *path = NULL;
+	const char *s;
+	int t;
+	task_exit_t texit;
+	int retval;
+	
+	task_id_t tid;
+	
+	if (vflag) {
+		fprintf(stderr, "%s ", f);
+		for (t = 1; v[t]; t++)
+			fprintf(stderr, "%s ", v[t]);
+		fprintf(stderr, "\n");
+	}
+	
+	if (Bflag) {
+		len = strlen (Bflag) + 8;
+		path = malloc (len);
+		if (path == NULL) {
+			error("callsys: malloc failed");
+			exit(1);
+		}
+		if ((s = strrchr(f, '/'))) {
+			strlcpy(path, Bflag, len);
+			strlcat(path, s, len);
+			if (task_spawnv(&tid, path, v) == 0)
+				goto _wait;
+		}
+	}
+	
+	if (task_spawnv(&tid, f, v) == 0)
+		goto _wait;
+	
+	if ((s = strrchr(f, '/')) && task_spawnv (&tid, s + 1, v) == 0) 
+		goto _wait;
+	
+	errorx(8, "Can't find %s\n", f);
+	return 0;
+	
+_wait:
+	
+	
+	if (task_wait (tid, &texit, &retval) != 0) {
+		error("Couldn't wait on task");
+		return 0;
+	}
+	
+	return retval;
 }
 
 #else

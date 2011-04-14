@@ -23,7 +23,7 @@
 #define ELFABI 1
 
 /* Define to 1 if you have the `basename' function. */
-#define HAVE_BASENAME 1
+//#define HAVE_BASENAME 1
 
 /* Define to 1 if printf supports C99 size specifiers */
 #define HAVE_C99_FORMAT 1
@@ -32,7 +32,7 @@
 #define HAVE_CPP_VARARG_MACRO_GCC 1
 
 /* Define to 1 if you have the `ffs' function. */
-#define HAVE_FFS 1
+//#define HAVE_FFS 1
 
 /* Define to 1 if you have the `getopt' function. */
 #define HAVE_GETOPT 1
@@ -41,7 +41,7 @@
 #define HAVE_INTTYPES_H 1
 
 /* Define to 1 if you have the <libgen.h> header file. */
-#define HAVE_LIBGEN_H 1
+//#define HAVE_LIBGEN_H 1
 
 /* Define to 1 if you have the <malloc.h> header file. */
 #define HAVE_MALLOC_H 1
@@ -50,7 +50,7 @@
 #define HAVE_MEMORY_H 1
 
 /* Define to 1 if you have the `mkstemp' function. */
-#define HAVE_MKSTEMP 1
+//#define HAVE_MKSTEMP 1
 
 /* Define to 1 if you have the `snprintf' function. */
 #define HAVE_SNPRINTF 1
@@ -62,7 +62,7 @@
 #define HAVE_STDLIB_H 1
 
 /* Define to 1 if you have the <strings.h> header file. */
-#define HAVE_STRINGS_H 1
+//#define HAVE_STRINGS_H 1
 
 /* Define to 1 if you have the <string.h> header file. */
 #define HAVE_STRING_H 1
@@ -89,7 +89,7 @@
 #define HAVE_UNISTD_H 1
 
 /* Define to 1 if you have the `vfork' function. */
-#define HAVE_VFORK 1
+//#define HAVE_VFORK 1
 
 /* Define to 1 if you have the `vsnprintf' function. */
 #define HAVE_VSNPRINTF 1
@@ -126,7 +126,7 @@
 //#undef PACKAGE_TARNAME
 
 /* Define to the version of this package. */
-//#undef PACKAGE_VERSION
+#define PACKAGE_VERSION "1.0.0"
 
 /* Major version no */
 #define PCC_MAJOR 1
@@ -169,12 +169,14 @@
 #define VERSSTR "pcc 1.0.0 for HelenOS"
 
 /* Size of wide character type */
-// #undef WCHAR_SIZE
+#define WCHAR_SIZE (sizeof int)
 
 /* Type to use for wide characters */
-// #undef WCHAR_TYPE
+#define WCHAR_TYPE int
 
 /* Define to 1 if `lex' declares `yytext' as a `char *' by default, not a
    `char[]'. */
 //#define YYTEXT_POINTER 1
+
+#undef COMPILER
 

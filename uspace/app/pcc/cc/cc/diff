@@ -1,0 +1,259 @@
+=== modified file 'uspace/app/pcc/cc/cc/cc.c'
+--- uspace/app/pcc/cc/cc/cc.c	2011-04-09 11:20:23 +0000
++++ uspace/app/pcc/cc/cc/cc.c	2011-04-11 14:41:51 +0000
+@@ -100,9 +100,11 @@
+ #define PREPROCESSOR	"cpp"
+ #endif
+ 
+-#ifndef COMPILER
++
++#ifdef COMPILER
++#undef COMPILER
++#endif
+ #define COMPILER	"ccom"
+-#endif
+ 
+ #ifndef ASSEMBLER
+ #define ASSEMBLER	"as"
+@@ -125,18 +127,18 @@
+ #define MAXLIB 10000
+ #define MAXAV  10000
+ #define MAXOPT 200
+-char	*tmp3;
+-char	*tmp4;
+-char	*outfile, *ermfile;
+-char *Bprefix(char *);
+-char *copy(char *, int);
++const char	*tmp3;
++const char	*tmp4;
++const char	*outfile, *ermfile;
++const char *Bprefix(const char *);
++char *copy(const char *, int);
+ char *setsuf(char *, char);
+-int getsuf(char *);
++int getsuf(const char *);
+ int main(int, char *[]);
+-void error(char *, ...);
+-void errorx(int, char *, ...);
+-int callsys(char [], char *[]);
+-int cunlink(char *);
++void error(const char *, ...);
++void errorx(int, const char *, ...);
++int callsys(const char *, const char *[]);
++int cunlink(const char *);
+ void dexit(int);
+ void idexit(int);
+ char *gettmp(void);
+@@ -145,19 +147,19 @@
+ char *win32pathsubst(char *);
+ char *win32commandline(char *, char *[]);
+ #endif
+-char	*av[MAXAV];
+-char	*clist[MAXFIL];
+-char    *olist[MAXFIL];
+-char	*llist[MAXLIB];
+-char	*aslist[MAXAV];
+-char	*cpplist[MAXAV];
++const char	*av[MAXAV];
++const char	*clist[MAXFIL];
++const char    *olist[MAXFIL];
++const char	*llist[MAXLIB];
++const char	*aslist[MAXAV];
++const char	*cpplist[MAXAV];
+ char	alist[20];
+-char	*xlist[100];
++const char	*xlist[100];
+ int	xnum;
+-char	*mlist[100];
+-char	*flist[100];
+-char	*wlist[100];
+-char	*idirafter;
++const char	*mlist[100];
++const char	*flist[100];
++const char	*wlist[100];
++const char	*idirafter;
+ int	nm;
+ int	nf;
+ int	nw;
+@@ -189,35 +191,35 @@
+ int	xcflag;
+ int 	ascpp;
+ 
+-char	*passp = LIBEXECDIR PREPROCESSOR;
+-char	*pass0 = LIBEXECDIR COMPILER;
+-char	*as = ASSEMBLER;
+-char	*ld = LINKER;
++const char	*passp = LIBEXECDIR PREPROCESSOR;
++const char	*pass0 = LIBEXECDIR COMPILER;
++const char	*as = ASSEMBLER;
++const char	*ld = LINKER;
+ char	*Bflag;
+-char *cppadd[] = CPPADD;
++const char *cppadd[] = CPPADD;
+ #ifdef DYNLINKER
+-char *dynlinker[] = DYNLINKER;
++const char *dynlinker[] = DYNLINKER;
+ #endif
+ #ifdef CRT0FILE
+-char *crt0file = CRT0FILE;
++const char *crt0file = CRT0FILE;
+ #endif
+ #ifdef CRT0FILE_PROFILE
+-char *crt0file_profile = CRT0FILE_PROFILE;
++const char *crt0file_profile = CRT0FILE_PROFILE;
+ #endif
+ #ifdef STARTFILES
+-char *startfiles[] = STARTFILES;
+-char *endfiles[] = ENDFILES;
++const char *startfiles[] = STARTFILES;
++const char *endfiles[] = ENDFILES;
+ #endif
+ #ifdef STARTFILES_T
+-char *startfiles_T[] = STARTFILES_T;
+-char *endfiles_T[] = ENDFILES_T;
++const char *startfiles_T[] = STARTFILES_T;
++const char *endfiles_T[] = ENDFILES_T;
+ #endif
+ #ifdef STARTFILES_S
+-char *startfiles_S[] = STARTFILES_S;
+-char *endfiles_S[] = ENDFILES_S;
++const char *startfiles_S[] = STARTFILES_S;
++const char *endfiles_S[] = ENDFILES_S;
+ #endif
+ #ifdef MULTITARGET
+-char *mach = DEFMACH;
++const char *mach = DEFMACH;
+ struct cppmd {
+ 	char *mach;
+ 	char *cppmdadd[MAXCPPMDARGS];
+@@ -225,33 +227,33 @@
+ 
+ struct cppmd cppmds[] = CPPMDADDS;
+ #else
+-char *cppmdadd[] = CPPMDADD;
++const char *cppmdadd[] = CPPMDADD;
+ #endif
+ #ifdef LIBCLIBS
+-char *libclibs[] = LIBCLIBS;
++const char *libclibs[] = LIBCLIBS;
+ #else
+-char *libclibs[] = { "-lc", NULL };
++const char *libclibs[] = { "-lc", NULL };
+ #endif
+ #ifdef LIBCLIBS_PROFILE
+-char *libclibs_profile[] = LIBCLIBS_PROFILE;
++const char *libclibs_profile[] = LIBCLIBS_PROFILE;
+ #else
+-char *libclibs_profile[] = { "-lc_p", NULL };
++const char *libclibs_profile[] = { "-lc_p", NULL };
+ #endif
+ #ifndef STARTLABEL
+ #define STARTLABEL "__start"
+ #endif
+-char *incdir = STDINC;
+-char *altincdir = INCLUDEDIR "pcc/";
+-char *libdir = LIBDIR;
+-char *pccincdir = PCCINCDIR;
+-char *pcclibdir = PCCLIBDIR;
++const char *incdir = STDINC;
++const char *altincdir = INCLUDEDIR "pcc/";
++const char *libdir = LIBDIR;
++const char *pccincdir = PCCINCDIR;
++const char *pcclibdir = PCCLIBDIR;
+ #ifdef mach_amd64
+ int amd64_i386;
+ #endif
+ 
+ /* handle gcc warning emulations */
+ struct Wflags {
+-	char *name;
++	const char *name;
+ 	int flags;
+ #define	INWALL		1
+ #define	NEGATIVE	2
+@@ -323,9 +325,10 @@
+ main(int argc, char *argv[])
+ {
+ 	struct Wflags *Wf;
+-	char *t, *u;
+-	char *assource;
+-	char **pv, *ptemp[MAXOPT], **pvt;
++	const char *t;
++	char *u;
++	const char *assource;
++	const char **pv, *ptemp[MAXOPT], **pvt;
+ 	int nc, nl, nas, ncpp, i, j, c, nxo, na;
+ #ifdef MULTITARGET
+ 	int k;
+@@ -1185,7 +1188,7 @@
+ }
+ 
+ static void
+-ccerror(char *s, va_list ap)
++ccerror(const char *s, va_list ap)
+ {
+ 	vfprintf(Eflag ? stderr : stdout, s, ap);
+ 	putc('\n', Eflag? stderr : stdout);
+@@ -1198,7 +1201,7 @@
+  * complain a bit.
+  */
+ void
+-error(char *s, ...)
++error(const char *s, ...)
+ {
+ 	va_list ap;
+ 
+@@ -1211,7 +1214,7 @@
+  * complain a bit and then exit.
+  */
+ void
+-errorx(int eval, char *s, ...)
++errorx(int eval, const char *s, ...)
+ {
+ 	va_list ap;
+ 
+@@ -1221,10 +1224,10 @@
+ 	dexit(eval);
+ }
+ 
+-char *
+-Bprefix(char *s)
++const char *
++Bprefix(const char *s)
+ {
+-	char *suffix;
++	const char *suffix;
+ 	char *str;
+ 	int i;
+ 
+@@ -1256,9 +1259,9 @@
+ }
+ 
+ int
+-getsuf(char *s)
++getsuf(const char *s)
+ {
+-	register char *p;
++	register const char *p;
+ 
+ 	if ((p = strrchr(s, '.')) && p[1] != '\0' && p[2] == '\0')
+ 		return p[1];
+@@ -1393,7 +1396,7 @@
+  * Make a copy of string as, mallocing extra bytes in the string.
+  */
+ char *
+-copy(char *s, int extra)
++copy(const char *s, int extra)
+ {
+ 	int len = strlen(s)+1;
+ 	char *rv;
+@@ -1404,7 +1407,7 @@
+ }
+ 
+ int
+-cunlink(char *f)
++cunlink(const char *f)
+ {
+ 	if (f==0 || Xflag)
+ 		return(0);
+

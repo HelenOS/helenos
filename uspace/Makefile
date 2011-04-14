@@ -34,6 +34,7 @@
 
 DIRS = \
 	app/bdsh \
+	app/cc \
 	app/cpp \
 	app/edit \
 	app/getterm \
