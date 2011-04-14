@@ -99,8 +99,8 @@ typedef struct ohci_regs
 	volatile uint32_t hcca;
 #define HCCA_PTR_MASK 0xffffff00 /* HCCA is 256B aligned */
 
-	/** Currently executed period endpoint */
-	const volatile uint32_t period_current;
+	/** Currently executed periodic endpoint */
+	const volatile uint32_t periodic_current;
 
 	/** The first control endpoint */
 	volatile uint32_t control_head;

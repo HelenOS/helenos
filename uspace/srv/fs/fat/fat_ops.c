@@ -721,8 +721,8 @@ hit:
 		if ((fat_classify_dentry(d) == FAT_DENTRY_LAST) ||
 		    (str_cmp((char *) d->name, FAT_NAME_DOT)) == 0) {
 			memset(d, 0, sizeof(fat_dentry_t));
-			str_cpy((char *) d->name, 8, FAT_NAME_DOT);
-			str_cpy((char *) d->ext, 3, FAT_EXT_PAD);
+			memcpy(d->name, FAT_NAME_DOT, FAT_NAME_LEN);
+			memcpy(d->ext, FAT_EXT_PAD, FAT_EXT_LEN);
 			d->attr = FAT_ATTR_SUBDIR;
 			d->firstc = host2uint16_t_le(childp->firstc);
 			/* TODO: initialize also the date/time members. */
@@ -731,8 +731,8 @@ hit:
 		if ((fat_classify_dentry(d) == FAT_DENTRY_LAST) ||
 		    (str_cmp((char *) d->name, FAT_NAME_DOT_DOT) == 0)) {
 			memset(d, 0, sizeof(fat_dentry_t));
-			str_cpy((char *) d->name, 8, FAT_NAME_DOT_DOT);
-			str_cpy((char *) d->ext, 3, FAT_EXT_PAD);
+			memcpy(d->name, FAT_NAME_DOT_DOT, FAT_NAME_LEN);
+			memcpy(d->ext, FAT_EXT_PAD, FAT_EXT_LEN);
 			d->attr = FAT_ATTR_SUBDIR;
 			d->firstc = (parentp->firstc == FAT_CLST_ROOT) ?
 			    host2uint16_t_le(FAT_CLST_RES0) :

@@ -31,21 +31,51 @@
 /** @file
  * @brief OHCI driver
  */
-#ifndef DRV_OHCI_HW_STRUCT_HCCA_H
-#define DRV_OHCI_HW_STRUCT_HCCA_H
+#include "utils/malloc32.h"
+#include "hcd_endpoint.h"
 
-#include <stdint.h>
+hcd_endpoint_t * hcd_endpoint_assign(endpoint_t *ep)
+{
+	assert(ep);
+	hcd_endpoint_t *hcd_ep = malloc(sizeof(hcd_endpoint_t));
+	if (hcd_ep == NULL)
+		return NULL;
 
-typedef struct hcca {
-	uint32_t int_ep[32];
-	uint16_t frame_number;
-	uint16_t pad1;
-	uint32_t done_head;
-	uint32_t reserved[29];
-} __attribute__((packed, aligned)) hcca_t;
+	hcd_ep->ed = malloc32(sizeof(ed_t));
+	if (hcd_ep->ed == NULL) {
+		free(hcd_ep);
+		return NULL;
+	}
 
-#endif
+	hcd_ep->td = malloc32(sizeof(td_t));
+	if (hcd_ep->td == NULL) {
+		free32(hcd_ep->ed);
+		free(hcd_ep);
+		return NULL;
+	}
+
+	ed_init(hcd_ep->ed, ep);
+	ed_set_td(hcd_ep->ed, hcd_ep->td);
+	endpoint_set_hc_data(ep, hcd_ep, NULL, NULL);
+
+	return hcd_ep;
+}
+/*----------------------------------------------------------------------------*/
+hcd_endpoint_t * hcd_endpoint_get(endpoint_t *ep)
+{
+	assert(ep);
+	return ep->hc_data.data;
+}
+/*----------------------------------------------------------------------------*/
+void hcd_endpoint_clear(endpoint_t *ep)
+{
+	assert(ep);
+	hcd_endpoint_t *hcd_ep = ep->hc_data.data;
+	assert(hcd_ep);
+	free32(hcd_ep->ed);
+	free32(hcd_ep->td);
+	free(hcd_ep);
+}
 /**
  * @}
  */
-

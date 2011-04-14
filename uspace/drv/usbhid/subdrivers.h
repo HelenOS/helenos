@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2011 Lubos Slovak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,27 +25,49 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup drvusbohci
+
+/** @addtogroup drvusbhid
  * @{
  */
 /** @file
- * @brief OHCI driver
+ * USB HID subdriver mappings.
  */
-#ifndef DRV_OHCI_HW_STRUCT_HCCA_H
-#define DRV_OHCI_HW_STRUCT_HCCA_H
 
-#include <stdint.h>
+#ifndef USB_HID_SUBDRIVERS_H_
+#define USB_HID_SUBDRIVERS_H_
 
-typedef struct hcca {
-	uint32_t int_ep[32];
-	uint16_t frame_number;
-	uint16_t pad1;
-	uint32_t done_head;
-	uint32_t reserved[29];
-} __attribute__((packed, aligned)) hcca_t;
+#include "usbhid.h"
+#include "kbd/kbddev.h"
 
-#endif
+/*----------------------------------------------------------------------------*/
+
+typedef struct usb_hid_subdriver_usage {
+	int usage_page;
+	int usage;
+} usb_hid_subdriver_usage_t;
+
+/*----------------------------------------------------------------------------*/
+
+/* TODO: This mapping must contain some other information to get the proper
+ *       interface.
+ */
+typedef struct usb_hid_subdriver_mapping {
+	const usb_hid_subdriver_usage_t *usage_path;
+	int path_size;
+	int compare;
+	const char *vendor_id;
+	const char *product_id;
+	usb_hid_subdriver_t subdriver;
+} usb_hid_subdriver_mapping_t;
+
+/*----------------------------------------------------------------------------*/
+
+extern const usb_hid_subdriver_mapping_t usb_hid_subdrivers[];
+
+/*----------------------------------------------------------------------------*/
+
+#endif /* USB_HID_SUBDRIVERS_H_ */
+
 /**
  * @}
  */
-

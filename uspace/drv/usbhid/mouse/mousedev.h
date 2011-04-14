@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2011 Lubos Slovak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,27 +25,53 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup drvusbohci
+
+/** @addtogroup drvusbhid
  * @{
  */
 /** @file
- * @brief OHCI driver
+ * USB Mouse driver API.
  */
-#ifndef DRV_OHCI_HW_STRUCT_HCCA_H
-#define DRV_OHCI_HW_STRUCT_HCCA_H
 
-#include <stdint.h>
+#ifndef USB_HID_MOUSEDEV_H_
+#define USB_HID_MOUSEDEV_H_
 
-typedef struct hcca {
-	uint32_t int_ep[32];
-	uint16_t frame_number;
-	uint16_t pad1;
-	uint32_t done_head;
-	uint32_t reserved[29];
-} __attribute__((packed, aligned)) hcca_t;
+#include <usb/devdrv.h>
 
-#endif
+struct usb_hid_dev;
+
+/*----------------------------------------------------------------------------*/
+
+/** Container for USB mouse device. */
+typedef struct {
+	///** Polling interval in microseconds. */
+	//suseconds_t poll_interval_us;
+	/** IPC phone to console (consumer). */
+	int console_phone;
+} usb_mouse_t;
+
+/*----------------------------------------------------------------------------*/
+
+usb_endpoint_description_t usb_hid_mouse_poll_endpoint_description;
+
+const char *HID_MOUSE_FUN_NAME;
+const char *HID_MOUSE_CLASS_NAME;
+
+/*----------------------------------------------------------------------------*/
+
+int usb_mouse_init(struct usb_hid_dev *hid_dev);
+
+bool usb_mouse_polling_callback(struct usb_hid_dev *hid_dev, uint8_t *buffer,
+    size_t buffer_size);
+
+void usb_mouse_deinit(struct usb_hid_dev *hid_dev);
+
+int usb_mouse_set_boot_protocol(struct usb_hid_dev *hid_dev);
+
+/*----------------------------------------------------------------------------*/
+
+#endif // USB_HID_MOUSEDEV_H_
+
 /**
  * @}
  */
-

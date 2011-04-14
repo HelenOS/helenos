@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2007 Jan Hudecek
- * Copyright (c) 2008 Martin Decky
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,39 +25,55 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-/** @addtogroup genericproc
+/** @addtogroup drvusbohci
  * @{
  */
-/** @file tasklet.c
- *  @brief Tasklet implementation
+/** @file
+ * @brief OHCI driver transfer list structure
  */
+#ifndef DRV_OHCI_ENDPOINT_LIST_H
+#define DRV_OHCI_ENDPOINT_LIST_H
 
-#include <proc/tasklet.h>
-#include <synch/spinlock.h>
-#include <mm/slab.h>
-#include <config.h>
+#include <fibril_synch.h>
 
-/** Spinlock protecting list of tasklets */
-SPINLOCK_INITIALIZE(tasklet_lock);
+#include "hcd_endpoint.h"
+#include "hw_struct/endpoint_descriptor.h"
+#include "utils/malloc32.h"
 
-/** Array of tasklet lists for every CPU */
-tasklet_descriptor_t **tasklet_list;
-
-void tasklet_init(void)
+typedef struct endpoint_list
 {
-	unsigned int i;
-	
-	tasklet_list = malloc(sizeof(tasklet_descriptor_t *) * config.cpu_count, 0);
-	if (!tasklet_list)
-		panic("Error initializing tasklets.");
-	
-	for (i = 0; i < config.cpu_count; i++)
-		tasklet_list[i] = NULL;
-	
-	spinlock_initialize(&tasklet_lock, "tasklet_lock");
+	fibril_mutex_t guard;
+	ed_t *list_head;
+	uint32_t list_head_pa;
+	const char *name;
+	link_t endpoint_list;
+} endpoint_list_t;
+
+/** Dispose transfer list structures.
+ *
+ * @param[in] instance Memory place to use.
+ *
+ * Frees memory for internal qh_t structure.
+ */
+static inline void endpoint_list_fini(endpoint_list_t *instance)
+{
+	assert(instance);
+	free32(instance->list_head);
 }
 
+int endpoint_list_init(endpoint_list_t *instance, const char *name);
 
-/** @}
+void endpoint_list_set_next(endpoint_list_t *instance, endpoint_list_t *next);
+
+void endpoint_list_add_ep(endpoint_list_t *instance, hcd_endpoint_t *hcd_ep);
+
+void endpoint_list_remove_ep(endpoint_list_t *instance, hcd_endpoint_t *hcd_ep);
+#if 0
+void endpoint_list_remove_finished(endpoint_list_t *instance, link_t *done);
+
+void endpoint_list_abort_all(endpoint_list_t *instance);
+#endif
+#endif
+/**
+ * @}
  */

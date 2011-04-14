@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2007 Jan Hudecek
- * Copyright (c) 2008 Martin Decky
+ * Copyright (c) 2011 Lubos Slovak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,47 +26,37 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genericproc
+/** @addtogroup drvusbhid
  * @{
  */
-/** @file tasklet.h
- * @brief Tasklets declarations
+/** @file
+ * USB HID subdriver mappings.
  */
 
-#ifndef KERN_TASKLET_H_
-#define KERN_TASKLET_H_
+#include "subdrivers.h"
+#include "usb/classes/hidut.h"
 
-#include <adt/list.h>
+static usb_hid_subdriver_usage_t path_kbd[] = {{USB_HIDUT_PAGE_KEYBOARD, 0}};
 
-/** Tasklet callback type */
-typedef void (* tasklet_callback_t)(void *arg);
+const usb_hid_subdriver_mapping_t usb_hid_subdrivers[] = {
+	{
+		path_kbd,
+		1,
+		USB_HID_PATH_COMPARE_END 
+		| USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY,
+		NULL,
+		NULL,
+		{
+			usb_kbd_init,
+			usb_kbd_deinit,
+			usb_kbd_polling_callback,
+			NULL
+		},
+		
+	},
+	{NULL, 0, 0, NULL, NULL, {NULL, NULL, NULL, NULL}}
+};
 
-/** Tasklet state */
-typedef enum {
-	NotActive,
-	Scheduled,
-	InProgress,
-	Disabled
-} tasklet_state_t;
-
-/** Structure describing a tasklet */
-typedef struct tasklet_descriptor {
-	link_t link;
-	
-	/** Callback to call */
-	tasklet_callback_t callback;
-	
-	/** Argument passed to the callback */
-	void *arg;
-	
-	/** State of the tasklet */
-	tasklet_state_t state;
-} tasklet_descriptor_t;
-
-
-extern void tasklet_init(void);
-
-#endif
-
-/** @}
+/**
+ * @}
  */

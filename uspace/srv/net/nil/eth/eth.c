@@ -530,7 +530,7 @@ int nil_received_msg_local(int nil_phone, device_id_t device_id,
 			il_received_msg(proto->phone, device_id, packet,
 			    proto->service);
 		} else {
-			// drop invalid/unknown
+			/* Drop invalid/unknown */
 			pq_release_remote(eth_globals.net_phone,
 			    packet_get_id(packet));
 		}

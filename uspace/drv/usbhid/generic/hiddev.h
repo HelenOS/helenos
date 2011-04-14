@@ -33,20 +33,22 @@
  * USB HID driver API.
  */
 
-#ifndef USB_HIDD_H_
-#define USB_HIDD_H_
+#ifndef USB_HID_HIDDDEV_H_
+#define USB_HID_HIDDDEV_H_
 
 #include <usb/devdrv.h>
+
+struct usb_hid_dev;
 
 usb_endpoint_description_t usb_hid_generic_poll_endpoint_description;
 
 const char *HID_GENERIC_FUN_NAME;
 const char *HID_GENERIC_CLASS_NAME;
 
-bool usb_hid_polling_callback(usb_device_t *dev, uint8_t *buffer,
-     size_t buffer_size, void *arg);
+bool usb_generic_hid_polling_callback(struct usb_hid_dev *hid_dev,
+    uint8_t *buffer, size_t buffer_size);
 
-#endif // USB_HIDD_H_
+#endif // USB_HID_HIDDDEV_H_
 
 /**
  * @}
