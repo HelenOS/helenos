@@ -77,7 +77,7 @@ int uhci_add_device(ddf_dev_t *device)
 	}
 	device->driver_data = uhci;
 
-	usb_log_info("Controlling new UHCI device `%s'.\n", device->name);
+	usb_log_info("Controlling new UHCI device '%s'.\n", device->name);
 
 	return EOK;
 }
