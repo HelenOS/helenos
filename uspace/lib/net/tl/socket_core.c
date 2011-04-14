@@ -90,13 +90,13 @@ socket_destroy_core(int packet_phone, socket_core_t *socket,
 {
 	int packet_id;
 
-	// if bound
+	/* If bound */
 	if (socket->port) {
-		// release the port
+		/* Release the port */
 		socket_port_release(global_sockets, socket);
 	}
 	
-	// release all received packets
+	/* Release all received packets */
 	while ((packet_id = dyn_fifo_pop(&socket->received)) >= 0)
 		pq_release_remote(packet_phone, packet_id);
 
@@ -165,13 +165,13 @@ socket_port_add_core(socket_port_t *socket_port, socket_core_t *socket,
 	socket_core_t **socket_ref;
 	int rc;
 
-	// create a wrapper
+	/* Create a wrapper */
 	socket_ref = malloc(sizeof(*socket_ref));
 	if (!socket_ref)
 		return ENOMEM;
 
 	*socket_ref = socket;
-	// add the wrapper
+	/* Add the wrapper */
 	rc = socket_port_map_add(&socket_port->map, key, key_length,
 	    socket_ref);
 	if (rc != EOK) {
@@ -205,7 +205,7 @@ socket_bind_insert(socket_ports_t *global_sockets, socket_core_t *socket,
 	socket_port_t *socket_port;
 	int rc;
 
-	// create a wrapper
+	/* Create a wrapper */
 	socket_port = malloc(sizeof(*socket_port));
 	if (!socket_port)
 		return ENOMEM;
@@ -220,7 +220,7 @@ socket_bind_insert(socket_ports_t *global_sockets, socket_core_t *socket,
 	if (rc != EOK)
 		goto fail;
 	
-	// register the incomming port
+	/* Register the incoming port */
 	rc = socket_ports_add(global_sockets, port, socket_port);
 	if (rc < 0)
 		goto fail;
@@ -276,27 +276,27 @@ socket_bind(socket_cores_t *local_sockets, socket_ports_t *global_sockets,
 			return EINVAL;
 		
 		address_in = (struct sockaddr_in *) addr;
-		// find the socket
+		/* Find the socket */
 		socket = socket_cores_find(local_sockets, socket_id);
 		if (!socket)
 			return ENOTSOCK;
 		
-		// bind a free port?
+		/* Bind a free port? */
 		if (address_in->sin_port <= 0)
 			return socket_bind_free_port(global_sockets, socket,
 			     free_ports_start, free_ports_end, last_used_port);
 		
-		// try to find the port
+		/* Try to find the port */
 		socket_port = socket_ports_find(global_sockets,
 		    ntohs(address_in->sin_port));
 		if (socket_port) {
-			// already used
+			/* Already used */
 			return EADDRINUSE;
 		}
 		
-		// if bound
+		/* If bound */
 		if (socket->port) {
-			// release the port
+			/* Release the port */
 			socket_port_release(global_sockets, socket);
 		}
 		socket->port = -1;
@@ -332,26 +332,26 @@ socket_bind_free_port(socket_ports_t *global_sockets, socket_core_t *socket,
 {
 	int index;
 
-	// from the last used one
+	/* From the last used one */
 	index = last_used_port;
 	
 	do {
 		++index;
 		
-		// til the range end
+		/* Till the range end */
 		if (index >= free_ports_end) {
-			// start from the range beginning
+			/* Start from the range beginning */
 			index = free_ports_start - 1;
 			do {
 				++index;
-				// til the last used one
+				/* Till the last used one */
 				if (index >= last_used_port) {
-					// none found
+					/* None found */
 					return ENOTCONN;
 				}
 			} while (socket_ports_find(global_sockets, index));
 			
-			// found, break immediately
+			/* Found, break immediately */
 			break;
 		}
 		
@@ -375,7 +375,9 @@ static int socket_generate_new_id(socket_cores_t *local_sockets, int positive)
 	int count;
 
 	count = 0;
-//	socket_id = socket_globals.last_id;
+#if 0
+	socket_id = socket_globals.last_id;
+#endif
 	do {
 		if (count < SOCKET_ID_TRIES) {
 			socket_id = rand() % INT_MAX;
@@ -383,14 +385,16 @@ static int socket_generate_new_id(socket_cores_t *local_sockets, int positive)
 		} else if (count == SOCKET_ID_TRIES) {
 			socket_id = 1;
 			++count;
-		// only this branch for last_id
+		/* Only this branch for last_id */
 		} else {
 			if (socket_id < INT_MAX) {
 				++ socket_id;
-/*			} else if(socket_globals.last_id) {
-*				socket_globals.last_id = 0;
-*				socket_id = 1;
-*/			} else {
+#if 0
+			} else if(socket_globals.last_id) {
+				socket_globals.last_id = 0;
+				socket_id = 1;
+#endif
+			} else {
 				return ELIMIT;
 			}
 		}
@@ -424,7 +428,7 @@ socket_create(socket_cores_t *local_sockets, int app_phone,
 	if (!socket_id)
 		return EINVAL;
 	
-	// store the socket
+	/* Store the socket */
 	if (*socket_id <= 0) {
 		positive = (*socket_id == 0);
 		*socket_id = socket_generate_new_id(local_sockets, positive);
@@ -440,7 +444,7 @@ socket_create(socket_cores_t *local_sockets, int app_phone,
 	if (!socket)
 		return ENOMEM;
 	
-	// initialize
+	/* Initialize */
 	socket->phone = app_phone;
 	socket->port = -1;
 	socket->key = NULL;
@@ -492,12 +496,12 @@ socket_destroy(int packet_phone, int socket_id, socket_cores_t *local_sockets,
 	socket_core_t *socket;
 	int accepted_id;
 
-	// find the socket
+	/* Find the socket */
 	socket = socket_cores_find(local_sockets, socket_id);
 	if (!socket)
 		return ENOTSOCK;
 	
-	// destroy all accepted sockets
+	/* Destroy all accepted sockets */
 	while ((accepted_id = dyn_fifo_pop(&socket->accepted)) >= 0)
 		socket_destroy(packet_phone, accepted_id, local_sockets,
 		    global_sockets, socket_release);
@@ -534,21 +538,21 @@ int socket_reply_packets(packet_t *packet, size_t *length)
 
 	next_packet = pq_next(packet);
 	if (!next_packet) {
-		// write all if only one fragment
+		/* Write all if only one fragment */
 		rc = data_reply(packet_get_data(packet),
 		    packet_get_data_length(packet));
 		if (rc != EOK)
 			return rc;
-		// store the total length
+		/* Store the total length */
 		*length = packet_get_data_length(packet);
 	} else {
-		// count the packet fragments
+		/* Count the packet fragments */
 		fragments = 1;
 		next_packet = pq_next(packet);
 		while ((next_packet = pq_next(next_packet)))
 			++fragments;
 		
-		// compute and store the fragment lengths
+		/* Compute and store the fragment lengths */
 		lengths = (size_t *) malloc(sizeof(size_t) * fragments +
 		    sizeof(size_t));
 		if (!lengths)
@@ -564,7 +568,7 @@ int socket_reply_packets(packet_t *packet, size_t *length)
 			next_packet = pq_next(packet);
 		}
 		
-		// write the fragment lengths
+		/* Write the fragment lengths */
 		rc = data_reply(lengths, sizeof(int) * (fragments + 1));
 		if (rc != EOK) {
 			free(lengths);
@@ -572,7 +576,7 @@ int socket_reply_packets(packet_t *packet, size_t *length)
 		}
 		next_packet = packet;
 		
-		// write the fragments
+		/* Write the fragments */
 		for (index = 0; index < fragments; ++index) {
 			rc = data_reply(packet_get_data(next_packet),
 			    lengths[index]);
@@ -583,7 +587,7 @@ int socket_reply_packets(packet_t *packet, size_t *length)
 			next_packet = pq_next(next_packet);
 		}
 		
-		// store the total length
+		/* Store the total length */
 		*length = lengths[fragments];
 		free(lengths);
 	}
@@ -635,25 +639,25 @@ socket_port_release(socket_ports_t *global_sockets, socket_core_t *socket)
 	if (!socket->port)
 		return;
 	
-	// find ports
+	/* Find ports */
 	socket_port = socket_ports_find(global_sockets, socket->port);
 	if (socket_port) {
-		// find the socket
+		/* Find the socket */
 		socket_ref = socket_port_map_find(&socket_port->map,
 		    socket->key, socket->key_length);
 		
 		if (socket_ref) {
 			--socket_port->count;
 			
-			// release if empty
+			/* Release if empty */
 			if (socket_port->count <= 0) {
-				// destroy the map
+				/* Destroy the map */
 				socket_port_map_destroy(&socket_port->map, free);
-				// release the port
+				/* Release the port */
 				socket_ports_exclude(global_sockets,
 				    socket->port, free);
 			} else {
-				// remove
+				/* Remove */
 				socket_port_map_exclude(&socket_port->map,
 				    socket->key, socket->key_length, free);
 			}
@@ -684,12 +688,12 @@ socket_port_add(socket_ports_t *global_sockets, int port,
 	socket_port_t *socket_port;
 	int rc;
 
-	// find ports
+	/* Find ports */
 	socket_port = socket_ports_find(global_sockets, port);
 	if (!socket_port)
 		return ENOENT;
 	
-	// add the socket
+	/* Add the socket */
 	rc = socket_port_add_core(socket_port, socket, key, key_length);
 	if (rc != EOK)
 		return rc;

@@ -65,10 +65,6 @@ static void hc_init_hw(hc_t *instance);
 
 static int hc_interrupt_emulator(void *arg);
 static int hc_debug_checker(void *arg);
-#if 0
-static bool usb_is_allowed(
-    bool low_speed, usb_transfer_type_t transfer, size_t size);
-#endif
 /*----------------------------------------------------------------------------*/
 /** Initialize UHCI hcd driver structure
  *
@@ -88,46 +84,37 @@ int hc_init(hc_t *instance, ddf_fun_t *fun,
 	assert(reg_size >= sizeof(regs_t));
 	int ret;
 
-#define CHECK_RET_DEST_FUN_RETURN(ret, message...) \
+#define CHECK_RET_RETURN(ret, message...) \
 	if (ret != EOK) { \
 		usb_log_error(message); \
-		if (instance->ddf_instance) \
-			ddf_fun_destroy(instance->ddf_instance); \
 		return ret; \
 	} else (void) 0
 
 	instance->hw_interrupts = interrupts;
 	instance->hw_failures = 0;
 
-	/* Setup UHCI function. */
-	instance->ddf_instance = fun;
-
 	/* allow access to hc control registers */
 	regs_t *io;
 	ret = pio_enable(regs, reg_size, (void**)&io);
-	CHECK_RET_DEST_FUN_RETURN(ret,
+	CHECK_RET_RETURN(ret,
 	    "Failed(%d) to gain access to registers at %p: %s.\n",
-	    ret, str_error(ret), io);
+	    ret, io, str_error(ret));
 	instance->registers = io;
 	usb_log_debug("Device registers at %p(%u) accessible.\n",
 	    io, reg_size);
 
 	ret = hc_init_mem_structures(instance);
-	CHECK_RET_DEST_FUN_RETURN(ret,
-	    "Failed to initialize UHCI memory structures.\n");
+	CHECK_RET_RETURN(ret,
+	    "Failed(%d) to initialize UHCI memory structures: %s.\n",
+	    ret, str_error(ret));
 
 	hc_init_hw(instance);
 	if (!interrupts) {
-		instance->cleaner =
+		instance->interrupt_emulator =
 		    fibril_create(hc_interrupt_emulator, instance);
-		fibril_add_ready(instance->cleaner);
-	} else {
-		/* TODO: enable interrupts here */
+		fibril_add_ready(instance->interrupt_emulator);
 	}
-
-	instance->debug_checker =
-	    fibril_create(hc_debug_checker, instance);
-//	fibril_add_ready(instance->debug_checker);
+	(void)hc_debug_checker;
 
 	return EOK;
 #undef CHECK_RET_DEST_FUN_RETURN
@@ -227,15 +214,15 @@ int hc_init_mem_structures(hc_t *instance)
 
 	/* Set all frames to point to the first queue head */
 	const uint32_t queue =
-	  instance->transfers_interrupt.queue_head_pa
-	  | LINK_POINTER_QUEUE_HEAD_FLAG;
+	    LINK_POINTER_QH(addr_to_phys(
+	        instance->transfers_interrupt.queue_head));
 
 	unsigned i = 0;
 	for(; i < UHCI_FRAME_LIST_COUNT; ++i) {
 		instance->frame_list[i] = queue;
 	}
 
-	/* Init device keeper*/
+	/* Init device keeper */
 	usb_device_keeper_init(&instance->manager);
 	usb_log_debug("Initialized device manager.\n");
 
@@ -328,7 +315,7 @@ int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch)
 	assert(batch);
 
 	transfer_list_t *list =
-	    instance->transfers[batch->speed][batch->transfer_type];
+	    instance->transfers[batch->ep->speed][batch->ep->transfer_type];
 	assert(list);
 	transfer_list_add_batch(list, batch);
 
@@ -478,33 +465,6 @@ int hc_debug_checker(void *arg)
 	return EOK;
 #undef QH
 }
-/*----------------------------------------------------------------------------*/
-/** Check transfers for USB validity
- *
- * @param[in] low_speed Transfer speed.
- * @param[in] transfer Transer type
- * @param[in] size Size of data packets
- * @return True if transaction is allowed by USB specs, false otherwise
- */
-#if 0
-bool usb_is_allowed(
-    bool low_speed, usb_transfer_type_t transfer, size_t size)
-{
-	/* see USB specification chapter 5.5-5.8 for magic numbers used here */
-	switch(transfer)
-	{
-	case USB_TRANSFER_ISOCHRONOUS:
-		return (!low_speed && size < 1024);
-	case USB_TRANSFER_INTERRUPT:
-		return size <= (low_speed ? 8 : 64);
-	case USB_TRANSFER_CONTROL: /* device specifies its own max size */
-		return (size <= (low_speed ? 8 : 64));
-	case USB_TRANSFER_BULK: /* device specifies its own max size */
-		return (!low_speed && size <= 64);
-	}
-	return false;
-}
-#endif
 /**
  * @}
  */

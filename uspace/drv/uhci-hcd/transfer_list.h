@@ -38,37 +38,28 @@
 
 #include "batch.h"
 #include "hw_struct/queue_head.h"
-#include "utils/malloc32.h"
 
+/** Structure maintaining both hw queue and software list
+ * of currently executed transfers
+ */
 typedef struct transfer_list
 {
+	/** Guard against multiple add/remove races */
 	fibril_mutex_t guard;
+	/** UHCI hw structure represeting this queue */
 	qh_t *queue_head;
-	uint32_t queue_head_pa;
+	/** Assigned name, for nicer debug output */
 	const char *name;
+	/** List of all batches in this list */
 	link_t batch_list;
 } transfer_list_t;
 
-/** Dispose transfer list structures.
- *
- * @param[in] instance Memory place to use.
- *
- * Frees memory for internal qh_t structure.
- */
-static inline void transfer_list_fini(transfer_list_t *instance)
-{
-	assert(instance);
-	free32(instance->queue_head);
-}
-
+void transfer_list_fini(transfer_list_t *instance);
 int transfer_list_init(transfer_list_t *instance, const char *name);
-
 void transfer_list_set_next(transfer_list_t *instance, transfer_list_t *next);
-
-void transfer_list_add_batch(transfer_list_t *instance, usb_transfer_batch_t *batch);
-
+void transfer_list_add_batch(
+    transfer_list_t *instance, usb_transfer_batch_t *batch);
 void transfer_list_remove_finished(transfer_list_t *instance, link_t *done);
-
 void transfer_list_abort_all(transfer_list_t *instance);
 #endif
 /**

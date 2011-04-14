@@ -80,13 +80,21 @@ typedef struct ed {
 
 void ed_init(ed_t *instance, endpoint_t *ep);
 
-static inline void ed_add_tds(ed_t *instance, td_t *head, td_t *tail)
+static inline void ed_set_td(ed_t *instance, td_t *td)
 {
 	assert(instance);
+	uintptr_t pa = addr_to_phys(td);
 	instance->td_head =
-	    ((addr_to_phys(head) & ED_TDHEAD_PTR_MASK)
+	    ((pa & ED_TDHEAD_PTR_MASK)
 	    | (instance->td_head & ~ED_TDHEAD_PTR_MASK));
-	instance->td_tail = addr_to_phys(tail) & ED_TDTAIL_PTR_MASK;
+	instance->td_tail = pa & ED_TDTAIL_PTR_MASK;
+}
+
+static inline void ed_set_end_td(ed_t *instance, td_t *td)
+{
+	assert(instance);
+	uintptr_t pa = addr_to_phys(td);
+	instance->td_tail = pa & ED_TDTAIL_PTR_MASK;
 }
 
 static inline void ed_append_ed(ed_t *instance, ed_t *next)

@@ -340,7 +340,10 @@ extern int async_share_out_finalize(ipc_callid_t, void *);
 	    (arg4), (answer))
 
 extern aid_t async_data_read(int, void *, size_t, ipc_call_t *);
-extern int async_data_read_start(int, void *, size_t);
+#define async_data_read_start(p, buf, len) \
+	async_data_read_start_generic((p), (buf), (len), IPC_XF_NONE)
+
+extern int async_data_read_start_generic(int, void *, size_t, int);
 extern bool async_data_read_receive(ipc_callid_t *, size_t *);
 extern int async_data_read_finalize(ipc_callid_t, const void *, size_t);
 
@@ -379,7 +382,10 @@ extern int async_data_read_forward_fast(int, sysarg_t, sysarg_t, sysarg_t,
 	async_data_write_forward_fast((phoneid), (method), (arg1), (arg2), (arg3), \
 	    (arg4), (answer))
 
-extern int async_data_write_start(int, const void *, size_t);
+#define async_data_write_start(p, buf, len) \
+	async_data_write_start_generic((p), (buf), (len), IPC_XF_NONE)
+
+extern int async_data_write_start_generic(int, const void *, size_t, int);
 extern bool async_data_write_receive(ipc_callid_t *, size_t *);
 extern int async_data_write_finalize(ipc_callid_t, void *, size_t);
 

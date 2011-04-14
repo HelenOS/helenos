@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2007 Jan Hudecek
- * Copyright (c) 2008 Martin Decky
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,48 +25,35 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-/** @addtogroup genericproc
+/** @addtogroup drvusbohci
  * @{
  */
-/** @file tasklet.h
- * @brief Tasklets declarations
+/** @file
+ * @brief OHCI driver
  */
+#ifndef DRV_OHCI_HCD_ENDPOINT_H
+#define DRV_OHCI_HCD_ENDPOINT_H
 
-#ifndef KERN_TASKLET_H_
-#define KERN_TASKLET_H_
-
+#include <assert.h>
 #include <adt/list.h>
 
-/** Tasklet callback type */
-typedef void (* tasklet_callback_t)(void *arg);
+#include <usb/host/endpoint.h>
 
-/** Tasklet state */
-typedef enum {
-	NotActive,
-	Scheduled,
-	InProgress,
-	Disabled
-} tasklet_state_t;
+#include "hw_struct/endpoint_descriptor.h"
+#include "hw_struct/transfer_descriptor.h"
 
-/** Structure describing a tasklet */
-typedef struct tasklet_descriptor {
+typedef struct hcd_endpoint {
+	ed_t *ed;
+	td_t *td;
 	link_t link;
-	
-	/** Callback to call */
-	tasklet_callback_t callback;
-	
-	/** Argument passed to the callback */
-	void *arg;
-	
-	/** State of the tasklet */
-	tasklet_state_t state;
-} tasklet_descriptor_t;
+} hcd_endpoint_t;
 
+hcd_endpoint_t * hcd_endpoint_assign(endpoint_t *ep);
 
-extern void tasklet_init(void);
+hcd_endpoint_t * hcd_endpoint_get(endpoint_t *ep);
 
+void hcd_endpoint_clear(endpoint_t *ep);
 #endif
-
-/** @}
+/**
+ * @}
  */
