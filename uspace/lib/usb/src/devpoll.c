@@ -32,7 +32,7 @@
 /** @file
  * USB device driver framework - automatic interrupt polling.
  */
-#include <usb/devdrv.h>
+#include <usb/devpoll.h>
 #include <usb/request.h>
 #include <usb/debug.h>
 #include <errno.h>

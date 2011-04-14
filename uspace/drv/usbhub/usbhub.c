@@ -44,6 +44,7 @@
 #include <usb/recognise.h>
 #include <usb/request.h>
 #include <usb/classes/hub.h>
+#include <usb/devpoll.h>
 #include <stdio.h>
 
 #include "usbhub.h"

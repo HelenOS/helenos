@@ -26,75 +26,25 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbmouse
+/** @addtogroup libusb
  * @{
  */
-/**
- * @file
- * Main routines of USB boot protocol mouse driver.
+/** @file
+ * USB device polling functions.
  */
-#include "mouse.h"
-#include <usb/debug.h>
-#include <usb/devpoll.h>
-#include <errno.h>
-#include <str_error.h>
+#ifndef LIBUSB_DEVPOLL_H_
+#define LIBUSB_DEVPOLL_H_
 
-/** Callback when new mouse device is attached and recognised by DDF.
- *
- * @param dev Representation of a generic DDF device.
- * @return Error code.
- */
-static int usbmouse_add_device(usb_device_t *dev)
-{
-	int rc = usb_mouse_create(dev);
-	if (rc != EOK) {
-		usb_log_error("Failed to initialize device driver: %s.\n",
-		    str_error(rc));
-		return rc;
-	}
+#include <usb/devdrv.h>
 
-	usb_log_debug("Polling pipe at endpoint %d.\n", dev->pipes[0].pipe->endpoint_no);
+typedef bool (*usb_polling_callback_t)(usb_device_t *,
+    uint8_t *, size_t, void *);
+typedef void (*usb_polling_terminted_callback_t)(usb_device_t *, bool, void *);
 
-	rc = usb_device_auto_poll(dev, 0,
-	    usb_mouse_polling_callback, dev->pipes[0].pipe->max_packet_size,
-	    usb_mouse_polling_ended_callback, dev->driver_data);
+int usb_device_auto_poll(usb_device_t *, size_t,
+    usb_polling_callback_t, size_t, usb_polling_terminted_callback_t, void *);
 
-	if (rc != EOK) {
-		usb_log_error("Failed to start polling fibril: %s.\n",
-		    str_error(rc));
-		return rc;
-	}
-
-	usb_log_info("controlling new mouse (handle %llu).\n",
-	    dev->ddf_dev->handle);
-
-	return EOK;
-}
-
-/** USB mouse driver ops. */
-static usb_driver_ops_t mouse_driver_ops = {
-	.add_device = usbmouse_add_device,
-};
-
-static usb_endpoint_description_t *endpoints[] = {
-	&poll_endpoint_description,
-	NULL
-};
-
-/** USB mouse driver. */
-static usb_driver_t mouse_driver = {
-	.name = NAME,
-	.ops = &mouse_driver_ops,
-	.endpoints = endpoints
-};
-
-int main(int argc, char *argv[])
-{
-	usb_log_enable(USB_LOG_LEVEL_DEFAULT, NAME);
-
-	return usb_driver_main(&mouse_driver);
-}
-
+#endif
 /**
  * @}
  */
