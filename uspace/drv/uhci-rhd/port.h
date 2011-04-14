@@ -53,6 +53,7 @@ typedef uint16_t port_status_t;
 #define STATUS_IN_RESET  (1 <<  9)
 #define STATUS_SUSPEND   (1 << 12)
 
+/** UHCI port structure */
 typedef struct uhci_port
 {
 	char *id_string;
