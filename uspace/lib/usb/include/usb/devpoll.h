@@ -36,6 +36,49 @@
 #define LIBUSB_DEVPOLL_H_
 
 #include <usb/devdrv.h>
+#include <time.h>
+
+typedef struct {
+	/** Maximum number of consecutive errors before polling termination. */
+	size_t max_failures;
+	/** Delay between poll requests in milliseconds.
+	 * Set to negative value to use value from endpoint descriptor.
+	 */
+	int delay;
+	/** Whether to automatically try to clear the HALT feature after
+	 * the endpoint stalls.
+	 */
+	bool auto_clear_halt;
+	/** Callback when data arrives.
+	 *
+	 * @param dev Device that was polled.
+	 * @param data Data buffer (in USB endianness).
+	 * @param data_size Size of the @p data buffer in bytes.
+	 * @param arg Custom argument.
+	 * @return Whether to continue in polling.
+	 */
+	bool (*on_data)(usb_device_t *dev, uint8_t *data, size_t data_size,
+	    void *arg);
+	/** Callback when polling is terminated.
+	 *
+	 * @param dev Device where the polling was terminated.
+	 * @param due_to_errors Whether polling stopped due to several failures.
+	 * @param arg Custom argument.
+	 */
+	void (*on_polling_end)(usb_device_t *dev, bool due_to_errors,
+	    void *arg);
+	/** Callback when error occurs.
+	 *
+	 * @param dev Device where error occurred.
+	 * @param err_code Error code (as returned from usb_pipe_read).
+	 * @param arg Custom argument.
+	 * @return Whether to continue in polling.
+	 */
+	bool (*on_error)(usb_device_t *dev, int err_code, void *arg);
+} usb_device_auto_polling_t;
+
+int usb_device_auto_polling(usb_device_t *, size_t, usb_device_auto_polling_t *,
+    size_t, void *);
 
 typedef bool (*usb_polling_callback_t)(usb_device_t *,
     uint8_t *, size_t, void *);
