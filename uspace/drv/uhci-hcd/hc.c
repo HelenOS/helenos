@@ -246,32 +246,26 @@ int hc_init_mem_structures(hc_t *instance)
 int hc_init_transfer_lists(hc_t *instance)
 {
 	assert(instance);
-#define CHECK_RET_CLEAR_RETURN(ret, message...) \
+#define SETUP_TRANSFER_LIST(type, name) \
+do { \
+	int ret = transfer_list_init(&instance->transfers_##type, name); \
 	if (ret != EOK) { \
-		usb_log_error(message); \
+		usb_log_error("Failed(%d) to setup %s transfer list: %s.\n", \
+		    ret, name, str_error(ret)); \
 		transfer_list_fini(&instance->transfers_bulk_full); \
 		transfer_list_fini(&instance->transfers_control_full); \
 		transfer_list_fini(&instance->transfers_control_slow); \
 		transfer_list_fini(&instance->transfers_interrupt); \
 		return ret; \
-	} else (void) 0
+	} \
+} while (0)
 
-	/* initialize TODO: check errors */
-	int ret;
-	ret = transfer_list_init(&instance->transfers_bulk_full, "BULK_FULL");
-	CHECK_RET_CLEAR_RETURN(ret, "Failed to init BULK list.");
-
-	ret = transfer_list_init(
-	    &instance->transfers_control_full, "CONTROL_FULL");
-	CHECK_RET_CLEAR_RETURN(ret, "Failed to init CONTROL FULL list.");
-
-	ret = transfer_list_init(
-	    &instance->transfers_control_slow, "CONTROL_SLOW");
-	CHECK_RET_CLEAR_RETURN(ret, "Failed to init CONTROL SLOW list.");
-
-	ret = transfer_list_init(&instance->transfers_interrupt, "INTERRUPT");
-	CHECK_RET_CLEAR_RETURN(ret, "Failed to init INTERRUPT list.");
-
+	SETUP_TRANSFER_LIST(bulk_full, "BULK FULL");
+	SETUP_TRANSFER_LIST(control_full, "CONTROL FULL");
+	SETUP_TRANSFER_LIST(control_slow, "CONTROL LOW");
+	SETUP_TRANSFER_LIST(interrupt, "INTERRUPT");
+#undef SETUP_TRANSFER_LIST
+	/* Connect lists into one schedule */
 	transfer_list_set_next(&instance->transfers_control_full,
 		&instance->transfers_bulk_full);
 	transfer_list_set_next(&instance->transfers_control_slow,
@@ -336,9 +330,8 @@ void hc_interrupt(hc_t *instance, uint16_t status)
 {
 	assert(instance);
 //	status |= 1; //Uncomment to work around qemu hang
-	/* TODO: Resume interrupts are not supported */
 	/* Lower 2 bits are transaction error and transaction complete */
-	if (status & 0x3) {
+	if (status & (UHCI_STATUS_INTERRUPT | UHCI_STATUS_ERROR_INTERRUPT)) {
 		LIST_INITIALIZE(done);
 		transfer_list_remove_finished(
 		    &instance->transfers_interrupt, &done);
@@ -357,8 +350,10 @@ void hc_interrupt(hc_t *instance, uint16_t status)
 			usb_transfer_batch_finish(batch);
 		}
 	}
-	/* bits 4 and 5 indicate hc error */
-	if (status & 0x18) {
+	/* Resume interrupts are not supported */
+
+	/* Bits 4 and 5 indicate hc error */
+	if (status & (UHCI_STATUS_PROCESS_ERROR | UHCI_STATUS_SYSTEM_ERROR)) {
 		usb_log_error("UHCI hardware failure!.\n");
 		++instance->hw_failures;
 		transfer_list_abort_all(&instance->transfers_interrupt);
@@ -388,13 +383,13 @@ int hc_interrupt_emulator(void* arg)
 	assert(instance);
 
 	while (1) {
-		/* read and ack interrupts */
+		/* Readd and clear status register */
 		uint16_t status = pio_read_16(&instance->registers->usbsts);
-		pio_write_16(&instance->registers->usbsts, 0x1f);
+		pio_write_16(&instance->registers->usbsts, status);
 		if (status != 0)
 			usb_log_debug2("UHCI status: %x.\n", status);
 		hc_interrupt(instance, status);
-		async_usleep(UHCI_CLEANER_TIMEOUT);
+		async_usleep(UHCI_INT_EMULATOR_TIMEOUT);
 	}
 	return EOK;
 }

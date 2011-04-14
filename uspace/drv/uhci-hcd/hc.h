@@ -87,7 +87,7 @@ typedef struct uhci_regs {
 } regs_t;
 
 #define UHCI_FRAME_LIST_COUNT 1024
-#define UHCI_CLEANER_TIMEOUT 10000
+#define UHCI_INT_EMULATOR_TIMEOUT 10000
 #define UHCI_DEBUGER_TIMEOUT 5000000
 #define UHCI_ALLOWED_HW_FAIL 5
 
