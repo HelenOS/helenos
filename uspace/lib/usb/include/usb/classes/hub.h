@@ -151,7 +151,7 @@ typedef struct usb_hub_descriptor_type {
             Bit n: Port n (implementation-dependent, up to a
             maximum of 255 ports).
      */
-    uint8_t * devices_removable;
+    uint8_t devices_removable[32];
 
     /**
             This field exists for reasons of compatibility with
