@@ -235,6 +235,7 @@ int rh_request(rh_t *instance, usb_transfer_batch_t *request) {
 	if (request->ep->transfer_type == USB_TRANSFER_CONTROL) {
 		usb_log_info("Root hub got CONTROL packet\n");
 		opResult = process_ctrl_request(instance, request);
+		usb_transfer_batch_finish_error(request, opResult);
 	} else if (request->ep->transfer_type == USB_TRANSFER_INTERRUPT) {
 		usb_log_info("Root hub got INTERRUPT packet\n");
 		void * buffer;
