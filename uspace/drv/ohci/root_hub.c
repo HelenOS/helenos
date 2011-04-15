@@ -197,7 +197,10 @@ static int process_request_without_data(rh_t *instance,
 
 static int process_ctrl_request(rh_t *instance, usb_transfer_batch_t *request);
 
+static int process_interrupt(rh_t *instance, usb_transfer_batch_t * request,
+    void * change_buffer, size_t buffe_size);
 
+static bool is_zeros(void * buffer, size_t size);
 
 
 
@@ -212,7 +215,7 @@ int rh_init(rh_t *instance, ohci_regs_t *regs) {
 	rh_init_descriptors(instance);
 	// set port power mode to no-power-switching
 	instance->registers->rh_desc_a |= RHDA_NPS_FLAG;
-
+	instance->unfinished_interrupt_transfer = NULL;
 	usb_log_info("OHCI root hub with %d ports.\n", instance->port_count);
 	return EOK;
 }
@@ -235,15 +238,25 @@ int rh_request(rh_t *instance, usb_transfer_batch_t *request) {
 	} else if (request->ep->transfer_type == USB_TRANSFER_INTERRUPT) {
 		usb_log_info("Root hub got INTERRUPT packet\n");
 		void * buffer;
+		size_t buffer_size;
 		create_interrupt_mask(instance, &buffer,
-			&(request->transfered_size));
-		memcpy(request->data_buffer, buffer,
-			request->transfered_size);
+			&buffer_size);
+		if(is_zeros(buffer,buffer_size)){
+			usb_log_debug("no changes..");
+			instance->unfinished_interrupt_transfer=
+			    request;
+			//will be finished later
+		}else{
+			usb_log_debug("processing changes..");
+			process_interrupt(instance, request,
+			    buffer, buffer_size);
+		}
+		free(buffer);
 		opResult = EOK;
 	} else {
 		opResult = EINVAL;
+		usb_transfer_batch_finish_error(request, opResult);
 	}
-	usb_transfer_batch_finish_error(request, opResult);
 	return EOK;
 }
 
@@ -251,9 +264,18 @@ int rh_request(rh_t *instance, usb_transfer_batch_t *request) {
 
 
 void rh_interrupt(rh_t *instance) {
-	usb_log_info("Whoa whoa wait, I`m not supposed to receive any "
-		"interrupts, am I?\n");
-	/* TODO: implement? */
+	//usb_log_info("Whoa whoa wait, I`m not supposed to receive any "
+	//	"interrupts, am I?\n");
+	if(!instance->unfinished_interrupt_transfer){
+		return;
+	}
+	size_t size;
+	void * buffer;
+	create_interrupt_mask(instance, &buffer,
+			&size);
+	process_interrupt(instance,instance->unfinished_interrupt_transfer,
+	    buffer,size);
+	free(buffer);
 }
 /*----------------------------------------------------------------------------*/
 
@@ -857,6 +879,53 @@ static int process_ctrl_request(rh_t *instance, usb_transfer_batch_t *request) {
 			opResult = ENOTSUP;
 	}
 	return opResult;
+}
+/*----------------------------------------------------------------------------*/
+
+/**
+ * process hanging interrupt request
+ *
+ * If an interrupt transfer has been received and there was no change,
+ * the driver stores the transfer information and waits for change to occcur.
+ * This routine is called when that happens and it finalizes the interrupt
+ * transfer.
+ *
+ * @param instance hub instance
+ * @param request batch request to be processed
+ * @param change_buffer chages on hub
+ * @param buffer_size size of change buffer
+ *
+ * @return
+ */
+static int process_interrupt(rh_t *instance, usb_transfer_batch_t * request,
+    void * change_buffer, size_t buffe_size){
+	create_interrupt_mask(instance, &change_buffer,
+	    &(request->transfered_size));
+	memcpy(request->data_buffer, change_buffer,request->transfered_size);
+	instance->unfinished_interrupt_transfer = NULL;
+	usb_transfer_batch_finish_error(request, EOK);
+	return EOK;
+}
+
+/*----------------------------------------------------------------------------*/
+
+/**
+ * return whether the buffer is full of zeros
+ *
+ * Convenience function.
+ * @param buffer
+ * @param size
+ * @return
+ */
+static bool is_zeros(void * buffer, size_t size){
+	if(!buffer) return true;
+	if(!size) return true;
+	size_t i;
+	for(i=0;i<size;++i){
+		if(((char*)buffer)[i])
+			return false;
+	}
+	return true;
 }
 
 /**
