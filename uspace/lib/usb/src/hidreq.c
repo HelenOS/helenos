@@ -55,9 +55,7 @@
  *
  * @retval EOK if successful.
  * @retval EINVAL if no HID device is given.
- * @return Other value inherited from one of functions 
- *         usb_pipe_start_session(), usb_pipe_end_session(),
- *         usb_control_request_set().
+ * @return Other value inherited from function usb_control_request_set().
  */
 int usbhid_req_set_report(usb_pipe_t *ctrl_pipe, int iface_no,
     usb_hid_report_type_t type, uint8_t *buffer, size_t buf_size)
@@ -78,14 +76,7 @@ int usbhid_req_set_report(usb_pipe_t *ctrl_pipe, int iface_no,
 	 * the called function (usb_control_request_set()).
 	 */
 	
-	int rc, sess_rc;
-	
-	sess_rc = usb_pipe_start_session(ctrl_pipe);
-	if (sess_rc != EOK) {
-		usb_log_warning("Failed to start a session: %s.\n",
-		    str_error(sess_rc));
-		return sess_rc;
-	}
+	int rc;
 	
 	uint16_t value = 0;
 	value |= (type << 8);
@@ -96,18 +87,10 @@ int usbhid_req_set_report(usb_pipe_t *ctrl_pipe, int iface_no,
 	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_INTERFACE, 
 	    USB_HIDREQ_SET_REPORT, value, iface_no, buffer, buf_size);
 
-	sess_rc = usb_pipe_end_session(ctrl_pipe);
-
 	if (rc != EOK) {
 		usb_log_warning("Error sending output report to the keyboard: "
 		    "%s.\n", str_error(rc));
 		return rc;
-	}
-
-	if (sess_rc != EOK) {
-		usb_log_warning("Error closing session: %s.\n",
-		    str_error(sess_rc));
-		return sess_rc;
 	}
 	
 	return EOK;
@@ -122,9 +105,7 @@ int usbhid_req_set_report(usb_pipe_t *ctrl_pipe, int iface_no,
  *
  * @retval EOK if successful.
  * @retval EINVAL if no HID device is given.
- * @return Other value inherited from one of functions 
- *         usb_pipe_start_session(), usb_pipe_end_session(),
- *         usb_control_request_set().
+ * @return Other value inherited from function usb_control_request_set().
  */
 int usbhid_req_set_protocol(usb_pipe_t *ctrl_pipe, int iface_no,
     usb_hid_protocol_t protocol)
@@ -145,14 +126,7 @@ int usbhid_req_set_protocol(usb_pipe_t *ctrl_pipe, int iface_no,
 	 * the called function (usb_control_request_set()).
 	 */
 	
-	int rc, sess_rc;
-	
-	sess_rc = usb_pipe_start_session(ctrl_pipe);
-	if (sess_rc != EOK) {
-		usb_log_warning("Failed to start a session: %s.\n",
-		    str_error(sess_rc));
-		return sess_rc;
-	}
+	int rc;
 
 	usb_log_debug("Sending Set_Protocol request to the device ("
 	    "protocol: %d, iface: %d).\n", protocol, iface_no);
@@ -161,18 +135,10 @@ int usbhid_req_set_protocol(usb_pipe_t *ctrl_pipe, int iface_no,
 	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_INTERFACE, 
 	    USB_HIDREQ_SET_PROTOCOL, protocol, iface_no, NULL, 0);
 
-	sess_rc = usb_pipe_end_session(ctrl_pipe);
-
 	if (rc != EOK) {
 		usb_log_warning("Error sending output report to the keyboard: "
 		    "%s.\n", str_error(rc));
 		return rc;
-	}
-
-	if (sess_rc != EOK) {
-		usb_log_warning("Error closing session: %s.\n",
-		    str_error(sess_rc));
-		return sess_rc;
 	}
 	
 	return EOK;
@@ -188,9 +154,7 @@ int usbhid_req_set_protocol(usb_pipe_t *ctrl_pipe, int iface_no,
  *
  * @retval EOK if successful.
  * @retval EINVAL if no HID device is given.
- * @return Other value inherited from one of functions 
- *         usb_pipe_start_session(), usb_pipe_end_session(),
- *         usb_control_request_set().
+ * @return Other value inherited from function usb_control_request_set().
  */
 int usbhid_req_set_idle(usb_pipe_t *ctrl_pipe, int iface_no, uint8_t duration)
 {
@@ -210,14 +174,7 @@ int usbhid_req_set_idle(usb_pipe_t *ctrl_pipe, int iface_no, uint8_t duration)
 	 * the called function (usb_control_request_set()).
 	 */
 	
-	int rc, sess_rc;
-	
-	sess_rc = usb_pipe_start_session(ctrl_pipe);
-	if (sess_rc != EOK) {
-		usb_log_warning("Failed to start a session: %s.\n",
-		    str_error(sess_rc));
-		return sess_rc;
-	}
+	int rc;
 
 	usb_log_debug("Sending Set_Idle request to the device ("
 	    "duration: %u, iface: %d).\n", duration, iface_no);
@@ -228,18 +185,10 @@ int usbhid_req_set_idle(usb_pipe_t *ctrl_pipe, int iface_no, uint8_t duration)
 	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_INTERFACE, 
 	    USB_HIDREQ_SET_IDLE, value, iface_no, NULL, 0);
 
-	sess_rc = usb_pipe_end_session(ctrl_pipe);
-
 	if (rc != EOK) {
 		usb_log_warning("Error sending output report to the keyboard: "
 		    "%s.\n", str_error(rc));
 		return rc;
-	}
-
-	if (sess_rc != EOK) {
-		usb_log_warning("Error closing session: %s.\n",
-		    str_error(sess_rc));
-		return sess_rc;
 	}
 	
 	return EOK;
@@ -258,9 +207,7 @@ int usbhid_req_set_idle(usb_pipe_t *ctrl_pipe, int iface_no, uint8_t duration)
  *
  * @retval EOK if successful.
  * @retval EINVAL if no HID device is given.
- * @return Other value inherited from one of functions 
- *         usb_pipe_start_session(), usb_pipe_end_session(),
- *         usb_control_request_set().
+ * @return Other value inherited from function usb_control_request_set().
  */
 int usbhid_req_get_report(usb_pipe_t *ctrl_pipe, int iface_no, 
     usb_hid_report_type_t type, uint8_t *buffer, size_t buf_size, 
@@ -282,14 +229,7 @@ int usbhid_req_get_report(usb_pipe_t *ctrl_pipe, int iface_no,
 	 * the called function (usb_control_request_set()).
 	 */
 	
-	int rc, sess_rc;
-	
-	sess_rc = usb_pipe_start_session(ctrl_pipe);
-	if (sess_rc != EOK) {
-		usb_log_warning("Failed to start a session: %s.\n",
-		    str_error(sess_rc));
-		return sess_rc;
-	}
+	int rc;
 
 	uint16_t value = 0;
 	value |= (type << 8);
@@ -301,18 +241,10 @@ int usbhid_req_get_report(usb_pipe_t *ctrl_pipe, int iface_no,
 	    USB_HIDREQ_GET_REPORT, value, iface_no, buffer, buf_size,
 	    actual_size);
 
-	sess_rc = usb_pipe_end_session(ctrl_pipe);
-
 	if (rc != EOK) {
 		usb_log_warning("Error sending output report to the keyboard: "
 		    "%s.\n", str_error(rc));
 		return rc;
-	}
-
-	if (sess_rc != EOK) {
-		usb_log_warning("Error closing session: %s.\n",
-		    str_error(sess_rc));
-		return sess_rc;
 	}
 	
 	return EOK;
@@ -327,9 +259,7 @@ int usbhid_req_get_report(usb_pipe_t *ctrl_pipe, int iface_no,
  *
  * @retval EOK if successful.
  * @retval EINVAL if no HID device is given.
- * @return Other value inherited from one of functions 
- *         usb_pipe_start_session(), usb_pipe_end_session(),
- *         usb_control_request_set().
+ * @return Other value inherited from function usb_control_request_set().
  */
 int usbhid_req_get_protocol(usb_pipe_t *ctrl_pipe, int iface_no, 
     usb_hid_protocol_t *protocol)
@@ -350,14 +280,7 @@ int usbhid_req_get_protocol(usb_pipe_t *ctrl_pipe, int iface_no,
 	 * the called function (usb_control_request_set()).
 	 */
 	
-	int rc, sess_rc;
-	
-	sess_rc = usb_pipe_start_session(ctrl_pipe);
-	if (sess_rc != EOK) {
-		usb_log_warning("Failed to start a session: %s.\n",
-		    str_error(sess_rc));
-		return sess_rc;
-	}
+	int rc;	
 
 	usb_log_debug("Sending Get_Protocol request to the device ("
 	    "iface: %d).\n", iface_no);
@@ -369,18 +292,10 @@ int usbhid_req_get_protocol(usb_pipe_t *ctrl_pipe, int iface_no,
 	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_INTERFACE, 
 	    USB_HIDREQ_GET_PROTOCOL, 0, iface_no, buffer, 1, &actual_size);
 
-	sess_rc = usb_pipe_end_session(ctrl_pipe);
-
 	if (rc != EOK) {
 		usb_log_warning("Error sending output report to the keyboard: "
 		    "%s.\n", str_error(rc));
 		return rc;
-	}
-
-	if (sess_rc != EOK) {
-		usb_log_warning("Error closing session: %s.\n",
-		    str_error(sess_rc));
-		return sess_rc;
 	}
 	
 	if (actual_size != 1) {
@@ -426,14 +341,7 @@ int usbhid_req_get_idle(usb_pipe_t *ctrl_pipe, int iface_no, uint8_t *duration)
 	 * the called function (usb_control_request_set()).
 	 */
 	
-	int rc, sess_rc;
-	
-	sess_rc = usb_pipe_start_session(ctrl_pipe);
-	if (sess_rc != EOK) {
-		usb_log_warning("Failed to start a session: %s.\n",
-		    str_error(sess_rc));
-		return sess_rc;
-	}
+	int rc;
 
 	usb_log_debug("Sending Get_Idle request to the device ("
 	    "iface: %d).\n", iface_no);
@@ -447,18 +355,10 @@ int usbhid_req_get_idle(usb_pipe_t *ctrl_pipe, int iface_no, uint8_t *duration)
 	    USB_HIDREQ_GET_IDLE, value, iface_no, buffer, 1, 
 	    &actual_size);
 
-	sess_rc = usb_pipe_end_session(ctrl_pipe);
-
 	if (rc != EOK) {
 		usb_log_warning("Error sending output report to the keyboard: "
 		    "%s.\n", str_error(rc));
 		return rc;
-	}
-
-	if (sess_rc != EOK) {
-		usb_log_warning("Error closing session: %s.\n",
-		    str_error(sess_rc));
-		return sess_rc;
 	}
 	
 	if (actual_size != 1) {
