@@ -36,25 +36,49 @@
 #include "subdrivers.h"
 #include "usb/classes/hidut.h"
 
-static usb_hid_subdriver_usage_t path_kbd[] = {{USB_HIDUT_PAGE_KEYBOARD, 0}};
+#include "lgtch-ultrax/lgtch-ultrax.h"
+
+static usb_hid_subdriver_usage_t path_kbd[] = {
+	{USB_HIDUT_PAGE_KEYBOARD, 0}, 
+	{0, 0}
+};
+
+static usb_hid_subdriver_usage_t lgtch_path[] = {
+	{0xc, 0},
+	{0, 0}
+};
 
 const usb_hid_subdriver_mapping_t usb_hid_subdrivers[] = {
 	{
 		path_kbd,
-		1,
+		-1,
 		USB_HID_PATH_COMPARE_END 
 		| USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY,
-		NULL,
-		NULL,
+		0,
+		0,
 		{
-			usb_kbd_init,
-			usb_kbd_deinit,
-			usb_kbd_polling_callback,
-			NULL
+			.init = usb_kbd_init,
+			.deinit = usb_kbd_deinit,
+			.poll = usb_kbd_polling_callback,
+			.poll_end = NULL
 		},
 		
 	},
-	{NULL, 0, 0, NULL, NULL, {NULL, NULL, NULL, NULL}}
+	{
+		lgtch_path,
+		1,
+		USB_HID_PATH_COMPARE_END 
+		| USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY,
+		0x046d,
+		0xc30e,
+		{
+			.init = NULL,
+			.deinit = NULL,
+			.poll = usb_lgtch_polling_callback,
+			.poll_end = NULL
+		}
+	},
+	{NULL, -1, 0, 0, 0, {NULL, NULL, NULL, NULL}}
 };
 
 /**

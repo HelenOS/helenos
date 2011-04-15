@@ -55,7 +55,13 @@ size_t USB_HUB_MAX_DESCRIPTOR_SIZE = 71;
 
 //hub descriptor utils
 
-void * usb_serialize_hub_descriptor(usb_hub_descriptor_t * descriptor) {
+/**
+ * create uint8_t array with serialized descriptor
+ *
+ * @param descriptor
+ * @return newly created serializd descriptor pointer
+ */
+void * usb_create_serialized_hub_descriptor(usb_hub_descriptor_t * descriptor) {
 	//base size
 	size_t size = 7;
 	//variable size according to port count
@@ -63,27 +69,57 @@ void * usb_serialize_hub_descriptor(usb_hub_descriptor_t * descriptor) {
 	size += 2 * var_size;
 	uint8_t * result = malloc(size);
 	//size
-	result[0] = size;
-	//descriptor type
-	result[1] = USB_DESCTYPE_HUB;
-	result[2] = descriptor->ports_count;
-	/// @fixme handling of endianness??
-	result[3] = descriptor->hub_characteristics / 256;
-	result[4] = descriptor->hub_characteristics % 256;
-	result[5] = descriptor->pwr_on_2_good_time;
-	result[6] = descriptor->current_requirement;
-
-	size_t i;
-	for (i = 0; i < var_size; ++i) {
-		result[7 + i] = descriptor->devices_removable[i];
-	}
-	for (i = 0; i < var_size; ++i) {
-		result[7 + var_size + i] = 255;
-	}
+	if(result)
+		usb_serialize_hub_descriptor(descriptor,result);
 	return result;
 }
 
-usb_hub_descriptor_t * usb_deserialize_hub_desriptor(
+/**
+ * serialize descriptor into given buffer
+ *
+ * The buffer size is not checked.
+ * @param descriptor
+ * @param serialized_descriptor
+ */
+void usb_serialize_hub_descriptor(usb_hub_descriptor_t * descriptor,
+    void * serialized_descriptor) {
+	//base size
+	uint8_t * sdescriptor = serialized_descriptor;
+	size_t size = 7;
+	//variable size according to port count
+	size_t var_size = (descriptor->ports_count+7)/8;
+	size += 2 * var_size;
+	//size
+	sdescriptor[0] = size;
+	//descriptor type
+	sdescriptor[1] = USB_DESCTYPE_HUB;
+	sdescriptor[2] = descriptor->ports_count;
+	/// @fixme handling of endianness??
+	sdescriptor[3] = descriptor->hub_characteristics / 256;
+	sdescriptor[4] = descriptor->hub_characteristics % 256;
+	sdescriptor[5] = descriptor->pwr_on_2_good_time;
+	sdescriptor[6] = descriptor->current_requirement;
+
+	size_t i;
+	for (i = 0; i < var_size; ++i) {
+		sdescriptor[7 + i] = descriptor->devices_removable[i];
+	}
+	for (i = 0; i < var_size; ++i) {
+		sdescriptor[7 + var_size + i] = 255;
+	}
+}
+
+
+/**
+ * create deserialized desriptor structure out of serialized descriptor
+ *
+ * The serialized descriptor must be proper usb hub descriptor,
+ * otherwise an eerror might occur.
+ *
+ * @param sdescriptor serialized descriptor
+ * @return newly created deserialized descriptor pointer
+ */
+usb_hub_descriptor_t * usb_create_deserialized_hub_desriptor(
 void * serialized_descriptor) {
 	uint8_t * sdescriptor = serialized_descriptor;
 
@@ -94,24 +130,34 @@ void * serialized_descriptor) {
 	}
 
 	usb_hub_descriptor_t * result = malloc(sizeof(usb_hub_descriptor_t));
-	
-
-	result->ports_count = sdescriptor[2];
-	/// @fixme handling of endianness??
-	result->hub_characteristics = sdescriptor[4] + 256 * sdescriptor[3];
-	result->pwr_on_2_good_time = sdescriptor[5];
-	result->current_requirement = sdescriptor[6];
-	size_t var_size = (result->ports_count+7) / 8;
-	result->devices_removable = (uint8_t*) malloc(var_size);
-
-	size_t i;
-	for (i = 0; i < var_size; ++i) {
-		result->devices_removable[i] = sdescriptor[7 + i];
-	}
+	if(result)
+		usb_deserialize_hub_desriptor(serialized_descriptor,result);
 	return result;
 }
 
+/**
+ * deserialize descriptor into given pointer
+ * 
+ * @param serialized_descriptor
+ * @param descriptor
+ * @return
+ */
+void usb_deserialize_hub_desriptor(
+void * serialized_descriptor, usb_hub_descriptor_t * descriptor) {
+	uint8_t * sdescriptor = serialized_descriptor;
+	descriptor->ports_count = sdescriptor[2];
+	/// @fixme handling of endianness??
+	descriptor->hub_characteristics = sdescriptor[4] + 256 * sdescriptor[3];
+	descriptor->pwr_on_2_good_time = sdescriptor[5];
+	descriptor->current_requirement = sdescriptor[6];
+	size_t var_size = (descriptor->ports_count+7) / 8;
+	//descriptor->devices_removable = (uint8_t*) malloc(var_size);
 
+	size_t i;
+	for (i = 0; i < var_size; ++i) {
+		descriptor->devices_removable[i] = sdescriptor[7 + i];
+	}
+}
 
 /**
  * @}
