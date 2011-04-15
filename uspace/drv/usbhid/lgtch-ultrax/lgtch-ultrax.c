@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Lubos Slovak
+ * Copyright (c) 2011 Lubos Slovak, Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,44 +29,73 @@
 /** @addtogroup drvusbhid
  * @{
  */
-/** @file
- * USB HID subdriver mappings.
+/**
+ * @file
+ * USB Logitech UltraX Keyboard sample driver.
  */
 
-#ifndef USB_HID_SUBDRIVERS_H_
-#define USB_HID_SUBDRIVERS_H_
 
-#include "usbhid.h"
-#include "kbd/kbddev.h"
+#include "lgtch-ultrax.h"
+#include "../usbhid.h"
 
-/*----------------------------------------------------------------------------*/
+#include <usb/classes/hidparser.h>
+#include <usb/debug.h>
+#include <errno.h>
+#include <str_error.h>
 
-typedef struct usb_hid_subdriver_usage {
-	int usage_page;
-	int usage;
-} usb_hid_subdriver_usage_t;
+#define NAME "lgtch-ultrax"
 
 /*----------------------------------------------------------------------------*/
 
-/* TODO: This mapping must contain some other information to get the proper
- *       interface.
- */
-typedef struct usb_hid_subdriver_mapping {
-	const usb_hid_subdriver_usage_t *usage_path;
-	int report_id;
-	int compare;
-	uint16_t vendor_id;
-	uint16_t product_id;
-	usb_hid_subdriver_t subdriver;
-} usb_hid_subdriver_mapping_t;
+static void usb_lgtch_process_keycodes(const uint8_t *key_codes, size_t count,
+    uint8_t report_id, void *arg);
+
+static const usb_hid_report_in_callbacks_t usb_lgtch_parser_callbacks = {
+	.keyboard = usb_lgtch_process_keycodes
+};
 
 /*----------------------------------------------------------------------------*/
 
-extern const usb_hid_subdriver_mapping_t usb_hid_subdrivers[];
+static void usb_lgtch_process_keycodes(const uint8_t *key_codes, size_t count,
+    uint8_t report_id, void *arg)
+{
+	// TODO: checks
+	
+	usb_log_debug(NAME " Got keys from parser (report id: %u): %s\n", 
+	    report_id, usb_debug_str_buffer(key_codes, count, 0));
+}
 
 /*----------------------------------------------------------------------------*/
 
-#endif /* USB_HID_SUBDRIVERS_H_ */
+bool usb_lgtch_polling_callback(struct usb_hid_dev *hid_dev, 
+    uint8_t *buffer, size_t buffer_size)
+{
+	// TODO: checks
+	
+	usb_log_debug(NAME " usb_lgtch_polling_callback(%p, %p, %zu)\n",
+	    hid_dev, buffer, buffer_size);
+
+	usb_log_debug(NAME " Calling usb_hid_parse_report() with "
+	    "buffer %s\n", usb_debug_str_buffer(buffer, buffer_size, 0));
+	
+	usb_hid_report_path_t *path = usb_hid_report_path();
+	usb_hid_report_path_append_item(path, 0xc, 0);
+	usb_hid_report_path_set_report_id(path, 1);
+	
+	int rc = usb_hid_parse_report(hid_dev->parser, buffer,
+	    buffer_size, path, 
+	    USB_HID_PATH_COMPARE_END | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY, 
+	    &usb_lgtch_parser_callbacks, hid_dev);
+
+	usb_hid_report_path_free(path);
+	
+	if (rc != EOK) {
+		usb_log_warning("Error in usb_hid_boot_keyboard_input_report():"
+		    "%s\n", str_error(rc));
+	}
+	
+	return true;
+}
 
 /**
  * @}
