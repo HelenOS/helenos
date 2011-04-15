@@ -104,7 +104,7 @@ int usb_hub_add_device(usb_device_t * usb_dev) {
 		return opResult;
 	}
 
-	usb_pipe_start_session(hub_info->control_pipe);
+	//usb_pipe_start_session(hub_info->control_pipe);
 	//set hub configuration
 	opResult = usb_hub_set_configuration(hub_info);
 	if (opResult != EOK) {
@@ -121,7 +121,7 @@ int usb_hub_add_device(usb_device_t * usb_dev) {
 		free(hub_info);
 		return opResult;
 	}
-	usb_pipe_end_session(hub_info->control_pipe);
+	//usb_pipe_end_session(hub_info->control_pipe);
 
 	/// \TODO what is this?
 	usb_log_debug("Creating `hub' function.\n");
@@ -234,7 +234,8 @@ static int usb_hub_process_hub_specific_info(usb_hub_info_t * hub_info) {
 		return opResult;
 	}
 	usb_log_debug2("deserializing descriptor\n");
-	descriptor = usb_deserialize_hub_desriptor(serialized_descriptor);
+	descriptor = usb_create_deserialized_hub_desriptor(
+	    serialized_descriptor);
 	if (descriptor == NULL) {
 		usb_log_warning("could not deserialize descriptor \n");
 		return opResult;
@@ -258,7 +259,7 @@ static int usb_hub_process_hub_specific_info(usb_hub_info_t * hub_info) {
 	}
 	usb_log_debug2("freeing data\n");
 	free(serialized_descriptor);
-	free(descriptor->devices_removable);
+	//free(descriptor->devices_removable);
 	free(descriptor);
 	return EOK;
 }
@@ -320,15 +321,9 @@ static int usb_hub_start_hub_fibril(usb_hub_info_t * hub_info){
 	 * FIXME: with some proper locking over pipes and session
 	 * auto destruction, this could work better.
 	 */
-	int rc = usb_pipe_start_session(hub_info->control_pipe);
+	int rc = usb_hc_connection_open(&hub_info->connection);
 	if (rc != EOK) {
-		usb_log_error("Failed to start session on control pipe: %s.\n",
-		    str_error(rc));
-		return rc;
-	}
-	rc = usb_hc_connection_open(&hub_info->connection);
-	if (rc != EOK) {
-		usb_pipe_end_session(hub_info->control_pipe);
+		//usb_pipe_end_session(hub_info->control_pipe);
 		usb_log_error("Failed to open connection to HC: %s.\n",
 		    str_error(rc));
 		return rc;
