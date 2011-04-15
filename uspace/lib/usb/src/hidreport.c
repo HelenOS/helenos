@@ -184,9 +184,9 @@ static int usb_hid_get_report_descriptor(usb_device_t *dev,
 /*----------------------------------------------------------------------------*/
 
 int usb_hid_process_report_descriptor(usb_device_t *dev, 
-    usb_hid_report_parser_t *parser)
+    usb_hid_report_t *report)
 {
-	if (dev == NULL || parser == NULL) {
+	if (dev == NULL || report == NULL) {
 		usb_log_error("Failed to process Report descriptor: wrong "
 		    "parameters given.\n");
 		return EINVAL;
@@ -209,7 +209,7 @@ int usb_hid_process_report_descriptor(usb_device_t *dev,
 	
 	assert(report_desc != NULL);
 	
-	rc = usb_hid_parse_report_descriptor(parser, report_desc, report_size);
+	rc = usb_hid_parse_report_descriptor(report, report_desc, report_size);
 	if (rc != EOK) {
 		usb_log_error("Problem parsing Report descriptor: %s.\n",
 		    str_error(rc));
@@ -217,7 +217,7 @@ int usb_hid_process_report_descriptor(usb_device_t *dev,
 		return rc;
 	}
 	
-	usb_hid_descriptor_print(parser);
+	usb_hid_descriptor_print(report);
 	free(report_desc);
 	
 	return EOK;

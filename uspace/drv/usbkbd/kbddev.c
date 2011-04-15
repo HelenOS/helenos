@@ -289,9 +289,8 @@ static void usb_kbd_set_led(usb_kbd_t *kbd_dev)
 	
 	usb_log_debug("Creating output report.\n");
 	
-	int rc = usb_hid_report_output_translate(kbd_dev->parser, 
-	    kbd_dev->led_path, USB_HID_PATH_COMPARE_END, kbd_dev->output_buffer, 
-	    kbd_dev->output_size, kbd_dev->led_data, kbd_dev->led_output_size);
+	int rc = usb_hid_report_output_translate(kbd_dev->parser, 0,
+	    kbd_dev->output_buffer, kbd_dev->output_size);
 	
 	if (rc != EOK) {
 		usb_log_warning("Error translating LED output to output report"
@@ -611,8 +610,7 @@ static void usb_kbd_process_data(usb_kbd_t *kbd_dev,
 	usb_hid_report_path_t *path = usb_hid_report_path();
 	usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_KEYBOARD, 0);
 
-	int rc = usb_hid_parse_report(kbd_dev->parser, buffer,
-	    actual_size, path, USB_HID_PATH_COMPARE_STRICT, callbacks, kbd_dev);
+	int rc = usb_hid_parse_report(kbd_dev->parser, buffer, actual_size);
 
 	usb_hid_report_path_free (path);
 	
@@ -656,8 +654,8 @@ usb_kbd_t *usb_kbd_new(void)
 	
 	memset(kbd_dev, 0, sizeof(usb_kbd_t));
 	
-	kbd_dev->parser = (usb_hid_report_parser_t *)(malloc(sizeof(
-	    usb_hid_report_parser_t)));
+	kbd_dev->parser = (usb_hid_report_t *)(malloc(sizeof(
+	    usb_hid_report_t)));
 	if (kbd_dev->parser == NULL) {
 		usb_log_fatal("No memory!\n");
 		free(kbd_dev);
@@ -725,11 +723,11 @@ int usb_kbd_init(usb_kbd_t *kbd_dev, usb_device_t *dev)
 	kbd_dev->usb_dev = dev;
 	
 	/* Initialize the report parser. */
-	rc = usb_hid_parser_init(kbd_dev->parser);
-	if (rc != EOK) {
-		usb_log_error("Failed to initialize report parser.\n");
-		return rc;
-	}
+	//rc = usb_hid_parser_init(kbd_dev->parser);
+	//if (rc != EOK) {
+	//	usb_log_error("Failed to initialize report parser.\n");
+	//	return rc;
+	//}
 	
 	/* Get the report descriptor and parse it. */
 	rc = usb_hid_process_report_descriptor(kbd_dev->usb_dev, 
@@ -761,7 +759,7 @@ int usb_kbd_init(usb_kbd_t *kbd_dev, usb_device_t *dev)
 	usb_hid_report_path_t *path = usb_hid_report_path();
 	usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_KEYBOARD, 0);
 	kbd_dev->key_count = usb_hid_report_input_length(
-	    kbd_dev->parser, path, USB_HID_PATH_COMPARE_STRICT);
+	    kbd_dev->parser, path, USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY);
 	usb_hid_report_path_free (path);
 	
 	usb_log_debug("Size of the input report: %zu\n", kbd_dev->key_count);
@@ -923,7 +921,7 @@ void usb_kbd_free(usb_kbd_t **kbd_dev)
 	
 	// destroy the parser
 	if ((*kbd_dev)->parser != NULL) {
-		usb_hid_free_report_parser((*kbd_dev)->parser);
+		usb_hid_free_report((*kbd_dev)->parser);
 	}
 	
 	// free the output buffer
