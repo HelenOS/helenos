@@ -239,9 +239,9 @@ void batch_bulk_in(usb_transfer_batch_t *instance)
 void batch_bulk_out(usb_transfer_batch_t *instance)
 {
 	assert(instance);
-	instance->next_step = usb_transfer_batch_call_in_and_dispose;
+	instance->next_step = usb_transfer_batch_call_out_and_dispose;
 	batch_data(instance);
-	usb_log_debug("Batch(%p) BULK IN initialized.\n", instance);
+	usb_log_debug("Batch(%p) BULK OUT initialized.\n", instance);
 }
 /*----------------------------------------------------------------------------*/
 ed_t * batch_ed(usb_transfer_batch_t *instance)
