@@ -41,6 +41,7 @@ SOURCES = \
 	src/devpoll.c \
 	src/dp.c \
 	src/dump.c \
+	src/hidiface.c \
 	src/hidparser.c \
 	src/hub.c \
 	src/pipepriv.c \
