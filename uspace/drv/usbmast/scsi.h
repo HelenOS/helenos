@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,73 +25,30 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup drvusbohci
+
+/** @addtogroup drvusbmast
  * @{
  */
 /** @file
- * @brief OHCI driver
+ * SCSI related structures.
  */
-#include "utils/malloc32.h"
-#include "hcd_endpoint.h"
 
-static void hcd_ep_toggle_set(void *hcd_ep, int toggle)
-{
-	hcd_endpoint_t *instance = hcd_ep;
-	assert(instance);
-	assert(instance->ed);
-	ed_toggle_set(instance->ed, toggle);
-}
-static int hcd_ep_toggle_get(void *hcd_ep)
-{
-	hcd_endpoint_t *instance = hcd_ep;
-	assert(instance);
-	assert(instance->ed);
-	return ed_toggle_get(instance->ed);
-}
+#ifndef USB_USBMAST_SCSI_H_
+#define USB_USBMAST_SCSI_H_
 
+#include <sys/types.h>
+#include <usb/usb.h>
 
-hcd_endpoint_t * hcd_endpoint_assign(endpoint_t *ep)
-{
-	assert(ep);
-	hcd_endpoint_t *hcd_ep = malloc(sizeof(hcd_endpoint_t));
-	if (hcd_ep == NULL)
-		return NULL;
+typedef struct {
+	uint8_t op_code;
+	uint8_t lun_evpd;
+	uint8_t page_code;
+	uint16_t alloc_length;
+	uint8_t ctrl;
+} __attribute__((packed)) scsi_cmd_inquiry_t;
 
-	hcd_ep->ed = malloc32(sizeof(ed_t));
-	if (hcd_ep->ed == NULL) {
-		free(hcd_ep);
-		return NULL;
-	}
+#endif
 
-	hcd_ep->td = malloc32(sizeof(td_t));
-	if (hcd_ep->td == NULL) {
-		free32(hcd_ep->ed);
-		free(hcd_ep);
-		return NULL;
-	}
-
-	ed_init(hcd_ep->ed, ep);
-	ed_set_td(hcd_ep->ed, hcd_ep->td);
-	endpoint_set_hc_data(ep, hcd_ep, hcd_ep_toggle_get, hcd_ep_toggle_set);
-
-	return hcd_ep;
-}
-/*----------------------------------------------------------------------------*/
-hcd_endpoint_t * hcd_endpoint_get(endpoint_t *ep)
-{
-	assert(ep);
-	return ep->hc_data.data;
-}
-/*----------------------------------------------------------------------------*/
-void hcd_endpoint_clear(endpoint_t *ep)
-{
-	assert(ep);
-	hcd_endpoint_t *hcd_ep = ep->hc_data.data;
-	assert(hcd_ep);
-	free32(hcd_ep->ed);
-	free32(hcd_ep->td);
-	free(hcd_ep);
-}
 /**
  * @}
  */

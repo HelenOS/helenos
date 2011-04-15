@@ -160,6 +160,11 @@ bool batch_is_complete(usb_transfer_batch_t *instance)
 		if (instance->error != EOK) {
 			usb_log_debug("Batch(%p) found error TD(%d):%x.\n",
 			    instance, i, data->tds[i]->status);
+			/* Make sure TD queue is empty (one TD),
+			 * ED should be marked as halted */
+			data->ed->td_tail =
+			    (data->ed->td_head & ED_TDTAIL_PTR_MASK);
+			++i;
 			break;
 		}
 	}
@@ -168,6 +173,11 @@ bool batch_is_complete(usb_transfer_batch_t *instance)
 	hcd_endpoint_t *hcd_ep = hcd_endpoint_get(instance->ep);
 	assert(hcd_ep);
 	hcd_ep->td = data->tds[i];
+	/* Clear possible ED HALT */
+	data->ed->td_head &= ~ED_TDHEAD_HALTED_FLAG;
+	uint32_t pa = addr_to_phys(hcd_ep->td);
+	assert(pa == (data->ed->td_head & ED_TDHEAD_PTR_MASK));
+	assert(pa == (data->ed->td_tail & ED_TDTAIL_PTR_MASK));
 
 	return true;
 }

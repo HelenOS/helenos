@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,73 +25,61 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup drvusbohci
+
+/** @addtogroup drvusbmast
  * @{
  */
 /** @file
- * @brief OHCI driver
+ * USB mass storage commands.
  */
-#include "utils/malloc32.h"
-#include "hcd_endpoint.h"
 
-static void hcd_ep_toggle_set(void *hcd_ep, int toggle)
+#ifndef USB_USBMAST_CMDS_H_
+#define USB_USBMAST_CMDS_H_
+
+#include <sys/types.h>
+#include <usb/usb.h>
+
+typedef struct {
+	uint32_t dCBWSignature;
+	uint32_t dCBWTag;
+	uint32_t dCBWDataTransferLength;
+	uint8_t bmCBWFlags;
+	uint8_t bCBWLUN;
+	uint8_t bCBWBLength;
+	uint8_t CBWCB[16];
+} __attribute__((packed)) usb_massstor_cbw_t;
+
+typedef struct {
+	uint32_t dCSWSignature;
+	uint32_t dCSWTag;
+	uint32_t dCSWDataResidue;
+	uint8_t dCSWStatus;
+} __attribute__((packed)) usb_massstor_csw_t;
+
+static inline void usb_massstor_cbw_prepare(usb_massstor_cbw_t *cbw,
+    uint32_t tag, uint32_t transfer_length, usb_direction_t dir,
+    uint8_t lun, uint8_t cmd_len, uint8_t *cmd)
 {
-	hcd_endpoint_t *instance = hcd_ep;
-	assert(instance);
-	assert(instance->ed);
-	ed_toggle_set(instance->ed, toggle);
-}
-static int hcd_ep_toggle_get(void *hcd_ep)
-{
-	hcd_endpoint_t *instance = hcd_ep;
-	assert(instance);
-	assert(instance->ed);
-	return ed_toggle_get(instance->ed);
-}
+	cbw->dCBWSignature = uint32_host2usb(0x43425355);
+	cbw->dCBWTag = tag;
+	cbw->dCBWDataTransferLength = transfer_length;
 
-
-hcd_endpoint_t * hcd_endpoint_assign(endpoint_t *ep)
-{
-	assert(ep);
-	hcd_endpoint_t *hcd_ep = malloc(sizeof(hcd_endpoint_t));
-	if (hcd_ep == NULL)
-		return NULL;
-
-	hcd_ep->ed = malloc32(sizeof(ed_t));
-	if (hcd_ep->ed == NULL) {
-		free(hcd_ep);
-		return NULL;
+	cbw->bmCBWFlags = 0;
+	if (dir == USB_DIRECTION_IN) {
+		cbw->bmCBWFlags |= (1 << 7);
 	}
 
-	hcd_ep->td = malloc32(sizeof(td_t));
-	if (hcd_ep->td == NULL) {
-		free32(hcd_ep->ed);
-		free(hcd_ep);
-		return NULL;
-	}
+	/* Only lowest 4 bits. */
+	cbw->bCBWLUN = lun & 0x0F;
 
-	ed_init(hcd_ep->ed, ep);
-	ed_set_td(hcd_ep->ed, hcd_ep->td);
-	endpoint_set_hc_data(ep, hcd_ep, hcd_ep_toggle_get, hcd_ep_toggle_set);
+	/* Only lowest 5 bits. */
+	cbw->bCBWBLength = cmd_len & 0x1F;
 
-	return hcd_ep;
+	memcpy(cbw->CBWCB, cmd, cbw->bCBWBLength);
 }
-/*----------------------------------------------------------------------------*/
-hcd_endpoint_t * hcd_endpoint_get(endpoint_t *ep)
-{
-	assert(ep);
-	return ep->hc_data.data;
-}
-/*----------------------------------------------------------------------------*/
-void hcd_endpoint_clear(endpoint_t *ep)
-{
-	assert(ep);
-	hcd_endpoint_t *hcd_ep = ep->hc_data.data;
-	assert(hcd_ep);
-	free32(hcd_ep->ed);
-	free32(hcd_ep->td);
-	free(hcd_ep);
-}
+
+#endif
+
 /**
  * @}
  */

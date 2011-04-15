@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Jan Vesely
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,73 +25,44 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/** @addtogroup drvusbohci
+
+/** @addtogroup libusb
  * @{
  */
 /** @file
- * @brief OHCI driver
+ * USB mass storage related functions and constants.
  */
-#include "utils/malloc32.h"
-#include "hcd_endpoint.h"
+#ifndef LIBUSB_CLASS_MASSSTOR_H_
+#define LIBUSB_CLASS_MASSSTOR_H_
 
-static void hcd_ep_toggle_set(void *hcd_ep, int toggle)
-{
-	hcd_endpoint_t *instance = hcd_ep;
-	assert(instance);
-	assert(instance->ed);
-	ed_toggle_set(instance->ed, toggle);
-}
-static int hcd_ep_toggle_get(void *hcd_ep)
-{
-	hcd_endpoint_t *instance = hcd_ep;
-	assert(instance);
-	assert(instance->ed);
-	return ed_toggle_get(instance->ed);
-}
+#include <sys/types.h>
 
+/** USB mass storage subclasses. */
+typedef enum {
+	USB_MASSSTOR_SUBCLASS_RBC = 0x01,
+	/** Also known as MMC-5. */
+	USB_MASSSTOR_SUBCLASS_ATAPI = 0x02,
+	USB_MASSSTOR_SUBCLASS_UFI = 0x04,
+	USB_MASSSTOR_SUBCLASS_SCSI = 0x06,
+	USB_MASSSTOR_SUBCLASS_LSDFS = 0x07,
+	USB_MASSSTOR_SUBCLASS_IEEE1667 = 0x08,
+	USB_MASSSTOR_SUBCLASS_VENDOR = 0xFF
+} usb_massstor_subclass_t;
 
-hcd_endpoint_t * hcd_endpoint_assign(endpoint_t *ep)
-{
-	assert(ep);
-	hcd_endpoint_t *hcd_ep = malloc(sizeof(hcd_endpoint_t));
-	if (hcd_ep == NULL)
-		return NULL;
+/** USB mass storage interface protocols. */
+typedef enum {
+	/** CBI transport with command completion interrupt. */
+	USB_MASSSTOR_PROTOCOL_CBI_CC = 0x00,
+	/** CBI transport with no command completion interrupt. */
+	USB_MASSSTOR_PROTOCOL_CBI = 0x01,
+	/** Bulk only transport. */
+	USB_MASSSTOR_PROTOCOL_BBB = 0x50,
+	/** USB attached SCSI. */
+	USB_MASSSTOR_PROTOCOL_UAS = 0x62,
+	USB_MASSSTOR_PROTOCOL_VENDOR = 0xFF
+} usb_massstor_protocol_t;
 
-	hcd_ep->ed = malloc32(sizeof(ed_t));
-	if (hcd_ep->ed == NULL) {
-		free(hcd_ep);
-		return NULL;
-	}
-
-	hcd_ep->td = malloc32(sizeof(td_t));
-	if (hcd_ep->td == NULL) {
-		free32(hcd_ep->ed);
-		free(hcd_ep);
-		return NULL;
-	}
-
-	ed_init(hcd_ep->ed, ep);
-	ed_set_td(hcd_ep->ed, hcd_ep->td);
-	endpoint_set_hc_data(ep, hcd_ep, hcd_ep_toggle_get, hcd_ep_toggle_set);
-
-	return hcd_ep;
-}
-/*----------------------------------------------------------------------------*/
-hcd_endpoint_t * hcd_endpoint_get(endpoint_t *ep)
-{
-	assert(ep);
-	return ep->hc_data.data;
-}
-/*----------------------------------------------------------------------------*/
-void hcd_endpoint_clear(endpoint_t *ep)
-{
-	assert(ep);
-	hcd_endpoint_t *hcd_ep = ep->hc_data.data;
-	assert(hcd_ep);
-	free32(hcd_ep->ed);
-	free32(hcd_ep->td);
-	free(hcd_ep);
-}
+#endif
 /**
  * @}
  */

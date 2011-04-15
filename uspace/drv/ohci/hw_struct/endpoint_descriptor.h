@@ -72,6 +72,7 @@ typedef struct ed {
 #define ED_TDHEAD_ZERO_MASK (0x3)
 #define ED_TDHEAD_ZERO_SHIFT (2)
 #define ED_TDHEAD_TOGGLE_CARRY (0x2)
+#define ED_TDHEAD_HALTED_FLAG (0x1)
 
 	volatile uint32_t next;
 #define ED_NEXT_PTR_MASK (0xfffffff0)
@@ -104,6 +105,25 @@ static inline void ed_append_ed(ed_t *instance, ed_t *next)
 	uint32_t pa = addr_to_phys(next);
 	assert((pa & ED_NEXT_PTR_MASK) << ED_NEXT_PTR_SHIFT == pa);
 	instance->next = pa;
+}
+
+static inline int ed_toggle_get(ed_t *instance)
+{
+	assert(instance);
+	return (instance->td_head & ED_TDHEAD_TOGGLE_CARRY) ? 1 : 0;
+}
+
+static inline void ed_toggle_set(ed_t *instance, int toggle)
+{
+	assert(instance);
+	assert(toggle == 0 || toggle == 1);
+	if (toggle == 1) {
+		instance->td_head |= ED_TDHEAD_TOGGLE_CARRY;
+	} else {
+		/* clear halted flag when reseting toggle */
+		instance->td_head &= ~ED_TDHEAD_TOGGLE_CARRY;
+		instance->td_head &= ~ED_TDHEAD_HALTED_FLAG;
+	}
 }
 #endif
 /**
