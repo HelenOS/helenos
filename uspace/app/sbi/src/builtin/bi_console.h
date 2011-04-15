@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Martin Decky
+ * Copyright (c) 2010 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,20 +26,12 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup abs32le
- * @{
- */
-/** @file
- */
+#ifndef BI_CONSOLE_H_
+#define BI_CONSOLE_H_
 
-#ifndef KERN_abs32le_MEMSTR_H_
-#define KERN_abs32le_MEMSTR_H_
+#include "../mytypes.h"
 
-#define memcpy(dst, src, cnt)   _memcpy((dst), (src), (cnt))
-#define memsetb(dst, cnt, val)  _memsetb((dst), (cnt), (val))
-#define memsetw(dst, cnt, val)  _memsetw((dst), (cnt), (val))
+void bi_console_declare(builtin_t *bi);
+void bi_console_bind(builtin_t *bi);
 
 #endif
-
-/** @}
- */

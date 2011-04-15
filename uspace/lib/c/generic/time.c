@@ -33,23 +33,17 @@
  */
 
 #include <sys/time.h>
-#include <unistd.h>
-#include <ipc/ipc.h>
-#include <stdio.h>
+#include <time.h>
+#include <bool.h>
 #include <arch/barrier.h>
-#include <unistd.h>
-#include <atomic.h>
-#include <sysinfo.h>
-#include <ipc/services.h>
-#include <libc.h>
-
+#include <macros.h>
+#include <errno.h>
 #include <sysinfo.h>
 #include <as.h>
 #include <ddi.h>
+#include <libc.h>
 
-#include <time.h>
-
-/* Pointers to public variables with time */
+/** Pointer to kernel shared variables with time */
 struct {
 	volatile sysarg_t seconds1;
 	volatile sysarg_t useconds;
@@ -58,13 +52,15 @@ struct {
 
 /** Add microseconds to given timeval.
  *
- * @param tv		Destination timeval.
- * @param usecs		Number of microseconds to add.
+ * @param tv    Destination timeval.
+ * @param usecs Number of microseconds to add.
+ *
  */
 void tv_add(struct timeval *tv, suseconds_t usecs)
 {
 	tv->tv_sec += usecs / 1000000;
 	tv->tv_usec += usecs % 1000000;
+	
 	if (tv->tv_usec > 1000000) {
 		tv->tv_sec++;
 		tv->tv_usec -= 1000000;
@@ -73,138 +69,160 @@ void tv_add(struct timeval *tv, suseconds_t usecs)
 
 /** Subtract two timevals.
  *
- * @param tv1		First timeval.
- * @param tv2		Second timeval.
+ * @param tv1 First timeval.
+ * @param tv2 Second timeval.
  *
- * @return		Return difference between tv1 and tv2 (tv1 - tv2) in
- * 			microseconds.
+ * @return Difference between tv1 and tv2 (tv1 - tv2) in
+ *         microseconds.
+ *
  */
 suseconds_t tv_sub(struct timeval *tv1, struct timeval *tv2)
 {
-	suseconds_t result;
-
-	result = tv1->tv_usec - tv2->tv_usec;
-	result += (tv1->tv_sec - tv2->tv_sec) * 1000000;
-
-	return result;
+	return (tv1->tv_usec - tv2->tv_usec) +
+	    ((tv1->tv_sec - tv2->tv_sec) * 1000000);
 }
 
 /** Decide if one timeval is greater than the other.
  *
- * @param t1		First timeval.
- * @param t2		Second timeval.
+ * @param t1 First timeval.
+ * @param t2 Second timeval.
  *
- * @return		Return true tv1 is greater than tv2. Otherwise return
- * 			false.
+ * @return True if tv1 is greater than tv2.
+ * @return False otherwise.
+ *
  */
 int tv_gt(struct timeval *tv1, struct timeval *tv2)
 {
 	if (tv1->tv_sec > tv2->tv_sec)
-		return 1;
-	if (tv1->tv_sec == tv2->tv_sec && tv1->tv_usec > tv2->tv_usec)
-		return 1;
-	return 0;
+		return true;
+	
+	if ((tv1->tv_sec == tv2->tv_sec) && (tv1->tv_usec > tv2->tv_usec))
+		return true;
+	
+	return false;
 }
 
 /** Decide if one timeval is greater than or equal to the other.
  *
- * @param tv1		First timeval.
- * @param tv2		Second timeval.
+ * @param tv1 First timeval.
+ * @param tv2 Second timeval.
  *
- * @return		Return true if tv1 is greater than or equal to tv2.
- * 			Otherwise return false.
+ * @return True if tv1 is greater than or equal to tv2.
+ * @return False otherwise.
+ *
  */
 int tv_gteq(struct timeval *tv1, struct timeval *tv2)
 {
 	if (tv1->tv_sec > tv2->tv_sec)
-		return 1;
-	if (tv1->tv_sec == tv2->tv_sec && tv1->tv_usec >= tv2->tv_usec)
-		return 1;
-	return 0;
+		return true;
+	
+	if ((tv1->tv_sec == tv2->tv_sec) && (tv1->tv_usec >= tv2->tv_usec))
+		return true;
+	
+	return false;
 }
 
-
-/** POSIX gettimeofday
+/** Get time of day
  *
- * The time variables are memory mapped(RO) from kernel, which updates
- * them periodically. As it is impossible to read 2 values atomically, we
- * use a trick: First read a seconds, then read microseconds, then
- * read seconds again. If a second elapsed in the meantime, set it to zero. 
- * This provides assurance, that at least the
- * sequence of subsequent gettimeofday calls is ordered.
+ * The time variables are memory mapped (read-only) from kernel which
+ * updates them periodically.
+ *
+ * As it is impossible to read 2 values atomically, we use a trick:
+ * First we read the seconds, then we read the microseconds, then we
+ * read the seconds again. If a second elapsed in the meantime, set
+ * the microseconds to zero.
+ *
+ * This assures that the values returned by two subsequent calls
+ * to gettimeofday() are monotonous.
+ *
  */
 int gettimeofday(struct timeval *tv, struct timezone *tz)
 {
-	void *mapping;
-	sysarg_t s1, s2;
-	int rights;
-	int res;
-
-	if (!ktime) {
-		mapping = as_get_mappable_page(PAGE_SIZE);
-		/* Get the mapping of kernel clock */
-		res = ipc_share_in_start_1_1(PHONE_NS, mapping, PAGE_SIZE,
-		    SERVICE_MEM_REALTIME, &rights);
-		if (res) {
-			printf("Failed to initialize timeofday memarea\n");
-			_exit(1);
+	if (ktime == NULL) {
+		uintptr_t faddr;
+		int rc = sysinfo_get_value("clock.faddr", &faddr);
+		if (rc != EOK) {
+			errno = rc;
+			return -1;
 		}
-		if (!(rights & AS_AREA_READ)) {
-			printf("Received bad rights on time area: %X\n",
-			    rights);
-			as_area_destroy(mapping);
-			_exit(1);
+		
+		void *addr = as_get_mappable_page(PAGE_SIZE);
+		if (addr == NULL) {
+			errno = ENOMEM;
+			return -1;
 		}
-		ktime = mapping;
+		
+		rc = physmem_map((void *) faddr, addr, 1,
+		    AS_AREA_READ | AS_AREA_CACHEABLE);
+		if (rc != EOK) {
+			as_area_destroy(addr);
+			errno = rc;
+			return -1;
+		}
+		
+		ktime = addr;
 	}
+	
 	if (tz) {
 		tz->tz_minuteswest = 0;
 		tz->tz_dsttime = DST_NONE;
 	}
-
-	s2 = ktime->seconds2;
+	
+	sysarg_t s2 = ktime->seconds2;
+	
 	read_barrier();
 	tv->tv_usec = ktime->useconds;
+	
 	read_barrier();
-	s1 = ktime->seconds1;
+	sysarg_t s1 = ktime->seconds1;
+	
 	if (s1 != s2) {
+		tv->tv_sec = max(s1, s2);
 		tv->tv_usec = 0;
-		tv->tv_sec = s1 > s2 ? s1 : s2;
 	} else
 		tv->tv_sec = s1;
-
+	
 	return 0;
 }
 
 time_t time(time_t *tloc)
 {
 	struct timeval tv;
-
 	if (gettimeofday(&tv, NULL))
 		return (time_t) -1;
+	
 	if (tloc)
 		*tloc = tv.tv_sec;
+	
 	return tv.tv_sec;
 }
 
-/** Wait unconditionally for specified number of microseconds */
+/** Wait unconditionally for specified number of microseconds
+ *
+ */
 int usleep(useconds_t usec)
 {
 	(void) __SYSCALL1(SYS_THREAD_USLEEP, usec);
 	return 0;
 }
 
-/** Wait unconditionally for specified number of seconds */
+/** Wait unconditionally for specified number of seconds
+ *
+ */
 unsigned int sleep(unsigned int sec)
 {
-	/* Sleep in 1000 second steps to support
-	   full argument range */
+	/*
+	 * Sleep in 1000 second steps to support
+	 * full argument range
+	 */
+	
 	while (sec > 0) {
 		unsigned int period = (sec > 1000) ? 1000 : sec;
-	
+		
 		usleep(period * 1000000);
 		sec -= period;
 	}
+	
 	return 0;
 }
 

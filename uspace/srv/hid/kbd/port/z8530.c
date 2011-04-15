@@ -34,7 +34,6 @@
  * @brief Z8530 keyboard port driver.
  */
 
-#include <ipc/ipc.h>
 #include <ipc/irc.h>
 #include <async.h>
 #include <sysinfo.h>
@@ -98,7 +97,7 @@ int z8530_port_init(void)
 	z8530_cmds[3].addr = (void *) kaddr + CHAN_A_DATA;
 	
 	async_set_interrupt_received(z8530_irq_handler);
-	ipc_register_irq(inr, device_assign_devno(), inr, &z8530_kbd);
+	register_irq(inr, device_assign_devno(), inr, &z8530_kbd);
 	
 	return 0;
 }
@@ -108,8 +107,8 @@ static void z8530_irq_handler(ipc_callid_t iid, ipc_call_t *call)
 	int scan_code = IPC_GET_ARG2(*call);
 	kbd_push_scancode(scan_code);
 	
-	if (cir_service)
-		async_msg_1(cir_phone, IRC_CLEAR_INTERRUPT,
+	if (irc_service)
+		async_msg_1(irc_phone, IRC_CLEAR_INTERRUPT,
 		    IPC_GET_IMETHOD(*call));
 }
 

@@ -8,21 +8,23 @@ PHDRS {
 
 SECTIONS {
 	. = 0x1000 + SIZEOF_HEADERS;
-
+	
 	.init : {
 		*(.init);
 	} :text
+	
 	.text : {
-		*(.text);
-		*(.rodata*);
+		*(.text .text.*);
+		*(.rodata .rodata.*);
 	} :text
-
+	
 	. = . + 0x1000;
-
+	
 	.data : {
 		*(.data);
 		*(.sdata);
 	} :data
+	
 	.tdata : {
 		_tdata_start = .;
 		*(.tdata);
@@ -31,18 +33,16 @@ SECTIONS {
 		*(.tbss);
 		_tbss_end = .;
 	} :data
+	
 	_tls_alignment = ALIGNOF(.tdata);
+	
 	.bss : {
 		*(.sbss);
 		*(COMMON);
 		*(.bss);
 	} :data
-
-	. = ALIGN(0x1000);
-	_heap = .;
 	
 	/DISCARD/ : {
 		*(*);
 	}
-
 }

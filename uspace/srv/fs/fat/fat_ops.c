@@ -41,7 +41,6 @@
 #include "../../vfs/vfs.h"
 #include <libfs.h>
 #include <libblock.h>
-#include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <ipc/devmap.h>
 #include <macros.h>
@@ -325,6 +324,7 @@ static int fat_node_get_core(fat_node_t **nodepp, fat_idx_t *idxp)
 		rc = fat_clusters_get(&clusters, bs, idxp->devmap_handle,
 		    uint16_t_le2host(d->firstc));
 		if (rc != EOK) {
+			(void) block_put(b);
 			(void) fat_node_put(FS_NODE(nodep));
 			return rc;
 		}
@@ -721,8 +721,8 @@ hit:
 		if ((fat_classify_dentry(d) == FAT_DENTRY_LAST) ||
 		    (str_cmp((char *) d->name, FAT_NAME_DOT)) == 0) {
 			memset(d, 0, sizeof(fat_dentry_t));
-			str_cpy((char *) d->name, 8, FAT_NAME_DOT);
-			str_cpy((char *) d->ext, 3, FAT_EXT_PAD);
+			memcpy(d->name, FAT_NAME_DOT, FAT_NAME_LEN);
+			memcpy(d->ext, FAT_EXT_PAD, FAT_EXT_LEN);
 			d->attr = FAT_ATTR_SUBDIR;
 			d->firstc = host2uint16_t_le(childp->firstc);
 			/* TODO: initialize also the date/time members. */
@@ -731,8 +731,8 @@ hit:
 		if ((fat_classify_dentry(d) == FAT_DENTRY_LAST) ||
 		    (str_cmp((char *) d->name, FAT_NAME_DOT_DOT) == 0)) {
 			memset(d, 0, sizeof(fat_dentry_t));
-			str_cpy((char *) d->name, 8, FAT_NAME_DOT_DOT);
-			str_cpy((char *) d->ext, 3, FAT_EXT_PAD);
+			memcpy(d->name, FAT_NAME_DOT_DOT, FAT_NAME_LEN);
+			memcpy(d->ext, FAT_EXT_PAD, FAT_EXT_LEN);
 			d->attr = FAT_ATTR_SUBDIR;
 			d->firstc = (parentp->firstc == FAT_CLST_ROOT) ?
 			    host2uint16_t_le(FAT_CLST_RES0) :
@@ -811,6 +811,7 @@ int fat_unlink(fs_node_t *pfn, fs_node_t *cfn, const char *nm)
 	childp->idx->pdi = 0;
 	fibril_mutex_unlock(&childp->idx->lock);
 	childp->lnkcnt = 0;
+	childp->refcnt++;	/* keep the node in memory until destroyed */
 	childp->dirty = true;
 	fibril_mutex_unlock(&childp->lock);
 	fibril_mutex_unlock(&parentp->lock);
@@ -954,7 +955,7 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 	int rc = async_data_write_accept((void **) &opts, true, 0, 0, 0, NULL);
 	
 	if (rc != EOK) {
-		ipc_answer_0(rid, rc);
+		async_answer_0(rid, rc);
 		return;
 	}
 
@@ -969,7 +970,7 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 	/* initialize libblock */
 	rc = block_init(devmap_handle, BS_SIZE);
 	if (rc != EOK) {
-		ipc_answer_0(rid, rc);
+		async_answer_0(rid, rc);
 		return;
 	}
 
@@ -977,7 +978,7 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 	rc = block_bb_read(devmap_handle, BS_BLOCK);
 	if (rc != EOK) {
 		block_fini(devmap_handle);
-		ipc_answer_0(rid, rc);
+		async_answer_0(rid, rc);
 		return;
 	}
 
@@ -986,7 +987,7 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 	
 	if (BPS(bs) != BS_SIZE) {
 		block_fini(devmap_handle);
-		ipc_answer_0(rid, ENOTSUP);
+		async_answer_0(rid, ENOTSUP);
 		return;
 	}
 
@@ -994,7 +995,7 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 	rc = block_cache_init(devmap_handle, BPS(bs), 0 /* XXX */, cmode);
 	if (rc != EOK) {
 		block_fini(devmap_handle);
-		ipc_answer_0(rid, rc);
+		async_answer_0(rid, rc);
 		return;
 	}
 
@@ -1003,7 +1004,7 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 	if (rc != EOK) {
 		(void) block_cache_fini(devmap_handle);
 		block_fini(devmap_handle);
-		ipc_answer_0(rid, rc);
+		async_answer_0(rid, rc);
 		return;
 	}
 
@@ -1011,7 +1012,7 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 	if (rc != EOK) {
 		(void) block_cache_fini(devmap_handle);
 		block_fini(devmap_handle);
-		ipc_answer_0(rid, rc);
+		async_answer_0(rid, rc);
 		return;
 	}
 
@@ -1021,7 +1022,7 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 		(void) block_cache_fini(devmap_handle);
 		block_fini(devmap_handle);
 		fat_idx_fini_by_devmap_handle(devmap_handle);
-		ipc_answer_0(rid, ENOMEM);
+		async_answer_0(rid, ENOMEM);
 		return;
 	}
 	fs_node_initialize(rfn);
@@ -1031,7 +1032,7 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 		(void) block_cache_fini(devmap_handle);
 		block_fini(devmap_handle);
 		fat_idx_fini_by_devmap_handle(devmap_handle);
-		ipc_answer_0(rid, ENOMEM);
+		async_answer_0(rid, ENOMEM);
 		return;
 	}
 	fat_node_initialize(rootp);
@@ -1043,7 +1044,7 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 		(void) block_cache_fini(devmap_handle);
 		block_fini(devmap_handle);
 		fat_idx_fini_by_devmap_handle(devmap_handle);
-		ipc_answer_0(rid, ENOMEM);
+		async_answer_0(rid, ENOMEM);
 		return;
 	}
 	assert(ridxp->index == 0);
@@ -1061,7 +1062,7 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 	
 	fibril_mutex_unlock(&ridxp->lock);
 
-	ipc_answer_3(rid, EOK, ridxp->index, rootp->size, rootp->lnkcnt);
+	async_answer_3(rid, EOK, ridxp->index, rootp->size, rootp->lnkcnt);
 }
 
 void fat_mount(ipc_callid_t rid, ipc_call_t *request)
@@ -1078,7 +1079,7 @@ void fat_unmounted(ipc_callid_t rid, ipc_call_t *request)
 
 	rc = fat_root_get(&fn, devmap_handle);
 	if (rc != EOK) {
-		ipc_answer_0(rid, rc);
+		async_answer_0(rid, rc);
 		return;
 	}
 	nodep = FAT_NODE(fn);
@@ -1089,7 +1090,7 @@ void fat_unmounted(ipc_callid_t rid, ipc_call_t *request)
 	 */
 	if (nodep->refcnt != 2) {
 		(void) fat_node_put(fn);
-		ipc_answer_0(rid, EBUSY);
+		async_answer_0(rid, EBUSY);
 		return;
 	}
 	
@@ -1109,7 +1110,7 @@ void fat_unmounted(ipc_callid_t rid, ipc_call_t *request)
 	(void) block_cache_fini(devmap_handle);
 	block_fini(devmap_handle);
 
-	ipc_answer_0(rid, EOK);
+	async_answer_0(rid, EOK);
 }
 
 void fat_unmount(ipc_callid_t rid, ipc_call_t *request)
@@ -1137,11 +1138,11 @@ void fat_read(ipc_callid_t rid, ipc_call_t *request)
 
 	rc = fat_node_get(&fn, devmap_handle, index);
 	if (rc != EOK) {
-		ipc_answer_0(rid, rc);
+		async_answer_0(rid, rc);
 		return;
 	}
 	if (!fn) {
-		ipc_answer_0(rid, ENOENT);
+		async_answer_0(rid, ENOENT);
 		return;
 	}
 	nodep = FAT_NODE(fn);
@@ -1150,8 +1151,8 @@ void fat_read(ipc_callid_t rid, ipc_call_t *request)
 	size_t len;
 	if (!async_data_read_receive(&callid, &len)) {
 		fat_node_put(fn);
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
+		async_answer_0(callid, EINVAL);
+		async_answer_0(rid, EINVAL);
 		return;
 	}
 
@@ -1174,8 +1175,8 @@ void fat_read(ipc_callid_t rid, ipc_call_t *request)
 			    BLOCK_FLAGS_NONE);
 			if (rc != EOK) {
 				fat_node_put(fn);
-				ipc_answer_0(callid, rc);
-				ipc_answer_0(rid, rc);
+				async_answer_0(callid, rc);
+				async_answer_0(rid, rc);
 				return;
 			}
 			(void) async_data_read_finalize(callid,
@@ -1183,7 +1184,7 @@ void fat_read(ipc_callid_t rid, ipc_call_t *request)
 			rc = block_put(b);
 			if (rc != EOK) {
 				fat_node_put(fn);
-				ipc_answer_0(rid, rc);
+				async_answer_0(rid, rc);
 				return;
 			}
 		}
@@ -1240,14 +1241,14 @@ void fat_read(ipc_callid_t rid, ipc_call_t *request)
 		}
 miss:
 		rc = fat_node_put(fn);
-		ipc_answer_0(callid, rc != EOK ? rc : ENOENT);
-		ipc_answer_1(rid, rc != EOK ? rc : ENOENT, 0);
+		async_answer_0(callid, rc != EOK ? rc : ENOENT);
+		async_answer_1(rid, rc != EOK ? rc : ENOENT, 0);
 		return;
 
 err:
 		(void) fat_node_put(fn);
-		ipc_answer_0(callid, rc);
-		ipc_answer_0(rid, rc);
+		async_answer_0(callid, rc);
+		async_answer_0(rid, rc);
 		return;
 
 hit:
@@ -1256,7 +1257,7 @@ hit:
 	}
 
 	rc = fat_node_put(fn);
-	ipc_answer_1(rid, rc, (sysarg_t)bytes);
+	async_answer_1(rid, rc, (sysarg_t)bytes);
 }
 
 void fat_write(ipc_callid_t rid, ipc_call_t *request)
@@ -1276,11 +1277,11 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 	
 	rc = fat_node_get(&fn, devmap_handle, index);
 	if (rc != EOK) {
-		ipc_answer_0(rid, rc);
+		async_answer_0(rid, rc);
 		return;
 	}
 	if (!fn) {
-		ipc_answer_0(rid, ENOENT);
+		async_answer_0(rid, ENOENT);
 		return;
 	}
 	nodep = FAT_NODE(fn);
@@ -1289,8 +1290,8 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 	size_t len;
 	if (!async_data_write_receive(&callid, &len)) {
 		(void) fat_node_put(fn);
-		ipc_answer_0(callid, EINVAL);
-		ipc_answer_0(rid, EINVAL);
+		async_answer_0(callid, EINVAL);
+		async_answer_0(rid, EINVAL);
 		return;
 	}
 
@@ -1318,15 +1319,15 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 		rc = fat_fill_gap(bs, nodep, FAT_CLST_RES0, pos);
 		if (rc != EOK) {
 			(void) fat_node_put(fn);
-			ipc_answer_0(callid, rc);
-			ipc_answer_0(rid, rc);
+			async_answer_0(callid, rc);
+			async_answer_0(rid, rc);
 			return;
 		}
 		rc = fat_block_get(&b, bs, nodep, pos / BPS(bs), flags);
 		if (rc != EOK) {
 			(void) fat_node_put(fn);
-			ipc_answer_0(callid, rc);
-			ipc_answer_0(rid, rc);
+			async_answer_0(callid, rc);
+			async_answer_0(rid, rc);
 			return;
 		}
 		(void) async_data_write_finalize(callid,
@@ -1335,7 +1336,7 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 		rc = block_put(b);
 		if (rc != EOK) {
 			(void) fat_node_put(fn);
-			ipc_answer_0(rid, rc);
+			async_answer_0(rid, rc);
 			return;
 		}
 		if (pos + bytes > nodep->size) {
@@ -1344,7 +1345,7 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 		}
 		size = nodep->size;
 		rc = fat_node_put(fn);
-		ipc_answer_2(rid, rc, bytes, nodep->size);
+		async_answer_2(rid, rc, bytes, nodep->size);
 		return;
 	} else {
 		/*
@@ -1360,8 +1361,8 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 		if (rc != EOK) {
 			/* could not allocate a chain of nclsts clusters */
 			(void) fat_node_put(fn);
-			ipc_answer_0(callid, rc);
-			ipc_answer_0(rid, rc);
+			async_answer_0(callid, rc);
+			async_answer_0(rid, rc);
 			return;
 		}
 		/* zero fill any gaps */
@@ -1369,8 +1370,8 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 		if (rc != EOK) {
 			(void) fat_free_clusters(bs, devmap_handle, mcl);
 			(void) fat_node_put(fn);
-			ipc_answer_0(callid, rc);
-			ipc_answer_0(rid, rc);
+			async_answer_0(callid, rc);
+			async_answer_0(rid, rc);
 			return;
 		}
 		rc = _fat_block_get(&b, bs, devmap_handle, lcl, NULL,
@@ -1378,8 +1379,8 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 		if (rc != EOK) {
 			(void) fat_free_clusters(bs, devmap_handle, mcl);
 			(void) fat_node_put(fn);
-			ipc_answer_0(callid, rc);
-			ipc_answer_0(rid, rc);
+			async_answer_0(callid, rc);
+			async_answer_0(rid, rc);
 			return;
 		}
 		(void) async_data_write_finalize(callid,
@@ -1389,7 +1390,7 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 		if (rc != EOK) {
 			(void) fat_free_clusters(bs, devmap_handle, mcl);
 			(void) fat_node_put(fn);
-			ipc_answer_0(rid, rc);
+			async_answer_0(rid, rc);
 			return;
 		}
 		/*
@@ -1400,13 +1401,13 @@ void fat_write(ipc_callid_t rid, ipc_call_t *request)
 		if (rc != EOK) {
 			(void) fat_free_clusters(bs, devmap_handle, mcl);
 			(void) fat_node_put(fn);
-			ipc_answer_0(rid, rc);
+			async_answer_0(rid, rc);
 			return;
 		}
 		nodep->size = size = pos + bytes;
 		nodep->dirty = true;		/* need to sync node */
 		rc = fat_node_put(fn);
-		ipc_answer_2(rid, rc, bytes, size);
+		async_answer_2(rid, rc, bytes, size);
 		return;
 	}
 }
@@ -1424,11 +1425,11 @@ void fat_truncate(ipc_callid_t rid, ipc_call_t *request)
 
 	rc = fat_node_get(&fn, devmap_handle, index);
 	if (rc != EOK) {
-		ipc_answer_0(rid, rc);
+		async_answer_0(rid, rc);
 		return;
 	}
 	if (!fn) {
-		ipc_answer_0(rid, ENOENT);
+		async_answer_0(rid, ENOENT);
 		return;
 	}
 	nodep = FAT_NODE(fn);
@@ -1474,13 +1475,13 @@ void fat_truncate(ipc_callid_t rid, ipc_call_t *request)
 	}
 out:
 	fat_node_put(fn);
-	ipc_answer_0(rid, rc);
+	async_answer_0(rid, rc);
 	return;
 }
 
 void fat_close(ipc_callid_t rid, ipc_call_t *request)
 {
-	ipc_answer_0(rid, EOK);
+	async_answer_0(rid, EOK);
 }
 
 void fat_destroy(ipc_callid_t rid, ipc_call_t *request)
@@ -1488,20 +1489,28 @@ void fat_destroy(ipc_callid_t rid, ipc_call_t *request)
 	devmap_handle_t devmap_handle = (devmap_handle_t)IPC_GET_ARG1(*request);
 	fs_index_t index = (fs_index_t)IPC_GET_ARG2(*request);
 	fs_node_t *fn;
+	fat_node_t *nodep;
 	int rc;
 
 	rc = fat_node_get(&fn, devmap_handle, index);
 	if (rc != EOK) {
-		ipc_answer_0(rid, rc);
+		async_answer_0(rid, rc);
 		return;
 	}
 	if (!fn) {
-		ipc_answer_0(rid, ENOENT);
+		async_answer_0(rid, ENOENT);
 		return;
 	}
 
+	nodep = FAT_NODE(fn);
+	/*
+	 * We should have exactly two references. One for the above
+	 * call to fat_node_get() and one from fat_unlink().
+	 */
+	assert(nodep->refcnt == 2);
+
 	rc = fat_destroy_node(fn);
-	ipc_answer_0(rid, rc);
+	async_answer_0(rid, rc);
 }
 
 void fat_open_node(ipc_callid_t rid, ipc_call_t *request)
@@ -1522,11 +1531,11 @@ void fat_sync(ipc_callid_t rid, ipc_call_t *request)
 	fs_node_t *fn;
 	int rc = fat_node_get(&fn, devmap_handle, index);
 	if (rc != EOK) {
-		ipc_answer_0(rid, rc);
+		async_answer_0(rid, rc);
 		return;
 	}
 	if (!fn) {
-		ipc_answer_0(rid, ENOENT);
+		async_answer_0(rid, ENOENT);
 		return;
 	}
 	
@@ -1536,7 +1545,7 @@ void fat_sync(ipc_callid_t rid, ipc_call_t *request)
 	rc = fat_node_sync(nodep);
 	
 	fat_node_put(fn);
-	ipc_answer_0(rid, rc);
+	async_answer_0(rid, rc);
 }
 
 /**

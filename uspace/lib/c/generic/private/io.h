@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Ondrej Palkovsky
+ * Copyright (c) 2011 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,15 +32,15 @@
 /** @file
  */
 
-#include <stdio.h>
-#include <stdlib.h>
+#ifndef LIBC_PRIVATE_IO_H_
+#define LIBC_PRIVATE_IO_H_
 
-/* TODO
-void errx(int __status, __const char *__format, ...)
-{
-	_exit(0);
-}
-*/
+#include <vfs/vfs.h>
+
+extern void __stdio_init(int filc, fdi_node_t *filv[]);
+extern void __stdio_done(void);
+
+#endif
 
 /** @}
  */

@@ -291,7 +291,7 @@ void icp_output_init(void)
 		.x = 640,
 		.y = 480,
 		.scan = 2560,
-		.visual = VISUAL_BGR_0_8_8_8,
+		.visual = VISUAL_RGB_8_8_8_0,
 	};
 	
 	outdev_t *fbdev = fb_init(&prop);
@@ -299,6 +299,7 @@ void icp_output_init(void)
 		stdout_wire(fbdev);
 		fb_parea.pbase = ICP_FB;
 		fb_parea.frames = 300;
+		fb_parea.unpriv = false;
 		ddi_parea_register(&fb_parea);
 	}
 #endif

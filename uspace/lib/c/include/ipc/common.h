@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Sergey Bondari
+ * Copyright (c) 2011 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,19 +26,30 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup amd64
+/** @addtogroup libcipc
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_amd64_MEMSTR_H_
-#define KERN_amd64_MEMSTR_H_
+#ifndef LIBC_IPC_COMMON_H_
+#define LIBC_IPC_COMMON_H_
 
-#define memcpy(dst, src, cnt)  __builtin_memcpy((dst), (src), (cnt))
+#include <sys/types.h>
+#include <atomic.h>
+#include <kernel/ipc/ipc.h>
 
-extern void memsetw(void *, size_t, uint16_t);
-extern void memsetb(void *, size_t, uint8_t);
+#define IPC_FLAG_BLOCKING  0x01
+
+typedef struct {
+	sysarg_t args[IPC_CALL_LEN];
+	sysarg_t in_task_hash;
+	sysarg_t in_phone_hash;
+} ipc_call_t;
+
+typedef sysarg_t ipc_callid_t;
+
+extern atomic_t async_futex;
 
 #endif
 

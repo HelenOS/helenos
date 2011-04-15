@@ -33,7 +33,7 @@
 
 .global start
 start:
-	movl gp = LOADER_ADDRESS
+	movl gp = __gp
 
 	#
 	# Initialize the register stack to some sane value.

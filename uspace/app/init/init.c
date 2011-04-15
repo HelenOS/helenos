@@ -36,7 +36,6 @@
 
 #include <stdio.h>
 #include <unistd.h>
-#include <ipc/ipc.h>
 #include <vfs/vfs.h>
 #include <bool.h>
 #include <errno.h>
@@ -272,6 +271,9 @@ int main(int argc, char *argv[])
 	
 	mount_tmpfs();
 	
+#ifdef CONFIG_START_DEVMAN
+	spawn("/srv/devman");
+#endif
 	spawn("/srv/apic");
 	spawn("/srv/i8259");
 	spawn("/srv/fhc");

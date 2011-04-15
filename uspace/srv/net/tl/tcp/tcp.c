@@ -43,7 +43,6 @@
 #include <stdio.h>
 #include <errno.h>
 
-#include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <ipc/net.h>
 #include <ipc/tl.h>
@@ -63,7 +62,7 @@
 #include <ip_client.h>
 #include <ip_interface.h>
 #include <icmp_client.h>
-#include <icmp_interface.h>
+#include <icmp_remote.h>
 #include <net_interface.h>
 #include <socket_core.h>
 #include <tl_common.h>
@@ -299,9 +298,10 @@ int tcp_process_packet(device_id_t device_id, packet_t *packet, services_t error
 	if (!header)
 		return tcp_release_and_return(packet, NO_DATA);
 
-//      printf("header len %d, port %d \n", TCP_HEADER_LENGTH(header),
-//	    ntohs(header->destination_port));
-
+#if 0
+	printf("header len %d, port %d \n", TCP_HEADER_LENGTH(header),
+	    ntohs(header->destination_port));
+#endif
 	result = packet_get_addr(packet, (uint8_t **) &src, (uint8_t **) &dest);
 	if (result <= 0)
 		return tcp_release_and_return(packet, result);
@@ -1062,7 +1062,7 @@ int tcp_process_syn_received(socket_core_t *socket,
 	/* Process acknowledgement */
 	tcp_process_acknowledgement(socket, socket_data, header);
 
-	socket_data->next_incoming = ntohl(header->sequence_number);	// + 1;
+	socket_data->next_incoming = ntohl(header->sequence_number); /* + 1; */
 	pq_release_remote(tcp_globals.net_phone, packet_get_id(packet));
 	socket_data->state = TCP_SOCKET_ESTABLISHED;
 	listening_socket = socket_cores_find(socket_data->local_sockets,
@@ -1203,6 +1203,13 @@ void tcp_process_acknowledgement(socket_core_t *socket,
 	}
 }
 
+/** Per-connection initialization
+ *
+ */
+void tl_connection(void)
+{
+}
+
 /** Processes the TCP message.
  *
  * @param[in] callid	The message identifier.
@@ -1216,7 +1223,7 @@ void tcp_process_acknowledgement(socket_core_t *socket,
  * @see tcp_interface.h
  * @see IS_NET_TCP_MESSAGE()
  */
-int tl_module_message(ipc_callid_t callid, ipc_call_t *call,
+int tl_message(ipc_callid_t callid, ipc_call_t *call,
     ipc_call_t *answer, size_t *answer_count)
 {
 	assert(call);
@@ -1498,7 +1505,7 @@ int tcp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 	}
 
 	/* Release the application phone */
-	ipc_hangup(app_phone);
+	async_hangup(app_phone);
 
 	printf("release\n");
 	/* Release all local sockets */
@@ -1700,7 +1707,7 @@ int tcp_connect_message(socket_cores_t *local_sockets, int socket_id,
 		/* Unbind if bound */
 		if (socket->port > 0) {
 			socket_ports_exclude(&tcp_globals.sockets,
-			    socket->port);
+			    socket->port, free);
 			socket->port = 0;
 		}
 	}
@@ -2446,10 +2453,10 @@ static void tcp_receiver(ipc_callid_t iid, ipc_call_t *icall)
 				rc = tcp_received_msg(IPC_GET_DEVICE(*icall), packet,
 				    SERVICE_TCP, IPC_GET_ERROR(*icall));
 			
-			ipc_answer_0(iid, (sysarg_t) rc);
+			async_answer_0(iid, (sysarg_t) rc);
 			break;
 		default:
-			ipc_answer_0(iid, (sysarg_t) ENOTSUP);
+			async_answer_0(iid, (sysarg_t) ENOTSUP);
 		}
 		
 		iid = async_get_call(icall);
@@ -2471,8 +2478,7 @@ int tl_initialize(int net_phone)
 	
 	tcp_globals.net_phone = net_phone;
 	
-	tcp_globals.icmp_phone = icmp_connect_module(SERVICE_ICMP,
-	    ICMP_CONNECT_TIMEOUT);
+	tcp_globals.icmp_phone = icmp_connect_module(ICMP_CONNECT_TIMEOUT);
 	tcp_globals.ip_phone = ip_bind_service(SERVICE_IP, IPPROTO_TCP,
 	    SERVICE_TCP, tcp_receiver);
 	if (tcp_globals.ip_phone < 0) {
@@ -2486,7 +2492,7 @@ int tl_initialize(int net_phone)
 
 	rc = packet_dimensions_initialize(&tcp_globals.dimensions);
 	if (rc != EOK) {
-		socket_ports_destroy(&tcp_globals.sockets);
+		socket_ports_destroy(&tcp_globals.sockets, free);
 		goto out;
 	}
 

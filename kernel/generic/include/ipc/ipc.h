@@ -115,6 +115,12 @@
  */
 #define IPC_FF_ROUTE_FROM_ME  (1 << 0)
 
+/* Data transfer flags. */
+#define IPC_XF_NONE		0
+
+/** Restrict the transfer size if necessary. */
+#define IPC_XF_RESTRICT		(1 << 0)
+
 /** Kernel IPC interfaces
  *
  */
@@ -164,7 +170,9 @@
  *                       responds with error, phone is deallocated and
  *                       error is sent back to caller. Otherwise 
  *                       the call is accepted and the response is sent back.
- *                     - the allocated phoneid is passed to userspace 
+ *                     - the hash of the client task is passed to userspace
+ *                       (on the receiving side) as ARG4 of the call.
+ *                     - the hash of the allocated phone is passed to userspace
  *                       (on the receiving side) as ARG5 of the call.
  *
  */
@@ -318,6 +326,9 @@ typedef struct answerbox {
 
 typedef struct {
 	sysarg_t args[IPC_CALL_LEN];
+	/** Task which made or forwarded the call with IPC_FF_ROUTE_FROM_ME. */
+	struct task *task;
+	/** Phone which made or last masqueraded this call. */
 	phone_t *phone;
 } ipc_data_t;
 
@@ -332,7 +343,6 @@ typedef struct {
 	/*
 	 * The caller box is different from sender->answerbox
 	 * for synchronous calls.
-	 *
 	 */
 	answerbox_t *callerbox;
 	
@@ -349,7 +359,6 @@ typedef struct {
 	 * The forward operation can masquerade the caller phone. For those
 	 * cases, we must keep it aside so that the answer is processed
 	 * correctly.
-	 *
 	 */
 	phone_t *caller_phone;
 } call_t;

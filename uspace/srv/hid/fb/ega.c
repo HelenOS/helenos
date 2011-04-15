@@ -38,14 +38,12 @@
 #include <unistd.h>
 #include <align.h>
 #include <async.h>
-#include <ipc/ipc.h>
 #include <errno.h>
 #include <stdio.h>
 #include <ddi.h>
 #include <sysinfo.h>
 #include <as.h>
 #include <ipc/fb.h>
-#include <ipc/ipc.h>
 #include <ipc/ns.h>
 #include <ipc/services.h>
 #include <libarch/ddi.h>
@@ -261,13 +259,13 @@ static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 	keyfield_t *interbuf = NULL;
 	
 	if (client_connected) {
-		ipc_answer_0(iid, ELIMIT);
+		async_answer_0(iid, ELIMIT);
 		return;
 	}
 	
 	/* Accept connection */
 	client_connected = 1;
-	ipc_answer_0(iid, EOK);
+	async_answer_0(iid, EOK);
 	
 	while (true) {
 		ipc_call_t call;
@@ -295,7 +293,7 @@ static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		switch (IPC_GET_IMETHOD(call)) {
 		case IPC_M_PHONE_HUNGUP:
 			client_connected = 0;
-			ipc_answer_0(callid, EOK);
+			async_answer_0(callid, EOK);
 			
 			/* Exit thread */
 			return;
@@ -331,10 +329,10 @@ static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 			retval = 0;
 			break;
 		case FB_GET_CSIZE:
-			ipc_answer_2(callid, EOK, scr_width, scr_height);
+			async_answer_2(callid, EOK, scr_width, scr_height);
 			continue;
 		case FB_GET_COLOR_CAP:
-			ipc_answer_1(callid, EOK, FB_CCAP_INDEXED);
+			async_answer_1(callid, EOK, FB_CCAP_INDEXED);
 			continue;
 		case FB_CLEAR:
 			clrscr();
@@ -439,7 +437,7 @@ static void ega_client_connection(ipc_callid_t iid, ipc_call_t *icall)
 		default:
 			retval = EINVAL;
 		}
-		ipc_answer_0(callid, retval);
+		async_answer_0(callid, retval);
 	}
 }
 

@@ -42,12 +42,9 @@
 #include <byteorder.h>
 #include <str.h>
 #include <errno.h>
-
-#include <ipc/ipc.h>
 #include <ipc/nil.h>
 #include <ipc/net.h>
 #include <ipc/services.h>
-
 #include <net/modules.h>
 #include <net_checksum.h>
 #include <ethernet_lsap.h>
@@ -216,7 +213,7 @@ int nil_initialize(int net_phone)
 	rc = eth_protos_initialize(&eth_globals.protos);
 	if (rc != EOK) {
 		free(eth_globals.broadcast_addr);
-		eth_devices_destroy(&eth_globals.devices);
+		eth_devices_destroy(&eth_globals.devices, free);
 	}
 out:
 	fibril_rwlock_write_unlock(&eth_globals.protos_lock);
@@ -241,7 +238,7 @@ static void eth_receiver(ipc_callid_t iid, ipc_call_t *icall)
 		case NET_NIL_DEVICE_STATE:
 			nil_device_state_msg_local(0, IPC_GET_DEVICE(*icall),
 			    IPC_GET_STATE(*icall));
-			ipc_answer_0(iid, EOK);
+			async_answer_0(iid, EOK);
 			break;
 		case NET_NIL_RECEIVED:
 			rc = packet_translate_remote(eth_globals.net_phone,
@@ -250,10 +247,10 @@ static void eth_receiver(ipc_callid_t iid, ipc_call_t *icall)
 				rc = nil_received_msg_local(0,
 				    IPC_GET_DEVICE(*icall), packet, 0);
 			
-			ipc_answer_0(iid, (sysarg_t) rc);
+			async_answer_0(iid, (sysarg_t) rc);
 			break;
 		default:
-			ipc_answer_0(iid, (sysarg_t) ENOTSUP);
+			async_answer_0(iid, (sysarg_t) ENOTSUP);
 		}
 		
 		iid = async_get_call(icall);
@@ -533,7 +530,7 @@ int nil_received_msg_local(int nil_phone, device_id_t device_id,
 			il_received_msg(proto->phone, device_id, packet,
 			    proto->service);
 		} else {
-			// drop invalid/unknown
+			/* Drop invalid/unknown */
 			pq_release_remote(eth_globals.net_phone,
 			    packet_get_id(packet));
 		}

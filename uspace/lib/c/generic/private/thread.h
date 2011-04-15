@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Sergey Bondari
+ * Copyright (c) 2011 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,19 +26,19 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup ppc32
+/** @addtogroup libc
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_ppc32_MEMSTR_H_
-#define KERN_ppc32_MEMSTR_H_
+#ifndef LIBC_PRIVATE_THREAD_H_
+#define LIBC_PRIVATE_THREAD_H_
 
-#define memcpy(dst, src, cnt)  __builtin_memcpy((dst), (src), (cnt))
+#include <kernel/proc/uarg.h>
 
-extern void memsetw(void *, size_t, uint16_t);
-extern void memsetb(void *, size_t, uint8_t);
+extern void __thread_entry(void);
+extern void __thread_main(uspace_arg_t *);
 
 #endif
 

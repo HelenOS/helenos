@@ -38,11 +38,8 @@
 #include <errno.h>
 #include <stdio.h>
 #include <str.h>
-
-#include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <ipc/nil.h>
-
 #include <net/modules.h>
 #include <adt/measured_strings.h>
 #include <packet_client.h>
@@ -166,8 +163,7 @@ static int lo_create(device_id_t device_id, netif_device_t **device)
 
 int netif_initialize(void)
 {
-	sysarg_t phonehash;
-	return ipc_connect_to_me(PHONE_NS, SERVICE_LO, 0, 0, &phonehash);
+	return async_connect_to_me(PHONE_NS, SERVICE_LO, 0, 0, NULL);
 }
 
 int netif_probe_message(device_id_t device_id, int irq, void *io)

@@ -43,11 +43,8 @@
 #include <fibril_synch.h>
 #include <unistd.h>
 #include <sys/mman.h>
-
-#include <ipc/ipc.h>
 #include <ipc/packet.h>
 #include <ipc/net.h>
-
 #include <net/packet.h>
 #include <net/packet_header.h>
 
@@ -114,11 +111,11 @@ static void
 packet_init(packet_t *packet, size_t addr_len, size_t max_prefix,
     size_t max_content, size_t max_suffix)
 {
-	// clear the packet content
+	/* Clear the packet content */
 	bzero(((void *) packet) + sizeof(packet_t),
 	    packet->length - sizeof(packet_t));
 	
-	// clear the packet header
+	/* Clear the packet header */
 	packet->order = 0;
 	packet->metric = 0;
 	packet->previous = 0;
@@ -153,7 +150,7 @@ packet_create(size_t length, size_t addr_len, size_t max_prefix,
 
 	assert(fibril_mutex_is_locked(&ps_globals.lock));
 
-	// already locked
+	/* Already locked */
 	packet = (packet_t *) mmap(NULL, length, PROTO_READ | PROTO_WRITE,
 	    MAP_SHARED | MAP_ANONYMOUS, 0, 0);
 	if (packet == MAP_FAILED)
@@ -291,12 +288,12 @@ static int packet_reply(packet_t *packet)
 		return EINVAL;
 
 	if (!async_share_in_receive(&callid, &size)) {
-		ipc_answer_0(callid, EINVAL);
+		async_answer_0(callid, EINVAL);
 		return EINVAL;
 	}
 
 	if (size != packet->length) {
-		ipc_answer_0(callid, ENOMEM);
+		async_answer_0(callid, ENOMEM);
 		return ENOMEM;
 	}
 	

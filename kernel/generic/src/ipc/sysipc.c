@@ -247,6 +247,8 @@ static inline int answer_preprocess(call_t *answer, ipc_data_t *olddata)
 		} else {
 			/* The connection was accepted */
 			phone_connect(phoneid, &answer->sender->answerbox);
+			/* Set 'task hash' as arg4 of response */
+			IPC_SET_ARG4(answer->data, (sysarg_t) TASK);
 			/* Set 'phone hash' as arg5 of response */
 			IPC_SET_ARG5(answer->data,
 			    (sysarg_t) &TASK->phones[phoneid]);
@@ -423,17 +425,29 @@ static int request_preprocess(call_t *call, phone_t *phone)
 	}
 	case IPC_M_DATA_READ: {
 		size_t size = IPC_GET_ARG2(call->data);
-		if ((size <= 0 || (size > DATA_XFER_LIMIT)))
+		if (size <= 0)
 			return ELIMIT;
-		
+		if (size > DATA_XFER_LIMIT) {
+			int flags = IPC_GET_ARG3(call->data);
+			if (flags & IPC_XF_RESTRICT)
+				IPC_SET_ARG2(call->data, DATA_XFER_LIMIT);
+			else
+				return ELIMIT;
+		}
 		break;
 	}
 	case IPC_M_DATA_WRITE: {
 		uintptr_t src = IPC_GET_ARG1(call->data);
 		size_t size = IPC_GET_ARG2(call->data);
 		
-		if (size > DATA_XFER_LIMIT)
-			return ELIMIT;
+		if (size > DATA_XFER_LIMIT) {
+			int flags = IPC_GET_ARG3(call->data);
+			if (flags & IPC_XF_RESTRICT) {
+				size = DATA_XFER_LIMIT;
+				IPC_SET_ARG2(call->data, size);
+			} else
+				return ELIMIT;
+		}
 		
 		call->buffer = (uint8_t *) malloc(size, 0);
 		int rc = copy_from_uspace(call->buffer, (void *) src, size);
@@ -1102,7 +1116,7 @@ sysarg_t sys_ipc_poke(void)
  * @return EPERM or a return code returned by ipc_irq_register().
  *
  */
-sysarg_t sys_ipc_register_irq(inr_t inr, devno_t devno, sysarg_t imethod,
+sysarg_t sys_register_irq(inr_t inr, devno_t devno, sysarg_t imethod,
     irq_code_t *ucode)
 {
 	if (!(cap_get(TASK) & CAP_IRQ_REG))
@@ -1119,7 +1133,7 @@ sysarg_t sys_ipc_register_irq(inr_t inr, devno_t devno, sysarg_t imethod,
  * @return Zero on success or EPERM on error.
  *
  */
-sysarg_t sys_ipc_unregister_irq(inr_t inr, devno_t devno)
+sysarg_t sys_unregister_irq(inr_t inr, devno_t devno)
 {
 	if (!(cap_get(TASK) & CAP_IRQ_REG))
 		return EPERM;

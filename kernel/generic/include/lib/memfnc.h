@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Jiri Svoboda
+ * Copyright (c) 2011 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,12 +26,21 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef BI_FUN_H_
-#define BI_FUN_H_
+/** @addtogroup generic
+ * @{
+ */
+/** @file
+ */
 
-#include "../mytypes.h"
+#ifndef KERN_LIB_MEMFNC_H_
+#define KERN_LIB_MEMFNC_H_
 
-void bi_fun_declare(builtin_t *bi);
-void bi_fun_bind(builtin_t *bi);
+#include <typedefs.h>
+
+extern void *memset(void *, int, size_t);
+extern void *memcpy(void *, const void *, size_t);
 
 #endif
+
+/** @}
+ */

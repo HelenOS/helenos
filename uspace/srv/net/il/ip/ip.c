@@ -40,7 +40,6 @@
 #include <fibril_synch.h>
 #include <stdio.h>
 #include <str.h>
-#include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <ipc/net.h>
 #include <ipc/nil.h>
@@ -66,7 +65,7 @@
 #include <arp_interface.h>
 #include <net_checksum.h>
 #include <icmp_client.h>
-#include <icmp_interface.h>
+#include <icmp_remote.h>
 #include <ip_client.h>
 #include <ip_interface.h>
 #include <ip_header.h>
@@ -176,7 +175,7 @@ static int ip_prepare_icmp(packet_t *packet, ip_header_t *header)
 	struct sockaddr_in dest_in;
 	socklen_t addrlen;
 
-	// detach the first packet and release the others
+	/* Detach the first packet and release the others */
 	next = pq_detach(packet);
 	if (next)
 		pq_release_remote(ip_globals.net_phone, packet_get_id(next));
@@ -185,22 +184,22 @@ static int ip_prepare_icmp(packet_t *packet, ip_header_t *header)
 		if (packet_get_data_length(packet) <= sizeof(ip_header_t))
 			return ENOMEM;
 
-		// get header
+		/* Get header */
 		header = (ip_header_t *) packet_get_data(packet);
 		if (!header)
 			return EINVAL;
 
 	}
 
-	// only for the first fragment
+	/* Only for the first fragment */
 	if (IP_FRAGMENT_OFFSET(header))
 		return EINVAL;
 
-	// not for the ICMP protocol
+	/* Not for the ICMP protocol */
 	if (header->protocol == IPPROTO_ICMP)
 		return EPERM;
 
-	// set the destination address
+	/* Set the destination address */
 	switch (header->version) {
 	case IPVERSION:
 		addrlen = sizeof(dest_in);
@@ -351,7 +350,7 @@ static int ip_netif_initialize(ip_netif_t *ip_netif)
 	ip_netif->routing = NET_DEFAULT_IP_ROUTING;
 	configuration = &names[0];
 
-	// get configuration
+	/* Get configuration */
 	rc = net_get_device_conf_req(ip_globals.net_phone, ip_netif->device_id,
 	    &configuration, count, &data);
 	if (rc != EOK)
@@ -419,7 +418,7 @@ static int ip_netif_initialize(ip_netif_t *ip_netif)
 		net_free_settings(configuration, data);
 	}
 
-	// binds the netif service which also initializes the device
+	/* Bind netif service which also initializes the device */
 	ip_netif->phone = nil_bind_service(ip_netif->service,
 	    (sysarg_t) ip_netif->device_id, SERVICE_IP,
 	    ip_receiver);
@@ -429,7 +428,7 @@ static int ip_netif_initialize(ip_netif_t *ip_netif)
 		return ip_netif->phone;
 	}
 
-	// has to be after the device netif module initialization
+	/* Has to be after the device netif module initialization */
 	if (ip_netif->arp) {
 		if (route) {
 			address.value = (uint8_t *) &route->address.s_addr;
@@ -445,7 +444,7 @@ static int ip_netif_initialize(ip_netif_t *ip_netif)
 		}
 	}
 
-	// get packet dimensions
+	/* Get packet dimensions */
 	rc = nil_packet_size_req(ip_netif->phone, ip_netif->device_id,
 	    &ip_netif->packet_dimension);
 	if (rc != EOK)
@@ -463,7 +462,7 @@ static int ip_netif_initialize(ip_netif_t *ip_netif)
 		return index;
 	
 	if (gateway.s_addr) {
-		// the default gateway
+		/* The default gateway */
 		ip_globals.gateway.address.s_addr = 0;
 		ip_globals.gateway.netmask.s_addr = 0;
 		ip_globals.gateway.gateway.s_addr = gateway.s_addr;
@@ -505,14 +504,14 @@ static int ip_device_req_local(int il_phone, device_id_t device_id,
 	rc = ip_netif_initialize(ip_netif);
 	if (rc != EOK) {
 		fibril_rwlock_write_unlock(&ip_globals.netifs_lock);
-		ip_routes_destroy(&ip_netif->routes);
+		ip_routes_destroy(&ip_netif->routes, free);
 		free(ip_netif);
 		return rc;
 	}
 	if (ip_netif->arp)
 		ip_netif->arp->usage++;
 
-	// print the settings
+	/* Print the settings */
 	printf("%s: Device registered (id: %d, phone: %d, ipv: %d, conf: %s)\n",
 	    NAME, ip_netif->device_id, ip_netif->phone, ip_netif->ipv,
 	    ip_netif->dhcp ? "dhcp" : "static");
@@ -587,7 +586,7 @@ static ip_route_t *ip_find_route(in_addr_t destination) {
 	ip_route_t *route;
 	ip_netif_t *netif;
 
-	// start with the last netif - the newest one
+	/* Start with the last netif - the newest one */
 	index = ip_netifs_count(&ip_globals.netifs) - 1;
 	while (index >= 0) {
 		netif = ip_netifs_get_index(&ip_globals.netifs, index);
@@ -629,31 +628,31 @@ static void ip_create_last_header(ip_header_t *last, ip_header_t *first)
 	size_t next;
 	size_t length;
 
-	// copy first itself
+	/* Copy first itself */
 	memcpy(last, first, sizeof(ip_header_t));
 	length = sizeof(ip_header_t);
 	next = sizeof(ip_header_t);
 
-	// process all ip options
+	/* Process all IP options */
 	while (next < first->header_length) {
 		option = (ip_option_t *) (((uint8_t *) first) + next);
-		// skip end or noop
+		/* Skip end or noop */
 		if ((option->type == IPOPT_END) ||
 		    (option->type == IPOPT_NOOP)) {
 			next++;
 		} else {
-			// copy if told so or skip
+			/* Copy if told so or skip */
 			if (IPOPT_COPIED(option->type)) {
 				memcpy(((uint8_t *) last) + length,
 				    ((uint8_t *) first) + next, option->length);
 				length += option->length;
 			}
-			// next option
+			/* Next option */
 			next += option->length;
 		}
 	}
 
-	// align 4 byte boundary
+	/* Align 4 byte boundary */
 	if (length % 4) {
 		bzero(((uint8_t *) last) + length, 4 - (length % 4));
 		last->header_length = length / 4 + 1;
@@ -789,7 +788,7 @@ static int ip_prepare_packet(in_addr_t *source, in_addr_t dest,
 	}
 
 	header->total_length = htons(length);
-	// unnecessary for all protocols
+	/* Unnecessary for all protocols */
 	header->header_checksum = IP_HEADER_CHECKSUM(header);
 
 	return EOK;
@@ -916,22 +915,22 @@ ip_fragment_packet(packet_t *packet, size_t length, size_t prefix, size_t suffix
 	if (packet_get_data_length(packet) <= sizeof(ip_header_t))
 		return ENOMEM;
 
-	// get header
+	/* Get header */
 	header = (ip_header_t *) packet_get_data(packet);
 	if (!header)
 		return EINVAL;
 
-	// fragmentation forbidden?
+	/* Fragmentation forbidden? */
 	if(header->flags & IPFLAG_DONT_FRAGMENT)
 		return EPERM;
 
-	// create the last fragment
+	/* Create the last fragment */
 	new_packet = packet_get_4_remote(ip_globals.net_phone, prefix, length,
 	    suffix, ((addrlen > addr_len) ? addrlen : addr_len));
 	if (!new_packet)
 		return ENOMEM;
 
-	// allocate as much as originally
+	/* Allocate as much as originally */
 	last_header = (ip_header_t *) packet_suffix(new_packet,
 	    IP_HEADER_LENGTH(header));
 	if (!last_header)
@@ -939,13 +938,13 @@ ip_fragment_packet(packet_t *packet, size_t length, size_t prefix, size_t suffix
 
 	ip_create_last_header(last_header, header);
 
-	// trim the unused space
+	/* Trim the unused space */
 	rc = packet_trim(new_packet, 0,
 	    IP_HEADER_LENGTH(header) - IP_HEADER_LENGTH(last_header));
 	if (rc != EOK)
 		return ip_release_and_return(packet, rc);
 
-	// biggest multiple of 8 lower than content
+	/* Greatest multiple of 8 lower than content */
 	// TODO even fragmentation?
 	length = length & ~0x7;
 	
@@ -957,10 +956,10 @@ ip_fragment_packet(packet_t *packet, size_t length, size_t prefix, size_t suffix
 	if (rc != EOK)
 		return ip_release_and_return(packet, rc);
 
-	// mark the first as fragmented
+	/* Mark the first as fragmented */
 	header->flags |= IPFLAG_MORE_FRAGMENTS;
 
-	// create middle framgents
+	/* Create middle fragments */
 	while (IP_TOTAL_LENGTH(header) > length) {
 		new_packet = packet_get_4_remote(ip_globals.net_phone, prefix,
 		    length, suffix,
@@ -981,7 +980,7 @@ ip_fragment_packet(packet_t *packet, size_t length, size_t prefix, size_t suffix
 			return ip_release_and_return(packet, rc);
 	}
 
-	// finish the first fragment
+	/* Finish the first fragment */
 	header->header_checksum = IP_HEADER_CHECKSUM(header);
 
 	return EOK;
@@ -1012,7 +1011,7 @@ ip_split_packet(packet_t *packet, size_t prefix, size_t content, size_t suffix,
 	int phone;
 
 	next = packet;
-	// check all packets
+	/* Check all packets */
 	while (next) {
 		length = packet_get_data_length(next);
 		
@@ -1021,21 +1020,21 @@ ip_split_packet(packet_t *packet, size_t prefix, size_t content, size_t suffix,
 			continue;
 		}
 
-		// too long
+		/* Too long */
 		result = ip_fragment_packet(next, content, prefix,
 		    suffix, addr_len);
 		if (result != EOK) {
 			new_packet = pq_detach(next);
 			if (next == packet) {
-				// the new first packet of the queue
+				/* The new first packet of the queue */
 				packet = new_packet;
 			}
-			// fragmentation needed?
+			/* Fragmentation needed? */
 			if (result == EPERM) {
 				phone = ip_prepare_icmp_and_get_phone(
 				    error, next, NULL);
 				if (phone >= 0) {
-					// fragmentation necessary ICMP
+					/* Fragmentation necessary ICMP */
 					icmp_destination_unreachable_msg(phone,
 					    ICMP_FRAG_NEEDED, content, next);
 				}
@@ -1080,7 +1079,7 @@ static int ip_send_route(packet_t *packet, ip_netif_t *netif,
 	int phone;
 	int rc;
 
-	// get destination hardware address
+	/* Get destination hardware address */
 	if (netif->arp && (route->address.s_addr != dest.s_addr)) {
 		destination.value = route->gateway.s_addr ?
 		    (uint8_t *) &route->gateway.s_addr : (uint8_t *) &dest.s_addr;
@@ -1102,7 +1101,7 @@ static int ip_send_route(packet_t *packet, ip_netif_t *netif,
 			phone = ip_prepare_icmp_and_get_phone(error, packet,
 			    NULL);
 			if (phone >= 0) {
-				// unreachable ICMP if no routing
+				/* Unreachable ICMP if no routing */
 				icmp_destination_unreachable_msg(phone,
 				    ICMP_HOST_UNREACH, 0, packet);
 			}
@@ -1148,8 +1147,10 @@ static int ip_send_msg_local(int il_phone, device_id_t device_id,
 	int phone;
 	int rc;
 
-	// addresses in the host byte order
-	// should be the next hop address or the target destination address
+	/*
+	 * Addresses in the host byte order
+	 * Should be the next hop address or the target destination address
+	 */
 	addrlen = packet_get_addr(packet, NULL, (uint8_t **) &addr);
 	if (addrlen < 0)
 		return ip_release_and_return(packet, addrlen);
@@ -1174,7 +1175,7 @@ static int ip_send_msg_local(int il_phone, device_id_t device_id,
 	route = NULL;
 	fibril_rwlock_read_lock(&ip_globals.netifs_lock);
 
-	// device specified?
+	/* Device specified? */
 	if (device_id > 0) {
 		netif = ip_netifs_find(&ip_globals.netifs, device_id);
 		route = ip_netif_find_route(netif, *dest);
@@ -1190,7 +1191,7 @@ static int ip_send_msg_local(int il_phone, device_id_t device_id,
 		fibril_rwlock_read_unlock(&ip_globals.netifs_lock);
 		phone = ip_prepare_icmp_and_get_phone(error, packet, NULL);
 		if (phone >= 0) {
-			// unreachable ICMP if no routing
+			/* Unreachable ICMP if no routing */
 			icmp_destination_unreachable_msg(phone,
 			    ICMP_NET_UNREACH, 0, packet);
 		}
@@ -1198,8 +1199,10 @@ static int ip_send_msg_local(int il_phone, device_id_t device_id,
 	}
 
 	if (error) {
-		// do not send for broadcast, anycast packets or network
-		// broadcast
+		/*
+		 * Do not send for broadcast, anycast packets or network
+		 * broadcast.
+		 */
 		if (!dest->s_addr || !(~dest->s_addr) ||
 		    !(~((dest->s_addr & ~route->netmask.s_addr) |
 		    route->netmask.s_addr)) ||
@@ -1208,10 +1211,10 @@ static int ip_send_msg_local(int il_phone, device_id_t device_id,
 		}
 	}
 	
-	// if the local host is the destination
+	/* If the local host is the destination */
 	if ((route->address.s_addr == dest->s_addr) &&
 	    (dest->s_addr != IPV4_LOCALHOST_ADDRESS)) {
-		// find the loopback device to deliver
+		/* Find the loopback device to deliver */
 		dest->s_addr = IPV4_LOCALHOST_ADDRESS;
 		route = ip_find_route(*dest);
 		netif = route ? route->netif : NULL;
@@ -1220,7 +1223,7 @@ static int ip_send_msg_local(int il_phone, device_id_t device_id,
 			phone = ip_prepare_icmp_and_get_phone(error, packet,
 			    NULL);
 			if (phone >= 0) {
-				// unreachable ICMP if no routing
+				/* Unreachable ICMP if no routing */
 				icmp_destination_unreachable_msg(phone,
 				    ICMP_HOST_UNREACH, 0, packet);
 			}
@@ -1252,7 +1255,7 @@ static int ip_device_state_message(device_id_t device_id, device_state_t state)
 	ip_netif_t *netif;
 
 	fibril_rwlock_write_lock(&ip_globals.netifs_lock);
-	// find the device
+	/* Find the device */
 	netif = ip_netifs_find(&ip_globals.netifs, device_id);
 	if (!netif) {
 		fibril_rwlock_write_unlock(&ip_globals.netifs_lock);
@@ -1344,7 +1347,7 @@ static int ip_deliver_local(device_id_t device_id, packet_t *packet,
 	if (rc != EOK)
 		return ip_release_and_return(packet, rc);
 
-	// trim padding if present
+	/* Trim padding if present */
 	if (!error &&
 	    (IP_TOTAL_LENGTH(header) < packet_get_data_length(packet))) {
 		rc = packet_trim(packet, 0,
@@ -1360,7 +1363,7 @@ static int ip_deliver_local(device_id_t device_id, packet_t *packet,
 		fibril_rwlock_read_unlock(&ip_globals.protos_lock);
 		phone = ip_prepare_icmp_and_get_phone(error, packet, header);
 		if (phone >= 0) {
-			// unreachable ICMP
+			/* Unreachable ICMP */
 			icmp_destination_unreachable_msg(phone,
 			    ICMP_PROT_UNREACH, 0, packet);
 		}
@@ -1417,12 +1420,12 @@ static int ip_process_packet(device_id_t device_id, packet_t *packet)
 	if (!header)
 		return ip_release_and_return(packet, ENOMEM);
 
-	// checksum
+	/* Checksum */
 	if ((header->header_checksum) &&
 	    (IP_HEADER_CHECKSUM(header) != IP_CHECKSUM_ZERO)) {
 		phone = ip_prepare_icmp_and_get_phone(0, packet, header);
 		if (phone >= 0) {
-			// checksum error ICMP
+			/* Checksum error ICMP */
 			icmp_parameter_problem_msg(phone, ICMP_PARAM_POINTER,
 			    ((size_t) ((void *) &header->header_checksum)) -
 			    ((size_t) ((void *) header)), packet);
@@ -1433,16 +1436,16 @@ static int ip_process_packet(device_id_t device_id, packet_t *packet)
 	if (header->ttl <= 1) {
 		phone = ip_prepare_icmp_and_get_phone(0, packet, header);
 		if (phone >= 0) {
-			// ttl exceeded ICMP
+			/* TTL exceeded ICMP */
 			icmp_time_exceeded_msg(phone, ICMP_EXC_TTL, packet);
 		}
 		return EINVAL;
 	}
 	
-	// process ipopt and get destination
+	/* Process ipopt and get destination */
 	dest = ip_get_destination(header);
 
-	// set the addrination address
+	/* Set the destination address */
 	switch (header->version) {
 	case IPVERSION:
 		addrlen = sizeof(addr_in);
@@ -1464,7 +1467,7 @@ static int ip_process_packet(device_id_t device_id, packet_t *packet)
 	if (!route) {
 		phone = ip_prepare_icmp_and_get_phone(0, packet, header);
 		if (phone >= 0) {
-			// unreachable ICMP
+			/* Unreachable ICMP */
 			icmp_destination_unreachable_msg(phone,
 			    ICMP_HOST_UNREACH, 0, packet);
 		}
@@ -1472,7 +1475,7 @@ static int ip_process_packet(device_id_t device_id, packet_t *packet)
 	}
 
 	if (route->address.s_addr == dest.s_addr) {
-		// local delivery
+		/* Local delivery */
 		return ip_deliver_local(device_id, packet, header, 0);
 	}
 
@@ -1484,7 +1487,7 @@ static int ip_process_packet(device_id_t device_id, packet_t *packet)
 
 	phone = ip_prepare_icmp_and_get_phone(0, packet, header);
 	if (phone >= 0) {
-		// unreachable ICMP if no routing
+		/* Unreachable ICMP if no routing */
 		icmp_destination_unreachable_msg(phone, ICMP_HOST_UNREACH, 0,
 		    packet);
 	}
@@ -1595,7 +1598,7 @@ static void ip_receiver(ipc_callid_t iid, ipc_call_t *icall)
 		case NET_IL_DEVICE_STATE:
 			rc = ip_device_state_message(IPC_GET_DEVICE(*icall),
 			    IPC_GET_STATE(*icall));
-			ipc_answer_0(iid, (sysarg_t) rc);
+			async_answer_0(iid, (sysarg_t) rc);
 			break;
 		
 		case NET_IL_RECEIVED:
@@ -1609,17 +1612,17 @@ static void ip_receiver(ipc_callid_t iid, ipc_call_t *icall)
 				} while (packet);
 			}
 			
-			ipc_answer_0(iid, (sysarg_t) rc);
+			async_answer_0(iid, (sysarg_t) rc);
 			break;
 		
 		case NET_IL_MTU_CHANGED:
 			rc = ip_mtu_changed_message(IPC_GET_DEVICE(*icall),
 			    IPC_GET_MTU(*icall));
-			ipc_answer_0(iid, (sysarg_t) rc);
+			async_answer_0(iid, (sysarg_t) rc);
 			break;
 		
 		default:
-			ipc_answer_0(iid, (sysarg_t) ENOTSUP);
+			async_answer_0(iid, (sysarg_t) ENOTSUP);
 		}
 		
 		iid = async_get_call(icall);
@@ -1770,10 +1773,10 @@ ip_received_error_msg_local(int ip_phone, device_id_t device_id,
 		data = packet_get_data(packet);
 		header = (ip_header_t *)(data + offset);
 
-		// destination host unreachable?
+		/* Destination host unreachable? */
 		if ((type != ICMP_DEST_UNREACH) ||
 		    (code != ICMP_HOST_UNREACH)) {
-		    	// no, something else
+			/* No, something else */
 			break;
 		}
 
@@ -1787,10 +1790,10 @@ ip_received_error_msg_local(int ip_phone, device_id_t device_id,
 
 		route = ip_routes_get_index(&netif->routes, 0);
 
-		// from the same network?
+		/* From the same network? */
 		if (route && ((route->address.s_addr & route->netmask.s_addr) ==
 		    (header->destination_address & route->netmask.s_addr))) {
-			// clear the ARP mapping if any
+			/* Clear the ARP mapping if any */
 			address.value = (uint8_t *) &header->destination_address;
 			address.length = sizeof(header->destination_address);
 			arp_clear_address_req(netif->arp->phone,
@@ -1844,10 +1847,10 @@ ip_get_route_req_local(int ip_phone, ip_protocol_t protocol,
 
 	fibril_rwlock_read_lock(&ip_globals.lock);
 	route = ip_find_route(*dest);
-	// if the local host is the destination
+	/* If the local host is the destination */
 	if (route && (route->address.s_addr == dest->s_addr) &&
 	    (dest->s_addr != IPV4_LOCALHOST_ADDRESS)) {
-		// find the loopback device to deliver
+		/* Find the loopback device to deliver */
 		dest->s_addr = IPV4_LOCALHOST_ADDRESS;
 		route = ip_find_route(*dest);
 	}

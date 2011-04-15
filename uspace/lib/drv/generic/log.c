@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2007 Jan Hudecek
- * Copyright (c) 2008 Martin Decky
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,38 +26,40 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genericproc
+/** @addtogroup libdrv
  * @{
  */
-/** @file tasklet.c
- *  @brief Tasklet implementation
+
+#include <io/log.h>
+#include <stdarg.h>
+
+#include <ddf/log.h>
+
+/** Initialize the logging system.
+ *
+ * @param drv_name	Driver name, will be printed as part of message
+ * @param level		Minimum message level to print
  */
-
-#include <proc/tasklet.h>
-#include <synch/spinlock.h>
-#include <mm/slab.h>
-#include <config.h>
-
-/** Spinlock protecting list of tasklets */
-SPINLOCK_INITIALIZE(tasklet_lock);
-
-/** Array of tasklet lists for every CPU */
-tasklet_descriptor_t **tasklet_list;
-
-void tasklet_init(void)
+int ddf_log_init(const char *drv_name, log_level_t level)
 {
-	unsigned int i;
-	
-	tasklet_list = malloc(sizeof(tasklet_descriptor_t *) * config.cpu_count, 0);
-	if (!tasklet_list)
-		panic("Error initializing tasklets.");
-	
-	for (i = 0; i < config.cpu_count; i++)
-		tasklet_list[i] = NULL;
-	
-	spinlock_initialize(&tasklet_lock, "tasklet_lock");
+	return log_init(drv_name, level);
 }
 
+/** Log a driver message.
+ *
+ * @param level		Message verbosity level. Message is only printed
+ *			if verbosity is less than or equal to current
+ *			reporting level.
+ * @param fmt		Format string (no trailing newline)
+ */
+void ddf_msg(log_level_t level, const char *fmt, ...)
+{
+	va_list args;
+
+	va_start(args, fmt);
+	log_msgv(level, fmt, args);
+	va_end(args);
+}
 
 /** @}
  */

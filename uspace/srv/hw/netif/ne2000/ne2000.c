@@ -42,8 +42,8 @@
 #include <err.h>
 #include <malloc.h>
 #include <sysinfo.h>
-#include <ipc/ipc.h>
 #include <ipc/services.h>
+#include <ipc/ns.h>
 #include <ipc/irc.h>
 #include <net/modules.h>
 #include <packet_client.h>
@@ -74,7 +74,7 @@
  */
 #define IRQ_GET_TSR(call)  ((int) IPC_GET_ARG3(call))
 
-static int irc_service = 0;
+static bool irc_service = false;
 static int irc_phone = -1;
 
 /** NE2000 kernel interrupt command sequence.
@@ -315,14 +315,14 @@ int netif_start_message(netif_device_t *device)
 		ne2k_cmds[4].addr = ne2k_cmds[0].addr;
 		ne2k_cmds[5].addr = ne2k->port + DP_TSR;
 		
-		int rc = ipc_register_irq(ne2k->irq, device->device_id,
+		int rc = register_irq(ne2k->irq, device->device_id,
 		    device->device_id, &ne2k_code);
 		if (rc != EOK)
 			return rc;
 		
 		rc = ne2k_up(ne2k);
 		if (rc != EOK) {
-			ipc_unregister_irq(ne2k->irq, device->device_id);
+			unregister_irq(ne2k->irq, device->device_id);
 			return rc;
 		}
 		
@@ -341,7 +341,7 @@ int netif_stop_message(netif_device_t *device)
 		ne2k_t *ne2k = (ne2k_t *) device->specific;
 		
 		ne2k_down(ne2k);
-		ipc_unregister_irq(ne2k->irq, device->device_id);
+		unregister_irq(ne2k->irq, device->device_id);
 		change_state(device, NETIF_STOPPED);
 	}
 	
@@ -382,22 +382,18 @@ int netif_initialize(void)
 	sysarg_t apic;
 	sysarg_t i8259;
 	
-	if ((sysinfo_get_value("apic", &apic) == EOK) && (apic))
-		irc_service = SERVICE_APIC;
-	else if ((sysinfo_get_value("i8259", &i8259) == EOK) && (i8259))
-		irc_service = SERVICE_I8259;
+	if (((sysinfo_get_value("apic", &apic) == EOK) && (apic))
+	    || ((sysinfo_get_value("i8259", &i8259) == EOK) && (i8259)))
+		irc_service = true;
 	
 	if (irc_service) {
-		while (irc_phone < 0) {
-			irc_phone = ipc_connect_me_to_blocking(PHONE_NS, irc_service,
-			    0, 0);
-		}
+		while (irc_phone < 0)
+			irc_phone = service_connect_blocking(SERVICE_IRC, 0, 0);
 	}
 	
 	async_set_interrupt_received(irq_handler);
 	
-	sysarg_t phonehash;
-	return ipc_connect_to_me(PHONE_NS, SERVICE_NE2000, 0, 0, &phonehash);
+	return async_connect_to_me(PHONE_NS, SERVICE_NE2000, 0, 0, NULL);
 }
 
 int main(int argc, char *argv[])

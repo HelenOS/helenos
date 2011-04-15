@@ -45,6 +45,10 @@
 /** Internal magic value for a&nbsp;field consistency check. */
 #define GENERIC_FIELD_MAGIC_VALUE		0x55667788
 
+/** Generic destructor function pointer. */
+#define DTOR_T(identifier) \
+	void (*identifier)(const void *)
+
 /** Generic type field declaration.
  *
  * @param[in] name	Name of the field.
@@ -62,8 +66,8 @@
 	\
 	int name##_add(name##_t *, type *); \
 	int name##_count(name##_t *); \
-	void name##_destroy(name##_t *); \
-	void name##_exclude_index(name##_t *, int); \
+	void name##_destroy(name##_t *, DTOR_T()); \
+	void name##_exclude_index(name##_t *, int, DTOR_T()); \
 	type **name##_get_field(name##_t *); \
 	type *name##_get_index(name##_t *, int); \
 	int name##_initialize(name##_t *); \
@@ -102,24 +106,27 @@
 		return name##_is_valid(field) ? field->next : -1; \
 	} \
 	\
-	void name##_destroy(name##_t *field) \
+	void name##_destroy(name##_t *field, DTOR_T(dtor)) \
 	{ \
 		if (name##_is_valid(field)) { \
 			int index; \
 			field->magic = 0; \
-			for (index = 0; index < field->next; index++) { \
-				if (field->items[index]) \
-					free(field->items[index]); \
+			if (dtor) { \
+				for (index = 0; index < field->next; index++) { \
+					if (field->items[index]) \
+						dtor(field->items[index]); \
+				} \
 			} \
 			free(field->items); \
 		} \
 	} \
 	 \
-	void name##_exclude_index(name##_t *field, int index) \
+	void name##_exclude_index(name##_t *field, int index, DTOR_T(dtor)) \
 	{ \
 		if (name##_is_valid(field) && (index >= 0) && \
 		    (index < field->next) && (field->items[index])) { \
-			free(field->items[index]); \
+			if (dtor) \
+				dtor(field->items[index]); \
 			field->items[index] = NULL; \
 		} \
 	} \

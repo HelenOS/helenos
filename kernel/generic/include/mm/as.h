@@ -114,19 +114,21 @@ typedef struct as {
 	link_t inactive_as_with_asid_link;
 	
 	/**
-	 * Number of processors on wich is this address space active.
-	 * Protected by asidlock.
+	 * Number of processors on which this
+	 * address space is active. Protected by
+	 * asidlock.
 	 */
 	size_t cpu_refcount;
 	
-	/**
-	 * Address space identifier.
-	 * Constant on architectures that do not support ASIDs.
-	 * Protected by asidlock.
+	/** Address space identifier.
+	 *
+	 * Constant on architectures that do not
+	 * support ASIDs. Protected by asidlock.
+	 *
 	 */
 	asid_t asid;
 	
-	/** Number of references (i.e tasks that reference this as). */
+	/** Number of references (i.e. tasks that reference this as). */
 	atomic_t refcount;
 	
 	mutex_t lock;
@@ -198,26 +200,31 @@ typedef union mem_backend_data {
  */
 typedef struct {
 	mutex_t lock;
+	
 	/** Containing address space. */
 	as_t *as;
 	
-	/**
-	 * Flags related to the memory represented by the address space area.
-	 */
+	/** Memory flags. */
 	unsigned int flags;
 	
-	/** Attributes related to the address space area itself. */
+	/** Address space area attributes. */
 	unsigned int attributes;
-	/** Size of this area in multiples of PAGE_SIZE. */
+	
+	/** Number of pages in the area. */
 	size_t pages;
+	
+	/** Number of resident pages in the area. */
+	size_t resident;
+	
 	/** Base address of this area. */
 	uintptr_t base;
+	
 	/** Map of used space. */
 	btree_t used_space;
 	
 	/**
-	 * If the address space area has been shared, this pointer will
-	 * reference the share info structure.
+	 * If the address space area is shared. this is
+	 * a reference to the share info structure.
 	 */
 	share_info_t *sh_info;
 	
@@ -264,9 +271,8 @@ extern int as_area_change_flags(as_t *, unsigned int, uintptr_t);
 extern unsigned int as_area_get_flags(as_area_t *);
 extern bool as_area_check_access(as_area_t *, pf_access_t);
 extern size_t as_area_get_size(uintptr_t);
-extern int used_space_insert(as_area_t *, uintptr_t, size_t);
-extern int used_space_remove(as_area_t *, uintptr_t, size_t);
-
+extern bool used_space_insert(as_area_t *, uintptr_t, size_t);
+extern bool used_space_remove(as_area_t *, uintptr_t, size_t);
 
 /* Interface to be implemented by architectures. */
 
@@ -310,6 +316,7 @@ extern sysarg_t sys_as_area_create(uintptr_t, size_t, unsigned int);
 extern sysarg_t sys_as_area_resize(uintptr_t, size_t, unsigned int);
 extern sysarg_t sys_as_area_change_flags(uintptr_t, unsigned int);
 extern sysarg_t sys_as_area_destroy(uintptr_t);
+extern sysarg_t sys_as_get_unmapped_area(uintptr_t, size_t);
 
 /* Introspection functions. */
 extern void as_get_area_info(as_t *, as_area_info_t **, size_t *);

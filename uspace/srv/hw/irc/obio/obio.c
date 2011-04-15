@@ -26,13 +26,13 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup obio 
+/** @addtogroup obio
  * @{
- */ 
+ */
 
 /**
- * @file	obio.c
- * @brief	OBIO driver.
+ * @file obio.c
+ * @brief OBIO driver.
  *
  * OBIO is a short for on-board I/O. On UltraSPARC IIi and systems with U2P,
  * there is a piece of the root PCI bus controller address space, which
@@ -41,7 +41,6 @@
  * be found at the same addresses.
  */
 
-#include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <ipc/irc.h>
 #include <ipc/ns.h>
@@ -85,7 +84,7 @@ static void obio_connection(ipc_callid_t iid, ipc_call_t *icall)
 	/*
 	 * Answer the first IPC_M_CONNECT_ME_TO call.
 	 */
-	ipc_answer_0(iid, EOK);
+	async_answer_0(iid, EOK);
 
 	while (1) {
 		int inr;
@@ -94,15 +93,15 @@ static void obio_connection(ipc_callid_t iid, ipc_call_t *icall)
 		switch (IPC_GET_IMETHOD(call)) {
 		case IRC_ENABLE_INTERRUPT:
 			/* Noop */
-			ipc_answer_0(callid, EOK);
+			async_answer_0(callid, EOK);
 			break;
 		case IRC_CLEAR_INTERRUPT:
 			inr = IPC_GET_ARG1(call);
 			base_virt[OBIO_CIR(inr & INO_MASK)] = 0;
-			ipc_answer_0(callid, EOK);
+			async_answer_0(callid, EOK);
 			break;
 		default:
-			ipc_answer_0(callid, EINVAL);
+			async_answer_0(callid, EINVAL);
 			break;
 		}
 	}
@@ -137,8 +136,7 @@ static bool obio_init(void)
 	printf(NAME ": OBIO registers with base at %p\n", base_phys);
 	
 	async_set_client_connection(obio_connection);
-	sysarg_t phonead;
-	ipc_connect_to_me(PHONE_NS, SERVICE_OBIO, 0, 0, &phonead);
+	service_register(SERVICE_IRC);
 	
 	return true;
 }

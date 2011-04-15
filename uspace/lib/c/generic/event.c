@@ -34,12 +34,11 @@
 /** @addtogroup libc
  */
 /** @file
- */ 
+ */
 
 #include <libc.h>
 #include <event.h>
 #include <kernel/ipc/event_types.h>
-#include <ipc/ipc.h>
 
 /** Subscribe for event notifications.
  *

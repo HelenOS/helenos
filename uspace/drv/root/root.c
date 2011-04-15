@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 2010 Lenka Trochtova
  * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -43,26 +44,28 @@
 #include <fibril_synch.h>
 #include <stdlib.h>
 #include <str.h>
+#include <str_error.h>
 #include <ctype.h>
 #include <macros.h>
 #include <inttypes.h>
 #include <sysinfo.h>
 
-#include <driver.h>
+#include <ddf/driver.h>
+#include <ddf/log.h>
 #include <devman.h>
 #include <ipc/devman.h>
 
 #define NAME "root"
 
-#define PLATFORM_DEVICE_NAME "hw"
-#define PLATFORM_DEVICE_MATCH_ID_FMT "platform/%s"
-#define PLATFORM_DEVICE_MATCH_SCORE 100
+#define PLATFORM_FUN_NAME "hw"
+#define PLATFORM_FUN_MATCH_ID_FMT "platform/%s"
+#define PLATFORM_FUN_MATCH_SCORE 100
 
-#define VIRTUAL_DEVICE_NAME "virt"
-#define VIRTUAL_DEVICE_MATCH_ID "rootvirt"
-#define VIRTUAL_DEVICE_MATCH_SCORE 100
+#define VIRTUAL_FUN_NAME "virt"
+#define VIRTUAL_FUN_MATCH_ID "rootvirt"
+#define VIRTUAL_FUN_MATCH_SCORE 100
 
-static int root_add_device(device_t *dev);
+static int root_add_device(ddf_dev_t *dev);
 
 /** The root device driver's standard operations. */
 static driver_ops_t root_ops = {
@@ -75,69 +78,112 @@ static driver_t root_driver = {
 	.driver_ops = &root_ops
 };
 
-/** Create the device which represents the root of virtual device tree.
+/** Create the function which represents the root of virtual device tree.
  *
- * @param parent Parent of the newly created device.
- * @return Error code.
+ * @param dev	Device
+ * @return	EOK on success or negative error code
  */
-static int add_virtual_root_child(device_t *parent)
+static int add_virtual_root_fun(ddf_dev_t *dev)
 {
-	printf(NAME ": adding new child for virtual devices.\n");
-	printf(NAME ":   device node is `%s' (%d %s)\n", VIRTUAL_DEVICE_NAME,
-	    VIRTUAL_DEVICE_MATCH_SCORE, VIRTUAL_DEVICE_MATCH_ID);
+	const char *name = VIRTUAL_FUN_NAME;
+	ddf_fun_t *fun;
+	int rc;
 
-	int res = child_device_register_wrapper(parent, VIRTUAL_DEVICE_NAME,
-	    VIRTUAL_DEVICE_MATCH_ID, VIRTUAL_DEVICE_MATCH_SCORE);
+	ddf_msg(LVL_DEBUG, "Adding new function for virtual devices. "
+	    "Function node is `%s' (%d %s)", name,
+	    VIRTUAL_FUN_MATCH_SCORE, VIRTUAL_FUN_MATCH_ID);
 
-	return res;
+	fun = ddf_fun_create(dev, fun_inner, name);
+	if (fun == NULL) {
+		ddf_msg(LVL_ERROR, "Failed creating function %s", name);
+		return ENOMEM;
+	}
+
+	rc = ddf_fun_add_match_id(fun, VIRTUAL_FUN_MATCH_ID,
+	    VIRTUAL_FUN_MATCH_SCORE);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed adding match IDs to function %s",
+		    name);
+		ddf_fun_destroy(fun);
+		return rc;
+	}
+
+	rc = ddf_fun_bind(fun);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed binding function %s: %s", name,
+		    str_error(rc));
+		ddf_fun_destroy(fun);
+		return rc;
+	}
+
+	return EOK;
 }
 
-/** Create the device which represents the root of HW device tree.
+/** Create the function which represents the root of HW device tree.
  *
- * @param parent	Parent of the newly created device.
- * @return 0 on success, negative error number otherwise.
+ * @param dev	Device
+ * @return	EOK on success or negative error code
  */
-static int add_platform_child(device_t *parent)
+static int add_platform_fun(ddf_dev_t *dev)
 {
 	char *match_id;
 	char *platform;
 	size_t platform_size;
-	int res;
+
+	const char *name = PLATFORM_FUN_NAME;
+	ddf_fun_t *fun;
+	int rc;
 
 	/* Get platform name from sysinfo. */
-
 	platform = sysinfo_get_data("platform", &platform_size);
 	if (platform == NULL) {
-		printf(NAME ": Failed to obtain platform name.\n");
+		ddf_msg(LVL_ERROR, "Failed to obtain platform name.");
 		return ENOENT;
 	}
 
 	/* Null-terminate string. */
 	platform = realloc(platform, platform_size + 1);
 	if (platform == NULL) {
-		printf(NAME ": Memory allocation failed.\n");
+		ddf_msg(LVL_ERROR, "Memory allocation failed.");
 		return ENOMEM;
 	}
 
 	platform[platform_size] = '\0';
 
 	/* Construct match ID. */
-
-	if (asprintf(&match_id, PLATFORM_DEVICE_MATCH_ID_FMT, platform) == -1) {
-		printf(NAME ": Memory allocation failed.\n");
+	if (asprintf(&match_id, PLATFORM_FUN_MATCH_ID_FMT, platform) == -1) {
+		ddf_msg(LVL_ERROR, "Memory allocation failed.");
 		return ENOMEM;
 	}
 
-	/* Add child. */
+	/* Add function. */
+	ddf_msg(LVL_DEBUG, "Adding platform function. Function node is `%s' "
+	    " (%d %s)", PLATFORM_FUN_NAME, PLATFORM_FUN_MATCH_SCORE,
+	    match_id);
 
-	printf(NAME ": adding new child for platform device.\n");
-	printf(NAME ":   device node is `%s' (%d %s)\n", PLATFORM_DEVICE_NAME,
-	    PLATFORM_DEVICE_MATCH_SCORE, match_id);
+	fun = ddf_fun_create(dev, fun_inner, name);
+	if (fun == NULL) {
+		ddf_msg(LVL_ERROR, "Error creating function %s", name);
+		return ENOMEM;
+	}
 
-	res = child_device_register_wrapper(parent, PLATFORM_DEVICE_NAME,
-	    match_id, PLATFORM_DEVICE_MATCH_SCORE);
+	rc = ddf_fun_add_match_id(fun, match_id, PLATFORM_FUN_MATCH_SCORE);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed adding match IDs to function %s",
+		    name);
+		ddf_fun_destroy(fun);
+		return rc;
+	}
 
-	return res;
+	rc = ddf_fun_bind(fun);
+	if (rc != EOK) {
+		ddf_msg(LVL_ERROR, "Failed binding function %s: %s", name,
+		    str_error(rc));
+		ddf_fun_destroy(fun);
+		return rc;
+	}
+
+	return EOK;
 }
 
 /** Get the root device.
@@ -145,30 +191,32 @@ static int add_platform_child(device_t *parent)
  * @param dev		The device which is root of the whole device tree (both
  *			of HW and pseudo devices).
  */
-static int root_add_device(device_t *dev)
+static int root_add_device(ddf_dev_t *dev)
 {
-	printf(NAME ": root_add_device, device handle=%" PRIun "\n",
+	ddf_msg(LVL_DEBUG, "root_add_device, device handle=%" PRIun,
 	    dev->handle);
-	
+
 	/*
 	 * Register virtual devices root.
 	 * We ignore error occurrence because virtual devices shall not be
 	 * vital for the system.
 	 */
-	add_virtual_root_child(dev);
+	add_virtual_root_fun(dev);
 
 	/* Register root device's children. */
-	int res = add_platform_child(dev);
+	int res = add_platform_fun(dev);
 	if (EOK != res)
-		printf(NAME ": failed to add child device for platform.\n");
-	
+		ddf_msg(LVL_ERROR, "Failed adding child device for platform.");
+
 	return res;
 }
 
 int main(int argc, char *argv[])
 {
 	printf(NAME ": HelenOS root device driver\n");
-	return driver_main(&root_driver);
+
+	ddf_log_init(NAME, LVL_ERROR);
+	return ddf_driver_main(&root_driver);
 }
 
 /**

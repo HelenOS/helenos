@@ -35,7 +35,6 @@
 #include <fibril_synch.h>
 #include <fibril.h>
 #include <async.h>
-#include <async_priv.h>
 #include <adt/list.h>
 #include <futex.h>
 #include <sys/time.h>
@@ -43,6 +42,7 @@
 #include <assert.h>
 #include <stacktrace.h>
 #include <stdlib.h>
+#include "private/async.h"
 
 static void optimize_execution_power(void)
 {
@@ -54,7 +54,7 @@ static void optimize_execution_power(void)
 	 * fibril back to fruitful work.
 	 */
 	if (atomic_get(&threads_in_ipc_wait) > 0)
-		ipc_poke();
+		async_poke();
 }
 
 static void print_deadlock(fibril_owner_info_t *oi)
@@ -104,7 +104,7 @@ void fibril_mutex_lock(fibril_mutex_t *fm)
 	fibril_t *f = (fibril_t *) fibril_get_id();
 
 	if (fibril_get_sercount() != 0)
-		core();
+		abort();
 
 	futex_down(&async_futex);
 	if (fm->counter-- <= 0) {
@@ -197,7 +197,7 @@ void fibril_rwlock_read_lock(fibril_rwlock_t *frw)
 	fibril_t *f = (fibril_t *) fibril_get_id();
 	
 	if (fibril_get_sercount() != 0)
-		core();
+		abort();
 
 	futex_down(&async_futex);
 	if (frw->writers) {
@@ -225,7 +225,7 @@ void fibril_rwlock_write_lock(fibril_rwlock_t *frw)
 	fibril_t *f = (fibril_t *) fibril_get_id();
 	
 	if (fibril_get_sercount() != 0)
-		core();
+		abort();
 
 	futex_down(&async_futex);
 	if (frw->writers || frw->readers) {

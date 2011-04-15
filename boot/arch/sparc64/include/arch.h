@@ -40,6 +40,7 @@
 #define STACK_ALIGNMENT              16
 #define STACK_BIAS                   2047
 #define STACK_WINDOW_SAVE_AREA_SIZE  (16 * 8)
+#define STACK_ARG_SAVE_AREA_SIZE     (6 * 8)
 
 #define NWINDOWS  8
 

@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2007 Jan Hudecek
- * Copyright (c) 2008 Martin Decky
+ * Copyright (c) 2011 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,45 +26,16 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genericproc
+/** @addtogroup libc
  * @{
  */
-/** @file tasklet.h
- * @brief Tasklets declarations
+/** @file
  */
 
-#ifndef KERN_TASKLET_H_
-#define KERN_TASKLET_H_
+#ifndef LIBC_PRIVATE_MALLOC_H_
+#define LIBC_PRIVATE_MALLOC_H_
 
-#include <adt/list.h>
-
-/** Tasklet callback type */
-typedef void (* tasklet_callback_t)(void *arg);
-
-/** Tasklet state */
-typedef enum {
-	NotActive,
-	Scheduled,
-	InProgress,
-	Disabled
-} tasklet_state_t;
-
-/** Structure describing a tasklet */
-typedef struct tasklet_descriptor {
-	link_t link;
-	
-	/** Callback to call */
-	tasklet_callback_t callback;
-	
-	/** Argument passed to the callback */
-	void *arg;
-	
-	/** State of the tasklet */
-	tasklet_state_t state;
-} tasklet_descriptor_t;
-
-
-extern void tasklet_init(void);
+extern void __malloc_init(void);
 
 #endif
 

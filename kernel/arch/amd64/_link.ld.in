@@ -25,12 +25,12 @@ SECTIONS {
 	
 	.mapped (PA2KA(BOOT_OFFSET)+SIZEOF(.unmapped)) : AT (SIZEOF(.unmapped)) {
 		ktext_start = .;
-		*(.text);
+		*(.text .text.*);
 		ktext_end = .;
 		
 		kdata_start = .;
-		*(.data);       /* initialized data */
-		*(.rodata*);    /* string literals */
+		*(.data);              /* initialized data */
+		*(.rodata .rodata.*);  /* string literals */
 		hardcoded_load_address = .;
 		QUAD(PA2KA(BOOT_OFFSET));
 		hardcoded_ktext_size = .;

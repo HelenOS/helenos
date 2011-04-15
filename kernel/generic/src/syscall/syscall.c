@@ -85,8 +85,7 @@ sysarg_t syscall_handler(sysarg_t a1, sysarg_t a2, sysarg_t a3,
 		rc = syscall_table[id](a1, a2, a3, a4, a5, a6);
 	} else {
 		printf("Task %" PRIu64": Unknown syscall %#" PRIxn, TASK->taskid, id);
-		task_kill(TASK->taskid);
-		thread_exit();
+		task_kill_self(true);
 	}
 	
 	if (THREAD->interrupted)
@@ -130,6 +129,7 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	(syshandler_t) sys_task_get_id,
 	(syshandler_t) sys_task_set_name,
 	(syshandler_t) sys_task_kill,
+	(syshandler_t) sys_task_exit,
 	(syshandler_t) sys_program_spawn_loader,
 	
 	/* Synchronization related syscalls. */
@@ -142,6 +142,7 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	(syshandler_t) sys_as_area_resize,
 	(syshandler_t) sys_as_area_change_flags,
 	(syshandler_t) sys_as_area_destroy,
+	(syshandler_t) sys_as_get_unmapped_area,
 	
 	/* IPC related syscalls. */
 	(syshandler_t) sys_ipc_call_sync_fast,
@@ -155,8 +156,6 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	(syshandler_t) sys_ipc_wait_for_call,
 	(syshandler_t) sys_ipc_poke,
 	(syshandler_t) sys_ipc_hangup,
-	(syshandler_t) sys_ipc_register_irq,
-	(syshandler_t) sys_ipc_unregister_irq,
 	(syshandler_t) sys_ipc_connect_kbox,
 	
 	/* Event notification syscalls. */
@@ -170,6 +169,8 @@ syshandler_t syscall_table[SYSCALL_END] = {
 	(syshandler_t) sys_device_assign_devno,
 	(syshandler_t) sys_physmem_map,
 	(syshandler_t) sys_iospace_enable,
+	(syshandler_t) sys_register_irq,
+	(syshandler_t) sys_unregister_irq,
 	
 	/* Sysinfo syscalls */
 	(syshandler_t) sys_sysinfo_get_tag,

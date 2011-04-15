@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Sergey Bondari
+ * Copyright (c) 2009 Lukas Mejdrech
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,19 +26,37 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64
- * @{
- */
-/** @file
+/** @addtogroup libnet
+ *  @{
  */
 
-#ifndef KERN_sparc64_MEMSTR_H_
-#define KERN_sparc64_MEMSTR_H_
+#ifndef LIBNET_ICMP_REMOTE_H_
+#define LIBNET_ICMP_REMOTE_H_
 
-#define memcpy(dst, src, cnt)  __builtin_memcpy((dst), (src), (cnt))
+#include <net/socket_codes.h>
+#include <sys/types.h>
 
-extern void memsetw(void *, size_t, uint16_t);
-extern void memsetb(void *, size_t, uint8_t);
+#include <net/device.h>
+#include <adt/measured_strings.h>
+#include <net/packet.h>
+#include <net/inet.h>
+#include <net/ip_codes.h>
+#include <net/icmp_codes.h>
+#include <net/icmp_common.h>
+
+/** @name ICMP module interface
+ * This interface is used by other modules.
+ */
+/*@{*/
+
+extern int icmp_destination_unreachable_msg(int, icmp_code_t, icmp_param_t,
+    packet_t *);
+extern int icmp_source_quench_msg(int, packet_t *);
+extern int icmp_time_exceeded_msg(int, icmp_code_t, packet_t *);
+extern int icmp_parameter_problem_msg(int, icmp_code_t, icmp_param_t,
+    packet_t *);
+
+/*@}*/
 
 #endif
 

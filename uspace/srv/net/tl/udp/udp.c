@@ -39,7 +39,6 @@
 #include <fibril_synch.h>
 #include <malloc.h>
 #include <stdio.h>
-#include <ipc/ipc.h>
 #include <ipc/services.h>
 #include <ipc/net.h>
 #include <ipc/tl.h>
@@ -60,7 +59,7 @@
 #include <ip_client.h>
 #include <ip_interface.h>
 #include <icmp_client.h>
-#include <icmp_interface.h>
+#include <icmp_remote.h>
 #include <net_interface.h>
 #include <socket_core.h>
 #include <tl_common.h>
@@ -353,10 +352,10 @@ static void udp_receiver(ipc_callid_t iid, ipc_call_t *icall)
 				rc = udp_received_msg(IPC_GET_DEVICE(*icall), packet,
 				    SERVICE_UDP, IPC_GET_ERROR(*icall));
 			
-			ipc_answer_0(iid, (sysarg_t) rc);
+			async_answer_0(iid, (sysarg_t) rc);
 			break;
 		default:
-			ipc_answer_0(iid, (sysarg_t) ENOTSUP);
+			async_answer_0(iid, (sysarg_t) ENOTSUP);
 		}
 		
 		iid = async_get_call(icall);
@@ -392,8 +391,7 @@ int tl_initialize(int net_phone)
 	
 	udp_globals.net_phone = net_phone;
 	
-	udp_globals.icmp_phone = icmp_connect_module(SERVICE_ICMP,
-	    ICMP_CONNECT_TIMEOUT);
+	udp_globals.icmp_phone = icmp_connect_module(ICMP_CONNECT_TIMEOUT);
 	
 	udp_globals.ip_phone = ip_bind_service(SERVICE_IP, IPPROTO_UDP,
 	    SERVICE_UDP, udp_receiver);
@@ -418,7 +416,7 @@ int tl_initialize(int net_phone)
 	
 	rc = packet_dimensions_initialize(&udp_globals.dimensions);
 	if (rc != EOK) {
-		socket_ports_destroy(&udp_globals.sockets);
+		socket_ports_destroy(&udp_globals.sockets, free);
 		fibril_rwlock_write_unlock(&udp_globals.lock);
 		return rc;
 	}
@@ -435,7 +433,7 @@ int tl_initialize(int net_phone)
 	rc = net_get_conf_req(udp_globals.net_phone, &configuration, count,
 	    &data);
 	if (rc != EOK) {
-		socket_ports_destroy(&udp_globals.sockets);
+		socket_ports_destroy(&udp_globals.sockets, free);
 		fibril_rwlock_write_unlock(&udp_globals.lock);
 		return rc;
 	}
@@ -500,7 +498,11 @@ static int udp_sendto_message(socket_cores_t *local_sockets, int socket_id,
 	size_t headerlen;
 	device_id_t device_id;
 	packet_dimension_t *packet_dimension;
+	size_t size;
 	int rc;
+
+	/* In case of error, do not update the data fragment size. */
+	*data_fragment_size = 0;
 	
 	rc = tl_get_address_port(addr, addrlen, &dest_port);
 	if (rc != EOK)
@@ -540,6 +542,16 @@ static int udp_sendto_message(socket_cores_t *local_sockets, int socket_id,
 			return rc;
 		packet_dimension = &udp_globals.packet_dimension;
 //	}
+
+	/*
+	 * Update the data fragment size based on what the lower layers can
+	 * handle without fragmentation, but not more than the maximum allowed
+	 * for UDP.
+	 */
+	size = MAX_UDP_FRAGMENT_SIZE;
+	if (packet_dimension->content < size)
+	    size = packet_dimension->content;
+	*data_fragment_size = size;
 
 	/* Read the first packet fragment */
 	result = tl_socket_read_packet_data(udp_globals.net_phone, &packet,
@@ -787,15 +799,14 @@ static int udp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 			if (res != EOK)
 				break;
 			
+			size = MAX_UDP_FRAGMENT_SIZE;
 			if (tl_get_ip_packet_dimension(udp_globals.ip_phone,
 			    &udp_globals.dimensions, DEVICE_INVALID_ID,
 			    &packet_dimension) == EOK) {
-				SOCKET_SET_DATA_FRAGMENT_SIZE(answer,
-				    packet_dimension->content);
+				if (packet_dimension->content < size)
+					size = packet_dimension->content;
 			}
-
-//			SOCKET_SET_DATA_FRAGMENT_SIZE(answer,
-//			    MAX_UDP_FRAGMENT_SIZE);
+			SOCKET_SET_DATA_FRAGMENT_SIZE(answer, size);
 			SOCKET_SET_HEADER_SIZE(answer, UDP_HEADER_SIZE);
 			answer_count = 3;
 			break;
@@ -868,13 +879,20 @@ static int udp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
 	}
 
 	/* Release the application phone */
-	ipc_hangup(app_phone);
+	async_hangup(app_phone);
 
 	/* Release all local sockets */
 	socket_cores_release(udp_globals.net_phone, &local_sockets,
 	    &udp_globals.sockets, NULL);
 
 	return res;
+}
+
+/** Per-connection initialization
+ *
+ */
+void tl_connection(void)
+{
 }
 
 /** Processes the UDP message.
@@ -890,7 +908,7 @@ static int udp_process_client_messages(ipc_callid_t callid, ipc_call_t call)
  * @see udp_interface.h
  * @see IS_NET_UDP_MESSAGE()
  */
-int tl_module_message(ipc_callid_t callid, ipc_call_t *call,
+int tl_message(ipc_callid_t callid, ipc_call_t *call,
     ipc_call_t *answer, size_t *answer_count)
 {
 	*answer_count = 0;

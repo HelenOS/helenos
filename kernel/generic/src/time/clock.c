@@ -92,6 +92,7 @@ void clock_counter_init(void)
 	
 	clock_parea.pbase = (uintptr_t) faddr;
 	clock_parea.frames = 1;
+	clock_parea.unpriv = true;
 	ddi_parea_register(&clock_parea);
 	
 	/*
@@ -99,7 +100,6 @@ void clock_counter_init(void)
 	 * physmem_map() the clock_parea.
 	 *
 	 */
-	sysinfo_set_item_val("clock.cacheable", NULL, (sysarg_t) true);
 	sysinfo_set_item_val("clock.faddr", NULL, (sysarg_t) faddr);
 }
 

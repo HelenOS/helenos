@@ -212,9 +212,13 @@ int elf_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
 
 	if (!as_area_check_access(area, access))
 		return AS_PF_FAULT;
-
-	ASSERT((addr >= ALIGN_DOWN(entry->p_vaddr, PAGE_SIZE)) &&
-	    (addr < entry->p_vaddr + entry->p_memsz));
+	
+	if (addr < ALIGN_DOWN(entry->p_vaddr, PAGE_SIZE))
+		return AS_PF_FAULT;
+	
+	if (addr >= entry->p_vaddr + entry->p_memsz)
+		return AS_PF_FAULT;
+	
 	i = (addr - ALIGN_DOWN(entry->p_vaddr, PAGE_SIZE)) >> PAGE_WIDTH;
 	base = (uintptr_t)
 	    (((void *) elf) + ALIGN_DOWN(entry->p_offset, PAGE_SIZE));

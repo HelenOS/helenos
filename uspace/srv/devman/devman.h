@@ -39,7 +39,6 @@
 #include <str.h>
 #include <adt/list.h>
 #include <adt/hash_table.h>
-#include <ipc/ipc.h>
 #include <ipc/devman.h>
 #include <ipc/devmap.h>
 #include <fibril_synch.h>
@@ -56,8 +55,11 @@
 #define DEVMAP_DEVICE_NAMESPACE "devices"
 #define DEVMAP_SEPARATOR '\\'
 
-struct node;
-typedef struct node node_t;
+struct dev_node;
+typedef struct dev_node dev_node_t;
+
+struct fun_node;
+typedef struct fun_node fun_node_t;
 
 typedef enum {
 	/** Driver has not been started. */
@@ -85,7 +87,7 @@ typedef struct driver {
 	int state;
 	
 	/** Phone asociated with this driver. */
-	sysarg_t phone;
+	int phone;
 	/** Name of the device driver. */
 	char *name;
 	/** Path to the driver's binary. */
@@ -117,67 +119,76 @@ typedef enum {
 	DEVICE_INVALID
 } device_state_t;
 
-/** Representation of a node in the device tree. */
-struct node {
+/** Device node in the device tree. */
+struct dev_node {
 	/** The global unique identifier of the device. */
 	devman_handle_t handle;
-	/** The name of the device specified by its parent. */
-	char *name;
 	
-	/**
-	 * Full path and name of the device in device hierarchi (i. e. in full
-	 * path in device tree).
-	 */
-	char *pathname;
+	/** (Parent) function the device is attached to. */
+	fun_node_t *pfun;
 	
-	/** The node of the parent device. */
-	node_t *parent;
-	
-	/**
-	 * Pointers to previous and next child devices in the linked list of
-	 * parent device's node.
-	 */
-	link_t sibling;
-	
-	/** List of child device nodes. */
-	link_t children;
-	/** List of device ids for device-to-driver matching. */
-	match_id_list_t match_ids;
+	/** List of device functions. */
+	link_t functions;
 	/** Driver of this device. */
 	driver_t *drv;
 	/** The state of the device. */
 	device_state_t state;
-	/**
-	 * Pointer to the previous and next device in the list of devices
-	 * owned by one driver.
-	 */
+	/** Link to list of devices owned by driver (driver_t.devices) */
 	link_t driver_devices;
-	
-	/** The list of device classes to which this device belongs. */
-	link_t classes;
-	/** Devmap handle if the device is registered by devmapper. */
-	devmap_handle_t devmap_handle;
 	
 	/**
 	 * Used by the hash table of devices indexed by devman device handles.
 	 */
-	link_t devman_link;
+	link_t devman_dev;
 	
-	/**
-	 * Used by the hash table of devices indexed by devmap device handles.
-	 */
-	link_t devmap_link;
-
 	/**
 	 * Whether this device was already passed to the driver.
 	 */
 	bool passed_to_driver;
 };
 
+/** Function node in the device tree. */
+struct fun_node {
+	/** The global unique identifier of the function */
+	devman_handle_t handle;
+	/** Name of the function, assigned by the device driver */
+	char *name;
+	
+	/** Full path and name of the device in device hierarchy */
+	char *pathname;
+	
+	/** Device which this function belongs to */
+	dev_node_t *dev;
+	
+	/** Link to list of functions in the device (ddf_dev_t.functions) */
+	link_t dev_functions;
+	
+	/** Child device node (if any attached). */
+	dev_node_t *child;
+	/** List of device ids for device-to-driver matching. */
+	match_id_list_t match_ids;
+	
+	/** The list of device classes to which this device function belongs. */
+	link_t classes;
+	/** Devmap handle if the device function is registered by devmap. */
+	devmap_handle_t devmap_handle;
+	
+	/**
+	 * Used by the hash table of functions indexed by devman device handles.
+	 */
+	link_t devman_fun;
+	
+	/**
+	 * Used by the hash table of functions indexed by devmap device handles.
+	 */
+	link_t devmap_fun;
+};
+
+
 /** Represents device tree. */
 typedef struct dev_tree {
 	/** Root device node. */
-	node_t *root_node;
+	fun_node_t *root_node;
 	
 	/**
 	 * The next available handle - handles are assigned in a sequential
@@ -191,11 +202,14 @@ typedef struct dev_tree {
 	/** Hash table of all devices indexed by devman handles. */
 	hash_table_t devman_devices;
 	
+	/** Hash table of all devices indexed by devman handles. */
+	hash_table_t devman_functions;
+	
 	/**
 	 * Hash table of devices registered by devmapper, indexed by devmap
 	 * handles.
 	 */
-	hash_table_t devmap_devices;
+	hash_table_t devmap_functions;
 } dev_tree_t;
 
 typedef struct dev_class {
@@ -227,15 +241,15 @@ typedef struct dev_class {
 } dev_class_t;
 
 /**
- * Provides n-to-m mapping between device nodes and classes - each device may
- * be register to the arbitrary number of classes and each class may contain
- * the arbitrary number of devices.
+ * Provides n-to-m mapping between function nodes and classes - each function
+ * can register in an arbitrary number of classes and each class can contain
+ * an arbitrary number of device functions.
  */
 typedef struct dev_class_info {
 	/** The class. */
 	dev_class_t *dev_class;
 	/** The device. */
-	node_t *dev;
+	fun_node_t *fun;
 	
 	/**
 	 * Pointer to the previous and next class info in the list of devices
@@ -249,7 +263,7 @@ typedef struct dev_class_info {
 	 */
 	link_t dev_classes;
 	
-	/** The name of the device within the class. */
+	/** The name of the device function within the class. */
 	char *dev_name;
 	/** The handle of the device by device mapper in the class namespace. */
 	devmap_handle_t devmap_handle;
@@ -270,7 +284,7 @@ typedef struct class_list {
 	 * Hash table of devices registered by devmapper using their class name,
 	 * indexed by devmap handles.
 	 */
-	hash_table_t devmap_devices;
+	hash_table_t devmap_functions;
 	
 	/** Fibril mutex for list of classes. */
 	fibril_rwlock_t rwlock;
@@ -278,7 +292,7 @@ typedef struct class_list {
 
 /* Match ids and scores */
 
-extern int get_match_score(driver_t *, node_t *);
+extern int get_match_score(driver_t *, dev_node_t *);
 
 extern bool parse_match_ids(char *, match_id_list_t *);
 extern bool read_match_ids(const char *, match_id_list_t *);
@@ -292,16 +306,15 @@ extern driver_t *create_driver(void);
 extern bool get_driver_info(const char *, const char *, driver_t *);
 extern int lookup_available_drivers(driver_list_t *, const char *);
 
-extern driver_t *find_best_match_driver(driver_list_t *, node_t *);
-extern bool assign_driver(node_t *, driver_list_t *, dev_tree_t *);
+extern driver_t *find_best_match_driver(driver_list_t *, dev_node_t *);
+extern bool assign_driver(dev_node_t *, driver_list_t *, dev_tree_t *);
 
 extern void add_driver(driver_list_t *, driver_t *);
-extern void attach_driver(node_t *, driver_t *);
-extern void add_device(int, driver_t *, node_t *, dev_tree_t *);
+extern void attach_driver(dev_node_t *, driver_t *);
+extern void add_device(int, driver_t *, dev_node_t *, dev_tree_t *);
 extern bool start_driver(driver_t *);
 
 extern driver_t *find_driver(driver_list_t *, const char *);
-extern void set_driver_phone(driver_t *, sysarg_t);
 extern void initialize_running_driver(driver_t *, dev_tree_t *);
 
 extern void init_driver(driver_t *);
@@ -310,19 +323,28 @@ extern void delete_driver(driver_t *);
 
 /* Device nodes */
 
-extern node_t *create_dev_node(void);
-extern void delete_dev_node(node_t *node);
-extern node_t *find_dev_node_no_lock(dev_tree_t *tree,
+extern dev_node_t *create_dev_node(void);
+extern void delete_dev_node(dev_node_t *node);
+extern dev_node_t *find_dev_node_no_lock(dev_tree_t *tree,
     devman_handle_t handle);
-extern node_t *find_dev_node(dev_tree_t *tree, devman_handle_t handle);
-extern node_t *find_dev_node_by_path(dev_tree_t *, char *);
-extern node_t *find_node_child(node_t *, const char *);
+extern dev_node_t *find_dev_node(dev_tree_t *tree, devman_handle_t handle);
+extern dev_node_t *find_dev_function(dev_node_t *, const char *);
+
+extern fun_node_t *create_fun_node(void);
+extern void delete_fun_node(fun_node_t *);
+extern fun_node_t *find_fun_node_no_lock(dev_tree_t *tree,
+    devman_handle_t handle);
+extern fun_node_t *find_fun_node(dev_tree_t *tree, devman_handle_t handle);
+extern fun_node_t *find_fun_node_by_path(dev_tree_t *, char *);
+extern fun_node_t *find_fun_node_in_device(dev_node_t *, const char *);
+extern fun_node_t *find_fun_node_by_class(class_list_t *, const char *, const char *);
 
 /* Device tree */
 
 extern bool init_device_tree(dev_tree_t *, driver_list_t *);
-extern bool create_root_node(dev_tree_t *);
-extern bool insert_dev_node(dev_tree_t *, node_t *, char *, node_t *);
+extern bool create_root_nodes(dev_tree_t *);
+extern bool insert_dev_node(dev_tree_t *, dev_node_t *, fun_node_t *);
+extern bool insert_fun_node(dev_tree_t *, fun_node_t *, char *, dev_node_t *);
 
 /* Device classes */
 
@@ -330,22 +352,25 @@ extern dev_class_t *create_dev_class(void);
 extern dev_class_info_t *create_dev_class_info(void);
 extern size_t get_new_class_dev_idx(dev_class_t *);
 extern char *create_dev_name_for_class(dev_class_t *, const char *);
-extern dev_class_info_t *add_device_to_class(node_t *, dev_class_t *,
+extern dev_class_info_t *add_function_to_class(fun_node_t *, dev_class_t *,
     const char *);
 
 extern void init_class_list(class_list_t *);
 
 extern dev_class_t *get_dev_class(class_list_t *, char *);
 extern dev_class_t *find_dev_class_no_lock(class_list_t *, const char *);
+extern dev_class_info_t *find_dev_in_class(dev_class_t *, const char *);
 extern void add_dev_class_no_lock(class_list_t *, dev_class_t *);
 
 /* Devmap devices */
 
-extern node_t *find_devmap_tree_device(dev_tree_t *, devmap_handle_t);
-extern node_t *find_devmap_class_device(class_list_t *, devmap_handle_t);
+extern void devmap_register_tree_function(fun_node_t *, dev_tree_t *);
 
-extern void class_add_devmap_device(class_list_t *, dev_class_info_t *);
-extern void tree_add_devmap_device(dev_tree_t *, node_t *);
+extern fun_node_t *find_devmap_tree_function(dev_tree_t *, devmap_handle_t);
+extern fun_node_t *find_devmap_class_function(class_list_t *, devmap_handle_t);
+
+extern void class_add_devmap_function(class_list_t *, dev_class_info_t *);
+extern void tree_add_devmap_function(dev_tree_t *, fun_node_t *);
 
 #endif
 

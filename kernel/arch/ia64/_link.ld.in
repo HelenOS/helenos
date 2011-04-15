@@ -15,7 +15,7 @@ SECTIONS {
 	.image LOAD_ADDRESS_V: AT (LOAD_ADDRESS_P) {
 		ktext_start = .;
 		*(K_TEXT_START);
-		*(.text)
+		*(.text .text.*)
 		ktext_end = .;
 		
 		kdata_start = .;
@@ -29,22 +29,22 @@ SECTIONS {
 		QUAD(ktext_end - ktext_start);
 		hardcoded_kdata_size = .;
 		QUAD(kdata_end - kdata_start);
+		__gp = .;
 		*(.got .got.*)
 		*(.sdata)
 		*(.sbss)
 		*(.scommon)
 		*(.bss)
 		*(COMMON);
-
+		
 		. = ALIGN(8);
-                symbol_table = .;
-                *(symtab.*);            /* Symbol table, must be LAST symbol!*/
-
+		symbol_table = .;
+		*(symtab.*);            /* Symbol table, must be LAST symbol!*/
+		
 		kdata_end = .;
 	}
-
+	
 	/DISCARD/ : {
 		*(*);
 	}
-
 }
