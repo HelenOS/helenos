@@ -54,8 +54,8 @@ typedef struct ohci_regs
 
 #define C_HCFS_MASK        (0x3) /* Host controller functional state */
 #define C_HCFS_RESET       (0x0)
-#define C_HCFS_OPERATIONAL (0x1)
-#define C_HCFS_RESUME      (0x2)
+#define C_HCFS_RESUME      (0x1)
+#define C_HCFS_OPERATIONAL (0x2)
 #define C_HCFS_SUSPEND     (0x3)
 #define C_HCFS_SHIFT       (6)
 

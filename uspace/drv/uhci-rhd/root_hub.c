@@ -32,6 +32,7 @@
  * @brief UHCI root hub driver
  */
 #include <errno.h>
+#include <str_error.h>
 #include <ddi.h>
 #include <usb/debug.h>
 
@@ -42,7 +43,7 @@
  * @param[in] instance Driver memory structure to use.
  * @param[in] addr Address of I/O registers.
  * @param[in] size Size of available I/O space.
- * @param[in] rh Pointer to ddf instance of the root hub driver.
+ * @param[in] rh Pointer to DDF instance of the root hub driver.
  * @return Error code.
  */
 int uhci_root_hub_init(
@@ -57,17 +58,16 @@ int uhci_root_hub_init(
 	int ret = pio_enable(addr, size, (void**)&regs);
 	if (ret < 0) {
 		usb_log_error(
-		    "Failed(%d) to gain access to port registers at %p\n",
-		    ret, regs);
+		    "Failed(%d) to gain access to port registers at %p: %s.\n",
+		    ret, regs, str_error(ret));
 		return ret;
 	}
 
 	/* Initialize root hub ports */
 	unsigned i = 0;
 	for (; i < UHCI_ROOT_HUB_PORT_COUNT; ++i) {
-		/* NOTE: mind pointer arithmetics here */
 		ret = uhci_port_init(
-		    &instance->ports[i], regs + i, i, ROOT_HUB_WAIT_USEC, rh);
+		    &instance->ports[i], &regs[i], i, ROOT_HUB_WAIT_USEC, rh);
 		if (ret != EOK) {
 			unsigned j = 0;
 			for (;j < i; ++j)

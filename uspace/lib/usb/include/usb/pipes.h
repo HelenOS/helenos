@@ -98,6 +98,11 @@ typedef struct {
 
 	/** Number of active transfers over the pipe. */
 	int refcount;
+
+	/** Whether to automatically reset halt on the endpoint.
+	 * Valid only for control endpoint zero.
+	 */
+	bool auto_reset_halt;
 } usb_pipe_t;
 
 
