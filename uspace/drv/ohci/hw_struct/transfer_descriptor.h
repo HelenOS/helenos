@@ -58,6 +58,7 @@ typedef struct td {
 #define TD_STATUS_T_SHIFT (24)
 #define TD_STATUS_T_0 (0x2)
 #define TD_STATUS_T_1 (0x3)
+#define TD_STATUS_T_ED (0)
 #define TD_STATUS_EC_MASK (0x3) /* error count */
 #define TD_STATUS_EC_SHIFT (26)
 #define TD_STATUS_CC_MASK (0xf) /* condition code */
@@ -100,6 +101,14 @@ static inline int td_error(td_t *instance)
 	assert(instance);
 	int cc = (instance->status >> TD_STATUS_CC_SHIFT) & TD_STATUS_CC_MASK;
 	return cc_to_rc(cc);
+}
+
+static inline size_t td_remain_size(td_t *instance)
+{
+	assert(instance);
+	if (instance->cbp == 0)
+		return 0;
+	return instance->be - instance->cbp + 1;
 }
 #endif
 /**

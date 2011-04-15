@@ -146,6 +146,7 @@ bool batch_is_complete(usb_transfer_batch_t *instance)
 	    data->ed->status, data->ed->td_head, data->ed->td_tail,
 	    data->ed->next);
 	size_t i = 0;
+	instance->transfered_size = instance->buffer_size;
 	for (; i < tds; ++i) {
 		assert(data->tds[i] != NULL);
 		usb_log_debug("TD %d: %x:%x:%x:%x.\n", i,
@@ -155,8 +156,6 @@ bool batch_is_complete(usb_transfer_batch_t *instance)
 			return false;
 		}
 		instance->error = td_error(data->tds[i]);
-		/* FIXME: calculate real transfered size */
-		instance->transfered_size = instance->buffer_size;
 		if (instance->error != EOK) {
 			usb_log_debug("Batch(%p) found error TD(%d):%x.\n",
 			    instance, i, data->tds[i]->status);
@@ -173,6 +172,9 @@ bool batch_is_complete(usb_transfer_batch_t *instance)
 	hcd_endpoint_t *hcd_ep = hcd_endpoint_get(instance->ep);
 	assert(hcd_ep);
 	hcd_ep->td = data->tds[i];
+	if (i > 0)
+		instance->transfered_size -= td_remain_size(data->tds[i - 1]);
+
 	/* Clear possible ED HALT */
 	data->ed->td_head &= ~ED_TDHEAD_HALTED_FLAG;
 	uint32_t pa = addr_to_phys(hcd_ep->td);
@@ -237,9 +239,11 @@ void batch_bulk_in(usb_transfer_batch_t *instance)
 void batch_bulk_out(usb_transfer_batch_t *instance)
 {
 	assert(instance);
-	instance->next_step = usb_transfer_batch_call_in_and_dispose;
+	/* We are data out, we are supposed to provide data */
+	memcpy(instance->data_buffer, instance->buffer, instance->buffer_size);
+	instance->next_step = usb_transfer_batch_call_out_and_dispose;
 	batch_data(instance);
-	usb_log_debug("Batch(%p) BULK IN initialized.\n", instance);
+	usb_log_debug("Batch(%p) BULK OUT initialized.\n", instance);
 }
 /*----------------------------------------------------------------------------*/
 ed_t * batch_ed(usb_transfer_batch_t *instance)
