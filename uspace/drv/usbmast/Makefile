@@ -32,6 +32,7 @@ EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include -I$(LIBUSB_PREFIX)/include
 BINARY = usbmast
 
 SOURCES = \
-	main.c
+	main.c \
+	mast.c
 
 include $(USPACE_PREFIX)/Makefile.common

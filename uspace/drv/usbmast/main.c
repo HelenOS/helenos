@@ -41,6 +41,7 @@
 #include <str_error.h>
 #include "cmds.h"
 #include "scsi.h"
+#include "mast.h"
 
 #define NAME "usbmast"
 
@@ -73,11 +74,16 @@ usb_endpoint_description_t *mast_endpoints[] = {
 	NULL
 };
 
+#define BITS_GET_MASK(type, bitcount) (((type)(1 << (bitcount)))-1)
+#define BITS_GET_MID_MASK(type, bitcount, offset) \
+	((type)( BITS_GET_MASK(type, (bitcount) + (offset)) - BITS_GET_MASK(type, bitcount) ))
+#define BITS_GET(type, number, bitcount, offset) \
+	((type)( (number) & (BITS_GET_MID_MASK(type, bitcount, offset)) ) >> (offset))
+
 #define INQUIRY_RESPONSE_LENGTH 35
 
 static void try_inquiry(usb_device_t *dev)
 {
-	usb_massstor_cbw_t cbw;
 	scsi_cmd_inquiry_t inquiry = {
 		.op_code = 0x12,
 		.lun_evpd = 0,
@@ -87,33 +93,46 @@ static void try_inquiry(usb_device_t *dev)
 	};
 	size_t response_len;
 	uint8_t response[INQUIRY_RESPONSE_LENGTH];
-	usb_massstor_csw_t csw;
-	size_t csw_len;
-
-	usb_massstor_cbw_prepare(&cbw, 0xdeadbeef, INQUIRY_RESPONSE_LENGTH,
-	    USB_DIRECTION_IN, 0, sizeof(inquiry), (uint8_t *) &inquiry);
 
 	int rc;
-	rc = usb_pipe_write(GET_BULK_OUT(dev), &cbw, sizeof(cbw));
-	usb_log_debug("Wrote CBW: %s.\n", str_error(rc));
+
+	rc = usb_massstor_data_in(GET_BULK_IN(dev), GET_BULK_OUT(dev),
+	    0xDEADBEEF, 0, (uint8_t *) &inquiry, sizeof(inquiry),
+	    response, INQUIRY_RESPONSE_LENGTH, &response_len);
+
 	if (rc != EOK) {
+		usb_log_error("Failed to probe device %s using %s: %s.\n",
+		   dev->ddf_dev->name, "SCSI:INQUIRY", str_error(rc));
 		return;
 	}
 
-	rc = usb_pipe_read(GET_BULK_IN(dev), response, INQUIRY_RESPONSE_LENGTH,
-	    &response_len);
-	usb_log_debug("Read response (%zuB): '%s' (%s).\n", response_len,
-	    usb_debug_str_buffer(response, response_len, 0),
-	    str_error(rc));
-	if (rc != EOK) {
+	if (response_len < 8) {
+		usb_log_error("The SCSI response is too short.\n");
 		return;
 	}
 
-	rc = usb_pipe_read(GET_BULK_IN(dev), &csw, sizeof(csw), &csw_len);
-	usb_log_debug("Read CSW (%zuB): '%s' (%s).\n", csw_len,
-	    usb_debug_str_buffer((uint8_t *) &csw, csw_len, 0),
-	    str_error(rc));
+	/*
+	 * This is an ugly part of the code. We will parse the returned
+	 * data by hand and try to get as many useful data as possible.
+	 */
+	int device_type = BITS_GET(uint8_t, response[0], 5, 0);
+	int removable = BITS_GET(uint8_t, response[1], 1, 7);
 
+	usb_log_info("SCSI information for device `%s':\n", dev->ddf_dev->name);
+	usb_log_info("  - peripheral device type: %d\n", device_type);
+	usb_log_info("  - removable: %s\n", removable ? "yes" : "no");
+
+	if (response_len < 32) {
+		return;
+	}
+
+	char dev_vendor[9];
+	str_ncpy(dev_vendor, 9, (const char *) &response[8], 8);
+	usb_log_info("  - vendor: '%s'\n", dev_vendor);
+
+	char dev_product[9];
+	str_ncpy(dev_product, 9, (const char *) &response[16], 8);
+	usb_log_info("  - product: '%s'\n", dev_vendor);
 }
 
 /** Callback when new device is attached and recognized as a mass storage.
