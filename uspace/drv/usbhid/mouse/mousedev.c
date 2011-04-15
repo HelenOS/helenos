@@ -156,12 +156,12 @@ static usb_mouse_t *usb_mouse_new(void)
 
 static void usb_mouse_free(usb_mouse_t **mouse_dev)
 {
-	if (mouse_dev == NULL || *mouse_dev == NULL) {
-		return;
-	}
+	assert(mouse_dev != NULL && *mouse_dev != NULL);
 	
 	// hangup phone to the console
-	async_hangup((*mouse_dev)->console_phone);
+	if ((*mouse_dev)->console_phone >= 0) {
+		async_hangup((*mouse_dev)->console_phone);
+	}
 	
 	free(*mouse_dev);
 	*mouse_dev = NULL;
