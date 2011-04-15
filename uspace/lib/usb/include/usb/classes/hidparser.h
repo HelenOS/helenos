@@ -101,7 +101,9 @@ typedef struct {
 	uint8_t report_id;
 	
 	/** */	
-	link_t link;
+	link_t link; /* list */
+
+	link_t head; /* head of list of usage paths */
 
 } usb_hid_report_path_t;
 

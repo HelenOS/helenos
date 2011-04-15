@@ -38,6 +38,7 @@
 #include <malloc.h>
 #include <mem.h>
 #include <usb/debug.h>
+#include <assert.h>
 
 /** The new report item flag. Used to determine when the item is completly
  * configured and should be added to the report structure
@@ -138,20 +139,19 @@ int usb_hid_report_append_fields(usb_hid_report_t *report, usb_hid_report_item_t
 	}
 	if(path_it == &report->collection_paths) {
 		path = usb_hid_report_path_clone(report_item->usage_path);			
+		list_initialize(&path->link);
 
-		usb_log_debug("PUVODNI: \n");
+		list_append(&path->link, &report->collection_paths);					
+		
 		usb_hid_print_usage_path (report_item->usage_path);
-		usb_log_debug("KLON - path: \n");
-		usb_hid_print_usage_path (path);		
-		usb_log_debug("KLON - clone: \n");
-		usb_hid_print_usage_path (usb_hid_report_path_clone(report_item->usage_path));		
+		usb_hid_print_usage_path (path);
+		usb_hid_print_usage_path(list_get_instance(report->collection_paths.prev, usb_hid_report_path_t, link));
 
-		list_append(&path->link, &report->collection_paths);			
+		assert(usb_hid_report_compare_usage_path (report_item->usage_path, 
+        	list_get_instance(report->collection_paths.prev, 
+	                          usb_hid_report_path_t, link), 
+			USB_HID_PATH_COMPARE_STRICT) == EOK);
 
-		// PROC SE KRUVA VLOZI NESMYSLY??
-		usb_log_debug("VLOZENO: \n");
-		usb_hid_print_usage_path (list_get_instance(report->collection_paths.prev, usb_hid_report_path_t, link));
-		usb_log_debug("\n");
 		report->collection_paths_count++;
 	}
 
@@ -1134,10 +1134,10 @@ int usb_hid_report_compare_usage_path(usb_hid_report_path_t *report_path,
 					return 1;
 				}
 
-				report_link = report_path->link.next;
-				path_link = path->link.next;
+				report_link = report_path->head.next;
+				path_link = path->head.next;
 			
-				while((report_link != &report_path->link) && (path_link != &path->link)) {
+				while((report_link != &report_path->head) && (path_link != &path->head)) {
 					report_item = list_get_instance(report_link, usb_hid_report_usage_path_t, link);
 					path_item = list_get_instance(path_link, usb_hid_report_usage_path_t, link);		
 
@@ -1151,7 +1151,7 @@ int usb_hid_report_compare_usage_path(usb_hid_report_path_t *report_path,
 			
 				}
 
-				if((report_link == &report_path->link) && (path_link == &path->link)) {
+				if((report_link == &report_path->head) && (path_link == &path->head)) {
 					return EOK;
 				}
 				else {
@@ -1161,14 +1161,14 @@ int usb_hid_report_compare_usage_path(usb_hid_report_path_t *report_path,
 
 		/* compare with only the end of path*/
 		case USB_HID_PATH_COMPARE_END:
-				report_link = report_path->link.prev;
-				path_link = path->link.prev;
+				report_link = report_path->head.prev;
+				path_link = path->head.prev;
 
-				if(list_empty(&path->link)){
+				if(list_empty(&path->head)){
 					return EOK;
 				}
 			
-				while((report_link != &report_path->link) && (path_link != &path->link)) {
+				while((report_link != &report_path->head) && (path_link != &path->head)) {
 					report_item = list_get_instance(report_link, usb_hid_report_usage_path_t, link);
 					path_item = list_get_instance(path_link, usb_hid_report_usage_path_t, link);		
 
@@ -1182,7 +1182,7 @@ int usb_hid_report_compare_usage_path(usb_hid_report_path_t *report_path,
 			
 				}
 
-				if(path_link == &path->link) {
+				if(path_link == &path->head) {
 					return EOK;
 				}
 				else {
