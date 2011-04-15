@@ -210,6 +210,9 @@ int usb_endpoint_manager_unregister_ep(usb_endpoint_manager_t *instance,
 	}
 
 	node_t *node = hash_table_get_instance(item, node_t, link);
+	if (node->ep->active)
+		return EBUSY;
+
 	instance->free_bw += node->bw;
 	hash_table_remove(&instance->ep_table, key, MAX_KEYS);
 

@@ -42,7 +42,7 @@ typedef struct hcca {
 	uint16_t pad1;
 	uint32_t done_head;
 	uint32_t reserved[29];
-} __attribute__((packed)) hcca_t;
+} __attribute__((packed, aligned)) hcca_t;
 
 #endif
 /**

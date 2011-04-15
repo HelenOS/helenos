@@ -33,13 +33,14 @@ BINARY = ohci
 
 SOURCES = \
 	batch.c \
+	endpoint_list.c \
 	hc.c \
+	hcd_endpoint.c \
 	iface.c \
 	main.c \
 	ohci.c \
 	pci.c \
 	root_hub.c \
-	transfer_list.c \
 	hw_struct/endpoint_descriptor.c \
 	hw_struct/transfer_descriptor.c
 

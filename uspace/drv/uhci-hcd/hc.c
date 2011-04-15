@@ -65,10 +65,6 @@ static void hc_init_hw(hc_t *instance);
 
 static int hc_interrupt_emulator(void *arg);
 static int hc_debug_checker(void *arg);
-#if 0
-static bool usb_is_allowed(
-    bool low_speed, usb_transfer_type_t transfer, size_t size);
-#endif
 /*----------------------------------------------------------------------------*/
 /** Initialize UHCI hcd driver structure
  *
@@ -88,46 +84,37 @@ int hc_init(hc_t *instance, ddf_fun_t *fun,
 	assert(reg_size >= sizeof(regs_t));
 	int ret;
 
-#define CHECK_RET_DEST_FUN_RETURN(ret, message...) \
+#define CHECK_RET_RETURN(ret, message...) \
 	if (ret != EOK) { \
 		usb_log_error(message); \
-		if (instance->ddf_instance) \
-			ddf_fun_destroy(instance->ddf_instance); \
 		return ret; \
 	} else (void) 0
 
 	instance->hw_interrupts = interrupts;
 	instance->hw_failures = 0;
 
-	/* Setup UHCI function. */
-	instance->ddf_instance = fun;
-
 	/* allow access to hc control registers */
 	regs_t *io;
 	ret = pio_enable(regs, reg_size, (void**)&io);
-	CHECK_RET_DEST_FUN_RETURN(ret,
+	CHECK_RET_RETURN(ret,
 	    "Failed(%d) to gain access to registers at %p: %s.\n",
-	    ret, str_error(ret), io);
+	    ret, io, str_error(ret));
 	instance->registers = io;
 	usb_log_debug("Device registers at %p(%u) accessible.\n",
 	    io, reg_size);
 
 	ret = hc_init_mem_structures(instance);
-	CHECK_RET_DEST_FUN_RETURN(ret,
-	    "Failed to initialize UHCI memory structures.\n");
+	CHECK_RET_RETURN(ret,
+	    "Failed(%d) to initialize UHCI memory structures: %s.\n",
+	    ret, str_error(ret));
 
 	hc_init_hw(instance);
 	if (!interrupts) {
-		instance->cleaner =
+		instance->interrupt_emulator =
 		    fibril_create(hc_interrupt_emulator, instance);
-		fibril_add_ready(instance->cleaner);
-	} else {
-		/* TODO: enable interrupts here */
+		fibril_add_ready(instance->interrupt_emulator);
 	}
-
-	instance->debug_checker =
-	    fibril_create(hc_debug_checker, instance);
-//	fibril_add_ready(instance->debug_checker);
+	(void)hc_debug_checker;
 
 	return EOK;
 #undef CHECK_RET_DEST_FUN_RETURN
@@ -227,15 +214,15 @@ int hc_init_mem_structures(hc_t *instance)
 
 	/* Set all frames to point to the first queue head */
 	const uint32_t queue =
-	  instance->transfers_interrupt.queue_head_pa
-	  | LINK_POINTER_QUEUE_HEAD_FLAG;
+	    LINK_POINTER_QH(addr_to_phys(
+	        instance->transfers_interrupt.queue_head));
 
 	unsigned i = 0;
 	for(; i < UHCI_FRAME_LIST_COUNT; ++i) {
 		instance->frame_list[i] = queue;
 	}
 
-	/* Init device keeper*/
+	/* Init device keeper */
 	usb_device_keeper_init(&instance->manager);
 	usb_log_debug("Initialized device manager.\n");
 
@@ -259,32 +246,26 @@ int hc_init_mem_structures(hc_t *instance)
 int hc_init_transfer_lists(hc_t *instance)
 {
 	assert(instance);
-#define CHECK_RET_CLEAR_RETURN(ret, message...) \
+#define SETUP_TRANSFER_LIST(type, name) \
+do { \
+	int ret = transfer_list_init(&instance->transfers_##type, name); \
 	if (ret != EOK) { \
-		usb_log_error(message); \
+		usb_log_error("Failed(%d) to setup %s transfer list: %s.\n", \
+		    ret, name, str_error(ret)); \
 		transfer_list_fini(&instance->transfers_bulk_full); \
 		transfer_list_fini(&instance->transfers_control_full); \
 		transfer_list_fini(&instance->transfers_control_slow); \
 		transfer_list_fini(&instance->transfers_interrupt); \
 		return ret; \
-	} else (void) 0
+	} \
+} while (0)
 
-	/* initialize TODO: check errors */
-	int ret;
-	ret = transfer_list_init(&instance->transfers_bulk_full, "BULK_FULL");
-	CHECK_RET_CLEAR_RETURN(ret, "Failed to init BULK list.");
-
-	ret = transfer_list_init(
-	    &instance->transfers_control_full, "CONTROL_FULL");
-	CHECK_RET_CLEAR_RETURN(ret, "Failed to init CONTROL FULL list.");
-
-	ret = transfer_list_init(
-	    &instance->transfers_control_slow, "CONTROL_SLOW");
-	CHECK_RET_CLEAR_RETURN(ret, "Failed to init CONTROL SLOW list.");
-
-	ret = transfer_list_init(&instance->transfers_interrupt, "INTERRUPT");
-	CHECK_RET_CLEAR_RETURN(ret, "Failed to init INTERRUPT list.");
-
+	SETUP_TRANSFER_LIST(bulk_full, "BULK FULL");
+	SETUP_TRANSFER_LIST(control_full, "CONTROL FULL");
+	SETUP_TRANSFER_LIST(control_slow, "CONTROL LOW");
+	SETUP_TRANSFER_LIST(interrupt, "INTERRUPT");
+#undef SETUP_TRANSFER_LIST
+	/* Connect lists into one schedule */
 	transfer_list_set_next(&instance->transfers_control_full,
 		&instance->transfers_bulk_full);
 	transfer_list_set_next(&instance->transfers_control_slow,
@@ -328,7 +309,7 @@ int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch)
 	assert(batch);
 
 	transfer_list_t *list =
-	    instance->transfers[batch->speed][batch->transfer_type];
+	    instance->transfers[batch->ep->speed][batch->ep->transfer_type];
 	assert(list);
 	transfer_list_add_batch(list, batch);
 
@@ -349,9 +330,8 @@ void hc_interrupt(hc_t *instance, uint16_t status)
 {
 	assert(instance);
 //	status |= 1; //Uncomment to work around qemu hang
-	/* TODO: Resume interrupts are not supported */
 	/* Lower 2 bits are transaction error and transaction complete */
-	if (status & 0x3) {
+	if (status & (UHCI_STATUS_INTERRUPT | UHCI_STATUS_ERROR_INTERRUPT)) {
 		LIST_INITIALIZE(done);
 		transfer_list_remove_finished(
 		    &instance->transfers_interrupt, &done);
@@ -370,8 +350,10 @@ void hc_interrupt(hc_t *instance, uint16_t status)
 			usb_transfer_batch_finish(batch);
 		}
 	}
-	/* bits 4 and 5 indicate hc error */
-	if (status & 0x18) {
+	/* Resume interrupts are not supported */
+
+	/* Bits 4 and 5 indicate hc error */
+	if (status & (UHCI_STATUS_PROCESS_ERROR | UHCI_STATUS_SYSTEM_ERROR)) {
 		usb_log_error("UHCI hardware failure!.\n");
 		++instance->hw_failures;
 		transfer_list_abort_all(&instance->transfers_interrupt);
@@ -401,13 +383,13 @@ int hc_interrupt_emulator(void* arg)
 	assert(instance);
 
 	while (1) {
-		/* read and ack interrupts */
+		/* Readd and clear status register */
 		uint16_t status = pio_read_16(&instance->registers->usbsts);
-		pio_write_16(&instance->registers->usbsts, 0x1f);
+		pio_write_16(&instance->registers->usbsts, status);
 		if (status != 0)
 			usb_log_debug2("UHCI status: %x.\n", status);
 		hc_interrupt(instance, status);
-		async_usleep(UHCI_CLEANER_TIMEOUT);
+		async_usleep(UHCI_INT_EMULATOR_TIMEOUT);
 	}
 	return EOK;
 }
@@ -478,33 +460,6 @@ int hc_debug_checker(void *arg)
 	return EOK;
 #undef QH
 }
-/*----------------------------------------------------------------------------*/
-/** Check transfers for USB validity
- *
- * @param[in] low_speed Transfer speed.
- * @param[in] transfer Transer type
- * @param[in] size Size of data packets
- * @return True if transaction is allowed by USB specs, false otherwise
- */
-#if 0
-bool usb_is_allowed(
-    bool low_speed, usb_transfer_type_t transfer, size_t size)
-{
-	/* see USB specification chapter 5.5-5.8 for magic numbers used here */
-	switch(transfer)
-	{
-	case USB_TRANSFER_ISOCHRONOUS:
-		return (!low_speed && size < 1024);
-	case USB_TRANSFER_INTERRUPT:
-		return size <= (low_speed ? 8 : 64);
-	case USB_TRANSFER_CONTROL: /* device specifies its own max size */
-		return (size <= (low_speed ? 8 : 64));
-	case USB_TRANSFER_BULK: /* device specifies its own max size */
-		return (!low_speed && size <= 64);
-	}
-	return false;
-}
-#endif
 /**
  * @}
  */

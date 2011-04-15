@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2007 Jan Hudecek
- * Copyright (c) 2008 Martin Decky
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,47 +26,43 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genericproc
+/** @addtogroup libusb
  * @{
  */
-/** @file tasklet.h
- * @brief Tasklets declarations
+/** @file
+ * USB mass storage related functions and constants.
  */
+#ifndef LIBUSB_CLASS_MASSSTOR_H_
+#define LIBUSB_CLASS_MASSSTOR_H_
 
-#ifndef KERN_TASKLET_H_
-#define KERN_TASKLET_H_
+#include <sys/types.h>
 
-#include <adt/list.h>
-
-/** Tasklet callback type */
-typedef void (* tasklet_callback_t)(void *arg);
-
-/** Tasklet state */
+/** USB mass storage subclasses. */
 typedef enum {
-	NotActive,
-	Scheduled,
-	InProgress,
-	Disabled
-} tasklet_state_t;
+	USB_MASSSTOR_SUBCLASS_RBC = 0x01,
+	/** Also known as MMC-5. */
+	USB_MASSSTOR_SUBCLASS_ATAPI = 0x02,
+	USB_MASSSTOR_SUBCLASS_UFI = 0x04,
+	USB_MASSSTOR_SUBCLASS_SCSI = 0x06,
+	USB_MASSSTOR_SUBCLASS_LSDFS = 0x07,
+	USB_MASSSTOR_SUBCLASS_IEEE1667 = 0x08,
+	USB_MASSSTOR_SUBCLASS_VENDOR = 0xFF
+} usb_massstor_subclass_t;
 
-/** Structure describing a tasklet */
-typedef struct tasklet_descriptor {
-	link_t link;
-	
-	/** Callback to call */
-	tasklet_callback_t callback;
-	
-	/** Argument passed to the callback */
-	void *arg;
-	
-	/** State of the tasklet */
-	tasklet_state_t state;
-} tasklet_descriptor_t;
-
-
-extern void tasklet_init(void);
+/** USB mass storage interface protocols. */
+typedef enum {
+	/** CBI transport with command completion interrupt. */
+	USB_MASSSTOR_PROTOCOL_CBI_CC = 0x00,
+	/** CBI transport with no command completion interrupt. */
+	USB_MASSSTOR_PROTOCOL_CBI = 0x01,
+	/** Bulk only transport. */
+	USB_MASSSTOR_PROTOCOL_BBB = 0x50,
+	/** USB attached SCSI. */
+	USB_MASSSTOR_PROTOCOL_UAS = 0x62,
+	USB_MASSSTOR_PROTOCOL_VENDOR = 0xFF
+} usb_massstor_protocol_t;
 
 #endif
-
-/** @}
+/**
+ * @}
  */

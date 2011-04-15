@@ -54,8 +54,8 @@ typedef struct ohci_regs
 
 #define C_HCFS_MASK        (0x3) /* Host controller functional state */
 #define C_HCFS_RESET       (0x0)
-#define C_HCFS_OPERATIONAL (0x1)
-#define C_HCFS_RESUME      (0x2)
+#define C_HCFS_RESUME      (0x1)
+#define C_HCFS_OPERATIONAL (0x2)
 #define C_HCFS_SUSPEND     (0x3)
 #define C_HCFS_SHIFT       (6)
 
@@ -99,8 +99,8 @@ typedef struct ohci_regs
 	volatile uint32_t hcca;
 #define HCCA_PTR_MASK 0xffffff00 /* HCCA is 256B aligned */
 
-	/** Currently executed period endpoint */
-	const volatile uint32_t period_current;
+	/** Currently executed periodic endpoint */
+	const volatile uint32_t periodic_current;
 
 	/** The first control endpoint */
 	volatile uint32_t control_head;

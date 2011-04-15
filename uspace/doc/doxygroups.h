@@ -250,6 +250,14 @@
 	 */
 
 	/**
+	 * @defgroup drvusbmast USB mass storage driver
+	 * @ingroup usb
+	 * @brief USB driver for mass storage devices (bulk-only protocol).
+	 * This driver is a only a stub and is currently used only for
+	 * testing that bulk transfers work.
+	 */
+
+	/**
 	 * @defgroup drvusbuhci UHCI driver
 	 * @ingroup usb
 	 * @brief Drivers for USB UHCI host controller and root hub.

@@ -29,48 +29,69 @@
  * @{
  */
 /** @file
- * @brief OHCI driver transfer list structure
+ * @brief OHCI driver
  */
-#ifndef DRV_OHCI_TRANSFER_LIST_H
-#define DRV_OHCI_TRANSFER_LIST_H
-
-#include <fibril_synch.h>
-
-#include "batch.h"
-#include "hw_struct/endpoint_descriptor.h"
 #include "utils/malloc32.h"
+#include "hcd_endpoint.h"
 
-typedef struct transfer_list
+static void hcd_ep_toggle_set(void *hcd_ep, int toggle)
 {
-	fibril_mutex_t guard;
-	ed_t *list_head;
-	uint32_t list_head_pa;
-	const char *name;
-	link_t batch_list;
-} transfer_list_t;
-
-/** Dispose transfer list structures.
- *
- * @param[in] instance Memory place to use.
- *
- * Frees memory for internal qh_t structure.
- */
-static inline void transfer_list_fini(transfer_list_t *instance)
-{
+	hcd_endpoint_t *instance = hcd_ep;
 	assert(instance);
-	free32(instance->list_head);
+	assert(instance->ed);
+	ed_toggle_set(instance->ed, toggle);
+}
+static int hcd_ep_toggle_get(void *hcd_ep)
+{
+	hcd_endpoint_t *instance = hcd_ep;
+	assert(instance);
+	assert(instance->ed);
+	return ed_toggle_get(instance->ed);
 }
 
-int transfer_list_init(transfer_list_t *instance, const char *name);
 
-void transfer_list_set_next(transfer_list_t *instance, transfer_list_t *next);
+hcd_endpoint_t * hcd_endpoint_assign(endpoint_t *ep)
+{
+	assert(ep);
+	hcd_endpoint_t *hcd_ep = malloc(sizeof(hcd_endpoint_t));
+	if (hcd_ep == NULL)
+		return NULL;
 
-void transfer_list_add_batch(transfer_list_t *instance, usb_transfer_batch_t *batch);
+	hcd_ep->ed = malloc32(sizeof(ed_t));
+	if (hcd_ep->ed == NULL) {
+		free(hcd_ep);
+		return NULL;
+	}
 
-void transfer_list_remove_finished(transfer_list_t *instance, link_t *done);
+	hcd_ep->td = malloc32(sizeof(td_t));
+	if (hcd_ep->td == NULL) {
+		free32(hcd_ep->ed);
+		free(hcd_ep);
+		return NULL;
+	}
 
-void transfer_list_abort_all(transfer_list_t *instance);
-#endif
+	ed_init(hcd_ep->ed, ep);
+	ed_set_td(hcd_ep->ed, hcd_ep->td);
+	endpoint_set_hc_data(ep, hcd_ep, hcd_ep_toggle_get, hcd_ep_toggle_set);
+
+	return hcd_ep;
+}
+/*----------------------------------------------------------------------------*/
+hcd_endpoint_t * hcd_endpoint_get(endpoint_t *ep)
+{
+	assert(ep);
+	return ep->hc_data.data;
+}
+/*----------------------------------------------------------------------------*/
+void hcd_endpoint_clear(endpoint_t *ep)
+{
+	assert(ep);
+	hcd_endpoint_t *hcd_ep = ep->hc_data.data;
+	assert(hcd_ep);
+	free32(hcd_ep->ed);
+	free32(hcd_ep->td);
+	free(hcd_ep);
+}
 /**
  * @}
  */

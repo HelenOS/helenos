@@ -50,6 +50,12 @@
 /** USB endpoint status - endpoint is halted (stalled). */
 #define USB_ENDPOINT_STATUS_HALTED ((uint16_t)(1 << 0))
 
+/** USB feature selector - endpoint halt (stall). */
+#define USB_FEATURE_SELECTOR_ENDPOINT_HALT (0)
+
+/** USB feature selector - device remote wake-up. */
+#define USB_FEATURE_SELECTOR_REMOTE_WAKEUP (1)
+
 /** Standard device request. */
 typedef enum {
 	USB_DEVREQ_GET_STATUS = 0,
@@ -133,6 +139,8 @@ int usb_request_get_supported_languages(usb_pipe_t *,
     l18_win_locales_t **, size_t *);
 int usb_request_get_string(usb_pipe_t *, size_t, l18_win_locales_t,
     char **);
+
+int usb_request_clear_endpoint_halt(usb_pipe_t *, uint16_t);
 
 #endif
 /**

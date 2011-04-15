@@ -161,20 +161,16 @@ int usb_driver_main(usb_driver_t *);
 int usb_device_select_interface(usb_device_t *, uint8_t,
     usb_endpoint_description_t **);
 
-typedef bool (*usb_polling_callback_t)(usb_device_t *,
-    uint8_t *, size_t, void *);
-typedef void (*usb_polling_terminted_callback_t)(usb_device_t *, bool, void *);
-
-int usb_device_auto_poll(usb_device_t *, size_t,
-    usb_polling_callback_t, size_t, usb_polling_terminted_callback_t, void *);
-
 int usb_device_retrieve_descriptors(usb_pipe_t *, usb_device_descriptors_t *);
 int usb_device_create_pipes(ddf_dev_t *, usb_device_connection_t *,
     usb_endpoint_description_t **, uint8_t *, size_t, int, int,
     usb_endpoint_mapping_t **, size_t *);
 int usb_device_destroy_pipes(ddf_dev_t *, usb_endpoint_mapping_t *, size_t);
+int usb_device_create(ddf_dev_t *, usb_endpoint_description_t **, usb_device_t **, const char **);
 
 size_t usb_interface_count_alternates(uint8_t *, size_t, uint8_t);
+int usb_alternate_interfaces_create(uint8_t *, size_t, int,
+    usb_alternate_interfaces_t **);
 
 #endif
 /**

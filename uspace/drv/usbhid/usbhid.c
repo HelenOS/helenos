@@ -378,7 +378,7 @@ int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 	
 	rc = usb_hid_check_pipes(hid_dev, dev);
 	if (rc != EOK) {
-		usb_hid_free(&hid_dev);
+		//usb_hid_free(&hid_dev);
 		return rc;
 	}
 	
@@ -386,7 +386,7 @@ int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 	rc = usb_hid_parser_init(hid_dev->parser);
 	if (rc != EOK) {
 		usb_log_error("Failed to initialize report parser.\n");
-		usb_hid_free(&hid_dev);
+		//usb_hid_free(&hid_dev);
 		return rc;
 	}
 	
@@ -404,6 +404,8 @@ int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 			usb_log_info("No subdrivers found to handle this"
 			    " device.\n");
 			fallback = true;
+			assert(hid_dev->subdrivers == NULL);
+			assert(hid_dev->subdriver_count == 0);
 		}
 	} else {
 		usb_log_error("Failed to parse Report descriptor.\n");
@@ -444,7 +446,9 @@ int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 	if (rc != EOK) {
 		usb_log_error("No subdriver for handling this device could be"
 		    " initialized: %s.\n", str_error(rc));
-		usb_hid_free(&hid_dev);
+		usb_log_debug("Subdriver count: %d\n", 
+		    hid_dev->subdriver_count);
+		//usb_hid_free(&hid_dev);
 	} else {
 		bool ok = false;
 		
@@ -567,6 +571,9 @@ void usb_hid_free(usb_hid_dev_t **hid_dev)
 	if (hid_dev == NULL || *hid_dev == NULL) {
 		return;
 	}
+	
+	usb_log_debug("Subdrivers: %p, subdriver count: %d\n", 
+	    (*hid_dev)->subdrivers, (*hid_dev)->subdriver_count);
 	
 	assert((*hid_dev)->subdrivers != NULL 
 	    || (*hid_dev)->subdriver_count == 0);

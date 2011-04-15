@@ -41,6 +41,7 @@
 #include <str_error.h>
 
 #include <usb/devdrv.h>
+#include <usb/devpoll.h>
 
 #include "usbhid.h"
 

@@ -47,27 +47,23 @@
 #include "batch.h"
 #include "ohci_regs.h"
 #include "root_hub.h"
-#include "transfer_list.h"
+#include "endpoint_list.h"
 #include "hw_struct/hcca.h"
 
 typedef struct hc {
 	ohci_regs_t *registers;
+	hcca_t *hcca;
+
 	usb_address_t rh_address;
 	rh_t rh;
 
-	hcca_t *hcca;
+	endpoint_list_t lists[4];
+	link_t pending_batches;
 
-	transfer_list_t transfers_isochronous;
-	transfer_list_t transfers_interrupt;
-	transfer_list_t transfers_control;
-	transfer_list_t transfers_bulk;
-
-	transfer_list_t *transfers[4];
-
-	ddf_fun_t *ddf_instance;
 	usb_device_keeper_t manager;
 	usb_endpoint_manager_t ep_manager;
 	fid_t interrupt_emulator;
+	fibril_mutex_t guard;
 } hc_t;
 
 int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun);
@@ -75,15 +71,25 @@ int hc_register_hub(hc_t *instance, ddf_fun_t *hub_fun);
 int hc_init(hc_t *instance, ddf_fun_t *fun, ddf_dev_t *dev,
      uintptr_t regs, size_t reg_size, bool interrupts);
 
-int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch);
-
-void hc_interrupt(hc_t *instance, uint32_t status);
-
 /** Safely dispose host controller internal structures
  *
  * @param[in] instance Host controller structure to use.
  */
 static inline void hc_fini(hc_t *instance) { /* TODO: implement*/ };
+
+int hc_add_endpoint(hc_t *instance, usb_address_t address, usb_endpoint_t ep,
+    usb_speed_t speed, usb_transfer_type_t type, usb_direction_t direction,
+    size_t max_packet_size, size_t size, unsigned interval);
+
+int hc_remove_endpoint(hc_t *instance, usb_address_t address,
+    usb_endpoint_t endpoint, usb_direction_t direction);
+
+endpoint_t * hc_get_endpoint(hc_t *instance, usb_address_t address,
+    usb_endpoint_t endpoint, usb_direction_t direction, size_t *bw);
+
+int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch);
+
+void hc_interrupt(hc_t *instance, uint32_t status);
 
 /** Get and cast pointer to the driver data
  *
