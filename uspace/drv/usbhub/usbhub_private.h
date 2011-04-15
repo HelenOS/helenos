@@ -112,7 +112,7 @@ static inline int usb_hub_set_port_feature(usb_pipe_t *pipe,
     usb_hub_class_feature_t feature) {
 
 	usb_device_request_setup_packet_t clear_request = {
-		.request_type = USB_HUB_REQ_TYPE_CLEAR_PORT_FEATURE,
+		.request_type = USB_HUB_REQ_TYPE_SET_PORT_FEATURE,
 		.request = USB_DEVREQ_SET_FEATURE,
 		.length = 0,
 		.index = port_index

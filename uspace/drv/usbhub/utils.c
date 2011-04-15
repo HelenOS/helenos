@@ -69,7 +69,8 @@ void * usb_create_serialized_hub_descriptor(usb_hub_descriptor_t * descriptor) {
 	size += 2 * var_size;
 	uint8_t * result = malloc(size);
 	//size
-	usb_serialize_hub_descriptor(descriptor,result);
+	if(result)
+		usb_serialize_hub_descriptor(descriptor,result);
 	return result;
 }
 
