@@ -112,7 +112,7 @@ static inline int usb_hub_set_port_feature(usb_pipe_t *pipe,
     usb_hub_class_feature_t feature) {
 
 	usb_device_request_setup_packet_t clear_request = {
-		.request_type = USB_HUB_REQ_TYPE_CLEAR_PORT_FEATURE,
+		.request_type = USB_HUB_REQ_TYPE_SET_PORT_FEATURE,
 		.request = USB_DEVREQ_SET_FEATURE,
 		.length = 0,
 		.index = port_index
@@ -165,24 +165,17 @@ static inline int usb_hub_set_feature(usb_pipe_t *pipe,
 	    sizeof(clear_request), NULL, 0);
 }
 
-/**
- * create uint8_t array with serialized descriptor
- *
- * @param descriptor
- * @return newly created serializd descriptor pointer
- */
-void * usb_serialize_hub_descriptor(usb_hub_descriptor_t * descriptor);
 
-/**
- * create deserialized desriptor structure out of serialized descriptor
- *
- * The serialized descriptor must be proper usb hub descriptor,
- * otherwise an eerror might occur.
- *
- * @param sdescriptor serialized descriptor
- * @return newly created deserialized descriptor pointer
- */
-usb_hub_descriptor_t * usb_deserialize_hub_desriptor(void * sdescriptor);
+void * usb_create_serialized_hub_descriptor(usb_hub_descriptor_t * descriptor);
+
+void usb_serialize_hub_descriptor(usb_hub_descriptor_t * descriptor,
+    void * serialized_descriptor);
+
+usb_hub_descriptor_t * usb_create_deserialized_hub_desriptor(
+    void * serialized_descriptor);
+
+void usb_deserialize_hub_desriptor(void * serialized_descriptor,
+    usb_hub_descriptor_t * descriptor);
 
 
 #endif	/* USBHUB_PRIVATE_H */
