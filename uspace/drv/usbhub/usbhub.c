@@ -123,8 +123,8 @@ int usb_hub_add_device(usb_device_t * usb_dev) {
 	}
 	//usb_pipe_end_session(hub_info->control_pipe);
 
-	/// \TODO what is this?
-	usb_log_debug("Creating `hub' function.\n");
+
+	usb_log_debug("Creating 'hub' function in DDF.\n");
 	ddf_fun_t *hub_fun = ddf_fun_create(hub_info->usb_device->ddf_dev,
 	    fun_exposed, "hub");
 	assert(hub_fun != NULL);
