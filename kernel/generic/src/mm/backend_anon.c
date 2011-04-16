@@ -38,6 +38,7 @@
 
 #include <mm/as.h>
 #include <mm/page.h>
+#include <mm/reserve.h>
 #include <genarch/mm/page_pt.h>
 #include <genarch/mm/page_ht.h>
 #include <mm/frame.h>
@@ -50,130 +51,37 @@
 #include <align.h>
 #include <arch.h>
 
-#ifdef CONFIG_VIRT_IDX_DCACHE
-#include <arch/mm/cache.h>
-#endif
+static bool anon_create(as_area_t *);
+static bool anon_resize(as_area_t *, size_t);
+static void anon_share(as_area_t *);
+static void anon_destroy(as_area_t *);
 
 static int anon_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access);
 static void anon_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame);
-static void anon_share(as_area_t *area);
 
 mem_backend_t anon_backend = {
+	.create = anon_create,
+	.resize = anon_resize,
+	.share = anon_share,
+	.destroy = anon_destroy,
+
 	.page_fault = anon_page_fault,
 	.frame_free = anon_frame_free,
-	.share = anon_share
 };
 
-/** Service a page fault in the anonymous memory address space area.
- *
- * The address space area and page tables must be already locked.
- *
- * @param area Pointer to the address space area.
- * @param addr Faulting virtual address.
- * @param access Access mode that caused the fault (i.e. read/write/exec).
- *
- * @return AS_PF_FAULT on failure (i.e. page fault) or AS_PF_OK on success (i.e.
- *     serviced).
- */
-int anon_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
+bool anon_create(as_area_t *area)
 {
-	uintptr_t frame;
-
-	ASSERT(page_table_locked(AS));
-	ASSERT(mutex_locked(&area->lock));
-
-	if (!as_area_check_access(area, access))
-		return AS_PF_FAULT;
-
-	if (area->sh_info) {
-		btree_node_t *leaf;
-		
-		/*
-		 * The area is shared, chances are that the mapping can be found
-		 * in the pagemap of the address space area share info
-		 * structure.
-		 * In the case that the pagemap does not contain the respective
-		 * mapping, a new frame is allocated and the mapping is created.
-		 */
-		mutex_lock(&area->sh_info->lock);
-		frame = (uintptr_t) btree_search(&area->sh_info->pagemap,
-		    ALIGN_DOWN(addr, PAGE_SIZE) - area->base, &leaf);
-		if (!frame) {
-			bool allocate = true;
-			unsigned int i;
-			
-			/*
-			 * Zero can be returned as a valid frame address.
-			 * Just a small workaround.
-			 */
-			for (i = 0; i < leaf->keys; i++) {
-				if (leaf->key[i] ==
-				    ALIGN_DOWN(addr, PAGE_SIZE) - area->base) {
-					allocate = false;
-					break;
-				}
-			}
-			if (allocate) {
-				frame = (uintptr_t) frame_alloc(ONE_FRAME, 0);
-				memsetb((void *) PA2KA(frame), FRAME_SIZE, 0);
-				
-				/*
-				 * Insert the address of the newly allocated
-				 * frame to the pagemap.
-				 */
-				btree_insert(&area->sh_info->pagemap,
-				    ALIGN_DOWN(addr, PAGE_SIZE) - area->base,
-				    (void *) frame, leaf);
-			}
-		}
-		frame_reference_add(ADDR2PFN(frame));
-		mutex_unlock(&area->sh_info->lock);
-	} else {
-
-		/*
-		 * In general, there can be several reasons that
-		 * can have caused this fault.
-		 *
-		 * - non-existent mapping: the area is an anonymous
-		 *   area (e.g. heap or stack) and so far has not been
-		 *   allocated a frame for the faulting page
-		 *
-		 * - non-present mapping: another possibility,
-		 *   currently not implemented, would be frame
-		 *   reuse; when this becomes a possibility,
-		 *   do not forget to distinguish between
-		 *   the different causes
-		 */
-		frame = (uintptr_t) frame_alloc(ONE_FRAME, 0);
-		memsetb((void *) PA2KA(frame), FRAME_SIZE, 0);
-	}
-	
-	/*
-	 * Map 'page' to 'frame'.
-	 * Note that TLB shootdown is not attempted as only new information is
-	 * being inserted into page tables.
-	 */
-	page_mapping_insert(AS, addr, frame, as_area_get_flags(area));
-	if (!used_space_insert(area, ALIGN_DOWN(addr, PAGE_SIZE), 1))
-		panic("Cannot insert used space.");
-		
-	return AS_PF_OK;
+	return reserve_try_alloc(area->pages);
 }
 
-/** Free a frame that is backed by the anonymous memory backend.
- *
- * The address space area and page tables must be already locked.
- *
- * @param area Ignored.
- * @param page Virtual address of the page corresponding to the frame.
- * @param frame Frame to be released.
- */
-void anon_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame)
+bool anon_resize(as_area_t *area, size_t new_pages)
 {
-	ASSERT(page_table_locked(area->as));
-	ASSERT(mutex_locked(&area->lock));
+	if (new_pages > area->pages)
+		return reserve_try_alloc(new_pages - area->pages);
+	else if (new_pages < area->pages)
+		reserve_free(area->pages - new_pages);
 
-	frame_free(frame);
+	return true;
 }
 
 /** Share the anonymous address space area.
@@ -227,6 +135,125 @@ void anon_share(as_area_t *area)
 		}
 	}
 	mutex_unlock(&area->sh_info->lock);
+}
+
+void anon_destroy(as_area_t *area)
+{
+	reserve_free(area->pages);
+}
+
+
+/** Service a page fault in the anonymous memory address space area.
+ *
+ * The address space area and page tables must be already locked.
+ *
+ * @param area Pointer to the address space area.
+ * @param addr Faulting virtual address.
+ * @param access Access mode that caused the fault (i.e. read/write/exec).
+ *
+ * @return AS_PF_FAULT on failure (i.e. page fault) or AS_PF_OK on success (i.e.
+ *     serviced).
+ */
+int anon_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access)
+{
+	uintptr_t frame;
+
+	ASSERT(page_table_locked(AS));
+	ASSERT(mutex_locked(&area->lock));
+
+	if (!as_area_check_access(area, access))
+		return AS_PF_FAULT;
+
+	if (area->sh_info) {
+		btree_node_t *leaf;
+		
+		/*
+		 * The area is shared, chances are that the mapping can be found
+		 * in the pagemap of the address space area share info
+		 * structure.
+		 * In the case that the pagemap does not contain the respective
+		 * mapping, a new frame is allocated and the mapping is created.
+		 */
+		mutex_lock(&area->sh_info->lock);
+		frame = (uintptr_t) btree_search(&area->sh_info->pagemap,
+		    ALIGN_DOWN(addr, PAGE_SIZE) - area->base, &leaf);
+		if (!frame) {
+			bool allocate = true;
+			unsigned int i;
+			
+			/*
+			 * Zero can be returned as a valid frame address.
+			 * Just a small workaround.
+			 */
+			for (i = 0; i < leaf->keys; i++) {
+				if (leaf->key[i] ==
+				    ALIGN_DOWN(addr, PAGE_SIZE) - area->base) {
+					allocate = false;
+					break;
+				}
+			}
+			if (allocate) {
+				frame = (uintptr_t) frame_alloc_noreserve(
+				    ONE_FRAME, 0);
+				memsetb((void *) PA2KA(frame), FRAME_SIZE, 0);
+				
+				/*
+				 * Insert the address of the newly allocated
+				 * frame to the pagemap.
+				 */
+				btree_insert(&area->sh_info->pagemap,
+				    ALIGN_DOWN(addr, PAGE_SIZE) - area->base,
+				    (void *) frame, leaf);
+			}
+		}
+		frame_reference_add(ADDR2PFN(frame));
+		mutex_unlock(&area->sh_info->lock);
+	} else {
+
+		/*
+		 * In general, there can be several reasons that
+		 * can have caused this fault.
+		 *
+		 * - non-existent mapping: the area is an anonymous
+		 *   area (e.g. heap or stack) and so far has not been
+		 *   allocated a frame for the faulting page
+		 *
+		 * - non-present mapping: another possibility,
+		 *   currently not implemented, would be frame
+		 *   reuse; when this becomes a possibility,
+		 *   do not forget to distinguish between
+		 *   the different causes
+		 */
+		frame = (uintptr_t) frame_alloc_noreserve(ONE_FRAME, 0);
+		memsetb((void *) PA2KA(frame), FRAME_SIZE, 0);
+	}
+	
+	/*
+	 * Map 'page' to 'frame'.
+	 * Note that TLB shootdown is not attempted as only new information is
+	 * being inserted into page tables.
+	 */
+	page_mapping_insert(AS, addr, frame, as_area_get_flags(area));
+	if (!used_space_insert(area, ALIGN_DOWN(addr, PAGE_SIZE), 1))
+		panic("Cannot insert used space.");
+		
+	return AS_PF_OK;
+}
+
+/** Free a frame that is backed by the anonymous memory backend.
+ *
+ * The address space area and page tables must be already locked.
+ *
+ * @param area Ignored.
+ * @param page Virtual address of the page corresponding to the frame.
+ * @param frame Frame to be released.
+ */
+void anon_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame)
+{
+	ASSERT(page_table_locked(area->as));
+	ASSERT(mutex_locked(&area->lock));
+
+	frame_free_noreserve(frame);
 }
 
 /** @}

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Martin Decky
+ * Copyright (c) 2011 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,40 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup abs32le
+/** @addtogroup genericmm
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_abs32le_TYPES_H_
-#define KERN_abs32le_TYPES_H_
+#ifndef KERN_RESERVE_H_
+#define KERN_RESERVE_H_
 
-#define ATOMIC_COUNT_MIN  UINT32_MIN
-#define ATOMIC_COUNT_MAX  UINT32_MAX
+#include <typedefs.h>
 
-typedef uint32_t size_t;
-typedef int32_t ssize_t;
-
-typedef uint32_t uintptr_t;
-typedef uint32_t pfn_t;
-
-typedef uint32_t ipl_t;
-
-typedef uint32_t sysarg_t;
-typedef int32_t native_t;
-typedef uint32_t atomic_count_t;
-
-typedef struct {
-} fncptr_t;
-
-#define INTN_C(c)   INT32_C(c)
-#define UINTN_C(c)  UINT32_C(c)
-
-#define PRIdn  PRId32  /**< Format for native_t. */
-#define PRIun  PRIu32  /**< Format for sysarg_t. */
-#define PRIxn  PRIx32  /**< Format for hexadecimal sysarg_t. */
-#define PRIua  PRIu32  /**< Format for atomic_count_t. */
+extern bool reserve_try_alloc(size_t);
+extern void reserve_force_alloc(size_t);
+extern void reserve_free(size_t);
 
 #endif
 
