@@ -1146,7 +1146,7 @@ void frame_free_generic(uintptr_t frame, frame_flags_t flags)
 	 */
 	mutex_lock(&mem_avail_mtx);
 	if (mem_avail_req > 0)
-		mem_avail_req--;
+		mem_avail_req -= min(mem_avail_req, size);
 	
 	if (mem_avail_req == 0) {
 		mem_avail_gen++;
