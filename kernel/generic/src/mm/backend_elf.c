@@ -74,12 +74,6 @@ bool elf_create(as_area_t *area)
 	elf_segment_header_t *entry = area->backend_data.segment;
 	size_t nonanon_pages = ALIGN_DOWN(entry->p_filesz, PAGE_SIZE);
 
-	/**
-	 * @todo:
-	 * Reserve only how much is necessary for anonymous pages plus the
-	 * supporting structures allocated during the page fault.
-	 */
-	
 	if (area->pages <= nonanon_pages)
 		return true;
 	

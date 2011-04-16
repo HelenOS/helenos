@@ -76,12 +76,6 @@ bool anon_create(as_area_t *area)
 
 bool anon_resize(as_area_t *area, size_t new_pages)
 {
-	/**
-	 * @todo
-	 * Reserve also space needed for the supporting strutures allocated
-	 * during page fault.
-	 */
-
 	if (new_pages > area->pages)
 		return reserve_try_alloc(new_pages - area->pages);
 	else if (new_pages < area->pages)
