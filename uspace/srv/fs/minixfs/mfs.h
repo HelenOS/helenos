@@ -180,8 +180,9 @@ extern int
 free_zone(struct mfs_node *mnode, const uint32_t zone);
 
 /*mfs_dentry.c*/
-extern struct mfs_dentry_info *
-read_directory_entry(struct mfs_node *mnode, unsigned index);
+extern int
+read_directory_entry(struct mfs_node *mnode,
+			struct mfs_dentry_info **d_info, unsigned index);
 
 extern int
 write_dentry(struct mfs_dentry_info *d_info);

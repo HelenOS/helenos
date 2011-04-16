@@ -35,8 +35,9 @@
 #include "mfs.h"
 #include "mfs_utils.h"
 
-struct mfs_dentry_info *
-read_directory_entry(struct mfs_node *mnode, unsigned index)
+int
+read_directory_entry(struct mfs_node *mnode,
+			struct mfs_dentry_info **d_info, unsigned index)
 {
 	const struct mfs_instance *inst = mnode->instance;
 	const struct mfs_sb_info *sbi = inst->sbi;
@@ -46,13 +47,18 @@ read_directory_entry(struct mfs_node *mnode, unsigned index)
 
 	mfsdebug("read_directory(%u)\n", index);
 
-	struct mfs_dentry_info *d_info = malloc(sizeof(*d_info));
-	if (!d_info)
-		return NULL;
+	*d_info = malloc(sizeof(**d_info));
+	if (!*d_info)
+		return ENOMEM;
 
 	int r = read_map(&block, mnode, index * sbi->dirsize);
-	if (r != EOK || block == 0)
+	if (r != EOK)
 		goto out_err;
+
+	if (block == 0) {
+		r = EIO;
+		goto out_err;
+	}
 
 	r = block_get(&b, inst->handle, block, BLOCK_FLAGS_NONE);
 	if (r != EOK)
@@ -66,8 +72,8 @@ read_directory_entry(struct mfs_node *mnode, unsigned index)
 
 		d3 = b->data + (dentry_off * MFS3_DIRSIZE);
 
-		d_info->d_inum = conv32(sbi->native, d3->d_inum);
-		memcpy(d_info->d_name, d3->d_name, MFS3_MAX_NAME_LEN);
+		(*d_info)->d_inum = conv32(sbi->native, d3->d_inum);
+		memcpy((*d_info)->d_name, d3->d_name, MFS3_MAX_NAME_LEN);
 	} else {
 		const int namelen = longnames ? MFS_L_MAX_NAME_LEN :
 					MFS_MAX_NAME_LEN;
@@ -76,19 +82,20 @@ read_directory_entry(struct mfs_node *mnode, unsigned index)
 
 		d = b->data + dentry_off * (longnames ? MFSL_DIRSIZE :
 							MFS_DIRSIZE);
-		d_info->d_inum = conv16(sbi->native, d->d_inum);
-		memcpy(d_info->d_name, d->d_name, namelen);
+		(*d_info)->d_inum = conv16(sbi->native, d->d_inum);
+		memcpy((*d_info)->d_name, d->d_name, namelen);
 	}
 
 	block_put(b);
 
-	d_info->index = index;
-	d_info->node = mnode;
-	return d_info;
+	(*d_info)->index = index;
+	(*d_info)->node = mnode;
+	return EOK;
 
 out_err:
-	free(d_info);
-	return NULL;
+	free(*d_info);
+	*d_info = NULL;
+	return r;
 }
 
 int
@@ -150,7 +157,9 @@ insert_dentry(struct mfs_node *mnode, const char *d_name, fs_index_t d_inum)
 	/*Search for an empty dentry*/
 
 	for (i = 2; ; ++i) {
-		d_info = read_directory_entry(mnode, i);
+		r = read_directory_entry(mnode, &d_info, i);
+		if (r != EOK)
+			return r;
 
 		if (!d_info) {
 			/*Reached the end of the dentries list*/
@@ -170,9 +179,9 @@ insert_dentry(struct mfs_node *mnode, const char *d_name, fs_index_t d_inum)
 		if (r != EOK)
 			return r;
 
-		d_info = read_directory_entry(mnode, i);
-		if (!d_info)
-			return EIO;
+		r = read_directory_entry(mnode, &d_info, i);
+		if (r != EOK)
+			return r;
 	}
 
 	d_info->d_inum = d_inum;

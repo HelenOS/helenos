@@ -335,6 +335,7 @@ static int mfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 	struct mfs_node *mnode = pfn->data;
 	struct mfs_ino_info *ino_i = mnode->ino_i;
 	struct mfs_dentry_info *d_info;
+	int r;
 
 	mfsdebug("mfs_match()\n");
 
@@ -346,7 +347,10 @@ static int mfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 
 	int i = 2;
 	while (1) {
-		d_info = read_directory_entry(mnode, i++);
+		r = read_directory_entry(mnode, &d_info, i++);
+		if (r != EOK)
+			return r;
+
 		if (!d_info) {
 			/*Reached the end of the directory entry list*/
 			break;
@@ -534,6 +538,7 @@ static int mfs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 static int mfs_has_children(bool *has_children, fs_node_t *fsnode)
 {
 	struct mfs_node *mnode = fsnode->data;
+	int r;
 
 	*has_children = false;
 
@@ -545,7 +550,9 @@ static int mfs_has_children(bool *has_children, fs_node_t *fsnode)
 	/* The first two dentries are always . and .. */
 	int i = 2;
 	while (1) {
-		d_info = read_directory_entry(mnode, i++);
+		r = read_directory_entry(mnode, &d_info, i++);
+		if (r != EOK)
+			return r;
 
 		if (!d_info) {
 			/*Reached the end of the dentries list*/
@@ -611,7 +618,10 @@ mfs_read(ipc_callid_t rid, ipc_call_t *request)
 		struct mfs_dentry_info *d_info;
 
 		while (1) {
-			d_info = read_directory_entry(mnode, pos);
+			rc = read_directory_entry(mnode, &d_info, pos);
+			if (rc != EOK)
+				goto out_error;
+
 			if (!d_info) {
 				/*Reached the end of the dentries list*/
 				break;
