@@ -48,7 +48,7 @@
 #include <align.h>
 
 static bool phys_create(as_area_t *);
-static void phys_share(as_area_t *area);
+static void phys_share(as_area_t *);
 static void phys_destroy(as_area_t *);
 
 static int phys_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access);

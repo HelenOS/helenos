@@ -53,7 +53,7 @@
 
 static bool anon_create(as_area_t *);
 static bool anon_resize(as_area_t *, size_t);
-static void anon_share(as_area_t *area);
+static void anon_share(as_area_t *);
 static void anon_destroy(as_area_t *);
 
 static int anon_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access);
