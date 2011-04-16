@@ -41,7 +41,7 @@
 
 bool reserve_try_alloc(size_t size)
 {
-	return false;	
+	return true;
 }
 
 void reserve_force_alloc(size_t size)
