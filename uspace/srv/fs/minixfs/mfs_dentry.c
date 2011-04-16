@@ -136,7 +136,7 @@ out:
 }
 
 int
-insert_dentry(struct mfs_node *mnode, char *d_name, fs_index_t d_inum)
+insert_dentry(struct mfs_node *mnode, const char *d_name, fs_index_t d_inum)
 {
 	int i, r;
 	struct mfs_sb_info *sbi = mnode->instance->sbi;

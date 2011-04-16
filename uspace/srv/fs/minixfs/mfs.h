@@ -187,7 +187,7 @@ extern int
 write_dentry(struct mfs_dentry_info *d_info);
 
 int
-insert_dentry(struct mfs_node *mnode, char *d_name, fs_index_t d_inum);
+insert_dentry(struct mfs_node *mnode, const char *d_name, fs_index_t d_inum);
 
 /*mfs_balloc.c*/
 extern int
