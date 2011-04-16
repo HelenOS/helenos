@@ -760,6 +760,18 @@ static bool check_magic_number(uint16_t magic, bool *native,
 	return rc;
 }
 
+void
+mfs_close(ipc_callid_t rid, ipc_call_t *request)
+{
+	async_answer_0(rid, EOK);
+}
+
+void
+mfs_open_node(ipc_callid_t rid, ipc_call_t *request)
+{
+	libfs_open_node(&mfs_libfs_ops, mfs_reg.fs_handle, rid, request);
+}
+
 /**
  * @}
  */ 

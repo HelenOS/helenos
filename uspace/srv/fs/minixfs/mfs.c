@@ -112,6 +112,15 @@ static void mfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 		case VFS_OUT_READ:
 			mfs_read(callid, &call);
 			break;
+		case VFS_OUT_OPEN_NODE:
+			mfs_open_node(callid, &call);
+			break;
+		case VFS_OUT_CLOSE:
+			mfs_close(callid, &call);
+			break;
+		case VFS_OUT_WRITE:
+			mfsdebug("write()\n");
+			break;
 		default:
 			async_answer_0(callid, ENOTSUP);
 			break;

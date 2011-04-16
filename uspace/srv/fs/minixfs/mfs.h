@@ -152,6 +152,8 @@ extern int mfs_instance_get(devmap_handle_t handle,
 				struct mfs_instance **instance);
 
 extern void mfs_stat(ipc_callid_t rid, ipc_call_t *request);
+extern void mfs_close(ipc_callid_t rid, ipc_call_t *request);
+extern void mfs_open_node(ipc_callid_t rid, ipc_call_t *request);
 
 extern void
 mfs_read(ipc_callid_t rid, ipc_call_t *request);
