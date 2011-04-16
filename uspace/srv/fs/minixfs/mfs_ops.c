@@ -521,8 +521,14 @@ static char mfs_plb_get_char(unsigned pos)
 
 static int mfs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 {
+	struct mfs_node *parent = pfn->data;
+	struct mfs_node *child = cfn->data;
+
 	mfsdebug("mfs_link()\n");
-	return ENOTSUP;
+
+	int r = insert_dentry(parent, name, child->ino_i->index);
+
+	return r;
 }
 
 static int mfs_has_children(bool *has_children, fs_node_t *fsnode)
