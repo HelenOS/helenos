@@ -44,6 +44,7 @@
 
 #include <typedefs.h>
 #include <mm/frame.h>
+#include <mm/reserve.h>
 #include <mm/as.h>
 #include <panic.h>
 #include <debug.h>
@@ -471,15 +472,15 @@ NO_TRACE static pfn_t zone_frame_alloc(zone_t *zone, uint8_t order)
  * @param zone      Pointer to zone from which the frame is to be freed.
  * @param frame_idx Frame index relative to zone.
  *
+ * @return          Number of freed frames.
+ *
  */
-NO_TRACE static void zone_frame_free(zone_t *zone, size_t frame_idx)
+NO_TRACE static size_t zone_frame_free(zone_t *zone, size_t frame_idx)
 {
 	ASSERT(zone_flags_available(zone->flags));
 	
 	frame_t *frame = &zone->frames[frame_idx];
-	
-	/* Remember frame order */
-	uint8_t order = frame->buddy_order;
+	size_t size = 1 << frame->buddy_order;
 	
 	ASSERT(frame->refcount);
 	
@@ -487,9 +488,11 @@ NO_TRACE static void zone_frame_free(zone_t *zone, size_t frame_idx)
 		buddy_system_free(zone->buddy_system, &frame->buddy_link);
 		
 		/* Update zone information. */
-		zone->free_count += (1 << order);
-		zone->busy_count -= (1 << order);
+		zone->free_count += size;
+		zone->busy_count -= size;
 	}
+	
+	return size;
 }
 
 /** Return frame from zone. */
@@ -644,7 +647,7 @@ NO_TRACE static void return_config_frames(size_t znum, pfn_t pfn, size_t count)
 	size_t i;
 	for (i = 0; i < cframes; i++) {
 		zones.info[znum].busy_count++;
-		zone_frame_free(&zones.info[znum],
+		(void) zone_frame_free(&zones.info[znum],
 		    pfn - zones.info[znum].base + i);
 	}
 }
@@ -682,7 +685,7 @@ NO_TRACE static void zone_reduce_region(size_t znum, pfn_t frame_idx,
 	
 	/* Free unneeded frames */
 	for (i = count; i < (size_t) (1 << order); i++)
-		zone_frame_free(&zones.info[znum], i + frame_idx);
+		(void) zone_frame_free(&zones.info[znum], i + frame_idx);
 }
 
 /** Merge zones z1 and z2.
@@ -996,6 +999,18 @@ void *frame_alloc_generic(uint8_t order, frame_flags_t flags, size_t *pzone)
 	size_t size = ((size_t) 1) << order;
 	size_t hint = pzone ? (*pzone) : 0;
 	
+	/*
+	 * If not told otherwise, we must first reserve the memory.
+	 */
+	if (!(flags & FRAME_NO_RESERVE)) {
+		if (flags & FRAME_ATOMIC) {
+			if (!reserve_try_alloc(size))
+				return NULL;
+		} else {
+			reserve_force_alloc(size);
+		}
+	}
+	
 loop:
 	irq_spinlock_lock(&zones.lock, true);
 	
@@ -1030,6 +1045,8 @@ loop:
 	if (znum == (size_t) -1) {
 		if (flags & FRAME_ATOMIC) {
 			irq_spinlock_unlock(&zones.lock, true);
+			if (!(flags & FRAME_NO_RESERVE))
+				reserve_free(size);
 			return NULL;
 		}
 		
@@ -1107,6 +1124,8 @@ void *frame_alloc_noreserve(uint8_t order, frame_flags_t flags)
  */
 void frame_free_generic(uintptr_t frame, frame_flags_t flags)
 {
+	size_t size;
+	
 	irq_spinlock_lock(&zones.lock, true);
 	
 	/*
@@ -1114,10 +1133,11 @@ void frame_free_generic(uintptr_t frame, frame_flags_t flags)
 	 */
 	pfn_t pfn = ADDR2PFN(frame);
 	size_t znum = find_zone(pfn, 1, 0);
+
 	
 	ASSERT(znum != (size_t) -1);
 	
-	zone_frame_free(&zones.info[znum], pfn - zones.info[znum].base);
+	size = zone_frame_free(&zones.info[znum], pfn - zones.info[znum].base);
 	
 	irq_spinlock_unlock(&zones.lock, true);
 	
@@ -1133,6 +1153,9 @@ void frame_free_generic(uintptr_t frame, frame_flags_t flags)
 		condvar_broadcast(&mem_avail_cv);
 	}
 	mutex_unlock(&mem_avail_mtx);
+	
+	if (!(flags & FRAME_NO_RESERVE))
+		reserve_free(size);
 }
 
 void frame_free(uintptr_t frame)
