@@ -35,21 +35,41 @@
  * @brief Memory reservations.
  */
 
-#include <typedefs.h>
 #include <mm/reserve.h>
 #include <mm/frame.h>
+#include <synch/spinlock.h>
+#include <typedefs.h>
+#include <arch/types.h>
+
+IRQ_SPINLOCK_STATIC_INITIALIZE_NAME(reserve_lock, "reserve_lock");
+static ssize_t reserve = 0;
 
 bool reserve_try_alloc(size_t size)
 {
-	return true;
+	bool reserved = false;
+
+	irq_spinlock_lock(&reserve_lock, true);
+	if (reserve >= 0 && (size_t) reserve >= size) {
+		reserve -= size;
+		reserved = true;
+	}
+	irq_spinlock_unlock(&reserve_lock, true);
+
+	return reserved;
 }
 
 void reserve_force_alloc(size_t size)
 {
+	irq_spinlock_lock(&reserve_lock, true);
+	reserve -= size;
+	irq_spinlock_unlock(&reserve_lock, true);
 }
 
 void reserve_free(size_t size)
 {
+	irq_spinlock_lock(&reserve_lock, true);
+	reserve += size;
+	irq_spinlock_unlock(&reserve_lock, true);
 }
 
 /** @}
