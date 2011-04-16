@@ -180,7 +180,7 @@ find_free_bit_and_set(bitchunk_t *b, const int bsize,
 	const size_t chunk_bits = sizeof(bitchunk_t) * 8;
 
 	for (i = start_bit; i < bsize / sizeof(uint32_t); ++i) {
-		if (~b[i]) {
+		if (!(~b[i])) {
 			/*No free bit in this chunk*/
 			continue;
 		}
