@@ -672,6 +672,7 @@ found:
 				rc = ENOMEM;
 				goto out_error;
 			}
+			memset(buf, 0, sizeof(sbi->block_size));
 			async_data_read_finalize(callid,
 			    buf + pos % sbi->block_size, bytes);
 			free(buf);
