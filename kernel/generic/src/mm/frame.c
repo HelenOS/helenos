@@ -518,6 +518,7 @@ NO_TRACE static void zone_mark_unavailable(zone_t *zone, size_t frame_idx)
 	
 	ASSERT(link);
 	zone->free_count--;
+	reserve_force_alloc(1);
 }
 
 /** Merge two zones.
@@ -837,6 +838,9 @@ NO_TRACE static void zone_construct(zone_t *zone, buddy_system_t *buddy,
 			zone->frames[i].refcount = 0;
 			buddy_system_free(zone->buddy_system, &zone->frames[i].buddy_link);
 		}
+
+		/* "Unreserve" new frames. */
+		reserve_free(count);
 	} else
 		zone->frames = NULL;
 }
