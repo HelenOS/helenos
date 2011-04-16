@@ -71,20 +71,39 @@ mem_backend_t elf_backend = {
 
 bool elf_create(as_area_t *area)
 {
+	elf_segment_header_t *entry = area->backend_data.segment;
+	size_t nonanon_pages = ALIGN_DOWN(entry->p_filesz, PAGE_SIZE);
+
 	/**
 	 * @todo:
 	 * Reserve only how much is necessary for anonymous pages plus the
 	 * supporting structures allocated during the page fault.
 	 */
-	return reserve_try_alloc(area->pages);
+	
+	if (area->pages <= nonanon_pages)
+		return true;
+	
+	return reserve_try_alloc(area->pages - nonanon_pages);
 }
 
 bool elf_resize(as_area_t *area, size_t new_pages)
 {
-	if (new_pages > area->pages)
-		return reserve_try_alloc(new_pages - area->pages);
-	else if (new_pages < area->pages)
-		reserve_free(area->pages - new_pages);
+	elf_segment_header_t *entry = area->backend_data.segment;
+	size_t nonanon_pages = ALIGN_DOWN(entry->p_filesz, PAGE_SIZE);
+
+	if (new_pages > area->pages) {
+		/* The area is growing. */
+		if (area->pages >= nonanon_pages)
+			return reserve_try_alloc(new_pages - area->pages);
+		else if (new_pages > nonanon_pages)
+			return reserve_try_alloc(new_pages - nonanon_pages);
+	} else if (new_pages < area->pages) {
+		/* The area is shrinking. */
+		if (new_pages >= nonanon_pages)
+			reserve_free(area->pages - new_pages);
+		else if (area->pages > nonanon_pages)
+			reserve_free(nonanon_pages - new_pages);
+	}
 	
 	return true;
 }
@@ -179,11 +198,11 @@ void elf_share(as_area_t *area)
 
 void elf_destroy(as_area_t *area)
 {
-	/**
-	 * @todo:
-	 * Unreserve only how much was really reserved.
-	 */
-	reserve_free(area->pages);
+	elf_segment_header_t *entry = area->backend_data.segment;
+	size_t nonanon_pages = ALIGN_DOWN(entry->p_filesz, PAGE_SIZE);
+
+	if (area->pages > nonanon_pages)
+		reserve_free(area->pages - nonanon_pages);
 }
 
 /** Service a page fault in the ELF backend address space area.
