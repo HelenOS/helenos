@@ -296,9 +296,9 @@ bool usb_pipe_is_session_started(usb_pipe_t *pipe)
  * @param pipe Pipe over which the transfer will happen.
  * @return Error code.
  */
-int usb_pipe_start_long_transfer(usb_pipe_t *pipe)
+void usb_pipe_start_long_transfer(usb_pipe_t *pipe)
 {
-	return pipe_add_ref(pipe);
+	(void) pipe_add_ref(pipe, true);
 }
 
 /** Terminate a long transfer on a pipe.
