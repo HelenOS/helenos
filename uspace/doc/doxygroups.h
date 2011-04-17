@@ -250,6 +250,14 @@
 	 */
 
 	/**
+	 * @defgroup drvusbmast USB mass storage driver
+	 * @ingroup usb
+	 * @brief USB driver for mass storage devices (bulk-only protocol).
+	 * This driver is a only a stub and is currently used only for
+	 * testing that bulk transfers work.
+	 */
+
+	/**
 	 * @defgroup drvusbuhci UHCI driver
 	 * @ingroup usb
 	 * @brief Drivers for USB UHCI host controller and root hub.
@@ -268,13 +276,19 @@
 		 */
 
 	/**
+	 * @defgroup drvusbohci OHCI driver
+	 * @ingroup usb
+	 * @brief Driver for OHCI host controller.
+	 */
+
+	/**
 	 * @defgroup drvusbehci EHCI driver
 	 * @ingroup usb
 	 * @brief Driver for EHCI host controller.
 	 */
 
 	/**
-	 * @defgroup drvusbfallback USB fallback driver.
+	 * @defgroup drvusbfallback USB fallback driver
 	 * @ingroup usb
 	 * @brief Fallback driver for any USB device.
 	 * @details

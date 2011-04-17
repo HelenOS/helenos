@@ -30,6 +30,7 @@
 #include <assert.h>
 #include <errno.h>
 
+#include <usb/debug.h>
 #include <usb/host/usb_endpoint_manager.h>
 
 #define BUCKET_COUNT 7
@@ -79,6 +80,14 @@ static void node_remove(link_t *item)
 	node_t *node = hash_table_get_instance(item, node_t, link);
 	endpoint_destroy(node->ep);
 	free(node);
+}
+/*----------------------------------------------------------------------------*/
+static void node_toggle_reset_filtered(link_t *item, void *arg)
+{
+	assert(item);
+	node_t *node = hash_table_get_instance(item, node_t, link);
+	usb_target_t *target = arg;
+	endpoint_toggle_reset_filtered(node->ep, *target);
 }
 /*----------------------------------------------------------------------------*/
 static hash_table_operations_t op = {
@@ -201,6 +210,9 @@ int usb_endpoint_manager_unregister_ep(usb_endpoint_manager_t *instance,
 	}
 
 	node_t *node = hash_table_get_instance(item, node_t, link);
+	if (node->ep->active)
+		return EBUSY;
+
 	instance->free_bw += node->bw;
 	hash_table_remove(&instance->ep_table, key, MAX_KEYS);
 
@@ -228,4 +240,52 @@ endpoint_t * usb_endpoint_manager_get_ep(usb_endpoint_manager_t *instance,
 
 	fibril_mutex_unlock(&instance->guard);
 	return node->ep;
+}
+/*----------------------------------------------------------------------------*/
+/** Check setup packet data for signs of toggle reset.
+ *
+ * @param[in] instance Device keeper structure to use.
+ * @param[in] target Device to receive setup packet.
+ * @param[in] data Setup packet data.
+ *
+ * Really ugly one.
+ */
+void usb_endpoint_manager_reset_if_need(
+    usb_endpoint_manager_t *instance, usb_target_t target, const uint8_t *data)
+{
+	assert(instance);
+	if (target.endpoint > 15 || target.endpoint < 0
+	    || target.address >= USB11_ADDRESS_MAX || target.address < 0) {
+		usb_log_error("Invalid data when checking for toggle reset.\n");
+		return;
+	}
+
+	switch (data[1])
+	{
+	case 0x01: /*clear feature*/
+		/* recipient is endpoint, value is zero (ENDPOINT_STALL) */
+		if (((data[0] & 0xf) == 1) && ((data[2] | data[3]) == 0)) {
+			/* endpoint number is < 16, thus first byte is enough */
+			usb_target_t reset_target =
+			    { .address = target.address, data[4] };
+			fibril_mutex_lock(&instance->guard);
+			hash_table_apply(&instance->ep_table,
+			    node_toggle_reset_filtered, &reset_target);
+			fibril_mutex_unlock(&instance->guard);
+		}
+	break;
+
+	case 0x9: /* set configuration */
+	case 0x11: /* set interface */
+		/* target must be device */
+		if ((data[0] & 0xf) == 0) {
+			usb_target_t reset_target =
+			    { .address = target.address, 0 };
+			fibril_mutex_lock(&instance->guard);
+			hash_table_apply(&instance->ep_table,
+			    node_toggle_reset_filtered, &reset_target);
+			fibril_mutex_unlock(&instance->guard);
+		}
+	break;
+	}
 }

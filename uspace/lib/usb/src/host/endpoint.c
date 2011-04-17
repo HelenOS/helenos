@@ -33,6 +33,7 @@
  * @brief UHCI host controller driver structure
  */
 
+#include <assert.h>
 #include <errno.h>
 #include <usb/host/endpoint.h>
 
@@ -48,20 +49,62 @@ int endpoint_init(endpoint_t *instance, usb_address_t address,
 	instance->speed = speed;
 	instance->max_packet_size = max_packet_size;
 	instance->toggle = 0;
-	link_initialize(&instance->same_device_eps);
+	instance->active = false;
+	fibril_mutex_initialize(&instance->guard);
+	fibril_condvar_initialize(&instance->avail);
+	endpoint_clear_hc_data(instance);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
 void endpoint_destroy(endpoint_t *instance)
 {
 	assert(instance);
-	list_remove(&instance->same_device_eps);
+	assert(!instance->active);
 	free(instance);
+}
+/*----------------------------------------------------------------------------*/
+void endpoint_set_hc_data(endpoint_t *instance,
+    void *data, int (*toggle_get)(void *), void (*toggle_set)(void *, int))
+{
+	assert(instance);
+	instance->hc_data.data = data;
+	instance->hc_data.toggle_get = toggle_get;
+	instance->hc_data.toggle_set = toggle_set;
+}
+/*----------------------------------------------------------------------------*/
+void endpoint_clear_hc_data(endpoint_t *instance)
+{
+	assert(instance);
+	instance->hc_data.data = NULL;
+	instance->hc_data.toggle_get = NULL;
+	instance->hc_data.toggle_set = NULL;
+}
+/*----------------------------------------------------------------------------*/
+void endpoint_use(endpoint_t *instance)
+{
+	assert(instance);
+	fibril_mutex_lock(&instance->guard);
+	while (instance->active)
+		fibril_condvar_wait(&instance->avail, &instance->guard);
+	instance->active = true;
+	fibril_mutex_unlock(&instance->guard);
+}
+/*----------------------------------------------------------------------------*/
+void endpoint_release(endpoint_t *instance)
+{
+	assert(instance);
+	fibril_mutex_lock(&instance->guard);
+	instance->active = false;
+	fibril_mutex_unlock(&instance->guard);
+	fibril_condvar_signal(&instance->avail);
 }
 /*----------------------------------------------------------------------------*/
 int endpoint_toggle_get(endpoint_t *instance)
 {
 	assert(instance);
+	if (instance->hc_data.toggle_get)
+		instance->toggle =
+		    instance->hc_data.toggle_get(instance->hc_data.data);
 	return (int)instance->toggle;
 }
 /*----------------------------------------------------------------------------*/
@@ -69,24 +112,17 @@ void endpoint_toggle_set(endpoint_t *instance, int toggle)
 {
 	assert(instance);
 	assert(toggle == 0 || toggle == 1);
+	if (instance->hc_data.toggle_set)
+		instance->hc_data.toggle_set(instance->hc_data.data, toggle);
 	instance->toggle = toggle;
 }
 /*----------------------------------------------------------------------------*/
-void endpoint_toggle_reset(link_t *ep)
+void endpoint_toggle_reset_filtered(endpoint_t *instance, usb_target_t target)
 {
-	endpoint_t *instance =
-	    list_get_instance(ep, endpoint_t, same_device_eps);
 	assert(instance);
-	instance->toggle = 0;
-}
-/*----------------------------------------------------------------------------*/
-void endpoint_toggle_reset_filtered(link_t *ep, usb_endpoint_t epn)
-{
-	endpoint_t *instance =
-	    list_get_instance(ep, endpoint_t, same_device_eps);
-	assert(instance);
-	if (instance->endpoint == epn)
-		instance->toggle = 0;
+	if (instance->address == target.address &&
+	    (instance->endpoint == target.endpoint || target.endpoint == 0))
+		endpoint_toggle_set(instance, 0);
 }
 /**
  * @}

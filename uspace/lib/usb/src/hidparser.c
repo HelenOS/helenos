@@ -876,7 +876,6 @@ int usb_hid_translate_data(usb_hid_report_field_t *item, const uint8_t *data, si
 	}
 
 	offset = item->offset + (j * item->size);
-	
 	// FIXME
 	if((size_t)(offset/8) != (size_t)((offset+item->size-1)/8)) {
 		
@@ -1351,11 +1350,13 @@ size_t usb_hid_report_output_size(usb_hid_report_t *report,
 	while(field_it != &report_des->report_items) {
 
 		field = list_get_instance(field_it, usb_hid_report_field_t, link);
-		usb_hid_report_path_append_item (field->collection_path, field->usage_page, field->usage);
-		if(usb_hid_report_compare_usage_path (field->collection_path, path, flags) == EOK) {
-			ret++;
+		if(USB_HID_ITEM_FLAG_CONSTANT(field->item_flags) == 0){
+			usb_hid_report_path_append_item (field->collection_path, field->usage_page, field->usage);
+			if(usb_hid_report_compare_usage_path (field->collection_path, path, flags) == EOK) {
+				ret++;
+			}
+			usb_hid_report_remove_last_item (field->collection_path);
 		}
-		usb_hid_report_remove_last_item (field->collection_path);
 		
 		field_it = field_it->next;
 	}
@@ -1535,26 +1536,6 @@ int usb_hid_report_path_set_report_id(usb_hid_report_path_t *path, uint8_t repor
 }
 
 /**
- * Clones given report item structure and returns the new one
- *
- * @param item Report item structure to clone
- * @return Clonned item
- */
-usb_hid_report_item_t *usb_hid_report_item_clone(const usb_hid_report_item_t *item)
-{
-	usb_hid_report_item_t *new_report_item;
-	
-	if(!(new_report_item = malloc(sizeof(usb_hid_report_item_t)))) {
-		return NULL;
-	}					
-	memcpy(new_report_item,item, sizeof(usb_hid_report_item_t));
-	link_initialize(&(new_report_item->link));
-
-	return new_report_item;
-}
-
-
-/**
  *
  *
  *
@@ -1603,6 +1584,57 @@ int usb_hid_report_output_set_data(usb_hid_report_t *report,
 	return EOK;
 }
 
+
+usb_hid_report_item_t *usb_hid_report_item_clone(const usb_hid_report_item_t *item)
+{
+	usb_hid_report_item_t *new_report_item;
+	
+	if(!(new_report_item = malloc(sizeof(usb_hid_report_item_t)))) {
+		return NULL;
+	}					
+	memcpy(new_report_item,item, sizeof(usb_hid_report_item_t));
+	link_initialize(&(new_report_item->link));
+
+	return new_report_item;
+}
+
+
+usb_hid_report_field_t *usb_hid_report_get_sibling(usb_hid_report_t *report, 
+							usb_hid_report_field_t *field, 
+                            usb_hid_report_path_t *path, int flags, 
+                            usb_hid_report_type_t type)
+{
+	usb_hid_report_description_t *report_des = usb_hid_report_find_description (report, path->report_id, type);
+	link_t *field_it;
+	
+	if(report_des == NULL){
+		return NULL;
+	}
+
+	if(field == NULL){
+		// vezmu prvni co mathuje podle path!!
+		field_it = report_des->report_items.next;
+	}
+	else {
+		field_it = field->link.next;
+	}
+
+	while(field_it != &report_des->report_items) {
+		field = list_get_instance(field_it, usb_hid_report_field_t, link);
+			
+		usb_hid_report_path_append_item (field->collection_path, field->usage_page, field->usage);
+		if(usb_hid_report_compare_usage_path (field->collection_path, path, flags) == EOK){
+			usb_hid_report_remove_last_item (field->collection_path);
+			usb_log_debug("....OK\n");
+			return field;
+		}
+		usb_hid_report_remove_last_item (field->collection_path);
+
+		field_it = field_it->next;
+	}
+
+	return NULL;
+}
 /**
  * @}
  */

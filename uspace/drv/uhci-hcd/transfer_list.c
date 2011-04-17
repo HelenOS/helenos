@@ -56,9 +56,9 @@ int transfer_list_init(transfer_list_t *instance, const char *name)
 		usb_log_error("Failed to allocate queue head.\n");
 		return ENOMEM;
 	}
-	instance->queue_head_pa = addr_to_phys(instance->queue_head);
+	uint32_t queue_head_pa = addr_to_phys(instance->queue_head);
 	usb_log_debug2("Transfer list %s setup with QH: %p(%p).\n",
-	    name, instance->queue_head, instance->queue_head_pa);
+	    name, instance->queue_head, queue_head_pa);
 
 	qh_init(instance->queue_head);
 	list_initialize(&instance->batch_list);
@@ -66,6 +66,17 @@ int transfer_list_init(transfer_list_t *instance, const char *name)
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
+/** Dispose transfer list structures.
+ *
+ * @param[in] instance Memory place to use.
+ *
+ * Frees memory for internal qh_t structure.
+ */
+void transfer_list_fini(transfer_list_t *instance)
+{
+	assert(instance);
+	free32(instance->queue_head);
+}
 /** Set the next list in transfer list chain.
  *
  * @param[in] instance List to lead.
@@ -80,15 +91,14 @@ void transfer_list_set_next(transfer_list_t *instance, transfer_list_t *next)
 	assert(next);
 	if (!instance->queue_head)
 		return;
-	/* Set both queue_head.next to point to the follower */
-	qh_set_next_qh(instance->queue_head, next->queue_head_pa);
+	/* Set queue_head.next to point to the follower */
+	qh_set_next_qh(instance->queue_head, next->queue_head);
 }
 /*----------------------------------------------------------------------------*/
-/** Submit transfer batch to the list and queue.
+/** Add transfer batch to the list and queue.
  *
  * @param[in] instance List to use.
  * @param[in] batch Transfer batch to submit.
- * @return Error code
  *
  * The batch is added to the end of the list and queue.
  */
@@ -108,8 +118,8 @@ void transfer_list_add_batch(
 		last_qh = instance->queue_head;
 	} else {
 		/* There is something scheduled */
-		usb_transfer_batch_t *last = list_get_instance(
-		    instance->batch_list.prev, usb_transfer_batch_t, link);
+		usb_transfer_batch_t *last =
+		    usb_transfer_batch_from_link(instance->batch_list.prev);
 		last_qh = batch_qh(last);
 	}
 	const uint32_t pa = addr_to_phys(batch_qh(batch));
@@ -117,7 +127,7 @@ void transfer_list_add_batch(
 
 	/* keep link */
 	batch_qh(batch)->next = last_qh->next;
-	qh_set_next_qh(last_qh, pa);
+	qh_set_next_qh(last_qh, batch_qh(batch));
 
 	asm volatile ("": : :"memory");
 
@@ -131,14 +141,10 @@ void transfer_list_add_batch(
 	fibril_mutex_unlock(&instance->guard);
 }
 /*----------------------------------------------------------------------------*/
-/** Check list for finished batches.
+/** Add completed bantches to the provided list.
  *
  * @param[in] instance List to use.
- * @return Error code
- *
- * Creates a local list of finished batches and calls next_step on each and
- * every one. This is safer because next_step may theoretically access
- * this transfer list leading to the deadlock if its done inline.
+ * @param[in] done list to fill
  */
 void transfer_list_remove_finished(transfer_list_t *instance, link_t *done)
 {
@@ -150,20 +156,19 @@ void transfer_list_remove_finished(transfer_list_t *instance, link_t *done)
 	while (current != &instance->batch_list) {
 		link_t *next = current->next;
 		usb_transfer_batch_t *batch =
-		    list_get_instance(current, usb_transfer_batch_t, link);
+		    usb_transfer_batch_from_link(current);
 
 		if (batch_is_complete(batch)) {
-			/* Save for post-processing */
+			/* Save for processing */
 			transfer_list_remove_batch(instance, batch);
 			list_append(current, done);
 		}
 		current = next;
 	}
 	fibril_mutex_unlock(&instance->guard);
-
 }
 /*----------------------------------------------------------------------------*/
-/** Walk the list and abort all batches.
+/** Walk the list and finish all batches with EINTR.
  *
  * @param[in] instance List to use.
  */
@@ -173,9 +178,9 @@ void transfer_list_abort_all(transfer_list_t *instance)
 	while (!list_empty(&instance->batch_list)) {
 		link_t *current = instance->batch_list.next;
 		usb_transfer_batch_t *batch =
-		    list_get_instance(current, usb_transfer_batch_t, link);
+		    usb_transfer_batch_from_link(current);
 		transfer_list_remove_batch(instance, batch);
-		usb_transfer_batch_finish(batch, EIO);
+		usb_transfer_batch_finish_error(batch, EINTR);
 	}
 	fibril_mutex_unlock(&instance->guard);
 }
@@ -184,7 +189,6 @@ void transfer_list_abort_all(transfer_list_t *instance)
  *
  * @param[in] instance List to use.
  * @param[in] batch Transfer batch to remove.
- * @return Error code
  *
  * Does not lock the transfer list, caller is responsible for that.
  */
@@ -201,26 +205,26 @@ void transfer_list_remove_batch(
 	    "Queue %s: removing batch(%p).\n", instance->name, batch);
 
 	const char *qpos = NULL;
+	qh_t *prev_qh = NULL;
 	/* Remove from the hardware queue */
 	if (instance->batch_list.next == &batch->link) {
 		/* I'm the first one here */
-		assert((instance->queue_head->next & LINK_POINTER_ADDRESS_MASK)
-		    == addr_to_phys(batch_qh(batch)));
-		instance->queue_head->next = batch_qh(batch)->next;
+		prev_qh = instance->queue_head;
 		qpos = "FIRST";
 	} else {
+		/* The thing before me is a batch too */
 		usb_transfer_batch_t *prev =
-		    list_get_instance(
-		        batch->link.prev, usb_transfer_batch_t, link);
-		assert((batch_qh(prev)->next & LINK_POINTER_ADDRESS_MASK)
-		    == addr_to_phys(batch_qh(batch)));
-		batch_qh(prev)->next = batch_qh(batch)->next;
+		    usb_transfer_batch_from_link(batch->link.prev);
+		prev_qh = batch_qh(prev);
 		qpos = "NOT FIRST";
 	}
+	assert((prev_qh->next & LINK_POINTER_ADDRESS_MASK)
+	    == addr_to_phys(batch_qh(batch)));
+	prev_qh->next = batch_qh(batch)->next;
 	asm volatile ("": : :"memory");
 	/* Remove from the batch list */
 	list_remove(&batch->link);
-	usb_log_debug("Batch(%p) removed (%s) from %s, next %x.\n",
+	usb_log_debug("Batch(%p) removed (%s) from %s, next: %x.\n",
 	    batch, qpos, instance->name, batch_qh(batch)->next);
 }
 /**

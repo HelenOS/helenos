@@ -71,16 +71,6 @@ int usb_driver_main(usb_driver_t *drv)
 	return ddf_driver_main(&generic_driver);
 }
 
-/** Log out of memory error on given device.
- *
- * @param dev Device causing the trouble.
- */
-static void usb_log_oom(ddf_dev_t *dev)
-{
-	usb_log_error("Out of memory when adding device `%s'.\n",
-	    dev->name);
-}
-
 /** Count number of pipes the driver expects.
  *
  * @param drv USB driver.
@@ -107,302 +97,28 @@ static size_t count_other_pipes(usb_endpoint_description_t **endpoints)
  * @return Error code.
  */
 static int initialize_other_pipes(usb_endpoint_description_t **endpoints,
-    usb_device_t *dev)
+    usb_device_t *dev, int alternate_setting)
 {
-	int rc;
-
-	size_t pipe_count = count_other_pipes(endpoints);
-	if (pipe_count == 0) {
+	if (endpoints == NULL) {
+		dev->pipes = NULL;
+		dev->pipes_count = 0;
 		return EOK;
 	}
 
-	dev->pipes = malloc(sizeof(usb_endpoint_mapping_t) * pipe_count);
-	if (dev->pipes == NULL) {
-		usb_log_oom(dev->ddf_dev);
-		return ENOMEM;
-	}
+	usb_endpoint_mapping_t *pipes;
+	size_t pipes_count;
 
-	size_t i;
-
-	/* Initialize to NULL first for rollback purposes. */
-	for (i = 0; i < pipe_count; i++) {
-		dev->pipes[i].pipe = NULL;
-	}
-
-	for (i = 0; i < pipe_count; i++) {
-		dev->pipes[i].pipe = malloc(sizeof(usb_pipe_t));
-		if (dev->pipes[i].pipe == NULL) {
-			usb_log_oom(dev->ddf_dev);
-			rc = ENOMEM;
-			goto rollback;
-		}
-
-		dev->pipes[i].description = endpoints[i];
-		dev->pipes[i].interface_no = dev->interface_no;
-		dev->pipes[i].interface_setting = 0;
-	}
-
-	rc = usb_pipe_initialize_from_configuration(dev->pipes, pipe_count,
+	int rc = usb_device_create_pipes(dev->ddf_dev, &dev->wire, endpoints,
 	    dev->descriptors.configuration, dev->descriptors.configuration_size,
-	    &dev->wire);
+	    dev->interface_no, alternate_setting,
+	    &pipes, &pipes_count);
+
 	if (rc != EOK) {
-		usb_log_error("Failed initializing USB endpoints: %s.\n",
-		    str_error(rc));
-		goto rollback;
-	}
-
-	/* Register the endpoints. */
-	usb_hc_connection_t hc_conn;
-	rc = usb_hc_connection_initialize_from_device(&hc_conn, dev->ddf_dev);
-	if (rc != EOK) {
-		usb_log_error(
-		    "Failed initializing connection to host controller: %s.\n",
-		    str_error(rc));
-		goto rollback;
-	}
-	rc = usb_hc_connection_open(&hc_conn);
-	if (rc != EOK) {
-		usb_log_error("Failed to connect to host controller: %s.\n",
-		    str_error(rc));
-		goto rollback;
-	}
-	for (i = 0; i < pipe_count; i++) {
-		if (dev->pipes[i].present) {
-			rc = usb_pipe_register(dev->pipes[i].pipe,
-			    dev->pipes[i].descriptor->poll_interval,
-			    &hc_conn);
-			/* Ignore error when operation not supported by HC. */
-			if ((rc != EOK) && (rc != ENOTSUP)) {
-				/* FIXME: what shall we do? */
-				dev->pipes[i].present = false;
-				free(dev->pipes[i].pipe);
-				dev->pipes[i].pipe = NULL;
-			}
-		}
-	}
-	/* Ignoring errors here. */
-	usb_hc_connection_close(&hc_conn);
-
-	dev->pipes_count = pipe_count;
-
-	return EOK;
-
-rollback:
-	for (i = 0; i < pipe_count; i++) {
-		if (dev->pipes[i].pipe != NULL) {
-			free(dev->pipes[i].pipe);
-		}
-	}
-	free(dev->pipes);
-
-	return rc;
-}
-
-/** Initialize all endpoint pipes.
- *
- * @param drv The driver.
- * @param dev The device to be initialized.
- * @return Error code.
- */
-static int initialize_pipes(usb_device_t *dev)
-{
-	int rc;
-
-	rc = usb_device_connection_initialize_from_device(&dev->wire,
-	    dev->ddf_dev);
-	if (rc != EOK) {
-		usb_log_error(
-		    "Failed initializing connection on device `%s'. %s.\n",
-		    dev->ddf_dev->name, str_error(rc));
 		return rc;
 	}
 
-	rc = usb_pipe_initialize_default_control(&dev->ctrl_pipe,
-	    &dev->wire);
-	if (rc != EOK) {
-		usb_log_error("Failed to initialize default control pipe " \
-		    "on device `%s': %s.\n",
-		    dev->ddf_dev->name, str_error(rc));
-		return rc;
-	}
-
-	rc = usb_pipe_probe_default_control(&dev->ctrl_pipe);
-	if (rc != EOK) {
-		usb_log_error(
-		    "Probing default control pipe on device `%s' failed: %s.\n",
-		    dev->ddf_dev->name, str_error(rc));
-		return rc;
-	}
-
-	/* Get our interface. */
-	dev->interface_no = usb_device_get_assigned_interface(dev->ddf_dev);
-
-	/*
-	 * For further actions, we need open session on default control pipe.
-	 */
-	rc = usb_pipe_start_session(&dev->ctrl_pipe);
-	if (rc != EOK) {
-		usb_log_error("Failed to start an IPC session: %s.\n",
-		    str_error(rc));
-		return rc;
-	}
-
-	/* Get the device descriptor. */
-	rc = usb_request_get_device_descriptor(&dev->ctrl_pipe,
-	    &dev->descriptors.device);
-	if (rc != EOK) {
-		usb_log_error("Failed to retrieve device descriptor: %s.\n",
-		    str_error(rc));
-		return rc;
-	}
-
-	/* Get the full configuration descriptor. */
-	rc = usb_request_get_full_configuration_descriptor_alloc(
-	    &dev->ctrl_pipe, 0, (void **) &dev->descriptors.configuration,
-	    &dev->descriptors.configuration_size);
-	if (rc != EOK) {
-		usb_log_error("Failed retrieving configuration descriptor: %s. %s\n",
-		    dev->ddf_dev->name, str_error(rc));
-		return rc;
-	}
-
-	if (driver->endpoints != NULL) {
-		rc = initialize_other_pipes(driver->endpoints, dev);
-	}
-
-	/* No checking here. */
-	usb_pipe_end_session(&dev->ctrl_pipe);
-
-	/* Rollback actions. */
-	if (rc != EOK) {
-		if (dev->descriptors.configuration != NULL) {
-			free(dev->descriptors.configuration);
-		}
-	}
-
-	return rc;
-}
-
-/** Count number of alternate settings of a interface.
- *
- * @param config_descr Full configuration descriptor.
- * @param config_descr_size Size of @p config_descr in bytes.
- * @param interface_no Interface number.
- * @return Number of alternate interfaces for @p interface_no interface.
- */
-static size_t count_alternate_interfaces(uint8_t *config_descr,
-    size_t config_descr_size, int interface_no)
-{
-	assert(config_descr != NULL);
-	usb_dp_parser_t dp_parser = {
-		.nesting = usb_dp_standard_descriptor_nesting
-	};
-	usb_dp_parser_data_t dp_data = {
-		.data = config_descr,
-		.size = config_descr_size,
-		.arg = NULL
-	};
-
-	size_t alternate_count = 0;
-
-	uint8_t *iface_ptr = usb_dp_get_nested_descriptor(&dp_parser,
-	    &dp_data, config_descr);
-	while (iface_ptr != NULL) {
-		usb_standard_interface_descriptor_t *iface
-		    = (usb_standard_interface_descriptor_t *) iface_ptr;
-		if (iface->descriptor_type == USB_DESCTYPE_INTERFACE) {
-			if (iface->interface_number == interface_no) {
-				alternate_count++;
-			}
-		}
-		iface_ptr = usb_dp_get_sibling_descriptor(&dp_parser, &dp_data,
-		    config_descr, iface_ptr);
-	}
-
-	return alternate_count;
-}
-
-/** Initialize structures related to alternate interfaces.
- *
- * @param dev Device where alternate settings shall be initialized.
- * @return Error code.
- */
-static int initialize_alternate_interfaces(usb_device_t *dev)
-{
-	if (dev->interface_no < 0) {
-		dev->alternate_interfaces = NULL;
-		return EOK;
-	}
-
-	usb_alternate_interfaces_t *alternates
-	    = malloc(sizeof(usb_alternate_interfaces_t));
-
-	if (alternates == NULL) {
-		return ENOMEM;
-	}
-
-	alternates->alternative_count
-	    = count_alternate_interfaces(dev->descriptors.configuration,
-	    dev->descriptors.configuration_size, dev->interface_no);
-
-	if (alternates->alternative_count == 0) {
-		free(alternates);
-		return ENOENT;
-	}
-
-	alternates->alternatives = malloc(alternates->alternative_count
-	    * sizeof(usb_alternate_interface_descriptors_t));
-	if (alternates->alternatives == NULL) {
-		free(alternates);
-		return ENOMEM;
-	}
-
-	alternates->current = 0;
-
-	usb_dp_parser_t dp_parser = {
-		.nesting = usb_dp_standard_descriptor_nesting
-	};
-	usb_dp_parser_data_t dp_data = {
-		.data = dev->descriptors.configuration,
-		.size = dev->descriptors.configuration_size,
-		.arg = NULL
-	};
-
-	usb_alternate_interface_descriptors_t *cur_alt_iface
-	    = &alternates->alternatives[0];
-
-	uint8_t *iface_ptr = usb_dp_get_nested_descriptor(&dp_parser,
-	    &dp_data, dp_data.data);
-	while (iface_ptr != NULL) {
-		usb_standard_interface_descriptor_t *iface
-		    = (usb_standard_interface_descriptor_t *) iface_ptr;
-		if ((iface->descriptor_type != USB_DESCTYPE_INTERFACE)
-		    || (iface->interface_number != dev->interface_no)) {
-			iface_ptr = usb_dp_get_sibling_descriptor(&dp_parser,
-			    &dp_data,
-			    dp_data.data, iface_ptr);
-			continue;
-		}
-
-		cur_alt_iface->interface = iface;
-		cur_alt_iface->nested_descriptors = iface_ptr + sizeof(*iface);
-
-		/* Find next interface to count size of nested descriptors. */
-		iface_ptr = usb_dp_get_sibling_descriptor(&dp_parser, &dp_data,
-		    dp_data.data, iface_ptr);
-		if (iface_ptr == NULL) {
-			uint8_t *next = dp_data.data + dp_data.size;
-			cur_alt_iface->nested_descriptors_size
-			    = next - cur_alt_iface->nested_descriptors;
-		} else {
-			cur_alt_iface->nested_descriptors_size
-			    = iface_ptr - cur_alt_iface->nested_descriptors;
-		}
-
-		cur_alt_iface++;
-	}
-
-	dev->alternate_interfaces = alternates;
+	dev->pipes = pipes;
+	dev->pipes_count = pipes_count;
 
 	return EOK;
 }
@@ -422,29 +138,14 @@ int generic_add_device(ddf_dev_t *gen_dev)
 
 	int rc;
 
-	usb_device_t *dev = malloc(sizeof(usb_device_t));
-	if (dev == NULL) {
-		usb_log_error("Out of memory when adding device `%s'.\n",
-		    gen_dev->name);
-		return ENOMEM;
-	}
-
-
-	dev->ddf_dev = gen_dev;
-	dev->ddf_dev->driver_data = dev;
-	dev->driver_data = NULL;
-	dev->descriptors.configuration = NULL;
-
-	dev->pipes_count = 0;
-	dev->pipes = NULL;
-
-	rc = initialize_pipes(dev);
+	usb_device_t *dev = NULL;
+	const char *err_msg = NULL;
+	rc = usb_device_create(gen_dev, driver->endpoints, &dev, &err_msg);
 	if (rc != EOK) {
-		free(dev);
+		usb_log_error("USB device `%s' creation failed (%s): %s.\n",
+		    gen_dev->name, err_msg, str_error(rc));
 		return rc;
 	}
-
-	(void) initialize_alternate_interfaces(dev);
 
 	return driver->ops->add_device(dev);
 }
@@ -456,38 +157,12 @@ int generic_add_device(ddf_dev_t *gen_dev)
  */
 static int destroy_current_pipes(usb_device_t *dev)
 {
-	size_t i;
-	int rc;
-
-	/* TODO: this shall be done under some device mutex. */
-
-	/* First check that no session is opened. */
-	for (i = 0; i < dev->pipes_count; i++) {
-		if (usb_pipe_is_session_started(dev->pipes[i].pipe)) {
-			return EBUSY;
-		}
-	}
-
-	/* Prepare connection to HC. */
-	usb_hc_connection_t hc_conn;
-	rc = usb_hc_connection_initialize_from_device(&hc_conn, dev->ddf_dev);
-	if (rc != EOK) {
-		return rc;
-	}
-	rc = usb_hc_connection_open(&hc_conn);
+	int rc = usb_device_destroy_pipes(dev->ddf_dev,
+	    dev->pipes, dev->pipes_count);
 	if (rc != EOK) {
 		return rc;
 	}
 
-	/* Destroy the pipes. */
-	for (i = 0; i < dev->pipes_count; i++) {
-		usb_pipe_unregister(dev->pipes[i].pipe, &hc_conn);
-		free(dev->pipes[i].pipe);
-	}
-
-	usb_hc_connection_close(&hc_conn);
-
-	free(dev->pipes);
 	dev->pipes = NULL;
 	dev->pipes_count = 0;
 
@@ -504,6 +179,13 @@ static int destroy_current_pipes(usb_device_t *dev)
  * manually using usb_request_set_interface() and creating new pipes
  * with usb_pipe_initialize_from_configuration().
  *
+ * @warning This is a wrapper function that does several operations that
+ * can fail and that cannot be rollbacked easily. That means that a failure
+ * during the SET_INTERFACE request would result in having a device with
+ * no pipes at all (except the default control one). That is because the old
+ * pipes needs to be unregistered at HC first and the new ones could not
+ * be created.
+ *
  * @param dev USB device.
  * @param alternate_setting Alternate setting to choose.
  * @param endpoints New endpoint descriptions.
@@ -517,8 +199,6 @@ int usb_device_select_interface(usb_device_t *dev, uint8_t alternate_setting,
 	}
 
 	int rc;
-
-	/* TODO: more transactional behavior. */
 
 	/* Destroy existing pipes. */
 	rc = destroy_current_pipes(dev);
@@ -534,9 +214,325 @@ int usb_device_select_interface(usb_device_t *dev, uint8_t alternate_setting,
 	}
 
 	/* Create new pipes. */
-	rc = initialize_other_pipes(endpoints, dev);
+	rc = initialize_other_pipes(endpoints, dev, (int) alternate_setting);
 
 	return rc;
+}
+
+/** Retrieve basic descriptors from the device.
+ *
+ * @param[in] ctrl_pipe Control endpoint pipe.
+ * @param[out] descriptors Where to store the descriptors.
+ * @return Error code.
+ */
+int usb_device_retrieve_descriptors(usb_pipe_t *ctrl_pipe,
+    usb_device_descriptors_t *descriptors)
+{
+	assert(descriptors != NULL);
+
+	descriptors->configuration = NULL;
+
+	int rc;
+
+	/* It is worth to start a long transfer. */
+	rc = usb_pipe_start_long_transfer(ctrl_pipe);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	/* Get the device descriptor. */
+	rc = usb_request_get_device_descriptor(ctrl_pipe, &descriptors->device);
+	if (rc != EOK) {
+		goto leave;
+	}
+
+	/* Get the full configuration descriptor. */
+	rc = usb_request_get_full_configuration_descriptor_alloc(
+	    ctrl_pipe, 0, (void **) &descriptors->configuration,
+	    &descriptors->configuration_size);
+
+leave:
+	usb_pipe_end_long_transfer(ctrl_pipe);
+
+	return rc;
+}
+
+/** Create pipes for a device.
+ *
+ * This is more or less a wrapper that does following actions:
+ * - allocate and initialize pipes
+ * - map endpoints to the pipes based on the descriptions
+ * - registers endpoints with the host controller
+ *
+ * @param[in] dev Generic DDF device backing the USB one.
+ * @param[in] wire Initialized backing connection to the host controller.
+ * @param[in] endpoints Endpoints description, NULL terminated.
+ * @param[in] config_descr Configuration descriptor of active configuration.
+ * @param[in] config_descr_size Size of @p config_descr in bytes.
+ * @param[in] interface_no Interface to map from.
+ * @param[in] interface_setting Interface setting (default is usually 0).
+ * @param[out] pipes_ptr Where to store array of created pipes
+ *	(not NULL terminated).
+ * @param[out] pipes_count_ptr Where to store number of pipes
+ *	(set to if you wish to ignore the count).
+ * @return Error code.
+ */
+int usb_device_create_pipes(ddf_dev_t *dev, usb_device_connection_t *wire,
+    usb_endpoint_description_t **endpoints,
+    uint8_t *config_descr, size_t config_descr_size,
+    int interface_no, int interface_setting,
+    usb_endpoint_mapping_t **pipes_ptr, size_t *pipes_count_ptr)
+{
+	assert(dev != NULL);
+	assert(wire != NULL);
+	assert(endpoints != NULL);
+	assert(config_descr != NULL);
+	assert(config_descr_size > 0);
+	assert(pipes_ptr != NULL);
+
+	size_t i;
+	int rc;
+
+	size_t pipe_count = count_other_pipes(endpoints);
+	if (pipe_count == 0) {
+		*pipes_ptr = NULL;
+		return EOK;
+	}
+
+	usb_endpoint_mapping_t *pipes
+	    = malloc(sizeof(usb_endpoint_mapping_t) * pipe_count);
+	if (pipes == NULL) {
+		return ENOMEM;
+	}
+
+	/* Initialize to NULL to allow smooth rollback. */
+	for (i = 0; i < pipe_count; i++) {
+		pipes[i].pipe = NULL;
+	}
+
+	/* Now allocate and fully initialize. */
+	for (i = 0; i < pipe_count; i++) {
+		pipes[i].pipe = malloc(sizeof(usb_pipe_t));
+		if (pipes[i].pipe == NULL) {
+			rc = ENOMEM;
+			goto rollback_free_only;
+		}
+		pipes[i].description = endpoints[i];
+		pipes[i].interface_no = interface_no;
+		pipes[i].interface_setting = interface_setting;
+	}
+
+	/* Find the mapping from configuration descriptor. */
+	rc = usb_pipe_initialize_from_configuration(pipes, pipe_count,
+	    config_descr, config_descr_size, wire);
+	if (rc != EOK) {
+		goto rollback_free_only;
+	}
+
+	/* Register the endpoints with HC. */
+	usb_hc_connection_t hc_conn;
+	rc = usb_hc_connection_initialize_from_device(&hc_conn, dev);
+	if (rc != EOK) {
+		goto rollback_free_only;
+	}
+
+	rc = usb_hc_connection_open(&hc_conn);
+	if (rc != EOK) {
+		goto rollback_free_only;
+	}
+
+	for (i = 0; i < pipe_count; i++) {
+		if (pipes[i].present) {
+			rc = usb_pipe_register(pipes[i].pipe,
+			    pipes[i].descriptor->poll_interval, &hc_conn);
+			if (rc != EOK) {
+				goto rollback_unregister_endpoints;
+			}
+		}
+	}
+
+	usb_hc_connection_close(&hc_conn);
+
+	*pipes_ptr = pipes;
+	if (pipes_count_ptr != NULL) {
+		*pipes_count_ptr = pipe_count;
+	}
+
+	return EOK;
+
+	/*
+	 * Jump here if something went wrong after endpoints have
+	 * been registered.
+	 * This is also the target when the registration of
+	 * endpoints fails.
+	 */
+rollback_unregister_endpoints:
+	for (i = 0; i < pipe_count; i++) {
+		if (pipes[i].present) {
+			usb_pipe_unregister(pipes[i].pipe, &hc_conn);
+		}
+	}
+
+	usb_hc_connection_close(&hc_conn);
+
+	/*
+	 * Jump here if something went wrong before some actual communication
+	 * with HC. Then the only thing that needs to be done is to free
+	 * allocated memory.
+	 */
+rollback_free_only:
+	for (i = 0; i < pipe_count; i++) {
+		if (pipes[i].pipe != NULL) {
+			free(pipes[i].pipe);
+		}
+	}
+	free(pipes);
+
+	return rc;
+}
+
+/** Destroy pipes previously created by usb_device_create_pipes.
+ *
+ * @param[in] dev Generic DDF device backing the USB one.
+ * @param[in] pipes Endpoint mapping to be destroyed.
+ * @param[in] pipes_count Number of endpoints.
+ */
+int usb_device_destroy_pipes(ddf_dev_t *dev,
+    usb_endpoint_mapping_t *pipes, size_t pipes_count)
+{
+	assert(dev != NULL);
+	assert(((pipes != NULL) && (pipes_count > 0))
+	    || ((pipes == NULL) && (pipes_count == 0)));
+
+	if (pipes_count == 0) {
+		return EOK;
+	}
+
+	int rc;
+
+	/* Prepare connection to HC to allow endpoint unregistering. */
+	usb_hc_connection_t hc_conn;
+	rc = usb_hc_connection_initialize_from_device(&hc_conn, dev);
+	if (rc != EOK) {
+		return rc;
+	}
+	rc = usb_hc_connection_open(&hc_conn);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	/* Destroy the pipes. */
+	size_t i;
+	for (i = 0; i < pipes_count; i++) {
+		usb_pipe_unregister(pipes[i].pipe, &hc_conn);
+		free(pipes[i].pipe);
+	}
+
+	usb_hc_connection_close(&hc_conn);
+
+	free(pipes);
+
+	return EOK;
+}
+
+/** Initialize control pipe in a device.
+ *
+ * @param dev USB device in question.
+ * @param errmsg Where to store error context.
+ * @return
+ */
+static int init_wire_and_ctrl_pipe(usb_device_t *dev, const char **errmsg)
+{
+	int rc;
+
+	rc = usb_device_connection_initialize_from_device(&dev->wire,
+	    dev->ddf_dev);
+	if (rc != EOK) {
+		*errmsg = "device connection initialization";
+		return rc;
+	}
+
+	rc = usb_pipe_initialize_default_control(&dev->ctrl_pipe,
+	    &dev->wire);
+	if (rc != EOK) {
+		*errmsg = "default control pipe initialization";
+		return rc;
+	}
+
+	return EOK;
+}
+
+
+/** Create new instance of USB device.
+ *
+ * @param[in] ddf_dev Generic DDF device backing the USB one.
+ * @param[in] endpoints NULL terminated array of endpoints (NULL for none).
+ * @param[out] dev_ptr Where to store pointer to the new device.
+ * @param[out] errstr_ptr Where to store description of context
+ *	(in case error occurs).
+ * @return Error code.
+ */
+int usb_device_create(ddf_dev_t *ddf_dev,
+    usb_endpoint_description_t **endpoints,
+    usb_device_t **dev_ptr, const char **errstr_ptr)
+{
+	assert(dev_ptr != NULL);
+	assert(ddf_dev != NULL);
+
+	int rc;
+
+	usb_device_t *dev = malloc(sizeof(usb_device_t));
+	if (dev == NULL) {
+		*errstr_ptr = "structure allocation";
+		return ENOMEM;
+	}
+
+	// FIXME: proper deallocation in case of errors
+
+	dev->ddf_dev = ddf_dev;
+	dev->driver_data = NULL;
+	dev->descriptors.configuration = NULL;
+	dev->alternate_interfaces = NULL;
+
+	dev->pipes_count = 0;
+	dev->pipes = NULL;
+
+	/* Initialize backing wire and control pipe. */
+	rc = init_wire_and_ctrl_pipe(dev, errstr_ptr);
+	if (rc != EOK) {
+		return rc;
+	}
+
+	/* Get our interface. */
+	dev->interface_no = usb_device_get_assigned_interface(dev->ddf_dev);
+
+	/* Retrieve standard descriptors. */
+	rc = usb_device_retrieve_descriptors(&dev->ctrl_pipe,
+	    &dev->descriptors);
+	if (rc != EOK) {
+		*errstr_ptr = "descriptor retrieval";
+		return rc;
+	}
+
+	/* Create alternate interfaces. */
+	rc = usb_alternate_interfaces_create(dev->descriptors.configuration,
+	    dev->descriptors.configuration_size, dev->interface_no,
+	    &dev->alternate_interfaces);
+	if (rc != EOK) {
+		/* We will try to silently ignore this. */
+		dev->alternate_interfaces = NULL;
+	}
+
+	rc = initialize_other_pipes(endpoints, dev, 0);
+	if (rc != EOK) {
+		*errstr_ptr = "pipes initialization";
+		return rc;
+	}
+
+	*errstr_ptr = NULL;
+	*dev_ptr = dev;
+
+	return EOK;
 }
 
 /**

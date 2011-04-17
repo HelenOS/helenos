@@ -29,7 +29,7 @@
  * @{
  */
 /** @file
- * @brief UHCI driver USB transaction structure
+ * @brief UHCI driver USB tranfer helper functions
  */
 #ifndef DRV_UHCI_BATCH_H
 #define DRV_UHCI_BATCH_H
@@ -43,20 +43,11 @@
 #include "hw_struct/queue_head.h"
 
 usb_transfer_batch_t * batch_get(
-    ddf_fun_t *fun,
-		usb_target_t target,
-    usb_transfer_type_t transfer_type,
-		size_t max_packet_size,
-    usb_speed_t speed,
-		char *buffer,
-		size_t size,
-		char *setup_buffer,
-		size_t setup_size,
+    ddf_fun_t *fun, endpoint_t *ep, char *buffer, size_t size,
+    char *setup_buffer, size_t setup_size,
     usbhc_iface_transfer_in_callback_t func_in,
     usbhc_iface_transfer_out_callback_t func_out,
-		void *arg,
-		endpoint_t *ep
-		);
+    void *arg);
 
 void batch_dispose(usb_transfer_batch_t *instance);
 

@@ -34,6 +34,8 @@
 #ifndef DRV_OHCI_HW_STRUCT_COMPLETION_CODES_H
 #define DRV_OHCI_HW_STRUCT_COMPLETION_CODES_H
 
+#include <errno.h>
+
 #define CC_NOERROR (0x0)
 #define CC_CRC (0x1)
 #define CC_BITSTUFF (0x2)
@@ -48,6 +50,40 @@
 #define CC_BUFFERUNDERRUN (0xd)
 #define CC_NOACCESS1 (0xe)
 #define CC_NOACCESS2 (0xf)
+
+inline static int cc_to_rc(int cc)
+{
+	switch (cc) {
+	case CC_NOERROR:
+		return EOK;
+
+	case CC_CRC:
+		return EBADCHECKSUM;
+
+	case CC_PIDUNEXPECTED:
+	case CC_PIDFAIL:
+	case CC_BITSTUFF:
+		return EIO;
+
+	case CC_TOGGLE:
+	case CC_STALL:
+		return ESTALL;
+
+	case CC_NORESPONSE:
+		return ETIMEOUT;
+
+	case CC_DATAOVERRRUN:
+	case CC_DATAUNDERRRUN:
+	case CC_BUFFEROVERRRUN:
+	case CC_BUFFERUNDERRUN:
+		return EOVERFLOW;
+
+	case CC_NOACCESS1:
+	case CC_NOACCESS2:
+	default:
+		return ENOTSUP;
+	}
+}
 
 #endif
 /**

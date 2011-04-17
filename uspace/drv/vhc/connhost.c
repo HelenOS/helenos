@@ -256,7 +256,6 @@ static int enqueue_transfer_in(ddf_fun_t *fun,
 
 
 static int interrupt_out(ddf_fun_t *fun, usb_target_t target,
-    size_t max_packet_size,
     void *data, size_t size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
 {
@@ -266,7 +265,6 @@ static int interrupt_out(ddf_fun_t *fun, usb_target_t target,
 }
 
 static int interrupt_in(ddf_fun_t *fun, usb_target_t target,
-    size_t max_packet_size,
     void *data, size_t size,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
 {
@@ -276,7 +274,6 @@ static int interrupt_in(ddf_fun_t *fun, usb_target_t target,
 }
 
 static int control_write(ddf_fun_t *fun, usb_target_t target,
-    size_t max_packet_size,
     void *setup_packet, size_t setup_packet_size,
     void *data, size_t data_size,
     usbhc_iface_transfer_out_callback_t callback, void *arg)
@@ -294,7 +291,6 @@ static int control_write(ddf_fun_t *fun, usb_target_t target,
 }
 
 static int control_read(ddf_fun_t *fun, usb_target_t target,
-    size_t max_packet_size,
     void *setup_packet, size_t setup_packet_size,
     void *data, size_t data_size,
     usbhc_iface_transfer_in_callback_t callback, void *arg)
@@ -324,18 +320,6 @@ static int tell_address(ddf_fun_t *fun, devman_handle_t handle,
 	}
 
 	*address = addr;
-	return EOK;
-}
-
-static int reserve_default_address(ddf_fun_t *fun, usb_speed_t ignored)
-{
-	usb_address_keeping_reserve_default(&addresses);
-	return EOK;
-}
-
-static int release_default_address(ddf_fun_t *fun)
-{
-	usb_address_keeping_release_default(&addresses);
 	return EOK;
 }
 
@@ -391,8 +375,6 @@ void address_init(void)
 }
 
 usbhc_iface_t vhc_iface = {
-	.reserve_default_address = reserve_default_address,
-	.release_default_address = release_default_address,
 	.request_address = request_address,
 	.bind_address = bind_address,
 	.release_address = release_address,

@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2007 Jan Hudecek
- * Copyright (c) 2008 Martin Decky
+ * Copyright (c) 2011 Jan Vesely
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,48 +25,55 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-/** @addtogroup genericproc
+/** @addtogroup drvusbohci
  * @{
  */
-/** @file tasklet.h
- * @brief Tasklets declarations
+/** @file
+ * @brief OHCI driver transfer list structure
  */
+#ifndef DRV_OHCI_ENDPOINT_LIST_H
+#define DRV_OHCI_ENDPOINT_LIST_H
 
-#ifndef KERN_TASKLET_H_
-#define KERN_TASKLET_H_
+#include <fibril_synch.h>
 
-#include <adt/list.h>
+#include "hcd_endpoint.h"
+#include "hw_struct/endpoint_descriptor.h"
+#include "utils/malloc32.h"
 
-/** Tasklet callback type */
-typedef void (* tasklet_callback_t)(void *arg);
+typedef struct endpoint_list
+{
+	fibril_mutex_t guard;
+	ed_t *list_head;
+	uint32_t list_head_pa;
+	const char *name;
+	link_t endpoint_list;
+} endpoint_list_t;
 
-/** Tasklet state */
-typedef enum {
-	NotActive,
-	Scheduled,
-	InProgress,
-	Disabled
-} tasklet_state_t;
+/** Dispose transfer list structures.
+ *
+ * @param[in] instance Memory place to use.
+ *
+ * Frees memory for internal qh_t structure.
+ */
+static inline void endpoint_list_fini(endpoint_list_t *instance)
+{
+	assert(instance);
+	free32(instance->list_head);
+}
 
-/** Structure describing a tasklet */
-typedef struct tasklet_descriptor {
-	link_t link;
-	
-	/** Callback to call */
-	tasklet_callback_t callback;
-	
-	/** Argument passed to the callback */
-	void *arg;
-	
-	/** State of the tasklet */
-	tasklet_state_t state;
-} tasklet_descriptor_t;
+int endpoint_list_init(endpoint_list_t *instance, const char *name);
 
+void endpoint_list_set_next(endpoint_list_t *instance, endpoint_list_t *next);
 
-extern void tasklet_init(void);
+void endpoint_list_add_ep(endpoint_list_t *instance, hcd_endpoint_t *hcd_ep);
 
+void endpoint_list_remove_ep(endpoint_list_t *instance, hcd_endpoint_t *hcd_ep);
+#if 0
+void endpoint_list_remove_finished(endpoint_list_t *instance, link_t *done);
+
+void endpoint_list_abort_all(endpoint_list_t *instance);
 #endif
-
-/** @}
+#endif
+/**
+ * @}
  */

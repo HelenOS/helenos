@@ -36,10 +36,10 @@
 
 #include <assert.h>
 #include <malloc.h>
+#include <errno.h>
 #include <mem.h>
 #include <as.h>
 
-#define UHCI_STRCUTURES_ALIGNMENT 16
 #define UHCI_REQUIRED_PAGE_SIZE 4096
 
 /** Get physical address translation
@@ -63,7 +63,7 @@ static inline uintptr_t addr_to_phys(void *addr)
  * @return Address of the alligned and big enough memory place, NULL on failure.
  */
 static inline void * malloc32(size_t size)
-	{ return memalign(UHCI_STRCUTURES_ALIGNMENT, size); }
+	{ return memalign(size, size); }
 /*----------------------------------------------------------------------------*/
 /** Physical mallocator simulator
  *

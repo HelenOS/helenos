@@ -267,6 +267,10 @@ void default_connection_handler(ddf_fun_t *fun,
  */
 static void usb_kbd_set_led(usb_kbd_t *kbd_dev) 
 {
+	if (kbd_dev->output_size == 0) {
+		return;
+	}
+
 	unsigned i = 0;
 	
 	/* Reset the LED data. */
@@ -543,14 +547,14 @@ static void usb_kbd_check_key_changes(usb_kbd_t *kbd_dev,
  * @param key_codes Parsed keyboard report - codes of currently pressed keys 
  *                  according to HID Usage Tables.
  * @param count Number of key codes in report (size of the report).
- * @param modifiers Bitmap of modifiers (Ctrl, Alt, Shift, GUI).
+ * @param report_id
  * @param arg User-specified argument. Expects pointer to the keyboard device
  *            structure representing the keyboard.
  *
  * @sa usb_kbd_check_key_changes(), usb_kbd_check_modifier_changes()
  */
 static void usb_kbd_process_keycodes(const uint8_t *key_codes, size_t count,
-    uint8_t modifiers, void *arg)
+    uint8_t report_id, void *arg)
 {
 	if (arg == NULL) {
 		usb_log_warning("Missing argument in callback "
@@ -561,7 +565,7 @@ static void usb_kbd_process_keycodes(const uint8_t *key_codes, size_t count,
 	usb_kbd_t *kbd_dev = (usb_kbd_t *)arg;
 	assert(kbd_dev != NULL);
 
-	usb_log_debug("Got keys from parser (report id: %d): %s\n", modifiers, 
+	usb_log_debug("Got keys from parser (report id: %d): %s\n", report_id, 
 	    usb_debug_str_buffer(key_codes, count, 0));
 	
 	if (count != kbd_dev->key_count) {
@@ -762,6 +766,9 @@ int usb_kbd_init(usb_kbd_t *kbd_dev, usb_device_t *dev)
 	 */
 	usb_hid_report_path_t *path = usb_hid_report_path();
 	usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_KEYBOARD, 0);
+	
+	usb_hid_report_path_set_report_id(path, 0);
+	
 	kbd_dev->key_count = usb_hid_report_input_length(
 	    kbd_dev->parser, path, USB_HID_PATH_COMPARE_END);
 	usb_hid_report_path_free (path);
@@ -795,7 +802,8 @@ int usb_kbd_init(usb_kbd_t *kbd_dev, usb_device_t *dev)
 	usb_hid_report_path_set_report_id(kbd_dev->led_path, 0x00);
 	
 	kbd_dev->led_output_size = usb_hid_report_output_size(kbd_dev->parser, 
-	    kbd_dev->led_path, USB_HID_PATH_COMPARE_END);
+	    kbd_dev->led_path, 
+	    USB_HID_PATH_COMPARE_END | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY);
 	
 	usb_log_debug("Output report size (in items): %zu\n", 
 	    kbd_dev->led_output_size);

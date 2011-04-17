@@ -49,6 +49,8 @@ RD_DRVS += \
 	usbflbk \
 	usbhub \
 	usbkbd \
+	usbhid \
+	usbmast \
 	usbmid \
 	usbmouse \
 	vhc

@@ -38,6 +38,8 @@
 #include <assert.h>
 #include <bool.h>
 #include <adt/list.h>
+#include <fibril_synch.h>
+
 #include <usb/usb.h>
 
 typedef struct endpoint {
@@ -47,9 +49,15 @@ typedef struct endpoint {
 	usb_transfer_type_t transfer_type;
 	usb_speed_t speed;
 	size_t max_packet_size;
-	bool active;
 	unsigned toggle:1;
-	link_t same_device_eps;
+	fibril_mutex_t guard;
+	fibril_condvar_t avail;
+	volatile bool active;
+	struct {
+		void *data;
+		int (*toggle_get)(void *);
+		void (*toggle_set)(void *, int);
+	} hc_data;
 } endpoint_t;
 
 int endpoint_init(endpoint_t *instance, usb_address_t address,
@@ -58,14 +66,20 @@ int endpoint_init(endpoint_t *instance, usb_address_t address,
 
 void endpoint_destroy(endpoint_t *instance);
 
+void endpoint_set_hc_data(endpoint_t *instance,
+    void *data, int (*toggle_get)(void *), void (*toggle_set)(void *, int));
+
+void endpoint_clear_hc_data(endpoint_t *instance);
+
+void endpoint_use(endpoint_t *instance);
+
+void endpoint_release(endpoint_t *instance);
+
 int endpoint_toggle_get(endpoint_t *instance);
 
 void endpoint_toggle_set(endpoint_t *instance, int toggle);
 
-void endpoint_toggle_reset(link_t *ep);
-
-void endpoint_toggle_reset_filtered(link_t *ep, usb_endpoint_t epn);
-
+void endpoint_toggle_reset_filtered(endpoint_t *instance, usb_target_t target);
 #endif
 /**
  * @}

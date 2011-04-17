@@ -52,7 +52,7 @@
 
 #include <libc.h>
 
-// Temporary: service and method names
+/* Temporary: service and method names */
 #include "proto.h"
 #include <ipc/services.h>
 #include "../../srv/vfs/vfs.h"

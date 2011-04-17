@@ -42,6 +42,8 @@
  * for hub and port).
  */
 typedef enum {
+	USB_HUB_FEATURE_HUB_LOCAL_POWER = 0,
+	USB_HUB_FEATURE_HUB_OVER_CURRENT = 1,
 	USB_HUB_FEATURE_C_HUB_LOCAL_POWER = 0,
 	USB_HUB_FEATURE_C_HUB_OVER_CURRENT = 1,
 	USB_HUB_FEATURE_PORT_CONNECTION = 0,
@@ -58,6 +60,7 @@ typedef enum {
 	USB_HUB_FEATURE_C_PORT_RESET = 20,
 	/* USB_HUB_FEATURE_ = , */
 } usb_hub_class_feature_t;
+
 
 /** Header of standard hub descriptor without the "variadic" part. */
 typedef struct {
@@ -148,7 +151,7 @@ typedef struct usb_hub_descriptor_type {
             Bit n: Port n (implementation-dependent, up to a
             maximum of 255 ports).
      */
-    uint8_t * devices_removable;
+    uint8_t devices_removable[32];
 
     /**
             This field exists for reasons of compatibility with

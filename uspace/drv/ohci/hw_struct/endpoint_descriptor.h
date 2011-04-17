@@ -34,7 +34,13 @@
 #ifndef DRV_OHCI_HW_STRUCT_ENDPOINT_DESCRIPTOR_H
 #define DRV_OHCI_HW_STRUCT_ENDPOINT_DESCRIPTOR_H
 
+#include <assert.h>
 #include <stdint.h>
+
+#include <usb/host/endpoint.h>
+
+#include "utils/malloc32.h"
+#include "transfer_descriptor.h"
 
 #include "completion_codes.h"
 
@@ -43,13 +49,14 @@ typedef struct ed {
 #define ED_STATUS_FA_MASK (0x7f)   /* USB device address   */
 #define ED_STATUS_FA_SHIFT (0)
 #define ED_STATUS_EN_MASK (0xf)    /* USB endpoint address */
-#define ED_STATUS_EN_SHIFT (6)
+#define ED_STATUS_EN_SHIFT (7)
 #define ED_STATUS_D_MASK (0x3)     /* direction */
-#define ED_STATUS_D_SHIFT (10)
-#define ED_STATUS_D_IN (0x1)
-#define ED_STATUS_D_OUT (0x2)
+#define ED_STATUS_D_SHIFT (11)
+#define ED_STATUS_D_OUT (0x1)
+#define ED_STATUS_D_IN (0x2)
+#define ED_STATUS_D_TRANSFER (0x3)
 
-#define ED_STATUS_S_FLAG (1 << 13) /* speed flag */
+#define ED_STATUS_S_FLAG (1 << 13) /* speed flag: 1 = low */
 #define ED_STATUS_K_FLAG (1 << 14) /* skip flag (no not execute this ED) */
 #define ED_STATUS_F_FLAG (1 << 15) /* format: 1 = isochronous*/
 #define ED_STATUS_MPS_MASK (0x3ff) /* max_packet_size*/
@@ -65,11 +72,59 @@ typedef struct ed {
 #define ED_TDHEAD_ZERO_MASK (0x3)
 #define ED_TDHEAD_ZERO_SHIFT (2)
 #define ED_TDHEAD_TOGGLE_CARRY (0x2)
+#define ED_TDHEAD_HALTED_FLAG (0x1)
 
 	volatile uint32_t next;
 #define ED_NEXT_PTR_MASK (0xfffffff0)
 #define ED_NEXT_PTR_SHIFT (0)
 } __attribute__((packed)) ed_t;
+
+void ed_init(ed_t *instance, endpoint_t *ep);
+
+static inline void ed_set_td(ed_t *instance, td_t *td)
+{
+	assert(instance);
+	uintptr_t pa = addr_to_phys(td);
+	instance->td_head =
+	    ((pa & ED_TDHEAD_PTR_MASK)
+	    | (instance->td_head & ~ED_TDHEAD_PTR_MASK));
+	instance->td_tail = pa & ED_TDTAIL_PTR_MASK;
+}
+
+static inline void ed_set_end_td(ed_t *instance, td_t *td)
+{
+	assert(instance);
+	uintptr_t pa = addr_to_phys(td);
+	instance->td_tail = pa & ED_TDTAIL_PTR_MASK;
+}
+
+static inline void ed_append_ed(ed_t *instance, ed_t *next)
+{
+	assert(instance);
+	assert(next);
+	uint32_t pa = addr_to_phys(next);
+	assert((pa & ED_NEXT_PTR_MASK) << ED_NEXT_PTR_SHIFT == pa);
+	instance->next = pa;
+}
+
+static inline int ed_toggle_get(ed_t *instance)
+{
+	assert(instance);
+	return (instance->td_head & ED_TDHEAD_TOGGLE_CARRY) ? 1 : 0;
+}
+
+static inline void ed_toggle_set(ed_t *instance, int toggle)
+{
+	assert(instance);
+	assert(toggle == 0 || toggle == 1);
+	if (toggle == 1) {
+		instance->td_head |= ED_TDHEAD_TOGGLE_CARRY;
+	} else {
+		/* clear halted flag when reseting toggle */
+		instance->td_head &= ~ED_TDHEAD_TOGGLE_CARRY;
+		instance->td_head &= ~ED_TDHEAD_HALTED_FLAG;
+	}
+}
 #endif
 /**
  * @}

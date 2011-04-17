@@ -316,6 +316,7 @@ int usb_hid_report_compare_usage_path(usb_hid_report_path_t *report_path, usb_hi
 /** */
 usb_hid_report_path_t *usb_hid_report_path_clone(usb_hid_report_path_t *usage_path);
 
+usb_hid_report_field_t *usb_hid_report_get_sibling(usb_hid_report_t *report, usb_hid_report_field_t *field, usb_hid_report_path_t *path, int flags, usb_hid_report_type_t type);
 
 /*
  * Output report parser functions

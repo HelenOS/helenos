@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2007 Jan Hudecek
- * Copyright (c) 2008 Martin Decky
+ * Copyright (c) 2011 Lubos Slovak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,38 +26,36 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genericproc
+/** @addtogroup drvusbhid
  * @{
  */
-/** @file tasklet.c
- *  @brief Tasklet implementation
+/** @file
+ * USB Logitech UltraX Keyboard sample driver.
  */
 
-#include <proc/tasklet.h>
-#include <synch/spinlock.h>
-#include <mm/slab.h>
-#include <config.h>
+#ifndef USB_HID_LGTCH_ULTRAX_H_
+#define USB_HID_LGTCH_ULTRAX_H_
 
-/** Spinlock protecting list of tasklets */
-SPINLOCK_INITIALIZE(tasklet_lock);
+#include <usb/devdrv.h>
 
-/** Array of tasklet lists for every CPU */
-tasklet_descriptor_t **tasklet_list;
+struct usb_hid_dev;
+//struct usb_hid_subdriver_mapping;
 
-void tasklet_init(void)
-{
-	unsigned int i;
-	
-	tasklet_list = malloc(sizeof(tasklet_descriptor_t *) * config.cpu_count, 0);
-	if (!tasklet_list)
-		panic("Error initializing tasklets.");
-	
-	for (i = 0; i < config.cpu_count; i++)
-		tasklet_list[i] = NULL;
-	
-	spinlock_initialize(&tasklet_lock, "tasklet_lock");
-}
+/*----------------------------------------------------------------------------*/
 
+//extern struct usb_hid_subdriver_mapping usb_lgtch_mapping;
 
-/** @}
+/*----------------------------------------------------------------------------*/
+
+//int usb_lgtch_init(struct usb_hid_dev *hid_dev);
+
+bool usb_lgtch_polling_callback(struct usb_hid_dev *hid_dev, uint8_t *buffer,
+    size_t buffer_size);
+
+/*----------------------------------------------------------------------------*/
+
+#endif // USB_HID_LGTCH_ULTRAX_H_
+
+/**
+ * @}
  */

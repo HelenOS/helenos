@@ -33,6 +33,7 @@ EXTRA_CFLAGS += -I$(LIBDRV_PREFIX)/include -Iinclude
 
 SOURCES = \
 	src/addrkeep.c \
+	src/altiface.c \
 	src/class.c \
 	src/ddfiface.c \
 	src/debug.c \
@@ -40,8 +41,10 @@ SOURCES = \
 	src/devpoll.c \
 	src/dp.c \
 	src/dump.c \
+	src/hidiface.c \
 	src/hidparser.c \
 	src/hub.c \
+	src/pipepriv.c \
 	src/pipes.c \
 	src/pipesinit.c \
 	src/pipesio.c \

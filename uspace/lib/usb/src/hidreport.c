@@ -79,6 +79,7 @@ static int usb_hid_get_report_descriptor(usb_device_t *dev,
 	while (d != NULL && i < dev->interface_no) {
 		d = usb_dp_get_sibling_descriptor(&parser, &parser_data, 
 		    dev->descriptors.configuration, d);
+		++i;
 	}
 	
 	if (d == NULL) {
@@ -117,16 +118,6 @@ static int usb_hid_get_report_descriptor(usb_device_t *dev,
 	
 	uint16_t length =  hid_desc->report_desc_info.length;
 	size_t actual_size = 0;
-	
-	/*
-	 * Start session for the control transfer.
-	 */
-	int sess_rc = usb_pipe_start_session(&dev->ctrl_pipe);
-	if (sess_rc != EOK) {
-		usb_log_warning("Failed to start a session: %s.\n",
-		    str_error(sess_rc));
-		return sess_rc;
-	}
 
 	/*
 	 * Allocate space for the report descriptor.
@@ -160,18 +151,6 @@ static int usb_hid_get_report_descriptor(usb_device_t *dev,
 		usb_log_error("Report descriptor has wrong size (%u, expected "
 		    "%u)\n", actual_size, length);
 		return EINVAL;
-	}
-	
-	/*
-	 * End session for the control transfer.
-	 */
-	sess_rc = usb_pipe_end_session(&dev->ctrl_pipe);
-	if (sess_rc != EOK) {
-		usb_log_warning("Failed to end a session: %s.\n",
-		    str_error(sess_rc));
-		free(*report_desc);
-		*report_desc = NULL;
-		return sess_rc;
 	}
 	
 	*size = length;
