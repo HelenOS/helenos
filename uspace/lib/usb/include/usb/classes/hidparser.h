@@ -72,6 +72,7 @@
 #define USB_HID_PATH_COMPARE_STRICT				0
 #define USB_HID_PATH_COMPARE_END				1
 #define USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY	4
+#define USB_HID_PATH_COMPARE_COLLECTION_ONLY	2 /* porovnava jenom cestu z Kolekci */
 
 
 #define USB_HID_MAX_USAGES	20

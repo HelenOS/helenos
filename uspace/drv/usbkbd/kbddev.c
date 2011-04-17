@@ -759,7 +759,7 @@ int usb_kbd_init(usb_kbd_t *kbd_dev, usb_device_t *dev)
 	usb_hid_report_path_t *path = usb_hid_report_path();
 	usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_KEYBOARD, 0);
 	kbd_dev->key_count = usb_hid_report_input_length(
-	    kbd_dev->parser, path, USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY);
+	    kbd_dev->parser, path, USB_HID_PATH_COMPARE_END);
 	usb_hid_report_path_free (path);
 	
 	usb_log_debug("Size of the input report: %zu\n", kbd_dev->key_count);
