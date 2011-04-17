@@ -72,12 +72,17 @@ mem_backend_t elf_backend = {
 static size_t elf_nonanon_pages_get(as_area_t *area)
 {
 	elf_segment_header_t *entry = area->backend_data.segment;
-	size_t nonanon_pages = ALIGN_DOWN(entry->p_filesz, PAGE_SIZE);
+	uintptr_t first = ALIGN_UP(entry->p_vaddr, PAGE_SIZE);
+	uintptr_t last = ALIGN_DOWN(entry->p_vaddr + entry->p_filesz,
+	    PAGE_SIZE);
 
 	if (entry->p_flags & PF_W)
 		return 0;
 
-	return nonanon_pages;
+	if (last < first)
+		return 0;
+
+	return last - first;
 }
 
 bool elf_create(as_area_t *area)
