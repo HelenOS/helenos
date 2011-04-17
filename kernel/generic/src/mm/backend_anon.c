@@ -56,8 +56,8 @@ static bool anon_resize(as_area_t *, size_t);
 static void anon_share(as_area_t *);
 static void anon_destroy(as_area_t *);
 
-static int anon_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access);
-static void anon_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame);
+static int anon_page_fault(as_area_t *, uintptr_t, pf_access_t);
+static void anon_frame_free(as_area_t *, uintptr_t, uintptr_t);
 
 mem_backend_t anon_backend = {
 	.create = anon_create,

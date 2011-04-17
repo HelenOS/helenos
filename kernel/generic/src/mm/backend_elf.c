@@ -56,8 +56,8 @@ static bool elf_resize(as_area_t *, size_t);
 static void elf_share(as_area_t *);
 static void elf_destroy(as_area_t *);
 
-static int elf_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access);
-static void elf_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame);
+static int elf_page_fault(as_area_t *, uintptr_t, pf_access_t);
+static void elf_frame_free(as_area_t *, uintptr_t, uintptr_t);
 
 mem_backend_t elf_backend = {
 	.create = elf_create,
@@ -69,10 +69,25 @@ mem_backend_t elf_backend = {
 	.frame_free = elf_frame_free,
 };
 
-bool elf_create(as_area_t *area)
+static size_t elf_nonanon_pages_get(as_area_t *area)
 {
 	elf_segment_header_t *entry = area->backend_data.segment;
-	size_t nonanon_pages = ALIGN_DOWN(entry->p_filesz, PAGE_SIZE);
+	uintptr_t first = ALIGN_UP(entry->p_vaddr, PAGE_SIZE);
+	uintptr_t last = ALIGN_DOWN(entry->p_vaddr + entry->p_filesz,
+	    PAGE_SIZE);
+
+	if (entry->p_flags & PF_W)
+		return 0;
+
+	if (last < first)
+		return 0;
+
+	return last - first;
+}
+
+bool elf_create(as_area_t *area)
+{
+	size_t nonanon_pages = elf_nonanon_pages_get(area);
 
 	if (area->pages <= nonanon_pages)
 		return true;
@@ -82,8 +97,7 @@ bool elf_create(as_area_t *area)
 
 bool elf_resize(as_area_t *area, size_t new_pages)
 {
-	elf_segment_header_t *entry = area->backend_data.segment;
-	size_t nonanon_pages = ALIGN_DOWN(entry->p_filesz, PAGE_SIZE);
+	size_t nonanon_pages = elf_nonanon_pages_get(area);
 
 	if (new_pages > area->pages) {
 		/* The area is growing. */
@@ -192,8 +206,7 @@ void elf_share(as_area_t *area)
 
 void elf_destroy(as_area_t *area)
 {
-	elf_segment_header_t *entry = area->backend_data.segment;
-	size_t nonanon_pages = ALIGN_DOWN(entry->p_filesz, PAGE_SIZE);
+	size_t nonanon_pages = elf_nonanon_pages_get(area);
 
 	if (area->pages > nonanon_pages)
 		reserve_free(area->pages - nonanon_pages);
