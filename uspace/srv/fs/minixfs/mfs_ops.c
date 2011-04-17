@@ -309,12 +309,16 @@ static int mfs_create_node(fs_node_t **rfn, devmap_handle_t handle, int flags)
 	memset(ino_i->i_dzone, 0, sizeof(uint32_t) * V2_NR_DIRECT_ZONES);
 	memset(ino_i->i_izone, 0, sizeof(uint32_t) * V2_NR_INDIRECT_ZONES);
 
+	mfsdebug("new node idx = %d\n", (int) inum);
+
 	ino_i->index = inum;
 	ino_i->dirty = true;
 	mnode->ino_i = ino_i;
 	mnode->instance = inst;
 
-	put_inode(mnode);
+	r = put_inode(mnode);
+	if (r != EOK)
+		goto out_err_2;
 
 	fs_node_initialize(fsnode);
 	fsnode->data = mnode;
@@ -373,7 +377,6 @@ static int mfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 		free(d_info);
 	}
 	*rfn = NULL;
-	return ENOENT;
 found:
 	return EOK;
 }
@@ -528,7 +531,7 @@ static int mfs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	struct mfs_node *parent = pfn->data;
 	struct mfs_node *child = cfn->data;
 
-	mfsdebug("mfs_link()\n");
+	mfsdebug("mfs_link() %d\n", (int) child->ino_i->index);
 
 	int r = insert_dentry(parent, name, child->ino_i->index);
 
@@ -541,6 +544,8 @@ static int mfs_has_children(bool *has_children, fs_node_t *fsnode)
 	int r;
 
 	*has_children = false;
+
+	mfsdebug("mfs_has_children()\n");
 
 	if (!S_ISDIR(mnode->ino_i->i_mode))
 		goto out;
@@ -589,6 +594,8 @@ mfs_read(ipc_callid_t rid, ipc_call_t *request)
 	aoff64_t pos = (aoff64_t) MERGE_LOUP32(IPC_GET_ARG3(*request),
 				IPC_GET_ARG4(*request));
 	fs_node_t *fn;
+
+	mfsdebug("mfs_read()\n");
 
 	rc = mfs_node_get(&fn, handle, index);
 	if (rc != EOK) {
