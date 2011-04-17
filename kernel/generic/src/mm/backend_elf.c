@@ -56,8 +56,8 @@ static bool elf_resize(as_area_t *, size_t);
 static void elf_share(as_area_t *);
 static void elf_destroy(as_area_t *);
 
-static int elf_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access);
-static void elf_frame_free(as_area_t *area, uintptr_t page, uintptr_t frame);
+static int elf_page_fault(as_area_t *, uintptr_t, pf_access_t);
+static void elf_frame_free(as_area_t *, uintptr_t, uintptr_t);
 
 mem_backend_t elf_backend = {
 	.create = elf_create,

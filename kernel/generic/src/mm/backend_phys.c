@@ -51,7 +51,7 @@ static bool phys_create(as_area_t *);
 static void phys_share(as_area_t *);
 static void phys_destroy(as_area_t *);
 
-static int phys_page_fault(as_area_t *area, uintptr_t addr, pf_access_t access);
+static int phys_page_fault(as_area_t *, uintptr_t, pf_access_t);
 
 mem_backend_t phys_backend = {
 	.create = phys_create,
