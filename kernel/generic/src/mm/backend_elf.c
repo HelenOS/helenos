@@ -69,13 +69,20 @@ mem_backend_t elf_backend = {
 	.frame_free = elf_frame_free,
 };
 
-bool elf_create(as_area_t *area)
+static size_t elf_nonanon_pages_get(as_area_t *area)
 {
 	elf_segment_header_t *entry = area->backend_data.segment;
 	size_t nonanon_pages = ALIGN_DOWN(entry->p_filesz, PAGE_SIZE);
 
 	if (entry->p_flags & PF_W)
-		nonanon_pages = 0;
+		return 0;
+
+	return nonanon_pages;
+}
+
+bool elf_create(as_area_t *area)
+{
+	size_t nonanon_pages = elf_nonanon_pages_get(area);
 
 	if (area->pages <= nonanon_pages)
 		return true;
@@ -85,11 +92,7 @@ bool elf_create(as_area_t *area)
 
 bool elf_resize(as_area_t *area, size_t new_pages)
 {
-	elf_segment_header_t *entry = area->backend_data.segment;
-	size_t nonanon_pages = ALIGN_DOWN(entry->p_filesz, PAGE_SIZE);
-
-	if (entry->p_flags & PF_W)
-		nonanon_pages = 0;
+	size_t nonanon_pages = elf_nonanon_pages_get(area);
 
 	if (new_pages > area->pages) {
 		/* The area is growing. */
@@ -198,11 +201,7 @@ void elf_share(as_area_t *area)
 
 void elf_destroy(as_area_t *area)
 {
-	elf_segment_header_t *entry = area->backend_data.segment;
-	size_t nonanon_pages = ALIGN_DOWN(entry->p_filesz, PAGE_SIZE);
-
-	if (entry->p_flags & PF_W)
-		nonanon_pages = 0;
+	size_t nonanon_pages = elf_nonanon_pages_get(area);
 
 	if (area->pages > nonanon_pages)
 		reserve_free(area->pages - nonanon_pages);
