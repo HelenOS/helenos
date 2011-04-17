@@ -141,7 +141,9 @@ retry:
 		}
 
 		/*Free bit found in this block, compute the real index*/
-		*idx = (freebit + bits_per_block * i);
+		*idx = freebit + bits_per_block * i;
+		*idx += (bid == BMAP_INODE);
+		mfsdebug("alloc index %d %d\n", (int) *idx, i);
 		if (*idx > limit) {
 			/*Index is beyond the limit, it is invalid*/
 			block_put(b);
@@ -179,7 +181,8 @@ find_free_bit_and_set(bitchunk_t *b, const int bsize,
 	bitchunk_t chunk;
 	const size_t chunk_bits = sizeof(bitchunk_t) * 8;
 
-	for (i = start_bit; i < bsize / sizeof(uint32_t); ++i) {
+	for (i = start_bit / sizeof(uint32_t);
+				i < bsize / sizeof(uint32_t); ++i) {
 		if (!(~b[i])) {
 			/*No free bit in this chunk*/
 			continue;
@@ -188,7 +191,8 @@ find_free_bit_and_set(bitchunk_t *b, const int bsize,
 		chunk = conv32(native, b[i]);
 
 		for (j = 0; j < chunk_bits; ++j) {
-			if (chunk & (1 << j)) {
+			if (!(chunk & (1 << j))) {
+				mfsdebug("i = %d j = %d\n", i, j);
 				r = i * chunk_bits + j;
 				chunk |= 1 << j;
 				b[i] = conv32(native, chunk);
