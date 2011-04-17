@@ -331,6 +331,15 @@ inode_grow(struct mfs_node *mnode, size_t size_grow)
 	unsigned start_zone = old_size / bs;
 	start_zone += (old_size % bs) != 0;
 
+	mfsdebug("zones to add = %u\n", zones_to_add);
+
+	if (zones_to_add == 0) {
+		/*Set the new inode size and exit*/
+		ino_i->i_size = new_size;
+		ino_i->dirty = true;
+		return EOK;
+	}
+
 	int r;
 	for (i = 0; i < zones_to_add; ++i) {
 		uint32_t new_zone;
