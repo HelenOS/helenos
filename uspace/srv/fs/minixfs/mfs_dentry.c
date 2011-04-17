@@ -56,7 +56,8 @@ read_directory_entry(struct mfs_node *mnode,
 		goto out_err;
 
 	if (block == 0) {
-		r = EIO;
+		/*End of the dentries list*/
+		r = EOK;
 		goto out_err;
 	}
 
@@ -188,7 +189,10 @@ insert_dentry(struct mfs_node *mnode, const char *d_name, fs_index_t d_inum)
 	memcpy(d_info->d_name, d_name, name_len);
 	d_info->d_name[name_len] = 0;
 
-	return  write_dentry(d_info);
+	r = write_dentry(d_info);
+	free(d_info);
+
+	return r;
 }
 
 
