@@ -228,64 +228,6 @@ int usb_device_connection_initialize_on_default_address(
 	    hc_connection->hc_handle, (usb_address_t) 0);
 }
 
-
-/** Start a session on the endpoint pipe.
- *
- * A session is something inside what any communication occurs.
- * It is expected that sessions would be started right before the transfer
- * and ended - see usb_pipe_end_session() - after the last
- * transfer.
- * The reason for this is that session actually opens some communication
- * channel to the host controller (or to the physical hardware if you
- * wish) and thus it involves acquiring kernel resources.
- * Since they are limited, sessions shall not be longer than strictly
- * necessary.
- *
- * @deprecated
- * Obsoleted with introduction of usb_pipe_start_long_transfer
- *
- * @param pipe Endpoint pipe to start the session on.
- * @return Error code.
- */
-int usb_pipe_start_session(usb_pipe_t *pipe)
-{
-	usb_log_warning("usb_pipe_start_session() was deprecated.\n");
-	return EOK;
-}
-
-
-/** Ends a session on the endpoint pipe.
- *
- * @deprecated
- * Obsoleted with introduction of usb_pipe_end_long_transfer
- *
- * @see usb_pipe_start_session
- *
- * @param pipe Endpoint pipe to end the session on.
- * @return Error code.
- */
-int usb_pipe_end_session(usb_pipe_t *pipe)
-{
-	usb_log_warning("usb_pipe_end_session() was deprecated.\n");
-	return EOK;
-}
-
-/** Tell whether a session is started (open) on the endpoint pipe.
- *
- * The expected usage of this function is in assertions for some
- * nested functions.
- *
- * @param pipe Endpoint pipe in question.
- * @return Whether @p pipe has opened a session.
- */
-bool usb_pipe_is_session_started(usb_pipe_t *pipe)
-{
-	pipe_acquire(pipe);
-	bool started = pipe->refcount > 0;
-	pipe_release(pipe);
-	return started;
-}
-
 /** Prepare pipe for a long transfer.
  *
  * By a long transfer is mean transfer consisting of several

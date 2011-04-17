@@ -176,10 +176,6 @@ int usb_pipe_register_with_speed(usb_pipe_t *, usb_speed_t,
 int usb_pipe_register(usb_pipe_t *, unsigned int, usb_hc_connection_t *);
 int usb_pipe_unregister(usb_pipe_t *, usb_hc_connection_t *);
 
-int usb_pipe_start_session(usb_pipe_t *);
-int usb_pipe_end_session(usb_pipe_t *);
-bool usb_pipe_is_session_started(usb_pipe_t *);
-
 void usb_pipe_start_long_transfer(usb_pipe_t *);
 void usb_pipe_end_long_transfer(usb_pipe_t *);
 
