@@ -288,7 +288,10 @@ static void usb_kbd_set_led(usb_kbd_t *kbd_dev)
 	// TODO: COMPOSE and KANA
 	
 	usb_log_debug("Creating output report.\n");
-	
+
+	usb_hid_report_output_set_data(kbd_dev->parser, kbd_dev->led_path, 
+	                               USB_HID_PATH_COMPARE_END , kbd_dev->led_data, 
+	                               kbd_dev->led_output_size);
 	int rc = usb_hid_report_output_translate(kbd_dev->parser, 0,
 	    kbd_dev->output_buffer, kbd_dev->output_size);
 	
@@ -611,6 +614,7 @@ static void usb_kbd_process_data(usb_kbd_t *kbd_dev,
 	usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_KEYBOARD, 0);
 
 	int rc = usb_hid_parse_report(kbd_dev->parser, buffer, actual_size);
+	usb_hid_descriptor_print (kbd_dev->parser);
 
 	usb_hid_report_path_free (path);
 	
@@ -836,7 +840,7 @@ int usb_kbd_init(usb_kbd_t *kbd_dev, usb_device_t *dev)
 	 * Set LEDs according to initial setup.
 	 * Set Idle rate
 	 */
-	usb_kbd_set_led(kbd_dev);
+	usb_kbd_set_led(kbd_dev);	
 	
 	usbhid_req_set_idle(&kbd_dev->usb_dev->ctrl_pipe, 
 	    kbd_dev->usb_dev->interface_no, IDLE_RATE);

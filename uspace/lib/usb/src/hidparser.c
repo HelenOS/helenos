@@ -659,10 +659,11 @@ void usb_hid_descriptor_print_list(link_t *head)
 		usb_log_debug("\t\ttUSAGEMIN: %X\n", report_item->usage_minimum);
 		usb_log_debug("\t\tUSAGEMAX: %X\n", report_item->usage_maximum);
 
+		usb_log_debug("\t\tVALUE: %X\n", report_item->value);
 		usb_log_debug("\t\ttUSAGE: %X\n", report_item->usage);
 		usb_log_debug("\t\tUSAGE PAGE: %X\n", report_item->usage_page);
 						
-		usb_log_debug("\n");		
+//		usb_log_debug("\n");		
 
 	}
 
