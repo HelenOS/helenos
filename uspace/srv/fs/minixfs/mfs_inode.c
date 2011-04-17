@@ -224,12 +224,13 @@ mfs_write_inode_raw(struct mfs_node *mnode)
 	struct mfs_ino_info *ino_i = mnode->ino_i;
 	struct mfs_sb_info *sbi = mnode->instance->sbi;
 
+	const uint32_t inum = ino_i->index - 1;
 	const int itable_off = sbi->itable_off;
-	const int ino_off = ino_i->index % sbi->ino_per_block;
+	const int ino_off = inum % sbi->ino_per_block;
 	const bool native = sbi->native;
 
 	r = block_get(&b, mnode->instance->handle,
-				itable_off + ino_i->index / sbi->ino_per_block,
+				itable_off + inum / sbi->ino_per_block,
 				BLOCK_FLAGS_NONE);
 
 	if (r != EOK)
@@ -266,12 +267,13 @@ mfs2_write_inode_raw(struct mfs_node *mnode)
 	block_t *b;
 	int i, r;
 
+	const uint32_t inum = ino_i->index - 1;
 	const int itable_off = sbi->itable_off;
-	const int ino_off = ino_i->index % sbi->ino_per_block;
+	const int ino_off = inum % sbi->ino_per_block;
 	const bool native = sbi->native;
 	
 	r = block_get(&b, mnode->instance->handle,
-				itable_off + ino_i->index / sbi->ino_per_block,
+				itable_off + inum / sbi->ino_per_block,
 				BLOCK_FLAGS_NONE);
 
 	if (r != EOK)
