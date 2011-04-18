@@ -52,7 +52,7 @@ void dynamic_parse(elf_dyn_t *dyn_ptr, size_t bias, dyn_info_t *info)
 	elf_word rpath_idx;
 
 	DPRINTF("memset\n");
-	memset(info, 0, sizeof(info));
+	memset(info, 0, sizeof(dyn_info_t));
 
 	soname_idx = 0;
 	rpath_idx = 0;
@@ -61,6 +61,8 @@ void dynamic_parse(elf_dyn_t *dyn_ptr, size_t bias, dyn_info_t *info)
 	while (dp->d_tag != DT_NULL) {
 		d_ptr = (void *)((uint8_t *)dp->d_un.d_ptr + bias);
 		d_val = dp->d_un.d_val;
+		DPRINTF("tag=%u ptr=0x%x val=%u\n", (unsigned)dp->d_tag,
+			(unsigned)d_ptr, (unsigned)d_val);
 
 		switch (dp->d_tag) {
 
@@ -107,6 +109,10 @@ void dynamic_parse(elf_dyn_t *dyn_ptr, size_t bias, dyn_info_t *info)
 	DPRINTF("soname='%s'\n", info->soname);
 	DPRINTF("rpath='%s'\n", info->rpath);
 	DPRINTF("hash=0x%x\n", (uintptr_t)info->hash);
+	DPRINTF("dt_rela=0x%x\n", (uintptr_t)info->rela);
+	DPRINTF("dt_rela_sz=0x%x\n", (uintptr_t)info->rela_sz);
+	DPRINTF("dt_rel=0x%x\n", (uintptr_t)info->rel);
+	DPRINTF("dt_rel_sz=0x%x\n", (uintptr_t)info->rel_sz);
 
 	/*
 	 * Now that we have a pointer to the string table,
