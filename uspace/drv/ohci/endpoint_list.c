@@ -54,7 +54,7 @@ int endpoint_list_init(endpoint_list_t *instance, const char *name)
 		return ENOMEM;
 	}
 	instance->list_head_pa = addr_to_phys(instance->list_head);
-	usb_log_debug2("Transfer list %s setup with ED: %p(%p).\n",
+	usb_log_debug2("Transfer list %s setup with ED: %p(0x%0" PRIx32 ")).\n",
 	    name, instance->list_head, instance->list_head_pa);
 
 	ed_init(instance->list_head, NULL);
@@ -120,7 +120,7 @@ void endpoint_list_add_ep(endpoint_list_t *instance, hcd_endpoint_t *hcd_ep)
 	usb_log_debug("HCD EP(%p) added to list %s, first is %p(%p).\n",
 		hcd_ep, instance->name, first, first->ed);
 	if (last_ed == instance->list_head) {
-		usb_log_debug2("%s head ED(%p-%p): %x:%x:%x:%x.\n",
+		usb_log_debug2("%s head ED(%p-0x%0" PRIx32 "): %x:%x:%x:%x.\n",
 		    instance->name, last_ed, instance->list_head_pa,
 		    last_ed->status, last_ed->td_tail, last_ed->td_head,
 		    last_ed->next);

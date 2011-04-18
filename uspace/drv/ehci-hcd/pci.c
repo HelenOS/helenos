@@ -116,7 +116,7 @@ int pci_get_my_registers(ddf_dev_t *dev,
 			    && res->res.mem_range.size != 0 ) {
 				mem_address = res->res.mem_range.address;
 				mem_size = res->res.mem_range.size;
-				usb_log_debug2("Found mem: %llx %zu.\n",
+				usb_log_debug2("Found mem: %" PRIxn" %zu.\n",
 				    mem_address, mem_size);
 				mem_found = true;
 				}
@@ -185,11 +185,11 @@ int pci_disable_legacy(ddf_dev_t *device)
 	    IPC_M_CONFIG_SPACE_READ_32, address, &value);
 	CHECK_RET_HANGUP_RETURN(ret, "Failed(%d) to read PCI config space.\n",
 	    ret);
-	usb_log_info("Register space BAR at %p:%x.\n", address, value);
+	usb_log_info("Register space BAR at %p:%" PRIxn ".\n", (void *) address, value);
 
 	/* clear lower byte, it's not part of the BASE address */
 	uintptr_t registers = (value & 0xffffff00);
-	usb_log_info("Memory registers BASE address:%p.\n", registers);
+	usb_log_info("Memory registers BASE address:%p.\n", (void *) registers);
 
 	/* if nothing setup the hc, we don't need to turn it off */
 	if (registers == 0)
@@ -200,7 +200,7 @@ int pci_disable_legacy(ddf_dev_t *device)
 	ret = physmem_map((void*)(registers & PAGE_SIZE_MASK), regs, 1,
 	    AS_AREA_READ | AS_AREA_WRITE);
 	CHECK_RET_HANGUP_RETURN(ret, "Failed(%d) to map registers %p:%p.\n",
-	    ret, regs, registers);
+	    ret, regs, (void *) registers);
 
 	/* calculate value of BASE */
 	registers = (registers & 0xf00) | (uintptr_t)regs;
@@ -220,14 +220,14 @@ int pci_disable_legacy(ddf_dev_t *device)
 	ret = async_req_2_1(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE),
 	    IPC_M_CONFIG_SPACE_READ_32, eecp + USBLEGCTLSTS_OFFSET, &value);
 	CHECK_RET_HANGUP_RETURN(ret, "Failed(%d) to read USBLEGCTLSTS.\n", ret);
-	usb_log_debug("USBLEGCTLSTS: %x.\n", value);
+	usb_log_debug("USBLEGCTLSTS: %" PRIxn ".\n", value);
 
 	/* Read the first EEC. i.e. Legacy Support register */
 	/* TODO: Check capability type here */
 	ret = async_req_2_1(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE),
 	    IPC_M_CONFIG_SPACE_READ_32, eecp + USBLEGSUP_OFFSET, &value);
 	CHECK_RET_HANGUP_RETURN(ret, "Failed(%d) to read USBLEGSUP.\n", ret);
-	usb_log_debug2("USBLEGSUP: %x.\n", value);
+	usb_log_debug2("USBLEGSUP: %" PRIxn ".\n", value);
 
 	/* Request control from firmware/BIOS, by writing 1 to highest byte.
 	 * (OS Control semaphore)*/
@@ -247,11 +247,11 @@ int pci_disable_legacy(ddf_dev_t *device)
 
 
 	if ((value & USBLEGSUP_BIOS_CONTROL) == 0) {
-		usb_log_info("BIOS released control after %d usec.\n", wait);
+		usb_log_info("BIOS released control after %zu usec.\n", wait);
 	} else {
 		/* BIOS failed to hand over control, this should not happen. */
 		usb_log_warning( "BIOS failed to release control after "
-		    "%d usecs, force it.\n", wait);
+		    "%zu usecs, force it.\n", wait);
 		ret = async_req_3_0(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE),
 		    IPC_M_CONFIG_SPACE_WRITE_32, eecp + USBLEGSUP_OFFSET,
 		    USBLEGSUP_OS_CONTROL);
@@ -270,13 +270,13 @@ int pci_disable_legacy(ddf_dev_t *device)
 	ret = async_req_2_1(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE),
 	    IPC_M_CONFIG_SPACE_READ_32, eecp + USBLEGCTLSTS_OFFSET, &value);
 	CHECK_RET_HANGUP_RETURN(ret, "Failed(%d) to read USBLEGCTLSTS.\n", ret);
-	usb_log_debug2("USBLEGCTLSTS: %x.\n", value);
+	usb_log_debug2("USBLEGCTLSTS: %" PRIxn ".\n", value);
 
 	/* Read again Legacy Support register */
 	ret = async_req_2_1(parent_phone, DEV_IFACE_ID(PCI_DEV_IFACE),
 	    IPC_M_CONFIG_SPACE_READ_32, eecp + USBLEGSUP_OFFSET, &value);
 	CHECK_RET_HANGUP_RETURN(ret, "Failed(%d) to read USBLEGSUP.\n", ret);
-	usb_log_debug2("USBLEGSUP: %x.\n", value);
+	usb_log_debug2("USBLEGSUP: %" PRIxn ".\n", value);
 
 	/*
 	 * TURN OFF EHCI FOR NOW, DRIVER WILL REINITIALIZE IT

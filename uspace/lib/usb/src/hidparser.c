@@ -166,7 +166,7 @@ int usb_hid_parse_report_descriptor(usb_hid_report_parser_t *parser,
 			class = USB_HID_ITEM_TAG_CLASS(data[i]);
 
 			usb_log_debug2(
-				"i(%u) data(%X) value(%X): TAG %u, class %u, size %u - ", i, 
+				"i(%zu) data(%X) value(%X): TAG %d, class %u, size %u - ", i,
 			    data[i], usb_hid_report_tag_data_int32(data+i+1,item_size), 
 			    tag, class, item_size);
 			
@@ -575,7 +575,7 @@ void usb_hid_descriptor_print_list(link_t *head)
                 
 		report_item = list_get_instance(item, usb_hid_report_item_t, link);
 
-		usb_log_debug("\tOFFSET: %X\n", report_item->offset);
+		usb_log_debug("\tOFFSET: %zX\n", report_item->offset);
 		usb_log_debug("\tCOUNT: %X\n", report_item->count);
 		usb_log_debug("\tSIZE: %X\n", report_item->size);
 		usb_log_debug("\tCONSTANT/VAR: %X\n", USB_HID_ITEM_FLAG_CONSTANT(report_item->item_flags));

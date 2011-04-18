@@ -52,14 +52,7 @@ static int usbmid_add_device(usb_device_t *dev)
 {
 	usb_log_info("Taking care of new MID `%s'.\n", dev->ddf_dev->name);
 
-	int rc;
-
-	rc = usb_pipe_start_long_transfer(&dev->ctrl_pipe);
-	if (rc != EOK) {
-		usb_log_error("Failed to start transfer on control pipe: %s.\n",
-		    str_error(rc));
-		return rc;
-	}
+	usb_pipe_start_long_transfer(&dev->ctrl_pipe);
 
 	bool accept = usbmid_explore_device(dev);
 

@@ -140,7 +140,7 @@ bool batch_is_complete(usb_transfer_batch_t *instance)
 	ohci_transfer_batch_t *data = instance->private_data;
 	assert(data);
 	size_t tds = data->td_count;
-	usb_log_debug("Batch(%p) checking %d td(s) for completion.\n",
+	usb_log_debug("Batch(%p) checking %zu td(s) for completion.\n",
 	    instance, tds);
 	usb_log_debug("ED: %x:%x:%x:%x.\n",
 	    data->ed->status, data->ed->td_head, data->ed->td_tail,
@@ -149,7 +149,7 @@ bool batch_is_complete(usb_transfer_batch_t *instance)
 	instance->transfered_size = instance->buffer_size;
 	for (; i < tds; ++i) {
 		assert(data->tds[i] != NULL);
-		usb_log_debug("TD %d: %x:%x:%x:%x.\n", i,
+		usb_log_debug("TD %zu: %x:%x:%x:%x.\n", i,
 		    data->tds[i]->status, data->tds[i]->cbp, data->tds[i]->next,
 		    data->tds[i]->be);
 		if (!td_is_finished(data->tds[i])) {
@@ -157,7 +157,7 @@ bool batch_is_complete(usb_transfer_batch_t *instance)
 		}
 		instance->error = td_error(data->tds[i]);
 		if (instance->error != EOK) {
-			usb_log_debug("Batch(%p) found error TD(%d):%x.\n",
+			usb_log_debug("Batch(%p) found error TD(%zu):%x.\n",
 			    instance, i, data->tds[i]->status);
 			/* Make sure TD queue is empty (one TD),
 			 * ED should be marked as halted */

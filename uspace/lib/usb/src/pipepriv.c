@@ -76,22 +76,25 @@ void pipe_release(usb_pipe_t *pipe)
 /** Add reference of active transfers over the pipe.
  *
  * @param pipe The USB pipe.
+ * @param hide_failure Whether to hide failure when adding reference
+ *	(use soft refcount).
  * @return Error code.
  * @retval EOK Currently always.
  */
-int pipe_add_ref(usb_pipe_t *pipe)
+int pipe_add_ref(usb_pipe_t *pipe, bool hide_failure)
 {
-another_try:
 	pipe_acquire(pipe);
 
 	if (pipe->refcount == 0) {
 		/* Need to open the phone by ourselves. */
 		int phone = devman_device_connect(pipe->wire->hc_handle, 0);
 		if (phone < 0) {
-			// TODO: treat some error as non-recoverable
-			// and return error from here
+			if (hide_failure) {
+				pipe->refcount_soft++;
+				phone = EOK;
+			}
 			pipe_release(pipe);
-			goto another_try;
+			return phone;
 		}
 		/*
 		 * No locking is needed, refcount is zero and whole pipe
@@ -113,6 +116,11 @@ another_try:
 void pipe_drop_ref(usb_pipe_t *pipe)
 {
 	pipe_acquire(pipe);
+	if (pipe->refcount_soft > 0) {
+		pipe->refcount_soft--;
+		pipe_release(pipe);
+		return;
+	}
 	assert(pipe->refcount > 0);
 	pipe->refcount--;
 	if (pipe->refcount == 0) {

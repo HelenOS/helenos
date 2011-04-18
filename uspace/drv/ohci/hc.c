@@ -112,12 +112,12 @@ if (ret != EOK) { \
 	ret = usb_endpoint_manager_init(&instance->ep_manager,
 	    BANDWIDTH_AVAILABLE_USB11);
 	CHECK_RET_RETURN(ret, "Failed to initialize endpoint manager: %s.\n",
-	    ret, str_error(ret));
+	    str_error(ret));
 
 	hc_gain_control(instance);
 	ret = hc_init_memory(instance);
-	CHECK_RET_RETURN(ret, "Failed to create OHCI memory structures:%s.\n",
-	    ret, str_error(ret));
+	CHECK_RET_RETURN(ret, "Failed to create OHCI memory structures: %s.\n",
+	    str_error(ret));
 	hc_init_hw(instance);
 	fibril_mutex_initialize(&instance->guard);
 
@@ -293,9 +293,10 @@ void hc_interrupt(hc_t *instance, uint32_t status)
 
 	if (status & IS_WDH) {
 		fibril_mutex_lock(&instance->guard);
-		usb_log_debug2("HCCA: %p-%p(%p).\n", instance->hcca,
-		    instance->registers->hcca, addr_to_phys(instance->hcca));
-		usb_log_debug2("Periodic current: %p.\n",
+		usb_log_debug2("HCCA: %p-%#" PRIx32 " (%p).\n", instance->hcca,
+		    instance->registers->hcca,
+		    (void *) addr_to_phys(instance->hcca));
+		usb_log_debug2("Periodic current: %#" PRIx32 ".\n",
 		    instance->registers->periodic_current);
 
 		link_t *current = instance->pending_batches.next;
@@ -404,13 +405,13 @@ void hc_init_hw(hc_t *instance)
 	/* Use queues */
 	instance->registers->bulk_head =
 	    instance->lists[USB_TRANSFER_BULK].list_head_pa;
-	usb_log_debug2("Bulk HEAD set to: %p(%p).\n",
+	usb_log_debug2("Bulk HEAD set to: %p (%#" PRIx32 ").\n",
 	    instance->lists[USB_TRANSFER_BULK].list_head,
 	    instance->lists[USB_TRANSFER_BULK].list_head_pa);
 
 	instance->registers->control_head =
 	    instance->lists[USB_TRANSFER_CONTROL].list_head_pa;
-	usb_log_debug2("Control HEAD set to: %p(%p).\n",
+	usb_log_debug2("Control HEAD set to: %p (%#" PRIx32 ").\n",
 	    instance->lists[USB_TRANSFER_CONTROL].list_head,
 	    instance->lists[USB_TRANSFER_CONTROL].list_head_pa);
 
@@ -486,7 +487,7 @@ int hc_init_memory(hc_t *instance)
 		instance->hcca->int_ep[i] =
 		    instance->lists[USB_TRANSFER_INTERRUPT].list_head_pa;
 	}
-	usb_log_debug2("Interrupt HEADs set to: %p(%p).\n",
+	usb_log_debug2("Interrupt HEADs set to: %p (%#" PRIx32 ").\n",
 	    instance->lists[USB_TRANSFER_INTERRUPT].list_head,
 	    instance->lists[USB_TRANSFER_INTERRUPT].list_head_pa);
 

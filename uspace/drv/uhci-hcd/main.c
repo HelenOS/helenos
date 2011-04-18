@@ -71,8 +71,8 @@ int uhci_add_device(ddf_dev_t *device)
 
 	int ret = uhci_init(uhci, device);
 	if (ret != EOK) {
-		usb_log_error("Failed(%d) to initialize UHCI driver: %s.\n",
-		    ret, str_error(ret));
+		usb_log_error("Failed to initialize UHCI driver: %s.\n",
+		    str_error(ret));
 		return ret;
 	}
 	device->driver_data = uhci;
