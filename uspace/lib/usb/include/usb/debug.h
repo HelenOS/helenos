@@ -35,6 +35,7 @@
 #ifndef LIBUSB_DEBUG_H_
 #define LIBUSB_DEBUG_H_
 #include <stdio.h>
+#include <inttypes.h>
 #include <usb/usb.h>
 #include <assert.h>
 
@@ -84,7 +85,8 @@ typedef enum {
 
 void usb_log_enable(usb_log_level_t, const char *);
 
-void usb_log_printf(usb_log_level_t, const char *, ...);
+void usb_log_printf(usb_log_level_t, const char *, ...)
+	PRINTF_ATTRIBUTE(2, 3);
 
 /** Log fatal error. */
 #define usb_log_fatal(format, ...) \

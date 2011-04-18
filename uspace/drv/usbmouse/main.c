@@ -53,7 +53,8 @@ static int usbmouse_add_device(usb_device_t *dev)
 		return rc;
 	}
 
-	usb_log_debug("Polling pipe at endpoint %d.\n", dev->pipes[0].pipe->endpoint_no);
+	usb_log_debug("Polling pipe at endpoint %d.\n",
+	    dev->pipes[0].pipe->endpoint_no);
 
 	rc = usb_device_auto_poll(dev, 0,
 	    usb_mouse_polling_callback, dev->pipes[0].pipe->max_packet_size,
@@ -65,7 +66,7 @@ static int usbmouse_add_device(usb_device_t *dev)
 		return rc;
 	}
 
-	usb_log_info("controlling new mouse (handle %llu).\n",
+	usb_log_info("controlling new mouse (handle %" PRIun ").\n",
 	    dev->ddf_dev->handle);
 
 	return EOK;

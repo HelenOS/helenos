@@ -89,7 +89,7 @@ int pci_get_my_registers(ddf_dev_t *dev,
 		case IO_RANGE:
 			io_address = res->res.io_range.address;
 			io_size = res->res.io_range.size;
-			usb_log_debug2("Found io: %llx %zu.\n",
+			usb_log_debug2("Found io: %" PRIx64" %zu.\n",
 			    res->res.io_range.address, res->res.io_range.size);
 			io_found = true;
 			break;

@@ -82,7 +82,7 @@ static int create_add_device_fibril(usb_hub_info_t *hub, size_t port,
  */
 void usb_hub_process_interrupt(usb_hub_info_t * hub,
 	uint16_t port) {
-	usb_log_debug("interrupt at port %d\n", port);
+	usb_log_debug("interrupt at port %zu\n", (size_t) port);
 	//determine type of change
 	//usb_pipe_t *pipe = hub->control_pipe;
 
@@ -92,14 +92,15 @@ void usb_hub_process_interrupt(usb_hub_info_t * hub,
 	opResult = get_port_status(&hub->usb_device->ctrl_pipe, port, &status);
 	if (opResult != EOK) {
 		usb_log_error("Failed to get port %zu status: %s.\n",
-		    port, str_error(opResult));
+		    (size_t) port, str_error(opResult));
 		return;
 	}
 	//connection change
 	if (usb_port_is_status(status, USB_HUB_FEATURE_C_PORT_CONNECTION)) {
 		bool device_connected = usb_port_is_status(status,
 		    USB_HUB_FEATURE_PORT_CONNECTION);
-		usb_log_debug("Connection change on port %zu: %s.\n", port,
+		usb_log_debug("Connection change on port %zu: %s.\n",
+		    (size_t) port,
 		    device_connected ? "device attached" : "device removed");
 
 		if (device_connected) {
@@ -108,7 +109,7 @@ void usb_hub_process_interrupt(usb_hub_info_t * hub,
 			if (opResult != EOK) {
 				usb_log_error(
 				    "Cannot handle change on port %zu: %s.\n",
-				    str_error(opResult));
+				    (size_t) port, str_error(opResult));
 			}
 		} else {
 			usb_hub_removed_device(hub, port);
@@ -209,7 +210,7 @@ static void usb_hub_removed_device(
  */
 static void usb_hub_port_reset_completed(usb_hub_info_t * hub,
 	uint16_t port, uint32_t status){
-	usb_log_debug("Port %zu reset complete.\n", port);
+	usb_log_debug("Port %zu reset complete.\n", (size_t) port);
 	if (usb_port_is_status(status, USB_HUB_FEATURE_PORT_ENABLE)) {
 		/* Finalize device adding. */
 		usb_hub_port_t *the_port = hub->ports + port;
@@ -221,7 +222,7 @@ static void usb_hub_port_reset_completed(usb_hub_info_t * hub,
 	} else {
 		usb_log_warning(
 		    "Port %zu reset complete but port not enabled.\n",
-		    port);
+		    (size_t) port);
 	}
 }
 

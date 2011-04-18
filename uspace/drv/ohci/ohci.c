@@ -147,9 +147,10 @@ if (ret != EOK) { \
 	int ret =
 	    pci_get_my_registers(device, &mem_reg_base, &mem_reg_size, &irq);
 	CHECK_RET_DEST_FUN_RETURN(ret,
-	    "Failed(%d) to get memory addresses:.\n", ret, device->handle);
-	usb_log_debug("Memory mapped regs at 0x%X (size %zu), IRQ %d.\n",
-	    mem_reg_base, mem_reg_size, irq);
+	    "Failed to get memory addresses for %" PRIun ": %s.\n",
+	    device->handle, str_error(ret));
+	usb_log_debug("Memory mapped regs at %p (size %zu), IRQ %d.\n",
+	    (void *) mem_reg_base, mem_reg_size, irq);
 
 	ret = pci_disable_legacy(device);
 	CHECK_RET_DEST_FUN_RETURN(ret,

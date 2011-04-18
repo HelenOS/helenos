@@ -57,7 +57,7 @@ int transfer_list_init(transfer_list_t *instance, const char *name)
 		return ENOMEM;
 	}
 	uint32_t queue_head_pa = addr_to_phys(instance->queue_head);
-	usb_log_debug2("Transfer list %s setup with QH: %p(%p).\n",
+	usb_log_debug2("Transfer list %s setup with QH: %p (%#" PRIx32" ).\n",
 	    name, instance->queue_head, queue_head_pa);
 
 	qh_init(instance->queue_head);

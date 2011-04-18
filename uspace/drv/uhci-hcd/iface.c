@@ -117,7 +117,7 @@ static int bind_address(
 	assert(fun);
 	hc_t *hc = fun_to_hc(fun);
 	assert(hc);
-	usb_log_debug("Address bind %d-%d.\n", address, handle);
+	usb_log_debug("Address bind %d-%" PRIun ".\n", address, handle);
 	usb_device_keeper_bind(&hc->manager, address, handle);
 	return EOK;
 }
