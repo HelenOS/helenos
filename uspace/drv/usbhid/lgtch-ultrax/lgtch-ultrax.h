@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Lenka Trochtova
+ * Copyright (c) 2011 Lubos Slovak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,56 +26,35 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
- * @defgroup libdrv generic device driver support.
- * @brief HelenOS generic device driver support.
+/** @addtogroup drvusbhid
  * @{
  */
-
 /** @file
+ * USB Logitech UltraX Keyboard sample driver.
  */
 
-#include <assert.h>
+#ifndef USB_HID_LGTCH_ULTRAX_H_
+#define USB_HID_LGTCH_ULTRAX_H_
 
-#include "dev_iface.h"
-#include "remote_hw_res.h"
-#include "remote_char_dev.h"
-#include "remote_usb.h"
-#include "remote_usbhc.h"
-#include "remote_usbhid.h"
-#include "remote_pci.h"
+#include <usb/devdrv.h>
 
-static iface_dipatch_table_t remote_ifaces = {
-	.ifaces = {
-		&remote_hw_res_iface,
-		&remote_char_dev_iface,
-		&remote_pci_iface,
-		&remote_usb_iface,
-		&remote_usbhc_iface,
-		&remote_usbhid_iface
-	}
-};
+struct usb_hid_dev;
+//struct usb_hid_subdriver_mapping;
 
-remote_iface_t *get_remote_iface(int idx)
-{
-	assert(is_valid_iface_idx(idx));
-	return remote_ifaces.ifaces[idx];
-}
+/*----------------------------------------------------------------------------*/
 
-remote_iface_func_ptr_t
-get_remote_method(remote_iface_t *rem_iface, sysarg_t iface_method_idx)
-{
-	if (iface_method_idx >= rem_iface->method_count) {
-		return NULL;
-	}
+//extern struct usb_hid_subdriver_mapping usb_lgtch_mapping;
 
-	return rem_iface->methods[iface_method_idx];
-}
+/*----------------------------------------------------------------------------*/
 
-bool is_valid_iface_idx(int idx)
-{
-	return (0 <= idx) && (idx < DEV_IFACE_MAX);
-}
+//int usb_lgtch_init(struct usb_hid_dev *hid_dev);
+
+bool usb_lgtch_polling_callback(struct usb_hid_dev *hid_dev, uint8_t *buffer,
+    size_t buffer_size);
+
+/*----------------------------------------------------------------------------*/
+
+#endif // USB_HID_LGTCH_ULTRAX_H_
 
 /**
  * @}

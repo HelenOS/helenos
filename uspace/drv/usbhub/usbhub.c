@@ -259,8 +259,8 @@ static int usb_hub_process_hub_specific_info(usb_hub_info_t * hub_info) {
 				opResult = usb_hub_set_port_feature(hub_info->control_pipe,
 				    port+1, USB_HUB_FEATURE_PORT_POWER);
 				if (opResult != EOK) {
-					usb_log_error("cannot power on port %d;  %d\n",
-					    port+1, opResult);
+					usb_log_error("cannot power on port %zu: %s.\n",
+					    port+1, str_error(opResult));
 				}
 			}
 		}else{
@@ -268,8 +268,8 @@ static int usb_hub_process_hub_specific_info(usb_hub_info_t * hub_info) {
 			opResult = usb_hub_set_feature(hub_info->control_pipe,
 			    USB_HUB_FEATURE_C_HUB_LOCAL_POWER);
 			if (opResult != EOK) {
-				usb_log_error("cannot power hub;  %d\n",
-				  opResult);
+				usb_log_error("cannot power hub: %s\n",
+				    str_error(opResult));
 			}
 		}
 	}else{
@@ -355,7 +355,7 @@ static int usb_hub_start_hub_fibril(usb_hub_info_t * hub_info){
 		return rc;
 	}
 
-	usb_log_info("Controlling hub `%s' (%d ports).\n",
+	usb_log_info("Controlling hub `%s' (%zu ports).\n",
 	    hub_info->usb_device->ddf_dev->name, hub_info->port_count);
 	return EOK;
 }
@@ -423,8 +423,8 @@ static int usb_process_hub_power_change(usb_hub_info_t * hub_info,
 			    hub_info->control_pipe,
 			    port, USB_HUB_FEATURE_PORT_POWER);
 			if (opResult != EOK) {
-				usb_log_error("cannot power on port %d;  %d\n",
-				    port, opResult);
+				usb_log_error("Cannot power on port %zu: %s.\n",
+				    port, str_error(opResult));
 			}
 		}
 	}

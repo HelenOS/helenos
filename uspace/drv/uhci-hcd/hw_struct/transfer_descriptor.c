@@ -153,7 +153,7 @@ void td_print_status(td_t *instance)
 {
 	assert(instance);
 	const uint32_t s = instance->status;
-	usb_log_debug2("TD(%p) status(%#x):%s %d,%s%s%s%s%s%s%s%s%s%s%s %d.\n",
+	usb_log_debug2("TD(%p) status(%#" PRIx32 "):%s %d,%s%s%s%s%s%s%s%s%s%s%s %zu.\n",
 	    instance, instance->status,
 	    (s & TD_STATUS_SPD_FLAG) ? " SPD," : "",
 	    (s >> TD_STATUS_ERROR_COUNT_POS) & TD_STATUS_ERROR_COUNT_MASK,
