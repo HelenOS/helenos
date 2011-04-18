@@ -104,7 +104,6 @@ int usb_hub_add_device(usb_device_t * usb_dev) {
 		return opResult;
 	}
 
-	//usb_pipe_start_session(hub_info->control_pipe);
 	//set hub configuration
 	opResult = usb_hub_set_configuration(hub_info);
 	if (opResult != EOK) {
@@ -121,8 +120,6 @@ int usb_hub_add_device(usb_device_t * usb_dev) {
 		free(hub_info);
 		return opResult;
 	}
-	//usb_pipe_end_session(hub_info->control_pipe);
-
 
 	usb_log_debug("Creating 'hub' function in DDF.\n");
 	ddf_fun_t *hub_fun = ddf_fun_create(hub_info->usb_device->ddf_dev,
@@ -217,7 +214,6 @@ static usb_hub_info_t * usb_hub_info_create(usb_device_t * usb_dev) {
 static int usb_hub_process_hub_specific_info(usb_hub_info_t * hub_info) {
 	// get hub descriptor
 	usb_log_debug("creating serialized descriptor\n");
-	//void * serialized_descriptor = malloc(USB_HUB_MAX_DESCRIPTOR_SIZE);
 	uint8_t serialized_descriptor[USB_HUB_MAX_DESCRIPTOR_SIZE];
 	usb_hub_descriptor_t * descriptor;
 	int opResult;
@@ -280,8 +276,6 @@ static int usb_hub_process_hub_specific_info(usb_hub_info_t * hub_info) {
 		usb_log_debug("!is_power_switched\n");
 	}
 	usb_log_debug2("freeing data\n");
-	//free(serialized_descriptor);
-	//free(descriptor->devices_removable);
 	free(descriptor);
 	return EOK;
 }
