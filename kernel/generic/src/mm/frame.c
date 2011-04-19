@@ -480,13 +480,13 @@ NO_TRACE static size_t zone_frame_free(zone_t *zone, size_t frame_idx)
 	ASSERT(zone_flags_available(zone->flags));
 	
 	frame_t *frame = &zone->frames[frame_idx];
-	size_t size = 1 << frame->buddy_order;
+	size_t size = 0;
 	
 	ASSERT(frame->refcount);
 	
 	if (!--frame->refcount) {
-		buddy_system_free(zone->buddy_system, &frame->buddy_link);
-		
+		size = 1 << frame->buddy_order;
+		buddy_system_free(zone->buddy_system, &frame->buddy_link);		
 		/* Update zone information. */
 		zone->free_count += size;
 		zone->busy_count -= size;
