@@ -322,23 +322,16 @@ inode_grow(struct mfs_node *mnode, size_t size_grow)
 
 	/*Compute the number of zones to add to the inode*/
 	unsigned zones_to_add = 0;
-	if ((old_size % (bs - 1)) == 0)
-		zones_to_add++;
+	if (old_size == 0)
+		++zones_to_add;
 
-	zones_to_add += (new_size - old_size) / bs;
+	zones_to_add += (new_size / bs) - (old_size / bs);
 
 	/*Compute the start zone*/
 	unsigned start_zone = old_size / bs;
 	start_zone += (old_size % bs) != 0;
 
 	mfsdebug("zones to add = %u\n", zones_to_add);
-
-	if (zones_to_add == 0) {
-		/*Set the new inode size and exit*/
-		ino_i->i_size = new_size;
-		ino_i->dirty = true;
-		return EOK;
-	}
 
 	int r;
 	for (i = 0; i < zones_to_add; ++i) {
@@ -349,7 +342,19 @@ inode_grow(struct mfs_node *mnode, size_t size_grow)
 		if (r != EOK)
 			return r;
 
-		r = write_map(mnode, (start_zone + i) * sbi->block_size,
+		mfsdebug("write_map = %d\n", (int) ((start_zone + i) * bs));
+
+		block_t *b;
+		r = block_get(&b, mnode->instance->handle, new_zone,
+						BLOCK_FLAGS_NOREAD);
+		if (r != EOK)
+			return r;
+
+		memset(b->data, 0, bs);
+		b->dirty = true;
+		block_put(b);
+
+		r = write_map(mnode, (start_zone + i) * bs,
 				new_zone, &dummy);
 		if (r != EOK)
 			return r;
@@ -357,6 +362,10 @@ inode_grow(struct mfs_node *mnode, size_t size_grow)
 		ino_i->i_size += bs;
 		ino_i->dirty = true;
 	}
+
+	ino_i->i_size = new_size;
+	ino_i->dirty = true;
+
 	return EOK;
 }
 
