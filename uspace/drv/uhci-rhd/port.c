@@ -88,7 +88,7 @@ int uhci_port_init(uhci_port_t *port,
     port_status_t *address, unsigned number, unsigned usec, ddf_dev_t *rh)
 {
 	assert(port);
-	asprintf(&port->id_string, "Port (%p - %d)", port, number);
+	asprintf(&port->id_string, "Port (%p - %u)", port, number);
 	if (port->id_string == NULL) {
 		return ENOMEM;
 	}
@@ -114,7 +114,7 @@ int uhci_port_init(uhci_port_t *port,
 	}
 
 	fibril_add_ready(port->checker);
-	usb_log_debug("%s: Started polling fibril(%x).\n",
+	usb_log_debug("%s: Started polling fibril (%" PRIun ").\n",
 	    port->id_string, port->checker);
 	return EOK;
 }
@@ -266,7 +266,7 @@ int uhci_port_new_device(uhci_port_t *port, usb_speed_t speed)
 		return ret;
 	}
 
-	usb_log_info("New device at port %u, address %d (handle %llu).\n",
+	usb_log_info("New device at port %u, address %d (handle %" PRIun ").\n",
 	    port->number, dev_addr, port->attached_device);
 	return EOK;
 }
@@ -282,7 +282,7 @@ int uhci_port_new_device(uhci_port_t *port, usb_speed_t speed)
  */
 int uhci_port_remove_device(uhci_port_t *port)
 {
-	usb_log_error("%s: Don't know how to remove device %llu.\n",
+	usb_log_error("%s: Don't know how to remove device %" PRIun ".\n",
 	    port->id_string, port->attached_device);
 	return ENOTSUP;
 }

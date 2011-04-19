@@ -172,7 +172,7 @@ int usb_pipe_read(usb_pipe_t *pipe,
 	}
 
 	int rc;
-	rc = pipe_add_ref(pipe);
+	rc = pipe_add_ref(pipe, false);
 	if (rc != EOK) {
 		return rc;
 	}
@@ -295,7 +295,7 @@ int usb_pipe_write(usb_pipe_t *pipe,
 
 	int rc;
 
-	rc = pipe_add_ref(pipe);
+	rc = pipe_add_ref(pipe, false);
 	if (rc != EOK) {
 		return rc;
 	}
@@ -446,7 +446,7 @@ int usb_pipe_control_read(usb_pipe_t *pipe,
 
 	int rc;
 
-	rc = pipe_add_ref(pipe);
+	rc = pipe_add_ref(pipe, false);
 	if (rc != EOK) {
 		return rc;
 	}
@@ -578,7 +578,7 @@ int usb_pipe_control_write(usb_pipe_t *pipe,
 
 	int rc;
 
-	rc = pipe_add_ref(pipe);
+	rc = pipe_add_ref(pipe, false);
 	if (rc != EOK) {
 		return rc;
 	}

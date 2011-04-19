@@ -161,7 +161,7 @@ bool batch_is_complete(usb_transfer_batch_t *instance)
 	uhci_transfer_batch_t *data = instance->private_data;
 	assert(data);
 
-	usb_log_debug2("Batch(%p) checking %d transfer(s) for completion.\n",
+	usb_log_debug2("Batch(%p) checking %zu transfer(s) for completion.\n",
 	    instance, data->td_count);
 	instance->transfered_size = 0;
 	size_t i = 0;
@@ -172,7 +172,7 @@ bool batch_is_complete(usb_transfer_batch_t *instance)
 
 		instance->error = td_status(&data->tds[i]);
 		if (instance->error != EOK) {
-			usb_log_debug("Batch(%p) found error TD(%d):%x.\n",
+			usb_log_debug("Batch(%p) found error TD(%zu):%" PRIx32 ".\n",
 			    instance, i, data->tds[i].status);
 			td_print_status(&data->tds[i]);
 

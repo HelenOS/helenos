@@ -98,7 +98,7 @@ void default_connection_handler(ddf_fun_t *fun,
 		char devname[DEVICE_NAME_MAXLENGTH + 1];
 		int rc = get_device_name(callback, devname, DEVICE_NAME_MAXLENGTH);
 
-		usb_log_info("New virtual device `%s' (id = %x).\n",
+		usb_log_info("New virtual device `%s' (id = %" PRIxn ").\n",
 		    rc == EOK ? devname : "<unknown>", dev->id);
 
 		return;
@@ -121,7 +121,8 @@ void on_client_close(ddf_fun_t *fun)
 		return;
 	}
 
-	usb_log_info("Virtual device disconnected (id = %x).\n", dev->id);
+	usb_log_info("Virtual device disconnected (id = %" PRIxn ").\n",
+	    dev->id);
 	virtdev_destroy_device(dev);
 }
 

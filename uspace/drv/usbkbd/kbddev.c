@@ -566,8 +566,8 @@ static void usb_kbd_process_keycodes(const uint8_t *key_codes, size_t count,
 	    report_id, usb_debug_str_buffer(key_codes, count, 0));
 	
 	if (count != kbd_dev->key_count) {
-		usb_log_warning("Number of received keycodes (%d) differs from"
-		    " expected number (%d).\n", count, kbd_dev->key_count);
+		usb_log_warning("Number of received keycodes (%zu) differs from"
+		    " expected (%zu).\n", count, kbd_dev->key_count);
 		return;
 	}
 	

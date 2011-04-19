@@ -108,7 +108,7 @@ static int usb_hid_get_report_descriptor(usb_device_t *dev,
 	}
 	
 	if (*d != sizeof(usb_standard_hid_descriptor_t)) {
-		usb_log_error("HID descriptor hass wrong size (%u, expected %u"
+		usb_log_error("HID descriptor has wrong size (%u, expected %zu"
 		    ")\n", *d, sizeof(usb_standard_hid_descriptor_t));
 		return EINVAL;
 	}
@@ -148,7 +148,7 @@ static int usb_hid_get_report_descriptor(usb_device_t *dev,
 	if (actual_size != length) {
 		free(*report_desc);
 		*report_desc = NULL;
-		usb_log_error("Report descriptor has wrong size (%u, expected "
+		usb_log_error("Report descriptor has wrong size (%zu, expected "
 		    "%u)\n", actual_size, length);
 		return EINVAL;
 	}

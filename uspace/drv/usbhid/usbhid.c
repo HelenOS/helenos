@@ -196,7 +196,7 @@ static bool usb_hid_path_matches(usb_hid_dev_t *hid_dev,
 	usb_log_debug("Compare flags: %d\n", mapping->compare);
 	size_t size = usb_hid_report_input_length(hid_dev->parser, usage_path, 
 	    mapping->compare);
-	usb_log_debug("Size of the input report: %d\n", size);
+	usb_log_debug("Size of the input report: %zuB\n", size);
 	
 	usb_hid_report_path_free(usage_path);
 	
