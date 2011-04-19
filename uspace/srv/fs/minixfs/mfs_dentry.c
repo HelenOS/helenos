@@ -66,7 +66,7 @@ read_directory_entry(struct mfs_node *mnode,
 		goto out_err;
 
 	unsigned dentries_per_zone = sbi->block_size / sbi->dirsize;
-	unsigned dentry_off = index % (dentries_per_zone - 1);
+	unsigned dentry_off = index % dentries_per_zone;
 
 	if (sbi->fs_version == MFS_VERSION_V3) {
 		struct mfs3_dentry *d3;
@@ -176,13 +176,17 @@ insert_dentry(struct mfs_node *mnode, const char *d_name, fs_index_t d_inum)
 	}
 
 	if (!empty_dentry_found) {
+		mfsdebug("inode grow\n");
 		r = inode_grow(mnode, sbi->dirsize);
 		if (r != EOK)
 			return r;
 
+		mfsdebug("read dentry\n");
 		r = read_directory_entry(mnode, &d_info, i);
 		if (r != EOK)
 			return r;
+
+		assert(d_info != NULL);
 	}
 
 	d_info->d_inum = d_inum;
@@ -190,6 +194,7 @@ insert_dentry(struct mfs_node *mnode, const char *d_name, fs_index_t d_inum)
 	d_info->d_name[name_len] = 0;
 
 	r = write_dentry(d_info);
+	mfsdebug("write inode\n");
 	free(d_info);
 
 	return r;
