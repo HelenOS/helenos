@@ -1001,23 +1001,17 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 
-        /* Storing FAT type (12, 16, 32) in reserved field (bs->reserved) */
-        if (CC(bs) < 4085) {
-        /* Volume is FAT12 */
-            printf("Found FAT12 filesystem\n");
-            (bs)->reserved = 12;
-        } else if (CC(bs) < 65525) {
-        /* Volume is FAT16 */
-            printf("Found FAT16 filesystem\n");
-            (bs)->reserved = 16;
-        } else {
-        /* Volume is FAT32 */
-            printf("FAT32 filesystem is not supported by FAT server. Sorry.\n");
-            block_fini(devmap_handle);
-            async_answer_0(rid, ENOTSUP);
-            return;
-
-        }
+	/* Determining type of FAT  */
+	if (FAT_IS_FAT12(bs)) {
+		printf("Found FAT12 filesystem\n");
+	} else if (FAT_IS_FAT16(bs)) {
+		printf("Found FAT16 filesystem\n");
+	} else {
+		printf("FAT32 filesystem is not supported by FAT server.\n");
+		block_fini(devmap_handle);
+		async_answer_0(rid, ENOTSUP);
+		return;
+	}
 
 	/* Do some simple sanity checks on the file system. */
 	rc = fat_sanity_check(bs, devmap_handle);

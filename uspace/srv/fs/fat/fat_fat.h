@@ -50,6 +50,9 @@
 #define FAT16_CLST_LAST1  0xfff8
 #define FAT16_CLST_LAST8  0xffff
 
+#define FAT12_CLST_MAX    4085
+#define FAT16_CLST_MAX    65525
+
 /* internally used to mark root directory's parent */
 #define FAT_CLST_ROOTPAR	FAT_CLST_RES0
 /* internally used to mark root directory */
@@ -59,12 +62,22 @@
  * Convenience macros for computing some frequently used values from the
  * primitive boot sector members.
  */
-#define RDS(bs)         ((sizeof(fat_dentry_t) * RDE((bs))) / BPS((bs))) + \
-                        (((sizeof(fat_dentry_t) * RDE((bs))) % BPS((bs))) != 0)
-#define SSA(bs)         (RSCNT((bs)) + FATCNT((bs)) * SF((bs)) + RDS(bs))
-#define DS(bs)          (TS(bs) - SSA(bs))
-#define CC(bs)          (DS(bs) / SPC(bs))
-#define FATTYPE(bs)     (bs)->reserved
+#define RDS(bs)	  ((sizeof(fat_dentry_t) * RDE((bs))) / BPS((bs))) + \
+		   (((sizeof(fat_dentry_t) * RDE((bs))) % BPS((bs))) != 0)
+#define SSA(bs)	  (RSCNT((bs)) + FATCNT((bs)) * SF((bs)) + RDS(bs))
+#define DS(bs)	  (TS(bs) - SSA(bs))
+#define CC(bs)	  (DS(bs) / SPC(bs))
+
+#define FAT_IS_FAT12(bs)	(CC(bs) < FAT12_CLST_MAX)
+#define FAT_IS_FAT16(bs) \
+    ((CC(bs) >= FAT12_CLST_MAX) && (CC(bs) < FAT16_CLST_MAX))
+
+#define FAT_CLST_LAST1(bs) \
+    (FAT_IS_FAT12(bs) ? FAT12_CLST_LAST1 : FAT16_CLST_LAST1)
+#define FAT_CLST_LAST8(bs) \
+    (FAT_IS_FAT12(bs) ? FAT12_CLST_LAST8 : FAT16_CLST_LAST8)
+#define FAT_CLST_BAD(bs) \
+    (FAT_IS_FAT12(bs) ? FAT12_CLST_BAD : FAT16_CLST_BAD)
 
 /* forward declarations */
 struct block;
