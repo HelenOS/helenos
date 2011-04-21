@@ -112,7 +112,8 @@ GENERIC_SOURCES = \
 	generic/stacktrace.c \
 	generic/arg_parse.c \
 	generic/sort.c \
-	generic/stats.c
+	generic/stats.c \
+	generic/assert.c \
 
 SOURCES = \
 	$(GENERIC_SOURCES) \

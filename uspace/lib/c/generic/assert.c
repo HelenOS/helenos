@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2005 Martin Decky
- * Copyright (c) 2006 Josef Cejka
+ * Copyright (c) 2011 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,40 +29,19 @@
 /** @addtogroup libc
  * @{
  */
-/** @file
- */
 
-#ifndef LIBC_ASSERT_H_
-#define LIBC_ASSERT_H_
+#include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <stacktrace.h>
 
-/** Debugging assert macro
- *
- * If NDEBUG is not set, the assert() macro
- * evaluates expr and if it is false prints
- * error message and terminate program.
- *
- * @param expr Expression which is expected to be true.
- *
- */
-
-#ifndef NDEBUG
-
-#define assert(expr) \
-	do { \
-		if (!(expr)) \
-			assert_abort(#expr, __FILE__, __LINE__); \
-	} while (0)
-
-#else /* NDEBUG */
-
-#define assert(expr)
-
-#endif /* NDEBUG */
-
-extern void assert_abort(const char *, const char *, unsigned int)
-    __attribute__((noreturn));
-
-#endif
+void assert_abort(const char *cond, const char *file, unsigned int line)
+{
+	printf("Assertion failed (%s) in file \"%s\", line %u.\n",
+	    cond, file, line);
+	stacktrace_print();
+	abort();
+}
 
 /** @}
  */
