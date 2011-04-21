@@ -72,7 +72,7 @@ int usb_hid_report_parse_local_tag(uint8_t tag, const uint8_t *data, size_t item
 
 void usb_hid_print_usage_path(usb_hid_report_path_t *path);
 void usb_hid_descriptor_print_list(link_t *head);
-int usb_hid_report_reset_local_items();
+void usb_hid_report_reset_local_items(usb_hid_report_item_t *report_item);
 void usb_hid_free_report_list(link_t *head);
 usb_hid_report_item_t *usb_hid_report_item_clone(const usb_hid_report_item_t *item);
 /*
@@ -143,6 +143,10 @@ int usb_hid_report_append_fields(usb_hid_report_t *report, usb_hid_report_item_t
 		report->collection_paths_count++;
 	}
 
+	for(i=0; i<report_item->usages_count; i++){
+		usb_log_debug("usages (%d) - %x\n", i, report_item->usages[i]);
+	}
+
 	
 	for(i=0; i<report_item->count; i++){
 
@@ -167,18 +171,34 @@ int usb_hid_report_append_fields(usb_hid_report_t *report, usb_hid_report_item_t
 		}
 
 		if(report_item->usages_count > 0 && ((report_item->usage_minimum == 0) && (report_item->usage_maximum == 0))) {
-			if(i < report_item->usages_count){
-				if((report_item->usages[i] & 0xFF00) != 0){
-					field->usage_page = (report_item->usages[i] >> 16);					
-					field->usage = (report_item->usages[i] & 0xFF);
+			uint32_t usage;
+			if(report_item->type == USB_HID_REPORT_TYPE_INPUT) {
+				if(i < report_item->usages_count){
+					usage = report_item->usages[i];
 				}
 				else {
-					field->usage = report_item->usages[i];
+					usage = report_item->usages[report_item->usages_count - 1];
 				}
 			}
 			else {
-				field->usage = report_item->usages[report_item->usages_count - 1];
+				if((report_item->count - i - 1) < report_item->usages_count){
+					usage = report_item->usages[(report_item->count - i - 1)];
+				}
+				else {
+					usage = report_item->usages[report_item->usages_count - 1];
+				}
 			}
+
+						
+			if((usage & 0xFF00) != 0){
+				field->usage_page = (usage >> 16);					
+				field->usage = (usage & 0xFF);
+			}
+			else {
+				field->usage = usage;
+			}
+
+			
 		}	
 
 		if((USB_HID_ITEM_FLAG_VARIABLE(report_item->item_flags) != 0) && (!((report_item->usage_minimum == 0) && (report_item->usage_maximum == 0)))) {
@@ -341,19 +361,7 @@ int usb_hid_parse_report_descriptor(usb_hid_report_t *report,
 					usb_hid_report_append_fields(report, report_item);
 
 					/* reset local items */
-					while(report_item->usages_count > 0){
-						report_item->usages[--(report_item->usages_count)] = 0;
-					}
-
-					report_item->extended_usage_page = 0;
-					report_item->usage_minimum = 0;
-					report_item->usage_maximum = 0;
-					report_item->designator_index = 0;
-					report_item->designator_minimum = 0;
-					report_item->designator_maximum = 0;
-					report_item->string_index = 0;
-					report_item->string_minimum = 0;
-					report_item->string_maximum = 0;
+					usb_hid_report_reset_local_items (report_item);
 
 					break;
 
@@ -475,6 +483,7 @@ int usb_hid_report_parse_main_tag(uint8_t tag, const uint8_t *data, size_t item_
 		case USB_HID_REPORT_TAG_COLLECTION:
 			// TODO usage_path->flags = *data;
 			usb_hid_report_path_append_item(usage_path, report_item->usage_page, report_item->usages[report_item->usages_count-1]);						
+			usb_hid_report_reset_local_items (report_item);
 			return USB_HID_NO_ACTION;
 			break;
 			
@@ -566,7 +575,8 @@ int usb_hid_report_parse_local_tag(uint8_t tag, const uint8_t *data, size_t item
 	switch(tag)
 	{
 		case USB_HID_REPORT_TAG_USAGE:
-			report_item->usages[report_item->usages_count++] = usb_hid_report_tag_data_int32(data,item_size);
+			report_item->usages[report_item->usages_count] = usb_hid_report_tag_data_int32(data,item_size);
+			report_item->usages_count++;
 			break;
 		case USB_HID_REPORT_TAG_USAGE_MINIMUM:
 			if (item_size == 3) {
@@ -1682,7 +1692,27 @@ uint8_t usb_hid_report_get_report_id(usb_hid_report_t *report, uint8_t report_id
 	return 0;
 }
 
+void usb_hid_report_reset_local_items(usb_hid_report_item_t *report_item)
+{
+	if(report_item == NULL)	{
+		return;
+	}
+	
+	report_item->usages_count = 0;
+	memset(report_item->usages, 0, USB_HID_MAX_USAGES);
+	
+	report_item->extended_usage_page = 0;
+	report_item->usage_minimum = 0;
+	report_item->usage_maximum = 0;
+	report_item->designator_index = 0;
+	report_item->designator_minimum = 0;
+	report_item->designator_maximum = 0;
+	report_item->string_index = 0;
+	report_item->string_minimum = 0;
+	report_item->string_maximum = 0;
 
+	return;
+}
 /**
  * @}
  */
