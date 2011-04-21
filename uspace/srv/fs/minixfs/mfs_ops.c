@@ -264,8 +264,7 @@ static int mfs_create_node(fs_node_t **rfn, devmap_handle_t handle, int flags)
 	mfsdebug("create_node()\n");
 
 	r = mfs_instance_get(handle, &inst);
-	if (r != EOK)
-		return r;
+	on_error(r, return r);
 
 	if (flags & L_DIRECTORY) {
 		/*Not yet supported*/
@@ -274,8 +273,7 @@ static int mfs_create_node(fs_node_t **rfn, devmap_handle_t handle, int flags)
 
 	/*Alloc a new inode*/
 	r = mfs_alloc_bit(inst, &inum, BMAP_INODE);
-	if (r != EOK)
-		return r;
+	on_error(r, return r);
 
 	struct mfs_ino_info *ino_i;
 
@@ -317,8 +315,7 @@ static int mfs_create_node(fs_node_t **rfn, devmap_handle_t handle, int flags)
 	mnode->instance = inst;
 
 	r = put_inode(mnode);
-	if (r != EOK)
-		goto out_err_2;
+	on_error(r, goto out_err_2);
 
 	fs_node_initialize(fsnode);
 	fsnode->data = mnode;
@@ -352,8 +349,7 @@ static int mfs_match(fs_node_t **rfn, fs_node_t *pfn, const char *component)
 	int i = 2;
 	while (1) {
 		r = read_directory_entry(mnode, &d_info, i++);
-		if (r != EOK)
-			return r;
+		on_error(r, return r);
 
 		if (!d_info) {
 			/*Reached the end of the directory entry list*/
@@ -394,7 +390,6 @@ static aoff64_t mfs_size_get(fs_node_t *node)
 
 void mfs_stat(ipc_callid_t rid, ipc_call_t *request)
 {
-	mfsdebug("mfs_stat()\n");
 	libfs_stat(&mfs_libfs_ops, mfs_reg.fs_handle, rid, request);
 }
 
@@ -405,9 +400,7 @@ static int mfs_node_get(fs_node_t **rfn, devmap_handle_t devmap_handle,
 	struct mfs_instance *instance;
 
 	rc = mfs_instance_get(devmap_handle, &instance);
-
-	if (rc != EOK)
-		return rc;
+	on_error(rc, return rc);
 
 	return mfs_node_core_get(rfn, instance, index);
 }
@@ -476,8 +469,7 @@ static int mfs_node_core_get(fs_node_t **rfn, struct mfs_instance *inst,
 	struct mfs_ino_info *ino_i;
 
 	rc = get_inode(inst, &ino_i, index);
-	if (rc != EOK)
-		goto out_err;
+	on_error(rc, goto out_err);
 
 	ino_i->index = index;
 	mnode->ino_i = ino_i;
@@ -556,8 +548,7 @@ static int mfs_has_children(bool *has_children, fs_node_t *fsnode)
 	int i = 2;
 	while (1) {
 		r = read_directory_entry(mnode, &d_info, i++);
-		if (r != EOK)
-			return r;
+		on_error(r, return r);
 
 		if (!d_info) {
 			/*Reached the end of the dentries list*/
@@ -626,8 +617,7 @@ mfs_read(ipc_callid_t rid, ipc_call_t *request)
 
 		while (1) {
 			rc = read_directory_entry(mnode, &d_info, pos);
-			if (rc != EOK)
-				goto out_error;
+			on_error(rc, goto out_error);
 
 			if (!d_info) {
 				/*Reached the end of the dentries list*/
@@ -669,8 +659,7 @@ found:
 		block_t *b;
 
 		rc = read_map(&zone, mnode, pos);
-		if (rc != EOK)
-			goto out_error;
+		on_error(rc, goto out_error);
 
 		if (zone == 0) {
 			/*sparse file*/
@@ -687,8 +676,7 @@ found:
 		}
 
 		rc = block_get(&b, handle, zone, BLOCK_FLAGS_NONE);
-		if (rc != EOK)
-			goto out_error;
+		on_error(rc, goto out_error);
 
 		async_data_read_finalize(callid, b->data +
 				pos % sbi->block_size, bytes);
@@ -737,32 +725,28 @@ int mfs_instance_get(devmap_handle_t handle, struct mfs_instance **instance)
 static bool check_magic_number(uint16_t magic, bool *native,
 				mfs_version_t *version, bool *longfilenames)
 {
-	bool rc = false;
+	bool rc = true;
 	*longfilenames = false;
 
 	if (magic == MFS_MAGIC_V1 || magic == MFS_MAGIC_V1R) {
 		*native = magic == MFS_MAGIC_V1;
 		*version = MFS_VERSION_V1;
-		rc = true;
 	} else if (magic == MFS_MAGIC_V1L || magic == MFS_MAGIC_V1LR) {
 		*native = magic == MFS_MAGIC_V1L;
 		*version = MFS_VERSION_V1;
 		*longfilenames = true;
-		rc = true;
 	} else if (magic == MFS_MAGIC_V2 || magic == MFS_MAGIC_V2R) {
 		*native = magic == MFS_MAGIC_V2;
 		*version = MFS_VERSION_V2;
-		rc = true;
 	} else if (magic == MFS_MAGIC_V2L || magic == MFS_MAGIC_V2LR) {
 		*native = magic == MFS_MAGIC_V2L;
 		*version = MFS_VERSION_V2;
 		*longfilenames = true;
-		rc = true;
 	} else if (magic == MFS_MAGIC_V3 || magic == MFS_MAGIC_V3R) {
 		*native = magic == MFS_MAGIC_V3;
 		*version = MFS_VERSION_V3;
-		rc = true;
-	}
+	} else
+		rc = false;
 
 	return rc;
 }

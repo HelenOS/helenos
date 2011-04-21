@@ -233,8 +233,7 @@ mfs_write_inode_raw(struct mfs_node *mnode)
 				itable_off + inum / sbi->ino_per_block,
 				BLOCK_FLAGS_NONE);
 
-	if (r != EOK)
-		goto out;
+	on_error(r, goto out);
 
 	struct mfs_inode *ino = b->data;
 	ino += ino_off;
@@ -276,8 +275,7 @@ mfs2_write_inode_raw(struct mfs_node *mnode)
 				itable_off + inum / sbi->ino_per_block,
 				BLOCK_FLAGS_NONE);
 
-	if (r != EOK)
-		goto out;
+	on_error(r, goto out);
 
 	struct mfs2_inode *ino2 = b->data;
 	ino2 += ino_off;
@@ -337,16 +335,14 @@ inode_grow(struct mfs_node *mnode, size_t size_grow)
 		uint32_t dummy;
 
 		r = mfs_alloc_bit(mnode->instance, &new_zone, BMAP_ZONE);
-		if (r != EOK)
-			return r;
+		on_error(r, return r);
 
 		mfsdebug("write_map = %d\n", (int) ((start_zone + i) * bs));
 
 		block_t *b;
 		r = block_get(&b, mnode->instance->handle, new_zone,
 						BLOCK_FLAGS_NOREAD);
-		if (r != EOK)
-			return r;
+		on_error(r, return r);
 
 		memset(b->data, 0, bs);
 		b->dirty = true;
@@ -354,8 +350,8 @@ inode_grow(struct mfs_node *mnode, size_t size_grow)
 
 		r = write_map(mnode, (start_zone + i) * bs,
 				new_zone, &dummy);
-		if (r != EOK)
-			return r;
+
+		on_error(r, return r);
 
 		ino_i->i_size += bs;
 		ino_i->dirty = true;
