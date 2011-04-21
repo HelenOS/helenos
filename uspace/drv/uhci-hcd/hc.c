@@ -329,7 +329,7 @@ int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch)
 void hc_interrupt(hc_t *instance, uint16_t status)
 {
 	assert(instance);
-//	status |= 1; //Uncomment to work around qemu hang
+	status |= 1; //Uncomment to work around qemu hang
 	/* Lower 2 bits are transaction error and transaction complete */
 	if (status & (UHCI_STATUS_INTERRUPT | UHCI_STATUS_ERROR_INTERRUPT)) {
 		LIST_INITIALIZE(done);

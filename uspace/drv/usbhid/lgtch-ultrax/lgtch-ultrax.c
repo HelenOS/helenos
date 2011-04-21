@@ -92,7 +92,7 @@ bool usb_lgtch_polling_callback(struct usb_hid_dev *hid_dev,
 	    USB_HID_REPORT_TYPE_INPUT);
 	
 	while (field != NULL) {
-		usb_log_debug("KEY VALUE(%X) USAGE(%X)\n", field->value, 
+		usb_log_debug(NAME " KEY VALUE(%X) USAGE(%X)\n", field->value, 
 		    field->usage);
 	}
 	
@@ -100,7 +100,7 @@ bool usb_lgtch_polling_callback(struct usb_hid_dev *hid_dev,
 	usb_hid_report_path_free(path);
 	
 	if (rc != EOK) {
-		usb_log_warning("Error in usb_hid_boot_keyboard_input_report():"
+		usb_log_warning(NAME "Error in usb_hid_boot_keyboard_input_report():"
 		    "%s\n", str_error(rc));
 	}
 	

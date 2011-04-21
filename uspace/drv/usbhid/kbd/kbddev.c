@@ -675,35 +675,25 @@ static void usb_kbd_process_data(usb_hid_dev_t *hid_dev,
 	uint8_t report_id;
 	int rc = usb_hid_parse_report(hid_dev->report, buffer, actual_size, 
 	    &report_id);
-	usb_hid_report_path_set_report_id (path, report_id);
-	
-	usb_hid_report_field_t *field = usb_hid_report_get_sibling(
-	    hid_dev->report, NULL, path, USB_HID_PATH_COMPARE_END 
-	    | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY, USB_HID_REPORT_TYPE_INPUT);
-
-	usb_hid_report_path_free(path);
 	
 	if (rc != EOK) {
 		usb_log_warning("Error in usb_hid_parse_report():"
 		    "%s\n", str_error(rc));
 	}
 	
+	usb_hid_report_path_set_report_id (path, report_id);
+	
 	// fill in the currently pressed keys
 	
-	field = usb_hid_report_get_sibling(hid_dev->report, NULL, path, 
+	usb_hid_report_field_t *field = usb_hid_report_get_sibling(
+	    hid_dev->report, NULL, path, 
 	    USB_HID_PATH_COMPARE_END | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY, 
 	    USB_HID_REPORT_TYPE_INPUT);
 	unsigned i = 0;
 	
-	// TODO: remove this hack - skipping first field
-	field = usb_hid_report_get_sibling(hid_dev->report, field, path, 
-	    USB_HID_PATH_COMPARE_END 
-	    | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY, 
-	    USB_HID_REPORT_TYPE_INPUT);
-	
 	while (field != NULL) {
 		usb_log_debug2("FIELD (%p) - VALUE(%d) USAGE(%u)\n", 
-		    field, field->value, field->usage);
+		    field, field->value, field->value);
 		
 		assert(i < kbd_dev->key_count);
 //		if (i == kbd_dev->key_count) {
@@ -711,7 +701,7 @@ static void usb_kbd_process_data(usb_hid_dev_t *hid_dev,
 //		}
 		
 		// save the key usage
-		kbd_dev->keys[i] = field->usage;
+		kbd_dev->keys[i] = field->value;
 		usb_log_debug2("Saved %u. key usage %d\n", i, kbd_dev->keys[i]);
 		
 		++i;
