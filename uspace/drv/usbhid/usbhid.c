@@ -250,15 +250,15 @@ static int usb_hid_find_subdrivers(usb_hid_dev_t *hid_dev)
 	
 	while (count < USB_HID_MAX_SUBDRIVERS &&
 	    (mapping->usage_path != NULL
-	    || mapping->vendor_id != 0 || mapping->product_id != 0)) {
+	    || mapping->vendor_id >= 0 || mapping->product_id >= 0)) {
 		// check the vendor & product ID
-		if (mapping->vendor_id != 0 && mapping->product_id == 0) {
-			usb_log_warning("Missing Product ID for Vendor ID %u\n",
+		if (mapping->vendor_id >= 0 && mapping->product_id < 0) {
+			usb_log_warning("Missing Product ID for Vendor ID %d\n",
 			    mapping->vendor_id);
 			return EINVAL;
 		}
-		if (mapping->product_id != 0 && mapping->vendor_id == 0) {
-			usb_log_warning("Missing Vendor ID for Product ID %u\n",
+		if (mapping->product_id >= 0 && mapping->vendor_id < 0) {
+			usb_log_warning("Missing Vendor ID for Product ID %d\n",
 			    mapping->product_id);
 			return EINVAL;
 		}
@@ -266,8 +266,8 @@ static int usb_hid_find_subdrivers(usb_hid_dev_t *hid_dev)
 		ids_matched = false;
 		matched = false;
 		
-		if (mapping->vendor_id != 0) {
-			assert(mapping->product_id != 0);
+		if (mapping->vendor_id >= 0) {
+			assert(mapping->product_id >= 0);
 			usb_log_debug("Comparing device against vendor ID %u"
 			    " and product ID %u.\n", mapping->vendor_id,
 			    mapping->product_id);
