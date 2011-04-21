@@ -1006,15 +1006,9 @@ void *frame_alloc_generic(uint8_t order, frame_flags_t flags, size_t *pzone)
 	/*
 	 * If not told otherwise, we must first reserve the memory.
 	 */
-	if (!(flags & FRAME_NO_RESERVE)) {
-		if (flags & FRAME_ATOMIC) {
-			if (!reserve_try_alloc(size))
-				return NULL;
-		} else {
-			reserve_force_alloc(size);
-		}
-	}
-	
+	if (!(flags & FRAME_NO_RESERVE)) 
+		reserve_force_alloc(size);
+
 loop:
 	irq_spinlock_lock(&zones.lock, true);
 	
