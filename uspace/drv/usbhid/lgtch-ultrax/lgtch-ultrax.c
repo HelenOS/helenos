@@ -80,9 +80,10 @@ bool usb_lgtch_polling_callback(struct usb_hid_dev *hid_dev,
 	
 	usb_hid_report_path_t *path = usb_hid_report_path();
 	usb_hid_report_path_append_item(path, 0xc, 0);
-	usb_hid_report_path_set_report_id(path, 0);
-	
-	int rc = usb_hid_parse_report(hid_dev->report, buffer, buffer_size);
+
+	uint8_t report_id;
+	int rc = usb_hid_parse_report(hid_dev->parser, buffer, buffer_size, &report_id);
+	usb_hid_report_path_set_report_id(path, report_id);
 
 	usb_hid_report_field_t *field = usb_hid_report_get_sibling(hid_dev->report, NULL, path, USB_HID_PATH_COMPARE_END , USB_HID_REPORT_TYPE_INPUT);
 	while(field != NULL) {

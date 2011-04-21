@@ -118,6 +118,7 @@ typedef struct {
 	int collection_paths_count;
 
 	int use_report_ids;
+	uint8_t last_report_id;
 	
 } usb_hid_report_t;
 
@@ -278,7 +279,7 @@ void usb_hid_descriptor_print(usb_hid_report_t *report);
  * Input report parser functions
  */
 /** */
-int usb_hid_parse_report(const usb_hid_report_t *report, const uint8_t *data, size_t size);
+int usb_hid_parse_report(const usb_hid_report_t *report, const uint8_t *data, size_t size, uint8_t *report_id);
 
 /** */
 size_t usb_hid_report_input_length(const usb_hid_report_t *report,
@@ -317,6 +318,9 @@ int usb_hid_report_compare_usage_path(usb_hid_report_path_t *report_path, usb_hi
 usb_hid_report_path_t *usb_hid_report_path_clone(usb_hid_report_path_t *usage_path);
 
 usb_hid_report_field_t *usb_hid_report_get_sibling(usb_hid_report_t *report, usb_hid_report_field_t *field, usb_hid_report_path_t *path, int flags, usb_hid_report_type_t type);
+
+uint8_t usb_hid_report_get_report_id(usb_hid_report_t *report, uint8_t report_id, usb_hid_report_type_t type);
+
 
 /*
  * Output report parser functions

@@ -298,37 +298,36 @@ static void usb_kbd_set_led(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
 	if (kbd_dev->output_size == 0) {
 		return;
 	}
-	
-	unsigned i = 0;
-	
+		
 	/* Reset the LED data. */
 	memset(kbd_dev->led_data, 0, kbd_dev->led_output_size * sizeof(int32_t));
-	
-	if ((kbd_dev->mods & KM_NUM_LOCK) && (i < kbd_dev->led_output_size)) {
-		kbd_dev->led_data[i++] = USB_HID_LED_NUM_LOCK;
-	}
-	
-	if ((kbd_dev->mods & KM_CAPS_LOCK) && (i < kbd_dev->led_output_size)) {
-		kbd_dev->led_data[i++] = USB_HID_LED_CAPS_LOCK;
-	}
-	
-	if ((kbd_dev->mods & KM_SCROLL_LOCK) 
-	    && (i < kbd_dev->led_output_size)) {
-		kbd_dev->led_data[i++] = USB_HID_LED_SCROLL_LOCK;
-	}
+	usb_log_debug("Creating output report:\n");
 
-	// TODO: COMPOSE and KANA
-	
-	usb_log_debug("Creating output report: ");
-	for (i = 0; i < kbd_dev->led_output_size; ++i) {
-		usb_log_debug("%d ", kbd_dev->led_data[i]);
-	}
-	usb_log_debug("\n");
+	usb_hid_report_field_t *field = usb_hid_report_get_sibling (hid_dev->parser, NULL,
+                kbd_dev->led_path, 
+				USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY | USB_HID_PATH_COMPARE_END,
+				USB_HID_REPORT_TYPE_OUTPUT);
+	while(field != NULL) {
 
-	usb_hid_report_output_set_data(hid_dev->report, kbd_dev->led_path, 
-	    USB_HID_PATH_COMPARE_END | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY, 
-	    kbd_dev->led_data, kbd_dev->led_output_size);
-	int rc = usb_hid_report_output_translate(hid_dev->report, 0,
+		if((field->usage == USB_HID_LED_NUM_LOCK) && (kbd_dev->mods & KM_NUM_LOCK)){
+			field->value = 1;
+		}
+
+		if((field->usage == USB_HID_LED_CAPS_LOCK) && (kbd_dev->mods & KM_CAPS_LOCK)){
+			field->value = 1;
+		}
+
+		if((field->usage == USB_HID_LED_SCROLL_LOCK) && (kbd_dev->mods & KM_SCROLL_LOCK)){
+			field->value = 1;
+		}
+		
+		field = usb_hid_report_get_sibling (hid_dev->parser, field,
+                kbd_dev->led_path, 
+				USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY | USB_HID_PATH_COMPARE_END,
+				USB_HID_REPORT_TYPE_OUTPUT);
+	}
+		
+	int rc = usb_hid_report_output_translate(hid_dev->parser, 0,
 	    kbd_dev->output_buffer, kbd_dev->output_size);
 	
 	if (rc != EOK) {
@@ -670,8 +669,15 @@ static void usb_kbd_process_data(usb_hid_dev_t *hid_dev,
 	usb_hid_report_path_t *path = usb_hid_report_path();
 	usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_KEYBOARD, 0);
 	//usb_hid_report_path_set_report_id(path, 0);
-	
-	int rc = usb_hid_parse_report(hid_dev->report, buffer, actual_size);
+
+	uint8_t report_id;
+	int rc = usb_hid_parse_report(hid_dev->parser, buffer, actual_size, &report_id);	
+	usb_hid_report_path_set_report_id (path, report_id);
+	usb_hid_report_field_t *field = usb_hid_report_get_sibling(hid_dev->parser, 
+	                    NULL, path, USB_HID_PATH_COMPARE_END | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY, 
+						USB_HID_REPORT_TYPE_INPUT);
+
+	usb_hid_report_path_free(path);
 	
 	if (rc != EOK) {
 		usb_log_warning("Error in usb_hid_parse_report():"
