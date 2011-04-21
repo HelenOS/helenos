@@ -361,6 +361,7 @@ int usb_hid_parse_report_descriptor(usb_hid_report_t *report,
 					offset_input = 0;
 					offset_output = 0;
 					offset_feature = 0;
+					usb_hid_report_path_set_report_id (usage_path, report_item->id);
 					break;
 
 				case USB_HID_REPORT_TAG_PUSH:
@@ -1249,6 +1250,8 @@ usb_hid_report_path_t *usb_hid_report_path_clone(usb_hid_report_path_t *usage_pa
 	if(new_usage_path == NULL){
 		return NULL;
 	}
+
+	new_usage_path->report_id = usage_path->report_id;
 	
 	if(list_empty(&usage_path->head)){
 		return new_usage_path;
@@ -1638,14 +1641,15 @@ usb_hid_report_field_t *usb_hid_report_get_sibling(usb_hid_report_t *report,
 
 	while(field_it != &report_des->report_items) {
 		field = list_get_instance(field_it, usb_hid_report_field_t, link);
-			
-		usb_hid_report_path_append_item (field->collection_path, field->usage_page, field->usage);
-		if(usb_hid_report_compare_usage_path (field->collection_path, path, flags) == EOK){
-			usb_hid_report_remove_last_item (field->collection_path);
-			return field;
-		}
-		usb_hid_report_remove_last_item (field->collection_path);
 
+		if(USB_HID_ITEM_FLAG_CONSTANT(field->item_flags) == 0) {
+			usb_hid_report_path_append_item (field->collection_path, field->usage_page, field->usage);
+			if(usb_hid_report_compare_usage_path (field->collection_path, path, flags) == EOK){
+				usb_hid_report_remove_last_item (field->collection_path);
+				return field;
+			}
+			usb_hid_report_remove_last_item (field->collection_path);
+		}
 		field_it = field_it->next;
 	}
 
