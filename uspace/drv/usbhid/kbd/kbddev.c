@@ -303,31 +303,35 @@ static void usb_kbd_set_led(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
 	memset(kbd_dev->led_data, 0, kbd_dev->led_output_size * sizeof(int32_t));
 	usb_log_debug("Creating output report:\n");
 
-	usb_hid_report_field_t *field = usb_hid_report_get_sibling (hid_dev->parser, NULL,
-                kbd_dev->led_path, 
-				USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY | USB_HID_PATH_COMPARE_END,
-				USB_HID_REPORT_TYPE_OUTPUT);
-	while(field != NULL) {
+	usb_hid_report_field_t *field = usb_hid_report_get_sibling(
+	    hid_dev->report, NULL, kbd_dev->led_path, 
+	    USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY | USB_HID_PATH_COMPARE_END,
+	    USB_HID_REPORT_TYPE_OUTPUT);
+	
+	while (field != NULL) {
 
-		if((field->usage == USB_HID_LED_NUM_LOCK) && (kbd_dev->mods & KM_NUM_LOCK)){
+		if ((field->usage == USB_HID_LED_NUM_LOCK) 
+		    && (kbd_dev->mods & KM_NUM_LOCK)){
 			field->value = 1;
 		}
 
-		if((field->usage == USB_HID_LED_CAPS_LOCK) && (kbd_dev->mods & KM_CAPS_LOCK)){
+		if ((field->usage == USB_HID_LED_CAPS_LOCK) 
+		    && (kbd_dev->mods & KM_CAPS_LOCK)){
 			field->value = 1;
 		}
 
-		if((field->usage == USB_HID_LED_SCROLL_LOCK) && (kbd_dev->mods & KM_SCROLL_LOCK)){
+		if ((field->usage == USB_HID_LED_SCROLL_LOCK) 
+		    && (kbd_dev->mods & KM_SCROLL_LOCK)){
 			field->value = 1;
 		}
 		
-		field = usb_hid_report_get_sibling (hid_dev->parser, field,
-                kbd_dev->led_path, 
-				USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY | USB_HID_PATH_COMPARE_END,
-				USB_HID_REPORT_TYPE_OUTPUT);
+		field = usb_hid_report_get_sibling(hid_dev->report, field,
+		    kbd_dev->led_path, USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY 
+		    | USB_HID_PATH_COMPARE_END, USB_HID_REPORT_TYPE_OUTPUT);
 	}
-		
-	int rc = usb_hid_report_output_translate(hid_dev->parser, 0,
+	
+	// TODO: what about the Report ID?
+	int rc = usb_hid_report_output_translate(hid_dev->report, 0,
 	    kbd_dev->output_buffer, kbd_dev->output_size);
 	
 	if (rc != EOK) {
@@ -335,8 +339,6 @@ static void usb_kbd_set_led(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
 		    ".\n");
 		return;
 	}
-	
-	// TODO: output translating does not work!!
 	
 	usb_log_debug("Output report buffer: %s\n", 
 	    usb_debug_str_buffer(kbd_dev->output_buffer, kbd_dev->output_size, 
@@ -671,11 +673,13 @@ static void usb_kbd_process_data(usb_hid_dev_t *hid_dev,
 	//usb_hid_report_path_set_report_id(path, 0);
 
 	uint8_t report_id;
-	int rc = usb_hid_parse_report(hid_dev->parser, buffer, actual_size, &report_id);	
+	int rc = usb_hid_parse_report(hid_dev->report, buffer, actual_size, 
+	    &report_id);
 	usb_hid_report_path_set_report_id (path, report_id);
-	usb_hid_report_field_t *field = usb_hid_report_get_sibling(hid_dev->parser, 
-	                    NULL, path, USB_HID_PATH_COMPARE_END | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY, 
-						USB_HID_REPORT_TYPE_INPUT);
+	
+	usb_hid_report_field_t *field = usb_hid_report_get_sibling(
+	    hid_dev->report, NULL, path, USB_HID_PATH_COMPARE_END 
+	    | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY, USB_HID_REPORT_TYPE_INPUT);
 
 	usb_hid_report_path_free(path);
 	
@@ -686,9 +690,9 @@ static void usb_kbd_process_data(usb_hid_dev_t *hid_dev,
 	
 	// fill in the currently pressed keys
 	
-	usb_hid_report_field_t *field = usb_hid_report_get_sibling(
-	    hid_dev->report, NULL, path, USB_HID_PATH_COMPARE_END 
-	    | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY, USB_HID_REPORT_TYPE_INPUT);
+	field = usb_hid_report_get_sibling(hid_dev->report, NULL, path, 
+	    USB_HID_PATH_COMPARE_END | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY, 
+	    USB_HID_REPORT_TYPE_INPUT);
 	unsigned i = 0;
 	
 	// TODO: remove this hack - skipping first field
