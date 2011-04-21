@@ -309,16 +309,14 @@ int
 inode_grow(struct mfs_node *mnode, size_t size_grow)
 {
 	unsigned i;
-
-	if (size_grow == 0)
-		return EOK;
-
 	struct mfs_sb_info *sbi = mnode->instance->sbi;
 	struct mfs_ino_info *ino_i = mnode->ino_i;
 	const int bs = sbi->block_size;
 
 	const uint32_t old_size = ino_i->i_size;
 	const uint32_t new_size = old_size + size_grow;
+
+	assert(size_grow > 0);
 
 	/*Compute the number of zones to add to the inode*/
 	unsigned zones_to_add = 0;
