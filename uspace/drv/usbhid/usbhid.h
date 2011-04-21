@@ -90,7 +90,7 @@ typedef struct usb_hid_dev {
 	size_t report_desc_size;
 	
 	/** HID Report parser. */
-	usb_hid_report_t *parser;
+	usb_hid_report_t *report;
 	
 	/** Arbitrary data (e.g. a special structure for handling keyboard). */
 	void *data;

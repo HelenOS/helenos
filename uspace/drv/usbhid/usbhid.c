@@ -191,10 +191,10 @@ static bool usb_hid_path_matches(usb_hid_dev_t *hid_dev,
 		    mapping->report_id);
 	}
 	
-	assert(hid_dev->parser != NULL);
+	assert(hid_dev->report != NULL);
 	
 	usb_log_debug("Compare flags: %d\n", mapping->compare);
-	size_t size = usb_hid_report_input_length(hid_dev->parser, usage_path, 
+	size_t size = usb_hid_report_input_length(hid_dev->report, usage_path, 
 	    mapping->compare);
 	usb_log_debug("Size of the input report: %zuB\n", size);
 	
@@ -340,9 +340,9 @@ usb_hid_dev_t *usb_hid_new(void)
 		return NULL;
 	}
 	
-	hid_dev->parser = (usb_hid_report_t *)(malloc(sizeof(
+	hid_dev->report = (usb_hid_report_t *)(malloc(sizeof(
 	    usb_hid_report_t)));
-	if (hid_dev->parser == NULL) {
+	if (hid_dev->report == NULL) {
 		usb_log_fatal("No memory!\n");
 		free(hid_dev);
 		return NULL;
@@ -384,7 +384,7 @@ int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 		
 	/* Get the report descriptor and parse it. */
 	rc = usb_hid_process_report_descriptor(hid_dev->usb_dev, 
-	    hid_dev->parser);
+	    hid_dev->report);
 	
 	bool fallback = false;
 	
@@ -582,8 +582,8 @@ void usb_hid_free(usb_hid_dev_t **hid_dev)
 	}
 
 	// destroy the parser
-	if ((*hid_dev)->parser != NULL) {
-		usb_hid_free_report((*hid_dev)->parser);
+	if ((*hid_dev)->report != NULL) {
+		usb_hid_free_report((*hid_dev)->report);
 	}
 
 	if ((*hid_dev)->report_desc != NULL) {
