@@ -100,7 +100,7 @@ int hc_init(hc_t *instance, ddf_fun_t *fun,
 	    "Failed(%d) to gain access to registers at %p: %s.\n",
 	    ret, io, str_error(ret));
 	instance->registers = io;
-	usb_log_debug("Device registers at %p(%u) accessible.\n",
+	usb_log_debug("Device registers at %p (%zuB) accessible.\n",
 	    io, reg_size);
 
 	ret = hc_init_mem_structures(instance);
@@ -422,7 +422,8 @@ int hc_debug_checker(void *arg)
 		    pio_read_32(&instance->registers->flbaseadd) & ~0xfff;
 		if (frame_list != addr_to_phys(instance->frame_list)) {
 			usb_log_debug("Framelist address: %p vs. %p.\n",
-			    frame_list, addr_to_phys(instance->frame_list));
+			    (void *) frame_list,
+			    (void *) addr_to_phys(instance->frame_list));
 		}
 
 		int frnum = pio_read_16(&instance->registers->frnum) & 0x3ff;
@@ -431,29 +432,29 @@ int hc_debug_checker(void *arg)
 		    & LINK_POINTER_ADDRESS_MASK;
 		uintptr_t real_pa = addr_to_phys(QH(interrupt));
 		if (expected_pa != real_pa) {
-			usb_log_debug("Interrupt QH: %p(frame: %d) vs. %p.\n",
-			    expected_pa, frnum, real_pa);
+			usb_log_debug("Interrupt QH: %p (frame %d) vs. %p.\n",
+			    (void *) expected_pa, frnum, (void *) real_pa);
 		}
 
 		expected_pa = QH(interrupt)->next & LINK_POINTER_ADDRESS_MASK;
 		real_pa = addr_to_phys(QH(control_slow));
 		if (expected_pa != real_pa) {
 			usb_log_debug("Control Slow QH: %p vs. %p.\n",
-			    expected_pa, real_pa);
+			    (void *) expected_pa, (void *) real_pa);
 		}
 
 		expected_pa = QH(control_slow)->next & LINK_POINTER_ADDRESS_MASK;
 		real_pa = addr_to_phys(QH(control_full));
 		if (expected_pa != real_pa) {
 			usb_log_debug("Control Full QH: %p vs. %p.\n",
-			    expected_pa, real_pa);
+			    (void *) expected_pa, (void *) real_pa);
 		}
 
 		expected_pa = QH(control_full)->next & LINK_POINTER_ADDRESS_MASK;
 		real_pa = addr_to_phys(QH(bulk_full));
 		if (expected_pa != real_pa ) {
 			usb_log_debug("Bulk QH: %p vs. %p.\n",
-			    expected_pa, real_pa);
+			    (void *) expected_pa, (void *) real_pa);
 		}
 		async_usleep(UHCI_DEBUGER_TIMEOUT);
 	}

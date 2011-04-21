@@ -104,7 +104,7 @@ int usb_hub_add_device(usb_device_t * usb_dev) {
 		return opResult;
 	}
 
-	usb_pipe_start_session(hub_info->control_pipe);
+	//usb_pipe_start_session(hub_info->control_pipe);
 	//set hub configuration
 	opResult = usb_hub_set_configuration(hub_info);
 	if (opResult != EOK) {
@@ -121,10 +121,10 @@ int usb_hub_add_device(usb_device_t * usb_dev) {
 		free(hub_info);
 		return opResult;
 	}
-	usb_pipe_end_session(hub_info->control_pipe);
+	//usb_pipe_end_session(hub_info->control_pipe);
 
-	/// \TODO what is this?
-	usb_log_debug("Creating `hub' function.\n");
+
+	usb_log_debug("Creating 'hub' function in DDF.\n");
 	ddf_fun_t *hub_fun = ddf_fun_create(hub_info->usb_device->ddf_dev,
 	    fun_exposed, "hub");
 	assert(hub_fun != NULL);
@@ -152,6 +152,7 @@ int usb_hub_add_device(usb_device_t * usb_dev) {
  */
 bool hub_port_changes_callback(usb_device_t *dev,
     uint8_t *change_bitmap, size_t change_bitmap_size, void *arg) {
+	usb_log_debug("hub_port_changes_callback\n");
 	usb_hub_info_t *hub = (usb_hub_info_t *) arg;
 
 	/* FIXME: check that we received enough bytes. */
@@ -216,7 +217,8 @@ static usb_hub_info_t * usb_hub_info_create(usb_device_t * usb_dev) {
 static int usb_hub_process_hub_specific_info(usb_hub_info_t * hub_info) {
 	// get hub descriptor
 	usb_log_debug("creating serialized descriptor\n");
-	void * serialized_descriptor = malloc(USB_HUB_MAX_DESCRIPTOR_SIZE);
+	//void * serialized_descriptor = malloc(USB_HUB_MAX_DESCRIPTOR_SIZE);
+	uint8_t serialized_descriptor[USB_HUB_MAX_DESCRIPTOR_SIZE];
 	usb_hub_descriptor_t * descriptor;
 	int opResult;
 
@@ -234,31 +236,52 @@ static int usb_hub_process_hub_specific_info(usb_hub_info_t * hub_info) {
 		return opResult;
 	}
 	usb_log_debug2("deserializing descriptor\n");
-	descriptor = usb_deserialize_hub_desriptor(serialized_descriptor);
+	descriptor = usb_create_deserialized_hub_desriptor(
+	    serialized_descriptor);
 	if (descriptor == NULL) {
 		usb_log_warning("could not deserialize descriptor \n");
-		return opResult;
+		return ENOMEM;
 	}
 	usb_log_debug("setting port count to %d\n", descriptor->ports_count);
 	hub_info->port_count = descriptor->ports_count;
 	/// \TODO this is not semantically correct
+	bool is_power_switched =
+	    ((descriptor->hub_characteristics & 1) ==0);
+	bool has_individual_port_powering =
+	    ((descriptor->hub_characteristics & 1) !=0);
 	hub_info->ports = malloc(
 	    sizeof (usb_hub_port_t) * (hub_info->port_count + 1));
 	size_t port;
 	for (port = 0; port < hub_info->port_count + 1; port++) {
 		usb_hub_port_init(&hub_info->ports[port]);
 	}
-	for (port = 0; port < hub_info->port_count; port++) {
-		opResult = usb_hub_set_port_feature(hub_info->control_pipe,
-		    port+1, USB_HUB_FEATURE_PORT_POWER);
-		if (opResult != EOK) {
-			usb_log_error("cannot power on port %d;  %d\n",
-			    port+1, opResult);
+	if(is_power_switched){
+		usb_log_debug("is_power_switched\n");
+		if(has_individual_port_powering){
+			usb_log_debug("has_individual_port_powering\n");
+			for (port = 0; port < hub_info->port_count; port++) {
+				opResult = usb_hub_set_port_feature(hub_info->control_pipe,
+				    port+1, USB_HUB_FEATURE_PORT_POWER);
+				if (opResult != EOK) {
+					usb_log_error("cannot power on port %zu: %s.\n",
+					    port+1, str_error(opResult));
+				}
+			}
+		}else{
+			usb_log_debug("!has_individual_port_powering\n");
+			opResult = usb_hub_set_feature(hub_info->control_pipe,
+			    USB_HUB_FEATURE_C_HUB_LOCAL_POWER);
+			if (opResult != EOK) {
+				usb_log_error("cannot power hub: %s\n",
+				    str_error(opResult));
+			}
 		}
+	}else{
+		usb_log_debug("!is_power_switched\n");
 	}
 	usb_log_debug2("freeing data\n");
-	free(serialized_descriptor);
-	free(descriptor->devices_removable);
+	//free(serialized_descriptor);
+	//free(descriptor->devices_removable);
 	free(descriptor);
 	return EOK;
 }
@@ -320,15 +343,9 @@ static int usb_hub_start_hub_fibril(usb_hub_info_t * hub_info){
 	 * FIXME: with some proper locking over pipes and session
 	 * auto destruction, this could work better.
 	 */
-	int rc = usb_pipe_start_session(hub_info->control_pipe);
+	int rc = usb_hc_connection_open(&hub_info->connection);
 	if (rc != EOK) {
-		usb_log_error("Failed to start session on control pipe: %s.\n",
-		    str_error(rc));
-		return rc;
-	}
-	rc = usb_hc_connection_open(&hub_info->connection);
-	if (rc != EOK) {
-		usb_pipe_end_session(hub_info->control_pipe);
+		//usb_pipe_end_session(hub_info->control_pipe);
 		usb_log_error("Failed to open connection to HC: %s.\n",
 		    str_error(rc));
 		return rc;
@@ -344,7 +361,7 @@ static int usb_hub_start_hub_fibril(usb_hub_info_t * hub_info){
 		return rc;
 	}
 
-	usb_log_info("Controlling hub `%s' (%d ports).\n",
+	usb_log_info("Controlling hub `%s' (%zu ports).\n",
 	    hub_info->usb_device->ddf_dev->name, hub_info->port_count);
 	return EOK;
 }
@@ -412,8 +429,8 @@ static int usb_process_hub_power_change(usb_hub_info_t * hub_info,
 			    hub_info->control_pipe,
 			    port, USB_HUB_FEATURE_PORT_POWER);
 			if (opResult != EOK) {
-				usb_log_error("cannot power on port %d;  %d\n",
-				    port, opResult);
+				usb_log_error("Cannot power on port %zu: %s.\n",
+				    port, str_error(opResult));
 			}
 		}
 	}

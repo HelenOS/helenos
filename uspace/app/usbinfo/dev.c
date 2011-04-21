@@ -76,13 +76,7 @@ usbinfo_device_t *prepare_device(devman_handle_t hc_handle,
 		goto leave;
 	}
 
-	rc = usb_pipe_start_long_transfer(&dev->ctrl_pipe);
-	if (rc != EOK) {
-		fprintf(stderr,
-		    NAME ": failed to start transfer on control pipe: %s.\n",
-		    str_error(rc));
-		goto leave;
-	}
+	usb_pipe_start_long_transfer(&dev->ctrl_pipe);
 	transfer_started = true;
 
 	rc = usb_request_get_device_descriptor(&dev->ctrl_pipe,

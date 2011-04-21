@@ -64,7 +64,7 @@ static int usbfallback_add_device(usb_device_t *dev)
 	}
 
 	usb_log_info("Pretending to control %s `%s'" \
-	    " (node `%s', handle %llu).\n",
+	    " (node `%s', handle %" PRIun ").\n",
 	    dev->interface_no < 0 ? "device" : "interface",
 	    dev->ddf_dev->name, fun_name, dev->ddf_dev->handle);
 
