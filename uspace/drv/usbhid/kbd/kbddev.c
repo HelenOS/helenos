@@ -319,13 +319,13 @@ static void usb_kbd_set_led(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
 
 	// TODO: COMPOSE and KANA
 	
-	usb_log_debug("Creating output report.\n");
-	
-	int rc = usb_hid_report_output_translate(hid_dev->parser, 
-	    kbd_dev->led_path, 
-	    USB_HID_PATH_COMPARE_END | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY, 
-	    kbd_dev->output_buffer, 
-	    kbd_dev->output_size, kbd_dev->led_data, kbd_dev->led_output_size);
+	usb_log_debug("Creating output report: %s\n", usb_debug_str_buffer ((uint8_t *)kbd_dev->led_data, kbd_dev->led_output_size * 4, 0));
+
+	usb_hid_report_output_set_data(hid_dev->parser, kbd_dev->led_path, 
+	                               USB_HID_PATH_COMPARE_END , kbd_dev->led_data, 
+	                               kbd_dev->led_output_size);
+	int rc = usb_hid_report_output_translate(hid_dev->parser, 0,
+	    kbd_dev->output_buffer, kbd_dev->output_size);
 	
 	if (rc != EOK) {
 		usb_log_warning("Error translating LED output to output report"
@@ -648,11 +648,19 @@ static void usb_kbd_process_data(usb_hid_dev_t *hid_dev,
 	usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_KEYBOARD, 0);
 	//usb_hid_report_path_set_report_id(path, 0);
 	
-	int rc = usb_hid_parse_report(hid_dev->parser, buffer,
-	    actual_size, path, 
-	    USB_HID_PATH_COMPARE_END | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY, 
-	    &usb_kbd_parser_callbacks, hid_dev);
-
+	int rc = usb_hid_parse_report(hid_dev->parser, buffer, actual_size);	
+	usb_hid_report_field_t *field = usb_hid_report_get_sibling(hid_dev->parser, 
+	                    NULL, path, USB_HID_PATH_COMPARE_END | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY, 
+						USB_HID_REPORT_TYPE_INPUT);
+	
+	while(field != NULL) {
+		usb_log_debug("FIELD (%X) - VALUE(%X) USAGE(%X)\n", field, field->value, field->usage);
+		field = usb_hid_report_get_sibling(hid_dev->parser, field, path, 
+		                                   USB_HID_PATH_COMPARE_END | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY, 
+		                                   USB_HID_REPORT_TYPE_INPUT);
+	}
+		
+	
 	usb_hid_report_path_free(path);
 	
 	if (rc != EOK) {
@@ -765,12 +773,11 @@ int usb_kbd_init(usb_hid_dev_t *hid_dev)
 	 */
 	kbd_dev->output_size = 0;
 	kbd_dev->output_buffer = usb_hid_report_output(hid_dev->parser, 
-	    &kbd_dev->output_size);
-	if (kbd_dev->output_buffer == NULL && kbd_dev->output_size != 0) {
+	    &kbd_dev->output_size, 0x00);
+	if (kbd_dev->output_buffer == NULL) {
 		usb_log_warning("Error creating output report buffer.\n");
 		free(kbd_dev->keys);
-		free(kbd_dev);
-		return ENOMEM;
+		return ENOMEM;  /* TODO: other error code */
 	}
 	
 	usb_log_debug("Output buffer size: %zu\n", kbd_dev->output_size);

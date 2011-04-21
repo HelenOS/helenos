@@ -340,8 +340,8 @@ usb_hid_dev_t *usb_hid_new(void)
 		return NULL;
 	}
 	
-	hid_dev->parser = (usb_hid_report_parser_t *)(malloc(sizeof(
-	    usb_hid_report_parser_t)));
+	hid_dev->parser = (usb_hid_report_t *)(malloc(sizeof(
+	    usb_hid_report_t)));
 	if (hid_dev->parser == NULL) {
 		usb_log_fatal("No memory!\n");
 		free(hid_dev);
@@ -381,15 +381,7 @@ int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 		//usb_hid_free(&hid_dev);
 		return rc;
 	}
-	
-	/* Initialize the report parser. */
-	rc = usb_hid_parser_init(hid_dev->parser);
-	if (rc != EOK) {
-		usb_log_error("Failed to initialize report parser.\n");
-		//usb_hid_free(&hid_dev);
-		return rc;
-	}
-	
+		
 	/* Get the report descriptor and parse it. */
 	rc = usb_hid_process_report_descriptor(hid_dev->usb_dev, 
 	    hid_dev->parser);
@@ -591,7 +583,7 @@ void usb_hid_free(usb_hid_dev_t **hid_dev)
 
 	// destroy the parser
 	if ((*hid_dev)->parser != NULL) {
-		usb_hid_free_report_parser((*hid_dev)->parser);
+		usb_hid_free_report((*hid_dev)->parser);
 	}
 
 	if ((*hid_dev)->report_desc != NULL) {

@@ -72,13 +72,25 @@
 #define USB_HID_PATH_COMPARE_STRICT				0
 #define USB_HID_PATH_COMPARE_END				1
 #define USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY	4
+#define USB_HID_PATH_COMPARE_COLLECTION_ONLY	2 /* porovnava jenom cestu z Kolekci */
 
-/** */
+
+#define USB_HID_MAX_USAGES	20
+
+typedef enum {
+	USB_HID_REPORT_TYPE_INPUT = 1,
+	USB_HID_REPORT_TYPE_OUTPUT = 2,
+	USB_HID_REPORT_TYPE_FEATURE = 3
+} usb_hid_report_type_t;
+
+/** Collection usage path structure */
 typedef struct {
 	/** */
-	int32_t usage_page;
+	uint32_t usage_page;
 	/** */	
-	int32_t usage;
+	uint32_t usage;
+
+	uint8_t flags;
 	/** */
 	link_t link;
 } usb_hid_report_usage_path_t;
@@ -90,20 +102,84 @@ typedef struct {
 	uint8_t report_id;
 	
 	/** */	
-	link_t link;
+	link_t link; /* list */
+
+	link_t head; /* head of list of usage paths */
 
 } usb_hid_report_path_t;
 
+
+typedef struct {
+	/** */
+	int report_count;
+	link_t reports;		/** list of usb_hid_report_description_t */
+
+	link_t collection_paths;
+	int collection_paths_count;
+
+	int use_report_ids;
+	
+} usb_hid_report_t;
+
+typedef struct {
+	uint8_t report_id;
+	usb_hid_report_type_t type;
+
+	size_t bit_length;
+	size_t item_length;
+	
+	link_t report_items;	/** list of report items (fields) */
+
+	link_t link;
+} usb_hid_report_description_t;
+
+typedef struct {
+
+	int offset;
+	size_t size;
+
+	uint16_t usage_page;
+	uint16_t usage;
+
+	uint8_t item_flags;
+	usb_hid_report_path_t *collection_path;
+
+	int32_t logical_minimum;
+	int32_t logical_maximum;
+	int32_t physical_minimum;
+	int32_t physical_maximum;
+	uint32_t usage_minimum;
+	uint32_t usage_maximum;
+	uint32_t unit;
+	uint32_t unit_exponent;
+	
+
+	int32_t value;
+
+	link_t link;
+} usb_hid_report_field_t;
+
+
+
 /**
- * Description of report items
+ * state table
  */
 typedef struct {
-	/** */	
+	/** report id */	
 	int32_t id;
+	
+	/** */
+	uint16_t extended_usage_page;
+	uint32_t usages[USB_HID_MAX_USAGES];
+	int usages_count;
+
+	/** */
+	uint32_t usage_page;
+
 	/** */	
-	int32_t usage_minimum;
+	uint32_t usage_minimum;
 	/** */	
-	int32_t usage_maximum;
+	uint32_t usage_maximum;
 	/** */	
 	int32_t logical_minimum;
 	/** */	
@@ -115,24 +191,22 @@ typedef struct {
 	/** */	
 	size_t offset;
 	/** */	
-	int32_t delimiter;
-	/** */	
 	int32_t unit_exponent;
 	/** */	
 	int32_t unit;
 
 	/** */
-	int32_t string_index;
+	uint32_t string_index;
 	/** */	
-	int32_t string_minimum;
+	uint32_t string_minimum;
 	/** */	
-	int32_t string_maximum;
+	uint32_t string_maximum;
 	/** */	
-	int32_t designator_index;
+	uint32_t designator_index;
 	/** */	
-	int32_t designator_minimum;
+	uint32_t designator_minimum;
 	/** */	
-	int32_t designator_maximum;
+	uint32_t designator_maximum;
 	/** */	
 	int32_t physical_minimum;
 	/** */	
@@ -141,28 +215,13 @@ typedef struct {
 	/** */	
 	uint8_t item_flags;
 
-	/** */	
+	usb_hid_report_type_t type;
+
+	/** current collection path*/	
 	usb_hid_report_path_t *usage_path;
 	/** */	
 	link_t link;
 } usb_hid_report_item_t;
-
-
-/** HID report parser structure. */
-typedef struct {	
-	/** */	
-	link_t input;
-	/** */	
-	link_t output;
-	/** */	
-	link_t feature;
-	
-	int use_report_id;
-
-	/** */
- 	link_t stack;
-} usb_hid_report_parser_t;	
-
 
 /** HID parser callbacks for IN items. */
 typedef struct {
@@ -188,15 +247,6 @@ typedef enum {
 	USB_HID_MOD_COUNT = 8
 } usb_hid_modifiers_t;
 
-//typedef enum {
-//	USB_HID_LED_NUM_LOCK = 0x1,
-//	USB_HID_LED_CAPS_LOCK = 0x2,
-//	USB_HID_LED_SCROLL_LOCK = 0x4,
-//	USB_HID_LED_COMPOSE = 0x8,
-//	USB_HID_LED_KANA = 0x10,
-//	USB_HID_LED_COUNT = 5
-//} usb_hid_led_t;
-
 static const usb_hid_modifiers_t 
     usb_hid_modifiers_consts[USB_HID_MOD_COUNT] = {
 	USB_HID_MOD_LCTRL,
@@ -209,58 +259,29 @@ static const usb_hid_modifiers_t
 	USB_HID_MOD_RGUI
 };
 
-//static const usb_hid_led_t usb_hid_led_consts[USB_HID_LED_COUNT] = {
-//	USB_HID_LED_NUM_LOCK,
-//	USB_HID_LED_CAPS_LOCK,
-//	USB_HID_LED_SCROLL_LOCK,
-//	USB_HID_LED_COMPOSE,
-//	USB_HID_LED_KANA
-//};
-
-//#define USB_HID_BOOT_KEYBOARD_NUM_LOCK		0x01
-//#define USB_HID_BOOT_KEYBOARD_CAPS_LOCK		0x02
-//#define USB_HID_BOOT_KEYBOARD_SCROLL_LOCK	0x04
-//#define USB_HID_BOOT_KEYBOARD_COMPOSE		0x08
-//#define USB_HID_BOOT_KEYBOARD_KANA			0x10
-
 /*
  * Descriptor parser functions
  */
-/** */
-int usb_hid_parser_init(usb_hid_report_parser_t *parser);
 
 /** */
-int usb_hid_parse_report_descriptor(usb_hid_report_parser_t *parser, 
+int usb_hid_parse_report_descriptor(usb_hid_report_t *report, 
     const uint8_t *data, size_t size);
 
 /** */
-void usb_hid_free_report_parser(usb_hid_report_parser_t *parser);
+void usb_hid_free_report(usb_hid_report_t *report);
 
 /** */
-void usb_hid_descriptor_print(usb_hid_report_parser_t *parser);
-
-/*
- * Boot protocol functions
- */
-/** */
-int usb_hid_boot_keyboard_input_report(const uint8_t *data, size_t size,
-	const usb_hid_report_in_callbacks_t *callbacks, void *arg);
-
-/** */
-int usb_hid_boot_keyboard_output_report(uint8_t leds, uint8_t *data, size_t size);
+void usb_hid_descriptor_print(usb_hid_report_t *report);
 
 
 /*
  * Input report parser functions
  */
 /** */
-int usb_hid_parse_report(const usb_hid_report_parser_t *parser,  
-    const uint8_t *data, size_t size,
-    usb_hid_report_path_t *path, int flags,
-    const usb_hid_report_in_callbacks_t *callbacks, void *arg);
+int usb_hid_parse_report(const usb_hid_report_t *report, const uint8_t *data, size_t size);
 
 /** */
-size_t usb_hid_report_input_length(const usb_hid_report_parser_t *parser,
+size_t usb_hid_report_input_length(const usb_hid_report_t *report,
 	usb_hid_report_path_t *path, int flags);
 
 
@@ -295,25 +316,28 @@ int usb_hid_report_compare_usage_path(usb_hid_report_path_t *report_path, usb_hi
 /** */
 usb_hid_report_path_t *usb_hid_report_path_clone(usb_hid_report_path_t *usage_path);
 
+usb_hid_report_field_t *usb_hid_report_get_sibling(usb_hid_report_t *report, usb_hid_report_field_t *field, usb_hid_report_path_t *path, int flags, usb_hid_report_type_t type);
 
 /*
  * Output report parser functions
  */
 /** Allocates output report buffer*/
-uint8_t *usb_hid_report_output(usb_hid_report_parser_t *parser, size_t *size);
+uint8_t *usb_hid_report_output(usb_hid_report_t *report, size_t *size, uint8_t report_id);
 
 /** Frees output report buffer*/
 void usb_hid_report_output_free(uint8_t *output);
 
 /** Returns size of output for given usage path */
-size_t usb_hid_report_output_size(usb_hid_report_parser_t *parser,
+size_t usb_hid_report_output_size(usb_hid_report_t *report,
                                   usb_hid_report_path_t *path, int flags);
 
-/** Updates the output report buffer by translated given data */
-int usb_hid_report_output_translate(usb_hid_report_parser_t *parser,
-                                    usb_hid_report_path_t *path, int flags,
-                                    uint8_t *buffer, size_t size,
-                                    int32_t *data, size_t data_size);
+/** Sets data in report structure */
+int usb_hid_report_output_set_data(usb_hid_report_t *report, 
+                                   usb_hid_report_path_t *path, int flags, 
+                                  int *data, size_t data_size);
+
+/** Makes the output report buffer by translated given data */
+int usb_hid_report_output_translate(usb_hid_report_t *report, uint8_t report_id, uint8_t *buffer, size_t size);
 #endif
 /**
  * @}
