@@ -38,9 +38,9 @@
 #include <kernel/errno.h>
 #include <fibril.h>
 
-#define errno _errno
+#define errno  (*(__errno()))
 
-extern int _errno;
+extern int *__errno(void) __attribute__((const));
 
 #define EMFILE        (-18)
 #define ENAMETOOLONG  (-256)
