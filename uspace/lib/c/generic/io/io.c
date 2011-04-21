@@ -172,6 +172,7 @@ static bool parse_mode(const char *mode, int *flags)
 			return false;
 		}
 		*flags = (O_APPEND | O_CREAT) | (plus ? O_RDWR : O_WRONLY);
+		break;
 	default:
 		errno = EINVAL;
 		return false;
