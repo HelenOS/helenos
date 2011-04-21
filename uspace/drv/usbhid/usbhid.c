@@ -157,7 +157,13 @@ static int usb_hid_set_generic_hid_subdriver(usb_hid_dev_t *hid_dev)
 static bool usb_hid_ids_match(usb_hid_dev_t *hid_dev, 
     const usb_hid_subdriver_mapping_t *mapping)
 {
-	return false;
+	assert(hid_dev != NULL);
+	assert(hid_dev->usb_dev != NULL);
+	
+	return (hid_dev->usb_dev->descriptors.device.vendor_id 
+	    == mapping->vendor_id
+	    && hid_dev->usb_dev->descriptors.device.product_id 
+	    == mapping->product_id);
 }
 
 /*----------------------------------------------------------------------------*/
