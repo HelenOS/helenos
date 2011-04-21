@@ -522,6 +522,10 @@ static int mfs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 {
 	struct mfs_node *parent = pfn->data;
 	struct mfs_node *child = cfn->data;
+	struct mfs_sb_info *sbi = parent->instance->sbi;
+
+	if (str_size(name) > sbi->max_name_len)
+		return ENAMETOOLONG;
 
 	mfsdebug("mfs_link() %d\n", (int) child->ino_i->index);
 
