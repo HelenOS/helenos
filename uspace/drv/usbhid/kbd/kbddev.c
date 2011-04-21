@@ -701,6 +701,13 @@ static void usb_kbd_process_data(usb_hid_dev_t *hid_dev,
 //		}
 		
 		// save the key usage
+		/* TODO: maybe it's not good to save value, nor usage
+		 *       as the value may be e.g. 1 for LEDs and usage may be
+		 *       value of the LED. On the other hand, in case of normal
+		 *       keys, the usage is more important and we must check
+		 *       that. One possible solution: distinguish between those
+		 *       two parts of the Report somehow.
+		 */
 		kbd_dev->keys[i] = field->value;
 		usb_log_debug2("Saved %u. key usage %d\n", i, kbd_dev->keys[i]);
 		
