@@ -58,6 +58,10 @@
 #define GLOBAL extern
 #endif
 
+#define on_error(r, inst) do {	\
+				if (r != EOK) inst;	\
+			}while(0)
+
 GLOBAL fs_reg_t mfs_reg;
 
 typedef uint32_t bitchunk_t;
