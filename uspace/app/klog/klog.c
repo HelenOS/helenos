@@ -117,11 +117,7 @@ int main(int argc, char *argv[])
 		return rc;
 	}
 	
-	/*
-	 * Mode "a" would be definitively much better here, but it is
-	 * not well supported by the FAT driver.
-	 */
-	log = fopen(LOG_FNAME, "w");
+	log = fopen(LOG_FNAME, "a");
 	if (log == NULL)
 		printf("%s: Unable to create log file %s (%s)\n", NAME, LOG_FNAME,
 		    str_error(errno));
