@@ -617,7 +617,8 @@ static void usb_kbd_process_data(usb_kbd_t *kbd_dev,
 	usb_hid_report_path_t *path = usb_hid_report_path();
 	usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_KEYBOARD, 0);
 
-	int rc = usb_hid_parse_report(kbd_dev->parser, buffer, actual_size);
+	uint8_t report_id;
+	int rc = usb_hid_parse_report(kbd_dev->parser, buffer, actual_size, &report_id);
 	usb_hid_descriptor_print (kbd_dev->parser);
 
 	usb_hid_report_path_free (path);

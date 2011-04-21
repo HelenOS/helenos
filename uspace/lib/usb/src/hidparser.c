@@ -80,7 +80,7 @@ usb_hid_report_item_t *usb_hid_report_item_clone(const usb_hid_report_item_t *it
  */
 int32_t usb_hid_report_tag_data_int32(const uint8_t *data, size_t size);
 inline size_t usb_hid_count_item_offset(usb_hid_report_item_t * report_item, size_t offset);
-int usb_hid_translate_data(usb_hid_report_field_t *item, const uint8_t *data, size_t j);
+int usb_hid_translate_data(usb_hid_report_field_t *item, const uint8_t *data);
 uint32_t usb_hid_translate_data_reverse(usb_hid_report_field_t *item, int32_t value);
 int usb_pow(int a, int b);
 
@@ -150,12 +150,13 @@ int usb_hid_report_append_fields(usb_hid_report_t *report, usb_hid_report_item_t
 		memset(field, 0, sizeof(usb_hid_report_field_t));
 		list_initialize(&field->link);
 
-		/* fill the attributes */
+		/* fill the attributes */		
 		field->collection_path = path;
 		field->logical_minimum = report_item->logical_minimum;
 		field->logical_maximum = report_item->logical_maximum;
 		field->physical_minimum = report_item->physical_minimum;
 		field->physical_maximum = report_item->physical_maximum;
+
 		field->usage_minimum = report_item->usage_minimum;
 		field->usage_maximum = report_item->usage_maximum;
 		if(report_item->extended_usage_page != 0){
@@ -164,10 +165,10 @@ int usb_hid_report_append_fields(usb_hid_report_t *report, usb_hid_report_item_t
 		else {
 			field->usage_page = report_item->usage_page;
 		}
-		
-		if(report_item->usages_count > 0 && ((report_item->usage_minimum = 0) && (report_item->usage_maximum = 0))) {
+
+		if(report_item->usages_count > 0 && ((report_item->usage_minimum == 0) && (report_item->usage_maximum == 0))) {
 			if(i < report_item->usages_count){
-				if((report_item->usages[i] & 0xFF00) > 0){
+				if((report_item->usages[i] & 0xFF00) != 0){
 					field->usage_page = (report_item->usages[i] >> 16);					
 					field->usage = (report_item->usages[i] & 0xFF);
 				}
@@ -178,7 +179,17 @@ int usb_hid_report_append_fields(usb_hid_report_t *report, usb_hid_report_item_t
 			else {
 				field->usage = report_item->usages[report_item->usages_count - 1];
 			}
-		}		
+		}	
+
+		if((USB_HID_ITEM_FLAG_VARIABLE(report_item->item_flags) != 0) && (!((report_item->usage_minimum == 0) && (report_item->usage_maximum == 0)))) {
+			if(report_item->type == USB_HID_REPORT_TYPE_INPUT) {
+				field->usage = report_item->usage_maximum - i;
+			}
+			else {
+				field->usage = report_item->usage_minimum + i;					
+			}
+
+		}
 		
 		field->size = report_item->size;
 		field->offset = report_item->offset + (i * report_item->size);
@@ -787,12 +798,11 @@ void usb_hid_free_report(usb_hid_report_t *report)
  * @return Error code.
  */ 
 int usb_hid_parse_report(const usb_hid_report_t *report,  
-    const uint8_t *data, size_t size)
+    const uint8_t *data, size_t size, uint8_t *report_id)
 {
 	link_t *list_item;
 	usb_hid_report_field_t *item;
 
-	uint8_t report_id = 0;
 	usb_hid_report_description_t *report_des;
 	usb_hid_report_type_t type = USB_HID_REPORT_TYPE_INPUT;
 
@@ -801,10 +811,14 @@ int usb_hid_parse_report(const usb_hid_report_t *report,
 	}
 
 	if(report->use_report_ids != 0) {
-		report_id = data[0];
+		*report_id = data[0];
+	}	
+	else {
+		*report_id = 0;
 	}
 
-	report_des = usb_hid_report_find_description(report, report_id, type);
+
+	report_des = usb_hid_report_find_description(report, *report_id, type);
 
 	/* read data */
 	list_item = report_des->report_items.next;	   
@@ -812,24 +826,18 @@ int usb_hid_parse_report(const usb_hid_report_t *report,
 
 		item = list_get_instance(list_item, usb_hid_report_field_t, link);
 
-		if(!USB_HID_ITEM_FLAG_CONSTANT(item->item_flags)) {
+		if(USB_HID_ITEM_FLAG_CONSTANT(item->item_flags) == 0) {
 			
-			if((USB_HID_ITEM_FLAG_VARIABLE(item->item_flags) == 0) ||
-			   ((item->usage_minimum == 0) && (item->usage_maximum == 0))) {
+			if(USB_HID_ITEM_FLAG_VARIABLE(item->item_flags) == 0) {
 
-				// variable item
-				item->value = usb_hid_translate_data(item, data,0);
-
-				// array item ???
-				if(!((item->usage_minimum == 0) && (item->usage_maximum == 0))) {
-					item->usage = item->value + item->usage_minimum;
-				}
+				// array
+				item->value = usb_hid_translate_data(item, data);
+			    item->usage = (item->value - item->physical_minimum) + item->usage_minimum;
 			}
 			else {
-				// bitmapa
-				// TODO: overit jestli vraci hodnoty podle phy min/max 
-				item->value = usb_hid_translate_data(item, data, 0);
-			}			
+				// variable item
+				item->value = usb_hid_translate_data(item, data);				
+			}				
 		}
 		list_item = list_item->next;
 	}
@@ -846,7 +854,7 @@ int usb_hid_parse_report(const usb_hid_report_t *report,
  * @param j Index of processed field in report descriptor item
  * @return Translated data
  */
-int usb_hid_translate_data(usb_hid_report_field_t *item, const uint8_t *data, size_t j)
+int usb_hid_translate_data(usb_hid_report_field_t *item, const uint8_t *data)
 {
 	int resolution;
 	int offset;
@@ -861,10 +869,11 @@ int usb_hid_translate_data(usb_hid_report_field_t *item, const uint8_t *data, si
 		return 0;
 	}
 
-	if((item->physical_minimum == 0) && (item->physical_maximum == 0)) {
+	if((item->physical_minimum == 0) && (item->physical_maximum == 0)){
 		item->physical_minimum = item->logical_minimum;
-		item->physical_maximum = item->logical_maximum;		
+		item->physical_maximum = item->logical_maximum;			
 	}
+	
 
 	if(item->physical_maximum == item->physical_minimum){
 	    resolution = 1;
@@ -875,7 +884,7 @@ int usb_hid_translate_data(usb_hid_report_field_t *item, const uint8_t *data, si
 		(usb_pow(10,(item->unit_exponent))));
 	}
 
-	offset = item->offset + (j * item->size);
+	offset = item->offset;
 	// FIXME
 	if((size_t)(offset/8) != (size_t)((offset+item->size-1)/8)) {
 		
@@ -913,7 +922,6 @@ int usb_hid_translate_data(usb_hid_report_field_t *item, const uint8_t *data, si
 	else {
 		value = (uint32_t)value;
 	}
-
 
 	return (int)(((value - item->logical_minimum) / resolution) + item->physical_minimum);
 	
@@ -1392,7 +1400,7 @@ int usb_hid_report_output_translate(usb_hid_report_t *report, uint8_t report_id,
 	}
 
 	usb_log_debug("OUTPUT BUFFER: %s\n", usb_debug_str_buffer(buffer,size, 0));
-
+	
 	usb_hid_report_description_t *report_des;
 	report_des = usb_hid_report_find_description (report, report_id, USB_HID_REPORT_TYPE_OUTPUT);
 	if(report_des == NULL){
@@ -1404,17 +1412,16 @@ int usb_hid_report_output_translate(usb_hid_report_t *report, uint8_t report_id,
 	while(item != &report_des->report_items) {
 		report_item = list_get_instance(item, usb_hid_report_field_t, link);
 
-			if((USB_HID_ITEM_FLAG_VARIABLE(report_item->item_flags) == 0) ||
-				((report_item->usage_minimum == 0) && (report_item->usage_maximum == 0))) {
+			if(USB_HID_ITEM_FLAG_VARIABLE(report_item->item_flags) == 0) {
 					
-				// variable item
+				// array
 				value = usb_hid_translate_data_reverse(report_item, report_item->value);
 				offset = report_item->offset;
 				length = report_item->size;
 			}
 			else {
-				//bitmap
-				value += usb_hid_translate_data_reverse(report_item, report_item->value);
+				// variable item
+				value  = usb_hid_translate_data_reverse(report_item, report_item->value);
 				offset = report_item->offset;
 				length = report_item->size;
 			}
@@ -1461,9 +1468,12 @@ int usb_hid_report_output_translate(usb_hid_report_t *report, uint8_t report_id,
 			}
 
 
+		// reset value
+		report_item->value = 0;
+		
 		item = item->next;
 	}
-
+	
 	usb_log_debug("OUTPUT BUFFER: %s\n", usb_debug_str_buffer(buffer,size, 0));
 
 	return EOK;
@@ -1484,14 +1494,15 @@ uint32_t usb_hid_translate_data_reverse(usb_hid_report_field_t *item, int value)
 		ret = item->logical_minimum;
 	}
 
+	if((item->physical_minimum == 0) && (item->physical_maximum == 0)){
+		item->physical_minimum = item->logical_minimum;
+		item->physical_maximum = item->logical_maximum;			
+	}
+	
+
 	if((USB_HID_ITEM_FLAG_VARIABLE(item->item_flags) == 0)) {
 
 		// variable item
-		if((item->physical_minimum == 0) && (item->physical_maximum == 0)) {
-			item->physical_minimum = item->logical_minimum;
-			item->physical_maximum = item->logical_maximum;
-		}
-
 		if(item->physical_maximum == item->physical_minimum){
 		    resolution = 1;
 		}
@@ -1567,9 +1578,15 @@ int usb_hid_report_output_set_data(usb_hid_report_t *report,
 			usb_hid_report_path_append_item (field->collection_path, field->usage_page, field->usage);
 			if(usb_hid_report_compare_usage_path (field->collection_path, path, 
 		                                      flags) == EOK) {
-
 				if(data_idx < data_size) {
-					field->value = data[data_idx++];
+					if((data[data_idx] >= field->physical_minimum) && (data[data_idx] >= field->physical_minimum)) {
+						field->value = data[data_idx];
+					}
+					else {
+						return ERANGE;
+					}
+
+					data_idx++;
 				}
 				else {
 					field->value = 0;
@@ -1625,7 +1642,6 @@ usb_hid_report_field_t *usb_hid_report_get_sibling(usb_hid_report_t *report,
 		usb_hid_report_path_append_item (field->collection_path, field->usage_page, field->usage);
 		if(usb_hid_report_compare_usage_path (field->collection_path, path, flags) == EOK){
 			usb_hid_report_remove_last_item (field->collection_path);
-			usb_log_debug("....OK\n");
 			return field;
 		}
 		usb_hid_report_remove_last_item (field->collection_path);
@@ -1635,6 +1651,34 @@ usb_hid_report_field_t *usb_hid_report_get_sibling(usb_hid_report_t *report,
 
 	return NULL;
 }
+
+uint8_t usb_hid_report_get_report_id(usb_hid_report_t *report, uint8_t report_id, usb_hid_report_type_t type)
+{
+	if(report == NULL){
+		return 0;
+	}
+
+	usb_hid_report_description_t *report_des;
+	link_t *report_it;
+	
+	if(report_id == 0) {
+		report_it = usb_hid_report_find_description (report, report_id, type)->link.next;		
+	}
+	else {
+		report_it = report->reports.next;
+	}
+
+	while(report_it != &report->reports) {
+		report_des = list_get_instance(report_it, usb_hid_report_description_t, link);
+		if(report_des->type == type){
+			return report_des->report_id;
+		}
+	}
+
+	return 0;
+}
+
+
 /**
  * @}
  */
