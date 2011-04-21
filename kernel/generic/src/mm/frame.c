@@ -480,13 +480,13 @@ NO_TRACE static size_t zone_frame_free(zone_t *zone, size_t frame_idx)
 	ASSERT(zone_flags_available(zone->flags));
 	
 	frame_t *frame = &zone->frames[frame_idx];
-	size_t size = 1 << frame->buddy_order;
+	size_t size = 0;
 	
 	ASSERT(frame->refcount);
 	
 	if (!--frame->refcount) {
-		buddy_system_free(zone->buddy_system, &frame->buddy_link);
-		
+		size = 1 << frame->buddy_order;
+		buddy_system_free(zone->buddy_system, &frame->buddy_link);		
 		/* Update zone information. */
 		zone->free_count += size;
 		zone->busy_count -= size;
@@ -1006,15 +1006,9 @@ void *frame_alloc_generic(uint8_t order, frame_flags_t flags, size_t *pzone)
 	/*
 	 * If not told otherwise, we must first reserve the memory.
 	 */
-	if (!(flags & FRAME_NO_RESERVE)) {
-		if (flags & FRAME_ATOMIC) {
-			if (!reserve_try_alloc(size))
-				return NULL;
-		} else {
-			reserve_force_alloc(size);
-		}
-	}
-	
+	if (!(flags & FRAME_NO_RESERVE)) 
+		reserve_force_alloc(size);
+
 loop:
 	irq_spinlock_lock(&zones.lock, true);
 	
