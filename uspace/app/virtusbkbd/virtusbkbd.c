@@ -55,7 +55,7 @@
 #include "stdreq.h"
 
 /** Pause between individual key-presses in seconds. */
-#define KEY_PRESS_DELAY 2
+#define KEY_PRESS_DELAY 1
 #define NAME "virt-usb-kbd"
 
 
@@ -268,8 +268,10 @@ int main(int argc, char * argv[])
 		return rc;
 	}
 	
+	printf("%s: Will wait for a while to allow HID driver settle in.\n", NAME);
+	fibril_sleep(15);
 	printf("%s: Simulating keyboard events...\n", NAME);
-	fibril_sleep(10);
+	fibril_sleep(5);
 	//while (1) {
 		kb_process_events(&status, keyboard_events, keyboard_events_count,
 			on_keyboard_change);
