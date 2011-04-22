@@ -157,7 +157,13 @@ static int usb_hid_set_generic_hid_subdriver(usb_hid_dev_t *hid_dev)
 static bool usb_hid_ids_match(usb_hid_dev_t *hid_dev, 
     const usb_hid_subdriver_mapping_t *mapping)
 {
-	return false;
+	assert(hid_dev != NULL);
+	assert(hid_dev->usb_dev != NULL);
+	
+	return (hid_dev->usb_dev->descriptors.device.vendor_id 
+	    == mapping->vendor_id
+	    && hid_dev->usb_dev->descriptors.device.product_id 
+	    == mapping->product_id);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -191,12 +197,12 @@ static bool usb_hid_path_matches(usb_hid_dev_t *hid_dev,
 		    mapping->report_id);
 	}
 	
-	assert(hid_dev->parser != NULL);
+	assert(hid_dev->report != NULL);
 	
 	usb_log_debug("Compare flags: %d\n", mapping->compare);
-	size_t size = usb_hid_report_input_length(hid_dev->parser, usage_path, 
+	size_t size = usb_hid_report_input_length(hid_dev->report, usage_path, 
 	    mapping->compare);
-	usb_log_debug("Size of the input report: %d\n", size);
+	usb_log_debug("Size of the input report: %zuB\n", size);
 	
 	usb_hid_report_path_free(usage_path);
 	
@@ -250,15 +256,15 @@ static int usb_hid_find_subdrivers(usb_hid_dev_t *hid_dev)
 	
 	while (count < USB_HID_MAX_SUBDRIVERS &&
 	    (mapping->usage_path != NULL
-	    || mapping->vendor_id != 0 || mapping->product_id != 0)) {
+	    || mapping->vendor_id >= 0 || mapping->product_id >= 0)) {
 		// check the vendor & product ID
-		if (mapping->vendor_id != 0 && mapping->product_id == 0) {
-			usb_log_warning("Missing Product ID for Vendor ID %u\n",
+		if (mapping->vendor_id >= 0 && mapping->product_id < 0) {
+			usb_log_warning("Missing Product ID for Vendor ID %d\n",
 			    mapping->vendor_id);
 			return EINVAL;
 		}
-		if (mapping->product_id != 0 && mapping->vendor_id == 0) {
-			usb_log_warning("Missing Vendor ID for Product ID %u\n",
+		if (mapping->product_id >= 0 && mapping->vendor_id < 0) {
+			usb_log_warning("Missing Vendor ID for Product ID %d\n",
 			    mapping->product_id);
 			return EINVAL;
 		}
@@ -266,8 +272,8 @@ static int usb_hid_find_subdrivers(usb_hid_dev_t *hid_dev)
 		ids_matched = false;
 		matched = false;
 		
-		if (mapping->vendor_id != 0) {
-			assert(mapping->product_id != 0);
+		if (mapping->vendor_id >= 0) {
+			assert(mapping->product_id >= 0);
 			usb_log_debug("Comparing device against vendor ID %u"
 			    " and product ID %u.\n", mapping->vendor_id,
 			    mapping->product_id);
@@ -340,9 +346,9 @@ usb_hid_dev_t *usb_hid_new(void)
 		return NULL;
 	}
 	
-	hid_dev->parser = (usb_hid_report_t *)(malloc(sizeof(
+	hid_dev->report = (usb_hid_report_t *)(malloc(sizeof(
 	    usb_hid_report_t)));
-	if (hid_dev->parser == NULL) {
+	if (hid_dev->report == NULL) {
 		usb_log_fatal("No memory!\n");
 		free(hid_dev);
 		return NULL;
@@ -384,7 +390,7 @@ int usb_hid_init(usb_hid_dev_t *hid_dev, usb_device_t *dev)
 		
 	/* Get the report descriptor and parse it. */
 	rc = usb_hid_process_report_descriptor(hid_dev->usb_dev, 
-	    hid_dev->parser);
+	    hid_dev->report);
 	
 	bool fallback = false;
 	
@@ -582,8 +588,8 @@ void usb_hid_free(usb_hid_dev_t **hid_dev)
 	}
 
 	// destroy the parser
-	if ((*hid_dev)->parser != NULL) {
-		usb_hid_free_report((*hid_dev)->parser);
+	if ((*hid_dev)->report != NULL) {
+		usb_hid_free_report((*hid_dev)->report);
 	}
 
 	if ((*hid_dev)->report_desc != NULL) {

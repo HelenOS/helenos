@@ -81,8 +81,9 @@ if (ret != EOK) { \
 	int ret =
 	    pci_get_my_registers(device, &mem_reg_base, &mem_reg_size, &irq);
 	CHECK_RET_RETURN(ret,
-	    "Failed(%d) to get memory addresses:.\n", ret, device->handle);
-	usb_log_info("Memory mapped regs at 0x%X (size %zu), IRQ %d.\n",
+	    "Failed to get memory addresses for %" PRIun ": %s.\n",
+	    device->handle, str_error(ret));
+	usb_log_info("Memory mapped regs at 0x%" PRIxn " (size %zu), IRQ %d.\n",
 	    mem_reg_base, mem_reg_size, irq);
 
 	ret = pci_disable_legacy(device);
@@ -101,7 +102,7 @@ if (ret != EOK) { \
 	    "Failed to bind EHCI function: %s.\n",
 	    str_error(ret));
 
-	usb_log_info("Controlling new EHCI device `%s' (handle %llu).\n",
+	usb_log_info("Controlling new EHCI device `%s' (handle %" PRIun ").\n",
 	    device->name, device->handle);
 
 	return EOK;

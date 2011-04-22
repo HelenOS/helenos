@@ -116,8 +116,8 @@ int pci_get_my_registers(ddf_dev_t *dev,
 			    && res->res.mem_range.size != 0 ) {
 				mem_address = res->res.mem_range.address;
 				mem_size = res->res.mem_range.size;
-				usb_log_debug2("Found mem: %llx %zu.\n",
-				    mem_address, mem_size);
+				usb_log_debug2("Found mem: %p %zu.\n",
+				    (void *) mem_address, mem_size);
 				mem_found = true;
 				}
 		default:

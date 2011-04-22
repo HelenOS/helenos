@@ -82,19 +82,25 @@ bool usb_lgtch_polling_callback(struct usb_hid_dev *hid_dev,
 	usb_hid_report_path_append_item(path, 0xc, 0);
 
 	uint8_t report_id;
-	int rc = usb_hid_parse_report(hid_dev->parser, buffer, buffer_size, &report_id);
+	
+	int rc = usb_hid_parse_report(hid_dev->report, buffer, buffer_size, 
+	    &report_id);
 	usb_hid_report_path_set_report_id(path, report_id);
 
-	usb_hid_report_field_t *field = usb_hid_report_get_sibling(hid_dev->parser, NULL, path, USB_HID_PATH_COMPARE_END , USB_HID_REPORT_TYPE_INPUT);
-	while(field != NULL) {
-		usb_log_debug("KEY VALUE(%X) USAGE(%X)\n", field->value, field->usage);
+	usb_hid_report_field_t *field = usb_hid_report_get_sibling(
+	    hid_dev->report, NULL, path, USB_HID_PATH_COMPARE_END , 
+	    USB_HID_REPORT_TYPE_INPUT);
+	
+	while (field != NULL) {
+		usb_log_debug(NAME " KEY VALUE(%X) USAGE(%X)\n", field->value, 
+		    field->usage);
 	}
 	
 
 	usb_hid_report_path_free(path);
 	
 	if (rc != EOK) {
-		usb_log_warning("Error in usb_hid_boot_keyboard_input_report():"
+		usb_log_warning(NAME "Error in usb_hid_boot_keyboard_input_report():"
 		    "%s\n", str_error(rc));
 	}
 	

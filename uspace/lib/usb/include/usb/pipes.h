@@ -98,6 +98,20 @@ typedef struct {
 
 	/** Number of active transfers over the pipe. */
 	int refcount;
+	/** Number of failed attempts to open the HC phone.
+	 * When user requests usb_pipe_start_long_transfer() and the operation
+	 * fails, there is no way to report this to the user.
+	 * That the soft reference counter is increased to record the attempt.
+	 * When the user then request e.g. usb_pipe_read(), it will try to
+	 * add reference as well.
+	 * If that fails, it is reported to the user. If it is okay, the
+	 * real reference counter is incremented.
+	 * The problem might arise when ending the long transfer (since
+	 * the number of references would be only 1, but logically it shall be
+	 * two).
+	 * Decrementing the soft counter first shall solve this.
+	 */
+	int refcount_soft;
 
 	/** Whether to automatically reset halt on the endpoint.
 	 * Valid only for control endpoint zero.
@@ -162,11 +176,7 @@ int usb_pipe_register_with_speed(usb_pipe_t *, usb_speed_t,
 int usb_pipe_register(usb_pipe_t *, unsigned int, usb_hc_connection_t *);
 int usb_pipe_unregister(usb_pipe_t *, usb_hc_connection_t *);
 
-int usb_pipe_start_session(usb_pipe_t *);
-int usb_pipe_end_session(usb_pipe_t *);
-bool usb_pipe_is_session_started(usb_pipe_t *);
-
-int usb_pipe_start_long_transfer(usb_pipe_t *);
+void usb_pipe_start_long_transfer(usb_pipe_t *);
 void usb_pipe_end_long_transfer(usb_pipe_t *);
 
 int usb_pipe_read(usb_pipe_t *, void *, size_t, size_t *);

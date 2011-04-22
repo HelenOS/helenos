@@ -77,7 +77,7 @@ static int polling_fibril(void *arg)
 	if (polling_data->debug > 0) {
 		usb_endpoint_mapping_t *mapping
 		    = &polling_data->dev->pipes[polling_data->pipe_index];
-		usb_log_debug("Poll0x%x: started polling of `%s' - " \
+		usb_log_debug("Poll%p: started polling of `%s' - " \
 		    "interface %d (%s,%d,%d), %zuB/%zu.\n",
 		    polling_data,
 		    polling_data->dev->ddf_dev->name,
@@ -99,14 +99,14 @@ static int polling_fibril(void *arg)
 		if (polling_data->debug > 1) {
 			if (rc == EOK) {
 				usb_log_debug(
-				    "Poll0x%x: received: '%s' (%zuB).\n",
+				    "Poll%p: received: '%s' (%zuB).\n",
 				    polling_data,
 				    usb_debug_str_buffer(polling_data->buffer,
 				        actual_size, 16),
 				    actual_size);
 			} else {
 				usb_log_debug(
-				    "Poll0x%x: polling failed: %s.\n",
+				    "Poll%p: polling failed: %s.\n",
 				    polling_data, str_error(rc));
 			}
 		}

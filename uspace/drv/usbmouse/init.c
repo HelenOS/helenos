@@ -124,12 +124,6 @@ int usb_mouse_create(usb_device_t *dev)
 		goto leave;
 	}
 	
-	/* Open the control pipe. */
-	rc = usb_pipe_start_session(&dev->ctrl_pipe);
-	if (rc != EOK) {
-		goto leave;
-	}
-	
 	/* Set the boot protocol. */
 	rc = usb_control_request_set(&dev->ctrl_pipe,
 	    USB_REQUEST_TYPE_CLASS, USB_REQUEST_RECIPIENT_INTERFACE,
@@ -139,11 +133,7 @@ int usb_mouse_create(usb_device_t *dev)
 		goto leave;
 	}
 	
-	/* Close the control pipe (ignore errors). */
-	usb_pipe_end_session(&dev->ctrl_pipe);
-
-
-	/* Everything allright. */
+	/* Everything all right. */
 	dev->driver_data = mouse;
 	mouse->mouse_fun->driver_data = mouse;
 
