@@ -312,8 +312,9 @@ static usb_address_keeping_t addresses;
 static int tell_address(ddf_fun_t *fun, devman_handle_t handle,
     usb_address_t *address)
 {
-	usb_log_debug("tell_address(fun \"%s\", handle %zu)\n",
-	    fun->name, (size_t) fun->handle);
+	usb_log_debug(
+	    "tell_address(fun=`%s' (%" PRIun"), dev_handle=%" PRIun ")\n",
+	    fun->name, fun->handle, handle);
 	usb_address_t addr = usb_address_keeping_find(&addresses, handle);
 	if (addr < 0) {
 		return addr;
@@ -339,6 +340,31 @@ static int release_address(ddf_fun_t *fun, usb_address_t address)
 {
 	return usb_address_keeping_release(&addresses, address);
 }
+
+static int register_endpoint(ddf_fun_t *fun,
+    usb_address_t address, usb_speed_t speed, usb_endpoint_t endpoint,
+    usb_transfer_type_t transfer_type, usb_direction_t direction,
+    size_t max_packet_size, unsigned int interval)
+{
+	if ((address == USB_ADDRESS_DEFAULT)
+	    && (endpoint == 0)) {
+		usb_address_keeping_reserve_default(&addresses);
+	}
+
+	return EOK;
+}
+
+static int unregister_endpoint(ddf_fun_t *fun, usb_address_t address,
+    usb_endpoint_t endpoint, usb_direction_t direction)
+{
+	if ((address == USB_ADDRESS_DEFAULT)
+	    && (endpoint == 0)) {
+		usb_address_keeping_release_default(&addresses);
+	}
+
+	return EOK;
+}
+
 
 static int bind_address(ddf_fun_t *fun, usb_address_t address,
     devman_handle_t handle)
@@ -366,7 +392,11 @@ static int tell_address_rh(ddf_fun_t *root_hub_fun, devman_handle_t handle,
 	ddf_fun_t *hc_fun = root_hub_fun->driver_data;
 	assert(hc_fun != NULL);
 
-	return tell_address(hc_fun, root_hub_fun->handle, address);
+	if (handle == 0) {
+		handle = root_hub_fun->handle;
+	}
+
+	return tell_address(hc_fun, handle, address);
 }
 
 void address_init(void)
@@ -378,6 +408,9 @@ usbhc_iface_t vhc_iface = {
 	.request_address = request_address,
 	.bind_address = bind_address,
 	.release_address = release_address,
+
+	.register_endpoint = register_endpoint,
+	.unregister_endpoint = unregister_endpoint,
 
 	.interrupt_out = interrupt_out,
 	.interrupt_in = interrupt_in,
