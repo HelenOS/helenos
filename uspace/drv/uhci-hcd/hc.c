@@ -329,7 +329,6 @@ int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch)
 void hc_interrupt(hc_t *instance, uint16_t status)
 {
 	assert(instance);
-//	status |= 1; //Uncomment to work around qemu hang
 	/* Lower 2 bits are transaction error and transaction complete */
 	if (status & (UHCI_STATUS_INTERRUPT | UHCI_STATUS_ERROR_INTERRUPT)) {
 		LIST_INITIALIZE(done);
@@ -379,15 +378,19 @@ void hc_interrupt(hc_t *instance, uint16_t status)
 int hc_interrupt_emulator(void* arg)
 {
 	usb_log_debug("Started interrupt emulator.\n");
-	hc_t *instance = (hc_t*)arg;
+	hc_t *instance = arg;
 	assert(instance);
 
 	while (1) {
-		/* Readd and clear status register */
+		/* Read and clear status register */
 		uint16_t status = pio_read_16(&instance->registers->usbsts);
 		pio_write_16(&instance->registers->usbsts, status);
 		if (status != 0)
 			usb_log_debug2("UHCI status: %x.\n", status);
+// Qemu fails to report stalled communication
+// see https://bugs.launchpad.net/qemu/+bug/757654
+// This is a simple workaround to force queue processing every time
+	//	status |= 1;
 		hc_interrupt(instance, status);
 		async_usleep(UHCI_INT_EMULATOR_TIMEOUT);
 	}
@@ -401,7 +404,7 @@ int hc_interrupt_emulator(void* arg)
  */
 int hc_debug_checker(void *arg)
 {
-	hc_t *instance = (hc_t*)arg;
+	hc_t *instance = arg;
 	assert(instance);
 
 #define QH(queue) \
