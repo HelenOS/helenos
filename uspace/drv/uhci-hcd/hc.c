@@ -43,22 +43,6 @@
 
 #include "hc.h"
 
-static irq_cmd_t uhci_cmds[] = {
-	{
-		.cmd = CMD_PIO_READ_16,
-		.addr = NULL, /* patched for every instance */
-		.dstarg = 1
-	},
-	{
-		.cmd = CMD_PIO_WRITE_16,
-		.addr = NULL, /* pathed for every instance */
-		.value = 0x1f
-	},
-	{
-		.cmd = CMD_ACCEPT
-	}
-};
-/*----------------------------------------------------------------------------*/
 static int hc_init_transfer_lists(hc_t *instance);
 static int hc_init_mem_structures(hc_t *instance);
 static void hc_init_hw(hc_t *instance);
@@ -176,40 +160,38 @@ void hc_init_hw(hc_t *instance)
 int hc_init_mem_structures(hc_t *instance)
 {
 	assert(instance);
-#define CHECK_RET_DEST_CMDS_RETURN(ret, message...) \
+#define CHECK_RET_RETURN(ret, message...) \
 	if (ret != EOK) { \
 		usb_log_error(message); \
-		if (instance->interrupt_code.cmds != NULL) \
-			free(instance->interrupt_code.cmds); \
 		return ret; \
 	} else (void) 0
 
 	/* Init interrupt code */
-	instance->interrupt_code.cmds = malloc(sizeof(uhci_cmds));
-	int ret = (instance->interrupt_code.cmds == NULL) ? ENOMEM : EOK;
-	CHECK_RET_DEST_CMDS_RETURN(ret,
-	    "Failed to allocate interrupt cmds space.\n");
-
+	instance->interrupt_code.cmds = instance->interrupt_commands;
 	{
-		irq_cmd_t *interrupt_commands = instance->interrupt_code.cmds;
-		memcpy(interrupt_commands, uhci_cmds, sizeof(uhci_cmds));
-		interrupt_commands[0].addr =
-		    (void*)&instance->registers->usbsts;
-		interrupt_commands[1].addr =
-		    (void*)&instance->registers->usbsts;
-		instance->interrupt_code.cmdcount =
-		    sizeof(uhci_cmds) / sizeof(irq_cmd_t);
+		instance->interrupt_commands[0].cmd = CMD_PIO_READ_16;
+		instance->interrupt_commands[0].dstarg = 1;
+		instance->interrupt_commands[0].addr =
+		    &instance->registers->usbsts;
+
+		instance->interrupt_commands[1].cmd = CMD_PIO_WRITE_16;
+		instance->interrupt_commands[1].value = 0x1f;
+		instance->interrupt_commands[1].addr =
+		    &instance->registers->usbsts;
+
+		instance->interrupt_commands[2].cmd = CMD_ACCEPT;
+		instance->interrupt_code.cmdcount = UHCI_NEEDED_IRQ_COMMANDS;
 	}
 
 	/* Init transfer lists */
-	ret = hc_init_transfer_lists(instance);
-	CHECK_RET_DEST_CMDS_RETURN(ret, "Failed to init transfer lists.\n");
+	int ret = hc_init_transfer_lists(instance);
+	CHECK_RET_RETURN(ret, "Failed to init transfer lists.\n");
 	usb_log_debug("Initialized transfer lists.\n");
 
 	/* Init USB frame list page*/
 	instance->frame_list = get_page();
 	ret = instance ? EOK : ENOMEM;
-	CHECK_RET_DEST_CMDS_RETURN(ret, "Failed to get frame list page.\n");
+	CHECK_RET_RETURN(ret, "Failed to get frame list page.\n");
 	usb_log_debug("Initialized frame list at %p.\n", instance->frame_list);
 
 	/* Set all frames to point to the first queue head */
@@ -228,10 +210,11 @@ int hc_init_mem_structures(hc_t *instance)
 
 	ret = usb_endpoint_manager_init(&instance->ep_manager,
 	    BANDWIDTH_AVAILABLE_USB11);
-	assert(ret == EOK);
+	CHECK_RET_RETURN(ret, "Failed to initialize endpoint manager: %s.\n",
+	    str_error(ret));
 
 	return EOK;
-#undef CHECK_RET_DEST_CMDS_RETURN
+#undef CHECK_RET_RETURN
 }
 /*----------------------------------------------------------------------------*/
 /** Initialize UHCI hc transfer lists.
