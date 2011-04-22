@@ -693,7 +693,7 @@ static void usb_kbd_process_data(usb_hid_dev_t *hid_dev,
 	
 	while (field != NULL) {
 		usb_log_debug2("FIELD (%p) - VALUE(%d) USAGE(%u)\n", 
-		    field, field->value, field->value);
+		    field, field->value, field->usage);
 		
 		assert(i < kbd_dev->key_count);
 //		if (i == kbd_dev->key_count) {
@@ -708,7 +708,12 @@ static void usb_kbd_process_data(usb_hid_dev_t *hid_dev,
 		 *       that. One possible solution: distinguish between those
 		 *       two parts of the Report somehow.
 		 */
-		kbd_dev->keys[i] = field->value;
+		if( field->value != 0 ) {
+			kbd_dev->keys[i] = field->usage;
+		}
+		else {
+			kbd_dev->keys[i] = 0;
+		}
 		usb_log_debug2("Saved %u. key usage %d\n", i, kbd_dev->keys[i]);
 		
 		++i;
