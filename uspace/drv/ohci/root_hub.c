@@ -216,6 +216,7 @@ int rh_init(rh_t *instance, ohci_regs_t *regs) {
 	// set port power mode to no-power-switching
 	instance->registers->rh_desc_a |= RHDA_NPS_FLAG;
 	instance->unfinished_interrupt_transfer = NULL;
+	instance->interrupt_buffer = malloc((instance->port_count + 8)/8);
 	usb_log_info("OHCI root hub with %d ports.\n", instance->port_count);
 	return EOK;
 }
@@ -470,9 +471,9 @@ static int process_get_status_request(rh_t *instance,
 static void create_interrupt_mask(rh_t *instance, void ** buffer,
 	size_t * buffer_size) {
 	int bit_count = instance->port_count + 1;
-	(*buffer_size) = (bit_count / 8) + ((bit_count % 8 == 0) ? 0 : 1);
+	(*buffer_size) = (bit_count+7 / 8);
 
-	(*buffer) = malloc(*buffer_size);
+	(*buffer) = instance->interrupt_buffer;//malloc(*buffer_size);
 	uint8_t * bitmap = (uint8_t*) (*buffer);
 	uint32_t mask = (1 << (USB_HUB_FEATURE_C_HUB_LOCAL_POWER + 16))
 		| (1 << (USB_HUB_FEATURE_C_HUB_OVER_CURRENT + 16));
