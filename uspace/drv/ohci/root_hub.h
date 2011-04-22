@@ -55,6 +55,12 @@ typedef struct rh {
 	usb_device_descriptors_t descriptors;
 	/** interrupt transfer waiting for an actual interrupt to occur */
 	usb_transfer_batch_t * unfinished_interrupt_transfer;
+	/** pre-allocated interrupt mask
+	 *
+	 * This is allocated when initializing instance, so that memory
+	 * allocation is not needed when processing request.
+	 */
+	uint8_t * interrupt_buffer;
 } rh_t;
 
 int rh_init(rh_t *instance, ohci_regs_t *regs);
