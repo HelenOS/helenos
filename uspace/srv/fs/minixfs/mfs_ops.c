@@ -35,6 +35,7 @@
 #include <assert.h>
 #include <fibril_synch.h>
 #include <errno.h>
+#include <align.h>
 #include "mfs.h"
 #include "mfs_utils.h"
 
@@ -524,10 +525,10 @@ static int mfs_link(fs_node_t *pfn, fs_node_t *cfn, const char *name)
 	struct mfs_node *child = cfn->data;
 	struct mfs_sb_info *sbi = parent->instance->sbi;
 
+	mfsdebug("mfs_link() %d\n", (int) child->ino_i->index);
+
 	if (str_size(name) > sbi->max_name_len)
 		return ENAMETOOLONG;
-
-	mfsdebug("mfs_link() %d\n", (int) child->ino_i->index);
 
 	int r = insert_dentry(parent, name, child->ino_i->index);
 
@@ -700,6 +701,96 @@ out_error: ;
 	int tmp = mfs_node_put(fn);
 	async_answer_0(callid, tmp != EOK ? tmp : rc);
 	async_answer_0(rid, tmp != EOK ? tmp : rc);
+}
+
+void
+mfs_write(ipc_callid_t rid, ipc_call_t *request)
+{
+	mfsdebug("mfs_write()\n");
+
+	devmap_handle_t handle = (devmap_handle_t) IPC_GET_ARG1(*request);
+	fs_index_t index = (fs_index_t) IPC_GET_ARG2(*request);
+	aoff64_t pos = (aoff64_t) MERGE_LOUP32(IPC_GET_ARG3(*request),
+						IPC_GET_ARG4(*request));
+
+	fs_node_t *fn;
+	int r;
+	int flags = BLOCK_FLAGS_NONE;
+
+	r = mfs_node_get(&fn, handle, index);
+	if (r != EOK) {
+		async_answer_0(rid, r);
+		return;
+	}
+
+	if (!fn) {
+		async_answer_0(rid, ENOENT);
+		return;
+	}
+
+	ipc_callid_t callid;
+	size_t len;
+
+	if (!async_data_write_receive(&callid, &len)) {
+		r = EINVAL;
+		goto out_err;
+	}
+
+	struct mfs_node *mnode = fn->data;
+	struct mfs_sb_info *sbi = mnode->instance->sbi;
+	struct mfs_ino_info *ino_i = mnode->ino_i;
+	const size_t bs = sbi->block_size;
+	size_t bytes = min(len, bs - pos % bs);
+	size_t boundary = ROUND_UP(ino_i->i_size, bs);
+	uint32_t block;
+
+	if (bytes == bs)
+		flags = BLOCK_FLAGS_NOREAD;
+
+	if (pos < boundary) {
+		r = read_map(&block, mnode, pos);
+		on_error(r, goto out_err);
+
+		if (block == 0) {
+			/*Writing in a sparse block*/
+			r = mfs_alloc_bit(mnode->instance, &block, BMAP_ZONE);
+			on_error(r, goto out_err);
+			flags = BLOCK_FLAGS_NOREAD;
+		}
+	} else {
+		uint32_t dummy;
+
+		r = mfs_alloc_bit(mnode->instance, &block, BMAP_ZONE);
+		on_error(r, goto out_err);
+
+		r = write_map(mnode, pos, block, &dummy);
+		on_error(r, goto out_err);
+	}
+
+	block_t *b;
+	r = block_get(&b, handle, block, flags);
+	on_error(r, goto out_err);
+
+	async_data_write_finalize(callid, b->data + pos % bs, bytes);
+	b->dirty = true;
+
+	r = block_put(b);
+	if (r != EOK) {
+		mfs_node_put(fn);
+		async_answer_0(rid, r);
+		return;
+	}
+
+	ino_i->i_size = pos + bytes;
+	ino_i->dirty = true;
+	r = mfs_node_put(fn);
+	async_answer_2(rid, r, bytes, pos + bytes);
+	return;
+
+out_err:
+	mfs_node_put(fn);
+	async_answer_0(callid, r);
+	async_answer_0(rid, r);
 }
 
 int mfs_instance_get(devmap_handle_t handle, struct mfs_instance **instance)

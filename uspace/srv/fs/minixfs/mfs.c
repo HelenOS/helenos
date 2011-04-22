@@ -119,7 +119,7 @@ static void mfs_connection(ipc_callid_t iid, ipc_call_t *icall)
 			mfs_close(callid, &call);
 			break;
 		case VFS_OUT_WRITE:
-			mfsdebug("write()\n");
+			mfs_write(callid, &call);
 			break;
 		default:
 			async_answer_0(callid, ENOTSUP);

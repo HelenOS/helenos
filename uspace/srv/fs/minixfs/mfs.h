@@ -162,6 +162,8 @@ extern void mfs_open_node(ipc_callid_t rid, ipc_call_t *request);
 extern void
 mfs_read(ipc_callid_t rid, ipc_call_t *request);
 
+extern void
+mfs_write(ipc_callid_t rid, ipc_call_t *request);
 
 /*mfs_inode.c*/
 int
