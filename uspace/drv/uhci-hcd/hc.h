@@ -90,7 +90,7 @@ typedef struct uhci_regs {
 #define UHCI_INT_EMULATOR_TIMEOUT 10000
 #define UHCI_DEBUGER_TIMEOUT 5000000
 #define UHCI_ALLOWED_HW_FAIL 5
-#define UHCI_NEEDED_IRQ_COMMANDS 3
+#define UHCI_NEEDED_IRQ_COMMANDS 5
 
 /* Main HC driver structure */
 typedef struct hc {

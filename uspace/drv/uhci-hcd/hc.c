@@ -43,6 +43,9 @@
 
 #include "hc.h"
 
+#define UHCI_SUPPORTED_INTERRUPTS \
+    (UHCI_INTR_CRC | UHCI_INTR_COMPLETE | UHCI_INTR_SHORT_PACKET)
+
 static int hc_init_transfer_lists(hc_t *instance);
 static int hc_init_mem_structures(hc_t *instance);
 static void hc_init_hw(hc_t *instance);
@@ -134,7 +137,7 @@ void hc_init_hw(hc_t *instance)
 	if (instance->hw_interrupts) {
 		/* Enable all interrupts, but resume interrupt */
 		pio_write_16(&instance->registers->usbintr,
-		    UHCI_INTR_CRC | UHCI_INTR_COMPLETE | UHCI_INTR_SHORT_PACKET);
+		    UHCI_SUPPORTED_INTERRUPTS);
 	}
 
 	uint16_t status = pio_read_16(&registers->usbcmd);
@@ -169,17 +172,33 @@ int hc_init_mem_structures(hc_t *instance)
 	/* Init interrupt code */
 	instance->interrupt_code.cmds = instance->interrupt_commands;
 	{
+		/* Read status register */
 		instance->interrupt_commands[0].cmd = CMD_PIO_READ_16;
 		instance->interrupt_commands[0].dstarg = 1;
 		instance->interrupt_commands[0].addr =
 		    &instance->registers->usbsts;
 
-		instance->interrupt_commands[1].cmd = CMD_PIO_WRITE_16;
-		instance->interrupt_commands[1].value = 0x1f;
-		instance->interrupt_commands[1].addr =
+		/* Test whether we are the interrupt cause */
+		instance->interrupt_commands[1].cmd = CMD_BTEST;
+		instance->interrupt_commands[1].value =
+		    UHCI_SUPPORTED_INTERRUPTS;
+		instance->interrupt_commands[1].srcarg = 1;
+		instance->interrupt_commands[1].dstarg = 2;
+
+		/* Predicate cleaning and accepting */
+		instance->interrupt_commands[2].cmd = CMD_PREDICATE;
+		instance->interrupt_commands[2].value = 2;
+		instance->interrupt_commands[2].srcarg = 2;
+
+		/* Write clean status register */
+		instance->interrupt_commands[3].cmd = CMD_PIO_WRITE_A_16;
+		instance->interrupt_commands[3].srcarg = 1;
+		instance->interrupt_commands[3].addr =
 		    &instance->registers->usbsts;
 
-		instance->interrupt_commands[2].cmd = CMD_ACCEPT;
+		/* Accept interrupt */
+		instance->interrupt_commands[4].cmd = CMD_ACCEPT;
+
 		instance->interrupt_code.cmdcount = UHCI_NEEDED_IRQ_COMMANDS;
 	}
 
