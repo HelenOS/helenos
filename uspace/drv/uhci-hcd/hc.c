@@ -43,8 +43,10 @@
 
 #include "hc.h"
 
-#define UHCI_STATUS_ALLOW_INTERRUPTS \
+#define UHCI_INTR_ALLOW_INTERRUPTS \
     (UHCI_INTR_CRC | UHCI_INTR_COMPLETE | UHCI_INTR_SHORT_PACKET)
+#define UHCI_STATUS_USED_INTERRUPTS \
+    (UHCI_STATUS_INTERRUPT | UHCI_STATUS_ERROR_INTERRUPT)
 
 
 static int hc_init_transfer_lists(hc_t *instance);
@@ -138,7 +140,7 @@ void hc_init_hw(hc_t *instance)
 	if (instance->hw_interrupts) {
 		/* Enable all interrupts, but resume interrupt */
 		pio_write_16(&instance->registers->usbintr,
-		    UHCI_STATUS_ALLOW_INTERRUPTS);
+		    UHCI_INTR_ALLOW_INTERRUPTS);
 	}
 
 	uint16_t status = pio_read_16(&registers->usbcmd);
@@ -182,7 +184,7 @@ int hc_init_mem_structures(hc_t *instance)
 		/* Test whether we are the interrupt cause */
 		instance->interrupt_commands[1].cmd = CMD_BTEST;
 		instance->interrupt_commands[1].value =
-		    UHCI_STATUS_ALLOW_INTERRUPTS | UHCI_STATUS_NM_INTERRUPTS;
+		    UHCI_STATUS_USED_INTERRUPTS | UHCI_STATUS_NM_INTERRUPTS;
 		instance->interrupt_commands[1].srcarg = 1;
 		instance->interrupt_commands[1].dstarg = 2;
 
@@ -331,7 +333,6 @@ int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch)
 void hc_interrupt(hc_t *instance, uint16_t status)
 {
 	assert(instance);
-	usb_log_info("Got interrupt: %x.\n", status);
 	/* Lower 2 bits are transaction error and transaction complete */
 	if (status & (UHCI_STATUS_INTERRUPT | UHCI_STATUS_ERROR_INTERRUPT)) {
 		LIST_INITIALIZE(done);
