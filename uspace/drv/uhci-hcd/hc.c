@@ -43,8 +43,9 @@
 
 #include "hc.h"
 
-#define UHCI_SUPPORTED_INTERRUPTS \
+#define UHCI_STATUS_ALLOW_INTERRUPTS \
     (UHCI_INTR_CRC | UHCI_INTR_COMPLETE | UHCI_INTR_SHORT_PACKET)
+
 
 static int hc_init_transfer_lists(hc_t *instance);
 static int hc_init_mem_structures(hc_t *instance);
@@ -137,7 +138,7 @@ void hc_init_hw(hc_t *instance)
 	if (instance->hw_interrupts) {
 		/* Enable all interrupts, but resume interrupt */
 		pio_write_16(&instance->registers->usbintr,
-		    UHCI_SUPPORTED_INTERRUPTS);
+		    UHCI_STATUS_ALLOW_INTERRUPTS);
 	}
 
 	uint16_t status = pio_read_16(&registers->usbcmd);
@@ -181,7 +182,7 @@ int hc_init_mem_structures(hc_t *instance)
 		/* Test whether we are the interrupt cause */
 		instance->interrupt_commands[1].cmd = CMD_BTEST;
 		instance->interrupt_commands[1].value =
-		    UHCI_SUPPORTED_INTERRUPTS;
+		    UHCI_STATUS_ALLOW_INTERRUPTS | UHCI_STATUS_NM_INTERRUPTS;
 		instance->interrupt_commands[1].srcarg = 1;
 		instance->interrupt_commands[1].dstarg = 2;
 
@@ -214,9 +215,8 @@ int hc_init_mem_structures(hc_t *instance)
 	usb_log_debug("Initialized frame list at %p.\n", instance->frame_list);
 
 	/* Set all frames to point to the first queue head */
-	const uint32_t queue =
-	    LINK_POINTER_QH(addr_to_phys(
-	        instance->transfers_interrupt.queue_head));
+	const uint32_t queue = LINK_POINTER_QH(
+	        addr_to_phys(instance->transfers_interrupt.queue_head));
 
 	unsigned i = 0;
 	for(; i < UHCI_FRAME_LIST_COUNT; ++i) {
@@ -278,7 +278,7 @@ do { \
 	/*FSBR*/
 #ifdef FSBR
 	transfer_list_set_next(&instance->transfers_bulk_full,
-		&instance->transfers_control_full);
+	    &instance->transfers_control_full);
 #endif
 
 	/* Assign pointers to be used during scheduling */
@@ -331,6 +331,7 @@ int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch)
 void hc_interrupt(hc_t *instance, uint16_t status)
 {
 	assert(instance);
+	usb_log_info("Got interrupt: %x.\n", status);
 	/* Lower 2 bits are transaction error and transaction complete */
 	if (status & (UHCI_STATUS_INTERRUPT | UHCI_STATUS_ERROR_INTERRUPT)) {
 		LIST_INITIALIZE(done);
@@ -352,6 +353,9 @@ void hc_interrupt(hc_t *instance, uint16_t status)
 		}
 	}
 	/* Resume interrupts are not supported */
+	if (status & UHCI_STATUS_RESUME) {
+		usb_log_error("Resume interrupt!\n");
+	}
 
 	/* Bits 4 and 5 indicate hc error */
 	if (status & (UHCI_STATUS_PROCESS_ERROR | UHCI_STATUS_SYSTEM_ERROR)) {

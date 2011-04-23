@@ -68,6 +68,8 @@ typedef struct uhci_regs {
 #define UHCI_STATUS_RESUME (1 << 2)
 #define UHCI_STATUS_ERROR_INTERRUPT (1 << 1)
 #define UHCI_STATUS_INTERRUPT (1 << 0)
+#define UHCI_STATUS_NM_INTERRUPTS \
+    (UHCI_STATUS_PROCESS_ERROR | UHCI_STATUS_SYSTEM_ERROR)
 
 	/** Interrupt enabled registers */
 	uint16_t usbintr;
