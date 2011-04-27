@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2007 Jan Hudecek
- * Copyright (c) 2008 Martin Decky
+ * Copyright (c) 2011 Martin Decky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,47 +26,22 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genericproc
+/** @addtogroup libc
  * @{
  */
-/** @file tasklet.h
- * @brief Tasklets declarations
- */
 
-#ifndef KERN_TASKLET_H_
-#define KERN_TASKLET_H_
+#include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <stacktrace.h>
 
-#include <adt/list.h>
-
-/** Tasklet callback type */
-typedef void (* tasklet_callback_t)(void *arg);
-
-/** Tasklet state */
-typedef enum {
-	NotActive,
-	Scheduled,
-	InProgress,
-	Disabled
-} tasklet_state_t;
-
-/** Structure describing a tasklet */
-typedef struct tasklet_descriptor {
-	link_t link;
-	
-	/** Callback to call */
-	tasklet_callback_t callback;
-	
-	/** Argument passed to the callback */
-	void *arg;
-	
-	/** State of the tasklet */
-	tasklet_state_t state;
-} tasklet_descriptor_t;
-
-
-extern void tasklet_init(void);
-
-#endif
+void assert_abort(const char *cond, const char *file, unsigned int line)
+{
+	printf("Assertion failed (%s) in file \"%s\", line %u.\n",
+	    cond, file, line);
+	stacktrace_print();
+	abort();
+}
 
 /** @}
  */

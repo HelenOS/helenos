@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2007 Jan Hudecek
- * Copyright (c) 2008 Martin Decky
+ * Copyright (c) 2011 Jakub Jermar 
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,38 +26,23 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup genericproc
- * @{
- */
-/** @file tasklet.c
- *  @brief Tasklet implementation
- */
+#include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <malloc.h>
+#include "../tester.h"
 
-#include <proc/tasklet.h>
-#include <synch/spinlock.h>
-#include <mm/slab.h>
-#include <config.h>
-
-/** Spinlock protecting list of tasklets */
-SPINLOCK_INITIALIZE(tasklet_lock);
-
-/** Array of tasklet lists for every CPU */
-tasklet_descriptor_t **tasklet_list;
-
-void tasklet_init(void)
+const char *test_malloc2(void)
 {
-	unsigned int i;
-	
-	tasklet_list = malloc(sizeof(tasklet_descriptor_t *) * config.cpu_count, 0);
-	if (!tasklet_list)
-		panic("Error initializing tasklets.");
-	
-	for (i = 0; i < config.cpu_count; i++)
-		tasklet_list[i] = NULL;
-	
-	spinlock_initialize(&tasklet_lock, "tasklet_lock");
+	int cnt = 0;
+	char *p;
+
+	TPRINTF("Provoking the kernel into overcommitting memory to us...\n");
+	while ((p = malloc(1024 * 1024))) {
+		TPRINTF("%dM ", ++cnt);
+		*p = 'A';
+	}
+	TPRINTF("\nWas refused more memory as expected.\n");
+
+	return NULL;
 }
-
-
-/** @}
- */

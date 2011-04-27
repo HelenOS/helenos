@@ -121,6 +121,7 @@ GENERIC_SOURCES = \
 	generic/arg_parse.c \
 	generic/sort.c \
 	generic/stats.c \
+	generic/assert.c \
 	rtld/rtld.c \
 	rtld/elf_load.c \
 	rtld/dynamic.c \

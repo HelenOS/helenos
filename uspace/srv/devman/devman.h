@@ -87,7 +87,7 @@ typedef struct driver {
 	int state;
 	
 	/** Phone asociated with this driver. */
-	sysarg_t phone;
+	int phone;
 	/** Name of the device driver. */
 	char *name;
 	/** Path to the driver's binary. */
@@ -315,7 +315,6 @@ extern void add_device(int, driver_t *, dev_node_t *, dev_tree_t *);
 extern bool start_driver(driver_t *);
 
 extern driver_t *find_driver(driver_list_t *, const char *);
-extern void set_driver_phone(driver_t *, sysarg_t);
 extern void initialize_running_driver(driver_t *, dev_tree_t *);
 
 extern void init_driver(driver_t *);

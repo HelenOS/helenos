@@ -225,9 +225,9 @@ GENERIC_SOURCES = \
 	generic/src/proc/thread.c \
 	generic/src/proc/task.c \
 	generic/src/proc/the.c \
-	generic/src/proc/tasklet.c \
 	generic/src/syscall/syscall.c \
 	generic/src/syscall/copy.c \
+	generic/src/mm/reserve.c \
 	generic/src/mm/buddy.c \
 	generic/src/mm/frame.c \
 	generic/src/mm/page.c \
@@ -381,7 +381,6 @@ ifeq ($(CONFIG_TRACE),y)
 		generic/src/main/main.c \
 		generic/src/main/kinit.c \
 		generic/src/proc/the.c \
-		generic/src/proc/tasklet.c \
 		generic/src/mm/frame.c \
 		generic/src/mm/page.c \
 		generic/src/mm/tlb.c \

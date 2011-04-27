@@ -610,7 +610,7 @@ void vfs_open(ipc_callid_t rid, ipc_call_t *request)
 
 void vfs_open_node(ipc_callid_t rid, ipc_call_t *request)
 {
-	/* FIXME: check for sanity of the supplied fs, dev and index */
+	// FIXME: check for sanity of the supplied fs, dev and index
 	
 	/*
 	 * The interface is open_node(fs, dev, index, oflag).

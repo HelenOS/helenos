@@ -35,7 +35,12 @@
 #include <errno.h>
 #include <fibril.h>
 
-int _errno;
+static fibril_local int fibril_errno;
+
+int *__errno(void)
+{
+	return &fibril_errno;
+}
 
 /** @}
  */

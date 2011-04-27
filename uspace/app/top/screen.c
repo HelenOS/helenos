@@ -253,18 +253,18 @@ static inline void print_physmem_info(data_t *data)
 	uint64_t unavail;
 	uint64_t used;
 	uint64_t free;
-	char total_suffix;
-	char unavail_suffix;
-	char used_suffix;
-	char free_suffix;
+	const char *total_suffix;
+	const char *unavail_suffix;
+	const char *used_suffix;
+	const char *free_suffix;
 	
-	order_suffix(data->physmem->total, &total, &total_suffix);
-	order_suffix(data->physmem->unavail, &unavail, &unavail_suffix);
-	order_suffix(data->physmem->used, &used, &used_suffix);
-	order_suffix(data->physmem->free, &free, &free_suffix);
+	bin_order_suffix(data->physmem->total, &total, &total_suffix, false);
+	bin_order_suffix(data->physmem->unavail, &unavail, &unavail_suffix, false);
+	bin_order_suffix(data->physmem->used, &used, &used_suffix, false);
+	bin_order_suffix(data->physmem->free, &free, &free_suffix, false);
 	
-	printf("memory: %" PRIu64 "%c total, %" PRIu64 "%c unavail, %"
-	    PRIu64 "%c used, %" PRIu64 "%c free", total, total_suffix,
+	printf("memory: %" PRIu64 "%s total, %" PRIu64 "%s unavail, %"
+	    PRIu64 "%s used, %" PRIu64 "%s free", total, total_suffix,
 	    unavail, unavail_suffix, used, used_suffix, free, free_suffix);
 	screen_newline();
 }
@@ -294,17 +294,17 @@ static inline void print_tasks(data_t *data)
 		perc_task_t *perc = data->tasks_perc + data->tasks_map[i];
 		
 		uint64_t resmem;
-		char resmem_suffix;
-		order_suffix(task->resmem, &resmem, &resmem_suffix);
+		const char *resmem_suffix;
+		bin_order_suffix(task->resmem, &resmem, &resmem_suffix, true);
 		
 		uint64_t virtmem;
-		char virtmem_suffix;
-		order_suffix(task->virtmem, &virtmem, &virtmem_suffix);
+		const char *virtmem_suffix;
+		bin_order_suffix(task->virtmem, &virtmem, &virtmem_suffix, true);
 		
-		printf("%-8" PRIu64 " %7zu %9" PRIu64 "%c ",
+		printf("%-8" PRIu64 " %7zu %7" PRIu64 "%s ",
 		    task->task_id, task->threads, resmem, resmem_suffix);
 		print_percent(perc->resmem, 2);
-		printf(" %8" PRIu64 "%c ", virtmem, virtmem_suffix);
+		printf(" %6" PRIu64 "%s ", virtmem, virtmem_suffix);
 		print_percent(perc->virtmem, 2);
 		puts(" ");
 		print_percent(perc->ucycles, 2);

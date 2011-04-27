@@ -68,15 +68,21 @@ static void list_tasks(void)
 	
 	size_t i;
 	for (i = 0; i < count; i++) {
-		uint64_t resmem, virtmem, ucycles, kcycles;
-		char resmem_suffix, virtmem_suffix, usuffix, ksuffix;
+		uint64_t resmem;
+		uint64_t virtmem;
+		uint64_t ucycles;
+		uint64_t kcycles;
+		const char *resmem_suffix;
+		const char *virtmem_suffix;
+		char usuffix;
+		char ksuffix;
 		
-		order_suffix(stats_tasks[i].resmem, &resmem, &resmem_suffix);
-		order_suffix(stats_tasks[i].virtmem, &virtmem, &virtmem_suffix);
+		bin_order_suffix(stats_tasks[i].resmem, &resmem, &resmem_suffix, true);
+		bin_order_suffix(stats_tasks[i].virtmem, &virtmem, &virtmem_suffix, true);
 		order_suffix(stats_tasks[i].ucycles, &ucycles, &usuffix);
 		order_suffix(stats_tasks[i].kcycles, &kcycles, &ksuffix);
 		
-		printf("%-8" PRIu64 " %7zu %9" PRIu64 "%c %8" PRIu64 "%c"
+		printf("%-8" PRIu64 " %7zu %7" PRIu64 "%s %6" PRIu64 "%s"
 		    " %8" PRIu64 "%c %8" PRIu64 "%c %s\n",
 		    stats_tasks[i].task_id, stats_tasks[i].threads,
 		    resmem, resmem_suffix, virtmem, virtmem_suffix,
@@ -264,7 +270,7 @@ int main(int argc, char *argv[])
 		
 		/* Threads */
 		if ((off = arg_parse_short_long(argv[i], "-t", "--task=")) != -1) {
-			/* TODO: Support for 64b range */
+			// TODO: Support for 64b range
 			int tmp;
 			int ret = arg_parse_int(argc, argv, &i, &tmp, off);
 			if (ret != EOK) {

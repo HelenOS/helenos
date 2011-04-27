@@ -10,8 +10,8 @@ SECTIONS {
 		*(.sbss);
 		*(.rodata);
 		*(.rodata.*);
-		*(.data);               /* initialized data */
-		_got = . ;
+		*(.data .data.*);       /* initialized data */
+		__gp = . ;
 		*(.got .got.*);
 		*(.bss);                /* uninitialized static variables */
 		*(COMMON);
@@ -19,7 +19,6 @@ SECTIONS {
 	}
 
 	/DISCARD/ : {
-		*(.comment);
-		*(.note*);
+		*(.*);
 	}
 }
