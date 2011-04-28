@@ -33,7 +33,6 @@
  * @brief
  */
 #include <usb/classes/classes.h>
-#include <usbvirt/hub.h>
 #include <usbvirt/device.h>
 #include <assert.h>
 #include <errno.h>
@@ -152,8 +151,6 @@ int virthub_init(usbvirt_device_t *dev)
 	}
 	dev->ops = &hub_ops;
 	dev->descriptors = &descriptors;
-	dev->lib_debug_level = 0;
-	dev->lib_debug_enabled_tags = USBVIRT_DEBUGTAG_ALL;
 
 	hub_t *hub = malloc(sizeof(hub_t));
 	if (hub == NULL) {
@@ -163,15 +160,7 @@ int virthub_init(usbvirt_device_t *dev)
 	hub_init(hub);
 	dev->device_data = hub;
 
-	int rc;
-#ifdef STANDALONE_HUB
-	dev->name = "hub";
-	rc = usbvirt_connect(dev);
-#else
-	rc = usbvirt_connect_local(dev);
-#endif
-
-	return rc;
+	return EOK;
 }
 
 /** Connect a device to a virtual hub.
@@ -180,7 +169,7 @@ int virthub_init(usbvirt_device_t *dev)
  * @param conn Device to be connected.
  * @return Port device was connected to.
  */
-int virthub_connect_device(usbvirt_device_t *dev, virtdev_connection_t *conn)
+int virthub_connect_device(usbvirt_device_t *dev, vhc_virtdev_t *conn)
 {
 	assert(dev != NULL);
 	assert(conn != NULL);
@@ -200,7 +189,7 @@ int virthub_connect_device(usbvirt_device_t *dev, virtdev_connection_t *conn)
  * @param conn Device to be disconnected.
  * @return Error code.
  */
-int virthub_disconnect_device(usbvirt_device_t *dev, virtdev_connection_t *conn)
+int virthub_disconnect_device(usbvirt_device_t *dev, vhc_virtdev_t *conn)
 {
 	assert(dev != NULL);
 	assert(conn != NULL);
@@ -211,7 +200,7 @@ int virthub_disconnect_device(usbvirt_device_t *dev, virtdev_connection_t *conn)
 	hub_disconnect_device(hub, conn);
 	hub_release(hub);
 
-	return ENOTSUP;
+	return EOK;
 }
 
 /** Whether trafic is propagated to given device.
@@ -220,7 +209,7 @@ int virthub_disconnect_device(usbvirt_device_t *dev, virtdev_connection_t *conn)
  * @param conn Connected device.
  * @return Whether port is signalling to the device.
  */
-bool virthub_is_device_enabled(usbvirt_device_t *dev, virtdev_connection_t *conn)
+bool virthub_is_device_enabled(usbvirt_device_t *dev, vhc_virtdev_t *conn)
 {
 	assert(dev != NULL);
 	assert(conn != NULL);

@@ -30,74 +30,36 @@
  * @{
  */
 /** @file
- * @brief Debugging support.
+ * @brief Virtual USB device.
  */
-#include <stdio.h>
+#ifndef LIBUSBVIRT_IPC_H_
+#define LIBUSBVIRT_IPC_H_
+
+#include <ipc/common.h>
+#include <usb/usb.h>
 #include <bool.h>
 
-#include "private.h"
+typedef enum {
+	IPC_M_USBVIRT_GET_NAME = IPC_FIRST_USER_METHOD + 80,
+	IPC_M_USBVIRT_CONTROL_READ,
+	IPC_M_USBVIRT_CONTROL_WRITE,
+	IPC_M_USBVIRT_INTERRUPT_IN,
+	IPC_M_USBVIRT_INTERRUPT_OUT
+} usbvirt_ipc_t;
 
+int usbvirt_ipc_send_control_read(int, usb_endpoint_t, void *, size_t,
+    void *, size_t, size_t *);
+int usbvirt_ipc_send_control_write(int, usb_endpoint_t, void *, size_t,
+    void *, size_t);
+int usbvirt_ipc_send_data_in(int, usb_endpoint_t, usb_transfer_type_t,
+    void *, size_t, size_t *);
+int usbvirt_ipc_send_data_out(int, usb_endpoint_t, usb_transfer_type_t,
+    void *, size_t);
 
-static void debug_print(int level, uint8_t tag,
-    int current_level, uint8_t enabled_tags,
-    const char *format, va_list args)
-{
-	if (level > current_level) {
-		return;
-	}
-	
-	if ((tag & enabled_tags) == 0) {
-		return;
-	}
-	
-	bool print_prefix = true;
-	
-	if ((format[0] == '%') && (format[1] == 'M')) {
-		format += 2;
-		print_prefix = false;
-	}
-	
-	if (print_prefix) {
-		printf("[vusb]: ");
-		while (--level > 0) {
-			printf(" ");
-		}
-	}
-	
-	vprintf(format, args);
-	
-	if (print_prefix) {
-		printf("\n");
-	}
-}
+bool usbvirt_is_usbvirt_method(sysarg_t);
+bool usbvirt_ipc_handle_call(usbvirt_device_t *, ipc_callid_t, ipc_call_t *);
 
-
-void user_debug(usbvirt_device_t *device, int level, uint8_t tag,
-    const char *format, ...)
-{
-	va_list args;
-	va_start(args, format);
-	
-	debug_print(level, tag,
-	    device->debug_level, device->debug_enabled_tags,
-	    format, args);
-	
-	va_end(args);
-}
-
-void lib_debug(usbvirt_device_t *device, int level, uint8_t tag,
-    const char *format, ...)
-{
-	va_list args;
-	va_start(args, format);
-	
-	debug_print(level, tag,
-	    device->lib_debug_level, device->lib_debug_enabled_tags,
-	    format, args);
-	
-	va_end(args);
-}
-
+#endif
 /**
  * @}
  */
