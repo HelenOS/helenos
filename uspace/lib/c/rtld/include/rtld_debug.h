@@ -35,12 +35,6 @@
 #ifndef RTLD_DEBUG_H_
 #define RTLD_DEBUG_H_
 
-#include <sys/types.h>
-#include <adt/list.h>
-
-#include <dynamic.h>
-#include <module.h>
-
 /* Define to enable debugging mode. */
 #undef RTLD_DEBUG
 
