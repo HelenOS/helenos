@@ -40,6 +40,7 @@
 #include <elf_dyn.h>
 #include <dynamic.h>
 #include <rtld.h>
+#include <rtld_debug.h>
 
 void dynamic_parse(elf_dyn_t *dyn_ptr, size_t bias, dyn_info_t *info)
 {

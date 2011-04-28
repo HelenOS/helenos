@@ -40,6 +40,7 @@
 #include <elf_dyn.h>
 #include <symbol.h>
 #include <rtld.h>
+#include <rtld_debug.h>
 
 #include <rtld_arch.h>
 

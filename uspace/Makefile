@@ -34,7 +34,6 @@
 
 DIRS = \
 	app/bdsh \
-	app/dload \
 	app/dltest2 \
 	app/edit \
 	app/getterm \

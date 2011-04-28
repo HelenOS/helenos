@@ -42,6 +42,7 @@
 #include <loader/pcb.h>
 
 #include <rtld.h>
+#include <rtld_debug.h>
 #include <dynamic.h>
 #include <elf_load.h>
 #include <rtld_arch.h>
@@ -97,6 +98,8 @@ module_t *module_find(const char *name)
 	module_t *m;
 	const char *p, *soname;
 
+	DPRINTF("module_find('%s')\n", name);
+
 	/*
 	 * If name contains slashes, treat it as a pathname and
 	 * construct soname by chopping off the path. Otherwise
@@ -106,7 +109,9 @@ module_t *module_find(const char *name)
 	soname = p ? (p + 1) : name;
 
 	/* Traverse list of all modules. Not extremely fast, but simple */
+	DPRINTF("head = %p\n", head);
 	for (cur = head->next; cur != head; cur = cur->next) {
+		DPRINTF("cur = %p\n", cur);
 		m = list_get_instance(cur, module_t, modules_link);
 		if (str_cmp(m->dyn.soname, soname) == 0) {
 			return m; /* Found */
@@ -184,6 +189,8 @@ void module_load_deps(module_t *m)
 	char *dep_name;
 	module_t *dm;
 	size_t n, i;
+
+	DPRINTF("module_load_deps('%s')\n", m->dyn.soname);
 
 	/* Count direct dependencies */
 	

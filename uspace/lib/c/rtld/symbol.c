@@ -39,6 +39,7 @@
 //#include <string.h>
 
 #include <rtld.h>
+#include <rtld_debug.h>
 #include <symbol.h>
 #include <elf.h>
 

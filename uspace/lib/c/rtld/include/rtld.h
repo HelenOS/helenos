@@ -41,15 +41,6 @@
 #include <dynamic.h>
 #include <module.h>
 
-/* Define to enable debugging mode. */
-#undef RTLD_DEBUG
-
-#ifdef RTLD_DEBUG
-	#define DPRINTF(format, ...) printf(format, ##__VA_ARGS__)
-#else
-	#define DPRINTF(format, ...) if (0) printf(format, ##__VA_ARGS__)
-#endif
-
 typedef struct {
 	elf_dyn_t *rtld_dynamic;
 	module_t rtld;

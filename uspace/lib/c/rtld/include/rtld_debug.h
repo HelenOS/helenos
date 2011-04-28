@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008 Jiri Svoboda
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,25 +26,31 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup rtld rtld
- * @brief
+/** @addtogroup generic	
  * @{
- */ 
-/**
- * @file
+ */
+/** @file
  */
 
-#include <loader/pcb.h>
-#include "start.h"
+#ifndef RTLD_DEBUG_H_
+#define RTLD_DEBUG_H_
 
-void program_run(void *entry, pcb_t *pcb)
-{
-	asm (
-		"mov %%eax, %%edi\n"
-		"jmp *%0\n"
-		:: "m" (entry), "a" (pcb)
-	);
-}
+#include <sys/types.h>
+#include <adt/list.h>
+
+#include <dynamic.h>
+#include <module.h>
+
+/* Define to enable debugging mode. */
+#undef RTLD_DEBUG
+
+#ifdef RTLD_DEBUG
+	#define DPRINTF(format, ...) printf(format, ##__VA_ARGS__)
+#else
+	#define DPRINTF(format, ...) if (0) printf(format, ##__VA_ARGS__)
+#endif
+
+#endif
 
 /** @}
  */

@@ -40,7 +40,7 @@ CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
 LINKER_SCRIPT = arch/$(UARCH)/_link.ld
 EXTRA_CLEAN = $(LINKER_SCRIPT)
 
-EXTRA_CFLAGS = -Iinclude
+EXTRA_CFLAGS = -Iinclude -I../../lib/c/rtld/include
 
 BINARY = loader
 
