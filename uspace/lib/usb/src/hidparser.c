@@ -174,7 +174,7 @@ int usb_hid_report_append_fields(usb_hid_report_t *report, usb_hid_report_item_t
 
 		if(report_item->usages_count > 0 && ((report_item->usage_minimum == 0) && (report_item->usage_maximum == 0))) {
 			uint32_t usage;
-			if(report_item->type == USB_HID_REPORT_TYPE_INPUT) {
+			if(report_item->type != USB_HID_REPORT_TYPE_INPUT) {
 				if(i < report_item->usages_count){
 					usage = report_item->usages[i];
 				}
@@ -192,9 +192,9 @@ int usb_hid_report_append_fields(usb_hid_report_t *report, usb_hid_report_item_t
 			}
 
 						
-			if((usage & 0xFF00) != 0){
+			if((usage & 0xFFFF0000) != 0){
 				field->usage_page = (usage >> 16);					
-				field->usage = (usage & 0xFF);
+				field->usage = (usage & 0xFFFF);
 			}
 			else {
 				field->usage = usage;
