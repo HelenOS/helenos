@@ -30,7 +30,7 @@ USPACE_PREFIX = ../../../..
 MIPDIR = ../../mip
 ARCHDIR = ../../arch/$(PLATFORM)
 OSDIR = ../../os/helenos
-EXTRA_CFLAGS = -I$(MIPDIR) -I$(ARCHDIR) -I$(OSDIR) -w -Werror-implicit-function-declaration
+EXTRA_CFLAGS = -I$(MIPDIR) -I$(ARCHDIR) -I$(OSDIR) -w
 DEFS = -Dmach_$(PLATFORM) -D__helenos__
 BINARY = cc
 
