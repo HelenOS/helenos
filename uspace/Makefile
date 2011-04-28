@@ -51,6 +51,7 @@ DIRS = \
 	app/top \
 	app/usbinfo \
 	app/virtusbkbd \
+	app/vuhid \
 	app/netecho \
 	app/nettest1 \
 	app/nettest2 \
