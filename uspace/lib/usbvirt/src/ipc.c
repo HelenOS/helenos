@@ -159,9 +159,6 @@ static void ipc_interrupt_in(usbvirt_device_t *dev,
 	usb_endpoint_t endpoint = IPC_GET_ARG1(*icall);
 	usb_transfer_type_t transfer_type = IPC_GET_ARG2(*icall);
 
-	usb_log_debug("ipc_interrupt_in(.%d, %s)\n",
-	    endpoint, usb_str_transfer_type_short(transfer_type));
-
 	int rc;
 
 	size_t data_len = 0;
@@ -197,8 +194,25 @@ static void ipc_interrupt_in(usbvirt_device_t *dev,
 static void ipc_interrupt_out(usbvirt_device_t *dev,
     ipc_callid_t iid, ipc_call_t *icall)
 {
-	printf("ipc_interrupt_out()\n");
-	async_answer_0(iid, ENOTSUP);
+	usb_endpoint_t endpoint = IPC_GET_ARG1(*icall);
+	usb_transfer_type_t transfer_type = IPC_GET_ARG2(*icall);
+
+	void *data_buffer = NULL;
+	size_t data_buffer_size = 0;
+
+	int rc = async_data_write_accept(&data_buffer, false,
+	    1, 1024, 0, &data_buffer_size);
+	if (rc != EOK) {
+		async_answer_0(iid, rc);
+		return;
+	}
+
+	rc = usbvirt_data_out(dev, transfer_type, endpoint,
+	    data_buffer, data_buffer_size);
+
+	async_answer_0(iid, rc);
+
+	free(data_buffer);
 }
 
 
@@ -416,7 +430,23 @@ int usbvirt_ipc_send_data_in(int phone, usb_endpoint_t ep,
 int usbvirt_ipc_send_data_out(int phone, usb_endpoint_t ep,
     usb_transfer_type_t tr_type, void *data, size_t data_size)
 {
-	return ENOTSUP;
+	aid_t opening_request = async_send_2(phone,
+	    IPC_M_USBVIRT_INTERRUPT_OUT, ep, tr_type, NULL);
+	if (opening_request == 0) {
+		return ENOMEM;
+	}
+
+	int rc = async_data_write_start(phone,
+	    data, data_size);
+	if (rc != EOK) {
+		async_wait_for(opening_request, NULL);
+		return rc;
+	}
+
+	sysarg_t opening_request_rc;
+	async_wait_for(opening_request, &opening_request_rc);
+
+	return (int) opening_request_rc;
 }
 
 
