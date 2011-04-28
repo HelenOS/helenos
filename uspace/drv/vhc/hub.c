@@ -33,7 +33,6 @@
  * @brief Virtual USB hub.
  */
 #include <usb/classes/classes.h>
-#include <usbvirt/hub.h>
 #include <usbvirt/device.h>
 #include <errno.h>
 #include <str_error.h>
@@ -44,11 +43,16 @@
 #include <usb/recognise.h>
 
 #include "hub.h"
-#include "hub/virthub.h"
+//#include "hub/virthub.h"
 #include "vhcd.h"
 #include "conn.h"
 
-usbvirt_device_t virtual_hub_device;
+usbvirt_device_t virtual_hub_device = {
+	.name = "root hub",
+	.ops = &hub_ops,
+	.address = 0
+};
+
 static ddf_dev_ops_t rh_ops = {
 	.interfaces[USB_DEV_IFACE] = &rh_usb_iface,
 };

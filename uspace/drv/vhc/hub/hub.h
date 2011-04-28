@@ -71,6 +71,8 @@ typedef enum {
 	/* HUB_STATUS_C_ = (1 << ), */
 } hub_status_change_t;
 
+typedef struct hub hub_t;
+
 /** Hub port information. */
 typedef struct {
 	/** Custom pointer to connected device. */
@@ -81,17 +83,21 @@ typedef struct {
 	hub_port_state_t state;
 	/** Status change bitmap. */
 	uint16_t status_change;
+	/** Containing hub. */
+	hub_t *hub;
 } hub_port_t;
 
 /** Hub device type. */
-typedef struct {
+struct hub {
 	/** Hub ports. */
 	hub_port_t ports[HUB_PORT_COUNT];
 	/** Custom hub data. */
 	void *custom_data;
 	/** Access guard to the whole hub. */
 	fibril_mutex_t guard;
-} hub_t;
+	/** Last value of status change bitmap. */
+	bool signal_changes;
+};
 
 void hub_init(hub_t *);
 size_t hub_connect_device(hub_t *, void *);

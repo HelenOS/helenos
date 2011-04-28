@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,36 +26,91 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup usbvirtkbd
+/** @addtogroup usbvirthid
  * @{
  */
 /**
  * @file
- * @brief Keyboard configuration.
+ *
  */
 #include <errno.h>
+#include <usb/debug.h>
 #include <usb/descriptor.h>
 #include "stdreq.h"
-#include "kbdconfig.h"
+#include "virthid.h"
+
+#define VUHID_DATA(vuhid, device) \
+	vuhid_data_t *vuhid = device->device_data
 
 int req_get_descriptor(usbvirt_device_t *device,
     const usb_device_request_setup_packet_t *setup_packet,
     uint8_t *data, size_t *act_size)
 {
-	if (setup_packet->value_high == USB_DESCTYPE_HID_REPORT) {
-		/*
-		 * For simplicity, always return the same
-		 * report descriptor.
-		 */
-		usbvirt_control_reply_helper(setup_packet,
-		    data, act_size,
-		    report_descriptor, report_descriptor_size);
+	VUHID_DATA(vuhid, device);
 
-		return EOK;
+	if (setup_packet->value_high == USB_DESCTYPE_HID_REPORT) {
+		vuhid_interface_t *iface
+		    = vuhid->interface_mapping[setup_packet->index];
+		if (iface == NULL) {
+			return EFORWARD;
+		}
+		if (iface->report_descriptor != NULL) {
+			usbvirt_control_reply_helper(setup_packet,
+			    data, act_size,
+			    iface->report_descriptor,
+			    iface->report_descriptor_size);
+			return EOK;
+		} else {
+			return ENOENT;
+		}
 	}
 	
 	/* Let the framework handle all the rest. */
 	return EFORWARD;
+}
+
+int req_set_protocol(usbvirt_device_t *device,
+    const usb_device_request_setup_packet_t *setup_packet,
+    uint8_t *data, size_t *act_size)
+{
+	VUHID_DATA(vuhid, device);
+
+	size_t iface_index = setup_packet->index;
+	int protocol = setup_packet->value;
+
+	// FIXME - check ranges
+	vuhid_interface_t *iface = vuhid->interface_mapping[iface_index];
+	if (iface == NULL) {
+		return ENOENT;
+	}
+	iface->set_protocol = protocol;
+
+	return EOK;
+}
+
+int req_set_report(usbvirt_device_t *device,
+    const usb_device_request_setup_packet_t *setup_packet,
+    uint8_t *data, size_t *act_size)
+{
+	VUHID_DATA(vuhid, device);
+
+	size_t iface_index = setup_packet->index;
+
+	// FIXME - check ranges
+	vuhid_interface_t *iface = vuhid->interface_mapping[iface_index];
+	if (iface == NULL) {
+		return ENOENT;
+	}
+
+	size_t data_length = setup_packet->length;
+	if (iface->on_data_out == NULL) {
+		return ENOTSUP;
+	}
+
+	/* SET_REPORT is translated to data out */
+	int rc = iface->on_data_out(iface, data, data_length);
+
+	return rc;
 }
 
 

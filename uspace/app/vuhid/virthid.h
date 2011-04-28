@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,64 +26,63 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbvhc
+/** @addtogroup usbvirthid
  * @{
  */
 /** @file
- * @brief Virtual HC.
+ *
  */
-#ifndef VHCD_HC_H_
-#define VHCD_HC_H_
+#ifndef VUHID_VIRTHID_H_
+#define VUHID_VIRTHID_H_
 
 #include <usb/usb.h>
-#include <usbvirt/hub.h>
+#include <usbvirt/device.h>
 
-/** Callback after transaction is sent to USB.
- *
- * @param buffer Transaction data buffer.
- * @param size Transaction data size.
- * @param outcome Transaction outcome.
- * @param arg Custom argument.
- */
-typedef void (*hc_transaction_done_callback_t)(void *buffer, size_t size,
-    int outcome, void *arg);
+#define VUHID_ENDPOINT_MAX USB11_ENDPOINT_MAX
+#define VUHID_INTERFACE_MAX 8
 
-/** Pending transaction details. */
+typedef struct vuhid_interface vuhid_interface_t;
+
+struct vuhid_interface {
+	const char *name;
+	const char *id;
+	int usb_subclass;
+	int usb_protocol;
+
+	uint8_t *report_descriptor;
+	size_t report_descriptor_size;
+
+	size_t in_data_size;
+	size_t out_data_size;
+
+	int (*on_data_in)(vuhid_interface_t *, void *, size_t, size_t *);
+	int (*on_data_out)(vuhid_interface_t *, void *, size_t);
+	void (*live)(vuhid_interface_t *);
+
+	int set_protocol;
+
+	void *interface_data;
+};
+
 typedef struct {
-	/** Linked-list link. */
-	link_t link;
-	/** Transaction type. */
-	usbvirt_transaction_type_t type;
-	/** Transfer type. */
-	usb_transfer_type_t transfer_type;
-	/** Device address. */
-	usb_target_t target;
-	/** Direction of the transaction. */
-	usb_direction_t direction;
-	/** Transaction data buffer. */
-	void * buffer;
-	/** Transaction data length. */
-	size_t len;
-	/** Data length actually transfered. */
-	size_t actual_len;
-	/** Callback after transaction is done. */
-	hc_transaction_done_callback_t callback;
-	/** Argument to the callback. */
-	void * callback_arg;
-} transaction_t;
+	vuhid_interface_t *in_endpoints_mapping[VUHID_ENDPOINT_MAX];
+	size_t in_endpoint_first_free;
+	vuhid_interface_t *out_endpoints_mapping[VUHID_ENDPOINT_MAX];
+	size_t out_endpoint_first_free;
+	vuhid_interface_t *interface_mapping[VUHID_INTERFACE_MAX];
+} vuhid_data_t;
 
-void hc_manager(void);
+typedef struct {
+	uint8_t length;
+	uint8_t type;
+	uint16_t hid_spec_release;
+	uint8_t country_code;
+	uint8_t descriptor_count;
+	uint8_t descriptor1_type;
+	uint16_t descriptor1_length;
+} __attribute__ ((packed)) hid_descriptor_t;
 
-void hc_add_transaction_to_device(bool setup,
-    usb_target_t target, usb_transfer_type_t transfer_type,
-    void * buffer, size_t len,
-    hc_transaction_done_callback_t callback, void * arg);
-
-void hc_add_transaction_from_device(
-    usb_target_t target, usb_transfer_type_t transfer_type,
-    void * buffer, size_t len,
-    hc_transaction_done_callback_t callback, void * arg);
-
+int add_interface_by_id(vuhid_interface_t **, const char *, usbvirt_device_t *);
 
 #endif
 /**

@@ -32,35 +32,32 @@
 /** @file
  * @brief Virtual USB device.
  */
-#ifndef LIBUSBVIRT_HUB_H_
-#define LIBUSBVIRT_HUB_H_
+#ifndef LIBUSBVIRT_IPC_H_
+#define LIBUSBVIRT_IPC_H_
 
-#include "device.h"
+#include <ipc/common.h>
+#include <usb/usb.h>
+#include <bool.h>
 
-/** USB transaction type.
- * This types does not correspond directly to types in USB specification,
- * as actually DATA transactions are marked with these types to identify
- * their direction (and tag).
- */
 typedef enum {
-	USBVIRT_TRANSACTION_SETUP,
-	USBVIRT_TRANSACTION_IN,
-	USBVIRT_TRANSACTION_OUT
-} usbvirt_transaction_type_t;
+	IPC_M_USBVIRT_GET_NAME = IPC_FIRST_USER_METHOD + 80,
+	IPC_M_USBVIRT_CONTROL_READ,
+	IPC_M_USBVIRT_CONTROL_WRITE,
+	IPC_M_USBVIRT_INTERRUPT_IN,
+	IPC_M_USBVIRT_INTERRUPT_OUT
+} usbvirt_ipc_t;
 
-const char *usbvirt_str_transaction_type(usbvirt_transaction_type_t type);
+int usbvirt_ipc_send_control_read(int, usb_endpoint_t, void *, size_t,
+    void *, size_t, size_t *);
+int usbvirt_ipc_send_control_write(int, usb_endpoint_t, void *, size_t,
+    void *, size_t);
+int usbvirt_ipc_send_data_in(int, usb_endpoint_t, usb_transfer_type_t,
+    void *, size_t, size_t *);
+int usbvirt_ipc_send_data_out(int, usb_endpoint_t, usb_transfer_type_t,
+    void *, size_t);
 
-/** Telephony methods of virtual devices. */
-typedef enum {
-	IPC_M_USBVIRT_GET_NAME = IPC_FIRST_USER_METHOD,
-	IPC_M_USBVIRT_TRANSACTION_SETUP,
-	IPC_M_USBVIRT_TRANSACTION_OUT,
-	IPC_M_USBVIRT_TRANSACTION_IN,
-} usbvirt_device_method_t;
-
-int usbvirt_connect(usbvirt_device_t *);
-int usbvirt_connect_local(usbvirt_device_t *);
-int usbvirt_disconnect(usbvirt_device_t *dev);
+bool usbvirt_is_usbvirt_method(sysarg_t);
+bool usbvirt_ipc_handle_call(usbvirt_device_t *, ipc_callid_t, ipc_call_t *);
 
 #endif
 /**
