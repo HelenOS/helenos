@@ -27,36 +27,28 @@
 #
 
 USPACE_PREFIX = ../..
-# acronym for virtual USB hub
+# acronym for virtual USB human input device
 # (it is really annoying to write long names)
 BINARY = vuh
 
-LIBS = $(LIBUSB_PREFIX)/libusb.a $(LIBUSBVIRT_PREFIX)/libusbvirt.a
-EXTRA_CFLAGS = -DSTANDALONE_HUB \
-	-DHUB_PORT_COUNT=10 \
-	-I$(LIBUSB_PREFIX)/include -I$(LIBUSBVIRT_PREFIX)/include -I$(LIBDRV_PREFIX)/include
+LIBS = \
+	$(LIBUSBVIRT_PREFIX)/libusbvirt.a \
+	$(LIBUSB_PREFIX)/libusb.a
+EXTRA_CFLAGS = \
+	-I$(LIBUSB_PREFIX)/include \
+	-I$(LIBUSBVIRT_PREFIX)/include \
+	-I$(LIBDRV_PREFIX)/include
+
+
+SOURCES_INTERFACES = \
+	hids/bootkbd.c
 
 SOURCES = \
 	main.c \
-	$(STOLEN_VHC_SOURCES)
-
-STOLEN_VHC_SOURCES = \
-	vhc_hub/hub.c \
-	vhc_hub/virthub.c \
-	vhc_hub/virthubops.c 
-STOLEN_VHC_HEADERS = \
-	vhc_hub/hub.h \
-	vhc_hub/virthub.h
-
-PRE_DEPEND = $(STOLEN_VHC_SOURCES) $(STOLEN_VHC_HEADERS)
-
-EXTRA_CLEAN = $(STOLEN_VHC_SOURCES) $(STOLEN_VHC_HEADERS)
-
-HUB_IN_VHC = $(USPACE_PREFIX)/drv/vhc/hub
+	device.c \
+	ifaces.c \
+	stdreq.c \
+	$(SOURCES_INTERFACES)
+	
 
 include $(USPACE_PREFIX)/Makefile.common
-
-vhc_hub/%.h: $(HUB_IN_VHC)/%.h
-	ln -sfn ../$(HUB_IN_VHC)/$*.h $@
-vhc_hub/%.c: $(HUB_IN_VHC)/%.c
-	ln -sfn ../$(HUB_IN_VHC)/$*.c $@

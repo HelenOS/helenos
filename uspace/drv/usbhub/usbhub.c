@@ -255,7 +255,7 @@ static int usb_hub_process_hub_specific_info(usb_hub_info_t * hub_info) {
 		usb_log_debug("is_power_switched\n");
 		
 		for (port = 1; port <= hub_info->port_count; ++port) {
-			usb_log_debug("powering port %d\n",port);
+			usb_log_debug("Powering port %zu.\n",port);
 			opResult = usb_hub_set_port_feature(hub_info->control_pipe,
 			    port, USB_HUB_FEATURE_PORT_POWER);
 			if (opResult != EOK) {

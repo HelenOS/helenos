@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,7 +30,7 @@
  * @{
  */ 
 /** @file
- * @brief Virtual host controller driver.
+ * Virtual host controller.
  */
 
 #include <devmap.h>
@@ -47,8 +47,6 @@
 #include <usb/ddfiface.h>
 #include <usb_iface.h>
 #include "vhcd.h"
-#include "hc.h"
-#include "devices.h"
 #include "hub.h"
 #include "conn.h"
 
@@ -64,41 +62,62 @@ static int vhc_add_device(ddf_dev_t *dev)
 	static int vhc_count = 0;
 	int rc;
 
-	/*
-	 * Currently, we know how to simulate only single HC.
-	 */
 	if (vhc_count > 0) {
 		return ELIMIT;
 	}
 
-	/*
-	 * Create exposed function representing the host controller
-	 * itself.
-	 */
+	vhc_data_t *data = malloc(sizeof(vhc_data_t));
+	if (data == NULL) {
+		usb_log_fatal("Failed to allocate memory.\n");
+		return ENOMEM;
+	}
+	data->magic = 0xDEADBEEF;
+	rc = usb_endpoint_manager_init(&data->ep_manager, (size_t) -1);
+	if (rc != EOK) {
+		usb_log_fatal("Failed to initialize endpoint manager.\n");
+		free(data);
+		return rc;
+	}
+	usb_device_keeper_init(&data->dev_keeper);
+
 	ddf_fun_t *hc = ddf_fun_create(dev, fun_exposed, "hc");
 	if (hc == NULL) {
 		usb_log_fatal("Failed to create device function.\n");
+		free(data);
 		return ENOMEM;
 	}
 
 	hc->ops = &vhc_ops;
+	list_initialize(&data->devices);
+	fibril_mutex_initialize(&data->guard);
+	data->hub = &virtual_hub_device;
+	data->hc_fun = hc;
+
+	dev->driver_data = data;
 
 	rc = ddf_fun_bind(hc);
 	if (rc != EOK) {
 		usb_log_fatal("Failed to bind HC function: %s.\n",
 		    str_error(rc));
+		free(data);
 		return rc;
 	}
 
 	ddf_fun_add_to_class(hc, "usbhc");
 
-	/*
-	 * Initialize our hub and announce its presence.
-	 */
 	virtual_hub_device_init(hc);
 
 	usb_log_info("Virtual USB host controller ready (dev %zu, hc %zu).\n",
 	    (size_t) dev->handle, (size_t) hc->handle);
+
+
+
+	rc = vhc_virtdev_plug_hub(data, data->hub, NULL);
+	if (rc != EOK) {
+		usb_log_fatal("Failed to plug root hub: %s.\n", str_error(rc));
+		free(data);
+		return rc;
+	}
 
 	return EOK;
 }
@@ -115,29 +134,10 @@ static driver_t vhc_driver = {
 
 int main(int argc, char * argv[])
 {	
-	/*
-	 * Temporary workaround. Wait a little bit to be the last driver
-	 * in devman output.
-	 */
-	//sleep(5);
-
 	usb_log_enable(USB_LOG_LEVEL_DEFAULT, NAME);
 
 	printf(NAME ": virtual USB host controller driver.\n");
 
-	/*
-	 * Initialize address management.
-	 */
-	address_init();
-
-	/*
-	 * Run the transfer scheduler.
-	 */
-	hc_manager();
-
-	/*
-	 * We are also a driver within devman framework.
-	 */
 	return ddf_driver_main(&vhc_driver);
 }
 

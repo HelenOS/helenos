@@ -38,7 +38,6 @@
 #include <usbvirt/device.h>
 #include <ddf/driver.h>
 
-#include "devices.h"
 #include "hub/hub.h"
 #include "hub/virthub.h"
 

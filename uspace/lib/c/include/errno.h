@@ -64,6 +64,9 @@ extern int _errno;
 /** Empty resource (no data). */
 #define EEMPTY (-302)
 
+/** Negative acknowledgment. */
+#define ENAK (-303)
+
 /** An API function is called while another blocking function is in progress. */
 #define EINPROGRESS  (-10036)
 

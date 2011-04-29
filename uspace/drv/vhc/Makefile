@@ -38,14 +38,14 @@ EXTRA_CFLAGS += \
 BINARY = vhc
 
 SOURCES = \
-	hub/hub.c \
 	hub/virthub.c \
+	hub/hub.c \
 	hub/virthubops.c \
 	conndev.c \
 	connhost.c \
-	devices.c \
-	hc.c \
-	hcd.c \
-	hub.c
+	devconn.c \
+	hub.c \
+	main.c \
+	transfer.c
 
 include $(USPACE_PREFIX)/Makefile.common

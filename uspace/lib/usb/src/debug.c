@@ -157,7 +157,9 @@ void usb_log_printf(usb_log_level_t level, const char *format, ...)
 #define BUFFER_DUMP_LEN 240 /* Ought to be enough for everybody ;-). */
 
 /** Fibril local storage for the dumped buffer. */
-static fibril_local char buffer_dump[BUFFER_DUMP_LEN];
+static fibril_local char buffer_dump[2][BUFFER_DUMP_LEN];
+/** Fibril local storage for buffer switching. */
+static fibril_local int buffer_dump_index = 0;
 
 /** Dump buffer into string.
  *
@@ -166,13 +168,14 @@ static fibril_local char buffer_dump[BUFFER_DUMP_LEN];
  * That means that you do not have to deallocate the string (actually, you
  * can not do that) and you do not have to guard it against concurrent
  * calls to it.
- * The only limitation is that each call rewrites the buffer again.
+ * The only limitation is that each second call rewrites the buffer again
+ * (internally, two buffer are used in cyclic manner).
  * Thus, it is necessary to copy the buffer elsewhere (that includes printing
  * to screen or writing to file).
  * Since this function is expected to be used for debugging prints only,
  * that is not a big limitation.
  *
- * @warning You cannot use this function twice in the same printf
+ * @warning You cannot use this function more than twice in the same printf
  * (see detailed explanation).
  *
  * @param buffer Buffer to be printed (can be NULL).
@@ -184,10 +187,9 @@ const char *usb_debug_str_buffer(const uint8_t *buffer, size_t size,
     size_t dumped_size)
 {
 	/*
-	 * Remove previous string (that might also reveal double usage of
-	 * this function).
+	 * Remove previous string.
 	 */
-	bzero(buffer_dump, BUFFER_DUMP_LEN);
+	bzero(buffer_dump[buffer_dump_index], BUFFER_DUMP_LEN);
 
 	if (buffer == NULL) {
 		return "(null)";
@@ -201,7 +203,7 @@ const char *usb_debug_str_buffer(const uint8_t *buffer, size_t size,
 
 	/* How many bytes are available in the output buffer. */
 	size_t buffer_remaining_size = BUFFER_DUMP_LEN - 1 - REMAINDER_STR_LEN;
-	char *it = buffer_dump;
+	char *it = buffer_dump[buffer_dump_index];
 
 	size_t index = 0;
 
@@ -252,7 +254,11 @@ const char *usb_debug_str_buffer(const uint8_t *buffer, size_t size,
 		    REMAINDER_STR_FMT, size - index);
 	}
 
-	return buffer_dump;
+	/* Next time, use the other buffer. */
+	buffer_dump_index = 1 - buffer_dump_index;
+
+	/* Need to take the old one due to previous line. */
+	return buffer_dump[1 - buffer_dump_index];
 }
 
 
