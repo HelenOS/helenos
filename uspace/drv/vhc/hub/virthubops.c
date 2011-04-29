@@ -34,11 +34,12 @@
  */
 #include <errno.h>
 #include <usb/classes/hub.h>
+#include <usbvirt/device.h>
 #include "virthub.h"
 #include "hub.h"
 
 /** Callback when device changes states. */
-static void on_state_change(struct usbvirt_device *dev,
+static void on_state_change(usbvirt_device_t *dev,
     usbvirt_device_state_t old_state, usbvirt_device_state_t new_state)
 {
 	hub_t *hub = (hub_t *)dev->device_data;
@@ -60,26 +61,40 @@ static void on_state_change(struct usbvirt_device *dev,
 }
 
 /** Callback for data request. */
-static int req_on_data(struct usbvirt_device *dev,
-    usb_endpoint_t endpoint,
-    void *buffer, size_t size, size_t *actual_size)
+static int req_on_status_change_pipe(usbvirt_device_t *dev,
+    usb_endpoint_t endpoint, usb_transfer_type_t tr_type,
+    void *buffer, size_t buffer_size, size_t *actual_size)
 {
 	if (endpoint != HUB_STATUS_CHANGE_PIPE) {
-		return EINVAL;
+		return ESTALL;
+	}
+	if (tr_type != USB_TRANSFER_INTERRUPT) {
+		return ESTALL;
 	}
 	
-	hub_t *hub = (hub_t *)dev->device_data;
+	hub_t *hub = dev->device_data;
 
 	hub_acquire(hub);
 
+	if (!hub->signal_changes) {
+		hub_release(hub);
+
+		return ENAK;
+	}
+
+
 	uint8_t change_map = hub_get_status_change_bitmap(hub);
-		
+
 	uint8_t *b = (uint8_t *) buffer;
-	if (size > 0) {
+	if (buffer_size > 0) {
 		*b = change_map;
 		*actual_size = 1;
+	} else {
+		*actual_size = 0;
 	}
 	
+	hub->signal_changes = false;
+
 	hub_release(hub);
 
 	return EOK;
@@ -93,8 +108,8 @@ static int req_on_data(struct usbvirt_device *dev,
  * @return Error code.
  */
 static int req_clear_hub_feature(usbvirt_device_t *dev,
-    usb_device_request_setup_packet_t *request,
-    uint8_t *data)
+    const usb_device_request_setup_packet_t *request, uint8_t *data,
+    size_t *act_size)
 {
 	return ENOTSUP;
 }
@@ -107,8 +122,8 @@ static int req_clear_hub_feature(usbvirt_device_t *dev,
  * @return Error code.
  */
 static int req_clear_port_feature(usbvirt_device_t *dev,
-    usb_device_request_setup_packet_t *request,
-    uint8_t *data)
+    const usb_device_request_setup_packet_t *request, uint8_t *data,
+    size_t *act_size)
 {
 	int rc;
 	size_t port = request->index - 1;
@@ -187,8 +202,8 @@ static int req_clear_port_feature(usbvirt_device_t *dev,
  * @return Error code.
  */
 static int req_get_bus_state(usbvirt_device_t *dev,
-    usb_device_request_setup_packet_t *request,
-    uint8_t *data)
+    const usb_device_request_setup_packet_t *request, uint8_t *data,
+    size_t *act_size)
 {
 	return ENOTSUP;
 }
@@ -201,14 +216,14 @@ static int req_get_bus_state(usbvirt_device_t *dev,
  * @return Error code.
  */
 static int req_get_descriptor(usbvirt_device_t *dev,
-    usb_device_request_setup_packet_t *request,
-    uint8_t *data)
+    const usb_device_request_setup_packet_t *request, uint8_t *data,
+    size_t *act_size)
 {
 	if (request->value_high == USB_DESCTYPE_HUB) {
-		int rc = dev->control_transfer_reply(dev, 0,
+		usbvirt_control_reply_helper(request, data, act_size,
 		    &hub_descriptor, hub_descriptor.length);
 
-		return rc;
+		return EOK;
 	}
 	/* Let the framework handle all the rest. */
 	return EFORWARD;
@@ -222,13 +237,15 @@ static int req_get_descriptor(usbvirt_device_t *dev,
  * @return Error code.
  */
 static int req_get_hub_status(usbvirt_device_t *dev,
-    usb_device_request_setup_packet_t *request,
-    uint8_t *data)
+    const usb_device_request_setup_packet_t *request, uint8_t *data,
+    size_t *act_size)
 {
 	uint32_t hub_status = 0;
 
-	return dev->control_transfer_reply(dev, 0,
+	usbvirt_control_reply_helper(request, data, act_size,
 	    &hub_status, sizeof(hub_status));
+
+	return EOK;
 }
 
 /** Handle GetPortStatus request.
@@ -239,8 +256,8 @@ static int req_get_hub_status(usbvirt_device_t *dev,
  * @return Error code.
  */
 static int req_get_port_status(usbvirt_device_t *dev,
-    usb_device_request_setup_packet_t *request,
-    uint8_t *data)
+    const usb_device_request_setup_packet_t *request, uint8_t *data,
+    size_t *act_size)
 {
 	hub_t *hub = (hub_t *) dev->device_data;
 
@@ -250,7 +267,10 @@ static int req_get_port_status(usbvirt_device_t *dev,
 
 	hub_release(hub);
 
-	return dev->control_transfer_reply(dev, 0, &status, 4);
+	usbvirt_control_reply_helper(request, data, act_size,
+	    &status, sizeof(status));
+
+	return EOK;
 }
 
 /** Handle SetHubFeature request.
@@ -261,8 +281,8 @@ static int req_get_port_status(usbvirt_device_t *dev,
  * @return Error code.
  */
 static int req_set_hub_feature(usbvirt_device_t *dev,
-    usb_device_request_setup_packet_t *request,
-    uint8_t *data)
+    const usb_device_request_setup_packet_t *request, uint8_t *data,
+    size_t *act_size)
 {
 	return ENOTSUP;
 }
@@ -275,8 +295,8 @@ static int req_set_hub_feature(usbvirt_device_t *dev,
  * @return Error code.
  */
 static int req_set_port_feature(usbvirt_device_t *dev,
-    usb_device_request_setup_packet_t *request,
-    uint8_t *data)
+    const usb_device_request_setup_packet_t *request, uint8_t *data,
+    size_t *act_size)
 {
 	int rc;
 	size_t port = request->index - 1;
@@ -329,13 +349,14 @@ static int req_set_port_feature(usbvirt_device_t *dev,
 	USBVIRT_REQUEST_TYPE_CLASS, recipient)
 
 /** Recipient: other. */
-#define REC_OTHER USBVIRT_REQUEST_RECIPIENT_OTHER
+#define REC_OTHER USB_REQUEST_RECIPIENT_OTHER
 /** Recipient: device. */
-#define REC_DEVICE USBVIRT_REQUEST_RECIPIENT_DEVICE
+#define REC_DEVICE USB_REQUEST_RECIPIENT_DEVICE
 /** Direction: in. */
 #define DIR_IN USB_DIRECTION_IN
 /** Direction: out. */
 #define DIR_OUT USB_DIRECTION_OUT
+
 
 /** Create a class request.
  *
@@ -344,8 +365,9 @@ static int req_set_port_feature(usbvirt_device_t *dev,
  * @param req Request code.
  */
 #define CLASS_REQ(direction, recipient, req) \
-	.request_type = USBVIRT_MAKE_CONTROL_REQUEST_TYPE(direction, \
-	    USBVIRT_REQUEST_TYPE_CLASS, recipient), \
+	.req_direction = direction, \
+	.req_recipient = recipient, \
+	.req_type = USB_REQUEST_TYPE_CLASS, \
 	.request = req
 
 /** Create a standard request.
@@ -355,12 +377,13 @@ static int req_set_port_feature(usbvirt_device_t *dev,
  * @param req Request code.
  */
 #define STD_REQ(direction, recipient, req) \
-	.request_type = USBVIRT_MAKE_CONTROL_REQUEST_TYPE(direction, \
-	    USBVIRT_REQUEST_TYPE_STANDARD, recipient), \
+	.req_direction = direction, \
+	.req_recipient = recipient, \
+	.req_type = USB_REQUEST_TYPE_STANDARD, \
 	.request = req
 
 /** Hub operations on control endpoint zero. */
-static usbvirt_control_transfer_handler_t endpoint_zero_handlers[] = {
+static usbvirt_control_request_handler_t endpoint_zero_handlers[] = {
 	{
 		STD_REQ(DIR_IN, REC_DEVICE, USB_DEVREQ_GET_DESCRIPTOR),
 		.name = "GetDescriptor",
@@ -416,16 +439,17 @@ static usbvirt_control_transfer_handler_t endpoint_zero_handlers[] = {
 		.name = "SetPortFeature",
 		.callback = req_set_port_feature
 	},
-	USBVIRT_CONTROL_TRANSFER_HANDLER_LAST
+	{
+		.callback = NULL
+	}
 };
 
 
 /** Hub operations. */
 usbvirt_device_ops_t hub_ops = {
-	.control_transfer_handlers = endpoint_zero_handlers,
-	.on_data = NULL,
-	.on_data_request = req_on_data,
-	.on_state_change = on_state_change,
+	.control = endpoint_zero_handlers,
+	.data_in[HUB_STATUS_CHANGE_PIPE] = req_on_status_change_pipe,
+	.state_changed = on_state_change,
 };
 
 /**

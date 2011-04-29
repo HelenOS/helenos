@@ -42,7 +42,9 @@ SOURCES = \
 	src/dp.c \
 	src/dump.c \
 	src/hidiface.c \
+	src/hidpath.c \
 	src/hidparser.c \
+	src/hiddescriptor.c \
 	src/hub.c \
 	src/pipepriv.c \
 	src/pipes.c \

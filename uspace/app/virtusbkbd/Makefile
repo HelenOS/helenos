@@ -31,7 +31,7 @@ USPACE_PREFIX = ../..
 # (it is really annoying to write long names)
 BINARY = vuk
 
-LIBS = $(LIBUSB_PREFIX)/libusb.a $(LIBUSBVIRT_PREFIX)/libusbvirt.a
+LIBS = $(LIBUSBVIRT_PREFIX)/libusbvirt.a $(LIBUSB_PREFIX)/libusb.a
 EXTRA_CFLAGS = -I$(LIBUSB_PREFIX)/include -I$(LIBUSBVIRT_PREFIX)/include -I$(LIBDRV_PREFIX)/include
 
 SOURCES = \

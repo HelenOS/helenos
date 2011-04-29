@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,34 +26,18 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbvhc
+/** @addtogroup usbvirthid
  * @{
- */ 
-/** @file
- * @brief Virtual device management.
  */
-#ifndef VHCD_DEVICES_H_
-#define VHCD_DEVICES_H_
+/** @file
+ *
+ */
+#ifndef VUHID_IFACES_H_
+#define VUHID_IFACES_H_
 
-#include <adt/list.h>
-#include <usb/usb.h>
+#include "virthid.h"
 
-#include "hc.h"
-
-/** Connected virtual device. */
-typedef struct {
-	/** Phone used when sending data to device. */
-	int phone;
-	/** Unique identification. */
-	sysarg_t id;
-	/** Linked-list handle. */
-	link_t link;
-} virtdev_connection_t;
-
-virtdev_connection_t *virtdev_add_device(int, sysarg_t);
-virtdev_connection_t *virtdev_find(sysarg_t);
-void virtdev_destroy_device(virtdev_connection_t *);
-int virtdev_send_to_all(transaction_t *);
+extern vuhid_interface_t *available_hid_interfaces[];
 
 #endif
 /**

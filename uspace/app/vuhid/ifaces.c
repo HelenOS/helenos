@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Vojtech Horky
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,78 +26,23 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusbvirt
+/** @addtogroup usbvirthid
  * @{
  */
-/** @file
- * @brief Debugging support.
- */
-#include <stdio.h>
-#include <bool.h>
-
-#include "private.h"
-
-
-static void debug_print(int level, uint8_t tag,
-    int current_level, uint8_t enabled_tags,
-    const char *format, va_list args)
-{
-	if (level > current_level) {
-		return;
-	}
-	
-	if ((tag & enabled_tags) == 0) {
-		return;
-	}
-	
-	bool print_prefix = true;
-	
-	if ((format[0] == '%') && (format[1] == 'M')) {
-		format += 2;
-		print_prefix = false;
-	}
-	
-	if (print_prefix) {
-		printf("[vusb]: ");
-		while (--level > 0) {
-			printf(" ");
-		}
-	}
-	
-	vprintf(format, args);
-	
-	if (print_prefix) {
-		printf("\n");
-	}
-}
-
-
-void user_debug(usbvirt_device_t *device, int level, uint8_t tag,
-    const char *format, ...)
-{
-	va_list args;
-	va_start(args, format);
-	
-	debug_print(level, tag,
-	    device->debug_level, device->debug_enabled_tags,
-	    format, args);
-	
-	va_end(args);
-}
-
-void lib_debug(usbvirt_device_t *device, int level, uint8_t tag,
-    const char *format, ...)
-{
-	va_list args;
-	va_start(args, format);
-	
-	debug_print(level, tag,
-	    device->lib_debug_level, device->lib_debug_enabled_tags,
-	    format, args);
-	
-	va_end(args);
-}
-
 /**
- * @}
+ * @file
+ * List of known interfaces.
+ */
+#include <stdlib.h>
+#include "ifaces.h"
+
+extern vuhid_interface_t vuhid_interface_bootkbd;
+
+vuhid_interface_t *available_hid_interfaces[] = {
+	&vuhid_interface_bootkbd,
+	NULL
+};
+
+
+/** @}
  */

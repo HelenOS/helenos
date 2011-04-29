@@ -33,13 +33,13 @@
  * @brief Representation of an USB hub (implementation).
  */
 #include <usb/classes/classes.h>
-#include <usbvirt/hub.h>
 #include <usbvirt/device.h>
 #include <errno.h>
 #include <str_error.h>
 #include <assert.h>
 #include <stdlib.h>
 #include <ddf/driver.h>
+#include <usb/debug.h>
 
 #include "hub.h"
 
@@ -95,12 +95,13 @@ char hub_port_state_to_char(hub_port_state_t state) {
  * @param port Port to be initialized.
  * @param index Port index (one based).
  */
-static void hub_init_port(hub_port_t *port, size_t index)
+static void hub_init_port(hub_port_t *port, hub_t *hub, size_t index)
 {
 	port->connected_device = NULL;
 	port->index = index;
 	port->state = HUB_PORT_STATE_NOT_CONFIGURED;
 	port->status_change = 0;
+	port->hub = hub;
 }
 
 /** Initialize the hub.
@@ -111,9 +112,10 @@ void hub_init(hub_t *hub)
 {
 	size_t i;
 	for (i = 0; i < HUB_PORT_COUNT; i++) {
-		hub_init_port(&hub->ports[i], i + 1);
+		hub_init_port(&hub->ports[i], hub, i + 1);
 	}
 	hub->custom_data = NULL;
+	hub->signal_changes = true;
 	fibril_mutex_initialize(&hub->guard);
 }
 
@@ -228,6 +230,8 @@ void hub_set_port_state(hub_t *hub, size_t port_index, hub_port_state_t state)
 		return;
 	}
 
+	usb_log_debug("Setting port %zu to state %d.\n", port_index, state);
+
 	switch (state) {
 		case HUB_PORT_STATE_POWERED_OFF:
 			clear_port_status_change(port, HUB_STATUS_C_PORT_CONNECTION);
@@ -235,10 +239,12 @@ void hub_set_port_state(hub_t *hub, size_t port_index, hub_port_state_t state)
 			clear_port_status_change(port, HUB_STATUS_C_PORT_RESET);
 			break;
 		case HUB_PORT_STATE_RESUMING:
+			port->state = state;
 			set_port_state_delayed(hub, port_index,
 			    10, state, HUB_PORT_STATE_ENABLED);
 			break;
 		case HUB_PORT_STATE_RESETTING:
+			port->state = state;
 			set_port_state_delayed(hub, port_index,
 			    10, state, HUB_PORT_STATE_ENABLED);
 			break;
@@ -414,7 +420,12 @@ static void set_port_status_change(hub_port_t *port,
     hub_status_change_t change)
 {
 	assert(port != NULL);
+	uint16_t old_value = port->status_change;
 	port->status_change |= change;
+	usb_log_debug("Changing status change on %zu: %04x => %04x\n",
+	    port->index,
+	    (unsigned int) old_value, (unsigned int) port->status_change);
+	port->hub->signal_changes = true;
 }
 
 /** Clears a port status change on a port.
@@ -427,6 +438,7 @@ static void clear_port_status_change(hub_port_t *port,
 {
 	assert(port != NULL);
 	port->status_change &= (~change);
+	port->hub->signal_changes = true;
 }
 
 /** Structure for automatic (delayed) port state change. */

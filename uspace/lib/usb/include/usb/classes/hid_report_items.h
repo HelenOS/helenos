@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Matej Klonfar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,6 +36,32 @@
 #define LIBUSB_HID_REPORT_ITEMS_H_
 
 #include <stdint.h>
+
+/**
+ * Item prefix
+ */
+#define USB_HID_ITEM_SIZE(data) 	((uint8_t)(data & 0x3))
+#define USB_HID_ITEM_TAG(data) 		((uint8_t)((data & 0xF0) >> 4))
+#define USB_HID_ITEM_TAG_CLASS(data)	((uint8_t)((data & 0xC) >> 2))
+#define USB_HID_ITEM_IS_LONG(data)	(data == 0xFE)
+
+
+/**
+ * Input/Output/Feature Item flags
+ */
+/** Constant (1) / Variable (0) */
+#define USB_HID_ITEM_FLAG_CONSTANT(flags) 	((flags & 0x1) == 0x1)
+/** Variable (1) / Array (0) */
+#define USB_HID_ITEM_FLAG_VARIABLE(flags) 	((flags & 0x2) == 0x2)
+/** Absolute / Relative*/
+#define USB_HID_ITEM_FLAG_RELATIVE(flags) 	((flags & 0x4) == 0x4)
+/** Wrap / No Wrap */
+#define USB_HID_ITEM_FLAG_WRAP(flags)		((flags & 0x8) == 0x8)
+#define USB_HID_ITEM_FLAG_LINEAR(flags)		((flags & 0x10) == 0x10)
+#define USB_HID_ITEM_FLAG_PREFERRED(flags)	((flags & 0x20) == 0x20)
+#define USB_HID_ITEM_FLAG_POSITION(flags)	((flags & 0x40) == 0x40)
+#define USB_HID_ITEM_FLAG_VOLATILE(flags)	((flags & 0x80) == 0x80)
+#define USB_HID_ITEM_FLAG_BUFFERED(flags)	((flags & 0x100) == 0x100)
 
 /* MAIN ITEMS */
 #define USB_HID_TAG_CLASS_MAIN				0x0

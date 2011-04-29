@@ -166,7 +166,6 @@ static void usb_hub_removed_device(
 	 */
 
 	//close address
-	//if (hub->attached_devs[port].address != 0) {
 	if(hub->ports[port].attached_device.address >= 0){
 		/*uncomment this code to use it when DDF allows device removal
 		opResult = usb_hc_unregister_device(
@@ -181,7 +180,6 @@ static void usb_hub_removed_device(
 		hub->attached_devs[port].handle = 0;
 		 */
 	} else {
-		// TODO: is this really reason to print a warning?
 		usb_log_warning("Device removed before being registered.\n");
 
 		/*

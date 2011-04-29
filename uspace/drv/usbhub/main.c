@@ -54,16 +54,26 @@ static usb_endpoint_description_t hub_status_change_endpoint_description = {
 	.flags = 0
 };
 
-
+/**
+ * usb hub driver operations
+ *
+ * The most important one is add_device, which is set to usb_hub_add_device.
+ */
 static usb_driver_ops_t usb_hub_driver_ops = {
 	.add_device = usb_hub_add_device
 };
 
+/**
+ * hub endpoints, excluding control endpoint
+ */
 static usb_endpoint_description_t *usb_hub_endpoints[] = {
 	&hub_status_change_endpoint_description,
 	NULL
 };
 
+/**
+ * static usb hub driver information
+ */
 static usb_driver_t usb_hub_driver = {
 	.name = NAME,
 	.ops = &usb_hub_driver_ops,
