@@ -148,11 +148,9 @@ static const uint32_t port_status_change_mask =
 (1<< USB_HUB_FEATURE_C_PORT_SUSPEND);
 
 
-static void usb_create_serialized_hub_descriptor(rh_t *instance,
-	uint8_t ** out_result,
-	size_t * out_size);
+static int create_serialized_hub_descriptor(rh_t *instance);
 
-static void rh_init_descriptors(rh_t *instance);
+static int rh_init_descriptors(rh_t *instance);
 
 static int process_get_port_status_request(rh_t *instance, uint16_t port,
 	usb_transfer_batch_t * request);
@@ -163,8 +161,7 @@ static int process_get_hub_status_request(rh_t *instance,
 static int process_get_status_request(rh_t *instance,
 	usb_transfer_batch_t * request);
 
-static void create_interrupt_mask(rh_t *instance, void ** buffer,
-	size_t * buffer_size);
+static void create_interrupt_mask_in_instance(rh_t *instance);
 
 static int process_get_descriptor_request(rh_t *instance,
 	usb_transfer_batch_t *request);
@@ -197,8 +194,7 @@ static int process_request_without_data(rh_t *instance,
 
 static int process_ctrl_request(rh_t *instance, usb_transfer_batch_t *request);
 
-static int process_interrupt(rh_t *instance, usb_transfer_batch_t * request,
-    void * change_buffer, size_t buffe_size);
+static int process_interrupt_mask_in_instance(rh_t *instance, usb_transfer_batch_t * request);
 
 static bool is_zeros(void * buffer, size_t size);
 
@@ -212,10 +208,19 @@ int rh_init(rh_t *instance, ohci_regs_t *regs) {
 	instance->registers = regs;
 	instance->port_count =
 	    (instance->registers->rh_desc_a >> RHDA_NDS_SHIFT) & RHDA_NDS_MASK;
-	rh_init_descriptors(instance);
+	int opResult = rh_init_descriptors(instance);
+	if(opResult != EOK){
+		return opResult;
+	}
 	// set port power mode to no-power-switching
 	instance->registers->rh_desc_a |= RHDA_NPS_FLAG;
 	instance->unfinished_interrupt_transfer = NULL;
+	instance->interrupt_mask_size = (instance->port_count + 8)/8;
+	instance->interrupt_buffer = malloc(instance->interrupt_mask_size);
+	if(!instance->interrupt_buffer)
+		return ENOMEM;
+	
+
 	usb_log_info("OHCI root hub with %d ports.\n", instance->port_count);
 	return EOK;
 }
@@ -238,21 +243,16 @@ int rh_request(rh_t *instance, usb_transfer_batch_t *request) {
 		usb_transfer_batch_finish_error(request, opResult);
 	} else if (request->ep->transfer_type == USB_TRANSFER_INTERRUPT) {
 		usb_log_info("Root hub got INTERRUPT packet\n");
-		void * buffer;
-		size_t buffer_size;
-		create_interrupt_mask(instance, &buffer,
-			&buffer_size);
-		if(is_zeros(buffer,buffer_size)){
-			usb_log_debug("no changes..");
-			instance->unfinished_interrupt_transfer=
-			    request;
+		create_interrupt_mask_in_instance(instance);
+		if(is_zeros(instance->interrupt_buffer,
+		    instance->interrupt_mask_size)){
+			usb_log_debug("no changes..\n");
+			instance->unfinished_interrupt_transfer = request;
 			//will be finished later
 		}else{
-			usb_log_debug("processing changes..");
-			process_interrupt(instance, request,
-			    buffer, buffer_size);
+			usb_log_debug("processing changes..\n");
+			process_interrupt_mask_in_instance(instance, request);
 		}
-		free(buffer);
 		opResult = EOK;
 	} else {
 		opResult = EINVAL;
@@ -263,20 +263,20 @@ int rh_request(rh_t *instance, usb_transfer_batch_t *request) {
 
 /*----------------------------------------------------------------------------*/
 
-
+/**
+ * process interrupt on a hub
+ *
+ * If there is no pending interrupt transfer, nothing happens.
+ * @param instance
+ */
 void rh_interrupt(rh_t *instance) {
-	//usb_log_info("Whoa whoa wait, I`m not supposed to receive any "
-	//	"interrupts, am I?\n");
 	if(!instance->unfinished_interrupt_transfer){
 		return;
 	}
-	size_t size;
-	void * buffer;
-	create_interrupt_mask(instance, &buffer,
-			&size);
-	process_interrupt(instance,instance->unfinished_interrupt_transfer,
-	    buffer,size);
-	free(buffer);
+	usb_log_debug("finalizing interrupt transfer\n");
+	create_interrupt_mask_in_instance(instance);
+	process_interrupt_mask_in_instance(instance,
+	    instance->unfinished_interrupt_transfer);
 }
 /*----------------------------------------------------------------------------*/
 
@@ -287,19 +287,15 @@ void rh_interrupt(rh_t *instance) {
  * info see usb hub specification.
  *
  * @param instance root hub instance
- * @param@out out_result pointer to resultant serialized descriptor
- * @param@out out_size size of serialized descriptor
+ * @return error code
  */
-static void usb_create_serialized_hub_descriptor(rh_t *instance,
-	uint8_t ** out_result,
-	size_t * out_size) {
-	//base size
-	size_t size = 7;
-	//variable size according to port count
-	size_t var_size = instance->port_count / 8 +
-		((instance->port_count % 8 > 0) ? 1 : 0);
-	size += 2 * var_size;
+static int create_serialized_hub_descriptor(rh_t *instance) {
+	size_t size = 7 +
+	    ((instance->port_count +7 )/ 8) * 2;
+	size_t var_size = (instance->port_count +7 )/ 8;
 	uint8_t * result = (uint8_t*) malloc(size);
+	if(!result) return ENOMEM;
+
 	bzero(result, size);
 	//size
 	result[0] = size;
@@ -328,8 +324,9 @@ static void usb_create_serialized_hub_descriptor(rh_t *instance,
 	for (i = 0; i < var_size; ++i) {
 		result[7 + var_size + i] = 255;
 	}
-	(*out_result) = result;
-	(*out_size) = size;
+	instance->hub_descriptor = result;
+	instance->descriptor_size = size;
+	return EOK;
 }
 /*----------------------------------------------------------------------------*/
 
@@ -338,27 +335,31 @@ static void usb_create_serialized_hub_descriptor(rh_t *instance,
  * Initialized are device and full configuration descriptor. These need to
  * be initialized only once per hub.
  * @instance root hub instance
+ * @return error code
  */
-static void rh_init_descriptors(rh_t *instance) {
+static int rh_init_descriptors(rh_t *instance) {
 	memcpy(&instance->descriptors.device, &ohci_rh_device_descriptor,
 		sizeof (ohci_rh_device_descriptor)
 		);
 	usb_standard_configuration_descriptor_t descriptor;
 	memcpy(&descriptor, &ohci_rh_conf_descriptor,
 		sizeof (ohci_rh_conf_descriptor));
-	uint8_t * hub_descriptor;
-	size_t hub_desc_size;
-	usb_create_serialized_hub_descriptor(instance, &hub_descriptor,
-		&hub_desc_size);
 
+	int opResult = create_serialized_hub_descriptor(instance);
+	if(opResult != EOK){
+		return opResult;
+	}
 	descriptor.total_length =
 		sizeof (usb_standard_configuration_descriptor_t) +
 		sizeof (usb_standard_endpoint_descriptor_t) +
 		sizeof (usb_standard_interface_descriptor_t) +
-		hub_desc_size;
+		instance->descriptor_size;
 
 	uint8_t * full_config_descriptor =
 		(uint8_t*) malloc(descriptor.total_length);
+	if(!full_config_descriptor){
+		return ENOMEM;
+	}
 	memcpy(full_config_descriptor, &descriptor, sizeof (descriptor));
 	memcpy(full_config_descriptor + sizeof (descriptor),
 		&ohci_rh_iface_descriptor, sizeof (ohci_rh_iface_descriptor));
@@ -368,10 +369,11 @@ static void rh_init_descriptors(rh_t *instance) {
 	memcpy(full_config_descriptor + sizeof (descriptor) +
 		sizeof (ohci_rh_iface_descriptor) +
 		sizeof (ohci_rh_ep_descriptor),
-		hub_descriptor, hub_desc_size);
-
+		instance->hub_descriptor, instance->descriptor_size);
+	
 	instance->descriptors.configuration = full_config_descriptor;
 	instance->descriptors.configuration_size = descriptor.total_length;
+	return EOK;
 }
 /*----------------------------------------------------------------------------*/
 
@@ -462,21 +464,15 @@ static int process_get_status_request(rh_t *instance,
  * Result contains bitmap where bit 0 indicates change on hub and
  * bit i indicates change on i`th port (i>0). For more info see
  * Hub and Port status bitmap specification in USB specification
- * (chapter 11.13.4)
+ * (chapter 11.13.4).
+ * Uses instance`s interrupt buffer to store the interrupt information.
  * @param instance root hub instance
- * @param@out buffer pointer to created interrupt mas
- * @param@out buffer_size size of created interrupt mask
  */
-static void create_interrupt_mask(rh_t *instance, void ** buffer,
-	size_t * buffer_size) {
-	int bit_count = instance->port_count + 1;
-	(*buffer_size) = (bit_count / 8) + ((bit_count % 8 == 0) ? 0 : 1);
-
-	(*buffer) = malloc(*buffer_size);
-	uint8_t * bitmap = (uint8_t*) (*buffer);
+static void create_interrupt_mask_in_instance(rh_t * instance) {
+	uint8_t * bitmap = (uint8_t*) (instance->interrupt_buffer);
 	uint32_t mask = (1 << (USB_HUB_FEATURE_C_HUB_LOCAL_POWER + 16))
 		| (1 << (USB_HUB_FEATURE_C_HUB_OVER_CURRENT + 16));
-	bzero(bitmap, (*buffer_size));
+	bzero(bitmap, instance->interrupt_mask_size);
 	if (instance->registers->rh_status & mask) {
 		bitmap[0] = 1;
 	}
@@ -507,15 +503,12 @@ static int process_get_descriptor_request(rh_t *instance,
 	const void * result_descriptor = NULL;
 	const uint16_t setup_request_value = setup_request->value_high;
 	//(setup_request->value_low << 8);
-	bool del = false;
 	switch (setup_request_value) {
 		case USB_DESCTYPE_HUB:
 		{
-			uint8_t * descriptor;
-			usb_create_serialized_hub_descriptor(
-				instance, &descriptor, &size);
-			result_descriptor = descriptor;
-			if (result_descriptor) del = true;
+			usb_log_debug("USB_DESCTYPE_HUB\n");
+			result_descriptor = instance->hub_descriptor;
+			size = instance->descriptor_size;
 			break;
 		}
 		case USB_DESCTYPE_DEVICE:
@@ -566,8 +559,6 @@ static int process_get_descriptor_request(rh_t *instance,
 	}
 	request->transfered_size = size;
 	memcpy(request->data_buffer, result_descriptor, size);
-	if (del)
-		free(result_descriptor);
 	return EOK;
 }
 /*----------------------------------------------------------------------------*/
@@ -893,16 +884,13 @@ static int process_ctrl_request(rh_t *instance, usb_transfer_batch_t *request) {
  *
  * @param instance hub instance
  * @param request batch request to be processed
- * @param change_buffer chages on hub
- * @param buffer_size size of change buffer
  *
  * @return
  */
-static int process_interrupt(rh_t *instance, usb_transfer_batch_t * request,
-    void * change_buffer, size_t buffe_size){
-	create_interrupt_mask(instance, &change_buffer,
-	    &(request->transfered_size));
-	memcpy(request->data_buffer, change_buffer,request->transfered_size);
+static int process_interrupt_mask_in_instance(rh_t *instance, usb_transfer_batch_t * request){
+	memcpy(request->data_buffer, instance->interrupt_buffer,
+	    instance->interrupt_mask_size);
+	request->transfered_size = instance->interrupt_mask_size;
 	instance->unfinished_interrupt_transfer = NULL;
 	usb_transfer_batch_finish_error(request, EOK);
 	return EOK;

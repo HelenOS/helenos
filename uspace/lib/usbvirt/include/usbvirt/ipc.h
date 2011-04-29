@@ -26,64 +26,38 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup drvusbvhc
+/** @addtogroup libusbvirt
  * @{
  */
 /** @file
- * @brief Virtual HC.
+ * @brief Virtual USB device.
  */
-#ifndef VHCD_HC_H_
-#define VHCD_HC_H_
+#ifndef LIBUSBVIRT_IPC_H_
+#define LIBUSBVIRT_IPC_H_
 
+#include <ipc/common.h>
 #include <usb/usb.h>
-#include <usbvirt/hub.h>
+#include <bool.h>
 
-/** Callback after transaction is sent to USB.
- *
- * @param buffer Transaction data buffer.
- * @param size Transaction data size.
- * @param outcome Transaction outcome.
- * @param arg Custom argument.
- */
-typedef void (*hc_transaction_done_callback_t)(void *buffer, size_t size,
-    int outcome, void *arg);
+typedef enum {
+	IPC_M_USBVIRT_GET_NAME = IPC_FIRST_USER_METHOD + 80,
+	IPC_M_USBVIRT_CONTROL_READ,
+	IPC_M_USBVIRT_CONTROL_WRITE,
+	IPC_M_USBVIRT_INTERRUPT_IN,
+	IPC_M_USBVIRT_INTERRUPT_OUT
+} usbvirt_ipc_t;
 
-/** Pending transaction details. */
-typedef struct {
-	/** Linked-list link. */
-	link_t link;
-	/** Transaction type. */
-	usbvirt_transaction_type_t type;
-	/** Transfer type. */
-	usb_transfer_type_t transfer_type;
-	/** Device address. */
-	usb_target_t target;
-	/** Direction of the transaction. */
-	usb_direction_t direction;
-	/** Transaction data buffer. */
-	void * buffer;
-	/** Transaction data length. */
-	size_t len;
-	/** Data length actually transfered. */
-	size_t actual_len;
-	/** Callback after transaction is done. */
-	hc_transaction_done_callback_t callback;
-	/** Argument to the callback. */
-	void * callback_arg;
-} transaction_t;
+int usbvirt_ipc_send_control_read(int, usb_endpoint_t, void *, size_t,
+    void *, size_t, size_t *);
+int usbvirt_ipc_send_control_write(int, usb_endpoint_t, void *, size_t,
+    void *, size_t);
+int usbvirt_ipc_send_data_in(int, usb_endpoint_t, usb_transfer_type_t,
+    void *, size_t, size_t *);
+int usbvirt_ipc_send_data_out(int, usb_endpoint_t, usb_transfer_type_t,
+    void *, size_t);
 
-void hc_manager(void);
-
-void hc_add_transaction_to_device(bool setup,
-    usb_target_t target, usb_transfer_type_t transfer_type,
-    void * buffer, size_t len,
-    hc_transaction_done_callback_t callback, void * arg);
-
-void hc_add_transaction_from_device(
-    usb_target_t target, usb_transfer_type_t transfer_type,
-    void * buffer, size_t len,
-    hc_transaction_done_callback_t callback, void * arg);
-
+bool usbvirt_is_usbvirt_method(sysarg_t);
+bool usbvirt_ipc_handle_call(usbvirt_device_t *, ipc_callid_t, ipc_call_t *);
 
 #endif
 /**

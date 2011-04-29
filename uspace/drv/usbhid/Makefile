@@ -46,6 +46,7 @@ SOURCES = \
 	generic/hiddev.c \
 	mouse/mousedev.c \
 	lgtch-ultrax/lgtch-ultrax.c \
+	lgtch-ultrax/keymap.c \
 	$(STOLEN_LAYOUT_SOURCES)
 
 EXTRA_CLEAN = $(STOLEN_LAYOUT_SOURCES)

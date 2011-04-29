@@ -26,77 +26,30 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup usbvirthub
+/** @addtogroup usbvirthid
  * @{
  */
-/**
- * @file
- * @brief Virtual USB hub.
+/** @file
+ * Device request handlers.
  */
+#ifndef VUHID_STDREQ_H_
+#define VUHID_STDREQ_H_
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <str_error.h>
-#include <bool.h>
-
-#include <usb/usb.h>
-#include <usb/descriptor.h>
-#include <usb/classes/hub.h>
 #include <usbvirt/device.h>
-#include <usbvirt/hub.h>
 
-#include "vhc_hub/virthub.h"
+int req_get_descriptor(usbvirt_device_t *device,
+    const usb_device_request_setup_packet_t *setup_packet,
+    uint8_t *data, size_t *act_size);
 
-#define NAME "vuh"
+int req_set_protocol(usbvirt_device_t *device,
+    const usb_device_request_setup_packet_t *setup_packet,
+    uint8_t *data, size_t *act_size);
 
-static usbvirt_device_t hub_device;
+int req_set_report(usbvirt_device_t *device,
+    const usb_device_request_setup_packet_t *setup_packet,
+    uint8_t *data, size_t *act_size);
 
-#define VERBOSE_SLEEP(sec, msg, ...) \
-	do { \
-		char _status[HUB_PORT_COUNT + 2]; \
-		printf(NAME ": doing nothing for %zu seconds...\n", \
-		    (size_t) (sec)); \
-		fibril_sleep((sec)); \
-		virthub_get_status(&hub_device, _status, HUB_PORT_COUNT + 1); \
-		printf(NAME ": " msg " [%s]\n" #__VA_ARGS__, _status); \
-	} while (0)
-
-static void fibril_sleep(size_t sec)
-{
-	while (sec-- > 0) {
-		async_usleep(1000*1000);
-	}
-}
-
-static int dev1 = 1;
-
-int main(int argc, char * argv[])
-{
-	int rc;
-
-	printf(NAME ": virtual USB hub.\n");
-
-	rc = virthub_init(&hub_device);
-	if (rc != EOK) {
-		printf(NAME ": Unable to start communication with VHCD (%s).\n",
-		    str_error(rc));
-		return rc;
-	}
-	
-	while (true) {
-		VERBOSE_SLEEP(8, "will pretend device plug-in...");
-		virthub_connect_device(&hub_device, &dev1);
-
-		VERBOSE_SLEEP(8, "will pretend device un-plug...");
-		virthub_disconnect_device(&hub_device, &dev1);
-	}
-
-	usbvirt_disconnect(&hub_device);
-	
-	return 0;
-}
-
-
-/** @}
+#endif
+/**
+ * @}
  */

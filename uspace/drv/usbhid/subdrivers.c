@@ -72,8 +72,8 @@ const usb_hid_subdriver_mapping_t usb_hid_subdrivers[] = {
 		0x046d,
 		0xc30e,
 		{
-			.init = NULL,
-			.deinit = NULL,
+			.init = usb_lgtch_init,
+			.deinit = usb_lgtch_deinit,
 			.poll = usb_lgtch_polling_callback,
 			.poll_end = NULL
 		}

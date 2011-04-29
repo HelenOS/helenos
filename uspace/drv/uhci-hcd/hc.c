@@ -43,22 +43,12 @@
 
 #include "hc.h"
 
-static irq_cmd_t uhci_cmds[] = {
-	{
-		.cmd = CMD_PIO_READ_16,
-		.addr = NULL, /* patched for every instance */
-		.dstarg = 1
-	},
-	{
-		.cmd = CMD_PIO_WRITE_16,
-		.addr = NULL, /* pathed for every instance */
-		.value = 0x1f
-	},
-	{
-		.cmd = CMD_ACCEPT
-	}
-};
-/*----------------------------------------------------------------------------*/
+#define UHCI_INTR_ALLOW_INTERRUPTS \
+    (UHCI_INTR_CRC | UHCI_INTR_COMPLETE | UHCI_INTR_SHORT_PACKET)
+#define UHCI_STATUS_USED_INTERRUPTS \
+    (UHCI_STATUS_INTERRUPT | UHCI_STATUS_ERROR_INTERRUPT)
+
+
 static int hc_init_transfer_lists(hc_t *instance);
 static int hc_init_mem_structures(hc_t *instance);
 static void hc_init_hw(hc_t *instance);
@@ -150,7 +140,7 @@ void hc_init_hw(hc_t *instance)
 	if (instance->hw_interrupts) {
 		/* Enable all interrupts, but resume interrupt */
 		pio_write_16(&instance->registers->usbintr,
-		    UHCI_INTR_CRC | UHCI_INTR_COMPLETE | UHCI_INTR_SHORT_PACKET);
+		    UHCI_INTR_ALLOW_INTERRUPTS);
 	}
 
 	uint16_t status = pio_read_16(&registers->usbcmd);
@@ -176,46 +166,59 @@ void hc_init_hw(hc_t *instance)
 int hc_init_mem_structures(hc_t *instance)
 {
 	assert(instance);
-#define CHECK_RET_DEST_CMDS_RETURN(ret, message...) \
+#define CHECK_RET_RETURN(ret, message...) \
 	if (ret != EOK) { \
 		usb_log_error(message); \
-		if (instance->interrupt_code.cmds != NULL) \
-			free(instance->interrupt_code.cmds); \
 		return ret; \
 	} else (void) 0
 
 	/* Init interrupt code */
-	instance->interrupt_code.cmds = malloc(sizeof(uhci_cmds));
-	int ret = (instance->interrupt_code.cmds == NULL) ? ENOMEM : EOK;
-	CHECK_RET_DEST_CMDS_RETURN(ret,
-	    "Failed to allocate interrupt cmds space.\n");
-
+	instance->interrupt_code.cmds = instance->interrupt_commands;
 	{
-		irq_cmd_t *interrupt_commands = instance->interrupt_code.cmds;
-		memcpy(interrupt_commands, uhci_cmds, sizeof(uhci_cmds));
-		interrupt_commands[0].addr =
-		    (void*)&instance->registers->usbsts;
-		interrupt_commands[1].addr =
-		    (void*)&instance->registers->usbsts;
-		instance->interrupt_code.cmdcount =
-		    sizeof(uhci_cmds) / sizeof(irq_cmd_t);
+		/* Read status register */
+		instance->interrupt_commands[0].cmd = CMD_PIO_READ_16;
+		instance->interrupt_commands[0].dstarg = 1;
+		instance->interrupt_commands[0].addr =
+		    &instance->registers->usbsts;
+
+		/* Test whether we are the interrupt cause */
+		instance->interrupt_commands[1].cmd = CMD_BTEST;
+		instance->interrupt_commands[1].value =
+		    UHCI_STATUS_USED_INTERRUPTS | UHCI_STATUS_NM_INTERRUPTS;
+		instance->interrupt_commands[1].srcarg = 1;
+		instance->interrupt_commands[1].dstarg = 2;
+
+		/* Predicate cleaning and accepting */
+		instance->interrupt_commands[2].cmd = CMD_PREDICATE;
+		instance->interrupt_commands[2].value = 2;
+		instance->interrupt_commands[2].srcarg = 2;
+
+		/* Write clean status register */
+		instance->interrupt_commands[3].cmd = CMD_PIO_WRITE_A_16;
+		instance->interrupt_commands[3].srcarg = 1;
+		instance->interrupt_commands[3].addr =
+		    &instance->registers->usbsts;
+
+		/* Accept interrupt */
+		instance->interrupt_commands[4].cmd = CMD_ACCEPT;
+
+		instance->interrupt_code.cmdcount = UHCI_NEEDED_IRQ_COMMANDS;
 	}
 
 	/* Init transfer lists */
-	ret = hc_init_transfer_lists(instance);
-	CHECK_RET_DEST_CMDS_RETURN(ret, "Failed to init transfer lists.\n");
+	int ret = hc_init_transfer_lists(instance);
+	CHECK_RET_RETURN(ret, "Failed to init transfer lists.\n");
 	usb_log_debug("Initialized transfer lists.\n");
 
 	/* Init USB frame list page*/
 	instance->frame_list = get_page();
 	ret = instance ? EOK : ENOMEM;
-	CHECK_RET_DEST_CMDS_RETURN(ret, "Failed to get frame list page.\n");
+	CHECK_RET_RETURN(ret, "Failed to get frame list page.\n");
 	usb_log_debug("Initialized frame list at %p.\n", instance->frame_list);
 
 	/* Set all frames to point to the first queue head */
-	const uint32_t queue =
-	    LINK_POINTER_QH(addr_to_phys(
-	        instance->transfers_interrupt.queue_head));
+	const uint32_t queue = LINK_POINTER_QH(
+	        addr_to_phys(instance->transfers_interrupt.queue_head));
 
 	unsigned i = 0;
 	for(; i < UHCI_FRAME_LIST_COUNT; ++i) {
@@ -228,10 +231,11 @@ int hc_init_mem_structures(hc_t *instance)
 
 	ret = usb_endpoint_manager_init(&instance->ep_manager,
 	    BANDWIDTH_AVAILABLE_USB11);
-	assert(ret == EOK);
+	CHECK_RET_RETURN(ret, "Failed to initialize endpoint manager: %s.\n",
+	    str_error(ret));
 
 	return EOK;
-#undef CHECK_RET_DEST_CMDS_RETURN
+#undef CHECK_RET_RETURN
 }
 /*----------------------------------------------------------------------------*/
 /** Initialize UHCI hc transfer lists.
@@ -276,7 +280,7 @@ do { \
 	/*FSBR*/
 #ifdef FSBR
 	transfer_list_set_next(&instance->transfers_bulk_full,
-		&instance->transfers_control_full);
+	    &instance->transfers_control_full);
 #endif
 
 	/* Assign pointers to be used during scheduling */
@@ -329,7 +333,6 @@ int hc_schedule(hc_t *instance, usb_transfer_batch_t *batch)
 void hc_interrupt(hc_t *instance, uint16_t status)
 {
 	assert(instance);
-	status |= 1; //Uncomment to work around qemu hang
 	/* Lower 2 bits are transaction error and transaction complete */
 	if (status & (UHCI_STATUS_INTERRUPT | UHCI_STATUS_ERROR_INTERRUPT)) {
 		LIST_INITIALIZE(done);
@@ -351,6 +354,9 @@ void hc_interrupt(hc_t *instance, uint16_t status)
 		}
 	}
 	/* Resume interrupts are not supported */
+	if (status & UHCI_STATUS_RESUME) {
+		usb_log_error("Resume interrupt!\n");
+	}
 
 	/* Bits 4 and 5 indicate hc error */
 	if (status & (UHCI_STATUS_PROCESS_ERROR | UHCI_STATUS_SYSTEM_ERROR)) {
@@ -379,15 +385,19 @@ void hc_interrupt(hc_t *instance, uint16_t status)
 int hc_interrupt_emulator(void* arg)
 {
 	usb_log_debug("Started interrupt emulator.\n");
-	hc_t *instance = (hc_t*)arg;
+	hc_t *instance = arg;
 	assert(instance);
 
 	while (1) {
-		/* Readd and clear status register */
+		/* Read and clear status register */
 		uint16_t status = pio_read_16(&instance->registers->usbsts);
 		pio_write_16(&instance->registers->usbsts, status);
 		if (status != 0)
 			usb_log_debug2("UHCI status: %x.\n", status);
+// Qemu fails to report stalled communication
+// see https://bugs.launchpad.net/qemu/+bug/757654
+// This is a simple workaround to force queue processing every time
+	//	status |= 1;
 		hc_interrupt(instance, status);
 		async_usleep(UHCI_INT_EMULATOR_TIMEOUT);
 	}
@@ -401,7 +411,7 @@ int hc_interrupt_emulator(void* arg)
  */
 int hc_debug_checker(void *arg)
 {
-	hc_t *instance = (hc_t*)arg;
+	hc_t *instance = arg;
 	assert(instance);
 
 #define QH(queue) \

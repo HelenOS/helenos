@@ -56,6 +56,11 @@ static bool resolve_hc_handle_and_dev_addr(const char *devpath,
 		devpath = "/hw/pci0/00:01.2/uhci-rh/usb00_a1";
 	}
 
+	/* Hack for virtual keyboard. */
+	if (str_cmp(devpath, "virt") == 0) {
+		devpath = "/virt/usbhc/usb00_a1/usb00_a2";
+	}
+
 	char *path = str_dup(devpath);
 	if (path == NULL) {
 		return ENOMEM;

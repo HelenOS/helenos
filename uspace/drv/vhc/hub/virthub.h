@@ -41,7 +41,7 @@
 #ifdef STANDALONE_HUB
 #define virtdev_connection_t int
 #else
-#include "../devices.h"
+#include "../vhcd.h"
 #endif
 
 /** Endpoint number for status change pipe. */
@@ -79,9 +79,9 @@ extern usbvirt_device_ops_t hub_ops;
 extern hub_descriptor_t hub_descriptor;
 
 int virthub_init(usbvirt_device_t *);
-int virthub_connect_device(usbvirt_device_t *, virtdev_connection_t *);
-int virthub_disconnect_device(usbvirt_device_t *, virtdev_connection_t *);
-bool virthub_is_device_enabled(usbvirt_device_t *, virtdev_connection_t *);
+int virthub_connect_device(usbvirt_device_t *, vhc_virtdev_t *);
+int virthub_disconnect_device(usbvirt_device_t *, vhc_virtdev_t *);
+bool virthub_is_device_enabled(usbvirt_device_t *, vhc_virtdev_t *);
 void virthub_get_status(usbvirt_device_t *, char *, size_t);
 
 #endif
