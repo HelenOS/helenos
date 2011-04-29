@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Jakub Jermar
+ * Copyright (c) 2011 Jakub Jermar
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,17 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup sparc64mm	
+/** @addtogroup genericmm
  * @{
  */
 /** @file
  */
 
-#ifndef KERN_sparc64_CACHE_H_
-#define KERN_sparc64_CACHE_H_
+#ifndef KERN_RESERVE_H_
+#define KERN_RESERVE_H_
 
-#include <mm/page.h>
-#include <mm/frame.h>
+#include <typedefs.h>
+
+extern bool reserve_try_alloc(size_t);
+extern void reserve_force_alloc(size_t);
+extern void reserve_free(size_t);
 
 #endif
 

@@ -222,8 +222,11 @@ void main_bsp_separated_stack(void)
 	/* Slab must be initialized after we know the number of processors. */
 	slab_enable_cpucache();
 	
-	printf("Detected %u CPU(s), %" PRIu64 " MiB free memory\n",
-	    config.cpu_count, SIZE2MB(zones_total_size()));
+	uint64_t size;
+	const char *size_suffix;
+	bin_order_suffix(zones_total_size(), &size, &size_suffix, false);
+	printf("Detected %u CPU(s), %" PRIu64 " %s free memory\n",
+	    config.cpu_count, size, size_suffix);
 	
 	cpu_init();
 	

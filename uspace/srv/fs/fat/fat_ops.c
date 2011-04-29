@@ -54,6 +54,7 @@
 #include <fibril_synch.h>
 #include <sys/mman.h>
 #include <align.h>
+#include <malloc.h>
 
 #define FAT_NODE(node)	((node) ? (fat_node_t *) (node)->data : NULL)
 #define FS_NODE(node)	((node) ? (node)->bp : NULL)
@@ -723,8 +724,8 @@ hit:
 		if ((fat_classify_dentry(d) == FAT_DENTRY_LAST) ||
 		    (str_cmp((char *) d->name, FAT_NAME_DOT)) == 0) {
 			memset(d, 0, sizeof(fat_dentry_t));
-			str_cpy((char *) d->name, 8, FAT_NAME_DOT);
-			str_cpy((char *) d->ext, 3, FAT_EXT_PAD);
+			memcpy(d->name, FAT_NAME_DOT, FAT_NAME_LEN);
+			memcpy(d->ext, FAT_EXT_PAD, FAT_EXT_LEN);
 			d->attr = FAT_ATTR_SUBDIR;
 			d->firstc = host2uint16_t_le(childp->firstc);
 			/* TODO: initialize also the date/time members. */
@@ -733,8 +734,8 @@ hit:
 		if ((fat_classify_dentry(d) == FAT_DENTRY_LAST) ||
 		    (str_cmp((char *) d->name, FAT_NAME_DOT_DOT) == 0)) {
 			memset(d, 0, sizeof(fat_dentry_t));
-			str_cpy((char *) d->name, 8, FAT_NAME_DOT_DOT);
-			str_cpy((char *) d->ext, 3, FAT_EXT_PAD);
+			memcpy(d->name, FAT_NAME_DOT_DOT, FAT_NAME_LEN);
+			memcpy(d->ext, FAT_EXT_PAD, FAT_EXT_LEN);
 			d->attr = FAT_ATTR_SUBDIR;
 			d->firstc = (parentp->firstc == FAT_CLST_ROOT) ?
 			    host2uint16_t_le(FAT_CLST_RES0) :
@@ -1001,13 +1002,8 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 		return;
 	}
 
-	/* Determining type of FAT  */
-	if (FAT_IS_FAT12(bs)) {
-		printf("Found FAT12 filesystem\n");
-	} else if (FAT_IS_FAT16(bs)) {
-		printf("Found FAT16 filesystem\n");
-	} else {
-		printf("FAT32 filesystem is not supported by FAT server.\n");
+	/* Return NOT SUPPORTED if try to mount FAT32  */
+	if (!FAT_IS_FAT12(bs) && !FAT_IS_FAT16(bs)) {
 		block_fini(devmap_handle);
 		async_answer_0(rid, ENOTSUP);
 		return;
@@ -1016,7 +1012,6 @@ void fat_mounted(ipc_callid_t rid, ipc_call_t *request)
 	/* Do some simple sanity checks on the file system. */
 	rc = fat_sanity_check(bs, devmap_handle);
 	if (rc != EOK) {
-                printf("Sanity check failed\n");
 		(void) block_cache_fini(devmap_handle);
 		block_fini(devmap_handle);
 		async_answer_0(rid, rc);
