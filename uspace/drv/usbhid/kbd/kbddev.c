@@ -202,29 +202,29 @@ static int active_layout = 0;
 /* Modifier constants                                                         */
 /*----------------------------------------------------------------------------*/
 /** Mapping of USB modifier key codes to generic modifier key codes. */
-static const keycode_t usbhid_modifiers_keycodes[USB_HID_MOD_COUNT] = {
-	KC_LCTRL,         /* USB_HID_MOD_LCTRL */
-	KC_LSHIFT,        /* USB_HID_MOD_LSHIFT */
-	KC_LALT,          /* USB_HID_MOD_LALT */
-	0,                /* USB_HID_MOD_LGUI */
-	KC_RCTRL,         /* USB_HID_MOD_RCTRL */
-	KC_RSHIFT,        /* USB_HID_MOD_RSHIFT */
-	KC_RALT,          /* USB_HID_MOD_RALT */
-	0,                /* USB_HID_MOD_RGUI */
-};
+//static const keycode_t usbhid_modifiers_keycodes[USB_HID_MOD_COUNT] = {
+//	KC_LCTRL,         /* USB_HID_MOD_LCTRL */
+//	KC_LSHIFT,        /* USB_HID_MOD_LSHIFT */
+//	KC_LALT,          /* USB_HID_MOD_LALT */
+//	0,                /* USB_HID_MOD_LGUI */
+//	KC_RCTRL,         /* USB_HID_MOD_RCTRL */
+//	KC_RSHIFT,        /* USB_HID_MOD_RSHIFT */
+//	KC_RALT,          /* USB_HID_MOD_RALT */
+//	0,                /* USB_HID_MOD_RGUI */
+//};
 
-typedef enum usbhid_lock_code {
-	USB_KBD_LOCK_NUM = 0x53,
-	USB_KBD_LOCK_CAPS = 0x39,
-	USB_KBD_LOCK_SCROLL = 0x47,
-	USB_KBD_LOCK_COUNT = 3
-} usbhid_lock_code;
+//typedef enum usbhid_lock_code {
+//	USB_KBD_LOCK_NUM = 0x53,
+//	USB_KBD_LOCK_CAPS = 0x39,
+//	USB_KBD_LOCK_SCROLL = 0x47,
+//	USB_KBD_LOCK_COUNT = 3
+//} usbhid_lock_code;
 
-static const usbhid_lock_code usbhid_lock_codes[USB_KBD_LOCK_COUNT] = {
-	USB_KBD_LOCK_NUM,
-	USB_KBD_LOCK_CAPS,
-	USB_KBD_LOCK_SCROLL
-};
+//static const usbhid_lock_code usbhid_lock_codes[USB_KBD_LOCK_COUNT] = {
+//	USB_KBD_LOCK_NUM,
+//	USB_KBD_LOCK_CAPS,
+//	USB_KBD_LOCK_SCROLL
+//};
 
 /*----------------------------------------------------------------------------*/
 /* IPC method handler                                                         */
@@ -708,7 +708,7 @@ static void usb_kbd_process_data(usb_hid_dev_t *hid_dev,
 		 *       that. One possible solution: distinguish between those
 		 *       two parts of the Report somehow.
 		 */
-		if( field->value != 0 ) {
+		if (field->value != 0) {
 			kbd_dev->keys[i] = field->usage;
 		}
 		else {
@@ -983,8 +983,25 @@ void usb_kbd_free(usb_kbd_t **kbd_dev)
 		free((*kbd_dev)->repeat_mtx);
 	}
 	
-	// free the output buffer
-	usb_hid_report_output_free((*kbd_dev)->output_buffer);
+	// free all buffers
+	if ((*kbd_dev)->keys != NULL) {
+		free((*kbd_dev)->keys);
+	}
+	if ((*kbd_dev)->keys_old != NULL) {
+		free((*kbd_dev)->keys_old);
+	}
+	if ((*kbd_dev)->led_data != NULL) {
+		free((*kbd_dev)->led_data);
+	}
+	if ((*kbd_dev)->output_buffer != NULL) {
+		free((*kbd_dev)->output_buffer);
+	}
+	if ((*kbd_dev)->led_path != NULL) {
+		usb_hid_report_path_free((*kbd_dev)->led_path);
+	}
+	if ((*kbd_dev)->output_buffer != NULL) {
+		usb_hid_report_output_free((*kbd_dev)->output_buffer);
+	}
 
 	free(*kbd_dev);
 	*kbd_dev = NULL;
@@ -1004,6 +1021,7 @@ void usb_kbd_deinit(usb_hid_dev_t *hid_dev)
 			usb_kbd_mark_unusable(kbd_dev);
 		} else {
 			usb_kbd_free(&kbd_dev);
+			hid_dev->data = NULL;
 		}
 	}
 }
