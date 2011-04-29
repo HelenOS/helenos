@@ -35,7 +35,6 @@ CONFIG_MAKEFILE = $(ROOT_PATH)/Makefile.config
 
 -include $(COMMON_MAKEFILE)
 -include $(CONFIG_MAKEFILE)
--include arch/$(UARCH)/Makefile.inc
 
 LINKER_SCRIPT = arch/$(UARCH)/_link.ld
 EXTRA_CLEAN = $(LINKER_SCRIPT)

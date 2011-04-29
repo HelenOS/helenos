@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2006 Sergey Bondari
  * Copyright (c) 2006 Jakub Jermar
- * Copyright (c) 2008 Jiri Svoboda
+ * Copyright (c) 2011 Jiri Svoboda
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -52,10 +52,10 @@
 #include <fcntl.h>
 #include <smc.h>
 #include <loader/pcb.h>
+#include <entry_point.h>
 
 #include "elf.h"
 #include "elf_load.h"
-#include "arch.h"
 
 #define DPRINTF(...)
 
@@ -135,7 +135,7 @@ int elf_load_file(const char *file_name, size_t so_bias, elf_info_t *info)
  */
 void elf_run(elf_info_t *info, pcb_t *pcb)
 {
-	program_run(info->entry, pcb);
+	entry_point_jmp(info->entry, pcb);
 
 	/* not reached */
 }

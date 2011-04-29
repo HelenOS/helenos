@@ -26,4 +26,18 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-ARCH_SOURCES = arch/$(UARCH)/abs32le.c
+.text
+.globl entry_point_jmp
+
+## void entry_point_jmp(void *entry_point, void *pcb);
+#
+# in0 (r32)	contains entry_point
+# in1 (r33)	contains pcb
+#
+# Jump to program entry point
+entry_point_jmp:
+	# Pass pcb to the entry point in r2
+
+	mov b6 = r32
+	mov r2 = r33 ;;
+	br b6 ;;

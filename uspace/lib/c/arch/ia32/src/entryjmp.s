@@ -26,4 +26,24 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-ARCH_SOURCES = arch/$(UARCH)/arm32.s
+.globl entry_point_jmp
+
+## void entry_point_jmp(void *entry_point, void *pcb);
+#
+# Jump to program entry point
+entry_point_jmp:
+	# Use standard ia32 prologue not to confuse anybody
+	push %ebp
+	movl %esp, %ebp
+
+	# %eax := entry_point
+	movl 0x8(%ebp), %eax
+
+	# %edi := pcb
+	# pcb is passed to the entry point in %edi
+	mov 0xc(%ebp), %edi
+
+	# Save a tiny bit of stack space
+	pop %ebp
+
+	jmp *%eax

@@ -26,18 +26,17 @@
 # THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
-.text
-.globl program_run
+.globl entry_point_jmp
 
-## void program_run(void *entry_point, void *pcb);
+## void entry_point_jmp(void *entry_point, void *pcb);
 #
-# in0 (r32)	contains entry_point
-# in1 (r33)	contains pcb
+# r0	contains entry_point
+# r1	contains pcb
 #
-# Jump to a program entry point
-program_run:
-	# Pass pcb to the entry point in r2
-
-	mov b6 = r32
-	mov r2 = r33 ;;
-	br b6 ;;
+# Jump to program entry point
+entry_point_jmp:
+	# load ras_page address to r2
+	ldr r2, =ras_page
+	ldr r2, [r2]
+	# pcb is passed to the entry point in r1 (where it already is)
+	mov r15, r0
