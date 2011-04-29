@@ -30,11 +30,8 @@
  * @{
  */
 
-#include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
 #include <fibril_synch.h>
-#include <errno.h>
 #include <align.h>
 #include "mfs.h"
 #include "mfs_utils.h"

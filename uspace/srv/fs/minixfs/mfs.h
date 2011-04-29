@@ -38,6 +38,11 @@
 #include <libblock.h>
 #include <libfs.h>
 #include <adt/list.h>
+#include <malloc.h>
+#include <mem.h>
+#include <stdio.h>
+#include <errno.h>
+#include <assert.h>
 #include "../../vfs/vfs.h"
 
 #define NAME		"mfs"

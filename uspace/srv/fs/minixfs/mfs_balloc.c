@@ -31,8 +31,6 @@
  */
 
 #include <stdlib.h>
-#include <assert.h>
-#include <errno.h>
 #include "mfs.h"
 #include "mfs_utils.h"
 
