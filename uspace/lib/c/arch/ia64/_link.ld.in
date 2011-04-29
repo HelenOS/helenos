@@ -21,7 +21,8 @@ SECTIONS {
 	. = . + 0x4000;
 	
 	.got : {
-		_gp = .;
+		/* Tell the linker where we expect GP to point. */
+		__gp = .;
 		*(.got .got.*);
 	} :data
 	

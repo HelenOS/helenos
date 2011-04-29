@@ -38,6 +38,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <macros.h>
+#include <malloc.h>
 #include "task.h"
 #include "ns.h"
 

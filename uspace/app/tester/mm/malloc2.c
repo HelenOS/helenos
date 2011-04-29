@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Martin Decky
+ * Copyright (c) 2011 Jakub Jermar 
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,42 +26,23 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup abs32le
- * @{
- */
-/** @file
- */
+#include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <malloc.h>
+#include "../tester.h"
 
-#ifndef KERN_abs32le_TYPES_H_
-#define KERN_abs32le_TYPES_H_
+const char *test_malloc2(void)
+{
+	int cnt = 0;
+	char *p;
 
-#define ATOMIC_COUNT_MIN  UINT32_MIN
-#define ATOMIC_COUNT_MAX  UINT32_MAX
+	TPRINTF("Provoking the kernel into overcommitting memory to us...\n");
+	while ((p = malloc(1024 * 1024))) {
+		TPRINTF("%dM ", ++cnt);
+		*p = 'A';
+	}
+	TPRINTF("\nWas refused more memory as expected.\n");
 
-typedef uint32_t size_t;
-typedef int32_t ssize_t;
-
-typedef uint32_t uintptr_t;
-typedef uint32_t pfn_t;
-
-typedef uint32_t ipl_t;
-
-typedef uint32_t sysarg_t;
-typedef int32_t native_t;
-typedef uint32_t atomic_count_t;
-
-typedef struct {
-} fncptr_t;
-
-#define INTN_C(c)   INT32_C(c)
-#define UINTN_C(c)  UINT32_C(c)
-
-#define PRIdn  PRId32  /**< Format for native_t. */
-#define PRIun  PRIu32  /**< Format for sysarg_t. */
-#define PRIxn  PRIx32  /**< Format for hexadecimal sysarg_t. */
-#define PRIua  PRIu32  /**< Format for atomic_count_t. */
-
-#endif
-
-/** @}
- */
+	return NULL;
+}

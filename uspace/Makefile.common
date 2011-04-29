@@ -186,7 +186,7 @@ else
 endif
 
 $(BINARY): $(LINKER_SCRIPT) $(OBJECTS) $(LIBS) $(BASE_LIBS)
-	$(LD) -N $(LFLAGS) -T $(LINKER_SCRIPT) -M -Map $(BINARY).map -o $(BINARY) $(OBJECTS) $(LIBS) $(BASE_LIBS)
+	$(LD) -n $(LFLAGS) -T $(LINKER_SCRIPT) -M -Map $(BINARY).map -o $(BINARY) $(OBJECTS) $(LIBS) $(BASE_LIBS)
 ifeq ($(CONFIG_STRIP_BINARIES),y)
 	$(STRIP) $(BINARY)
 endif

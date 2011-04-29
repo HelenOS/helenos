@@ -133,7 +133,7 @@ endif
 # AFLAGS and LFLAGS must be initialized before the inclusion.
 #
 AFLAGS =
-LFLAGS = -N -T $(LINK) -M
+LFLAGS = -n -T $(LINK) -M
 
 #
 # Mind the mutual ordering with the initialization of AFLAGS and LFLAGS.
@@ -227,6 +227,7 @@ GENERIC_SOURCES = \
 	generic/src/proc/the.c \
 	generic/src/syscall/syscall.c \
 	generic/src/syscall/copy.c \
+	generic/src/mm/reserve.c \
 	generic/src/mm/buddy.c \
 	generic/src/mm/frame.c \
 	generic/src/mm/page.c \

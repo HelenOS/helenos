@@ -29,6 +29,7 @@ SECTIONS {
 		QUAD(ktext_end - ktext_start);
 		hardcoded_kdata_size = .;
 		QUAD(kdata_end - kdata_start);
+		__gp = .;
 		*(.got .got.*)
 		*(.sdata)
 		*(.sbss)
