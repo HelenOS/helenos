@@ -295,7 +295,7 @@ void usb_mouse_deinit(usb_hid_dev_t *hid_dev)
 
 int usb_mouse_set_boot_protocol(usb_hid_dev_t *hid_dev)
 {
-	int rc = usb_hid_parse_report_descriptor(hid_dev->parser, 
+	int rc = usb_hid_parse_report_descriptor(hid_dev->report, 
 	    USB_MOUSE_BOOT_REPORT_DESCRIPTOR, 
 	    USB_MOUSE_BOOT_REPORT_DESCRIPTOR_SIZE);
 	

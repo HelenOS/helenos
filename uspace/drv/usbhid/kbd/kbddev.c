@@ -176,12 +176,12 @@ typedef enum usb_kbd_flags {
 
 /*----------------------------------------------------------------------------*/
 
-static void usb_kbd_process_keycodes(const uint8_t *key_codes, size_t count,
-    uint8_t report_id, void *arg);
+//static void usb_kbd_process_keycodes(const uint8_t *key_codes, size_t count,
+//    uint8_t report_id, void *arg);
 
-static const usb_hid_report_in_callbacks_t usb_kbd_parser_callbacks = {
-	.keyboard = usb_kbd_process_keycodes
-};
+//static const usb_hid_report_in_callbacks_t usb_kbd_parser_callbacks = {
+//	.keyboard = usb_kbd_process_keycodes
+//};
 
 /*----------------------------------------------------------------------------*/
 /* Keyboard layouts                                                           */
@@ -202,29 +202,29 @@ static int active_layout = 0;
 /* Modifier constants                                                         */
 /*----------------------------------------------------------------------------*/
 /** Mapping of USB modifier key codes to generic modifier key codes. */
-static const keycode_t usbhid_modifiers_keycodes[USB_HID_MOD_COUNT] = {
-	KC_LCTRL,         /* USB_HID_MOD_LCTRL */
-	KC_LSHIFT,        /* USB_HID_MOD_LSHIFT */
-	KC_LALT,          /* USB_HID_MOD_LALT */
-	0,                /* USB_HID_MOD_LGUI */
-	KC_RCTRL,         /* USB_HID_MOD_RCTRL */
-	KC_RSHIFT,        /* USB_HID_MOD_RSHIFT */
-	KC_RALT,          /* USB_HID_MOD_RALT */
-	0,                /* USB_HID_MOD_RGUI */
-};
+//static const keycode_t usbhid_modifiers_keycodes[USB_HID_MOD_COUNT] = {
+//	KC_LCTRL,         /* USB_HID_MOD_LCTRL */
+//	KC_LSHIFT,        /* USB_HID_MOD_LSHIFT */
+//	KC_LALT,          /* USB_HID_MOD_LALT */
+//	0,                /* USB_HID_MOD_LGUI */
+//	KC_RCTRL,         /* USB_HID_MOD_RCTRL */
+//	KC_RSHIFT,        /* USB_HID_MOD_RSHIFT */
+//	KC_RALT,          /* USB_HID_MOD_RALT */
+//	0,                /* USB_HID_MOD_RGUI */
+//};
 
-typedef enum usbhid_lock_code {
-	USB_KBD_LOCK_NUM = 0x53,
-	USB_KBD_LOCK_CAPS = 0x39,
-	USB_KBD_LOCK_SCROLL = 0x47,
-	USB_KBD_LOCK_COUNT = 3
-} usbhid_lock_code;
+//typedef enum usbhid_lock_code {
+//	USB_KBD_LOCK_NUM = 0x53,
+//	USB_KBD_LOCK_CAPS = 0x39,
+//	USB_KBD_LOCK_SCROLL = 0x47,
+//	USB_KBD_LOCK_COUNT = 3
+//} usbhid_lock_code;
 
-static const usbhid_lock_code usbhid_lock_codes[USB_KBD_LOCK_COUNT] = {
-	USB_KBD_LOCK_NUM,
-	USB_KBD_LOCK_CAPS,
-	USB_KBD_LOCK_SCROLL
-};
+//static const usbhid_lock_code usbhid_lock_codes[USB_KBD_LOCK_COUNT] = {
+//	USB_KBD_LOCK_NUM,
+//	USB_KBD_LOCK_CAPS,
+//	USB_KBD_LOCK_SCROLL
+//};
 
 /*----------------------------------------------------------------------------*/
 /* IPC method handler                                                         */
@@ -298,34 +298,41 @@ static void usb_kbd_set_led(usb_hid_dev_t *hid_dev, usb_kbd_t *kbd_dev)
 	if (kbd_dev->output_size == 0) {
 		return;
 	}
-	
-	unsigned i = 0;
-	
+		
 	/* Reset the LED data. */
 	memset(kbd_dev->led_data, 0, kbd_dev->led_output_size * sizeof(int32_t));
-	
-	if ((kbd_dev->mods & KM_NUM_LOCK) && (i < kbd_dev->led_output_size)) {
-		kbd_dev->led_data[i++] = USB_HID_LED_NUM_LOCK;
-	}
-	
-	if ((kbd_dev->mods & KM_CAPS_LOCK) && (i < kbd_dev->led_output_size)) {
-		kbd_dev->led_data[i++] = USB_HID_LED_CAPS_LOCK;
-	}
-	
-	if ((kbd_dev->mods & KM_SCROLL_LOCK) 
-	    && (i < kbd_dev->led_output_size)) {
-		kbd_dev->led_data[i++] = USB_HID_LED_SCROLL_LOCK;
-	}
+	usb_log_debug("Creating output report:\n");
 
-	// TODO: COMPOSE and KANA
+	usb_hid_report_field_t *field = usb_hid_report_get_sibling(
+	    hid_dev->report, NULL, kbd_dev->led_path, 
+	    USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY | USB_HID_PATH_COMPARE_END,
+	    USB_HID_REPORT_TYPE_OUTPUT);
 	
-	usb_log_debug("Creating output report.\n");
+	while (field != NULL) {
+
+		if ((field->usage == USB_HID_LED_NUM_LOCK) 
+		    && (kbd_dev->mods & KM_NUM_LOCK)){
+			field->value = 1;
+		}
+
+		if ((field->usage == USB_HID_LED_CAPS_LOCK) 
+		    && (kbd_dev->mods & KM_CAPS_LOCK)){
+			field->value = 1;
+		}
+
+		if ((field->usage == USB_HID_LED_SCROLL_LOCK) 
+		    && (kbd_dev->mods & KM_SCROLL_LOCK)){
+			field->value = 1;
+		}
+		
+		field = usb_hid_report_get_sibling(hid_dev->report, field,
+		    kbd_dev->led_path, USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY 
+		    | USB_HID_PATH_COMPARE_END, USB_HID_REPORT_TYPE_OUTPUT);
+	}
 	
-	int rc = usb_hid_report_output_translate(hid_dev->parser, 
-	    kbd_dev->led_path, 
-	    USB_HID_PATH_COMPARE_END | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY, 
-	    kbd_dev->output_buffer, 
-	    kbd_dev->output_size, kbd_dev->led_data, kbd_dev->led_output_size);
+	// TODO: what about the Report ID?
+	int rc = usb_hid_report_output_translate(hid_dev->report, 0,
+	    kbd_dev->output_buffer, kbd_dev->output_size);
 	
 	if (rc != EOK) {
 		usb_log_warning("Error translating LED output to output report"
@@ -484,7 +491,7 @@ static inline int usb_kbd_is_lock(unsigned int key_code)
  * @sa usb_kbd_push_ev(), usb_kbd_repeat_start(), usb_kbd_repeat_stop()
  */
 static void usb_kbd_check_key_changes(usb_hid_dev_t *hid_dev, 
-    usb_kbd_t *kbd_dev, const uint8_t *key_codes, size_t count)
+    usb_kbd_t *kbd_dev/*, const uint8_t *key_codes, size_t count*/)
 {
 	unsigned int key;
 	unsigned int i, j;
@@ -498,32 +505,29 @@ static void usb_kbd_check_key_changes(usb_hid_dev_t *hid_dev,
 	 * whole input report.
 	 */
 	i = 0;
-	while (i < count && key_codes[i] != ERROR_ROLLOVER) {
+	while (i < kbd_dev->key_count && kbd_dev->keys[i] != ERROR_ROLLOVER) {
 		++i;
 	}
-	if (i != count) {
+	if (i != kbd_dev->key_count) {
 		usb_log_debug("Phantom state occured.\n");
 		// phantom state, do nothing
 		return;
 	}
 	
-	/* TODO: quite dummy right now, think of better implementation */
-	assert(count == kbd_dev->key_count);
-	
 	/*
 	 * 1) Key releases
 	 */
-	for (j = 0; j < count; ++j) {
+	for (j = 0; j < kbd_dev->key_count; ++j) {
 		// try to find the old key in the new key list
 		i = 0;
 		while (i < kbd_dev->key_count
-		    && key_codes[i] != kbd_dev->keys[j]) {
+		    && kbd_dev->keys[i] != kbd_dev->keys_old[j]) {
 			++i;
 		}
 		
-		if (i == count) {
+		if (i == kbd_dev->key_count) {
 			// not found, i.e. the key was released
-			key = usbhid_parse_scancode(kbd_dev->keys[j]);
+			key = usbhid_parse_scancode(kbd_dev->keys_old[j]);
 			if (!usb_kbd_is_lock(key)) {
 				usb_kbd_repeat_stop(kbd_dev, key);
 			}
@@ -540,17 +544,17 @@ static void usb_kbd_check_key_changes(usb_hid_dev_t *hid_dev,
 	for (i = 0; i < kbd_dev->key_count; ++i) {
 		// try to find the new key in the old key list
 		j = 0;
-		while (j < count && kbd_dev->keys[j] != key_codes[i]) { 
+		while (j < kbd_dev->key_count 
+		    && kbd_dev->keys_old[j] != kbd_dev->keys[i]) { 
 			++j;
 		}
 		
-		if (j == count) {
+		if (j == kbd_dev->key_count) {
 			// not found, i.e. new key pressed
-			key = usbhid_parse_scancode(key_codes[i]);
+			key = usbhid_parse_scancode(kbd_dev->keys[i]);
 			usb_log_debug2("Key pressed: %d (keycode: %d)\n", key,
-			    key_codes[i]);
-			usb_kbd_push_ev(hid_dev, kbd_dev, KEY_PRESS, 
-			    key);
+			    kbd_dev->keys[i]);
+			usb_kbd_push_ev(hid_dev, kbd_dev, KEY_PRESS, key);
 			if (!usb_kbd_is_lock(key)) {
 				usb_kbd_repeat_start(kbd_dev, key);
 			}
@@ -559,10 +563,26 @@ static void usb_kbd_check_key_changes(usb_hid_dev_t *hid_dev,
 		}
 	}
 	
-	memcpy(kbd_dev->keys, key_codes, count);
-
-	usb_log_debug("New stored keycodes: %s\n", 
-	    usb_debug_str_buffer(kbd_dev->keys, kbd_dev->key_count, 0));
+//	usb_log_debug("Old keys: ");
+//	for (i = 0; i < kbd_dev->key_count; ++i) {
+//		usb_log_debug("%d ", kbd_dev->keys_old[i]);
+//	}
+//	usb_log_debug("\n");
+	
+	
+//	usb_log_debug("New keys: ");
+//	for (i = 0; i < kbd_dev->key_count; ++i) {
+//		usb_log_debug("%d ", kbd_dev->keys[i]);
+//	}
+//	usb_log_debug("\n");
+	
+	memcpy(kbd_dev->keys_old, kbd_dev->keys, kbd_dev->key_count * 4);
+	
+	usb_log_debug2("New stored keys: ");
+	for (i = 0; i < kbd_dev->key_count; ++i) {
+		usb_log_debug2("%d ", kbd_dev->keys_old[i]);
+	}
+	usb_log_debug2("\n");
 }
 
 /*----------------------------------------------------------------------------*/
@@ -584,36 +604,36 @@ static void usb_kbd_check_key_changes(usb_hid_dev_t *hid_dev,
  *
  * @sa usb_kbd_check_key_changes(), usb_kbd_check_modifier_changes()
  */
-static void usb_kbd_process_keycodes(const uint8_t *key_codes, size_t count,
-    uint8_t report_id, void *arg)
-{
-	if (arg == NULL) {
-		usb_log_warning("Missing argument in callback "
-		    "usbhid_process_keycodes().\n");
-		return;
-	}
+//static void usb_kbd_process_keycodes(const uint8_t *key_codes, size_t count,
+//    uint8_t report_id, void *arg)
+//{
+//	if (arg == NULL) {
+//		usb_log_warning("Missing argument in callback "
+//		    "usbhid_process_keycodes().\n");
+//		return;
+//	}
 	
-	usb_hid_dev_t *hid_dev = (usb_hid_dev_t *)arg;
+//	usb_hid_dev_t *hid_dev = (usb_hid_dev_t *)arg;
 	
-	if (hid_dev->data == NULL) {
-		usb_log_warning("Missing KBD device structure in callback.\n");
-		return;
-	}
+//	if (hid_dev->data == NULL) {
+//		usb_log_warning("Missing KBD device structure in callback.\n");
+//		return;
+//	}
 	
-	usb_kbd_t *kbd_dev = (usb_kbd_t *)hid_dev->data;
+//	usb_kbd_t *kbd_dev = (usb_kbd_t *)hid_dev->data;
 
-	usb_log_debug("Got keys from parser (report id: %u): %s\n", 
-	    report_id, usb_debug_str_buffer(key_codes, count, 0));
+//	usb_log_debug("Got keys from parser (report id: %u): %s\n", 
+//	    report_id, usb_debug_str_buffer(key_codes, count, 0));
 	
-	if (count != kbd_dev->key_count) {
-		usb_log_warning("Number of received keycodes (%zu) differs from"
-		    " expected (%zu).\n", count, kbd_dev->key_count);
-		return;
-	}
+//	if (count != kbd_dev->key_count) {
+//		usb_log_warning("Number of received keycodes (%zu) differs from"
+//		    " expected (%zu).\n", count, kbd_dev->key_count);
+//		return;
+//	}
 	
-	///usb_kbd_check_modifier_changes(kbd_dev, key_codes, count);
-	usb_kbd_check_key_changes(hid_dev, kbd_dev, key_codes, count);
-}
+//	///usb_kbd_check_modifier_changes(kbd_dev, key_codes, count);
+//	usb_kbd_check_key_changes(hid_dev, kbd_dev, key_codes, count);
+//}
 
 /*----------------------------------------------------------------------------*/
 /* General kbd functions                                                      */
@@ -637,7 +657,11 @@ static void usb_kbd_process_keycodes(const uint8_t *key_codes, size_t count,
 static void usb_kbd_process_data(usb_hid_dev_t *hid_dev,
                                  uint8_t *buffer, size_t actual_size)
 {
-	assert(hid_dev->parser != NULL);
+	assert(hid_dev->report != NULL);
+	assert(hid_dev != NULL);
+	assert(hid_dev->data != NULL);
+	
+	usb_kbd_t *kbd_dev = (usb_kbd_t *)hid_dev->data;
 
 	usb_log_debug("Calling usb_hid_parse_report() with "
 	    "buffer %s\n", usb_debug_str_buffer(buffer, actual_size, 0));
@@ -647,18 +671,61 @@ static void usb_kbd_process_data(usb_hid_dev_t *hid_dev,
 	usb_hid_report_path_t *path = usb_hid_report_path();
 	usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_KEYBOARD, 0);
 	//usb_hid_report_path_set_report_id(path, 0);
-	
-	int rc = usb_hid_parse_report(hid_dev->parser, buffer,
-	    actual_size, path, 
-	    USB_HID_PATH_COMPARE_END | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY, 
-	    &usb_kbd_parser_callbacks, hid_dev);
 
-	usb_hid_report_path_free(path);
+	uint8_t report_id;
+	int rc = usb_hid_parse_report(hid_dev->report, buffer, actual_size, 
+	    &report_id);
 	
 	if (rc != EOK) {
-		usb_log_warning("Error in usb_hid_boot_keyboard_input_report():"
+		usb_log_warning("Error in usb_hid_parse_report():"
 		    "%s\n", str_error(rc));
 	}
+	
+	usb_hid_report_path_set_report_id (path, report_id);
+	
+	// fill in the currently pressed keys
+	
+	usb_hid_report_field_t *field = usb_hid_report_get_sibling(
+	    hid_dev->report, NULL, path, 
+	    USB_HID_PATH_COMPARE_END | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY, 
+	    USB_HID_REPORT_TYPE_INPUT);
+	unsigned i = 0;
+	
+	while (field != NULL) {
+		usb_log_debug2("FIELD (%p) - VALUE(%d) USAGE(%u)\n", 
+		    field, field->value, field->usage);
+		
+		assert(i < kbd_dev->key_count);
+//		if (i == kbd_dev->key_count) {
+//			break;
+//		}
+		
+		// save the key usage
+		/* TODO: maybe it's not good to save value, nor usage
+		 *       as the value may be e.g. 1 for LEDs and usage may be
+		 *       value of the LED. On the other hand, in case of normal
+		 *       keys, the usage is more important and we must check
+		 *       that. One possible solution: distinguish between those
+		 *       two parts of the Report somehow.
+		 */
+		if (field->value != 0) {
+			kbd_dev->keys[i] = field->usage;
+		}
+		else {
+			kbd_dev->keys[i] = 0;
+		}
+		usb_log_debug2("Saved %u. key usage %d\n", i, kbd_dev->keys[i]);
+		
+		++i;
+		field = usb_hid_report_get_sibling(hid_dev->report, field, path, 
+		    USB_HID_PATH_COMPARE_END 
+		    | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY, 
+		    USB_HID_REPORT_TYPE_INPUT);
+	}
+	
+	usb_hid_report_path_free(path);
+	
+	usb_kbd_check_key_changes(hid_dev, kbd_dev);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -746,16 +813,26 @@ int usb_kbd_init(usb_hid_dev_t *hid_dev)
 	usb_hid_report_path_set_report_id(path, 0);
 	
 	kbd_dev->key_count = usb_hid_report_input_length(
-	    hid_dev->parser, path, 
+	    hid_dev->report, path, 
 	    USB_HID_PATH_COMPARE_END | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY);
 	usb_hid_report_path_free(path);
 	
 	usb_log_debug("Size of the input report: %zu\n", kbd_dev->key_count);
 	
-	kbd_dev->keys = (uint8_t *)calloc(kbd_dev->key_count, sizeof(uint8_t));
+	kbd_dev->keys = (int32_t *)calloc(kbd_dev->key_count, sizeof(int32_t));
 	
 	if (kbd_dev->keys == NULL) {
 		usb_log_fatal("No memory!\n");
+		free(kbd_dev);
+		return ENOMEM;
+	}
+	
+	kbd_dev->keys_old = 
+		(int32_t *)calloc(kbd_dev->key_count, sizeof(int32_t));
+	
+	if (kbd_dev->keys_old == NULL) {
+		usb_log_fatal("No memory!\n");
+		free(kbd_dev->keys);
 		free(kbd_dev);
 		return ENOMEM;
 	}
@@ -764,13 +841,12 @@ int usb_kbd_init(usb_hid_dev_t *hid_dev)
 	 * Output report
 	 */
 	kbd_dev->output_size = 0;
-	kbd_dev->output_buffer = usb_hid_report_output(hid_dev->parser, 
-	    &kbd_dev->output_size);
-	if (kbd_dev->output_buffer == NULL && kbd_dev->output_size != 0) {
+	kbd_dev->output_buffer = usb_hid_report_output(hid_dev->report, 
+	    &kbd_dev->output_size, 0);
+	if (kbd_dev->output_buffer == NULL) {
 		usb_log_warning("Error creating output report buffer.\n");
 		free(kbd_dev->keys);
-		free(kbd_dev);
-		return ENOMEM;
+		return ENOMEM;  /* TODO: other error code */
 	}
 	
 	usb_log_debug("Output buffer size: %zu\n", kbd_dev->output_size);
@@ -779,7 +855,7 @@ int usb_kbd_init(usb_hid_dev_t *hid_dev)
 	usb_hid_report_path_append_item(
 	    kbd_dev->led_path, USB_HIDUT_PAGE_LED, 0);
 	
-	kbd_dev->led_output_size = usb_hid_report_output_size(hid_dev->parser, 
+	kbd_dev->led_output_size = usb_hid_report_output_size(hid_dev->report, 
 	    kbd_dev->led_path, 
 	    USB_HID_PATH_COMPARE_END | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY);
 	
@@ -907,8 +983,25 @@ void usb_kbd_free(usb_kbd_t **kbd_dev)
 		free((*kbd_dev)->repeat_mtx);
 	}
 	
-	// free the output buffer
-	usb_hid_report_output_free((*kbd_dev)->output_buffer);
+	// free all buffers
+	if ((*kbd_dev)->keys != NULL) {
+		free((*kbd_dev)->keys);
+	}
+	if ((*kbd_dev)->keys_old != NULL) {
+		free((*kbd_dev)->keys_old);
+	}
+	if ((*kbd_dev)->led_data != NULL) {
+		free((*kbd_dev)->led_data);
+	}
+	if ((*kbd_dev)->output_buffer != NULL) {
+		free((*kbd_dev)->output_buffer);
+	}
+	if ((*kbd_dev)->led_path != NULL) {
+		usb_hid_report_path_free((*kbd_dev)->led_path);
+	}
+	if ((*kbd_dev)->output_buffer != NULL) {
+		usb_hid_report_output_free((*kbd_dev)->output_buffer);
+	}
 
 	free(*kbd_dev);
 	*kbd_dev = NULL;
@@ -928,6 +1021,7 @@ void usb_kbd_deinit(usb_hid_dev_t *hid_dev)
 			usb_kbd_mark_unusable(kbd_dev);
 		} else {
 			usb_kbd_free(&kbd_dev);
+			hid_dev->data = NULL;
 		}
 	}
 }
@@ -936,7 +1030,7 @@ void usb_kbd_deinit(usb_hid_dev_t *hid_dev)
 
 int usb_kbd_set_boot_protocol(usb_hid_dev_t *hid_dev)
 {
-	int rc = usb_hid_parse_report_descriptor(hid_dev->parser, 
+	int rc = usb_hid_parse_report_descriptor(hid_dev->report, 
 	    USB_KBD_BOOT_REPORT_DESCRIPTOR, 
 	    USB_KBD_BOOT_REPORT_DESCRIPTOR_SIZE);
 	

@@ -39,15 +39,51 @@
 #include <usb/devdrv.h>
 
 struct usb_hid_dev;
-//struct usb_hid_subdriver_mapping;
+
+/*----------------------------------------------------------------------------*/
+/**
+ * USB/HID keyboard device type.
+ *
+ * Holds a reference to generic USB/HID device structure and keyboard-specific
+ * data, such as currently pressed keys, modifiers and lock keys.
+ *
+ * Also holds a IPC phone to the console (since there is now no other way to 
+ * communicate with it).
+ *
+ * @note Storing active lock keys in this structure results in their setting
+ *       being device-specific.
+ */
+typedef struct usb_lgtch_ultrax_t {
+	/** Previously pressed keys (not translated to key codes). */
+	int32_t *keys_old;
+	/** Currently pressed keys (not translated to key codes). */
+	int32_t *keys;
+	/** Count of stored keys (i.e. number of keys in the report). */
+	size_t key_count;
+	
+	/** IPC phone to the console device (for sending key events). */
+	int console_phone;
+
+	/** Information for auto-repeat of keys. */
+//	usb_kbd_repeat_t repeat;
+	
+	/** Mutex for accessing the information about auto-repeat. */
+//	fibril_mutex_t *repeat_mtx;
+
+	/** State of the structure (for checking before use). 
+	 * 
+	 * 0 - not initialized
+	 * 1 - initialized
+	 * -1 - ready for destroying
+	 */
+	int initialized;
+} usb_lgtch_ultrax_t;
 
 /*----------------------------------------------------------------------------*/
 
-//extern struct usb_hid_subdriver_mapping usb_lgtch_mapping;
+int usb_lgtch_init(struct usb_hid_dev *hid_dev);
 
-/*----------------------------------------------------------------------------*/
-
-//int usb_lgtch_init(struct usb_hid_dev *hid_dev);
+void usb_lgtch_deinit(struct usb_hid_dev *hid_dev);
 
 bool usb_lgtch_polling_callback(struct usb_hid_dev *hid_dev, uint8_t *buffer,
     size_t buffer_size);
