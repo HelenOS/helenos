@@ -1,5 +1,4 @@
 /*
-g
  * Copyright (c) 2011 Maurizio Lombardi
  * All rights reserved.
  *
