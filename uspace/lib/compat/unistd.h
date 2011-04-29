@@ -41,5 +41,9 @@ extern int isatty(int fd);
 
 #define getpid task_get_id
 
+#define STDIN_FILENO (fileno(stdin))
+#define STDOUT_FILENO (fileno(stdout))
+#define STDERR_FILENO (fileno(stderr))
+
 #endif /* COMPAT_UNISTD_H */
 
