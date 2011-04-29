@@ -37,32 +37,302 @@
 
 #include "lgtch-ultrax.h"
 #include "../usbhid.h"
+#include "keymap.h"
 
 #include <usb/classes/hidparser.h>
 #include <usb/debug.h>
+#include <usb/classes/hidut.h>
+
 #include <errno.h>
 #include <str_error.h>
 
+#include <ipc/kbd.h>
+#include <io/console.h>
+
 #define NAME "lgtch-ultrax"
+
+typedef enum usb_lgtch_flags {
+	USB_LGTCH_STATUS_UNINITIALIZED = 0,
+	USB_LGTCH_STATUS_INITIALIZED = 1,
+	USB_LGTCH_STATUS_TO_DESTROY = -1
+} usb_lgtch_flags;
+
+
+/*----------------------------------------------------------------------------*/
+/** 
+ * Default handler for IPC methods not handled by DDF.
+ *
+ * Currently recognizes only one method (IPC_M_CONNECT_TO_ME), in which case it
+ * assumes the caller is the console and thus it stores IPC phone to it for 
+ * later use by the driver to notify about key events.
+ *
+ * @param fun Device function handling the call.
+ * @param icallid Call id.
+ * @param icall Call data.
+ */
+static void default_connection_handler(ddf_fun_t *fun,
+    ipc_callid_t icallid, ipc_call_t *icall)
+{
+	usb_log_debug(NAME " default_connection_handler()\n");
+	
+	sysarg_t method = IPC_GET_IMETHOD(*icall);
+	
+	usb_hid_dev_t *hid_dev = (usb_hid_dev_t *)fun->driver_data;
+	
+	if (hid_dev == NULL || hid_dev->data == NULL) {
+		async_answer_0(icallid, EINVAL);
+		return;
+	}
+	
+	assert(hid_dev != NULL);
+	assert(hid_dev->data != NULL);
+	usb_lgtch_ultrax_t *lgtch_dev = (usb_lgtch_ultrax_t *)hid_dev->data;
+
+	if (method == IPC_M_CONNECT_TO_ME) {
+		int callback = IPC_GET_ARG5(*icall);
+
+		if (lgtch_dev->console_phone != -1) {
+			async_answer_0(icallid, ELIMIT);
+			return;
+		}
+
+		lgtch_dev->console_phone = callback;
+		usb_log_debug(NAME " Saved phone to console: %d\n", callback);
+		async_answer_0(icallid, EOK);
+		return;
+	}
+	
+	async_answer_0(icallid, EINVAL);
+}
 
 /*----------------------------------------------------------------------------*/
 
-static void usb_lgtch_process_keycodes(const uint8_t *key_codes, size_t count,
-    uint8_t report_id, void *arg);
-
-static const usb_hid_report_in_callbacks_t usb_lgtch_parser_callbacks = {
-	.keyboard = usb_lgtch_process_keycodes
+static ddf_dev_ops_t lgtch_ultrax_ops = {
+	.default_handler = default_connection_handler
 };
 
 /*----------------------------------------------------------------------------*/
 
-static void usb_lgtch_process_keycodes(const uint8_t *key_codes, size_t count,
-    uint8_t report_id, void *arg)
-{
-	// TODO: checks
+//static void usb_lgtch_process_keycodes(const uint8_t *key_codes, size_t count,
+//    uint8_t report_id, void *arg);
+
+//static const usb_hid_report_in_callbacks_t usb_lgtch_parser_callbacks = {
+//	.keyboard = usb_lgtch_process_keycodes
+//};
+
+///*----------------------------------------------------------------------------*/
+
+//static void usb_lgtch_process_keycodes(const uint8_t *key_codes, size_t count,
+//    uint8_t report_id, void *arg)
+//{
+//	// TODO: checks
 	
-	usb_log_debug(NAME " Got keys from parser (report id: %u): %s\n", 
-	    report_id, usb_debug_str_buffer(key_codes, count, 0));
+//	usb_log_debug(NAME " Got keys from parser (report id: %u): %s\n", 
+//	    report_id, usb_debug_str_buffer(key_codes, count, 0));
+//}
+
+/*----------------------------------------------------------------------------*/
+/**
+ * Processes key events.
+ *
+ * @note This function was copied from AT keyboard driver and modified to suit
+ *       USB keyboard.
+ *
+ * @note Lock keys are not sent to the console, as they are completely handled
+ *       in the driver. It may, however, be required later that the driver
+ *       sends also these keys to application (otherwise it cannot use those
+ *       keys at all).
+ * 
+ * @param hid_dev 
+ * @param lgtch_dev 
+ * @param type Type of the event (press / release). Recognized values: 
+ *             KEY_PRESS, KEY_RELEASE
+ * @param key Key code of the key according to HID Usage Tables.
+ */
+static void usb_lgtch_push_ev(usb_hid_dev_t *hid_dev, int type, 
+    unsigned int key)
+{
+	assert(hid_dev != NULL);
+	assert(hid_dev->data != NULL);
+	
+	usb_lgtch_ultrax_t *lgtch_dev = (usb_lgtch_ultrax_t *)hid_dev->data;
+	
+	console_event_t ev;
+	
+	ev.type = type;
+	ev.key = key;
+	ev.mods = 0;
+
+	ev.c = 0;
+
+	usb_log_debug2(NAME " Sending key %d to the console\n", ev.key);
+	if (lgtch_dev->console_phone < 0) {
+		usb_log_warning(
+		    "Connection to console not ready, key discarded.\n");
+		return;
+	}
+	
+	async_msg_4(lgtch_dev->console_phone, KBD_EVENT, ev.type, ev.key, 
+	    ev.mods, ev.c);
+}
+
+/*----------------------------------------------------------------------------*/
+
+static void usb_lgtch_free(usb_lgtch_ultrax_t **lgtch_dev)
+{
+	if (lgtch_dev == NULL || *lgtch_dev == NULL) {
+		return;
+	}
+	
+	// hangup phone to the console
+	async_hangup((*lgtch_dev)->console_phone);
+	
+//	if ((*lgtch_dev)->repeat_mtx != NULL) {
+//		/* TODO: replace by some check and wait */
+//		assert(!fibril_mutex_is_locked((*lgtch_dev)->repeat_mtx));
+//		free((*lgtch_dev)->repeat_mtx);
+//	}
+	
+	// free all buffers
+	if ((*lgtch_dev)->keys != NULL) {
+		free((*lgtch_dev)->keys);
+	}
+	if ((*lgtch_dev)->keys_old != NULL) {
+		free((*lgtch_dev)->keys_old);
+	}
+
+	free(*lgtch_dev);
+	*lgtch_dev = NULL;
+}
+
+/*----------------------------------------------------------------------------*/
+
+int usb_lgtch_init(struct usb_hid_dev *hid_dev)
+{
+	if (hid_dev == NULL || hid_dev->usb_dev == NULL) {
+		return EINVAL; /*! @todo Other return code? */
+	}
+	
+	usb_log_debug(NAME " Initializing HID/lgtch_ultrax structure...\n");
+	
+	usb_lgtch_ultrax_t *lgtch_dev = (usb_lgtch_ultrax_t *)malloc(
+	    sizeof(usb_lgtch_ultrax_t));
+	if (lgtch_dev == NULL) {
+		return ENOMEM;
+	}
+	
+	lgtch_dev->console_phone = -1;
+	
+	usb_hid_report_path_t *path = usb_hid_report_path();
+	usb_hid_report_path_append_item(path, USB_HIDUT_PAGE_CONSUMER, 0);
+	
+	usb_hid_report_path_set_report_id(path, 1);
+	
+	lgtch_dev->key_count = usb_hid_report_input_length(
+	    hid_dev->report, path, 
+	    USB_HID_PATH_COMPARE_END | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY);
+	usb_hid_report_path_free(path);
+	
+	usb_log_debug(NAME " Size of the input report: %zu\n", 
+	    lgtch_dev->key_count);
+	
+	lgtch_dev->keys = (int32_t *)calloc(lgtch_dev->key_count, 
+	    sizeof(int32_t));
+	
+	if (lgtch_dev->keys == NULL) {
+		usb_log_fatal("No memory!\n");
+		free(lgtch_dev);
+		return ENOMEM;
+	}
+	
+	lgtch_dev->keys_old = 
+		(int32_t *)calloc(lgtch_dev->key_count, sizeof(int32_t));
+	
+	if (lgtch_dev->keys_old == NULL) {
+		usb_log_fatal("No memory!\n");
+		free(lgtch_dev->keys);
+		free(lgtch_dev);
+		return ENOMEM;
+	}
+	
+	/*! @todo Autorepeat */
+	
+	// save the KBD device structure into the HID device structure
+	hid_dev->data = lgtch_dev;
+	
+	/* Create the function exposed under /dev/devices. */
+	ddf_fun_t *fun = ddf_fun_create(hid_dev->usb_dev->ddf_dev, fun_exposed, 
+	    NAME);
+	if (fun == NULL) {
+		usb_log_error("Could not create DDF function node.\n");
+		return ENOMEM;
+	}
+	
+	lgtch_dev->initialized = USB_LGTCH_STATUS_INITIALIZED;
+	usb_log_debug(NAME " HID/lgtch_ultrax device structure initialized.\n");
+	
+	/*
+	 * Store the initialized HID device and HID ops
+	 * to the DDF function.
+	 */
+	fun->ops = &lgtch_ultrax_ops;
+	fun->driver_data = hid_dev;   // TODO: maybe change to hid_dev->data
+	
+	/*
+	 * 1) subdriver vytvori vlastnu ddf_fun, vlastne ddf_dev_ops, ktore da
+	 *    do nej.
+	 * 2) do tych ops do .interfaces[DEV_IFACE_USBHID (asi)] priradi 
+	 *    vyplnenu strukturu usbhid_iface_t.
+	 * 3) klientska aplikacia - musi si rucne vytvorit telefon
+	 *    (devman_device_connect() - cesta k zariadeniu (/hw/pci0/...) az 
+	 *    k tej fcii.
+	 *    pouzit usb/classes/hid/iface.h - prvy int je telefon
+	 */
+
+	int rc = ddf_fun_bind(fun);
+	if (rc != EOK) {
+		usb_log_error("Could not bind DDF function: %s.\n",
+		    str_error(rc));
+		// TODO: Can / should I destroy the DDF function?
+		ddf_fun_destroy(fun);
+		usb_lgtch_free(&lgtch_dev);
+		return rc;
+	}
+	
+	rc = ddf_fun_add_to_class(fun, "keyboard");
+	if (rc != EOK) {
+		usb_log_error(
+		    "Could not add DDF function to class 'keyboard': %s.\n",
+		    str_error(rc));
+		// TODO: Can / should I destroy the DDF function?
+		ddf_fun_destroy(fun);
+		usb_lgtch_free(&lgtch_dev);
+		return rc;
+	}
+	
+	usb_log_debug(NAME " HID/lgtch_ultrax structure initialized.\n");
+	
+	return EOK;
+}
+
+/*----------------------------------------------------------------------------*/
+
+void usb_lgtch_deinit(struct usb_hid_dev *hid_dev)
+{
+	if (hid_dev == NULL) {
+		return;
+	}
+	
+	if (hid_dev->data != NULL) {
+		usb_lgtch_ultrax_t *lgtch_dev = 
+		    (usb_lgtch_ultrax_t *)hid_dev->data;
+//		if (usb_kbd_is_initialized(kbd_dev)) {
+//			usb_kbd_mark_unusable(kbd_dev);
+//		} else {
+			usb_lgtch_free(&lgtch_dev);
+			hid_dev->data = NULL;
+//		}
+	}
 }
 
 /*----------------------------------------------------------------------------*/
@@ -80,17 +350,40 @@ bool usb_lgtch_polling_callback(struct usb_hid_dev *hid_dev,
 	
 	usb_hid_report_path_t *path = usb_hid_report_path();
 	usb_hid_report_path_append_item(path, 0xc, 0);
-	usb_hid_report_path_set_report_id(path, 1);
+
+	uint8_t report_id;
 	
-	int rc = usb_hid_parse_report(hid_dev->parser, buffer,
-	    buffer_size, path, 
-	    USB_HID_PATH_COMPARE_END | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY, 
-	    &usb_lgtch_parser_callbacks, hid_dev);
+	int rc = usb_hid_parse_report(hid_dev->report, buffer, buffer_size, 
+	    &report_id);
+	usb_hid_report_path_set_report_id(path, report_id);
+
+	usb_hid_report_field_t *field = usb_hid_report_get_sibling(
+	    hid_dev->report, NULL, path, USB_HID_PATH_COMPARE_END 
+	    | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY, 
+	    USB_HID_REPORT_TYPE_INPUT);
+	
+	unsigned int key;
+	
+	/*! @todo Is this iterating OK if done multiple times? 
+	 *  @todo The parsing is not OK
+	 */
+	while (field != NULL) {
+		usb_log_debug(NAME " KEY VALUE(%X) USAGE(%X)\n", field->value, 
+		    field->usage);
+		
+		key = usb_lgtch_map_usage(field->usage);
+		usb_lgtch_push_ev(hid_dev, KEY_PRESS, key);
+		
+		field = usb_hid_report_get_sibling(
+		    hid_dev->report, field, path, USB_HID_PATH_COMPARE_END
+		    | USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY, 
+		    USB_HID_REPORT_TYPE_INPUT);
+	}	
 
 	usb_hid_report_path_free(path);
 	
 	if (rc != EOK) {
-		usb_log_warning("Error in usb_hid_boot_keyboard_input_report():"
+		usb_log_warning(NAME "Error in usb_hid_boot_keyboard_input_report():"
 		    "%s\n", str_error(rc));
 	}
 	

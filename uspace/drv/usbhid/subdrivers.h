@@ -55,8 +55,8 @@ typedef struct usb_hid_subdriver_mapping {
 	const usb_hid_subdriver_usage_t *usage_path;
 	int report_id;
 	int compare;
-	uint16_t vendor_id;
-	uint16_t product_id;
+	int vendor_id;
+	int product_id;
 	usb_hid_subdriver_t subdriver;
 } usb_hid_subdriver_mapping_t;
 

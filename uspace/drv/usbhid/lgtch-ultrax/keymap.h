@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010 Vojtech Horky
+ * Copyright (c) 2011 Lubos Slovak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,45 +26,20 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/** @addtogroup libusb
+/** @addtogroup drvusbhid
  * @{
  */
 /** @file
- * @brief USB HID Usage Tables.
+ * USB multimedia key to keycode mapping.
  */
-#ifndef LIBUSB_HIDUT_H_
-#define LIBUSB_HIDUT_H_
 
-/** USB/HID Usage Pages. */
-typedef enum {
-	USB_HIDUT_PAGE_GENERIC_DESKTOP = 1,
-	USB_HIDUT_PAGE_SIMULATION = 2,
-	USB_HIDUT_PAGE_VR = 3,
-	USB_HIDUT_PAGE_SPORT = 4,
-	USB_HIDUT_PAGE_GAME = 5,
-	USB_HIDUT_PAGE_GENERIC_DEVICE = 6,
-	USB_HIDUT_PAGE_KEYBOARD = 7,
-	USB_HIDUT_PAGE_LED = 8,
-	USB_HIDUT_PAGE_BUTTON = 9,
-	USB_HIDUT_PAGE_ORDINAL = 0x0a,
-	USB_HIDUT_PAGE_TELEPHONY_DEVICE = 0x0b,
-	USB_HIDUT_PAGE_CONSUMER = 0x0c
-} usb_hidut_usage_page_t;
+#ifndef USB_HID_LGTCH_ULTRAX_KEYMAP_H_
+#define USB_HID_LGTCH_ULTRAX_KEYMAP_H_
 
-/** Usages for Generic Desktop Page. */
-typedef enum {
-	USB_HIDUT_USAGE_GENERIC_DESKTOP_POINTER = 1,
-	USB_HIDUT_USAGE_GENERIC_DESKTOP_MOUSE = 2,
-	USB_HIDUT_USAGE_GENERIC_DESKTOP_JOYSTICK = 4,
-	USB_HIDUT_USAGE_GENERIC_DESKTOP_GAMEPAD = 5,
-	USB_HIDUT_USAGE_GENERIC_DESKTOP_KEYBOARD = 6,
-	USB_HIDUT_USAGE_GENERIC_DESKTOP_KEYPAD = 7
-	/* USB_HIDUT_USAGE_GENERIC_DESKTOP_ = , */
-	
-} usb_hidut_usage_generic_desktop_t;
+unsigned int usb_lgtch_map_usage(int usage);
 
+#endif /* USB_HID_LGTCH_ULTRAX_KEYMAP_H_ */
 
-#endif
 /**
  * @}
  */
