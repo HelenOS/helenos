@@ -30,56 +30,15 @@
  * @{
  */
 /** @file
- * USB HID subdriver mappings.
+ * USB multimedia key to keycode mapping.
  */
 
-#include "subdrivers.h"
-#include "usb/classes/hidut.h"
+#ifndef USB_HID_LGTCH_ULTRAX_KEYMAP_H_
+#define USB_HID_LGTCH_ULTRAX_KEYMAP_H_
 
-#include "lgtch-ultrax/lgtch-ultrax.h"
+unsigned int usb_lgtch_map_usage(int usage);
 
-static usb_hid_subdriver_usage_t path_kbd[] = {
-	{USB_HIDUT_PAGE_KEYBOARD, 0}, 
-	{0, 0}
-};
-
-static usb_hid_subdriver_usage_t lgtch_path[] = {
-	{0xc, 0},
-	{0, 0}
-};
-
-const usb_hid_subdriver_mapping_t usb_hid_subdrivers[] = {
-	{
-		path_kbd,
-		-1,
-		USB_HID_PATH_COMPARE_END 
-		| USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY,
-		-1,
-		-1,
-		{
-			.init = usb_kbd_init,
-			.deinit = usb_kbd_deinit,
-			.poll = usb_kbd_polling_callback,
-			.poll_end = NULL
-		},
-		
-	},
-	{
-		lgtch_path,
-		1,
-		USB_HID_PATH_COMPARE_END 
-		| USB_HID_PATH_COMPARE_USAGE_PAGE_ONLY,
-		0x046d,
-		0xc30e,
-		{
-			.init = usb_lgtch_init,
-			.deinit = usb_lgtch_deinit,
-			.poll = usb_lgtch_polling_callback,
-			.poll_end = NULL
-		}
-	},
-	{NULL, -1, 0, -1, -1, {NULL, NULL, NULL, NULL}}
-};
+#endif /* USB_HID_LGTCH_ULTRAX_KEYMAP_H_ */
 
 /**
  * @}
