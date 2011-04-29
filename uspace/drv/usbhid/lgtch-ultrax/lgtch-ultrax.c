@@ -355,6 +355,13 @@ bool usb_lgtch_polling_callback(struct usb_hid_dev *hid_dev,
 	
 	int rc = usb_hid_parse_report(hid_dev->report, buffer, buffer_size, 
 	    &report_id);
+	
+	if (rc != EOK) {
+		usb_log_warning(NAME "Error in usb_hid_parse_report(): %s\n", 
+		    str_error(rc));
+		return true;
+	}
+	
 	usb_hid_report_path_set_report_id(path, report_id);
 
 	usb_hid_report_field_t *field = usb_hid_report_get_sibling(
@@ -381,11 +388,6 @@ bool usb_lgtch_polling_callback(struct usb_hid_dev *hid_dev,
 	}	
 
 	usb_hid_report_path_free(path);
-	
-	if (rc != EOK) {
-		usb_log_warning(NAME "Error in usb_hid_boot_keyboard_input_report():"
-		    "%s\n", str_error(rc));
-	}
 	
 	return true;
 }
